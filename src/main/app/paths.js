@@ -8,7 +8,7 @@ class AppPaths extends EnvPaths {
    *
    * @param {[string]} userDataPath The user data path or null.
    */
-  constructor (userDataPath = '') {
+  constructor(userDataPath = '') {
     if (!userDataPath) {
       // Use default user data path.
       userDataPath = app.getPath('userData')
@@ -22,7 +22,7 @@ class AppPaths extends EnvPaths {
   }
 }
 
-export const ensureAppDirectoriesSync = paths => {
+export const ensureAppDirectoriesSync = (paths) => {
   ensureDirSync(paths.userDataPath)
   ensureDirSync(paths.logPath)
   // TODO(sessions): enable this...

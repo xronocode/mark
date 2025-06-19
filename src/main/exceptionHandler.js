@@ -16,7 +16,7 @@ const SHOW_ERROR_DIALOG = !process.env.MARKTEXT_ERROR_INTERACTION
 const ERROR_MSG_MAIN = 'An unexpected error occurred in the main process'
 const ERROR_MSG_RENDERER = 'An unexpected error occurred in the renderer process'
 
-let logger = s => console.error(s)
+let logger = (s) => console.error(s)
 
 const getOSInformation = () => {
   return `${os.type()} ${os.arch()} ${os.release()} (${os.platform()})`
@@ -24,12 +24,14 @@ const getOSInformation = () => {
 
 const exceptionToString = (error, type) => {
   const { message, stack } = error
-  return `Version: ${global.MARKTEXT_VERSION_STRING || app.getVersion()}\n` +
+  return (
+    `Version: ${global.MARKTEXT_VERSION_STRING || app.getVersion()}\n` +
     `OS: ${getOSInformation()}\n` +
     `Type: ${type}\n` +
     `Date: ${new Date().toUTCString()}\n` +
     `Message: ${message}\n` +
     `Stack: ${stack}\n`
+  )
 }
 
 const handleError = async (title, error, type) => {
@@ -41,10 +43,12 @@ const handleError = async (title, error, type) => {
   }
 
   if (EXIT_ON_ERROR) {
-    console.log('MarkText was terminated due to an unexpected error (MARKTEXT_EXIT_ON_ERROR variable was set)!')
+    console.log(
+      'MarkText was terminated due to an unexpected error (MARKTEXT_EXIT_ON_ERROR variable was set)!'
+    )
     process.exit(1)
     // eslint, don't lie to me, the return statement is important!
-    return // eslint-disable-line no-unreachable
+    return
   } else if (!SHOW_ERROR_DIALOG || (global.MARKTEXT_IS_STABLE && type === 'renderer')) {
     return
   }
@@ -54,11 +58,7 @@ const handleError = async (title, error, type) => {
     // Blocking message box
     const { response } = await dialog.showMessageBox({
       type: 'error',
-      buttons: [
-        'OK',
-        'Copy Error',
-        'Report...'
-      ],
+      buttons: ['OK', 'Copy Error', 'Report...'],
       defaultId: 0,
       noLink: true,
       message: title,
@@ -87,7 +87,8 @@ ${title}.
 ### Version
 
 MarkText: ${global.MARKTEXT_VERSION_STRING}
-Operating system: ${getOSInformation()}`)
+Operating system: ${getOSInformation()}`
+        )
         break
       }
     }
@@ -100,7 +101,7 @@ Operating system: ${getOSInformation()}`)
 
 const setupExceptionHandler = () => {
   // main process error handler
-  process.on('uncaughtException', error => {
+  process.on('uncaughtException', (error) => {
     handleError(ERROR_MSG_MAIN, error, 'main')
   })
 

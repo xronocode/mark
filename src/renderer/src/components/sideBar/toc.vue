@@ -1,0 +1,87 @@
+<template>
+  <div
+    class="side-bar-toc"
+    :class="[{ 'side-bar-toc-overflow': !wordWrapInToc, 'side-bar-toc-wordwrap': wordWrapInToc }]"
+  >
+    <div class="title">Table Of Contents</div>
+    <el-tree
+      v-if="toc.length"
+      :data="toc"
+      :default-expand-all="true"
+      :props="defaultProps"
+      :expand-on-click-node="false"
+      :indent="10"
+      @node-click="handleClick"
+    ></el-tree>
+  </div>
+</template>
+
+<script setup>
+import { useEditorStore } from '@/store/editor'
+import { usePreferencesStore } from '@/store/preferences'
+import bus from '../../bus'
+import { storeToRefs } from 'pinia'
+
+const editorStore = useEditorStore()
+const preferencesStore = usePreferencesStore()
+
+const defaultProps = {
+  children: 'children',
+  label: 'label'
+}
+
+const { toc } = storeToRefs(editorStore)
+const { wordWrapInToc } = storeToRefs(preferencesStore)
+
+const handleClick = ({ slug }) => {
+  bus.emit('scroll-to-header', slug)
+}
+</script>
+
+<style>
+.side-bar-toc {
+  height: calc(100% - 35px);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  & .title {
+    color: var(--sideBarTitleColor);
+    font-weight: 600;
+    font-size: 16px;
+    margin: 37px 0 10px 0;
+    padding-left: 25px;
+  }
+  & .el-tree-node {
+    margin-top: 8px;
+  }
+  & .el-tree {
+    background: transparent;
+    color: var(--sideBarColor);
+  }
+  & .el-tree-node:focus > .el-tree-node__content {
+    background-color: var(--sideBarItemHoverBgColor);
+  }
+  & .el-tree-node__content:hover {
+    background: var(--sideBarItemHoverBgColor);
+  }
+  & > li {
+    font-size: 14px;
+    margin-bottom: 15px;
+    cursor: pointer;
+  }
+}
+.side-bar-toc-overflow {
+  overflow: auto;
+}
+.side-bar-toc-wordwrap {
+  overflow-x: hidden;
+  overflow-y: auto;
+  & .el-tree-node__content {
+    white-space: normal;
+    height: auto;
+    min-height: 26px;
+  }
+}
+</style>

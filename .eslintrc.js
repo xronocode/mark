@@ -1,3 +1,5 @@
+const viteConfig = require('./vite.config.js')
+
 module.exports = {
   root: true,
   parserOptions: {
@@ -16,7 +18,7 @@ module.exports = {
   extends: [
     'standard',
     'eslint:recommended',
-    'plugin:vue/base',
+    'plugin:vue/vue3-essential',
     'plugin:import/errors',
     'plugin:import/warnings'
   ],
@@ -26,7 +28,7 @@ module.exports = {
   plugins: ['html', 'vue'],
   rules: {
     // Two spaces but disallow semicolons
-    indent: ['error', 2, { 'SwitchCase': 1, 'ignoreComments': true }],
+    indent: ['error', 2, { SwitchCase: 1, ignoreComments: true }],
     semi: [2, 'never'],
     'no-return-await': 'error',
     'no-return-assign': 'error',
@@ -45,20 +47,14 @@ module.exports = {
   },
   settings: {
     'import/resolver': {
-      alias: {
-        map: [
-          ['common', './src/common'],
-          // Normally only valid for renderer/
-          ['@', './src/renderer'],
-          ['muya', './src/muya']
-        ],
-        extensions: ['.js', '.vue', '.json', '.css', '.node']
+      vite: {
+        viteConfig: {
+          resolve: {
+            alias: viteConfig.resolve.alias
+          }
+        }
       }
     }
   },
-  ignorePatterns: [
-    'node_modules',
-    'src/muya/dist/**/*',
-    'src/muya/webpack.config.js'
-  ]
+  ignorePatterns: ['node_modules', 'src/muya/dist/**/*', 'src/muya/webpack.config.js']
 }

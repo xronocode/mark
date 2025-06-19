@@ -1,7 +1,7 @@
-import { ipcMain, BrowserWindow } from 'electron'
+import { BrowserWindow } from 'electron'
 import log from 'electron-log'
 import { isOsx } from '../config'
-
+import { ipcMain } from 'electron'
 /**
  * Add the given word to the spellchecker dictionary.
  *
@@ -30,7 +30,7 @@ export const removeFromDictionary = (win, word) => {
  * @param {BrowserWindow} win The browser window.
  * @returns {Promise<string[]>} List of custom dictionary words.
  */
-export const getCustomDictionaryWords = async win => {
+export const getCustomDictionaryWords = async (win) => {
   return win.webContents.session.listWordsInSpellCheckerDictionary()
 }
 
@@ -61,7 +61,7 @@ export const switchLanguage = (win, lang) => {
  * @param {BrowserWindow} win The browser window.
  * @returns {string[]} List of available spellchecker languages or an empty array on macOS.
  */
-export const getAvailableDictionaries = win => {
+export const getAvailableDictionaries = (win) => {
   if (!win.webContents.session.isSpellCheckerEnabled) {
     console.warn('Spell Checker not available but dictionaries requested.')
     return []
@@ -82,7 +82,7 @@ export default () => {
     switchLanguage(win, lang)
     return null
   })
-  ipcMain.handle('mt::spellchecker-get-available-dictionaries', async e => {
+  ipcMain.handle('mt::spellchecker-get-available-dictionaries', async (e) => {
     const win = BrowserWindow.fromWebContents(e.sender)
     return getAvailableDictionaries(win)
   })
@@ -95,7 +95,7 @@ export default () => {
     }
     return true
   })
-  ipcMain.handle('mt::spellchecker-get-custom-dictionary-words', async e => {
+  ipcMain.handle('mt::spellchecker-get-custom-dictionary-words', async (e) => {
     const win = BrowserWindow.fromWebContents(e.sender)
     return getCustomDictionaryWords(win)
   })

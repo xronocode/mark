@@ -1,7 +1,7 @@
 import fs from 'fs'
 import path from 'path'
 import { isFile, isFile2, isSymbolicLink } from './index'
-import minimatch from 'minimatch'
+import { minimatch } from 'minimatch'
 
 const isOsx = process.platform === 'darwin'
 
@@ -19,25 +19,18 @@ export const MARKDOWN_EXTENSIONS = Object.freeze([
   'txt'
 ])
 
-export const MARKDOWN_INCLUSIONS = Object.freeze(MARKDOWN_EXTENSIONS.map(x => '*.' + x))
+export const MARKDOWN_INCLUSIONS = Object.freeze(MARKDOWN_EXTENSIONS.map((x) => '*.' + x))
 
-export const IMAGE_EXTENSIONS = Object.freeze([
-  'jpeg',
-  'jpg',
-  'png',
-  'gif',
-  'svg',
-  'webp'
-])
+export const IMAGE_EXTENSIONS = Object.freeze(['jpeg', 'jpg', 'png', 'gif', 'svg', 'webp'])
 
 /**
  * Returns true if the filename matches one of the markdown extensions.
  *
  * @param {string} filename Path or filename
  */
-export const hasMarkdownExtension = filename => {
+export const hasMarkdownExtension = (filename) => {
   if (!filename || typeof filename !== 'string') return false
-  return MARKDOWN_EXTENSIONS.some(ext => filename.toLowerCase().endsWith(`.${ext}`))
+  return MARKDOWN_EXTENSIONS.some((ext) => filename.toLowerCase().endsWith(`.${ext}`))
 }
 
 /**
@@ -45,12 +38,15 @@ export const hasMarkdownExtension = filename => {
  *
  * @param {string} filepath The path
  */
-export const isImageFile = filepath => {
+export const isImageFile = (filepath) => {
   const extname = path.extname(filepath)
-  return isFile(filepath) && IMAGE_EXTENSIONS.some(ext => {
-    const EXT_REG = new RegExp(ext, 'i')
-    return EXT_REG.test(extname)
-  })
+  return (
+    isFile(filepath) &&
+    IMAGE_EXTENSIONS.some((ext) => {
+      const EXT_REG = new RegExp(ext, 'i')
+      return EXT_REG.test(extname)
+    })
+  )
 }
 
 /**
@@ -58,7 +54,7 @@ export const isImageFile = filepath => {
  *
  * @param {string} filepath The path or link path.
  */
-export const isMarkdownFile = filepath => {
+export const isMarkdownFile = (filepath) => {
   if (!isFile2(filepath)) return false
 
   // Check symbolic link.

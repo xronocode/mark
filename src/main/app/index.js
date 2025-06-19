@@ -3,7 +3,7 @@ import fsPromises from 'fs/promises'
 import { exec } from 'child_process'
 import dayjs from 'dayjs'
 import log from 'electron-log'
-import { app, BrowserWindow, clipboard, dialog, ipcMain, nativeTheme, shell } from 'electron'
+import { app, BrowserWindow, clipboard, dialog, nativeTheme, shell, ipcMain } from 'electron'
 import { isChildOfDirectory } from 'common/filesystem/paths'
 import { isLinux, isOsx, isWindows } from '../config'
 import parseArgs from '../cli/parser'
@@ -23,7 +23,7 @@ class App {
    * @param {Accessor} accessor The application accessor for application instances.
    * @param {arg.Result} args Parsed application arguments.
    */
-  constructor (accessor, args) {
+  constructor(accessor, args) {
     this._accessor = accessor
     this._args = args || { _: [] }
     this._openFilesCache = []
@@ -38,7 +38,7 @@ class App {
   /**
    * The entry point into the application.
    */
-  init () {
+  init() {
     // Enable these features to use `backdrop-filter` css rules!
     if (isOsx) {
       app.commandLine.appendSwitch('enable-experimental-web-platform-features', 'true')
@@ -92,7 +92,8 @@ class App {
       }
     })
 
-    app.on('activate', () => { // macOS only
+    app.on('activate', () => {
+      // macOS only
       // On OS X it's common to re-create a window in the app when the
       // dock icon is clicked and there are no other windows open.
       if (this._windowManager.windowCount === 0) {
@@ -102,19 +103,19 @@ class App {
 
     // Prevent to load webview and opening links or new windows via HTML/JS.
     app.on('web-contents-created', (event, contents) => {
-      contents.on('will-attach-webview', event => {
+      contents.on('will-attach-webview', (event) => {
         event.preventDefault()
       })
-      contents.on('will-navigate', event => {
+      contents.on('will-navigate', (event) => {
         event.preventDefault()
       })
-      contents.setWindowOpenHandler(details => {
+      contents.setWindowOpenHandler((details) => {
         return { action: 'deny' }
       })
     })
   }
 
-  async getScreenshotFileName () {
+  async getScreenshotFileName() {
     const screenshotFolderPath = await this._accessor.dataCenter.getItem('screenshotFolderPath')
     const fileName = `${dayjs().format('YYYY-MM-DD-HH-mm-ss')}-screenshot.png`
     return path.join(screenshotFolderPath, fileName)
@@ -138,12 +139,7 @@ class App {
       }
     }
 
-    const {
-      startUpAction,
-      defaultDirectoryToOpen,
-      autoSwitchTheme,
-      theme
-    } = preferences.getAll()
+    const { startUpAction, defaultDirectoryToOpen, autoSwitchTheme, theme } = preferences.getAll()
 
     if (startUpAction === 'folder' && defaultDirectoryToOpen) {
       const info = normalizeMarkdownPath(defaultDirectoryToOpen)
@@ -162,7 +158,7 @@ class App {
     }
 
     let isDarkMode = nativeTheme.shouldUseDarkColors
-    ipcMain.on('broadcast-preferences-changed', change => {
+    ipcMain.on('broadcast-preferences-changed', (change) => {
       // Set Chromium's color for native elements after theme change.
       if (change.theme) {
         const isDarkTheme = /dark/i.test(change.theme)
@@ -179,20 +175,25 @@ class App {
     if (isOsx) {
       app.dock.setMenu(dockMenu)
     } else if (isWindows) {
-      app.setJumpList([{
-        type: 'recent'
-      }, {
-        type: 'tasks',
-        items: [{
-          type: 'task',
-          title: 'New Window',
-          description: 'Opens a new window',
-          program: process.execPath,
-          args: '--new-window',
-          iconPath: process.execPath,
-          iconIndex: 0
-        }]
-      }])
+      app.setJumpList([
+        {
+          type: 'recent'
+        },
+        {
+          type: 'tasks',
+          items: [
+            {
+              type: 'task',
+              title: 'New Window',
+              description: 'Opens a new window',
+              program: process.execPath,
+              args: '--new-window',
+              iconPath: process.execPath,
+              iconIndex: 0
+            }
+          ]
+        }
+      ])
     }
 
     if (_openFilesCache.length) {
@@ -254,7 +255,7 @@ class App {
    * @param {*} [options] The BrowserWindow options.
    * @returns {EditorWindow} The created editor window.
    */
-  _createEditorWindow (rootDirectory = null, fileList = [], markdownList = [], options = {}) {
+  _createEditorWindow(rootDirectory = null, fileList = [], markdownList = [], options = {}) {
     const editor = new EditorWindow(this._accessor)
     editor.createWindow(rootDirectory, fileList, markdownList, options)
     this._windowManager.add(editor)
@@ -267,7 +268,7 @@ class App {
   /**
    * Create a new setting window.
    */
-  _createSettingWindow (category) {
+  _createSettingWindow(category) {
     const setting = new SettingWindow(this._accessor)
     setting.createWindow(category)
     this._windowManager.add(setting)
@@ -276,7 +277,7 @@ class App {
     }
   }
 
-  _openFilesToOpen () {
+  _openFilesToOpen() {
     this._openPathList(this._openFilesCache, false)
   }
 
@@ -287,7 +288,7 @@ class App {
    * @param {boolean} openFilesInSameWindow Open all files in the same window with
    * the first directory and discard other directories.
    */
-  _openPathList (pathsToOpen, openFilesInSameWindow = false) {
+  _openPathList(pathsToOpen, openFilesInSameWindow = false) {
     const { _windowManager } = this
     const openFilesInNewWindow = this._accessor.preferences.getItem('openFilesInNewWindow')
 
@@ -312,7 +313,10 @@ class App {
       }
     }
 
-    const directoriesToOpen = Array.from(directorySet).map(dir => ({ rootDirectory: dir, fileList: [] }))
+    const directoriesToOpen = Array.from(directorySet).map((dir) => ({
+      rootDirectory: dir,
+      fileList: []
+    }))
     const filesToOpen = Array.from(fileSet)
 
     // Discard all directories except first one and add files.
@@ -405,7 +409,7 @@ class App {
     pathsToOpen.length = 0
   }
 
-  _openSettingsWindow (category) {
+  _openSettingsWindow(category) {
     const settingWins = this._windowManager.getWindowsByType(WindowType.SETTINGS)
     if (settingWins.length >= 1) {
       // A setting window is already created
@@ -421,7 +425,7 @@ class App {
     this._createSettingWindow(category)
   }
 
-  _listenForIpcMain () {
+  _listenForIpcMain() {
     registerKeyboardListeners()
     registerSpellcheckerListeners()
 
@@ -429,7 +433,7 @@ class App {
       this._createEditorWindow()
     })
 
-    ipcMain.on('screen-capture', async win => {
+    ipcMain.on('screen-capture', async (win) => {
       if (isOsx) {
         // Use macOs `screencapture` command line when in macOs system.
         const screenshotFileName = await this.getScreenshotFileName()
@@ -457,7 +461,7 @@ class App {
       }
     })
 
-    ipcMain.on('app-create-settings-window', category => {
+    ipcMain.on('app-create-settings-window', (category) => {
       this._openSettingsWindow(category)
     })
 
@@ -480,9 +484,11 @@ class App {
         const editor = this._windowManager.get(windowId)
         if (editor) {
           editor.openTabsFromPaths(
-            fileList.map(p => normalizeMarkdownPath(p))
-              .filter(i => i && !i.isDir)
-              .map(i => i.path))
+            fileList
+              .map((p) => normalizeMarkdownPath(p))
+              .filter((i) => i && !i.isDir)
+              .map((i) => i.path)
+          )
         }
       }
     })
@@ -530,7 +536,7 @@ class App {
       }
     })
 
-    ipcMain.on('mt::select-default-directory-to-open', async e => {
+    ipcMain.on('mt::select-default-directory-to-open', async (e) => {
       const { preferences } = this._accessor
       const { defaultDirectoryToOpen } = preferences.getAll()
       const win = BrowserWindow.fromWebContents(e.sender)
@@ -548,12 +554,12 @@ class App {
       this._openSettingsWindow()
     })
 
-    ipcMain.on('mt::make-screenshot', e => {
+    ipcMain.on('mt::make-screenshot', (e) => {
       const win = BrowserWindow.fromWebContents(e.sender)
       ipcMain.emit('screen-capture', win)
     })
 
-    ipcMain.on('mt::request-keybindings', e => {
+    ipcMain.on('mt::request-keybindings', (e) => {
       const win = BrowserWindow.fromWebContents(e.sender)
       const { keybindings } = this._accessor
       // Convert map to object

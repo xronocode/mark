@@ -23,17 +23,19 @@ for (const name of Object.keys(languages)) {
         ...lang
       })
     } else if (Array.isArray(lang.alias)) {
-      langs.push(...lang.alias.map(a => ({
-        name: a,
-        ...lang
-      })))
+      langs.push(
+        ...lang.alias.map((a) => ({
+          name: a,
+          ...lang
+        }))
+      )
     }
   }
 }
 
 const loadLanguage = initLoadLanguage(Prism)
 
-const search = text => {
+const search = (text) => {
   return filter(langs, text, { key: 'name' })
 }
 
@@ -41,11 +43,6 @@ const search = text => {
 loadLanguage('latex')
 loadLanguage('yaml')
 
-export {
-  search,
-  loadLanguage,
-  loadedLanguages,
-  transformAliasToOrigin
-}
+export { search, loadLanguage, loadedLanguages, transformAliasToOrigin }
 
 export default prism

@@ -1,0 +1,1193 @@
+<template>
+  <div
+    class="editor-wrapper"
+    :class="[{ typewriter: typewriter, focus: focus, source: sourceCode }]"
+    :style="{
+      lineHeight: lineHeight,
+      fontSize: `${fontSize}px`,
+      'font-family': editorFontFamily
+        ? `${editorFontFamily}, ${defaultFontFamily}`
+        : `${defaultFontFamily}`
+    }"
+    :dir="textDirection"
+  >
+    <div ref="editorRef" class="editor-component"></div>
+    <div v-show="imageViewerVisible" class="image-viewer">
+      <span class="icon-close" @click="setImageViewerVisible(false)">
+        <svg :viewBox="CloseIcon.viewBox">
+          <use :xlink:href="CloseIcon.url"></use>
+        </svg>
+      </span>
+      <div ref="imageViewerRef"></div>
+    </div>
+    <el-dialog
+      v-model="dialogTableVisible"
+      :show-close="isShowClose"
+      :modal="true"
+      custom-class="ag-dialog-table"
+      width="454px"
+      center
+      dir="ltr"
+    >
+      <template #title>
+        <div class="dialog-title">Insert Table</div>
+      </template>
+      <el-form :model="tableChecker" :inline="true">
+        <el-form-item label="Rows">
+          <el-input-number
+            ref="rowInput"
+            v-model="tableChecker.rows"
+            size="mini"
+            controls-position="right"
+            :min="1"
+            :max="30"
+          ></el-input-number>
+        </el-form-item>
+        <el-form-item label="Columns">
+          <el-input-number
+            v-model="tableChecker.columns"
+            size="mini"
+            controls-position="right"
+            :min="1"
+            :max="20"
+          ></el-input-number>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <div class="dialog-footer">
+          <el-button @click="dialogTableVisible = false"> Cancel </el-button>
+          <el-button type="primary" @click="handleDialogTableConfirm"> OK </el-button>
+        </div>
+      </template>
+    </el-dialog>
+    <editor-search v-if="!sourceCode"></editor-search>
+  </div>
+</template>
+
+<script setup>
+import { ref, reactive, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
+import path from 'path-browserify'
+import log from 'electron-log'
+// import ViewImage from 'view-image'
+import Muya from 'muya/lib'
+import TablePicker from 'muya/lib/ui/tablePicker'
+import QuickInsert from 'muya/lib/ui/quickInsert'
+import CodePicker from 'muya/lib/ui/codePicker'
+import EmojiPicker from 'muya/lib/ui/emojiPicker'
+import ImagePathPicker from 'muya/lib/ui/imagePicker'
+import ImageSelector from 'muya/lib/ui/imageSelector'
+import ImageToolbar from 'muya/lib/ui/imageToolbar'
+import Transformer from 'muya/lib/ui/transformer'
+import FormatPicker from 'muya/lib/ui/formatPicker'
+import LinkTools from 'muya/lib/ui/linkTools'
+import FootnoteTool from 'muya/lib/ui/footnoteTool'
+import TableBarTools from 'muya/lib/ui/tableTools'
+import FrontMenu from 'muya/lib/ui/frontMenu'
+import EditorSearch from '../search'
+import bus from '@/bus'
+import { DEFAULT_EDITOR_FONT_FAMILY } from '@/config'
+import notice from '@/services/notification'
+import Printer from '@/services/printService'
+import { SpellcheckerLanguageCommand } from '@/commands'
+import { SpellChecker } from '@/spellchecker'
+import { isOsx, animatedScrollTo } from '@/util'
+import { moveImageToFolder, moveToRelativeFolder, uploadImage } from '@/util/fileSystem'
+import { guessClipboardFilePath } from '@/util/clipboard'
+import { getCssForOptions, getHtmlToc } from '@/util/pdf'
+import { addCommonStyle, setEditorWidth, setWrapCodeBlocks } from '@/util/theme'
+import { usePreferencesStore } from '@/store/preferences'
+import { useEditorStore } from '@/store/editor'
+import { useProjectStore } from '@/store/project'
+import { storeToRefs } from 'pinia'
+
+import 'muya/themes/default.css'
+import '@/assets/themes/codemirror/one-dark.css'
+// import 'view-image/lib/imgViewer.css'
+import CloseIcon from '@/assets/icons/close.svg'
+
+const STANDAR_Y = 320
+
+const props = defineProps({
+  markdown: String,
+  cursor: Object,
+  textDirection: {
+    type: String,
+    required: true
+  },
+  platform: String
+})
+
+// Get stores
+const preferencesStore = usePreferencesStore()
+const editorStore = useEditorStore()
+const projectStore = useProjectStore()
+
+// Use storeToRefs to extract reactive properties from the stores
+const {
+  // Preferences
+  preferences,
+  preferLooseListItem,
+  autoPairBracket,
+  autoPairMarkdownSyntax,
+  autoPairQuote,
+  bulletListMarker,
+  orderListDelimiter,
+  tabSize,
+  listIndentation,
+  frontmatterType,
+  superSubScript,
+  footnote,
+  isHtmlEnabled,
+  isGitlabCompatibilityEnabled,
+  lineHeight,
+  fontSize,
+  codeFontSize,
+  codeFontFamily,
+  codeBlockLineNumbers,
+  trimUnnecessaryCodeBlockEmptyLines,
+  editorFontFamily,
+  hideQuickInsertHint,
+  hideLinkPopup,
+  autoCheck,
+  editorLineWidth,
+  wrapCodeBlocks,
+  imageInsertAction,
+  imagePreferRelativeDirectory,
+  imageRelativeDirectoryName,
+  imageFolderPath,
+  theme,
+  sequenceTheme,
+  hideScrollbar,
+  spellcheckerEnabled,
+  spellcheckerNoUnderline,
+  spellcheckerLanguage,
+
+  // Edit modes
+  typewriter,
+  focus,
+  sourceCode
+} = storeToRefs(preferencesStore)
+
+// Editor store refs
+const { currentFile } = storeToRefs(editorStore)
+
+// Project store refs
+const { projectTree } = storeToRefs(projectStore)
+
+// Component state
+const defaultFontFamily = DEFAULT_EDITOR_FONT_FAMILY
+const selectionChange = ref(null)
+const editor = ref(null)
+const isShowClose = ref(false)
+const dialogTableVisible = ref(false)
+const imageViewerVisible = ref(null)
+const tableChecker = reactive({
+  rows: 4,
+  columns: 3
+})
+
+// Template refs
+const editorRef = ref(null)
+const imageViewerRef = ref(null)
+const rowInput = ref(null)
+
+// Non-reactive variables
+let printer = null
+let spellchecker = null
+let switchLanguageCommand = null
+let imageViewer = null
+
+// Watchers
+watch(typewriter, (value) => {
+  if (value) {
+    scrollToCursor()
+  }
+})
+
+watch(focus, (value) => {
+  if (editor.value) {
+    editor.value.setFocusMode(value)
+  }
+})
+
+watch(fontSize, (value, oldValue) => {
+  if (value !== oldValue && editor.value) {
+    editor.value.setFont({ fontSize: value })
+  }
+})
+
+watch(lineHeight, (value, oldValue) => {
+  if (value !== oldValue && editor.value) {
+    editor.value.setFont({ lineHeight: value })
+  }
+})
+
+watch(preferLooseListItem, (value, oldValue) => {
+  if (value !== oldValue && editor.value) {
+    editor.value.setOptions({
+      preferLooseListItem: value
+    })
+  }
+})
+
+watch(tabSize, (value, oldValue) => {
+  if (value !== oldValue && editor.value) {
+    editor.value.setTabSize(value)
+  }
+})
+
+watch(theme, (value, oldValue) => {
+  if (value !== oldValue && editor.value) {
+    // Agreement：Any black series theme needs to contain dark `word`.
+    if (/dark/i.test(value)) {
+      editor.value.setOptions(
+        {
+          mermaidTheme: 'dark',
+          vegaTheme: 'dark'
+        },
+        true
+      )
+    } else {
+      editor.value.setOptions(
+        {
+          mermaidTheme: 'default',
+          vegaTheme: 'latimes'
+        },
+        true
+      )
+    }
+  }
+})
+
+watch(sequenceTheme, (value, oldValue) => {
+  if (value !== oldValue && editor.value) {
+    editor.value.setOptions({ sequenceTheme: value }, true)
+  }
+})
+
+watch(listIndentation, (value, oldValue) => {
+  if (value !== oldValue && editor.value) {
+    editor.value.setListIndentation(value)
+  }
+})
+
+watch(frontmatterType, (value, oldValue) => {
+  if (value !== oldValue && editor.value) {
+    editor.value.setOptions({ frontmatterType: value })
+  }
+})
+
+watch(superSubScript, (value, oldValue) => {
+  if (value !== oldValue && editor.value) {
+    editor.value.setOptions({ superSubScript: value }, true)
+  }
+})
+
+watch(footnote, (value, oldValue) => {
+  if (value !== oldValue && editor.value) {
+    editor.value.setOptions({ footnote: value }, true)
+  }
+})
+
+watch(isHtmlEnabled, (value, oldValue) => {
+  if (value !== oldValue && editor.value) {
+    editor.value.setOptions({ disableHtml: !value }, true)
+  }
+})
+
+watch(isGitlabCompatibilityEnabled, (value, oldValue) => {
+  if (value !== oldValue && editor.value) {
+    editor.value.setOptions({ isGitlabCompatibilityEnabled: value }, true)
+  }
+})
+
+watch(hideQuickInsertHint, (value, oldValue) => {
+  if (value !== oldValue && editor.value) {
+    editor.value.setOptions({ hideQuickInsertHint: value })
+  }
+})
+
+watch(editorLineWidth, (value, oldValue) => {
+  if (value !== oldValue) {
+    setEditorWidth(value)
+  }
+})
+
+watch(wrapCodeBlocks, (value, oldValue) => {
+  if (value !== oldValue) {
+    setWrapCodeBlocks(value)
+  }
+})
+
+watch(autoPairBracket, (value, oldValue) => {
+  if (value !== oldValue && editor.value) {
+    editor.value.setOptions({ autoPairBracket: value })
+  }
+})
+
+watch(autoPairMarkdownSyntax, (value, oldValue) => {
+  if (value !== oldValue && editor.value) {
+    editor.value.setOptions({ autoPairMarkdownSyntax: value })
+  }
+})
+
+watch(autoPairQuote, (value, oldValue) => {
+  if (value !== oldValue && editor.value) {
+    editor.value.setOptions({ autoPairQuote: value })
+  }
+})
+
+watch(trimUnnecessaryCodeBlockEmptyLines, (value, oldValue) => {
+  if (value !== oldValue && editor.value) {
+    editor.value.setOptions({ trimUnnecessaryCodeBlockEmptyLines: value })
+  }
+})
+
+watch(bulletListMarker, (value, oldValue) => {
+  if (value !== oldValue && editor.value) {
+    editor.value.setOptions({ bulletListMarker: value })
+  }
+})
+
+watch(orderListDelimiter, (value, oldValue) => {
+  if (value !== oldValue && editor.value) {
+    editor.value.setOptions({ orderListDelimiter: value })
+  }
+})
+
+watch(hideLinkPopup, (value, oldValue) => {
+  if (value !== oldValue && editor.value) {
+    editor.value.setOptions({ hideLinkPopup: value })
+  }
+})
+
+watch(autoCheck, (value, oldValue) => {
+  if (value !== oldValue && editor.value) {
+    editor.value.setOptions({ autoCheck: value })
+  }
+})
+
+watch(codeFontSize, (value, oldValue) => {
+  if (value !== oldValue) {
+    addCommonStyle({
+      codeFontSize: value,
+      codeFontFamily: codeFontFamily.value,
+      hideScrollbar: hideScrollbar.value
+    })
+  }
+})
+
+watch(codeBlockLineNumbers, (value, oldValue) => {
+  if (value !== oldValue && editor.value) {
+    editor.value.setOptions({ codeBlockLineNumbers: value }, true)
+  }
+})
+
+watch(codeFontFamily, (value, oldValue) => {
+  if (value !== oldValue) {
+    addCommonStyle({
+      codeFontSize: codeFontSize.value,
+      codeFontFamily: value,
+      hideScrollbar: hideScrollbar.value
+    })
+  }
+})
+
+watch(hideScrollbar, (value, oldValue) => {
+  if (value !== oldValue) {
+    addCommonStyle({
+      codeFontSize: codeFontSize.value,
+      codeFontFamily: codeFontFamily.value,
+      hideScrollbar: value
+    })
+  }
+})
+
+watch(spellcheckerEnabled, (value, oldValue) => {
+  if (value !== oldValue) {
+    // Set Muya's spellcheck container attribute.
+    editor.value.setOptions({ spellcheckEnabled: value })
+
+    // Disable native spell checker
+    if (value) {
+      spellchecker.activateSpellchecker(spellcheckerLanguage.value)
+    } else {
+      spellchecker.deactivateSpellchecker()
+    }
+  }
+})
+
+watch(spellcheckerNoUnderline, (value, oldValue) => {
+  if (value !== oldValue) {
+    // Set Muya's spellcheck container attribute.
+    editor.value.setOptions({ spellcheckEnabled: !value })
+  }
+})
+
+watch(spellcheckerLanguage, (value, oldValue) => {
+  if (value !== oldValue) {
+    spellchecker.lang = value
+  }
+})
+
+watch(currentFile, (value, oldValue) => {
+  if (value && value !== oldValue) {
+    scrollToCursor(0)
+    // Hide float tools if needed.
+    if (editor.value) {
+      editor.value.hideAllFloatTools()
+    }
+  }
+})
+
+watch(sourceCode, (value, oldValue) => {
+  if (value && value !== oldValue) {
+    if (editor.value) {
+      editor.value.hideAllFloatTools()
+    }
+  }
+})
+
+// Methods
+const photoCreatorClick = (url) => {
+  window.electron.shell.openExternal(url)
+}
+
+const jumpClick = (linkInfo) => {
+  const { href } = linkInfo
+  editorStore.FORMAT_LINK_CLICK({ data: { href }, dirname: window.DIRNAME })
+}
+
+const imagePathAutoComplete = async (src) => {
+  const files = await editorStore.ASK_FOR_IMAGE_AUTO_PATH(src)
+  return files.map((f) => {
+    const iconClass = f.type === 'directory' ? 'icon-folder' : 'icon-image'
+    return Object.assign(f, { iconClass, text: f.file + (f.type === 'directory' ? '/' : '') })
+  })
+}
+
+const imageAction = async (image, id, alt = '') => {
+  // TODO(Refactor): Refactor this method.
+  const { filename, pathname: currentPathname } = currentFile.value
+
+  // Save an image relative to the file if the relative image directory include the filename variable.
+  // The image is save relative to the root folder without a variable.
+  const saveRelativeToFile = () => {
+    return /\${filename}/.test(imageRelativeDirectoryName.value)
+  }
+
+  // Figure out the current working directory.
+  const isTabSavedOnDisk = !!currentPathname
+  let relativeBasePath = isTabSavedOnDisk ? path.dirname(currentPathname) : null
+  if (isTabSavedOnDisk && !saveRelativeToFile() && projectTree.value) {
+    const { pathname: rootPath } = projectTree.value
+    if (rootPath && window.fileUtils.isChildOfDirectory(rootPath, currentPathname)) {
+      // Save assets relative to root directory.
+      relativeBasePath = rootPath
+    }
+  }
+
+  const getResolvedImagePath = (imagePath) => {
+    const replacement = isTabSavedOnDisk
+      ? // Filename w/o extension
+        filename.replace(/\.[^/.]+$/, '')
+      : ''
+    return imagePath.replace(/\${filename}/g, replacement)
+  }
+
+  const resolvedImageFolderPath = getResolvedImagePath(imageFolderPath.value)
+  const resolvedImageRelativeDirectoryName = getResolvedImagePath(imageRelativeDirectoryName.value)
+  let destImagePath = ''
+  switch (imageInsertAction.value) {
+    case 'upload': {
+      try {
+        destImagePath = await uploadImage(currentPathname, image, preferences.value)
+      } catch (err) {
+        notice.notify({
+          title: 'Upload Image',
+          type: 'warning',
+          message: err
+        })
+        destImagePath = await moveImageToFolder(currentPathname, image, resolvedImageFolderPath)
+      }
+      break
+    }
+    case 'folder': {
+      destImagePath = await moveImageToFolder(currentPathname, image, resolvedImageFolderPath)
+      if (isTabSavedOnDisk && imagePreferRelativeDirectory.value) {
+        destImagePath = await moveToRelativeFolder(
+          relativeBasePath,
+          resolvedImageRelativeDirectoryName,
+          currentPathname,
+          destImagePath
+        )
+      }
+      break
+    }
+    case 'path': {
+      if (typeof image === 'string') {
+        // Input is a local path.
+        destImagePath = image
+      } else {
+        // Save and move image to image folder if input is binary.
+        destImagePath = await moveImageToFolder(currentPathname, image, resolvedImageFolderPath)
+
+        // Respect user preferences if tab exists on disk.
+        if (isTabSavedOnDisk && imagePreferRelativeDirectory.value) {
+          destImagePath = await moveToRelativeFolder(
+            relativeBasePath,
+            resolvedImageRelativeDirectoryName,
+            currentPathname,
+            destImagePath
+          )
+        }
+      }
+      break
+    }
+  }
+
+  if (id && sourceCode.value) {
+    bus.emit('image-action', {
+      id,
+      result: destImagePath,
+      alt
+    })
+  }
+  return destImagePath
+}
+
+const imagePathPicker = () => {
+  return editorStore.ASK_FOR_IMAGE_PATH()
+}
+
+const keyup = (event) => {
+  if (event.key === 'Escape') {
+    setImageViewerVisible(false)
+  }
+}
+
+const setImageViewerVisible = (status) => {
+  imageViewerVisible.value = status
+}
+
+const switchSpellcheckLanguage = (languageCode) => {
+  const { isEnabled } = spellchecker
+
+  // This method is also called from bus, so validate state before continuing.
+  if (!isEnabled) {
+    throw new Error('Cannot switch language because spell checker is disabled!')
+  }
+
+  spellchecker
+    .switchLanguage(languageCode)
+    .then((langCode) => {
+      if (!langCode) {
+        // Unable to switch language due to missing dictionary. The spell checker is now in an invalid state.
+        notice.notify({
+          title: 'Spelling',
+          type: 'warning',
+          message: `Unable to switch to language "${languageCode}". Requested language dictionary is missing.`
+        })
+      }
+    })
+    .catch((error) => {
+      log.error(`Error while switching to language "${languageCode}":`)
+      log.error(error)
+
+      notice.notify({
+        title: 'Spelling',
+        type: 'error',
+        message: `Error while switching to "${languageCode}": ${error.message}`
+      })
+    })
+}
+
+const handleInvalidateImageCache = () => {
+  if (editor.value) {
+    editor.value.invalidateImageCache()
+  }
+}
+
+const openSpellcheckerLanguageCommand = () => {
+  if (!isOsx) {
+    bus.emit('show-command-palette', switchLanguageCommand)
+  }
+}
+
+const replaceMisspelling = ({ word, replacement }) => {
+  if (editor.value) {
+    editor.value._replaceCurrentWordInlineUnsafe(word, replacement)
+  }
+}
+
+const handleUndo = () => {
+  if (editor.value) {
+    editor.value.undo()
+  }
+}
+
+const handleRedo = () => {
+  if (editor.value) {
+    editor.value.redo()
+  }
+}
+
+const handleSelectAll = () => {
+  if (sourceCode.value) {
+    return
+  }
+
+  if (editor.value && (editor.value.hasFocus() || editor.value.contentState.selectedTableCells)) {
+    editor.value.selectAll()
+  } else {
+    const activeElement = document.activeElement
+    const nodeName = activeElement.nodeName
+    if (nodeName === 'INPUT' || nodeName === 'TEXTAREA') {
+      activeElement.select()
+    }
+  }
+}
+
+// Custom copyAsMarkdown copyAsHtml pasteAsPlainText
+const handleCopyPaste = (type) => {
+  if (editor.value) {
+    editor.value[type]()
+  }
+}
+
+const insertImage = (src) => {
+  if (!sourceCode.value) {
+    editor.value && editor.value.insertImage({ src })
+  }
+}
+
+const handleSearch = (value, opt) => {
+  const searchMatches = editor.value.search(value, opt)
+  editorStore.SEARCH(searchMatches)
+  scrollToHighlight()
+}
+
+const handReplace = (value, opt) => {
+  const searchMatches = editor.value.replace(value, opt)
+  editorStore.SEARCH(searchMatches)
+}
+
+const handleUploadedImage = (url, deletionUrl) => {
+  insertImage(url)
+  editorStore.SHOW_IMAGE_DELETION_URL(deletionUrl)
+}
+
+const scrollToCursor = (duration = 300) => {
+  nextTick(() => {
+    const { container } = editor.value
+    const { y } = editor.value.getSelection().cursorCoords
+    animatedScrollTo(container, container.scrollTop + y - STANDAR_Y, duration)
+  })
+}
+
+const scrollToHighlight = () => {
+  return scrollToElement('.ag-highlight')
+}
+
+const scrollToHeader = (slug) => {
+  return scrollToElement(`#${slug}`)
+}
+
+const scrollToElement = (selector) => {
+  // Scroll to search highlight word
+  const { container } = editor.value
+  const anchor = document.querySelector(selector)
+  if (anchor) {
+    const { y } = anchor.getBoundingClientRect()
+    const DURATION = 300
+    animatedScrollTo(container, container.scrollTop + y - STANDAR_Y, DURATION)
+  }
+}
+
+const handleFindAction = (action) => {
+  const searchMatches = editor.value.find(action)
+  editorStore.SEARCH(searchMatches)
+  scrollToHighlight()
+}
+
+const handleExport = async (options) => {
+  const { type, header, footer, headerFooterStyled, htmlTitle } = options
+
+  if (!/^pdf|print|styledHtml$/.test(type)) {
+    throw new Error(`Invalid type to export: "${type}".`)
+  }
+
+  const extraCss = getCssForOptions(options)
+  const htmlToc = getHtmlToc(editor.value.getTOC(), options)
+
+  switch (type) {
+    case 'styledHtml': {
+      try {
+        const content = await editor.value.exportStyledHTML({
+          title: htmlTitle || '',
+          printOptimization: false,
+          extraCss,
+          toc: htmlToc
+        })
+        editorStore.EXPORT({ type, content })
+      } catch (err) {
+        log.error('Failed to export document:', err)
+        notice.notify({
+          title: `Printing/Exporting ${htmlTitle || 'html'} failed`,
+          type: 'error',
+          message: err.message || 'There is something wrong when exporting.'
+        })
+      }
+      break
+    }
+    case 'pdf': {
+      // NOTE: We need to set page size via Electron.
+      try {
+        const { pageSize, pageSizeWidth, pageSizeHeight, isLandscape } = options
+        const pageOptions = {
+          pageSize,
+          pageSizeWidth,
+          pageSizeHeight,
+          isLandscape
+        }
+
+        const html = await editor.value.exportStyledHTML({
+          title: '',
+          printOptimization: true,
+          extraCss,
+          toc: htmlToc,
+          header,
+          footer,
+          headerFooterStyled
+        })
+        printer.renderMarkdown(html, true)
+        editorStore.EXPORT({ type, pageOptions })
+      } catch (err) {
+        log.error('Failed to export document:', err)
+        notice.notify({
+          title: 'Printing/Exporting failed',
+          type: 'error',
+          message: `There is something wrong when export ${htmlTitle || 'PDF'}.`
+        })
+        handlePrintServiceClearup()
+      }
+      break
+    }
+    case 'print': {
+      // NOTE: Print doesn't support page size or orientation.
+      try {
+        const html = await editor.value.exportStyledHTML({
+          title: '',
+          printOptimization: true,
+          extraCss,
+          toc: htmlToc,
+          header,
+          footer,
+          headerFooterStyled
+        })
+        printer.renderMarkdown(html, true)
+        editorStore.PRINT_RESPONSE()
+      } catch (err) {
+        log.error('Failed to export document:', err)
+        notice.notify({
+          title: 'Printing/Exporting failed',
+          type: 'error',
+          message: `There is something wrong when print ${htmlTitle || ''}.`
+        })
+        handlePrintServiceClearup()
+      }
+      break
+    }
+  }
+}
+
+const handlePrintServiceClearup = () => {
+  printer.clearup()
+}
+
+const handleEditParagraph = (type) => {
+  if (type === 'table') {
+    tableChecker.rows = 4
+    tableChecker.columns = 3
+    dialogTableVisible.value = true
+    nextTick(() => {
+      rowInput.value.focus()
+    })
+  } else if (editor.value) {
+    editor.value.updateParagraph(type)
+  }
+}
+
+// handle `duplicate`, `delete`, `create paragraph below`
+const handleParagraph = (type) => {
+  if (editor.value) {
+    switch (type) {
+      case 'duplicate': {
+        return editor.value.duplicate()
+      }
+      case 'createParagraph': {
+        return editor.value.insertParagraph('after', '', true)
+      }
+      case 'deleteParagraph': {
+        return editor.value.deleteParagraph()
+      }
+      default:
+        console.error(`unknow paragraph edit type: ${type}`)
+    }
+  }
+}
+
+const handleInlineFormat = (type) => {
+  editor.value && editor.value.format(type)
+}
+
+const handleDialogTableConfirm = () => {
+  dialogTableVisible.value = false
+  editor.value && editor.value.createTable(tableChecker)
+}
+
+// listen for `open-single-file` event, it will call this method only when open a new file.
+const setMarkdownToEditor = ({ markdown: newMarkdown, cursor: newCursor }) => {
+  if (editor.value) {
+    editor.value.clearHistory()
+    if (newCursor) {
+      editor.value.setMarkdown(newMarkdown, newCursor, true)
+    } else {
+      editor.value.setMarkdown(newMarkdown)
+    }
+  }
+}
+
+// listen for markdown change form source mode or change tabs etc
+const handleFileChange = ({ markdown: newMarkdown, cursor: newCursor, renderCursor, history }) => {
+  nextTick(() => {
+    if (editor.value) {
+      if (history) {
+        editor.value.setHistory(history)
+      }
+      if (typeof newMarkdown === 'string') {
+        editor.value.setMarkdown(newMarkdown, newCursor, renderCursor)
+      } else if (newCursor) {
+        editor.value.setCursor(newCursor)
+      }
+      if (renderCursor) {
+        scrollToCursor(0)
+      }
+    }
+  })
+}
+
+const handleInsertParagraph = (location) => {
+  editor.value && editor.value.insertParagraph(location)
+}
+
+const blurEditor = () => {
+  editor.value.blur(false, true)
+}
+
+const focusEditor = () => {
+  editor.value.focus()
+}
+
+const handleScreenShot = () => {
+  if (editor.value) {
+    document.execCommand('paste')
+  }
+}
+
+onMounted(() => {
+  printer = new Printer()
+  const ele = editorRef.value
+
+  // use muya UI plugins
+  Muya.use(TablePicker)
+  Muya.use(QuickInsert)
+  Muya.use(CodePicker)
+  Muya.use(EmojiPicker)
+  Muya.use(ImagePathPicker)
+  Muya.use(ImageSelector, {
+    unsplashAccessKey: process.env.UNSPLASH_ACCESS_KEY,
+    photoCreatorClick
+  })
+  Muya.use(Transformer)
+  Muya.use(ImageToolbar)
+  Muya.use(FormatPicker)
+  Muya.use(FrontMenu)
+  Muya.use(LinkTools, {
+    jumpClick
+  })
+  Muya.use(FootnoteTool)
+  Muya.use(TableBarTools)
+
+  const options = {
+    focusMode: focus.value,
+    markdown: props.markdown,
+    preferLooseListItem: preferLooseListItem.value,
+    autoPairBracket: autoPairBracket.value,
+    autoPairMarkdownSyntax: autoPairMarkdownSyntax.value,
+    trimUnnecessaryCodeBlockEmptyLines: trimUnnecessaryCodeBlockEmptyLines.value,
+    autoPairQuote: autoPairQuote.value,
+    bulletListMarker: bulletListMarker.value,
+    orderListDelimiter: orderListDelimiter.value,
+    tabSize: tabSize.value,
+    fontSize: fontSize.value,
+    lineHeight: lineHeight.value,
+    codeBlockLineNumbers: codeBlockLineNumbers.value,
+    listIndentation: listIndentation.value,
+    frontmatterType: frontmatterType.value,
+    superSubScript: superSubScript.value,
+    footnote: footnote.value,
+    disableHtml: !isHtmlEnabled.value,
+    isGitlabCompatibilityEnabled: isGitlabCompatibilityEnabled.value,
+    hideQuickInsertHint: hideQuickInsertHint.value,
+    hideLinkPopup: hideLinkPopup.value,
+    autoCheck: autoCheck.value,
+    sequenceTheme: sequenceTheme.value,
+    spellcheckEnabled: spellcheckerEnabled.value,
+    imageAction,
+    imagePathPicker,
+    clipboardFilePath: guessClipboardFilePath,
+    imagePathAutoComplete
+  }
+
+  if (/dark/i.test(theme.value)) {
+    Object.assign(options, {
+      mermaidTheme: 'dark',
+      vegaTheme: 'dark'
+    })
+  } else {
+    Object.assign(options, {
+      mermaidTheme: 'default',
+      vegaTheme: 'latimes'
+    })
+  }
+
+  editor.value = new Muya(ele, options)
+  const { container } = editor.value
+
+  // Create spell check wrapper and enable spell checking if preferred.
+  spellchecker = new SpellChecker(spellcheckerEnabled.value, spellcheckerLanguage.value)
+
+  // Register command palette entry for switching spellchecker language.
+  switchLanguageCommand = new SpellcheckerLanguageCommand(spellchecker)
+  setTimeout(() => bus.emit('cmd::register-command', switchLanguageCommand), 100)
+
+  if (typewriter.value) {
+    scrollToCursor()
+  }
+
+  // listen for bus events.
+  bus.on('file-loaded', setMarkdownToEditor)
+  bus.on('invalidate-image-cache', handleInvalidateImageCache)
+  bus.on('undo', handleUndo)
+  bus.on('redo', handleRedo)
+  bus.on('selectAll', handleSelectAll)
+  bus.on('export', handleExport)
+  bus.on('print-service-clearup', handlePrintServiceClearup)
+  bus.on('paragraph', handleEditParagraph)
+  bus.on('format', handleInlineFormat)
+  bus.on('searchValue', handleSearch)
+  bus.on('replaceValue', handReplace)
+  bus.on('find-action', handleFindAction)
+  bus.on('insert-image', insertImage)
+  bus.on('image-uploaded', handleUploadedImage)
+  bus.on('file-changed', handleFileChange)
+  bus.on('editor-blur', blurEditor)
+  bus.on('editor-focus', focusEditor)
+  bus.on('copyAsMarkdown', handleCopyPaste)
+  bus.on('copyAsHtml', handleCopyPaste)
+  bus.on('pasteAsPlainText', handleCopyPaste)
+  bus.on('duplicate', handleParagraph)
+  bus.on('createParagraph', handleParagraph)
+  bus.on('deleteParagraph', handleParagraph)
+  bus.on('insertParagraph', handleInsertParagraph)
+  bus.on('scroll-to-header', scrollToHeader)
+  bus.on('screenshot-captured', handleScreenShot)
+  bus.on('switch-spellchecker-language', switchSpellcheckLanguage)
+  bus.on('open-command-spellchecker-switch-language', openSpellcheckerLanguageCommand)
+  bus.on('replace-misspelling', replaceMisspelling)
+
+  editor.value.on('change', (changes) => {
+    // WORKAROUND: "id: 'muya'"
+    editorStore.LISTEN_FOR_CONTENT_CHANGE(Object.assign(changes, { id: 'muya' }))
+  })
+
+  editor.value.on('format-click', ({ event, formatType, data }) => {
+    const ctrlOrMeta = (isOsx && event.metaKey) || (!isOsx && event.ctrlKey)
+    if (formatType === 'link' && ctrlOrMeta) {
+      editorStore.FORMAT_LINK_CLICK({ data, dirname: window.DIRNAME })
+    } else if (formatType === 'image' && ctrlOrMeta) {
+      if (imageViewer) {
+        imageViewer.destroy()
+      }
+
+      // Disabled due to #2120.
+      // imageViewer = new ViewImage(imageViewerRef.value, {
+      //   url: data,
+      //   snapView: true
+      // })
+
+      setImageViewerVisible(true)
+    }
+  })
+
+  // Disabled due to #2120.
+  // editor.value.on('preview-image', ({ data }) => {
+  //   if (imageViewer) {
+  //     imageViewer.destroy()
+  //   }
+  //
+  //   imageViewer = new ViewImage(imageViewerRef.value, {
+  //     url: data,
+  //     snapView: true
+  //   })
+  //
+  //   setImageViewerVisible(true)
+  // })
+
+  editor.value.on('selectionChange', (changes) => {
+    const { y } = changes.cursorCoords
+    if (typewriter.value) {
+      const startPosition = container.scrollTop
+      const toPosition = startPosition + y - STANDAR_Y
+
+      // Prevent micro shakes and unnecessary scrolling.
+      if (Math.abs(startPosition - toPosition) > 2) {
+        animatedScrollTo(container, toPosition, 100)
+      }
+    }
+
+    // Used to fix #628: auto scroll cursor to visible if the cursor is too low.
+    if (container.clientHeight - y < 100) {
+      // editableHeight is the lowest cursor position(till to top) that editor allowed.
+      const editableHeight = container.clientHeight - 100
+      animatedScrollTo(container, container.scrollTop + (y - editableHeight), 0)
+    }
+
+    selectionChange.value = changes
+    editorStore.SELECTION_CHANGE(changes)
+  })
+
+  editor.value.on('selectionFormats', (formats) => {
+    editorStore.SELECTION_FORMATS(formats)
+  })
+
+  document.addEventListener('keyup', keyup)
+
+  setWrapCodeBlocks(wrapCodeBlocks.value)
+  setEditorWidth(editorLineWidth.value)
+})
+
+onBeforeUnmount(() => {
+  bus.off('file-loaded', setMarkdownToEditor)
+  bus.off('invalidate-image-cache', handleInvalidateImageCache)
+  bus.off('undo', handleUndo)
+  bus.off('redo', handleRedo)
+  bus.off('selectAll', handleSelectAll)
+  bus.off('export', handleExport)
+  bus.off('print-service-clearup', handlePrintServiceClearup)
+  bus.off('paragraph', handleEditParagraph)
+  bus.off('format', handleInlineFormat)
+  bus.off('searchValue', handleSearch)
+  bus.off('replaceValue', handReplace)
+  bus.off('find-action', handleFindAction)
+  bus.off('insert-image', insertImage)
+  bus.off('image-uploaded', handleUploadedImage)
+  bus.off('file-changed', handleFileChange)
+  bus.off('editor-blur', blurEditor)
+  bus.off('editor-focus', focusEditor)
+  bus.off('copyAsMarkdown', handleCopyPaste)
+  bus.off('copyAsHtml', handleCopyPaste)
+  bus.off('pasteAsPlainText', handleCopyPaste)
+  bus.off('duplicate', handleParagraph)
+  bus.off('createParagraph', handleParagraph)
+  bus.off('deleteParagraph', handleParagraph)
+  bus.off('insertParagraph', handleInsertParagraph)
+  bus.off('scroll-to-header', scrollToHeader)
+  bus.off('screenshot-captured', handleScreenShot)
+  bus.off('switch-spellchecker-language', switchSpellcheckLanguage)
+  bus.off('open-command-spellchecker-switch-language', openSpellcheckerLanguageCommand)
+  bus.off('replace-misspelling', replaceMisspelling)
+
+  document.removeEventListener('keyup', keyup)
+
+  if (editor.value) {
+    editor.value.destroy()
+    editor.value = null
+  }
+})
+</script>
+
+<style>
+/* ... existing style ... */
+.editor-wrapper {
+  height: 100%;
+  position: relative;
+  flex: 1;
+  color: var(--editorColor);
+  & .ag-dialog-table {
+    & .el-button {
+      font-size: 13px;
+      width: 70px;
+    }
+  }
+}
+
+.editor-wrapper.source {
+  position: absolute;
+  z-index: -1;
+  top: 0;
+  left: 0;
+  overflow: hidden;
+}
+
+.editor-component {
+  height: 100%;
+  overflow: auto;
+  box-sizing: border-box;
+  cursor: default;
+}
+
+.typewriter .editor-component {
+  padding-top: calc(50vh - 136px);
+  padding-bottom: calc(50vh - 54px);
+}
+
+.image-viewer {
+  position: fixed;
+  backdrop-filter: blur(5px);
+  top: 0;
+  right: 0;
+  left: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  z-index: 11;
+  & .icon-close {
+    z-index: 1000;
+    width: 30px;
+    height: 30px;
+    position: absolute;
+    top: 50px;
+    left: 50px;
+    display: block;
+    & svg {
+      fill: #efefef;
+      width: 100%;
+      height: 100%;
+    }
+  }
+}
+
+.iv-container {
+  width: 100%;
+  height: 100%;
+}
+
+.iv-snap-view {
+  opacity: 1;
+  bottom: 20px;
+  right: 20px;
+  top: auto;
+  left: auto;
+}
+</style>

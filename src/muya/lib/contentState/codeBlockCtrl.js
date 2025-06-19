@@ -5,10 +5,10 @@ import selection from '../selection'
 
 const CODE_UPDATE_REP = /^`{3,}(.*)/
 
-const codeBlockCtrl = ContentState => {
+const codeBlockCtrl = (ContentState) => {
   /**
-  * check edit language
-  */
+   * check edit language
+   */
   ContentState.prototype.checkEditLanguage = function () {
     const { start } = selection.getCursorRange()
     if (!start) {
@@ -72,7 +72,7 @@ const codeBlockCtrl = ContentState => {
         preBlock.lang = lang
         preBlock.functionType = 'fencecode'
         nextSibling.lang = lang
-        nextSibling.children.forEach(c => (c.lang = lang))
+        nextSibling.children.forEach((c) => (c.lang = lang))
       }
 
       // Set cursor at the first line
@@ -150,7 +150,7 @@ const codeBlockCtrl = ContentState => {
     const { target } = event
     const preEle = target.closest('pre')
     const preBlock = this.getBlock(preEle.id)
-    const codeBlock = preBlock.children.find(c => c.type === 'code')
+    const codeBlock = preBlock.children.find((c) => c.type === 'code')
     const codeContent = codeBlock.children[0].text
     this.muya.clipboard.copy('copyCodeContent', codeContent)
   }
@@ -161,7 +161,6 @@ const codeBlockCtrl = ContentState => {
     // if (!codeBlockLineNumbers) {
     //   return
     // }
-
     // const codeBlocks = document.querySelectorAll('pre.line-numbers')
     // if (codeBlocks.length) {
     //   for (const ele of codeBlocks) {

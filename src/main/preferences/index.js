@@ -17,13 +17,15 @@ class Preference extends EventEmitter {
    * NOTE: This throws an exception when validation fails.
    *
    */
-  constructor (paths) {
+  constructor(paths) {
     // TODO: Preferences should not loaded if global.MARKTEXT_SAFE_MODE is set.
     super()
 
     const { preferencesPath } = paths
     this.preferencesPath = preferencesPath
-    this.hasPreferencesFile = fs.existsSync(path.join(this.preferencesPath, `./${PREFERENCES_FILE_NAME}.json`))
+    this.hasPreferencesFile = fs.existsSync(
+      path.join(this.preferencesPath, `./${PREFERENCES_FILE_NAME}.json`)
+    )
     this.store = new Store({
       schema,
       name: PREFERENCES_FILE_NAME
@@ -92,16 +94,16 @@ class Preference extends EventEmitter {
     this._listenForIpcMain()
   }
 
-  getAll () {
+  getAll() {
     return this.store.store
   }
 
-  setItem (key, value) {
+  setItem(key, value) {
     ipcMain.emit('broadcast-preferences-changed', { [key]: value })
     return this.store.set(key, value)
   }
 
-  getItem (key) {
+  getItem(key) {
     return this.store.get(key)
   }
 
@@ -110,18 +112,18 @@ class Preference extends EventEmitter {
    *
    * @param {Object.<string, *>} settings A settings object or subset object with key/value entries.
    */
-  setItems (settings) {
+  setItems(settings) {
     if (!settings) {
       log.error('Cannot change settings without entires: object is undefined or null.')
       return
     }
 
-    Object.keys(settings).forEach(key => {
+    Object.keys(settings).forEach((key) => {
       this.setItem(key, settings[key])
     })
   }
 
-  getPreferredEol () {
+  getPreferredEol() {
     const endOfLine = this.getItem('endOfLine')
     if (endOfLine === 'lf') {
       return 'lf'
@@ -129,27 +131,27 @@ class Preference extends EventEmitter {
     return endOfLine === 'crlf' || isWindows ? 'crlf' : 'lf'
   }
 
-  exportJSON () {
+  exportJSON() {
     // todo
   }
 
-  importJSON () {
+  importJSON() {
     // todo
   }
 
-  _listenForIpcMain () {
-    ipcMain.on('mt::ask-for-user-preference', e => {
+  _listenForIpcMain() {
+    ipcMain.on('mt::ask-for-user-preference', (e) => {
       const win = BrowserWindow.fromWebContents(e.sender)
       win.webContents.send('mt::user-preference', this.getAll())
     })
     ipcMain.on('mt::set-user-preference', (e, settings) => {
       this.setItems(settings)
     })
-    ipcMain.on('mt::cmd-toggle-autosave', e => {
+    ipcMain.on('mt::cmd-toggle-autosave', (e) => {
       this.setItem('autoSave', !!this.getItem('autoSave'))
     })
 
-    ipcMain.on('set-user-preference', settings => {
+    ipcMain.on('set-user-preference', (settings) => {
       this.setItems(settings)
     })
   }

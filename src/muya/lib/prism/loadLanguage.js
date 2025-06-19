@@ -10,17 +10,18 @@ export const loadedLanguages = new Set(['markup', 'css', 'clike', 'javascript'])
 
 const { languages } = components
 
+const prismJsComponents = import.meta.glob('../../../../node_modules/prismjs/components/*.js')
 // Look for the origin languge by alias
-export const transformAliasToOrigin = langs => {
+export const transformAliasToOrigin = (langs) => {
   const result = []
   for (const lang of langs) {
     if (languages[lang]) {
       result.push(lang)
     } else {
-      const language = Object.keys(languages).find(name => {
+      const language = Object.keys(languages).find((name) => {
         const l = languages[name]
         if (l.alias) {
-          return l.alias === lang || Array.isArray(l.alias) && l.alias.includes(lang)
+          return l.alias === lang || (Array.isArray(l.alias) && l.alias.includes(lang))
         }
         return false
       })
@@ -37,15 +38,18 @@ export const transformAliasToOrigin = langs => {
   return result
 }
 
-function initLoadLanguage (Prism) {
-  return async function loadLanguages (langs) {
+function initLoadLanguage(Prism) {
+  return async function loadLanguages(langs) {
+    console.log('loadLanguages', langs)
     // If no argument is passed, load all components
     if (!langs) {
-      langs = Object.keys(languages).filter(lang => lang !== 'meta')
+      langs = Object.keys(languages).filter((lang) => lang !== 'meta')
     }
 
     if (langs && !langs.length) {
-      return Promise.reject(new Error('The first parameter should be a list of load languages or single language.'))
+      return Promise.reject(
+        new Error('The first parameter should be a list of load languages or single language.')
+      )
     }
 
     if (!Array.isArray(langs)) {
@@ -57,7 +61,7 @@ function initLoadLanguage (Prism) {
     // We don't need to validate the ids because `getLoader` will ignore invalid ones
     const loaded = [...loadedLanguages, ...Object.keys(Prism.languages)]
 
-    getLoader(components, langs, loaded).load(async lang => {
+    getLoader(components, langs, loaded).load(async (lang) => {
       const defer = getDefer()
       promises.push(defer.promise)
       if (!(lang in components.languages)) {
@@ -72,7 +76,10 @@ function initLoadLanguage (Prism) {
         })
       } else {
         delete Prism.languages[lang]
-        await import('prismjs/components/prism-' + lang)
+
+        const loaderName = `../../../../node_modules/prismjs/components/prism-${lang}.js`
+        const loader = prismJsComponents[loaderName]
+        await loader()
         defer.resolve({
           lang,
           status: 'loaded'

@@ -1,6 +1,6 @@
 import fs from 'fs'
 import path from 'path'
-import { app, ipcMain, Menu } from 'electron'
+import { app, Menu, ipcMain } from 'electron'
 import log from 'electron-log'
 import { ensureDirSync, isDirectory2, isFile2 } from 'common/filesystem'
 import { isLinux, isOsx, isWindows } from '../config'
@@ -24,7 +24,7 @@ class AppMenu {
    * @param {Keybindings} keybindings The keybindings instances.
    * @param {string} userDataPath The user data path.
    */
-  constructor (preferences, keybindings, userDataPath) {
+  constructor(preferences, keybindings, userDataPath) {
     this._preferences = preferences
     this._keybindings = keybindings
     this._userDataPath = userDataPath
@@ -42,7 +42,7 @@ class AppMenu {
    *
    * @param {string} filePath The file or directory full path.
    */
-  addRecentlyUsedDocument (filePath) {
+  addRecentlyUsedDocument(filePath) {
     const { isOsxOrWindows, RECENTS_PATH } = this
 
     if (isOsxOrWindows) app.addRecentDocument(filePath)
@@ -60,7 +60,10 @@ class AppMenu {
 
     if (recentDocuments.length > MAX_RECENTLY_USED_DOCUMENTS) {
       needSave = true
-      recentDocuments.splice(MAX_RECENTLY_USED_DOCUMENTS, recentDocuments.length - MAX_RECENTLY_USED_DOCUMENTS)
+      recentDocuments.splice(
+        MAX_RECENTLY_USED_DOCUMENTS,
+        recentDocuments.length - MAX_RECENTLY_USED_DOCUMENTS
+      )
     }
 
     this.updateAppMenu(recentDocuments)
@@ -77,18 +80,22 @@ class AppMenu {
    *
    * @returns {string[]}
    */
-  getRecentlyUsedDocuments () {
+  getRecentlyUsedDocuments() {
     const { RECENTS_PATH } = this
     if (!isFile2(RECENTS_PATH)) {
       return []
     }
 
     try {
-      const recentDocuments = JSON.parse(fs.readFileSync(RECENTS_PATH, 'utf-8'))
-        .filter(f => f && (isFile2(f) || isDirectory2(f)))
+      const recentDocuments = JSON.parse(fs.readFileSync(RECENTS_PATH, 'utf-8')).filter(
+        (f) => f && (isFile2(f) || isDirectory2(f))
+      )
 
       if (recentDocuments.length > MAX_RECENTLY_USED_DOCUMENTS) {
-        recentDocuments.splice(MAX_RECENTLY_USED_DOCUMENTS, recentDocuments.length - MAX_RECENTLY_USED_DOCUMENTS)
+        recentDocuments.splice(
+          MAX_RECENTLY_USED_DOCUMENTS,
+          recentDocuments.length - MAX_RECENTLY_USED_DOCUMENTS
+        )
       }
       return recentDocuments
     } catch (err) {
@@ -100,7 +107,7 @@ class AppMenu {
   /**
    * Clear recently used documents.
    */
-  clearRecentlyUsedDocuments () {
+  clearRecentlyUsedDocuments() {
     const { isOsxOrWindows, RECENTS_PATH } = this
     if (isOsxOrWindows) app.clearRecentDocuments()
     if (isOsx) return
@@ -117,7 +124,7 @@ class AppMenu {
    *
    * @param {number} windowId The window id.
    */
-  addDefaultMenu (windowId) {
+  addDefaultMenu(windowId) {
     const { windowMenus } = this
     const menu = this._buildSettingMenu() // Setting menu is also the fallback menu.
     windowMenus.set(windowId, menu)
@@ -128,7 +135,7 @@ class AppMenu {
    *
    * @param {BrowserWindow} window The settings browser window.
    */
-  addSettingMenu (window) {
+  addSettingMenu(window) {
     const { windowMenus } = this
     const menu = this._buildSettingMenu()
     windowMenus.set(window.id, menu)
@@ -140,7 +147,7 @@ class AppMenu {
    * @param {BrowserWindow} window The editor browser window.
    * @param {[*]} options The menu options.
    */
-  addEditorMenu (window, options = {}) {
+  addEditorMenu(window, options = {}) {
     const isSourceMode = !!options.sourceCodeModeEnabled
     const { windowMenus } = this
     windowMenus.set(window.id, this._buildEditorMenu())
@@ -164,7 +171,7 @@ class AppMenu {
     if (isWindows) {
       // WORKAROUND: Window close event isn't triggered on Windows if `setIgnoreMenuShortcuts(true)` is used (Electron#32674).
       // NB: Remove this immediately if upstream is fixed because the event may be emitted twice.
-      _keybindings.registerAccelerator(window, 'Alt+F4', win => {
+      _keybindings.registerAccelerator(window, 'Alt+F4', (win) => {
         if (win && !win.isDestroyed()) {
           win.close()
         }
@@ -177,7 +184,7 @@ class AppMenu {
    *
    * @param {number} windowId The window id.
    */
-  removeWindowMenu (windowId) {
+  removeWindowMenu(windowId) {
     // NOTE: Shortcut handler is automatically unregistered when window is closed.
     const { activeWindowId } = this
     this.windowMenus.delete(windowId)
@@ -192,7 +199,7 @@ class AppMenu {
    * @param {number} windowId The window id.
    * @returns {Electron.Menu} The menu.
    */
-  getWindowMenuById (windowId) {
+  getWindowMenuById(windowId) {
     const menu = this.windowMenus.get(windowId)
     if (!menu) {
       log.error(`getWindowMenuById: Cannot find window menu for window id ${windowId}.`)
@@ -206,7 +213,7 @@ class AppMenu {
    *
    * @param {number} windowId The window id.
    */
-  has (windowId) {
+  has(windowId) {
     return this.windowMenus.has(windowId)
   }
 
@@ -215,7 +222,7 @@ class AppMenu {
    *
    * @param {number} windowId The window id.
    */
-  setActiveWindow (windowId) {
+  setActiveWindow(windowId) {
     if (this.activeWindowId !== windowId) {
       // Change application menu to the current window menu.
       this._setApplicationMenu(this.getWindowMenuById(windowId))
@@ -230,7 +237,7 @@ class AppMenu {
    *
    * @param {[string[]]} recentUsedDocuments
    */
-  updateAppMenu (recentUsedDocuments) {
+  updateAppMenu(recentUsedDocuments) {
     if (!recentUsedDocuments) {
       recentUsedDocuments = this.getRecentlyUsedDocuments()
     }
@@ -270,7 +277,7 @@ class AppMenu {
    * @param {number} windowId The window id.
    * @param {string} lineEnding Either >lf< or >crlf<.
    */
-  updateLineEndingMenu (windowId, lineEnding) {
+  updateLineEndingMenu(windowId, lineEnding) {
     const menus = this.getWindowMenuById(windowId)
     const crlfMenu = menus.getMenuItemById('crlfLineEndingMenuEntry')
     const lfMenu = menus.getMenuItemById('lfLineEndingMenuEntry')
@@ -287,7 +294,7 @@ class AppMenu {
    * @param {number} windowId The window id.
    * @param {boolean} lineEnding Always on top.
    */
-  updateAlwaysOnTopMenu (windowId, flag) {
+  updateAlwaysOnTopMenu(windowId, flag) {
     const menus = this.getWindowMenuById(windowId)
     const menu = menus.getMenuItemById('alwaysOnTopMenuItem')
     menu.checked = flag
@@ -296,8 +303,8 @@ class AppMenu {
   /**
    * Update all theme entries from editor menus to the selected one.
    */
-  updateThemeMenu = theme => {
-    this.windowMenus.forEach(value => {
+  updateThemeMenu = (theme) => {
+    this.windowMenus.forEach((value) => {
       const { menu, type } = value
       if (type !== MenuType.EDITOR) {
         return
@@ -308,21 +315,20 @@ class AppMenu {
         return
       }
 
-      themeMenus.submenu.items.forEach(item => (item.checked = false))
-      themeMenus.submenu.items
-        .forEach(item => {
-          if (item.id && item.id === theme) {
-            item.checked = true
-          }
-        })
+      themeMenus.submenu.items.forEach((item) => (item.checked = false))
+      themeMenus.submenu.items.forEach((item) => {
+        if (item.id && item.id === theme) {
+          item.checked = true
+        }
+      })
     })
   }
 
   /**
    * Update all auto save entries from editor menus to the given state.
    */
-  updateAutoSaveMenu = autoSave => {
-    this.windowMenus.forEach(value => {
+  updateAutoSaveMenu = (autoSave) => {
+    this.windowMenus.forEach((value) => {
       const { menu, type } = value
       if (type !== MenuType.EDITOR) {
         return
@@ -336,7 +342,7 @@ class AppMenu {
     })
   }
 
-  _buildEditorMenu (recentUsedDocuments = null) {
+  _buildEditorMenu(recentUsedDocuments = null) {
     if (!recentUsedDocuments) {
       recentUsedDocuments = this.getRecentlyUsedDocuments()
     }
@@ -346,7 +352,7 @@ class AppMenu {
     return { menu, type: MenuType.EDITOR }
   }
 
-  _buildSettingMenu () {
+  _buildSettingMenu() {
     if (isOsx) {
       const menuTemplate = configSettingMenu(this._keybindings)
       const menu = Menu.buildFromTemplate(menuTemplate)
@@ -355,7 +361,7 @@ class AppMenu {
     return { menu: null, type: MenuType.SETTINGS }
   }
 
-  _setApplicationMenu (menu) {
+  _setApplicationMenu(menu) {
     if (isLinux && !menu) {
       // WORKAROUND for Electron#16521: We cannot hide the (application) menu on Linux.
       const dummyMenu = Menu.buildFromTemplate([])
@@ -365,7 +371,7 @@ class AppMenu {
     }
   }
 
-  _listenForIpcMain () {
+  _listenForIpcMain() {
     ipcMain.on('mt::add-recently-used-document', (e, pathname) => {
       this.addRecentlyUsedDocument(pathname)
     })
@@ -401,14 +407,14 @@ class AppMenu {
       updateSelectionMenus(this.getWindowMenuById(windowId), changes)
     })
 
-    ipcMain.on('menu-add-recently-used', pathname => {
+    ipcMain.on('menu-add-recently-used', (pathname) => {
       this.addRecentlyUsedDocument(pathname)
     })
     ipcMain.on('menu-clear-recently-used', () => {
       this.clearRecentlyUsedDocuments()
     })
 
-    ipcMain.on('broadcast-preferences-changed', prefs => {
+    ipcMain.on('broadcast-preferences-changed', (prefs) => {
       if (prefs.theme !== undefined) {
         this.updateThemeMenu(prefs.theme)
       }
@@ -436,7 +442,7 @@ const updateMenuItem = (oldMenus, newMenus, id) => {
  * @param {string} menuId Menu ID
  * @returns {Electron.Menu} Returns the menu or null.
  */
-export const getMenuItemById = menuId => {
+export const getMenuItemById = (menuId) => {
   const menus = Menu.getApplicationMenu()
   return menus.getMenuItemById(menuId)
 }

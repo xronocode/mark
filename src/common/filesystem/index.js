@@ -1,6 +1,7 @@
-import fs from 'fs-extra'
-import fsPromises from 'fs/promises'
-import path from 'path'
+import { access } from 'fs/promises'
+import { lstatSync, readlinkSync } from 'fs'
+import { resolve, dirname } from 'path'
+import { ensureDirSync as fsExtraEnsureDirSync, pathExistsSync } from 'fs-extra'
 
 /**
  * Test whether or not the given path exists.
@@ -8,11 +9,11 @@ import path from 'path'
  * @param {string} p The path to the file or directory.
  * @returns {boolean}
  */
-export const exists = async p => {
+export const exists = async (p) => {
   try {
-    await fsPromises.access(p)
+    await access(p)
     return true
-  } catch (_) {
+  } catch {
     return false
   }
 }
@@ -22,9 +23,9 @@ export const exists = async p => {
  *
  * @param {string} dirPath The directory path.
  */
-export const ensureDirSync = dirPath => {
+export const ensureDirSync = (dirPath) => {
   try {
-    fs.ensureDirSync(dirPath)
+    fsExtraEnsureDirSync(dirPath)
   } catch (e) {
     if (e.code !== 'EEXIST') {
       throw e
@@ -37,10 +38,10 @@ export const ensureDirSync = dirPath => {
  *
  * @param {string} dirPath The directory path.
  */
-export const isDirectory = dirPath => {
+export const isDirectory = (dirPath) => {
   try {
-    return fs.existsSync(dirPath) && fs.lstatSync(dirPath).isDirectory()
-  } catch (_) {
+    return pathExistsSync(dirPath) && lstatSync(dirPath).isDirectory()
+  } catch {
     return false
   }
 }
@@ -50,21 +51,21 @@ export const isDirectory = dirPath => {
  *
  * @param {string} dirPath The directory path.
  */
-export const isDirectory2 = dirPath => {
+export const isDirectory2 = (dirPath) => {
   try {
-    if (!fs.existsSync(dirPath)) {
+    if (!pathExistsSync(dirPath)) {
       return false
     }
 
-    const fi = fs.lstatSync(dirPath)
+    const fi = lstatSync(dirPath)
     if (fi.isDirectory()) {
       return true
     } else if (fi.isSymbolicLink()) {
-      const targetPath = path.resolve(path.dirname(dirPath), fs.readlinkSync(dirPath))
+      const targetPath = resolve(dirname(dirPath), readlinkSync(dirPath))
       return isDirectory(targetPath)
     }
     return false
-  } catch (_) {
+  } catch {
     return false
   }
 }
@@ -74,10 +75,10 @@ export const isDirectory2 = dirPath => {
  *
  * @param {string} filepath The file path.
  */
-export const isFile = filepath => {
+export const isFile = (filepath) => {
   try {
-    return fs.existsSync(filepath) && fs.lstatSync(filepath).isFile()
-  } catch (_) {
+    return pathExistsSync(filepath) && lstatSync(filepath).isFile()
+  } catch {
     return false
   }
 }
@@ -87,21 +88,21 @@ export const isFile = filepath => {
  *
  * @param {string} filepath The file path.
  */
-export const isFile2 = filepath => {
+export const isFile2 = (filepath) => {
   try {
-    if (!fs.existsSync(filepath)) {
+    if (!pathExistsSync(filepath)) {
       return false
     }
 
-    const fi = fs.lstatSync(filepath)
+    const fi = lstatSync(filepath)
     if (fi.isFile()) {
       return true
     } else if (fi.isSymbolicLink()) {
-      const targetPath = path.resolve(path.dirname(filepath), fs.readlinkSync(filepath))
+      const targetPath = resolve(dirname(filepath), readlinkSync(filepath))
       return isFile(targetPath)
     }
     return false
-  } catch (_) {
+  } catch {
     return false
   }
 }
@@ -111,10 +112,10 @@ export const isFile2 = filepath => {
  *
  * @param {string} filepath The link path.
  */
-export const isSymbolicLink = filepath => {
+export const isSymbolicLink = (filepath) => {
   try {
-    return fs.existsSync(filepath) && fs.lstatSync(filepath).isSymbolicLink()
-  } catch (_) {
+    return pathExistsSync(filepath) && lstatSync(filepath).isSymbolicLink()
+  } catch {
     return false
   }
 }

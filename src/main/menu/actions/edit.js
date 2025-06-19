@@ -1,5 +1,5 @@
 import path from 'path'
-import { ipcMain, BrowserWindow } from 'electron'
+import { BrowserWindow, ipcMain } from 'electron'
 import log from 'electron-log'
 import { COMMANDS } from '../../commands'
 import { searchFilesAndDir } from '../../utils/imagePathAutoComplement'
@@ -19,10 +19,10 @@ ipcMain.on('mt::ask-for-image-auto-path', (e, { pathname, src, id }) => {
   const dir = path.dirname(fullPath)
   const searchKey = path.basename(fullPath)
   searchFilesAndDir(dir, searchKey)
-    .then(files => {
+    .then((files) => {
       return win.webContents.send(`mt::response-of-image-path-${id}`, files)
     })
-    .catch(err => {
+    .catch((err) => {
       log.error(err)
       return win.webContents.send(`mt::response-of-image-path-${id}`, [])
     })
@@ -30,59 +30,59 @@ ipcMain.on('mt::ask-for-image-auto-path', (e, { pathname, src, id }) => {
 
 // --- Menu actions -------------------------------------------------------------
 
-export const editorUndo = win => {
+export const editorUndo = (win) => {
   edit(win, 'undo')
 }
 
-export const editorRedo = win => {
+export const editorRedo = (win) => {
   edit(win, 'redo')
 }
 
-export const editorCopyAsMarkdown = win => {
+export const editorCopyAsMarkdown = (win) => {
   edit(win, 'copyAsMarkdown')
 }
 
-export const editorCopyAsHtml = win => {
+export const editorCopyAsHtml = (win) => {
   edit(win, 'copyAsHtml')
 }
 
-export const editorPasteAsPlainText = win => {
+export const editorPasteAsPlainText = (win) => {
   edit(win, 'pasteAsPlainText')
 }
 
-export const editorSelectAll = win => {
+export const editorSelectAll = (win) => {
   edit(win, 'selectAll')
 }
 
-export const editorDuplicate = win => {
+export const editorDuplicate = (win) => {
   edit(win, 'duplicate')
 }
 
-export const editorCreateParagraph = win => {
+export const editorCreateParagraph = (win) => {
   edit(win, 'createParagraph')
 }
 
-export const editorDeleteParagraph = win => {
+export const editorDeleteParagraph = (win) => {
   edit(win, 'deleteParagraph')
 }
 
-export const editorFind = win => {
+export const editorFind = (win) => {
   edit(win, 'find')
 }
 
-export const editorFindNext = win => {
+export const editorFindNext = (win) => {
   edit(win, 'findNext')
 }
 
-export const editorFindPrevious = win => {
+export const editorFindPrevious = (win) => {
   edit(win, 'findPrev')
 }
 
-export const editorReplace = win => {
+export const editorReplace = (win) => {
   edit(win, 'undo')
 }
 
-export const findInFolder = win => {
+export const findInFolder = (win) => {
   edit(win, 'findInFolder')
 }
 
@@ -92,25 +92,25 @@ export const edit = (win, type) => {
   }
 }
 
-export const nativeCut = win => {
+export const nativeCut = (win) => {
   if (win) {
     win.webContents.cut()
   }
 }
 
-export const nativeCopy = win => {
+export const nativeCopy = (win) => {
   if (win) {
     win.webContents.copy()
   }
 }
 
-export const nativePaste = win => {
+export const nativePaste = (win) => {
   if (win) {
     win.webContents.paste()
   }
 }
 
-export const screenshot = win => {
+export const screenshot = (win) => {
   ipcMain.emit('screen-capture', win)
 }
 
@@ -122,7 +122,7 @@ export const lineEnding = (win, lineEnding) => {
 
 // --- Commands -------------------------------------------------------------
 
-export const loadEditCommands = commandManager => {
+export const loadEditCommands = (commandManager) => {
   commandManager.add(COMMANDS.EDIT_COPY, nativeCopy)
   commandManager.add(COMMANDS.EDIT_COPY_AS_HTML, editorCopyAsHtml)
   commandManager.add(COMMANDS.EDIT_COPY_AS_MARKDOWN, editorCopyAsMarkdown)

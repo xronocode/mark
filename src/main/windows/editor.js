@@ -15,7 +15,7 @@ class EditorWindow extends BaseWindow {
   /**
    * @param {Accessor} accessor The application accessor for application instances.
    */
-  constructor (accessor) {
+  constructor(accessor) {
     super(accessor)
     this.type = WindowType.EDITOR
 
@@ -38,7 +38,7 @@ class EditorWindow extends BaseWindow {
    * @param {string[]} [markdownList] Array of markdown data to open.
    * @param {*} [options] The BrowserWindow options.
    */
-  createWindow (rootDirectory = null, fileList = [], markdownList = [], options = {}) {
+  createWindow(rootDirectory = null, fileList = [], markdownList = [], options = {}) {
     const { menu: appMenu, env, preferences } = this._accessor
     const addBlankTab = !rootDirectory && fileList.length === 0 && markdownList.length === 0
 
@@ -50,7 +50,7 @@ class EditorWindow extends BaseWindow {
     const { x, y, width, height } = ensureWindowPosition(mainWindowState)
     const winOptions = Object.assign({ x, y, width, height }, editorWinOptions, options)
     if (isLinux) {
-      winOptions.icon = path.join(__static, 'logo-96px.png')
+      winOptions.icon = path.join(process.cwd(), 'static', 'logo-96px.png')
     }
 
     const {
@@ -76,7 +76,7 @@ class EditorWindow extends BaseWindow {
       winOptions.webPreferences.spellcheck = false
     }
 
-    let win = this.browserWindow = new BrowserWindow(winOptions)
+    let win = (this.browserWindow = new BrowserWindow(winOptions))
     remoteEnable(win.webContents)
     this.id = win.id
 
@@ -170,15 +170,14 @@ class EditorWindow extends BaseWindow {
       this.emit('window-blur')
       win.webContents.send('mt::window-active-status', { status: false })
     })
-
-    ;['maximize', 'unmaximize', 'enter-full-screen', 'leave-full-screen'].forEach(channel => {
+    ;['maximize', 'unmaximize', 'enter-full-screen', 'leave-full-screen'].forEach((channel) => {
       win.on(channel, () => {
         win.webContents.send(`mt::window-${channel}`)
       })
     })
 
     // Before closed. We cancel the action and ask the editor further instructions.
-    win.on('close', event => {
+    win.on('close', (event) => {
       this.emit('window-close')
 
       event.preventDefault()
@@ -225,7 +224,7 @@ class EditorWindow extends BaseWindow {
    * @param {string} [options] The tab option for the editor window.
    * @param {boolean} [selected] Whether the tab should become the selected tab (true if not set).
    */
-  openTab (filePath, options = {}, selected = true) {
+  openTab(filePath, options = {}, selected = true) {
     // TODO: Don't allow new files if quitting.
     if (this.lifecycle === WindowLifecycle.QUITTED) return
     this.openTabs([{ filePath, options, selected }])
@@ -236,10 +235,10 @@ class EditorWindow extends BaseWindow {
    *
    * @param {string[]} filePaths The file paths to open.
    */
-  openTabsFromPaths (filePaths) {
+  openTabsFromPaths(filePaths) {
     if (!filePaths || filePaths.length === 0) return
 
-    const fileList = filePaths.map(p => ({ filePath: p, options: {}, selected: false }))
+    const fileList = filePaths.map((p) => ({ filePath: p, options: {}, selected: false }))
     fileList[0].selected = true
     this.openTabs(fileList)
   }
@@ -249,7 +248,7 @@ class EditorWindow extends BaseWindow {
    *
    * @param {{filePath: string, selected: boolean, options: any}[]} filePath A list of markdown file paths and options to open.
    */
-  openTabs (fileList) {
+  openTabs(fileList) {
     // TODO: Don't allow new files if quitting.
     if (this.lifecycle === WindowLifecycle.QUITTED) return
 
@@ -259,21 +258,23 @@ class EditorWindow extends BaseWindow {
     const { autoGuessEncoding, trimTrailingNewline } = preferences.getAll()
 
     for (const { filePath, options, selected } of fileList) {
-      loadMarkdownFile(filePath, eol, autoGuessEncoding, trimTrailingNewline).then(rawDocument => {
-        if (this.lifecycle === WindowLifecycle.READY) {
-          this._doOpenTab(rawDocument, options, selected)
-        } else {
-          this._filesToOpen.push({ doc: rawDocument, options, selected })
-        }
-      }).catch(err => {
-        const { message, stack } = err
-        log.error(`[ERROR] Cannot open file or directory: ${message}\n\n${stack}`)
-        browserWindow.webContents.send('mt::show-notification', {
-          title: 'Cannot open tab',
-          type: 'error',
-          message: err.message
+      loadMarkdownFile(filePath, eol, autoGuessEncoding, trimTrailingNewline)
+        .then((rawDocument) => {
+          if (this.lifecycle === WindowLifecycle.READY) {
+            this._doOpenTab(rawDocument, options, selected)
+          } else {
+            this._filesToOpen.push({ doc: rawDocument, options, selected })
+          }
         })
-      })
+        .catch((err) => {
+          const { message, stack } = err
+          log.error(`[ERROR] Cannot open file or directory: ${message}\n\n${stack}`)
+          browserWindow.webContents.send('mt::show-notification', {
+            title: 'Cannot open tab',
+            type: 'error',
+            message: err.message
+          })
+        })
     }
   }
 
@@ -283,7 +284,7 @@ class EditorWindow extends BaseWindow {
    * @param {[boolean]} selected Whether the tab should become the selected tab (true if not set).
    * @param {[string]} markdown The markdown string.
    */
-  openUntitledTab (selected = true, markdown = '') {
+  openUntitledTab(selected = true, markdown = '') {
     // TODO: Don't allow new files if quitting.
     if (this.lifecycle === WindowLifecycle.QUITTED) return
 
@@ -300,10 +301,13 @@ class EditorWindow extends BaseWindow {
    *
    * @param {string} pathname The directory path.
    */
-  openFolder (pathname) {
+  openFolder(pathname) {
     // TODO: Don't allow new files if quitting.
-    if (!pathname || this.lifecycle === WindowLifecycle.QUITTED ||
-      isSamePathSync(pathname, this._openedRootDirectory)) {
+    if (
+      !pathname ||
+      this.lifecycle === WindowLifecycle.QUITTED ||
+      isSamePathSync(pathname, this._openedRootDirectory)
+    ) {
       return
     }
 
@@ -329,7 +333,7 @@ class EditorWindow extends BaseWindow {
    *
    * @param {string} filePath The file path.
    */
-  addToOpenedFiles (filePath) {
+  addToOpenedFiles(filePath) {
     const { _openedFiles, browserWindow } = this
     _openedFiles.push(filePath)
     ipcMain.emit('watcher-watch-file', browserWindow, filePath)
@@ -341,9 +345,9 @@ class EditorWindow extends BaseWindow {
    * @param {string} pathname
    * @param {string} oldPathname
    */
-  changeOpenedFilePath (pathname, oldPathname) {
+  changeOpenedFilePath(pathname, oldPathname) {
     const { _openedFiles, browserWindow } = this
-    const index = _openedFiles.findIndex(p => p === oldPathname)
+    const index = _openedFiles.findIndex((p) => p === oldPathname)
     if (index === -1) {
       // The old path was not found but add the new one.
       _openedFiles.push(pathname)
@@ -359,9 +363,9 @@ class EditorWindow extends BaseWindow {
    *
    * @param {string} pathname The full path.
    */
-  removeFromOpenedFiles (pathname) {
+  removeFromOpenedFiles(pathname) {
     const { _openedFiles, browserWindow } = this
-    const index = _openedFiles.findIndex(p => p === pathname)
+    const index = _openedFiles.findIndex((p) => p === pathname)
     if (index !== -1) {
       _openedFiles.splice(index, 1)
     }
@@ -374,12 +378,12 @@ class EditorWindow extends BaseWindow {
    * @param {string[]} fileList The file list.
    * @returns {number[]}
    */
-  getCandidateScores (fileList) {
+  getCandidateScores(fileList) {
     const { _openedFiles, _openedRootDirectory, id } = this
     const buf = []
     for (const pathname of fileList) {
       let score = 0
-      if (_openedFiles.some(p => p === pathname)) {
+      if (_openedFiles.some((p) => p === pathname)) {
         score = -1
       } else {
         if (isChildOfDirectory(_openedRootDirectory, pathname)) {
@@ -396,7 +400,7 @@ class EditorWindow extends BaseWindow {
     return buf
   }
 
-  reload () {
+  reload() {
     const { id, browserWindow } = this
 
     // Close watchers
@@ -428,7 +432,7 @@ class EditorWindow extends BaseWindow {
     super.reload()
   }
 
-  destroy () {
+  destroy() {
     super.destroy()
 
     // Watchers are freed from WindowManager.
@@ -440,7 +444,7 @@ class EditorWindow extends BaseWindow {
     this._openedFiles = null
   }
 
-  get openedRootDirectory () {
+  get openedRootDirectory() {
     return this._openedRootDirectory
   }
 
@@ -453,7 +457,7 @@ class EditorWindow extends BaseWindow {
    * @param {any} options The tab option for the editor window.
    * @param {boolean} selected Whether the tab should become the selected tab (true if not set).
    */
-  _doOpenTab (rawDocument, options, selected) {
+  _doOpenTab(rawDocument, options, selected) {
     const { _accessor, _openedFiles, browserWindow } = this
     const { menu: appMenu } = _accessor
     const { pathname } = rawDocument
@@ -466,7 +470,7 @@ class EditorWindow extends BaseWindow {
     browserWindow.webContents.send('mt::open-new-tab', rawDocument, options, selected)
   }
 
-  _doOpenFilesToOpen () {
+  _doOpenFilesToOpen() {
     if (this.lifecycle !== WindowLifecycle.READY) {
       throw new Error('Invalid state.')
     }

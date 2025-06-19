@@ -1,4 +1,4 @@
-import fs from 'fs-extra'
+import { readlinkSync, outputFile } from 'fs-extra'
 import path from 'path'
 import { isDirectory, isFile, isSymbolicLink } from 'common/filesystem'
 
@@ -9,10 +9,10 @@ import { isDirectory, isFile, isSymbolicLink } from 'common/filesystem'
  * @returns {string} Returns the absolute path and resolved link. If the link target
  *                   cannot be resolved, an empty string is returned.
  */
-export const normalizeAndResolvePath = pathname => {
+export const normalizeAndResolvePath = (pathname) => {
   if (isSymbolicLink(pathname)) {
     const absPath = path.dirname(pathname)
-    const targetPath = path.resolve(absPath, fs.readlinkSync(pathname))
+    const targetPath = path.resolve(absPath, readlinkSync(pathname))
     if (isFile(targetPath) || isDirectory(targetPath)) {
       return path.resolve(targetPath)
     }
@@ -28,5 +28,5 @@ export const writeFile = (pathname, content, extension, options = 'utf-8') => {
   }
   pathname = !extension || pathname.endsWith(extension) ? pathname : `${pathname}${extension}`
 
-  return fs.outputFile(pathname, content, options)
+  return outputFile(pathname, content, options)
 }

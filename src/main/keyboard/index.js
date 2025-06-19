@@ -1,4 +1,4 @@
-import { ipcMain, shell } from 'electron'
+import { shell, ipcMain } from 'electron'
 import log from 'electron-log'
 import EventEmitter from 'events'
 import fsPromises from 'fs/promises'
@@ -24,22 +24,22 @@ export const getKeyboardInfo = () => {
 
 const KEYBOARD_LAYOUT_MONITOR_CHANNEL_ID = 'onDidChangeKeyboardLayout'
 class KeyboardLayoutMonitor extends EventEmitter {
-  constructor () {
+  constructor() {
     super()
     this._isSubscribed = false
     this._emitTimer = null
   }
 
-  addListener (callback) {
+  addListener(callback) {
     this._ensureNativeListener()
     this.on(KEYBOARD_LAYOUT_MONITOR_CHANNEL_ID, callback)
   }
 
-  removeListener (callback) {
+  removeListener(callback) {
     this.removeListener(KEYBOARD_LAYOUT_MONITOR_CHANNEL_ID, callback)
   }
 
-  _ensureNativeListener () {
+  _ensureNativeListener() {
     if (!this._isSubscribed) {
       this._isSubscribed = true
       onDidChangeKeyboardLayout(() => {
@@ -64,12 +64,13 @@ export const registerKeyboardListeners = () => {
   ipcMain.on('mt::keybinding-debug-dump-keyboard-info', async () => {
     const dumpPath = path.join(os.tmpdir(), 'marktext_keyboard_info.json')
     const content = JSON.stringify(getKeyboardInfo(), null, 2)
-    fsPromises.writeFile(dumpPath, content, 'utf8')
+    fsPromises
+      .writeFile(dumpPath, content, 'utf8')
       .then(() => {
         console.log(`Keyboard information written to "${dumpPath}".`)
         shell.openPath(dumpPath)
       })
-      .catch(error => {
+      .catch((error) => {
         log.error('Error dumping keyboard information:', error)
       })
   })

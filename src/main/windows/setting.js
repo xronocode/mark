@@ -10,7 +10,7 @@ class SettingWindow extends BaseWindow {
   /**
    * @param {Accessor} accessor The application accessor for application instances.
    */
-  constructor (accessor) {
+  constructor(accessor) {
     super(accessor)
     this.type = WindowType.SETTINGS
   }
@@ -20,7 +20,7 @@ class SettingWindow extends BaseWindow {
    *
    * @param {*} [category] The settings category tab name.
    */
-  createWindow (category = null) {
+  createWindow(category = null) {
     const { menu: appMenu, env, keybindings, preferences } = this._accessor
     const winOptions = Object.assign({}, preferencesWinOptions)
     centerWindowOptions(winOptions)
@@ -42,8 +42,7 @@ class SettingWindow extends BaseWindow {
     }
 
     winOptions.backgroundColor = this._getPreferredBackgroundColor(theme)
-
-    let win = this.browserWindow = new BrowserWindow(winOptions)
+    let win = (this.browserWindow = new BrowserWindow(winOptions))
     remoteEnable(win.webContents)
     this.id = win.id
 
@@ -66,7 +65,7 @@ class SettingWindow extends BaseWindow {
       win.webContents.send('mt::window-active-status', { status: false })
     })
 
-    win.on('close', event => {
+    win.on('close', (event) => {
       this.emit('window-close')
 
       event.preventDefault()
@@ -94,7 +93,7 @@ class SettingWindow extends BaseWindow {
     return win
   }
 
-  _buildUrlString (windowId, env, userPreference, category) {
+  _buildUrlString(windowId, env, userPreference, category) {
     const url = this._buildUrlWithSettings(windowId, env, userPreference)
     if (category) {
       // Overwrite type to add category name

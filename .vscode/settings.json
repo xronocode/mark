@@ -1,21 +1,11 @@
 {
-  "editor.insertSpaces": true,
-  "editor.tabSize": 2,
-  // Issues with unit test files
-  //"editor.trimAutoWhitespace": false,
-  "files.eol": "\n",
-  "files.insertFinalNewline": true,
-
-  "search.exclude": {
-    "**/.git": true,
-    "**/build": true,
-    "**/node_modules": true,
-    "**/dist": true
+  "[typescript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
   },
-  "files.watcherExclude": {
-    "**/.git": true,
-    "**/build": true,
-    "**/node_modules": true,
-    "**/dist": true
+  "[javascript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[json]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
   }
 }

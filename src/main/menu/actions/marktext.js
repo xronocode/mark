@@ -1,22 +1,29 @@
 import { autoUpdater } from 'electron-updater'
-import { ipcMain, BrowserWindow, Menu } from 'electron'
+import { BrowserWindow, Menu } from 'electron'
 import { COMMANDS } from '../../commands'
 import { isOsx } from '../../config'
+import { ipcMain } from 'electron'
 
 let runningUpdate = false
 let win = null
 
 autoUpdater.autoDownload = false
 
-autoUpdater.on('error', error => {
+autoUpdater.on('error', (error) => {
   if (win) {
-    win.webContents.send('mt::UPDATE_ERROR', error === null ? 'Error: unknown' : (error.message || error).toString())
+    win.webContents.send(
+      'mt::UPDATE_ERROR',
+      error === null ? 'Error: unknown' : (error.message || error).toString()
+    )
   }
 })
 
 autoUpdater.on('update-available', () => {
   if (win) {
-    win.webContents.send('mt::UPDATE_AVAILABLE', 'Found an update, do you want download and install now?')
+    win.webContents.send(
+      'mt::UPDATE_AVAILABLE',
+      'Found an update, do you want download and install now?'
+    )
   }
   runningUpdate = false
 })
@@ -33,7 +40,10 @@ autoUpdater.on('update-downloaded', () => {
   // not just force close the application.
 
   if (win) {
-    win.webContents.send('mt::UPDATE_DOWNLOADED', 'Update downloaded, application will be quit for update...')
+    win.webContents.send(
+      'mt::UPDATE_DOWNLOADED',
+      'Update downloaded, application will be quit for update...'
+    )
   }
   setImmediate(() => autoUpdater.quitAndInstall())
 })
@@ -46,7 +56,7 @@ ipcMain.on('mt::NEED_UPDATE', (e, { needUpdate }) => {
   }
 })
 
-ipcMain.on('mt::check-for-update', e => {
+ipcMain.on('mt::check-for-update', (e) => {
   const win = BrowserWindow.fromWebContents(e.sender)
   checkUpdates(win)
 })
@@ -57,7 +67,7 @@ export const userSetting = () => {
   ipcMain.emit('app-create-settings-window')
 }
 
-export const checkUpdates = browserWindow => {
+export const checkUpdates = (browserWindow) => {
   if (!runningUpdate) {
     runningUpdate = true
     win = browserWindow
@@ -85,7 +95,7 @@ export const osxShowAll = () => {
 
 // --- Commands -------------------------------------------------------------
 
-export const loadMarktextCommands = commandManager => {
+export const loadMarktextCommands = (commandManager) => {
   commandManager.add(COMMANDS.MT_HIDE, osxHide)
   commandManager.add(COMMANDS.MT_HIDE_OTHERS, osxHideAll)
 }
