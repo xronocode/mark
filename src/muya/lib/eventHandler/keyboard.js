@@ -204,13 +204,10 @@ class Keyboard {
 
       const { lang, paragraph } = contentState.checkEditLanguage()
       if (lang) {
-        console.log('muya-code-picker, lang', lang)
-        console.log('muya-code-picker, paragraph', paragraph)
         eventCenter.dispatch('muya-code-picker', {
           reference: getParagraphReference(paragraph, paragraph.id),
           lang,
           cb: (item) => {
-            console.log('callback called with: ', item)
             contentState.selectLanguage(paragraph, item.name)
           }
         })

@@ -40,7 +40,6 @@ export const transformAliasToOrigin = (langs) => {
 
 function initLoadLanguage(Prism) {
   return async function loadLanguages(langs) {
-    console.log('loadLanguages', langs)
     // If no argument is passed, load all components
     if (!langs) {
       langs = Object.keys(languages).filter((lang) => lang !== 'meta')

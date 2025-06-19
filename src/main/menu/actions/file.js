@@ -243,7 +243,6 @@ ipcMain.on('mt::save-and-close-tabs', async (e, unsavedFiles) => {
 ipcMain.on(
   'mt::response-file-save-as',
   async (e, id, filename, pathname, markdown, options, defaultPath) => {
-    console.log('mt::response-file-save-as', id, filename, markdown, pathname, options, defaultPath)
     const win = BrowserWindow.fromWebContents(e.sender)
     let recommendFilename = getRecommendTitleFromMarkdownString(markdown)
     if (!recommendFilename) {
