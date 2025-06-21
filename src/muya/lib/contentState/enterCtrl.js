@@ -9,25 +9,25 @@ const checkAutoIndent = (text, offset) => {
   const pairStr = text.substring(offset - 1, offset + 1)
   return /^(\{\}|\[\]|\(\)|><)$/.test(pairStr)
 }
-const getCodeblockIndentSpace = text => {
+const getCodeblockIndentSpace = (text) => {
   const match = /\n([ \t]*).*$/.exec(text)
   return match ? match[1] : ''
 }
-const getIndentSpace = text => {
+const getIndentSpace = (text) => {
   const match = /^(\s*)\S/.exec(text)
   return match ? match[1] : ''
 }
 
-const enterCtrl = ContentState => {
+const enterCtrl = (ContentState) => {
   // TODO@jocs this function need opti.
   ContentState.prototype.chopBlockByCursor = function (block, key, offset) {
     const newBlock = this.createBlock('p')
     const { children } = block
-    const index = children.findIndex(child => child.key === key)
+    const index = children.findIndex((child) => child.key === key)
     const activeLine = this.getBlock(key)
     const { text } = activeLine
     newBlock.children = children.splice(index + 1)
-    newBlock.children.forEach(c => (c.parent = newBlock.key))
+    newBlock.children.forEach((c) => (c.parent = newBlock.key))
     children[index].nextSibling = null
     if (newBlock.children.length) {
       newBlock.children[0].preSibling = null
@@ -50,7 +50,7 @@ const enterCtrl = ContentState => {
     const index = this.findIndex(parent.children, block)
     const partChildren = parent.children.splice(index + 1)
     block.nextSibling = null
-    partChildren.forEach(b => {
+    partChildren.forEach((b) => {
       this.appendChild(container, b)
     })
     this.insertAfter(container, parent)
@@ -104,7 +104,7 @@ const enterCtrl = ContentState => {
     if (block.type === 'span') block = this.getParent(block)
     const parent = this.getParent(block)
     let newBlock = null
-    if (parent && (/ul|ol|blockquote/.test(parent.type))) {
+    if (parent && /ul|ol|blockquote/.test(parent.type)) {
       newBlock = this.createBlockP()
       if (this.isOnlyChild(block)) {
         this.insertAfter(newBlock, parent)
@@ -132,12 +132,10 @@ const enterCtrl = ContentState => {
       this.insertAfter(newBlock, parent)
       const index = this.findIndex(parent.children, block)
       const blocksInListItem = parent.children.splice(index + 1)
-      blocksInListItem.forEach(b => this.appendChild(newBlock, b))
+      blocksInListItem.forEach((b) => this.appendChild(newBlock, b))
       this.removeBlock(block)
 
-      newBlock = newBlock.listItemType === 'task'
-        ? newBlock.children[1]
-        : newBlock.children[0]
+      newBlock = newBlock.listItemType === 'task' ? newBlock.children[1] : newBlock.children[0]
     } else {
       newBlock = this.createBlockP()
       if (block.type === 'li') {
@@ -168,7 +166,7 @@ const enterCtrl = ContentState => {
       const imageWrapper = document.querySelector(`#${imageId}`)
       const rect = imageWrapper.getBoundingClientRect()
       const reference = {
-        getBoundingClientRect () {
+        getBoundingClientRect() {
           rect.height = 0 // Put image selector below the top border of image.
           return rect
         }
@@ -269,14 +267,12 @@ const enterCtrl = ContentState => {
         end: { key, offset }
       }
       return this.partialRender()
-    } else if (
-      block.type === 'span' &&
-      block.functionType === 'codeContent'
-    ) {
+    } else if (block.type === 'span' && block.functionType === 'codeContent') {
       const { text, key } = block
       const autoIndent = checkAutoIndent(text, start.offset)
       const indent = getCodeblockIndentSpace(text.substring(1, start.offset))
-      block.text = text.substring(0, start.offset) +
+      block.text =
+        text.substring(0, start.offset) +
         '\n' +
         (autoIndent ? indent + ' '.repeat(this.tabSize) + '\n' : '') +
         indent +
@@ -310,7 +306,7 @@ const enterCtrl = ContentState => {
       return this.partialRender([block])
     }
 
-    const getFirstBlockInNextRow = row => {
+    const getFirstBlockInNextRow = (row) => {
       let nextSibling = this.getBlock(row.nextSibling)
       if (!nextSibling) {
         const rowContainer = this.getBlock(row.parent)
@@ -336,10 +332,7 @@ const enterCtrl = ContentState => {
       const rowContainer = this.getBlock(row.parent)
       const table = this.closest(rowContainer, 'table')
 
-      if (
-        (isOsx && event.metaKey) ||
-        (!isOsx && event.ctrlKey)
-      ) {
+      if ((isOsx && event.metaKey) || (!isOsx && event.ctrlKey)) {
         const nextRow = this.createRow(row, false)
         if (rowContainer.type === 'thead') {
           let tBody = this.getBlock(rowContainer.nextSibling)
@@ -373,10 +366,13 @@ const enterCtrl = ContentState => {
       parent = this.getParent(block)
     }
     const paragraph = document.querySelector(`#${block.key}`)
-    if (
-      (parent && parent.type === 'li' && this.isOnlyChild(block)) ||
-      (parent && parent.type === 'li' && parent.listItemType === 'task' && parent.children.length === 2) // one `input` and one `p`
-    ) {
+
+    // Handles custom enter logic in a list item (should not be selecting the p)
+    console.log('block', block)
+    console.log('this.getParent(block)', this.getParent(block))
+    console.log('isOnlyChild', this.isOnlyChild(block))
+    if (parent && parent.type === 'li') {
+      console.log('set to li')
       block = parent
       parent = this.getParent(block)
     }
@@ -385,6 +381,7 @@ const enterCtrl = ContentState => {
     const type = block.type
     let newBlock
 
+    console.log('final block', block)
     switch (true) {
       case left !== 0 && right !== 0: {
         // cursor in the middle
@@ -455,7 +452,7 @@ const enterCtrl = ContentState => {
       }
       case left !== 0 && right === 0:
       case left === 0 && right !== 0: {
-        // cursor at end of paragraph or at begin of paragraph
+        // cursor at end of block or at begin of block
         if (type === 'li') {
           if (block.listItemType === 'task') {
             const checked = false
@@ -464,6 +461,7 @@ const enterCtrl = ContentState => {
             newBlock = this.createBlockLi()
             newBlock.listItemType = block.listItemType
             newBlock.bulletMarkerOrDelimiter = block.bulletMarkerOrDelimiter
+            console.log(JSON.parse(JSON.stringify(block.children)))
           }
           newBlock.isLooseListItem = block.isLooseListItem
         } else {
@@ -471,13 +469,23 @@ const enterCtrl = ContentState => {
         }
 
         if (left === 0 && right !== 0) {
+          console.log('inserting before')
           this.insertBefore(newBlock, block)
           newBlock = block
         } else {
+          console.log('final newBlock', newBlock)
+          console.log('final block', block)
           if (block.type === 'p') {
             const lastLine = block.children[block.children.length - 1]
             if (lastLine.text === '') {
               this.removeBlock(lastLine)
+            }
+          } else if (block.type === 'li') {
+            if (block.children.length > 1) {
+              console.log('moving')
+              // When we have a sublist, we need to move the sublist (not the contents) to the new block instead of inserting an "empty" block at the next line
+              this.appendChild(newBlock, block.children[1])
+              this.removeBlock(block.children[1])
             }
           }
           this.insertAfter(newBlock, block)
@@ -491,7 +499,7 @@ const enterCtrl = ContentState => {
       }
     }
 
-    const getParagraphBlock = block => {
+    const getParagraphBlock = (block) => {
       if (block.type === 'li') {
         return block.listItemType === 'task' ? block.children[1] : block.children[0]
       } else {
@@ -527,7 +535,10 @@ const enterCtrl = ContentState => {
     }
 
     cursorBlock = getParagraphBlock(cursorBlock)
-    const key = cursorBlock.type === 'p' || cursorBlock.type === 'pre' ? cursorBlock.children[0].key : cursorBlock.key
+    const key =
+      cursorBlock.type === 'p' || cursorBlock.type === 'pre'
+        ? cursorBlock.children[0].key
+        : cursorBlock.key
     let offset = 0
     if (htmlNeedFocus) {
       const { text } = cursorBlock
