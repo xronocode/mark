@@ -1,7 +1,7 @@
 <template>
   <div class="print-settings-dialog">
     <el-dialog
-      v-model:visible="showExportSettingsDialog"
+      v-model="showExportSettingsDialog"
       :show-close="false"
       :modal="true"
       custom-class="ag-dialog-table"
@@ -319,6 +319,7 @@ const showDialog = (type) => {
   }
 
   showExportSettingsDialog.value = true
+  console.log('showExportSettingsDialog', showExportSettingsDialog.value)
   bus.emit('editor-blur')
 
   if (!themesLoaded.value) {
