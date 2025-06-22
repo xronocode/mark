@@ -11,9 +11,8 @@
 
 <script setup>
 import { computed, watch, onMounted, nextTick } from 'vue'
-import { useMainStore } from '@/store'
-import { storeToRefs } from 'pinia'
 import { usePreferencesStore } from '@/store/preferences'
+import { storeToRefs } from 'pinia'
 import TitleBar from '@/prefComponents/common/titlebar'
 import SideBar from '@/prefComponents/sideBar'
 import { addThemeStyle } from '@/util/theme'
@@ -21,14 +20,13 @@ import { DEFAULT_STYLE } from '@/config'
 import { isOsx } from '@/util'
 
 // Store
-const mainStore = useMainStore()
 const preferencesStore = usePreferencesStore()
 
 // Computed properties
-const { theme, titleBarStyle } = storeToRefs(mainStore)
+const { theme, titleBarStyle } = storeToRefs(preferencesStore)
 
 const showCustomTitleBar = computed(() => {
-  return titleBarStyle.value === 'custom' && !isOsx
+  return titleBarStyle === 'custom' && !isOsx
 })
 
 // Watchers

@@ -150,7 +150,7 @@ const {
   defaultDirectoryToOpen,
   openFilesInNewWindow,
   openFolderInNewWindow,
-  projectPaths,
+  treePathExcludePatterns: projectPaths,
   zoom,
   hideScrollbar,
   wordWrapInToc,
