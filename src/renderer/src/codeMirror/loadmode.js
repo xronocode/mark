@@ -7,7 +7,7 @@ console.log('codeMirrorMode', codeMirrorMode)
 
 const loadMore = (CodeMirror) => {
   if (!CodeMirror.modeURL) {
-    CodeMirror.modeURL = '../../mode/%N/%N.js'
+    CodeMirror.modeURL = '../../../../node_modules/codemirror/mode/%N/%N.js'
   }
 
   const loading = {}
@@ -42,8 +42,7 @@ const loadMore = (CodeMirror) => {
 
     const list = (loading[mode] = [cont])
 
-    const pathSuffix = `/${mode}/${mode}.js`
-    const pathKey = Object.keys(codeMirrorMode).find((p) => p.endsWith(pathSuffix))
+    const pathKey = CodeMirror.modeURL.replace(/%N/g, mode)
 
     if (!pathKey) {
       delete loading[mode]
