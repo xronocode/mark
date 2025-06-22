@@ -60,9 +60,6 @@ export default defineConfig({
       renderer({
         nodeIntegration: true
       })
-    ],
-    optimizeDeps: {
-      include: ['prismjs/components/*.js']
-    }
+    ]
   }
 })
