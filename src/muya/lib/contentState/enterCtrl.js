@@ -101,22 +101,33 @@ const enterCtrl = (ContentState) => {
   }
 
   ContentState.prototype.enterInEmptyParagraph = function (block) {
+    console.log('enterInEmptyParagraph, block:', block)
+
     if (block.type === 'span') block = this.getParent(block)
     const parent = this.getParent(block)
+
+    console.log('enterInEmptyParagraph, parent:', parent)
     let newBlock = null
     if (parent && /ul|ol|blockquote/.test(parent.type)) {
+      console.log('enterInEmptyParagraph, parent is a list')
       newBlock = this.createBlockP()
       if (this.isOnlyChild(block)) {
+        console.log('enterInEmptyParagraph, block is only child')
         this.insertAfter(newBlock, parent)
         this.removeBlock(parent)
       } else if (this.isFirstChild(block)) {
+        console.log('enterInEmptyParagraph, block is first child')
         this.insertBefore(newBlock, parent)
       } else if (this.isLastChild(block)) {
+        console.log('enterInEmptyParagraph, block is last child')
         this.insertAfter(newBlock, parent)
       } else {
+        console.log('enterInEmptyParagraph, block is aaaa')
         this.chopBlock(block)
         this.insertAfter(newBlock, parent)
       }
+
+      console.log('final inserted newblock:', newBlock)
 
       this.removeBlock(block)
     } else if (parent && parent.type === 'li') {
@@ -367,14 +378,19 @@ const enterCtrl = (ContentState) => {
     }
     const paragraph = document.querySelector(`#${block.key}`)
 
+    console.log('===================')
     // Handles custom enter logic in a list item (should not be selecting the p)
     console.log('block', block)
     console.log('this.getParent(block)', this.getParent(block))
     console.log('isOnlyChild', this.isOnlyChild(block))
-    if (parent && parent.type === 'li') {
+
+    // we only want to select the li if and only if we are currently in the <p> of an li
+    // the <p> is the "text content" of the li
+    if (parent && parent.type === 'li' && this.isFirstChild(block)) {
       console.log('set to li')
       block = parent
       parent = this.getParent(block)
+      console.log('parent of parent', parent)
     }
     const left = start.offset
     const right = text.length - left
@@ -382,6 +398,8 @@ const enterCtrl = (ContentState) => {
     let newBlock
 
     console.log('final block', block)
+    console.log('left', left)
+    console.log('right', right)
     switch (true) {
       case left !== 0 && right !== 0: {
         // cursor in the middle
@@ -416,6 +434,10 @@ const enterCtrl = (ContentState) => {
             newBlock = this.createBlockLi(newBlock)
             newBlock.listItemType = block.listItemType
             newBlock.bulletMarkerOrDelimiter = block.bulletMarkerOrDelimiter
+
+            // When we have a sublist, we need to move the sublist (not the contents) to the new block
+            this.appendChild(newBlock, block.children[1])
+            this.removeBlock(block.children[1])
           }
           newBlock.isLooseListItem = block.isLooseListItem
         } else if (block.type === 'hr') {
@@ -469,12 +491,9 @@ const enterCtrl = (ContentState) => {
         }
 
         if (left === 0 && right !== 0) {
-          console.log('inserting before')
           this.insertBefore(newBlock, block)
           newBlock = block
         } else {
-          console.log('final newBlock', newBlock)
-          console.log('final block', block)
           if (block.type === 'p') {
             const lastLine = block.children[block.children.length - 1]
             if (lastLine.text === '') {
@@ -482,12 +501,12 @@ const enterCtrl = (ContentState) => {
             }
           } else if (block.type === 'li') {
             if (block.children.length > 1) {
-              console.log('moving')
               // When we have a sublist, we need to move the sublist (not the contents) to the new block instead of inserting an "empty" block at the next line
               this.appendChild(newBlock, block.children[1])
               this.removeBlock(block.children[1])
             }
           }
+          console.log('final inserted newBlock:', newBlock)
           this.insertAfter(newBlock, block)
         }
         break
