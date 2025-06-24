@@ -45,7 +45,3 @@
   border-top: none;
   bottom: -9px;
 }
-
-[data-popper-escaped] {
-  display: none;
-}
