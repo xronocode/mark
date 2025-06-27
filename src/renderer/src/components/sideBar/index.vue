@@ -13,9 +13,7 @@
           :class="{ active: c.name === rightColumn }"
           @click="handleLeftIconClick(c.name)"
         >
-          <svg :viewBox="c.icon.viewBox">
-            <use :xlink:href="c.icon.url"></use>
-          </svg>
+          <component :is="c.icon" />
         </li>
       </ul>
       <ul class="bottom">
@@ -24,9 +22,7 @@
           :key="index"
           @click="handleLeftBottomClick(c.name)"
         >
-          <svg :viewBox="c.icon.viewBox">
-            <use :xlink:href="c.icon.url"></use>
-          </svg>
+          <component :is="c.icon" />
         </li>
       </ul>
     </div>

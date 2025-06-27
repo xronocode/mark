@@ -15,9 +15,7 @@
           :class="{ active: isCaseSensitive }"
           @click.stop="caseSensitiveClicked()"
         >
-          <svg :viewBox="FindCaseIcon.viewBox" aria-hidden="true">
-            <use :xlink:href="FindCaseIcon.url" />
-          </svg>
+          <FindCaseIcon aria-hidden="true" />
         </span>
         <span
           title="Select whole word"
@@ -25,9 +23,7 @@
           :class="{ active: isWholeWord }"
           @click.stop="wholeWordClicked()"
         >
-          <svg :viewBox="FindWordIcon.viewBox" aria-hidden="true">
-            <use :xlink:href="FindWordIcon.url" />
-          </svg>
+          <FindWordIcon aria-hidden="true" />
         </span>
         <span
           title="Use query as RegEx"
@@ -35,9 +31,7 @@
           :class="{ active: isRegexp }"
           @click.stop="regexpClicked()"
         >
-          <svg :viewBox="FindRegexIcon.viewBox" aria-hidden="true">
-            <use :xlink:href="FindRegexIcon.url" />
-          </svg>
+          <FindRegexIcon aria-hidden="true" />
         </span>
       </div>
     </div>
@@ -298,101 +292,105 @@ onMounted(() => {
 
 <style scoped>
 .side-bar-search {
-  padding: 15px;
-  height: 100%;
-  box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
-}
-
-.search-wrapper {
-  margin-bottom: 15px;
-  position: relative;
-}
-
-.search-wrapper > input {
-  width: 100%;
-  height: 28px;
-  line-height: 28px;
-  border-radius: 3px;
-  padding: 0 85px 0 10px;
-  box-sizing: border-box;
-  background: transparent;
-  border: 1px solid var(--sideBarSearchBorderColor);
-  color: var(--sideBarColor);
-  outline: none;
-}
-.search-wrapper > input:focus {
-  border-color: var(--themeColor);
-}
-
-.search-wrapper .controls {
-  position: absolute;
-  top: 0;
-  right: 1px;
   height: 100%;
+}
+.search-wrapper {
   display: flex;
+  margin: 37px 15px 10px 15px;
+  padding: 0 6px;
+  border-radius: 14px;
+  height: 28px;
+  border: 1px solid var(--floatBorderColor);
+  background: var(--inputBgColor);
+  box-sizing: border-box;
   align-items: center;
-  justify-content: center;
-  background: var(--sideBarBgColor);
-  padding: 0 10px;
-}
-.search-wrapper .controls span {
-  display: inline-block;
-  width: 20px;
-  height: 20px;
-  margin: 0 3px;
-  border-radius: 3px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  & > svg {
-    width: 12px;
-    height: 12px;
-    fill: var(--iconColor);
+  & > input {
+    color: var(--sideBarColor);
+    background: transparent;
+    height: 100%;
+    flex: 1;
+    border: none;
+    outline: none;
+    padding: 0 8px;
+    font-size: 13px;
+    width: 50%;
   }
-}
-.search-wrapper .controls span.active {
-  background-color: var(--themeColor);
-  & > svg {
-    fill: #fff;
+  & > .controls {
+    display: flex;
+    flex-shrink: 0;
+    margin-top: 3px;
+    & > span {
+      cursor: pointer;
+      width: 20px;
+      height: 20px;
+      margin-left: 2px;
+      margin-right: 2px;
+      &:hover {
+        color: var(--sideBarIconColor);
+      }
+      & > svg {
+        fill: var(--sideBarIconColor);
+        &:hover {
+          fill: var(--highlightThemeColor);
+        }
+      }
+      &.active svg {
+        fill: var(--highlightThemeColor);
+      }
+    }
   }
-}
 
+  & > svg {
+    cursor: pointer;
+    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
+    margin-right: 10px;
+    &:hover {
+      color: var(--sideBarIconColor);
+    }
+  }
+}
 .cancel-area {
-  margin-bottom: 15px;
+  text-align: center;
+  margin-bottom: 16px;
 }
-
-.search-result-info {
-  margin-bottom: 15px;
+.search-message-section {
+  overflow-wrap: break-word;
 }
-
+.search-result-info,
+.search-message-section {
+  padding-left: 15px;
+  margin-bottom: 5px;
+  font-size: 12px;
+  color: var(--sideBarColor);
+}
+.empty,
 .search-result {
   flex: 1;
   overflow-y: auto;
+  overflow-x: hidden;
+  &::-webkit-scrollbar:vertical {
+    width: 8px;
+  }
 }
-.search-result::-webkit-scrollbar {
-  width: 5px;
-}
-
-.search-message-section {
-  margin-bottom: 15px;
-}
-
 .empty {
   font-size: 14px;
   text-align: center;
-  flex: 1;
   display: flex;
-  align-items: center;
-  justify-content: center;
   flex-direction: column;
-}
-
-.no-data {
-  text-align: center;
-  color: var(--sideBarColor);
+  justify-content: space-around;
+  padding-bottom: 100px;
+  & .no-data {
+    display: flex;
+    align-items: center;
+    flex-direction: column;
+  }
+  & .no-data .button-primary {
+    display: block;
+    margin-top: 20px;
+  }
 }
 </style>

@@ -27,7 +27,7 @@
         :class="{ active: c.label === currentCategory }"
         @click="handleCategoryItemClick(c)"
       >
-        <component :is="c.icon" class="icon" />
+        <component :is="c.icon" />
         <span>{{ c.name }}</span>
       </div>
     </section>

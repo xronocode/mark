@@ -3,6 +3,7 @@ import { defineConfig, externalizeDepsPlugin } from 'electron-vite'
 import vue from '@vitejs/plugin-vue'
 import renderer from 'vite-plugin-electron-renderer'
 import svgLoader from 'vite-svg-loader'
+import postcssPresetEnv from 'postcss-preset-env'
 
 export default defineConfig({
   main: {
@@ -62,6 +63,16 @@ export default defineConfig({
       renderer({
         nodeIntegration: true
       })
-    ]
+    ],
+    css: {
+      postcss: {
+        plugins: [
+          postcssPresetEnv({
+            stage: 0,
+            features: { 'nesting-rules': true }
+          })
+        ]
+      }
+    }
   }
 })

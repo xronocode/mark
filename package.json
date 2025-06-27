@@ -87,6 +87,7 @@
     "eslint-import-resolver-vite": "^2.1.0",
     "eslint-plugin-prettier": "^5.4.1",
     "eslint-plugin-vue": "^10.0.0",
+    "postcss-preset-env": "^10.2.4",
     "prettier": "^3.5.3",
     "vite": "^6.2.6",
     "vite-plugin-electron-renderer": "^0.14.6",

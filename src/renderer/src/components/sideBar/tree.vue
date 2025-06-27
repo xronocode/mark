@@ -224,112 +224,145 @@ onMounted(() => {
   margin-right: 5px;
   transition: all 0.25s ease-out;
   transform: rotate(90deg);
+  fill: var(--sideBarTextColor);
 }
+
 .icon-arrow.fold {
   transform: rotate(0);
 }
-.title .text-overflow {
-  flex: 1;
-  margin-right: auto;
-}
-.title a {
-  margin-left: 8px;
-  color: var(--sideBarColor);
-  text-decoration: none;
-  & > svg {
-    width: 16px;
-    height: 16px;
-    fill: var(--iconColor);
+
+.opened-files,
+.project-tree {
+  & > .title {
+    height: 30px;
+    line-height: 30px;
+    font-size: 14px;
   }
-}
-.open-project {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  font-size: 12px;
-  color: var(--editorColor80);
 }
 
-.button-primary {
-  color: var(--buttonTextColor);
-  background: var(--themeColor);
-  font-size: 14px;
-  text-align: center;
-  outline: none;
-  border: none;
-  border-radius: 3px;
-  padding: 10px 16px;
-  cursor: pointer;
-  &:hover {
-    background: var(--buttonHover);
+.opened-files .title {
+  padding-right: 15px;
+  display: flex;
+  align-items: center;
+  & > span {
+    flex: 1;
   }
+  & > a {
+    display: none;
+    text-decoration: none;
+    color: var(--sideBarColor);
+    margin-left: 8px;
+  }
+}
+.opened-files div.title:hover > a,
+.opened-files div.title > a:hover {
+  display: block;
+  &:hover {
+    color: var(--highlightThemeColor);
+  }
+}
+.opened-files {
+  display: flex;
+  flex-direction: column;
+}
+.default-cursor {
+  cursor: pointer;
+}
+.opened-files .opened-files-list {
+  max-height: 200px;
+  overflow: auto;
+  &::-webkit-scrollbar:vertical {
+    width: 8px;
+  }
+  flex: 1;
 }
 
 .project-tree {
-  flex: 1;
-  position: relative;
-  height: 100%;
-  overflow-y: auto;
-}
-
-.project-tree .title {
   display: flex;
+  flex-direction: column;
+  overflow: auto;
+  & > .title {
+    padding-right: 15px;
+    display: flex;
+    align-items: center;
+    & > span {
+      flex: 1;
+      user-select: none;
+    }
+    & > a {
+      pointer-events: auto;
+      cursor: pointer;
+      margin-left: 8px;
+      color: var(--sideBarIconColor);
+      opacity: 0;
+    }
+    & > a:hover {
+      color: var(--highlightThemeColor);
+    }
+    & > a.active {
+      color: var(--highlightThemeColor);
+    }
+  }
+  & > .tree-wrapper {
+    overflow: auto;
+    flex: 1;
+    &::-webkit-scrollbar:vertical {
+      width: 8px;
+    }
+  }
+  flex: 1;
+}
+.project-tree div.title:hover > a {
+  opacity: 1;
+}
+.open-project {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
   align-items: center;
-  background: var(--itemBgColor);
-  font-weight: 500;
-  height: 35px;
-  color: var(--themeColor);
-  & .icon {
-    fill: var(--iconColor);
+  padding-bottom: 100px;
+  & .centered-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  & button.button-primary {
+    display: block;
+    margin-top: 20px;
   }
 }
-
+.new-input {
+  outline: none;
+  height: 22px;
+  margin: 5px 0;
+  padding: 0 6px;
+  color: var(--sideBarColor);
+  border: 1px solid var(--floatBorderColor);
+  background: var(--floatBorderColor);
+  width: calc(100% - 45px);
+  border-radius: 3px;
+}
+.tree-wrapper {
+  position: relative;
+}
 .empty-project {
-  padding: 0 0 0 15px;
-  height: 30px;
-  line-height: 30px;
-  font-size: 13px;
+  position: absolute;
+  top: 0;
+  left: 0;
+  font-size: 14px;
   display: flex;
-  flex-direction: row;
+  flex-direction: column;
+  padding-top: 40px;
+  align-items: center;
   & > a {
-    color: var(--themeColor);
-    margin-left: 5px;
+    color: var(--highlightThemeColor);
+    text-align: center;
+    margin-top: 15px;
     text-decoration: none;
   }
 }
-
-.opened-files {
-  border-bottom: 1px solid var(--itemBgColor);
-  & .title {
-    display: flex;
-    align-items: center;
-    height: 30px;
-    line-height: 30px;
-    font-size: 13px;
-    color: var(--regularColor);
-    padding: 0 15px;
-    & .icon {
-      fill: var(--iconColor);
-    }
-  }
-}
-
-.new-input {
-  width: 120px;
-  border: none;
-  outline: none;
-  font-size: 12px;
-  border-bottom: 1px solid var(--themeColor);
-  background: transparent;
-  color: var(--editorColor);
-}
-
-.tree-wrapper {
-  height: 100%;
-}
-
-.default-cursor {
-  cursor: default;
+.bold {
+  font-weight: 600;
 }
 </style>
