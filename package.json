@@ -61,7 +61,7 @@
     "prismjs": "^1.30.0",
     "snabbdom": "^3.6.2",
     "snabbdom-to-html": "^7.1.0",
-    "snapsvg": "^0.5.1",
+    "snapsvg-cjs": "^0.0.6",
     "source-map-support": "^0.5.21",
     "turndown": "^7.2.0",
     "underscore": "^1.13.7",
