@@ -27,9 +27,7 @@
         :class="{ active: c.label === currentCategory }"
         @click="handleCategoryItemClick(c)"
       >
-        <svg :viewBox="c.icon.viewBox">
-          <use :xlink:href="c.icon.url"></use>
-        </svg>
+        <component :is="c.icon" class="icon" />
         <span>{{ c.name }}</span>
       </div>
     </section>
@@ -46,6 +44,10 @@ const route = useRoute()
 const currentCategory = ref('general')
 const restaurants = ref([])
 const state = ref('')
+
+for (const c of category) {
+  console.log(c)
+}
 
 watch(
   () => route.name,
@@ -188,7 +190,8 @@ onUnmounted(() => {
     cursor: pointer;
     position: relative;
     user-select: none;
-    & > svg {
+    & > svg,
+    & > img {
       width: 28px;
       height: 28px;
       fill: var(--iconColor);
