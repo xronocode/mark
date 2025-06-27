@@ -52,7 +52,7 @@
               title="Delete"
               @click="handleDeleteClick(scope.row)"
             >
-              <i class="el-icon-delete"></i>
+              <Delete width="16" height="16" />
             </el-button>
           </template>
         </el-table-column>
@@ -73,6 +73,7 @@ import { isOsx as checkIsOsx } from '@/util'
 import { SpellChecker } from '@/spellchecker'
 import { getLanguageName } from '@/spellchecker/languageMap'
 import notice from '@/services/notification'
+import { Delete } from '@element-plus/icons-vue'
 
 const isOsx = checkIsOsx
 const availableDictionaries = ref([])

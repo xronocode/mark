@@ -4,14 +4,14 @@
     <section class="search-wrapper">
       <el-autocomplete
         v-model="state"
-        popper-class="pref-autocomplete"
+        class="pref-autocomplete"
         :fetch-suggestions="querySearch"
         placeholder="Search preferences"
         :trigger-on-focus="false"
         @select="handleSelect"
       >
         <template #suffix>
-          <i class="el-icon-search el-input__icon"> </i>
+          <Search width="16" height="16" />
         </template>
         <template #default="{ item }">
           <div class="name">{{ item.category }}</div>
@@ -37,6 +37,7 @@
 import { category, searchContent } from './config'
 import { ref, watch, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
+import { Search } from '@element-plus/icons-vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -139,7 +140,13 @@ onUnmounted(() => {
 }
 .el-autocomplete {
   width: 100%;
+
+  & .el-input__wrapper {
+    background: transparent;
+  }
+
   & .el-input__inner {
+    border: none;
     background: transparent;
     height: 35px;
     line-height: 35px;
@@ -190,8 +197,7 @@ onUnmounted(() => {
     cursor: pointer;
     position: relative;
     user-select: none;
-    & > svg,
-    & > img {
+    & > svg {
       width: 28px;
       height: 28px;
       fill: var(--iconColor);

@@ -51,7 +51,7 @@ defineProps({
   }
 
   & .notes {
-    margin-top: 10px;
+    margin-left: 10px;
     font-style: italic;
     font-size: 12px;
   }

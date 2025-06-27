@@ -1,8 +1,8 @@
 <template>
   <section class="pref-switch-item" :class="{ 'ag-underdevelop': disable }">
-    <div class="description">
+    <div class="description" style="display: flex; align-items: center">
       <span>{{ description }}:</span>
-      <i v-if="more" class="el-icon-info" @click="handleMoreClick"></i>
+      <InfoFilled v-if="more" width="16" height="16" @click="handleMoreClick" />
       <el-tooltip
         v-else-if="detailedDescription"
         :content="detailedDescription"
@@ -10,7 +10,7 @@
         effect="dark"
         placement="top-start"
       >
-        <i class="el-icon-info"></i>
+        <InfoFilled width="16" height="16" />
       </el-tooltip>
       <span v-if="notes" class="notes">
         {{ notes }}
@@ -22,6 +22,7 @@
 
 <script setup>
 import { ref, watch } from 'vue'
+import { InfoFilled } from '@element-plus/icons-vue'
 
 const props = defineProps({
   description: String,
@@ -69,12 +70,13 @@ const handleSwitchChange = (value) => {
   justify-content: space-between;
 
   & .description {
-    & i {
+    & svg {
+      margin-left: 4px;
       cursor: pointer;
       opacity: 0.7;
       color: var(--iconColor);
     }
-    & i:hover {
+    & svg:hover {
       color: var(--themeColor);
     }
   }

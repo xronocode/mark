@@ -2,7 +2,13 @@
   <section class="pref-font-input-item" :class="{ 'ag-underdevelop': disable }">
     <div class="description">
       <span>{{ description }}:</span>
-      <i v-if="more" class="el-icon-info" @click="handleMoreClick"></i>
+      <InfoFilled
+        v-if="more"
+        style="margin-left: 4px"
+        width="16"
+        height="16"
+        @click="handleMoreClick"
+      />
     </div>
     <el-autocomplete
       v-model="selectValue"
@@ -13,7 +19,7 @@
       @select="handleSelect"
     >
       <template #suffix>
-        <i class="el-icon-arrow-down el-input__icon"></i>
+        <ArrowDown width="16" height="16" class="el-input__icon" />
       </template>
       <template #default="{ item }">
         <div class="family">{{ item }}</div>
@@ -24,6 +30,7 @@
 
 <script setup>
 import { ref, watch, onMounted } from 'vue'
+import { InfoFilled, ArrowDown } from '@element-plus/icons-vue'
 
 const props = defineProps({
   description: String,
@@ -137,12 +144,12 @@ onMounted(() => {
 }
 .pref-font-input-item .description {
   margin-bottom: 10px;
-  & i {
+  & svg {
     cursor: pointer;
     opacity: 0.7;
     color: var(--iconColor);
   }
-  & i:hover {
+  & svg:hover {
     color: var(--themeColor);
   }
 }

@@ -33,7 +33,7 @@
               content="The token is saved by Keychain on macOS, Secret Service API/libsecret on Linux and Credential Vault on Windows"
               placement="top-start"
             >
-              <i class="el-icon-info"></i>
+              <InfoFilled width="16" height="16" />
             </el-tooltip>
           </div>
           <el-input v-model="githubToken" placeholder="Input token" size="mini"></el-input>
@@ -88,6 +88,7 @@ import CurSelect from '@/prefComponents/common/select'
 import commandExists from 'command-exists'
 import notice from '@/services/notification'
 import { storeToRefs } from 'pinia'
+import { InfoFilled } from '@element-plus/icons-vue'
 
 // store
 const preferenceStore = usePreferencesStore()

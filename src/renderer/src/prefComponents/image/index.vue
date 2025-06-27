@@ -10,7 +10,7 @@
           content="Clipboard handling is only fully supported on macOS and Windows."
           placement="top-start"
         >
-          <i class="el-icon-info"></i>
+          <InfoFilled width="16" height="16" />
         </el-tooltip>
       </div>
       <CurSelect
@@ -33,6 +33,7 @@ import Uploader from './components/uploader/index.vue'
 import CurSelect from '../common/select/index.vue'
 import FolderSetting from './components/folderSetting/index.vue'
 import { imageActions } from './config'
+import { InfoFilled } from '@element-plus/icons-vue'
 
 const preferenceStore = usePreferencesStore()
 

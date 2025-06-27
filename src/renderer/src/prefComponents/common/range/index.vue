@@ -1,11 +1,17 @@
 <template>
   <section class="pref-range-item" :class="{ 'ag-underdevelop': disable }">
-    <div class="description">
+    <div class="description" style="display: flex; align-items: center">
       <span>{{ description }}:</span>
       <span v-if="selectValue" class="value"
         >{{ selectValue }} <span v-if="unit">{{ unit }}</span></span
       >
-      <i v-if="more" class="el-icon-info" @click="handleMoreClick"></i>
+      <InfoFilled
+        v-if="more"
+        width="16"
+        height="16"
+        style="margin-left: 4px"
+        @click="handleMoreClick"
+      />
     </div>
     <el-slider
       v-model="selectValue"
@@ -21,6 +27,7 @@
 
 <script setup>
 import { ref, watch } from 'vue'
+import { InfoFilled } from '@element-plus/icons-vue'
 
 const props = defineProps({
   description: String,
@@ -93,12 +100,12 @@ const select = (value) => {
   & .value {
     color: var(--editorColor80);
   }
-  & i {
+  & svg {
     cursor: pointer;
     opacity: 0.7;
     color: var(--iconColor);
   }
-  & i:hover {
+  & svg:hover {
     color: var(--themeColor);
   }
 }

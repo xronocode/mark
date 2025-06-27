@@ -1,8 +1,8 @@
 <template>
   <section class="pref-select-item" :class="{ 'ag-underdevelop': disable }">
-    <div v-if="description" class="description">
+    <div v-if="description" class="description" style="display: flex; align-items: center">
       <span>{{ description }}:</span>
-      <i v-if="more" class="el-icon-info" @click="handleMoreClick"></i>
+      <InfoFilled v-if="more" width="16" height="16" @click="handleMoreClick" />
     </div>
     <el-select v-model="selectValue" :disabled="disable" @change="select">
       <el-option v-for="item in options" :key="item.value" :label="item.label" :value="item.value">
@@ -16,6 +16,7 @@
 
 <script setup>
 import { ref, watch } from 'vue'
+import { InfoFilled } from '@element-plus/icons-vue'
 
 const props = defineProps({
   description: String,
@@ -65,6 +66,11 @@ const select = (value) => {
   & .el-select {
     width: 100%;
   }
+  & div {
+    background: transparent;
+    color: var(--editorColor);
+    border-color: var(--editorColor10);
+  }
   & input.el-input__inner {
     height: 30px;
     background: transparent;
@@ -78,12 +84,13 @@ const select = (value) => {
 }
 .pref-select-item .description {
   margin-bottom: 10px;
-  & i {
+  & svg {
+    margin-left: 4px;
     cursor: pointer;
     opacity: 0.7;
     color: var(--iconColor);
   }
-  & i:hover {
+  & svg:hover {
     color: var(--themeColor);
   }
 }

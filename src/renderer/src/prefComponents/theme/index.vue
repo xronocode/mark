@@ -22,7 +22,12 @@
     <div>
       <div style="font-size: smaller; color: var(--editorColor)">Custom CSS</div>
       <textarea
-        style="width: 100%"
+        style="
+          width: 100%;
+          background: transparent;
+          color: var(--editorColor);
+          border: 1px solid var(--editorColor10);
+        "
         rows="10"
         :value="customCss"
         @change="(event) => onSelectChange('customCss', event.target.value)"
@@ -47,7 +52,7 @@
 import { ref, onMounted } from 'vue'
 import { usePreferencesStore } from '@/store/preferences'
 import { storeToRefs } from 'pinia'
-import themeMd from './theme.md'
+import themeMd from './theme.md?raw'
 import { autoSwitchThemeOptions, themes as configThemes } from './config'
 import markdownToHtml from '@/util/markdownToHtml'
 import CurSelect from '../common/select'

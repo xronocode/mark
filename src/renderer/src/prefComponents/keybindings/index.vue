@@ -18,7 +18,7 @@
               title="Edit"
               @click="handleEditClick(scope.$index, scope.row)"
             >
-              <i class="el-icon-edit"></i>
+              <Edit width="14" height="14" />
             </el-button>
             <el-button
               type="text"
@@ -26,7 +26,7 @@
               title="Reset"
               @click="handleResetClick(scope.$index, scope.row)"
             >
-              <i class="el-icon-refresh-right"></i>
+              <RefreshRight width="14" height="14" />
             </el-button>
             <el-button
               type="text"
@@ -34,7 +34,7 @@
               title="Unbind"
               @click="handleUnbindClick(scope.$index, scope.row)"
             >
-              <i class="el-icon-delete"></i>
+              <Delete width="14" height="14" />
             </el-button>
           </template>
         </el-table-column>
@@ -67,6 +67,7 @@ import Separator from '../common/separator'
 import KeyInputDialog from './key-input-dialog.vue'
 import KeybindingConfigurator from './KeybindingConfigurator'
 import notice from '@/services/notification'
+import { Edit, RefreshRight, Delete } from '@element-plus/icons-vue'
 
 const showDebugTools = ref(false)
 const keybindingConfigurator = ref(null)
@@ -229,30 +230,30 @@ const dumpKeyboardInformation = () => {
 }
 .pref-keybindings .el-table th,
 .pref-keybindings .el-table tr {
-  background: var(--editorBgColor);
+  background: var(--editorBgColor) !important;
 }
 .pref-keybindings .el-table th.el-table__cell.is-leaf,
 .pref-keybindings .el-table th,
 .pref-keybindings .el-table td {
-  border: none;
+  border: none !important;
 }
 .pref-keybindings .el-table th.el-table__cell.is-leaf:last-child,
 .pref-keybindings .el-table th:last-child,
 .pref-keybindings .el-table td:last-child {
-  border-right: 1px solid var(--tableBorderColor);
+  border-right: 1px solid var(--tableBorderColor) !important;
 }
 .pref-keybindings .el-table--border::after,
 .pref-keybindings .el-table--group::after,
 .pref-keybindings .el-table::before,
 .pref-keybindings .el-table__fixed-right::before,
 .pref-keybindings .el-table__fixed::before {
-  background: var(--tableBorderColor);
+  background: var(--tableBorderColor) !important;
 }
 .pref-keybindings .el-table__body tr.hover-row.current-row > td,
 .pref-keybindings .el-table__body tr.hover-row.el-table__row--striped.current-row > td,
 .pref-keybindings .el-table__body tr.hover-row.el-table__row--striped > td,
 .pref-keybindings .el-table__body tr.hover-row > td {
-  background: var(--selectionColor);
+  background: var(--selectionColor) !important;
 }
 .pref-keybindings .el-table .el-table__cell {
   padding: 2px 0;

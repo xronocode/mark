@@ -44,7 +44,7 @@
 
     <div v-show="showSearchCancelArea" class="cancel-area">
       <el-button type="primary" size="mini" @click="cancelSearcher">
-        Cancel <i class="el-icon-video-pause"></i>
+        Cancel <VideoPause />
       </el-button>
     </div>
     <div v-if="searchResult.length" class="search-result-info">{{ searchResultInfo }}</div>
@@ -79,6 +79,7 @@ import RipgrepDirectorySearcher from '../../node/ripgrepSearcher'
 import FindCaseIcon from '@/assets/icons/searchIcons/iconCase.svg'
 import FindWordIcon from '@/assets/icons/searchIcons/iconWord.svg'
 import FindRegexIcon from '@/assets/icons/searchIcons/iconRegex.svg'
+import { VideoPause } from '@element-plus/icons-vue'
 
 const layoutStore = useLayoutStore()
 const projectStore = useProjectStore()

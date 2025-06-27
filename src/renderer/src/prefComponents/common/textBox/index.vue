@@ -1,8 +1,8 @@
 <template>
   <section class="pref-text-box-item" :class="{ 'ag-underdevelop': disable }">
-    <div class="description">
+    <div class="description" style="display: flex; align-items: center">
       <span>{{ description }}:</span>
-      <i v-if="more" class="el-icon-info" @click="handleMoreClick"></i>
+      <InfoFilled v-if="more" width="16" height="16" @click="handleMoreClick" />
     </div>
     <el-input
       v-model="inputText"
@@ -22,6 +22,7 @@
 
 <script setup>
 import { ref, watch } from 'vue'
+import { InfoFilled } from '@element-plus/icons-vue'
 
 const props = defineProps({
   description: String,
@@ -95,11 +96,15 @@ const handleInput = (value) => {
   margin: 20px 0;
   color: var(--editorColor);
   width: 100%;
-  & input.el-input__inner {
-    height: 30px;
+  & div {
     background: transparent;
     color: var(--editorColor);
     border-color: var(--editorColor10);
+  }
+  & input.el-input__inner {
+    height: 30px;
+    background: transparent;
+    border: none;
     padding-right: 15px;
     &::placeholder {
       color: var(--editorColor30);
@@ -124,12 +129,13 @@ const handleInput = (value) => {
   & .description {
     margin-bottom: 10px;
   }
-  & i {
+  & svg {
+    margin-left: 4px;
     cursor: pointer;
     opacity: 0.7;
     color: var(--iconColor);
   }
-  & i:hover {
+  & svg:hover {
     color: var(--themeColor);
   }
 }
