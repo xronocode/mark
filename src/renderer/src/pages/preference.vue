@@ -26,7 +26,7 @@ const preferencesStore = usePreferencesStore()
 const { theme, titleBarStyle } = storeToRefs(preferencesStore)
 
 const showCustomTitleBar = computed(() => {
-  return titleBarStyle === 'custom' && !isOsx
+  return titleBarStyle.value === 'custom' && !isOsx
 })
 
 // Watchers
