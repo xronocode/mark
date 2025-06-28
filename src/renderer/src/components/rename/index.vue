@@ -1,7 +1,7 @@
 <template>
   <div class="rename">
     <el-dialog
-      v-model:visible="showRename"
+      v-model="showRename"
       :show-close="false"
       :modal="true"
       custom-class="ag-dialog-table"

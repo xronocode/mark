@@ -2,18 +2,19 @@
   <div class="key-input-dialog">
     <div v-if="showKeyInputDialog" class="input-overlay"></div>
     <el-dialog
-      v-model:visible="showKeyInputDialog"
+      v-model="showKeyInputDialog"
       :show-close="false"
       :modal="false"
       custom-class="ag-dialog-table"
       width="350px"
       @close="cancelKeybinding"
+      @opened="handleFocusOnShow"
     >
       <template #title>
         <div class="key-input-wrapper">
           <div class="input-wrapper">
             <input
-              ref="intputTextbox"
+              ref="inputTextbox"
               v-model="keybindingInputValue"
               tabindex="0"
               type="text"
@@ -41,7 +42,7 @@ import {
   isValidElectronAccelerator,
   getAcceleratorFromKeyboardEvent
 } from '@hfelix/electron-localshortcut'
-import { ref, watch, nextTick } from 'vue'
+import { ref, watch, useTemplateRef, nextTick } from 'vue'
 
 const props = defineProps({
   onCommit: Function,
@@ -59,7 +60,7 @@ const showKeyInputDialog = ref(false)
 const placeholderText = ref(defaultPlaceholderText)
 const isKeybindingValid = ref(true)
 const keybindingInputValue = ref('')
-const intputTextbox = ref(null)
+const inputTextbox = useTemplateRef('inputTextbox')
 
 watch(
   () => props.showWithId,
@@ -77,8 +78,12 @@ watch(
 const handleShow = () => {
   needCommitOnClose = true
   showKeyInputDialog.value = true
+}
+
+const handleFocusOnShow = () => {
+  if (!inputTextbox.value) return
   nextTick(() => {
-    intputTextbox.value.focus()
+    inputTextbox.value.focus()
   })
 }
 

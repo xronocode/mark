@@ -1,7 +1,7 @@
 <template>
   <div class="tweet-dialog">
     <el-dialog
-      v-model:visible="showTweetDialog"
+      v-model="showTweetDialog"
       :show-close="false"
       :modal="true"
       custom-class="ag-dialog-table"
