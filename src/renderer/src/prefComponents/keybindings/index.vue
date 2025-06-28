@@ -10,7 +10,7 @@
       <el-table :data="keybindingList" style="width: 100%">
         <el-table-column prop="description" label="Description"> </el-table-column>
         <el-table-column prop="accelerator" label="Key Combination" width="220"> </el-table-column>
-        <el-table-column fixed="right" label="Options" width="90">
+        <el-table-column label="Options" width="90">
           <template #default="scope">
             <el-button
               type="text"
@@ -235,25 +235,25 @@ const dumpKeyboardInformation = () => {
 .pref-keybindings .el-table th.el-table__cell.is-leaf,
 .pref-keybindings .el-table th,
 .pref-keybindings .el-table td {
-  border: none !important;
+  border: none;
 }
 .pref-keybindings .el-table th.el-table__cell.is-leaf:last-child,
 .pref-keybindings .el-table th:last-child,
 .pref-keybindings .el-table td:last-child {
-  border-right: 1px solid var(--tableBorderColor) !important;
+  border-right: 1px solid var(--tableBorderColor);
 }
 .pref-keybindings .el-table--border::after,
 .pref-keybindings .el-table--group::after,
 .pref-keybindings .el-table::before,
 .pref-keybindings .el-table__fixed-right::before,
 .pref-keybindings .el-table__fixed::before {
-  background: var(--tableBorderColor) !important;
+  background: var(--tableBorderColor);
 }
 .pref-keybindings .el-table__body tr.hover-row.current-row > td,
 .pref-keybindings .el-table__body tr.hover-row.el-table__row--striped.current-row > td,
 .pref-keybindings .el-table__body tr.hover-row.el-table__row--striped > td,
 .pref-keybindings .el-table__body tr.hover-row > td {
-  background: var(--selectionColor) !important;
+  background: var(--selectionColor);
 }
 .pref-keybindings .el-table .el-table__cell {
   padding: 2px 0;
