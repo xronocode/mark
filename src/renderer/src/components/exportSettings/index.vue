@@ -240,7 +240,7 @@
             :on-change="(value) => onSelectChange('tocIncludeTopHeading', value)"
           ></bool>
           <text-box
-            description="Title:"
+            description="Title"
             :input="tocTitle"
             :emit-time="0"
             :on-change="(value) => onSelectChange('tocTitle', value)"
@@ -512,5 +512,14 @@ const loadThemesFromDisk = () => {
 
 .print-settings-dialog .el-tabs__content::-webkit-scrollbar:vertical {
   width: 5px;
+}
+
+.el-input-number {
+  & div {
+    background: var(--inputBgColor);
+  }
+  & input {
+    border: none !important;
+  }
 }
 </style>
