@@ -11,6 +11,7 @@ import {
   isImageFile
 } from 'common/filesystem/paths'
 import { rgPath } from '@vscode/ripgrep'
+import path from 'path'
 
 const customElectronAPI = {
   shell,
@@ -49,6 +50,7 @@ if (process.contextIsolated) {
     })
     contextBridge.exposeInMainWorld('rgPath', rgPath)
     contextBridge.exposeInMainWorld('fileUtils', fileUtilsAPI)
+    contextBridge.exposeInMainWorld('path', path)
   } catch (error) {
     console.error(error)
   }
@@ -56,4 +58,5 @@ if (process.contextIsolated) {
   window.electron = { ...electronAPI, ...customElectronAPI }
   window.rgPath = rgPath
   window.fileUtils = fileUtilsAPI
+  window.path = path
 }

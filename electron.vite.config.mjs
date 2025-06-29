@@ -52,8 +52,7 @@ export default defineConfig({
         '@': resolve(__dirname, 'src/renderer/src'),
         common: resolve(__dirname, 'src/common'),
         muya: resolve(__dirname, 'src/muya'),
-        main_renderer: resolve(__dirname, 'src/main'),
-        path: 'path-browserify'
+        main_renderer: resolve(__dirname, 'src/main')
       },
       extensions: ['.mjs', '.js', '.json', '.vue']
     },

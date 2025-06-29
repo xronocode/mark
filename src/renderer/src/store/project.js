@@ -1,4 +1,3 @@
-import path from 'path-browserify'
 import { defineStore } from 'pinia'
 import { addFile, unlinkFile, addDirectory, unlinkDirectory } from './treeCtrl'
 import bus from '../bus'
@@ -24,7 +23,7 @@ export const useProjectStore = defineStore('project', {
     LISTEN_FOR_LOAD_PROJECT() {
       const layoutStore = useLayoutStore()
       window.electron.ipcRenderer.on('mt::open-directory', (e, pathname) => {
-        let name = path.basename(pathname)
+        let name = window.path.basename(pathname)
         if (!name) {
           // Root directory such as "/" or "C:\"
           name = pathname
@@ -32,7 +31,7 @@ export const useProjectStore = defineStore('project', {
 
         this.projectTree = {
           // Root full path
-          pathname: path.normalize(pathname),
+          pathname: window.path.normalize(pathname),
           // Root directory name
           name,
           isDirectory: true,
@@ -105,7 +104,7 @@ export const useProjectStore = defineStore('project', {
       })
       bus.on('SIDEBAR::new', (type) => {
         const { pathname, isDirectory } = this.activeItem
-        const dirname = isDirectory ? pathname : path.dirname(pathname)
+        const dirname = isDirectory ? pathname : window.path.dirname(pathname)
         this.createCache = { dirname, type }
         bus.emit('SIDEBAR::show-new-input')
       })
@@ -126,11 +125,11 @@ export const useProjectStore = defineStore('project', {
       bus.on('SIDEBAR::paste', () => {
         const { clipboard } = this
         const { pathname, isDirectory } = this.activeItem
-        const dirname = isDirectory ? pathname : path.dirname(pathname)
+        const dirname = isDirectory ? pathname : window.path.dirname(pathname)
         if (clipboard && clipboard.src) {
-          clipboard.dest = dirname + PATH_SEPARATOR + path.basename(clipboard.src)
+          clipboard.dest = dirname + PATH_SEPARATOR + window.path.basename(clipboard.src)
 
-          if (path.normalize(clipboard.src) === path.normalize(clipboard.dest)) {
+          if (window.path.normalize(clipboard.src) === window.path.normalize(clipboard.dest)) {
             notice.notify({
               title: 'Paste Forbidden',
               type: 'warning',
@@ -187,7 +186,7 @@ export const useProjectStore = defineStore('project', {
     RENAME_IN_SIDEBAR(name) {
       const editorStore = useEditorStore()
       const src = this.renameCache
-      const dirname = path.dirname(src)
+      const dirname = window.path.dirname(src)
       const dest = dirname + PATH_SEPARATOR + name
       rename(src, dest).then(() => {
         editorStore.RENAME_IF_NEEDED({ src, dest })

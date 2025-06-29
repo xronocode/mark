@@ -1,4 +1,3 @@
-import path from 'path-browserify'
 import bus from '../bus'
 import { delay } from '@/util'
 import FileSearcher from '@/node/fileSearcher'
@@ -192,7 +191,7 @@ class QuickOpenCommand {
       return { title: pathname, description: pathname }
     }
 
-    const p = path.relative(rootPath, pathname)
+    const p = window.path.relative(rootPath, pathname)
     const item = { description: p }
     if (p.length > 50) {
       item.title = p

@@ -52,7 +52,6 @@
 import { ref, computed } from 'vue'
 import { useEditorStore } from '@/store/editor'
 import { storeToRefs } from 'pinia'
-import path from 'path-browserify'
 import bus from '../../bus'
 
 const props = defineProps({
@@ -78,7 +77,10 @@ const getMatches = computed(() => {
 })
 
 const filename = computed(() => {
-  return path.basename(props.searchResult.filePath, path.extname(props.searchResult.filePath))
+  return window.path.basename(
+    props.searchResult.filePath,
+    window.path.extname(props.searchResult.filePath)
+  )
 })
 
 const matchCount = computed(() => {
@@ -86,7 +88,7 @@ const matchCount = computed(() => {
 })
 
 const extension = computed(() => {
-  return path.extname(props.searchResult.filePath)
+  return window.path.extname(props.searchResult.filePath)
 })
 
 const toggleSearchMatches = () => {

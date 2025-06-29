@@ -1,4 +1,3 @@
-import path from 'path-browserify'
 import crypto from 'crypto'
 
 import { statSync, constants } from 'fs'
@@ -42,16 +41,16 @@ export const getContentHash = (content) => {
 export const moveToRelativeFolder = async (cwd, relativeName, filePath, imagePath) => {
   if (!relativeName) {
     relativeName = 'assets'
-  } else if (path.isAbsolute(relativeName)) {
+  } else if (window.path.isAbsolute(relativeName)) {
     throw new Error('Invalid relative directory name.')
   }
 
-  const absPath = path.resolve(cwd, relativeName)
-  const dstPath = path.resolve(absPath, path.basename(imagePath))
+  const absPath = window.path.resolve(cwd, relativeName)
+  const dstPath = window.path.resolve(absPath, window.path.basename(imagePath))
   await window.fileUtils.ensureDir(absPath)
   await window.fileUtils.move(imagePath, dstPath, { overwrite: true })
 
-  const dstRelPath = path.relative(path.dirname(filePath), dstPath)
+  const dstRelPath = window.path.relative(window.path.dirname(filePath), dstPath)
   if (isWindows) {
     return dstRelPath.replace(/\\/g, '/')
   }
@@ -62,25 +61,28 @@ export const moveImageToFolder = async (pathname, image, outputDir) => {
   await window.fileUtils.ensureDir(outputDir)
   const isPath = typeof image === 'string'
   if (isPath) {
-    const dir = path.dirname(pathname)
-    const imagePath = path.resolve(dir, image)
+    const dir = window.path.dirname(pathname)
+    const imagePath = window.path.resolve(dir, image)
     const isImage = window.fileUtils.isImageFile(imagePath)
     if (isImage) {
-      const filename = path.basename(imagePath)
-      const ext = path.extname(imagePath)
-      const noHashPath = path.join(outputDir, filename)
+      const filename = window.path.basename(imagePath)
+      const ext = window.path.extname(imagePath)
+      const noHashPath = window.path.join(outputDir, filename)
       if (noHashPath === imagePath) {
         return imagePath
       }
       const hash = getContentHash(imagePath)
-      const hashFilePath = path.join(outputDir, `${hash}${ext}`)
+      const hashFilePath = window.path.join(outputDir, `${hash}${ext}`)
       await window.fileUtils.copy(imagePath, hashFilePath)
       return hashFilePath
     } else {
       return image
     }
   } else {
-    const imagePath = path.join(outputDir, `${dayjs().format('YYYY-MM-DD-HH-mm-ss')}-${image.name}`)
+    const imagePath = window.path.join(
+      outputDir,
+      `${dayjs().format('YYYY-MM-DD-HH-mm-ss')}-${image.name}`
+    )
     const binaryString = await new Promise((resolvePromise, rejectPromise) => {
       const reader = new FileReader()
       reader.onload = () => resolvePromise(reader.result)
@@ -128,7 +130,7 @@ export const uploadImage = async (pathname, image, preferences) => {
     if (typeof filepath !== 'string') {
       localIsPath = false
       const data = new Uint8Array(filepath)
-      localPath = path.join(tmpdir(), `${Date.now()}${suffix}`)
+      localPath = window.path.join(tmpdir(), `${Date.now()}${suffix}`)
       await window.fileUtils.writeFile(localPath, data)
     }
     const handleExec = (err, data) => {
@@ -154,8 +156,8 @@ export const uploadImage = async (pathname, image, preferences) => {
   }
 
   if (isPath) {
-    const dir = path.dirname(pathname)
-    const imagePath = path.resolve(dir, image)
+    const dir = window.path.dirname(pathname)
+    const imagePath = window.path.resolve(dir, image)
     const isImg = window.fileUtils.isImageFile(imagePath)
     if (isImg) {
       const { size } = await window.fileUtils.stat(imagePath)
@@ -169,7 +171,7 @@ export const uploadImage = async (pathname, image, preferences) => {
           case 'github': {
             const fileBuffer = await window.fileUtils.readFile(imagePath)
             const base64 = Buffer.from(fileBuffer).toString('base64')
-            uploadByGithub(base64, path.basename(imagePath))
+            uploadByGithub(base64, window.path.basename(imagePath))
             break
           }
         }
@@ -186,7 +188,7 @@ export const uploadImage = async (pathname, image, preferences) => {
         switch (currentUploader) {
           case 'picgo':
           case 'cliScript':
-            uploadByCommand(currentUploader, reader.result, path.extname(image.name))
+            uploadByCommand(currentUploader, reader.result, window.path.extname(image.name))
             break
           default:
             uploadByGithub(Buffer.from(reader.result).toString('base64'), image.name)

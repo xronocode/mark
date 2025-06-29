@@ -1,5 +1,4 @@
-import path from 'path-browserify'
-export const PATH_SEPARATOR = path.sep
+export const PATH_SEPARATOR = window.path.sep
 
 export const THEME_STYLE_ID = 'ag-theme'
 export const COMMON_STYLE_ID = 'ag-common-style'

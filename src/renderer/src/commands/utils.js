@@ -1,10 +1,8 @@
-import path from 'path-browserify'
-
 /// Check whether the package is updatable at runtime.
 export const isUpdatable = () => {
   // TODO: If not updatable, allow to check whether there is a new version available.
 
-  const resFile = window.fileUtils.isFile(path.join(process.resourcesPath, 'app-update.yml'))
+  const resFile = window.fileUtils.isFile(window.path.join(process.resourcesPath, 'app-update.yml'))
   if (!resFile) {
     // No update resource file available.
     return false
@@ -13,7 +11,7 @@ export const isUpdatable = () => {
     return true
   } else if (
     process.platform === 'win32' &&
-    window.fileUtils.isFile(path.join(process.resourcesPath, 'md.ico'))
+    window.fileUtils.isFile(window.path.join(process.resourcesPath, 'md.ico'))
   ) {
     // Windows is a little but tricky. The update resource file is always available and
     // there is no way to check the target type at runtime (electron-builder#4119).

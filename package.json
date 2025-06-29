@@ -57,7 +57,6 @@
     "mermaid": "^11.6.0",
     "mitt": "^3.0.1",
     "native-keymap": "^3.3.5",
-    "path-browserify": "^1.0.1",
     "pinia": "^3.0.3",
     "prismjs": "^1.30.0",
     "snabbdom": "^3.6.2",

@@ -1,4 +1,3 @@
-import path from 'path-browserify'
 import { getUniqueId } from '../util'
 import { PATH_SEPARATOR } from '../config'
 
@@ -10,10 +9,10 @@ import { PATH_SEPARATOR } from '../config'
  * @returns {Array<string>} Sub-directories relative to root.
  */
 const getSubdirectoriesFromRoot = (rootPath, pathname) => {
-  if (!path.isAbsolute(pathname)) {
+  if (!window.path.isAbsolute(pathname)) {
     throw new Error('Invalid path!')
   }
-  const relativePath = path.relative(rootPath, pathname)
+  const relativePath = window.path.relative(rootPath, pathname)
   return relativePath ? relativePath.split(PATH_SEPARATOR) : []
 }
 
@@ -25,7 +24,7 @@ const getSubdirectoriesFromRoot = (rootPath, pathname) => {
  */
 export const addFile = (tree, file) => {
   const { pathname, name } = file
-  const dirname = path.dirname(pathname)
+  const dirname = window.path.dirname(pathname)
   const subDirectories = getSubdirectoriesFromRoot(tree.pathname, dirname)
 
   let currentPath = tree.pathname
@@ -118,7 +117,7 @@ export const addDirectory = (tree, dir) => {
  */
 export const unlinkFile = (tree, file) => {
   const { pathname } = file
-  const dirname = path.dirname(pathname)
+  const dirname = window.path.dirname(pathname)
   const subDirectories = getSubdirectoriesFromRoot(tree.pathname, dirname)
 
   let currentFolder = tree

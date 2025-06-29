@@ -1,5 +1,4 @@
 import fs from 'fs'
-import path from 'path-browserify'
 import Slugger from 'muya/lib/parser/marked/slugger'
 import { escapeHTML, unescapeHTML } from 'muya/lib/utils'
 import academicTheme from '@/assets/themes/export/academic.theme.css?inline'
@@ -62,7 +61,7 @@ export const getCssForOptions = (options) => {
     } else {
       // Read theme from disk
       const { userDataPath } = global.marktext.paths
-      const themePath = path.join(userDataPath, 'themes/export', theme)
+      const themePath = window.path.join(userDataPath, 'themes/export', theme)
       if (window.fileUtils.isFile(themePath)) {
         try {
           const themeCSS = fs.readFileSync(themePath, 'utf8')

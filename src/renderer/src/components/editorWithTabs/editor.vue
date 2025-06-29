@@ -66,7 +66,6 @@
 
 <script setup>
 import { ref, reactive, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
-import path from 'path-browserify'
 import log from 'electron-log'
 // import ViewImage from 'view-image'
 import Muya from 'muya/lib'
@@ -478,7 +477,7 @@ const imageAction = async (image, id, alt = '') => {
 
   // Figure out the current working directory.
   const isTabSavedOnDisk = !!currentPathname
-  let relativeBasePath = isTabSavedOnDisk ? path.dirname(currentPathname) : null
+  let relativeBasePath = isTabSavedOnDisk ? window.path.dirname(currentPathname) : null
   if (isTabSavedOnDisk && !saveRelativeToFile() && projectTree.value) {
     const { pathname: rootPath } = projectTree.value
     if (rootPath && window.fileUtils.isChildOfDirectory(rootPath, currentPathname)) {

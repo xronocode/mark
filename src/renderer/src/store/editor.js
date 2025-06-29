@@ -1,4 +1,3 @@
-import path from 'path-browserify'
 import equal from 'deep-equal'
 import bus from '../bus'
 import { hasKeys, getUniqueId, deepClone } from '../util'
@@ -270,7 +269,7 @@ export const useEditorStore = defineStore('editor', {
         // SET_PATHNAME
         const { filename } = fileInfo
         if (id === this.currentFile.id && pathname) {
-          window.DIRNAME = path.dirname(pathname)
+          window.DIRNAME = window.path.dirname(pathname)
         }
         if (tab) {
           Object.assign(tab, { filename, pathname, isSaved: true })
@@ -411,7 +410,7 @@ export const useEditorStore = defineStore('editor', {
     RENAME(newFilename) {
       const { id, pathname, filename } = this.currentFile
       if (typeof filename === 'string' && filename !== newFilename) {
-        const newPathname = path.join(path.dirname(pathname), newFilename)
+        const newPathname = window.path.join(window.path.dirname(pathname), newFilename)
         window.electron.ipcRenderer.send('mt::rename', {
           id,
           pathname,
@@ -425,7 +424,7 @@ export const useEditorStore = defineStore('editor', {
       const oldCurrentFile = this.currentFile
       if (!oldCurrentFile.id || oldCurrentFile.id !== currentFile.id) {
         const { id, markdown, cursor, history, pathname } = currentFile
-        window.DIRNAME = pathname ? path.dirname(pathname) : ''
+        window.DIRNAME = pathname ? window.path.dirname(pathname) : ''
         this.currentFile = currentFile
         bus.emit('file-changed', { id, markdown, cursor, renderCursor: true, history })
       }
@@ -572,7 +571,7 @@ export const useEditorStore = defineStore('editor', {
         this.currentFile = fileState
         if (typeof fileState.markdown === 'string') {
           const { id, markdown, cursor, history, pathname } = fileState
-          window.DIRNAME = pathname ? path.dirname(pathname) : ''
+          window.DIRNAME = pathname ? window.path.dirname(pathname) : ''
           bus.emit('file-changed', { id, markdown, cursor, renderCursor: true, history })
         } else {
           window.DIRNAME = ''
@@ -648,7 +647,7 @@ export const useEditorStore = defineStore('editor', {
         this.currentFile = this.tabs[tabIndex] || this.tabs[tabIndex - 1] || this.tabs[0] || {}
         if (typeof this.currentFile.markdown === 'string') {
           const { id, markdown, cursor, history, pathname } = this.currentFile
-          window.DIRNAME = pathname ? path.dirname(pathname) : ''
+          window.DIRNAME = pathname ? window.path.dirname(pathname) : ''
           bus.emit('file-changed', { id, markdown, cursor, renderCursor: true, history })
         }
       }
@@ -992,7 +991,7 @@ export const useEditorStore = defineStore('editor', {
         notice
           .notify({
             title: 'Exported successfully',
-            message: `Exported "${path.basename(filePath)}" successfully!`,
+            message: `Exported "${window.path.basename(filePath)}" successfully!`,
             showConfirm: true
           })
           .then(() => {

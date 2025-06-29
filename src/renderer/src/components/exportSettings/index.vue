@@ -258,7 +258,6 @@
 import { ref, onMounted, onBeforeUnmount } from 'vue'
 import fs from 'fs'
 import fsPromises from 'fs/promises'
-import path from 'path-browserify'
 import bus from '../../bus'
 import Bool from '@/prefComponents/common/bool'
 import CurSelect from '@/prefComponents/common/select'
@@ -424,12 +423,12 @@ const onSelectChange = (key, value) => {
 
 const loadThemesFromDisk = () => {
   const { userDataPath } = global.marktext.paths
-  const themeDir = path.join(userDataPath, 'themes/export')
+  const themeDir = window.path.join(userDataPath, 'themes/export')
 
   // Search for dictionaries on filesystem.
   if (window.fileUtils.isDirectory(themeDir)) {
     fs.readdirSync(themeDir).forEach(async (filename) => {
-      const fullname = path.join(themeDir, filename)
+      const fullname = window.path.join(themeDir, filename)
       if (/.+\.css$/i.test(filename) && window.fileUtils.isFile(fullname)) {
         try {
           const content = await fsPromises.readFile(fullname, 'utf8')
