@@ -11,7 +11,13 @@ body article.print-container {
 
 @media print {
   /* Set all settings like margin with @page or Electron settings. */
+
   @page {
+    /* 
+      Recent versions of chromemium will treat margins as "transparent" - but we should set it to white so it isn't so ugly.
+      This should not affect the actual printing.
+    */
+    background: white;
     margin: 15mm 20mm 15mm 20mm;
   }
 
@@ -20,7 +26,8 @@ body article.print-container {
   }
 
   /* General rules for printing. */
-  html, body {
+  html,
+  body {
     position: relative !important;
     width: 100% !important;
     display: block !important;
@@ -55,7 +62,7 @@ body article.print-container {
   body article.markdown-body table {
     display: table;
   }
-  body article.markdown-body input[type="checkbox"] ~ p {
+  body article.markdown-body input[type='checkbox'] ~ p {
     margin-top: 0;
     display: inline-block;
   }
