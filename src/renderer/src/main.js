@@ -1,5 +1,5 @@
 import { createApp } from 'vue'
-import { createRouter, createWebHistory } from 'vue-router'
+import { createRouter, createWebHashHistory } from 'vue-router'
 import bootstrapRenderer from './bootstrap'
 import axios from './axios'
 import pinia from './store'
@@ -35,7 +35,9 @@ app.use(ElementPlus, {
 })
 
 const router = createRouter({
-  history: createWebHistory(),
+  history: createWebHashHistory(),
+  // it seems like something might have changed in vue-router? it uses the full "file path" instead of
+  // links like /editor if we use the old createWebHistory()
   routes: routes(global.marktext.env.type)
 })
 

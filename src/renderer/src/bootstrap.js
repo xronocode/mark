@@ -39,25 +39,28 @@ const parseUrlArgs = () => {
   }
 }
 
+const handleRendererError = (event) => {
+  if (event.error) {
+    const { message, name, stack } = event.error
+    const copy = {
+      message,
+      name,
+      stack
+    }
+
+    exceptionLogger(event.error)
+
+    // Pass exception to main process exception handler to show a error dialog.
+    window.electron.ipcRenderer.send('mt::handle-renderer-error', copy)
+  } else {
+    console.error(event)
+  }
+}
+
 const bootstrapRenderer = () => {
   // Register renderer exception handler
-  window.addEventListener('error', (event) => {
-    if (event.error) {
-      const { message, name, stack } = event.error
-      const copy = {
-        message,
-        name,
-        stack
-      }
-
-      exceptionLogger(event.error)
-
-      // Pass exception to main process exception handler to show a error dialog.
-      window.electron.ipcRenderer.send('mt::handle-renderer-error', copy)
-    } else {
-      console.error(event)
-    }
-  })
+  window.addEventListener('error', handleRendererError)
+  window.addEventListener('unhandledrejection', handleRendererError)
 
   const { debug, initialState, userDataPath, windowId, type } = parseUrlArgs()
   const paths = new RendererPaths(userDataPath)

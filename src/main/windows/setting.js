@@ -5,6 +5,7 @@ import { electronLocalshortcut } from '@hfelix/electron-localshortcut'
 import BaseWindow, { WindowLifecycle, WindowType } from './base'
 import { centerWindowOptions } from './utils'
 import { TITLE_BAR_HEIGHT, preferencesWinOptions, isLinux, isOsx } from '../config'
+import log from 'electron-log'
 
 class SettingWindow extends BaseWindow {
   /**
@@ -43,6 +44,14 @@ class SettingWindow extends BaseWindow {
 
     winOptions.backgroundColor = this._getPreferredBackgroundColor(theme)
     let win = (this.browserWindow = new BrowserWindow(winOptions))
+
+    win.webContents.on('did-fail-load', (event, code, desc, url) => {
+      log.error(`did-fail-load ${code} ${desc} @ ${url}`)
+    })
+    win.webContents.on('render-process-gone', (event, details) => {
+      log.error(`render-process-gone: ${details.reason} (${details.exitCode})`)
+    })
+
     remoteEnable(win.webContents)
     this.id = win.id
 

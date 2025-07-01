@@ -77,6 +77,7 @@ class EditorWindow extends BaseWindow {
     }
 
     let win = (this.browserWindow = new BrowserWindow(winOptions))
+
     remoteEnable(win.webContents)
     this.id = win.id
 
@@ -127,8 +128,10 @@ class EditorWindow extends BaseWindow {
       })
     })
 
-    win.webContents.once('did-fail-load', (event, errorCode, errorDescription) => {
-      log.error(`The window failed to load or was cancelled: ${errorCode}; ${errorDescription}`)
+    win.webContents.once('did-fail-load', (event, errorCode, errorDescription, url) => {
+      log.error(
+        `The window failed to load or was cancelled: ${errorCode}; ${errorDescription}; @ ${url}`
+      )
     })
 
     win.webContents.once('render-process-gone', async (event, { reason }) => {

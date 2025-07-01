@@ -1,5 +1,5 @@
 appId: com.electron.app
-productName: marktextv2
+productName: marktextv2-dev
 directories:
   buildResources: build
 files:
@@ -11,23 +11,34 @@ files:
 asarUnpack:
   - resources/**
 win:
-  executableName: marktextv2
+  executableName: marktextv2-dev
+  icon: icons/icon.ico
+  target:
+    - nsis
+    - portable
 nsis:
   artifactName: ${name}-${version}-setup.${ext}
   shortcutName: ${productName}
   uninstallDisplayName: ${productName}
   createDesktopShortcut: always
+  createStartMenuShortcut: true
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  perMachine: true
+  include: windows/installer.nsh
 mac:
-  entitlementsInherit: build/entitlements.mac.plist
+  entitlementsInherit: mac/entitlements.mac.plist
   extendInfo:
     - NSCameraUsageDescription: Application requests access to the device's camera.
     - NSMicrophoneUsageDescription: Application requests access to the device's microphone.
     - NSDocumentsFolderUsageDescription: Application requests access to the user's Documents folder.
     - NSDownloadsFolderUsageDescription: Application requests access to the user's Downloads folder.
+  icon: icons/icon.ico
   notarize: false
 dmg:
   artifactName: ${name}-${version}.${ext}
 linux:
+  icon: icons/icon.ico
   target:
     - AppImage
     - snap

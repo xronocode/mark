@@ -1,5 +1,6 @@
 import EventEmitter from 'events'
 import { isLinux } from '../config'
+import path from 'path'
 
 /**
  * A MarkText window.
@@ -77,8 +78,8 @@ class BaseWindow extends EventEmitter {
     /* eslint-disable */
     const baseUrl =
       process.env.NODE_ENV === 'development'
-        ? 'http://localhost:5173'
-        : `file://${__dirname}/index.html`
+        ? process.env['ELECTRON_RENDERER_URL']
+        : `file://${path.join(__dirname, '../renderer/index.html')}` // <-- This points to the path inside the packed ASAR archive, hence it is always correct
     /* eslint-enable */
 
     const url = new URL(baseUrl)

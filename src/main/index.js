@@ -1,6 +1,6 @@
 import './globalSetting'
 import path from 'path'
-import { app, dialog } from 'electron'
+import { app, dialog, crashReporter } from 'electron'
 import log from 'electron-log'
 import { electronApp, optimizer } from '@electron-toolkit/utils'
 import { initialize as remoteInitializeServer } from '@electron/remote/main'
@@ -21,7 +21,6 @@ const appEnvironment = setupEnvironment(args)
 const initializeLogger = (env) => {
   log.initialize() // allows listening for logs from the renderer process
   log.transports.console.level = process.env.NODE_ENV === 'development' ? 'info' : 'error'
-  log.transports.rendererConsole = null
   log.transports.file.resolvePathFn = (variables) => {
     if (variables.browserWindow && variables.browserWindow.id) {
       return path.join(env.paths.logPath, `renderer-${variables.browserWindow.id}.log`)
@@ -30,9 +29,29 @@ const initializeLogger = (env) => {
   }
   log.transports.file.level = getLogLevel()
   log.transports.file.sync = true
+  log.errorHandler.startCatching({
+    onError(error) {
+      // This callback receives the full Error object with stack
+      log.error('Uncaught Exception:', error.stack)
+    }
+  })
   initExceptionLogger()
 }
+
 initializeLogger(appEnvironment)
+// Handles native level crashes
+crashReporter.start({
+  companyName: '',
+  productName: 'marktextv2',
+  uploadToServer: false, // collect locally
+  compress: true
+})
+process.on('uncaughtException', (err) => {
+  log.error('Main uncaughtException:', err.stack)
+})
+process.on('unhandledRejection', (reason) => {
+  log.error('Main unhandledRejection:', reason)
+})
 
 // -----------------------------------------------
 // Disable GPU if requested
