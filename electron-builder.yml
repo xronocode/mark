@@ -8,14 +8,30 @@ files:
   - '!electron.vite.config.{js,ts,mjs,cjs}'
   - '!{.eslintcache,eslint.config.mjs,.prettierignore,.prettierrc.yaml,dev-app-update.yml,CHANGELOG.md,README.md}'
   - '!{.env,.env.*,.npmrc,pnpm-lock.yaml}'
+extraResources:
+  - from: build/icons
+    to: icons # ends up at resources/icons/
+    filter:
+      - '*.ico'
+
 asarUnpack:
   - resources/**
 win:
   executableName: marktextv2-dev
   icon: icons/icon.ico
-  target:
-    - nsis
-    - portable
+  fileAssociations:
+    - ext:
+        - 'md'
+        - 'markdown'
+        - 'mmd'
+        - 'mdown'
+        - 'mdtxt'
+        - 'mdtext'
+        - 'mdx'
+      name: 'Markdown'
+      description: 'Markdown document'
+      role: 'Editor'
+      icon: icons/md.ico
 nsis:
   artifactName: ${name}-${version}-setup.${ext}
   shortcutName: ${productName}
@@ -25,7 +41,6 @@ nsis:
   oneClick: false
   allowToChangeInstallationDirectory: true
   perMachine: true
-  include: windows/installer.nsh
 mac:
   entitlementsInherit: mac/entitlements.mac.plist
   extendInfo:

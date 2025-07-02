@@ -19,16 +19,10 @@ FunctionEnd
 Function AssociatePageLeave
   ${NSD_GetState} $AssociateMd $0
   ${If} $0 == ${BST_CHECKED}
-    WriteRegStr HKCR ".md" "" "${PRODUCT_NAME}.MarkdownFile"
-    WriteRegStr HKCR "${PRODUCT_NAME}.MarkdownFile" "" "Markdown Document"
-    WriteRegStr HKCR "${PRODUCT_NAME}.MarkdownFile\\DefaultIcon" "" "$INSTDIR\\icons\\md.ico"
-    WriteRegStr HKCR "${PRODUCT_NAME}.MarkdownFile\\shell\\open\\command" "" '"$INSTDIR\\marktextv2.exe" "%1"'
+    MessageBox MB_OK|MB_ICONINFORMATION "AssociatePageLeave called; state = $0"
+    WriteRegStr HKCU "Software\Classes\.md" "" "${PRODUCT_NAME}"
+    WriteRegStr HKCU "Software\Classes\${PRODUCT_NAME}" "" "Markdown Document"
+    WriteRegStr HKCU "Software\Classes\${PRODUCT_NAME}\DefaultIcon" "" "$INSTDIR\resources\icons\md.ico"
+    WriteRegStr HKCU "Software\Classes\${PRODUCT_NAME}\shell\open\command" "" '"$INSTDIR\marktextv2-dev.exe" "%1"'
   ${EndIf}
 FunctionEnd
-
-!macro customUnInstall
-  MessageBox MB_YESNO "Do you want to delete user settings?" /SD IDNO IDNO SkipRemoval
-    SetShellVarContext current
-    RMDir /r "$APPDATA\marktext"
-  SkipRemoval:
-!macroend
