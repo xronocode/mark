@@ -318,7 +318,6 @@ const showDialog = (type) => {
   }
 
   showExportSettingsDialog.value = true
-  console.log('showExportSettingsDialog', showExportSettingsDialog.value)
   bus.emit('editor-blur')
 
   if (!themesLoaded.value) {

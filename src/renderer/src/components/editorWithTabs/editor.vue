@@ -766,7 +766,7 @@ const handleExport = async (options) => {
         notice.notify({
           title: 'Printing/Exporting failed',
           type: 'error',
-          message: `There is something wrong when export ${htmlTitle || 'PDF'}.`
+          message: `Something went wrong when exporting ${htmlTitle || 'PDF'}.`
         })
         handlePrintServiceClearup()
       }
@@ -785,13 +785,14 @@ const handleExport = async (options) => {
           headerFooterStyled
         })
         printer.renderMarkdown(html, true)
+        console.log('sending print response')
         editorStore.PRINT_RESPONSE()
       } catch (err) {
         log.error('Failed to export document:', err)
         notice.notify({
           title: 'Printing/Exporting failed',
           type: 'error',
-          message: `There is something wrong when print ${htmlTitle || ''}.`
+          message: `Something went wrong when printing ${htmlTitle || ''}.`
         })
         handlePrintServiceClearup()
       }
