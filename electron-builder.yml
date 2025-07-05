@@ -19,28 +19,16 @@ asarUnpack:
 win:
   executableName: marktextv2-dev
   icon: icons/icon.ico
-  fileAssociations:
-    - ext:
-        - 'md'
-        - 'markdown'
-        - 'mmd'
-        - 'mdown'
-        - 'mdtxt'
-        - 'mdtext'
-        - 'mdx'
-      name: 'Markdown'
-      description: 'Markdown document'
-      role: 'Editor'
-      icon: icons/md.ico
 nsis:
   artifactName: ${name}-${version}-setup.${ext}
   shortcutName: ${productName}
   uninstallDisplayName: ${productName}
-  createDesktopShortcut: always
+  createDesktopShortcut: true
   createStartMenuShortcut: true
   oneClick: false
   allowToChangeInstallationDirectory: true
-  perMachine: true
+  perMachine: false
+  include: windows/installer.nsh
 mac:
   entitlementsInherit: mac/entitlements.mac.plist
   extendInfo:

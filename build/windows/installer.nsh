@@ -1,28 +1,54 @@
-!include "MUI2.nsh"
-Var AssociateMd
+; installer.nsh — include via electron-builder’s nsis.include
 
-Page custom AssociatePageCreate AssociatePageLeave
-!insertmacro MUI_PAGE_INSTFILES
+;======================================================================
+; customInstall macro is invoked by electron-builder after files are in $INSTDIR
+!macro customInstall
+  ; Ask the user if they want to register file associations
+  MessageBox MB_YESNO|MB_ICONQUESTION \
+  "Do you want to associate Markdown files with MarkText?" /SD IDNO IDNO SkipAssoc
 
-Function AssociatePageCreate
-  nsDialogs::Create 1018
-  Pop $0
-  ${If} $0 == error
-    Abort
-  ${EndIf}
-  ${NSD_CreateCheckbox} 20u 40u 100% 12u "Associate .md files with ${PRODUCT_NAME}"
-  Pop $AssociateMd
-  SendMessage $AssociateMd ${BM_SETCHECK} ${BST_CHECKED} 0
-  nsDialogs::Show
-FunctionEnd
+  ;— User clicked YES, perform the registry writes —
+  WriteRegStr HKCU "Software\Classes\.md"       "" "MarkText.Document"
+  WriteRegStr HKCU "Software\Classes\.markdown" "" "MarkText.Document"
+  WriteRegStr HKCU "Software\Classes\.mmd"      "" "MarkText.Document"
+  WriteRegStr HKCU "Software\Classes\.mdown"    "" "MarkText.Document"
+  WriteRegStr HKCU "Software\Classes\.mdtxt"    "" "MarkText.Document"
+  WriteRegStr HKCU "Software\Classes\.mdtext"   "" "MarkText.Document"
+  WriteRegStr HKCU "Software\Classes\.mdx"      "" "MarkText.Document"
 
-Function AssociatePageLeave
-  ${NSD_GetState} $AssociateMd $0
-  ${If} $0 == ${BST_CHECKED}
-    MessageBox MB_OK|MB_ICONINFORMATION "AssociatePageLeave called; state = $0"
-    WriteRegStr HKCU "Software\Classes\.md" "" "${PRODUCT_NAME}"
-    WriteRegStr HKCU "Software\Classes\${PRODUCT_NAME}" "" "Markdown Document"
-    WriteRegStr HKCU "Software\Classes\${PRODUCT_NAME}\DefaultIcon" "" "$INSTDIR\resources\icons\md.ico"
-    WriteRegStr HKCU "Software\Classes\${PRODUCT_NAME}\shell\open\command" "" '"$INSTDIR\marktextv2-dev.exe" "%1"'
-  ${EndIf}
-FunctionEnd
+  WriteRegStr HKCU "Software\Classes\MarkText.Document" \
+    "" "MarkText Markdown Document"
+  WriteRegExpandStr HKCU "Software\Classes\MarkText.Document\DefaultIcon" \
+    "" "$INSTDIR\resources\icons\md.ico,0"
+  WriteRegExpandStr HKCU "Software\Classes\MarkText.Document\shell\open\command" \
+    "" '"$INSTDIR\marktextv2-dev.exe" "%1"'
+
+SkipAssoc:
+!macroend
+
+;======================================================================
+; customUnInstall macro cleans up on uninstall
+!macro customUnInstall
+  ; Delete the open command subtree
+  DeleteRegKey HKCU "Software\Classes\MarkText.Document\shell\open\command"
+  DeleteRegKey HKCU "Software\Classes\MarkText.Document\shell\open"
+  DeleteRegKey HKCU "Software\Classes\MarkText.Document\shell"
+
+  ; Delete the DefaultIcon and ProgID
+  DeleteRegKey HKCU "Software\Classes\MarkText.Document\DefaultIcon"
+  DeleteRegKey HKCU "Software\Classes\MarkText.Document"
+
+  ; Delete each extension mapping
+  DeleteRegKey HKCU "Software\Classes\.md"
+  DeleteRegKey HKCU "Software\Classes\.markdown"
+  DeleteRegKey HKCU "Software\Classes\.mmd"
+  DeleteRegKey HKCU "Software\Classes\.mdown"
+  DeleteRegKey HKCU "Software\Classes\.mdtxt"
+  DeleteRegKey HKCU "Software\Classes\.mdtext"
+  DeleteRegKey HKCU "Software\Classes\.mdx"
+
+  MessageBox MB_YESNO "Do you want to delete user settings?" /SD IDNO IDNO SkipRemoval
+    SetShellVarContext current
+    RMDir /r "$APPDATA\marktext"
+  SkipRemoval:
+!macroend
