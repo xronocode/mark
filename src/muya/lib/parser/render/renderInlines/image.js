@@ -49,14 +49,6 @@ export default function image(h, cursor, block, token, outerClass) {
   const width = token.attrs.width
   const height = token.attrs.height
 
-  console.log('imageInfo', imageInfo)
-  console.log({
-    h: h,
-    cursor: cursor,
-    block: block,
-    token: token,
-    outerClass: outerClass
-  })
   if (src) {
     ;({ id, isSuccess, domsrc } = this.loadImageAsync(imageInfo, token.attrs))
   }

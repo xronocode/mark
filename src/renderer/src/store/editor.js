@@ -33,6 +33,14 @@ export const useEditorStore = defineStore('editor', {
 
   actions: {
     /**
+     * Update scroll position for the currentFile
+     */
+    updateScrollPosition(scrollTop) {
+      console.log('updateScrollPosition:', scrollTop, ' for ', this.currentFile.id)
+      this.currentFile.scrollTop = scrollTop
+    },
+
+    /**
      * Push a tab specific notification on stack that never disappears.
      */
     pushTabNotification(data) {
@@ -139,8 +147,8 @@ export const useEditorStore = defineStore('editor', {
       // Reload the editor if the tab is currently opened.
       if (pathname === currentFile.pathname) {
         this.currentFile = tab
-        const { id, cursor, history } = tab
-        bus.emit('file-changed', { id, markdown, cursor, renderCursor: true, history })
+        const { id, cursor, history, scrollTop } = tab
+        bus.emit('file-changed', { id, markdown, cursor, renderCursor: true, history, scrollTop })
       }
     },
 
@@ -423,10 +431,10 @@ export const useEditorStore = defineStore('editor', {
     UPDATE_CURRENT_FILE(currentFile) {
       const oldCurrentFile = this.currentFile
       if (!oldCurrentFile.id || oldCurrentFile.id !== currentFile.id) {
-        const { id, markdown, cursor, history, pathname } = currentFile
+        const { id, markdown, cursor, history, pathname, scrollTop } = currentFile
         window.DIRNAME = pathname ? window.path.dirname(pathname) : ''
         this.currentFile = currentFile
-        bus.emit('file-changed', { id, markdown, cursor, renderCursor: true, history })
+        bus.emit('file-changed', { id, markdown, cursor, renderCursor: true, history, scrollTop })
       }
 
       if (!this.tabs.some((file) => file.id === currentFile.id)) {
@@ -570,9 +578,9 @@ export const useEditorStore = defineStore('editor', {
         const fileState = this.tabs[index] || this.tabs[index - 1] || this.tabs[0] || {}
         this.currentFile = fileState
         if (typeof fileState.markdown === 'string') {
-          const { id, markdown, cursor, history, pathname } = fileState
+          const { id, markdown, cursor, history, pathname, scrollTop } = fileState
           window.DIRNAME = pathname ? window.path.dirname(pathname) : ''
-          bus.emit('file-changed', { id, markdown, cursor, renderCursor: true, history })
+          bus.emit('file-changed', { id, markdown, cursor, renderCursor: true, history, scrollTop })
         } else {
           window.DIRNAME = ''
         }
@@ -646,9 +654,9 @@ export const useEditorStore = defineStore('editor', {
       if (!this.currentFile.id && this.tabs.length > 0) {
         this.currentFile = this.tabs[tabIndex] || this.tabs[tabIndex - 1] || this.tabs[0] || {}
         if (typeof this.currentFile.markdown === 'string') {
-          const { id, markdown, cursor, history, pathname } = this.currentFile
+          const { id, markdown, cursor, history, pathname, scrollTop } = this.currentFile
           window.DIRNAME = pathname ? window.path.dirname(pathname) : ''
-          bus.emit('file-changed', { id, markdown, cursor, renderCursor: true, history })
+          bus.emit('file-changed', { id, markdown, cursor, renderCursor: true, history, scrollTop })
         }
       }
 

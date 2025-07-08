@@ -677,10 +677,19 @@ const handleUploadedImage = (url, deletionUrl) => {
 }
 
 const scrollToCursor = (duration = 300) => {
-  nextTick(() => {
+  requestAnimationFrame(() => {
     const { container } = editor.value
     const { y } = editor.value.getSelection().cursorCoords
     animatedScrollTo(container, container.scrollTop + y - STANDAR_Y, duration)
+  })
+}
+
+const scrollToCords = (y) => {
+  requestAnimationFrame(() => {
+    const { container } = editor.value
+    // Ensures there we have scrolled to that position before the browser paints the next frame
+    // prevents "flickers"
+    container.scrollTop = y
   })
 }
 
@@ -785,7 +794,6 @@ const handleExport = async (options) => {
           headerFooterStyled
         })
         printer.renderMarkdown(html, true)
-        console.log('sending print response')
         editorStore.PRINT_RESPONSE()
       } catch (err) {
         log.error('Failed to export document:', err)
@@ -859,7 +867,13 @@ const setMarkdownToEditor = ({ markdown: newMarkdown, cursor: newCursor }) => {
 }
 
 // listen for markdown change form source mode or change tabs etc
-const handleFileChange = ({ markdown: newMarkdown, cursor: newCursor, renderCursor, history }) => {
+const handleFileChange = ({
+  markdown: newMarkdown,
+  cursor: newCursor,
+  renderCursor,
+  history,
+  scrollTop
+}) => {
   nextTick(() => {
     if (editor.value) {
       if (history) {
@@ -870,7 +884,10 @@ const handleFileChange = ({ markdown: newMarkdown, cursor: newCursor, renderCurs
       } else if (newCursor) {
         editor.value.setCursor(newCursor)
       }
-      if (renderCursor) {
+
+      if (typeof scrollTop === 'number') {
+        scrollToCords(scrollTop)
+      } else if (renderCursor) {
         scrollToCursor(0)
       }
     }
@@ -1012,6 +1029,10 @@ onMounted(() => {
     editorStore.LISTEN_FOR_CONTENT_CHANGE(Object.assign(changes, { id: 'muya' }))
   })
 
+  editor.value.on('scroll', (scroll) => {
+    editorStore.updateScrollPosition(scroll.scrollTop)
+  })
+
   editor.value.on('format-click', ({ event, formatType, data }) => {
     const ctrlOrMeta = (isOsx && event.metaKey) || (!isOsx && event.ctrlKey)
     if (formatType === 'link' && ctrlOrMeta) {
@@ -1059,6 +1080,7 @@ onMounted(() => {
 
     // Used to fix #628: auto scroll cursor to visible if the cursor is too low.
     if (container.clientHeight - y < 100) {
+      console.log('selectionChange - scroll', container.clientHeight - y, y)
       // editableHeight is the lowest cursor position(till to top) that editor allowed.
       const editableHeight = container.clientHeight - 100
       animatedScrollTo(container, container.scrollTop + (y - editableHeight), 0)

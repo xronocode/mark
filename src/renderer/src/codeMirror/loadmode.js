@@ -3,8 +3,6 @@
 
 const codeMirrorMode = import.meta.glob('../../../../node_modules/codemirror/mode/**/*.js')
 
-console.log('codeMirrorMode', codeMirrorMode)
-
 const loadMore = (CodeMirror) => {
   if (!CodeMirror.modeURL) {
     CodeMirror.modeURL = '../../../../node_modules/codemirror/mode/%N/%N.js'

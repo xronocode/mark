@@ -15,16 +15,16 @@ import {
   getOffsetOfParagraph
 } from './dom'
 
-const filterOnlyParentElements = node => {
+const filterOnlyParentElements = (node) => {
   return isBlockContainer(node) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_SKIP
 }
 
 class Selection {
-  constructor (doc) {
+  constructor(doc) {
     this.doc = doc // document
   }
 
-  findMatchingSelectionParent (testElementFunction, contentWindow) {
+  findMatchingSelectionParent(testElementFunction, contentWindow) {
     const selection = contentWindow.getSelection()
     let range
     let current
@@ -48,7 +48,7 @@ class Selection {
   //      subsequent to an anchor tag if it would otherwise be placed right at the trailing edge inside the
   //      anchor. This cursor positioning, even though visually equivalent to the user, can affect behavior
   //      in MS IE.
-  importSelection (selectionState, root, favorLaterSelectionAnchor) {
+  importSelection(selectionState, root, favorLaterSelectionAnchor) {
     if (!selectionState || !root) {
       throw new Error('your must provide a [selectionState] and a [root] element')
     }
@@ -81,7 +81,11 @@ class Selection {
     //
     // For these cases, we want the selection to start at a very specific location, so we should NOT
     // automatically move the cursor to the beginning of the first actual chunk of text
-    if (favorLaterSelectionAnchor || selectionState.startsWithImage || typeof selectionState.emptyBlocksIndex !== 'undefined') {
+    if (
+      favorLaterSelectionAnchor ||
+      selectionState.startsWithImage ||
+      typeof selectionState.emptyBlocksIndex !== 'undefined'
+    ) {
       allowRangeToStartAtEndOfNode = true
     }
 
@@ -96,7 +100,11 @@ class Selection {
       if (node.nodeType === 3 && !foundEnd) {
         nextCharIndex = charIndex + node.length
         // Check if we're at or beyond the start of the selection we're importing
-        if (!foundStart && selectionState.start >= charIndex && selectionState.start <= nextCharIndex) {
+        if (
+          !foundStart &&
+          selectionState.start >= charIndex &&
+          selectionState.start <= nextCharIndex
+        ) {
           // NOTE: We only want to allow a selection to start at the END of an element if
           //  allowRangeToStartAtEndOfNode is true
           if (allowRangeToStartAtEndOfNode || selectionState.start < nextCharIndex) {
@@ -173,14 +181,16 @@ class Selection {
   }
 
   // Utility method called from importSelection only
-  importSelectionMoveCursorPastAnchor (selectionState, range) {
+  importSelectionMoveCursorPastAnchor(selectionState, range) {
     const nodeInsideAnchorTagFunction = function (node) {
       return node.nodeName.toLowerCase() === 'a'
     }
-    if (selectionState.start === selectionState.end &&
+    if (
+      selectionState.start === selectionState.end &&
       range.startContainer.nodeType === 3 &&
       range.startOffset === range.startContainer.nodeValue.length &&
-      traverseUp(range.startContainer, nodeInsideAnchorTagFunction)) {
+      traverseUp(range.startContainer, nodeInsideAnchorTagFunction)
+    ) {
       let prevNode = range.startContainer
       let currentNode = range.startContainer.parentNode
       while (currentNode !== null && currentNode.nodeName.toLowerCase() !== 'a') {
@@ -193,7 +203,11 @@ class Selection {
       }
       if (currentNode !== null && currentNode.nodeName.toLowerCase() === 'a') {
         let currentNodeIndex = null
-        for (let i = 0; currentNodeIndex === null && i < currentNode.parentNode.childNodes.length; i++) {
+        for (
+          let i = 0;
+          currentNodeIndex === null && i < currentNode.parentNode.childNodes.length;
+          i++
+        ) {
           if (currentNode.parentNode.childNodes[i] === currentNode) {
             currentNodeIndex = i
           }
@@ -207,8 +221,13 @@ class Selection {
 
   // Uses the emptyBlocksIndex calculated by getIndexRelativeToAdjacentEmptyBlocks
   // to move the cursor back to the start of the correct paragraph
-  importSelectionMoveCursorPastBlocks (root, index = 1, range) {
-    const treeWalker = this.doc.createTreeWalker(root, NodeFilter.SHOW_ELEMENT, filterOnlyParentElements, false)
+  importSelectionMoveCursorPastBlocks(root, index = 1, range) {
+    const treeWalker = this.doc.createTreeWalker(
+      root,
+      NodeFilter.SHOW_ELEMENT,
+      filterOnlyParentElements,
+      false
+    )
     const startContainer = range.startContainer
     let startBlock
     let targetNode
@@ -259,7 +278,7 @@ class Selection {
 
   // https://stackoverflow.com/questions/4176923/html-of-selected-text
   // by Tim Down
-  getSelectionHtml () {
+  getSelectionHtml() {
     const sel = this.doc.getSelection()
     let i
     let html = ''
@@ -275,7 +294,7 @@ class Selection {
     return html
   }
 
-  chopHtmlByCursor (root) {
+  chopHtmlByCursor(root) {
     const { left } = this.getCaretOffsets(root)
     const markedText = root.textContent
     const { type, info } = getCursorPositionWithinMarkedText(markedText, left)
@@ -312,7 +331,7 @@ class Selection {
    *  @param {Range} A Range representing cursor position. Will window.getSelection if none is passed.
    *  @return {Object} 'left' and 'right' attributes contain offsets from beginning and end of Element
    */
-  getCaretOffsets (element, range) {
+  getCaretOffsets(element, range) {
     let preCaretRange
     let postCaretRange
 
@@ -335,13 +354,13 @@ class Selection {
     }
   }
 
-  selectNode (node) {
+  selectNode(node) {
     const range = this.doc.createRange()
     range.selectNodeContents(node)
     this.selectRange(range)
   }
 
-  select (startNode, startOffset, endNode, endOffset) {
+  select(startNode, startOffset, endNode, endOffset) {
     const range = this.doc.createRange()
     range.setStart(startNode, startOffset)
     if (endNode) {
@@ -353,7 +372,7 @@ class Selection {
     return range
   }
 
-  setFocus (focusNode, focusOffset) {
+  setFocus(focusNode, focusOffset) {
     const selection = this.doc.getSelection()
     selection.extend(focusNode, focusOffset)
   }
@@ -363,7 +382,7 @@ class Selection {
    *
    *  @param {boolean} moveCursorToStart  A boolean representing whether or not to set the caret to the beginning of the prior selection.
    */
-  clearSelection (moveCursorToStart) {
+  clearSelection(moveCursorToStart) {
     const { rangeCount } = this.doc.getSelection()
     if (!rangeCount) return
     if (moveCursorToStart) {
@@ -379,11 +398,11 @@ class Selection {
    * @param  {DomElement}  node    Element where to jump
    * @param  {integer}     offset  Where in the element should we jump, 0 by default
    */
-  moveCursor (node, offset) {
+  moveCursor(node, offset) {
     this.select(node, offset)
   }
 
-  getSelectionRange () {
+  getSelectionRange() {
     const selection = this.doc.getSelection()
     if (selection.rangeCount === 0) {
       return null
@@ -391,7 +410,7 @@ class Selection {
     return selection.getRangeAt(0)
   }
 
-  selectRange (range) {
+  selectRange(range) {
     const selection = this.doc.getSelection()
 
     selection.removeAllRanges()
@@ -401,14 +420,14 @@ class Selection {
   // https://stackoverflow.com/questions/1197401/
   // how-can-i-get-the-element-the-caret-is-in-with-javascript-when-using-contenteditable
   // by You
-  getSelectionStart () {
+  getSelectionStart() {
     const node = this.doc.getSelection().anchorNode
-    const startNode = (node && node.nodeType === 3 ? node.parentNode : node)
+    const startNode = node && node.nodeType === 3 ? node.parentNode : node
 
     return startNode
   }
 
-  setCursorRange (cursorRange) {
+  setCursorRange(cursorRange) {
     const { anchor, focus } = cursorRange
     const anchorParagraph = document.querySelector(`#${anchor.key}`)
     const focusParagraph = document.querySelector(`#${focus.key}`)
@@ -426,17 +445,22 @@ class Selection {
       let count = 0
       for (i = 0; i < len; i++) {
         const child = childNodes[i]
-        const textContent = getTextContent(child, [CLASS_OR_ID.AG_MATH_RENDER, CLASS_OR_ID.AG_RUBY_RENDER])
+        const textContent = getTextContent(child, [
+          CLASS_OR_ID.AG_MATH_RENDER,
+          CLASS_OR_ID.AG_RUBY_RENDER
+        ])
         const textLength = textContent.length
         if (child.classList && child.classList.contains(CLASS_OR_ID.AG_FRONT_ICON)) {
           continue
         }
 
         // Fix #1460 - put the cursor at the next text node or element if it can be put at the last of /^\n$/ or the next text node/element.
-        if (/^\n$/.test(textContent) && i !== len - 1 ? count + textLength > offset : count + textLength >= offset) {
-          if (
-            child.classList && child.classList.contains('ag-inline-image')
-          ) {
+        if (
+          /^\n$/.test(textContent) && i !== len - 1
+            ? count + textLength > offset
+            : count + textLength >= offset
+        ) {
+          if (child.classList && child.classList.contains('ag-inline-image')) {
             const imageContainer = child.querySelector('.ag-image-container')
             const hasImg = imageContainer.querySelector('img')
 
@@ -479,10 +503,16 @@ class Selection {
       return { node, offset }
     }
 
-    let { node: anchorNode, offset: anchorOffset } = getNodeAndOffset(anchorParagraph, anchor.offset)
+    let { node: anchorNode, offset: anchorOffset } = getNodeAndOffset(
+      anchorParagraph,
+      anchor.offset
+    )
     let { node: focusNode, offset: focusOffset } = getNodeAndOffset(focusParagraph, focus.offset)
 
-    if (anchorNode.nodeType === 3 || anchorNode.nodeType === 1 && !anchorNode.classList.contains('ag-image-container')) {
+    if (
+      anchorNode.nodeType === 3 ||
+      (anchorNode.nodeType === 1 && !anchorNode.classList.contains('ag-image-container'))
+    ) {
       anchorOffset = Math.min(anchorOffset, anchorNode.textContent.length)
       focusOffset = Math.min(focusOffset, focusNode.textContent.length)
     }
@@ -493,7 +523,7 @@ class Selection {
     this.setFocus(focusNode, focusOffset)
   }
 
-  isValidCursorNode (node) {
+  isValidCursorNode(node) {
     if (!node) return false
     if (node.nodeType === 3) {
       node = node.parentNode
@@ -502,7 +532,7 @@ class Selection {
     return node.closest('span.ag-paragraph')
   }
 
-  getCursorRange () {
+  getCursorRange() {
     let { anchorNode, anchorOffset, focusNode, focusOffset } = this.doc.getSelection()
     const isAnchorValid = this.isValidCursorNode(anchorNode)
     const isFocusValid = this.isValidCursorNode(focusNode)
@@ -556,9 +586,15 @@ class Selection {
       aOffset = 0
       if (preElement) {
         aOffset += getOffsetOfParagraph(preElement, anchorParagraph)
-        aOffset += getTextContent(preElement, [CLASS_OR_ID.AG_MATH_RENDER, CLASS_OR_ID.AG_RUBY_RENDER]).length
+        aOffset += getTextContent(preElement, [
+          CLASS_OR_ID.AG_MATH_RENDER,
+          CLASS_OR_ID.AG_RUBY_RENDER
+        ]).length
       }
-      aOffset += getTextContent(imageWrapper, [CLASS_OR_ID.AG_MATH_RENDER, CLASS_OR_ID.AG_RUBY_RENDER]).length
+      aOffset += getTextContent(imageWrapper, [
+        CLASS_OR_ID.AG_MATH_RENDER,
+        CLASS_OR_ID.AG_RUBY_RENDER
+      ]).length
       fOffset = aOffset
     }
 
@@ -572,10 +608,16 @@ class Selection {
       aOffset = 0
       if (preElement) {
         aOffset += getOffsetOfParagraph(preElement, anchorParagraph)
-        aOffset += getTextContent(preElement, [CLASS_OR_ID.AG_MATH_RENDER, CLASS_OR_ID.AG_RUBY_RENDER]).length
+        aOffset += getTextContent(preElement, [
+          CLASS_OR_ID.AG_MATH_RENDER,
+          CLASS_OR_ID.AG_RUBY_RENDER
+        ]).length
       }
       if (anchorOffset === 1) {
-        aOffset += getTextContent(imageWrapper, [CLASS_OR_ID.AG_MATH_RENDER, CLASS_OR_ID.AG_RUBY_RENDER]).length
+        aOffset += getTextContent(imageWrapper, [
+          CLASS_OR_ID.AG_MATH_RENDER,
+          CLASS_OR_ID.AG_RUBY_RENDER
+        ]).length
       }
       fOffset = aOffset
     }
@@ -593,7 +635,7 @@ class Selection {
   }
 
   // topOffset is the line counts above cursor, and bottomOffset is line counts below cursor.
-  getCursorYOffset (paragraph) {
+  getCursorYOffset(paragraph) {
     const { y } = this.getCursorCoords()
     const { height, top } = paragraph.getBoundingClientRect()
     const lineHeight = parseFloat(getComputedStyle(paragraph).lineHeight)
@@ -606,7 +648,7 @@ class Selection {
     }
   }
 
-  getCursorCoords () {
+  getCursorCoords() {
     const sel = this.doc.getSelection()
     let range
     let x = 0
@@ -618,7 +660,12 @@ class Selection {
       if (range.getClientRects) {
         // range.collapse(true)
         let rects = range.getClientRects()
-        if (rects.length === 0 && range.startContainer && (range.startContainer.nodeType === Node.ELEMENT_NODE || range.startContainer.nodeType === Node.TEXT_NODE)) {
+        if (
+          rects.length === 0 &&
+          range.startContainer &&
+          (range.startContainer.nodeType === Node.ELEMENT_NODE ||
+            range.startContainer.nodeType === Node.TEXT_NODE)
+        ) {
           rects = range.startContainer.parentElement.getClientRects()
           // prevent tiny vibrations
           if (rects.length) {
@@ -638,9 +685,9 @@ class Selection {
     return { x, y, width }
   }
 
-  getSelectionEnd () {
+  getSelectionEnd() {
     const node = this.doc.getSelection().focusNode
-    const endNode = (node && node.nodeType === 3 ? node.parentNode : node)
+    const endNode = node && node.nodeType === 3 ? node.parentNode : node
 
     return endNode
   }

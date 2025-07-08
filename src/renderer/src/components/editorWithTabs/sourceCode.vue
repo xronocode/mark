@@ -8,7 +8,7 @@ import { useEditorStore } from '@/store/editor'
 import { usePreferencesStore } from '@/store/preferences'
 import { storeToRefs } from 'pinia'
 import codeMirror, { setMode, setCursorAtLastLine, setTextDirection } from '../../codeMirror'
-import { wordCount as getWordCount } from 'muya/lib/utils'
+import { debounce, wordCount as getWordCount } from 'muya/lib/utils'
 import { adjustCursor } from '../../util'
 import bus from '../../bus'
 import { oneDarkThemes, railscastsThemes } from '@/config'
@@ -77,14 +77,25 @@ const prepareTabSwitch = () => {
   }
 }
 
-const handleFileChange = ({ id, markdown: newMarkdown, cursor }) => {
+const scrollToCords = (y) => {
+  requestAnimationFrame(() => {
+    // Ensures there we have scrolled to that position before the browser paints the next frame
+    // prevents "flickers"
+    sourceCodeContainer.value.scrollTop = y
+  })
+}
+
+const handleFileChange = ({ id, markdown: newMarkdown, cursor, scrollTop }) => {
   prepareTabSwitch()
 
   if (typeof newMarkdown === 'string') {
     editor.value.setValue(newMarkdown)
   }
-  // Cursor is null when loading a file or creating a new tab in source code mode.
-  if (cursor) {
+  // Cursor is null when loading a fil
+  // e or creating a new tab in source code mode.
+  if (typeof scrollTop === 'number') {
+    scrollToCords(scrollTop)
+  } else if (cursor) {
     const { anchor, focus } = cursor
     editor.value.setSelection(anchor, focus, { scroll: true }) // Scroll the focus into view.
   } else {
@@ -193,8 +204,12 @@ const listenChange = () => {
 
 onMounted(() => {
   const { id } = currentTab.value
+  // reset currentTab scrollTop position because the codeMirror scroll position is completely different from the muya scroll position
+  currentTab.value.scrollTop = undefined
+
   const { markdown, cursor, textDirection } = props
   const container = sourceCodeContainer.value
+  container.addEventListener('scroll', handleScroll)
   const codeMirrorConfig = {
     value: markdown,
     lineNumbers: true,
@@ -255,7 +270,13 @@ onBeforeUnmount(() => {
 
   const { cursor, markdown: newMarkdown } = getMarkdownAndCursor(editor.value)
   bus.emit('file-changed', { id: tabId.value, markdown: newMarkdown, cursor, renderCursor: true })
+
+  sourceCodeContainer.value.removeEventListener('scroll', handleScroll)
 })
+
+const handleScroll = debounce(() => {
+  editorStore.updateScrollPosition(sourceCodeContainer.value.scrollTop)
+}, 50)
 </script>
 
 <style>

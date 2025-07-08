@@ -2,7 +2,7 @@ import { getUniqueId, loadImage } from '../../../utils'
 import { insertAfter, operateClassName } from '../../../utils/domManipulate'
 import { CLASS_OR_ID } from '../../../config'
 
-export default function loadImageAsync (imageInfo, attrs, className, imageClass) {
+export default function loadImageAsync(imageInfo, attrs, className, imageClass) {
   const { src, isUnknownType } = imageInfo
   let id
   let isSuccess
