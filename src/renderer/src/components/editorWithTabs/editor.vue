@@ -677,7 +677,7 @@ const handleUploadedImage = (url, deletionUrl) => {
 }
 
 const scrollToCursor = (duration = 300) => {
-  requestAnimationFrame(() => {
+  nextTick(() => {
     const { container } = editor.value
     const { y } = editor.value.getSelection().cursorCoords
     animatedScrollTo(container, container.scrollTop + y - STANDAR_Y, duration)
@@ -685,10 +685,22 @@ const scrollToCursor = (duration = 300) => {
 }
 
 const scrollToCords = (y) => {
+  const { container } = editor.value
+  // Depending on how much the user previously scrolled, sometimes the container has not fully rendered all elements.
+  // Hence, container.scrollHeight < [saved scrollTop]
+  // What we need to do is to temporarily add a padding to the container so that we can actually set the scrollTop without getting clamped.
+
+  const maxScrollHeight = container.scrollHeight - container.clientHeight // max scroll height is actually calculated as such
+  if (y > maxScrollHeight) {
+    const editorId = container.firstElementChild
+    editorId.style.paddingBottom = `${y - maxScrollHeight + 100}px` // 100px is the default ag-editor-id padding
+    // attach a resize observer so we know when to remove the padding when it is of the "correct" height
+    resizeObserverForEditor.observe(editorId)
+  }
   requestAnimationFrame(() => {
-    const { container } = editor.value
-    // Ensures there we have scrolled to that position before the browser paints the next frame
-    // prevents "flickers"
+    // wait for the padding to be applied (if any)
+    container.style.visibility = 'visible'
+    container.style.pointerEvents = 'auto'
     container.scrollTop = y
   })
 }
@@ -874,6 +886,10 @@ const handleFileChange = ({
   history,
   scrollTop
 }) => {
+  const { container } = editor.value
+  container.style.visibility = 'hidden'
+  container.style.pointerEvents = 'none'
+
   nextTick(() => {
     if (editor.value) {
       if (history) {
@@ -887,8 +903,9 @@ const handleFileChange = ({
 
       if (typeof scrollTop === 'number') {
         scrollToCords(scrollTop)
-      } else if (renderCursor) {
-        scrollToCursor(0)
+      } else {
+        container.style.visibility = 'visible'
+        container.style.pointerEvents = 'auto'
       }
     }
   })
@@ -911,6 +928,20 @@ const handleScreenShot = () => {
     document.execCommand('paste')
   }
 }
+
+const handleResetPaddingBottom = () => {
+  const { container } = editor.value
+  const newScollableHeightWithoutPadding =
+    container.scrollHeight -
+    container.clientHeight -
+    parseFloat(container.firstElementChild.style.paddingBottom)
+
+  if (newScollableHeightWithoutPadding > currentFile.value.scrollTop) {
+    container.style.paddingBottom = ''
+    resizeObserverForEditor.unobserve(container.firstElementChild) // unobserve #ag-editor-id since we have removed the padding
+  }
+}
+const resizeObserverForEditor = new ResizeObserver(handleResetPaddingBottom)
 
 onMounted(() => {
   printer = new Printer()
@@ -1080,7 +1111,6 @@ onMounted(() => {
 
     // Used to fix #628: auto scroll cursor to visible if the cursor is too low.
     if (container.clientHeight - y < 100) {
-      console.log('selectionChange - scroll', container.clientHeight - y, y)
       // editableHeight is the lowest cursor position(till to top) that editor allowed.
       const editableHeight = container.clientHeight - 100
       animatedScrollTo(container, container.scrollTop + (y - editableHeight), 0)
@@ -1168,6 +1198,7 @@ onBeforeUnmount(() => {
   overflow: auto;
   box-sizing: border-box;
   cursor: default;
+  overflow-anchor: none !important;
 }
 
 .typewriter .editor-component {
