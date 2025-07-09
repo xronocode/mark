@@ -127,7 +127,6 @@ class Muya {
 
   dispatchSelectionChange = () => {
     const selectionChanges = this.contentState.selectionChange()
-    console.log('dispatchSelectionChange', selectionChanges)
 
     this.eventCenter.dispatch('selectionChange', selectionChanges)
     this.eventCenter.dispatch('scroll', { scrollTop: this.container.scrollTop })

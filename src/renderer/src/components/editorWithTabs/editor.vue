@@ -886,30 +886,27 @@ const handleFileChange = ({
   history,
   scrollTop
 }) => {
-  console.log('handleFileChange')
   const { container } = editor.value
   container.style.visibility = 'hidden'
   container.style.pointerEvents = 'none'
 
-  nextTick(() => {
-    if (editor.value) {
-      if (history) {
-        editor.value.setHistory(history)
-      }
-      if (typeof newMarkdown === 'string') {
-        editor.value.setMarkdown(newMarkdown, newCursor, renderCursor)
-      } else if (newCursor) {
-        editor.value.setCursor(newCursor)
-      }
-
-      if (typeof scrollTop === 'number') {
-        scrollToCords(scrollTop)
-      } else {
-        container.style.visibility = 'visible'
-        container.style.pointerEvents = 'auto'
-      }
+  if (editor.value) {
+    if (history) {
+      editor.value.setHistory(history)
     }
-  })
+    if (typeof newMarkdown === 'string') {
+      editor.value.setMarkdown(newMarkdown, newCursor, renderCursor)
+    } else if (newCursor) {
+      editor.value.setCursor(newCursor)
+    }
+
+    if (typeof scrollTop === 'number') {
+      scrollToCords(scrollTop)
+    } else {
+      container.style.visibility = 'visible'
+      container.style.pointerEvents = 'auto'
+    }
+  }
 }
 
 const handleInsertParagraph = (location) => {

@@ -36,7 +36,6 @@ export const useEditorStore = defineStore('editor', {
      * Update scroll position for the currentFile
      */
     updateScrollPosition(scrollTop) {
-      console.log('updateScrollPosition:', scrollTop, ' for ', this.currentFile.id)
       this.currentFile.scrollTop = scrollTop
     },
 
@@ -818,7 +817,6 @@ export const useEditorStore = defineStore('editor', {
       const { markdown, isMixedLineEndings } = markdownDocument
       const docState = createDocumentState(Object.assign(markdownDocument, options))
       const { id, cursor } = docState
-      console.log('new tab with content, cursor:', cursor)
 
       if (selected) {
         this.UPDATE_CURRENT_FILE(docState)
