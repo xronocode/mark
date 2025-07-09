@@ -886,6 +886,7 @@ const handleFileChange = ({
   history,
   scrollTop
 }) => {
+  console.log('handleFileChange')
   const { container } = editor.value
   container.style.visibility = 'hidden'
   container.style.pointerEvents = 'none'
@@ -1162,6 +1163,8 @@ onBeforeUnmount(() => {
   bus.off('replace-misspelling', replaceMisspelling)
 
   document.removeEventListener('keyup', keyup)
+
+  resizeObserverForEditor.disconnect()
 
   if (editor.value) {
     editor.value.destroy()

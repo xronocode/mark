@@ -29,7 +29,7 @@ export class RootCommand {
 }
 
 const focusEditorAndExecute = (fn) => {
-  setTimeout(() => bus.$emit('editor-focus'), 10)
+  setTimeout(() => bus.emit('editor-focus'), 10)
   setTimeout(() => fn(), 150)
 }
 
@@ -77,7 +77,7 @@ const commands = [
     id: 'file.print',
     execute: async () => {
       await delay(50)
-      bus.$emit('showExportDialog', 'print')
+      bus.emit('showExportDialog', 'print')
     }
   },
   {
@@ -126,7 +126,7 @@ const commands = [
         description: 'HTML',
         execute: async () => {
           await delay(50)
-          bus.$emit('showExportDialog', 'styledHtml')
+          bus.emit('showExportDialog', 'styledHtml')
         }
       },
       {
@@ -134,7 +134,7 @@ const commands = [
         description: 'PDF',
         execute: async () => {
           await delay(50)
-          bus.$emit('showExportDialog', 'pdf')
+          bus.emit('showExportDialog', 'pdf')
         }
       }
     ]
@@ -146,38 +146,38 @@ const commands = [
   {
     id: 'edit.undo',
     execute: async () => {
-      focusEditorAndExecute(() => bus.$emit('undo', 'undo'))
+      focusEditorAndExecute(() => bus.emit('undo', 'undo'))
     }
   },
   {
     id: 'edit.redo',
     execute: async () => {
-      focusEditorAndExecute(() => bus.$emit('redo', 'redo'))
+      focusEditorAndExecute(() => bus.emit('redo', 'redo'))
     }
   },
   {
     id: 'edit.duplicate',
     execute: async () => {
-      focusEditorAndExecute(() => bus.$emit('duplicate', 'duplicate'))
+      focusEditorAndExecute(() => bus.emit('duplicate', 'duplicate'))
     }
   },
   {
     id: 'edit.create-paragraph',
     execute: async () => {
-      focusEditorAndExecute(() => bus.$emit('createParagraph', 'createParagraph'))
+      focusEditorAndExecute(() => bus.emit('createParagraph', 'createParagraph'))
     }
   },
   {
     id: 'edit.delete-paragraph',
     execute: async () => {
-      focusEditorAndExecute(() => bus.$emit('deleteParagraph', 'deleteParagraph'))
+      focusEditorAndExecute(() => bus.emit('deleteParagraph', 'deleteParagraph'))
     }
   },
   {
     id: 'edit.find',
     execute: async () => {
       await delay(150)
-      bus.$emit('find', 'find')
+      bus.emit('find', 'find')
     }
   },
   // TODO: Find next/previous doesn't work.
@@ -186,21 +186,21 @@ const commands = [
   //   description: 'Edit: Find Next',
   //   execute: async () => {
   //     await delay(150)
-  //     bus.$emit('findNext', 'findNext')
+  //     bus.emit('findNext', 'findNext')
   //   }
   // }, {
   //   id: 'edit.find-previous',
   //   description: 'Edit: Find Previous',
   //   execute: async () => {
   //     await delay(150)
-  //     bus.$emit('findPrev', 'findPrev')
+  //     bus.emit('findPrev', 'findPrev')
   //   }
   // },
   {
     id: 'edit.replace',
     execute: async () => {
       await delay(150)
-      bus.$emit('replace', 'replace')
+      bus.emit('replace', 'replace')
     }
   },
   {
@@ -217,127 +217,127 @@ const commands = [
   {
     id: 'paragraph.heading-1',
     execute: async () => {
-      focusEditorAndExecute(() => bus.$emit('paragraph', 'heading 1'))
+      focusEditorAndExecute(() => bus.emit('paragraph', 'heading 1'))
     }
   },
   {
     id: 'paragraph.heading-2',
     execute: async () => {
-      focusEditorAndExecute(() => bus.$emit('paragraph', 'heading 2'))
+      focusEditorAndExecute(() => bus.emit('paragraph', 'heading 2'))
     }
   },
   {
     id: 'paragraph.heading-3',
     execute: async () => {
-      focusEditorAndExecute(() => bus.$emit('paragraph', 'heading 3'))
+      focusEditorAndExecute(() => bus.emit('paragraph', 'heading 3'))
     }
   },
   {
     id: 'paragraph.heading-4',
     execute: async () => {
-      focusEditorAndExecute(() => bus.$emit('paragraph', 'heading 4'))
+      focusEditorAndExecute(() => bus.emit('paragraph', 'heading 4'))
     }
   },
   {
     id: 'paragraph.heading-5',
     execute: async () => {
-      focusEditorAndExecute(() => bus.$emit('paragraph', 'heading 5'))
+      focusEditorAndExecute(() => bus.emit('paragraph', 'heading 5'))
     }
   },
   {
     id: 'paragraph.heading-6',
     execute: async () => {
-      focusEditorAndExecute(() => bus.$emit('paragraph', 'heading 6'))
+      focusEditorAndExecute(() => bus.emit('paragraph', 'heading 6'))
     }
   },
   {
     id: 'paragraph.upgrade-heading',
     execute: async () => {
-      focusEditorAndExecute(() => bus.$emit('paragraph', 'upgrade heading'))
+      focusEditorAndExecute(() => bus.emit('paragraph', 'upgrade heading'))
     }
   },
   {
     id: 'paragraph.degrade-heading',
     execute: async () => {
-      focusEditorAndExecute(() => bus.$emit('paragraph', 'degrade heading'))
+      focusEditorAndExecute(() => bus.emit('paragraph', 'degrade heading'))
     }
   },
   {
     id: 'paragraph.table',
     execute: async () => {
-      focusEditorAndExecute(() => bus.$emit('paragraph', 'table'))
+      focusEditorAndExecute(() => bus.emit('paragraph', 'table'))
     }
   },
   {
     id: 'paragraph.code-fence',
     execute: async () => {
-      focusEditorAndExecute(() => bus.$emit('paragraph', 'pre'))
+      focusEditorAndExecute(() => bus.emit('paragraph', 'pre'))
     }
   },
   {
     id: 'paragraph.quote-block',
     execute: async () => {
-      focusEditorAndExecute(() => bus.$emit('paragraph', 'blockquote'))
+      focusEditorAndExecute(() => bus.emit('paragraph', 'blockquote'))
     }
   },
   {
     id: 'paragraph.math-formula',
     execute: async () => {
-      focusEditorAndExecute(() => bus.$emit('paragraph', 'mathblock'))
+      focusEditorAndExecute(() => bus.emit('paragraph', 'mathblock'))
     }
   },
   {
     id: 'paragraph.html-block',
     execute: async () => {
-      focusEditorAndExecute(() => bus.$emit('paragraph', 'html'))
+      focusEditorAndExecute(() => bus.emit('paragraph', 'html'))
     }
   },
   {
     id: 'paragraph.order-list',
     execute: async () => {
-      focusEditorAndExecute(() => bus.$emit('paragraph', 'ol-bullet'))
+      focusEditorAndExecute(() => bus.emit('paragraph', 'ol-bullet'))
     }
   },
   {
     id: 'paragraph.bullet-list',
     execute: async () => {
-      focusEditorAndExecute(() => bus.$emit('paragraph', 'ul-bullet'))
+      focusEditorAndExecute(() => bus.emit('paragraph', 'ul-bullet'))
     }
   },
   {
     id: 'paragraph.task-list',
     execute: async () => {
-      focusEditorAndExecute(() => bus.$emit('paragraph', 'ul-task'))
+      focusEditorAndExecute(() => bus.emit('paragraph', 'ul-task'))
     }
   },
   {
     id: 'paragraph.loose-list-item',
     execute: async () => {
-      focusEditorAndExecute(() => bus.$emit('paragraph', 'loose-list-item'))
+      focusEditorAndExecute(() => bus.emit('paragraph', 'loose-list-item'))
     }
   },
   {
     id: 'paragraph.paragraph',
     execute: async () => {
-      focusEditorAndExecute(() => bus.$emit('paragraph', 'paragraph'))
+      focusEditorAndExecute(() => bus.emit('paragraph', 'paragraph'))
     }
   },
   {
     id: 'paragraph.reset-paragraph',
     execute: async () => {
-      focusEditorAndExecute(() => bus.$emit('paragraph', 'reset-to-paragraph'))
+      focusEditorAndExecute(() => bus.emit('paragraph', 'reset-to-paragraph'))
     }
   },
   {
     id: 'paragraph.horizontal-line',
     execute: async () => {
-      focusEditorAndExecute(() => bus.$emit('paragraph', 'hr'))
+      focusEditorAndExecute(() => bus.emit('paragraph', 'hr'))
     }
   },
   {
     id: 'paragraph.front-matter',
     execute: async () => {
-      focusEditorAndExecute(() => bus.$emit('paragraph', 'front-matter'))
+      focusEditorAndExecute(() => bus.emit('paragraph', 'front-matter'))
     }
   },
 
@@ -349,73 +349,73 @@ const commands = [
   {
     id: 'format.strong',
     execute: async () => {
-      focusEditorAndExecute(() => bus.$emit('format', 'strong'))
+      focusEditorAndExecute(() => bus.emit('format', 'strong'))
     }
   },
   {
     id: 'format.emphasis',
     execute: async () => {
-      focusEditorAndExecute(() => bus.$emit('format', 'em'))
+      focusEditorAndExecute(() => bus.emit('format', 'em'))
     }
   },
   {
     id: 'format.underline',
     execute: async () => {
-      focusEditorAndExecute(() => bus.$emit('format', 'u'))
+      focusEditorAndExecute(() => bus.emit('format', 'u'))
     }
   },
   {
     id: 'format.highlight',
     execute: async () => {
-      focusEditorAndExecute(() => bus.$emit('format', 'mark'))
+      focusEditorAndExecute(() => bus.emit('format', 'mark'))
     }
   },
   {
     id: 'format.superscript',
     execute: async () => {
-      focusEditorAndExecute(() => bus.$emit('format', 'sup'))
+      focusEditorAndExecute(() => bus.emit('format', 'sup'))
     }
   },
   {
     id: 'format.subscript',
     execute: async () => {
-      focusEditorAndExecute(() => bus.$emit('format', 'sub'))
+      focusEditorAndExecute(() => bus.emit('format', 'sub'))
     }
   },
   {
     id: 'format.inline-code',
     execute: async () => {
-      focusEditorAndExecute(() => bus.$emit('format', 'inline_code'))
+      focusEditorAndExecute(() => bus.emit('format', 'inline_code'))
     }
   },
   {
     id: 'format.inline-math',
     execute: async () => {
-      focusEditorAndExecute(() => bus.$emit('format', 'inline_math'))
+      focusEditorAndExecute(() => bus.emit('format', 'inline_math'))
     }
   },
   {
     id: 'format.strike',
     execute: async () => {
-      focusEditorAndExecute(() => bus.$emit('format', 'del'))
+      focusEditorAndExecute(() => bus.emit('format', 'del'))
     }
   },
   {
     id: 'format.hyperlink',
     execute: async () => {
-      focusEditorAndExecute(() => bus.$emit('format', 'link'))
+      focusEditorAndExecute(() => bus.emit('format', 'link'))
     }
   },
   {
     id: 'format.image',
     execute: async () => {
-      focusEditorAndExecute(() => bus.$emit('format', 'image'))
+      focusEditorAndExecute(() => bus.emit('format', 'image'))
     }
   },
   {
     id: 'format.clear-format',
     execute: async () => {
-      focusEditorAndExecute(() => bus.$emit('format', 'clear'))
+      focusEditorAndExecute(() => bus.emit('format', 'clear'))
     }
   },
 
@@ -560,31 +560,31 @@ const commands = [
   {
     id: 'view.source-code-mode',
     execute: async () => {
-      bus.$emit('view:toggle-view-entry', 'sourceCode')
+      bus.emit('view:toggle-view-entry', 'sourceCode')
     }
   },
   {
     id: 'view.typewriter-mode',
     execute: async () => {
-      focusEditorAndExecute(() => bus.$emit('view:toggle-view-entry', 'typewriter'))
+      focusEditorAndExecute(() => bus.emit('view:toggle-view-entry', 'typewriter'))
     }
   },
   {
     id: 'view.focus-mode',
     execute: async () => {
-      focusEditorAndExecute(() => bus.$emit('view:toggle-view-entry', 'focus'))
+      focusEditorAndExecute(() => bus.emit('view:toggle-view-entry', 'focus'))
     }
   },
   {
     id: 'view.toggle-sidebar',
     execute: async () => {
-      bus.$emit('view:toggle-layout-entry', 'showSideBar')
+      bus.emit('view:toggle-layout-entry', 'showSideBar')
     }
   },
   {
     id: 'view.toggle-tabbar',
     execute: async () => {
-      bus.$emit('view:toggle-layout-entry', 'showTabBar')
+      bus.emit('view:toggle-layout-entry', 'showTabBar')
     }
   },
 

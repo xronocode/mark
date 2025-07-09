@@ -65,7 +65,7 @@ class QuickOpenCommand {
   execute = async () => {
     // Timeout to hide the command palette and then show again to prevent issues.
     await delay(100)
-    bus.$emit('show-command-palette', this)
+    bus.emit('show-command-palette', this)
   }
 
   executeSubcommand = async (id) => {
