@@ -660,13 +660,13 @@ const insertImage = (src) => {
   }
 }
 
-const handleSearch = (value, opt) => {
+const handleSearch = ({ value, opt }) => {
   const searchMatches = editor.value.search(value, opt)
   editorStore.SEARCH(searchMatches)
   scrollToHighlight()
 }
 
-const handReplace = (value, opt) => {
+const handReplace = ({ value, opt }) => {
   const searchMatches = editor.value.replace(value, opt)
   editorStore.SEARCH(searchMatches)
 }

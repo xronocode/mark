@@ -230,7 +230,7 @@ const emptySearch = (selectHighlight = false) => {
   showSearch.value = false
   searchValue.value = ''
   replaceValue.value = ''
-  bus.emit('searchValue', searchValue.value, { selectHighlight })
+  bus.emit('searchValue', { value: searchValue.value, opt: { selectHighlight } })
 }
 
 const toggleSearchType = () => {
@@ -277,19 +277,25 @@ const searchFn = (event) => {
     }
   }
 
-  bus.emit('searchValue', searchValue.value, {
-    isCaseSensitive: isCaseSensitive.value,
-    isWholeWord: isWholeWord.value,
-    isRegexp: isRegexp.value
+  bus.emit('searchValue', {
+    value: searchValue.value,
+    opt: {
+      isCaseSensitive: isCaseSensitive.value,
+      isWholeWord: isWholeWord.value,
+      isRegexp: isRegexp.value
+    }
   })
 }
 
 const replace = (isSingle = true) => {
-  bus.emit('replaceValue', replaceValue.value, {
-    isSingle,
-    isCaseSensitive: isCaseSensitive.value,
-    isWholeWord: isWholeWord.value,
-    isRegexp: isRegexp.value
+  bus.emit('replaceValue', {
+    value: replaceValue.value,
+    opt: {
+      isSingle,
+      isCaseSensitive: isCaseSensitive.value,
+      isWholeWord: isWholeWord.value,
+      isRegexp: isRegexp.value
+    }
   })
 }
 
