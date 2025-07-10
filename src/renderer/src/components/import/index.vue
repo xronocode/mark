@@ -36,7 +36,7 @@
 <script setup>
 import { ref, onMounted, onBeforeUnmount } from 'vue'
 import bus from '@/bus'
-import importIconUrl from '@/assets/icons/import_file.svg'
+import importIconUrl from '@/assets/icons/import_file.svg?url'
 
 const importIcon = ref({ url: importIconUrl })
 const showImport = ref(false)

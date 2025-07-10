@@ -23,9 +23,7 @@
               :class="{ active: isCaseSensitive }"
               @click.stop="toggleCtrl('isCaseSensitive')"
             >
-              <svg :viewBox="FindCaseIcon.viewBox" aria-hidden="true">
-                <use :xlink:href="FindCaseIcon.url" />
-              </svg>
+              <FindCaseIcon aria-hidden="true" />
             </span>
             <span
               title="Select whole word"
@@ -33,9 +31,7 @@
               :class="{ active: isWholeWord }"
               @click.stop="toggleCtrl('isWholeWord')"
             >
-              <svg :viewBox="FindWordIcon.viewBox" aria-hidden="true">
-                <use :xlink:href="FindWordIcon.url" />
-              </svg>
+              <FindWordIcon aria-hidden="true" />
             </span>
             <span
               title="Use query as RegEx"
@@ -43,9 +39,7 @@
               :class="{ active: isRegexp }"
               @click.stop="toggleCtrl('isRegexp')"
             >
-              <svg :viewBox="FindRegexIcon.viewBox" aria-hidden="true">
-                <use :xlink:href="FindRegexIcon.url" />
-              </svg>
+              <FindRegexIcon aria-hidden="true" />
             </span>
           </div>
           <div v-if="searchErrorMsg" class="error-msg">

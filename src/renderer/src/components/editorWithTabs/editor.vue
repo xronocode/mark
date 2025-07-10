@@ -14,9 +14,7 @@
     <div ref="editorRef" class="editor-component"></div>
     <div v-show="imageViewerVisible" class="image-viewer">
       <span class="icon-close" @click="setImageViewerVisible(false)">
-        <svg :viewBox="CloseIcon.viewBox">
-          <use :xlink:href="CloseIcon.url"></use>
-        </svg>
+        <CloseIcon />
       </span>
       <div ref="imageViewerRef"></div>
     </div>
