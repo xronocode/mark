@@ -1,4 +1,4 @@
-import { EVENT_KEYS } from '../config'
+import { EVENT_KEYS, KEYS_TO_IGNORE } from '../config'
 import selection from '../selection'
 import { findNearestParagraph } from '../selection/dom'
 import { getParagraphReference, getImageInfo } from '../utils'
@@ -70,6 +70,11 @@ class Keyboard {
       }
       // Cursor outside editor area or over not editable elements.
       if (event.target.closest('[contenteditable=false]')) {
+        return
+      }
+
+      // Ignore the event if it doesnt cause an edit in the editor (e.g control keys etc.)
+      if (event.key in KEYS_TO_IGNORE) {
         return
       }
 
