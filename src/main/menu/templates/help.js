@@ -31,63 +31,82 @@ export default function () {
   const helpMenu = {
     label: '&Help',
     role: 'help',
-    submenu: [{
-      label: 'Markdown Reference...',
-      click () {
-        shell.openExternal('https://github.com/jacobwhall/marktext/blob/trunk/docs/MARKDOWN_SYNTAX.md')
+    submenu: [
+      {
+        label: 'Markdown Reference...',
+        click() {
+          shell.openExternal(
+            'https://github.com/Tkaixiang/marktext/blob/trunk/docs/MARKDOWN_SYNTAX.md'
+          )
+        }
+      },
+      {
+        label: 'Changelog...',
+        click() {
+          shell.openExternal(
+            'https://github.com/Tkaixiang/marktext/blob/trunk/.github/CHANGELOG.md'
+          )
+        }
+      },
+      {
+        type: 'separator'
+      },
+      {
+        label: 'Ask a Question About MarkText...',
+        click() {
+          shell.openExternal('https://github.com/Tkaixiang/marktext/discussions')
+        }
+      },
+      {
+        label: 'Report Bug or Request Feature...',
+        click() {
+          shell.openExternal('https://github.com/Tkaixiang/marktext/issues')
+        }
+      },
+      {
+        label: 'View Source on GitHub...',
+        click() {
+          shell.openExternal('https://github.com/Tkaixiang/marktext')
+        }
+      },
+      {
+        type: 'separator'
+      },
+      {
+        label: 'License...',
+        click() {
+          shell.openExternal('https://github.com/Tkaixiang/marktext/blob/trunk/LICENSE')
+        }
       }
-    }, {
-      label: 'Changelog...',
-      click () {
-        shell.openExternal('https://github.com/jacobwhall/marktext/blob/trunk/.github/CHANGELOG.md')
-      }
-    }, {
-      type: 'separator'
-    }, {
-      label: 'Ask a Question About MarkText...',
-      click () {
-        shell.openExternal('https://github.com/jacobwhall/marktext/discussions')
-      }
-    }, {
-      label: 'Report Bug or Request Feature...',
-      click () {
-        shell.openExternal('https://github.com/jacobwhall/marktext/issues')
-      }
-    }, {
-      label: 'View Source on GitHub...',
-      click () {
-        shell.openExternal('https://github.com/jacobwhall/marktext')
-      }
-    }, {
-      type: 'separator'
-    }, {
-      label: 'License...',
-      click () {
-        shell.openExternal('https://github.com/jacobwhall/marktext/blob/trunk/LICENSE')
-      }
-    }]
+    ]
   }
 
   if (isUpdatable()) {
-    helpMenu.submenu.push({
-      type: 'separator'
-    }, {
-      label: 'Check for Updates...',
-      click (menuItem, browserWindow) {
-        checkUpdates(browserWindow)
+    helpMenu.submenu.push(
+      {
+        type: 'separator'
+      },
+      {
+        label: 'Check for Updates...',
+        click(menuItem, browserWindow) {
+          checkUpdates(browserWindow)
+        }
       }
-    })
+    )
   }
 
   if (process.platform !== 'darwin') {
-    helpMenu.submenu.push({
-      type: 'separator'
-    }, {
-      label: 'About MarkText...',
-      click (menuItem, browserWindow) {
-        actions.showAboutDialog(browserWindow)
+    helpMenu.submenu.push(
+      {
+        type: 'separator'
+      },
+      {
+        label: 'About MarkText...',
+        click(menuItem, browserWindow) {
+          actions.showAboutDialog(browserWindow)
+        }
       }
-    })
+    )
   }
   return helpMenu
 }
