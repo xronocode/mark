@@ -25,6 +25,10 @@ jobs:
       - name: Install Dependencies
         run: npm install
 
+      - name: Install Linux Build Dependencies
+        if: matrix.os == 'ubuntu-latest'
+        run: sudo apt-get update && sudo apt-get install -y icnsutils graphicsmagick xz-utils libx11-dev libxkbfile-dev gnome-keyring libsecret-1-dev libfontconfig-dev rpm
+
       - name: build-linux
         if: matrix.os == 'ubuntu-latest'
         run: npm run build:linux
