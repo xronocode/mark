@@ -1,5 +1,5 @@
 {
-  "name": "marktextv2-dev",
+  "name": "marktext",
   "version": "0.18.0",
   "description": "MarkText",
   "main": "./out/main/index.js",
@@ -11,7 +11,6 @@
     "start": "electron-vite preview",
     "dev": "electron-vite dev",
     "build": "electron-vite build",
-    "postinstall": "electron-builder install-app-deps",
     "build:unpack": "npm run build && electron-builder --dir",
     "build:win": "npm run build && electron-builder --win",
     "build:mac": "npm run build && electron-builder --mac",
@@ -79,6 +78,7 @@
     "@electron-toolkit/eslint-config-prettier": "^3.0.0",
     "@types/source-map-support": "^0.5.10",
     "@vitejs/plugin-vue": "^5.2.3",
+    "cross-env": "^7.0.3",
     "electron": "^37.2.0",
     "electron-builder": "^25.1.8",
     "electron-vite": "^3.1.0",

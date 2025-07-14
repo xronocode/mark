@@ -1,5 +1,5 @@
 appId: com.electron.app
-productName: marktextv2-dev
+productName: marktext
 directories:
   buildResources: build
 files:
@@ -40,10 +40,16 @@ extraResources:
 asarUnpack:
   - resources/**
 win:
-  executableName: marktextv2-dev
+  executableName: marktext
+  artifactName: 'marktext-win-${arch}-${version}.${ext}'
+  target:
+    - target: 'nsis'
+      arch: [x64]
+    - target: 'zip'
+      arch: [x64]
   icon: icons/icon.ico
 nsis:
-  artifactName: ${name}-${version}-setup.${ext}
+  artifactName: 'marktext-win-${arch}-${version}-setup.${ext}'
   shortcutName: ${productName}
   uninstallDisplayName: ${productName}
   createDesktopShortcut: true
@@ -53,27 +59,89 @@ nsis:
   perMachine: false
   include: windows/installer.nsh
 mac:
+  artifactName: 'marktext-mac-${arch}-${version}.${ext}'
   entitlementsInherit: mac/entitlements.mac.plist
   extendInfo:
     - NSCameraUsageDescription: Application requests access to the device's camera.
-    - NSMicrophoneUsageDescription: Application requests access to the device's microphone.
     - NSDocumentsFolderUsageDescription: Application requests access to the user's Documents folder.
     - NSDownloadsFolderUsageDescription: Application requests access to the user's Downloads folder.
   icon: icons/icon.ico
   notarize: false
+  target:
+    - target: dmg
+      arch: [x64, arm64]
+    - target: zip
+      arch: [x64, arm64]
 dmg:
-  artifactName: ${name}-${version}.${ext}
+  artifactName: 'marktext-mac-${arch}-${version}.${ext}'
+  contents:
+    - x: 410
+      y: 240
+      type: 'link'
+      path: '/Applications'
+    - x: 130
+      y: 240
+      type: 'file'
 linux:
-  icon: icons/icon.ico
+  artifactName: 'marktext-linux-${version}.${ext}'
+  executableName: 'marktext'
+  description: 'A simple and elegant open-source markdown editor that focused on speed and usability.'
+  maintainer: 'MarkText Contributors'
+  category: 'Office;TextEditor;Utility'
+  mimeTypes:
+    - 'text/markdown'
+  icon: 'icons'
+  desktop:
+    StartupWMClass: 'marktext'
+    Keywords: 'marktext;'
   target:
     - AppImage
     - snap
     - deb
-  maintainer: electronjs.org
-  category: Utility
+    - rpm
+    - tar.gz
+  fileAssociations:
+    - ext: 'md'
+      name: 'Markdown'
+      description: 'Markdown document'
+    - ext: 'markdown'
+      name: 'Markdown'
+      description: 'Markdown document'
+    - ext: 'mmd'
+      name: 'Markdown'
+      description: 'Markdown document'
+    - ext: 'mdown'
+      name: 'Markdown'
+      description: 'Markdown document'
+    - ext: 'mdtxt'
+      name: 'Markdown'
+      description: 'Markdown document'
+    - ext: 'mdtext'
+      name: 'Markdown'
+      description: 'Markdown document'
 appImage:
-  artifactName: ${name}-${version}.${ext}
+  artifactName: 'marktext-linux-${version}.${ext}'
 npmRebuild: false
-publish:
-  provider: generic
-  url: https://example.com/auto-updates
+deb:
+  # Custom dependencies:
+  depends:
+    # keytar
+    - 'libsecret-1-0'
+    # keyboard-layout
+    - 'libx11-xcb1'
+    - 'libxkbfile1'
+    # fontmanager
+    - 'libfontconfig1'
+  fpm:
+    # Expat := MIT like
+    - '--license=Expat'
+rpm:
+  # Custom dependencies:
+  depends:
+    # keytar
+    - 'libsecret'
+    # keyboard-layout
+    - 'libX11-xcb'
+    - 'libxkbfile'
+    # fontmanager
+    - 'fontconfig'
