@@ -37,7 +37,6 @@ extraResources:
     filter:
       - '*.ico'
 npmRebuild: false
-publish: never
 
 asarUnpack:
   - resources/**
