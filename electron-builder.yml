@@ -36,6 +36,10 @@ extraResources:
     to: icons # ends up at resources/icons/
     filter:
       - '*.ico'
+  - from: static
+    to: static
+    filter:
+      - '**/*'
 npmRebuild: false
 
 asarUnpack:

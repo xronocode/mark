@@ -22,9 +22,6 @@ module.exports = {
     'plugin:import/errors',
     'plugin:import/warnings'
   ],
-  globals: {
-    __static: true
-  },
   plugins: ['html', 'vue'],
   rules: {
     // Two spaces but disallow semicolons

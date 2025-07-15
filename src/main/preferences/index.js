@@ -31,7 +31,7 @@ class Preference extends EventEmitter {
       name: PREFERENCES_FILE_NAME
     })
 
-    this.staticPath = path.join(__static, 'preference.json')
+    this.staticPath = path.join(global.__static, 'preference.json')
     this.init()
   }
 

@@ -26,7 +26,7 @@ class SettingWindow extends BaseWindow {
     const winOptions = Object.assign({}, preferencesWinOptions)
     centerWindowOptions(winOptions)
     if (isLinux) {
-      winOptions.icon = path.join(__static, 'logo-96px.png')
+      winOptions.icon = path.join(global.__static, 'logo-96px.png')
     }
 
     // WORKAROUND: Electron has issues with different DPI per monitor when

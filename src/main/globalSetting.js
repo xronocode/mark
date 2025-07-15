@@ -1,6 +1,7 @@
 import path from 'path'
+import { app } from 'electron'
 
-// Set `__static` path to static files in production.
-if (process.env.NODE_ENV !== 'development') {
-  global.__static = path.join(__dirname, '/static').replace(/\\/g, '\\\\')
-}
+// Set `__static` path to static files in production / development depending on the environment
+global.__static = path
+  .join(app.isPackaged ? process.resourcesPath : process.cwd(), 'static')
+  .replace(/\\/g, '\\\\')

@@ -1,4 +1,4 @@
-import path, { resolve } from 'path'
+import { resolve } from 'path'
 import { defineConfig, externalizeDepsPlugin } from 'electron-vite'
 import vue from '@vitejs/plugin-vue'
 import renderer from 'vite-plugin-electron-renderer'
@@ -7,11 +7,6 @@ import postcssPresetEnv from 'postcss-preset-env'
 
 export default defineConfig({
   main: {
-    define: {
-      __static: JSON.stringify(
-        path.join(__dirname, 'static').replace(/\\/g, '\\\\') // escape backslashes on Windows
-      )
-    },
     // --> Bundled as CommonJS
     // externalizeDepsPlugin() basically externises all the dependencies from being bundled during build - treating them as runtime dependencies
     // electron-vite still builds the main and preload processes into commonJS
