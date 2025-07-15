@@ -44,7 +44,7 @@
 
 - Python (`>= 3.12`)
 
-- Node.JS (Tested on `24.2.0` )
+- Node.JS (`>= 22`)
 
 - A lot of patience
 
