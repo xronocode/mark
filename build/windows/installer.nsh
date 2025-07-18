@@ -21,7 +21,7 @@
   WriteRegExpandStr HKCU "Software\Classes\MarkText.Document\DefaultIcon" \
     "" "$INSTDIR\resources\icons\md.ico,0"
   WriteRegExpandStr HKCU "Software\Classes\MarkText.Document\shell\open\command" \
-    "" '"$INSTDIR\marktextv2-dev.exe" "%1"'
+    "" '"$INSTDIR\marktext.exe" "%1"'
 
 SkipAssoc:
 !macroend
