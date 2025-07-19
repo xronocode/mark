@@ -885,8 +885,6 @@ const handleFileChange = ({
   scrollTop
 }) => {
   const { container } = editor.value
-  container.style.visibility = 'hidden'
-  container.style.pointerEvents = 'none'
 
   if (editor.value) {
     if (history) {
@@ -899,10 +897,13 @@ const handleFileChange = ({
     }
 
     if (typeof scrollTop === 'number') {
+      container.style.visibility = 'hidden'
+      container.style.pointerEvents = 'none'
       scrollToCords(scrollTop)
     } else {
       container.style.visibility = 'visible'
       container.style.pointerEvents = 'auto'
+      scrollToCursor(0)
     }
   }
 }

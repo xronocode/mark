@@ -7,7 +7,7 @@ import { ref, watch, onMounted, onBeforeUnmount } from 'vue'
 import { useEditorStore } from '@/store/editor'
 import { usePreferencesStore } from '@/store/preferences'
 import { storeToRefs } from 'pinia'
-import codeMirror, { setMode, setCursorAtLastLine, setTextDirection } from '../../codeMirror'
+import codeMirror, { setMode, setCursorAtFirstLine, setTextDirection } from '../../codeMirror'
 import { debounce, wordCount as getWordCount } from 'muya/lib/utils'
 import { adjustCursor } from '../../util'
 import bus from '../../bus'
@@ -88,20 +88,22 @@ const scrollToCords = (y) => {
 const handleFileChange = ({ id, markdown: newMarkdown, cursor, scrollTop }) => {
   prepareTabSwitch()
 
-  console.log('handleFileChange', id, newMarkdown, cursor, scrollTop)
-  console.log('editor.value', editor.value)
   if (typeof newMarkdown === 'string') {
     editor.value.setValue(newMarkdown)
   }
-  // Cursor is null when loading a fil
-  // e or creating a new tab in source code mode.
-  if (typeof scrollTop === 'number') {
-    scrollToCords(scrollTop)
-  } else if (cursor) {
+
+  // Cursor is null when loading a file
+  // or creating a new tab in source code mode.
+
+  if (cursor) {
     const { anchor, focus } = cursor
     editor.value.setSelection(anchor, focus, { scroll: true }) // Scroll the focus into view.
   } else {
-    setCursorAtLastLine(editor.value)
+    setCursorAtFirstLine(editor.value)
+  }
+
+  if (typeof scrollTop === 'number') {
+    scrollToCords(scrollTop)
   }
   tabId.value = id
 }
@@ -172,7 +174,7 @@ const handleImageAction = ({ id, result, alt }) => {
     if (focus && anchor) {
       editor.value.setSelection(anchor, focus, { scroll: true })
     } else {
-      setCursorAtLastLine()
+      setCursorAtFirstLine()
     }
   }
 }
@@ -246,22 +248,23 @@ onMounted(() => {
   const codeMirrorInstance = codeMirror(container, codeMirrorConfig)
 
   setMode(codeMirrorInstance, 'markdown')
-  listenChange()
 
   codeMirrorInstance.on('contextmenu', (cm, event) => {
     event.preventDefault()
     event.stopPropagation()
   })
 
-  editor.value = codeMirrorInstance
-
   if (cursor && cursor.anchor && cursor.focus) {
     const { anchor, focus } = cursor
-    editor.value.setSelection(anchor, focus, { scroll: true })
+    codeMirrorInstance.setSelection(anchor, focus, { scroll: true })
   } else {
-    setCursorAtLastLine(editor.value)
+    setCursorAtFirstLine(codeMirrorInstance)
   }
+
+  editor.value = codeMirrorInstance
   tabId.value = id
+
+  listenChange()
 })
 
 onBeforeUnmount(() => {
