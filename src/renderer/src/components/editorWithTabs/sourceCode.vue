@@ -88,6 +88,8 @@ const scrollToCords = (y) => {
 const handleFileChange = ({ id, markdown: newMarkdown, cursor, scrollTop }) => {
   prepareTabSwitch()
 
+  console.log('handleFileChange', id, newMarkdown, cursor, scrollTop)
+  console.log('editor.value', editor.value)
   if (typeof newMarkdown === 'string') {
     editor.value.setValue(newMarkdown)
   }
@@ -233,21 +235,25 @@ onMounted(() => {
     codeMirrorConfig.theme = 'one-dark'
   }
 
-  editor.value = codeMirror(container, codeMirrorConfig)
-
   bus.on('file-loaded', handleFileChange)
   bus.on('invalidate-image-cache', handleInvalidateImageCache)
   bus.on('file-changed', handleFileChange)
   bus.on('selectAll', handleSelectAll)
   bus.on('image-action', handleImageAction)
 
-  setMode(editor.value, 'markdown')
+  // For some reason, code mirror does not seem to play well with Vue's refs if we reference editor.value directly.
+  // See https://github.com/codemirror/codemirror5/issues/6886 - hence, we need to use a local variable first.
+  const codeMirrorInstance = codeMirror(container, codeMirrorConfig)
+
+  setMode(codeMirrorInstance, 'markdown')
   listenChange()
 
-  editor.value.on('contextmenu', (cm, event) => {
+  codeMirrorInstance.on('contextmenu', (cm, event) => {
     event.preventDefault()
     event.stopPropagation()
   })
+
+  editor.value = codeMirrorInstance
 
   if (cursor && cursor.anchor && cursor.focus) {
     const { anchor, focus } = cursor
