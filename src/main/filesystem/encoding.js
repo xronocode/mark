@@ -6,11 +6,13 @@ const CED_ICONV_ENCODINGS = {
   'ISO-2022-KR': 'euckr',
   GB: 'gb2312',
   ISO_2022_CN: 'gb2312',
-  JIS: 'shiftjis',
-  SJS: 'shiftjis',
+
   Unicode: 'utf8',
 
-  // Map ASCII to UTF-8
+  // Map ASCII, subsets of utf-8 to UTF-8,
+  JIS: 'utf8',
+  SJS: 'utf8',
+  shiftjis: 'utf8',
   'ASCII-7-bit': 'utf8',
   ASCII: 'utf8',
   MACINTOSH: 'utf8'
@@ -18,9 +20,9 @@ const CED_ICONV_ENCODINGS = {
 
 // Byte Order Mark's to detect endianness and encoding.
 const BOM_ENCODINGS = {
-  utf8: [0xEF, 0xBB, 0xBF],
-  utf16be: [0xFE, 0xFF],
-  utf16le: [0xFF, 0xFE]
+  utf8: [0xef, 0xbb, 0xbf],
+  utf16be: [0xfe, 0xff],
+  utf16le: [0xff, 0xfe]
 }
 
 const checkSequence = (buffer, sequence) => {
