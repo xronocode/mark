@@ -1,3 +1,7 @@
+// contentState is responsible for managing the main Vnodes (stored in this.blocks)
+// importMarkdown() is responsible for the initial parsing of markdown into vnodes
+// insertAfter(), insertBefore(), insertChild() etc. can then be used to add new vnodes
+
 import { HAS_TEXT_BLOCK_REG, DEFAULT_TURNDOWN_CONFIG } from '../config'
 import { getUniqueId, deepCopy } from '../utils'
 import selection from '../selection'

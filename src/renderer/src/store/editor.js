@@ -27,7 +27,7 @@ export const useEditorStore = defineStore('editor', {
   state: () => ({
     currentFile: {},
     tabs: [],
-    listToc: [], // Just use for deep equal check. and replace with new toc if needed.
+    listToc: [], // Used for equal check and for searching for the correct github-slug to jump to
     toc: []
   }),
 
@@ -152,6 +152,24 @@ export const useEditorStore = defineStore('editor', {
     },
 
     FORMAT_LINK_CLICK({ data, dirname }) {
+      // Check if the link starts with a #, that is a local anchor link.
+
+      if (data.href.length > 0 && data.href[0] === '#') {
+        const anchorSlug = data.href.substring(1)
+        if (!anchorSlug) return
+
+        // Find the block with the anchor slug from the TOC
+        for (const item of this.listToc) {
+          if (item.githubSlug === anchorSlug) {
+            // Scroll to the corresponding element that matches this github-slug
+            bus.emit('scroll-to-header', item.slug)
+            return
+          }
+        }
+
+        return
+      }
+
       window.electron.ipcRenderer.send('mt::format-link-click', { data, dirname })
     },
 

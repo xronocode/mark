@@ -101,33 +101,23 @@ const enterCtrl = (ContentState) => {
   }
 
   ContentState.prototype.enterInEmptyParagraph = function (block) {
-    console.log('enterInEmptyParagraph, block:', block)
-
     if (block.type === 'span') block = this.getParent(block)
     const parent = this.getParent(block)
 
-    console.log('enterInEmptyParagraph, parent:', parent)
     let newBlock = null
     if (parent && /ul|ol|blockquote/.test(parent.type)) {
-      console.log('enterInEmptyParagraph, parent is a list')
       newBlock = this.createBlockP()
       if (this.isOnlyChild(block)) {
-        console.log('enterInEmptyParagraph, block is only child')
         this.insertAfter(newBlock, parent)
         this.removeBlock(parent)
       } else if (this.isFirstChild(block)) {
-        console.log('enterInEmptyParagraph, block is first child')
         this.insertBefore(newBlock, parent)
       } else if (this.isLastChild(block)) {
-        console.log('enterInEmptyParagraph, block is last child')
         this.insertAfter(newBlock, parent)
       } else {
-        console.log('enterInEmptyParagraph, block is aaaa')
         this.chopBlock(block)
         this.insertAfter(newBlock, parent)
       }
-
-      console.log('final inserted newblock:', newBlock)
 
       this.removeBlock(block)
     } else if (parent && parent.type === 'li') {
@@ -378,28 +368,19 @@ const enterCtrl = (ContentState) => {
     }
     const paragraph = document.querySelector(`#${block.key}`)
 
-    console.log('===================')
     // Handles custom enter logic in a list item (should not be selecting the p)
-    console.log('block', block)
-    console.log('this.getParent(block)', this.getParent(block))
-    console.log('isOnlyChild', this.isOnlyChild(block))
 
     // we only want to select the li if and only if we are currently in the <p> of an li
     // the <p> is the "text content" of the li
     if (parent && parent.type === 'li' && this.isFirstChild(block)) {
-      console.log('set to li')
       block = parent
       parent = this.getParent(block)
-      console.log('parent of parent', parent)
     }
     const left = start.offset
     const right = text.length - left
     const type = block.type
     let newBlock
 
-    console.log('final block', block)
-    console.log('left', left)
-    console.log('right', right)
     switch (true) {
       case left !== 0 && right !== 0: {
         // cursor in the middle
@@ -483,7 +464,6 @@ const enterCtrl = (ContentState) => {
             newBlock = this.createBlockLi()
             newBlock.listItemType = block.listItemType
             newBlock.bulletMarkerOrDelimiter = block.bulletMarkerOrDelimiter
-            console.log(JSON.parse(JSON.stringify(block.children)))
           }
           newBlock.isLooseListItem = block.isLooseListItem
         } else {
@@ -506,7 +486,6 @@ const enterCtrl = (ContentState) => {
               this.removeBlock(block.children[1])
             }
           }
-          console.log('final inserted newBlock:', newBlock)
           this.insertAfter(newBlock, block)
         }
         break
@@ -576,7 +555,6 @@ const enterCtrl = (ContentState) => {
       this.checkInlineUpdate(cursorBlock.children[0])
       needRenderAll = true
     }
-
     needRenderAll ? this.render() : this.partialRender()
   }
 }

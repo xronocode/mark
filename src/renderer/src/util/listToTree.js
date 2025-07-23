@@ -1,5 +1,5 @@
 class Node {
-  constructor (item) {
+  constructor(item) {
     const { parent, lvl, content, slug } = item
     this.parent = parent
     this.lvl = lvl
@@ -9,7 +9,7 @@ class Node {
   }
 
   // Add child node.
-  addChild (node) {
+  addChild(node) {
     this.children.push(node)
   }
 }
@@ -30,7 +30,7 @@ const findParent = (item, lastNode, rootNode) => {
   }
 }
 
-const listToTree = list => {
+const listToTree = (list) => {
   const rootNode = new Node({ parent: null, lvl: null, content: null, slug: null })
   let lastNode = null
 
