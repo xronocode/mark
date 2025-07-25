@@ -33,6 +33,26 @@ export const useEditorStore = defineStore('editor', {
 
   actions: {
     /**
+     * Copies the specified heading's github-slug to the clipboard.
+     * @param {string} id The heading-id to copy.
+     */
+    copyGithubSlug(key) {
+      const item = this.listToc.find((i) => i.slug === key)
+
+      if (item) {
+        window.electron.clipboard.writeText(`#${item.githubSlug}`)
+        notice.notify({
+          title: 'Copied anchor link to clipboard',
+          type: 'primary',
+          time: 2000,
+          showConfirm: false
+        })
+      } else {
+        console.warn(`Cannot find toc item with key "${key}"`)
+      }
+    },
+
+    /**
      * Update scroll position for the currentFile
      */
     updateScrollPosition(scrollTop) {

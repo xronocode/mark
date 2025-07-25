@@ -1061,6 +1061,10 @@ onMounted(() => {
     editorStore.updateScrollPosition(scroll.scrollTop)
   })
 
+  editor.value.on('heading-copy-link', ({ key }) => {
+    editorStore.copyGithubSlug(key)
+  })
+
   editor.value.on('format-click', ({ event, formatType, data }) => {
     const ctrlOrMeta = (isOsx && event.metaKey) || (!isOsx && event.ctrlKey)
     if (formatType === 'link' && ctrlOrMeta) {
