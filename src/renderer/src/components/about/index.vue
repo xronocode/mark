@@ -7,7 +7,7 @@
       custom-class="ag-dialog-table"
       width="400px"
     >
-      <img class="logo" :src="logo" />
+      <img class="logo" :src="MarkTextLogo" />
       <el-row>
         <el-col :span="24">
           <h3 class="title">{{ name }}</h3>
@@ -35,7 +35,6 @@ import MarkTextLogo from '../../assets/images/logo.png'
 const name = 'MarkText'
 const copyright = `Copyright © 2017-${new Date().getFullYear()} Luo Ran`
 const copyrightContributors = `Copyright © 2018-${new Date().getFullYear()} MarkText Contributors`
-const logo = MarkTextLogo
 const showAboutDialog = ref(false)
 
 const store = useMainStore()

@@ -5,8 +5,8 @@ import { isDirectory } from 'common/filesystem'
 import parseArgs from './parser'
 import { getPath } from '../utils'
 
-const write = s => process.stdout.write(s)
-const writeLine = s => write(s + '\n')
+const write = (s) => process.stdout.write(s)
+const writeLine = (s) => write(s + '\n')
 
 const cli = () => {
   let argv = process.argv.slice(1)
@@ -35,7 +35,7 @@ const cli = () => {
   }
 
   if (args['--version']) {
-    writeLine(`MarkText: ${global.MARKTEXT_VERSION_STRING}`)
+    writeLine(`MarkText: ${MARKTEXT_VERSION_STRING}`)
     writeLine(`Node.js: ${process.versions.node}`)
     writeLine(`Electron: ${process.versions.electron}`)
     writeLine(`Chromium: ${process.versions.chrome}`)

@@ -12,6 +12,10 @@ import { getLogLevel } from './utils'
 import Accessor from './app/accessor'
 import App from './app'
 
+// Set version strings into global and process.versions
+process.env.MARKTEXT_VERSION = MARKTEXT_VERSION
+process.env.MARKTEXT_VERSION_STRING = MARKTEXT_VERSION_STRING
+
 // -----------------------------------------------
 // Exception handling and logging setup
 setupExceptionHandler()

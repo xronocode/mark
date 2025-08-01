@@ -1,9 +1,14 @@
-import { resolve } from 'path'
+import { resolve, dirname } from 'path'
 import { defineConfig, externalizeDepsPlugin } from 'electron-vite'
 import vue from '@vitejs/plugin-vue'
 import renderer from 'vite-plugin-electron-renderer'
 import svgLoader from 'vite-svg-loader'
 import postcssPresetEnv from 'postcss-preset-env'
+import packageJson from './package.json' with { type: 'json' }
+import { fileURLToPath } from 'url'
+
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = dirname(__filename)
 
 export default defineConfig({
   main: {
@@ -16,6 +21,10 @@ export default defineConfig({
         exclude: ['electron-store']
       })
     ],
+    define: {
+      MARKTEXT_VERSION: JSON.stringify(packageJson.version),
+      MARKTEXT_VERSION_STRING: JSON.stringify(`v${packageJson.version}`)
+    },
     resolve: {
       alias: {
         '@': resolve(__dirname, 'src/renderer/src'),

@@ -25,7 +25,7 @@ const getOSInformation = () => {
 const exceptionToString = (error, type) => {
   const { message, stack } = error
   return (
-    `Version: ${global.MARKTEXT_VERSION_STRING || app.getVersion()}\n` +
+    `Version: ${MARKTEXT_VERSION_STRING || app.getVersion()}\n` +
     `OS: ${getOSInformation()}\n` +
     `Type: ${type}\n` +
     `Date: ${new Date().toUTCString()}\n` +
@@ -86,7 +86,7 @@ ${title}.
 
 ### Version
 
-MarkText: ${global.MARKTEXT_VERSION_STRING}
+MarkText: ${MARKTEXT_VERSION_STRING}
 Operating system: ${getOSInformation()}`
         )
         break
