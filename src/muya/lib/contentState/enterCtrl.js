@@ -416,9 +416,11 @@ const enterCtrl = (ContentState) => {
             newBlock.listItemType = block.listItemType
             newBlock.bulletMarkerOrDelimiter = block.bulletMarkerOrDelimiter
 
-            // When we have a sublist, we need to move the sublist (not the contents) to the new block
-            this.appendChild(newBlock, block.children[1])
-            this.removeBlock(block.children[1])
+            if (block.children.length > 1) {
+              // If we have a sublist, we need to move the sublist (not the contents) to the new block instead of inserting an "empty" block at the next line
+              this.appendChild(newBlock, block.children[1])
+              this.removeBlock(block.children[1])
+            }
           }
           newBlock.isLooseListItem = block.isLooseListItem
         } else if (block.type === 'hr') {
