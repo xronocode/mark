@@ -31,6 +31,10 @@ files:
   - '!node_modules/**/{*.vcxproj,*.vcxproj.filters}'
   - '!node_modules/**/build/Release/{*.lib,*.exp,*.ilk,*.pdb,*.iobj,*.ipdb}'
   - '!node_modules/**/build/Release/obj'
+  # Do not bundle development related files
+  - '!eslint.config.js'
+  - '!jsconfig.json'
+  - '!docs/*'
 extraResources:
   - from: build/icons
     to: icons # ends up at resources/icons/
