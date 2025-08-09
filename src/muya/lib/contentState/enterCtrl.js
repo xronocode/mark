@@ -109,6 +109,8 @@ const enterCtrl = (ContentState) => {
       newBlock = this.createBlockP()
       if (this.isOnlyChild(block)) {
         this.insertAfter(newBlock, parent)
+        // We need to unindent all the children if the parent is a list item.
+
         this.removeBlock(parent)
       } else if (this.isFirstChild(block)) {
         this.insertBefore(newBlock, parent)
@@ -120,6 +122,11 @@ const enterCtrl = (ContentState) => {
       }
 
       this.removeBlock(block)
+      if (parent.type === 'ul' && block.children.length > 0) {
+        block.children.forEach((child) => {
+          if (child.type === 'ul') this.insertAfter(child, newBlock)
+        })
+      }
     } else if (parent && parent.type === 'li') {
       if (parent.listItemType === 'task') {
         const { checked } = parent.children[0]

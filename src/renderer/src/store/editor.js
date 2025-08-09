@@ -42,7 +42,7 @@ export const useEditorStore = defineStore('editor', {
       if (item) {
         window.electron.clipboard.writeText(`#${item.githubSlug}`)
         notice.notify({
-          title: 'Copied anchor link to clipboard',
+          title: 'Anchor link copied to clipboard.',
           type: 'primary',
           time: 2000,
           showConfirm: false
