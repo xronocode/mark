@@ -445,7 +445,12 @@ const importRegister = (ContentState) => {
     return this.markdownToState(markdown)
   }
 
-  ContentState.prototype.getCodeMirrorCursor = function () {
+  /**
+   *
+   * @returns { anchor: { line: 0, ch: 0 }, focus: { line: 0, ch: 0 } }
+   * Get the cursor position in muya index.
+   */
+  ContentState.prototype.getMuyaIndexCursor = function () {
     const blocks = this.getBlocks()
     const { anchor, focus } = this.cursor
     const anchorBlock = this.getBlock(anchor.key)
@@ -554,8 +559,11 @@ const importRegister = (ContentState) => {
     }
   }
 
-  ContentState.prototype.importCursor = function (hasCursor) {
-    // set cursor
+  ContentState.prototype.convertMuyaIndexCursortoCursor = function (muyaIndexCursor) {
+    if (!muyaIndexCursor || !muyaIndexCursor.anchor || !muyaIndexCursor.focus) {
+      return null
+    }
+
     const cursor = {
       anchor: null,
       focus: null
@@ -586,6 +594,7 @@ const importRegister = (ContentState) => {
               cursor.focus = { key, offset: focusOffset }
             }
           }
+
           if (count === 2) {
             break
           }
@@ -594,18 +603,24 @@ const importRegister = (ContentState) => {
         }
       }
     }
-    if (hasCursor) {
-      travel(this.blocks)
-    } else {
+    travel(this.blocks)
+
+    return cursor
+  }
+
+  ContentState.prototype.importCursor = function (cursor) {
+    // set cursor
+
+    if (!cursor) {
+      cursor = {}
       const firstBlock = this.getFirstBlock()
       const key = firstBlock.key
       const offset = firstBlock.text.length
       cursor.anchor = { key, offset }
       cursor.focus = { key, offset }
     }
-    if (cursor.anchor && cursor.focus) {
-      this.cursor = cursor
-    }
+
+    this.cursor = cursor
   }
 
   ContentState.prototype.importMarkdown = function (markdown) {

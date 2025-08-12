@@ -342,6 +342,13 @@ svg.close-icon:hover {
   }
 }
 
+.editor-tabs > .new-file:hover {
+  transition: all 0.15s ease-in-out;
+  & > svg {
+    fill: var(--focusColor);
+  }
+}
+
 /* dragula effects */
 .gu-mirror {
   position: fixed !important;

@@ -349,6 +349,10 @@ class ContentState {
     return start.key === end.key && start.offset === end.offset
   }
 
+  setBlocks(blocks) {
+    this.blocks = blocks
+  }
+
   // getBlocks
   getBlocks() {
     return this.blocks

@@ -156,7 +156,7 @@ export const useEditorStore = defineStore('editor', {
       if (isMixedLineEndings) {
         this.pushTabNotification({
           tabId: tab.id,
-          msg: `"${filename}" has mixed line endings which are automatically normalized to ${lineEnding.toUpperCase()}.`,
+          msg: `"${filename}" has mixed line endings which have been automatically normalized to ${lineEnding.toUpperCase()}.`,
           showConfirm: false,
           style: 'info',
           exclusiveType: ''
@@ -166,8 +166,16 @@ export const useEditorStore = defineStore('editor', {
       // Reload the editor if the tab is currently opened.
       if (pathname === currentFile.pathname) {
         this.currentFile = tab
-        const { id, cursor, history, scrollTop } = tab
-        bus.emit('file-changed', { id, markdown, cursor, renderCursor: true, history, scrollTop })
+        const { id, cursor, history, scrollTop, blocks } = tab
+        bus.emit('file-changed', {
+          id,
+          markdown,
+          cursor,
+          renderCursor: true,
+          history,
+          scrollTop,
+          blocks
+        })
       }
     },
 
@@ -468,10 +476,18 @@ export const useEditorStore = defineStore('editor', {
     UPDATE_CURRENT_FILE(currentFile) {
       const oldCurrentFile = this.currentFile
       if (!oldCurrentFile.id || oldCurrentFile.id !== currentFile.id) {
-        const { id, markdown, cursor, history, pathname, scrollTop } = currentFile
+        const { id, markdown, cursor, history, pathname, scrollTop, blocks } = currentFile
         window.DIRNAME = pathname ? window.path.dirname(pathname) : ''
         this.currentFile = currentFile
-        bus.emit('file-changed', { id, markdown, cursor, renderCursor: true, history, scrollTop })
+        bus.emit('file-changed', {
+          id,
+          markdown,
+          cursor,
+          renderCursor: true,
+          history,
+          scrollTop,
+          blocks
+        })
       }
 
       if (!this.tabs.some((file) => file.id === currentFile.id)) {
@@ -615,9 +631,17 @@ export const useEditorStore = defineStore('editor', {
         const fileState = this.tabs[index] || this.tabs[index - 1] || this.tabs[0] || {}
         this.currentFile = fileState
         if (typeof fileState.markdown === 'string') {
-          const { id, markdown, cursor, history, pathname, scrollTop } = fileState
+          const { id, markdown, cursor, history, pathname, scrollTop, blocks } = fileState
           window.DIRNAME = pathname ? window.path.dirname(pathname) : ''
-          bus.emit('file-changed', { id, markdown, cursor, renderCursor: true, history, scrollTop })
+          bus.emit('file-changed', {
+            id,
+            markdown,
+            cursor,
+            renderCursor: true,
+            history,
+            scrollTop,
+            blocks
+          })
         } else {
           window.DIRNAME = ''
         }
@@ -691,9 +715,17 @@ export const useEditorStore = defineStore('editor', {
       if (!this.currentFile.id && this.tabs.length > 0) {
         this.currentFile = this.tabs[tabIndex] || this.tabs[tabIndex - 1] || this.tabs[0] || {}
         if (typeof this.currentFile.markdown === 'string') {
-          const { id, markdown, cursor, history, pathname, scrollTop } = this.currentFile
+          const { id, markdown, cursor, history, pathname, scrollTop, blocks } = this.currentFile
           window.DIRNAME = pathname ? window.path.dirname(pathname) : ''
-          bus.emit('file-changed', { id, markdown, cursor, renderCursor: true, history, scrollTop })
+          bus.emit('file-changed', {
+            id,
+            markdown,
+            cursor,
+            renderCursor: true,
+            history,
+            scrollTop,
+            blocks
+          })
         }
       }
 
@@ -882,7 +914,16 @@ export const useEditorStore = defineStore('editor', {
     },
 
     // Content change from realtime preview editor and source code editor
-    LISTEN_FOR_CONTENT_CHANGE({ id, markdown, wordCount, cursor, history, toc }) {
+    LISTEN_FOR_CONTENT_CHANGE({
+      id,
+      markdown,
+      wordCount,
+      cursor,
+      muyaIndexCursor,
+      history,
+      toc,
+      blocks
+    }) {
       const preferencesStore = usePreferencesStore()
       const { autoSave } = preferencesStore
       const {
@@ -912,12 +953,15 @@ export const useEditorStore = defineStore('editor', {
       markdown = adjustTrailingNewlines(markdown, trimTrailingNewline)
       this.currentFile.markdown = markdown
 
+      this.currentFile.blocks = blocks || []
+
       if (oldMarkdown.length === 0 && markdown.length === 1 && markdown[0] === '\n') {
         return
       }
 
       if (wordCount) this.currentFile.wordCount = wordCount
       if (cursor) this.currentFile.cursor = cursor
+      if (muyaIndexCursor) this.currentFile.muyaIndexCursor = muyaIndexCursor
       if (history) this.currentFile.history = history
       if (toc && !equal(toc, this.listToc)) {
         this.listToc = toc

@@ -15,7 +15,7 @@ import { oneDarkThemes, railscastsThemes } from '@/config'
 
 const props = defineProps({
   markdown: String,
-  cursor: Object,
+  muyaIndexCursor: Object,
   textDirection: {
     type: String,
     required: true
@@ -72,7 +72,11 @@ const prepareTabSwitch = () => {
   if (commitTimer.value) clearTimeout(commitTimer.value)
   if (tabId.value) {
     const { cursor, markdown: newMarkdown } = getMarkdownAndCursor(editor.value)
-    editorStore.LISTEN_FOR_CONTENT_CHANGE({ id: tabId.value, markdown: newMarkdown, cursor })
+    editorStore.LISTEN_FOR_CONTENT_CHANGE({
+      id: tabId.value,
+      markdown: newMarkdown,
+      muyaIndexCursor: cursor
+    })
     tabId.value = null // invalidate tab id
   }
 }
@@ -193,7 +197,7 @@ const listenChange = () => {
             id: tabId.value,
             markdown: newMarkdown,
             wordCount,
-            cursor
+            muyaIndexCursor: cursor
           })
         } else {
           // This may occur during tab switching but should not occur otherwise.
@@ -211,7 +215,7 @@ onMounted(() => {
   // reset currentTab scrollTop position because the codeMirror scroll position is completely different from the muya scroll position
   currentTab.value.scrollTop = undefined
 
-  const { markdown, cursor, textDirection } = props
+  const { markdown, muyaIndexCursor, textDirection } = props
   const container = sourceCodeContainer.value
   container.addEventListener('scroll', handleScroll)
   const codeMirrorConfig = {
@@ -254,8 +258,8 @@ onMounted(() => {
     event.stopPropagation()
   })
 
-  if (cursor && cursor.anchor && cursor.focus) {
-    const { anchor, focus } = cursor
+  if (muyaIndexCursor && muyaIndexCursor.anchor && muyaIndexCursor.focus) {
+    const { anchor, focus } = muyaIndexCursor
     codeMirrorInstance.setSelection(anchor, focus, { scroll: true })
   } else {
     setCursorAtFirstLine(codeMirrorInstance)
@@ -278,7 +282,12 @@ onBeforeUnmount(() => {
   bus.off('image-action', handleImageAction)
 
   const { cursor, markdown: newMarkdown } = getMarkdownAndCursor(editor.value)
-  bus.emit('file-changed', { id: tabId.value, markdown: newMarkdown, cursor, renderCursor: true })
+  bus.emit('file-changed', {
+    id: tabId.value,
+    markdown: newMarkdown,
+    muyaIndexCursor: cursor,
+    renderCursor: true
+  })
 
   sourceCodeContainer.value.removeEventListener('scroll', handleScroll)
 })

@@ -14,7 +14,7 @@
       <source-code
         v-if="sourceCode"
         :markdown="markdown"
-        :cursor="cursor"
+        :muyaIndexCursor="muyaIndexCursor"
         :text-direction="textDirection"
       ></source-code>
     </div>
@@ -40,6 +40,9 @@ defineProps({
       return typeof value === 'object'
     },
     required: true
+  },
+  muyaIndexCursor: {
+    type: Object
   },
   sourceCode: {
     type: Boolean,

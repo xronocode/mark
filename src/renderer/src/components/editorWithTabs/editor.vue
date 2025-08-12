@@ -882,7 +882,9 @@ const handleFileChange = ({
   cursor: newCursor,
   renderCursor,
   history,
-  scrollTop
+  scrollTop,
+  muyaIndexCursor,
+  blocks = undefined
 }) => {
   const { container } = editor.value
 
@@ -891,7 +893,7 @@ const handleFileChange = ({
       editor.value.setHistory(history)
     }
     if (typeof newMarkdown === 'string') {
-      editor.value.setMarkdown(newMarkdown, newCursor, renderCursor)
+      editor.value.setMarkdown(newMarkdown, newCursor, renderCursor, muyaIndexCursor, blocks)
     } else if (newCursor) {
       editor.value.setCursor(newCursor)
     }
@@ -1053,8 +1055,10 @@ onMounted(() => {
   bus.on('replace-misspelling', replaceMisspelling)
 
   editor.value.on('change', (changes) => {
-    // WORKAROUND: "id: 'muya'"
-    editorStore.LISTEN_FOR_CONTENT_CHANGE(Object.assign(changes, { id: 'muya' }))
+    // WORKAROUND: "id: 'muya',
+    editorStore.LISTEN_FOR_CONTENT_CHANGE(
+      Object.assign(changes, { id: 'muya', blocks: editor.value.contentState.getBlocks() })
+    )
   })
 
   editor.value.on('scroll', (scroll) => {

@@ -119,10 +119,11 @@ class Muya {
     const markdown = (this.markdown = this.getMarkdown())
     const wordCount = this.getWordCount(markdown)
     const cursor = this.getCursor()
+    const muyaIndexCursor = this.contentState.getMuyaIndexCursor()
     const history = this.getHistory()
     const toc = this.getTOC()
 
-    eventCenter.dispatch('change', { markdown, wordCount, cursor, history, toc })
+    eventCenter.dispatch('change', { markdown, wordCount, cursor, muyaIndexCursor, history, toc })
   }
 
   dispatchSelectionChange = () => {
@@ -175,19 +176,40 @@ class Muya {
   }
 
   getCursor() {
-    return this.contentState.getCodeMirrorCursor()
+    return this.contentState.getCursor()
   }
 
-  setMarkdown(markdown, cursor, isRenderCursor = true) {
-    let newMarkdown = markdown
-    let isValid = false
-    if (cursor && cursor.anchor && cursor.focus) {
-      const cursorInfo = this.contentState.addCursorToMarkdown(markdown, cursor)
-      newMarkdown = cursorInfo.markdown
-      isValid = cursorInfo.isValid
+  setMarkdown(
+    markdown,
+    cursor,
+    isRenderCursor = true,
+    muyaIndexCursor = undefined,
+    blocks = undefined
+  ) {
+    let finalCursor = null
+    if (cursor) {
+      // We have a cursor (pointing to the exact block key) defined, we can use the saved this.blocks instead of re-parsing the markdown
+      finalCursor = cursor
+      if (blocks) this.contentState.setBlocks(blocks)
+    } else if (muyaIndexCursor && muyaIndexCursor.anchor && muyaIndexCursor.focus) {
+      // We do not have a cursor, but we have a muyaIndexCursor, which is not based on a block key.
+      // We need to convert the muyaIndexCursor to a cursor, so we can set it in the contentState.
+
+      // We need to add the CURSOR_ANCHOR_DNA and CURSOR_FOCUS_DNA to the markdown BEFORE parsing if we have a muyaIndexCursor.
+      // This is because muyaIndexCursors are not based off a key to a specific block, so we don't know which it is
+      // We get a muyaIndexCursor if we are using the Source Code editor.
+      const cursorInfo = this.contentState.addCursorToMarkdown(markdown, muyaIndexCursor)
+      const newMarkdown = cursorInfo.markdown
+
+      this.contentState.importMarkdown(newMarkdown)
+
+      finalCursor = this.contentState.convertMuyaIndexCursortoCursor(muyaIndexCursor)
+    } else {
+      // No cursor defined, we can just parse the markdown
+      this.contentState.importMarkdown(markdown)
     }
-    this.contentState.importMarkdown(newMarkdown)
-    this.contentState.importCursor(cursor && isValid)
+
+    this.contentState.importCursor(finalCursor)
     this.contentState.render(isRenderCursor)
     setTimeout(() => {
       this.dispatchChange()

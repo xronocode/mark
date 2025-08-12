@@ -19,6 +19,7 @@
         v-if="hasCurrentFile && init"
         :markdown="markdown"
         :cursor="cursor"
+        :muyaIndexCursor="muyaIndexCursor"
         :source-code="sourceCode"
         :show-tab-bar="showTabBar"
         :text-direction="textDirection"
@@ -87,6 +88,7 @@ const isSaved = computed(() => currentFile.value?.isSaved)
 const markdown = computed(() => currentFile.value?.markdown)
 const cursor = computed(() => currentFile.value?.cursor)
 const wordCount = computed(() => currentFile.value?.wordCount)
+const muyaIndexCursor = computed(() => currentFile.value?.muyaIndexCursor)
 
 const hasCurrentFile = computed(() => {
   return markdown.value !== undefined
