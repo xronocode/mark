@@ -20,8 +20,8 @@
         </li>
       </ul>
     </div>
-    <div class="new-file">
-      <svg class="icon" aria-hidden="true" @click.stop="newFile()">
+    <div class="new-file" @click.stop="newFile()">
+      <svg class="icon" aria-hidden="true">
         <use xlink:href="#icon-plus"></use>
       </svg>
     </div>
