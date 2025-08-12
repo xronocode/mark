@@ -215,6 +215,12 @@ onBeforeUnmount(() => {
 svg.close-icon #unsaved-circle-icon {
   fill: var(--themeColor);
 }
+
+svg.close-icon:hover {
+  cursor: pointer;
+  fill: var(--focusColor);
+}
+
 .editor-tabs {
   position: relative;
   display: flex;
