@@ -213,6 +213,7 @@ onBeforeUnmount(() => {
 
 <style scoped>
 svg.close-icon #unsaved-circle-icon {
+  transition: all 0.15s ease-in-out;
   fill: var(--themeColor);
 }
 
@@ -253,6 +254,7 @@ svg.close-icon:hover {
     display: none;
   }
   & > li {
+    transition: all 0.15s ease-in-out;
     position: relative;
     padding: 0 8px;
     color: var(--editorColor50);
@@ -260,7 +262,8 @@ svg.close-icon:hover {
     line-height: 35px;
     height: 35px;
     max-width: 280px;
-    background: var(--floatBgColor);
+    border-top-right-radius: 15px;
+    border-top-left-radius: 15px;
     display: flex;
     align-items: center;
     &[aria-grabbed='true'] {
@@ -271,6 +274,9 @@ svg.close-icon:hover {
     }
     &:focus {
       outline: none;
+    }
+    &:hover {
+      background: var(--floatBgColor) !important;
     }
     &:hover > svg {
       opacity: 1;
