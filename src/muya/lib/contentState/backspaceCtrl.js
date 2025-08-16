@@ -3,7 +3,7 @@ import { findNearestParagraph, findOutMostParagraph } from '../selection/dom'
 import { tokenizer, generator } from '../parser/'
 import { getImageInfo } from '../utils/getImageInfo'
 
-const backspaceCtrl = ContentState => {
+const backspaceCtrl = (ContentState) => {
   ContentState.prototype.checkBackspaceCase = function () {
     const node = selection.getSelectionStart()
     const paragraph = findNearestParagraph(node)
@@ -24,7 +24,11 @@ const backspaceCtrl = ContentState => {
 
     if (
       (parent && parent.type === 'li' && inLeft === 0 && this.isFirstChild(block)) ||
-      (parent && parent.type === 'li' && inLeft === 0 && parent.listItemType === 'task' && preBlock.type === 'input') // handle task item
+      (parent &&
+        parent.type === 'li' &&
+        inLeft === 0 &&
+        parent.listItemType === 'task' &&
+        preBlock.type === 'input') // handle task item
     ) {
       if (this.isOnlyChild(parent)) {
         /**
@@ -77,8 +81,7 @@ const backspaceCtrl = ContentState => {
          * ===>
          * <ul>
          *   <li>
-         *     <p>other list item</p>
-         *     <p>|text</p>
+         *     <p>other list item|text</p>
          *     <p>maybe has other paragraph</p>
          *   </li>
          *   <li>
@@ -151,8 +154,8 @@ const backspaceCtrl = ContentState => {
       startBlock.functionType === 'atxLine'
     ) {
       if (
-        start.offset === 0 && end.offset === startBlock.text.length ||
-        start.offset === end.offset && start.offset === 1 && startBlock.text === '#'
+        (start.offset === 0 && end.offset === startBlock.text.length) ||
+        (start.offset === end.offset && start.offset === 1 && startBlock.text === '#')
       ) {
         event.preventDefault()
         startBlock.text = ''
@@ -173,10 +176,7 @@ const backspaceCtrl = ContentState => {
     let preToken = null
     for (const token of tokens) {
       // handle delete the second $ in inline_math.
-      if (
-        token.range.end === start.offset &&
-        token.type === 'inline_math'
-      ) {
+      if (token.range.end === start.offset && token.type === 'inline_math') {
         needRender = true
         token.raw = token.raw.substr(0, token.raw.length - 1)
         break
@@ -212,9 +212,10 @@ const backspaceCtrl = ContentState => {
     const maybeCell = this.getParent(startBlock)
     if (/th/.test(maybeCell.type) && start.offset === 0 && !maybeCell.preSibling) {
       if (
-        end.offset === endBlock.text.length &&
-        startOutmostBlock === endOutmostBlock &&
-        !endBlock.nextSibling && !maybeLastRow.nextSibling ||
+        (end.offset === endBlock.text.length &&
+          startOutmostBlock === endOutmostBlock &&
+          !endBlock.nextSibling &&
+          !maybeLastRow.nextSibling) ||
         startOutmostBlock !== endOutmostBlock
       ) {
         event.preventDefault()
@@ -283,10 +284,10 @@ const backspaceCtrl = ContentState => {
         // and cursor is after a tabWidth of whitespace
         const regexUnindent = new RegExp(`\n.*(${String.fromCharCode(32).repeat(this.tabSize)})$`)
         const shouldUnindent = regexUnindent.test(startBlock.text.substring(0, startOffset))
-        const backspaceSize = (shouldUnindent) ? this.tabSize : 1
-        offset = (startOffset === endOffset) ? startOffset - backspaceSize : startOffset
-        startBlock.text = startBlock.text.substring(0, offset) +
-          startBlock.text.substring(endOffset)
+        const backspaceSize = shouldUnindent ? this.tabSize : 1
+        offset = startOffset === endOffset ? startOffset - backspaceSize : startOffset
+        startBlock.text =
+          startBlock.text.substring(0, offset) + startBlock.text.substring(endOffset)
       }
       this.cursor = {
         start: { key, offset },
@@ -376,11 +377,13 @@ const backspaceCtrl = ContentState => {
       return this.singleRender(startBlock)
     }
 
-    const tableHasContent = table => {
+    const tableHasContent = (table) => {
       const tHead = table.children[0]
       const tBody = table.children[1]
-      const tHeadHasContent = tHead.children[0].children.some(th => th.children[0].text.trim())
-      const tBodyHasContent = tBody.children.some(row => row.children.some(td => td.children[0].text.trim()))
+      const tHeadHasContent = tHead.children[0].children.some((th) => th.children[0].text.trim())
+      const tBodyHasContent = tBody.children.some((row) =>
+        row.children.some((td) => td.children[0].text.trim())
+      )
       return tHeadHasContent || tBodyHasContent
     }
 
@@ -415,9 +418,7 @@ const backspaceCtrl = ContentState => {
     ) {
       event.preventDefault()
       event.stopPropagation()
-      if (
-        !block.nextSibling
-      ) {
+      if (!block.nextSibling) {
         const preBlock = this.getParent(parent)
         const pBlock = this.createBlock('p')
         const lineBlock = this.createBlock('span', { text: block.text })
@@ -488,6 +489,9 @@ const backspaceCtrl = ContentState => {
         parent = this.getParent(parent)
       }
 
+      let key = block.type === 'p' ? block.children[0].key : block.key
+      let offset = 0
+
       switch (inlineDegrade.type) {
         case 'STOP': // Cursor at begin of article and nothing need to do
           break
@@ -498,9 +502,25 @@ const backspaceCtrl = ContentState => {
             if (children[0].type === 'input') {
               this.removeBlock(children[0])
             }
-            children.forEach(child => {
-              this.insertBefore(child, grandpa)
-            })
+
+            const greatGrandpaBlock = this.getBlock(grandpa.parent)
+            if (greatGrandpaBlock.type === 'li') {
+              const previousLength = greatGrandpaBlock.children[0].children[0].text.length
+              greatGrandpaBlock.children[0].children[0].text += children[0].children[0].text
+
+              // Set key and offset for cursor to the previous list item
+              key = greatGrandpaBlock.children[0].key
+              offset = previousLength
+
+              for (let i = 1; i < children.length; i++) {
+                this.appendChild(greatGrandpaBlock, children[i])
+              }
+            } else {
+              children.forEach((child) => {
+                this.insertBefore(child, grandpa)
+              })
+            }
+
             this.removeBlock(grandpa)
           } else if (inlineDegrade.info === 'REMOVE_INSERT_BEFORE') {
             const children = parent.children
@@ -508,9 +528,25 @@ const backspaceCtrl = ContentState => {
             if (children[0].type === 'input') {
               this.removeBlock(children[0])
             }
-            children.forEach(child => {
-              this.insertBefore(child, grandpa)
-            })
+
+            const greatGrandpaBlock = this.getBlock(grandpa.parent)
+            if (greatGrandpaBlock.type === 'li') {
+              const previousLength = greatGrandpaBlock.children[0].children[0].text.length
+              greatGrandpaBlock.children[0].children[0].text += children[0].children[0].text
+
+              // Set key and offset for cursor to the previous list item
+              key = greatGrandpaBlock.children[0].key
+              offset = previousLength
+
+              for (let i = 1; i < children.length; i++) {
+                this.appendChild(greatGrandpaBlock, children[i])
+              }
+            } else {
+              children.forEach((child) => {
+                this.insertBefore(child, grandpa)
+              })
+            }
+
             this.removeBlock(parent)
           } else if (inlineDegrade.info === 'INSERT_PRE_LIST_ITEM') {
             const parPre = this.getBlock(parent.preSibling)
@@ -518,9 +554,25 @@ const backspaceCtrl = ContentState => {
             if (children[0].type === 'input') {
               this.removeBlock(children[0])
             }
-            children.forEach(child => {
-              this.appendChild(parPre, child)
-            })
+
+            // Insert the text of the current list item to the previous list item.
+            if (children[0].type === 'p') {
+              const previousLength = parPre.children[0].children[0].text.length
+              parPre.children[0].children[0].text += children[0].children[0].text
+
+              // Set key and offset for cursor to the previous list item
+              key = parPre.children[0].key
+              offset = previousLength
+
+              for (let i = 1; i < children.length; i++) {
+                this.appendChild(parPre, children[i])
+              }
+            } else {
+              children.forEach((child) => {
+                this.appendChild(parPre, child)
+              })
+            }
+
             this.removeBlock(parent)
           }
           break
@@ -536,8 +588,6 @@ const backspaceCtrl = ContentState => {
           break
       }
 
-      const key = block.type === 'p' ? block.children[0].key : block.key
-      const offset = 0
       this.cursor = {
         start: { key, offset },
         end: { key, offset }
@@ -566,7 +616,11 @@ const backspaceCtrl = ContentState => {
       }
       let needRenderAll = false
 
-      if (this.isCollapse() && preBlock.type === 'span' && preBlock.functionType === 'paragraphContent') {
+      if (
+        this.isCollapse() &&
+        preBlock.type === 'span' &&
+        preBlock.functionType === 'paragraphContent'
+      ) {
         this.checkInlineUpdate(preBlock)
         needRenderAll = true
       }
