@@ -7,7 +7,9 @@ const hasClipboardFiles = () => {
 }
 
 const getClipboardFiles = () => {
-  if (!hasClipboardFiles()) { return [] }
+  if (!hasClipboardFiles()) {
+    return []
+  }
   return plist.parse(remoteClipboard.read('NSFilenamesPboardType'))
 }
 

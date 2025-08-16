@@ -118,7 +118,7 @@ export default function loadImageAsync(imageInfo, attrs, className, imageClass) 
     w = imageInfo.width
     h = imageInfo.height
     domsrc = imageInfo.domsrc
-    if (!imageInfo.addedToImageContainer) {
+    if (!imageInfo.addedToImageContaine && imageInfo.img) {
       const imageText = document.querySelector(`#${id}`)
       if (imageText) {
         addImageToContainer(imageText, imageInfo.img, className)

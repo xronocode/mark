@@ -83,13 +83,9 @@ export const moveImageToFolder = async (pathname, image, outputDir) => {
       outputDir,
       `${dayjs().format('YYYY-MM-DD-HH-mm-ss')}-${image.name}`
     )
-    const binaryString = await new Promise((resolvePromise, rejectPromise) => {
-      const reader = new FileReader()
-      reader.onload = () => resolvePromise(reader.result)
-      reader.onerror = () => rejectPromise(reader.error)
-      reader.readAsBinaryString(image)
-    })
-    await window.fileUtils.writeFile(imagePath, binaryString, 'binary')
+
+    const buffer = Buffer.from(await image.arrayBuffer())
+    await window.fileUtils.writeFile(imagePath, buffer, 'binary')
     return imagePath
   }
 }
