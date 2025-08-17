@@ -55,7 +55,7 @@
 
 ##### 1. Arch Linux ![AUR Version](https://img.shields.io/aur/version/marktext-tkaixiang-bin)
 
-- Available on [AUR](https://aur.archlinux.org/packages/marktext-tkaixiang-bin) thanks to @kromsam
+- Available on [AUR](https://aur.archlinux.org/packages/marktext-tkaixiang-bin) thanks to [@kromsam](https://github.com/kromsam)
 
 ## MacOS
 
