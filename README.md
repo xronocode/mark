@@ -7,6 +7,21 @@
   A simple and elegant open-source markdown editor that focused on speed and usability.<br>
 </div>
 
+<div align="center">
+  <!-- Latest Release Version -->
+  <a href="https://github.com/Tkaixiang/marktext/releases/latest">
+    <img alt="GitHub Release" src="https://img.shields.io/github/v/release/tkaixiang/marktext">
+  </a>
+  <!-- Downloads total -->
+  <a href="https://github.com/Tkaixiang/marktext/releases">
+    <img alt="GitHub Downloads (all assets, all releases)" src="https://img.shields.io/github/downloads/tkaixiang/marktext/total">
+  </a>
+  <!-- Downloads latest release -->
+  <a href="https://github.com/Tkaixiang/marktext/releases/latest">
+    <img alt="GitHub Downloads (all assets, latest release)" src="https://img.shields.io/github/downloads/tkaixiang/marktext/latest/total">
+  </a>
+</div>
+
 - [MarkText](https://github.com/marktext/marktext) is a free and open source markdown editor originally written by [Jocs](https://github.com/Jocs) and [contributors](https://github.com/marktext/marktext/graphs/contributors).
 
 - Sadly, the core repository became unmaintained since about 3 years ago, but various Quality of Life issues remained that I noticed in my daily usage.
@@ -35,6 +50,12 @@
 - Tested on:
   - `Ubuntu 24.0.2` (`AppImage` and `.deb` packages)
   - *Would love some help in testing the other Linux packages!*
+
+### Linux Package Managers
+
+##### 1. Arch Linux ![AUR Version](https://img.shields.io/aur/version/marktext-tkaixiang-bin)
+
+- Available on [AUR](https://aur.archlinux.org/packages/marktext-tkaixiang-bin) thanks to @kromsam
 
 ## MacOS
 
