@@ -504,7 +504,7 @@ const backspaceCtrl = (ContentState) => {
             }
 
             const greatGrandpaBlock = this.getBlock(grandpa.parent)
-            if (greatGrandpaBlock.type === 'li') {
+            if (greatGrandpaBlock && greatGrandpaBlock.type === 'li') {
               const previousLength = greatGrandpaBlock.children[0].children[0].text.length
               greatGrandpaBlock.children[0].children[0].text += children[0].children[0].text
 
@@ -530,7 +530,7 @@ const backspaceCtrl = (ContentState) => {
             }
 
             const greatGrandpaBlock = this.getBlock(grandpa.parent)
-            if (greatGrandpaBlock.type === 'li') {
+            if (greatGrandpaBlock && greatGrandpaBlock.type === 'li') {
               const previousLength = greatGrandpaBlock.children[0].children[0].text.length
               greatGrandpaBlock.children[0].children[0].text += children[0].children[0].text
 
