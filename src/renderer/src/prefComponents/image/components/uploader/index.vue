@@ -81,7 +81,7 @@
 import { ref, reactive, computed, watch, onMounted, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { usePreferencesStore } from '@/store/preferences'
-import services, { isValidService } from './services.js'
+import getServices, { isValidService } from './services.js'
 import legalNoticesCheckbox from './legalNoticesCheckbox.vue'
 import { isFileExecutableSync } from '@/util/fileSystem'
 import CurSelect from '@/prefComponents/common/select'
@@ -96,8 +96,8 @@ const { t } = useI18n()
 const preferenceStore = usePreferencesStore()
 
 // data
-const uploaderOptions = Object.keys(services).map((name) => {
-  const { name: label } = services[name]
+const uploaderOptions = Object.keys(getServices()).map((name) => {
+    const { name: label } = getServices()[name]
   return {
     label,
     value: name
@@ -111,7 +111,7 @@ const github = reactive({
 })
 const cliScript = ref('')
 const picgoExists = ref(true)
-const uploadServices = services
+const uploadServices = getServices()
 const legalNoticesErrorStates = reactive({
   github: false
 })
@@ -144,8 +144,8 @@ onMounted(() => {
     cliScript.value = prefCliScript.value
     testPicgo()
 
-    if (Object.prototype.hasOwnProperty.call(services, currentUploader.value)) {
-      services[currentUploader.value].agreedToLegalNotices = true
+    if (Object.prototype.hasOwnProperty.call(getServices(), currentUploader.value)) {
+      getServices()[currentUploader.value].agreedToLegalNotices = true
     }
   })
 })
@@ -156,7 +156,7 @@ const isValidUploaderService = (name) => {
 }
 
 const getServiceNameById = (id) => {
-  const service = services[id]
+  const service = getServices()[id]
   return service ? service.name : id
 }
 
@@ -212,7 +212,7 @@ const testPicgo = () => {
 }
 
 const validate = (value) => {
-  const service = services[value]
+  const service = getServices()[value]
   if (!service) return true
   const { agreedToLegalNotices } = service
   if (agreedToLegalNotices === false) {

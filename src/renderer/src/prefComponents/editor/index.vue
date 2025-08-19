@@ -110,7 +110,7 @@
         <cur-select
           :description="t('preferences.editor.fileRepresentation.lineSeparator')"
           :value="endOfLine"
-          :options="endOfLineOptions"
+          :options="getEndOfLineOptions()"
           :on-change="(value) => onSelectChange('endOfLine', value)"
         ></cur-select>
         <cur-select
@@ -127,7 +127,7 @@
         <cur-select
           :description="t('preferences.editor.fileRepresentation.trailingNewlines')"
           :value="trimTrailingNewline"
-          :options="trimTrailingNewlineOptions"
+          :options="getTrimTrailingNewlineOptions()"
           :on-change="(value) => onSelectChange('trimTrailingNewline', value)"
         ></cur-select>
       </template>
@@ -141,7 +141,7 @@
         <cur-select
           :description="t('preferences.editor.misc.textDirection')"
           :value="textDirection"
-          :options="textDirectionOptions"
+          :options="getTextDirectionOptions()"
           :on-change="(value) => onSelectChange('textDirection', value)"
         ></cur-select>
         <bool
@@ -181,9 +181,9 @@ import Bool from '../common/bool/index.vue'
 import TextBox from '../common/textBox/index.vue'
 import {
   tabSizeOptions,
-  endOfLineOptions,
-  textDirectionOptions,
-  trimTrailingNewlineOptions,
+  getEndOfLineOptions,
+  getTextDirectionOptions,
+  getTrimTrailingNewlineOptions,
   getDefaultEncodingOptions
 } from './config'
 

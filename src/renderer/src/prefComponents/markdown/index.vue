@@ -29,7 +29,7 @@
         <cur-select
           :description="t('preferences.markdown.lists.listIndentation')"
           :value="listIndentation"
-          :options="listIndentationOptions"
+          :options="getListIndentationOptions()"
           :on-change="(value) => onSelectChange('listIndentation', value)"
         ></cur-select>
       </template>
@@ -43,7 +43,7 @@
         <cur-select
           :description="t('preferences.markdown.extensions.frontmatterType')"
           :value="frontmatterType"
-          :options="frontmatterTypeOptions"
+          :options="getFrontmatterTypeOptions()"
           :on-change="(value) => onSelectChange('frontmatterType', value)"
         ></cur-select>
         <bool
@@ -88,7 +88,7 @@
         <cur-select
           :description="t('preferences.markdown.diagrams.sequenceTheme')"
           :value="sequenceTheme"
-          :options="sequenceThemeOptions"
+          :options="getSequenceThemeOptions()"
           :on-change="(value) => onSelectChange('sequenceTheme', value)"
           more="https://bramp.github.io/js-sequence-diagrams/"
         ></cur-select>
@@ -103,7 +103,7 @@
         <cur-select
           :description="t('preferences.markdown.misc.preferHeadingStyle')"
           :value="preferHeadingStyle"
-          :options="preferHeadingStyleOptions"
+          :options="getPreferHeadingStyleOptions()"
           :on-change="(value) => onSelectChange('preferHeadingStyle', value)"
           :disable="true"
         ></cur-select>
@@ -121,10 +121,10 @@ import CurSelect from '../common/select'
 import {
   bulletListMarkerOptions,
   orderListDelimiterOptions,
-  preferHeadingStyleOptions,
-  listIndentationOptions,
-  frontmatterTypeOptions,
-  sequenceThemeOptions
+  getPreferHeadingStyleOptions,
+  getListIndentationOptions,
+  getFrontmatterTypeOptions,
+  getSequenceThemeOptions
 } from './config'
 import { storeToRefs } from 'pinia'
 

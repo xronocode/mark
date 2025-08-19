@@ -19,7 +19,7 @@ export const orderListDelimiterOptions = [{
   value: ')'
 }]
 
-export const preferHeadingStyleOptions = [{
+export const getPreferHeadingStyleOptions = () => [{
   label: t('preferences.markdown.misc.preferHeadingStyle.atx'),
   value: 'atx'
 }, {
@@ -27,7 +27,7 @@ export const preferHeadingStyleOptions = [{
   value: 'setext'
 }]
 
-export const listIndentationOptions = [{
+export const getListIndentationOptions = () => [{
   label: t('preferences.markdown.lists.listIndentation.dfm'),
   value: 'dfm'
 }, {
@@ -47,7 +47,7 @@ export const listIndentationOptions = [{
   value: 4
 }]
 
-export const frontmatterTypeOptions = [{
+export const getFrontmatterTypeOptions = () => [{
   label: 'YAML',
   value: '-'
 }, {
@@ -61,7 +61,7 @@ export const frontmatterTypeOptions = [{
   value: '{'
 }]
 
-export const sequenceThemeOptions = [{
+export const getSequenceThemeOptions = () => [{
   label: t('preferences.markdown.diagrams.sequenceTheme.handDrawn'),
   value: 'hand'
 }, {

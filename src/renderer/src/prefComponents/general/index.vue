@@ -33,7 +33,7 @@
           :description="t('preferences.general.window.titleBarStyle')"
           :notes="t('preferences.general.window.requiresRestart')"
           :value="titleBarStyle"
-          :options="titleBarStyleOptions"
+          :options="getTitleBarStyleOptions()"
           :on-change="(value) => onSelectChange('titleBarStyle', value)"
         ></cur-select>
         <bool
@@ -83,7 +83,7 @@
         <cur-select
           :description="t('preferences.general.sidebar.fileSortBy')"
           :value="fileSortBy"
-          :options="fileSortByOptions"
+          :options="getFileSortByOptions()"
           :on-change="(value) => onSelectChange('fileSortBy', value)"
           :disable="true"
         ></cur-select>
@@ -117,11 +117,10 @@
       </template>
       <template #children>
         <cur-select
-          :description="t('preferences.general.misc.language')"
+          :description="t('preferences.general.misc.language.title')"
           :value="language"
-          :options="languageOptions"
+          :options="getLanguageOptions()"
           :on-change="(value) => onSelectChange('language', value)"
-          :disable="true"
         ></cur-select>
       </template>
     </compound>
@@ -140,7 +139,7 @@ import Bool from '../common/bool/index.vue'
 import textBox from '../common/textBox/index.vue'
 import { isOsx } from '@/util'
 
-import { titleBarStyleOptions, zoomOptions, fileSortByOptions, languageOptions } from './config'
+import { getTitleBarStyleOptions, zoomOptions, getFileSortByOptions, getLanguageOptions } from './config'
 
 const { t } = useI18n()
 const preferenceStore = usePreferencesStore()

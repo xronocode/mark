@@ -21,7 +21,7 @@
     </section>
     <section class="category">
       <div
-        v-for="c of category"
+        v-for="c of getCategory()"
         :key="c.name"
         class="item"
         :class="{ active: c.label === currentCategory }"
@@ -34,7 +34,7 @@
   </div>
 </template>
 <script setup>
-import { category, searchContent } from './config'
+import { getCategory, searchContent } from './config'
 import { ref, watch, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { Search } from '@element-plus/icons-vue'
@@ -49,7 +49,7 @@ const currentCategory = ref('general')
 const restaurants = ref([])
 const state = ref('')
 
-for (const c of category) {
+for (const c of getCategory()) {
   console.log(c)
 }
 

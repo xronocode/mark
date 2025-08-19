@@ -15,7 +15,7 @@ export const tabSizeOptions = [{
   value: 4
 }]
 
-export const endOfLineOptions = [{
+export const getEndOfLineOptions = () => [{
   label: t('preferences.editor.fileRepresentation.endOfLine.default'),
   value: 'default'
 }, {
@@ -26,7 +26,7 @@ export const endOfLineOptions = [{
   value: 'lf'
 }]
 
-export const trimTrailingNewlineOptions = [{
+export const getTrimTrailingNewlineOptions = () => [{
   label: t('preferences.editor.fileRepresentation.trailingNewlines.trimAll'),
   value: 0
 }, {
@@ -40,7 +40,7 @@ export const trimTrailingNewlineOptions = [{
   value: 3
 }]
 
-export const textDirectionOptions = [{
+export const getTextDirectionOptions = () => [{
   label: t('preferences.editor.misc.textDirection.ltr'),
   value: 'ltr'
 }, {

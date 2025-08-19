@@ -9,7 +9,7 @@ import KeyBindingIcon from '@/assets/icons/pref_key_binding.svg'
 import preferences from 'main_renderer/preferences/schema.json'
 import { t } from '../../i18n'
 
-export const category = [
+export const getCategory = () => [
   {
     name: t('preferences.categories.general'),
     label: 'general',
@@ -66,4 +66,4 @@ export const searchContent = Object.keys(preferences)
       preference
     }
   })
-  .filter(({ category: ca }) => category.some((c) => c.label === ca.toLowerCase()))
+  .filter(({ category: ca }) => getCategory().some((c) => c.label === ca.toLowerCase()))

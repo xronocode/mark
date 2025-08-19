@@ -16,7 +16,7 @@
     <cur-select
       :description="t('preferences.theme.autoSwitch')"
       :value="autoSwitchTheme"
-      :options="autoSwitchThemeOptions"
+      :options="getAutoSwitchThemeOptions()"
       :on-change="(value) => onSelectChange('autoSwitchTheme', value)"
     ></cur-select>
     <div>
@@ -54,7 +54,7 @@ import { usePreferencesStore } from '@/store/preferences'
 import { storeToRefs } from 'pinia'
 import { useI18n } from 'vue-i18n'
 import themeMd from './theme.md?raw'
-import { autoSwitchThemeOptions, themes as configThemes } from './config'
+import { getAutoSwitchThemeOptions, themes as configThemes } from './config'
 import markdownToHtml from '@/util/markdownToHtml'
 import CurSelect from '../common/select'
 import Separator from '../common/separator'

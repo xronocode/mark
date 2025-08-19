@@ -2,10 +2,10 @@
 import { t } from '../../../../i18n'
 
 export const isValidService = name => {
-  return name !== 'none' && services.hasOwnProperty(name)
+  return name !== 'none' && getServices().hasOwnProperty(name)
 }
 
-const services = {
+const getServices = () => ({
   // Dummy service used to opt-in real services.
   none: {
     name: t('preferences.image.uploader.services.none'),
@@ -45,6 +45,7 @@ const services = {
     tosUrl: '',
     agreedToLegalNotices: true
   }
-}
+})
 
-export default services
+export { getServices }
+export default getServices

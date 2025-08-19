@@ -1,6 +1,6 @@
 import { t } from '../../i18n'
 
-export const titleBarStyleOptions = [{
+export const getTitleBarStyleOptions = () => [{
   label: t('preferences.general.window.titleBarStyle.custom'),
   value: 'custom'
 }, {
@@ -49,7 +49,7 @@ export const zoomOptions = [{
   value: 2.0
 }]
 
-export const fileSortByOptions = [{
+export const getFileSortByOptions = () => [{
   label: t('preferences.general.sidebar.fileSortBy.creationTime'),
   value: 'created'
 }, {
@@ -60,7 +60,10 @@ export const fileSortByOptions = [{
   value: 'title'
 }]
 
-export const languageOptions = [{
+export const getLanguageOptions = () => [{
   label: t('preferences.general.misc.language.english'),
   value: 'en'
+}, {
+  label: t('preferences.general.misc.language.chinese'),
+  value: 'zh-CN'
 }]

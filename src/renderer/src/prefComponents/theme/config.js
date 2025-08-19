@@ -21,7 +21,7 @@ export const themes = [
 
 import { t } from '../../i18n'
 
-export const autoSwitchThemeOptions = [{
+export const getAutoSwitchThemeOptions = () => [{
   label: t('preferences.theme.autoSwitchOptions.startup'),
   value: 0
 }, /* {
