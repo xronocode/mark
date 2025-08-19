@@ -75,7 +75,11 @@
           :depth="depth"
         ></file>
         <div
-          v-if="projectTree.files.length === 0 && projectTree.folders.length === 0"
+          v-if="
+            projectTree.files.length === 0 &&
+            projectTree.folders.length === 0 &&
+            createCache.dirname !== projectTree.pathname
+          "
           class="empty-project"
         >
           <span>Empty project</span>
