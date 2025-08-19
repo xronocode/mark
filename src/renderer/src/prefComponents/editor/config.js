@@ -1,7 +1,5 @@
 import { ENCODING_NAME_MAP } from 'common/encoding'
-import { useI18n } from 'vue-i18n'
-
-const { t } = useI18n()
+import { t } from '../../i18n'
 
 export const tabSizeOptions = [{
   label: '1',
