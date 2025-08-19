@@ -304,5 +304,39 @@
   "lineEnding": {
     "carriageReturnLineFeed": "Carriage Return + Line Feed (CRLF)",
     "lineFeed": "Line Feed (LF)"
+  },
+  "preferences": {
+    "title": "Preferences",
+    "search": {
+      "placeholder": "Search preferences..."
+    },
+    "categories": {
+      "general": "General",
+      "editor": "Editor",
+      "markdown": "Markdown",
+      "spelling": "Spelling",
+      "theme": "Theme",
+      "image": "Image",
+      "keybindings": "Keybindings"
+    },
+    "general": {
+      "startup": {
+        "title": "Startup",
+        "openDefaultDirectory": "Open default directory",
+        "selectFolder": "Select Folder"
+      },
+      "sidebar": {
+        "title": "Sidebar",
+        "fileSortBy": "Sort files by",
+        "creationTime": "Creation time",
+        "modifiedTime": "Modified time",
+        "title": "Title",
+        "excludePatternsNotes": "Exclude patterns (Notes)"
+      },
+      "misc": {
+        "title": "Miscellaneous",
+        "language": "Language"
+      }
+    }
   }
 }
