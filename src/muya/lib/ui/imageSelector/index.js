@@ -1,26 +1,15 @@
-import { createApi } from 'unsplash-js'
 import BaseFloat from '../baseFloat'
 import { patch, h } from '../../parser/render/snabbdom'
 import { EVENT_KEYS, URL_REG, isWin } from '../../config'
 import { getUniqueId, getImageInfo as getImageSrc } from '../../utils'
 import { getImageInfo } from '../../utils/getImageInfo'
-
 import './index.css'
-
-const toJson = (res) => {
-  if (res.type === 'success') {
-    return Promise.resolve(res.response)
-  } else {
-    return Promise.reject(new Error(res.type))
-  }
-}
 
 class ImageSelector extends BaseFloat {
   static pluginName = 'imageSelector'
 
   constructor(muya, options) {
     const name = 'ag-image-selector'
-    const { unsplashAccessKey } = options
     options = Object.assign(options, {
       placement: 'bottom',
       modifiers: {
@@ -34,13 +23,6 @@ class ImageSelector extends BaseFloat {
     this.renderArray = []
     this.oldVnode = null
     this.imageInfo = null
-    if (!unsplashAccessKey) {
-      this.unsplash = null
-    } else {
-      this.unsplash = createApi({
-        accessKey: unsplashAccessKey
-      })
-    }
     this.photoList = []
     this.loading = false
     this.tab = 'link' // select or link
@@ -79,25 +61,6 @@ class ImageSelector extends BaseFloat {
           this.state.src = imageSrc.substring(protocolLen)
         }
 
-        if (this.unsplash) {
-          // Load latest unsplash photos.
-          this.loading = true
-          this.unsplash.photos
-            .list({
-              perPage: 40
-            })
-            .then(toJson)
-            .then((json) => {
-              this.loading = false
-              if (Array.isArray(json.results)) {
-                this.photoList = json.results
-                if (this.tab === 'unsplash') {
-                  this.render()
-                }
-              }
-            })
-        }
-
         this.imageInfo = imageInfo
         this.show(reference, cb)
         this.render()
@@ -112,33 +75,6 @@ class ImageSelector extends BaseFloat {
         this.hide()
       }
     })
-  }
-
-  searchPhotos = (keyword) => {
-    if (!this.unsplash) {
-      return
-    }
-
-    this.loading = true
-    this.photoList = []
-    this.unsplash.search
-      .getPhotos({
-        query: keyword,
-        page: 1,
-        perPage: 40
-      })
-      .then(toJson)
-      .then((json) => {
-        this.loading = false
-        if (Array.isArray(json.results)) {
-          this.photoList = json.results
-          if (this.tab === 'unsplash') {
-            this.render()
-          }
-        }
-      })
-
-    return this.render()
   }
 
   tabClick(event, tab) {
@@ -306,13 +242,6 @@ class ImageSelector extends BaseFloat {
       }
     ]
 
-    if (this.unsplash) {
-      tabs.push({
-        label: 'Unsplash',
-        value: 'unsplash'
-      })
-    }
-
     const children = tabs.map((tab) => {
       const itemSelector = this.tab === tab.value ? 'li.active' : 'li'
       return h(
@@ -353,7 +282,7 @@ class ImageSelector extends BaseFloat {
         ),
         h('span.description', 'Choose image from your computer.')
       ]
-    } else if (tab === 'link') {
+    } else {
       const altInput = h('input.alt', {
         props: {
           placeholder: 'Alt text',
@@ -439,87 +368,6 @@ class ImageSelector extends BaseFloat {
         )
       ])
       bodyContent = [inputWrapper, embedButton, bottomDes]
-    } else {
-      const searchInput = h('input.search', {
-        props: {
-          placeholder: 'Search photos on Unsplash'
-        },
-        on: {
-          keydown: (event) => {
-            const value = event.target.value
-            if (event.key === EVENT_KEYS.Enter && value) {
-              event.preventDefault()
-              event.stopPropagation()
-              this.searchPhotos(value)
-            }
-          }
-        }
-      })
-      bodyContent = [searchInput]
-      if (this.loading) {
-        const loadingCom = h('div.ag-plugin-loading')
-        bodyContent.push(loadingCom)
-      } else if (this.photoList.length === 0) {
-        const noDataCom = h('div.no-data', 'No result...')
-        bodyContent.push(noDataCom)
-      } else {
-        const photos = this.photoList.map((photo) => {
-          const imageWrapper = h(
-            'div.image-wrapper',
-            {
-              props: {
-                style: `background: ${photo.color};`
-              },
-              on: {
-                click: () => {
-                  const title = photo.user.name
-                  const alt = photo.alt_description
-                  const src = photo.urls.regular
-                  const { id: photoId } = photo
-                  this.unsplash.photos
-                    .get({ photoId })
-                    .then(toJson)
-                    .then((result) => {
-                      this.unsplash.photos.trackDownload({
-                        downloadLocation: result.links.download_location
-                      })
-                    })
-                  return this.replaceImageAsync({ alt, title, src })
-                }
-              }
-            },
-            h('img', {
-              props: {
-                src: photo.urls.thumb
-              }
-            })
-          )
-
-          const desCom = h('div.des', [
-            'By ',
-            h(
-              'a',
-              {
-                props: {
-                  href: photo.links.html
-                },
-                on: {
-                  click: () => {
-                    if (this.options.photoCreatorClick) {
-                      this.options.photoCreatorClick(photo.user.links.html)
-                    }
-                  }
-                }
-              },
-              photo.user.name
-            )
-          ])
-          return h('div.photo', [imageWrapper, desCom])
-        })
-        const photoWrapper = h('div.photos-wrapper', photos)
-        const moreCom = h('div.more', 'Search for more photos...')
-        bodyContent.push(photoWrapper, moreCom)
-      }
     }
 
     return h('div.image-select-body', bodyContent)
