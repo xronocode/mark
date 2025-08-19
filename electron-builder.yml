@@ -101,8 +101,9 @@ linux:
     - 'text/markdown'
   icon: 'icons'
   desktop:
-    StartupWMClass: 'marktext'
-    Keywords: 'marktext;'
+    entry:
+      StartupWMClass: 'marktext'
+      Keywords: 'marktext;'
   target:
     - AppImage
     - snap
