@@ -56,12 +56,13 @@ import { useCommandCenterStore } from '@/store/commandCenter'
 import log from 'electron-log'
 import bus from '../../bus'
 import loading from '../loading'
+import { t } from '../../i18n'
 
 const searchInput = ref(null)
 let commandItems = []
 
 const currentCommand = ref(null)
-const defaultPlaceholderText = 'Type a command to execute'
+const defaultPlaceholderText = t('commandPalette.placeholder')
 
 const showCommandPalette = ref(false)
 const placeholderText = ref(defaultPlaceholderText)
@@ -241,7 +242,7 @@ const updateCommands = () => {
 const executeCommand = (commandId) => {
   const command = availableCommands.value.find((c) => c.id === commandId)
   if (!command) {
-    log.error(`Cannot find command "${commandId}".`)
+    log.error(t('commandPalette.commandNotFound', { commandId }))
     return
   }
 

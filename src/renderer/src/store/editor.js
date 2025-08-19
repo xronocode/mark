@@ -20,6 +20,7 @@ import { usePreferencesStore } from './preferences'
 import { useProjectStore } from './project'
 import { useLayoutStore } from './layout'
 import { useMainStore } from '.'
+import { i18n } from '../i18n'
 
 const autoSaveTimers = new Map()
 
@@ -42,13 +43,13 @@ export const useEditorStore = defineStore('editor', {
       if (item) {
         window.electron.clipboard.writeText(`#${item.githubSlug}`)
         notice.notify({
-          title: 'Anchor link copied to clipboard.',
+          title: i18n.global.t('store.editor.anchorLinkCopied'),
           type: 'primary',
           time: 2000,
           showConfirm: false
         })
       } else {
-        console.warn(`Cannot find toc item with key "${key}"`)
+        console.warn(i18n.global.t('store.editor.tocItemNotFound', { key }))
       }
     },
 
@@ -73,7 +74,7 @@ export const useEditorStore = defineStore('editor', {
 
       const tab = this.tabs.find((t) => t.id === tabId)
       if (!tab) {
-        console.error('pushTabNotification: Cannot find tab in tab list.')
+        console.error(i18n.global.t('store.editor.tabNotFound'))
         return
       }
 

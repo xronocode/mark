@@ -1,18 +1,18 @@
 <template>
   <div class="pref-general">
-    <h4>General</h4>
+    <h4>{{ t('preferences.general.title') }}</h4>
     <compound>
       <template #head>
-        <h6 class="title">Auto Save:</h6>
+        <h6 class="title">{{ t('preferences.general.autoSave.title') }}</h6>
       </template>
       <template #children>
         <bool
-          description="Automatically save document changes"
+          :description="t('preferences.general.autoSave.description')"
           :bool="autoSave"
           :on-change="(value) => onSelectChange('autoSave', value)"
         ></bool>
         <range
-          description="Delay following document edit before automatically saving"
+          :description="t('preferences.general.autoSave.delayDescription')"
           :value="autoSaveDelay"
           :min="1000"
           :max="10000"
@@ -25,34 +25,34 @@
 
     <compound>
       <template #head>
-        <h6 class="title">Window:</h6>
+        <h6 class="title">{{ t('preferences.general.window.title') }}</h6>
       </template>
       <template #children>
         <cur-select
           v-if="!isOsx"
-          description="Title bar style"
-          notes="Requires restart."
+          :description="t('preferences.general.window.titleBarStyle')"
+          :notes="t('preferences.general.window.requiresRestart')"
           :value="titleBarStyle"
           :options="titleBarStyleOptions"
           :on-change="(value) => onSelectChange('titleBarStyle', value)"
         ></cur-select>
         <bool
-          description="Hide scrollbars"
+          :description="t('preferences.general.window.hideScrollbars')"
           :bool="hideScrollbar"
           :on-change="(value) => onSelectChange('hideScrollbar', value)"
         ></bool>
         <bool
-          description="Open files in new window"
+          :description="t('preferences.general.window.openFilesInNewWindow')"
           :bool="openFilesInNewWindow"
           :on-change="(value) => onSelectChange('openFilesInNewWindow', value)"
         ></bool>
         <bool
-          description="Open folders in new window"
+          :description="t('preferences.general.window.openFoldersInNewWindow')"
           :bool="openFolderInNewWindow"
           :on-change="(value) => onSelectChange('openFolderInNewWindow', value)"
         ></bool>
         <cur-select
-          description="Zoom"
+          :description="t('preferences.general.window.zoom')"
           :value="zoom"
           :options="zoomOptions"
           :on-change="(value) => onSelectChange('zoom', value)"
@@ -62,18 +62,18 @@
 
     <compound>
       <template #head>
-        <h6 class="title">Sidebar:</h6>
+        <h6 class="title">{{ t('preferences.general.sidebar.title') }}</h6>
       </template>
       <template #children>
         <bool
-          description="Wrap text in table of contents"
+          :description="t('preferences.general.sidebar.wrapTextInToc')"
           :bool="wordWrapInToc"
           :on-change="(value) => onSelectChange('wordWrapInToc', value)"
         ></bool>
 
         <text-box
-          description="Patterns to exclude directorys or files"
-          notes='Glob Patterns, Use "," to separate multiple pattern. Requires restart.'
+          :description="t('preferences.general.sidebar.excludePatterns')"
+          :notes="t('preferences.general.sidebar.excludePatternsNotes')"
           :input="projectPaths.join(',')"
           :on-change="(value) => onSelectChange('treePathExcludePatterns', value.split(','))"
           more="https://github.com/isaacs/minimatch"
@@ -81,7 +81,7 @@
 
         <!-- TODO: The description is very bad and the entry isn't used by the editor. -->
         <cur-select
-          description="Sort field for files in open folders"
+          :description="t('preferences.general.sidebar.fileSortBy')"
           :value="fileSortBy"
           :options="fileSortByOptions"
           :on-change="(value) => onSelectChange('fileSortBy', value)"
@@ -92,7 +92,7 @@
 
     <compound>
       <template #head>
-        <h6 class="title">Action on startup:</h6>
+        <h6 class="title">{{ t('preferences.general.startup.title') }}</h6>
       </template>
       <template #children>
         <section class="startup-action-ctrl">
@@ -102,10 +102,10 @@
             <el-radio class="ag-underdevelop" label="lastState">Restore last editor session</el-radio>
             -->
             <el-radio label="folder" style="margin-bottom: 10px"
-              >Open the default directory<span>: {{ defaultDirectoryToOpen }}</span></el-radio
+              >{{ t('preferences.general.startup.openDefaultDirectory') }}<span>: {{ defaultDirectoryToOpen }}</span></el-radio
             >
-            <el-button size="small" @click="selectDefaultDirectoryToOpen">Select Folder</el-button>
-            <el-radio label="blank">Open a blank page</el-radio>
+            <el-button size="small" @click="selectDefaultDirectoryToOpen">{{ t('preferences.general.startup.selectFolder') }}</el-button>
+            <el-radio label="blank">{{ t('preferences.general.startup.openBlankPage') }}</el-radio>
           </el-radio-group>
         </section>
       </template>
@@ -113,11 +113,11 @@
 
     <compound>
       <template #head>
-        <h6 class="title">Misc:</h6>
+        <h6 class="title">{{ t('preferences.general.misc.title') }}</h6>
       </template>
       <template #children>
         <cur-select
-          description="User interface language"
+          :description="t('preferences.general.misc.language')"
           :value="language"
           :options="languageOptions"
           :on-change="(value) => onSelectChange('language', value)"
@@ -131,6 +131,7 @@
 <script setup>
 import { computed } from 'vue'
 import { storeToRefs } from 'pinia'
+import { useI18n } from 'vue-i18n'
 import { usePreferencesStore } from '@/store/preferences'
 import Compound from '../common/compound/index.vue'
 import Range from '../common/range/index.vue'
@@ -141,6 +142,7 @@ import { isOsx } from '@/util'
 
 import { titleBarStyleOptions, zoomOptions, fileSortByOptions, languageOptions } from './config'
 
+const { t } = useI18n()
 const preferenceStore = usePreferencesStore()
 
 const {

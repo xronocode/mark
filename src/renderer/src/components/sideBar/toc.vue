@@ -3,7 +3,7 @@
     class="side-bar-toc"
     :class="[{ 'side-bar-toc-overflow': !wordWrapInToc, 'side-bar-toc-wordwrap': wordWrapInToc }]"
   >
-    <div class="title">Table Of Contents</div>
+    <div class="title">{{ t('sideBar.toc.title') }}</div>
     <el-tree
       v-if="toc.length"
       :data="toc"
@@ -21,6 +21,7 @@ import { useEditorStore } from '@/store/editor'
 import { usePreferencesStore } from '@/store/preferences'
 import bus from '../../bus'
 import { storeToRefs } from 'pinia'
+import { t } from '../../i18n'
 
 const editorStore = useEditorStore()
 const preferencesStore = usePreferencesStore()

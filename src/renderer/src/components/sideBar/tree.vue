@@ -16,14 +16,14 @@
           <use xlink:href="#icon-arrow"></use>
         </svg>
         <span class="default-cursor text-overflow" @click.stop="toggleOpenedFiles()"
-          >Opened files</span
+          >{{ t('sideBar.tree.openedFiles') }}</span
         >
-        <a href="javascript:;" title="Save All" @click.stop="saveAll(false)">
+        <a href="javascript:;" :title="t('sideBar.tree.saveAll')" @click.stop="saveAll(false)">
           <svg class="icon" aria-hidden="true">
             <use xlink:href="#icon-save-all"></use>
           </svg>
         </a>
-        <a href="javascript:;" title="Close All" @click.stop="saveAll(true)">
+        <a href="javascript:;" :title="t('sideBar.tree.closeAll')" @click.stop="saveAll(true)">
           <svg class="icon" aria-hidden="true">
             <use xlink:href="#icon-close-all"></use>
           </svg>
@@ -77,14 +77,14 @@
           v-if="projectTree.files.length === 0 && projectTree.folders.length === 0"
           class="empty-project"
         >
-          <span>Empty project</span>
-          <a href="javascript:;" @click.stop="createFile">Create File</a>
+          <span>{{ t('sideBar.tree.emptyProject') }}</span>
+          <a href="javascript:;" @click.stop="createFile">{{ t('sideBar.tree.createFile') }}</a>
         </div>
       </div>
     </div>
     <div v-else class="open-project">
       <div class="centered-group">
-        <button class="button-primary" @click="openFolder">Open Folder</button>
+        <button class="button-primary" @click="openFolder">{{ t('sideBar.tree.openFolder') }}</button>
       </div>
     </div>
   </div>
@@ -99,6 +99,7 @@ import Folder from './treeFolder.vue'
 import File from './treeFile.vue'
 import OpenedFile from './treeOpenedTab.vue'
 import bus from '../../bus'
+import { t } from '../../i18n'
 
 const props = defineProps({
   projectTree: {

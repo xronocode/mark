@@ -11,6 +11,7 @@ import {
   INSERT_AFTER
 } from './menuItems'
 import spellcheckMenuBuilder from './spellcheck'
+import { t } from '../../i18n'
 
 const CONTEXT_ITEMS = [INSERT_BEFORE, INSERT_AFTER, SEPARATOR, CUT, COPY, PASTE, SEPARATOR, COPY_AS_MARKDOWN, COPY_AS_HTML, PASTE_AS_PLAIN_TEXT]
 
@@ -37,7 +38,7 @@ export const showEditorContextMenu = (win, event, params, isSpellcheckerEnabled)
     if (isSpellcheckerEnabled) {
       const spellingSubmenu = spellcheckMenuBuilder(isMisspelled, misspelledWord, dictionarySuggestions)
       menu.append(new MenuItem({
-        label: 'Spelling...',
+        label: t('contextMenu.spelling'),
         submenu: spellingSubmenu
       }))
       menu.append(new MenuItem(SEPARATOR))

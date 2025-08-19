@@ -1,25 +1,27 @@
 // NOTE: This are mutable fields that may change at runtime.
 
+import { t } from '../../i18n'
+
 export const CUT = {
-  label: 'Cut',
+  label: t('contextMenu.cut'),
   id: 'cutMenuItem',
   role: 'cut'
 }
 
 export const COPY = {
-  label: 'Copy',
+  label: t('contextMenu.copy'),
   id: 'copyMenuItem',
   role: 'copy'
 }
 
 export const PASTE = {
-  label: 'Paste',
+  label: t('contextMenu.paste'),
   id: 'pasteMenuItem',
   role: 'paste'
 }
 
 export const COPY_AS_MARKDOWN = {
-  label: 'Copy As Markdown',
+  label: t('contextMenu.copyAsMarkdown'),
   id: 'copyAsMarkdownMenuItem',
   click (menuItem, targetWindow) {
     targetWindow.webContents.send('mt::cm-copy-as-markdown')
@@ -27,7 +29,7 @@ export const COPY_AS_MARKDOWN = {
 }
 
 export const COPY_AS_HTML = {
-  label: 'Copy As Html',
+  label: t('contextMenu.copyAsHtml'),
   id: 'copyAsHtmlMenuItem',
   click (menuItem, targetWindow) {
     targetWindow.webContents.send('mt::cm-copy-as-html')
@@ -35,7 +37,7 @@ export const COPY_AS_HTML = {
 }
 
 export const PASTE_AS_PLAIN_TEXT = {
-  label: 'Paste as Plain Text',
+  label: t('contextMenu.pasteAsPlainText'),
   id: 'pasteAsPlainTextMenuItem',
   click (menuItem, targetWindow) {
     targetWindow.webContents.send('mt::cm-paste-as-plain-text')
@@ -43,7 +45,7 @@ export const PASTE_AS_PLAIN_TEXT = {
 }
 
 export const INSERT_BEFORE = {
-  label: 'Insert Paragraph Before',
+  label: t('contextMenu.insertParagraphBefore'),
   id: 'insertParagraphBeforeMenuItem',
   click (menuItem, targetWindow) {
     targetWindow.webContents.send('mt::cm-insert-paragraph', 'before')
@@ -51,7 +53,7 @@ export const INSERT_BEFORE = {
 }
 
 export const INSERT_AFTER = {
-  label: 'Insert Paragraph After',
+  label: t('contextMenu.insertParagraphAfter'),
   id: 'insertParagraphAfterMenuItem',
   click (menuItem, targetWindow) {
     targetWindow.webContents.send('mt::cm-insert-paragraph', 'after')

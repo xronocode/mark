@@ -1,12 +1,12 @@
 <template>
   <div class="pref-image-uploader">
-    <h5>Uploader</h5>
+    <h5>{{ t('preferences.image.uploader.title') }}</h5>
     <section class="current-uploader">
       <div v-if="isValidUploaderService(currentUploader)">
-        The current image uploader is {{ getServiceNameById(currentUploader) }}.
+        {{ t('preferences.image.uploader.currentUploader', { name: getServiceNameById(currentUploader) }) }}
       </div>
       <span v-else
-        >Currently no uploader is selected. Please select an uploader and config it.</span
+        >{{ t('preferences.image.uploader.noUploaderSelected') }}</span
       >
     </section>
     <section class="configration">
@@ -17,38 +17,38 @@
       ></cur-select>
       <div v-if="currentUploader === 'picgo'" class="picgo">
         <div v-if="!picgoExists" class="warning">
-          Your system does not have
+          {{ t('preferences.image.uploader.picgoNotInstalled') }}
           <span class="link" @click="open('https://github.com/PicGo/PicGo-Core')">picgo</span>
-          installed, please install it before use.
+          {{ t('preferences.image.uploader.pleaseInstall') }}
         </div>
       </div>
       <div v-if="currentUploader === 'github'" class="github">
-        <div class="warning">Github will be removed in a future version, please use picgo</div>
+        <div class="warning">{{ t('preferences.image.uploader.githubDeprecated') }}</div>
         <div class="form-group">
           <div class="label">
-            GitHub token:
+            {{ t('preferences.image.uploader.githubToken') }}:
             <el-tooltip
               class="item"
               effect="dark"
-              content="The token is saved by Keychain on macOS, Secret Service API/libsecret on Linux and Credential Vault on Windows"
+              :content="t('preferences.image.uploader.tokenTooltip')"
               placement="top-start"
             >
               <InfoFilled width="16" height="16" />
             </el-tooltip>
           </div>
-          <el-input v-model="githubToken" placeholder="Input token" size="mini"></el-input>
+          <el-input v-model="githubToken" :placeholder="t('preferences.image.uploader.inputToken')" size="mini"></el-input>
         </div>
         <div class="form-group">
-          <div class="label">Owner name:</div>
-          <el-input v-model="github.owner" placeholder="owner" size="mini"></el-input>
+          <div class="label">{{ t('preferences.image.uploader.ownerName') }}:</div>
+          <el-input v-model="github.owner" :placeholder="t('preferences.image.uploader.owner')" size="mini"></el-input>
         </div>
         <div class="form-group">
-          <div class="label">Repo name:</div>
-          <el-input v-model="github.repo" placeholder="repo" size="mini"></el-input>
+          <div class="label">{{ t('preferences.image.uploader.repoName') }}:</div>
+          <el-input v-model="github.repo" :placeholder="t('preferences.image.uploader.repo')" size="mini"></el-input>
         </div>
         <div class="form-group">
-          <div class="label">Branch name (optional):</div>
-          <el-input v-model="github.branch" placeholder="branch" size="mini"></el-input>
+          <div class="label">{{ t('preferences.image.uploader.branchName') }}:</div>
+          <el-input v-model="github.branch" :placeholder="t('preferences.image.uploader.branch')" size="mini"></el-input>
         </div>
         <legal-notices-checkbox
           class="github"
@@ -56,21 +56,20 @@
           :uploader-service="uploadServices.github"
         ></legal-notices-checkbox>
         <div class="form-group">
-          <el-button size="mini" :disabled="githubDisable" @click="save('github')">Save </el-button>
+          <el-button size="mini" :disabled="githubDisable" @click="save('github')">{{ t('preferences.image.uploader.save') }}</el-button>
         </div>
       </div>
       <div v-else-if="currentUploader === 'cliScript'" class="script">
         <div class="description">
-          The script will be executed with the image file path as its only argument and it should
-          output any valid value for the <code>src</code> attribute of a <em>HTMLImageElement</em>.
+          {{ t('preferences.image.uploader.scriptDescription') }}
         </div>
         <div class="form-group">
-          <div class="label">Shell script location:</div>
-          <el-input v-model="cliScript" placeholder="Script absolute path" size="mini"></el-input>
+          <div class="label">{{ t('preferences.image.uploader.scriptLocation') }}:</div>
+          <el-input v-model="cliScript" :placeholder="t('preferences.image.uploader.scriptPath')" size="mini"></el-input>
         </div>
         <div class="form-group">
           <el-button size="mini" :disabled="cliScriptDisable" @click="save('cliScript')"
-            >Save
+            >{{ t('preferences.image.uploader.save') }}
           </el-button>
         </div>
       </div>
@@ -80,6 +79,7 @@
 
 <script setup>
 import { ref, reactive, computed, watch, onMounted, nextTick } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { usePreferencesStore } from '@/store/preferences'
 import services, { isValidService } from './services.js'
 import legalNoticesCheckbox from './legalNoticesCheckbox.vue'
@@ -89,6 +89,8 @@ import commandExists from 'command-exists'
 import notice from '@/services/notification'
 import { storeToRefs } from 'pinia'
 import { InfoFilled } from '@element-plus/icons-vue'
+
+const { t } = useI18n()
 
 // store
 const preferenceStore = usePreferencesStore()
@@ -191,11 +193,11 @@ const save = (type) => {
     })
   }
   notice.notify({
-    title: 'Save Config',
+    title: t('preferences.image.uploader.saveConfig'),
     message:
       type === 'github'
-        ? 'The Github configration has been saved.'
-        : 'The command line script configuration has been saved',
+        ? t('preferences.image.uploader.githubConfigSaved')
+        : t('preferences.image.uploader.scriptConfigSaved'),
     type: 'primary'
   })
 }

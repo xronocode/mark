@@ -42,7 +42,7 @@
         </li>
       </ul>
       <div v-if="!allMatchesShown">
-        <div class="button tiny" @click="handleShowMoreMatches">Show more matches</div>
+        <div class="button tiny" @click="handleShowMoreMatches">{{ t('sideBar.search.showMoreMatches') }}</div>
       </div>
     </div>
   </div>
@@ -53,6 +53,7 @@ import { ref, computed } from 'vue'
 import { useEditorStore } from '@/store/editor'
 import { storeToRefs } from 'pinia'
 import bus from '../../bus'
+import { t } from '../../../i18n'
 
 const props = defineProps({
   searchResult: {

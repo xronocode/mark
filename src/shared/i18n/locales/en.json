@@ -1,0 +1,302 @@
+{
+  "menu": {
+    "file": {
+      "file": "File",
+      "new": "New",
+      "newTab": "New Tab",
+      "newWindow": "New Window",
+      "open": "Open",
+      "openFile": "Open File...",
+      "openFolder": "Open Folder...",
+      "openRecent": "Open Recent",
+      "clearRecentlyUsed": "Clear Recently Used",
+      "save": "Save",
+      "saveAs": "Save As...",
+      "autoSave": "Auto Save",
+      "moveTo": "Move To",
+      "rename": "Rename",
+      "export": "Export",
+      "exportHtml": "Export as HTML",
+      "exportPdf": "Export as PDF",
+      "import": "Import",
+      "print": "Print",
+      "recent": "Recent Files",
+      "close": "Close",
+      "closeAll": "Close All",
+      "closeTab": "Close Tab",
+      "closeWindow": "Close Window",
+      "quit": "Quit",
+      "preferences": "Preferences"
+    },
+    "edit": {
+      "edit": "Edit",
+      "undo": "Undo",
+      "redo": "Redo",
+      "cut": "Cut",
+      "copy": "Copy",
+      "paste": "Paste",
+      "copyAsMarkdown": "Copy As Markdown",
+      "copyAsHtml": "Copy As HTML",
+      "pasteAsPlainText": "Paste as Plain Text",
+      "selectAll": "Select All",
+      "duplicate": "Duplicate",
+      "createParagraph": "Create Paragraph",
+      "deleteParagraph": "Delete Paragraph",
+      "find": "Find",
+      "replace": "Replace",
+      "findNext": "Find Next",
+      "findPrevious": "Find Previous",
+      "findInFolder": "Find in Folder",
+      "screenshot": "Screenshot",
+      "lineEnding": "Line Ending"
+    },
+    "contextMenu": {
+      "cut": "Cut",
+      "copy": "Copy",
+      "paste": "Paste",
+      "copyAsMarkdown": "Copy As Markdown",
+      "copyAsHtml": "Copy As Html",
+      "pasteAsPlainText": "Paste as Plain Text",
+      "insertParagraphBefore": "Insert Paragraph Before",
+      "insertParagraphAfter": "Insert Paragraph After",
+      "spelling": "Spelling...",
+      "changeLanguage": "Change Language...",
+      "addToDictionary": "Add to Dictionary",
+      "editDictionary": "Edit Dictionary...",
+      "sideBar": {
+        "newFile": "New File",
+        "newDirectory": "New Directory",
+        "copy": "Copy",
+        "cut": "Cut",
+        "paste": "Paste",
+        "rename": "Rename",
+        "moveToTrash": "Move To Trash",
+        "showInFolder": "Show In Folder"
+      },
+      "tabs": {
+        "close": "Close",
+        "closeOthers": "Close others",
+        "closeSavedTabs": "Close saved tabs",
+        "closeAllTabs": "Close all tabs",
+        "rename": "Rename",
+        "copyPath": "Copy path",
+        "showInFolder": "Show in folder"
+      }
+    },
+    "search": {
+      "searchPlaceholder": "Search",
+      "caseSensitive": "Case Sensitive",
+      "wholeWord": "Select whole word",
+      "useRegex": "Use query as RegEx",
+      "replacementPlaceholder": "Replacement",
+      "replaceAll": "Replace All",
+      "replaceSingle": "Replace Single"
+    },
+    "sideBar": {
+      "search": {
+        "searchInFolder": "Search in folder...",
+        "noFolderOpen": "No folder open",
+        "noResultsFound": "No results found.",
+        "cancel": "Cancel",
+        "openFolder": "Open Folder",
+        "showMoreMatches": "Show more matches"
+      },
+      "tree": {
+        "openedFiles": "Opened files",
+        "saveAll": "Save All",
+        "closeAll": "Close All",
+        "emptyProject": "Empty project",
+        "createFile": "Create File",
+        "openFolder": "Open Folder"
+      },
+      "toc": {
+        "title": "Table Of Contents"
+      }
+    },
+    "commandPalette": {
+      "placeholder": "Type a command to execute"
+    },
+    "exportSettings": {
+      "title": "Export Options",
+      "info": {
+        "label": "Info",
+        "description": "Please customize the page appearance and click on \"export\" to continue."
+      },
+      "page": {
+        "label": "Page"
+      },
+      "style": {
+        "label": "Style"
+      },
+      "theme": {
+        "label": "Theme",
+        "description": "You can change the document appearance by choosing a theme or create a handcrafted one."
+      },
+      "headerFooter": {
+        "label": "Header & Footer",
+        "description": "The text appear on all pages if header and/or footer is defined."
+      },
+      "toc": {
+        "label": "Table of Contents"
+      },
+      "export": "Export..."
+    },
+    "editor": {
+      "insertTable": {
+        "title": "Insert Table",
+        "rows": "Rows",
+        "columns": "Columns"
+      }
+    },
+    "recent": {
+      "noTabsOpen": "You have no tabs open.",
+      "newFile": "New File"
+    },
+    "import": {
+      "title": "Import or Open",
+      "description": "Drop here to get you stuff into MarkText"
+    },
+    "tweet": {
+      "title": "Send us feedback via tweet",
+      "feelingsQuestion": "What's your experience feelings?",
+      "feedbackQuestion": "Tell us your feedback?",
+      "reportViaGithub": "Report bug or feature request via github",
+      "tweet": "Tweet"
+    }
+  },
+  "lineEnding": {
+    "carriageReturnLineFeed": "Carriage Return + Line Feed (CRLF)",
+    "lineFeed": "Line Feed (LF)"
+  },
+  "view": {
+    "view": "View",
+    "toggleSidebar": "Toggle Sidebar",
+    "toggleTabbar": "Toggle Tabbar",
+    "toggleSourceCode": "Toggle Source Code Mode",
+    "toggleTypewriter": "Toggle Typewriter Mode",
+    "toggleFocus": "Toggle Focus Mode",
+    "zoomIn": "Zoom In",
+    "zoomOut": "Zoom Out",
+    "resetZoom": "Reset Zoom",
+    "fullscreen": "Enter Fullscreen",
+    "exitFullscreen": "Exit Fullscreen",
+    "commandPalette": "Command Palette",
+    "sourceCode": "Source Code Mode",
+    "sourceCodeMode": "Source Code Mode",
+    "typewriter": "Typewriter Mode",
+    "typewriterMode": "Typewriter Mode",
+    "focus": "Focus Mode",
+    "focusMode": "Focus Mode",
+    "sidebar": "Sidebar",
+    "showSidebar": "Show Sidebar",
+    "tabBar": "Tab Bar",
+    "showTabBar": "Show Tab Bar",
+    "toc": "Table of Contents",
+    "toggleTableOfContents": "Toggle Table of Contents",
+    "reloadImages": "Reload Images",
+    "devTools": "Developer Tools",
+    "showDeveloperTools": "Show Developer Tools",
+    "reload": "Reload",
+    "reloadWindow": "Reload Window"
+  },
+  "format": {
+    "format": "Format",
+    "bold": "Bold",
+    "italic": "Italic",
+    "underline": "Underline",
+    "strikethrough": "Strikethrough",
+    "code": "Inline Code",
+    "codeBlock": "Code Block",
+    "quote": "Quote",
+    "unorderedList": "Unordered List",
+    "orderedList": "Ordered List",
+    "taskList": "Task List",
+    "table": "Table",
+    "link": "Link",
+    "image": "Image",
+    "heading1": "Heading 1",
+    "heading2": "Heading 2",
+    "heading3": "Heading 3",
+    "heading4": "Heading 4",
+    "heading5": "Heading 5",
+    "heading6": "Heading 6",
+    "superscript": "Superscript",
+    "subscript": "Subscript",
+    "highlight": "Highlight",
+    "inlineCode": "Inline Code",
+    "inlineMath": "Inline Math",
+    "hyperlink": "Hyperlink",
+    "clearFormatting": "Clear Formatting",
+    "clear": "Clear Formatting"
+  },
+  "paragraph": {
+    "paragraph": "Paragraph",
+    "heading1": "Heading 1",
+    "heading2": "Heading 2",
+    "heading3": "Heading 3",
+    "heading4": "Heading 4",
+    "heading5": "Heading 5",
+    "heading6": "Heading 6",
+    "promoteHeading": "Promote Heading",
+    "demoteHeading": "Demote Heading",
+    "table": "Table",
+    "codeFences": "Code Fences",
+    "codeBlock": "Code Block",
+    "quoteBlock": "Quote Block",
+    "mathBlock": "Math Block",
+    "htmlBlock": "HTML Block",
+    "quote": "Quote",
+    "orderedList": "Ordered List",
+    "bulletList": "Bullet List",
+    "unorderedList": "Unordered List",
+    "taskList": "Task List",
+    "looseListItem": "Loose List Item",
+    "paragraphItem": "Paragraph Item",
+    "horizontalRule": "Horizontal Rule",
+    "frontMatter": "Front Matter"
+  },
+  "window": {
+    "window": "Window",
+    "minimize": "Minimize",
+    "close": "Close",
+    "zoom": "Zoom",
+    "zoomIn": "Zoom In",
+    "zoomOut": "Zoom Out",
+    "fullscreen": "Fullscreen",
+    "showInFullScreen": "Show in Full Screen",
+    "alwaysOnTop": "Always on Top"
+  },
+  "help": {
+    "help": "Help",
+    "markdownReference": "Markdown Reference",
+    "changelog": "Changelog",
+    "askQuestion": "Ask Question",
+    "reportBug": "Report Bug",
+    "viewSource": "View Source",
+    "license": "License",
+    "checkForUpdates": "Check for Updates",
+    "aboutMarkText": "About MarkText"
+  },
+  "theme": {
+    "theme": "&Theme",
+    "light": "Light",
+    "dark": "Dark",
+    "auto": "Auto",
+    "cadmiumLight": "Cadmium Light",
+    "graphiteLight": "Graphite Light",
+    "materialDark": "Material Dark",
+    "oneDark": "One Dark",
+    "ulyssesLight": "Ulysses Light"
+  },
+  "marktext": {
+    "marktext": "MarkText",
+    "about": "About MarkText",
+    "checkForUpdates": "Check for Updates...",
+    "preferences": "Preferences",
+    "services": "Services",
+    "hideMarkText": "Hide MarkText",
+    "hideOthers": "Hide Others",
+    "showAll": "Show All",
+    "quit": "Quit MarkText"
+  }
+}

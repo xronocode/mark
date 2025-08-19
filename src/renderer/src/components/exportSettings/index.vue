@@ -7,14 +7,14 @@
       custom-class="ag-dialog-table"
       width="500px"
     >
-      <h3>Export Options</h3>
+      <h3>{{ t('exportSettings.title') }}</h3>
       <el-tabs v-model="activeName">
-        <el-tab-pane label="Info" name="info">
+        <el-tab-pane :label="t('exportSettings.info.label')" name="info">
           <span class="text"
-            >Please customize the page appearance and click on "export" to continue.</span
+            >{{ t('exportSettings.info.description') }}</span
           >
         </el-tab-pane>
-        <el-tab-pane label="Page" name="page">
+        <el-tab-pane :label="t('exportSettings.page.label')" name="page">
           <!-- HTML -->
           <div v-if="!isPrintable">
             <text-box
@@ -97,7 +97,7 @@
             </div>
           </div>
         </el-tab-pane>
-        <el-tab-pane label="Style" name="style">
+        <el-tab-pane :label="t('exportSettings.style.label')" name="style">
           <bool
             description="Overwrite theme font settings"
             :bool="fontSettingsOverwrite"
@@ -128,100 +128,100 @@
             ></range>
           </div>
           <bool
-            description="Auto numbering headings"
+            :description="t('exportSettings.autoNumberingHeadings')"
             :bool="autoNumberingHeadings"
             :on-change="(value) => onSelectChange('autoNumberingHeadings', value)"
           ></bool>
           <bool
-            description="Show front matter"
+            :description="t('exportSettings.showFrontMatter')"
             :bool="showFrontMatter"
             :on-change="(value) => onSelectChange('showFrontMatter', value)"
           ></bool>
         </el-tab-pane>
-        <el-tab-pane label="Theme" name="theme">
+        <el-tab-pane :label="t('exportSettings.theme.label')" name="theme">
           <div class="text">
-            You can change the document appearance by choosing a theme or create a handcrafted one.
+            {{ t('exportSettings.theme.description') }}
           </div>
           <cur-select
-            description="Theme"
+            :description="t('exportSettings.theme.theme')"
             more="https://github.com/marktext/marktext/blob/develop/docs/EXPORT_THEMES.md"
             :value="theme"
             :options="themeList"
             :on-change="(value) => onSelectChange('theme', value)"
           ></cur-select>
         </el-tab-pane>
-        <el-tab-pane v-if="isPrintable" label="Header & Footer" name="header">
-          <div class="text">The text appear on all pages if header and/or footer is defined.</div>
+        <el-tab-pane v-if="isPrintable" :label="t('exportSettings.headerFooter.label')" name="header">
+          <div class="text">{{ t('exportSettings.headerFooter.description') }}</div>
           <cur-select
-            description="Header type"
+            :description="t('exportSettings.headerFooter.headerType')"
             :value="headerType"
             :options="headerFooterTypes"
             :on-change="(value) => onSelectChange('headerType', value)"
           ></cur-select>
           <text-box
             v-if="headerType === 2"
-            description="The left header text"
+            :description="t('exportSettings.headerFooter.leftHeaderText')"
             :input="headerTextLeft"
             :emit-time="0"
             :on-change="(value) => onSelectChange('headerTextLeft', value)"
           ></text-box>
           <text-box
             v-if="headerType !== 0"
-            description="The main header text"
+            :description="t('exportSettings.headerFooter.mainHeaderText')"
             :input="headerTextCenter"
             :emit-time="0"
             :on-change="(value) => onSelectChange('headerTextCenter', value)"
           ></text-box>
           <text-box
             v-if="headerType === 2"
-            description="The right header text"
+            :description="t('exportSettings.headerFooter.rightHeaderText')"
             :input="headerTextRight"
             :emit-time="0"
             :on-change="(value) => onSelectChange('headerTextRight', value)"
           ></text-box>
 
           <cur-select
-            description="Footer type"
+            :description="t('exportSettings.headerFooter.footerType')"
             :value="footerType"
             :options="headerFooterTypes"
             :on-change="(value) => onSelectChange('footerType', value)"
           ></cur-select>
           <text-box
             v-if="footerType === 2"
-            description="The left footer text"
+            :description="t('exportSettings.headerFooter.leftFooterText')"
             :input="footerTextLeft"
             :emit-time="0"
             :on-change="(value) => onSelectChange('footerTextLeft', value)"
           ></text-box>
           <text-box
             v-if="footerType !== 0"
-            description="The main footer text"
+            :description="t('exportSettings.headerFooter.mainFooterText')"
             :input="footerTextCenter"
             :emit-time="0"
             :on-change="(value) => onSelectChange('footerTextCenter', value)"
           ></text-box>
           <text-box
             v-if="footerType === 2"
-            description="The right footer text"
+            :description="t('exportSettings.headerFooter.rightFooterText')"
             :input="footerTextRight"
             :emit-time="0"
             :on-change="(value) => onSelectChange('footerTextRight', value)"
           ></text-box>
 
           <bool
-            description="Customize style"
+            :description="t('exportSettings.headerFooter.customizeStyle')"
             :bool="headerFooterCustomize"
             :on-change="(value) => onSelectChange('headerFooterCustomize', value)"
           ></bool>
 
           <div v-if="headerFooterCustomize">
             <bool
-              description="Allow styled header and footer"
+              :description="t('exportSettings.headerFooter.allowStyled')"
               :bool="headerFooterStyled"
               :on-change="(value) => onSelectChange('headerFooterStyled', value)"
             ></bool>
             <range
-              description="Header and footer font size"
+              :description="t('exportSettings.headerFooter.fontSize')"
               :value="headerFooterFontSize"
               :min="8"
               :max="20"
@@ -232,15 +232,15 @@
           </div>
         </el-tab-pane>
 
-        <el-tab-pane label="Table of Contents" name="toc">
+        <el-tab-pane :label="t('exportSettings.toc.label')" name="toc">
           <bool
-            description="Include top heading"
-            detailed-description="Includes the first heading level too."
+            :description="t('exportSettings.toc.includeTopHeading')"
+            :detailed-description="t('exportSettings.toc.includeTopHeadingDetail')"
             :bool="tocIncludeTopHeading"
             :on-change="(value) => onSelectChange('tocIncludeTopHeading', value)"
           ></bool>
           <text-box
-            description="Title"
+            :description="t('exportSettings.toc.title')"
             :input="tocTitle"
             :emit-time="0"
             :on-change="(value) => onSelectChange('tocTitle', value)"
@@ -248,7 +248,7 @@
         </el-tab-pane>
       </el-tabs>
       <div class="button-controlls">
-        <button class="button-primary" @click="handleClicked">Export...</button>
+        <button class="button-primary" @click="handleClicked">{{ t('exportSettings.export') }}</button>
       </div>
     </el-dialog>
   </div>
@@ -265,6 +265,7 @@ import FontTextBox from '@/prefComponents/common/fontTextBox'
 import Range from '@/prefComponents/common/range'
 import TextBox from '@/prefComponents/common/textBox'
 import { pageSizeList, headerFooterTypes, exportThemeList } from './exportOptions'
+import { t } from '../../i18n'
 
 const exportType = ref('')
 const themesLoaded = ref(false)

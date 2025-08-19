@@ -1,4 +1,7 @@
 import { ENCODING_NAME_MAP } from 'common/encoding'
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
 
 export const tabSizeOptions = [{
   label: '1',
@@ -15,35 +18,35 @@ export const tabSizeOptions = [{
 }]
 
 export const endOfLineOptions = [{
-  label: 'Default',
+  label: t('preferences.editor.fileRepresentation.endOfLine.default'),
   value: 'default'
 }, {
-  label: 'Carriage return and line feed (CRLF)',
+  label: t('preferences.editor.fileRepresentation.endOfLine.crlf'),
   value: 'crlf'
 }, {
-  label: 'Line feed (LF)',
+  label: t('preferences.editor.fileRepresentation.endOfLine.lf'),
   value: 'lf'
 }]
 
 export const trimTrailingNewlineOptions = [{
-  label: 'Trim all trailing',
+  label: t('preferences.editor.fileRepresentation.trailingNewlines.trimAll'),
   value: 0
 }, {
-  label: 'Ensure exactly one trailing',
+  label: t('preferences.editor.fileRepresentation.trailingNewlines.ensureOne'),
   value: 1
 }, {
-  label: 'Preserve style of original document',
+  label: t('preferences.editor.fileRepresentation.trailingNewlines.preserve'),
   value: 2
 }, {
-  label: 'Do nothing',
+  label: t('preferences.editor.fileRepresentation.trailingNewlines.doNothing'),
   value: 3
 }]
 
 export const textDirectionOptions = [{
-  label: 'Left to Right',
+  label: t('preferences.editor.misc.textDirection.ltr'),
   value: 'ltr'
 }, {
-  label: 'Right to Left',
+  label: t('preferences.editor.misc.textDirection.rtl'),
   value: 'rtl'
 }]
 

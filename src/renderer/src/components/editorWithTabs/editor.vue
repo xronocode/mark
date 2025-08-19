@@ -28,10 +28,10 @@
       dir="ltr"
     >
       <template #title>
-        <div class="dialog-title">Insert Table</div>
+        <div class="dialog-title">{{ t('editor.insertTable.title') }}</div>
       </template>
       <el-form :model="tableChecker" :inline="true">
-        <el-form-item label="Rows">
+        <el-form-item :label="t('editor.insertTable.rows')">
           <el-input-number
             ref="rowInput"
             v-model="tableChecker.rows"
@@ -41,7 +41,7 @@
             :max="30"
           ></el-input-number>
         </el-form-item>
-        <el-form-item label="Columns">
+        <el-form-item :label="t('editor.insertTable.columns')">
           <el-input-number
             v-model="tableChecker.columns"
             size="mini"
@@ -53,8 +53,8 @@
       </el-form>
       <template #footer>
         <div class="dialog-footer">
-          <el-button @click="dialogTableVisible = false"> Cancel </el-button>
-          <el-button type="primary" @click="handleDialogTableConfirm"> OK </el-button>
+          <el-button @click="dialogTableVisible = false">{{ t('common.cancel') }}</el-button>
+          <el-button type="primary" @click="handleDialogTableConfirm">{{ t('common.ok') }}</el-button>
         </div>
       </template>
     </el-dialog>
@@ -83,6 +83,7 @@ import FrontMenu from 'muya/lib/ui/frontMenu'
 import EditorSearch from '../search'
 import bus from '@/bus'
 import { DEFAULT_EDITOR_FONT_FAMILY } from '@/config'
+import { t } from '../../i18n'
 import notice from '@/services/notification'
 import Printer from '@/services/printService'
 import { SpellcheckerLanguageCommand } from '@/commands'
@@ -572,7 +573,7 @@ const switchSpellcheckLanguage = (languageCode) => {
 
   // This method is also called from bus, so validate state before continuing.
   if (!isEnabled) {
-    throw new Error('Cannot switch language because spell checker is disabled!')
+    throw new Error(t('editor.spellcheck.disabledError'))
   }
 
   spellchecker
@@ -581,20 +582,20 @@ const switchSpellcheckLanguage = (languageCode) => {
       if (!langCode) {
         // Unable to switch language due to missing dictionary. The spell checker is now in an invalid state.
         notice.notify({
-          title: 'Spelling',
+          title: t('editor.spellcheck.title'),
           type: 'warning',
-          message: `Unable to switch to language "${languageCode}". Requested language dictionary is missing.`
+          message: t('editor.spellcheck.languageMissing', { languageCode })
         })
       }
     })
     .catch((error) => {
-      log.error(`Error while switching to language "${languageCode}":`)
+      log.error(t('editor.spellcheck.errorSwitchingLanguage', { languageCode }))
       log.error(error)
 
       notice.notify({
-        title: 'Spelling',
+        title: t('editor.spellcheck.title'),
         type: 'error',
-        message: `Error while switching to "${languageCode}": ${error.message}`
+        message: t('editor.spellcheck.switchError', { languageCode, error: error.message })
       })
     })
 }
@@ -751,9 +752,9 @@ const handleExport = async (options) => {
       } catch (err) {
         log.error('Failed to export document:', err)
         notice.notify({
-          title: `Printing/Exporting ${htmlTitle || 'html'} failed`,
+          title: t('editor.export.failed', { type: htmlTitle || 'html' }),
           type: 'error',
-          message: err.message || 'There is something wrong when exporting.'
+          message: err.message || t('editor.export.error')
         })
       }
       break
@@ -783,9 +784,9 @@ const handleExport = async (options) => {
       } catch (err) {
         log.error('Failed to export document:', err)
         notice.notify({
-          title: 'Printing/Exporting failed',
+          title: t('editor.export.failed', { type: 'PDF' }),
           type: 'error',
-          message: `Something went wrong when exporting ${htmlTitle || 'PDF'}.`
+          message: t('editor.export.errorExporting', { type: htmlTitle || 'PDF' })
         })
         handlePrintServiceClearup()
       }
@@ -808,9 +809,9 @@ const handleExport = async (options) => {
       } catch (err) {
         log.error('Failed to export document:', err)
         notice.notify({
-          title: 'Printing/Exporting failed',
+          title: t('editor.print.failed'),
           type: 'error',
-          message: `Something went wrong when printing ${htmlTitle || ''}.`
+          message: t('editor.print.error', { title: htmlTitle || '' })
         })
         handlePrintServiceClearup()
       }

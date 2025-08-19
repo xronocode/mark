@@ -1,12 +1,12 @@
 <template>
   <div class="pref-sidebar">
-    <h3 class="title">Preferences</h3>
+    <h3 class="title">{{ t('preferences.title') }}</h3>
     <section class="search-wrapper">
       <el-autocomplete
         v-model="state"
         class="pref-autocomplete"
         :fetch-suggestions="querySearch"
-        placeholder="Search preferences"
+        :placeholder="t('preferences.search.placeholder')"
         :trigger-on-focus="false"
         @select="handleSelect"
       >
@@ -38,6 +38,9 @@ import { category, searchContent } from './config'
 import { ref, watch, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { Search } from '@element-plus/icons-vue'
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
 
 const router = useRouter()
 const route = useRoute()

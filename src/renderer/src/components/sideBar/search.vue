@@ -5,12 +5,12 @@
         ref="searchEl"
         v-model="keyword"
         type="text"
-        placeholder="Search in folder..."
+        :placeholder="t('sideBar.search.searchInFolder')"
         @keyup="search"
       />
       <div class="controls">
         <span
-          title="Case Sensitive"
+          :title="t('search.caseSensitive')"
           class="is-case-sensitive"
           :class="{ active: isCaseSensitive }"
           @click.stop="caseSensitiveClicked()"
@@ -18,7 +18,7 @@
           <FindCaseIcon aria-hidden="true" />
         </span>
         <span
-          title="Select whole word"
+          :title="t('search.wholeWord')"
           class="is-whole-word"
           :class="{ active: isWholeWord }"
           @click.stop="wholeWordClicked()"
@@ -26,7 +26,7 @@
           <FindWordIcon aria-hidden="true" />
         </span>
         <span
-          title="Use query as RegEx"
+          :title="t('search.useRegex')"
           class="is-regex"
           :class="{ active: isRegexp }"
           @click.stop="regexpClicked()"
@@ -37,14 +37,14 @@
     </div>
 
     <div v-if="showNoFolderOpenedMessage" class="search-message-section">
-      <span>No folder open</span>
+      <span>{{ t('sideBar.search.noFolderOpen') }}</span>
     </div>
-    <div v-if="showNoResultFoundMessage" class="search-message-section">No results found.</div>
+    <div v-if="showNoResultFoundMessage" class="search-message-section">{{ t('sideBar.search.noResultsFound') }}</div>
     <div v-if="searchErrorString" class="search-message-section">{{ searchErrorString }}</div>
 
     <div v-show="showSearchCancelArea" class="cancel-area">
       <el-button type="primary" size="mini" @click="cancelSearcher">
-        Cancel <VideoPause />
+        {{ t('sideBar.search.cancel') }} <VideoPause />
       </el-button>
     </div>
     <div v-if="searchResult.length" class="search-result-info">{{ searchResultInfo }}</div>
@@ -58,7 +58,7 @@
     <div v-else class="empty">
       <div class="no-data">
         <button v-if="showNoFolderOpenedMessage" class="button-primary" @click="openFolder">
-          Open Folder
+          {{ t('sideBar.search.openFolder') }}
         </button>
       </div>
     </div>
@@ -80,6 +80,7 @@ import FindCaseIcon from '@/assets/icons/searchIcons/iconCase.svg'
 import FindWordIcon from '@/assets/icons/searchIcons/iconWord.svg'
 import FindRegexIcon from '@/assets/icons/searchIcons/iconRegex.svg'
 import { VideoPause } from '@element-plus/icons-vue'
+import { t } from '../../i18n'
 
 const layoutStore = useLayoutStore()
 const projectStore = useProjectStore()
@@ -118,7 +119,7 @@ const searchResultInfo = computed(() => {
     return acc + item.matches.length
   }, 0)
 
-  return `${matchCount} ${matchCount > 1 ? 'matches' : 'match'} in ${fileCount} ${fileCount > 1 ? 'files' : 'file'}`
+  return t('search.searchResultInfo', { matchCount, fileCount })
 })
 
 const showNoFolderOpenedMessage = computed(() => {
@@ -170,7 +171,7 @@ const search = () => {
           if (promises.cancel) {
             promises.cancel()
           }
-          searchErrorString.value = 'Search was limited to 100 files.'
+          searchErrorString.value = t('sideBar.search.searchLimited', { count: 100 })
         }
       },
 

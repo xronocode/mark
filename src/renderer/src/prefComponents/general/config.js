@@ -1,8 +1,10 @@
+import { t } from '../../i18n'
+
 export const titleBarStyleOptions = [{
-  label: 'Custom',
+  label: t('preferences.general.window.titleBarStyle.custom'),
   value: 'custom'
 }, {
-  label: 'Native',
+  label: t('preferences.general.window.titleBarStyle.native'),
   value: 'native'
 }]
 
@@ -48,17 +50,17 @@ export const zoomOptions = [{
 }]
 
 export const fileSortByOptions = [{
-  label: 'Creation time',
+  label: t('preferences.general.sidebar.fileSortBy.creationTime'),
   value: 'created'
 }, {
-  label: 'Modification time',
+  label: t('preferences.general.sidebar.fileSortBy.modificationTime'),
   value: 'modified'
 }, {
-  label: 'Title',
+  label: t('preferences.general.sidebar.fileSortBy.title'),
   value: 'title'
 }]
 
 export const languageOptions = [{
-  label: 'English',
+  label: t('preferences.general.misc.language.english'),
   value: 'en'
 }]

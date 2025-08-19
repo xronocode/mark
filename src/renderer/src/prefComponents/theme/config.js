@@ -19,13 +19,17 @@ export const themes = [
   }
 ]
 
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
+
 export const autoSwitchThemeOptions = [{
-  label: 'Adjust theme at startup', // Always
+  label: t('preferences.theme.autoSwitchOptions.startup'),
   value: 0
 }, /* {
   label: 'Only at runtime',
   value: 1
 }, */ {
-  label: 'Never',
+  label: t('preferences.theme.autoSwitchOptions.never'),
   value: 2
 }]
