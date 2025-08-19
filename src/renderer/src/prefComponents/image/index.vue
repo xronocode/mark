@@ -33,7 +33,7 @@ import Separator from '../common/separator/index.vue'
 import Uploader from './components/uploader/index.vue'
 import CurSelect from '../common/select/index.vue'
 import FolderSetting from './components/folderSetting/index.vue'
-import { imageActions } from './config'
+import { getImageActions } from './config'
 import { InfoFilled } from '@element-plus/icons-vue'
 
 const { t } = useI18n()
@@ -41,6 +41,8 @@ const { t } = useI18n()
 const preferenceStore = usePreferencesStore()
 
 const { imageInsertAction } = storeToRefs(preferenceStore)
+
+const imageActions = getImageActions()
 
 const onSelectChange = (type, value) => {
   preferenceStore.SET_SINGLE_PREFERENCE({ type, value })

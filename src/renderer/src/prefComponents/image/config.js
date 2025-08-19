@@ -1,6 +1,6 @@
 import { t } from '../../i18n'
 
-export const imageActions = [{
+export const getImageActions = () => [{
   label: t('preferences.image.actions.upload'),
   value: 'upload'
 }, {

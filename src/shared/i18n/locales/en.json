@@ -337,6 +337,103 @@
         "title": "Miscellaneous",
         "language": "Language"
       }
+    },
+    "editor": {
+      "title": "Editor",
+      "font": {
+        "title": "Font",
+        "fontFamily": "Font Family",
+        "fontSize": "Font Size",
+        "lineHeight": "Line Height"
+      },
+      "codeBlock": {
+        "title": "Code Block",
+        "codeFontFamily": "Code Font Family",
+        "codeFontSize": "Code Font Size",
+        "codeBlockLineNumbers": "Show line numbers",
+        "trimUnnecessaryCodeBlockEmptyLines": "Trim unnecessary empty lines",
+        "wrapCodeBlocks": "Wrap code blocks"
+      },
+      "writing": {
+        "title": "Writing",
+        "autoPairBracket": "Auto pair bracket",
+        "autoPairMarkdownSyntax": "Auto pair markdown syntax",
+        "autoPairQuote": "Auto pair quote",
+        "tabSize": "Tab size",
+        "endOfLine": "End of line",
+        "defaultEncoding": "Default encoding",
+        "autoGuessEncoding": "Auto guess encoding",
+        "trimTrailingNewline": "Trim trailing newline",
+        "textDirection": "Text direction",
+        "editorLineWidth": "Editor line width"
+      },
+      "misc": {
+        "title": "Miscellaneous",
+        "hideQuickInsertHint": "Hide quick insert hint",
+        "hideLinkPopup": "Hide link popup",
+        "autoCheck": "Auto check",
+        "wrapCodeBlocks": "Wrap code blocks"
+      }
+    },
+    "image": {
+      "title": "Image",
+      "defaultAction": "Default action when insert image",
+      "clipboardTooltip": "The default behavior after paste or drag the image to MarkText",
+      "actions": {
+        "upload": "Upload to cloud",
+        "folder": "Copy to folder",
+        "path": "Use absolute path"
+      },
+      "folderSetting": {
+        "title": "Folder Setting",
+        "globalFolder": "Global image folder",
+        "open": "Open",
+        "showInFolder": "Show in Folder",
+        "preferRelative": "Prefer relative directory",
+        "relativeFolderName": "Relative folder name",
+        "filenameNote": "The filename will be automatically generated."
+      }
+    },
+    "markdown": {
+      "title": "Markdown",
+      "listItem": {
+        "title": "List Item",
+        "preferLooseListItem": "Prefer loose list item",
+        "bulletListMarker": "Bullet list marker",
+        "orderListDelimiter": "Order list delimiter",
+        "listIndentation": "List indentation"
+      },
+      "heading": {
+        "title": "Heading",
+        "preferHeadingStyle": "Prefer heading style"
+      },
+      "frontmatter": {
+        "title": "Front Matter",
+        "frontmatterType": "Front matter type"
+      },
+      "extensions": {
+        "title": "Extensions",
+        "superSubScript": "Super/Sub script",
+        "footnote": "Footnote",
+        "isHtmlEnabled": "HTML enabled",
+        "isGitlabCompatibilityEnabled": "GitLab compatibility",
+        "sequenceTheme": "Sequence theme"
+      }
+    },
+    "spelling": {
+      "title": "Spelling",
+      "spellcheckerEnabled": "Enable spell checker",
+      "spellcheckerNoUnderline": "No underline for misspelled words",
+      "spellcheckerLanguage": "Spell checker language"
+    },
+    "theme": {
+      "title": "Theme",
+      "theme": "Theme",
+      "autoSwitchTheme": "Auto switch theme",
+      "customCss": "Custom CSS"
+    },
+    "keybindings": {
+      "title": "Keybindings"
     }
   }
 }

@@ -331,12 +331,109 @@
         "creationTime": "创建时间",
         "modifiedTime": "修改时间",
         "title": "标题",
-        "excludePatternsNotes": "排除模式（笔记）"
+        "excludePatternsNotes": "排除模式（备注）"
       },
       "misc": {
-        "title": "其他",
+        "title": "杂项",
         "language": "语言"
       }
+    },
+    "editor": {
+      "title": "编辑器",
+      "font": {
+        "title": "字体",
+        "fontFamily": "字体系列",
+        "fontSize": "字体大小",
+        "lineHeight": "行高"
+      },
+      "codeBlock": {
+        "title": "代码块",
+        "codeFontFamily": "代码字体系列",
+        "codeFontSize": "代码字体大小",
+        "codeBlockLineNumbers": "显示行号",
+        "trimUnnecessaryCodeBlockEmptyLines": "删除不必要的空行",
+        "wrapCodeBlocks": "代码块换行"
+      },
+      "writing": {
+        "title": "写作",
+        "autoPairBracket": "自动配对括号",
+        "autoPairMarkdownSyntax": "自动配对Markdown语法",
+        "autoPairQuote": "自动配对引号",
+        "tabSize": "制表符大小",
+        "endOfLine": "行尾符",
+        "defaultEncoding": "默认编码",
+        "autoGuessEncoding": "自动猜测编码",
+        "trimTrailingNewline": "删除尾随换行符",
+        "textDirection": "文本方向",
+        "editorLineWidth": "编辑器行宽"
+      },
+      "misc": {
+        "title": "杂项",
+        "hideQuickInsertHint": "隐藏快速插入提示",
+        "hideLinkPopup": "隐藏链接弹窗",
+        "autoCheck": "自动检查",
+        "wrapCodeBlocks": "代码块换行"
+      }
+    },
+    "image": {
+      "title": "图片",
+      "defaultAction": "插入图片时的默认操作",
+      "clipboardTooltip": "粘贴或拖拽图片到MarkText后的默认行为",
+      "actions": {
+        "upload": "上传到云端",
+        "folder": "复制到文件夹",
+        "path": "使用绝对路径"
+      },
+      "folderSetting": {
+        "title": "文件夹设置",
+        "globalFolder": "全局图片文件夹",
+        "open": "打开",
+        "showInFolder": "在文件夹中显示",
+        "preferRelative": "优先使用相对目录",
+        "relativeFolderName": "相对文件夹名称",
+        "filenameNote": "文件名将自动生成。"
+      }
+    },
+    "markdown": {
+      "title": "Markdown",
+      "listItem": {
+        "title": "列表项",
+        "preferLooseListItem": "优先使用松散列表项",
+        "bulletListMarker": "无序列表标记",
+        "orderListDelimiter": "有序列表分隔符",
+        "listIndentation": "列表缩进"
+      },
+      "heading": {
+        "title": "标题",
+        "preferHeadingStyle": "优先标题样式"
+      },
+      "frontmatter": {
+        "title": "前言",
+        "frontmatterType": "前言类型"
+      },
+      "extensions": {
+        "title": "扩展",
+        "superSubScript": "上标/下标",
+        "footnote": "脚注",
+        "isHtmlEnabled": "启用HTML",
+        "isGitlabCompatibilityEnabled": "GitLab兼容性",
+        "sequenceTheme": "序列图主题"
+      }
+    },
+    "spelling": {
+      "title": "拼写",
+      "spellcheckerEnabled": "启用拼写检查",
+      "spellcheckerNoUnderline": "拼写错误不显示下划线",
+      "spellcheckerLanguage": "拼写检查语言"
+    },
+    "theme": {
+      "title": "主题",
+      "theme": "主题",
+      "autoSwitchTheme": "自动切换主题",
+      "customCss": "自定义CSS"
+    },
+    "keybindings": {
+      "title": "快捷键"
     }
   }
 }
