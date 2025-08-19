@@ -62,6 +62,7 @@
           v-show="createCache.dirname === projectTree.pathname"
           ref="input"
           v-model="createName"
+          placeholder="Enter .md file name"
           type="text"
           class="new-input"
           :style="{ 'margin-left': `${depth * 5 + 15}px` }"
@@ -78,7 +79,9 @@
           class="empty-project"
         >
           <span>Empty project</span>
-          <a href="javascript:;" @click.stop="createFile">Create File</a>
+          <div class="centered-group">
+            <button class="button-primary" @click="createFile">Create File</button>
+          </div>
         </div>
       </div>
     </div>
@@ -91,7 +94,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, nextTick } from 'vue'
+import { ref, onMounted, nextTick, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useProjectStore } from '@/store/project'
 import { useEditorStore } from '@/store/editor'
@@ -165,7 +168,7 @@ onMounted(() => {
   // hide rename or create input if needed
   document.addEventListener('click', (event) => {
     const target = event.target
-    if (target.tagName !== 'INPUT') {
+    if (target.tagName !== 'INPUT' && target.textContent !== 'Create File') {
       projectStore.CHANGE_ACTIVE_ITEM({})
       projectStore.createCache = {}
       projectStore.renameCache = null
@@ -339,7 +342,7 @@ onMounted(() => {
   padding: 0 6px;
   color: var(--sideBarColor);
   border: 1px solid var(--floatBorderColor);
-  background: var(--floatBorderColor);
+  background: var(--inputBgColor);
   width: calc(100% - 45px);
   border-radius: 3px;
 }
@@ -347,19 +350,14 @@ onMounted(() => {
   position: relative;
 }
 .empty-project {
-  position: absolute;
-  top: 0;
-  left: 0;
   font-size: 14px;
   display: flex;
   flex-direction: column;
   padding-top: 40px;
   align-items: center;
-  & > a {
-    color: var(--highlightThemeColor);
-    text-align: center;
-    margin-top: 15px;
-    text-decoration: none;
+  color: var(--sideBarTextColor);
+  & button {
+    margin-top: 10px;
   }
 }
 .bold {

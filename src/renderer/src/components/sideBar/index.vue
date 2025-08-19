@@ -29,8 +29,8 @@
     <div v-show="rightColumn" class="right-column">
       <tree
         v-if="rightColumn === 'files'"
-        :project-tree="projectTree"
-        :opened-files="openedFiles"
+        :projectTree="projectTree"
+        :openedFiles="openedFiles"
         :tabs="tabs"
       ></tree>
       <side-bar-search v-else-if="rightColumn === 'search'"></side-bar-search>
@@ -41,7 +41,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, nextTick } from 'vue'
+import { ref, computed, onMounted, nextTick, watch } from 'vue'
 import { useLayoutStore } from '@/store/layout'
 import { useProjectStore } from '@/store/project'
 import { useEditorStore } from '@/store/editor'
