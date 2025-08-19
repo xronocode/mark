@@ -48,256 +48,261 @@
       "findPrevious": "查找上一个",
       "findInFolder": "在文件夹中查找",
       "screenshot": "截图",
-      "lineEnding": "行结束符"
+      "lineEnding": "行结束符",
+      "lineEndingCrlf": "CRLF",
+      "lineEndingLf": "LF"
     },
-    "contextMenu": {
-      "cut": "剪切",
-      "copy": "复制",
-      "paste": "粘贴",
-      "copyAsMarkdown": "复制为 Markdown",
-      "copyAsHtml": "复制为 HTML",
-      "pasteAsPlainText": "粘贴为纯文本",
-      "insertParagraphBefore": "在前面插入段落",
-      "insertParagraphAfter": "在后面插入段落",
-      "spelling": "拼写检查...",
-      "changeLanguage": "更改语言...",
-      "addToDictionary": "添加到词典",
-      "editDictionary": "编辑词典...",
-      "sideBar": {
-        "newFile": "新建文件",
-        "newDirectory": "新建文件夹",
-        "copy": "复制",
-        "cut": "剪切",
-        "paste": "粘贴",
-        "rename": "重命名",
-        "moveToTrash": "移动到废纸篓",
-        "showInFolder": "在文件夹中显示"
-      },
-      "tabs": {
-        "close": "关闭",
-        "closeOthers": "关闭其他",
-        "closeSavedTabs": "关闭已保存的标签页",
-        "closeAllTabs": "关闭所有标签页",
-        "rename": "重命名",
-        "copyPath": "复制路径",
-        "showInFolder": "在文件夹中显示"
-      }
+    "paragraph": {
+      "title": "段落",
+      "paragraph": "段落",
+      "heading1": "标题 1",
+      "heading2": "标题 2",
+      "heading3": "标题 3",
+      "heading4": "标题 4",
+      "heading5": "标题 5",
+      "heading6": "标题 6",
+      "promoteHeading": "提升标题级别",
+      "demoteHeading": "降低标题级别",
+      "table": "表格",
+      "codeFences": "代码块",
+      "codeBlock": "代码块",
+      "quoteBlock": "引用块",
+      "mathBlock": "数学公式块",
+      "htmlBlock": "HTML 块",
+      "quote": "引用",
+      "orderedList": "有序列表",
+      "bulletList": "无序列表",
+      "unorderedList": "无序列表",
+      "taskList": "任务列表",
+      "looseListItem": "松散列表项",
+      "paragraphItem": "段落项",
+      "horizontalRule": "水平分割线",
+      "frontMatter": "前言"
     },
-    "search": {
-      "searchPlaceholder": "搜索",
-      "caseSensitive": "区分大小写",
-      "wholeWord": "全词匹配",
-      "useRegex": "使用正则表达式",
-      "replacementPlaceholder": "替换",
-      "replaceAll": "全部替换",
-      "replaceSingle": "替换单个"
+    "window": {
+      "title": "窗口",
+      "window": "窗口",
+      "minimize": "最小化",
+      "close": "关闭",
+      "zoom": "缩放",
+      "zoomIn": "放大",
+      "zoomOut": "缩小",
+      "fullScreen": "全屏",
+      "bringAllToFront": "前置所有窗口",
+      "alwaysOnTop": "置顶显示"
     },
-    "sideBar": {
-      "search": {
-        "searchInFolder": "在文件夹中搜索...",
-        "noFolderOpen": "未打开文件夹",
-        "noResultsFound": "未找到结果。",
-        "cancel": "取消",
-        "openFolder": "打开文件夹",
-        "showMoreMatches": "显示更多匹配项"
-      },
-      "tree": {
-        "openedFiles": "已打开的文件",
-        "saveAll": "保存全部",
-        "closeAll": "关闭全部",
-        "emptyProject": "空项目",
-        "createFile": "创建文件",
-        "openFolder": "打开文件夹"
-      },
-      "toc": {
-        "title": "目录"
-      }
+    "help": {
+      "help": "帮助",
+      "markdownReference": "Markdown 参考",
+      "changelog": "更新日志",
+      "askQuestion": "提问",
+      "reportBug": "报告错误",
+      "viewSource": "查看源码",
+      "license": "许可证",
+      "checkForUpdates": "检查更新",
+      "aboutMarkText": "关于 MarkText"
     },
-    "commandPalette": {
-      "placeholder": "输入要执行的命令"
+    "marktext": {
+      "title": "MarkText",
+      "marktext": "MarkText",
+      "about": "关于 MarkText",
+      "checkUpdates": "检查更新...",
+      "preferences": "偏好设置",
+      "services": "服务",
+      "hide": "隐藏 MarkText",
+      "hideMarkText": "隐藏 MarkText",
+      "hideOthers": "隐藏其他",
+      "showAll": "显示全部",
+      "quit": "退出 MarkText"
     },
-    "exportSettings": {
-      "title": "导出选项",
-      "info": {
-        "label": "信息",
-        "description": "请自定义页面外观并点击\"导出\"继续。"
-      },
-      "page": {
-        "label": "页面"
-      },
-      "style": {
-        "label": "样式"
-      },
-      "theme": {
-        "label": "主题",
-        "description": "您可以通过选择主题或创建自定义主题来更改文档外观。"
-      },
-      "headerFooter": {
-        "label": "页眉和页脚",
-        "description": "如果定义了页眉和/或页脚，文本将出现在所有页面上。"
-      },
-      "toc": {
-        "label": "目录"
-      },
-      "export": "导出..."
+    "view": {
+      "view": "视图",
+      "toggleSidebar": "切换侧边栏",
+      "toggleTabbar": "切换标签栏",
+      "toggleSourceCode": "切换源代码模式",
+      "toggleTypewriter": "切换打字机模式",
+      "toggleFocus": "切换专注模式",
+      "zoomIn": "放大",
+      "zoomOut": "缩小",
+      "resetZoom": "重置缩放",
+      "fullscreen": "进入全屏",
+      "exitFullscreen": "退出全屏",
+      "commandPalette": "命令面板",
+      "sourceCode": "源代码模式",
+      "sourceCodeMode": "源代码模式",
+      "typewriter": "打字机模式",
+      "typewriterMode": "打字机模式",
+      "focus": "专注模式",
+      "focusMode": "专注模式",
+      "sidebar": "侧边栏",
+      "showSidebar": "显示侧边栏",
+      "tabBar": "标签栏",
+      "showTabBar": "显示标签栏",
+      "toc": "目录",
+      "toggleTableOfContents": "切换目录",
+      "reloadImages": "重新加载图片",
+      "devTools": "开发者工具",
+      "showDeveloperTools": "显示开发者工具",
+      "reload": "重新加载",
+      "reloadWindow": "重新加载窗口"
     },
-    "editor": {
-      "insertTable": {
-        "title": "插入表格",
-        "rows": "行数",
-        "columns": "列数"
-      }
+    "format": {
+      "format": "格式",
+      "bold": "粗体",
+      "italic": "斜体",
+      "underline": "下划线",
+      "strikethrough": "删除线",
+      "code": "行内代码",
+      "codeBlock": "代码块",
+      "quote": "引用",
+      "unorderedList": "无序列表",
+      "orderedList": "有序列表",
+      "taskList": "任务列表",
+      "table": "表格",
+      "link": "链接",
+      "image": "图片",
+      "heading1": "标题 1",
+      "heading2": "标题 2",
+      "heading3": "标题 3",
+      "heading4": "标题 4",
+      "heading5": "标题 5",
+      "heading6": "标题 6",
+      "superscript": "上标",
+      "subscript": "下标",
+      "highlight": "高亮",
+      "inlineCode": "行内代码",
+      "inlineMath": "行内数学公式",
+      "hyperlink": "超链接",
+      "clearFormatting": "清除格式",
+      "clearFormat": "清除格式"
     },
-    "recent": {
-      "noTabsOpen": "您没有打开的标签页。",
-      "newFile": "新建文件"
-    },
-    "import": {
-      "title": "导入或打开",
-      "description": "拖拽到此处将内容导入到 MarkText"
-    },
-    "tweet": {
-      "title": "通过推特向我们发送反馈",
-      "feelingsQuestion": "您的体验感受如何？",
-      "feedbackQuestion": "告诉我们您的反馈？",
-      "reportViaGithub": "通过 GitHub 报告错误或功能请求",
-      "tweet": "发推"
+    "theme": {
+      "theme": "主题(&T)",
+      "light": "浅色",
+      "dark": "深色",
+      "auto": "自动",
+      "cadmiumLight": "镉光",
+      "graphiteLight": "石墨光",
+      "materialDark": "材质深色",
+      "oneDark": "One Dark",
+      "ulyssesLight": "尤利西斯光"
     }
+  },
+  "contextMenu": {
+    "cut": "剪切",
+    "copy": "复制",
+    "paste": "粘贴",
+    "copyAsMarkdown": "复制为 Markdown",
+    "copyAsHtml": "复制为 HTML",
+    "pasteAsPlainText": "粘贴为纯文本",
+    "insertParagraphBefore": "在前面插入段落",
+    "insertParagraphAfter": "在后面插入段落",
+    "spelling": "拼写检查...",
+    "changeLanguage": "更改语言...",
+    "addToDictionary": "添加到词典",
+    "editDictionary": "编辑词典...",
+    "sideBar": {
+      "newFile": "新建文件",
+      "newDirectory": "新建文件夹",
+      "copy": "复制",
+      "cut": "剪切",
+      "paste": "粘贴",
+      "rename": "重命名",
+      "moveToTrash": "移动到废纸篓",
+      "showInFolder": "在文件夹中显示"
+    },
+    "tabs": {
+      "close": "关闭",
+      "closeOthers": "关闭其他",
+      "closeSavedTabs": "关闭已保存的标签页",
+      "closeAllTabs": "关闭所有标签页",
+      "rename": "重命名",
+      "copyPath": "复制路径",
+      "showInFolder": "在文件夹中显示"
+    }
+  },
+  "search": {
+    "searchPlaceholder": "搜索",
+    "caseSensitive": "区分大小写",
+    "wholeWord": "全词匹配",
+    "useRegex": "使用正则表达式",
+    "replacementPlaceholder": "替换",
+    "replaceAll": "全部替换",
+    "replaceSingle": "替换单个"
+  },
+  "sideBar": {
+    "search": {
+      "searchInFolder": "在文件夹中搜索...",
+      "noFolderOpen": "未打开文件夹",
+      "noResultsFound": "未找到结果。",
+      "cancel": "取消",
+      "openFolder": "打开文件夹",
+      "showMoreMatches": "显示更多匹配项"
+    },
+    "tree": {
+      "openedFiles": "已打开的文件",
+      "saveAll": "保存全部",
+      "closeAll": "关闭全部",
+      "emptyProject": "空项目",
+      "createFile": "创建文件",
+      "openFolder": "打开文件夹"
+    },
+    "toc": {
+      "title": "目录"
+    }
+  },
+  "commandPalette": {
+    "placeholder": "输入要执行的命令"
+  },
+  "exportSettings": {
+    "title": "导出选项",
+    "info": {
+      "label": "信息",
+      "description": "请自定义页面外观并点击\"导出\"继续。"
+    },
+    "page": {
+      "label": "页面"
+    },
+    "style": {
+      "label": "样式"
+    },
+    "theme": {
+      "label": "主题",
+      "description": "您可以通过选择主题或创建自定义主题来更改文档外观。"
+    },
+    "headerFooter": {
+      "label": "页眉和页脚",
+      "description": "如果定义了页眉和/或页脚，文本将出现在所有页面上。"
+    },
+    "toc": {
+      "label": "目录"
+    },
+    "export": "导出..."
+  },
+  "editor": {
+    "insertTable": {
+      "title": "插入表格",
+      "rows": "行数",
+      "columns": "列数"
+    }
+  },
+  "recent": {
+    "noTabsOpen": "您没有打开的标签页。",
+    "newFile": "新建文件"
+  },
+  "import": {
+    "title": "导入或打开",
+    "description": "拖拽到此处将内容导入到 MarkText"
+  },
+  "tweet": {
+    "title": "通过推特向我们发送反馈",
+    "feelingsQuestion": "您的体验感受如何？",
+    "feedbackQuestion": "告诉我们您的反馈？",
+    "reportViaGithub": "通过 GitHub 报告错误或功能请求",
+    "tweet": "发推"
   },
   "lineEnding": {
     "carriageReturnLineFeed": "回车换行符 (CRLF)",
     "lineFeed": "换行符 (LF)"
-  },
-  "view": {
-    "view": "视图",
-    "toggleSidebar": "切换侧边栏",
-    "toggleTabbar": "切换标签栏",
-    "toggleSourceCode": "切换源代码模式",
-    "toggleTypewriter": "切换打字机模式",
-    "toggleFocus": "切换专注模式",
-    "zoomIn": "放大",
-    "zoomOut": "缩小",
-    "resetZoom": "重置缩放",
-    "fullscreen": "进入全屏",
-    "exitFullscreen": "退出全屏",
-    "commandPalette": "命令面板",
-    "sourceCode": "源代码模式",
-    "sourceCodeMode": "源代码模式",
-    "typewriter": "打字机模式",
-    "typewriterMode": "打字机模式",
-    "focus": "专注模式",
-    "focusMode": "专注模式",
-    "sidebar": "侧边栏",
-    "showSidebar": "显示侧边栏",
-    "tabBar": "标签栏",
-    "showTabBar": "显示标签栏",
-    "toc": "目录",
-    "toggleTableOfContents": "切换目录",
-    "reloadImages": "重新加载图片",
-    "devTools": "开发者工具",
-    "showDeveloperTools": "显示开发者工具",
-    "reload": "重新加载",
-    "reloadWindow": "重新加载窗口"
-  },
-  "format": {
-    "format": "格式",
-    "bold": "粗体",
-    "italic": "斜体",
-    "underline": "下划线",
-    "strikethrough": "删除线",
-    "superscript": "上标",
-    "subscript": "下标",
-    "highlight": "高亮",
-    "inlineCode": "行内代码",
-    "inlineMath": "行内数学公式",
-    "hyperlink": "超链接",
-    "code": "代码",
-    "codeBlock": "代码块",
-    "quote": "引用",
-    "unorderedList": "无序列表",
-    "orderedList": "有序列表",
-    "taskList": "任务列表",
-    "table": "表格",
-    "link": "链接",
-    "image": "图片",
-    "heading1": "标题 1",
-    "heading2": "标题 2",
-    "heading3": "标题 3",
-    "heading4": "标题 4",
-    "heading5": "标题 5",
-    "heading6": "标题 6",
-    "clear": "清除格式",
-    "clearFormatting": "清除格式"
-  },
-  "paragraph": {
-    "paragraph": "段落",
-    "heading1": "标题 1",
-    "heading2": "标题 2",
-    "heading3": "标题 3",
-    "heading4": "标题 4",
-    "heading5": "标题 5",
-    "heading6": "标题 6",
-    "promoteHeading": "提升标题级别",
-    "demoteHeading": "降低标题级别",
-    "table": "表格",
-    "codeFences": "代码块",
-    "codeBlock": "代码块",
-    "quoteBlock": "引用块",
-    "mathBlock": "数学公式块",
-    "htmlBlock": "HTML 块",
-    "quote": "引用",
-    "orderedList": "有序列表",
-    "bulletList": "无序列表",
-    "unorderedList": "无序列表",
-    "taskList": "任务列表",
-    "looseListItem": "松散列表项",
-    "paragraphItem": "段落",
-    "horizontalRule": "水平分割线",
-    "frontMatter": "前言"
-  },
-  "window": {
-    "window": "窗口",
-    "minimize": "最小化",
-    "close": "关闭",
-    "zoom": "缩放",
-    "zoomIn": "放大",
-    "zoomOut": "缩小",
-    "fullscreen": "全屏",
-    "showInFullScreen": "进入全屏",
-    "alwaysOnTop": "置顶显示"
-  },
-  "help": {
-    "help": "帮助",
-    "markdownReference": "Markdown 参考",
-    "changelog": "更新日志",
-    "askQuestion": "提问",
-    "reportBug": "报告错误",
-    "viewSource": "查看源码",
-    "license": "许可证",
-    "checkForUpdates": "检查更新",
-    "aboutMarkText": "关于 MarkText"
-  },
-  "theme": {
-    "theme": "主题(&W)",
-    "light": "Light",
-    "dark": "Dark",
-    "auto": "自动",
-    "cadmiumLight": "Cadmium Light",
-    "graphiteLight": "Graphite Light",
-    "materialDark": "Material Dark",
-    "oneDark": "One Dark",
-    "ulyssesLight": "Ulysses Light"
-  },
-  "marktext": {
-    "marktext": "MarkText",
-    "about": "关于 MarkText",
-    "checkForUpdates": "检查更新...",
-    "preferences": "偏好设置",
-    "services": "服务",
-    "hide": "隐藏 MarkText",
-    "hideMarkText": "隐藏 MarkText",
-    "hideOthers": "隐藏其他",
-    "showAll": "显示全部",
-    "quit": "退出 MarkText"
   }
 }

@@ -21,23 +21,41 @@ function loadTranslations(language) {
     // 尝试多个可能的路径
     let translationPath
     const possiblePaths = [
+      // 构建后的路径（主进程）
+      path.join(process.cwd(), 'out', 'main', 'locales', `${language}.json`),
+      // 开发环境路径
       path.join(__dirname, 'locales', `${language}.json`),
       path.join(__dirname, '..', '..', 'shared', 'i18n', 'locales', `${language}.json`),
       path.join(process.cwd(), 'src', 'shared', 'i18n', 'locales', `${language}.json`)
     ]
     
     for (const possiblePath of possiblePaths) {
+      console.log(`Checking translation path: ${possiblePath}`)
       if (fs.existsSync(possiblePath)) {
         translationPath = possiblePath
+        console.log(`Found translation file: ${translationPath}`)
         break
       }
     }
     
     if (!translationPath) {
+      console.error(`Translation file not found for language: ${language}. Checked paths:`, possiblePaths)
       throw new Error(`Translation file not found for language: ${language}`)
     }
     
-    const translationData = JSON.parse(fs.readFileSync(translationPath, 'utf8'))
+    const content = fs.readFileSync(translationPath, 'utf8')
+    console.log(`File content length: ${content.length} characters`)
+    console.log(`First 200 chars:`, content.substring(0, 200))
+    console.log(`Last 200 chars:`, content.substring(content.length - 200))
+    
+    let translationData
+    try {
+      translationData = JSON.parse(content)
+    } catch (error) {
+      console.error(`JSON parse error for ${language}:`, error.message)
+      throw error
+    }
+    
     translationsCache[language] = translationData
     return translationData
   } catch (error) {
