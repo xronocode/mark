@@ -913,6 +913,14 @@ export const useEditorStore = defineStore('editor', {
       }
     },
 
+    SET_SAVE_STATUS_WHEN_REMOVE({ pathname }) {
+      this.tabs.forEach((f) => {
+        if (f.pathname === pathname) {
+          f.isSaved = false
+        }
+      })
+    },
+
     // Content change from realtime preview editor and source code editor
     LISTEN_FOR_CONTENT_CHANGE({
       id,
