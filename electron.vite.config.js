@@ -15,7 +15,7 @@ export default defineConfig({
     // --> Bundled as CommonJS
     // externalizeDepsPlugin() basically externises all the dependencies from being bundled during build - treating them as runtime dependencies
     // electron-vite still builds the main and preload processes into commonJS
-    // hence, we need to "exclude" externalising ESonly modules so that they can be converted to commonJS and can be require()
+    // hence, we need to "exclude" (in order to NOT externalise) ESonly modules so that they can be converted to commonJS and can be required() afterwards correctly
     plugins: [
       externalizeDepsPlugin({
         exclude: ['electron-store']
@@ -75,6 +75,18 @@ export default defineConfig({
             features: { 'nesting-rules': true }
           })
         ]
+      }
+    },
+    optimizeDeps: {
+      // We need to externalise fontmanager-redux as it is not a browser compatible module
+      // electron-vite will throw an error during the optimisation step when it tries to optimise it
+      exclude: ['fontmanager-redux']
+    },
+    build: {
+      rollupOptions: {
+        // This is technically not required since rollUp by default does not bundle require() calls
+        // But just in case there are any changes in the future
+        external: ['fontmanager-redux']
       }
     }
   }
