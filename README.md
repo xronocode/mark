@@ -3,8 +3,8 @@
 <h1 align="center">MarkText</h1>
 
 <div align="center">
-  <strong>🔆 下一代 Markdown 编辑器 🌙</strong><br>
-  一个简洁优雅的开源 Markdown 编辑器，专注于速度和易用性。<br>
+  <strong>🔆 Next generation markdown editor 🌙</strong><br>
+  A simple and elegant open-source markdown editor that focused on speed and usability.<br>
 </div>
 
 <div align="center">
@@ -23,40 +23,38 @@
 </div>
 
 <div align="center">
-  <a href="#english">English</a> | <strong>中文</strong>
+  <strong>English</strong> | <a href="#简体中文">简体中文</a> | <a href="#繁體中文">繁體中文</a> | <a href="#한국어">한국어</a> | <a href="#日本語">日本語</a> | <a href="#español">Español</a> | <a href="#français">Français</a> | <a href="#português">Português</a> | <a href="#deutsch">Deutsch</a>
 </div>
 
 ---
 
-## 中文版
+- [MarkText](https://github.com/marktext/marktext) is a free and open source markdown editor originally written by [Jocs](https://github.com/Jocs) and [contributors](https://github.com/marktext/marktext/graphs/contributors).
+- Sadly, the core repository became unmaintained since about 3 years ago, but various Quality of Life issues remained that I noticed in my daily usage.
+- This repository serves as an attempt at modernising my favourite Markdown Editor, and is a fork based off [Jacob Whall's Fork](https://github.com/jacobwhall/marktext)
 
-- [MarkText](https://github.com/marktext/marktext) 是一个免费开源的 Markdown 编辑器，最初由 [Jocs](https://github.com/Jocs) 和 [贡献者们](https://github.com/marktext/marktext/graphs/contributors) 开发。
-- 遗憾的是，核心仓库在大约 3 年前就停止了维护，但在[Tkaixiang](https://github.com/Tkaixiang/marktext/commits?author=Tkaixiang)大佬日常使用中仍然发现了各种影响使用体验的问题。
-- 这个仓库是[Tkaixiang](https://github.com/Tkaixiang/marktext/commits?author=Tkaixiang)大佬尝试现代化 Markdown 编辑器的努力，基于 [Jacob Whall 的分支](https://github.com/jacobwhall/marktext) 进行开发。我仅仅提供多语言，请大家关注[Tkaixiang](https://github.com/Tkaixiang/marktext/commits?author=Tkaixiang)大佬
+  - See [my motivation below](#5-motivation)
+- You can read more about my motivation below
+- Multi-language support powered by Trae AI Claude 4.0
 
-  - 查看[Tkaixiang的动机](#1-这个分支与其他无数分支有什么不同)
-- 您可以在下面阅读更多关于[Tkaixiang](https://github.com/Tkaixiang/marktext/commits?author=Tkaixiang)的动机
-- 翻译基于 trae ai-claude4.0 进行
+# 1. Installing
 
-# 1. 安装
-
-> ⚠️ 这些版本仍处于 **测试阶段**（因为我不知道在迁移过程中可能破坏了多少功能）。请在 [问题跟踪器](https://github.com/Tkaixiang/marktext/issues) 中报告任何错误。
+> ⚠️ These releases are still in **beta** (since I do not know how much stuff I might have broken during the migration). Please report any bugs in the [issue tracker](https://github.com/Tkaixiang/marktext/issues)
 
 ## Windows
 
-- 直接查看 [发布页面](https://github.com/hubo1989/marktext/releases/tag/v0.18.3-cn)！
-- 测试环境：
+- Simply check out the [Releases Page](https://github.com/Tkaixiang/marktext/releases)!
+- Tested on:
 
   - `Windows 11`
 
 ## Linux
 
-- 直接查看 [发布页面](https://github.com/hubo1989/marktext/releases/tag/v0.18.3-cn)
-- 测试环境：
-  - `Ubuntu 24.0.2`（`AppImage` 和 `.deb` 包）
-  - *希望能得到帮助测试其他 Linux 包！*
+- Simply check out the [Releases Page](https://github.com/Tkaixiang/marktext/releases)
+- Tested on:
+  - `Ubuntu 24.0.2` (`AppImage` and `.deb` packages)
+  - *Would love some help in testing the other Linux packages!*
 
-### Linux 包管理器
+### Linux Package Managers
 
 ##### 1. Arch Linux ![AUR Version](https://img.shields.io/aur/version/marktext-tkaixiang-bin?label=(AUR)%20marktext-tkaixiang-bin)
 
@@ -64,36 +62,36 @@
 
 ## MacOS
 
-* 直接查看 [发布页面](https://github.com/hubo1989/marktext/releases/tag/v0.18.3-cn)
+- Simply check out the [Releases Page](https://github.com/Tkaixiang/marktext/releases)
 
-* 很遗憾没有 `Apple Developer Account`，这是创建 `Developer ID` 来签名二进制文件所必需的
+- I unfortunately do not have an `Apple Developer Account` which is required to create a `Developer ID` to sign the binaries
 
-- 没有签名，所有二进制文件默认会显示为"已损坏"
-- *如果您愿意帮助解决这个问题，请随时联系！*
+  - Without signing, all binaries will appear as "Damaged" by default
+  - *If you would love to help with this, feel free to reach out!*
 
-### macOS 偏好设置修复
+### macOS Preferences Fix
 
-- ✅ **已修复**：在翻译过程中发现，macOS 版本偏好设置窗口无关闭按钮的问题
-  - 现在偏好设置窗口在 macOS 上正确显示关闭按钮
-  - 修复了窗口管理相关的用户体验问题
+- ✅ **Fixed**: macOS version preferences window missing close button issue
+  - Preferences window now properly displays close button on macOS
+  - Fixed window management related user experience issues
 
 
-# 2. 截图
+# 2. Screenshots
 
 ![](docs/marktext.png?raw=true)
 
-# 3. ✨功能特性 ⭐
+# 3. ✨Features ⭐
 
-- 实时预览（所见即所得）和简洁的界面，提供无干扰的写作体验。
-- 支持 [CommonMark 规范](https://spec.commonmark.org/0.29/)、[GitHub Flavored Markdown 规范](https://github.github.com/gfm/) 和选择性支持 [Pandoc markdown](https://pandoc.org/MANUAL.html#pandocs-markdown)。
-- Markdown 扩展，如数学表达式（KaTeX）、前言和表情符号。
-- 支持段落和内联样式快捷键，提高写作效率。
-- 输出 **HTML** 和 **PDF** 文件。
-- 多种主题：**Cadmium Light**、**Material Dark** 等。
-- 多种编辑模式：**源代码模式**、**打字机模式**、**专注模式**。
-- 直接从剪贴板粘贴图片。
+- Realtime preview (WYSIWYG) and a clean and simple interface to get a distraction-free writing experience.
+- Support [CommonMark Spec](https://spec.commonmark.org/0.29/), [GitHub Flavored Markdown Spec](https://github.github.com/gfm/) and selective support [Pandoc markdown](https://pandoc.org/MANUAL.html#pandocs-markdown).
+- Markdown extensions such as math expressions (KaTeX), front matter and emojis.
+- Support paragraphs and inline style shortcuts to improve your writing efficiency.
+- Output **HTML** and **PDF** files.
+- Various themes: **Cadmium Light**, **Material Dark** etc.
+- Various editing modes: **Source Code mode**, **Typewriter mode**, **Focus mode**.
+- Paste images directly from clipboard.
 
-## 3.1 🌙 主题 🔆
+## 3.1 🌙 Themes🔆
 
 | Cadmium Light                                   | Dark                                          |
 | ----------------------------------------------- | --------------------------------------------- |
@@ -103,34 +101,41 @@
 | Ulysses Light                                   | One Dark                                      |
 | ![](docs/themeImages/ulysses-light.png?raw=true)  | ![](docs/themeImages/one-dark.png?raw=true)     |
 
-## 3.2 😸编辑模式 🐶
+## 3.2 😸Edit Modes🐶
 
-|     源代码模式     |       打字机模式       |     专注模式     |
+|    Source Code    |       Typewriter       |       Focus       |
 | :----------------: | :--------------------: | :---------------: |
 | ![](docs/source.gif) | ![](docs/typewriter.gif) | ![](docs/focus.gif) |
 
-# 4. 国际化支持
+# 4. Internationalization Support
 
-## 4.1 🌍 多语言支持
+## 4.1 🌍 Multi-language Support
 
-- ✅ **完整的国际化功能**：支持中文和英文界面
-- ✅ **智能语言检测**：自动检测系统语言并设置为默认语言
-- ✅ **实时语言切换**：在偏好设置中可以实时切换界面语言
-- ✅ **菜单栏国际化**：所有菜单项、快捷键描述都支持多语言
-- ✅ **偏好设置国际化**：偏好设置窗口完全支持多语言
-- ✅ **导出设置国际化**：导出功能相关界面支持多语言
+- ✅ **Complete internationalization**: Support for multiple language interfaces
+- ✅ **Smart language detection**: Automatically detects system language and sets as default
+- ✅ **Real-time language switching**: Switch interface language in preferences in real-time
+- ✅ **Menu bar internationalization**: All menu items and shortcut descriptions support multiple languages
+- ✅ **Preferences internationalization**: Preferences window fully supports multiple languages
+- ✅ **Export settings internationalization**: Export-related interfaces support multiple languages
 
-### 支持的语言
+### Supported Languages
 
-- 🇨🇳 **中文（简体）** - 默认语言
-- 🇺🇸 **English** - 英语
+- 🇺🇸 **English** - Default language
+- 🇨🇳 **简体中文 (Simplified Chinese)**
+- 🇹🇼 **繁體中文 (Traditional Chinese)**
+- 🇰🇷 **한국어 (Korean)**
+- 🇯🇵 **日本語 (Japanese)**
+- 🇪🇸 **Español (Spanish)**
+- 🇫🇷 **Français (French)**
+- 🇵🇹 **Português (Portuguese)**
+- 🇩🇪 **Deutsch (German)**
 
-### 语言切换方法
+### How to Switch Languages
 
-1. 打开 **偏好设置**（快捷键：`Cmd/Ctrl + ,`）
-2. 在 **通用** 选项卡中找到 **语言** 设置
-3. 选择您偏好的语言
-4. 语言会立即生效，无需重启应用
+1. Open **Preferences** (Shortcut: `Cmd/Ctrl + ,`)
+2. Find **Language** setting in the **General** tab
+3. Select your preferred language
+4. Language takes effect immediately without restarting the application
 
 ---
 
@@ -241,7 +246,26 @@
 3. Select your preferred language
 4. Language takes effect immediately without restarting the application
 
-# 5. Motivation
+# 5. Project Motivation
+
+1. I love writing. I have used many markdown editors, yet there is still no editor that can fully satisfy my needs. I don't like being distracted by unnecessary buttons or toolbars during writing, but sometimes I need speed. **MarkText** uses virtual DOM to render pages, which has the characteristics of high efficiency and open source, so that real-time preview and the smooth experience it gives you can be achieved.
+2. As mentioned above, **MarkText** will be free and open source forever. We hope that all markdown lovers can contribute their own code and help develop **MarkText** into a popular markdown editor.
+3. There are many markdown editors, each with their own merits, but it is still difficult for all markdown users to find a perfect editor. I hope **MarkText** can satisfy the needs of as many markdown users as possible. Although the latest version of **MarkText** is not yet perfect, we will try our best to make it as perfect as possible.
+
+# 6. Contributing
+
+**MarkText** is in full development, please make sure to read the [Contributing Guide](CONTRIBUTING.md) before making a PR. Want to add some features to **MarkText**? Please refer to [TODO LIST](https://github.com/marktext/marktext/blob/master/.github/TODOLIST.md) and open issues.
+
+## Differences from Original MarkText
+
+This project is based on further development of [Jacob Whall](https://github.com/jacobwhall/marktext)'s MarkText fork, with main improvements including:
+
+### Technical Architecture Upgrade
+- 🔄 **Build Tool Modernization**: Using `electron-vite` to replace the original `Babel + Webpack` build system
+- ⚡ **Development Experience Optimization**: Faster hot reload and build speed
+- 🎯 **Vue3 Ecosystem Migration**: Migrated from Vue2 to Vue3, using `Pinia` to replace `Vuex` for state management
+- 📦 **Library Updates**: All libraries updated to their latest possible versions
+- 🔧 **ESModules Support**: The `renderer` process is now fully **`ESModules` only**
 
 ## 1. Soo is this fork any different from the countless others?
 
@@ -266,33 +290,43 @@
 
 ## 3. Project Setup
 
-### Pre-Requisites
+### Prerequisites
 
-- Python (`>= 3.12`)
-- Node.JS (`>= 22`)
-- A lot of patience
+Before getting started, please ensure you have the following software installed on your computer:
 
-### Install
+- [Node.js](https://nodejs.org/) (>= 16.x, latest LTS version recommended)
+- [Git](https://git-scm.com/)
+
+### Installation
 
 ```bash
-$ npm install
+# Clone the repository
+git clone https://github.com/Tkaixiang/marktext.git
+cd marktext
+
+# Install dependencies
+npm install
 ```
 
 ### Development
 
 ```bash
-$ npm run dev
+# Start development server
+npm run dev
 ```
 
 ### Build
 
 ```bash
-# For windows
-$ npm run build:win
+# Build application
+npm run build
 
-# For macOS
-$ npm run build:mac
+# Build Windows version
+npm run build:win
 
-# For Linux
-$ npm run build:linux
+# Build macOS version
+npm run build:mac
+
+# Build Linux version
+npm run build:linux
 ```
