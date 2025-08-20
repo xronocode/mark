@@ -122,7 +122,7 @@
 
 - 🇺🇸 **English** - Default language
 - 🇨🇳 **简体中文 (Simplified Chinese)**
-- 🇹🇼 **繁體中文 (Traditional Chinese)**
+- 🇨🇳 **繁體中文 (Traditional Chinese)**
 - 🇰🇷 **한국어 (Korean)**
 - 🇯🇵 **日本語 (Japanese)**
 - 🇪🇸 **Español (Spanish)**
