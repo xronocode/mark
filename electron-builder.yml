@@ -107,10 +107,6 @@ linux:
     Keywords: 'marktext;'
   target:
     - AppImage
-    - snap
-    - deb
-    - rpm
-    - tar.gz
   fileAssociations:
     - ext: 'md'
       name: 'Markdown'

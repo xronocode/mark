@@ -7,7 +7,14 @@ let currentLocale = 'en' // 默认为英文，将在偏好设置加载后更新
 // 加载翻译数据
 const messages = {
   en: getAllTranslations('en'),
-  'zh-CN': getAllTranslations('zh-CN')
+  'zh-CN': getAllTranslations('zh-CN'),
+  'zh-TW': getAllTranslations('zh-TW'),
+  es: getAllTranslations('es'),
+  fr: getAllTranslations('fr'),
+  de: getAllTranslations('de'),
+  ja: getAllTranslations('ja'),
+  ko: getAllTranslations('ko'),
+  pt: getAllTranslations('pt')
 }
 
 // 创建Vue i18n实例

@@ -2,7 +2,7 @@ import fs from 'fs'
 import path from 'path'
 
 // 支持的语言列表
-const SUPPORTED_LANGUAGES = ['en', 'zh-CN']
+const SUPPORTED_LANGUAGES = ['en', 'zh-CN', 'zh-TW', 'es', 'fr', 'de', 'ja', 'ko', 'pt']
 
 // 翻译数据缓存
 let translationsCache = {}
