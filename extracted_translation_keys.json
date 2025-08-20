@@ -1,0 +1,618 @@
+{
+  "about": {
+    "copyright": true,
+    "copyrightContributors": true
+  },
+  "commandPalette": {
+    "commandNotFound": true,
+    "placeholder": true
+  },
+  "commands": {
+    "utils": {
+      "noUpdateResourceFile": true,
+      "todoUpdateCheck": true
+    }
+  },
+  "common": {
+    "cancel": true,
+    "ok": true
+  },
+  "contextMenu": {
+    "addToDictionary": true,
+    "changeLanguage": true,
+    "copy": true,
+    "copyAsHtml": true,
+    "copyAsMarkdown": true,
+    "cut": true,
+    "editDictionary": true,
+    "insertParagraphAfter": true,
+    "insertParagraphBefore": true,
+    "paste": true,
+    "pasteAsPlainText": true,
+    "sideBar": {
+      "copy": true,
+      "cut": true,
+      "moveToTrash": true,
+      "newDirectory": true,
+      "newFile": true,
+      "paste": true,
+      "rename": true,
+      "showInFolder": true
+    },
+    "spelling": true,
+    "tabs": {
+      "close": true,
+      "closeAllTabs": true,
+      "closeOthers": true,
+      "closeSavedTabs": true,
+      "copyPath": true,
+      "rename": true,
+      "showInFolder": true
+    }
+  },
+  "dialog": {
+    "cancel": true,
+    "changesWillBeLost": true,
+    "close": true,
+    "dontSave": true,
+    "file": true,
+    "fileExists": true,
+    "files": true,
+    "importWarning": true,
+    "installPandoc": true,
+    "keepOpen": true,
+    "replace": true,
+    "save": true,
+    "saveChanges": true,
+    "saveFailure": true
+  },
+  "editor": {
+    "export": {
+      "error": true,
+      "errorExporting": true,
+      "failed": true
+    },
+    "insertTable": {
+      "columns": true,
+      "rows": true,
+      "title": true
+    },
+    "notifications": {
+      "notificationNotFound": true
+    },
+    "print": {
+      "error": true,
+      "failed": true
+    },
+    "sourceCode": {
+      "cursorNullComment": true,
+      "imageStructureDeletedComment": true
+    },
+    "spellcheck": {
+      "disabledError": true,
+      "errorSwitchingLanguage": true,
+      "languageMissing": true,
+      "switchError": true,
+      "title": true
+    }
+  },
+  "error": {
+    "configSchemaViolation": true,
+    "copyError": true,
+    "initializationFailed": true,
+    "otherInstanceDetected": true,
+    "report": true,
+    "startupError": true,
+    "terminatedDueToError": true,
+    "unexpectedErrorWithMessage": true,
+    "unexpectedMainProcess": true,
+    "unexpectedRendererProcess": true
+  },
+  "exportSettings": {
+    "autoNumberingHeadings": true,
+    "export": true,
+    "headerFooter": {
+      "allowStyled": true,
+      "customizeStyle": true,
+      "description": true,
+      "fontSize": true,
+      "footerType": true,
+      "headerType": true,
+      "label": true,
+      "leftFooterText": true,
+      "leftHeaderText": true,
+      "mainFooterText": true,
+      "mainHeaderText": true,
+      "rightFooterText": true,
+      "rightHeaderText": true
+    },
+    "info": {
+      "description": true,
+      "label": true
+    },
+    "page": {
+      "label": true
+    },
+    "showFrontMatter": true,
+    "style": {
+      "label": true
+    },
+    "theme": {
+      "description": true,
+      "label": true,
+      "theme": true
+    },
+    "title": true,
+    "toc": {
+      "includeTopHeading": true,
+      "includeTopHeadingDetail": true,
+      "label": true,
+      "title": true
+    }
+  },
+  "import": {
+    "description": true,
+    "title": true
+  },
+  "menu": {
+    "edit": {
+      "copy": true,
+      "copyAsHtml": true,
+      "copyAsMarkdown": true,
+      "createParagraph": true,
+      "cut": true,
+      "deleteParagraph": true,
+      "duplicate": true,
+      "edit": true,
+      "find": true,
+      "findInFolder": true,
+      "findNext": true,
+      "findPrevious": true,
+      "lineEnding": true,
+      "lineEndingCrlf": true,
+      "lineEndingLf": true,
+      "paste": true,
+      "pasteAsPlainText": true,
+      "redo": true,
+      "replace": true,
+      "screenshot": true,
+      "selectAll": true,
+      "undo": true
+    },
+    "file": {
+      "autoSave": true,
+      "clearRecentlyUsed": true,
+      "closeTab": true,
+      "closeWindow": true,
+      "export": true,
+      "exportHtml": true,
+      "exportPdf": true,
+      "file": true,
+      "import": true,
+      "moveTo": true,
+      "newTab": true,
+      "newWindow": true,
+      "openFile": true,
+      "openFolder": true,
+      "openRecent": true,
+      "preferences": true,
+      "print": true,
+      "quit": true,
+      "rename": true,
+      "save": true,
+      "saveAs": true
+    },
+    "format": {
+      "bold": true,
+      "clearFormat": true,
+      "format": true,
+      "highlight": true,
+      "hyperlink": true,
+      "image": true,
+      "inlineCode": true,
+      "inlineMath": true,
+      "italic": true,
+      "strikethrough": true,
+      "subscript": true,
+      "superscript": true,
+      "underline": true
+    },
+    "help": {
+      "about": true,
+      "askQuestion": true,
+      "changelog": true,
+      "checkUpdates": true,
+      "help": true,
+      "license": true,
+      "markdownReference": true,
+      "reportBug": true,
+      "viewSource": true
+    },
+    "marktext": {
+      "about": true,
+      "checkUpdates": true,
+      "hide": true,
+      "hideOthers": true,
+      "preferences": true,
+      "quit": true,
+      "services": true,
+      "showAll": true,
+      "title": true
+    },
+    "paragraph": {
+      "bulletList": true,
+      "codeFences": true,
+      "demoteHeading": true,
+      "frontMatter": true,
+      "heading1": true,
+      "heading2": true,
+      "heading3": true,
+      "heading4": true,
+      "heading5": true,
+      "heading6": true,
+      "horizontalRule": true,
+      "htmlBlock": true,
+      "looseListItem": true,
+      "mathBlock": true,
+      "orderedList": true,
+      "paragraph": true,
+      "promoteHeading": true,
+      "quoteBlock": true,
+      "table": true,
+      "taskList": true,
+      "title": true
+    },
+    "window": {
+      "alwaysOnTop": true,
+      "bringAllToFront": true,
+      "fullScreen": true,
+      "minimize": true,
+      "title": true,
+      "zoomIn": true,
+      "zoomOut": true
+    }
+  },
+  "notifications": {
+    "defaultMessage": true,
+    "defaultTitle": true
+  },
+  "preferences": {
+    "categories": {
+      "editor": true,
+      "general": true,
+      "image": true,
+      "keybindings": true,
+      "markdown": true,
+      "spelling": true,
+      "theme": true
+    },
+    "editor": {
+      "codeBlock": {
+        "fontFamily": true,
+        "fontSize": true,
+        "removeEmptyLines": true,
+        "showLineNumbers": true,
+        "title": true
+      },
+      "fileRepresentation": {
+        "autoDetectEncoding": true,
+        "defaultEncoding": true,
+        "endOfLine": {
+          "crlf": true,
+          "default": true,
+          "lf": true
+        },
+        "lineSeparator": true,
+        "tabWidth": true,
+        "title": true,
+        "trailingNewlines": {
+          "doNothing": true,
+          "ensureOne": true,
+          "preserve": true,
+          "title": true,
+          "trimAll": true
+        }
+      },
+      "misc": {
+        "autoCheck": true,
+        "hideLinkPopup": true,
+        "hideQuickInsertHint": true,
+        "textDirection": {
+          "ltr": true,
+          "rtl": true,
+          "title": true
+        },
+        "title": true,
+        "wrapCodeBlocks": true
+      },
+      "textEditor": {
+        "fontFamily": true,
+        "fontSize": true,
+        "lineHeight": true,
+        "maxWidth": true,
+        "maxWidthNotes": true,
+        "title": true
+      },
+      "title": true,
+      "writingBehavior": {
+        "autoCloseBrackets": true,
+        "autoCloseQuotes": true,
+        "autoCompleteMarkdown": true,
+        "title": true
+      }
+    },
+    "general": {
+      "autoSave": {
+        "delayDescription": true,
+        "description": true,
+        "title": true
+      },
+      "misc": {
+        "language": {
+          "chinese": true,
+          "english": true,
+          "title": true
+        },
+        "title": true
+      },
+      "sidebar": {
+        "excludePatterns": true,
+        "excludePatternsNotes": true,
+        "fileSortBy": {
+          "creationTime": true,
+          "modificationTime": true,
+          "title": true
+        },
+        "title": true,
+        "wrapTextInToc": true
+      },
+      "startup": {
+        "openBlankPage": true,
+        "openDefaultDirectory": true,
+        "selectFolder": true,
+        "title": true
+      },
+      "title": true,
+      "window": {
+        "hideScrollbars": true,
+        "openFilesInNewWindow": true,
+        "openFoldersInNewWindow": true,
+        "requiresRestart": true,
+        "title": true,
+        "titleBarStyle": {
+          "custom": true,
+          "native": true,
+          "title": true
+        },
+        "zoom": true
+      }
+    },
+    "image": {
+      "actions": {
+        "folder": true,
+        "path": true,
+        "upload": true
+      },
+      "clipboardTooltip": true,
+      "defaultAction": true,
+      "folderSetting": {
+        "filenameNote": true,
+        "globalFolder": true,
+        "open": true,
+        "preferRelative": true,
+        "relativeFolderName": true,
+        "showInFolder": true,
+        "title": true
+      },
+      "title": true,
+      "uploader": {
+        "branch": true,
+        "branchName": true,
+        "currentUploader": true,
+        "githubConfigSaved": true,
+        "githubDeprecated": true,
+        "githubToken": true,
+        "inputToken": true,
+        "legalNotices": {
+          "and": true,
+          "byUsing": true,
+          "gdprWarning": true,
+          "privacyStatement": true,
+          "termsOfService": true
+        },
+        "noUploaderSelected": true,
+        "owner": true,
+        "ownerName": true,
+        "picgoNotInstalled": true,
+        "pleaseInstall": true,
+        "repo": true,
+        "repoName": true,
+        "save": true,
+        "saveConfig": true,
+        "scriptConfigSaved": true,
+        "scriptDescription": true,
+        "scriptLocation": true,
+        "scriptPath": true,
+        "services": {
+          "cliScript": true,
+          "github": true,
+          "none": true,
+          "picgo": true
+        },
+        "title": true,
+        "tokenTooltip": true
+      }
+    },
+    "keybindings": {
+      "debugOptions": true,
+      "description": true,
+      "dumpKeyboardInfo": true,
+      "failedToSave": true,
+      "keyInputDialog": {
+        "instructions": true,
+        "invalidKeybinding": true,
+        "placeholder": true
+      },
+      "online": true,
+      "restoreDefaults": true,
+      "save": true,
+      "saveError": true,
+      "shortcutInUse": true,
+      "shortcutInUseMessage": true,
+      "table": {
+        "description": true,
+        "edit": true,
+        "keyCombination": true,
+        "options": true,
+        "reset": true,
+        "unbind": true
+      },
+      "title": true
+    },
+    "markdown": {
+      "compatibility": {
+        "enableGitlab": true,
+        "enableHtml": true,
+        "title": true
+      },
+      "diagrams": {
+        "sequenceTheme": {
+          "handDrawn": true,
+          "simple": true,
+          "title": true
+        },
+        "title": true
+      },
+      "extensions": {
+        "footnote": true,
+        "footnoteNotes": true,
+        "frontmatterType": {
+          "jsonBrace": true,
+          "jsonSemicolon": true,
+          "title": true
+        },
+        "superSubScript": true,
+        "title": true
+      },
+      "lists": {
+        "bulletListMarker": true,
+        "listIndentation": {
+          "dfm": true,
+          "fourSpaces": true,
+          "oneSpace": true,
+          "tab": true,
+          "threeSpaces": true,
+          "title": true,
+          "twoSpaces": true
+        },
+        "orderListDelimiter": true,
+        "preferLooseListItem": true,
+        "title": true
+      },
+      "misc": {
+        "preferHeadingStyle": {
+          "atx": true,
+          "setext": true,
+          "title": true
+        },
+        "title": true
+      },
+      "title": true
+    },
+    "search": {
+      "placeholder": true
+    },
+    "selectFont": true,
+    "spellchecker": {
+      "autoDetectDescription": true,
+      "autoDetectLanguage": true,
+      "customDictionary": {
+        "delete": true,
+        "description": true,
+        "noWordsAvailable": true,
+        "options": true,
+        "title": true,
+        "word": true
+      },
+      "defaultLanguage": true,
+      "enableSpellChecking": true,
+      "hideMarksForErrors": true,
+      "title": true
+    },
+    "theme": {
+      "autoSwitch": true,
+      "autoSwitchOptions": {
+        "never": true,
+        "startup": true
+      },
+      "customCss": true,
+      "importCustomThemes": true,
+      "importTheme": true,
+      "openFolder": true,
+      "openThemesFolder": true,
+      "title": true
+    },
+    "title": true
+  },
+  "recent": {
+    "newFile": true,
+    "noTabsOpen": true
+  },
+  "search": {
+    "caseSensitive": true,
+    "invalidRegex": true,
+    "regexMatchEmpty": true,
+    "replaceAll": true,
+    "replaceSingle": true,
+    "replacementPlaceholder": true,
+    "searchPlaceholder": true,
+    "searchResultCount": true,
+    "searchResultInfo": true,
+    "useRegex": true,
+    "wholeWord": true
+  },
+  "sideBar": {
+    "search": {
+      "cancel": true,
+      "noFolderOpen": true,
+      "noResultsFound": true,
+      "openFolder": true,
+      "searchInFolder": true,
+      "searchLimited": true,
+      "showMoreMatches": true
+    },
+    "toc": {
+      "title": true
+    },
+    "tree": {
+      "closeAll": true,
+      "createFile": true,
+      "emptyProject": true,
+      "openFolder": true,
+      "openedFiles": true,
+      "saveAll": true
+    }
+  },
+  "spellchecker": {
+    "failedToRemoveWord": true,
+    "failedToSwitchLanguage": true,
+    "unexpectedError": true
+  },
+  "store": {
+    "editor": {
+      "anchorLinkCopied": true,
+      "tabNotFound": true,
+      "tocItemNotFound": true
+    },
+    "help": {
+      "lineEndingAssertionError": true
+    }
+  },
+  "tweet": {
+    "feedbackQuestion": true,
+    "feelingsQuestion": true,
+    "reportViaGithub": true,
+    "title": true,
+    "tweet": true
+  }
+}

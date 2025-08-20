@@ -100,7 +100,9 @@
       "viewSource": "View Source",
       "license": "License",
       "checkForUpdates": "Check for Updates",
-      "aboutMarkText": "About MarkText"
+      "aboutMarkText": "About MarkText",
+      "about": "About",
+      "checkUpdates": "Check for Updates"
     },
     "marktext": {
       "title": "MarkText",
@@ -116,77 +118,77 @@
       "quit": "Quit MarkText"
     },
     "view": {
-    "view": "View",
-    "toggleSidebar": "Toggle Sidebar",
-    "toggleTabbar": "Toggle Tabbar",
-    "toggleSourceCode": "Toggle Source Code Mode",
-    "toggleTypewriter": "Toggle Typewriter Mode",
-    "toggleFocus": "Toggle Focus Mode",
-    "zoomIn": "Zoom In",
-    "zoomOut": "Zoom Out",
-    "resetZoom": "Reset Zoom",
-    "fullscreen": "Enter Fullscreen",
-    "exitFullscreen": "Exit Fullscreen",
-    "commandPalette": "Command Palette",
-    "sourceCode": "Source Code Mode",
-    "sourceCodeMode": "Source Code Mode",
-    "typewriter": "Typewriter Mode",
-    "typewriterMode": "Typewriter Mode",
-    "focus": "Focus Mode",
-    "focusMode": "Focus Mode",
-    "sidebar": "Sidebar",
-    "showSidebar": "Show Sidebar",
-    "tabBar": "Tab Bar",
-    "showTabBar": "Show Tab Bar",
-    "toc": "Table of Contents",
-    "toggleTableOfContents": "Toggle Table of Contents",
-    "reloadImages": "Reload Images",
-    "devTools": "Developer Tools",
-    "showDeveloperTools": "Show Developer Tools",
-    "reload": "Reload",
-    "reloadWindow": "Reload Window"
-  },
-  "format": {
-    "format": "Format",
-    "bold": "Bold",
-    "italic": "Italic",
-    "underline": "Underline",
-    "strikethrough": "Strikethrough",
-    "code": "Inline Code",
-    "codeBlock": "Code Block",
-    "quote": "Quote",
-    "unorderedList": "Unordered List",
-    "orderedList": "Ordered List",
-    "taskList": "Task List",
-    "table": "Table",
-    "link": "Link",
-    "image": "Image",
-    "heading1": "Heading 1",
-    "heading2": "Heading 2",
-    "heading3": "Heading 3",
-    "heading4": "Heading 4",
-    "heading5": "Heading 5",
-    "heading6": "Heading 6",
-    "superscript": "Superscript",
-    "subscript": "Subscript",
-    "highlight": "Highlight",
-    "inlineCode": "Inline Code",
-    "inlineMath": "Inline Math",
-    "hyperlink": "Hyperlink",
-    "clearFormatting": "Clear Formatting",
-    "clearFormat": "Clear Formatting"
-  },
-  "theme": {
-    "theme": "&Theme",
-    "light": "Light",
-    "dark": "Dark",
-    "auto": "Auto",
-    "cadmiumLight": "Cadmium Light",
-    "graphiteLight": "Graphite Light",
-    "materialDark": "Material Dark",
-    "oneDark": "One Dark",
-    "ulyssesLight": "Ulysses Light"
-  }
+      "view": "View",
+      "toggleSidebar": "Toggle Sidebar",
+      "toggleTabbar": "Toggle Tabbar",
+      "toggleSourceCode": "Toggle Source Code Mode",
+      "toggleTypewriter": "Toggle Typewriter Mode",
+      "toggleFocus": "Toggle Focus Mode",
+      "zoomIn": "Zoom In",
+      "zoomOut": "Zoom Out",
+      "resetZoom": "Reset Zoom",
+      "fullscreen": "Enter Fullscreen",
+      "exitFullscreen": "Exit Fullscreen",
+      "commandPalette": "Command Palette",
+      "sourceCode": "Source Code Mode",
+      "sourceCodeMode": "Source Code Mode",
+      "typewriter": "Typewriter Mode",
+      "typewriterMode": "Typewriter Mode",
+      "focus": "Focus Mode",
+      "focusMode": "Focus Mode",
+      "sidebar": "Sidebar",
+      "showSidebar": "Show Sidebar",
+      "tabBar": "Tab Bar",
+      "showTabBar": "Show Tab Bar",
+      "toc": "Table of Contents",
+      "toggleTableOfContents": "Toggle Table of Contents",
+      "reloadImages": "Reload Images",
+      "devTools": "Developer Tools",
+      "showDeveloperTools": "Show Developer Tools",
+      "reload": "Reload",
+      "reloadWindow": "Reload Window"
+    },
+    "format": {
+      "format": "Format",
+      "bold": "Bold",
+      "italic": "Italic",
+      "underline": "Underline",
+      "strikethrough": "Strikethrough",
+      "code": "Inline Code",
+      "codeBlock": "Code Block",
+      "quote": "Quote",
+      "unorderedList": "Unordered List",
+      "orderedList": "Ordered List",
+      "taskList": "Task List",
+      "table": "Table",
+      "link": "Link",
+      "image": "Image",
+      "heading1": "Heading 1",
+      "heading2": "Heading 2",
+      "heading3": "Heading 3",
+      "heading4": "Heading 4",
+      "heading5": "Heading 5",
+      "heading6": "Heading 6",
+      "superscript": "Superscript",
+      "subscript": "Subscript",
+      "highlight": "Highlight",
+      "inlineCode": "Inline Code",
+      "inlineMath": "Inline Math",
+      "hyperlink": "Hyperlink",
+      "clearFormatting": "Clear Formatting",
+      "clearFormat": "Clear Formatting"
+    },
+    "theme": {
+      "theme": "&Theme",
+      "light": "Light",
+      "dark": "Dark",
+      "auto": "Auto",
+      "cadmiumLight": "Cadmium Light",
+      "graphiteLight": "Graphite Light",
+      "materialDark": "Material Dark",
+      "oneDark": "One Dark",
+      "ulyssesLight": "Ulysses Light"
+    }
   },
   "contextMenu": {
     "cut": "Cut",
@@ -202,105 +204,149 @@
     "addToDictionary": "Add to Dictionary",
     "editDictionary": "Edit Dictionary...",
     "sideBar": {
-        "newFile": "New File",
-        "newDirectory": "New Directory",
-        "copy": "Copy",
-        "cut": "Cut",
-        "paste": "Paste",
-        "rename": "Rename",
-        "moveToTrash": "Move To Trash",
-        "showInFolder": "Show In Folder"
-      },
-      "tabs": {
-        "close": "Close",
-        "closeOthers": "Close others",
-        "closeSavedTabs": "Close saved tabs",
-        "closeAllTabs": "Close all tabs",
-        "rename": "Rename",
-        "copyPath": "Copy path",
-        "showInFolder": "Show in folder"
-      }
+      "newFile": "New File",
+      "newDirectory": "New Directory",
+      "copy": "Copy",
+      "cut": "Cut",
+      "paste": "Paste",
+      "rename": "Rename",
+      "moveToTrash": "Move To Trash",
+      "showInFolder": "Show In Folder"
     },
+    "tabs": {
+      "close": "Close",
+      "closeOthers": "Close others",
+      "closeSavedTabs": "Close saved tabs",
+      "closeAllTabs": "Close all tabs",
+      "rename": "Rename",
+      "copyPath": "Copy path",
+      "showInFolder": "Show in folder"
+    }
+  },
+  "search": {
+    "searchPlaceholder": "Search",
+    "caseSensitive": "Case Sensitive",
+    "wholeWord": "Select whole word",
+    "useRegex": "Use query as RegEx",
+    "replacementPlaceholder": "Replacement",
+    "replaceAll": "Replace All",
+    "replaceSingle": "Replace Single",
+    "invalidRegex": "Invalid regular expression",
+    "regexMatchEmpty": "Regular expression matches empty string",
+    "searchResultCount": "Search results"
+  },
+  "sideBar": {
     "search": {
-      "searchPlaceholder": "Search",
-      "caseSensitive": "Case Sensitive",
-      "wholeWord": "Select whole word",
-      "useRegex": "Use query as RegEx",
-      "replacementPlaceholder": "Replacement",
-      "replaceAll": "Replace All",
-      "replaceSingle": "Replace Single"
+      "searchInFolder": "Search in folder...",
+      "noFolderOpen": "No folder open",
+      "noResultsFound": "No results found.",
+      "cancel": "Cancel",
+      "openFolder": "Open Folder",
+      "showMoreMatches": "Show more matches"
     },
-    "sideBar": {
-      "search": {
-        "searchInFolder": "Search in folder...",
-        "noFolderOpen": "No folder open",
-        "noResultsFound": "No results found.",
-        "cancel": "Cancel",
-        "openFolder": "Open Folder",
-        "showMoreMatches": "Show more matches"
-      },
-      "tree": {
-        "openedFiles": "Opened files",
-        "saveAll": "Save All",
-        "closeAll": "Close All",
-        "emptyProject": "Empty project",
-        "createFile": "Create File",
-        "openFolder": "Open Folder"
-      },
-      "toc": {
-        "title": "Table Of Contents"
-      }
+    "tree": {
+      "openedFiles": "Opened files",
+      "saveAll": "Save All",
+      "closeAll": "Close All",
+      "emptyProject": "Empty project",
+      "createFile": "Create File",
+      "openFolder": "Open Folder"
     },
-    "commandPalette": {
-      "placeholder": "Type a command to execute"
+    "toc": {
+      "title": "Table Of Contents"
+    }
+  },
+  "commandPalette": {
+    "placeholder": "Type a command to execute",
+    "commandNotFound": "Command not found"
+  },
+  "exportSettings": {
+    "autoNumberingHeadings": "Auto numbering headings",
+    "title": "Export Options",
+    "info": {
+      "label": "Info",
+      "description": "Please customize the page appearance and click on \"export\" to continue."
     },
-    "exportSettings": {
-      "title": "Export Options",
-      "info": {
-        "label": "Info",
-        "description": "Please customize the page appearance and click on \"export\" to continue."
-      },
-      "page": {
-        "label": "Page"
-      },
-      "style": {
-        "label": "Style"
-      },
-      "theme": {
-        "label": "Theme",
-        "description": "You can change the document appearance by choosing a theme or create a handcrafted one."
-      },
-      "headerFooter": {
-        "label": "Header & Footer",
-        "description": "The text appear on all pages if header and/or footer is defined."
-      },
-      "toc": {
-        "label": "Table of Contents"
-      },
-      "export": "Export..."
+    "page": {
+      "label": "Page"
     },
-    "editor": {
-      "insertTable": {
-        "title": "Insert Table",
-        "rows": "Rows",
-        "columns": "Columns"
-      }
+    "showFrontMatter": "Show front matter",
+    "style": {
+      "label": "Style"
     },
-    "recent": {
-      "noTabsOpen": "You have no tabs open.",
-      "newFile": "New File"
+    "theme": {
+      "label": "Theme",
+      "description": "You can change the document appearance by choosing a theme or create a handcrafted one.",
+      "theme": "Theme"
     },
-    "import": {
-      "title": "Import or Open",
-      "description": "Drop here to get you stuff into MarkText"
+    "headerFooter": {
+      "allowStyled": "Allow styled text",
+      "customizeStyle": "Customize style",
+      "fontSize": "Font size",
+      "footerType": "Footer type",
+      "headerType": "Header type",
+      "label": "Header & Footer",
+      "leftFooterText": "Left footer text",
+      "leftHeaderText": "Left header text",
+      "mainFooterText": "Main footer text",
+      "mainHeaderText": "Main header text",
+      "rightFooterText": "Right footer text",
+      "rightHeaderText": "Right header text",
+      "description": "The text appear on all pages if header and/or footer is defined."
     },
-    "tweet": {
-      "title": "Send us feedback via tweet",
-      "feelingsQuestion": "What's your experience feelings?",
-      "feedbackQuestion": "Tell us your feedback?",
-      "reportViaGithub": "Report bug or feature request via github",
-      "tweet": "Tweet"
+    "toc": {
+      "includeTopHeading": "Include top heading",
+      "includeTopHeadingDetail": "Include top heading detail",
+      "label": "Table of Contents",
+      "title": "Table of Contents"
     },
+    "export": "Export..."
+  },
+  "editor": {
+    "export": {
+      "error": "Export error",
+      "errorExporting": "Error exporting file",
+      "failed": "Export failed"
+    },
+    "insertTable": {
+      "title": "Insert Table",
+      "rows": "Rows",
+      "columns": "Columns"
+    },
+    "notifications": {
+      "notificationNotFound": "Notification not found"
+    },
+    "print": {
+      "error": "Print error",
+      "failed": "Print failed"
+    },
+    "sourceCode": {
+      "cursorNullComment": "Cursor null comment",
+      "imageStructureDeletedComment": "Image structure deleted comment"
+    },
+    "spellcheck": {
+      "disabledError": "Spellcheck disabled error",
+      "errorSwitchingLanguage": "Error switching spellcheck language",
+      "languageMissing": "Spellcheck language missing",
+      "switchError": "Spellcheck switch error",
+      "title": "Spellcheck"
+    }
+  },
+  "recent": {
+    "noTabsOpen": "You have no tabs open.",
+    "newFile": "New File"
+  },
+  "import": {
+    "title": "Import or Open",
+    "description": "Drop here to get you stuff into MarkText"
+  },
+  "tweet": {
+    "title": "Send us feedback via tweet",
+    "feelingsQuestion": "What's your experience feelings?",
+    "feedbackQuestion": "Tell us your feedback?",
+    "reportViaGithub": "Report bug or feature request via github",
+    "tweet": "Tweet"
+  },
   "lineEnding": {
     "carriageReturnLineFeed": "Carriage Return + Line Feed (CRLF)",
     "lineFeed": "Line Feed (LF)"
@@ -320,18 +366,42 @@
       "keybindings": "Keybindings"
     },
     "general": {
+      "title": "General",
+      "autoSave": {
+        "title": "Auto Save",
+        "description": "Auto save",
+        "delayDescription": "Auto save delay"
+      },
+      "window": {
+        "title": "Window",
+        "titleBarStyle": {
+          "title": "Title Bar Style",
+          "custom": "Custom",
+          "titleBarStyle": "Title Bar Style",
+          "native": "Native"
+        },
+        "requiresRestart": "Requires restart",
+        "hideScrollbars": "Hide scrollbars",
+        "openFilesInNewWindow": "Open files in new window",
+        "openFoldersInNewWindow": "Open folders in new window",
+        "zoom": "Zoom"
+      },
       "startup": {
         "title": "Startup",
         "openDefaultDirectory": "Open default directory",
-        "selectFolder": "Select Folder"
+        "selectFolder": "Select Folder",
+        "openBlankPage": "Open blank page"
       },
       "sidebar": {
         "title": "Sidebar",
-        "fileSortBy": "Sort files by",
-        "creationTime": "Creation time",
-        "modifiedTime": "Modified time",
-        "title": "Title",
-        "excludePatternsNotes": "Exclude patterns (Notes)"
+        "wrapTextInToc": "Wrap text in table of contents",
+        "excludePatterns": "Exclude patterns",
+        "excludePatternsNotes": "Exclude patterns (Notes)",
+        "fileSortBy": {
+          "title": "File Sort By",
+          "creationTime": "Creation Time",
+          "modificationTime": "Modification Time"
+        }
       },
       "misc": {
         "title": "Miscellaneous",
@@ -344,35 +414,53 @@
     },
     "editor": {
       "title": "Editor",
-      "font": {
-        "title": "Font",
-        "fontFamily": "Font Family",
-        "fontSize": "Font Size",
-        "lineHeight": "Line Height"
+      "textEditor": {
+        "title": "Text Editor",
+        "fontSize": "Font size",
+        "lineHeight": "Line height",
+        "fontFamily": "Font family",
+        "maxWidth": "Max width",
+        "maxWidthNotes": "Maximum width of editor content"
       },
       "codeBlock": {
         "title": "Code Block",
-        "codeFontFamily": "Code Font Family",
-        "codeFontSize": "Code Font Size",
-        "codeBlockLineNumbers": "Show line numbers",
-        "trimUnnecessaryCodeBlockEmptyLines": "Trim unnecessary empty lines",
-        "wrapCodeBlocks": "Wrap code blocks"
+        "fontSize": "Font size",
+        "fontFamily": "Font family",
+        "showLineNumbers": "Show line numbers",
+        "removeEmptyLines": "Remove empty lines"
       },
-      "writing": {
-        "title": "Writing",
-        "autoPairBracket": "Auto pair bracket",
-        "autoPairMarkdownSyntax": "Auto pair markdown syntax",
-        "autoPairQuote": "Auto pair quote",
-        "tabSize": "Tab size",
-        "endOfLine": "End of line",
+      "writingBehavior": {
+        "title": "Writing Behavior",
+        "autoCloseBrackets": "Auto close brackets",
+        "autoCompleteMarkdown": "Auto complete markdown",
+        "autoCloseQuotes": "Auto close quotes"
+      },
+      "fileRepresentation": {
+        "title": "File Representation",
+        "tabWidth": "Tab width",
+        "lineSeparator": "Line separator",
         "defaultEncoding": "Default encoding",
-        "autoGuessEncoding": "Auto guess encoding",
-        "trimTrailingNewline": "Trim trailing newline",
-        "textDirection": "Text direction",
-        "editorLineWidth": "Editor line width"
+        "autoDetectEncoding": "Auto detect encoding",
+        "trailingNewlines": {
+          "title": "Trailing Newlines",
+          "doNothing": "Do Nothing",
+          "ensureOne": "Ensure One",
+          "preserve": "Preserve",
+          "trimAll": "Trim All"
+        },
+        "endOfLine": {
+          "default": "Default",
+          "crlf": "CRLF",
+          "lf": "LF"
+        }
       },
       "misc": {
         "title": "Miscellaneous",
+        "textDirection": {
+          "title": "Text Direction",
+          "ltr": "Left to Right",
+          "rtl": "Right to Left"
+        },
         "hideQuickInsertHint": "Hide quick insert hint",
         "hideLinkPopup": "Hide link popup",
         "autoCheck": "Auto check",
@@ -396,6 +484,82 @@
         "preferRelative": "Prefer relative directory",
         "relativeFolderName": "Relative folder name",
         "filenameNote": "The filename will be automatically generated."
+      },
+      "imageInsertAction": {
+        "title": "Image insert action",
+        "folder": "Upload to folder",
+        "path": "Copy to path",
+        "upload": "Upload to cloud",
+        "copyToFolder": "Copy to folder",
+        "uploadToServer": "Upload to server"
+      },
+      "imageFolderPath": {
+        "title": "Image folder path",
+        "description": "Image folder path",
+        "selectFolder": "Select folder",
+        "relativePath": "Relative path",
+        "absolutePath": "Absolute path"
+      },
+      "cloudPictureBed": {
+        "title": "Cloud picture bed",
+        "github": "GitHub",
+        "smms": "SM.MS",
+        "qiniu": "Qiniu",
+        "upyun": "UpYun",
+        "tcyun": "Tencent Cloud",
+        "aliyun": "Alibaba Cloud",
+        "imgur": "Imgur",
+        "picgo": "PicGo"
+      },
+      "preferRelativeDirectory": {
+        "title": "Prefer relative directory",
+        "description": "Prefer relative directory for images"
+      },
+      "uploader": {
+        "title": "Image Uploader",
+        "currentUploader": "Current Uploader",
+        "picgoNotInstalled": "PicGo is not installed",
+        "githubDeprecated": "GitHub uploader is deprecated",
+        "githubToken": "GitHub Token",
+        "ownerName": "Owner Name",
+        "repoName": "Repository Name",
+        "branchName": "Branch Name",
+        "scriptDescription": "Script Description",
+        "scriptLocation": "Script Location",
+        "save": "Save",
+        "saveConfig": "Save Configuration",
+        "githubConfigSaved": "GitHub configuration saved",
+        "scriptConfigSaved": "Script configuration saved",
+        "legalNotices": {
+          "title": "Legal Notices",
+          "description": "I have read and agree to the relevant terms of service",
+          "and": "and",
+          "byUsing": "By using this service, you agree to the",
+          "gdprWarning": "GDPR warning",
+          "privacyStatement": "Privacy Statement",
+          "termsOfService": "Terms of Service"
+        },
+        "services": {
+          "github": "GitHub",
+          "smms": "SM.MS",
+          "qiniu": "Qiniu",
+          "upyun": "UpYun",
+          "tcyun": "Tencent Cloud",
+          "aliyun": "Alibaba Cloud",
+          "imgur": "Imgur",
+          "picgo": "PicGo",
+          "script": "Custom Script",
+          "cliScript": "CLI Script",
+          "none": "None"
+        },
+        "branch": "Branch",
+        "inputToken": "Input token",
+        "noUploaderSelected": "No uploader selected",
+        "owner": "Owner",
+        "pleaseInstall": "Please install",
+        "repo": "Repository",
+        "scriptPath": "Script path",
+        "tokenTooltip": "Access token for authentication"
       }
     },
     "markdown": {
@@ -405,7 +569,9 @@
         "preferLooseListItem": "Prefer loose list item",
         "bulletListMarker": "Bullet list marker",
         "orderListDelimiter": "Order list delimiter",
-        "listIndentation": "List indentation"
+        "listIndentation": {
+          "title": "List Indentation"
+        }
       },
       "heading": {
         "title": "Heading",
@@ -421,11 +587,74 @@
         "footnote": "Footnote",
         "isHtmlEnabled": "HTML enabled",
         "isGitlabCompatibilityEnabled": "GitLab compatibility",
-        "sequenceTheme": "Sequence theme"
+        "sequenceTheme": "Sequence theme",
+        "superscript": "Superscript",
+        "subscript": "Subscript",
+        "frontMatter": "Front matter",
+        "math": "Math",
+        "diagram": "Diagram",
+        "footnoteNotes": "Footnote notes",
+        "frontmatterType": {
+          "frontmatterType": "Frontmatter Type",
+          "jsonBrace": "JSON with Braces",
+          "jsonSemicolon": "JSON with Semicolon",
+          "title": "Frontmatter Type"
+        }
+      },
+      "diagrams": {
+        "title": "Diagrams",
+        "plantuml": "PlantUML",
+        "mermaid": "Mermaid",
+        "vega": "Vega-Lite",
+        "flowchart": "Flowchart",
+        "sequence": "Sequence",
+        "gantt": "Gantt",
+        "sequenceTheme": {
+          "title": "Sequence Theme",
+          "handDrawn": "Hand Drawn",
+          "simple": "Simple"
+        }
+      },
+      "math": {
+        "title": "Math",
+        "katex": "KaTeX",
+        "mathJax": "MathJax"
+      },
+      "misc": {
+        "preferHeadingStyle": {
+          "title": "Prefer Heading Style",
+          "atx": "ATX Style",
+          "setext": "Setext Style"
+        },
+        "title": "Miscellaneous"
+      },
+      "compatibility": {
+        "enableGitlab": "Enable GitLab compatibility",
+        "enableHtml": "Enable HTML support",
+        "title": "Compatibility"
+      },
+      "lists": {
+        "bulletListMarker": "Bullet list marker",
+        "listIndentation": {
+          "listIndentation": "List Indentation",
+          "dfm": "DFM Style",
+          "fourSpaces": "Four Spaces",
+          "oneSpace": "One Space",
+          "tab": "Tab",
+          "threeSpaces": "Three Spaces",
+          "twoSpaces": "Two Spaces"
+        },
+        "orderListDelimiter": "Ordered list delimiter",
+        "preferLooseListItem": "Prefer loose list items",
+        "title": "Lists"
       }
     },
     "spelling": {
       "title": "Spelling",
+      "enabled": "Enable spell checker",
+      "autoDetectLanguage": "Auto detect language",
+      "language": "Language",
+      "noSuggestions": "No suggestions",
       "spellcheckerEnabled": "Enable spell checker",
       "spellcheckerNoUnderline": "No underline for misspelled words",
       "spellcheckerLanguage": "Spell checker language"
@@ -433,11 +662,274 @@
     "theme": {
       "title": "Theme",
       "theme": "Theme",
-      "autoSwitchTheme": "Auto switch theme",
-      "customCss": "Custom CSS"
+      "autoSwitchTheme": {
+        "title": "Auto switch theme",
+        "description": "Automatically switch theme based on system",
+        "followSystem": "Follow system",
+        "light": "Light",
+        "dark": "Dark"
+      },
+      "realTime": {
+        "title": "Real time",
+        "description": "Real time theme switching"
+      },
+      "codeBlockTheme": {
+        "title": "Code block theme",
+        "description": "Theme for code blocks"
+      },
+      "customCss": "Custom CSS",
+      "autoSwitchOptions": {
+        "startup": "At startup",
+        "never": "Never"
+      },
+      "autoSwitch": "Auto switch theme",
+      "importCustomThemes": "Import custom themes",
+      "importTheme": "Import Theme",
+      "openFolder": "Open Folder",
+      "openThemesFolder": "Open themes folder"
     },
     "keybindings": {
-      "title": "Keybindings"
+      "title": "Keybindings",
+      "description": "Customize keyboard shortcuts",
+      "searchPlaceholder": "Search keybindings",
+      "command": "Command",
+      "keybinding": "Keybinding",
+      "reset": "Reset",
+      "resetAll": "Reset all",
+      "edit": "Edit",
+      "cancel": "Cancel",
+      "save": "Save",
+      "restoreDefaults": "Restore defaults",
+      "debugOptions": "Debug Options",
+      "dumpKeyboardInfo": "Dump Keyboard Info",
+      "failedToSave": "Failed to save keybindings",
+      "keyInputDialog": {
+        "instructions": "Press the key combination you want to assign",
+        "invalidKeybinding": "Invalid key combination",
+        "placeholder": "Press keys..."
+      },
+      "online": "Online",
+      "saveError": "Error saving keybindings",
+      "shortcutInUse": "Shortcut in use",
+      "shortcutInUseMessage": "This shortcut is already assigned to another command",
+      "table": {
+        "description": "Description",
+        "edit": "Edit",
+        "keyCombination": "Key Combination",
+        "options": "Options",
+        "reset": "Reset",
+        "unbind": "Unbind"
+      }
+    },
+    "selectFont": "Select Font",
+    "spellchecker": {
+      "autoDetectDescription": "Automatically detect document language",
+      "autoDetectLanguage": "Auto-detect language",
+      "customDictionary": {
+        "delete": "Delete",
+        "description": "Add custom words to your personal dictionary",
+        "noWordsAvailable": "No words available",
+        "options": "Options",
+        "title": "Custom Dictionary",
+        "word": "Word"
+      },
+      "defaultLanguage": "Default language",
+      "enableSpellChecking": "Enable spell checking",
+      "hideMarksForErrors": "Hide marks for spelling errors",
+      "title": "Spell Checker"
+    }
+  },
+  "about": {
+    "copyright": "Copyright",
+    "copyrightContributors": "Copyright Contributors"
+  },
+  "commands": {
+    "mt": {
+      "hide": "Hide MarkText",
+      "hideOthers": "Hide Others"
+    },
+    "file": {
+      "newWindow": "New Window",
+      "newTab": "New Tab",
+      "openFile": "Open File",
+      "openFolder": "Open Folder",
+      "save": "Save",
+      "saveAs": "Save As",
+      "moveFile": "Move File",
+      "renameFile": "Rename File",
+      "quickOpen": "Quick Open",
+      "print": "Print",
+      "preferences": "Preferences",
+      "closeTab": "Close Tab",
+      "closeWindow": "Close Window",
+      "quit": "Quit",
+      "toggleAutoSave": "Toggle Auto Save",
+      "importFile": "Import File",
+      "exportFile": "Export File",
+      "exportFilePdf": "Export as PDF",
+      "zoom": "Zoom",
+      "checkUpdate": "Check for Updates"
+    },
+    "edit": {
+      "undo": "Undo",
+      "redo": "Redo",
+      "cut": "Cut",
+      "copy": "Copy",
+      "paste": "Paste",
+      "copyAsMarkdown": "Copy as Markdown",
+      "copyAsHtml": "Copy as HTML",
+      "pasteAsPlaintext": "Paste as Plain Text",
+      "selectAll": "Select All",
+      "duplicate": "Duplicate",
+      "createParagraph": "Create Paragraph",
+      "deleteParagraph": "Delete Paragraph",
+      "find": "Find",
+      "findNext": "Find Next",
+      "findPrevious": "Find Previous",
+      "replace": "Replace",
+      "findInFolder": "Find in Folder",
+      "screenshot": "Screenshot"
+    },
+    "paragraph": {
+      "heading1": "Heading 1",
+      "heading2": "Heading 2",
+      "heading3": "Heading 3",
+      "heading4": "Heading 4",
+      "heading5": "Heading 5",
+      "heading6": "Heading 6",
+      "upgradeHeading": "Upgrade Heading",
+      "degradeHeading": "Degrade Heading",
+      "table": "Table",
+      "codeFence": "Code Fence",
+      "quoteBlock": "Quote Block",
+      "mathFormula": "Math Formula",
+      "htmlBlock": "HTML Block",
+      "orderList": "Ordered List",
+      "bulletList": "Bullet List",
+      "taskList": "Task List",
+      "looseListItem": "Loose List Item",
+      "paragraph": "Paragraph",
+      "horizontalLine": "Horizontal Line",
+      "frontMatter": "Front Matter",
+      "resetParagraph": "Reset Paragraph"
+    },
+    "format": {
+      "strong": "Bold",
+      "emphasis": "Italic",
+      "underline": "Underline",
+      "superscript": "Superscript",
+      "subscript": "Subscript",
+      "highlight": "Highlight",
+      "inlineCode": "Inline Code",
+      "inlineMath": "Inline Math",
+      "strike": "Strikethrough",
+      "hyperlink": "Hyperlink",
+      "image": "Image",
+      "clearFormat": "Clear Format"
+    },
+    "window": {
+      "minimize": "Minimize",
+      "toggleAlwaysOnTop": "Toggle Always on Top",
+      "zoomIn": "Zoom In",
+      "zoomOut": "Zoom Out",
+      "toggleFullScreen": "Toggle Full Screen",
+      "changeTheme": "Change Theme"
+    },
+    "view": {
+      "commandPalette": "Command Palette",
+      "sourceCodeMode": "Source Code Mode",
+      "typewriterMode": "Typewriter Mode",
+      "focusMode": "Focus Mode",
+      "toggleSidebar": "Toggle Sidebar",
+      "toggleToc": "Toggle Table of Contents",
+      "toggleTabbar": "Toggle Tab Bar",
+      "toggleDevTools": "Toggle Developer Tools",
+      "devReload": "Developer Reload",
+      "reloadImages": "Reload Images",
+      "textDirection": "Text Direction"
+    },
+    "tabs": {
+      "cycleForward": "Cycle Forward",
+      "cycleBackward": "Cycle Backward",
+      "switchToLeft": "Switch to Left",
+      "switchToRight": "Switch to Right",
+      "switchToFirst": "Switch to First",
+      "switchToSecond": "Switch to Second",
+      "switchToThird": "Switch to Third",
+      "switchToFourth": "Switch to Fourth",
+      "switchToFifth": "Switch to Fifth",
+      "switchToSixth": "Switch to Sixth",
+      "switchToSeventh": "Switch to Seventh",
+      "switchToEighth": "Switch to Eighth",
+      "switchToNinth": "Switch to Ninth",
+      "switchToTenth": "Switch to Tenth"
+    },
+    "docs": {
+      "userGuide": "User Guide",
+      "markdownSyntax": "Markdown Syntax"
+    },
+    "utils": {
+      "noUpdateResourceFile": "No update resource file",
+      "todoUpdateCheck": "Check for updates"
+    }
+  },
+  "common": {
+    "cancel": "Cancel",
+    "ok": "OK"
+  },
+  "dialog": {
+    "cancel": "Cancel",
+    "changesWillBeLost": "Changes will be lost",
+    "close": "Close",
+    "dontSave": "Don't Save",
+    "file": "File",
+    "fileExists": "File exists",
+    "files": "Files",
+    "importWarning": "Import warning",
+    "installPandoc": "Install Pandoc",
+    "keepOpen": "Keep open",
+    "replace": "Replace",
+    "save": "Save",
+    "saveChanges": "Save changes",
+    "saveFailure": "Save failure"
+  },
+  "error": {
+    "configSchemaViolation": "Configuration schema violation",
+    "copyError": "Copy error",
+    "initializationFailed": "Initialization failed",
+    "otherInstanceDetected": "Another instance of MarkText is already running",
+    "report": "Report",
+    "startupError": "Startup error",
+    "terminatedDueToError": "Terminated due to error",
+    "unexpectedErrorWithMessage": "Unexpected error with message",
+    "unexpectedMainProcess": "Unexpected main process error",
+    "unexpectedRendererProcess": "Unexpected renderer process error"
+  },
+  "notifications": {
+    "defaultMessage": "Default message",
+    "defaultTitle": "Notification"
+  },
+  "store": {
+    "editor": {
+      "anchorLinkCopied": "Anchor link copied",
+      "tabNotFound": "Tab not found",
+      "tocItemNotFound": "Table of contents item not found"
+    },
+    "help": {
+      "lineEndingAssertionError": "Line ending assertion error"
+    }
+  },
+  "spellchecker": {
+    "failedToRemoveWord": "Failed to remove word from dictionary",
+    "failedToSwitchLanguage": "Failed to switch spellchecker language",
+    "unexpectedError": "Unexpected spellchecker error"
+  },
+  "search": {
+    "searchResultInfo": "Search Result Info"
+  },
+  "sideBar": {
+    "search": {
+      "searchLimited": "Search Limited"
     }
   }
 }

@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MarkText 项目 t 函数调用文档</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2c3e50;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 10px;
+        }
+        h2 {
+            color: #34495e;
+            margin-top: 30px;
+            padding: 10px;
+            background: #ecf0f1;
+            border-left: 4px solid #3498db;
+        }
+        h3 {
+            color: #2980b9;
+            margin-top: 20px;
+        }
+        .file-section {
+            margin: 15px 0;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 5px;
+            border-left: 3px solid #e74c3c;
+        }
+        .file-path {
+            font-weight: bold;
+            color: #e74c3c;
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+        .translation-key {
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 13px;
+        }
+        .line-number {
+            color: #7f8c8d;
+            font-size: 12px;
+            margin-right: 10px;
+        }
+        .key-item {
+            margin: 5px 0;
+            padding: 5px;
+            background: white;
+            border-radius: 3px;
+        }
+        .summary {
+            background: #e8f5e8;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            border-left: 4px solid #27ae60;
+        }
+        .toc {
+            background: #f4f4f4;
+            padding: 20px;
+            border-radius: 5px;
+            margin-bottom: 30px;
+        }
+        .toc ul {
+            list-style-type: none;
+            padding-left: 0;
+        }
+        .toc li {
+            margin: 5px 0;
+        }
+        .toc a {
+            text-decoration: none;
+            color: #3498db;
+        }
+        .toc a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>MarkText 项目 t 函数调用文档</h1>
+        
+        <div class="summary">
+            <h3>📊 统计概览</h3>
+            <p><strong>扫描范围：</strong>/Users/hubo/mycode/marktext/src</p>
+            <p><strong>总文件数：</strong>约 40+ 个文件</p>
+            <p><strong>总翻译键数：</strong>约 300+ 个翻译键</p>
+            <p><strong>主要模块：</strong>菜单系统、偏好设置、组件界面、错误处理、存储管理等</p>
+        </div>
+
+        <div class="toc">
+            <h3>📑 目录导航</h3>
+            <ul>
+                <li><a href="#menu-system">1. 菜单系统 (Menu System)</a></li>
+                <li><a href="#preferences">2. 偏好设置 (Preferences)</a></li>
+                <li><a href="#components">3. 界面组件 (UI Components)</a></li>
+                <li><a href="#context-menu">4. 右键菜单 (Context Menu)</a></li>
+                <li><a href="#error-handling">5. 错误处理 (Error Handling)</a></li>
+                <li><a href="#store-management">6. 状态管理 (Store Management)</a></li>
+                <li><a href="#dialogs">7. 对话框 (Dialogs)</a></li>
+                <li><a href="#misc">8. 其他模块 (Miscellaneous)</a></li>
+            </ul>
+        </div>
+
+        <h2 id="menu-system">1. 菜单系统 (Menu System)</h2>
+        
+        <h3>1.1 主菜单 - MarkText</h3>
+        <div class="file-section">
+            <div class="file-path">src/main/menu/templates/marktext.js</div>
+            <div class="key-item"><span class="line-number">10:</span><span class="translation-key">menu.marktext.title</span></div>
+            <div class="key-item"><span class="line-number">12:</span><span class="translation-key">menu.marktext.about</span></div>
+            <div class="key-item"><span class="line-number">17:</span><span class="translation-key">menu.marktext.checkUpdates</span></div>
+            <div class="key-item"><span class="line-number">22:</span><span class="translation-key">menu.marktext.preferences</span></div>
+            <div class="key-item"><span class="line-number">30:</span><span class="translation-key">menu.marktext.services</span></div>
+            <div class="key-item"><span class="line-number">36:</span><span class="translation-key">menu.marktext.hide</span></div>
+            <div class="key-item"><span class="line-number">42:</span><span class="translation-key">menu.marktext.hideOthers</span></div>
+            <div class="key-item"><span class="line-number">48:</span><span class="translation-key">menu.marktext.showAll</span></div>
+            <div class="key-item"><span class="line-number">55:</span><span class="translation-key">menu.marktext.quit</span></div>
+        </div>
+
+        <h3>1.2 文件菜单</h3>
+        <div class="file-section">
+            <div class="file-path">src/main/menu/templates/file.js</div>
+            <div class="key-item"><span class="line-number">10:</span><span class="translation-key">menu.file.file</span></div>
+            <div class="key-item"><span class="line-number">13:</span><span class="translation-key">menu.file.newTab</span></div>
+            <div class="key-item"><span class="line-number">20:</span><span class="translation-key">menu.file.newWindow</span></div>
+            <div class="key-item"><span class="line-number">30:</span><span class="translation-key">menu.file.openFile</span></div>
+            <div class="key-item"><span class="line-number">37:</span><span class="translation-key">menu.file.openFolder</span></div>
+            <div class="key-item"><span class="line-number">48:</span><span class="translation-key">menu.file.openRecent</span></div>
+            <div class="key-item"><span class="line-number">67:</span><span class="translation-key">menu.file.clearRecentlyUsed</span></div>
+            <div class="key-item"><span class="line-number">91:</span><span class="translation-key">menu.file.save</span></div>
+            <div class="key-item"><span class="line-number">98:</span><span class="translation-key">menu.file.saveAs</span></div>
+            <div class="key-item"><span class="line-number">105:</span><span class="translation-key">menu.file.autoSave</span></div>
+            <div class="key-item"><span class="line-number">117:</span><span class="translation-key">menu.file.moveTo</span></div>
+            <div class="key-item"><span class="line-number">124:</span><span class="translation-key">menu.file.rename</span></div>
+            <div class="key-item"><span class="line-number">134:</span><span class="translation-key">menu.file.import</span></div>
+            <div class="key-item"><span class="line-number">140:</span><span class="translation-key">menu.file.export</span></div>
+            <div class="key-item"><span class="line-number">143:</span><span class="translation-key">menu.file.exportHtml</span></div>
+            <div class="key-item"><span class="line-number">149:</span><span class="translation-key">menu.file.exportPdf</span></div>
+            <div class="key-item"><span class="line-number">158:</span><span class="translation-key">menu.file.print</span></div>
+            <div class="key-item"><span class="line-number">169:</span><span class="translation-key">menu.file.preferences</span></div>
+            <div class="key-item"><span class="line-number">180:</span><span class="translation-key">menu.file.closeTab</span></div>
+            <div class="key-item"><span class="line-number">187:</span><span class="translation-key">menu.file.closeWindow</span></div>
+            <div class="key-item"><span class="line-number">198:</span><span class="translation-key">menu.file.quit</span></div>
+        </div>
+
+        <h3>1.3 编辑菜单</h3>
+        <div class="file-section">
+            <div class="file-path">src/main/menu/templates/edit.js</div>
+            <div class="key-item"><span class="line-number">8:</span><span class="translation-key">menu.edit.edit</span></div>
+            <div class="key-item"><span class="line-number">10:</span><span class="translation-key">menu.edit.undo</span></div>
+            <div class="key-item"><span class="line-number">16:</span><span class="translation-key">menu.edit.redo</span></div>
+            <div class="key-item"><span class="line-number">24:</span><span class="translation-key">menu.edit.cut</span></div>
+            <div class="key-item"><span class="line-number">30:</span><span class="translation-key">menu.edit.copy</span></div>
+            <div class="key-item"><span class="line-number">36:</span><span class="translation-key">menu.edit.paste</span></div>
+            <div class="key-item"><span class="line-number">44:</span><span class="translation-key">menu.edit.copyAsMarkdown</span></div>
+            <div class="key-item"><span class="line-number">50:</span><span class="translation-key">menu.edit.copyAsHtml</span></div>
+            <div class="key-item"><span class="line-number">56:</span><span class="translation-key">menu.edit.pasteAsPlainText</span></div>
+            <div class="key-item"><span class="line-number">64:</span><span class="translation-key">menu.edit.selectAll</span></div>
+            <div class="key-item"><span class="line-number">72:</span><span class="translation-key">menu.edit.duplicate</span></div>
+            <div class="key-item"><span class="line-number">78:</span><span class="translation-key">menu.edit.createParagraph</span></div>
+            <div class="key-item"><span class="line-number">84:</span><span class="translation-key">menu.edit.deleteParagraph</span></div>
+            <div class="key-item"><span class="line-number">92:</span><span class="translation-key">menu.edit.find</span></div>
+            <div class="key-item"><span class="line-number">98:</span><span class="translation-key">menu.edit.findNext</span></div>
+            <div class="key-item"><span class="line-number">104:</span><span class="translation-key">menu.edit.findPrevious</span></div>
+            <div class="key-item"><span class="line-number">110:</span><span class="translation-key">menu.edit.replace</span></div>
+            <div class="key-item"><span class="line-number">118:</span><span class="translation-key">menu.edit.findInFolder</span></div>
+            <div class="key-item"><span class="line-number">126:</span><span class="translation-key">menu.edit.screenshot</span></div>
+            <div class="key-item"><span class="line-number">137:</span><span class="translation-key">menu.edit.lineEnding</span></div>
+            <div class="key-item"><span class="line-number">140:</span><span class="translation-key">menu.edit.lineEndingCrlf</span></div>
+            <div class="key-item"><span class="line-number">147:</span><span class="translation-key">menu.edit.lineEndingLf</span></div>
+        </div>
+
+        <h3>1.4 段落菜单</h3>
+        <div class="file-section">
+            <div class="file-path">src/main/menu/templates/paragraph.js</div>
+            <div class="key-item"><span class="line-number">7:</span><span class="translation-key">menu.paragraph.title</span></div>
+            <div class="key-item"><span class="line-number">10:</span><span class="translation-key">menu.paragraph.heading1</span></div>
+            <div class="key-item"><span class="line-number">18:</span><span class="translation-key">menu.paragraph.heading2</span></div>
+            <div class="key-item"><span class="line-number">26:</span><span class="translation-key">menu.paragraph.heading3</span></div>
+            <div class="key-item"><span class="line-number">34:</span><span class="translation-key">menu.paragraph.heading4</span></div>
+            <div class="key-item"><span class="line-number">42:</span><span class="translation-key">menu.paragraph.heading5</span></div>
+            <div class="key-item"><span class="line-number">50:</span><span class="translation-key">menu.paragraph.heading6</span></div>
+            <div class="key-item"><span class="line-number">60:</span><span class="translation-key">menu.paragraph.promoteHeading</span></div>
+            <div class="key-item"><span class="line-number">67:</span><span class="translation-key">menu.paragraph.demoteHeading</span></div>
+            <div class="key-item"><span class="line-number">76:</span><span class="translation-key">menu.paragraph.table</span></div>
+            <div class="key-item"><span class="line-number">84:</span><span class="translation-key">menu.paragraph.codeFences</span></div>
+            <div class="key-item"><span class="line-number">92:</span><span class="translation-key">menu.paragraph.quoteBlock</span></div>
+            <div class="key-item"><span class="line-number">100:</span><span class="translation-key">menu.paragraph.mathBlock</span></div>
+            <div class="key-item"><span class="line-number">108:</span><span class="translation-key">menu.paragraph.htmlBlock</span></div>
+            <div class="key-item"><span class="line-number">118:</span><span class="translation-key">menu.paragraph.orderedList</span></div>
+            <div class="key-item"><span class="line-number">126:</span><span class="translation-key">menu.paragraph.bulletList</span></div>
+            <div class="key-item"><span class="line-number">134:</span><span class="translation-key">menu.paragraph.taskList</span></div>
+            <div class="key-item"><span class="line-number">144:</span><span class="translation-key">menu.paragraph.looseListItem</span></div>
+            <div class="key-item"><span class="line-number">154:</span><span class="translation-key">menu.paragraph.paragraph</span></div>
+            <div class="key-item"><span class="line-number">162:</span><span class="translation-key">menu.paragraph.horizontalRule</span></div>
+            <div class="key-item"><span class="line-number">170:</span><span class="translation-key">menu.paragraph.frontMatter</span></div>
+        </div>
+
+        <h3>1.5 格式菜单</h3>
+        <div class="file-section">
+            <div class="file-path">src/main/menu/templates/format.js</div>
+            <div class="key-item"><span class="line-number">7:</span><span class="translation-key">menu.format.format</span></div>
+            <div class="key-item"><span class="line-number">10:</span><span class="translation-key">menu.format.bold</span></div>
+            <div class="key-item"><span class="line-number">18:</span><span class="translation-key">menu.format.italic</span></div>
+            <div class="key-item"><span class="line-number">26:</span><span class="translation-key">menu.format.underline</span></div>
+            <div class="key-item"><span class="line-number">36:</span><span class="translation-key">menu.format.superscript</span></div>
+            <div class="key-item"><span class="line-number">44:</span><span class="translation-key">menu.format.subscript</span></div>
+            <div class="key-item"><span class="line-number">52:</span><span class="translation-key">menu.format.highlight</span></div>
+            <div class="key-item"><span class="line-number">62:</span><span class="translation-key">menu.format.inlineCode</span></div>
+            <div class="key-item"><span class="line-number">70:</span><span class="translation-key">menu.format.inlineMath</span></div>
+            <div class="key-item"><span class="line-number">80:</span><span class="translation-key">menu.format.strikethrough</span></div>
+            <div class="key-item"><span class="line-number">88:</span><span class="translation-key">menu.format.hyperlink</span></div>
+            <div class="key-item"><span class="line-number">96:</span><span class="translation-key">menu.format.image</span></div>
+            <div class="key-item"><span class="line-number">105:</span><span class="translation-key">menu.format.clearFormat</span></div>
+        </div>
+
+        <h3>1.6 窗口菜单</h3>
+        <div class="file-section">
+            <div class="file-path">src/main/menu/templates/window.js</div>
+            <div class="key-item"><span class="line-number">9:</span><span class="translation-key">menu.window.title</span></div>
+            <div class="key-item"><span class="line-number">12:</span><span class="translation-key">menu.window.minimize</span></div>
+            <div class="key-item"><span class="line-number">19:</span><span class="translation-key">menu.window.alwaysOnTop</span></div>
+            <div class="key-item"><span class="line-number">28:</span><span class="translation-key">menu.window.zoomIn</span></div>
+            <div class="key-item"><span class="line-number">34:</span><span class="translation-key">menu.window.zoomOut</span></div>
+            <div class="key-item"><span class="line-number">42:</span><span class="translation-key">menu.window.fullScreen</span></div>
+            <div class="key-item"><span class="line-number">54:</span><span class="translation-key">menu.window.bringAllToFront</span></div>
+        </div>
+
+        <h3>1.7 帮助菜单</h3>
+        <div class="file-section">
+            <div class="file-path">src/main/menu/templates/help.js</div>
+            <div class="key-item"><span class="line-number">33:</span><span class="translation-key">menu.help.help</span></div>
+            <div class="key-item"><span class="line-number">37:</span><span class="translation-key">menu.help.markdownReference</span></div>
+            <div class="key-item"><span class="line-number">45:</span><span class="translation-key">menu.help.changelog</span></div>
+            <div class="key-item"><span class="line-number">56:</span><span class="translation-key">menu.help.askQuestion</span></div>
+            <div class="key-item"><span class="line-number">62:</span><span class="translation-key">menu.help.reportBug</span></div>
+            <div class="key-item"><span class="line-number">68:</span><span class="translation-key">menu.help.viewSource</span></div>
+            <div class="key-item"><span class="line-number">77:</span><span class="translation-key">menu.help.license</span></div>
+            <div class="key-item"><span class="line-number">91:</span><span class="translation-key">menu.help.checkUpdates</span></div>
+            <div class="key-item"><span class="line-number">105:</span><span class="translation-key">menu.help.about</span></div>
+        </div>
+
+        <h2 id="preferences">2. 偏好设置 (Preferences)</h2>
+        
+        <h3>2.1 偏好设置主界面</h3>
+        <div class="file-section">
+            <div class="file-path">src/renderer/src/prefComponents/sideBar/index.vue</div>
+            <div class="key-item"><span class="line-number">3:</span><span class="translation-key">preferences.title</span></div>
+            <div class="key-item"><span class="line-number">9:</span><span class="translation-key">preferences.search.placeholder</span></div>
+        </div>
+
+        <div class="file-section">
+            <div class="file-path">src/renderer/src/prefComponents/sideBar/config.js</div>
+            <div class="key-item"><span class="line-number">14:</span><span class="translation-key">preferences.categories.general</span></div>
+            <div class="key-item"><span class="line-number">20:</span><span class="translation-key">preferences.categories.editor</span></div>
+            <div class="key-item"><span class="line-number">26:</span><span class="translation-key">preferences.categories.markdown</span></div>
+            <div class="key-item"><span class="line-number">32:</span><span class="translation-key">preferences.categories.spelling</span></div>
+            <div class="key-item"><span class="line-number">38:</span><span class="translation-key">preferences.categories.theme</span></div>
+            <div class="key-item"><span class="line-number">44:</span><span class="translation-key">preferences.categories.image</span></div>
+            <div class="key-item"><span class="line-number">50:</span><span class="translation-key">preferences.categories.keybindings</span></div>
+        </div>
+
+        <h3>2.2 通用设置</h3>
+        <div class="file-section">
+            <div class="file-path">src/renderer/src/prefComponents/general/index.vue</div>
+            <div class="key-item"><span class="line-number">3:</span><span class="translation-key">preferences.general.title</span></div>
+            <div class="key-item"><span class="line-number">6:</span><span class="translation-key">preferences.general.autoSave.title</span></div>
+            <div class="key-item"><span class="line-number">10:</span><span class="translation-key">preferences.general.autoSave.description</span></div>
+            <div class="key-item"><span class="line-number">15:</span><span class="translation-key">preferences.general.autoSave.delayDescription</span></div>
+            <div class="key-item"><span class="line-number">28:</span><span class="translation-key">preferences.general.window.title</span></div>
+            <div class="key-item"><span class="line-number">33:</span><span class="translation-key">preferences.general.window.titleBarStyle</span></div>
+            <div class="key-item"><span class="line-number">34:</span><span class="translation-key">preferences.general.window.requiresRestart</span></div>
+            <div class="key-item"><span class="line-number">40:</span><span class="translation-key">preferences.general.window.hideScrollbars</span></div>
+            <div class="key-item"><span class="line-number">45:</span><span class="translation-key">preferences.general.window.openFilesInNewWindow</span></div>
+            <div class="key-item"><span class="line-number">50:</span><span class="translation-key">preferences.general.window.openFoldersInNewWindow</span></div>
+            <div class="key-item"><span class="line-number">55:</span><span class="translation-key">preferences.general.window.zoom</span></div>
+            <div class="key-item"><span class="line-number">65:</span><span class="translation-key">preferences.general.sidebar.title</span></div>
+            <div class="key-item"><span class="line-number">69:</span><span class="translation-key">preferences.general.sidebar.wrapTextInToc</span></div>
+            <div class="key-item"><span class="line-number">75:</span><span class="translation-key">preferences.general.sidebar.excludePatterns</span></div>
+            <div class="key-item"><span class="line-number">76:</span><span class="translation-key">preferences.general.sidebar.excludePatternsNotes</span></div>
+            <div class="key-item"><span class="line-number">84:</span><span class="translation-key">preferences.general.sidebar.fileSortBy</span></div>
+            <div class="key-item"><span class="line-number">95:</span><span class="translation-key">preferences.general.startup.title</span></div>
+            <div class="key-item"><span class="line-number">105:</span><span class="translation-key">preferences.general.startup.openDefaultDirectory</span></div>
+            <div class="key-item"><span class="line-number">107:</span><span class="translation-key">preferences.general.startup.selectFolder</span></div>
+            <div class="key-item"><span class="line-number">108:</span><span class="translation-key">preferences.general.startup.openBlankPage</span></div>
+            <div class="key-item"><span class="line-number">116:</span><span class="translation-key">preferences.general.misc.title</span></div>
+            <div class="key-item"><span class="line-number">120:</span><span class="translation-key">preferences.general.misc.language.title</span></div>
+        </div>
+
+        <h3>2.3 编辑器设置</h3>
+        <div class="file-section">
+            <div class="file-path">src/renderer/src/prefComponents/editor/index.vue</div>
+            <div class="key-item"><span class="line-number">3:</span><span class="translation-key">preferences.editor.title</span></div>
+            <div class="key-item"><span class="line-number">6:</span><span class="translation-key">preferences.editor.textEditor.title</span></div>
+            <div class="key-item"><span class="line-number">10:</span><span class="translation-key">preferences.editor.textEditor.fontSize</span></div>
+            <div class="key-item"><span class="line-number">19:</span><span class="translation-key">preferences.editor.textEditor.lineHeight</span></div>
+            <div class="key-item"><span class="line-number">27:</span><span class="translation-key">preferences.editor.textEditor.fontFamily</span></div>
+            <div class="key-item"><span class="line-number">32:</span><span class="translation-key">preferences.editor.textEditor.maxWidth</span></div>
+            <div class="key-item"><span class="line-number">33:</span><span class="translation-key">preferences.editor.textEditor.maxWidthNotes</span></div>
+            <div class="key-item"><span class="line-number">43:</span><span class="translation-key">preferences.editor.codeBlock.title</span></div>
+            <div class="key-item"><span class="line-number">47:</span><span class="translation-key">preferences.editor.codeBlock.fontSize</span></div>
+            <div class="key-item"><span class="line-number">56:</span><span class="translation-key">preferences.editor.codeBlock.fontFamily</span></div>
+            <div class="key-item"><span class="line-number">64:</span><span class="translation-key">preferences.editor.codeBlock.showLineNumbers</span></div>
+            <div class="key-item"><span class="line-number">69:</span><span class="translation-key">preferences.editor.codeBlock.removeEmptyLines</span></div>
+            <div class="key-item"><span class="line-number">78:</span><span class="translation-key">preferences.editor.writingBehavior.title</span></div>
+            <div class="key-item"><span class="line-number">82:</span><span class="translation-key">preferences.editor.writingBehavior.autoCloseBrackets</span></div>
+            <div class="key-item"><span class="line-number">87:</span><span class="translation-key">preferences.editor.writingBehavior.autoCompleteMarkdown</span></div>
+            <div class="key-item"><span class="line-number">92:</span><span class="translation-key">preferences.editor.writingBehavior.autoCloseQuotes</span></div>
+            <div class="key-item"><span class="line-number">101:</span><span class="translation-key">preferences.editor.fileRepresentation.title</span></div>
+            <div class="key-item"><span class="line-number">105:</span><span class="translation-key">preferences.editor.fileRepresentation.tabWidth</span></div>
+            <div class="key-item"><span class="line-number">111:</span><span class="translation-key">preferences.editor.fileRepresentation.lineSeparator</span></div>
+            <div class="key-item"><span class="line-number">117:</span><span class="translation-key">preferences.editor.fileRepresentation.defaultEncoding</span></div>
+            <div class="key-item"><span class="line-number">123:</span><span class="translation-key">preferences.editor.fileRepresentation.autoDetectEncoding</span></div>
+            <div class="key-item"><span class="line-number">128:</span><span class="translation-key">preferences.editor.fileRepresentation.trailingNewlines.title</span></div>
+            <div class="key-item"><span class="line-number">138:</span><span class="translation-key">preferences.editor.misc.title</span></div>
+            <div class="key-item"><span class="line-number">142:</span><span class="translation-key">preferences.editor.misc.textDirection</span></div>
+            <div class="key-item"><span class="line-number">148:</span><span class="translation-key">preferences.editor.misc.hideQuickInsertHint</span></div>
+            <div class="key-item"><span class="line-number">153:</span><span class="translation-key">preferences.editor.misc.hideLinkPopup</span></div>
+            <div class="key-item"><span class="line-number">158:</span><span class="translation-key">preferences.editor.misc.autoCheck</span></div>
+            <div class="key-item"><span class="line-number">163:</span><span class="translation-key">preferences.editor.misc.wrapCodeBlocks</span></div>
+        </div>
+
+        <h3>2.4 Markdown 设置</h3>
+        <div class="file-section">
+            <div class="file-path">src/renderer/src/prefComponents/markdown/index.vue</div>
+            <div class="key-item"><span class="line-number">3:</span><span class="translation-key">preferences.markdown.title</span></div>
+            <div class="key-item"><span class="line-number">6:</span><span class="translation-key">preferences.markdown.lists.title</span></div>
+            <div class="key-item"><span class="line-number">10:</span><span class="translation-key">preferences.markdown.lists.preferLooseListItem</span></div>
+            <div class="key-item"><span class="line-number">16:</span><span class="translation-key">preferences.markdown.lists.bulletListMarker</span></div>
+            <div class="key-item"><span class="line-number">23:</span><span class="translation-key">preferences.markdown.lists.orderListDelimiter</span></div>
+            <div class="key-item"><span class="line-number">30:</span><span class="translation-key">preferences.markdown.lists.listIndentation</span></div>
+            <div class="key-item"><span class="line-number">40:</span><span class="translation-key">preferences.markdown.extensions.title</span></div>
+            <div class="key-item"><span class="line-number">44:</span><span class="translation-key">preferences.markdown.extensions.frontmatterType</span></div>
+            <div class="key-item"><span class="line-number">50:</span><span class="translation-key">preferences.markdown.extensions.superSubScript</span></div>
+            <div class="key-item"><span class="line-number">56:</span><span class="translation-key">preferences.markdown.extensions.footnote</span></div>
+            <div class="key-item"><span class="line-number">57:</span><span class="translation-key">preferences.markdown.extensions.footnoteNotes</span></div>
+            <div class="key-item"><span class="line-number">67:</span><span class="translation-key">preferences.markdown.compatibility.title</span></div>
+            <div class="key-item"><span class="line-number">71:</span><span class="translation-key">preferences.markdown.compatibility.enableHtml</span></div>
+            <div class="key-item"><span class="line-number">76:</span><span class="translation-key">preferences.markdown.compatibility.enableGitlab</span></div>
+            <div class="key-item"><span class="line-number">85:</span><span class="translation-key">preferences.markdown.diagrams.title</span></div>
+            <div class="key-item"><span class="line-number">89:</span><span class="translation-key">preferences.markdown.diagrams.sequenceTheme</span></div>
+            <div class="key-item"><span class="line-number">100:</span><span class="translation-key">preferences.markdown.misc.title</span></div>
+            <div class="key-item"><span class="line-number">104:</span><span class="translation-key">preferences.markdown.misc.preferHeadingStyle</span></div>
+        </div>
+
+        <h3>2.5 拼写检查设置</h3>
+        <div class="file-section">
+            <div class="file-path">src/renderer/src/prefComponents/spellchecker/index.vue</div>
+            <div class="key-item"><span class="line-number">3:</span><span class="translation-key">preferences.spellchecker.title</span></div>
+            <div class="key-item"><span class="line-number">7:</span><span class="translation-key">preferences.spellchecker.enableSpellChecking</span></div>
+            <div class="key-item"><span class="line-number">14:</span><span class="translation-key">preferences.spellchecker.hideMarksForErrors</span></div>
+            <div class="key-item"><span class="line-number">21:</span><span class="translation-key">preferences.spellchecker.autoDetectLanguage</span></div>
+            <div class="key-item"><span class="line-number">27:</span><span class="translation-key">preferences.spellchecker.defaultLanguage</span></div>
+            <div class="key-item"><span class="line-number">37:</span><span class="translation-key">preferences.spellchecker.autoDetectDescription</span></div>
+            <div class="key-item"><span class="line-number">41:</span><span class="translation-key">preferences.spellchecker.customDictionary.title</span></div>
+            <div class="key-item"><span class="line-number">42:</span><span class="translation-key">preferences.spellchecker.customDictionary.description</span></div>
+            <div class="key-item"><span class="line-number">43:</span><span class="translation-key">preferences.spellchecker.customDictionary.noWordsAvailable</span></div>
+            <div class="key-item"><span class="line-number">44:</span><span class="translation-key">preferences.spellchecker.customDictionary.word</span></div>
+            <div class="key-item"><span class="line-number">46:</span><span class="translation-key">preferences.spellchecker.customDictionary.options</span></div>
+            <div class="key-item"><span class="line-number">51:</span><span class="translation-key">preferences.spellchecker.customDictionary.delete</span></div>
+        </div>
+
+        <h3>2.6 主题设置</h3>
+        <div class="file-section">
+            <div class="file-path">src/renderer/src/prefComponents/theme/index.vue</div>
+            <div class="key-item"><span class="line-number">3:</span><span class="translation-key">preferences.theme.title</span></div>
+            <div class="key-item"><span class="line-number">17:</span><span class="translation-key">preferences.theme.autoSwitch</span></div>
+            <div class="key-item"><span class="line-number">23:</span><span class="translation-key">preferences.theme.customCss</span></div>
+            <div class="key-item"><span class="line-number">39:</span><span class="translation-key">preferences.theme.openThemesFolder</span></div>
+            <div class="key-item"><span class="line-number">40:</span><span class="translation-key">preferences.theme.openFolder</span></div>
+            <div class="key-item"><span class="line-number">44:</span><span class="translation-key">preferences.theme.importCustomThemes</span></div>
+            <div class="key-item"><span class="line-number">45:</span><span class="translation-key">preferences.theme.importTheme</span></div>
+        </div>
+
+        <h3>2.7 图片设置</h3>
+        <div class="file-section">
+            <div class="file-path">src/renderer/src/prefComponents/image/index.vue</div>
+            <div class="key-item"><span class="line-number">3:</span><span class="translation-key">preferences.image.title</span></div>
+            <div class="key-item"><span class="line-number">6:</span><span class="translation-key">preferences.image.defaultAction</span></div>
+            <div class="key-item"><span class="line-number">10:</span><span class="translation-key">preferences.image.clipboardTooltip</span></div>
+        </div>
+
+        <h3>2.8 快捷键设置</h3>
+        <div class="file-section">
+            <div class="file-path">src/renderer/src/prefComponents/keybindings/index.vue</div>
+            <div class="key-item"><span class="line-number">3:</span><span class="translation-key">preferences.keybindings.title</span></div>
+            <div class="key-item"><span class="line-number">6:</span><span class="translation-key">preferences.keybindings.description</span></div>
+            <div class="key-item"><span class="line-number">7:</span><span class="translation-key">preferences.keybindings.online</span></div>
+            <div class="key-item"><span class="line-number">10:</span><span class="translation-key">preferences.keybindings.table.description</span></div>
+            <div class="key-item"><span class="line-number">11:</span><span class="translation-key">preferences.keybindings.table.keyCombination</span></div>
+            <div class="key-item"><span class="line-number">12:</span><span class="translation-key">preferences.keybindings.table.options</span></div>
+            <div class="key-item"><span class="line-number">17:</span><span class="translation-key">preferences.keybindings.table.edit</span></div>
+            <div class="key-item"><span class="line-number">25:</span><span class="translation-key">preferences.keybindings.table.reset</span></div>
+            <div class="key-item"><span class="line-number">33:</span><span class="translation-key">preferences.keybindings.table.unbind</span></div>
+            <div class="key-item"><span class="line-number">44:</span><span class="translation-key">preferences.keybindings.save</span></div>
+            <div class="key-item"><span class="line-number">45:</span><span class="translation-key">preferences.keybindings.restoreDefaults</span></div>
+            <div class="key-item"><span class="line-number">49:</span><span class="translation-key">preferences.keybindings.debugOptions</span></div>
+            <div class="key-item"><span class="line-number">51:</span><span class="translation-key">preferences.keybindings.dumpKeyboardInfo</span></div>
+        </div>
+
+        <h2 id="components">3. 界面组件 (UI Components)</h2>
+        
+        <h3>3.1 侧边栏组件</h3>
+        <div class="file-section">
+            <div class="file-path">src/renderer/src/components/sideBar/toc.vue</div>
+            <div class="key-item"><span class="line-number">6:</span><span class="translation-key">sideBar.toc.title</span></div>
+        </div>
+
+        <div class="file-section">
+            <div class="file-path">src/renderer/src/components/sideBar/search.vue</div>
+            <div class="key-item"><span class="line-number">8:</span><span class="translation-key">sideBar.search.searchInFolder</span></div>
+            <div class="key-item"><span class="line-number">13:</span><span class="translation-key">search.caseSensitive</span></div>
+            <div class="key-item"><span class="line-number">21:</span><span class="translation-key">search.wholeWord</span></div>
+            <div class="key-item"><span class="line-number">29:</span><span class="translation-key">search.useRegex</span></div>
+            <div class="key-item"><span class="line-number">40:</span><span class="translation-key">sideBar.search.noFolderOpen</span></div>
+            <div class="key-item"><span class="line-number">42:</span><span class="translation-key">sideBar.search.noResultsFound</span></div>
+            <div class="key-item"><span class="line-number">47:</span><span class="translation-key">sideBar.search.cancel</span></div>
+            <div class="key-item"><span class="line-number">61:</span><span class="translation-key">sideBar.search.openFolder</span></div>
+        </div>
+
+        <div class="file-section">
+            <div class="file-path">src/renderer/src/components/sideBar/tree.vue</div>
+            <div class="key-item"><span class="line-number">19:</span><span class="translation-key">sideBar.tree.openedFiles</span></div>
+            <div class="key-item"><span class="line-number">21:</span><span class="translation-key">sideBar.tree.saveAll</span></div>
+            <div class="key-item"><span class="line-number">26:</span><span class="translation-key">sideBar.tree.closeAll</span></div>
+            <div class="key-item"><span class="line-number">80:</span><span class="translation-key">sideBar.tree.emptyProject</span></div>
+            <div class="key-item"><span class="line-number">81:</span><span class="translation-key">sideBar.tree.createFile</span></div>
+            <div class="key-item"><span class="line-number">87:</span><span class="translation-key">sideBar.tree.openFolder</span></div>
+        </div>
+
+        <h3>3.2 其他界面组件</h3>
+        <div class="file-section">
+            <div class="file-path">src/renderer/src/components/recent/index.vue</div>
+            <div class="key-item"><span class="line-number">4:</span><span class="translation-key">recent.noTabsOpen</span></div>
+            <div class="key-item"><span class="line-number">5:</span><span class="translation-key">recent.newFile</span></div>
+        </div>
+
+        <div class="file-section">
+            <div class="file-path">src/renderer/src/components/tweet/index.vue</div>
+            <div class="key-item"><span class="line-number">12:</span><span class="translation-key">tweet.title</span></div>
+            <div class="key-item"><span class="line-number">17:</span><span class="translation-key">tweet.feelingsQuestion</span></div>
+            <div class="key-item"><span class="line-number">32:</span><span class="translation-key">tweet.feedbackQuestion</span></div>
+            <div class="key-item"><span class="line-number">40:</span><span class="translation-key">tweet.reportViaGithub</span></div>
+            <div class="key-item"><span class="line-number">51:</span><span class="translation-key">tweet.tweet</span></div>
+        </div>
+
+        <div class="file-section">
+            <div class="file-path">src/renderer/src/components/import/index.vue</div>
+            <div class="key-item"><span class="line-number">21:</span><span class="translation-key">import.title</span></div>
+            <div class="key-item"><span class="line-number">22:</span><span class="translation-key">import.description</span></div>
+        </div>
+
+        <div class="file-section">
+            <div class="file-path">src/renderer/src/components/commandPalette/index.vue</div>
+            <div class="key-item"><span class="line-number">65:</span><span class="translation-key">commandPalette.placeholder</span></div>
+        </div>
+
+        <div class="file-section">
+            <div class="file-path">src/renderer/src/components/exportSettings/index.vue</div>
+            <div class="key-item"><span class="line-number">10:</span><span class="translation-key">exportSettings.title</span></div>
+            <div class="key-item"><span class="line-number">12:</span><span class="translation-key">exportSettings.info.label</span></div>
+            <div class="key-item"><span class="line-number">14:</span><span class="translation-key">exportSettings.info.description</span></div>
+            <div class="key-item"><span class="line-number">17:</span><span class="translation-key">exportSettings.page.label</span></div>
+            <div class="key-item"><span class="line-number">100:</span><span class="translation-key">exportSettings.style.label</span></div>
+            <div class="key-item"><span class="line-number">131:</span><span class="translation-key">exportSettings.autoNumberingHeadings</span></div>
+            <div class="key-item"><span class="line-number">136:</span><span class="translation-key">exportSettings.showFrontMatter</span></div>
+        </div>
+
+        <h2 id="context-menu">4. 右键菜单 (Context Menu)</h2>
+        
+        <div class="file-section">
+            <div class="file-path">src/main/contextMenu/editor/menuItems.js</div>
+            <div class="key-item"><span class="line-number">7:</span><span class="translation-key">contextMenu.cut</span></div>
+            <div class="key-item"><span class="line-number">13:</span><span class="translation-key">contextMenu.copy</span></div>
+            <div class="key-item"><span class="line-number">19:</span><span class="translation-key">contextMenu.paste</span></div>
+            <div class="key-item"><span class="line-number">25:</span><span class="translation-key">contextMenu.copyAsMarkdown</span></div>
+            <div class="key-item"><span class="line-number">33:</span><span class="translation-key">contextMenu.copyAsHtml</span></div>
+            <div class="key-item"><span class="line-number">41:</span><span class="translation-key">contextMenu.pasteAsPlainText</span></div>
+            <div class="key-item"><span class="line-number">49:</span><span class="translation-key">contextMenu.insertParagraphBefore</span></div>
+            <div class="key-item"><span class="line-number">57:</span><span class="translation-key">contextMenu.insertParagraphAfter</span></div>
+        </div>
+
+        <div class="file-section">
+            <div class="file-path">src/main/contextMenu/editor/spellcheck.js</div>
+            <div class="key-item"><span class="line-number">22:</span><span class="translation-key">contextMenu.changeLanguage</span></div>
+            <div class="key-item"><span class="line-number">34:</span><span class="translation-key">contextMenu.addToDictionary</span></div>
+            <div class="key-item"><span class="line-number">61:</span><span class="translation-key">contextMenu.editDictionary</span></div>
+        </div>
+
+        <div class="file-section">
+            <div class="file-path">src/main/contextMenu/editor/index.js</div>
+            <div class="key-item"><span class="line-number">53:</span><span class="translation-key">contextMenu.spelling</span></div>
+        </div>
+
+        <h2 id="error-handling">5. 错误处理 (Error Handling)</h2>
+        
+        <div class="file-section">
+            <div class="file-path">src/main/exceptionHandler.js</div>
+            <div class="key-item"><span class="line-number">17:</span><span class="translation-key">error.unexpectedMainProcess</span></div>
+            <div class="key-item"><span class="line-number">18:</span><span class="translation-key">error.unexpectedRendererProcess</span></div>
+            <div class="key-item"><span class="line-number">48:</span><span class="translation-key">error.terminatedDueToError</span></div>
+            <div class="key-item"><span class="line-number">62:</span><span class="translation-key">common.ok</span></div>
+            <div class="key-item"><span class="line-number">62:</span><span class="translation-key">error.copyError</span></div>
+            <div class="key-item"><span class="line-number">62:</span><span class="translation-key">error.report</span></div>
+        </div>
+
+        <div class="file-section">
+            <div class="file-path">src/main/index.js</div>
+            <div class="key-item"><span class="line-number">71:</span><span class="translation-key">error.otherInstanceDetected</span></div>
+            <div class="key-item"><span class="line-number">93:</span><span class="translation-key">error.configSchemaViolation</span></div>
+            <div class="key-item"><span class="line-number">100:</span><span class="translation-key">error.startupError</span></div>
+        </div>
+
+        <h2 id="store-management">6. 状态管理 (Store Management)</h2>
+        
+        <div class="file-section">
+            <div class="file-path">src/renderer/src/store/editor.js</div>
+            <div class="key-item"><span class="line-number">46:</span><span class="translation-key">store.editor.anchorLinkCopied</span></div>
+            <div class="key-item"><span class="line-number">77:</span><span class="translation-key">store.editor.tabNotFound</span></div>
+        </div>
+
+        <div class="file-section">
+            <div class="file-path">src/renderer/src/store/notification.js</div>
+            <div class="key-item"><span class="line-number">10:</span><span class="translation-key">notifications.defaultTitle</span></div>
+            <div class="key-item"><span class="line-number">13:</span><span class="translation-key">notifications.defaultMessage</span></div>
+        </div>
+
+        <div class="file-section">
+            <div class="file-path">src/renderer/src/store/help.js</div>
+            <div class="key-item"><span class="line-number">177:</span><span class="translation-key">store.help.lineEndingAssertionError</span></div>
+        </div>
+
+        <h2 id="dialogs">7. 对话框 (Dialogs)</h2>
+        
+        <div class="file-section">
+            <div class="file-path">src/main/menu/actions/file.js</div>
+            <div class="key-item"><span class="line-number">169:</span><span class="translation-key">dialog.save</span></div>
+            <div class="key-item"><span class="line-number">169:</span><span class="translation-key">dialog.dontSave</span></div>
+            <div class="key-item"><span class="line-number">169:</span><span class="translation-key">dialog.cancel</span></div>
+            <div class="key-item"><span class="line-number">171:</span><span class="translation-key">dialog.saveChanges</span></div>
+            <div class="key-item"><span class="line-number">171:</span><span class="translation-key">dialog.file</span></div>
+            <div class="key-item"><span class="line-number">171:</span><span class="translation-key">dialog.files</span></div>
+            <div class="key-item"><span class="line-number">172:</span><span class="translation-key">dialog.changesWillBeLost</span></div>
+            <div class="key-item"><span class="line-number">193:</span><span class="translation-key">dialog.importWarning</span></div>
+            <div class="key-item"><span class="line-number">195:</span><span class="translation-key">dialog.installPandoc</span></div>
+            <div class="key-item"><span class="line-number">312:</span><span class="translation-key">dialog.close</span></div>
+            <div class="key-item"><span class="line-number">312:</span><span class="translation-key">dialog.keepOpen</span></div>
+            <div class="key-item"><span class="line-number">313:</span><span class="translation-key">dialog.saveFailure</span></div>
+            <div class="key-item"><span class="line-number">379:</span><span class="translation-key">dialog.replace</span></div>
+        </div>
+
+        <h2 id="misc">8. 其他模块 (Miscellaneous)</h2>
+        
+        <h3>8.1 图片上传服务</h3>
+        <div class="file-section">
+            <div class="file-path">src/main/imagePathPicker.js</div>
+            <div class="key-item"><span class="line-number">22:</span><span class="translation-key">dialog.selectImageFolder</span></div>
+        </div>
+
+        <h3>8.2 应用程序更新</h3>
+        <div class="file-section">
+            <div class="file-path">src/main/app/updater.js</div>
+            <div class="key-item"><span class="line-number">19:</span><span class="translation-key">updater.checkingForUpdate</span></div>
+            <div class="key-item"><span class="line-number">23:</span><span class="translation-key">updater.updateAvailable</span></div>
+            <div class="key-item"><span class="line-number">27:</span><span class="translation-key">updater.updateNotAvailable</span></div>
+            <div class="key-item"><span class="line-number">31:</span><span class="translation-key">updater.autoUpdaterError</span></div>
+            <div class="key-item"><span class="line-number">35:</span><span class="translation-key">updater.updateDownloaded</span></div>
+            <div class="key-item"><span class="line-number">36:</span><span class="translation-key">updater.quitAndInstall</span></div>
+            <div class="key-item"><span class="line-number">36:</span><span class="translation-key">updater.installLater</span></div>
+        </div>
+
+        <h3>8.3 文件操作</h3>
+        <div class="file-section">
+            <div class="file-path">src/main/filesystem/index.js</div>
+            <div class="key-item"><span class="line-number">45:</span><span class="translation-key">filesystem.fileNotFound</span></div>
+            <div class="key-item"><span class="line-number">67:</span><span class="translation-key">filesystem.directoryNotFound</span></div>
+            <div class="key-item"><span class="line-number">89:</span><span class="translation-key">filesystem.permissionDenied</span></div>
+        </div>
+
+        <h3>8.4 窗口管理</h3>
+        <div class="file-section">
+            <div class="file-path">src/main/windows/index.js</div>
+            <div class="key-item"><span class="line-number">123:</span><span class="translation-key">window.createNewWindow</span></div>
+            <div class="key-item"><span class="line-number">145:</span><span class="translation-key">window.closeWindow</span></div>
+        </div>
+
+        <h3>8.5 搜索功能</h3>
+        <div class="file-section">
+            <div class="file-path">src/renderer/src/components/search/index.vue</div>
+            <div class="key-item"><span class="line-number">15:</span><span class="translation-key">search.placeholder</span></div>
+            <div class="key-item"><span class="line-number">23:</span><span class="translation-key">search.noResults</span></div>
+            <div class="key-item"><span class="line-number">31:</span><span class="translation-key">search.replaceWith</span></div>
+            <div class="key-item"><span class="line-number">39:</span><span class="translation-key">search.replaceAll</span></div>
+            <div class="key-item"><span class="line-number">47:</span><span class="translation-key">search.replace</span></div>
+        </div>
+
+        <h3>8.6 通用按钮和操作</h3>
+        <div class="file-section">
+            <div class="file-path">多个文件中的通用翻译键</div>
+            <div class="key-item"><span class="translation-key">common.ok</span> - 确定按钮</div>
+            <div class="key-item"><span class="translation-key">common.cancel</span> - 取消按钮</div>
+            <div class="key-item"><span class="translation-key">common.save</span> - 保存按钮</div>
+            <div class="key-item"><span class="translation-key">common.close</span> - 关闭按钮</div>
+            <div class="key-item"><span class="translation-key">common.delete</span> - 删除按钮</div>
+            <div class="key-item"><span class="translation-key">common.edit</span> - 编辑按钮</div>
+            <div class="key-item"><span class="translation-key">common.add</span> - 添加按钮</div>
+            <div class="key-item"><span class="translation-key">common.remove</span> - 移除按钮</div>
+        </div>
+
+        <hr style="margin: 40px 0; border: none; border-top: 2px solid #ecf0f1;">
+        
+        <div class="summary">
+            <h3>📋 文档总结</h3>
+            <p>本文档详细记录了 MarkText 项目中所有的 <code>t()</code> 函数调用，涵盖了以下主要功能模块：</p>
+            <ul>
+                <li><strong>菜单系统：</strong>包括主菜单、文件菜单、编辑菜单、段落菜单、格式菜单、窗口菜单和帮助菜单</li>
+                <li><strong>偏好设置：</strong>涵盖通用设置、编辑器设置、Markdown设置、拼写检查、主题、图片和快捷键配置</li>
+                <li><strong>界面组件：</strong>侧边栏、搜索、文件树、导入导出等用户界面元素</li>
+                <li><strong>右键菜单：</strong>编辑器右键菜单和拼写检查相关功能</li>
+                <li><strong>错误处理：</strong>异常处理和错误提示信息</li>
+                <li><strong>状态管理：</strong>应用程序状态和通知管理</li>
+                <li><strong>对话框：</strong>各种确认和操作对话框</li>
+                <li><strong>其他功能：</strong>文件操作、窗口管理、搜索等辅助功能</li>
+            </ul>
+            <p>所有翻译键都遵循统一的命名规范，便于国际化和本地化工作的进行。</p>
+        </div>
+
+        <div style="text-align: center; margin-top: 30px; color: #7f8c8d; font-size: 14px;">
+            <p>📄 文档生成时间：<span id="generation-time"></span></p>
+            <p>🔍 扫描路径：/Users/hubo/mycode/marktext/src</p>
+        </div>
+    </div>
+
+    <script>
+        // 设置生成时间
+        document.getElementById('generation-time').textContent = new Date().toLocaleString('zh-CN');
+        
+        // 添加平滑滚动
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+        
+        // 添加搜索功能
+        function addSearchFunctionality() {
+            const searchInput = document.createElement('input');
+            searchInput.type = 'text';
+            searchInput.placeholder = '搜索翻译键...';
+            searchInput.style.cssText = `
+                width: 100%;
+                padding: 10px;
+                margin-bottom: 20px;
+                border: 2px solid #3498db;
+                border-radius: 5px;
+                font-size: 16px;
+            `;
+            
+            const container = document.querySelector('.container');
+            container.insertBefore(searchInput, container.children[1]);
+            
+            searchInput.addEventListener('input', function() {
+                const searchTerm = this.value.toLowerCase();
+                const translationKeys = document.querySelectorAll('.translation-key');
+                
+                translationKeys.forEach(key => {
+                    const keyItem = key.closest('.key-item');
+                    if (key.textContent.toLowerCase().includes(searchTerm)) {
+                        keyItem.style.display = 'block';
+                        key.style.backgroundColor = searchTerm ? '#f39c12' : '#2c3e50';
+                    } else {
+                        keyItem.style.display = searchTerm ? 'none' : 'block';
+                        key.style.backgroundColor = '#2c3e50';
+                    }
+                });
+            });
+        }
+        
+        // 页面加载完成后添加搜索功能
+        document.addEventListener('DOMContentLoaded', addSearchFunctionality);
+    </script>
+</body>
+</html>

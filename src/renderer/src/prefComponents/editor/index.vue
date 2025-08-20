@@ -125,7 +125,7 @@
           :on-change="(value) => onSelectChange('autoGuessEncoding', value)"
         ></bool>
         <cur-select
-          :description="t('preferences.editor.fileRepresentation.trailingNewlines')"
+          :description="t('preferences.editor.fileRepresentation.trailingNewlines.title')"
           :value="trimTrailingNewline"
           :options="getTrimTrailingNewlineOptions()"
           :on-change="(value) => onSelectChange('trimTrailingNewline', value)"
@@ -139,7 +139,7 @@
       </template>
       <template #children>
         <cur-select
-          :description="t('preferences.editor.misc.textDirection')"
+          :description="t('preferences.editor.misc.textDirection.title')"
           :value="textDirection"
           :options="getTextDirectionOptions()"
           :on-change="(value) => onSelectChange('textDirection', value)"
@@ -222,16 +222,15 @@ const onSelectChange = (type, value) => {
 </script>
 
 <style scoped>
-.pref-editor {
-  & .image-ctrl {
-    font-size: 14px;
-    user-select: none;
-    margin: 20px 0;
-    color: var(--editorColor);
-    & label {
-      display: block;
-      margin: 20px 0;
-    }
-  }
+.pref-editor .image-ctrl {
+  font-size: 14px;
+  user-select: none;
+  margin: 20px 0;
+  color: var(--editorColor);
+}
+
+.pref-editor .image-ctrl label {
+  display: block;
+  margin: 20px 0;
 }
 </style>

@@ -27,7 +27,7 @@
           more="https://spec.commonmark.org/0.29/#ordered-list"
         ></cur-select>
         <cur-select
-          :description="t('preferences.markdown.lists.listIndentation')"
+          :description="t('preferences.markdown.lists.listIndentation.title')"
           :value="listIndentation"
           :options="getListIndentationOptions()"
           :on-change="(value) => onSelectChange('listIndentation', value)"
@@ -41,7 +41,7 @@
       </template>
       <template #children>
         <cur-select
-          :description="t('preferences.markdown.extensions.frontmatterType')"
+          :description="t('preferences.markdown.extensions.frontmatterType.title')"
           :value="frontmatterType"
           :options="getFrontmatterTypeOptions()"
           :on-change="(value) => onSelectChange('frontmatterType', value)"
@@ -86,7 +86,7 @@
       </template>
       <template #children>
         <cur-select
-          :description="t('preferences.markdown.diagrams.sequenceTheme')"
+          :description="t('preferences.markdown.diagrams.sequenceTheme.title')"
           :value="sequenceTheme"
           :options="getSequenceThemeOptions()"
           :on-change="(value) => onSelectChange('sequenceTheme', value)"
@@ -101,7 +101,7 @@
       </template>
       <template #children>
         <cur-select
-          :description="t('preferences.markdown.misc.preferHeadingStyle')"
+          :description="t('preferences.markdown.misc.preferHeadingStyle.title')"
           :value="preferHeadingStyle"
           :options="getPreferHeadingStyleOptions()"
           :on-change="(value) => onSelectChange('preferHeadingStyle', value)"

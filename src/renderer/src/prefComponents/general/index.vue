@@ -30,7 +30,7 @@
       <template #children>
         <cur-select
           v-if="!isOsx"
-          :description="t('preferences.general.window.titleBarStyle')"
+          :description="t('preferences.general.window.titleBarStyle.title')"
           :notes="t('preferences.general.window.requiresRestart')"
           :value="titleBarStyle"
           :options="getTitleBarStyleOptions()"
@@ -81,7 +81,7 @@
 
         <!-- TODO: The description is very bad and the entry isn't used by the editor. -->
         <cur-select
-          :description="t('preferences.general.sidebar.fileSortBy')"
+          :description="t('preferences.general.sidebar.fileSortBy.title')"
           :value="fileSortBy"
           :options="getFileSortByOptions()"
           :on-change="(value) => onSelectChange('fileSortBy', value)"
@@ -177,18 +177,18 @@ const selectDefaultDirectoryToOpen = () => {
 </script>
 
 <style scoped>
-.pref-general {
-  & .startup-action-ctrl {
-    font-size: 14px;
-    user-select: none;
-    color: var(--editorColor);
-    & .el-button--small {
-      margin-left: 25px;
-    }
-    & label {
-      display: block;
-      margin: 20px 0;
-    }
-  }
+.pref-general .startup-action-ctrl {
+  font-size: 14px;
+  user-select: none;
+  color: var(--editorColor);
+}
+
+.pref-general .startup-action-ctrl .el-button--small {
+  margin-left: 25px;
+}
+
+.pref-general .startup-action-ctrl label {
+  display: block;
+  margin: 20px 0;
 }
 </style>

@@ -4,6 +4,7 @@ import bus from '../bus'
 import { delay, isOsx } from '@/util'
 import { isUpdatable } from './utils'
 import getCommandDescriptionById from './descriptions'
+import { t } from '../../i18n'
 
 export { default as FileEncodingCommand } from './fileEncoding'
 export { default as LineEndingCommand } from './lineEnding'
@@ -123,7 +124,7 @@ const commands = [
     subcommands: [
       {
         id: 'file.export-file-html',
-        description: 'HTML',
+        description: t('commands.file.exportSubHtml'),
         execute: async () => {
           await delay(50)
           bus.emit('showExportDialog', 'styledHtml')
@@ -131,7 +132,7 @@ const commands = [
       },
       {
         id: 'file.export-file-pdf',
-        description: 'PDF',
+        description: t('commands.file.exportSubPdf'),
         execute: async () => {
           await delay(50)
           bus.emit('showExportDialog', 'pdf')
@@ -448,62 +449,62 @@ const commands = [
     subcommands: [
       {
         id: 'file.zoom-0',
-        description: '0.625',
+        description: t('commands.file.zoom.0625'),
         value: 0.625
       },
       {
         id: 'file.zoom-1',
-        description: '0.75',
+        description: t('commands.file.zoom.075'),
         value: 0.75
       },
       {
         id: 'file.zoom-2',
-        description: '0.875',
+        description: t('commands.file.zoom.0875'),
         value: 0.875
       },
       {
         id: 'file.zoom-3',
-        description: '1.0',
+        description: t('commands.file.zoom.10'),
         value: 1.0
       },
       {
         id: 'file.zoom-4',
-        description: '1.125',
+        description: t('commands.file.zoom.1125'),
         value: 1.125
       },
       {
         id: 'file.zoom-5',
-        description: '1.25',
+        description: t('commands.file.zoom.125'),
         value: 1.25
       },
       {
         id: 'file.zoom-6',
-        description: '1.375',
+        description: t('commands.file.zoom.1375'),
         value: 1.375
       },
       {
         id: 'file.zoom-7',
-        description: '1.5',
+        description: t('commands.file.zoom.15'),
         value: 1.5
       },
       {
         id: 'file.zoom-8',
-        description: '1.625',
+        description: t('commands.file.zoom.1625'),
         value: 1.625
       },
       {
         id: 'file.zoom-9',
-        description: '1.75',
+        description: t('commands.file.zoom.175'),
         value: 1.75
       },
       {
         id: 'file.zoom-10',
-        description: '1.875',
+        description: t('commands.file.zoom.1875'),
         value: 1.875
       },
       {
         id: 'file.zoom-11',
-        description: '2.0',
+        description: t('commands.file.zoom.20'),
         value: 2.0
       }
     ],
@@ -520,32 +521,32 @@ const commands = [
     subcommands: [
       {
         id: 'window.change-theme-light',
-        description: 'Cadmium Light',
+        description: t('commands.window.changeTheme.cadmiumLight'),
         value: 'light'
       },
       {
         id: 'window.change-theme-dark',
-        description: 'Dark',
+        description: t('commands.window.changeTheme.dark'),
         value: 'dark'
       },
       {
         id: 'window.change-theme-graphite',
-        description: 'Graphite',
+        description: t('commands.window.changeTheme.graphite'),
         value: 'graphite'
       },
       {
         id: 'window.change-theme-material-dark',
-        description: 'Material Dark',
+        description: t('commands.window.changeTheme.materialDark'),
         value: 'material-dark'
       },
       {
         id: 'window.change-theme-one-dark',
-        description: 'One Dark',
+        description: t('commands.window.changeTheme.oneDark'),
         value: 'one-dark'
       },
       {
         id: 'window.change-theme-ulysses',
-        description: 'Ulysses',
+        description: t('commands.window.changeTheme.ulysses'),
         value: 'ulysses'
       }
     ],
@@ -593,12 +594,12 @@ const commands = [
     subcommands: [
       {
         id: 'view.text-direction-ltr',
-        description: 'Left to Right',
+        description: t('commands.view.textDirection.leftToRight'),
         value: 'ltr'
       },
       {
         id: 'view.text-direction-rtl',
-        description: 'Right to Left',
+        description: t('commands.view.textDirection.rightToLeft'),
         value: 'rtl'
       }
     ],
