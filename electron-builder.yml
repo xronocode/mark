@@ -76,7 +76,7 @@ mac:
     - NSCameraUsageDescription: Application requests access to the device's camera.
     - NSDocumentsFolderUsageDescription: Application requests access to the user's Documents folder.
     - NSDownloadsFolderUsageDescription: Application requests access to the user's Downloads folder.
-  icon: icons/icon.ico
+  icon: icons/icon.icns
   notarize: false
   target:
     - target: dmg
