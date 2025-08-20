@@ -183,11 +183,12 @@
       "light": "浅色",
       "dark": "深色",
       "auto": "自动",
-      "cadmiumLight": "镉光",
-      "graphiteLight": "石墨光",
-      "materialDark": "材质深色",
+      "cadmiumLight": "Cadmium Light",
+      "graphiteLight": "Graphite Light",
+      "materialDark": "Material Dark",
       "oneDark": "One Dark",
-      "ulyssesLight": "尤利西斯光"
+      "ulyssesLight": "Ulysses Light",
+      "ulyssesDark": "Ulysses Dark"
     }
   },
   "contextMenu": {
@@ -267,10 +268,21 @@
       "description": "请自定义页面外观并点击\"导出\"继续。"
     },
     "page": {
-      "label": "页面"
+      "label": "页面",
+      "pageTitle": "页面标题：",
+      "pageSize": "页面大小：",
+      "landscapeOrientation": "横向方向：",
+      "pageMargin": "页面边距（毫米）：",
+      "topBottom": "上/下：",
+      "leftRight": "左/右：",
+      "widthHeight": "宽度/高度（毫米）："
     },
     "style": {
-      "label": "样式"
+      "label": "样式",
+      "overwriteThemeFont": "覆盖主题字体设置",
+      "fontFamily": "字体系列：",
+      "fontSize": "字体大小",
+      "lineHeight": "行高"
     },
     "theme": {
       "label": "主题",
@@ -280,19 +292,53 @@
     "headerFooter": {
       "label": "页眉和页脚",
       "description": "如果定义了页眉和/或页脚，文本将出现在所有页面上。",
-      "header": "页眉",
-      "footer": "页脚",
-      "left": "左",
-      "center": "中",
-      "right": "右"
+      "headerType": "页眉类型",
+      "footerType": "页脚类型",
+      "leftHeaderText": "左页眉文本",
+      "mainHeaderText": "主页眉文本",
+      "rightHeaderText": "右页眉文本",
+      "leftFooterText": "左页脚文本",
+      "mainFooterText": "主页脚文本",
+      "rightFooterText": "右页脚文本",
+      "customizeStyle": "自定义样式",
+      "allowStyled": "允许样式文本",
+      "fontSize": "字体大小"
     },
     "toc": {
       "label": "目录",
-      "title": "目录"
+      "title": "目录",
+      "includeTopHeading": "包含顶级标题",
+      "includeTopHeadingDetail": "包含顶级标题详情"
     },
     "autoNumberingHeadings": "自动编号标题",
     "showFrontMatter": "显示前言",
-    "export": "导出..."
+    "export": "导出...",
+    "options": {
+      "pageSizes": {
+        "a3": "A3 (297mm x 420mm)",
+        "a4": "A4 (210mm x 297mm)",
+        "a5": "A5 (148mm x 210mm)",
+        "legal": "美国法律纸 (8.5\" x 13\")",
+        "letter": "美国信纸 (8.5\" x 11\")",
+        "tabloid": "小报纸 (17\" x 11\")",
+        "custom": "自定义"
+      },
+      "headerFooterTypes": {
+        "none": "无",
+        "singleCell": "单元格",
+        "threeCells": "三个单元格"
+      },
+      "headerFooterStyles": {
+        "default": "默认",
+        "simple": "简单",
+        "styled": "样式化"
+      },
+      "themes": {
+        "academic": "学术",
+        "default": "GitHub (默认)",
+        "liber": "Liber"
+      }
+    }
   },
   "editor": {
     "insertTable": {

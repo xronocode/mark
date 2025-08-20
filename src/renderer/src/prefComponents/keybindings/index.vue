@@ -61,7 +61,7 @@
 <script setup>
 import log from 'electron-log'
 import { setKeyboardLayout } from '@hfelix/electron-localshortcut'
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, watch } from 'vue'
 import Separator from '../common/separator'
 import KeyInputDialog from './key-input-dialog.vue'
 import KeybindingConfigurator from './KeybindingConfigurator'
@@ -69,12 +69,24 @@ import notice from '@/services/notification'
 import { Edit, RefreshRight, Delete } from '@element-plus/icons-vue'
 import { useI18n } from 'vue-i18n'
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 
 const showDebugTools = ref(false)
 const keybindingConfigurator = ref(null)
 const selectedShortcutId = ref(null)
 const keybindingList = ref([])
+
+// 重新构建快捷键列表的函数
+const rebuildKeybindingList = () => {
+  if (keybindingConfigurator.value) {
+    keybindingList.value = keybindingConfigurator.value.rebuildKeybindingList()
+  }
+}
+
+// 监听语言变化，重新构建快捷键列表
+watch(locale, () => {
+  rebuildKeybindingList()
+})
 
 onMounted(() => {
   window.electron.ipcRenderer

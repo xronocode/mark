@@ -36,10 +36,12 @@ files:
   - '!jsconfig.json'
   - '!docs/*'
 extraResources:
-  - from: build/icons
+  - from: icons
     to: icons # ends up at resources/icons/
     filter:
       - '*.ico'
+      - '*.png'
+      - '*.icns'
   - from: static
     to: static
     filter:
@@ -99,7 +101,7 @@ linux:
   category: 'Office;TextEditor;Utility'
   mimeTypes:
     - 'text/markdown'
-  icon: 'icons'
+  icon: 'icons/icon.png'
   desktop:
     StartupWMClass: 'marktext'
     Keywords: 'marktext;'

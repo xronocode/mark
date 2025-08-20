@@ -268,11 +268,22 @@
       "description": "Please customize the page appearance and click on \"export\" to continue."
     },
     "page": {
-      "label": "Page"
+      "label": "Page",
+      "pageTitle": "The page title:",
+      "pageSize": "Page size:",
+      "landscapeOrientation": "Landscape orientation:",
+      "pageMargin": "Page margin in mm:",
+      "topBottom": "Top/Bottom:",
+      "leftRight": "Left/Right:",
+      "widthHeight": "Width/Height in mm:"
     },
     "showFrontMatter": "Show front matter",
     "style": {
-      "label": "Style"
+      "label": "Style",
+      "overwriteThemeFont": "Overwrite theme font settings",
+      "fontFamily": "Font family:",
+      "fontSize": "Font size",
+      "lineHeight": "Line height"
     },
     "theme": {
       "label": "Theme",
@@ -300,7 +311,33 @@
       "label": "Table of Contents",
       "title": "Table of Contents"
     },
-    "export": "Export..."
+    "export": "Export...",
+    "options": {
+      "pageSizes": {
+        "a3": "A3 (297mm x 420mm)",
+        "a4": "A4 (210mm x 297mm)",
+        "a5": "A5 (148mm x 210mm)",
+        "legal": "US Legal (8.5\" x 13\")",
+        "letter": "US Letter (8.5\" x 11\")",
+        "tabloid": "Tabloid (17\" x 11\")",
+        "custom": "Custom"
+      },
+      "headerFooterTypes": {
+        "none": "None",
+        "singleCell": "Single cell",
+        "threeCells": "Three cells"
+      },
+      "headerFooterStyles": {
+        "default": "Default",
+        "simple": "Simple",
+        "styled": "Styled"
+      },
+      "themes": {
+        "academic": "Academic",
+        "default": "GitHub (Default)",
+        "liber": "Liber"
+      }
+    }
   },
   "editor": {
     "export": {

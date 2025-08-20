@@ -18,7 +18,7 @@
           <!-- HTML -->
           <div v-if="!isPrintable">
             <text-box
-              description="The page title:"
+              :description="t('exportSettings.page.pageTitle')"
               :input="htmlTitle"
               :emit-time="0"
               :on-change="(value) => onSelectChange('htmlTitle', value)"
@@ -30,13 +30,13 @@
             <div v-if="exportType === 'pdf'">
               <cur-select
                 class="page-size-select"
-                description="Page size:"
+                :description="t('exportSettings.page.pageSize')"
                 :value="pageSize"
                 :options="pageSizeList"
                 :on-change="(value) => onSelectChange('pageSize', value)"
               ></cur-select>
               <div v-if="pageSize === 'custom'" class="row">
-                <div>Width/Height in mm:</div>
+                <div>{{ t('exportSettings.page.widthHeight') }}</div>
                 <el-input-number
                   v-model="pageSizeWidth"
                   size="mini"
@@ -52,16 +52,16 @@
               </div>
 
               <bool
-                description="Landscape orientation:"
+                :description="t('exportSettings.page.landscapeOrientation')"
                 :bool="isLandscape"
                 :on-change="(value) => onSelectChange('isLandscape', value)"
               ></bool>
             </div>
 
             <div class="row">
-              <div class="description">Page margin in mm:</div>
+              <div class="description">{{ t('exportSettings.page.pageMargin') }}</div>
               <div>
-                <div class="label">Top/Bottom:</div>
+                <div class="label">{{ t('exportSettings.page.topBottom') }}</div>
                 <el-input-number
                   v-model="pageMarginTop"
                   size="mini"
@@ -78,7 +78,7 @@
                 ></el-input-number>
               </div>
               <div>
-                <div class="label">Left/Right:</div>
+                <div class="label">{{ t('exportSettings.page.leftRight') }}</div>
                 <el-input-number
                   v-model="pageMarginLeft"
                   size="mini"
@@ -99,18 +99,18 @@
         </el-tab-pane>
         <el-tab-pane :label="t('exportSettings.style.label')" name="style">
           <bool
-            description="Overwrite theme font settings"
+            :description="t('exportSettings.style.overwriteThemeFont')"
             :bool="fontSettingsOverwrite"
             :on-change="(value) => onSelectChange('fontSettingsOverwrite', value)"
           ></bool>
           <div v-if="fontSettingsOverwrite">
             <font-text-box
-              description="Font family:"
+              :description="t('exportSettings.style.fontFamily')"
               :value="fontFamily"
               :on-change="(value) => onSelectChange('fontFamily', value)"
             ></font-text-box>
             <range
-              description="Font size"
+              :description="t('exportSettings.style.fontSize')"
               :value="fontSize"
               :min="8"
               :max="32"
@@ -119,7 +119,7 @@
               :on-change="(value) => onSelectChange('fontSize', value)"
             ></range>
             <range
-              description="Line height"
+              :description="t('exportSettings.style.lineHeight')"
               :value="lineHeight"
               :min="1.0"
               :max="2.0"
