@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>预加载脚本调试</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        pre {
+            background-color: #f8f9fa;
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <h1>MarkText 预加载脚本调试</h1>
+    
+    <div id="results"></div>
+    
+    <button onclick="runTests()">运行测试</button>
+    <button onclick="testPicgo()">测试 PicGo 检测</button>
+    <button onclick="clearResults()">清除结果</button>
+    
+    <script>
+        function log(message, type = 'info') {
+            const results = document.getElementById('results');
+            const div = document.createElement('div');
+            div.className = `status ${type}`;
+            div.innerHTML = message;
+            results.appendChild(div);
+        }
+        
+        function clearResults() {
+            document.getElementById('results').innerHTML = '';
+        }
+        
+        function runTests() {
+            clearResults();
+            log('开始预加载脚本测试...', 'info');
+            
+            // 检查基本的预加载 API
+            const apis = [
+                { name: 'electron', path: 'window.electron' },
+                { name: 'fileUtils', path: 'window.fileUtils' },
+                { name: 'path', path: 'window.path' },
+                { name: 'rgPath', path: 'window.rgPath' },
+                { name: 'commandExists', path: 'window.commandExists' }
+            ];
+            
+            apis.forEach(api => {
+                try {
+                    const obj = eval(api.path);
+                    if (typeof obj !== 'undefined') {
+                        log(`✓ ${api.name} API 可用`, 'success');
+                        if (api.name === 'commandExists') {
+                            if (typeof obj.exists === 'function') {
+                                log(`✓ commandExists.exists 方法可用`, 'success');
+                            } else {
+                                log(`✗ commandExists.exists 方法不可用`, 'error');
+                            }
+                        }
+                    } else {
+                        log(`✗ ${api.name} API 不可用`, 'error');
+                    }
+                } catch (error) {
+                    log(`✗ ${api.name} API 检查失败: ${error.message}`, 'error');
+                }
+            });
+            
+            // 检查 window 对象的所有属性
+            log('Window 对象中的预加载 API:', 'info');
+            const preloadAPIs = [];
+            for (let key in window) {
+                if (key.startsWith('electron') || key.startsWith('file') || key.startsWith('path') || key.startsWith('rg') || key.startsWith('command')) {
+                    preloadAPIs.push(key);
+                }
+            }
+            log(`<pre>${JSON.stringify(preloadAPIs, null, 2)}</pre>`, 'info');
+        }
+        
+        function testPicgo() {
+            log('测试 PicGo 检测功能...', 'info');
+            
+            try {
+                if (typeof window.commandExists === 'undefined') {
+                    log('✗ commandExists API 不可用', 'error');
+                    return;
+                }
+                
+                if (typeof window.commandExists.exists !== 'function') {
+                    log('✗ commandExists.exists 方法不可用', 'error');
+                    return;
+                }
+                
+                const picgoExists = window.commandExists.exists('picgo');
+                log(`PicGo 检测结果: ${picgoExists ? '✓ 已安装' : '✗ 未安装'}`, picgoExists ? 'success' : 'error');
+                
+                // 测试其他常见命令
+                const commands = ['node', 'npm', 'git'];
+                commands.forEach(cmd => {
+                    try {
+                        const exists = window.commandExists.exists(cmd);
+                        log(`${cmd} 检测结果: ${exists ? '✓ 已安装' : '✗ 未安装'}`, exists ? 'success' : 'info');
+                    } catch (error) {
+                        log(`${cmd} 检测失败: ${error.message}`, 'error');
+                    }
+                });
+                
+            } catch (error) {
+                log(`PicGo 检测失败: ${error.message}`, 'error');
+                log(`错误堆栈: <pre>${error.stack}</pre>`, 'error');
+            }
+        }
+        
+        // 页面加载时自动运行测试
+        window.addEventListener('load', () => {
+            setTimeout(runTests, 1000);
+        });
+    </script>
+</body>
+</html>

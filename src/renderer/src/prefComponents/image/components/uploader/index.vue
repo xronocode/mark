@@ -16,10 +16,36 @@
         :on-change="(value) => setCurrentUploader(value)"
       ></cur-select>
       <div v-if="currentUploader === 'picgo'" class="picgo">
-        <div v-if="!picgoExists" class="warning">
-          {{ t('preferences.image.uploader.picgoNotInstalled') }}
-          <span class="link" @click="open('https://github.com/PicGo/PicGo-Core')">picgo</span>
-          {{ t('preferences.image.uploader.pleaseInstall') }}
+        <div class="detection-status">
+          <h6>{{ t('preferences.image.uploader.picgoDetectionStatus') }}</h6>
+          <div :class="['status-info', picgoExists ? 'success' : 'warning']">
+            {{ picgoDetectionStatus || t('preferences.image.uploader.picgoNotInstalled') }}
+          </div>
+          <div v-if="!picgoExists" class="install-commands">
+            <div class="install-title">{{ t('preferences.image.uploader.chooseInstallMethod') }}</div>
+            <div class="install-options">
+              <div class="install-option">
+                <strong>npm:</strong>
+                <code class="install-command">{{ t('preferences.image.uploader.npmInstallCommand') }}</code>
+              </div>
+              <div class="install-option">
+                <strong>yarn:</strong>
+                <code class="install-command">{{ t('preferences.image.uploader.yarnInstallCommand') }}</code>
+              </div>
+              <div class="install-option">
+                <strong>pnpm:</strong>
+                <code class="install-command">{{ t('preferences.image.uploader.pnpmInstallCommand') }}</code>
+              </div>
+            </div>
+            <div class="install-link">
+              <span class="link" @click="open('https://github.com/PicGo/PicGo-Core')">picgo</span>
+              {{ t('preferences.image.uploader.pleaseInstall') }}
+            </div>
+          </div>
+          <details v-if="picgoDetectionFailed && picgoDebugInfo" class="debug-info">
+            <summary>{{ t('preferences.image.uploader.debugInfo') }}</summary>
+            <pre>{{ picgoDebugInfo || '暂无调试信息' }}</pre>
+          </details>
         </div>
       </div>
       <div v-if="currentUploader === 'github'" class="github">
@@ -85,7 +111,6 @@ import getServices, { isValidService } from './services.js'
 import legalNoticesCheckbox from './legalNoticesCheckbox.vue'
 import { isFileExecutableSync } from '@/util/fileSystem'
 import CurSelect from '@/prefComponents/common/select'
-import commandExists from 'command-exists'
 import notice from '@/services/notification'
 import { storeToRefs } from 'pinia'
 import { InfoFilled } from '@element-plus/icons-vue'
@@ -110,7 +135,10 @@ const github = reactive({
   branch: ''
 })
 const cliScript = ref('')
-const picgoExists = ref(true)
+const picgoExists = ref(false)
+const picgoDetectionFailed = ref(false) // 检测是否失败
+const picgoDetectionStatus = ref('') // 检测状态文本
+const picgoDebugInfo = ref('') // 调试信息
 const uploadServices = getServices()
 const legalNoticesErrorStates = reactive({
   github: false
@@ -208,7 +236,65 @@ const setCurrentUploader = (value) => {
 }
 
 const testPicgo = () => {
-  picgoExists.value = commandExists.sync('picgo')
+  console.log('=== PicGo 检测开始 ===')
+  console.log('window.commandExists:', window.commandExists)
+  
+  let debugMessages = []
+  
+  if (typeof window.commandExists === 'undefined') {
+    const errorMsg = 'commandExists 未暴露到 window 对象'
+    console.error('✗', errorMsg)
+    debugMessages.push(`✗ ${errorMsg}`)
+    picgoExists.value = false
+    picgoDetectionFailed.value = true
+    picgoDetectionStatus.value = t('preferences.image.uploader.picgoDetectionFailed')
+    picgoDebugInfo.value = debugMessages.join('\n')
+    return
+  }
+  
+  debugMessages.push('✓ commandExists 已暴露到 window 对象')
+  
+  if (typeof window.commandExists.exists !== 'function') {
+    const errorMsg = 'commandExists.exists 方法不可用'
+    const availableKeys = Object.keys(window.commandExists).join(', ')
+    console.error('✗', errorMsg)
+    console.log('commandExists 对象内容:', availableKeys)
+    debugMessages.push(`✗ ${errorMsg}`)
+    debugMessages.push(`可用方法: ${availableKeys}`)
+    picgoExists.value = false
+    picgoDetectionStatus.value = t('preferences.image.uploader.picgoDetectionFailed')
+    picgoDebugInfo.value = debugMessages.join('\n')
+    return
+  }
+  
+  debugMessages.push('✓ commandExists.exists 方法可用')
+  
+  try {
+    console.log('正在检测 PicGo...')
+    debugMessages.push('正在检测 PicGo 命令...')
+    const result = window.commandExists.exists('picgo')
+    console.log('PicGo 检测结果:', result)
+    picgoExists.value = result
+    
+    if (result) {
+      debugMessages.push('✓ PicGo 命令检测成功')
+      picgoDetectionFailed.value = false
+      picgoDetectionStatus.value = t('preferences.image.uploader.picgoInstalled')
+    } else {
+      debugMessages.push('✗ PicGo 命令未找到 - 确认PicGo未安装')
+      picgoDetectionFailed.value = false  // 检测成功，只是PicGo未安装
+      picgoDetectionStatus.value = t('preferences.image.uploader.picgoNotInstalled')
+    }
+  } catch (error) {
+    console.error('PicGo 检测失败:', error)
+    debugMessages.push(`✗ 检测异常: ${error.message}`)
+    picgoExists.value = false
+    picgoDetectionFailed.value = true
+    picgoDetectionStatus.value = t('preferences.image.uploader.picgoDetectionFailed')
+  }
+  
+  picgoDebugInfo.value = debugMessages.join('\n')
+  console.log('=== PicGo 检测结束 ===')
 }
 
 const validate = (value) => {
@@ -227,45 +313,159 @@ const validate = (value) => {
 }
 </script>
 
-<style>
+<style scoped>
 .pref-image-uploader {
   color: var(--editorColor);
   font-size: 14px;
+}
 
-  & .current-uploader {
-    margin: 20px 0;
-  }
-  & .warning {
-    color: var(--deleteColor);
-  }
-  & .link {
-    color: var(--themeColor);
-    cursor: pointer;
-  }
-  & .description {
-    margin-top: 20px;
-    margin-bottom: 20px;
-  }
-  & .form-group {
-    margin: 20px 0 0 0;
-  }
-  & .label {
-    margin-bottom: 10px;
-  }
-  & .el-input__inner {
-    background: transparent;
-  }
-  & .el-button.btn-reset,
-  & .button-group {
-    margin-top: 30px;
-  }
-  & .pref-cb-legal-notices {
-    &.github {
-      margin-top: 30px;
-    }
-    &.error {
-      border: 1px solid var(--deleteColor);
-    }
-  }
+.pref-image-uploader .current-uploader {
+  margin: 20px 0;
+}
+
+.pref-image-uploader .warning {
+  color: var(--deleteColor);
+}
+
+.pref-image-uploader .link {
+  color: var(--themeColor);
+  cursor: pointer;
+}
+
+.pref-image-uploader .detection-status {
+  margin: 15px 0;
+  padding: 15px;
+  border: 1px solid var(--editorColor30);
+  border-radius: 6px;
+  background: var(--floatBgColor);
+}
+
+.pref-image-uploader .detection-status h6 {
+  margin: 0 0 10px 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--editorColor);
+}
+
+.pref-image-uploader .status-info {
+  padding: 8px 12px;
+  border-radius: 4px;
+  margin-bottom: 10px;
+  font-weight: 500;
+}
+
+.pref-image-uploader .status-info.success {
+  background: var(--successBgColor, #f0f9ff);
+  color: var(--successColor, #059669);
+  border: 1px solid var(--successColor, #059669);
+}
+
+.pref-image-uploader .status-info.warning {
+  background: var(--warningBgColor, #fffbeb);
+  color: var(--warningColor, #d97706);
+  border: 1px solid var(--warningColor, #d97706);
+}
+
+.pref-image-uploader .install-commands {
+  margin-top: 12px;
+  padding: 12px;
+  background-color: #f8f9fa;
+  border-radius: 6px;
+  border-left: 4px solid #ffc107;
+}
+
+.pref-image-uploader .install-title {
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: #333;
+  font-size: 13px;
+}
+
+.pref-image-uploader .install-options {
+  margin-bottom: 12px;
+}
+
+.pref-image-uploader .install-option {
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pref-image-uploader .install-option strong {
+  min-width: 50px;
+  font-size: 12px;
+  color: #666;
+}
+
+.pref-image-uploader .install-command {
+  background-color: #e9ecef;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 11px;
+  color: #495057;
+  border: 1px solid #dee2e6;
+  user-select: all;
+}
+
+.pref-image-uploader .install-link {
+  margin: 10px 0;
+  font-size: 13px;
+}
+
+.pref-image-uploader .debug-info {
+  margin-top: 15px;
+}
+
+.pref-image-uploader .debug-info summary {
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--editorColor70);
+  margin-bottom: 8px;
+}
+
+.pref-image-uploader .debug-info pre {
+  background: var(--codeBgColor, #f8f9fa);
+  border: 1px solid var(--editorColor20);
+  border-radius: 4px;
+  padding: 10px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--editorColor);
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.pref-image-uploader .description {
+  margin-top: 20px;
+  margin-bottom: 20px;
+}
+
+.pref-image-uploader .form-group {
+  margin: 20px 0 0 0;
+}
+
+.pref-image-uploader .label {
+  margin-bottom: 10px;
+}
+
+.pref-image-uploader .el-input__inner {
+  background: transparent;
+}
+
+.pref-image-uploader .el-button.btn-reset,
+.pref-image-uploader .button-group {
+  margin-top: 30px;
+}
+
+.pref-image-uploader .pref-cb-legal-notices.github {
+  margin-top: 30px;
+}
+
+.pref-image-uploader .pref-cb-legal-notices.error {
+  border: 1px solid var(--deleteColor);
 }
 </style>

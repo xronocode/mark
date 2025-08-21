@@ -1,20 +1,30 @@
 import { createI18n } from 'vue-i18n'
-import { getAllTranslations, getTranslation } from '../../../shared/i18n'
+
+// 直接导入翻译文件
+import enTranslations from '../../../shared/i18n/locales/en.json'
+import zhCNTranslations from '../../../shared/i18n/locales/zh-CN.json'
+import zhTWTranslations from '../../../shared/i18n/locales/zh-TW.json'
+import esTranslations from '../../../shared/i18n/locales/es.json'
+import frTranslations from '../../../shared/i18n/locales/fr.json'
+import deTranslations from '../../../shared/i18n/locales/de.json'
+import jaTranslations from '../../../shared/i18n/locales/ja.json'
+import koTranslations from '../../../shared/i18n/locales/ko.json'
+import ptTranslations from '../../../shared/i18n/locales/pt.json'
 
 // 获取当前语言设置
 let currentLocale = 'en' // 默认为英文，将在偏好设置加载后更新
 
 // 加载翻译数据
 const messages = {
-  en: getAllTranslations('en'),
-  'zh-CN': getAllTranslations('zh-CN'),
-  'zh-TW': getAllTranslations('zh-TW'),
-  es: getAllTranslations('es'),
-  fr: getAllTranslations('fr'),
-  de: getAllTranslations('de'),
-  ja: getAllTranslations('ja'),
-  ko: getAllTranslations('ko'),
-  pt: getAllTranslations('pt')
+  en: enTranslations,
+  'zh-CN': zhCNTranslations,
+  'zh-TW': zhTWTranslations,
+  es: esTranslations,
+  fr: frTranslations,
+  de: deTranslations,
+  ja: jaTranslations,
+  ko: koTranslations,
+  pt: ptTranslations
 }
 
 // 创建Vue i18n实例

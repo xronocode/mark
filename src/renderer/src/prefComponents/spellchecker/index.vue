@@ -104,7 +104,12 @@ onMounted(() => {
 
 const getAvailableDictionaries = async () => {
   const dictionaries = await SpellChecker.getAvailableDictionaries()
-  return dictionaries.map((selectedItem) => {
+  // 只显示英语拼写检查选项
+  const englishDictionaries = dictionaries.filter(dict => dict.startsWith('en'))
+  // 如果没有英语选项，提供默认的 en-US
+  const finalDictionaries = englishDictionaries.length > 0 ? englishDictionaries : ['en-US']
+  
+  return finalDictionaries.map((selectedItem) => {
     return {
       value: selectedItem,
       label: getLanguageName(selectedItem)
@@ -116,7 +121,8 @@ const ensureDictLanguage = async (lang) => {
   if (!spellchecker.value) {
     spellchecker.value = new SpellChecker(true, 'en-US')
   }
-  await spellchecker.value.switchLanguage(lang)
+  // 强制使用英语作为拼写检查语言
+  await spellchecker.value.switchLanguage('en-US')
 }
 
 const handleSpellcheckerLanguage = (languageCode) => {
