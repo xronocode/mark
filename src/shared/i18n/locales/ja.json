@@ -259,7 +259,12 @@
   },
   "commandPalette": {
     "placeholder": "実行するコマンドを入力",
-    "commandNotFound": "コマンドが見つかりません"
+    "commandNotFound": "コマンドが見つかりません",
+    "changeEncoding": "エンコーディングを変更",
+    "changeLineEnding": "改行文字を変更",
+    "quickOpen": "クイックオープン",
+    "trailingNewline": "末尾の改行",
+    "switchSpellcheckerLanguage": "スペルチェッカー言語を切り替え"
   },
   "exportSettings": {
     "title": "エクスポートオプション",
@@ -977,6 +982,109 @@
   "sideBar": {
     "search": {
       "searchLimited": "検索制限"
+    }
+  },
+  "quickInsert": {
+    "basicBlock": "基本ブロック",
+    "header": "見出し",
+    "advancedBlock": "高度なブロック",
+    "listBlock": "リストブロック",
+    "diagram": "図表",
+    "paragraph": {
+      "title": "段落",
+      "subtitle": "Lorem Ipsum は単なるダミーテキストです"
+    },
+    "horizontalLine": {
+      "title": "水平線",
+      "subtitle": "---"
+    },
+    "frontMatter": {
+      "title": "フロントマター",
+      "subtitle": "--- Lorem Ipsum ---"
+    },
+    "header1": {
+      "title": "見出し 1",
+      "subtitle": "# Lorem Ipsum は単なる..."
+    },
+    "header2": {
+      "title": "見出し 2",
+      "subtitle": "## Lorem Ipsum は単なる..."
+    },
+    "header3": {
+      "title": "見出し 3",
+      "subtitle": "### Lorem Ipsum は単なる..."
+    },
+    "header4": {
+      "title": "見出し 4",
+      "subtitle": "#### Lorem Ipsum は単なる..."
+    },
+    "header5": {
+      "title": "見出し 5",
+      "subtitle": "##### Lorem Ipsum は単なる..."
+    },
+    "header6": {
+      "title": "見出し 6",
+      "subtitle": "###### Lorem Ipsum は単なる..."
+    },
+    "tableBlock": {
+      "title": "テーブルブロック",
+      "subtitle": "|Lorem | Ipsum は単なる |"
+    },
+    "displayMath": {
+      "title": "数式",
+      "subtitle": "$$ Lorem Ipsum は単なる $$"
+    },
+    "htmlBlock": {
+      "title": "HTMLブロック",
+      "subtitle": "<div> Lorem Ipsum は単なる </div>"
+    },
+    "codeBlock": {
+      "title": "コードブロック",
+      "subtitle": "```java Lorem Ipsum は単なる ```"
+    },
+    "quoteBlock": {
+      "title": "引用ブロック",
+      "subtitle": ">Lorem Ipsum は単なる..."
+    },
+    "orderList": {
+      "title": "順序付きリスト",
+      "subtitle": "1. Lorem Ipsum は単なる..."
+    },
+    "bulletList": {
+      "title": "箇条書きリスト",
+      "subtitle": "- Lorem Ipsum は単なる..."
+    },
+    "todoList": {
+      "title": "TODOリスト",
+      "subtitle": "- [x] Lorem Ipsum は単なる..."
+    },
+    "vegaChart": {
+      "title": "Vegaチャート",
+      "subtitle": "vega-lite.jsでチャートをレンダリングします。"
+    },
+    "flowChart": {
+      "title": "フローチャート",
+      "subtitle": "flowchart.jsでフローチャートをレンダリングします。"
+    },
+    "sequenceDiagram": {
+      "title": "シーケンス図",
+      "subtitle": "js-sequenceでシーケンス図をレンダリングします。"
+    },
+    "plantumlDiagram": {
+      "title": "PlantUML図",
+      "subtitle": "PlantUML図をレンダリングします"
+    },
+    "mermaid": {
+      "title": "Mermaid",
+      "subtitle": "mermaidでグラフをレンダリングします。"
+    },
+    "sequenceChart": {
+      "title": "シーケンス図",
+      "subtitle": "js-sequenceでシーケンス図をレンダリングします。"
+    },
+    "plantUMLChart": {
+      "title": "PlantUML図",
+      "subtitle": "PlantUML図をレンダリングします"
     }
   }
 }

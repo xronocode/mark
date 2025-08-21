@@ -259,7 +259,12 @@
   },
   "commandPalette": {
     "placeholder": "Befehl zum Ausführen eingeben",
-    "commandNotFound": "Befehl nicht gefunden"
+    "commandNotFound": "Befehl nicht gefunden",
+    "changeEncoding": "Kodierung ändern",
+    "changeLineEnding": "Zeilenendezeichen ändern",
+    "quickOpen": "Schnell öffnen",
+    "trailingNewline": "Nachgestellte Zeilenschaltung",
+    "switchSpellcheckerLanguage": "Rechtschreibprüfungssprache wechseln"
   },
   "exportSettings": {
     "title": "Export-Optionen",
@@ -805,6 +810,9 @@
       "moveFile": "Datei verschieben",
       "renameFile": "Datei umbenennen",
       "quickOpen": "Schnell öffnen",
+      "changeEncoding": "Kodierung ändern",
+      "changeLineEnding": "Zeilenende ändern",
+      "trailingNewline": "Nachgestellte Zeilenschaltung",
       "print": "Drucken",
       "preferences": "Einstellungen",
       "closeTab": "Tab schließen",
@@ -918,6 +926,9 @@
     "utils": {
       "noUpdateResourceFile": "Ressourcendatei nicht aktualisieren",
       "todoUpdateCheck": "Update-Prüfung"
+    },
+    "spellchecker": {
+      "switchLanguage": "Sprache wechseln"
     }
   },
   "common": {
@@ -977,6 +988,109 @@
   "sideBar": {
     "search": {
       "searchLimited": "Suche begrenzt"
+    }
+  },
+  "quickInsert": {
+    "basicBlock": "Grundblock",
+    "header": "Überschrift",
+    "advancedBlock": "Erweiterter Block",
+    "listBlock": "Listenblock",
+    "diagram": "Diagramm",
+    "paragraph": {
+      "title": "Absatz",
+      "subtitle": "Lorem Ipsum ist einfach Blindtext"
+    },
+    "horizontalLine": {
+      "title": "Horizontale Linie",
+      "subtitle": "---"
+    },
+    "frontMatter": {
+      "title": "Vorspann",
+      "subtitle": "--- Lorem Ipsum ---"
+    },
+    "header1": {
+      "title": "Überschrift 1",
+      "subtitle": "# Lorem Ipsum ist einfach..."
+    },
+    "header2": {
+      "title": "Überschrift 2",
+      "subtitle": "## Lorem Ipsum ist einfach..."
+    },
+    "header3": {
+      "title": "Überschrift 3",
+      "subtitle": "### Lorem Ipsum ist einfach..."
+    },
+    "header4": {
+      "title": "Überschrift 4",
+      "subtitle": "#### Lorem Ipsum ist einfach..."
+    },
+    "header5": {
+      "title": "Überschrift 5",
+      "subtitle": "##### Lorem Ipsum ist einfach..."
+    },
+    "header6": {
+      "title": "Überschrift 6",
+      "subtitle": "###### Lorem Ipsum ist einfach..."
+    },
+    "tableBlock": {
+      "title": "Tabellenblock",
+      "subtitle": "|Lorem | Ipsum ist einfach |"
+    },
+    "displayMath": {
+      "title": "Mathematische Formel",
+      "subtitle": "$$ Lorem Ipsum ist einfach $$"
+    },
+    "htmlBlock": {
+      "title": "HTML-Block",
+      "subtitle": "<div> Lorem Ipsum ist einfach </div>"
+    },
+    "codeBlock": {
+      "title": "Codeblock",
+      "subtitle": "```java Lorem Ipsum ist einfach ```"
+    },
+    "quoteBlock": {
+      "title": "Zitatblock",
+      "subtitle": ">Lorem Ipsum ist einfach..."
+    },
+    "orderList": {
+      "title": "Nummerierte Liste",
+      "subtitle": "1. Lorem Ipsum ist einfach..."
+    },
+    "bulletList": {
+      "title": "Aufzählungsliste",
+      "subtitle": "- Lorem Ipsum ist einfach..."
+    },
+    "todoList": {
+      "title": "Aufgabenliste",
+      "subtitle": "- [x] Lorem Ipsum ist einfach..."
+    },
+    "vegaChart": {
+      "title": "Vega-Diagramm",
+      "subtitle": "Diagramme mit vega-lite.js rendern."
+    },
+    "flowChart": {
+      "title": "Flussdiagramm",
+      "subtitle": "Flussdiagramme mit flowchart.js rendern."
+    },
+    "sequenceDiagram": {
+      "title": "Sequenzdiagramm",
+      "subtitle": "Sequenzdiagramme mit js-sequence rendern."
+    },
+    "plantumlDiagram": {
+      "title": "PlantUML-Diagramm",
+      "subtitle": "PlantUML-Diagramme rendern"
+    },
+    "mermaid": {
+      "title": "Mermaid",
+      "subtitle": "Diagramme mit mermaid rendern."
+    },
+    "sequenceChart": {
+      "title": "Sequenzdiagramm",
+      "subtitle": "Sequenzdiagramme mit js-sequence rendern."
+    },
+    "plantUMLChart": {
+      "title": "PlantUML-Diagramm",
+      "subtitle": "PlantUML-Diagramme rendern"
     }
   }
 }

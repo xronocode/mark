@@ -259,7 +259,12 @@
   },
   "commandPalette": {
     "placeholder": "輸入要執行的命令",
-    "commandNotFound": "未找到命令"
+    "commandNotFound": "未找到命令",
+    "changeEncoding": "變更編碼",
+    "changeLineEnding": "變更行尾字元",
+    "quickOpen": "快速開啟",
+    "trailingNewline": "尾隨換行",
+    "switchSpellcheckerLanguage": "切換拼字檢查語言"
   },
   "exportSettings": {
     "title": "匯出選項",
@@ -977,6 +982,109 @@
   "sideBar": {
     "search": {
       "searchLimited": "搜尋受限"
+    }
+  },
+  "quickInsert": {
+    "basicBlock": "基礎區塊",
+    "header": "標題",
+    "advancedBlock": "進階區塊",
+    "listBlock": "清單區塊",
+    "diagram": "圖表",
+    "paragraph": {
+      "title": "段落",
+      "subtitle": "Lorem Ipsum 只是印刷和排版行業的虛擬文字"
+    },
+    "horizontalLine": {
+      "title": "水平線",
+      "subtitle": "---"
+    },
+    "frontMatter": {
+      "title": "前言",
+      "subtitle": "--- Lorem Ipsum ---"
+    },
+    "header1": {
+      "title": "標題 1",
+      "subtitle": "# Lorem Ipsum 只是印刷..."
+    },
+    "header2": {
+      "title": "標題 2",
+      "subtitle": "## Lorem Ipsum 只是印刷..."
+    },
+    "header3": {
+      "title": "標題 3",
+      "subtitle": "### Lorem Ipsum 只是印刷..."
+    },
+    "header4": {
+      "title": "標題 4",
+      "subtitle": "#### Lorem Ipsum 只是印刷..."
+    },
+    "header5": {
+      "title": "標題 5",
+      "subtitle": "##### Lorem Ipsum 只是印刷..."
+    },
+    "header6": {
+      "title": "標題 6",
+      "subtitle": "###### Lorem Ipsum 只是印刷..."
+    },
+    "tableBlock": {
+      "title": "表格區塊",
+      "subtitle": "|Lorem | Ipsum 只是印刷 |"
+    },
+    "displayMath": {
+      "title": "數學公式",
+      "subtitle": "$$ Lorem Ipsum 只是印刷 $$"
+    },
+    "htmlBlock": {
+      "title": "HTML 區塊",
+      "subtitle": "<div> Lorem Ipsum 只是印刷 </div>"
+    },
+    "codeBlock": {
+      "title": "程式碼區塊",
+      "subtitle": "```java Lorem Ipsum 只是印刷 ```"
+    },
+    "quoteBlock": {
+      "title": "引用區塊",
+      "subtitle": ">Lorem Ipsum 只是印刷..."
+    },
+    "orderList": {
+      "title": "有序清單",
+      "subtitle": "1. Lorem Ipsum 只是印刷..."
+    },
+    "bulletList": {
+      "title": "無序清單",
+      "subtitle": "- Lorem Ipsum 只是印刷..."
+    },
+    "todoList": {
+      "title": "待辦清單",
+      "subtitle": "- [x] Lorem Ipsum 只是印刷..."
+    },
+    "vegaChart": {
+      "title": "Vega 圖表",
+      "subtitle": "使用 vega-lite.js 渲染圖表。"
+    },
+    "flowChart": {
+      "title": "流程圖",
+      "subtitle": "使用 flowchart.js 渲染流程圖。"
+    },
+    "sequenceDiagram": {
+      "title": "時序圖",
+      "subtitle": "使用 js-sequence 渲染時序圖。"
+    },
+    "plantumlDiagram": {
+      "title": "PlantUML 圖表",
+      "subtitle": "渲染 PlantUML 圖表"
+    },
+    "mermaid": {
+      "title": "Mermaid",
+      "subtitle": "使用 mermaid 渲染圖形。"
+    },
+    "sequenceChart": {
+      "title": "時序圖",
+      "subtitle": "使用 js-sequence 渲染時序圖。"
+    },
+    "plantUMLChart": {
+      "title": "PlantUML 圖表",
+      "subtitle": "渲染 PlantUML 圖表"
     }
   }
 }

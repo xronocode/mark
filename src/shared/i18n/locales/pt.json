@@ -259,7 +259,12 @@
   },
   "commandPalette": {
     "placeholder": "Digite um comando para executar",
-    "commandNotFound": "Comando não encontrado"
+    "commandNotFound": "Comando não encontrado",
+    "changeEncoding": "Alterar codificação",
+    "changeLineEnding": "Alterar final de linha",
+    "quickOpen": "Abertura rápida",
+    "trailingNewline": "Nova linha final",
+    "switchSpellcheckerLanguage": "Alterar idioma do corretor ortográfico"
   },
   "exportSettings": {
     "title": "Opções de Exportação",
@@ -977,6 +982,109 @@
   "sideBar": {
     "search": {
       "searchLimited": "Pesquisa limitada"
+    }
+  },
+  "quickInsert": {
+    "basicBlock": "Bloco Básico",
+    "header": "Cabeçalho",
+    "advancedBlock": "Bloco Avançado",
+    "listBlock": "Bloco de Lista",
+    "diagram": "Diagrama",
+    "paragraph": {
+      "title": "Parágrafo",
+      "subtitle": "Lorem Ipsum é simplesmente texto fictício"
+    },
+    "horizontalLine": {
+      "title": "Linha Horizontal",
+      "subtitle": "---"
+    },
+    "frontMatter": {
+      "title": "Front Matter",
+      "subtitle": "--- Lorem Ipsum ---"
+    },
+    "header1": {
+      "title": "Cabeçalho 1",
+      "subtitle": "# Lorem Ipsum é simplesmente..."
+    },
+    "header2": {
+      "title": "Cabeçalho 2",
+      "subtitle": "## Lorem Ipsum é simplesmente..."
+    },
+    "header3": {
+      "title": "Cabeçalho 3",
+      "subtitle": "### Lorem Ipsum é simplesmente..."
+    },
+    "header4": {
+      "title": "Cabeçalho 4",
+      "subtitle": "#### Lorem Ipsum é simplesmente..."
+    },
+    "header5": {
+      "title": "Cabeçalho 5",
+      "subtitle": "##### Lorem Ipsum é simplesmente..."
+    },
+    "header6": {
+      "title": "Cabeçalho 6",
+      "subtitle": "###### Lorem Ipsum é simplesmente..."
+    },
+    "tableBlock": {
+      "title": "Bloco de Tabela",
+      "subtitle": "|Lorem | Ipsum é simplesmente |"
+    },
+    "displayMath": {
+      "title": "Fórmula Matemática",
+      "subtitle": "$$ Lorem Ipsum é simplesmente $$"
+    },
+    "htmlBlock": {
+      "title": "Bloco HTML",
+      "subtitle": "<div> Lorem Ipsum é simplesmente </div>"
+    },
+    "codeBlock": {
+      "title": "Bloco de Código",
+      "subtitle": "```java Lorem Ipsum é simplesmente ```"
+    },
+    "quoteBlock": {
+      "title": "Bloco de Citação",
+      "subtitle": ">Lorem Ipsum é simplesmente..."
+    },
+    "orderList": {
+      "title": "Lista Ordenada",
+      "subtitle": "1. Lorem Ipsum é simplesmente..."
+    },
+    "bulletList": {
+      "title": "Lista com Marcadores",
+      "subtitle": "- Lorem Ipsum é simplesmente..."
+    },
+    "todoList": {
+      "title": "Lista de Tarefas",
+      "subtitle": "- [x] Lorem Ipsum é simplesmente..."
+    },
+    "vegaChart": {
+      "title": "Gráfico Vega",
+      "subtitle": "Renderizar gráficos com vega-lite.js."
+    },
+    "flowChart": {
+      "title": "Fluxograma",
+      "subtitle": "Renderizar fluxogramas com flowchart.js."
+    },
+    "sequenceDiagram": {
+      "title": "Diagrama de Sequência",
+      "subtitle": "Renderizar diagramas de sequência com js-sequence."
+    },
+    "plantumlDiagram": {
+      "title": "Diagrama PlantUML",
+      "subtitle": "Renderizar diagramas PlantUML"
+    },
+    "mermaid": {
+      "title": "Mermaid",
+      "subtitle": "Renderizar gráficos com mermaid."
+    },
+    "sequenceChart": {
+      "title": "Diagrama de Sequência",
+      "subtitle": "Renderizar diagramas de sequência com js-sequence."
+    },
+    "plantUMLChart": {
+      "title": "Diagrama PlantUML",
+      "subtitle": "Renderizar diagramas PlantUML"
     }
   }
 }

@@ -1,6 +1,7 @@
 import { getTranslation } from '../shared/i18n'
+import { getCurrentLanguage as getRendererCurrentLanguage } from './src/i18n'
 
-// 当前语言设置（可以从配置文件或用户设置中获取）
+// 当前语言设置（从渲染进程的 i18n 系统获取）
 let currentLanguage = 'en'
 
 /**
@@ -10,7 +11,9 @@ let currentLanguage = 'en'
  * @returns {string} 翻译后的文本
  */
 export function t(key, params = {}) {
-  return getTranslation(key, currentLanguage, params)
+  // 动态获取当前语言
+  const currentLang = getRendererCurrentLanguage() || currentLanguage
+  return getTranslation(key, currentLang, params)
 }
 
 /**
@@ -18,7 +21,8 @@ export function t(key, params = {}) {
  * @returns {string} 当前语言代码
  */
 export function getCurrentLanguage() {
-  return currentLanguage
+  // 优先返回渲染进程 i18n 系统的当前语言
+  return getRendererCurrentLanguage() || currentLanguage
 }
 
 /**
@@ -27,6 +31,13 @@ export function getCurrentLanguage() {
  */
 export function setLanguage(language) {
   currentLanguage = language
+  // 同时更新渲染进程的 i18n 系统
+  try {
+    const { setLanguage: setRendererLanguage } = require('./src/i18n')
+    setRendererLanguage(language)
+  } catch (error) {
+    console.warn('Failed to update renderer i18n language:', error)
+  }
 }
 
 // Vue 插件形式的翻译系统

@@ -259,7 +259,12 @@
   },
   "commandPalette": {
     "placeholder": "실행할 명령 입력",
-    "commandNotFound": "명령을 찾을 수 없습니다"
+    "commandNotFound": "명령을 찾을 수 없습니다",
+    "changeEncoding": "인코딩 변경",
+    "changeLineEnding": "줄 끝 문자 변경",
+    "quickOpen": "빠른 열기",
+    "trailingNewline": "후행 줄바꿈",
+    "switchSpellcheckerLanguage": "맞춤법 검사 언어 전환"
   },
   "exportSettings": {
     "title": "내보내기 옵션",
@@ -977,6 +982,109 @@
   "sideBar": {
     "search": {
       "searchLimited": "검색 제한"
+    }
+  },
+  "quickInsert": {
+    "basicBlock": "기본 블록",
+    "header": "제목",
+    "advancedBlock": "고급 블록",
+    "listBlock": "목록 블록",
+    "diagram": "다이어그램",
+    "paragraph": {
+      "title": "단락",
+      "subtitle": "Lorem Ipsum은 단순한 더미 텍스트입니다"
+    },
+    "horizontalLine": {
+      "title": "수평선",
+      "subtitle": "---"
+    },
+    "frontMatter": {
+      "title": "프론트 매터",
+      "subtitle": "--- Lorem Ipsum ---"
+    },
+    "header1": {
+      "title": "제목 1",
+      "subtitle": "# Lorem Ipsum은 단순한..."
+    },
+    "header2": {
+      "title": "제목 2",
+      "subtitle": "## Lorem Ipsum은 단순한..."
+    },
+    "header3": {
+      "title": "제목 3",
+      "subtitle": "### Lorem Ipsum은 단순한..."
+    },
+    "header4": {
+      "title": "제목 4",
+      "subtitle": "#### Lorem Ipsum은 단순한..."
+    },
+    "header5": {
+      "title": "제목 5",
+      "subtitle": "##### Lorem Ipsum은 단순한..."
+    },
+    "header6": {
+      "title": "제목 6",
+      "subtitle": "###### Lorem Ipsum은 단순한..."
+    },
+    "tableBlock": {
+      "title": "테이블 블록",
+      "subtitle": "|Lorem | Ipsum은 단순한 |"
+    },
+    "displayMath": {
+      "title": "수학 공식",
+      "subtitle": "$$ Lorem Ipsum은 단순한 $$"
+    },
+    "htmlBlock": {
+      "title": "HTML 블록",
+      "subtitle": "<div> Lorem Ipsum은 단순한 </div>"
+    },
+    "codeBlock": {
+      "title": "코드 블록",
+      "subtitle": "```java Lorem Ipsum은 단순한 ```"
+    },
+    "quoteBlock": {
+      "title": "인용 블록",
+      "subtitle": ">Lorem Ipsum은 단순한..."
+    },
+    "orderList": {
+      "title": "순서 목록",
+      "subtitle": "1. Lorem Ipsum은 단순한..."
+    },
+    "bulletList": {
+      "title": "글머리 기호 목록",
+      "subtitle": "- Lorem Ipsum은 단순한..."
+    },
+    "todoList": {
+      "title": "할 일 목록",
+      "subtitle": "- [x] Lorem Ipsum은 단순한..."
+    },
+    "vegaChart": {
+      "title": "Vega 차트",
+      "subtitle": "vega-lite.js로 차트를 렌더링합니다."
+    },
+    "flowChart": {
+      "title": "플로우차트",
+      "subtitle": "flowchart.js로 플로우차트를 렌더링합니다."
+    },
+    "sequenceDiagram": {
+      "title": "시퀀스 다이어그램",
+      "subtitle": "js-sequence로 시퀀스 다이어그램을 렌더링합니다."
+    },
+    "plantumlDiagram": {
+      "title": "PlantUML 다이어그램",
+      "subtitle": "PlantUML 다이어그램을 렌더링합니다"
+    },
+    "mermaid": {
+      "title": "Mermaid",
+      "subtitle": "mermaid로 그래프를 렌더링합니다."
+    },
+    "sequenceChart": {
+      "title": "시퀀스 다이어그램",
+      "subtitle": "js-sequence로 시퀀스 다이어그램을 렌더링합니다."
+    },
+    "plantUMLChart": {
+      "title": "PlantUML 다이어그램",
+      "subtitle": "PlantUML 다이어그램을 렌더링합니다"
     }
   }
 }

@@ -258,7 +258,12 @@
   },
   "commandPalette": {
     "placeholder": "Type a command to execute",
-    "commandNotFound": "Command not found"
+    "commandNotFound": "Command not found",
+    "changeEncoding": "Change Encoding",
+    "changeLineEnding": "Change Line Ending",
+    "quickOpen": "Quick Open",
+    "trailingNewline": "Trailing Newline",
+    "switchSpellcheckerLanguage": "Switch Spellchecker Language"
   },
   "exportSettings": {
     "autoNumberingHeadings": "Auto numbering headings",
@@ -812,6 +817,9 @@
       "moveFile": "Move File",
       "renameFile": "Rename File",
       "quickOpen": "Quick Open",
+      "changeEncoding": "Change Encoding",
+      "changeLineEnding": "Change Line Ending",
+      "trailingNewline": "Trailing Newline",
       "print": "Print",
       "preferences": "Preferences",
       "closeTab": "Close Tab",
@@ -925,6 +933,9 @@
     "utils": {
       "noUpdateResourceFile": "No update resource file",
       "todoUpdateCheck": "Check for updates"
+    },
+    "spellchecker": {
+      "switchLanguage": "Switch Language"
     }
   },
   "common": {
@@ -984,6 +995,109 @@
   "sideBar": {
     "search": {
       "searchLimited": "Search Limited"
+    }
+  },
+  "quickInsert": {
+    "basicBlock": "Basic Block",
+    "header": "Header",
+    "advancedBlock": "Advanced Block",
+    "listBlock": "List Block",
+    "diagram": "Diagram",
+    "paragraph": {
+      "title": "Paragraph",
+      "subtitle": "Lorem Ipsum is simply dummy text"
+    },
+    "horizontalLine": {
+      "title": "Horizontal Line",
+      "subtitle": "---"
+    },
+    "frontMatter": {
+      "title": "Front Matter",
+      "subtitle": "--- Lorem Ipsum ---"
+    },
+    "header1": {
+      "title": "Header 1",
+      "subtitle": "# Lorem Ipsum is simply..."
+    },
+    "header2": {
+      "title": "Header 2",
+      "subtitle": "## Lorem Ipsum is simply..."
+    },
+    "header3": {
+      "title": "Header 3",
+      "subtitle": "### Lorem Ipsum is simply..."
+    },
+    "header4": {
+      "title": "Header 4",
+      "subtitle": "#### Lorem Ipsum is simply..."
+    },
+    "header5": {
+      "title": "Header 5",
+      "subtitle": "##### Lorem Ipsum is simply..."
+    },
+    "header6": {
+      "title": "Header 6",
+      "subtitle": "###### Lorem Ipsum is simply..."
+    },
+    "tableBlock": {
+      "title": "Table Block",
+      "subtitle": "|Lorem | Ipsum is simply |"
+    },
+    "displayMath": {
+      "title": "Math Formula",
+      "subtitle": "$$ Lorem Ipsum is simply $$"
+    },
+    "htmlBlock": {
+      "title": "HTML Block",
+      "subtitle": "<div> Lorem Ipsum is simply </div>"
+    },
+    "codeBlock": {
+      "title": "Code Block",
+      "subtitle": "```java Lorem Ipsum is simply ```"
+    },
+    "quoteBlock": {
+      "title": "Quote Block",
+      "subtitle": ">Lorem Ipsum is simply..."
+    },
+    "orderList": {
+      "title": "Ordered List",
+      "subtitle": "1. Lorem Ipsum is simply..."
+    },
+    "bulletList": {
+      "title": "Bullet List",
+      "subtitle": "- Lorem Ipsum is simply..."
+    },
+    "todoList": {
+      "title": "Todo List",
+      "subtitle": "- [x] Lorem Ipsum is simply..."
+    },
+    "vegaChart": {
+      "title": "Vega Chart",
+      "subtitle": "Render charts using vega-lite.js."
+    },
+    "flowChart": {
+      "title": "Flow Chart",
+      "subtitle": "Render flow charts using flowchart.js."
+    },
+    "sequenceDiagram": {
+      "title": "Sequence Diagram",
+      "subtitle": "Render sequence diagrams using js-sequence."
+    },
+    "plantumlDiagram": {
+      "title": "PlantUML Diagram",
+      "subtitle": "Render PlantUML diagrams"
+    },
+    "mermaid": {
+      "title": "Mermaid",
+      "subtitle": "Render charts using mermaid."
+    },
+    "sequenceChart": {
+      "title": "Sequence Chart",
+      "subtitle": "Render sequence charts using js-sequence."
+    },
+    "plantUMLChart": {
+      "title": "PlantUML Chart",
+      "subtitle": "Render PlantUML charts"
     }
   }
 }

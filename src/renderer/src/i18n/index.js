@@ -12,7 +12,7 @@ import koTranslations from '../../../shared/i18n/locales/ko.json'
 import ptTranslations from '../../../shared/i18n/locales/pt.json'
 
 // 获取当前语言设置
-let currentLocale = 'en' // 默认为英文，将在偏好设置加载后更新
+let currentLocale = 'zh-CN' // 默认为中文，与主进程保持一致
 
 // 加载翻译数据
 const messages = {
@@ -34,6 +34,9 @@ const i18n = createI18n({
   fallbackLocale: 'en',
   messages
 })
+
+// 确保 i18n 实例使用正确的语言
+i18n.global.locale.value = currentLocale
 
 // 导出翻译函数
 export const t = i18n.global.t

@@ -259,7 +259,12 @@
   },
   "commandPalette": {
     "placeholder": "Tapez une commande à exécuter",
-    "commandNotFound": "Commande non trouvée"
+    "commandNotFound": "Commande non trouvée",
+    "changeEncoding": "Changer l'encodage",
+    "changeLineEnding": "Changer la fin de ligne",
+    "quickOpen": "Ouverture rapide",
+    "trailingNewline": "Nouvelle ligne de fin",
+    "switchSpellcheckerLanguage": "Changer la langue du correcteur orthographique"
   },
   "exportSettings": {
     "title": "Options d'exportation",
@@ -805,6 +810,9 @@
       "moveFile": "Déplacer le fichier",
       "renameFile": "Renommer le fichier",
       "quickOpen": "Ouverture rapide",
+      "changeEncoding": "Changer l'encodage",
+      "changeLineEnding": "Changer la fin de ligne",
+      "trailingNewline": "Nouvelle ligne de fin",
       "print": "Imprimer",
       "preferences": "Préférences",
       "closeTab": "Fermer l'onglet",
@@ -918,6 +926,9 @@
     "utils": {
       "noUpdateResourceFile": "Ne pas mettre à jour le fichier de ressources",
       "todoUpdateCheck": "Vérifier les mises à jour"
+    },
+    "spellchecker": {
+      "switchLanguage": "Changer de langue"
     }
   },
   "common": {
@@ -977,6 +988,109 @@
   "sideBar": {
     "search": {
       "searchLimited": "Recherche limitée"
+    }
+  },
+  "quickInsert": {
+    "basicBlock": "Bloc de Base",
+    "header": "En-tête",
+    "advancedBlock": "Bloc Avancé",
+    "listBlock": "Bloc de Liste",
+    "diagram": "Diagramme",
+    "paragraph": {
+      "title": "Paragraphe",
+      "subtitle": "Lorem Ipsum est simplement du faux texte"
+    },
+    "horizontalLine": {
+      "title": "Ligne Horizontale",
+      "subtitle": "---"
+    },
+    "frontMatter": {
+      "title": "Préambule",
+      "subtitle": "--- Lorem Ipsum ---"
+    },
+    "header1": {
+      "title": "En-tête 1",
+      "subtitle": "# Lorem Ipsum est simplement..."
+    },
+    "header2": {
+      "title": "En-tête 2",
+      "subtitle": "## Lorem Ipsum est simplement..."
+    },
+    "header3": {
+      "title": "En-tête 3",
+      "subtitle": "### Lorem Ipsum est simplement..."
+    },
+    "header4": {
+      "title": "En-tête 4",
+      "subtitle": "#### Lorem Ipsum est simplement..."
+    },
+    "header5": {
+      "title": "En-tête 5",
+      "subtitle": "##### Lorem Ipsum est simplement..."
+    },
+    "header6": {
+      "title": "En-tête 6",
+      "subtitle": "###### Lorem Ipsum est simplement..."
+    },
+    "tableBlock": {
+      "title": "Bloc de Tableau",
+      "subtitle": "|Lorem | Ipsum est simplement |"
+    },
+    "displayMath": {
+      "title": "Formule Mathématique",
+      "subtitle": "$$ Lorem Ipsum est simplement $$"
+    },
+    "htmlBlock": {
+      "title": "Bloc HTML",
+      "subtitle": "<div> Lorem Ipsum est simplement </div>"
+    },
+    "codeBlock": {
+      "title": "Bloc de Code",
+      "subtitle": "```java Lorem Ipsum est simplement ```"
+    },
+    "quoteBlock": {
+      "title": "Bloc de Citation",
+      "subtitle": ">Lorem Ipsum est simplement..."
+    },
+    "orderList": {
+      "title": "Liste Ordonnée",
+      "subtitle": "1. Lorem Ipsum est simplement..."
+    },
+    "bulletList": {
+      "title": "Liste à Puces",
+      "subtitle": "- Lorem Ipsum est simplement..."
+    },
+    "todoList": {
+      "title": "Liste de Tâches",
+      "subtitle": "- [x] Lorem Ipsum est simplement..."
+    },
+    "vegaChart": {
+      "title": "Graphique Vega",
+      "subtitle": "Rendre des graphiques avec vega-lite.js."
+    },
+    "flowChart": {
+      "title": "Diagramme de Flux",
+      "subtitle": "Rendre des diagrammes de flux avec flowchart.js."
+    },
+    "sequenceDiagram": {
+      "title": "Diagramme de Séquence",
+      "subtitle": "Rendre des diagrammes de séquence avec js-sequence."
+    },
+    "plantumlDiagram": {
+      "title": "Diagramme PlantUML",
+      "subtitle": "Rendre des diagrammes PlantUML"
+    },
+    "mermaid": {
+      "title": "Mermaid",
+      "subtitle": "Rendre des graphiques avec mermaid."
+    },
+    "sequenceChart": {
+      "title": "Diagramme de Séquence",
+      "subtitle": "Rendre des diagrammes de séquence avec js-sequence."
+    },
+    "plantUMLChart": {
+      "title": "Diagramme PlantUML",
+      "subtitle": "Rendre des diagrammes PlantUML"
     }
   }
 }

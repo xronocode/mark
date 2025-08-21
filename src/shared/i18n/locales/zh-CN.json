@@ -259,7 +259,12 @@
   },
   "commandPalette": {
     "placeholder": "输入要执行的命令",
-    "commandNotFound": "未找到命令"
+    "commandNotFound": "未找到命令",
+    "changeEncoding": "更改编码",
+    "changeLineEnding": "更改行结束符",
+    "quickOpen": "快速打开",
+    "trailingNewline": "尾随换行符",
+    "switchSpellcheckerLanguage": "切换拼写检查语言"
   },
   "exportSettings": {
     "title": "导出选项",
@@ -805,6 +810,9 @@
       "moveFile": "移动文件",
       "renameFile": "重命名文件",
       "quickOpen": "快速打开",
+      "changeEncoding": "更改编码",
+      "changeLineEnding": "更改行尾字符",
+      "trailingNewline": "尾随换行",
       "print": "打印",
       "preferences": "偏好设置",
       "closeTab": "关闭标签页",
@@ -918,6 +926,9 @@
     "utils": {
       "noUpdateResourceFile": "没有更新资源文件",
       "todoUpdateCheck": "检查更新"
+    },
+    "spellchecker": {
+      "switchLanguage": "切换拼写检查语言"
     }
   },
   "common": {
@@ -977,6 +988,109 @@
   "sideBar": {
     "search": {
       "searchLimited": "搜索受限"
+    }
+  },
+  "quickInsert": {
+    "basicBlock": "基础块",
+    "header": "标题",
+    "advancedBlock": "高级块",
+    "listBlock": "列表块",
+    "diagram": "图表",
+    "paragraph": {
+      "title": "段落",
+      "subtitle": "Lorem Ipsum 是简单的虚拟文本"
+    },
+    "horizontalLine": {
+      "title": "水平分割线",
+      "subtitle": "---"
+    },
+    "frontMatter": {
+      "title": "前言",
+      "subtitle": "--- Lorem Ipsum ---"
+    },
+    "header1": {
+      "title": "标题 1",
+      "subtitle": "# Lorem Ipsum 是简单的..."
+    },
+    "header2": {
+      "title": "标题 2",
+      "subtitle": "## Lorem Ipsum 是简单的..."
+    },
+    "header3": {
+      "title": "标题 3",
+      "subtitle": "### Lorem Ipsum 是简单的..."
+    },
+    "header4": {
+      "title": "标题 4",
+      "subtitle": "#### Lorem Ipsum 是简单的..."
+    },
+    "header5": {
+      "title": "标题 5",
+      "subtitle": "##### Lorem Ipsum 是简单的..."
+    },
+    "header6": {
+      "title": "标题 6",
+      "subtitle": "###### Lorem Ipsum 是简单的..."
+    },
+    "tableBlock": {
+      "title": "表格块",
+      "subtitle": "|Lorem | Ipsum 是简单的 |"
+    },
+    "displayMath": {
+      "title": "数学公式",
+      "subtitle": "$$ Lorem Ipsum 是简单的 $$"
+    },
+    "htmlBlock": {
+      "title": "HTML 块",
+      "subtitle": "<div> Lorem Ipsum 是简单的 </div>"
+    },
+    "codeBlock": {
+      "title": "代码块",
+      "subtitle": "```java Lorem Ipsum 是简单的 ```"
+    },
+    "quoteBlock": {
+      "title": "引用块",
+      "subtitle": ">Lorem Ipsum 是简单的..."
+    },
+    "orderList": {
+      "title": "有序列表",
+      "subtitle": "1. Lorem Ipsum 是简单的..."
+    },
+    "bulletList": {
+      "title": "无序列表",
+      "subtitle": "- Lorem Ipsum 是简单的..."
+    },
+    "todoList": {
+      "title": "待办列表",
+      "subtitle": "- [x] Lorem Ipsum 是简单的..."
+    },
+    "vegaChart": {
+      "title": "Vega 图表",
+      "subtitle": "使用 vega-lite.js 渲染流程图。"
+    },
+    "flowChart": {
+      "title": "流程图",
+      "subtitle": "使用 flowchart.js 渲染流程图。"
+    },
+    "sequenceDiagram": {
+      "title": "时序图",
+      "subtitle": "使用 js-sequence 渲染时序图。"
+    },
+    "plantumlDiagram": {
+      "title": "PlantUML 图表",
+      "subtitle": "渲染 PlantUML 图表"
+    },
+    "mermaid": {
+      "title": "Mermaid",
+      "subtitle": "使用 mermaid 渲染图表。"
+    },
+    "sequenceChart": {
+      "title": "时序图",
+      "subtitle": "使用 js-sequence 渲染时序图。"
+    },
+    "plantUMLChart": {
+      "title": "PlantUML 图表",
+      "subtitle": "渲染 PlantUML 图表"
     }
   }
 }
