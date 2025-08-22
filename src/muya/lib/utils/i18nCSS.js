@@ -36,6 +36,14 @@ class I18nCSS {
     root.style.setProperty('--i18n-code-fence', `"${this.t('editor.codeFence')}"` || '"\\`\\`\\`"')
     root.style.setProperty('--i18n-click-to-add-image', `"${this.t('editor.clickToAddImage')}"` || '"Click to add an image"')
     root.style.setProperty('--i18n-load-image-failed', `"${this.t('editor.loadImageFailed')}"` || '"Load image failed"')
+    
+    // 添加编辑相关的CSS变量（用于测试）
+    root.style.setProperty('--ag-undo', `"${this.t('edit.undo')}"` || '"Undo"')
+    root.style.setProperty('--ag-redo', `"${this.t('edit.redo')}"` || '"Redo"')
+    root.style.setProperty('--ag-cut', `"${this.t('edit.cut')}"` || '"Cut"')
+    root.style.setProperty('--ag-copy', `"${this.t('edit.copy')}"` || '"Copy"')
+    root.style.setProperty('--ag-paste', `"${this.t('edit.paste')}"` || '"Paste"')
+    root.style.setProperty('--ag-selectAll', `"${this.t('edit.selectAll')}"` || '"Select All"')
   }
 
   /**
