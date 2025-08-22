@@ -357,41 +357,6 @@
     "alignRight": "靠右對齊",
     "deleteTable": "刪除表格"
   },
-  "editor": {
-    "placeholders": {
-      "frontMatter": "輸入 YAML 前置資料...",
-      "languageIdentifier": "輸入語言識別碼...",
-      "mathFormula": "輸入數學公式..."
-    },
-    "export": {
-      "error": "匯出錯誤",
-      "errorExporting": "匯出檔案時發生錯誤",
-      "failed": "匯出失敗"
-    },
-    "insertTable": {
-      "title": "插入表格",
-      "rows": "列",
-      "columns": "欄"
-    },
-    "notifications": {
-      "notificationNotFound": "找不到通知"
-    },
-    "print": {
-      "error": "列印錯誤",
-      "failed": "列印失敗"
-    },
-    "sourceCode": {
-      "cursorNullComment": "游標空值註解",
-      "imageStructureDeletedComment": "圖片結構已刪除註解"
-    },
-    "spellcheck": {
-      "disabledError": "拼字檢查已停用錯誤",
-      "errorSwitchingLanguage": "切換拼字檢查語言時發生錯誤",
-      "languageMissing": "拼字檢查語言遺失",
-      "switchError": "拼字檢查切換錯誤",
-      "title": "拼字檢查"
-    }
-  },
   "recent": {
     "noTabsOpen": "您沒有開啟的標籤頁。",
     "newFile": "新建檔案"
@@ -1153,6 +1118,32 @@
     "hr": "水平線"
   },
   "editor": {
+    "placeholders": {
+      "frontMatter": "輸入 YAML 前置資料...",
+      "languageIdentifier": "輸入語言識別碼...",
+      "mathFormula": "輸入數學公式..."
+    },
+    "export": {
+      "error": "匯出錯誤",
+      "errorExporting": "匯出檔案時發生錯誤",
+      "failed": "匯出失敗"
+    },
+    "insertTable": {
+      "title": "插入表格",
+      "rows": "列",
+      "columns": "欄"
+    },
+    "notifications": {
+      "notificationNotFound": "找不到通知"
+    },
+    "print": {
+      "error": "列印錯誤",
+      "failed": "列印失敗"
+    },
+    "sourceCode": {
+      "cursorNullComment": "游標空值註解",
+      "imageStructureDeletedComment": "圖片結構已刪除註解"
+    },
     "spellcheck": {
       "enabled": "拼字檢查已啟用",
       "disabled": "拼字檢查已停用",

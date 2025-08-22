@@ -6,8 +6,6 @@
 class I18nCSS {
   constructor(t) {
     this.t = t || ((key) => key) // 翻译函数，如果没有提供则返回原始键值
-    console.log('[i18nCSS] Constructor called with t function:', typeof t)
-    console.log('[i18nCSS] Testing t function with sample key:', t ? t('editor.undo') : 'No t function')
     // 初始化CSS变量
     this.updateCSSVariables()
   }
@@ -16,8 +14,6 @@ class I18nCSS {
    * 更新CSS变量的值
    */
   updateCSSVariables() {
-    console.log('[i18nCSS] updateCSSVariables called')
-    console.log('[i18nCSS] t function available:', !!this.t)
     const root = document.documentElement
     
     // 辅助函数：获取翻译文本，如果翻译失败则使用默认值
@@ -48,12 +44,8 @@ class I18nCSS {
     root.style.setProperty('--i18n-click-to-add-image', `"${getTranslation('editor.click-to-add-image', 'Click to add image')}"`)
     root.style.setProperty('--i18n-load-image-failed', `"${getTranslation('editor.load-image-failed', 'Load image failed')}"`)
 
-    console.log('[i18nCSS] CSS variables updated with translations:')
-    console.log('  highlight-start:', getTranslation('editor.highlight-start', ' [highlight start] '))
-    console.log('  type-at-to-insert:', getTranslation('editor.type-at-to-insert', 'Type @ to insert'))
-    console.log('  highlight-end:', getTranslation('editor.highlight-end', ' [highlight end] '))
     
-    // 添加编辑相关的CSS变量（用于测试）
+    // 添加编辑相关的CSS变量
     const translations = {
       'undo': this.t('edit.undo'),
       'redo': this.t('edit.redo'),
@@ -63,7 +55,6 @@ class I18nCSS {
       'selectAll': this.t('edit.selectAll')
     }
     
-    console.log('[i18nCSS] Translation results:', translations)
     
     root.style.setProperty('--ag-undo', translations.undo || 'Undo')
     root.style.setProperty('--ag-redo', translations.redo || 'Redo')
@@ -72,12 +63,7 @@ class I18nCSS {
     root.style.setProperty('--ag-paste', translations.paste || 'Paste')
     root.style.setProperty('--ag-selectAll', translations.selectAll || 'Select All')
     
-    console.log('[i18nCSS] Final CSS variable values:')
-    console.log('--ag-undo:', root.style.getPropertyValue('--ag-undo'))
-    console.log('--ag-redo:', root.style.getPropertyValue('--ag-redo'))
-    console.log('--ag-copy:', root.style.getPropertyValue('--ag-copy'))
-    
-    console.log('[i18nCSS] CSS variables set successfully')
+
   }
 
   /**

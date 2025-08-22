@@ -357,41 +357,6 @@
     "alignRight": "右揃え",
     "deleteTable": "テーブル削除"
   },
-  "editor": {
-    "placeholders": {
-      "frontMatter": "YAML フロントマターを入力...",
-      "languageIdentifier": "言語識別子を入力...",
-      "mathFormula": "数式を入力..."
-    },
-    "export": {
-      "error": "エクスポートエラー",
-      "errorExporting": "ファイルのエクスポート中にエラーが発生しました",
-      "failed": "エクスポートに失敗しました"
-    },
-    "insertTable": {
-      "title": "表を挿入",
-      "rows": "行",
-      "columns": "列"
-    },
-    "notifications": {
-      "notificationNotFound": "通知が見つかりません"
-    },
-    "print": {
-      "error": "印刷エラー",
-      "failed": "印刷に失敗しました"
-    },
-    "sourceCode": {
-      "cursorNullComment": "カーソルnullコメント",
-      "imageStructureDeletedComment": "画像構造削除コメント"
-    },
-    "spellcheck": {
-      "disabledError": "スペルチェック無効エラー",
-      "errorSwitchingLanguage": "スペルチェック言語の切り替えエラー",
-      "languageMissing": "スペルチェック言語が見つかりません",
-      "switchError": "スペルチェック切り替えエラー",
-      "title": "スペルチェック"
-    }
-  },
   "recent": {
     "noTabsOpen": "開いているタブがありません。",
     "newFile": "新しいファイル"
@@ -1187,6 +1152,32 @@
     "hr": "水平線"
   },
   "editor": {
+        "placeholders": {
+      "frontMatter": "YAML フロントマターを入力...",
+      "languageIdentifier": "言語識別子を入力...",
+      "mathFormula": "数式を入力..."
+    },
+    "export": {
+      "error": "エクスポートエラー",
+      "errorExporting": "ファイルのエクスポート中にエラーが発生しました",
+      "failed": "エクスポートに失敗しました"
+    },
+    "insertTable": {
+      "title": "表を挿入",
+      "rows": "行",
+      "columns": "列"
+    },
+    "notifications": {
+      "notificationNotFound": "通知が見つかりません"
+    },
+    "print": {
+      "error": "印刷エラー",
+      "failed": "印刷に失敗しました"
+    },
+    "sourceCode": {
+      "cursorNullComment": "カーソルnullコメント",
+      "imageStructureDeletedComment": "画像構造削除コメント"
+    },
     "spellcheck": {
       "enabled": "スペルチェックが有効になりました",
       "disabled": "スペルチェックが無効になりました",

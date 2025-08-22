@@ -357,41 +357,6 @@
     "alignRight": "오른쪽 정렬",
     "deleteTable": "테이블 삭제"
   },
-  "editor": {
-    "placeholders": {
-      "frontMatter": "YAML 프론트 매터 입력...",
-      "languageIdentifier": "언어 식별자 입력...",
-      "mathFormula": "수학 공식 입력..."
-    },
-    "export": {
-      "error": "내보내기 오류",
-      "errorExporting": "파일 내보내기 오류",
-      "failed": "내보내기 실패"
-    },
-    "insertTable": {
-      "title": "표 삽입",
-      "rows": "행",
-      "columns": "열"
-    },
-    "notifications": {
-      "notificationNotFound": "알림을 찾을 수 없음"
-    },
-    "print": {
-      "error": "인쇄 오류",
-      "failed": "인쇄 실패"
-    },
-    "sourceCode": {
-      "cursorNullComment": "커서 null 주석",
-      "imageStructureDeletedComment": "이미지 구조 삭제 주석"
-    },
-    "spellcheck": {
-      "disabledError": "맞춤법 검사 비활성화 오류",
-      "errorSwitchingLanguage": "맞춤법 검사 언어 전환 오류",
-      "languageMissing": "맞춤법 검사 언어 누락",
-      "switchError": "맞춤법 검사 전환 오류",
-      "title": "맞춤법 검사"
-    }
-  },
   "recent": {
     "noTabsOpen": "열린 탭이 없습니다.",
     "newFile": "새 파일"
@@ -1121,18 +1086,6 @@
       "subtitle": "```mermaid"
     }
   },
-  "mermaid": {
-    "sequenceDiagram": "시퀀스 다이어그램",
-    "gantt": "간트",
-    "pie": "파이",
-    "flowchart": "플로우차트",
-    "classDiagram": "클래스 다이어그램",
-    "stateDiagram": "상태 다이어그램",
-    "userJourney": "사용자 여정",
-    "gitgraph": "Git 그래프",
-    "erDiagram": "ER 다이어그램",
-    "requirementDiagram": "요구사항 다이어그램"
-  },
   "frontMenu": {
     "duplicate": "복제",
     "turnInto": "변환",
@@ -1157,6 +1110,32 @@
     "hr": "수평선"
   },
   "editor": {
+        "placeholders": {
+      "frontMatter": "YAML 프론트 매터 입력...",
+      "languageIdentifier": "언어 식별자 입력...",
+      "mathFormula": "수학 공식 입력..."
+    },
+    "export": {
+      "error": "내보내기 오류",
+      "errorExporting": "파일 내보내기 오류",
+      "failed": "내보내기 실패"
+    },
+    "insertTable": {
+      "title": "표 삽입",
+      "rows": "행",
+      "columns": "열"
+    },
+    "notifications": {
+      "notificationNotFound": "알림을 찾을 수 없음"
+    },
+    "print": {
+      "error": "인쇄 오류",
+      "failed": "인쇄 실패"
+    },
+    "sourceCode": {
+      "cursorNullComment": "커서 null 주석",
+      "imageStructureDeletedComment": "이미지 구조 삭제 주석"
+    },
     "spellcheck": {
       "enabled": "맞춤법 검사가 활성화되었습니다",
       "disabled": "맞춤법 검사가 비활성화되었습니다",

@@ -357,41 +357,6 @@
     "alignRight": "Alinear a la Derecha",
     "deleteTable": "Eliminar Tabla"
   },
-  "editor": {
-    "placeholders": {
-      "frontMatter": "Ingrese Metadatos YAML...",
-      "languageIdentifier": "Ingrese Identificador de Idioma...",
-      "mathFormula": "Ingrese Fórmula Matemática..."
-    },
-    "export": {
-      "error": "Error de exportación",
-      "errorExporting": "Error al exportar archivo",
-      "failed": "Exportación fallida"
-    },
-    "insertTable": {
-      "title": "Insertar Tabla",
-      "rows": "Filas",
-      "columns": "Columnas"
-    },
-    "notifications": {
-      "notificationNotFound": "Notificación no encontrada"
-    },
-    "print": {
-      "error": "Error de impresión",
-      "failed": "Impresión fallida"
-    },
-    "sourceCode": {
-      "cursorNullComment": "Comentario de cursor nulo",
-      "imageStructureDeletedComment": "Comentario de estructura de imagen eliminada"
-    },
-    "spellcheck": {
-      "disabledError": "Error de corrector deshabilitado",
-      "errorSwitchingLanguage": "Error al cambiar idioma del corrector",
-      "languageMissing": "Idioma del corrector faltante",
-      "switchError": "Error de cambio del corrector",
-      "title": "Corrector Ortográfico"
-    }
-  },
   "recent": {
     "noTabsOpen": "No tienes pestañas abiertas.",
     "newFile": "Nuevo Archivo"
@@ -1185,6 +1150,32 @@
     "hr": "línea horizontal"
   },
   "editor": {
+        "placeholders": {
+      "frontMatter": "Ingrese Metadatos YAML...",
+      "languageIdentifier": "Ingrese Identificador de Idioma...",
+      "mathFormula": "Ingrese Fórmula Matemática..."
+    },
+    "export": {
+      "error": "Error de exportación",
+      "errorExporting": "Error al exportar archivo",
+      "failed": "Exportación fallida"
+    },
+    "insertTable": {
+      "title": "Insertar Tabla",
+      "rows": "Filas",
+      "columns": "Columnas"
+    },
+    "notifications": {
+      "notificationNotFound": "Notificación no encontrada"
+    },
+    "print": {
+      "error": "Error de impresión",
+      "failed": "Impresión fallida"
+    },
+    "sourceCode": {
+      "cursorNullComment": "Comentario de cursor nulo",
+      "imageStructureDeletedComment": "Comentario de estructura de imagen eliminada"
+    },
     "spellcheck": {
       "enabled": "Corrector ortográfico habilitado",
       "disabled": "Corrector ortográfico deshabilitado",

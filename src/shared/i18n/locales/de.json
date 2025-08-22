@@ -357,41 +357,6 @@
     "alignRight": "Rechts ausrichten",
     "deleteTable": "Tabelle löschen"
   },
-  "editor": {
-    "placeholders": {
-      "frontMatter": "YAML Front Matter eingeben...",
-      "languageIdentifier": "Sprachbezeichner eingeben...",
-      "mathFormula": "Mathematische Formel eingeben..."
-    },
-    "export": {
-      "error": "Export-Fehler",
-      "errorExporting": "Fehler beim Exportieren der Datei",
-      "failed": "Export fehlgeschlagen"
-    },
-    "insertTable": {
-      "title": "Tabelle einfügen",
-      "rows": "Zeilen",
-      "columns": "Spalten"
-    },
-    "notifications": {
-      "notificationNotFound": "Benachrichtigung nicht gefunden"
-    },
-    "print": {
-      "error": "Druckfehler",
-      "failed": "Drucken fehlgeschlagen"
-    },
-    "sourceCode": {
-      "cursorNullComment": "Cursor-Null-Kommentar",
-      "imageStructureDeletedComment": "Bildstruktur-gelöscht-Kommentar"
-    },
-    "spellcheck": {
-      "disabledError": "Rechtschreibprüfung deaktiviert Fehler",
-      "errorSwitchingLanguage": "Fehler beim Wechseln der Rechtschreibprüfungssprache",
-      "languageMissing": "Rechtschreibprüfungssprache fehlt",
-      "switchError": "Rechtschreibprüfung Wechselfehler",
-      "title": "Rechtschreibprüfung"
-    }
-  },
   "recent": {
     "noTabsOpen": "Sie haben keine Tabs geöffnet.",
     "newFile": "Neue Datei"
@@ -1121,20 +1086,6 @@
       "subtitle": "Diagramm-Rendering mit mermaid."
     }
   },
-  "mermaid": {
-    "loading": "Mermaid lädt...",
-    "loadFailed": "Mermaid-Laden fehlgeschlagen",
-    "flowchart": "Flussdiagramm",
-    "sequenceDiagram": "Sequenzdiagramm",
-    "classDiagram": "Klassendiagramm",
-    "stateDiagram": "Zustandsdiagramm",
-    "entityRelationshipDiagram": "Entity-Relationship-Diagramm",
-    "userJourney": "Benutzerreise",
-    "gantt": "Gantt-Diagramm",
-    "pieChart": "Kreisdiagramm",
-    "requirementDiagram": "Anforderungsdiagramm",
-    "gitgraph": "Git-Graph"
-  },
   "frontMenu": {
     "duplicate": "Duplizieren",
     "turnInto": "Umwandeln in",
@@ -1159,6 +1110,32 @@
     "hr": "Horizontale Linie"
   },
   "editor": {
+    "placeholders": {
+      "frontMatter": "YAML Front Matter eingeben...",
+      "languageIdentifier": "Sprachbezeichner eingeben...",
+      "mathFormula": "Mathematische Formel eingeben..."
+    },
+    "export": {
+      "error": "Export-Fehler",
+      "errorExporting": "Fehler beim Exportieren der Datei",
+      "failed": "Export fehlgeschlagen"
+    },
+    "insertTable": {
+      "title": "Tabelle einfügen",
+      "rows": "Zeilen",
+      "columns": "Spalten"
+    },
+    "notifications": {
+      "notificationNotFound": "Benachrichtigung nicht gefunden"
+    },
+    "print": {
+      "error": "Druckfehler",
+      "failed": "Drucken fehlgeschlagen"
+    },
+    "sourceCode": {
+      "cursorNullComment": "Cursor-Null-Kommentar",
+      "imageStructureDeletedComment": "Bildstruktur-gelöscht-Kommentar"
+    },
     "spellcheck": {
       "enabled": "Rechtschreibprüfung aktiviert",
       "disabled": "Rechtschreibprüfung deaktiviert",

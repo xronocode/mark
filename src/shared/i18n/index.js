@@ -30,36 +30,28 @@ function loadTranslations(language) {
     ]
     
     for (const possiblePath of possiblePaths) {
-      console.log(`Checking translation path: ${possiblePath}`)
       if (fs.existsSync(possiblePath)) {
         translationPath = possiblePath
-        console.log(`Found translation file: ${translationPath}`)
         break
       }
     }
     
     if (!translationPath) {
-      console.error(`Translation file not found for language: ${language}. Checked paths:`, possiblePaths)
       throw new Error(`Translation file not found for language: ${language}`)
     }
     
     const content = fs.readFileSync(translationPath, 'utf8')
-    console.log(`File content length: ${content.length} characters`)
-    console.log(`First 200 chars:`, content.substring(0, 200))
-    console.log(`Last 200 chars:`, content.substring(content.length - 200))
     
     let translationData
     try {
       translationData = JSON.parse(content)
     } catch (error) {
-      console.error(`JSON parse error for ${language}:`, error.message)
       throw error
     }
     
     translationsCache[language] = translationData
     return translationData
   } catch (error) {
-    console.warn(`Failed to load translations for language: ${language}`, error)
     // 回退到英文
     if (language !== 'en') {
       return loadTranslations('en')
@@ -87,13 +79,11 @@ function getTranslation(key, language = 'en', params = {}) {
       value = value[k]
     } else {
       // 如果找不到翻译，返回键本身
-      console.warn(`Translation not found for key: ${key} in language: ${language}`)
       return key
     }
   }
 
   if (typeof value !== 'string') {
-    console.warn(`Translation value is not a string for key: ${key}`)
     return key
   }
 

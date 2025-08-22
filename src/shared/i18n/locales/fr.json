@@ -357,41 +357,6 @@
     "alignRight": "Aligner à Droite",
     "deleteTable": "Supprimer le Tableau"
   },
-  "editor": {
-    "placeholders": {
-      "frontMatter": "Saisir les métadonnées YAML...",
-      "languageIdentifier": "Saisir l'identifiant de langue...",
-      "mathFormula": "Saisir la formule mathématique..."
-    },
-    "export": {
-      "error": "Erreur d'exportation",
-      "errorExporting": "Erreur lors de l'exportation du fichier",
-      "failed": "Échec de l'exportation"
-    },
-    "insertTable": {
-      "title": "Insérer un tableau",
-      "rows": "Lignes",
-      "columns": "Colonnes"
-    },
-    "notifications": {
-      "notificationNotFound": "Notification introuvable"
-    },
-    "print": {
-      "error": "Erreur d'impression",
-      "failed": "Échec de l'impression"
-    },
-    "sourceCode": {
-      "cursorNullComment": "Commentaire de curseur nul",
-      "imageStructureDeletedComment": "Commentaire de structure d'image supprimée"
-    },
-    "spellcheck": {
-      "disabledError": "Erreur de correcteur orthographique désactivé",
-      "errorSwitchingLanguage": "Erreur lors du changement de langue du correcteur orthographique",
-      "languageMissing": "Langue du correcteur orthographique manquante",
-      "switchError": "Erreur de changement de correcteur orthographique",
-      "title": "Correcteur orthographique"
-    }
-  },
   "recent": {
     "noTabsOpen": "Vous n'avez aucun onglet ouvert.",
     "newFile": "Nouveau fichier"
@@ -1145,6 +1110,32 @@
     "hr": "ligne horizontale"
   },
   "editor": {
+       "placeholders": {
+      "frontMatter": "Saisir les métadonnées YAML...",
+      "languageIdentifier": "Saisir l'identifiant de langue...",
+      "mathFormula": "Saisir la formule mathématique..."
+    },
+    "export": {
+      "error": "Erreur d'exportation",
+      "errorExporting": "Erreur lors de l'exportation du fichier",
+      "failed": "Échec de l'exportation"
+    },
+    "insertTable": {
+      "title": "Insérer un tableau",
+      "rows": "Lignes",
+      "columns": "Colonnes"
+    },
+    "notifications": {
+      "notificationNotFound": "Notification introuvable"
+    },
+    "print": {
+      "error": "Erreur d'impression",
+      "failed": "Échec de l'impression"
+    },
+    "sourceCode": {
+      "cursorNullComment": "Commentaire de curseur nul",
+      "imageStructureDeletedComment": "Commentaire de structure d'image supprimée"
+    },
     "spellcheck": {
       "enabled": "Vérification orthographique activée",
       "disabled": "Vérification orthographique désactivée",
