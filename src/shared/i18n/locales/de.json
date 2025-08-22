@@ -49,8 +49,8 @@
       "findInFolder": "Im Ordner suchen",
       "screenshot": "Screenshot",
       "lineEnding": "Zeilenendezeichen",
-      "lineEndingCrlf": "CRLF",
-      "lineEndingLf": "LF"
+      "lineEndingCrlf": "CRLF (Windows)",
+      "lineEndingLf": "LF (Linux/Mac)"
     },
     "paragraph": {
       "title": "Absatz",
@@ -88,7 +88,7 @@
       "zoomIn": "Vergrößern",
       "zoomOut": "Verkleinern",
       "fullScreen": "Vollbild",
-      "bringAllToFront": "Alle in den Vordergrund",
+      "bringAllToFront": "Alle nach vorne bringen",
       "alwaysOnTop": "Immer im Vordergrund"
     },
     "help": {
@@ -171,7 +171,7 @@
       "heading6": "Überschrift 6",
       "superscript": "Hochgestellt",
       "subscript": "Tiefgestellt",
-      "highlight": "Hervorheben",
+      "highlight": "Hervorhebung",
       "inlineCode": "Inline-Code",
       "inlineMath": "Inline-Mathematik",
       "hyperlink": "Hyperlink",
@@ -179,7 +179,7 @@
       "clearFormat": "Format löschen"
     },
     "theme": {
-      "theme": "Design(&T)",
+      "theme": "Design (&T)",
       "light": "Hell",
       "dark": "Dunkel",
       "auto": "Automatisch",
@@ -187,8 +187,7 @@
       "graphiteLight": "Graphit Hell",
       "materialDark": "Material Dunkel",
       "oneDark": "One Dark",
-      "ulyssesLight": "Ulysses Hell",
-      "ulyssesDark": "Ulysses Dunkel"
+      "ulyssesLight": "Ulysses Hell"
     }
   },
   "contextMenu": {
@@ -206,12 +205,12 @@
     "editDictionary": "Wörterbuch bearbeiten...",
     "sideBar": {
       "newFile": "Neue Datei",
-      "newDirectory": "Neues Verzeichnis",
+      "newDirectory": "Neuer Ordner",
       "copy": "Kopieren",
       "cut": "Ausschneiden",
       "paste": "Einfügen",
       "rename": "Umbenennen",
-      "moveToTrash": "In den Papierkorb verschieben",
+      "moveToTrash": "In Papierkorb verschieben",
       "showInFolder": "Im Ordner anzeigen"
     },
     "tabs": {
@@ -228,7 +227,7 @@
     "searchPlaceholder": "Suchen",
     "caseSensitive": "Groß-/Kleinschreibung beachten",
     "wholeWord": "Ganzes Wort",
-    "useRegex": "Regulären Ausdruck verwenden",
+    "useRegex": "Reguläre Ausdrücke verwenden",
     "replacementPlaceholder": "Ersetzen",
     "replaceAll": "Alle ersetzen",
     "replaceSingle": "Einzeln ersetzen",
@@ -255,6 +254,12 @@
     },
     "toc": {
       "title": "Inhaltsverzeichnis"
+    },
+    "icons": {
+      "files": "Dateien",
+      "search": "Suchen",
+      "toc": "Inhaltsverzeichnis",
+      "settings": "Einstellungen"
     }
   },
   "commandPalette": {
@@ -263,14 +268,15 @@
     "changeEncoding": "Kodierung ändern",
     "changeLineEnding": "Zeilenendezeichen ändern",
     "quickOpen": "Schnell öffnen",
-    "trailingNewline": "Nachgestellte Zeilenschaltung",
+    "trailingNewline": "Abschließende neue Zeile",
     "switchSpellcheckerLanguage": "Rechtschreibprüfungssprache wechseln"
   },
   "exportSettings": {
+    "autoNumberingHeadings": "Automatische Nummerierung der Überschriften",
     "title": "Export-Optionen",
     "info": {
       "label": "Information",
-      "description": "Passen Sie das Seitenaussehen an und klicken Sie auf \"Exportieren\", um fortzufahren."
+      "description": "Bitte passen Sie das Seitenlayout an und klicken Sie auf 'Exportieren', um fortzufahren."
     },
     "page": {
       "label": "Seite",
@@ -282,6 +288,7 @@
       "leftRight": "Links/Rechts:",
       "widthHeight": "Breite/Höhe (mm):"
     },
+    "showFrontMatter": "Front Matter anzeigen",
     "style": {
       "label": "Stil",
       "overwriteThemeFont": "Design-Schrifteinstellungen überschreiben",
@@ -295,36 +302,34 @@
       "theme": "Design"
     },
     "headerFooter": {
-      "label": "Kopf- und Fußzeile",
-      "description": "Wenn eine Kopf- und/oder Fußzeile definiert ist, erscheint der Text auf allen Seiten.",
-      "headerType": "Kopfzeilentyp",
-      "footerType": "Fußzeilentyp",
-      "leftHeaderText": "Linker Kopfzeilentext",
-      "mainHeaderText": "Hauptkopfzeilentext",
-      "rightHeaderText": "Rechter Kopfzeilentext",
-      "leftFooterText": "Linker Fußzeilentext",
-      "mainFooterText": "Hauptfußzeilentext",
-      "rightFooterText": "Rechter Fußzeilentext",
-      "customizeStyle": "Stil anpassen",
       "allowStyled": "Gestylten Text erlauben",
-      "fontSize": "Schriftgröße"
+      "customizeStyle": "Stil anpassen",
+      "fontSize": "Schriftgröße",
+      "footerType": "Fußzeilentyp",
+      "headerType": "Kopfzeilentyp",
+      "label": "Kopf- und Fußzeile",
+      "leftFooterText": "Linker Fußzeilentext",
+      "leftHeaderText": "Linker Kopfzeilentext",
+      "mainFooterText": "Haupt-Fußzeilentext",
+      "mainHeaderText": "Haupt-Kopfzeilentext",
+      "rightFooterText": "Rechter Fußzeilentext",
+      "rightHeaderText": "Rechter Kopfzeilentext",
+      "description": "Wenn eine Kopf- und/oder Fußzeile definiert ist, wird der Text auf allen Seiten angezeigt."
     },
     "toc": {
-      "label": "Inhaltsverzeichnis",
-      "title": "Inhaltsverzeichnis",
       "includeTopHeading": "Oberste Überschrift einschließen",
-      "includeTopHeadingDetail": "Detail der obersten Überschrift einschließen"
+      "includeTopHeadingDetail": "Details der obersten Überschrift einschließen",
+      "label": "Inhaltsverzeichnis",
+      "title": "Inhaltsverzeichnis"
     },
-    "autoNumberingHeadings": "Automatische Nummerierung der Überschriften",
-    "showFrontMatter": "Front Matter anzeigen",
     "export": "Exportieren...",
     "options": {
       "pageSizes": {
         "a3": "A3 (297mm x 420mm)",
         "a4": "A4 (210mm x 297mm)",
         "a5": "A5 (148mm x 210mm)",
-        "legal": "Legal US (8.5\" x 13\")",
-        "letter": "Letter US (8.5\" x 11\")",
+        "legal": "US Legal (8.5\" x 13\")",
+        "letter": "US Letter (8.5\" x 11\")",
         "tabloid": "Tabloid (17\" x 11\")",
         "custom": "Benutzerdefiniert"
       },
@@ -346,6 +351,16 @@
     }
   },
   "editor": {
+    "placeholders": {
+      "frontMatter": "YAML Front Matter eingeben...",
+      "languageIdentifier": "Sprachbezeichner eingeben...",
+      "mathFormula": "Mathematische Formel eingeben..."
+    },
+    "export": {
+      "error": "Export-Fehler",
+      "errorExporting": "Fehler beim Exportieren der Datei",
+      "failed": "Export fehlgeschlagen"
+    },
     "insertTable": {
       "title": "Tabelle einfügen",
       "rows": "Zeilen",
@@ -354,17 +369,19 @@
     "notifications": {
       "notificationNotFound": "Benachrichtigung nicht gefunden"
     },
+    "print": {
+      "error": "Druckfehler",
+      "failed": "Drucken fehlgeschlagen"
+    },
     "sourceCode": {
       "cursorNullComment": "Cursor-Null-Kommentar",
       "imageStructureDeletedComment": "Bildstruktur-gelöscht-Kommentar"
     },
-    "export": {
-      "error": "Export-Fehler"
-    },
-    "print": {
-      "error": "Druck-Fehler"
-    },
     "spellcheck": {
+      "disabledError": "Rechtschreibprüfung deaktiviert Fehler",
+      "errorSwitchingLanguage": "Fehler beim Wechseln der Rechtschreibprüfungssprache",
+      "languageMissing": "Rechtschreibprüfungssprache fehlt",
+      "switchError": "Rechtschreibprüfung Wechselfehler",
       "title": "Rechtschreibprüfung"
     }
   },
@@ -377,15 +394,15 @@
     "description": "Hier hineinziehen, um Ihren Inhalt in MarkText zu importieren"
   },
   "tweet": {
-    "title": "Senden Sie uns Ihr Feedback über Twitter",
+    "title": "Senden Sie uns Ihr Feedback per Tweet",
     "feelingsQuestion": "Wie fühlen Sie sich?",
-    "feedbackQuestion": "Teilen Sie uns Ihr Feedback mit",
+    "feedbackQuestion": "Teilen Sie uns Ihr Feedback mit?",
     "reportViaGithub": "Fehler oder Feature-Anfrage über GitHub melden",
-    "tweet": "Twittern"
+    "tweet": "Tweet"
   },
   "lineEnding": {
-    "carriageReturnLineFeed": "Wagenrücklauf + Zeilenvorschub (CRLF)",
-    "lineFeed": "Zeilenvorschub (LF)"
+    "carriageReturnLineFeed": "Wagenrücklauf + Zeilenvorschub (CRLF, Windows)",
+    "lineFeed": "Zeilenvorschub (LF, Linux/Mac)"
   },
   "preferences": {
     "title": "Einstellungen",
@@ -413,10 +430,11 @@
         "titleBarStyle": {
           "title": "Titelleistenstil",
           "custom": "Benutzerdefiniert",
+          "titleBarStyle": "Titelleistenstil",
           "native": "Nativ"
         },
         "requiresRestart": "Erfordert Neustart",
-        "hideScrollbars": "Scrollbalken ausblenden",
+        "hideScrollbars": "Bildlaufleisten ausblenden",
         "openFilesInNewWindow": "Dateien in neuem Fenster öffnen",
         "openFoldersInNewWindow": "Ordner in neuem Fenster öffnen",
         "zoom": "Zoom"
@@ -474,7 +492,7 @@
       "writingBehavior": {
         "title": "Schreibverhalten",
         "autoCloseBrackets": "Klammern automatisch schließen",
-        "autoCompleteMarkdown": "Markdown-Autovervollständigung",
+        "autoCompleteMarkdown": "Markdown automatisch vervollständigen",
         "autoCloseQuotes": "Anführungszeichen automatisch schließen"
       },
       "fileRepresentation": {
@@ -484,16 +502,16 @@
         "defaultEncoding": "Standard-Kodierung",
         "autoDetectEncoding": "Kodierung automatisch erkennen",
         "trailingNewlines": {
-          "title": "Nachfolgende Zeilenumbrüche",
+          "title": "Abschließende neue Zeilen",
           "doNothing": "Nichts tun",
-          "ensureOne": "Einen sicherstellen",
+          "ensureOne": "Eine sicherstellen",
           "preserve": "Beibehalten",
           "trimAll": "Alle entfernen"
         },
         "endOfLine": {
           "default": "Standard",
-          "crlf": "CRLF",
-          "lf": "LF"
+          "crlf": "CRLF (Windows)",
+          "lf": "LF (Linux/Mac)"
         }
       },
       "misc": {
@@ -503,7 +521,7 @@
           "ltr": "Links nach rechts",
           "rtl": "Rechts nach links"
         },
-        "hideQuickInsertHint": "Schnelleinfüge-Hinweis ausblenden",
+        "hideQuickInsertHint": "Schnelleinfügung-Hinweis ausblenden",
         "hideLinkPopup": "Link-Popup ausblenden",
         "autoCheck": "Automatische Überprüfung",
         "wrapCodeBlocks": "Code-Blöcke umbrechen"
@@ -528,7 +546,7 @@
         "filenameNote": "Der Dateiname wird automatisch generiert."
       },
       "imageInsertAction": {
-        "title": "Bild-Einfügeaktion",
+        "title": "Bildeinfügungsaktion",
         "folder": "In Ordner hochladen",
         "path": "In Pfad kopieren",
         "upload": "In die Cloud hochladen",
@@ -536,8 +554,8 @@
         "uploadToServer": "Auf Server hochladen"
       },
       "imageFolderPath": {
-        "title": "Bilderordner-Pfad",
-        "description": "Bilderordner-Pfad",
+        "title": "Bilderordnerpfad",
+        "description": "Bilderordnerpfad",
         "selectFolder": "Ordner auswählen",
         "relativePath": "Relativer Pfad",
         "absolutePath": "Absoluter Pfad"
@@ -562,7 +580,7 @@
         "currentUploader": "Aktueller Uploader",
         "picgoNotInstalled": "PicGo nicht installiert",
         "picgoDetectionStatus": "PicGo-Erkennungsstatus",
-        "picgoInstalled": "PicGo ist installiert",
+        "picgoInstalled": "PicGo installiert",
         "picgoDetectionFailed": "PicGo-Erkennung fehlgeschlagen",
         "debugInfo": "Debug-Informationen",
         "installCommand": "Installationsbefehl",
@@ -576,17 +594,17 @@
         "ownerName": "Besitzername",
         "repoName": "Repository-Name",
         "branchName": "Branch-Name",
-        "scriptDescription": "Skript-Beschreibung",
-        "scriptLocation": "Skript-Speicherort",
+        "scriptDescription": "Skriptbeschreibung",
+        "scriptLocation": "Skriptort",
         "save": "Speichern",
         "saveConfig": "Konfiguration speichern",
         "githubConfigSaved": "GitHub-Konfiguration gespeichert",
-        "scriptConfigSaved": "Skript-Konfiguration gespeichert",
+        "scriptConfigSaved": "Skriptkonfiguration gespeichert",
         "legalNotices": {
           "title": "Rechtliche Hinweise",
           "description": "Ich habe die entsprechenden Nutzungsbedingungen gelesen und akzeptiert",
           "and": "und",
-          "byUsing": "Durch die Nutzung dieses Dienstes akzeptieren Sie",
+          "byUsing": "Durch die Nutzung dieses Dienstes stimmen Sie zu",
           "gdprWarning": "DSGVO-Warnung",
           "privacyStatement": "Datenschutzerklärung",
           "termsOfService": "Nutzungsbedingungen"
@@ -610,19 +628,19 @@
         "owner": "Besitzer",
         "pleaseInstall": "Bitte installieren",
         "repo": "Repository",
-        "scriptPath": "Skript-Pfad",
-        "tokenTooltip": "Zugriffstoken für die Authentifizierung"
+        "scriptPath": "Skriptpfad",
+        "tokenTooltip": "Zugriffstoken für Authentifizierung"
       }
     },
     "markdown": {
       "title": "Markdown",
       "listItem": {
         "title": "Listenelement",
-        "preferLooseListItem": "Lockeres Listenelement bevorzugen",
+        "preferLooseListItem": "Lockere Listenelemente bevorzugen",
         "bulletListMarker": "Aufzählungszeichen",
         "orderListDelimiter": "Nummerierte Liste Trennzeichen",
         "listIndentation": {
-          "title": "Listen-Einrückung"
+          "title": "Listeneinrückung"
         }
       },
       "heading": {
@@ -648,8 +666,8 @@
         "footnoteNotes": "Fußnoten",
         "frontmatterType": {
           "frontmatterType": "Front Matter Typ",
-          "jsonBrace": "JSON mit Klammern",
-          "jsonSemicolon": "JSON mit Semikolon",
+          "jsonBrace": "JSON-Klammer",
+          "jsonSemicolon": "JSON-Semikolon",
           "title": "Front Matter Typ"
         }
       },
@@ -659,10 +677,10 @@
         "mermaid": "Mermaid",
         "vega": "Vega-Lite",
         "flowchart": "Flussdiagramm",
-        "sequence": "Sequenzdiagramm",
-        "gantt": "Gantt-Diagramm",
+        "sequence": "Sequenz",
+        "gantt": "Gantt",
         "sequenceTheme": {
-          "title": "Sequenzdiagramm-Design",
+          "title": "Sequenz-Design",
           "handDrawn": "Handgezeichnet",
           "simple": "Einfach"
         }
@@ -688,7 +706,7 @@
       "lists": {
         "bulletListMarker": "Aufzählungszeichen",
         "listIndentation": {
-          "title": "Listen-Einrückung",
+          "listIndentation": "Listeneinrückung",
           "dfm": "DFM-Stil",
           "fourSpaces": "Vier Leerzeichen",
           "oneSpace": "Ein Leerzeichen",
@@ -697,7 +715,7 @@
           "twoSpaces": "Zwei Leerzeichen"
         },
         "orderListDelimiter": "Nummerierte Liste Trennzeichen",
-        "preferLooseListItem": "Lockeres Listenelement bevorzugen",
+        "preferLooseListItem": "Lockere Listenelemente bevorzugen",
         "title": "Listen"
       }
     },
@@ -708,7 +726,7 @@
       "language": "Sprache",
       "noSuggestions": "Keine Vorschläge",
       "spellcheckerEnabled": "Rechtschreibprüfung aktiviert",
-      "spellcheckerNoUnderline": "Keine Unterstreichung für Rechtschreibfehler",
+      "spellcheckerNoUnderline": "Keine Unterstreichung für falsch geschriebene Wörter",
       "spellcheckerLanguage": "Rechtschreibprüfungssprache"
     },
     "theme": {
@@ -753,16 +771,16 @@
       "save": "Speichern",
       "restoreDefaults": "Standardwerte wiederherstellen",
       "debugOptions": "Debug-Optionen",
-      "dumpKeyboardInfo": "Tastatur-Informationen exportieren",
-      "failedToSave": "Fehler beim Speichern der Tastenkürzel",
+      "dumpKeyboardInfo": "Tastatur-Informationen ausgeben",
+      "failedToSave": "Speichern der Tastenkürzel fehlgeschlagen",
       "keyInputDialog": {
         "instructions": "Drücken Sie die Tastenkombination, die Sie zuweisen möchten",
-        "invalidKeybinding": "Ungültige Tastenkombination",
+        "invalidKeybinding": "Ungültiges Tastenkürzel",
         "placeholder": "Tasten drücken..."
       },
       "online": "Online",
       "saveError": "Fehler beim Speichern der Tastenkürzel",
-      "shortcutInUse": "Tastenkürzel in Verwendung",
+      "shortcutInUse": "Tastenkürzel wird verwendet",
       "shortcutInUseMessage": "Dieses Tastenkürzel ist bereits einem anderen Befehl zugewiesen",
       "table": {
         "description": "Beschreibung",
@@ -811,8 +829,8 @@
       "renameFile": "Datei umbenennen",
       "quickOpen": "Schnell öffnen",
       "changeEncoding": "Kodierung ändern",
-      "changeLineEnding": "Zeilenende ändern",
-      "trailingNewline": "Nachgestellte Zeilenschaltung",
+      "changeLineEnding": "Zeilenendezeichen ändern",
+      "trailingNewline": "Abschließende neue Zeile",
       "print": "Drucken",
       "preferences": "Einstellungen",
       "closeTab": "Tab schließen",
@@ -823,7 +841,7 @@
       "exportFile": "Datei exportieren",
       "exportFilePdf": "Als PDF exportieren",
       "zoom": "Zoom",
-      "checkUpdate": "Updates prüfen"
+      "checkUpdate": "Nach Updates suchen"
     },
     "edit": {
       "undo": "Rückgängig",
@@ -874,7 +892,7 @@
       "underline": "Unterstrichen",
       "superscript": "Hochgestellt",
       "subscript": "Tiefgestellt",
-      "highlight": "Hervorheben",
+      "highlight": "Hervorhebung",
       "inlineCode": "Inline-Code",
       "inlineMath": "Inline-Mathematik",
       "strike": "Durchgestrichen",
@@ -924,8 +942,8 @@
       "markdownSyntax": "Markdown-Syntax"
     },
     "utils": {
-      "noUpdateResourceFile": "Ressourcendatei nicht aktualisieren",
-      "todoUpdateCheck": "Update-Prüfung"
+      "noUpdateResourceFile": "Keine Update-Ressourcendatei",
+      "todoUpdateCheck": "Update-Überprüfung"
     },
     "spellchecker": {
       "switchLanguage": "Sprache wechseln"
@@ -955,11 +973,11 @@
     "configSchemaViolation": "Konfigurationsschema-Verletzung",
     "copyError": "Kopierfehler",
     "initializationFailed": "Initialisierung fehlgeschlagen",
-    "otherInstanceDetected": "Andere laufende MarkText-Instanz erkannt",
+    "otherInstanceDetected": "Eine andere Instanz von MarkText läuft bereits",
     "report": "Melden",
     "startupError": "Startfehler",
     "terminatedDueToError": "Aufgrund eines Fehlers beendet",
-    "unexpectedErrorWithMessage": "Unerwarteter Fehler mit Nachricht",
+    "unexpectedErrorWithMessage": "Unerwartete Fehlermeldung",
     "unexpectedMainProcess": "Unerwarteter Hauptprozess-Fehler",
     "unexpectedRendererProcess": "Unerwarteter Renderer-Prozess-Fehler"
   },
@@ -971,126 +989,166 @@
     "editor": {
       "anchorLinkCopied": "Anker-Link kopiert",
       "tabNotFound": "Tab nicht gefunden",
-      "tocItemNotFound": "Inhaltsverzeichnis-Element nicht gefunden"
+      "tocItemNotFound": "Inhaltsverzeichnis-Element nicht gefunden",
+      "highlightStart": " [Hervorhebung Start] ",
+      "highlightEnd": " [Hervorhebung Ende] ",
+      "typeAtToInsert": "@ eingeben zum Einfügen",
+      "inputFootnoteDefinition": "Fußnotendefinition eingeben...",
+      "inputYamlFrontMatter": "YAML Front Matter eingeben...",
+      "inputLanguageIdentifier": "Sprachkennung eingeben...",
+      "inputMathematicalFormula": "Mathematische Formel eingeben...",
+      "fence": "Zaun",
+      "indent": "Einrückung",
+      "frontMatterDelimiter": "---",
+      "mathDelimiter": "$$",
+      "mermaidStart": "``` mermaid",
+      "flowchartStart": "``` flowchart",
+      "sequenceStart": "``` sequence",
+      "plantumlStart": "``` plantuml",
+      "vegaLiteStart": "``` vega-lite",
+      "codeFence": "```",
+      "clickToAddImage": "Klicken um Bild hinzuzufügen",
+      "loadImageFailed": "Bild konnte nicht geladen werden"
     },
     "help": {
       "lineEndingAssertionError": "Zeilenendezeichen-Assertion-Fehler"
     }
   },
   "spellchecker": {
-    "failedToRemoveWord": "Fehler beim Entfernen des Wortes aus dem Wörterbuch",
-    "failedToSwitchLanguage": "Fehler beim Wechseln der Rechtschreibprüfungssprache",
+    "failedToRemoveWord": "Wort konnte nicht aus dem Wörterbuch entfernt werden",
+    "failedToSwitchLanguage": "Rechtschreibprüfungssprache konnte nicht gewechselt werden",
     "unexpectedError": "Unerwarteter Rechtschreibprüfungsfehler"
-  },
-  "search": {
-    "searchResultInfo": "Suchergebnis-Informationen"
-  },
-  "sideBar": {
-    "search": {
-      "searchLimited": "Suche begrenzt"
-    }
   },
   "quickInsert": {
     "basicBlock": "Grundblock",
-    "header": "Überschrift",
+    "header": "Kopfzeile",
     "advancedBlock": "Erweiterter Block",
     "listBlock": "Listenblock",
     "diagram": "Diagramm",
     "paragraph": {
       "title": "Absatz",
-      "subtitle": "Lorem Ipsum ist einfach Blindtext"
+      "subtitle": ""
     },
     "horizontalLine": {
       "title": "Horizontale Linie",
       "subtitle": "---"
     },
     "frontMatter": {
-      "title": "Vorspann",
-      "subtitle": "--- Lorem Ipsum ---"
+      "title": "Front Matter",
+      "subtitle": "--- front matter ---"
     },
     "header1": {
       "title": "Überschrift 1",
-      "subtitle": "# Lorem Ipsum ist einfach..."
+      "subtitle": "#"
     },
     "header2": {
       "title": "Überschrift 2",
-      "subtitle": "## Lorem Ipsum ist einfach..."
+      "subtitle": "##"
     },
     "header3": {
       "title": "Überschrift 3",
-      "subtitle": "### Lorem Ipsum ist einfach..."
+      "subtitle": "###"
     },
     "header4": {
       "title": "Überschrift 4",
-      "subtitle": "#### Lorem Ipsum ist einfach..."
+      "subtitle": "####"
     },
     "header5": {
       "title": "Überschrift 5",
-      "subtitle": "##### Lorem Ipsum ist einfach..."
+      "subtitle": "#####"
     },
     "header6": {
       "title": "Überschrift 6",
-      "subtitle": "###### Lorem Ipsum ist einfach..."
+      "subtitle": "######"
     },
     "tableBlock": {
       "title": "Tabellenblock",
-      "subtitle": "|Lorem | Ipsum ist einfach |"
+      "subtitle": "Tabellenblock"
     },
-    "displayMath": {
+    "mathFormula": {
       "title": "Mathematische Formel",
-      "subtitle": "$$ Lorem Ipsum ist einfach $$"
+      "subtitle": "$$ $$"
     },
     "htmlBlock": {
       "title": "HTML-Block",
-      "subtitle": "<div> Lorem Ipsum ist einfach </div>"
+      "subtitle": "<div> </div>"
     },
     "codeBlock": {
-      "title": "Codeblock",
-      "subtitle": "```java Lorem Ipsum ist einfach ```"
+      "title": "Code-Block",
+      "subtitle": "```java ```"
     },
     "quoteBlock": {
-      "title": "Zitatblock",
-      "subtitle": ">Lorem Ipsum ist einfach..."
+      "title": "Zitat-Block",
+      "subtitle": ">"
     },
-    "orderList": {
+    "orderedList": {
       "title": "Nummerierte Liste",
-      "subtitle": "1. Lorem Ipsum ist einfach..."
+      "subtitle": "1."
     },
     "bulletList": {
       "title": "Aufzählungsliste",
-      "subtitle": "- Lorem Ipsum ist einfach..."
+      "subtitle": "-"
     },
     "todoList": {
       "title": "Aufgabenliste",
-      "subtitle": "- [x] Lorem Ipsum ist einfach..."
+      "subtitle": "- [x]"
     },
     "vegaChart": {
       "title": "Vega-Diagramm",
-      "subtitle": "Diagramme mit vega-lite.js rendern."
+      "subtitle": "Diagramm-Rendering mit vega-lite.js."
     },
     "flowChart": {
       "title": "Flussdiagramm",
-      "subtitle": "Flussdiagramme mit flowchart.js rendern."
-    },
-    "sequenceDiagram": {
-      "title": "Sequenzdiagramm",
-      "subtitle": "Sequenzdiagramme mit js-sequence rendern."
-    },
-    "plantumlDiagram": {
-      "title": "PlantUML-Diagramm",
-      "subtitle": "PlantUML-Diagramme rendern"
-    },
-    "mermaid": {
-      "title": "Mermaid",
-      "subtitle": "Diagramme mit mermaid rendern."
+      "subtitle": "Flussdiagramm-Rendering mit flowchart.js."
     },
     "sequenceChart": {
       "title": "Sequenzdiagramm",
-      "subtitle": "Sequenzdiagramme mit js-sequence rendern."
+      "subtitle": "Sequenzdiagramm-Rendering mit js-sequence-diagrams."
     },
-    "plantUMLChart": {
+    "plantUMLDiagram": {
       "title": "PlantUML-Diagramm",
-      "subtitle": "PlantUML-Diagramme rendern"
+      "subtitle": "Verschiedene Diagramme mit PlantUML."
+    },
+    "mermaidDiagram": {
+      "title": "Mermaid-Diagramm",
+      "subtitle": "Diagramm-Rendering mit mermaid."
     }
+  },
+  "mermaid": {
+    "loading": "Mermaid lädt...",
+    "loadFailed": "Mermaid-Laden fehlgeschlagen",
+    "flowchart": "Flussdiagramm",
+    "sequenceDiagram": "Sequenzdiagramm",
+    "classDiagram": "Klassendiagramm",
+    "stateDiagram": "Zustandsdiagramm",
+    "entityRelationshipDiagram": "Entity-Relationship-Diagramm",
+    "userJourney": "Benutzerreise",
+    "gantt": "Gantt-Diagramm",
+    "pieChart": "Kreisdiagramm",
+    "requirementDiagram": "Anforderungsdiagramm",
+    "gitgraph": "Git-Graph"
+  },
+  "frontMenu": {
+    "duplicate": "Duplizieren",
+    "turnInto": "Umwandeln in",
+    "newParagraph": "Neuer Absatz",
+    "delete": "Löschen",
+    "paragraph": "Absatz",
+    "table": "Tabelle",
+    "html": "HTML",
+    "mathblock": "Mathe-Block",
+    "pre": "Vorformatiert",
+    "frontMatter": "Front-Matter",
+    "ulTask": "Aufgabenliste",
+    "ulBullet": "Aufzählungsliste",
+    "olOrder": "Nummerierte Liste",
+    "blockquote": "Blockzitat",
+    "heading1": "Überschrift 1",
+    "heading2": "Überschrift 2",
+    "heading3": "Überschrift 3",
+    "heading4": "Überschrift 4",
+    "heading5": "Überschrift 5",
+    "heading6": "Überschrift 6",
+    "hr": "Horizontale Linie"
   }
 }

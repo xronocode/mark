@@ -39,7 +39,7 @@
       "copyAsHtml": "复制为 HTML",
       "pasteAsPlainText": "粘贴为纯文本",
       "selectAll": "全选",
-      "duplicate": "复制",
+      "duplicate": "创建副本",
       "createParagraph": "创建段落",
       "deleteParagraph": "删除段落",
       "find": "查找",
@@ -49,8 +49,8 @@
       "findInFolder": "在文件夹中查找",
       "screenshot": "截图",
       "lineEnding": "行结束符",
-      "lineEndingCrlf": "CRLF",
-      "lineEndingLf": "LF"
+      "lineEndingCrlf": "CRLF (Windows)",
+      "lineEndingLf": "LF (Unix/macOS)"
     },
     "paragraph": {
       "title": "段落",
@@ -74,10 +74,10 @@
       "bulletList": "无序列表",
       "unorderedList": "无序列表",
       "taskList": "任务列表",
-      "looseListItem": "松散列表项",
+      "looseListItem": "宽松列表项",
       "paragraphItem": "段落项",
       "horizontalRule": "水平分割线",
-      "frontMatter": "前言"
+      "frontMatter": "前置元数据"
     },
     "window": {
       "title": "窗口",
@@ -187,8 +187,7 @@
       "graphiteLight": "Graphite Light",
       "materialDark": "Material Dark",
       "oneDark": "One Dark",
-      "ulyssesLight": "Ulysses Light",
-      "ulyssesDark": "Ulysses Dark"
+      "ulyssesLight": "Ulysses Light"
     }
   },
   "contextMenu": {
@@ -255,6 +254,12 @@
     },
     "toc": {
       "title": "目录"
+    },
+    "icons": {
+      "files": "文件",
+      "search": "搜索",
+      "toc": "目录",
+      "settings": "设置"
     }
   },
   "commandPalette": {
@@ -316,7 +321,7 @@
       "includeTopHeadingDetail": "包含顶级标题详情"
     },
     "autoNumberingHeadings": "自动编号标题",
-    "showFrontMatter": "显示前言",
+    "showFrontMatter": "显示前置元数据",
     "export": "导出...",
     "options": {
       "pageSizes": {
@@ -346,6 +351,11 @@
     }
   },
   "editor": {
+    "placeholders": {
+      "frontMatter": "输入 YAML 前置信息...",
+      "languageIdentifier": "输入语言标识符...",
+      "mathFormula": "输入数学公式..."
+    },
     "insertTable": {
       "title": "插入表格",
       "rows": "行",
@@ -355,17 +365,24 @@
       "notificationNotFound": "未找到通知"
     },
     "sourceCode": {
-      "cursorNullComment": "光标空注释",
-      "imageStructureDeletedComment": "图片结构已删除注释"
+      "cursorNullComment": "光标位置无注释",
+      "imageStructureDeletedComment": "图片结构注释已删除"
     },
     "export": {
-      "error": "导出错误"
+      "error": "导出错误",
+      "errorExporting": "Error exporting file",
+      "failed": "Export failed"
     },
     "print": {
-      "error": "打印错误"
+      "error": "打印错误",
+      "failed": "Print failed"
     },
     "spellcheck": {
-      "title": "拼写检查"
+      "title": "拼写检查",
+      "disabledError": "Spellcheck disabled error",
+      "errorSwitchingLanguage": "Error switching spellcheck language",
+      "languageMissing": "Spellcheck language missing",
+      "switchError": "Spellcheck switch error"
     }
   },
   "recent": {
@@ -384,8 +401,8 @@
     "tweet": "推文"
   },
   "lineEnding": {
-    "carriageReturnLineFeed": "回车 + 换行 (CRLF)",
-    "lineFeed": "换行 (LF)"
+    "carriageReturnLineFeed": "回车 + 换行 (CRLF (Windows))",
+    "lineFeed": "换行 (LF (Unix/macOS))"
   },
   "preferences": {
     "title": "偏好设置",
@@ -413,7 +430,8 @@
         "titleBarStyle": {
           "title": "标题栏样式",
           "custom": "自定义",
-          "native": "原生"
+          "native": "原生",
+          "titleBarStyle": "标题栏样式"
         },
         "requiresRestart": "需要重启",
         "hideScrollbars": "隐藏滚动条",
@@ -481,19 +499,19 @@
         "title": "文件表示",
         "tabWidth": "制表符宽度",
         "lineSeparator": "行分隔符",
-        "defaultEncoding": "默认编码",
+        "defaultEncoding": "默认文件编码",
         "autoDetectEncoding": "自动检测编码",
         "trailingNewlines": {
           "title": "尾随换行符",
           "doNothing": "不做任何操作",
           "ensureOne": "确保有一个",
           "preserve": "保留",
-          "trimAll": "删除全部"
+          "trimAll": "删除所有尾随换行符"
         },
         "endOfLine": {
           "default": "默认",
-          "crlf": "CRLF",
-          "lf": "LF"
+          "crlf": "CRLF (Windows)",
+          "lf": "LF (Unix/macOS)"
         }
       },
       "misc": {
@@ -569,7 +587,6 @@
         "npmInstallCommand": "npm install picgo -g",
         "yarnInstallCommand": "yarn global add picgo",
         "pnpmInstallCommand": "pnpm add -g picgo",
-        "brewInstallCommand": "brew install picgo",
         "chooseInstallMethod": "选择安装方式：",
         "githubDeprecated": "GitHub 上传器已弃用",
         "githubToken": "GitHub 令牌",
@@ -587,7 +604,7 @@
           "description": "我已阅读并同意相关服务条款",
           "and": "和",
           "byUsing": "使用此服务即表示您同意",
-          "gdprWarning": "GDPR 警告",
+          "gdprWarning": "GDPR 隐私警告",
           "privacyStatement": "隐私声明",
           "termsOfService": "服务条款"
         },
@@ -618,7 +635,7 @@
       "title": "Markdown",
       "listItem": {
         "title": "列表项",
-        "preferLooseListItem": "首选松散列表项",
+        "preferLooseListItem": "首选宽松列表项",
         "bulletListMarker": "无序列表标记",
         "orderListDelimiter": "有序列表分隔符",
         "listIndentation": {
@@ -630,8 +647,8 @@
         "preferHeadingStyle": "首选标题样式"
       },
       "frontmatter": {
-        "title": "前言",
-        "frontmatterType": "前言类型"
+        "title": "前置元数据",
+        "frontmatterType": "前置元数据类型"
       },
       "extensions": {
         "title": "扩展",
@@ -642,15 +659,15 @@
         "sequenceTheme": "序列主题",
         "superscript": "上标",
         "subscript": "下标",
-        "frontMatter": "前言",
+        "frontMatter": "前置元数据",
         "math": "数学",
         "diagram": "图表",
         "footnoteNotes": "脚注注释",
         "frontmatterType": {
-          "frontmatterType": "前言类型",
+          "frontmatterType": "前置元数据类型",
           "jsonBrace": "带大括号的 JSON",
           "jsonSemicolon": "带分号的 JSON",
-          "title": "前言类型"
+          "title": "前置元数据类型"
         }
       },
       "diagrams": {
@@ -688,16 +705,16 @@
       "lists": {
         "bulletListMarker": "无序列表标记",
         "listIndentation": {
-          "title": "列表缩进",
           "dfm": "DFM 样式",
           "fourSpaces": "四个空格",
           "oneSpace": "一个空格",
           "tab": "制表符",
           "threeSpaces": "三个空格",
-          "twoSpaces": "两个空格"
+          "twoSpaces": "两个空格",
+          "listIndentation": "列表缩进"
         },
         "orderListDelimiter": "有序列表分隔符",
-        "preferLooseListItem": "首选松散列表项",
+        "preferLooseListItem": "首选宽松列表项",
         "title": "列表"
       }
     },
@@ -835,7 +852,7 @@
       "copyAsHtml": "复制为 HTML",
       "pasteAsPlaintext": "粘贴为纯文本",
       "selectAll": "全选",
-      "duplicate": "复制",
+      "duplicate": "创建副本",
       "createParagraph": "创建段落",
       "deleteParagraph": "删除段落",
       "find": "查找",
@@ -862,10 +879,10 @@
       "orderList": "有序列表",
       "bulletList": "无序列表",
       "taskList": "任务列表",
-      "looseListItem": "松散列表项",
+      "looseListItem": "宽松列表项",
       "paragraph": "段落",
       "horizontalLine": "水平分割线",
-      "frontMatter": "前言",
+      "frontMatter": "前置元数据",
       "resetParagraph": "重置段落"
     },
     "format": {
@@ -892,7 +909,7 @@
     },
     "view": {
       "commandPalette": "命令面板",
-      "sourceCodeMode": "源代码模式",
+      "sourceCodeMode": "源码模式",
       "typewriterMode": "打字机模式",
       "focusMode": "专注模式",
       "toggleSidebar": "切换侧边栏",
@@ -939,7 +956,7 @@
     "cancel": "取消",
     "changesWillBeLost": "更改将丢失",
     "close": "关闭",
-    "dontSave": "不保存",
+    "dontSave": "放弃保存",
     "file": "文件",
     "fileExists": "文件已存在",
     "files": "文件",
@@ -948,7 +965,7 @@
     "keepOpen": "保持打开",
     "replace": "替换",
     "save": "保存",
-    "saveChanges": "保存更改",
+    "saveChanges": "保存修改",
     "saveFailure": "保存失败"
   },
   "error": {
@@ -971,7 +988,26 @@
     "editor": {
       "anchorLinkCopied": "锚点链接已复制",
       "tabNotFound": "未找到标签页",
-      "tocItemNotFound": "未找到目录项"
+      "tocItemNotFound": "未找到目录项",
+      "highlightStart": " [高亮开始] ",
+      "highlightEnd": " [高亮结束] ",
+      "typeAtToInsert": "输入 @ 来插入",
+      "inputFootnoteDefinition": "输入脚注定义...",
+      "inputYamlFrontMatter": "输入 YAML 前置元数据...",
+      "inputLanguageIdentifier": "输入语言标识符...",
+      "inputMathematicalFormula": "输入数学公式...",
+      "fence": "围栏",
+      "indent": "缩进",
+      "frontMatterDelimiter": "---",
+      "mathDelimiter": "$$",
+      "mermaidStart": "``` mermaid",
+      "flowchartStart": "``` flowchart",
+      "sequenceStart": "``` sequence",
+      "plantumlStart": "``` plantuml",
+      "vegaLiteStart": "``` vega-lite",
+      "codeFence": "```",
+      "clickToAddImage": "点击添加图片",
+      "loadImageFailed": "图片加载失败"
     },
     "help": {
       "lineEndingAssertionError": "行结束符断言错误"
@@ -982,14 +1018,6 @@
     "failedToSwitchLanguage": "切换拼写检查器语言失败",
     "unexpectedError": "意外的拼写检查器错误"
   },
-  "search": {
-    "searchResultInfo": "搜索结果信息"
-  },
-  "sideBar": {
-    "search": {
-      "searchLimited": "搜索受限"
-    }
-  },
   "quickInsert": {
     "basicBlock": "基础块",
     "header": "标题",
@@ -998,71 +1026,71 @@
     "diagram": "图表",
     "paragraph": {
       "title": "段落",
-      "subtitle": "Lorem Ipsum 是简单的虚拟文本"
+      "subtitle": ""
     },
     "horizontalLine": {
       "title": "水平分割线",
       "subtitle": "---"
     },
     "frontMatter": {
-      "title": "前言",
-      "subtitle": "--- Lorem Ipsum ---"
+      "title": "前置元数据",
+      "subtitle": "位于文档顶部、由特定格式（如 YAML 或 JSON）编写的结构化数据块"
     },
     "header1": {
       "title": "标题 1",
-      "subtitle": "# Lorem Ipsum 是简单的..."
+      "subtitle": "# ..."
     },
     "header2": {
       "title": "标题 2",
-      "subtitle": "## Lorem Ipsum 是简单的..."
+      "subtitle": "## ..."
     },
     "header3": {
       "title": "标题 3",
-      "subtitle": "### Lorem Ipsum 是简单的..."
+      "subtitle": "### ..."
     },
     "header4": {
       "title": "标题 4",
-      "subtitle": "#### Lorem Ipsum 是简单的..."
+      "subtitle": "#### ..."
     },
     "header5": {
       "title": "标题 5",
-      "subtitle": "##### Lorem Ipsum 是简单的..."
+      "subtitle": "##### ..."
     },
     "header6": {
       "title": "标题 6",
-      "subtitle": "###### Lorem Ipsum 是简单的..."
+      "subtitle": "###### ..."
     },
     "tableBlock": {
       "title": "表格块",
-      "subtitle": "|Lorem | Ipsum 是简单的 |"
+      "subtitle": "创建一个表格"
     },
-    "displayMath": {
+    "mathFormula": {
       "title": "数学公式",
-      "subtitle": "$$ Lorem Ipsum 是简单的 $$"
+      "subtitle": "$$  $$"
     },
     "htmlBlock": {
       "title": "HTML 块",
-      "subtitle": "<div> Lorem Ipsum 是简单的 </div>"
+      "subtitle": "<div>  </div>"
     },
     "codeBlock": {
       "title": "代码块",
-      "subtitle": "```java Lorem Ipsum 是简单的 ```"
+      "subtitle": "```java  ```"
     },
     "quoteBlock": {
       "title": "引用块",
-      "subtitle": ">Lorem Ipsum 是简单的..."
+      "subtitle": ">..."
     },
-    "orderList": {
+    "orderedList": {
       "title": "有序列表",
-      "subtitle": "1. Lorem Ipsum 是简单的..."
+      "subtitle": "1. ..."
     },
     "bulletList": {
       "title": "无序列表",
-      "subtitle": "- Lorem Ipsum 是简单的..."
+      "subtitle": "- ..."
     },
     "todoList": {
       "title": "待办列表",
-      "subtitle": "- [x] Lorem Ipsum 是简单的..."
+      "subtitle": "- [x] ..."
     },
     "vegaChart": {
       "title": "Vega 图表",
@@ -1092,5 +1120,28 @@
       "title": "PlantUML 图表",
       "subtitle": "渲染 PlantUML 图表"
     }
+  },
+  "frontMenu": {
+    "duplicate": "创建副本",
+    "turnInto": "转换为",
+    "newParagraph": "新建段落",
+    "delete": "删除",
+    "paragraph": "段落",
+    "table": "表格",
+    "html": "HTML",
+    "mathblock": "数学公式块",
+    "pre": "代码块",
+    "frontMatter": "前置信息",
+    "ulTask": "任务列表",
+    "ulBullet": "无序列表",
+    "olOrder": "有序列表",
+    "blockquote": "引用块",
+    "heading1": "标题 1",
+    "heading2": "标题 2",
+    "heading3": "标题 3",
+    "heading4": "标题 4",
+    "heading5": "标题 5",
+    "heading6": "标题 6",
+    "hr": "分隔线"
   }
 }

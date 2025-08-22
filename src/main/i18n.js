@@ -27,4 +27,13 @@ export function getCurrentLanguage() {
  */
 export function setLanguage(language) {
   currentLanguage = language
+  
+  // 通知所有渲染进程语言已改变
+  const { BrowserWindow } = require('electron')
+  const windows = BrowserWindow.getAllWindows()
+  windows.forEach(window => {
+    if (window && !window.isDestroyed()) {
+      window.webContents.send('language-changed', language)
+    }
+  })
 }

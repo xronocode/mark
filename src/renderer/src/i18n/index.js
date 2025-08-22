@@ -1,4 +1,5 @@
 import { createI18n } from 'vue-i18n'
+import bus from '../bus'
 
 // 直接导入翻译文件
 import enTranslations from '../../../shared/i18n/locales/en.json'
@@ -12,7 +13,7 @@ import koTranslations from '../../../shared/i18n/locales/ko.json'
 import ptTranslations from '../../../shared/i18n/locales/pt.json'
 
 // 获取当前语言设置
-let currentLocale = 'zh-CN' // 默认为中文，与主进程保持一致
+let currentLocale = 'en' // 默认为英文，与主进程保持一致
 
 // 加载翻译数据
 const messages = {
@@ -59,6 +60,26 @@ export default i18n
 // 监听语言变化
 if (window.electron && window.electron.ipcRenderer) {
   window.electron.ipcRenderer.on('language-changed', (event, newLocale) => {
-    i18n.global.locale.value = newLocale
+    console.log('Received language-changed event:', newLocale)
+    if (newLocale && messages[newLocale]) {
+      i18n.global.locale.value = newLocale
+      currentLocale = newLocale
+      console.log('Language updated to:', newLocale)
+      // 通知其他组件语言已改变
+      bus.emit('language-changed', newLocale)
+    }
+  })
+  
+  // 启动时请求当前语言设置
+  window.electron.ipcRenderer.send('mt::get-current-language')
+  window.electron.ipcRenderer.on('mt::current-language', (event, language) => {
+    console.log('Received current language:', language)
+    if (language && messages[language]) {
+      i18n.global.locale.value = language
+      currentLocale = language
+      console.log('Initial language set to:', language)
+      // 通知其他组件语言已设置
+      bus.emit('language-changed', language)
+    }
   })
 }

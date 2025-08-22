@@ -20,7 +20,7 @@
       "exportPdf": "PDFとしてエクスポート",
       "import": "インポート",
       "print": "印刷",
-      "recent": "最近のファイル",
+      "recent": "最近使用したファイル",
       "close": "閉じる",
       "closeAll": "すべて閉じる",
       "closeTab": "タブを閉じる",
@@ -48,9 +48,9 @@
       "findPrevious": "前を検索",
       "findInFolder": "フォルダ内を検索",
       "screenshot": "スクリーンショット",
-      "lineEnding": "改行文字",
-      "lineEndingCrlf": "CRLF",
-      "lineEndingLf": "LF"
+      "lineEnding": "改行コード",
+      "lineEndingCrlf": "CRLF (Windows)",
+      "lineEndingLf": "LF (Linux/Mac)"
     },
     "paragraph": {
       "title": "段落",
@@ -64,7 +64,7 @@
       "promoteHeading": "見出しレベルを上げる",
       "demoteHeading": "見出しレベルを下げる",
       "table": "表",
-      "codeFences": "コードフェンス",
+      "codeFences": "コードブロック",
       "codeBlock": "コードブロック",
       "quoteBlock": "引用ブロック",
       "mathBlock": "数式ブロック",
@@ -88,8 +88,8 @@
       "zoomIn": "拡大",
       "zoomOut": "縮小",
       "fullScreen": "フルスクリーン",
-      "bringAllToFront": "すべてを前面に",
-      "alwaysOnTop": "常に最前面"
+      "bringAllToFront": "すべてを前面に移動",
+      "alwaysOnTop": "常に最前面に表示"
     },
     "help": {
       "help": "ヘルプ",
@@ -97,7 +97,7 @@
       "changelog": "変更履歴",
       "askQuestion": "質問する",
       "reportBug": "バグを報告",
-      "viewSource": "ソースを表示",
+      "viewSource": "ソースコードを表示",
       "license": "ライセンス",
       "checkForUpdates": "アップデートを確認",
       "aboutMarkText": "MarkTextについて",
@@ -179,7 +179,7 @@
       "clearFormat": "書式をクリア"
     },
     "theme": {
-      "theme": "テーマ(&T)",
+      "theme": "テーマ (&T)",
       "light": "ライト",
       "dark": "ダーク",
       "auto": "自動",
@@ -187,8 +187,7 @@
       "graphiteLight": "グラファイトライト",
       "materialDark": "マテリアルダーク",
       "oneDark": "ワンダーク",
-      "ulyssesLight": "ユリシーズライト",
-      "ulyssesDark": "ユリシーズダーク"
+      "ulyssesLight": "ユリシーズライト"
     }
   },
   "contextMenu": {
@@ -200,13 +199,13 @@
     "pasteAsPlainText": "プレーンテキストとして貼り付け",
     "insertParagraphBefore": "前に段落を挿入",
     "insertParagraphAfter": "後に段落を挿入",
-    "spelling": "スペル...",
+    "spelling": "スペルチェック...",
     "changeLanguage": "言語を変更...",
     "addToDictionary": "辞書に追加",
     "editDictionary": "辞書を編集...",
     "sideBar": {
       "newFile": "新しいファイル",
-      "newDirectory": "新しいディレクトリ",
+      "newDirectory": "新しいフォルダ",
       "copy": "コピー",
       "cut": "切り取り",
       "paste": "貼り付け",
@@ -240,10 +239,10 @@
     "search": {
       "searchInFolder": "フォルダ内を検索...",
       "noFolderOpen": "フォルダが開かれていません",
-      "noResultsFound": "結果が見つかりません。",
+      "noResultsFound": "結果が見つかりませんでした。",
       "cancel": "キャンセル",
       "openFolder": "フォルダを開く",
-      "showMoreMatches": "さらに一致を表示"
+      "showMoreMatches": "さらに一致するものを表示"
     },
     "tree": {
       "openedFiles": "開いているファイル",
@@ -255,22 +254,29 @@
     },
     "toc": {
       "title": "目次"
+    },
+    "icons": {
+      "files": "ファイル",
+      "search": "検索",
+      "toc": "目次",
+      "settings": "設定"
     }
   },
   "commandPalette": {
     "placeholder": "実行するコマンドを入力",
     "commandNotFound": "コマンドが見つかりません",
     "changeEncoding": "エンコーディングを変更",
-    "changeLineEnding": "改行文字を変更",
+    "changeLineEnding": "改行コードを変更",
     "quickOpen": "クイックオープン",
     "trailingNewline": "末尾の改行",
-    "switchSpellcheckerLanguage": "スペルチェッカー言語を切り替え"
+    "switchSpellcheckerLanguage": "スペルチェック言語を切り替え"
   },
   "exportSettings": {
+    "autoNumberingHeadings": "見出しの自動番号付け",
     "title": "エクスポートオプション",
     "info": {
       "label": "情報",
-      "description": "ページの外観をカスタマイズし、\"エクスポート\"をクリックして続行してください。"
+      "description": "ページレイアウトを調整して、'エクスポート'をクリックして続行してください。"
     },
     "page": {
       "label": "ページ",
@@ -282,6 +288,7 @@
       "leftRight": "左/右:",
       "widthHeight": "幅/高さ (mm):"
     },
+    "showFrontMatter": "フロントマターを表示",
     "style": {
       "label": "スタイル",
       "overwriteThemeFont": "テーマフォント設定を上書き",
@@ -291,41 +298,39 @@
     },
     "theme": {
       "label": "テーマ",
-      "description": "テーマを選択するか、カスタムテーマを作成することで、ドキュメントの外観を変更できます。",
+      "description": "テーマを選択するか、カスタムテーマを作成して文書の外観を変更できます。",
       "theme": "テーマ"
     },
     "headerFooter": {
-      "label": "ヘッダーとフッター",
-      "description": "ヘッダーやフッターが定義されている場合、テキストはすべてのページに表示されます。",
-      "headerType": "ヘッダータイプ",
-      "footerType": "フッタータイプ",
-      "leftHeaderText": "左ヘッダーテキスト",
-      "mainHeaderText": "メインヘッダーテキスト",
-      "rightHeaderText": "右ヘッダーテキスト",
-      "leftFooterText": "左フッターテキスト",
-      "mainFooterText": "メインフッターテキスト",
-      "rightFooterText": "右フッターテキスト",
-      "customizeStyle": "スタイルをカスタマイズ",
       "allowStyled": "スタイル付きテキストを許可",
-      "fontSize": "フォントサイズ"
+      "customizeStyle": "スタイルをカスタマイズ",
+      "fontSize": "フォントサイズ",
+      "footerType": "フッタータイプ",
+      "headerType": "ヘッダータイプ",
+      "label": "ヘッダーとフッター",
+      "leftFooterText": "左フッターテキスト",
+      "leftHeaderText": "左ヘッダーテキスト",
+      "mainFooterText": "メインフッターテキスト",
+      "mainHeaderText": "メインヘッダーテキスト",
+      "rightFooterText": "右フッターテキスト",
+      "rightHeaderText": "右ヘッダーテキスト",
+      "description": "ヘッダーやフッターが定義されている場合、テキストはすべてのページに表示されます。"
     },
     "toc": {
-      "label": "目次",
-      "title": "目次",
       "includeTopHeading": "最上位見出しを含める",
-      "includeTopHeadingDetail": "最上位見出しの詳細を含める"
+      "includeTopHeadingDetail": "最上位見出しの詳細を含める",
+      "label": "目次",
+      "title": "目次"
     },
-    "autoNumberingHeadings": "見出しの自動番号付け",
-    "showFrontMatter": "フロントマターを表示",
     "export": "エクスポート...",
     "options": {
       "pageSizes": {
         "a3": "A3 (297mm x 420mm)",
         "a4": "A4 (210mm x 297mm)",
         "a5": "A5 (148mm x 210mm)",
-        "legal": "リーガル US (8.5\" x 13\")",
-        "letter": "レター US (8.5\" x 11\")",
-        "tabloid": "タブロイド (17\" x 11\")",
+        "legal": "US Legal (8.5\" x 13\")",
+        "letter": "US Letter (8.5\" x 11\")",
+        "tabloid": "Tabloid (17\" x 11\")",
         "custom": "カスタム"
       },
       "headerFooterTypes": {
@@ -346,6 +351,16 @@
     }
   },
   "editor": {
+    "placeholders": {
+      "frontMatter": "YAML フロントマターを入力...",
+      "languageIdentifier": "言語識別子を入力...",
+      "mathFormula": "数式を入力..."
+    },
+    "export": {
+      "error": "エクスポートエラー",
+      "errorExporting": "ファイルのエクスポート中にエラーが発生しました",
+      "failed": "エクスポートに失敗しました"
+    },
     "insertTable": {
       "title": "表を挿入",
       "rows": "行",
@@ -354,17 +369,19 @@
     "notifications": {
       "notificationNotFound": "通知が見つかりません"
     },
+    "print": {
+      "error": "印刷エラー",
+      "failed": "印刷に失敗しました"
+    },
     "sourceCode": {
       "cursorNullComment": "カーソルnullコメント",
       "imageStructureDeletedComment": "画像構造削除コメント"
     },
-    "export": {
-      "error": "エクスポートエラー"
-    },
-    "print": {
-      "error": "印刷エラー"
-    },
     "spellcheck": {
+      "disabledError": "スペルチェック無効エラー",
+      "errorSwitchingLanguage": "スペルチェック言語の切り替えエラー",
+      "languageMissing": "スペルチェック言語が見つかりません",
+      "switchError": "スペルチェック切り替えエラー",
       "title": "スペルチェック"
     }
   },
@@ -377,15 +394,15 @@
     "description": "ここにドラッグしてMarkTextにコンテンツをインポート"
   },
   "tweet": {
-    "title": "Twitterでフィードバックを送信",
-    "feelingsQuestion": "どのように感じますか？",
-    "feedbackQuestion": "フィードバックを教えてください",
+    "title": "ツイートでフィードバックを送信",
+    "feelingsQuestion": "いかがですか？",
+    "feedbackQuestion": "フィードバックを共有しませんか？",
     "reportViaGithub": "GitHubでバグや機能リクエストを報告",
     "tweet": "ツイート"
   },
   "lineEnding": {
-    "carriageReturnLineFeed": "キャリッジリターン + ラインフィード (CRLF)",
-    "lineFeed": "ラインフィード (LF)"
+    "carriageReturnLineFeed": "キャリッジリターン + ラインフィード (CRLF, Windows)",
+    "lineFeed": "ラインフィード (LF, Linux/Mac)"
   },
   "preferences": {
     "title": "環境設定",
@@ -396,7 +413,7 @@
       "general": "一般",
       "editor": "エディター",
       "markdown": "Markdown",
-      "spelling": "スペル",
+      "spelling": "スペルチェック",
       "theme": "テーマ",
       "image": "画像",
       "keybindings": "キーバインド"
@@ -413,6 +430,7 @@
         "titleBarStyle": {
           "title": "タイトルバースタイル",
           "custom": "カスタム",
+          "titleBarStyle": "タイトルバースタイル",
           "native": "ネイティブ"
         },
         "requiresRestart": "再起動が必要",
@@ -434,8 +452,8 @@
         "excludePatternsNotes": "除外パターンの注意事項",
         "fileSortBy": {
           "title": "ファイルの並び順",
-          "creationTime": "作成時間",
-          "modificationTime": "変更時間"
+          "creationTime": "作成時刻",
+          "modificationTime": "変更時刻"
         }
       },
       "misc": {
@@ -474,7 +492,7 @@
       "writingBehavior": {
         "title": "書き込み動作",
         "autoCloseBrackets": "括弧を自動で閉じる",
-        "autoCompleteMarkdown": "Markdown自動補完",
+        "autoCompleteMarkdown": "Markdownを自動補完",
         "autoCloseQuotes": "引用符を自動で閉じる"
       },
       "fileRepresentation": {
@@ -492,8 +510,8 @@
         },
         "endOfLine": {
           "default": "デフォルト",
-          "crlf": "CRLF",
-          "lf": "LF"
+          "crlf": "CRLF (Windows)",
+          "lf": "LF (Linux/Mac)"
         }
       },
       "misc": {
@@ -561,22 +579,22 @@
         "title": "画像アップローダー",
         "currentUploader": "現在のアップローダー",
         "picgoNotInstalled": "PicGoがインストールされていません",
-        "picgoDetectionStatus": "PicGo 検出状態",
-        "picgoInstalled": "PicGo がインストールされています",
-        "picgoDetectionFailed": "PicGo の検出に失敗しました",
+        "picgoDetectionStatus": "PicGo検出ステータス",
+        "picgoInstalled": "PicGoがインストールされています",
+        "picgoDetectionFailed": "PicGo検出に失敗しました",
         "debugInfo": "デバッグ情報",
         "installCommand": "インストールコマンド",
         "npmInstallCommand": "npm install picgo -g",
         "yarnInstallCommand": "yarn global add picgo",
         "pnpmInstallCommand": "pnpm add -g picgo",
         "brewInstallCommand": "brew install picgo",
-        "chooseInstallMethod": "インストール方法を選択してください：",
+        "chooseInstallMethod": "インストール方法を選択:",
         "githubDeprecated": "GitHubアップローダーは非推奨",
         "githubToken": "GitHubトークン",
         "ownerName": "オーナー名",
         "repoName": "リポジトリ名",
         "branchName": "ブランチ名",
-        "scriptDescription": "スクリプト説明",
+        "scriptDescription": "スクリプトの説明",
         "scriptLocation": "スクリプトの場所",
         "save": "保存",
         "saveConfig": "設定を保存",
@@ -586,7 +604,7 @@
           "title": "法的通知",
           "description": "対応する利用規約を読み、同意しました",
           "and": "および",
-          "byUsing": "このサービスを使用することで、以下に同意したことになります",
+          "byUsing": "このサービスを使用することで、あなたは同意します",
           "gdprWarning": "GDPR警告",
           "privacyStatement": "プライバシーステートメント",
           "termsOfService": "利用規約"
@@ -648,8 +666,8 @@
         "footnoteNotes": "脚注",
         "frontmatterType": {
           "frontmatterType": "フロントマタータイプ",
-          "jsonBrace": "JSON with braces",
-          "jsonSemicolon": "JSON with semicolon",
+          "jsonBrace": "JSON括弧",
+          "jsonSemicolon": "JSONセミコロン",
           "title": "フロントマタータイプ"
         }
       },
@@ -659,10 +677,10 @@
         "mermaid": "Mermaid",
         "vega": "Vega-Lite",
         "flowchart": "フローチャート",
-        "sequence": "シーケンス図",
-        "gantt": "ガントチャート",
+        "sequence": "シーケンス",
+        "gantt": "ガント",
         "sequenceTheme": {
-          "title": "シーケンス図テーマ",
+          "title": "シーケンステーマ",
           "handDrawn": "手描き",
           "simple": "シンプル"
         }
@@ -688,7 +706,7 @@
       "lists": {
         "bulletListMarker": "箇条書きマーカー",
         "listIndentation": {
-          "title": "リストインデント",
+          "listIndentation": "リストインデント",
           "dfm": "DFMスタイル",
           "fourSpaces": "4つのスペース",
           "oneSpace": "1つのスペース",
@@ -702,21 +720,21 @@
       }
     },
     "spelling": {
-      "title": "スペル",
+      "title": "スペルチェック",
       "enabled": "スペルチェックを有効",
       "autoDetectLanguage": "言語を自動検出",
       "language": "言語",
       "noSuggestions": "提案なし",
-      "spellcheckerEnabled": "スペルチェッカー有効",
-      "spellcheckerNoUnderline": "スペルエラーに下線なし",
-      "spellcheckerLanguage": "スペルチェッカー言語"
+      "spellcheckerEnabled": "スペルチェック有効",
+      "spellcheckerNoUnderline": "スペルミスの単語に下線なし",
+      "spellcheckerLanguage": "スペルチェック言語"
     },
     "theme": {
       "title": "テーマ",
       "theme": "テーマ",
       "autoSwitchTheme": {
         "title": "自動テーマ切り替え",
-        "description": "システムに応じてテーマを自動切り替え",
+        "description": "システムに従ってテーマを自動切り替え",
         "followSystem": "システムに従う",
         "light": "ライト",
         "dark": "ダーク"
@@ -751,7 +769,7 @@
       "edit": "編集",
       "cancel": "キャンセル",
       "save": "保存",
-      "restoreDefaults": "デフォルトを復元",
+      "restoreDefaults": "デフォルトに復元",
       "debugOptions": "デバッグオプション",
       "dumpKeyboardInfo": "キーボード情報をダンプ",
       "failedToSave": "キーバインドの保存に失敗",
@@ -775,7 +793,7 @@
     },
     "selectFont": "フォントを選択",
     "spellchecker": {
-      "autoDetectDescription": "ドキュメントの言語を自動検出",
+      "autoDetectDescription": "文書の言語を自動検出",
       "autoDetectLanguage": "言語を自動検出",
       "customDictionary": {
         "delete": "削除",
@@ -810,6 +828,9 @@
       "moveFile": "ファイルを移動",
       "renameFile": "ファイル名を変更",
       "quickOpen": "クイックオープン",
+      "changeEncoding": "エンコーディングを変更",
+      "changeLineEnding": "改行コードを変更",
+      "trailingNewline": "末尾の改行",
       "print": "印刷",
       "preferences": "環境設定",
       "closeTab": "タブを閉じる",
@@ -852,7 +873,7 @@
       "upgradeHeading": "見出しレベルを上げる",
       "degradeHeading": "見出しレベルを下げる",
       "table": "表",
-      "codeFence": "コードフェンス",
+      "codeFence": "コードブロック",
       "quoteBlock": "引用ブロック",
       "mathFormula": "数式",
       "htmlBlock": "HTMLブロック",
@@ -921,8 +942,11 @@
       "markdownSyntax": "Markdown構文"
     },
     "utils": {
-      "noUpdateResourceFile": "リソースファイルを更新しない",
+      "noUpdateResourceFile": "アップデートリソースファイルなし",
       "todoUpdateCheck": "アップデートチェック"
+    },
+    "spellchecker": {
+      "switchLanguage": "言語を切り替え"
     }
   },
   "common": {
@@ -949,11 +973,11 @@
     "configSchemaViolation": "設定スキーマ違反",
     "copyError": "コピーエラー",
     "initializationFailed": "初期化に失敗",
-    "otherInstanceDetected": "他のMarkTextインスタンスが検出されました",
+    "otherInstanceDetected": "MarkTextの別のインスタンスが既に実行中です",
     "report": "報告",
     "startupError": "起動エラー",
     "terminatedDueToError": "エラーにより終了",
-    "unexpectedErrorWithMessage": "メッセージ付きの予期しないエラー",
+    "unexpectedErrorWithMessage": "予期しないエラーメッセージ",
     "unexpectedMainProcess": "予期しないメインプロセスエラー",
     "unexpectedRendererProcess": "予期しないレンダラープロセスエラー"
   },
@@ -965,34 +989,45 @@
     "editor": {
       "anchorLinkCopied": "アンカーリンクがコピーされました",
       "tabNotFound": "タブが見つかりません",
-      "tocItemNotFound": "目次アイテムが見つかりません"
+      "tocItemNotFound": "目次アイテムが見つかりません",
+      "highlightStart": " [ハイライト開始] ",
+      "highlightEnd": " [ハイライト終了] ",
+      "typeAtToInsert": "@ を入力して挿入",
+      "inputFootnoteDefinition": "脚注定義を入力...",
+      "inputYamlFrontMatter": "YAML フロントマターを入力...",
+      "inputLanguageIdentifier": "言語識別子を入力...",
+      "inputMathematicalFormula": "数式を入力...",
+      "fence": "フェンス",
+      "indent": "インデント",
+      "frontMatterDelimiter": "---",
+      "mathDelimiter": "$$",
+      "mermaidStart": "``` mermaid",
+      "flowchartStart": "``` flowchart",
+      "sequenceStart": "``` sequence",
+      "plantumlStart": "``` plantuml",
+      "vegaLiteStart": "``` vega-lite",
+      "codeFence": "```",
+      "clickToAddImage": "画像を追加するにはクリック",
+      "loadImageFailed": "画像の読み込みに失敗しました"
     },
     "help": {
-      "lineEndingAssertionError": "改行文字アサーションエラー"
+      "lineEndingAssertionError": "改行コードアサーションエラー"
     }
   },
   "spellchecker": {
     "failedToRemoveWord": "辞書から単語を削除できませんでした",
-    "failedToSwitchLanguage": "スペルチェック言語の切り替えに失敗",
+    "failedToSwitchLanguage": "スペルチェック言語を切り替えできませんでした",
     "unexpectedError": "予期しないスペルチェックエラー"
-  },
-  "search": {
-    "searchResultInfo": "検索結果情報"
-  },
-  "sideBar": {
-    "search": {
-      "searchLimited": "検索制限"
-    }
   },
   "quickInsert": {
     "basicBlock": "基本ブロック",
-    "header": "見出し",
+    "header": "ヘッダー",
     "advancedBlock": "高度なブロック",
     "listBlock": "リストブロック",
     "diagram": "図表",
     "paragraph": {
       "title": "段落",
-      "subtitle": "Lorem Ipsum は単なるダミーテキストです"
+      "subtitle": ""
     },
     "horizontalLine": {
       "title": "水平線",
@@ -1000,91 +1035,148 @@
     },
     "frontMatter": {
       "title": "フロントマター",
-      "subtitle": "--- Lorem Ipsum ---"
+      "subtitle": "--- front matter ---"
     },
     "header1": {
-      "title": "見出し 1",
-      "subtitle": "# Lorem Ipsum は単なる..."
+      "title": "見出し1",
+      "subtitle": "#"
     },
     "header2": {
-      "title": "見出し 2",
-      "subtitle": "## Lorem Ipsum は単なる..."
+      "title": "見出し2",
+      "subtitle": "##"
     },
     "header3": {
-      "title": "見出し 3",
-      "subtitle": "### Lorem Ipsum は単なる..."
+      "title": "見出し3",
+      "subtitle": "###"
     },
     "header4": {
-      "title": "見出し 4",
-      "subtitle": "#### Lorem Ipsum は単なる..."
+      "title": "見出し4",
+      "subtitle": "####"
     },
     "header5": {
-      "title": "見出し 5",
-      "subtitle": "##### Lorem Ipsum は単なる..."
+      "title": "見出し5",
+      "subtitle": "#####"
     },
     "header6": {
-      "title": "見出し 6",
-      "subtitle": "###### Lorem Ipsum は単なる..."
+      "title": "見出し6",
+      "subtitle": "######"
     },
     "tableBlock": {
-      "title": "テーブルブロック",
-      "subtitle": "|Lorem | Ipsum は単なる |"
+      "title": "表ブロック",
+      "subtitle": "表ブロック"
     },
-    "displayMath": {
+    "mathFormula": {
       "title": "数式",
-      "subtitle": "$$ Lorem Ipsum は単なる $$"
+      "subtitle": "$$ $$"
     },
     "htmlBlock": {
       "title": "HTMLブロック",
-      "subtitle": "<div> Lorem Ipsum は単なる </div>"
+      "subtitle": "<div> </div>"
     },
     "codeBlock": {
       "title": "コードブロック",
-      "subtitle": "```java Lorem Ipsum は単なる ```"
+      "subtitle": "```java ```"
     },
     "quoteBlock": {
       "title": "引用ブロック",
-      "subtitle": ">Lorem Ipsum は単なる..."
+      "subtitle": ">"
     },
-    "orderList": {
-      "title": "順序付きリスト",
-      "subtitle": "1. Lorem Ipsum は単なる..."
+    "orderedList": {
+      "title": "番号付きリスト",
+      "subtitle": "1."
     },
     "bulletList": {
       "title": "箇条書きリスト",
-      "subtitle": "- Lorem Ipsum は単なる..."
+      "subtitle": "-"
     },
-    "todoList": {
-      "title": "TODOリスト",
-      "subtitle": "- [x] Lorem Ipsum は単なる..."
+    "taskList": {
+      "title": "タスクリスト",
+      "subtitle": "- [ ]"
     },
-    "vegaChart": {
-      "title": "Vegaチャート",
-      "subtitle": "vega-lite.jsでチャートをレンダリングします。"
+    "vegaliteChart": {
+      "title": "Vega-Liteチャート",
+      "subtitle": "vega-lite"
     },
     "flowChart": {
       "title": "フローチャート",
-      "subtitle": "flowchart.jsでフローチャートをレンダリングします。"
-    },
-    "sequenceDiagram": {
-      "title": "シーケンス図",
-      "subtitle": "js-sequenceでシーケンス図をレンダリングします。"
-    },
-    "plantumlDiagram": {
-      "title": "PlantUML図",
-      "subtitle": "PlantUML図をレンダリングします"
-    },
-    "mermaid": {
-      "title": "Mermaid",
-      "subtitle": "mermaidでグラフをレンダリングします。"
+      "subtitle": "flowchart"
     },
     "sequenceChart": {
-      "title": "シーケンス図",
-      "subtitle": "js-sequenceでシーケンス図をレンダリングします。"
+      "title": "シーケンスチャート",
+      "subtitle": "sequence"
     },
-    "plantUMLChart": {
+    "plantUMLDiagram": {
       "title": "PlantUML図",
-      "subtitle": "PlantUML図をレンダリングします"
+      "subtitle": "plantuml"
+    },
+    "mermaidDiagram": {
+      "title": "Mermaid図",
+      "subtitle": "mermaid"
+    },
+    "mermaid": {
+      "gantt": {
+        "title": "ガントチャート",
+        "subtitle": "gantt"
+      },
+      "pie": {
+        "title": "円グラフ",
+        "subtitle": "pie"
+      },
+      "flowchart": {
+        "title": "フローチャート",
+        "subtitle": "flowchart"
+      },
+      "sequence": {
+        "title": "シーケンス図",
+        "subtitle": "sequenceDiagram"
+      },
+      "class": {
+        "title": "クラス図",
+        "subtitle": "classDiagram"
+      },
+      "state": {
+        "title": "状態図",
+        "subtitle": "stateDiagram"
+      },
+      "journey": {
+        "title": "ユーザージャーニー",
+        "subtitle": "journey"
+      },
+      "git": {
+        "title": "Gitグラフ",
+        "subtitle": "gitgraph"
+      },
+      "er": {
+        "title": "ER図",
+        "subtitle": "erDiagram"
+      },
+      "requirement": {
+        "title": "要件図",
+        "subtitle": "requirementDiagram"
+      }
     }
+  },
+  "frontMenu": {
+    "duplicate": "複製",
+    "turnInto": "変換",
+    "newParagraph": "新しい段落",
+    "delete": "削除",
+    "paragraph": "段落",
+    "table": "表",
+    "html": "HTML",
+    "mathblock": "数式ブロック",
+    "pre": "整形済みテキスト",
+    "frontMatter": "フロントマター",
+    "ulTask": "タスクリスト",
+    "ulBullet": "箇条書きリスト",
+    "olOrder": "番号付きリスト",
+    "blockquote": "引用",
+    "heading1": "見出し1",
+    "heading2": "見出し2",
+    "heading3": "見出し3",
+    "heading4": "見出し4",
+    "heading5": "見出し5",
+    "heading6": "見出し6",
+    "hr": "水平線"
   }
 }

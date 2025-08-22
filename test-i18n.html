@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>i18nCSS Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .test-section {
+            margin-bottom: 30px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .test-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 10px;
+        }
+        .css-var-display {
+            font-family: monospace;
+            background: #f8f8f8;
+            padding: 10px;
+            border-radius: 3px;
+            margin: 5px 0;
+        }
+        .expected {
+            color: #28a745;
+        }
+        .actual {
+            color: #007bff;
+        }
+        .error {
+            color: #dc3545;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>MarkText i18nCSS 翻译测试</h1>
+        <p>此页面用于测试 i18nCSS 类是否正确显示翻译文本而非键名。</p>
+        
+        <div class="test-section">
+            <div class="test-title">CSS 变量测试</div>
+            <p>以下是一些应该显示中文翻译的 CSS 变量：</p>
+            
+            <div class="css-var-display">
+                <strong>期望值 (中文):</strong>
+                <div class="expected">--ag-undo: "撤销"</div>
+                <div class="expected">--ag-redo: "重做"</div>
+                <div class="expected">--ag-cut: "剪切"</div>
+                <div class="expected">--ag-copy: "复制"</div>
+                <div class="expected">--ag-paste: "粘贴"</div>
+                <div class="expected">--ag-selectAll: "全选"</div>
+            </div>
+            
+            <div class="css-var-display">
+                <strong>实际值 (从 CSS 变量读取):</strong>
+                <div class="actual" id="actual-undo">--ag-undo: <span id="undo-value">加载中...</span></div>
+                <div class="actual" id="actual-redo">--ag-redo: <span id="redo-value">加载中...</span></div>
+                <div class="actual" id="actual-cut">--ag-cut: <span id="cut-value">加载中...</span></div>
+                <div class="actual" id="actual-copy">--ag-copy: <span id="copy-value">加载中...</span></div>
+                <div class="actual" id="actual-paste">--ag-paste: <span id="paste-value">加载中...</span></div>
+                <div class="actual" id="actual-selectAll">--ag-selectAll: <span id="selectAll-value">加载中...</span></div>
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <div class="test-title">测试结果</div>
+            <div id="test-results">
+                <p>正在检查 CSS 变量...</p>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        function getCSSVariable(varName) {
+            return getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
+        }
+        
+        function runTests() {
+            const tests = [
+                { var: '--ag-undo', expected: '撤销', elementId: 'undo-value' },
+                { var: '--ag-redo', expected: '重做', elementId: 'redo-value' },
+                { var: '--ag-cut', expected: '剪切', elementId: 'cut-value' },
+                { var: '--ag-copy', expected: '复制', elementId: 'copy-value' },
+                { var: '--ag-paste', expected: '粘贴', elementId: 'paste-value' },
+                { var: '--ag-selectAll', expected: '全选', elementId: 'selectAll-value' }
+            ];
+            
+            let results = [];
+            let passCount = 0;
+            
+            tests.forEach(test => {
+                const actualValue = getCSSVariable(test.var);
+                const element = document.getElementById(test.elementId);
+                
+                if (element) {
+                    element.textContent = actualValue || '(未设置)';
+                }
+                
+                const passed = actualValue === test.expected;
+                if (passed) passCount++;
+                
+                results.push({
+                    variable: test.var,
+                    expected: test.expected,
+                    actual: actualValue,
+                    passed: passed
+                });
+            });
+            
+            // 显示测试结果
+            const resultsDiv = document.getElementById('test-results');
+            let html = `<h3>测试结果: ${passCount}/${tests.length} 通过</h3>`;
+            
+            results.forEach(result => {
+                const status = result.passed ? '✅ 通过' : '❌ 失败';
+                const className = result.passed ? 'expected' : 'error';
+                html += `
+                    <div class="${className}">
+                        ${status} ${result.variable}: 
+                        期望 "${result.expected}", 
+                        实际 "${result.actual}"
+                    </div>
+                `;
+            });
+            
+            if (passCount === tests.length) {
+                html += '<p class="expected"><strong>🎉 所有测试通过！i18nCSS 正常工作。</strong></p>';
+            } else {
+                html += '<p class="error"><strong>⚠️ 部分测试失败，i18nCSS 可能存在问题。</strong></p>';
+            }
+            
+            resultsDiv.innerHTML = html;
+        }
+        
+        // 页面加载后运行测试
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(runTests, 1000); // 延迟1秒确保CSS加载完成
+        });
+    </script>
+</body>
+</html>

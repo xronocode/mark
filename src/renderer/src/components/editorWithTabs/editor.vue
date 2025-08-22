@@ -943,9 +943,28 @@ const handleResetPaddingBottom = () => {
 }
 const resizeObserverForEditor = new ResizeObserver(handleResetPaddingBottom)
 
-onMounted(() => {
+onMounted(async () => {
   printer = new Printer()
   const ele = editorRef.value
+
+  // Wait for language initialization before creating Muya instance
+  // This ensures i18n is properly set up when Muya plugins are initialized
+  await new Promise((resolve) => {
+    const checkLanguage = () => {
+      // Check if renderer i18n has received language from main process
+      if (window.electron && window.electron.ipcRenderer) {
+        window.electron.ipcRenderer.send('mt::get-current-language')
+        window.electron.ipcRenderer.once('mt::current-language', () => {
+          // Give a small delay to ensure i18n is fully updated
+          setTimeout(resolve, 50)
+        })
+      } else {
+        // Fallback if IPC is not available
+        setTimeout(resolve, 100)
+      }
+    }
+    checkLanguage()
+  })
 
   // use muya UI plugins
   Muya.use(TablePicker)
@@ -995,7 +1014,8 @@ onMounted(() => {
     imageAction,
     imagePathPicker,
     clipboardFilePath: guessClipboardFilePath,
-    imagePathAutoComplete
+    imagePathAutoComplete,
+    t // 添加翻译函数
   }
 
   if (/dark/i.test(theme.value)) {
@@ -1012,6 +1032,13 @@ onMounted(() => {
 
   editor.value = new Muya(ele, options)
   const { container } = editor.value
+
+  // Listen for language changes and update Muya's translation function
+  bus.on('language-changed', () => {
+    if (editor.value) {
+      editor.value.setOptions({ t })
+    }
+  })
 
   // Create spell check wrapper and enable spell checking if preferred.
   spellchecker = new SpellChecker(spellcheckerEnabled.value, spellcheckerLanguage.value)

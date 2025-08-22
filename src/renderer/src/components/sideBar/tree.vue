@@ -16,14 +16,14 @@
           <use xlink:href="#icon-arrow"></use>
         </svg>
         <span class="default-cursor text-overflow" @click.stop="toggleOpenedFiles()"
-          >{{ t('sideBar.tree.openedFiles') }}</span
+          >{{ translate('sideBar.tree.openedFiles') }}</span
         >
-        <a href="javascript:;" :title="t('sideBar.tree.saveAll')" @click.stop="saveAll(false)">
+        <a href="javascript:;" :title="translate('sideBar.tree.saveAll')" @click.stop="saveAll(false)">
           <svg class="icon" aria-hidden="true">
             <use xlink:href="#icon-save-all"></use>
           </svg>
         </a>
-        <a href="javascript:;" :title="t('sideBar.tree.closeAll')" @click.stop="saveAll(true)">
+        <a href="javascript:;" :title="translate('sideBar.tree.closeAll')" @click.stop="saveAll(true)">
           <svg class="icon" aria-hidden="true">
             <use xlink:href="#icon-close-all"></use>
           </svg>
@@ -77,20 +77,21 @@
           v-if="projectTree.files.length === 0 && projectTree.folders.length === 0"
           class="empty-project"
         >
-          <span>{{ t('sideBar.tree.emptyProject') }}</span>
-          <a href="javascript:;" @click.stop="createFile">{{ t('sideBar.tree.createFile') }}</a>
+          <span>{{ translate('sideBar.tree.emptyProject') }}</span>
+          <a href="javascript:;" @click.stop="createFile">{{ translate('sideBar.tree.createFile') }}</a>
         </div>
       </div>
     </div>
     <div v-else class="open-project">
       <div class="centered-group">
-        <button class="button-primary" @click="openFolder">{{ t('sideBar.tree.openFolder') }}</button>
+        <button class="button-primary" @click="openFolder">{{ translate('sideBar.tree.openFolder') }}</button>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
+import { t } from '../../i18n'
 import { ref, onMounted, nextTick } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useProjectStore } from '@/store/project'
@@ -99,7 +100,9 @@ import Folder from './treeFolder.vue'
 import File from './treeFile.vue'
 import OpenedFile from './treeOpenedTab.vue'
 import bus from '../../bus'
-import { t } from '../../i18n'
+
+// 确保翻译函数在模板中可用
+const translate = t
 
 const props = defineProps({
   projectTree: {
@@ -232,35 +235,37 @@ onMounted(() => {
   transform: rotate(0);
 }
 
-.opened-files,
-.project-tree {
-  & > .title {
-    height: 30px;
-    line-height: 30px;
-    font-size: 14px;
-  }
+.opened-files > .title,
+.project-tree > .title {
+  height: 30px;
+  line-height: 30px;
+  font-size: 14px;
 }
 
 .opened-files .title {
   padding-right: 15px;
   display: flex;
   align-items: center;
-  & > span {
-    flex: 1;
-  }
-  & > a {
-    display: none;
-    text-decoration: none;
-    color: var(--sideBarColor);
-    margin-left: 8px;
-  }
+}
+
+.opened-files .title > span {
+  flex: 1;
+}
+
+.opened-files .title > a {
+  display: none;
+  text-decoration: none;
+  color: var(--sideBarColor);
+  margin-left: 8px;
 }
 .opened-files div.title:hover > a,
 .opened-files div.title > a:hover {
   display: block;
-  &:hover {
-    color: var(--highlightThemeColor);
-  }
+}
+
+.opened-files div.title:hover > a:hover,
+.opened-files div.title > a:hover:hover {
+  color: var(--highlightThemeColor);
 }
 .opened-files {
   display: flex;
@@ -272,46 +277,54 @@ onMounted(() => {
 .opened-files .opened-files-list {
   max-height: 200px;
   overflow: auto;
-  &::-webkit-scrollbar:vertical {
-    width: 8px;
-  }
   flex: 1;
+}
+
+.opened-files .opened-files-list::-webkit-scrollbar:vertical {
+  width: 8px;
 }
 
 .project-tree {
   display: flex;
   flex-direction: column;
   overflow: auto;
-  & > .title {
-    padding-right: 15px;
-    display: flex;
-    align-items: center;
-    & > span {
-      flex: 1;
-      user-select: none;
-    }
-    & > a {
-      pointer-events: auto;
-      cursor: pointer;
-      margin-left: 8px;
-      color: var(--sideBarIconColor);
-      opacity: 0;
-    }
-    & > a:hover {
-      color: var(--highlightThemeColor);
-    }
-    & > a.active {
-      color: var(--highlightThemeColor);
-    }
-  }
-  & > .tree-wrapper {
-    overflow: auto;
-    flex: 1;
-    &::-webkit-scrollbar:vertical {
-      width: 8px;
-    }
-  }
   flex: 1;
+}
+
+.project-tree > .title {
+  padding-right: 15px;
+  display: flex;
+  align-items: center;
+}
+
+.project-tree > .title > span {
+  flex: 1;
+  user-select: none;
+}
+
+.project-tree > .title > a {
+  pointer-events: auto;
+  cursor: pointer;
+  margin-left: 8px;
+  color: var(--sideBarIconColor);
+  opacity: 0;
+}
+
+.project-tree > .title > a:hover {
+  color: var(--highlightThemeColor);
+}
+
+.project-tree > .title > a.active {
+  color: var(--highlightThemeColor);
+}
+
+.project-tree > .tree-wrapper {
+  overflow: auto;
+  flex: 1;
+}
+
+.project-tree > .tree-wrapper::-webkit-scrollbar:vertical {
+  width: 8px;
 }
 .project-tree div.title:hover > a {
   opacity: 1;
@@ -323,15 +336,17 @@ onMounted(() => {
   justify-content: space-around;
   align-items: center;
   padding-bottom: 100px;
-  & .centered-group {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-  }
-  & button.button-primary {
-    display: block;
-    margin-top: 20px;
-  }
+}
+
+.open-project .centered-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.open-project button.button-primary {
+  display: block;
+  margin-top: 20px;
 }
 .new-input {
   outline: none;
@@ -356,12 +371,13 @@ onMounted(() => {
   flex-direction: column;
   padding-top: 40px;
   align-items: center;
-  & > a {
-    color: var(--highlightThemeColor);
-    text-align: center;
-    margin-top: 15px;
-    text-decoration: none;
-  }
+}
+
+.empty-project > a {
+  color: var(--highlightThemeColor);
+  text-align: center;
+  margin-top: 15px;
+  text-decoration: none;
 }
 .bold {
   font-weight: 600;

@@ -49,8 +49,8 @@
       "findInFolder": "Find in Folder",
       "screenshot": "Screenshot",
       "lineEnding": "Line Ending",
-      "lineEndingCrlf": "CRLF",
-      "lineEndingLf": "LF"
+      "lineEndingCrlf": "CRLF(Windows)",
+      "lineEndingLf": "LF(Linux/Mac)"
     },
     "paragraph": {
       "title": "Paragraph",
@@ -254,6 +254,12 @@
     },
     "toc": {
       "title": "Table Of Contents"
+    },
+    "icons": {
+      "files": "Files",
+      "search": "Search",
+      "toc": "Table of Contents",
+      "settings": "Settings"
     }
   },
   "commandPalette": {
@@ -345,6 +351,11 @@
     }
   },
   "editor": {
+    "placeholders": {
+      "frontMatter": "Input YAML Front Matter...",
+      "languageIdentifier": "Input Language Identifier...",
+      "mathFormula": "Input Mathematical Formula..."
+    },
     "export": {
       "error": "Export error",
       "errorExporting": "Error exporting file",
@@ -390,8 +401,8 @@
     "tweet": "Tweet"
   },
   "lineEnding": {
-    "carriageReturnLineFeed": "Carriage Return + Line Feed (CRLF)",
-    "lineFeed": "Line Feed (LF)"
+    "carriageReturnLineFeed": "Carriage Return + Line Feed (CRLF, Windows)",
+    "lineFeed": "Line Feed (LF, Linux/Mac)"
   },
   "preferences": {
     "title": "Preferences",
@@ -499,8 +510,8 @@
         },
         "endOfLine": {
           "default": "Default",
-          "crlf": "CRLF",
-          "lf": "LF"
+          "crlf": "CRLF(Windows)",
+          "lf": "LF(Linux/Mac)"
         }
       },
       "misc": {
@@ -978,7 +989,26 @@
     "editor": {
       "anchorLinkCopied": "Anchor link copied",
       "tabNotFound": "Tab not found",
-      "tocItemNotFound": "Table of contents item not found"
+      "tocItemNotFound": "Table of contents item not found",
+      "highlightStart": " [highlight start] ",
+      "highlightEnd": " [highlight end] ",
+      "typeAtToInsert": "Type @ to insert",
+      "inputFootnoteDefinition": "Input the footnote definition...",
+      "inputYamlFrontMatter": "Input YAML Front Matter...",
+      "inputLanguageIdentifier": "Input Language Identifier...",
+      "inputMathematicalFormula": "Input Mathematical Formula...",
+      "fence": "fence",
+      "indent": "indent",
+      "frontMatterDelimiter": "---",
+      "mathDelimiter": "$$",
+      "mermaidStart": "``` mermaid",
+      "flowchartStart": "``` flowchart",
+      "sequenceStart": "``` sequence",
+      "plantumlStart": "``` plantuml",
+      "vegaLiteStart": "``` vega-lite",
+      "codeFence": "```",
+      "clickToAddImage": "Click to add an image",
+      "loadImageFailed": "Load image failed"
     },
     "help": {
       "lineEndingAssertionError": "Line ending assertion error"
@@ -989,14 +1019,7 @@
     "failedToSwitchLanguage": "Failed to switch spellchecker language",
     "unexpectedError": "Unexpected spellchecker error"
   },
-  "search": {
-    "searchResultInfo": "Search Result Info"
-  },
-  "sideBar": {
-    "search": {
-      "searchLimited": "Search Limited"
-    }
-  },
+
   "quickInsert": {
     "basicBlock": "Basic Block",
     "header": "Header",
@@ -1005,7 +1028,7 @@
     "diagram": "Diagram",
     "paragraph": {
       "title": "Paragraph",
-      "subtitle": "Lorem Ipsum is simply dummy text"
+      "subtitle": ""
     },
     "horizontalLine": {
       "title": "Horizontal Line",
@@ -1013,63 +1036,63 @@
     },
     "frontMatter": {
       "title": "Front Matter",
-      "subtitle": "--- Lorem Ipsum ---"
+      "subtitle": "--- Front Matter ---"
     },
     "header1": {
       "title": "Header 1",
-      "subtitle": "# Lorem Ipsum is simply..."
+      "subtitle": "#"
     },
     "header2": {
       "title": "Header 2",
-      "subtitle": "## Lorem Ipsum is simply..."
+      "subtitle": "##"
     },
     "header3": {
       "title": "Header 3",
-      "subtitle": "### Lorem Ipsum is simply..."
+      "subtitle": "###"
     },
     "header4": {
       "title": "Header 4",
-      "subtitle": "#### Lorem Ipsum is simply..."
+      "subtitle": "####"
     },
     "header5": {
       "title": "Header 5",
-      "subtitle": "##### Lorem Ipsum is simply..."
+      "subtitle": "#####"
     },
     "header6": {
       "title": "Header 6",
-      "subtitle": "###### Lorem Ipsum is simply..."
+      "subtitle": "######"
     },
     "tableBlock": {
       "title": "Table Block",
-      "subtitle": "|Lorem | Ipsum is simply |"
+      "subtitle": "Table Block"
     },
-    "displayMath": {
+    "mathFormula": {
       "title": "Math Formula",
-      "subtitle": "$$ Lorem Ipsum is simply $$"
+      "subtitle": "$$ $$"
     },
     "htmlBlock": {
       "title": "HTML Block",
-      "subtitle": "<div> Lorem Ipsum is simply </div>"
+      "subtitle": "<div> </div>"
     },
     "codeBlock": {
       "title": "Code Block",
-      "subtitle": "```java Lorem Ipsum is simply ```"
+      "subtitle": "```java ```"
     },
     "quoteBlock": {
       "title": "Quote Block",
-      "subtitle": ">Lorem Ipsum is simply..."
+      "subtitle": ">"
     },
-    "orderList": {
+    "orderedList": {
       "title": "Ordered List",
-      "subtitle": "1. Lorem Ipsum is simply..."
+      "subtitle": "1."
     },
     "bulletList": {
       "title": "Bullet List",
-      "subtitle": "- Lorem Ipsum is simply..."
+      "subtitle": "-"
     },
     "todoList": {
       "title": "Todo List",
-      "subtitle": "- [x] Lorem Ipsum is simply..."
+      "subtitle": "- [x]"
     },
     "vegaChart": {
       "title": "Vega Chart",
@@ -1099,5 +1122,28 @@
       "title": "PlantUML Chart",
       "subtitle": "Render PlantUML charts"
     }
+  },
+  "frontMenu": {
+    "duplicate": "Duplicate",
+    "turnInto": "Turn Into",
+    "newParagraph": "New Paragraph",
+    "delete": "Delete",
+    "paragraph": "paragraph",
+    "table": "table",
+    "html": "html",
+    "mathblock": "mathblock",
+    "pre": "pre",
+    "frontMatter": "front-matter",
+    "ulTask": "ul-task",
+    "ulBullet": "ul-bullet",
+    "olOrder": "ol-order",
+    "blockquote": "blockquote",
+    "heading1": "heading 1",
+    "heading2": "heading 2",
+    "heading3": "heading 3",
+    "heading4": "heading 4",
+    "heading5": "heading 5",
+    "heading6": "heading 6",
+    "hr": "hr"
   }
 }

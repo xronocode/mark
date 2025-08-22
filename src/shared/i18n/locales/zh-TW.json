@@ -8,7 +8,7 @@
       "open": "開啟",
       "openFile": "開啟檔案...",
       "openFolder": "開啟資料夾...",
-      "openRecent": "開啟最近",
+      "openRecent": "開啟最近使用",
       "clearRecentlyUsed": "清除最近使用",
       "save": "儲存",
       "saveAs": "另存為...",
@@ -22,10 +22,10 @@
       "print": "列印",
       "recent": "最近檔案",
       "close": "關閉",
-      "closeAll": "關閉全部",
+      "closeAll": "全部關閉",
       "closeTab": "關閉標籤頁",
       "closeWindow": "關閉視窗",
-      "quit": "結束",
+      "quit": "退出",
       "preferences": "偏好設定"
     },
     "edit": {
@@ -49,8 +49,8 @@
       "findInFolder": "在資料夾中尋找",
       "screenshot": "螢幕截圖",
       "lineEnding": "行結束符",
-      "lineEndingCrlf": "CRLF",
-      "lineEndingLf": "LF"
+      "lineEndingCrlf": "CRLF(Windows)",
+      "lineEndingLf": "LF(Linux/Mac)"
     },
     "paragraph": {
       "title": "段落",
@@ -71,13 +71,13 @@
       "htmlBlock": "HTML 區塊",
       "quote": "引用",
       "orderedList": "有序清單",
-      "bulletList": "無序清單",
+      "bulletList": "項目符號清單",
       "unorderedList": "無序清單",
       "taskList": "任務清單",
-      "looseListItem": "鬆散清單項",
-      "paragraphItem": "段落項",
-      "horizontalRule": "水平分割線",
-      "frontMatter": "前言"
+      "looseListItem": "鬆散清單項目",
+      "paragraphItem": "段落項目",
+      "horizontalRule": "水平線",
+      "frontMatter": "前置資料"
     },
     "window": {
       "title": "視窗",
@@ -88,8 +88,8 @@
       "zoomIn": "放大",
       "zoomOut": "縮小",
       "fullScreen": "全螢幕",
-      "bringAllToFront": "將所有視窗置於前台",
-      "alwaysOnTop": "總是在最前面"
+      "bringAllToFront": "將全部移到前面",
+      "alwaysOnTop": "總是在最上層"
     },
     "help": {
       "help": "說明",
@@ -98,7 +98,7 @@
       "askQuestion": "提問",
       "reportBug": "回報錯誤",
       "viewSource": "檢視原始碼",
-      "license": "授權",
+      "license": "授權條款",
       "checkForUpdates": "檢查更新",
       "aboutMarkText": "關於 MarkText",
       "about": "關於",
@@ -115,7 +115,7 @@
       "hideMarkText": "隱藏 MarkText",
       "hideOthers": "隱藏其他",
       "showAll": "顯示全部",
-      "quit": "結束 MarkText"
+      "quit": "退出 MarkText"
     },
     "view": {
       "view": "檢視",
@@ -128,7 +128,7 @@
       "zoomOut": "縮小",
       "resetZoom": "重設縮放",
       "fullscreen": "進入全螢幕",
-      "exitFullscreen": "結束全螢幕",
+      "exitFullscreen": "退出全螢幕",
       "commandPalette": "命令面板",
       "sourceCode": "原始碼模式",
       "sourceCodeMode": "原始碼模式",
@@ -171,7 +171,7 @@
       "heading6": "標題 6",
       "superscript": "上標",
       "subscript": "下標",
-      "highlight": "螢光標示",
+      "highlight": "螢光標記",
       "inlineCode": "行內程式碼",
       "inlineMath": "行內數學",
       "hyperlink": "超連結",
@@ -183,12 +183,11 @@
       "light": "淺色",
       "dark": "深色",
       "auto": "自動",
-      "cadmiumLight": "Cadmium Light",
-      "graphiteLight": "Graphite Light",
-      "materialDark": "Material Dark",
+      "cadmiumLight": "鎘淺色",
+      "graphiteLight": "石墨淺色",
+      "materialDark": "Material 深色",
       "oneDark": "One Dark",
-      "ulyssesLight": "Ulysses Light",
-      "ulyssesDark": "Ulysses Dark"
+      "ulyssesLight": "Ulysses 淺色"
     }
   },
   "contextMenu": {
@@ -200,18 +199,18 @@
     "pasteAsPlainText": "貼上為純文字",
     "insertParagraphBefore": "在前面插入段落",
     "insertParagraphAfter": "在後面插入段落",
-    "spelling": "拼字...",
-    "changeLanguage": "更改語言...",
-    "addToDictionary": "新增到字典",
+    "spelling": "拼字檢查...",
+    "changeLanguage": "變更語言...",
+    "addToDictionary": "加入字典",
     "editDictionary": "編輯字典...",
     "sideBar": {
       "newFile": "新建檔案",
-      "newDirectory": "新建目錄",
+      "newDirectory": "新建資料夾",
       "copy": "複製",
       "cut": "剪下",
       "paste": "貼上",
       "rename": "重新命名",
-      "moveToTrash": "移動到垃圾桶",
+      "moveToTrash": "移到垃圾桶",
       "showInFolder": "在資料夾中顯示"
     },
     "tabs": {
@@ -231,7 +230,7 @@
     "useRegex": "使用正規表示式查詢",
     "replacementPlaceholder": "取代",
     "replaceAll": "全部取代",
-    "replaceSingle": "單個取代",
+    "replaceSingle": "單一取代",
     "invalidRegex": "無效的正規表示式",
     "regexMatchEmpty": "正規表示式符合空字串",
     "searchResultCount": "搜尋結果"
@@ -240,48 +239,56 @@
     "search": {
       "searchInFolder": "在資料夾中搜尋...",
       "noFolderOpen": "沒有開啟的資料夾",
-      "noResultsFound": "未找到結果。",
+      "noResultsFound": "找不到結果。",
       "cancel": "取消",
       "openFolder": "開啟資料夾",
       "showMoreMatches": "顯示更多符合項目"
     },
     "tree": {
       "openedFiles": "已開啟的檔案",
-      "saveAll": "儲存全部",
-      "closeAll": "關閉全部",
+      "saveAll": "全部儲存",
+      "closeAll": "全部關閉",
       "emptyProject": "空專案",
       "createFile": "建立檔案",
       "openFolder": "開啟資料夾"
     },
     "toc": {
       "title": "目錄"
+    },
+    "icons": {
+      "files": "檔案",
+      "search": "搜尋",
+      "toc": "目錄",
+      "settings": "設定"
     }
   },
   "commandPalette": {
     "placeholder": "輸入要執行的命令",
-    "commandNotFound": "未找到命令",
+    "commandNotFound": "找不到命令",
     "changeEncoding": "變更編碼",
-    "changeLineEnding": "變更行尾字元",
+    "changeLineEnding": "變更行結束符",
     "quickOpen": "快速開啟",
-    "trailingNewline": "尾隨換行",
+    "trailingNewline": "結尾換行",
     "switchSpellcheckerLanguage": "切換拼字檢查語言"
   },
   "exportSettings": {
+    "autoNumberingHeadings": "自動編號標題",
     "title": "匯出選項",
     "info": {
       "label": "資訊",
-      "description": "請自訂頁面外觀並點選\"匯出\"繼續。"
+      "description": "請自訂頁面外觀並點選「匯出」以繼續。"
     },
     "page": {
       "label": "頁面",
       "pageTitle": "頁面標題：",
       "pageSize": "頁面大小：",
       "landscapeOrientation": "橫向方向：",
-      "pageMargin": "頁面邊距（公釐）：",
+      "pageMargin": "頁面邊距（毫米）：",
       "topBottom": "上/下：",
       "leftRight": "左/右：",
-      "widthHeight": "寬度/高度（公釐）："
+      "widthHeight": "寬度/高度（毫米）："
     },
+    "showFrontMatter": "顯示前置資料",
     "style": {
       "label": "樣式",
       "overwriteThemeFont": "覆寫主題字型設定",
@@ -291,80 +298,90 @@
     },
     "theme": {
       "label": "主題",
-      "description": "您可以透過選擇主題或建立手工製作的主題來更改文件外觀。",
+      "description": "您可以透過選擇主題或建立手工製作的主題來變更文件外觀。",
       "theme": "主題"
     },
     "headerFooter": {
-      "label": "頁首和頁尾",
-      "description": "如果定義了頁首和/或頁尾，文字將出現在所有頁面上。",
-      "headerType": "頁首類型",
-      "footerType": "頁尾類型",
-      "leftHeaderText": "左頁首文字",
-      "mainHeaderText": "主頁首文字",
-      "rightHeaderText": "右頁首文字",
-      "leftFooterText": "左頁尾文字",
-      "mainFooterText": "主頁尾文字",
-      "rightFooterText": "右頁尾文字",
-      "customizeStyle": "自訂樣式",
       "allowStyled": "允許樣式文字",
-      "fontSize": "字型大小"
+      "customizeStyle": "自訂樣式",
+      "fontSize": "字型大小",
+      "footerType": "頁尾類型",
+      "headerType": "頁首類型",
+      "label": "頁首和頁尾",
+      "leftFooterText": "左頁尾文字",
+      "leftHeaderText": "左頁首文字",
+      "mainFooterText": "主頁尾文字",
+      "mainHeaderText": "主頁首文字",
+      "rightFooterText": "右頁尾文字",
+      "rightHeaderText": "右頁首文字",
+      "description": "如果定義了頁首和/或頁尾，文字將出現在所有頁面上。"
     },
     "toc": {
+      "includeTopHeading": "包含頂層標題",
+      "includeTopHeadingDetail": "包含頂層標題詳細資訊",
       "label": "目錄",
-      "title": "目錄",
-      "includeTopHeading": "包含頂級標題",
-      "includeTopHeadingDetail": "包含頂級標題詳情"
+      "title": "目錄"
     },
-    "autoNumberingHeadings": "自動編號標題",
-    "showFrontMatter": "顯示前言",
     "export": "匯出...",
     "options": {
       "pageSizes": {
         "a3": "A3 (297mm x 420mm)",
         "a4": "A4 (210mm x 297mm)",
         "a5": "A5 (148mm x 210mm)",
-        "legal": "美國法律紙 (8.5\" x 13\")",
-        "letter": "美國信紙 (8.5\" x 11\")",
-        "tabloid": "小報紙 (17\" x 11\")",
+        "legal": "美國 Legal (8.5\" x 13\")",
+        "letter": "美國 Letter (8.5\" x 11\")",
+        "tabloid": "Tabloid (17\" x 11\")",
         "custom": "自訂"
       },
       "headerFooterTypes": {
         "none": "無",
-        "singleCell": "單元格",
-        "threeCells": "三個單元格"
+        "singleCell": "單一儲存格",
+        "threeCells": "三個儲存格"
       },
       "headerFooterStyles": {
         "default": "預設",
         "simple": "簡單",
-        "styled": "樣式化"
+        "styled": "樣式"
       },
       "themes": {
         "academic": "學術",
-        "default": "GitHub (預設)",
+        "default": "GitHub（預設）",
         "liber": "Liber"
       }
     }
   },
   "editor": {
+    "placeholders": {
+      "frontMatter": "輸入 YAML 前置資料...",
+      "languageIdentifier": "輸入語言識別碼...",
+      "mathFormula": "輸入數學公式..."
+    },
+    "export": {
+      "error": "匯出錯誤",
+      "errorExporting": "匯出檔案時發生錯誤",
+      "failed": "匯出失敗"
+    },
     "insertTable": {
       "title": "插入表格",
       "rows": "列",
       "columns": "欄"
     },
     "notifications": {
-      "notificationNotFound": "未找到通知"
-    },
-    "sourceCode": {
-      "cursorNullComment": "游標空註解",
-      "imageStructureDeletedComment": "圖片結構已刪除註解"
-    },
-    "export": {
-      "error": "匯出錯誤"
+      "notificationNotFound": "找不到通知"
     },
     "print": {
-      "error": "列印錯誤"
+      "error": "列印錯誤",
+      "failed": "列印失敗"
+    },
+    "sourceCode": {
+      "cursorNullComment": "游標空值註解",
+      "imageStructureDeletedComment": "圖片結構已刪除註解"
     },
     "spellcheck": {
+      "disabledError": "拼字檢查已停用錯誤",
+      "errorSwitchingLanguage": "切換拼字檢查語言時發生錯誤",
+      "languageMissing": "拼字檢查語言遺失",
+      "switchError": "拼字檢查切換錯誤",
       "title": "拼字檢查"
     }
   },
@@ -377,15 +394,15 @@
     "description": "拖放到這裡將您的內容匯入 MarkText"
   },
   "tweet": {
-    "title": "透過推文向我們發送回饋",
+    "title": "透過推文向我們傳送回饋",
     "feelingsQuestion": "您的體驗感受如何？",
     "feedbackQuestion": "告訴我們您的回饋？",
     "reportViaGithub": "透過 GitHub 回報錯誤或功能請求",
     "tweet": "推文"
   },
   "lineEnding": {
-    "carriageReturnLineFeed": "回車 + 換行 (CRLF)",
-    "lineFeed": "換行 (LF)"
+    "carriageReturnLineFeed": "回車 + 換行（CRLF，Windows）",
+    "lineFeed": "換行（LF，Linux/Mac）"
   },
   "preferences": {
     "title": "偏好設定",
@@ -399,7 +416,7 @@
       "spelling": "拼字",
       "theme": "主題",
       "image": "圖片",
-      "keybindings": "快速鍵"
+      "keybindings": "按鍵綁定"
     },
     "general": {
       "title": "一般",
@@ -413,6 +430,7 @@
         "titleBarStyle": {
           "title": "標題欄樣式",
           "custom": "自訂",
+          "titleBarStyle": "標題欄樣式",
           "native": "原生"
         },
         "requiresRestart": "需要重新啟動",
@@ -425,13 +443,13 @@
         "title": "啟動",
         "openDefaultDirectory": "開啟預設目錄",
         "selectFolder": "選擇資料夾",
-        "openBlankPage": "開啟空白頁"
+        "openBlankPage": "開啟空白頁面"
       },
       "sidebar": {
         "title": "側邊欄",
         "wrapTextInToc": "在目錄中換行文字",
         "excludePatterns": "排除模式",
-        "excludePatternsNotes": "排除模式（註解）",
+        "excludePatternsNotes": "排除模式（備註）",
         "fileSortBy": {
           "title": "檔案排序方式",
           "creationTime": "建立時間",
@@ -439,11 +457,11 @@
         }
       },
       "misc": {
-        "title": "雜項",
+        "title": "其他",
         "language": {
           "title": "語言",
           "english": "English",
-          "chinese": "簡體中文",
+          "chinese": "简体中文",
           "traditionalChinese": "繁體中文",
           "spanish": "Español",
           "french": "Français",
@@ -469,7 +487,7 @@
         "fontSize": "字型大小",
         "fontFamily": "字型系列",
         "showLineNumbers": "顯示行號",
-        "removeEmptyLines": "刪除空行"
+        "removeEmptyLines": "移除空行"
       },
       "writingBehavior": {
         "title": "寫作行為",
@@ -479,25 +497,25 @@
       },
       "fileRepresentation": {
         "title": "檔案表示",
-        "tabWidth": "製表符寬度",
+        "tabWidth": "Tab 寬度",
         "lineSeparator": "行分隔符",
         "defaultEncoding": "預設編碼",
         "autoDetectEncoding": "自動偵測編碼",
         "trailingNewlines": {
-          "title": "尾隨換行符",
-          "doNothing": "不做任何操作",
-          "ensureOne": "確保有一個",
+          "title": "結尾換行",
+          "doNothing": "不執行任何動作",
+          "ensureOne": "確保一個",
           "preserve": "保留",
-          "trimAll": "刪除全部"
+          "trimAll": "全部修剪"
         },
         "endOfLine": {
           "default": "預設",
-          "crlf": "CRLF",
-          "lf": "LF"
+          "crlf": "CRLF（Windows）",
+          "lf": "LF（Linux/Mac）"
         }
       },
       "misc": {
-        "title": "雜項",
+        "title": "其他",
         "textDirection": {
           "title": "文字方向",
           "ltr": "從左到右",
@@ -511,8 +529,8 @@
     },
     "image": {
       "title": "圖片",
-      "defaultAction": "插入圖片時的預設操作",
-      "clipboardTooltip": "貼上或拖拽圖片到 MarkText 後的預設行為",
+      "defaultAction": "插入圖片時的預設動作",
+      "clipboardTooltip": "貼上或拖曳圖片到 MarkText 後的預設行為",
       "actions": {
         "upload": "上傳到雲端",
         "folder": "複製到資料夾",
@@ -523,12 +541,12 @@
         "globalFolder": "全域圖片資料夾",
         "open": "開啟",
         "showInFolder": "在資料夾中顯示",
-        "preferRelative": "首選相對目錄",
+        "preferRelative": "偏好相對目錄",
         "relativeFolderName": "相對資料夾名稱",
         "filenameNote": "檔案名稱將自動產生。"
       },
       "imageInsertAction": {
-        "title": "圖片插入操作",
+        "title": "圖片插入動作",
         "folder": "上傳到資料夾",
         "path": "複製到路徑",
         "upload": "上傳到雲端",
@@ -543,7 +561,7 @@
         "absolutePath": "絕對路徑"
       },
       "cloudPictureBed": {
-        "title": "雲圖床",
+        "title": "雲端圖床",
         "github": "GitHub",
         "smms": "SM.MS",
         "qiniu": "七牛",
@@ -554,25 +572,25 @@
         "picgo": "PicGo"
       },
       "preferRelativeDirectory": {
-        "title": "首選相對目錄",
-        "description": "圖片首選相對目錄"
+        "title": "偏好相對目錄",
+        "description": "圖片偏好相對目錄"
       },
       "uploader": {
         "title": "圖片上傳器",
         "currentUploader": "目前上傳器",
         "picgoNotInstalled": "PicGo 未安裝",
-        "picgoDetectionStatus": "PicGo 檢測狀態",
+        "picgoDetectionStatus": "PicGo 偵測狀態",
         "picgoInstalled": "PicGo 已安裝",
-        "picgoDetectionFailed": "PicGo 檢測失敗",
+        "picgoDetectionFailed": "PicGo 偵測失敗",
         "debugInfo": "除錯資訊",
-        "installCommand": "安裝指令",
+        "installCommand": "安裝命令",
         "npmInstallCommand": "npm install picgo -g",
         "yarnInstallCommand": "yarn global add picgo",
         "pnpmInstallCommand": "pnpm add -g picgo",
         "brewInstallCommand": "brew install picgo",
-        "chooseInstallMethod": "選擇安裝方式：",
+        "chooseInstallMethod": "選擇安裝方法：",
         "githubDeprecated": "GitHub 上傳器已棄用",
-        "githubToken": "GitHub 權杖",
+        "githubToken": "GitHub Token",
         "ownerName": "擁有者名稱",
         "repoName": "儲存庫名稱",
         "branchName": "分支名稱",
@@ -588,7 +606,7 @@
           "and": "和",
           "byUsing": "使用此服務即表示您同意",
           "gdprWarning": "GDPR 警告",
-          "privacyStatement": "隱私聲明",
+          "privacyStatement": "隱私權聲明",
           "termsOfService": "服務條款"
         },
         "services": {
@@ -605,21 +623,21 @@
           "none": "無"
         },
         "branch": "分支",
-        "inputToken": "輸入權杖",
+        "inputToken": "輸入 token",
         "noUploaderSelected": "未選擇上傳器",
         "owner": "擁有者",
         "pleaseInstall": "請安裝",
         "repo": "儲存庫",
         "scriptPath": "腳本路徑",
-        "tokenTooltip": "用於身份驗證的存取權杖"
+        "tokenTooltip": "用於身份驗證的存取 token"
       }
     },
     "markdown": {
       "title": "Markdown",
       "listItem": {
-        "title": "清單項",
-        "preferLooseListItem": "首選鬆散清單項",
-        "bulletListMarker": "無序清單標記",
+        "title": "清單項目",
+        "preferLooseListItem": "偏好鬆散清單項目",
+        "bulletListMarker": "項目符號清單標記",
         "orderListDelimiter": "有序清單分隔符",
         "listIndentation": {
           "title": "清單縮排"
@@ -627,30 +645,30 @@
       },
       "heading": {
         "title": "標題",
-        "preferHeadingStyle": "首選標題樣式"
+        "preferHeadingStyle": "偏好標題樣式"
       },
       "frontmatter": {
-        "title": "前言",
-        "frontmatterType": "前言類型"
+        "title": "前置資料",
+        "frontmatterType": "前置資料類型"
       },
       "extensions": {
         "title": "擴充功能",
         "superSubScript": "上標/下標",
         "footnote": "腳註",
-        "isHtmlEnabled": "啟用 HTML",
+        "isHtmlEnabled": "HTML 已啟用",
         "isGitlabCompatibilityEnabled": "GitLab 相容性",
         "sequenceTheme": "序列主題",
         "superscript": "上標",
         "subscript": "下標",
-        "frontMatter": "前言",
+        "frontMatter": "前置資料",
         "math": "數學",
         "diagram": "圖表",
-        "footnoteNotes": "腳註註解",
+        "footnoteNotes": "腳註備註",
         "frontmatterType": {
-          "frontmatterType": "前言類型",
-          "jsonBrace": "帶大括號的 JSON",
-          "jsonSemicolon": "帶分號的 JSON",
-          "title": "前言類型"
+          "frontmatterType": "前置資料類型",
+          "jsonBrace": "JSON 大括號",
+          "jsonSemicolon": "JSON 分號",
+          "title": "前置資料類型"
         }
       },
       "diagrams": {
@@ -659,10 +677,10 @@
         "mermaid": "Mermaid",
         "vega": "Vega-Lite",
         "flowchart": "流程圖",
-        "sequence": "序列圖",
+        "sequence": "序列",
         "gantt": "甘特圖",
         "sequenceTheme": {
-          "title": "序列圖主題",
+          "title": "序列主題",
           "handDrawn": "手繪",
           "simple": "簡單"
         }
@@ -674,11 +692,11 @@
       },
       "misc": {
         "preferHeadingStyle": {
-          "title": "首選標題樣式",
+          "title": "偏好標題樣式",
           "atx": "ATX 樣式",
           "setext": "Setext 樣式"
         },
-        "title": "雜項"
+        "title": "其他"
       },
       "compatibility": {
         "enableGitlab": "啟用 GitLab 相容性",
@@ -686,30 +704,30 @@
         "title": "相容性"
       },
       "lists": {
-        "bulletListMarker": "無序清單標記",
+        "bulletListMarker": "項目符號清單標記",
         "listIndentation": {
-          "title": "清單縮排",
+          "listIndentation": "清單縮排",
           "dfm": "DFM 樣式",
           "fourSpaces": "四個空格",
           "oneSpace": "一個空格",
-          "tab": "製表符",
+          "tab": "Tab",
           "threeSpaces": "三個空格",
           "twoSpaces": "兩個空格"
         },
         "orderListDelimiter": "有序清單分隔符",
-        "preferLooseListItem": "首選鬆散清單項",
+        "preferLooseListItem": "偏好鬆散清單項目",
         "title": "清單"
       }
     },
     "spelling": {
       "title": "拼字",
-      "enabled": "啟用拼字檢查器",
+      "enabled": "啟用拼字檢查",
       "autoDetectLanguage": "自動偵測語言",
       "language": "語言",
       "noSuggestions": "無建議",
-      "spellcheckerEnabled": "啟用拼字檢查器",
-      "spellcheckerNoUnderline": "拼字錯誤不顯示底線",
-      "spellcheckerLanguage": "拼字檢查器語言"
+      "spellcheckerEnabled": "啟用拼字檢查",
+      "spellcheckerNoUnderline": "拼錯單字不加底線",
+      "spellcheckerLanguage": "拼字檢查語言"
     },
     "theme": {
       "title": "主題",
@@ -732,7 +750,7 @@
       "customCss": "自訂 CSS",
       "autoSwitchOptions": {
         "startup": "啟動時",
-        "never": "從不"
+        "never": "永不"
       },
       "autoSwitch": "自動切換主題",
       "importCustomThemes": "匯入自訂主題",
@@ -741,33 +759,33 @@
       "openThemesFolder": "開啟主題資料夾"
     },
     "keybindings": {
-      "title": "快速鍵",
-      "description": "自訂鍵盤快速鍵",
-      "searchPlaceholder": "搜尋快速鍵",
+      "title": "按鍵綁定",
+      "description": "自訂鍵盤快捷鍵",
+      "searchPlaceholder": "搜尋按鍵綁定",
       "command": "命令",
-      "keybinding": "快速鍵",
+      "keybinding": "按鍵綁定",
       "reset": "重設",
-      "resetAll": "重設全部",
+      "resetAll": "全部重設",
       "edit": "編輯",
       "cancel": "取消",
       "save": "儲存",
-      "restoreDefaults": "恢復預設",
+      "restoreDefaults": "還原預設值",
       "debugOptions": "除錯選項",
-      "dumpKeyboardInfo": "轉儲鍵盤資訊",
-      "failedToSave": "儲存快速鍵失敗",
+      "dumpKeyboardInfo": "傾印鍵盤資訊",
+      "failedToSave": "儲存按鍵綁定失敗",
       "keyInputDialog": {
-        "instructions": "按下您要分配的組合鍵",
-        "invalidKeybinding": "無效的組合鍵",
-        "placeholder": "按鍵..."
+        "instructions": "按下您要指派的按鍵組合",
+        "invalidKeybinding": "無效的按鍵組合",
+        "placeholder": "按下按鍵..."
       },
       "online": "線上",
-      "saveError": "儲存快速鍵時出錯",
-      "shortcutInUse": "快速鍵正在使用",
-      "shortcutInUseMessage": "此快速鍵已分配給另一個命令",
+      "saveError": "儲存按鍵綁定時發生錯誤",
+      "shortcutInUse": "快捷鍵使用中",
+      "shortcutInUseMessage": "此快捷鍵已指派給另一個命令",
       "table": {
         "description": "描述",
         "edit": "編輯",
-        "keyCombination": "組合鍵",
+        "keyCombination": "按鍵組合",
         "options": "選項",
         "reset": "重設",
         "unbind": "解除綁定"
@@ -779,8 +797,8 @@
       "autoDetectLanguage": "自動偵測語言",
       "customDictionary": {
         "delete": "刪除",
-        "description": "將自訂單字新增到您的個人字典",
-        "noWordsAvailable": "無可用單字",
+        "description": "將自訂單字加入您的個人字典",
+        "noWordsAvailable": "沒有可用的單字",
         "options": "選項",
         "title": "自訂字典",
         "word": "單字"
@@ -788,7 +806,7 @@
       "defaultLanguage": "預設語言",
       "enableSpellChecking": "啟用拼字檢查",
       "hideMarksForErrors": "隱藏拼字錯誤標記",
-      "title": "拼字檢查器"
+      "title": "拼字檢查"
     }
   },
   "about": {
@@ -810,11 +828,14 @@
       "moveFile": "移動檔案",
       "renameFile": "重新命名檔案",
       "quickOpen": "快速開啟",
+      "changeEncoding": "變更編碼",
+      "changeLineEnding": "變更行結束符",
+      "trailingNewline": "結尾換行",
       "print": "列印",
       "preferences": "偏好設定",
       "closeTab": "關閉標籤頁",
       "closeWindow": "關閉視窗",
-      "quit": "結束",
+      "quit": "退出",
       "toggleAutoSave": "切換自動儲存",
       "importFile": "匯入檔案",
       "exportFile": "匯出檔案",
@@ -849,20 +870,20 @@
       "heading4": "標題 4",
       "heading5": "標題 5",
       "heading6": "標題 6",
-      "upgradeHeading": "提升標題級別",
-      "degradeHeading": "降低標題級別",
+      "upgradeHeading": "提升標題",
+      "degradeHeading": "降低標題",
       "table": "表格",
       "codeFence": "程式碼圍欄",
       "quoteBlock": "引用區塊",
       "mathFormula": "數學公式",
       "htmlBlock": "HTML 區塊",
       "orderList": "有序清單",
-      "bulletList": "無序清單",
+      "bulletList": "項目符號清單",
       "taskList": "任務清單",
-      "looseListItem": "鬆散清單項",
+      "looseListItem": "鬆散清單項目",
       "paragraph": "段落",
-      "horizontalLine": "水平分割線",
-      "frontMatter": "前言",
+      "horizontalLine": "水平線",
+      "frontMatter": "前置資料",
       "resetParagraph": "重設段落"
     },
     "format": {
@@ -871,7 +892,7 @@
       "underline": "底線",
       "superscript": "上標",
       "subscript": "下標",
-      "highlight": "螢光標示",
+      "highlight": "螢光標記",
       "inlineCode": "行內程式碼",
       "inlineMath": "行內數學",
       "strike": "刪除線",
@@ -881,11 +902,11 @@
     },
     "window": {
       "minimize": "最小化",
-      "toggleAlwaysOnTop": "切換總是在最前面",
+      "toggleAlwaysOnTop": "切換總是在最上層",
       "zoomIn": "放大",
       "zoomOut": "縮小",
       "toggleFullScreen": "切換全螢幕",
-      "changeTheme": "更改主題"
+      "changeTheme": "變更主題"
     },
     "view": {
       "commandPalette": "命令面板",
@@ -903,8 +924,8 @@
     "tabs": {
       "cycleForward": "向前循環",
       "cycleBackward": "向後循環",
-      "switchToLeft": "切換到左側",
-      "switchToRight": "切換到右側",
+      "switchToLeft": "切換到左邊",
+      "switchToRight": "切換到右邊",
       "switchToFirst": "切換到第一個",
       "switchToSecond": "切換到第二個",
       "switchToThird": "切換到第三個",
@@ -923,6 +944,9 @@
     "utils": {
       "noUpdateResourceFile": "沒有更新資源檔案",
       "todoUpdateCheck": "檢查更新"
+    },
+    "spellchecker": {
+      "switchLanguage": "切換語言"
     }
   },
   "common": {
@@ -931,7 +955,7 @@
   },
   "dialog": {
     "cancel": "取消",
-    "changesWillBeLost": "更改將遺失",
+    "changesWillBeLost": "變更將遺失",
     "close": "關閉",
     "dontSave": "不儲存",
     "file": "檔案",
@@ -942,17 +966,17 @@
     "keepOpen": "保持開啟",
     "replace": "取代",
     "save": "儲存",
-    "saveChanges": "儲存更改",
+    "saveChanges": "儲存變更",
     "saveFailure": "儲存失敗"
   },
   "error": {
-    "configSchemaViolation": "設定架構違規",
+    "configSchemaViolation": "設定結構違規",
     "copyError": "複製錯誤",
     "initializationFailed": "初始化失敗",
-    "otherInstanceDetected": "偵測到 MarkText 的另一個執行個體正在執行",
+    "otherInstanceDetected": "偵測到另一個 MarkText 實例正在執行",
     "report": "回報",
     "startupError": "啟動錯誤",
-    "terminatedDueToError": "由於錯誤而終止",
+    "terminatedDueToError": "因錯誤而終止",
     "unexpectedErrorWithMessage": "意外錯誤訊息",
     "unexpectedMainProcess": "意外的主程序錯誤",
     "unexpectedRendererProcess": "意外的渲染程序錯誤"
@@ -964,99 +988,110 @@
   "store": {
     "editor": {
       "anchorLinkCopied": "錨點連結已複製",
-      "tabNotFound": "未找到標籤頁",
-      "tocItemNotFound": "未找到目錄項"
+      "tabNotFound": "找不到標籤頁",
+      "tocItemNotFound": "找不到目錄項目",
+      "highlightStart": " [高亮開始] ",
+      "highlightEnd": " [高亮結束] ",
+      "typeAtToInsert": "輸入 @ 來插入",
+      "inputFootnoteDefinition": "輸入腳註定義...",
+      "inputYamlFrontMatter": "輸入 YAML 前置資料...",
+      "inputLanguageIdentifier": "輸入語言識別符...",
+      "inputMathematicalFormula": "輸入數學公式...",
+      "fence": "圍欄",
+      "indent": "縮排",
+      "frontMatterDelimiter": "---",
+      "mathDelimiter": "$$",
+      "mermaidStart": "``` mermaid",
+      "flowchartStart": "``` flowchart",
+      "sequenceStart": "``` sequence",
+      "plantumlStart": "``` plantuml",
+      "vegaLiteStart": "``` vega-lite",
+      "codeFence": "```",
+      "clickToAddImage": "點擊新增圖片",
+      "loadImageFailed": "圖片載入失敗"
     },
     "help": {
       "lineEndingAssertionError": "行結束符斷言錯誤"
     }
   },
   "spellchecker": {
-    "failedToRemoveWord": "從字典中刪除單字失敗",
-    "failedToSwitchLanguage": "切換拼字檢查器語言失敗",
-    "unexpectedError": "意外的拼字檢查器錯誤"
-  },
-  "search": {
-    "searchResultInfo": "搜尋結果資訊"
-  },
-  "sideBar": {
-    "search": {
-      "searchLimited": "搜尋受限"
-    }
+    "failedToRemoveWord": "從字典中移除單字失敗",
+    "failedToSwitchLanguage": "切換拼字檢查語言失敗",
+    "unexpectedError": "意外的拼字檢查錯誤"
   },
   "quickInsert": {
-    "basicBlock": "基礎區塊",
+    "basicBlock": "基本區塊",
     "header": "標題",
     "advancedBlock": "進階區塊",
     "listBlock": "清單區塊",
     "diagram": "圖表",
     "paragraph": {
       "title": "段落",
-      "subtitle": "Lorem Ipsum 只是印刷和排版行業的虛擬文字"
+      "subtitle": ""
     },
     "horizontalLine": {
       "title": "水平線",
       "subtitle": "---"
     },
     "frontMatter": {
-      "title": "前言",
-      "subtitle": "--- Lorem Ipsum ---"
+      "title": "前置資料",
+      "subtitle": "--- 前置資料 ---"
     },
     "header1": {
       "title": "標題 1",
-      "subtitle": "# Lorem Ipsum 只是印刷..."
+      "subtitle": "#"
     },
     "header2": {
       "title": "標題 2",
-      "subtitle": "## Lorem Ipsum 只是印刷..."
+      "subtitle": "##"
     },
     "header3": {
       "title": "標題 3",
-      "subtitle": "### Lorem Ipsum 只是印刷..."
+      "subtitle": "###"
     },
     "header4": {
       "title": "標題 4",
-      "subtitle": "#### Lorem Ipsum 只是印刷..."
+      "subtitle": "####"
     },
     "header5": {
       "title": "標題 5",
-      "subtitle": "##### Lorem Ipsum 只是印刷..."
+      "subtitle": "#####"
     },
     "header6": {
       "title": "標題 6",
-      "subtitle": "###### Lorem Ipsum 只是印刷..."
+      "subtitle": "######"
     },
     "tableBlock": {
       "title": "表格區塊",
-      "subtitle": "|Lorem | Ipsum 只是印刷 |"
+      "subtitle": "表格區塊"
     },
-    "displayMath": {
+    "mathFormula": {
       "title": "數學公式",
-      "subtitle": "$$ Lorem Ipsum 只是印刷 $$"
+      "subtitle": "$$ $$"
     },
     "htmlBlock": {
       "title": "HTML 區塊",
-      "subtitle": "<div> Lorem Ipsum 只是印刷 </div>"
+      "subtitle": "<div> </div>"
     },
     "codeBlock": {
       "title": "程式碼區塊",
-      "subtitle": "```java Lorem Ipsum 只是印刷 ```"
+      "subtitle": "```java ```"
     },
     "quoteBlock": {
       "title": "引用區塊",
-      "subtitle": ">Lorem Ipsum 只是印刷..."
+      "subtitle": ">"
     },
-    "orderList": {
+    "orderedList": {
       "title": "有序清單",
-      "subtitle": "1. Lorem Ipsum 只是印刷..."
+      "subtitle": "1."
     },
     "bulletList": {
-      "title": "無序清單",
-      "subtitle": "- Lorem Ipsum 只是印刷..."
+      "title": "項目符號清單",
+      "subtitle": "-"
     },
     "todoList": {
       "title": "待辦清單",
-      "subtitle": "- [x] Lorem Ipsum 只是印刷..."
+      "subtitle": "- [x]"
     },
     "vegaChart": {
       "title": "Vega 圖表",
@@ -1067,8 +1102,8 @@
       "subtitle": "使用 flowchart.js 渲染流程圖。"
     },
     "sequenceDiagram": {
-      "title": "時序圖",
-      "subtitle": "使用 js-sequence 渲染時序圖。"
+      "title": "序列圖",
+      "subtitle": "使用 js-sequence 渲染序列圖。"
     },
     "plantumlDiagram": {
       "title": "PlantUML 圖表",
@@ -1076,15 +1111,38 @@
     },
     "mermaid": {
       "title": "Mermaid",
-      "subtitle": "使用 mermaid 渲染圖形。"
+      "subtitle": "使用 mermaid 渲染圖表。"
     },
     "sequenceChart": {
-      "title": "時序圖",
-      "subtitle": "使用 js-sequence 渲染時序圖。"
+      "title": "序列圖表",
+      "subtitle": "使用 js-sequence 渲染序列圖表。"
     },
     "plantUMLChart": {
       "title": "PlantUML 圖表",
       "subtitle": "渲染 PlantUML 圖表"
     }
+  },
+  "frontMenu": {
+    "duplicate": "複製",
+    "turnInto": "轉換為",
+    "newParagraph": "新段落",
+    "delete": "刪除",
+    "paragraph": "段落",
+    "table": "表格",
+    "html": "HTML",
+    "mathblock": "數學區塊",
+    "pre": "預格式化",
+    "frontMatter": "前置資料",
+    "ulTask": "任務清單",
+    "ulBullet": "項目符號清單",
+    "olOrder": "有序清單",
+    "blockquote": "引用區塊",
+    "heading1": "標題 1",
+    "heading2": "標題 2",
+    "heading3": "標題 3",
+    "heading4": "標題 4",
+    "heading5": "標題 5",
+    "heading6": "標題 6",
+    "hr": "水平線"
   }
 }

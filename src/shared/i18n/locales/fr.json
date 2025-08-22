@@ -12,7 +12,7 @@
       "clearRecentlyUsed": "Effacer les récents",
       "save": "Enregistrer",
       "saveAs": "Enregistrer sous...",
-      "autoSave": "Sauvegarde automatique",
+      "autoSave": "Enregistrement automatique",
       "moveTo": "Déplacer vers",
       "rename": "Renommer",
       "export": "Exporter",
@@ -29,7 +29,7 @@
       "preferences": "Préférences"
     },
     "edit": {
-      "edit": "Éditer",
+      "edit": "Édition",
       "undo": "Annuler",
       "redo": "Rétablir",
       "cut": "Couper",
@@ -49,8 +49,8 @@
       "findInFolder": "Rechercher dans le dossier",
       "screenshot": "Capture d'écran",
       "lineEnding": "Fin de ligne",
-      "lineEndingCrlf": "CRLF",
-      "lineEndingLf": "LF"
+      "lineEndingCrlf": "CRLF (Windows)",
+      "lineEndingLf": "LF (Linux/Mac)"
     },
     "paragraph": {
       "title": "Paragraphe",
@@ -64,7 +64,7 @@
       "promoteHeading": "Promouvoir le titre",
       "demoteHeading": "Rétrograder le titre",
       "table": "Tableau",
-      "codeFences": "Blocs de code",
+      "codeFences": "Clôtures de code",
       "codeBlock": "Bloc de code",
       "quoteBlock": "Bloc de citation",
       "mathBlock": "Bloc mathématique",
@@ -74,7 +74,7 @@
       "bulletList": "Liste à puces",
       "unorderedList": "Liste non ordonnée",
       "taskList": "Liste de tâches",
-      "looseListItem": "Élément de liste libre",
+      "looseListItem": "Élément de liste lâche",
       "paragraphItem": "Élément de paragraphe",
       "horizontalRule": "Règle horizontale",
       "frontMatter": "Métadonnées"
@@ -88,7 +88,7 @@
       "zoomIn": "Agrandir",
       "zoomOut": "Réduire",
       "fullScreen": "Plein écran",
-      "bringAllToFront": "Tout ramener au premier plan",
+      "bringAllToFront": "Tout amener au premier plan",
       "alwaysOnTop": "Toujours au premier plan"
     },
     "help": {
@@ -128,7 +128,7 @@
       "zoomOut": "Réduire",
       "resetZoom": "Réinitialiser le zoom",
       "fullscreen": "Entrer en plein écran",
-      "exitFullscreen": "Sortir du plein écran",
+      "exitFullscreen": "Quitter le plein écran",
       "commandPalette": "Palette de commandes",
       "sourceCode": "Mode code source",
       "sourceCodeMode": "Mode code source",
@@ -171,24 +171,23 @@
       "heading6": "Titre 6",
       "superscript": "Exposant",
       "subscript": "Indice",
-      "highlight": "Surligner",
+      "highlight": "Surlignage",
       "inlineCode": "Code en ligne",
-      "inlineMath": "Mathématiques en ligne",
+      "inlineMath": "Math en ligne",
       "hyperlink": "Hyperlien",
       "clearFormatting": "Effacer le formatage",
       "clearFormat": "Effacer le format"
     },
     "theme": {
-      "theme": "Thème(&T)",
+      "theme": "Thème (&T)",
       "light": "Clair",
       "dark": "Sombre",
       "auto": "Automatique",
-      "cadmiumLight": "Cadmium Light",
-      "graphiteLight": "Graphite Light",
-      "materialDark": "Material Dark",
+      "cadmiumLight": "Cadmium clair",
+      "graphiteLight": "Graphite clair",
+      "materialDark": "Material sombre",
       "oneDark": "One Dark",
-      "ulyssesLight": "Ulysses Light",
-      "ulyssesDark": "Ulysses Dark"
+      "ulyssesLight": "Ulysses clair"
     }
   },
   "contextMenu": {
@@ -203,10 +202,10 @@
     "spelling": "Orthographe...",
     "changeLanguage": "Changer de langue...",
     "addToDictionary": "Ajouter au dictionnaire",
-    "editDictionary": "Éditer le dictionnaire...",
+    "editDictionary": "Modifier le dictionnaire...",
     "sideBar": {
       "newFile": "Nouveau fichier",
-      "newDirectory": "Nouveau répertoire",
+      "newDirectory": "Nouveau dossier",
       "copy": "Copier",
       "cut": "Couper",
       "paste": "Coller",
@@ -228,7 +227,7 @@
     "searchPlaceholder": "Rechercher",
     "caseSensitive": "Sensible à la casse",
     "wholeWord": "Mot entier",
-    "useRegex": "Utiliser une expression régulière",
+    "useRegex": "Utiliser les expressions régulières",
     "replacementPlaceholder": "Remplacer",
     "replaceAll": "Remplacer tout",
     "replaceSingle": "Remplacer un",
@@ -242,24 +241,30 @@
       "noFolderOpen": "Aucun dossier ouvert",
       "noResultsFound": "Aucun résultat trouvé.",
       "cancel": "Annuler",
-      "openFolder": "Ouvrir le dossier",
+      "openFolder": "Ouvrir un dossier",
       "showMoreMatches": "Afficher plus de correspondances"
     },
     "tree": {
       "openedFiles": "Fichiers ouverts",
-      "saveAll": "Enregistrer tout",
-      "closeAll": "Fermer tout",
+      "saveAll": "Tout enregistrer",
+      "closeAll": "Tout fermer",
       "emptyProject": "Projet vide",
       "createFile": "Créer un fichier",
       "openFolder": "Ouvrir un dossier"
     },
     "toc": {
       "title": "Table des matières"
+    },
+    "icons": {
+      "files": "Fichiers",
+      "search": "Rechercher",
+      "toc": "Table des matières",
+      "settings": "Paramètres"
     }
   },
   "commandPalette": {
     "placeholder": "Tapez une commande à exécuter",
-    "commandNotFound": "Commande non trouvée",
+    "commandNotFound": "Commande introuvable",
     "changeEncoding": "Changer l'encodage",
     "changeLineEnding": "Changer la fin de ligne",
     "quickOpen": "Ouverture rapide",
@@ -267,10 +272,11 @@
     "switchSpellcheckerLanguage": "Changer la langue du correcteur orthographique"
   },
   "exportSettings": {
+    "autoNumberingHeadings": "Numérotation automatique des titres",
     "title": "Options d'exportation",
     "info": {
-      "label": "Information",
-      "description": "Personnalisez l'apparence de la page et cliquez sur \"Exporter\" pour continuer."
+      "label": "Informations",
+      "description": "Veuillez personnaliser l'apparence de la page et cliquer sur 'Exporter' pour continuer."
     },
     "page": {
       "label": "Page",
@@ -282,6 +288,7 @@
       "leftRight": "Gauche/Droite :",
       "widthHeight": "Largeur/Hauteur (mm) :"
     },
+    "showFrontMatter": "Afficher les métadonnées",
     "style": {
       "label": "Style",
       "overwriteThemeFont": "Remplacer les paramètres de police du thème",
@@ -295,37 +302,35 @@
       "theme": "Thème"
     },
     "headerFooter": {
-      "label": "En-tête et pied de page",
-      "description": "Si un en-tête et/ou un pied de page est défini, le texte apparaîtra sur toutes les pages.",
-      "headerType": "Type d'en-tête",
-      "footerType": "Type de pied de page",
-      "leftHeaderText": "Texte d'en-tête gauche",
-      "mainHeaderText": "Texte d'en-tête principal",
-      "rightHeaderText": "Texte d'en-tête droit",
-      "leftFooterText": "Texte de pied gauche",
-      "mainFooterText": "Texte de pied principal",
-      "rightFooterText": "Texte de pied droit",
-      "customizeStyle": "Personnaliser le style",
       "allowStyled": "Autoriser le texte stylé",
-      "fontSize": "Taille de police"
+      "customizeStyle": "Personnaliser le style",
+      "fontSize": "Taille de police",
+      "footerType": "Type de pied de page",
+      "headerType": "Type d'en-tête",
+      "label": "En-tête et pied de page",
+      "leftFooterText": "Texte du pied de page gauche",
+      "leftHeaderText": "Texte de l'en-tête gauche",
+      "mainFooterText": "Texte du pied de page principal",
+      "mainHeaderText": "Texte de l'en-tête principal",
+      "rightFooterText": "Texte du pied de page droit",
+      "rightHeaderText": "Texte de l'en-tête droit",
+      "description": "Si un en-tête et/ou un pied de page est défini, le texte apparaîtra sur toutes les pages."
     },
     "toc": {
+      "includeTopHeading": "Inclure le titre de niveau supérieur",
+      "includeTopHeadingDetail": "Inclure les détails du titre de niveau supérieur",
       "label": "Table des matières",
-      "title": "Table des matières",
-      "includeTopHeading": "Inclure le titre supérieur",
-      "includeTopHeadingDetail": "Inclure le détail du titre supérieur"
+      "title": "Table des matières"
     },
-    "autoNumberingHeadings": "Numérotation automatique des titres",
-    "showFrontMatter": "Afficher les métadonnées",
     "export": "Exporter...",
     "options": {
       "pageSizes": {
         "a3": "A3 (297mm x 420mm)",
         "a4": "A4 (210mm x 297mm)",
         "a5": "A5 (148mm x 210mm)",
-        "legal": "Legal US (8.5\" x 13\")",
-        "letter": "Lettre US (8.5\" x 11\")",
-        "tabloid": "Tabloïd (17\" x 11\")",
+        "legal": "US Legal (8.5\" x 13\")",
+        "letter": "US Letter (8.5\" x 11\")",
+        "tabloid": "Tabloid (17\" x 11\")",
         "custom": "Personnalisé"
       },
       "headerFooterTypes": {
@@ -346,26 +351,38 @@
     }
   },
   "editor": {
+    "placeholders": {
+      "frontMatter": "Saisir les métadonnées YAML...",
+      "languageIdentifier": "Saisir l'identifiant de langue...",
+      "mathFormula": "Saisir la formule mathématique..."
+    },
+    "export": {
+      "error": "Erreur d'exportation",
+      "errorExporting": "Erreur lors de l'exportation du fichier",
+      "failed": "Échec de l'exportation"
+    },
     "insertTable": {
       "title": "Insérer un tableau",
       "rows": "Lignes",
       "columns": "Colonnes"
     },
     "notifications": {
-      "notificationNotFound": "Notification non trouvée"
+      "notificationNotFound": "Notification introuvable"
+    },
+    "print": {
+      "error": "Erreur d'impression",
+      "failed": "Échec de l'impression"
     },
     "sourceCode": {
       "cursorNullComment": "Commentaire de curseur nul",
       "imageStructureDeletedComment": "Commentaire de structure d'image supprimée"
     },
-    "export": {
-      "error": "Erreur d'exportation"
-    },
-    "print": {
-      "error": "Erreur d'impression"
-    },
     "spellcheck": {
-      "title": "Vérificateur d'orthographe"
+      "disabledError": "Erreur de correcteur orthographique désactivé",
+      "errorSwitchingLanguage": "Erreur lors du changement de langue du correcteur orthographique",
+      "languageMissing": "Langue du correcteur orthographique manquante",
+      "switchError": "Erreur de changement de correcteur orthographique",
+      "title": "Correcteur orthographique"
     }
   },
   "recent": {
@@ -377,15 +394,15 @@
     "description": "Glissez-déposez ici pour importer votre contenu dans MarkText"
   },
   "tweet": {
-    "title": "Envoyez-nous vos commentaires via Twitter",
+    "title": "Envoyez-nous vos commentaires via tweet",
     "feelingsQuestion": "Comment vous sentez-vous ?",
-    "feedbackQuestion": "Dites-nous vos commentaires",
+    "feedbackQuestion": "Dites-nous vos commentaires ?",
     "reportViaGithub": "Signaler un bug ou une demande de fonctionnalité via GitHub",
-    "tweet": "Tweeter"
+    "tweet": "Tweet"
   },
   "lineEnding": {
-    "carriageReturnLineFeed": "Retour chariot + Saut de ligne (CRLF)",
-    "lineFeed": "Saut de ligne (LF)"
+    "carriageReturnLineFeed": "Retour chariot + Saut de ligne (CRLF, Windows)",
+    "lineFeed": "Saut de ligne (LF, Linux/Mac)"
   },
   "preferences": {
     "title": "Préférences",
@@ -404,15 +421,16 @@
     "general": {
       "title": "Général",
       "autoSave": {
-        "title": "Sauvegarde automatique",
-        "description": "Sauvegarde automatique",
-        "delayDescription": "Délai de sauvegarde automatique"
+        "title": "Enregistrement automatique",
+        "description": "Enregistrement automatique",
+        "delayDescription": "Délai d'enregistrement automatique"
       },
       "window": {
         "title": "Fenêtre",
         "titleBarStyle": {
           "title": "Style de barre de titre",
           "custom": "Personnalisé",
+          "titleBarStyle": "Style de barre de titre",
           "native": "Natif"
         },
         "requiresRestart": "Nécessite un redémarrage",
@@ -473,27 +491,27 @@
       },
       "writingBehavior": {
         "title": "Comportement d'écriture",
-        "autoCloseBrackets": "Fermer automatiquement les crochets",
+        "autoCloseBrackets": "Fermeture automatique des crochets",
         "autoCompleteMarkdown": "Autocomplétion Markdown",
-        "autoCloseQuotes": "Fermer automatiquement les guillemets"
+        "autoCloseQuotes": "Fermeture automatique des guillemets"
       },
       "fileRepresentation": {
         "title": "Représentation de fichier",
         "tabWidth": "Largeur de tabulation",
         "lineSeparator": "Séparateur de ligne",
         "defaultEncoding": "Encodage par défaut",
-        "autoDetectEncoding": "Détecter automatiquement l'encodage",
+        "autoDetectEncoding": "Détection automatique de l'encodage",
         "trailingNewlines": {
-          "title": "Nouvelles lignes finales",
+          "title": "Nouvelles lignes de fin",
           "doNothing": "Ne rien faire",
-          "ensureOne": "Assurer une",
+          "ensureOne": "En assurer une",
           "preserve": "Préserver",
-          "trimAll": "Supprimer toutes"
+          "trimAll": "Tout supprimer"
         },
         "endOfLine": {
           "default": "Par défaut",
-          "crlf": "CRLF",
-          "lf": "LF"
+          "crlf": "CRLF (Windows)",
+          "lf": "LF (Linux/Mac)"
         }
       },
       "misc": {
@@ -512,7 +530,7 @@
     "image": {
       "title": "Image",
       "defaultAction": "Action par défaut lors de l'insertion d'image",
-      "clipboardTooltip": "Comportement par défaut après coller ou glisser une image dans MarkText",
+      "clipboardTooltip": "Comportement par défaut après avoir collé ou glissé une image dans MarkText",
       "actions": {
         "upload": "Télécharger vers le cloud",
         "folder": "Copier vers le dossier",
@@ -520,7 +538,7 @@
       },
       "folderSetting": {
         "title": "Paramètres de dossier",
-        "globalFolder": "Dossier global d'images",
+        "globalFolder": "Dossier d'images global",
         "open": "Ouvrir",
         "showInFolder": "Afficher dans le dossier",
         "preferRelative": "Préférer le répertoire relatif",
@@ -543,7 +561,7 @@
         "absolutePath": "Chemin absolu"
       },
       "cloudPictureBed": {
-        "title": "Stockage d'images cloud",
+        "title": "Hébergement d'images cloud",
         "github": "GitHub",
         "smms": "SM.MS",
         "qiniu": "Qiniu",
@@ -561,16 +579,16 @@
         "title": "Téléchargeur d'images",
         "currentUploader": "Téléchargeur actuel",
         "picgoNotInstalled": "PicGo non installé",
-        "picgoDetectionStatus": "État de détection de PicGo",
-        "picgoInstalled": "PicGo est installé",
-        "picgoDetectionFailed": "Échec de la détection de PicGo",
+        "picgoDetectionStatus": "Statut de détection PicGo",
+        "picgoInstalled": "PicGo installé",
+        "picgoDetectionFailed": "Échec de la détection PicGo",
         "debugInfo": "Informations de débogage",
         "installCommand": "Commande d'installation",
         "npmInstallCommand": "npm install picgo -g",
         "yarnInstallCommand": "yarn global add picgo",
         "pnpmInstallCommand": "pnpm add -g picgo",
         "brewInstallCommand": "brew install picgo",
-        "chooseInstallMethod": "Choisissez la méthode d'installation :",
+        "chooseInstallMethod": "Choisir la méthode d'installation :",
         "githubDeprecated": "Téléchargeur GitHub obsolète",
         "githubToken": "Token GitHub",
         "ownerName": "Nom du propriétaire",
@@ -581,7 +599,7 @@
         "save": "Enregistrer",
         "saveConfig": "Enregistrer la configuration",
         "githubConfigSaved": "Configuration GitHub enregistrée",
-        "scriptConfigSaved": "Configuration de script enregistrée",
+        "scriptConfigSaved": "Configuration du script enregistrée",
         "legalNotices": {
           "title": "Mentions légales",
           "description": "J'ai lu et j'accepte les conditions de service pertinentes",
@@ -618,7 +636,7 @@
       "title": "Markdown",
       "listItem": {
         "title": "Élément de liste",
-        "preferLooseListItem": "Préférer l'élément de liste libre",
+        "preferLooseListItem": "Préférer les éléments de liste lâches",
         "bulletListMarker": "Marqueur de liste à puces",
         "orderListDelimiter": "Délimiteur de liste ordonnée",
         "listIndentation": {
@@ -648,8 +666,8 @@
         "footnoteNotes": "Notes de bas de page",
         "frontmatterType": {
           "frontmatterType": "Type de métadonnées",
-          "jsonBrace": "JSON avec accolades",
-          "jsonSemicolon": "JSON avec point-virgule",
+          "jsonBrace": "Accolade JSON",
+          "jsonSemicolon": "Point-virgule JSON",
           "title": "Type de métadonnées"
         }
       },
@@ -658,11 +676,11 @@
         "plantuml": "PlantUML",
         "mermaid": "Mermaid",
         "vega": "Vega-Lite",
-        "flowchart": "Diagramme de flux",
-        "sequence": "Diagramme de séquence",
-        "gantt": "Diagramme de Gantt",
+        "flowchart": "Organigramme",
+        "sequence": "Séquence",
+        "gantt": "Gantt",
         "sequenceTheme": {
-          "title": "Thème de diagramme de séquence",
+          "title": "Thème de séquence",
           "handDrawn": "Dessiné à la main",
           "simple": "Simple"
         }
@@ -688,7 +706,7 @@
       "lists": {
         "bulletListMarker": "Marqueur de liste à puces",
         "listIndentation": {
-          "title": "Indentation de liste",
+          "listIndentation": "Indentation de liste",
           "dfm": "Style DFM",
           "fourSpaces": "Quatre espaces",
           "oneSpace": "Un espace",
@@ -697,26 +715,26 @@
           "twoSpaces": "Deux espaces"
         },
         "orderListDelimiter": "Délimiteur de liste ordonnée",
-        "preferLooseListItem": "Préférer l'élément de liste libre",
+        "preferLooseListItem": "Préférer les éléments de liste lâches",
         "title": "Listes"
       }
     },
     "spelling": {
       "title": "Orthographe",
-      "enabled": "Activer le vérificateur d'orthographe",
-      "autoDetectLanguage": "Détecter automatiquement la langue",
+      "enabled": "Activer la vérification orthographique",
+      "autoDetectLanguage": "Détection automatique de la langue",
       "language": "Langue",
       "noSuggestions": "Aucune suggestion",
-      "spellcheckerEnabled": "Vérificateur d'orthographe activé",
-      "spellcheckerNoUnderline": "Pas de soulignement pour les erreurs d'orthographe",
-      "spellcheckerLanguage": "Langue du vérificateur d'orthographe"
+      "spellcheckerEnabled": "Vérificateur orthographique activé",
+      "spellcheckerNoUnderline": "Pas de soulignement pour les mots mal orthographiés",
+      "spellcheckerLanguage": "Langue du vérificateur orthographique"
     },
     "theme": {
       "title": "Thème",
       "theme": "Thème",
       "autoSwitchTheme": {
         "title": "Changement automatique de thème",
-        "description": "Changer automatiquement le thème selon le système",
+        "description": "Changer automatiquement de thème selon le système",
         "followSystem": "Suivre le système",
         "light": "Clair",
         "dark": "Sombre"
@@ -743,21 +761,21 @@
     "keybindings": {
       "title": "Raccourcis clavier",
       "description": "Personnaliser les raccourcis clavier",
-      "searchPlaceholder": "Rechercher des raccourcis",
+      "searchPlaceholder": "Rechercher des raccourcis clavier",
       "command": "Commande",
       "keybinding": "Raccourci clavier",
       "reset": "Réinitialiser",
       "resetAll": "Tout réinitialiser",
-      "edit": "Éditer",
+      "edit": "Modifier",
       "cancel": "Annuler",
       "save": "Enregistrer",
       "restoreDefaults": "Restaurer les valeurs par défaut",
       "debugOptions": "Options de débogage",
-      "dumpKeyboardInfo": "Exporter les informations du clavier",
+      "dumpKeyboardInfo": "Vider les informations du clavier",
       "failedToSave": "Échec de l'enregistrement des raccourcis clavier",
       "keyInputDialog": {
         "instructions": "Appuyez sur la combinaison de touches que vous souhaitez assigner",
-        "invalidKeybinding": "Combinaison de touches invalide",
+        "invalidKeybinding": "Raccourci clavier invalide",
         "placeholder": "Appuyez sur les touches..."
       },
       "online": "En ligne",
@@ -766,7 +784,7 @@
       "shortcutInUseMessage": "Ce raccourci est déjà assigné à une autre commande",
       "table": {
         "description": "Description",
-        "edit": "Éditer",
+        "edit": "Modifier",
         "keyCombination": "Combinaison de touches",
         "options": "Options",
         "reset": "Réinitialiser",
@@ -776,7 +794,7 @@
     "selectFont": "Sélectionner une police",
     "spellchecker": {
       "autoDetectDescription": "Détecter automatiquement la langue du document",
-      "autoDetectLanguage": "Détecter automatiquement la langue",
+      "autoDetectLanguage": "Détection automatique de la langue",
       "customDictionary": {
         "delete": "Supprimer",
         "description": "Ajouter des mots personnalisés à votre dictionnaire personnel",
@@ -788,7 +806,7 @@
       "defaultLanguage": "Langue par défaut",
       "enableSpellChecking": "Activer la vérification orthographique",
       "hideMarksForErrors": "Masquer les marques d'erreurs orthographiques",
-      "title": "Vérificateur d'orthographe"
+      "title": "Vérification orthographique"
     }
   },
   "about": {
@@ -818,7 +836,7 @@
       "closeTab": "Fermer l'onglet",
       "closeWindow": "Fermer la fenêtre",
       "quit": "Quitter",
-      "toggleAutoSave": "Basculer la sauvegarde automatique",
+      "toggleAutoSave": "Basculer l'enregistrement automatique",
       "importFile": "Importer un fichier",
       "exportFile": "Exporter un fichier",
       "exportFilePdf": "Exporter en PDF",
@@ -855,14 +873,14 @@
       "upgradeHeading": "Promouvoir le titre",
       "degradeHeading": "Rétrograder le titre",
       "table": "Tableau",
-      "codeFence": "Bloc de code",
+      "codeFence": "Clôture de code",
       "quoteBlock": "Bloc de citation",
       "mathFormula": "Formule mathématique",
       "htmlBlock": "Bloc HTML",
       "orderList": "Liste ordonnée",
       "bulletList": "Liste à puces",
       "taskList": "Liste de tâches",
-      "looseListItem": "Élément de liste libre",
+      "looseListItem": "Élément de liste lâche",
       "paragraph": "Paragraphe",
       "horizontalLine": "Ligne horizontale",
       "frontMatter": "Métadonnées",
@@ -874,9 +892,9 @@
       "underline": "Souligné",
       "superscript": "Exposant",
       "subscript": "Indice",
-      "highlight": "Surligner",
+      "highlight": "Surlignage",
       "inlineCode": "Code en ligne",
-      "inlineMath": "Mathématiques en ligne",
+      "inlineMath": "Math en ligne",
       "strike": "Barré",
       "hyperlink": "Hyperlien",
       "image": "Image",
@@ -920,12 +938,12 @@
       "switchToTenth": "Basculer vers le dixième"
     },
     "docs": {
-      "userGuide": "Guide de l'utilisateur",
+      "userGuide": "Guide utilisateur",
       "markdownSyntax": "Syntaxe Markdown"
     },
     "utils": {
-      "noUpdateResourceFile": "Ne pas mettre à jour le fichier de ressources",
-      "todoUpdateCheck": "Vérifier les mises à jour"
+      "noUpdateResourceFile": "Aucun fichier de ressource de mise à jour",
+      "todoUpdateCheck": "Vérification de mise à jour"
     },
     "spellchecker": {
       "switchLanguage": "Changer de langue"
@@ -955,11 +973,11 @@
     "configSchemaViolation": "Violation du schéma de configuration",
     "copyError": "Erreur de copie",
     "initializationFailed": "Échec de l'initialisation",
-    "otherInstanceDetected": "Une autre instance de MarkText en cours d'exécution détectée",
+    "otherInstanceDetected": "Une autre instance de MarkText détectée en cours d'exécution",
     "report": "Signaler",
     "startupError": "Erreur de démarrage",
     "terminatedDueToError": "Terminé en raison d'une erreur",
-    "unexpectedErrorWithMessage": "Erreur inattendue avec message",
+    "unexpectedErrorWithMessage": "Message d'erreur inattendue",
     "unexpectedMainProcess": "Erreur inattendue du processus principal",
     "unexpectedRendererProcess": "Erreur inattendue du processus de rendu"
   },
@@ -969,9 +987,28 @@
   },
   "store": {
     "editor": {
-      "anchorLinkCopied": "Lien d'ancre copié",
-      "tabNotFound": "Onglet non trouvé",
-      "tocItemNotFound": "Élément de table des matières non trouvé"
+      "anchorLinkCopied": "Lien d'ancrage copié",
+      "tabNotFound": "Onglet introuvable",
+      "tocItemNotFound": "Élément de table des matières introuvable",
+      "highlightStart": " [Début de surbrillance] ",
+      "highlightEnd": " [Fin de surbrillance] ",
+      "typeAtToInsert": "Tapez @ pour insérer",
+      "inputFootnoteDefinition": "Saisir la définition de note de bas de page...",
+      "inputYamlFrontMatter": "Saisir les métadonnées YAML...",
+      "inputLanguageIdentifier": "Saisir l'identifiant de langue...",
+      "inputMathematicalFormula": "Saisir la formule mathématique...",
+      "fence": "Clôture",
+      "indent": "Indentation",
+      "frontMatterDelimiter": "---",
+      "mathDelimiter": "$$",
+      "mermaidStart": "``` mermaid",
+      "flowchartStart": "``` flowchart",
+      "sequenceStart": "``` sequence",
+      "plantumlStart": "``` plantuml",
+      "vegaLiteStart": "``` vega-lite",
+      "codeFence": "```",
+      "clickToAddImage": "Cliquer pour ajouter une image",
+      "loadImageFailed": "Échec du chargement de l'image"
     },
     "help": {
       "lineEndingAssertionError": "Erreur d'assertion de fin de ligne"
@@ -979,118 +1016,125 @@
   },
   "spellchecker": {
     "failedToRemoveWord": "Échec de la suppression du mot du dictionnaire",
-    "failedToSwitchLanguage": "Échec du changement de langue du vérificateur d'orthographe",
-    "unexpectedError": "Erreur inattendue du vérificateur d'orthographe"
-  },
-  "search": {
-    "searchResultInfo": "Informations sur les résultats de recherche"
-  },
-  "sideBar": {
-    "search": {
-      "searchLimited": "Recherche limitée"
-    }
+    "failedToSwitchLanguage": "Échec du changement de langue du correcteur orthographique",
+    "unexpectedError": "Erreur inattendue du correcteur orthographique"
   },
   "quickInsert": {
-    "basicBlock": "Bloc de Base",
+    "basicBlock": "Bloc de base",
     "header": "En-tête",
-    "advancedBlock": "Bloc Avancé",
-    "listBlock": "Bloc de Liste",
+    "advancedBlock": "Bloc avancé",
+    "listBlock": "Bloc de liste",
     "diagram": "Diagramme",
     "paragraph": {
       "title": "Paragraphe",
-      "subtitle": "Lorem Ipsum est simplement du faux texte"
+      "subtitle": ""
     },
     "horizontalLine": {
-      "title": "Ligne Horizontale",
+      "title": "Ligne horizontale",
       "subtitle": "---"
     },
     "frontMatter": {
-      "title": "Préambule",
-      "subtitle": "--- Lorem Ipsum ---"
+      "title": "Métadonnées",
+      "subtitle": "--- métadonnées ---"
     },
     "header1": {
-      "title": "En-tête 1",
-      "subtitle": "# Lorem Ipsum est simplement..."
+      "title": "Titre 1",
+      "subtitle": "#"
     },
     "header2": {
-      "title": "En-tête 2",
-      "subtitle": "## Lorem Ipsum est simplement..."
+      "title": "Titre 2",
+      "subtitle": "##"
     },
     "header3": {
-      "title": "En-tête 3",
-      "subtitle": "### Lorem Ipsum est simplement..."
+      "title": "Titre 3",
+      "subtitle": "###"
     },
     "header4": {
-      "title": "En-tête 4",
-      "subtitle": "#### Lorem Ipsum est simplement..."
+      "title": "Titre 4",
+      "subtitle": "####"
     },
     "header5": {
-      "title": "En-tête 5",
-      "subtitle": "##### Lorem Ipsum est simplement..."
+      "title": "Titre 5",
+      "subtitle": "#####"
     },
     "header6": {
-      "title": "En-tête 6",
-      "subtitle": "###### Lorem Ipsum est simplement..."
+      "title": "Titre 6",
+      "subtitle": "######"
     },
     "tableBlock": {
-      "title": "Bloc de Tableau",
-      "subtitle": "|Lorem | Ipsum est simplement |"
+      "title": "Bloc de tableau",
+      "subtitle": "Bloc de tableau"
     },
-    "displayMath": {
-      "title": "Formule Mathématique",
-      "subtitle": "$$ Lorem Ipsum est simplement $$"
+    "mathFormula": {
+      "title": "Formule mathématique",
+      "subtitle": "$$ $$"
     },
     "htmlBlock": {
       "title": "Bloc HTML",
-      "subtitle": "<div> Lorem Ipsum est simplement </div>"
+      "subtitle": "<div> </div>"
     },
     "codeBlock": {
-      "title": "Bloc de Code",
-      "subtitle": "```java Lorem Ipsum est simplement ```"
+      "title": "Bloc de code",
+      "subtitle": "```java ```"
     },
     "quoteBlock": {
-      "title": "Bloc de Citation",
-      "subtitle": ">Lorem Ipsum est simplement..."
+      "title": "Bloc de citation",
+      "subtitle": ">"
     },
-    "orderList": {
-      "title": "Liste Ordonnée",
-      "subtitle": "1. Lorem Ipsum est simplement..."
+    "orderedList": {
+      "title": "Liste ordonnée",
+      "subtitle": "1."
     },
     "bulletList": {
-      "title": "Liste à Puces",
-      "subtitle": "- Lorem Ipsum est simplement..."
+      "title": "Liste à puces",
+      "subtitle": "-"
     },
     "todoList": {
-      "title": "Liste de Tâches",
-      "subtitle": "- [x] Lorem Ipsum est simplement..."
+      "title": "Liste de tâches",
+      "subtitle": "- [x]"
     },
     "vegaChart": {
       "title": "Graphique Vega",
-      "subtitle": "Rendre des graphiques avec vega-lite.js."
+      "subtitle": "Rendu de graphique avec vega-lite.js."
     },
     "flowChart": {
-      "title": "Diagramme de Flux",
-      "subtitle": "Rendre des diagrammes de flux avec flowchart.js."
+      "title": "Organigramme",
+      "subtitle": "Rendu d'organigramme avec flowchart.js."
     },
     "sequenceDiagram": {
-      "title": "Diagramme de Séquence",
-      "subtitle": "Rendre des diagrammes de séquence avec js-sequence."
+      "title": "Diagramme de séquence",
+      "subtitle": "Rendu de diagramme de séquence avec js-sequence."
     },
     "plantumlDiagram": {
       "title": "Diagramme PlantUML",
-      "subtitle": "Rendre des diagrammes PlantUML"
+      "subtitle": "Rendu de diagramme PlantUML"
     },
-    "mermaid": {
+   "mermaid": {
       "title": "Mermaid",
-      "subtitle": "Rendre des graphiques avec mermaid."
-    },
-    "sequenceChart": {
-      "title": "Diagramme de Séquence",
-      "subtitle": "Rendre des diagrammes de séquence avec js-sequence."
-    },
-    "plantUMLChart": {
-      "title": "Diagramme PlantUML",
-      "subtitle": "Rendre des diagrammes PlantUML"
+      "subtitle": "Rendu de diagramme avec mermaid."
     }
+  },
+  "frontMenu": {
+    "duplicate": "Dupliquer",
+    "turnInto": "Transformer en",
+    "newParagraph": "Nouveau Paragraphe",
+    "delete": "Supprimer",
+    "paragraph": "paragraphe",
+    "table": "tableau",
+    "html": "html",
+    "mathblock": "bloc mathématique",
+    "pre": "préformaté",
+    "frontMatter": "front-matter",
+    "ulTask": "liste de tâches",
+    "ulBullet": "liste à puces",
+    "olOrder": "liste ordonnée",
+    "blockquote": "citation",
+    "heading1": "titre 1",
+    "heading2": "titre 2",
+    "heading3": "titre 3",
+    "heading4": "titre 4",
+    "heading5": "titre 5",
+    "heading6": "titre 6",
+    "hr": "ligne horizontale"
   }
 }

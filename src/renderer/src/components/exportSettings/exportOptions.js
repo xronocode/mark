@@ -2,62 +2,62 @@ import { t } from '@/i18n'
 
 export const pageSizeList = [
   {
-    label: () => t('exportSettings.options.pageSizes.a3'),
+    label: t('exportSettings.options.pageSizes.a3'),
     value: 'A3'
   }, {
-    label: () => t('exportSettings.options.pageSizes.a4'),
+    label: t('exportSettings.options.pageSizes.a4'),
     value: 'A4'
   }, {
-    label: () => t('exportSettings.options.pageSizes.a5'),
+    label: t('exportSettings.options.pageSizes.a5'),
     value: 'A5'
   }, {
-    label: () => t('exportSettings.options.pageSizes.legal'),
+    label: t('exportSettings.options.pageSizes.legal'),
     value: 'Legal'
   }, {
-    label: () => t('exportSettings.options.pageSizes.letter'),
+    label: t('exportSettings.options.pageSizes.letter'),
     value: 'Letter'
   }, {
-    label: () => t('exportSettings.options.pageSizes.tabloid'),
+    label: t('exportSettings.options.pageSizes.tabloid'),
     value: 'Tabloid'
   }, {
-    label: () => t('exportSettings.options.pageSizes.custom'),
+    label: t('exportSettings.options.pageSizes.custom'),
     value: 'custom'
   }
 ]
 
 export const headerFooterTypes = [
   {
-    label: () => t('exportSettings.options.headerFooterTypes.none'),
+    label: t('exportSettings.options.headerFooterTypes.none'),
     value: 0
   }, {
-    label: () => t('exportSettings.options.headerFooterTypes.singleCell'),
+    label: t('exportSettings.options.headerFooterTypes.singleCell'),
     value: 1
   }, {
-    label: () => t('exportSettings.options.headerFooterTypes.threeCells'),
+    label: t('exportSettings.options.headerFooterTypes.threeCells'),
     value: 2
   }
 ]
 
 export const headerFooterStyles = [
   {
-    label: () => t('exportSettings.options.headerFooterStyles.default'),
+    label: t('exportSettings.options.headerFooterStyles.default'),
     value: 0
   }, {
-    label: () => t('exportSettings.options.headerFooterStyles.simple'),
+    label: t('exportSettings.options.headerFooterStyles.simple'),
     value: 1
   }, {
-    label: () => t('exportSettings.options.headerFooterStyles.styled'),
+    label: t('exportSettings.options.headerFooterStyles.styled'),
     value: 2
   }
 ]
 
 export const exportThemeList = [{
-  label: () => t('exportSettings.options.themes.academic'),
+  label: t('exportSettings.options.themes.academic'),
   value: 'academic'
 }, {
-  label: () => t('exportSettings.options.themes.default'),
+  label: t('exportSettings.options.themes.default'),
   value: 'default'
 }, {
-  label: () => t('exportSettings.options.themes.liber'),
+  label: t('exportSettings.options.themes.liber'),
   value: 'liber'
 }]
