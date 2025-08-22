@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "electron-mcp-server": {
+      "command": "electron-mcp-server",
+      "args": [],
+      "env": {
+        "SCREENSHOT_ENCRYPTION_KEY": "70a897b57310270e5ab1a765875f176bdf6d4eb4020dca974f5eac0240fac7d3"
+      }
+    }
+  }
+}
