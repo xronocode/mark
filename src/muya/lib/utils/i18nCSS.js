@@ -6,6 +6,8 @@
 class I18nCSS {
   constructor(t) {
     this.t = t || ((key) => key) // 翻译函数，如果没有提供则返回原始键值
+    console.log('[i18nCSS] Constructor called with t function:', typeof t)
+    console.log('[i18nCSS] Testing t function with sample key:', t ? t('editor.undo') : 'No t function')
     // 初始化CSS变量
     this.updateCSSVariables()
   }
@@ -14,6 +16,8 @@ class I18nCSS {
    * 更新CSS变量的值
    */
   updateCSSVariables() {
+    console.log('[i18nCSS] updateCSSVariables called')
+    console.log('[i18nCSS] t function available:', !!this.t)
     const root = document.documentElement
     
     // 更新所有CSS变量
@@ -38,12 +42,25 @@ class I18nCSS {
     root.style.setProperty('--i18n-load-image-failed', `"${this.t('editor.loadImageFailed')}"` || '"Load image failed"')
     
     // 添加编辑相关的CSS变量（用于测试）
-    root.style.setProperty('--ag-undo', `"${this.t('edit.undo')}"` || '"Undo"')
-    root.style.setProperty('--ag-redo', `"${this.t('edit.redo')}"` || '"Redo"')
-    root.style.setProperty('--ag-cut', `"${this.t('edit.cut')}"` || '"Cut"')
-    root.style.setProperty('--ag-copy', `"${this.t('edit.copy')}"` || '"Copy"')
-    root.style.setProperty('--ag-paste', `"${this.t('edit.paste')}"` || '"Paste"')
-    root.style.setProperty('--ag-selectAll', `"${this.t('edit.selectAll')}"` || '"Select All"')
+    const translations = {
+      'undo': this.t('edit.undo'),
+      'redo': this.t('edit.redo'),
+      'cut': this.t('edit.cut'),
+      'copy': this.t('edit.copy'),
+      'paste': this.t('edit.paste'),
+      'selectAll': this.t('edit.selectAll')
+    }
+    
+    console.log('[i18nCSS] Translation results:', translations)
+    
+    root.style.setProperty('--ag-undo', `"${translations.undo}"` || '"Undo"')
+    root.style.setProperty('--ag-redo', `"${translations.redo}"` || '"Redo"')
+    root.style.setProperty('--ag-cut', `"${translations.cut}"` || '"Cut"')
+    root.style.setProperty('--ag-copy', `"${translations.copy}"` || '"Copy"')
+    root.style.setProperty('--ag-paste', `"${translations.paste}"` || '"Paste"')
+    root.style.setProperty('--ag-selectAll', `"${translations.selectAll}"` || '"Select All"')
+    
+    console.log('[i18nCSS] CSS variables set successfully')
   }
 
   /**
