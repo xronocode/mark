@@ -1035,7 +1035,7 @@
     },
     "tableBlock": {
       "title": "표 블록",
-      "subtitle": "| 제목 | 제목 |"
+      "subtitle": "표 블록"
     },
     "mathBlock": {
       "title": "수식 블록",

@@ -33,7 +33,11 @@ const i18n = createI18n({
   legacy: false,
   locale: currentLocale,
   fallbackLocale: 'en',
-  messages
+  messages,
+  // 禁用链接功能以避免@符号被误解析
+  modifiers: {
+    '@': () => '@'
+  }
 })
 
 // 确保 i18n 实例使用正确的语言
