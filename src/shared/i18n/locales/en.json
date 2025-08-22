@@ -350,41 +350,14 @@
       }
     }
   },
-  "editor": {
-    "placeholders": {
-      "frontMatter": "Input YAML Front Matter...",
-      "languageIdentifier": "Input Language Identifier...",
-      "mathFormula": "Input Mathematical Formula..."
-    },
-    "export": {
-      "error": "Export error",
-      "errorExporting": "Error exporting file",
-      "failed": "Export failed"
-    },
-    "insertTable": {
-      "title": "Insert Table",
-      "rows": "Rows",
-      "columns": "Columns"
-    },
-    "notifications": {
-      "notificationNotFound": "Notification not found"
-    },
-    "print": {
-      "error": "Print error",
-      "failed": "Print failed"
-    },
-    "sourceCode": {
-      "cursorNullComment": "Cursor null comment",
-      "imageStructureDeletedComment": "Image structure deleted comment"
-    },
-    "spellcheck": {
-      "disabledError": "Spellcheck disabled error",
-      "errorSwitchingLanguage": "Error switching spellcheck language",
-      "languageMissing": "Spellcheck language missing",
-      "switchError": "Spellcheck switch error",
-      "title": "Spellcheck"
-    }
+  "table": {
+    "resizeTable": "Resize Table",
+    "alignLeft": "Align Left",
+    "alignCenter": "Align Center",
+    "alignRight": "Align Right",
+    "deleteTable": "Delete Table"
   },
+
   "recent": {
     "noTabsOpen": "You have no tabs open.",
     "newFile": "New File"
@@ -1145,5 +1118,84 @@
     "heading5": "heading 5",
     "heading6": "heading 6",
     "hr": "hr"
+  },
+  "editor": {
+    "placeholders": {
+      "frontMatter": "Input YAML Front Matter...",
+      "languageIdentifier": "Input Language Identifier...",
+      "mathFormula": "Input Mathematical Formula..."
+    },
+    "export": {
+      "error": "Export error",
+      "errorExporting": "Error exporting file",
+      "failed": "Export failed"
+    },
+    "insertTable": {
+      "title": "Insert Table",
+      "rows": "Rows",
+      "columns": "Columns"
+    },
+    "notifications": {
+      "notificationNotFound": "Notification not found"
+    },
+    "print": {
+      "error": "Print error",
+      "failed": "Print failed"
+    },
+    "sourceCode": {
+      "cursorNullComment": "Cursor null comment",
+      "imageStructureDeletedComment": "Image structure deleted comment"
+    },
+    "spellcheck": {
+      "disabledError": "Spellcheck disabled error",
+      "errorSwitchingLanguage": "Error switching spellcheck language",
+      "languageMissing": "Spellcheck language missing",
+      "switchError": "Spellcheck switch error",
+      "title": "Spellcheck"
+    },
+    "table": "table",
+    "resizeTable": "Resize Table",
+    "left": "left",
+    "alignLeft": "Align Left",
+    "center": "center",
+    "alignCenter": "Align Center",
+    "right": "right",
+    "alignRight": "Align Right",
+    "delete": "delete",
+    "deleteTable": "Delete Table",
+    "insertRowAbove": "Insert Row Above",
+    "insertRowBelow": "Insert Row Below",
+    "removeRow": "Remove Row",
+    "insertColumnLeft": "Insert Column Left",
+    "insertColumnRight": "Insert Column Right",
+    "removeColumn": "Remove Column",
+    "copyContent": "Copy content",
+    "emptyMathFormula": "< Empty Mathematical Formula >",
+    "invalidMathFormula": "< Invalid Mathematical Formula >",
+    "emptyMermaidBlock": "< Empty Mermaid Block >",
+    "loading": "Loading...",
+    "emptyDiagramBlock": "< Empty Diagram Block >",
+    "emptyHtmlBlock": "< Empty HTML Block >",
+    "onlyTopBlockCanRenderIcon": "Only top most block can render front icon button.",
+    "unhandledFunctionType": "Unhandled functionType: {{functionType}}",
+    "highlight-start": " [highlight start] ",
+    "highlight-end": " [highlight end] ",
+    "type-at-to-insert": "Type @ to insert",
+    "input-footnote-definition": "Input footnote definition",
+    "input-yaml-front-matter": "Input YAML front matter",
+    "input-language-identifier": "Input language identifier",
+    "input-mathematical-formula": "Input mathematical formula",
+    "fence": "fence",
+    "indent": "indent",
+    "front-matter-delimiter": "front matter delimiter",
+    "math-delimiter": "math delimiter",
+    "mermaid-start": "mermaid start",
+    "flowchart-start": "flowchart start",
+    "sequence-start": "sequence start",
+    "plantuml-start": "plantuml start",
+    "vega-lite-start": "vega-lite start",
+    "code-fence": "code fence",
+    "click-to-add-image": "Click to add image",
+    "load-image-failed": "Load image failed"
   }
 }

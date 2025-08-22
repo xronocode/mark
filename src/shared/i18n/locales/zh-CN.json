@@ -350,41 +350,14 @@
       }
     }
   },
-  "editor": {
-    "placeholders": {
-      "frontMatter": "输入 YAML 前置信息...",
-      "languageIdentifier": "输入语言标识符...",
-      "mathFormula": "输入数学公式..."
-    },
-    "insertTable": {
-      "title": "插入表格",
-      "rows": "行",
-      "columns": "列"
-    },
-    "notifications": {
-      "notificationNotFound": "未找到通知"
-    },
-    "sourceCode": {
-      "cursorNullComment": "光标位置无注释",
-      "imageStructureDeletedComment": "图片结构注释已删除"
-    },
-    "export": {
-      "error": "导出错误",
-      "errorExporting": "Error exporting file",
-      "failed": "Export failed"
-    },
-    "print": {
-      "error": "打印错误",
-      "failed": "Print failed"
-    },
-    "spellcheck": {
-      "title": "拼写检查",
-      "disabledError": "Spellcheck disabled error",
-      "errorSwitchingLanguage": "Error switching spellcheck language",
-      "languageMissing": "Spellcheck language missing",
-      "switchError": "Spellcheck switch error"
-    }
+  "table": {
+    "resizeTable": "调整表格大小",
+    "alignLeft": "左对齐",
+    "alignCenter": "居中对齐",
+    "alignRight": "右对齐",
+    "deleteTable": "删除表格"
   },
+
   "recent": {
     "noTabsOpen": "您没有打开的标签页。",
     "newFile": "新建文件"
@@ -1143,5 +1116,84 @@
     "heading5": "标题 5",
     "heading6": "标题 6",
     "hr": "分隔线"
+  },
+  "editor": {
+    "placeholders": {
+      "frontMatter": "输入 YAML 前置信息...",
+      "languageIdentifier": "输入语言标识符...",
+      "mathFormula": "输入数学公式..."
+    },
+    "insertTable": {
+      "title": "插入表格",
+      "rows": "行",
+      "columns": "列"
+    },
+    "notifications": {
+      "notificationNotFound": "未找到通知"
+    },
+    "sourceCode": {
+      "cursorNullComment": "光标位置无注释",
+      "imageStructureDeletedComment": "图片结构注释已删除"
+    },
+    "export": {
+      "error": "导出错误",
+      "errorExporting": "Error exporting file",
+      "failed": "Export failed"
+    },
+    "print": {
+      "error": "打印错误",
+      "failed": "Print failed"
+    },
+    "spellcheck": {
+      "title": "拼写检查",
+      "disabledError": "Spellcheck disabled error",
+      "errorSwitchingLanguage": "Error switching spellcheck language",
+      "languageMissing": "Spellcheck language missing",
+      "switchError": "Spellcheck switch error"
+    },
+    "table": "表格",
+    "resizeTable": "调整表格大小",
+    "left": "左对齐",
+    "alignLeft": "左对齐",
+    "center": "居中对齐",
+    "alignCenter": "居中对齐",
+    "right": "右对齐",
+    "alignRight": "右对齐",
+    "delete": "删除",
+    "deleteTable": "删除表格",
+    "insertRowAbove": "在上方插入行",
+    "insertRowBelow": "在下方插入行",
+    "removeRow": "删除行",
+    "insertColumnLeft": "在左侧插入列",
+    "insertColumnRight": "在右侧插入列",
+    "removeColumn": "删除列",
+    "copyContent": "复制内容",
+    "emptyMathFormula": "< 空数学公式 >",
+    "invalidMathFormula": "< 无效数学公式 >",
+    "emptyMermaidBlock": "< 空 Mermaid 块 >",
+    "loading": "加载中...",
+    "emptyDiagramBlock": "< 空图表块 >",
+    "emptyHtmlBlock": "< 空 HTML 块 >",
+    "onlyTopBlockCanRenderIcon": "只有顶级块可以渲染前置图标按钮。",
+    "unhandledFunctionType": "未处理的功能类型: {{functionType}}",
+    "highlight-start": "[高亮开始]",
+    "highlight-end": "[高亮结束]",
+    "type-at-to-insert": "输入 @ 来插入",
+    "input-footnote-definition": "输入脚注定义",
+    "input-yaml-front-matter": "输入 YAML 前置内容",
+    "input-language-identifier": "输入语言标识符",
+    "input-mathematical-formula": "输入数学公式",
+    "fence": "围栏",
+    "indent": "缩进",
+    "front-matter-delimiter": "前置内容分隔符",
+    "math-delimiter": "数学分隔符",
+    "mermaid-start": "mermaid 开始",
+    "flowchart-start": "流程图 开始",
+    "sequence-start": "时序图 开始",
+    "plantuml-start": "plantuml 开始",
+    "vega-lite-start": "vega-lite 开始",
+    "code-fence": "代码围栏",
+    "click-to-add-image": "点击添加图片",
+    "load-image-failed": "图片加载失败"
   }
 }

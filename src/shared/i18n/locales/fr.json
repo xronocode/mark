@@ -350,6 +350,13 @@
       }
     }
   },
+  "table": {
+    "resizeTable": "Redimensionner le Tableau",
+    "alignLeft": "Aligner à Gauche",
+    "alignCenter": "Aligner au Centre",
+    "alignRight": "Aligner à Droite",
+    "deleteTable": "Supprimer le Tableau"
+  },
   "editor": {
     "placeholders": {
       "frontMatter": "Saisir les métadonnées YAML...",
@@ -1136,5 +1143,61 @@
     "heading5": "titre 5",
     "heading6": "titre 6",
     "hr": "ligne horizontale"
+  },
+  "editor": {
+    "spellcheck": {
+      "enabled": "Vérification orthographique activée",
+      "disabled": "Vérification orthographique désactivée",
+      "enabledError": "Erreur d'activation de la vérification orthographique",
+      "disabledError": "Erreur de désactivation de la vérification orthographique",
+      "errorSwitchingLanguage": "Erreur lors du changement de langue de vérification orthographique",
+      "languageMissing": "Langue de vérification orthographique manquante",
+      "switchError": "Erreur de changement de vérification orthographique",
+      "title": "Vérification orthographique"
+    },
+    "table": "tableau",
+    "resizeTable": "Redimensionner le tableau",
+    "left": "gauche",
+    "alignLeft": "Aligner à gauche",
+    "center": "centre",
+    "alignCenter": "Aligner au centre",
+    "right": "droite",
+    "alignRight": "Aligner à droite",
+    "delete": "supprimer",
+    "deleteTable": "Supprimer le tableau",
+    "insertRowAbove": "Insérer une ligne au-dessus",
+    "insertRowBelow": "Insérer une ligne en-dessous",
+    "removeRow": "Supprimer la ligne",
+    "insertColumnLeft": "Insérer une colonne à gauche",
+    "insertColumnRight": "Insérer une colonne à droite",
+    "removeColumn": "Supprimer la colonne",
+    "copyContent": "Copier le contenu",
+    "emptyMathFormula": "< Formule mathématique vide >",
+    "invalidMathFormula": "< Formule mathématique invalide >",
+    "emptyMermaidBlock": "< Bloc Mermaid vide >",
+    "loading": "Chargement...",
+    "emptyDiagramBlock": "< Bloc de diagramme vide >",
+    "emptyHtmlBlock": "< Bloc HTML vide >",
+    "onlyTopBlockCanRenderIcon": "Seul le bloc supérieur peut rendre le bouton d'icône avant.",
+    "unhandledFunctionType": "Type de fonction non géré : {{functionType}}",
+    "highlight-start": "[début de surbrillance]",
+    "highlight-end": "[fin de surbrillance]",
+    "type-at-to-insert": "Tapez @ pour insérer",
+    "input-footnote-definition": "Saisir la définition de note de bas de page",
+    "input-yaml-front-matter": "Saisir le front matter YAML",
+    "input-language-identifier": "Saisir l'identifiant de langue",
+    "input-mathematical-formula": "Saisir la formule mathématique",
+    "fence": "clôture",
+    "indent": "indentation",
+    "front-matter-delimiter": "délimiteur de front matter",
+    "math-delimiter": "délimiteur mathématique",
+    "mermaid-start": "début mermaid",
+    "flowchart-start": "début organigramme",
+    "sequence-start": "début séquence",
+    "plantuml-start": "début plantuml",
+    "vega-lite-start": "début vega-lite",
+    "code-fence": "clôture de code",
+    "click-to-add-image": "Cliquez pour ajouter une image",
+    "load-image-failed": "Échec du chargement de l'image"
   }
 }

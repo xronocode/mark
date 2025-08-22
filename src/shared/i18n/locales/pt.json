@@ -350,6 +350,13 @@
       }
     }
   },
+  "table": {
+    "resizeTable": "Redimensionar Tabela",
+    "alignLeft": "Alinhar à Esquerda",
+    "alignCenter": "Alinhar ao Centro",
+    "alignRight": "Alinhar à Direita",
+    "deleteTable": "Excluir Tabela"
+  },
   "editor": {
     "placeholders": {
       "frontMatter": "Inserir YAML Front Matter...",
@@ -1144,5 +1151,61 @@
     "heading5": "cabeçalho 5",
     "heading6": "cabeçalho 6",
     "hr": "hr"
+  },
+  "editor": {
+    "spellcheck": {
+      "enabled": "Verificação ortográfica ativada",
+      "disabled": "Verificação ortográfica desativada",
+      "enabledError": "Erro ao ativar verificação ortográfica",
+      "disabledError": "Erro ao desativar verificação ortográfica",
+      "errorSwitchingLanguage": "Erro ao trocar idioma da verificação ortográfica",
+      "languageMissing": "Idioma da verificação ortográfica não encontrado",
+      "switchError": "Erro ao trocar verificação ortográfica",
+      "title": "Verificação Ortográfica"
+    },
+    "table": "tabela",
+    "resizeTable": "Redimensionar tabela",
+    "left": "esquerda",
+    "alignLeft": "Alinhar à esquerda",
+    "center": "centro",
+    "alignCenter": "Alinhar ao centro",
+    "right": "direita",
+    "alignRight": "Alinhar à direita",
+    "delete": "excluir",
+    "deleteTable": "Excluir tabela",
+    "insertRowAbove": "Inserir linha acima",
+    "insertRowBelow": "Inserir linha abaixo",
+    "removeRow": "Remover linha",
+    "insertColumnLeft": "Inserir coluna à esquerda",
+    "insertColumnRight": "Inserir coluna à direita",
+    "removeColumn": "Remover coluna",
+    "copyContent": "Copiar conteúdo",
+    "emptyMathFormula": "< Fórmula matemática vazia >",
+    "invalidMathFormula": "< Fórmula matemática inválida >",
+    "emptyMermaidBlock": "< Bloco Mermaid vazio >",
+    "loading": "Carregando...",
+    "emptyDiagramBlock": "< Bloco de diagrama vazio >",
+    "emptyHtmlBlock": "< Bloco HTML vazio >",
+    "onlyTopBlockCanRenderIcon": "Apenas o bloco superior pode renderizar o botão de ícone anterior.",
+    "unhandledFunctionType": "Tipo de função não tratado: {{functionType}}",
+    "highlight-start": "[início do destaque]",
+    "highlight-end": "[fim do destaque]",
+    "type-at-to-insert": "Digite @ para inserir",
+    "input-footnote-definition": "Inserir definição de nota de rodapé",
+    "input-yaml-front-matter": "Inserir front matter YAML",
+    "input-language-identifier": "Inserir identificador de idioma",
+    "input-mathematical-formula": "Inserir fórmula matemática",
+    "fence": "cerca",
+    "indent": "indentação",
+    "front-matter-delimiter": "delimitador de front matter",
+    "math-delimiter": "delimitador matemático",
+    "mermaid-start": "início mermaid",
+    "flowchart-start": "início fluxograma",
+    "sequence-start": "início sequência",
+    "plantuml-start": "início plantuml",
+    "vega-lite-start": "início vega-lite",
+    "code-fence": "cerca de código",
+    "click-to-add-image": "Clique para adicionar imagem",
+    "load-image-failed": "Falha ao carregar imagem"
   }
 }

@@ -350,6 +350,13 @@
       }
     }
   },
+  "table": {
+    "resizeTable": "Tabellengröße ändern",
+    "alignLeft": "Links ausrichten",
+    "alignCenter": "Zentriert ausrichten",
+    "alignRight": "Rechts ausrichten",
+    "deleteTable": "Tabelle löschen"
+  },
   "editor": {
     "placeholders": {
       "frontMatter": "YAML Front Matter eingeben...",
@@ -1150,5 +1157,61 @@
     "heading5": "Überschrift 5",
     "heading6": "Überschrift 6",
     "hr": "Horizontale Linie"
+  },
+  "editor": {
+    "spellcheck": {
+      "enabled": "Rechtschreibprüfung aktiviert",
+      "disabled": "Rechtschreibprüfung deaktiviert",
+      "enabledError": "Fehler beim Aktivieren der Rechtschreibprüfung",
+      "disabledError": "Fehler beim Deaktivieren der Rechtschreibprüfung",
+      "errorSwitchingLanguage": "Fehler beim Wechseln der Rechtschreibprüfungssprache",
+      "languageMissing": "Rechtschreibprüfungssprache fehlt",
+      "switchError": "Rechtschreibprüfung Wechselfehler",
+      "title": "Rechtschreibprüfung"
+    },
+    "table": "Tabelle",
+    "resizeTable": "Tabellengröße ändern",
+    "left": "links",
+    "alignLeft": "Links ausrichten",
+    "center": "zentriert",
+    "alignCenter": "Zentriert ausrichten",
+    "right": "rechts",
+    "alignRight": "Rechts ausrichten",
+    "delete": "löschen",
+    "deleteTable": "Tabelle löschen",
+    "insertRowAbove": "Zeile oberhalb einfügen",
+    "insertRowBelow": "Zeile unterhalb einfügen",
+    "removeRow": "Zeile entfernen",
+    "insertColumnLeft": "Spalte links einfügen",
+    "insertColumnRight": "Spalte rechts einfügen",
+    "removeColumn": "Spalte entfernen",
+    "copyContent": "Inhalt kopieren",
+    "emptyMathFormula": "< Leere mathematische Formel >",
+    "invalidMathFormula": "< Ungültige mathematische Formel >",
+    "emptyMermaidBlock": "< Leerer Mermaid-Block >",
+    "loading": "Lädt...",
+    "emptyDiagramBlock": "< Leerer Diagramm-Block >",
+    "emptyHtmlBlock": "< Leerer HTML-Block >",
+    "onlyTopBlockCanRenderIcon": "Nur der oberste Block kann das vordere Symbol rendern.",
+    "unhandledFunctionType": "Unbehandelter Funktionstyp: {{functionType}}",
+    "highlight-start": "[Hervorhebung Start]",
+    "highlight-end": "[Hervorhebung Ende]",
+    "type-at-to-insert": "Geben Sie @ ein, um einzufügen",
+    "input-footnote-definition": "Fußnotendefinition eingeben",
+    "input-yaml-front-matter": "YAML-Front-Matter eingeben",
+    "input-language-identifier": "Sprachkennung eingeben",
+    "input-mathematical-formula": "Mathematische Formel eingeben",
+    "fence": "Zaun",
+    "indent": "Einrückung",
+    "front-matter-delimiter": "Front-Matter-Trennzeichen",
+    "math-delimiter": "Mathe-Trennzeichen",
+    "mermaid-start": "Mermaid Start",
+    "flowchart-start": "Flussdiagramm Start",
+    "sequence-start": "Sequenz Start",
+    "plantuml-start": "PlantUML Start",
+    "vega-lite-start": "Vega-Lite Start",
+    "code-fence": "Code-Zaun",
+    "click-to-add-image": "Klicken Sie, um ein Bild hinzuzufügen",
+    "load-image-failed": "Bild laden fehlgeschlagen"
   }
 }

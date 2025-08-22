@@ -350,6 +350,13 @@
       }
     }
   },
+  "table": {
+    "resizeTable": "調整表格大小",
+    "alignLeft": "靠左對齊",
+    "alignCenter": "置中對齊",
+    "alignRight": "靠右對齊",
+    "deleteTable": "刪除表格"
+  },
   "editor": {
     "placeholders": {
       "frontMatter": "輸入 YAML 前置資料...",
@@ -1144,5 +1151,61 @@
     "heading5": "標題 5",
     "heading6": "標題 6",
     "hr": "水平線"
+  },
+  "editor": {
+    "spellcheck": {
+      "enabled": "拼字檢查已啟用",
+      "disabled": "拼字檢查已停用",
+      "enabledError": "拼字檢查啟用錯誤",
+      "disabledError": "拼字檢查停用錯誤",
+      "errorSwitchingLanguage": "切換拼字檢查語言時發生錯誤",
+      "languageMissing": "拼字檢查語言遺失",
+      "switchError": "拼字檢查切換錯誤",
+      "title": "拼字檢查"
+    },
+    "table": "表格",
+    "resizeTable": "調整表格大小",
+    "left": "靠左對齊",
+    "alignLeft": "靠左對齊",
+    "center": "置中對齊",
+    "alignCenter": "置中對齊",
+    "right": "靠右對齊",
+    "alignRight": "靠右對齊",
+    "delete": "刪除",
+    "deleteTable": "刪除表格",
+    "insertRowAbove": "在上方插入列",
+    "insertRowBelow": "在下方插入列",
+    "removeRow": "刪除列",
+    "insertColumnLeft": "在左側插入欄",
+    "insertColumnRight": "在右側插入欄",
+    "removeColumn": "刪除欄",
+    "copyContent": "複製內容",
+    "emptyMathFormula": "< 空數學公式 >",
+    "invalidMathFormula": "< 無效數學公式 >",
+    "emptyMermaidBlock": "< 空 Mermaid 區塊 >",
+    "loading": "載入中...",
+    "emptyDiagramBlock": "< 空圖表區塊 >",
+    "emptyHtmlBlock": "< 空 HTML 區塊 >",
+    "onlyTopBlockCanRenderIcon": "只有最上層區塊可以渲染前置圖示按鈕。",
+    "unhandledFunctionType": "未處理的功能類型: {{functionType}}",
+    "highlight-start": "[高亮開始]",
+    "highlight-end": "[高亮結束]",
+    "type-at-to-insert": "輸入 @ 來插入",
+    "input-footnote-definition": "輸入腳註定義",
+    "input-yaml-front-matter": "輸入 YAML 前置內容",
+    "input-language-identifier": "輸入語言識別符",
+    "input-mathematical-formula": "輸入數學公式",
+    "fence": "圍欄",
+    "indent": "縮排",
+    "front-matter-delimiter": "前置內容分隔符",
+    "math-delimiter": "數學分隔符",
+    "mermaid-start": "mermaid 開始",
+    "flowchart-start": "流程圖 開始",
+    "sequence-start": "時序圖 開始",
+    "plantuml-start": "plantuml 開始",
+    "vega-lite-start": "vega-lite 開始",
+    "code-fence": "程式碼圍欄",
+    "click-to-add-image": "點擊新增圖片",
+    "load-image-failed": "圖片載入失敗"
   }
 }

@@ -350,6 +350,13 @@
       }
     }
   },
+  "table": {
+    "resizeTable": "테이블 크기 조정",
+    "alignLeft": "왼쪽 정렬",
+    "alignCenter": "가운데 정렬",
+    "alignRight": "오른쪽 정렬",
+    "deleteTable": "테이블 삭제"
+  },
   "editor": {
     "placeholders": {
       "frontMatter": "YAML 프론트 매터 입력...",
@@ -1148,5 +1155,61 @@
     "heading5": "제목 5",
     "heading6": "제목 6",
     "hr": "수평선"
+  },
+  "editor": {
+    "spellcheck": {
+      "enabled": "맞춤법 검사가 활성화되었습니다",
+      "disabled": "맞춤법 검사가 비활성화되었습니다",
+      "enabledError": "맞춤법 검사 활성화 오류",
+      "disabledError": "맞춤법 검사 비활성화 오류",
+      "errorSwitchingLanguage": "맞춤법 검사 언어 전환 오류",
+      "languageMissing": "맞춤법 검사 언어가 없습니다",
+      "switchError": "맞춤법 검사 전환 오류",
+      "title": "맞춤법 검사"
+    },
+    "table": "표",
+    "resizeTable": "표 크기 조정",
+    "left": "왼쪽",
+    "alignLeft": "왼쪽 정렬",
+    "center": "가운데",
+    "alignCenter": "가운데 정렬",
+    "right": "오른쪽",
+    "alignRight": "오른쪽 정렬",
+    "delete": "삭제",
+    "deleteTable": "표 삭제",
+    "insertRowAbove": "위에 행 삽입",
+    "insertRowBelow": "아래에 행 삽입",
+    "removeRow": "행 제거",
+    "insertColumnLeft": "왼쪽에 열 삽입",
+    "insertColumnRight": "오른쪽에 열 삽입",
+    "removeColumn": "열 제거",
+    "copyContent": "내용 복사",
+    "emptyMathFormula": "< 빈 수학 공식 >",
+    "invalidMathFormula": "< 잘못된 수학 공식 >",
+    "emptyMermaidBlock": "< 빈 Mermaid 블록 >",
+    "loading": "로딩 중...",
+    "emptyDiagramBlock": "< 빈 다이어그램 블록 >",
+    "emptyHtmlBlock": "< 빈 HTML 블록 >",
+    "onlyTopBlockCanRenderIcon": "최상위 블록만 앞의 아이콘 버튼을 렌더링할 수 있습니다.",
+    "unhandledFunctionType": "처리되지 않은 함수 유형: {{functionType}}",
+    "highlight-start": "[하이라이트 시작]",
+    "highlight-end": "[하이라이트 끝]",
+    "type-at-to-insert": "@를 입력하여 삽입",
+    "input-footnote-definition": "각주 정의 입력",
+    "input-yaml-front-matter": "YAML 프론트 매터 입력",
+    "input-language-identifier": "언어 식별자 입력",
+    "input-mathematical-formula": "수학 공식 입력",
+    "fence": "펜스",
+    "indent": "들여쓰기",
+    "front-matter-delimiter": "프론트 매터 구분자",
+    "math-delimiter": "수학 구분자",
+    "mermaid-start": "mermaid 시작",
+    "flowchart-start": "플로우차트 시작",
+    "sequence-start": "시퀀스 시작",
+    "plantuml-start": "plantuml 시작",
+    "vega-lite-start": "vega-lite 시작",
+    "code-fence": "코드 펜스",
+    "click-to-add-image": "클릭하여 이미지 추가",
+    "load-image-failed": "이미지 로드 실패"
   }
 }
