@@ -121,14 +121,6 @@
       "view": "表示",
       "toggleSidebar": "サイドバーの切り替え",
       "toggleTabbar": "タブバーの切り替え",
-      "toggleSourceCode": "ソースコードモードの切り替え",
-      "toggleTypewriter": "タイプライターモードの切り替え",
-      "toggleFocus": "フォーカスモードの切り替え",
-      "zoomIn": "拡大",
-      "zoomOut": "縮小",
-      "resetZoom": "ズームをリセット",
-      "fullscreen": "フルスクリーンに入る",
-      "exitFullscreen": "フルスクリーンを終了",
       "commandPalette": "コマンドパレット",
       "sourceCode": "ソースコードモード",
       "sourceCodeMode": "ソースコードモード",
@@ -136,16 +128,11 @@
       "typewriterMode": "タイプライターモード",
       "focus": "フォーカスモード",
       "focusMode": "フォーカスモード",
-      "sidebar": "サイドバー",
-      "showSidebar": "サイドバーを表示",
-      "tabBar": "タブバー",
       "showTabBar": "タブバーを表示",
       "toc": "目次",
       "toggleTableOfContents": "目次の切り替え",
       "reloadImages": "画像を再読み込み",
-      "devTools": "開発者ツール",
       "showDeveloperTools": "開発者ツールを表示",
-      "reload": "再読み込み",
       "reloadWindow": "ウィンドウを再読み込み"
     },
     "format": {
@@ -264,12 +251,11 @@
   },
   "commandPalette": {
     "placeholder": "実行するコマンドを入力",
-    "commandNotFound": "コマンドが見つかりません",
-    "changeEncoding": "エンコーディングを変更",
-    "changeLineEnding": "改行コードを変更",
-    "quickOpen": "クイックオープン",
-    "trailingNewline": "末尾の改行",
-    "switchSpellcheckerLanguage": "スペルチェック言語を切り替え"
+    "placeholders": {
+      "selectOption": "オプションを選択",
+      "searchFileToOpen": "開くファイルを検索",
+      "selectLanguage": "言語を選択"
+    }
   },
   "exportSettings": {
     "autoNumberingHeadings": "見出しの自動番号付け",
@@ -371,10 +357,6 @@
     "feedbackQuestion": "フィードバックを共有しませんか？",
     "reportViaGithub": "GitHubでバグや機能リクエストを報告",
     "tweet": "ツイート"
-  },
-  "lineEnding": {
-    "carriageReturnLineFeed": "キャリッジリターン + ラインフィード (CRLF, Windows)",
-    "lineFeed": "ラインフィード (LF, Linux/Mac)"
   },
   "preferences": {
     "title": "環境設定",
@@ -612,7 +594,13 @@
         "bulletListMarker": "箇条書きマーカー",
         "orderListDelimiter": "番号付きリスト区切り文字",
         "listIndentation": {
-          "title": "リストインデント"
+          "title": "リストインデント",
+          "dfm": "デフォルトフォーマットモード",
+          "tab": "タブ",
+          "oneSpace": "1つのスペース",
+          "twoSpaces": "2つのスペース",
+          "threeSpaces": "3つのスペース",
+          "fourSpaces": "4つのスペース"
         }
       },
       "heading": {
@@ -678,7 +666,7 @@
       "lists": {
         "bulletListMarker": "箇条書きマーカー",
         "listIndentation": {
-          "listIndentation": "リストインデント",
+          "title": "リストインデント",
           "dfm": "DFMスタイル",
           "fourSpaces": "4つのスペース",
           "oneSpace": "1つのスペース",
@@ -813,7 +801,9 @@
       "exportFile": "ファイルをエクスポート",
       "exportFilePdf": "PDFとしてエクスポート",
       "zoom": "ズーム",
-      "checkUpdate": "アップデートを確認"
+      "checkUpdate": "アップデートを確認",
+      "lineEnding": "行末文字",
+      "close": "閉じる"
     },
     "edit": {
       "undo": "元に戻す",
@@ -833,7 +823,8 @@
       "findPrevious": "前を検索",
       "replace": "置換",
       "findInFolder": "フォルダ内を検索",
-      "screenshot": "スクリーンショット"
+      "screenshot": "スクリーンショット",
+      "mathBlock": "数式ブロック"
     },
     "paragraph": {
       "heading1": "見出し1",
@@ -856,7 +847,9 @@
       "paragraph": "段落",
       "horizontalLine": "水平線",
       "frontMatter": "フロントマター",
-      "resetParagraph": "段落をリセット"
+      "resetParagraph": "段落をリセット",
+      "mathBlock": "数式ブロック",
+      "horizontalRule": "水平線"
     },
     "format": {
       "strong": "太字",
@@ -878,20 +871,28 @@
       "zoomIn": "拡大",
       "zoomOut": "縮小",
       "toggleFullScreen": "フルスクリーンを切り替え",
-      "changeTheme": "テーマを変更"
+      "changeTheme": "テーマを変更",
+      "close": "閉じる"
     },
     "view": {
       "commandPalette": "コマンドパレット",
       "sourceCodeMode": "ソースコードモード",
       "typewriterMode": "タイプライターモード",
       "focusMode": "フォーカスモード",
+      "toggleSourceCodeMode": "ソースコードモードを切り替え",
+      "toggleTypewriterMode": "タイプライターモードを切り替え",
+      "toggleFocusMode": "フォーカスモードを切り替え",
       "toggleSidebar": "サイドバーを切り替え",
       "toggleToc": "目次を切り替え",
       "toggleTabbar": "タブバーを切り替え",
       "toggleDevTools": "開発者ツールを切り替え",
       "devReload": "開発者リロード",
       "reloadImages": "画像を再読み込み",
-      "textDirection": "テキスト方向"
+      "textDirection": "テキスト方向",
+      "actualSize": "実際のサイズ",
+      "zoomIn": "拡大",
+      "zoomOut": "縮小",
+      "devToggleDeveloperTools": "開発者ツールの切り替え"
     },
     "tabs": {
       "cycleForward": "前方に循環",
@@ -999,7 +1000,7 @@
     "diagram": "図表",
     "paragraph": {
       "title": "段落",
-      "subtitle": ""
+      "subtitle": "テキスト内容を入力"
     },
     "horizontalLine": {
       "title": "水平線",
@@ -1007,124 +1008,113 @@
     },
     "frontMatter": {
       "title": "フロントマター",
-      "subtitle": "--- front matter ---"
+      "subtitle": "--- YAML ---"
     },
     "header1": {
       "title": "見出し1",
-      "subtitle": "#"
+      "subtitle": "# 見出し"
     },
     "header2": {
       "title": "見出し2",
-      "subtitle": "##"
+      "subtitle": "## 見出し"
     },
     "header3": {
       "title": "見出し3",
-      "subtitle": "###"
+      "subtitle": "### 見出し"
     },
     "header4": {
       "title": "見出し4",
-      "subtitle": "####"
+      "subtitle": "#### 見出し"
     },
     "header5": {
       "title": "見出し5",
-      "subtitle": "#####"
+      "subtitle": "##### 見出し"
     },
     "header6": {
       "title": "見出し6",
-      "subtitle": "######"
+      "subtitle": "###### 見出し"
     },
     "tableBlock": {
       "title": "表ブロック",
-      "subtitle": "表ブロック"
+      "subtitle": "| ヘッダー | ヘッダー |"
     },
     "mathFormula": {
       "title": "数式",
-      "subtitle": "$$ $$"
+      "subtitle": "$$ 数式 $$"
     },
     "htmlBlock": {
       "title": "HTMLブロック",
-      "subtitle": "<div> </div>"
+      "subtitle": "<div> HTML </div>"
     },
     "codeBlock": {
       "title": "コードブロック",
-      "subtitle": "```java ```"
+      "subtitle": "``` コード ```"
     },
     "quoteBlock": {
       "title": "引用ブロック",
-      "subtitle": ">"
+      "subtitle": "> 引用内容"
     },
     "orderedList": {
       "title": "番号付きリスト",
-      "subtitle": "1."
+      "subtitle": "1. リスト項目"
     },
     "bulletList": {
       "title": "箇条書きリスト",
-      "subtitle": "-"
+      "subtitle": "- リスト項目"
     },
-    "taskList": {
+    "todoList": {
       "title": "タスクリスト",
-      "subtitle": "- [ ]"
+      "subtitle": "- [ ] タスク項目"
     },
-    "vegaliteChart": {
+    "vegaChart": {
       "title": "Vega-Liteチャート",
-      "subtitle": "vega-lite"
+      "subtitle": "データ可視化チャート"
     },
     "flowChart": {
       "title": "フローチャート",
-      "subtitle": "flowchart"
+      "subtitle": "フローチャート"
     },
     "sequenceChart": {
-      "title": "シーケンスチャート",
-      "subtitle": "sequence"
+      "title": "シーケンス図",
+      "subtitle": "シーケンス図"
     },
-    "plantUMLDiagram": {
+    "plantUMLChart": {
       "title": "PlantUML図",
-      "subtitle": "plantuml"
-    },
-    "mermaidDiagram": {
-      "title": "Mermaid図",
-      "subtitle": "mermaid"
+      "subtitle": "UML図"
     },
     "mermaid": {
+      "title": "Mermaid図",
+      "subtitle": "Mermaid図",
       "gantt": {
-        "title": "ガントチャート",
-        "subtitle": "gantt"
+        "title": "ガントチャート"
       },
       "pie": {
-        "title": "円グラフ",
-        "subtitle": "pie"
+        "title": "円グラフ"
       },
       "flowchart": {
-        "title": "フローチャート",
-        "subtitle": "flowchart"
+        "title": "フローチャート"
       },
       "sequence": {
-        "title": "シーケンス図",
-        "subtitle": "sequenceDiagram"
+        "title": "シーケンス図"
       },
       "class": {
-        "title": "クラス図",
-        "subtitle": "classDiagram"
+        "title": "クラス図"
       },
       "state": {
         "title": "状態図",
         "subtitle": "stateDiagram"
       },
       "journey": {
-        "title": "ユーザージャーニー",
-        "subtitle": "journey"
+        "title": "ユーザージャーニー"
       },
       "git": {
-        "title": "Gitグラフ",
-        "subtitle": "gitgraph"
+        "title": "Gitグラフ"
       },
       "er": {
-        "title": "ER図",
-        "subtitle": "erDiagram"
+        "title": "ER図"
       },
       "requirement": {
-        "title": "要件図",
-        "subtitle": "requirementDiagram"
+        "title": "要件図"
       }
     }
   },
@@ -1137,7 +1127,7 @@
     "table": "表",
     "html": "HTML",
     "mathblock": "数式ブロック",
-    "pre": "整形済みテキスト",
+    "pre": "コードブロック",
     "frontMatter": "フロントマター",
     "ulTask": "タスクリスト",
     "ulBullet": "箇条書きリスト",
@@ -1152,7 +1142,7 @@
     "hr": "水平線"
   },
   "editor": {
-        "placeholders": {
+    "placeholders": {
       "frontMatter": "YAML フロントマターを入力...",
       "languageIdentifier": "言語識別子を入力...",
       "mathFormula": "数式を入力..."
@@ -1232,5 +1222,13 @@
     "code-fence": "コードフェンス",
     "click-to-add-image": "クリックして画像を追加",
     "load-image-failed": "画像の読み込みに失敗しました"
+  },
+  "edit": {
+    "undo": "元に戻す",
+    "redo": "やり直し",
+    "cut": "切り取り",
+    "copy": "コピー",
+    "paste": "貼り付け",
+    "selectAll": "すべて選択"
   }
 }

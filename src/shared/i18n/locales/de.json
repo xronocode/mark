@@ -121,14 +121,6 @@
       "view": "Ansicht",
       "toggleSidebar": "Seitenleiste umschalten",
       "toggleTabbar": "Tab-Leiste umschalten",
-      "toggleSourceCode": "Quellcode-Modus umschalten",
-      "toggleTypewriter": "Schreibmaschinen-Modus umschalten",
-      "toggleFocus": "Fokus-Modus umschalten",
-      "zoomIn": "Vergrößern",
-      "zoomOut": "Verkleinern",
-      "resetZoom": "Zoom zurücksetzen",
-      "fullscreen": "Vollbild aktivieren",
-      "exitFullscreen": "Vollbild verlassen",
       "commandPalette": "Befehlspalette",
       "sourceCode": "Quellcode-Modus",
       "sourceCodeMode": "Quellcode-Modus",
@@ -136,16 +128,11 @@
       "typewriterMode": "Schreibmaschinen-Modus",
       "focus": "Fokus-Modus",
       "focusMode": "Fokus-Modus",
-      "sidebar": "Seitenleiste",
-      "showSidebar": "Seitenleiste anzeigen",
-      "tabBar": "Tab-Leiste",
       "showTabBar": "Tab-Leiste anzeigen",
       "toc": "Inhaltsverzeichnis",
       "toggleTableOfContents": "Inhaltsverzeichnis umschalten",
       "reloadImages": "Bilder neu laden",
-      "devTools": "Entwicklertools",
       "showDeveloperTools": "Entwicklertools anzeigen",
-      "reload": "Neu laden",
       "reloadWindow": "Fenster neu laden"
     },
     "format": {
@@ -264,12 +251,11 @@
   },
   "commandPalette": {
     "placeholder": "Befehl zum Ausführen eingeben",
-    "commandNotFound": "Befehl nicht gefunden",
-    "changeEncoding": "Kodierung ändern",
-    "changeLineEnding": "Zeilenendezeichen ändern",
-    "quickOpen": "Schnell öffnen",
-    "trailingNewline": "Abschließende neue Zeile",
-    "switchSpellcheckerLanguage": "Rechtschreibprüfungssprache wechseln"
+    "placeholders": {
+      "selectOption": "Option auswählen",
+      "searchFileToOpen": "Datei zum Öffnen suchen",
+      "selectLanguage": "Sprache auswählen"
+    }
   },
   "exportSettings": {
     "autoNumberingHeadings": "Automatische Nummerierung der Überschriften",
@@ -371,10 +357,6 @@
     "feedbackQuestion": "Teilen Sie uns Ihr Feedback mit?",
     "reportViaGithub": "Fehler oder Feature-Anfrage über GitHub melden",
     "tweet": "Tweet"
-  },
-  "lineEnding": {
-    "carriageReturnLineFeed": "Wagenrücklauf + Zeilenvorschub (CRLF, Windows)",
-    "lineFeed": "Zeilenvorschub (LF, Linux/Mac)"
   },
   "preferences": {
     "title": "Einstellungen",
@@ -612,7 +594,13 @@
         "bulletListMarker": "Aufzählungszeichen",
         "orderListDelimiter": "Nummerierte Liste Trennzeichen",
         "listIndentation": {
-          "title": "Listeneinrückung"
+          "title": "Listeneinrückung",
+          "dfm": "Standard-Format-Modus",
+          "tab": "Tab",
+          "oneSpace": "Ein Leerzeichen",
+          "twoSpaces": "Zwei Leerzeichen",
+          "threeSpaces": "Drei Leerzeichen",
+          "fourSpaces": "Vier Leerzeichen"
         }
       },
       "heading": {
@@ -678,7 +666,7 @@
       "lists": {
         "bulletListMarker": "Aufzählungszeichen",
         "listIndentation": {
-          "listIndentation": "Listeneinrückung",
+          "title": "Listeneinrückung",
           "dfm": "DFM-Stil",
           "fourSpaces": "Vier Leerzeichen",
           "oneSpace": "Ein Leerzeichen",
@@ -813,7 +801,9 @@
       "exportFile": "Datei exportieren",
       "exportFilePdf": "Als PDF exportieren",
       "zoom": "Zoom",
-      "checkUpdate": "Nach Updates suchen"
+      "checkUpdate": "Nach Updates suchen",
+      "lineEnding": "Zeilenende",
+      "close": "Schließen"
     },
     "edit": {
       "undo": "Rückgängig",
@@ -833,7 +823,8 @@
       "findPrevious": "Rückwärts suchen",
       "replace": "Ersetzen",
       "findInFolder": "Im Ordner suchen",
-      "screenshot": "Screenshot"
+      "screenshot": "Screenshot",
+      "mathBlock": "Mathe-Block"
     },
     "paragraph": {
       "heading1": "Überschrift 1",
@@ -856,7 +847,9 @@
       "paragraph": "Absatz",
       "horizontalLine": "Horizontale Linie",
       "frontMatter": "Front Matter",
-      "resetParagraph": "Absatz zurücksetzen"
+      "resetParagraph": "Absatz zurücksetzen",
+      "mathBlock": "Mathe-Block",
+      "horizontalRule": "Horizontale Linie"
     },
     "format": {
       "strong": "Fett",
@@ -878,20 +871,28 @@
       "zoomIn": "Vergrößern",
       "zoomOut": "Verkleinern",
       "toggleFullScreen": "Vollbild umschalten",
-      "changeTheme": "Design ändern"
+      "changeTheme": "Design ändern",
+      "close": "Schließen"
     },
     "view": {
       "commandPalette": "Befehlspalette",
       "sourceCodeMode": "Quellcode-Modus",
       "typewriterMode": "Schreibmaschinen-Modus",
       "focusMode": "Fokus-Modus",
+      "toggleSourceCodeMode": "Quellcode-Modus umschalten",
+      "toggleTypewriterMode": "Schreibmaschinen-Modus umschalten",
+      "toggleFocusMode": "Fokus-Modus umschalten",
       "toggleSidebar": "Seitenleiste umschalten",
       "toggleToc": "Inhaltsverzeichnis umschalten",
       "toggleTabbar": "Tab-Leiste umschalten",
       "toggleDevTools": "Entwicklertools umschalten",
       "devReload": "Entwickler-Neuladen",
       "reloadImages": "Bilder neu laden",
-      "textDirection": "Textrichtung"
+      "textDirection": "Textrichtung",
+      "actualSize": "Tatsächliche Größe",
+      "zoomIn": "Vergrößern",
+      "zoomOut": "Verkleinern",
+      "devToggleDeveloperTools": "Entwicklertools umschalten"
     },
     "tabs": {
       "cycleForward": "Vorwärts wechseln",
@@ -999,7 +1000,7 @@
     "diagram": "Diagramm",
     "paragraph": {
       "title": "Absatz",
-      "subtitle": ""
+      "subtitle": "Textinhalt eingeben"
     },
     "horizontalLine": {
       "title": "Horizontale Linie",
@@ -1007,83 +1008,120 @@
     },
     "frontMatter": {
       "title": "Front Matter",
-      "subtitle": "--- front matter ---"
+      "subtitle": "--- YAML ---"
     },
     "header1": {
       "title": "Überschrift 1",
-      "subtitle": "#"
+      "subtitle": "# Überschrift"
     },
     "header2": {
       "title": "Überschrift 2",
-      "subtitle": "##"
+      "subtitle": "## Überschrift"
     },
     "header3": {
       "title": "Überschrift 3",
-      "subtitle": "###"
+      "subtitle": "### Überschrift"
     },
     "header4": {
       "title": "Überschrift 4",
-      "subtitle": "####"
+      "subtitle": "#### Überschrift"
     },
     "header5": {
       "title": "Überschrift 5",
-      "subtitle": "#####"
+      "subtitle": "##### Überschrift"
     },
     "header6": {
       "title": "Überschrift 6",
-      "subtitle": "######"
+      "subtitle": "###### Überschrift"
     },
     "tableBlock": {
       "title": "Tabellenblock",
-      "subtitle": "Tabellenblock"
+      "subtitle": "| Kopfzeile | Kopfzeile |"
     },
     "mathFormula": {
       "title": "Mathematische Formel",
-      "subtitle": "$$ $$"
+      "subtitle": "$$ Formel $$"
     },
     "htmlBlock": {
       "title": "HTML-Block",
-      "subtitle": "<div> </div>"
+      "subtitle": "<div> HTML </div>"
     },
     "codeBlock": {
       "title": "Code-Block",
-      "subtitle": "```java ```"
+      "subtitle": "``` Code ```"
     },
     "quoteBlock": {
       "title": "Zitat-Block",
-      "subtitle": ">"
+      "subtitle": "> Zitatinhalt"
     },
     "orderedList": {
       "title": "Nummerierte Liste",
-      "subtitle": "1."
+      "subtitle": "1. Listenelement"
     },
     "bulletList": {
       "title": "Aufzählungsliste",
-      "subtitle": "-"
+      "subtitle": "- Listenelement"
     },
     "todoList": {
       "title": "Aufgabenliste",
-      "subtitle": "- [x]"
+      "subtitle": "- [ ] Aufgabenelement"
     },
     "vegaChart": {
-      "title": "Vega-Diagramm",
-      "subtitle": "Diagramm-Rendering mit vega-lite.js."
+      "title": "Vega-Lite-Diagramm",
+      "subtitle": "Datenvisualisierungsdiagramm"
     },
     "flowChart": {
       "title": "Flussdiagramm",
-      "subtitle": "Flussdiagramm-Rendering mit flowchart.js."
+      "subtitle": "Flussdiagramm"
     },
     "sequenceChart": {
       "title": "Sequenzdiagramm",
-      "subtitle": "Sequenzdiagramm-Rendering mit js-sequence-diagrams."
+      "subtitle": "Sequenzdiagramm"
     },
-    "plantUMLDiagram": {
+    "plantUMLChart": {
       "title": "PlantUML-Diagramm",
-      "subtitle": "Verschiedene Diagramme mit PlantUML."
+      "subtitle": "UML-Diagramm"
     },
-    "mermaidDiagram": {
+    "mermaid": {
       "title": "Mermaid-Diagramm",
-      "subtitle": "Diagramm-Rendering mit mermaid."
+      "subtitle": "Mermaid-Diagramm",
+      "gantt": {
+        "title": "Gantt-Diagramm"
+      },
+      "pie": {
+        "title": "Kreisdiagramm"
+      },
+      "flowchart": {
+        "title": "Flussdiagramm"
+      },
+      "sequence": {
+        "title": "Sequenzdiagramm"
+      },
+      "class": {
+        "title": "Klassendiagramm"
+      },
+      "state": {
+        "title": "Zustandsdiagramm",
+        "subtitle": ""
+      },
+      "journey": {
+        "title": "User Journey"
+      },
+      "git": {
+        "title": "Git-Diagramm"
+      },
+      "er": {
+        "title": "ER-Diagramm"
+      },
+      "requirement": {
+        "title": "Anforderungsdiagramm"
+      }
+    },
+    "taskList": {
+      "title": "Aufgabenliste"
+    },
+    "vegaliteChart": {
+      "title": "Vega-Lite Diagramm"
     }
   },
   "frontMenu": {
@@ -1095,8 +1133,8 @@
     "table": "Tabelle",
     "html": "HTML",
     "mathblock": "Mathe-Block",
-    "pre": "Vorformatiert",
-    "frontMatter": "Front-Matter",
+    "pre": "Code-Block",
+    "frontMatter": "Front Matter",
     "ulTask": "Aufgabenliste",
     "ulBullet": "Aufzählungsliste",
     "olOrder": "Nummerierte Liste",
@@ -1190,5 +1228,13 @@
     "code-fence": "Code-Zaun",
     "click-to-add-image": "Klicken Sie, um ein Bild hinzuzufügen",
     "load-image-failed": "Bild laden fehlgeschlagen"
+  },
+  "edit": {
+    "undo": "Rückgängig",
+    "redo": "Wiederholen",
+    "cut": "Ausschneiden",
+    "copy": "Kopieren",
+    "paste": "Einfügen",
+    "selectAll": "Alles auswählen"
   }
 }
