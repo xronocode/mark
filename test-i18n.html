@@ -86,9 +86,31 @@
         </div>
     </div>
     
-    <script>
+    <script type="module">
+        // 导入必要的模块
+        import { t } from './src/renderer/src/i18n/index.js';
+        
         function getCSSVariable(varName) {
             return getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
+        }
+        
+        // 初始化 i18nCSS
+        async function initializeI18nCSS() {
+            try {
+                // 动态导入 I18nCSS 类
+                const { default: I18nCSS } = await import('./src/muya/lib/utils/i18nCSS.js');
+                
+                // 创建 i18nCSS 实例并传入翻译函数
+                const i18nCSS = new I18nCSS(t);
+                
+                console.log('i18nCSS 实例已创建:', i18nCSS);
+                console.log('翻译函数测试:', t('edit.undo'));
+                
+                return true;
+            } catch (error) {
+                console.error('初始化 i18nCSS 失败:', error);
+                return false;
+            }
         }
         
         function runTests() {
@@ -148,9 +170,21 @@
             resultsDiv.innerHTML = html;
         }
         
-        // 页面加载后运行测试
-        document.addEventListener('DOMContentLoaded', function() {
-            setTimeout(runTests, 1000); // 延迟1秒确保CSS加载完成
+        // 页面加载后初始化并运行测试
+        document.addEventListener('DOMContentLoaded', async function() {
+            console.log('页面加载完成，开始初始化...');
+            
+            // 先初始化 i18nCSS
+            const initialized = await initializeI18nCSS();
+            
+            if (initialized) {
+                console.log('i18nCSS 初始化成功，开始测试...');
+                setTimeout(runTests, 500); // 短暂延迟确保CSS变量设置完成
+            } else {
+                console.error('i18nCSS 初始化失败');
+                document.getElementById('test-results').innerHTML = 
+                    '<p class="error"><strong>❌ i18nCSS 初始化失败，无法进行测试。</strong></p>';
+            }
         });
     </script>
 </body>
