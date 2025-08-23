@@ -33,7 +33,7 @@
 - [MarkText](https://github.com/marktext/marktext) is a free and open source markdown editor originally written by [Jocs](https://github.com/Jocs) and [contributors](https://github.com/marktext/marktext/graphs/contributors).
 - Sadly, the core repository became unmaintained since about 3 years ago, but various Quality of Life issues remained that I noticed in my daily usage.
 - This repository serves as an attempt at modernising my favourite Markdown Editor, and is a fork based off [Jacob Whall's Fork](https://github.com/jacobwhall/marktext)
-
+  - See [my motivation below](#1-soo-is-this-fork-any-different-from-the-countless-others)
   - See [my motivation below](#5-motivation)
 - You can read more about my motivation below
 - Multi-language support powered by Trae AI Claude 4.0
@@ -54,11 +54,11 @@
 - Simply check out the [Releases Page](https://github.com/hubo1989/marktext/releases/tag/v0.18.3-multiL)
 - Tested on:
   - `Ubuntu 24.0.2` (`AppImage` and `.deb` packages)
-  - *Would love some help in testing the other Linux packages!*
+  - _Would love some help in testing the other Linux packages!_
 
 ### Linux Package Managers
 
-##### 1. Arch Linux ![AUR Version](https://img.shields.io/aur/version/marktext-tkaixiang-bin?label=(AUR)%20marktext-tkaixiang-bin)
+##### 1. Arch Linux ![AUR Version](<https://img.shields.io/aur/version/marktext-tkaixiang-bin?label=(AUR)%20marktext-tkaixiang-bin>)
 
 - 在 [AUR](https://aur.archlinux.org/packages/marktext-tkaixiang-bin) 上可用，感谢 [@kromsam](https://github.com/kromsam)
 
@@ -70,6 +70,9 @@
 
   - Without signing, all binaries will appear as "Damaged" by default
   - *If you would love to help with this, feel free to reach out!*
+
+  - Without signing, all binaries will appear as "Damaged" by default
+  - _If you would love to help with this, feel free to reach out!_
 
 ### macOS Preferences Fix
 
@@ -105,8 +108,8 @@
 
 ## 3.2 😸Edit Modes🐶
 
-|    Source Code    |       Typewriter       |       Focus       |
-| :----------------: | :--------------------: | :---------------: |
+|     Source Code      |        Typewriter        |        Focus        |
+| :------------------: | :----------------------: | :-----------------: |
 | ![](docs/source.gif) | ![](docs/typewriter.gif) | ![](docs/focus.gif) |
 
 # 4. Internationalization Support
@@ -272,7 +275,6 @@ This project is based on further development of [Jacob Whall](https://github.com
 ## 1. Soo is this fork any different from the countless others?
 
 - A main gripe I had when looking into `marktext` was that the development framework + environment was aging badly and took forever to compile
-
   - Most libraries were outdated and some couldn't even be installed with modern versions of Node.JS/Python
 - Hence, this fork is kind of a major "re-write" that makes use of [electron-vite](https://electron-vite.org/) instead of the old `Babel + Webpack` setup
 
@@ -286,7 +288,6 @@ This project is based on further development of [Jacob Whall](https://github.com
 
   1. Testing for bugs (Bug-Reports)
   2. Pull Requests
-
   Are more than welcome!
 - You can find a basic list of commands for getting around this repo below, but otherwise - the file structure should be **very similar to the original marktext**
 
@@ -712,3 +713,4 @@ npm run build:linux
 - Verschiedene Themes: **Cadmium Light**, **Material Dark**, etc.
 - Verschiedene Bearbeitungsmodi: **Quellcode-Modus**, **Schreibmaschinen-Modus**, **Fokus-Modus**.
 - Bilder direkt aus der Zwischenablage einfügen.
+- See [Developer Documentation](docs/dev/README.md)

@@ -103,8 +103,9 @@ linux:
     - 'text/markdown'
   icon: 'icons/icon.png'
   desktop:
-    StartupWMClass: 'marktext'
-    Keywords: 'marktext;'
+    entry:
+      StartupWMClass: 'marktext'
+      Keywords: 'marktext;'
   target:
     - AppImage
   fileAssociations:
