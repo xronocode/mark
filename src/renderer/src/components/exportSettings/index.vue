@@ -264,7 +264,7 @@ import CurSelect from '@/prefComponents/common/select'
 import FontTextBox from '@/prefComponents/common/fontTextBox'
 import Range from '@/prefComponents/common/range'
 import TextBox from '@/prefComponents/common/textBox'
-import { pageSizeList, headerFooterTypes, exportThemeList } from './exportOptions'
+import { getPageSizeList, getHeaderFooterTypes, getExportThemeList } from './exportOptions'
 import { t } from '../../i18n'
 
 const exportType = ref('')
@@ -288,7 +288,9 @@ const lineHeight = ref(1.5)
 const autoNumberingHeadings = ref(false)
 const showFrontMatter = ref(false)
 const theme = ref('default')
-const themeList = ref(exportThemeList)
+const themeList = ref(getExportThemeList())
+const pageSizeList = ref(getPageSizeList())
+const headerFooterTypes = ref(getHeaderFooterTypes())
 const headerType = ref(0)
 const headerTextLeft = ref('')
 const headerTextCenter = ref('')
@@ -305,11 +307,19 @@ const tocIncludeTopHeading = ref(true)
 
 onMounted(() => {
   bus.on('showExportDialog', showDialog)
+  bus.on('language-changed', updateTranslations)
 })
 
 onBeforeUnmount(() => {
   bus.off('showExportDialog', showDialog)
+  bus.off('language-changed', updateTranslations)
 })
+
+const updateTranslations = () => {
+  themeList.value = getExportThemeList()
+  pageSizeList.value = getPageSizeList()
+  headerFooterTypes.value = getHeaderFooterTypes()
+}
 
 const showDialog = (type) => {
   exportType.value = type

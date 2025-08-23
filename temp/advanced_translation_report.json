@@ -1,0 +1,160 @@
+{
+  "summary": {
+    "zhPairCount": 943,
+    "enPairCount": 943,
+    "suspiciousCount": 24,
+    "formatIssuesCount": 0,
+    "commonErrorsCount": 0,
+    "totalIssues": 24
+  },
+  "details": {
+    "suspicious": [
+      {
+        "key": "menu.marktext.title",
+        "issue": "中文翻译可能是英文",
+        "zhValue": "MarkText",
+        "enValue": "MarkText"
+      },
+      {
+        "key": "menu.marktext.marktext",
+        "issue": "中文翻译可能是英文",
+        "zhValue": "MarkText",
+        "enValue": "MarkText"
+      },
+      {
+        "key": "menu.theme.cadmiumLight",
+        "issue": "中文翻译可能是英文",
+        "zhValue": "Cadmium Light",
+        "enValue": "Cadmium Light"
+      },
+      {
+        "key": "menu.theme.graphiteLight",
+        "issue": "中文翻译可能是英文",
+        "zhValue": "Graphite Light",
+        "enValue": "Graphite Light"
+      },
+      {
+        "key": "menu.theme.materialDark",
+        "issue": "中文翻译可能是英文",
+        "zhValue": "Material Dark",
+        "enValue": "Material Dark"
+      },
+      {
+        "key": "menu.theme.oneDark",
+        "issue": "中文翻译可能是英文",
+        "zhValue": "One Dark",
+        "enValue": "One Dark"
+      },
+      {
+        "key": "menu.theme.ulyssesLight",
+        "issue": "中文翻译可能是英文",
+        "zhValue": "Ulysses Light",
+        "enValue": "Ulysses Light"
+      },
+      {
+        "key": "preferences.categories.markdown",
+        "issue": "中文翻译可能是英文",
+        "zhValue": "Markdown",
+        "enValue": "Markdown"
+      },
+      {
+        "key": "preferences.general.misc.language.english",
+        "issue": "中文翻译可能是英文",
+        "zhValue": "English",
+        "enValue": "English"
+      },
+      {
+        "key": "preferences.general.misc.language.chinese",
+        "issue": "英文翻译与中文相同",
+        "zhValue": "简体中文",
+        "enValue": "简体中文"
+      },
+      {
+        "key": "preferences.general.misc.language.chinese",
+        "issue": "英文翻译包含中文字符",
+        "zhValue": "简体中文",
+        "enValue": "简体中文"
+      },
+      {
+        "key": "preferences.general.misc.language.traditionalChinese",
+        "issue": "英文翻译与中文相同",
+        "zhValue": "繁體中文",
+        "enValue": "繁體中文"
+      },
+      {
+        "key": "preferences.general.misc.language.traditionalChinese",
+        "issue": "英文翻译包含中文字符",
+        "zhValue": "繁體中文",
+        "enValue": "繁體中文"
+      },
+      {
+        "key": "preferences.general.misc.language.german",
+        "issue": "中文翻译可能是英文",
+        "zhValue": "Deutsch",
+        "enValue": "Deutsch"
+      },
+      {
+        "key": "preferences.general.misc.language.japanese",
+        "issue": "英文翻译与中文相同",
+        "zhValue": "日本語",
+        "enValue": "日本語"
+      },
+      {
+        "key": "preferences.general.misc.language.japanese",
+        "issue": "英文翻译包含中文字符",
+        "zhValue": "日本語",
+        "enValue": "日本語"
+      },
+      {
+        "key": "preferences.image.cloudPictureBed.github",
+        "issue": "中文翻译可能是英文",
+        "zhValue": "GitHub",
+        "enValue": "GitHub"
+      },
+      {
+        "key": "preferences.image.uploader.yarnInstallCommand",
+        "issue": "中文翻译可能是英文",
+        "zhValue": "yarn global add picgo",
+        "enValue": "yarn global add picgo"
+      },
+      {
+        "key": "preferences.image.uploader.services.github",
+        "issue": "中文翻译可能是英文",
+        "zhValue": "GitHub",
+        "enValue": "GitHub"
+      },
+      {
+        "key": "preferences.markdown.title",
+        "issue": "中文翻译可能是英文",
+        "zhValue": "Markdown",
+        "enValue": "Markdown"
+      },
+      {
+        "key": "preferences.markdown.diagrams.plantuml",
+        "issue": "中文翻译可能是英文",
+        "zhValue": "PlantUML",
+        "enValue": "PlantUML"
+      },
+      {
+        "key": "preferences.markdown.diagrams.mermaid",
+        "issue": "中文翻译可能是英文",
+        "zhValue": "Mermaid",
+        "enValue": "Mermaid"
+      },
+      {
+        "key": "preferences.markdown.math.mathJax",
+        "issue": "中文翻译可能是英文",
+        "zhValue": "MathJax",
+        "enValue": "MathJax"
+      },
+      {
+        "key": "quickInsert.mermaid.state.subtitle",
+        "issue": "中文翻译可能是英文",
+        "zhValue": "stateDiagram",
+        "enValue": "stateDiagram"
+      }
+    ],
+    "formatIssues": [],
+    "commonErrors": []
+  }
+}

@@ -1,0 +1,183 @@
+{
+  "timestamp": "8/22/2025, 10:57:02 PM",
+  "baseLanguage": "en",
+  "totalKeys": 874,
+  "languages": {
+    "de": {
+      "totalKeys": 879,
+      "missingKeys": 0,
+      "extraKeys": 5,
+      "isComplete": true,
+      "missingKeysList": [],
+      "extraKeysList": [
+        "preferences.image.uploader.brewInstallCommand",
+        "quickInsert.todoList.subtitle",
+        "quickInsert.todoList.title",
+        "quickInsert.vegaChart.subtitle",
+        "quickInsert.vegaChart.title"
+      ],
+      "completionPercentage": "100.57"
+    },
+    "es": {
+      "totalKeys": 903,
+      "missingKeys": 0,
+      "extraKeys": 29,
+      "isComplete": true,
+      "missingKeysList": [],
+      "extraKeysList": [
+        "preferences.image.uploader.brewInstallCommand",
+        "quickInsert.classDiagram.subtitle",
+        "quickInsert.classDiagram.title",
+        "quickInsert.erDiagram.subtitle",
+        "quickInsert.erDiagram.title",
+        "quickInsert.flowchart.subtitle",
+        "quickInsert.flowchart.title",
+        "quickInsert.ganttChart.subtitle",
+        "quickInsert.ganttChart.title",
+        "quickInsert.gitGraph.subtitle",
+        "quickInsert.gitGraph.title",
+        "quickInsert.mermaid.subtitle",
+        "quickInsert.mermaid.title",
+        "quickInsert.pieChart.subtitle",
+        "quickInsert.pieChart.title",
+        "quickInsert.plantumlDiagram.subtitle",
+        "quickInsert.plantumlDiagram.title",
+        "quickInsert.requirementDiagram.subtitle",
+        "quickInsert.requirementDiagram.title",
+        "quickInsert.sequenceDiagram.subtitle",
+        "quickInsert.sequenceDiagram.title",
+        "quickInsert.stateDiagram.subtitle",
+        "quickInsert.stateDiagram.title",
+        "quickInsert.todoList.subtitle",
+        "quickInsert.todoList.title",
+        "quickInsert.userJourney.subtitle",
+        "quickInsert.userJourney.title",
+        "quickInsert.vegaChart.subtitle",
+        "quickInsert.vegaChart.title"
+      ],
+      "completionPercentage": "103.32"
+    },
+    "fr": {
+      "totalKeys": 885,
+      "missingKeys": 0,
+      "extraKeys": 11,
+      "isComplete": true,
+      "missingKeysList": [],
+      "extraKeysList": [
+        "preferences.image.uploader.brewInstallCommand",
+        "quickInsert.mermaid.subtitle",
+        "quickInsert.mermaid.title",
+        "quickInsert.plantumlDiagram.subtitle",
+        "quickInsert.plantumlDiagram.title",
+        "quickInsert.sequenceDiagram.subtitle",
+        "quickInsert.sequenceDiagram.title",
+        "quickInsert.todoList.subtitle",
+        "quickInsert.todoList.title",
+        "quickInsert.vegaChart.subtitle",
+        "quickInsert.vegaChart.title"
+      ],
+      "completionPercentage": "101.26"
+    },
+    "ja": {
+      "totalKeys": 875,
+      "missingKeys": 0,
+      "extraKeys": 1,
+      "isComplete": true,
+      "missingKeysList": [],
+      "extraKeysList": [
+        "preferences.image.uploader.brewInstallCommand"
+      ],
+      "completionPercentage": "100.11"
+    },
+    "ko": {
+      "totalKeys": 885,
+      "missingKeys": 0,
+      "extraKeys": 11,
+      "isComplete": true,
+      "missingKeysList": [],
+      "extraKeysList": [
+        "preferences.image.uploader.brewInstallCommand",
+        "quickInsert.mathBlock.subtitle",
+        "quickInsert.mathBlock.title",
+        "quickInsert.mermaidChart.subtitle",
+        "quickInsert.mermaidChart.title",
+        "quickInsert.orderList.subtitle",
+        "quickInsert.orderList.title",
+        "quickInsert.plantUMLChart.subtitle",
+        "quickInsert.plantUMLChart.title",
+        "quickInsert.vegaChart.subtitle",
+        "quickInsert.vegaChart.title"
+      ],
+      "completionPercentage": "101.26"
+    },
+    "pt": {
+      "totalKeys": 887,
+      "missingKeys": 0,
+      "extraKeys": 13,
+      "isComplete": true,
+      "missingKeysList": [],
+      "extraKeysList": [
+        "preferences.image.uploader.brewInstallCommand",
+        "quickInsert.mermaid.subtitle",
+        "quickInsert.mermaid.title",
+        "quickInsert.plantUMLChart.subtitle",
+        "quickInsert.plantUMLChart.title",
+        "quickInsert.plantumlDiagram.subtitle",
+        "quickInsert.plantumlDiagram.title",
+        "quickInsert.sequenceDiagram.subtitle",
+        "quickInsert.sequenceDiagram.title",
+        "quickInsert.todoList.subtitle",
+        "quickInsert.todoList.title",
+        "quickInsert.vegaChart.subtitle",
+        "quickInsert.vegaChart.title"
+      ],
+      "completionPercentage": "101.49"
+    },
+    "zh-CN": {
+      "totalKeys": 874,
+      "missingKeys": 0,
+      "extraKeys": 0,
+      "isComplete": true,
+      "missingKeysList": [],
+      "extraKeysList": [],
+      "completionPercentage": "100.00"
+    },
+    "zh-TW": {
+      "totalKeys": 887,
+      "missingKeys": 0,
+      "extraKeys": 13,
+      "isComplete": true,
+      "missingKeysList": [],
+      "extraKeysList": [
+        "preferences.image.uploader.brewInstallCommand",
+        "quickInsert.mermaid.subtitle",
+        "quickInsert.mermaid.title",
+        "quickInsert.plantUMLChart.subtitle",
+        "quickInsert.plantUMLChart.title",
+        "quickInsert.plantumlDiagram.subtitle",
+        "quickInsert.plantumlDiagram.title",
+        "quickInsert.sequenceDiagram.subtitle",
+        "quickInsert.sequenceDiagram.title",
+        "quickInsert.todoList.subtitle",
+        "quickInsert.todoList.title",
+        "quickInsert.vegaChart.subtitle",
+        "quickInsert.vegaChart.title"
+      ],
+      "completionPercentage": "101.49"
+    }
+  },
+  "summary": {
+    "fullyCompleteLanguages": [
+      "de",
+      "es",
+      "fr",
+      "ja",
+      "ko",
+      "pt",
+      "zh-CN",
+      "zh-TW"
+    ],
+    "incompleteLanguages": [],
+    "totalLanguagesChecked": 8
+  }
+}

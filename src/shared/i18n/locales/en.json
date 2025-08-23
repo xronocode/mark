@@ -121,14 +121,6 @@
       "view": "View",
       "toggleSidebar": "Toggle Sidebar",
       "toggleTabbar": "Toggle Tabbar",
-      "toggleSourceCode": "Toggle Source Code Mode",
-      "toggleTypewriter": "Toggle Typewriter Mode",
-      "toggleFocus": "Toggle Focus Mode",
-      "zoomIn": "Zoom In",
-      "zoomOut": "Zoom Out",
-      "resetZoom": "Reset Zoom",
-      "fullscreen": "Enter Fullscreen",
-      "exitFullscreen": "Exit Fullscreen",
       "commandPalette": "Command Palette",
       "sourceCode": "Source Code Mode",
       "sourceCodeMode": "Source Code Mode",
@@ -136,16 +128,11 @@
       "typewriterMode": "Typewriter Mode",
       "focus": "Focus Mode",
       "focusMode": "Focus Mode",
-      "sidebar": "Sidebar",
-      "showSidebar": "Show Sidebar",
-      "tabBar": "Tab Bar",
       "showTabBar": "Show Tab Bar",
       "toc": "Table of Contents",
       "toggleTableOfContents": "Toggle Table of Contents",
       "reloadImages": "Reload Images",
-      "devTools": "Developer Tools",
       "showDeveloperTools": "Show Developer Tools",
-      "reload": "Reload",
       "reloadWindow": "Reload Window"
     },
     "format": {
@@ -264,12 +251,11 @@
   },
   "commandPalette": {
     "placeholder": "Type a command to execute",
-    "commandNotFound": "Command not found",
-    "changeEncoding": "Change Encoding",
-    "changeLineEnding": "Change Line Ending",
-    "quickOpen": "Quick Open",
-    "trailingNewline": "Trailing Newline",
-    "switchSpellcheckerLanguage": "Switch Spellchecker Language"
+    "placeholders": {
+      "selectOption": "Select an option",
+      "searchFileToOpen": "Search file to open",
+      "selectLanguage": "Select a language to switch to"
+    }
   },
   "exportSettings": {
     "autoNumberingHeadings": "Auto numbering headings",
@@ -357,7 +343,6 @@
     "alignRight": "Align Right",
     "deleteTable": "Delete Table"
   },
-
   "recent": {
     "noTabsOpen": "You have no tabs open.",
     "newFile": "New File"
@@ -372,10 +357,6 @@
     "feedbackQuestion": "Tell us your feedback?",
     "reportViaGithub": "Report bug or feature request via github",
     "tweet": "Tweet"
-  },
-  "lineEnding": {
-    "carriageReturnLineFeed": "Carriage Return + Line Feed (CRLF, Windows)",
-    "lineFeed": "Line Feed (LF, Linux/Mac)"
   },
   "preferences": {
     "title": "Preferences",
@@ -560,8 +541,33 @@
         "npmInstallCommand": "npm install picgo -g",
         "yarnInstallCommand": "yarn global add picgo",
         "pnpmInstallCommand": "pnpm add -g picgo",
-        "brewInstallCommand": "brew install picgo",
         "chooseInstallMethod": "Choose installation method:",
+        "retestPicgo": "Retest",
+        "detecting": "Detecting",
+        "lastDetectionTime": "Last Detection Time",
+        "detectionStatus": "Detection Status",
+        "picgoDetection": "PicGo Detection",
+        "usageGuide": {
+          "title": "PicGo Basic Usage Guide",
+          "step1": "Configure Uploader",
+          "step1Description": "Use the following command to configure PicGo uploader:",
+          "step2": "Upload Images",
+          "step2Description": "Use the following command to upload images:",
+          "step3": "View Configuration",
+          "step3Description": "Use the following command to view current configuration:",
+          "documentation": "View full documentation"
+        },
+        "autoDetection": "Auto detecting",
+        "lastSuccessTime": "Last success time",
+        "neverDetected": "Never detected",
+        "neverSuccessful": "Never successful",
+        "configureUploader": "Configure Uploader",
+        "configureDescription": "Use the following command to configure PicGo uploader:",
+        "uploadImage": "Upload Images",
+        "uploadDescription": "Use the following command to upload images:",
+        "viewConfig": "View Configuration",
+        "viewConfigDescription": "Use the following command to view current configuration:",
+        "viewDocumentation": "View full documentation",
         "githubDeprecated": "GitHub uploader is deprecated",
         "githubToken": "GitHub Token",
         "ownerName": "Owner Name",
@@ -613,7 +619,13 @@
         "bulletListMarker": "Bullet list marker",
         "orderListDelimiter": "Order list delimiter",
         "listIndentation": {
-          "title": "List Indentation"
+          "title": "List Indentation",
+          "dfm": "Default Format Mode",
+          "tab": "Tab",
+          "oneSpace": "One Space",
+          "twoSpaces": "Two Spaces",
+          "threeSpaces": "Three Spaces",
+          "fourSpaces": "Four Spaces"
         }
       },
       "heading": {
@@ -679,7 +691,7 @@
       "lists": {
         "bulletListMarker": "Bullet list marker",
         "listIndentation": {
-          "listIndentation": "List Indentation",
+          "title": "List Indentation",
           "dfm": "DFM Style",
           "fourSpaces": "Four Spaces",
           "oneSpace": "One Space",
@@ -822,7 +834,9 @@
       "exportFile": "Export File",
       "exportFilePdf": "Export as PDF",
       "zoom": "Zoom",
-      "checkUpdate": "Check for Updates"
+      "checkUpdate": "Check for Updates",
+      "lineEnding": "Line Ending",
+      "close": "Close"
     },
     "edit": {
       "undo": "Undo",
@@ -842,7 +856,8 @@
       "findPrevious": "Find Previous",
       "replace": "Replace",
       "findInFolder": "Find in Folder",
-      "screenshot": "Screenshot"
+      "screenshot": "Screenshot",
+      "mathBlock": "Math Block"
     },
     "paragraph": {
       "heading1": "Heading 1",
@@ -865,7 +880,9 @@
       "paragraph": "Paragraph",
       "horizontalLine": "Horizontal Line",
       "frontMatter": "Front Matter",
-      "resetParagraph": "Reset Paragraph"
+      "resetParagraph": "Reset Paragraph",
+      "mathBlock": "Math Block",
+      "horizontalRule": "Horizontal Rule"
     },
     "format": {
       "strong": "Bold",
@@ -883,6 +900,7 @@
     },
     "window": {
       "minimize": "Minimize",
+      "close": "Close",
       "toggleAlwaysOnTop": "Toggle Always on Top",
       "zoomIn": "Zoom In",
       "zoomOut": "Zoom Out",
@@ -894,13 +912,20 @@
       "sourceCodeMode": "Source Code Mode",
       "typewriterMode": "Typewriter Mode",
       "focusMode": "Focus Mode",
+      "toggleSourceCodeMode": "Toggle Source Code Mode",
+      "toggleTypewriterMode": "Toggle Typewriter Mode",
+      "toggleFocusMode": "Toggle Focus Mode",
       "toggleSidebar": "Toggle Sidebar",
       "toggleToc": "Toggle Table of Contents",
       "toggleTabbar": "Toggle Tab Bar",
       "toggleDevTools": "Toggle Developer Tools",
       "devReload": "Developer Reload",
       "reloadImages": "Reload Images",
-      "textDirection": "Text Direction"
+      "textDirection": "Text Direction",
+      "actualSize": "Actual Size",
+      "zoomIn": "Zoom In",
+      "zoomOut": "Zoom Out",
+      "devToggleDeveloperTools": "Toggle Developer Tools"
     },
     "tabs": {
       "cycleForward": "Cycle Forward",
@@ -971,11 +996,11 @@
       "anchorLinkCopied": "Anchor link copied",
       "tabNotFound": "Tab not found",
       "tocItemNotFound": "Table of contents item not found",
-      "highlightStart": " [highlight start] ",
-      "highlightEnd": " [highlight end] ",
+      "highlightStart": "[highlight start]",
+      "highlightEnd": "[highlight end]",
       "typeAtToInsert": "Type {'@'} to insert",
       "inputFootnoteDefinition": "Input the footnote definition...",
-      "inputYamlFrontMatter": "Input YAML Front Matter...",
+      "inputYamlFrontMatter": "Input YAML Front Matter",
       "inputLanguageIdentifier": "Input Language Identifier...",
       "inputMathematicalFormula": "Input Mathematical Formula...",
       "fence": "fence",
@@ -1000,7 +1025,6 @@
     "failedToSwitchLanguage": "Failed to switch spellchecker language",
     "unexpectedError": "Unexpected spellchecker error"
   },
-
   "quickInsert": {
     "basicBlock": "Basic Block",
     "header": "Header",
@@ -1009,7 +1033,7 @@
     "diagram": "Diagram",
     "paragraph": {
       "title": "Paragraph",
-      "subtitle": ""
+      "subtitle": "Input text content"
     },
     "horizontalLine": {
       "title": "Horizontal Line",
@@ -1017,91 +1041,126 @@
     },
     "frontMatter": {
       "title": "Front Matter",
-      "subtitle": "--- Front Matter ---"
+      "subtitle": "--- YAML ---"
     },
     "header1": {
       "title": "Header 1",
-      "subtitle": "#"
+      "subtitle": "# Header"
     },
     "header2": {
       "title": "Header 2",
-      "subtitle": "##"
+      "subtitle": "## Header"
     },
     "header3": {
       "title": "Header 3",
-      "subtitle": "###"
+      "subtitle": "### Header"
     },
     "header4": {
       "title": "Header 4",
-      "subtitle": "####"
+      "subtitle": "#### Header"
     },
     "header5": {
       "title": "Header 5",
-      "subtitle": "#####"
+      "subtitle": "##### Header"
     },
     "header6": {
       "title": "Header 6",
-      "subtitle": "######"
+      "subtitle": "###### Header"
     },
     "tableBlock": {
       "title": "Table Block",
-      "subtitle": "Table Block"
+      "subtitle": "| Header | Header |"
     },
     "mathFormula": {
       "title": "Math Formula",
-      "subtitle": "$$ $$"
+      "subtitle": "$$ Formula $$"
     },
     "htmlBlock": {
       "title": "HTML Block",
-      "subtitle": "<div> </div>"
+      "subtitle": "<div> HTML </div>"
     },
     "codeBlock": {
       "title": "Code Block",
-      "subtitle": "```java ```"
+      "subtitle": "``` Code ```"
     },
     "quoteBlock": {
       "title": "Quote Block",
-      "subtitle": ">"
+      "subtitle": "> Quote content"
     },
     "orderedList": {
       "title": "Ordered List",
-      "subtitle": "1."
+      "subtitle": "1. List item"
     },
     "bulletList": {
       "title": "Bullet List",
-      "subtitle": "-"
+      "subtitle": "- List item"
     },
     "todoList": {
-      "title": "Todo List",
-      "subtitle": "- [x]"
+      "title": "List",
+      "subtitle": "- [ ] Task item"
     },
     "vegaChart": {
-      "title": "Vega Chart",
-      "subtitle": "Render charts using vega-lite.js."
+      "title": "Vega-Lite Chart",
+      "subtitle": "Data visualization chart"
     },
     "flowChart": {
       "title": "Flow Chart",
-      "subtitle": "Render flow charts using flowchart.js."
-    },
-    "sequenceDiagram": {
-      "title": "Sequence Diagram",
-      "subtitle": "Render sequence diagrams using js-sequence."
-    },
-    "plantumlDiagram": {
-      "title": "PlantUML Diagram",
-      "subtitle": "Render PlantUML diagrams"
-    },
-    "mermaid": {
-      "title": "Mermaid",
-      "subtitle": "Render charts using mermaid."
+      "subtitle": "Flow chart diagram"
     },
     "sequenceChart": {
       "title": "Sequence Chart",
-      "subtitle": "Render sequence charts using js-sequence."
+      "subtitle": "Sequence diagram"
     },
     "plantUMLChart": {
       "title": "PlantUML Chart",
-      "subtitle": "Render PlantUML charts"
+      "subtitle": "UML diagram"
+    },
+    "mermaid": {
+      "title": "Mermaid Chart",
+      "subtitle": "Mermaid diagram",
+      "gantt": {
+        "title": "Gantt Chart"
+      },
+      "pie": {
+        "title": "Pie Chart"
+      },
+      "flowchart": {
+        "title": "Flowchart"
+      },
+      "sequence": {
+        "title": "Sequence Diagram"
+      },
+      "class": {
+        "title": "Class Diagram"
+      },
+      "state": {
+        "title": "State Diagram",
+        "subtitle": "stateDiagram"
+      },
+      "journey": {
+        "title": "User Journey"
+      },
+      "git": {
+        "title": "Git Graph"
+      },
+      "er": {
+        "title": "ER Diagram"
+      },
+      "requirement": {
+        "title": "Requirement Diagram"
+      }
+    },
+    "taskList": {
+      "title": "Task List"
+    },
+    "vegaliteChart": {
+      "title": "Vega-Lite Chart"
+    },
+    "plantUMLDiagram": {
+      "title": "PlantUML Diagram"
+    },
+    "mermaidDiagram": {
+      "title": "Mermaid Diagram"
     }
   },
   "frontMenu": {
@@ -1109,27 +1168,27 @@
     "turnInto": "Turn Into",
     "newParagraph": "New Paragraph",
     "delete": "Delete",
-    "paragraph": "paragraph",
-    "table": "table",
-    "html": "html",
-    "mathblock": "mathblock",
-    "pre": "pre",
-    "frontMatter": "front-matter",
-    "ulTask": "ul-task",
-    "ulBullet": "ul-bullet",
-    "olOrder": "ol-order",
-    "blockquote": "blockquote",
-    "heading1": "heading 1",
-    "heading2": "heading 2",
-    "heading3": "heading 3",
-    "heading4": "heading 4",
-    "heading5": "heading 5",
-    "heading6": "heading 6",
-    "hr": "hr"
+    "paragraph": "Paragraph",
+    "table": "Table",
+    "html": "HTML",
+    "mathblock": "Math Block",
+    "pre": "Code Block",
+    "frontMatter": "Front Matter",
+    "ulTask": "Task List",
+    "ulBullet": "Bullet List",
+    "olOrder": "Ordered List",
+    "blockquote": "Blockquote",
+    "heading1": "Heading 1",
+    "heading2": "Heading 2",
+    "heading3": "Heading 3",
+    "heading4": "Heading 4",
+    "heading5": "Heading 5",
+    "heading6": "Heading 6",
+    "hr": "Horizontal Rule"
   },
   "editor": {
     "placeholders": {
-      "frontMatter": "Input YAML Front Matter...",
+      "frontMatter": "Input YAML Front Matter",
       "languageIdentifier": "Input Language Identifier...",
       "mathFormula": "Input Mathematical Formula..."
     },
@@ -1159,7 +1218,10 @@
       "errorSwitchingLanguage": "Error switching spellcheck language",
       "languageMissing": "Spellcheck language missing",
       "switchError": "Spellcheck switch error",
-      "title": "Spellcheck"
+      "title": "Spellcheck",
+      "disabled": "Spellcheck disabled",
+      "enabled": "Spellcheck enabled",
+      "enabledError": "Error enabling spellcheck"
     },
     "table": "table",
     "resizeTable": "Resize Table",
@@ -1186,8 +1248,8 @@
     "emptyHtmlBlock": "< Empty HTML Block >",
     "onlyTopBlockCanRenderIcon": "Only top most block can render front icon button.",
     "unhandledFunctionType": "Unhandled functionType: {{functionType}}",
-    "highlight-start": " [highlight start] ",
-    "highlight-end": " [highlight end] ",
+    "highlight-start": "[highlight end]",
+    "highlight-end": "[highlight end]",
     "type-at-to-insert": "Type {'@'} to insert",
     "input-footnote-definition": "Input footnote definition",
     "input-yaml-front-matter": "Input YAML front matter",

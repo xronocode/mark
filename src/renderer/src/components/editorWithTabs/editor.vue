@@ -641,7 +641,9 @@ const handleSelectAll = () => {
     const activeElement = document.activeElement
     const nodeName = activeElement.nodeName
     if (nodeName === 'INPUT' || nodeName === 'TEXTAREA') {
-      activeElement.select()
+      if (typeof activeElement.select === 'function') {
+        activeElement.select()
+      }
     }
   }
 }

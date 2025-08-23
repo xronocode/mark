@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PicGo 动画测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .detection-status {
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        .detection-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .detection-status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .detection-animation-container {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .loading-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background-color: #007acc;
+            opacity: 0.3;
+            transition: opacity 0.3s ease;
+        }
+        .loading-dot.animate {
+            opacity: 1;
+        }
+        .refresh-button {
+            background: #007acc;
+            border: none;
+            border-radius: 4px;
+            padding: 6px;
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background-color 0.2s;
+        }
+        .refresh-button:hover {
+            background: #005a9e;
+        }
+        .refresh-button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .status-info {
+            padding: 10px;
+            border-radius: 4px;
+            margin-top: 10px;
+        }
+        .status-info.success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .status-info.warning {
+            background-color: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+        .test-controls {
+            margin: 20px 0;
+            text-align: center;
+        }
+        .test-button {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 0 10px;
+            font-size: 14px;
+        }
+        .test-button:hover {
+            background: #218838;
+        }
+        .console-output {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 15px;
+            margin: 20px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>PicGo 检测动画测试页面</h1>
+        
+        <div class="test-controls">
+            <button class="test-button" onclick="startTest()">开始检测测试</button>
+            <button class="test-button" onclick="clearConsole()">清空日志</button>
+        </div>
+        
+        <div class="detection-status">
+            <div class="detection-header">
+                <h6>PicGo 检测状态</h6>
+                <div class="detection-status-indicator">
+                    <span id="status-text">准备检测...</span>
+                    <div class="detection-animation-container">
+                        <div id="loading-dot" class="loading-dot" style="display: none;"></div>
+                        <button id="refresh-button" class="refresh-button" style="display: none;" onclick="manualDetection()">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="23 4 23 10 17 10"></polyline>
+                                <polyline points="1 20 1 14 7 14"></polyline>
+                                <path d="m3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div id="status-info" class="status-info warning">
+                <div class="status-text">等待开始检测...</div>
+            </div>
+        </div>
+        
+        <div class="console-output" id="console-output">
+            <div>控制台日志将在这里显示...</div>
+        </div>
+    </div>
+
+    <script>
+        let animationTimer = null;
+        let buttonTimer = null;
+        let isDetecting = false;
+        
+        function log(message) {
+            const consoleOutput = document.getElementById('console-output');
+            const timestamp = new Date().toLocaleTimeString();
+            consoleOutput.innerHTML += `<div>[${timestamp}] ${message}</div>`;
+            consoleOutput.scrollTop = consoleOutput.scrollHeight;
+            console.log(message);
+        }
+        
+        function clearConsole() {
+            document.getElementById('console-output').innerHTML = '<div>控制台日志已清空...</div>';
+        }
+        
+        function startLoadingAnimation() {
+            log('=== 开始加载动画 ===');
+            
+            const loadingDot = document.getElementById('loading-dot');
+            const refreshButton = document.getElementById('refresh-button');
+            const statusText = document.getElementById('status-text');
+            
+            // 显示加载动画，隐藏刷新按钮
+            loadingDot.style.display = 'block';
+            refreshButton.style.display = 'none';
+            statusText.textContent = '检测中...';
+            
+            log('动画状态: 显示加载动画');
+            
+            // 清除之前的定时器
+            if (animationTimer) {
+                clearInterval(animationTimer);
+            }
+            if (buttonTimer) {
+                clearTimeout(buttonTimer);
+            }
+            
+            // 启动闪烁动画
+            animationTimer = setInterval(() => {
+                loadingDot.classList.toggle('animate');
+                log('动画闪烁: ' + (loadingDot.classList.contains('animate') ? '亮' : '暗'));
+            }, 1000);
+            
+            log('动画定时器已设置: ' + animationTimer);
+            
+            // 3秒后显示刷新按钮
+            buttonTimer = setTimeout(() => {
+                log('=== 显示刷新按钮 ===');
+                loadingDot.style.display = 'none';
+                refreshButton.style.display = 'flex';
+                statusText.textContent = '检测完成';
+                
+                if (animationTimer) {
+                    clearInterval(animationTimer);
+                    animationTimer = null;
+                }
+                
+                // 5秒后自动隐藏刷新按钮
+                setTimeout(() => {
+                    log('=== 自动隐藏刷新按钮 ===');
+                    refreshButton.style.display = 'none';
+                    statusText.textContent = '准备检测...';
+                }, 5000);
+                
+            }, 3000);
+            
+            log('按钮定时器已设置: ' + buttonTimer);
+        }
+        
+        function stopAnimationAndButton() {
+            log('=== 停止动画和按钮 ===');
+            
+            const loadingDot = document.getElementById('loading-dot');
+            const refreshButton = document.getElementById('refresh-button');
+            const statusText = document.getElementById('status-text');
+            
+            loadingDot.style.display = 'none';
+            refreshButton.style.display = 'none';
+            loadingDot.classList.remove('animate');
+            statusText.textContent = '准备检测...';
+            
+            if (animationTimer) {
+                clearInterval(animationTimer);
+                animationTimer = null;
+                log('清除动画定时器: ' + animationTimer);
+            }
+            if (buttonTimer) {
+                clearTimeout(buttonTimer);
+                buttonTimer = null;
+                log('清除按钮定时器: ' + buttonTimer);
+            }
+        }
+        
+        function testPicgo() {
+            return new Promise((resolve) => {
+                log('=== PicGo 检测开始 ===');
+                
+                // 启动加载动画
+                startLoadingAnimation();
+                
+                // 模拟检测过程
+                setTimeout(() => {
+                    log('检测 Node.js...');
+                }, 500);
+                
+                setTimeout(() => {
+                    log('检测 npm...');
+                }, 1000);
+                
+                setTimeout(() => {
+                    log('检测 PicGo...');
+                }, 1500);
+                
+                setTimeout(() => {
+                    log('=== PicGo 检测完成 ===');
+                    
+                    // 更新状态信息
+                    const statusInfo = document.getElementById('status-info');
+                    statusInfo.className = 'status-info success';
+                    statusInfo.innerHTML = '<div class="status-text">PicGo 检测成功！</div>';
+                    
+                    resolve();
+                }, 2000);
+            });
+        }
+        
+        async function startTest() {
+            if (isDetecting) return;
+            
+            isDetecting = true;
+            log('=== 开始测试 ===');
+            
+            try {
+                await testPicgo();
+            } finally {
+                isDetecting = false;
+                log('=== 测试结束 ===');
+            }
+        }
+        
+        async function manualDetection() {
+            if (isDetecting) return;
+            
+            log('=== 手动检测触发 ===');
+            await startTest();
+        }
+    </script>
+</body>
+</html>

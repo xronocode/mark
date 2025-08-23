@@ -1,0 +1,15 @@
+{
+  "summary": {
+    "zhKeyCount": 943,
+    "enKeyCount": 943,
+    "totalIssues": 0
+  },
+  "issues": {
+    "missingInEn": [],
+    "missingInZh": [],
+    "zhDuplicates": [],
+    "enDuplicates": [],
+    "zhEmptyValues": [],
+    "enEmptyValues": []
+  }
+}

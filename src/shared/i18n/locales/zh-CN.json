@@ -6,12 +6,12 @@
       "newTab": "新建标签页",
       "newWindow": "新建窗口",
       "open": "打开",
-      "openFile": "打开文件...",
-      "openFolder": "打开文件夹...",
+      "openFile": "打开文件…",
+      "openFolder": "打开文件夹…",
       "openRecent": "打开最近",
       "clearRecentlyUsed": "清除最近使用",
       "save": "保存",
-      "saveAs": "另存为...",
+      "saveAs": "另存为…",
       "autoSave": "自动保存",
       "moveTo": "移动到",
       "rename": "重命名",
@@ -108,7 +108,7 @@
       "title": "MarkText",
       "marktext": "MarkText",
       "about": "关于 MarkText",
-      "checkUpdates": "检查更新...",
+      "checkUpdates": "检查更新…",
       "preferences": "偏好设置",
       "services": "服务",
       "hide": "隐藏 MarkText",
@@ -121,14 +121,6 @@
       "view": "视图",
       "toggleSidebar": "切换侧边栏",
       "toggleTabbar": "切换标签栏",
-      "toggleSourceCode": "切换源码模式",
-      "toggleTypewriter": "切换打字机模式",
-      "toggleFocus": "切换专注模式",
-      "zoomIn": "放大",
-      "zoomOut": "缩小",
-      "resetZoom": "重置缩放",
-      "fullscreen": "进入全屏",
-      "exitFullscreen": "退出全屏",
       "commandPalette": "命令面板",
       "sourceCode": "源码模式",
       "sourceCodeMode": "源码模式",
@@ -136,16 +128,11 @@
       "typewriterMode": "打字机模式",
       "focus": "专注模式",
       "focusMode": "专注模式",
-      "sidebar": "侧边栏",
-      "showSidebar": "显示侧边栏",
-      "tabBar": "标签栏",
       "showTabBar": "显示标签栏",
       "toc": "目录",
       "toggleTableOfContents": "切换目录",
       "reloadImages": "重新加载图片",
-      "devTools": "开发者工具",
       "showDeveloperTools": "显示开发者工具",
-      "reload": "重新加载",
       "reloadWindow": "重新加载窗口"
     },
     "format": {
@@ -199,10 +186,10 @@
     "pasteAsPlainText": "粘贴为纯文本",
     "insertParagraphBefore": "在前面插入段落",
     "insertParagraphAfter": "在后面插入段落",
-    "spelling": "拼写...",
-    "changeLanguage": "更改语言...",
+    "spelling": "拼写…",
+    "changeLanguage": "更改语言…",
     "addToDictionary": "添加到词典",
-    "editDictionary": "编辑词典...",
+    "editDictionary": "编辑词典…",
     "sideBar": {
       "newFile": "新建文件",
       "newDirectory": "新建目录",
@@ -237,7 +224,7 @@
   },
   "sideBar": {
     "search": {
-      "searchInFolder": "在文件夹中搜索...",
+      "searchInFolder": "在文件夹中搜索…",
       "noFolderOpen": "没有打开的文件夹",
       "noResultsFound": "未找到结果。",
       "cancel": "取消",
@@ -264,12 +251,11 @@
   },
   "commandPalette": {
     "placeholder": "输入要执行的命令",
-    "commandNotFound": "未找到命令",
-    "changeEncoding": "更改编码",
-    "changeLineEnding": "更改行结束符",
-    "quickOpen": "快速打开",
-    "trailingNewline": "尾随换行符",
-    "switchSpellcheckerLanguage": "切换拼写检查语言"
+    "placeholders": {
+      "selectOption": "选择一个选项",
+      "searchFileToOpen": "搜索要打开的文件",
+      "selectLanguage": "选择要切换的语言"
+    }
   },
   "exportSettings": {
     "title": "导出选项",
@@ -322,7 +308,7 @@
     },
     "autoNumberingHeadings": "自动编号标题",
     "showFrontMatter": "显示前置元数据",
-    "export": "导出...",
+    "export": "导出…",
     "options": {
       "pageSizes": {
         "a3": "A3 (297mm x 420mm)",
@@ -357,7 +343,6 @@
     "alignRight": "右对齐",
     "deleteTable": "删除表格"
   },
-
   "recent": {
     "noTabsOpen": "您没有打开的标签页。",
     "newFile": "新建文件"
@@ -373,14 +358,10 @@
     "reportViaGithub": "通过 GitHub 报告错误或功能请求",
     "tweet": "推文"
   },
-  "lineEnding": {
-    "carriageReturnLineFeed": "回车 + 换行 (CRLF (Windows))",
-    "lineFeed": "换行 (LF (Unix/macOS))"
-  },
   "preferences": {
     "title": "偏好设置",
     "search": {
-      "placeholder": "搜索偏好设置..."
+      "placeholder": "搜索偏好设置…"
     },
     "categories": {
       "general": "通用",
@@ -561,6 +542,32 @@
         "yarnInstallCommand": "yarn global add picgo",
         "pnpmInstallCommand": "pnpm add -g picgo",
         "chooseInstallMethod": "选择安装方式：",
+        "retestPicgo": "重新检测",
+        "detecting": "检测中…",
+        "lastDetectionTime": "上次检测时间",
+        "detectionStatus": "检测状态",
+        "picgoDetection": "PicGo 检测",
+        "usageGuide": {
+          "title": "PicGo 基本使用说明",
+          "step1": "配置上传器",
+          "step1Description": "使用以下命令配置 PicGo 上传器：",
+          "step2": "上传图片",
+          "step2Description": "使用以下命令上传图片：",
+          "step3": "查看配置",
+          "step3Description": "使用以下命令查看当前配置：",
+          "documentation": "查看完整文档"
+        },
+        "autoDetection": "自动检测中",
+        "lastSuccessTime": "上次成功时间",
+        "neverDetected": "从未检测",
+        "neverSuccessful": "从未成功",
+        "configureUploader": "配置上传器",
+        "configureDescription": "使用以下命令配置 PicGo 上传器：",
+        "uploadImage": "上传图片",
+        "uploadDescription": "使用以下命令上传图片：",
+        "viewConfig": "查看配置",
+        "viewConfigDescription": "使用以下命令查看当前配置：",
+        "viewDocumentation": "查看完整文档",
         "githubDeprecated": "GitHub 上传器已弃用",
         "githubToken": "GitHub 令牌",
         "ownerName": "所有者名称",
@@ -612,7 +619,13 @@
         "bulletListMarker": "无序列表标记",
         "orderListDelimiter": "有序列表分隔符",
         "listIndentation": {
-          "title": "列表缩进"
+          "title": "列表缩进",
+          "dfm": "默认格式模式",
+          "tab": "制表符",
+          "oneSpace": "一个空格",
+          "twoSpaces": "两个空格",
+          "threeSpaces": "三个空格",
+          "fourSpaces": "四个空格"
         }
       },
       "heading": {
@@ -684,7 +697,7 @@
           "tab": "制表符",
           "threeSpaces": "三个空格",
           "twoSpaces": "两个空格",
-          "listIndentation": "列表缩进"
+          "title": "列表缩进"
         },
         "orderListDelimiter": "有序列表分隔符",
         "preferLooseListItem": "首选宽松列表项",
@@ -748,7 +761,7 @@
       "keyInputDialog": {
         "instructions": "按下您要分配的组合键",
         "invalidKeybinding": "无效的组合键",
-        "placeholder": "按键..."
+        "placeholder": "按键…"
       },
       "online": "在线",
       "saveError": "保存快捷键时出错",
@@ -809,10 +822,11 @@
       "renameFile": "重命名文件",
       "quickOpen": "快速打开",
       "changeEncoding": "更改编码",
-      "changeLineEnding": "更改行尾字符",
+      "lineEnding": "行结束符",
       "trailingNewline": "尾随换行",
       "print": "打印",
       "preferences": "偏好设置",
+      "close": "关闭",
       "closeTab": "关闭标签页",
       "closeWindow": "关闭窗口",
       "quit": "退出",
@@ -821,7 +835,8 @@
       "exportFile": "导出文件",
       "exportFilePdf": "导出为 PDF",
       "zoom": "缩放",
-      "checkUpdate": "检查更新"
+      "checkUpdate": "检查更新",
+      "changeLineEnding": "更改行结束符"
     },
     "edit": {
       "undo": "撤销",
@@ -841,6 +856,7 @@
       "findPrevious": "查找上一个",
       "replace": "替换",
       "findInFolder": "在文件夹中查找",
+      "mathBlock": "数学块",
       "screenshot": "截图"
     },
     "paragraph": {
@@ -855,6 +871,7 @@
       "table": "表格",
       "codeFence": "代码围栏",
       "quoteBlock": "引用块",
+      "mathBlock": "数学块",
       "mathFormula": "数学公式",
       "htmlBlock": "HTML 块",
       "orderList": "有序列表",
@@ -862,6 +879,7 @@
       "taskList": "任务列表",
       "looseListItem": "宽松列表项",
       "paragraph": "段落",
+      "horizontalRule": "水平分割线",
       "horizontalLine": "水平分割线",
       "frontMatter": "前置元数据",
       "resetParagraph": "重置段落"
@@ -882,6 +900,7 @@
     },
     "window": {
       "minimize": "最小化",
+      "close": "关闭",
       "toggleAlwaysOnTop": "切换总是在最前面",
       "zoomIn": "放大",
       "zoomOut": "缩小",
@@ -893,10 +912,17 @@
       "sourceCodeMode": "源码模式",
       "typewriterMode": "打字机模式",
       "focusMode": "专注模式",
+      "toggleSourceCodeMode": "切换源码模式",
+      "toggleTypewriterMode": "切换打字机模式",
+      "toggleFocusMode": "切换专注模式",
       "toggleSidebar": "切换侧边栏",
       "toggleToc": "切换目录",
       "toggleTabbar": "切换标签栏",
       "toggleDevTools": "切换开发者工具",
+      "actualSize": "实际大小",
+      "zoomIn": "放大",
+      "zoomOut": "缩小",
+      "devToggleDeveloperTools": "切换开发者工具",
       "devReload": "开发者重载",
       "reloadImages": "重新加载图片",
       "textDirection": "文本方向"
@@ -970,13 +996,13 @@
       "anchorLinkCopied": "锚点链接已复制",
       "tabNotFound": "未找到标签页",
       "tocItemNotFound": "未找到目录项",
-      "highlightStart": " [高亮开始] ",
-      "highlightEnd": " [高亮结束] ",
+      "highlightStart": "[高亮开始]",
+      "highlightEnd": "[高亮结束]",
       "typeAtToInsert": "输入 {'@'} 来插入",
-      "inputFootnoteDefinition": "输入脚注定义...",
-      "inputYamlFrontMatter": "输入 YAML 前置元数据...",
-      "inputLanguageIdentifier": "输入语言标识符...",
-      "inputMathematicalFormula": "输入数学公式...",
+      "inputFootnoteDefinition": "输入脚注定义…",
+      "inputYamlFrontMatter": "输入 YAML 前置元数据",
+      "inputLanguageIdentifier": "输入语言标识符…",
+      "inputMathematicalFormula": "输入数学公式…",
       "fence": "围栏",
       "indent": "缩进",
       "frontMatterDelimiter": "---",
@@ -1007,7 +1033,7 @@
     "diagram": "图表",
     "paragraph": {
       "title": "段落",
-      "subtitle": ""
+      "subtitle": "输入文本内容"
     },
     "horizontalLine": {
       "title": "水平分割线",
@@ -1015,97 +1041,132 @@
     },
     "frontMatter": {
       "title": "前置元数据",
-      "subtitle": "位于文档顶部、由特定格式（如 YAML 或 JSON）编写的结构化数据块"
+      "subtitle": "--- YAML ---"
     },
     "header1": {
       "title": "标题 1",
-      "subtitle": "# ..."
+      "subtitle": "# 标题"
     },
     "header2": {
       "title": "标题 2",
-      "subtitle": "## ..."
+      "subtitle": "## 标题"
     },
     "header3": {
       "title": "标题 3",
-      "subtitle": "### ..."
+      "subtitle": "### 标题"
     },
     "header4": {
       "title": "标题 4",
-      "subtitle": "#### ..."
+      "subtitle": "#### 标题"
     },
     "header5": {
       "title": "标题 5",
-      "subtitle": "##### ..."
+      "subtitle": "##### 标题"
     },
     "header6": {
       "title": "标题 6",
-      "subtitle": "###### ..."
+      "subtitle": "###### 标题"
     },
     "tableBlock": {
       "title": "表格块",
-      "subtitle": "创建一个表格"
+      "subtitle": "| 标题 | 标题 |"
     },
     "mathFormula": {
       "title": "数学公式",
-      "subtitle": "$$  $$"
+      "subtitle": "$$ 公式 $$"
     },
     "htmlBlock": {
       "title": "HTML 块",
-      "subtitle": "<div>  </div>"
+      "subtitle": "<div> HTML </div>"
     },
     "codeBlock": {
       "title": "代码块",
-      "subtitle": "```java  ```"
+      "subtitle": "``` 代码 ```"
     },
     "quoteBlock": {
       "title": "引用块",
-      "subtitle": ">..."
+      "subtitle": "> 引用内容"
     },
     "orderedList": {
       "title": "有序列表",
-      "subtitle": "1. ..."
+      "subtitle": "1. 列表项"
     },
     "bulletList": {
       "title": "无序列表",
-      "subtitle": "- ..."
+      "subtitle": "- 列表项"
     },
     "todoList": {
-      "title": "待办列表",
-      "subtitle": "- [x] ..."
+      "title": "任务列表",
+      "subtitle": "- [ ] 任务项"
     },
     "vegaChart": {
-      "title": "Vega 图表",
-      "subtitle": "使用 vega-lite.js 渲染流程图。"
+      "title": "Vega-Lite图表",
+      "subtitle": "数据可视化图表"
     },
     "flowChart": {
       "title": "流程图",
-      "subtitle": "使用 flowchart.js 渲染流程图。"
-    },
-    "sequenceDiagram": {
-      "title": "时序图",
-      "subtitle": "使用 js-sequence 渲染时序图。"
-    },
-    "plantumlDiagram": {
-      "title": "PlantUML 图表",
-      "subtitle": "渲染 PlantUML 图表"
-    },
-    "mermaid": {
-      "title": "Mermaid",
-      "subtitle": "使用 mermaid 渲染图表。"
+      "subtitle": "流程图表"
     },
     "sequenceChart": {
       "title": "时序图",
-      "subtitle": "使用 js-sequence 渲染时序图。"
+      "subtitle": "时序图表"
     },
     "plantUMLChart": {
-      "title": "PlantUML 图表",
-      "subtitle": "渲染 PlantUML 图表"
+      "title": "PlantUML图表",
+      "subtitle": "UML图表"
+    },
+    "mermaid": {
+      "title": "Mermaid图表",
+      "subtitle": "Mermaid图表",
+      "gantt": {
+        "title": "甘特图"
+      },
+      "pie": {
+        "title": "饼图"
+      },
+      "flowchart": {
+        "title": "流程图"
+      },
+      "sequence": {
+        "title": "时序图"
+      },
+      "class": {
+        "title": "类图"
+      },
+      "state": {
+        "title": "状态图",
+        "subtitle": "stateDiagram"
+      },
+      "journey": {
+        "title": "用户旅程"
+      },
+      "git": {
+        "title": "Git图"
+      },
+      "er": {
+        "title": "ER图"
+      },
+      "requirement": {
+        "title": "需求图"
+      }
+    },
+    "taskList": {
+      "title": "任务列表"
+    },
+    "vegaliteChart": {
+      "title": "Vega-Lite图表"
+    },
+    "plantUMLDiagram": {
+      "title": "PlantUML图表"
+    },
+    "mermaidDiagram": {
+      "title": "Mermaid图表"
     }
   },
   "frontMenu": {
     "duplicate": "创建副本",
     "turnInto": "转换为",
-    "newParagraph": "新建段落",
+    "newParagraph": "新段落",
     "delete": "删除",
     "paragraph": "段落",
     "table": "表格",
@@ -1117,19 +1178,19 @@
     "ulBullet": "无序列表",
     "olOrder": "有序列表",
     "blockquote": "引用块",
-    "heading1": "标题 1",
-    "heading2": "标题 2",
-    "heading3": "标题 3",
-    "heading4": "标题 4",
-    "heading5": "标题 5",
-    "heading6": "标题 6",
+    "heading1": "一级标题",
+    "heading2": "二级标题",
+    "heading3": "三级标题",
+    "heading4": "四级标题",
+    "heading5": "五级标题",
+    "heading6": "六级标题",
     "hr": "分隔线"
   },
   "editor": {
     "placeholders": {
-      "frontMatter": "输入 YAML 前置信息...",
-      "languageIdentifier": "输入语言标识符...",
-      "mathFormula": "输入数学公式..."
+      "frontMatter": "输入 YAML 前置信息",
+      "languageIdentifier": "输入语言标识符…",
+      "mathFormula": "输入数学公式…"
     },
     "insertTable": {
       "title": "插入表格",
@@ -1145,19 +1206,22 @@
     },
     "export": {
       "error": "导出错误",
-      "errorExporting": "Error exporting file",
-      "failed": "Export failed"
+      "errorExporting": "导出文件时出错",
+      "failed": "导出失败"
     },
     "print": {
       "error": "打印错误",
-      "failed": "Print failed"
+      "failed": "打印失败"
     },
     "spellcheck": {
       "title": "拼写检查",
-      "disabledError": "Spellcheck disabled error",
-      "errorSwitchingLanguage": "Error switching spellcheck language",
-      "languageMissing": "Spellcheck language missing",
-      "switchError": "Spellcheck switch error"
+      "disabledError": "拼写检查已禁用错误",
+      "errorSwitchingLanguage": "切换拼写检查语言时出错",
+      "languageMissing": "拼写检查语言缺失",
+      "switchError": "拼写检查切换错误",
+      "disabled": "拼写检查已禁用",
+      "enabled": "拼写检查已启用",
+      "enabledError": "启用拼写检查时出错"
     },
     "table": "表格",
     "resizeTable": "调整表格大小",
@@ -1179,7 +1243,7 @@
     "emptyMathFormula": "< 空数学公式 >",
     "invalidMathFormula": "< 无效数学公式 >",
     "emptyMermaidBlock": "< 空 Mermaid 块 >",
-    "loading": "加载中...",
+    "loading": "加载中…",
     "emptyDiagramBlock": "< 空图表块 >",
     "emptyHtmlBlock": "< 空 HTML 块 >",
     "onlyTopBlockCanRenderIcon": "只有顶级块可以渲染前置图标按钮。",

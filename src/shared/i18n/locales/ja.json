@@ -543,6 +543,27 @@
         "pnpmInstallCommand": "pnpm add -g picgo",
         "brewInstallCommand": "brew install picgo",
         "chooseInstallMethod": "インストール方法を選択:",
+        "retestPicgo": "再テスト",
+        "detecting": "検出中...",
+        "lastDetectionTime": "最後の検出時間",
+        "detectionStatus": "検出ステータス",
+        "usageGuide": {
+          "title": "PicGo基本使用ガイド",
+          "step1": "アップローダーを設定",
+          "step1Description": "以下のコマンドを使用してPicGoアップローダーを設定してください：",
+          "step2": "画像をアップロード",
+          "step2Description": "以下のコマンドを使用して画像をアップロードしてください：",
+          "step3": "設定を表示",
+          "step3Description": "以下のコマンドを使用して現在の設定を表示してください：",
+          "documentation": "完全なドキュメントを表示"
+        },
+        "configureUploader": "アップローダーを設定",
+        "configureDescription": "以下のコマンドを使用してPicGoアップローダーを設定してください：",
+        "uploadImage": "画像をアップロード",
+        "uploadDescription": "以下のコマンドを使用して画像をアップロードしてください：",
+        "viewConfig": "設定を表示",
+        "viewConfigDescription": "以下のコマンドを使用して現在の設定を表示してください：",
+        "viewDocumentation": "完全なドキュメントを表示",
         "githubDeprecated": "GitHubアップローダーは非推奨",
         "githubToken": "GitHubトークン",
         "ownerName": "オーナー名",
@@ -583,7 +604,12 @@
         "pleaseInstall": "インストールしてください",
         "repo": "リポジトリ",
         "scriptPath": "スクリプトパス",
-        "tokenTooltip": "認証用アクセストークン"
+        "tokenTooltip": "認証用アクセストークン",
+        "picgoDetection": "PicGo検出",
+        "autoDetection": "自動検出中",
+        "lastSuccessTime": "最後の成功時刻",
+        "neverDetected": "検出されたことがない",
+        "neverSuccessful": "成功したことがない"
       }
     },
     "markdown": {
@@ -963,8 +989,8 @@
       "anchorLinkCopied": "アンカーリンクがコピーされました",
       "tabNotFound": "タブが見つかりません",
       "tocItemNotFound": "目次アイテムが見つかりません",
-      "highlightStart": " [ハイライト開始] ",
-      "highlightEnd": " [ハイライト終了] ",
+      "highlightStart": "[ハイライト開始]",
+      "highlightEnd": "[ハイライト終了]",
       "typeAtToInsert": "{'@'} を入力して挿入",
       "inputFootnoteDefinition": "脚注定義を入力...",
       "inputYamlFrontMatter": "YAML フロントマターを入力...",
@@ -1116,6 +1142,18 @@
       "requirement": {
         "title": "要件図"
       }
+    },
+    "taskList": {
+      "title": "タスクリスト"
+    },
+    "vegaliteChart": {
+      "title": "Vega-Liteチャート"
+    },
+    "plantUMLDiagram": {
+      "title": "PlantUML図表"
+    },
+    "mermaidDiagram": {
+      "title": "Mermaid図表"
     }
   },
   "frontMenu": {

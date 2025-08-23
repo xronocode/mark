@@ -121,14 +121,6 @@
       "view": "Affichage",
       "toggleSidebar": "Basculer la barre latérale",
       "toggleTabbar": "Basculer la barre d'onglets",
-      "toggleSourceCode": "Basculer le mode code source",
-      "toggleTypewriter": "Basculer le mode machine à écrire",
-      "toggleFocus": "Basculer le mode focus",
-      "zoomIn": "Agrandir",
-      "zoomOut": "Réduire",
-      "resetZoom": "Réinitialiser le zoom",
-      "fullscreen": "Entrer en plein écran",
-      "exitFullscreen": "Quitter le plein écran",
       "commandPalette": "Palette de commandes",
       "sourceCode": "Mode code source",
       "sourceCodeMode": "Mode code source",
@@ -136,16 +128,11 @@
       "typewriterMode": "Mode machine à écrire",
       "focus": "Mode focus",
       "focusMode": "Mode focus",
-      "sidebar": "Barre latérale",
-      "showSidebar": "Afficher la barre latérale",
-      "tabBar": "Barre d'onglets",
       "showTabBar": "Afficher la barre d'onglets",
       "toc": "Table des matières",
       "toggleTableOfContents": "Basculer la table des matières",
       "reloadImages": "Recharger les images",
-      "devTools": "Outils de développement",
       "showDeveloperTools": "Afficher les outils de développement",
-      "reload": "Recharger",
       "reloadWindow": "Recharger la fenêtre"
     },
     "format": {
@@ -264,12 +251,11 @@
   },
   "commandPalette": {
     "placeholder": "Tapez une commande à exécuter",
-    "commandNotFound": "Commande introuvable",
-    "changeEncoding": "Changer l'encodage",
-    "changeLineEnding": "Changer la fin de ligne",
-    "quickOpen": "Ouverture rapide",
-    "trailingNewline": "Nouvelle ligne de fin",
-    "switchSpellcheckerLanguage": "Changer la langue du correcteur orthographique"
+    "placeholders": {
+      "selectOption": "Sélectionner une option",
+      "searchFileToOpen": "Rechercher un fichier à ouvrir",
+      "selectLanguage": "Sélectionner la langue"
+    }
   },
   "exportSettings": {
     "autoNumberingHeadings": "Numérotation automatique des titres",
@@ -371,10 +357,6 @@
     "feedbackQuestion": "Dites-nous vos commentaires ?",
     "reportViaGithub": "Signaler un bug ou une demande de fonctionnalité via GitHub",
     "tweet": "Tweet"
-  },
-  "lineEnding": {
-    "carriageReturnLineFeed": "Retour chariot + Saut de ligne (CRLF, Windows)",
-    "lineFeed": "Saut de ligne (LF, Linux/Mac)"
   },
   "preferences": {
     "title": "Préférences",
@@ -561,6 +543,27 @@
         "pnpmInstallCommand": "pnpm add -g picgo",
         "brewInstallCommand": "brew install picgo",
         "chooseInstallMethod": "Choisir la méthode d'installation :",
+        "retestPicgo": "Retester",
+        "detecting": "Détection en cours...",
+        "lastDetectionTime": "Dernière détection",
+        "detectionStatus": "Statut de détection",
+        "usageGuide": {
+          "title": "Guide d'utilisation de base PicGo",
+          "step1": "Configurer l'uploader",
+          "step1Description": "Utilisez la commande suivante pour configurer l'uploader PicGo :",
+          "step2": "Télécharger des images",
+          "step2Description": "Utilisez la commande suivante pour télécharger des images :",
+          "step3": "Voir la configuration",
+          "step3Description": "Utilisez la commande suivante pour voir la configuration actuelle :",
+          "documentation": "Voir la documentation complète"
+        },
+        "configureUploader": "Configurer l'uploader",
+        "configureDescription": "Utilisez la commande suivante pour configurer l'uploader PicGo :",
+        "uploadImage": "Télécharger des images",
+        "uploadDescription": "Utilisez la commande suivante pour télécharger des images :",
+        "viewConfig": "Voir la configuration",
+        "viewConfigDescription": "Utilisez la commande suivante pour voir la configuration actuelle :",
+        "viewDocumentation": "Voir la documentation complète",
         "githubDeprecated": "Téléchargeur GitHub obsolète",
         "githubToken": "Token GitHub",
         "ownerName": "Nom du propriétaire",
@@ -601,7 +604,12 @@
         "pleaseInstall": "Veuillez installer",
         "repo": "Dépôt",
         "scriptPath": "Chemin du script",
-        "tokenTooltip": "Token d'accès pour l'authentification"
+        "tokenTooltip": "Token d'accès pour l'authentification",
+        "picgoDetection": "Détection PicGo",
+        "autoDetection": "Détection automatique",
+        "lastSuccessTime": "Dernière heure de succès",
+        "neverDetected": "Jamais détecté",
+        "neverSuccessful": "Jamais réussi"
       }
     },
     "markdown": {
@@ -612,7 +620,13 @@
         "bulletListMarker": "Marqueur de liste à puces",
         "orderListDelimiter": "Délimiteur de liste ordonnée",
         "listIndentation": {
-          "title": "Indentation de liste"
+          "title": "Indentation de liste",
+          "dfm": "Défaut",
+          "tab": "Tabulation",
+          "oneSpace": "Un espace",
+          "twoSpaces": "Deux espaces",
+          "threeSpaces": "Trois espaces",
+          "fourSpaces": "Quatre espaces"
         }
       },
       "heading": {
@@ -678,7 +692,7 @@
       "lists": {
         "bulletListMarker": "Marqueur de liste à puces",
         "listIndentation": {
-          "listIndentation": "Indentation de liste",
+          "title": "Indentation de liste",
           "dfm": "Style DFM",
           "fourSpaces": "Quatre espaces",
           "oneSpace": "Un espace",
@@ -813,7 +827,9 @@
       "exportFile": "Exporter un fichier",
       "exportFilePdf": "Exporter en PDF",
       "zoom": "Zoom",
-      "checkUpdate": "Vérifier les mises à jour"
+      "checkUpdate": "Vérifier les mises à jour",
+      "lineEnding": "Fin de ligne",
+      "close": "Fermer"
     },
     "edit": {
       "undo": "Annuler",
@@ -833,7 +849,8 @@
       "findPrevious": "Rechercher précédent",
       "replace": "Remplacer",
       "findInFolder": "Rechercher dans le dossier",
-      "screenshot": "Capture d'écran"
+      "screenshot": "Capture d'écran",
+      "mathBlock": "Bloc mathématique"
     },
     "paragraph": {
       "heading1": "Titre 1",
@@ -856,7 +873,9 @@
       "paragraph": "Paragraphe",
       "horizontalLine": "Ligne horizontale",
       "frontMatter": "Métadonnées",
-      "resetParagraph": "Réinitialiser le paragraphe"
+      "resetParagraph": "Réinitialiser le paragraphe",
+      "mathBlock": "Bloc mathématique",
+      "horizontalRule": "Ligne horizontale"
     },
     "format": {
       "strong": "Gras",
@@ -878,20 +897,28 @@
       "zoomIn": "Agrandir",
       "zoomOut": "Réduire",
       "toggleFullScreen": "Basculer le plein écran",
-      "changeTheme": "Changer de thème"
+      "changeTheme": "Changer de thème",
+      "close": "Fermer"
     },
     "view": {
       "commandPalette": "Palette de commandes",
       "sourceCodeMode": "Mode code source",
       "typewriterMode": "Mode machine à écrire",
       "focusMode": "Mode focus",
+      "toggleSourceCodeMode": "Basculer le mode code source",
+      "toggleTypewriterMode": "Basculer le mode machine à écrire",
+      "toggleFocusMode": "Basculer le mode focus",
       "toggleSidebar": "Basculer la barre latérale",
       "toggleToc": "Basculer la table des matières",
       "toggleTabbar": "Basculer la barre d'onglets",
       "toggleDevTools": "Basculer les outils de développement",
       "devReload": "Rechargement développeur",
       "reloadImages": "Recharger les images",
-      "textDirection": "Direction du texte"
+      "textDirection": "Direction du texte",
+      "actualSize": "Taille réelle",
+      "zoomIn": "Agrandir",
+      "zoomOut": "Réduire",
+      "devToggleDeveloperTools": "Basculer les outils de développement"
     },
     "tabs": {
       "cycleForward": "Cycle vers l'avant",
@@ -962,8 +989,8 @@
       "anchorLinkCopied": "Lien d'ancrage copié",
       "tabNotFound": "Onglet introuvable",
       "tocItemNotFound": "Élément de table des matières introuvable",
-      "highlightStart": " [Début de surbrillance] ",
-      "highlightEnd": " [Fin de surbrillance] ",
+      "highlightStart": "[Début de surbrillance]",
+      "highlightEnd": "[Fin de surbrillance]",
       "typeAtToInsert": "Tapez {'@'} pour insérer",
       "inputFootnoteDefinition": "Saisir la définition de note de bas de page...",
       "inputYamlFrontMatter": "Saisir les métadonnées YAML...",
@@ -999,7 +1026,7 @@
     "diagram": "Diagramme",
     "paragraph": {
       "title": "Paragraphe",
-      "subtitle": ""
+      "subtitle": "Saisir le contenu du texte"
     },
     "horizontalLine": {
       "title": "Ligne horizontale",
@@ -1007,110 +1034,153 @@
     },
     "frontMatter": {
       "title": "Métadonnées",
-      "subtitle": "--- métadonnées ---"
+      "subtitle": "--- YAML ---"
     },
     "header1": {
       "title": "Titre 1",
-      "subtitle": "#"
+      "subtitle": "# Titre"
     },
     "header2": {
       "title": "Titre 2",
-      "subtitle": "##"
+      "subtitle": "## Titre"
     },
     "header3": {
       "title": "Titre 3",
-      "subtitle": "###"
+      "subtitle": "### Titre"
     },
     "header4": {
       "title": "Titre 4",
-      "subtitle": "####"
+      "subtitle": "#### Titre"
     },
     "header5": {
       "title": "Titre 5",
-      "subtitle": "#####"
+      "subtitle": "##### Titre"
     },
     "header6": {
       "title": "Titre 6",
-      "subtitle": "######"
+      "subtitle": "###### Titre"
     },
     "tableBlock": {
       "title": "Bloc de tableau",
-      "subtitle": "Bloc de tableau"
+      "subtitle": "| En-tête | En-tête |"
     },
     "mathFormula": {
       "title": "Formule mathématique",
-      "subtitle": "$$ $$"
+      "subtitle": "$$ Formule $$"
     },
     "htmlBlock": {
       "title": "Bloc HTML",
-      "subtitle": "<div> </div>"
+      "subtitle": "<div> HTML </div>"
     },
     "codeBlock": {
       "title": "Bloc de code",
-      "subtitle": "```java ```"
+      "subtitle": "``` Code ```"
     },
     "quoteBlock": {
       "title": "Bloc de citation",
-      "subtitle": ">"
+      "subtitle": "> Contenu de citation"
     },
     "orderedList": {
       "title": "Liste ordonnée",
-      "subtitle": "1."
+      "subtitle": "1. Élément de liste"
     },
     "bulletList": {
       "title": "Liste à puces",
-      "subtitle": "-"
+      "subtitle": "- Élément de liste"
     },
     "todoList": {
       "title": "Liste de tâches",
-      "subtitle": "- [x]"
+      "subtitle": "- [ ] Élément de tâche"
     },
     "vegaChart": {
-      "title": "Graphique Vega",
-      "subtitle": "Rendu de graphique avec vega-lite.js."
+      "title": "Graphique Vega-Lite",
+      "subtitle": "Graphique de visualisation de données"
     },
     "flowChart": {
       "title": "Organigramme",
-      "subtitle": "Rendu d'organigramme avec flowchart.js."
+      "subtitle": "Diagramme de flux"
     },
-    "sequenceDiagram": {
-      "title": "Diagramme de séquence",
-      "subtitle": "Rendu de diagramme de séquence avec js-sequence."
+    "sequenceChart": {
+      "title": "Graphique de séquence",
+      "subtitle": "Diagramme de séquence"
     },
-    "plantumlDiagram": {
+    "plantUMLChart": {
       "title": "Diagramme PlantUML",
-      "subtitle": "Rendu de diagramme PlantUML"
+      "subtitle": "Diagramme UML"
     },
-   "mermaid": {
-      "title": "Mermaid",
-      "subtitle": "Rendu de diagramme avec mermaid."
+    "mermaid": {
+      "title": "Diagramme Mermaid",
+      "subtitle": "Diagramme Mermaid",
+      "gantt": {
+        "title": "Diagramme de Gantt"
+      },
+      "pie": {
+        "title": "Graphique en secteurs"
+      },
+      "flowchart": {
+        "title": "Organigramme"
+      },
+      "sequence": {
+        "title": "Diagramme de séquence"
+      },
+      "class": {
+        "title": "Diagramme de classes"
+      },
+      "state": {
+        "title": "Diagramme d'états",
+        "subtitle": "stateDiagram"
+      },
+      "journey": {
+        "title": "Parcours utilisateur"
+      },
+      "git": {
+        "title": "Diagramme Git"
+      },
+      "er": {
+        "title": "Diagramme ER"
+      },
+      "requirement": {
+        "title": "Diagramme d'exigences"
+      }
+    },
+    "taskList": {
+      "title": "Liste de tâches"
+    },
+    "vegaliteChart": {
+      "title": "Graphique Vega-Lite"
+    },
+    "plantUMLDiagram": {
+      "title": "Diagramme PlantUML"
+    },
+    "mermaidDiagram": {
+      "title": "Diagramme Mermaid"
     }
   },
   "frontMenu": {
     "duplicate": "Dupliquer",
     "turnInto": "Transformer en",
-    "newParagraph": "Nouveau Paragraphe",
+    "newParagraph": "Nouveau paragraphe",
     "delete": "Supprimer",
-    "paragraph": "paragraphe",
-    "table": "tableau",
-    "html": "html",
-    "mathblock": "bloc mathématique",
-    "pre": "préformaté",
-    "frontMatter": "front-matter",
-    "ulTask": "liste de tâches",
-    "ulBullet": "liste à puces",
-    "olOrder": "liste ordonnée",
-    "blockquote": "citation",
-    "heading1": "titre 1",
-    "heading2": "titre 2",
-    "heading3": "titre 3",
-    "heading4": "titre 4",
-    "heading5": "titre 5",
-    "heading6": "titre 6",
-    "hr": "ligne horizontale"
+    "paragraph": "Paragraphe",
+    "table": "Tableau",
+    "html": "HTML",
+    "mathblock": "Bloc mathématique",
+    "pre": "Bloc de code",
+    "frontMatter": "Métadonnées",
+    "ulTask": "Liste de tâches",
+    "ulBullet": "Liste à puces",
+    "olOrder": "Liste ordonnée",
+    "blockquote": "Citation",
+    "heading1": "Titre 1",
+    "heading2": "Titre 2",
+    "heading3": "Titre 3",
+    "heading4": "Titre 4",
+    "heading5": "Titre 5",
+    "heading6": "Titre 6",
+    "hr": "Ligne horizontale"
   },
   "editor": {
-       "placeholders": {
+    "placeholders": {
       "frontMatter": "Saisir les métadonnées YAML...",
       "languageIdentifier": "Saisir l'identifiant de langue...",
       "mathFormula": "Saisir la formule mathématique..."
@@ -1190,5 +1260,13 @@
     "code-fence": "clôture de code",
     "click-to-add-image": "Cliquez pour ajouter une image",
     "load-image-failed": "Échec du chargement de l'image"
+  },
+  "edit": {
+    "undo": "Annuler",
+    "redo": "Rétablir",
+    "cut": "Couper",
+    "copy": "Copier",
+    "paste": "Coller",
+    "selectAll": "Tout sélectionner"
   }
 }

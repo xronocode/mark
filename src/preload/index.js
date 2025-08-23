@@ -64,7 +64,7 @@ const commandAPI = {
     try {
       return commandExists.sync(command)
     } catch (error) {
-      log.error('Error checking command existence:', error)
+      console.error('Error checking command existence:', error)
       return false
     }
   }

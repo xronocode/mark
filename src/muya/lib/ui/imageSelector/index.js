@@ -69,7 +69,9 @@ class ImageSelector extends BaseFloat {
         const input = this.imageSelectorContainer.querySelector('input.src')
         if (input) {
           input.focus()
-          input.select()
+          if (typeof input.select === 'function') {
+            input.select()
+          }
         }
       } else {
         this.hide()

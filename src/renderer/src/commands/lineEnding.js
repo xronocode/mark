@@ -1,5 +1,6 @@
 import { delay } from '@/util'
 import bus from '../bus'
+import getCommandDescriptionById from './descriptions'
 import { t } from '../../i18n'
 
 const crlfDescription = 'Carriage return and line feed (CRLF)'
@@ -8,8 +9,8 @@ const lfDescription = 'Line feed (LF)'
 class LineEndingCommand {
   constructor(editorState) {
     this.id = 'file.line-ending'
-    this.description = t('commands.file.changeLineEnding')
-    this.placeholder = 'Select an option'
+    this.description = getCommandDescriptionById('file.line-ending')
+    this.placeholder = t('commandPalette.placeholders.selectOption')
 
     this.subcommands = [
       {

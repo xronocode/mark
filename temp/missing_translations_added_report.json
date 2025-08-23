@@ -1,0 +1,194 @@
+{
+  "summary": {
+    "totalKeysAdded": 142,
+    "languagesUpdated": 7,
+    "timestamp": "2025-08-23T01:32:29.270Z"
+  },
+  "details": {
+    "zh-CN": {
+      "keysAdded": 0,
+      "addedKeys": []
+    },
+    "zh-TW": {
+      "keysAdded": 28,
+      "addedKeys": [
+        "preferences.image.uploader.picgoDetection",
+        "preferences.image.uploader.autoDetection",
+        "preferences.image.uploader.lastSuccessTime",
+        "preferences.image.uploader.neverDetected",
+        "preferences.image.uploader.neverSuccessful",
+        "quickInsert.basicBlock",
+        "quickInsert.advancedBlock",
+        "quickInsert.listBlock",
+        "quickInsert.diagram",
+        "quickInsert.paragraph.subtitle",
+        "quickInsert.horizontalLine.subtitle",
+        "quickInsert.frontMatter.subtitle",
+        "quickInsert.header1.subtitle",
+        "quickInsert.header2.subtitle",
+        "quickInsert.header3.subtitle",
+        "quickInsert.header4.subtitle",
+        "quickInsert.header5.subtitle",
+        "quickInsert.header6.subtitle",
+        "quickInsert.tableBlock.subtitle",
+        "quickInsert.mathFormula.subtitle",
+        "quickInsert.htmlBlock.subtitle",
+        "quickInsert.codeBlock.subtitle",
+        "quickInsert.quoteBlock.subtitle",
+        "quickInsert.orderedList.subtitle",
+        "quickInsert.bulletList.subtitle",
+        "quickInsert.flowChart.subtitle",
+        "quickInsert.sequenceChart.subtitle",
+        "quickInsert.mermaid.state.subtitle"
+      ]
+    },
+    "en": {
+      "keysAdded": 0,
+      "addedKeys": []
+    },
+    "de": {
+      "keysAdded": 8,
+      "addedKeys": [
+        "preferences.image.uploader.picgoDetection",
+        "preferences.image.uploader.autoDetection",
+        "preferences.image.uploader.lastSuccessTime",
+        "preferences.image.uploader.neverDetected",
+        "preferences.image.uploader.neverSuccessful",
+        "quickInsert.mermaid.state.subtitle",
+        "quickInsert.plantUMLDiagram.title",
+        "quickInsert.mermaidDiagram.title"
+      ]
+    },
+    "es": {
+      "keysAdded": 30,
+      "addedKeys": [
+        "preferences.image.uploader.picgoDetection",
+        "preferences.image.uploader.autoDetection",
+        "preferences.image.uploader.lastSuccessTime",
+        "preferences.image.uploader.neverDetected",
+        "preferences.image.uploader.neverSuccessful",
+        "quickInsert.basicBlock",
+        "quickInsert.advancedBlock",
+        "quickInsert.listBlock",
+        "quickInsert.diagram",
+        "quickInsert.paragraph.subtitle",
+        "quickInsert.horizontalLine.subtitle",
+        "quickInsert.frontMatter.subtitle",
+        "quickInsert.header1.subtitle",
+        "quickInsert.header2.subtitle",
+        "quickInsert.header3.subtitle",
+        "quickInsert.header4.subtitle",
+        "quickInsert.header5.subtitle",
+        "quickInsert.header6.subtitle",
+        "quickInsert.tableBlock.subtitle",
+        "quickInsert.mathFormula.subtitle",
+        "quickInsert.htmlBlock.subtitle",
+        "quickInsert.codeBlock.subtitle",
+        "quickInsert.quoteBlock.subtitle",
+        "quickInsert.orderedList.subtitle",
+        "quickInsert.bulletList.subtitle",
+        "quickInsert.flowChart.subtitle",
+        "quickInsert.sequenceChart.subtitle",
+        "quickInsert.mermaid.state.subtitle",
+        "quickInsert.plantUMLChart.title",
+        "quickInsert.plantUMLChart.subtitle"
+      ]
+    },
+    "fr": {
+      "keysAdded": 7,
+      "addedKeys": [
+        "preferences.image.uploader.picgoDetection",
+        "preferences.image.uploader.autoDetection",
+        "preferences.image.uploader.lastSuccessTime",
+        "preferences.image.uploader.neverDetected",
+        "preferences.image.uploader.neverSuccessful",
+        "quickInsert.sequenceChart.subtitle",
+        "quickInsert.mermaid.state.subtitle"
+      ]
+    },
+    "ja": {
+      "keysAdded": 9,
+      "addedKeys": [
+        "preferences.image.uploader.picgoDetection",
+        "preferences.image.uploader.autoDetection",
+        "preferences.image.uploader.lastSuccessTime",
+        "preferences.image.uploader.neverDetected",
+        "preferences.image.uploader.neverSuccessful",
+        "quickInsert.taskList.title",
+        "quickInsert.vegaliteChart.title",
+        "quickInsert.plantUMLDiagram.title",
+        "quickInsert.mermaidDiagram.title"
+      ]
+    },
+    "ko": {
+      "keysAdded": 32,
+      "addedKeys": [
+        "preferences.image.uploader.picgoDetection",
+        "preferences.image.uploader.autoDetection",
+        "preferences.image.uploader.lastSuccessTime",
+        "preferences.image.uploader.neverDetected",
+        "preferences.image.uploader.neverSuccessful",
+        "quickInsert.basicBlock",
+        "quickInsert.advancedBlock",
+        "quickInsert.listBlock",
+        "quickInsert.diagram",
+        "quickInsert.paragraph.subtitle",
+        "quickInsert.horizontalLine.subtitle",
+        "quickInsert.frontMatter.subtitle",
+        "quickInsert.header1.subtitle",
+        "quickInsert.header2.subtitle",
+        "quickInsert.header3.subtitle",
+        "quickInsert.header4.subtitle",
+        "quickInsert.header5.subtitle",
+        "quickInsert.header6.subtitle",
+        "quickInsert.tableBlock.subtitle",
+        "quickInsert.mathFormula.subtitle",
+        "quickInsert.htmlBlock.subtitle",
+        "quickInsert.codeBlock.subtitle",
+        "quickInsert.quoteBlock.subtitle",
+        "quickInsert.orderedList.subtitle",
+        "quickInsert.bulletList.subtitle",
+        "quickInsert.todoList.title",
+        "quickInsert.todoList.subtitle",
+        "quickInsert.flowChart.subtitle",
+        "quickInsert.sequenceChart.subtitle",
+        "quickInsert.mermaid.title",
+        "quickInsert.mermaid.subtitle",
+        "quickInsert.mermaid.state.subtitle"
+      ]
+    },
+    "pt": {
+      "keysAdded": 28,
+      "addedKeys": [
+        "preferences.image.uploader.picgoDetection",
+        "preferences.image.uploader.autoDetection",
+        "preferences.image.uploader.lastSuccessTime",
+        "preferences.image.uploader.neverDetected",
+        "preferences.image.uploader.neverSuccessful",
+        "quickInsert.basicBlock",
+        "quickInsert.advancedBlock",
+        "quickInsert.listBlock",
+        "quickInsert.diagram",
+        "quickInsert.paragraph.subtitle",
+        "quickInsert.horizontalLine.subtitle",
+        "quickInsert.frontMatter.subtitle",
+        "quickInsert.header1.subtitle",
+        "quickInsert.header2.subtitle",
+        "quickInsert.header3.subtitle",
+        "quickInsert.header4.subtitle",
+        "quickInsert.header5.subtitle",
+        "quickInsert.header6.subtitle",
+        "quickInsert.tableBlock.subtitle",
+        "quickInsert.mathFormula.subtitle",
+        "quickInsert.htmlBlock.subtitle",
+        "quickInsert.codeBlock.subtitle",
+        "quickInsert.quoteBlock.subtitle",
+        "quickInsert.orderedList.subtitle",
+        "quickInsert.bulletList.subtitle",
+        "quickInsert.flowChart.subtitle",
+        "quickInsert.sequenceChart.subtitle",
+        "quickInsert.mermaid.state.subtitle"
+      ]
+    }
+  }
+}

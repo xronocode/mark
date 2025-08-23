@@ -138,6 +138,12 @@ class QuickInsert extends BaseScrollFloat {
 
   selectItem (item) {
     const { contentState } = this.muya
+    // 检查 block 是否存在，避免 null 引用错误
+    if (!this.block) {
+      console.warn('QuickInsert: block is null, cannot select item')
+      this.hide()
+      return
+    }
     this.block.text = ''
     const { key } = this.block
     const offset = 0

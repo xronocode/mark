@@ -121,14 +121,6 @@
       "view": "보기",
       "toggleSidebar": "사이드바 토글",
       "toggleTabbar": "탭바 토글",
-      "toggleSourceCode": "소스 코드 모드 토글",
-      "toggleTypewriter": "타자기 모드 토글",
-      "toggleFocus": "집중 모드 토글",
-      "zoomIn": "확대",
-      "zoomOut": "축소",
-      "resetZoom": "확대/축소 재설정",
-      "fullscreen": "전체 화면 진입",
-      "exitFullscreen": "전체 화면 종료",
       "commandPalette": "명령 팔레트",
       "sourceCode": "소스 코드 모드",
       "sourceCodeMode": "소스 코드 모드",
@@ -136,16 +128,11 @@
       "typewriterMode": "타자기 모드",
       "focus": "집중 모드",
       "focusMode": "집중 모드",
-      "sidebar": "사이드바",
-      "showSidebar": "사이드바 보기",
-      "tabBar": "탭바",
       "showTabBar": "탭바 보기",
       "toc": "목차",
       "toggleTableOfContents": "목차 토글",
       "reloadImages": "이미지 새로고침",
-      "devTools": "개발자 도구",
       "showDeveloperTools": "개발자 도구 보기",
-      "reload": "새로고침",
       "reloadWindow": "창 새로고침"
     },
     "format": {
@@ -264,12 +251,11 @@
   },
   "commandPalette": {
     "placeholder": "실행할 명령을 입력하세요",
-    "commandNotFound": "명령을 찾을 수 없음",
-    "changeEncoding": "인코딩 변경",
-    "changeLineEnding": "줄 끝 변경",
-    "quickOpen": "빠른 열기",
-    "trailingNewline": "끝 줄바꿈",
-    "switchSpellcheckerLanguage": "맞춤법 검사 언어 전환"
+    "placeholders": {
+      "selectOption": "옵션 선택",
+      "searchFileToOpen": "열 파일 검색",
+      "selectLanguage": "언어 선택"
+    }
   },
   "exportSettings": {
     "autoNumberingHeadings": "제목 자동 번호 매기기",
@@ -371,10 +357,6 @@
     "feedbackQuestion": "피드백을 알려주세요?",
     "reportViaGithub": "GitHub를 통해 버그 또는 기능 요청 신고",
     "tweet": "트윗"
-  },
-  "lineEnding": {
-    "carriageReturnLineFeed": "캐리지 리턴 + 라인 피드 (CRLF, Windows)",
-    "lineFeed": "라인 피드 (LF, Linux/Mac)"
   },
   "preferences": {
     "title": "환경설정",
@@ -561,6 +543,27 @@
         "pnpmInstallCommand": "pnpm add -g picgo",
         "brewInstallCommand": "brew install picgo",
         "chooseInstallMethod": "설치 방법 선택:",
+        "retestPicgo": "다시 테스트",
+        "detecting": "감지 중...",
+        "lastDetectionTime": "마지막 감지 시간",
+        "detectionStatus": "감지 상태",
+        "usageGuide": {
+          "title": "PicGo 기본 사용 가이드",
+          "step1": "업로더 구성",
+          "step1Description": "다음 명령을 사용하여 PicGo 업로더를 구성하세요:",
+          "step2": "이미지 업로드",
+          "step2Description": "다음 명령을 사용하여 이미지를 업로드하세요:",
+          "step3": "구성 보기",
+          "step3Description": "다음 명령을 사용하여 현재 구성을 보세요:",
+          "documentation": "전체 문서 보기"
+        },
+        "configureUploader": "업로더 구성",
+        "configureDescription": "다음 명령을 사용하여 PicGo 업로더를 구성하세요:",
+        "uploadImage": "이미지 업로드",
+        "uploadDescription": "다음 명령을 사용하여 이미지를 업로드하세요:",
+        "viewConfig": "구성 보기",
+        "viewConfigDescription": "다음 명령을 사용하여 현재 구성을 보세요:",
+        "viewDocumentation": "전체 문서 보기",
         "githubDeprecated": "GitHub 업로더는 더 이상 사용되지 않음",
         "githubToken": "GitHub 토큰",
         "ownerName": "소유자 이름",
@@ -601,7 +604,12 @@
         "pleaseInstall": "설치하세요",
         "repo": "저장소",
         "scriptPath": "스크립트 경로",
-        "tokenTooltip": "인증을 위한 액세스 토큰"
+        "tokenTooltip": "인증을 위한 액세스 토큰",
+        "picgoDetection": "PicGo 감지",
+        "autoDetection": "자동 감지 중",
+        "lastSuccessTime": "마지막 성공 시간",
+        "neverDetected": "감지된 적 없음",
+        "neverSuccessful": "성공한 적 없음"
       }
     },
     "markdown": {
@@ -612,7 +620,13 @@
         "bulletListMarker": "글머리 기호 목록 마커",
         "orderListDelimiter": "순서 목록 구분자",
         "listIndentation": {
-          "title": "목록 들여쓰기"
+          "title": "목록 들여쓰기",
+          "dfm": "기본 형식 모드",
+          "tab": "탭",
+          "oneSpace": "한 칸 공백",
+          "twoSpaces": "두 칸 공백",
+          "threeSpaces": "세 칸 공백",
+          "fourSpaces": "네 칸 공백"
         }
       },
       "heading": {
@@ -678,7 +692,7 @@
       "lists": {
         "bulletListMarker": "글머리 기호 목록 마커",
         "listIndentation": {
-          "listIndentation": "목록 들여쓰기",
+          "title": "목록 들여쓰기",
           "dfm": "DFM 스타일",
           "fourSpaces": "네 개 공백",
           "oneSpace": "한 개 공백",
@@ -813,7 +827,9 @@
       "exportFile": "파일 내보내기",
       "exportFilePdf": "PDF로 내보내기",
       "zoom": "확대/축소",
-      "checkUpdate": "업데이트 확인"
+      "checkUpdate": "업데이트 확인",
+      "lineEnding": "줄 끝",
+      "close": "닫기"
     },
     "edit": {
       "undo": "실행 취소",
@@ -833,7 +849,8 @@
       "findPrevious": "이전 찾기",
       "replace": "바꾸기",
       "findInFolder": "폴더에서 찾기",
-      "screenshot": "스크린샷"
+      "screenshot": "스크린샷",
+      "mathBlock": "수식 블록"
     },
     "paragraph": {
       "heading1": "제목 1",
@@ -856,7 +873,9 @@
       "paragraph": "단락",
       "horizontalLine": "수평선",
       "frontMatter": "프론트 매터",
-      "resetParagraph": "단락 재설정"
+      "resetParagraph": "단락 재설정",
+      "mathBlock": "수식 블록",
+      "horizontalRule": "수평선"
     },
     "format": {
       "strong": "굵게",
@@ -878,20 +897,28 @@
       "zoomIn": "확대",
       "zoomOut": "축소",
       "toggleFullScreen": "전체 화면 토글",
-      "changeTheme": "테마 변경"
+      "changeTheme": "테마 변경",
+      "close": "닫기"
     },
     "view": {
       "commandPalette": "명령 팔레트",
       "sourceCodeMode": "소스 코드 모드",
       "typewriterMode": "타자기 모드",
       "focusMode": "집중 모드",
+      "toggleSourceCodeMode": "소스 코드 모드 토글",
+      "toggleTypewriterMode": "타자기 모드 토글",
+      "toggleFocusMode": "집중 모드 토글",
       "toggleSidebar": "사이드바 토글",
       "toggleToc": "목차 토글",
       "toggleTabbar": "탭바 토글",
       "toggleDevTools": "개발자 도구 토글",
       "devReload": "개발자 새로고침",
       "reloadImages": "이미지 새로고침",
-      "textDirection": "텍스트 방향"
+      "textDirection": "텍스트 방향",
+      "actualSize": "실제 크기",
+      "zoomIn": "확대",
+      "zoomOut": "축소",
+      "devToggleDeveloperTools": "개발자 도구 전환"
     },
     "tabs": {
       "cycleForward": "앞으로 순환",
@@ -962,8 +989,8 @@
       "anchorLinkCopied": "앵커 링크 복사됨",
       "tabNotFound": "탭을 찾을 수 없음",
       "tocItemNotFound": "목차 항목을 찾을 수 없음",
-      "highlightStart": " [하이라이트 시작] ",
-      "highlightEnd": " [하이라이트 끝] ",
+      "highlightStart": "[하이라이트 시작]",
+      "highlightEnd": "[하이라이트 끝]",
       "typeAtToInsert": "{'@'} 입력하여 삽입",
       "inputFootnoteDefinition": "각주 정의 입력...",
       "inputYamlFrontMatter": "YAML 프론트 매터 입력...",
@@ -992,14 +1019,10 @@
     "unexpectedError": "예상치 못한 맞춤법 검사 오류"
   },
   "quickInsert": {
-    "basicBlock": "기본 블록",
     "header": "헤더",
-    "advancedBlock": "고급 블록",
-    "listBlock": "목록 블록",
-    "diagram": "다이어그램",
     "paragraph": {
       "title": "단락",
-      "subtitle": ""
+      "subtitle": "텍스트 내용 입력"
     },
     "horizontalLine": {
       "title": "수평선",
@@ -1007,35 +1030,35 @@
     },
     "frontMatter": {
       "title": "프론트 매터",
-      "subtitle": "--- 프론트 매터 ---"
+      "subtitle": "--- YAML ---"
     },
     "header1": {
       "title": "헤더 1",
-      "subtitle": "#"
+      "subtitle": "# 제목"
     },
     "header2": {
       "title": "헤더 2",
-      "subtitle": "##"
+      "subtitle": "## 제목"
     },
     "header3": {
       "title": "헤더 3",
-      "subtitle": "###"
+      "subtitle": "### 제목"
     },
     "header4": {
       "title": "헤더 4",
-      "subtitle": "####"
+      "subtitle": "#### 제목"
     },
     "header5": {
       "title": "헤더 5",
-      "subtitle": "#####"
+      "subtitle": "##### 제목"
     },
     "header6": {
       "title": "헤더 6",
-      "subtitle": "######"
+      "subtitle": "###### 제목"
     },
     "tableBlock": {
       "title": "표 블록",
-      "subtitle": "표 블록"
+      "subtitle": "| 헤더 | 헤더 |"
     },
     "mathBlock": {
       "title": "수식 블록",
@@ -1047,11 +1070,11 @@
     },
     "codeBlock": {
       "title": "코드 블록",
-      "subtitle": "```language"
+      "subtitle": "``` 코드 ```"
     },
     "quoteBlock": {
       "title": "인용 블록",
-      "subtitle": "> 인용문"
+      "subtitle": "> 인용 내용"
     },
     "orderList": {
       "title": "순서 목록",
@@ -1059,11 +1082,10 @@
     },
     "bulletList": {
       "title": "글머리 기호 목록",
-      "subtitle": "- 항목"
+      "subtitle": "- 목록 항목"
     },
     "taskList": {
-      "title": "작업 목록",
-      "subtitle": "- [ ] 작업"
+      "title": "작업 목록"
     },
     "vegaChart": {
       "title": "Vega 차트",
@@ -1071,11 +1093,11 @@
     },
     "flowChart": {
       "title": "플로우차트",
-      "subtitle": "```flow"
+      "subtitle": "순서도"
     },
     "sequenceChart": {
       "title": "시퀀스 차트",
-      "subtitle": "```sequence"
+      "subtitle": "시퀀스 다이어그램"
     },
     "plantUMLChart": {
       "title": "PlantUML 차트",
@@ -1084,6 +1106,66 @@
     "mermaidChart": {
       "title": "Mermaid 차트",
       "subtitle": "```mermaid"
+    },
+    "mathFormula": {
+      "title": "수학 공식",
+      "subtitle": "$$ 공식 $$"
+    },
+    "orderedList": {
+      "title": "순서 목록",
+      "subtitle": "1. 목록 항목"
+    },
+    "mermaid": {
+      "gantt": {
+        "title": "간트 차트"
+      },
+      "pie": {
+        "title": "원형 차트"
+      },
+      "flowchart": {
+        "title": "순서도"
+      },
+      "sequence": {
+        "title": "시퀀스 다이어그램"
+      },
+      "class": {
+        "title": "클래스 다이어그램"
+      },
+      "state": {
+        "title": "상태 다이어그램",
+        "subtitle": "stateDiagram"
+      },
+      "journey": {
+        "title": "사용자 여정"
+      },
+      "git": {
+        "title": "Git 다이어그램"
+      },
+      "er": {
+        "title": "ER 다이어그램"
+      },
+      "requirement": {
+        "title": "요구사항 다이어그램"
+      },
+      "title": "Mermaid 차트",
+      "subtitle": "Mermaid 차트"
+    },
+    "vegaliteChart": {
+      "title": "Vega-Lite 차트"
+    },
+    "plantUMLDiagram": {
+      "title": "PlantUML 다이어그램"
+    },
+    "mermaidDiagram": {
+      "title": "Mermaid 다이어그램"
+    },
+    "basicBlock": "기본 블록",
+    "advancedBlock": "고급 블록",
+    "listBlock": "목록 블록",
+    "diagram": "다이어그램",
+    "todoList": {
+      "title": "작업 목록",
+      "subtitle": "- [ ] 작업 항목"
     }
   },
   "frontMenu": {
@@ -1095,11 +1177,11 @@
     "table": "표",
     "html": "HTML",
     "mathblock": "수식 블록",
-    "pre": "미리 서식 지정된 텍스트",
+    "pre": "코드 블록",
     "frontMatter": "프론트 매터",
     "ulTask": "작업 목록",
     "ulBullet": "글머리 기호 목록",
-    "olOrder": "번호 매기기 목록",
+    "olOrder": "번호 목록",
     "blockquote": "인용문",
     "heading1": "제목 1",
     "heading2": "제목 2",
@@ -1110,7 +1192,7 @@
     "hr": "수평선"
   },
   "editor": {
-        "placeholders": {
+    "placeholders": {
       "frontMatter": "YAML 프론트 매터 입력...",
       "languageIdentifier": "언어 식별자 입력...",
       "mathFormula": "수학 공식 입력..."
@@ -1190,5 +1272,13 @@
     "code-fence": "코드 펜스",
     "click-to-add-image": "클릭하여 이미지 추가",
     "load-image-failed": "이미지 로드 실패"
+  },
+  "edit": {
+    "undo": "실행 취소",
+    "redo": "다시 실행",
+    "cut": "잘라내기",
+    "copy": "복사",
+    "paste": "붙여넣기",
+    "selectAll": "모두 선택"
   }
 }

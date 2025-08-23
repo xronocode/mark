@@ -1,6 +1,6 @@
 import { t } from '@/i18n'
 
-export const pageSizeList = [
+export const getPageSizeList = () => [
   {
     label: t('exportSettings.options.pageSizes.a3'),
     value: 'A3'
@@ -25,7 +25,7 @@ export const pageSizeList = [
   }
 ]
 
-export const headerFooterTypes = [
+export const getHeaderFooterTypes = () => [
   {
     label: t('exportSettings.options.headerFooterTypes.none'),
     value: 0
@@ -38,7 +38,7 @@ export const headerFooterTypes = [
   }
 ]
 
-export const headerFooterStyles = [
+export const getHeaderFooterStyles = () => [
   {
     label: t('exportSettings.options.headerFooterStyles.default'),
     value: 0
@@ -51,7 +51,7 @@ export const headerFooterStyles = [
   }
 ]
 
-export const exportThemeList = [{
+export const getExportThemeList = () => [{
   label: t('exportSettings.options.themes.academic'),
   value: 'academic'
 }, {
@@ -61,3 +61,9 @@ export const exportThemeList = [{
   label: t('exportSettings.options.themes.liber'),
   value: 'liber'
 }]
+
+// 为了向后兼容，保留原有的导出
+export const pageSizeList = getPageSizeList()
+export const headerFooterTypes = getHeaderFooterTypes()
+export const headerFooterStyles = getHeaderFooterStyles()
+export const exportThemeList = getExportThemeList()

@@ -543,6 +543,27 @@
         "pnpmInstallCommand": "pnpm add -g picgo",
         "brewInstallCommand": "brew install picgo",
         "chooseInstallMethod": "Installationsmethode wählen:",
+        "retestPicgo": "Erneut testen",
+        "detecting": "Erkennung läuft...",
+        "lastDetectionTime": "Letzte Erkennungszeit",
+        "detectionStatus": "Erkennungsstatus",
+        "usageGuide": {
+          "title": "PicGo Grundlegende Anleitung",
+          "step1": "Uploader konfigurieren",
+          "step1Description": "Verwenden Sie den folgenden Befehl, um den PicGo-Uploader zu konfigurieren:",
+          "step2": "Bilder hochladen",
+          "step2Description": "Verwenden Sie den folgenden Befehl, um Bilder hochzuladen:",
+          "step3": "Konfiguration anzeigen",
+          "step3Description": "Verwenden Sie den folgenden Befehl, um die aktuelle Konfiguration anzuzeigen:",
+          "documentation": "Vollständige Dokumentation anzeigen"
+        },
+        "configureUploader": "Uploader konfigurieren",
+        "configureDescription": "Verwenden Sie den folgenden Befehl, um den PicGo-Uploader zu konfigurieren:",
+        "uploadImage": "Bilder hochladen",
+        "uploadDescription": "Verwenden Sie den folgenden Befehl, um Bilder hochzuladen:",
+        "viewConfig": "Konfiguration anzeigen",
+        "viewConfigDescription": "Verwenden Sie den folgenden Befehl, um die aktuelle Konfiguration anzuzeigen:",
+        "viewDocumentation": "Vollständige Dokumentation anzeigen",
         "githubDeprecated": "GitHub-Uploader veraltet",
         "githubToken": "GitHub-Token",
         "ownerName": "Besitzername",
@@ -583,7 +604,12 @@
         "pleaseInstall": "Bitte installieren",
         "repo": "Repository",
         "scriptPath": "Skriptpfad",
-        "tokenTooltip": "Zugriffstoken für Authentifizierung"
+        "tokenTooltip": "Zugriffstoken für Authentifizierung",
+        "picgoDetection": "PicGo-Erkennung",
+        "autoDetection": "Automatische Erkennung",
+        "lastSuccessTime": "Letzte erfolgreiche Zeit",
+        "neverDetected": "Nie erkannt",
+        "neverSuccessful": "Nie erfolgreich"
       }
     },
     "markdown": {
@@ -963,8 +989,8 @@
       "anchorLinkCopied": "Anker-Link kopiert",
       "tabNotFound": "Tab nicht gefunden",
       "tocItemNotFound": "Inhaltsverzeichnis-Element nicht gefunden",
-      "highlightStart": " [Hervorhebung Start] ",
-      "highlightEnd": " [Hervorhebung Ende] ",
+      "highlightStart": "[Hervorhebung Start]",
+      "highlightEnd": "[Hervorhebung Ende]",
       "typeAtToInsert": "{'@'} eingeben zum Einfügen",
       "inputFootnoteDefinition": "Fußnotendefinition eingeben...",
       "inputYamlFrontMatter": "YAML Front Matter eingeben...",
@@ -1102,7 +1128,7 @@
       },
       "state": {
         "title": "Zustandsdiagramm",
-        "subtitle": ""
+        "subtitle": "stateDiagram"
       },
       "journey": {
         "title": "User Journey"
@@ -1122,6 +1148,12 @@
     },
     "vegaliteChart": {
       "title": "Vega-Lite Diagramm"
+    },
+    "plantUMLDiagram": {
+      "title": "PlantUML-Diagramm"
+    },
+    "mermaidDiagram": {
+      "title": "Mermaid-Diagramm"
     }
   },
   "frontMenu": {
