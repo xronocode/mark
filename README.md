@@ -53,16 +53,17 @@
 
 ### Linux Package Managers
 
-##### 1. Arch Linux ![AUR Version](<https://img.shields.io/aur/version/marktext-tkaixiang-bin?label=(AUR)%20marktext-tkaixiang-bin>)
+##### 1. Arch Linux ![AUR Version](<https://img.shields.io/aur/version/marktext-tkaixiang-bin?label=(AUR)%20marktext-tkaixiang-bin%3E>)
 
 - Available on [AUR](https://aur.archlinux.org/packages/marktext-tkaixiang-bin) thanks to [@kromsam](https://github.com/kromsam)
 
 ## MacOS
 
-- I unfortunaely do not have an `Apple Developer Account` which is required to create a `Developer ID` to sign the binaries
+> ⚠️ MacOS releases will show a "`MarkText is damaged and can't be opened`" due to a **lack of notorisation**.
+>
+> Please see [this fix here](https://github.com/marktext/marktext/issues/3004#issuecomment-1038207300) (which also applies to any other app that lacks a Developer Account signing)
 
-  - Without signing, all binaries will appear as "Damaged" by default
-  - _If you would love to help with this, feel free to reach out!_
+- Available on the [Releases Page](https://github.com/Tkaixiang/marktext/releases)
 
 # 2. Screenshots
 
