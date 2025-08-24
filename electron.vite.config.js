@@ -37,9 +37,15 @@ export default defineConfig({
           files.forEach(file => {
             if (file.endsWith('.json')) {
               console.log(`Copying ${file} to ${destDir}`)
-              fs.copyFileSync(
+              // 使用 readFileSync 和 writeFileSync 避免 Unicode 转义
+              const content = fs.readFileSync(
                 path.join(srcDir, file),
-                path.join(destDir, file)
+                'utf8'
+              )
+              fs.writeFileSync(
+                path.join(destDir, file),
+                content,
+                'utf8'
               )
             }
           })

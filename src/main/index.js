@@ -12,6 +12,7 @@ import { getLogLevel } from './utils'
 import Accessor from './app/accessor'
 import App from './app'
 import { t } from './i18n'
+import setupI18nErrorHandling from './i18nErrorHandler'
 
 // Set version strings into global and process.versions
 process.env.MARKTEXT_VERSION = MARKTEXT_VERSION
@@ -44,6 +45,10 @@ const initializeLogger = (env) => {
 }
 
 initializeLogger(appEnvironment)
+
+// Setup i18n error handling and validation
+setupI18nErrorHandling()
+
 // Handles native level crashes
 crashReporter.start({
   companyName: '',
