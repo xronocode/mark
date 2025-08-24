@@ -69,7 +69,7 @@ nsis:
   include: windows/installer.nsh
 mac:
   artifactName: 'marktext-mac-${arch}-${version}.${ext}'
-  entitlementsInherit: mac/entitlements.mac.plist
+  entitlementsInherit: build/mac/entitlements.mac.plist
   extendInfo:
     - NSCameraUsageDescription: Application requests access to the device's camera.
     - NSDocumentsFolderUsageDescription: Application requests access to the user's Documents folder.
