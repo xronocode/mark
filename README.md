@@ -58,21 +58,14 @@
 
 ### Linux Package Managers
 
-##### 1. Arch Linux ![AUR Version](<https://img.shields.io/aur/version/marktext-tkaixiang-bin?label=(AUR)%20marktext-tkaixiang-bin>)
+##### 1. Arch Linux ![AUR Version](<https://img.shields.io/aur/version/marktext-tkaixiang-bin?label=(AUR)%20marktext-tkaixiang-bin%3E>)
 
 - 在 [AUR](https://aur.archlinux.org/packages/marktext-tkaixiang-bin) 上可用，感谢 [@kromsam](https://github.com/kromsam)
 
 ## MacOS
 
-- Simply check out the [Releases Page](https://github.com/hubo1989/marktext/releases/tag/v0.18.3-multiL)
 
-- I unfortunately do not have an `Apple Developer Account` which is required to create a `Developer ID` to sign the binaries
-
-  - Without signing, all binaries will appear as "Damaged" by default
-  - *If you would love to help with this, feel free to reach out!*
-
-  - Without signing, all binaries will appear as "Damaged" by default
-  - _If you would love to help with this, feel free to reach out!_
+- Available on the [Releases Page](https://github.com/Tkaixiang/marktext/releases)
 
 ### macOS Preferences Fix
 
