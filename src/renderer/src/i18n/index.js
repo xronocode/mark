@@ -56,8 +56,41 @@ const i18n = createI18n({
 // 确保 i18n 实例使用正确的语言
 i18n.global.locale.value = currentLocale
 
-// 导出翻译函数
-export const t = i18n.global.t
+// 导出翻译函数 - 修复：正确处理Vue i18n v9+的global getter
+export const t = (key, ...args) => {
+  // 检查i18n实例是否可用
+  if (!i18n) {
+    console.warn('⚠️ i18n实例不可用，使用英文fallback')
+    return key
+  }
+  
+  try {
+    // 正确访问global属性
+    const global = i18n.global
+    if (!global) {
+      console.warn('⚠️ i18n.global不可用，使用英文fallback')
+      return key
+    }
+    
+    // 确保获取最新的语言设置
+    const currentLanguage = global.locale.value || currentLocale
+    if (currentLanguage !== currentLocale) {
+      currentLocale = currentLanguage
+      console.log(`🌍 翻译函数语言已更新: ${currentLocale}`)
+    }
+    
+    return global.t(key, ...args)
+  } catch (error) {
+    console.error('❌ 翻译函数执行错误:', error)
+    return key
+  }
+}
+
+// 确保i18n实例挂载到window对象
+if (typeof window !== 'undefined') {
+  window.__VUE_I18N__ = i18n
+  console.log('✅ i18n实例已挂载到window.__VUE_I18N__')
+}
 
 // 导出语言设置函数
 export const setLanguage = (locale) => {

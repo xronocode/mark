@@ -34,7 +34,7 @@
   </div>
 </template>
 <script setup>
-import { getCategory, searchContent } from './config'
+import { getCategory, getTranslatedSearchContent } from './config'
 import { ref, watch, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { Search } from '@element-plus/icons-vue'
@@ -70,22 +70,25 @@ const querySearch = (queryString, cb) => {
 }
 
 const createFilter = (queryString) => {
+  const q = queryString.toLowerCase()
   return (restaurant) => {
-    return (
-      restaurant.preference.toLowerCase().indexOf(queryString.toLowerCase()) >= 0 ||
-      restaurant.category.toLowerCase().indexOf(queryString.toLowerCase()) >= 0
-    )
+    // 同时支持当前语言和英文关键词
+    const fields = [
+      restaurant.preference,
+      restaurant.category,
+      restaurant.preferenceEn,
+      restaurant.categoryEn
+    ].filter(Boolean).map(s => String(s).toLowerCase())
+    return fields.some(f => f.indexOf(q) >= 0)
   }
 }
 
-const loadAll = () => {
-  return searchContent
-}
+const loadAll = () => getTranslatedSearchContent()
 
 const handleSelect = (item) => {
-  router.push({
-    path: `/preference/${item.category.toLowerCase()}`
-  })
+  // 使用安全的 routeCategory，避免不合法分类导致白屏
+  const target = (item && item.routeCategory) ? item.routeCategory : (item?.category || 'general').toLowerCase()
+  router.push({ path: `/preference/${target}` }).catch(() => {})
 }
 
 const handleCategoryItemClick = (item) => {
@@ -112,6 +115,11 @@ onMounted(() => {
     currentCategory.value = route.name
   }
   window.electron.ipcRenderer.on('settings::change-tab', onIpcCategoryChange)
+  // 监听语言变化，刷新搜索索引
+  const languageChanged = () => { restaurants.value = loadAll() }
+  window.addEventListener('languageChanged', languageChanged)
+  // 卸载时移除监听
+  onUnmounted(() => window.removeEventListener('languageChanged', languageChanged))
 })
 
 onUnmounted(() => {
