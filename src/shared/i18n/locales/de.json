@@ -1257,6 +1257,23 @@
         "hr": "Horizontale Linie"
     },
     "editor": {
+        "image": {
+            "selector": {
+                "tab": {"select": "Auswählen", "embedLink": "Link einbetten"},
+                "select": {"chooseButton": "Bild wählen", "tip": "Wählen Sie ein Bild von Ihrem Computer."},
+                "inputs": {"alt": "Alternativtext", "src": "Bildlink oder lokaler Pfad", "title": "Bildtitel"},
+                "embedButton": "Bild einbetten",
+                "hint": {"prefix": "Webbild oder lokalen Pfad einfügen. Modus wechseln", "simple": "einfacher Modus", "full": "vollständiger Modus"}
+            },
+            "toolbar": {
+                "edit": "Bild bearbeiten",
+                "inline": "Inline-Bild",
+                "alignLeft": "Linksbündig",
+                "alignCenter": "Zentrieren",
+                "alignRight": "Rechtsbündig",
+                "delete": "Bild entfernen"
+            }
+        },
         "placeholders": {
             "frontMatter": "YAML Front Matter eingeben...",
             "languageIdentifier": "Sprachbezeichner eingeben...",

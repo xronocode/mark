@@ -1264,6 +1264,23 @@
         "hr": "Horizontal Rule"
     },
     "editor": {
+        "image": {
+            "selector": {
+                "tab": {"select": "Select", "embedLink": "Embed link"},
+                "select": {"chooseButton": "Choose Image", "tip": "Choose image from your computer."},
+                "inputs": {"alt": "Alt text", "src": "Image link or local path", "title": "Image title"},
+                "embedButton": "Embed Image",
+                "hint": {"prefix": "Paste web image or local image path. Use", "simple": "simple mode", "full": "full mode"}
+            },
+            "toolbar": {
+                "edit": "Edit Image",
+                "inline": "Inline Image",
+                "alignLeft": "Align Left",
+                "alignCenter": "Align Center",
+                "alignRight": "Align Right",
+                "delete": "Remove Image"
+            }
+        },
         "placeholders": {
             "frontMatter": "Input YAML Front Matter",
             "languageIdentifier": "Input Language Identifier...",

@@ -1301,6 +1301,23 @@
         "hr": "Línea horizontal"
     },
     "editor": {
+        "image": {
+            "selector": {
+                "tab": {"select": "Seleccionar", "embedLink": "Insertar enlace"},
+                "select": {"chooseButton": "Elegir imagen", "tip": "Elige una imagen de tu ordenador."},
+                "inputs": {"alt": "Texto alternativo", "src": "Enlace de imagen o ruta local", "title": "Título de la imagen"},
+                "embedButton": "Insertar imagen",
+                "hint": {"prefix": "Pega imagen web o ruta local. Cambiar modo", "simple": "modo simple", "full": "modo completo"}
+            },
+            "toolbar": {
+                "edit": "Editar imagen",
+                "inline": "Imagen en línea",
+                "alignLeft": "Alinear a la izquierda",
+                "alignCenter": "Alinear al centro",
+                "alignRight": "Alinear a la derecha",
+                "delete": "Eliminar imagen"
+            }
+        },
         "placeholders": {
             "frontMatter": "Ingrese Metadatos YAML...",
             "languageIdentifier": "Ingrese Identificador de Idioma...",

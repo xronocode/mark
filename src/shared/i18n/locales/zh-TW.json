@@ -1265,6 +1265,23 @@
         "hr": "水平線"
     },
     "editor": {
+        "image": {
+            "selector": {
+                "tab": {"select": "選擇", "embedLink": "插入連結"},
+                "select": {"chooseButton": "選擇圖片", "tip": "從你的電腦選擇圖片。"},
+                "inputs": {"alt": "替代文字", "src": "圖片連結或本機路徑", "title": "圖片標題"},
+                "embedButton": "嵌入圖片",
+                "hint": {"prefix": "貼上網路圖片或本機路徑。切換模式", "simple": "精簡模式", "full": "完整模式"}
+            },
+            "toolbar": {
+                "edit": "編輯圖片",
+                "inline": "行內圖片",
+                "alignLeft": "靠左對齊",
+                "alignCenter": "置中對齊",
+                "alignRight": "靠右對齊",
+                "delete": "刪除圖片"
+            }
+        },
         "placeholders": {
             "frontMatter": "輸入 YAML 前置資料…",
             "languageIdentifier": "輸入語言識別碼…",
