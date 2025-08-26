@@ -499,7 +499,8 @@ const imageAction = async (image, id, alt = '') => {
   switch (imageInsertAction.value) {
     case 'upload': {
       try {
-        destImagePath = await uploadImage(currentPathname, image, preferences.value)
+        // 传入完整的首选项状态对象，避免对不存在的 .value 解引用
+        destImagePath = await uploadImage(currentPathname, image, preferencesStore.$state)
       } catch (err) {
         notice.notify({
           title: 'Upload Image',

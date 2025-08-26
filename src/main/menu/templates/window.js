@@ -25,13 +25,13 @@ export default function(keybindings) {
         }, {
             type: 'separator'
         }, {
-            label: t('window.zoomIn'),
+            label: t('menu.window.zoomIn'),
             accelerator: keybindings.getAccelerator('window.zoomIn'),
             click(menuItem, browserWindow) {
                 zoomIn(browserWindow)
             }
         }, {
-            label: t('window.zoomOut'),
+            label: t('menu.window.zoomOut'),
             accelerator: keybindings.getAccelerator('window.zoomOut'),
             click(menuItem, browserWindow) {
                 zoomOut(browserWindow)
