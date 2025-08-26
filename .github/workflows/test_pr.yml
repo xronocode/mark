@@ -57,7 +57,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: app-${{ matrix.os }}
+          name: marktext-${{ matrix.os }}
           # Replace with your actual dist paths or globs
           path: |
             dist/**
