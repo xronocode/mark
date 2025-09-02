@@ -2,6 +2,7 @@ node_modules
 dist
 out
 .DS_Store
+.prettierignore
 .eslintcache
 *.log*
 .trae/
@@ -9,3 +10,4 @@ out
 doc/
 # Ignore temp artifacts
 temp/
+logs/

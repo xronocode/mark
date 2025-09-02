@@ -120,9 +120,8 @@ export const useEditorStore = defineStore('editor', {
         // The tab may be closed in the meanwhile.
         console.error('loadChange: Cannot find tab in tab list.')
         notice.notify({
-          title: 'Error loading tab',
-          message:
-            'There was an error while loading the file change because the tab cannot be found.',
+          title: i18n.global.t('store.editor.errorLoadingTabTitle'),
+          message: i18n.global.t('store.editor.errorLoadingTabMessage'),
           type: 'error',
           time: 20000,
           showConfirm: false
@@ -157,7 +156,10 @@ export const useEditorStore = defineStore('editor', {
       if (isMixedLineEndings) {
         this.pushTabNotification({
           tabId: tab.id,
-          msg: `"${filename}" has mixed line endings which have been automatically normalized to ${lineEnding.toUpperCase()}.`,
+          msg: i18n.global.t('store.editor.mixedLineEndingsNormalized', {
+            name: filename,
+            lineEnding: lineEnding.toUpperCase()
+          }),
           showConfirm: false,
           style: 'info',
           exclusiveType: ''
@@ -239,8 +241,8 @@ export const useEditorStore = defineStore('editor', {
     SHOW_IMAGE_DELETION_URL(deletionUrl) {
       notice
         .notify({
-          title: 'Image deletion URL',
-          message: `Click to copy the deletion URL of the uploaded image to the clipboard (${deletionUrl}).`,
+          title: i18n.global.t('store.editor.imageDeletionUrlTitle'),
+          message: i18n.global.t('store.editor.imageDeletionUrlMessage', { url: deletionUrl }),
           showConfirm: true,
           time: 20000
         })
@@ -341,7 +343,7 @@ export const useEditorStore = defineStore('editor', {
         const tab = this.tabs.find((t) => t.id === tabId)
         if (!tab) {
           notice.notify({
-            title: 'Save failure',
+            title: i18n.global.t('dialog.saveFailure'),
             message: msg,
             type: 'error',
             time: 20000,
@@ -353,7 +355,7 @@ export const useEditorStore = defineStore('editor', {
         tab.isSaved = false
         this.pushTabNotification({
           tabId,
-          msg: `There was an error while saving: ${msg}`,
+          msg: i18n.global.t('store.editor.errorWhileSaving', { msg }),
           style: 'crit'
         })
       })
@@ -900,7 +902,10 @@ export const useEditorStore = defineStore('editor', {
         const { filename, lineEnding } = markdownDocument
         this.pushTabNotification({
           tabId: id,
-          msg: `${filename}" has mixed line endings which are automatically normalized to ${lineEnding.toUpperCase()}.`
+          msg: i18n.global.t('store.editor.mixedLineEndingsNormalized', {
+            name: filename,
+            lineEnding: lineEnding.toUpperCase()
+          })
         })
       }
     },
@@ -1088,8 +1093,10 @@ export const useEditorStore = defineStore('editor', {
       window.electron.ipcRenderer.on('mt::export-success', (_, { filePath }) => {
         notice
           .notify({
-            title: 'Exported successfully',
-            message: `Exported "${window.path.basename(filePath)}" successfully!`,
+            title: i18n.global.t('store.editor.exportSuccessTitle'),
+            message: i18n.global.t('store.editor.exportSuccessMessage', {
+              name: window.path.basename(filePath)
+            }),
             showConfirm: true
           })
           .then(() => {
@@ -1154,7 +1161,7 @@ export const useEditorStore = defineStore('editor', {
               tab.isSaved = false
               this.pushTabNotification({
                 tabId: id,
-                msg: `"${filename}" has been removed on disk.`,
+                msg: i18n.global.t('store.editor.fileRemovedOnDisk', { name: filename }),
                 style: 'warn',
                 showConfirm: false,
                 exclusiveType: 'file_changed'
@@ -1180,7 +1187,7 @@ export const useEditorStore = defineStore('editor', {
               tab.isSaved = false
               this.pushTabNotification({
                 tabId: id,
-                msg: `"${filename}" has been changed on disk. Do you want to reload it?`,
+                msg: i18n.global.t('store.editor.fileChangedOnDisk', { name: filename }),
                 showConfirm: true,
                 exclusiveType: 'file_changed',
                 action: (status) => {

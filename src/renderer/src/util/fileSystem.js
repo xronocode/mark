@@ -136,7 +136,15 @@ export const uploadImage = async (pathname, image, preferences) => {
   const resolvePicgoBinary = () => {
     const candidates = process.platform === 'win32'
       ? ['picgo', 'picgo.exe']
-      : ['picgo', '/opt/homebrew/bin/picgo', '/usr/local/bin/picgo', '/usr/bin/picgo']
+      : [
+          'picgo',
+          '/opt/homebrew/bin/picgo',
+          '/usr/local/bin/picgo',
+          '/usr/bin/picgo',
+          `${process.env.HOME}/.npm-global/bin/picgo`,
+          `${process.env.HOME}/.npm/bin/picgo`,
+          '/usr/local/lib/node_modules/.bin/picgo'
+        ]
     for (const c of candidates) {
       try {
         if (window.commandExists?.exists && window.commandExists.exists(c)) return c

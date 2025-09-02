@@ -62,7 +62,30 @@ const fileUtilsAPI = {
 const commandAPI = {
   exists: (command) => {
     try {
-      return commandExists.sync(command)
+      // 先尝试使用 command-exists 检查
+      if (commandExists.sync(command)) {
+        return true
+      }
+      
+      // 对于 picgo，额外检查常见安装路径
+      if (command === 'picgo' && process.platform === 'darwin') {
+        const commonPaths = [
+          '/usr/local/bin/picgo',
+          '/opt/homebrew/bin/picgo',
+          `${process.env.HOME}/.npm-global/bin/picgo`,
+          `${process.env.HOME}/.npm/bin/picgo`,
+          '/usr/local/lib/node_modules/.bin/picgo'
+        ]
+        
+        for (const picgoPath of commonPaths) {
+          if (fs.pathExistsSync(picgoPath)) {
+            console.log(`Found picgo at: ${picgoPath}`)
+            return true
+          }
+        }
+      }
+      
+      return false
     } catch (error) {
       console.error('Error checking command existence:', error)
       return false

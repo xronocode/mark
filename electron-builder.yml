@@ -36,17 +36,15 @@ files:
   - '!jsconfig.json'
   - '!docs/*'
 extraResources:
-  - from: static
-    to: out
+  - from: build/icons
+    to: icons # ends up at resources/icons/
     filter:
       - '*.ico'
-      - '*.png'
-      - '*.icns'
   - from: static
     to: static
     filter:
       - '**/*'
-npmRebuild: true
+npmRebuild: false
 
 asarUnpack:
   - resources/**
