@@ -84,7 +84,7 @@
             "window": "Fenêtre",
             "minimize": "Réduire",
             "close": "Fermer",
-            "zoom": "Zoom",
+            "zoom": "",
             "zoomIn": "Agrandir",
             "zoomOut": "Réduire",
             "fullScreen": "Plein écran",
@@ -105,12 +105,12 @@
             "checkUpdates": "Vérifier les mises à jour"
         },
         "marktext": {
-            "title": "MarkText",
-            "marktext": "MarkText",
+            "title": "",
+            "marktext": "",
             "about": "À propos de MarkText",
             "checkUpdates": "Vérifier les mises à jour...",
             "preferences": "Préférences",
-            "services": "Services",
+            "services": "",
             "hide": "Masquer MarkText",
             "hideMarkText": "Masquer MarkText",
             "hideOthers": "Masquer les autres",
@@ -136,7 +136,7 @@
             "reloadWindow": "Recharger la fenêtre"
         },
         "format": {
-            "format": "Format",
+            "format": "",
             "bold": "Gras",
             "italic": "Italique",
             "underline": "Souligné",
@@ -149,7 +149,7 @@
             "taskList": "Liste de tâches",
             "table": "Tableau",
             "link": "Lien",
-            "image": "Image",
+            "image": "",
             "heading1": "Titre 1",
             "heading2": "Titre 2",
             "heading3": "Titre 3",
@@ -265,7 +265,7 @@
             "description": "Veuillez personnaliser l'apparence de la page et cliquer sur 'Exporter' pour continuer."
         },
         "page": {
-            "label": "Page",
+            "label": "",
             "pageTitle": "Titre de la page :",
             "pageSize": "Taille de la page :",
             "landscapeOrientation": "Orientation paysage :",
@@ -276,7 +276,7 @@
         },
         "showFrontMatter": "Afficher les métadonnées",
         "style": {
-            "label": "Style",
+            "label": "",
             "overwriteThemeFont": "Remplacer les paramètres de police du thème",
             "fontFamily": "Famille de police :",
             "fontSize": "Taille de police",
@@ -311,12 +311,12 @@
         "export": "Exporter...",
         "options": {
             "pageSizes": {
-                "a3": "A3 (297mm x 420mm)",
-                "a4": "A4 (210mm x 297mm)",
-                "a5": "A5 (148mm x 210mm)",
-                "legal": "US Legal (8.5\" x 13\")",
-                "letter": "US Letter (8.5\" x 11\")",
-                "tabloid": "Tabloid (17\" x 11\")",
+                "a3": "A3",
+                "a4": "A4",
+                "a5": "A5",
+                "legal": "Legal",
+                "letter": "Letter",
+                "tabloid": "Tabloid",
                 "custom": "Personnalisé"
             },
             "headerFooterTypes": {
@@ -326,7 +326,7 @@
             },
             "headerFooterStyles": {
                 "default": "Par défaut",
-                "simple": "Simple",
+                "simple": "",
                 "styled": "Stylé"
             },
             "themes": {
@@ -365,10 +365,10 @@
             "optionalValues": "valeurs optionnelles",
             "categories": {
                 "general": "Général",
-                "editor": "Éditeur", 
-                "markdown": "Markdown",
+                "editor": "Éditeur",
+                "markdown": "",
                 "theme": "Thème",
-                "image": "Image",
+                "image": "",
                 "view": "Affichage",
                 "searcher": "Recherche",
                 "watcher": "Surveillant",
@@ -443,10 +443,10 @@
         "categories": {
             "general": "Général",
             "editor": "Éditeur",
-            "markdown": "Markdown",
+            "markdown": "",
             "spelling": "Orthographe",
             "theme": "Thème",
-            "image": "Image",
+            "image": "",
             "keybindings": "Raccourcis clavier"
         },
         "general": {
@@ -468,7 +468,7 @@
                 "hideScrollbars": "Masquer les barres de défilement",
                 "openFilesInNewWindow": "Ouvrir les fichiers dans une nouvelle fenêtre",
                 "openFoldersInNewWindow": "Ouvrir les dossiers dans une nouvelle fenêtre",
-                "zoom": "Zoom"
+                "zoom": ""
             },
             "startup": {
                 "title": "Démarrage",
@@ -491,15 +491,15 @@
                 "title": "Divers",
                 "language": {
                     "title": "Langue",
-                    "english": "English",
-                    "chinese": "简体中文",
-                    "traditionalChinese": "繁體中文",
-                    "spanish": "Español",
-                    "french": "Français",
-                    "german": "Deutsch",
-                    "japanese": "日本語",
-                    "korean": "한국어",
-                    "portuguese": "Português"
+                    "english": "",
+                    "chinese": "",
+                    "traditionalChinese": "",
+                    "spanish": "",
+                    "french": "",
+                    "german": "",
+                    "japanese": "",
+                    "korean": "",
+                    "portuguese": ""
                 }
             }
         },
@@ -559,7 +559,7 @@
             }
         },
         "image": {
-            "title": "Image",
+            "title": "",
             "defaultAction": "Action par défaut lors de l'insertion d'image",
             "clipboardTooltip": "Comportement par défaut après avoir collé ou glissé une image dans MarkText",
             "actions": {
@@ -595,10 +595,10 @@
                 "title": "Hébergement d'images cloud",
                 "github": "GitHub",
                 "smms": "SM.MS",
-                "qiniu": "Qiniu",
-                "upyun": "UpYun",
-                "tcyun": "Tencent Cloud",
-                "aliyun": "Alibaba Cloud",
+                "qiniu": "",
+                "upyun": "",
+                "tcyun": "",
+                "aliyun": "",
                 "imgur": "Imgur",
                 "picgo": "PicGo"
             },
@@ -615,9 +615,9 @@
                 "picgoDetectionFailed": "Échec de la détection PicGo",
                 "debugInfo": "Informations de débogage",
                 "installCommand": "Commande d'installation",
-                "npmInstallCommand": "npm install picgo -g",
-                "yarnInstallCommand": "yarn global add picgo",
-                "pnpmInstallCommand": "pnpm add -g picgo",
+                "npmInstallCommand": "",
+                "yarnInstallCommand": "",
+                "pnpmInstallCommand": "",
                 "brewInstallCommand": "brew install picgo",
                 "chooseInstallMethod": "Choisir la méthode d'installation :",
                 "retestPicgo": "Retester",
@@ -664,10 +664,10 @@
                 "services": {
                     "github": "GitHub",
                     "smms": "SM.MS",
-                    "qiniu": "Qiniu",
-                    "upyun": "UpYun",
-                    "tcyun": "Tencent Cloud",
-                    "aliyun": "Alibaba Cloud",
+                    "qiniu": "",
+                    "upyun": "",
+                    "tcyun": "",
+                    "aliyun": "",
                     "imgur": "Imgur",
                     "picgo": "PicGo",
                     "script": "Script personnalisé",
@@ -690,7 +690,7 @@
             }
         },
         "markdown": {
-            "title": "Markdown",
+            "title": "",
             "listItem": {
                 "title": "Élément de liste",
                 "preferLooseListItem": "Préférer les éléments de liste lâches",
@@ -715,7 +715,7 @@
                 "frontmatterType": "Type de métadonnées"
             },
             "extensions": {
-                "title": "Extensions",
+                "title": "",
                 "superSubScript": "Exposant/Indice",
                 "footnote": "Note de bas de page",
                 "isHtmlEnabled": "HTML activé",
@@ -738,14 +738,14 @@
                 "title": "Diagrammes",
                 "plantuml": "PlantUML",
                 "mermaid": "Mermaid",
-                "vega": "Vega-Lite",
+                "vega": "Vega",
                 "flowchart": "Organigramme",
                 "sequence": "Séquence",
-                "gantt": "Gantt",
+                "gantt": "",
                 "sequenceTheme": {
                     "title": "Thème de séquence",
                     "handDrawn": "Dessiné à la main",
-                    "simple": "Simple"
+                    "simple": ""
                 }
             },
             "math": {
@@ -846,10 +846,10 @@
             "shortcutInUse": "Raccourci en cours d'utilisation",
             "shortcutInUseMessage": "Ce raccourci est déjà assigné à une autre commande",
             "table": {
-                "description": "Description",
+                "description": "",
                 "edit": "Modifier",
                 "keyCombination": "Combinaison de touches",
-                "options": "Options",
+                "options": "",
                 "reset": "Réinitialiser",
                 "unbind": "Délier"
             }
@@ -862,7 +862,7 @@
                 "delete": "Supprimer",
                 "description": "Ajouter des mots personnalisés à votre dictionnaire personnel",
                 "noWordsAvailable": "Aucun mot disponible",
-                "options": "Options",
+                "options": "",
                 "title": "Dictionnaire personnalisé",
                 "word": "Mot"
             },
@@ -903,7 +903,7 @@
             "importFile": "Importer un fichier",
             "exportFile": "Exporter un fichier",
             "exportFilePdf": "Exporter en PDF",
-            "zoom": "Zoom",
+            "zoom": "",
             "checkUpdate": "Vérifier les mises à jour",
             "lineEnding": "Fin de ligne",
             "close": "Fermer"
@@ -965,7 +965,7 @@
             "inlineMath": "Math en ligne",
             "strike": "Barré",
             "hyperlink": "Hyperlien",
-            "image": "Image",
+            "image": "",
             "clearFormat": "Effacer le format"
         },
         "window": {
@@ -1059,7 +1059,7 @@
     },
     "notifications": {
         "defaultMessage": "Message par défaut",
-        "defaultTitle": "Notification"
+        "defaultTitle": ""
     },
     "store": {
         "editor": {
@@ -1075,16 +1075,26 @@
             "inputMathematicalFormula": "Saisir la formule mathématique...",
             "fence": "Clôture",
             "indent": "Indentation",
-            "frontMatterDelimiter": "---",
-            "mathDelimiter": "$$",
-            "mermaidStart": "``` mermaid",
-            "flowchartStart": "``` flowchart",
-            "sequenceStart": "``` sequence",
-            "plantumlStart": "``` plantuml",
-            "vegaLiteStart": "``` vega-lite",
-            "codeFence": "```",
+            "frontMatterDelimiter": "",
+            "mathDelimiter": "",
+            "mermaidStart": "",
+            "flowchartStart": "",
+            "sequenceStart": "",
+            "plantumlStart": "",
+            "vegaLiteStart": "",
+            "codeFence": "",
             "clickToAddImage": "Cliquer pour ajouter une image",
-            "loadImageFailed": "Échec du chargement de l'image"
+            "loadImageFailed": "Échec du chargement de l'image",
+            "errorLoadingTabTitle": "Erreur lors du chargement de l’onglet",
+            "errorLoadingTabMessage": "Une erreur s’est produite lors du chargement de la modification du fichier car l’onglet est introuvable.",
+            "mixedLineEndingsNormalized": "« {{name}} » contient des fins de ligne mixtes qui ont été automatiquement normalisées en {{lineEnding}}.",
+            "imageDeletionUrlTitle": "URL de suppression de l’image",
+            "imageDeletionUrlMessage": "Cliquez pour copier dans le presse‑papiers l’URL de suppression de l’image téléversée ({{url}}).",
+            "errorWhileSaving": "Une erreur s’est produite lors de l’enregistrement : {{msg}}",
+            "exportSuccessTitle": "Exportation réussie",
+            "exportSuccessMessage": "« {{name}} » a été exporté avec succès !",
+            "fileRemovedOnDisk": "« {{name}} » a été supprimé du disque.",
+            "fileChangedOnDisk": "« {{name}} » a été modifié sur le disque. Voulez‑vous le recharger ?"
         },
         "help": {
             "lineEndingAssertionError": "Erreur d'assertion de fin de ligne"
@@ -1107,11 +1117,11 @@
         },
         "horizontalLine": {
             "title": "Ligne horizontale",
-            "subtitle": "---"
+            "subtitle": ""
         },
         "frontMatter": {
             "title": "Métadonnées",
-            "subtitle": "--- YAML ---"
+            "subtitle": ""
         },
         "header1": {
             "title": "Titre 1",
@@ -1147,11 +1157,11 @@
         },
         "htmlBlock": {
             "title": "Bloc HTML",
-            "subtitle": "<div> HTML </div>"
+            "subtitle": ""
         },
         "codeBlock": {
             "title": "Bloc de code",
-            "subtitle": "``` Code ```"
+            "subtitle": ""
         },
         "quoteBlock": {
             "title": "Bloc de citation",
@@ -1205,7 +1215,7 @@
             },
             "state": {
                 "title": "Diagramme d'états",
-                "subtitle": "stateDiagram"
+                "subtitle": ""
             },
             "journey": {
                 "title": "Parcours utilisateur"
@@ -1259,11 +1269,25 @@
     "editor": {
         "image": {
             "selector": {
-                "tab": {"select": "Sélectionner", "embedLink": "Intégrer un lien"},
-                "select": {"chooseButton": "Choisir une image", "tip": "Choisissez une image depuis votre ordinateur."},
-                "inputs": {"alt": "Texte alternatif", "src": "Lien de l'image ou chemin local", "title": "Titre de l'image"},
+                "tab": {
+                    "select": "Sélectionner",
+                    "embedLink": "Intégrer un lien"
+                },
+                "select": {
+                    "chooseButton": "Choisir une image",
+                    "tip": "Choisissez une image depuis votre ordinateur."
+                },
+                "inputs": {
+                    "alt": "Texte alternatif",
+                    "src": "Lien de l'image ou chemin local",
+                    "title": "Titre de l'image"
+                },
                 "embedButton": "Intégrer l'image",
-                "hint": {"prefix": "Collez une image web ou un chemin local. Changer de mode", "simple": "mode simple", "full": "mode complet"}
+                "hint": {
+                    "prefix": "Collez une image web ou un chemin local. Changer de mode",
+                    "simple": "mode simple",
+                    "full": "mode complet"
+                }
             },
             "toolbar": {
                 "edit": "Modifier l'image",

@@ -105,8 +105,8 @@
             "checkUpdates": "Verificar Atualizações"
         },
         "marktext": {
-            "title": "MarkText",
-            "marktext": "MarkText",
+            "title": "",
+            "marktext": "",
             "about": "Sobre MarkText",
             "checkUpdates": "Verificar Atualizações...",
             "preferences": "Preferências",
@@ -148,7 +148,7 @@
             "orderedList": "Lista Ordenada",
             "taskList": "Lista de Tarefas",
             "table": "Tabela",
-            "link": "Link",
+            "link": "",
             "image": "Imagem",
             "heading1": "Cabeçalho 1",
             "heading2": "Cabeçalho 2",
@@ -311,12 +311,12 @@
         "export": "Exportar...",
         "options": {
             "pageSizes": {
-                "a3": "A3 (297mm x 420mm)",
-                "a4": "A4 (210mm x 297mm)",
-                "a5": "A5 (148mm x 210mm)",
-                "legal": "US Legal (8.5\" x 13\")",
-                "letter": "US Letter (8.5\" x 11\")",
-                "tabloid": "Tabloid (17\" x 11\")",
+                "a3": "A3",
+                "a4": "A4",
+                "a5": "A5",
+                "legal": "Legal",
+                "letter": "Letter",
+                "tabloid": "Tabloid",
                 "custom": "Personalizado"
             },
             "headerFooterTypes": {
@@ -491,20 +491,20 @@
                 "title": "Diversos",
                 "language": {
                     "title": "Idioma",
-                    "english": "English",
-                    "chinese": "简体中文",
-                    "traditionalChinese": "繁體中文",
-                    "spanish": "Español",
-                    "french": "Français",
-                    "german": "Deutsch",
-                    "japanese": "日本語",
-                    "korean": "한국어",
-                    "portuguese": "Português"
+                    "english": "",
+                    "chinese": "",
+                    "traditionalChinese": "",
+                    "spanish": "",
+                    "french": "",
+                    "german": "",
+                    "japanese": "",
+                    "korean": "",
+                    "portuguese": ""
                 }
             }
         },
         "editor": {
-            "title": "Editor",
+            "title": "",
             "textEditor": {
                 "title": "Editor de Texto",
                 "fontSize": "Tamanho da fonte",
@@ -541,8 +541,8 @@
                 },
                 "endOfLine": {
                     "default": "Padrão",
-                    "crlf": "CRLF(Windows)",
-                    "lf": "LF(Linux/Mac)"
+                    "crlf": "CRLF",
+                    "lf": "LF"
                 }
             },
             "misc": {
@@ -595,10 +595,10 @@
                 "title": "Hospedagem de imagens na nuvem",
                 "github": "GitHub",
                 "smms": "SM.MS",
-                "qiniu": "Qiniu",
-                "upyun": "UpYun",
-                "tcyun": "Tencent Cloud",
-                "aliyun": "Alibaba Cloud",
+                "qiniu": "",
+                "upyun": "",
+                "tcyun": "",
+                "aliyun": "",
                 "imgur": "Imgur",
                 "picgo": "PicGo"
             },
@@ -615,9 +615,9 @@
                 "picgoDetectionFailed": "Detecção do PicGo falhou",
                 "debugInfo": "Informações de Debug",
                 "installCommand": "Comando de Instalação",
-                "npmInstallCommand": "npm install picgo -g",
-                "yarnInstallCommand": "yarn global add picgo",
-                "pnpmInstallCommand": "pnpm add -g picgo",
+                "npmInstallCommand": "",
+                "yarnInstallCommand": "",
+                "pnpmInstallCommand": "",
                 "brewInstallCommand": "brew install picgo",
                 "chooseInstallMethod": "Escolha o méde instalação:",
                 "retestPicgo": "Testar novamente",
@@ -664,17 +664,17 @@
                 "services": {
                     "github": "GitHub",
                     "smms": "SM.MS",
-                    "qiniu": "Qiniu",
-                    "upyun": "UpYun",
-                    "tcyun": "Tencent Cloud",
-                    "aliyun": "Alibaba Cloud",
+                    "qiniu": "",
+                    "upyun": "",
+                    "tcyun": "",
+                    "aliyun": "",
                     "imgur": "Imgur",
                     "picgo": "PicGo",
                     "script": "Script Personalizado",
                     "cliScript": "Script CLI",
                     "none": "Nenhum"
                 },
-                "branch": "Branch",
+                "branch": "",
                 "inputToken": "Inserir token",
                 "noUploaderSelected": "Nenhum carregador selecionado",
                 "owner": "Proprietário",
@@ -690,7 +690,7 @@
             }
         },
         "markdown": {
-            "title": "Markdown",
+            "title": "",
             "listItem": {
                 "title": "Item de Lista",
                 "preferLooseListItem": "Preferir item de lista solta",
@@ -711,19 +711,19 @@
                 "preferHeadingStyle": "Preferir estilo de cabeçalho"
             },
             "frontmatter": {
-                "title": "Front Matter",
+                "title": "",
                 "frontmatterType": "Tipo de front matter"
             },
             "extensions": {
                 "title": "Extensões",
-                "superSubScript": "Super/Sub script",
+                "superSubScript": "",
                 "footnote": "Nota de rodapé",
                 "isHtmlEnabled": "HTML habilitado",
                 "isGitlabCompatibilityEnabled": "Compatibilidade GitLab",
                 "sequenceTheme": "Tema de sequência",
                 "superscript": "Sobrescrito",
                 "subscript": "Subscrito",
-                "frontMatter": "Front matter",
+                "frontMatter": "",
                 "math": "Matemática",
                 "diagram": "Diagrama",
                 "footnoteNotes": "Notas de rodapé",
@@ -738,10 +738,10 @@
                 "title": "Diagramas",
                 "plantuml": "PlantUML",
                 "mermaid": "Mermaid",
-                "vega": "Vega-Lite",
+                "vega": "Vega",
                 "flowchart": "Fluxograma",
                 "sequence": "Sequência",
-                "gantt": "Gantt",
+                "gantt": "",
                 "sequenceTheme": {
                     "title": "Tema de Sequência",
                     "handDrawn": "Desenhado à Mão",
@@ -773,7 +773,7 @@
                     "dfm": "Estilo DFM",
                     "fourSpaces": "Quatro Espaços",
                     "oneSpace": "Um Espaço",
-                    "tab": "Tab",
+                    "tab": "",
                     "threeSpaces": "Três Espaços",
                     "twoSpaces": "Dois Espaços"
                 },
@@ -841,7 +841,7 @@
                 "invalidKeybinding": "Combinação de teclas inválida",
                 "placeholder": "Pressione teclas..."
             },
-            "online": "Online",
+            "online": "",
             "saveError": "Erro ao salvar atalhos de teclado",
             "shortcutInUse": "Atalho em uso",
             "shortcutInUseMessage": "Este atalho já está atribuído a outro comando",
@@ -873,7 +873,7 @@
         }
     },
     "about": {
-        "copyright": "Copyright",
+        "copyright": "",
         "copyrightContributors": "Copyright Contribuidores"
     },
     "commands": {
@@ -949,7 +949,7 @@
             "looseListItem": "Item de Lista Solta",
             "paragraph": "Parágrafo",
             "horizontalLine": "Linha Horizontal",
-            "frontMatter": "Front Matter",
+            "frontMatter": "",
             "resetParagraph": "Resetar Parágrafo",
             "mathBlock": "Bloco matemático",
             "horizontalRule": "Linha horizontal"
@@ -1075,16 +1075,26 @@
             "inputMathematicalFormula": "Digite fórmula matemática...",
             "fence": "Cerca",
             "indent": "Indentação",
-            "frontMatterDelimiter": "---",
-            "mathDelimiter": "$$",
-            "mermaidStart": "``` mermaid",
-            "flowchartStart": "``` flowchart",
-            "sequenceStart": "``` sequence",
-            "plantumlStart": "``` plantuml",
-            "vegaLiteStart": "``` vega-lite",
-            "codeFence": "```",
+            "frontMatterDelimiter": "",
+            "mathDelimiter": "",
+            "mermaidStart": "",
+            "flowchartStart": "",
+            "sequenceStart": "",
+            "plantumlStart": "",
+            "vegaLiteStart": "",
+            "codeFence": "",
             "clickToAddImage": "Clique para adicionar imagem",
-            "loadImageFailed": "Falha ao carregar imagem"
+            "loadImageFailed": "Falha ao carregar imagem",
+            "errorLoadingTabTitle": "Erro ao carregar a aba",
+            "errorLoadingTabMessage": "Ocorreu um erro ao carregar a alteração do arquivo porque a aba não pôde ser encontrada.",
+            "mixedLineEndingsNormalized": "“{{name}}” possui finais de linha mistos que foram normalizados automaticamente para {{lineEnding}}.",
+            "imageDeletionUrlTitle": "URL de exclusão da imagem",
+            "imageDeletionUrlMessage": "Clique para copiar para a área de transferência a URL de exclusão da imagem enviada ({{url}}).",
+            "errorWhileSaving": "Ocorreu um erro ao salvar: {{msg}}",
+            "exportSuccessTitle": "Exportado com sucesso",
+            "exportSuccessMessage": "“{{name}}” foi exportado com sucesso!",
+            "fileRemovedOnDisk": "“{{name}}” foi removido no disco.",
+            "fileChangedOnDisk": "“{{name}}” foi alterado no disco. Deseja recarregar?"
         },
         "help": {
             "lineEndingAssertionError": "Erro de asserção de terminação de linha"
@@ -1103,11 +1113,11 @@
         },
         "horizontalLine": {
             "title": "Linha Horizontal",
-            "subtitle": "---"
+            "subtitle": ""
         },
         "frontMatter": {
-            "title": "Front Matter",
-            "subtitle": "--- YAML ---"
+            "title": "",
+            "subtitle": ""
         },
         "header1": {
             "title": "Cabeçalho 1",
@@ -1143,7 +1153,7 @@
         },
         "htmlBlock": {
             "title": "Bloco HTML",
-            "subtitle": "<div> HTML </div>"
+            "subtitle": ""
         },
         "codeBlock": {
             "title": "Bloco de Código",
@@ -1201,7 +1211,7 @@
             },
             "state": {
                 "title": "Diagrama de estados",
-                "subtitle": "stateDiagram"
+                "subtitle": ""
             },
             "journey": {
                 "title": "Jornada do usuário"
@@ -1251,7 +1261,7 @@
         "html": "HTML",
         "mathblock": "Bloco matemático",
         "pre": "Bloco de código",
-        "frontMatter": "Front Matter",
+        "frontMatter": "",
         "ulTask": "Lista de tarefas",
         "ulBullet": "Lista com marcadores",
         "olOrder": "Lista ordenada",
@@ -1267,11 +1277,25 @@
     "editor": {
         "image": {
             "selector": {
-                "tab": {"select": "Selecionar", "embedLink": "Inserir link"},
-                "select": {"chooseButton": "Escolher imagem", "tip": "Escolha uma imagem do seu computador."},
-                "inputs": {"alt": "Texto alternativo", "src": "Link da imagem ou caminho local", "title": "Título da imagem"},
+                "tab": {
+                    "select": "Selecionar",
+                    "embedLink": "Inserir link"
+                },
+                "select": {
+                    "chooseButton": "Escolher imagem",
+                    "tip": "Escolha uma imagem do seu computador."
+                },
+                "inputs": {
+                    "alt": "Texto alternativo",
+                    "src": "Link da imagem ou caminho local",
+                    "title": "Título da imagem"
+                },
                 "embedButton": "Inserir imagem",
-                "hint": {"prefix": "Cole imagem da web ou caminho local. Alternar modo", "simple": "modo simples", "full": "modo completo"}
+                "hint": {
+                    "prefix": "Cole imagem da web ou caminho local. Alternar modo",
+                    "simple": "modo simples",
+                    "full": "modo completo"
+                }
             },
             "toolbar": {
                 "edit": "Editar imagem",

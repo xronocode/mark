@@ -49,8 +49,8 @@
             "findInFolder": "폴더에서 찾기",
             "screenshot": "스크린샷",
             "lineEnding": "줄 끝",
-            "lineEndingCrlf": "CRLF(Windows)",
-            "lineEndingLf": "LF(Linux/Mac)"
+            "lineEndingCrlf": "",
+            "lineEndingLf": ""
         },
         "paragraph": {
             "title": "단락",
@@ -105,8 +105,8 @@
             "checkUpdates": "업데이트 확인"
         },
         "marktext": {
-            "title": "MarkText",
-            "marktext": "MarkText",
+            "title": "",
+            "marktext": "",
             "about": "MarkText 정보",
             "checkUpdates": "업데이트 확인...",
             "preferences": "환경설정",
@@ -311,12 +311,12 @@
         "export": "내보내기...",
         "options": {
             "pageSizes": {
-                "a3": "A3 (297mm x 420mm)",
-                "a4": "A4 (210mm x 297mm)",
-                "a5": "A5 (148mm x 210mm)",
-                "legal": "US Legal (8.5\" x 13\")",
-                "letter": "US Letter (8.5\" x 11\")",
-                "tabloid": "Tabloid (17\" x 11\")",
+                "a3": "A3",
+                "a4": "A4",
+                "a5": "A5",
+                "legal": "Legal",
+                "letter": "Letter",
+                "tabloid": "Tabloid",
                 "custom": "사용자 정의"
             },
             "headerFooterTypes": {
@@ -491,15 +491,15 @@
                 "title": "기타",
                 "language": {
                     "title": "언어",
-                    "english": "English",
-                    "chinese": "简体中文",
-                    "traditionalChinese": "繁體中文",
-                    "spanish": "Español",
-                    "french": "Français",
-                    "german": "Deutsch",
-                    "japanese": "日本語",
-                    "korean": "한국어",
-                    "portuguese": "Português"
+                    "english": "",
+                    "chinese": "",
+                    "traditionalChinese": "",
+                    "spanish": "",
+                    "french": "",
+                    "german": "",
+                    "japanese": "",
+                    "korean": "",
+                    "portuguese": ""
                 }
             }
         },
@@ -541,8 +541,8 @@
                 },
                 "endOfLine": {
                     "default": "기본값",
-                    "crlf": "CRLF(Windows)",
-                    "lf": "LF(Linux/Mac)"
+                    "crlf": "CRLF",
+                    "lf": "LF"
                 }
             },
             "misc": {
@@ -595,10 +595,10 @@
                 "title": "클라우드 이미지 저장소",
                 "github": "GitHub",
                 "smms": "SM.MS",
-                "qiniu": "Qiniu",
-                "upyun": "UpYun",
-                "tcyun": "Tencent Cloud",
-                "aliyun": "Alibaba Cloud",
+                "qiniu": "",
+                "upyun": "",
+                "tcyun": "",
+                "aliyun": "",
                 "imgur": "Imgur",
                 "picgo": "PicGo"
             },
@@ -615,9 +615,9 @@
                 "picgoDetectionFailed": "PicGo 감지 실패",
                 "debugInfo": "디버그 정보",
                 "installCommand": "설치 명령",
-                "npmInstallCommand": "npm install picgo -g",
-                "yarnInstallCommand": "yarn global add picgo",
-                "pnpmInstallCommand": "pnpm add -g picgo",
+                "npmInstallCommand": "",
+                "yarnInstallCommand": "",
+                "pnpmInstallCommand": "",
                 "brewInstallCommand": "brew install picgo",
                 "chooseInstallMethod": "설치 방법 선택:",
                 "retestPicgo": "다시 테스트",
@@ -664,10 +664,10 @@
                 "services": {
                     "github": "GitHub",
                     "smms": "SM.MS",
-                    "qiniu": "Qiniu",
-                    "upyun": "UpYun",
-                    "tcyun": "Tencent Cloud",
-                    "aliyun": "Alibaba Cloud",
+                    "qiniu": "",
+                    "upyun": "",
+                    "tcyun": "",
+                    "aliyun": "",
                     "imgur": "Imgur",
                     "picgo": "PicGo",
                     "script": "사용자 정의 스크립트",
@@ -738,7 +738,7 @@
                 "title": "다이어그램",
                 "plantuml": "PlantUML",
                 "mermaid": "Mermaid",
-                "vega": "Vega-Lite",
+                "vega": "Vega",
                 "flowchart": "플로우차트",
                 "sequence": "시퀀스",
                 "gantt": "간트",
@@ -1075,16 +1075,26 @@
             "inputMathematicalFormula": "수학 공식 입력...",
             "fence": "펜스",
             "indent": "들여쓰기",
-            "frontMatterDelimiter": "---",
-            "mathDelimiter": "$$",
-            "mermaidStart": "``` mermaid",
-            "flowchartStart": "``` flowchart",
-            "sequenceStart": "``` sequence",
-            "plantumlStart": "``` plantuml",
-            "vegaLiteStart": "``` vega-lite",
-            "codeFence": "```",
+            "frontMatterDelimiter": "",
+            "mathDelimiter": "",
+            "mermaidStart": "",
+            "flowchartStart": "",
+            "sequenceStart": "",
+            "plantumlStart": "",
+            "vegaLiteStart": "",
+            "codeFence": "",
             "clickToAddImage": "이미지 추가하려면 클릭",
-            "loadImageFailed": "이미지 로드 실패"
+            "loadImageFailed": "이미지 로드 실패",
+            "errorLoadingTabTitle": "탭 로드 오류",
+            "errorLoadingTabMessage": "파일 변경을 로드하는 동안 오류가 발생했습니다. 탭을 찾을 수 없습니다.",
+            "mixedLineEndingsNormalized": "“{{name}}”에 혼합 줄 끝이 포함되어 있으며 {{lineEnding}}(으)로 자동 정규화되었습니다.",
+            "imageDeletionUrlTitle": "이미지 삭제 URL",
+            "imageDeletionUrlMessage": "업로드된 이미지의 삭제 URL을 클립보드에 복사합니다 ({{url}}).",
+            "errorWhileSaving": "저장 중 오류가 발생했습니다: {{msg}}",
+            "exportSuccessTitle": "내보내기 성공",
+            "exportSuccessMessage": "“{{name}}”을(를) 성공적으로 내보냈습니다!",
+            "fileRemovedOnDisk": "“{{name}}”이(가) 디스크에서 삭제되었습니다.",
+            "fileChangedOnDisk": "“{{name}}”이(가) 디스크에서 변경되었습니다. 다시 로드하시겠습니까?"
         },
         "help": {
             "lineEndingAssertionError": "줄 끝 어설션 오류"
@@ -1103,11 +1113,11 @@
         },
         "horizontalLine": {
             "title": "수평선",
-            "subtitle": "---"
+            "subtitle": ""
         },
         "frontMatter": {
             "title": "프론트 매터",
-            "subtitle": "--- YAML ---"
+            "subtitle": ""
         },
         "header1": {
             "title": "헤더 1",
@@ -1143,7 +1153,7 @@
         },
         "htmlBlock": {
             "title": "HTML 블록",
-            "subtitle": "<div> HTML </div>"
+            "subtitle": ""
         },
         "codeBlock": {
             "title": "코드 블록",
@@ -1210,7 +1220,7 @@
             },
             "state": {
                 "title": "상태 다이어그램",
-                "subtitle": "stateDiagram"
+                "subtitle": ""
             },
             "journey": {
                 "title": "사용자 여정"
@@ -1271,11 +1281,25 @@
     "editor": {
         "image": {
             "selector": {
-                "tab": {"select": "선택", "embedLink": "링크 삽입"},
-                "select": {"chooseButton": "이미지 선택", "tip": "컴퓨터에서 이미지를 선택하세요."},
-                "inputs": {"alt": "대체 텍스트", "src": "이미지 링크 또는 로컬 경로", "title": "이미지 제목"},
+                "tab": {
+                    "select": "선택",
+                    "embedLink": "링크 삽입"
+                },
+                "select": {
+                    "chooseButton": "이미지 선택",
+                    "tip": "컴퓨터에서 이미지를 선택하세요."
+                },
+                "inputs": {
+                    "alt": "대체 텍스트",
+                    "src": "이미지 링크 또는 로컬 경로",
+                    "title": "이미지 제목"
+                },
                 "embedButton": "이미지 삽입",
-                "hint": {"prefix": "웹 이미지 또는 로컬 경로를 붙여넣기. 모드 전환", "simple": "간단 모드", "full": "전체 모드"}
+                "hint": {
+                    "prefix": "웹 이미지 또는 로컬 경로를 붙여넣기. 모드 전환",
+                    "simple": "간단 모드",
+                    "full": "전체 모드"
+                }
             },
             "toolbar": {
                 "edit": "이미지 편집",

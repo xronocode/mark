@@ -105,7 +105,7 @@
             "checkUpdates": "檢查更新"
         },
         "marktext": {
-            "title": "MarkText",
+            "title": "關於",
             "marktext": "MarkText",
             "about": "關於 MarkText",
             "checkUpdates": "檢查更新…",
@@ -311,12 +311,12 @@
         "export": "匯出…",
         "options": {
             "pageSizes": {
-                "a3": "A3 (297mm x 420mm)",
-                "a4": "A4 (210mm x 297mm)",
-                "a5": "A5 (148mm x 210mm)",
+                "a3": "A3",
+                "a4": "A4",
+                "a5": "A5",
                 "legal": "美國 Legal (8.5\" x 13\")",
                 "letter": "美國 Letter (8.5\" x 11\")",
-                "tabloid": "Tabloid (17\" x 11\")",
+                "tabloid": "美國 Tabloid (11\" x 17\")",
                 "custom": "自訂"
             },
             "headerFooterTypes": {
@@ -492,7 +492,7 @@
                 "language": {
                     "title": "語言",
                     "english": "English",
-                    "chinese": "简体中文",
+                    "chinese": "簡體中文",
                     "traditionalChinese": "繁體中文",
                     "spanish": "Español",
                     "french": "Français",
@@ -615,9 +615,9 @@
                 "picgoDetectionFailed": "PicGo 偵測失敗",
                 "debugInfo": "除錯資訊",
                 "installCommand": "安裝命令",
-                "npmInstallCommand": "npm install picgo -g",
-                "yarnInstallCommand": "yarn global add picgo",
-                "pnpmInstallCommand": "pnpm add -g picgo",
+                "npmInstallCommand": "",
+                "yarnInstallCommand": "",
+                "pnpmInstallCommand": "",
                 "brewInstallCommand": "brew install picgo",
                 "chooseInstallMethod": "選擇安裝方法：",
                 "retestPicgo": "重新檢測",
@@ -642,7 +642,7 @@
                 "viewConfigDescription": "使用以下命令檢視目前設定：",
                 "viewDocumentation": "檢視完整文件",
                 "githubDeprecated": "GitHub 上傳器已棄用",
-                "githubToken": "GitHub Token",
+                "githubToken": "",
                 "ownerName": "擁有者名稱",
                 "repoName": "儲存庫名稱",
                 "branchName": "分支名稱",
@@ -690,7 +690,7 @@
             }
         },
         "markdown": {
-            "title": "Markdown",
+            "title": "",
             "listItem": {
                 "title": "清單項目",
                 "preferLooseListItem": "偏好鬆散清單項目",
@@ -738,7 +738,7 @@
                 "title": "圖表",
                 "plantuml": "PlantUML",
                 "mermaid": "Mermaid",
-                "vega": "Vega-Lite",
+                "vega": "Vega",
                 "flowchart": "流程圖",
                 "sequence": "序列",
                 "gantt": "甘特圖",
@@ -773,7 +773,7 @@
                     "dfm": "DFM 樣式",
                     "fourSpaces": "四個空格",
                     "oneSpace": "一個空格",
-                    "tab": "Tab",
+                    "tab": "",
                     "threeSpaces": "三個空格",
                     "twoSpaces": "兩個空格"
                 },
@@ -1075,16 +1075,26 @@
             "inputMathematicalFormula": "輸入數學公式…",
             "fence": "圍欄",
             "indent": "縮排",
-            "frontMatterDelimiter": "---",
-            "mathDelimiter": "$$",
-            "mermaidStart": "``` mermaid",
-            "flowchartStart": "``` flowchart",
-            "sequenceStart": "``` sequence",
-            "plantumlStart": "``` plantuml",
-            "vegaLiteStart": "``` vega-lite",
-            "codeFence": "```",
+            "frontMatterDelimiter": "",
+            "mathDelimiter": "",
+            "mermaidStart": "",
+            "flowchartStart": "",
+            "sequenceStart": "",
+            "plantumlStart": "",
+            "vegaLiteStart": "",
+            "codeFence": "",
             "clickToAddImage": "點擊新增圖片",
-            "loadImageFailed": "圖片載入失敗"
+            "loadImageFailed": "圖片載入失敗",
+            "errorLoadingTabTitle": "載入標籤頁發生錯誤",
+            "errorLoadingTabMessage": "載入檔案變更時發生錯誤，因為找不到該標籤頁。",
+            "mixedLineEndingsNormalized": "「{{name}}」含有混合換行字元，已自動正規化為 {{lineEnding}}。",
+            "imageDeletionUrlTitle": "圖片刪除連結",
+            "imageDeletionUrlMessage": "點擊將已上傳圖片的刪除連結複製到剪貼簿（{{url}}）。",
+            "errorWhileSaving": "儲存時發生錯誤：{{msg}}",
+            "exportSuccessTitle": "匯出成功",
+            "exportSuccessMessage": "已成功匯出「{{name}}」！",
+            "fileRemovedOnDisk": "「{{name}}」已在磁碟上被刪除。",
+            "fileChangedOnDisk": "「{{name}}」已在磁碟上發生變更。是否重新載入？"
         },
         "help": {
             "lineEndingAssertionError": "行結束符斷言錯誤"
@@ -1103,11 +1113,11 @@
         },
         "horizontalLine": {
             "title": "水平線",
-            "subtitle": "---"
+            "subtitle": ""
         },
         "frontMatter": {
             "title": "前置資料",
-            "subtitle": "--- YAML ---"
+            "subtitle": ""
         },
         "header1": {
             "title": "標題 1",
@@ -1143,7 +1153,7 @@
         },
         "htmlBlock": {
             "title": "HTML 區塊",
-            "subtitle": "<div> HTML </div>"
+            "subtitle": ""
         },
         "codeBlock": {
             "title": "程式碼區塊",
@@ -1201,7 +1211,7 @@
             },
             "state": {
                 "title": "狀態圖",
-                "subtitle": "stateDiagram"
+                "subtitle": ""
             },
             "journey": {
                 "title": "使用者旅程"
@@ -1267,11 +1277,25 @@
     "editor": {
         "image": {
             "selector": {
-                "tab": {"select": "選擇", "embedLink": "插入連結"},
-                "select": {"chooseButton": "選擇圖片", "tip": "從你的電腦選擇圖片。"},
-                "inputs": {"alt": "替代文字", "src": "圖片連結或本機路徑", "title": "圖片標題"},
+                "tab": {
+                    "select": "選擇",
+                    "embedLink": "插入連結"
+                },
+                "select": {
+                    "chooseButton": "選擇圖片",
+                    "tip": "從你的電腦選擇圖片。"
+                },
+                "inputs": {
+                    "alt": "替代文字",
+                    "src": "圖片連結或本機路徑",
+                    "title": "圖片標題"
+                },
                 "embedButton": "嵌入圖片",
-                "hint": {"prefix": "貼上網路圖片或本機路徑。切換模式", "simple": "精簡模式", "full": "完整模式"}
+                "hint": {
+                    "prefix": "貼上網路圖片或本機路徑。切換模式",
+                    "simple": "精簡模式",
+                    "full": "完整模式"
+                }
             },
             "toolbar": {
                 "edit": "編輯圖片",

@@ -105,8 +105,8 @@
             "checkUpdates": "アップデートを確認"
         },
         "marktext": {
-            "title": "MarkText",
-            "marktext": "MarkText",
+            "title": "",
+            "marktext": "",
             "about": "MarkTextについて",
             "checkUpdates": "アップデートを確認...",
             "preferences": "環境設定",
@@ -311,12 +311,12 @@
         "export": "エクスポート...",
         "options": {
             "pageSizes": {
-                "a3": "A3 (297mm x 420mm)",
-                "a4": "A4 (210mm x 297mm)",
-                "a5": "A5 (148mm x 210mm)",
-                "legal": "US Legal (8.5\" x 13\")",
-                "letter": "US Letter (8.5\" x 11\")",
-                "tabloid": "Tabloid (17\" x 11\")",
+                "a3": "A3",
+                "a4": "A4",
+                "a5": "A5",
+                "legal": "Legal",
+                "letter": "Letter",
+                "tabloid": "Tabloid",
                 "custom": "カスタム"
             },
             "headerFooterTypes": {
@@ -365,8 +365,8 @@
             "optionalValues": "オプション値",
             "categories": {
                 "general": "一般",
-                "editor": "エディター", 
-                "markdown": "Markdown",
+                "editor": "エディター",
+                "markdown": "",
                 "theme": "テーマ",
                 "image": "画像",
                 "view": "ビュー",
@@ -443,7 +443,7 @@
         "categories": {
             "general": "一般",
             "editor": "エディター",
-            "markdown": "Markdown",
+            "markdown": "",
             "spelling": "スペルチェック",
             "theme": "テーマ",
             "image": "画像",
@@ -491,15 +491,15 @@
                 "title": "その他",
                 "language": {
                     "title": "言語",
-                    "english": "English",
-                    "chinese": "简体中文",
-                    "traditionalChinese": "繁體中文",
-                    "spanish": "Español",
-                    "french": "Français",
-                    "german": "Deutsch",
-                    "japanese": "日本語",
-                    "korean": "한국어",
-                    "portuguese": "Português"
+                    "english": "",
+                    "chinese": "",
+                    "traditionalChinese": "",
+                    "spanish": "",
+                    "french": "",
+                    "german": "",
+                    "japanese": "",
+                    "korean": "",
+                    "portuguese": ""
                 }
             }
         },
@@ -595,10 +595,10 @@
                 "title": "クラウド画像ベッド",
                 "github": "GitHub",
                 "smms": "SM.MS",
-                "qiniu": "Qiniu",
-                "upyun": "UpYun",
-                "tcyun": "Tencent Cloud",
-                "aliyun": "Alibaba Cloud",
+                "qiniu": "",
+                "upyun": "",
+                "tcyun": "",
+                "aliyun": "",
                 "imgur": "Imgur",
                 "picgo": "PicGo"
             },
@@ -615,9 +615,9 @@
                 "picgoDetectionFailed": "PicGo検出に失敗しました",
                 "debugInfo": "デバッグ情報",
                 "installCommand": "インストールコマンド",
-                "npmInstallCommand": "npm install picgo -g",
-                "yarnInstallCommand": "yarn global add picgo",
-                "pnpmInstallCommand": "pnpm add -g picgo",
+                "npmInstallCommand": "",
+                "yarnInstallCommand": "",
+                "pnpmInstallCommand": "",
                 "brewInstallCommand": "brew install picgo",
                 "chooseInstallMethod": "インストール方法を選択:",
                 "retestPicgo": "再テスト",
@@ -664,10 +664,10 @@
                 "services": {
                     "github": "GitHub",
                     "smms": "SM.MS",
-                    "qiniu": "Qiniu",
-                    "upyun": "UpYun",
-                    "tcyun": "Tencent Cloud",
-                    "aliyun": "Alibaba Cloud",
+                    "qiniu": "",
+                    "upyun": "",
+                    "tcyun": "",
+                    "aliyun": "",
                     "imgur": "Imgur",
                     "picgo": "PicGo",
                     "script": "カスタムスクリプト",
@@ -690,7 +690,7 @@
             }
         },
         "markdown": {
-            "title": "Markdown",
+            "title": "",
             "listItem": {
                 "title": "リストアイテム",
                 "preferLooseListItem": "ルーズリストアイテムを優先",
@@ -738,7 +738,7 @@
                 "title": "図表",
                 "plantuml": "PlantUML",
                 "mermaid": "Mermaid",
-                "vega": "Vega-Lite",
+                "vega": "Vega",
                 "flowchart": "フローチャート",
                 "sequence": "シーケンス",
                 "gantt": "ガント",
@@ -1075,16 +1075,26 @@
             "inputMathematicalFormula": "数式を入力...",
             "fence": "フェンス",
             "indent": "インデント",
-            "frontMatterDelimiter": "---",
-            "mathDelimiter": "$$",
-            "mermaidStart": "``` mermaid",
-            "flowchartStart": "``` flowchart",
-            "sequenceStart": "``` sequence",
-            "plantumlStart": "``` plantuml",
-            "vegaLiteStart": "``` vega-lite",
-            "codeFence": "```",
+            "frontMatterDelimiter": "",
+            "mathDelimiter": "",
+            "mermaidStart": "",
+            "flowchartStart": "",
+            "sequenceStart": "",
+            "plantumlStart": "",
+            "vegaLiteStart": "",
+            "codeFence": "",
             "clickToAddImage": "画像を追加するにはクリック",
-            "loadImageFailed": "画像の読み込みに失敗しました"
+            "loadImageFailed": "画像の読み込みに失敗しました",
+            "errorLoadingTabTitle": "タブの読み込みエラー",
+            "errorLoadingTabMessage": "ファイル変更の読み込み中にエラーが発生しました。タブが見つかりません。",
+            "mixedLineEndingsNormalized": "「{{name}}」には混在した改行コードが含まれており、{{lineEnding}} に自動正規化されました。",
+            "imageDeletionUrlTitle": "画像削除 URL",
+            "imageDeletionUrlMessage": "アップロード済み画像の削除 URL をクリップボードにコピーします（{{url}}）。",
+            "errorWhileSaving": "保存中にエラーが発生しました: {{msg}}",
+            "exportSuccessTitle": "エクスポートに成功",
+            "exportSuccessMessage": "「{{name}}」を正常にエクスポートしました！",
+            "fileRemovedOnDisk": "「{{name}}」はディスク上で削除されました。",
+            "fileChangedOnDisk": "「{{name}}」はディスク上で変更されました。再読み込みしますか？"
         },
         "help": {
             "lineEndingAssertionError": "改行コードアサーションエラー"
@@ -1107,11 +1117,11 @@
         },
         "horizontalLine": {
             "title": "水平線",
-            "subtitle": "---"
+            "subtitle": ""
         },
         "frontMatter": {
             "title": "フロントマター",
-            "subtitle": "--- YAML ---"
+            "subtitle": ""
         },
         "header1": {
             "title": "見出し1",
@@ -1147,7 +1157,7 @@
         },
         "htmlBlock": {
             "title": "HTMLブロック",
-            "subtitle": "<div> HTML </div>"
+            "subtitle": ""
         },
         "codeBlock": {
             "title": "コードブロック",
@@ -1205,7 +1215,7 @@
             },
             "state": {
                 "title": "状態図",
-                "subtitle": "stateDiagram"
+                "subtitle": ""
             },
             "journey": {
                 "title": "ユーザージャーニー"
@@ -1259,11 +1269,25 @@
     "editor": {
         "image": {
             "selector": {
-                "tab": {"select": "選択", "embedLink": "リンクを埋め込む"},
-                "select": {"chooseButton": "画像を選択", "tip": "コンピュータから画像を選択します。"},
-                "inputs": {"alt": "代替テキスト", "src": "画像リンクまたはローカルパス", "title": "画像タイトル"},
+                "tab": {
+                    "select": "選択",
+                    "embedLink": "リンクを埋め込む"
+                },
+                "select": {
+                    "chooseButton": "画像を選択",
+                    "tip": "コンピュータから画像を選択します。"
+                },
+                "inputs": {
+                    "alt": "代替テキスト",
+                    "src": "画像リンクまたはローカルパス",
+                    "title": "画像タイトル"
+                },
                 "embedButton": "画像を埋め込む",
-                "hint": {"prefix": "Web画像またはローカルパスを貼り付け。モードを切替", "simple": "シンプルモード", "full": "フルモード"}
+                "hint": {
+                    "prefix": "Web画像またはローカルパスを貼り付け。モードを切替",
+                    "simple": "シンプルモード",
+                    "full": "フルモード"
+                }
             },
             "toolbar": {
                 "edit": "画像を編集",

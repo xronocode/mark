@@ -105,8 +105,8 @@
             "checkUpdates": "检查更新"
         },
         "marktext": {
-            "title": "MarkText",
-            "marktext": "MarkText",
+            "title": "",
+            "marktext": "",
             "about": "关于 MarkText",
             "checkUpdates": "检查更新…",
             "preferences": "偏好设置",
@@ -170,11 +170,11 @@
             "light": "浅色",
             "dark": "深色",
             "auto": "自动",
-            "cadmiumLight": "Cadmium Light",
-            "graphiteLight": "Graphite Light",
-            "materialDark": "Material Dark",
-            "oneDark": "One Dark",
-            "ulyssesLight": "Ulysses Light"
+            "cadmiumLight": "",
+            "graphiteLight": "",
+            "materialDark": "",
+            "oneDark": "",
+            "ulyssesLight": ""
         }
     },
     "contextMenu": {
@@ -311,9 +311,9 @@
         "export": "导出…",
         "options": {
             "pageSizes": {
-                "a3": "A3 (297mm x 420mm)",
-                "a4": "A4 (210mm x 297mm)",
-                "a5": "A5 (148mm x 210mm)",
+                "a3": "",
+                "a4": "",
+                "a5": "",
                 "legal": "美国法律纸 (8.5\" x 13\")",
                 "letter": "美国信纸 (8.5\" x 11\")",
                 "tabloid": "小报纸 (17\" x 11\")",
@@ -332,7 +332,7 @@
             "themes": {
                 "academic": "学术",
                 "default": "GitHub (默认)",
-                "liber": "Liber"
+                "liber": ""
             }
         }
     },
@@ -365,7 +365,7 @@
             "optionalValues": "可选值",
             "categories": {
                 "general": "通用",
-                "editor": "编辑器", 
+                "editor": "编辑器",
                 "markdown": "Markdown",
                 "theme": "主题",
                 "image": "图片",
@@ -615,9 +615,9 @@
                 "picgoDetectionFailed": "PicGo 检测失败",
                 "debugInfo": "调试信息",
                 "installCommand": "安装命令",
-                "npmInstallCommand": "npm install picgo -g",
-                "yarnInstallCommand": "yarn global add picgo",
-                "pnpmInstallCommand": "pnpm add -g picgo",
+                "npmInstallCommand": "",
+                "yarnInstallCommand": "",
+                "pnpmInstallCommand": "",
                 "chooseInstallMethod": "选择安装方式：",
                 "retestPicgo": "重新检测",
                 "detecting": "检测中…",
@@ -689,7 +689,7 @@
             }
         },
         "markdown": {
-            "title": "Markdown",
+            "title": "",
             "listItem": {
                 "title": "列表项",
                 "preferLooseListItem": "首选宽松列表项",
@@ -737,7 +737,7 @@
                 "title": "图表",
                 "plantuml": "PlantUML",
                 "mermaid": "Mermaid",
-                "vega": "Vega-Lite",
+                "vega": "Vega",
                 "flowchart": "流程图",
                 "sequence": "序列图",
                 "gantt": "甘特图",
@@ -1082,16 +1082,26 @@
             "inputMathematicalFormula": "输入数学公式…",
             "fence": "围栏",
             "indent": "缩进",
-            "frontMatterDelimiter": "---",
-            "mathDelimiter": "$$",
-            "mermaidStart": "``` mermaid",
-            "flowchartStart": "``` flowchart",
-            "sequenceStart": "``` sequence",
-            "plantumlStart": "``` plantuml",
-            "vegaLiteStart": "``` vega-lite",
-            "codeFence": "```",
+            "frontMatterDelimiter": "",
+            "mathDelimiter": "",
+            "mermaidStart": "",
+            "flowchartStart": "",
+            "sequenceStart": "",
+            "plantumlStart": "",
+            "vegaLiteStart": "",
+            "codeFence": "",
             "clickToAddImage": "点击添加图片",
-            "loadImageFailed": "图片加载失败"
+            "loadImageFailed": "图片加载失败",
+            "errorLoadingTabTitle": "加载标签页出错",
+            "errorLoadingTabMessage": "加载文件变更时发生错误，因为找不到该标签页。",
+            "mixedLineEndingsNormalized": "“{{name}}” 含有混合换行符，已自动规范化为 {{lineEnding}}。",
+            "imageDeletionUrlTitle": "图片删除链接",
+            "imageDeletionUrlMessage": "点击将已上传图片的删除链接复制到剪贴板（{{url}}）。",
+            "errorWhileSaving": "保存时发生错误：{{msg}}",
+            "exportSuccessTitle": "导出成功",
+            "exportSuccessMessage": "已成功导出“{{name}}”！",
+            "fileRemovedOnDisk": "“{{name}}” 已在磁盘上被删除。",
+            "fileChangedOnDisk": "“{{name}}” 已在磁盘上发生变更。是否重新加载？"
         },
         "help": {
             "lineEndingAssertionError": "行结束符断言错误"
@@ -1114,11 +1124,11 @@
         },
         "horizontalLine": {
             "title": "水平分割线",
-            "subtitle": "---"
+            "subtitle": ""
         },
         "frontMatter": {
             "title": "前置元数据",
-            "subtitle": "--- YAML ---"
+            "subtitle": ""
         },
         "header1": {
             "title": "标题 1",
@@ -1154,7 +1164,7 @@
         },
         "htmlBlock": {
             "title": "HTML 块",
-            "subtitle": "<div> HTML </div>"
+            "subtitle": ""
         },
         "codeBlock": {
             "title": "代码块",
@@ -1212,7 +1222,7 @@
             },
             "state": {
                 "title": "状态图",
-                "subtitle": "stateDiagram"
+                "subtitle": ""
             },
             "journey": {
                 "title": "用户旅程"
@@ -1266,11 +1276,25 @@
     "editor": {
         "image": {
             "selector": {
-                "tab": {"select": "选择", "embedLink": "插入链接"},
-                "select": {"chooseButton": "选择图片", "tip": "从你的电脑选择图片。"},
-                "inputs": {"alt": "替代文本", "src": "图片链接或本地路径", "title": "图片标题"},
+                "tab": {
+                    "select": "选择",
+                    "embedLink": "插入链接"
+                },
+                "select": {
+                    "chooseButton": "选择图片",
+                    "tip": "从你的电脑选择图片。"
+                },
+                "inputs": {
+                    "alt": "替代文本",
+                    "src": "图片链接或本地路径",
+                    "title": "图片标题"
+                },
                 "embedButton": "嵌入图片",
-                "hint": {"prefix": "粘贴网络图片或本地路径。切换模式", "simple": "简洁模式", "full": "完整模式"}
+                "hint": {
+                    "prefix": "粘贴网络图片或本地路径。切换模式",
+                    "simple": "简洁模式",
+                    "full": "完整模式"
+                }
             },
             "toolbar": {
                 "edit": "编辑图片",
