@@ -46,7 +46,7 @@ extraResources:
     to: static
     filter:
       - '**/*'
-npmRebuild: false
+npmRebuild: true
 
 asarUnpack:
   - resources/**
