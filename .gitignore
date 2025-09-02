@@ -7,3 +7,5 @@ out
 .trae/
 .cursor/
 doc/
+# Ignore temp artifacts
+temp/
