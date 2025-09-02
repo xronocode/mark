@@ -47,7 +47,7 @@
             "findNext": "Weitersuchen",
             "findPrevious": "Rückwärts suchen",
             "findInFolder": "Im Ordner suchen",
-            "screenshot": "",
+            "screenshot": "Screenshot",
             "lineEnding": "Zeilenendezeichen",
             "lineEndingCrlf": "CRLF (Windows)",
             "lineEndingLf": "LF (Linux/Mac)"
@@ -77,14 +77,14 @@
             "looseListItem": "Lockeres Listenelement",
             "paragraphItem": "Absatzelement",
             "horizontalRule": "Horizontale Linie",
-            "frontMatter": ""
+            "frontMatter": "Front Matter"
         },
         "window": {
             "title": "Fenster",
             "window": "Fenster",
             "minimize": "Minimieren",
             "close": "Schließen",
-            "zoom": "",
+            "zoom": "Zoom",
             "zoomIn": "Vergrößern",
             "zoomOut": "Verkleinern",
             "fullScreen": "Vollbild",
@@ -105,8 +105,8 @@
             "checkUpdates": "Updates prüfen"
         },
         "marktext": {
-            "title": "",
-            "marktext": "",
+            "title": "MarkText",
+            "marktext": "MarkText",
             "about": "Über MarkText",
             "checkUpdates": "Nach Updates suchen...",
             "preferences": "Einstellungen",
@@ -136,7 +136,7 @@
             "reloadWindow": "Fenster neu laden"
         },
         "format": {
-            "format": "",
+            "format": "Format",
             "bold": "Fett",
             "italic": "Kursiv",
             "underline": "Unterstrichen",
@@ -148,7 +148,7 @@
             "orderedList": "Nummerierte Liste",
             "taskList": "Aufgabenliste",
             "table": "Tabelle",
-            "link": "",
+            "link": "Link",
             "image": "Bild",
             "heading1": "Überschrift 1",
             "heading2": "Überschrift 2",
@@ -161,7 +161,7 @@
             "highlight": "Hervorhebung",
             "inlineCode": "Inline-Code",
             "inlineMath": "Inline-Mathematik",
-            "hyperlink": "",
+            "hyperlink": "Hyperlink",
             "clearFormatting": "Formatierung löschen",
             "clearFormat": "Format löschen"
         },
@@ -365,13 +365,13 @@
             "optionalValues": "optionale Werte",
             "categories": {
                 "general": "Allgemein",
-                "editor": "",
-                "markdown": "",
-                "theme": "",
+                "editor": "Editor",
+                "markdown": "Markdown",
+                "theme": "Theme",
                 "image": "Bild",
                 "view": "Ansicht",
                 "searcher": "Suche",
-                "watcher": "",
+                "watcher": "Watcher",
                 "spelling": "Rechtschreibung",
                 "custom css": "Benutzerdefiniertes CSS"
             },
@@ -442,8 +442,8 @@
         },
         "categories": {
             "general": "Allgemein",
-            "editor": "",
-            "markdown": "",
+            "editor": "Editor",
+            "markdown": "Markdown",
             "spelling": "Rechtschreibung",
             "theme": "Design",
             "image": "Bild",
@@ -468,7 +468,7 @@
                 "hideScrollbars": "Bildlaufleisten ausblenden",
                 "openFilesInNewWindow": "Dateien in neuem Fenster öffnen",
                 "openFoldersInNewWindow": "Ordner in neuem Fenster öffnen",
-                "zoom": ""
+                "zoom": "Zoom"
             },
             "startup": {
                 "title": "Start",
@@ -491,20 +491,20 @@
                 "title": "Verschiedenes",
                 "language": {
                     "title": "Sprache",
-                    "english": "",
-                    "chinese": "",
-                    "traditionalChinese": "",
-                    "spanish": "",
-                    "french": "",
-                    "german": "",
-                    "japanese": "",
-                    "korean": "",
-                    "portuguese": ""
+                    "english": "English",
+                    "chinese": "简体中文",
+                    "traditionalChinese": "繁體中文",
+                    "spanish": "Español",
+                    "french": "Français",
+                    "german": "Deutsch",
+                    "japanese": "日本語",
+                    "korean": "한국어",
+                    "portuguese": "Português"
                 }
             }
         },
         "editor": {
-            "title": "",
+            "title": "Editor",
             "textEditor": {
                 "title": "Texteditor",
                 "fontSize": "Schriftgröße",
@@ -595,10 +595,10 @@
                 "title": "Cloud-Bildspeicher",
                 "github": "GitHub",
                 "smms": "SM.MS",
-                "qiniu": "",
-                "upyun": "",
-                "tcyun": "",
-                "aliyun": "",
+                "qiniu": "Qiniu",
+                "upyun": "UpYun",
+                "tcyun": "Tencent Cloud",
+                "aliyun": "Alibaba Cloud",
                 "imgur": "Imgur",
                 "picgo": "PicGo"
             },
@@ -615,9 +615,9 @@
                 "picgoDetectionFailed": "PicGo-Erkennung fehlgeschlagen",
                 "debugInfo": "Debug-Informationen",
                 "installCommand": "Installationsbefehl",
-                "npmInstallCommand": "",
-                "yarnInstallCommand": "",
-                "pnpmInstallCommand": "",
+                "npmInstallCommand": "npm install picgo -g",
+                "yarnInstallCommand": "yarn global add picgo",
+                "pnpmInstallCommand": "pnpm add -g picgo",
                 "brewInstallCommand": "brew install picgo",
                 "chooseInstallMethod": "Installationsmethode wählen:",
                 "retestPicgo": "Erneut testen",
@@ -664,22 +664,22 @@
                 "services": {
                     "github": "GitHub",
                     "smms": "SM.MS",
-                    "qiniu": "",
-                    "upyun": "",
-                    "tcyun": "",
-                    "aliyun": "",
+                    "qiniu": "Qiniu",
+                    "upyun": "UpYun",
+                    "tcyun": "Tencent Cloud",
+                    "aliyun": "Alibaba Cloud",
                     "imgur": "Imgur",
                     "picgo": "PicGo",
                     "script": "Benutzerdefiniertes Skript",
                     "cliScript": "CLI-Skript",
                     "none": "Keine"
                 },
-                "branch": "",
+                "branch": "Branch",
                 "inputToken": "Token eingeben",
                 "noUploaderSelected": "Kein Uploader ausgewählt",
                 "owner": "Besitzer",
                 "pleaseInstall": "Bitte installieren",
-                "repo": "",
+                "repo": "Repository",
                 "scriptPath": "Skriptpfad",
                 "tokenTooltip": "Zugriffstoken für Authentifizierung",
                 "picgoDetection": "PicGo-Erkennung",
@@ -690,7 +690,7 @@
             }
         },
         "markdown": {
-            "title": "",
+            "title": "Markdown",
             "listItem": {
                 "title": "Listenelement",
                 "preferLooseListItem": "Lockere Listenelemente bevorzugen",
@@ -699,7 +699,7 @@
                 "listIndentation": {
                     "title": "Listeneinrückung",
                     "dfm": "Standard-Format-Modus",
-                    "tab": "",
+                    "tab": "Tab",
                     "oneSpace": "Ein Leerzeichen",
                     "twoSpaces": "Zwei Leerzeichen",
                     "threeSpaces": "Drei Leerzeichen",
@@ -711,7 +711,7 @@
                 "preferHeadingStyle": "Bevorzugter Überschriftenstil"
             },
             "frontmatter": {
-                "title": "",
+                "title": "Front Matter",
                 "frontmatterType": "Front Matter Typ"
             },
             "extensions": {
@@ -741,7 +741,7 @@
                 "vega": "Vega",
                 "flowchart": "Flussdiagramm",
                 "sequence": "Sequenz",
-                "gantt": "",
+                "gantt": "Gantt",
                 "sequenceTheme": {
                     "title": "Sequenz-Design",
                     "handDrawn": "Handgezeichnet",
@@ -841,7 +841,7 @@
                 "invalidKeybinding": "Ungültiges Tastenkürzel",
                 "placeholder": "Tasten drücken..."
             },
-            "online": "",
+            "online": "Online",
             "saveError": "Fehler beim Speichern der Tastenkürzel",
             "shortcutInUse": "Tastenkürzel wird verwendet",
             "shortcutInUseMessage": "Dieses Tastenkürzel ist bereits einem anderen Befehl zugewiesen",
@@ -903,7 +903,7 @@
             "importFile": "Datei importieren",
             "exportFile": "Datei exportieren",
             "exportFilePdf": "Als PDF exportieren",
-            "zoom": "",
+            "zoom": "Zoom",
             "checkUpdate": "Nach Updates suchen",
             "lineEnding": "Zeilenende",
             "close": "Schließen"
@@ -926,7 +926,7 @@
             "findPrevious": "Rückwärts suchen",
             "replace": "Ersetzen",
             "findInFolder": "Im Ordner suchen",
-            "screenshot": "",
+            "screenshot": "Screenshot",
             "mathBlock": "Mathe-Block"
         },
         "paragraph": {
@@ -949,7 +949,7 @@
             "looseListItem": "Lockeres Listenelement",
             "paragraph": "Absatz",
             "horizontalLine": "Horizontale Linie",
-            "frontMatter": "",
+            "frontMatter": "Front Matter",
             "resetParagraph": "Absatz zurücksetzen",
             "mathBlock": "Mathe-Block",
             "horizontalRule": "Horizontale Linie"
@@ -964,7 +964,7 @@
             "inlineCode": "Inline-Code",
             "inlineMath": "Inline-Mathematik",
             "strike": "Durchgestrichen",
-            "hyperlink": "",
+            "hyperlink": "Hyperlink",
             "image": "Bild",
             "clearFormat": "Format löschen"
         },
@@ -1075,14 +1075,14 @@
             "inputMathematicalFormula": "Mathematische Formel eingeben...",
             "fence": "Zaun",
             "indent": "Einrückung",
-            "frontMatterDelimiter": "",
-            "mathDelimiter": "",
-            "mermaidStart": "",
-            "flowchartStart": "",
-            "sequenceStart": "",
-            "plantumlStart": "",
-            "vegaLiteStart": "",
-            "codeFence": "",
+            "frontMatterDelimiter": "---",
+            "mathDelimiter": "$$",
+            "mermaidStart": "``` mermaid",
+            "flowchartStart": "``` flowchart",
+            "sequenceStart": "``` sequence",
+            "plantumlStart": "``` plantuml",
+            "vegaLiteStart": "``` vega-lite",
+            "codeFence": "```",
             "clickToAddImage": "Klicken um Bild hinzuzufügen",
             "loadImageFailed": "Bild konnte nicht geladen werden",
             "errorLoadingTabTitle": "Fehler beim Laden des Tabs",
@@ -1117,11 +1117,11 @@
         },
         "horizontalLine": {
             "title": "Horizontale Linie",
-            "subtitle": ""
+            "subtitle": "---"
         },
         "frontMatter": {
-            "title": "",
-            "subtitle": ""
+            "title": "Front Matter",
+            "subtitle": "--- YAML ---"
         },
         "header1": {
             "title": "Überschrift 1",
@@ -1157,11 +1157,11 @@
         },
         "htmlBlock": {
             "title": "HTML-Block",
-            "subtitle": ""
+            "subtitle": "<div> HTML </div>"
         },
         "codeBlock": {
             "title": "Code-Block",
-            "subtitle": ""
+            "subtitle": "``` Code ```"
         },
         "quoteBlock": {
             "title": "Zitat-Block",
@@ -1215,10 +1215,10 @@
             },
             "state": {
                 "title": "Zustandsdiagramm",
-                "subtitle": ""
+                "subtitle": "stateDiagram"
             },
             "journey": {
-                "title": ""
+                "title": "User Journey"
             },
             "git": {
                 "title": "Git-Diagramm"
@@ -1253,7 +1253,7 @@
         "html": "HTML",
         "mathblock": "Mathe-Block",
         "pre": "Code-Block",
-        "frontMatter": "",
+        "frontMatter": "Front Matter",
         "ulTask": "Aufgabenliste",
         "ulBullet": "Aufzählungsliste",
         "olOrder": "Nummerierte Liste",

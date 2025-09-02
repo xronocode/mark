@@ -49,8 +49,8 @@
             "findInFolder": "폴더에서 찾기",
             "screenshot": "스크린샷",
             "lineEnding": "줄 끝",
-            "lineEndingCrlf": "",
-            "lineEndingLf": ""
+            "lineEndingCrlf": "CRLF(Windows)",
+            "lineEndingLf": "LF(Linux/Mac)"
         },
         "paragraph": {
             "title": "단락",
@@ -105,8 +105,8 @@
             "checkUpdates": "업데이트 확인"
         },
         "marktext": {
-            "title": "",
-            "marktext": "",
+            "title": "MarkText",
+            "marktext": "MarkText",
             "about": "MarkText 정보",
             "checkUpdates": "업데이트 확인...",
             "preferences": "환경설정",
@@ -491,15 +491,15 @@
                 "title": "기타",
                 "language": {
                     "title": "언어",
-                    "english": "",
-                    "chinese": "",
-                    "traditionalChinese": "",
-                    "spanish": "",
-                    "french": "",
-                    "german": "",
-                    "japanese": "",
-                    "korean": "",
-                    "portuguese": ""
+                    "english": "English",
+                    "chinese": "简体中文",
+                    "traditionalChinese": "繁體中文",
+                    "spanish": "Español",
+                    "french": "Français",
+                    "german": "Deutsch",
+                    "japanese": "日本語",
+                    "korean": "한국어",
+                    "portuguese": "Português"
                 }
             }
         },
@@ -595,10 +595,10 @@
                 "title": "클라우드 이미지 저장소",
                 "github": "GitHub",
                 "smms": "SM.MS",
-                "qiniu": "",
-                "upyun": "",
-                "tcyun": "",
-                "aliyun": "",
+                "qiniu": "Qiniu",
+                "upyun": "UpYun",
+                "tcyun": "Tencent Cloud",
+                "aliyun": "Alibaba Cloud",
                 "imgur": "Imgur",
                 "picgo": "PicGo"
             },
@@ -615,9 +615,9 @@
                 "picgoDetectionFailed": "PicGo 감지 실패",
                 "debugInfo": "디버그 정보",
                 "installCommand": "설치 명령",
-                "npmInstallCommand": "",
-                "yarnInstallCommand": "",
-                "pnpmInstallCommand": "",
+                "npmInstallCommand": "npm install picgo -g",
+                "yarnInstallCommand": "yarn global add picgo",
+                "pnpmInstallCommand": "pnpm add -g picgo",
                 "brewInstallCommand": "brew install picgo",
                 "chooseInstallMethod": "설치 방법 선택:",
                 "retestPicgo": "다시 테스트",
@@ -664,10 +664,10 @@
                 "services": {
                     "github": "GitHub",
                     "smms": "SM.MS",
-                    "qiniu": "",
-                    "upyun": "",
-                    "tcyun": "",
-                    "aliyun": "",
+                    "qiniu": "Qiniu",
+                    "upyun": "UpYun",
+                    "tcyun": "Tencent Cloud",
+                    "aliyun": "Alibaba Cloud",
                     "imgur": "Imgur",
                     "picgo": "PicGo",
                     "script": "사용자 정의 스크립트",
@@ -1075,14 +1075,14 @@
             "inputMathematicalFormula": "수학 공식 입력...",
             "fence": "펜스",
             "indent": "들여쓰기",
-            "frontMatterDelimiter": "",
-            "mathDelimiter": "",
-            "mermaidStart": "",
-            "flowchartStart": "",
-            "sequenceStart": "",
-            "plantumlStart": "",
-            "vegaLiteStart": "",
-            "codeFence": "",
+            "frontMatterDelimiter": "---",
+            "mathDelimiter": "$$",
+            "mermaidStart": "``` mermaid",
+            "flowchartStart": "``` flowchart",
+            "sequenceStart": "``` sequence",
+            "plantumlStart": "``` plantuml",
+            "vegaLiteStart": "``` vega-lite",
+            "codeFence": "```",
             "clickToAddImage": "이미지 추가하려면 클릭",
             "loadImageFailed": "이미지 로드 실패",
             "errorLoadingTabTitle": "탭 로드 오류",
@@ -1113,11 +1113,11 @@
         },
         "horizontalLine": {
             "title": "수평선",
-            "subtitle": ""
+            "subtitle": "---"
         },
         "frontMatter": {
             "title": "프론트 매터",
-            "subtitle": ""
+            "subtitle": "--- YAML ---"
         },
         "header1": {
             "title": "헤더 1",
@@ -1153,7 +1153,7 @@
         },
         "htmlBlock": {
             "title": "HTML 블록",
-            "subtitle": ""
+            "subtitle": "<div> HTML </div>"
         },
         "codeBlock": {
             "title": "코드 블록",
@@ -1220,7 +1220,7 @@
             },
             "state": {
                 "title": "상태 다이어그램",
-                "subtitle": ""
+                "subtitle": "stateDiagram"
             },
             "journey": {
                 "title": "사용자 여정"

@@ -105,8 +105,8 @@
             "checkUpdates": "Verificar Atualizações"
         },
         "marktext": {
-            "title": "",
-            "marktext": "",
+            "title": "MarkText",
+            "marktext": "MarkText",
             "about": "Sobre MarkText",
             "checkUpdates": "Verificar Atualizações...",
             "preferences": "Preferências",
@@ -148,7 +148,7 @@
             "orderedList": "Lista Ordenada",
             "taskList": "Lista de Tarefas",
             "table": "Tabela",
-            "link": "",
+            "link": "Link",
             "image": "Imagem",
             "heading1": "Cabeçalho 1",
             "heading2": "Cabeçalho 2",
@@ -491,20 +491,20 @@
                 "title": "Diversos",
                 "language": {
                     "title": "Idioma",
-                    "english": "",
-                    "chinese": "",
-                    "traditionalChinese": "",
-                    "spanish": "",
-                    "french": "",
-                    "german": "",
-                    "japanese": "",
-                    "korean": "",
-                    "portuguese": ""
+                    "english": "English",
+                    "chinese": "简体中文",
+                    "traditionalChinese": "繁體中文",
+                    "spanish": "Español",
+                    "french": "Français",
+                    "german": "Deutsch",
+                    "japanese": "日本語",
+                    "korean": "한국어",
+                    "portuguese": "Português"
                 }
             }
         },
         "editor": {
-            "title": "",
+            "title": "Editor",
             "textEditor": {
                 "title": "Editor de Texto",
                 "fontSize": "Tamanho da fonte",
@@ -595,10 +595,10 @@
                 "title": "Hospedagem de imagens na nuvem",
                 "github": "GitHub",
                 "smms": "SM.MS",
-                "qiniu": "",
-                "upyun": "",
-                "tcyun": "",
-                "aliyun": "",
+                "qiniu": "Qiniu",
+                "upyun": "UpYun",
+                "tcyun": "Tencent Cloud",
+                "aliyun": "Alibaba Cloud",
                 "imgur": "Imgur",
                 "picgo": "PicGo"
             },
@@ -615,9 +615,9 @@
                 "picgoDetectionFailed": "Detecção do PicGo falhou",
                 "debugInfo": "Informações de Debug",
                 "installCommand": "Comando de Instalação",
-                "npmInstallCommand": "",
-                "yarnInstallCommand": "",
-                "pnpmInstallCommand": "",
+                "npmInstallCommand": "npm install picgo -g",
+                "yarnInstallCommand": "yarn global add picgo",
+                "pnpmInstallCommand": "pnpm add -g picgo",
                 "brewInstallCommand": "brew install picgo",
                 "chooseInstallMethod": "Escolha o méde instalação:",
                 "retestPicgo": "Testar novamente",
@@ -664,17 +664,17 @@
                 "services": {
                     "github": "GitHub",
                     "smms": "SM.MS",
-                    "qiniu": "",
-                    "upyun": "",
-                    "tcyun": "",
-                    "aliyun": "",
+                    "qiniu": "Qiniu",
+                    "upyun": "UpYun",
+                    "tcyun": "Tencent Cloud",
+                    "aliyun": "Alibaba Cloud",
                     "imgur": "Imgur",
                     "picgo": "PicGo",
                     "script": "Script Personalizado",
                     "cliScript": "Script CLI",
                     "none": "Nenhum"
                 },
-                "branch": "",
+                "branch": "Branch",
                 "inputToken": "Inserir token",
                 "noUploaderSelected": "Nenhum carregador selecionado",
                 "owner": "Proprietário",
@@ -690,7 +690,7 @@
             }
         },
         "markdown": {
-            "title": "",
+            "title": "Markdown",
             "listItem": {
                 "title": "Item de Lista",
                 "preferLooseListItem": "Preferir item de lista solta",
@@ -711,19 +711,19 @@
                 "preferHeadingStyle": "Preferir estilo de cabeçalho"
             },
             "frontmatter": {
-                "title": "",
+                "title": "Front Matter",
                 "frontmatterType": "Tipo de front matter"
             },
             "extensions": {
                 "title": "Extensões",
-                "superSubScript": "",
+                "superSubScript": "Super/Sub script",
                 "footnote": "Nota de rodapé",
                 "isHtmlEnabled": "HTML habilitado",
                 "isGitlabCompatibilityEnabled": "Compatibilidade GitLab",
                 "sequenceTheme": "Tema de sequência",
                 "superscript": "Sobrescrito",
                 "subscript": "Subscrito",
-                "frontMatter": "",
+                "frontMatter": "Front matter",
                 "math": "Matemática",
                 "diagram": "Diagrama",
                 "footnoteNotes": "Notas de rodapé",
@@ -741,7 +741,7 @@
                 "vega": "Vega",
                 "flowchart": "Fluxograma",
                 "sequence": "Sequência",
-                "gantt": "",
+                "gantt": "Gantt",
                 "sequenceTheme": {
                     "title": "Tema de Sequência",
                     "handDrawn": "Desenhado à Mão",
@@ -773,7 +773,7 @@
                     "dfm": "Estilo DFM",
                     "fourSpaces": "Quatro Espaços",
                     "oneSpace": "Um Espaço",
-                    "tab": "",
+                    "tab": "Tab",
                     "threeSpaces": "Três Espaços",
                     "twoSpaces": "Dois Espaços"
                 },
@@ -841,7 +841,7 @@
                 "invalidKeybinding": "Combinação de teclas inválida",
                 "placeholder": "Pressione teclas..."
             },
-            "online": "",
+            "online": "Online",
             "saveError": "Erro ao salvar atalhos de teclado",
             "shortcutInUse": "Atalho em uso",
             "shortcutInUseMessage": "Este atalho já está atribuído a outro comando",
@@ -873,7 +873,7 @@
         }
     },
     "about": {
-        "copyright": "",
+        "copyright": "Copyright",
         "copyrightContributors": "Copyright Contribuidores"
     },
     "commands": {
@@ -949,7 +949,7 @@
             "looseListItem": "Item de Lista Solta",
             "paragraph": "Parágrafo",
             "horizontalLine": "Linha Horizontal",
-            "frontMatter": "",
+            "frontMatter": "Front Matter",
             "resetParagraph": "Resetar Parágrafo",
             "mathBlock": "Bloco matemático",
             "horizontalRule": "Linha horizontal"
@@ -1075,14 +1075,14 @@
             "inputMathematicalFormula": "Digite fórmula matemática...",
             "fence": "Cerca",
             "indent": "Indentação",
-            "frontMatterDelimiter": "",
-            "mathDelimiter": "",
-            "mermaidStart": "",
-            "flowchartStart": "",
-            "sequenceStart": "",
-            "plantumlStart": "",
-            "vegaLiteStart": "",
-            "codeFence": "",
+            "frontMatterDelimiter": "---",
+            "mathDelimiter": "$$",
+            "mermaidStart": "``` mermaid",
+            "flowchartStart": "``` flowchart",
+            "sequenceStart": "``` sequence",
+            "plantumlStart": "``` plantuml",
+            "vegaLiteStart": "``` vega-lite",
+            "codeFence": "```",
             "clickToAddImage": "Clique para adicionar imagem",
             "loadImageFailed": "Falha ao carregar imagem",
             "errorLoadingTabTitle": "Erro ao carregar a aba",
@@ -1113,11 +1113,11 @@
         },
         "horizontalLine": {
             "title": "Linha Horizontal",
-            "subtitle": ""
+            "subtitle": "---"
         },
         "frontMatter": {
-            "title": "",
-            "subtitle": ""
+            "title": "Front Matter",
+            "subtitle": "--- YAML ---"
         },
         "header1": {
             "title": "Cabeçalho 1",
@@ -1153,7 +1153,7 @@
         },
         "htmlBlock": {
             "title": "Bloco HTML",
-            "subtitle": ""
+            "subtitle": "<div> HTML </div>"
         },
         "codeBlock": {
             "title": "Bloco de Código",
@@ -1211,7 +1211,7 @@
             },
             "state": {
                 "title": "Diagrama de estados",
-                "subtitle": ""
+                "subtitle": "stateDiagram"
             },
             "journey": {
                 "title": "Jornada do usuário"
@@ -1261,7 +1261,7 @@
         "html": "HTML",
         "mathblock": "Bloco matemático",
         "pre": "Bloco de código",
-        "frontMatter": "",
+        "frontMatter": "Front Matter",
         "ulTask": "Lista de tarefas",
         "ulBullet": "Lista com marcadores",
         "olOrder": "Lista ordenada",

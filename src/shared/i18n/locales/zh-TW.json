@@ -773,7 +773,7 @@
                     "dfm": "DFM 樣式",
                     "fourSpaces": "四個空格",
                     "oneSpace": "一個空格",
-                    "tab": "",
+                    "tab": "Tab",
                     "threeSpaces": "三個空格",
                     "twoSpaces": "兩個空格"
                 },
@@ -1113,11 +1113,11 @@
         },
         "horizontalLine": {
             "title": "水平線",
-            "subtitle": ""
+            "subtitle": "---"
         },
         "frontMatter": {
             "title": "前置資料",
-            "subtitle": ""
+            "subtitle": "--- YAML ---"
         },
         "header1": {
             "title": "標題 1",
@@ -1153,7 +1153,7 @@
         },
         "htmlBlock": {
             "title": "HTML 區塊",
-            "subtitle": ""
+            "subtitle": "<div> HTML </div>"
         },
         "codeBlock": {
             "title": "程式碼區塊",
@@ -1211,7 +1211,7 @@
             },
             "state": {
                 "title": "狀態圖",
-                "subtitle": ""
+                "subtitle": "stateDiagram"
             },
             "journey": {
                 "title": "使用者旅程"

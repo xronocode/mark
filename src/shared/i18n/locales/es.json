@@ -49,8 +49,8 @@
             "findInFolder": "Buscar en Carpeta",
             "screenshot": "Captura de Pantalla",
             "lineEnding": "Final de Línea",
-            "lineEndingCrlf": "",
-            "lineEndingLf": ""
+            "lineEndingCrlf": "CRLF(Windows)",
+            "lineEndingLf": "LF(Linux/Mac)"
         },
         "paragraph": {
             "title": "Párrafo",
@@ -84,7 +84,7 @@
             "window": "Ventana",
             "minimize": "Minimizar",
             "close": "Cerrar",
-            "zoom": "",
+            "zoom": "Zoom",
             "zoomIn": "Acercar",
             "zoomOut": "Alejar",
             "fullScreen": "Pantalla Completa",
@@ -105,8 +105,8 @@
             "checkUpdates": "Buscar Actualizaciones"
         },
         "marktext": {
-            "title": "",
-            "marktext": "",
+            "title": "MarkText",
+            "marktext": "MarkText",
             "about": "Acerca de MarkText",
             "checkUpdates": "Buscar Actualizaciones...",
             "preferences": "Preferencias",
@@ -326,7 +326,7 @@
             },
             "headerFooterStyles": {
                 "default": "Predeterminado",
-                "simple": "",
+                "simple": "Simple",
                 "styled": "Con estilo"
             },
             "themes": {
@@ -364,9 +364,9 @@
             "placeholder": "Buscar preferencias...",
             "optionalValues": "valores opcionales",
             "categories": {
-                "general": "",
-                "editor": "",
-                "markdown": "",
+                "general": "General",
+                "editor": "Editor",
+                "markdown": "Markdown",
                 "theme": "Tema",
                 "image": "Imagen",
                 "view": "Vista",
@@ -441,16 +441,16 @@
             }
         },
         "categories": {
-            "general": "",
-            "editor": "",
-            "markdown": "",
+            "general": "General",
+            "editor": "Editor",
+            "markdown": "Markdown",
             "spelling": "Ortografía",
             "theme": "Tema",
             "image": "Imagen",
             "keybindings": "Atajos de Teclado"
         },
         "general": {
-            "title": "",
+            "title": "General",
             "autoSave": {
                 "title": "Guardado Automático",
                 "description": "Guardado automático",
@@ -468,7 +468,7 @@
                 "hideScrollbars": "Ocultar barras de desplazamiento",
                 "openFilesInNewWindow": "Abrir archivos en nueva ventana",
                 "openFoldersInNewWindow": "Abrir carpetas en nueva ventana",
-                "zoom": ""
+                "zoom": "Zoom"
             },
             "startup": {
                 "title": "Inicio",
@@ -491,20 +491,20 @@
                 "title": "Misceláneos",
                 "language": {
                     "title": "Idioma",
-                    "english": "",
-                    "chinese": "",
-                    "traditionalChinese": "",
-                    "spanish": "",
-                    "french": "",
-                    "german": "",
-                    "japanese": "",
-                    "korean": "",
-                    "portuguese": ""
+                    "english": "English",
+                    "chinese": "简体中文",
+                    "traditionalChinese": "繁體中文",
+                    "spanish": "Español",
+                    "french": "Français",
+                    "german": "Deutsch",
+                    "japanese": "日本語",
+                    "korean": "한국어",
+                    "portuguese": "Português"
                 }
             }
         },
         "editor": {
-            "title": "",
+            "title": "Editor",
             "textEditor": {
                 "title": "Editor de Texto",
                 "fontSize": "Tamaño de fuente",
@@ -595,10 +595,10 @@
                 "title": "Almacén de imágenes en la nube",
                 "github": "GitHub",
                 "smms": "SM.MS",
-                "qiniu": "",
-                "upyun": "",
-                "tcyun": "",
-                "aliyun": "",
+                "qiniu": "Qiniu",
+                "upyun": "UpYun",
+                "tcyun": "Tencent Cloud",
+                "aliyun": "Alibaba Cloud",
                 "imgur": "Imgur",
                 "picgo": "PicGo"
             },
@@ -615,9 +615,9 @@
                 "picgoDetectionFailed": "Falló la detección de PicGo",
                 "debugInfo": "Información de Depuración",
                 "installCommand": "Comando de Instalación",
-                "npmInstallCommand": "",
-                "yarnInstallCommand": "",
-                "pnpmInstallCommand": "",
+                "npmInstallCommand": "npm install picgo -g",
+                "yarnInstallCommand": "yarn global add picgo",
+                "pnpmInstallCommand": "pnpm add -g picgo",
                 "brewInstallCommand": "brew install picgo",
                 "chooseInstallMethod": "Elegir méde instalación:",
                 "retestPicgo": "Volver a probar",
@@ -664,10 +664,10 @@
                 "services": {
                     "github": "GitHub",
                     "smms": "SM.MS",
-                    "qiniu": "",
-                    "upyun": "",
-                    "tcyun": "",
-                    "aliyun": "",
+                    "qiniu": "Qiniu",
+                    "upyun": "UpYun",
+                    "tcyun": "Tencent Cloud",
+                    "aliyun": "Alibaba Cloud",
                     "imgur": "Imgur",
                     "picgo": "PicGo",
                     "script": "Script Personalizado",
@@ -690,7 +690,7 @@
             }
         },
         "markdown": {
-            "title": "",
+            "title": "Markdown",
             "listItem": {
                 "title": "Elemento de Lista",
                 "preferLooseListItem": "Preferir elemento de lista suelto",
@@ -716,7 +716,7 @@
             },
             "extensions": {
                 "title": "Extensiones",
-                "superSubScript": "",
+                "superSubScript": "Super/Sub script",
                 "footnote": "Nota al pie",
                 "isHtmlEnabled": "HTML habilitado",
                 "isGitlabCompatibilityEnabled": "Compatibilidad con GitLab",
@@ -741,11 +741,11 @@
                 "vega": "Vega",
                 "flowchart": "Diagrama de Flujo",
                 "sequence": "Secuencia",
-                "gantt": "",
+                "gantt": "Gantt",
                 "sequenceTheme": {
                     "title": "Tema de Secuencia",
                     "handDrawn": "Dibujado a Mano",
-                    "simple": ""
+                    "simple": "Simple"
                 }
             },
             "math": {
@@ -903,7 +903,7 @@
             "importFile": "Importar Archivo",
             "exportFile": "Exportar Archivo",
             "exportFilePdf": "Exportar como PDF",
-            "zoom": "",
+            "zoom": "Zoom",
             "checkUpdate": "Buscar Actualizaciones",
             "lineEnding": "Final de línea",
             "close": "Cerrar"
@@ -1075,14 +1075,14 @@
             "inputMathematicalFormula": "Ingrese fórmula matemática...",
             "fence": "Cerca",
             "indent": "Sangría",
-            "frontMatterDelimiter": "",
-            "mathDelimiter": "",
-            "mermaidStart": "",
-            "flowchartStart": "",
-            "sequenceStart": "",
-            "plantumlStart": "",
-            "vegaLiteStart": "",
-            "codeFence": "",
+            "frontMatterDelimiter": "---",
+            "mathDelimiter": "$$",
+            "mermaidStart": "``` mermaid",
+            "flowchartStart": "``` flowchart",
+            "sequenceStart": "``` sequence",
+            "plantumlStart": "``` plantuml",
+            "vegaLiteStart": "``` vega-lite",
+            "codeFence": "```",
             "clickToAddImage": "Haga clic para agregar imagen",
             "loadImageFailed": "Error al cargar la imagen",
             "errorLoadingTabTitle": "Error al cargar la pestaña",
@@ -1113,11 +1113,11 @@
         },
         "horizontalLine": {
             "title": "Línea Horizontal",
-            "subtitle": ""
+            "subtitle": "---"
         },
         "frontMatter": {
             "title": "Metadatos",
-            "subtitle": ""
+            "subtitle": "--- YAML ---"
         },
         "header1": {
             "title": "Encabezado 1",
@@ -1153,7 +1153,7 @@
         },
         "htmlBlock": {
             "title": "Bloque HTML",
-            "subtitle": ""
+            "subtitle": "<div> HTML </div>"
         },
         "codeBlock": {
             "title": "Bloque de Código",
@@ -1211,7 +1211,7 @@
             },
             "state": {
                 "title": "Diagrama de estados",
-                "subtitle": ""
+                "subtitle": "stateDiagram"
             },
             "journey": {
                 "title": "Viaje del usuario"

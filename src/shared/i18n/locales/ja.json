@@ -105,8 +105,8 @@
             "checkUpdates": "アップデートを確認"
         },
         "marktext": {
-            "title": "",
-            "marktext": "",
+            "title": "MarkText",
+            "marktext": "MarkText",
             "about": "MarkTextについて",
             "checkUpdates": "アップデートを確認...",
             "preferences": "環境設定",
@@ -366,7 +366,7 @@
             "categories": {
                 "general": "一般",
                 "editor": "エディター",
-                "markdown": "",
+                "markdown": "Markdown",
                 "theme": "テーマ",
                 "image": "画像",
                 "view": "ビュー",
@@ -443,7 +443,7 @@
         "categories": {
             "general": "一般",
             "editor": "エディター",
-            "markdown": "",
+            "markdown": "Markdown",
             "spelling": "スペルチェック",
             "theme": "テーマ",
             "image": "画像",
@@ -491,15 +491,15 @@
                 "title": "その他",
                 "language": {
                     "title": "言語",
-                    "english": "",
-                    "chinese": "",
-                    "traditionalChinese": "",
-                    "spanish": "",
-                    "french": "",
-                    "german": "",
-                    "japanese": "",
-                    "korean": "",
-                    "portuguese": ""
+                    "english": "English",
+                    "chinese": "简体中文",
+                    "traditionalChinese": "繁體中文",
+                    "spanish": "Español",
+                    "french": "Français",
+                    "german": "Deutsch",
+                    "japanese": "日本語",
+                    "korean": "한국어",
+                    "portuguese": "Português"
                 }
             }
         },
@@ -595,10 +595,10 @@
                 "title": "クラウド画像ベッド",
                 "github": "GitHub",
                 "smms": "SM.MS",
-                "qiniu": "",
-                "upyun": "",
-                "tcyun": "",
-                "aliyun": "",
+                "qiniu": "Qiniu",
+                "upyun": "UpYun",
+                "tcyun": "Tencent Cloud",
+                "aliyun": "Alibaba Cloud",
                 "imgur": "Imgur",
                 "picgo": "PicGo"
             },
@@ -615,9 +615,9 @@
                 "picgoDetectionFailed": "PicGo検出に失敗しました",
                 "debugInfo": "デバッグ情報",
                 "installCommand": "インストールコマンド",
-                "npmInstallCommand": "",
-                "yarnInstallCommand": "",
-                "pnpmInstallCommand": "",
+                "npmInstallCommand": "npm install picgo -g",
+                "yarnInstallCommand": "yarn global add picgo",
+                "pnpmInstallCommand": "pnpm add -g picgo",
                 "brewInstallCommand": "brew install picgo",
                 "chooseInstallMethod": "インストール方法を選択:",
                 "retestPicgo": "再テスト",
@@ -664,10 +664,10 @@
                 "services": {
                     "github": "GitHub",
                     "smms": "SM.MS",
-                    "qiniu": "",
-                    "upyun": "",
-                    "tcyun": "",
-                    "aliyun": "",
+                    "qiniu": "Qiniu",
+                    "upyun": "UpYun",
+                    "tcyun": "Tencent Cloud",
+                    "aliyun": "Alibaba Cloud",
                     "imgur": "Imgur",
                     "picgo": "PicGo",
                     "script": "カスタムスクリプト",
@@ -690,7 +690,7 @@
             }
         },
         "markdown": {
-            "title": "",
+            "title": "Markdown",
             "listItem": {
                 "title": "リストアイテム",
                 "preferLooseListItem": "ルーズリストアイテムを優先",
@@ -1075,14 +1075,14 @@
             "inputMathematicalFormula": "数式を入力...",
             "fence": "フェンス",
             "indent": "インデント",
-            "frontMatterDelimiter": "",
-            "mathDelimiter": "",
-            "mermaidStart": "",
-            "flowchartStart": "",
-            "sequenceStart": "",
-            "plantumlStart": "",
-            "vegaLiteStart": "",
-            "codeFence": "",
+            "frontMatterDelimiter": "---",
+            "mathDelimiter": "$$",
+            "mermaidStart": "``` mermaid",
+            "flowchartStart": "``` flowchart",
+            "sequenceStart": "``` sequence",
+            "plantumlStart": "``` plantuml",
+            "vegaLiteStart": "``` vega-lite",
+            "codeFence": "```",
             "clickToAddImage": "画像を追加するにはクリック",
             "loadImageFailed": "画像の読み込みに失敗しました",
             "errorLoadingTabTitle": "タブの読み込みエラー",
@@ -1117,11 +1117,11 @@
         },
         "horizontalLine": {
             "title": "水平線",
-            "subtitle": ""
+            "subtitle": "---"
         },
         "frontMatter": {
             "title": "フロントマター",
-            "subtitle": ""
+            "subtitle": "--- YAML ---"
         },
         "header1": {
             "title": "見出し1",
@@ -1157,7 +1157,7 @@
         },
         "htmlBlock": {
             "title": "HTMLブロック",
-            "subtitle": ""
+            "subtitle": "<div> HTML </div>"
         },
         "codeBlock": {
             "title": "コードブロック",
@@ -1215,7 +1215,7 @@
             },
             "state": {
                 "title": "状態図",
-                "subtitle": ""
+                "subtitle": "stateDiagram"
             },
             "journey": {
                 "title": "ユーザージャーニー"
