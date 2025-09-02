@@ -946,28 +946,9 @@ const handleResetPaddingBottom = () => {
 }
 const resizeObserverForEditor = new ResizeObserver(handleResetPaddingBottom)
 
-onMounted(async () => {
+onMounted(() => {
   printer = new Printer()
   const ele = editorRef.value
-
-  // Wait for language initialization before creating Muya instance
-  // This ensures i18n is properly set up when Muya plugins are initialized
-  await new Promise((resolve) => {
-    const checkLanguage = () => {
-      // Check if renderer i18n has received language from main process
-      if (window.electron && window.electron.ipcRenderer) {
-        window.electron.ipcRenderer.send('mt::get-current-language')
-        window.electron.ipcRenderer.once('mt::current-language', () => {
-          // Give a small delay to ensure i18n is fully updated
-          setTimeout(resolve, 50)
-        })
-      } else {
-        // Fallback if IPC is not available
-        setTimeout(resolve, 100)
-      }
-    }
-    checkLanguage()
-  })
 
   // use muya UI plugins
   Muya.use(TablePicker)
