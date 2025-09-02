@@ -56,9 +56,6 @@ export const getCategory = () => [
 
 // 创建响应式的翻译映射函数
 export const getTranslatedSearchContent = () => {
-  console.log('🔍 getTranslatedSearchContent called')
-  console.log('📁 preferences keys:', Object.keys(preferences))
-  
   // 检查当前语言设置
   let currentLanguage = 'en'
   try {
@@ -72,17 +69,11 @@ export const getTranslatedSearchContent = () => {
     console.warn('⚠️ 无法获取当前语言设置:', e)
   }
   
-  console.log('🌍 当前语言:', currentLanguage)
-  
   const result = Object.keys(preferences)
     .map((k) => {
       const { description, enum: emums } = preferences[k]
       let [category] = description.split('--')
-      
-      console.log(`📝 Processing: ${k}`)
-      console.log(`   Description: ${description}`)
-      console.log(`   Category: ${category}`)
-      
+
       // 映射分类名称
       let mappedCategory = category.toLowerCase()
       if (category === 'General') mappedCategory = 'general'
@@ -99,8 +90,6 @@ export const getTranslatedSearchContent = () => {
         // 处理特殊分类名称
         mappedCategory = category.toLowerCase().replace(/\s+/g, '-')
       }
-      
-      console.log(`   Mapped category: ${mappedCategory}`)
 
       // 计算用于路由跳转的分类（仅允许已存在的路由，否则回退到 general）
       let routeCategory = mappedCategory
@@ -110,23 +99,18 @@ export const getTranslatedSearchContent = () => {
       // 尝试翻译分类和项目
       const categoryKey = `preferences.search.categories.${mappedCategory}`
       const itemKey = `preferences.search.items.${k}`
-      
-      console.log(`   🔍 尝试翻译键: ${categoryKey}`)
-      console.log(`   尝试翻译键: ${itemKey}`)
-      
+
       // 翻译分类名称
       let translatedCategory = category
       const englishCategory = category
       try {
         translatedCategory = t(categoryKey)
-        console.log(`   ✅ 搜索分类翻译成功: ${translatedCategory}`)
       } catch (e) {
         console.warn(`   ⚠️ 搜索分类翻译失败: ${e.message}`)
         // 尝试fallback到preferences.categories
         try {
           const fallbackKey = `preferences.categories.${mappedCategory}`
           translatedCategory = t(fallbackKey)
-          console.log(`   ✅ 搜索分类fallback成功: ${translatedCategory}`)
         } catch (e2) {
           console.warn(`   ❌ 搜索分类fallback也失败: ${e2.message}`)
           translatedCategory = category
@@ -138,22 +122,17 @@ export const getTranslatedSearchContent = () => {
       const englishPreference = description.split('--')[1] || description
       try {
         translatedPreference = t(itemKey)
-        console.log(`   ✅ 搜索项目翻译成功: ${translatedPreference}`)
       } catch (e) {
         console.warn(`   ⚠️ 搜索项目翻译失败: ${e.message}`)
         // 尝试fallback到preferences.items
         try {
           const fallbackKey = `preferences.items.${k}`
           translatedPreference = t(fallbackKey)
-          console.log(`   ✅ 搜索项目fallback成功: ${translatedPreference}`)
         } catch (e2) {
           console.warn(`   ❌ 搜索项目fallback也失败: ${e2.message}`)
           translatedPreference = description.split('--')[1] || description
         }
       }
-      
-      console.log(`   Final translated category: ${translatedCategory}`)
-      console.log(`   Final translated preference: ${translatedPreference}`)
       
       return {
         key: k,
@@ -169,22 +148,15 @@ export const getTranslatedSearchContent = () => {
     .filter((item) => {
       // 过滤掉不需要显示的项目
       const filterResult = !['customCss', 'sideBarVisibility', 'tabBarVisibility', 'sourceCodeModeEnabled', 'searchExclusions', 'searchMaxFileSize', 'searchIncludeHidden', 'searchNoIgnore', 'searchFollowSymlinks', 'watcherUsePolling'].includes(item.key)
-      console.log(`   Filter result for ${item.category}: ${filterResult}`)
       return filterResult
     })
-  
-  console.log(`🎯 Final result: Array(${result.length})`)
   return result
 }
 
 // 添加语言变化监听器
 export const setupLanguageChangeListener = () => {
-  console.log('🔧 设置语言变化监听器')
-  
   // 监听语言变化事件
   const handleLanguageChange = () => {
-    console.log('🌍 检测到语言变化，刷新搜索内容')
-    
     // 触发搜索内容刷新
     if (window.__VUE_I18N__) {
       try {
@@ -192,8 +164,7 @@ export const setupLanguageChangeListener = () => {
           ? window.__VUE_I18N__.global()
           : window.__VUE_I18N__.global
         const currentLanguage = g && g.locale ? (g.locale.value || g.locale) : 'en'
-        console.log('🔄 当前语言已更新为:', currentLanguage)
-        
+
         // 这里可以触发一个自定义事件，通知搜索组件刷新
         window.dispatchEvent(new CustomEvent('languageChanged', {
           detail: { language: currentLanguage }
@@ -212,7 +183,6 @@ export const setupLanguageChangeListener = () => {
       const g = typeof i18n.global === 'function' ? i18n.global() : i18n.global
       if (g && g.locale && g.locale.value !== undefined) {
         // 使用Vue的响应式系统监听语言变化
-        console.log('✅ 成功设置语言变化监听器')
       }
     } catch (e) {
       console.warn('⚠️ 设置语言变化监听器失败:', e)
@@ -228,7 +198,6 @@ export const setupLanguageChangeListener = () => {
           : window.__VUE_I18N__.global
         const currentLanguage = g && g.locale ? (g.locale.value || g.locale) : 'en'
         if (currentLanguage !== getTranslatedSearchContent.lastLanguage) {
-          console.log('🔄 定时检查发现语言变化:', getTranslatedSearchContent.lastLanguage, '->', currentLanguage)
           getTranslatedSearchContent.lastLanguage = currentLanguage
           handleLanguageChange()
         }
@@ -256,17 +225,16 @@ setupLanguageChangeListener()
 
 // 添加手动刷新函数
 export const refreshSearchContent = () => {
-  console.log('🔄 手动刷新搜索内容')
   // 清除语言缓存，强制重新获取
   if (getTranslatedSearchContent.lastLanguage) {
     delete getTranslatedSearchContent.lastLanguage
   }
-  
+
   // 触发语言变化事件
   window.dispatchEvent(new CustomEvent('languageChanged', {
     detail: { language: 'force-refresh' }
   }))
-  
+
   return getTranslatedSearchContent()
 }
 
@@ -352,33 +320,23 @@ function getI18nInstance() {
   }
 
   const i18n = window.__VUE_I18N__;
-  console.log('🔍 i18n实例结构:', i18n);
-  console.log('🔍 i18n.global类型:', typeof i18n.global);
-  console.log('🔍 i18n.global值:', i18n.global);
-  
+
   // 尝试不同的访问方式
   if (typeof i18n.global === 'function') {
-    console.log('✅ 使用 i18n.global() 方式');
     return i18n.global();
   } else if (i18n.global && typeof i18n.global.t === 'function') {
-    console.log('✅ 使用 i18n.global.t 方式');
     return i18n.global;
   } else if (typeof i18n.t === 'function') {
-    console.log('✅ 使用 i18n.t 方式');
     return i18n;
   } else if (i18n.$i18n && typeof i18n.$i18n.t === 'function') {
-    console.log('✅ 使用 i18n.$i18n.t 方式');
     return i18n.$i18n;
   }
-  
-  console.log('❌ 无法找到有效的i18n实例');
+
   return null;
 }
 
 // 强化调试函数（修复API访问问题）
 export const debugLanguageState = () => {
-  console.log('🛠️ 调试函数被调用');
-  
   // 确保弹窗存在并可见
   let popup = document.getElementById('debugPopup');
   if (!popup) {

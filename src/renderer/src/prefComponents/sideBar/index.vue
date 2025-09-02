@@ -49,10 +49,6 @@ const currentCategory = ref('general')
 const restaurants = ref([])
 const state = ref('')
 
-for (const c of getCategory()) {
-  console.log(c)
-}
-
 watch(
   () => route.name,
   (newRouteName) => {
