@@ -1,0 +1,1318 @@
+<VerificationPlan VERSION="0.2.0">
+  <GlobalPolicy>
+    <log-format>[Module][function][BLOCK_NAME] message with structured fields</log-format>
+    <deterministic-first>true</deterministic-first>
+    <module-level-focus>Fast unit/contract checks close to the module; filesystem via tempdirs; no network.</module-level-focus>
+    <wave-level-focus>Integration of merged module surfaces touched by the current wave (e.g. fs+search+watcher together).</wave-level-focus>
+    <phase-level-focus>Full regression: CommonMark/GFM specs, Karma unit, Playwright e2e, Rust cargo test, fresh-macOS install smoke.</phase-level-focus>
+    <redaction>Never log file contents, clipboard, keychain values, or absolute home paths in shareable logs.</redaction>
+    <spec-regression-guard>test/specs/commonMark and test/specs/gfm must stay green for every PR-merge commit in Phase-A1 and Phase-A2.</spec-regression-guard>
+  </GlobalPolicy>
+
+  <CriticalFlows>
+    <VF-001 NAME="WysiwygEditingPath" USE_CASES="UC-001, UC-002, UC-010" DATA_FLOW="DF-001" PRIORITY="critical">
+      <scenario>User opens a 50 KB Markdown file with headings, lists, a table, a Mermaid diagram, and math; types into WYSIWYG; toggles to Source mode; toggles back; saves.</scenario>
+      <expected-outcome>Content is byte-identical after Source→WYSIWYG→Source roundtrip; Mermaid renders; save persists correctly.</expected-outcome>
+      <required-signals>
+        <log-marker>[Muya][setContent][BLOCK_PARSE_MARKDOWN]</log-marker>
+        <log-marker>[Renderer][saveFile][BLOCK_WRITE_TO_DISK]</log-marker>
+        <trace-sequence>BLOCK_READ_FILE -&gt; BLOCK_PARSE_MARKDOWN -&gt; BLOCK_RENDER_BLOCKS -&gt; BLOCK_WRITE_TO_DISK</trace-sequence>
+      </required-signals>
+    </VF-001>
+
+    <VF-002 NAME="FolderSearchPath" USE_CASES="UC-004, UC-005" DATA_FLOW="DF-003, DF-004" PRIORITY="high">
+      <scenario>User opens a folder with 10k markdown files, searches for a regex pattern; externally modifies one file on disk.</scenario>
+      <expected-outcome>Search returns first batch within 500ms; watcher emits change event within 500ms of disk mutation; sidebar updates.</expected-outcome>
+      <required-signals>
+        <log-marker>[Search][run][BLOCK_STREAM_RESULTS]</log-marker>
+        <log-marker>[FsWatcher][onEvent][BLOCK_EMIT_CHANGE]</log-marker>
+      </required-signals>
+    </VF-002>
+
+    <VF-003 NAME="SecurityGuardPath" USE_CASES="UC-011" DATA_FLOW="DF-010" PRIORITY="critical">
+      <scenario>User opens a document that contains a crafted HTML/script payload (CVE-2023-2318) and a link to `file:///Applications/Calculator.app`.</scenario>
+      <expected-outcome>Script does not execute; shell.openPath is blocked pending user confirmation (#4177 dialog).</expected-outcome>
+      <required-signals>
+        <log-marker>[Security][sanitize][BLOCK_STRIP_DANGEROUS_NODES]</log-marker>
+        <log-marker>[Security][shellOpen][BLOCK_CONFIRM_PROMPT]</log-marker>
+      </required-signals>
+    </VF-003>
+
+    <VF-004 NAME="HomebrewInstallPath" USE_CASES="UC-012, UC-014, UC-016" DATA_FLOW="DF-011" PRIORITY="critical">
+      <scenario>Clean macOS arm64 (no Mark history) runs `brew tap xronocode/mark &amp;&amp; brew install --cask mark`; opens app via Spotlight.</scenario>
+      <expected-outcome>Install exits 0 without sudo; Spotlight launch opens window within 2s; no Gatekeeper dialog.</expected-outcome>
+      <required-signals>
+        <evidence>brew install log ends with success; `xattr -l /Applications/Mark.app` shows no com.apple.quarantine; `codesign -dv` reports ad-hoc signature.</evidence>
+      </required-signals>
+    </VF-004>
+
+    <VF-005 NAME="ReleasePipelinePath" USE_CASES="UC-013" DATA_FLOW="DF-012" PRIORITY="critical">
+      <scenario>Developer pushes tag v1.0.0 to xronocode/mark; GitHub Actions matrix build runs.</scenario>
+      <expected-outcome>macos-14 and macos-13 jobs succeed (blocking); ubuntu-latest and windows-latest may be green or yellow (allow-failure); DMG/ZIP published to GitHub Release; Homebrew cask livecheck detects new version.</expected-outcome>
+      <required-signals>
+        <evidence>GH Release page shows macOS DMG artifacts with expected names and sha256; `brew livecheck --cask mark` returns the new version.</evidence>
+      </required-signals>
+    </VF-005>
+
+    <!-- VF-006..VF-009 added 2026-04-24 to cover new critical flows (DF-013..DF-020). -->
+
+    <VF-006 NAME="EncodingRoundtripPath" USE_CASES="UC-023, UC-024" DATA_FLOW="DF-019" PRIORITY="high">
+      <scenario>User opens fixture `heavy-jis.md` (Shift-JIS, CRLF, with trailing newline); edits nothing; saves.</scenario>
+      <expected-outcome>Saved bytes are byte-identical to input; EncodingMeta preserved across load/save.</expected-outcome>
+      <required-signals>
+        <log-marker>[Encoding][detect_encoding][BLOCK_DETECT_BOM]</log-marker>
+        <log-marker>[Encoding][detect_encoding][BLOCK_CHARDET_GUESS]</log-marker>
+        <log-marker>[Encoding][normalize_newlines][BLOCK_NORMALIZE_EOL]</log-marker>
+      </required-signals>
+    </VF-006>
+
+    <VF-007 NAME="PandocImportPath" USE_CASES="UC-018, UC-026" DATA_FLOW="DF-014" PRIORITY="medium">
+      <scenario>User picks a sample.docx via File → Import; pandoc converts; new tab opens with converted Markdown.</scenario>
+      <expected-outcome>Markdown tab opened; if pandoc missing, renderer shows actionable notification instead of silent failure.</expected-outcome>
+      <required-signals>
+        <log-marker>[Pandoc][pandoc_available][BLOCK_PROBE_BIN]</log-marker>
+        <log-marker>[Pandoc][pandoc_import][BLOCK_SPAWN]</log-marker>
+      </required-signals>
+    </VF-007>
+
+    <VF-008 NAME="AutoUpdateCheckPath" USE_CASES="UC-019" DATA_FLOW="DF-015" PRIORITY="medium">
+      <scenario>User clicks Help → Check for Updates; feed returns newer version; user confirms download; update installs on quit.</scenario>
+      <expected-outcome>States transition Checking → Available → Downloaded → Installed without silent failure.</expected-outcome>
+      <required-signals>
+        <log-marker>[Updater][check][BLOCK_FEED_FETCH]</log-marker>
+        <log-marker>[Updater][download][BLOCK_VERIFY_SIGNATURE]</log-marker>
+      </required-signals>
+    </VF-008>
+
+    <VF-009 NAME="CommandPalettePath" USE_CASES="UC-025" DATA_FLOW="DF-020" PRIORITY="high">
+      <scenario>User presses Cmd+Shift+P; types "save"; presses Enter; current file saves via file.save command.</scenario>
+      <expected-outcome>Palette opens within 100 ms; fuzzy match returns file.save; Enter dispatches command; save completes.</expected-outcome>
+      <required-signals>
+        <log-marker>[Renderer][commandPalette][BLOCK_OPEN]</log-marker>
+        <log-marker>[Renderer][commandPalette][BLOCK_EXECUTE]</log-marker>
+      </required-signals>
+    </VF-009>
+
+    <VF-010 NAME="RendererNodeCleanupPath" USE_CASES="UC-016 (indirectly)" DATA_FLOW="Phase-A1.5 refactor" PRIORITY="critical">
+      <scenario>After Phase-A1.5 lands: grep renderer tree for Node core imports, @electron/remote, sendSync.</scenario>
+      <expected-outcome>All three grep searches return zero hits; existing test suite remains green.</expected-outcome>
+      <required-signals>
+        <evidence>`grep -rE "require\('(fs|path|child_process|crypto|os|buffer)'\)" src/renderer/` returns empty; `grep -rE "@electron/remote" src/renderer/` returns empty; `grep -rE "ipcRenderer\.sendSync" src/renderer/` returns empty.</evidence>
+      </required-signals>
+    </VF-010>
+  </CriticalFlows>
+
+  <ModuleVerification>
+    <V-M-001 MODULE="M-001 mt-tauri-shell" PRIORITY="critical">
+      <test-files>
+        <file>src-tauri/src/main.rs (#[cfg(test)] blocks)</file>
+        <file>test/e2e/tauri-shell.spec.ts (Playwright via Tauri WebDriver)</file>
+      </test-files>
+      <module-checks>
+        <check-1>cargo test --manifest-path src-tauri/Cargo.toml -p mt-tauri-shell</check-1>
+        <check-2>cargo clippy --manifest-path src-tauri/Cargo.toml -- -D warnings</check-2>
+      </module-checks>
+      <scenarios>
+        <scenario-1 kind="success">App starts, main window is created, menu is registered.</scenario-1>
+        <scenario-2 kind="success">Window close via Cmd+W hides window (macOS behavior).</scenario-2>
+        <scenario-3 kind="failure">Second-instance launch is blocked and focuses existing window.</scenario-3>
+      </scenarios>
+      <required-log-markers>
+        <marker-1>[TauriShell][main][BLOCK_BUILD_APP]</marker-1>
+        <marker-2>[TauriShell][onWindowCreated][BLOCK_REGISTER_MENU]</marker-2>
+      </required-log-markers>
+      <required-trace-assertions>
+        <assertion-1>Second-instance path must not emit BLOCK_BUILD_APP twice.</assertion-1>
+      </required-trace-assertions>
+      <wave-follow-up>Launch full frontend in dev mode; verify renderer mounts.</wave-follow-up>
+      <phase-follow-up>Full Playwright e2e suite + fresh-VM install smoke.</phase-follow-up>
+    </V-M-001>
+
+    <V-M-002 MODULE="M-002 mt-fs-commands" PRIORITY="critical">
+      <test-files>
+        <file>src-tauri/src/commands/fs.rs (#[cfg(test)])</file>
+      </test-files>
+      <module-checks>
+        <check-1>cargo test --manifest-path src-tauri/Cargo.toml commands::fs</check-1>
+      </module-checks>
+      <scenarios>
+        <scenario-1 kind="success">read/write UTF-8 roundtrip preserves bytes.</scenario-1>
+        <scenario-2 kind="success">10 MB file reads within memory budget (no OOM).</scenario-2>
+        <scenario-3 kind="success">Symlinks resolved but honor sandbox rules from M-010.</scenario-3>
+        <scenario-4 kind="failure">Permission-denied path returns stable error code MT_FS_PERM_DENIED.</scenario-4>
+        <scenario-5 kind="failure">Attempt to read outside workspace sandbox is rejected by M-010.</scenario-5>
+      </scenarios>
+      <required-log-markers>
+        <marker-1>[FsCmd][read][BLOCK_VALIDATE_PATH]</marker-1>
+        <marker-2>[FsCmd][read][BLOCK_READ_FROM_DISK] { path_redacted, bytes }</marker-2>
+        <marker-3>[FsCmd][write][BLOCK_WRITE_TO_DISK] { path_redacted, bytes, fsync }</marker-3>
+      </required-log-markers>
+      <required-trace-assertions>
+        <assertion-1>Sandbox-denied path never reaches BLOCK_READ_FROM_DISK.</assertion-1>
+      </required-trace-assertions>
+      <wave-follow-up>Integration with M-003 watcher: write then observe change event.</wave-follow-up>
+      <phase-follow-up>Full Playwright flow: open file → edit → save.</phase-follow-up>
+    </V-M-002>
+
+    <V-M-003 MODULE="M-003 mt-fs-watcher" PRIORITY="high">
+      <test-files>
+        <file>src-tauri/src/fs/watcher.rs (#[cfg(test)])</file>
+      </test-files>
+      <module-checks>
+        <check-1>cargo test --manifest-path src-tauri/Cargo.toml fs::watcher</check-1>
+      </module-checks>
+      <scenarios>
+        <scenario-1 kind="success">create/modify/delete/rename all fire within 500ms on tempdir.</scenario-1>
+        <scenario-2 kind="success">Rapid 100 writes debounce to fewer events (burst handling).</scenario-2>
+        <scenario-3 kind="failure">Invalid path returns error without leaking a background task.</scenario-3>
+      </scenarios>
+      <required-log-markers>
+        <marker-1>[FsWatcher][start][BLOCK_REGISTER_NOTIFY]</marker-1>
+        <marker-2>[FsWatcher][onEvent][BLOCK_EMIT_CHANGE]</marker-2>
+      </required-log-markers>
+      <required-trace-assertions>
+        <assertion-1>Stop path must call BLOCK_UNREGISTER_NOTIFY before returning.</assertion-1>
+      </required-trace-assertions>
+      <wave-follow-up>Integration with sidebar UI.</wave-follow-up>
+      <phase-follow-up>E2e: open folder, touch file externally, see sidebar update.</phase-follow-up>
+    </V-M-003>
+
+    <V-M-004 MODULE="M-004 mt-search" PRIORITY="high">
+      <test-files>
+        <file>src-tauri/src/search/mod.rs (#[cfg(test)])</file>
+      </test-files>
+      <module-checks>
+        <check-1>cargo test --manifest-path src-tauri/Cargo.toml search</check-1>
+      </module-checks>
+      <scenarios>
+        <scenario-1 kind="success">literal + regex + case-insensitive + whole-word options all work.</scenario-1>
+        <scenario-2 kind="success">10k-file fixture: first batch delivered in &lt; 500ms.</scenario-2>
+        <scenario-3 kind="success">Cancellation mid-stream stops yielding results within 100ms.</scenario-3>
+        <scenario-4 kind="success">.gitignore patterns honored.</scenario-4>
+      </scenarios>
+      <required-log-markers>
+        <marker-1>[Search][run][BLOCK_COMPILE_MATCHER]</marker-1>
+        <marker-2>[Search][run][BLOCK_STREAM_RESULTS] { batch_size, seq }</marker-2>
+      </required-log-markers>
+      <required-trace-assertions>
+        <assertion-1>Cancellation path must not emit further BLOCK_STREAM_RESULTS after cancel token tripped.</assertion-1>
+      </required-trace-assertions>
+      <wave-follow-up>UI wire-up in sidebar search panel.</wave-follow-up>
+      <phase-follow-up>Performance budget check on 10k-file fixture.</phase-follow-up>
+    </V-M-004>
+
+    <V-M-005 MODULE="M-005 mt-prefs" PRIORITY="high">
+      <test-files>
+        <file>src-tauri/src/prefs/mod.rs (#[cfg(test)])</file>
+      </test-files>
+      <module-checks>
+        <check-1>cargo test --manifest-path src-tauri/Cargo.toml prefs</check-1>
+      </module-checks>
+      <scenarios>
+        <scenario-1 kind="success">set→get roundtrip for all known pref keys.</scenario-1>
+        <scenario-2 kind="success">Migration: read legacy electron-store JSON at ~/Library/Application Support/marktext/config.json into new tauri-plugin-store layout.</scenario-2>
+        <scenario-3 kind="failure">Corrupt prefs file falls back to defaults and logs a loud marker.</scenario-3>
+      </scenarios>
+      <required-log-markers>
+        <marker-1>[Prefs][migrate][BLOCK_DETECT_LEGACY]</marker-1>
+        <marker-2>[Prefs][migrate][BLOCK_MIGRATED]</marker-2>
+      </required-log-markers>
+      <required-trace-assertions>
+        <assertion-1>Migration runs at most once (marker idempotency key in new store).</assertion-1>
+      </required-trace-assertions>
+      <wave-follow-up>Frontend reads/writes preferences through M-013 bridge.</wave-follow-up>
+      <phase-follow-up>Smoke: install v1 Electron app, add prefs, install v2 Tauri app, verify prefs carried over.</phase-follow-up>
+    </V-M-005>
+
+    <V-M-006 MODULE="M-006 mt-shortcuts" PRIORITY="medium">
+      <test-files>
+        <file>src-tauri/src/shortcuts/mod.rs (#[cfg(test)])</file>
+      </test-files>
+      <module-checks>
+        <check-1>cargo test --manifest-path src-tauri/Cargo.toml shortcuts</check-1>
+      </module-checks>
+      <scenarios>
+        <scenario-1 kind="success">Global shortcut Cmd+Shift+M brings MarkText to front.</scenario-1>
+        <scenario-2 kind="success">Capitalized modifier in custom hotkey honored (regression for #4134).</scenario-2>
+        <scenario-3 kind="failure">Conflicting shortcut registration returns MT_SHORTCUT_CONFLICT.</scenario-3>
+      </scenarios>
+      <required-log-markers>
+        <marker-1>[Shortcuts][register][BLOCK_PARSE_ACCELERATOR]</marker-1>
+      </required-log-markers>
+      <wave-follow-up>User toggles shortcuts in preferences, new binding takes effect without restart.</wave-follow-up>
+      <phase-follow-up>E2e hotkey coverage.</phase-follow-up>
+    </V-M-006>
+
+    <V-M-007 MODULE="M-007 mt-spell" PRIORITY="medium">
+      <test-files>
+        <file>src-tauri/src/spell/mod.rs (#[cfg(test)])</file>
+      </test-files>
+      <module-checks>
+        <check-1>cargo test --manifest-path src-tauri/Cargo.toml spell</check-1>
+      </module-checks>
+      <scenarios>
+        <scenario-1 kind="success">suggest("teh") returns "the" in top suggestions (macOS NSSpellChecker).</scenario-1>
+        <scenario-2 kind="success">Add-to-dictionary persists in user default ignore list.</scenario-2>
+        <scenario-3 kind="success">Language switch (en_US → ru_RU) reflected in suggestions.</scenario-3>
+      </scenarios>
+      <required-log-markers>
+        <marker-1>[Spell][suggest][BLOCK_QUERY_OS]</marker-1>
+      </required-log-markers>
+      <wave-follow-up>Context-menu integration in renderer.</wave-follow-up>
+      <phase-follow-up>Playwright right-click-on-misspelled scenario.</phase-follow-up>
+    </V-M-007>
+
+    <V-M-008 MODULE="M-008 mt-fonts" PRIORITY="low">
+      <test-files>
+        <file>src-tauri/src/fonts/mod.rs (#[cfg(test)])</file>
+      </test-files>
+      <module-checks>
+        <check-1>cargo test --manifest-path src-tauri/Cargo.toml fonts</check-1>
+      </module-checks>
+      <scenarios>
+        <scenario-1 kind="success">List returns non-empty set; includes system default (SF on macOS).</scenario-1>
+        <scenario-2 kind="success">Cached list is used on second call within session.</scenario-2>
+      </scenarios>
+      <required-log-markers>
+        <marker-1>[Fonts][list][BLOCK_ENUMERATE]</marker-1>
+      </required-log-markers>
+      <wave-follow-up>Preferences UI font picker.</wave-follow-up>
+      <phase-follow-up>None.</phase-follow-up>
+    </V-M-008>
+
+    <V-M-009 MODULE="M-009 mt-menu" PRIORITY="medium">
+      <test-files>
+        <file>src-tauri/src/menu/mod.rs (#[cfg(test)])</file>
+        <file>test/e2e/menu.spec.ts</file>
+      </test-files>
+      <module-checks>
+        <check-1>cargo test --manifest-path src-tauri/Cargo.toml menu</check-1>
+      </module-checks>
+      <scenarios>
+        <scenario-1 kind="success">All 128 menu items have explicit command-id and dispatch expected command.</scenario-1>
+        <scenario-2 kind="success">Context menu on misspelled word shows suggestions (depends on M-007).</scenario-2>
+        <scenario-3 kind="success">Per-window state items (sourceCode, typewriter, focus, sidebar, tabBar, alwaysOnTop) preserved during menu rebuild; checked state accurate per window.</scenario-3>
+        <scenario-4 kind="success">Per-file radio (LF/CRLF line ending) updated on `mt::update-line-ending-menu` event.</scenario-4>
+        <scenario-5 kind="success">Format/paragraph checkboxes (23 items) reflect selection state via `mt::update-format-menu` + `mt::editor-selection-changed`.</scenario-5>
+        <scenario-6 kind="success">Recent docs submenu: max 12 entries; stale paths filtered on read; macOS native integration via NSDocumentController; Windows JumpList; Linux JSON.</scenario-6>
+        <scenario-7 kind="success">Theme radio submenu: 6 themes; checked state syncs with `theme` pref via `broadcast-preferences-changed`.</scenario-7>
+        <scenario-8 kind="failure">Tauri-missing roles (`services`, `recentdocuments`, "Bring All to Front") stubbed or self-implemented; no runtime error on macOS.</scenario-8>
+        <scenario-9 kind="success">Debug items (Show Developer Tools, Reload window) visible ONLY when `MARKTEXT_DEBUG=true` flag set by M-020.</scenario-9>
+        <scenario-10 kind="success">Platform visibility: `Preferences` visible on non-macOS; in MarkText App menu on macOS; Screenshot only macOS.</scenario-10>
+      </scenarios>
+      <required-log-markers>
+        <marker-1>[Menu][onInvoke][BLOCK_DISPATCH] { menu_id }</marker-1>
+      </required-log-markers>
+      <wave-follow-up>E2e navigates every menu item (128 items); contract-snapshot test asserts menu tree identical to captured baseline.</wave-follow-up>
+      <phase-follow-up>Accessibility pass (v2.x — ARIA not in v1.0 scope per R-35).</phase-follow-up>
+    </V-M-009>
+
+    <V-M-010 MODULE="M-010 mt-security" PRIORITY="critical">
+      <test-files>
+        <file>src-tauri/src/security.rs (#[cfg(test)])</file>
+        <file>test/specs/security/xss.spec.js</file>
+        <file>test/specs/security/dompurify-port.spec.js (new — asserts PREVIEW and EXPORT configs match upstream)</file>
+      </test-files>
+      <module-checks>
+        <check-1>cargo test --manifest-path src-tauri/Cargo.toml security</check-1>
+        <check-2>yarn unit -- test/specs/security</check-2>
+      </module-checks>
+      <scenarios>
+        <scenario-1 kind="failure">CVE-2023-2318 payload: `script` tag in injected HTML does not execute (#3621).</scenario-1>
+        <scenario-2 kind="failure">file:// link outside workspace sandbox is refused without prompt.</scenario-2>
+        <scenario-3 kind="success">http/https link opens after user confirmation (#4177).</scenario-3>
+        <scenario-4 kind="failure">Path traversal "../../../etc/passwd" is rejected.</scenario-4>
+        <scenario-5 kind="success">DOMPurify PREVIEW + EXPORT configs produce identical output to upstream implementations on a 100-doc fixture sample.</scenario-5>
+        <scenario-6 kind="failure">All 22 fixture-xss payloads (payload-1..payload-22) blocked OR rendered as inert text.</scenario-6>
+        <scenario-7 kind="failure">Windows case-insensitive path traversal: `C:\Workspace` sandbox blocks `c:\workspace\..\..\..\Windows`.</scenario-7>
+        <scenario-8 kind="failure">KaTeX payload `\href{javascript:...}` rejected; raw text shown.</scenario-8>
+        <scenario-9 kind="failure">Vega spec with JS expression rejected.</scenario-9>
+        <scenario-10 kind="success">BOM stripped before regex; payload with leading BOM still detected.</scenario-10>
+      </scenarios>
+      <required-log-markers>
+        <marker-1>[Security][sanitize][BLOCK_STRIP_DANGEROUS_NODES]</marker-1>
+        <marker-2>[Security][shellOpen][BLOCK_CONFIRM_PROMPT]</marker-2>
+        <marker-3>[Security][path][BLOCK_REJECT_TRAVERSAL]</marker-3>
+        <marker-4>[Security][katex][BLOCK_KATEX_FILTER]</marker-4>
+        <marker-5>[Security][vega][BLOCK_VEGA_REJECT_EXPR]</marker-5>
+        <marker-6>[Security][punycode][BLOCK_PUNYCODE_WARN]</marker-6>
+      </required-log-markers>
+      <required-trace-assertions>
+        <assertion-1>Rejected path must never reach any FsCmd or shell open downstream.</assertion-1>
+        <assertion-2>DOMPurify is invoked at least once per user-provided HTML fragment before render.</assertion-2>
+        <assertion-3>Vega transforms calling `fetch`/`eval`/`Function` must never reach renderer.</assertion-3>
+      </required-trace-assertions>
+      <wave-follow-up>Full Playwright XSS payload suite with all 22 payloads.</wave-follow-up>
+      <phase-follow-up>Manual penetration-style review before v1.0 and v2.0 releases; independent security-checklist pass.</phase-follow-up>
+    </V-M-010>
+
+    <V-M-011 MODULE="M-011 mt-renderer" PRIORITY="critical">
+      <test-files>
+        <file>test/unit/renderer/**.spec.js (existing Karma)</file>
+        <file>test/e2e/renderer.spec.ts</file>
+        <file>test/unit/renderer/store/editor.spec.js (store-level regression)</file>
+      </test-files>
+      <module-checks>
+        <check-1>yarn unit</check-1>
+      </module-checks>
+      <scenarios>
+        <scenario-1 kind="success">muya mounts and renders a fixture document with all 7 host hooks wired.</scenario-1>
+        <scenario-2 kind="success">Theme switch (dark/light/sepia) applies without reload.</scenario-2>
+        <scenario-3 kind="success">Full-WYSIWYG mode (#4145) hides markdown syntax; toggle off restores.</scenario-3>
+        <scenario-4 kind="success">System appearance change (Aqua↔DarkAqua on macOS) updates live theme (#4145).</scenario-4>
+        <scenario-5 kind="success">Auto-save timer cleared on tab close (REMOVE_FILE_WITHIN_TABS); timer validates tab still exists at fire time; no writes after close.</scenario-5>
+        <scenario-6 kind="success">Auto-save timer re-checks autoSave preference at fire time (fixes R-30).</scenario-6>
+        <scenario-7 kind="success">File watcher self-emit suppression: main writes file → M-003 ignoreInternalChanges → no LOAD_CHANGE loop.</scenario-7>
+        <scenario-8 kind="success">Tab drag-drop reorder via dragula-replacement preserves markdown/cursor/history in all tabs.</scenario-8>
+        <scenario-9 kind="success">Source-mode toggle preserves cursor and content; commitTimer debounced flush on beforeDestroy.</scenario-9>
+        <scenario-10 kind="success">IPC listener stress: open/close preferences window 20 times; listener count bounded (no leaks per Phase-A1.5 Gate).</scenario-10>
+        <scenario-11 kind="success">External file rename (main fs.watch detects) → RENAME_IF_NEEDED mutation updates all affected tabs without data loss.</scenario-11>
+        <scenario-12 kind="success">Pinia migration (PR #4001) preserves 8 stores (project/editor/layout/preferences/commandCenter/listenForMain/notification/autoUpdates) — all 62 pref keys readable, 50+ actions wired to same IPC channels.</scenario-12>
+        <scenario-13 kind="failure">Renderer attempts to import `fs`, `path`, `child_process`, `crypto`, `Buffer`, `os`: build-time typecheck fails (Phase-A1.5 regression guard).</scenario-13>
+      </scenarios>
+      <required-log-markers>
+        <marker-1>[Renderer][mount][BLOCK_INSTANTIATE_MUYA]</marker-1>
+        <marker-2>[Renderer][mount][BLOCK_HOST_HOOKS_WIRED] { hooks: 7 }</marker-2>
+      </required-log-markers>
+      <wave-follow-up>Running against Tauri WebView vs Chromium — benchmark 10 MB doc, 10k-para performance.</wave-follow-up>
+      <phase-follow-up>Full e2e regression; listener-leak soak test.</phase-follow-up>
+    </V-M-011>
+
+    <V-M-012 MODULE="M-012 muya" PRIORITY="critical">
+      <test-files>
+        <file>test/specs/commonMark/**</file>
+        <file>test/specs/gfm/**</file>
+        <file>test/unit/muya/api-snapshot.spec.js (new)</file>
+      </test-files>
+      <module-checks>
+        <check-1>yarn test:specs</check-1>
+        <check-2>yarn unit -- test/unit/muya/api-snapshot.spec.js</check-2>
+      </module-checks>
+      <scenarios>
+        <scenario-1 kind="success">CommonMark spec compliance: all passing tests remain green across every merge commit.</scenario-1>
+        <scenario-2 kind="success">GFM spec compliance: table/strikethrough/task-list tests remain green.</scenario-2>
+        <scenario-3 kind="success">Querying empty-heading slug does not throw (regression for #4135).</scenario-3>
+        <scenario-4 kind="success">API snapshot: class Muya exports exactly the methods enumerated in &lt;expected-muya-api&gt; below; any rename/removal fails test.</scenario-4>
+        <scenario-5 kind="success">Event-center contract: events enumerated in &lt;expected-muya-events&gt; below are still emitted with compatible payload shapes.</scenario-5>
+        <scenario-6 kind="success">5 diagram renderers (Mermaid, Vega-Lite, Flowchart, Sequence, PlantUML) all load lazily and return SVG on fixture input.</scenario-6>
+        <scenario-7 kind="success">Host hooks contract: `window.DIRNAME`, `imageAction()`, `clipboardFilePath()`, `_replaceCurrentWordInlineUnsafe()` callable before first setMarkdown.</scenario-7>
+        <scenario-8 kind="success">CJK word count (utils/index.js:342): sample Chinese/Japanese/Korean text returns expected counts.</scenario-8>
+      </scenarios>
+      <required-log-markers>
+        <marker-1>[Muya][parse][BLOCK_TOKENIZE]</marker-1>
+      </required-log-markers>
+      <required-trace-assertions>
+        <assertion-1>destroy() cleanup: after Muya.destroy(), no lingering DOM refs or event listeners (leak guard).</assertion-1>
+      </required-trace-assertions>
+      <wave-follow-up>Any muya change must re-run full spec suite + API snapshot.</wave-follow-up>
+      <phase-follow-up>Performance benchmark: 10 MB document parse time &lt; 3s; WKWebView vs Chromium baseline comparison.</phase-follow-up>
+
+      <expected-muya-api>
+        <!-- Ground-truth list extracted from audit of src/muya/lib/index.js (~487 LOC).
+             Regression test iterates Object.getOwnPropertyNames(Muya.prototype) and compares. -->
+        <method-1>getMarkdown</method-1>
+        <method-2>getHistory</method-2>
+        <method-3>getTOC</method-3>
+        <method-4>setHistory</method-4>
+        <method-5>clearHistory</method-5>
+        <method-6>exportStyledHTML</method-6>
+        <method-7>exportHtml</method-7>
+        <method-8>getWordCount</method-8>
+        <method-9>getCursor</method-9>
+        <method-10>setMarkdown</method-10>
+        <method-11>setCursor</method-11>
+        <method-12>createTable</method-12>
+        <method-13>getSelection</method-13>
+        <method-14>setFocusMode</method-14>
+        <method-15>setFont</method-15>
+        <method-16>setTabSize</method-16>
+        <method-17>setListIndentation</method-17>
+        <method-18>updateParagraph</method-18>
+        <method-19>duplicate</method-19>
+        <method-20>deleteParagraph</method-20>
+        <method-21>insertParagraph</method-21>
+        <method-22>editTable</method-22>
+        <method-23>hasFocus</method-23>
+        <method-24>focus</method-24>
+        <method-25>blur</method-25>
+        <method-26>format</method-26>
+        <method-27>insertImage</method-27>
+        <method-28>search</method-28>
+        <method-29>replace</method-29>
+        <method-30>find</method-30>
+        <method-31>on</method-31>
+        <method-32>off</method-32>
+        <method-33>once</method-33>
+        <method-34>invalidateImageCache</method-34>
+        <method-35>undo</method-35>
+        <method-36>redo</method-36>
+        <method-37>selectAll</method-37>
+        <method-38>extractImages</method-38>
+        <method-39>copyAsMarkdown</method-39>
+        <method-40>copyAsHtml</method-40>
+        <method-41>pasteAsPlainText</method-41>
+        <method-42>copy</method-42>
+        <method-43>setOptions</method-43>
+        <method-44>hideAllFloatTools</method-44>
+        <method-45>replaceWordInline</method-45>
+        <method-46>_replaceCurrentWordInlineUnsafe</method-46>
+        <method-47>destroy</method-47>
+        <static-use PURPOSE="Muya.use(plugin, options) — class-level plugin registry" />
+      </expected-muya-api>
+
+      <expected-muya-events>
+        <!-- Ground-truth event inventory from src/muya/lib/eventHandler + contentState + index.js. -->
+        <event-core-1>change</event-core-1>
+        <event-core-2>selectionChange</event-core-2>
+        <event-core-3>selectionFormats</event-core-3>
+        <event-core-4>focus</event-core-4>
+        <event-core-5>blur</event-core-5>
+        <event-core-6>contextmenu</event-core-6>
+        <event-core-7>crashed</event-core-7>
+        <event-core-8>stateChange</event-core-8>
+        <event-floating-1>muya-float</event-floating-1>
+        <event-floating-2>muya-quick-insert</event-floating-2>
+        <event-floating-3>muya-code-picker</event-floating-3>
+        <event-floating-4>muya-format-picker</event-floating-4>
+        <event-floating-5>muya-image-selector</event-floating-5>
+        <event-floating-6>muya-image-toolbar</event-floating-6>
+        <event-floating-7>muya-image-picker</event-floating-7>
+        <event-floating-8>muya-transformer</event-floating-8>
+        <event-floating-9>muya-link-tools</event-floating-9>
+        <event-floating-10>muya-table-picker</event-floating-10>
+        <event-floating-11>muya-table-bar</event-floating-11>
+        <event-floating-12>muya-footnote-tool</event-floating-12>
+        <event-floating-13>muya-front-menu</event-floating-13>
+        <event-floating-14>muya-emoji-picker</event-floating-14>
+        <event-internal-1>format-click</event-internal-1>
+        <event-internal-2>select-image</event-internal-2>
+        <event-internal-3>preview-image</event-internal-3>
+      </expected-muya-events>
+
+      <expected-host-hooks>
+        <hook-1 global="window.DIRNAME" type="string" required-by="setMarkdown with relative image paths" />
+        <hook-2 option="imageAction" type="function(src, id, alt) =&gt; Promise&lt;newSrc&gt;" required-by="paste/drop image; uploaders" />
+        <hook-3 option="clipboardFilePath" type="function() =&gt; string | null" required-by="cross-platform clipboard file path" />
+        <hook-4 option="imagePathAutoComplete" type="function(path) =&gt; Promise&lt;string[]&gt;" required-by="imageSelector src-field autocomplete" />
+        <hook-5 option="imagePathPicker" type="function() =&gt; Promise&lt;string&gt;" required-by="imageSelector file-browser button" />
+        <hook-6 option="photoCreatorClick" type="function(url) =&gt; void" required-by="Unsplash attribution link click" />
+        <hook-7 option="jumpClick" type="function(href) =&gt; void" required-by="linkTools jump icon" />
+        <hook-8 option="unsplashAccessKey" type="string (SENSITIVE)" required-by="imageSelector Unsplash tab" security-note="If bundled, exposed to browser. Phase-B plan: proxy or prompt at runtime (R-35)." />
+        <hook-method option="instance method _replaceCurrentWordInlineUnsafe" type="method" required-by="spellcheck host integration" />
+      </expected-host-hooks>
+
+      <expected-parser-options>
+        <!-- 11 parser option flags from marked/options.js — each flag flips a rule or token set. -->
+        <flag-1 name="gfm" default="true" />
+        <flag-2 name="breaks" default="false" />
+        <flag-3 name="pedantic" default="false" />
+        <flag-4 name="footnote" default="false" />
+        <flag-5 name="frontMatter" default="true" />
+        <flag-6 name="math" default="true" />
+        <flag-7 name="superSubScript" default="false" />
+        <flag-8 name="emoji" default="true" />
+        <flag-9 name="isGitlabCompatibilityEnabled" default="false" />
+        <flag-10 name="disableHtml" default="false" />
+        <flag-11 name="smartLists" default="false" />
+      </expected-parser-options>
+
+      <state-invariants-after-mutation>
+        <!-- 13 invariants that MUST hold after any keystroke / mutation. Test via invariant-check hook in tests. -->
+        <inv-1>blocks.length &gt;= 1 (non-empty root)</inv-1>
+        <inv-2>every block has unique .key (getUniqueId)</inv-2>
+        <inv-3>parent.children[i].parent === parent.key (pointer reflexive)</inv-3>
+        <inv-4>list: all listItems share same bulletMarkerOrDelimiter</inv-4>
+        <inv-5>table: figure → table → thead+tbody → tr → th/td → span(functionType='cellContent')</inv-5>
+        <inv-6>heading ATX: children[0].text has no '\n'</inv-6>
+        <inv-7>front-matter: at most one, first block only</inv-7>
+        <inv-8>code block: pre.lang equals languageInput.text</inv-8>
+        <inv-9>every span has .text .key .functionType</inv-9>
+        <inv-10>no languageInput siblings in list</inv-10>
+        <inv-11>task-item: children = [input(checkbox), p]</inv-11>
+        <inv-12>cursor.start.offset &lt;= block.text.length</inv-12>
+        <inv-13>no orphan blocks (every non-root block reachable from root)</inv-13>
+      </state-invariants-after-mutation>
+
+      <upstream-bug-regression-tests>
+        <!-- Specific upstream bugs to regression-test against. Fix during/after port, tracked separately from community PRs. -->
+        <bug-1 ref="R-27" test="ime-composition.spec.js" expect="No block.text mutation during compositionstart..compositionend" />
+        <bug-2 ref="R-28" test="table-pipe-start.spec.js" expect="Cell `|foo` exports as `\|foo`, roundtrip byte-identical" />
+        <bug-3 ref="R-29" test="table-irregular-export.spec.js" expect="Short row padded with empty cells; no 'undefined' literal" />
+        <bug-4 ref="R-30" test="autosave-pref-race.spec.js" expect="Timer re-checks autoSave pref at fire time; skips write if toggled off" />
+        <bug-5 ref="R-31" test="nested-list-listtype.spec.js" expect="Nested list items have listType key set; mutations on deep lists work" />
+        <bug-6 ref="R-34" test="parser-recursion-limit.spec.js" expect="Depth &gt; 64 returns graceful error; no stack overflow" />
+      </upstream-bug-regression-tests>
+    </V-M-012>
+
+    <V-M-014 MODULE="M-014 mt-encoding" PRIORITY="high">
+      <test-files>
+        <file>src-tauri/src/encoding/mod.rs (#[cfg(test)])</file>
+        <file>test/fixtures/encoding/ (fixture bytes)</file>
+      </test-files>
+      <module-checks>
+        <check-1>cargo test --manifest-path src-tauri/Cargo.toml encoding</check-1>
+      </module-checks>
+      <scenarios>
+        <scenario-1 kind="success">UTF-8 BOM detected and stripped; byte-roundtrip preserves original.</scenario-1>
+        <scenario-2 kind="success">UTF-16 LE/BE BOM detection; decoded to UTF-8.</scenario-2>
+        <scenario-3 kind="success">Shift-JIS/GB2312/Latin-1/KOI8-R BOM-less detection via chardet/encoding_rs.</scenario-3>
+        <scenario-4 kind="success">28 codec enum (from upstream `static/preference.json`) — each roundtrips ASCII subset.</scenario-4>
+        <scenario-5 kind="success">LF/CRLF/mixed detection; `trimTrailingNewline` modes 0/1/2/3 produce correct output bytes.</scenario-5>
+        <scenario-6 kind="failure">Unsupported encoding returns MT_ENC_UNSUPPORTED with stable code.</scenario-6>
+      </scenarios>
+      <required-log-markers>
+        <marker-1>[Encoding][detect_encoding][BLOCK_DETECT_BOM]</marker-1>
+        <marker-2>[Encoding][detect_encoding][BLOCK_CHARDET_GUESS]</marker-2>
+        <marker-3>[Encoding][normalize_newlines][BLOCK_NORMALIZE_EOL]</marker-3>
+      </required-log-markers>
+      <wave-follow-up>Integration with M-002: open a CRLF file, edit, save — endings preserved unless user switched.</wave-follow-up>
+      <phase-follow-up>Regression corpus: one file per codec in `test/fixtures/encoding/`.</phase-follow-up>
+    </V-M-014>
+
+    <V-M-015 MODULE="M-015 mt-pandoc-bridge" PRIORITY="medium">
+      <test-files>
+        <file>src-tauri/src/pandoc/mod.rs (#[cfg(test)])</file>
+      </test-files>
+      <module-checks>
+        <check-1>cargo test --manifest-path src-tauri/Cargo.toml pandoc</check-1>
+      </module-checks>
+      <scenarios>
+        <scenario-1 kind="success">pandoc on PATH → convert sample.docx → markdown.</scenario-1>
+        <scenario-2 kind="success">MARKTEXT_PANDOC env override takes precedence.</scenario-2>
+        <scenario-3 kind="success">macOS: `/Library/TeX/texbin` prepended to PATH for pandoc subprocess.</scenario-3>
+        <scenario-4 kind="failure">pandoc missing → MT_PANDOC_NOT_FOUND; renderer notification fires with install link.</scenario-4>
+        <scenario-5 kind="failure">Malformed input file → MT_PANDOC_FAILED with exit code.</scenario-5>
+      </scenarios>
+      <required-log-markers>
+        <marker-1>[Pandoc][pandoc_available][BLOCK_PROBE_BIN]</marker-1>
+        <marker-2>[Pandoc][pandoc_import][BLOCK_SPAWN]</marker-2>
+      </required-log-markers>
+      <wave-follow-up>E2e import flow via File → Import menu.</wave-follow-up>
+    </V-M-015>
+
+    <V-M-016 MODULE="M-016 mt-updater" PRIORITY="medium">
+      <test-files>
+        <file>src-tauri/src/updater/mod.rs (#[cfg(test)])</file>
+      </test-files>
+      <module-checks>
+        <check-1>cargo test --manifest-path src-tauri/Cargo.toml updater</check-1>
+      </module-checks>
+      <scenarios>
+        <scenario-1 kind="success">Feed fetch: mock GitHub Releases response → emits Available(v).</scenario-1>
+        <scenario-2 kind="success">NotAvailable when feed version ≤ current.</scenario-2>
+        <scenario-3 kind="failure">Network error → MT_UPD_NETWORK; renderer shows stale-cache warning.</scenario-3>
+        <scenario-4 kind="failure">Signature mismatch → MT_UPD_SIGNATURE; download rejected.</scenario-4>
+      </scenarios>
+      <required-log-markers>
+        <marker-1>[Updater][check][BLOCK_FEED_FETCH]</marker-1>
+        <marker-2>[Updater][download][BLOCK_VERIFY_SIGNATURE]</marker-2>
+      </required-log-markers>
+      <wave-follow-up>E2e: tag v9.9.9 test release; check updater detects.</wave-follow-up>
+    </V-M-016>
+
+    <V-M-017 MODULE="M-017 mt-recent-docs" PRIORITY="medium">
+      <test-files>
+        <file>src-tauri/src/recent/mod.rs (#[cfg(test)])</file>
+      </test-files>
+      <module-checks>
+        <check-1>cargo test --manifest-path src-tauri/Cargo.toml recent</check-1>
+      </module-checks>
+      <scenarios>
+        <scenario-1 kind="success">Add 20 paths; list returns last 12 deduplicated.</scenario-1>
+        <scenario-2 kind="success">macOS: NSDocumentController.noteNewRecentDocumentURL invoked.</scenario-2>
+        <scenario-3 kind="success">Linux: JSON file at ${configDir}/recently-used-documents.json updated.</scenario-3>
+        <scenario-4 kind="success">Clear empties list and OS integration.</scenario-4>
+      </scenarios>
+      <required-log-markers>
+        <marker-1>[Recent][add][BLOCK_ADD]</marker-1>
+        <marker-2>[Recent][add][BLOCK_OS_INTEGRATE]</marker-2>
+      </required-log-markers>
+      <wave-follow-up>E2e: open 3 files; restart; verify File → Open Recent shows them.</wave-follow-up>
+    </V-M-017>
+
+    <V-M-018 MODULE="M-018 mt-screenshot" PRIORITY="low">
+      <test-files>
+        <file>src-tauri/src/screenshot/mod.rs (#[cfg(test)])</file>
+      </test-files>
+      <module-checks>
+        <check-1>cargo test --manifest-path src-tauri/Cargo.toml screenshot</check-1>
+      </module-checks>
+      <scenarios>
+        <scenario-1 kind="success" platform="macos">`screencapture -i -c` spawn; clipboard image saved as PNG in target dir.</scenario-1>
+        <scenario-2 kind="failure" platform="linux,windows">Returns MT_SCREENSHOT_UNSUPPORTED_OS.</scenario-2>
+        <scenario-3 kind="failure" platform="macos">User cancels capture → MT_SCREENSHOT_CANCELLED; no file written.</scenario-3>
+      </scenarios>
+      <required-log-markers>
+        <marker-1>[Screenshot][capture][BLOCK_SPAWN_CAPTURE]</marker-1>
+      </required-log-markers>
+      <wave-follow-up>E2e via menu click → inserted image path in current document.</wave-follow-up>
+    </V-M-018>
+
+    <V-M-019 MODULE="M-019 mt-datacenter" PRIORITY="high">
+      <test-files>
+        <file>src-tauri/src/datacenter/mod.rs (#[cfg(test)])</file>
+      </test-files>
+      <module-checks>
+        <check-1>cargo test --manifest-path src-tauri/Cargo.toml datacenter</check-1>
+      </module-checks>
+      <scenarios>
+        <scenario-1 kind="success">set/get GitHub token via keyring; value never in log output.</scenario-1>
+        <scenario-2 kind="success">Legacy `marktext` keychain service migrated to `com.xronocode.mark`; tokens preserved.</scenario-2>
+        <scenario-3 kind="success">Image upload via github uploader with valid token.</scenario-3>
+        <scenario-4 kind="failure">picgo subprocess missing → MT_DC_UPLOAD_FAILED.</scenario-4>
+        <scenario-5 kind="failure">cliScript path containing shell meta-chars rejected by M-010 before spawn.</scenario-5>
+      </scenarios>
+      <required-log-markers>
+        <marker-1>[DataCenter][set_secret][BLOCK_KEYRING_WRITE] { has_token: true } (boolean only, never value)</marker-1>
+        <marker-2>[DataCenter][migrate][BLOCK_MIGRATE_LEGACY]</marker-2>
+      </required-log-markers>
+      <required-trace-assertions>
+        <assertion-1>Token value must NEVER appear in any log line (tested via log capture + regex assertion).</assertion-1>
+      </required-trace-assertions>
+      <wave-follow-up>Smoke: configure GitHub uploader; paste PNG; verify URL replaces local path.</wave-follow-up>
+    </V-M-019>
+
+    <V-M-020 MODULE="M-020 mt-cli-flags" PRIORITY="medium">
+      <test-files>
+        <file>src-tauri/src/cli/mod.rs (#[cfg(test)])</file>
+      </test-files>
+      <module-checks>
+        <check-1>cargo test --manifest-path src-tauri/Cargo.toml cli</check-1>
+      </module-checks>
+      <scenarios>
+        <scenario-1 kind="success">All 6 flags parsed: --safe, --user-data-dir, --debug, --new-window, --disable-gpu, --disable-spellcheck.</scenario-1>
+        <scenario-2 kind="success">Positional file paths collected into `openFiles` vec.</scenario-2>
+        <scenario-3 kind="success">Portable mode auto-detect: `marktext-user-data/` folder adjacent to binary.</scenario-3>
+        <scenario-4 kind="failure">Unknown flag returns MT_CLI_INVALID; usage printed to stderr.</scenario-4>
+      </scenarios>
+      <required-log-markers>
+        <marker-1>[Cli][parse][BLOCK_PARSE] { flags_summary }</marker-1>
+      </required-log-markers>
+      <wave-follow-up>E2e smoke: launch app with `--safe`; verify user prefs not loaded.</wave-follow-up>
+    </V-M-020>
+
+    <V-M-013 MODULE="M-013 mt-ipc-bridge" PRIORITY="high">
+      <test-files>
+        <file>src/renderer/src/ipc/*.test.ts</file>
+      </test-files>
+      <module-checks>
+        <check-1>yarn unit -- src/renderer/src/ipc</check-1>
+      </module-checks>
+      <scenarios>
+        <scenario-1 kind="success">IPC API surface matches the Electron-era ipcRenderer contract shape-wise.</scenario-1>
+        <scenario-2 kind="success">Mock invoke() returns typed results; typescript compiles strict.</scenario-2>
+        <scenario-3 kind="failure">Missing backend command surfaces MT_IPC_UNKNOWN_COMMAND error.</scenario-3>
+      </scenarios>
+      <required-log-markers>
+        <marker-1>[IpcBridge][invoke][BLOCK_DISPATCH] { command }</marker-1>
+      </required-log-markers>
+      <wave-follow-up>Exercise every command path via e2e.</wave-follow-up>
+      <phase-follow-up>Contract snapshot test: bridge exports vs backend commands must match set.</phase-follow-up>
+    </V-M-013>
+  </ModuleVerification>
+
+  <PhaseGates>
+    <Gate-Phase-0 PHASE="Phase-0">
+      <goal>GRACE bootstrap complete and fork repository xronocode/mark created with modernize branch.</goal>
+      <commands>
+        <command-1>test -f docs/requirements.xml &amp;&amp; test -f docs/technology.xml &amp;&amp; test -f docs/development-plan.xml &amp;&amp; test -f docs/verification-plan.xml &amp;&amp; test -f docs/knowledge-graph.xml &amp;&amp; test -f docs/operational-packets.xml</command-1>
+        <command-2>cd marktext &amp;&amp; git remote get-url fork | grep -q 'xronocode/mark'</command-2>
+        <command-3>cd marktext &amp;&amp; git branch --show-current</command-3>
+      </commands>
+      <required-evidence>
+        <evidence-1>All 6 docs/*.xml exist and reference UC-001..UC-016, M-001..M-013, V-M-001..V-M-013.</evidence-1>
+        <evidence-2>marktext/ has `fork` remote → git@github.com:xronocode/mark.git.</evidence-2>
+        <evidence-3>Current branch is `modernize` (checked out from upstream `develop`).</evidence-3>
+        <evidence-4>Local scaffold exists at /Users/myevdokimov/prj/mark/homebrew-mark/Casks/mark.rb placeholder.</evidence-4>
+      </required-evidence>
+    </Gate-Phase-0>
+
+    <Gate-Phase-A1-5 PHASE="Phase-A1.5">
+      <goal>Renderer has no direct Node/Electron imports; @electron/remote removed; listener-cleanup convention introduced; existing tests still green.</goal>
+      <working-directory>/Users/myevdokimov/prj/mark/marktext/ (all gate commands run from this dir)</working-directory>
+      <commands>
+        <command-1>! grep -rnE "require\('(fs|path|child_process|crypto|os|buffer)'\)|from '(fs|path|child_process|crypto|os|buffer)'" src/renderer/ 2&gt;/dev/null</command-1>
+        <command-2>! grep -rnE "@electron/remote" src/renderer/ 2&gt;/dev/null</command-2>
+        <command-3>! grep -rnE "ipcRenderer\.sendSync" src/renderer/ 2&gt;/dev/null</command-3>
+        <command-4>! grep -q '"@electron/remote"' package.json</command-4>
+        <command-5>yarn test:specs &amp;&amp; yarn unit &amp;&amp; yarn e2e</command-5>
+        <command-6>! grep -rnE "require\('fontmanager-redux'\)" src/renderer/ 2&gt;/dev/null</command-6>
+      </commands>
+      <required-evidence>
+        <evidence-1>Renderer tree has zero Node core imports and zero @electron/remote references.</evidence-1>
+        <evidence-2>ripgrep spawning moved to main process; new IPC `mt::search-run` / `mt::search-cancel` responds correctly.</evidence-2>
+        <evidence-3>Image uploaders (github/picgo/cliScript) run in main; no child_process in renderer.</evidence-3>
+        <evidence-4>Listener cleanup helper used in all new/touched listeners; no regressions in stress test (open/close prefs 20 times, assert listener count bounded).</evidence-4>
+        <evidence-5>All existing unit + e2e tests pass on the refactored branch before Phase-A2 merges PR #4001.</evidence-5>
+      </required-evidence>
+    </Gate-Phase-A1-5>
+
+    <Gate-Phase-A1 PHASE="Phase-A1">
+      <goal>All 9 bugfix + 4 feature PRs merged; existing test suite green; CommonMark/GFM specs untouched.</goal>
+      <commands>
+        <command-1>yarn test:specs</command-1>
+        <command-2>yarn unit</command-2>
+        <command-3>yarn build:bin</command-3>
+      </commands>
+      <required-evidence>
+        <evidence-1>git log --oneline shows 13 distinct cherry-pick commits with PR numbers in messages.</evidence-1>
+        <evidence-2>All spec and unit tests pass on develop-modernize branch tip.</evidence-2>
+      </required-evidence>
+    </Gate-Phase-A1>
+
+    <Gate-Phase-A2 PHASE="Phase-A2">
+      <goal>Toolchain migrated to electron-vite + Vue 3 (via PR #4001); native modules rebuilt; e2e green.</goal>
+      <commands>
+        <command-1>yarn unit</command-1>
+        <command-2>yarn e2e</command-2>
+        <command-3>ls electron.vite.config.ts</command-3>
+      </commands>
+      <required-evidence>
+        <evidence-1>.electron-vue/ removed; electron-vite config present.</evidence-1>
+        <evidence-2>electron-rebuild succeeded for all 6 native modules on Electron 30 ABI.</evidence-2>
+        <evidence-3>App starts via `yarn dev`; all 16 UCs manually verified.</evidence-3>
+      </required-evidence>
+    </Gate-Phase-A2>
+
+    <Gate-Phase-A3 PHASE="Phase-A3">
+      <goal>Homebrew tap distribution works end-to-end on a fresh macOS VM.</goal>
+      <commands>
+        <command-1>brew tap xronocode/mark</command-1>
+        <command-2>brew install --cask mark</command-2>
+        <command-3>xattr /Applications/Mark.app | grep -v 'com.apple.quarantine'</command-3>
+        <command-4>codesign -dv /Applications/Mark.app 2&gt;&amp;1 | grep -q 'adhoc'</command-4>
+      </commands>
+      <required-evidence>
+        <evidence-1>GitHub Actions matrix build: macos-14 and macos-13 jobs green (blocking). Linux/Windows jobs may be yellow (continue-on-error).</evidence-1>
+        <evidence-2>Cask mark.rb has valid livecheck block pointing at github.com/xronocode/mark releases.</evidence-2>
+        <evidence-3>Fresh VM: `brew install --cask mark` → Spotlight → open window under 2s, no Gatekeeper dialog.</evidence-3>
+      </required-evidence>
+    </Gate-Phase-A3>
+
+    <Gate-Phase-A4 PHASE="Phase-A4">
+      <goal>v1.0 release published.</goal>
+      <commands>
+        <command-1>gh release view v1.0.0</command-1>
+      </commands>
+      <required-evidence>
+        <evidence-1>GH Release v1.0.0 has DMG/ZIP artifacts with checksums.</evidence-1>
+        <evidence-2>All 16 UCs hand-verified on brew-installed app.</evidence-2>
+      </required-evidence>
+    </Gate-Phase-A4>
+
+    <Gate-Phase-B1 PHASE="Phase-B1">
+      <goal>Tauri skeleton boots; muya runs in WebView.</goal>
+      <commands>
+        <command-1>cd marktext-tauri &amp;&amp; cargo tauri dev (launched; manual inspection)</command-1>
+      </commands>
+      <required-evidence>
+        <evidence-1>All M-001..M-013 module stubs exist with MODULE_CONTRACT blocks.</evidence-1>
+        <evidence-2>Renderer mounts and muya renders the fixture doc in Tauri dev window.</evidence-2>
+      </required-evidence>
+    </Gate-Phase-B1>
+
+    <Gate-Phase-B2 PHASE="Phase-B2">
+      <goal>Filesystem, watcher, search, security modules pass their V-M gates.</goal>
+      <commands>
+        <command-1>cargo test --manifest-path src-tauri/Cargo.toml</command-1>
+      </commands>
+      <required-evidence>
+        <evidence-1>V-M-002, V-M-003, V-M-004, V-M-010 all green.</evidence-1>
+        <evidence-2>IPC bridge M-013 surface matches set of backend commands.</evidence-2>
+      </required-evidence>
+    </Gate-Phase-B2>
+
+    <Gate-Phase-B3 PHASE="Phase-B3">
+      <goal>Preferences, shortcuts, spell, fonts, menu integrated and passing.</goal>
+      <commands>
+        <command-1>cargo test --manifest-path src-tauri/Cargo.toml</command-1>
+        <command-2>yarn e2e</command-2>
+      </commands>
+      <required-evidence>
+        <evidence-1>V-M-005..V-M-009 all green.</evidence-1>
+        <evidence-2>Preferences from Phase-A install migrate into Phase-B layout without loss.</evidence-2>
+      </required-evidence>
+    </Gate-Phase-B3>
+
+    <Gate-Phase-B4 PHASE="Phase-B4">
+      <goal>v2.0 Tauri build shipped via same Homebrew cask `mark`; footprint &lt; 30 MB.</goal>
+      <commands>
+        <command-1>du -sh /Applications/Mark.app</command-1>
+        <command-2>gh release view v2.0.0 -R xronocode/mark</command-2>
+      </commands>
+      <required-evidence>
+        <evidence-1>Footprint &lt; 30 MB on macOS arm64 build.</evidence-1>
+        <evidence-2>`brew upgrade --cask mark` transitions from v1 to v2 with user prefs intact (migrated from electron-store JSON).</evidence-2>
+      </required-evidence>
+    </Gate-Phase-B4>
+  </PhaseGates>
+
+  <TestFixtures>
+    <!-- Fixtures live under marktext/test/fixtures/ (Phase A) and src-tauri/tests/fixtures/ (Phase B).
+         Generators are idempotent scripts committed alongside fixtures so CI and agents can rebuild them. -->
+
+    <fixture-large-corpus PATH="test/fixtures/large-corpus/" USED_BY="V-M-004, VF-002">
+      <purpose>Deterministic 10k-markdown-file corpus for search performance and gitignore tests.</purpose>
+      <generator>tools/gen-fixtures/large-corpus.js — seed=42 deterministic; generates 10,000 *.md files across 50 subdirs with a fixed lorem corpus and 20 files containing the sentinel phrase "marktext_search_canary_PHRASE_42"; plus a .gitignore at root excluding dirs/ignored-*/ with 200 ignored files.</generator>
+      <shape>
+        <file-1>marktext-corpus/NNNN.md (10000 files, 1-5 KB each)</file-1>
+        <file-2>marktext-corpus/ignored-*/ignored-NN.md (200 files in ignored subdirs)</file-2>
+        <file-3>marktext-corpus/.gitignore</file-3>
+      </shape>
+      <invariants>
+        <invariant-1>Exactly 20 files contain "marktext_search_canary_PHRASE_42" — search must return exactly 20 hits.</invariant-1>
+        <invariant-2>Generator output is git-ignored (too large to commit); CI regenerates on each run.</invariant-2>
+        <invariant-3>First-batch latency budget: 500 ms from query start to first onBatch event for the canary phrase.</invariant-3>
+      </invariants>
+    </fixture-large-corpus>
+
+    <fixture-xss PATH="test/fixtures/security/xss/" USED_BY="V-M-010, VF-003">
+      <purpose>Regression corpus for CVE-2023-2318 (#3621) and related XSS vectors.</purpose>
+      <payloads>
+        <payload-1 ID="xss-script-tag">&lt;script&gt;window.__xss_fired=true&lt;/script&gt; inside a regular paragraph.</payload-1>
+        <payload-2 ID="xss-img-onerror">&lt;img src=x onerror="window.__xss_fired=true"&gt; embedded as raw HTML block.</payload-2>
+        <payload-3 ID="xss-svg-onload">&lt;svg onload="window.__xss_fired=true"&gt;&lt;/svg&gt; in HTML fragment.</payload-3>
+        <payload-4 ID="xss-iframe-srcdoc">&lt;iframe srcdoc='&lt;script&gt;top.__xss_fired=true&lt;/script&gt;'&gt;&lt;/iframe&gt;</payload-4>
+        <payload-5 ID="xss-javascript-href">[link](javascript:window.__xss_fired=true) as a Markdown link.</payload-5>
+        <payload-6 ID="xss-data-url-html">[link](data:text/html,&lt;script&gt;parent.__xss_fired=true&lt;/script&gt;)</payload-6>
+        <payload-7 ID="xss-event-handler-attr">&lt;a href="#" onclick="window.__xss_fired=true"&gt;click&lt;/a&gt;</payload-7>
+        <payload-8 ID="xss-cve-2023-2318">Exact payload from the CVE advisory (stored as fixture-cve-2023-2318.md; content lifted from PR #3621 test additions).</payload-8>
+        <payload-9 ID="xss-mermaid-injection">A Mermaid block containing an injected HTML entity that tries to break out of the SVG sandbox.</payload-9>
+        <payload-10 ID="xss-path-traversal-link">[file](file:///../../../etc/passwd) — must be rejected by M-010.sec_check_path.</payload-10>
+        <!-- Added 2026-04-24 after security-agent audit identified additional vectors. -->
+        <payload-11 ID="xss-svg-as-image">`![alt](evil.svg)` where evil.svg contains `&lt;svg onload="window.__xss_fired=true"&gt;`. Tests whether SVG-as-image bypasses HTML sanitization.</payload-11>
+        <payload-12 ID="xss-nested-md-in-html">&lt;div onclick="window.__xss_fired=true"&gt;**bold**&lt;/div&gt; — markdown inside HTML block; onclick must be stripped.</payload-12>
+        <payload-13 ID="xss-js-url-newline">[link](javascript:\nalert(1)) — newline inside javascript: URL to bypass cleanUrl().</payload-13>
+        <payload-14 ID="xss-katex-href">`$\href{javascript:window.__xss_fired=true}{click}$` — KaTeX \href directive with javascript URL.</payload-14>
+        <payload-15 ID="xss-katex-input">`$\input{/etc/passwd}$` — KaTeX \input with system path.</payload-15>
+        <payload-16 ID="xss-vega-expression">```vega-lite { "transform":[{"calculate":"fetch('evil.com')","as":"x"}] } ``` — Vega spec with JS expression in transform.</payload-16>
+        <payload-17 ID="xss-punycode-homograph">[аpple.com](https://xn--pple-43d.com) — Cyrillic 'а' homograph; should emit IDN warning.</payload-17>
+        <payload-18 ID="xss-bom-bypass">`﻿&lt;script&gt;window.__xss_fired=true&lt;/script&gt;` — UTF-8 BOM prefix to bypass regex start anchors.</payload-18>
+        <payload-19 ID="xss-windows-case-sandbox">`file:///C:\workspace\..\..\..\Windows\System32\config` vs workspace `C:\Workspace` — case-insensitive path bypass if not normalized on Windows.</payload-19>
+        <payload-20 ID="xss-redos-url">[x](http://a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/!) — backtracking ReDoS trigger for URL_REG.</payload-20>
+        <payload-21 ID="xss-billion-laughs-svg">Large embedded SVG with replicated nested groups to trigger OOM during render.</payload-21>
+        <payload-22 ID="xss-clipboard-fileurl">Clipboard paste of `file:///etc/passwd` via HTML clipboard — M-010 must validate before any fs read.</payload-22>
+
+        <!-- Payloads 23-30 added 2026-04-24 after second-wave deep audit. -->
+        <payload-23 ID="xss-footnote-recursion-bomb">`[^[^[^[^[^[^[^[^]]]]]]]]` — deeply nested footnote reference; verifies parser has recursion depth limit (R-34).</payload-23>
+        <payload-24 ID="xss-blockquote-deep">`&gt; &gt; &gt; &gt; ... &gt; x` with 100 levels of `&gt;` nesting; blockquote parser recursion must not stack-overflow (R-34).</payload-24>
+        <payload-25 ID="xss-list-deep">Nested `-` list with 50+ indentation levels; list parser recursion must not stack-overflow (R-34).</payload-25>
+        <payload-26 ID="xss-refdef-javascript">Document with `[link][ref]` and `[ref]: javascript:alert(1) "title"` reference definition. Parse-time href stored raw; render-time sanitizeHyperlink must block (R-33).</payload-26>
+        <payload-27 ID="xss-ambiguous-emphasis">Strings like `***foo***`, `_foo_bar_`, `**foo***bar**` — parser emphasis disambiguation (CommonMark 395-410). Ensure no DOM injection from malformed emphasis.</payload-27>
+        <payload-28 ID="xss-table-pipe-start">Table cell whose content starts with literal `|` — tests pipe-escape bug (R-28). Exported markdown must contain `\|foo`, not `||foo`.</payload-28>
+        <payload-29 ID="xss-table-irregular">Table with header of 4 columns but tbody rows of 2 columns — export must pad, NOT produce literal "undefined" (R-29).</payload-29>
+        <payload-30 ID="xss-ime-composition">Simulated composition sequence: typing "ni" via IME → composition → keystroke handlers must NOT mutate state mid-composition (R-27). E2e via Playwright Input.dispatchKeyEvent with `isComposing: true`.</payload-30>
+      </payloads>
+      <invariants>
+        <invariant-1>After document render, window.__xss_fired and top.__xss_fired must remain undefined for all 22 payloads.</invariant-1>
+        <invariant-2>M-010.sec_sanitize_html_preview AND M-010.sec_sanitize_html_export both strip every dangerous node / attribute listed above.</invariant-2>
+        <invariant-3>Clicking any link-based payload triggers BLOCK_REJECT_TRAVERSAL or BLOCK_CONFIRM_PROMPT, not shell.openPath.</invariant-3>
+        <invariant-4>payload-11 (SVG as image): file loaded via &lt;img src&gt; must not execute embedded onload.</invariant-4>
+        <invariant-5>payload-12 (nested md in HTML): `onclick` stripped even inside HTML block; markdown bold rendered normally.</invariant-5>
+        <invariant-6>payload-13 (newline URL): `\n` inside javascript: URL does NOT bypass cleanUrl; treated as invalid URL.</invariant-6>
+        <invariant-7>payload-14/15 (KaTeX): \href and \input rejected by BLOCK_KATEX_FILTER; raw text shown instead.</invariant-7>
+        <invariant-8>payload-16 (Vega): spec with JS expression rejected by BLOCK_VEGA_REJECT_EXPR; error banner rendered.</invariant-8>
+        <invariant-9>payload-17 (Punycode): IDN homograph detected; user sees Unicode-ASCII disparity warning.</invariant-9>
+        <invariant-10>payload-18 (BOM): BLOCK_STRIP_BOM fires BEFORE regex scan; payload still detected as XSS.</invariant-10>
+        <invariant-11>payload-19 (Windows case): `isChildOfDirectory` returns false on Windows for case-mismatched path traversal.</invariant-11>
+        <invariant-12>payload-20 (ReDoS): URL regex evaluation bounded to &lt; 50ms on 10k-char input.</invariant-12>
+        <invariant-13>payload-21 (Billion laughs): renderer memory bounded; SVG depth &gt; 50 rejected before parse.</invariant-13>
+        <invariant-14>payload-22 (Clipboard file://): file:// paths from clipboard must be validated by M-010 before fs read.</invariant-14>
+        <invariant-15>payload-23/24/25 (recursion bombs): parser must enforce depth limit (suggested 64); above limit returns graceful error token, not stack overflow.</invariant-15>
+        <invariant-16>payload-26 (ref-def javascript:): sanitizeHyperlink at render time converts to empty href; no `href="javascript:..."` attribute on rendered anchor.</invariant-16>
+        <invariant-17>payload-27 (ambiguous emphasis): parser produces deterministic output matching CommonMark spec; no unescaped HTML in resulting DOM.</invariant-17>
+        <invariant-18>payload-28 (pipe-start cell): exportMarkdown escapes leading `|` in cell as `\|`; markdown roundtrip is byte-identical.</invariant-18>
+        <invariant-19>payload-29 (irregular table): exportMarkdown pads shorter rows with empty cells; no literal "undefined" string in output.</invariant-19>
+        <invariant-20>payload-30 (IME composition): during simulated composition, block.text is NOT mutated by any of the 6 keystroke handlers; final composed text appears only after compositionend event.</invariant-20>
+      </invariants>
+    </fixture-xss>
+
+    <fixture-mermaid PATH="test/fixtures/mermaid/" USED_BY="V-M-012, VF-001, PR-4025, PR-4157">
+      <purpose>Deterministic Mermaid samples covering v10→v11 migration and macOS rendering regression (#4157).</purpose>
+      <samples>
+        <sample-1 ID="flowchart-basic">Simple flowchart TD A→B→C; must render in v11.</sample-1>
+        <sample-2 ID="sequence-basic">sequenceDiagram Alice-&gt;&gt;Bob: Hello; standard v11 syntax.</sample-2>
+        <sample-3 ID="er-diagram">erDiagram CUSTOMER ||--o{ ORDER : places; v11 has stricter parser — test ensures representative diagram renders.</sample-3>
+        <sample-4 ID="gantt">gantt chart from upstream Mark Text README — baseline render regression.</sample-4>
+        <sample-5 ID="v10-breaking-candidate">known v10 pattern that Mermaid v11 broke (captured during PR #4025 review). Expected-fail document: after merge, error is surfaced in the block, not a silent blank.</sample-5>
+        <sample-6 ID="macos-layout-regression">Fixture doc from PR #4157 that rendered incorrectly on macOS build; post-merge visual snapshot via Playwright screenshot.</sample-6>
+      </samples>
+      <invariants>
+        <invariant-1>All samples 1-4 render to SVG without thrown errors.</invariant-1>
+        <invariant-2>Sample-5 renders a visible error banner (not a silent failure), and error.message contains the parser failure string.</invariant-2>
+        <invariant-3>Sample-6 visual diff vs baseline.png: pixel delta &lt; 2%.</invariant-3>
+      </invariants>
+    </fixture-mermaid>
+
+    <fixture-common-docs PATH="test/fixtures/common/" USED_BY="V-M-011, V-M-012, VF-001">
+      <purpose>Canonical documents that every Phase-A1 PR merge keeps parseable.</purpose>
+      <docs>
+        <doc-1>simple.md — paragraphs, headings, lists.</doc-1>
+        <doc-2>heavy.md — 50 KB, all block types, Mermaid + KaTeX + table.</doc-2>
+        <doc-3>empty-heading.md — contains `## ` (empty heading) to exercise #4135 regression.</doc-3>
+        <doc-4>image-paste-source.html — HTML input for PR #4150 (HTML-paste→local-path transform).</doc-4>
+        <doc-5>big-10mb.md — generator-based; only used for V-M-012 perf phase-follow-up.</doc-5>
+      </docs>
+      <invariants>
+        <invariant-1>Source ↔ WYSIWYG roundtrip on doc-1 and doc-2 produces byte-identical content.</invariant-1>
+        <invariant-2>Opening doc-3 does not throw in muya (regression for #4135).</invariant-2>
+      </invariants>
+    </fixture-common-docs>
+
+    <fixture-workspace PATH="test/fixtures/workspace/" USED_BY="V-M-003, V-M-005, VF-002">
+      <purpose>Scratch workspace layout for watcher and preferences tests.</purpose>
+      <shape>
+        <file-1>ws/docs/sample.md</file-1>
+        <file-2>ws/subdir/nested.md</file-2>
+        <file-3>ws/.marktext-prefs/config.json (legacy electron-store shape for V-M-005 migration test)</file-3>
+      </shape>
+    </fixture-workspace>
+  </TestFixtures>
+
+  <PerPRRegression>
+    <!-- Phase-A1 cherry-picks 13 community PRs. Each PR must have a failing-before / passing-after scenario
+         with a specific fixture and assertion. Autonomous agents MUST verify both the failing baseline
+         (before cherry-pick) and the passing state (after cherry-pick) in the SAME commit pair so regressions
+         are caught if an upstream author mis-referenced the fix. -->
+
+    <PR-4154 TITLE="Fix: EPIPE crash in main process" AUTHOR="Wordbe" SIZE="+5/-0" RISK="low" PARALLEL_SAFE="yes">
+      <before-check>Pipe stdout of the Electron main process through a closed file descriptor; app should previously crash with EPIPE.</before-check>
+      <after-check>Main process catches EPIPE on process.stdout write and logs a single warning; app stays up.</after-check>
+      <test-file>test/unit/main/epipe.spec.js (new unit — to be added as part of this cherry-pick)</test-file>
+      <harness>Node child_process with stdout piped into a closed socket; assert exit code stays undefined for 2 s.</harness>
+      <assertion>No "Error: EPIPE" uncaught-exception event fires; log contains [Main][io][BLOCK_STDOUT_EPIPE] exactly once.</assertion>
+      <verification-ref>V-M-012 (unaffected), V-M-011 (CommonMark green)</verification-ref>
+      <rollback-check>If the spec suite turns red, git revert the PR-4154 commit and re-run Gate-Phase-A1 check-1..3.</rollback-check>
+    </PR-4154>
+
+    <PR-4135 TITLE="Fix: crash querySelector on empty heading slug" AUTHOR="Bowl42" SIZE="+130/-1" RISK="low" PARALLEL_SAFE="yes">
+      <before-check>Open fixture test/fixtures/common/empty-heading.md. Current muya calls document.querySelector with empty-string slug; throws SyntaxError.</before-check>
+      <after-check>Muya guards on empty slug; no throw; the heading is rendered without an id anchor.</after-check>
+      <test-file>test/unit/muya/empty-heading.spec.js</test-file>
+      <harness>Karma-driven: mount Muya, setContent fixture, assert no thrown exceptions and DOM contains h2 with no id.</harness>
+      <assertion>Log [Muya][getSlug][BLOCK_EMPTY_HEADING_GUARD] fires exactly for the offending heading; NO unhandled error.</assertion>
+      <verification-ref>V-M-012 scenario-3</verification-ref>
+    </PR-4135>
+
+    <PR-4134 TITLE="Fix: capitalized modifier keys in custom hotkeys" AUTHOR="Bowl42" SIZE="+149/-3" RISK="low" PARALLEL_SAFE="no" CONFLICTS_WITH="PR-4006 keyboard stack">
+      <before-check>User defines hotkey "Cmd+Shift+O" in prefs → current code fails to parse because "Shift" (capitalized) is not normalized.</before-check>
+      <after-check>Accelerator parser lowercases modifiers; "Cmd+Shift+O" and "cmd+shift+o" produce identical registrations.</after-check>
+      <test-file>test/unit/main/keyboard-accelerator.spec.js</test-file>
+      <harness>Unit test for parseAccelerator function; table-driven with 12 modifier permutations.</harness>
+      <assertion>All 12 permutations normalize to the same canonical Accelerator struct; log [Keyboard][parse][BLOCK_NORMALIZE] emits canonical form.</assertion>
+      <verification-ref>V-M-006 scenario-2</verification-ref>
+      <note>Must follow #4154 (no conflict) but precede #4001 (renderer restructure).</note>
+    </PR-4134>
+
+    <PR-4152 TITLE="Fix: scroll position reset on external file change" AUTHOR="Wordbe" SIZE="+17/-12" RISK="low" PARALLEL_SAFE="no" CONFLICTS_WITH="PR-4146 (unsaved prompt touches same editor store)">
+      <before-check>Open file; scroll halfway; modify file externally via another process; renderer currently jumps to top.</before-check>
+      <after-check>Scroll position preserved within 1 line of previous position.</after-check>
+      <test-file>test/e2e/external-change-scroll.spec.ts (Playwright)</test-file>
+      <harness>Open fixture heavy.md, scroll to line 500, then fs.write same content + 1 char, wait 500 ms, assert window.pageYOffset within 40 px of pre-change value.</harness>
+      <assertion>Event chain [FsWatcher][onEvent][BLOCK_EMIT_CHANGE] → [Renderer][onFileChanged][BLOCK_PRESERVE_SCROLL] fires in order within 500 ms.</assertion>
+      <verification-ref>V-M-011 scenario-2 (new)</verification-ref>
+    </PR-4152>
+
+    <PR-4146 TITLE="Fix: false unsaved prompt when closing file opened from search" AUTHOR="liyongning" SIZE="+34/-14" RISK="low" PARALLEL_SAFE="no" CONFLICTS_WITH="PR-4152">
+      <before-check>Use Search panel to open a file; close tab; current code spuriously marks the buffer dirty and prompts "Save changes?".</before-check>
+      <after-check>No prompt; buffer is clean; file closes immediately.</after-check>
+      <test-file>test/e2e/search-open-close.spec.ts</test-file>
+      <harness>Open folder, use search to jump to a file, close tab. Assert no modal dialog surfaces.</harness>
+      <assertion>[Renderer][tab][BLOCK_CLOSE_TAB] fires once; BLOCK_UNSAVED_PROMPT is NEVER emitted in the trace.</assertion>
+      <verification-ref>V-M-011</verification-ref>
+    </PR-4146>
+
+    <PR-4093 TITLE="Fix: white flash opening window in dark mode" AUTHOR="gavdog7" SIZE="+31/-73" RISK="low" PARALLEL_SAFE="yes">
+      <before-check>Set OS theme to Dark; launch app; current code briefly shows white background during first paint.</before-check>
+      <after-check>Background color is honored from BrowserWindow constructor; no flash.</after-check>
+      <test-file>test/e2e/dark-mode-flash.spec.ts</test-file>
+      <harness>Playwright launches app with prefers-color-scheme=dark; takes screenshot at window-ready-to-show event.</harness>
+      <assertion>Pixel analysis: average lightness of first-paint screenshot &lt; 40/255 (dark).</assertion>
+      <verification-ref>V-M-011</verification-ref>
+    </PR-4093>
+
+    <PR-4177 TITLE="Security: confirmation before shell.openPath()" AUTHOR="sebastiondev" SIZE="+16/-2" RISK="high" PARALLEL_SAFE="no">
+      <before-check>A crafted link that invokes shell.openPath in the main process opens the target silently.</before-check>
+      <after-check>A modal confirmation dialog appears with the resolved absolute path; dismissing cancels; confirming proceeds.</after-check>
+      <test-file>test/e2e/shell-open-confirm.spec.ts + test/unit/main/shell-open.spec.js</test-file>
+      <harness>E2E triggers a link-click; asserts modal text matches resolved path; unit test asserts BLOCK_CONFIRM_PROMPT is entered before any invocation of shell.openPath.</harness>
+      <assertion>Trace sequence: [Security][shellOpen][BLOCK_RESOLVE_PATH] → [Security][shellOpen][BLOCK_CONFIRM_PROMPT] → (user confirms) → [Shell][openPath][BLOCK_INVOKE]. If confirmation is denied, BLOCK_INVOKE must NOT appear.</assertion>
+      <verification-ref>V-M-010 scenario-3; VF-003</verification-ref>
+    </PR-4177>
+
+    <PR-3621 TITLE="Security: CVE-2023-2318 XSS" AUTHOR="Teloshav" SIZE="+5/-20" RISK="critical" PARALLEL_SAFE="no">
+      <before-check>Open fixture-xss payload-8 (the exact CVE payload) in the editor; current code executes window.__xss_fired=true.</before-check>
+      <after-check>Payload-8 renders as text or stripped HTML; window.__xss_fired remains undefined.</after-check>
+      <test-file>test/specs/security/xss.spec.js (new; covers all 10 payloads in fixture-xss)</test-file>
+      <harness>For each payload: mount Muya with setContent, wait 200 ms, assert window.__xss_fired === undefined AND document.documentElement.outerHTML does NOT contain the forbidden substring patterns.</harness>
+      <assertion>Log [Security][sanitize][BLOCK_STRIP_DANGEROUS_NODES] fires at least once per payload; BLOCK_STRIP_DANGEROUS_NODES.count matches the known injection count for each payload.</assertion>
+      <verification-ref>V-M-010 scenario-1; VF-003</verification-ref>
+      <autonomy-gate>Mandatory manual review by user before this commit is pushed; agent opens a separate draft PR and waits for approval.</autonomy-gate>
+    </PR-3621>
+
+    <PR-4157 TITLE="Fix: Mermaid diagrams on macOS build" AUTHOR="johnhsb" SIZE="+5441/-6420" RISK="high" PARALLEL_SAFE="no">
+      <before-check>Open fixture-mermaid sample-6 on macOS build; diagram renders with mis-aligned text or fails layout.</before-check>
+      <after-check>Sample-6 renders correctly; visual diff vs baseline &lt; 2% pixel delta.</after-check>
+      <test-file>test/e2e/mermaid-macos.spec.ts (visual regression via Playwright screenshot)</test-file>
+      <harness>Run inside macOS runner; screenshot the Mermaid block; compare to baseline.png via pixel-diff library.</harness>
+      <assertion>Pixel delta &lt; 2% AND console has no [Mermaid][render][BLOCK_LAYOUT_ERROR] markers.</assertion>
+      <verification-ref>V-M-012, VF-001</verification-ref>
+      <autonomy-gate>BLOCKING manual review. The +5441/-6420 diff size suggests wholesale vendor/package updates in addition to the fix. Agent must inspect the diff structure, categorize changes as (a) mermaid package bump, (b) yarn.lock noise, (c) actual fix — and report to user before applying. DO NOT auto-cherry-pick.</autonomy-gate>
+    </PR-4157>
+
+    <PR-4025 TITLE="Mermaid v10 → v11 upgrade with extended diagrams" AUTHOR="lwsinclair" SIZE="+5790/-1878" RISK="medium" PARALLEL_SAFE="no" CONFLICTS_WITH="PR-4157">
+      <before-check>All fixture-mermaid samples render via v10 (current upstream state).</before-check>
+      <after-check>Samples 1-4 render via v11; sample-5 surfaces the v11 error banner; no silent regressions.</after-check>
+      <test-file>test/e2e/mermaid-v11.spec.ts + test/unit/muya/mermaid-renderer.spec.js</test-file>
+      <harness>For each fixture-mermaid sample, assert SVG root appears and either (a) is non-empty (samples 1-4) or (b) an error banner class is present (sample-5).</harness>
+      <assertion>Required log for each sample: [Mermaid][render][BLOCK_COMPILE]. Sample-5 additionally emits BLOCK_RENDER_ERROR.</assertion>
+      <verification-ref>V-M-012, UC-007</verification-ref>
+      <autonomy-gate>Autonomous merge allowed only AFTER PR-4157 resolved. Agent must diff the yarn.lock and pin mermaid to exact v11 version captured from the PR.</autonomy-gate>
+    </PR-4025>
+
+    <PR-4070 TITLE="Always Read-Only Mode setting" AUTHOR="valentt" SIZE="+43/-6" RISK="low" PARALLEL_SAFE="no">
+      <before-check>No preference; no way to force a file open read-only.</before-check>
+      <after-check>Preference "alwaysReadOnly" exists; when true, all opened files are read-only; editing is blocked; status bar shows lock icon.</after-check>
+      <test-file>test/e2e/read-only-mode.spec.ts</test-file>
+      <harness>Toggle pref, open file, attempt type, assert content unchanged + lock icon visible.</harness>
+      <assertion>[Renderer][editor][BLOCK_READ_ONLY_BLOCKED_INPUT] fires on keypress; content byte-identical after test.</assertion>
+      <verification-ref>V-M-011</verification-ref>
+    </PR-4070>
+
+    <PR-4150 TITLE="HTML paste transforms images to local paths" AUTHOR="kiliansinger" SIZE="+71/-2" RISK="low" PARALLEL_SAFE="no">
+      <before-check>Paste fixture-common image-paste-source.html; image src stays as http://example.com/x.png.</before-check>
+      <after-check>Image src is transformed to a local path (copied to workspace assets/), markdown output references the local path.</after-check>
+      <test-file>test/e2e/html-paste-images.spec.ts</test-file>
+      <harness>E2e: paste HTML via clipboard, wait for download, assert file exists under workspace/assets/, assert markdown uses ./assets/ relative path.</harness>
+      <assertion>[Renderer][clipboard][BLOCK_TRANSFORM_IMAGE_PATHS] fires; resulting markdown matches regex `!\[.*\]\(\./assets/.+\)`.</assertion>
+      <verification-ref>V-M-011</verification-ref>
+    </PR-4150>
+
+    <PR-4145 TITLE="Full WYSIWYG mode + live system theme" AUTHOR="MyronKoch" SIZE="+435/-16" RISK="medium" PARALLEL_SAFE="no">
+      <before-check>No "Full WYSIWYG" preference; markdown syntax characters always visible.</before-check>
+      <after-check>Toggle hides markdown syntax in rendered view; toggle off restores; macOS appearance change (Aqua↔DarkAqua) updates theme live without restart.</after-check>
+      <test-file>test/e2e/full-wysiwyg.spec.ts + test/e2e/live-system-theme.spec.ts</test-file>
+      <harness>For Full WYSIWYG: toggle pref, assert DOM has no `.md-syntax` visible elements. For live theme: programmatically fire `nativeTheme.themeSource = 'dark'`, assert body class switches within 500 ms.</harness>
+      <assertion>[Renderer][theme][BLOCK_APPLY_LIVE_THEME] fires on system appearance change; [Renderer][mode][BLOCK_TOGGLE_FULL_WYSIWYG] fires on user toggle.</assertion>
+      <verification-ref>V-M-011 scenario-3, scenario-4; UC-010</verification-ref>
+    </PR-4145>
+
+    <wave-plan>
+      <wave-1 kind="parallel-safe" PRs="PR-4154, PR-4135, PR-4093">
+        Non-overlapping file scopes (main/io, muya/slug, main/window). Three agents can merge in parallel. Post-wave gate: `yarn test:specs &amp;&amp; yarn unit`.
+      </wave-1>
+      <wave-2 kind="serial" PRs="PR-4134">
+        Keyboard parser touches main + renderer; serialize.
+      </wave-2>
+      <wave-3 kind="serial" PRs="PR-4152, PR-4146">
+        Both touch renderer editor store; PR-4152 first (smaller), then PR-4146 rebases.
+      </wave-3>
+      <wave-4 kind="gated" PRs="PR-4177, PR-3621">
+        Security-sensitive. Autonomous agents open draft PRs for user review; after human approval merges into modernize.
+      </wave-4>
+      <wave-5 kind="gated" PRs="PR-4157, PR-4025">
+        PR-4157 requires full manual triage (5441/6420 lines). Once resolved, PR-4025 follows as its continuation.
+      </wave-5>
+      <wave-6 kind="serial" PRs="PR-4070, PR-4150, PR-4145">
+        All three modify renderer/components and preferences; serialize for clean merges.
+      </wave-6>
+      <between-wave-gate>After EACH wave commit: `yarn test:specs` MUST stay green. If red — revert the wave and open a failure packet.</between-wave-gate>
+    </wave-plan>
+  </PerPRRegression>
+
+  <TraceSequences>
+    <!-- Explicit trace assertions tied to VF-001..VF-005. Each sequence is an ordered list of
+         required log markers; absence or out-of-order arrival fails the test. -->
+
+    <TS-VF-001 FLOW="VF-001 WysiwygEditingPath">
+      <expected-order>
+        <marker-1>[FsCmd][read][BLOCK_VALIDATE_PATH]</marker-1>
+        <marker-2>[FsCmd][read][BLOCK_READ_FROM_DISK]</marker-2>
+        <marker-3>[Muya][setContent][BLOCK_PARSE_MARKDOWN]</marker-3>
+        <marker-4>[Muya][render][BLOCK_RENDER_BLOCKS]</marker-4>
+        <marker-5>[Mermaid][render][BLOCK_COMPILE] (per diagram; repeatable)</marker-5>
+        <marker-6>[Renderer][saveFile][BLOCK_WRITE_TO_DISK]</marker-6>
+        <marker-7>[FsCmd][write][BLOCK_WRITE_TO_DISK]</marker-7>
+      </expected-order>
+      <forbidden-markers>
+        <marker-1>[Security][shellOpen][BLOCK_INVOKE] (document-render path must not invoke shell)</marker-1>
+      </forbidden-markers>
+      <roundtrip-invariant>bytes(read) == bytes(write) unless user edited; logged via BLOCK_WRITE_TO_DISK.bytes field.</roundtrip-invariant>
+    </TS-VF-001>
+
+    <TS-VF-002 FLOW="VF-002 FolderSearchPath">
+      <expected-order>
+        <marker-1>[Search][run][BLOCK_COMPILE_MATCHER]</marker-1>
+        <marker-2>[Search][run][BLOCK_STREAM_RESULTS] (repeated, seq monotonic)</marker-2>
+      </expected-order>
+      <time-budget>first BLOCK_STREAM_RESULTS within 500 ms of BLOCK_COMPILE_MATCHER on fixture-large-corpus (10k files).</time-budget>
+      <concurrent-path>During search, [FsWatcher][onEvent][BLOCK_EMIT_CHANGE] may fire for any touched file; must not block search progress.</concurrent-path>
+    </TS-VF-002>
+
+    <TS-VF-003 FLOW="VF-003 SecurityGuardPath">
+      <expected-order>
+        <marker-1>[Muya][parse][BLOCK_TOKENIZE]</marker-1>
+        <marker-2>[Security][sanitize][BLOCK_STRIP_DANGEROUS_NODES]</marker-2>
+      </expected-order>
+      <forbidden-markers>
+        <marker-1>Any global window.__xss_fired assignment (asserted via `typeof window.__xss_fired === 'undefined'` at test teardown).</marker-1>
+        <marker-2>[Shell][openPath][BLOCK_INVOKE] without a preceding [Security][shellOpen][BLOCK_CONFIRM_PROMPT]</marker-2>
+      </forbidden-markers>
+      <branch-coverage>For each of the 10 fixture-xss payloads, BLOCK_STRIP_DANGEROUS_NODES MUST fire at least once.</branch-coverage>
+    </TS-VF-003>
+
+    <TS-VF-004 FLOW="VF-004 HomebrewInstallPath">
+      <expected-evidence-chain>
+        <step-1>brew install log: "==> Installing Cask mark" → "==> Moving Mark.app to '/Applications/Mark.app'" → "🍺  mark was successfully installed!"</step-1>
+        <step-2>Post-install: `xattr /Applications/Mark.app` returns no line containing "com.apple.quarantine".</step-2>
+        <step-3>`codesign -dv /Applications/Mark.app 2&gt;&amp;1` contains "adhoc".</step-3>
+        <step-4>`open -a Mark &amp;&amp; sleep 2 &amp;&amp; pgrep -f Mark` returns a PID.</step-4>
+      </expected-evidence-chain>
+      <automation>tools/ci/macos-install-smoke.sh encapsulates steps 1-4; runs in a fresh macOS VM inside GH Actions as Phase-A3 gate job.</automation>
+    </TS-VF-004>
+
+    <TS-VF-005 FLOW="VF-005 ReleasePipelinePath">
+      <expected-evidence-chain>
+        <step-1>On tag push, GH Actions run page shows matrix jobs macos-14, macos-13, ubuntu-latest, windows-latest.</step-1>
+        <step-2>macos-14 AND macos-13 jobs → completed successfully.</step-2>
+        <step-3>GH Release page has DMG + ZIP artifacts for arm64 and x86_64; checksums published.</step-3>
+        <step-4>`brew livecheck --cask xronocode/mark/mark` returns the new version.</step-4>
+      </expected-evidence-chain>
+      <tolerances>
+        <tolerance-1>ubuntu-latest and windows-latest may be yellow (continue-on-error); missing artifacts for those OS do not fail the gate.</tolerance-1>
+      </tolerances>
+    </TS-VF-005>
+  </TraceSequences>
+
+  <LogMarkerCatalog>
+    <!-- Canonical log markers with required structured fields. Tests assert on fields, not on prose. -->
+    <policy>
+      <format>[ModuleName][functionName][BLOCK_NAME] human message { structured-fields }</format>
+      <correlation-id>All request-scope logs carry `correlationId` (uuid v4 generated at user action boundary).</correlation-id>
+      <redaction>`path_redacted` = last 2 path segments + basename; never log full home-relative path. Never log file content, clipboard content, or any keychain value.</redaction>
+    </policy>
+
+    <marker ID="FsCmd.read.BLOCK_VALIDATE_PATH" module="M-002" required-fields="correlationId, path_redacted" />
+    <marker ID="FsCmd.read.BLOCK_READ_FROM_DISK" module="M-002" required-fields="correlationId, path_redacted, bytes" />
+    <marker ID="FsCmd.write.BLOCK_WRITE_TO_DISK" module="M-002" required-fields="correlationId, path_redacted, bytes, fsync" />
+    <marker ID="FsWatcher.start.BLOCK_REGISTER_NOTIFY" module="M-003" required-fields="correlationId, path_redacted, recursive" />
+    <marker ID="FsWatcher.onEvent.BLOCK_EMIT_CHANGE" module="M-003" required-fields="correlationId, kind, path_redacted, mtime_unix" />
+    <marker ID="FsWatcher.stop.BLOCK_UNREGISTER_NOTIFY" module="M-003" required-fields="correlationId, path_redacted" />
+    <marker ID="FsWatcher.save.BLOCK_SELF_MODIFY_SUPPRESS" module="M-003" required-fields="correlationId, path_redacted, ttl_ms" />
+    <marker ID="FsWatcher.linux.BLOCK_ATOMIC_RENAME_REWATCH" module="M-003" required-fields="correlationId, old_path_redacted, new_path_redacted" />
+    <marker ID="FsWatcher.linux.BLOCK_ENOSPC_NOTIFY_ONCE" module="M-003" required-fields="suppressed_further_notifications" />
+    <marker ID="Search.run.BLOCK_COMPILE_MATCHER" module="M-004" required-fields="correlationId, pattern_hash, regex, caseSensitive, wholeWord" />
+    <marker ID="Search.run.BLOCK_STREAM_RESULTS" module="M-004" required-fields="correlationId, batch_size, seq" />
+    <marker ID="Search.run.BLOCK_APPLY_PREFS" module="M-004" required-fields="correlationId, max_file_size_bytes, follow_symlinks, no_ignore, include_hidden" />
+    <marker ID="Prefs.migrate.BLOCK_DETECT_LEGACY" module="M-005" required-fields="correlationId, legacy_path_redacted" />
+    <marker ID="Prefs.migrate.BLOCK_MIGRATED" module="M-005" required-fields="correlationId, migrated_keys_count" />
+    <marker ID="Prefs.migrate.BLOCK_MIGRATE_PREFERENCES" module="M-005" required-fields="correlationId, key_count" />
+    <marker ID="Prefs.migrate.BLOCK_MIGRATE_DATACENTER" module="M-005" required-fields="correlationId, key_count" />
+    <marker ID="Prefs.migrate.BLOCK_MIGRATE_KEYBINDINGS" module="M-005" required-fields="correlationId, binding_count" />
+    <marker ID="Prefs.migrate.BLOCK_MIGRATE_RECENT_DOCS" module="M-005" required-fields="correlationId, doc_count" />
+    <marker ID="Prefs.migrate.BLOCK_MIGRATE_KEYCHAIN" module="M-005" required-fields="correlationId, had_token" />
+    <marker ID="Prefs.validate.BLOCK_VALIDATE_SCHEMA" module="M-005" required-fields="correlationId, valid, errors" />
+    <marker ID="Shortcuts.register.BLOCK_PARSE_ACCELERATOR" module="M-006" required-fields="correlationId, accelerator_canonical" />
+    <marker ID="Shortcuts.register.BLOCK_NORMALIZE" module="M-006" required-fields="correlationId, input, canonical" />
+    <marker ID="Spell.suggest.BLOCK_QUERY_OS" module="M-007" required-fields="correlationId, language, word_hash" />
+    <marker ID="Spell.switchLanguage.BLOCK_SWITCH_LANG" module="M-007" required-fields="correlationId, from, to" />
+    <marker ID="Spell.loadDict.BLOCK_LOAD_DICT" module="M-007" required-fields="correlationId, language, source" />
+    <marker ID="Spell.customWord.BLOCK_CUSTOM_WORD_PERSIST" module="M-007" required-fields="correlationId, op" />
+    <marker ID="Fonts.list.BLOCK_ENUMERATE" module="M-008" required-fields="correlationId, count, cached" />
+    <marker ID="Menu.onInvoke.BLOCK_DISPATCH" module="M-009" required-fields="correlationId, menu_id" />
+    <marker ID="Security.sanitize.BLOCK_STRIP_DANGEROUS_NODES" module="M-010" required-fields="correlationId, count, nodes_list" />
+    <marker ID="Security.shellOpen.BLOCK_RESOLVE_PATH" module="M-010" required-fields="correlationId, scheme, path_redacted" />
+    <marker ID="Security.shellOpen.BLOCK_CONFIRM_PROMPT" module="M-010" required-fields="correlationId, resolved_path_redacted, user_choice_pending" />
+    <marker ID="Security.shellOpen.BLOCK_INVOKE" module="M-010" required-fields="correlationId, path_redacted" />
+    <marker ID="Security.path.BLOCK_REJECT_TRAVERSAL" module="M-010" required-fields="correlationId, rejected_fragment, reason" />
+    <marker ID="Security.katex.BLOCK_KATEX_FILTER" module="M-010" required-fields="correlationId, directive" />
+    <marker ID="Security.vega.BLOCK_VEGA_REJECT_EXPR" module="M-010" required-fields="correlationId, expr_hash" />
+    <marker ID="Security.punycode.BLOCK_PUNYCODE_WARN" module="M-010" required-fields="correlationId, ascii_form, unicode_form" />
+    <marker ID="Security.bom.BLOCK_STRIP_BOM" module="M-010" required-fields="correlationId, byte_count" />
+    <marker ID="Renderer.mount.BLOCK_INSTANTIATE_MUYA" module="M-011" required-fields="correlationId, theme, mode" />
+    <marker ID="Renderer.onFileChanged.BLOCK_PRESERVE_SCROLL" module="M-011" required-fields="correlationId, scrollTop_before, scrollTop_after" />
+    <marker ID="Renderer.tab.BLOCK_CLOSE_TAB" module="M-011" required-fields="correlationId, tab_id, dirty" />
+    <marker ID="Renderer.editor.BLOCK_READ_ONLY_BLOCKED_INPUT" module="M-011" required-fields="correlationId, suppressed_keys" />
+    <marker ID="Renderer.clipboard.BLOCK_TRANSFORM_IMAGE_PATHS" module="M-011" required-fields="correlationId, image_count, target_dir_redacted" />
+    <marker ID="Renderer.theme.BLOCK_APPLY_LIVE_THEME" module="M-011" required-fields="correlationId, system_theme, resolved_theme" />
+    <marker ID="Renderer.mode.BLOCK_TOGGLE_FULL_WYSIWYG" module="M-011" required-fields="correlationId, enabled" />
+    <marker ID="Muya.parse.BLOCK_TOKENIZE" module="M-012" required-fields="correlationId, doc_size_bytes, token_count" />
+    <marker ID="Muya.setContent.BLOCK_PARSE_MARKDOWN" module="M-012" required-fields="correlationId, doc_size_bytes, duration_ms" />
+    <marker ID="Muya.getSlug.BLOCK_EMPTY_HEADING_GUARD" module="M-012" required-fields="correlationId" />
+    <marker ID="IpcBridge.invoke.BLOCK_DISPATCH" module="M-013" required-fields="correlationId, command" />
+    <marker ID="Main.io.BLOCK_STDOUT_EPIPE" module="main (Phase-A)" required-fields="reason" />
+    <marker ID="Mermaid.render.BLOCK_COMPILE" module="muya/renderers/mermaid" required-fields="correlationId, diagram_type, version" />
+    <marker ID="Mermaid.render.BLOCK_LAYOUT_ERROR" module="muya/renderers/mermaid" required-fields="correlationId, error_message" />
+    <marker ID="Mermaid.render.BLOCK_RENDER_ERROR" module="muya/renderers/mermaid" required-fields="correlationId, stage" />
+
+    <!-- New-module markers (M-014..M-020) — added 2026-04-24 after second verification pass. -->
+    <marker ID="Encoding.detect_encoding.BLOCK_DETECT_BOM" module="M-014" required-fields="correlationId, bom_kind" />
+    <marker ID="Encoding.detect_encoding.BLOCK_CHARDET_GUESS" module="M-014" required-fields="correlationId, candidate, confidence" />
+    <marker ID="Encoding.normalize_newlines.BLOCK_NORMALIZE_EOL" module="M-014" required-fields="correlationId, from, to, trim_mode" />
+    <marker ID="Pandoc.pandoc_available.BLOCK_PROBE_BIN" module="M-015" required-fields="correlationId, path_resolved, source (env|PATH|notfound)" />
+    <marker ID="Pandoc.pandoc_import.BLOCK_SPAWN" module="M-015" required-fields="correlationId, format, exit_code, duration_ms" />
+    <marker ID="Updater.check.BLOCK_FEED_FETCH" module="M-016" required-fields="correlationId, feed_url_redacted, http_status" />
+    <marker ID="Updater.download.BLOCK_VERIFY_SIGNATURE" module="M-016" required-fields="correlationId, ok, signature_kind" />
+    <marker ID="Recent.add.BLOCK_ADD" module="M-017" required-fields="correlationId, path_redacted" />
+    <marker ID="Recent.add.BLOCK_OS_INTEGRATE" module="M-017" required-fields="correlationId, platform" />
+    <marker ID="Screenshot.capture.BLOCK_SPAWN_CAPTURE" module="M-018" required-fields="correlationId" />
+    <marker ID="Screenshot.capture.BLOCK_WRITE_FILE" module="M-018" required-fields="correlationId, bytes, target_dir_redacted" />
+    <marker ID="DataCenter.set_secret.BLOCK_KEYRING_WRITE" module="M-019" required-fields="correlationId, has_token" />
+    <marker ID="DataCenter.get_secret.BLOCK_KEYRING_READ" module="M-019" required-fields="correlationId, has_token" />
+    <marker ID="DataCenter.migrate.BLOCK_MIGRATE_LEGACY" module="M-019" required-fields="correlationId, legacy_service, new_service, migrated" />
+    <marker ID="DataCenter.upload.BLOCK_DISPATCH_UPLOADER" module="M-019" required-fields="correlationId, uploader, bytes" />
+    <marker ID="Cli.parse.BLOCK_PARSE" module="M-020" required-fields="flags_summary, portable_mode" />
+    <marker ID="IpcBridge.invoke.BLOCK_CORRELATED_REPLY" module="M-013" required-fields="correlationId, command, request_id" />
+    <marker ID="IpcBridge.listen.BLOCK_LISTENER_CLEANUP" module="M-013" required-fields="correlationId, event_name, listeners_removed" />
+    <marker ID="Renderer.mount.BLOCK_HOST_HOOKS_WIRED" module="M-011" required-fields="correlationId, hooks" />
+    <marker ID="Renderer.commandPalette.BLOCK_OPEN" module="M-011" required-fields="correlationId" />
+    <marker ID="Renderer.commandPalette.BLOCK_EXECUTE" module="M-011" required-fields="correlationId, command_id" />
+    <marker ID="Renderer.onFileChanged.BLOCK_UNSAVED_PROMPT" module="M-011" required-fields="correlationId, path_redacted, user_choice" />
+    <marker ID="Renderer.export.BLOCK_EXPORT_HTML" module="M-011" required-fields="correlationId, bytes" />
+    <marker ID="Renderer.export.BLOCK_EXPORT_PDF" module="M-011" required-fields="correlationId, bytes" />
+    <marker ID="Muya.insert.BLOCK_INSERT_NODE" module="M-012" required-fields="correlationId, node_type" />
+    <marker ID="Muya.save.BLOCK_READ_FILE" module="M-002" required-fields="correlationId, path_redacted" />
+  </LogMarkerCatalog>
+
+  <AutonomySafety>
+    <!-- Which Phase-A1 cherry-picks are safe for fully autonomous agents, vs which need human checkpoint. -->
+    <safe-autonomous>
+      <pr>PR-4154</pr>
+      <pr>PR-4135</pr>
+      <pr>PR-4093</pr>
+      <pr>PR-4134</pr>
+      <pr>PR-4152</pr>
+      <pr>PR-4146</pr>
+      <pr>PR-4070</pr>
+      <pr>PR-4150</pr>
+      <note>Small, narrow diffs with clear before/after tests. Autonomous agent cherry-picks, runs `yarn test:specs &amp;&amp; yarn unit`, commits. Red → revert and escalate.</note>
+    </safe-autonomous>
+    <needs-human-checkpoint>
+      <pr reason="CVE fix — security-sensitive, small diff but high impact. Manual review required.">PR-3621</pr>
+      <pr reason="Security path change — shell.openPath gating affects system integration.">PR-4177</pr>
+      <pr reason="Large diff mixes vendor bumps and fix; risk of accidental scope drift.">PR-4025</pr>
+      <pr reason="Enormous +5441/-6420 diff; almost certainly includes rebase noise and package re-vendoring.">PR-4157</pr>
+      <pr reason="Medium feature diff touching theme + mode logic; user benefit of confirming UX.">PR-4145</pr>
+    </needs-human-checkpoint>
+    <phase-b-autonomy>
+      <module safe-autonomous="false" reason="Security-critical; DOMPurify port + new vectors need review.">M-010 mt-security</module>
+      <module safe-autonomous="false" reason="Secret handling (keyring); must verify token never in logs.">M-019 mt-datacenter</module>
+      <module safe-autonomous="partial" reason="Subprocess spawns (pandoc, cliScript, picgo); command-injection risk.">M-015 mt-pandoc-bridge</module>
+      <module safe-autonomous="partial" reason="Native API surface varies per-OS; manual QA on Linux/Windows.">M-017 mt-recent-docs</module>
+      <module safe-autonomous="partial" reason="Entrypoint glue wiring all modules; review diff before merge.">M-001 mt-tauri-shell</module>
+      <module safe-autonomous="true" reason="Well-scoped Rust with unit tests possible.">M-002, M-003, M-004, M-005, M-006, M-007, M-008, M-014, M-016, M-018, M-020</module>
+    </phase-b-autonomy>
+    <phase-a1-5-autonomy>
+      <note>Phase-A1.5 renderer-node-cleanup is INTERACTIVE with user checkpoints between each step. Not safe for unattended multi-agent execution — the refactor touches 10+ files and requires judgment on every helper split.</note>
+      <safe-sub-step>Step-5 (sendSync → invoke): mechanical change, autonomous-safe.</safe-sub-step>
+      <gated-sub-step>Steps 1-4, 6, 8: require user review of split boundaries before commit.</gated-sub-step>
+    </phase-a1-5-autonomy>
+  </AutonomySafety>
+
+  <FailurePackets>
+    <packet-template>
+      <expected-fields>scenario, contract-ref, expected-evidence, observed-evidence, first-divergent-block, suggested-next-action</expected-fields>
+      <see-also>docs/operational-packets.xml FailurePacketTemplate</see-also>
+    </packet-template>
+  </FailurePackets>
+</VerificationPlan>

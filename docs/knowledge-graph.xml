@@ -1,0 +1,291 @@
+<KnowledgeGraph>
+  <Project NAME="marktext-modernized" VERSION="0.2.0">
+    <keywords>markdown, editor, wysiwyg, electron, tauri, vue3, muya, macos, homebrew, port, modernization</keywords>
+    <annotation>Phase-A (Electron 30 + Vue 3) and Phase-B (Tauri v2 + Rust) module graph. Phase-A retains upstream structure (src/main, src/renderer, src/muya, src/common) and is represented only by muya (M-012) and renderer (M-011) here. Phase-B introduces Rust backend modules M-001..M-010 plus the IPC bridge M-013.</annotation>
+
+    <M-001 NAME="mt-tauri-shell" TYPE="ENTRY_POINT" STATUS="planned">
+      <purpose>Tauri app entrypoint; builds app, registers plugins, manages windows and lifecycle.</purpose>
+      <path>src-tauri/src/main.rs</path>
+      <depends>M-002, M-003, M-004, M-005, M-006, M-007, M-008, M-009, M-010</depends>
+      <verification-ref>V-M-001</verification-ref>
+      <annotations>
+        <fn-main PURPOSE="Boot Tauri app with single-instance guard and wired modules" />
+      </annotations>
+    </M-001>
+
+    <M-002 NAME="mt-fs-commands" TYPE="INTEGRATION" STATUS="planned">
+      <purpose>Filesystem IPC commands (read, write, stat, rename, delete) with sandbox guard from M-010.</purpose>
+      <path>src-tauri/src/commands/fs.rs</path>
+      <depends>M-010</depends>
+      <verification-ref>V-M-002</verification-ref>
+      <annotations>
+        <fn-fs_read PURPOSE="Read UTF-8 file after sandbox check" />
+        <fn-fs_write PURPOSE="Write UTF-8 content with fsync" />
+        <fn-fs_stat PURPOSE="Return file metadata" />
+        <fn-fs_rename PURPOSE="Rename within sandbox" />
+        <fn-fs_delete PURPOSE="Move to Trash (not hard-delete)" />
+        <type-FsError PURPOSE="Stable error codes MT_FS_*" />
+      </annotations>
+    </M-002>
+
+    <M-003 NAME="mt-fs-watcher" TYPE="CORE_LOGIC" STATUS="planned">
+      <purpose>Filesystem watcher via `notify` crate with 200ms debounce; emits change events to renderer.</purpose>
+      <path>src-tauri/src/fs/watcher.rs</path>
+      <depends>none</depends>
+      <verification-ref>V-M-003</verification-ref>
+      <annotations>
+        <fn-watcher_start PURPOSE="Subscribe to path events" />
+        <fn-watcher_stop PURPOSE="Release notify handle" />
+        <type-FsChangeEvent PURPOSE="{ kind, path, mtime } payload" />
+      </annotations>
+    </M-003>
+
+    <M-004 NAME="mt-search" TYPE="CORE_LOGIC" STATUS="planned">
+      <purpose>Streaming text search via `grep-searcher` crate; honors .gitignore.</purpose>
+      <path>src-tauri/src/search/mod.rs</path>
+      <depends>none</depends>
+      <verification-ref>V-M-004</verification-ref>
+      <annotations>
+        <fn-search_run PURPOSE="Stream search results with cancellation token" />
+        <type-SearchQuery PURPOSE="{ pattern, regex, caseSensitive, wholeWord, folder }" />
+        <type-SearchHit PURPOSE="{ path, line, col, snippet }" />
+      </annotations>
+    </M-004>
+
+    <M-005 NAME="mt-prefs" TYPE="DATA_LAYER" STATUS="planned">
+      <purpose>Persistent preferences via tauri-plugin-store with legacy electron-store migration.</purpose>
+      <path>src-tauri/src/prefs/mod.rs</path>
+      <depends>none</depends>
+      <verification-ref>V-M-005</verification-ref>
+      <annotations>
+        <fn-prefs_get PURPOSE="Read a pref key" />
+        <fn-prefs_set PURPOSE="Write a pref key (emits change event)" />
+        <fn-prefs_migrate PURPOSE="One-shot migration from electron-store JSON" />
+      </annotations>
+    </M-005>
+
+    <M-006 NAME="mt-shortcuts" TYPE="INTEGRATION" STATUS="planned">
+      <purpose>Global/local keyboard shortcut registration and dispatch (accelerator parser honors capitalized modifiers per #4134).</purpose>
+      <path>src-tauri/src/shortcuts/mod.rs</path>
+      <depends>none</depends>
+      <verification-ref>V-M-006</verification-ref>
+      <annotations>
+        <fn-shortcuts_register PURPOSE="Register accelerator with conflict detection" />
+        <fn-shortcuts_unregister PURPOSE="Remove accelerator" />
+      </annotations>
+    </M-006>
+
+    <M-007 NAME="mt-spell" TYPE="INTEGRATION" STATUS="planned">
+      <purpose>Spell checker bridging: NSSpellChecker on macOS (objc2), hunspell elsewhere.</purpose>
+      <path>src-tauri/src/spell/mod.rs</path>
+      <depends>none</depends>
+      <verification-ref>V-M-007</verification-ref>
+      <annotations>
+        <fn-spell_suggest PURPOSE="Get suggestions from OS spell checker" />
+        <fn-spell_add_to_dictionary PURPOSE="Persist user-added word" />
+      </annotations>
+    </M-007>
+
+    <M-008 NAME="mt-fonts" TYPE="INTEGRATION" STATUS="planned">
+      <purpose>System font enumeration via `font-kit`; per-session cache.</purpose>
+      <path>src-tauri/src/fonts/mod.rs</path>
+      <depends>none</depends>
+      <verification-ref>V-M-008</verification-ref>
+      <annotations>
+        <fn-fonts_list PURPOSE="Return available font families (cached)" />
+        <type-FontFamily PURPOSE="{ name, postscriptName, style }" />
+      </annotations>
+    </M-008>
+
+    <M-009 NAME="mt-menu" TYPE="UI_COMPONENT" STATUS="planned">
+      <purpose>Native menu bar and context menus; dispatches command IDs to renderer.</purpose>
+      <path>src-tauri/src/menu/mod.rs</path>
+      <depends>M-005</depends>
+      <verification-ref>V-M-009</verification-ref>
+      <annotations>
+        <fn-menu_build PURPOSE="Build menu tree from MenuSpec" />
+        <fn-menu_dispatch PURPOSE="Emit MenuInvoked event to focused window" />
+        <type-MenuSpec PURPOSE="Declarative menu structure with command IDs" />
+      </annotations>
+    </M-009>
+
+    <M-010 NAME="mt-security" TYPE="UTILITY" STATUS="planned">
+      <purpose>Path sandbox, URL whitelist, HTML sanitization, and shell.open confirmation gating (fixes CVE-2023-2318 #3621 and #4177).</purpose>
+      <path>src-tauri/src/security.rs</path>
+      <depends>none</depends>
+      <verification-ref>V-M-010</verification-ref>
+      <annotations>
+        <fn-sec_check_path PURPOSE="Reject path traversal / workspace escape" />
+        <fn-sec_sanitize_html PURPOSE="Strip dangerous nodes/attributes (XSS fix)" />
+        <fn-sec_confirm_shell_open PURPOSE="Prompt user before external shell invocation" />
+      </annotations>
+    </M-010>
+
+    <M-011 NAME="mt-renderer" TYPE="UI_COMPONENT" STATUS="partial">
+      <purpose>Vue 3 renderer app (migrated in Phase A via PR #4001); hosts muya, theme controller, command dispatcher.</purpose>
+      <path>src/renderer/</path>
+      <depends>M-012, M-013</depends>
+      <verification-ref>V-M-011</verification-ref>
+      <annotations>
+        <fn-mountApp PURPOSE="Bootstrap Vue app and mount muya" />
+      </annotations>
+    </M-011>
+
+    <M-012 NAME="muya" TYPE="CORE_LOGIC" STATUS="partial">
+      <purpose>WYSIWYG Markdown engine (existing, zero Electron coupling, ports to WebView as is).</purpose>
+      <path>src/muya/</path>
+      <depends>none</depends>
+      <verification-ref>V-M-012</verification-ref>
+      <annotations>
+        <fn-setContent PURPOSE="Load markdown source into editor" />
+        <fn-getMarkdown PURPOSE="Export current editor state as markdown" />
+        <fn-setOptions PURPOSE="Change theme/mode/options at runtime" />
+        <class-Muya PURPOSE="Engine root exported from src/muya/lib/index.js" />
+      </annotations>
+    </M-012>
+
+    <M-014 NAME="mt-encoding" TYPE="UTILITY" STATUS="planned">
+      <purpose>Text encoding detection + conversion + line-ending normalization; replaces upstream ced + iconv-lite.</purpose>
+      <path>src-tauri/src/encoding/mod.rs</path>
+      <depends>none</depends>
+      <verification-ref>V-M-014</verification-ref>
+      <annotations>
+        <fn-detect_encoding PURPOSE="BOM + chardet fallback" />
+        <fn-decode PURPOSE="Bytes → UTF-8" />
+        <fn-encode PURPOSE="UTF-8 → bytes with original/requested encoding" />
+        <fn-detect_line_ending PURPOSE="LF/CRLF/MIXED/UNKNOWN" />
+        <fn-normalize_newlines PURPOSE="Apply trimTrailingNewline 0-3 + EOL convert" />
+        <type-EncodingMeta PURPOSE="{ detectedEncoding, bom, lineEnding, hadTrailingNewline }" />
+      </annotations>
+    </M-014>
+
+    <M-015 NAME="mt-pandoc-bridge" TYPE="INTEGRATION" STATUS="planned">
+      <purpose>Import docx/odt/latex/rst/etc. → Markdown via pandoc subprocess with macOS /Library/TeX/texbin PATH patching.</purpose>
+      <path>src-tauri/src/pandoc/mod.rs</path>
+      <depends>M-010</depends>
+      <verification-ref>V-M-015</verification-ref>
+      <annotations>
+        <fn-pandoc_available PURPOSE="Probe pandoc on PATH with MARKTEXT_PANDOC override" />
+        <fn-pandoc_import PURPOSE="Spawn pandoc; pipe stdio; return markdown" />
+      </annotations>
+    </M-015>
+
+    <M-016 NAME="mt-updater" TYPE="INTEGRATION" STATUS="planned">
+      <purpose>Manual-download auto-update via tauri-plugin-updater; feeds from xronocode/mark releases.</purpose>
+      <path>src-tauri/src/updater/mod.rs</path>
+      <depends>none</depends>
+      <verification-ref>V-M-016</verification-ref>
+      <annotations>
+        <fn-updater_check PURPOSE="Fetch feed; emit state events" />
+        <fn-updater_download PURPOSE="Download on user confirm" />
+        <fn-updater_quit_and_install PURPOSE="Restart into update" />
+      </annotations>
+    </M-016>
+
+    <M-017 NAME="mt-recent-docs" TYPE="DATA_LAYER" STATUS="planned">
+      <purpose>Recently-used documents list (max 12) with OS integration (macOS Dock, Windows Jump List, Linux JSON).</purpose>
+      <path>src-tauri/src/recent/mod.rs</path>
+      <depends>M-010</depends>
+      <verification-ref>V-M-017</verification-ref>
+      <annotations>
+        <fn-recent_add PURPOSE="Add path; dedup; trim; OS-integrate" />
+        <fn-recent_list PURPOSE="Return current list" />
+        <fn-recent_clear PURPOSE="Empty list" />
+      </annotations>
+    </M-017>
+
+    <M-018 NAME="mt-screenshot" TYPE="INTEGRATION" STATUS="planned">
+      <purpose>macOS-only screenshot capture via `screencapture -i -c`; clipboard PNG → workspace file.</purpose>
+      <path>src-tauri/src/screenshot/mod.rs</path>
+      <depends>M-002</depends>
+      <verification-ref>V-M-018</verification-ref>
+      <annotations>
+        <fn-screenshot_capture PURPOSE="Spawn screencapture; read clipboard; write PNG; return path" />
+      </annotations>
+    </M-018>
+
+    <M-019 NAME="mt-datacenter" TYPE="DATA_LAYER" STATUS="planned">
+      <purpose>User image history, ImageBed config, and secrets (GitHub token) via keychain; legacy serviceName migration marktext → com.xronocode.mark.</purpose>
+      <path>src-tauri/src/datacenter/mod.rs</path>
+      <depends>M-005</depends>
+      <verification-ref>V-M-019</verification-ref>
+      <annotations>
+        <fn-dc_get PURPOSE="Read non-secret key" />
+        <fn-dc_set PURPOSE="Write non-secret key" />
+        <fn-dc_get_secret PURPOSE="Read via keyring (async)" />
+        <fn-dc_set_secret PURPOSE="Write via keyring" />
+        <fn-dc_migrate PURPOSE="Rename legacy keychain service" />
+      </annotations>
+    </M-019>
+
+    <M-020 NAME="mt-cli-flags" TYPE="UTILITY" STATUS="planned">
+      <purpose>Parse CLI args --safe, --user-data-dir, --debug, --new-window, --disable-gpu, --disable-spellcheck, plus portable-mode auto-detect.</purpose>
+      <path>src-tauri/src/cli/mod.rs</path>
+      <depends>none</depends>
+      <verification-ref>V-M-020</verification-ref>
+      <annotations>
+        <fn-parse_argv PURPOSE="Parse; exit with usage on error" />
+        <type-CliFlags PURPOSE="Consumed by M-001 at startup" />
+      </annotations>
+    </M-020>
+
+    <M-013 NAME="mt-ipc-bridge" TYPE="UTILITY" STATUS="planned">
+      <purpose>Frontend wrapper over Tauri invoke/listen that mirrors Electron-era ipcRenderer surface for port-unchanged renderer code.</purpose>
+      <path>src/renderer/src/ipc/</path>
+      <depends>M-002, M-003, M-004, M-005, M-006, M-007, M-008</depends>
+      <verification-ref>V-M-013</verification-ref>
+      <annotations>
+        <fn-ipcInvoke PURPOSE="Typed invoke with schema check" />
+        <fn-ipcListen PURPOSE="Typed listen with auto-unsubscribe" />
+        <export-ipc PURPOSE="Facade: ipc.fs / ipc.search / ipc.prefs / ipc.shortcuts / ipc.spell / ipc.fonts" />
+      </annotations>
+    </M-013>
+
+    <!-- CrossLinks -->
+    <CrossLink from="M-001" to="M-002" relation="invokes" />
+    <CrossLink from="M-001" to="M-003" relation="starts" />
+    <CrossLink from="M-001" to="M-004" relation="invokes" />
+    <CrossLink from="M-001" to="M-005" relation="reads-prefs-from" />
+    <CrossLink from="M-001" to="M-006" relation="registers-shortcuts-via" />
+    <CrossLink from="M-001" to="M-007" relation="delegates-spell-to" />
+    <CrossLink from="M-001" to="M-008" relation="queries-fonts-from" />
+    <CrossLink from="M-001" to="M-009" relation="installs-menu-from" />
+    <CrossLink from="M-001" to="M-010" relation="validates-through" />
+
+    <CrossLink from="M-002" to="M-010" relation="validates-paths-via" />
+
+    <CrossLink from="M-009" to="M-005" relation="reads-recent-files-from" />
+
+    <CrossLink from="M-011" to="M-012" relation="hosts" />
+    <CrossLink from="M-011" to="M-013" relation="uses-ipc-from" />
+
+    <CrossLink from="M-013" to="M-002" relation="invokes-commands-on" />
+    <CrossLink from="M-013" to="M-003" relation="listens-events-from" />
+    <CrossLink from="M-013" to="M-004" relation="invokes-commands-on" />
+    <CrossLink from="M-013" to="M-005" relation="invokes-commands-on" />
+    <CrossLink from="M-013" to="M-006" relation="invokes-commands-on" />
+    <CrossLink from="M-013" to="M-007" relation="invokes-commands-on" />
+    <CrossLink from="M-013" to="M-008" relation="invokes-commands-on" />
+    <CrossLink from="M-013" to="M-014" relation="invokes-commands-on" />
+    <CrossLink from="M-013" to="M-015" relation="invokes-commands-on" />
+    <CrossLink from="M-013" to="M-016" relation="listens-events-from" />
+    <CrossLink from="M-013" to="M-017" relation="invokes-commands-on" />
+    <CrossLink from="M-013" to="M-018" relation="invokes-commands-on" />
+    <CrossLink from="M-013" to="M-019" relation="invokes-commands-on" />
+
+    <!-- New module wiring -->
+    <CrossLink from="M-001" to="M-014" relation="decodes-files-via" />
+    <CrossLink from="M-001" to="M-015" relation="imports-via" />
+    <CrossLink from="M-001" to="M-016" relation="updates-via" />
+    <CrossLink from="M-001" to="M-017" relation="tracks-recent-via" />
+    <CrossLink from="M-001" to="M-018" relation="screenshots-via" />
+    <CrossLink from="M-001" to="M-019" relation="reads-data-from" />
+    <CrossLink from="M-001" to="M-020" relation="parses-cli-at-startup" />
+
+    <CrossLink from="M-002" to="M-014" relation="decodes-through" />
+    <CrossLink from="M-015" to="M-010" relation="validates-paths-via" />
+    <CrossLink from="M-017" to="M-010" relation="validates-paths-via" />
+    <CrossLink from="M-019" to="M-005" relation="extends-storage-of" />
+    <CrossLink from="M-018" to="M-002" relation="writes-file-via" />
+  </Project>
+</KnowledgeGraph>

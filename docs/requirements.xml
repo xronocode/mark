@@ -1,0 +1,382 @@
+<RequirementsAnalysis VERSION="0.2.0">
+  <Project>
+    <name>marktext-modernized</name>
+    <annotation>Port and modernization of Mark Text WYSIWYG Markdown editor. Phase A: Electron 30 + Vue 3 + Vite rebase with 13 community PRs merged, released via Homebrew tap with ad-hoc macOS signing. Phase B: full port to Tauri v2 + Rust backend with ~15 MB footprint, preserving the muya WYSIWYG engine unchanged in the WebView.</annotation>
+    <keywords>markdown, editor, wysiwyg, electron, tauri, vue3, muya, macos, homebrew, port, modernization</keywords>
+  </Project>
+
+  <Actors>
+    <actor-User>End user editing Markdown documents in the desktop app.</actor-User>
+    <actor-Developer>Developer building, signing, and releasing the app via GitHub Actions.</actor-Developer>
+    <actor-HomebrewUser>macOS user installing via `brew install --cask marktext` from the project tap.</actor-HomebrewUser>
+    <actor-System>Background processes: file watcher, spell checker, auto-updater.</actor-System>
+  </Actors>
+
+  <UseCases>
+    <UC-001>
+      <Actor>User</Actor>
+      <Action>Edits a Markdown document in WYSIWYG mode powered by muya</Action>
+      <Goal>Seamless Markdown editing with live rendering</Goal>
+      <Preconditions>App is running, file is opened</Preconditions>
+      <AcceptanceCriteria>Typing, formatting, undo/redo work; block/inline elements render correctly; no regressions vs upstream 0.17.1</AcceptanceCriteria>
+      <Priority>critical</Priority>
+      <RelatedFlows>DF-001, DF-002</RelatedFlows>
+    </UC-001>
+
+    <UC-002>
+      <Actor>User</Actor>
+      <Action>Toggles between Source Code mode, Split view, and Typewriter mode</Action>
+      <Goal>Switch editing paradigms without losing content or scroll position</Goal>
+      <Preconditions>File is opened</Preconditions>
+      <AcceptanceCriteria>Mode toggle preserves content byte-identical; cursor position preserved where applicable</AcceptanceCriteria>
+      <Priority>critical</Priority>
+      <RelatedFlows>DF-001</RelatedFlows>
+    </UC-002>
+
+    <UC-003>
+      <Actor>User</Actor>
+      <Action>Exports the current document to HTML or PDF</Action>
+      <Goal>Produce shareable artifacts from the document</Goal>
+      <Preconditions>Document is valid Markdown</Preconditions>
+      <AcceptanceCriteria>Exported HTML matches preview rendering; PDF preserves typography and diagrams</AcceptanceCriteria>
+      <Priority>high</Priority>
+      <RelatedFlows>DF-007</RelatedFlows>
+    </UC-003>
+
+    <UC-004>
+      <Actor>User</Actor>
+      <Action>Searches within file and across folder using ripgrep backend</Action>
+      <Goal>Find text quickly in large directories</Goal>
+      <Preconditions>Folder is opened in sidebar</Preconditions>
+      <AcceptanceCriteria>10k files search returns first results within 500ms; regex/literal/case-insensitive options work</AcceptanceCriteria>
+      <Priority>high</Priority>
+      <RelatedFlows>DF-003</RelatedFlows>
+    </UC-004>
+
+    <UC-005>
+      <Actor>User</Actor>
+      <Action>Opens a folder; sidebar shows file tree, updates on external changes</Action>
+      <Goal>Navigate project files with live sync</Goal>
+      <Preconditions>Folder is readable</Preconditions>
+      <AcceptanceCriteria>chokidar/notify emits create/modify/delete/rename within 500ms; no stale entries</AcceptanceCriteria>
+      <Priority>high</Priority>
+      <RelatedFlows>DF-004</RelatedFlows>
+    </UC-005>
+
+    <UC-006>
+      <Actor>User</Actor>
+      <Action>Applies themes (dark/light/sepia) and loads custom CSS</Action>
+      <Goal>Personalize editor appearance</Goal>
+      <Preconditions>App is running</Preconditions>
+      <AcceptanceCriteria>Theme switch is instantaneous; custom CSS paths persist in preferences</AcceptanceCriteria>
+      <Priority>high</Priority>
+      <RelatedFlows>DF-006</RelatedFlows>
+    </UC-006>
+
+    <UC-007>
+      <Actor>User</Actor>
+      <Action>Renders Mermaid, Vega-Lite, flowchart, and KaTeX diagrams inline</Action>
+      <Goal>Visualize diagrams directly in the editor</Goal>
+      <Preconditions>Document contains fenced blocks with recognized languages</Preconditions>
+      <AcceptanceCriteria>Mermaid v11 features supported (#4025); macOS-specific rendering bug fixed (#4157); no regressions for v10 documents</AcceptanceCriteria>
+      <Priority>high</Priority>
+      <RelatedFlows>DF-001</RelatedFlows>
+    </UC-007>
+
+    <UC-008>
+      <Actor>User</Actor>
+      <Action>Enables spell checking with multiple languages</Action>
+      <Goal>Catch typos as the user types</Goal>
+      <Preconditions>Spell dictionaries available</Preconditions>
+      <AcceptanceCriteria>Suggestions appear in context menu; user can add words to personal dictionary</AcceptanceCriteria>
+      <Priority>medium</Priority>
+      <RelatedFlows>DF-008</RelatedFlows>
+    </UC-008>
+
+    <UC-009>
+      <Actor>User</Actor>
+      <Action>Works with multiple tabs; drags and drops images into the editor</Action>
+      <Goal>Multi-document editing with rich-media input</Goal>
+      <Preconditions>Multiple files can be opened; clipboard/DnD allowed</Preconditions>
+      <AcceptanceCriteria>Tabs persist across restart; image paste transforms to local path (#4150)</AcceptanceCriteria>
+      <Priority>high</Priority>
+      <RelatedFlows>DF-001, DF-009</RelatedFlows>
+    </UC-009>
+
+    <UC-010>
+      <Actor>User</Actor>
+      <Action>Toggles Full WYSIWYG mode which hides markdown syntax characters</Action>
+      <Goal>Clean reading-style editing experience (per PR #4145)</Goal>
+      <Preconditions>Mode enabled in preferences</Preconditions>
+      <AcceptanceCriteria>Markdown syntax invisible when mode on; no content loss on toggle; live system theme follows macOS appearance</AcceptanceCriteria>
+      <Priority>high</Priority>
+      <RelatedFlows>DF-001</RelatedFlows>
+    </UC-010>
+
+    <UC-011>
+      <Actor>User</Actor>
+      <Action>Is protected from XSS (CVE-2023-2318, #3621) and from silent shell.openPath() invocations (#4177)</Action>
+      <Goal>Security posture free of known CVEs; user prompted before external shell invocation</Goal>
+      <Preconditions>Document may contain arbitrary links and HTML</Preconditions>
+      <AcceptanceCriteria>Injected `script` tags do not execute; opening `file://` or external URLs triggers a confirmation dialog</AcceptanceCriteria>
+      <Priority>critical</Priority>
+      <RelatedFlows>DF-010</RelatedFlows>
+    </UC-011>
+
+    <UC-012>
+      <Actor>HomebrewUser</Actor>
+      <Action>Runs `brew tap xronocode/mark &amp;&amp; brew install --cask mark`</Action>
+      <Goal>One-command install on macOS</Goal>
+      <Preconditions>Homebrew installed</Preconditions>
+      <AcceptanceCriteria>Command completes without sudo; app is installed to /Applications as Mark.app; launches without Gatekeeper error</AcceptanceCriteria>
+      <Priority>critical</Priority>
+      <RelatedFlows>DF-011</RelatedFlows>
+    </UC-012>
+
+    <UC-013>
+      <Actor>Developer</Actor>
+      <Action>Tags a release; CI builds, ad-hoc signs, and publishes DMG/ZIP artifacts</Action>
+      <Goal>Notarization-free distribution without paid Apple Developer account</Goal>
+      <Preconditions>GitHub Actions configured</Preconditions>
+      <AcceptanceCriteria>Release job succeeds on macos-14 (arm64) and macos-13 (x86_64) as blocking; ubuntu-latest and windows-latest run with continue-on-error; ad-hoc signature valid locally.</AcceptanceCriteria>
+      <Priority>critical</Priority>
+      <RelatedFlows>DF-012</RelatedFlows>
+    </UC-013>
+
+    <UC-014>
+      <Actor>HomebrewUser</Actor>
+      <Action>Launches the installed app on macOS arm64 without running `sudo xattr`</Action>
+      <Goal>Seamless first-run on Apple Silicon</Goal>
+      <Preconditions>App installed via brew cask with postflight xattr</Preconditions>
+      <AcceptanceCriteria>Spotlight → MarkText opens window in under 2s; no Gatekeeper blocking dialog</AcceptanceCriteria>
+      <Priority>critical</Priority>
+      <RelatedFlows>DF-011</RelatedFlows>
+    </UC-014>
+
+    <UC-015>
+      <Actor>HomebrewUser</Actor>
+      <Action>Inspects disk footprint of /Applications/MarkText.app</Action>
+      <Goal>Lightweight app (target ~15 MB after Phase B)</Goal>
+      <Preconditions>App installed</Preconditions>
+      <AcceptanceCriteria>Phase A: `du -sh` &lt; 120 MB. Phase B: `du -sh` &lt; 30 MB.</AcceptanceCriteria>
+      <Priority>high</Priority>
+      <RelatedFlows>DF-011</RelatedFlows>
+    </UC-015>
+
+    <UC-016>
+      <Actor>HomebrewUser</Actor>
+      <Action>Runs `brew upgrade --cask mark` after a new release is tagged</Action>
+      <Goal>Automatic update path via Homebrew livecheck</Goal>
+      <Preconditions>Cask has livecheck block and GitHub Release exists</Preconditions>
+      <AcceptanceCriteria>brew detects new version; download+install succeeds; user data preserved</AcceptanceCriteria>
+      <Priority>medium</Priority>
+      <RelatedFlows>DF-011</RelatedFlows>
+    </UC-016>
+
+    <!-- UC-17..UC-26 added 2026-04-24 after legacy swarm audit. -->
+
+    <UC-017>
+      <Actor>User</Actor>
+      <Action>Launches app with CLI flags: --safe, --user-data-dir, --debug, --new-window, --disable-gpu, --disable-spellcheck</Action>
+      <Goal>Support portable mode, safe-mode recovery, custom data dir, and debug workflow</Goal>
+      <Preconditions>Binary executable from terminal or via Spotlight shortcut</Preconditions>
+      <AcceptanceCriteria>Each flag has deterministic effect; --safe disables user prefs/keybindings; --user-data-dir relocates storage root; unknown flag returns error with usage</AcceptanceCriteria>
+      <Priority>medium</Priority>
+      <RelatedFlows>DF-013</RelatedFlows>
+    </UC-017>
+
+    <UC-018>
+      <Actor>User</Actor>
+      <Action>Imports a docx/odt/latex/rst/org/wiki/textile/opml/epub file via File → Import</Action>
+      <Goal>Convert foreign formats to Markdown using pandoc</Goal>
+      <Preconditions>pandoc is on PATH or MARKTEXT_PANDOC env var points at binary</Preconditions>
+      <AcceptanceCriteria>File successfully converted to Markdown in new tab; if pandoc missing, user sees actionable notification with install link</AcceptanceCriteria>
+      <Priority>medium</Priority>
+      <RelatedFlows>DF-014</RelatedFlows>
+    </UC-018>
+
+    <UC-019>
+      <Actor>User</Actor>
+      <Action>Triggers Help → Check for Updates; chooses "Download" when update is available</Action>
+      <Goal>Stay on the latest release without leaving the app</Goal>
+      <Preconditions>Network available; GitHub Releases feed reachable</Preconditions>
+      <AcceptanceCriteria>Update check shows clear states (checking / available / not-available / error); manual download only (no auto-download); quit-and-install flow works</AcceptanceCriteria>
+      <Priority>medium</Priority>
+      <RelatedFlows>DF-015</RelatedFlows>
+    </UC-019>
+
+    <UC-020>
+      <Actor>User</Actor>
+      <Action>Opens File → Open Recent (up to 12 entries)</Action>
+      <Goal>Quick re-open of last-used documents</Goal>
+      <Preconditions>At least one file opened previously</Preconditions>
+      <AcceptanceCriteria>List persists across restart; OS integration works (macOS Dock, Windows Jump List); stale paths are skipped silently</AcceptanceCriteria>
+      <Priority>medium</Priority>
+      <RelatedFlows>DF-016</RelatedFlows>
+    </UC-020>
+
+    <UC-021>
+      <Actor>User</Actor>
+      <Action>Triggers macOS screenshot via menu; selection is saved to workspace and inserted into the document</Action>
+      <Goal>Fast "capture-and-embed" flow for screenshots</Goal>
+      <Preconditions>macOS host; `screencapture` CLI available (builtin)</Preconditions>
+      <AcceptanceCriteria>Selection triggers system capture UI; resulting PNG saved to `dataCenter.screenshotFolderPath`; Markdown `![](relative/path)` inserted at cursor</AcceptanceCriteria>
+      <Priority>low</Priority>
+      <RelatedFlows>DF-017</RelatedFlows>
+    </UC-021>
+
+    <UC-022>
+      <Actor>User</Actor>
+      <Action>Configures GitHub ImageBed (owner/repo/branch + token via keychain); pastes an image; image uploads and URL replaces the local path</Action>
+      <Goal>Automatic hosted image upload for Markdown docs</Goal>
+      <Preconditions>GitHub token stored via keytar; network available</Preconditions>
+      <AcceptanceCriteria>Token never logged or embedded in exports; upload failure shows actionable error; user can switch uploader (none / github / picgo / custom-CLI) without restart</AcceptanceCriteria>
+      <Priority>low</Priority>
+      <RelatedFlows>DF-018</RelatedFlows>
+    </UC-022>
+
+    <UC-023>
+      <Actor>User</Actor>
+      <Action>Opens a non-UTF-8 file (Shift-JIS, GB2312, Latin-1, UTF-16 BOM, etc.)</Action>
+      <Goal>Correct rendering of Markdown regardless of original encoding</Goal>
+      <Preconditions>`autoGuessEncoding` enabled (default)</Preconditions>
+      <AcceptanceCriteria>BOM detected for UTF-8/UTF-16; CED falls back for BOM-less files; preference `defaultEncoding` accepts 28 codec enum; on save, original encoding preserved unless user changes it</AcceptanceCriteria>
+      <Priority>medium</Priority>
+      <RelatedFlows>DF-019</RelatedFlows>
+    </UC-023>
+
+    <UC-024>
+      <Actor>User</Actor>
+      <Action>Opens a file with mixed or CRLF line endings; saves it unchanged</Action>
+      <Goal>Preserve line ending style through load → edit → save roundtrip</Goal>
+      <Preconditions>File is textual markdown</Preconditions>
+      <AcceptanceCriteria>LF/CRLF/mixed detected; `trimTrailingNewline` (0-3) respected; `endOfLine` (default/lf/crlf) honored on save; user notified on mixed endings</AcceptanceCriteria>
+      <Priority>medium</Priority>
+      <RelatedFlows>DF-019</RelatedFlows>
+    </UC-024>
+
+    <UC-025>
+      <Actor>User</Actor>
+      <Action>Invokes Command Palette (Cmd+Shift+P) and fuzzy-searches a command; presses Enter to execute</Action>
+      <Goal>Keyboard-first access to all 65+ commands without menu traversal</Goal>
+      <Preconditions>Commands registered on bootstrap</Preconditions>
+      <AcceptanceCriteria>All user-invokable commands searchable; shortcut shown next to command; non-existent command returns empty; dialog closes on Escape</AcceptanceCriteria>
+      <Priority>high</Priority>
+      <RelatedFlows>DF-020</RelatedFlows>
+    </UC-025>
+
+    <UC-026>
+      <Actor>User</Actor>
+      <Action>Edits a document containing a LaTeX block; app invokes `pandoc` or `texbin` tooling on macOS</Action>
+      <Goal>Ensure macOS-bundled TeX/LaTeX (`/Library/TeX/texbin`) is findable by subprocesses</Goal>
+      <Preconditions>macOS host; MacTeX/BasicTeX installed by user</Preconditions>
+      <AcceptanceCriteria>Subprocess PATH includes `/Library/TeX/texbin` automatically on macOS; Linux/Windows unaffected</AcceptanceCriteria>
+      <Priority>low</Priority>
+      <RelatedFlows>DF-014</RelatedFlows>
+    </UC-026>
+
+    <UC-027>
+      <Actor>User</Actor>
+      <Action>Types Chinese/Japanese/Korean text into muya editor using IME (system input method)</Action>
+      <Goal>CJK text entry without data loss during composition</Goal>
+      <Preconditions>OS IME active (pinyin, kana, etc.); user mid-composition when keystroke fires</Preconditions>
+      <AcceptanceCriteria>No keystroke handler mutates block.text between `compositionstart` and `compositionend`; composition proceeds uninterrupted; final composed text inserted correctly at cursor</AcceptanceCriteria>
+      <Priority>critical</Priority>
+      <RelatedFlows>DF-021</RelatedFlows>
+    </UC-027>
+
+    <UC-028>
+      <Actor>User</Actor>
+      <Action>Saves a document containing a table whose tbody rows have fewer cells than header, OR cells starting with `|`</Action>
+      <Goal>Markdown roundtrip preserves content without corruption</Goal>
+      <Preconditions>Table already in document via paste/edit</Preconditions>
+      <AcceptanceCriteria>Cells starting with `|` export as `\|` (properly escaped); irregular rows pad to header length with empty cells; no literal "undefined" strings in output</AcceptanceCriteria>
+      <Priority>high</Priority>
+      <RelatedFlows>DF-002</RelatedFlows>
+    </UC-028>
+  </UseCases>
+
+  <ResolvedDecisions>
+    <!-- Captured from grace-init open-questions round on 2026-04-24. -->
+    <decision-fork-owner>xronocode (GitHub user)</decision-fork-owner>
+    <decision-fork-repo>https://github.com/xronocode/mark</decision-fork-repo>
+    <decision-product-name>Mark (renamed from "MarkText"; bundle path becomes /Applications/Mark.app; bundle id com.xronocode.mark)</decision-product-name>
+    <decision-tap-repo>https://github.com/xronocode/homebrew-mark (users invoke: `brew tap xronocode/mark` then `brew install --cask mark`)</decision-tap-repo>
+    <decision-signing>ad-hoc only (no Apple Developer ID); cask postflight uses `xattr -cr`.</decision-signing>
+    <decision-os-scope>macOS arm64 + x86_64 are blocking CI jobs; ubuntu-latest and windows-latest run with continue-on-error so they never block a release.</decision-os-scope>
+    <decision-mermaid>v11 only, no legacy mode. Breaking changes documented in v1.0 CHANGELOG.</decision-mermaid>
+  </ResolvedDecisions>
+
+  <NonGoals>
+    <item-1>No paid Apple Developer notarization in Phase A or B (explicitly ad-hoc only).</item-1>
+    <item-2>No rewrite of muya engine — it ports to WebView unchanged.</item-2>
+    <item-3>No feature additions beyond the approved 4 community feature PRs (#4145, #4025, #4070, #4150).</item-3>
+    <item-4>No Windows/Linux blocking gates in Phase A; those platforms are best-effort (continue-on-error in CI).</item-4>
+    <item-5>No telemetry or analytics added to the app.</item-5>
+    <item-6>No re-engagement with upstream marktext/marktext maintainers — this is an independent fork.</item-6>
+    <item-7>No Mermaid v10 legacy rendering path.</item-7>
+    <item-8>No Windows ia32 target in CI matrix (upstream builds it; we drop).</item-8>
+    <item-9>No `build:muya` / `release:muya` npm publish workflow (upstream scoped `@marktext/muya` package not maintained; we keep muya vendored).</item-9>
+    <item-10>No implementation of `Export/Import Preferences` UI (stubbed in upstream; remains stubbed in v1.0). Revisit after v2.0.</item-10>
+    <item-11>No macOS-only Tweet share dialog (`src/renderer/components/tweet`) — dropped feature.</item-11>
+    <item-12>No workspace-level preference overrides (no `.marktext/` folder scanning) — revisit in v2.x.</item-12>
+    <item-13>No implementation of multi-cursor, collaborative editing, change-tracking, or sort-tables-by-column (muya limitations acknowledged).</item-13>
+    <item-14>No attempt to preserve Electron auto-update continuity from upstream `com.github.marktext.marktext` — new fork starts clean feed under `com.xronocode.mark`.</item-14>
+  </NonGoals>
+
+  <Constraints>
+    <constraint-1>macOS arm64 must launch without `sudo xattr` or Apple Developer signature.</constraint-1>
+    <constraint-2>muya source under src/muya/ must remain editable but logically unchanged during port (bugfixes only).</constraint-2>
+    <constraint-3>User preferences and workspace state must migrate across Phase A → Phase B without data loss.</constraint-3>
+    <constraint-4>CommonMark + GFM regression specs (test/specs/) must stay green across all merges.</constraint-4>
+    <constraint-5>No breaking changes to document file format.</constraint-5>
+  </Constraints>
+
+  <Risks>
+    <risk-1>PR #4001 may conflict heavily with bugfix PRs merged first; mitigation is merge-order discipline.</risk-1>
+    <risk-2>Native Electron modules (keytar, chokidar, fontmanager-redux, native-keymap, vscode-ripgrep, @hfelix/electron-localshortcut) may not rebuild for Electron 30 ABI.</risk-2>
+    <risk-3>muya may be measurably slower in WKWebView than in Chromium on large (&gt;10 MB) documents; no DOM virtualization.</risk-3>
+    <risk-4>Spellcheck strategy revised after audit: upstream uses Chromium session + hunspell, NOT NSSpellChecker. Use Tauri WebView `spellcheck="true"` + tauri-plugin-spellcheck instead of objc2 FFI.</risk-4>
+    <risk-5>Ad-hoc signing may still trigger Gatekeeper on strict corporate macOS policies; documented fallback is xattr.</risk-5>
+    <risk-6>Mermaid v10→v11 upgrade may break users' existing diagrams; mitigation is changelog + optional legacy mode.</risk-6>
+    <risk-7>Prefs migration is 4-store (preferences.json + dataCenter.json + keybindings.json + recently-used-documents.json + keytar), not a single file; each must be migrated with ajv schema preservation.</risk-7>
+    <!-- Risks added 2026-04-24 after swarm audit. -->
+    <risk-12>Renderer directly imports Node core modules (`fs`, `path`, `child_process.spawn`, `crypto`, `Buffer`, `os.tmpdir`) in 10+ files; `@electron/remote` used in 6 files. This blocks contextIsolation. PR #4001 does NOT address this. Requires a dedicated Phase-A1.5 to move Node APIs out of renderer before toolchain migration.</risk-12>
+    <risk-13>`dragula` (used for tab drag-drop reorder) has poor Vue 3 reactivity interaction; may break at PR #4001 merge; fallback to vue-draggable-plus or sortable.js.</risk-13>
+    <risk-14>`fontmanager-redux` is loaded via `require('fontmanager-redux')` inside a `.vue` file; breaks contextIsolation. Must move enumeration to main/backend.</risk-14>
+    <risk-15>Upstream uses dynamic IPC channel IDs (`mt::response-of-image-path-${id}`) — Tauri events are static; M-013 needs a dispatcher with per-request correlation keys.</risk-15>
+    <risk-16>59 `ipcRenderer.on()` listeners across renderer with 0 `removeListener()` calls — memory leak pattern; Phase-A1.5 must introduce listener-cleanup convention that Vue 3 migration preserves.</risk-16>
+    <risk-17>Five identified race conditions in existing code: rapid window-close + pending save, settings changed during prefs dialog, file rename + external change, clipboard read in headless mode, sendSync timeout.</risk-17>
+    <risk-18>KaTeX `\href` and `\input` commands NOT explicitly filtered; if user pastes `$\href{javascript:...}{x}$`, output may leak dangerous URL — DOMPurify catches HTML but not LaTeX-to-HTML edge cases.</risk-18>
+    <risk-19>Vega-Embed receives user-provided specs; JS expressions in transforms are not restricted; malicious Vega spec could execute JS in WebView.</risk-19>
+    <risk-20>macOS subprocess PATH patching (`/Library/TeX/texbin`) is hardcoded in main process; Tauri subprocess commands must replicate this or LaTeX tooling will not resolve.</risk-20>
+    <risk-21>`ipcRenderer.sendSync('mt::ask-for-image-path')` at renderer/store/editor.js:1193 blocks renderer; deprecated in Electron 30. Must be rewritten to invoke() in Phase-A1.5.</risk-21>
+    <risk-22>Upstream DOMPurify configs exist in two places (`/src/renderer/util/dompurify.js` + `/src/muya/lib/utils/dompurify.js`) with subtly different rule sets (PREVIEW vs EXPORT). Phase-B port must keep BOTH; V-M-010 fixture must exercise both paths.</risk-22>
+    <risk-23>Upstream `isChildOfDirectory()` path sandbox does NOT lowercase paths on Windows — sandbox bypass on case-insensitive FS. Needs Windows-aware normalization.</risk-23>
+    <risk-24>muya has 47 public methods + 26 events + 3 host hooks (`window.DIRNAME`, `imageAction()`, `clipboardFilePath()`). Losing any in M-011/M-013 breaks renderer silently. Needs API-snapshot regression test.</risk-24>
+    <risk-25>Upstream ships `resources/hunspell_dictionaries/` with bundled hunspell dict files; Phase-A must not drop these, else spellcheck loses OSS languages on Linux/Windows.</risk-25>
+    <risk-26>IPC surface is 146 channels (not ~80 initial estimate); M-013 bridge has proportionally larger contract snapshot and correspondingly higher chance of drift.</risk-26>
+
+    <!-- Risks R-27..R-37 added 2026-04-24 after second-wave deep-swarm audit. -->
+    <risk-27>Upstream muya has NO compositionstart lock across 6 keystroke handlers (enter/backspace/tab/arrow/delete/input). Typing CJK (Chinese/Japanese/Korean) mid-composition → keystroke handlers mutate block.text between compositionstart and compositionend → data corruption. Affects ~30% of world users. Must add lock in Phase-A1.5.</risk-27>
+    <risk-28>Upstream table pipe-escape bug (`exportMarkdown.js:300`): cells starting with `|` export as `||foo` breaking column separator → markdown save roundtrip data corruption.</risk-28>
+    <risk-29>Upstream irregular-table export bug (`exportMarkdown.js:303-306`): tbody rows shorter than header produce literal "undefined" string in exported markdown.</risk-29>
+    <risk-30>Upstream autoSave preference race: auto-save timer fires after user toggles autoSave OFF (`editor.js:1002` does not re-check pref at fire time).</risk-30>
+    <risk-31>Upstream nested list items created without `listType` key/value (`paragraphCtrl.js:116` HIGH TODO) — nested list mutations silently fail.</risk-31>
+    <risk-32>Upstream parser uses `insertAdjacentHTML` in `partialRender` (`render/index.js:213`) — safe today because vnode-derived but architectural XSS footgun if code changes.</risk-32>
+    <risk-33>Upstream parser: reference definition hrefs NOT sanitized at parse time; `[x][ref]` with `[ref]: javascript:...` in reference def stored raw, only sanitized at link render via sanitizeHyperlink.</risk-33>
+    <risk-34>Upstream parser: NO recursion depth limit for blockquote / list / footnote — deeply nested document (e.g., `[^[^[^...]]]`) → stack overflow.</risk-34>
+    <risk-35>Upstream UI plugin layer: ZERO ARIA roles, i18n, list virtualization, touch events across all 13 plugins; Unsplash API key exposed if bundled in `muya.options.unsplashAccessKey`. Accept as v1.0 tech debt, document in release notes.</risk-35>
+    <risk-36>Upstream menu: 0/22 File menu items use `COMMANDS.*` constants (all action-function based); Tauri port of M-009 requires command-id refactoring for File/View/Window/Theme/Help groups (86/128 items need migration).</risk-36>
+    <risk-37>Tauri lacks native Electron roles: `services`, `recentdocuments`, "Bring All to Front" — must stub or self-implement via objc2 NSDocumentController (macOS) / custom logic (Windows/Linux).</risk-37>
+  </Risks>
+
+  <OpenQuestions>
+    <!-- All five original questions resolved 2026-04-24; see <ResolvedDecisions> above. -->
+    <question-1 status="resolved">Fork at https://github.com/xronocode/mark; tap at https://github.com/xronocode/homebrew-mark.</question-1>
+    <question-2 status="resolved">Product renamed to "Mark" (bundle Mark.app, repo name `mark`).</question-2>
+    <question-3 status="resolved">No Apple Developer ID; ad-hoc only; cask postflight `xattr -cr`.</question-3>
+    <question-4 status="resolved">macOS arm64/x86_64 blocking; Linux/Windows allow-failure in CI.</question-4>
+    <question-5 status="resolved">Mermaid v11 only; breaking changes in CHANGELOG.</question-5>
+  </OpenQuestions>
+</RequirementsAnalysis>

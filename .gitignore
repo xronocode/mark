@@ -1,0 +1,20 @@
+# reborn-mark/ is a separate working copy cloned from xronocode/mark#modernize.
+# It has its own .git/ + node_modules. Cloud Claude should clone it separately:
+#   git clone -b modernize https://github.com/xronocode/mark reborn-mark
+# See SETUP.md for full bootstrap.
+reborn-mark/
+
+# Node / Yarn byproducts (in case any sneak in)
+node_modules/
+.pnpm-store/
+dist/
+build/
+
+# Tooling
+.DS_Store
+.vscode/
+.idea/
+*.log
+
+# Our own transient state
+.claude/

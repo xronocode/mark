@@ -1,0 +1,125 @@
+<TechnologyStack VERSION="0.2.0">
+  <Runtime>
+    <phase-A>Node.js 20 LTS (electron-vite build), Electron 30 LTS (app runtime)</phase-A>
+    <phase-B>Rust 1.75+ (Tauri backend), system WKWebView on macOS / WebView2 on Windows / webkit2gtk on Linux</phase-B>
+  </Runtime>
+  <Language>
+    <phase-A>JavaScript (existing) + TypeScript (incremental, new modules only)</phase-A>
+    <phase-B>Rust (backend) + TypeScript (frontend), JavaScript legacy retained only in src/muya/</phase-B>
+  </Language>
+  <Framework>
+    <phase-A>Vue 3.x (migrated from Vue 2 via PR #4001) + electron-vite</phase-A>
+    <phase-B>Vue 3.x (unchanged) + Tauri v2</phase-B>
+  </Framework>
+
+  <Dependencies>
+    <!-- Phase A runtime (to be pinned after PR #4001 merge) -->
+    <phase-A>
+      <dep name="electron" version="^30.0.0" purpose="Desktop shell runtime" />
+      <dep name="vue" version="^3.4" purpose="Renderer framework (from PR #4001)" />
+      <dep name="pinia" version="^2.1" purpose="State management (replaces Vuex from PR #4001)" />
+      <dep name="vue-router" version="^4.3" purpose="Routing" />
+      <dep name="electron-vite" version="^2.x" purpose="Build orchestrator (from PR #4001)" />
+      <dep name="vite" version="^5.x" purpose="Bundler" />
+      <dep name="electron-builder" version="^24.x" purpose="Packaging and ad-hoc macOS signing" />
+      <dep name="keytar" version="^7.9" purpose="Keychain credentials (native)" />
+      <dep name="chokidar" version="^3.6" purpose="File watcher (native)" />
+      <dep name="fontmanager-redux" version="latest" purpose="System font enumeration (native)" />
+      <dep name="native-keymap" version="latest" purpose="Keyboard layout detection (native)" />
+      <dep name="vscode-ripgrep" version="latest" purpose="Fast code search" />
+      <dep name="@hfelix/electron-localshortcut" version="^4.0" purpose="Local shortcuts" />
+      <dep name="mermaid" version="^11.x" purpose="Diagram rendering (upgraded via #4025)" />
+      <dep name="vega" version="existing" purpose="Chart rendering" />
+      <dep name="flowchart.js" version="existing" purpose="Flowchart rendering" />
+      <dep name="katex" version="existing" purpose="Math rendering" />
+    </phase-A>
+
+    <!-- Phase B Rust backend crates -->
+    <phase-B>
+      <dep name="tauri" version="^2.0" purpose="Desktop shell runtime" />
+      <dep name="tauri-plugin-store" version="^2.0" purpose="Persistent preferences (replaces electron-store)" />
+      <dep name="tauri-plugin-fs" version="^2.0" purpose="Filesystem commands + watch" />
+      <dep name="tauri-plugin-shell" version="^2.0" purpose="External shell invocations (guarded)" />
+      <dep name="tauri-plugin-dialog" version="^2.0" purpose="Native open/save dialogs" />
+      <dep name="tauri-plugin-global-shortcut" version="^2.0" purpose="Global hotkeys" />
+      <dep name="tauri-plugin-os" version="^2.0" purpose="OS info and theme detection" />
+      <dep name="tauri-plugin-updater" version="^2.0" purpose="In-app updates (fallback to brew)" />
+      <dep name="notify" version="^6.x" purpose="File watcher (replaces chokidar)" />
+      <dep name="grep-searcher" version="^0.1" purpose="ripgrep library (replaces vscode-ripgrep binary)" />
+      <dep name="ignore" version="^0.4" purpose="gitignore filtering for search" />
+      <dep name="font-kit" version="^0.14" purpose="System fonts (replaces fontmanager-redux)" />
+      <dep name="objc2" version="^0.5" purpose="FFI bridge to NSSpellChecker on macOS" />
+      <dep name="serde" version="^1.0" purpose="Serialization" />
+      <dep name="tracing" version="^0.1" purpose="Structured logging" />
+      <dep name="tracing-subscriber" version="^0.3" purpose="Log formatting" />
+    </phase-B>
+  </Dependencies>
+
+  <VersionConstraints>
+    <constraint lib="electron" min="30.0.0" max="30.x" reason="LTS on 2026-04; balances modernity with native-module ABI compatibility" />
+    <constraint lib="vue" min="3.4.0" max="3.x" reason="Composition API used by PR #4001; avoid Vue 2 patterns" />
+    <constraint lib="node" min="20.0.0" max="20.x" reason="LTS on 2026-04; required by electron-vite and electron-rebuild" />
+    <constraint lib="tauri" min="2.0.0" max="2.x" reason="v2 stable plugin ecosystem; v1 lacks several needed plugins" />
+    <constraint lib="rust" min="1.75.0" reason="Required by tauri v2 and notify 6.x" />
+    <constraint lib="mermaid" min="11.0.0" reason="Per PR #4025; v10 documents still parseable" />
+  </VersionConstraints>
+
+  <Tooling>
+    <tool name="workspace" value="yarn classic (1.x)" version="1.22" note="Upstream uses yarn; do not migrate to pnpm in Phase A to minimize diff" />
+    <tool name="bundler-phase-a" value="electron-vite + vite" version="2.x / 5.x" />
+    <tool name="bundler-phase-b" value="tauri-cli + vite" version="2.x / 5.x" />
+    <tool name="linter" value="eslint" version="8.x" note="Retain from upstream; migrate to 9.x only if flat config needed" />
+    <tool name="formatter" value="prettier" version="3.x" />
+    <tool name="test-runner-renderer" value="karma (unit) + Playwright (e2e)" version="existing" note="Phase A keeps existing; Phase B adds cargo test for Rust modules and Playwright over Tauri WebDriver" />
+    <tool name="test-runner-rust" value="cargo test" version="1.75+" note="Phase B only" />
+    <tool name="packager-phase-a" value="electron-builder" version="24.x" />
+    <tool name="packager-phase-b" value="tauri-cli" version="2.x" />
+    <tool name="signing" value="codesign ad-hoc" version="macOS builtin" note="codesign --force --deep --sign - &lt;app&gt;" />
+    <tool name="ci" value="GitHub Actions" version="current" />
+  </Tooling>
+
+  <Testing>
+    <module-level>
+      <command-renderer>yarn unit -- --specs src/renderer/path/to/module.test.js</command-renderer>
+      <command-rust>cargo test --manifest-path src-tauri/Cargo.toml -p mt-module</command-rust>
+      <focus>Fast deterministic unit and contract checks close to the module</focus>
+    </module-level>
+    <wave-level>
+      <command-renderer>yarn unit</command-renderer>
+      <command-rust>cargo test --manifest-path src-tauri/Cargo.toml</command-rust>
+      <focus>Checks merged surfaces touched by the wave; no full e2e</focus>
+    </wave-level>
+    <phase-level>
+      <command-spec>yarn test:specs</command-spec>
+      <command-unit>yarn unit</command-unit>
+      <command-e2e>yarn e2e</command-e2e>
+      <command-rust-full>cargo test --manifest-path src-tauri/Cargo.toml --all-features</command-rust-full>
+      <command-smoke-install>brew install --cask marktext &amp;&amp; open -a MarkText &amp;&amp; sleep 2 &amp;&amp; pgrep -f MarkText</command-smoke-install>
+      <focus>Full regression: CommonMark/GFM specs, unit, e2e, plus fresh-macOS install smoke test</focus>
+    </phase-level>
+    <mocking-policy>Prefer fakes over mocks. Filesystem operations use tempdirs (node:fs temp / tempfile crate). No network in unit tests. Tauri commands tested via tauri::test harness.</mocking-policy>
+    <regression-policy>Every PR merge must keep test/specs/commonMark and test/specs/gfm fully green; a red spec blocks the merge commit in Phase-A1.</regression-policy>
+  </Testing>
+
+  <Observability>
+    <logger-phase-a>electron-log 4.x (existing), with structured JSON backend enabled</logger-phase-a>
+    <logger-phase-b>tracing + tracing-subscriber (JSON format in release, pretty in dev)</logger-phase-b>
+    <log-format>[Module][function][BLOCK_NAME] message { correlationId, stableField }</log-format>
+    <required-fields>correlationId (uuid per user action), actorId (user session id), module, event, duration_ms where relevant</required-fields>
+    <redaction>Never log: file contents, clipboard contents, absolute home-relative paths in shareable artifacts, keychain values. Log file paths only relative to workspace root or redacted to basename when outside.</redaction>
+    <log-storage>macOS: ~/Library/Logs/marktext/main.log with 10 MB rotation, 5-file retention.</log-storage>
+    <no-telemetry>No outbound network logging. All logs are local-only.</no-telemetry>
+  </Observability>
+
+  <DeliveryShape>
+    <shape-phase-a>Electron 30 app, single main process + renderer(s), installed via Homebrew cask to /Applications/Mark.app. Ad-hoc signed. Footprint target: &lt; 120 MB.</shape-phase-a>
+    <shape-phase-b>Tauri v2 app, Rust backend + Vue 3 WebView. Same distribution channel (Homebrew cask, same tap, same cask name `mark` — version bump triggers upgrade). Footprint target: &lt; 30 MB.</shape-phase-b>
+    <release-cadence>v1.0 after Phase-A4. v1.x patch releases as stabilization follows. v2.0 after Phase-B4.</release-cadence>
+    <fork-repo>https://github.com/xronocode/mark (fork of marktext/marktext; default branch `main` mirrors upstream `develop` at time of fork; working branch `modernize`)</fork-repo>
+    <tap-repo>https://github.com/xronocode/homebrew-mark (single Casks/mark.rb)</tap-repo>
+    <product-name>Mark</product-name>
+    <bundle-id>com.xronocode.mark</bundle-id>
+    <ci-os-matrix>macos-14 (arm64) and macos-13 (x86_64) are blocking; ubuntu-latest and windows-latest run with `continue-on-error: true`.</ci-os-matrix>
+    <signing-strategy>ad-hoc only (`codesign --force --deep --sign - Mark.app`); cask postflight `xattr -cr /Applications/Mark.app` strips quarantine.</signing-strategy>
+  </DeliveryShape>
+</TechnologyStack>

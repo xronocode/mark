@@ -1,0 +1,1100 @@
+<DevelopmentPlan VERSION="0.2.0">
+  <ArchitectureNotes>
+    <objective>Port Mark Text off abandoned Electron 18 + Vue 2 stack onto (A) modern Electron 30 + Vue 3 as intermediate v1.0, then (B) Tauri v2 + Rust as final v2.0, while merging 13 community PRs and delivering a Homebrew-installable, ad-hoc-signed macOS app.</objective>
+    <non-goal>Do NOT rewrite muya. It has zero Electron coupling (verified by grep) and ports to WebView unchanged.</non-goal>
+    <non-goal>Do NOT engage with upstream marktext/marktext maintainers. This is an independent fork.</non-goal>
+    <risk-1>PR #4001 (electron-vite refactor) conflicts with bugfix PRs — resolved by merge-order: bugfixes first, then #4001.</risk-1>
+    <risk-2>muya in WKWebView may be slower than Chromium on large docs — benchmark gate at Phase-B1.</risk-2>
+    <risk-3>All 6 native modules (keytar, chokidar, fontmanager-redux, native-keymap, vscode-ripgrep, @hfelix/electron-localshortcut) must be replaced in Phase B.</risk-3>
+    <risk-4>electron-store → tauri-plugin-store schema migration is one-way and must preserve user prefs.</risk-4>
+    <risk-5>NSSpellChecker has no existing Tauri plugin; custom objc2 FFI required for Phase-B3.</risk-5>
+    <strategy>Hybrid two-phase: Phase A ships value quickly (bugfixes + Vue 3 + slim build) as v1.0; Phase B is the radical Tauri port as v2.0. Between phases, ~2 weeks user-stabilization window.</strategy>
+  </ArchitectureNotes>
+
+  <Modules>
+    <!-- Phase A keeps the upstream module structure (src/main, src/renderer, src/muya, src/common) and
+         does not require GRACE-style module decomposition. The M-xxx modules below describe the
+         Phase-B Tauri architecture. -->
+
+    <M-001 NAME="mt-tauri-shell" TYPE="ENTRY_POINT" LAYER="3" ORDER="1" STATUS="planned">
+      <contract>
+        <purpose>Tauri application entrypoint: build app, register plugins, manage windows and lifecycle.</purpose>
+        <inputs>
+          <param name="cliArgs" type="Vec&lt;String&gt;" />
+        </inputs>
+        <outputs>
+          <param name="exitCode" type="i32" />
+        </outputs>
+        <errors>
+          <error code="MT_INIT_FAILED" />
+          <error code="MT_SECOND_INSTANCE_BLOCKED" />
+        </errors>
+      </contract>
+      <interface>
+        <fn-main PURPOSE="Boot the Tauri app; single-instance guard; wire modules M-002..M-009" />
+      </interface>
+      <depends>M-002, M-003, M-004, M-005, M-006, M-007, M-008, M-009, M-010</depends>
+      <target>
+        <source>src-tauri/src/main.rs</source>
+        <tests>src-tauri/src/main.rs (#[cfg(test)] blocks) + test/e2e/tauri-shell.spec.ts</tests>
+      </target>
+      <observability>
+        <log-prefix>[TauriShell]</log-prefix>
+        <critical-block>BLOCK_BUILD_APP</critical-block>
+        <critical-block>BLOCK_REGISTER_MENU</critical-block>
+      </observability>
+      <verification-ref>V-M-001</verification-ref>
+      <notes>
+        <note-1>Single-instance enforced via tauri-plugin-single-instance.</note-1>
+        <note-2>Window state (size, position) persisted through M-005 prefs.</note-2>
+      </notes>
+    </M-001>
+
+    <M-002 NAME="mt-fs-commands" TYPE="INTEGRATION" LAYER="1" ORDER="1" STATUS="planned">
+      <contract>
+        <purpose>Expose filesystem IPC commands (read, write, stat, rename, delete) to renderer with sandbox guard.</purpose>
+        <inputs>
+          <param name="path" type="String (validated by M-010)" />
+          <param name="content" type="String (UTF-8) for write" />
+        </inputs>
+        <outputs>
+          <param name="readResult" type="String" />
+          <param name="writeAck" type="()" />
+        </outputs>
+        <errors>
+          <error code="MT_FS_PERM_DENIED" />
+          <error code="MT_FS_NOT_FOUND" />
+          <error code="MT_FS_SANDBOX_VIOLATION" />
+          <error code="MT_FS_IO_ERROR" />
+        </errors>
+      </contract>
+      <interface>
+        <fn-fs_read PURPOSE="Read file into UTF-8 string after M-010 validates path" />
+        <fn-fs_write PURPOSE="Write UTF-8 content with fsync" />
+        <fn-fs_stat PURPOSE="Return metadata (size, mtime, isFile)" />
+        <fn-fs_rename PURPOSE="Rename within sandbox" />
+        <fn-fs_delete PURPOSE="Move to Trash (not hard-delete)" />
+      </interface>
+      <depends>M-010</depends>
+      <target>
+        <source>src-tauri/src/commands/fs.rs</source>
+        <tests>src-tauri/src/commands/fs.rs (#[cfg(test)])</tests>
+      </target>
+      <observability>
+        <log-prefix>[FsCmd]</log-prefix>
+        <critical-block>BLOCK_VALIDATE_PATH</critical-block>
+        <critical-block>BLOCK_READ_FROM_DISK</critical-block>
+        <critical-block>BLOCK_WRITE_TO_DISK</critical-block>
+      </observability>
+      <verification-ref>V-M-002</verification-ref>
+      <notes>
+        <note-1>Paths logged redacted (basename only); content bytes never logged.</note-1>
+        <note-2>fs_delete uses `trash` crate to move to Trash instead of unlinking.</note-2>
+      </notes>
+    </M-002>
+
+    <M-003 NAME="mt-fs-watcher" TYPE="CORE_LOGIC" LAYER="0" ORDER="2" STATUS="planned">
+      <contract>
+        <purpose>Watch filesystem paths using `notify` crate; emit debounced change events; handle cloud-drive mtime delays, inotify ENOSPC, Linux atomic rename workaround.</purpose>
+        <inputs>
+          <param name="path" type="String" />
+          <param name="recursive" type="bool" />
+          <param name="usePolling" type="bool (from `watcherUsePolling` pref)" />
+        </inputs>
+        <outputs>
+          <param name="event" type="FsChangeEvent { kind, path, mtime }" />
+        </outputs>
+        <errors>
+          <error code="MT_WATCH_INVALID_PATH" />
+          <error code="MT_WATCH_CAPACITY" />
+          <error code="MT_WATCH_ENOSPC (Linux-only; fired once)" />
+        </errors>
+      </contract>
+      <interface>
+        <fn-watcher_start PURPOSE="Begin watching; return a handle for stop" />
+        <fn-watcher_stop PURPOSE="Release notify subscription" />
+        <fn-watcher_set_ignore_until PURPOSE="Ignore self-generated modifications for duration (used on save to prevent echo)" />
+      </interface>
+      <depends></depends>
+      <target>
+        <source>src-tauri/src/fs/watcher.rs</source>
+        <tests>src-tauri/src/fs/watcher.rs (#[cfg(test)])</tests>
+      </target>
+      <observability>
+        <log-prefix>[FsWatcher]</log-prefix>
+        <critical-block>BLOCK_REGISTER_NOTIFY</critical-block>
+        <critical-block>BLOCK_EMIT_CHANGE</critical-block>
+        <critical-block>BLOCK_UNREGISTER_NOTIFY</critical-block>
+        <critical-block>BLOCK_SELF_MODIFY_SUPPRESS</critical-block>
+        <critical-block>BLOCK_ATOMIC_RENAME_REWATCH</critical-block>
+        <critical-block>BLOCK_ENOSPC_NOTIFY_ONCE</critical-block>
+      </observability>
+      <verification-ref>V-M-003</verification-ref>
+      <notes>
+        <note-1>Mirror upstream chokidar parameters: stabilityThreshold=1000ms, pollInterval=150ms.</note-1>
+        <note-2>Ignore patterns: `.asar`, `.`, `..`, dotfiles (opt-in), `node_modules`.</note-2>
+        <note-3>Cloud-drive workaround: stat-check after change event; if mtime within threshold window, suppress event (upstream watcher.js:338-371).</note-3>
+        <note-4>Linux atomic rename: raw rename event → rewatch file 150ms later (upstream watcher.js:213-233).</note-4>
+        <note-5>inotify ENOSPC: notify user ONCE, then suppress further notifications (upstream watcher.js:235-251).</note-5>
+        <note-6>Polling mode activated when `watcherUsePolling=true` in prefs (for network/cloud FS).</note-6>
+      </notes>
+    </M-003>
+
+    <M-004 NAME="mt-search" TYPE="CORE_LOGIC" LAYER="0" ORDER="3" STATUS="planned">
+      <contract>
+        <purpose>Search text across files using `grep-searcher`; stream results to renderer in batches; honor 5 search prefs (exclusions, max-file-size, include-hidden, no-ignore, follow-symlinks).</purpose>
+        <inputs>
+          <param name="query" type="SearchQuery { pattern, regex, caseSensitive, wholeWord, folder }" />
+          <param name="opts" type="SearchPrefs { exclusions[], maxFileSize (K/M/G), includeHidden, noIgnore, followSymlinks }" />
+        </inputs>
+        <outputs>
+          <param name="resultBatch" type="Vec&lt;SearchHit { path, line, col, snippet }&gt;" />
+        </outputs>
+        <errors>
+          <error code="MT_SEARCH_INVALID_PATTERN" />
+          <error code="MT_SEARCH_INVALID_MAXSIZE" />
+          <error code="MT_SEARCH_CANCELLED" />
+        </errors>
+      </contract>
+      <interface>
+        <fn-search_run PURPOSE="Stream results; accepts CancellationToken; honors SearchPrefs" />
+        <fn-search_parse_max_size PURPOSE="Parse '100K' / '5M' / '1G' into byte budget" />
+        <type-SearchPrefs PURPOSE="Mirrors 5 upstream prefs: searchExclusions, searchMaxFileSize, searchIncludeHidden, searchNoIgnore, searchFollowSymlinks" />
+      </interface>
+      <depends></depends>
+      <target>
+        <source>src-tauri/src/search/mod.rs</source>
+        <tests>src-tauri/src/search/mod.rs (#[cfg(test)])</tests>
+      </target>
+      <observability>
+        <log-prefix>[Search]</log-prefix>
+        <critical-block>BLOCK_COMPILE_MATCHER</critical-block>
+        <critical-block>BLOCK_APPLY_PREFS</critical-block>
+        <critical-block>BLOCK_STREAM_RESULTS</critical-block>
+      </observability>
+      <verification-ref>V-M-004</verification-ref>
+      <notes>
+        <note-1>Honors `.gitignore` via `ignore` crate unless `searchNoIgnore=true`.</note-1>
+        <note-2>Batch size tuned for 10k-file fixture first-batch &lt; 500ms.</note-2>
+        <note-3>Follow-symlinks bounded — reject cycles via visited-inode set.</note-3>
+        <note-4>Mirrors upstream `src/renderer/node/ripgrepSearcher.js` (will be deleted during Phase-A1.5 renderer-Node cleanup).</note-4>
+      </notes>
+    </M-004>
+
+    <M-005 NAME="mt-prefs" TYPE="DATA_LAYER" LAYER="0" ORDER="4" STATUS="planned">
+      <contract>
+        <purpose>Persistent preferences store via tauri-plugin-store; migrate 4-file legacy layout (preferences.json + dataCenter.json + keybindings.json + recently-used-documents.json) plus keytar secrets.</purpose>
+        <inputs>
+          <param name="key" type="String" />
+          <param name="value" type="serde_json::Value" />
+        </inputs>
+        <outputs>
+          <param name="value" type="Option&lt;serde_json::Value&gt;" />
+        </outputs>
+        <errors>
+          <error code="MT_PREFS_CORRUPT" />
+          <error code="MT_PREFS_SCHEMA_MISMATCH" />
+        </errors>
+      </contract>
+      <interface>
+        <fn-prefs_get PURPOSE="Read a pref key" />
+        <fn-prefs_set PURPOSE="Write a pref key (emits `mt:prefs:changed`)" />
+        <fn-prefs_migrate PURPOSE="One-shot migration across all 4 legacy files + keychain rename (marktext → com.xronocode.mark)" />
+        <fn-prefs_validate PURPOSE="Apply ajv-equivalent JSON-schema validation (via `jsonschema` crate)" />
+      </interface>
+      <depends></depends>
+      <target>
+        <source>src-tauri/src/prefs/mod.rs</source>
+        <tests>src-tauri/src/prefs/mod.rs (#[cfg(test)])</tests>
+      </target>
+      <observability>
+        <log-prefix>[Prefs]</log-prefix>
+        <critical-block>BLOCK_DETECT_LEGACY</critical-block>
+        <critical-block>BLOCK_MIGRATE_PREFERENCES</critical-block>
+        <critical-block>BLOCK_MIGRATE_DATACENTER</critical-block>
+        <critical-block>BLOCK_MIGRATE_KEYBINDINGS</critical-block>
+        <critical-block>BLOCK_MIGRATE_RECENT_DOCS</critical-block>
+        <critical-block>BLOCK_MIGRATE_KEYCHAIN</critical-block>
+        <critical-block>BLOCK_VALIDATE_SCHEMA</critical-block>
+      </observability>
+      <verification-ref>V-M-005</verification-ref>
+      <notes>
+        <note-1>Legacy macOS path: ~/Library/Application Support/marktext/{preferences.json, dataCenter.json, keybindings.json, recently-used-documents.json}.</note-1>
+        <note-2>New tauri-plugin-store location under `com.xronocode.mark` bundle id.</note-2>
+        <note-3>Schema = 60 keys from upstream `src/main/preferences/schema.json`; keep ajv-compatible JSON-schema validator via `jsonschema` crate.</note-3>
+        <note-4>Migration is idempotent — marker key `mt_migration_v1_done: true` set on success.</note-4>
+        <note-5>Absolute paths in prefs (defaultDirectoryToOpen, imageFolderPath, screenshotFolderPath) migrated as-is but validated on first read; missing paths fallback to defaults.</note-5>
+        <note-6>Sidebar width remains in localStorage (frontend concern), NOT migrated here.</note-6>
+      </notes>
+    </M-005>
+
+    <M-006 NAME="mt-shortcuts" TYPE="INTEGRATION" LAYER="0" ORDER="5" STATUS="planned">
+      <contract>
+        <purpose>Register and dispatch global and local keyboard shortcuts.</purpose>
+        <inputs>
+          <param name="accelerator" type="String" />
+          <param name="handler" type="CommandId" />
+        </inputs>
+        <outputs>
+          <param name="event" type="ShortcutFired" />
+        </outputs>
+        <errors>
+          <error code="MT_SHORTCUT_CONFLICT" />
+          <error code="MT_SHORTCUT_INVALID_ACCEL" />
+        </errors>
+      </contract>
+      <interface>
+        <fn-shortcuts_register PURPOSE="Register accelerator; supports capitalized modifiers (#4134)" />
+        <fn-shortcuts_unregister PURPOSE="Remove accelerator" />
+      </interface>
+      <depends></depends>
+      <target>
+        <source>src-tauri/src/shortcuts/mod.rs</source>
+        <tests>src-tauri/src/shortcuts/mod.rs (#[cfg(test)])</tests>
+      </target>
+      <observability>
+        <log-prefix>[Shortcuts]</log-prefix>
+        <critical-block>BLOCK_PARSE_ACCELERATOR</critical-block>
+      </observability>
+      <verification-ref>V-M-006</verification-ref>
+    </M-006>
+
+    <M-007 NAME="mt-spell" TYPE="INTEGRATION" LAYER="0" ORDER="6" STATUS="planned">
+      <contract>
+        <purpose>Spellcheck through the WebView's native spellchecker + bundled hunspell dictionaries for extra languages; thin shim over tauri-plugin-spellcheck if available or manual session config.</purpose>
+        <inputs>
+          <param name="language" type="String (IETF tag)" />
+          <param name="word" type="String" />
+        </inputs>
+        <outputs>
+          <param name="enabled" type="bool" />
+          <param name="suggestions" type="Vec&lt;String&gt;" />
+          <param name="availableLanguages" type="Vec&lt;String&gt;" />
+        </outputs>
+        <errors>
+          <error code="MT_SPELL_LANG_UNAVAILABLE" />
+        </errors>
+      </contract>
+      <interface>
+        <fn-spell_set_enabled PURPOSE="Toggle WebView spellcheck attribute globally" />
+        <fn-spell_switch_language PURPOSE="Load language dictionary; set WebView language" />
+        <fn-spell_available_dictionaries PURPOSE="Return bundled hunspell + OS-provided languages" />
+        <fn-spell_custom_word_add PURPOSE="Append to user dictionary file" />
+        <fn-spell_custom_word_remove PURPOSE="Remove from user dictionary" />
+        <fn-spell_get_custom_words PURPOSE="Return user dictionary contents" />
+      </interface>
+      <depends>M-005</depends>
+      <target>
+        <source>src-tauri/src/spell/mod.rs</source>
+        <tests>src-tauri/src/spell/mod.rs (#[cfg(test)])</tests>
+      </target>
+      <observability>
+        <log-prefix>[Spell]</log-prefix>
+        <critical-block>BLOCK_LOAD_DICT</critical-block>
+        <critical-block>BLOCK_SWITCH_LANG</critical-block>
+        <critical-block>BLOCK_CUSTOM_WORD_PERSIST</critical-block>
+      </observability>
+      <verification-ref>V-M-007</verification-ref>
+      <notes>
+        <note-1>REVISED after audit: upstream uses Electron session spellchecker (Chromium dictionaries) + bundled hunspell dicts at `resources/hunspell_dictionaries/`. NOT NSSpellChecker / objc2 FFI.</note-1>
+        <note-2>On macOS, Tauri WebView delegates to NSSpellChecker automatically via `spellcheck="true"` attribute; no manual bridging needed.</note-2>
+        <note-3>On Linux/Windows, use bundled hunspell dicts; tauri-plugin-spellcheck if mature enough, else wrap `hunspell-rs` crate.</note-3>
+        <note-4>Mirrors 5 upstream IPC handlers: set-enabled, switch-language, get-available-dictionaries, get-custom-dictionary-words, remove-word.</note-4>
+      </notes>
+    </M-007>
+
+    <M-008 NAME="mt-fonts" TYPE="INTEGRATION" LAYER="0" ORDER="7" STATUS="planned">
+      <contract>
+        <purpose>Enumerate system fonts via font-kit; cache per-session.</purpose>
+        <inputs></inputs>
+        <outputs>
+          <param name="fonts" type="Vec&lt;FontFamily&gt;" />
+        </outputs>
+        <errors />
+      </contract>
+      <interface>
+        <fn-fonts_list PURPOSE="Return available font families" />
+      </interface>
+      <depends></depends>
+      <target>
+        <source>src-tauri/src/fonts/mod.rs</source>
+        <tests>src-tauri/src/fonts/mod.rs (#[cfg(test)])</tests>
+      </target>
+      <observability>
+        <log-prefix>[Fonts]</log-prefix>
+        <critical-block>BLOCK_ENUMERATE</critical-block>
+      </observability>
+      <verification-ref>V-M-008</verification-ref>
+    </M-008>
+
+    <M-009 NAME="mt-menu" TYPE="UI_COMPONENT" LAYER="2" ORDER="1" STATUS="planned">
+      <contract>
+        <purpose>Native menu bar and context menus; dispatch to command IDs handled by frontend.</purpose>
+        <inputs>
+          <param name="menuDef" type="MenuSpec" />
+        </inputs>
+        <outputs>
+          <param name="event" type="MenuInvoked { id }" />
+        </outputs>
+        <errors />
+      </contract>
+      <interface>
+        <fn-menu_build PURPOSE="Build menu tree from spec" />
+        <fn-menu_dispatch PURPOSE="Emit MenuInvoked event" />
+      </interface>
+      <depends>M-005</depends>
+      <target>
+        <source>src-tauri/src/menu/mod.rs</source>
+        <tests>src-tauri/src/menu/mod.rs (#[cfg(test)]) + test/e2e/menu.spec.ts</tests>
+      </target>
+      <observability>
+        <log-prefix>[Menu]</log-prefix>
+        <critical-block>BLOCK_DISPATCH</critical-block>
+      </observability>
+      <verification-ref>V-M-009</verification-ref>
+      <notes>
+        <note-1>Menu items bound to preferences (recent files list) come via M-005.</note-1>
+      </notes>
+    </M-009>
+
+    <M-010 NAME="mt-security" TYPE="UTILITY" LAYER="0" ORDER="8" STATUS="planned">
+      <contract>
+        <purpose>Path sandbox, URL whitelist, HTML sanitization (DOMPurify PREVIEW+EXPORT configs), shell-open confirmation, diagram/math input filtering (KaTeX, Vega, Mermaid).</purpose>
+        <inputs>
+          <param name="path" type="String" />
+          <param name="url" type="String" />
+          <param name="html" type="String" />
+          <param name="latex" type="String (KaTeX source)" />
+          <param name="vegaSpec" type="serde_json::Value" />
+        </inputs>
+        <outputs>
+          <param name="safe" type="bool" />
+          <param name="sanitized" type="String" />
+        </outputs>
+        <errors>
+          <error code="MT_SEC_TRAVERSAL" />
+          <error code="MT_SEC_UNALLOWED_SCHEME" />
+          <error code="MT_SEC_WIN_CASE_MISMATCH" />
+        </errors>
+      </contract>
+      <interface>
+        <fn-sec_check_path PURPOSE="Reject path traversal and workspace escape; case-insensitive on Windows" />
+        <fn-sec_sanitize_html_preview PURPOSE="DOMPurify PREVIEW config (editing): forbid style, contenteditable" />
+        <fn-sec_sanitize_html_export PURPOSE="DOMPurify EXPORT config: allow data-align + file://" />
+        <fn-sec_sanitize_url PURPOSE="Whitelist http(s), mailto, file:; reject javascript:, data:, vbscript:; handle embedded newlines; handle Punycode homograph warnings" />
+        <fn-sec_confirm_shell_open PURPOSE="Prompt user before shell.openPath / shell.openExternal (#4177)" />
+        <fn-sec_filter_katex PURPOSE="Scrub `\href{javascript:...}`, `\input`, `\includegraphics` from LaTeX" />
+        <fn-sec_validate_vega_spec PURPOSE="Reject specs containing JS expressions in transforms" />
+        <fn-sec_strip_bom PURPOSE="Strip BOM before regex-based scanning" />
+      </interface>
+      <depends></depends>
+      <target>
+        <source>src-tauri/src/security.rs</source>
+        <tests>src-tauri/src/security.rs (#[cfg(test)]) + test/specs/security/xss.spec.js</tests>
+      </target>
+      <observability>
+        <log-prefix>[Security]</log-prefix>
+        <critical-block>BLOCK_STRIP_DANGEROUS_NODES</critical-block>
+        <critical-block>BLOCK_CONFIRM_PROMPT</critical-block>
+        <critical-block>BLOCK_REJECT_TRAVERSAL</critical-block>
+        <critical-block>BLOCK_KATEX_FILTER</critical-block>
+        <critical-block>BLOCK_VEGA_REJECT_EXPR</critical-block>
+        <critical-block>BLOCK_PUNYCODE_WARN</critical-block>
+      </observability>
+      <verification-ref>V-M-010</verification-ref>
+      <notes>
+        <note-1>Upstream ALREADY HAS DOMPurify at `src/renderer/util/dompurify.js` + `src/muya/lib/utils/dompurify.js`. Phase-B PORTS these two configs (PREVIEW + EXPORT) — does not write from scratch.</note-1>
+        <note-2>Upstream has `isChildOfDirectory()` at `src/common/filesystem/paths.js:104-108` — port + fix case-insensitive comparison on Windows.</note-2>
+        <note-3>Upstream URL_REG + cleanUrl in marked/utils.js block javascript/vbscript/data — keep behavior + add newline-bypass fix.</note-3>
+        <note-4>Mermaid `securityLevel: 'strict'` already set upstream; M-010 sanitizes diagram body input BEFORE passing to renderer.</note-4>
+        <note-5>#4177 shell.openPath confirmation is NOT yet implemented upstream despite PR existing — Phase-A1 cherry-pick adds it; Phase-B ports to Rust.</note-5>
+        <note-6>Load-bearing for CVE-2023-2318 and #4177; changes require security review (autonomy-gate).</note-6>
+      </notes>
+    </M-010>
+
+    <M-011 NAME="mt-renderer" TYPE="UI_COMPONENT" LAYER="2" ORDER="2" STATUS="planned">
+      <contract>
+        <purpose>Vue 3 renderer app (migrated in Phase A via PR #4001 + Phase-A1.5 Node-cleanup), host for muya editor, theme controller, command dispatcher, command palette, 8 Pinia stores.</purpose>
+        <inputs>
+          <param name="ipc" type="IpcBridge from M-013" />
+        </inputs>
+        <outputs>
+          <param name="ui" type="DOM tree mounted to #app" />
+        </outputs>
+        <errors />
+      </contract>
+      <interface>
+        <fn-mountApp PURPOSE="Bootstrap Vue app; register Pinia stores; set window.DIRNAME; wire all 7 host hooks; mount muya instance" />
+        <fn-setMuyaHostHooks PURPOSE="Inject 7 required host hooks (see notes) — enumerated and contract-tested" />
+        <fn-setMuyaOptions PURPOSE="Wire 11 parser option flags (gfm, breaks, pedantic, footnote, frontMatter, math, superSubScript, emoji, isGitlabCompatibilityEnabled, disableHtml, smartLists) from prefs" />
+      </interface>
+      <depends>M-012, M-013</depends>
+      <target>
+        <source>src/renderer/</source>
+        <tests>test/unit/renderer/**.spec.js + test/e2e/renderer.spec.ts</tests>
+      </target>
+      <observability>
+        <log-prefix>[Renderer]</log-prefix>
+        <critical-block>BLOCK_INSTANTIATE_MUYA</critical-block>
+        <critical-block>BLOCK_HOST_HOOKS_WIRED</critical-block>
+      </observability>
+      <verification-ref>V-M-011</verification-ref>
+      <notes>
+        <note-1>Renderer must NOT import `fs`, `path`, `child_process`, `crypto`, `Buffer`, `os`. All such calls route via M-013 invoke.</note-1>
+        <note-2>Element-UI → Element-Plus migration is part of PR #4001 scope; M-011 contract-test asserts no Vue 2 compat shims remain.</note-2>
+        <note-3>Tab drag-drop: dragula replaced with vue-draggable-plus or sortable.js wrapper — validated by V-M-011 scenario for PR-4001 regression.</note-3>
+        <note-4>Command palette (Cmd+Shift+P) uses `components/commandPalette/index.vue` — 65+ commands must be registered.</note-4>
+        <note-5>**Required muya host hooks (7 total)** — enumerated contract: (1) `window.DIRNAME`: string for relative image base; (2) `imageAction(src, id, alt)`: async server-side image processing; (3) `clipboardFilePath()`: async OS clipboard file path lookup; (4) `imagePathAutoComplete(path)`: async path autocomplete for src field; (5) `imagePathPicker()`: async file-browser returning Promise&lt;filePath&gt;; (6) `photoCreatorClick(url)`: Unsplash photo-creator click handler; (7) `jumpClick(href)`: link jump callback for linkTools.</note-5>
+        <note-6>**muya.options.unsplashAccessKey** — if bundled, exposed in browser (SECURITY risk R-35). Phase-B plan: proxy through main/backend, OR prompt user to supply at runtime, OR disable Unsplash tab entirely.</note-6>
+        <note-7>UI plugin layer tech-debt accepted for v1.0 (R-35): no ARIA / i18n / virtualization / touch. Document in release notes. Revisit in v2.x.</note-7>
+      </notes>
+    </M-011>
+
+    <M-012 NAME="muya" TYPE="CORE_LOGIC" LAYER="0" ORDER="0" STATUS="partial">
+      <contract>
+        <purpose>WYSIWYG Markdown engine: parses, renders, and edits Markdown in-place in DOM. Zero Electron coupling confirmed via triple-check grep. Ports to WebView as-is. 47 public methods + 26 events + 13 state invariants + 5 diagram renderers (Mermaid/Vega-Lite/Flowchart/Sequence/PlantUML) + 11 parser option flags + 19 inline + 16 block token types.</purpose>
+        <inputs>
+          <param name="container" type="HTMLElement" />
+          <param name="options" type="MuyaOptions" />
+        </inputs>
+        <outputs>
+          <param name="markdown" type="String (via getMarkdown)" />
+        </outputs>
+        <errors />
+      </contract>
+      <interface>
+        <fn-setContent PURPOSE="Load markdown into editor" />
+        <fn-getMarkdown PURPOSE="Export current content as markdown" />
+        <fn-setOptions PURPOSE="Change theme, mode, etc." />
+      </interface>
+      <depends></depends>
+      <target>
+        <source>src/muya/</source>
+        <tests>test/specs/commonMark/**, test/specs/gfm/**</tests>
+      </target>
+      <observability>
+        <log-prefix>[Muya]</log-prefix>
+        <critical-block>BLOCK_TOKENIZE</critical-block>
+        <critical-block>BLOCK_PARSE_MARKDOWN</critical-block>
+      </observability>
+      <verification-ref>V-M-012</verification-ref>
+      <notes>
+        <note-1>DO NOT REWRITE. Only touch for bugfix PRs (#4135 empty-heading-slug) and renderer upgrades (#4025 Mermaid v11).</note-1>
+        <note-2>**13 state invariants** must hold after every mutation: (a) non-empty root; (b) every block has unique key; (c) parent ↔ child pointers consistent; (d) list uniform marker; (e) table figure→table→thead+tbody→tr→th/td→span(cellContent); (f) heading no soft-breaks in atxLine; (g) one front-matter max and first block only; (h) code pre→code→span(codeContent) with lang synced to languageInput; (i) every span has .text .key .functionType; (j) no languageInput siblings in list; (k) task-item has [checkbox + p] children; (l) offset ≤ text.length; (m) no orphan blocks after removal.</note-2>
+        <note-3>**Known upstream bugs to preserve as regressions (do NOT silently fix during port)**: (a) `exportMarkdown.js:300` pipe-escape misses cell-start; (b) `exportMarkdown.js:303-306` irregular table produces "undefined" literal; (c) `paragraphCtrl.js:116` nested list items without listType; (d) `enterCtrl.js:18` chopBlockByCursor O(n²) perf; (e) `deleteCtrl.js:27` empty-table delete crash (#67). Track each as separate bugfix PR after v1.0.</note-3>
+        <note-4>**CJK/IME safety** — upstream has NO compositionstart lock in 6 keystroke handlers (R-27). Phase-A1.5 step must add composition flag in ContentState and gate keystroke handlers on `!isComposing`.</note-4>
+        <note-5>**Parser security footguns** (R-32, R-33, R-34): (a) `partialRender` uses insertAdjacentHTML; (b) reference-def hrefs not sanitized at parse; (c) no recursion limit on blockquote/list/footnote. Port preserves behavior; V-M-010 fixture-xss payloads 23-27 below test mitigation.</note-5>
+        <note-6>**Parser option flags** — 11 total: gfm, breaks, pedantic, footnote, frontMatter, math, superSubScript, emoji, isGitlabCompatibilityEnabled, disableHtml, smartLists. Contract snapshot test verifies all accepted and behave per plan.</note-6>
+      </notes>
+    </M-012>
+
+    <M-014 NAME="mt-encoding" TYPE="UTILITY" LAYER="0" ORDER="9" STATUS="planned">
+      <contract>
+        <purpose>Detect and convert text encodings (UTF-8, UTF-16 LE/BE with BOM, Shift-JIS, GB2312, Latin-1, etc.); normalize line endings (LF/CRLF/mixed) and trailing newlines per 4-mode policy.</purpose>
+        <inputs>
+          <param name="bytes" type="Vec&lt;u8&gt;" />
+          <param name="prefers" type="EncodingPrefs { defaultEncoding, autoGuess, endOfLine, trimTrailingNewline }" />
+        </inputs>
+        <outputs>
+          <param name="text" type="String (UTF-8 internal)" />
+          <param name="meta" type="EncodingMeta { detectedEncoding, bom, lineEnding, hadTrailingNewline }" />
+        </outputs>
+        <errors>
+          <error code="MT_ENC_UNSUPPORTED" />
+          <error code="MT_ENC_LOSSY" />
+        </errors>
+      </contract>
+      <interface>
+        <fn-detect_encoding PURPOSE="Return detected encoding from BOM + chardet/encoding_rs fallback" />
+        <fn-decode PURPOSE="Bytes → UTF-8 String honoring prefs" />
+        <fn-encode PURPOSE="UTF-8 String → bytes with original or requested encoding" />
+        <fn-detect_line_ending PURPOSE="Return LF / CRLF / MIXED / UNKNOWN" />
+        <fn-normalize_newlines PURPOSE="Apply trimTrailingNewline (0-3) + EOL conversion on save" />
+        <type-EncodingPrefs PURPOSE="User-controllable encoding behavior" />
+      </interface>
+      <depends></depends>
+      <target>
+        <source>src-tauri/src/encoding/mod.rs</source>
+        <tests>src-tauri/src/encoding/mod.rs (#[cfg(test)])</tests>
+      </target>
+      <observability>
+        <log-prefix>[Encoding]</log-prefix>
+        <critical-block>BLOCK_DETECT_BOM</critical-block>
+        <critical-block>BLOCK_CHARDET_GUESS</critical-block>
+        <critical-block>BLOCK_NORMALIZE_EOL</critical-block>
+      </observability>
+      <verification-ref>V-M-014</verification-ref>
+      <notes>
+        <note-1>Replaces upstream `ced` (native Node addon) + `iconv-lite`. Use `chardet` or `encoding_rs` crates.</note-1>
+        <note-2>28 codec enum from upstream `static/preference.json` must all round-trip.</note-2>
+      </notes>
+    </M-014>
+
+    <M-015 NAME="mt-pandoc-bridge" TYPE="INTEGRATION" LAYER="1" ORDER="3" STATUS="planned">
+      <contract>
+        <purpose>Convert foreign document formats (docx, odt, latex, rst, org, wiki, textile, opml, epub, html) to Markdown via pandoc subprocess.</purpose>
+        <inputs>
+          <param name="filePath" type="String (validated by M-010)" />
+          <param name="pandocOverride" type="Option&lt;String&gt; (from MARKTEXT_PANDOC env)" />
+        </inputs>
+        <outputs>
+          <param name="markdown" type="String" />
+        </outputs>
+        <errors>
+          <error code="MT_PANDOC_NOT_FOUND" />
+          <error code="MT_PANDOC_FAILED" />
+          <error code="MT_PANDOC_TIMEOUT" />
+        </errors>
+      </contract>
+      <interface>
+        <fn-pandoc_available PURPOSE="Probe PATH (honors macOS /Library/TeX/texbin) and MARKTEXT_PANDOC env" />
+        <fn-pandoc_import PURPOSE="Spawn pandoc, stream stdout, return markdown" />
+      </interface>
+      <depends>M-010</depends>
+      <target>
+        <source>src-tauri/src/pandoc/mod.rs</source>
+        <tests>src-tauri/src/pandoc/mod.rs (#[cfg(test)])</tests>
+      </target>
+      <observability>
+        <log-prefix>[Pandoc]</log-prefix>
+        <critical-block>BLOCK_PROBE_BIN</critical-block>
+        <critical-block>BLOCK_SPAWN</critical-block>
+      </observability>
+      <verification-ref>V-M-015</verification-ref>
+      <notes>
+        <note-1>On macOS, `/Library/TeX/texbin` and `/usr/local/bin` are appended to PATH for subprocess (UC-026).</note-1>
+        <note-2>If pandoc missing, user sees notification with link to pandoc install docs — mirrors upstream `mt::pandoc-not-exists` IPC.</note-2>
+      </notes>
+    </M-015>
+
+    <M-016 NAME="mt-updater" TYPE="INTEGRATION" LAYER="1" ORDER="4" STATUS="planned">
+      <contract>
+        <purpose>Manual-download auto-update via tauri-plugin-updater, replacing electron-updater; checks GitHub Releases feed on xronocode/mark.</purpose>
+        <inputs>
+          <param name="trigger" type="enum { UserCheck, StartupCheck }" />
+        </inputs>
+        <outputs>
+          <param name="event" type="enum { Checking, Available(v), NotAvailable, Downloaded, Error }" />
+        </outputs>
+        <errors>
+          <error code="MT_UPD_NETWORK" />
+          <error code="MT_UPD_SIGNATURE" />
+        </errors>
+      </contract>
+      <interface>
+        <fn-updater_check PURPOSE="Hit GitHub Releases feed; emit state" />
+        <fn-updater_download PURPOSE="Download update on user confirmation" />
+        <fn-updater_quit_and_install PURPOSE="Restart into installed update" />
+      </interface>
+      <depends></depends>
+      <target>
+        <source>src-tauri/src/updater/mod.rs</source>
+        <tests>src-tauri/src/updater/mod.rs (#[cfg(test)])</tests>
+      </target>
+      <observability>
+        <log-prefix>[Updater]</log-prefix>
+        <critical-block>BLOCK_FEED_FETCH</critical-block>
+        <critical-block>BLOCK_VERIFY_SIGNATURE</critical-block>
+      </observability>
+      <verification-ref>V-M-016</verification-ref>
+      <notes>
+        <note-1>Auto-download is OFF (mirrors upstream `autoUpdater.autoDownload = false`); user must confirm.</note-1>
+        <note-2>Bundle id `com.xronocode.mark` — new feed; no continuity with upstream fork.</note-2>
+      </notes>
+    </M-016>
+
+    <M-017 NAME="mt-recent-docs" TYPE="DATA_LAYER" LAYER="1" ORDER="5" STATUS="planned">
+      <contract>
+        <purpose>Maintain recently-opened documents list (max 12) with per-platform OS integration (macOS Dock, Windows Jump List, Linux JSON).</purpose>
+        <inputs>
+          <param name="path" type="String" />
+        </inputs>
+        <outputs>
+          <param name="recents" type="Vec&lt;String&gt;" />
+        </outputs>
+        <errors />
+      </contract>
+      <interface>
+        <fn-recent_add PURPOSE="Add path; dedup; trim to 12; OS-integrate" />
+        <fn-recent_list PURPOSE="Return current list" />
+        <fn-recent_clear PURPOSE="Empty the list" />
+      </interface>
+      <depends>M-010</depends>
+      <target>
+        <source>src-tauri/src/recent/mod.rs</source>
+        <tests>src-tauri/src/recent/mod.rs (#[cfg(test)])</tests>
+      </target>
+      <observability>
+        <log-prefix>[Recent]</log-prefix>
+        <critical-block>BLOCK_ADD</critical-block>
+        <critical-block>BLOCK_OS_INTEGRATE</critical-block>
+      </observability>
+      <verification-ref>V-M-017</verification-ref>
+      <notes>
+        <note-1>macOS: NSDocumentController.sharedDocumentController.noteNewRecentDocumentURL (via objc2).</note-1>
+        <note-2>Windows: `SetJumpList` via tauri-plugin-jump-list if exists, else raw COM.</note-2>
+        <note-3>Linux: JSON at ${configDir}/recently-used-documents.json.</note-3>
+        <note-4>Stale-path handling: file deleted but kept in list; open attempt surfaces MT_FS_NOT_FOUND via M-002.</note-4>
+      </notes>
+    </M-017>
+
+    <M-018 NAME="mt-screenshot" TYPE="INTEGRATION" LAYER="0" ORDER="10" STATUS="planned">
+      <contract>
+        <purpose>macOS-only: trigger system screenshot UI, save result to workspace, return relative path for Markdown insertion.</purpose>
+        <inputs>
+          <param name="targetDir" type="String (dataCenter.screenshotFolderPath)" />
+        </inputs>
+        <outputs>
+          <param name="path" type="String" />
+        </outputs>
+        <errors>
+          <error code="MT_SCREENSHOT_UNSUPPORTED_OS" />
+          <error code="MT_SCREENSHOT_CANCELLED" />
+        </errors>
+      </contract>
+      <interface>
+        <fn-screenshot_capture PURPOSE="macOS: `screencapture -i -c`; read clipboard image; save file" />
+      </interface>
+      <depends>M-002</depends>
+      <target>
+        <source>src-tauri/src/screenshot/mod.rs</source>
+        <tests>src-tauri/src/screenshot/mod.rs (#[cfg(test)])</tests>
+      </target>
+      <observability>
+        <log-prefix>[Screenshot]</log-prefix>
+        <critical-block>BLOCK_SPAWN_CAPTURE</critical-block>
+        <critical-block>BLOCK_WRITE_FILE</critical-block>
+      </observability>
+      <verification-ref>V-M-018</verification-ref>
+      <notes>
+        <note-1>Non-macOS returns MT_SCREENSHOT_UNSUPPORTED_OS; menu item hidden in UI.</note-1>
+      </notes>
+    </M-018>
+
+    <M-019 NAME="mt-datacenter" TYPE="DATA_LAYER" LAYER="1" ORDER="6" STATUS="planned">
+      <contract>
+        <purpose>Store user image history (webImages, cloudImages), image/screenshot folder paths, and ImageBed config; secrets (GitHub token) via keytar/tauri-plugin-stronghold.</purpose>
+        <inputs>
+          <param name="key" type="String" />
+          <param name="value" type="serde_json::Value | Secret" />
+        </inputs>
+        <outputs>
+          <param name="value" type="Option&lt;...&gt;" />
+        </outputs>
+        <errors>
+          <error code="MT_DC_KEYCHAIN" />
+        </errors>
+      </contract>
+      <interface>
+        <fn-dc_get PURPOSE="Read dataCenter key (non-secret)" />
+        <fn-dc_set PURPOSE="Write dataCenter key; emit change event" />
+        <fn-dc_get_secret PURPOSE="Read secret via keyring (async)" />
+        <fn-dc_set_secret PURPOSE="Write secret via keyring" />
+        <fn-dc_migrate PURPOSE="Migrate legacy `marktext` keyring service to `com.xronocode.mark`" />
+      </interface>
+      <depends>M-005</depends>
+      <target>
+        <source>src-tauri/src/datacenter/mod.rs</source>
+        <tests>src-tauri/src/datacenter/mod.rs (#[cfg(test)])</tests>
+      </target>
+      <observability>
+        <log-prefix>[DataCenter]</log-prefix>
+        <critical-block>BLOCK_KEYRING_READ</critical-block>
+        <critical-block>BLOCK_MIGRATE_LEGACY</critical-block>
+      </observability>
+      <verification-ref>V-M-019</verification-ref>
+      <notes>
+        <note-1>Secrets redacted in logs: only `has_token: true/false` boolean, never value.</note-1>
+        <note-2>Image upload paths: `upload` | `folder` | `path` (mirrors `imageInsertAction`).</note-2>
+        <note-3>Uploaders: `none` | `github` (via GitHub API + token) | `picgo` (subprocess) | `cliScript` (subprocess; path validated against command-injection).</note-3>
+      </notes>
+    </M-019>
+
+    <M-020 NAME="mt-cli-flags" TYPE="UTILITY" LAYER="0" ORDER="11" STATUS="planned">
+      <contract>
+        <purpose>Parse CLI arguments: --safe, --user-data-dir, --debug, --new-window, --disable-gpu, --disable-spellcheck, positional file paths.</purpose>
+        <inputs>
+          <param name="argv" type="Vec&lt;String&gt;" />
+        </inputs>
+        <outputs>
+          <param name="flags" type="CliFlags" />
+        </outputs>
+        <errors>
+          <error code="MT_CLI_INVALID" />
+        </errors>
+      </contract>
+      <interface>
+        <fn-parse_argv PURPOSE="Return CliFlags struct or print usage and exit" />
+        <type-CliFlags PURPOSE="Parsed flags; consumed by M-001 at startup" />
+      </interface>
+      <depends></depends>
+      <target>
+        <source>src-tauri/src/cli/mod.rs</source>
+        <tests>src-tauri/src/cli/mod.rs (#[cfg(test)])</tests>
+      </target>
+      <observability>
+        <log-prefix>[Cli]</log-prefix>
+        <critical-block>BLOCK_PARSE</critical-block>
+      </observability>
+      <verification-ref>V-M-020</verification-ref>
+      <notes>
+        <note-1>Use `clap` crate; mirror upstream `arg` library behavior and flag names exactly.</note-1>
+        <note-2>Portable mode auto-detected if `marktext-user-data` folder exists beside binary; overridden by --user-data-dir.</note-2>
+      </notes>
+    </M-020>
+
+    <M-013 NAME="mt-ipc-bridge" TYPE="UTILITY" LAYER="1" ORDER="2" STATUS="planned">
+      <contract>
+        <purpose>Frontend TypeScript wrapper mirroring 146 upstream IPC channels as Tauri invoke+listen; auto-cleanup listeners on unmount; dispatch dynamic-id response channels; proxy `@electron/remote` calls (clipboard, window, native menu).</purpose>
+        <inputs>
+          <param name="command" type="CommandName" />
+          <param name="args" type="Record&lt;string, unknown&gt;" />
+        </inputs>
+        <outputs>
+          <param name="result" type="CommandResult (typed)" />
+        </outputs>
+        <errors>
+          <error code="MT_IPC_UNKNOWN_COMMAND" />
+          <error code="MT_IPC_TIMEOUT" />
+          <error code="MT_IPC_VALIDATION" />
+        </errors>
+      </contract>
+      <interface>
+        <fn-ipcInvoke PURPOSE="Typed invoke with schema check and 10s default timeout" />
+        <fn-ipcListen PURPOSE="Typed listen with auto-unsubscribe on component unmount; no leaks" />
+        <fn-ipcCorrelated PURPOSE="Request/response with correlation-id (replaces dynamic `mt::response-of-image-path-${id}`)" />
+        <fn-ipcClipboard PURPOSE="Replacement for @electron/remote.clipboard: read/write text + files" />
+        <fn-ipcWindow PURPOSE="Replacement for @electron/remote.getCurrentWindow: minimize/maximize/close/fullscreen/alwaysOnTop" />
+        <fn-ipcContextMenu PURPOSE="Replacement for @electron/remote.Menu/MenuItem: show context menu from serialized spec" />
+        <export-ipc PURPOSE="Façade namespaces: ipc.fs, ipc.search, ipc.prefs, ipc.shortcuts, ipc.spell, ipc.fonts, ipc.encoding, ipc.pandoc, ipc.updater, ipc.recent, ipc.screenshot, ipc.datacenter, ipc.clipboard, ipc.window, ipc.menu" />
+      </interface>
+      <depends>M-002, M-003, M-004, M-005, M-006, M-007, M-008, M-014, M-015, M-016, M-017, M-018, M-019</depends>
+      <target>
+        <source>src/renderer/src/ipc/</source>
+        <tests>src/renderer/src/ipc/*.test.ts</tests>
+      </target>
+      <observability>
+        <log-prefix>[IpcBridge]</log-prefix>
+        <critical-block>BLOCK_DISPATCH</critical-block>
+        <critical-block>BLOCK_CORRELATED_REPLY</critical-block>
+        <critical-block>BLOCK_LISTENER_CLEANUP</critical-block>
+      </observability>
+      <verification-ref>V-M-013</verification-ref>
+      <notes>
+        <note-1>Contract snapshot test: bridge exports set must equal backend commands set (~146 names).</note-1>
+        <note-2>Dynamic channel IDs (upstream `mt::response-of-image-path-${id}`) replaced by correlation-id pattern: `invoke('mt::ask-for-image-path', { request_id })` → single reply event with same id.</note-2>
+        <note-3>Sync blocking `ipcRenderer.sendSync('mt::ask-for-image-path')` (upstream `store/editor.js:1193`) replaced by async `await ipc.askForImagePath()`.</note-3>
+        <note-4>All 6 `@electron/remote` call-sites (clipboard, getCurrentWindow, RemoteMenu, RemoteMenuItem) routed through new typed commands.</note-4>
+        <note-5>Listener cleanup: bridge exposes `useIpcListener` composable that auto-unregisters on Vue `onUnmounted`; unit-test guards against leaks.</note-5>
+      </notes>
+    </M-013>
+  </Modules>
+
+  <DataFlow>
+    <DF-001 NAME="OpenAndEditFile" TRIGGER="User chooses File → Open">
+      <step-1>User picks a file via tauri-plugin-dialog.</step-1>
+      <step-2>Renderer calls `ipc.fs.read(path)` (M-013 → M-002 via `invoke('fs_read')`).</step-2>
+      <step-3>M-010 validates path against workspace sandbox.</step-3>
+      <step-4>M-002 reads file, returns UTF-8 string.</step-4>
+      <step-5>Renderer hands content to muya.setContent (M-012).</step-5>
+      <step-6>muya tokenizes, parses, and renders DOM.</step-6>
+      <evidence>Log chain: BLOCK_VALIDATE_PATH → BLOCK_READ_FROM_DISK → BLOCK_PARSE_MARKDOWN → BLOCK_RENDER_BLOCKS.</evidence>
+    </DF-001>
+
+    <DF-002 NAME="SaveFile" TRIGGER="Cmd+S">
+      <step-1>Renderer gets markdown via muya.getMarkdown (M-012).</step-1>
+      <step-2>`ipc.fs.write(path, content)` → M-002.</step-2>
+      <step-3>M-010 re-validates path.</step-3>
+      <step-4>M-002 writes + fsyncs; acks back.</step-4>
+      <evidence>BLOCK_WRITE_TO_DISK log with { path_redacted, bytes, fsync: true }.</evidence>
+    </DF-002>
+
+    <DF-003 NAME="SearchFolder" TRIGGER="User enters query in search panel">
+      <step-1>Renderer constructs SearchQuery.</step-1>
+      <step-2>`ipc.search.run(query)` → M-004 via `invoke('search_run')`.</step-2>
+      <step-3>M-004 uses grep-searcher to stream hits.</step-3>
+      <step-4>Backend batches hits (default 50 per batch) and emits `mt:search:batch` events.</step-4>
+      <step-5>Renderer subscribes via `ipc.search.onBatch` and updates UI.</step-5>
+      <evidence>BLOCK_COMPILE_MATCHER then repeated BLOCK_STREAM_RESULTS with monotonic seq.</evidence>
+    </DF-003>
+
+    <DF-004 NAME="ExternalFileChanged" TRIGGER="Filesystem mutation outside app">
+      <step-1>notify crate observes change in watched path (M-003).</step-1>
+      <step-2>Debounced to `mt:fs:changed` event with FsChangeEvent payload.</step-2>
+      <step-3>Renderer listens via `ipc.fs.onChange`; reconciles state.</step-3>
+      <step-4>If file is currently open: compare content hash; if no unsaved changes, reload preserving scroll (#4152). If unsaved, prompt (#4146 logic).</step-4>
+      <evidence>BLOCK_EMIT_CHANGE with { kind, path_redacted, mtime }.</evidence>
+    </DF-004>
+
+    <DF-005 NAME="GlobalShortcutFired" TRIGGER="OS fires registered accelerator">
+      <step-1>M-006 receives platform event.</step-1>
+      <step-2>Emits `mt:shortcut:fired` event to focused window.</step-2>
+      <step-3>Renderer command dispatcher handles (e.g. focus window, new doc).</step-3>
+      <evidence>BLOCK_PARSE_ACCELERATOR at registration time; BLOCK_DISPATCH in renderer (M-009 pathway).</evidence>
+    </DF-005>
+
+    <DF-006 NAME="PreferencesRoundtrip" TRIGGER="User toggles a setting in prefs UI">
+      <step-1>Renderer calls `ipc.prefs.set(key, value)` → M-005.</step-1>
+      <step-2>M-005 persists via tauri-plugin-store.</step-2>
+      <step-3>M-005 emits `mt:prefs:changed` event.</step-3>
+      <step-4>Renderer store subscribers update reactive state.</step-4>
+      <evidence>No new critical block by default; log optionally on save.</evidence>
+    </DF-006>
+
+    <DF-007 NAME="ExportHtmlOrPdf" TRIGGER="File → Export">
+      <step-1>Renderer requests muya.exportHtml (M-012).</step-1>
+      <step-2>For PDF: renderer uses Tauri's window.printToPDF API via M-001 shell.</step-2>
+      <step-3>`ipc.fs.write(exportPath, bytes)` → M-002 with sandbox check.</step-3>
+      <evidence>BLOCK_EXPORT_HTML / BLOCK_EXPORT_PDF in [Renderer].</evidence>
+    </DF-007>
+
+    <DF-008 NAME="SpellCheckOnType" TRIGGER="User types a word">
+      <step-1>muya identifies word boundary.</step-1>
+      <step-2>Renderer calls `ipc.spell.suggest(word, lang)` → M-007.</step-2>
+      <step-3>M-007 queries NSSpellChecker / hunspell; returns suggestions.</step-3>
+      <step-4>Context menu on right-click shows suggestions (M-009).</step-4>
+      <evidence>BLOCK_QUERY_OS in [Spell].</evidence>
+    </DF-008>
+
+    <DF-009 NAME="DragDropImage" TRIGGER="User drops image file on editor">
+      <step-1>muya intercepts drop event with File handle.</step-1>
+      <step-2>If preference "copy to workspace" enabled: renderer calls `ipc.fs.write(relPath, bytes)` → M-002.</step-2>
+      <step-3>muya inserts `![alt](relPath)` markdown at cursor.</step-3>
+      <evidence>BLOCK_WRITE_TO_DISK for the image; BLOCK_INSERT_NODE in muya.</evidence>
+    </DF-009>
+
+    <DF-010 NAME="SecurityGuard" TRIGGER="Document contains script/link/external URL">
+      <step-1>muya parser passes HTML fragments through M-010.sec_sanitize_html.</step-1>
+      <step-2>Dangerous nodes stripped (fix for CVE-2023-2318 / #3621).</step-2>
+      <step-3>On link click, M-010.sec_confirm_shell_open gates before any shell invocation (#4177).</step-3>
+      <evidence>BLOCK_STRIP_DANGEROUS_NODES then either BLOCK_CONFIRM_PROMPT or BLOCK_REJECT_TRAVERSAL.</evidence>
+    </DF-010>
+
+    <DF-011 NAME="HomebrewInstall" TRIGGER="User runs `brew install --cask mark`">
+      <step-1>Homebrew clones tap xronocode/homebrew-mark from GitHub.</step-1>
+      <step-2>Reads Casks/mark.rb; resolves `url` to GH Release DMG under github.com/xronocode/mark.</step-2>
+      <step-3>Downloads + verifies sha256.</step-3>
+      <step-4>Mounts DMG, copies Mark.app to /Applications.</step-4>
+      <step-5>Postflight: `xattr -cr /Applications/Mark.app` strips quarantine.</step-5>
+      <step-6>User launches via Spotlight; Gatekeeper accepts ad-hoc signature.</step-6>
+      <evidence>Cask install log ends success; `xattr -l` on app has no com.apple.quarantine.</evidence>
+    </DF-011>
+
+    <DF-013 NAME="CliStartup" TRIGGER="User launches binary with CLI args">
+      <step-1>M-020 parses argv; produces CliFlags struct.</step-1>
+      <step-2>M-001 consumes flags: disables user prefs/keybindings if --safe; relocates data dir if --user-data-dir; skips spellcheck if --disable-spellcheck.</step-2>
+      <step-3>Portable-mode auto-detect: check for `marktext-user-data/` folder adjacent to binary; if present, behaves as --user-data-dir.</step-3>
+      <step-4>On unknown flag or malformed arg, print usage and exit 1.</step-4>
+      <evidence>[Cli][parse][BLOCK_PARSE] with flag inventory logged once at startup.</evidence>
+    </DF-013>
+
+    <DF-014 NAME="PandocImport" TRIGGER="File → Import chooses supported format file">
+      <step-1>Renderer opens file dialog, user selects docx/odt/etc.</step-1>
+      <step-2>`ipc.pandoc.import(path)` → M-015.</step-2>
+      <step-3>M-015 probes pandoc via M-015.pandoc_available (PATH, `/Library/TeX/texbin` on macOS, MARKTEXT_PANDOC env).</step-3>
+      <step-4>If missing, emit `mt:pandoc:not-found` with install URL.</step-4>
+      <step-5>Else spawn pandoc, pipe stdin/stdout, return markdown.</step-5>
+      <step-6>Renderer opens new tab with markdown + `UntitledDocument` pathname.</step-6>
+      <evidence>[Pandoc][pandoc_available][BLOCK_PROBE_BIN] path_resolved; [Pandoc][pandoc_import][BLOCK_SPAWN] exit_code.</evidence>
+    </DF-014>
+
+    <DF-015 NAME="AutoUpdateCheck" TRIGGER="Help → Check for Updates or startup auto-check">
+      <step-1>Renderer calls `ipc.updater.check()` → M-016.</step-1>
+      <step-2>M-016 fetches feed from GitHub Releases `xronocode/mark`.</step-2>
+      <step-3>Emit states: Checking → Available(v) | NotAvailable | Error.</step-3>
+      <step-4>On Available, renderer shows dialog: "Download v?" User confirms → `ipc.updater.download()`.</step-4>
+      <step-5>On Downloaded, renderer shows "Restart to apply" → `ipc.updater.quitAndInstall()`.</step-5>
+      <evidence>[Updater][check][BLOCK_FEED_FETCH]; [Updater][download][BLOCK_VERIFY_SIGNATURE].</evidence>
+    </DF-015>
+
+    <DF-016 NAME="RecentDocsAdd" TRIGGER="File opens via any flow">
+      <step-1>M-001 (or file-opening flow) calls `recent_add(path)` → M-017.</step-1>
+      <step-2>M-017 dedups, trims to 12, persists to config.</step-2>
+      <step-3>OS-integrate: macOS Dock NSDocumentController, Windows Jump List, Linux no-op.</step-3>
+      <step-4>Menu rebuild emits `mt::menu:recent-updated` event → renderer refreshes recent panel.</step-4>
+      <evidence>[Recent][add][BLOCK_ADD] path_redacted; [Recent][add][BLOCK_OS_INTEGRATE] platform.</evidence>
+    </DF-016>
+
+    <DF-017 NAME="ScreenshotCapture" TRIGGER="macOS: user triggers screenshot menu item">
+      <step-1>Renderer calls `ipc.screenshot.capture(targetDir)` → M-018.</step-1>
+      <step-2>M-018 spawns `screencapture -i -c`; user selects region; image goes to clipboard.</step-2>
+      <step-3>M-018 reads clipboard image, writes PNG to targetDir with timestamp name.</step-3>
+      <step-4>Returns relative path to renderer.</step-4>
+      <step-5>Renderer inserts `![](relative/path)` at cursor via muya.insertImage.</step-5>
+      <evidence>[Screenshot][capture][BLOCK_SPAWN_CAPTURE]; [Screenshot][capture][BLOCK_WRITE_FILE].</evidence>
+    </DF-017>
+
+    <DF-018 NAME="ImageBedUpload" TRIGGER="User pastes/drops image with imageInsertAction=upload">
+      <step-1>Renderer extracts image bytes from clipboard/file.</step-1>
+      <step-2>`ipc.datacenter.uploadImage({ bytes, mime })` → M-019.</step-2>
+      <step-3>M-019 dispatches by `currentUploader`: github (REST API + token from M-019.get_secret) | picgo (subprocess) | cliScript (M-010 validates path, then subprocess).</step-3>
+      <step-4>Returns URL or MT_DC_UPLOAD_FAILED.</step-4>
+      <step-5>Renderer replaces Markdown image src with remote URL.</step-5>
+      <evidence>[DataCenter][upload][BLOCK_DISPATCH_UPLOADER] { uploader, bytes_redacted }; never logs token.</evidence>
+    </DF-018>
+
+    <DF-019 NAME="EncodingRoundtrip" TRIGGER="File opened via DF-001 or saved via DF-002">
+      <step-1>On read: M-014.detect_encoding → M-014.decode; returns (UTF-8 string, EncodingMeta).</step-1>
+      <step-2>M-014.detect_line_ending and M-014.normalize_newlines apply trimTrailingNewline prefs.</step-2>
+      <step-3>Renderer stores EncodingMeta per-tab.</step-3>
+      <step-4>On save: M-014.encode reuses original encoding unless user switched via menu; applies `endOfLine` pref.</step-4>
+      <evidence>[Encoding][detect_encoding][BLOCK_DETECT_BOM]; [Encoding][normalize_newlines][BLOCK_NORMALIZE_EOL] { from, to, trim_mode }.</evidence>
+    </DF-019>
+
+    <DF-020 NAME="CommandPalette" TRIGGER="Cmd+Shift+P or menu">
+      <step-1>Renderer opens command palette component; queries commandCenter Pinia store for all commands.</step-1>
+      <step-2>Fuzzy match against typed input.</step-2>
+      <step-3>On Enter, dispatch command via `ipc.execute-command-by-id`.</step-3>
+      <evidence>[Renderer][commandPalette][BLOCK_OPEN] ; [Renderer][commandPalette][BLOCK_EXECUTE] { command_id }.</evidence>
+    </DF-020>
+
+    <DF-012 NAME="ReleasePipeline" TRIGGER="git tag v*.*.*">
+      <step-1>GitHub Actions workflow `release.yml` fires on tag push in xronocode/mark.</step-1>
+      <step-2>Matrix: macos-14 (arm64, BLOCKING), macos-13 (x86_64, BLOCKING), ubuntu-latest (continue-on-error: true), windows-latest (continue-on-error: true).</step-2>
+      <step-3>Each job: `yarn install`, build (`yarn build` or `tauri build`), macOS sign (`codesign --force --deep --sign - Mark.app`).</step-3>
+      <step-4>Packages artifacts as DMG/ZIP (macOS, required), AppImage/deb (Linux, best effort), NSIS/MSI (Windows, best effort).</step-4>
+      <step-5>`gh release create` publishes artifacts + auto-generated notes on xronocode/mark.</step-5>
+      <step-6>Separate job opens PR to xronocode/homebrew-mark updating Casks/mark.rb version + sha256 (automated via actions-user token; user reviews and merges).</step-6>
+      <evidence>GH Actions: macOS jobs green; Linux/Windows may be yellow. GH Release has DMGs. Cask livecheck detects new version.</evidence>
+    </DF-012>
+  </DataFlow>
+
+  <ImplementationOrder>
+    <Phase-0 name="GRACE Bootstrap &amp; Fork Setup" status="in-progress">
+      <goal>GRACE artifacts seeded; fork repo xronocode/mark created; modernize branch opened.</goal>
+      <step-1 status="done">Create docs/*.xml and AGENTS.md via grace-init.</step-1>
+      <step-2 status="done">Resolve open questions: fork=xronocode/mark, product=Mark, ad-hoc signing, macOS blocking CI, Mermaid v11 only.</step-2>
+      <step-3 status="pending">User creates fork at https://github.com/xronocode/mark (empty repo, private or public); hand back confirmation.</step-3>
+      <step-4 status="pending">Agent: `cd marktext &amp;&amp; git remote add fork git@github.com:xronocode/mark.git &amp;&amp; git push fork develop:main`.</step-4>
+      <step-5 status="pending">Agent: `git checkout -b modernize develop` on fork.</step-5>
+      <step-6 status="pending">Create tap repo scaffold on disk at /Users/myevdokimov/prj/mark/homebrew-mark/ with Casks/mark.rb placeholder (will be pushed to xronocode/homebrew-mark in Phase-A3).</step-6>
+      <step-7 status="pending">Verify Gate-Phase-0 evidence.</step-7>
+    </Phase-0>
+
+    <Phase-A1 name="Baseline Stabilization (bugfix + feature merges)" status="pending">
+      <goal>All 13 community PRs merged onto develop baseline; CommonMark/GFM/unit tests green.</goal>
+      <step-1 module="N/A" status="pending" verification="V-M-012">Cherry-pick #4154 (EPIPE crash fix)</step-1>
+      <step-2 module="N/A" status="pending" verification="V-M-012">Cherry-pick #4135 (empty heading slug)</step-2>
+      <step-3 module="N/A" status="pending" verification="V-M-006">Cherry-pick #4134 (capitalized hotkey modifiers)</step-3>
+      <step-4 module="N/A" status="pending" verification="V-M-011">Cherry-pick #4152 (scroll position preservation)</step-4>
+      <step-5 module="N/A" status="pending" verification="V-M-011">Cherry-pick #4146 (unsaved prompt)</step-5>
+      <step-6 module="N/A" status="pending" verification="V-M-011">Cherry-pick #4093 (dark-mode white flash)</step-6>
+      <step-7 module="N/A" status="pending" verification="V-M-010">Cherry-pick #4177 (shell.openPath confirmation)</step-7>
+      <step-8 module="N/A" status="pending" verification="V-M-010">Cherry-pick #3621 (CVE-2023-2318 XSS fix)</step-8>
+      <step-9 module="N/A" status="pending" verification="V-M-012">Cherry-pick #4157 (Mermaid macOS fix)</step-9>
+      <step-10 module="N/A" status="pending" verification="V-M-012">Cherry-pick #4025 (Mermaid v10→v11)</step-10>
+      <step-11 module="N/A" status="pending" verification="V-M-011">Cherry-pick #4070 (Always Read-Only Mode)</step-11>
+      <step-12 module="N/A" status="pending" verification="V-M-011">Cherry-pick #4150 (HTML paste → local paths)</step-12>
+      <step-13 module="N/A" status="pending" verification="V-M-011">Cherry-pick #4145 (Full WYSIWYG mode + live system theme)</step-13>
+      <step-14 status="pending">Run `yarn test:specs`, `yarn unit`, `yarn build:bin`; verify Gate-Phase-A1.</step-14>
+    </Phase-A1>
+
+    <Phase-A1-5 name="Renderer Node APIs Cleanup (pre-requisite for PR #4001)" status="pending">
+      <goal>Move Node core imports and @electron/remote usage out of renderer into main process + IPC handlers, so PR #4001's Vue 3 migration lands on a clean architecture.</goal>
+      <rationale>Audit discovered 10+ renderer files importing fs/path/child_process/crypto/Buffer directly and 6 files using @electron/remote. PR #4001 does NOT address this. Merging #4001 on top of current state carries the coupling forward and blocks Phase-B contextIsolation.</rationale>
+      <step-1 status="pending">Move `src/renderer/node/ripgrepSearcher.js` and `src/renderer/node/fileSearcher.js` to new main-process module `src/main/search/`; expose via new IPC handlers `mt::search-run`, `mt::search-cancel`. Renderer calls become `ipcRenderer.invoke()`.</step-1>
+      <step-2 status="pending">Move `src/renderer/util/fileSystem.js` contents (fs-extra writes, crypto hashes, child_process.exec for picgo/cliScript uploaders) to new main-process module `src/main/imageUpload/`; expose via `mt::image-upload`, `mt::image-hash`.</step-2>
+      <step-3 status="pending">Replace `fs.readFileSync` calls in `src/renderer/components/exportSettings/index.vue` with `ipcRenderer.invoke('mt::export-read-template', path)`.</step-3>
+      <step-4 status="pending">Replace `require('fontmanager-redux')` in `src/renderer/prefComponents/common/fontTextBox/index.vue` with `ipcRenderer.invoke('mt::fonts-list')` backed by new main handler using same native module from main.</step-4>
+      <step-5 status="pending">Replace `ipcRenderer.sendSync('mt::ask-for-image-path')` in `src/renderer/store/editor.js:1193` with `await ipcRenderer.invoke('mt::ask-for-image-path')`.</step-5>
+      <step-6 status="pending">Replace @electron/remote usage: `clipboard.read/write` → new `mt::clipboard-*` IPC; `getCurrentWindow().{minimize,maximize,close,fullscreen}` → new `mt::window-*` IPC; `new RemoteMenu/RemoteMenuItem` → new `mt::context-menu-show` IPC with serialized spec.</step-6>
+      <step-7 status="pending">Remove `@electron/remote` dependency from package.json after all 6 call-sites migrated.</step-7>
+      <step-8 status="pending">Introduce listener-cleanup convention: wrap `ipcRenderer.on` in a small helper that registers removal in Vuex module `beforeDestroy`/Pinia store `$dispose`. Fix all 59 current listeners.</step-8>
+      <step-9 status="pending">Add IME composition lock in `src/muya/lib/contentState/` — new `isComposing` flag toggled by `compositionstart`/`compositionend` listeners; all 6 keystroke handlers (enterCtrl, backspaceCtrl, tabCtrl, arrowCtrl, deleteCtrl, inputCtrl) early-return when `isComposing === true`. Queue keystrokes to apply at compositionend if safe. **This fixes R-27 CJK data loss.**</step-9>
+      <step-10 status="pending">Run full `yarn test:specs &amp;&amp; yarn unit &amp;&amp; yarn e2e`. Add new e2e test: `test/e2e/ime-composition.spec.js` simulating Chinese composition via CDP Input.dispatchKeyEvent + InputMethodEvent. Verify Gate-Phase-A1.5 evidence.</step-10>
+    </Phase-A1-5>
+
+    <Phase-A2 name="Toolchain Migration (PR #4001 + Electron 30)" status="pending">
+      <goal>electron-vite + Vue 3 + Electron 30 LTS on top of Phase-A1 result.</goal>
+      <step-1 status="pending">Merge PR #4001 onto Phase-A1 tip; resolve conflicts interactively.</step-1>
+      <step-2 status="pending">Bump electron to ^30.0.0 in package.json.</step-2>
+      <step-3 status="pending">Bump Node target to 20 LTS in package.json (engines).</step-3>
+      <step-4 status="pending">Run `yarn &amp;&amp; yarn rebuild` (electron-rebuild for all 6 native modules).</step-4>
+      <step-5 status="pending">Run `yarn unit` + `yarn e2e`; fix regressions.</step-5>
+      <step-6 status="pending">Verify Gate-Phase-A2. [USER REVIEW]</step-6>
+    </Phase-A2>
+
+    <Phase-A3 name="macOS Distribution (Ad-hoc signing + Homebrew tap)" status="pending">
+      <goal>GitHub Actions release pipeline + Homebrew cask `mark` in xronocode/homebrew-mark working on a fresh macOS VM.</goal>
+      <step-1 status="pending">Configure electron-builder for ad-hoc: set identity to null; add post-build `codesign --force --deep --sign - Mark.app` hook; rename productName to "Mark" and bundle id to com.xronocode.mark.</step-1>
+      <step-2 status="pending">Create `.github/workflows/release.yml` with matrix: macos-14 (arm64, blocking), macos-13 (x86_64, blocking), ubuntu-latest (continue-on-error: true), windows-latest (continue-on-error: true).</step-2>
+      <step-3 status="pending">Push tap repo to xronocode/homebrew-mark (user creates empty repo first).</step-3>
+      <step-4 status="pending">Write Casks/mark.rb with url pointing at github.com/xronocode/mark releases, sha256 (arm+intel), livecheck, postflight `xattr -cr` to strip quarantine.</step-4>
+      <step-5 status="pending">Test flow on clean macOS VM: `brew tap xronocode/mark &amp;&amp; brew install --cask mark &amp;&amp; open -a Mark`.</step-5>
+      <step-6 status="pending">Verify Gate-Phase-A3. [USER REVIEW]</step-6>
+    </Phase-A3>
+
+    <Phase-A4 name="v1.0 Release" status="pending">
+      <goal>v1.0.0 tagged and shipped.</goal>
+      <step-1 status="pending">Tag v1.0.0 on modernize branch.</step-1>
+      <step-2 status="pending">Verify all 16 UCs on fresh-install.</step-2>
+      <step-3 status="pending">Write release notes: per-PR changelog with author attribution.</step-3>
+      <step-4 status="pending">Verify Gate-Phase-A4. [USER REVIEW]</step-4>
+    </Phase-A4>
+
+    <Phase-B1 name="Tauri Skeleton" status="pending">
+      <goal>Tauri dev env boots, muya runs in WebView.</goal>
+      <step-1 module="M-001" status="pending" verification="V-M-001">Init `cargo tauri init` on top of v1.0 frontend.</step-1>
+      <step-2 module="M-013" status="pending" verification="V-M-013">Stub mt-ipc-bridge with noop commands.</step-2>
+      <step-3 status="pending">Verify Gate-Phase-B1.</step-3>
+    </Phase-B1>
+
+    <Phase-B2 name="FS + Search + Security" status="pending">
+      <goal>Critical-path backend modules pass their V-M gates.</goal>
+      <step-1 module="M-010" status="pending" verification="V-M-010">Implement mt-security (path + html + shell guard).</step-1>
+      <step-2 module="M-002" status="pending" verification="V-M-002">Implement mt-fs-commands, depends on M-010.</step-2>
+      <step-3 module="M-003" status="pending" verification="V-M-003">Implement mt-fs-watcher.</step-3>
+      <step-4 module="M-004" status="pending" verification="V-M-004">Implement mt-search.</step-4>
+      <step-5 module="M-013" status="pending" verification="V-M-013">Flesh out mt-ipc-bridge for fs/search/watcher.</step-5>
+      <step-6 status="pending">Verify Gate-Phase-B2.</step-6>
+    </Phase-B2>
+
+    <Phase-B3 name="Integrations (Prefs, Shortcuts, Spell, Fonts, Menu, Recent, DataCenter, CLI, Encoding, Pandoc, Updater, Screenshot)" status="pending">
+      <goal>All integration modules implemented; preferences migrate from v1; new modules wired up.</goal>
+      <step-1 module="M-005" status="pending" verification="V-M-005">Implement mt-prefs with 4-store legacy migration (preferences.json + dataCenter.json + keybindings.json + recently-used-documents.json) + keychain rename.</step-1>
+      <step-2 module="M-014" status="pending" verification="V-M-014">Implement mt-encoding (CED/chardet + iconv_rs port; 28 codec enum).</step-2>
+      <step-3 module="M-020" status="pending" verification="V-M-020">Implement mt-cli-flags (clap) and wire into M-001 startup.</step-3>
+      <step-4 module="M-006" status="pending" verification="V-M-006">Implement mt-shortcuts.</step-4>
+      <step-5 module="M-007" status="pending" verification="V-M-007">Implement mt-spell (WebView spellcheck attr + bundled hunspell dicts; NO objc2 FFI).</step-5>
+      <step-6 module="M-008" status="pending" verification="V-M-008">Implement mt-fonts.</step-6>
+      <step-7 module="M-019" status="pending" verification="V-M-019">Implement mt-datacenter (keyring + image uploaders); migrate legacy `marktext` serviceName to `com.xronocode.mark`.</step-7>
+      <step-8 module="M-017" status="pending" verification="V-M-017">Implement mt-recent-docs with per-platform OS integration.</step-8>
+      <step-9 module="M-015" status="pending" verification="V-M-015">Implement mt-pandoc-bridge with macOS `/Library/TeX/texbin` PATH patching.</step-9>
+      <step-10 module="M-016" status="pending" verification="V-M-016">Implement mt-updater (tauri-plugin-updater) with manual-download flow.</step-10>
+      <step-11 module="M-018" status="pending" verification="V-M-018">Implement mt-screenshot (macOS-only).</step-11>
+      <step-12 module="M-009" status="pending" verification="V-M-009">Implement mt-menu; wire recent-docs + command palette dispatcher.</step-12>
+      <step-13 status="pending">Verify Gate-Phase-B3.</step-13>
+    </Phase-B3>
+
+    <Phase-B4 name="Tauri Distribution and v2.0 Release" status="pending">
+      <goal>v2.0 Tauri build shipped through the same Homebrew cask.</goal>
+      <step-1 status="pending">Swap `release.yml` to use tauri-action.</step-1>
+      <step-2 status="pending">Update cask with new url template and sha256.</step-2>
+      <step-3 status="pending">Verify `du -sh /Applications/Mark.app` &lt; 30 MB on fresh install.</step-3>
+      <step-4 status="pending">Tag v2.0.0; verify `brew upgrade --cask marktext` works from v1.</step-4>
+      <step-5 status="pending">Verify Gate-Phase-B4. [USER REVIEW]</step-5>
+    </Phase-B4>
+  </ImplementationOrder>
+
+  <ExecutionPolicy>
+    <default-profile>mixed: Phase-0, A1, A2 autonomous (grace-multiagent-execute); A3, A4, B1-B4 interactive (grace-execute).</default-profile>
+    <controller-owns>docs/development-plan.xml, docs/knowledge-graph.xml, docs/verification-plan.xml</controller-owns>
+    <worker-owns>Only module source files (src/**, src-tauri/**, homebrew-tap/**) and module-local tests inside the approved write scope for each packet.</worker-owns>
+    <parallel-safe-waves>
+      <wave-A1-parallel>#4154 + #4135 + #3621 (non-overlapping file scopes) can merge in parallel; others serialize.</wave-A1-parallel>
+      <wave-B2-parallel>M-010 first, then M-002/M-003/M-004 parallel once M-010 ships.</wave-B2-parallel>
+      <wave-B3-parallel>M-005, M-006, M-008 parallel after Phase-B2; M-007 and M-009 depend on M-005 so they serialize.</wave-B3-parallel>
+    </parallel-safe-waves>
+    <escalation-triggers>
+      <trigger-1>Any red test on full spec/unit run.</trigger-1>
+      <trigger-2>Cherry-pick requires semantic conflict resolution (not just import-path rename).</trigger-2>
+      <trigger-3>Any native-module version change in package.json.</trigger-3>
+      <trigger-4>Any change to .github/workflows/ (CI integrity).</trigger-4>
+      <trigger-5>Any change to src/muya/ beyond explicit bugfix PRs.</trigger-5>
+      <trigger-6>Phase-A1.5: ANY change outside the agreed renderer-node-cleanup scope (escalate the diff diff for user review before commit).</trigger-6>
+      <trigger-7>@electron/remote removal side-effect: if any feature regresses during step-6 of Phase-A1.5, revert and escalate.</trigger-7>
+      <trigger-8>muya API snapshot mismatch: if V-M-012 API snapshot test diverges (47 methods + 26 events), escalate.</trigger-8>
+    </escalation-triggers>
+    <commit-policy>One PR-merge = one commit. No squash before v1.0 tag so blame and revert stay precise.</commit-policy>
+  </ExecutionPolicy>
+</DevelopmentPlan>
