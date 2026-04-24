@@ -102,10 +102,17 @@ export default defineConfig({
             if (/[\\/]node_modules[\\/]katex[\\/]/.test(id)) {
               return 'vendor-katex'
             }
-            // Prism (syntax highlight bundle) — only on render.
-            if (/[\\/]node_modules[\\/]prismjs[\\/]/.test(id)) {
-              return 'vendor-prism'
-            }
+            // Prism: NOT split. Prism's language plugins do
+            // `Prism.languages.foo = ...` as a side effect at module
+            // top-level, requiring Prism core to be evaluated first.
+            // Splitting it out caused "Cannot set properties of
+            // undefined (setting 'keyword')" because the chunk graph
+            // didn't preserve load order between core and plugins.
+            // Keep Prism in the entry bundle until we have a proper
+            // Prism initialization wrapper.
+            // if (/[\\/]node_modules[\\/]prismjs[\\/]/.test(id)) {
+            //   return 'vendor-prism'
+            // }
             // Markdown round-trip & sanitizer — used in editor + paste path.
             if (/[\\/]node_modules[\\/](turndown|marked|markdown-it|dompurify)[\\/]/.test(id)) {
               return 'vendor-markdown'
