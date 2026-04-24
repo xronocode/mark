@@ -71,15 +71,65 @@ Direct behavioral tests via `node -r esm`:
 | PR-3621 functional flaw | `sanitize(title, ...)` where `title===null` in else branch (should be `sanitize(text, ...)`) | CVE still closed (null can't XSS); is an upstream author bug, not ours. Log in Phase-A2 |
 | Upstream `test:specs` schema drift | `TypeError: Cannot read properties of undefined (reading 'shouldFail')` | Pre-existing — runner expects parallel arrays to stay in sync, they don't |
 | `karma-electron` crash on Electron 16/18+ | `TypeError: Cannot read properties of undefined (reading 'on')` at electron-launcher.js:34 | Will be replaced by Vite/Vitest in Phase-A2 after PR #4001 |
-| Electron binary v16 vs package.json ^18 | `./node_modules/.bin/electron --version → v16.13.2` | Cache quirk; manual fix: `rm -rf ~/Library/Caches/electron && yarn install` |
+| Electron binary `--version` reports v16.13.2 despite package.json ^18.0.4 | Misleading output of `./node_modules/.bin/electron --version` | Not a bug: that's the internal Node runtime version. Info.plist confirms Electron 18.0.4. |
+| **Electron 18 main-process `require('electron')` returns string path** | TypeError `Cannot read properties of undefined (reading 'on')` at bundled main.js:2:215822 (i.e. `i.ipcMain.on(...)`) | On this Mac (macOS 14+ arm64, ad-hoc signed), Electron's runtime module-resolver hook doesn't register. `require('electron')` falls through to node_modules/electron/index.js which exports the binary PATH string. Tried via `./node_modules/.bin/electron main.js`, direct binary, `open -a Electron.app`, with/without `--disable-gpu`, with package.json `main` entry, inside project dir — all same. Not our code; environment-specific issue likely fixed in Phase-A2 after toolchain migration (electron-vite expected to handle externals + Electron boot differently). |
 
-## Next steps (Phase-A2)
+## Environment findings from session 2
 
-1. Merge `modernize` with upstream PR #4001 (electron-vite + Vue 3 refactor) — **biggest single merge**; expect significant conflicts with our 12 cherry-picks.
-2. Bump Electron 18 → 30 LTS, Node 18 → 20 LTS; rerun electron-rebuild for native modules under new ABI.
+### Webpack externals fix (committed, `grace(env): add electron to externals`)
+Upstream's `.electron-vue/webpack.main.config.js` had `externals: [...Object.keys(dependencies || {})]` but `electron` lives in `devDependencies`. Webpack was therefore BUNDLING `electron`, so `require('electron')` in main.js resolved to the node_modules wrapper's PATH-string export rather than the runtime object. Added `'electron'` explicitly before the dependencies spread. This is architecturally correct even though it didn't unblock the runtime issue above (that's a separate Electron binary problem).
+
+### Smoke attempts summary (all failed with same error)
+1. `./node_modules/.bin/electron dist/electron/main.js` — via CLI wrapper
+2. `yarn dev` — hits `bad option: --remote-debugging-port=8315` in Electron 18 (dev-runner.js:131)
+3. `./node_modules/electron/dist/Electron.app/Contents/MacOS/Electron <project>` — direct binary
+4. `open -n -a Electron.app --args . --disable-gpu` — macOS LaunchServices
+
+Each: `TypeError: Cannot read properties of undefined (reading 'on')` at the first `ipcMain.on(...)` or `app.on(...)` or `@electron/remote.enable(...)` in main.js.
+
+### Electron binary audit (verified intact)
+- `node_modules/electron/dist/Electron.app/Contents/MacOS/Electron` = 49.3 KB launcher (normal — the real runtime is in Electron Framework.framework)
+- `Electron Framework.framework/Versions/A/Electron Framework` = 120.3 MB (genuine)
+- `Electron.app/Contents/` total = 197 MB (genuine)
+- Info.plist: `CFBundleShortVersionString = 18.0.4`, `CFBundleVersion = 18.0.4`
+- Code signature: ad-hoc (`Signature=adhoc`, `flags=0x20002(adhoc,linker-signed)`)
+
+So the binary is authentic Electron 18.0.4; the runtime hook failure is likely a ad-hoc-signed + macOS 14 Gatekeeper interaction that strips/blocks the `electron` module injection. Needs to be tested on a different machine (Linux runner, different macOS version) to confirm isolation.
+
+### Validation we DID achieve
+- **`yarn lint`** green on 12/12 PR merge points + 2 env commits (7s each)
+- **`yarn run pack`** (webpack) green on 12/12 PR merge points (34–56s each)
+- **Direct unit tests via `node -r esm`**:
+  - PR-4154 EPIPE handler: 2/2 pass (swallow EPIPE, re-throw others)
+  - PR-4134 capitalizeAccelerator: 11/11 pass (all modifier permutations)
+  - PR-4135 Slugger: 8/9 pass (1 semantic-not-regression — emoji-only passes through as valid HTML5 id)
+  - PR-4070 CLI parser `--read-only`: 5/5 pass
+  - env-patch jsdelivr fetches: 3/3 pass
+- **Static fingerprint greps**: all 12 fixes physically present at expected locations
+- **Zero merge conflict markers** in `mark-electron/src/`
+- **Zero new TODO/FIXME** introduced by our commits
+
+## Next steps
+
+### Phase-A1.5 (immediate) — Renderer Node APIs cleanup
+See `docs/development-plan.xml` Phase-A1-5, 10 steps. Static work, does not depend on runtime launch. Prepares the codebase for PR #4001 (electron-vite migration). Main tasks:
+1. Move `src/renderer/node/ripgrepSearcher.js` + `fileSearcher.js` to main; expose via `mt::search-run` / `mt::search-cancel` IPC
+2. Move `src/renderer/util/fileSystem.js` image-upload helpers to main
+3. Replace `fs.readFileSync` in `src/renderer/components/exportSettings/index.vue` with `ipcRenderer.invoke`
+4. Replace `require('fontmanager-redux')` in `src/renderer/prefComponents/common/fontTextBox/index.vue` with IPC
+5. Replace `ipcRenderer.sendSync('mt::ask-for-image-path')` with async `invoke`
+6. Replace `@electron/remote` usage (6 call sites) with typed IPC
+7. Remove `@electron/remote` from package.json
+8. Listener cleanup convention (59 `ipcRenderer.on` without `removeListener`)
+9. IME composition lock for keystroke handlers (from 2nd-wave audit, R-27)
+10. Run tests + verify Gate-Phase-A1.5
+
+### Phase-A2 (after A1.5)
+1. Merge upstream PR #4001 (electron-vite + Vue 3 refactor) — **biggest single merge**; expect conflicts with our 12 cherry-picks AND our Phase-A1.5 restructuring.
+2. Bump Electron 18 → 30 LTS, Node 18 → 20 LTS; rerun electron-rebuild under new ABI.
 3. Merge PR-4025 (Mermaid v11) as part of this wave.
-4. Verify lint + webpack (now Vite) build green on the combined result.
-5. Manual smoke: `yarn dev` launches app, UI works.
+4. Verify lint + vite build green on combined result.
+5. Manual smoke: `yarn dev` launches app (expect runtime issue from Session 2 to be resolved here).
 
 ## Files to look at first when resuming
 
