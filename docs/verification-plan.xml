@@ -126,6 +126,27 @@
       </required-trace-assertions>
       <wave-follow-up>Launch full frontend in dev mode; verify renderer mounts.</wave-follow-up>
       <phase-follow-up>Full Playwright e2e suite + fresh-VM install smoke.</phase-follow-up>
+      <edge-cases generation="swarm-2026-04-25">
+        <ec kind="concurrency" severity="high">User triggers Cmd+Q while `create_window` future is pending; app enters single drain state, not spawn a zombie window. Evidence: `[Shell][lifecycle][DRAIN_PENDING_WINDOW]` exactly once; no `[Shell][lifecycle][CREATE_WINDOW_DONE]` after.</ec>
+        <ec kind="failure" severity="critical">Second instance launch while first is mid-boot (before single-instance plugin ready) must forward CLI argv to instance #1, not crash. Evidence: `[Shell][single_instance][FORWARD_ARGV]` with pid of receiver; instance #2 exits 0.</ec>
+        <ec kind="exhaustion" severity="medium">Open 64 windows then close all must release every WebView handle; no FD leak after GC. Evidence: `lsof -p $PID | wc -l` delta == 0 and `[Shell][window][CLOSED_HANDLE_RELEASED]` count == 64.</ec>
+        <ec kind="adversarial" severity="high">macOS Gatekeeper translocation path (`/private/var/folders/.../AppTranslocation/...`) at launch must be detected and surfaced, not silently used as cwd. Evidence: `[Shell][bootstrap][DETECT_TRANSLOCATED]`.</ec>
+        <ec kind="failure" severity="high">Panic in preload script must not leave a blank unclosable window; supervisor respawns once then fails visibly. Evidence: `[Shell][supervisor][PRELOAD_PANIC_RESPAWN attempt=1]` then `...FAIL_VISIBLE` on second panic.</ec>
+        <ec kind="concurrency" severity="medium">Window restore racing with `--new-window` CLI flag: restored session MUST NOT reopen the file already requested by CLI (dedupe by canonicalized path). Evidence: `[Shell][session][DEDUPE_CLI_VS_RESTORE path=...]`.</ec>
+        <ec kind="failure" severity="high">SIGTERM during unsaved-buffer flush: app waits up to 3s for flush, then aborts cleanly. Evidence: `[Shell][shutdown][FLUSH_DEADLINE_EXCEEDED]` OR `...FLUSH_COMPLETE`; never both absent.</ec>
+      </edge-cases>
+      <additional-log-markers generation="swarm-2026-04-25">
+        <marker>[Shell][lifecycle][DRAIN_PENDING_WINDOW]</marker>
+        <marker>[Shell][single_instance][FORWARD_ARGV]</marker>
+        <marker>[Shell][supervisor][PRELOAD_PANIC_RESPAWN]</marker>
+        <marker>[Shell][bootstrap][DETECT_TRANSLOCATED]</marker>
+        <marker>[Shell][shutdown][FLUSH_DEADLINE_EXCEEDED]</marker>
+      </additional-log-markers>
+      <negative-assertions generation="swarm-2026-04-25">
+        <no>MUST NOT leak WebView or file handles after window close (lsof delta == 0).</no>
+        <no>MUST NOT spawn more than one window for the same canonical path across CLI+session restore.</no>
+        <no>MUST NOT continue running under Gatekeeper translocation without explicit user acknowledgment.</no>
+      </negative-assertions>
     </V-M-001>
 
     <V-M-002 MODULE="M-002 mt-fs-commands" PRIORITY="critical">
@@ -152,6 +173,30 @@
       </required-trace-assertions>
       <wave-follow-up>Integration with M-003 watcher: write then observe change event.</wave-follow-up>
       <phase-follow-up>Full Playwright flow: open file → edit → save.</phase-follow-up>
+      <edge-cases generation="swarm-2026-04-25">
+        <ec kind="failure" severity="medium">Symlink loop A→B→A: readlink chain bounded; returns MT_FS_SYMLINK_LOOP after N=40 hops (matches POSIX ELOOP).</ec>
+        <ec kind="failure" severity="medium">Broken symlink (target deleted): stat returns MT_FS_BROKEN_LINK; read does NOT fall back to creating target.</ec>
+        <ec kind="adversarial" severity="critical">Symlink pointing outside sandbox root: canonicalize then re-validate against M-010; rejected BEFORE open(2).</ec>
+        <ec kind="failure" severity="high">Non-regular inode (FIFO, socket, block/char device, /dev/zero): S_ISREG check fails → MT_FS_NOT_REGULAR. Must not block on read from FIFO.</ec>
+        <ec kind="adversarial" severity="high">Filename containing NUL byte (`foo\0bar`) or path separator inside segment: rejected at BLOCK_VALIDATE_PATH (pre-CString conversion).</ec>
+        <ec kind="adversarial" severity="medium">Windows reserved names (CON, PRN, NUL, COM1-9, LPT1-9) with or without extension: rejected on Windows target only; allowed on Unix.</ec>
+        <ec kind="adversarial" severity="medium">Trailing whitespace / trailing dot filenames on Windows: rejected (NTFS silently strips, causing write-vs-read path mismatch).</ec>
+        <ec kind="failure" severity="high">Disk-full mid-write: write(2) returns ENOSPC → atomic temp+rename contract ensures original file untouched; temp cleaned up.</ec>
+        <ec kind="contract" severity="high">fsync ordering: write-to-temp → fsync(temp) → rename → fsync(parent-dir). All four syscalls observable via strace/dtruss.</ec>
+        <ec kind="failure" severity="medium">Read-only parent directory: creating new file returns EACCES → MT_FS_PERM_DENIED; no partial file left.</ec>
+        <ec kind="failure" severity="medium">macOS TCC denial (Desktop/Documents/Downloads without entitlement): errno 1 EPERM → stable MT_FS_TCC_DENIED distinct from MT_FS_PERM_DENIED.</ec>
+        <ec kind="concurrency" severity="high">External mv/rm between validate_path and open: open returns ENOENT → MT_FS_RACE_VANISHED (not MT_FS_NOT_FOUND) so UI can refresh.</ec>
+      </edge-cases>
+      <additional-log-markers generation="swarm-2026-04-25">
+        <marker>[FsCmd][read][BLOCK_RESOLVE_SYMLINK] { hops, canonical_redacted }</marker>
+        <marker>[FsCmd][write][BLOCK_ATOMIC_RENAME] { temp_redacted, fsync_parent }</marker>
+        <marker>[FsCmd][validate][BLOCK_REJECT_RESERVED] { reason }</marker>
+      </additional-log-markers>
+      <negative-assertions generation="swarm-2026-04-25">
+        <no>No BLOCK_READ_FROM_DISK emitted for NUL-byte path, FIFO, reserved name, or post-canonicalize out-of-sandbox path.</no>
+        <no>On ENOSPC during write, original file SHA256 unchanged after error; exactly one BLOCK_ATOMIC_RENAME failure log.</no>
+        <no>Symlink loop emits exactly one BLOCK_RESOLVE_SYMLINK with hops==40 then error — not 40 separate logs.</no>
+      </negative-assertions>
     </V-M-002>
 
     <V-M-003 MODULE="M-003 mt-fs-watcher" PRIORITY="high">
@@ -175,6 +220,31 @@
       </required-trace-assertions>
       <wave-follow-up>Integration with sidebar UI.</wave-follow-up>
       <phase-follow-up>E2e: open folder, touch file externally, see sidebar update.</phase-follow-up>
+      <edge-cases generation="swarm-2026-04-25">
+        <ec kind="perf" severity="high">Burst 1000 writes in 100ms: debouncer coalesces to ≤50 emitted events; zero drops (all final states represented).</ec>
+        <ec kind="failure" severity="medium">Watched directory deleted externally: emits single BLOCK_ROOT_GONE, stops watcher, does not respawn loop.</ec>
+        <ec kind="failure" severity="medium">Rename of watched root itself (mv /a /b): re-anchor OR emit BLOCK_ROOT_RENAMED; no stale inotify fd.</ec>
+        <ec kind="linux" severity="high">inotify queue overflow (IN_Q_OVERFLOW from kernel fs.inotify.max_queued_events): watcher MUST emit BLOCK_RESYNC_REQUIRED and perform full rescan, not silent drop.</ec>
+        <ec kind="macos" severity="medium">FSEvents coalesces rapid rename-A→B→A into zero events: integration test documents behavior; watcher surfaces latest snapshot on idle.</ec>
+        <ec kind="windows" severity="medium">ReadDirectoryChangesW buffer (default 64KB) overrun on rapid churn: ERROR_NOTIFY_ENUM_DIR → emit BLOCK_RESYNC_REQUIRED.</ec>
+        <ec kind="failure" severity="medium">Case-only rename on APFS/NTFS (Foo.md → foo.md): event fires with correct final casing (notify crate bug-prone area).</ec>
+        <ec kind="failure" severity="medium">Rapid delete+recreate of same path within debounce window: emits Modify (not Delete+Create) OR both — assertion must match documented contract exactly.</ec>
+        <ec kind="failure" severity="medium">Network drive disconnect (SMB EIO / macOS iCloud evict): emits BLOCK_WATCH_FAULT with source=io; does not panic the task.</ec>
+        <ec kind="failure" severity="low">Permission-only change (chmod, no content): either suppressed OR typed as Metadata (not Modify) — stable contract.</ec>
+        <ec kind="failure" severity="medium">Invalid path on start: returns error synchronously AND no tokio task is spawned (assert task count unchanged).</ec>
+      </edge-cases>
+      <additional-log-markers generation="swarm-2026-04-25">
+        <marker>[FsWatcher][onEvent][BLOCK_DEBOUNCE_COALESCE] { in, out, window_ms }</marker>
+        <marker>[FsWatcher][onEvent][BLOCK_RESYNC_REQUIRED] { reason }</marker>
+        <marker>[FsWatcher][stop][BLOCK_UNREGISTER_NOTIFY] { watch_id }</marker>
+        <marker>[FsWatcher][onEvent][BLOCK_ROOT_GONE]</marker>
+        <marker>[FsWatcher][onEvent][BLOCK_ROOT_RENAMED]</marker>
+      </additional-log-markers>
+      <negative-assertions generation="swarm-2026-04-25">
+        <no>After stop(): zero further BLOCK_EMIT_CHANGE even if FS churns for 2s (no-leak contract).</no>
+        <no>Invalid-path start: zero BLOCK_REGISTER_NOTIFY markers — must fail before notify::watch call.</no>
+        <no>Queue overflow: exactly one BLOCK_RESYNC_REQUIRED, not one per lost event.</no>
+      </negative-assertions>
     </V-M-003>
 
     <V-M-004 MODULE="M-004 mt-search" PRIORITY="high">
@@ -199,6 +269,30 @@
       </required-trace-assertions>
       <wave-follow-up>UI wire-up in sidebar search panel.</wave-follow-up>
       <phase-follow-up>Performance budget check on 10k-file fixture.</phase-follow-up>
+      <edge-cases generation="swarm-2026-04-25">
+        <ec kind="failure" severity="high">Catastrophic regex `(a+)+b` on 100-char `aaaa...` input: bounded by regex crate (no backtracking engine) OR wrapped in per-file timeout ≤2s; emits BLOCK_SEARCH_TIMEOUT.</ec>
+        <ec kind="failure" severity="medium">UTF-16LE file with valid text: ripgrep by default treats as binary; verify -E utf-16 or BOM-sniff path surfaces matches — stable, not silently skipped.</ec>
+        <ec kind="perf" severity="medium">1 MB single-line file: streamed match respects line-bound; no full-line buffer &gt;4 MB allocated (assert via heap probe).</ec>
+        <ec kind="failure" severity="medium">Symlink loop inside search root: ignored by default (follow_links=false); with follow enabled, bounded traversal ≤40 hops.</ec>
+        <ec kind="contract" severity="medium">.gitignore layering: parent/.gitignore + child/.gitignore + child/.ignore precedence matches ripgrep (child overrides parent; .ignore wins over .gitignore).</ec>
+        <ec kind="contract" severity="low">Hidden files (dot-prefix) excluded by default; --hidden flag path exercised separately.</ec>
+        <ec kind="cancel" severity="high">Cancel mid-stream: after cancel token trip, no rg child process remains (assert via ps/proc); stdout pipe drained, no zombie.</ec>
+        <ec kind="cancel" severity="medium">Cancel during BLOCK_COMPILE_MATCHER (before streaming): returns Cancelled error; zero BLOCK_STREAM_RESULTS markers.</ec>
+        <ec kind="unicode" severity="medium">Regex `\p{Script=Cyrillic}` matches Cyrillic strings; `\p{Han}` matches 中文; normalization documented (NFC vs NFD — macOS filenames NFD, file content NFC).</ec>
+        <ec kind="unicode" severity="medium">Combining marks: search for "café" (NFC precomposed) in file containing "café" (NFD): documented hit-or-miss; test pins actual behavior.</ec>
+        <ec kind="failure" severity="low">Binary file with text-like header (ELF+embedded strings): correctly skipped (NUL-byte heuristic) unless --text.</ec>
+        <ec kind="perf" severity="medium">Results backpressure: renderer slow-consumes batches; producer blocks on bounded channel, no unbounded growth (assert channel cap respected).</ec>
+      </edge-cases>
+      <additional-log-markers generation="swarm-2026-04-25">
+        <marker>[Search][run][BLOCK_SEARCH_TIMEOUT] { path_redacted, elapsed_ms }</marker>
+        <marker>[Search][run][BLOCK_CANCEL_OBSERVED] { after_batch_seq }</marker>
+        <marker>[Search][walk][BLOCK_IGNORE_APPLIED] { file_redacted, source }</marker>
+      </additional-log-markers>
+      <negative-assertions generation="swarm-2026-04-25">
+        <no>After cancel: zero BLOCK_STREAM_RESULTS with seq &gt; cancel_seq; zero child rg PIDs on ps snapshot.</no>
+        <no>Catastrophic regex: no thread blocked &gt;2s; exactly one BLOCK_SEARCH_TIMEOUT per offending file.</no>
+        <no>Hidden / gitignored files: zero match emissions (not filtered post-match — filtered at walk).</no>
+      </negative-assertions>
     </V-M-004>
 
     <V-M-005 MODULE="M-005 mt-prefs" PRIORITY="high">
@@ -222,6 +316,32 @@
       </required-trace-assertions>
       <wave-follow-up>Frontend reads/writes preferences through M-013 bridge.</wave-follow-up>
       <phase-follow-up>Smoke: install v1 Electron app, add prefs, install v2 Tauri app, verify prefs carried over.</phase-follow-up>
+      <edge-cases generation="swarm-2026-04-25">
+        <ec kind="failure" severity="high">Partial migration — `preferences.json` imported, `keybindings.json` read throws IO. Marker `mt_migration_v1_done` remains `false`; next launch resumes from `BLOCK_MIGRATE_KEYBINDINGS`, does not re-import preferences.</ec>
+        <ec kind="failure" severity="high">Corrupted legacy JSON — truncated, trailing comma, UTF-8 BOM prefix. Each shape emits `MT_PREFS_CORRUPT`, falls back to defaults for that file only, other 3 files still migrate.</ec>
+        <ec kind="failure" severity="medium">Schema drift — legacy pref has `"theme": "ocean"` no longer in enum, unknown key `oldFeatureToggle`, new required key `theme_variant` missing. Unknown keys dropped (logged), invalid enums coerced to default, missing required keys filled. `MT_PREFS_SCHEMA_MISMATCH` emitted once per affected key.</ec>
+        <ec kind="concurrency" severity="high">Concurrent launch — two app instances start migration simultaneously. Lockfile `mt_migration.lock` in store dir; second instance observes lock, waits or aborts cleanly (no double-write, no backup overwrite).</ec>
+        <ec kind="failure" severity="high">Write failure mid-migration — `ENOSPC`/readonly on new store path after `BLOCK_MIGRATE_PREFERENCES` succeeds but before `BLOCK_MIGRATE_DATACENTER`. Backup `preferences.json.bak` preserved, new store rolled back to empty, marker not set.</ec>
+        <ec kind="success" severity="low">Idempotency — re-invoke `prefs_migrate` with marker already set. No legacy reads attempted; only `[Prefs][migrate][BLOCK_SKIP_ALREADY_DONE]` emitted.</ec>
+        <ec kind="failure" severity="medium">Keychain locked / user denies prompt during `BLOCK_MIGRATE_KEYCHAIN`. Non-secret migration still completes; secret migration deferred with `MT_DC_KEYCHAIN`; marker set with `{ secrets_deferred: true }`.</ec>
+        <ec kind="success" severity="low">Type coercion — legacy `"autoSave": "true"` (string) and `"lineHeight": "1.6"` (string). Validator coerces per schema; null vs missing distinguished (null kept as explicit override, missing fills default).</ec>
+        <ec kind="success" severity="low">Absolute path hygiene — `defaultDirectoryToOpen` points at deleted folder. Migrated as-is; first read falls back to `$HOME/Documents` with `[Prefs][validate][BLOCK_PATH_FALLBACK]`.</ec>
+      </edge-cases>
+      <additional-log-markers generation="swarm-2026-04-25">
+        <marker>[Prefs][migrate][BLOCK_RESUME]</marker>
+        <marker>[Prefs][migrate][BLOCK_LOCK_ACQUIRED]</marker>
+        <marker>[Prefs][migrate][BLOCK_LOCK_CONTENDED]</marker>
+        <marker>[Prefs][migrate][BLOCK_ROLLBACK]</marker>
+        <marker>[Prefs][migrate][BLOCK_SKIP_ALREADY_DONE]</marker>
+        <marker>[Prefs][validate][BLOCK_COERCE]</marker>
+        <marker>[Prefs][validate][BLOCK_PATH_FALLBACK]</marker>
+      </additional-log-markers>
+      <negative-assertions generation="swarm-2026-04-25">
+        <no>No migration log line contains substrings matching `github_pat_|ghp_|ghs_|gho_` (token regex).</no>
+        <no>`mt_migration_v1_done` never set unless all 5 `BLOCK_MIGRATE_*` emitted, or explicit `secrets_deferred: true`.</no>
+        <no>Lockfile removed on every exit path (success, error, panic via `Drop`).</no>
+        <no>No call path writes to the new store while any `.bak` file exists without the lock held.</no>
+      </negative-assertions>
     </V-M-005>
 
     <V-M-006 MODULE="M-006 mt-shortcuts" PRIORITY="medium">
@@ -241,6 +361,31 @@
       </required-log-markers>
       <wave-follow-up>User toggles shortcuts in preferences, new binding takes effect without restart.</wave-follow-up>
       <phase-follow-up>E2e hotkey coverage.</phase-follow-up>
+      <edge-cases generation="swarm-2026-04-25">
+        <ec kind="macos" severity="medium">Accelerator already claimed by Spotlight / CleanShot / Raycast → register returns `MT_SHORTCUT_CONFLICT`, command falls back to local (in-window) binding, toast surfaces conflict source if OS reports it.</ec>
+        <ec kind="contract" severity="high">Modifier normalization matrix — `ctrl+alt+1`, `Ctrl+Alt+1`, `Control+Alt+1`, `CommandOrControl+Alt+1` all hash to one canonical form (PR #4134 regression).</ec>
+        <ec kind="adversarial" severity="medium">Numpad1 vs Digit1 treated as distinct physical keys; parser MUST reject `Numpad` token on macOS (no NumpadN keysym).</ec>
+        <ec kind="contract" severity="medium">Runtime keyboard-layout switch (US → RU Cyrillic) — bindings match by `KeyCode` (physical), not `Key` (character); Cmd+Я equivalent to Cmd+Z on US layout still fires `undo`.</ec>
+        <ec kind="ime" severity="high">IME composition active — `shortcut_dispatch` returns early when `compositionstart` flag set; dead-key sequences (`Alt+e`, `e` → é) do not fire Alt shortcut.</ec>
+        <ec kind="failure" severity="medium">Modifier-only accel (`Shift`, `Ctrl`) rejected with `MT_SHORTCUT_INVALID_ACCEL` at parse time.</ec>
+        <ec kind="contract" severity="medium">Duplicate binding (two commands → same accel) — last-registered wins, prior registration unregistered, warning logged; no silent double-dispatch.</ec>
+        <ec kind="contract" severity="low">Chorded `Ctrl+K Ctrl+O` — 1.5s timeout between pairs, cancelled on any non-modifier key outside chord.</ec>
+        <ec kind="macos" severity="medium">Global shortcut requires Accessibility permission — missing permission surfaces `MT_SHORTCUT_CONFLICT` with hint `requires_accessibility=true`, not panic.</ec>
+        <ec kind="contract" severity="low">Register/unregister idempotency — unregistering unknown accel is no-op; re-registering same (id, accel) is no-op.</ec>
+      </edge-cases>
+      <additional-log-markers generation="swarm-2026-04-25">
+        <marker>[Shortcuts][register][BLOCK_PARSE_ACCELERATOR] { raw, canonical, modifiers }</marker>
+        <marker>[Shortcuts][register][CONFLICT] { accel, owner_hint }</marker>
+        <marker>[Shortcuts][dispatch][SUPPRESSED_IME]</marker>
+        <marker>[Shortcuts][chord][TIMEOUT_RESET]</marker>
+        <marker>[Shortcuts][layout][LAYOUT_CHANGED] { old, new, rebinds }</marker>
+      </additional-log-markers>
+      <negative-assertions generation="swarm-2026-04-25">
+        <no>MUST NOT fire during `compositionstart`/`compositionend` window.</no>
+        <no>MUST NOT register modifier-only accelerators.</no>
+        <no>MUST NOT panic when OS returns permission-denied; surface typed error.</no>
+        <no>MUST NOT double-dispatch on duplicate registrations.</no>
+      </negative-assertions>
     </V-M-006>
 
     <V-M-007 MODULE="M-007 mt-spell" PRIORITY="medium">
@@ -260,6 +405,31 @@
       </required-log-markers>
       <wave-follow-up>Context-menu integration in renderer.</wave-follow-up>
       <phase-follow-up>Playwright right-click-on-misspelled scenario.</phase-follow-up>
+      <edge-cases generation="swarm-2026-04-25">
+        <ec kind="failure" severity="medium">Requested locale has no bundled or OS dict → fallback chain `requested → en_US → disable`; emits `MT_SPELL_LANG_UNAVAILABLE`; UI toast once per session.</ec>
+        <ec kind="perf" severity="high">100k-word document — checking is debounced (≥150ms) and incremental (visible viewport first); main thread yields every N tokens.</ec>
+        <ec kind="success" severity="low">Custom word add — Unicode grapheme (`café`), apostrophe (`don't`, curly `don't`), hyphenated (`well-known`), leading digit (`3D`) — round-trip identical through add/remove/get.</ec>
+        <ec kind="macos" severity="medium">NSSpellChecker auto-detect conflicts with user `language` pref — user pref wins; autodetect only applied when pref is `auto`.</ec>
+        <ec kind="contract" severity="medium">Mixed-language doc (Russian prose + English code block) — code block excluded entirely; no per-region switch within prose in v1.0 (documented limitation).</ec>
+        <ec kind="contract" severity="medium">Code fences and inline code (`` `foo` ``) skipped; Markdown emphasis markers stripped before check (`**bold**` flags only `bold`, not `**bold**`).</ec>
+        <ec kind="success" severity="low">"Ignore all in document" persists per-doc (not global) via in-memory session store; dropped on doc close.</ec>
+        <ec kind="contract" severity="medium">Disabling spell removes the `spellcheck` WebView attribute on editor root, not just CSS; re-enable re-attaches without reload.</ec>
+        <ec kind="failure" severity="medium">Corrupt `.aff`/`.dic` in bundled dir — `BLOCK_LOAD_DICT` catches parse error, marks lang as unavailable, continues with remaining langs.</ec>
+        <ec kind="failure" severity="low">Custom dictionary file truncated / non-UTF-8 — recovered by rewriting empty file and backing up corrupt copy to `.bak`; never blocks startup.</ec>
+      </edge-cases>
+      <additional-log-markers generation="swarm-2026-04-25">
+        <marker>[Spell][load_dict][BLOCK_LOAD_DICT] { lang, source, ms }</marker>
+        <marker>[Spell][switch_lang][BLOCK_SWITCH_LANG] { from, to, fallback }</marker>
+        <marker>[Spell][custom_word][BLOCK_CUSTOM_WORD_PERSIST] { op, word_hash }</marker>
+        <marker>[Spell][custom_dict][RECOVERED_CORRUPT]</marker>
+        <marker>[Spell][check][SKIPPED_CODE_BLOCK]</marker>
+      </additional-log-markers>
+      <negative-assertions generation="swarm-2026-04-25">
+        <no>MUST NOT spellcheck inside fenced / inline code spans.</no>
+        <no>MUST NOT block the main thread &gt; 16ms per chunk on large docs.</no>
+        <no>MUST NOT silently fall back without logging and notifying user.</no>
+        <no>MUST NOT store "ignore all" globally.</no>
+      </negative-assertions>
     </V-M-007>
 
     <V-M-008 MODULE="M-008 mt-fonts" PRIORITY="low">
@@ -278,6 +448,26 @@
       </required-log-markers>
       <wave-follow-up>Preferences UI font picker.</wave-follow-up>
       <phase-follow-up>None.</phase-follow-up>
+      <edge-cases generation="swarm-2026-04-25">
+        <ec kind="windows" severity="high">5000+ fonts installed — first enumeration async on background thread, returns stub + emits `fonts-ready` event when cache populated; UI does not block.</ec>
+        <ec kind="failure" severity="medium">Corrupt TTF/OTF in user font dir — font-kit error caught per-file, offending path logged, enumeration continues.</ec>
+        <ec kind="contract" severity="medium">Family variants (Regular / Bold / Italic / Light) collapsed to one `FontFamily` entry with `weights[]` / `styles[]` fields; picker shows family, not every face.</ec>
+        <ec kind="failure" severity="medium">Font uninstalled while app open — editor's picked family no longer available → CSS falls back to family stack; `fonts_list` cache invalidated on OS `FontsChanged` notification (macOS `CTFontManager`, Windows `WM_FONTCHANGE`, Linux fontconfig signal).</ec>
+        <ec kind="contract" severity="medium">Monospace preference — filter by `is_monospace()` from font-kit metrics, not by name heuristic (rejects "Courier Sans" variants).</ec>
+        <ec kind="unicode" severity="low">CJK / emoji family names in native script round-trip correctly (NFC-normalized); duplicate families differing only by NFD/NFC merged.</ec>
+        <ec kind="contract" severity="low">Duplicate family in user dir AND system dir — deduped by family + PostScript-name hash; user-dir source wins.</ec>
+        <ec kind="failure" severity="low">Empty enumeration result (sandboxed env, font-kit returns `Ok(vec![])`) — NOT treated as error; UI shows system-default stack only.</ec>
+      </edge-cases>
+      <additional-log-markers generation="swarm-2026-04-25">
+        <marker>[Fonts][list][BLOCK_ENUMERATE] { total, families, ms, source_dirs }</marker>
+        <marker>[Fonts][list][CORRUPT_SKIPPED] { path, err }</marker>
+        <marker>[Fonts][cache][INVALIDATED] { reason }</marker>
+      </additional-log-markers>
+      <negative-assertions generation="swarm-2026-04-25">
+        <no>MUST NOT panic on any single corrupt font file.</no>
+        <no>MUST NOT block IPC &gt; 50ms; slow enumeration is async.</no>
+        <no>MUST NOT classify proportional fonts as monospace by name.</no>
+      </negative-assertions>
     </V-M-008>
 
     <V-M-009 MODULE="M-009 mt-menu" PRIORITY="medium">
@@ -305,6 +495,31 @@
       </required-log-markers>
       <wave-follow-up>E2e navigates every menu item (128 items); contract-snapshot test asserts menu tree identical to captured baseline.</wave-follow-up>
       <phase-follow-up>Accessibility pass (v2.x — ARIA not in v1.0 scope per R-35).</phase-follow-up>
+      <edge-cases generation="swarm-2026-04-25">
+        <ec kind="contract" severity="medium">Accelerator label platform-correct — `Cmd+Shift+P` glyphs on macOS, `Ctrl+Shift+P` text on Win/Linux; Alt mnemonics (`&amp;File`) only rendered on Windows.</ec>
+        <ec kind="concurrency" severity="medium">Recent-docs async populate race — menu rebuild queued; concurrent `mt::update-recent-docs` events coalesced (last within 50ms wins), no duplicate entries, no flicker of stale.</ec>
+        <ec kind="perf" severity="medium">Context menu on misspelled word — suggestion fetch from M-007 bounded to 100ms; on timeout, menu opens with "Loading…" item then patches in-place, never blocks.</ec>
+        <ec kind="contract" severity="medium">Enabled/disabled state reactive — Save disabled when no dirty buffer; Undo disabled on empty history; driven by `mt::editor-state-changed` without rebuild.</ec>
+        <ec kind="contract" severity="low">Runtime i18n switch — menu tree rebuilt, accelerators preserved, checked/radio state preserved across rebuild.</ec>
+        <ec kind="perf" severity="low">Recent-docs overflow (&gt;12 cap) — oldest dropped; submenu fits without scroll. Stress with 50 historical entries in store, assert 12 shown.</ec>
+        <ec kind="macos" severity="medium">Accelerator collision with WebView text-input default (`Cmd+A` select-all) — menu registration does NOT shadow WebView handler inside `&lt;input&gt;`/`contenteditable` focus.</ec>
+        <ec kind="linux" severity="low">GTK vs Qt menu backends under Tauri — same menu spec renders; no crash when DE cannot host a global menu (fallback to in-window).</ec>
+        <ec kind="contract" severity="low">Context-menu dismissed without selection — no `MenuInvoked` event; no orphan state.</ec>
+        <ec kind="macos" severity="low">`services` / `recentdocuments` / `Bring All to Front` stub — invoking logs `[Menu][stub]`, no panic, no `NSException`.</ec>
+      </edge-cases>
+      <additional-log-markers generation="swarm-2026-04-25">
+        <marker>[Menu][build][BLOCK_REBUILD] { items, locale, platform }</marker>
+        <marker>[Menu][onInvoke][BLOCK_DISPATCH] { menu_id, window_id }</marker>
+        <marker>[Menu][recent][COALESCED] { dropped }</marker>
+        <marker>[Menu][context][SUGGEST_TIMEOUT]</marker>
+        <marker>[Menu][stub][INVOKED] { role }</marker>
+      </additional-log-markers>
+      <negative-assertions generation="swarm-2026-04-25">
+        <no>MUST NOT emit `MenuInvoked` for dismissed context menus.</no>
+        <no>MUST NOT block &gt; 100ms waiting for spell suggestions.</no>
+        <no>MUST NOT shadow WebView edit shortcuts inside input focus on macOS.</no>
+        <no>MUST NOT lose checked/radio state across rebuild.</no>
+      </negative-assertions>
     </V-M-009>
 
     <V-M-010 MODULE="M-010 mt-security" PRIORITY="critical">
@@ -344,6 +559,34 @@
       </required-trace-assertions>
       <wave-follow-up>Full Playwright XSS payload suite with all 22 payloads.</wave-follow-up>
       <phase-follow-up>Manual penetration-style review before v1.0 and v2.0 releases; independent security-checklist pass.</phase-follow-up>
+      <edge-cases generation="swarm-2026-04-25">
+        <ec kind="adversarial" severity="critical">Windows UNC + device-namespace bypass: `\\?\C:\Workspace\..\..\Windows\System32\config\SAM` and `\\.\PhysicalDrive0` MUST reject before canonicalization. Evidence: `[Security][path][BLOCK_DEVICE_NAMESPACE]`.</ec>
+        <ec kind="adversarial" severity="critical">Symlink inside sandbox pointing to `/etc/shadow` is resolved post-canonicalize and rejected; not just lexically checked. Evidence: `[Security][path][BLOCK_SYMLINK_ESCAPES]` with resolved target.</ec>
+        <ec kind="adversarial" severity="high">NUL byte in path (`file\0.md`) and paths > PATH_MAX (4096) rejected before FS syscall. Evidence: `[Security][path][BLOCK_NUL_OR_OVERLONG len=...]`.</ec>
+        <ec kind="adversarial" severity="critical">HTML sanitizer bypass: SVG `&lt;use href="#x"&gt;`+`&lt;script&gt;` in defs; CSS `expression()`; mXSS via `&lt;noscript&gt;&lt;p title="&lt;/noscript&gt;&lt;img src=x onerror=...&gt;"&gt;`; nested entity `&amp;amp;#x3C;script&amp;amp;#x3E;`; DOM clobbering via `&lt;form&gt;&lt;input name=attributes&gt;` — each rendered inert. Evidence: fixture suite `xss-extended/1..12` all `[Security][sanitize][BLOCK_STRIP_DANGEROUS_NODES]`.</ec>
+        <ec kind="adversarial" severity="critical">URL schemes `javascript:`, `vbscript:`, `data:text/html`, `data:image/svg+xml;base64`, custom `mt://`, and tab/CRLF-smuggled `java\tscript:` all rejected; only allowlisted schemes pass. Evidence: `[Security][url][BLOCK_SCHEME scheme=...]`.</ec>
+        <ec kind="adversarial" severity="high">`shell.openPath` of `.command`, `.desktop`, `.lnk`, `.url`, `.scpt`, `.app` refused with explicit confirm regardless of sandbox membership. Evidence: `[Security][shellOpen][BLOCK_EXECUTABLE_EXT ext=...]`.</ec>
+        <ec kind="adversarial" severity="medium">Unicode homoglyph domain (Cyrillic `аррӏе.com`) in link triggers punycode warning with both displayed and ASCII form. Evidence: `[Security][punycode][BLOCK_PUNYCODE_WARN ascii=xn--...]`.</ec>
+        <ec kind="failure" severity="critical">Security module MUST fail closed: if DOMPurify bundle fails to load, renderer refuses all HTML (blank + banner), never falls back to raw. Evidence: `[Security][bootstrap][FAIL_CLOSED_NO_DOMPURIFY]` and zero `sanitize()` returns.</ec>
+        <ec kind="exhaustion" severity="medium">Deeply nested HTML (1000-level `&lt;div&gt;`) sanitized within 500ms or rejected; no stack overflow. Evidence: `[Security][sanitize][DEPTH_CAP_HIT depth=...]`.</ec>
+        <ec kind="adversarial" severity="high">Case-insensitive FS (macOS default, Windows): sandbox `/Users/me/Work` MUST block `/users/me/work/../../etc` after NFC+case-fold normalization. Evidence: `[Security][path][BLOCK_CASEFOLD_TRAVERSAL]`.</ec>
+      </edge-cases>
+      <additional-log-markers generation="swarm-2026-04-25">
+        <marker>[Security][path][BLOCK_DEVICE_NAMESPACE]</marker>
+        <marker>[Security][path][BLOCK_SYMLINK_ESCAPES]</marker>
+        <marker>[Security][path][BLOCK_NUL_OR_OVERLONG]</marker>
+        <marker>[Security][url][BLOCK_SCHEME]</marker>
+        <marker>[Security][shellOpen][BLOCK_EXECUTABLE_EXT]</marker>
+        <marker>[Security][bootstrap][FAIL_CLOSED_NO_DOMPURIFY]</marker>
+        <marker>[Security][sanitize][DEPTH_CAP_HIT]</marker>
+        <marker>[Security][punycode][BLOCK_PUNYCODE_WARN]</marker>
+      </additional-log-markers>
+      <negative-assertions generation="swarm-2026-04-25">
+        <no>MUST NOT allow `file://` outside approved roots even when `--debug` or dev build is active.</no>
+        <no>MUST NOT fall back to unsanitized HTML if DOMPurify init fails — fail closed.</no>
+        <no>MUST NOT leak canonicalized absolute paths or user home into serialized error messages returned to renderer.</no>
+        <no>MUST NOT rely on lexical `..` check alone — symlinks require post-canonicalize re-check.</no>
+      </negative-assertions>
     </V-M-010>
 
     <V-M-011 MODULE="M-011 mt-renderer" PRIORITY="critical">
@@ -376,6 +619,33 @@
       </required-log-markers>
       <wave-follow-up>Running against Tauri WebView vs Chromium — benchmark 10 MB doc, 10k-para performance.</wave-follow-up>
       <phase-follow-up>Full e2e regression; listener-leak soak test.</phase-follow-up>
+      <edge-cases generation="swarm-2026-04-25">
+        <ec kind="perf" severity="medium">Theme hot-swap under active edit: toggle Dark↔Light while caret is in a table cell; no FOUC measured via rAF diff &lt;33ms; `muya.getSelection()` unchanged pre/post; no duplicate `&lt;link rel=stylesheet&gt;` left in DOM.</ec>
+        <ec kind="contract" severity="high">Font-family / line-height live change mid-stream: change preference while typing; cursor DOM offset must map to same logical (blockKey, offset) after relayout. Prevent R-28 regression (scroll jump on pref change).</ec>
+        <ec kind="perf" severity="medium">Large-doc window resize jank: open 30k-line file, drag window edge for 2s; longest main-thread task via PerformanceObserver &lt;100ms P95, no layout thrash beyond N+1 reflows.</ec>
+        <ec kind="contract" severity="high">Tab switch preserves per-tab scroll + cursor: open 3 tabs, cycle A→B→C→A; scrollTop and selection restored exactly (byte-equal serialization of ContentState.cursor).</ec>
+        <ec kind="contract" severity="high">Session restore on cold start: force-kill, relaunch; Pinia `editor` store rehydrates open tabs with unsaved-content markers and last-active tab gets focus.</ec>
+        <ec kind="failure" severity="medium">Suspense boundary on async-component failure: simulate dynamic-import 404 for command-palette chunk; ErrorBoundary shows fallback, no white screen, Pinia state intact.</ec>
+        <ec kind="concurrency" severity="medium">Multi-window Pinia hydration race: open second window before first finishes `mountApp()`; each window has independent store instance (no cross-window mutation via shared ref); preferences window reads same persisted snapshot.</ec>
+        <ec kind="contract" severity="low">High-DPI scale transition: drag window between 1x and 2x monitors; CSS logical pixels stable, no blurry raster (KaTeX `&lt;svg&gt;` re-renders), muya `resize` observer fires exactly once per boundary.</ec>
+        <ec kind="contract" severity="medium">`prefers-reduced-motion` honoured: with OS flag on, sidebar animation, tab slide, command-palette fade all become instant (`transition-duration: 0s`); verify via `getComputedStyle`.</ec>
+        <ec kind="accessibility" severity="medium">Keyboard-only navigation: Tab cycles through sidebar → toolbar → editor → status-bar; focus ring visible (`:focus-visible`); trap not broken by command palette open/close.</ec>
+        <ec kind="failure" severity="medium">vue-draggable-plus regression vs dragula (PR #4001): drag tab rapidly 50× — no ghost node leak in DOM, order matches store.</ec>
+      </edge-cases>
+      <additional-log-markers generation="swarm-2026-04-25">
+        <marker>[Renderer] BLOCK_THEME_SWAP_BEGIN theme=&lt;id&gt; / BLOCK_THEME_SWAP_END duration_ms=&lt;n&gt;</marker>
+        <marker>[Renderer] BLOCK_TAB_RESTORE count=&lt;n&gt; active=&lt;path&gt;</marker>
+        <marker>[Renderer] BLOCK_PINIA_HYDRATE window=&lt;id&gt; stores=&lt;n&gt;</marker>
+        <marker>[Renderer] BLOCK_SUSPENSE_FALLBACK component=&lt;name&gt; reason=&lt;err&gt;</marker>
+        <marker>[Renderer] BLOCK_DPI_CHANGE from=&lt;n&gt; to=&lt;n&gt;</marker>
+      </additional-log-markers>
+      <negative-assertions generation="swarm-2026-04-25">
+        <no>No `console.error` during theme swap.</no>
+        <no>No duplicated `&lt;style data-muya-theme&gt;` tags after 10 swaps.</no>
+        <no>`window.__PINIA__` not present in production build.</no>
+        <no>No `fs`/`path`/`child_process` symbols reachable in renderer bundle (Vite externals assertion).</no>
+        <no>No animation observed when `prefers-reduced-motion: reduce`.</no>
+      </negative-assertions>
     </V-M-011>
 
     <V-M-012 MODULE="M-012 muya" PRIORITY="critical">
@@ -542,6 +812,49 @@
         <bug-5 ref="R-31" test="nested-list-listtype.spec.js" expect="Nested list items have listType key set; mutations on deep lists work" />
         <bug-6 ref="R-34" test="parser-recursion-limit.spec.js" expect="Depth &gt; 64 returns graceful error; no stack overflow" />
       </upstream-bug-regression-tests>
+      <edge-cases generation="swarm-2026-04-25">
+        <ec kind="perf" severity="critical">100k-line perf: paste 100k-line markdown; keystroke-to-paint P95 &lt;16ms measured over 1000 keystrokes; `partialRender` touches ≤3 blocks per stroke.</ec>
+        <ec kind="perf" severity="high">Monster single line: one `&lt;p&gt;` of 10 MB with no `\n`; no stack overflow in tokenizer, no O(n²) in enterCtrl chopBlockByCursor path (time-boxed &lt;500ms).</ec>
+        <ec kind="failure" severity="high">Deep nesting: 50-level blockquote, 20-level list; recursion-limit (R-34) clamps and emits `[Muya] BLOCK_NEST_LIMIT_HIT depth=&lt;n&gt;` rather than crash.</ec>
+        <ec kind="failure" severity="medium">Unclosed fences / tables / links: ``` without close, `| a | b` without row, `[label](` truncated — parser returns valid tree, editor remains editable, invariant (a) holds.</ec>
+        <ec kind="contract" severity="medium">CommonMark ambiguity: `[foo]` with no matching reference-def — renders as literal text (not broken link); `[a[b](c)](d)` nested link — outer wins per CM 6.6.</ec>
+        <ec kind="contract" severity="medium">GFM task-list toggle + undo: click checkbox, Ctrl-Z — checkbox reverts AND cursor returns to pre-click position; no history-stack duplication.</ec>
+        <ec kind="failure" severity="medium">Table ops: add column mid-row; delete row when only header remains (upstream #67 crash fixture); paste CSV into a cell — cells split on delimiter only inside cell scope.</ec>
+        <ec kind="failure" severity="medium">KaTeX syntax error: `$\frac{1}{}$` — inline error node rendered with `.math-error` class, no editor crash, surrounding paragraph editable.</ec>
+        <ec kind="failure" severity="medium">Mermaid parse error (v11, PR #4025): malformed diagram — inline error card, does not trigger global error overlay; switching language to `plantuml` on same block re-renders cleanly.</ec>
+        <ec kind="contract" severity="high">Image paste matrix: (1) `data:image/png;base64,…`, (2) `https://…` remote, (3) `/abs/local.png`, (4) bitmap from clipboard. Host-hook `imageAction` called with correct `src` shape for each; relative paths honour `window.DIRNAME`.</ec>
+        <ec kind="adversarial" severity="critical">Rich-HTML paste from Word/Gdocs/Notion: `&lt;o:p&gt;`, MSO classes, Gdocs `&lt;b style="font-weight:normal"&gt;` — sanitizer yields clean block tree, no inline `style=` leak, lists and tables preserved, **no script execution** (R-32 insertAdjacentHTML path).</ec>
+        <ec kind="ime" severity="critical">IME/CJK composition (R-27): compositionstart → 5 keydowns → compositionend with `が`; exactly one character inserted, no duplicate, no selection jump. Repeat with Pinyin multi-candidate and Korean Hangul jamo combining.</ec>
+        <ec kind="contract" severity="high">Find/replace regex + undo: replace-all `/foo(\d+)/g` → `bar$1` across 500 matches; single Ctrl-Z reverts entire replace atomically; redo re-applies identically; cursor ends at first match.</ec>
+        <ec kind="failure" severity="medium">EOF Enter: caret at last char of last paragraph + Enter; new empty paragraph created, caret in it; no freeze, invariant (a) non-empty root holds.</ec>
+        <ec kind="contract" severity="medium">Cross-instance copy/paste: copy a table from one Mark window, paste into another — round-trip preserves alignment markers, column widths, cell content; no ContentState key collision.</ec>
+        <ec kind="contract" severity="medium">Block drag-reorder: drag paragraph above heading; parent/child pointer invariant (c) preserved; undo restores exact prior tree (key-equal).</ec>
+        <ec kind="contract" severity="medium">Footnote bidirection: `[^1]` ref click scrolls to def; clicking `↩` on def scrolls back; deleting def leaves orphan-ref gracefully (invariant (m)).</ec>
+        <ec kind="unicode" severity="high">RTL + bidi: mixed Arabic/Hebrew + English in same paragraph; caret arrow-key traversal logical (not visual); `dir="auto"` applied per block.</ec>
+        <ec kind="unicode" severity="high">Emoji ZWJ clusters: `👨‍👩‍👧‍👦` (4 codepoints + ZWJ) — Arrow-Right moves past whole cluster once; Backspace deletes entire cluster; offset math uses `Intl.Segmenter` (or equivalent), not `str.length`.</ec>
+        <ec kind="contract" severity="high">Auto-save change-detection (PR #4146): rapid typing for 10s — debounced `change` event fires ≤1× per 250ms, final event emitted ≤300ms after last keystroke; no missed final event.</ec>
+        <ec kind="contract" severity="low">Soft vs hard wrap toggle: wrap pref change does not re-parse; only CSS `white-space` flips; cursor offset unchanged.</ec>
+        <ec kind="failure" severity="medium">Empty-heading-slug (PR #4135): `# ` (trailing space only) — slug deterministic (`heading-&lt;key&gt;`), no duplicate-id in TOC.</ec>
+        <ec kind="adversarial" severity="critical">Reference-def href not sanitized at parse (R-33): `[x]: javascript:alert(1)` — blocked at render-time (anchor `href` sanitizer) even though parser stores raw.</ec>
+        <ec kind="adversarial" severity="critical">insertAdjacentHTML XSS payloads 23-27 from fixture: confirm mitigation (CSP + sanitizer) blocks each; no `alert` fires, no network exfil.</ec>
+      </edge-cases>
+      <additional-log-markers generation="swarm-2026-04-25">
+        <marker>[Muya] BLOCK_NEST_LIMIT_HIT type=&lt;blockquote|list|footnote&gt; depth=&lt;n&gt;</marker>
+        <marker>[Muya] BLOCK_IME_COMPOSITION state=&lt;start|update|end&gt; data=&lt;redacted-len&gt;</marker>
+        <marker>[Muya] BLOCK_PARTIAL_RENDER blocks_touched=&lt;n&gt; ms=&lt;t&gt;</marker>
+        <marker>[Muya] BLOCK_PASTE_SANITIZE source=&lt;word|gdocs|notion|unknown&gt; stripped_tags=&lt;n&gt;</marker>
+        <marker>[Muya] BLOCK_DIAGRAM_ERROR renderer=&lt;katex|mermaid|vega|flowchart|plantuml&gt; err=&lt;msg&gt;</marker>
+        <marker>[Muya] BLOCK_INVARIANT_CHECK id=&lt;a..m&gt; pass=&lt;bool&gt;</marker>
+        <marker>[Muya] BLOCK_UNDO_COALESCE ops=&lt;n&gt;</marker>
+      </additional-log-markers>
+      <negative-assertions generation="swarm-2026-04-25">
+        <no>No `eval`, `new Function`, `setTimeout(string, …)` called during paste/render.</no>
+        <no>No `&lt;script&gt;` or `on*=` attributes survive sanitizer (assert via MutationObserver on document subtree).</no>
+        <no>No duplicate block-key after 10k random mutations (fuzz property test).</no>
+        <no>No unhandled promise rejection during KaTeX/Mermaid/Vega error paths.</no>
+        <no>`isComposing` flag observed in all 6 keystroke handlers (R-27) — static-grep assertion in CI.</no>
+        <no>No `getMarkdown()` roundtrip divergence for CommonMark 0.31 conformance suite except 5 documented known-bugs (note-3).</no>
+      </negative-assertions>
     </V-M-012>
 
     <V-M-014 MODULE="M-014 mt-encoding" PRIORITY="high">
@@ -567,6 +880,33 @@
       </required-log-markers>
       <wave-follow-up>Integration with M-002: open a CRLF file, edit, save — endings preserved unless user switched.</wave-follow-up>
       <phase-follow-up>Regression corpus: one file per codec in `test/fixtures/encoding/`.</phase-follow-up>
+      <edge-cases generation="swarm-2026-04-25">
+        <ec kind="failure" severity="high">UTF-8 truncated at chunk boundary mid-codepoint (`\xE2\x98` of `\xE2\x98\x83` ☃): detector must defer decision or buffer tail — never misclassify as Latin-1.</ec>
+        <ec kind="failure" severity="high">Overlong UTF-8 (`\xC0\x80` for NUL): rejected as invalid UTF-8, does NOT roundtrip.</ec>
+        <ec kind="failure" severity="medium">Unpaired UTF-16 surrogate (`\xD8\x00` LE without low surrogate): flagged MT_ENC_INVALID_SURROGATE; not silently replaced with U+FFFD in strict mode.</ec>
+        <ec kind="failure" severity="medium">BOM masquerade: UTF-16LE BOM (`\xFF\xFE`) prefix on otherwise UTF-8 bytes: BOM wins, decoded as UTF-16LE; emits BLOCK_DETECT_BOM with bom="utf-16le".</ec>
+        <ec kind="failure" severity="low">0-byte file: returns default encoding (UTF-8) with BOM=none, newline=LF; no chardet call.</ec>
+        <ec kind="failure" severity="low">1-byte file (`A`): chardet low-confidence → fallback UTF-8 deterministically (not random).</ec>
+        <ec kind="failure" severity="low">File containing only BOM (3 bytes EF BB BF): treated as UTF-8 empty; write-back preserves BOM if user didn't toggle.</ec>
+        <ec kind="ambiguity" severity="medium">Latin-1 vs Windows-1252 vs MacRoman vs ISO-8859-15: bytes `\x80\x99\xA4` decode differently; fixture per codec; chardet confidence + tiebreak rule logged at BLOCK_CHARDET_GUESS.</ec>
+        <ec kind="ambiguity" severity="medium">CP932 vs CP936 vs CP949: same high-byte pair decodes to Japanese/Chinese/Korean; assertion pins detector output per fixture (not "any of three").</ec>
+        <ec kind="failure" severity="medium">Mixed encoding (first 1KB UTF-8 + second 1KB Shift-JIS): detector returns majority or MT_ENC_MIXED; decoder either fails fast or produces U+FFFD with marker BLOCK_DECODE_REPLACEMENT { count }.</ec>
+        <ec kind="eol" severity="medium">CRLF detection with CR byte mid-UTF-16 codepoint (`\x0D\x00` = U+000D, not a line break): newline detector runs on DECODED text, not raw bytes.</ec>
+        <ec kind="normalization" severity="medium">File content in NFC vs NFD: byte-roundtrip preserves original form (no silent NFC re-normalization). SHA256 in == SHA256 out when no edit.</ec>
+        <ec kind="security" severity="high">Right-to-left override U+202E embedded in content: decoded faithfully, but render layer warned via BLOCK_BIDI_OVERRIDE_DETECTED; filename with U+202E rejected at M-002 validate_path.</ec>
+        <ec kind="security" severity="medium">BOM-smuggling: invisible ZWNBSP (U+FEFF) not at offset 0 is NOT treated as BOM (only byte-0 prefix counts); assertion prevents false strip.</ec>
+      </edge-cases>
+      <additional-log-markers generation="swarm-2026-04-25">
+        <marker>[Encoding][detect_encoding][BLOCK_CHUNK_BOUNDARY_DEFER] { held_tail_bytes }</marker>
+        <marker>[Encoding][decode][BLOCK_DECODE_REPLACEMENT] { count, encoding }</marker>
+        <marker>[Encoding][detect_encoding][BLOCK_BIDI_OVERRIDE_DETECTED] { codepoint, offset }</marker>
+      </additional-log-markers>
+      <negative-assertions generation="swarm-2026-04-25">
+        <no>0-byte and 1-byte fixtures: zero BLOCK_CHARDET_GUESS beyond 1 call; deterministic output across 100 runs.</no>
+        <no>ZWNBSP at offset &gt;0: zero BLOCK_DETECT_BOM with bom="utf-8"; byte unchanged.</no>
+        <no>NFC↔NFD: zero auto-normalization log markers; input_sha256 == output_sha256 on no-edit roundtrip.</no>
+        <no>Overlong/surrogate invalid sequences: zero "successful decode" path (BLOCK_DECODE_OK not emitted); error is stable code.</no>
+      </negative-assertions>
     </V-M-014>
 
     <V-M-015 MODULE="M-015 mt-pandoc-bridge" PRIORITY="medium">
@@ -588,6 +928,31 @@
         <marker-2>[Pandoc][pandoc_import][BLOCK_SPAWN]</marker-2>
       </required-log-markers>
       <wave-follow-up>E2e import flow via File → Import menu.</wave-follow-up>
+      <edge-cases generation="swarm-2026-04-25">
+        <ec kind="failure" severity="medium">Binary version mismatch: installed pandoc 1.19 vs required ≥2.0 — `pandoc_available` returns `false` with `reason=version_too_old`; user-facing toast names minimum.</ec>
+        <ec kind="perf" severity="medium">Large input (&gt;50 MB .docx): peak RSS of child capped (resource limits where OS permits), streaming stdout consumed without buffering whole output; timeout 60s configurable.</ec>
+        <ec kind="failure" severity="high">Hang on corrupt input: pandoc stuck reading malformed zip — kill after `MT_PANDOC_TIMEOUT`, reap zombie, delete tmp dir; no orphaned `/tmp/mt-pandoc-*`.</ec>
+        <ec kind="concurrency" severity="medium">Concurrent imports: two `pandoc_import` calls — serialize via mutex OR bounded parallelism (2); no tmp-path collision, independent stderr routing.</ec>
+        <ec kind="contract" severity="medium">stdout/stderr mux: pandoc warnings go to stderr; on success stderr captured but non-fatal; on failure surfaced as `MT_PANDOC_FAILED.details`.</ec>
+        <ec kind="contract" severity="medium">PATH precedence: resolution order = `MARKTEXT_PANDOC` env → user-configured absolute → PATH search → `/Library/TeX/texbin` + `/usr/local/bin` fallback (macOS). Log marker states which branch matched.</ec>
+        <ec kind="failure" severity="medium">Output/tmp collision: target `.md` path already exists — return `MT_PANDOC_WOULD_OVERWRITE`, do not clobber.</ec>
+        <ec kind="contract" severity="medium">Embedded media extraction: `.docx` with images — extract to `media/` adjacent to output; paths in resulting markdown resolve relative to output dir.</ec>
+        <ec kind="security" severity="high">Sandbox: pandoc spawned with minimal env, no inherited `AWS_*`/`GIT_*` secrets; cwd = tmp dir; filesystem access observed via audit on macOS (optional).</ec>
+        <ec kind="linux" severity="medium">AppArmor/SELinux denial: spawn denied — return `MT_PANDOC_NOT_FOUND` with `reason=permission_denied`, point to troubleshooting doc.</ec>
+        <ec kind="contract" severity="low">Symlinked pandoc: `which pandoc` returns symlink to homebrew cellar; canonicalize and version-probe once, cache for session.</ec>
+      </edge-cases>
+      <additional-log-markers generation="swarm-2026-04-25">
+        <marker>[Pandoc] BLOCK_PROBE_BIN path=&lt;resolved&gt; source=&lt;env|user|PATH|fallback&gt; version=&lt;semver&gt;</marker>
+        <marker>[Pandoc] BLOCK_SPAWN pid=&lt;n&gt; input_bytes=&lt;n&gt; timeout_s=&lt;n&gt;</marker>
+        <marker>[Pandoc] BLOCK_KILL pid=&lt;n&gt; reason=&lt;timeout|cancel&gt;</marker>
+        <marker>[Pandoc] BLOCK_TMPDIR_CLEANUP path=&lt;p&gt; removed=&lt;bool&gt;</marker>
+      </additional-log-markers>
+      <negative-assertions generation="swarm-2026-04-25">
+        <no>No pandoc subprocess outlives parent app (SIGTERM propagation verified).</no>
+        <no>No absolute host paths leaked into output markdown (only relative media refs).</no>
+        <no>No env-var containing `TOKEN`, `KEY`, `SECRET` passed to child.</no>
+        <no>No shell invocation: spawn uses `Command` with argv array, never `sh -c`.</no>
+      </negative-assertions>
     </V-M-015>
 
     <V-M-016 MODULE="M-016 mt-updater" PRIORITY="medium">
@@ -608,6 +973,36 @@
         <marker-2>[Updater][download][BLOCK_VERIFY_SIGNATURE]</marker-2>
       </required-log-markers>
       <wave-follow-up>E2e: tag v9.9.9 test release; check updater detects.</wave-follow-up>
+      <edge-cases generation="swarm-2026-04-25">
+        <ec kind="failure" severity="medium">GitHub 60/hour rate-limit: on 403 with `X-RateLimit-Remaining: 0`, back-off until `X-RateLimit-Reset`; `updater_check` returns `NotAvailable` with `reason=rate_limited`, no error toast on startup trigger.</ec>
+        <ec kind="contract" severity="medium">Malformed release tag (`v2.3-rc.1+build.7`): semver parser accepts pre-release; pre-release filter excludes unless user opted into beta channel.</ec>
+        <ec kind="failure" severity="medium">Interrupted download resume: drop network at 40%; `Range:` resume on retry or clean restart with partial file deleted; no corrupt cache left.</ec>
+        <ec kind="security" severity="critical">Signature verification failure: flipped byte in asset → `MT_UPD_SIGNATURE`; downloaded file deleted, telemetry event `updater.sig_fail`, user sees "Update rejected (tampered)" dialog.</ec>
+        <ec kind="failure" severity="high">Installer failure post-download: disk full / EPERM during `quit_and_install`; app remains usable, previous version intact, offer retry.</ec>
+        <ec kind="failure" severity="low">Air-gapped/offline at startup: DNS fail for `api.github.com` — silent fail on `StartupCheck`, visible error only on `UserCheck`.</ec>
+        <ec kind="contract" severity="medium">Skip-version persistence: skip `v2.3`; `v2.3.1` still prompted (patch &gt; skip), `v2.4` prompted, but skipped version never re-prompted.</ec>
+        <ec kind="contract" severity="critical">Force-update override: release body contains `mandatory: true` → ignore skip list, show blocking dialog, disable Continue button.</ec>
+        <ec kind="concurrency" severity="medium">Multiple instances: two windows both hit check simultaneously — only leader (named-lock on user-data dir) runs update; followers observe via IPC.</ec>
+        <ec kind="failure" severity="medium">Corporate proxy 407: honour `HTTPS_PROXY` env, show auth-required error with proxy URL; cert-pinning failure surfaces `MT_UPD_NETWORK reason=tls_pin`.</ec>
+        <ec kind="failure" severity="low">IPv6-only network: feed fetch succeeds over AAAA; no v4 fallback assumed; CI test with `happy-eyeballs` disabled.</ec>
+        <ec kind="contract" severity="medium">Cadence: `StartupCheck` runs once, ≥24h since last check; background check never more than 1×/24h; `UserCheck` always runs, bypasses cadence.</ec>
+        <ec kind="contract" severity="low">Pre-release channel opt-in: `settings.updateChannel = beta` → pre-release assets considered; default `stable` filters them out.</ec>
+      </edge-cases>
+      <additional-log-markers generation="swarm-2026-04-25">
+        <marker>[Updater] BLOCK_FEED_FETCH status=&lt;n&gt; rate_remaining=&lt;n&gt; reset_at=&lt;iso&gt;</marker>
+        <marker>[Updater] BLOCK_SKIP_DECISION current=&lt;v&gt; latest=&lt;v&gt; skipped=&lt;v|none&gt; mandatory=&lt;bool&gt;</marker>
+        <marker>[Updater] BLOCK_DOWNLOAD_PROGRESS pct=&lt;n&gt; resumed=&lt;bool&gt;</marker>
+        <marker>[Updater] BLOCK_VERIFY_SIGNATURE ok=&lt;bool&gt; algo=&lt;ed25519|…&gt;</marker>
+        <marker>[Updater] BLOCK_LEADER_ELECT winner=&lt;pid&gt;</marker>
+      </additional-log-markers>
+      <negative-assertions generation="swarm-2026-04-25">
+        <no>No auto-download when `autoDownload=false` — no bytes fetched beyond feed JSON until user confirms.</no>
+        <no>No update prompt on `StartupCheck` offline.</no>
+        <no>No skipped version ever re-shown unless `mandatory:true`.</no>
+        <no>No bundle ID mismatch accepted (`com.xronocode.mark` enforced).</no>
+        <no>No plaintext token / GitHub PAT shipped in binary (static scan).</no>
+        <no>No `quit_and_install` called while unsaved documents exist without user confirm.</no>
+      </negative-assertions>
     </V-M-016>
 
     <V-M-017 MODULE="M-017 mt-recent-docs" PRIORITY="medium">
@@ -628,6 +1023,29 @@
         <marker-2>[Recent][add][BLOCK_OS_INTEGRATE]</marker-2>
       </required-log-markers>
       <wave-follow-up>E2e: open 3 files; restart; verify File → Open Recent shows them.</wave-follow-up>
+      <edge-cases generation="swarm-2026-04-25">
+        <ec kind="success" severity="medium">Stale paths — add 12 paths, delete 4 on disk. `recent_list` still returns all 12; `BLOCK_ADD` tags each entry with `{ exists: bool }` snapshot taken lazily on list, not add.</ec>
+        <ec kind="success" severity="medium">Unicode/path hygiene — emoji, RTL, NFC vs NFD normalization (`café` two forms). Dedup compares NFC-normalized form; both forms return 1 entry.</ec>
+        <ec kind="success" severity="medium">Case-insensitive FS dedup (macOS/Windows default) — `/u/a.md` and `/u/A.md` dedup to 1; Linux case-sensitive FS keeps 2. Behavior gated on `std::fs::canonicalize` round-trip equality.</ec>
+        <ec kind="failure" severity="low">Over-length path (&gt;MAX_PATH 260 on Windows, &gt;PATH_MAX 4096 Linux). `recent_add` accepts it (don't lose user data) but `BLOCK_OS_INTEGRATE` logs `{ skipped_os: "path_too_long" }`; in-memory list still includes it.</ec>
+        <ec kind="failure" severity="low">Path with embedded `\n` or control chars — accepted in store; OS integration skipped with marker; no panic.</ec>
+        <ec kind="failure" severity="low">Windows jumplist COM failure (simulated via trait injection) → `BLOCK_OS_INTEGRATE` emits `{ os_error: "CO_E_*" }`, in-memory list unaffected, function returns Ok.</ec>
+        <ec kind="success" severity="medium">Clear cascades — `recent_clear` empties in-memory, persisted JSON, and OS jumplist in that order; all three verified.</ec>
+        <ec kind="success" severity="medium">Rename sync hook — M-002 rename fires event; recent-docs listener updates stored path and re-runs OS integrate; old path gone from list.</ec>
+        <ec kind="success" severity="low">macOS security-scoped bookmark — add path, restart, reload. Bookmark stale → list still shows entry, open path returns `MT_FS_NOT_FOUND` (owned by M-002).</ec>
+        <ec kind="success" severity="low">Trim order — add paths A..M (13 items). Oldest (A) evicted; result preserves insertion order MRU-first.</ec>
+      </edge-cases>
+      <additional-log-markers generation="swarm-2026-04-25">
+        <marker>[Recent][add][BLOCK_DEDUP] { normalized, case_fold }</marker>
+        <marker>[Recent][add][BLOCK_OS_INTEGRATE] { platform, ok, skipped_reason }</marker>
+        <marker>[Recent][clear][BLOCK_CLEAR_OS]</marker>
+        <marker>[Recent][rename_sync][BLOCK_UPDATE]</marker>
+      </additional-log-markers>
+      <negative-assertions generation="swarm-2026-04-25">
+        <no>`recent_list().len() &lt;= 12` invariant under all scenarios.</no>
+        <no>No call to OS integration paths when list is empty after clear (prevents ghost entries).</no>
+        <no>`recent_add` never returns Err even for invalid OS-level path — degrade, don't fail.</no>
+      </negative-assertions>
     </V-M-017>
 
     <V-M-018 MODULE="M-018 mt-screenshot" PRIORITY="low">
@@ -646,6 +1064,30 @@
         <marker-1>[Screenshot][capture][BLOCK_SPAWN_CAPTURE]</marker-1>
       </required-log-markers>
       <wave-follow-up>E2e via menu click → inserted image path in current document.</wave-follow-up>
+      <edge-cases generation="swarm-2026-04-25">
+        <ec kind="macos" severity="high">Screen Recording permission denied → `screencapture` exits non-zero without clipboard write; module returns typed error `MT_SCREENSHOT_CANCELLED` (or permission error) + deep-link to System Settings; no crash.</ec>
+        <ec kind="macos" severity="medium">Multi-display / Retina — image saved at native pixel dimensions; DPI-scaled preview path independent from stored PNG; path inserted as-is in Markdown.</ec>
+        <ec kind="macos" severity="low">Window minimized when trigger fires — `screencapture -i` still drives system UI on active display; app window focus state restored after capture.</ec>
+        <ec kind="concurrency" severity="medium">Re-entrant trigger — second call while first `screencapture` child is alive returns early with `already_running=true`, no double-spawn.</ec>
+        <ec kind="failure" severity="medium">`targetDir` deleted/non-writable between trigger and save — `BLOCK_WRITE_FILE` catches IO error, returns typed error, clipboard image preserved so user can paste manually.</ec>
+        <ec kind="perf" severity="low">8K display capture (~50MB PNG) — streamed to disk (no full-buffer base64 round-trip over IPC); memory peak bounded.</ec>
+        <ec kind="macos" severity="low">Escape during region selection — `screencapture` exits 1 with no clipboard mutation → mapped to `MT_SCREENSHOT_CANCELLED`, no file written.</ec>
+        <ec kind="macos" severity="medium">Clipboard already holds non-image content before trigger — after successful capture, prior clipboard restored only if capture failed; on success the image stays on clipboard.</ec>
+        <ec kind="cross-platform" severity="medium">Linux/Windows: menu item hidden, IPC call still typed-returns `MT_SCREENSHOT_UNSUPPORTED_OS` (do not panic if frontend invokes via hotkey).</ec>
+        <ec kind="concurrency" severity="low">Concurrent Mark Text processes — each spawn has unique temp filename (pid + nanos), no collision.</ec>
+      </edge-cases>
+      <additional-log-markers generation="swarm-2026-04-25">
+        <marker>[Screenshot][capture][BLOCK_SPAWN_CAPTURE] { pid, target_dir }</marker>
+        <marker>[Screenshot][capture][BLOCK_WRITE_FILE] { path, bytes }</marker>
+        <marker>[Screenshot][capture][CANCELLED] { reason }</marker>
+        <marker>[Screenshot][capture][REENTRANT_REJECTED]</marker>
+      </additional-log-markers>
+      <negative-assertions generation="swarm-2026-04-25">
+        <no>MUST NOT panic on permission denial or spawn failure.</no>
+        <no>MUST NOT write a file on cancel.</no>
+        <no>MUST NOT allow more than one concurrent `screencapture` child.</no>
+        <no>MUST NOT expose the IPC command as callable with a success result on non-macOS.</no>
+      </negative-assertions>
     </V-M-018>
 
     <V-M-019 MODULE="M-019 mt-datacenter" PRIORITY="high">
@@ -670,6 +1112,33 @@
         <assertion-1>Token value must NEVER appear in any log line (tested via log capture + regex assertion).</assertion-1>
       </required-trace-assertions>
       <wave-follow-up>Smoke: configure GitHub uploader; paste PNG; verify URL replaces local path.</wave-follow-up>
+      <edge-cases generation="swarm-2026-04-25">
+        <ec kind="success" severity="high">Keyring service rename — seed `marktext` service with token, run `dc_migrate`, verify `com.xronocode.mark` holds token, legacy entry deleted only after read-back verification succeeds. `BLOCK_MIGRATE_LEGACY` emits `{ migrated_accounts: N, has_token: true }`.</ec>
+        <ec kind="failure" severity="high">Legacy read OK, new write fails (keychain locked mid-migration). Legacy entry preserved; migration marker not set; retried on next launch. No data loss.</ec>
+        <ec kind="failure" severity="medium">keytar-style return disambiguation — `get_password` returns `None` (no entry) vs `Err` (access denied). First is normal (fresh install), second emits `MT_DC_KEYCHAIN`; test both branches.</ec>
+        <ec kind="failure" severity="medium">GitHub token 401 at upload time. Upload call returns `MT_DC_UPLOAD_UNAUTHORIZED`; selected image bytes retained in pending buffer; re-auth flow can retry without re-dragging.</ec>
+        <ec kind="failure" severity="high">Uploader returns non-http URL (`file:///`, `data:`, empty string) → reject with `MT_DC_UPLOAD_INVALID_URL`; no store mutation.</ec>
+        <ec kind="failure" severity="medium">cliScript uploader path points at non-executable or missing binary → `MT_DC_UPLOAD_FAILED` with `{ reason: "spawn_enoent" }`; no partial file written.</ec>
+        <ec kind="concurrency" severity="medium">Concurrent uploads — 5 images in parallel. Semaphore limits concurrency (e.g., 2); order-independent success; no interleaved log lines corrupt the `has_token` field.</ec>
+        <ec kind="failure" severity="medium">Image &gt;10 MB rejected pre-upload with `MT_DC_IMAGE_TOO_LARGE`; no network call made (assert via mock http recorder: 0 requests).</ec>
+        <ec kind="success" severity="medium">Filename collision — two `screenshot.png` with different bytes → sha1-prefixed rename (`screenshot-&lt;sha1[:8]&gt;.png`); identical bytes → dedup to single remote URL.</ec>
+        <ec kind="failure" severity="medium">Network timeout mid-upload — partial body discarded, `MT_DC_UPLOAD_FAILED` with `{ reason: "timeout" }`; no local history entry added.</ec>
+        <ec kind="success" severity="low">Legacy image folder path `~/Library/Application Support/marktext/images/` referenced in migrated `imageFolderPath` — preserved verbatim, directory not deleted or moved.</ec>
+      </edge-cases>
+      <additional-log-markers generation="swarm-2026-04-25">
+        <marker>[DataCenter][migrate][BLOCK_MIGRATE_LEGACY] { has_token, migrated_accounts }</marker>
+        <marker>[DataCenter][migrate][BLOCK_LEGACY_PURGE]</marker>
+        <marker>[DataCenter][upload][BLOCK_VALIDATE_URL]</marker>
+        <marker>[DataCenter][upload][BLOCK_REJECT_SIZE]</marker>
+        <marker>[DataCenter][upload][BLOCK_SPAWN] { uploader, ok, reason }</marker>
+      </additional-log-markers>
+      <negative-assertions generation="swarm-2026-04-25">
+        <no>Regex `(ghp|ghs|gho|github_pat)_[A-Za-z0-9_]{20,}` never matches any captured log line across ALL scenarios.</no>
+        <no>No log line contains `Authorization:` header substring.</no>
+        <no>Legacy keychain entry deleted only in a step strictly after the read-back-equals-written assertion for the new entry.</no>
+        <no>Upload code path never reads plaintext token via `format!`/`Debug`; only via `SecretString::expose_secret()` wrapped in non-Display newtype.</no>
+        <no>On migration failure, no partial write to `com.xronocode.mark` keychain service (atomic: fully written or absent).</no>
+      </negative-assertions>
     </V-M-019>
 
     <V-M-020 MODULE="M-020 mt-cli-flags" PRIORITY="medium">
@@ -689,6 +1158,28 @@
         <marker-1>[Cli][parse][BLOCK_PARSE] { flags_summary }</marker-1>
       </required-log-markers>
       <wave-follow-up>E2e smoke: launch app with `--safe`; verify user prefs not loaded.</wave-follow-up>
+      <edge-cases generation="swarm-2026-04-25">
+        <ec kind="adversarial" severity="high">`mark --new-window "$(rm -rf ~)"` — positional file arg treated strictly as path; never shell-expanded by clap or downstream. Evidence: `[Cli][parse][PATH_ARG_LITERAL raw=...]` with identical bytes.</ec>
+        <ec kind="failure" severity="high">Conflicting flags `--safe-mode --debug` or `--safe-mode --user-data-dir=X`: clap rejects with exit 2 and actionable message; `--safe-mode` wins only when paired with explicitly whitelisted flags. Evidence: `[Cli][parse][CONFLICT a=safe-mode b=debug]`.</ec>
+        <ec kind="adversarial" severity="medium">Windows mixed separators `C:\a/b\c` and trailing-space paths normalized to canonical before forwarded to shell; unchanged bytes rejected. Evidence: `[Cli][normalize][MIXED_SEP before=... after=...]`.</ec>
+        <ec kind="adversarial" severity="high">10000-char file path and path with embedded NUL rejected at parse time, not passed to shell. Evidence: `[Cli][parse][REJECT_NUL_OR_OVERLONG]`.</ec>
+        <ec kind="concurrency" severity="medium">CLI flags arriving via single-instance forward (second launch) race with session-restore on first launch: CLI wins deterministically; session restore defers until CLI intent applied. Evidence: `[Cli][apply][ORDER cli_first=true]` before any `[Shell][session][RESTORE]`.</ec>
+        <ec kind="failure" severity="medium">Unknown flag `--foo` under `--safe-mode` still hard-fails (does not silently continue). Evidence: `[Cli][parse][REJECT_UNKNOWN flag=foo]` exit 2.</ec>
+        <ec kind="adversarial" severity="high">`file://` URL as positional arg: accepted only if it canonicalizes inside an approved root; otherwise rejected. Evidence: `[Cli][parse][BLOCK_FILE_URL_OUTSIDE_ROOT]`.</ec>
+        <ec kind="failure" severity="low">Linux AppImage: `$APPIMAGE` mount path is stable across instance forwarding; CLI does not hard-code mount dir. Evidence: `[Cli][env][APPIMAGE_DETECTED mount=/tmp/.mount_...]`.</ec>
+      </edge-cases>
+      <additional-log-markers generation="swarm-2026-04-25">
+        <marker>[Cli][parse][CONFLICT]</marker>
+        <marker>[Cli][parse][REJECT_NUL_OR_OVERLONG]</marker>
+        <marker>[Cli][parse][BLOCK_FILE_URL_OUTSIDE_ROOT]</marker>
+        <marker>[Cli][normalize][MIXED_SEP]</marker>
+        <marker>[Cli][apply][ORDER]</marker>
+      </additional-log-markers>
+      <negative-assertions generation="swarm-2026-04-25">
+        <no>MUST NOT shell-expand or glob positional path arguments beyond OS-level argv.</no>
+        <no>MUST NOT continue on unknown flags even under `--safe-mode`.</no>
+        <no>MUST NOT apply session-restore ahead of CLI intent when both are present.</no>
+      </negative-assertions>
     </V-M-020>
 
     <V-M-013 MODULE="M-013 mt-ipc-bridge" PRIORITY="high">
@@ -708,6 +1199,29 @@
       </required-log-markers>
       <wave-follow-up>Exercise every command path via e2e.</wave-follow-up>
       <phase-follow-up>Contract snapshot test: bridge exports vs backend commands must match set.</phase-follow-up>
+      <edge-cases generation="swarm-2026-04-25">
+        <ec kind="concurrency" severity="high">`on()` + `off()` pair called 10000× MUST NOT accumulate listeners on the Tauri event; internal refcount returns to 0. Evidence: `[IpcBridge][listener][REFCOUNT count=0]` at end; `performance.memory` delta &lt; 1MB.</ec>
+        <ec kind="exhaustion" severity="high">`invoke()` with payload &gt; 1MB: either streamed or rejected with typed error `E_PAYLOAD_TOO_LARGE`, never silently truncated. Evidence: `[IpcBridge][invoke][REJECT_OVERSIZE bytes=...]`.</ec>
+        <ec kind="concurrency" severity="medium">10000 concurrent `invoke()` calls resolve in bounded memory; bridge applies backpressure queue (cap N) and rejects overflow with `E_BRIDGE_SATURATED`. Evidence: `[IpcBridge][queue][SATURATED depth=...]`.</ec>
+        <ec kind="failure" severity="high">Tauri backend crash mid-invoke: pending promises reject with `E_BACKEND_DISCONNECTED` within 2s; bridge auto-reattaches event listeners on respawn. Evidence: `[IpcBridge][recovery][REATTACH listeners=N]`.</ec>
+        <ec kind="adversarial" severity="high">Renderer passes function/symbol/circular-ref/`BigInt` in args — bridge rejects at serialization boundary with typed error, not panic. Evidence: `[IpcBridge][serialize][REJECT_UNSUPPORTED type=...]`.</ec>
+        <ec kind="failure" severity="medium">Event emitted before any listener registered is NOT dropped silently if marked `replay=true`; confirmed via file-open on cold start. Evidence: `[IpcBridge][event][REPLAY_DELIVERED name=...]`.</ec>
+        <ec kind="adversarial" severity="critical">Response from backend that contains secret path/token MUST be scrubbed by bridge error formatter before hitting renderer console. Evidence: `[IpcBridge][error][SCRUBBED fields=...]`; no secret substring in devtools log.</ec>
+        <ec kind="concurrency" severity="medium">Window close during in-flight `invoke()`: pending calls abort with `E_WINDOW_GONE`; no unhandled rejection warnings. Evidence: `[IpcBridge][abort][WINDOW_GONE pending=N]`.</ec>
+      </edge-cases>
+      <additional-log-markers generation="swarm-2026-04-25">
+        <marker>[IpcBridge][listener][REFCOUNT]</marker>
+        <marker>[IpcBridge][invoke][REJECT_OVERSIZE]</marker>
+        <marker>[IpcBridge][queue][SATURATED]</marker>
+        <marker>[IpcBridge][recovery][REATTACH]</marker>
+        <marker>[IpcBridge][serialize][REJECT_UNSUPPORTED]</marker>
+        <marker>[IpcBridge][error][SCRUBBED]</marker>
+      </additional-log-markers>
+      <negative-assertions generation="swarm-2026-04-25">
+        <no>MUST NOT leak Tauri event listeners after `off()` — refcount returns to 0.</no>
+        <no>MUST NOT forward raw backend error strings containing absolute paths, tokens, or env values to renderer.</no>
+        <no>MUST NOT silently truncate oversize payloads; surface `E_PAYLOAD_TOO_LARGE`.</no>
+      </negative-assertions>
     </V-M-013>
   </ModuleVerification>
 
