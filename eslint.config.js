@@ -8,6 +8,27 @@ import babelParser from '@babel/eslint-parser'
 const { configs: js } = eslintJs
 
 export default [
+  // Global ignores (must be a config object with ONLY `ignores` to work as
+  // global ignore in ESLint 9 flat config; previously this was placed
+  // alongside `rules` and silently scoped to that block only — letting
+  // build output and vendored minified libs slip into the lint pass and
+  // produce ~986k errors).
+  {
+    ignores: [
+      'node_modules/**',
+      'dist/**',
+      'out/**',
+      'build/**',
+      'src/muya/dist/**',
+      'src/muya/webpack.config.js',
+      'src/muya/lib/assets/libs/**',
+      '**/*.min.js',
+      'static/**',
+      '*.lock',
+      'package-lock.json'
+    ]
+  },
+
   // 0. ESLint core recommended rules
 
   js.recommended,
@@ -48,8 +69,7 @@ export default [
       'no-mixed-operators': 'off',
       'no-prototype-builtins': 'off',
       'space-before-function-paren': ['error', 'never']
-    },
-    ignores: ['node_modules', 'src/muya/dist/**/*', 'src/muya/webpack.config.js']
+    }
   },
 
   // 4. JSON files basic validation
