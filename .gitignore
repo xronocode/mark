@@ -1,7 +1,10 @@
-# reborn-mark/ is a separate working copy cloned from xronocode/mark#modernize.
-# It has its own .git/ + node_modules. Cloud Claude should clone it separately:
-#   git clone -b modernize https://github.com/xronocode/mark reborn-mark
-# See SETUP.md for full bootstrap.
+# mark-electron/ = Phase-A modernization track (fork with 12 PRs merged, still Electron).
+# Separate working copy cloned from xronocode/mark#modernize. See SETUP.md.
+mark-electron/
+
+# reborn-mark/ = Phase-B Tauri rewrite (the real "reborn" on new stack).
+# Currently empty; scaffolded via `cargo tauri init` during Phase-B1.
+# When populated, it will also be a separate working copy (branch `reborn` of xronocode/mark).
 reborn-mark/
 
 # Node / Yarn byproducts (in case any sneak in)

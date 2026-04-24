@@ -2,10 +2,16 @@
 
 Snapshot of exact progress for resuming in cloud Claude Code.
 
+## Naming convention (important)
+
+- `mark-electron/` = **Phase-A track**, modernized Electron. What we actively worked on.
+- `reborn-mark/` = **Phase-B track**, Tauri + Rust rewrite. Not yet scaffolded. Reserved.
+- `marktext/` = pristine upstream snapshot, read-only reference.
+
 ## Where we are
 
 - **Phase-0 complete**: GRACE artifacts seeded in `docs/*.xml` (20 modules, 28 UCs, 37 risks, 30 XSS fixture payloads, 9 phase gates, 78 log markers).
-- **Phase-A1 complete**: 12/13 community PRs cherry-picked into `reborn-mark` on `modernize` branch, lint + webpack build green after each.
+- **Phase-A1 complete**: 12/13 community PRs cherry-picked into `mark-electron` on `modernize` branch, lint + webpack build green after each.
 - **Phase-A2 ready to start**: toolchain migration (PR #4001 electron-vite + Vue 3 + Electron 30 + Node 20).
 
 ## Git state
@@ -13,9 +19,9 @@ Snapshot of exact progress for resuming in cloud Claude Code.
 ### `xronocode/mark` (this monorepo)
 - Branch `main`: upstream marktext mirror at `be81e3aa` (original fork state)
 - Branch `modernize`: our 13 commits (12 PRs + env patch)
-- Branch `monorepo`: this new layout (docs/, marktext/, homebrew-mark/, reborn-mark/ excluded) — **where you should continue**
+- Branch `monorepo`: this new layout (docs/, marktext/, homebrew-mark/, mark-electron/ excluded) — **where you should continue**
 
-### Phase-A1 commits on `modernize` branch (preserved in fork, pulled into `reborn-mark/` after clone)
+### Phase-A1 commits on `modernize` branch (preserved in fork, pulled into `mark-electron/` after clone)
 
 ```
 5dc06078 grace(PR-4145) Full WYSIWYG mode + live system theme + raw-markdown toggle toolbar
@@ -47,7 +53,7 @@ Touch `.github/workflows/build.yml` and `.electron-vue/thirdPartyChecker.js`. Wi
 All 12 merged PRs passed:
 - **Lint green** after every cherry-pick (`yarn lint`, ~7 s)
 - **Webpack build green** after every cherry-pick (`yarn run pack`, ~35 s)
-- **Zero unresolved merge-conflict markers** in `reborn-mark/src/`
+- **Zero unresolved merge-conflict markers** in `mark-electron/src/`
 - **Zero new TODO/FIXME** introduced by our commits
 - **All fingerprint greps** found the claimed fixes physically present in code
 
@@ -80,7 +86,7 @@ Direct behavioral tests via `node -r esm`:
 1. `PLAN.md` — current plan, Phase-A2 section
 2. `docs/development-plan.xml` — module contracts, Phase-A2 step list
 3. `docs/verification-plan.xml` — fixture-xss (30 payloads), V-M-011 (renderer) scenarios
-4. `reborn-mark/package.json` — current dep versions (mermaid@10.6.1, electron@^18.0.4, etc.)
+4. `mark-electron/package.json` — current dep versions (mermaid@10.6.1, electron@^18.0.4, etc.)
 
 ## Environment
 
