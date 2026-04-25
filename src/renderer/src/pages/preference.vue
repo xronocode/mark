@@ -26,9 +26,13 @@ const preferencesStore = usePreferencesStore()
 const { theme, titleBarStyle } = storeToRefs(preferencesStore)
 
 const showCustomTitleBar = computed(() => {
-  // 在macOS上总是显示自定义标题栏以提供关闭按钮
+  // macOS now uses titleBarStyle:'hiddenInset' (set in main/config.js
+  // preferencesWinOptions) which surfaces the native traffic-light buttons
+  // top-left, so the custom right-side close button is no longer needed.
+  // Windows/Linux still need the custom titlebar when the user picked
+  // titleBarStyle === 'custom'.
   if (isOsx) {
-    return true
+    return false
   }
   return titleBarStyle.value === 'custom'
 })

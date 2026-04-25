@@ -42,6 +42,11 @@ export const preferencesWinOptions = Object.freeze({
   useContentSize: true,
   show: true,
   frame: false,
+  // On macOS, hiddenInset shows the native traffic-light buttons (close/min/max)
+  // at the top-left and gives us a transparent draggable strip — same chrome the
+  // editor uses, instead of the custom right-side close button. Ignored on
+  // Windows/Linux where `frame: false` keeps the existing custom titlebar.
+  titleBarStyle: 'hiddenInset',
   thickFrame: !isOsx,
   zoomFactor: 1.0
 })
