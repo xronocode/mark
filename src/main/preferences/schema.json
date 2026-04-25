@@ -48,11 +48,11 @@
     "default": "modified"
   },
   "lastOpenedFolder": {
-    "description": "General--The last folder that was opened in MarkText.--internal",
+    "description": "General--The last folder that was opened in Mark.--internal",
     "type": "string"
   },
   "startUpAction": {
-    "description": "General--The action after MarkText startup, open the last opened folder, open the specified folder or blank page",
+    "description": "General--The action after Mark startup, open the last opened folder, open the specified folder or blank page",
     "enum": ["folder", "openLastFolder", "blank"],
     "default": "openLastFolder"
   },
@@ -61,7 +61,7 @@
     "type": "string"
   },
   "language": {
-    "description": "General--The language MarkText use.",
+    "description": "General--The language Mark use.",
     "type": "string",
     "default": "en"
   },
@@ -232,7 +232,7 @@
     "default": "."
   },
   "preferHeadingStyle": {
-    "description": "Markdown--The preferred heading style in MarkText",
+    "description": "Markdown--The preferred heading style in Mark",
     "enum": ["atx", "setext"],
     "default": "atx"
   },
@@ -277,7 +277,7 @@
     "default": "hand"
   },
   "theme": {
-    "description": "Theme--Select the theme used in MarkText",
+    "description": "Theme--Select the theme used in Mark",
     "type": "string",
     "default": "light"
   },

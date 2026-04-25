@@ -105,22 +105,22 @@
       "viewSource": "Исходный код",
       "license": "Лицензия",
       "checkForUpdates": "Проверить обновления",
-      "aboutMarkText": "О MarkText",
+      "aboutMark": "О Mark",
       "about": "О программе",
       "checkUpdates": "Проверить обновления"
     },
     "marktext": {
-      "title": "MarkText",
-      "marktext": "MarkText",
-      "about": "О MarkText",
+      "title": "Mark",
+      "marktext": "Mark",
+      "about": "О Mark",
       "checkUpdates": "Проверить обновления...",
       "preferences": "Настройки",
       "services": "Службы",
-      "hide": "Скрыть MarkText",
-      "hideMarkText": "Скрыть MarkText",
+      "hide": "Скрыть Mark",
+      "hideMark": "Скрыть Mark",
       "hideOthers": "Скрыть остальные",
       "showAll": "Показать все",
-      "quit": "Выход из MarkText"
+      "quit": "Выход из Mark"
     },
     "view": {
       "view": "Вид",
@@ -386,7 +386,7 @@
   },
   "import": {
     "title": "Импорт или открытие",
-    "description": "Перетащите сюда, чтобы добавить в MarkText"
+    "description": "Перетащите сюда, чтобы добавить в Mark"
   },
   "tweet": {
     "title": "Отправьте нам отзыв через Twitter",
@@ -422,10 +422,10 @@
         "hideScrollbar": "Скрыть полосы прокрутки",
         "wordWrapInToc": "Включить перенос слов в оглавлении",
         "fileSortBy": "Сортировка файлов в открытой папке по дате создания, изменения или названию",
-        "startUpAction": "Действие при запуске MarkText: открыть последнее редактируемое, указанную папку или пустую страницу",
+        "startUpAction": "Действие при запуске Mark: открыть последнее редактируемое, указанную папку или пустую страницу",
         "restoreLayoutState": "Восстанавливать состояние редактора при запуске",
         "defaultDirectoryToOpen": "Папка по умолчанию, которая открывается при запуске, если startUp=folder",
-        "language": "Язык интерфейса MarkText",
+        "language": "Язык интерфейса Mark",
         "editorFontFamily": "Шрифт редактора",
         "fontSize": "Размер шрифта в пикселях",
         "lineHeight": "Высота строки",
@@ -458,7 +458,7 @@
         "isHtmlEnabled": "Включить рендеринг HTML",
         "isGitlabCompatibilityEnabled": "Включить режим совместимости с GitLab",
         "sequenceTheme": "Тема диаграмм последовательности",
-        "theme": "Выберите тему MarkText",
+        "theme": "Выберите тему Mark",
         "followSystemTheme": "Следовать системной теме",
         "lightModeTheme": "Тема для светлого режима",
         "darkModeTheme": "Тема для тёмного режима",
@@ -609,7 +609,7 @@
     "image": {
       "title": "Изображение",
       "defaultAction": "Действие по умолчанию при вставке изображения",
-      "clipboardTooltip": "Поведение по умолчанию после вставки или перетаскивания изображения в MarkText",
+      "clipboardTooltip": "Поведение по умолчанию после вставки или перетаскивания изображения в Mark",
       "actions": {
         "upload": "Загрузить в облако",
         "folder": "Скопировать в папку",
@@ -928,7 +928,7 @@
   },
   "commands": {
     "mt": {
-      "hide": "Скрыть MarkText",
+      "hide": "Скрыть Mark",
       "hideOthers": "Скрыть остальные"
     },
     "file": {
@@ -1099,7 +1099,7 @@
     "configSchemaViolation": "Нарушение схемы конфигурации",
     "copyError": "Ошибка копирования",
     "initializationFailed": "Ошибка инициализации {hint}",
-    "otherInstanceDetected": "Другой экземпляр MarkText уже запущен",
+    "otherInstanceDetected": "Другой экземпляр Mark уже запущен",
     "report": "Сообщить",
     "startupError": "Ошибка запуска",
     "terminatedDueToError": "Завершено из-за ошибки",

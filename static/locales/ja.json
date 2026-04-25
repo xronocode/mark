@@ -105,22 +105,22 @@
       "viewSource": "ソースコードを表示",
       "license": "ライセンス",
       "checkForUpdates": "アップデートを確認",
-      "aboutMarkText": "MarkTextについて",
+      "aboutMark": "Markについて",
       "about": "について",
       "checkUpdates": "アップデートを確認"
     },
     "marktext": {
-      "title": "MarkText",
-      "marktext": "MarkText",
-      "about": "MarkTextについて",
+      "title": "Mark",
+      "marktext": "Mark",
+      "about": "Markについて",
       "checkUpdates": "アップデートを確認...",
       "preferences": "環境設定",
       "services": "サービス",
-      "hide": "MarkTextを隠す",
-      "hideMarkText": "MarkTextを隠す",
+      "hide": "Markを隠す",
+      "hideMark": "Markを隠す",
       "hideOthers": "他を隠す",
       "showAll": "すべて表示",
-      "quit": "MarkTextを終了"
+      "quit": "Markを終了"
     },
     "view": {
       "view": "表示",
@@ -387,7 +387,7 @@
   },
   "import": {
     "title": "インポートまたは開く",
-    "description": "ここにドラッグしてMarkTextにコンテンツをインポート"
+    "description": "ここにドラッグしてMarkにコンテンツをインポート"
   },
   "tweet": {
     "title": "ツイートでフィードバックを送信",
@@ -424,10 +424,10 @@
         "hideScrollbar": "スクロールバーを非表示にするかどうか",
         "wordWrapInToc": "目次で自動改行を有効にするかどうか",
         "fileSortBy": "開いたフォルダ内のファイルを作成時刻、変更時刻、タイトルで並べ替え",
-        "startUpAction": "MarkText起動後のアクション、最後に編集したコンテンツを開く、指定されたフォルダを開く、または空白ページ",
+        "startUpAction": "Mark起動後のアクション、最後に編集したコンテンツを開く、指定されたフォルダを開く、または空白ページ",
         "restoreLayoutState": "起動時に前回のエディター状態を復元",
         "defaultDirectoryToOpen": "startUp=folderの場合に起動時に開かれるデフォルトディレクトリ",
-        "language": "MarkTextが使用する言語",
+        "language": "Markが使用する言語",
         "editorFontFamily": "エディターのフォントファミリー",
         "fontSize": "フォントサイズ（ピクセル）",
         "lineHeight": "行の高さ",
@@ -451,7 +451,7 @@
         "preferLooseListItem": "優先されるリストタイプ",
         "bulletListMarker": "箇条書きリストで使用されるマーカー",
         "orderListDelimiter": "順序付きリストで使用される区切り文字",
-        "preferHeadingStyle": "MarkTextで優先される見出しスタイル",
+        "preferHeadingStyle": "Markで優先される見出しスタイル",
         "tabSize": "タブをx個のスペースに置き換える",
         "listIndentation": "リストのインデントを選択",
         "frontmatterType": "フロントマターのタイプ",
@@ -460,7 +460,7 @@
         "isHtmlEnabled": "HTMLレンダリングを有効にする",
         "isGitlabCompatibilityEnabled": "GitLab互換モードを有効にする",
         "sequenceTheme": "シーケンス図のテーマ",
-        "theme": "MarkTextで使用するテーマを選択",
+        "theme": "Markで使用するテーマを選択",
         "followSystemTheme": "システムのテーマに従う",
         "lightModeTheme": "システムがライトモードの時に使用するテーマ",
         "darkModeTheme": "システムがダークモードの時に使用するテーマ",
@@ -610,7 +610,7 @@
     "image": {
       "title": "画像",
       "defaultAction": "画像挿入時のデフォルトアクション",
-      "clipboardTooltip": "MarkTextに画像を貼り付けまたはドラッグした後のデフォルト動作",
+      "clipboardTooltip": "Markに画像を貼り付けまたはドラッグした後のデフォルト動作",
       "actions": {
         "upload": "クラウドにアップロード",
         "folder": "フォルダにコピー",
@@ -922,7 +922,7 @@
   },
   "commands": {
     "mt": {
-      "hide": "MarkTextを隠す",
+      "hide": "Markを隠す",
       "hideOthers": "他を隠す"
     },
     "file": {
@@ -1093,7 +1093,7 @@
     "configSchemaViolation": "設定スキーマ違反",
     "copyError": "コピーエラー",
     "initializationFailed": "初期化に失敗",
-    "otherInstanceDetected": "MarkTextの別のインスタンスが既に実行中です",
+    "otherInstanceDetected": "Markの別のインスタンスが既に実行中です",
     "report": "報告",
     "startupError": "起動エラー",
     "terminatedDueToError": "エラーにより終了",

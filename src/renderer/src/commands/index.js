@@ -609,7 +609,7 @@ const commands = [
   },
 
   // --------------------------------------------------------------------------
-  // MarkText
+  // Mark
 
   {
     id: 'file.preferences',
@@ -627,7 +627,7 @@ const commands = [
     id: 'docs.user-guide',
     execute: async () => {
       window.electron.shell.openExternal(
-        'https://github.com/Tkaixiang/marktext/blob/trunk/docs/BASICS.md'
+        'https://github.com/xronocode/mark/blob/electron/docs/BASICS.md'
       )
     }
   },
@@ -635,7 +635,7 @@ const commands = [
     id: 'docs.markdown-syntax',
     execute: async () => {
       window.electron.shell.openExternal(
-        'https://github.com/Tkaixiang/marktext/blob/trunk/docs/MARKDOWN_SYNTAX.md'
+        'https://github.com/xronocode/mark/blob/electron/docs/MARKDOWN_SYNTAX.md'
       )
     }
   },

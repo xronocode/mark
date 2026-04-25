@@ -105,22 +105,22 @@
       "viewSource": "Quellcode anzeigen",
       "license": "Lizenz",
       "checkForUpdates": "Nach Updates suchen",
-      "aboutMarkText": "Über MarkText",
+      "aboutMark": "Über Mark",
       "about": "Über",
       "checkUpdates": "Updates prüfen"
     },
     "marktext": {
-      "title": "MarkText",
-      "marktext": "MarkText",
-      "about": "Über MarkText",
+      "title": "Mark",
+      "marktext": "Mark",
+      "about": "Über Mark",
       "checkUpdates": "Nach Updates suchen...",
       "preferences": "Einstellungen",
       "services": "Dienste",
-      "hide": "MarkText ausblenden",
-      "hideMarkText": "MarkText ausblenden",
+      "hide": "Mark ausblenden",
+      "hideMark": "Mark ausblenden",
       "hideOthers": "Andere ausblenden",
       "showAll": "Alle anzeigen",
-      "quit": "MarkText beenden"
+      "quit": "Mark beenden"
     },
     "view": {
       "view": "Ansicht",
@@ -386,7 +386,7 @@
   },
   "import": {
     "title": "Importieren oder öffnen",
-    "description": "Hier hineinziehen, um Ihren Inhalt in MarkText zu importieren"
+    "description": "Hier hineinziehen, um Ihren Inhalt in Mark zu importieren"
   },
   "tweet": {
     "title": "Senden Sie uns Ihr Feedback per Tweet",
@@ -423,10 +423,10 @@
         "hideScrollbar": "Ob Scrollbalken ausgeblendet werden sollen",
         "wordWrapInToc": "Ob Zeilenumbruch im Inhaltsverzeichnis aktiviert werden soll",
         "fileSortBy": "Dateien im geöffneten Ordner nach Erstellungszeit, Änderungszeit und Titel sortieren",
-        "startUpAction": "Die Aktion nach MarkText-Start, letzten bearbeiteten Inhalt öffnen, angegebenen Ordner öffnen oder leere Seite",
+        "startUpAction": "Die Aktion nach Mark-Start, letzten bearbeiteten Inhalt öffnen, angegebenen Ordner öffnen oder leere Seite",
         "restoreLayoutState": "Vorherigen Editorzustand beim Start wiederherstellen",
         "defaultDirectoryToOpen": "Das Standard-Verzeichnis, das beim Start geöffnet werden soll, wenn startUp=folder",
-        "language": "Die Sprache, die MarkText verwendet",
+        "language": "Die Sprache, die Mark verwendet",
         "editorFontFamily": "Editor-Schriftfamilie",
         "fontSize": "Schriftgröße in Pixeln",
         "lineHeight": "Zeilenhöhe",
@@ -450,7 +450,7 @@
         "preferLooseListItem": "Der bevorzugte Listentyp",
         "bulletListMarker": "Die Markierung in Aufzählungslisten",
         "orderListDelimiter": "Das Trennzeichen in geordneten Listen",
-        "preferHeadingStyle": "Der bevorzugte Überschriften-Stil in MarkText",
+        "preferHeadingStyle": "Der bevorzugte Überschriften-Stil in Mark",
         "tabSize": "Tab durch x Leerzeichen ersetzen",
         "listIndentation": "Einrückung der Liste auswählen",
         "frontmatterType": "Der Frontmatter-Typ",
@@ -459,7 +459,7 @@
         "isHtmlEnabled": "HTML-Rendering aktivieren",
         "isGitlabCompatibilityEnabled": "GitLab-Kompatibilitätsmodus aktivieren",
         "sequenceTheme": "Sequenzdiagramm-Theme",
-        "theme": "Das in MarkText verwendete Theme auswählen",
+        "theme": "Das in Mark verwendete Theme auswählen",
         "followSystemTheme": "Systemdesign folgen",
         "lightModeTheme": "Design, das verwendet werden soll, wenn sich das System im hellen Modus befindet",
         "darkModeTheme": "Design, das verwendet werden soll, wenn sich das System im dunklen Modus befindet",
@@ -609,7 +609,7 @@
     "image": {
       "title": "Bild",
       "defaultAction": "Standardaktion beim Einfügen von Bildern",
-      "clipboardTooltip": "Standardverhalten nach dem Einfügen oder Ziehen eines Bildes in MarkText",
+      "clipboardTooltip": "Standardverhalten nach dem Einfügen oder Ziehen eines Bildes in Mark",
       "actions": {
         "upload": "In die Cloud hochladen",
         "folder": "In Ordner kopieren",
@@ -920,7 +920,7 @@
   },
   "commands": {
     "mt": {
-      "hide": "MarkText ausblenden",
+      "hide": "Mark ausblenden",
       "hideOthers": "Andere ausblenden"
     },
     "file": {
@@ -1091,7 +1091,7 @@
     "configSchemaViolation": "Konfigurationsschema-Verletzung",
     "copyError": "Kopierfehler",
     "initializationFailed": "Initialisierung fehlgeschlagen {hint}",
-    "otherInstanceDetected": "Eine andere Instanz von MarkText läuft bereits",
+    "otherInstanceDetected": "Eine andere Instanz von Mark läuft bereits",
     "report": "Melden",
     "startupError": "Startfehler",
     "terminatedDueToError": "Aufgrund eines Fehlers beendet",

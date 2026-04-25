@@ -16,7 +16,7 @@
       <template #head>
         <bool
           :description="t('preferences.image.folderSetting.preferRelative')"
-          more="https://github.com/marktext/marktext/blob/develop/docs/IMAGES.md"
+          more="https://github.com/xronocode/mark/blob/electron/docs/IMAGES.md"
           :bool="imagePreferRelativeDirectory"
           :on-change="(value) => onSelectChange('imagePreferRelativeDirectory', value)"
         ></bool>

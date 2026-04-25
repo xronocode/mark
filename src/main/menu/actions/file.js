@@ -120,7 +120,7 @@ const handleResponseForSave = async (e, id, filename, pathname, markdown, option
 
   // If the file doesn't exist on disk add it to the recently used documents later
   // and execute file from filesystem watcher for a short time. The file may exists
-  // on disk nevertheless but is already tracked by MarkText.
+  // on disk nevertheless but is already tracked by Mark.
   const alreadyExistOnDisk = !!pathname
 
   let filePath = pathname
@@ -280,7 +280,7 @@ ipcMain.on(
 
     // If the file doesn't exist on disk add it to the recently used documents later
     // and execute file from filesystem watcher for a short time. The file may exists
-    // on disk nevertheless but is already tracked by MarkText.
+    // on disk nevertheless but is already tracked by Mark.
     const alreadyExistOnDisk = !!pathname
 
     let { filePath, canceled } = await dialog.showSaveDialog(win, {

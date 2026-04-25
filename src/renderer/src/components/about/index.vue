@@ -13,7 +13,7 @@
           <h3 class="title">{{ name }}</h3>
         </el-col>
         <el-col :span="24">
-          <div class="text">{{ store.appVersion }} (Tkaixiang fork)</div>
+          <div class="text">{{ store.appVersion }}</div>
         </el-col>
         <el-col :span="24">
           <div class="text" style="min-height: auto">{{ copyright }}</div>
@@ -35,7 +35,7 @@ import { useI18n } from 'vue-i18n'
 
 const { t } = useI18n()
 
-const name = 'MarkText'
+const name = 'Mark'
 const copyright = t('about.copyright', { year: new Date().getFullYear() })
 const copyrightContributors = t('about.copyrightContributors')
 const showAboutDialog = ref(false)

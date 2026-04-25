@@ -92,7 +92,7 @@ const faceClick = (name) => {
 }
 
 const reportViaGithub = () => {
-  window.electron.shell.openExternal('https://github.com/Tkaixiang/marktext/issues/new')
+  window.electron.shell.openExternal('https://github.com/xronocode/mark/issues/new')
 }
 
 const reportViaTwitter = () => {
@@ -101,12 +101,12 @@ const reportViaTwitter = () => {
 
   const params = {
     via: 'marktextme',
-    url: encodeURI('https://github.com/Tkaixiang/marktext/'),
+    url: encodeURI('https://github.com/xronocode/mark/'),
     text: value.value
   }
 
   if (selectedFace.value === 'smile') {
-    params.hashtags = 'happyMarkText'
+    params.hashtags = 'markEditor'
   }
 
   window.electron.shell.openExternal(

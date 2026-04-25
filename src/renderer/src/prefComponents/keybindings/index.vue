@@ -117,7 +117,7 @@ onUnmounted(() => {
 
 const openKeybindingWiki = () => {
   window.electron.shell.openExternal(
-    'https://github.com/marktext/marktext/blob/master/docs/KEYBINDINGS.md'
+    'https://github.com/xronocode/mark/blob/electron/docs/KEYBINDINGS.md'
   )
 }
 

@@ -111,7 +111,7 @@ export const uploadImage = async (pathname, image, preferences) => {
   const uploadByGithub = (content, filename) => {
     const octokit = new Octokit({ auth })
     const filePath = `${dayjs().format('YYYY/MM')}/${dayjs().format('DD-HH-mm-ss')}-${filename}`
-    const message = `Upload by MarkText at ${dayjs().format('YYYY-MM-DD HH:mm:ss')}`
+    const message = `Upload by Mark at ${dayjs().format('YYYY-MM-DD HH:mm:ss')}`
     const payload = { owner, repo, path: filePath, branch, message, content }
     if (!branch) delete payload.branch
     octokit.repos

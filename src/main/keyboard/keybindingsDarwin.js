@@ -4,10 +4,10 @@
 //       Our current key manager will forbid the usage of these key combinations too.
 
 export default new Map([
-  // MarkText menu
+  // Mark menu
   ['mt.hide', 'Command+H'],
   ['mt.hide-others', 'Command+Option+H'],
-  ['file.preferences', 'Command+,'], // located under MarkText menu in macOS only
+  ['file.preferences', 'Command+,'], // located under Mark menu in macOS only
 
   // File menu
   ['file.new-window', 'Command+N'],

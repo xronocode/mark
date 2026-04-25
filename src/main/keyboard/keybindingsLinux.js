@@ -8,7 +8,7 @@
 //       can be produced with ^ or ` on any keyboard. --> ^, `, ", ~, ...
 
 export default new Map([
-  // MarkText menu on macOS only
+  // Mark menu on macOS only
   ['mt.hide', ''],
   ['mt.hide-others', ''],
 
