@@ -87,4 +87,7 @@ export const getLanguageOptions = () => [{
 }, {
   label: t('preferences.general.misc.language.portuguese'),
   value: 'pt'
+}, {
+  label: t('preferences.general.misc.language.russian'),
+  value: 'ru'
 }]
