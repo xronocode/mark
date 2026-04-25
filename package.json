@@ -1,10 +1,10 @@
 {
-  "name": "marktext",
+  "name": "mark",
   "version": "0.18.9",
-  "description": "MarkText",
+  "description": "Mark — modernized Markdown editor with Russian support",
   "main": "./out/main/index.js",
-  "author": "Marktext Contributors (Tkaixiang fork)",
-  "homepage": "https://github.com/Tkaixiang/marktext",
+  "author": "xronocode",
+  "homepage": "https://github.com/xronocode/mark",
   "scripts": {
     "format": "prettier --write .",
     "lint": "eslint --cache .",

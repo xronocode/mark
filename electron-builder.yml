@@ -1,5 +1,6 @@
-appId: com.electron.app
-productName: marktext
+appId: com.xronocode.mark
+productName: Mark
+afterPack: scripts/ad-hoc-sign.js
 directories:
   buildResources: build
 files:
@@ -84,8 +85,8 @@ fileAssociations:
     mimeType: text/markdown
     role: Editor
 win:
-  executableName: marktext
-  artifactName: 'marktext-win-${arch}-${version}.${ext}'
+  executableName: mark
+  artifactName: 'mark-win-${arch}-${version}.${ext}'
   target:
     - target: 'nsis'
       arch: [x64]
@@ -93,7 +94,7 @@ win:
       arch: [x64]
   icon: static/icon.ico
 nsis:
-  artifactName: 'marktext-win-${arch}-${version}-setup.${ext}'
+  artifactName: 'mark-win-${arch}-${version}-setup.${ext}'
   shortcutName: ${productName}
   uninstallDisplayName: ${productName}
   createDesktopShortcut: true
@@ -103,13 +104,14 @@ nsis:
   perMachine: false
   include: windows/installer.nsh
 mac:
-  artifactName: 'marktext-mac-${arch}-${version}.${ext}'
+  artifactName: 'mark-mac-${arch}-${version}.${ext}'
   entitlementsInherit: build/mac/entitlements.mac.plist
   extendInfo:
     - NSCameraUsageDescription: Application requests access to the device's camera.
     - NSDocumentsFolderUsageDescription: Application requests access to the user's Documents folder.
     - NSDownloadsFolderUsageDescription: Application requests access to the user's Downloads folder.
   icon: static/icon.icns
+  identity: null # Ad-hoc signing applied via scripts/ad-hoc-sign.js afterPack hook.
   notarize: false
   target:
     - target: dmg
@@ -117,7 +119,7 @@ mac:
     - target: zip
       arch: [x64, arm64]
 dmg:
-  artifactName: 'marktext-mac-${arch}-${version}.${ext}'
+  artifactName: 'mark-mac-${arch}-${version}.${ext}'
   contents:
     - x: 410
       y: 240
@@ -127,18 +129,18 @@ dmg:
       y: 240
       type: 'file'
 linux:
-  artifactName: 'marktext-linux-${version}.${ext}'
-  executableName: 'marktext'
+  artifactName: 'mark-linux-${version}.${ext}'
+  executableName: 'mark'
   description: 'A simple and elegant open-source markdown editor that focused on speed and usability.'
-  maintainer: 'MarkText Contributors'
+  maintainer: 'xronocode'
   category: 'Office;TextEditor;Utility'
   mimeTypes:
     - 'text/markdown'
   icon: 'static/icon.png'
   desktop:
     entry:
-      StartupWMClass: 'marktext'
-      Keywords: 'marktext;'
+      StartupWMClass: 'mark'
+      Keywords: 'mark;markdown;'
   target:
     - AppImage
     - snap
