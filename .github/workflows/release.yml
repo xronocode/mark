@@ -5,6 +5,12 @@ on:
     tags:
       - v*.*.*
 
+# Default GITHUB_TOKEN scopes are read-only since the org / repo settings
+# tightened in 2024. Grant explicit write access to releases so
+# action-gh-release can create + populate the draft for this tag.
+permissions:
+  contents: write
+
 jobs:
   release:
     runs-on: ${{ matrix.os }}
@@ -69,7 +75,7 @@ jobs:
         if: startsWith(matrix.os, 'macos-')
         run: echo "CXXFLAGS=-std=gnu++20 -stdlib=libc++" >> $GITHUB_ENV
 
-      - name: Patch native-keymap for Xcode C++17 (macOS)
+      - name: Patch native-keymap for Xcode C++20 (macOS)
         if: startsWith(matrix.os, 'macos-')
         run: node scripts/patch-native-keymap-mac.js
 
