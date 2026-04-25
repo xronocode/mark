@@ -9,7 +9,7 @@
 //
 // We inject CLANG_CXX_LANGUAGE_STANDARD + OTHER_CPLUSPLUSFLAGS so that
 // .mm sources compile with the same standard as the rest of Electron's
-// native modules.
+// native modules. Electron 41's v8 headers require C++20.
 
 const fs = require('fs')
 const path = require('path')
@@ -51,9 +51,9 @@ const replacement = `'OS=="mac"', {
             ]
           },
           'xcode_settings': {
-            'CLANG_CXX_LANGUAGE_STANDARD': 'gnu++17',
+            'CLANG_CXX_LANGUAGE_STANDARD': 'gnu++20',
             'CLANG_CXX_LIBRARY': 'libc++',
-            'OTHER_CPLUSPLUSFLAGS': ['$(inherited)', '-std=gnu++17']
+            'OTHER_CPLUSPLUSFLAGS': ['$(inherited)', '-std=gnu++20']
           }
         }`
 

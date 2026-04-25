@@ -67,7 +67,7 @@ jobs:
       # macros header. Patch its binding.gyp before rebuilding.
       - name: Set C++ flags (macOS)
         if: startsWith(matrix.os, 'macos-')
-        run: echo "CXXFLAGS=-std=gnu++17 -stdlib=libc++" >> $GITHUB_ENV
+        run: echo "CXXFLAGS=-std=gnu++20 -stdlib=libc++" >> $GITHUB_ENV
 
       - name: Patch native-keymap for Xcode C++17 (macOS)
         if: startsWith(matrix.os, 'macos-')
