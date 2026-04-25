@@ -917,8 +917,8 @@
     }
   },
   "about": {
-    "copyright": "저작권",
-    "copyrightContributors": "저작권 기여자"
+    "copyright": "Copyright © Jocs 2017+, tkaixiang 2024+, xronocode 2026+",
+    "copyrightContributors": "Made with <3 by the marktext community"
   },
   "commands": {
     "mt": {
