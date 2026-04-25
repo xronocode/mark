@@ -257,7 +257,10 @@
     "invalidRegex": "Invalid regular expression \"{pattern}\"",
     "regexMatchEmpty": "Regular expression matches empty string \"{pattern}\"",
     "searchResultInfo": "{matchCount} matches in {fileCount} files",
-    "searchLimited": "Searched limited to first {count} results"
+    "searchLimited": "Searched limited to first {count} results",
+    "caseSensitiveTip": "Case sensitive (Aa) — \"Hello\" ≠ \"hello\"",
+    "wholeWordTip": "Whole word (\\b) — \"fox\" matches \"fox\" but not \"foxglove\"",
+    "useRegexTip": "Regular expression (.*) — \"colou?r\" matches \"color\" and \"colour\""
   },
   "sideBar": {
     "search": {
@@ -266,7 +269,9 @@
       "noResultsFound": "No results found.",
       "cancel": "Cancel",
       "openFolder": "Open Folder",
-      "showMoreMatches": "Show more matches"
+      "showMoreMatches": "Show more matches",
+      "startTyping": "Type to search across markdown files in the open folder.",
+      "searching": "Searching…"
     },
     "tree": {
       "openedFiles": "Opened files",
@@ -274,7 +279,8 @@
       "closeAll": "Close All",
       "emptyProject": "Empty project",
       "createFile": "Create File",
-      "openFolder": "Open Folder"
+      "openFolder": "Open Folder",
+      "closeFolder": "Close folder"
     },
     "toc": {
       "title": "Table Of Contents"

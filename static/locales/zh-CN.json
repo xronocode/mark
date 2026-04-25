@@ -258,7 +258,10 @@
     "regexMatchEmpty": "正则表达式 \"{pattern}\" 匹配到了空字符串",
     "searchResultCount": "搜索结果",
     "searchResultInfo": "在 {fileCount} 个文件中找到 {matchCount} 个匹配项",
-    "searchLimited": "仅搜索前 {count} 个结果"
+    "searchLimited": "仅搜索前 {count} 个结果",
+    "caseSensitiveTip": "区分大小写 (Aa) — \"Hello\" ≠ \"hello\"",
+    "wholeWordTip": "全字匹配 (\\b) — \"fox\" 匹配 \"fox\" 但不匹配 \"foxglove\"",
+    "useRegexTip": "正则表达式 (.*) — \"colou?r\" 同时匹配 \"color\" 和 \"colour\""
   },
   "sideBar": {
     "search": {
@@ -267,7 +270,9 @@
       "noResultsFound": "未找到结果。",
       "cancel": "取消",
       "openFolder": "打开文件夹",
-      "showMoreMatches": "显示更多匹配"
+      "showMoreMatches": "显示更多匹配",
+      "startTyping": "在打开的文件夹的 markdown 文件中搜索。",
+      "searching": "搜索中…"
     },
     "tree": {
       "openedFiles": "已打开的文件",
@@ -275,7 +280,8 @@
       "closeAll": "关闭全部",
       "emptyProject": "空项目",
       "createFile": "创建文件",
-      "openFolder": "打开文件夹"
+      "openFolder": "打开文件夹",
+      "closeFolder": "关闭文件夹"
     },
     "toc": {
       "title": "目录"

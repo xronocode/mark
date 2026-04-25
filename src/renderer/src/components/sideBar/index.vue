@@ -3,58 +3,43 @@
     v-show="showSideBar"
     ref="sideBar"
     class="side-bar"
-    :style="[!rightColumn ? { 'min-width': '45px' } : {}, { width: `${finalSideBarWidth}px` }]"
+    :style="{ width: `${finalSideBarWidth}px` }"
   >
-    <div class="left-column">
-      <ul>
-        <li
-          v-for="(c, index) of sideBarIcons"
-          :key="index"
-          :class="{ active: c.id === rightColumn }"
-          @click="handleLeftIconClick(c.id)"
-        >
-          <component :is="c.icon" />
-        </li>
-      </ul>
-      <ul class="bottom">
-        <li
-          v-for="(c, index) of sideBarBottomIcons"
-          :key="index"
-          @click="handleLeftBottomClick(c.id)"
-        >
-          <component :is="c.icon" />
-        </li>
-      </ul>
+    <div class="side-bar-content">
+      <search-toolbar></search-toolbar>
+      <div class="side-bar-body">
+        <!-- Results take over when there's an active query, regardless of rightColumn. -->
+        <side-bar-search v-if="hasSearchQuery"></side-bar-search>
+        <tree
+          v-else-if="rightColumn === 'files'"
+          :openedFiles="openedFiles"
+          :tabs="tabs"
+        ></tree>
+        <toc v-else-if="rightColumn === 'toc'"></toc>
+        <!-- Default empty state when sidebar is open but no view is selected — per
+             spec, do NOT default to Files; the search toolbar above is the cue. -->
+      </div>
     </div>
-    <div v-show="rightColumn" class="right-column">
-      <tree
-        v-if="rightColumn === 'files'"
-        :projectTree="projectTree"
-        :openedFiles="openedFiles"
-        :tabs="tabs"
-      ></tree>
-      <side-bar-search v-else-if="rightColumn === 'search'"></side-bar-search>
-      <toc v-else-if="rightColumn === 'toc'"></toc>
-    </div>
-    <div v-show="rightColumn" ref="dragBar" class="drag-bar"></div>
+    <div ref="dragBar" class="drag-bar"></div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, nextTick, watch } from 'vue'
+import { ref, computed, onMounted, nextTick } from 'vue'
+import { storeToRefs } from 'pinia'
 import { useLayoutStore } from '@/store/layout'
 import { useProjectStore } from '@/store/project'
 import { useEditorStore } from '@/store/editor'
-
-import { sideBarIcons, sideBarBottomIcons } from './help'
+import { useSearchStore } from '@/store/search'
 import Tree from './tree.vue'
 import SideBarSearch from './search.vue'
 import Toc from './toc.vue'
-import { storeToRefs } from 'pinia'
+import SearchToolbar from './searchToolbar.vue'
 
 const layoutStore = useLayoutStore()
 const projectStore = useProjectStore()
 const editorStore = useEditorStore()
+const searchStore = useSearchStore()
 
 const sideBar = ref(null)
 const dragBar = ref(null)
@@ -63,13 +48,13 @@ const openedFiles = ref([])
 const sideBarViewWidth = ref(280)
 
 const { rightColumn, showSideBar, sideBarWidth } = storeToRefs(layoutStore)
-
-const { projectTree } = storeToRefs(projectStore)
+// projectTrees no longer destructured here — tree.vue reads directly from store.
 const { tabs } = storeToRefs(editorStore)
+
+const hasSearchQuery = computed(() => searchStore.hasQuery)
 
 const finalSideBarWidth = computed(() => {
   if (!showSideBar.value) return 0
-  if (rightColumn.value === '') return 45
   return sideBarViewWidth.value < 220 ? 220 : sideBarViewWidth.value
 })
 
@@ -104,26 +89,6 @@ onMounted(() => {
     dragBarEl.addEventListener('mousedown', mouseDownHandler, false)
   })
 })
-
-const handleLeftIconClick = (name) => {
-  if (rightColumn.value === name) {
-    layoutStore.SET_LAYOUT({ rightColumn: '' })
-    layoutStore.CHANGE_SIDE_BAR_WIDTH(finalSideBarWidth.value)
-  } else {
-    const needDispatch = rightColumn.value === ''
-    layoutStore.SET_LAYOUT({ rightColumn: name })
-    sideBarViewWidth.value = +sideBarWidth.value
-    if (needDispatch) {
-      layoutStore.CHANGE_SIDE_BAR_WIDTH(finalSideBarWidth.value)
-    }
-  }
-}
-
-const handleLeftBottomClick = (name) => {
-  if (name === 'settings') {
-    projectStore.OPEN_SETTING_WINDOW()
-  }
-}
 </script>
 
 <style scoped>
@@ -140,66 +105,21 @@ const handleLeftBottomClick = (name) => {
   background: var(--sideBarBgColor);
   border-right: 1px solid var(--itemBgColor);
 }
-
-.side-bar .left-column svg {
-  fill: var(--iconColor);
-}
-
-.left-column {
-  height: 100%;
-  width: 45px;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  padding-top: 40px;
-  box-sizing: border-box;
-}
-
-.left-column > ul {
-  opacity: 1;
-}
-
-.left-column ul {
-  list-style: none;
-  display: flex;
-  flex-direction: column;
-  margin: 0;
-  padding: 0;
-}
-
-.left-column ul > li {
-  width: 45px;
-  height: 45px;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  justify-content: space-around;
-  align-items: center;
-  cursor: pointer;
-}
-
-.left-column ul > li > svg {
-  width: 18px;
-  height: 18px;
-  fill: var(--sideBarIconColor);
-  opacity: 1;
-  transition: transform 0.25s ease-in-out;
-}
-
-.left-column ul > li.active > svg {
-  fill: var(--themeColor);
-}
-
-.side-bar:hover .left-column ul li svg {
-  opacity: 1;
-}
-
-.right-column {
+.side-bar-content {
   flex: 1;
-  width: calc(100% - 50px);
+  display: flex;
+  flex-direction: column;
   overflow: hidden;
+  /* Leave room for the titlebar so the search toolbar isn't tucked under
+     macOS traffic lights or the custom title region. */
+  padding-top: var(--titleBarHeight);
 }
-
+.side-bar-body {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
 .drag-bar {
   position: absolute;
   top: 0;
@@ -209,7 +129,6 @@ const handleLeftBottomClick = (name) => {
   width: 3px;
   cursor: col-resize;
 }
-
 .drag-bar:hover {
   border-right: 2px solid var(--iconColor);
 }

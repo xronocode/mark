@@ -258,7 +258,10 @@
     "regexMatchEmpty": "正規表示式 \"{pattern}\" 符合空字串",
     "searchResultCount": "搜尋結果",
     "searchResultInfo": "在 {fileCount} 個檔案中找到 {matchCount} 個符合項目",
-    "searchLimited": "搜尋僅限前 {count} 個結果"
+    "searchLimited": "搜尋僅限前 {count} 個結果",
+    "caseSensitiveTip": "區分大小寫 (Aa) — \"Hello\" ≠ \"hello\"",
+    "wholeWordTip": "全字匹配 (\\b) — \"fox\" 匹配 \"fox\" 但不匹配 \"foxglove\"",
+    "useRegexTip": "正規表達式 (.*) — \"colou?r\" 同時匹配 \"color\" 和 \"colour\""
   },
   "sideBar": {
     "search": {
@@ -267,7 +270,9 @@
       "noResultsFound": "找不到結果。",
       "cancel": "取消",
       "openFolder": "開啟資料夾",
-      "showMoreMatches": "顯示更多符合項目"
+      "showMoreMatches": "顯示更多符合項目",
+      "startTyping": "在開啟資料夾的 markdown 檔案中搜尋。",
+      "searching": "搜尋中…"
     },
     "tree": {
       "openedFiles": "已開啟的檔案",
@@ -275,7 +280,8 @@
       "closeAll": "全部關閉",
       "emptyProject": "空專案",
       "createFile": "建立檔案",
-      "openFolder": "開啟資料夾"
+      "openFolder": "開啟資料夾",
+      "closeFolder": "關閉資料夾"
     },
     "toc": {
       "title": "目錄"

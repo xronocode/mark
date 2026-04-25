@@ -257,7 +257,10 @@
     "invalidRegex": "Expresión regular inválida \"{pattern}\"",
     "regexMatchEmpty": "La expresión regular coincide con la cadena vacía \"{pattern}\"",
     "searchResultInfo": "{matchCount} coincidencias en {fileCount} archivos",
-    "searchLimited": "Búsqueda limitada a los primeros {count} resultados"
+    "searchLimited": "Búsqueda limitada a los primeros {count} resultados",
+    "caseSensitiveTip": "Distinguir mayúsculas (Aa) — «Hello» ≠ «hello»",
+    "wholeWordTip": "Palabra completa (\\b) — «fox» coincide con «fox» pero no con «foxglove»",
+    "useRegexTip": "Expresión regular (.*) — «colou?r» coincide con «color» y «colour»"
   },
   "sideBar": {
     "search": {
@@ -266,7 +269,9 @@
       "noResultsFound": "No se encontraron resultados.",
       "cancel": "Cancelar",
       "openFolder": "Abrir Carpeta",
-      "showMoreMatches": "Mostrar más coincidencias"
+      "showMoreMatches": "Mostrar más coincidencias",
+      "startTyping": "Escriba para buscar en los archivos markdown de la carpeta abierta.",
+      "searching": "Buscando…"
     },
     "tree": {
       "openedFiles": "Archivos abiertos",
@@ -274,7 +279,8 @@
       "closeAll": "Cerrar",
       "emptyProject": "Proyecto vacío",
       "createFile": "Crear Archivo",
-      "openFolder": "Abrir Carpeta"
+      "openFolder": "Abrir Carpeta",
+      "closeFolder": "Cerrar carpeta"
     },
     "toc": {
       "title": "Tabla de Contenidos"

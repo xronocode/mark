@@ -258,7 +258,10 @@
     "regexMatchEmpty": "정규식이 빈 문자열 \"{pattern}\"과 일치",
     "searchResultCount": "검색 결과",
     "searchResultInfo": "{fileCount}개의 파일에서 {matchCount}개 일치",
-    "searchLimited": "처음 {count}개의 결과까지만 검색"
+    "searchLimited": "처음 {count}개의 결과까지만 검색",
+    "caseSensitiveTip": "대소문자 구분 (Aa) — \"Hello\" ≠ \"hello\"",
+    "wholeWordTip": "단어 단위 (\\b) — \"fox\"는 \"fox\"에는 일치하지만 \"foxglove\"에는 일치하지 않음",
+    "useRegexTip": "정규식 (.*) — \"colou?r\"는 \"color\"와 \"colour\" 모두에 일치"
   },
   "sideBar": {
     "search": {
@@ -267,7 +270,9 @@
       "noResultsFound": "결과를 찾을 수 없습니다.",
       "cancel": "취소",
       "openFolder": "폴더 열기",
-      "showMoreMatches": "더 많은 일치 항목 보기"
+      "showMoreMatches": "더 많은 일치 항목 보기",
+      "startTyping": "입력하면 열린 폴더의 markdown 파일에서 검색합니다.",
+      "searching": "검색 중…"
     },
     "tree": {
       "openedFiles": "열린 파일",
@@ -275,7 +280,8 @@
       "closeAll": "모두 닫기",
       "emptyProject": "빈 프로젝트",
       "createFile": "파일 만들기",
-      "openFolder": "폴더 열기"
+      "openFolder": "폴더 열기",
+      "closeFolder": "폴더 닫기"
     },
     "toc": {
       "title": "목차"

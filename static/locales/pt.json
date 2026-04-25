@@ -258,7 +258,10 @@
     "regexMatchEmpty": "Expressão regular corresponde à string vazia \"{pattern}\"",
     "searchResultCount": "Resultados da pesquisa",
     "searchResultInfo": "{matchCount} correspondências em {fileCount} arquivos",
-    "searchLimited": "Pesquisa limitada aos primeiros {count} resultados"
+    "searchLimited": "Pesquisa limitada aos primeiros {count} resultados",
+    "caseSensitiveTip": "Diferenciar maiúsculas (Aa) — «Hello» ≠ «hello»",
+    "wholeWordTip": "Palavra inteira (\\b) — «fox» corresponde a «fox» mas não a «foxglove»",
+    "useRegexTip": "Expressão regular (.*) — «colou?r» corresponde a «color» e «colour»"
   },
   "sideBar": {
     "search": {
@@ -267,7 +270,9 @@
       "noResultsFound": "Nenhum resultado encontrado.",
       "cancel": "Cancelar",
       "openFolder": "Abrir Pasta",
-      "showMoreMatches": "Mostrar mais correspondências"
+      "showMoreMatches": "Mostrar mais correspondências",
+      "startTyping": "Digite para procurar nos ficheiros markdown da pasta aberta.",
+      "searching": "A procurar…"
     },
     "tree": {
       "openedFiles": "Arquivos abertos",
@@ -275,7 +280,8 @@
       "closeAll": "Fechar Todos",
       "emptyProject": "Projeto vazio",
       "createFile": "Criar Arquivo",
-      "openFolder": "Abrir Pasta"
+      "openFolder": "Abrir Pasta",
+      "closeFolder": "Fechar pasta"
     },
     "toc": {
       "title": "Índice"

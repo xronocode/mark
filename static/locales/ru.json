@@ -257,7 +257,10 @@
     "invalidRegex": "Некорректное регулярное выражение «{pattern}»",
     "regexMatchEmpty": "Регулярное выражение совпадает с пустой строкой «{pattern}»",
     "searchResultInfo": "{matchCount} совпадений в {fileCount} файлах",
-    "searchLimited": "Показаны только первые {count} результатов"
+    "searchLimited": "Показаны только первые {count} результатов",
+    "caseSensitiveTip": "С учётом регистра (Aa) — «Hello» ≠ «hello»",
+    "wholeWordTip": "Слово целиком (\\b) — «fox» совпадает с «fox», но не с «foxglove»",
+    "useRegexTip": "Регулярное выражение (.*) — «colou?r» совпадает с «color» и «colour»"
   },
   "sideBar": {
     "search": {
@@ -266,7 +269,9 @@
       "noResultsFound": "Ничего не найдено.",
       "cancel": "Отмена",
       "openFolder": "Открыть папку",
-      "showMoreMatches": "Показать больше совпадений"
+      "showMoreMatches": "Показать больше совпадений",
+      "startTyping": "Введите запрос, чтобы найти по всем .md в открытой папке.",
+      "searching": "Поиск…"
     },
     "tree": {
       "openedFiles": "Открытые файлы",
@@ -274,7 +279,8 @@
       "closeAll": "Закрыть все",
       "emptyProject": "Пустой проект",
       "createFile": "Создать файл",
-      "openFolder": "Открыть папку"
+      "openFolder": "Открыть папку",
+      "closeFolder": "Закрыть папку"
     },
     "toc": {
       "title": "Оглавление"

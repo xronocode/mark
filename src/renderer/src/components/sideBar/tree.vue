@@ -36,30 +36,47 @@
       </div>
     </div>
 
-    <!-- Project tree view -->
-    <div v-if="projectTree" class="project-tree">
+    <!-- v1.1.0 Phase-A6: multi-root rendering — one section per opened folder. -->
+    <div
+      v-for="root in projectTrees"
+      :key="root.pathname"
+      class="project-tree"
+    >
       <div class="title">
         <svg
           class="icon icon-arrow"
-          :class="{ fold: !showDirectories }"
+          :class="{ fold: !isRootExpanded(root.pathname) }"
           aria-hidden="true"
-          @click.stop="toggleDirectories()"
+          @click.stop="toggleRootDirectories(root.pathname)"
         >
           <use xlink:href="#icon-arrow"></use>
         </svg>
-        <span class="default-cursor text-overflow" @click.stop="toggleDirectories()">{{
-          projectTree.name
-        }}</span>
+        <span
+          class="default-cursor text-overflow"
+          :title="root.pathname"
+          @click.stop="toggleRootDirectories(root.pathname)"
+        >{{ root.name }}</span>
+        <a
+          href="javascript:;"
+          class="close-root-btn"
+          :title="t('sideBar.tree.closeFolder')"
+          @click.stop="handleCloseRoot(root.pathname)"
+        >
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"/>
+            <line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </a>
       </div>
-      <div v-show="showDirectories" class="tree-wrapper">
+      <div v-show="isRootExpanded(root.pathname)" class="tree-wrapper">
         <folder
-          v-for="folder of projectTree.folders"
+          v-for="folder of root.folders"
           :key="folder.id"
           :folder="folder"
           :depth="depth"
         ></folder>
         <input
-          v-show="createCache.dirname === projectTree.pathname"
+          v-show="createCache.dirname === root.pathname"
           ref="input"
           v-model="createName"
           placeholder="Enter .md file name"
@@ -69,29 +86,31 @@
           @keypress.enter="handleInputEnter"
         />
         <file
-          v-for="file of projectTree.files"
+          v-for="file of root.files"
           :key="file.id"
           :file="file"
           :depth="depth"
         ></file>
         <div
           v-if="
-            projectTree.files.length === 0 &&
-            projectTree.folders.length === 0 &&
-            createCache.dirname !== projectTree.pathname
+            root.files.length === 0 &&
+            root.folders.length === 0 &&
+            createCache.dirname !== root.pathname
           "
           class="empty-project"
         >
           <span>{{ t('sideBar.tree.emptyProject') }}</span>
           <div class="centered-group">
-            <button class="button-primary" @click="createFile">
+            <button class="button-primary" @click="createFileInRoot(root)">
               {{ t('sideBar.tree.createFile') }}
             </button>
           </div>
         </div>
       </div>
     </div>
-    <div v-else class="open-project">
+
+    <!-- Empty state shown only when there are NO open folders. -->
+    <div v-if="projectTrees.length === 0" class="open-project">
       <div class="centered-group">
         <button class="button-primary" @click="openFolder">
           {{ t('sideBar.tree.openFolder') }}
@@ -114,19 +133,12 @@ import { useI18n } from 'vue-i18n'
 
 const { t } = useI18n()
 
-const props = defineProps({
-  projectTree: {
-    validator: function (value) {
-      return typeof value === 'object'
-    },
-    required: true
-  },
+defineProps({
   openedFiles: Array,
   tabs: Array
 })
 
 const depth = 0
-const showDirectories = ref(true)
 const showOpenedFiles = ref(true)
 const createName = ref('')
 const input = ref(null)
@@ -134,8 +146,33 @@ const input = ref(null)
 const projectStore = useProjectStore()
 const editorStore = useEditorStore()
 
+// Per-root collapse state, keyed by canonical pathname. Default = expanded
+// (i.e., absent key means open). Toggling sets the key explicitly.
+const collapsedRoots = ref({})
+
 // Computed properties
-const { createCache } = storeToRefs(projectStore)
+const { createCache, projectTrees } = storeToRefs(projectStore)
+
+const isRootExpanded = (pathname) => collapsedRoots.value[pathname] !== true
+
+const toggleRootDirectories = (pathname) => {
+  const next = !isRootExpanded(pathname)
+  // eslint-disable-next-line no-console
+  console.debug(`[TreeVue][toggleDirectoriesForRoot][BLOCK_TOGGLE] pathname=${pathname} nextOpen=${!next}`)
+  collapsedRoots.value = { ...collapsedRoots.value, [pathname]: next }
+}
+
+const handleCloseRoot = (pathname) => {
+  // eslint-disable-next-line no-console
+  console.debug(`[TreeVue][handleCloseRoot][BLOCK_DISPATCH] pathname=${pathname}`)
+  projectStore.CLOSE_PROJECT(pathname)
+  // Clean up local collapse state for the removed root.
+  if (collapsedRoots.value[pathname] !== undefined) {
+    const next = { ...collapsedRoots.value }
+    delete next[pathname]
+    collapsedRoots.value = next
+  }
+}
 
 // Methods
 const openFolder = () => {
@@ -146,8 +183,8 @@ const saveAll = (isClose) => {
   editorStore.ASK_FOR_SAVE_ALL(isClose)
 }
 
-const createFile = () => {
-  projectStore.CHANGE_ACTIVE_ITEM(props.projectTree)
+const createFileInRoot = (root) => {
+  projectStore.CHANGE_ACTIVE_ITEM(root)
   bus.emit('SIDEBAR::new', 'file')
 }
 
@@ -155,16 +192,15 @@ const toggleOpenedFiles = () => {
   showOpenedFiles.value = !showOpenedFiles.value
 }
 
-const toggleDirectories = () => {
-  showDirectories.value = !showDirectories.value
-}
-
 // From createFileOrDirectoryMixins
 const handleInputFocus = () => {
   nextTick(() => {
     if (input.value) {
-      input.value.focus()
-      createName.value = ''
+      const el = Array.isArray(input.value) ? input.value[0] : input.value
+      if (el) {
+        el.focus()
+        createName.value = ''
+      }
     }
   })
 }
@@ -224,6 +260,7 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   height: 100%;
+  overflow: hidden;
 }
 .tree-view > .title {
   height: 35px;
@@ -297,35 +334,57 @@ onMounted(() => {
 .project-tree {
   display: flex;
   flex-direction: column;
-  overflow: auto;
-  flex: 1;
+  /* Each root section is independently scrollable so siblings don't fight
+     for vertical space when one tree is huge. */
+  flex: 0 1 auto;
+  max-height: 100%;
+  overflow: hidden;
+  border-bottom: 1px solid var(--itemBgColor);
+}
+
+.project-tree:last-of-type {
+  border-bottom: none;
+  flex: 1 1 auto;
 }
 
 .project-tree > .title {
   padding-right: 15px;
   display: flex;
   align-items: center;
+  user-select: none;
 }
 
 .project-tree > .title > span {
   flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   user-select: none;
 }
 
-.project-tree > .title > a {
-  pointer-events: auto;
-  cursor: pointer;
-  margin-left: 8px;
+.project-tree > .title > a.close-root-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  margin-left: 4px;
   color: var(--sideBarIconColor);
   opacity: 0;
+  border-radius: 4px;
+  transition: opacity 0.15s ease, background-color 0.15s ease, color 0.15s ease;
+  text-decoration: none;
 }
-
-.project-tree > .title > a:hover {
-  color: var(--highlightThemeColor);
+.project-tree:hover > .title > a.close-root-btn,
+.project-tree > .title > a.close-root-btn:focus {
+  opacity: 1;
 }
-
-.project-tree > .title > a.active {
+.project-tree > .title > a.close-root-btn:hover {
   color: var(--highlightThemeColor);
+  background-color: var(--floatHoverColor, rgba(0, 0, 0, 0.06));
+}
+.project-tree > .title > a.close-root-btn svg {
+  pointer-events: none;
 }
 
 .project-tree > .tree-wrapper {
@@ -335,9 +394,6 @@ onMounted(() => {
 
 .project-tree > .tree-wrapper::-webkit-scrollbar:vertical {
   width: 8px;
-}
-.project-tree div.title:hover > a {
-  opacity: 1;
 }
 .open-project {
   flex: 1;

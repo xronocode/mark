@@ -258,7 +258,10 @@
     "regexMatchEmpty": "正規表現が空文字列 \"{pattern}\" にマッチ",
     "searchResultCount": "検索結果",
     "searchResultInfo": "{fileCount} 件のファイルで {matchCount} 件一致",
-    "searchLimited": "最初の {count} 件まで検索しました"
+    "searchLimited": "最初の {count} 件まで検索しました",
+    "caseSensitiveTip": "大文字小文字を区別 (Aa) — 「Hello」≠「hello」",
+    "wholeWordTip": "単語単位 (\\b) — 「fox」は「fox」に一致するが「foxglove」には一致しない",
+    "useRegexTip": "正規表現 (.*) — 「colou?r」は「color」と「colour」の両方に一致"
   },
   "sideBar": {
     "search": {
@@ -267,7 +270,9 @@
       "noResultsFound": "結果が見つかりませんでした。",
       "cancel": "キャンセル",
       "openFolder": "フォルダを開く",
-      "showMoreMatches": "さらに一致するものを表示"
+      "showMoreMatches": "さらに一致するものを表示",
+      "startTyping": "入力すると開いているフォルダ内の markdown ファイルを検索します。",
+      "searching": "検索中…"
     },
     "tree": {
       "openedFiles": "開いているファイル",
@@ -275,7 +280,8 @@
       "closeAll": "すべて閉じる",
       "emptyProject": "空のプロジェクト",
       "createFile": "ファイルを作成",
-      "openFolder": "フォルダを開く"
+      "openFolder": "フォルダを開く",
+      "closeFolder": "フォルダを閉じる"
     },
     "toc": {
       "title": "目次"

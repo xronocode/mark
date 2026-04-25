@@ -257,7 +257,10 @@
     "invalidRegex": "Ungültiger regulärer Ausdruck \"{pattern}\"",
     "regexMatchEmpty": "Regulärer Ausdruck entspricht leerem String \"{pattern}\"",
     "searchResultInfo": "{matchCount} Treffer in {fileCount} Dateien",
-    "searchLimited": "Suche auf die ersten {count} Ergebnisse beschränkt"
+    "searchLimited": "Suche auf die ersten {count} Ergebnisse beschränkt",
+    "caseSensitiveTip": "Groß-/Kleinschreibung (Aa) — „Hello\" ≠ „hello\"",
+    "wholeWordTip": "Ganzes Wort (\\b) — „fox\" passt auf „fox\", aber nicht auf „foxglove\"",
+    "useRegexTip": "Regulärer Ausdruck (.*) — „colou?r\" passt auf „color\" und „colour\""
   },
   "sideBar": {
     "search": {
@@ -266,7 +269,9 @@
       "noResultsFound": "Keine Ergebnisse gefunden.",
       "cancel": "Abbrechen",
       "openFolder": "Ordner öffnen",
-      "showMoreMatches": "Weitere Treffer anzeigen"
+      "showMoreMatches": "Weitere Treffer anzeigen",
+      "startTyping": "Tippen, um in den Markdown-Dateien des geöffneten Ordners zu suchen.",
+      "searching": "Suche läuft…"
     },
     "tree": {
       "openedFiles": "Geöffnete Dateien",
@@ -274,7 +279,8 @@
       "closeAll": "Alle schließen",
       "emptyProject": "Leeres Projekt",
       "createFile": "Datei erstellen",
-      "openFolder": "Ordner öffnen"
+      "openFolder": "Ordner öffnen",
+      "closeFolder": "Ordner schließen"
     },
     "toc": {
       "title": "Inhaltsverzeichnis"

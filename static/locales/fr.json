@@ -258,7 +258,10 @@
     "regexMatchEmpty": "L'expression régulière correspond à une chaîne vide \"{pattern}\"",
     "searchResultCount": "Résultats de recherche",
     "searchResultInfo": "{matchCount} correspondances dans {fileCount} fichiers",
-    "searchLimited": "Recherche limitée aux {count} premiers résultats"
+    "searchLimited": "Recherche limitée aux {count} premiers résultats",
+    "caseSensitiveTip": "Sensible à la casse (Aa) — « Hello » ≠ « hello »",
+    "wholeWordTip": "Mot entier (\\b) — « fox » correspond à « fox » mais pas à « foxglove »",
+    "useRegexTip": "Expression régulière (.*) — « colou?r » correspond à « color » et « colour »"
   },
   "sideBar": {
     "search": {
@@ -267,7 +270,9 @@
       "noResultsFound": "Aucun résultat trouvé.",
       "cancel": "Annuler",
       "openFolder": "Ouvrir un dossier",
-      "showMoreMatches": "Afficher plus de correspondances"
+      "showMoreMatches": "Afficher plus de correspondances",
+      "startTyping": "Tapez pour rechercher dans les fichiers markdown du dossier ouvert.",
+      "searching": "Recherche…"
     },
     "tree": {
       "openedFiles": "Fichiers ouverts",
@@ -275,7 +280,8 @@
       "closeAll": "Tout fermer",
       "emptyProject": "Projet vide",
       "createFile": "Créer un fichier",
-      "openFolder": "Ouvrir un dossier"
+      "openFolder": "Ouvrir un dossier",
+      "closeFolder": "Fermer le dossier"
     },
     "toc": {
       "title": "Table des matières"
