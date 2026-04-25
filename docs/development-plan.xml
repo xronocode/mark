@@ -788,6 +788,364 @@
         <note-5>Listener cleanup: bridge exposes `useIpcListener` composable that auto-unregisters on Vue `onUnmounted`; unit-test guards against leaks.</note-5>
       </notes>
     </M-013>
+
+    <M-901 NAME="grace-context-hygiene-policy" TYPE="PROCESS_POLICY" LAYER="META" ORDER="901" STATUS="implemented">
+      <contract>
+        <purpose>Define the GRACE-compatible context hygiene overlay for adopting AI Standards token/session hygiene without weakening contracts, graph currency, or verification.</purpose>
+        <inputs>
+          <param name="standards" type="AI Standards 1.6.0 agent-usage-hygiene + session-hygiene" />
+          <param name="graceArtifacts" type="docs/requirements.xml, technology.xml, development-plan.xml, verification-plan.xml, knowledge-graph.xml, operational-packets.xml" />
+        </inputs>
+        <outputs>
+          <param name="methodology" type="docs/grace-ai-standards-hygiene-methodology.md" />
+          <param name="policyRules" type="Context modes, precedence rules, escalation rules" />
+        </outputs>
+        <errors>
+          <error code="GH_CONTRACT_BYPASS" />
+          <error code="GH_VERIFICATION_SKIPPED" />
+          <error code="GH_CONTEXT_UNDERLOAD" />
+        </errors>
+      </contract>
+      <interface>
+        <fn-select_context_mode PURPOSE="Choose targeted, wave, or full context using dependency and risk triggers" />
+        <fn-enforce_precedence PURPOSE="Apply correctness &gt; required verification &gt; graph consistency &gt; velocity &gt; context economy" />
+      </interface>
+      <depends>GRACE Core Principles, AI Standards 1.6.0</depends>
+      <target>
+        <source>docs/grace-ai-standards-hygiene-methodology.md</source>
+        <tests>docs/verification-plan.xml V-M-901</tests>
+      </target>
+      <observability>
+        <log-prefix>[GraceContext]</log-prefix>
+        <critical-block>BLOCK_TARGETED_CONTEXT</critical-block>
+        <critical-block>BLOCK_CONTEXT_ESCALATION</critical-block>
+        <critical-block>BLOCK_CORRECTNESS_OVERRIDE</critical-block>
+      </observability>
+      <verification-ref>V-M-901</verification-ref>
+      <notes>
+        <note-1>Token hygiene is an optimization boundary only; it must never override GRACE source-of-truth artifacts.</note-1>
+        <note-2>Full context remains mandatory for architecture drift, security, data migration, public contracts, and uncertain dependency edges.</note-2>
+      </notes>
+    </M-901>
+
+    <M-902 NAME="grace-packet-context-budget" TYPE="PROCESS_SCHEMA" LAYER="META" ORDER="902" STATUS="implemented">
+      <contract>
+        <purpose>Extend execution, graph, verification, and failure packets with explicit context-budget and context-risk fields.</purpose>
+        <inputs>
+          <param name="packetTemplates" type="docs/operational-packets.xml" />
+          <param name="scopeDecision" type="targeted|wave|full" />
+        </inputs>
+        <outputs>
+          <param name="packetFields" type="context-policy, loaded-artifacts, skipped-artifacts, context-risk, additional-context-needed, verification-not-skipped" />
+        </outputs>
+        <errors>
+          <error code="GH_PACKET_MISSING_CONTEXT_POLICY" />
+          <error code="GH_PACKET_FALSE_ECONOMY" />
+        </errors>
+      </contract>
+      <interface>
+        <fn-build_execution_packet PURPOSE="Attach minimal sufficient context plus explicit skip rationale" />
+        <fn-validate_packet_hygiene PURPOSE="Reject packets that skip required verification or hide context risk" />
+      </interface>
+      <depends>M-901</depends>
+      <target>
+        <source>docs/operational-packets.xml</source>
+        <tests>docs/verification-plan.xml V-M-902</tests>
+      </target>
+      <observability>
+        <log-prefix>[GracePacket]</log-prefix>
+        <critical-block>BLOCK_PACKET_CONTEXT_FIELDS</critical-block>
+      </observability>
+      <verification-ref>V-M-902</verification-ref>
+    </M-902>
+
+    <M-903 NAME="grace-session-handoff" TYPE="PROCESS_POLICY" LAYER="META" ORDER="903" STATUS="implemented">
+      <contract>
+        <purpose>Define durable session handoff rules so compaction, agent rotation, and swarm continuation preserve current decisions and blockers.</purpose>
+        <inputs>
+          <param name="sessionState" type="Current task, edited files, verification evidence, blockers, next action" />
+        </inputs>
+        <outputs>
+          <param name="handoffPacket" type="Compact summary safe for continuation" />
+        </outputs>
+        <errors>
+          <error code="GH_HANDOFF_MISSING_BLOCKER" />
+          <error code="GH_HANDOFF_STALE_DECISION" />
+        </errors>
+      </contract>
+      <interface>
+        <fn-write_handoff PURPOSE="Record what changed, what was verified, and the next exact command or artifact edit" />
+        <fn-resume_from_handoff PURPOSE="Continue without reloading unrelated project context" />
+      </interface>
+      <depends>M-901, M-902</depends>
+      <target>
+        <source>docs/grace-ai-standards-hygiene-methodology.md</source>
+        <tests>docs/verification-plan.xml V-M-903</tests>
+      </target>
+      <observability>
+        <log-prefix>[GraceContext]</log-prefix>
+        <critical-block>BLOCK_COMPACT_SUMMARY</critical-block>
+      </observability>
+      <verification-ref>V-M-903</verification-ref>
+    </M-903>
+
+    <M-904 NAME="grace-skill-scope-rules" TYPE="PROCESS_POLICY" LAYER="META" ORDER="904" STATUS="implemented">
+      <contract>
+        <purpose>Map context hygiene behavior onto GRACE skills so planning, execution, review, verification, and refresh use the smallest safe context scope.</purpose>
+        <inputs>
+          <param name="skillName" type="$grace-plan|$grace-execute|$grace-reviewer|$grace-verification|$grace-refresh|$grace-multiagent-execute" />
+        </inputs>
+        <outputs>
+          <param name="scopeRule" type="Allowed context mode, escalation triggers, required artifacts" />
+        </outputs>
+        <errors>
+          <error code="GH_SKILL_SCOPE_DRIFT" />
+          <error code="GH_REVIEW_TOO_NARROW" />
+        </errors>
+      </contract>
+      <interface>
+        <fn-resolve_skill_scope PURPOSE="Return default and escalation context mode for a GRACE skill invocation" />
+        <fn-check_scope_override PURPOSE="Require explicit reason when a skill uses less than wave/full context under risk" />
+      </interface>
+      <depends>M-901, M-902, M-903</depends>
+      <target>
+        <source>docs/grace-ai-standards-hygiene-methodology.md</source>
+        <tests>docs/verification-plan.xml V-M-904</tests>
+      </target>
+      <observability>
+        <log-prefix>[GraceReview]</log-prefix>
+        <critical-block>BLOCK_ESCALATE_TO_FULL</critical-block>
+      </observability>
+      <verification-ref>V-M-904</verification-ref>
+    </M-904>
+
+    <M-905 NAME="grace-context-verification" TYPE="PROCESS_VERIFICATION" LAYER="META" ORDER="905" STATUS="implemented">
+      <contract>
+        <purpose>Define verification gates that prove context hygiene did not suppress required tests, log markers, or review scope.</purpose>
+        <inputs>
+          <param name="verificationPlan" type="docs/verification-plan.xml" />
+          <param name="executionPacket" type="Operational packet with context fields" />
+        </inputs>
+        <outputs>
+          <param name="hygieneEvidence" type="V-GH gates and V-M-901..V-M-906 checks" />
+        </outputs>
+        <errors>
+          <error code="GH_FALSE_PASS" />
+          <error code="GH_UNDECLARED_SKIP" />
+        </errors>
+      </contract>
+      <interface>
+        <fn-verify_context_gate PURPOSE="Assert that required verification is present or an explicit blocker is recorded" />
+        <fn-audit_skip_rationale PURPOSE="Reject vague skipped-artifacts explanations" />
+      </interface>
+      <depends>M-901, M-902, M-904</depends>
+      <target>
+        <source>docs/verification-plan.xml</source>
+        <tests>docs/verification-plan.xml V-M-905</tests>
+      </target>
+      <observability>
+        <log-prefix>[GraceVerification]</log-prefix>
+        <critical-block>BLOCK_CONTEXT_GATE</critical-block>
+      </observability>
+      <verification-ref>V-M-905</verification-ref>
+    </M-905>
+
+    <M-906 NAME="grace-knowledge-graph-hygiene" TYPE="PROCESS_GRAPH" LAYER="META" ORDER="906" STATUS="implemented">
+      <contract>
+        <purpose>Keep context hygiene discoverable in the knowledge graph without polluting product runtime module boundaries.</purpose>
+        <inputs>
+          <param name="knowledgeGraph" type="docs/knowledge-graph.xml" />
+          <param name="hygieneModules" type="M-901..M-905" />
+        </inputs>
+        <outputs>
+          <param name="graphNodes" type="M-901..M-906 nodes and CrossLinks" />
+        </outputs>
+        <errors>
+          <error code="GH_GRAPH_MISSING_HYGIENE_NODE" />
+          <error code="GH_RUNTIME_SCOPE_POLLUTION" />
+        </errors>
+      </contract>
+      <interface>
+        <fn-sync_hygiene_graph PURPOSE="Represent hygiene policy, packets, handoff, skill scope, and verification in KG" />
+        <fn-check_runtime_boundary PURPOSE="Ensure meta modules do not become runtime Mark Text implementation modules" />
+      </interface>
+      <depends>M-901, M-902, M-903, M-904, M-905</depends>
+      <target>
+        <source>docs/knowledge-graph.xml</source>
+        <tests>docs/verification-plan.xml V-M-906</tests>
+      </target>
+      <observability>
+        <log-prefix>[GraceGraph]</log-prefix>
+        <critical-block>BLOCK_HYGIENE_GRAPH_SYNC</critical-block>
+      </observability>
+      <verification-ref>V-M-906</verification-ref>
+    </M-906>
+
+    <!-- ====== Canonical modules invented during Iter1-3 swarm review ====== -->
+    <!-- Promoted from amendment patches C-1+H-2+C2-1+C2-2 (M-021), H-10+C2-6 (M-013a/b) -->
+
+    <M-013a NAME="mt-ipc-contract" TYPE="UTILITY" LAYER="0" ORDER="2" STATUS="planned" canonical="iter2-folded">
+      <contract>
+        <purpose>Frontend TypeScript typed invoke wrapper + listener composable. Phase-B1 stub. Owns the Rust↔Renderer command name-set + payload schema; type generation via ts-rs.</purpose>
+        <inputs>
+          <param name="command" type="CommandName (typed)" />
+          <param name="args" type="Record&lt;string, unknown&gt; (schema-validated)" />
+        </inputs>
+        <outputs>
+          <param name="result" type="CommandResult&lt;T&gt;" />
+        </outputs>
+        <errors>
+          <error code="MT_IPC_UNKNOWN_COMMAND" />
+          <error code="MT_IPC_TIMEOUT" />
+          <error code="MT_IPC_VALIDATION" />
+          <error code="MT_IPC_UNKNOWN_CHANNEL" />
+        </errors>
+      </contract>
+      <interface>
+        <fn-ipcInvoke PURPOSE="Typed invoke with schema check + 10s default timeout" />
+        <fn-useIpcListener PURPOSE="Vue composable with auto-unsubscribe on onUnmounted; disposeOnHotUpdate for HMR" />
+        <fn-ipcCorrelated PURPOSE="Request/response correlation via req_id (replaces dynamic mt::response-of-image-path-${id})" />
+      </interface>
+      <depends></depends>
+      <target>
+        <source>src/renderer/src/ipc/contract/</source>
+        <tests>src/renderer/src/ipc/contract/*.test.ts</tests>
+      </target>
+      <observability>
+        <log-prefix>[IpcContract]</log-prefix>
+        <critical-block>BLOCK_INVOKE</critical-block>
+        <critical-block>BLOCK_INVOKE_RESOLVED</critical-block>
+        <critical-block>BLOCK_LISTENER_REFCOUNT</critical-block>
+        <critical-block>BLOCK_HMR_REPLACE</critical-block>
+      </observability>
+      <verification-ref>V-M-013a</verification-ref>
+      <notes>
+        <note-1>Owns ipc-channels.tauri.v2.json codegen output; owns ts-rs schema parity check.</note-1>
+        <note-2>Phase-B1 ships M-013a only as stub. M-013b grows incrementally through Phase-B2/B3.</note-2>
+        <note-3>req_id correlation auto-injected via tauri::Request extension stamped on every async invoke.</note-3>
+      </notes>
+    </M-013a>
+
+    <M-013b NAME="mt-ipc-runtime" TYPE="UTILITY" LAYER="1" ORDER="2" STATUS="planned" canonical="iter2-folded">
+      <contract>
+        <purpose>Frontend façade exporting ~146 commands; Phase-B2/B3 grows incrementally. Mirrors v1 IPC channels + adds new tauri-equivalents for clipboard/window/menu/dialog (replaces @electron/remote 6 call-sites).</purpose>
+        <inputs>(via M-013a façade methods)</inputs>
+        <outputs>(typed CommandResult)</outputs>
+        <errors>(M-013a errors + per-channel domain errors)</errors>
+      </contract>
+      <interface>
+        <export-ipc PURPOSE="Façade namespaces: ipc.fs, ipc.search, ipc.prefs, ipc.shortcuts, ipc.spell, ipc.fonts, ipc.encoding, ipc.pandoc, ipc.updater, ipc.recent, ipc.screenshot, ipc.datacenter, ipc.clipboard, ipc.window, ipc.menu" />
+        <fn-ipcClipboard PURPOSE="@electron/remote.clipboard replacement: text/RTF/HTML/image(PNG bytes)/file-list cross-platform" />
+        <fn-ipcWindow PURPOSE="@electron/remote.getCurrentWindow replacement: minimize/maximize/close/fullscreen/alwaysOnTop" />
+        <fn-ipcContextMenu PURPOSE="@electron/remote.Menu/MenuItem replacement: serialized native menu spec; DPI-correct popup" />
+      </interface>
+      <depends>M-013a, M-002, M-003, M-004, M-005, M-006, M-007, M-008, M-009, M-010, M-014, M-015, M-016, M-017, M-018, M-019</depends>
+      <target>
+        <source>src/renderer/src/ipc/runtime/</source>
+        <tests>src/renderer/src/ipc/runtime/*.test.ts</tests>
+      </target>
+      <observability>
+        <log-prefix>[IpcRuntime]</log-prefix>
+        <critical-block>BLOCK_DISPATCH</critical-block>
+        <critical-block>BLOCK_CORRELATED_REPLY</critical-block>
+        <critical-block>BLOCK_VALIDATE_AGAINST_FIXTURE</critical-block>
+        <critical-block>BLOCK_PENDING_QUEUE_PUSH</critical-block>
+        <critical-block>BLOCK_REPLAY_DELIVERED</critical-block>
+        <critical-block>BLOCK_REPLAY_GATE_OPENED</critical-block>
+      </observability>
+      <verification-ref>V-M-013b</verification-ref>
+      <notes>
+        <note-1>Phase-B2 wave-skeleton: stubs for fs/search/watch return Err(MT_NOT_IMPLEMENTED) NOT panic.</note-1>
+        <note-2>Channel name-set parity snapshot test: bridge exports = backend commands set (~146 names).</note-2>
+        <note-3>146 production count = empty symmetric difference vs ipc-channels.electron.v1.json (hard-gate); count drift ≥ ±2 = trigger-11 escalation.</note-3>
+        <note-4>0 sendSync (V-M-013-VB-06) + 0 @electron/remote (V-M-013-VB-07) in production bundle — Gate-Phase-B3a hard.</note-4>
+      </notes>
+    </M-013b>
+
+    <M-021 NAME="mt-fs-core" TYPE="CORE_LOGIC" LAYER="0" ORDER="9" STATUS="planned" canonical="iter2-folded">
+      <contract>
+        <purpose>Internal Rust fs primitive layer; canonicalize+validate+open via ValidatedPath; atomic-write; trash-fallback; per-path mutex. NO direct IPC exposure — wrapped by M-002. Internal Rust callers (M-018, M-017, M-019) write through M-021.</purpose>
+        <inputs>
+          <param name="path" type="String (validated by M-010 internally)" />
+          <param name="bytes" type="&amp;[u8] for write" />
+        </inputs>
+        <outputs>
+          <param name="readBytes" type="Vec&lt;u8&gt;" />
+          <param name="writeAck" type="()" />
+          <param name="metadata" type="FileMetadata" />
+        </outputs>
+        <errors>
+          <error code="MT_FS_CORE_PERM_DENIED" />
+          <error code="MT_FS_CORE_NOT_FOUND" />
+          <error code="MT_FS_CORE_TRASH_UNAVAILABLE" />
+          <error code="MT_FS_CORE_IO_ERROR" />
+          <error code="MT_FS_CORE_INVALID_PATH" />
+          <error code="MT_FS_CORE_RACE_VANISHED" />
+        </errors>
+      </contract>
+      <interface>
+        <fn-fs_core_open_validated PURPOSE="Canonicalize+NFC-normalize+macOS fcntl(F_GETPATH)+open with O_NOFOLLOW+O_CLOEXEC; returns ValidatedPath{fd,canonical}" />
+        <fn-fs_core_read_bytes PURPOSE="Read raw Vec&lt;u8&gt; via held FD (TOCTOU-safe; no path reopen)" />
+        <fn-fs_core_write_bytes_atomic PURPOSE="Write via temp+fsync+rename+dir-fsync; per-path async Mutex; cap N=64 concurrent open files via semaphore" />
+        <fn-fs_core_rename PURPOSE="Rename within sandbox; cross-FS detection via EXDEV" />
+        <fn-fs_core_delete_to_trash PURPOSE="Move to Trash via trash crate; never hard-unlink as fallback" />
+        <fn-fs_core_stat_batch PURPOSE="Batch fs_stat for 10k files &lt; 2s on M1 SSD; p99 single-call &lt; 5ms" />
+      </interface>
+      <depends>M-010, M-014</depends>
+      <target>
+        <source>src-tauri/src/fs_core/mod.rs</source>
+        <tests>src-tauri/src/fs_core/mod.rs (#[cfg(test)])</tests>
+      </target>
+      <observability>
+        <log-prefix>[FsCore]</log-prefix>
+        <critical-block>BLOCK_FS_CORE_OPEN</critical-block>
+        <critical-block>BLOCK_FS_CORE_READ_BYTES</critical-block>
+        <critical-block>BLOCK_FS_CORE_WRITE_BYTES</critical-block>
+        <critical-block>BLOCK_FS_CORE_ATOMIC_RENAME</critical-block>
+        <critical-block>BLOCK_FS_CORE_DELETE_TO_TRASH</critical-block>
+        <critical-block>BLOCK_FS_CORE_TRASH_FALLBACK</critical-block>
+      </observability>
+      <verification-ref>V-M-021</verification-ref>
+      <notes>
+        <note-1>ValidatedPath holds OwnedFd opened with O_NOFOLLOW+O_CLOEXEC; closes TOCTOU symlink-swap window.</note-1>
+        <note-2>macOS post-open fcntl(F_GETPATH) re-verification mandatory; NFC normalization mandatory pre-comparison.</note-2>
+        <note-3>Linux magic-symlink rejection: /proc/self/root, /proc/&lt;pid&gt;/, /dev/fd/, /sys/.</note-3>
+        <note-4>Power-loss durability: SIGKILL between rename and dir-fsync MUST keep original SHA256 unchanged; orphan temp cleaned on next write or startup sweep.</note-4>
+        <note-5>AV interception (Windows Defender): max 3 retries with 50ms backoff; MT_FS_CORE_IO_ERROR reason=av-locked; no infinite retry hang.</note-5>
+      </notes>
+    </M-021>
+
+    <!-- mt_paths helper crate (cross-platform cache root) — promoted from H3-1 -->
+    <M-022 NAME="mt-paths" TYPE="UTILITY" LAYER="0" ORDER="0" STATUS="planned" canonical="iter3-folded">
+      <contract>
+        <purpose>Cross-platform path helper. Returns dirs::cache_dir().join("Mark") for cache_root, dirs::data_local_dir().join("com.xronocode.mark") for app_support, etc. Used by C2-3, C2-10, OG-iter2-002 for sessions.jsonl/migration_declined.lock/crash logs.</purpose>
+        <inputs></inputs>
+        <outputs>
+          <param name="root" type="PathBuf" />
+        </outputs>
+        <errors />
+      </contract>
+      <interface>
+        <fn-cache_root PURPOSE="macOS→~/Library/Caches/Mark; Linux→$XDG_CACHE_HOME/Mark or ~/.cache/Mark; Windows→%LOCALAPPDATA%\Mark\Cache" />
+        <fn-app_support_root PURPOSE="canonical com.xronocode.mark application support root per OS" />
+        <fn-logs_root PURPOSE="canonical Mark logs dir per OS" />
+      </interface>
+      <depends></depends>
+      <target>
+        <source>src-tauri/src/mt_paths/mod.rs</source>
+        <tests>src-tauri/src/mt_paths/mod.rs (#[cfg(test)])</tests>
+      </target>
+      <observability>
+        <log-prefix>[Paths]</log-prefix>
+        <critical-block>BLOCK_RESOLVE_CACHE_ROOT</critical-block>
+      </observability>
+      <verification-ref>V-M-022</verification-ref>
+      <notes>
+        <note-1>Used by mt-ipc-contract pre-window code, M-005 migration, M-019 crash log writer.</note-1>
+        <note-2>Outside C-2 'no-writes' invariant scope which protects ~/Library/Application Support/marktext/ specifically.</note-2>
+      </notes>
+    </M-022>
+
   </Modules>
 
   <DataFlow>
@@ -957,9 +1315,42 @@
       <step-6>Separate job opens PR to xronocode/homebrew-mark updating Casks/mark.rb version + sha256 (automated via actions-user token; user reviews and merges).</step-6>
       <evidence>GH Actions: macOS jobs green; Linux/Windows may be yellow. GH Release has DMGs. Cask livecheck detects new version.</evidence>
     </DF-012>
+
+    <DF-901 NAME="GraceContextSelection" TRIGGER="Any GRACE skill invocation">
+      <step-1>Controller reads the task, touched modules, dependency risk, and requested skill.</step-1>
+      <step-2>M-901 selects targeted, wave, or full context.</step-2>
+      <step-3>M-902 records loaded and skipped artifacts plus context-risk in the execution packet.</step-3>
+      <step-4>M-905 blocks execution if verification evidence is missing or silently skipped.</step-4>
+      <evidence>[GraceContext][selectScope][BLOCK_TARGETED_CONTEXT] or [GraceContext][selectScope][BLOCK_CONTEXT_ESCALATION].</evidence>
+    </DF-901>
+
+    <DF-902 NAME="GraceSessionHandoff" TRIGGER="Context compaction, agent rotation, or long-running execution pause">
+      <step-1>M-903 writes current task, decisions, changed files, blockers, and next exact action.</step-1>
+      <step-2>Next agent resumes from the handoff before opening additional broad context.</step-2>
+      <step-3>If handoff lacks blockers or verification status, M-905 forces a clarification pass.</step-3>
+      <evidence>[GraceContext][handoff][BLOCK_COMPACT_SUMMARY] with changed-files and verification-status fields.</evidence>
+    </DF-902>
+
+    <DF-903 NAME="GraceSkillScopeEscalation" TRIGGER="Scoped review or verification detects architectural, security, migration, or graph-risk drift">
+      <step-1>M-904 checks the skill default scope and escalation triggers.</step-1>
+      <step-2>Reviewer or verifier escalates from targeted to wave/full context when risk triggers fire.</step-2>
+      <step-3>M-906 updates KG links if the hygiene rule affects durable GRACE navigation.</step-3>
+      <evidence>[GraceReview][scope][BLOCK_ESCALATE_TO_FULL] with trigger and artifact list.</evidence>
+    </DF-903>
   </DataFlow>
 
   <ImplementationOrder>
+    <Phase-H name="AI Standards Hygiene Overlay for GRACE Projects" status="done">
+      <goal>Adopt AI Standards 1.6.0 token/session hygiene as a GRACE-compatible methodology overlay, independent of this specific Mark Text port.</goal>
+      <step-1 module="M-901" status="done" verification="V-M-901">Define precedence rules, context modes, and escalation triggers that protect GRACE contracts and verification.</step-1>
+      <step-2 module="M-902" status="done" verification="V-M-902">Extend operational packet templates with context-policy, loaded/skipped artifacts, context-risk, additional-context-needed, and verification-not-skipped fields.</step-2>
+      <step-3 module="M-903" status="done" verification="V-M-903">Define compact durable handoff rules for compaction and agent rotation.</step-3>
+      <step-4 module="M-904" status="done" verification="V-M-904">Map hygiene defaults and escalation triggers to GRACE skills.</step-4>
+      <step-5 module="M-905" status="done" verification="V-M-905">Add verification gates proving context economy never hides required tests, logs, or review scope.</step-5>
+      <step-6 module="M-906" status="done" verification="V-M-906">Sync knowledge-graph representation and runtime/meta boundary rules.</step-6>
+      <step-7 status="done" verification="Gate-Phase-H">Create docs/grace-ai-standards-hygiene-methodology.md and validate XML references.</step-7>
+    </Phase-H>
+
     <Phase-0 name="GRACE Bootstrap &amp; Fork Setup" status="in-progress">
       <goal>GRACE artifacts seeded; fork repo xronocode/mark created; modernize branch opened.</goal>
       <step-1 status="done">Create docs/*.xml and AGENTS.md via grace-init.</step-1>
@@ -1081,12 +1472,59 @@
       <step-A6-9 status="pending">Build + WT-1 (open two roots, search, close one) + WT-2 (nested-root refusal) interactive smoke. THEN tag v1.1.0 + CI + cask refresh + brew upgrade verify.</step-A6-9>
     </Phase-A6>
 
-    <Phase-B1 name="Tauri Skeleton" status="pending">
-      <goal>Tauri dev env boots, muya runs in WebView.</goal>
-      <step-1 module="M-001" status="pending" verification="V-M-001">Init `cargo tauri init` on top of v1.0 frontend.</step-1>
-      <step-2 module="M-013" status="pending" verification="V-M-013">Stub mt-ipc-bridge with noop commands.</step-2>
-      <step-3 status="pending">Verify Gate-Phase-B1.</step-3>
+    <Phase-B-pre1 name="v1.1.0 Reference Fixture Capture" status="pending" canonical="iter3-folded">
+      <goal>Real-v1 user-data fixture committed; SHA256 hash recorded; trigger-13 enforced.</goal>
+      <step-1 status="pending">Publish/confirm Phase-A6 v1.1.0 cask first.</step-1>
+      <step-2 status="pending">Install released v1.1.0 from cask on a clean macOS user; exercise: open folders, set 60+ prefs, store GH token, populate 8+ recents, save image, populate dataCenter.</step-2>
+      <step-3 status="pending">tar the userData dir to test/fixtures/v1-userdata/com.xronocode.mark/.</step-3>
+      <step-4 status="pending">Commit fixture-pin.lock with SHA256 manifest of every file.</step-4>
+      <gate>Gate-Phase-B-pre1: fixture committed + pin-lock hashes every file. Hard predecessor of Gate-Phase-B-pre2.</gate>
+    </Phase-B-pre1>
+
+    <Phase-B-pre2 name="Migration Safety Floor + Trace Contract + Renderer Node-Cleanup" status="pending" canonical="iter3-folded">
+      <goal>Pre-window i18n bootstrap + M-005 stub + trace contract definition + zero Node-core in production renderer bundle.</goal>
+      <step-1 status="pending" verification="V-M-001">main.rs pre-window bootstrap detects legacy layouts BEFORE tauri::Builder runs (both `marktext` and `com.xronocode.mark/electron-store-flat-files` namespaces).</step-1>
+      <step-2 status="pending" verification="V-M-001">Native-OS dialog (NSAlert / MessageBoxW / GTK MessageDialog) — NOT a Tauri webview dialog. Strings from src-tauri/src/migration_strings.rs const map for 10 locales (en, ru, zh-CN, ja, de, fr, es, it, ko, pt-BR); `sys_locale` crate; en_US fallback.</step-2>
+      <step-3 status="pending">On Cancel: app exits cleanly with code 0; persist {timestamp, app_version} to mt_paths::cache_root().join("sessions.jsonl"). Outside Application Support.</step-3>
+      <step-4 status="pending">On 3+ consecutive cancels in 7 days: dialog adds "Open documentation / Open snapshot location / Don't ask again" buttons; never force-migrate.</step-4>
+      <step-5 status="pending">On Continue: BLOCK_SNAPSHOT_LEGACY → BLOCK_MIGRATION_PREFLIGHT_DONE (gates store-init).</step-5>
+      <step-6 status="pending" verification="V-M-005">M-005 stub aborts MT_PREFS_V1_RUNNING on any non-empty legacy path until full M-005 ships in B3.</step-6>
+      <step-7 status="pending" verification="V-M-013a">Define end-to-end trace_id, req_id, session_chain_id, BLOCK_* marker schema for M-001, M-009, M-011, M-013a, M-013b. Schema-only checks pass; runtime assertions deferred to B1/B1.5/B3.</step-7>
+      <step-8 status="pending" verification="VF-010">Renderer cleanup preflight: zero production-bundle usages of fs, path, child_process, crypto, Buffer, os.tmpdir, process escape hatches, node:*, deep electron imports.</step-8>
+      <gate>Gate-Phase-B-pre2: native dialog screenshots in ru_RU+zh_CN+ja_JP on macos-14 / ubuntu-22.04 / windows-latest; restricted-import + bundle-grep checks pass; trace markers fire in expected order. Hard predecessor of Gate-Phase-B1.</gate>
+    </Phase-B-pre2>
+
+    <Phase-B1 name="Tauri Skeleton + muya WKWebView Perf Gate" status="pending" canonical="iter3-folded">
+      <goal>Tauri dev env boots; muya runs in WebView; perf gate against Electron baseline; ipc-channels fixtures committed; on-boot self-validation working.</goal>
+      <step-1 module="M-001" status="pending" verification="V-M-001">Init `cargo tauri init` on top of v1.1.0 frontend.</step-1>
+      <step-2 module="M-013a" status="pending" verification="V-M-013a">Stub mt-ipc-contract (LAYER=0 frontend typed invoke wrapper).</step-2>
+      <step-2.5 status="pending" verification="V-M-012-VB-08">muya WKWebView perf benchmark gate — synthetic harness with `include_str!` fixture, no IPC, no M-002/M-014. Record initial render p50/p95, 60-keystroke typing latency p95, scroll FPS. Compare against same fixture in current Electron 30 v1 build. PASS criterion: WKWebView ≤ 1.5× Electron baseline; p95 keystroke ≤ 50ms; cold-start ≤ 1500ms. FAIL → escalate decision to user; do NOT proceed to Phase-B2.</step-2.5>
+      <step-3 status="pending" verification="V-M-013a">Generate test/fixtures/ipc-channels/electron.v1.json via static-grep of upstream commit ab1a3fdc with UPSTREAM_PIN.lock blob-sha256.</step-3>
+      <step-4 status="pending" verification="V-M-013a">Generate test/fixtures/ipc-channels/tauri.v2.json via build-time codegen from M-013a façade exports.</step-4>
+      <step-5 status="pending" verification="VF-016">Generate fixtures: internal-main-events.electron.v1.json, remote-callsites.v1.json, sendSync-callsites.v1.json, menu-taxonomy.v1.json, preload-surface.v1.json.</step-5>
+      <step-6 status="pending" verification="V-M-013b">Stub M-013b skeleton owning fs+search+watch channel SIGNATURES (returns Err(MT_NOT_IMPLEMENTED), NOT panic).</step-6>
+      <step-7 status="pending" verification="V-M-001">M-001 BLOCK_VALIDATE_AGAINST_FIXTURE on-boot self-check: embedded ipc-channels.tauri.v2.json compared to runtime registered command list; mismatch → fail-fast native dialog + exit 1.</step-7>
+      <step-8 status="pending" verification="V-M-001">PDF/export strategy decided BEFORE Phase-B1 close: macOS WKWebView.createPDF via objc2 / Linux+Win tauri-plugin-printer or wkhtmltopdf shell-out. M-001 exposes `fn-print_to_pdf(html) -&gt; Vec&lt;u8&gt;` or explicit unsupported fallback.</step-8>
+      <step-9 status="pending" verification="VF-016">WebView shell security configured BEFORE first window: block webview attachment, navigation escape, window.open, unknown custom protocols, file URI access outside approved app origin.</step-9>
+      <step-10 status="pending" verification="V-M-001">Install std::panic::set_hook in main.rs BEFORE tauri::Builder. BLOCK_PANIC_HOOK_INSTALLED at boot. Synthetic panic test: panic in fs/keyring/spell/updater paths each produces dialog + log file (mt_paths::cache_root().join(crash-{ts}-{session_chain}.log)); window does not become zombie.</step-10>
+      <step-11 status="pending" verification="VF-016">Dialog/preload/remote/window/menu lifecycle hardening: typed dialog outcomes, close lifecycle state machine (CLOSE_REQUESTED → PROMPT_OPEN → SAVE_FAILED → CLOSE_CANCELLED, FORCE_CLOSE → WATCHERS_CLEANED → WINDOW_DESTROYED), stale menu-generation discard with BLOCK_STALE_MENU_GENERATION, replay/drop policy.</step-11>
+      <step-12 status="pending">Verify Gate-Phase-B1.</step-12>
+      <gate>Gate-Phase-B1: see verification-plan UpdatedPhaseGates Gate-Phase-B1 + UpdatedPhaseGatesIter2 Gate-Phase-B1-revised. FAIL on perf → no-go decision recorded; Phase-B2 NOT entered.</gate>
     </Phase-B1>
+
+    <Phase-B1.5 name="release-tauri.yml CI Dry-Run" status="pending" canonical="iter3-folded">
+      <goal>tauri-action dry-run on macos-14 runner produces unsigned dmg artifact + bundle size measurement + toolchain warnings allowlist.</goal>
+      <step-1 status="pending">Create release-tauri.yml in branch BEFORE Phase-B2; trigger on push to modernize-tauri branch (NOT tag) for dry-run.</step-1>
+      <step-2 status="pending">Path-filter (src-tauri/**, package.json, tools/check-pinned-deps.mjs only); concurrency.cancel-in-progress=true; manual workflow_dispatch toggle for Phase-B2 days.</step-2>
+      <step-3 status="pending">Failure does NOT block PR merge unless `phase=B1.5-gate` label set.</step-3>
+      <step-4 status="pending">tauri-action produces unsigned dmg on macos-14 runner.</step-4>
+      <step-5 status="pending">Ad-hoc codesign --force --deep --sign - succeeds on ephemeral runner without keychain provisioning.</step-5>
+      <step-6 status="pending">CI smoke step: mount DMG → /Applications → xattr -cr → open -a → assert process alive.</step-6>
+      <step-7 status="pending">`du -sh /Applications/Mark.app` measured + published; bundle budget reconciled (&lt;30 MB target OR raised + documented per C2-9 Phase-B1.5).</step-7>
+      <step-8 status="pending">toolchain-warnings.json artifact published; allowlist docs/ci-warnings-allowlist.md exists.</step-8>
+      <step-9 status="pending">At Phase-B4 step-1: rename via PR including both rename and tag-trigger smoke commit.</step-9>
+      <gate>Gate-Phase-B1.5: Dry-run DMG launches on macOS arm64; du -sh published; CI warning allowlist has no untriaged warning. Hard predecessor of Gate-Phase-B2 entry.</gate>
+    </Phase-B1.5>
 
     <Phase-B2 name="FS + Search + Security" status="pending">
       <goal>Critical-path backend modules pass their V-M gates.</goal>
@@ -1115,13 +1553,41 @@
       <step-13 status="pending">Verify Gate-Phase-B3.</step-13>
     </Phase-B3>
 
-    <Phase-B4 name="Tauri Distribution and v2.0 Release" status="pending">
-      <goal>v2.0 Tauri build shipped through the same Homebrew cask.</goal>
-      <step-1 status="pending">Swap `release.yml` to use tauri-action.</step-1>
-      <step-2 status="pending">Update cask with new url template and sha256.</step-2>
-      <step-3 status="pending">Verify `du -sh /Applications/Mark.app` &lt; 30 MB on fresh install.</step-3>
-      <step-4 status="pending">Tag v2.0.0; verify `brew upgrade --cask marktext` works from v1.</step-4>
-      <step-5 status="pending">Verify Gate-Phase-B4. [USER REVIEW]</step-5>
+    <Phase-B3a name="Alpha Partial-Ship Cut" status="pending" canonical="iter3-folded">
+      <goal>App can open/edit/save/search/export core docs with integrations either implemented or visibly disabled. mark@v1 rollback published BEFORE mark@alpha. User review before B4 packaging.</goal>
+      <step-1 status="pending" verification="Gate-Phase-B3a">V-M-005..006 + V-M-014 green. V-M-005 against test/fixtures/v1-userdata/com.xronocode.mark/.</step-1>
+      <step-2 status="pending" verification="V-M-013-VB-06">HARD: static-grep `sendSync\(` over src/ in v2 codebase = 0 matches in production bundle.</step-2>
+      <step-3 status="pending" verification="V-M-013-VB-07">HARD: static-grep '@electron/remote' over renderer src/ = 0 matches in production bundle; 6 v1 sites mapped to ipc.* replacement (companion fixture remote-callsites.v1.json).</step-3>
+      <step-4 status="pending">mark@v1 rollback channel published BEFORE mark@alpha. Pinned to literal version "1.1.0"; livecheck strategy uses tag prefix `v1-*`; 12-month maintenance window documented.</step-4>
+      <step-5 status="pending" verification="V-M-016">Updater refusing downgrade verified (feed served v0.0.1 → reject).</step-5>
+      <step-6 status="pending">Cask postinstall prints "ALPHA channel — read-only legacy preferences; no auto-update; report bugs to issue X".</step-6>
+      <step-7 status="pending">mark@alpha sets mt_migration.app_version='alpha'. Stable v2 detects + reruns missing migration sub-steps via mt_migration.schema_version.</step-7>
+      <step-8 status="pending">Documented migration command in xronocode/homebrew-mark/README.md: `brew uninstall mark@alpha &amp;&amp; brew install mark`.</step-8>
+      <step-9 status="pending" verification="VF-016">No hidden unsupported command. Every unsupported Electron-era feature shows visible noop or disabled menu item.</step-9>
+      <step-10 status="pending">Core workflows pass on macOS arm64. Intel users remain on mark@v1 for v2.0; universal binary deferred to v2.1+.</step-10>
+      <gate>Gate-Phase-B3a: see verification-plan UpdatedPhaseGatesIter2 Gate-Phase-B3a. Excludes M-007 non-macOS, M-017 Windows JumpList, M-018, M-009 menu wiring, M-019 image upload (those land at B3 full).</gate>
+    </Phase-B3a>
+
+    <Phase-B4 name="Tauri Distribution and v2.0 Release" status="pending" canonical="iter3-folded">
+      <goal>v2.0 Tauri build shipped through the same Homebrew cask. Compliance gates green. SLSA-3 provenance + NOTICES + SBOM + a11y baseline + dual-pubkey rotation infra all functional.</goal>
+      <step-1 status="pending">Rename release-tauri.yml → release.yml; trigger changed to v* tag (was modernize-tauri branch).</step-1>
+      <step-2 status="pending">Update cask with new url template and sha256 sourced from released-asset .sha256 file (NOT recomputed) per B2CR-3.</step-2>
+      <step-2.5 status="pending" verification="C2-13">Publish parallel cask `mark@v1` pinned to literal version "1.1.0" for rollback safety BEFORE v2.0.0 stable cut.</step-2.5>
+      <step-3 status="pending">Verify `du -sh /Applications/Mark.app` &lt; 30 MB on fresh install (or formally revised B1.5 footprint budget).</step-3>
+      <step-4 status="pending" verification="V-M-005">Tag v2.0.0; verify `brew upgrade --cask mark` works from v1.0.0 → v2.0.0 preserves 100% of test prefs key set + GH token.</step-4>
+      <step-5 status="pending" verification="V-M-016">Updater downgrade-attack test (feed v0.0.1 → reject; mismatched ed25519 sig → reject); dual-pubkey [pub_key_current, pub_key_next, pub_key_rescue] verifier; rescue cold-stored 5y rotation.</step-5>
+      <step-6 status="pending" verification="V-M-016">Auto-update on macOS: M-016 strips com.apple.quarantine BEFORE quit_and_install (covers fielded user upgrades).</step-6>
+      <step-7 status="pending" verification="VF-016">Lockdown Mode + MDM-restricted detection: clear notice surfaced; no crash.</step-7>
+      <step-8 status="pending" verification="H3-4">Generate-attributions step: cargo about → NOTICES-rust.md; npm license-checker → NOTICES-node.md; bundle each hunspell dict's upstream LICENSE under resources/hunspell_dictionaries/&lt;lang&gt;/LICENSE; ship LICENSES.txt inside Mark.app/Contents/Resources/.</step-8>
+      <step-9 status="pending" verification="H3-4">Generate SPDX SBOM via cargo-cyclonedx + cyclonedx-npm; publish alongside DMG. CI gate verify-attributions.sh fails on missing entry.</step-9>
+      <step-10 status="pending" verification="H3-4">hunspell-rs swapped for nuspell (Apache-2.0) OR LGPL relink-able artifacts published. Decision recorded.</step-10>
+      <step-11 status="pending" verification="H3-M-1">SLSA-3 build-provenance via actions/attest-build-provenance@v2; OIDC → Sigstore Fulcio → ephemeral cert → *.intoto.jsonl published to GH Releases.</step-11>
+      <step-12 status="pending" verification="H3-M-1">Cosign keyless `cosign sign-blob --bundle` against artifacts; verification command in release notes: `cosign verify-blob --bundle Mark-arm64.dmg.bundle Mark-arm64.dmg`.</step-12>
+      <step-13 status="pending" verification="H3-5">A11y baseline: docs/a11y-baseline-v2.0.md committed with axe-core violation count; 5 must-pass items green (keyboard nav menu, modal aria-modal+focus-trap, sidebar role=tree, editor accessible name, top-menu screen-reader announce); manual VoiceOver/NVDA/Orca test passed.</step-13>
+      <step-14 status="pending" verification="VF-013">Synthetic panic test: panic in fs/keyring/spell/updater paths each produces dialog + log file; window does not become zombie.</step-14>
+      <step-15 status="pending">Cross-repo cask PR via GitHub App `xronocode-release-bot`; OIDC for short-lived app token; environment-protection `release` requiring manual approval. Reject ambient GITHUB_TOKEN. Reject long-lived classic PAT.</step-15>
+      <step-16 status="pending">Verify Gate-Phase-B4. [USER REVIEW]</step-16>
+      <gate>Gate-Phase-B4: see verification-plan UpdatedPhaseGates Gate-Phase-B4 (full evidence list).</gate>
     </Phase-B4>
   </ImplementationOrder>
 
@@ -1146,4 +1612,730 @@
     </escalation-triggers>
     <commit-policy>One PR-merge = one commit. No squash before v1.0 tag so blame and revert stay precise.</commit-policy>
   </ExecutionPolicy>
+
+  <!-- ===================================================================
+       ITERATION-1 AMENDMENTS (2026-04-25)
+       Source: 6-agent Iteration-1 swarm review — 213 artifacts aggregated.
+       12 critical (C-1..C-12) + 24 high (H-1..H-24) findings.
+       These amendments PATCH the contracts above; they do not rewrite them.
+       grace-refresh will fold each patch into its module on the final pass.
+       =================================================================== -->
+  <Iteration1Amendments source-iteration="1" generated="2026-04-25" agent-count="6">
+
+    <!-- ============ C-1 — M-002 contract: bytes vs string split ============ -->
+    <Patch id="C-1-M-002-bytes-api" target="M-002" severity="critical" finding-refs="F-R1-001 SC-V1-002-001 V3-VB-03 BG-2">
+      <change-type>contract</change-type>
+      <add-fn name="fs_read_bytes" purpose="Read raw Vec&lt;u8&gt; for binary files (PNG screenshots, drag-dropped images) and for M-014 encoding detection on text files; never lossy-decodes" />
+      <add-fn name="fs_write_bytes" purpose="Write raw Vec&lt;u8&gt; with fsync; used by M-018 (screenshot PNG), DF-009 (drag-drop image), M-014 re-encode" />
+      <add-depends>M-014</add-depends>
+      <update-output>readResult: now String (UTF-8) | Vec&lt;u8&gt; depending on entrypoint</update-output>
+      <observability>BLOCK_READ_BYTES_FROM_DISK, BLOCK_WRITE_BYTES_TO_DISK</observability>
+      <rationale>DF-019 EncodingRoundtrip requires raw bytes from disk for M-014.detect_encoding; DF-009/DF-017 require binary write; current UTF-8-only contract makes both impossible.</rationale>
+    </Patch>
+
+    <Patch id="C-1-M-002-validated-path" target="M-002,M-010" severity="critical" finding-refs="F-R2-004 F-R2-005 SC-V1-002-017">
+      <change-type>contract</change-type>
+      <description>Replace path-string return from sec_check_path with `ValidatedPath { fd: OwnedFd, canonical: PathBuf }`. fs_read/fs_write/fs_rename/fs_delete consume the FD opened during canonicalization. Closes TOCTOU symlink-swap window. macOS post-open `fcntl(F_GETPATH)` re-verification mandatory. NFC normalization mandatory pre-comparison.</description>
+      <observability>BLOCK_VALIDATE_PATH now logs { canonical, fd_held: true, nfc_normalized: true }</observability>
+    </Patch>
+
+    <!-- ============ C-2 — M-005/M-019 migration safety ============ -->
+    <Patch id="C-2-M-005-v1-running-detection" target="M-005" severity="critical" finding-refs="F-R2-001 SC-V2-005-001 SC-V2-005-005">
+      <change-type>contract</change-type>
+      <add-step block="BLOCK_DETECT_V1_RUNNING">Acquire OS shared lock (flock on macOS/Linux, LockFileEx on Windows) on each of 4 legacy JSON files with 5s timeout; if exclusive lock held → abort migration with MT_PREFS_V1_RUNNING; surface UI prompt "Quit Mark v1 first".</add-step>
+      <add-step block="BLOCK_SNAPSHOT_LEGACY">Before any parse, copy entire ~/Library/Application Support/marktext/ to .v2-snapshot-&lt;iso8601&gt;/. Forbid mt_migration_v1_done = true unless either (a) all_files_parsed_ok OR (b) snapshot_kept = true confirmed on disk.</add-step>
+      <add-step block="BLOCK_USER_CONSENT">Native dialog before any mutation: "Mark 2.0 will migrate prefs and tokens. Snapshot at &lt;path&gt;. Continue / Cancel / Open documentation". Cancel exits cleanly with code 0, no writes.</add-step>
+      <update-marker>mt_migration object replaces boolean: { schema_version: 1, completed_at, source_files_sha256: {...}, secrets_deferred: bool, app_version }. Future v2.x re-migrations driven by schema_version, not boolean.</update-marker>
+    </Patch>
+
+    <Patch id="C-2-M-019-keychain-conflict-policy" target="M-019" severity="critical" finding-refs="F-R2-002 SC-V2-005-004 SC-V2-019-005">
+      <change-type>contract</change-type>
+      <add-step block="BLOCK_KEYRING_COLLISION">On `errSecDuplicateItem` / Win Credential Manager existing entry / Linux Secret Service collision: read both; if equal → delete legacy + emit BLOCK_LEGACY_PURGE; if differ → DO NOT overwrite, emit MT_DC_KEYCHAIN_CONFLICT, keep both, defer, prompt user which to keep.</add-step>
+      <add-step block="BLOCK_LOCK_BIND">Bind keychain migration to same mt_migration.lock file lock used by M-005 (single-instance guard insufficient).</add-step>
+      <add-step block="BLOCK_PANIC_GUARD">SecretString wrapper for tokens; Display/Debug derive returns "&lt;redacted&gt;"; panic backtrace audit asserts no token leak via regex (ghp|ghs|gho|github_pat)_[A-Za-z0-9_]{20,}|[a-f0-9]{40}.</add-step>
+    </Patch>
+
+    <!-- ============ C-3 — IPC bridge contract enumeration ============ -->
+    <Patch id="C-3-M-013-channel-snapshot" target="M-013" severity="critical" finding-refs="F-R1-002 F-R1-004 BG-1 V-M-013-VB-01 V-M-013-VB-02">
+      <change-type>artifact</change-type>
+      <new-fixture>test/fixtures/ipc-channels/electron.v1.json — generated via static-grep of upstream commit ab1a3fdc for ipcRenderer.invoke|on|send and ipcMain.handle|on; expected ≥146 channel names with payload schemas.</new-fixture>
+      <new-fixture>test/fixtures/ipc-channels/tauri.v2.json — generated by build-time codegen from M-013 façade exports.</new-fixture>
+      <new-fixture>test/fixtures/sendSync-callsites.v1.json — every sendSync location in upstream + v2 async replacement command id.</new-fixture>
+      <new-fixture>test/fixtures/remote-callsites.v1.json — 6 @electron/remote sites (clipboard, getCurrentWindow, RemoteMenu, RemoteMenuItem) with v2 ipc.* replacement.</new-fixture>
+      <gate>Phase-B1 cannot pass without ipc-channels fixture committed; symmetric set-difference between v1 and v2 must be empty (or every diff documented in changelog).</gate>
+      <add-depends-to-M-001>M-014, M-015, M-016, M-017, M-018, M-019, M-020 (synchronize with knowledge-graph.xml)</add-depends-to-M-001>
+      <add-depends-to-M-013>M-009 (ipc.menu façade exists), M-010 (renderer-side path validation)</add-depends-to-M-013>
+      <ts-rs-schema-check>Build step: ts-rs emits .ts from Rust commands; tsc --noEmit compares to manual src/renderer/src/ipc/types.ts; zero `any` in IpcBridge.* exports.</ts-rs-schema-check>
+    </Patch>
+
+    <!-- ============ C-4 — DOMPurify mXSS multi-engine ============ -->
+    <Patch id="C-4-M-010-multi-engine-sanitize" target="M-010" severity="critical" finding-refs="F-R2-006">
+      <change-type>verification-scope</change-type>
+      <description>V-M-010 fixture-xss (27 payloads) MUST be exercised against all three WebView engines (WKWebView macOS / WebView2 Win11 / webkit2gtk Ubuntu) via Tauri WebDriver in CI matrix. Identity-vs-upstream-DOMPurify is necessary but NOT sufficient evidence. Each engine must independently demonstrate `window.__xss_fired === undefined` post-sanitize.</description>
+      <ci-matrix-required>true</ci-matrix-required>
+    </Patch>
+
+    <!-- ============ C-5 — Updater key custody / downgrade / TLS ============ -->
+    <Patch id="C-5-M-016-key-custody" target="M-016" severity="critical" finding-refs="F-R2-009 F-R2-013">
+      <change-type>contract</change-type>
+      <key-generation>ed25519 via `tauri signer generate -- -p &lt;passphrase&gt;`. Private key stored in 1Password vault + encrypted GitHub Actions environment-protected secret requiring manual approval. Public key compiled into binary as `pub_key` constant.</key-generation>
+      <rotation>Yearly rehearsal documented in Phase-B4.</rotation>
+      <branch-protection>main branch protected; signed tags required for release.</branch-protection>
+      <downgrade-mitigation>Updater MUST refuse versions ≤ current via `semver::Version &gt; current`; not `!=`. Log BLOCK_REJECT_DOWNGRADE.</downgrade-mitigation>
+      <feed-integrity>EITHER (a) cert-pin GitHub releases TLS fingerprint via custom http client, OR (b) sign the feed JSON itself with the same ed25519 key (manifest-signature) and verify before consuming.</feed-integrity>
+      <quarantine-handling>On macOS, M-016.updater_quit_and_install MUST run `xattr -dr com.apple.quarantine` on downloaded bundle BEFORE quit_and_install (postflight from cask runs only on first install, not on auto-update).</quarantine-handling>
+      <lockdown-mode>Detect Lockdown Mode + MDM-restricted; surface clear notice with manual-install instructions; never crash.</lockdown-mode>
+    </Patch>
+
+    <!-- ============ C-6 — Phase-B1 muya perf gate ============ -->
+    <Patch id="C-6-Phase-B1-perf-gate" target="Phase-B1" severity="critical" finding-refs="F-R3-001">
+      <change-type>phase-step</change-type>
+      <new-step number="2.5" name="muya WKWebView benchmark gate" verification="V-M-012-VB-08">
+        Load test/fixtures/large-doc-5kline.md in Tauri dev shell.
+        Record: (a) initial render p50/p95, (b) 60-keystroke typing latency p95, (c) scroll FPS.
+        Compare against same fixture in current Electron 30 v1 build.
+        PASS criterion: WKWebView ≤ 1.5× Electron baseline; p95 keystroke ≤ 50ms; cold-start ≤ 1500ms.
+        FAIL → escalate decision to user; do NOT proceed to Phase-B2.
+      </new-step>
+      <update-gate>Gate-Phase-B1 required-evidence MUST include the three measured numbers, not "muya renders the fixture doc".</update-gate>
+    </Patch>
+
+    <!-- ============ C-7 — Critical path honesty ============ -->
+    <Patch id="C-7-critical-path-table" target="ArchitectureNotes" severity="critical" finding-refs="F-R3-004">
+      <change-type>narrative</change-type>
+      <new-table>
+        Phase-B critical path (1 dev, with stated parallelism):
+        - B1 = 2d (1d init + 1d benchmark gate)
+        - B2 = 5-6d serial-with-mini-waves
+        - B3 = 8-10d (5 parallel waves of ~2d each, 12 modules total)
+        - B4 = 3d (CI dry-run + cask + first-tag debug)
+        - Unbudgeted Tauri/WKWebView debugging: +2d contingency
+        - Total CP = 18-21d (NOT 10-15d as previously stated)
+      </new-table>
+    </Patch>
+
+    <!-- ============ C-8 — Phase-B1.5 CI dry-run ============ -->
+    <Patch id="C-8-Phase-B1-5-ci-dryrun" target="ImplementationOrder" severity="critical" finding-refs="F-R3-008">
+      <change-type>phase-insert</change-type>
+      <new-phase name="Phase-B1.5 — Tauri release CI dry-run" position="after-Phase-B1">
+        <step-1>Create release-tauri.yml in branch BEFORE Phase-B2; trigger on push to modernize-tauri branch (NOT tag) for dry-run; produces unsigned dmg artifact.</step-1>
+        <step-2>Verify on macos-14 runner: tauri build + codesign --force --deep --sign - + xattr -cr postflight succeed.</step-2>
+        <step-3>Resolve ALL toolchain warnings before Phase-B4; document each in CI notes.</step-3>
+        <step-4>Only at Phase-B4 step-1 does workflow get renamed to release.yml and trigger changed to v* tag.</step-4>
+      </new-phase>
+    </Patch>
+
+    <!-- ============ C-9 — Cask + bundle-id collision ============ -->
+    <Patch id="C-9-bundle-id-coexistence" target="Phase-B4,M-005" severity="critical" finding-refs="F-R3-009">
+      <change-type>multi</change-type>
+      <fix-typo line="1123">"brew upgrade --cask marktext" → "brew upgrade --cask mark"</fix-typo>
+      <extend-M-005>fn-prefs_migrate detects TWO legacy layouts: (1) marktext namespace (upstream users) AND (2) com.xronocode.mark/electron-store-flat-files (our v1 users). Both paths in note-1.</extend-M-005>
+      <new-test-fixture>test/fixtures/v1-userdata/com.xronocode.mark/ — snapshotted ~/Library/Application Support/com.xronocode.mark/ from a real v1.0.0 install. V-M-005 exercises M-005 against it.</new-test-fixture>
+      <new-cask-channel>Phase-B4 step-2.5: publish parallel cask `mark@v1` pinned to v1.x.y for rollback safety.</new-cask-channel>
+    </Patch>
+
+    <!-- ============ C-10 — TOCTOU sandbox + Linux magic symlinks ============ -->
+    <!-- Subsumed by C-1 ValidatedPath patch, plus the following: -->
+    <Patch id="C-10-magic-symlinks" target="M-010" severity="critical" finding-refs="SC-V1-002-017 F-R2-005">
+      <change-type>contract</change-type>
+      <add-reject>Linux magic dirs: /proc/self/root, /proc/&lt;pid&gt;/, /dev/fd/, /sys/. Reject regardless of canonicalize result.</add-reject>
+      <add-reject>Windows device namespace: \\.\PhysicalDriveN, \\.\COMn, etc. Reject regardless of canonicalize.</add-reject>
+      <macos-nfd-nfc>All path components NFC-normalized before comparison AND before canonicalize; post-open fcntl(F_GETPATH) re-verifies inside sandbox.</macos-nfd-nfc>
+    </Patch>
+
+    <!-- ============ C-11 — Speculative-plugin commitments ============ -->
+    <Patch id="C-11-spell-pdf-dragdrop-commit" target="M-007,M-001,M-011,DF-007,DF-009" severity="critical" finding-refs="F-R1-006 F-R1-007 BG-2 BG-3 V-M-011-VB-03 V-M-011-VB-04">
+      <change-type>commitment</change-type>
+      <m-007-spell>Hard-commit: WebView native attr (spellcheck=true + lang) on macOS delegating to NSSpellChecker; bundled hunspell dicts on Linux/Windows via `hunspell-rs` crate. NO tauri-plugin-spellcheck dependency. NO objc2 FFI.</m-007-spell>
+      <m-001-pdf>Hard-commit: macOS uses `WKWebView.createPDF` via objc2 (smaller than wkhtmltopdf shell-out). Linux/Windows use `tauri-plugin-printer` if mature OR shell-out wkhtmltopdf with bundled binary. Either way M-001 exposes `fn-print_to_pdf(html) -&gt; Vec&lt;u8&gt;`. Decision finalized BEFORE Phase-B1.</m-001-pdf>
+      <df-009-dragdrop>Renderer drag-drop uses Tauri window onFileDrop event handler (registered in M-001) for macOS WKWebView and Linux webkit2gtk where event.dataTransfer.files[0].path is absent; falls back to FileReader.readAsArrayBuffer + ipc.fs.write_bytes(tempPath) when neither available. New compat shim path: src/renderer/src/compat/dragdrop.ts.</df-009-dragdrop>
+    </Patch>
+
+    <!-- ============ C-12 — technology.xml deps ============ -->
+    <Patch id="C-12-technology-deps-pin" target="technology.xml" severity="critical" finding-refs="F-R1-011 F-R1-012 F-R2-007 SC-V2-007-005">
+      <change-type>technology</change-type>
+      <add-dep>keyring = "^2.0" (replaces speculative tauri-plugin-stronghold reference)</add-dep>
+      <add-dep>hunspell-rs = "^0.4" (commits M-007 Linux/Windows path)</add-dep>
+      <add-dep>tauri-plugin-printer OR cargo feature `pdf-via-objc2` for macOS WebKit createPDF</add-dep>
+      <pin-versions>katex, vega, vega-lite, mermaid pinned to exact patch versions with max upper-bound; CI fails if package-lock allows unpinned drift; M-010 filter audit re-required on any version bump.</pin-versions>
+      <ed25519-tooling>Add: `tauri signer generate` step to release docs; key in 1Password reference `mark-tauri-updater-ed25519`.</ed25519-tooling>
+    </Patch>
+
+    <!-- ============ HIGH severity (H-1..H-24) — condensed ============ -->
+    <HighSeverityBatch>
+      <H-1 finding="F-R1-003" target="M-009">Replace M-009 &lt;depends&gt;M-005&lt;/depends&gt; with `M-005, M-017`. Update CrossLink: `M-009→M-017 reads-recent-files-from`. DF-016 step-4 emits to BOTH renderer AND M-009 menu rebuild.</H-1>
+      <H-2 finding="F-R1-005" target="M-002,M-018,M-017,M-019">Layer split: M-002 becomes `mt-fs-commands` (LAYER=1 IPC layer); add M-021 `mt-fs-core` (LAYER=0 internal Rust fs helper, depends M-010+M-014). M-018, M-017, M-019 internal fs writes route through M-021, NOT M-002 IPC layer.</H-2>
+      <H-3 finding="F-R1-006" target="DF-008">DF-008 step-3 evidence: remove "NSSpellChecker / hunspell" reference; restate as "WebView native delegates on macOS, hunspell-rs on Linux/Windows".</H-3>
+      <H-4 finding="F-R1-008" target="M-006">Add fn-shortcuts_register_local for in-window-only shortcuts (Cmd+S, Cmd+Shift+P, etc.) via `tauri::Manager::on_window_event`. Document mapping in DF-005 which path each accelerator class takes.</H-4>
+      <H-5 finding="F-R1-009" target="M-011">Document each of 7 host hook signatures explicitly: (1) DIRNAME sync string, (2)(3)(4)(5) async, (6)(7) sync void. Audit against muya source for sync-required call-sites; document any preflight-cache workaround.</H-5>
+      <H-6 finding="F-R1-010" target="global">Specify concrete shapes: MenuSpec={id,label,role?,accelerator?,enabled?,visible?,submenu?:MenuSpec[]}; CliFlags={safeMode:bool,userDataDir:Option&lt;String&gt;,debug:bool,newWindow:bool,disableGpu:bool,disableSpellcheck:bool,files:Vec&lt;String&gt;}; EncodingPrefs.trimTrailingNewline: enum{KeepAll=0, EnsureSingle=1, TrimAll=2, TrimMultiple=3}.</H-6>
+      <H-7 finding="F-R1-011 F-R1-013" target="M-005,M-019">tauri-plugin-store has no auto change-event emission — fn-prefs_set + fn-dc_set MUST emit via app_handle.emit_all { key, value } explicitly. Add BLOCK_EMIT_PREFS_CHANGED, BLOCK_EMIT_DC_CHANGED markers.</H-7>
+      <H-8 finding="F-R1-013" target="M-019">Add M-010 to M-019 &lt;depends&gt;. CrossLink `M-019→M-010 validates-paths-via`. Add BLOCK_VALIDATE_CLI_SCRIPT_PATH critical-block.</H-8>
+      <H-9 finding="F-R1-014" target="ArchitectureNotes">Restate "95%-verbatim" as "95%-verbatim FOR PHASE-B (Tauri port). Phase-A1.5 Renderer-Node-Cleanup is a refactor pass and counts as the other 5%". Allowed-write scope explicit: src/renderer/src/ipc/, src/renderer/src/compat/. M-012 note-4 reclassifies IME composition fix as muya bugfix (Phase-A1.5 step-9).</H-9>
+      <H-10 finding="F-R1-015" target="M-013">Split M-013 into M-013a (typed invoke wrapper, LAYER=0 frontend, Phase-B1 stub) and M-013b (full façade exporting 146 commands, LAYER=1 frontend, depends backend, grows Phase-B2/B3).</H-10>
+      <H-11 finding="F-R1-016" target="DF-005,M-011">DF-005 evidence: change "BLOCK_DISPATCH in renderer (M-009 pathway)" → "BLOCK_DISPATCH in renderer (M-011 commandDispatcher pathway)". Add BLOCK_DISPATCH to M-011 observability.</H-11>
+      <H-12 finding="F-R3-002" target="ExecutionPolicy">Restate wave-B2-parallel as: `M-010 first; then M-013 fs/search/watcher surface skeleton; M-003 + M-004 parallel; M-002 serial after M-003 (save/watch self-echo coupling); M-013 finalization integration sweep`.</H-12>
+      <H-13 finding="F-R3-005" target="ImplementationOrder">Phase-B3a partial-ship cut after M-005+M-006+M-014; cask channel `mark@alpha`; per-module fallback for blocked work documented (M-005 read-only legacy path; M-007 macOS-only; M-017 Linux JSON-only; M-018 skip).</H-13>
+      <H-14 finding="F-R3-006" target="VerificationPlan">Rewrite Gate-Phase-B1..B4 with concrete measurable thresholds (see verification-plan.xml Iteration1ExtendedScenarios).</H-14>
+      <H-15 finding="F-R3-007" target="ExecutionPolicy">Add 6 B-phase escalation triggers: trigger-9..trigger-14 covering tauri-plugin version pins, objc2 FFI failures, IPC bridge count drift ±2, V-M perf regression ≥30%, prefs migration on real v1 fixture, WKWebView CSP violations.</H-15>
+      <H-16 finding="F-R3-010" target="Phase-B3">Add 3 explicit USER REVIEW checkpoints in Phase-B3: after step-2 (M-005 prefs migrate), after step-7 (M-007 Russian+CJK spellcheck), after step-12 (M-009 menu wired w/ Dock recents).</H-16>
+      <H-17 finding="F-R2-007" target="M-010">Convert KaTeX filter from blacklist to whitelist of allowed macros, OR run KaTeX with `trust: false` and `strict: 'error'`. Pin Mermaid + Vega + Vega-Lite versions. CI fails if package-lock pins newer than plan.</H-17>
+      <H-18 finding="F-R2-008" target="M-019">cliScript subprocess: GitHub token NEVER passed via env or argv; cliScript receives image bytes via stdin only, returns URL on stdout. picgo resolution restricted to vetted absolute path. Subprocess inherits minimal PATH set by Mark, not user PATH. Add BLOCK_VALIDATE_CLI_SCRIPT_PATH + path SHA256 pinning option.</H-18>
+      <H-19 finding="F-R2-010" target="UC-014,DF-015">UC-014 acceptance branch: "On Lockdown Mode or MDM-restricted environments: install path documented; user notified ad-hoc not supported." DF-015 auto-update: M-016 strips quarantine before quit_and_install.</H-19>
+      <H-20 finding="F-R2-011" target="technology.xml">Subprocess stderr/stdout filtered through redactor masking: bearer tokens, basic-auth `https?://[^:]+:[^@]+@`, JWT `ey[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+`, 40-hex strings ≥32 chars, query-string `?token=`/`?access_token=`/`?api_key=`. Apply to M-005, M-015, M-016, M-019 log paths.</H-20>
+      <H-21 finding="F-R2-012" target="M-010">Workspace sandbox decomposed into WORKSPACE_ROOTS (open folders), DOCUMENT_ROOTS (open-doc parents), IMAGE_OUTPUT_ROOTS (write-only). file:// URIs from documents resolved only against ROOTS ∪ DOCUMENT_ROOTS, NEVER IMAGE_OUTPUT_ROOTS.</H-21>
+      <H-22 finding="F-R2-014" target="M-005">Replace boolean mt_migration_v1_done with structured object: { schema_version, completed_at, source_files_sha256: {...}, secrets_deferred, app_version }. (Subsumed by C-2.)</H-22>
+      <H-23 finding="F-R2-015" target="M-018">Post-write: M-018 clears pasteboard via NSPasteboard clearContents() with sentinel pasteboard type (only Mark-tagged items removed). Targetfile chmod 0600. targetDir validated by M-010 to be inside workspace ∪ screenshotFolderPath.</H-23>
+      <H-24 finding="F-R2-016" target="M-010">Split fn-sec_sanitize_html_export into export_for_share (no file://, all images base64-inlined or rejected) and export_local (current behavior). UI gates choice on save dialog. Add log marker BLOCK_FILE_URI_REWRITTEN.</H-24>
+    </HighSeverityBatch>
+
+  </Iteration1Amendments>
+
+  <!-- ===================================================================
+       ITERATION-2 AMENDMENTS (2026-04-25)
+       Source: 4-agent Iteration-2 swarm — 63 artifacts aggregated.
+       26 blocking. Find-rate dropping (213→63) but key structural collisions
+       between Iter-1 patches surfaced. 13 critical (C2-1..C2-13) + 8 high.
+       =================================================================== -->
+  <Iteration2Amendments source-iteration="2" generated="2026-04-25" agent-count="4" find-rate-trend="declining-but-significant">
+
+    <!-- ============ C2-1 — Reconciliation: C-1 vs H-2 ============ -->
+    <Patch id="C2-1-merge-C1-H2" target="M-002,M-021" severity="critical" finding-refs="F-iter2-CONTRACT-001 F-iter2-CONTRACT-002">
+      <change-type>contract-reconciliation</change-type>
+      <resolution>
+        Iter-1 C-1 (M-002 bytes API + ValidatedPath) and H-2 (M-002 split + new M-021 mt-fs-core) MERGE as follows:
+        - **M-021 mt-fs-core** (LAYER=0, Rust internal helper): owns fs primitives. Functions: fs_core_open_validated(path)→ValidatedPath{fd,canonical}, fs_core_read_bytes(ValidatedPath)→Vec&lt;u8&gt;, fs_core_write_bytes_atomic(ValidatedPath,&amp;[u8]) with fsync+rename+dir-fsync, fs_core_rename, fs_core_delete_to_trash, fs_core_stat_batch. depends: M-010 + M-014. Per-path mutex policy. Observability: BLOCK_FS_CORE_OPEN/READ/WRITE/RENAME/DELETE.
+        - **M-002 mt-fs-commands** (LAYER=1, IPC layer): thin wrapper exposing fs_read_bytes/fs_write_bytes/fs_read/fs_write/fs_stat/fs_rename/fs_delete tauri::commands. Each command calls M-021 primitive + applies IPC-boundary checks (rate-limit, payload-size). depends: M-021 only. NO direct M-014 dep (lives in M-021).
+        - **Rule:** No Rust-internal caller may invoke M-002.fs_*; all internal fs goes through M-021. M-018 screenshot, M-017 recents, M-019 image upload write through M-021.
+      </resolution>
+      <kg-update>knowledge-graph: add M-021 node TYPE=CORE_LOGIC LAYER=0; CrossLinks M-002→M-021 wraps; M-018/017/019→M-021 writes-through; remove M-018→M-002.</kg-update>
+    </Patch>
+
+    <!-- ============ C2-2 — M-021 full contract (was empty in H-2) ============ -->
+    <Patch id="C2-2-M-021-contract" target="M-021" severity="critical" finding-refs="F-iter2-CONTRACT-002">
+      <change-type>new-module</change-type>
+      <full-contract>
+        M-021 NAME="mt-fs-core" TYPE="CORE_LOGIC" LAYER="0" ORDER="9" STATUS="planned"
+        purpose: Internal Rust fs primitive layer; canonicalize+validate+open via ValidatedPath; atomic-write; trash-fallback; per-path mutex.
+        inputs: path (validated by M-010 internally), bytes for write
+        outputs: Vec&lt;u8&gt; / () / FileMetadata / Vec&lt;FileMetadata&gt;
+        errors: MT_FS_CORE_PERM_DENIED, MT_FS_CORE_NOT_FOUND, MT_FS_CORE_TRASH_UNAVAILABLE, MT_FS_CORE_IO_ERROR, MT_FS_CORE_INVALID_PATH
+        depends: M-010, M-014
+        observability: log-prefix [FsCore]; BLOCK_FS_CORE_OPEN, BLOCK_FS_CORE_READ_BYTES, BLOCK_FS_CORE_WRITE_BYTES, BLOCK_FS_CORE_ATOMIC_RENAME{fsync_parent}, BLOCK_FS_CORE_DELETE_TO_TRASH, BLOCK_FS_CORE_TRASH_FALLBACK
+        verification-ref: V-M-021 (mirror V-M-002 perf gates + atomic-write SIGKILL test + power-loss durability)
+        notes: Per-path async Mutex; max concurrent open files cap N=64 (semaphore); ValidatedPath holds OwnedFd opened with O_NOFOLLOW+O_CLOEXEC; macOS post-open fcntl(F_GETPATH) re-verification; NFC normalization mandatory.
+      </full-contract>
+    </Patch>
+
+    <!-- ============ C2-3 — Phase-B0 + Phase-B0.5 explicit elements ============ -->
+    <Patch id="C2-3-Phase-B0-and-B0.5" target="ImplementationOrder" severity="critical" finding-refs="F-iter2-PHASE-001 F-iter2-PHASE-002 F-iter2-CONTRACT-003">
+      <change-type>phase-insert</change-type>
+      <new-phase name="Phase-B0 — Migration Safety Floor" position="before-Phase-B1">
+        <step-1>main.rs pre-window bootstrap: detect legacy layouts (marktext + com.xronocode.mark/electron-store-flat-files) BEFORE tauri::Builder runs.</step-1>
+        <step-2>If detected and mt_migration absent: native-OS dialog (NSAlert / MessageBoxW / GTK MessageDialog) for user consent — NOT a Tauri webview dialog.</step-2>
+        <step-3>On Cancel: app exits cleanly with code 0; persist {cancel_count, last_cancel_at} to ~/.cache/Mark/sessions.jsonl (NOT under Application Support → outside C-2 'no writes' invariant scope; document explicitly).</step-3>
+        <step-4>On 3+ consecutive cancels in 7 days: dialog adds "Open documentation / Open snapshot location" buttons; never force-migrate.</step-4>
+        <step-5>On Continue: BLOCK_SNAPSHOT_LEGACY → BLOCK_MIGRATION_PREFLIGHT_DONE (gates store-init).</step-5>
+        <step-6>Phase-B0 implements M-005 stub that ALWAYS aborts with MT_PREFS_V1_RUNNING on any non-empty legacy path until full M-005 ships in Phase-B3 step-1. Tauri dev profile forced to use synthetic XDG_DATA_HOME=test/fixtures/v1-userdata-shadow/ for Phase-B1..B2 dev work. Gate-check forbids dev build reading real userData root unless mt_migration schema_version object exists.</step-6>
+      </new-phase>
+      <new-phase name="Phase-B0.5 — Capture v1.1.0 reference fixture" position="between-Phase-A6-ship-and-Phase-B1">
+        <step-1>Install released v1.1.0 from cask on a clean macOS user.</step-1>
+        <step-2>Exercise: open folders, set 60+ prefs, store GH token, populate recent docs, save image to imageFolderPath.</step-2>
+        <step-3>tar the userData dir to test/fixtures/v1-userdata/com.xronocode.mark/.</step-3>
+        <step-4>Commit fixture to repo. Hash verified in CI; trigger-13 gates against this fixture.</step-4>
+        <step-5>Gate-Phase-B0.5 = hard predecessor of Gate-Phase-B3.</step-5>
+      </new-phase>
+    </Patch>
+
+    <!-- ============ C2-4 — Phase-B3a explicit gate ============ -->
+    <Patch id="C2-4-Phase-B3a-gate" target="Phase-B3a,Gate-Phase-B3a" severity="critical" finding-refs="F-iter2-PHASE-003">
+      <change-type>gate-definition</change-type>
+      <Gate-Phase-B3a>
+        REQUIRED: V-M-005..006 + V-M-014 green; mark@v1 rollback channel published BEFORE mark@alpha; updater refusing downgrade.
+        REQUIRED HARD: V-M-013-VB-06 (sendSync audit) = 0 matches; V-M-013-VB-07 (@electron/remote audit) = 0 matches; V-M-005 against test/fixtures/v1-userdata/com.xronocode.mark/.
+        SUBSET-EXCLUDED: M-007 non-macOS spell, M-017 Windows JumpList, M-018 screenshot, M-009 menu wiring, M-019 image upload.
+        Cask postinstall MUST print: "ALPHA channel — read-only legacy preferences; no auto-update; report bugs to issue X".
+        mark@alpha sets mt_migration.app_version='alpha'; stable v2 detects + reruns missing migration sub-steps.
+      </Gate-Phase-B3a>
+    </Patch>
+
+    <!-- ============ C2-5 — Critical path honest accounting ============ -->
+    <Patch id="C2-5-critical-path-revised" target="ArchitectureNotes" severity="critical" finding-refs="F-iter2-PHASE-004">
+      <change-type>narrative</change-type>
+      <revised-table>
+        Phase-B revised critical path (1 dev, with stated parallelism):
+        - B0 (Migration Safety Floor) = 0.5d
+        - B0.5 (v1.1.0 fixture capture) = 1d
+        - B1 (Tauri Skeleton + muya perf gate) = 2d
+        - B1.5 (CI dry-run release-tauri.yml) = 1.5d
+        - B2 (FS+Search+Security with H-12 wave) = 5-6d
+        - B3 (12 Integration modules with 5 parallel waves) = 8-10d
+        - B3a (alpha cut + cask publish + observation window) = 1d
+        - B4 (Tauri Distribution + first tag) = 3d
+        - Verification debt (72 missing scenarios from Iter-1 + 22 cross-module from Iter-2) = 5-7d (rolled across modules but logged separately)
+        - Tauri/WKWebView toolchain debugging contingency = 2-3d
+        TOTAL CP = 29-34d for 1 dev (NOT 10-15d, NOT even 18-21d).
+      </revised-table>
+    </Patch>
+
+    <!-- ============ C2-6 — H-12 wave restatement aligned with H-10 split ============ -->
+    <Patch id="C2-6-H10-H12-merge" target="ExecutionPolicy.wave-B2-parallel" severity="critical" finding-refs="F-iter2-CONTRACT-006">
+      <change-type>execution-policy</change-type>
+      <revised-wave>
+        Phase-B2 ordering with H-10 (M-013 split) honored:
+        - step-1: M-010 (security primitives) → first, blocks everything.
+        - step-2: M-013a stub (LAYER=0 frontend typed invoke wrapper) — Phase-B1 already shipped.
+        - step-3: M-013b skeleton (LAYER=1 frontend façade) owns fs+search+watch channel SIGNATURES (returns unimplemented!()) — must enter Phase-B2 first to give parallel-2 wave a type-safe contract.
+        - parallel-2: [M-021 mt-fs-core] + [M-003 watcher] + [M-004 search] in parallel — each implements behind M-013b channel signatures.
+        - step-5 (serial after parallel-2): M-002 mt-fs-commands (thin IPC wrapper around M-021) — serial because save+watch self-suppress coupling needs M-003.set_ignore_until ready.
+        - step-6: M-013b finalization sweep + integration tests.
+        Wave isolation rule: M-013b stubs returning unimplemented!() must convert to MT_NOT_IMPLEMENTED Err (not panic) so V-M-003/V-M-004 e2e tests skip gracefully with 'pending wave dependency' status, not false-fail neighboring tests.
+      </revised-wave>
+    </Patch>
+
+    <!-- ============ C2-7 — Sandbox source-of-truth (H-21 fix) ============ -->
+    <Patch id="C2-7-H21-source-of-truth" target="M-010" severity="critical" finding-refs="F-iter2-CONTRACT-007 X-7-002">
+      <change-type>contract</change-type>
+      <resolution>
+        Rust-side M-010 holds canonical state in `Arc&lt;RwLock&lt;RootSets { workspace: Vec&lt;PathBuf&gt;, document: Vec&lt;PathBuf&gt;, image_output: Vec&lt;PathBuf&gt; }&gt;&gt;`.
+        Mutations ONLY via M-013 commands: fs.workspace.add_root, doc.open (auto-extends DOCUMENT_ROOTS for parent), screenshot.set_output_root, prefs.image_folder_changed.
+        Renderer Pinia subscribes to BLOCK_ROOTS_CHANGED for read-only mirror. Every M-010 path validation is a Rust-side check; renderer NEVER short-circuits using its mirror.
+        New fn-roots_snapshot for renderer mirror hydration on cold start.
+        New BLOCK_RESOLVE_FILE_URI{scope_class: workspace|document|image_output|denied} for in-document file:// reads.
+      </resolution>
+    </Patch>
+
+    <!-- ============ C2-8 — Updater dual-pubkey verifier (rotation bridge) ============ -->
+    <Patch id="C2-8-updater-dual-pubkey-bridge" target="M-016" severity="critical" finding-refs="B-5-006">
+      <change-type>contract</change-type>
+      <design>
+        M-016 verifier MUST support DUAL public keys at v2.0.0 release (pub_key_current + pub_key_next slot, the latter empty initially). Without this, yearly rotation cannot reach existing v2.x users.
+        Embedding: tauri.conf.json plugins.updater.pubkeys=[CURRENT, NEXT]; sourced from non-secret `src-tauri/embed_pub_keys.txt` (committed); private keys ONLY in 1Password + GHA env-protected secrets.
+        Build-time: build.rs fails if TAURI_PUBKEYS env unset; embeds as compile-time constants.
+        Rotation procedure (yearly rehearsal in Phase-B4 documented):
+          (1) Generate new keypair via `tauri signer generate -p $NEW_PASSPHRASE` — designate as "next".
+          (2) Ship a v2.x.y release where binary now embeds [CURRENT_old, NEXT_new] AND release feed is dual-signed by BOTH keys.
+          (3) Overlap window ≥ 90 days; users on old binary verify via CURRENT_old, users who updated have NEXT_new but still verify CURRENT_old.
+          (4) v2.x.y+1 release: binary embeds [NEXT_new, EMPTY_slot]; release feed signed by NEXT_new only. CURRENT_old retired.
+          (5) Old signing key revoked from 1Password.
+        Document in docs/release-rotation.md.
+      </design>
+    </Patch>
+
+    <!-- ============ C2-9 — Bundle budget feasibility ============ -->
+    <Patch id="C2-9-bundle-budget" target="Gate-Phase-B4" severity="high" finding-refs="B-11-012">
+      <change-type>budget-revision</change-type>
+      <measured-baseline>
+        Tauri 10-15 + muya 3 + Vue/Element/Pinia 1-2 + KaTeX 1.5 + Mermaid 5 + Vega+Vega-Lite 3 + flowchart 0.5 = 25-30 MB renderer alone, +10-15 MB Rust binary → 35-45 MB projected.
+      </measured-baseline>
+      <actions>
+        - Phase-B1.5 dry-run MUST measure `du -sh /Applications/Mark.app` on macos-14 arm64 and PUBLISH the number.
+        - If &gt; 30 MB: lazy-load Mermaid (saves ~5 MB cold), Vega/Vega-Lite (~3 MB), tree-shake Element Plus per-component.
+        - If still unachievable, raise Gate-Phase-B4 budget to measured + 10% headroom (e.g. 45 MB). False targets cause spurious gate failures.
+        - Budget applies to macOS arm64 ONLY. Linux AppImage embeds webkit2gtk → +30-50 MB; Windows MSI embeds WebView2 bootstrap → +10 MB. Document explicitly.
+      </actions>
+    </Patch>
+
+    <!-- ============ C2-10 — Cancel re-prompt policy (X-10-001) ============ -->
+    <Patch id="C2-10-cancel-policy" target="Phase-B0,M-005" severity="high" finding-refs="X-10-001">
+      <change-type>specification-fill</change-type>
+      <policy>
+        Iter-1 C-2 said "Cancel exits cleanly with code 0, no writes" but did not specify re-prompt policy. Resolved:
+        - On every Cancel: append {timestamp, app_version} entry to ~/.cache/Mark/sessions.jsonl (ring-buffer, max 100 entries). NOT under Application Support → outside C-2 'no writes' invariant scope (which protects ~/Library/Application Support/marktext/ specifically).
+        - Re-prompt policy: dialog shown on EVERY launch where legacy is detected AND mt_migration absent. No silent skip; user decides each time.
+        - After 3+ consecutive cancels in 7 days: dialog adds "Open documentation / Open snapshot location / Don't ask again (use snapshot manually)" options.
+        - "Don't ask again" creates a sentinel `~/.cache/Mark/migration_declined.lock`; subsequent launches show banner-only ("Click here to migrate when ready"); never auto-migrate.
+        - NEVER force-migrate after N cancels. User autonomy is absolute.
+      </policy>
+    </Patch>
+
+    <!-- ============ C2-11 — Channel snapshot runtime self-validation ============ -->
+    <Patch id="C2-11-runtime-self-check" target="M-001,M-013" severity="high" finding-refs="X-11-001 X-11-002">
+      <change-type>contract</change-type>
+      <on-boot-self-check>
+        M-001 BLOCK_BUILD_APP runs M-013 BLOCK_VALIDATE_AGAINST_FIXTURE before first window opens:
+        - Embedded ipc-channels.tauri.v2.json compared to runtime registered command list.
+        - Mismatch → fail-fast with native dialog "Mark detected an internal inconsistency (channel count). Please reinstall." + exit 1.
+        - Reject does NOT proceed to first window paint (avoids 'app boots but invocations crash 30 min later' pattern).
+        Unknown channel runtime behavior (if drift slips past CI):
+        - Reject with deterministic Err(MT_IPC_UNKNOWN_CHANNEL{name,bundle_version}); no panic.
+        - Renderer shows toast once per session ("This Mark version is missing a feature; please update").
+        - M-013 logs BLOCK_IPC_UNKNOWN_CHANNEL; CI fixture must NOT emit this in any test run.
+      </on-boot-self-check>
+    </Patch>
+
+    <!-- ============ C2-12 — USER REVIEW SLA + async fallback ============ -->
+    <Patch id="C2-12-user-review-sla" target="ExecutionPolicy" severity="high" finding-refs="F-iter2-PHASE-005">
+      <change-type>execution-policy</change-type>
+      <policy>
+        Single-dev project = single-reviewer; physical unavailability cannot block pipeline indefinitely.
+        - SLA: USER REVIEW timeout 24h soft (notify), 48h hard (auto-pause).
+        - On hard timeout: `multiagent-execute --halt-reason=user-unavailable` + emit BLOCK_USER_REVIEW_TIMEOUT marker; M-005 lock RELEASED; migration rolled back to snapshot.
+        - Async fallback: GitHub PR approval = USER REVIEW satisfied for non-security gates (Phase-B3 step-2, step-7, step-12 from H-16). Synchronous review still required for: Gate-Phase-A3, Gate-Phase-B4 ship.
+        - Step-number drift fix in H-16: clarify "step-2 = M-014 step (B3 ordinal), step-7 = M-019 step, step-12 = M-009 step" per actual Phase-B3 step list lines 1103-1114.
+      </policy>
+    </Patch>
+
+    <!-- ============ C2-13 — Cask lifecycle table ============ -->
+    <Patch id="C2-13-cask-lifecycle" target="Phase-B4,homebrew-mark" severity="high" finding-refs="F-iter2-CONTRACT-012 B-10-011">
+      <change-type>artifact</change-type>
+      <cask-lifecycle-table>
+        - **mark** (stable v2): rolling channel; auto-updates via tauri-plugin-updater; primary install path.
+        - **mark@v1** (rollback): pinned to literal `version "1.1.0"` (post-Phase-A6 final v1 release); livecheck strategy uses tag prefix `v1-*` only (e.g. v1.1.1 hotfix); receives security-only patches for 12 months after v2.0 ship; thereafter `disable! :obsolete_release` with documented date.
+        - **mark@alpha** (Phase-B3a partial-ship): EOL at v2.0.0 GA stable cut; users transition via documented `brew uninstall mark@alpha &amp;&amp; brew install mark`; mark@alpha sets mt_migration.app_version='alpha' so stable v2 detects + reruns missing migration sub-steps.
+        Migration command published in xronocode/homebrew-mark/README.md.
+        SC-V-M-005 'alpha-channel users transitioning to stable' migration scenario added.
+      </cask-lifecycle-table>
+    </Patch>
+
+    <!-- ============ HIGH SEVERITY (H2-1..H2-8) ============ -->
+    <Iteration2HighBatch>
+      <H2-1 finding="F-iter2-CONTRACT-004" target="C-12">CI artifact `tools/check-pinned-deps.mjs` reading allowlist `tools/pinned-versions.json` runs in release-tauri.yml + pr.yml; compares `npm ls --json` vs allowlist; fails CI on mismatch. Bump requires PR updating pinned-versions.json + audit-rerun=true checkbox + new V-M-010 fixture-xss run logged. Use yarn `resolutions` + npm `overrides` for transitive enforcement; lockfile post-install version assertion via `node_modules/&lt;lib&gt;/package.json#version`.</H2-1>
+      <H2-2 finding="F-iter2-CONTRACT-005" target="Phase-B1.5">release-tauri.yml uses path-filter (src-tauri/**, package.json, tools/check-pinned-deps.mjs only); concurrency.cancel-in-progress=true; manual workflow_dispatch toggle for Phase-B2 days; failure does NOT block PR merge unless `phase=B1.5-gate` label set. At Phase-B4 step-1, rename via PR including both rename and tag-trigger smoke commit; documented in Gate-Phase-B4 evidence list.</H2-2>
+      <H2-3 finding="F-iter2-CONTRACT-008" target="H-24">M-005 schema adds `export.defaultMode: enum {ask, share, local}` default=ask; save dialog shows radio with last-used-for-this-document remembered via Pinia session state, NOT persisted unless user toggles 'always for this document' (frontmatter `mark.exportMode: share|local`). Add SC-V-M-010 covering each branch.</H2-3>
+      <H2-4 finding="F-iter2-CONTRACT-009" target="Gate-Phase-B2,trigger-11">Reconcile: hard-gate at empty symmetric difference (exact 146 channel-NAME parity, NOT count). Trigger-11 stays as count-drift watcher for runtime/codegen anomalies. Add 'documented exceptions' allowlist that, if non-empty, must each have changelog entry per C-3.</H2-4>
+      <H2-5 finding="F-iter2-CONTRACT-010" target="Phase-B1">Phase-B1 step-2.5 muya perf gate uses synthetic harness — fixture bundled as Rust `include_str!`, no IPC, no M-002/M-014 needed. Document this is WebView-engine vs Electron-Chromium engine comparison ONLY, NOT end-to-end. Add second perf gate at Gate-Phase-B2 re-measuring with real M-002+M-014 IPC under realistic conditions.</H2-5>
+      <H2-6 finding="F-iter2-CONTRACT-011" target="C-5">Decision: choose (b) sign-the-feed (avoids TLS-pinning rotation pain; reuses ed25519 infra). Add SC-V-M-016 'tampered feed JSON rejected' + 'unsigned feed rejected' + 'feed signed with old rotated key rejected'. Feed-signature key rotation procedure documented separately from bundle-signature key (could be same or different — pick).</H2-6>
+      <H2-7 finding="F-iter2-PHASE-006" target="C-2,M-019">mt_migration object extension: deferred_conflicts: [{ service, account, detected_at, resolution: pending|kept_legacy|kept_new }]. On every launch where deferred_conflicts non-empty AND ≥ 24h elapsed, surface non-modal banner. Preferences &gt; Security panel listing pending conflicts. Hard upper bound 14d after which forced modal blocks image upload until resolved. New marker BLOCK_KEYCHAIN_DEFERRED_AGE_DAYS.</H2-7>
+      <H2-8 finding="F-iter2-PHASE-008" target="ExecutionPolicy">Iteration-meta block: stop_criteria = (consecutive_iterations_with_zero_critical ≥ 2) OR (highs_added &lt; 3 AND mediums_added &lt; 5). Each iteration's amendments record { critical_count, high_count, find_rate_per_artifact, time_spent_h }. Plot find_rate; freeze when slope flattens. Iter-2 found 13 critical → Iter-3 target ≤ 4 critical to declare convergence.</H2-8>
+    </Iteration2HighBatch>
+
+    <Iteration2BuildCIRelease>
+      <B2CR-1 finding="B-1-001" priority="critical">UPSTREAM_PIN.lock with sha256-of-blob for upstream commit ab1a3fdc; CI hard-fails MT_FIXTURE_UPSTREAM_FORCEPUSHED on mismatch. Generator on every push to modernize-tauri, NOT one-time. Diff via Rust xtask-channel-diff.</B2CR-1>
+      <B2CR-2 finding="B-2-002" priority="critical">Custom clippy lint `mt::ipc_command_without_ts_rs` forbid on every #[tauri::command] without #[derive(TS)]. tsc --noEmit multi-pass diagnostics. Generated .ts committed; CI fails on git diff. eslint @typescript-eslint/no-explicit-any error in src/renderer/src/ipc/.</B2CR-2>
+      <B2CR-3 finding="B-3-003" priority="high">Decision: cask sha256 sourced from released-asset .sha256 file uploaded alongside DMG (NOT recomputed). CI step verify-reproducible.sh runs tauri build twice in same job, sha256-compares, annotates reproducible:false with cmp -l differing offsets if non-deterministic.</B2CR-3>
+      <B2CR-4 finding="B-3-004" priority="high">CI smoke step: mount DMG inside macos-14 runner, copy Mark.app → /Applications, xattr -cr, open -a, assert process alive. docs/release-notes-template.md: "GH Actions artifacts pre-cask; install via brew or run xattr -cr manually".</B2CR-4>
+      <B2CR-5 finding="B-4-005" priority="critical">Linux keyring CI bifurcates: matrix.fallback_keyring ∈ {true,false}. happy-path uses dbus-run-session + gnome-keyring-daemon --unlock; fallback uses MT_FORCE_NO_KEYRING=1 expecting MT_DC_KEYCHAIN reason=secret_service_unavailable. macOS uses temporary keychain via security create-keychain + set-keychain-settings -lut 7200.</B2CR-5>
+      <B2CR-6 finding="B-7-008" priority="high">Real pin enforcement: yarn `resolutions` + npm `overrides` + duplicate exact-version pins (no caret) under dependencies. xtask-verify-pins parses package.json, asserts no ^/~ on C-12 set + has resolutions entry. Lockfile-hash check post-yarn install --frozen-lockfile reads node_modules/&lt;lib&gt;/package.json#version. M-010 audit re-trigger via dependency-audit-state.json keyed by {lib, version, sha256(dist/main.js)}; CODEOWNERS on src/renderer/src/sec/filters/.</B2CR-6>
+      <B2CR-7 finding="B-8-009" priority="high">Pin runs-on: ubuntu-22.04 AND ubuntu-24.04 literally for V-M-010, V-M-007, V-M-012; never ubuntu-latest. Startup log marker [Shell][bootstrap][ENGINE_VERSION] {os_version, webview_version} for post-mortem.</B2CR-7>
+      <B2CR-8 finding="B-9-010" priority="high">Subprocess redactor as tracing_subscriber::Layer in mt-subprocess crate; clippy lint forbids raw std::process::Command outside crate. Performance: regex::RegexSet compiled once; cargo bench --bench redactor. Bypass tests in test/fixtures/redactor-bypasses.txt: base64, hex, ANSI, split-write (mitigated by coalescing chunks ≥128 bytes).</B2CR-8>
+      <B2CR-9 finding="B-12-013" priority="high">Decision: v2.0 ships arm64-only; cask declares `arch arm: "...arm64.dmg"`; Intel users get clear error + mark@v1 rollback. Universal binary scheduled for v2.1. CI matrix builds arm64 only; documented in UC-014 acceptance.</B2CR-9>
+      <B2CR-10 finding="B-13-014" priority="medium">Phase-B1.5 toolchain-warnings.json artifact aggregating cargo build / clippy / vite build / tauri build / codesign / xattr / tauri-action warnings. Phase-B4 step-1 gate: warning_count == 0 OR each warning has docs/ci-warnings-allowlist.md entry with reason + tracking issue. CI step verify-no-new-warnings.sh diffs current vs allowlisted.</B2CR-10>
+      <B2CR-11 finding="B-14-015" priority="high">Cross-repo cask PR via GitHub App `xronocode-release-bot` installed on both repos with contents:write + pull-requests:write on homebrew-mark; workflow exchanges OIDC for short-lived app token via actions/create-github-app-token. Reject ambient GITHUB_TOKEN. Reject long-lived classic PAT. Workflow uses environment-protection `release` requiring manual approval.</B2CR-11>
+    </Iteration2BuildCIRelease>
+
+  </Iteration2Amendments>
+
+  <!-- ===================================================================
+       ITERATION-3 AMENDMENTS (2026-04-25) — CONVERGENCE PASS
+       Source: 3-agent Iter-3 (residual / cross-cutting / meta)
+       Find-rate: 35.5 (iter-1) → 15.75 (iter-2) → 4.0 (iter-3) = 88% drop
+       2 critical + 6 high + 4 medium. Architecture stable; remaining = ops.
+       =================================================================== -->
+  <Iteration3Amendments source-iteration="3" generated="2026-04-25" agent-count="3" find-rate-decline="88%-vs-iter1" convergence-declared="true-with-conditions">
+
+    <!-- ============ C3-1 — Dual-pubkey rotation: rescue strategy ============ -->
+    <Patch id="C3-1-updater-rescue-pubkey" target="M-016" severity="critical" finding-refs="F-iter3-EDGE-002">
+      <change-type>contract-extension</change-type>
+      <description>
+        C2-8 dual-pubkey rotation strands users who skip the overlap-window release. Resolution:
+        - **Adaptive overlap window**: hold open until ≥99% active installs report rolled to dual-key build via UA-version histogram from GitHub Releases stats; replace fixed 90d.
+        - **Tertiary rescue pubkey**: embed a 5-year-cadence long-lived rescue ed25519 pub_key at v2.0.0 reserved exclusively for emergency re-bridging. Updater verifier accepts ANY of [pub_key_current, pub_key_next, pub_key_rescue]. Rescue private key kept in cold storage, NEVER used for routine releases.
+        - **Recovery flow**: dual-key build writes `min-supported-feed-key` marker to mt_migration. If updater encounters feed it cannot verify with any embedded key, surfaces native dialog with signed-download link and human-readable reason — never silent fail.
+        - New SC-V-M-016: 'binary-with-only-CURRENT_old offline 100d → online → updater rejects post-revoke feed gracefully → user sees recovery dialog with download link'.
+      </description>
+    </Patch>
+
+    <!-- ============ C3-2 — Pre-window i18n bootstrap ============ -->
+    <Patch id="C3-2-pre-window-i18n" target="Phase-B0,M-001" severity="critical" finding-refs="F-iter3-XCUT-001 F-iter3-GAP-003">
+      <change-type>new-component</change-type>
+      <description>
+        Pre-Tauri-init dialogs (C2-3 migration consent, C2-10 cancel options, C2-11 fail-fast) are English-only — breaks Russian/CJK first-install consent moment.
+        Resolution:
+        - Add `src-tauri/src/migration_strings.rs` const map keyed by ISO locale (10 locales matching v1: en, ru, zh-CN, ja, de, fr, es, it, ko, pt-BR). ~10 strings total: title, body, Continue, Cancel, "Open documentation", "Open snapshot location", "Don't ask again", fail-fast title, fail-fast body, "Reinstall" button.
+        - OS locale detection via `sys_locale` crate (no Tauri dependency); en_US fallback.
+        - Strings embedded via `include_str!`; no runtime file load needed.
+        - All native-dialog code paths route through `mt::pre_window::strings(key, locale)`.
+        - Same approach for fail-fast dialog (C2-11).
+        - New BLOCK_PRE_WINDOW_DIALOG{lang,a11y_announce_text} marker.
+        Engineering cost: ~0.5d.
+      </description>
+      <new-gate-evidence>Gate-Phase-B0: dialog screenshot in ru_RU + zh_CN + ja_JP locale during CI on macos-14 / ubuntu-22.04 / windows-latest.</new-gate-evidence>
+    </Patch>
+
+    <!-- ============ H3-1 — Cross-platform cache path ============ -->
+    <Patch id="H3-1-xplat-cache-path" target="C2-3,C2-10,OG-iter2-002,M-021" severity="high" finding-refs="F-iter3-XPLAT-001">
+      <change-type>fix</change-type>
+      <description>
+        `~/.cache/Mark/` is XDG-only — broken on macOS (should be `~/Library/Caches/Mark/`) and Windows (no `~/.cache` at all).
+        Resolution:
+        - Add helper `mt_paths::cache_root()` in M-021 returning `dirs::cache_dir().join("Mark")`:
+          * macOS → `~/Library/Caches/Mark`
+          * Linux → `$XDG_CACHE_HOME/Mark` or `~/.cache/Mark`
+          * Windows → `%LOCALAPPDATA%\Mark\Cache`
+        - All references to `~/.cache/Mark/sessions.jsonl`, `~/.cache/Mark/migration_declined.lock`, `~/.cache/Mark/crash-*.log` route through this helper.
+        - Update C-2 'no-writes' invariant scope language: covers ~/Library/Application Support/marktext/ AND com.xronocode.mark/electron-store-flat-files specifically; cache_root() is OUTSIDE this invariant.
+      </description>
+    </Patch>
+
+    <!-- ============ H3-2 — Phase-B0 vs B0.5 ordering fix ============ -->
+    <Patch id="H3-2-Phase-B0-vs-B0.5" target="C2-3,C2-5" severity="high" finding-refs="F-iter3-ORDER-004">
+      <change-type>order-clarification</change-type>
+      <resolution>
+        Phase-B0.5 (capture v1.1.0 reference fixture) MUST precede Phase-B0 (Migration Safety Floor). Rename to make order explicit:
+        - **Phase-B-pre1**: v1.1.0 fixture capture (was B0.5; ~1d)
+        - **Phase-B-pre2**: Migration Safety Floor + native-dialog i18n bootstrap (was B0; ~1d after C3-2)
+        - Then Phase-B1, Phase-B1.5, Phase-B2, Phase-B3, Phase-B3a, Phase-B4 as before.
+        - Gate-Phase-B-pre1 = hard predecessor of Gate-Phase-B-pre2; Gate-Phase-B-pre2 = hard predecessor of Gate-Phase-B1.
+        - Drop "synthetic shadow fixture" (C2-3 step-6) entirely — once real v1-userdata fixture exists, dev profile uses it directly.
+        - Update C2-5 critical-path table: B-pre1=1d, B-pre2=1d, B1=2d, B1.5=1.5d, B2=5-6d, B3=8-10d, B3a=1d, B4=3d, verification-debt=5-7d, contingency=2-3d. **Total CP=29-34d** unchanged.
+      </resolution>
+    </Patch>
+
+    <!-- ============ H3-3 — Crash report / panic hook ============ -->
+    <Patch id="H3-3-panic-hook-crash-report" target="M-001" severity="high" finding-refs="F-iter3-XCUT-003">
+      <change-type>contract-extension</change-type>
+      <description>
+        v1 PR-4154 EPIPE fix is Electron-only. Tauri Rust panic-handler missing — any uncaught .unwrap() in tokio task = silent zombie window.
+        Resolution:
+        - Install `std::panic::set_hook` in main.rs BEFORE tauri::Builder.
+        - On panic: write panic message + backtrace + redacted env (per H-20 redactor) to `mt_paths::cache_root().join(format!("crash-{ts}-{session_chain}.log"))`. Rotate, keep last 10.
+        - Surface native dialog (i18n via C3-2): "Mark encountered an unexpected error. A crash report has been saved to &lt;path&gt;. Attach it to your GitHub issue."
+        - Tokio task panics: use `tokio::task::JoinSet` + log `BLOCK_TASK_PANIC{task_name,trace_id}`; do NOT take down whole process unless invariant violated.
+        - Telemetry-free stance: crash dumps local-only; user opt-in to attach.
+        - New marker BLOCK_PANIC_HOOK_INSTALLED at boot.
+        - SC: synthetic panic in fs/keyring/spell/updater paths each produces dialog + log file; window does not become zombie.
+        Gate-Phase-B4 evidence: synthetic panic test passes on all three OSes.
+      </description>
+    </Patch>
+
+    <!-- ============ H3-4 — License/SBOM/NOTICES ============ -->
+    <Patch id="H3-4-license-sbom" target="Phase-B4,technology.xml" severity="high" finding-refs="F-iter3-XCUT-002">
+      <change-type>compliance-step</change-type>
+      <description>
+        New Rust crates (hunspell-rs LGPL-3.0, keyring-rs Apache-2.0/MIT, tauri-plugin-*, font-kit) + bundled hunspell dicts (ru_RU/zh_CN/ja_JP each with own license) — no SBOM/NOTICES generation step.
+        Resolution:
+        - **hunspell-rs LGPL-3.0**: either swap for Apache-2.0 alternative (`nuspell` bindings) OR commit to providing relinkable artifacts. **Recommend swap to nuspell** (avoids LGPL static-linking compliance burden in proprietary cask). Update technology.xml.
+        - Phase-B4 step `generate-attributions`:
+          1. `cargo about generate -c about.toml > NOTICES-rust.md`
+          2. `npm run license-checker --json > NOTICES-node.md`
+          3. Bundle each hunspell dict's upstream LICENSE under `resources/hunspell_dictionaries/&lt;lang&gt;/LICENSE`.
+          4. Ship `LICENSES.txt` inside Mark.app/Contents/Resources/; link from About box.
+          5. Generate SPDX SBOM via `cargo-cyclonedx` + `@cyclonedx/cyclonedx-npm`; publish alongside DMG.
+        - CI gate `verify-attributions.sh` fails if any new dependency has no NOTICES entry.
+        - Gate-Phase-B4 evidence: NOTICES + SBOM committed; About-box link functional.
+      </description>
+    </Patch>
+
+    <!-- ============ H3-5 — A11y baseline ============ -->
+    <Patch id="H3-5-a11y-baseline" target="Phase-B3,Gate-Phase-B4" severity="high" finding-refs="F-iter3-XCUT-004">
+      <change-type>verification-step</change-type>
+      <description>
+        v1.0 explicitly accepted "no ARIA/i18n/virtualization/touch — revisit in v2.x" (line 449). v2.0 IS that v2.x — but plan has zero a11y verification.
+        Scope-tightened resolution (full a11y is multi-release effort):
+        - Phase-B3 step `a11y-baseline`: run `axe-core` against muya in WebView; record BASELINE violation count to `docs/a11y-baseline-v2.0.md`.
+        - **MUST-PASS subset (5 items, ~1-2d)**:
+          1. File menu fully keyboard-navigable (Tab, arrow keys, Enter).
+          2. Modal save-dialog has aria-modal + focus trap.
+          3. Sidebar tree has role=tree with proper aria-expanded states.
+          4. Editor contenteditable has accessible name + role=textbox.
+          5. Top-level menu items announced correctly by VoiceOver (macOS), NVDA (Windows), Orca (Linux).
+        - Manual a11y row in V-M-009/V-M-013 acceptance.
+        - Document remaining muya a11y debt as known-issue; target v2.1.
+        - Gate-Phase-B4 evidence: a11y-baseline.md committed + 5 must-pass items green.
+      </description>
+    </Patch>
+
+    <!-- ============ H3-6 — Cross-device deferred_conflicts merge ============ -->
+    <Patch id="H3-6-mt-migration-multi-device" target="H2-7" severity="medium" finding-refs="F-iter3-XDEV-005">
+      <change-type>merge-policy</change-type>
+      <description>
+        H2-7 deferred_conflicts list has no cross-device merge strategy. Time Machine restore / NFS-mounted home / synced Application Support = silent loss of resolution.
+        Resolution:
+        - mt_migration.schema_lockfile (POSIX advisory lock or .lock sentinel sidecar) acquired before mt_migration write.
+        - On contention, second writer reads-merges-rewrites with deterministic merge rule:
+          * Entries keyed by {service, account}.
+          * If both pending → prefer latest non-pending by detected_at.
+          * If both have conflict resolution → prefer non-pending; if both non-pending and differ → log warning, keep latest.
+        - Document explicitly: mt_migration NOT designed for concurrent multi-device write.
+        - New marker BLOCK_MT_MIGRATION_LOCK_CONTENTION.
+        - Defer 14d forced-modal until lockfile confirms conflict unresolved on THIS device specifically.
+      </description>
+    </Patch>
+
+    <!-- ============ MEDIUM (H3-M-1..H3-M-3) ============ -->
+    <Iteration3MediumBatch>
+      <H3-M-1 finding="F-iter3-XCUT-005" target="Phase-B4">SLSA-3 build provenance + Sigstore cosign signing. Phase-B4 step `slsa-attest`: `actions/attest-build-provenance@v2` for each .dmg/.msi/.AppImage; OIDC → Sigstore Fulcio → ephemeral cert → `*.intoto.jsonl` published to GH Releases. Phase-B4 step `cosign-sign`: keyless `cosign sign-blob --bundle`. Verification command in release notes: `cosign verify-blob --bundle Mark-arm64.dmg.bundle Mark-arm64.dmg`. Cask pulls .sha256 from SLSA-attested artifact list. Gate-Phase-B4 evidence: provenance verification CI step passes. ~0.5d.</H3-M-1>
+      <H3-M-2 finding="F-iter3-META-001" target="docs">Phase-B-pre2 step-0 deliverable: `docs/phase-b-go-no-go.md` auto-generated from XML, listing each gate (B-pre1, B-pre2, B1, B1.5, B2, B3, B3a, B4) + REQUIRED EVIDENCE bullets + checkbox column. Single scannable artifact for human GO/NO-GO decision.</H3-M-2>
+      <H3-M-3 finding="F-iter3-META-002" target="docs">Phase-B1 module-kickoff bundle: ObservabilityGapOwnership table mapping OG-iter2-001..006 → primary owner module-ID + V-M-XXX evidence-ref:
+        - OG-001 (trace_id propagation) → M-013 primary, M-001 secondary; V-M-013-VB-XX
+        - OG-002 (cross-process lifecycle) → M-005 primary, M-001 secondary; V-M-005-XX
+        - OG-003 (global-busy state) → M-001 primary; M-005/M-016/M-019 consumers; V-M-001-XX
+        - OG-004 (self-suppress symmetry) → M-002/M-021/M-003; V-M-003-XX
+        - OG-005 (sink-fanout confirmation) → M-009, M-013; V-M-009-XX
+        - OG-006 (request-id correlation) → M-013; V-M-013-XX</H3-M-3>
+    </Iteration3MediumBatch>
+
+    <ConvergenceDeclaration>
+      <find-rate-trend>iter1=35.5 → iter2=15.75 → iter3=4.0 (88% reduction over 3 iterations)</find-rate-trend>
+      <iter3-tally>2 critical + 6 high + 4 medium = 12 findings</iter3-tally>
+      <metaTrigger-status>critical ≤4 ✅ | high ≤2 ❌ (6 > 2 by 4)</metaTrigger-status>
+      <pragmatic-call>
+        Plan architecture is STABLE. Iter-3 findings are concrete + bounded:
+        - 2 critical (rotation rescue, i18n) addressed in C3-1, C3-2 above
+        - 6 high (xplat path, B0/B0.5 order, panic hook, license/SBOM, a11y, cross-device) addressed in H3-1..H3-6 above
+        - 4 medium (provenance, GO/NO-GO doc, OG ownership, x-device merge) addressed in H3-M-1..H3-M-3 + already-merged H3-6
+        Iter-4 swarm would yield diminishing returns — remaining work is implementation, not architectural review.
+      </pragmatic-call>
+      <verdict>CONVERGENCE DECLARED with concrete amendments. Phase-B-pre1 entry recommendation: GO_WITH_CONDITIONS — produce H3-M-2 GO/NO-GO checklist as Phase-B-pre1 step-0.</verdict>
+    </ConvergenceDeclaration>
+
+  </Iteration3Amendments>
+
+  <!-- ===================================================================
+       ITERATION-4 MASTER-PLAN RECONCILE (2026-04-25)
+       Source: parallel-agent's docs/master-refactoring-plan-phase-b.md
+       Items present in master-plan but missing from Iter1-3 amendments.
+       Diff-merge table in chat; this block absorbs master-only items.
+       =================================================================== -->
+  <Iteration4MasterPlanReconcile source="parallel-agent-master-plan" generated="2026-04-25">
+
+    <!-- ============ R4-1 — Module mapping mark-electron/src/main → Tauri ============ -->
+    <Patch id="R4-1-module-mapping" target="ModuleMapping" severity="canonical-fill" finding-refs="master-plan-section-Module-Mapping">
+      <change-type>new-section</change-type>
+      <description>
+        Master-plan §Module Mapping provides legacy-owner → Tauri-target table grounding migration in real codebase. Folded as new ModuleMapping section.
+      </description>
+      <ModuleMapping>
+        <map legacy="index.js, app/index.js, app/env.js, app/paths.js" tauri="M-001, M-020, M-005, M-022" notes="startup, CLI, paths, lifecycle" />
+        <map legacy="cli/index.js, cli/parser.js" tauri="M-020, M-001" notes="CLI flags, usage, portable mode, startup handoff" />
+        <map legacy="app/accessor.js" tauri="M-001, M-005, M-009, M-013b" notes="dependency injection, command/menu/window/data stores" />
+        <map legacy="app/windowManager.js, windows/*" tauri="M-001, M-013b" notes="window registry, close state machine, event bus" />
+        <map legacy="commands/*, menu/actions/*, menu/templates/*, menu/index.js" tauri="M-009, M-013a, M-013b" notes="M-013a owns command/menu schema taxonomy; M-013b owns runtime native dispatch + per-window menu state" />
+        <map legacy="contextMenu/editor/*" tauri="M-009, M-007, M-013b" notes="native context menu and spelling actions" />
+        <map legacy="filesystem/*" tauri="M-021, M-002, M-014" notes="raw bytes, markdown load/save, encoding, atomicity" />
+        <map legacy="filesystem/watcher.js" tauri="M-003, M-014, M-011" notes="event payload parity and markdown reload coupling" />
+        <map legacy="preferences/*" tauri="M-005" notes="four-store migration, schema validation" />
+        <map legacy="dataCenter/*" tauri="M-019, M-005, M-021" notes="ImageBed config, keychain, image folders" />
+        <map legacy="keyboard/*" tauri="M-006, M-020" notes="shortcut parsing, keyboard layout, debug dump shell guard" />
+        <map legacy="spellchecker/*" tauri="M-007, M-009" notes="custom dictionary, language switch, suggestions" />
+        <map legacy="utils/pandoc.js" tauri="M-015" notes="subprocess and PATH policy" />
+        <map legacy="utils/index.js" tauri="M-001, M-005" notes="ids, titles, path helpers, key comparison, log level" />
+        <map legacy="utils/imagePathAutoComplement.js" tauri="M-018, M-019, M-021" notes="image path autocomplete, file scanning" />
+        <map legacy="exceptionHandler.js, utils/createGitHubIssue.js" tauri="M-001, M-010" notes="crash handling and guarded external URL" />
+        <map legacy="menu/actions/marktext.js" tauri="M-016, M-009" notes="update state machine and menu dispatch" />
+        <map legacy="i18n.js, globalSetting.js, config.js" tauri="M-001, M-005, M-009" notes="runtime constants and broadcast language/theme" />
+        <map legacy="native theme, Dock/JumpList, macOS open-file batching in app/index.js" tauri="M-001, M-009, M-017, M-020" notes="OS shell lifecycle parity" />
+      </ModuleMapping>
+    </Patch>
+
+    <!-- ============ R4-2 — VF-001..VF-016 named verification flows ============ -->
+    <Patch id="R4-2-verification-flows" target="VerificationFlows" severity="canonical-fill" finding-refs="master-plan-section-Verification-Matrix">
+      <change-type>new-section</change-type>
+      <description>16 named end-to-end verification flows from master-plan §Verification Matrix. Mirrored in verification-plan.xml as VF-XXX entries (action item Step 2c).</description>
+      <VerificationFlows>
+        <VF-001 name="WYSIWYG" modules="M-011, M-012, M-013a, M-013b, M-002, M-021" evidence="open/edit/source-toggle/save trace chain read-parse-render-write" />
+        <VF-002 name="FolderSearch" modules="M-003, M-004, M-013b" evidence="10k files; first result ≤500ms; watcher update ≤500ms" />
+        <VF-003 name="Security" modules="M-010, M-012, M-013b" evidence="27-payload B2 cross-engine corpus; extended fixture by B4; shell prompt before open" />
+        <VF-004 name="Homebrew" modules="release, cask" evidence="install, upgrade, rollback, livecheck, xattr, codesign" />
+        <VF-005 name="Release" modules="CI, M-016, cask" evidence="macOS blocking jobs; artifacts; sha256; cask PR via GitHub App" />
+        <VF-006 name="Encoding" modules="M-014, M-021, M-002" evidence="28 codecs; BOM; CRLF/mixed; no-edit byte equality" />
+        <VF-007 name="Pandoc" modules="M-015, M-010, M-021" evidence="missing tool; TeX path; timeout; cancel; tab-close race" />
+        <VF-008 name="Updater" modules="M-016" evidence="signed feed; tamper; downgrade; quarantine strip; dual-pubkey rescue" />
+        <VF-009 name="CommandMenu" modules="M-009, M-013a, M-013b" evidence="128 menu taxonomy; command palette; stale window generation" />
+        <VF-010 name="RendererCleanup" modules="M-011, M-013a, M-013b" evidence="restricted imports; bundle grep; runtime isolation smoke" />
+        <VF-011 name="IMEComposition" modules="M-012, M-011" evidence="six handlers gated by composition lock; CJK runtime traces" />
+        <VF-012 name="TableRoundtrip" modules="M-012" evidence="leading pipe escape; short rows; no `undefined`; byte roundtrip" />
+        <VF-013 name="PerfBudget" modules="M-001, M-011, M-012" evidence="B1 5k smoke; B4 50k/100k soak; long-task trace" />
+        <VF-014 name="FSAtomicity" modules="M-021, M-002" evidence="fd-held validation; fsync ordering; ENOSPC/SIGKILL/FS matrix" />
+        <VF-015 name="TraceContract" modules="M-001, M-009, M-011, M-013a, M-013b" evidence="trace_id; req_id; session_chain_id; BLOCK markers; fanout confirmation" />
+        <VF-016 name="PreloadRemoteDialogLifecycle" modules="M-001, M-009, M-013a, M-013b" evidence="preload globals; remote shims; typed dialog outcomes; replay/drop policy" />
+      </VerificationFlows>
+    </Patch>
+
+    <!-- ============ R4-3 — WebView shell security canonical (B1 gate) ============ -->
+    <Patch id="R4-3-webview-shell-security" target="M-001,Phase-B1" severity="high" finding-refs="master-plan-section-Phase-B1">
+      <change-type>contract-add</change-type>
+      <description>
+        WebView shell security configured BEFORE first window: block webview attachment, navigation escape, window.open, unknown custom protocols, file URI access outside approved app origin. NOT in my Iter1-3 amendments — promoted from master-plan as B1 step-9 (already added in canonical Phase-B1).
+        New M-001 fn-configure_webview_security with critical-blocks BLOCK_BLOCK_WEBVIEW_ATTACH, BLOCK_REJECT_NAVIGATION_ESCAPE, BLOCK_REJECT_WINDOW_OPEN, BLOCK_REJECT_UNKNOWN_PROTOCOL, BLOCK_REJECT_FILE_URI_OUTSIDE_ORIGIN.
+      </description>
+    </Patch>
+
+    <!-- ============ R4-4 — Renderer Node-cleanup hard B-pre2 gate ============ -->
+    <Patch id="R4-4-renderer-node-cleanup" target="Phase-B-pre2,VF-010" severity="high" finding-refs="master-plan-section-Phase-B-pre2">
+      <change-type>gate-extension</change-type>
+      <description>
+        Master-plan B-pre2 step requires zero production-bundle usages of fs, path, child_process, crypto, Buffer, os.tmpdir, process escape hatches, node:*, deep electron imports. My Iter1-3 had Phase-A1.5 cleanup but NOT a hard gate at B-pre2. Promoted as canonical Phase-B-pre2 step-8.
+        CI step verify-no-node-imports.sh greps production bundle (vite build dist/) for restricted symbols; fail-on-match.
+      </description>
+    </Patch>
+
+    <!-- ============ R4-5 — Stale menu generation test ============ -->
+    <Patch id="R4-5-stale-menu-generation" target="V-M-009,Phase-B1" severity="medium" finding-refs="master-plan-section-Phase-B1">
+      <change-type>scenario-add</change-type>
+      <description>
+        Stale menu generation test: invoke from generation N after rebuild N+1 must be discarded with BLOCK_STALE_MENU_GENERATION. Not in my Iter1-3. Promoted as canonical Phase-B1 step-11 hardening.
+        Tests: rebuild menu N+1 while menu generation N invoke is in-flight → assert generation N invoke discarded with marker; user cannot trigger old action via stale path.
+      </description>
+    </Patch>
+
+    <!-- ============ R4-6 — Updater manifest signature full binding ============ -->
+    <Patch id="R4-6-updater-manifest-binding" target="M-016,C-5" severity="high" finding-refs="master-plan-section-Phase-B3">
+      <change-type>contract-extension</change-type>
+      <description>
+        Master-plan: updater manifest signature binds {version, arch, min_os, asset_url, sha256, cask_sha256}. My C-5 only had sha256+ed25519 sig at file level. Extension:
+        - Manifest = JSON object with all 6 fields, signed as a unit.
+        - Verifier rejects: arch mismatch (e.g. arm64 binary served to x86_64 user), min_os too low (macOS 10.13 user gets v2.5 needing macOS 11+), asset_url not on github.com/xronocode/mark/releases, cask_sha256 not matching the cask formula sha256.
+        - Stale-but-valid feeds expire (timestamp field + max_age); replay attempts rejected.
+        - New SC: feed served with stripped manifest fields → reject; tampered cask_sha256 in manifest → reject.
+      </description>
+    </Patch>
+
+    <!-- ============ R4-7 — Cask lifecycle conflict matrix ============ -->
+    <Patch id="R4-7-cask-lifecycle-matrix" target="C2-13,Phase-B4" severity="medium" finding-refs="master-plan-section-Phase-B4">
+      <change-type>test-matrix</change-type>
+      <description>
+        Master-plan: cask lifecycle tests cover {mark, mark@alpha, mark@v1} co-install/upgrade/uninstall conflicts, stale app bundles, architecture resolution. My C2-13 had migration command but not the full matrix.
+        Test cases:
+        - mark + mark@v1 co-installed (different versions → both Application/Mark.app; bundle id collision detection)
+        - mark@alpha installed, then `brew install mark` stable (uninstall+install path; mt_migration.app_version='alpha' detection in stable v2)
+        - User on Intel Mac runs `brew install mark` → cask declares `arch arm:` → clear error + mark@v1 install hint
+        - Stale Mark.app (manually deleted but cask still tracks) → `brew reinstall` recovers
+        - Upgrade race: cask sha256 PR not yet merged when user runs brew install → "no formula found" error documented
+      </description>
+    </Patch>
+
+    <!-- ============ R4-8 — 95%-verbatim AST/LOC concrete metric ============ -->
+    <Patch id="R4-8-verbatim-ast-loc-metric" target="ArchitectureNotes,H-9" severity="medium" finding-refs="master-plan-section-Non-Negotiable">
+      <change-type>metric-definition</change-type>
+      <description>
+        H-9 restated 95%-verbatim qualitatively. Master-plan adds concrete metric: at least 95% of non-adapter renderer files must have IDENTICAL AST hashes OR only import-path shim changes vs Phase-A6 baseline.
+        Allowed Phase-B frontend write scope: src/renderer/src/ipc/, src/renderer/src/compat/, bootstrap wiring, narrowly documented call-site adapters.
+        CI step verify-95-verbatim.sh:
+        1. Take Phase-A6 baseline tag (v1.1.0).
+        2. For each renderer file, compute AST hash (TypeScript compiler API normalized AST → SHA256).
+        3. Compare current branch to baseline; flag any file with differing AST hash NOT in allowlist.
+        4. Allowlist drift &gt; 5% of total non-adapter renderer files = CI fail.
+        Phase-B-pre2 gate evidence: AST hash diff report committed.
+      </description>
+    </Patch>
+
+    <!-- ============ R4-9 — Updater rollback when v2 modified data ============ -->
+    <Patch id="R4-9-updater-rollback-modified-data" target="M-016,Phase-B3" severity="high" finding-refs="master-plan-section-Phase-B3">
+      <change-type>scenario-add</change-type>
+      <description>
+        Master-plan: rollback from v2.0 → mark@v1 must handle case where user has launched v2 AND modified prefs/recents/secrets BEFORE rolling back. NOT in my Iter1-3.
+        Resolution:
+        - mt_migration.snapshot_dir preserves pre-migration state.
+        - On install of mark@v1 (after brew uninstall mark), v1 detects mt_migration object in com.xronocode.mark namespace.
+        - v1 prompts: "v2 made changes to your preferences. Restore from snapshot (loses v2 edits) / Keep v2 edits in v1-compatible format / Quit and decide later."
+        - v2-edit forward-compat: M-005 schema designed so any pref keys added in v2 are gracefully ignored by v1 (additive-only schema).
+        - SC-V-M-016-rollback-modified: install v1, modify prefs in v1, install v2, modify prefs in v2, install v1 (rollback) → user prompted; choice honored.
+      </description>
+    </Patch>
+
+    <!-- ============ R4-10 — Removed amendment block reference (audit trail) ============ -->
+    <Note id="R4-10-amendment-blocks-status">
+      <description>
+        Iter1Amendments + Iter2Amendments + Iter3Amendments blocks remain in dev-plan.xml as audit trail. Their content has been promoted to canonical sections:
+        - Phase-B-pre1, Phase-B-pre2, Phase-B1, Phase-B1.5, Phase-B3a, Phase-B4 in &lt;ImplementationOrder&gt;
+        - M-013a, M-013b, M-021, M-022 in &lt;Modules&gt;
+        - M-901..M-906 in &lt;Modules&gt; (added by parallel-agent)
+        Future grace-refresh may delete the amendment blocks once full canonicalization (per-module patch fold-in) is complete.
+        For now, amendments are KEPT as the source of truth for reasoning behind each canonical change.
+      </description>
+    </Note>
+
+  </Iteration4MasterPlanReconcile>
 </DevelopmentPlan>

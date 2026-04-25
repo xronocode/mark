@@ -21,6 +21,22 @@ Knowledge graph entry excerpt goes here.
       <verification-excerpt><![CDATA[
 Verification-plan excerpt goes here.
       ]]></verification-excerpt>
+      <context-policy>
+        <mode>targeted|wave|full</mode>
+        <precedence>correctness &gt; required verification &gt; graph consistency &gt; implementation velocity &gt; context economy</precedence>
+        <escalation-triggers>security, migration, public contract, architecture drift, unclear dependency, graph drift, failed verification</escalation-triggers>
+      </context-policy>
+      <loaded-artifacts>
+        <artifact-1>docs/development-plan.xml module excerpt</artifact-1>
+        <artifact-2>docs/knowledge-graph.xml module excerpt</artifact-2>
+        <artifact-3>docs/verification-plan.xml V-M excerpt</artifact-3>
+      </loaded-artifacts>
+      <skipped-artifacts>
+        <artifact-1 reason="Unrelated to approved write scope">docs/example-unrelated.xml</artifact-1>
+      </skipped-artifacts>
+      <context-risk>low|medium|high|critical</context-risk>
+      <additional-context-needed>none, or concrete artifact/module ID that blocks execution</additional-context-needed>
+      <verification-not-skipped>true</verification-not-skipped>
       <expected-graph-delta-fields>
         <field-1>imports</field-1>
         <field-2>exports</field-2>
@@ -35,6 +51,7 @@ Verification-plan excerpt goes here.
       </expected-verification-delta-fields>
       <notes>
         <note-1>Workers should only read more context when the packet is insufficient.</note-1>
+        <note-2>Context economy never overrides required verification or graph consistency.</note-2>
       </notes>
     </ExecutionPacket>
   </ExecutionPacketTemplate>
@@ -107,4 +124,33 @@ Verification-plan excerpt goes here.
       <suggested-next-action>Read the contract, inspect the divergent block, and apply the smallest safe fix.</suggested-next-action>
     </FailurePacket>
   </FailurePacketTemplate>
+
+  <HandoffPacketTemplate>
+    <!-- Canonical compact session handoff for compaction, agent rotation, or paused execution. -->
+    <HandoffPacket>
+      <current-task>Short exact task name and approved scope.</current-task>
+      <current-phase>Phase or module ID, for example Phase-H / M-902.</current-phase>
+      <changed-files>
+        <file-1>docs/operational-packets.xml</file-1>
+      </changed-files>
+      <dirty-files-not-owned-by-task>
+        <file-1 reason="Pre-existing user/agent change; do not revert">docs/example.xml</file-1>
+      </dirty-files-not-owned-by-task>
+      <decisions>
+        <decision-1>Context mode selected and why.</decision-1>
+      </decisions>
+      <verification-status>
+        <status>not-run|passed|failed|blocked</status>
+        <evidence>Commands or checks already run.</evidence>
+      </verification-status>
+      <blockers>
+        <blocker-1>Concrete blocker or none.</blocker-1>
+      </blockers>
+      <next-exact-action>Next command, file edit, or user approval needed.</next-exact-action>
+      <context-policy>
+        <mode>targeted|wave|full</mode>
+        <additional-context-needed>none, or concrete artifact/module ID.</additional-context-needed>
+      </context-policy>
+    </HandoffPacket>
+  </HandoffPacketTemplate>
 </OperationalPackets>

@@ -241,6 +241,72 @@
       </annotations>
     </M-013>
 
+    <M-901 NAME="grace-context-hygiene-policy" TYPE="PROCESS_POLICY" STATUS="implemented">
+      <purpose>GRACE-compatible AI Standards token/session hygiene overlay with context modes, precedence rules, and escalation triggers.</purpose>
+      <path>docs/grace-ai-standards-hygiene-methodology.md</path>
+      <depends>AI Standards 1.6.0, GRACE Core Principles</depends>
+      <verification-ref>V-M-901</verification-ref>
+      <annotations>
+        <fn-select_context_mode PURPOSE="Choose targeted, wave, or full context" />
+        <fn-enforce_precedence PURPOSE="Protect correctness, verification, and graph consistency above context economy" />
+      </annotations>
+    </M-901>
+
+    <M-902 NAME="grace-packet-context-budget" TYPE="PROCESS_SCHEMA" STATUS="implemented">
+      <purpose>Operational packet context-budget fields that make loaded/skipped context and risk explicit.</purpose>
+      <path>docs/operational-packets.xml</path>
+      <depends>M-901</depends>
+      <verification-ref>V-M-902</verification-ref>
+      <annotations>
+        <fn-build_execution_packet PURPOSE="Attach context-policy, loaded/skipped artifacts, and verification-not-skipped fields" />
+        <fn-validate_packet_hygiene PURPOSE="Reject hidden context risk or silent verification skips" />
+      </annotations>
+    </M-902>
+
+    <M-903 NAME="grace-session-handoff" TYPE="PROCESS_POLICY" STATUS="implemented">
+      <purpose>Durable handoff policy for compaction, agent rotation, and paused execution.</purpose>
+      <path>docs/grace-ai-standards-hygiene-methodology.md</path>
+      <depends>M-901, M-902</depends>
+      <verification-ref>V-M-903</verification-ref>
+      <annotations>
+        <fn-write_handoff PURPOSE="Record task, decisions, changed files, blockers, verification status, and next action" />
+        <fn-resume_from_handoff PURPOSE="Continue from durable context before opening broad artifacts" />
+      </annotations>
+    </M-903>
+
+    <M-904 NAME="grace-skill-scope-rules" TYPE="PROCESS_POLICY" STATUS="implemented">
+      <purpose>Skill-specific context defaults and escalation rules for GRACE planning, execution, review, verification, refresh, and multiagent execution.</purpose>
+      <path>docs/grace-ai-standards-hygiene-methodology.md</path>
+      <depends>M-901, M-902, M-903</depends>
+      <verification-ref>V-M-904</verification-ref>
+      <annotations>
+        <fn-resolve_skill_scope PURPOSE="Return default and escalation context mode for a GRACE skill" />
+        <fn-check_scope_override PURPOSE="Require explicit reason when lower context is used under risk" />
+      </annotations>
+    </M-904>
+
+    <M-905 NAME="grace-context-verification" TYPE="PROCESS_VERIFICATION" STATUS="implemented">
+      <purpose>Verification gates proving context hygiene did not suppress required tests, log markers, or review scope.</purpose>
+      <path>docs/verification-plan.xml</path>
+      <depends>M-901, M-902, M-904</depends>
+      <verification-ref>V-M-905</verification-ref>
+      <annotations>
+        <fn-verify_context_gate PURPOSE="Assert required verification is present or an explicit blocker is recorded" />
+        <fn-audit_skip_rationale PURPOSE="Reject vague skipped-artifacts explanations" />
+      </annotations>
+    </M-905>
+
+    <M-906 NAME="grace-knowledge-graph-hygiene" TYPE="PROCESS_GRAPH" STATUS="implemented">
+      <purpose>Knowledge graph representation for hygiene modules while preserving a runtime-scope-boundary from product modules.</purpose>
+      <path>docs/knowledge-graph.xml</path>
+      <depends>M-901, M-902, M-903, M-904, M-905</depends>
+      <verification-ref>V-M-906</verification-ref>
+      <annotations>
+        <fn-sync_hygiene_graph PURPOSE="Sync hygiene nodes and CrossLinks" />
+        <fn-check_runtime_boundary PURPOSE="Ensure M-901..M-906 do not become runtime dependencies of M-001..M-020" />
+      </annotations>
+    </M-906>
+
     <!-- CrossLinks -->
     <CrossLink from="M-001" to="M-002" relation="invokes" />
     <CrossLink from="M-001" to="M-003" relation="starts" />
@@ -289,5 +355,17 @@
     <CrossLink from="M-017" to="M-010" relation="validates-paths-via" />
     <CrossLink from="M-019" to="M-005" relation="extends-storage-of" />
     <CrossLink from="M-018" to="M-002" relation="writes-file-via" />
+
+    <!-- AI Standards hygiene overlay wiring (meta-process only; not runtime dependencies). -->
+    <CrossLink from="M-901" to="M-902" relation="packet-schema-extends" />
+    <CrossLink from="M-901" to="M-903" relation="handoff-policy-governs" />
+    <CrossLink from="M-901" to="M-904" relation="skill-scope-governs" />
+    <CrossLink from="M-901" to="M-905" relation="verification-governs" />
+    <CrossLink from="M-906" to="M-901" relation="graph-represents" />
+    <CrossLink from="M-906" to="M-902" relation="graph-represents" />
+    <CrossLink from="M-906" to="M-903" relation="graph-represents" />
+    <CrossLink from="M-906" to="M-904" relation="graph-represents" />
+    <CrossLink from="M-906" to="M-905" relation="graph-represents" />
+    <CrossLink from="M-901" to="M-001" relation="runtime-scope-boundary" />
   </Project>
 </KnowledgeGraph>

@@ -141,7 +141,44 @@
       <AUTONOMY>autonomous</AUTONOMY>
     </matrix-row>
 
+    <matrix-row MODULE="M-901" V-M="V-M-901" PRIORITY="high" SCENARIOS="3" EC="5" ALM="3" NA="2" RTA="1" PHF="0" WAF="1">
+      <VF-COVERAGE>V-GH-001, V-GH-002</VF-COVERAGE>
+      <GATE>Gate-Phase-H</GATE>
+      <AUTONOMY>autonomous — documentation/process policy only; must not alter runtime scope</AUTONOMY>
+    </matrix-row>
+
+    <matrix-row MODULE="M-902" V-M="V-M-902" PRIORITY="high" SCENARIOS="3" EC="5" ALM="1" NA="2" RTA="1" PHF="0" WAF="1">
+      <VF-COVERAGE>V-GH-001, V-GH-003</VF-COVERAGE>
+      <GATE>Gate-Phase-H</GATE>
+      <AUTONOMY>autonomous — packet schema extension only</AUTONOMY>
+    </matrix-row>
+
+    <matrix-row MODULE="M-903" V-M="V-M-903" PRIORITY="high" SCENARIOS="3" EC="5" ALM="1" NA="2" RTA="1" PHF="0" WAF="1">
+      <VF-COVERAGE>V-GH-004</VF-COVERAGE>
+      <GATE>Gate-Phase-H</GATE>
+      <AUTONOMY>autonomous — handoff template and methodology</AUTONOMY>
+    </matrix-row>
+
+    <matrix-row MODULE="M-904" V-M="V-M-904" PRIORITY="high" SCENARIOS="3" EC="5" ALM="1" NA="2" RTA="1" PHF="0" WAF="1">
+      <VF-COVERAGE>V-GH-002, V-GH-005</VF-COVERAGE>
+      <GATE>Gate-Phase-H</GATE>
+      <AUTONOMY>partial — review/verification scope changes require human-readable rationale</AUTONOMY>
+    </matrix-row>
+
+    <matrix-row MODULE="M-905" V-M="V-M-905" PRIORITY="critical" SCENARIOS="3" EC="5" ALM="1" NA="2" RTA="1" PHF="0" WAF="1">
+      <VF-COVERAGE>V-GH-001, V-GH-003, V-GH-005</VF-COVERAGE>
+      <GATE>Gate-Phase-H</GATE>
+      <AUTONOMY>not-autonomous — verification gates define whether future execution may proceed</AUTONOMY>
+    </matrix-row>
+
+    <matrix-row MODULE="M-906" V-M="V-M-906" PRIORITY="medium" SCENARIOS="3" EC="5" ALM="1" NA="2" RTA="1" PHF="0" WAF="1">
+      <VF-COVERAGE>V-GH-005</VF-COVERAGE>
+      <GATE>Gate-Phase-H</GATE>
+      <AUTONOMY>autonomous — KG meta-module sync only</AUTONOMY>
+    </matrix-row>
+
     <phase-gate-matrix>
+      <gate PHASE="Phase-H" MODULES="M-901, M-902, M-903, M-904, M-905, M-906" GATE-ID="Gate-Phase-H" VERIFICATION="V-M-901, V-M-902, V-M-903, V-M-904, V-M-905, V-M-906" STATUS="done" />
       <gate PHASE="Phase-0" MODULES="docs/*.xml bootstrap" GATE-ID="Gate-Phase-0" STATUS="in-progress" />
       <gate PHASE="Phase-A1" MODULES="M-011, M-012" GATE-ID="Gate-Phase-A1" VERIFICATION="V-M-011, V-M-012" />
       <gate PHASE="Phase-A1.5" MODULES="M-011" GATE-ID="Gate-Phase-A1-5" VERIFICATION="V-M-011, V-M-010" />
@@ -155,17 +192,17 @@
     </phase-gate-matrix>
 
     <coverage-summary>
-      <metric name="total-modules">20</metric>
-      <metric name="total-V-M-entries">20</metric>
+      <metric name="total-modules">26</metric>
+      <metric name="total-V-M-entries">26</metric>
       <metric name="total-VF-flows">10</metric>
-      <metric name="total-scenarios">84</metric>
-      <metric name="total-edge-cases">214</metric>
-      <metric name="total-trace-assertions">17</metric>
-      <metric name="total-negative-assertions">66</metric>
-      <metric name="total-log-markers-catalogued">52</metric>
-      <metric name="phase-gates">10</metric>
-      <metric name="autonomous-safe-modules">13 of 20</metric>
-      <metric name="modules-with-full-coverage">20 of 20 (100%)</metric>
+      <metric name="total-scenarios">102</metric>
+      <metric name="total-edge-cases">244</metric>
+      <metric name="total-trace-assertions">23</metric>
+      <metric name="total-negative-assertions">78</metric>
+      <metric name="total-log-markers-catalogued">60</metric>
+      <metric name="phase-gates">11</metric>
+      <metric name="autonomous-safe-modules">17 of 26</metric>
+      <metric name="modules-with-full-coverage">26 of 26 (100%)</metric>
     </coverage-summary>
   </VerificationMatrix>
 
@@ -260,7 +297,117 @@
         <evidence>`grep -rE "require\('(fs|path|child_process|crypto|os|buffer)'\)" src/renderer/` returns empty; `grep -rE "@electron/remote" src/renderer/` returns empty; `grep -rE "ipcRenderer\.sendSync" src/renderer/` returns empty.</evidence>
       </required-signals>
     </VF-010>
+
+    <!-- VF-011..VF-016 added 2026-04-25 from R4-2 master-plan reconcile (Phase-B specific flows) -->
+
+    <VF-011 NAME="IMECompositionPath" USE_CASES="UC-001, UC-007 (CJK locales)" DATA_FLOW="DF-001+DF-002 IME-aware" PRIORITY="critical" added="iter4-master-plan">
+      <scenario>User on macOS Pinyin / Korean Hangul / Japanese romaji IME types compositionstart→update*→end into muya. Mid-composition Esc cancels. v1 had NO compositionstart lock in 6 keystroke handlers (R-27); Phase-A1.5 step-9 added composition flag in ContentState; Phase-B muya runs verbatim.</scenario>
+      <expected-outcome>Pinyin 'nihao'→'你好' inserts exactly 2 codepoints; Korean 'ㄱㅏㅅ'→'갓' = 1 codepoint; Japanese 'ka'→'か' = 1; Esc cancel = 0 codepoints. All 6 keystroke handlers (enterCtrl, backspaceCtrl, tabCtrl, arrowCtrl, deleteCtrl, inputCtrl) early-return when isComposing=true. No duplicate insertion. Cursor at end of composed text.</expected-outcome>
+      <required-signals>
+        <log-marker>[Muya][BLOCK_IME_COMPOSITION] state=start|update|end</log-marker>
+        <trace-sequence>compositionstart -&gt; compositionupdate* -&gt; compositionend -&gt; (only then) keystroke handlers fire</trace-sequence>
+        <static-grep>All 6 keystroke handlers in src/muya/lib/contentState/ contain `if (this.isComposing) return;` guard</static-grep>
+      </required-signals>
+    </VF-011>
+
+    <VF-012 NAME="TableRoundtripPath" USE_CASES="UC-001 (preserves known upstream bugs)" DATA_FLOW="DF-001+DF-002 table-specific" PRIORITY="high" added="iter4-master-plan">
+      <scenario>muya M-012 preserves 5 known upstream bugs as REGRESSIONS (do NOT silently fix during port): (a) exportMarkdown.js:300 pipe-escape misses cell-start; (b) exportMarkdown.js:303-306 irregular table produces "undefined" literal; (c) paragraphCtrl.js:116 nested list items without listType; (d) enterCtrl.js:18 chopBlockByCursor O(n²); (e) deleteCtrl.js:27 empty-table delete crash (#67). Snapshot lock-in.</scenario>
+      <expected-outcome>Each fixture file (test/fixtures/regressions/{pipe-escape-cell-start.md, irregular-table.md, nested-list-no-listtype.md, chop-block-cursor.md, empty-table-delete-67.md}) round-trips through getMarkdown→setMarkdown EXHIBITING the documented buggy output. Output differs from upstream = port silently fixed a bug → CI fail.</expected-outcome>
+      <required-signals>
+        <log-marker>[Muya][regression] id=R-28 expected_buggy=true observed_buggy=true</log-marker>
+        <fixture>test/fixtures/regressions/*.md (5 files committed)</fixture>
+      </required-signals>
+    </VF-012>
+
+    <VF-013 NAME="PerfBudgetPath" USE_CASES="UC-001 (perf), UC-015 (footprint)" DATA_FLOW="cross-phase" PRIORITY="high" added="iter4-master-plan">
+      <scenario>Performance budget enforced across 3 measurement points: (B1) synthetic 5kline muya in WKWebView vs Electron baseline; (B2) realistic 5kline through real M-002+M-014 IPC path; (B4) soak 50k-line + 100k-line + Mermaid-heavy + table-heavy + 10MB single-line.</scenario>
+      <expected-outcome>B1: WKWebView ≤ 1.5× Electron baseline; p95 keystroke ≤ 50ms; cold-start ≤ 1500ms. B2: same budget under real IPC. B4: 50k tokenize+parse+render &lt; 3s WKWebView M1 / &lt; 3.75s WebView2 / &lt; 4.5s webkit2gtk; keystroke-to-paint P95 on 100k-line &lt; 16ms (1 frame); long-task trace shows no &gt; 50ms tasks.</expected-outcome>
+      <required-signals>
+        <log-marker>[Muya][perf] tokenize=&lt;ms&gt; parse=&lt;ms&gt; render=&lt;ms&gt; total=&lt;ms&gt;</log-marker>
+        <log-marker>PerformanceObserver longtask + BLOCK_PARTIAL_RENDER</log-marker>
+        <fixture>test/fixtures/large-doc-{5kline,50kline,100kline,mermaid-heavy,table-heavy,10mb-single-line}.md</fixture>
+      </required-signals>
+    </VF-013>
+
+    <VF-014 NAME="FSAtomicityPath" USE_CASES="UC-001 (save), UC-002 (durability)" DATA_FLOW="DF-002+DF-019" PRIORITY="critical" added="iter4-master-plan">
+      <scenario>Atomic-write tests cover crash points at every fsync boundary: temp-create, temp-write, temp-fsync, metadata-copy, rename, parent-dir-fsync, cleanup failure, ENOSPC, SIGKILL windows, symlink swap (TOCTOU), non-regular inode, APFS/ext4/NTFS evidence, permissions, executable bit, macOS xattrs/resource forks, hardlink behavior. ValidatedPath FD-held pattern closes TOCTOU window.</scenario>
+      <expected-outcome>For each crash point: original file SHA256 unchanged; orphan temp cleaned on next write or startup sweep. ValidatedPath holds OwnedFd opened with O_NOFOLLOW+O_CLOEXEC; macOS post-open fcntl(F_GETPATH) re-verifies inside sandbox. Per-platform durability guarantees on APFS, ext4, NTFS confirmed via fault-injection tests.</expected-outcome>
+      <required-signals>
+        <log-marker>[FsCore][BLOCK_FS_CORE_ATOMIC_RENAME] { fsync_parent: true }</log-marker>
+        <log-marker>[FsCore][BLOCK_FS_CORE_OPEN] { fd_held: true, nfc_normalized: true, fcntl_f_getpath_verified: true }</log-marker>
+        <trace-sequence>open(temp,O_CREAT|O_WRONLY) → write → fsync(temp) → rename(temp,final) → open(parent_dir) → fsync(parent_dir) → close</trace-sequence>
+      </required-signals>
+    </VF-014>
+
+    <VF-015 NAME="TraceContractPath" USE_CASES="cross-cutting observability" DATA_FLOW="all DFs" PRIORITY="critical" added="iter4-master-plan">
+      <scenario>End-to-end trace_id propagated across renderer↔main↔modules per OG-iter2-001. Single user gesture (open file → edit → save → close) emits a chain of BLOCK_* markers all sharing the same trace_id (or linked trace_ids with parent=session_chain_id).</scenario>
+      <expected-outcome>Every BLOCK_*/MT_* log line contains `trace_id` field (UUIDv7). tauri::Request extension propagates X-Mark-Trace-Id from renderer to Rust handler and back. Renderer console.log echoes same id. CI grep groups by trace_id; verifies each X-1..X-12 cross-module scenario forms one complete chain. req_id correlation for IPC fan-out via M-013a/b decorator. session_chain_id stitches across update/migration boundaries.</expected-outcome>
+      <required-signals>
+        <log-marker-schema>trace_id (UUIDv7, mandatory), req_id (per-IPC, optional), session_chain_id (per-process, mandatory)</log-marker-schema>
+        <static-check>grep -rE "tracing::[a-z]+!\(" src-tauri/src/ shows every macro invocation has trace_id field via tracing::Span ambient context</static-check>
+        <ci-evidence>For each of 22 X-1..X-12 cross-module scenarios: log capture grouped by trace_id contains all expected BLOCK_* markers in correct order</ci-evidence>
+      </required-signals>
+    </VF-015>
+
+    <VF-016 NAME="PreloadRemoteDialogLifecyclePath" USE_CASES="UC-001, UC-009 (window mgmt)" DATA_FLOW="DF-001+DF-007+DF-009+DF-020" PRIORITY="high" added="iter4-master-plan">
+      <scenario>Phase-B1 lifecycle hardening: preload globals, remote shims, typed dialog outcomes (cancel/destroyed-parent/late-reply discard/focus-return), close lifecycle state machine, stale menu-generation discard, replay/drop policy. v1 used @electron/remote in 6 sites; v2 routes through M-013b ipc.window/clipboard/menu/dialog facades. WebView shell security blocks webview attachment, navigation escape, window.open, unknown protocols, file URI access outside origin.</scenario>
+      <expected-outcome>Static-grep '@electron/remote' over renderer src/ = 0 matches in production bundle. Static-grep `sendSync\(` = 0. All 6 v1 call-sites mapped to ipc.* replacement (companion fixture remote-callsites.v1.json). Dialog table tests cover cancel + destroyed parent + late reply discard + focus return exactly once. Close lifecycle: CLOSE_REQUESTED → PROMPT_OPEN → SAVE_FAILED → CLOSE_CANCELLED OR FORCE_CLOSE → WATCHERS_CLEANED → WINDOW_DESTROYED with negative assertion against double prompt and double cleanup. Stale menu generation: invoke from gen N after rebuild N+1 discarded with BLOCK_STALE_MENU_GENERATION.</expected-outcome>
+      <required-signals>
+        <log-marker>[IpcRuntime][window][BLOCK_STATE op=&lt;minimize|...&gt;]</log-marker>
+        <log-marker>[IpcRuntime][clipboard][BLOCK_READ format=&lt;text|html|image|files&gt;]</log-marker>
+        <log-marker>[IpcRuntime][menu][BLOCK_POPUP items=&lt;n&gt;] / [BLOCK_DISMISS reason=&lt;select|escape|outside&gt;]</log-marker>
+        <log-marker>[Menu][BLOCK_STALE_MENU_GENERATION] generation_n=&lt;old&gt; current=&lt;new&gt; discarded=true</log-marker>
+        <log-marker>[Window][BLOCK_CLOSE_LIFECYCLE] state=&lt;CLOSE_REQUESTED|PROMPT_OPEN|...&gt;</log-marker>
+        <fixture>test/fixtures/internal-main-events/electron.v1.json + remote-callsites.v1.json + sendSync-callsites.v1.json + menu-taxonomy.v1.json + preload-surface.v1.json all committed</fixture>
+        <ci-check>WebView shell security parity test: webview attach attempt rejected, navigation to http://attacker rejected, window.open(...) rejected, unknown protocol rejected, file:// outside origin rejected — each emits explicit BLOCK_REJECT_* marker</ci-check>
+      </required-signals>
+    </VF-016>
   </CriticalFlows>
+
+  <GraceHygieneFlows>
+    <V-GH-001 NAME="ContextEconomyDoesNotSkipVerification" PRIORITY="critical">
+      <scenario>A GRACE execution packet uses targeted context for a localized task.</scenario>
+      <expected-outcome>Packet still includes module contract, KG excerpt, verification excerpt, dependency summaries, and verification-not-skipped=true.</expected-outcome>
+      <required-signals>
+        <log-marker>[GracePacket][validate][BLOCK_PACKET_CONTEXT_FIELDS]</log-marker>
+        <log-marker>[GraceVerification][context][BLOCK_CONTEXT_GATE]</log-marker>
+      </required-signals>
+    </V-GH-001>
+
+    <V-GH-002 NAME="ContextEscalatesOnRisk" PRIORITY="critical">
+      <scenario>Task touches security, migration, shared public API, architecture, or uncertain dependency edges.</scenario>
+      <expected-outcome>Scope escalates from targeted to wave/full and records the trigger.</expected-outcome>
+      <required-signals>
+        <log-marker>[GraceContext][selectScope][BLOCK_CONTEXT_ESCALATION]</log-marker>
+        <log-marker>[GraceReview][scope][BLOCK_ESCALATE_TO_FULL]</log-marker>
+      </required-signals>
+    </V-GH-002>
+
+    <V-GH-003 NAME="SkippedArtifactsAreExplicit" PRIORITY="high">
+      <scenario>A packet intentionally skips broad artifacts to save context.</scenario>
+      <expected-outcome>Every skipped artifact has a concrete path/module ID and reason; vague skip rationales fail review.</expected-outcome>
+      <required-signals>
+        <evidence>ExecutionPacket contains skipped-artifacts plus context-risk fields.</evidence>
+      </required-signals>
+    </V-GH-003>
+
+    <V-GH-004 NAME="DurableSessionHandoff" PRIORITY="high">
+      <scenario>Agent pauses, compacts, or hands off during a dirty worktree task.</scenario>
+      <expected-outcome>Handoff records current task, changed files, files not owned by task, blockers, verification status, and next exact action.</expected-outcome>
+      <required-signals>
+        <log-marker>[GraceContext][handoff][BLOCK_COMPACT_SUMMARY]</log-marker>
+      </required-signals>
+    </V-GH-004>
+
+    <V-GH-005 NAME="HygieneGraphAndPolicyStayCanonical" PRIORITY="high">
+      <scenario>AI Standards hygiene policy changes future GRACE execution behavior.</scenario>
+      <expected-outcome>development-plan, verification-plan, knowledge-graph, operational-packets, and methodology document all reference the same module IDs and gates.</expected-outcome>
+      <required-signals>
+        <log-marker>[GraceGraph][sync][BLOCK_HYGIENE_GRAPH_SYNC]</log-marker>
+        <evidence>rg M-901..M-906 across GRACE canonical artifacts returns consistent references.</evidence>
+      </required-signals>
+    </V-GH-005>
+  </GraceHygieneFlows>
 
   <ModuleVerification>
     <V-M-001 MODULE="M-001 mt-tauri-shell" PRIORITY="critical">
@@ -1959,9 +2106,211 @@
         <expected-fields>scenario, contract-ref, expected-evidence, observed-evidence, first-divergent-block, suggested-next-action</expected-fields>
       </failure-packet-template>
     </V-A6-7>
+
+    <V-M-901 MODULE="M-901" PRIORITY="high" SCOPE="grace-context-hygiene-policy">
+      <intent>Verify that AI Standards token/session hygiene is adopted only as a GRACE-compatible overlay and cannot bypass contracts, knowledge graph updates, or required verification.</intent>
+      <touched-files>
+        <file>docs/grace-ai-standards-hygiene-methodology.md</file>
+        <file>docs/development-plan.xml</file>
+      </touched-files>
+      <module-checks>
+        <check-1>test -f docs/grace-ai-standards-hygiene-methodology.md</check-1>
+        <check-2>rg "correctness &gt; required verification|correctness > required verification" docs/grace-ai-standards-hygiene-methodology.md docs/development-plan.xml</check-2>
+        <check-3>rg "targeted|wave|full" docs/grace-ai-standards-hygiene-methodology.md docs/development-plan.xml</check-3>
+        <check-4>rg "BLOCK_TARGETED_CONTEXT|BLOCK_CONTEXT_ESCALATION|BLOCK_CORRECTNESS_OVERRIDE" docs/development-plan.xml docs/grace-ai-standards-hygiene-methodology.md</check-4>
+      </module-checks>
+      <scenarios>
+        <scenario-1 kind="contract">Small localized doc/code task uses targeted context only after contract, KG, and verification references are identified.</scenario-1>
+        <scenario-2 kind="escalation">Security, migration, shared API, or architectural drift forces wave/full context even when token budget is high.</scenario-2>
+        <scenario-3 kind="failure">If a worker proposes skipping verification for economy, GH_VERIFICATION_SKIPPED blocks execution.</scenario-3>
+      </scenarios>
+      <required-log-markers>
+        <marker-1>[GraceContext][selectScope][BLOCK_TARGETED_CONTEXT]</marker-1>
+        <marker-2>[GraceContext][selectScope][BLOCK_CONTEXT_ESCALATION]</marker-2>
+        <marker-3>[GraceContext][economy][BLOCK_CORRECTNESS_OVERRIDE]</marker-3>
+      </required-log-markers>
+      <edge-cases>
+        <ec kind="contract" severity="critical">A task that touches docs/verification-plan.xml must not be treated as read-only context optimization.</ec>
+        <ec kind="security" severity="critical">Security modules require full or wave context regardless of token economy.</ec>
+        <ec kind="migration" severity="high">Data migration modules require old/new schema and rollback evidence loaded together.</ec>
+        <ec kind="review" severity="high">Scoped review may start targeted but must escalate if dependency boundary is unclear.</ec>
+        <ec kind="performance" severity="medium">Large artifact loading may be summarized, but source-of-truth excerpts must remain precise.</ec>
+      </edge-cases>
+      <negative-assertions>
+        <no>MUST NOT replace GRACE XML artifacts with Markdown-only policy.</no>
+        <no>MUST NOT allow token economy to overrule required verification.</no>
+      </negative-assertions>
+    </V-M-901>
+
+    <V-M-902 MODULE="M-902" PRIORITY="high" SCOPE="operational-packet-context-budget">
+      <intent>Verify operational packets expose context hygiene decisions explicitly, including what was loaded, what was skipped, why, and whether verification remained mandatory.</intent>
+      <touched-files>
+        <file>docs/operational-packets.xml</file>
+      </touched-files>
+      <module-checks>
+        <check-1>rg "context-policy|loaded-artifacts|skipped-artifacts|context-risk|additional-context-needed|verification-not-skipped" docs/operational-packets.xml</check-1>
+        <check-2>rg "BLOCK_PACKET_CONTEXT_FIELDS" docs/development-plan.xml docs/operational-packets.xml</check-2>
+      </module-checks>
+      <scenarios>
+        <scenario-1 kind="success">ExecutionPacket includes enough context to execute one module without loading unrelated modules.</scenario-1>
+        <scenario-2 kind="failure">Packet with skipped verification and no blocker is rejected.</scenario-2>
+        <scenario-3 kind="review">Reviewer can reconstruct scope decisions from packet fields alone.</scenario-3>
+      </scenarios>
+      <required-log-markers>
+        <marker-1>[GracePacket][validate][BLOCK_PACKET_CONTEXT_FIELDS]</marker-1>
+      </required-log-markers>
+      <edge-cases>
+        <ec kind="contract" severity="critical">Skipped artifact references must be concrete file paths or module IDs, not vague prose.</ec>
+        <ec kind="review" severity="high">If dependency summaries are stale, packet validation escalates to graph refresh.</ec>
+        <ec kind="failure" severity="high">additional-context-needed must block execution until resolved.</ec>
+        <ec kind="concurrency" severity="medium">Parallel workers may use different targeted packets but must share the same graph baseline.</ec>
+        <ec kind="security" severity="critical">Security packets must record redaction and secret-handling constraints.</ec>
+      </edge-cases>
+      <negative-assertions>
+        <no>MUST NOT omit verification-excerpt when module checks exist.</no>
+        <no>MUST NOT hide unknowns inside notes instead of context-risk.</no>
+      </negative-assertions>
+    </V-M-902>
+
+    <V-M-903 MODULE="M-903" PRIORITY="high" SCOPE="session-handoff">
+      <intent>Verify session handoffs preserve exact continuation state across compaction, agent rotation, and paused execution.</intent>
+      <touched-files>
+        <file>docs/grace-ai-standards-hygiene-methodology.md</file>
+        <file>docs/operational-packets.xml</file>
+      </touched-files>
+      <module-checks>
+        <check-1>rg "HandoffPacket|handoff|BLOCK_COMPACT_SUMMARY" docs/grace-ai-standards-hygiene-methodology.md docs/operational-packets.xml docs/development-plan.xml</check-1>
+      </module-checks>
+      <scenarios>
+        <scenario-1 kind="success">Compacted summary names current task, changed files, verification status, blockers, and next exact action.</scenario-1>
+        <scenario-2 kind="failure">Resume detects stale decision or missing blocker and pauses before editing.</scenario-2>
+        <scenario-3 kind="concurrency">Swarm continuation keeps independent reviewer/verifier findings separate until orchestration merge.</scenario-3>
+      </scenarios>
+      <required-log-markers>
+        <marker-1>[GraceContext][handoff][BLOCK_COMPACT_SUMMARY]</marker-1>
+      </required-log-markers>
+      <edge-cases>
+        <ec kind="failure" severity="critical">Dirty worktree files not owned by the current task are recorded and not reverted.</ec>
+        <ec kind="review" severity="high">Handoff after failed verification includes first divergent block and observed evidence.</ec>
+        <ec kind="contract" severity="high">Handoff for plan-only work explicitly says no source code changed.</ec>
+        <ec kind="concurrency" severity="medium">Multiple subagent outputs are deduplicated only by orchestrator, not by individual workers.</ec>
+        <ec kind="performance" severity="medium">Handoff is compact, but every claim points to a concrete file or command.</ec>
+      </edge-cases>
+      <negative-assertions>
+        <no>MUST NOT resume from memory when handoff contradicts current git status.</no>
+        <no>MUST NOT mark verification passed without command/evidence names.</no>
+      </negative-assertions>
+    </V-M-903>
+
+    <V-M-904 MODULE="M-904" PRIORITY="high" SCOPE="skill-scope-rules">
+      <intent>Verify GRACE skills have explicit context defaults and escalation rules that preserve strict review and verification quality.</intent>
+      <touched-files>
+        <file>docs/grace-ai-standards-hygiene-methodology.md</file>
+      </touched-files>
+      <module-checks>
+        <check-1>rg "\\$grace-plan|\\$grace-execute|\\$grace-reviewer|\\$grace-verification|\\$grace-refresh|\\$grace-multiagent-execute" docs/grace-ai-standards-hygiene-methodology.md</check-1>
+        <check-2>rg "BLOCK_ESCALATE_TO_FULL" docs/development-plan.xml docs/grace-ai-standards-hygiene-methodology.md</check-2>
+      </module-checks>
+      <scenarios>
+        <scenario-1 kind="success">$grace-execute uses targeted packets for one module after canonical artifacts are loaded by controller.</scenario-1>
+        <scenario-2 kind="review">$grace-reviewer starts scoped but escalates on architecture, security, migration, or graph ambiguity.</scenario-2>
+        <scenario-3 kind="verification">$grace-verification may summarize unrelated suites but cannot omit critical path gates.</scenario-3>
+      </scenarios>
+      <required-log-markers>
+        <marker-1>[GraceReview][scope][BLOCK_ESCALATE_TO_FULL]</marker-1>
+      </required-log-markers>
+      <edge-cases>
+        <ec kind="security" severity="critical">Reviewer scope cannot stay targeted for secret-handling, sandbox, or updater signature changes.</ec>
+        <ec kind="migration" severity="critical">Verification must load both legacy and target schema references for migration tasks.</ec>
+        <ec kind="graph" severity="high">Refresh must inspect KG, development plan, and verification plan together when node edges changed.</ec>
+        <ec kind="swarm" severity="high">Independent swarm outputs must not share a pre-deduplicated finding list.</ec>
+        <ec kind="contract" severity="medium">Plan phase may summarize code but must read requirements/technology/verification intent.</ec>
+      </edge-cases>
+      <negative-assertions>
+        <no>MUST NOT downgrade mandatory swarm review/verification because of token budget.</no>
+        <no>MUST NOT treat skill instructions as replacing project AGENTS.md rules.</no>
+      </negative-assertions>
+    </V-M-904>
+
+    <V-M-905 MODULE="M-905" PRIORITY="critical" SCOPE="context-verification-gates">
+      <intent>Verify hygiene gates catch false passes, undeclared skips, and insufficient context before execution continues.</intent>
+      <touched-files>
+        <file>docs/verification-plan.xml</file>
+      </touched-files>
+      <module-checks>
+        <check-1>rg "V-GH-001|V-GH-002|V-GH-003|V-GH-004|V-GH-005" docs/verification-plan.xml docs/grace-ai-standards-hygiene-methodology.md</check-1>
+        <check-2>rg "GH_FALSE_PASS|GH_UNDECLARED_SKIP|BLOCK_CONTEXT_GATE" docs/development-plan.xml docs/verification-plan.xml docs/grace-ai-standards-hygiene-methodology.md</check-2>
+      </module-checks>
+      <scenarios>
+        <scenario-1 kind="failure">A packet with verification-not-skipped=false and no blocker fails Gate-Phase-H.</scenario-1>
+        <scenario-2 kind="failure">A targeted context decision on a shared contract edit without dependency summaries fails.</scenario-2>
+        <scenario-3 kind="success">A properly scoped packet with concrete skipped-artifacts rationale passes hygiene verification.</scenario-3>
+      </scenarios>
+      <required-log-markers>
+        <marker-1>[GraceVerification][context][BLOCK_CONTEXT_GATE]</marker-1>
+      </required-log-markers>
+      <edge-cases>
+        <ec kind="review" severity="critical">Review says "no issues" but did not inspect verification excerpt; gate fails.</ec>
+        <ec kind="contract" severity="critical">Source code changed without MODULE_CONTRACT or MODULE_MAP update; hygiene cannot excuse it.</ec>
+        <ec kind="graph" severity="high">New module added without KG node; gate fails even if tests pass.</ec>
+        <ec kind="performance" severity="medium">Large logs may be sampled, but required markers must be searched deterministically.</ec>
+        <ec kind="security" severity="critical">Redaction and secret logging checks cannot be skipped as expensive.</ec>
+      </edge-cases>
+      <negative-assertions>
+        <no>MUST NOT mark a verification skip as pass.</no>
+        <no>MUST NOT accept "not relevant" without module/flow evidence.</no>
+      </negative-assertions>
+    </V-M-905>
+
+    <V-M-906 MODULE="M-906" PRIORITY="medium" SCOPE="knowledge-graph-hygiene">
+      <intent>Verify context hygiene modules are discoverable in KG while remaining meta-process modules, not Mark Text runtime modules.</intent>
+      <touched-files>
+        <file>docs/knowledge-graph.xml</file>
+      </touched-files>
+      <module-checks>
+        <check-1>rg "M-901|M-902|M-903|M-904|M-905|M-906" docs/knowledge-graph.xml</check-1>
+        <check-2>rg "runtime-scope-boundary|process-governs|packet-schema-extends|verification-governs" docs/knowledge-graph.xml</check-2>
+      </module-checks>
+      <scenarios>
+        <scenario-1 kind="success">KG navigation from M-901 reaches packet, handoff, skill-scope, verification, and graph hygiene modules.</scenario-1>
+        <scenario-2 kind="contract">M-901..M-906 paths point to docs artifacts only, not src/ or src-tauri/ runtime code.</scenario-2>
+        <scenario-3 kind="failure">A hygiene rule that changes execution behavior without KG CrossLink is rejected.</scenario-3>
+      </scenarios>
+      <required-log-markers>
+        <marker-1>[GraceGraph][sync][BLOCK_HYGIENE_GRAPH_SYNC]</marker-1>
+      </required-log-markers>
+      <edge-cases>
+        <ec kind="graph" severity="high">CrossLinks must show policy, packet, handoff, skill, verification, and boundary relationships.</ec>
+        <ec kind="contract" severity="medium">Meta modules must not inflate runtime dependency order for Phase A/B implementation.</ec>
+        <ec kind="review" severity="medium">Reviewer can find the methodology from KG without scanning all docs.</ec>
+        <ec kind="failure" severity="medium">Missing V-M reference for a hygiene node fails graph verification.</ec>
+        <ec kind="maintenance" severity="medium">Future standards update must version the methodology and graph annotation.</ec>
+      </edge-cases>
+      <negative-assertions>
+        <no>MUST NOT add M-901..M-906 as runtime dependencies of M-001..M-020.</no>
+        <no>MUST NOT leave hygiene policy only in AGENTS.md or chat history.</no>
+      </negative-assertions>
+    </V-M-906>
   </ModuleVerification>
 
   <PhaseGates>
+    <Gate-Phase-H PHASE="Phase-H">
+      <goal>AI Standards token/session hygiene adopted as a GRACE-safe overlay with canonical plan, verification, KG, packet schema, and methodology artifacts.</goal>
+      <commands>
+        <command-1>test -f docs/grace-ai-standards-hygiene-methodology.md</command-1>
+        <command-2>xmllint --noout docs/development-plan.xml docs/verification-plan.xml docs/knowledge-graph.xml docs/operational-packets.xml</command-2>
+        <command-3>rg "M-901|M-902|M-903|M-904|M-905|M-906" docs/development-plan.xml docs/verification-plan.xml docs/knowledge-graph.xml</command-3>
+        <command-4>rg "context-policy|loaded-artifacts|skipped-artifacts|context-risk|additional-context-needed|verification-not-skipped" docs/operational-packets.xml</command-4>
+        <command-5>rg "V-GH-001|V-GH-002|V-GH-003|V-GH-004|V-GH-005" docs/verification-plan.xml docs/grace-ai-standards-hygiene-methodology.md</command-5>
+      </commands>
+      <required-evidence>
+        <evidence-1>M-901..M-906 exist in development plan and KG with V-M references.</evidence-1>
+        <evidence-2>V-M-901..V-M-906 and V-GH-001..V-GH-005 define gates that prevent verification skipping.</evidence-2>
+        <evidence-3>Operational packet templates include context hygiene fields.</evidence-3>
+        <evidence-4>Methodology document states precedence: correctness &gt; required verification &gt; graph consistency &gt; implementation velocity &gt; context economy.</evidence-4>
+      </required-evidence>
+    </Gate-Phase-H>
+
     <Gate-Phase-0 PHASE="Phase-0">
       <goal>GRACE bootstrap complete and fork repository xronocode/mark created with modernize branch.</goal>
       <commands>
@@ -2672,4 +3021,237 @@
       <see-also>docs/operational-packets.xml FailurePacketTemplate</see-also>
     </packet-template>
   </FailurePackets>
+
+  <!-- ===================================================================
+       ITERATION-1 EXTENDED SCENARIOS (2026-04-25)
+       Source: V1 (50), V2 (86), V3 (33) — 169 total. 72 marked missing.
+       grace-refresh will fold each into V-M-* on the final pass.
+       =================================================================== -->
+  <Iteration1ExtendedScenarios source-iteration="1" generated="2026-04-25" missing-count="72">
+
+    <ModuleAddendum target="V-M-002">
+      <addendum id="SC-V1-002-001" cat="adversarial">UTF-8 BOM round-trip preservation: read+write of EF BB BF-prefixed file SHA256-equal; renderer sees no BOM unless explicit.</addendum>
+      <addendum id="SC-V1-002-002" cat="adversarial">UTF-16 surrogate pair / lone surrogate write: lone surrogate rejected at IPC boundary with MT_FS_IO_ERROR reason=invalid-utf8.</addendum>
+      <addendum id="SC-V1-002-003" cat="failure-injection">Atomic write under SIGKILL between rename and dir-fsync: original SHA256 unchanged; orphan temp cleaned. Required APFS, ext4, NTFS.</addendum>
+      <addendum id="SC-V1-002-004" cat="failure-injection">fs_delete trash fallback when Trash unavailable: MT_FS_IO_ERROR reason=trash-unavailable; NEVER hard-unlink as fallback.</addendum>
+      <addendum id="SC-V1-002-005" cat="concurrent">Two simultaneous fs_write to same path: per-path mutex serializes; final = one of two payloads (no interleaving).</addendum>
+      <addendum id="SC-V1-002-007" cat="perf">10k file fs_stat batch &lt;2s on M1 SSD; p99 single-call &lt;5ms.</addendum>
+      <addendum id="SC-V1-002-008" cat="failure-injection">Windows Defender AV interception: max 3 retries with 50ms backoff; MT_FS_IO_ERROR reason=av-locked; no infinite hang.</addendum>
+      <addendum id="SC-V1-002-009" cat="failure-injection">Encrypted volume (FileVault/LUKS/BitLocker) locked mid-write: MT_FS_IO_ERROR reason=volume-locked; no partial file.</addendum>
+      <addendum id="SC-V1-002-010" cat="adversarial">macOS NFC/NFD path mismatch: stable contract resolves via canonicalize re-normalization OR returns MT_FS_NOT_FOUND.</addendum>
+      <addendum id="SC-V1-002-012" cat="failure-injection">fs_rename across FS boundary: MT_FS_IO_ERROR EXDEV OR transparent copy+delete with destination revalidation.</addendum>
+      <addendum id="SC-V1-002-013" cat="failure-injection">Cloud-drive lazy hydration (.icloud/OneDrive placeholder): 30s timeout bound; MT_FS_IO_ERROR reason=cloud-offline.</addendum>
+      <addendum id="SC-V1-002-014" cat="adversarial">PATH_MAX boundary per platform (Linux 4096, macOS 1024, Windows 260/\\?\); MT_FS_VALIDATION reason=path-too-long.</addendum>
+      <addendum id="SC-V1-002-015" cat="resource">Open-file-handle exhaustion: backpressure semaphore cap N=64; excess queued without EMFILE.</addendum>
+      <addendum id="SC-V1-002-017" cat="adversarial">Linux magic-symlink bypass: /proc/self/root, /proc/&lt;pid&gt;/, /dev/fd/, /sys/ MUST reject; same Windows \\.\ device namespace.</addendum>
+      <perf-gates>fs_read 1MB UTF-8 &lt;50ms M1 cold; fs_write 1MB atomic &lt;80ms; concurrent 64-fanout &gt;=200MB/s; path validation &lt;100us amortized.</perf-gates>
+      <obs-gaps>Add: BLOCK_READ_BYTES_FROM_DISK, BLOCK_WRITE_BYTES_TO_DISK, BLOCK_TRASH_FALLBACK, BLOCK_ATOMIC_RENAME { fsync_parent }, MT_FS_RACE_VANISHED distinct from NOT_FOUND, semaphore queue depth, cross-call correlation ID.</obs-gaps>
+    </ModuleAddendum>
+
+    <ModuleAddendum target="V-M-003">
+      <addendum id="SC-V1-003-002" cat="concurrent">Cloud-drive mtime suppression (chokidar parity, watcher.js:338-371): stat-check inside debouncer suppresses spurious events.</addendum>
+      <addendum id="SC-V1-003-005" cat="happy">Polling fallback for SMB/NFS via watcherUsePolling=true; events ≤300ms; CPU &lt;5% on 1k-file dir.</addendum>
+      <addendum id="SC-V1-003-006" cat="concurrent">Stop during in-flight event: drain or drop pending; no further BLOCK_EMIT_CHANGE post-stop.</addendum>
+      <addendum id="SC-V1-003-007" cat="resource">Watch capacity at 10k recursive paths: Linux respects fs.inotify.max_user_watches; falls back to polling for excess.</addendum>
+      <addendum id="SC-V1-003-008" cat="adversarial">Symlinked subdirectory inside watch root: do NOT follow by default; cycle in symlink graph rejected.</addendum>
+      <addendum id="SC-V1-003-014" cat="failure-injection">USB / external volume eject mid-watch: BLOCK_WATCH_FAULT { source: io }; no panic.</addendum>
+      <addendum id="SC-V1-003-016" cat="resource">100 cycles of watcher_start+stop: tokio task count baseline-stable; no FD/memory leak.</addendum>
+      <addendum id="SC-V1-003-017" cat="concurrent">Self-suppress window leak on save crash: window expires naturally; doesn't poison subsequent events.</addendum>
+      <perf-gates>Single event &lt;500ms p95; 1000-write burst coalesces ≤50; idle CPU &lt;0.5% native / &lt;5% polling; 10k watched paths inotify &lt;30MB.</perf-gates>
+      <obs-gaps>BLOCK_DEBOUNCE_COALESCE in/out counts as required; BLOCK_RESYNC_REQUIRED for kernel queue overflow; ENOSPC suppression counter; periodic active-watch-count.</obs-gaps>
+    </ModuleAddendum>
+
+    <ModuleAddendum target="V-M-004">
+      <addendum id="SC-V1-004-009" cat="adversarial">max-file-size parser edge cases: '5M', '5m', '5MB', '5 MB', '5.5M', '0', '', '-1', '99999G', '5K1B'. Case-insensitive K/M/G; rejects malformed with MT_SEARCH_INVALID_MAXSIZE.</addendum>
+      <addendum id="SC-V1-004-015" cat="concurrent">File modified during search: per-file error suppressed; ≤1 summary marker for IO errors per run.</addendum>
+      <addendum id="SC-V1-004-016" cat="concurrent">Two concurrent search_run with different patterns: each gets own matcher; cancel-A doesn't affect B.</addendum>
+      <addendum id="SC-V1-004-017" cat="failure-injection">Permission-denied subdirectory: skips subtree; walk continues; never emits MT_FS_PERM_DENIED as fatal search error.</addendum>
+      <addendum id="SC-V1-004-018" cat="adversarial">Invalid UTF-8 bytes in file content: lossy decode for snippet; invalid bytes shown as U+FFFD (JSON-safe).</addendum>
+      <addendum id="SC-V1-004-012" cat="adversarial">NFC vs NFD in match content: documented contract pinned (no-match byte-level OR match via normalize); same on all platforms.</addendum>
+      <perf-gates>10k-file fixture full search &lt;5s p95 M1; 1GB single-line throughput &gt;=500MB/s; cancel-during-compile &lt;50ms p99.</perf-gates>
+      <obs-gaps>Promote BLOCK_APPLY_PREFS + binary-detection skip to required. Add: BLOCK_RUN_SUMMARY (walked/matched/skipped); blocked_ms field; cancel-cause attribution.</obs-gaps>
+    </ModuleAddendum>
+
+    <ModuleAddendum target="V-M-005">
+      <addendum id="SC-V2-005-001" cat="migration">Legacy preferences.json with mixed CRLF + UTF-8 BOM: BOM stripped before serde_json; migrates cleanly.</addendum>
+      <addendum id="SC-V2-005-002" cat="migration">Schema drift 60→70 keys (7 required-with-default added, 3 optional, 3 deprecated removed): defaults filled; deprecated dropped + logged; CI must NOT reject additionalProperties.</addendum>
+      <addendum id="SC-V2-005-003" cat="migration">Unmounted-volume absolute path: BLOCK_PATH_FALLBACK to $HOME/Documents; pref left intact in store.</addendum>
+      <addendum id="SC-V2-005-004" cat="corruption">Keychain target collision: read both; if equal → delete legacy; if differ → keep both, defer, prompt user.</addendum>
+      <addendum id="SC-V2-005-005" cat="concurrency">Stale lockfile from crashed prior process: PID liveness probe; stale → reclaim; drop guard ensures lock removed on every exit.</addendum>
+      <addendum id="SC-V2-005-006" cat="locale">Cyrillic/CJK pref values NFC vs NFD: byte-identical UTF-8 preserved; jsonschema passes non-ASCII.</addendum>
+      <addendum id="SC-V2-005-007" cat="adversarial">50MB malicious preferences.json: 4MB cap; over-cap → MT_PREFS_CORRUPT reason=too_large; defaults loaded.</addendum>
+      <addendum id="SC-V2-005-008" cat="adversarial">Symlinked legacy preferences.json escaping Application Support: reject; MT_PREFS_CORRUPT reason=symlink_escape.</addendum>
+      <addendum id="SC-V2-005-009" cat="corruption">Migration crash between sub-steps (kill -9): per-step markers drive resume; idempotent re-run.</addendum>
+      <addendum id="SC-V2-005-011" cat="adversarial">jsonschema $ref to bundled file: resolves via embedded loader; offline-safe; never hits network.</addendum>
+      <addendum id="SC-V2-005-013" cat="adversarial">Beta v2.0.0-rc1 user with schema_version=0 store: in-store v0→v1 upgrade runs; legacy migration skipped.</addendum>
+      <perf-gates>Cold-start full migration ≤300ms p95 M1; lock-acquire timeout 5s; per-key validate ≤1ms p95.</perf-gates>
+      <obs-gaps>BLOCK_FRESH_INSTALL distinguishes absent-legacy from migrated; BLOCK_VALIDATE_SCHEMA aggregate counts; BLOCK_LOCK_*; BLOCK_USER_CONSENT.</obs-gaps>
+    </ModuleAddendum>
+
+    <ModuleAddendum target="V-M-007">
+      <addendum id="SC-V2-007-001" cat="locale">Russian + English simultaneous: WebKit auto-mode flags both; OR per-paragraph lang attribute drives correct dict on Linux/Windows hunspell.</addendum>
+      <addendum id="SC-V2-007-002" cat="locale">macOS WebKit lang attribute non-honoring after first focus: blur/focus cycle re-attaches; verify NSSpellChecker.shared.language read-back.</addendum>
+      <addendum id="SC-V2-007-004" cat="concurrency">Language switch mid-typing during in-flight suggest: stale suggestions discarded by request-id; new lang takes effect.</addendum>
+      <addendum id="SC-V2-007-006" cat="locale">Arabic / RTL spellcheck: tokenizer respects diacritics; suggestions in Arabic; cursor RTL-correct.</addendum>
+      <addendum id="SC-V2-007-008" cat="locale">Russian morphology: несёт/несу/нёс accepted via aspect+person flexion; only nonsense flagged.</addendum>
+      <addendum id="SC-V2-007-010" cat="locale">Korean+Japanese mixed: Hangul tokenized; CJK ideographs not flagged; fallback ko_KR→en_US→off.</addendum>
+      <addendum id="SC-V2-007-011" cat="corruption">Add-to-dictionary on read-only custom dict: MT_SPELL_DICT_RW_DENIED; in-memory NOT updated.</addendum>
+      <addendum id="SC-V2-007-012" cat="happy">Available dictionaries change at runtime: re-queried via OS notification; appears without restart.</addendum>
+      <perf-gates>switch_language ≤50ms p95 (excl first dict); cold first-dict-load ≤200ms p95; chunk processing ≤16ms p95.</perf-gates>
+      <obs-gaps>BLOCK_ATTR_REATTACH for lang attribute on WebView root; fallback chain log; counter for false-positive rate from custom_dict size.</obs-gaps>
+    </ModuleAddendum>
+
+    <ModuleAddendum target="V-M-008">
+      <addendum id="SC-V2-008-005" cat="happy">Variable font axes (Inter, Recursive): collapsed by family or axes metadata; NOT enumerated as 100+ pseudo-families.</addendum>
+      <addendum id="SC-V2-008-009" cat="concurrency">5 windows simultaneously call fonts_list cold: single in-flight enumeration via OnceCell or async Mutex.</addendum>
+      <addendum id="SC-V2-008-010" cat="migration">v1 fontmanager-redux/font-list cache: v2 IGNORES; fresh enumeration; legacy cache deleted as M-005 cleanup.</addendum>
+      <addendum id="SC-V2-008-011" cat="adversarial">Network-mounted font dir timeout: per-source-dir 2s; offending dir skipped; never blocks startup &gt;3s.</addendum>
+      <addendum id="SC-V2-008-012" cat="locale">RTL font names (Geeza Pro, Tahoma Arabic): family name in Arabic stored verbatim; UI dir=auto.</addendum>
+      <perf-gates>fonts_list IPC return ≤50ms p95; background enumeration ≤2s p95 on 1500-font macOS; cache invalidation ≤1s after OS FontsChanged.</perf-gates>
+      <obs-gaps>Per-source-dir timing; variable-font axis collapse counter; cache-hit path marker.</obs-gaps>
+    </ModuleAddendum>
+
+    <ModuleAddendum target="V-M-014">
+      <addendum id="SC-V2-014-005" cat="adversarial">Embedded NUL byte: detector returns binary verdict OR decodes with NUL preserved; MT_ENC_BINARY emitted.</addendum>
+      <addendum id="SC-V2-014-006" cat="adversarial">100MB+ file: BOM check on first 4 bytes; chardet on first 64KB only; streaming decode; memory ≤2x file size.</addendum>
+      <addendum id="SC-V2-014-014" cat="locale">GB18030 4-byte sequences (mainland-China compliance): encoding_rs decodes; chardet picks gb18030 over gbk on 4-byte seqs.</addendum>
+      <addendum id="SC-V2-014-015" cat="adversarial">Deterministic chardet vs encoding_rs tiebreak: prefer UTF-8 if fully valid; same input → same output across 100 runs.</addendum>
+      <perf-gates>BOM detect ≤1ms; chardet on 64KB ≤30ms p95; encode/decode 1MB UTF-8 ≤50ms p95.</perf-gates>
+      <obs-gaps>BLOCK_TIEBREAK with chardet/utf8_valid/chosen; original-encoding-remembered-for-save log; U+FFFD replacement counter.</obs-gaps>
+    </ModuleAddendum>
+
+    <ModuleAddendum target="V-M-017">
+      <addendum id="SC-V2-017-001" cat="concurrency">Two windows simultaneously add same file: dedup → single entry; OS integration coalesced.</addendum>
+      <addendum id="SC-V2-017-010" cat="migration">Legacy recently-used-documents.json: M-005 migrates; M-017 reads new key on first call; OS integration re-emitted on first launch.</addendum>
+      <addendum id="SC-V2-017-011" cat="adversarial">Windows non-admin Jump-List E_ACCESSDENIED: OS integration skipped; in-memory + menu File→Open Recent still work.</addendum>
+      <perf-gates>recent_add ≤5ms p95; recent_list ≤1ms; cold load from JSON ≤10ms for 12 entries.</perf-gates>
+      <obs-gaps>BLOCK_PROPAGATE_TO_WINDOWS; stale-entry-count when listed.</obs-gaps>
+    </ModuleAddendum>
+
+    <ModuleAddendum target="V-M-019">
+      <addendum id="SC-V2-019-001" cat="concurrency">GitHub token rotation mid-upload: in-flight completes with T1; subsequent uses T2; no stale-token retry.</addendum>
+      <addendum id="SC-V2-019-006" cat="adversarial">Panic backtrace token redaction: SecretString Display/Debug returns &lt;redacted&gt;; regex over panic logs returns 0 matches.</addendum>
+      <addendum id="SC-V2-019-011" cat="locale">Cyrillic/CJK filename upload: URL-encoded per RFC 3986; sha1 rename rule AFTER unicode-safe basename.</addendum>
+      <addendum id="SC-V2-019-012" cat="adversarial">Linux headless / no DBUS keyring: MT_DC_KEYCHAIN reason=secret_service_unavailable; UI prompt; NEVER silently store plaintext.</addendum>
+      <addendum id="SC-V2-019-013" cat="adversarial">EXIF GPS metadata: optional strip-EXIF pref (default off); when on, stripped before upload + bytes_before/after logged.</addendum>
+      <perf-gates>dc_get_secret ≤50ms p95; migration of 10 keychain accounts ≤500ms; image upload P95 ≤5s for 1MB on broadband.</perf-gates>
+      <obs-gaps>PANIC_GUARD marker; token-format-validation log before keyring write; upload_failed_by_reason aggregated counter.</obs-gaps>
+    </ModuleAddendum>
+
+    <ModuleAddendum target="V-M-020">
+      <addendum id="SC-V2-020-002" cat="adversarial">Portable folder symlink to /etc or loop: canonicalize; reject if outside writable safe locations; fall back to default.</addendum>
+      <addendum id="SC-V2-020-004" cat="locale">Cyrillic/CJK positional file paths: Windows uses GetCommandLineW via std::env::args_os; argv UTF-8 elsewhere.</addendum>
+      <addendum id="SC-V2-020-011" cat="happy">--safe + --disable-spellcheck redundant: both honored idempotently; not flagged as conflict.</addendum>
+      <addendum id="SC-V2-020-013" cat="adversarial">--user-data-dir on read-only volume: probe writability; MT_CLI_INVALID reason=user_data_dir_readonly; exit 2 BEFORE BLOCK_BUILD_APP.</addendum>
+      <perf-gates>argv parse + validation ≤20ms; path canonicalize per arg ≤5ms; single-instance forward round-trip ≤200ms p95.</perf-gates>
+      <obs-gaps>Portable mode detection result marker; flag-summary after parse; user-data-dir writability probe log.</obs-gaps>
+    </ModuleAddendum>
+
+    <ModuleAddendum target="V-M-011">
+      <addendum id="V-M-011-VB-02" cat="concurrency">Pinia 8-store cold-hydration vs ipc.prefs.get: preferences resolves before listenForMain; commandCenter registers AFTER hydration. log: BLOCK_PINIA_HYDRATE.</addendum>
+      <addendum id="V-M-011-VB-03" cat="platform" priority="critical">Drag-drop image WKWebView path-exposure workaround: Tauri window onFileDrop event; fallback readAsArrayBuffer + ipc.fs.write_bytes(tempPath). New compat shim src/renderer/src/compat/dragdrop.ts.</addendum>
+      <addendum id="V-M-011-VB-04" cat="platform" priority="critical">printToPDF replacement: tauri-plugin-printer / wkhtmltopdf shell-out / WKWebView createPDF via objc2 (decision finalized BEFORE Phase-B1). Page count ±0 vs Electron baseline; SVG vector-preserved.</addendum>
+      <addendum id="V-M-011-VB-05" cat="contract">Command palette 65+ commands snapshot: commandCenter.list().sort() === fixture.sort(); count ≥65; every id has handler.</addendum>
+      <addendum id="V-M-011-VB-08" cat="concurrency">Sync→async ask-for-image-path cursor race: snapshot getCursor() BEFORE await; restore via setCursor() before insertImage. log: BLOCK_CURSOR_SNAPSHOT/RESTORE.</addendum>
+      <addendum id="V-M-011-VB-10" cat="contract">@electron/remote.clipboard parity: text/RTF/HTML/image(PNG)/file-list cross-platform; roundtrip byte-equal.</addendum>
+      <addendum id="V-M-011-VB-11" cat="contract">@electron/remote.getCurrentWindow parity: minimize/maximize/close/fullscreen/alwaysOnTop transitions observable; state read-back ≤200ms.</addendum>
+      <addendum id="V-M-011-VB-12" cat="contract">@electron/remote.Menu/MenuItem context menu: native menu DPI-correct; no leak; ESC closes without callback.</addendum>
+      <perf-gates>First-paint after mountApp() &lt;300ms WKWebView M1 / &lt;500ms WebView2; theme-swap &lt;33ms (1 rAF); ipc.prefs.getAll cold P95 &lt;50ms; total Pinia hydration &lt;200ms.</perf-gates>
+      <obs-gaps>BLOCK_CURSOR_SNAPSHOT/RESTORE; drag-drop path-resolution source field; command palette count at registration; per-call tracing for window/clipboard/menu replacements.</obs-gaps>
+    </ModuleAddendum>
+
+    <ModuleAddendum target="V-M-012">
+      <addendum id="V-M-012-VB-01" cat="contract">Multi-engine API snapshot: WKWebView + WebView2 + webkit2gtk return identical 47-method set; static Muya.use present.</addendum>
+      <addendum id="V-M-012-VB-04" cat="platform">contenteditable Range/Selection quirks WKWebView: selectionchange fires later; getRangeAt() may throw on detached node — assert no NS_ERROR/InvalidStateError.</addendum>
+      <addendum id="V-M-012-VB-08" cat="perf">50k-line tokenize+parse+render: WKWebView M1 tokenize&lt;400ms, parse&lt;800ms, first-render&lt;1500ms, total&lt;3s; WebView2 +25%; webkit2gtk +50%.</addendum>
+      <perf-gates>50k-line setMarkdown total: WKWebView&lt;3s, WebView2&lt;3.75s, webkit2gtk&lt;4.5s; keystroke-to-paint P95 100k-line &lt;16ms; Mermaid v11 first-diagram &lt;500ms cold.</perf-gates>
+      <obs-gaps>Per-engine label in [Muya] markers for CI matrix diff; selection-invariants-violation marker; diagram renderer chunk source (local vs network).</obs-gaps>
+    </ModuleAddendum>
+
+    <ModuleAddendum target="V-M-013">
+      <addendum id="V-M-013-VB-01" cat="contract" priority="critical">146-channel name-set parity snapshot: ipc-channels.electron.v1.json (upstream commit ab1a3fdc static-grep) + ipc-channels.tauri.v2.json (codegen); symmetric difference empty; count ≥146. NO Phase-B1 gate without committed fixtures.</addendum>
+      <addendum id="V-M-013-VB-02" cat="contract" priority="critical">Per-channel payload schema drift: ts-rs emits .ts from Rust serde structs; tsc --noEmit comparison; byte-identical; zero `any` in IpcBridge.* exports.</addendum>
+      <addendum id="V-M-013-VB-03" cat="concurrency">Dynamic-id correlation race: 10 concurrent ipc.askForImagePath() with random delays + out-of-order; each Promise resolves with own request_id; aborted requests reject E_WINDOW_GONE.</addendum>
+      <addendum id="V-M-013-VB-05" cat="concurrency">Vite HMR listener stacking: useIpcListener composable disposeOnHotUpdate; listener count ===1 after 50 reloads.</addendum>
+      <addendum id="V-M-013-VB-06" cat="contract">Sync-blocking removal audit: static-grep `sendSync\(` over src/ = 0 matches; companion fixture sendSync-callsites.v1.json maps every v1 site.</addendum>
+      <addendum id="V-M-013-VB-07" cat="contract">@electron/remote elimination audit: static-grep '@electron/remote' over renderer src/ = 0 matches in production bundle; 6 v1 sites mapped to ipc.* replacement.</addendum>
+      <perf-gates>ipc.invoke 1KB payload P95 &lt;5ms intra-process / P99 &lt;15ms; 1MB threshold REJECT_OVERSIZE fires at 1MB ±0; listener attach/detach amortized &lt;1ms.</perf-gates>
+      <obs-gaps>Channel-name set enumerated at startup; BLOCK_HMR_REPLACE; sendSync→async transformation tripwire; schema-drift runtime payload validation marker.</obs-gaps>
+    </ModuleAddendum>
+
+    <UpdatedPhaseGates>
+      <Gate-Phase-B1>REQUIRED EVIDENCE (replaces vague "muya renders fixture doc"): muya perf budget on 5kline doc (WKWebView ≤1.5× Electron baseline; p95 keystroke ≤50ms; cold-start ≤1500ms); ipc-channels fixtures committed with empty diff; all Rust modules compile clean on macos-14 + ubuntu-22.04 + windows-latest; tauri-action dry-run unsigned dmg artifact; M-001.fn-print_to_pdf strategy decision recorded. FAIL → no-go; Phase-B2 NOT entered.</Gate-Phase-B1>
+      <Gate-Phase-B2>V-M-002 covers UTF-8+binary read+write+rename+delete; V-M-003 native+polling+cloud-mtime+ENOSPC+case-only-rename; V-M-004 first-batch ≤500ms p95 + cancel ≤100ms + concurrent isolation; V-M-010 fixture-xss across 3 WebView engines; M-013 surface count = 146 ±0; channel snapshot diff empty.</Gate-Phase-B2>
+      <Gate-Phase-B3>V-M-005..009 + V-M-014..020 ALL green (12 modules, was incorrectly stated as 5); migration roundtrip end-to-end from real v1 fixture; menu snapshot 128 items; 3 USER REVIEW checkpoints completed; 0 sendSync + 0 @electron/remote in production bundle.</Gate-Phase-B3>
+      <Gate-Phase-B4>du -sh &lt;30 MB; cold-start ≤1500ms; brew upgrade v1.0.0→v2.0.0 preserves 100% prefs key set + GH token; downgrade-attack rejected; mark@v1 rollback channel published; Lockdown Mode + MDM clear notice; auto-update strips quarantine before quit_and_install.</Gate-Phase-B4>
+    </UpdatedPhaseGates>
+
+    <PhaseBEscalationTriggers>
+      <trigger-9>tauri-plugin-* version pinning change in src-tauri/Cargo.toml.</trigger-9>
+      <trigger-10>objc2 invocation site fails to compile or panics in test (M-001 PDF, M-007 spell, M-017 NSDocumentController).</trigger-10>
+      <trigger-11>IPC bridge command count drifts ≥ ±2 from upstream 146.</trigger-11>
+      <trigger-12>V-M perf budget regresses ≥30% (search 500ms first-batch, keystroke 50ms, cold-start 1500ms).</trigger-12>
+      <trigger-13>tauri-plugin-store schema migration fails on test/fixtures/v1-userdata/ — do NOT silently fallback.</trigger-13>
+      <trigger-14>WKWebView console reports a violation not seen in Electron baseline (CSP, font load, mixed-content).</trigger-14>
+      <trigger-15>Keychain errSecDuplicateItem outcome that resolves with overwrite instead of conflict-prompt (data loss path).</trigger-15>
+    </PhaseBEscalationTriggers>
+
+  </Iteration1ExtendedScenarios>
+
+  <!-- ===================================================================
+       ITERATION-2 CROSS-MODULE SCENARIOS + OBSERVABILITY GAPS (2026-04-25)
+       Source: V-iter2-cross-module + V-iter2-build-ci-release
+       22 cross-module scenarios + 6 root observability gaps + 15 CI scenarios
+       =================================================================== -->
+  <Iteration2Verification source-iteration="2" generated="2026-04-25">
+
+    <CrossModuleScenarios>
+      <X-1-001 modules="M-002,M-014,M-011,M-012,M-013" df="DF-001+DF-019" cat="happy">Shift-JIS file from Finder cold-start full chain: BLOCK_CLI_FORWARD → BUILD_APP → VALIDATE_PATH{fd_held,nfc_normalized} → READ_BYTES_FROM_DISK → DETECT_BOM → TIEBREAK{chosen=shift_jis} → DECODE → EMIT_OPEN_FILE → PINIA_HYDRATE → REPLAY_DELIVERED → setMarkdown → tokenize+parse+render → FIRST_PAINT. Single trace_id required.</X-1-001>
+      <X-1-002 modules="M-002,M-014,M-011,M-012" df="DF-019" cat="cancellation">Cancel encoding-decode mid-stream: CancellationToken trip → DECODE_ABORTED{bytes_consumed,bytes_emitted} → drop fd; do NOT call setMarkdown; emit on dropped webContents must be no-op (not panic).</X-1-002>
+      <X-1-003 modules="M-002,M-014,M-013,M-011,M-017" df="DF-019" cat="adversarial">Embedded NUL byte triggers binary verdict: M-017 must NOT add to recent before encoding verdict known; M-009 menu must reflect failed open.</X-1-003>
+      <X-2-001 modules="M-002,M-021,M-003,M-013" df="DF-002+DF-004" cat="concurrent">Save self-suppress window covers FSEvents 300ms+ macOS coalesce: window ≥750ms; deadline MAX-extended on second save (not reset); save trace_id propagated into suppression marker.</X-2-001>
+      <X-2-002 modules="M-002,M-021,M-003" df="DF-002+DF-004" cat="failure-injection">Save crashes mid-flight: BLOCK_WATCHER_CLEAR_IGNORE{cause=write_failed} on M-002 boundary; ignore-window NEVER persists past write failure; pair-symmetric SET/CLEAR/EXPIRED/LEAKED logging.</X-2-002>
+      <X-3-001 modules="M-005,M-019,M-007,M-011,M-013" df="DF-006" cat="concurrent">Concurrent prefs:changed (lang) + dataCenter:changed (token): listener isolation; M-007 NOT subscribed to dc:changed; renderer event filter runs BEFORE store mutation. New marker BLOCK_DISPATCH_EVENT{channel,trace_id,handler_count}.</X-3-001>
+      <X-3-002 modules="M-005,M-007,M-011,M-012" df="DF-006+DF-008" cat="concurrent">Spell language switch mid-typing: req_id correlation between M-011 spell call and M-007 verdict; BLOCK_REQ_DISCARDED{req_id,reason=lang_changed}.</X-3-002>
+      <X-4-001 modules="M-016,M-005,M-001,M-019" df="DF-015" cat="cross-process">Auto-update on macOS quarantine strip preserved across restart: session_chain_id persisted to mt_migration; mt_migration object survives v2.0→v2.1 upgrade; M-005 BLOCK_MIGRATION_NOOP{schema_version_seen=1,target=1}.</X-4-001>
+      <X-4-002 modules="M-016,M-005,M-001" df="DF-015" cat="failure-injection">Updater while migration mid-flight: refuse update via MT_UPDATE_DEFERRED{reason=migration_in_flight}; updater consults MarkSystemState enum {Idle,Migrating,Updating,KeyringRebind} held in tauri::State.</X-4-002>
+      <X-5-001 modules="M-017,M-009,M-013,M-011" df="DF-016" cat="concurrent">Open Recent during open menu: native NSMenu rebuild while open is undefined behavior; renderer Pinia mutated under v-for iteration warning. BLOCK_PROPAGATE_TO_WINDOWS dual-emit must include menu-open-during-rebuild marker.</X-5-001>
+      <X-5-002 modules="M-017,M-009,M-002,M-010,M-014" df="DF-016" cat="happy">Tombstone for deleted recent file: BLOCK_RECENT_TOMBSTONE → BLOCK_MENU_REBUILD with entry removed; tombstone propagated to all sinks (in-memory, JSON, OS jumplist).</X-5-002>
+      <X-6-001 modules="M-001,M-020,M-013,M-011,M-012" df="DF-013" cat="cold-start">Cold-start replay 'open foo.md' Apple Event before WebView ready: REPLAY must wait for BOTH webContents alive AND listener registered; new BLOCK_REPLAY_GATE_OPENED with both conditions logged. Replay fires exactly once.</X-6-001>
+      <X-6-002 modules="M-013,M-011,M-003" df="DF-013" cat="cold-start">pendingTreeEvents bucket vs root-close: bucket purged on close; never replays into stale store. Per-root TTL on buckets; active-pending-buckets count metric.</X-6-002>
+      <X-7-001 modules="M-010,M-002,M-021,M-014,M-009,M-017" df="DF-001+DF-016+C-10" cat="adversarial">Linux magic symlink (/proc/self/root) via File→Recent: reject at M-010 BEFORE M-002 opens fd; menu must update without visible glitch. Negative assertion: BLOCK_READ_BYTES_FROM_DISK NEVER emitted on this trace_id.</X-7-001>
+      <X-7-002 modules="M-010,M-012,M-011,M-018" df="DF-017+H-21" cat="adversarial">file:// URI in document resolved against IMAGE_OUTPUT_ROOTS must reject: BLOCK_RESOLVE_FILE_URI{scope_class}; write-only path NEVER auto-promoted to readable.</X-7-002>
+      <X-8-001 modules="M-011,M-012,M-007" df="DF-008+H-5" cat="contract">Sync void hook 6 (add-to-dictionary) cannot await disk write: BLOCK_HOOK_INVOKE{hook_id,sync,deferred_writes_enqueued} ties sync call to deferred async; cache write + disk write paired by trace_id.</X-8-001>
+      <X-8-002 modules="M-007,M-011,M-012" df="DF-008+V-M-012-VB-04" cat="concurrent">Spell suggestion replacement on WKWebView with detached Range: cursor snapshot BEFORE await; getRangeAt() may throw; correlation between context-menu-open and cursor-snapshot markers.</X-8-002>
+      <X-9-001 modules="M-013,M-003,M-004,M-010" df="H-12" cat="wave-isolation">Phase-B2 wave parallelism: M-013 stub returns Err(MT_NOT_IMPLEMENTED) NOT panic; V-M-003/V-M-004 e2e tests skip with 'pending wave dependency' status; tokio task isolation across waves.</X-9-001>
+      <X-10-001 modules="M-005,M-001,M-019" df="C-2" cat="UX-policy">Migration cancel re-prompt policy: per C2-10, cancel state in ~/.cache/Mark/sessions.jsonl (NOT under Application Support); re-prompt on every launch where legacy detected; 3+ cancels in 7d → "Don't ask again" sentinel; never force-migrate.</X-10-001>
+      <X-11-001 modules="M-013,M-001,M-011" df="C-3+V-M-013-VB-02" cat="runtime-drift">Production binary receives unknown channel: deterministic Err(MT_IPC_UNKNOWN_CHANNEL{name,bundle_version}); no panic; no silent drop; renderer toast once per session.</X-11-001>
+      <X-11-002 modules="M-013,M-001" df="C-3" cat="runtime-drift">On-boot self-validation: BLOCK_VALIDATE_AGAINST_FIXTURE{expected=146,actual=N} BEFORE first window. Mismatch → fail-fast native dialog + exit 1.</X-11-002>
+      <X-12-001 modules="M-002,M-021,M-003,M-005,M-009,M-011,M-012,M-013,M-014,M-017" df="DF-001+DF-002+DF-016+DF-019" cat="trace-propagation">End-to-end open-save-close: single trace_id (or chain with parent=session_t) traversing all modules. THE root observability requirement.</X-12-001>
+    </CrossModuleScenarios>
+
+    <ObservabilityGaps>
+      <OG-iter2-001 priority="root-cause">No end-to-end trace_id propagated across renderer↔main↔modules. Fix: tauri::Request extension propagates X-Mark-Trace-Id; renderer console.log echoes same id. Source at entry-point (M-009 menu-invoke, M-011 user-event, M-013 incoming-ipc); UUIDv7. Every BLOCK_*/MT_* line includes trace_id field. CI grep groups by trace_id to verify end-to-end chains. THIS IS PREREQUISITE FOR ALL X-1..X-12 SCENARIOS.</OG-iter2-001>
+      <OG-iter2-002 priority="high">Cross-process-lifecycle stitching: persist session_chain_id and prev_session_exit_reason into mt_migration + ~/.cache/Mark/sessions.jsonl ring-buffer. BLOCK_SESSION_START{session_chain_id,prev_session_id,prev_exit_reason}, BLOCK_SESSION_END, BLOCK_QUIT_AND_INSTALL{prev_session_id,bundle_version_to_install}.</OG-iter2-002>
+      <OG-iter2-003 priority="high">Global-busy state coordination: MarkSystemState enum {Idle,Migrating,Updating,KeyringRebind} held in tauri::State; long-running operations acquire-or-defer via single tokio Mutex. BLOCK_SYSTEM_STATE_CHANGE marker enables cross-module mutual-exclusion verification.</OG-iter2-003>
+      <OG-iter2-004 priority="medium">Self-suppress / ignore-window markers: pair every SET with one of {CLEAR(reason=write_ok|write_failed|window_disabled), EXPIRED(reason=naturally), LEAKED(reason=panic_in_caller)}. Background reaper drains stale entries; emits LEAKED counter. CI grep: count(SET) == count(CLEAR|EXPIRED|LEAKED) over a session.</OG-iter2-004>
+      <OG-iter2-005 priority="medium">Sink-fanout confirmation for multi-sink events (H-1 dual-emit, prefs-changed, recent-updated): BLOCK_EMIT_FANOUT{event,expected_sinks=[renderer:N,native_menu:1,os_jumplist:1],trace_id}; each consumer logs BLOCK_SINK_RECEIVED{event,sink,trace_id}; reaper emits BLOCK_FANOUT_INCOMPLETE if any sink misses within 100ms.</OG-iter2-005>
+      <OG-iter2-006 priority="medium">Request-id correlation for IPC fan-out: tauri::command auto-injects req_id; M-013 facade decorator stamps it on every async invoke; BLOCK_INVOKE and BLOCK_INVOKE_RESOLVED log req_id. Stale-discard scenario asserts: for every BLOCK_REQ_DISCARDED there exists no BLOCK_INVOKE_RESOLVED with same req_id.</OG-iter2-006>
+    </ObservabilityGaps>
+
+    <UpdatedPhaseGatesIter2>
+      <Gate-Phase-B0>REQUIRED: M-005 stub aborts MT_PREFS_V1_RUNNING on non-empty legacy until full M-005 ships in B3; tauri dev profile uses synthetic XDG_DATA_HOME; pre-window native dialog functional on macos-14 / ubuntu-22.04 / windows-latest; cancel exits 0 + persists ~/.cache/Mark/sessions.jsonl.</Gate-Phase-B0>
+      <Gate-Phase-B0.5>REQUIRED: test/fixtures/v1-userdata/com.xronocode.mark/ committed; SHA256 hash recorded in fixture-pin.lock; trigger-13 enforced.</Gate-Phase-B0.5>
+      <Gate-Phase-B1-revised>Plus C2-11: BLOCK_VALIDATE_AGAINST_FIXTURE on-boot self-check passes; bundle size measured + published.</Gate-Phase-B1-revised>
+      <Gate-Phase-B3a>(per C2-4 above) — V-M-013-VB-06=0, V-M-013-VB-07=0, V-M-005 against real v1 fixture, mark@v1 published BEFORE mark@alpha, updater downgrade refusal.</Gate-Phase-B3a>
+    </UpdatedPhaseGatesIter2>
+
+    <IterationMetaTrigger>
+      stop_criteria: (consecutive_iterations_with_zero_critical ≥ 2) OR (highs_added &lt; 3 AND mediums_added &lt; 5)
+      iter-1: critical=18, high=24, find-rate=213/6agents=35.5
+      iter-2: critical=13, high=8, find-rate=63/4agents=15.75 (declining ~55%)
+      iter-3 target: ≤4 critical, ≤2 high → declare convergence
+    </IterationMetaTrigger>
+
+  </Iteration2Verification>
 </VerificationPlan>
