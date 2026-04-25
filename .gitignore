@@ -1,0 +1,15 @@
+# Rust build artifacts
+target/
+
+# Node + Vite (added in µstep B)
+node_modules/
+dist/
+
+# OS / editor cruft
+.DS_Store
+*.log
+.idea/
+.vscode/
+
+# Transient agent state
+.claude/

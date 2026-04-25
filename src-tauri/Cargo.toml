@@ -1,0 +1,14 @@
+[package]
+name = "mark"
+description = "Mark — Tauri-based Markdown editor (Phase-B rewrite of xronocode/mark)"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[[bin]]
+name = "mark"
+path = "src/main.rs"
+
+[dependencies]
