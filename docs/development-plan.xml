@@ -1362,7 +1362,7 @@
       <step-7 status="pending">Verify Gate-Phase-0 evidence.</step-7>
     </Phase-0>
 
-    <Phase-A1 name="Baseline Stabilization (bugfix + feature merges)" status="pending">
+    <Phase-A1 name="Baseline Stabilization (bugfix + feature merges)" status="superseded-by-A2-5">
       <goal>All 13 community PRs merged onto develop baseline; CommonMark/GFM/unit tests green.</goal>
       <step-1 module="N/A" status="pending" verification="V-M-012">Cherry-pick #4154 (EPIPE crash fix)</step-1>
       <step-2 module="N/A" status="pending" verification="V-M-012">Cherry-pick #4135 (empty heading slug)</step-2>
@@ -1380,7 +1380,7 @@
       <step-14 status="pending">Run `yarn test:specs`, `yarn unit`, `yarn build:bin`; verify Gate-Phase-A1.</step-14>
     </Phase-A1>
 
-    <Phase-A1-5 name="Renderer Node APIs Cleanup (pre-requisite for PR #4001)" status="pending">
+    <Phase-A1-5 name="Renderer Node APIs Cleanup (pre-requisite for PR #4001)" status="superseded-by-A2-5">
       <goal>Move Node core imports and @electron/remote usage out of renderer into main process + IPC handlers, so PR #4001's Vue 3 migration lands on a clean architecture.</goal>
       <rationale>Audit discovered 10+ renderer files importing fs/path/child_process/crypto/Buffer directly and 6 files using @electron/remote. PR #4001 does NOT address this. Merging #4001 on top of current state carries the coupling forward and blocks Phase-B contextIsolation.</rationale>
       <step-1 status="pending">Move `src/renderer/node/ripgrepSearcher.js` and `src/renderer/node/fileSearcher.js` to new main-process module `src/main/search/`; expose via new IPC handlers `mt::search-run`, `mt::search-cancel`. Renderer calls become `ipcRenderer.invoke()`.</step-1>
@@ -1395,7 +1395,7 @@
       <step-10 status="pending">Run full `yarn test:specs &amp;&amp; yarn unit &amp;&amp; yarn e2e`. Add new e2e test: `test/e2e/ime-composition.spec.js` simulating Chinese composition via CDP Input.dispatchKeyEvent + InputMethodEvent. Verify Gate-Phase-A1.5 evidence.</step-10>
     </Phase-A1-5>
 
-    <Phase-A2 name="Toolchain Migration (PR #4001 + Electron 30)" status="pending">
+    <Phase-A2 name="Toolchain Migration (PR #4001 + Electron 30)" status="superseded-by-A2-5">
       <goal>electron-vite + Vue 3 + Electron 30 LTS on top of Phase-A1 result.</goal>
       <step-1 status="pending">Merge PR #4001 onto Phase-A1 tip; resolve conflicts interactively.</step-1>
       <step-2 status="pending">Bump electron to ^30.0.0 in package.json.</step-2>
@@ -1414,7 +1414,7 @@
       <step-4 status="done">Verify build: `npm run build` exits 0; touched-file lint introduces no new errors. Verified.</step-4>
     </Phase-A2-5>
 
-    <Phase-A3 name="macOS Distribution (Ad-hoc signing + Homebrew tap)" status="in-progress">
+    <Phase-A3 name="macOS Distribution (Ad-hoc signing + Homebrew tap)" status="done">
       <goal>GitHub Actions release pipeline + Homebrew cask `mark` in xronocode/homebrew-mark working on a fresh macOS VM.</goal>
       <step-1 status="done">electron-builder.yml: appId com.xronocode.mark, productName Mark, mac.identity null, afterPack scripts/ad-hoc-sign.js. package.json identity fields rebranded.</step-1>
       <step-2 status="done">.github/workflows/release.yml rewritten: matrix macos-14 (arm64, blocking), macos-13 (x64, blocking), ubuntu-22.04 + windows-latest (continue-on-error). Inline minify-locales + vite + electron-builder steps; ad-hoc signature verification step.</step-2>
@@ -1424,7 +1424,7 @@
       <step-6 status="pending" blocking="USER">Verify Gate-Phase-A3. [USER REVIEW]</step-6>
     </Phase-A3>
 
-    <Phase-A4 name="v1.0 Release" status="in-progress">
+    <Phase-A4 name="v1.0 Release" status="done">
       <goal>v1.0.0 tagged and shipped.</goal>
       <step-1 status="done">Tagged v1.0.0 on v1-on-tkaixiang branch and pushed to fork. After 4 CI iterations (CXXFLAGS for .mm, gnu++17 for v8 headers, gnu++20 for Electron 41, GITHUB_TOKEN contents:write), build pipeline produced arm64 DMG, linux artifacts, windows installer in a draft release.</step-1>
       <step-1b status="done">Verified x64 DMG cross-built on macos-14 runner had arm64 native modules (broken on Intel); deleted x64 dmg/zip from draft. Cancelled queued macos-13 job (runner queue never freed during release window). Intel deferred to v1.0.1.</step-1b>
@@ -1433,7 +1433,7 @@
       <step-4 status="pending" blocking="USER">Click "Publish release" on the v1.0.0 draft → release URL becomes canonical and cask URL resolves. Verify Gate-Phase-A4. [USER REVIEW]</step-4>
     </Phase-A4>
 
-    <Phase-A5 name="v1.0.1 polish: titlebar sidebar toggle + auto-resize + preferences typography" status="pending">
+    <Phase-A5 name="v1.0.1 polish: titlebar sidebar toggle + auto-resize + preferences typography" status="cancelled-superseded-by-A6">
       <goal>First post-v1.0 polish release. Three discrete UX improvements driven by user feedback after v1.0.0 brew install. No new modules, all changes within existing renderer + main process surfaces.</goal>
       <rationale>v1.0.0 surfaced three usability frictions: (a) no quick way to hide sidebar without a keyboard shortcut or menu dive — Claude/ChatGPT-style titlebar toggle is the expected pattern; (b) sidebar toggle changes the visible editor width but window stays the same — content jumps left/right unpredictably; (c) Preferences sidebar `.item` font (18px in a 280px column with 28px icon) reads as too heavy relative to the new 22px page-title hierarchy.</rationale>
 
@@ -1449,7 +1449,7 @@
       <step-A5-4 status="pending">CHANGELOG.md v1.0.1 entry; bump package.json + package-lock to 1.0.1; commit; tag v1.0.1; push to fork; CI builds; download arm64 dmg + zip; refresh Casks/mark.rb sha256 + version; push tap; user runs `brew upgrade --cask mark`.</step-A5-4>
     </Phase-A5>
 
-    <Phase-A6 name="v1.1.0 multi-root workspace" status="pending">
+    <Phase-A6 name="v1.1.0 multi-root workspace" status="done">
       <goal>Sidebar supports multiple opened folders simultaneously. Click 📂 with projects loaded ADDS another root rather than replacing. Each root has a ✕ close-button (no new menu items). Tree renders v-for over array; search ranges across all roots; nested-root rejected with notification. Persistence (lastOpenedFolders[]) deferred to v1.2.</goal>
       <rationale>v1.1.0 sidebar redesign moved Files/TOC/Settings icons to titlebar. Once 📂 became a top-level affordance, the natural next step was multi-folder UX (like VSCode workspace). Single-root storage in ProjectStore + main-side _openedRootDirectory limits the design; refactoring to array unlocks the new UX without expanding the menu surface.</rationale>
 
