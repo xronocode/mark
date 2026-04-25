@@ -25,6 +25,19 @@
           <span class="save-dot" :class="{ show: !isSaved }"></span>
         </span>
       </div>
+      <!-- Sidebar toggle: always rendered, positioned after macOS traffic lights or after the
+           hamburger on Win/Linux. Drives the same Pinia layout-store action as Cmd+J. -->
+      <div
+        class="sidebar-toggle title-no-drag"
+        :class="{ active: showSideBar, 'sidebar-toggle--osx': isOsx }"
+        :title="showSideBar ? t('menu.view.toggleSidebar') : t('menu.view.toggleSidebar')"
+        @click.stop="handleSidebarToggleClick"
+      >
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="3" width="18" height="18" rx="2"/>
+          <line x1="9" y1="3" x2="9" y2="21"/>
+        </svg>
+      </div>
       <div :class="showCustomTitleBar ? 'left-toolbar title-no-drag' : 'right-toolbar'">
         <div
           v-if="showCustomTitleBar"
@@ -110,6 +123,7 @@ import { usePreferencesStore } from '@/store/preferences.js'
 import { useLayoutStore } from '@/store/layout.js'
 import { ref, computed, watch, onBeforeUnmount } from 'vue'
 import { storeToRefs } from 'pinia'
+import bus from '@/bus'
 import { minimizePath, restorePath, maximizePath, closePath } from '../../assets/window-controls.js'
 import { PATH_SEPARATOR } from '../../config'
 import { isOsx as isOsxPlatform } from '@/util'
@@ -160,7 +174,7 @@ const isMaximized = ref(getCurrentWindow().isMaximized())
 const show = ref('word')
 
 const { titleBarStyle } = storeToRefs(preferencesStore)
-const { showTabBar } = storeToRefs(layoutStore)
+const { showTabBar, showSideBar } = storeToRefs(layoutStore)
 
 const paths = computed(() => {
   if (!props.pathname) return []
@@ -187,6 +201,15 @@ watch(
     document.title = title
   }
 )
+
+// Sidebar toggle button — emits the canonical bus event that the layout store
+// listens to (same path as keyboard shortcut Cmd+J). Marker for V-A5-1 trace.
+const handleSidebarToggleClick = () => {
+  const next = !showSideBar.value
+  // eslint-disable-next-line no-console
+  console.debug(`[TitleBar][onSidebarToggleClick][BLOCK_DISPATCH] nextShowSideBar=${next}`)
+  bus.emit('view:toggle-layout-entry', 'showSideBar')
+}
 
 const handleWordClick = () => {
   const ITEMS = ['word', 'paragraph', 'character', 'all']
@@ -386,6 +409,53 @@ div.title > span {
 
 .title-no-drag {
   -webkit-app-region: no-drag;
+}
+
+/* Sidebar toggle button (V-A5-1).
+   Position: after macOS traffic lights (~70px) on osx, after Win/Linux
+   hamburger (~46px) otherwise. Always visible, always click-through to
+   the layout-store action. */
+.sidebar-toggle {
+  position: absolute;
+  top: 50%;
+  left: 8px;
+  transform: translateY(-50%);
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 5px;
+  cursor: pointer;
+  color: var(--editorColor50);
+  transition: background-color 0.15s ease, color 0.15s ease;
+  z-index: 10;
+}
+.sidebar-toggle--osx {
+  /* Skip past the three macOS traffic lights (~70px wide window-control area). */
+  left: 78px;
+}
+.sidebar-toggle:hover {
+  background-color: var(--floatHoverColor, rgba(0, 0, 0, 0.06));
+  color: var(--sideBarTitleColor);
+}
+.sidebar-toggle.active {
+  color: var(--sideBarTitleColor);
+}
+.sidebar-toggle.active::after {
+  /* Subtle filled state when the sidebar is currently visible. */
+  content: '';
+  position: absolute;
+  bottom: -3px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 14px;
+  height: 2px;
+  background-color: var(--highlightThemeColor);
+  border-radius: 1px;
+}
+.sidebar-toggle svg {
+  pointer-events: none;
 }
 /* frameless window controls */
 .frameless-titlebar-button {
