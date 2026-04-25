@@ -280,7 +280,8 @@
       "emptyProject": "Leeres Projekt",
       "createFile": "Datei erstellen",
       "openFolder": "Ordner öffnen",
-      "closeFolder": "Ordner schließen"
+      "closeFolder": "Ordner schließen",
+      "newFile": "Neue Datei"
     },
     "toc": {
       "title": "Inhaltsverzeichnis"

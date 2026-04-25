@@ -4,8 +4,8 @@
       <!-- Placeholder -->
     </div>
 
-    <!-- Opened tabs -->
-    <div class="opened-files">
+    <!-- Opened tabs — hidden when there are no open tabs (user feedback). -->
+    <div v-if="tabs && tabs.length > 0" class="opened-files">
       <div class="title">
         <svg
           class="icon icon-arrow"
@@ -97,14 +97,24 @@
             root.folders.length === 0 &&
             createCache.dirname !== root.pathname
           "
-          class="empty-project"
+          class="new-file-row"
+          :style="{ 'padding-left': `${depth * 20 + 20}px` }"
+          :title="t('sideBar.tree.createFile')"
+          @click.stop="createFileInRoot(root)"
         >
-          <span>{{ t('sideBar.tree.emptyProject') }}</span>
-          <div class="centered-group">
-            <button class="button-primary" @click="createFileInRoot(root)">
-              {{ t('sideBar.tree.createFile') }}
-            </button>
-          </div>
+          <span class="new-file-icon" aria-hidden="true">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+              <!-- document outline -->
+              <path d="M3 1.5h6.293a.5.5 0 0 1 .353.146l3.708 3.707a.5.5 0 0 1 .146.354V14.5a.5.5 0 0 1-.5.5h-10a.5.5 0 0 1-.5-.5v-13a.5.5 0 0 1 .5-.5z" stroke="currentColor" stroke-width="1.2" fill="currentColor" fill-opacity="0.15"/>
+              <!-- M monogram (centered) -->
+              <text x="8" y="10.5" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="6.5" font-weight="700" fill="currentColor">M</text>
+              <!-- + badge bottom-right -->
+              <circle cx="12" cy="12" r="3.2" fill="currentColor" stroke="var(--sideBarBgColor)" stroke-width="0.8"/>
+              <line x1="12" y1="10.5" x2="12" y2="13.5" stroke="var(--sideBarBgColor)" stroke-width="1.2" stroke-linecap="round"/>
+              <line x1="10.5" y1="12" x2="13.5" y2="12" stroke="var(--sideBarBgColor)" stroke-width="1.2" stroke-linecap="round"/>
+            </svg>
+          </span>
+          <span class="new-file-label">{{ t('sideBar.tree.newFile') }}</span>
         </div>
       </div>
     </div>
@@ -263,12 +273,11 @@ onMounted(() => {
   overflow: hidden;
 }
 .tree-view > .title {
-  height: 35px;
-  line-height: 35px;
-  padding: 0 15px;
-  display: flex;
+  /* Placeholder used to be 35px tall; tightened twice (16 → 11) per user
+     feedback to lift the "Open Files" / first-root header closer to the
+     search toolbar. */
+  height: 11px;
   flex-shrink: 0;
-  flex-direction: row-reverse;
 }
 
 .icon-arrow {
@@ -428,23 +437,43 @@ onMounted(() => {
 .tree-wrapper {
   position: relative;
 }
-.empty-project {
-  font-size: 14px;
+/* New-file pseudo-row shown inside an empty root section. Visually mirrors
+   .side-bar-file (left-pad + icon + label) so it reads as "an actionable
+   file slot" rather than a CTA button — user feedback: the previous
+   centered button felt out of place. Click triggers createFile via the
+   existing CHANGE_ACTIVE_ITEM + bus emit chain. */
+.new-file-row {
   display: flex;
-  flex-direction: column;
-  padding-top: 40px;
   align-items: center;
-  color: var(--sideBarTextColor);
-  & button {
-    margin-top: 10px;
-  }
+  height: 28px;
+  font-size: 13px;
+  color: var(--sideBarColor);
+  cursor: pointer;
+  user-select: none;
+  opacity: 0.85;
+  transition: opacity 0.15s ease, background-color 0.15s ease;
 }
-
-.empty-project > a {
-  color: var(--highlightThemeColor);
-  text-align: center;
-  margin-top: 15px;
-  text-decoration: none;
+.new-file-row:hover {
+  opacity: 1;
+  background-color: var(--floatHoverColor, rgba(0, 0, 0, 0.06));
+}
+.new-file-icon {
+  flex-shrink: 0;
+  margin-right: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  /* Green tint to distinguish from real file icons. */
+  color: #2ea043;
+}
+.new-file-row:hover .new-file-icon {
+  color: #3fb950;
+}
+.new-file-label {
+  font-style: italic;
+  opacity: 0.85;
 }
 .bold {
   font-weight: 600;

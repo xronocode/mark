@@ -281,7 +281,8 @@
       "emptyProject": "Projet vide",
       "createFile": "Créer un fichier",
       "openFolder": "Ouvrir un dossier",
-      "closeFolder": "Fermer le dossier"
+      "closeFolder": "Fermer le dossier",
+      "newFile": "Nouveau fichier"
     },
     "toc": {
       "title": "Table des matières"

@@ -280,7 +280,8 @@
       "emptyProject": "Empty project",
       "createFile": "Create File",
       "openFolder": "Open Folder",
-      "closeFolder": "Close folder"
+      "closeFolder": "Close folder",
+      "newFile": "New file"
     },
     "toc": {
       "title": "Table Of Contents"

@@ -280,7 +280,8 @@
       "emptyProject": "Пустой проект",
       "createFile": "Создать файл",
       "openFolder": "Открыть папку",
-      "closeFolder": "Закрыть папку"
+      "closeFolder": "Закрыть папку",
+      "newFile": "Новый файл"
     },
     "toc": {
       "title": "Оглавление"

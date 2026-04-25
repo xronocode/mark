@@ -281,7 +281,8 @@
       "emptyProject": "空项目",
       "createFile": "创建文件",
       "openFolder": "打开文件夹",
-      "closeFolder": "关闭文件夹"
+      "closeFolder": "关闭文件夹",
+      "newFile": "新建文件"
     },
     "toc": {
       "title": "目录"

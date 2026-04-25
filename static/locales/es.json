@@ -280,7 +280,8 @@
       "emptyProject": "Proyecto vacío",
       "createFile": "Crear Archivo",
       "openFolder": "Abrir Carpeta",
-      "closeFolder": "Cerrar carpeta"
+      "closeFolder": "Cerrar carpeta",
+      "newFile": "Nuevo archivo"
     },
     "toc": {
       "title": "Tabla de Contenidos"

@@ -281,7 +281,8 @@
       "emptyProject": "空のプロジェクト",
       "createFile": "ファイルを作成",
       "openFolder": "フォルダを開く",
-      "closeFolder": "フォルダを閉じる"
+      "closeFolder": "フォルダを閉じる",
+      "newFile": "新規ファイル"
     },
     "toc": {
       "title": "目次"

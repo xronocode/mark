@@ -281,7 +281,8 @@
       "emptyProject": "Projeto vazio",
       "createFile": "Criar Arquivo",
       "openFolder": "Abrir Pasta",
-      "closeFolder": "Fechar pasta"
+      "closeFolder": "Fechar pasta",
+      "newFile": "Novo ficheiro"
     },
     "toc": {
       "title": "Índice"
