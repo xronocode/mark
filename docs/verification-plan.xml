@@ -454,6 +454,36 @@
         <no>MUST NOT spawn more than one window for the same canonical path across CLI+session restore.</no>
         <no>MUST NOT continue running under Gatekeeper translocation without explicit user acknowledgment.</no>
       </negative-assertions>
+      <closed-evidence generation="phase-b-pre2-step-1" date="2026-04-25" reborn-mark-commit="bf44252">
+        <scope>Pre-window legacy namespace detection (sub-component of M-001 bootstrap; preflight to M-005).</scope>
+        <test-file>reborn-mark/src-tauri/src/legacy.rs (#[cfg(test)] mod tests, 5 unit tests)</test-file>
+        <command-run>cd reborn-mark &amp;&amp; cargo test --bin mark</command-run>
+        <result>5/5 pass in 0.02s on rustc 1.95.0, tauri 2.10.3</result>
+        <scenarios-covered>
+          <s>detects_nothing_in_empty_root — base path with no namespaces returns LegacyLayouts::default().</s>
+          <s>detects_marktext_namespace_with_partial_files — preferences.json present, others absent; flags reflect reality.</s>
+          <s>detects_mark_namespace_full_set — preferences.json + dataCenter.json + window-state.json + Local Storage/ all present; all flags true.</s>
+          <s>detects_both_namespaces_simultaneously — marktext/ AND mark/ co-exist (real-world post-fork user); both Option&lt;LegacyNamespace&gt; populated.</s>
+          <s>ignores_namespace_when_only_a_file_not_directory — `marktext` as a regular file is NOT detected (Path::is_dir guard).</s>
+        </scenarios-covered>
+        <log-markers-emitted>
+          <marker>[legacy][detect][BLOCK_LEGACY_FOUND] marktext=... mark=...</marker>
+          <marker>[legacy][detect][BLOCK_LEGACY_NONE]</marker>
+        </log-markers-emitted>
+        <real-world-smoke>
+          <command>./target/debug/mark (5s, real $HOME=/Users/myevdokimov, SIGTERM)</command>
+          <stderr-captured>[legacy][detect][BLOCK_LEGACY_FOUND] marktext=Some("/Users/myevdokimov/Library/Application Support/marktext") mark=Some("/Users/myevdokimov/Library/Application Support/mark")</stderr-captured>
+          <window-side-effect>None — pre-window path runs to completion before tauri::Builder::default() is constructed.</window-side-effect>
+        </real-world-smoke>
+        <constraints-honored>
+          <c>Read-only filesystem stat (Path::is_dir, Path::is_file). Zero JSON parsing, zero writes, zero network.</c>
+          <c>Stdlib-only production code (no dirs/dirs-next/directories crate). tempfile only in dev-dependencies for unit tests.</c>
+          <c>macOS-only namespace path; Linux/Windows handled by a follow-up step (Phase-B-pre2 step-2 introduces sys_locale + cross-platform paths via mt_paths).</c>
+        </constraints-honored>
+        <deferred-followup>
+          Multi-root populated v1.1.0 fixture (F-PRE1-FOLLOWUP-1) still owned by V-MIGRATE-MULTIROOT scenario in a later step; not blocking this evidence packet.
+        </deferred-followup>
+      </closed-evidence>
     </V-M-001>
 
     <V-M-002 MODULE="M-002 mt-fs-commands" PRIORITY="critical">
