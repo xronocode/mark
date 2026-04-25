@@ -387,6 +387,26 @@ class WindowManager extends EventEmitter {
       this._appMenu.updateAlwaysOnTopMenu(win.id, flag)
     })
 
+    // V-A6-7: renderer's projectStore.CLOSE_PROJECT(rootPathname) sends this.
+    // Resolve the EditorWindow scope strictly via fromWebContents (sender
+    // identity), never trust the pathname payload as a cross-window key —
+    // a path that's a root of window 1 must not be closeable from window 2.
+    ipcMain.on('mt::close-project-root', (e, pathname) => {
+      const win = BrowserWindow.fromWebContents(e.sender)
+      if (!win || win.isDestroyed()) {
+        log.debug('[WindowManager][onCloseProjectRoot][BLOCK_SKIP_DEAD_WINDOW] reason=fromWebContents-null')
+        return
+      }
+      log.debug(`[WindowManager][onCloseProjectRoot][BLOCK_DISPATCH] winId=${win.id} path=${pathname}`)
+      const editor = this.get(win.id)
+      if (!editor || typeof editor.closeFolder !== 'function') {
+        log.debug(`[WindowManager][onCloseProjectRoot][BLOCK_NOOP_UNKNOWN_PATH] winId=${win.id} path=${pathname}`)
+        return
+      }
+      // editor.closeFolder is idempotent — unknown path → no-op + miss log.
+      editor.closeFolder(pathname)
+    })
+
     // v1.0.3: auto-resize feature disabled. v1.0.1's
     // `mt::request-window-content-size` handler was implicated in a
     // silent main-process exit on cold start (after this listener was
