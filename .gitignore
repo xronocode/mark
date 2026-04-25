@@ -1,23 +1,24 @@
-# mark-electron/ = Phase-A modernization track (fork with 12 PRs merged, still Electron).
-# Separate working copy cloned from xronocode/mark#modernize. See SETUP.md.
+# --- Working copies (separate git repos that have their own remotes) ---
+# Phase-A modernized Electron product (live remote: github.com/xronocode/mark on branch electron).
 mark-electron/
-
-# reborn-mark/ = Phase-B Tauri rewrite (the real "reborn" on new stack).
-# Currently empty; scaffolded via `cargo tauri init` during Phase-B1.
-# When populated, it will also be a separate working copy (branch `reborn` of xronocode/mark).
+# Phase-B Tauri rewrite (will scaffold via `cargo tauri init` in Phase-B1).
 reborn-mark/
+# Homebrew tap (live remote: github.com/xronocode/homebrew-mark).
+homebrew-mark/
+# Pristine upstream snapshot, read-only reference.
+marktext/
 
-# Node / Yarn byproducts (in case any sneak in)
+# --- Node / build byproducts ---
 node_modules/
 .pnpm-store/
 dist/
 build/
 
-# Tooling
+# --- Tooling ---
 .DS_Store
 .vscode/
 .idea/
 *.log
 
-# Our own transient state
+# --- Transient agent state ---
 .claude/
