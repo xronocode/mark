@@ -30,22 +30,24 @@ All credit for the editor itself goes to Jocs, tkaixiang, and the marktext commu
 
 ## Installing
 
-> ⚠️ Beta releases. Please report bugs in the [issue tracker](https://github.com/xronocode/mark/issues).
+> ℹ️ Early releases — please file bugs in the [issue tracker](https://github.com/xronocode/mark/issues). Per-version notes live in [CHANGELOG.md](CHANGELOG.md).
 
-### macOS (Apple Silicon and Intel)
-
-Coming soon via Homebrew tap:
+### macOS (Apple Silicon)
 
 ```bash
 brew tap xronocode/mark
 brew install --cask mark
 ```
 
-The cask postflight script clears the quarantine attribute automatically, so no manual `xattr -cr` is needed. Until the cask is published, see the [Releases page](https://github.com/xronocode/mark/releases).
+The cask postflight clears the quarantine attribute automatically — no manual `xattr -cr` is needed. Builds are ad-hoc signed (`codesign --sign -`), not Apple-notarized.
+
+### macOS (Intel)
+
+Intel x86_64 is not in v1.0.0 (the macos-13 GitHub Actions runner failed to schedule during the release window). Coming in v1.0.1.
 
 ### Windows / Linux
 
-See the [Releases page](https://github.com/xronocode/mark/releases). For Arch Linux, the upstream `marktext-tkaixiang-bin` AUR package by [@kromsam](https://github.com/kromsam) is also a viable choice.
+Download from the [Releases page](https://github.com/xronocode/mark/releases). Best-effort builds; Linux supports `.AppImage`, `.deb`, `.rpm`, `.snap`, `.tar.gz`. For Arch Linux, the upstream [marktext-tkaixiang-bin](https://aur.archlinux.org/packages/marktext-tkaixiang-bin) AUR package by [@kromsam](https://github.com/kromsam) is also a viable choice.
 
 ## Screenshots
 
@@ -140,6 +142,23 @@ npm run build
 unset ELECTRON_RUN_AS_NODE
 PERF_TESTING=true ./node_modules/.bin/electron .
 ```
+
+## Releases
+
+Per-version notes live in [CHANGELOG.md](CHANGELOG.md). Release artifacts (DMG, ZIP, AppImage, deb, rpm, snap, exe) are attached to the corresponding [GitHub Release](https://github.com/xronocode/mark/releases).
+
+The release pipeline is `.github/workflows/release.yml`: pushing a tag `vX.Y.Z` triggers a draft Release with binaries for macOS arm64, Linux, and Windows. Maintainers manually publish the draft after CI completes.
+
+### Maintainer cheatsheet
+
+To ship a new version:
+1. Land all changes on `main`.
+2. Bump `version` in `package.json` and `package-lock.json`.
+3. Add a new section to `CHANGELOG.md`.
+4. Update the `Installing` section here if anything changed (e.g., new platform support, install caveat).
+5. Tag: `git tag -a vX.Y.Z -m "..."` and `git push origin vX.Y.Z`.
+6. Wait for CI; once green, click **Publish release** in the GitHub UI (or `gh release edit vX.Y.Z --draft=false`).
+7. Refresh the cask in [xronocode/homebrew-mark](https://github.com/xronocode/homebrew-mark/blob/main/Casks/mark.rb): bump `version` and `sha256` (read sha256 from the GitHub asset API: `gh release view vX.Y.Z --json assets`).
 
 ## License
 
