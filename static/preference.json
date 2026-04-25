@@ -66,6 +66,7 @@
 
   "sideBarVisibility": false,
   "tabBarVisibility": false,
+  "autoSnapWindowWidth": true,
   "sourceCodeModeEnabled": false,
 
   "searchExclusions": [],

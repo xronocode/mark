@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain } from 'electron'
+import { app, BrowserWindow, ipcMain, screen } from 'electron'
 import EventEmitter from 'events'
 import log from 'electron-log'
 import Watcher, {
@@ -63,6 +63,7 @@ class WindowManager extends EventEmitter {
     super()
 
     this._appMenu = appMenu
+    this._preferences = preferences
 
     this._activeWindowId = null
     this._windows = new Map()
@@ -384,6 +385,44 @@ class WindowManager extends EventEmitter {
       const flag = !win.isAlwaysOnTop()
       win.setAlwaysOnTop(flag)
       this._appMenu.updateAlwaysOnTopMenu(win.id, flag)
+    })
+
+    // V-A5-2: auto-resize window content width on renderer request.
+    // Renderer sends desired content width on sidebar toggle and on
+    // initial editor load. Main side gates on user preference and on
+    // window state (skip when maximized/fullscreen/destroyed) and
+    // never touches height.
+    ipcMain.on('mt::request-window-content-size', (e, { width, height } = {}) => {
+      const win = BrowserWindow.fromWebContents(e.sender)
+      if (!win || win.isDestroyed()) {
+        // Sender is gone — graceful no-op.
+        return
+      }
+      const autoSnap = this._preferences.getItem('autoSnapWindowWidth')
+      if (autoSnap === false) {
+        log.debug('[Window][handleResizeRequest][BLOCK_SKIP_PREFERENCE_OFF]')
+        return
+      }
+      if (win.isMaximized() || win.isFullScreen()) {
+        log.debug('[Window][handleResizeRequest][BLOCK_SKIP_MAXIMIZED]')
+        return
+      }
+      if (typeof width !== 'number' || width <= 0) {
+        log.debug(`[Window][handleResizeRequest][BLOCK_SKIP_BAD_REQUEST] width=${width}`)
+        return
+      }
+      const [currentWidth, currentHeight] = win.getContentSize()
+      const targetHeight = typeof height === 'number' && height > 0 ? height : currentHeight
+      // Clamp to current display work-area minus a small breathing room.
+      const display = screen.getDisplayMatching(win.getBounds())
+      const maxWidth = Math.max(360, display.workArea.width - 24)
+      const clampedWidth = Math.min(Math.round(width), maxWidth)
+      if (Math.abs(clampedWidth - currentWidth) < 2) {
+        // Already at target within rounding tolerance — skip churn.
+        return
+      }
+      log.debug(`[Window][handleResizeRequest][BLOCK_APPLY] from=${currentWidth} to=${clampedWidth} h=${targetHeight}`)
+      win.setContentSize(clampedWidth, targetHeight)
     })
 
     // --- local events ---------------

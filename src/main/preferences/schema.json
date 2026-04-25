@@ -342,6 +342,11 @@
     "type": "boolean",
     "default": false
   },
+  "autoSnapWindowWidth": {
+    "description": "View--Auto-resize window content width on sidebar toggle and on initial editor load (target width = sideBarWidth + editor ideal width).",
+    "type": "boolean",
+    "default": true
+  },
   "tabBarVisibility": {
     "description": "View--Whether the tabs are shown.--internal",
     "type": "boolean",

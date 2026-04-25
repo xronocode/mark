@@ -5,6 +5,19 @@ import { usePreferencesStore } from './preferences'
 const width = localStorage.getItem('side-bar-width')
 const sideBarWidth = typeof +width === 'number' ? Math.max(+width, 220) : 280
 
+// V-A5-2: comfortable editor content width. Final window content width is
+// computed as `EDITOR_IDEAL_CONTENT_WIDTH + (showSideBar ? sideBarWidth : 0)`.
+// Tuned for ~80-char prose lines plus chrome and scrollbar breathing room.
+const EDITOR_IDEAL_CONTENT_WIDTH = 820
+
+function requestWindowResize (state) {
+  const sidebarPart = state.showSideBar ? state.sideBarWidth : 0
+  const targetWidth = sidebarPart + EDITOR_IDEAL_CONTENT_WIDTH
+  // eslint-disable-next-line no-console
+  console.debug(`[Layout][TOGGLE_LAYOUT_ENTRY][BLOCK_REQUEST_RESIZE] showSideBar=${state.showSideBar} sidebarPart=${sidebarPart} targetWidth=${targetWidth}`)
+  window.electron.ipcRenderer.send('mt::request-window-content-size', { width: targetWidth })
+}
+
 export const useLayoutStore = defineStore('layout', {
   state: () => ({
     rightColumn: 'files',
@@ -33,7 +46,15 @@ export const useLayoutStore = defineStore('layout', {
           type: 'sideBarVisibility',
           value: !!this.showSideBar
         })
+        requestWindowResize(this)
       }
+    },
+
+    REQUEST_INITIAL_WINDOW_RESIZE() {
+      // Called once after editor bootstrap so window snaps to ideal width.
+      // Main process gates on `autoSnapWindowWidth` preference + window
+      // state, so this is safe to call unconditionally.
+      requestWindowResize(this)
     },
     SET_SIDE_BAR_WIDTH(width) {
       // TODO: Add side bar to session (GH#732).

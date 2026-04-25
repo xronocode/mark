@@ -609,6 +609,10 @@ export const useEditorStore = defineStore('editor', {
           showTabBar: !!tabBarVisibility
         })
         layoutStore.DISPATCH_LAYOUT_MENU_ITEMS()
+        // V-A5-2: snap window content width to ideal once after the
+        // initial layout is settled. Main process gates on user pref
+        // and window state, so unconditional call is safe.
+        layoutStore.REQUEST_INITIAL_WINDOW_RESIZE()
         preferencesStore.SET_MODE({
           type: 'sourceCode',
           checked: !!sourceCodeModeEnabled
