@@ -112,7 +112,10 @@ jobs:
       - name: Release
         uses: softprops/action-gh-release@v2
         with:
-          draft: false
+          # Draft until the maintainer manually clicks "Publish release" in the
+          # GitHub UI. This contains the blast radius if a build job partially
+          # fails — half-baked artifacts never surface publicly.
+          draft: true
           prerelease: ${{ contains(github.ref_name, '-beta') || contains(github.ref_name, '-rc') || contains(github.ref_name, '-alpha') }}
           generate_release_notes: true
           name: Mark ${{ github.ref_name }}

@@ -13,3 +13,5 @@ temp/
 logs/
 *.min.json
 .claude/settings.local.json
+# Build-time copy of src/muya/themes (regenerated on each build)
+static/themes/
