@@ -1027,18 +1027,19 @@
       <goal>GitHub Actions release pipeline + Homebrew cask `mark` in xronocode/homebrew-mark working on a fresh macOS VM.</goal>
       <step-1 status="done">electron-builder.yml: appId com.xronocode.mark, productName Mark, mac.identity null, afterPack scripts/ad-hoc-sign.js. package.json identity fields rebranded.</step-1>
       <step-2 status="done">.github/workflows/release.yml rewritten: matrix macos-14 (arm64, blocking), macos-13 (x64, blocking), ubuntu-22.04 + windows-latest (continue-on-error). Inline minify-locales + vite + electron-builder steps; ad-hoc signature verification step.</step-2>
-      <step-3 status="pending" blocking="USER">User creates empty public repo at https://github.com/xronocode/homebrew-mark.</step-3>
-      <step-4 status="done">Casks/mark.rb in /Users/myevdokimov/prj/mark/homebrew-mark/ rewritten: arch-aware (arm/intel), version 1.0.0 placeholder, sha256 placeholders to be filled after first release, livecheck github_latest, postflight xattr -cr, depends_on macos &gt;= big_sur.</step-4>
-      <step-5 status="pending" blocking="USER">After Phase-A4 ships v1.0.0 DMGs and cask sha256 is updated, test on clean macOS: `brew tap xronocode/mark &amp;&amp; brew install --cask mark &amp;&amp; open -a Mark`.</step-5>
+      <step-3 status="done">User created public repo xronocode/homebrew-mark.</step-3>
+      <step-4 status="done">Casks/mark.rb finalized for v1.0.0: arm64-only (on_arm + on_intel odie message), real sha256 f80a072c..., URL pointing at xronocode/mark v1.0.0 release DMG, livecheck github_latest, postflight xattr -cr, depends_on macos &gt;= big_sur. Pushed to xronocode/homebrew-mark main.</step-4>
+      <step-5 status="pending" blocking="USER">User clicks "Publish release" on the v1.0.0 draft at github.com/xronocode/mark/releases (currently at untagged URL because draft mode), then runs `brew tap xronocode/mark &amp;&amp; brew install --cask mark &amp;&amp; open -a Mark`.</step-5>
       <step-6 status="pending" blocking="USER">Verify Gate-Phase-A3. [USER REVIEW]</step-6>
     </Phase-A3>
 
-    <Phase-A4 name="v1.0 Release" status="pending">
+    <Phase-A4 name="v1.0 Release" status="in-progress">
       <goal>v1.0.0 tagged and shipped.</goal>
-      <step-1 status="pending">Tag v1.0.0 on modernize branch.</step-1>
-      <step-2 status="pending">Verify all 16 UCs on fresh-install.</step-2>
-      <step-3 status="pending">Write release notes: per-PR changelog with author attribution.</step-3>
-      <step-4 status="pending">Verify Gate-Phase-A4. [USER REVIEW]</step-4>
+      <step-1 status="done">Tagged v1.0.0 on v1-on-tkaixiang branch and pushed to fork. After 4 CI iterations (CXXFLAGS for .mm, gnu++17 for v8 headers, gnu++20 for Electron 41, GITHUB_TOKEN contents:write), build pipeline produced arm64 DMG, linux artifacts, windows installer in a draft release.</step-1>
+      <step-1b status="done">Verified x64 DMG cross-built on macos-14 runner had arm64 native modules (broken on Intel); deleted x64 dmg/zip from draft. Cancelled queued macos-13 job (runner queue never freed during release window). Intel deferred to v1.0.1.</step-1b>
+      <step-2 status="pending" blocking="USER">After draft is published (step-3 below), verify all 16 UCs on a fresh `brew install --cask mark` install.</step-2>
+      <step-3 status="done">Release notes written into draft body via gh release edit (per-PR attribution: @Wordbe / @Bowl42 / @Sebastion / @hubo1989 / Jocs / tkaixiang chain). CHANGELOG.md committed in repo.</step-3>
+      <step-4 status="pending" blocking="USER">Click "Publish release" on the v1.0.0 draft → release URL becomes canonical and cask URL resolves. Verify Gate-Phase-A4. [USER REVIEW]</step-4>
     </Phase-A4>
 
     <Phase-B1 name="Tauri Skeleton" status="pending">
