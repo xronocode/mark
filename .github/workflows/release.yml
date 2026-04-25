@@ -59,10 +59,16 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # Electron 33+ requires C++20 to build native modules.
+      # Electron 33+ requires C++20 to build native modules. Native modules
+      # like native-keymap include Objective-C++ (.mm) sources whose compiler
+      # invocation respects OBJCXXFLAGS / xcode_settings, not CXXFLAGS — set
+      # both so .cc/.cpp and .mm files agree on the language standard.
       - name: Set C++20 flags (macOS)
         if: startsWith(matrix.os, 'macos-')
-        run: echo "CXXFLAGS=-std=gnu++20 -stdlib=libc++" >> $GITHUB_ENV
+        run: |
+          echo "CXXFLAGS=-std=gnu++20 -stdlib=libc++" >> $GITHUB_ENV
+          echo "OBJCXXFLAGS=-std=gnu++20 -stdlib=libc++" >> $GITHUB_ENV
+          echo "GYP_DEFINES=clang_cxx_language_standard=c++20 mac_deployment_target=11.0" >> $GITHUB_ENV
 
       - name: Rebuild native modules (macOS / Windows)
         if: ${{ !startsWith(matrix.os, 'ubuntu-') }}
