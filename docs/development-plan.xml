@@ -1042,6 +1042,45 @@
       <step-4 status="pending" blocking="USER">Click "Publish release" on the v1.0.0 draft → release URL becomes canonical and cask URL resolves. Verify Gate-Phase-A4. [USER REVIEW]</step-4>
     </Phase-A4>
 
+    <Phase-A5 name="v1.0.1 polish: titlebar sidebar toggle + auto-resize + preferences typography" status="pending">
+      <goal>First post-v1.0 polish release. Three discrete UX improvements driven by user feedback after v1.0.0 brew install. No new modules, all changes within existing renderer + main process surfaces.</goal>
+      <rationale>v1.0.0 surfaced three usability frictions: (a) no quick way to hide sidebar without a keyboard shortcut or menu dive — Claude/ChatGPT-style titlebar toggle is the expected pattern; (b) sidebar toggle changes the visible editor width but window stays the same — content jumps left/right unpredictably; (c) Preferences sidebar `.item` font (18px in a 280px column with 28px icon) reads as too heavy relative to the new 22px page-title hierarchy.</rationale>
+
+      <step-A5-1 status="pending" verification="V-A5-1">Add a "panel-left" SVG icon button to `src/renderer/src/components/titleBar/index.vue` `.left-toolbar` (next to the existing menu button). Click dispatches the existing layout-store action `TOGGLE_LAYOUT_ENTRY` with `type='showSideBar'`. Style: 24x24, hover, `class="title-no-drag"`. Active state highlights when sidebar is visible.</step-A5-1>
+
+      <step-A5-2 status="pending" verification="V-A5-2">Add new IPC `mt::request-window-content-size` (renderer → main → `BrowserWindow.setContentSize`). Wire from layout store: on sidebar toggle, request width = `EDITOR_IDEAL_WIDTH (800px) + (showSideBar ? sideBarWidth : 0) + chromePadding`. On file open also request to ideal width. Add preference `autoSnapWindowWidth` (default true) to allow opt-out. Height untouched.</step-A5-2>
+
+      <step-A5-3 status="pending" verification="V-A5-3">Tighten Preferences typography:
+        - `prefComponents/sideBar/index.vue` `.item`: font-size 18px → 15px; height 50px → 42px; icon 28x28 → 22x22.
+        - `prefComponents/common/compound/index.vue` `h6.title`: font-size 1.1em → 1.2em (15.4px → 16.8px).
+        Resulting hierarchy: page h4 22 &gt; sidebar h3 20 &gt; section h6 16.8 &gt; sidebar item 15 &gt; form labels 14.</step-A5-3>
+
+      <step-A5-4 status="pending">CHANGELOG.md v1.0.1 entry; bump package.json + package-lock to 1.0.1; commit; tag v1.0.1; push to fork; CI builds; download arm64 dmg + zip; refresh Casks/mark.rb sha256 + version; push tap; user runs `brew upgrade --cask mark`.</step-A5-4>
+    </Phase-A5>
+
+    <Phase-A6 name="v1.1.0 multi-root workspace" status="pending">
+      <goal>Sidebar supports multiple opened folders simultaneously. Click 📂 with projects loaded ADDS another root rather than replacing. Each root has a ✕ close-button (no new menu items). Tree renders v-for over array; search ranges across all roots; nested-root rejected with notification. Persistence (lastOpenedFolders[]) deferred to v1.2.</goal>
+      <rationale>v1.1.0 sidebar redesign moved Files/TOC/Settings icons to titlebar. Once 📂 became a top-level affordance, the natural next step was multi-folder UX (like VSCode workspace). Single-root storage in ProjectStore + main-side _openedRootDirectory limits the design; refactoring to array unlocks the new UX without expanding the menu surface.</rationale>
+
+      <step-A6-1 status="pending" verification="V-A6-1">ProjectStore refactor: state.projectTree → state.projectTrees[]. New ADD_PROJECT(canonical-path) with dedup + nested-rejection + notification. New CLOSE_PROJECT(rootPath) emits mt::close-project-root IPC. _processTreeEvent uses longest-prefix path-segment match (NOT raw startsWith). pendingTreeEvents bucketed per-root.</step-A6-1>
+
+      <step-A6-2 status="pending" verification="V-A6-2">treeCtrl invariants under multi-root: addFile/unlinkFile/addDirectory/unlinkDirectory unchanged signature, but defensive containment guard added (BLOCK_REJECT_OUT_OF_TREE) in case dispatcher routes wrong tree.</step-A6-2>
+
+      <step-A6-3 status="pending" verification="V-A6-3">tree.vue: remove v-if="projectTree" single-root branch; add v-for="root in projectTrees" with :key="root.pathname". Each root section header gets a ✕ close-button (small accent button, focusable, calls projectStore.CLOSE_PROJECT). Empty-state shows when projectTrees.length===0. INTERACTIVE CHECKPOINT here — manual smoke before proceeding.</step-A6-3>
+
+      <step-A6-4 status="pending" verification="V-A6-4">store/search.js runSearch(): pass array of pathnames to ripgrepDirectorySearcher.search([...]). Empty-roots short-circuit. Cancel logic preserved.</step-A6-4>
+
+      <step-A6-5 status="pending" verification="V-A6-5">titleBar/index.vue handleNavClick smart logic: 📂 with sidebar open AND on Files view AND ≥1 project → opens Finder (add-another); no projects → opens Finder (first-folder); other paths → switch view, no dialog. Add log markers per V-A6-5.</step-A6-5>
+
+      <step-A6-6 status="pending" verification="V-A6-6">main/windows/editor.js: _openedRootDirectory: string → _openedRootDirectories: Set&lt;string&gt;. New openFolder(pathname, {mode='add'|'replace'}) and closeFolder(pathname). Refuse nested-inside-existing (and reverse-nested) with realpath comparison. Idempotent re-add. Watcher respawn on death.</step-A6-6>
+
+      <step-A6-7 status="pending" verification="V-A6-7">main/app/windowManager.js: new ipcMain.on('mt::close-project-root') handler — resolves window via fromWebContents, calls editor.closeFolder, idempotent + dead-window guard. Verify watcher-watch-directory and watcher-unwatch-directory remain single-path scope (NOT unwatchByWindowId).</step-A6-7>
+
+      <step-A6-8 status="pending">i18n strings: close-folder tooltip + nested-root notification across 10 locales. Regen *.min.json.</step-A6-8>
+
+      <step-A6-9 status="pending">Build + WT-1 (open two roots, search, close one) + WT-2 (nested-root refusal) interactive smoke. THEN tag v1.1.0 + CI + cask refresh + brew upgrade verify.</step-A6-9>
+    </Phase-A6>
+
     <Phase-B1 name="Tauri Skeleton" status="pending">
       <goal>Tauri dev env boots, muya runs in WebView.</goal>
       <step-1 module="M-001" status="pending" verification="V-M-001">Init `cargo tauri init` on top of v1.0 frontend.</step-1>

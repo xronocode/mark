@@ -1429,6 +1429,536 @@
         <no>MUST NOT silently truncate oversize payloads; surface `E_PAYLOAD_TOO_LARGE`.</no>
       </negative-assertions>
     </V-M-013>
+
+    <!--
+      V-A5-* — patch-level verification for Phase-A5 (v1.0.1 polish).
+      No new modules introduced; these entries verify three discrete UX
+      changes applied to existing renderer + main components.
+      Deterministic-first per skill guidance: prefer source-fingerprint
+      grep + visible-state asserts over trace evaluation. Trace markers
+      only where the toggle/resize path needs to be debuggable post-hoc.
+    -->
+    <V-A5-1 STEP="step-A5-1" PRIORITY="high" SCOPE="renderer-titlebar">
+      <intent>Add a sidebar-toggle icon button to the editor titlebar (next to the existing menu button) that drives the same Pinia layout-store action as the keyboard shortcut.</intent>
+      <touched-files>
+        <file>src/renderer/src/components/titleBar/index.vue</file>
+        <file>src/renderer/src/store/layout.js (read-only verification — should not change)</file>
+      </touched-files>
+      <module-checks>
+        <check-1>npm run build (must exit 0; no Vue compile errors)</check-1>
+        <check-2>grep -E 'sidebar-toggle|panel-left|TOGGLE_LAYOUT_ENTRY.*showSideBar' src/renderer/src/components/titleBar/index.vue | wc -l (must be &gt;= 2: at least the icon + the click handler reference)</check-2>
+        <check-3>grep -F 'title-no-drag' src/renderer/src/components/titleBar/index.vue (must contain — button must escape drag region)</check-3>
+      </module-checks>
+      <scenarios>
+        <scenario-1 kind="success">Button is visible in the left-toolbar of the titlebar at app start.</scenario-1>
+        <scenario-2 kind="success">Click toggles the sidebar (same effect as Cmd+J / View → Toggle Sidebar).</scenario-2>
+        <scenario-3 kind="success">Active state (highlight or filled icon) reflects current `showSideBar` boolean.</scenario-3>
+        <scenario-4 kind="failure">Click on the button must NOT propagate to drag-window region — `title-no-drag` class must cancel `-webkit-app-region: drag`.</scenario-4>
+      </scenarios>
+      <required-log-markers>
+        <marker-1>[TitleBar][onSidebarToggleClick][BLOCK_DISPATCH] { nextShowSideBar: bool }</marker-1>
+      </required-log-markers>
+      <smoke-procedure>
+        <step-1>Launch app: `unset ELECTRON_RUN_AS_NODE &amp;&amp; PERF_TESTING=true ./node_modules/.bin/electron .`</step-1>
+        <step-2>Visually confirm icon button to the right of menu button in titlebar.</step-2>
+        <step-3>Click button — sidebar collapses (or expands, depending on initial state).</step-3>
+        <step-4>Click again — sidebar returns to opposite state.</step-4>
+        <step-5>Verify Cmd+J still works and is in sync with the button's active state.</step-5>
+      </smoke-procedure>
+      <negative-assertions>
+        <no>MUST NOT introduce a second source of truth for sidebar visibility — button reads + writes the same Pinia `layout.showSideBar` field.</no>
+        <no>MUST NOT break the existing menu button or word counter in the titlebar.</no>
+      </negative-assertions>
+    </V-A5-1>
+
+    <V-A5-2 STEP="step-A5-2" PRIORITY="high" SCOPE="renderer+main-window-resize">
+      <intent>When sidebar toggles or a file is opened, request the main process to set the BrowserWindow content size to a comfortable editor width (with sidebar accounted for if visible). Allow opt-out via preference `autoSnapWindowWidth`.</intent>
+      <touched-files>
+        <file>src/main/windows/editor.js (new ipcMain handler for `mt::request-window-content-size`)</file>
+        <file>src/renderer/src/store/layout.js (emit IPC after toggle)</file>
+        <file>src/renderer/src/store/editor.js (emit IPC after file open) OR src/renderer/src/components/editorWithTabs/editor.vue (whichever owns the open-file event)</file>
+        <file>src/renderer/src/store/preferences.js (add `autoSnapWindowWidth: boolean` field, default true)</file>
+        <file>static/preference.json (add new preference key)</file>
+      </touched-files>
+      <module-checks>
+        <check-1>npm run build (must exit 0)</check-1>
+        <check-2>grep -F 'mt::request-window-content-size' src/main/windows/editor.js (handler registered)</check-2>
+        <check-3>grep -F 'mt::request-window-content-size' src/renderer/src/store/layout.js (renderer emits it)</check-3>
+        <check-4>grep -E 'autoSnapWindowWidth' src/renderer/src/store/preferences.js static/preference.json (preference declared in both)</check-4>
+        <check-5>grep -F 'setContentSize' src/main/windows/editor.js (the IPC actually drives Electron API)</check-5>
+      </module-checks>
+      <scenarios>
+        <scenario-1 kind="success">Open a markdown file with sidebar HIDDEN → window content width becomes ≈ 800px (EDITOR_IDEAL_WIDTH).</scenario-1>
+        <scenario-2 kind="success">Toggle sidebar ON from this state → window content width grows by exactly `sideBarWidth` (default 280, 220 min); height unchanged.</scenario-2>
+        <scenario-3 kind="success">Toggle sidebar OFF → window content width shrinks back by `sideBarWidth`; height unchanged.</scenario-3>
+        <scenario-4 kind="failure">When `autoSnapWindowWidth=false` in preferences → no resize occurs on toggle or file open. The IPC must short-circuit before calling `setContentSize`.</scenario-4>
+        <scenario-5 kind="failure">When window is maximized or fullscreen → no resize attempted (Electron `setContentSize` would silently fail; we MUST detect and skip with a log marker).</scenario-5>
+        <scenario-6 kind="failure">IPC sender does not match the focused window OR window has been destroyed → main process MUST NOT crash; gracefully ignore.</scenario-6>
+        <scenario-7 kind="contract">Toggle ON immediately followed by toggle OFF (rapid click) → final width equals initial width within ±2px (debounce or coalesce).</scenario-7>
+      </scenarios>
+      <required-log-markers>
+        <marker-1>[Layout][TOGGLE_LAYOUT_ENTRY][BLOCK_REQUEST_RESIZE] { type, showSideBar, requestedDeltaPx }</marker-1>
+        <marker-2>[Window][handleResizeRequest][BLOCK_APPLY] { fromWidth, toWidth, height }</marker-2>
+        <marker-3>[Window][handleResizeRequest][BLOCK_SKIP_MAXIMIZED]</marker-3>
+        <marker-4>[Window][handleResizeRequest][BLOCK_SKIP_PREFERENCE_OFF]</marker-4>
+      </required-log-markers>
+      <required-trace-assertions>
+        <assertion-1>For each toggle, exactly one BLOCK_REQUEST_RESIZE on renderer side AND exactly one BLOCK_APPLY (or one of the BLOCK_SKIP_*) on main side. No double-fires.</assertion-1>
+        <assertion-2>BLOCK_APPLY's `fromWidth + (showSideBar ? +sideBarWidth : -sideBarWidth) === toWidth` within ±2px.</assertion-2>
+      </required-trace-assertions>
+      <smoke-procedure>
+        <step-1>Launch app, sidebar OFF (closed), note window content width via DevTools `window.innerWidth`.</step-1>
+        <step-2>Open a markdown file → width snaps to ≈ 800px (within ±32px chrome padding).</step-2>
+        <step-3>Click sidebar toggle (or Cmd+J) — width grows by ≈ 280px; height unchanged; visible editor area not jumpy.</step-3>
+        <step-4>Click again → width returns to ≈ 800px.</step-4>
+        <step-5>In Preferences, disable autoSnapWindowWidth, restart, repeat steps 1-4 — window does NOT auto-resize.</step-5>
+        <step-6>Maximize window, then toggle sidebar — main process logs BLOCK_SKIP_MAXIMIZED, no resize attempted.</step-6>
+      </smoke-procedure>
+      <negative-assertions>
+        <no>MUST NOT change window position (only `setContentSize`, never `setBounds` with x/y change).</no>
+        <no>MUST NOT change window height under any scenario.</no>
+        <no>MUST NOT call setContentSize while window is maximized or fullscreen — silent failure on these paths is harder to debug than an explicit BLOCK_SKIP marker.</no>
+        <no>MUST NOT crash main process on IPC from a destroyed window (BrowserWindow.fromWebContents may return null).</no>
+      </negative-assertions>
+      <edge-cases>
+        <ec kind="concurrency" severity="medium">User holds Cmd+J / clicks rapidly: must coalesce or debounce; no oscillating width.</ec>
+        <ec kind="failure" severity="medium">Display change between toggle ON and OFF (e.g., monitor unplugged, screen smaller than ideal width): clamp to current display work-area width minus 24px.</ec>
+        <ec kind="contract" severity="low">Multiple windows open: each window resizes independently based on ITS sender, never affects sibling windows.</ec>
+      </edge-cases>
+    </V-A5-2>
+
+    <V-A5-3 STEP="step-A5-3" PRIORITY="medium" SCOPE="renderer-preferences-css">
+      <intent>Tighten the Preferences sidebar list-item typography and section heading sizing so the visual hierarchy reads page h4 (22) &gt; sidebar h3 (20) &gt; section h6 (16.8) &gt; sidebar item (15) &gt; form labels (14).</intent>
+      <touched-files>
+        <file>src/renderer/src/prefComponents/sideBar/index.vue (.item font-size, height, icon size)</file>
+        <file>src/renderer/src/prefComponents/common/compound/index.vue (h6.title font-size)</file>
+      </touched-files>
+      <module-checks>
+        <check-1>npm run build (must exit 0)</check-1>
+        <check-2>grep -nE 'font-size:\s*15px' src/renderer/src/prefComponents/sideBar/index.vue (sidebar .item is now 15px)</check-2>
+        <check-3>grep -nE 'height:\s*42px' src/renderer/src/prefComponents/sideBar/index.vue (sidebar .item height reduced)</check-3>
+        <check-4>grep -nE 'width:\s*22px;\s*height:\s*22px' src/renderer/src/prefComponents/sideBar/index.vue (icon resized to 22)</check-4>
+        <check-5>grep -nE 'font-size:\s*1\.2em' src/renderer/src/prefComponents/common/compound/index.vue (h6.title bumped)</check-5>
+        <check-6>! grep -E 'font-size:\s*18px' src/renderer/src/prefComponents/sideBar/index.vue (must be NO 18px in sidebar — old value gone)</check-6>
+      </module-checks>
+      <scenarios>
+        <scenario-1 kind="success">Open Preferences (Cmd+,) — sidebar items render at 15px, all icons at 22x22, list item height ≈ 42px.</scenario-1>
+        <scenario-2 kind="success">Open any preferences section (e.g., Editor) — section h6 titles render at ≈ 16.8px.</scenario-2>
+        <scenario-3 kind="contract">Resulting hierarchy when measured in DevTools: page h4 22 &gt; sidebar h3 20 &gt; section h6 16.8 &gt; sidebar item 15 &gt; form labels 14. No two adjacent levels have the same size.</scenario-3>
+        <scenario-4 kind="success">Both light and dark themes apply the new typography without theme-CSS regressions.</scenario-4>
+      </scenarios>
+      <smoke-procedure>
+        <step-1>Open app → Cmd+, → Preferences modal opens.</step-1>
+        <step-2>Inspect sidebar item (e.g., "General") — DevTools computed font-size = 15px, height = 42px.</step-2>
+        <step-3>Click into "Editor" section — first h6 title font-size = 16.8px.</step-3>
+        <step-4>Switch theme (light → dark) — sizes unchanged; only colors flip.</step-4>
+      </smoke-procedure>
+      <negative-assertions>
+        <no>MUST NOT touch any other typography (page h4, sidebar h3 stay as set in v1.0.0).</no>
+        <no>MUST NOT introduce hard-coded colors — only sizes change.</no>
+      </negative-assertions>
+    </V-A5-3>
+
+    <!--
+      V-A6-* — verification for Phase-A6 (v1.1.0 multi-root workspace).
+      Generated by grace-verification swarm 2026-04-25 across 7 parallel
+      agents, one per touched module. Style follows V-A5-* — deterministic
+      grep + state-assertion checks first, trace markers for branch
+      decisions and failure-path scoping.
+    -->
+    <V-A6-1 STEP="step-A6-1" PRIORITY="high" SCOPE="renderer-project-store">
+      <intent>Verify that project.js correctly migrates from a single `state.projectTree` to multi-root `state.projectTrees: TreeRoot[]`, with `ADD_PROJECT` enforcing canonical-pathname dedup and nested-root rejection, `CLOSE_PROJECT` removing the root and signalling main-process unwatch via `mt::close-project-root`, `_processTreeEvent` dispatching to the owning root by longest-prefix pathname match, and `pendingTreeEvents` buffering per-root events keyed by future root pathname until that root loads.</intent>
+      <touched-files>
+        <file>src/renderer/src/store/project.js</file>
+        <file>src/renderer/src/store/treeCtrl.js</file>
+        <file>src/renderer/src/store/help.js</file>
+      </touched-files>
+      <module-checks>
+        <check-1 kind="grep" deterministic="true">grep -nE "projectTree\b" src/renderer/src/store/project.js MUST return zero matches outside `projectTrees` (the singular field MUST be fully removed).</check-1>
+        <check-2 kind="grep" deterministic="true">grep -nE "state:\s*\(\)\s*=&gt;\s*\(\{[\s\S]*projectTrees:\s*\[\]" src/renderer/src/store/project.js MUST match — initial state is an empty array, not `null`.</check-2>
+        <check-3 kind="grep" deterministic="true">grep -nE "ADD_PROJECT\s*\(" src/renderer/src/store/project.js AND `CLOSE_PROJECT\s*\(` MUST each match exactly once as action definitions.</check-3>
+        <check-4 kind="grep" deterministic="true">grep -nE "mt::close-project-root" src/renderer/src/store/project.js MUST match exactly once inside `CLOSE_PROJECT`, sent via `window.electron.ipcRenderer.send` with the removed root pathname as payload.</check-4>
+        <check-5 kind="grep" deterministic="true">grep -nE "window\.path\.normalize|canonical" src/renderer/src/store/project.js — `ADD_PROJECT` MUST normalize the input pathname before dedup/nesting comparison; raw string equality is forbidden.</check-5>
+        <check-6 kind="grep" deterministic="true">grep -nE "pendingTreeEvents" src/renderer/src/store/project.js — MUST appear as an object/Map keyed by root pathname (e.g. `pendingTreeEvents: {}`), NOT as a flat array.</check-6>
+        <check-7 kind="state-assertion">After ADD_PROJECT('/a') then ADD_PROJECT('/b'), projectTrees.length===2; insertion order preserved.</check-7>
+        <check-8 kind="state-assertion">After ADD_PROJECT('/a') + ADD_PROJECT('/a/') + ADD_PROJECT('/A') on case-insensitive FS, only first call appends.</check-8>
+        <check-9 kind="state-assertion">After ADD_PROJECT('/a') then ADD_PROJECT('/a/sub'), second is rejected: projectTrees.length===1, notice.notify invoked once with type:'warning'.</check-9>
+        <check-10 kind="routing">Roots ['/a','/a/b']: 'add' event with change.pathname==='/a/b/x.md' MUST mutate /a/b only (longest prefix wins).</check-10>
+        <check-11 kind="routing">Event under no current root MUST be dropped (logged) without throwing and without buffering.</check-11>
+        <check-12 kind="trace-marker">[ProjectStore][ADD_PROJECT][BLOCK_DEDUP|BLOCK_NESTED|APPEND] markers fire on the respective branches.</check-12>
+      </module-checks>
+      <scenarios>
+        <scenario-1 kind="success">Open two non-nested folders /proj/A and /proj/B sequentially via mt::open-directory. After both: projectTrees.length===2; subsequent 'add' for /proj/A/readme.md mutates root[0] only.</scenario-1>
+        <scenario-2 kind="success">ADD_PROJECT('/proj/A') in flight; mt::update-object-tree event for /proj/A/x.md arrives → buffered into pendingTreeEvents['/proj/A']. After load resolves, replayed in order; bucket cleared.</scenario-2>
+        <scenario-3 kind="success">CLOSE_PROJECT('/proj/A'): removes root, deletes pendingTreeEvents bucket, emits exactly one mt::close-project-root.</scenario-3>
+        <scenario-4 kind="success">Rapid double-click → ADD_PROJECT twice in same tick: second call no-ops, no second load IPC, BLOCK_DEDUP marker.</scenario-4>
+        <scenario-5 kind="success">Nested rejection: with /proj/A open, ADD_PROJECT('/proj/A/sub') shows warning notification, root NOT appended, BLOCK_NESTED marker with parent reference.</scenario-5>
+        <scenario-6 kind="success">Longest-prefix routing: roots ['/x','/x/y']. /x/y/file.md → /x/y; /x/other.md → /x; /x/y → /x/y.</scenario-6>
+        <scenario-7 kind="success">CLOSE_PROJECT('/x') with ['/x','/x/y'] loaded: only /x removed; /x/y/... still routes; /x/other.md drops with DROPPED_NO_ROOT.</scenario-7>
+      </scenarios>
+      <required-log-markers>
+        <marker-1>[ProjectStore][ADD_PROJECT][APPEND] path=&lt;normalized&gt; total=&lt;n&gt;</marker-1>
+        <marker-2>[ProjectStore][ADD_PROJECT][BLOCK_DEDUP] path=&lt;normalized&gt;</marker-2>
+        <marker-3>[ProjectStore][ADD_PROJECT][BLOCK_NESTED] path=&lt;normalized&gt; parent=&lt;existing-root&gt;</marker-3>
+        <marker-4>[ProjectStore][CLOSE_PROJECT][REMOVE] path=&lt;root&gt; remaining=&lt;n&gt;</marker-4>
+        <marker-5>[ProjectStore][CLOSE_PROJECT][NOOP_NOT_FOUND] path=&lt;root&gt;</marker-5>
+        <marker-6>[ProjectStore][TreeEvent][BUFFERED] root=&lt;future-root&gt; type=&lt;t&gt; path=&lt;p&gt; bucketSize=&lt;n&gt;</marker-6>
+        <marker-7>[ProjectStore][TreeEvent][ROUTED] root=&lt;winning-root&gt; type=&lt;t&gt; path=&lt;p&gt;</marker-7>
+        <marker-8>[ProjectStore][TreeEvent][DROPPED_NO_ROOT] type=&lt;t&gt; path=&lt;p&gt;</marker-8>
+        <marker-9>[ProjectStore][TreeEvent][REPLAY] root=&lt;root&gt; count=&lt;n&gt;</marker-9>
+      </required-log-markers>
+      <edge-cases>
+        <ec kind="concurrency" severity="high">Rapid double-click on Open Folder: dedup keys off the in-flight projectTrees entry recorded synchronously on the first call, not just loaded ones.</ec>
+        <ec kind="concurrency" severity="high">CLOSE_PROJECT('/p') racing with mt::update-object-tree event for /p/x.md: result deterministic; no exception; no orphan in pendingTreeEvents; no double mutation.</ec>
+        <ec kind="failure" severity="medium">pendingTreeEvents['/p'] grows unbounded if mt::open-directory never resolves — module MUST cap bucket size (~10k) and emit BUFFER_OVERFLOW marker; oldest-dropped policy documented.</ec>
+        <ec kind="failure" severity="medium">CLOSE_PROJECT('/does/not/exist') is no-op; no IPC sent; NOOP_NOT_FOUND marker emitted.</ec>
+        <ec kind="contract" severity="medium">Path canonicalization on Windows: 'C:\\proj\\A' and 'c:/proj/a/' treated as same root (drive-letter case fold).</ec>
+        <ec kind="contract" severity="medium">Longest-prefix matcher uses path-segment boundaries, NOT raw startsWith — roots ['/foo'] and event /foobar/x.md MUST drop, not match /foo.</ec>
+        <ec kind="adversarial" severity="low">Symlink loop / path with '..' / mixed separators must normalize before storage and dedup.</ec>
+        <ec kind="adversarial" severity="low">Pinia $subscribe observers see exactly one mutation per ADD_PROJECT/CLOSE_PROJECT, never partial state.</ec>
+      </edge-cases>
+      <negative-assertions>
+        <no>MUST NOT retain any reference to `state.projectTree` (singular) anywhere in the renderer.</no>
+        <no>MUST NOT use raw String.prototype.startsWith for prefix routing without separator-boundary check.</no>
+        <no>MUST NOT send mt::close-project-root for a pathname not currently in projectTrees.</no>
+        <no>MUST NOT replay pendingTreeEvents for a root before that root's projectTrees entry is fully scaffolded.</no>
+        <no>MUST NOT mutate more than one root per single tree event (no broadcast).</no>
+        <no>MUST NOT throw on unknown event type / event for unknown root / CLOSE_PROJECT of unknown root — log and continue.</no>
+        <no>MUST NOT leave a pendingTreeEvents bucket behind after its root is closed or after replay.</no>
+      </negative-assertions>
+      <failure-packet-template>
+        <expected-fields>scenario, contract-ref, expected-evidence, observed-evidence, first-divergent-block, suggested-next-action</expected-fields>
+      </failure-packet-template>
+    </V-A6-1>
+
+    <V-A6-2 STEP="step-A6-2" PRIORITY="medium" SCOPE="renderer-treeCtrl">
+      <intent>Preserve treeCtrl's per-tree-root invariants under multi-root: addFile/unlinkFile/addDirectory/unlinkDirectory operate strictly inside the tree passed by project-store's longest-prefix dispatcher, never leak nodes across roots, and remain deterministic when window.path.relative produces an out-of-tree (../) result.</intent>
+      <touched-files>
+        <file>src/renderer/src/store/treeCtrl.js</file>
+      </touched-files>
+      <module-checks>
+        <check-1>npm run build (signature-stable)</check-1>
+        <check-2>grep -nE 'export const (addFile|unlinkFile|addDirectory|unlinkDirectory)\s*=\s*\(tree,' src/renderer/src/store/treeCtrl.js (signatures unchanged)</check-2>
+        <check-3>grep -nE 'getSubdirectoriesFromRoot\(tree\.pathname,' src/renderer/src/store/treeCtrl.js (anchors on tree.pathname)</check-3>
+        <check-4>! grep -nE '\bprojectTree\b|\bworkspace\.roots\b|\bgetTreeFor' src/renderer/src/store/treeCtrl.js (root-agnostic)</check-4>
+        <check-5>grep -c 'window.path.relative\|window.path.dirname\|window.path.isAbsolute' src/renderer/src/store/treeCtrl.js (preload bridge only)</check-5>
+        <check-6>! grep -nE "from\s+['\"](path|node:path)['\"]" src/renderer/src/store/treeCtrl.js</check-6>
+      </module-checks>
+      <scenarios>
+        <scenario-1 kind="success">addFile(treeA, file under /rootA/sub) inserts at alphabetical index; treeB byte-identical pre/post.</scenario-1>
+        <scenario-2 kind="success">addDirectory(treeA, /rootA/a/b/c) materializes intermediates a, a/b, a/b/c with empty folders/files.</scenario-2>
+        <scenario-3 kind="contract">unlinkFile(treeA, file under /rootB) — out-of-tree input: function returns without mutation; both trees unchanged.</scenario-3>
+        <scenario-4 kind="contract">addFile(treeA, file under /rootB) — defense-in-depth: must reject (or store-side prefix-match must guarantee never-call).</scenario-4>
+        <scenario-5 kind="success">unlinkDirectory(treeA, /rootA/a/b) removes node from folders[a].folders; folders[a] preserved.</scenario-5>
+        <scenario-6 kind="success">Two trees /Users/u/A and /Users/u/B: prefix-collision trap: /Users/u/A.bak/x.md must NOT silently route to /Users/u/A.</scenario-6>
+        <scenario-7 kind="contract">Idempotent addFile: duplicate name guarded; second call no-op.</scenario-7>
+      </scenarios>
+      <required-log-markers>
+        <marker-1>[TreeCtrl][addFile][BLOCK_INSERT] root=&lt;tree.pathname&gt; path=&lt;file.pathname&gt; depth=&lt;n&gt;</marker-1>
+        <marker-2>[TreeCtrl][addFile][BLOCK_SKIP_DUPLICATE] root=... name=... parent=...</marker-2>
+        <marker-3>[TreeCtrl][addDirectory][BLOCK_CREATE_INTERMEDIATE] root=... created=... at=...</marker-3>
+        <marker-4>[TreeCtrl][unlinkFile][BLOCK_REMOVE] root=... path=... foundIdx=...</marker-4>
+        <marker-5>[TreeCtrl][unlinkDirectory][BLOCK_REMOVE] root=... path=... foundIdx=...</marker-5>
+        <marker-6>[TreeCtrl][*][BLOCK_REJECT_OUT_OF_TREE] root=... path=... relative=...</marker-6>
+      </required-log-markers>
+      <edge-cases>
+        <ec kind="contract" severity="high">Path leakage: addFile(treeA, file under treeB) without containment guard creates phantom '..' folder. Either reject or prove dispatcher exhaustive.</ec>
+        <ec kind="contract" severity="high">Prefix-string collision: roots /Users/u/A and /Users/u/A.bak — must compare on PATH_SEPARATOR boundary.</ec>
+        <ec kind="failure" severity="medium">macOS NFD-vs-NFC normalization: APFS hands NFD, user-typed NFC. Either preload exposes canonical pathname or treeCtrl normalizes both sides.</ec>
+        <ec kind="contract" severity="medium">Trailing-separator drift: tree.pathname '/rootA' vs '/rootA/' produces '/rootA//sub'. Normalize root pre-storage.</ec>
+        <ec kind="contract" severity="low">tree.pathname === '/' (POSIX root) — collapse double-separator at root.</ec>
+        <ec kind="contract" severity="low">Empty pathname / window.path.isAbsolute('') is false → throws. Surface BLOCK_REJECT_OUT_OF_TREE instead.</ec>
+        <ec kind="failure" severity="medium">Case-insensitive HFS+/APFS: /Docs and /docs same inode but different store keys — dedupe at root-add or document case-preserving comparison.</ec>
+        <ec kind="adversarial" severity="low">Symlink loop /rootA/link → /rootA: watcher upstream must dedup by realpath; treeCtrl undefended.</ec>
+        <ec kind="adversarial" severity="low">file.name = '../x.md' but file.pathname under tree — name presentational only, never used for FS navigation.</ec>
+        <ec kind="contract" severity="low">unlinkDirectory of tree root itself: silent no-op; root removal is project-store's job.</ec>
+      </edge-cases>
+      <negative-assertions>
+        <no>MUST NOT mutate any tree other than the one passed (deep-equal sibling trees pre/post).</no>
+        <no>MUST NOT throw on duplicate add — idempotent (existing-name guard); only BLOCK_SKIP_DUPLICATE log.</no>
+        <no>MUST NOT import multi-root awareness — treeCtrl stays a pure per-tree mutator.</no>
+        <no>MUST NOT silently create '..'-named folders when path is out of tree.</no>
+        <no>MUST NOT switch from window.path bridge to node:path or string-split heuristics.</no>
+        <no>MUST NOT change alphabetical-insertion ordering (localeCompare-based).</no>
+      </negative-assertions>
+      <failure-packet-template>
+        <expected-fields>scenario, contract-ref, tree-root-pathname, input-pathname, computed-relative, expected-evidence, observed-evidence, first-divergent-block, sibling-tree-mutation-diff, suggested-next-action</expected-fields>
+      </failure-packet-template>
+    </V-A6-2>
+
+    <V-A6-3 STEP="step-A6-3" PRIORITY="high" SCOPE="renderer-tree-component">
+      <intent>Refactor sidebar tree.vue from `v-if="projectTree"` (one root) to `v-for="root in projectTrees"` (N roots). Each root renders its own collapsible section with header, fold arrow, and a small ✕ close-button that dispatches `projectStore.CLOSE_PROJECT(root.pathname)`. Empty-state with "Open Folder" button shown only when projectTrees.length===0.</intent>
+      <touched-files>
+        <file>src/renderer/src/components/sideBar/tree.vue</file>
+        <file>src/renderer/src/store/project.js (read-only — CLOSE_PROJECT must exist from step-A6-1)</file>
+      </touched-files>
+      <module-checks>
+        <check-1>npm run build (no Vue compile errors)</check-1>
+        <check-2>grep -E 'v-for="root in projectTrees"|v-for="root of projectTrees"' src/renderer/src/components/sideBar/tree.vue</check-2>
+        <check-3>grep -F ':key="root.pathname"' src/renderer/src/components/sideBar/tree.vue</check-3>
+        <check-4>grep -F 'CLOSE_PROJECT' src/renderer/src/components/sideBar/tree.vue</check-4>
+        <check-5>! grep -E 'v-if="projectTree"' src/renderer/src/components/sideBar/tree.vue (negative)</check-5>
+        <check-6>grep -E 'projectTrees\.length\s*===?\s*0' src/renderer/src/components/sideBar/tree.vue</check-6>
+        <check-7>grep -nE 'projectTrees' src/renderer/src/components/sideBar/tree.vue | wc -l (≥3 occurrences)</check-7>
+      </module-checks>
+      <scenarios>
+        <scenario-1 kind="success">Two roots loaded → two .project-tree sections rendered with own headers.</scenario-1>
+        <scenario-2 kind="success">Click ✕ on root A → only A's section disappears; B intact, no full re-mount.</scenario-2>
+        <scenario-3 kind="success">Each root's collapse arrow toggles independently.</scenario-3>
+        <scenario-4 kind="contract">projectTrees.length===0 → "Open Folder" empty-state visible.</scenario-4>
+        <scenario-5 kind="success">✕ button keyboard-accessible, focusable.</scenario-5>
+        <scenario-6 kind="contract">createCache.dirname per-root: typing in A's input must NOT show in B.</scenario-6>
+        <scenario-7 kind="contract">Per-root empty-project placeholder renders inside owning section only.</scenario-7>
+        <scenario-8 kind="failure">Click ✕ during pending file-watch event for same root: graceful, no ghost rows.</scenario-8>
+      </scenarios>
+      <required-log-markers>
+        <marker-1>[TreeVue][handleCloseRoot][BLOCK_DISPATCH] { pathname }</marker-1>
+        <marker-2>[TreeVue][toggleDirectoriesForRoot][BLOCK_TOGGLE] { pathname, nextOpen }</marker-2>
+        <marker-3>[TreeVue][renderEmptyState][BLOCK_NO_ROOTS]</marker-3>
+      </required-log-markers>
+      <required-trace-assertions>
+        <assertion-1>One ✕ click → exactly ONE BLOCK_DISPATCH; no dispatches for sibling roots.</assertion-1>
+        <assertion-2>One fold-arrow click → exactly ONE BLOCK_TOGGLE; sibling collapse state unchanged.</assertion-2>
+        <assertion-3>BLOCK_NO_ROOTS appears iff projectTrees.length===0 at render time.</assertion-3>
+      </required-trace-assertions>
+      <edge-cases>
+        <ec kind="concurrency" severity="medium">Rapid ✕ click during file-event arrival: store rejects mutations targeting closed pathname; UI no-throw.</ec>
+        <ec kind="contract" severity="high">Drag-resize sidebar with N roots: scroll containers work — single shared scroll OR per-section internal scroll.</ec>
+        <ec kind="failure" severity="medium">Root pathname with spaces, quotes, backslashes, non-ASCII: :key stable, no Vue churn, no DOM key collisions.</ec>
+        <ec kind="adversarial" severity="low">Very long pathname truncates via text-overflow: ellipsis; ✕ stays on-screen.</ec>
+        <ec kind="contract" severity="medium">Two roots same basename, different pathnames: both render distinctly, keys unique.</ec>
+        <ec kind="failure" severity="low">Root rendered before pathname populated: render-guard or store-guard.</ec>
+      </edge-cases>
+      <negative-assertions>
+        <no>MUST NOT close more than one root per ✕ click — handler scope is single root.</no>
+        <no>MUST NOT silently drop a root if rendered before pathname is set.</no>
+        <no>MUST NOT regress single-root behavior.</no>
+        <no>MUST NOT share collapse/expand state across roots.</no>
+        <no>MUST NOT call CLOSE_PROJECT without pathname argument.</no>
+      </negative-assertions>
+      <failure-packet-template>
+        <expected-fields>scenario, contract-ref, expected-evidence, observed-evidence, first-divergent-block, suggested-next-action</expected-fields>
+      </failure-packet-template>
+    </V-A6-3>
+
+    <V-A6-4 STEP="step-A6-4" PRIORITY="high" SCOPE="renderer-search-store">
+      <intent>Migrate runSearch() in src/renderer/src/store/search.js from single-root to multi-root: pass array of all root pathnames to RipgrepDirectorySearcher.search(directories, pattern, options). Empty projectTrees short-circuits. Cancel logic, didMatch/didSearchPaths streaming, 100-result early-cancel, lazy searcher singleton — unchanged.</intent>
+      <touched-files>
+        <file>src/renderer/src/store/search.js</file>
+      </touched-files>
+      <module-checks>
+        <check-1>npm run build</check-1>
+        <check-2>grep -n "projectTrees" src/renderer/src/store/search.js (array field read)</check-2>
+        <check-3>! grep -nE "projectTree[^s]|projectTree\.pathname|tree\.pathname" src/renderer/src/store/search.js</check-3>
+        <check-4>grep -nE "getSearcher\(\)\.search\(\s*(\[|projectTrees|roots|pathnames)" src/renderer/src/store/search.js (first arg is array)</check-4>
+        <check-5>grep -nE "\.length\s*===\s*0|projectTrees\.length" src/renderer/src/store/search.js (empty-roots guard)</check-5>
+        <check-6>grep -n "activeCancel" src/renderer/src/store/search.js | wc -l (≥4 — cancel wiring preserved)</check-6>
+      </module-checks>
+      <scenarios>
+        <scenario-1 kind="success">Two roots with "TODO" → results from BOTH; matchCount sums; running flips once.</scenario-1>
+        <scenario-2 kind="success">Zero roots + non-empty keyword → results=[], running=false, no spawn.</scenario-2>
+        <scenario-3 kind="success">Single root → identical to v1.0 single-root path.</scenario-3>
+        <scenario-4 kind="contract">Cancel mid-search across N roots: all per-directory child.kill() fire; activeCancel cleared; running=false.</scenario-4>
+        <scenario-5 kind="contract">Re-trigger via SET_KEYWORD while running: previous cancel fires; collected[] discarded.</scenario-5>
+        <scenario-6 kind="contract">TOGGLE_OPTION mid-search: cancel + restart with new opts.</scenario-6>
+      </scenarios>
+      <required-log-markers>
+        <marker-1>[SearchStore][runSearch][BLOCK_DISPATCH] roots=[/a,/b] keyword="..." opts={...}</marker-1>
+        <marker-2>[SearchStore][runSearch][BLOCK_EMPTY_ROOTS] projectTrees.length=0</marker-2>
+        <marker-3>[SearchStore][runSearch][BLOCK_RESULT] count=&lt;files&gt; matches=&lt;total&gt; canceled=&lt;bool&gt;</marker-3>
+        <marker-4>[SearchStore][runSearch][BLOCK_CANCEL] reason=&lt;limit|user|restart&gt;</marker-4>
+        <marker-5>[SearchStore][runSearch][BLOCK_ERROR] err=&lt;message&gt;</marker-5>
+      </required-log-markers>
+      <edge-cases>
+        <ec kind="concurrency" severity="high">ADD_PROJECT mid-search: cancel + restart OR finish current then re-run; no leaked partial results.</ec>
+        <ec kind="concurrency" severity="high">CLOSE_PROJECT during search: removed root's results purged from collected[] before assignment.</ec>
+        <ec kind="performance" severity="medium">100+ matches: didSearchPaths&gt;100 cancels all per-root children; "Showing first 100" message.</ec>
+        <ec kind="failure" severity="medium">One root unreadable (EACCES): per-root child exits code&gt;1; OTHER roots still resolve via Promise.all; partial-success path.</ec>
+        <ec kind="failure" severity="medium">Root deleted externally: spawn rejects → catch fires → results=[], running=false.</ec>
+        <ec kind="contract" severity="medium">Duplicate root pathnames: dedupe before dispatch OR document merge semantic.</ec>
+        <ec kind="adversarial" severity="low">Pathname with shell metachars: spawn args (not shell:true) safe — no injection.</ec>
+        <ec kind="adversarial" severity="low">Empty-string pathname: filter(Boolean) before dispatch.</ec>
+      </edge-cases>
+      <negative-assertions>
+        <no>MUST NOT pass non-array (single string) to directorySearcher.search() — would iterate characters.</no>
+        <no>MUST NOT read projectStore.projectTree (singular) anywhere post-refactor.</no>
+        <no>MUST NOT include results from a CLOSE_PROJECTed root in this.results.</no>
+        <no>MUST NOT leak ripgrep child processes after cancel.</no>
+        <no>MUST NOT silently swallow real ripgrep errors as "no matches".</no>
+        <no>MUST NOT spawn ripgrep when projectTrees is empty.</no>
+        <no>MUST NOT change public store shape (UI bindings depend on keyword/results/running/error/showCancel/hasQuery/matchCount).</no>
+      </negative-assertions>
+      <failure-packet-template>
+        <expected-fields>scenario, contract-ref, expected-evidence, observed-evidence, first-divergent-block, suggested-next-action</expected-fields>
+      </failure-packet-template>
+    </V-A6-4>
+
+    <V-A6-5 STEP="step-A6-5" PRIORITY="high" SCOPE="renderer-titlebar-nav">
+      <intent>Verify titleBar handleNavClick implements multi-root-aware smart-click semantics: 📂 (Files) opens sidebar/switches view without dialog when projects exist and a view-switch suffices; 📂 opens Finder dialog only as explicit "add another root" gesture (already on Files view + projects loaded) or "first folder" gesture (no projects). 📑 (TOC), ⚙ (Settings), ☰ (Toggle) NEVER open Finder dialog. Handler reads projectStore.projectTrees, not the legacy single field.</intent>
+      <touched-files>
+        <file>src/renderer/src/components/titleBar/index.vue</file>
+      </touched-files>
+      <module-checks>
+        <check-1>npm run build</check-1>
+        <check-2>grep -n "handleNavClick" src/renderer/src/components/titleBar/index.vue (single arrow-fn)</check-2>
+        <check-3>grep -n "ASK_FOR_OPEN_PROJECT" src/renderer/src/components/titleBar/index.vue (only in files branch)</check-3>
+        <check-4>grep -n "projectTrees" src/renderer/src/components/titleBar/index.vue</check-4>
+        <check-5>! grep -nE "projectStore\.projectTree(\W|$)" src/renderer/src/components/titleBar/index.vue</check-5>
+        <check-6>grep -n "SET_LAYOUT" src/renderer/src/components/titleBar/index.vue (≤1 call per click path)</check-6>
+        <check-7>grep -nE "rightColumn\.value !== view|rightColumn\.value === 'files'" src/renderer/src/components/titleBar/index.vue</check-7>
+        <check-8>grep -nE "\[TitleBar\]\[handleNavClick\]" src/renderer/src/components/titleBar/index.vue (markers present)</check-8>
+      </module-checks>
+      <scenarios>
+        <scenario-1 kind="success">Click 📂 sidebar closed + 1 project + rightColumn='files' → SET_LAYOUT(open+files); ASK_FOR_OPEN_PROJECT NOT called.</scenario-1>
+        <scenario-2 kind="success">Click 📂 sidebar open on TOC + 1 project → SET_LAYOUT({rightColumn:'files'}); no dialog.</scenario-2>
+        <scenario-3 kind="success">Click 📂 sidebar open on Files + ≥1 project → no SET_LAYOUT; ASK_FOR_OPEN_PROJECT IS called; reason=add-another-root.</scenario-3>
+        <scenario-4 kind="success">Click 📂 NO projects → opens Finder; reason=no-projects-loaded; on pick, sidebar shows Files with new tree.</scenario-4>
+        <scenario-5 kind="contract">Click 📑 in any state → only SET_LAYOUT may fire; no Finder.</scenario-5>
+        <scenario-6 kind="contract">Click ⚙ → OPEN_SETTING_WINDOW; no SET_LAYOUT, no Finder.</scenario-6>
+        <scenario-7 kind="contract">Click ☰ → bus emit toggle-layout-entry; rightColumn unchanged; no Finder.</scenario-7>
+        <scenario-8 kind="success">Click 📂 sidebar closed + rightColumn='toc' + 1 project → SET_LAYOUT(open+files); no dialog.</scenario-8>
+        <scenario-9 kind="regression">After Phase-A6, projectStore.projectTree is undefined — handler MUST NOT throw; consults projectTrees.length.</scenario-9>
+      </scenarios>
+      <required-log-markers>
+        <marker-1>[TitleBar][handleNavClick][BLOCK_ENTRY] view=... sidebarOpen=... prevView=... projectsCount=...</marker-1>
+        <marker-2>[TitleBar][handleNavClick][BLOCK_OPEN_SIDEBAR] view=...</marker-2>
+        <marker-3>[TitleBar][handleNavClick][BLOCK_SWITCH_VIEW] view=... prevView=...</marker-3>
+        <marker-4>[TitleBar][handleNavClick][BLOCK_OPEN_DIALOG] reason=no-projects-loaded</marker-4>
+        <marker-5>[TitleBar][handleNavClick][BLOCK_OPEN_DIALOG] reason=add-another-root</marker-5>
+        <marker-6>[TitleBar][handleNavClick][BLOCK_NOOP_DIALOG] reason=view-switch-only</marker-6>
+        <marker-7>[TitleBar][handleNavClick][BLOCK_EXIT] dispatched=...</marker-7>
+      </required-log-markers>
+      <edge-cases>
+        <ec kind="concurrency" severity="medium">Rapid double-click on 📂: dedup via in-flight guard (dialogPending ref); BLOCK_OPEN_DIALOG ≤1 per dedup window.</ec>
+        <ec kind="failure" severity="low">User cancels Finder: state unchanged; only BLOCK_OPEN_DIALOG and exit; no BLOCK_DIALOG_PICKED, no ADD_PROJECT.</ec>
+        <ec kind="contract" severity="medium">Cmd+J fires while 📂 dialog open: bus toggle works; on dialog resolve, handler does NOT clobber user's toggle.</ec>
+        <ec kind="adversarial" severity="low">User picks already-loaded folder → ADD_PROJECT BLOCK_DEDUP fires (cross-cuts V-A6-1).</ec>
+        <ec kind="contract" severity="low">view='toc' must NEVER reach projectTrees check or ASK_FOR_OPEN_PROJECT — guarded by view==='files' check.</ec>
+        <ec kind="state" severity="low">projectStore not yet hydrated: coerce via (projectTrees ?? []).length.</ec>
+      </edge-cases>
+      <negative-assertions>
+        <no>MUST NOT open Finder when click 📂 is purely a view-switch (rightColumn !== 'files' AND projectTrees.length ≥ 1).</no>
+        <no>MUST NOT open Finder when click 📂 toggles sidebar open onto Files while projectTrees.length ≥ 1.</no>
+        <no>MUST NOT call SET_LAYOUT(showSideBar:true) more than once for a single click.</no>
+        <no>MUST NOT trigger ASK_FOR_OPEN_PROJECT from 📑 / ☰ / ⚙ click handlers.</no>
+        <no>MUST NOT read projectStore.projectTree (legacy field) anywhere in handleNavClick.</no>
+        <no>MUST NOT bypass dedup guard: two synchronous clicks must not both invoke ASK_FOR_OPEN_PROJECT.</no>
+      </negative-assertions>
+      <failure-packet-template>
+        <expected-fields>scenario, contract-ref, expected-evidence, observed-evidence, first-divergent-block, suggested-next-action</expected-fields>
+      </failure-packet-template>
+    </V-A6-5>
+
+    <V-A6-6 STEP="step-A6-6" PRIORITY="critical" SCOPE="main-editor-window">
+      <intent>Verify EditorWindow.openFolder/closeFolder correctly manage a multi-root Set (_openedRootDirectories) replacing the legacy scalar (_openedRootDirectory), with mode='add' (default) and mode='replace' (File→Open Folder back-compat) semantics, deterministic watcher IPC pairing, mt::open-directory / mt::close-directory renderer notifications, refusal of nested-inside-existing roots, idempotent re-add, and no leaked watchers.</intent>
+      <touched-files>
+        <file>src/main/windows/editor.js</file>
+      </touched-files>
+      <module-checks>
+        <check-1>npm run build</check-1>
+        <check-2>grep -n "_openedRootDirectories" src/main/windows/editor.js</check-2>
+        <check-3>grep -nE "this\._openedRootDirectories\s*=\s*new Set" src/main/windows/editor.js</check-3>
+        <check-4>grep -nE "closeFolder\s*\(" src/main/windows/editor.js</check-4>
+        <check-5>grep -nE "openFolder\s*\(\s*pathname[^)]*mode" src/main/windows/editor.js (options.mode signature)</check-5>
+        <check-6>! grep -nE "this\._openedRootDirectory\s*=" src/main/windows/editor.js</check-6>
+        <check-7>! grep -nE "isSamePathSync\s*\(\s*pathname\s*,\s*this\._openedRootDirectory\s*\)" src/main/windows/editor.js</check-7>
+        <check-8>grep -n "mt::open-directory" src/main/windows/editor.js</check-8>
+        <check-9>grep -n "mt::close-directory" src/main/windows/editor.js</check-9>
+        <check-10>grep -nE "watcher-(un)?watch-directory" src/main/windows/editor.js</check-10>
+        <check-11>grep -nE "isChildOfDirectory" src/main/windows/editor.js</check-11>
+        <check-12>grep -nE "BLOCK_(ADD|REPLACE|REFUSE_NESTED|DUPLICATE|REMOVE)" src/main/windows/editor.js</check-12>
+      </module-checks>
+      <scenarios>
+        <scenario-1 kind="success">openFolder('/a', mode='add') on empty set: Set={'/a'}; watcher-watch-directory once for /a; mt::open-directory once for /a; BLOCK_ADD logged.</scenario-1>
+        <scenario-2 kind="success">openFolder('/b', mode='add') after /a: Set={'/a','/b'}; watcher fired only for /b; previous watcher /a unaffected; preferences.lastOpenedFolder=/b; BLOCK_ADD path=/b.</scenario-2>
+        <scenario-3 kind="success">closeFolder('/a') with {'/a','/b'}: Set={'/b'}; watcher-unwatch-directory exactly once; mt::close-directory once; BLOCK_REMOVE path=/a.</scenario-3>
+        <scenario-4 kind="contract">openFolder('/a', mode='replace') with {'/a','/b'}: each receives one watcher-unwatch and mt::close-directory; Set={'/a'}; one watcher-watch and mt::open-directory for /a; BLOCK_REPLACE cleared=2 then BLOCK_ADD.</scenario-4>
+        <scenario-5 kind="contract">openFolder same path twice (mode='add'): second no-op; no duplicate watcher, no second mt::open-directory; BLOCK_DUPLICATE.</scenario-5>
+        <scenario-6 kind="failure">openFolder('/a/b') when /a is root: refused; no IPC; BLOCK_REFUSE_NESTED candidate=/a/b existing=/a; renderer notification.</scenario-6>
+        <scenario-7 kind="contract">openFolder before window READY: queued in _directoryToOpen-style list; on ready, replayed in order.</scenario-7>
+        <scenario-8 kind="failure">closeFolder('/zzz') for path not in Set: no IPC; no crash; BLOCK_REMOVE miss=true.</scenario-8>
+        <scenario-9 kind="contract">openFolder when lifecycle === QUITTED: returns early; no mutation; no IPC.</scenario-9>
+      </scenarios>
+      <required-log-markers>
+        <marker-1>[EditorWindow][openFolder][BLOCK_ADD] path=...</marker-1>
+        <marker-2>[EditorWindow][openFolder][BLOCK_REPLACE] cleared=N path=...</marker-2>
+        <marker-3>[EditorWindow][openFolder][BLOCK_REFUSE_NESTED] candidate=... existing=...</marker-3>
+        <marker-4>[EditorWindow][openFolder][BLOCK_DUPLICATE] path=...</marker-4>
+        <marker-5>[EditorWindow][closeFolder][BLOCK_REMOVE] path=... miss=&lt;bool&gt;</marker-5>
+        <marker-6>[EditorWindow][openFolder][BLOCK_WATCHER_RESPAWN] roots=N</marker-6>
+      </required-log-markers>
+      <edge-cases>
+        <ec kind="concurrency" severity="high">openFolder + closeFolder racing on same path: serialize on Node loop; final state = last-call-wins; no half-open watcher.</ec>
+        <ec kind="failure" severity="critical">Watcher process dies mid-session: openFolder still mutates Set; recovery emits BLOCK_WATCHER_RESPAWN + re-fires watcher-watch for all members.</ec>
+        <ec kind="contract" severity="high">browserWindow destroyed while replay/event arrives: events dropped; no send() on dead webContents; no exception bubbles.</ec>
+        <ec kind="adversarial" severity="medium">Symlink: candidate /a is symlink whose realpath is inside /b — refuse via realpath comparison.</ec>
+        <ec kind="adversarial" severity="medium">Reverse-nested: /a/b root present, openFolder('/a') mode='add' — refused as parent-of-existing OR auto-close inner per V-A6-1 contract.</ec>
+        <ec kind="performance" severity="medium">100 roots: per-call O(1) via Set; total wall time &lt; 500 ms.</ec>
+        <ec kind="contract" severity="medium">'/a/' vs '/a' vs '/A' (case-insensitive FS): isSamePathSync used consistently for canonical key.</ec>
+      </edge-cases>
+      <negative-assertions>
+        <no>MUST NOT leave a watcher running for a closed root.</no>
+        <no>MUST NOT emit mt::open-directory twice for the same path in the same session.</no>
+        <no>MUST NOT crash when closeFolder is called for a path not in Set (no-op + log).</no>
+        <no>MUST NOT call browserWindow.webContents.send / BrowserWindow.fromWebContents on destroyed window without isDestroyed() guard.</no>
+        <no>MUST NOT retain references to legacy scalar this._openedRootDirectory.</no>
+        <no>MUST NOT update preferences.lastOpenedFolder or appMenu from a refused/duplicate call.</no>
+        <no>MUST NOT silently swallow unknown mode values — throw or fall back to 'add' with logged warning.</no>
+      </negative-assertions>
+      <failure-packet-template>
+        <expected-fields>scenario, contract-ref, expected-evidence, observed-evidence, first-divergent-block, suggested-next-action</expected-fields>
+      </failure-packet-template>
+    </V-A6-6>
+
+    <V-A6-7 STEP="step-A6-7" PRIORITY="critical" SCOPE="main-windowManager-ipc">
+      <intent>Verify WindowManager's IPC surface supports multi-root: existing chokidar-backed watcher-watch-directory / watcher-unwatch-directory operate per-(win, pathname, type) tuple. New mt::close-project-root listener resolves EditorWindow via BrowserWindow.fromWebContents(e.sender), idempotently calls editor.closeFolder(pathname), hardened against destroyed senders, unknown paths, and cross-window path spoofing. Watcher events flow on mt::update-object-tree with raw change.pathname; renderer routes by longest-prefix.</intent>
+      <touched-files>
+        <file>src/main/app/windowManager.js</file>
+        <file>src/main/filesystem/watcher.js (read-only — multi-instance via watchers map keyed by uniqueId)</file>
+      </touched-files>
+      <module-checks>
+        <check-1>npm run build</check-1>
+        <check-2>grep -n "mt::close-project-root" src/main/app/windowManager.js (handler registered exactly once)</check-2>
+        <check-3>grep -c "watcher-watch-directory" src/main/app/windowManager.js (count==1; original handler unchanged)</check-3>
+        <check-4>grep -c "watcher-unwatch-directory" src/main/app/windowManager.js (count==1; calls unwatch with single path, NOT unwatchByWindowId)</check-4>
+        <check-5>grep -n "BrowserWindow.fromWebContents" src/main/app/windowManager.js (close-project-root uses sender→window resolution)</check-5>
+        <check-6>grep -n "unwatchByWindowId" src/main/app/windowManager.js (only from add()'s window-closed listener and forceClose)</check-6>
+        <check-7>grep -n "EVENT_NAME\[type\]" src/main/filesystem/watcher.js (resolves to mt::update-object-tree; payload {type, change:{pathname,...}}; no per-window tagging)</check-7>
+      </module-checks>
+      <scenarios>
+        <scenario-1 kind="success">Two sequential watcher-watch-directory IPCs from same window for /A and /B: watchers map gains two entries with distinct uniqueIds, both win.id matching. fs events on both paths arrive at renderer with own change.pathname.</scenario-1>
+        <scenario-2 kind="success">watcher-unwatch-directory for /A: Watcher.unwatch finds (win,/A,'dir') tuple, closes single instance, deletes only that map entry. /B intact.</scenario-2>
+        <scenario-3 kind="success">mt::close-project-root from renderer pathname=/A: BLOCK_DISPATCH logged, win resolved via fromWebContents, editor.closeFolder('/A') invoked, which fires watcher-unwatch-directory for /A.</scenario-3>
+        <scenario-4 kind="contract">mt::close-project-root for path not currently a project root: editor.closeFolder no-op or returns falsy; BLOCK_NOOP_UNKNOWN_PATH logged; no throw.</scenario-4>
+        <scenario-5 kind="contract">mt::close-project-root from destroyed sender: fromWebContents returns null; BLOCK_SKIP_DEAD_WINDOW logged; no exception.</scenario-5>
+        <scenario-6 kind="success">Watcher payload contract: mt::update-object-tree body = {type, change:{pathname,...}}; no rootId/rootPathname/windowId added by main.</scenario-6>
+      </scenarios>
+      <required-log-markers>
+        <marker-1>[WindowManager][onCloseProjectRoot][BLOCK_DISPATCH] winId=&lt;n&gt; path=&lt;string&gt;</marker-1>
+        <marker-2>[WindowManager][onCloseProjectRoot][BLOCK_NOOP_UNKNOWN_PATH] winId=... path=...</marker-2>
+        <marker-3>[WindowManager][onCloseProjectRoot][BLOCK_SKIP_DEAD_WINDOW] reason=fromWebContents-null</marker-3>
+        <marker-4>[Watcher][unwatch][BLOCK_REMOVE_ONE] winId=... path=... remaining=&lt;count&gt;</marker-4>
+      </required-log-markers>
+      <edge-cases>
+        <ec kind="concurrency" severity="high">Two watcher-watch-directory IPCs for SAME path in same window: current Watcher.watch does NOT dedup — allocates fresh uniqueId, double events. Surface as enforced dedup at watcher.js (preferred) OR renderer reducer; mark KNOWN-GAP if neither.</ec>
+        <ec kind="failure" severity="critical">chokidar fails to spawn (EACCES, ENOENT race, ENOSPC): watcher.js handles ENOSPC explicitly; others log only. Verify entry remains in watchers map post-error so unwatch can clear; no zombie/orphan FDs.</ec>
+        <ec kind="contract" severity="high">Multi-window: window 1 watches /A, window 2 watches /B. unwatchByWindowId filter on w.win.id; watch() captures per-call win in closure. Events from /A's chokidar always go to window 1.</ec>
+        <ec kind="resource" severity="high">50 roots, close 49: Object.keys(watchers).length===1; lsof delta ≈0 vs single-root baseline (modulo polling fds on macOS).</ec>
+        <ec kind="adversarial" severity="medium">Renderer 1 sends mt::close-project-root with path actually a root of Renderer 2: handler scopes by sender window; editor.closeFolder treats unknown-to-this-window path as no-op.</ec>
+        <ec kind="lifecycle" severity="medium">Window closes mid-flight: window-closed listener calls unwatchByWindowId before deleting; in-flight close-project-root then BLOCK_SKIP_DEAD_WINDOW or BLOCK_NOOP_UNKNOWN_PATH; no double-close.</ec>
+      </edge-cases>
+      <negative-assertions>
+        <no>MUST NOT call unwatchByWindowId from mt::close-project-root or watcher-unwatch-directory handler — only single-path unwatch permitted.</no>
+        <no>MUST NOT route watcher events from window 1's chokidar to window 2's webContents.</no>
+        <no>MUST NOT trust pathname payload as cross-window scope key — scope from BrowserWindow.fromWebContents(e.sender).</no>
+        <no>MUST NOT throw if chokidar instance already gone.</no>
+        <no>MUST NOT add per-root tagging / rootId / aggregation to mt::update-object-tree payloads.</no>
+        <no>MUST NOT register mt::close-project-root outside _listenForIpcMain or more than once.</no>
+      </negative-assertions>
+      <failure-packet-template>
+        <expected-fields>scenario, contract-ref, expected-evidence, observed-evidence, first-divergent-block, suggested-next-action</expected-fields>
+      </failure-packet-template>
+    </V-A6-7>
   </ModuleVerification>
 
   <PhaseGates>
@@ -1519,6 +2049,58 @@
         <evidence-2>All 16 UCs hand-verified on brew-installed app.</evidence-2>
       </required-evidence>
     </Gate-Phase-A4>
+
+    <Gate-Phase-A5 PHASE="Phase-A5">
+      <goal>v1.0.1 polish release shipped: titlebar sidebar-toggle, auto-resize on toggle/file-open, tightened Preferences typography. Cask refreshed. Existing v1.0.0 functionality intact.</goal>
+      <commands>
+        <command-1>cd /Users/myevdokimov/prj/mark/mark-electron &amp;&amp; npm run build</command-1>
+        <command-2>gh release view v1.0.1 --repo xronocode/mark --json tagName,assets</command-2>
+        <command-3>shasum -a 256 ~/Library/Caches/Homebrew/downloads/*Mark*1.0.1*.dmg | head -1 (after brew upgrade)</command-3>
+      </commands>
+      <required-evidence>
+        <evidence-1>npm run build exits 0 with no Vue compile errors and no new Rollup chunk-size warnings beyond the v1.0.0 baseline.</evidence-1>
+        <evidence-2>V-A5-1, V-A5-2, V-A5-3 all module-checks pass (deterministic grep + scenario smoke).</evidence-2>
+        <evidence-3>GitHub Release v1.0.1 has at minimum mark-mac-arm64-1.0.1.dmg and .zip with their sha256 reflected in Casks/mark.rb.</evidence-3>
+        <evidence-4>User-side `brew upgrade --cask mark` succeeds; `open -a Mark` shows the new titlebar toggle.</evidence-4>
+        <evidence-5>Manual smoke for all three V-A5-* scenarios (button visible+functional, window auto-resizes on toggle, preferences typography matches spec).</evidence-5>
+      </required-evidence>
+      <regression-checks>
+        <check-1>Existing keyboard shortcut (Cmd+J) for sidebar toggle still works and stays in sync with the new button's active state.</check-1>
+        <check-2>Russian localization (added in v1.0.0) is still applied — no string drift from Vue refactor.</check-2>
+        <check-3>Russian sidebar typography from v1.0.0 polish (sidebar h3 = 20px / page h4 = 22px) preserved; only sidebar `.item` and section `h6.title` adjusted.</check-3>
+        <check-4>Bundle size index entry stays at ≈ 3.12 MB (within ±200 KB of v1.0.0).</check-4>
+        <check-5>Cask installs without "App is damaged" — ad-hoc signing chain from v1.0.0 unchanged.</check-5>
+      </regression-checks>
+    </Gate-Phase-A5>
+
+    <Gate-Phase-A6 PHASE="Phase-A6">
+      <goal>v1.1.0 multi-root workspace shipped: 📂 click adds another folder when on Files view with projects; ✕ close-button per root; sidebar Tree v-for renders all roots; search ranges across all roots; nested-root rejected with notification; no watcher leaks; no regressions in single-root behavior.</goal>
+      <commands>
+        <command-1>cd /Users/myevdokimov/prj/mark/mark-electron &amp;&amp; npm run build</command-1>
+        <command-2>gh release view v1.1.0 --repo xronocode/mark --json tagName,assets</command-2>
+        <command-3>shasum -a 256 ~/Library/Caches/Homebrew/downloads/*Mark*1.1.0*.dmg | head -1</command-3>
+      </commands>
+      <required-evidence>
+        <evidence-1>npm run build exits 0; no Vue compile errors; no new Rollup warnings beyond v1.0.x baseline.</evidence-1>
+        <evidence-2>V-A6-1 through V-A6-7 all module-checks pass (deterministic grep + scenario smoke).</evidence-2>
+        <evidence-3>Smoke walkthrough WT-1 from Phase-A6 plan succeeds: open two non-nested folders, search "TODO", close one root, search results filtered.</evidence-3>
+        <evidence-4>Smoke walkthrough WT-2: nested-root attempt refused with notification; no watcher started for nested candidate.</evidence-4>
+        <evidence-5>GitHub Release v1.1.0 has mark-mac-arm64-1.1.0.dmg + .zip with sha256 reflected in Casks/mark.rb on xronocode/homebrew-mark.</evidence-5>
+        <evidence-6>User-side `brew upgrade --cask mark` succeeds; `open -a Mark` shows redesign + multi-root works.</evidence-6>
+      </required-evidence>
+      <regression-checks>
+        <check-1>Single-root behavior preserved: with exactly one root open, sidebar renders identically to v1.0.x (collapse/expand, file/folder ops, createCache input).</check-1>
+        <check-2>Cmd+J still toggles sidebar; titlebar nav cluster (☰📂📑⚙) clickable; sidebar-toggle active state syncs with rightColumn==='files'.</check-2>
+        <check-3>Search options Aa / \b / .* tooltips appear on all three (V-A5 regression — verified via el-tooltip wrapper added in v1.1.0).</check-3>
+        <check-4>Preferences window native macOS traffic-lights (V-A5 regression).</check-4>
+        <check-5>Russian localization preserved across new strings (close-folder tooltip, nested-root notification).</check-5>
+        <check-6>Bundle size index entry stays within ±200 KB of v1.0.x baseline.</check-6>
+        <check-7>Cold-start crash from v1.0.1's screen-import bug NOT reintroduced (smoke: open .md from Finder).</check-7>
+        <check-8>Cask installs without "App is damaged" — ad-hoc signing chain unchanged.</check-8>
+      </regression-checks>
+      <wave-follow-up>After step-A6-3 (tree.vue v-for), pause for interactive smoke: open two folders manually, verify two sections render with independent collapse + close buttons. Don't proceed to step-A6-4 (search store) without this pass.</wave-follow-up>
+      <phase-follow-up>Full WT-1+WT-2 walkthrough on packaged dmg before publishing draft release.</phase-follow-up>
+    </Gate-Phase-A6>
 
     <Gate-Phase-B1 PHASE="Phase-B1">
       <goal>Tauri skeleton boots; muya runs in WebView.</goal>
@@ -1951,7 +2533,7 @@
         <step-1>`grep -rE "require\('(fs|path|child_process|crypto|os|buffer)'\)|from '(fs|path|child_process|crypto|os|buffer)'" src/renderer/` returns empty.</step-1>
         <step-2>`grep -rE "@electron/remote" src/renderer/` returns empty.</step-2>
         <step-3>`grep -rE "ipcRenderer\.sendSync" src/renderer/` returns empty.</step-3>
-        <step-4>`yarn test:specs && yarn unit && yarn e2e` — all green.</step-4>
+        <step-4>`yarn test:specs &amp;&amp; yarn unit &amp;&amp; yarn e2e` — all green.</step-4>
       </expected-evidence-chain>
       <forbidden-markers>
         <marker-1>"@electron/remote" string in package.json dependencies.</marker-1>
