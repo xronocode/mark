@@ -1014,6 +1014,15 @@
       <step-6 status="pending">Verify Gate-Phase-A2. [USER REVIEW]</step-6>
     </Phase-A2>
 
+    <Phase-A2-5 name="Cherry-pick unique upstream PRs onto v1-on-tkaixiang" status="done">
+      <goal>Three upstream marktext fixes that tkaixiang did NOT inherit are ported onto our v1-on-tkaixiang branch as discrete commits.</goal>
+      <rationale>After the strategy pivot to "adopt tkaixiang baseline" (Phase-A2 superseded), only three PRs from the original 13-PR list remain unique and applicable: PR-4154 (EPIPE), PR-4135 (slugger), PR-4177 (shell.openPath). Other PRs are either already in tkaixiang's tree or need feature-level reimplementation under Vue 3 Pinia (deferred to v1.1).</rationale>
+      <step-1 status="done" verification="V-M-012">Cherry-pick PR-4154 (EPIPE crash fix) into src/main/exceptionHandler.js. Commit a5fadad6.</step-1>
+      <step-2 status="done" verification="V-M-012">Cherry-pick PR-4135 production fixes (slugger empty-heading guard, tableDragBarCtrl null-table guards, editor.vue scrollToElement try/catch). Spec dropped: tkaixiang has no Karma test runner. Commit ab1a3fdc.</step-2>
+      <step-3 status="done" verification="V-M-010">Cherry-pick PR-4177 (shell.openPath confirmation) into src/main/menu/actions/file.js. Commit (see git log).</step-3>
+      <step-4 status="done">Verify build: `npm run build` exits 0; touched-file lint introduces no new errors. Verified.</step-4>
+    </Phase-A2-5>
+
     <Phase-A3 name="macOS Distribution (Ad-hoc signing + Homebrew tap)" status="pending">
       <goal>GitHub Actions release pipeline + Homebrew cask `mark` in xronocode/homebrew-mark working on a fresh macOS VM.</goal>
       <step-1 status="pending">Configure electron-builder for ad-hoc: set identity to null; add post-build `codesign --force --deep --sign - Mark.app` hook; rename productName to "Mark" and bundle id to com.xronocode.mark.</step-1>

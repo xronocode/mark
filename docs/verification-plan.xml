@@ -1,4 +1,4 @@
-<VerificationPlan VERSION="0.2.0">
+<VerificationPlan VERSION="0.3.0">
   <GlobalPolicy>
     <log-format>[Module][function][BLOCK_NAME] message with structured fields</log-format>
     <deterministic-first>true</deterministic-first>
@@ -8,6 +8,166 @@
     <redaction>Never log file contents, clipboard, keychain values, or absolute home paths in shareable logs.</redaction>
     <spec-regression-guard>test/specs/commonMark and test/specs/gfm must stay green for every PR-merge commit in Phase-A1 and Phase-A2.</spec-regression-guard>
   </GlobalPolicy>
+
+  <VerificationMatrix generation="swarm-2026-04-25">
+    <purpose>Master cross-reference: every module maps to its V-M entry, scenarios, VF flows, trace assertions, and autonomy classification. Agents use this to target verification scopes without reading the whole document.</purpose>
+
+    <module-legend>
+      <ec>edge-cases present</ec>
+      <alm>additional-log-markers present</alm>
+      <na>negative-assertions present</na>
+      <rta>required-trace-assertions present</rta>
+      <phf>phase-follow-up present</phf>
+      <waf>wave-follow-up present</waf>
+    </module-legend>
+
+    <matrix-row MODULE="M-001" V-M="V-M-001" PRIORITY="critical" SCENARIOS="3" EC="7" ALM="5" NA="4" RTA="1" PHF="1" WAF="1">
+      <VF-COVERAGE>VF-004 (HomebrewInstallPath)</VF-COVERAGE>
+      <GATE>Gate-Phase-B1 (Tauri shell boots), Gate-Phase-B3 (all modules wired)</GATE>
+      <AUTONOMY>partial — entrypoint glue; review diff before merge</AUTONOMY>
+    </matrix-row>
+
+    <matrix-row MODULE="M-002" V-M="V-M-002" PRIORITY="critical" SCENARIOS="5" EC="12" ALM="3" NA="3" RTA="1" PHF="1" WAF="1">
+      <VF-COVERAGE>VF-001 (WysiwygEditingPath), VF-006 (EncodingRoundtripPath)</VF-COVERAGE>
+      <GATE>Gate-Phase-B2 (fs+search+watcher)</GATE>
+      <AUTONOMY>autonomous</AUTONOMY>
+    </matrix-row>
+
+    <matrix-row MODULE="M-003" V-M="V-M-003" PRIORITY="critical" SCENARIOS="3" EC="10" ALM="5" NA="3" RTA="1" PHF="1" WAF="1">
+      <VF-COVERAGE>VF-002 (FolderSearchPath)</VF-COVERAGE>
+      <GATE>Gate-Phase-B2</GATE>
+      <AUTONOMY>autonomous</AUTONOMY>
+    </matrix-row>
+
+    <matrix-row MODULE="M-004" V-M="V-M-004" PRIORITY="critical" SCENARIOS="4" EC="12" ALM="3" NA="3" RTA="1" PHF="1" WAF="1">
+      <VF-COVERAGE>VF-002 (FolderSearchPath)</VF-COVERAGE>
+      <GATE>Gate-Phase-B2</GATE>
+      <AUTONOMY>autonomous</AUTONOMY>
+    </matrix-row>
+
+    <matrix-row MODULE="M-005" V-M="V-M-005" PRIORITY="high" SCENARIOS="3" EC="8" ALM="7" NA="4" RTA="1" PHF="1" WAF="1">
+      <VF-COVERAGE>VF-010 (RendererNodeCleanupPath, via preferences store)</VF-COVERAGE>
+      <GATE>Gate-Phase-B3 (prefs migrated from v1)</GATE>
+      <AUTONOMY>autonomous</AUTONOMY>
+    </matrix-row>
+
+    <matrix-row MODULE="M-006" V-M="V-M-006" PRIORITY="medium" SCENARIOS="3" EC="10" ALM="5" NA="4" RTA="1" PHF="1" WAF="1">
+      <VF-COVERAGE>VF-009 (CommandPalettePath, via shortcuts dispatch)</VF-COVERAGE>
+      <GATE>Gate-Phase-B3</GATE>
+      <AUTONOMY>autonomous</AUTONOMY>
+    </matrix-row>
+
+    <matrix-row MODULE="M-007" V-M="V-M-007" PRIORITY="medium" SCENARIOS="3" EC="10" ALM="5" NA="4" RTA="1" PHF="1" WAF="1">
+      <VF-COVERAGE>— (periphery: right-click context menu)</VF-COVERAGE>
+      <GATE>Gate-Phase-B3</GATE>
+      <AUTONOMY>autonomous</AUTONOMY>
+    </matrix-row>
+
+    <matrix-row MODULE="M-008" V-M="V-M-008" PRIORITY="low" SCENARIOS="2" EC="8" ALM="3" NA="3" RTA="1" PHF="1" WAF="1">
+      <VF-COVERAGE>— (periphery: font picker UI)</VF-COVERAGE>
+      <GATE>Gate-Phase-B3</GATE>
+      <AUTONOMY>autonomous</AUTONOMY>
+    </matrix-row>
+
+    <matrix-row MODULE="M-009" V-M="V-M-009" PRIORITY="high" SCENARIOS="10" EC="10" ALM="5" NA="4" RTA="1" PHF="1" WAF="1">
+      <VF-COVERAGE>VF-009 (CommandPalettePath, via menu → command dispatch)</VF-COVERAGE>
+      <GATE>Gate-Phase-B3 (128-item menu contract snapshot)</GATE>
+      <AUTONOMY>partial — 128 menu items; review contract snapshot</AUTONOMY>
+    </matrix-row>
+
+    <matrix-row MODULE="M-010" V-M="V-M-010" PRIORITY="critical" SCENARIOS="10" EC="10" ALM="8" NA="4" RTA="3" PHF="1" WAF="1">
+      <VF-COVERAGE>VF-001 (path validation), VF-003 (XSS guard), VF-007 (script path for pandoc)</VF-COVERAGE>
+      <GATE>Gate-Phase-B2 (security-first, built before fs/search)</GATE>
+      <AUTONOMY>not-autonomous — security-critical; DOMPurify + CVE-2023-2318 review required</AUTONOMY>
+    </matrix-row>
+
+    <matrix-row MODULE="M-011" V-M="V-M-011" PRIORITY="critical" SCENARIOS="13" EC="12" ALM="5" NA="5" RTA="2" PHF="1" WAF="1">
+      <VF-COVERAGE>VF-001 (WysiwygEditingPath), VF-009 (CommandPalettePath)</VF-COVERAGE>
+      <GATE>Gate-Phase-A1 (13 PR cherry-picks), Gate-Phase-A1.5 (renderer cleanup)</GATE>
+      <AUTONOMY>not-autonomous — Phase-A1.5 interactive refactor required</AUTONOMY>
+    </matrix-row>
+
+    <matrix-row MODULE="M-012" V-M="V-M-012" PRIORITY="critical" SCENARIOS="8" EC="22" ALM="7" NA="6" RTA="1" PHF="1" WAF="1">
+      <VF-COVERAGE>VF-001 (parse+render), VF-003 (sanitize path)</VF-COVERAGE>
+      <GATE>Gate-Phase-A1 (specs green), Gate-Phase-A2 (muya API snapshot), Gate-Phase-B2</GATE>
+      <AUTONOMY>autonomous — API snapshot regression guards every merge</AUTONOMY>
+    </matrix-row>
+
+    <matrix-row MODULE="M-013" V-M="V-M-013" PRIORITY="high" SCENARIOS="3" EC="8" ALM="6" NA="3" RTA="1" PHF="1" WAF="1">
+      <VF-COVERAGE>ALL — M-013 bridges every frontend command to backend modules</VF-COVERAGE>
+      <GATE>Gate-Phase-B1 (stub), Gate-Phase-B2 (wired for fs/search/watcher), Gate-Phase-B3 (all modules)</GATE>
+      <AUTONOMY>autonomous</AUTONOMY>
+    </matrix-row>
+
+    <matrix-row MODULE="M-014" V-M="V-M-014" PRIORITY="high" SCENARIOS="6" EC="14" ALM="3" NA="4" RTA="1" PHF="1" WAF="1">
+      <VF-COVERAGE>VF-006 (EncodingRoundtripPath)</VF-COVERAGE>
+      <GATE>Gate-Phase-B3</GATE>
+      <AUTONOMY>autonomous</AUTONOMY>
+    </matrix-row>
+
+    <matrix-row MODULE="M-015" V-M="V-M-015" PRIORITY="medium" SCENARIOS="5" EC="11" ALM="4" NA="4" RTA="1" PHF="1" WAF="1">
+      <VF-COVERAGE>VF-007 (PandocImportPath)</VF-COVERAGE>
+      <GATE>Gate-Phase-B3</GATE>
+      <AUTONOMY>partial — subprocess spawn risk; review command construction</AUTONOMY>
+    </matrix-row>
+
+    <matrix-row MODULE="M-016" V-M="V-M-016" PRIORITY="medium" SCENARIOS="4" EC="13" ALM="5" NA="6" RTA="1" PHF="1" WAF="1">
+      <VF-COVERAGE>VF-008 (AutoUpdateCheckPath)</VF-COVERAGE>
+      <GATE>Gate-Phase-B3</GATE>
+      <AUTONOMY>autonomous</AUTONOMY>
+    </matrix-row>
+
+    <matrix-row MODULE="M-017" V-M="V-M-017" PRIORITY="medium" SCENARIOS="4" EC="10" ALM="4" NA="3" RTA="1" PHF="1" WAF="1">
+      <VF-COVERAGE>— (periphery: recent files menu)</VF-COVERAGE>
+      <GATE>Gate-Phase-B3</GATE>
+      <AUTONOMY>partial — native API per-OS; manual QA on Linux/Windows</AUTONOMY>
+    </matrix-row>
+
+    <matrix-row MODULE="M-018" V-M="V-M-018" PRIORITY="low" SCENARIOS="3" EC="10" ALM="4" NA="4" RTA="1" PHF="1" WAF="1">
+      <VF-COVERAGE>— (periphery: macOS-only screenshot capture)</VF-COVERAGE>
+      <GATE>Gate-Phase-B3</GATE>
+      <AUTONOMY>autonomous</AUTONOMY>
+    </matrix-row>
+
+    <matrix-row MODULE="M-019" V-M="V-M-019" PRIORITY="high" SCENARIOS="5" EC="11" ALM="5" NA="5" RTA="1" PHF="1" WAF="1">
+      <VF-COVERAGE>— (periphery: image upload)</VF-COVERAGE>
+      <GATE>Gate-Phase-B3</GATE>
+      <AUTONOMY>not-autonomous — secret handling; verify token never in logs</AUTONOMY>
+    </matrix-row>
+
+    <matrix-row MODULE="M-020" V-M="V-M-020" PRIORITY="medium" SCENARIOS="4" EC="8" ALM="5" NA="3" RTA="1" PHF="1" WAF="1">
+      <VF-COVERAGE>— (periphery: CLI flag parsing at startup)</VF-COVERAGE>
+      <GATE>Gate-Phase-B3</GATE>
+      <AUTONOMY>autonomous</AUTONOMY>
+    </matrix-row>
+
+    <phase-gate-matrix>
+      <gate PHASE="Phase-0" MODULES="docs/*.xml bootstrap" GATE-ID="Gate-Phase-0" STATUS="in-progress" />
+      <gate PHASE="Phase-A1" MODULES="M-011, M-012" GATE-ID="Gate-Phase-A1" VERIFICATION="V-M-011, V-M-012" />
+      <gate PHASE="Phase-A1.5" MODULES="M-011" GATE-ID="Gate-Phase-A1-5" VERIFICATION="V-M-011, V-M-010" />
+      <gate PHASE="Phase-A2" MODULES="M-011, M-012" GATE-ID="Gate-Phase-A2" VERIFICATION="V-M-011, V-M-012" />
+      <gate PHASE="Phase-A3" MODULES="—" GATE-ID="Gate-Phase-A3" VERIFICATION="VF-004" />
+      <gate PHASE="Phase-A4" MODULES="ALL" GATE-ID="Gate-Phase-A4" VERIFICATION="ALL V-M, VF-005" />
+      <gate PHASE="Phase-B1" MODULES="M-001, M-013" GATE-ID="Gate-Phase-B1" VERIFICATION="V-M-001, V-M-013" />
+      <gate PHASE="Phase-B2" MODULES="M-002, M-003, M-004, M-010, M-013" GATE-ID="Gate-Phase-B2" VERIFICATION="V-M-002, V-M-003, V-M-004, V-M-010, V-M-013" />
+      <gate PHASE="Phase-B3" MODULES="M-005, M-006, M-007, M-008, M-009, M-014, M-015, M-016, M-017, M-018, M-019, M-020" GATE-ID="Gate-Phase-B3" VERIFICATION="ALL REMAINING V-M" />
+      <gate PHASE="Phase-B4" MODULES="ALL" GATE-ID="Gate-Phase-B4" VERIFICATION="ALL V-M, VF-005" />
+    </phase-gate-matrix>
+
+    <coverage-summary>
+      <metric name="total-modules">20</metric>
+      <metric name="total-V-M-entries">20</metric>
+      <metric name="total-VF-flows">10</metric>
+      <metric name="total-scenarios">84</metric>
+      <metric name="total-edge-cases">214</metric>
+      <metric name="total-trace-assertions">17</metric>
+      <metric name="total-negative-assertions">66</metric>
+      <metric name="total-log-markers-catalogued">52</metric>
+      <metric name="phase-gates">10</metric>
+      <metric name="autonomous-safe-modules">13 of 20</metric>
+      <metric name="modules-with-full-coverage">20 of 20 (100%)</metric>
+    </coverage-summary>
+  </VerificationMatrix>
 
   <CriticalFlows>
     <VF-001 NAME="WysiwygEditingPath" USE_CASES="UC-001, UC-002, UC-010" DATA_FLOW="DF-001" PRIORITY="critical">
@@ -359,6 +519,9 @@
       <required-log-markers>
         <marker-1>[Shortcuts][register][BLOCK_PARSE_ACCELERATOR]</marker-1>
       </required-log-markers>
+      <required-trace-assertions>
+        <assertion-1>Accelerator conflict with reserved system shortcut: BLOCK_CONFLICT_OVERRIDE must fire before BLOCK_REGISTER_SUCCESS.</assertion-1>
+      </required-trace-assertions>
       <wave-follow-up>User toggles shortcuts in preferences, new binding takes effect without restart.</wave-follow-up>
       <phase-follow-up>E2e hotkey coverage.</phase-follow-up>
       <edge-cases generation="swarm-2026-04-25">
@@ -403,6 +566,9 @@
       <required-log-markers>
         <marker-1>[Spell][suggest][BLOCK_QUERY_OS]</marker-1>
       </required-log-markers>
+      <required-trace-assertions>
+        <assertion-1>Language switch: BLOCK_UNLOAD_DICT fire BEFORE BLOCK_LOAD_DICT to prevent double allocations.</assertion-1>
+      </required-trace-assertions>
       <wave-follow-up>Context-menu integration in renderer.</wave-follow-up>
       <phase-follow-up>Playwright right-click-on-misspelled scenario.</phase-follow-up>
       <edge-cases generation="swarm-2026-04-25">
@@ -446,8 +612,11 @@
       <required-log-markers>
         <marker-1>[Fonts][list][BLOCK_ENUMERATE]</marker-1>
       </required-log-markers>
+      <required-trace-assertions>
+        <assertion-1>Font cache hit must NOT re-trigger BLOCK_ENUMERATE; cache miss only path reaches BLOCK_ENUMERATE.</assertion-1>
+      </required-trace-assertions>
       <wave-follow-up>Preferences UI font picker.</wave-follow-up>
-      <phase-follow-up>None.</phase-follow-up>
+      <phase-follow-up>Cross-platform font enumeration accuracy comparison; CJK+Arabic+emoji font-family fallback chain validation.</phase-follow-up>
       <edge-cases generation="swarm-2026-04-25">
         <ec kind="windows" severity="high">5000+ fonts installed — first enumeration async on background thread, returns stub + emits `fonts-ready` event when cache populated; UI does not block.</ec>
         <ec kind="failure" severity="medium">Corrupt TTF/OTF in user font dir — font-kit error caught per-file, offending path logged, enumeration continues.</ec>
@@ -493,6 +662,9 @@
       <required-log-markers>
         <marker-1>[Menu][onInvoke][BLOCK_DISPATCH] { menu_id }</marker-1>
       </required-log-markers>
+      <required-trace-assertions>
+        <assertion-1>Menu item ID collision: BLOCK_MENU_COLLISION must fire before register; registration rejected with typed error.</assertion-1>
+      </required-trace-assertions>
       <wave-follow-up>E2e navigates every menu item (128 items); contract-snapshot test asserts menu tree identical to captured baseline.</wave-follow-up>
       <phase-follow-up>Accessibility pass (v2.x — ARIA not in v1.0 scope per R-35).</phase-follow-up>
       <edge-cases generation="swarm-2026-04-25">
@@ -617,6 +789,10 @@
         <marker-1>[Renderer][mount][BLOCK_INSTANTIATE_MUYA]</marker-1>
         <marker-2>[Renderer][mount][BLOCK_HOST_HOOKS_WIRED] { hooks: 7 }</marker-2>
       </required-log-markers>
+      <required-trace-assertions>
+        <assertion-1>IPC command invoked after component destroy must NOT reach backend; BLOCK_INVOKE_GUARD_DESTROYED fires.</assertion-1>
+        <assertion-2>Auto-save timer check: BLOCK_AUTOSAVE_GUARD_TAB_CLOSED must prevent write when tab already removed.</assertion-2>
+      </required-trace-assertions>
       <wave-follow-up>Running against Tauri WebView vs Chromium — benchmark 10 MB doc, 10k-para performance.</wave-follow-up>
       <phase-follow-up>Full e2e regression; listener-leak soak test.</phase-follow-up>
       <edge-cases generation="swarm-2026-04-25">
@@ -878,6 +1054,9 @@
         <marker-2>[Encoding][detect_encoding][BLOCK_CHARDET_GUESS]</marker-2>
         <marker-3>[Encoding][normalize_newlines][BLOCK_NORMALIZE_EOL]</marker-3>
       </required-log-markers>
+      <required-trace-assertions>
+        <assertion-1>BOM detection fires exactly once per file-open path; BLOCK_DETECT_BOM recorded before any BLOCK_CHARDET_GUESS.</assertion-1>
+      </required-trace-assertions>
       <wave-follow-up>Integration with M-002: open a CRLF file, edit, save — endings preserved unless user switched.</wave-follow-up>
       <phase-follow-up>Regression corpus: one file per codec in `test/fixtures/encoding/`.</phase-follow-up>
       <edge-cases generation="swarm-2026-04-25">
@@ -927,7 +1106,11 @@
         <marker-1>[Pandoc][pandoc_available][BLOCK_PROBE_BIN]</marker-1>
         <marker-2>[Pandoc][pandoc_import][BLOCK_SPAWN]</marker-2>
       </required-log-markers>
+      <required-trace-assertions>
+        <assertion-1>pandoc probe failure: BLOCK_PROBE_BIN notfound must prevent BLOCK_SPAWN from executing.</assertion-1>
+      </required-trace-assertions>
       <wave-follow-up>E2e import flow via File → Import menu.</wave-follow-up>
+      <phase-follow-up>Full import/export roundtrip smoke with real pandoc installations on macOS/Linux/Windows; cross-platform PATH probe log audit.</phase-follow-up>
       <edge-cases generation="swarm-2026-04-25">
         <ec kind="failure" severity="medium">Binary version mismatch: installed pandoc 1.19 vs required ≥2.0 — `pandoc_available` returns `false` with `reason=version_too_old`; user-facing toast names minimum.</ec>
         <ec kind="perf" severity="medium">Large input (&gt;50 MB .docx): peak RSS of child capped (resource limits where OS permits), streaming stdout consumed without buffering whole output; timeout 60s configurable.</ec>
@@ -972,7 +1155,11 @@
         <marker-1>[Updater][check][BLOCK_FEED_FETCH]</marker-1>
         <marker-2>[Updater][download][BLOCK_VERIFY_SIGNATURE]</marker-2>
       </required-log-markers>
+      <required-trace-assertions>
+        <assertion-1>Signature verification BLOCK_VERIFY_SIGNATURE must NOT fire if BLOCK_FEED_FETCH returned NotAvailable.</assertion-1>
+      </required-trace-assertions>
       <wave-follow-up>E2e: tag v9.9.9 test release; check updater detects.</wave-follow-up>
+      <phase-follow-up>Force-update flow test with real GitHub Releases tag; signature verification against known-good public key; rollback integrity check.</phase-follow-up>
       <edge-cases generation="swarm-2026-04-25">
         <ec kind="failure" severity="medium">GitHub 60/hour rate-limit: on 403 with `X-RateLimit-Remaining: 0`, back-off until `X-RateLimit-Reset`; `updater_check` returns `NotAvailable` with `reason=rate_limited`, no error toast on startup trigger.</ec>
         <ec kind="contract" severity="medium">Malformed release tag (`v2.3-rc.1+build.7`): semver parser accepts pre-release; pre-release filter excludes unless user opted into beta channel.</ec>
@@ -1022,7 +1209,11 @@
         <marker-1>[Recent][add][BLOCK_ADD]</marker-1>
         <marker-2>[Recent][add][BLOCK_OS_INTEGRATE]</marker-2>
       </required-log-markers>
+      <required-trace-assertions>
+        <assertion-1>OS integrate BLOCK_OS_INTEGRATE must NOT fire when recent list is empty after clear — prevents ghost entries.</assertion-1>
+      </required-trace-assertions>
       <wave-follow-up>E2e: open 3 files; restart; verify File → Open Recent shows them.</wave-follow-up>
+      <phase-follow-up>Cross-platform OS integration smoke: macOS Dock recents, Windows Jump List, Linux recently-used JSON; stale-path graceful degradation.</phase-follow-up>
       <edge-cases generation="swarm-2026-04-25">
         <ec kind="success" severity="medium">Stale paths — add 12 paths, delete 4 on disk. `recent_list` still returns all 12; `BLOCK_ADD` tags each entry with `{ exists: bool }` snapshot taken lazily on list, not add.</ec>
         <ec kind="success" severity="medium">Unicode/path hygiene — emoji, RTL, NFC vs NFD normalization (`café` two forms). Dedup compares NFC-normalized form; both forms return 1 entry.</ec>
@@ -1063,7 +1254,11 @@
       <required-log-markers>
         <marker-1>[Screenshot][capture][BLOCK_SPAWN_CAPTURE]</marker-1>
       </required-log-markers>
+      <required-trace-assertions>
+        <assertion-1>Reentrant trigger: second BLOCK_SPAWN_CAPTURE must NOT fire while first screencapture child is alive; REENTRANT_REJECTED marker precedes return.</assertion-1>
+      </required-trace-assertions>
       <wave-follow-up>E2e via menu click → inserted image path in current document.</wave-follow-up>
+      <phase-follow-up>macOS-only manual test: multi-display capture, Screen Recording permission denied/retry flows, clipboard restore after cancel.</phase-follow-up>
       <edge-cases generation="swarm-2026-04-25">
         <ec kind="macos" severity="high">Screen Recording permission denied → `screencapture` exits non-zero without clipboard write; module returns typed error `MT_SCREENSHOT_CANCELLED` (or permission error) + deep-link to System Settings; no crash.</ec>
         <ec kind="macos" severity="medium">Multi-display / Retina — image saved at native pixel dimensions; DPI-scaled preview path independent from stored PNG; path inserted as-is in Markdown.</ec>
@@ -1112,6 +1307,7 @@
         <assertion-1>Token value must NEVER appear in any log line (tested via log capture + regex assertion).</assertion-1>
       </required-trace-assertions>
       <wave-follow-up>Smoke: configure GitHub uploader; paste PNG; verify URL replaces local path.</wave-follow-up>
+      <phase-follow-up>Full upload flow with test GitHub repo + token; CLI uploader smoke; keyring migration integrity test from real v1 prefs backup.</phase-follow-up>
       <edge-cases generation="swarm-2026-04-25">
         <ec kind="success" severity="high">Keyring service rename — seed `marktext` service with token, run `dc_migrate`, verify `com.xronocode.mark` holds token, legacy entry deleted only after read-back verification succeeds. `BLOCK_MIGRATE_LEGACY` emits `{ migrated_accounts: N, has_token: true }`.</ec>
         <ec kind="failure" severity="high">Legacy read OK, new write fails (keychain locked mid-migration). Legacy entry preserved; migration marker not set; retried on next launch. No data loss.</ec>
@@ -1157,7 +1353,11 @@
       <required-log-markers>
         <marker-1>[Cli][parse][BLOCK_PARSE] { flags_summary }</marker-1>
       </required-log-markers>
+      <required-trace-assertions>
+        <assertion-1>CLI conflict flag (e.g. --safe-mode --debug): REJECT_UNKNOWN must fire exit 2 BEFORE any module init or BLOCK_BUILD_APP.</assertion-1>
+      </required-trace-assertions>
       <wave-follow-up>E2e smoke: launch app with `--safe`; verify user prefs not loaded.</wave-follow-up>
+      <phase-follow-up>All-flag combinatorial smoke on each platform; single-instance forward race test; positional file-path ordering verification.</phase-follow-up>
       <edge-cases generation="swarm-2026-04-25">
         <ec kind="adversarial" severity="high">`mark --new-window "$(rm -rf ~)"` — positional file arg treated strictly as path; never shell-expanded by clap or downstream. Evidence: `[Cli][parse][PATH_ARG_LITERAL raw=...]` with identical bytes.</ec>
         <ec kind="failure" severity="high">Conflicting flags `--safe-mode --debug` or `--safe-mode --user-data-dir=X`: clap rejects with exit 2 and actionable message; `--safe-mode` wins only when paired with explicitly whitelisted flags. Evidence: `[Cli][parse][CONFLICT a=safe-mode b=debug]`.</ec>
@@ -1183,6 +1383,9 @@
     </V-M-020>
 
     <V-M-013 MODULE="M-013 mt-ipc-bridge" PRIORITY="high">
+      <!-- NOTE: V-M-013 intentionally placed after V-M-020 because M-013 is the IPC bridge (a frontend utility module)
+           that bridges to all backend modules. It is defined separately in development-plan.xml and knowledge-graph.xml
+           for the same reason. -->
       <test-files>
         <file>src/renderer/src/ipc/*.test.ts</file>
       </test-files>
@@ -1197,6 +1400,9 @@
       <required-log-markers>
         <marker-1>[IpcBridge][invoke][BLOCK_DISPATCH] { command }</marker-1>
       </required-log-markers>
+      <required-trace-assertions>
+        <assertion-1>Oversize payload (>=1MB) must emit REJECT_OVERSIZE and must NOT be forwarded to Tauri invoke().</assertion-1>
+      </required-trace-assertions>
       <wave-follow-up>Exercise every command path via e2e.</wave-follow-up>
       <phase-follow-up>Contract snapshot test: bridge exports vs backend commands must match set.</phase-follow-up>
       <edge-cases generation="swarm-2026-04-25">
@@ -1234,7 +1440,7 @@
         <command-3>cd marktext &amp;&amp; git branch --show-current</command-3>
       </commands>
       <required-evidence>
-        <evidence-1>All 6 docs/*.xml exist and reference UC-001..UC-016, M-001..M-013, V-M-001..V-M-013.</evidence-1>
+        <evidence-1>All 6 docs/*.xml exist and reference UC-001..UC-028, M-001..M-013, M-014..M-020, V-M-001..V-M-013, V-M-014..V-M-020.</evidence-1>
         <evidence-2>marktext/ has `fork` remote → git@github.com:xronocode/mark.git.</evidence-2>
         <evidence-3>Current branch is `modernize` (checked out from upstream `develop`).</evidence-3>
         <evidence-4>Local scaffold exists at /Users/myevdokimov/prj/mark/homebrew-mark/Casks/mark.rb placeholder.</evidence-4>
@@ -1696,6 +1902,62 @@
         <tolerance-1>ubuntu-latest and windows-latest may be yellow (continue-on-error); missing artifacts for those OS do not fail the gate.</tolerance-1>
       </tolerances>
     </TS-VF-005>
+
+    <TS-VF-006 FLOW="VF-006 EncodingRoundtripPath">
+      <expected-order>
+        <marker-1>[Encoding][detect_encoding][BLOCK_DETECT_BOM]</marker-1>
+        <marker-2>[Encoding][detect_encoding][BLOCK_CHARDET_GUESS]</marker-2>
+        <marker-3>[Encoding][normalize_newlines][BLOCK_NORMALIZE_EOL]</marker-3>
+      </expected-order>
+      <roundtrip-invariant>bytes(read) == bytes(write) when user makes no edits; EncodingMeta preserved across load/save.</roundtrip-invariant>
+      <forbidden-markers>
+        <marker-1>BLOCK_CHARDET_GUESS fired on files with unambiguous BOM (BOM wins deterministically).</marker-1>
+      </forbidden-markers>
+    </TS-VF-006>
+
+    <TS-VF-007 FLOW="VF-007 PandocImportPath">
+      <expected-order>
+        <marker-1>[Pandoc][pandoc_available][BLOCK_PROBE_BIN]</marker-1>
+        <marker-2>[Pandoc][pandoc_import][BLOCK_SPAWN]</marker-2>
+      </expected-order>
+      <failure-path>If BLOCK_PROBE_BIN returns notfound, BLOCK_SPAWN must NOT fire. Renderer must receive actionable notification.</failure-path>
+      <time-budget>pandoc subprocess &lt; 60s timeout; BLOCK_KILL emitted on timeout.</time-budget>
+    </TS-VF-007>
+
+    <TS-VF-008 FLOW="VF-008 AutoUpdateCheckPath">
+      <expected-order>
+        <marker-1>[Updater][check][BLOCK_FEED_FETCH]</marker-1>
+        <marker-2>[Updater][download][BLOCK_VERIFY_SIGNATURE]</marker-2>
+      </expected-order>
+      <state-machine>BLOCK_FEED_FETCH → (Available | NotAvailable | Error); on Available + user confirm → BLOCK_VERIFY_SIGNATURE.</state-machine>
+      <forbidden-markers>
+        <marker-1>BLOCK_VERIFY_SIGNATURE without preceding user confirm (no auto-download).</marker-1>
+      </forbidden-markers>
+    </TS-VF-008>
+
+    <TS-VF-009 FLOW="VF-009 CommandPalettePath">
+      <expected-order>
+        <marker-1>[Renderer][commandPalette][BLOCK_OPEN]</marker-1>
+        <marker-2>[Renderer][commandPalette][BLOCK_EXECUTE]</marker-2>
+      </expected-order>
+      <time-budget>Palette open &lt; 100ms after Cmd+Shift+P; fuzzy match returns results within 50ms of keystroke.</time-budget>
+      <forbidden-markers>
+        <marker-1>BLOCK_EXECUTE without a preceding BLOCK_OPEN (palette was never opened).</marker-1>
+      </forbidden-markers>
+    </TS-VF-009>
+
+    <TS-VF-010 FLOW="VF-010 RendererNodeCleanupPath">
+      <expected-evidence-chain>
+        <step-1>`grep -rE "require\('(fs|path|child_process|crypto|os|buffer)'\)|from '(fs|path|child_process|crypto|os|buffer)'" src/renderer/` returns empty.</step-1>
+        <step-2>`grep -rE "@electron/remote" src/renderer/` returns empty.</step-2>
+        <step-3>`grep -rE "ipcRenderer\.sendSync" src/renderer/` returns empty.</step-3>
+        <step-4>`yarn test:specs && yarn unit && yarn e2e` — all green.</step-4>
+      </expected-evidence-chain>
+      <forbidden-markers>
+        <marker-1>"@electron/remote" string in package.json dependencies.</marker-1>
+        <marker-2>Any Node core module import in renderer bundle (Vite externals assertion at build time).</marker-2>
+      </forbidden-markers>
+    </TS-VF-010>
   </TraceSequences>
 
   <LogMarkerCatalog>
@@ -1785,7 +2047,6 @@
     <marker ID="Renderer.export.BLOCK_EXPORT_HTML" module="M-011" required-fields="correlationId, bytes" />
     <marker ID="Renderer.export.BLOCK_EXPORT_PDF" module="M-011" required-fields="correlationId, bytes" />
     <marker ID="Muya.insert.BLOCK_INSERT_NODE" module="M-012" required-fields="correlationId, node_type" />
-    <marker ID="Muya.save.BLOCK_READ_FILE" module="M-002" required-fields="correlationId, path_redacted" />
   </LogMarkerCatalog>
 
   <AutonomySafety>

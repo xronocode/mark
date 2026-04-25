@@ -76,9 +76,9 @@
     </M-006>
 
     <M-007 NAME="mt-spell" TYPE="INTEGRATION" STATUS="planned">
-      <purpose>Spell checker bridging: NSSpellChecker on macOS (objc2), hunspell elsewhere.</purpose>
+      <purpose>Spellcheck through the WebView's native spellchecker + bundled hunspell dictionaries for extra languages; thin shim over tauri-plugin-spellcheck if available or manual session config.</purpose>
       <path>src-tauri/src/spell/mod.rs</path>
-      <depends>none</depends>
+      <depends>M-005</depends>
       <verification-ref>V-M-007</verification-ref>
       <annotations>
         <fn-spell_suggest PURPOSE="Get suggestions from OS spell checker" />
@@ -232,7 +232,7 @@
     <M-013 NAME="mt-ipc-bridge" TYPE="UTILITY" STATUS="planned">
       <purpose>Frontend wrapper over Tauri invoke/listen that mirrors Electron-era ipcRenderer surface for port-unchanged renderer code.</purpose>
       <path>src/renderer/src/ipc/</path>
-      <depends>M-002, M-003, M-004, M-005, M-006, M-007, M-008</depends>
+      <depends>M-002, M-003, M-004, M-005, M-006, M-007, M-008, M-014, M-015, M-016, M-017, M-018, M-019</depends>
       <verification-ref>V-M-013</verification-ref>
       <annotations>
         <fn-ipcInvoke PURPOSE="Typed invoke with schema check" />
@@ -254,7 +254,9 @@
 
     <CrossLink from="M-002" to="M-010" relation="validates-paths-via" />
 
+    <CrossLink from="M-007" to="M-005" relation="reads-prefs-from" />
     <CrossLink from="M-009" to="M-005" relation="reads-recent-files-from" />
+    <CrossLink from="M-009" to="M-007" relation="queries-spell-from" />
 
     <CrossLink from="M-011" to="M-012" relation="hosts" />
     <CrossLink from="M-011" to="M-013" relation="uses-ipc-from" />
