@@ -140,7 +140,8 @@ onUnmounted(() => {
   box-sizing: border-box;
   & h3 {
     margin: 0;
-    font-weight: normal;
+    font-size: 20px;
+    font-weight: 500;
     text-align: center;
     color: var(--sideBarColor);
   }

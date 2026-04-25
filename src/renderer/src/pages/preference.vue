@@ -66,11 +66,14 @@ onMounted(() => {
   background: var(--editorBgColor);
 
   & h4 {
-    margin: 0;
-    font-weight: normal;
+    margin: 0 0 12px;
+    font-size: 22px;
+    font-weight: 500;
+    color: var(--editorColor);
   }
 
   & h5 {
+    font-size: 16px;
     font-weight: normal;
   }
 
