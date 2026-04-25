@@ -59,16 +59,19 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # Electron 33+ requires C++20 to build native modules. Native modules
-      # like native-keymap include Objective-C++ (.mm) sources whose compiler
-      # invocation respects OBJCXXFLAGS / xcode_settings, not CXXFLAGS — set
-      # both so .cc/.cpp and .mm files agree on the language standard.
-      - name: Set C++20 flags (macOS)
+      # Electron 33+ requires C++17+ to build native modules. CXXFLAGS covers
+      # .cc/.cpp invocations; for Objective-C++ (.mm) sources Xcode reads
+      # xcode_settings from the binding.gyp. native-keymap doesn't declare
+      # xcode_settings for macOS, so on modern macos-14 runners its
+      # keyboard_mac.mm fails to find `constexpr` in the bundled chromium
+      # macros header. Patch its binding.gyp before rebuilding.
+      - name: Set C++ flags (macOS)
         if: startsWith(matrix.os, 'macos-')
-        run: |
-          echo "CXXFLAGS=-std=gnu++20 -stdlib=libc++" >> $GITHUB_ENV
-          echo "OBJCXXFLAGS=-std=gnu++20 -stdlib=libc++" >> $GITHUB_ENV
-          echo "GYP_DEFINES=clang_cxx_language_standard=c++20 mac_deployment_target=11.0" >> $GITHUB_ENV
+        run: echo "CXXFLAGS=-std=gnu++17 -stdlib=libc++" >> $GITHUB_ENV
+
+      - name: Patch native-keymap for Xcode C++17 (macOS)
+        if: startsWith(matrix.os, 'macos-')
+        run: node scripts/patch-native-keymap-mac.js
 
       - name: Rebuild native modules (macOS / Windows)
         if: ${{ !startsWith(matrix.os, 'ubuntu-') }}
