@@ -1,3 +1,8 @@
+// Prevent additional console window on Windows in release.
+#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+
 fn main() {
-    println!("mark — Phase-B Tauri rewrite (µstep A scaffold; tauri integration pending µstep B)");
+    tauri::Builder::default()
+        .run(tauri::generate_context!())
+        .expect("error while running tauri application");
 }
