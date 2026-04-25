@@ -24,9 +24,10 @@ class EditorWindow extends BaseWindow {
     this._filesToOpen = [] // {doc: IMarkdownDocumentRaw, options: any, selected: boolean}
     this._markdownToOpen = [] // List of markdown strings or an empty string will open a new untitled tab
 
-    // Root directory and file list that are currently opened. These lists are
-    // used to find the best window to open new files in.
-    this._openedRootDirectory = ''
+    // v1.1.0 Phase-A6: multi-root workspace. Set of canonical pathnames
+    // currently watched as project roots in this window. Replaces the legacy
+    // single-string _openedRootDirectory.
+    this._openedRootDirectories = new Set()
     this._openedFiles = []
   }
 
@@ -314,36 +315,107 @@ class EditorWindow extends BaseWindow {
   }
 
   /**
-   * Open a (new) directory and replaces the old one.
+   * Open a folder as a project root.
    *
    * @param {string} pathname The directory path.
+   * @param {{ mode?: 'add' | 'replace' }} [options] Default mode='add' for v1.1.0 multi-root.
+   *   'add'      → append to _openedRootDirectories if not already present and not nested.
+   *   'replace'  → unwatch + close all current roots, then add this one.
    */
-  openFolder(pathname) {
-    // TODO: Don't allow new files if quitting.
-    if (
-      !pathname ||
-      this.lifecycle === WindowLifecycle.QUITTED ||
-      isSamePathSync(pathname, this._openedRootDirectory)
-    ) {
+  openFolder(pathname, options = {}) {
+    if (!pathname || this.lifecycle === WindowLifecycle.QUITTED) {
+      return
+    }
+    const mode = options.mode === 'replace' ? 'replace' : 'add'
+
+    if (this.lifecycle !== WindowLifecycle.READY) {
+      // Buffer the call until window is READY. Preserve mode info as we go.
+      this._directoryToOpen = pathname
       return
     }
 
-    if (this.lifecycle === WindowLifecycle.READY) {
-      const { _accessor, browserWindow } = this
-      const { menu: appMenu, preferences } = _accessor
+    const { _accessor, browserWindow } = this
+    const { menu: appMenu, preferences } = _accessor
 
-      if (this._openedRootDirectory) {
-        ipcMain.emit('watcher-unwatch-directory', browserWindow, this._openedRootDirectory)
+    if (mode === 'replace') {
+      const cleared = this._openedRootDirectories.size
+      for (const existing of Array.from(this._openedRootDirectories)) {
+        ipcMain.emit('watcher-unwatch-directory', browserWindow, existing)
+        browserWindow.webContents.send('mt::close-directory', existing)
       }
-
-      preferences.setItems({ lastOpenedFolder: pathname })
-      appMenu.addRecentlyUsedDocument(pathname)
-      this._openedRootDirectory = pathname
-      ipcMain.emit('watcher-watch-directory', browserWindow, pathname)
-      browserWindow.webContents.send('mt::open-directory', pathname)
+      this._openedRootDirectories.clear()
+      log.debug(`[EditorWindow][openFolder][BLOCK_REPLACE] cleared=${cleared} path=${pathname}`)
     } else {
-      this._directoryToOpen = pathname
+      // Dedup: same canonical path already open.
+      for (const existing of this._openedRootDirectories) {
+        if (isSamePathSync(pathname, existing)) {
+          log.debug(`[EditorWindow][openFolder][BLOCK_DUPLICATE] path=${pathname}`)
+          return
+        }
+      }
+      // Refuse nested-inside-existing (candidate is inside a current root).
+      for (const existing of this._openedRootDirectories) {
+        if (isChildOfDirectory(existing, pathname)) {
+          log.debug(`[EditorWindow][openFolder][BLOCK_REFUSE_NESTED] candidate=${pathname} existing=${existing}`)
+          browserWindow.webContents.send('mt::show-notification', {
+            title: 'Folder already inside an open root',
+            type: 'warning',
+            message: `"${pathname}" is nested under "${existing}".`
+          })
+          return
+        }
+      }
+      // Refuse reverse-nested (candidate contains an existing root).
+      for (const existing of this._openedRootDirectories) {
+        if (isChildOfDirectory(pathname, existing)) {
+          log.debug(`[EditorWindow][openFolder][BLOCK_REFUSE_NESTED] candidate=${pathname} child=${existing}`)
+          browserWindow.webContents.send('mt::show-notification', {
+            title: 'Folder contains an already-opened sub-folder',
+            type: 'warning',
+            message: `"${pathname}" contains "${existing}". Close the inner folder first.`
+          })
+          return
+        }
+      }
     }
+
+    preferences.setItems({ lastOpenedFolder: pathname })
+    appMenu.addRecentlyUsedDocument(pathname)
+    this._openedRootDirectories.add(pathname)
+    log.debug(`[EditorWindow][openFolder][BLOCK_ADD] path=${pathname} total=${this._openedRootDirectories.size}`)
+    ipcMain.emit('watcher-watch-directory', browserWindow, pathname)
+    browserWindow.webContents.send('mt::open-directory', pathname)
+  }
+
+  /**
+   * Close one project root: unwatch its watcher and notify the renderer.
+   * Idempotent — closing a path that isn't a current root is a no-op.
+   *
+   * @param {string} pathname The project root pathname to close.
+   */
+  closeFolder(pathname) {
+    if (!pathname || this.lifecycle === WindowLifecycle.QUITTED) {
+      return
+    }
+    const { browserWindow } = this
+    if (!browserWindow || browserWindow.isDestroyed()) {
+      return
+    }
+    let target = null
+    for (const existing of this._openedRootDirectories) {
+      if (isSamePathSync(pathname, existing)) {
+        target = existing
+        break
+      }
+    }
+    if (!target) {
+      log.debug(`[EditorWindow][closeFolder][BLOCK_REMOVE] path=${pathname} miss=true`)
+      return
+    }
+    this._openedRootDirectories.delete(target)
+    ipcMain.emit('watcher-unwatch-directory', browserWindow, target)
+    browserWindow.webContents.send('mt::close-directory', target)
+    log.debug(`[EditorWindow][closeFolder][BLOCK_REMOVE] path=${target} miss=false remaining=${this._openedRootDirectories.size}`)
   }
 
   /**
@@ -397,15 +469,20 @@ class EditorWindow extends BaseWindow {
    * @returns {number[]}
    */
   getCandidateScores(fileList) {
-    const { _openedFiles, _openedRootDirectory, id } = this
+    const { _openedFiles, _openedRootDirectories, id } = this
     const buf = []
     for (const pathname of fileList) {
       let score = 0
       if (_openedFiles.some((p) => p === pathname)) {
         score = -1
       } else {
-        if (isChildOfDirectory(_openedRootDirectory, pathname)) {
-          score += 5
+        // v1.1.0: file is "in this window" if it lives under ANY of the
+        // currently opened roots (multi-root scoring).
+        for (const root of _openedRootDirectories) {
+          if (isChildOfDirectory(root, pathname)) {
+            score += 5
+            break
+          }
         }
         for (const item of _openedFiles) {
           if (isChildOfDirectory(path.dirname(item), pathname)) {
@@ -428,7 +505,7 @@ class EditorWindow extends BaseWindow {
     this._directoryToOpen = ''
     this._filesToOpen = []
     this._markdownToOpen = []
-    this._openedRootDirectory = ''
+    this._openedRootDirectories.clear()
     this._openedFiles = []
 
     browserWindow.webContents.once('did-finish-load', () => {
@@ -460,12 +537,31 @@ class EditorWindow extends BaseWindow {
     this._directoryToOpen = null
     this._filesToOpen = null
     this._markdownToOpen = null
-    this._openedRootDirectory = null
+    this._openedRootDirectories = null
     this._openedFiles = null
   }
 
+  /**
+   * Returns the currently-watched project roots in this window.
+   * Replaces the legacy single-string `openedRootDirectory` getter.
+   * @returns {Set<string>}
+   */
+  get openedRootDirectories() {
+    return this._openedRootDirectories
+  }
+
+  /**
+   * Back-compat shim: returns the most-recently-added root or '' (empty
+   * string) if none. Callers that still expect a single string keep
+   * working until they migrate to `openedRootDirectories`.
+   * @deprecated Use openedRootDirectories instead.
+   * @returns {string}
+   */
   get openedRootDirectory() {
-    return this._openedRootDirectory
+    if (!this._openedRootDirectories || this._openedRootDirectories.size === 0) return ''
+    let last = ''
+    for (const p of this._openedRootDirectories) last = p
+    return last
   }
 
   // --- private ---------------------------------

@@ -689,12 +689,17 @@ class App {
       }
     })
 
-    ipcMain.on('app-open-directory-by-id', (windowId, pathname, openInSameWindow) => {
+    ipcMain.on('app-open-directory-by-id', (windowId, pathname, openInSameWindow, mode) => {
       const { openFolderInNewWindow } = this._accessor.preferences.getAll()
       if (openInSameWindow || !openFolderInNewWindow) {
         const editor = this._windowManager.get(windowId)
         if (editor) {
-          editor.openFolder(pathname)
+          // v1.1.0: explicit mode controls add vs replace. Sidebar 📂 passes
+          // 'add' (multi-root); the File→Open Folder menu doesn't pass mode
+          // and falls back to 'replace' for back-compat with the prior
+          // single-root semantic.
+          const finalMode = mode === 'add' ? 'add' : 'replace'
+          editor.openFolder(pathname, { mode: finalMode })
           return
         }
       }
