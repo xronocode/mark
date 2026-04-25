@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, screen } from 'electron'
+import { app, BrowserWindow, ipcMain } from 'electron'
 import EventEmitter from 'events'
 import log from 'electron-log'
 import Watcher, {
@@ -414,6 +414,10 @@ class WindowManager extends EventEmitter {
       const [currentWidth, currentHeight] = win.getContentSize()
       const targetHeight = typeof height === 'number' && height > 0 ? height : currentHeight
       // Clamp to current display work-area minus a small breathing room.
+      // Lazy-access `screen` via require() to avoid triggering its getter
+      // at module load — that would fire before app.ready and crash on
+      // certain cold-start paths (Finder open-file association).
+      const { screen } = require('electron')
       const display = screen.getDisplayMatching(win.getBounds())
       const maxWidth = Math.max(360, display.workArea.width - 24)
       const clampedWidth = Math.min(Math.round(width), maxWidth)

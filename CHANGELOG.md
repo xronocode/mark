@@ -1,5 +1,13 @@
 # Changelog
 
+## v1.0.2 — 2026-04-25
+
+Hotfix on top of v1.0.1.
+
+### Fixed
+
+- **Cold-start crash on file-association launch (TypeError: screen module before app.ready)** — opening a `.md` file from Finder while Mark wasn't running could crash the main process during window creation. The v1.0.1 auto-resize handler had a top-level `import { ..., screen } from 'electron'` which triggers Electron's `screen` getter at module load, before `app.ready`. The `windowStateKeeper` package (called by `EditorWindow.createWindow`) then re-accessed the screen module and threw. Switched to lazy `const { screen } = require('electron')` inside the IPC handler so the getter only fires after the app is ready.
+
 ## v1.0.1 — 2026-04-25
 
 Polish release on top of v1.0.0 — driven by feedback after the first install.
