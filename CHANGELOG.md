@@ -1,5 +1,34 @@
 # Changelog
 
+## v1.1.0 — 2026-04-25
+
+Sidebar/titlebar redesign + multi-root workspace.
+
+### UI
+
+- **Titlebar nav cluster** — four icons (☰ Sidebar / 📂 Files / 📑 TOC / ⚙ Settings) clumped on the left, no gap. Single-click switches sidebar content; clicking 📂 while already on Files (with at least one project loaded) opens the Finder dialog to ADD another root.
+- **Sidebar redesign** — removed the legacy 45 px left icon-strip column. Search toolbar (input + `Aa` `\b` `.*` text-label options with extended-tooltip examples) is always visible at the top. Below: search results when a query is active, otherwise the per-root tree or TOC.
+- **Per-root tree section** — each opened folder gets its own collapsible section with an independent fold arrow and a small ✕ close-button on hover.
+- **Empty-root pseudo-row** — instead of a centered "Create File" button, an empty root now shows a clickable row with a small green M icon (with `+` badge) and an italic "Новый файл" / "New file" label. Mirrors the visual weight of a regular file row.
+- **Spacing** — titlebar-to-first-section gap tightened (35 → 11 px); "Open Files" header hidden entirely when there are no open tabs.
+
+### Multi-root workspace
+
+- **Click 📂 ADDS another folder** — when the sidebar is already on Files view with at least one project, the dialog opens for adding a sibling root rather than replacing. First-time use (no projects) still opens the dialog as the bootstrap action. The File → Open Folder menu retains its v1.0 *replace* semantic.
+- **Per-root close** — each root section's hover ✕ button removes only that root, unwatches its file-system observer, and emits `mt::close-project-root` to the main process. Other roots stay intact.
+- **Nested-root rejection** — opening a folder that's inside an already-opened root (or a parent of an already-opened root) is refused with a notification. Comparison is path-segment aware (`/foo` vs `/foobar` does not collide).
+- **Search across all roots** — the in-app folder search now ranges over every opened root in parallel and aggregates matches. Cancel + 100-result soft-limit logic preserved.
+- **Tree-event routing** — file-watcher events are dispatched to the owning root by longest-prefix path-segment match; events that arrive before a root is loaded are buffered per future root pathname and replayed on load.
+
+### Translations (10 locales)
+
+- New strings for the close-folder tooltip, new-file pseudo-row, search-option tooltip examples, search empty/searching placeholders.
+
+### Notes
+
+- Persistence of multi-root sessions across app restarts is **not** in v1.1.0; only the most-recently-added root is restored on cold start. Multi-folder `lastOpenedFolders[]` will land in v1.2.
+- macOS arm64 only (Intel deferred since v1.0.0).
+
 ## v1.0.3 — 2026-04-25
 
 Hotfix on top of v1.0.2.
