@@ -1,5 +1,32 @@
 # Changelog
 
+## v1.0.1 — 2026-04-25
+
+Polish release on top of v1.0.0 — driven by feedback after the first install.
+
+### UI
+
+- **Sidebar toggle button in titlebar** — clickable icon next to the macOS traffic-lights (or after the Win/Linux hamburger), driving the same Pinia layout-store action as `Cmd+J`. Active state when the sidebar is visible.
+- **Auto-resize window on sidebar toggle and on initial editor load** — window content width snaps to a comfortable editor width plus the sidebar (when visible). Width changes by exactly `sideBarWidth` on toggle; height untouched. Skipped when window is maximized or fullscreen, and when the new preference `autoSnapWindowWidth` is disabled.
+- **Preferences typography tightened** — sidebar list-items 18 → 15 px (icons 28 → 22, height 50 → 42); section headings 1.1em → 1.2em / weight 500. Resulting hierarchy: page h4 22 > sidebar h3 20 > section h6 16.8 > sidebar item 15 > form labels 14.
+- **Language is now its own Preferences category** — extracted from the General page's "Misc" section into a standalone sidebar entry at the bottom, with a globe icon. Translations added in all 10 locales.
+- **Preferences window now uses native macOS traffic-lights** — `titleBarStyle: 'hiddenInset'` instead of the custom right-side close button. Same chrome the editor window uses.
+
+### Branding
+
+- **Mark identity throughout the UI** — replaced stale "MarkText" / "Tkaixiang fork" references in About dialog, titlebar placeholder, crash dialog, CLI banner, exception report header, GitHub uploader commit messages, schema descriptions, and 168 i18n strings across 10 locales.
+- **Repo URLs unified to `xronocode/mark`** — Help menu → Releases / Discussions / Report Issue / Source / License; in-app docs links (Markdown reference, Basics, Keybindings, Images, Export themes) now point at our own copy of the docs in `xronocode/mark/blob/electron/docs/`.
+- **About dialog credits the full lineage** — `Copyright © Jocs 2017+, tkaixiang 2024+, xronocode 2026+` instead of the original single-author line.
+
+### Fixed
+
+- Sidebar toggle icon vertical alignment nudged 2 px down to match the macOS traffic-light optical centre (cosmetic).
+
+### Notes
+
+- macOS arm64 only (same as v1.0.0). Intel x64 build still pending; tracking in v1.0.2 / v1.1.0.
+- Bundle size unchanged within ±5 KB of v1.0.0 (3,292 KB index entry).
+
 ## v1.0.0 — 2026-04-25
 
 First release of **Mark** — a downstream fork of
