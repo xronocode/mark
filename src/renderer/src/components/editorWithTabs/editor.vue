@@ -717,13 +717,20 @@ const scrollToHighlight = () => {
 }
 
 const scrollToHeader = (slug) => {
+  if (!slug) return
   return scrollToElement(`#${slug}`)
 }
 
 const scrollToElement = (selector) => {
   // Scroll to search highlight word
   const { container } = editor.value
-  const anchor = document.querySelector(selector)
+  let anchor
+  try {
+    anchor = document.querySelector(selector)
+  } catch (e) {
+    // Invalid CSS selector (e.g. '#' from an empty heading slug). See #4087.
+    return
+  }
   if (anchor) {
     const { y } = anchor.getBoundingClientRect()
     const DURATION = 300

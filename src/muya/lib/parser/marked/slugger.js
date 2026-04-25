@@ -24,6 +24,12 @@ Slugger.prototype.slug = function (value) {
     .replace(/[\u2000-\u206F\u2E00-\u2E7F\\'!"#$%&()*+,./:;<=>?@[\]^`{|}~]/g, '')
     .replace(/\s/g, '-')
 
+  // Fallback when the heading is empty or contains only special characters,
+  // otherwise an empty slug becomes the invalid CSS selector '#'. See #4087.
+  if (!slug) {
+    slug = 'heading'
+  }
+
   if (this.seen.hasOwnProperty(slug)) {
     const originalSlug = slug
     do {
