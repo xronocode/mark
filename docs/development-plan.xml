@@ -1023,14 +1023,14 @@
       <step-4 status="done">Verify build: `npm run build` exits 0; touched-file lint introduces no new errors. Verified.</step-4>
     </Phase-A2-5>
 
-    <Phase-A3 name="macOS Distribution (Ad-hoc signing + Homebrew tap)" status="pending">
+    <Phase-A3 name="macOS Distribution (Ad-hoc signing + Homebrew tap)" status="in-progress">
       <goal>GitHub Actions release pipeline + Homebrew cask `mark` in xronocode/homebrew-mark working on a fresh macOS VM.</goal>
-      <step-1 status="pending">Configure electron-builder for ad-hoc: set identity to null; add post-build `codesign --force --deep --sign - Mark.app` hook; rename productName to "Mark" and bundle id to com.xronocode.mark.</step-1>
-      <step-2 status="pending">Create `.github/workflows/release.yml` with matrix: macos-14 (arm64, blocking), macos-13 (x86_64, blocking), ubuntu-latest (continue-on-error: true), windows-latest (continue-on-error: true).</step-2>
-      <step-3 status="pending">Push tap repo to xronocode/homebrew-mark (user creates empty repo first).</step-3>
-      <step-4 status="pending">Write Casks/mark.rb with url pointing at github.com/xronocode/mark releases, sha256 (arm+intel), livecheck, postflight `xattr -cr` to strip quarantine.</step-4>
-      <step-5 status="pending">Test flow on clean macOS VM: `brew tap xronocode/mark &amp;&amp; brew install --cask mark &amp;&amp; open -a Mark`.</step-5>
-      <step-6 status="pending">Verify Gate-Phase-A3. [USER REVIEW]</step-6>
+      <step-1 status="done">electron-builder.yml: appId com.xronocode.mark, productName Mark, mac.identity null, afterPack scripts/ad-hoc-sign.js. package.json identity fields rebranded.</step-1>
+      <step-2 status="done">.github/workflows/release.yml rewritten: matrix macos-14 (arm64, blocking), macos-13 (x64, blocking), ubuntu-22.04 + windows-latest (continue-on-error). Inline minify-locales + vite + electron-builder steps; ad-hoc signature verification step.</step-2>
+      <step-3 status="pending" blocking="USER">User creates empty public repo at https://github.com/xronocode/homebrew-mark.</step-3>
+      <step-4 status="done">Casks/mark.rb in /Users/myevdokimov/prj/mark/homebrew-mark/ rewritten: arch-aware (arm/intel), version 1.0.0 placeholder, sha256 placeholders to be filled after first release, livecheck github_latest, postflight xattr -cr, depends_on macos &gt;= big_sur.</step-4>
+      <step-5 status="pending" blocking="USER">After Phase-A4 ships v1.0.0 DMGs and cask sha256 is updated, test on clean macOS: `brew tap xronocode/mark &amp;&amp; brew install --cask mark &amp;&amp; open -a Mark`.</step-5>
+      <step-6 status="pending" blocking="USER">Verify Gate-Phase-A3. [USER REVIEW]</step-6>
     </Phase-A3>
 
     <Phase-A4 name="v1.0 Release" status="pending">

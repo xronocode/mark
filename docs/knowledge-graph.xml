@@ -6,7 +6,7 @@
     <M-001 NAME="mt-tauri-shell" TYPE="ENTRY_POINT" STATUS="planned">
       <purpose>Tauri app entrypoint; builds app, registers plugins, manages windows and lifecycle.</purpose>
       <path>src-tauri/src/main.rs</path>
-      <depends>M-002, M-003, M-004, M-005, M-006, M-007, M-008, M-009, M-010</depends>
+      <depends>M-002, M-003, M-004, M-005, M-006, M-007, M-008, M-009, M-010, M-014, M-015, M-016, M-017, M-018, M-019, M-020</depends>
       <verification-ref>V-M-001</verification-ref>
       <annotations>
         <fn-main PURPOSE="Boot Tauri app with single-instance guard and wired modules" />
@@ -16,7 +16,7 @@
     <M-002 NAME="mt-fs-commands" TYPE="INTEGRATION" STATUS="planned">
       <purpose>Filesystem IPC commands (read, write, stat, rename, delete) with sandbox guard from M-010.</purpose>
       <path>src-tauri/src/commands/fs.rs</path>
-      <depends>M-010</depends>
+      <depends>M-010, M-014</depends>
       <verification-ref>V-M-002</verification-ref>
       <annotations>
         <fn-fs_read PURPOSE="Read UTF-8 file after sandbox check" />
