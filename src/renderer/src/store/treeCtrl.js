@@ -16,6 +16,39 @@ const getSubdirectoriesFromRoot = (rootPath, pathname) => {
   return relativePath ? relativePath.split(PATH_SEPARATOR) : []
 }
 
+// v1.1.0 Phase-A6: defense-in-depth containment guard.
+// project-store's _processTreeEvent dispatches to the longest-prefix root
+// before calling treeCtrl, so this should never reject in normal flow. We
+// still guard against:
+//   - prefix-string collisions (e.g., /foo vs /foobar)
+//   - dispatcher bugs that route the wrong tree
+//   - Unicode normalization mismatch (NFD vs NFC) that makes
+//     window.path.relative produce '../foo'
+// Returns true if `pathname` is contained inside `tree.pathname` (so the
+// per-tree mutator can proceed); false otherwise (caller should bail).
+const isPathInsideTree = (tree, pathname) => {
+  if (!pathname) return false
+  if (!window.path.isAbsolute(pathname)) return false
+  const relative = window.path.relative(tree.pathname, pathname)
+  // window.path.relative returns:
+  //   ''            iff pathname === tree.pathname
+  //   'sub/dir'     iff pathname is inside tree
+  //   '../other'    iff pathname is outside tree (sibling or upward)
+  //   absolute      iff pathname is on a different drive (Windows)
+  if (relative === '') return true
+  if (relative.startsWith('..')) return false
+  if (window.path.isAbsolute(relative)) return false
+  return true
+}
+
+const rejectOutOfTree = (fnName, tree, pathname) => {
+  const relative = window.path.relative(tree.pathname, pathname || '')
+  // eslint-disable-next-line no-console
+  console.debug(
+    `[TreeCtrl][${fnName}][BLOCK_REJECT_OUT_OF_TREE] root=${tree.pathname} path=${pathname} relative=${relative}`
+  )
+}
+
 /**
  * Add a new file to the tree list.
  *
@@ -24,6 +57,10 @@ const getSubdirectoriesFromRoot = (rootPath, pathname) => {
  */
 export const addFile = (tree, file) => {
   const { pathname, name } = file
+  if (!isPathInsideTree(tree, pathname)) {
+    rejectOutOfTree('addFile', tree, pathname)
+    return
+  }
   const dirname = window.path.dirname(pathname)
   const subDirectories = getSubdirectoriesFromRoot(tree.pathname, dirname)
 
@@ -73,6 +110,9 @@ export const addFile = (tree, file) => {
     } else {
       currentFolder.files.push(fileCopy)
     }
+  } else {
+    // eslint-disable-next-line no-console
+    console.debug(`[TreeCtrl][addFile][BLOCK_SKIP_DUPLICATE] root=${tree.pathname} name=${name} parent=${currentPath}`)
   }
 }
 
@@ -83,6 +123,10 @@ export const addFile = (tree, file) => {
  * @param {*} dir The directory that should be added
  */
 export const addDirectory = (tree, dir) => {
+  if (!isPathInsideTree(tree, dir.pathname)) {
+    rejectOutOfTree('addDirectory', tree, dir.pathname)
+    return
+  }
   const subDirectories = getSubdirectoriesFromRoot(tree.pathname, dir.pathname)
 
   let currentPath = tree.pathname
@@ -125,6 +169,10 @@ export const addDirectory = (tree, dir) => {
  */
 export const unlinkFile = (tree, file) => {
   const { pathname } = file
+  if (!isPathInsideTree(tree, pathname)) {
+    rejectOutOfTree('unlinkFile', tree, pathname)
+    return
+  }
   const dirname = window.path.dirname(pathname)
   const subDirectories = getSubdirectoriesFromRoot(tree.pathname, dirname)
 
@@ -151,6 +199,10 @@ export const unlinkFile = (tree, file) => {
  */
 export const unlinkDirectory = (tree, dir) => {
   const { pathname } = dir
+  if (!isPathInsideTree(tree, pathname)) {
+    rejectOutOfTree('unlinkDirectory', tree, pathname)
+    return
+  }
   const subDirectories = getSubdirectoriesFromRoot(tree.pathname, pathname)
 
   subDirectories.pop()
