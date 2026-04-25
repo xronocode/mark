@@ -26,8 +26,8 @@ defineProps({
   color: var(--editorColor);
 
   & .pref-compound-head h6.title {
-    font-weight: 400;
-    font-size: 1.1em;
+    font-weight: 500;
+    font-size: 1.2em;
     padding-bottom: 6px;
   }
 

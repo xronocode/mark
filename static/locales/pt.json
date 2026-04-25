@@ -489,7 +489,8 @@
       "spelling": "Ortografia",
       "theme": "Tema",
       "image": "Imagem",
-      "keybindings": "Atalhos de Teclado"
+      "keybindings": "Atalhos de Teclado",
+      "language": "Idioma"
     },
     "general": {
       "title": "Geral",
@@ -906,6 +907,13 @@
       "enableSpellChecking": "Habilitar verificação ortográfica",
       "hideMarksForErrors": "Ocultar marcas para erros ortográficos",
       "title": "Corretor Ortográfico"
+    },
+    "language": {
+      "title": "Idioma",
+      "uiLanguage": {
+        "title": "Idioma da interface",
+        "description": "Idioma da interface do aplicativo"
+      }
     }
   },
   "about": {

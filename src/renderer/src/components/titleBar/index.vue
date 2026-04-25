@@ -419,7 +419,9 @@ div.title > span {
   position: absolute;
   top: 50%;
   left: 8px;
-  transform: translateY(-50%);
+  /* +2px nudge to align optical center with macOS traffic-light row, which
+     sits slightly below the geometric centre of the title bar. */
+  transform: translateY(calc(-50% + 2px));
   width: 28px;
   height: 28px;
   display: flex;

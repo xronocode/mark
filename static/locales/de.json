@@ -488,7 +488,8 @@
       "spelling": "Rechtschreibung",
       "theme": "Design",
       "image": "Bild",
-      "keybindings": "Tastenkürzel"
+      "keybindings": "Tastenkürzel",
+      "language": "Sprache"
     },
     "general": {
       "title": "Allgemein",
@@ -904,6 +905,13 @@
       "enableSpellChecking": "Rechtschreibprüfung aktivieren",
       "hideMarksForErrors": "Markierungen für Rechtschreibfehler ausblenden",
       "title": "Rechtschreibprüfung"
+    },
+    "language": {
+      "title": "Sprache",
+      "uiLanguage": {
+        "title": "Oberflächensprache",
+        "description": "Sprache der Anwendungsoberfläche"
+      }
     }
   },
   "about": {

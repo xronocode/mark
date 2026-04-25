@@ -487,7 +487,8 @@
       "spelling": "Орфография",
       "theme": "Тема",
       "image": "Изображения",
-      "keybindings": "Сочетания клавиш"
+      "keybindings": "Сочетания клавиш",
+      "language": "Язык"
     },
     "general": {
       "title": "Общие",
@@ -904,6 +905,13 @@
       "enableSpellChecking": "Включить проверку орфографии",
       "hideMarksForErrors": "Скрыть пометки ошибок",
       "title": "Проверка орфографии"
+    },
+    "language": {
+      "title": "Язык",
+      "uiLanguage": {
+        "title": "Язык интерфейса",
+        "description": "Язык интерфейса приложения"
+      }
     }
   },
   "edit": {

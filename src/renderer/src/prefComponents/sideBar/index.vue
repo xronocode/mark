@@ -200,8 +200,8 @@ onUnmounted(() => {
   overflow-y: auto;
   & .item {
     width: 100%;
-    height: 50px;
-    font-size: 18px;
+    height: 42px;
+    font-size: 15px;
     color: var(--sideBarColor);
     padding-left: 20px;
     box-sizing: border-box;
@@ -212,10 +212,10 @@ onUnmounted(() => {
     position: relative;
     user-select: none;
     & > svg {
-      width: 28px;
-      height: 28px;
+      width: 22px;
+      height: 22px;
       fill: var(--iconColor);
-      margin-right: 15px;
+      margin-right: 12px;
     }
     &:hover {
       background: var(--sideBarItemHoverBgColor);

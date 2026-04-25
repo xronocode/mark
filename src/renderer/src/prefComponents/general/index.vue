@@ -135,19 +135,6 @@
       </template>
     </compound>
 
-    <compound>
-      <template #head>
-        <h6 class="title">{{ t('preferences.general.misc.title') }}</h6>
-      </template>
-      <template #children>
-        <cur-select
-          :description="t('preferences.general.misc.language.title')"
-          :value="language"
-          :options="getLanguageOptions()"
-          :on-change="(value) => onSelectChange('language', value)"
-        ></cur-select>
-      </template>
-    </compound>
   </div>
 </template>
 
@@ -166,8 +153,7 @@ import { isOsx } from '@/util'
 import {
   getTitleBarStyleOptions,
   zoomOptions,
-  getFileSortByOptions,
-  getLanguageOptions
+  getFileSortByOptions
 } from './config'
 
 const { t } = useI18n()
@@ -184,8 +170,7 @@ const {
   zoom,
   hideScrollbar,
   wordWrapInToc,
-  fileSortBy,
-  language
+  fileSortBy
 } = storeToRefs(preferenceStore)
 
 const startUpAction = computed({

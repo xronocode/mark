@@ -489,7 +489,8 @@
       "spelling": "拼字",
       "theme": "主題",
       "image": "圖片",
-      "keybindings": "按鍵綁定"
+      "keybindings": "按鍵綁定",
+      "language": "語言"
     },
     "general": {
       "title": "一般",
@@ -906,6 +907,13 @@
       "enableSpellChecking": "啟用拼字檢查",
       "hideMarksForErrors": "隱藏拼字錯誤標記",
       "title": "拼字檢查"
+    },
+    "language": {
+      "title": "語言",
+      "uiLanguage": {
+        "title": "介面語言",
+        "description": "應用介面的顯示語言"
+      }
     }
   },
   "about": {

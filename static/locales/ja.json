@@ -489,7 +489,8 @@
       "spelling": "スペルチェック",
       "theme": "テーマ",
       "image": "画像",
-      "keybindings": "キーバインド"
+      "keybindings": "キーバインド",
+      "language": "言語"
     },
     "general": {
       "title": "一般",
@@ -906,6 +907,13 @@
       "enableSpellChecking": "スペルチェックを有効",
       "hideMarksForErrors": "スペルエラーのマークを隠す",
       "title": "スペルチェック"
+    },
+    "language": {
+      "title": "言語",
+      "uiLanguage": {
+        "title": "インターフェース言語",
+        "description": "アプリケーションUIの言語"
+      }
     }
   },
   "about": {

@@ -489,7 +489,8 @@
       "spelling": "맞춤법",
       "theme": "테마",
       "image": "이미지",
-      "keybindings": "키 바인딩"
+      "keybindings": "키 바인딩",
+      "language": "언어"
     },
     "general": {
       "title": "일반",
@@ -906,6 +907,13 @@
       "enableSpellChecking": "맞춤법 검사 활성화",
       "hideMarksForErrors": "맞춤법 오류 표시 숨기기",
       "title": "맞춤법 검사기"
+    },
+    "language": {
+      "title": "언어",
+      "uiLanguage": {
+        "title": "인터페이스 언어",
+        "description": "애플리케이션 UI 언어"
+      }
     }
   },
   "about": {

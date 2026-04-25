@@ -487,7 +487,8 @@
       "spelling": "Spelling",
       "theme": "Theme",
       "image": "Image",
-      "keybindings": "Keybindings"
+      "keybindings": "Keybindings",
+      "language": "Language"
     },
     "general": {
       "title": "General",
@@ -904,6 +905,13 @@
       "enableSpellChecking": "Enable spell checking",
       "hideMarksForErrors": "Hide marks for spelling errors",
       "title": "Spell Checker"
+    },
+    "language": {
+      "title": "Language",
+      "uiLanguage": {
+        "title": "Interface language",
+        "description": "Application UI language"
+      }
     }
   },
   "edit": {
