@@ -1,4 +1,4 @@
-name: Build/release Marktext
+name: Build/Release Mark
 
 on:
   push:
@@ -8,95 +8,140 @@ on:
 jobs:
   release:
     runs-on: ${{ matrix.os }}
+    continue-on-error: ${{ matrix.required == false }}
 
     strategy:
+      fail-fast: false
       matrix:
-        os: [ubuntu-22.04, windows-latest, macos-latest]
+        include:
+          # macOS Apple Silicon — primary target for v1.0; blocking.
+          - os: macos-14
+            arch: arm64
+            required: true
+            label: mac-arm64
+          # macOS Intel — secondary target; blocking.
+          - os: macos-13
+            arch: x64
+            required: true
+            label: mac-x64
+          # Linux — best effort; failure does not block release.
+          - os: ubuntu-22.04
+            arch: x64
+            required: false
+            label: linux
+          # Windows — best effort; failure does not block release.
+          - os: windows-latest
+            arch: x64
+            required: false
+            label: win
 
     steps:
-      - name: Check out Git repository
-        uses: actions/checkout@v3
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - name: Install python 3.12
+      - name: Install Python 3.12
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
 
       - name: Install Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: 24.14.1
 
-      - name: Install Linux Build Dependencies
-        if: matrix.os == 'ubuntu-22.04'
+      - name: Install Linux build dependencies
+        if: startsWith(matrix.os, 'ubuntu-')
         run: sudo apt-get update && sudo apt-get install -y icnsutils graphicsmagick xz-utils libx11-dev libxkbfile-dev gnome-keyring libsecret-1-dev libfontconfig-dev rpm
 
-        # --ignore-scripts first to prevent postinstall scripts from running (we will run electron-rebuild manually later)
-        # --no-audit and --no-fund to reduce noise
-      - name: Install Dependencies
+      # --ignore-scripts skips native postinstall; we run electron-rebuild explicitly below.
+      - name: Install dependencies
         run: npm ci --no-audit --no-fund --ignore-scripts --loglevel verbose
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # Electron seems to require C++20 support for native modules now after Electron 33
-      - name: Set C++20 for MacOS
-        if: matrix.os == 'macos-latest'
-        run: |
-          echo "CXXFLAGS=-std=gnu++20 -stdlib=libc++" >> $GITHUB_ENV
+      # Electron 33+ requires C++20 to build native modules.
+      - name: Set C++20 flags (macOS)
+        if: startsWith(matrix.os, 'macos-')
+        run: echo "CXXFLAGS=-std=gnu++20 -stdlib=libc++" >> $GITHUB_ENV
 
-      - name: Rebuild native modules for Electron (MacOS + Windows)
-        if: matrix.os != 'ubuntu-22.04'
+      - name: Rebuild native modules (macOS / Windows)
+        if: ${{ !startsWith(matrix.os, 'ubuntu-') }}
         run: npx @electron/rebuild -f
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # Enforce using gcc/g++ on Linux for electron-rebuild instead of clang (.npmrc covers some settings too)
-      - name: Rebuild native modules for Electron (Ubuntu)
-        if: matrix.os == 'ubuntu-22.04'
+      # Force gcc/g++ on Linux for electron-rebuild (clang fails on some native deps).
+      - name: Rebuild native modules (Linux)
+        if: startsWith(matrix.os, 'ubuntu-')
         run: USE_ELECTRON_CLANG=0 npx @electron/rebuild -f
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: build-linux
-        if: matrix.os == 'ubuntu-22.04'
-        run: npm run build:linux
+      - name: Minify locales
+        run: npm run minify-locales
+
+      - name: Vite build
+        run: npm run build
+
+      - name: Package (macOS)
+        if: startsWith(matrix.os, 'macos-')
+        run: npx electron-builder --mac --${{ matrix.arch }} --publish never
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # Mac builds have been disabled due to a lack of a Developer ID to sign it
-      # All builds by default will give a "this app is damaged and can't be opened" error
-      - name: build-mac
-        if: matrix.os == 'macos-latest'
-        run: npm run build:mac
+      - name: Package (Linux)
+        if: startsWith(matrix.os, 'ubuntu-')
+        run: npx electron-builder --linux --publish never
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: build-win
-        if: matrix.os == 'windows-latest'
-        run: npm run build:win
+      - name: Package (Windows)
+        if: startsWith(matrix.os, 'windows-')
+        run: npx electron-builder --win --publish never
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: release
-        uses: softprops/action-gh-release@v1
+      - name: Verify ad-hoc signature (macOS)
+        if: startsWith(matrix.os, 'macos-')
+        run: |
+          APP_PATH=$(find dist -maxdepth 3 -name 'Mark.app' -type d | head -1)
+          echo "Signed bundle: $APP_PATH"
+          codesign --verify --verbose=2 "$APP_PATH"
+          codesign -d -v "$APP_PATH" 2>&1 | grep -E 'Signature|Identifier|Authority'
+
+      - name: Release
+        uses: softprops/action-gh-release@v2
         with:
           draft: false
-          preRelease: true
+          prerelease: ${{ contains(github.ref_name, '-beta') || contains(github.ref_name, '-rc') || contains(github.ref_name, '-alpha') }}
           generate_release_notes: true
-          name: 'Pre-release ${{ github.ref_name }}'
+          name: Mark ${{ github.ref_name }}
           body: |
-            ## ❗This is a Pre-release
-            - This is a pre-release build of MarkText, it will most likely contain bugs and unfinished features.
+            ## Mark ${{ github.ref_name }}
 
-            ## ⚠️ Note for MacOS Users
-            - MacOS releases will show a "`Apple couldn't verify MarkText is free of viruses...`" due to a **lack of notorisation**. 
-            - Please run the following commands [based off this fix here](https://github.com/marktext/marktext/issues/3004#issuecomment-1038207300) after you have dragged MarkText into the "Applications" folder
-            ```
-            sudo find /Applications/marktext.app -exec xattr -c {} \; # <-- Note this change on newer MacOS versions
-            sudo codesign --force --deep --sign - /Applications/marktext.app
+            Modernized fork of [marktext/marktext](https://github.com/marktext/marktext) tracking [Tkaixiang/marktext](https://github.com/Tkaixiang/marktext) upstream, with Russian localization and ad-hoc macOS signing.
+
+            ### macOS
+
+            Recommended install via Homebrew tap:
+
+            ```bash
+            brew tap xronocode/mark
+            brew install --cask mark
             ```
 
-            ## Changes
+            The cask's postflight script clears the quarantine attribute automatically — no manual `xattr -cr` is needed. Builds are ad-hoc signed (`codesign --sign -`) for Apple Silicon Gatekeeper compliance, but not Apple-notarized.
+
+            If installing the DMG manually, you may need to run once after dragging Mark.app to /Applications:
+            ```bash
+            xattr -cr /Applications/Mark.app
+            ```
+
+            ### Windows / Linux
+
+            Download the appropriate artifact below.
+
+            ### Changes
           files: |
             dist/*.exe
             dist/*.zip
