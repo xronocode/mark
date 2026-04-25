@@ -1,5 +1,23 @@
 # Changelog
 
+## v1.0.3 — 2026-04-25
+
+Hotfix on top of v1.0.2.
+
+### Fixed
+
+- **Main process silently exits ~1.5s after launch** — v1.0.1's auto-resize feature added an `mt::request-window-content-size` ipcMain listener; the renderer's bootstrap-editor flow then fired this IPC during initial layout-store hydration, and somewhere in that path the main process would exit cleanly with code 0 (no crash, no error visible in stderr). Reproduced both via `open -a Mark` and via direct binary launch. v1.0.2's lazy-import-of-screen fix did not address this distinct failure mode.
+
+### Removed
+
+- **Auto-resize window on sidebar toggle** (V-A5-2 from v1.0.1) — IPC handler removed entirely from `src/main/app/windowManager.js`. Renderer-side emitter is left in place but main no longer listens (Electron drops unhandled `ipcMain.on` messages silently — safe no-op). The feature will be re-introduced in v1.1.0 with proper sequencing tests after the main-side root cause is understood.
+- `autoSnapWindowWidth` preference key remains declared in schema/preference.json but is currently inert. Will be wired again in v1.1.0.
+
+### Notes
+
+- All other v1.0.1/1.0.2 features intact: titlebar sidebar-toggle button, Preferences typography + Language category extraction, Preferences window native macOS traffic-lights, full Mark/xronocode rebrand, About copyright lineage.
+- macOS arm64 only.
+
 ## v1.0.2 — 2026-04-25
 
 Hotfix on top of v1.0.1.

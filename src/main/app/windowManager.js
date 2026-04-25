@@ -387,47 +387,15 @@ class WindowManager extends EventEmitter {
       this._appMenu.updateAlwaysOnTopMenu(win.id, flag)
     })
 
-    // V-A5-2: auto-resize window content width on renderer request.
-    // Renderer sends desired content width on sidebar toggle and on
-    // initial editor load. Main side gates on user preference and on
-    // window state (skip when maximized/fullscreen/destroyed) and
-    // never touches height.
-    ipcMain.on('mt::request-window-content-size', (e, { width, height } = {}) => {
-      const win = BrowserWindow.fromWebContents(e.sender)
-      if (!win || win.isDestroyed()) {
-        // Sender is gone — graceful no-op.
-        return
-      }
-      const autoSnap = this._preferences.getItem('autoSnapWindowWidth')
-      if (autoSnap === false) {
-        log.debug('[Window][handleResizeRequest][BLOCK_SKIP_PREFERENCE_OFF]')
-        return
-      }
-      if (win.isMaximized() || win.isFullScreen()) {
-        log.debug('[Window][handleResizeRequest][BLOCK_SKIP_MAXIMIZED]')
-        return
-      }
-      if (typeof width !== 'number' || width <= 0) {
-        log.debug(`[Window][handleResizeRequest][BLOCK_SKIP_BAD_REQUEST] width=${width}`)
-        return
-      }
-      const [currentWidth, currentHeight] = win.getContentSize()
-      const targetHeight = typeof height === 'number' && height > 0 ? height : currentHeight
-      // Clamp to current display work-area minus a small breathing room.
-      // Lazy-access `screen` via require() to avoid triggering its getter
-      // at module load — that would fire before app.ready and crash on
-      // certain cold-start paths (Finder open-file association).
-      const { screen } = require('electron')
-      const display = screen.getDisplayMatching(win.getBounds())
-      const maxWidth = Math.max(360, display.workArea.width - 24)
-      const clampedWidth = Math.min(Math.round(width), maxWidth)
-      if (Math.abs(clampedWidth - currentWidth) < 2) {
-        // Already at target within rounding tolerance — skip churn.
-        return
-      }
-      log.debug(`[Window][handleResizeRequest][BLOCK_APPLY] from=${currentWidth} to=${clampedWidth} h=${targetHeight}`)
-      win.setContentSize(clampedWidth, targetHeight)
-    })
+    // v1.0.3: auto-resize feature disabled. v1.0.1's
+    // `mt::request-window-content-size` handler was implicated in a
+    // silent main-process exit on cold start (after this listener was
+    // hit by the renderer's bootstrap-editor flow, the app would quit
+    // within ~1.5s). Until the root cause is understood and properly
+    // gated, we remove the IPC handler entirely. The renderer side
+    // still emits the IPC but main no longer listens, which is a safe
+    // no-op — Electron drops unhandled ipcMain.on messages silently.
+    // Re-introduce in v1.1.0 with proper sequencing tests.
 
     // --- local events ---------------
 
