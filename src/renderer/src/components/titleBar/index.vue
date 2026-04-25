@@ -25,18 +25,56 @@
           <span class="save-dot" :class="{ show: !isSaved }"></span>
         </span>
       </div>
-      <!-- Sidebar toggle: always rendered, positioned after macOS traffic lights or after the
-           hamburger on Win/Linux. Drives the same Pinia layout-store action as Cmd+J. -->
+      <!-- v1.1.0: navigation cluster — sidebar-toggle + Files + TOC + Settings, all left,
+           no gap between them. Replaces the per-icon left column inside sidebar. -->
       <div
-        class="sidebar-toggle title-no-drag"
-        :class="{ active: showSideBar, 'sidebar-toggle--osx': isOsx }"
-        :title="showSideBar ? t('menu.view.toggleSidebar') : t('menu.view.toggleSidebar')"
-        @click.stop="handleSidebarToggleClick"
+        class="titlebar-nav title-no-drag"
+        :class="{ 'titlebar-nav--osx': isOsx }"
       >
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="3" y="3" width="18" height="18" rx="2"/>
-          <line x1="9" y1="3" x2="9" y2="21"/>
-        </svg>
+        <div
+          class="titlebar-nav-btn"
+          :class="{ active: showSideBar }"
+          :title="t('menu.view.toggleSidebar')"
+          @click.stop="handleSidebarToggleClick"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="2"/>
+            <line x1="9" y1="3" x2="9" y2="21"/>
+          </svg>
+        </div>
+        <div
+          class="titlebar-nav-btn"
+          :class="{ active: showSideBar && rightColumn === 'files' }"
+          :title="t('sideBar.icons.files')"
+          @click.stop="handleNavClick('files')"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"/>
+          </svg>
+        </div>
+        <div
+          class="titlebar-nav-btn"
+          :class="{ active: showSideBar && rightColumn === 'toc' }"
+          :title="t('sideBar.icons.toc')"
+          @click.stop="handleNavClick('toc')"
+        >
+          <!-- TOC: ≡ with varying line lengths to suggest outline depth -->
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="4" y1="6" x2="20" y2="6"/>
+            <line x1="7" y1="11" x2="17" y2="11"/>
+            <line x1="10" y1="16" x2="20" y2="16"/>
+          </svg>
+        </div>
+        <div
+          class="titlebar-nav-btn"
+          :title="t('sideBar.icons.settings')"
+          @click.stop="handleSettingsClick"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+          </svg>
+        </div>
       </div>
       <div :class="showCustomTitleBar ? 'left-toolbar title-no-drag' : 'right-toolbar'">
         <div
@@ -121,6 +159,7 @@
 import { getCurrentWindow, Menu as RemoteMenu } from '@electron/remote'
 import { usePreferencesStore } from '@/store/preferences.js'
 import { useLayoutStore } from '@/store/layout.js'
+import { useProjectStore } from '@/store/project'
 import { ref, computed, watch, onBeforeUnmount } from 'vue'
 import { storeToRefs } from 'pinia'
 import bus from '@/bus'
@@ -143,6 +182,7 @@ const props = defineProps({
 const preferencesStore = usePreferencesStore()
 const layoutStore = useLayoutStore()
 const editorStore = useEditorStore()
+const projectStore = useProjectStore()
 const { t } = useI18n()
 
 const isOsx = isOsxPlatform
@@ -174,7 +214,7 @@ const isMaximized = ref(getCurrentWindow().isMaximized())
 const show = ref('word')
 
 const { titleBarStyle } = storeToRefs(preferencesStore)
-const { showTabBar, showSideBar } = storeToRefs(layoutStore)
+const { showTabBar, showSideBar, rightColumn } = storeToRefs(layoutStore)
 
 const paths = computed(() => {
   if (!props.pathname) return []
@@ -202,13 +242,93 @@ watch(
   }
 )
 
-// Sidebar toggle button — emits the canonical bus event that the layout store
-// listens to (same path as keyboard shortcut Cmd+J). Marker for V-A5-1 trace.
+// Sidebar toggle: emits the canonical bus event (same path as Cmd+J).
 const handleSidebarToggleClick = () => {
-  const next = !showSideBar.value
-  // eslint-disable-next-line no-console
-  console.debug(`[TitleBar][onSidebarToggleClick][BLOCK_DISPATCH] nextShowSideBar=${next}`)
   bus.emit('view:toggle-layout-entry', 'showSideBar')
+}
+
+// In-flight guard: prevents two synchronous clicks (rapid double-click)
+// from spawning two Finder dialogs. Cleared by the renderer's IPC reply
+// path (mt::open-directory) or after a short timeout if user cancelled.
+let dialogPending = false
+const DIALOG_DEDUP_MS = 600
+
+// Files / TOC / Settings titlebar nav with multi-root-aware Files semantics.
+//
+// Click 📂 (Files):
+//   • sidebar closed     → open + switch to Files; no dialog
+//   • on TOC view        → switch to Files; no dialog
+//   • already on Files
+//        with ≥1 project → opens Finder (intent: ADD another root)
+//        with 0 projects → opens Finder (intent: FIRST folder)
+//
+// Click 📑 (TOC):
+//   • only switches view; never opens dialog.
+//
+// All paths log a structured marker so the decision tree is debuggable
+// post-hoc (per V-A6-5).
+const handleNavClick = (view) => {
+  const sidebarOpen = showSideBar.value
+  const prevView = rightColumn.value
+  const projectsCount = (projectStore.projectTrees || []).length
+  // eslint-disable-next-line no-console
+  console.debug(`[TitleBar][handleNavClick][BLOCK_ENTRY] view=${view} sidebarOpen=${sidebarOpen} prevView=${prevView} projectsCount=${projectsCount}`)
+
+  let dispatched = []
+  if (!sidebarOpen) {
+    layoutStore.SET_LAYOUT({ rightColumn: view, showSideBar: true })
+    // eslint-disable-next-line no-console
+    console.debug(`[TitleBar][handleNavClick][BLOCK_OPEN_SIDEBAR] view=${view}`)
+    dispatched.push('set_layout')
+  } else if (prevView !== view) {
+    layoutStore.SET_LAYOUT({ rightColumn: view })
+    // eslint-disable-next-line no-console
+    console.debug(`[TitleBar][handleNavClick][BLOCK_SWITCH_VIEW] view=${view} prevView=${prevView}`)
+    dispatched.push('set_layout')
+  }
+
+  if (view === 'files') {
+    // Decision tree for Finder dialog:
+    //   already-on-files (sidebar open, prevView=files) AND ≥1 project → ADD
+    //   no projects loaded (any state) → FIRST folder
+    //   else → no dialog (it's a pure view switch)
+    const alreadyOnFiles = sidebarOpen && prevView === 'files'
+    if (alreadyOnFiles && projectsCount >= 1) {
+      if (dialogPending) {
+        // eslint-disable-next-line no-console
+        console.debug('[TitleBar][handleNavClick][BLOCK_NOOP_DIALOG] reason=in-flight-guard')
+      } else {
+        dialogPending = true
+        setTimeout(() => { dialogPending = false }, DIALOG_DEDUP_MS)
+        projectStore.ASK_FOR_OPEN_PROJECT()
+        // eslint-disable-next-line no-console
+        console.debug('[TitleBar][handleNavClick][BLOCK_OPEN_DIALOG] reason=add-another-root')
+        dispatched.push('ask_for_open_project')
+      }
+    } else if (projectsCount === 0) {
+      if (dialogPending) {
+        // eslint-disable-next-line no-console
+        console.debug('[TitleBar][handleNavClick][BLOCK_NOOP_DIALOG] reason=in-flight-guard')
+      } else {
+        dialogPending = true
+        setTimeout(() => { dialogPending = false }, DIALOG_DEDUP_MS)
+        projectStore.ASK_FOR_OPEN_PROJECT()
+        // eslint-disable-next-line no-console
+        console.debug('[TitleBar][handleNavClick][BLOCK_OPEN_DIALOG] reason=no-projects-loaded')
+        dispatched.push('ask_for_open_project')
+      }
+    } else {
+      // eslint-disable-next-line no-console
+      console.debug('[TitleBar][handleNavClick][BLOCK_NOOP_DIALOG] reason=view-switch-only')
+    }
+  }
+
+  // eslint-disable-next-line no-console
+  console.debug(`[TitleBar][handleNavClick][BLOCK_EXIT] dispatched=${dispatched.join(',') || 'none'}`)
+}
+
+const handleSettingsClick = () => {
+  projectStore.OPEN_SETTING_WINDOW()
 }
 
 const handleWordClick = () => {
@@ -411,17 +531,26 @@ div.title > span {
   -webkit-app-region: no-drag;
 }
 
-/* Sidebar toggle button (V-A5-1).
-   Position: after macOS traffic lights (~70px) on osx, after Win/Linux
-   hamburger (~46px) otherwise. Always visible, always click-through to
-   the layout-store action. */
-.sidebar-toggle {
+/* v1.1.0: titlebar nav cluster — sidebar-toggle + Files + TOC + Settings,
+   slammed together on the left, no gap. On macOS we shift past the three
+   traffic-lights (~70px reserved), on Win/Linux we sit at left:8px. */
+.titlebar-nav {
   position: absolute;
   top: 50%;
   left: 8px;
-  /* +2px nudge to align optical center with macOS traffic-light row, which
-     sits slightly below the geometric centre of the title bar. */
+  /* +2px optical-center nudge to align with macOS traffic-light row. */
   transform: translateY(calc(-50% + 2px));
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0; /* explicit: no gap between buttons */
+  z-index: 10;
+}
+.titlebar-nav--osx {
+  left: 78px;
+}
+.titlebar-nav-btn {
+  position: relative;
   width: 28px;
   height: 28px;
   display: flex;
@@ -431,21 +560,16 @@ div.title > span {
   cursor: pointer;
   color: var(--editorColor50);
   transition: background-color 0.15s ease, color 0.15s ease;
-  z-index: 10;
 }
-.sidebar-toggle--osx {
-  /* Skip past the three macOS traffic lights (~70px wide window-control area). */
-  left: 78px;
-}
-.sidebar-toggle:hover {
+.titlebar-nav-btn:hover {
   background-color: var(--floatHoverColor, rgba(0, 0, 0, 0.06));
   color: var(--sideBarTitleColor);
 }
-.sidebar-toggle.active {
+.titlebar-nav-btn.active {
   color: var(--sideBarTitleColor);
 }
-.sidebar-toggle.active::after {
-  /* Subtle filled state when the sidebar is currently visible. */
+.titlebar-nav-btn.active::after {
+  /* Underline bar when this view is currently the active sidebar content. */
   content: '';
   position: absolute;
   bottom: -3px;
@@ -456,7 +580,7 @@ div.title > span {
   background-color: var(--highlightThemeColor);
   border-radius: 1px;
 }
-.sidebar-toggle svg {
+.titlebar-nav-btn svg {
   pointer-events: none;
 }
 /* frameless window controls */
