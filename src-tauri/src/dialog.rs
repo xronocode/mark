@@ -4,10 +4,6 @@
 //            tauri::Builder takes over the runtime, asking the user whether
 //            to migrate from a previously-installed Mark/MarkText namespace.
 //
-// NOTE: dead_code is allow'd module-wide while µstep E ships in isolation.
-// `ask_migration` becomes live in µstep G when main.rs wires the flow.
-// `map_result` is fully exercised by tests now.
-#![allow(dead_code)]
 //   SCOPE: Dialog presentation only. The decision to show a dialog (i.e.
 //          "did legacy::detect_layouts() find anything?") and the post-
 //          decision migration logic both live elsewhere (M-005 mt-prefs).

@@ -7,10 +7,6 @@
 //   DEPENDS: sys_locale crate for runtime locale discovery.
 //   LINKS: M-005 mt-prefs, V-M-005, Phase-B-pre2 step-2.
 //
-// NOTE: dead_code is allow'd module-wide while µstep D ships in isolation.
-// Symbols become live in µstep G when main.rs wires the dialog flow. Tests
-// fully exercise every constant + function so the data is verified now.
-#![allow(dead_code)]
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct MigrationStrings {
