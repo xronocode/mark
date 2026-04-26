@@ -869,9 +869,44 @@
         <deferred>
           <d kind="visual-regression">Real-dialog screenshots in ru_RU/zh_CN/ja_JP across macos-14/ubuntu-22.04/windows-latest are owned by Gate-Phase-B-pre2 CI checklist, not by this evidence packet.</d>
           <d kind="translation-review">Native-speaker review of 9 non-EN locale strings (RU, ZH_CN, JA, DE, FR, ES, IT, KO, PT_BR) is a closing-checklist item before Gate-Phase-B-pre2 fires.</d>
-          <d kind="cancel-persistence">Cancel branch currently logs `BLOCK_MIGRATION_CANCEL_NOOP_PRE_STEP3` and continues; full sessions.jsonl + exit 0 lands in Phase-B-pre2 step-3 (next microstep).</d>
+          <d kind="cancel-persistence" status="completed-2026-04-26">Cancel branch persistence shipped in step-3 (commits 98462ff, a3ddbce). Live evidence captured below.</d>
         </deferred>
       </closed-evidence>
+      <live-end-to-end-evidence generation="phase-b-pre2-D-walkthrough" date="2026-04-26" host="darwin-arm64-ru_RU.UTF-8">
+        <scenario name="continue-path" recorded-at="2026-04-26T01:30+05">
+          <stderr-captured>
+            [legacy][detect][BLOCK_LEGACY_FOUND] marktext=Some("/Users/myevdokimov/Library/Application Support/marktext") mark=Some("/Users/myevdokimov/Library/Application Support/mark")
+            [dialog][ask_migration][BLOCK_DIALOG_OPEN]
+            [dialog][ask_migration][BLOCK_DIALOG_CLOSED choice=Continue]
+            [main][bootstrap][BLOCK_DIALOG_CHOICE choice=Continue]
+            [main][bootstrap][BLOCK_MIGRATION_CONTINUE]
+          </stderr-captured>
+          <native-dialog>NSAlert displayed RU strings (sys_locale → ru-RU → for_locale matched RU table); user clicked the Continue button («Продолжить»).</native-dialog>
+          <side-effect>Tauri window opened normally; sessions.jsonl was NOT written (correct — only Cancel writes).</side-effect>
+        </scenario>
+        <scenario name="cancel-path" recorded-at="2026-04-26T13:23+05">
+          <stderr-captured>
+            [legacy][detect][BLOCK_LEGACY_FOUND] marktext=Some(".../marktext") mark=Some(".../mark")
+            [dialog][ask_migration][BLOCK_DIALOG_OPEN]
+            [dialog][ask_migration][BLOCK_DIALOG_CLOSED choice=Cancel]
+            [main][bootstrap][BLOCK_DIALOG_CHOICE choice=Cancel]
+            [main][bootstrap][BLOCK_MIGRATION_CANCEL_PERSISTED ts_unix=1777191831 version=0.0.1]
+            [main][bootstrap][BLOCK_MIGRATION_CANCEL_EXIT_0]
+          </stderr-captured>
+          <native-dialog>NSAlert displayed RU strings; user clicked the Cancel button («Отмена»).</native-dialog>
+          <jsonl-written path="~/Library/Caches/com.xronocode.mark/sessions.jsonl" bytes="62">{"ts_unix":1777191831,"app_version":"0.0.1","event":"cancel"}</jsonl-written>
+          <timestamp-validation>ts_unix=1777191831 ≡ 2026-04-26T13:23:51+05 (matches click wall-clock).</timestamp-validation>
+          <side-effect>Tauri window did NOT open (Cancel branch returns from main before tauri::Builder); process exited 0 cleanly; no zombie processes.</side-effect>
+        </scenario>
+        <coverage-summary>
+          Both branches of dialog::map_result + main::bootstrap exercised on
+          real macOS NSAlert with the actual rfd 0.17 + sys_locale 0.3 stack.
+          Locale resolution validated end-to-end (host ru-RU → RU table →
+          NSAlert renders correctly). cancel_log + mt_paths chain validated
+          end-to-end (sessions.jsonl created at the right OS path with
+          correct bytes and the correct schema).
+        </coverage-summary>
+      </live-end-to-end-evidence>
     </V-M-005>
 
     <V-M-006 MODULE="M-006 mt-shortcuts" PRIORITY="medium">
