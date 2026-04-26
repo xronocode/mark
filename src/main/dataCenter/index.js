@@ -186,8 +186,13 @@ class DataCenter extends EventEmitter {
       this.setItems(userData)
     })
 
-    // TODO: Replace sync. call.
-    ipcMain.on('mt::ask-for-image-path', async (e) => {
+    // step-8k: was ipcMain.on with e.returnValue — sendSync semantics.
+    // The handler body was already async (await dialog.showOpenDialog),
+    // so the synchronous e.returnValue assignment was running AFTER the
+    // sendSync call had already returned undefined to the renderer; the
+    // pre-existing TODO acknowledged this. Now ipcMain.handle / invoke,
+    // returning the path string (or '') asynchronously the proper way.
+    ipcMain.handle('mt::ask-for-image-path', async (e) => {
       const win = BrowserWindow.fromWebContents(e.sender)
       const { filePaths } = await dialog.showOpenDialog(win, {
         properties: ['openFile'],
@@ -198,12 +203,7 @@ class DataCenter extends EventEmitter {
           }
         ]
       })
-
-      if (filePaths && filePaths[0]) {
-        e.returnValue = filePaths[0]
-      } else {
-        e.returnValue = ''
-      }
+      return filePaths && filePaths[0] ? filePaths[0] : ''
     })
   }
 }

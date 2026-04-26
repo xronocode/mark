@@ -1324,7 +1324,10 @@ export const useEditorStore = defineStore('editor', {
     },
 
     ASK_FOR_IMAGE_PATH() {
-      return window.electron.ipcRenderer.sendSync('mt::ask-for-image-path')
+      // step-8k: sendSync → invoke. Returns Promise<string>; muya's
+      // ImagePathPicker plugin awaits the picker result, so the async
+      // semantics propagate cleanly through editor.vue:imagePathPicker.
+      return window.electron.ipcRenderer.invoke('mt::ask-for-image-path')
     },
 
     EDIT_ZOOM(zoomFactor) {
