@@ -7,12 +7,27 @@ export const editorWinOptions = Object.freeze({
   minWidth: 550,
   minHeight: 350,
   webPreferences: {
-    contextIsolation: false,
+    // step-8z: contextIsolation:false → true. preload's contextBridge
+    // path now activates and seals the renderer's window.electron /
+    // window.fileUtils / window.path / window.commandExists /
+    // window.i18nUtils / window.rgPath surface against tampering. The
+    // contextIsolated branch in src/preload/index.js was already in
+    // place from day one — only the runtime gate flips here.
+    contextIsolation: true,
     // WORKAROUND: We cannot enable spellcheck if it was disabled during
     // renderer startup due to a bug in Electron (Electron#32755). We'll
     // enable it always and set the HTML spelling attribute to false.
     spellcheck: true,
-    nodeIntegration: true,
+    // step-8z: nodeIntegration:true → false. Renderer no longer has
+    // direct access to Node-core. Every Node-shaped API the renderer
+    // uses is brokered by preload (window.fileUtils, window.path,
+    // window.electron.process.env, etc.) or by mt::* IPC handlers.
+    nodeIntegration: false,
+    // step-8z: webSecurity left at false intentionally — Mark loads
+    // user-selected images and theme CSS via file:// URLs, which
+    // the same-origin policy would block. Tightening this is a
+    // separate v1.3 ticket: route file:// access through a custom
+    // protocol handler with explicit allow-list.
     webSecurity: false,
     preload: path.join(__dirname, '../preload/index.js')
   },
@@ -29,10 +44,13 @@ export const preferencesWinOptions = Object.freeze({
   width: 950,
   height: 650,
   webPreferences: {
-    contextIsolation: false,
+    // step-8z: see editorWinOptions for rationale. Same flip applied
+    // here so Preferences window benefits from the same isolation
+    // posture as the editor.
+    contextIsolation: true,
     // Always true to access native spellchecker.
     spellcheck: true,
-    nodeIntegration: true,
+    nodeIntegration: false,
     webSecurity: false,
     preload: path.join(__dirname, '../preload/index.js')
   },

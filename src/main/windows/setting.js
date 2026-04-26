@@ -1,6 +1,6 @@
 import path from 'path'
 import { BrowserWindow, ipcMain } from 'electron'
-import { enable as remoteEnable } from '@electron/remote/main'
+// step-8z: @electron/remote.enable removed (see editor.js for rationale).
 import { electronLocalshortcut } from '@hfelix/electron-localshortcut'
 import BaseWindow, { WindowLifecycle, WindowType } from './base'
 import { centerWindowOptions } from './utils'
@@ -52,7 +52,7 @@ class SettingWindow extends BaseWindow {
       log.error(`render-process-gone: ${details.reason} (${details.exitCode})`)
     })
 
-    remoteEnable(win.webContents)
+    // step-8z: remoteEnable(win.webContents) removed.
     this.id = win.id
 
     // Create a menu for the current window

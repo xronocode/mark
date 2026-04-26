@@ -59,11 +59,29 @@ export default defineConfig({
       },
       extensions: ['.mjs', '.js', '.json', '.vue']
     },
+    // step-8z: build-time substitutions for Node-process references
+    // that survive in third-party packages we cannot edit (notably
+    // @hfelix/electron-localshortcut/src/utils.js — see step-8l for
+    // the analysis). Vite injects literal values at compile time so
+    // the renderer does not need a runtime `process` global, which is
+    // mandatory once nodeIntegration:false ships in main/config.js.
+    // For local builds the host platform is baked in; CI matrix-builds
+    // do the right thing per-runner. Cross-builds (rare) would need an
+    // explicit override or runtime polyfill.
+    define: {
+      'process.platform': JSON.stringify(process.platform),
+      'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV || 'production')
+    },
     plugins: [
       vue(),
       svgLoader(),
       renderer({
-        nodeIntegration: true
+        // step-8z: was true (renderer had direct access to Node-core
+        // modules). After step-8a..8m moved every Node import either
+        // to preload (window.electron.*) or to main (mt::* IPCs),
+        // this can flip to false. main/config.js webPreferences also
+        // sets nodeIntegration:false on the BrowserWindow side.
+        nodeIntegration: false
       })
     ],
     build: {

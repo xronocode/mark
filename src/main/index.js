@@ -3,7 +3,12 @@ import path from 'path'
 import { app, dialog, crashReporter } from 'electron'
 import log from 'electron-log'
 import { electronApp, optimizer } from '@electron-toolkit/utils'
-import { initialize as remoteInitializeServer } from '@electron/remote/main'
+// step-8z: @electron/remote removed. After step-8e (clipboard) + 8f
+// (getCurrentWindow → mt::window-* IPCs) + 8g (Menu/MenuItem →
+// mt::window-popup-context-menu/popup-app-menu IPCs), every
+// renderer-side @electron/remote import is gone. The main-side
+// initializer is no longer needed; the dependency itself is dropped
+// from package.json in this commit.
 
 import cli from './cli'
 import setupExceptionHandler, { initExceptionLogger } from './exceptionHandler'
@@ -74,8 +79,7 @@ if (!process.mas && process.env.NODE_ENV !== 'development') {
   }
 }
 
-// Enable remote module for windows
-remoteInitializeServer()
+// step-8z: remoteInitializeServer() removed; @electron/remote dep dropped.
 
 // Windows-specific AppUserModelID
 electronApp.setAppUserModelId('com.electron.marktext')

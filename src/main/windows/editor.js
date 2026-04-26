@@ -1,6 +1,7 @@
 import path from 'path'
 import { BrowserWindow, dialog, ipcMain } from 'electron'
-import { enable as remoteEnable } from '@electron/remote/main'
+// step-8z: @electron/remote.enable removed; renderer no longer uses
+// the remote module for any operation.
 import log from 'electron-log'
 import windowStateKeeper from 'electron-window-state'
 import { isChildOfDirectory, isSamePathSync } from 'common/filesystem/paths'
@@ -81,7 +82,7 @@ class EditorWindow extends BaseWindow {
 
     let win = (this.browserWindow = new BrowserWindow(winOptions))
 
-    remoteEnable(win.webContents)
+    // step-8z: remoteEnable(win.webContents) removed.
     this.id = win.id
 
     if (spellcheckerEnabled && !isOsx) {
