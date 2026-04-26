@@ -1,5 +1,7 @@
 // List of all static commands that are loaded into command center.
-import { getCurrentWindow } from '@electron/remote'
+// step-8f: @electron/remote.getCurrentWindow removed. window.minimize
+// and window.toggle-full-screen now route through mt::window-* IPCs
+// (windowManager._listenForIpcMain).
 import bus from '../bus'
 import { delay, isOsx } from '@/util'
 import { isUpdatable } from './utils'
@@ -426,7 +428,7 @@ const commands = [
   {
     id: 'window.minimize',
     execute: async () => {
-      getCurrentWindow().minimize()
+      window.electron.ipcRenderer.send('mt::window-minimize')
     }
   },
   {
@@ -438,8 +440,7 @@ const commands = [
   {
     id: 'window.toggle-full-screen',
     execute: async () => {
-      const win = getCurrentWindow()
-      win.setFullScreen(!win.isFullScreen())
+      window.electron.ipcRenderer.send('mt::window-fullscreen-toggle')
     }
   },
 

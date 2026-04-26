@@ -11,11 +11,14 @@
 </template>
 
 <script setup>
-import { getCurrentWindow } from '@electron/remote'
+// step-8f: @electron/remote.getCurrentWindow → mt::close-window IPC
+// (handled by windowManager._listenForIpcMain → forceClose). The
+// existing handler closes the window scoped to the calling webContents
+// — same target as getCurrentWindow().close() in the original code.
 import { closePath as windowIconClose } from '../../assets/window-controls.js'
 
 const handleCloseClick = () => {
-  getCurrentWindow().close()
+  window.electron.ipcRenderer.send('mt::close-window')
 }
 </script>
 

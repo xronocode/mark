@@ -490,6 +490,47 @@ class WindowManager extends EventEmitter {
         browserWindow.webContents.send('mt::user-preference', userData)
       }
     })
+
+    // step-8f: window-control IPCs replacing @electron/remote.getCurrentWindow()
+    // calls in renderer (titleBar, commands, preferences titlebar). Each
+    // resolver uses BrowserWindow.fromWebContents(e.sender) so the action
+    // is scoped to the calling window — matches the previous semantics
+    // of getCurrentWindow().{minimize,maximize,unmaximize,setFullScreen}
+    // without the @electron/remote round-trip.
+    ipcMain.on('mt::window-minimize', (e) => {
+      const win = BrowserWindow.fromWebContents(e.sender)
+      if (win) win.minimize()
+    })
+
+    ipcMain.on('mt::window-maximize-toggle', (e) => {
+      const win = BrowserWindow.fromWebContents(e.sender)
+      if (!win) return
+      // Mirrors titleBar handleMaximizeClick original logic exactly:
+      // fullscreen → exit fullscreen (no maximize change),
+      // maximized   → unmaximize,
+      // otherwise   → maximize.
+      if (win.isFullScreen()) {
+        win.setFullScreen(false)
+      } else if (win.isMaximized()) {
+        win.unmaximize()
+      } else {
+        win.maximize()
+      }
+    })
+
+    ipcMain.on('mt::window-fullscreen-toggle', (e) => {
+      const win = BrowserWindow.fromWebContents(e.sender)
+      if (win) win.setFullScreen(!win.isFullScreen())
+    })
+
+    ipcMain.handle('mt::window-state', (e) => {
+      const win = BrowserWindow.fromWebContents(e.sender)
+      if (!win) return { isMaximized: false, isFullScreen: false }
+      return {
+        isMaximized: win.isMaximized(),
+        isFullScreen: win.isFullScreen()
+      }
+    })
   }
 }
 

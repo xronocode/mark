@@ -156,7 +156,10 @@
 </template>
 
 <script setup>
-import { getCurrentWindow, Menu as RemoteMenu } from '@electron/remote'
+// step-8f: getCurrentWindow removed; window-control calls route through
+// mt::window-* IPCs. RemoteMenu use (handleMenuClick → application
+// menu popup) remains until step-8g introduces mt::window-popup-app-menu.
+import { Menu as RemoteMenu } from '@electron/remote'
 import { usePreferencesStore } from '@/store/preferences.js'
 import { useLayoutStore } from '@/store/layout.js'
 import { useProjectStore } from '@/store/project'
@@ -209,8 +212,18 @@ const windowIconRestore = restorePath
 const windowIconMaximize = maximizePath
 const windowIconClose = closePath
 
-const isFullScreen = ref(getCurrentWindow().isFullScreen())
-const isMaximized = ref(getCurrentWindow().isMaximized())
+// step-8f: initial state previously read synchronously via
+// getCurrentWindow().isFullScreen()/isMaximized(). Now seeded via
+// mt::window-state invoke. Defaults to false during the brief async
+// gap; subsequent maximize/fullscreen events from main update reactively.
+const isFullScreen = ref(false)
+const isMaximized = ref(false)
+window.electron.ipcRenderer.invoke('mt::window-state').then((state) => {
+  if (state) {
+    isFullScreen.value = !!state.isFullScreen
+    isMaximized.value = !!state.isMaximized
+  }
+})
 const show = ref('word')
 
 const { titleBarStyle } = storeToRefs(preferencesStore)
@@ -340,19 +353,17 @@ const handleWordClick = () => {
   show.value = ITEMS[index]
 }
 
+// step-8f: window-control handlers now use mt::* IPCs.
+// mt::window-maximize-toggle replicates the original 3-state machine
+// (fullscreen→exit-fs, maximized→unmaximize, otherwise→maximize)
+// inside main process, eliminating the need for renderer-side state
+// queries.
 const handleCloseClick = () => {
-  getCurrentWindow().close()
+  window.electron.ipcRenderer.send('mt::close-window')
 }
 
 const handleMaximizeClick = () => {
-  const win = getCurrentWindow()
-  if (win.isFullScreen()) {
-    win.setFullScreen(false)
-  } else if (win.isMaximized()) {
-    win.unmaximize()
-  } else {
-    win.maximize()
-  }
+  window.electron.ipcRenderer.send('mt::window-maximize-toggle')
 }
 
 const toggleMaxmizeOnMacOS = () => {
@@ -362,12 +373,15 @@ const toggleMaxmizeOnMacOS = () => {
 }
 
 const handleMinimizeClick = () => {
-  getCurrentWindow().minimize()
+  window.electron.ipcRenderer.send('mt::window-minimize')
 }
 
 const handleMenuClick = () => {
-  const win = getCurrentWindow()
-  RemoteMenu.getApplicationMenu().popup({ window: win, x: 23, y: 20 })
+  // step-8g (deferred): RemoteMenu.popup will move to a
+  // mt::window-popup-app-menu IPC; the popup-window-target is then
+  // resolved on main via BrowserWindow.fromWebContents(e.sender).
+  // For now still uses @electron/remote.Menu — migrating only when 8g lands.
+  RemoteMenu.getApplicationMenu().popup({ x: 23, y: 20 })
 }
 
 const rename = () => {
