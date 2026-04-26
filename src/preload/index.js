@@ -31,10 +31,16 @@ const fileUtilsAPI = {
   copy: (src, dest) => fs.copy(src, dest),
   ensureDir: (path) => fs.ensureDir(path),
   outputFile: (path, data) => fs.outputFile(path, data),
-  move: (src, dest) => fs.move(src, dest),
+  move: (src, dest, options) => fs.move(src, dest, options),
   stat: (path) => fs.stat(path),
-  writeFile: (path, data) => fs.writeFile(path, data),
-  readFile: (path) => fs.readFile(path),
+  writeFile: (path, data, options) => fs.writeFile(path, data, options),
+  // step-8a: parametric encoding so renderer callers can request 'utf8'
+  // and receive a String directly. Pass null/undefined for raw Buffer.
+  readFile: (path, encoding) => fs.readFile(path, encoding),
+  // step-8a: async directory listing — replaces fs.readdirSync in
+  // renderer (loadThemesFromDisk and similar). Returns Promise<string[]>
+  // of entry names (NOT full paths).
+  readdir: (path) => fs.readdir(path),
   ensureDirSync: (path) => ensureDirSync(path),
   pathExistsSync: (path) => fs.pathExistsSync(path),
   isChildOfDirectory: (dir, child) => isChildOfDirectory(dir, child),

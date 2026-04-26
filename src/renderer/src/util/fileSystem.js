@@ -1,6 +1,12 @@
 import crypto from 'crypto'
 
-import { statSync, constants } from 'fs'
+// step-8a: removed `import { statSync, constants } from 'fs'` —
+// direct Node-core fs import gone from production renderer bundle.
+// isFileExecutableSync renamed to async isFileExecutable using
+// window.fileUtils.stat. POSIX exec mode bits are hardcoded
+// (0o111 == S_IXUSR | S_IXGRP | S_IXOTH) since `constants` is no
+// longer imported. crypto/child_process/os.tmpdir imports remain
+// pending under step-8h / step-8i / step-8j of the cleanup track.
 import { exec, execFile } from 'child_process'
 import { tmpdir } from 'os'
 import dayjs from 'dayjs'
@@ -293,17 +299,20 @@ export const uploadImage = async (pathname, image, preferences) => {
   return promise
 }
 
-export const isFileExecutableSync = (filepath) => {
+// step-8a: was isFileExecutableSync (sync statSync + fs.constants).
+// Now async via window.fileUtils.stat — caller (image uploader prefs
+// pane) has been refactored from computed → watch+ref so this Promise
+// can land asynchronously without blocking Vue's reactivity graph.
+// POSIX exec bits are hardcoded: S_IXUSR=0o100, S_IXGRP=0o010,
+// S_IXOTH=0o001 → mask 0o111. These constants are stable POSIX-spec
+// values, never platform-dependent.
+export const isFileExecutable = async (filepath) => {
   try {
-    const stat = statSync(filepath)
+    const stat = await window.fileUtils.stat(filepath)
     if (process.platform === 'win32') {
       return stat.isFile()
-    } else {
-      return (
-        stat.isFile() &&
-        (stat.mode & (constants.S_IXUSR | constants.S_IXGRP | constants.S_IXOTH)) !== 0
-      )
     }
+    return stat.isFile() && (stat.mode & 0o111) !== 0
   } catch {
     return false
   }

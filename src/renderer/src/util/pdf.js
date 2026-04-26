@@ -1,4 +1,8 @@
-import fs from 'fs'
+// step-8a: removed `import fs from 'fs'` — direct Node-core import gone
+// from production renderer bundle. Theme CSS is now read via the preload-
+// exposed `window.fileUtils.readFile(path, 'utf8')`. getCssForOptions
+// becomes async accordingly; its only caller (handleExport in editor.vue)
+// was already async.
 import Slugger from 'muya/lib/parser/marked/slugger'
 import { escapeHTML, unescapeHTML } from 'muya/lib/utils'
 import academicTheme from '@/assets/themes/export/academic.theme.css?inline'
@@ -6,7 +10,7 @@ import liberTheme from '@/assets/themes/export/liber.theme.css?inline'
 import { cloneObj } from '../util'
 import { sanitize, EXPORT_DOMPURIFY_CONFIG } from '../util/dompurify'
 
-export const getCssForOptions = (options) => {
+export const getCssForOptions = async (options) => {
   const {
     type,
     pageMarginTop,
@@ -64,7 +68,7 @@ export const getCssForOptions = (options) => {
       const themePath = window.path.join(userDataPath, 'themes/export', theme)
       if (window.fileUtils.isFile(themePath)) {
         try {
-          const themeCSS = fs.readFileSync(themePath, 'utf8')
+          const themeCSS = await window.fileUtils.readFile(themePath, 'utf8')
           output += themeCSS
         } catch (_) {
           // No-op

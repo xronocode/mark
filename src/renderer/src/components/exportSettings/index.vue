@@ -260,8 +260,11 @@
 
 <script setup>
 import { ref, onMounted, onBeforeUnmount } from 'vue'
-import fs from 'fs'
-import fsPromises from 'fs/promises'
+// step-8a: removed `import fs from 'fs'` and `import fsPromises from
+// 'fs/promises'` — direct Node-core imports gone from the production
+// renderer bundle. loadThemesFromDisk now uses
+// `window.fileUtils.readdir(themeDir)` + `window.fileUtils.readFile(
+// fullname, 'utf8')` exposed via preload.
 import bus from '../../bus'
 import Bool from '@/prefComponents/common/bool'
 import CurSelect from '@/prefComponents/common/select'
@@ -437,17 +440,27 @@ const onSelectChange = (key, value) => {
   }
 }
 
-const loadThemesFromDisk = () => {
+const loadThemesFromDisk = async () => {
   const { userDataPath } = global.marktext.paths
   const themeDir = window.path.join(userDataPath, 'themes/export')
 
   // Search for dictionaries on filesystem.
-  if (window.fileUtils.isDirectory(themeDir)) {
-    fs.readdirSync(themeDir).forEach(async (filename) => {
+  if (!window.fileUtils.isDirectory(themeDir)) {
+    return
+  }
+  let entries
+  try {
+    entries = await window.fileUtils.readdir(themeDir)
+  } catch (e) {
+    console.error('loadThemesFromDisk readdir failed:', e)
+    return
+  }
+  await Promise.all(
+    entries.map(async (filename) => {
       const fullname = window.path.join(themeDir, filename)
       if (/.+\.css$/i.test(filename) && window.fileUtils.isFile(fullname)) {
         try {
-          const content = await fsPromises.readFile(fullname, 'utf8')
+          const content = await window.fileUtils.readFile(fullname, 'utf8')
 
           // Match comment with theme name in first line only.
           const match = content.match(/^(?:\/\*+[ \t]*([A-z0-9 -]+)[ \t]*(?:\*+\/|[\n\r])?)/)
@@ -468,7 +481,7 @@ const loadThemesFromDisk = () => {
         }
       }
     })
-  }
+  )
 }
 </script>
 

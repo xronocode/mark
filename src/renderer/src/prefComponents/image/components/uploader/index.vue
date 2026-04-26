@@ -181,7 +181,10 @@ import { useI18n } from 'vue-i18n'
 import { usePreferencesStore } from '@/store/preferences'
 import getServices, { isValidService } from './services.js'
 import legalNoticesCheckbox from './legalNoticesCheckbox.vue'
-import { isFileExecutableSync } from '@/util/fileSystem'
+// step-8a: was isFileExecutableSync (sync). Now isFileExecutable async —
+// caller below uses watch+ref to bridge async stat into Vue's reactivity
+// graph without blocking computed evaluation.
+import { isFileExecutable } from '@/util/fileSystem'
 import CurSelect from '@/prefComponents/common/select'
 import notice from '@/services/notification'
 import { storeToRefs } from 'pinia'
@@ -236,12 +239,30 @@ const legalNoticesErrorStates = reactive({
 const { currentUploader, imageBed, githubToken: prefGithubToken, cliScript: prefCliScript } = storeToRefs(preferenceStore)
 
 const githubDisable = computed(() => !githubToken.value || !github.owner || !github.repo)
-const cliScriptDisable = computed(() => {
-  if (!cliScript.value) {
-    return true
-  }
-  return !isFileExecutableSync(cliScript.value)
-})
+
+// step-8a: cliScript-executable check moved from sync `isFileExecutableSync`
+// inside a computed() to an async `isFileExecutable` resolved via watch
+// into a ref. The disable computed then reads the ref synchronously.
+// Initial state assumes "not executable" (disable=true) until the first
+// stat resolves; this matches the original UX (cliScript path empty →
+// disable=true) for the time window between mount and first stat.
+const cliScriptIsExecutable = ref(false)
+watch(
+  cliScript,
+  async (val) => {
+    if (!val) {
+      cliScriptIsExecutable.value = false
+      return
+    }
+    try {
+      cliScriptIsExecutable.value = await isFileExecutable(val)
+    } catch {
+      cliScriptIsExecutable.value = false
+    }
+  },
+  { immediate: true }
+)
+const cliScriptDisable = computed(() => !cliScript.value || !cliScriptIsExecutable.value)
 
 // watch
 watch(imageBed, (value, oldValue) => {

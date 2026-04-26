@@ -751,7 +751,7 @@ const handleExport = async (options) => {
     throw new Error(`Invalid type to export: "${type}".`)
   }
 
-  const extraCss = getCssForOptions(options)
+  const extraCss = await getCssForOptions(options)
   const htmlToc = getHtmlToc(editor.value.getTOC(), options)
 
   switch (type) {
