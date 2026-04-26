@@ -412,6 +412,7 @@
         <c name="module_label">First segment of the Rust module path, lowercase, snake_case as already in source. Examples: legacy, dialog, migration_strings, mt_paths, cancel_log, main. NOT the M-XXX ID — markers stay grep-friendly without cross-referencing the module catalog.</c>
         <c name="function_or_logical_block">Function name OR a named logical block within a function (chosen when one function emits multiple distinct milestones). Snake-case.</c>
         <c name="BLOCK_NAME">SCREAMING_SNAKE_CASE noun describing the milestone. Names are unique across the codebase — never repeat a BLOCK_NAME in different modules even if their domains differ; use suffixes (e.g. BLOCK_LEGACY_FOUND, BLOCK_DIALOG_OPEN) instead.</c>
+        <c name="MT_NAME">SCREAMING_SNAKE_CASE noun describing an error/abort/coercion. The `MT_` prefix is reserved for non-milestone identifiers that cross module boundaries — typically defined as a `pub const` in the producing module (e.g. MT_PREFS_V1_RUNNING in prefs.rs) and embedded in the call site's emit marker. Distinct namespace from BLOCK_*; tests assert against the exact byte string for stability.</c>
         <c name="key-value-fields">Optional inline structured fields. Stable key names; values quoted only when whitespace is present. Avoid logging anything matching token regexes or path-leaking PII.</c>
       </conventions>
     </marker-grammar>
@@ -433,6 +434,11 @@
         <marker emit-from="main.rs">[main][bootstrap][BLOCK_MIGRATION_CANCEL_PERSIST_FAILED reason=&lt;str&gt;]</marker>
         <marker emit-from="main.rs">[main][bootstrap][BLOCK_MIGRATION_CANCEL_NO_CACHE_ROOT]</marker>
         <marker emit-from="main.rs">[main][bootstrap][BLOCK_MIGRATION_CANCEL_EXIT_0]</marker>
+        <marker emit-from="main.rs" added="step-6">[main][bootstrap][BLOCK_PREFS_STUB_ABORT marker=MT_PREFS_V1_RUNNING]</marker>
+      </module>
+      <module label="prefs" home-M="M-005 mt-prefs (stub until B3)" added="step-6">
+        <marker emit-from="main.rs (call site)" prefix-family="MT_">[prefs][init][MT_PREFS_V1_RUNNING] legacy still present; M-005 stub refuses bootstrap until B3 ships real migration</marker>
+        <note>The MT_PREFS_V1_RUNNING identifier is exported as a `pub const` from prefs.rs and consumed by both the call site emission and the test scenario assertions. Tests assert against the exact byte string for stability.</note>
       </module>
     </module-coverage-current>
 
@@ -464,15 +470,16 @@
     </module-coverage-future-deferred>
 
     <schema-only-checks generation="phase-b-pre2-step-7" runnable-now="true">
-      <check id="GRAM-1" status="pass">
-        Every BLOCK_* marker in reborn-mark/src-tauri/src/**/*.rs matches the
-        regex `\[[a-z_]+\]\[[a-z_]+\]\[BLOCK_[A-Z][A-Z0-9_]*( \w+=...)?\]`.
-        Verified by grep against actual emit lines (excluding comments):
-        rg --no-line-number '\[\w+\]\[\w+\]\[BLOCK_' src-tauri/src --include='*.rs' | grep -v '//' | wc -l → 11 emit sites, all conform.
+      <check id="GRAM-1" status="pass" updated="step-6">
+        Every BLOCK_*/MT_* marker in reborn-mark/src-tauri/src/**/*.rs
+        matches the regex `\[[a-z_]+\]\[[a-z_]+\]\[(BLOCK|MT)_[A-Z][A-Z0-9_]*( \w+=...)?\]`.
+        Verified against actual emit lines: 12 BLOCK_* + 1 MT_PREFS_V1_RUNNING
+        emit site (in main.rs's prefs-stub abort branch), all conform.
       </check>
-      <check id="UNIQ-1" status="pass">
-        No BLOCK_NAME is duplicated across module labels. 11 unique BLOCK
-        names across 11 emit sites — 1:1 mapping confirms no double-emission.
+      <check id="UNIQ-1" status="pass" updated="step-6">
+        No BLOCK_NAME is duplicated across module labels. After step-6:
+        12 unique BLOCK names across 12 emit sites; 1 MT_ identifier
+        (MT_PREFS_V1_RUNNING) defined as pub const in prefs.rs.
         (Two additional names — BLOCK_RECORD_APPENDED, BLOCK_RECORD_FAILED —
         appeared only in an out-of-date cancel_log.rs MODULE_CONTRACT comment;
         comment was corrected as part of this step-7 fixup so trace contract
