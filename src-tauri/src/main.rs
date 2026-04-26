@@ -7,6 +7,7 @@ mod legacy;
 mod migration_strings;
 mod mt_paths;
 mod prefs;
+mod snapshot;
 
 use dialog::DialogChoice;
 
@@ -47,12 +48,40 @@ fn main() {
         match choice {
             DialogChoice::Continue => {
                 eprintln!("[main][bootstrap][BLOCK_MIGRATION_CONTINUE]");
-                // Phase-B-pre2 step-6: M-005 stub gate. Until Phase-B3
-                // ships real migration logic, the stub refuses to run
-                // when any legacy namespace is still present. Step-5
-                // will introduce the snapshot+preflight path that
-                // moves legacy data out of Application Support before
-                // this gate runs, at which point Continue can succeed.
+
+                // Phase-B-pre2 step-5: snapshot legacy data into
+                // cache_root/snapshot/ts-<unix>/ BEFORE the stub gate
+                // runs. The snapshot is the stable read-only source
+                // M-005 (Phase-B3) will consume; original data in
+                // ~/Library/Application Support is NEVER touched here.
+                match mt_paths::cache_root() {
+                    Some(cache_root) => match snapshot::snapshot_legacy(&layouts, &cache_root) {
+                        Ok(r) => {
+                            eprintln!(
+                                "[snapshot][run][BLOCK_SNAPSHOT_LEGACY dest={} files={} bytes={}]",
+                                r.dest.display(), r.files, r.bytes
+                            );
+                            eprintln!("[main][bootstrap][BLOCK_MIGRATION_PREFLIGHT_DONE]");
+                        }
+                        Err(e) => {
+                            eprintln!("[snapshot][run][BLOCK_SNAPSHOT_FAILED reason={e}]");
+                            eprintln!("[main][bootstrap][BLOCK_MIGRATION_PREFLIGHT_FAILED]");
+                            std::process::exit(2);
+                        }
+                    },
+                    None => {
+                        eprintln!("[snapshot][run][BLOCK_SNAPSHOT_NO_CACHE_ROOT]");
+                        eprintln!("[main][bootstrap][BLOCK_MIGRATION_PREFLIGHT_FAILED]");
+                        std::process::exit(3);
+                    }
+                }
+
+                // Phase-B-pre2 step-6: M-005 stub gate. Even after the
+                // preflight snapshot, the stub still refuses to run
+                // because real migration hasn't shipped — original
+                // legacy data is still present. Phase-B3 will replace
+                // this stub with the real migration that consumes the
+                // snapshot and clears the original.
                 if let Err(marker) = prefs::init(&layouts) {
                     eprintln!(
                         "[prefs][init][{marker}] legacy still present; M-005 stub refuses bootstrap until B3 ships real migration"
