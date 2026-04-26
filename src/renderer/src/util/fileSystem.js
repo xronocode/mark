@@ -11,7 +11,7 @@ import { exec, execFile } from 'child_process'
 import { tmpdir } from 'os'
 import dayjs from 'dayjs'
 import { Octokit } from '@octokit/rest'
-import { isWindows } from './index'
+import { isOsx, isWindows, isLinux } from './index'
 
 export const create = async (pathname, type) => {
   return type === 'directory'
@@ -127,13 +127,14 @@ export const uploadImage = async (pathname, image, preferences) => {
   }
 
   // Build a robust PATH for spawned processes (Electron packaged apps often miss Homebrew paths)
+  // step-8b: process.platform → isOsx/isLinux from util/index.js (which
+  // reads window.electron.process.platform via preload bridge).
   const getPreferredPathEnv = () => {
-    const extras =
-      process.platform === 'darwin'
-        ? ['/opt/homebrew/bin', '/usr/local/bin', '/usr/bin', '/bin']
-        : process.platform === 'linux'
-          ? ['/usr/local/bin', '/usr/bin', '/bin']
-          : []
+    const extras = isOsx
+      ? ['/opt/homebrew/bin', '/usr/local/bin', '/usr/bin', '/bin']
+      : isLinux
+        ? ['/usr/local/bin', '/usr/bin', '/bin']
+        : []
     const cur = (process.env.PATH || '').split(':')
     const merged = [...cur]
     for (const p of extras) if (p && !merged.includes(p)) merged.push(p)
@@ -141,9 +142,9 @@ export const uploadImage = async (pathname, image, preferences) => {
   }
 
   const resolvePicgoBinary = () => {
-    const candidates =
-      process.platform === 'win32'
-        ? ['picgo', 'picgo.exe']
+    // step-8b: process.platform → isWindows.
+    const candidates = isWindows
+      ? ['picgo', 'picgo.exe']
         : [
             'picgo',
             '/opt/homebrew/bin/picgo',
@@ -309,7 +310,8 @@ export const uploadImage = async (pathname, image, preferences) => {
 export const isFileExecutable = async (filepath) => {
   try {
     const stat = await window.fileUtils.stat(filepath)
-    if (process.platform === 'win32') {
+    // step-8b: process.platform === 'win32' → isWindows.
+    if (isWindows) {
       return stat.isFile()
     }
     return stat.isFile() && (stat.mode & 0o111) !== 0

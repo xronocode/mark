@@ -1,3 +1,11 @@
+// step-8b: import isWindows so the process.platform check below reads
+// from the preload bridge (window.electron.process.platform) instead of
+// direct Node-process. process.resourcesPath and process.env.APPIMAGE
+// stay untouched here — they're owned by step-8d (env exposure) which
+// will likely surface them via window.electron.process.{resourcesPath,
+// env.APPIMAGE} after a follow-up preload extension.
+import { isWindows } from '@/util'
+
 /// Check whether the package is updatable at runtime.
 export const isUpdatable = () => {
   // TODO: t('commands.utils.todoUpdateCheck')
@@ -10,7 +18,7 @@ export const isUpdatable = () => {
     // We are running as AppImage.
     return true
   } else if (
-    process.platform === 'win32' &&
+    isWindows &&
     window.fileUtils.isFile(window.path.join(process.resourcesPath, 'md.ico'))
   ) {
     // Windows is a little but tricky. The update resource file is always available and

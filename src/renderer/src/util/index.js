@@ -166,6 +166,12 @@ export const deepClone = (obj) => {
   return JSON.parse(JSON.stringify(obj))
 }
 
-export const isOsx = process.platform === 'darwin'
-export const isWindows = process.platform === 'win32'
-export const isLinux = process.platform === 'linux'
+// step-8b: read platform via preload bridge instead of direct
+// `process.platform`. Preload (@electron-toolkit/preload electronAPI)
+// runs synchronously and sets `window.electron.process` before any
+// renderer module loads, so these module-level constants resolve
+// reliably at import time.
+const _platform = window.electron.process.platform
+export const isOsx = _platform === 'darwin'
+export const isWindows = _platform === 'win32'
+export const isLinux = _platform === 'linux'
