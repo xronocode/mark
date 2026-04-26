@@ -156,10 +156,10 @@
 </template>
 
 <script setup>
-// step-8f: getCurrentWindow removed; window-control calls route through
-// mt::window-* IPCs. RemoteMenu use (handleMenuClick → application
-// menu popup) remains until step-8g introduces mt::window-popup-app-menu.
-import { Menu as RemoteMenu } from '@electron/remote'
+// step-8g: @electron/remote.Menu also gone. Application-menu popup
+// now routes through mt::window-popup-app-menu IPC (windowManager).
+// Click handlers for the application menu are already main-side, so
+// the IPC is fire-and-forget.
 import { usePreferencesStore } from '@/store/preferences.js'
 import { useLayoutStore } from '@/store/layout.js'
 import { useProjectStore } from '@/store/project'
@@ -377,11 +377,10 @@ const handleMinimizeClick = () => {
 }
 
 const handleMenuClick = () => {
-  // step-8g (deferred): RemoteMenu.popup will move to a
-  // mt::window-popup-app-menu IPC; the popup-window-target is then
-  // resolved on main via BrowserWindow.fromWebContents(e.sender).
-  // For now still uses @electron/remote.Menu — migrating only when 8g lands.
-  RemoteMenu.getApplicationMenu().popup({ x: 23, y: 20 })
+  // step-8g: native popup via mt::window-popup-app-menu IPC.
+  // Coordinates are relative to the calling window's content area;
+  // main resolves the BrowserWindow via fromWebContents(e.sender).
+  window.electron.ipcRenderer.send('mt::window-popup-app-menu', { x: 23, y: 20 })
 }
 
 const rename = () => {

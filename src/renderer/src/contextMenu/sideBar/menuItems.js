@@ -1,78 +1,71 @@
 import * as contextMenu from './actions'
 import { t } from '../../i18n'
 
-// NOTE: This are mutable fields that may change at runtime.
+// step-8g: split spec from handlers (same shape as
+// contextMenu/tabs/menuItems.js — see that file for rationale).
+// Specs are serialized through the mt::window-popup-context-menu IPC;
+// HANDLERS keeps the click logic on the renderer side, indexed by id.
 
 export const SEPARATOR = {
   type: 'separator'
 }
 
-// 使用函数形式避免模块加载时调用翻译函数
 export const getNEW_FILE = () => ({
   label: t('contextMenu.sideBar.newFile'),
-  id: 'newFileMenuItem',
-  click (menuItem, browserWindow) {
-    contextMenu.newFile()
-  }
+  id: 'newFileMenuItem'
 })
 
 export const getNEW_DIRECTORY = () => ({
   label: t('contextMenu.sideBar.newDirectory'),
-  id: 'newDirectoryMenuItem',
-  click (menuItem, browserWindow) {
-    contextMenu.newDirectory()
-  }
+  id: 'newDirectoryMenuItem'
 })
 
 export const getCOPY = () => ({
   label: t('contextMenu.sideBar.copy'),
-  id: 'copyMenuItem',
-  click (menuItem, browserWindow) {
-    contextMenu.copy()
-  }
+  id: 'copyMenuItem'
 })
 
 export const getCUT = () => ({
   label: t('contextMenu.sideBar.cut'),
-  id: 'cutMenuItem',
-  click (menuItem, browserWindow) {
-    contextMenu.cut()
-  }
+  id: 'cutMenuItem'
 })
 
 export const getPASTE = () => ({
   label: t('contextMenu.sideBar.paste'),
-  id: 'pasteMenuItem',
-  click (menuItem, browserWindow) {
-    contextMenu.paste()
-  }
+  id: 'pasteMenuItem'
 })
 
 export const getRENAME = () => ({
   label: t('contextMenu.sideBar.rename'),
-  id: 'renameMenuItem',
-  click (menuItem, browserWindow) {
-    contextMenu.rename()
-  }
+  id: 'renameMenuItem'
 })
 
 export const getDELETE = () => ({
   label: t('contextMenu.sideBar.moveToTrash'),
-  id: 'deleteMenuItem',
-  click (menuItem, browserWindow) {
-    contextMenu.remove()
-  }
+  id: 'deleteMenuItem'
 })
 
 export const getSHOW_IN_FOLDER = () => ({
   label: t('contextMenu.sideBar.showInFolder'),
-  id: 'showInFolderMenuItem',
-  click (menuItem, browserWindow) {
-    contextMenu.showInFolder()
-  }
+  id: 'showInFolderMenuItem'
 })
 
-// 为了向后兼容，保留原有的导出
+// id → handler. Sidebar items don't take a contextual argument: the
+// active selection is resolved inside the action functions themselves
+// (they read from project store).
+export const HANDLERS = {
+  newFileMenuItem: () => contextMenu.newFile(),
+  newDirectoryMenuItem: () => contextMenu.newDirectory(),
+  copyMenuItem: () => contextMenu.copy(),
+  cutMenuItem: () => contextMenu.cut(),
+  pasteMenuItem: () => contextMenu.paste(),
+  renameMenuItem: () => contextMenu.rename(),
+  deleteMenuItem: () => contextMenu.remove(),
+  showInFolderMenuItem: () => contextMenu.showInFolder()
+}
+
+// Backwards-compat exports preserved (without click); future cleanup
+// may drop them once no external imports rely on the constant form.
 export const NEW_FILE = getNEW_FILE()
 export const NEW_DIRECTORY = getNEW_DIRECTORY()
 export const COPY = getCOPY()

@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain } from 'electron'
+import { app, BrowserWindow, ipcMain, Menu } from 'electron'
 import EventEmitter from 'events'
 import log from 'electron-log'
 import Watcher, {
@@ -530,6 +530,58 @@ class WindowManager extends EventEmitter {
         isMaximized: win.isMaximized(),
         isFullScreen: win.isFullScreen()
       }
+    })
+
+    // step-8g: native context-menu popup with serialized spec.
+    // Renderer sends `{ items: [{ label, id, enabled?, accelerator?,
+    // type? }, ...], x, y }`. Main builds a Menu, popups it on the
+    // calling BrowserWindow, and resolves the Promise with the clicked
+    // item's id (or null if dismissed without selection). Click handlers
+    // remain on the renderer side, indexed by id.
+    ipcMain.handle('mt::window-popup-context-menu', (e, payload) => {
+      const win = BrowserWindow.fromWebContents(e.sender)
+      if (!win || !payload || !Array.isArray(payload.items)) return null
+      return new Promise((resolve) => {
+        let resolved = false
+        const finish = (val) => {
+          if (!resolved) {
+            resolved = true
+            resolve(val)
+          }
+        }
+        const template = payload.items.map((item) => {
+          if (!item || item.type === 'separator') return { type: 'separator' }
+          return {
+            label: String(item.label ?? ''),
+            id: item.id,
+            enabled: item.enabled !== false,
+            accelerator: item.accelerator,
+            click: () => finish(item.id ?? null)
+          }
+        })
+        const menu = Menu.buildFromTemplate(template)
+        menu.popup({
+          window: win,
+          x: Number.isFinite(payload.x) ? payload.x | 0 : undefined,
+          y: Number.isFinite(payload.y) ? payload.y | 0 : undefined,
+          callback: () => finish(null)
+        })
+      })
+    })
+
+    // step-8g: popup the application menu at the requested coordinates.
+    // Replaces titleBar/index.vue's RemoteMenu.getApplicationMenu().popup
+    // call. Application-menu click handlers are already main-side, so
+    // this IPC is fire-and-forget.
+    ipcMain.on('mt::window-popup-app-menu', (e, coords) => {
+      const win = BrowserWindow.fromWebContents(e.sender)
+      const appMenu = Menu.getApplicationMenu()
+      if (!win || !appMenu) return
+      appMenu.popup({
+        window: win,
+        x: Number.isFinite(coords?.x) ? coords.x | 0 : undefined,
+        y: Number.isFinite(coords?.y) ? coords.y | 0 : undefined
+      })
     })
   }
 }

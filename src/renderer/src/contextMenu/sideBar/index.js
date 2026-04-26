@@ -1,4 +1,7 @@
-import { getCurrentWindow, Menu as RemoteMenu, MenuItem as RemoteMenuItem } from '@electron/remote'
+// step-8g: native sidebar context-menu via mt::window-popup-context-menu.
+// Renderer serializes the spec; main handles popup; renderer dispatches
+// the local handler by clicked id. PASTE remains conditionally enabled
+// based on hasPathCache.
 import {
   SEPARATOR,
   getNEW_FILE,
@@ -8,20 +11,18 @@ import {
   getPASTE,
   getRENAME,
   getDELETE,
-  getSHOW_IN_FOLDER
+  getSHOW_IN_FOLDER,
+  HANDLERS
 } from './menuItems'
 
-export const showContextMenu = (event, hasPathCache) => {
-  const menu = new RemoteMenu()
-  const win = getCurrentWindow()
-  // 动态获取菜单项以确保翻译正确
-  const contextItems = [
+export const showContextMenu = async (event, hasPathCache) => {
+  const items = [
     getNEW_FILE(),
     getNEW_DIRECTORY(),
     SEPARATOR,
     getCOPY(),
     getCUT(),
-    getPASTE(),
+    { ...getPASTE(), enabled: !!hasPathCache },
     SEPARATOR,
     getRENAME(),
     getDELETE(),
@@ -29,10 +30,11 @@ export const showContextMenu = (event, hasPathCache) => {
     getSHOW_IN_FOLDER()
   ]
 
-  contextItems[5].enabled = hasPathCache // PASTE item
+  const clickedId = await window.electron.ipcRenderer.invoke(
+    'mt::window-popup-context-menu',
+    { items, x: event.clientX, y: event.clientY }
+  )
 
-  contextItems.forEach(item => {
-    menu.append(new RemoteMenuItem(item))
-  })
-  menu.popup([{ window: win, x: event.clientX, y: event.clientY }])
+  const handler = HANDLERS[clickedId]
+  if (handler) handler()
 }

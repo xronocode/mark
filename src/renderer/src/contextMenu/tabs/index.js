@@ -1,4 +1,7 @@
-import { getCurrentWindow, Menu as RemoteMenu, MenuItem as RemoteMenuItem } from '@electron/remote'
+// step-8g: @electron/remote.Menu / MenuItem / getCurrentWindow gone.
+// The native context menu is now spawned by main via the
+// mt::window-popup-context-menu IPC; renderer only serializes the
+// menu spec and dispatches the local click handler by id.
 import {
   SEPARATOR,
   getCLOSE_THIS,
@@ -7,33 +10,28 @@ import {
   getCLOSE_ALL,
   getRENAME,
   getCOPY_PATH,
-  getSHOW_IN_FOLDER
+  getSHOW_IN_FOLDER,
+  HANDLERS
 } from './menuItems'
 
-export const showContextMenu = (event, tab) => {
-  const menu = new RemoteMenu()
-  const win = getCurrentWindow()
+export const showContextMenu = async (event, tab) => {
   const { pathname } = tab
-  // 动态获取菜单项以确保翻译正确
-  const closeThis = getCLOSE_THIS()
-  const closeOthers = getCLOSE_OTHERS()
-  const closeSaved = getCLOSE_SAVED()
-  const closeAll = getCLOSE_ALL()
-  const rename = getRENAME()
-  const copyPath = getCOPY_PATH()
-  const showInFolder = getSHOW_IN_FOLDER()
+  const items = [
+    getCLOSE_THIS(),
+    getCLOSE_OTHERS(),
+    getCLOSE_SAVED(),
+    getCLOSE_ALL(),
+    SEPARATOR,
+    { ...getRENAME(), enabled: !!pathname },
+    { ...getCOPY_PATH(), enabled: !!pathname },
+    { ...getSHOW_IN_FOLDER(), enabled: !!pathname }
+  ]
 
-  const CONTEXT_ITEMS = [closeThis, closeOthers, closeSaved, closeAll, SEPARATOR, rename, copyPath, showInFolder]
-  const FILE_CONTEXT_ITEMS = [rename, copyPath, showInFolder]
+  const clickedId = await window.electron.ipcRenderer.invoke(
+    'mt::window-popup-context-menu',
+    { items, x: event.clientX, y: event.clientY }
+  )
 
-  FILE_CONTEXT_ITEMS.forEach(item => {
-    item.enabled = !!pathname
-  })
-
-  CONTEXT_ITEMS.forEach(item => {
-    const menuItem = new RemoteMenuItem(item)
-    menuItem._tabId = tab.id
-    menu.append(menuItem)
-  })
-  menu.popup([{ window: win, x: event.clientX, y: event.clientY }])
+  const handler = HANDLERS[clickedId]
+  if (handler) handler(tab.id)
 }
