@@ -679,6 +679,48 @@
         <no>Lockfile removed on every exit path (success, error, panic via `Drop`).</no>
         <no>No call path writes to the new store while any `.bak` file exists without the lock held.</no>
       </negative-assertions>
+      <closed-evidence generation="phase-b-pre2-step-2" date="2026-04-26" reborn-mark-commits="647892f, 71e90b6, 0e992e5">
+        <scope>Pre-window migration-prompt dialog (sub-component of M-005 mt-prefs prerequisite; the full migration logic remains in V-M-005 mainline scenarios).</scope>
+        <test-files>
+          <f>reborn-mark/src-tauri/src/migration_strings.rs (#[cfg(test)] mod tests, 8 unit tests)</f>
+          <f>reborn-mark/src-tauri/src/dialog.rs (#[cfg(test)] mod tests, 8 unit tests)</f>
+        </test-files>
+        <command-run>cd reborn-mark &amp;&amp; cargo test --bin mark</command-run>
+        <result>21/21 pass in 0.01s on rustc 1.95.0, tauri 2.10.3, rfd 0.17, sys-locale 0.3</result>
+        <scenarios-covered>
+          <s kind="locale-resolution">Exact tag match: ru→RU, zh-CN→ZH_CN, ja→JA, pt-BR→PT_BR.</s>
+          <s kind="locale-resolution">Case-insensitive match: RU/ZH-cn/Pt-bR all resolve correctly.</s>
+          <s kind="locale-resolution">Language-prefix fallthrough: ru-UA→RU, zh-TW→ZH_CN (only zh-* present), pt-PT→PT_BR (only pt-* present), fr-CA→FR.</s>
+          <s kind="locale-resolution">Unknown tag fallback to EN: xx, xx-YY, "", klingon-KL.</s>
+          <s kind="data-integrity">All 10 locales have distinct title+body strings (no copy-paste residue).</s>
+          <s kind="data-integrity">No string field is empty across all 10 locales.</s>
+          <s kind="data-integrity">Locale table contains exactly the 10 required tags (en, ru, zh-CN, ja, de, fr, es, it, ko, pt-BR).</s>
+          <s kind="dialog-mapping">Custom(continue_label)→Continue, Custom(cancel_label)→Cancel, Custom(unknown)→Cancel (safe default).</s>
+          <s kind="dialog-mapping">Ok/Yes→Continue (some platforms map default OK even with custom labels).</s>
+          <s kind="dialog-mapping">Cancel/No→Cancel.</s>
+          <s kind="dialog-mapping">Unicode label matching: "Продолжить"→Continue, "继续"→Continue.</s>
+          <s kind="smoke">detect() does not panic on any host locale (returns one of the 10 table values or EN).</s>
+          <s kind="smoke">Real binary, clean HOME → BLOCK_LEGACY_NONE + BLOCK_NO_MIGRATION_NEEDED + window opens; no dialog spawned.</s>
+        </scenarios-covered>
+        <log-markers-emitted>
+          <marker>[dialog][ask_migration][BLOCK_DIALOG_OPEN]</marker>
+          <marker>[dialog][ask_migration][BLOCK_DIALOG_CLOSED choice=Continue|Cancel]</marker>
+          <marker>[main][bootstrap][BLOCK_DIALOG_CHOICE choice=...]</marker>
+          <marker>[main][bootstrap][BLOCK_MIGRATION_CONTINUE]</marker>
+          <marker>[main][bootstrap][BLOCK_MIGRATION_CANCEL_NOOP_PRE_STEP3] (transitional — replaced by step-3)</marker>
+          <marker>[main][bootstrap][BLOCK_NO_MIGRATION_NEEDED]</marker>
+        </log-markers-emitted>
+        <constraints-honored>
+          <c>Native dialog only — rfd 0.17 wraps NSAlert (macOS), MessageBoxW (Windows), GTK MessageDialog / xdg-portal (Linux). Zero Tauri webview involvement.</c>
+          <c>Dialog runs BEFORE tauri::Builder, satisfying plan's "pre-window bootstrap" constraint.</c>
+          <c>Strings are stack-allocated &amp;'static str throughout; no String/Vec at boot hot-path.</c>
+        </constraints-honored>
+        <deferred>
+          <d kind="visual-regression">Real-dialog screenshots in ru_RU/zh_CN/ja_JP across macos-14/ubuntu-22.04/windows-latest are owned by Gate-Phase-B-pre2 CI checklist, not by this evidence packet.</d>
+          <d kind="translation-review">Native-speaker review of 9 non-EN locale strings (RU, ZH_CN, JA, DE, FR, ES, IT, KO, PT_BR) is a closing-checklist item before Gate-Phase-B-pre2 fires.</d>
+          <d kind="cancel-persistence">Cancel branch currently logs `BLOCK_MIGRATION_CANCEL_NOOP_PRE_STEP3` and continues; full sessions.jsonl + exit 0 lands in Phase-B-pre2 step-3 (next microstep).</d>
+        </deferred>
+      </closed-evidence>
     </V-M-005>
 
     <V-M-006 MODULE="M-006 mt-shortcuts" PRIORITY="medium">
