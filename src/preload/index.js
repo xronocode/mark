@@ -1,5 +1,6 @@
 import { contextBridge, shell, clipboard, webUtils } from 'electron'
 import fs from 'fs-extra'
+import { tmpdir } from 'os'
 import { isFile, isDirectory, ensureDirSync } from 'common/filesystem'
 import { electronAPI } from '@electron-toolkit/preload'
 import {
@@ -26,7 +27,11 @@ const customElectronAPI = {
   // @electron-toolkit/preload's electronAPI exposes process.{platform,
   // versions, env} but NOT resourcesPath, which is Electron-specific
   // and used by isUpdatable() in renderer/commands/utils.js.
-  resourcesPath: process.resourcesPath
+  resourcesPath: process.resourcesPath,
+  // step-8j: expose os.tmpdir() resolved once at preload time. tmpdir
+  // does not change during a process lifetime, so caching is correct
+  // and avoids an IPC roundtrip per upload.
+  tmpDir: tmpdir()
 }
 
 const fileUtilsAPI = {

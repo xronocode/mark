@@ -1,16 +1,27 @@
-import crypto from 'crypto'
-
 // step-8a: removed `import { statSync, constants } from 'fs'`.
 // step-8h: removed `import { exec, execFile } from 'child_process'`.
-//          The picgo / cliScript exec logic moved to
-//          src/main/imageUpload/ and is reached through the
-//          `mt::image-upload-run-command` IPC. Renderer keeps only
-//          the FileReader / tmpfile orchestration plus a thin invoke().
-// crypto and os.tmpdir imports remain pending under step-8j.
-import { tmpdir } from 'os'
+// step-8j: removed `import crypto from 'crypto'` and
+//          `import { tmpdir } from 'os'`. Hashing now uses Web Crypto
+//          (crypto.subtle.digest); tmpdir comes from the preload-cached
+//          `window.electron.tmpDir`. Buffer.from(...).toString('base64')
+//          and Buffer.from(arrayBuffer) usages are replaced with
+//          Uint8Array + a local arrayBufferToBase64 helper.
 import dayjs from 'dayjs'
 import { Octokit } from '@octokit/rest'
 import { isWindows } from './index'
+
+// step-8j: ArrayBuffer → base64 without Node Buffer.
+// Walks bytes building a binary string and uses btoa(). Acceptable
+// for the image-upload path: max payload is 5 MB (MAX_SIZE below)
+// so the temporary string never exceeds a few megabytes.
+const arrayBufferToBase64 = (buffer) => {
+  const bytes = new Uint8Array(buffer)
+  let binary = ''
+  for (let i = 0; i < bytes.byteLength; i++) {
+    binary += String.fromCharCode(bytes[i])
+  }
+  return btoa(binary)
+}
 
 export const create = async (pathname, type) => {
   return type === 'directory'
@@ -26,11 +37,33 @@ export const rename = async (src, dest) => {
   return window.fileUtils.move(src, dest)
 }
 
-export const getHash = (content, encoding, type) => {
-  return crypto.createHash(type).update(content, encoding).digest('hex')
+// step-8j: was `crypto.createHash(type).update(content, encoding).digest('hex')`.
+// Now Web Crypto subtle.digest. `content` is treated as a UTF-8 string
+// (matches the previous `update(content, 'utf8')` semantics — every
+// caller passed a string path). `type` is mapped to a SubtleCrypto
+// algorithm name. Returns a Promise<string> of hex bytes.
+const SUBTLE_DIGEST_ALG = {
+  sha1: 'SHA-1',
+  sha256: 'SHA-256',
+  sha384: 'SHA-384',
+  sha512: 'SHA-512'
+}
+export const getHash = async (content, _encoding, type) => {
+  const alg = SUBTLE_DIGEST_ALG[String(type).toLowerCase()]
+  if (!alg) {
+    throw new Error(`getHash: unsupported algorithm "${type}"`)
+  }
+  const data = new TextEncoder().encode(String(content))
+  const digest = await crypto.subtle.digest(alg, data)
+  const bytes = new Uint8Array(digest)
+  let hex = ''
+  for (let i = 0; i < bytes.length; i++) {
+    hex += bytes[i].toString(16).padStart(2, '0')
+  }
+  return hex
 }
 
-export const getContentHash = (content) => {
+export const getContentHash = async (content) => {
   return getHash(content, 'utf8', 'sha1')
 }
 
@@ -76,7 +109,8 @@ export const moveImageToFolder = async (pathname, image, outputDir) => {
       if (noHashPath === imagePath) {
         return imagePath
       }
-      const hash = getContentHash(imagePath)
+      // step-8j: getContentHash is now async (Web Crypto subtle.digest).
+      const hash = await getContentHash(imagePath)
       const hashFilePath = window.path.join(outputDir, `${hash}${ext}`)
       await window.fileUtils.copy(imagePath, hashFilePath)
       return hashFilePath
@@ -89,7 +123,9 @@ export const moveImageToFolder = async (pathname, image, outputDir) => {
       `${dayjs().format('YYYY-MM-DD-HH-mm-ss')}-${image.name}`
     )
 
-    const buffer = Buffer.from(await image.arrayBuffer())
+    // step-8j: Buffer.from(arrayBuffer) → Uint8Array. fs-extra's writeFile
+    // (called via preload) accepts a Uint8Array as the data argument.
+    const buffer = new Uint8Array(await image.arrayBuffer())
     await window.fileUtils.writeFile(imagePath, buffer, 'binary')
     return imagePath
   }
@@ -137,7 +173,8 @@ export const uploadImage = async (pathname, image, preferences) => {
     if (typeof filepath !== 'string') {
       localIsPath = false
       const data = new Uint8Array(filepath)
-      localPath = window.path.join(tmpdir(), `${Date.now()}${suffix}`)
+      // step-8j: tmpdir() → preload-cached window.electron.tmpDir.
+      localPath = window.path.join(window.electron.tmpDir, `${Date.now()}${suffix}`)
       await window.fileUtils.writeFile(localPath, data)
     }
     const cleanup = () => {
@@ -178,8 +215,13 @@ export const uploadImage = async (pathname, image, preferences) => {
             uploadByCommand(currentUploader, imagePath)
             break
           case 'github': {
+            // step-8j: Buffer.from(...).toString('base64') → arrayBufferToBase64.
+            // window.fileUtils.readFile without encoding returns a Buffer
+            // through the contextIsolation:false bridge today; under
+            // structured cloning that surfaces as a Uint8Array view, which
+            // arrayBufferToBase64 handles uniformly via Uint8Array(buf).
             const fileBuffer = await window.fileUtils.readFile(imagePath)
-            const base64 = Buffer.from(fileBuffer).toString('base64')
+            const base64 = arrayBufferToBase64(fileBuffer.buffer || fileBuffer)
             uploadByGithub(base64, window.path.basename(imagePath))
             break
           }
@@ -200,7 +242,8 @@ export const uploadImage = async (pathname, image, preferences) => {
             uploadByCommand(currentUploader, reader.result, window.path.extname(image.name))
             break
           default:
-            uploadByGithub(Buffer.from(reader.result).toString('base64'), image.name)
+            // step-8j: Buffer.from(arrayBuffer).toString('base64') → arrayBufferToBase64.
+            uploadByGithub(arrayBufferToBase64(reader.result), image.name)
         }
       }
       reader.readAsArrayBuffer(image)
