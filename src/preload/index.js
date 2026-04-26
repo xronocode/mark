@@ -42,8 +42,30 @@ const fileUtilsAPI = {
   ensureDir: (path) => fs.ensureDir(path),
   outputFile: (path, data) => fs.outputFile(path, data),
   move: (src, dest, options) => fs.move(src, dest, options),
-  stat: (path) => fs.stat(path),
+  // step-8z follow-up: contextIsolation:true serializes the fs.Stats
+  // object via structured clone, which strips method properties
+  // (.isFile(), .isDirectory(), etc.). Return a plain JSON-cloneable
+  // shape so renderer callers see precomputed booleans instead of
+  // method calls. Single source of truth for renderer's stat surface.
+  stat: async (path) => {
+    const s = await fs.stat(path)
+    return {
+      size: s.size,
+      mode: s.mode,
+      mtimeMs: s.mtimeMs,
+      isFile: s.isFile(),
+      isDirectory: s.isDirectory(),
+      isSymbolicLink: s.isSymbolicLink()
+    }
+  },
   writeFile: (path, data, options) => fs.writeFile(path, data, options),
+  // step-8z follow-up: previously referenced as window.fileUtils.unlink
+  // in fileSystem.js step-8h cleanup but never actually exposed; the
+  // optional-chain `&& window.fileUtils.unlink` short-circuited
+  // silently, leaving tmpfiles behind. Pre-existing bug pre-dating
+  // step-8h, fixed here so cleanup actually runs under both
+  // contextIsolation modes.
+  unlink: (path) => fs.unlink(path),
   // step-8a: parametric encoding so renderer callers can request 'utf8'
   // and receive a String directly. Pass null/undefined for raw Buffer.
   readFile: (path, encoding) => fs.readFile(path, encoding),

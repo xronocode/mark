@@ -263,10 +263,13 @@ export const isFileExecutable = async (filepath) => {
   try {
     const stat = await window.fileUtils.stat(filepath)
     // step-8b: process.platform === 'win32' → isWindows.
+    // step-8z follow-up: stat.isFile() (method) → stat.isFile (boolean).
+    // Preload now precomputes the boolean so contextIsolation:true's
+    // structured-clone boundary doesn't strip the method.
     if (isWindows) {
-      return stat.isFile()
+      return stat.isFile
     }
-    return stat.isFile() && (stat.mode & 0o111) !== 0
+    return stat.isFile && (stat.mode & 0o111) !== 0
   } catch {
     return false
   }
