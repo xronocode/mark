@@ -435,6 +435,8 @@
         <marker emit-from="main.rs">[main][bootstrap][BLOCK_MIGRATION_CANCEL_NO_CACHE_ROOT]</marker>
         <marker emit-from="main.rs">[main][bootstrap][BLOCK_MIGRATION_CANCEL_EXIT_0]</marker>
         <marker emit-from="main.rs" added="step-6">[main][bootstrap][BLOCK_PREFS_STUB_ABORT marker=MT_PREFS_V1_RUNNING]</marker>
+        <marker emit-from="main.rs" added="step-4">[main][bootstrap][BLOCK_RECENT_CANCELS_COUNTED count=&lt;usize&gt;]</marker>
+        <marker emit-from="main.rs" added="step-4">[main][bootstrap][BLOCK_RATE_LIMIT_HINT_ATTACHED]</marker>
       </module>
       <module label="prefs" home-M="M-005 mt-prefs (stub until B3)" added="step-6">
         <marker emit-from="main.rs (call site)" prefix-family="MT_">[prefs][init][MT_PREFS_V1_RUNNING] legacy still present; M-005 stub refuses bootstrap until B3 ships real migration</marker>
@@ -470,20 +472,17 @@
     </module-coverage-future-deferred>
 
     <schema-only-checks generation="phase-b-pre2-step-7" runnable-now="true">
-      <check id="GRAM-1" status="pass" updated="step-6">
+      <check id="GRAM-1" status="pass" updated="step-4">
         Every BLOCK_*/MT_* marker in reborn-mark/src-tauri/src/**/*.rs
         matches the regex `\[[a-z_]+\]\[[a-z_]+\]\[(BLOCK|MT)_[A-Z][A-Z0-9_]*( \w+=...)?\]`.
-        Verified against actual emit lines: 12 BLOCK_* + 1 MT_PREFS_V1_RUNNING
-        emit site (in main.rs's prefs-stub abort branch), all conform.
+        Verified against actual emit lines: 14 BLOCK_* + 1 MT_PREFS_V1_RUNNING
+        emit site, all conform.
       </check>
-      <check id="UNIQ-1" status="pass" updated="step-6">
-        No BLOCK_NAME is duplicated across module labels. After step-6:
-        12 unique BLOCK names across 12 emit sites; 1 MT_ identifier
-        (MT_PREFS_V1_RUNNING) defined as pub const in prefs.rs.
-        (Two additional names — BLOCK_RECORD_APPENDED, BLOCK_RECORD_FAILED —
-        appeared only in an out-of-date cancel_log.rs MODULE_CONTRACT comment;
-        comment was corrected as part of this step-7 fixup so trace contract
-        and source match.)
+      <check id="UNIQ-1" status="pass" updated="step-4">
+        No BLOCK_NAME is duplicated across module labels. After step-4:
+        14 unique BLOCK names across 14 emit sites (added BLOCK_RECENT_CANCELS_COUNTED
+        and BLOCK_RATE_LIMIT_HINT_ATTACHED for the rate-limit reader path);
+        1 MT_ identifier (MT_PREFS_V1_RUNNING) defined as pub const in prefs.rs.
       </check>
       <check id="COVER-1" status="pass">
         Every Rust module in reborn-mark/src-tauri/src that emits eprintln!
