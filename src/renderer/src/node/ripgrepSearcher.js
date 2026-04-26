@@ -110,7 +110,7 @@ function getText(input) {
 
 class RipgrepDirectorySearcher {
   constructor() {
-    this.rgPath = global.marktext.paths.ripgrepBinaryPath
+    this.rgPath = window.marktext.paths.ripgrepBinaryPath
   }
 
   // Performs a text search for files in the specified `Directory`s, subject to the

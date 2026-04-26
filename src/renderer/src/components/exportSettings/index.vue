@@ -441,7 +441,7 @@ const onSelectChange = (key, value) => {
 }
 
 const loadThemesFromDisk = async () => {
-  const { userDataPath } = global.marktext.paths
+  const { userDataPath } = window.marktext.paths
   const themeDir = window.path.join(userDataPath, 'themes/export')
 
   // Search for dictionaries on filesystem.

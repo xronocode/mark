@@ -106,7 +106,7 @@ const bootstrapRenderer = () => {
     },
     paths
   }
-  global.marktext = marktext
+  window.marktext = marktext
 
   configureLogger()
 }

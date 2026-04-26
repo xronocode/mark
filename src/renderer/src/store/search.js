@@ -10,7 +10,7 @@ import RipgrepDirectorySearcher from '../node/ripgrepSearcher'
 // truth and the searcher instance is owned in one place.
 
 // Lazy: RipgrepDirectorySearcher's constructor reads
-// `global.marktext.paths.ripgrepBinaryPath`, which is only populated after
+// `window.marktext.paths.ripgrepBinaryPath`, which is only populated after
 // the renderer bootstrap completes. Constructing at module-load time
 // (when the Pinia plugin imports stores eagerly) crashes with
 // "Cannot read properties of undefined (reading 'paths')".
