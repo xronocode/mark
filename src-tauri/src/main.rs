@@ -33,12 +33,29 @@ fn main() {
                 eprintln!("[main][bootstrap][BLOCK_MIGRATION_CONTINUE]");
             }
             DialogChoice::Cancel => {
-                // Phase-B-pre2 step-3 will persist {timestamp, app_version}
-                // to mt_paths::cache_root().join("sessions.jsonl") and exit
-                // with code 0 here. Until that microstep ships we log a
-                // sentinel and continue so the user is never silently locked
-                // out of their app by an incomplete pipeline.
-                eprintln!("[main][bootstrap][BLOCK_MIGRATION_CANCEL_NOOP_PRE_STEP3]");
+                // Phase-B-pre2 step-3: persist a JSONL record to
+                // mt_paths::cache_root().join("sessions.jsonl") (outside
+                // Application Support per plan) and exit with code 0 so the
+                // user is never force-migrated. step-4 reads this file to
+                // rate-limit the dialog after 3+ cancels in 7 days.
+                let record = cancel_log::CancelRecord::new_now(env!("CARGO_PKG_VERSION"));
+                match mt_paths::cache_root() {
+                    Some(cache_root) => match cancel_log::append_record(&cache_root, &record) {
+                        Ok(()) => eprintln!(
+                            "[main][bootstrap][BLOCK_MIGRATION_CANCEL_PERSISTED ts_unix={} version={}]",
+                            record.ts_unix, record.app_version
+                        ),
+                        Err(e) => eprintln!(
+                            "[main][bootstrap][BLOCK_MIGRATION_CANCEL_PERSIST_FAILED reason={}]",
+                            e
+                        ),
+                    },
+                    None => eprintln!(
+                        "[main][bootstrap][BLOCK_MIGRATION_CANCEL_NO_CACHE_ROOT]"
+                    ),
+                }
+                eprintln!("[main][bootstrap][BLOCK_MIGRATION_CANCEL_EXIT_0]");
+                std::process::exit(0);
             }
         }
     } else {

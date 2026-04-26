@@ -11,9 +11,6 @@
 //   LOG MARKERS: [cancel_log][record][BLOCK_RECORD_APPENDED],
 //                [cancel_log][record][BLOCK_RECORD_FAILED reason=...].
 //
-// dead_code allowed module-wide while µstep H ships in isolation;
-// removed in µstep I when main.rs Cancel branch consumes append_record.
-#![allow(dead_code)]
 
 use serde::{Deserialize, Serialize};
 use std::fs::OpenOptions;

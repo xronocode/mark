@@ -9,9 +9,6 @@
 //   LINKS: M-022 mt-paths; Phase-B-pre2 step-3 (cache_root); future
 //          telemetry / snapshot modules will reuse cache_root + data_root.
 //
-// dead_code allowed module-wide while µstep H ships in isolation;
-// removed in µstep I when main.rs Cancel branch consumes cache_root.
-#![allow(dead_code)]
 
 use std::path::PathBuf;
 
