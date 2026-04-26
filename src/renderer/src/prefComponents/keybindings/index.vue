@@ -60,7 +60,20 @@
 
 <script setup>
 import log from 'electron-log'
-import { setKeyboardLayout } from '@hfelix/electron-localshortcut'
+// step-8l: deep import to bypass @hfelix/electron-localshortcut/src/index.js,
+// which transitively loads electron-localshortcut.js (uses BrowserWindow,
+// only valid in main process). The atom-keymap subtree is pure JS and
+// has no Electron coupling. The localshortcut state mutated here is
+// the *renderer's* local accelerator-parser table — main owns its own
+// independent copy via src/main/keyboard/shortcutHandler.js.
+//
+// Full removal of the @hfelix dependency from renderer is deferred to
+// step-8z prerequisites: the 3 utility functions imported by
+// key-input-dialog.vue still resolve through paths that ultimately
+// touch utils.js (process.platform). step-8z's nodeIntegration:false
+// flip will need either a Vite alias for utils.js or a build-time
+// `define` substituting process.platform.
+import { setKeyboardLayout } from '@hfelix/electron-localshortcut/src/atom-keymap'
 import { ref, onMounted, onUnmounted, watch } from 'vue'
 import Separator from '../common/separator'
 import KeyInputDialog from './key-input-dialog.vue'
