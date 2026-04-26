@@ -16,6 +16,10 @@ import registerSpellcheckerListeners from '../spellchecker'
 // step-8h: image-upload IPC handler module (src/main/imageUpload/) —
 // houses the picgo / cliScript exec logic that used to live in renderer.
 import registerImageUploadListeners from '../imageUpload'
+// step-8i: ripgrep search IPC handler module (src/main/search/) —
+// houses the spawn-based content + file search that used to live in
+// renderer. Streams results back through mt::search-event.
+import registerSearchListeners from '../search'
 import { watchers } from '../utils/imagePathAutoComplement'
 import { WindowType } from '../windows/base'
 import EditorWindow from '../windows/editor'
@@ -610,6 +614,7 @@ class App {
     registerKeyboardListeners()
     registerSpellcheckerListeners()
     registerImageUploadListeners()
+    registerSearchListeners()
 
     // 处理语言设置请求
     ipcMain.on('mt::get-current-language', (event) => {
