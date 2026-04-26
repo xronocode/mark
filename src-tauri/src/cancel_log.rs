@@ -8,8 +8,13 @@
 //   DEPENDS: serde + serde_json (already on the dep list); std::fs append.
 //   LINKS: M-022 mt-paths (provides cache_root); Phase-B-pre2 step-3
 //          (this module is its sole owner) and step-4 (reader).
-//   LOG MARKERS: [cancel_log][record][BLOCK_RECORD_APPENDED],
-//                [cancel_log][record][BLOCK_RECORD_FAILED reason=...].
+//   LOG MARKERS: none emitted by this module. The call site (main.rs)
+//                emits [main][bootstrap][BLOCK_MIGRATION_CANCEL_PERSISTED]
+//                and [main][bootstrap][BLOCK_MIGRATION_CANCEL_PERSIST_FAILED]
+//                based on the io::Result returned by append_record.
+//                Per the trace-contract decision in Phase-B-pre2 step-7,
+//                modules return Result and the bootstrap layer owns the
+//                outcome marker — single emit point per outcome.
 //
 
 use serde::{Deserialize, Serialize};
