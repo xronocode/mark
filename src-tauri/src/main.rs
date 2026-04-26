@@ -2,6 +2,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 mod legacy;
+mod migration_strings;
 
 fn main() {
     // Phase-B-pre2 step-1: detect pre-existing electron-store layouts BEFORE
