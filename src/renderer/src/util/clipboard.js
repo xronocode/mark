@@ -1,6 +1,14 @@
 import { isLinux, isOsx, isWindows } from './index'
 import plist from 'plist'
-import { clipboard as remoteClipboard } from '@electron/remote'
+// step-8e: @electron/remote.clipboard → window.electron.clipboard.
+// Preload (src/preload/index.js customElectronAPI) imports clipboard
+// directly from 'electron' and exposes it on the bridge — same API
+// surface as @electron/remote.clipboard, but works without the
+// @electron/remote shim and remains valid after step-8z flips
+// contextIsolation:true / nodeIntegration:false. Variable name kept
+// as `remoteClipboard` to minimize the diff in the four call sites
+// below; future cleanup may rename to `nativeClipboard`.
+const remoteClipboard = window.electron.clipboard
 
 const hasClipboardFiles = () => {
   return remoteClipboard.has('NSFilenamesPboardType')
