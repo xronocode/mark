@@ -364,6 +364,157 @@
     </VF-016>
   </CriticalFlows>
 
+  <!-- ============================================================ -->
+  <!-- Trace Contract (Phase-B-pre2 step-7, V-M-013a / V-M-013b)    -->
+  <!-- Schema-only definition. Runtime instrumentation lands in B1   -->
+  <!-- (tracing crate replaces eprintln!), B1.5 (e2e trace assertion -->
+  <!-- harness), B3 (session_chain_id propagation through M-013).    -->
+  <!-- ============================================================ -->
+  <TraceContract version="0.1.0" generation="phase-b-pre2-step-7" date="2026-04-26">
+    <purpose>
+      Define the cross-module observability identifiers and the BLOCK_*
+      marker grammar that lets verification scenarios assert both outcome
+      correctness and trajectory correctness from captured stderr/log
+      output. Schema is decoupled from runtime: every M-XXX module ships
+      eprintln! markers conforming to this grammar today, and a future
+      tracing-layer crate (Phase-B1) will harvest them into structured
+      events without changing the on-the-wire format consumed by tests.
+    </purpose>
+
+    <identifiers>
+      <trace_id type="UUIDv7" generated-at="app-boot" propagation="thread-local-context">
+        <semantics>One per process invocation. Time-ordered so trace
+          archives sort naturally. Survives until process exit.</semantics>
+        <emission>Appended automatically by Phase-B1 tracing layer; not
+          present in eprintln! markers today.</emission>
+      </trace_id>
+
+      <req_id type="UUIDv4" generated-at="ipc-frontend" propagation="ipc-payload-header">
+        <semantics>One per renderer→main IPC roundtrip. Renderer
+          generates; main echoes back unchanged in both ack and event
+          fanout payloads.</semantics>
+        <emission>Phase-B3 (M-013a/M-013b IPC bridge); not present
+          today (no IPC layer yet).</emission>
+      </req_id>
+
+      <session_chain_id type="UUIDv7" generated-at="window-create" propagation="window-attribute">
+        <semantics>Identifies a window+renderer session. Survives in-
+          process IPC chain; resets per new window. Used to correlate
+          renderer-side console with main-side events.</semantics>
+        <emission>Phase-B3 (M-001 window lifecycle hooks); not present
+          today.</emission>
+      </session_chain_id>
+    </identifiers>
+
+    <marker-grammar>
+      <syntax>[&lt;module_label&gt;][&lt;function_or_logical_block&gt;][BLOCK_&lt;NAME&gt; &lt;k1&gt;=&lt;v1&gt; &lt;k2&gt;=&lt;v2&gt;]</syntax>
+      <conventions>
+        <c name="module_label">First segment of the Rust module path, lowercase, snake_case as already in source. Examples: legacy, dialog, migration_strings, mt_paths, cancel_log, main. NOT the M-XXX ID — markers stay grep-friendly without cross-referencing the module catalog.</c>
+        <c name="function_or_logical_block">Function name OR a named logical block within a function (chosen when one function emits multiple distinct milestones). Snake-case.</c>
+        <c name="BLOCK_NAME">SCREAMING_SNAKE_CASE noun describing the milestone. Names are unique across the codebase — never repeat a BLOCK_NAME in different modules even if their domains differ; use suffixes (e.g. BLOCK_LEGACY_FOUND, BLOCK_DIALOG_OPEN) instead.</c>
+        <c name="key-value-fields">Optional inline structured fields. Stable key names; values quoted only when whitespace is present. Avoid logging anything matching token regexes or path-leaking PII.</c>
+      </conventions>
+    </marker-grammar>
+
+    <module-coverage-current generation="phase-b-pre2-step-7" pin-from="reborn-mark@a3ddbce">
+      <module label="legacy" home-M="M-001 mt-tauri-shell">
+        <marker emit-from="legacy.rs::log_detection">[legacy][detect][BLOCK_LEGACY_FOUND marktext=&lt;path&gt; mark=&lt;path&gt;]</marker>
+        <marker emit-from="legacy.rs::log_detection">[legacy][detect][BLOCK_LEGACY_NONE]</marker>
+      </module>
+      <module label="dialog" home-M="M-005 mt-prefs (migration sub-component)">
+        <marker emit-from="dialog.rs::ask_migration">[dialog][ask_migration][BLOCK_DIALOG_OPEN]</marker>
+        <marker emit-from="dialog.rs::ask_migration">[dialog][ask_migration][BLOCK_DIALOG_CLOSED choice=Continue|Cancel]</marker>
+      </module>
+      <module label="main" home-M="M-001 mt-tauri-shell (bootstrap entrypoint)">
+        <marker emit-from="main.rs">[main][bootstrap][BLOCK_NO_MIGRATION_NEEDED]</marker>
+        <marker emit-from="main.rs">[main][bootstrap][BLOCK_DIALOG_CHOICE choice=...]</marker>
+        <marker emit-from="main.rs">[main][bootstrap][BLOCK_MIGRATION_CONTINUE]</marker>
+        <marker emit-from="main.rs">[main][bootstrap][BLOCK_MIGRATION_CANCEL_PERSISTED ts_unix=&lt;u64&gt; version=&lt;str&gt;]</marker>
+        <marker emit-from="main.rs">[main][bootstrap][BLOCK_MIGRATION_CANCEL_PERSIST_FAILED reason=&lt;str&gt;]</marker>
+        <marker emit-from="main.rs">[main][bootstrap][BLOCK_MIGRATION_CANCEL_NO_CACHE_ROOT]</marker>
+        <marker emit-from="main.rs">[main][bootstrap][BLOCK_MIGRATION_CANCEL_EXIT_0]</marker>
+      </module>
+    </module-coverage-current>
+
+    <module-coverage-future-deferred>
+      <module label="shell" home-M="M-001" deferred-to="Phase-B1">
+        BLOCK_BUILD_APP, BLOCK_REGISTER_MENU, BLOCK_DRAIN_PENDING_WINDOW,
+        BLOCK_FORWARD_ARGV, BLOCK_PRELOAD_PANIC_RESPAWN, BLOCK_DETECT_TRANSLOCATED,
+        BLOCK_FLUSH_DEADLINE_EXCEEDED, BLOCK_FLUSH_COMPLETE, BLOCK_DEDUPE_CLI_VS_RESTORE,
+        BLOCK_CLOSED_HANDLE_RELEASED.
+      </module>
+      <module label="prefs" home-M="M-005" deferred-to="Phase-B3">
+        BLOCK_DETECT_LEGACY, BLOCK_LOCK_ACQUIRED, BLOCK_LOCK_CONTENDED,
+        BLOCK_MIGRATE_PREFERENCES, BLOCK_MIGRATE_DATACENTER, BLOCK_MIGRATE_KEYBINDINGS,
+        BLOCK_MIGRATE_KEYCHAIN, BLOCK_MIGRATED, BLOCK_RESUME, BLOCK_ROLLBACK,
+        BLOCK_SKIP_ALREADY_DONE, BLOCK_COERCE, BLOCK_PATH_FALLBACK.
+      </module>
+      <module label="ipc" home-M="M-013a/M-013b" deferred-to="Phase-B3">
+        BLOCK_IPC_REQ_RECV, BLOCK_IPC_DISPATCH, BLOCK_IPC_REPLY_SEND,
+        BLOCK_EVENT_FANOUT, BLOCK_TRACE_PROPAGATE_FAIL.
+      </module>
+      <module label="menu" home-M="M-009" deferred-to="Phase-B3">
+        BLOCK_REGISTER_NATIVE_MENU, BLOCK_REGISTER_CONTEXT_MENU, BLOCK_MENU_INVOKED.
+      </module>
+      <module label="renderer" home-M="M-011 + muya" deferred-to="Phase-B1.5">
+        Renderer-side markers ride on session_chain_id; format identical
+        but emitted from JS console.error("[renderer][...]") and shipped
+        to main via M-013 bridge for unified capture.
+      </module>
+    </module-coverage-future-deferred>
+
+    <schema-only-checks generation="phase-b-pre2-step-7" runnable-now="true">
+      <check id="GRAM-1" status="pass">
+        Every BLOCK_* marker in reborn-mark/src-tauri/src/**/*.rs matches the
+        regex `\[[a-z_]+\]\[[a-z_]+\]\[BLOCK_[A-Z][A-Z0-9_]*( \w+=...)?\]`.
+        Verified by grep against actual emit lines (excluding comments):
+        rg --no-line-number '\[\w+\]\[\w+\]\[BLOCK_' src-tauri/src --include='*.rs' | grep -v '//' | wc -l → 11 emit sites, all conform.
+      </check>
+      <check id="UNIQ-1" status="pass">
+        No BLOCK_NAME is duplicated across module labels. 11 unique BLOCK
+        names across 11 emit sites — 1:1 mapping confirms no double-emission.
+        (Two additional names — BLOCK_RECORD_APPENDED, BLOCK_RECORD_FAILED —
+        appeared only in an out-of-date cancel_log.rs MODULE_CONTRACT comment;
+        comment was corrected as part of this step-7 fixup so trace contract
+        and source match.)
+      </check>
+      <check id="COVER-1" status="pass">
+        Every Rust module in reborn-mark/src-tauri/src that emits eprintln!
+        contains at least one BLOCK_* marker. legacy.rs, dialog.rs, main.rs
+        emit; mt_paths.rs, cancel_log.rs, migration_strings.rs intentionally
+        do not (per trace-contract: outcomes return via Result and the
+        bootstrap layer owns the marker emission).
+      </check>
+      <check id="NEG-1" status="pass">
+        No EMITTED marker line embeds GitHub-token-shaped substrings
+        (github_pat_|ghp_|ghs_|gho_|Bearer ). Verified two ways:
+        (a) grep against emit-only lines (eprintln! literals): no matches.
+        (b) cancel_log unit test `jsonl_does_not_contain_secret_substrings`
+        runs the real append_record and asserts the resulting file is
+        token-free.
+        Source-wide grep on src/ would yield false positives because
+        cancel_log unit tests legitimately *reference* these substrings
+        as fixtures to assert their absence in output — those test
+        fixture lines are not emitted markers.
+      </check>
+    </schema-only-checks>
+
+    <runtime-deferred-to>
+      <phase id="B1">tracing crate replaces eprintln! macros; trace_id auto-attached via tracing::Span; format on the wire stays "[label][block][BLOCK_NAME k=v]" so historical scenario assertions keep working.</phase>
+      <phase id="B1.5">e2e harness captures stdout from `cargo tauri dev` runs and asserts marker order against per-scenario sequences.</phase>
+      <phase id="B3">session_chain_id propagation through M-013a/M-013b; req_id arrives from frontend in payload header; menu/IPC/prefs runtime markers go live.</phase>
+    </runtime-deferred-to>
+
+    <doc-fixups generation="phase-b-pre2-step-7" status="applied-inline">
+      <fixup target="reborn-mark/src-tauri/src/cancel_log.rs" applied="true">
+        Corrected: MODULE_CONTRACT now states "no markers emitted by this
+        module" and points to main.rs as the bootstrap-layer emit site.
+        This is the canonical pattern for Result-returning modules under
+        the trace contract.
+      </fixup>
+    </doc-fixups>
+  </TraceContract>
+
   <GraceHygieneFlows>
     <V-GH-001 NAME="ContextEconomyDoesNotSkipVerification" PRIORITY="critical">
       <scenario>A GRACE execution packet uses targeted context for a localized task.</scenario>
