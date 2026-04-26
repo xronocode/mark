@@ -1491,7 +1491,59 @@
       <step-5 status="done" verification="V-M-005">On Continue: BLOCK_SNAPSHOT_LEGACY → BLOCK_MIGRATION_PREFLIGHT_DONE (gates store-init). **Implementation:** reborn-mark/src-tauri/src/snapshot.rs (commit 9bde84e) — `snapshot_legacy(layouts, cache_root) -&gt; io::Result&lt;SnapshotResult&gt;` copies preferences.json + dataCenter.json + window-state.json + Local Storage/ subtree per namespace into `cache_root/snapshot/ts-&lt;unix&gt;/&lt;namespace&gt;/`. Allow-listed paths only — Chromium internals (Cache, GPUCache, blob_storage, Crashpad, etc.) excluded by design. Append-only: each invocation creates fresh ts-&lt;unix&gt;/ subdir. Original data in ~/Library/Application Support is NEVER modified — move/delete is M-005's responsibility, not preflight's. main.rs Continue branch reorganized: cache_root match → snapshot match → preflight done/failed → prefs stub gate (still aborts because original legacy data still present, by design until B3). Six new BLOCK markers wired (BLOCK_SNAPSHOT_LEGACY, BLOCK_MIGRATION_PREFLIGHT_DONE, BLOCK_SNAPSHOT_FAILED, BLOCK_MIGRATION_PREFLIGHT_FAILED, BLOCK_SNAPSHOT_NO_CACHE_ROOT, plus existing BLOCK_PREFS_STUB_ABORT). **Verification:** 6 new unit tests including byte-for-byte content preservation, original-data-untouched assertion, timestamp uniqueness, Chromium-internals exclusion. Live smoke (synthetic env, user clicked Continue): files=6 bytes=131 copied (4 mark + 2 marktext); Cache/index correctly NOT in snapshot; diff -q vs original = identical; original mtime preserved; exit 1 via stub gate as expected.</step-5>
       <step-6 status="done" verification="V-M-005">M-005 stub aborts MT_PREFS_V1_RUNNING on any non-empty legacy path until full M-005 ships in B3. **Implementation:** reborn-mark/src-tauri/src/prefs.rs (commit a2ecec6) — `pub const MT_PREFS_V1_RUNNING: &amp;str = "MT_PREFS_V1_RUNNING"` + `pub fn init(&amp;LegacyLayouts) -> Result&lt;(), &amp;'static str&gt;` returning Err(MT_PREFS_V1_RUNNING) when any_detected() is true. main.rs Continue branch now matches on prefs::init result; on Err logs `[prefs][init][MT_PREFS_V1_RUNNING] ...` + `[main][bootstrap][BLOCK_PREFS_STUB_ABORT marker=...]` + exits 1. **Behavior:** the Continue path of the migration dialog is now LOCKED into exit(1) until Phase-B-pre2 step-5 introduces the snapshot+preflight path (move legacy data OUT of Application Support before re-checking). This is intentional defensive behavior — prevents any merge from shipping a Tauri build that boots normally and silently ignores user data. Cancel path unchanged (still writes sessions.jsonl + exit 0). No-legacy path unchanged (Tauri window opens normally). **Verification:** 5 unit tests cover all four (marktext, mark, both, none) legacy permutations + constant byte-string stability; clean-HOME smoke shows BLOCK_LEGACY_NONE → BLOCK_NO_MIGRATION_NEEDED → window opens. Live Continue smoke deferred until step-5 unlocks it.</step-6>
       <step-7 status="done" verification="V-M-013a,V-M-013b">Define end-to-end trace_id, req_id, session_chain_id, BLOCK_* marker schema for M-001, M-009, M-011, M-013a, M-013b. Schema-only checks pass; runtime assertions deferred to B1/B1.5/B3. **Implementation:** verification-plan.xml &lt;TraceContract version="0.1.0" generation="phase-b-pre2-step-7"&gt; block (commit 37f1076c). Identifiers: trace_id=UUIDv7@app-boot/thread-local, req_id=UUIDv4@ipc-frontend/payload-header, session_chain_id=UUIDv7@window-create/window-attribute. Marker grammar: [module_label][function][BLOCK_NAME k=v] with module_label = Rust mod path lowercase. Schema-only checks GRAM-1/UNIQ-1/COVER-1/NEG-1 all PASS against reborn-mark@a3ddbce: 11 unique BLOCK names across 11 emit sites in legacy.rs/dialog.rs/main.rs. Doc-fixup: cancel_log.rs MODULE_CONTRACT corrected to "no markers emitted — bootstrap owns" (commit 6f2dcc3). Future module rosters (shell, prefs, ipc, menu, renderer) declared as deferred-to=B1/B3. Runtime tracing crate, e2e harness, IPC propagation explicitly deferred per &lt;runtime-deferred-to&gt; phase-mapping.</step-7>
-      <step-8 status="pending" verification="VF-010">Renderer cleanup preflight: zero production-bundle usages of fs, path, child_process, crypto, Buffer, os.tmpdir, process escape hatches, node:*, deep electron imports.</step-8>
+      <step-8 status="audit-done" verification="VF-010">Renderer cleanup preflight: zero production-bundle usages of fs, path, child_process, crypto, Buffer, os.tmpdir, process escape hatches, node:*, deep electron imports. **Status:** AUDIT complete (commit pending), implementation deferred — too large for one Phase-B-pre2 session, splits cleanly into 11 sub-tickets across mark-electron@v1-on-tkaixiang. Repository different from reborn-mark/; this step does not block Gate-Phase-B-pre2 readiness for the Tauri-side bootstrap (which is now complete on reborn-mark steps 1-7).
+
+**Audit findings (mark-electron @ 85710af7, branch v1-on-tkaixiang, src/renderer/ scope = 119 files):**
+
+20 of 119 files contain at least one violation. By category:
+
+* **fs / fs/promises / fs-extra** — 4 import sites in 3 files: src/renderer/src/util/pdf.js:1, src/renderer/src/util/fileSystem.js:3 (statSync, constants), src/renderer/src/components/exportSettings/index.vue:263-264 (fs + fs/promises). Migration target: `window.fileUtils.*` already exposed via preload (writeFile/readFile/copy/move/stat etc.).
+
+* **child_process** — 3 import sites: src/renderer/src/util/fileSystem.js:4 (exec, execFile for picgo/cliScript image uploaders), src/renderer/src/node/fileSearcher.js:1 (spawn), src/renderer/src/node/ripgrepSearcher.js:24 (spawn). Migration: relocate to src/main/search/ + src/main/imageUpload/ modules + new IPCs `mt::search-run`, `mt::search-cancel`, `mt::image-upload`.
+
+* **crypto** — 1 site: src/renderer/src/util/fileSystem.js:1. Migration: new IPC `mt::hash-bytes` (sha256/md5).
+
+* **os.tmpdir** — 1 site: src/renderer/src/util/fileSystem.js:5. Migration: replace with `await window.electron.process.tmpDir()` IPC.
+
+* **Buffer global** — 6 usages in 2 files: src/renderer/src/util/fileSystem.js (3 sites: image.arrayBuffer→Buffer.from, base64 conversions for picgo/github upload), src/renderer/src/node/ripgrepSearcher.js (3 sites: byteLength + Buffer.from for base64 decode of vscode-ripgrep stdout). Migration: substitute browser TextEncoder/TextDecoder/btoa/atob; ripgrepSearcher moves to main anyway so these vanish.
+
+* **process.* escape hatches** — 22+ usages in 14 files. Sub-categories:
+  - `process.platform` (10+ sites): replace with `window.electron.process.platform` (already preload-exposed via @electron-toolkit/preload's electronAPI).
+  - `process.env.NODE_ENV` (3 sites: bootstrap.js:7, prefComponents/sideBar/config.js:442, store/project.js:205): replace with Vite's `import.meta.env.MODE === 'development'` (compile-time injected, no runtime leak).
+  - `process.env.UNSPLASH_ACCESS_KEY` (1 site: editor.vue:973): replace with `import.meta.env.VITE_UNSPLASH_ACCESS_KEY` (Vite env var prefix discipline).
+  - `process.env.MARKTEXT_*` (multiple, e.g. paths.js:21,23, store/index.js:9): expose via preload as `window.electron.process.env.MARKTEXT_*` (electronAPI partial).
+  - `process.env.HOME / PATH / APPIMAGE` (5+ sites in fileSystem.js, commands/utils.js): main-process-side only after the picgo/exec migration; renderer never sees them.
+
+* **@electron/remote** — 6 import sites in 6 files: src/renderer/src/util/clipboard.js:3 (clipboard), src/renderer/src/contextMenu/{tabs,sideBar}/index.js:1 (Menu+MenuItem+getCurrentWindow), src/renderer/src/components/titleBar/index.vue:159 (getCurrentWindow+RemoteMenu), src/renderer/src/commands/index.js:2 (getCurrentWindow), src/renderer/src/prefComponents/common/titlebar.vue:14 (getCurrentWindow). Migration: clipboard → `window.electron.clipboard` (already exposed); getCurrentWindow().{minimize,maximize,close,isFullScreen} → new IPCs `mt::window-{minimize,maximize,close,toggle-fullscreen}`; RemoteMenu/RemoteMenuItem → new IPC `mt::context-menu-show` with serialized {label, accelerator, id, separator, enabled, checked} spec. After migration: drop `@electron/remote` dep entirely + remove the 3 `remoteEnable(window.webContents)` calls from main/index.js + main/windows/{editor,setting}.js.
+
+* **@hfelix/electron-localshortcut** — 2 sites in keybinding prefs UI (prefComponents/keybindings/index.vue:63, key-input-dialog.vue:44): `setKeyboardLayout`. Migration: relocate to main; expose layout state via IPC `mt::keymap-set-layout` + read-only `window.electron.keymap`.
+
+* **ipcRenderer.sendSync** — 1 site: store/editor.js:1327 (`mt::ask-for-image-path`). Migration: convert to `await ipcRenderer.invoke('mt::ask-for-image-path')`; caller must already be async (image-paste flow).
+
+* **global.marktext writes** — 2 sites: src/renderer/src/main.js:26 (`global.marktext = {}`), src/renderer/src/bootstrap.js:106 (`global.marktext = marktext`). Migration: write to `window.marktext` instead; expose via preload contextBridge so the API survives nodeIntegration:false flip.
+
+**Electron security context (separate from renderer code):**
+src/main/config.js declares `contextIsolation: false`, `nodeIntegration: true`, `webSecurity: false` for both window types (editor + setting). The cleanup is meaningless without the final flip to `contextIsolation: true`, `nodeIntegration: false`, `webSecurity: true` once renderer is clean. That flip is the closing ticket.
+
+**Recommended split into 11+1 sub-tickets:**
+* step-8a: 4 fs imports → window.fileUtils.* (mechanical, no new IPC needed).
+* step-8b: process.platform → window.electron.process.platform (10+ files, 1-line edits each).
+* step-8c: process.env.NODE_ENV / UNSPLASH → import.meta.env.* (Vite-native).
+* step-8d: process.env.MARKTEXT_* / HOME / PATH → preload exposure tightening.
+* step-8e: @electron/remote.clipboard → window.electron.clipboard (1 site).
+* step-8f: @electron/remote.getCurrentWindow → new mt::window-* IPCs (5 sites + main handlers).
+* step-8g: @electron/remote.Menu / MenuItem → new mt::context-menu-show IPC (4 sites + main handler).
+* step-8h: child_process exec/execFile (picgo, cliScript) → main src/main/imageUpload/ + IPCs.
+* step-8i: child_process spawn (ripgrep, fileSearcher) → main src/main/search/ + IPCs (also retires Buffer sites in ripgrepSearcher).
+* step-8j: crypto + os.tmpdir → main IPCs `mt::hash-bytes`, `mt::tmp-dir`.
+* step-8k: ipcRenderer.sendSync → invoke (1 site, async caller chain).
+* step-8l: @hfelix/electron-localshortcut → main keymap module.
+* step-8m: global.marktext → window.marktext via preload contextBridge.
+* **step-8z:** flip src/main/config.js to contextIsolation:true / nodeIntegration:false / webSecurity:true; remove `@electron/remote` dependency from package.json; drop the 3 remoteEnable calls.
+
+**Effort estimate (rough, single dev):** 5-8 working days end-to-end. Gating order: 8a→8b→8c→8d (renderer-only quick wins) → 8e→8f→8g (remote elimination) → 8h→8i→8j→8k→8l (IPC layer expansions) → 8m → 8z (security lockdown + dep removal). Each sub-ticket should commit independently and run full e2e between commits.
+
+**Disposition for Phase-B-pre2 closure:** This audit MAY be sufficient evidence to close step-8 as `audit-done` (rather than `done`) and treat the implementation as a separate v1.2.0 hardening track running in parallel with reborn-mark Phase-B-pre2..B3. Phase-B (the Tauri rewrite) does NOT depend on the v1.x renderer being Node-clean — it depends on M-013 IPC bridge giving the new Vue-3 frontend a clean import set, which is reborn-mark's own concern. Phase-A1-5 (originally the same work, marked superseded after the strategy pivot) is the historical predecessor of these tickets.</step-8>
       <gate>Gate-Phase-B-pre2: native dialog screenshots in ru_RU+zh_CN+ja_JP on macos-14 / ubuntu-22.04 / windows-latest; restricted-import + bundle-grep checks pass; trace markers fire in expected order. Hard predecessor of Gate-Phase-B1.</gate>
     </Phase-B-pre2>
 
