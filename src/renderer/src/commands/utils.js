@@ -1,25 +1,27 @@
-// step-8b: import isWindows so the process.platform check below reads
-// from the preload bridge (window.electron.process.platform) instead of
-// direct Node-process. process.resourcesPath and process.env.APPIMAGE
-// stay untouched here — they're owned by step-8d (env exposure) which
-// will likely surface them via window.electron.process.{resourcesPath,
-// env.APPIMAGE} after a follow-up preload extension.
+// step-8b: isWindows from @/util reads window.electron.process.platform
+//          via preload (no direct process.platform here).
+// step-8d: process.resourcesPath → window.electron.resourcesPath (added
+//          to customElectronAPI in preload because @electron-toolkit/preload
+//          does not surface resourcesPath itself).
+//          process.env.APPIMAGE → window.electron.process.env.APPIMAGE
+//          (toolkit's electronAPI spreads process.env into the bridge).
 import { isWindows } from '@/util'
 
 /// Check whether the package is updatable at runtime.
 export const isUpdatable = () => {
   // TODO: t('commands.utils.todoUpdateCheck')
 
-  const resFile = window.fileUtils.isFile(window.path.join(process.resourcesPath, 'app-update.yml'))
+  const resourcesPath = window.electron.resourcesPath
+  const resFile = window.fileUtils.isFile(window.path.join(resourcesPath, 'app-update.yml'))
   if (!resFile) {
     // t('commands.utils.noUpdateResourceFile')
     return false
-  } else if (process.env.APPIMAGE) {
+  } else if (window.electron.process.env.APPIMAGE) {
     // We are running as AppImage.
     return true
   } else if (
     isWindows &&
-    window.fileUtils.isFile(window.path.join(process.resourcesPath, 'md.ico'))
+    window.fileUtils.isFile(window.path.join(resourcesPath, 'md.ico'))
   ) {
     // Windows is a little but tricky. The update resource file is always available and
     // there is no way to check the target type at runtime (electron-builder#4119).

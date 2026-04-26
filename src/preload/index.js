@@ -21,7 +21,12 @@ const i18nUtils = {
 const customElectronAPI = {
   shell,
   clipboard,
-  webUtils
+  webUtils,
+  // step-8d: expose process.resourcesPath via the bridge.
+  // @electron-toolkit/preload's electronAPI exposes process.{platform,
+  // versions, env} but NOT resourcesPath, which is Electron-specific
+  // and used by isUpdatable() in renderer/commands/utils.js.
+  resourcesPath: process.resourcesPath
 }
 
 const fileUtilsAPI = {

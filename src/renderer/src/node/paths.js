@@ -18,9 +18,12 @@ class RendererPaths extends EnvPaths {
     super(userDataPath)
 
     // Allow to use a local ripgrep binary (e.g. an optimized version).
-    if (process.env.MARKTEXT_RIPGREP_PATH) {
+    // step-8d: process.env.MARKTEXT_RIPGREP_PATH → window.electron.process.env.*
+    // (preload bridge — @electron-toolkit/preload spreads the env object).
+    const overridePath = window.electron.process.env.MARKTEXT_RIPGREP_PATH
+    if (overridePath) {
       // NOTE: Binary must be a compatible version, otherwise the searcher may fail.
-      this._ripgrepBinaryPath = process.env.MARKTEXT_RIPGREP_PATH
+      this._ripgrepBinaryPath = overridePath
     } else {
       this._ripgrepBinaryPath = rgDiskPath
     }
