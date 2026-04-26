@@ -4,7 +4,10 @@ import RendererPaths from './node/paths'
 let exceptionLogger = (s) => console.error(s)
 
 const configureLogger = () => {
-  log.transports.console.level = process.env.NODE_ENV === 'development' ? 'info' : false // mirror to window console
+  // step-8c: process.env.NODE_ENV === 'development' → import.meta.env.DEV.
+  // Vite substitutes this at build time, so no runtime env lookup remains
+  // in the production bundle.
+  log.transports.console.level = import.meta.env.DEV ? 'info' : false // mirror to window console
   exceptionLogger = log.error
 }
 

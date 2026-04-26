@@ -970,7 +970,12 @@ onMounted(() => {
   Muya.use(EmojiPicker)
   Muya.use(ImagePathPicker)
   Muya.use(ImageSelector, {
-    unsplashAccessKey: process.env.UNSPLASH_ACCESS_KEY,
+    // step-8c: process.env.UNSPLASH_ACCESS_KEY → import.meta.env.VITE_UNSPLASH_ACCESS_KEY.
+    // Vite requires VITE_-prefixed names to expose env vars to client code at
+    // build time. CI / packagers should set VITE_UNSPLASH_ACCESS_KEY before
+    // running `npm run build`; absence yields undefined here, which the
+    // ImageSelector plugin already tolerates (Unsplash search disabled).
+    unsplashAccessKey: import.meta.env.VITE_UNSPLASH_ACCESS_KEY,
     photoCreatorClick
   })
   Muya.use(Transformer)

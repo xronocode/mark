@@ -438,8 +438,9 @@ export const debugLanguageState = () => {
 /*
 // 在页面上添加调试按钮（仅开发环境显示）
 if (typeof document !== 'undefined') {
-  const isDev = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.DEV) ||
-    (typeof process !== 'undefined' && process.env && process.env.NODE_ENV === 'development');
+  // step-8c: process.env.NODE_ENV fallback removed; rely on Vite's
+  // import.meta.env.DEV (compile-time substituted).
+  const isDev = typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.DEV;
   if (isDev) {
     // 确保按钮容器存在
     const buttonContainer = document.createElement('div');

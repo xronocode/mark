@@ -202,7 +202,9 @@ export const useProjectStore = defineStore('project', {
         case 'change':
           break
         default:
-          if (process.env.NODE_ENV === 'development') {
+          // step-8c: process.env.NODE_ENV === 'development' →
+          // import.meta.env.DEV (Vite compile-time constant).
+          if (import.meta.env.DEV) {
             // eslint-disable-next-line no-console
             console.log(`Unknown directory watch type: "${type}"`)
           }
