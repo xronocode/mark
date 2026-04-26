@@ -1,17 +1,16 @@
 import crypto from 'crypto'
 
-// step-8a: removed `import { statSync, constants } from 'fs'` —
-// direct Node-core fs import gone from production renderer bundle.
-// isFileExecutableSync renamed to async isFileExecutable using
-// window.fileUtils.stat. POSIX exec mode bits are hardcoded
-// (0o111 == S_IXUSR | S_IXGRP | S_IXOTH) since `constants` is no
-// longer imported. crypto/child_process/os.tmpdir imports remain
-// pending under step-8h / step-8i / step-8j of the cleanup track.
-import { exec, execFile } from 'child_process'
+// step-8a: removed `import { statSync, constants } from 'fs'`.
+// step-8h: removed `import { exec, execFile } from 'child_process'`.
+//          The picgo / cliScript exec logic moved to
+//          src/main/imageUpload/ and is reached through the
+//          `mt::image-upload-run-command` IPC. Renderer keeps only
+//          the FileReader / tmpfile orchestration plus a thin invoke().
+// crypto and os.tmpdir imports remain pending under step-8j.
 import { tmpdir } from 'os'
 import dayjs from 'dayjs'
 import { Octokit } from '@octokit/rest'
-import { isOsx, isWindows, isLinux } from './index'
+import { isWindows } from './index'
 
 export const create = async (pathname, type) => {
   return type === 'directory'
@@ -126,88 +125,12 @@ export const uploadImage = async (pathname, image, preferences) => {
       .catch(() => rejectPromise('Upload failed, the image will be copied to the image folder'))
   }
 
-  // Build a robust PATH for spawned processes (Electron packaged apps often miss Homebrew paths)
-  // step-8b: process.platform → isOsx/isLinux from util/index.js (which
-  // reads window.electron.process.platform via preload bridge).
-  const getPreferredPathEnv = () => {
-    const extras = isOsx
-      ? ['/opt/homebrew/bin', '/usr/local/bin', '/usr/bin', '/bin']
-      : isLinux
-        ? ['/usr/local/bin', '/usr/bin', '/bin']
-        : []
-    const cur = (process.env.PATH || '').split(':')
-    const merged = [...cur]
-    for (const p of extras) if (p && !merged.includes(p)) merged.push(p)
-    return merged.filter(Boolean).join(':')
-  }
-
-  const resolvePicgoBinary = () => {
-    // step-8b: process.platform → isWindows.
-    const candidates = isWindows
-      ? ['picgo', 'picgo.exe']
-        : [
-            'picgo',
-            '/opt/homebrew/bin/picgo',
-            '/usr/local/bin/picgo',
-            '/usr/bin/picgo',
-            `${process.env.HOME}/.npm-global/bin/picgo`,
-            `${process.env.HOME}/.npm/bin/picgo`,
-            '/usr/local/lib/node_modules/.bin/picgo'
-          ]
-    for (const c of candidates) {
-      try {
-        if (window.commandExists?.exists && window.commandExists.exists(c)) return c
-        if (
-          c.startsWith('/') &&
-          window.fileUtils?.pathExistsSync &&
-          window.fileUtils.pathExistsSync(c)
-        )
-          return c
-      } catch {}
-    }
-    return null
-  }
-
-  const parsePicgoOutput = (text) => {
-    const raw = String(text || '')
-    const cleaned = raw.replace(/\u001b\[[0-9;]*m/g, '') // strip ANSI colors
-    try {
-      const lines = cleaned
-        .split(/\r?\n/)
-        .map((l) => l.trim())
-        .filter(Boolean)
-      for (const line of lines) {
-        if (
-          (line.startsWith('{') && line.endsWith('}')) ||
-          (line.startsWith('[') && line.endsWith(']'))
-        ) {
-          try {
-            const obj = JSON.parse(line)
-            if (obj) {
-              // 仅在明确成功时返回 URL
-              if (obj.success === true && typeof obj.imgUrl === 'string') return obj.imgUrl
-              if (obj.success === true && Array.isArray(obj.result) && obj.result.length > 0)
-                return String(obj.result[obj.result.length - 1])
-              if (obj.success === true && typeof obj.url === 'string') return obj.url
-            }
-          } catch {}
-        }
-        // 仅在包含 success 关键词时接受 URL
-        const kv = line.match(/(?:success|succeeded|uploaded)\s*:?\s*(https?:\/\/\S+)/i)
-        if (kv && kv[1]) return kv[1]
-      }
-      // last non-empty line may be the URL itself
-      // 不再使用最后一行 URL 兜底，避免误判成功
-    } catch {}
-    const marker = cleaned.split('[PicGo SUCCESS]:')
-    if (marker.length >= 2) {
-      const candidate = marker[marker.length - 1].trim()
-      if (/^https?:\/\//i.test(candidate)) return candidate
-    }
-    // 不再用任意 URL 兜底
-    return null
-  }
-
+  // step-8h: getPreferredPathEnv / resolvePicgoBinary / parsePicgoOutput
+  // moved to src/main/imageUpload/index.js. Renderer keeps only the
+  // FileReader / tmpfile orchestration; the picgo / cliScript invocation
+  // goes through mt::image-upload-run-command. Main returns the URL
+  // string on success or throws an Error whose message we surface to
+  // the rejectPromise() chain.
   const uploadByCommand = async (uploader, filepath, suffix = '') => {
     let localIsPath = true
     let localPath = filepath
@@ -217,37 +140,23 @@ export const uploadImage = async (pathname, image, preferences) => {
       localPath = window.path.join(tmpdir(), `${Date.now()}${suffix}`)
       await window.fileUtils.writeFile(localPath, data)
     }
-    const handleExec = (err, data, stderr) => {
-      try {
-        if (!localIsPath) window.fileUtils?.unlink && window.fileUtils.unlink(localPath)
-      } catch {}
-      if (err) return rejectPromise(err)
-      const text = String(data || '') + (stderr ? `\n${String(stderr)}` : '')
-      const url = parsePicgoOutput(text)
-      if (url) resolvePromise(url)
-      else rejectPromise(`PicGo upload error: cannot parse output\n${text.slice(0, 400)}`)
+    const cleanup = () => {
+      if (!localIsPath && window.fileUtils?.unlink) {
+        try { window.fileUtils.unlink(localPath) } catch {}
+      }
     }
-    if (uploader === 'picgo') {
-      const cmd = resolvePicgoBinary()
-      if (!cmd) return rejectPromise('PicGo command not found in PATH')
-      exec(
-        `${cmd} u "${localPath}"`,
-        { env: { ...process.env, PATH: getPreferredPathEnv() } },
-        handleExec
-      )
-    } else {
-      execFile(
-        cliScript,
-        [localPath],
-        { env: { ...process.env, PATH: getPreferredPathEnv() } },
-        (err, data) => {
-          try {
-            if (!localIsPath) window.fileUtils?.unlink && window.fileUtils.unlink(localPath)
-          } catch {}
-          if (err) return rejectPromise(err)
-          resolvePromise(String(data || '').trim())
-        }
-      )
+    try {
+      const url = await window.electron.ipcRenderer.invoke('mt::image-upload-run-command', {
+        uploader,
+        filepath: localPath,
+        cliScript
+      })
+      cleanup()
+      if (url) resolvePromise(url)
+      else rejectPromise('Image upload returned an empty URL')
+    } catch (err) {
+      cleanup()
+      rejectPromise(err && err.message ? err.message : String(err))
     }
   }
 

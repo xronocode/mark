@@ -13,6 +13,9 @@ import { registerKeyboardListeners } from '../keyboard'
 import { selectTheme } from '../menu/actions/theme'
 import { dockMenu } from '../menu/templates'
 import registerSpellcheckerListeners from '../spellchecker'
+// step-8h: image-upload IPC handler module (src/main/imageUpload/) —
+// houses the picgo / cliScript exec logic that used to live in renderer.
+import registerImageUploadListeners from '../imageUpload'
 import { watchers } from '../utils/imagePathAutoComplement'
 import { WindowType } from '../windows/base'
 import EditorWindow from '../windows/editor'
@@ -606,6 +609,7 @@ class App {
   _listenForIpcMain() {
     registerKeyboardListeners()
     registerSpellcheckerListeners()
+    registerImageUploadListeners()
 
     // 处理语言设置请求
     ipcMain.on('mt::get-current-language', (event) => {
