@@ -437,6 +437,14 @@
         <marker emit-from="main.rs" added="step-6">[main][bootstrap][BLOCK_PREFS_STUB_ABORT marker=MT_PREFS_V1_RUNNING]</marker>
         <marker emit-from="main.rs" added="step-4">[main][bootstrap][BLOCK_RECENT_CANCELS_COUNTED count=&lt;usize&gt;]</marker>
         <marker emit-from="main.rs" added="step-4">[main][bootstrap][BLOCK_RATE_LIMIT_HINT_ATTACHED]</marker>
+        <marker emit-from="main.rs" added="step-5">[main][bootstrap][BLOCK_MIGRATION_PREFLIGHT_DONE]</marker>
+        <marker emit-from="main.rs" added="step-5">[main][bootstrap][BLOCK_MIGRATION_PREFLIGHT_FAILED]</marker>
+      </module>
+      <module label="snapshot" home-M="M-005 mt-prefs (Phase-B3 consumer)" added="step-5">
+        <marker emit-from="main.rs (call site)">[snapshot][run][BLOCK_SNAPSHOT_LEGACY dest=&lt;path&gt; files=&lt;u32&gt; bytes=&lt;u64&gt;]</marker>
+        <marker emit-from="main.rs (call site)">[snapshot][run][BLOCK_SNAPSHOT_FAILED reason=&lt;str&gt;]</marker>
+        <marker emit-from="main.rs (call site)">[snapshot][run][BLOCK_SNAPSHOT_NO_CACHE_ROOT]</marker>
+        <note>Same single-emit-point discipline as cancel_log: snapshot.rs returns io::Result; main.rs emits the outcome marker.</note>
       </module>
       <module label="prefs" home-M="M-005 mt-prefs (stub until B3)" added="step-6">
         <marker emit-from="main.rs (call site)" prefix-family="MT_">[prefs][init][MT_PREFS_V1_RUNNING] legacy still present; M-005 stub refuses bootstrap until B3 ships real migration</marker>
@@ -472,17 +480,18 @@
     </module-coverage-future-deferred>
 
     <schema-only-checks generation="phase-b-pre2-step-7" runnable-now="true">
-      <check id="GRAM-1" status="pass" updated="step-4">
+      <check id="GRAM-1" status="pass" updated="step-5">
         Every BLOCK_*/MT_* marker in reborn-mark/src-tauri/src/**/*.rs
         matches the regex `\[[a-z_]+\]\[[a-z_]+\]\[(BLOCK|MT)_[A-Z][A-Z0-9_]*( \w+=...)?\]`.
-        Verified against actual emit lines: 14 BLOCK_* + 1 MT_PREFS_V1_RUNNING
+        Verified against actual emit lines: 19 BLOCK_* + 1 MT_PREFS_V1_RUNNING
         emit site, all conform.
       </check>
-      <check id="UNIQ-1" status="pass" updated="step-4">
-        No BLOCK_NAME is duplicated across module labels. After step-4:
-        14 unique BLOCK names across 14 emit sites (added BLOCK_RECENT_CANCELS_COUNTED
-        and BLOCK_RATE_LIMIT_HINT_ATTACHED for the rate-limit reader path);
-        1 MT_ identifier (MT_PREFS_V1_RUNNING) defined as pub const in prefs.rs.
+      <check id="UNIQ-1" status="pass" updated="step-5">
+        No BLOCK_NAME is duplicated across module labels. After step-5:
+        19 unique BLOCK names across 19 emit sites (added BLOCK_SNAPSHOT_LEGACY,
+        BLOCK_SNAPSHOT_FAILED, BLOCK_SNAPSHOT_NO_CACHE_ROOT, BLOCK_MIGRATION_PREFLIGHT_DONE,
+        BLOCK_MIGRATION_PREFLIGHT_FAILED for the snapshot path); 1 MT_ identifier
+        (MT_PREFS_V1_RUNNING) defined as pub const in prefs.rs.
       </check>
       <check id="COVER-1" status="pass">
         Every Rust module in reborn-mark/src-tauri/src that emits eprintln!
