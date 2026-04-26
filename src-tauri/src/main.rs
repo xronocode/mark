@@ -6,6 +6,7 @@ mod dialog;
 mod legacy;
 mod migration_strings;
 mod mt_paths;
+mod prefs;
 
 use dialog::DialogChoice;
 
@@ -27,10 +28,20 @@ fn main() {
 
         match choice {
             DialogChoice::Continue => {
-                // Phase-B-pre2 step-5 will gate store-init on this branch and
-                // perform the actual migration via M-005. For now we just log
-                // and let tauri::Builder proceed unmodified.
                 eprintln!("[main][bootstrap][BLOCK_MIGRATION_CONTINUE]");
+                // Phase-B-pre2 step-6: M-005 stub gate. Until Phase-B3
+                // ships real migration logic, the stub refuses to run
+                // when any legacy namespace is still present. Step-5
+                // will introduce the snapshot+preflight path that
+                // moves legacy data out of Application Support before
+                // this gate runs, at which point Continue can succeed.
+                if let Err(marker) = prefs::init(&layouts) {
+                    eprintln!(
+                        "[prefs][init][{marker}] legacy still present; M-005 stub refuses bootstrap until B3 ships real migration"
+                    );
+                    eprintln!("[main][bootstrap][BLOCK_PREFS_STUB_ABORT marker={marker}]");
+                    std::process::exit(1);
+                }
             }
             DialogChoice::Cancel => {
                 // Phase-B-pre2 step-3: persist a JSONL record to
