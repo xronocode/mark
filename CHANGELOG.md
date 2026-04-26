@@ -1,5 +1,87 @@
 # Changelog
 
+## v1.2.0 — Renderer hardening track (no user-facing feature changes)
+
+This release contains a long sequence of small, mechanical refactors that
+relocate every direct Node-core / `@electron/remote` touchpoint out of the
+renderer process. After v1.2.0, the renderer runs under
+`contextIsolation: true` + `nodeIntegration: false`, talking to main
+exclusively through the preload `contextBridge` (`window.electron`,
+`window.fileUtils`, `window.path`, `window.commandExists`, `window.i18nUtils`,
+`window.rgPath`) and a small set of `mt::*` IPC handlers.
+
+The user-visible behavior of every existing feature is unchanged.
+
+### Security posture
+
+- `contextIsolation`: `false` → **`true`** for both editor and preferences windows.
+- `nodeIntegration`: `true` → **`false`** for both windows. Renderer cannot
+  `require()` Node-core modules at runtime.
+- `webSecurity`: **remains `false`** for now. Mark loads user-selected images
+  and theme CSS via `file://` URLs, which the same-origin policy would block.
+  Tightening this is a v1.3 follow-up that will introduce a custom protocol
+  handler with an explicit allow-list for the user's project tree and the
+  app's themes directory.
+- `@electron/remote` dependency dropped entirely. The 3 `remoteEnable` /
+  `remoteInitializeServer` calls in main are gone.
+
+### Migration impact for third-party tooling
+
+If anyone built a custom plugin or external integration that depended on
+the renderer being able to `require('fs')` / use `@electron/remote` /
+read `process.env.X` directly: that path no longer works. Mark v1.x did
+not ship any such extension surface, so this only matters for forks
+that added their own.
+
+The new contract for any future renderer-side code is:
+
+- Filesystem ops → `window.fileUtils.*` (readFile/writeFile/stat/copy/move/...)
+- Path ops → `window.path.*`
+- OS detection → `window.electron.process.platform`
+- App env → `window.electron.process.env.*` (`MARKTEXT_VERSION_STRING`, etc.)
+- Resources path → `window.electron.resourcesPath`
+- Tmp dir → `window.electron.tmpDir`
+- Native dialogs / menus → `mt::*` IPC handlers (see `src/main/app/windowManager.js`)
+- Image upload (picgo / cliScript) → `mt::image-upload-run-command`
+- Content / file search (ripgrep) → `mt::search-spawn` + `mt::search-event`
+
+### Bundle / startup
+
+- Renderer bundle: **~38 KB smaller** (~3.30 MB → 3.26 MB) — `@electron/remote`
+  client and the renderer-side ripgrep parsing classes drop out.
+- No measurable change in cold-start time on M2 macOS.
+
+### Internal — sub-tickets shipped (commit hashes on `v1-on-tkaixiang`)
+
+The cleanup landed as 14 mechanical commits plus one audit-driven follow-up.
+Each is independently revertable:
+
+- `9a828ac4` — step-8a: 4 fs imports → `window.fileUtils.*`
+- `b152700b` — step-8b: `process.platform` → preload-bridged isOsx/isWindows/isLinux
+- `139f11a2` — step-8c: `process.env.NODE_ENV` / `UNSPLASH_ACCESS_KEY` → `import.meta.env.*`
+- `32d53228` — step-8d: `process.{resourcesPath,env.APPIMAGE,env.MARKTEXT_RIPGREP_PATH}` → preload bridge
+- `89a3909f` — step-8e: `@electron/remote.clipboard` → `window.electron.clipboard`
+- `d6806de0` — step-8f: `@electron/remote.getCurrentWindow` → `mt::window-*` IPCs (5 sites + 4 main handlers)
+- `c21b4a13` — step-8g: `@electron/remote.Menu`/`MenuItem` → `mt::window-popup-{context,app}-menu` IPCs
+- `706a2843` — step-8h: picgo/cliScript exec relocated to `src/main/imageUpload/`
+- `b413b7c5` — step-8j: `crypto` / `os.tmpdir` / `Buffer` → Web Crypto / preload `tmpDir` / `Uint8Array`
+- `6dbf21e3` — step-8k: `ipcRenderer.sendSync` → `invoke` (`mt::ask-for-image-path`)
+- `8a3e89b6` — step-8l: `@hfelix/electron-localshortcut` deep-import + Vite `define` polyfill
+- `a2b16c24` — step-8m: `global.marktext` → `window.marktext` (20 sites in 14 files)
+- `5fde8745` — step-8i: ripgrep search relocated to `src/main/search/` with streaming IPC
+- `f8539737` — step-8z: `contextIsolation: true` flip + `@electron/remote` dep drop
+- `99cb11d2` — step-8z follow-up: preload `stat` returns plain object; expose `unlink`
+
+The `99cb11d2` follow-up resolves a blocker surfaced by a code-review pass:
+`stat.isFile()` is a method call that does not survive `contextBridge`
+structured cloning. The preload's `stat` now returns precomputed booleans.
+
+### Pre-release verification
+
+Functional smoke checklist for v1.2.0 lives in
+[`docs/v1.2-smoke-checklist.md`](docs/v1.2-smoke-checklist.md). macOS arm64
+only (Intel deferred since v1.0.0).
+
 ## v1.1.0 — 2026-04-25
 
 Sidebar/titlebar redesign + multi-root workspace.
