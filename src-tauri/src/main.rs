@@ -23,7 +23,25 @@ fn main() {
     // from sys_locale; en_US is the universal fallback.
     if layouts.any_detected() {
         let strings = migration_strings::detect();
-        let choice = dialog::ask_migration(&strings);
+
+        // Phase-B-pre2 step-4: count recent cancels in the last 7 days.
+        // If the user has cancelled 3+ times we augment the dialog body
+        // with a rate-limit hint pointing to docs / cancel history /
+        // opt-out env var. Never force-migrates, never blocks the dialog.
+        let recent_cancels: usize = mt_paths::cache_root()
+            .map(|cr| cancel_log::count_recent_cancels(&cr, 7 * 86400))
+            .unwrap_or(0);
+        eprintln!(
+            "[main][bootstrap][BLOCK_RECENT_CANCELS_COUNTED count={recent_cancels}]"
+        );
+        let body_text: String = if recent_cancels >= 3 {
+            eprintln!("[main][bootstrap][BLOCK_RATE_LIMIT_HINT_ATTACHED]");
+            format!("{}\n\n{}", strings.body, strings.rate_limit_hint)
+        } else {
+            strings.body.to_string()
+        };
+
+        let choice = dialog::ask_migration(&strings, &body_text);
         eprintln!("[main][bootstrap][BLOCK_DIALOG_CHOICE choice={:?}]", choice);
 
         match choice {

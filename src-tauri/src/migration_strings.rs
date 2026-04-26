@@ -12,6 +12,10 @@
 pub struct MigrationStrings {
     pub title: &'static str,
     pub body: &'static str,
+    /// Appended to body after `\n\n` when count_recent_cancels >= 3.
+    /// Mentions documentation URL + snapshot location + opt-out env var
+    /// without forcing migration. See Phase-B-pre2 step-4.
+    pub rate_limit_hint: &'static str,
     pub continue_label: &'static str,
     pub cancel_label: &'static str,
 }
@@ -21,6 +25,10 @@ const EN: MigrationStrings = MigrationStrings {
     body: "Mark found settings and recents from a previous installation \
            (Mark v1.x or the original MarkText). Choose Continue to import \
            them, or Cancel to start fresh.",
+    rate_limit_hint: "You have cancelled this dialog 3 or more times in the past 7 days. \
+                      Documentation: https://github.com/xronocode/mark/wiki/Migration. \
+                      Cancel history: ~/Library/Caches/com.xronocode.mark/sessions.jsonl. \
+                      To stop seeing this dialog, set MARK_SKIP_MIGRATION=1 in your environment.",
     continue_label: "Continue",
     cancel_label: "Cancel",
 };
@@ -30,6 +38,10 @@ const RU: MigrationStrings = MigrationStrings {
     body: "Mark обнаружил настройки и историю из предыдущей установки \
            (Mark v1.x или оригинальный MarkText). Нажмите «Продолжить», \
            чтобы импортировать их, или «Отмена», чтобы начать с чистого листа.",
+    rate_limit_hint: "Вы отменяли этот диалог 3 или более раз за последние 7 дней. \
+                      Документация: https://github.com/xronocode/mark/wiki/Migration. \
+                      История отмен: ~/Library/Caches/com.xronocode.mark/sessions.jsonl. \
+                      Чтобы перестать видеть этот диалог, задайте переменную окружения MARK_SKIP_MIGRATION=1.",
     continue_label: "Продолжить",
     cancel_label: "Отмена",
 };
@@ -38,6 +50,10 @@ const ZH_CN: MigrationStrings = MigrationStrings {
     title: "Mark — 是否导入旧版本数据？",
     body: "Mark 检测到先前安装的设置和最近文件（Mark v1.x 或原始 MarkText）。\
            选择「继续」以导入它们，或选择「取消」以全新开始。",
+    rate_limit_hint: "您在过去 7 天内已取消此对话 3 次或以上。\
+                      文档：https://github.com/xronocode/mark/wiki/Migration。\
+                      取消历史记录：~/Library/Caches/com.xronocode.mark/sessions.jsonl。\
+                      若要停止显示此对话，请在环境中设置 MARK_SKIP_MIGRATION=1。",
     continue_label: "继续",
     cancel_label: "取消",
 };
@@ -46,6 +62,10 @@ const JA: MigrationStrings = MigrationStrings {
     title: "Mark — 以前のバージョンからデータをインポートしますか？",
     body: "Mark は以前のインストール（Mark v1.x または元の MarkText）の設定と最近の項目を検出しました。\
            「続行」を選択してインポートするか、「キャンセル」を選択して新しく開始してください。",
+    rate_limit_hint: "過去 7 日間にこのダイアログを 3 回以上キャンセルしました。\
+                      ドキュメント：https://github.com/xronocode/mark/wiki/Migration。\
+                      キャンセル履歴：~/Library/Caches/com.xronocode.mark/sessions.jsonl。\
+                      このダイアログを非表示にするには、環境変数 MARK_SKIP_MIGRATION=1 を設定してください。",
     continue_label: "続行",
     cancel_label: "キャンセル",
 };
@@ -55,6 +75,10 @@ const DE: MigrationStrings = MigrationStrings {
     body: "Mark hat Einstellungen und zuletzt geöffnete Dateien aus einer früheren Installation gefunden \
            (Mark v1.x oder das ursprüngliche MarkText). Wählen Sie „Fortfahren\", um sie zu importieren, \
            oder „Abbrechen\", um neu zu beginnen.",
+    rate_limit_hint: "Sie haben diesen Dialog in den letzten 7 Tagen 3 oder mehr Mal abgebrochen. \
+                      Dokumentation: https://github.com/xronocode/mark/wiki/Migration. \
+                      Abbruchverlauf: ~/Library/Caches/com.xronocode.mark/sessions.jsonl. \
+                      Um diesen Dialog nicht mehr zu sehen, setzen Sie MARK_SKIP_MIGRATION=1 in Ihrer Umgebung.",
     continue_label: "Fortfahren",
     cancel_label: "Abbrechen",
 };
@@ -64,6 +88,10 @@ const FR: MigrationStrings = MigrationStrings {
     body: "Mark a trouvé des paramètres et des fichiers récents d'une installation antérieure \
            (Mark v1.x ou le MarkText d'origine). Choisissez « Continuer » pour les importer, \
            ou « Annuler » pour repartir de zéro.",
+    rate_limit_hint: "Vous avez annulé cette boîte de dialogue 3 fois ou plus au cours des 7 derniers jours. \
+                      Documentation : https://github.com/xronocode/mark/wiki/Migration. \
+                      Historique des annulations : ~/Library/Caches/com.xronocode.mark/sessions.jsonl. \
+                      Pour ne plus voir cette boîte de dialogue, définissez MARK_SKIP_MIGRATION=1 dans votre environnement.",
     continue_label: "Continuer",
     cancel_label: "Annuler",
 };
@@ -73,6 +101,10 @@ const ES: MigrationStrings = MigrationStrings {
     body: "Mark encontró configuraciones y archivos recientes de una instalación previa \
            (Mark v1.x o el MarkText original). Elija «Continuar» para importarlos, \
            o «Cancelar» para empezar desde cero.",
+    rate_limit_hint: "Ha cancelado este diálogo 3 o más veces en los últimos 7 días. \
+                      Documentación: https://github.com/xronocode/mark/wiki/Migration. \
+                      Historial de cancelaciones: ~/Library/Caches/com.xronocode.mark/sessions.jsonl. \
+                      Para dejar de ver este diálogo, establezca MARK_SKIP_MIGRATION=1 en su entorno.",
     continue_label: "Continuar",
     cancel_label: "Cancelar",
 };
@@ -82,6 +114,10 @@ const IT: MigrationStrings = MigrationStrings {
     body: "Mark ha trovato impostazioni e file recenti da un'installazione precedente \
            (Mark v1.x o il MarkText originale). Scegli «Continua» per importarli, \
            o «Annulla» per iniziare da zero.",
+    rate_limit_hint: "Hai annullato questa finestra di dialogo 3 o più volte negli ultimi 7 giorni. \
+                      Documentazione: https://github.com/xronocode/mark/wiki/Migration. \
+                      Cronologia annullamenti: ~/Library/Caches/com.xronocode.mark/sessions.jsonl. \
+                      Per smettere di vedere questa finestra, imposta MARK_SKIP_MIGRATION=1 nel tuo ambiente.",
     continue_label: "Continua",
     cancel_label: "Annulla",
 };
@@ -90,6 +126,10 @@ const KO: MigrationStrings = MigrationStrings {
     title: "Mark — 이전 버전의 데이터를 가져오시겠습니까?",
     body: "Mark에서 이전 설치(Mark v1.x 또는 원본 MarkText)의 설정과 최근 파일을 발견했습니다. \
            가져오려면 「계속」을, 새로 시작하려면 「취소」를 선택하세요.",
+    rate_limit_hint: "지난 7일 동안 이 대화상자를 3회 이상 취소했습니다. \
+                      문서: https://github.com/xronocode/mark/wiki/Migration. \
+                      취소 기록: ~/Library/Caches/com.xronocode.mark/sessions.jsonl. \
+                      이 대화상자를 더 이상 표시하지 않으려면 환경 변수 MARK_SKIP_MIGRATION=1을 설정하세요.",
     continue_label: "계속",
     cancel_label: "취소",
 };
@@ -99,6 +139,10 @@ const PT_BR: MigrationStrings = MigrationStrings {
     body: "O Mark encontrou configurações e arquivos recentes de uma instalação anterior \
            (Mark v1.x ou o MarkText original). Escolha «Continuar» para importá-los, \
            ou «Cancelar» para começar do zero.",
+    rate_limit_hint: "Você cancelou este diálogo 3 ou mais vezes nos últimos 7 dias. \
+                      Documentação: https://github.com/xronocode/mark/wiki/Migration. \
+                      Histórico de cancelamentos: ~/Library/Caches/com.xronocode.mark/sessions.jsonl. \
+                      Para parar de ver este diálogo, defina MARK_SKIP_MIGRATION=1 no seu ambiente.",
     continue_label: "Continuar",
     cancel_label: "Cancelar",
 };
@@ -223,8 +267,41 @@ mod tests {
         for (tag, s) in LOCALES {
             assert!(!s.title.is_empty(), "{tag} title empty");
             assert!(!s.body.is_empty(), "{tag} body empty");
+            assert!(!s.rate_limit_hint.is_empty(), "{tag} rate_limit_hint empty");
             assert!(!s.continue_label.is_empty(), "{tag} continue empty");
             assert!(!s.cancel_label.is_empty(), "{tag} cancel empty");
+        }
+    }
+
+    #[test]
+    fn rate_limit_hints_are_distinct_per_locale() {
+        let all = [EN, RU, ZH_CN, JA, DE, FR, ES, IT, KO, PT_BR];
+        for (i, a) in all.iter().enumerate() {
+            for (j, b) in all.iter().enumerate() {
+                if i != j {
+                    assert_ne!(
+                        a.rate_limit_hint, b.rate_limit_hint,
+                        "rate_limit_hint duplicated between locales {i} and {j}"
+                    );
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn rate_limit_hints_mention_docs_and_opt_out() {
+        // Sanity: every hint must reference the docs URL stem and the
+        // opt-out env var so the user has both an information path and
+        // an action path.
+        for (tag, s) in LOCALES {
+            assert!(
+                s.rate_limit_hint.contains("xronocode/mark/wiki"),
+                "{tag} rate_limit_hint missing docs URL"
+            );
+            assert!(
+                s.rate_limit_hint.contains("MARK_SKIP_MIGRATION"),
+                "{tag} rate_limit_hint missing MARK_SKIP_MIGRATION env var name"
+            );
         }
     }
 

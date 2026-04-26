@@ -64,6 +64,32 @@ pub fn append_record(cache_root: &Path, record: &CancelRecord) -> std::io::Resul
     Ok(())
 }
 
+/// Count cancel records whose ts_unix is strictly greater than
+/// `now_unix - lookback_secs`.
+///
+/// Returns 0 (not Err) if the file does not exist — a fresh user has no
+/// history. I/O or parse errors on individual lines are tolerated:
+/// malformed lines are skipped and counted as zero, since the caller's
+/// decision (rate-limit yes/no) is monotonic in record count and a parse
+/// error should not lock the user out of the dialog.
+pub fn count_recent_cancels(cache_root: &Path, lookback_secs: u64) -> usize {
+    let path = cache_root.join(FILE_NAME);
+    let contents = match std::fs::read_to_string(&path) {
+        Ok(s) => s,
+        Err(_) => return 0,
+    };
+    let now_unix = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|d| d.as_secs())
+        .unwrap_or(0);
+    let cutoff = now_unix.saturating_sub(lookback_secs);
+    contents
+        .lines()
+        .filter_map(|line| serde_json::from_str::<CancelRecord>(line).ok())
+        .filter(|rec| rec.ts_unix > cutoff)
+        .count()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -128,6 +154,68 @@ mod tests {
         assert!(rec.ts_unix.abs_diff(now_unix) < 5);
         assert_eq!(rec.app_version, "0.0.1");
         assert_eq!(rec.event, "cancel");
+    }
+
+    #[test]
+    fn count_recent_returns_zero_when_file_missing() {
+        let tmp = TempDir::new().unwrap();
+        // No sessions.jsonl created.
+        assert_eq!(count_recent_cancels(tmp.path(), 7 * 86400), 0);
+    }
+
+    #[test]
+    fn count_recent_includes_only_records_within_window() {
+        let tmp = TempDir::new().unwrap();
+        let now_unix = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_secs();
+        // Three cancels within the 7-day window, two outside.
+        for offset in [60, 3600, 86400, 14 * 86400, 30 * 86400] {
+            let rec = CancelRecord {
+                ts_unix: now_unix.saturating_sub(offset),
+                app_version: "0.0.1".into(),
+                event: "cancel".into(),
+            };
+            append_record(tmp.path(), &rec).unwrap();
+        }
+        assert_eq!(count_recent_cancels(tmp.path(), 7 * 86400), 3);
+    }
+
+    #[test]
+    fn count_recent_skips_malformed_lines() {
+        let tmp = TempDir::new().unwrap();
+        let path = tmp.path().join("sessions.jsonl");
+        std::fs::create_dir_all(tmp.path()).unwrap();
+        let now_unix = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_secs();
+        let good_rec = serde_json::to_string(&CancelRecord {
+            ts_unix: now_unix - 10,
+            app_version: "0.0.1".into(),
+            event: "cancel".into(),
+        })
+        .unwrap();
+        std::fs::write(
+            &path,
+            format!("not-json\n{good_rec}\nbroken{{json\n{good_rec}\n"),
+        )
+        .unwrap();
+        assert_eq!(count_recent_cancels(tmp.path(), 7 * 86400), 2);
+    }
+
+    #[test]
+    fn count_recent_is_zero_when_all_records_too_old() {
+        let tmp = TempDir::new().unwrap();
+        // Record from year 2000 — definitely outside any reasonable window.
+        let rec = CancelRecord {
+            ts_unix: 946_684_800,
+            app_version: "0.0.1".into(),
+            event: "cancel".into(),
+        };
+        append_record(tmp.path(), &rec).unwrap();
+        assert_eq!(count_recent_cancels(tmp.path(), 7 * 86400), 0);
     }
 
     #[test]

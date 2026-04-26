@@ -42,15 +42,20 @@ pub fn map_result(result: &MessageDialogResult, continue_label: &str) -> DialogC
 /// Show the native migration dialog and block until the user answers.
 /// MUST be called on the main thread on macOS (NSAlert requirement).
 ///
+/// `body` is passed in as a runtime parameter rather than read from
+/// `strings.body` so the caller can append the rate-limit hint when
+/// recent-cancel count crosses the threshold (Phase-B-pre2 step-4).
+/// Pass `strings.body` verbatim for the default case.
+///
 /// Side effects: opens a modal window. Emits stable log markers around the
 /// open/close transitions so V-M-005 trace assertions can fire.
-pub fn ask_migration(strings: &MigrationStrings) -> DialogChoice {
+pub fn ask_migration(strings: &MigrationStrings, body: &str) -> DialogChoice {
     eprintln!("[dialog][ask_migration][BLOCK_DIALOG_OPEN]");
 
     let result = MessageDialog::new()
         .set_level(MessageLevel::Info)
         .set_title(strings.title)
-        .set_description(strings.body)
+        .set_description(body)
         .set_buttons(MessageButtons::OkCancelCustom(
             strings.continue_label.to_string(),
             strings.cancel_label.to_string(),
