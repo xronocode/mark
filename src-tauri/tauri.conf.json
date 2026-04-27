@@ -4,7 +4,8 @@
   "version": "0.0.1",
   "identifier": "com.xronocode.mark",
   "build": {
-    "frontendDist": "../src"
+    "frontendDist": "../src/renderer/dist",
+    "devUrl": "http://localhost:1420"
   },
   "app": {
     "windows": [
