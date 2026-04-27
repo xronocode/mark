@@ -72,8 +72,23 @@ class RipgrepDirectorySearcher {
       window.electron.ipcRenderer.removeListener('mt::search-event', handler)
     }
 
+    // step-8z follow-up (v1.2.3): JSON round-trip the entire payload.
+    // Under contextIsolation:true, Vue reactive proxies (e.g. Pinia
+    // `preferencesStore.searchExclusions`) and contextBridge-wrapped
+    // frozen arrays (e.g. `window.fileUtils.MARKDOWN_INCLUSIONS`) can
+    // both fail structuredClone when passed to ipcRenderer.invoke,
+    // surfacing as `Error: An object could not be cloned.`. JSON
+    // serialization flattens to plain primitives — safe for our
+    // search options which are all strings/numbers/booleans/arrays.
+    const payload = JSON.parse(JSON.stringify({
+      mode,
+      searchId,
+      directories,
+      pattern,
+      options: this._serializeOptions(options)
+    }))
     window.electron.ipcRenderer
-      .invoke('mt::search-spawn', { mode, searchId, directories, pattern, options: this._serializeOptions(options) })
+      .invoke('mt::search-spawn', payload)
       .catch((err) => settle('reject', err))
 
     outerPromise.cancel = () => {
