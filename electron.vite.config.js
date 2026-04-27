@@ -1,7 +1,9 @@
 import { resolve, dirname } from 'path'
 import { defineConfig } from 'electron-vite'
 import vue from '@vitejs/plugin-vue'
-import renderer from 'vite-plugin-electron-renderer'
+// step-8z follow-up: vite-plugin-electron-renderer removed; standard Vite
+// browser bundling handles the renderer now. Node-builtin imports
+// (path, fs) get aliased to browser polyfills in renderer.resolve.alias.
 import svgLoader from 'vite-svg-loader'
 import postcssPresetEnv from 'postcss-preset-env'
 import packageJson from './package.json' with { type: 'json' }
@@ -55,7 +57,18 @@ export default defineConfig({
         '@': resolve(__dirname, 'src/renderer/src'),
         common: resolve(__dirname, 'src/common'),
         muya: resolve(__dirname, 'src/muya'),
-        main_renderer: resolve(__dirname, 'src/main')
+        main_renderer: resolve(__dirname, 'src/main'),
+        // step-8z follow-up: Node-builtin browser polyfills.
+        // After removing vite-plugin-electron-renderer, transitive
+        // `import path from 'path'` calls in muya/lib/utils and
+        // common/envPaths must resolve to a browser-compatible
+        // implementation. path-browserify provides exactly the
+        // POSIX path API we use (join/resolve/dirname/extname/...).
+        // fs aliases to a stub that throws if called at runtime —
+        // the only remaining references are dead code in vendored
+        // sequence-diagram-snap helper.
+        path: 'path-browserify',
+        fs: resolve(__dirname, 'src/renderer/src/util/fs-shim.js')
       },
       extensions: ['.mjs', '.js', '.json', '.vue']
     },
@@ -74,15 +87,17 @@ export default defineConfig({
     },
     plugins: [
       vue(),
-      svgLoader(),
-      renderer({
-        // step-8z: was true (renderer had direct access to Node-core
-        // modules). After step-8a..8m moved every Node import either
-        // to preload (window.electron.*) or to main (mt::* IPCs),
-        // this can flip to false. main/config.js webPreferences also
-        // sets nodeIntegration:false on the BrowserWindow side.
-        nodeIntegration: false
-      })
+      svgLoader()
+      // step-8z follow-up: vite-plugin-electron-renderer removed entirely.
+      // The plugin injects `avoid_parse_require("path")` shims for any
+      // transitive Node-builtin import (path, fs, …) and those shims
+      // require `nodeIntegration:true` at runtime to actually resolve.
+      // After step-8a..8m the renderer source itself no longer imports
+      // Node builtins; the only remaining references are inside vendored
+      // libs (muya/lib/utils → path; sequence-diagram-snap dead code →
+      // fs/path). Those are aliased to browser polyfills below so the
+      // bundle is fully self-contained. Standard Vite browser bundling
+      // takes over from here.
     ],
     build: {
       // Raise warning ceiling slightly — we still want to know about

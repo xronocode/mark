@@ -23,6 +23,20 @@ export const editorWinOptions = Object.freeze({
     // uses is brokered by preload (window.fileUtils, window.path,
     // window.electron.process.env, etc.) or by mt::* IPC handlers.
     nodeIntegration: false,
+    // step-8z follow-up: sandbox:false is REQUIRED whenever the preload
+    // script needs to require() third-party Node packages (fs-extra,
+    // command-exists, @vscode/ripgrep, etc.). The default sandboxed
+    // preload can only require Electron's whitelist + bundle-inlined
+    // modules; ours pulls fs-extra at runtime so it'd throw
+    // "module not found: fs-extra" → preload silently fails →
+    // renderer shows a white screen because window.fileUtils etc.
+    // never get defined. With sandbox:false the preload runs in a
+    // privileged Node context but contextBridge still seals the
+    // renderer side, so the security posture vs nodeIntegration:true
+    // is meaningfully tighter even though we're not in the strictest
+    // possible mode. v1.3 hardening track may inline preload deps
+    // (esbuild's --packages=bundle) and re-enable sandbox.
+    sandbox: false,
     // step-8z: webSecurity left at false intentionally — Mark loads
     // user-selected images and theme CSS via file:// URLs, which
     // the same-origin policy would block. Tightening this is a
@@ -51,6 +65,8 @@ export const preferencesWinOptions = Object.freeze({
     // Always true to access native spellchecker.
     spellcheck: true,
     nodeIntegration: false,
+    // step-8z follow-up: see editorWinOptions for sandbox:false rationale.
+    sandbox: false,
     webSecurity: false,
     preload: path.join(__dirname, '../preload/index.js')
   },

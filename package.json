@@ -1,6 +1,6 @@
 {
   "name": "mark",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Mark — modernized Markdown editor with Russian support",
   "main": "./out/main/index.js",
   "author": "xronocode",
@@ -60,6 +60,7 @@
     "mermaid": "^11.12.2",
     "mitt": "^3.0.1",
     "native-keymap": "^3.3.7",
+    "path-browserify": "^1.0.1",
     "pinia": "^3.0.4",
     "prismjs": "^1.30.0",
     "snabbdom": "^3.6.3",
