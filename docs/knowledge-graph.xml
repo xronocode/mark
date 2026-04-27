@@ -232,7 +232,7 @@
     <M-013 NAME="mt-ipc-bridge" TYPE="UTILITY" STATUS="planned">
       <purpose>Frontend wrapper over Tauri invoke/listen that mirrors Electron-era ipcRenderer surface for port-unchanged renderer code.</purpose>
       <path>src/renderer/src/ipc/</path>
-      <depends>M-002, M-003, M-004, M-005, M-006, M-007, M-008, M-014, M-015, M-016, M-017, M-018, M-019</depends>
+      <depends>M-013a, M-013b</depends>
       <verification-ref>V-M-013</verification-ref>
       <annotations>
         <fn-ipcInvoke PURPOSE="Typed invoke with schema check" />
@@ -240,6 +240,56 @@
         <export-ipc PURPOSE="Facade: ipc.fs / ipc.search / ipc.prefs / ipc.shortcuts / ipc.spell / ipc.fonts" />
       </annotations>
     </M-013>
+
+    <M-013a NAME="mt-ipc-contract" TYPE="UTILITY" STATUS="planned">
+      <purpose>Typed frontend invoke/listen contract, command name-set, payload schema, and ts-rs parity surface.</purpose>
+      <path>src/renderer/src/ipc/contract/</path>
+      <depends>none</depends>
+      <verification-ref>V-M-013a</verification-ref>
+      <annotations>
+        <fn-ipcInvoke PURPOSE="Typed invoke with schema validation and timeout" />
+        <fn-useIpcListener PURPOSE="Vue listener composable with unmount/HMR cleanup" />
+        <fn-ipcCorrelated PURPOSE="Request/response req_id correlation" />
+      </annotations>
+    </M-013a>
+
+    <M-013b NAME="mt-ipc-runtime" TYPE="UTILITY" STATUS="planned">
+      <purpose>Runtime frontend IPC facade exporting Electron-era command parity and Tauri replacements for clipboard/window/menu/dialog.</purpose>
+      <path>src/renderer/src/ipc/runtime/</path>
+      <depends>M-013a, M-002, M-003, M-004, M-005, M-006, M-007, M-008, M-009, M-010, M-014, M-015, M-016, M-017, M-018, M-019</depends>
+      <verification-ref>V-M-013b</verification-ref>
+      <annotations>
+        <export-ipc PURPOSE="Facade namespaces for runtime commands and events" />
+        <fn-ipcClipboard PURPOSE="@electron/remote.clipboard replacement" />
+        <fn-ipcWindow PURPOSE="@electron/remote.getCurrentWindow replacement" />
+        <fn-ipcContextMenu PURPOSE="@electron/remote.Menu/MenuItem replacement" />
+      </annotations>
+    </M-013b>
+
+    <M-021 NAME="mt-fs-core" TYPE="CORE_LOGIC" STATUS="planned">
+      <purpose>Internal Rust filesystem primitive layer for validated open, raw byte IO, atomic write, trash fallback, and per-path mutexes.</purpose>
+      <path>src-tauri/src/fs_core/mod.rs</path>
+      <depends>M-010, M-014</depends>
+      <verification-ref>V-M-021</verification-ref>
+      <annotations>
+        <fn-fs_core_open_validated PURPOSE="Canonicalize, validate, and open a TOCTOU-safe ValidatedPath" />
+        <fn-fs_core_read_bytes PURPOSE="Read bytes through held fd" />
+        <fn-fs_core_write_bytes_atomic PURPOSE="Atomic write with fsync, rename, dir-fsync, and concurrency guard" />
+        <fn-fs_core_delete_to_trash PURPOSE="Move to Trash without hard-unlink fallback" />
+      </annotations>
+    </M-021>
+
+    <M-022 NAME="mt-paths" TYPE="UTILITY" STATUS="planned">
+      <purpose>Cross-platform path helper for cache, app support, and logs roots.</purpose>
+      <path>src-tauri/src/mt_paths/mod.rs</path>
+      <depends>none</depends>
+      <verification-ref>V-M-022</verification-ref>
+      <annotations>
+        <fn-cache_root PURPOSE="Return OS-native Mark cache root" />
+        <fn-app_support_root PURPOSE="Return OS-native com.xronocode.mark application support root" />
+        <fn-logs_root PURPOSE="Return OS-native logs root" />
+      </annotations>
+    </M-022>
 
     <M-901 NAME="grace-context-hygiene-policy" TYPE="PROCESS_POLICY" STATUS="implemented">
       <purpose>GRACE-compatible AI Standards token/session hygiene overlay with context modes, precedence rules, and escalation triggers.</purpose>
@@ -326,7 +376,12 @@
 
     <CrossLink from="M-011" to="M-012" relation="hosts" />
     <CrossLink from="M-011" to="M-013" relation="uses-ipc-from" />
+    <CrossLink from="M-011" to="M-013a" relation="uses-ipc-contract-from" />
+    <CrossLink from="M-011" to="M-013b" relation="uses-ipc-runtime-from" />
 
+    <CrossLink from="M-013" to="M-013a" relation="split-contract-layer" />
+    <CrossLink from="M-013" to="M-013b" relation="split-runtime-layer" />
+    <CrossLink from="M-013b" to="M-013a" relation="implements-contract-from" />
     <CrossLink from="M-013" to="M-002" relation="invokes-commands-on" />
     <CrossLink from="M-013" to="M-003" relation="listens-events-from" />
     <CrossLink from="M-013" to="M-004" relation="invokes-commands-on" />
@@ -340,6 +395,21 @@
     <CrossLink from="M-013" to="M-017" relation="invokes-commands-on" />
     <CrossLink from="M-013" to="M-018" relation="invokes-commands-on" />
     <CrossLink from="M-013" to="M-019" relation="invokes-commands-on" />
+    <CrossLink from="M-013b" to="M-002" relation="invokes-commands-on" />
+    <CrossLink from="M-013b" to="M-003" relation="listens-events-from" />
+    <CrossLink from="M-013b" to="M-004" relation="invokes-commands-on" />
+    <CrossLink from="M-013b" to="M-005" relation="invokes-commands-on" />
+    <CrossLink from="M-013b" to="M-006" relation="invokes-commands-on" />
+    <CrossLink from="M-013b" to="M-007" relation="invokes-commands-on" />
+    <CrossLink from="M-013b" to="M-008" relation="invokes-commands-on" />
+    <CrossLink from="M-013b" to="M-009" relation="invokes-commands-on" />
+    <CrossLink from="M-013b" to="M-010" relation="validates-through" />
+    <CrossLink from="M-013b" to="M-014" relation="invokes-commands-on" />
+    <CrossLink from="M-013b" to="M-015" relation="invokes-commands-on" />
+    <CrossLink from="M-013b" to="M-016" relation="listens-events-from" />
+    <CrossLink from="M-013b" to="M-017" relation="invokes-commands-on" />
+    <CrossLink from="M-013b" to="M-018" relation="invokes-commands-on" />
+    <CrossLink from="M-013b" to="M-019" relation="invokes-commands-on" />
 
     <!-- New module wiring -->
     <CrossLink from="M-001" to="M-014" relation="decodes-files-via" />
@@ -350,11 +420,19 @@
     <CrossLink from="M-001" to="M-019" relation="reads-data-from" />
     <CrossLink from="M-001" to="M-020" relation="parses-cli-at-startup" />
 
-    <CrossLink from="M-002" to="M-014" relation="decodes-through" />
+    <CrossLink from="M-002" to="M-021" relation="wraps-fs-core" />
+    <CrossLink from="M-021" to="M-010" relation="validates-paths-via" />
+    <CrossLink from="M-021" to="M-014" relation="decodes-through" />
+    <CrossLink from="M-002" to="M-014" relation="legacy-direct-decode-replaced-by-M-021" />
     <CrossLink from="M-015" to="M-010" relation="validates-paths-via" />
     <CrossLink from="M-017" to="M-010" relation="validates-paths-via" />
+    <CrossLink from="M-017" to="M-021" relation="writes-through" />
     <CrossLink from="M-019" to="M-005" relation="extends-storage-of" />
-    <CrossLink from="M-018" to="M-002" relation="writes-file-via" />
+    <CrossLink from="M-019" to="M-021" relation="writes-through" />
+    <CrossLink from="M-018" to="M-021" relation="writes-file-via" />
+    <CrossLink from="M-001" to="M-022" relation="resolves-system-paths-via" />
+    <CrossLink from="M-005" to="M-022" relation="resolves-cache-and-data-paths-via" />
+    <CrossLink from="M-019" to="M-022" relation="resolves-secret-and-log-paths-via" />
 
     <!-- AI Standards hygiene overlay wiring (meta-process only; not runtime dependencies). -->
     <CrossLink from="M-901" to="M-902" relation="packet-schema-extends" />
@@ -367,5 +445,9 @@
     <CrossLink from="M-906" to="M-904" relation="graph-represents" />
     <CrossLink from="M-906" to="M-905" relation="graph-represents" />
     <CrossLink from="M-901" to="M-001" relation="runtime-scope-boundary" />
+    <CrossLink from="M-901" to="M-013a" relation="runtime-scope-boundary" />
+    <CrossLink from="M-901" to="M-013b" relation="runtime-scope-boundary" />
+    <CrossLink from="M-901" to="M-021" relation="runtime-scope-boundary" />
+    <CrossLink from="M-901" to="M-022" relation="runtime-scope-boundary" />
   </Project>
 </KnowledgeGraph>

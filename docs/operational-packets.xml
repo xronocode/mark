@@ -32,7 +32,7 @@ Verification-plan excerpt goes here.
         <artifact-3>docs/verification-plan.xml V-M excerpt</artifact-3>
       </loaded-artifacts>
       <skipped-artifacts>
-        <artifact-1 reason="Unrelated to approved write scope">docs/example-unrelated.xml</artifact-1>
+        <artifact-1 reason="Concrete reason tied to approved write scope">ARTIFACT-ID-OR-PATH</artifact-1>
       </skipped-artifacts>
       <context-risk>low|medium|high|critical</context-risk>
       <additional-context-needed>none, or concrete artifact/module ID that blocks execution</additional-context-needed>

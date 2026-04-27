@@ -141,6 +141,30 @@
       <AUTONOMY>autonomous</AUTONOMY>
     </matrix-row>
 
+    <matrix-row MODULE="M-013a" V-M="V-M-013a" PRIORITY="critical" SCENARIOS="4" EC="8" ALM="4" NA="3" RTA="1" PHF="1" WAF="1">
+      <VF-COVERAGE>VF-010, VF-015, VF-016</VF-COVERAGE>
+      <GATE>Gate-Phase-B1, Gate-Phase-B3a</GATE>
+      <AUTONOMY>partial — public IPC contract; review generated schema and channel fixtures</AUTONOMY>
+    </matrix-row>
+
+    <matrix-row MODULE="M-013b" V-M="V-M-013b" PRIORITY="critical" SCENARIOS="5" EC="10" ALM="6" NA="4" RTA="2" PHF="1" WAF="1">
+      <VF-COVERAGE>VF-001, VF-010, VF-015, VF-016</VF-COVERAGE>
+      <GATE>Gate-Phase-B2, Gate-Phase-B3, Gate-Phase-B3a</GATE>
+      <AUTONOMY>partial — 146-channel runtime facade; review command parity and no-panic stubs</AUTONOMY>
+    </matrix-row>
+
+    <matrix-row MODULE="M-021" V-M="V-M-021" PRIORITY="critical" SCENARIOS="5" EC="12" ALM="6" NA="4" RTA="1" PHF="1" WAF="1">
+      <VF-COVERAGE>VF-001, VF-006, VF-014</VF-COVERAGE>
+      <GATE>Gate-Phase-B2</GATE>
+      <AUTONOMY>partial — filesystem primitive; review TOCTOU, atomicity, and trash fallback semantics</AUTONOMY>
+    </matrix-row>
+
+    <matrix-row MODULE="M-022" V-M="V-M-022" PRIORITY="high" SCENARIOS="3" EC="6" ALM="1" NA="2" RTA="1" PHF="1" WAF="1">
+      <VF-COVERAGE>VF-011, VF-015</VF-COVERAGE>
+      <GATE>Gate-Phase-B-pre2, Gate-Phase-B1</GATE>
+      <AUTONOMY>autonomous — deterministic path helper with cross-platform fixtures</AUTONOMY>
+    </matrix-row>
+
     <matrix-row MODULE="M-901" V-M="V-M-901" PRIORITY="high" SCENARIOS="3" EC="5" ALM="3" NA="2" RTA="1" PHF="0" WAF="1">
       <VF-COVERAGE>V-GH-001, V-GH-002</VF-COVERAGE>
       <GATE>Gate-Phase-H</GATE>
@@ -178,31 +202,31 @@
     </matrix-row>
 
     <phase-gate-matrix>
-      <gate PHASE="Phase-H" MODULES="M-901, M-902, M-903, M-904, M-905, M-906" GATE-ID="Gate-Phase-H" VERIFICATION="V-M-901, V-M-902, V-M-903, V-M-904, V-M-905, V-M-906" STATUS="done" />
+      <gate PHASE="Phase-H" MODULES="M-901, M-902, M-903, M-904, M-905, M-906" GATE-ID="Gate-Phase-H" VERIFICATION="V-M-901, V-M-902, V-M-903, V-M-904, V-M-905, V-M-906" STATUS="done-with-followup" FOLLOWUP="HYG-PACKET-LINT-FOLLOWUP" />
       <gate PHASE="Phase-0" MODULES="docs/*.xml bootstrap" GATE-ID="Gate-Phase-0" STATUS="in-progress" />
       <gate PHASE="Phase-A1" MODULES="M-011, M-012" GATE-ID="Gate-Phase-A1" VERIFICATION="V-M-011, V-M-012" />
       <gate PHASE="Phase-A1.5" MODULES="M-011" GATE-ID="Gate-Phase-A1-5" VERIFICATION="V-M-011, V-M-010" />
       <gate PHASE="Phase-A2" MODULES="M-011, M-012" GATE-ID="Gate-Phase-A2" VERIFICATION="V-M-011, V-M-012" />
       <gate PHASE="Phase-A3" MODULES="—" GATE-ID="Gate-Phase-A3" VERIFICATION="VF-004" />
       <gate PHASE="Phase-A4" MODULES="ALL" GATE-ID="Gate-Phase-A4" VERIFICATION="ALL V-M, VF-005" />
-      <gate PHASE="Phase-B1" MODULES="M-001, M-013" GATE-ID="Gate-Phase-B1" VERIFICATION="V-M-001, V-M-013" />
-      <gate PHASE="Phase-B2" MODULES="M-002, M-003, M-004, M-010, M-013" GATE-ID="Gate-Phase-B2" VERIFICATION="V-M-002, V-M-003, V-M-004, V-M-010, V-M-013" />
+      <gate PHASE="Phase-B1" MODULES="M-001, M-013a, M-022" GATE-ID="Gate-Phase-B1" VERIFICATION="V-M-001, V-M-013a, V-M-022" />
+      <gate PHASE="Phase-B2" MODULES="M-002, M-003, M-004, M-010, M-013b, M-021" GATE-ID="Gate-Phase-B2" VERIFICATION="V-M-002, V-M-003, V-M-004, V-M-010, V-M-013b, V-M-021" />
       <gate PHASE="Phase-B3" MODULES="M-005, M-006, M-007, M-008, M-009, M-014, M-015, M-016, M-017, M-018, M-019, M-020" GATE-ID="Gate-Phase-B3" VERIFICATION="ALL REMAINING V-M" />
       <gate PHASE="Phase-B4" MODULES="ALL" GATE-ID="Gate-Phase-B4" VERIFICATION="ALL V-M, VF-005" />
     </phase-gate-matrix>
 
     <coverage-summary>
-      <metric name="total-modules">26</metric>
-      <metric name="total-V-M-entries">26</metric>
-      <metric name="total-VF-flows">10</metric>
-      <metric name="total-scenarios">102</metric>
-      <metric name="total-edge-cases">244</metric>
-      <metric name="total-trace-assertions">23</metric>
-      <metric name="total-negative-assertions">78</metric>
-      <metric name="total-log-markers-catalogued">60</metric>
+      <metric name="total-modules">30</metric>
+      <metric name="total-V-M-entries">30</metric>
+      <metric name="total-VF-flows">16</metric>
+      <metric name="total-scenarios">119</metric>
+      <metric name="total-edge-cases">280</metric>
+      <metric name="total-trace-assertions">28</metric>
+      <metric name="total-negative-assertions">91</metric>
+      <metric name="total-log-markers-catalogued">77</metric>
       <metric name="phase-gates">11</metric>
-      <metric name="autonomous-safe-modules">17 of 26</metric>
-      <metric name="modules-with-full-coverage">26 of 26 (100%)</metric>
+      <metric name="autonomous-safe-modules">18 of 30</metric>
+      <metric name="modules-with-full-coverage">30 of 30 (100%)</metric>
     </coverage-summary>
   </VerificationMatrix>
 
@@ -2564,24 +2588,175 @@
         <no>MUST NOT leave hygiene policy only in AGENTS.md or chat history.</no>
       </negative-assertions>
     </V-M-906>
+
+    <V-M-013a MODULE="M-013a" PRIORITY="critical" SCOPE="ipc-contract">
+      <intent>Verify the typed IPC contract layer owns command names, payload schemas, generated TypeScript, listener lifecycle, and req_id correlation without relying on runtime backend implementations.</intent>
+      <touched-files>
+        <file>src/renderer/src/ipc/contract/</file>
+        <file>test/fixtures/ipc-channels/</file>
+      </touched-files>
+      <module-checks>
+        <check-1>rg "ipcInvoke|useIpcListener|ipcCorrelated" src/renderer/src/ipc/contract</check-1>
+        <check-2>test -f test/fixtures/ipc-channels/electron.v1.json &amp;&amp; test -f test/fixtures/ipc-channels/tauri.v2.json</check-2>
+        <check-3>rg "sendSync\\(" src/renderer/src/ipc/contract &amp;&amp; false || true</check-3>
+        <check-4>rg "@electron/remote" src/renderer/src/ipc/contract &amp;&amp; false || true</check-4>
+      </module-checks>
+      <scenarios>
+        <scenario-1 kind="contract">Generated Tauri v2 command-name fixture has empty symmetric difference against pinned Electron v1 fixture unless an explicit documented exception exists.</scenario-1>
+        <scenario-2 kind="contract">Every generated command payload type compiles with zero `any` exports in the contract package.</scenario-2>
+        <scenario-3 kind="concurrency">Ten concurrent correlated requests with out-of-order replies resolve by req_id, not arrival order.</scenario-3>
+        <scenario-4 kind="lifecycle">HMR and component unmount leave listener refcount stable after 50 attach/detach cycles.</scenario-4>
+      </scenarios>
+      <required-log-markers>
+        <marker-1>[IpcContract][invoke][BLOCK_INVOKE]</marker-1>
+        <marker-2>[IpcContract][invoke][BLOCK_INVOKE_RESOLVED]</marker-2>
+        <marker-3>[IpcContract][listener][BLOCK_LISTENER_REFCOUNT]</marker-3>
+        <marker-4>[IpcContract][hmr][BLOCK_HMR_REPLACE]</marker-4>
+      </required-log-markers>
+      <edge-cases>
+        <ec kind="contract" severity="critical">Unknown command rejects with MT_IPC_UNKNOWN_COMMAND and never silently drops.</ec>
+        <ec kind="contract" severity="critical">Schema drift between Rust serde/ts-rs and committed TypeScript fails CI.</ec>
+        <ec kind="performance" severity="medium">1KB invoke p95 &lt;5ms intra-process; listener attach/detach amortized &lt;1ms.</ec>
+        <ec kind="concurrency" severity="high">Aborted request rejects E_WINDOW_GONE and does not resolve later.</ec>
+        <ec kind="security" severity="high">Contract package exposes no raw `invoke(name, any)` escape hatch to production renderer code.</ec>
+      </edge-cases>
+      <negative-assertions>
+        <no>MUST NOT import @electron/remote or use ipcRenderer.sendSync.</no>
+        <no>MUST NOT commit generated TypeScript drift after codegen.</no>
+        <no>MUST NOT use `any` in public IPC contract exports.</no>
+      </negative-assertions>
+    </V-M-013a>
+
+    <V-M-013b MODULE="M-013b" PRIORITY="critical" SCOPE="ipc-runtime">
+      <intent>Verify the runtime IPC facade maps Electron-era channels to Tauri commands/events, returns MT_NOT_IMPLEMENTED for pending wave stubs, and preserves command parity through B2/B3 growth.</intent>
+      <touched-files>
+        <file>src/renderer/src/ipc/runtime/</file>
+        <file>test/fixtures/ipc-channels/</file>
+      </touched-files>
+      <module-checks>
+        <check-1>rg "MT_NOT_IMPLEMENTED|BLOCK_VALIDATE_AGAINST_FIXTURE|BLOCK_DISPATCH" src/renderer/src/ipc/runtime</check-1>
+        <check-2>rg "@electron/remote|sendSync\\(" src/renderer/src/ipc/runtime &amp;&amp; false || true</check-2>
+        <check-3>rg "ipc\\.fs|ipc\\.search|ipc\\.prefs|ipc\\.window|ipc\\.menu" src/renderer/src/ipc/runtime</check-3>
+      </module-checks>
+      <scenarios>
+        <scenario-1 kind="contract">On boot, registered runtime command names match the committed Tauri fixture; mismatch emits BLOCK_VALIDATE_AGAINST_FIXTURE and fails fast.</scenario-1>
+        <scenario-2 kind="failure">Pending fs/search/watch commands return Err(MT_NOT_IMPLEMENTED), never panic, during partial B2 waves.</scenario-2>
+        <scenario-3 kind="contract">Clipboard/window/context-menu replacements cover all six @electron/remote call-site categories.</scenario-3>
+        <scenario-4 kind="cold-start">Open-file replay waits for both WebView readiness and listener registration, then delivers exactly once.</scenario-4>
+        <scenario-5 kind="contract">Gate-B3a production bundle has zero sendSync and zero @electron/remote references.</scenario-5>
+      </scenarios>
+      <required-log-markers>
+        <marker-1>[IpcRuntime][dispatch][BLOCK_DISPATCH]</marker-1>
+        <marker-2>[IpcRuntime][reply][BLOCK_CORRELATED_REPLY]</marker-2>
+        <marker-3>[IpcRuntime][boot][BLOCK_VALIDATE_AGAINST_FIXTURE]</marker-3>
+        <marker-4>[IpcRuntime][replay][BLOCK_REPLAY_GATE_OPENED]</marker-4>
+        <marker-5>[IpcRuntime][replay][BLOCK_REPLAY_DELIVERED]</marker-5>
+      </required-log-markers>
+      <edge-cases>
+        <ec kind="failure" severity="critical">Unknown runtime channel returns MT_IPC_UNKNOWN_CHANNEL with bundle version and channel name.</ec>
+        <ec kind="concurrency" severity="high">Queued replay into a closed window is dropped with a marker, not delivered to stale state.</ec>
+        <ec kind="contract" severity="critical">Runtime facade may depend on M-013a and backend modules; backend modules must not import the frontend facade.</ec>
+        <ec kind="security" severity="critical">No @electron/remote bridge remains in production code after Gate-B3a.</ec>
+        <ec kind="performance" severity="medium">1MB payload threshold rejects oversize requests deterministically.</ec>
+      </edge-cases>
+      <negative-assertions>
+        <no>MUST NOT panic for unimplemented wave stubs.</no>
+        <no>MUST NOT silently drop unknown channels.</no>
+        <no>MUST NOT leave dynamic response channel names without req_id correlation.</no>
+        <no>MUST NOT expose raw native menu/window APIs to renderer outside typed facade.</no>
+      </negative-assertions>
+    </V-M-013b>
+
+    <V-M-021 MODULE="M-021" PRIORITY="critical" SCOPE="fs-core">
+      <intent>Verify the internal filesystem primitive layer provides TOCTOU-safe validated paths, raw-byte IO, atomic writes, trash-only delete semantics, and bounded concurrency for all Rust-internal callers.</intent>
+      <touched-files>
+        <file>src-tauri/src/fs_core/mod.rs</file>
+      </touched-files>
+      <module-checks>
+        <check-1>cargo test -p mark fs_core</check-1>
+        <check-2>rg "fs_core_open_validated|fs_core_write_bytes_atomic|BLOCK_FS_CORE_ATOMIC_RENAME" src-tauri/src/fs_core</check-2>
+        <check-3>rg "std::fs::remove_file|tokio::fs::remove_file" src-tauri/src/fs_core &amp;&amp; false || true</check-3>
+      </module-checks>
+      <scenarios>
+        <scenario-1 kind="security">Symlink-swap after validation but before read is blocked by held fd and post-open canonical path verification.</scenario-1>
+        <scenario-2 kind="failure">SIGKILL between rename and dir-fsync leaves original SHA256 unchanged or recoverable temp state.</scenario-2>
+        <scenario-3 kind="failure">Trash unavailable returns MT_FS_CORE_TRASH_UNAVAILABLE and never hard-unlinks as fallback.</scenario-3>
+        <scenario-4 kind="concurrency">Two simultaneous writes to the same path serialize through per-path mutex; final file is one complete payload.</scenario-4>
+        <scenario-5 kind="performance">10k file stat batch completes under 2s on M1 SSD and p99 single stat remains under 5ms.</scenario-5>
+      </scenarios>
+      <required-log-markers>
+        <marker-1>[FsCore][open][BLOCK_FS_CORE_OPEN]</marker-1>
+        <marker-2>[FsCore][read][BLOCK_FS_CORE_READ_BYTES]</marker-2>
+        <marker-3>[FsCore][write][BLOCK_FS_CORE_WRITE_BYTES]</marker-3>
+        <marker-4>[FsCore][write][BLOCK_FS_CORE_ATOMIC_RENAME]</marker-4>
+        <marker-5>[FsCore][delete][BLOCK_FS_CORE_DELETE_TO_TRASH]</marker-5>
+        <marker-6>[FsCore][delete][BLOCK_FS_CORE_TRASH_FALLBACK]</marker-6>
+      </required-log-markers>
+      <edge-cases>
+        <ec kind="security" severity="critical">Reject Linux magic symlinks: /proc/self/root, /proc/&lt;pid&gt;/, /dev/fd/, /sys/.</ec>
+        <ec kind="platform" severity="critical">macOS fcntl(F_GETPATH) post-open verification required before trusting canonical path.</ec>
+        <ec kind="platform" severity="high">Windows Defender locked file retries max 3 with 50ms backoff; no infinite retry.</ec>
+        <ec kind="resource" severity="high">Open-file semaphore caps fan-out at N=64.</ec>
+        <ec kind="encoding" severity="high">Raw bytes are preserved; M-014 owns encoding decode/encode decisions.</ec>
+      </edge-cases>
+      <negative-assertions>
+        <no>MUST NOT hard-delete when Trash is unavailable.</no>
+        <no>MUST NOT expose IPC commands directly; M-002 wraps M-021.</no>
+        <no>MUST NOT reopen paths after validation for the actual read/write.</no>
+        <no>MUST NOT log file contents or absolute home paths.</no>
+      </negative-assertions>
+    </V-M-021>
+
+    <V-M-022 MODULE="M-022" PRIORITY="high" SCOPE="mt-paths">
+      <intent>Verify cross-platform path roots are deterministic, OS-native, and clearly outside protected legacy Application Support write invariants where intended.</intent>
+      <touched-files>
+        <file>src-tauri/src/mt_paths/mod.rs</file>
+      </touched-files>
+      <module-checks>
+        <check-1>cargo test -p mark mt_paths</check-1>
+        <check-2>rg "cache_root|app_support_root|logs_root|BLOCK_RESOLVE_CACHE_ROOT" src-tauri/src/mt_paths</check-2>
+      </module-checks>
+      <scenarios>
+        <scenario-1 kind="platform">macOS cache_root resolves to ~/Library/Caches/Mark or the project-approved bundle-specific cache root.</scenario-1>
+        <scenario-2 kind="platform">Linux cache_root respects XDG_CACHE_HOME and falls back to ~/.cache/Mark.</scenario-2>
+        <scenario-3 kind="platform">Windows cache_root resolves under %LOCALAPPDATA% and never under roaming AppData.</scenario-3>
+      </scenarios>
+      <required-log-markers>
+        <marker-1>[Paths][cache_root][BLOCK_RESOLVE_CACHE_ROOT]</marker-1>
+      </required-log-markers>
+      <edge-cases>
+        <ec kind="platform" severity="high">No home directory available: returns explicit error or None path outcome, never panics.</ec>
+        <ec kind="migration" severity="critical">cache_root writes do not mutate legacy ~/Library/Application Support/marktext/ data.</ec>
+        <ec kind="security" severity="high">Path helpers never include secrets or tokens in logs.</ec>
+        <ec kind="contract" severity="medium">Path naming must be consistent between M-022 contract and Phase-B-pre2 implementation evidence.</ec>
+        <ec kind="maintenance" severity="medium">Any bundle-id/name change updates M-022 and migration docs together.</ec>
+      </edge-cases>
+      <negative-assertions>
+        <no>MUST NOT use ~/.cache on macOS or Windows.</no>
+        <no>MUST NOT write under protected legacy Application Support paths during preflight cancel logging.</no>
+      </negative-assertions>
+    </V-M-022>
   </ModuleVerification>
 
   <PhaseGates>
     <Gate-Phase-H PHASE="Phase-H">
-      <goal>AI Standards token/session hygiene adopted as a GRACE-safe overlay with canonical plan, verification, KG, packet schema, and methodology artifacts.</goal>
+      <goal>AI Standards token/session hygiene adopted as a GRACE-safe documentation and process overlay with canonical plan, verification, KG, packet schema, and methodology artifacts. Executable invalid-packet rejection is tracked as HYG-PACKET-LINT-FOLLOWUP.</goal>
       <commands>
         <command-1>test -f docs/grace-ai-standards-hygiene-methodology.md</command-1>
         <command-2>xmllint --noout docs/development-plan.xml docs/verification-plan.xml docs/knowledge-graph.xml docs/operational-packets.xml</command-2>
         <command-3>rg "M-901|M-902|M-903|M-904|M-905|M-906" docs/development-plan.xml docs/verification-plan.xml docs/knowledge-graph.xml</command-3>
         <command-4>rg "context-policy|loaded-artifacts|skipped-artifacts|context-risk|additional-context-needed|verification-not-skipped" docs/operational-packets.xml</command-4>
         <command-5>rg "V-GH-001|V-GH-002|V-GH-003|V-GH-004|V-GH-005" docs/verification-plan.xml docs/grace-ai-standards-hygiene-methodology.md</command-5>
+        <command-6>rg "HYG-PACKET-LINT-FOLLOWUP|done-with-followup" docs/development-plan.xml docs/verification-plan.xml</command-6>
       </commands>
       <required-evidence>
         <evidence-1>M-901..M-906 exist in development plan and KG with V-M references.</evidence-1>
-        <evidence-2>V-M-901..V-M-906 and V-GH-001..V-GH-005 define gates that prevent verification skipping.</evidence-2>
+        <evidence-2>V-M-901..V-M-906 and V-GH-001..V-GH-005 define gates that reject verification skipping at the process-contract level.</evidence-2>
         <evidence-3>Operational packet templates include context hygiene fields.</evidence-3>
         <evidence-4>Methodology document states precedence: correctness &gt; required verification &gt; graph consistency &gt; implementation velocity &gt; context economy.</evidence-4>
+        <evidence-5>False-green prevention: Phase-H status remains done-with-followup until executable packet lint can reject invalid packets automatically.</evidence-5>
       </required-evidence>
+      <follow-up id="HYG-PACKET-LINT-FOLLOWUP" priority="high">Add executable validator for ExecutionPacket/HandoffPacket examples that fails on verification-not-skipped=false without blocker, missing verification-excerpt, vague skipped-artifacts, and context-risk underdeclared for security/migration/public-contract changes.</follow-up>
     </Gate-Phase-H>
 
     <Gate-Phase-0 PHASE="Phase-0">

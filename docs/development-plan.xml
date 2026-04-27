@@ -1340,15 +1340,15 @@
   </DataFlow>
 
   <ImplementationOrder>
-    <Phase-H name="AI Standards Hygiene Overlay for GRACE Projects" status="done">
+    <Phase-H name="AI Standards Hygiene Overlay for GRACE Projects" status="done-with-followup">
       <goal>Adopt AI Standards 1.6.0 token/session hygiene as a GRACE-compatible methodology overlay, independent of this specific Mark Text port.</goal>
       <step-1 module="M-901" status="done" verification="V-M-901">Define precedence rules, context modes, and escalation triggers that protect GRACE contracts and verification.</step-1>
       <step-2 module="M-902" status="done" verification="V-M-902">Extend operational packet templates with context-policy, loaded/skipped artifacts, context-risk, additional-context-needed, and verification-not-skipped fields.</step-2>
       <step-3 module="M-903" status="done" verification="V-M-903">Define compact durable handoff rules for compaction and agent rotation.</step-3>
       <step-4 module="M-904" status="done" verification="V-M-904">Map hygiene defaults and escalation triggers to GRACE skills.</step-4>
-      <step-5 module="M-905" status="done" verification="V-M-905">Add verification gates proving context economy never hides required tests, logs, or review scope.</step-5>
+      <step-5 module="M-905" status="done-with-followup" verification="V-M-905">Define verification gates that prevent context economy from hiding required tests, logs, or review scope. HYG-PACKET-LINT-FOLLOWUP tracks future executable packet validation tooling.</step-5>
       <step-6 module="M-906" status="done" verification="V-M-906">Sync knowledge-graph representation and runtime/meta boundary rules.</step-6>
-      <step-7 status="done" verification="Gate-Phase-H">Create docs/grace-ai-standards-hygiene-methodology.md and validate XML references.</step-7>
+      <step-7 status="done-with-followup" verification="Gate-Phase-H">Create docs/grace-ai-standards-hygiene-methodology.md and validate XML references. Automated invalid-packet rejection remains follow-up HYG-PACKET-LINT-FOLLOWUP.</step-7>
     </Phase-H>
 
     <Phase-0 name="GRACE Bootstrap &amp; Fork Setup" status="in-progress">
@@ -2237,11 +2237,11 @@ src/main/config.js declares `contextIsolation: false`, `nodeIntegration: true`, 
 
   <!-- ===================================================================
        ITERATION-4 MASTER-PLAN RECONCILE (2026-04-25)
-       Source: parallel-agent's docs/master-refactoring-plan-phase-b.md
+       Source: docs/master-refactoring-plan-phase-b.md
        Items present in master-plan but missing from Iter1-3 amendments.
        Diff-merge table in chat; this block absorbs master-only items.
        =================================================================== -->
-  <Iteration4MasterPlanReconcile source="parallel-agent-master-plan" generated="2026-04-25">
+  <Iteration4MasterPlanReconcile source="master-plan-phase-b" generated="2026-04-25">
 
     <!-- ============ R4-1 — Module mapping mark-electron/src/main → Tauri ============ -->
     <Patch id="R4-1-module-mapping" target="ModuleMapping" severity="canonical-fill" finding-refs="master-plan-section-Module-Mapping">
@@ -2384,7 +2384,7 @@ src/main/config.js declares `contextIsolation: false`, `nodeIntegration: true`, 
         Iter1Amendments + Iter2Amendments + Iter3Amendments blocks remain in dev-plan.xml as audit trail. Their content has been promoted to canonical sections:
         - Phase-B-pre1, Phase-B-pre2, Phase-B1, Phase-B1.5, Phase-B3a, Phase-B4 in &lt;ImplementationOrder&gt;
         - M-013a, M-013b, M-021, M-022 in &lt;Modules&gt;
-        - M-901..M-906 in &lt;Modules&gt; (added by parallel-agent)
+        - M-901..M-906 in &lt;Modules&gt; for the AI Standards hygiene overlay
         Future grace-refresh may delete the amendment blocks once full canonicalization (per-module patch fold-in) is complete.
         For now, amendments are KEPT as the source of truth for reasoning behind each canonical change.
       </description>
