@@ -2404,6 +2404,42 @@
       </failure-packet-template>
     </V-A6-7>
 
+    <V-RIPGREP-IPC-CLONE STEP="v1.2.3-search-fix" PRIORITY="high" SCOPE="renderer-ripgrep-searcher">
+      <intent>Guarantee that the IPC payload dispatched from RipgrepDirectorySearcher._spawn is structured-clone-safe under contextIsolation:true. Prevents regression of `Error: An object could not be cloned.` first observed in v1.2.2 when Pinia reactive proxies (preferencesStore.searchExclusions) and contextBridge-wrapped frozen arrays (window.fileUtils.MARKDOWN_INCLUSIONS) were passed to ipcRenderer.invoke without flattening.</intent>
+      <touched-files>
+        <file>src/renderer/src/node/ripgrepSearcher.js</file>
+      </touched-files>
+      <module-checks>
+        <check-1>grep -q "JSON.parse(JSON.stringify" src/renderer/src/node/ripgrepSearcher.js</check-1>
+        <check-2>grep -q "_serializeOptions" src/renderer/src/node/ripgrepSearcher.js</check-2>
+      </module-checks>
+      <critical-scenarios>
+        <s-1 kind="happy-path">Open folder with mixed reactive/frozen options sources, type any character into sidebar search input → ipcRenderer.invoke('mt::search-spawn', payload) succeeds without `Error: An object could not be cloned.`; renderer subscribes to mt::search-event and resolves outerPromise on 'complete'.</s-1>
+        <s-2 kind="contract">_spawn payload after JSON round-trip contains exactly { mode, searchId, directories, pattern, options }, where options is the whitelist subset from _serializeOptions and contains only primitives, plain arrays, or plain objects of primitives. No Proxy, no contextBridge wrapper, no function-valued field.</s-2>
+        <s-3 kind="adversarial">searchExclusions populated from prefs UI as a Pinia reactive ref to non-empty array → JSON-cloned to plain string array → main-side rg --glob args parsed correctly.</s-3>
+        <s-4 kind="failure">Main-side handler emits 'error' message → handler in renderer dispatches settle('reject', new Error(msg.payload.message)) and unsubscribes the listener exactly once.</s-4>
+      </critical-scenarios>
+      <edge-cases>
+        <ec kind="concurrency" severity="medium">Two consecutive keystrokes within debounce window spawn two searches; second supersedes first via cancel(). Both must serialize-clone independently; settle() must be idempotent.</ec>
+        <ec kind="failure" severity="low">JSON.stringify throws (e.g. circular reference smuggled into options) — surfaces as a sync throw at _spawn entry, NOT as an opaque IPC clone error from inside Electron internals.</ec>
+        <ec kind="contract" severity="medium">Pinia store proxies that contain Date/RegExp/Map values would be silently lossy under JSON round-trip. Current options whitelist contains only string/number/boolean/array-of-string fields, so this is a future-contract concern not a current bug.</ec>
+        <ec kind="adversarial" severity="low">window.fileUtils.MARKDOWN_INCLUSIONS replaced by an opaque non-cloneable type in a future preload refactor — V-RIPGREP-IPC-CLONE catches it via deterministic grep + functional smoke.</ec>
+      </edge-cases>
+      <required-log-markers>
+        <m-1>[SearchStore][runSearch][BLOCK_DISPATCH] — already present in src/renderer/src/store/search.js, fires on every dispatch with roots/keyword/flags.</m-1>
+        <m-2>[SearchStore][runSearch][BLOCK_RESULT] — fires on resolve, includes count + canceled.</m-2>
+        <m-3>[SearchStore][runSearch][BLOCK_ERROR] — fires on reject, includes err.message; if reject ever carries `An object could not be cloned`, regression has returned.</m-3>
+      </required-log-markers>
+      <negative-assertions>
+        <no>MUST NOT pass options object directly to ipcRenderer.invoke without JSON round-trip OR equivalent structuredClone-safe flattening.</no>
+        <no>MUST NOT include callback fields (didMatch, didSearchPaths) in the IPC payload — _serializeOptions strips them.</no>
+        <no>MUST NOT log err.message containing "could not be cloned" in BLOCK_ERROR — that signals a regression.</no>
+      </negative-assertions>
+      <failure-packet-template>
+        <expected-fields>scenario, contract-ref, expected-evidence, observed-evidence (DevTools console line + ripgrepSearcher.js:_spawn frame), first-divergent-block, suggested-next-action</expected-fields>
+      </failure-packet-template>
+    </V-RIPGREP-IPC-CLONE>
+
     <V-M-901 MODULE="M-901" PRIORITY="high" SCOPE="grace-context-hygiene-policy">
       <intent>Verify that AI Standards token/session hygiene is adopted only as a GRACE-compatible overlay and cannot bypass contracts, knowledge graph updates, or required verification.</intent>
       <touched-files>
