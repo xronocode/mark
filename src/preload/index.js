@@ -3,6 +3,12 @@ import fs from 'fs-extra'
 import { tmpdir } from 'os'
 import { isFile, isDirectory, ensureDirSync } from 'common/filesystem'
 import { electronAPI } from '@electron-toolkit/preload'
+// step-8z follow-up: font-list is a native Node binding (uses
+// fontmanager-redux). Was previously inline-required from a Vue
+// onMounted hook in renderer/prefComponents/common/fontTextBox/
+// index.vue, which throws under nodeIntegration:false. Now exposed
+// via window.electron.fonts.list — async, returns Promise<string[]>.
+import { getFonts } from 'font-list'
 import {
   isChildOfDirectory,
   hasMarkdownExtension,
@@ -31,7 +37,13 @@ const customElectronAPI = {
   // step-8j: expose os.tmpdir() resolved once at preload time. tmpdir
   // does not change during a process lifetime, so caching is correct
   // and avoids an IPC roundtrip per upload.
-  tmpDir: tmpdir()
+  tmpDir: tmpdir(),
+  // step-8z follow-up: font-list native binding bridge. Loaded once
+  // and exposed as an async function so the Vue prefs pane gets the
+  // same lazy-fetch behavior it had pre-step-8z.
+  fonts: {
+    list: () => getFonts()
+  }
 }
 
 const fileUtilsAPI = {

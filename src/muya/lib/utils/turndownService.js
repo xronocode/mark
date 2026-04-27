@@ -1,7 +1,12 @@
 import TurndownService from 'turndown'
 import { identity } from './index'
-
-const turndownPluginGfm = require('joplin-turndown-plugin-gfm')
+// step-8z follow-up: was `const turndownPluginGfm = require('joplin-...')`
+// inline. The package exports named symbols (gfm/highlightedCodeBlock/
+// strikethrough/tables/taskListItems), not a default. Original code
+// destructured `{ gfm }` from the require result; we now import gfm
+// directly and reconstruct the same shape for the legacy spread below.
+import { gfm as gfmPlugin } from 'joplin-turndown-plugin-gfm'
+const turndownPluginGfm = { gfm: gfmPlugin }
 
 export const usePluginAddRules = (turndownService, keeps) => {
   // Use the gfm plugin

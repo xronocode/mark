@@ -86,10 +86,12 @@ const handleMoreClick = () => {
 }
 
 onMounted(async () => {
-  // Delay load native library because it's not needed for the editor and causes a delay.
-  const { getFonts } = require('font-list')
-
-  const fonts = await getFonts()
+  // step-8z follow-up: was `require('font-list')` inline. font-list is
+  // a native Node binding; it now lives in preload and is exposed via
+  // window.electron.fonts.list (async, returns Promise<string[]>).
+  // Same lazy-fetch UX (only enumerates fonts when the prefs pane
+  // mounts, not at app boot).
+  const fonts = await window.electron.fonts.list()
   fontFamilies.value = fonts.map((f) => f.replace(/\"/g, '').trim())
 })
 </script>
