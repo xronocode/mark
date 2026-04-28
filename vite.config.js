@@ -64,9 +64,29 @@ export default defineConfig({
       // frontendDist points at src/renderer/dist so both ship in the
       // bundle.
       input: {
-        main: resolve(__dirname, 'src/renderer/index.html'),
+        // Phase-B1 step-2.5b: main entry temporarily disabled. The v1.2.3
+        // renderer transitively imports several modules removed in the
+        // Tauri port (electron-log, @hfelix/electron-localshortcut,
+        // src/main/preferences/schema.json). M-013b in Phase-B2 will
+        // emulate or re-shim these; until then, attempting to bundle
+        // main fails. Bench is independent and builds clean.
+        // main: resolve(__dirname, 'src/renderer/index.html'),
         bench: resolve(__dirname, 'src/renderer/bench/index.html')
       },
+      // Temporarily external during Phase-B1: the main entry transitively
+      // imports electron-log/renderer + similar Electron-bridge modules
+      // that are removed in the Tauri port and will be re-shimmed by
+      // M-013b in Phase-B2. The bench entry does NOT touch them, so
+      // externalizing avoids blocking step-2.5b on a dependency that
+      // belongs to a later phase. Will be removed once M-013b ships.
+      external: [
+        /^electron-log(\/.*)?$/,
+        /^electron-store(\/.*)?$/,
+        /^electron-updater(\/.*)?$/,
+        /^@electron\/.*$/,
+        /^@hfelix\/electron-localshortcut(\/.*)?$/,
+        /^electron$/
+      ],
       output: {
         manualChunks: (id) => {
           if (!id.includes('node_modules')) return undefined
