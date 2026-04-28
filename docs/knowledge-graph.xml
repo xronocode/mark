@@ -241,7 +241,7 @@
       </annotations>
     </M-013>
 
-    <M-013a NAME="mt-ipc-contract" TYPE="UTILITY" STATUS="planned">
+    <M-013a NAME="mt-ipc-contract" TYPE="UTILITY" STATUS="stub-shipped" PHASE-REF="B1-step-2">
       <purpose>Typed frontend invoke/listen contract, command name-set, payload schema, and ts-rs parity surface.</purpose>
       <path>src/renderer/src/ipc/contract/</path>
       <depends>none</depends>
@@ -250,7 +250,17 @@
         <fn-ipcInvoke PURPOSE="Typed invoke with schema validation and timeout" />
         <fn-useIpcListener PURPOSE="Vue listener composable with unmount/HMR cleanup" />
         <fn-ipcCorrelated PURPOSE="Request/response req_id correlation" />
+        <type-IpcError PURPOSE="Tagged error class preserving stack across invoke boundary" />
+        <type-IpcErrorCode PURPOSE="Stable 4-code enum: MT_IPC_TIMEOUT/UNKNOWN_CHANNEL/UNKNOWN_COMMAND/VALIDATION" />
+        <type-CommandName PURPOSE="String-literal union of supported `mt::*` commands; B1 stub has only mt::ping" />
+        <type-CommandMap PURPOSE="Per-command args/result type pair; CommandArgs/CommandResult are derived helpers" />
       </annotations>
+      <stub-ship-evidence commit="cfd8a1b" date="2026-04-28">
+        <files>src/renderer/src/ipc/contract/{types,invoke,listener,correlated,index,contract.test}.ts + tsconfig.json</files>
+        <verification>tsc --noEmit -p tsconfig.json clean against contract.test.ts (6 typecheck guarantees) with typescript@5.9.3 + @tauri-apps/api@2.0.0 + vue@3.5.32</verification>
+        <log-markers-shipped>BLOCK_INVOKE, BLOCK_INVOKE_RESOLVED, BLOCK_LISTENER_REFCOUNT</log-markers-shipped>
+        <log-markers-deferred>BLOCK_HMR_REPLACE — needs real components in B2</log-markers-deferred>
+      </stub-ship-evidence>
     </M-013a>
 
     <M-013b NAME="mt-ipc-runtime" TYPE="UTILITY" STATUS="planned">

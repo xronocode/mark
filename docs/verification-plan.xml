@@ -2636,7 +2636,14 @@
         <check-2>test -f test/fixtures/ipc-channels/electron.v1.json &amp;&amp; test -f test/fixtures/ipc-channels/tauri.v2.json</check-2>
         <check-3>rg "sendSync\\(" src/renderer/src/ipc/contract &amp;&amp; false || true</check-3>
         <check-4>rg "@electron/remote" src/renderer/src/ipc/contract &amp;&amp; false || true</check-4>
+        <check-5>tsc --noEmit -p tsconfig.json &amp;&amp; echo "contract.test.ts surface guarantees hold"</check-5>
+        <check-6>test -f test/fixtures/ipc-channels/internal-main-events.electron.v1.json &amp;&amp; test -f test/fixtures/ipc-channels/preload-surface.v1.json</check-6>
+        <check-7>node -e "const f=require('node:fs');const j=JSON.parse(f.readFileSync('test/fixtures/ipc-channels/remote-callsites.v1.json','utf8'));process.exit(j.counts.active===0?0:1)" || (echo "remote-callsites active count regression" &amp;&amp; false)</check-7>
+        <check-8>node -e "const f=require('node:fs');const j=JSON.parse(f.readFileSync('test/fixtures/ipc-channels/sendSync-callsites.v1.json','utf8'));process.exit(j.counts.total===0?0:1)" || (echo "sendSync-callsites count regression" &amp;&amp; false)</check-8>
       </module-checks>
+      <stub-ship-tests>
+        <test-1 file="src/renderer/src/ipc/contract/contract.test.ts" purpose="Type-only test asserting all 4 IpcErrorCode entries with stable string values, ipcInvoke return narrows to CommandResult&lt;C&gt;, unknown command names fail compile via @ts-expect-error, useIpcListener returns Promise&lt;() =&gt; void&gt; with manual option, ipcCorrelated extends InvokeOptions, CommandName starts with mt::. Run via tsc --noEmit -p tsconfig.json (check-5 above)." />
+      </stub-ship-tests>
       <scenarios>
         <scenario-1 kind="contract">Generated Tauri v2 command-name fixture has empty symmetric difference against pinned Electron v1 fixture unless an explicit documented exception exists.</scenario-1>
         <scenario-2 kind="contract">Every generated command payload type compiles with zero `any` exports in the contract package.</scenario-2>
