@@ -4,6 +4,7 @@
 mod cancel_log;
 mod dialog;
 mod legacy;
+mod m001_lifecycle;
 mod m001_panic;
 mod m001_pdf;
 mod m001_security;
