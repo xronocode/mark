@@ -22,6 +22,10 @@ pub mod fs;
 pub mod search;
 pub mod watch;
 
+// Re-exports kept for downstream M-013b consumers (B2 wiring will
+// import from crate::m013b::{IpcError, MT_NOT_IMPLEMENTED} rather
+// than reach into the error submodule). Unused in B1 release build.
+#[allow(unused_imports)]
 pub use error::{IpcError, MT_NOT_IMPLEMENTED};
 
 #[cfg(test)]
@@ -37,3 +41,4 @@ mod tests {
         assert_eq!(MT_NOT_IMPLEMENTED, error::MT_NOT_IMPLEMENTED);
     }
 }
+

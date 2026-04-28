@@ -22,6 +22,15 @@
 // CHANGE_SUMMARY:
 //   - 2026-04-28 B1-step-11: initial state-machines + replay-drop spec.
 
+// Module-level allow(dead_code) is intentional. M-001 lifecycle types
+// are the contract surface for B2/B3 wiring (M-013b dispatch picks
+// ReplayPolicy; M-009 menu calls bump_menu_generation; M-001 close
+// hooks drive CloseStateMachine). At B1 stub level, callers haven't
+// landed yet — tests exercise the surface in #[cfg(test)]. Release
+// builds would otherwise emit 13 "never used" warnings; rather than
+// suppress per-item, lint the module as a whole.
+#![allow(dead_code)]
+
 use std::fmt;
 use std::sync::atomic::{AtomicU64, Ordering};
 

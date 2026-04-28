@@ -1,0 +1,231 @@
+# Phase-B1.5 dry-run workflow.
+#
+# Triggered by pushes to `modernize-tauri` branch — NOT by tags. The
+# tag-triggered production release workflow (which this becomes after
+# Phase-B4 step-1 rename) lives in release.yml and replaces this file.
+#
+# Path filter keeps the runner idle on doc-only commits. concurrency
+# cancel-in-progress=true means a follow-up push supersedes the in-flight
+# build (we don't burn macOS-14 minutes on stale commits).
+#
+# Per Phase-B1.5 step-3: failure does NOT block PR merge unless the PR
+# carries the `phase=B1.5-gate` label. Implementation: continue-on-error
+# is gated by label presence so PRs without the label show yellow
+# warnings; PRs WITH the label show red blocking failures.
+
+name: tauri-release-dryrun
+
+on:
+  push:
+    branches: [modernize-tauri]
+    paths:
+      - 'src-tauri/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'tsconfig.json'
+      - 'vite.config.js'
+      - 'tools/**'
+      - '.github/workflows/release-tauri.yml'
+      - 'docs/ci-warnings-allowlist.md'
+  pull_request:
+    branches: [main, modernize-tauri]
+    paths:
+      - 'src-tauri/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'tsconfig.json'
+      - 'vite.config.js'
+      - 'tools/**'
+      - '.github/workflows/release-tauri.yml'
+      - 'docs/ci-warnings-allowlist.md'
+  workflow_dispatch:
+
+concurrency:
+  group: tauri-release-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: build (${{ matrix.platform.name }})
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+          - name: macos-arm64
+            os: macos-14
+            target: aarch64-apple-darwin
+    runs-on: ${{ matrix.platform.os }}
+    timeout-minutes: 45
+    # Phase-B1.5 step-3: failures are non-blocking unless gate label set.
+    # contains() returns false on push events (no PR labels) so push-
+    # triggered runs are always non-blocking — that's the dry-run posture.
+    continue-on-error: ${{ !contains(github.event.pull_request.labels.*.name, 'phase=B1.5-gate') }}
+
+    steps:
+      # ── checkout + tooling ────────────────────────────────────────
+      - name: checkout
+        uses: actions/checkout@v4
+
+      - name: setup node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: setup rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.platform.target }}
+
+      - name: cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            src-tauri/target
+          key: cargo-${{ matrix.platform.target }}-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            cargo-${{ matrix.platform.target }}-
+
+      # ── install + build frontend ─────────────────────────────────
+      - name: npm ci
+        run: npm ci
+
+      - name: vite build
+        run: npm run build
+
+      # ── tauri build (unsigned) ───────────────────────────────────
+      # tauri-action handles cargo build --release + bundle generation.
+      # We do NOT pass code-signing inputs — the post-build step uses
+      # ad-hoc codesign instead per Phase-B1.5 step-5.
+      - name: tauri build
+        id: tauri
+        uses: tauri-apps/tauri-action@v0
+        with:
+          args: --target ${{ matrix.platform.target }}
+
+      # ── ad-hoc signing (Phase-B1.5 step-5) ───────────────────────
+      # codesign --force --deep --sign - re-signs every nested binary
+      # with an ad-hoc signature. Required so macOS Gatekeeper accepts
+      # the bundle on user machines after `xattr -cr` clears quarantine.
+      # Works on ephemeral runner WITHOUT keychain provisioning — that's
+      # the whole point of ad-hoc.
+      - name: ad-hoc codesign
+        if: matrix.platform.os == 'macos-14'
+        run: |
+          set -euo pipefail
+          APP_PATH=$(find src-tauri/target -name 'Mark.app' -type d | head -1)
+          if [ -z "$APP_PATH" ]; then
+            echo "::error::Mark.app not found under src-tauri/target"
+            exit 1
+          fi
+          echo "signing: $APP_PATH"
+          codesign --force --deep --sign - "$APP_PATH"
+          codesign --verify --verbose=4 "$APP_PATH"
+
+      # ── smoke launch (Phase-B1.5 step-6) ─────────────────────────
+      # Mount DMG → /Applications → xattr -cr → open → assert alive →
+      # kill. Validates the full user-install flow on a clean runner.
+      - name: smoke launch
+        if: matrix.platform.os == 'macos-14'
+        run: |
+          set -euo pipefail
+          DMG=$(find src-tauri/target -name '*.dmg' | head -1)
+          if [ -z "$DMG" ]; then
+            echo "::error::no .dmg artifact produced"
+            exit 1
+          fi
+          MOUNT=/tmp/mark-dmg
+          mkdir -p "$MOUNT"
+          hdiutil attach "$DMG" -nobrowse -mountpoint "$MOUNT" -readonly
+          cp -R "$MOUNT/Mark.app" /Applications/
+          hdiutil detach "$MOUNT"
+          xattr -cr /Applications/Mark.app
+          open -a /Applications/Mark.app
+          # Wait up to 10s for the helper process to appear. M-001
+          # validate / security audit / panic hook all install before
+          # tauri::Builder, so a clean boot proves all four are
+          # functional in the release artifact.
+          for i in $(seq 1 10); do
+            if pgrep -f 'Mark.app/Contents/MacOS/mark' > /dev/null; then
+              echo "alive after ${i}s"
+              break
+            fi
+            sleep 1
+          done
+          if ! pgrep -f 'Mark.app/Contents/MacOS/mark' > /dev/null; then
+            echo "::error::Mark process did not appear within 10s of open"
+            exit 1
+          fi
+          # Clean exit. Some commits may exit-1 on legacy detection;
+          # that's a different failure mode (caught by m001_validate
+          # native dialog) and is OK as long as the process started.
+          pkill -9 -f 'Mark.app/Contents/MacOS/mark' || true
+
+      # ── bundle size measurement (Phase-B1.5 step-7) ──────────────
+      - name: bundle size
+        if: matrix.platform.os == 'macos-14'
+        id: size
+        run: |
+          set -euo pipefail
+          if [ -d /Applications/Mark.app ]; then
+            BYTES=$(du -sk /Applications/Mark.app | awk '{print $1*1024}')
+            HUMAN=$(du -sh /Applications/Mark.app | awk '{print $1}')
+          else
+            APP_PATH=$(find src-tauri/target -name 'Mark.app' -type d | head -1)
+            BYTES=$(du -sk "$APP_PATH" | awk '{print $1*1024}')
+            HUMAN=$(du -sh "$APP_PATH" | awk '{print $1}')
+          fi
+          echo "bundle_bytes=$BYTES" >> "$GITHUB_OUTPUT"
+          echo "bundle_human=$HUMAN" >> "$GITHUB_OUTPUT"
+          {
+            echo "## Bundle size — ${{ matrix.platform.name }}"
+            echo
+            echo "- \`du -sh\`: **$HUMAN**"
+            echo "- bytes: $BYTES"
+            echo "- target: < 30 MB (~31457280 bytes) per Phase-B1.5 step-7 budget"
+            if [ "$BYTES" -lt 31457280 ]; then
+              echo "- status: ✅ within budget"
+            else
+              echo "- status: ⚠️ over budget — reconcile per C2-9 (raise + document, or trim)"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # ── warnings allowlist (Phase-B1.5 step-8) ───────────────────
+      # cargo build --release output is captured during tauri-action.
+      # Re-run with --message-format=json to capture warnings cleanly,
+      # then diff against the allowlist. New unlisted warnings fail the
+      # allowlist check; expected warnings pass through.
+      - name: warnings allowlist check
+        if: matrix.platform.os == 'macos-14'
+        run: |
+          set -euo pipefail
+          cd src-tauri
+          cargo build --release --bin mark --message-format=json > /tmp/cargo.json
+          cd ..
+          node tools/check-warnings-allowlist.mjs /tmp/cargo.json docs/ci-warnings-allowlist.md \
+            > /tmp/toolchain-warnings.json
+          cat /tmp/toolchain-warnings.json
+
+      # ── upload artifacts ─────────────────────────────────────────
+      - name: upload dmg
+        if: matrix.platform.os == 'macos-14' && always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mark-${{ matrix.platform.name }}-dmg
+          path: src-tauri/target/${{ matrix.platform.target }}/release/bundle/dmg/*.dmg
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: upload toolchain warnings json
+        if: matrix.platform.os == 'macos-14' && always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: toolchain-warnings-${{ matrix.platform.name }}
+          path: /tmp/toolchain-warnings.json
+          if-no-files-found: warn
+          retention-days: 14
