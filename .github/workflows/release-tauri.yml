@@ -118,7 +118,7 @@ jobs:
         if: matrix.platform.os == 'macos-14'
         run: |
           set -euo pipefail
-          APP_PATH=$(find src-tauri/target -name 'Mark.app' -type d | head -1)
+          APP_PATH=$(find target -name 'Mark.app' -type d | head -1)
           if [ -z "$APP_PATH" ]; then
             echo "::error::Mark.app not found under src-tauri/target"
             exit 1
@@ -134,7 +134,7 @@ jobs:
         if: matrix.platform.os == 'macos-14'
         run: |
           set -euo pipefail
-          DMG=$(find src-tauri/target -name '*.dmg' | head -1)
+          DMG=$(find target -name '*.dmg' | head -1)
           if [ -z "$DMG" ]; then
             echo "::error::no .dmg artifact produced"
             exit 1
@@ -176,7 +176,7 @@ jobs:
             BYTES=$(du -sk /Applications/Mark.app | awk '{print $1*1024}')
             HUMAN=$(du -sh /Applications/Mark.app | awk '{print $1}')
           else
-            APP_PATH=$(find src-tauri/target -name 'Mark.app' -type d | head -1)
+            APP_PATH=$(find target -name 'Mark.app' -type d | head -1)
             BYTES=$(du -sk "$APP_PATH" | awk '{print $1*1024}')
             HUMAN=$(du -sh "$APP_PATH" | awk '{print $1}')
           fi
@@ -217,7 +217,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: mark-${{ matrix.platform.name }}-dmg
-          path: src-tauri/target/${{ matrix.platform.target }}/release/bundle/dmg/*.dmg
+          path: target/${{ matrix.platform.target }}/release/bundle/dmg/*.dmg
           if-no-files-found: warn
           retention-days: 14
 
