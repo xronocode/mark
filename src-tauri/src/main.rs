@@ -4,6 +4,7 @@
 mod cancel_log;
 mod dialog;
 mod legacy;
+mod m001_pdf;
 mod m001_validate;
 mod m013b;
 mod migration_strings;
@@ -145,6 +146,7 @@ fn main() {
             m013b::search::mt_search_cancel,
             m013b::watch::mt_watch_subscribe,
             m013b::watch::mt_watch_unsubscribe,
+            m001_pdf::mt_print_to_pdf,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

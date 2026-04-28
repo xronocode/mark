@@ -71,6 +71,7 @@ export type CommandName =
   | 'mt::search::cancel'
   | 'mt::watch::subscribe'
   | 'mt::watch::unsubscribe'
+  | 'mt::print_to_pdf'
 
 /**
  * Plain JSON-cloneable file stats. Mirrors v1.2.3's contextBridge
@@ -157,6 +158,10 @@ export interface CommandMap {
   'mt::watch::unsubscribe': {
     args: { subscriptionId: string }
     result: void
+  }
+  'mt::print_to_pdf': {
+    args: { html: string }
+    result: Uint8Array
   }
 }
 

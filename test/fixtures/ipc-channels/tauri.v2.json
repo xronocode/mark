@@ -5,9 +5,9 @@
     "file": "src/renderer/src/ipc/contract/types.ts",
     "generated_from": "CommandMap interface"
   },
-  "generated_at": "2026-04-28T10:11:16.206Z",
+  "generated_at": "2026-04-28T10:17:33.163Z",
   "counts": {
-    "commands": 10,
+    "commands": 11,
     "error_codes": 4
   },
   "error_codes": [
@@ -59,6 +59,14 @@
     },
     {
       "name": "mt::ping",
+      "direction": "renderer->main",
+      "transport": "invoke",
+      "layer": "M-013a",
+      "has_args": true,
+      "has_result": true
+    },
+    {
+      "name": "mt::print_to_pdf",
       "direction": "renderer->main",
       "transport": "invoke",
       "layer": "M-013a",
