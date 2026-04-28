@@ -11,12 +11,25 @@
 //
 // CHANGE_SUMMARY:
 //   - 2026-04-28 B1-step-6: initial stub. IpcError + MT_NOT_IMPLEMENTED.
+//   - 2026-04-28 B2-step-2: added MT_FS_PATH_DENIED, MT_FS_NOT_FOUND,
+//     MT_FS_PERM_DENIED, MT_FS_NOT_REGULAR, MT_FS_IO codes + factory
+//     constructors for M-002 fs commands. Renderer M-013a mapInvokeError
+//     branches on `code` to surface different UX (toast vs path dialog).
 
+use crate::m010_security::SecurityError;
 use serde::Serialize;
 
 /// Stable error code returned by every M-013b stub command.
 /// Renderer matches on this string in M-013a's mapInvokeError().
 pub const MT_NOT_IMPLEMENTED: &str = "MT_NOT_IMPLEMENTED";
+
+/// M-002 / M-003 / M-004 error codes. Stable strings: telemetry +
+/// renderer match on these literals.
+pub const MT_FS_PATH_DENIED: &str = "MT_FS_PATH_DENIED";
+pub const MT_FS_NOT_FOUND: &str = "MT_FS_NOT_FOUND";
+pub const MT_FS_PERM_DENIED: &str = "MT_FS_PERM_DENIED";
+pub const MT_FS_NOT_REGULAR: &str = "MT_FS_NOT_REGULAR";
+pub const MT_FS_IO: &str = "MT_FS_IO";
 
 /// Structured error envelope. Tauri serializes this to JSON for the
 /// renderer; M-013a's invoke.ts maps it to an IpcError with the
@@ -51,6 +64,48 @@ impl IpcError {
             ),
             command: command.to_string(),
             planned_phase: planned_phase.to_string(),
+        }
+    }
+
+    /// M-010 path-validation rejection. Maps every SecurityError variant
+    /// to MT_FS_PATH_DENIED with the underlying reason embedded in the
+    /// message — preserves diagnostic info without exposing internal
+    /// variants to the renderer.
+    pub fn from_security_path(command: &str, sec_err: SecurityError) -> Self {
+        Self {
+            code: MT_FS_PATH_DENIED.to_string(),
+            message: format!("{sec_err}"),
+            command: command.to_string(),
+            planned_phase: String::new(),
+        }
+    }
+
+    /// std::io::Error → typed IpcError. Maps NotFound / PermissionDenied
+    /// to dedicated codes; everything else → generic MT_FS_IO. Caller
+    /// supplies command name for trace correlation.
+    pub fn from_io(command: &str, io_err: std::io::Error) -> Self {
+        use std::io::ErrorKind;
+        let code = match io_err.kind() {
+            ErrorKind::NotFound => MT_FS_NOT_FOUND,
+            ErrorKind::PermissionDenied => MT_FS_PERM_DENIED,
+            _ => MT_FS_IO,
+        };
+        Self {
+            code: code.to_string(),
+            message: io_err.to_string(),
+            command: command.to_string(),
+            planned_phase: String::new(),
+        }
+    }
+
+    /// Non-regular file (FIFO, socket, device, directory when expected
+    /// regular). V-M-002 ec stable code.
+    pub fn not_regular_file(command: &str, path: &std::path::Path) -> Self {
+        Self {
+            code: MT_FS_NOT_REGULAR.to_string(),
+            message: format!("{} is not a regular file", path.display()),
+            command: command.to_string(),
+            planned_phase: String::new(),
         }
     }
 }

@@ -220,11 +220,13 @@ fn main() {
     // contract violations sneaking past code review.
     m001_validate::validate_or_exit();
 
-    // Phase-B1 step-6: register M-013b stub commands. All return
-    // Err(IpcError::not_implemented) until B2 ships real impls.
-    // Renderer M-013a maps the structured error to IpcErrorCode for
-    // call sites to handle gracefully (V-M-013b: never panic).
+    // Phase-B2 step-2: M-013b commands gain real fs impls. SecurityCtx
+    // managed-state holds the active workspace sandbox; default = "/"
+    // (permissive) until M-005 (B3 step-1) wires "Open Folder" → set
+    // sandbox via menu/prefs. M-010 absolute-safety guards
+    // (NUL/overlong/symlink-escape) still active under permissive default.
     tauri::Builder::default()
+        .manage(m013b::SecurityCtx::default())
         .invoke_handler(tauri::generate_handler![
             m013b::fs::mt_fs_read,
             m013b::fs::mt_fs_write,

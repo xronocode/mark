@@ -5,7 +5,7 @@
     "file": "src/renderer/src/ipc/contract/types.ts",
     "generated_from": "CommandMap interface"
   },
-  "generated_at": "2026-04-28T10:17:33.163Z",
+  "generated_at": "2026-04-28T17:26:54.823Z",
   "counts": {
     "commands": 11,
     "error_codes": 4

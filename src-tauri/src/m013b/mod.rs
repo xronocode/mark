@@ -20,6 +20,7 @@
 pub mod error;
 pub mod fs;
 pub mod search;
+pub mod state;
 pub mod watch;
 
 // Re-exports kept for downstream M-013b consumers (B2 wiring will
@@ -27,6 +28,7 @@ pub mod watch;
 // than reach into the error submodule). Unused in B1 release build.
 #[allow(unused_imports)]
 pub use error::{IpcError, MT_NOT_IMPLEMENTED};
+pub use state::SecurityCtx;
 
 #[cfg(test)]
 mod tests {
