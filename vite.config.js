@@ -58,6 +58,15 @@ export default defineConfig({
     emptyOutDir: true,
     chunkSizeWarningLimit: 1024,
     rollupOptions: {
+      // Multi-entry: main app + perf harness. Both entries live under
+      // src/renderer (the configured Vite root). vite build emits
+      // src/renderer/dist/{index.html, bench/index.html}; Tauri's
+      // frontendDist points at src/renderer/dist so both ship in the
+      // bundle.
+      input: {
+        main: resolve(__dirname, 'src/renderer/index.html'),
+        bench: resolve(__dirname, 'src/renderer/bench/index.html')
+      },
       output: {
         manualChunks: (id) => {
           if (!id.includes('node_modules')) return undefined
