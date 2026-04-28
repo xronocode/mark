@@ -4,6 +4,7 @@
 mod cancel_log;
 mod dialog;
 mod legacy;
+mod m001_panic;
 mod m001_pdf;
 mod m001_security;
 mod m001_validate;
@@ -16,6 +17,12 @@ mod snapshot;
 use dialog::DialogChoice;
 
 fn main() {
+    // Phase-B1 step-10: install panic hook FIRST. Before legacy
+    // detection, before security audit, before contract validation —
+    // any panic in any of those paths must produce a crash log + dialog
+    // rather than a zombie process. V-M-001 hard requirement.
+    m001_panic::install_panic_hook();
+
     // Phase-B-pre2 step-1: detect pre-existing electron-store layouts BEFORE
     // tauri::Builder takes ownership of the runtime. Read-only at this stage —
     // migration decisions and writes are deferred to M-005 mt-prefs.
