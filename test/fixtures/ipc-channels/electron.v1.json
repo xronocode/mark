@@ -1,0 +1,1691 @@
+{
+  "schema_version": 1,
+  "source": {
+    "repo": "xronocode/mark",
+    "ref": "v1.2.3",
+    "commit": "e4d9e4210ee43aaad0d159e03e35be1e92524734"
+  },
+  "generated_at": "2026-04-28T09:33:32.139Z",
+  "counts": {
+    "inbound": 89,
+    "outbound": 52,
+    "total": 141
+  },
+  "channels": [
+    {
+      "name": "app-create-editor-window",
+      "direction": "renderer->main",
+      "transport": "on",
+      "sites": [
+        {
+          "path": "src/main/app/index.js",
+          "line": 625
+        }
+      ]
+    },
+    {
+      "name": "app-create-settings-window",
+      "direction": "renderer->main",
+      "transport": "on",
+      "sites": [
+        {
+          "path": "src/main/app/index.js",
+          "line": 657
+        }
+      ]
+    },
+    {
+      "name": "app-open-directory-by-id",
+      "direction": "renderer->main",
+      "transport": "on",
+      "sites": [
+        {
+          "path": "src/main/app/index.js",
+          "line": 701
+        }
+      ]
+    },
+    {
+      "name": "app-open-file-by-id",
+      "direction": "renderer->main",
+      "transport": "on",
+      "sites": [
+        {
+          "path": "src/main/app/index.js",
+          "line": 661
+        }
+      ]
+    },
+    {
+      "name": "app-open-files-by-id",
+      "direction": "renderer->main",
+      "transport": "on",
+      "sites": [
+        {
+          "path": "src/main/app/index.js",
+          "line": 672
+        }
+      ]
+    },
+    {
+      "name": "app-open-markdown-by-id",
+      "direction": "renderer->main",
+      "transport": "on",
+      "sites": [
+        {
+          "path": "src/main/app/index.js",
+          "line": 689
+        }
+      ]
+    },
+    {
+      "name": "broadcast-preferences-changed",
+      "direction": "renderer->main",
+      "transport": "on",
+      "sites": [
+        {
+          "path": "src/main/app/index.js",
+          "line": 270
+        },
+        {
+          "path": "src/main/app/windowManager.js",
+          "line": 476
+        },
+        {
+          "path": "src/main/menu/index.js",
+          "line": 444
+        }
+      ]
+    },
+    {
+      "name": "broadcast-user-data-changed",
+      "direction": "renderer->main",
+      "transport": "on",
+      "sites": [
+        {
+          "path": "src/main/app/windowManager.js",
+          "line": 488
+        }
+      ]
+    },
+    {
+      "name": "menu-add-recently-used",
+      "direction": "renderer->main",
+      "transport": "on",
+      "sites": [
+        {
+          "path": "src/main/menu/index.js",
+          "line": 437
+        }
+      ]
+    },
+    {
+      "name": "menu-clear-recently-used",
+      "direction": "renderer->main",
+      "transport": "on",
+      "sites": [
+        {
+          "path": "src/main/menu/index.js",
+          "line": 440
+        }
+      ]
+    },
+    {
+      "name": "mt::add-recently-used-document",
+      "direction": "renderer->main",
+      "transport": "on",
+      "sites": [
+        {
+          "path": "src/main/menu/index.js",
+          "line": 402
+        }
+      ]
+    },
+    {
+      "name": "mt::app-try-quit",
+      "direction": "renderer->main",
+      "transport": "on",
+      "sites": [
+        {
+          "path": "src/main/app/index.js",
+          "line": 720
+        }
+      ]
+    },
+    {
+      "name": "mt::ask-for-image-auto-path",
+      "direction": "renderer->main",
+      "transport": "on",
+      "sites": [
+        {
+          "path": "src/main/menu/actions/edit.js",
+          "line": 8
+        }
+      ]
+    },
+    {
+      "name": "mt::ask-for-image-path",
+      "direction": "renderer->main",
+      "transport": "handle",
+      "sites": [
+        {
+          "path": "src/main/dataCenter/index.js",
+          "line": 195
+        }
+      ]
+    },
+    {
+      "name": "mt::ask-for-modify-image-folder-path",
+      "direction": "renderer->main",
+      "transport": "on",
+      "sites": [
+        {
+          "path": "src/main/dataCenter/index.js",
+          "line": 170
+        }
+      ]
+    },
+    {
+      "name": "mt::ask-for-open-project-in-sidebar",
+      "direction": "renderer->main",
+      "transport": "on",
+      "sites": [
+        {
+          "path": "src/main/menu/actions/file.js",
+          "line": 457
+        }
+      ]
+    },
+    {
+      "name": "mt::ask-for-user-data",
+      "direction": "renderer->main",
+      "transport": "on",
+      "sites": [
+        {
+          "path": "src/main/dataCenter/index.js",
+          "line": 164
+        }
+      ]
+    },
+    {
+      "name": "mt::ask-for-user-preference",
+      "direction": "renderer->main",
+      "transport": "on",
+      "sites": [
+        {
+          "path": "src/main/preferences/index.js",
+          "line": 163
+        }
+      ]
+    },
+    {
+      "name": "mt::check-for-update",
+      "direction": "renderer->main",
+      "transport": "on",
+      "sites": [
+        {
+          "path": "src/main/menu/actions/marktext.js",
+          "line": 59
+        }
+      ]
+    },
+    {
+      "name": "mt::close-project-root",
+      "direction": "renderer->main",
+      "transport": "on",
+      "sites": [
+        {
+          "path": "src/main/app/windowManager.js",
+          "line": 394
+        }
+      ]
+    },
+    {
+      "name": "mt::close-window",
+      "direction": "renderer->main",
+      "transport": "on",
+      "sites": [
+        {
+          "path": "src/main/app/windowManager.js",
+          "line": 360
+        }
+      ]
+    },
+    {
+      "name": "mt::close-window-confirm",
+      "direction": "renderer->main",
+      "transport": "on",
+      "sites": [
+        {
+          "path": "src/main/menu/actions/file.js",
+          "line": 320
+        }
+      ]
+    },
+    {
+      "name": "mt::cmd-close-window",
+      "direction": "renderer->main",
+      "transport": "on",
+      "sites": [
+        {
+          "path": "src/main/menu/actions/file.js",
+          "line": 546
+        }
+      ]
+    },
+    {
+      "name": "mt::cmd-import-file",
+      "direction": "renderer->main",
+      "transport": "on",
+      "sites": [
+        {
+          "path": "src/main/menu/actions/file.js",
+          "line": 551
+        }
+      ]
+    },
+    {
+      "name": "mt::cmd-new-editor-window",
+      "direction": "renderer->main",
+      "transport": "on",
+      "sites": [
+        {
+          "path": "src/main/menu/actions/file.js",
+          "line": 537
+        }
+      ]
+    },
+    {
+      "name": "mt::cmd-open-file",
+      "direction": "renderer->main",
+      "transport": "on",
+      "sites": [
+        {
+          "path": "src/main/menu/actions/file.js",
+          "line": 532
+        }
+      ]
+    },
+    {
+      "name": "mt::cmd-open-folder",
+      "direction": "renderer->main",
+      "transport": "on",
+      "sites": [
+        {
+          "path": "src/main/menu/actions/file.js",
+          "line": 541
+        }
+      ]
+    },
+    {
+      "name": "mt::cmd-toggle-autosave",
+      "direction": "renderer->main",
+      "transport": "on",
+      "sites": [
+        {
+          "path": "src/main/preferences/index.js",
+          "line": 170
+        }
+      ]
+    },
+    {
+      "name": "mt::editor-selection-changed",
+      "direction": "renderer->main",
+      "transport": "on",
+      "sites": [
+        {
+          "path": "src/main/menu/index.js",
+          "line": 429
+        }
+      ]
+    },
+    {
+      "name": "mt::format-link-click",
+      "direction": "renderer->main",
+      "transport": "on",
+      "sites": [
+        {
+          "path": "src/main/menu/actions/file.js",
+          "line": 470
+        }
+      ]
+    },
+    {
+      "name": "mt::fs-trash-item",
+      "direction": "renderer->main",
+      "transport": "handle",
+      "sites": [
+        {
+          "path": "src/main/app/index.js",
+          "line": 784
+        }
+      ]
+    },
+    {
+      "name": "mt::get-current-language",
+      "direction": "renderer->main",
+      "transport": "on",
+      "sites": [
+        {
+          "path": "src/main/app/index.js",
+          "line": 620
+        }
+      ]
+    },
+    {
+      "name": "mt::image-upload-run-command",
+      "direction": "renderer->main",
+      "transport": "handle",
+      "sites": [
+        {
+          "path": "src/main/imageUpload/index.js",
+          "line": 159
+        }
+      ]
+    },
+    {
+      "name": "mt::keybinding-debug-dump-keyboard-info",
+      "direction": "renderer->main",
+      "transport": "on",
+      "sites": [
+        {
+          "path": "src/main/keyboard/index.js",
+          "line": 64
+        }
+      ]
+    },
+    {
+      "name": "mt::keybinding-get-keyboard-info",
+      "direction": "renderer->main",
+      "transport": "handle",
+      "sites": [
+        {
+          "path": "src/main/keyboard/index.js",
+          "line": 61
+        }
+      ]
+    },
+    {
+      "name": "mt::keybinding-get-pref-keybindings",
+      "direction": "renderer->main",
+      "transport": "handle",
+      "sites": [
+        {
+          "path": "src/main/app/index.js",
+          "line": 772
+        }
+      ]
+    },
+    {
+      "name": "mt::keybinding-save-user-keybindings",
+      "direction": "renderer->main",
+      "transport": "handle",
+      "sites": [
+        {
+          "path": "src/main/app/index.js",
+          "line": 779
+        }
+      ]
+    },
+    {
+      "name": "mt::make-screenshot",
+      "direction": "renderer->main",
+      "transport": "on",
+      "sites": [
+        {
+          "path": "src/main/app/index.js",
+          "line": 755
+        }
+      ]
+    },
+    {
+      "name": "mt::NEED_UPDATE",
+      "direction": "renderer->main",
+      "transport": "on",
+      "sites": [
+        {
+          "path": "src/main/menu/actions/marktext.js",
+          "line": 51
+        }
+      ]
+    },
+    {
+      "name": "mt::open-file",
+      "direction": "renderer->main",
+      "transport": "on",
+      "sites": [
+        {
+          "path": "src/main/app/windowManager.js",
+          "line": 365
+        }
+      ]
+    },
+    {
+      "name": "mt::open-file-by-window-id",
+      "direction": "renderer->main",
+      "transport": "on",
+      "sites": [
+        {
+          "path": "src/main/app/index.js",
+          "line": 724
+        }
+      ]
+    },
+    {
+      "name": "mt::open-keybindings-config",
+      "direction": "renderer->main",
+      "transport": "on",
+      "sites": [
+        {
+          "path": "src/main/app/index.js",
+          "line": 767
+        }
+      ]
+    },
+    {
+      "name": "mt::open-setting-window",
+      "direction": "renderer->main",
+      "transport": "on",
+      "sites": [
+        {
+          "path": "src/main/app/index.js",
+          "line": 751
+        }
+      ]
+    },
+    {
+      "name": "mt::rename",
+      "direction": "renderer->main",
+      "transport": "on",
+      "sites": [
+        {
+          "path": "src/main/menu/actions/file.js",
+          "line": 394
+        }
+      ]
+    },
+    {
+      "name": "mt::request-keybindings",
+      "direction": "renderer->main",
+      "transport": "on",
+      "sites": [
+        {
+          "path": "src/main/app/index.js",
+          "line": 760
+        }
+      ]
+    },
+    {
+      "name": "mt::response-export",
+      "direction": "renderer->main",
+      "transport": "on",
+      "sites": [
+        {
+          "path": "src/main/menu/actions/file.js",
+          "line": 369
+        }
+      ]
+    },
+    {
+      "name": "mt::response-file-move-to",
+      "direction": "renderer->main",
+      "transport": "on",
+      "sites": [
+        {
+          "path": "src/main/menu/actions/file.js",
+          "line": 432
+        }
+      ]
+    },
+    {
+      "name": "mt::response-file-save",
+      "direction": "renderer->main",
+      "transport": "on",
+      "sites": [
+        {
+          "path": "src/main/menu/actions/file.js",
+          "line": 367
+        }
+      ]
+    },
+    {
+      "name": "mt::response-print",
+      "direction": "renderer->main",
+      "transport": "on",
+      "sites": [
+        {
+          "path": "src/main/menu/actions/file.js",
+          "line": 371
+        }
+      ]
+    },
+    {
+      "name": "mt::save-and-close-tabs",
+      "direction": "renderer->main",
+      "transport": "on",
+      "sites": [
+        {
+          "path": "src/main/menu/actions/file.js",
+          "line": 237
+        }
+      ]
+    },
+    {
+      "name": "mt::save-tabs",
+      "direction": "renderer->main",
+      "transport": "on",
+      "sites": [
+        {
+          "path": "src/main/menu/actions/file.js",
+          "line": 221
+        }
+      ]
+    },
+    {
+      "name": "mt::search-cancel",
+      "direction": "renderer->main",
+      "transport": "on",
+      "sites": [
+        {
+          "path": "src/main/search/index.js",
+          "line": 351
+        }
+      ]
+    },
+    {
+      "name": "mt::search-spawn",
+      "direction": "renderer->main",
+      "transport": "handle",
+      "sites": [
+        {
+          "path": "src/main/search/index.js",
+          "line": 319
+        }
+      ]
+    },
+    {
+      "name": "mt::select-default-directory-to-open",
+      "direction": "renderer->main",
+      "transport": "on",
+      "sites": [
+        {
+          "path": "src/main/app/index.js",
+          "line": 737
+        }
+      ]
+    },
+    {
+      "name": "mt::set-user-data",
+      "direction": "renderer->main",
+      "transport": "on",
+      "sites": [
+        {
+          "path": "src/main/dataCenter/index.js",
+          "line": 185
+        }
+      ]
+    },
+    {
+      "name": "mt::set-user-preference",
+      "direction": "renderer->main",
+      "transport": "on",
+      "sites": [
+        {
+          "path": "src/main/preferences/index.js",
+          "line": 167
+        }
+      ]
+    },
+    {
+      "name": "mt::spellchecker-get-available-dictionaries",
+      "direction": "renderer->main",
+      "transport": "handle",
+      "sites": [
+        {
+          "path": "src/main/spellchecker/index.js",
+          "line": 88
+        }
+      ]
+    },
+    {
+      "name": "mt::spellchecker-get-custom-dictionary-words",
+      "direction": "renderer->main",
+      "transport": "handle",
+      "sites": [
+        {
+          "path": "src/main/spellchecker/index.js",
+          "line": 101
+        }
+      ]
+    },
+    {
+      "name": "mt::spellchecker-remove-word",
+      "direction": "renderer->main",
+      "transport": "handle",
+      "sites": [
+        {
+          "path": "src/main/spellchecker/index.js",
+          "line": 79
+        }
+      ]
+    },
+    {
+      "name": "mt::spellchecker-set-enabled",
+      "direction": "renderer->main",
+      "transport": "handle",
+      "sites": [
+        {
+          "path": "src/main/spellchecker/index.js",
+          "line": 93
+        }
+      ]
+    },
+    {
+      "name": "mt::spellchecker-switch-language",
+      "direction": "renderer->main",
+      "transport": "handle",
+      "sites": [
+        {
+          "path": "src/main/spellchecker/index.js",
+          "line": 83
+        }
+      ]
+    },
+    {
+      "name": "mt::update-format-menu",
+      "direction": "renderer->main",
+      "transport": "on",
+      "sites": [
+        {
+          "path": "src/main/menu/index.js",
+          "line": 408
+        }
+      ]
+    },
+    {
+      "name": "mt::update-line-ending-menu",
+      "direction": "renderer->main",
+      "transport": "on",
+      "sites": [
+        {
+          "path": "src/main/menu/index.js",
+          "line": 405
+        }
+      ]
+    },
+    {
+      "name": "mt::update-sidebar-menu",
+      "direction": "renderer->main",
+      "transport": "on",
+      "sites": [
+        {
+          "path": "src/main/menu/index.js",
+          "line": 415
+        }
+      ]
+    },
+    {
+      "name": "mt::view-layout-changed",
+      "direction": "renderer->main",
+      "transport": "on",
+      "sites": [
+        {
+          "path": "src/main/menu/index.js",
+          "line": 422
+        }
+      ]
+    },
+    {
+      "name": "mt::window-add-file-path",
+      "direction": "renderer->main",
+      "transport": "on",
+      "sites": [
+        {
+          "path": "src/main/app/windowManager.js",
+          "line": 349
+        }
+      ]
+    },
+    {
+      "name": "mt::window-fullscreen-toggle",
+      "direction": "renderer->main",
+      "transport": "on",
+      "sites": [
+        {
+          "path": "src/main/app/windowManager.js",
+          "line": 521
+        }
+      ]
+    },
+    {
+      "name": "mt::window-maximize-toggle",
+      "direction": "renderer->main",
+      "transport": "on",
+      "sites": [
+        {
+          "path": "src/main/app/windowManager.js",
+          "line": 505
+        }
+      ]
+    },
+    {
+      "name": "mt::window-minimize",
+      "direction": "renderer->main",
+      "transport": "on",
+      "sites": [
+        {
+          "path": "src/main/app/windowManager.js",
+          "line": 500
+        }
+      ]
+    },
+    {
+      "name": "mt::window-popup-app-menu",
+      "direction": "renderer->main",
+      "transport": "on",
+      "sites": [
+        {
+          "path": "src/main/app/windowManager.js",
+          "line": 576
+        }
+      ]
+    },
+    {
+      "name": "mt::window-popup-context-menu",
+      "direction": "renderer->main",
+      "transport": "handle",
+      "sites": [
+        {
+          "path": "src/main/app/windowManager.js",
+          "line": 541
+        }
+      ]
+    },
+    {
+      "name": "mt::window-state",
+      "direction": "renderer->main",
+      "transport": "handle",
+      "sites": [
+        {
+          "path": "src/main/app/windowManager.js",
+          "line": 526
+        }
+      ]
+    },
+    {
+      "name": "mt::window-tab-closed",
+      "direction": "renderer->main",
+      "transport": "on",
+      "sites": [
+        {
+          "path": "src/main/app/windowManager.js",
+          "line": 375
+        }
+      ]
+    },
+    {
+      "name": "mt::window-toggle-always-on-top",
+      "direction": "renderer->main",
+      "transport": "on",
+      "sites": [
+        {
+          "path": "src/main/app/windowManager.js",
+          "line": 383
+        }
+      ]
+    },
+    {
+      "name": "mt::window::drop",
+      "direction": "renderer->main",
+      "transport": "on",
+      "sites": [
+        {
+          "path": "src/main/menu/actions/file.js",
+          "line": 373
+        }
+      ]
+    },
+    {
+      "name": "screen-capture",
+      "direction": "renderer->main",
+      "transport": "on",
+      "sites": [
+        {
+          "path": "src/main/app/index.js",
+          "line": 629
+        }
+      ]
+    },
+    {
+      "name": "set-image-folder-path",
+      "direction": "renderer->main",
+      "transport": "on",
+      "sites": [
+        {
+          "path": "src/main/dataCenter/index.js",
+          "line": 159
+        }
+      ]
+    },
+    {
+      "name": "set-user-preference",
+      "direction": "renderer->main",
+      "transport": "on",
+      "sites": [
+        {
+          "path": "src/main/preferences/index.js",
+          "line": 174
+        }
+      ]
+    },
+    {
+      "name": "watcher-unwatch-all-by-id",
+      "direction": "renderer->main",
+      "transport": "on",
+      "sites": [
+        {
+          "path": "src/main/app/windowManager.js",
+          "line": 422
+        }
+      ]
+    },
+    {
+      "name": "watcher-unwatch-directory",
+      "direction": "renderer->main",
+      "transport": "on",
+      "sites": [
+        {
+          "path": "src/main/app/windowManager.js",
+          "line": 434
+        }
+      ]
+    },
+    {
+      "name": "watcher-unwatch-file",
+      "direction": "renderer->main",
+      "transport": "on",
+      "sites": [
+        {
+          "path": "src/main/app/windowManager.js",
+          "line": 431
+        }
+      ]
+    },
+    {
+      "name": "watcher-watch-directory",
+      "direction": "renderer->main",
+      "transport": "on",
+      "sites": [
+        {
+          "path": "src/main/app/windowManager.js",
+          "line": 428
+        }
+      ]
+    },
+    {
+      "name": "watcher-watch-file",
+      "direction": "renderer->main",
+      "transport": "on",
+      "sites": [
+        {
+          "path": "src/main/app/windowManager.js",
+          "line": 425
+        }
+      ]
+    },
+    {
+      "name": "window-add-file-path",
+      "direction": "renderer->main",
+      "transport": "on",
+      "sites": [
+        {
+          "path": "src/main/app/windowManager.js",
+          "line": 438
+        }
+      ]
+    },
+    {
+      "name": "window-change-file-path",
+      "direction": "renderer->main",
+      "transport": "on",
+      "sites": [
+        {
+          "path": "src/main/app/windowManager.js",
+          "line": 446
+        }
+      ]
+    },
+    {
+      "name": "window-close-by-id",
+      "direction": "renderer->main",
+      "transport": "on",
+      "sites": [
+        {
+          "path": "src/main/app/windowManager.js",
+          "line": 461
+        }
+      ]
+    },
+    {
+      "name": "window-file-saved",
+      "direction": "renderer->main",
+      "transport": "on",
+      "sites": [
+        {
+          "path": "src/main/app/windowManager.js",
+          "line": 455
+        }
+      ]
+    },
+    {
+      "name": "window-reload-by-id",
+      "direction": "renderer->main",
+      "transport": "on",
+      "sites": [
+        {
+          "path": "src/main/app/windowManager.js",
+          "line": 464
+        }
+      ]
+    },
+    {
+      "name": "window-toggle-always-on-top",
+      "direction": "renderer->main",
+      "transport": "on",
+      "sites": [
+        {
+          "path": "src/main/app/windowManager.js",
+          "line": 470
+        }
+      ]
+    },
+    {
+      "name": "mt::about-dialog",
+      "direction": "main->renderer",
+      "transport": "send",
+      "sites": [
+        {
+          "path": "src/main/menu/actions/help.js",
+          "line": 3
+        }
+      ]
+    },
+    {
+      "name": "mt::ask-for-close",
+      "direction": "main->renderer",
+      "transport": "send",
+      "sites": [
+        {
+          "path": "src/main/windows/editor.js",
+          "line": 191
+        }
+      ]
+    },
+    {
+      "name": "mt::bootstrap-editor",
+      "direction": "main->renderer",
+      "transport": "send",
+      "sites": [
+        {
+          "path": "src/main/windows/editor.js",
+          "line": 113
+        },
+        {
+          "path": "src/main/windows/editor.js",
+          "line": 519
+        }
+      ]
+    },
+    {
+      "name": "mt::close-directory",
+      "direction": "main->renderer",
+      "transport": "send",
+      "sites": [
+        {
+          "path": "src/main/windows/editor.js",
+          "line": 345
+        },
+        {
+          "path": "src/main/windows/editor.js",
+          "line": 418
+        }
+      ]
+    },
+    {
+      "name": "mt::cm-copy-as-html",
+      "direction": "main->renderer",
+      "transport": "send",
+      "sites": [
+        {
+          "path": "src/main/contextMenu/editor/menuItems.js",
+          "line": 36
+        }
+      ]
+    },
+    {
+      "name": "mt::cm-copy-as-rich",
+      "direction": "main->renderer",
+      "transport": "send",
+      "sites": [
+        {
+          "path": "src/main/contextMenu/editor/menuItems.js",
+          "line": 28
+        }
+      ]
+    },
+    {
+      "name": "mt::cm-insert-paragraph",
+      "direction": "main->renderer",
+      "transport": "send",
+      "sites": [
+        {
+          "path": "src/main/contextMenu/editor/menuItems.js",
+          "line": 52
+        },
+        {
+          "path": "src/main/contextMenu/editor/menuItems.js",
+          "line": 60
+        }
+      ]
+    },
+    {
+      "name": "mt::cm-paste-as-plain-text",
+      "direction": "main->renderer",
+      "transport": "send",
+      "sites": [
+        {
+          "path": "src/main/contextMenu/editor/menuItems.js",
+          "line": 44
+        }
+      ]
+    },
+    {
+      "name": "mt::editor-ask-file-save",
+      "direction": "main->renderer",
+      "transport": "send",
+      "sites": [
+        {
+          "path": "src/main/menu/actions/file.js",
+          "line": 654
+        }
+      ]
+    },
+    {
+      "name": "mt::editor-ask-file-save-as",
+      "direction": "main->renderer",
+      "transport": "send",
+      "sites": [
+        {
+          "path": "src/main/menu/actions/file.js",
+          "line": 660
+        }
+      ]
+    },
+    {
+      "name": "mt::editor-close-tab",
+      "direction": "main->renderer",
+      "transport": "send",
+      "sites": [
+        {
+          "path": "src/main/menu/actions/file.js",
+          "line": 642
+        }
+      ]
+    },
+    {
+      "name": "mt::editor-edit-action",
+      "direction": "main->renderer",
+      "transport": "send",
+      "sites": [
+        {
+          "path": "src/main/menu/actions/edit.js",
+          "line": 96
+        }
+      ]
+    },
+    {
+      "name": "mt::editor-format-action",
+      "direction": "main->renderer",
+      "transport": "send",
+      "sites": [
+        {
+          "path": "src/main/menu/actions/format.js",
+          "line": 15
+        }
+      ]
+    },
+    {
+      "name": "mt::editor-move-file",
+      "direction": "main->renderer",
+      "transport": "send",
+      "sites": [
+        {
+          "path": "src/main/menu/actions/file.js",
+          "line": 677
+        }
+      ]
+    },
+    {
+      "name": "mt::editor-paragraph-action",
+      "direction": "main->renderer",
+      "transport": "send",
+      "sites": [
+        {
+          "path": "src/main/menu/actions/paragraph.js",
+          "line": 35
+        }
+      ]
+    },
+    {
+      "name": "mt::editor-rename-file",
+      "direction": "main->renderer",
+      "transport": "send",
+      "sites": [
+        {
+          "path": "src/main/menu/actions/file.js",
+          "line": 683
+        }
+      ]
+    },
+    {
+      "name": "mt::execute-command-by-id",
+      "direction": "main->renderer",
+      "transport": "send",
+      "sites": [
+        {
+          "path": "src/main/commands/file.js",
+          "line": 5
+        }
+      ]
+    },
+    {
+      "name": "mt::export-success",
+      "direction": "main->renderer",
+      "transport": "send",
+      "sites": [
+        {
+          "path": "src/main/menu/actions/file.js",
+          "line": 89
+        }
+      ]
+    },
+    {
+      "name": "mt::force-close-tabs-by-id",
+      "direction": "main->renderer",
+      "transport": "send",
+      "sites": [
+        {
+          "path": "src/main/menu/actions/file.js",
+          "line": 261
+        },
+        {
+          "path": "src/main/menu/actions/file.js",
+          "line": 268
+        }
+      ]
+    },
+    {
+      "name": "mt::invalidate-image-cache",
+      "direction": "main->renderer",
+      "transport": "send",
+      "sites": [
+        {
+          "path": "src/main/menu/actions/view.js",
+          "line": 73
+        }
+      ]
+    },
+    {
+      "name": "mt::keybindings-response",
+      "direction": "main->renderer",
+      "transport": "send",
+      "sites": [
+        {
+          "path": "src/main/app/index.js",
+          "line": 764
+        }
+      ]
+    },
+    {
+      "name": "mt::new-untitled-tab",
+      "direction": "main->renderer",
+      "transport": "send",
+      "sites": [
+        {
+          "path": "src/main/menu/actions/file.js",
+          "line": 631
+        },
+        {
+          "path": "src/main/windows/editor.js",
+          "line": 312
+        }
+      ]
+    },
+    {
+      "name": "mt::open-directory",
+      "direction": "main->renderer",
+      "transport": "send",
+      "sites": [
+        {
+          "path": "src/main/windows/editor.js",
+          "line": 388
+        }
+      ]
+    },
+    {
+      "name": "mt::open-new-tab",
+      "direction": "main->renderer",
+      "transport": "send",
+      "sites": [
+        {
+          "path": "src/main/windows/editor.js",
+          "line": 587
+        }
+      ]
+    },
+    {
+      "name": "mt::pandoc-not-exists",
+      "direction": "main->renderer",
+      "transport": "send",
+      "sites": [
+        {
+          "path": "src/main/menu/actions/file.js",
+          "line": 196
+        }
+      ]
+    },
+    {
+      "name": "mt::print-service-clearup",
+      "direction": "main->renderer",
+      "transport": "send",
+      "sites": [
+        {
+          "path": "src/main/menu/actions/file.js",
+          "line": 216
+        }
+      ]
+    },
+    {
+      "name": "mt::screenshot-captured",
+      "direction": "main->renderer",
+      "transport": "send",
+      "sites": [
+        {
+          "path": "src/main/app/index.js",
+          "line": 397
+        },
+        {
+          "path": "src/main/app/index.js",
+          "line": 646
+        }
+      ]
+    },
+    {
+      "name": "mt::search-event",
+      "direction": "main->renderer",
+      "transport": "send",
+      "sites": [
+        {
+          "path": "src/main/search/index.js",
+          "line": 14
+        },
+        {
+          "path": "src/main/search/index.js",
+          "line": 198
+        }
+      ]
+    },
+    {
+      "name": "mt::set-line-ending",
+      "direction": "main->renderer",
+      "transport": "send",
+      "sites": [
+        {
+          "path": "src/main/menu/actions/edit.js",
+          "line": 124
+        }
+      ]
+    },
+    {
+      "name": "mt::set-pathname",
+      "direction": "main->renderer",
+      "transport": "send",
+      "sites": [
+        {
+          "path": "src/main/menu/actions/file.js",
+          "line": 153
+        },
+        {
+          "path": "src/main/menu/actions/file.js",
+          "line": 300
+        },
+        {
+          "path": "src/main/menu/actions/file.js",
+          "line": 306
+        },
+        {
+          "path": "src/main/menu/actions/file.js",
+          "line": 406
+        },
+        {
+          "path": "src/main/menu/actions/file.js",
+          "line": 448
+        }
+      ]
+    },
+    {
+      "name": "mt::set-view-layout",
+      "direction": "main->renderer",
+      "transport": "send",
+      "sites": [
+        {
+          "path": "src/main/menu/actions/view.js",
+          "line": 15
+        }
+      ]
+    },
+    {
+      "name": "mt::show-command-palette",
+      "direction": "main->renderer",
+      "transport": "send",
+      "sites": [
+        {
+          "path": "src/main/menu/actions/view.js",
+          "line": 39
+        }
+      ]
+    },
+    {
+      "name": "mt::show-export-dialog",
+      "direction": "main->renderer",
+      "transport": "send",
+      "sites": [
+        {
+          "path": "src/main/menu/actions/file.js",
+          "line": 560
+        },
+        {
+          "path": "src/main/menu/actions/file.js",
+          "line": 588
+        }
+      ]
+    },
+    {
+      "name": "mt::show-notification",
+      "direction": "main->renderer",
+      "transport": "send",
+      "sites": [
+        {
+          "path": "src/main/filesystem/watcher.js",
+          "line": 55
+        },
+        {
+          "path": "src/main/filesystem/watcher.js",
+          "line": 113
+        },
+        {
+          "path": "src/main/filesystem/watcher.js",
+          "line": 285
+        },
+        {
+          "path": "src/main/menu/actions/file.js",
+          "line": 93
+        },
+        {
+          "path": "src/main/menu/actions/file.js",
+          "line": 481
+        },
+        {
+          "path": "src/main/windows/editor.js",
+          "line": 291
+        },
+        {
+          "path": "src/main/windows/editor.js",
+          "line": 361
+        },
+        {
+          "path": "src/main/windows/editor.js",
+          "line": 373
+        }
+      ]
+    },
+    {
+      "name": "mt::spelling-replace-misspelling",
+      "direction": "main->renderer",
+      "transport": "send",
+      "sites": [
+        {
+          "path": "src/main/contextMenu/editor/spellcheck.js",
+          "line": 50
+        }
+      ]
+    },
+    {
+      "name": "mt::spelling-show-switch-language",
+      "direction": "main->renderer",
+      "transport": "send",
+      "sites": [
+        {
+          "path": "src/main/contextMenu/editor/spellcheck.js",
+          "line": 25
+        }
+      ]
+    },
+    {
+      "name": "mt::switch-tab-by-file_path",
+      "direction": "main->renderer",
+      "transport": "send",
+      "sites": [
+        {
+          "path": "src/main/windows/editor.js",
+          "line": 271
+        }
+      ]
+    },
+    {
+      "name": "mt::switch-tab-by-index",
+      "direction": "main->renderer",
+      "transport": "send",
+      "sites": [
+        {
+          "path": "src/main/commands/tab.js",
+          "line": 17
+        }
+      ]
+    },
+    {
+      "name": "mt::tab-save-failure",
+      "direction": "main->renderer",
+      "transport": "send",
+      "sites": [
+        {
+          "path": "src/main/menu/actions/file.js",
+          "line": 162
+        },
+        {
+          "path": "src/main/menu/actions/file.js",
+          "line": 314
+        }
+      ]
+    },
+    {
+      "name": "mt::tab-saved",
+      "direction": "main->renderer",
+      "transport": "send",
+      "sites": [
+        {
+          "path": "src/main/menu/actions/file.js",
+          "line": 156
+        },
+        {
+          "path": "src/main/menu/actions/file.js",
+          "line": 309
+        }
+      ]
+    },
+    {
+      "name": "mt::tabs-cycle-left",
+      "direction": "main->renderer",
+      "transport": "send",
+      "sites": [
+        {
+          "path": "src/main/commands/tab.js",
+          "line": 5
+        }
+      ]
+    },
+    {
+      "name": "mt::tabs-cycle-right",
+      "direction": "main->renderer",
+      "transport": "send",
+      "sites": [
+        {
+          "path": "src/main/commands/tab.js",
+          "line": 11
+        }
+      ]
+    },
+    {
+      "name": "mt::toggle-view-layout-entry",
+      "direction": "main->renderer",
+      "transport": "send",
+      "sites": [
+        {
+          "path": "src/main/menu/actions/view.js",
+          "line": 21
+        }
+      ]
+    },
+    {
+      "name": "mt::toggle-view-mode-entry",
+      "direction": "main->renderer",
+      "transport": "send",
+      "sites": [
+        {
+          "path": "src/main/menu/actions/view.js",
+          "line": 9
+        }
+      ]
+    },
+    {
+      "name": "mt::tweet",
+      "direction": "main->renderer",
+      "transport": "send",
+      "sites": [
+        {
+          "path": "src/main/menu/actions/help.js",
+          "line": 9
+        }
+      ]
+    },
+    {
+      "name": "mt::UPDATE_NOT_AVAILABLE",
+      "direction": "main->renderer",
+      "transport": "send",
+      "sites": [
+        {
+          "path": "src/main/menu/actions/marktext.js",
+          "line": 33
+        }
+      ]
+    },
+    {
+      "name": "mt::update-file",
+      "direction": "main->renderer",
+      "transport": "send",
+      "sites": [
+        {
+          "path": "src/main/filesystem/watcher.js",
+          "line": 106
+        }
+      ]
+    },
+    {
+      "name": "mt::update-object-tree",
+      "direction": "main->renderer",
+      "transport": "send",
+      "sites": [
+        {
+          "path": "src/main/filesystem/watcher.js",
+          "line": 137
+        },
+        {
+          "path": "src/main/filesystem/watcher.js",
+          "line": 147
+        }
+      ]
+    },
+    {
+      "name": "mt::user-preference",
+      "direction": "main->renderer",
+      "transport": "send",
+      "sites": [
+        {
+          "path": "src/main/app/windowManager.js",
+          "line": 483
+        },
+        {
+          "path": "src/main/app/windowManager.js",
+          "line": 490
+        },
+        {
+          "path": "src/main/dataCenter/index.js",
+          "line": 167
+        },
+        {
+          "path": "src/main/preferences/index.js",
+          "line": 165
+        }
+      ]
+    },
+    {
+      "name": "mt::window-active-status",
+      "direction": "main->renderer",
+      "transport": "send",
+      "sites": [
+        {
+          "path": "src/main/windows/editor.js",
+          "line": 172
+        },
+        {
+          "path": "src/main/windows/editor.js",
+          "line": 178
+        },
+        {
+          "path": "src/main/windows/setting.js",
+          "line": 68
+        },
+        {
+          "path": "src/main/windows/setting.js",
+          "line": 74
+        }
+      ]
+    },
+    {
+      "name": "mt::window-zoom",
+      "direction": "main->renderer",
+      "transport": "send",
+      "sites": [
+        {
+          "path": "src/main/windows/utils.js",
+          "line": 8
+        },
+        {
+          "path": "src/main/windows/utils.js",
+          "line": 15
+        }
+      ]
+    },
+    {
+      "name": "settings::change-tab",
+      "direction": "main->renderer",
+      "transport": "send",
+      "sites": [
+        {
+          "path": "src/main/app/index.js",
+          "line": 602
+        }
+      ]
+    }
+  ]
+}

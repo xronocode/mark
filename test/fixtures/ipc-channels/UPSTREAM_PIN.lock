@@ -1,0 +1,129 @@
+{
+  "schema_version": 1,
+  "source_repo": "xronocode/mark",
+  "source_ref": "v1.2.3",
+  "source_commit": "e4d9e4210ee43aaad0d159e03e35be1e92524734",
+  "generated_at": "2026-04-28T09:33:32.152Z",
+  "files": [
+    {
+      "path": "src/main/app/index.js",
+      "blob_sha256": "1eccd967aa38d4f9feff50d637cd4c6ea8a12b262ba37f40d09f193d4269e71a",
+      "bytes": 25538
+    },
+    {
+      "path": "src/main/app/windowManager.js",
+      "blob_sha256": "1d529497aa48bf92f8aa4907c07ce6631a499c265616c2c00386f8972d3853e7",
+      "bytes": 18232
+    },
+    {
+      "path": "src/main/commands/file.js",
+      "blob_sha256": "a647404f720cae5bbf0642e8997086167586600be6832da64214b8982b06be22",
+      "bytes": 307
+    },
+    {
+      "path": "src/main/commands/tab.js",
+      "blob_sha256": "3e84c825c0eecb0a9598e5d0f0c3191eb21a26b8118c45fc96035e7f3a000b6d",
+      "bytes": 1601
+    },
+    {
+      "path": "src/main/contextMenu/editor/menuItems.js",
+      "blob_sha256": "514d83d2cec67cfc689fe5b3b6e4f75f84f6710fcf3b1efe8da044d506fcccd3",
+      "bytes": 2023
+    },
+    {
+      "path": "src/main/contextMenu/editor/spellcheck.js",
+      "blob_sha256": "3ae630122dc985313a7734f4000ff821155e8ed8a6206321e7a59d1df7f8b9f8",
+      "bytes": 2189
+    },
+    {
+      "path": "src/main/dataCenter/index.js",
+      "blob_sha256": "5f1ebe5adfffea762c9640bd00bf59f1ad62303668f5215fcfda50d1bf16667c",
+      "bytes": 5829
+    },
+    {
+      "path": "src/main/filesystem/watcher.js",
+      "blob_sha256": "665c18f3bfb4d0bbaa5863c7e2ed0d8b8c99e0f7478544fc002ad353a362fc17",
+      "bytes": 12023
+    },
+    {
+      "path": "src/main/imageUpload/index.js",
+      "blob_sha256": "01a660ce9cca6b4150a2563b29a8580109838eb0a022f3d02d08f5932349a847",
+      "bytes": 6582
+    },
+    {
+      "path": "src/main/keyboard/index.js",
+      "blob_sha256": "ac238451ca2520168fbabf505d5aa809fcd03ac0bfef88e30e6839969f0eb868",
+      "bytes": 2181
+    },
+    {
+      "path": "src/main/menu/actions/edit.js",
+      "blob_sha256": "ecd55662bd4184e6683c9b04970bdc06d9aae8c5ec87e0e5cad5ba730a076be9",
+      "bytes": 4642
+    },
+    {
+      "path": "src/main/menu/actions/file.js",
+      "blob_sha256": "78dab90c12ce5e7a73defe877092b0a38c35e59edef9f61729cc1ca3b9031840",
+      "bytes": 21068
+    },
+    {
+      "path": "src/main/menu/actions/format.js",
+      "blob_sha256": "ba67808a39fa682fdde9df9c0f8cc7de0d70c264e8a3b0ce8bf8b164326b0c46",
+      "bytes": 2785
+    },
+    {
+      "path": "src/main/menu/actions/help.js",
+      "blob_sha256": "12660f8b8d53214f8b486d367ea3a62a9fcd0d8eb17ef128ccfbea75b893b941",
+      "bytes": 254
+    },
+    {
+      "path": "src/main/menu/actions/marktext.js",
+      "blob_sha256": "55fd7279747949a6d004cc3994a2b2cb5b917c08c6da8ea199c37e755d3df122",
+      "bytes": 2400
+    },
+    {
+      "path": "src/main/menu/actions/paragraph.js",
+      "blob_sha256": "392c230187831916afb6af7688cfdfe82cbd6e91532778ff82571110de12f153",
+      "bytes": 7980
+    },
+    {
+      "path": "src/main/menu/actions/view.js",
+      "blob_sha256": "2ca756620f80dd88c8ed2311c25301c0eb465207186aa2a75f5620dd1efa26f4",
+      "bytes": 3917
+    },
+    {
+      "path": "src/main/menu/index.js",
+      "blob_sha256": "aa46cff15a784110f17788ab9e24a7029ce7bdafc6f39fd55ea7060868778bdf",
+      "bytes": 14650
+    },
+    {
+      "path": "src/main/preferences/index.js",
+      "blob_sha256": "0db8cf854f00b7ef6157ee03a1166378053320b6ee56001021d795ea917a6cb1",
+      "bytes": 6401
+    },
+    {
+      "path": "src/main/search/index.js",
+      "blob_sha256": "262588877c2d09e02f13a95a29a2f9c5110a8e48af571a0f5196c972ec31f056",
+      "bytes": 13067
+    },
+    {
+      "path": "src/main/spellchecker/index.js",
+      "blob_sha256": "bf50e6c2ef4138e1f2e77eb5f29538622e275ad89ad4d13b63421fbcfe7386e7",
+      "bytes": 3619
+    },
+    {
+      "path": "src/main/windows/editor.js",
+      "blob_sha256": "51cb4959a837cfba22a6ab4c3aeb3c7df6ce6dbf14d1f9f297705ed246ad6949",
+      "bytes": 20231
+    },
+    {
+      "path": "src/main/windows/setting.js",
+      "blob_sha256": "7feaadd13712d59260969044348e24911b08b9fd280abf258c4dc4894eb46baa",
+      "bytes": 3591
+    },
+    {
+      "path": "src/main/windows/utils.js",
+      "blob_sha256": "5239895c25888361ff918891d3627978133e09d9897dcc636382c1ebf5190fce",
+      "bytes": 1982
+    }
+  ]
+}
