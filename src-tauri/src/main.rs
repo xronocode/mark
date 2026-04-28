@@ -4,6 +4,7 @@
 mod cancel_log;
 mod dialog;
 mod legacy;
+mod m013b;
 mod migration_strings;
 mod mt_paths;
 mod prefs;
@@ -120,7 +121,22 @@ fn main() {
         eprintln!("[main][bootstrap][BLOCK_NO_MIGRATION_NEEDED]");
     }
 
+    // Phase-B1 step-6: register M-013b stub commands. All return
+    // Err(IpcError::not_implemented) until B2 ships real impls.
+    // Renderer M-013a maps the structured error to IpcErrorCode for
+    // call sites to handle gracefully (V-M-013b: never panic).
     tauri::Builder::default()
+        .invoke_handler(tauri::generate_handler![
+            m013b::fs::mt_fs_read,
+            m013b::fs::mt_fs_write,
+            m013b::fs::mt_fs_stat,
+            m013b::fs::mt_fs_readdir,
+            m013b::fs::mt_fs_unlink,
+            m013b::search::mt_search_spawn,
+            m013b::search::mt_search_cancel,
+            m013b::watch::mt_watch_subscribe,
+            m013b::watch::mt_watch_unsubscribe,
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
