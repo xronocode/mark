@@ -8,7 +8,6 @@ src-tauri/gen/schemas/
 node_modules/
 dist/
 src/renderer/dist/
-package-lock.json
 
 # OS / editor cruft
 .DS_Store
