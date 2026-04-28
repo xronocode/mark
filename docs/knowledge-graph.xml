@@ -130,16 +130,32 @@
       </annotations>
     </M-009>
 
-    <M-010 NAME="mt-security" TYPE="UTILITY" STATUS="planned">
-      <purpose>Path sandbox, URL whitelist, HTML sanitization, and shell.open confirmation gating (fixes CVE-2023-2318 #3621 and #4177).</purpose>
-      <path>src-tauri/src/security.rs</path>
+    <M-010 NAME="mt-security" TYPE="UTILITY" STATUS="backend-stub-shipped" PHASE-REF="B2-step-1">
+      <purpose>Backend security primitives: path sandbox (lexical + canonical, rejects traversal/symlink-escape/NUL/overlong), URL scheme allowlist (http/https/file: only; rejects javascript:, data:, vbscript:, mt://, tab/CRLF-smuggled variants), shell-open executable-extension blocklist. Renderer-side concerns (HTML sanitizer / KaTeX / Vega / punycode warning / shell.open user-confirm prompt) deferred to Phase-B3.</purpose>
+      <path>src-tauri/src/m010_security.rs</path>
       <depends>none</depends>
       <verification-ref>V-M-010</verification-ref>
       <annotations>
-        <fn-sec_check_path PURPOSE="Reject path traversal / workspace escape" />
-        <fn-sec_sanitize_html PURPOSE="Strip dangerous nodes/attributes (XSS fix)" />
-        <fn-sec_confirm_shell_open PURPOSE="Prompt user before external shell invocation" />
+        <fn-check_path PURPOSE="Reject NUL/overlong/traversal/symlink-escape; canonicalize when both paths exist; emit BLOCK_NUL_OR_OVERLONG / BLOCK_REJECT_TRAVERSAL / BLOCK_SYMLINK_ESCAPES" />
+        <fn-check_url_scheme PURPOSE="Allowlist http/https/file; strip control chars + whitespace before scheme parse to defeat tab/CRLF smuggling; emit BLOCK_SCHEME scheme=&lt;name&gt;" />
+        <fn-check_shell_open_extension PURPOSE="Block .command/.app/.scpt/.scptd/.lnk/.url/.desktop/.applescript regardless of sandbox; emit BLOCK_EXECUTABLE_EXT ext=&lt;name&gt;" />
+        <fn-lexical_normalize PURPOSE="Internal: fold . and .. against parent components without touching FS; returns None on root-escape" />
+        <fn-extract_scheme PURPOSE="Internal: pull scheme from URL string, control-char-stripped + lowercased" />
+        <type-SecurityError PURPOSE="7-variant enum: NulByteInPath, OverlongPath, PathTraversal, SymlinkEscapesSandbox, DisallowedUrlScheme, DangerousShellOpenExtension, IoError. Display + Error impls." />
+        <const-MAX_PATH_BYTES PURPOSE="POSIX PATH_MAX=4096 ceiling; rejected before any syscall" />
+        <const-ALLOWED_URL_SCHEMES PURPOSE="['http', 'https', 'file'] — caller still sandbox-checks file:// targets" />
+        <const-DANGEROUS_SHELL_OPEN_EXTENSIONS PURPOSE="8 entries covering macOS+Linux+cross-platform; Windows .bat/.cmd/.ps1/.vbs added when Windows port lands" />
       </annotations>
+      <stub-ship-evidence commit="B2-step-1" date="2026-04-28">
+        <files-shipped>src-tauri/src/m010_security.rs (335 LOC)</files-shipped>
+        <verification>cargo test --bin mark m010_security = 23 passed; full suite 118 passed (95 baseline + 23 m010); cargo build --release zero warnings (after #![allow(dead_code)] for stub-surface acknowledgement, same pattern as m001_lifecycle)</verification>
+        <coverage-vs-V-M-010>
+          <covered>scenario-2 file:// outside sandbox refused; scenario-4 path traversal rejected; scenario-7 case-fold partial (canonicalize-based); scenario-10 (BOM) NOT covered — renderer concern; ec NUL/overlong; ec symlink-escape post-canonicalize; ec URL schemes (8 categories); ec executable-ext.</covered>
+          <not-covered-renderer-side>scenario-1 (CVE-2023-2318 script tag) — DOMPurify renderer; scenario-3 (shell.open user confirm prompt) — needs Tauri runtime; scenario-5 (DOMPurify config parity) — renderer; scenario-6 (22 fixture-xss payloads) — renderer; scenario-8 (KaTeX javascript:) — renderer; scenario-9 (Vega expression) — renderer.</not-covered-renderer-side>
+          <not-covered-windows>ec Windows UNC + device-namespace; ec Windows case-fold traversal — both deferred to v2.1+ (Windows port).</not-covered-windows>
+        </coverage-vs-V-M-010>
+        <log-markers-shipped>BLOCK_NUL_OR_OVERLONG, BLOCK_REJECT_TRAVERSAL, BLOCK_SYMLINK_ESCAPES, BLOCK_SCHEME, BLOCK_EXECUTABLE_EXT</log-markers-shipped>
+      </stub-ship-evidence>
     </M-010>
 
     <M-011 NAME="mt-renderer" TYPE="UI_COMPONENT" STATUS="partial">
