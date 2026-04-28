@@ -263,17 +263,34 @@
       </stub-ship-evidence>
     </M-013a>
 
-    <M-013b NAME="mt-ipc-runtime" TYPE="UTILITY" STATUS="planned">
-      <purpose>Runtime frontend IPC facade exporting Electron-era command parity and Tauri replacements for clipboard/window/menu/dialog.</purpose>
-      <path>src/renderer/src/ipc/runtime/</path>
+    <M-013b NAME="mt-ipc-runtime" TYPE="UTILITY" STATUS="backend-stub-shipped" PHASE-REF="B1-step-6">
+      <purpose>Runtime IPC facade owning BOTH sides of the channel boundary: backend Rust #[tauri::command] handlers (signatures stable, real impls in B2/B3) AND frontend ipc/runtime/ namespace exporting Electron-era command parity (clipboard, window, menu, dialog) on top of M-013a's typed invoke wrapper.</purpose>
+      <path frontend="src/renderer/src/ipc/runtime/" backend="src-tauri/src/m013b/" />
       <depends>M-013a, M-002, M-003, M-004, M-005, M-006, M-007, M-008, M-009, M-010, M-014, M-015, M-016, M-017, M-018, M-019</depends>
       <verification-ref>V-M-013b</verification-ref>
       <annotations>
-        <export-ipc PURPOSE="Facade namespaces for runtime commands and events" />
-        <fn-ipcClipboard PURPOSE="@electron/remote.clipboard replacement" />
-        <fn-ipcWindow PURPOSE="@electron/remote.getCurrentWindow replacement" />
-        <fn-ipcContextMenu PURPOSE="@electron/remote.Menu/MenuItem replacement" />
+        <export-ipc PURPOSE="Facade namespaces for runtime commands and events (frontend; planned B2)" />
+        <fn-ipcClipboard PURPOSE="@electron/remote.clipboard replacement (frontend; planned B2)" />
+        <fn-ipcWindow PURPOSE="@electron/remote.getCurrentWindow replacement (frontend; planned B2)" />
+        <fn-ipcContextMenu PURPOSE="@electron/remote.Menu/MenuItem replacement (frontend; planned B2)" />
+        <type-IpcError PURPOSE="Backend Rust structured error envelope: {code, message, command, planned_phase}; serializes to JSON for renderer M-013a" />
+        <fn-mt_fs_read PURPOSE="Backend stub for mt::fs::read; planned_phase B2-step-2 (M-002)" />
+        <fn-mt_fs_write PURPOSE="Backend stub for mt::fs::write; planned_phase B2-step-2 (M-002)" />
+        <fn-mt_fs_stat PURPOSE="Backend stub for mt::fs::stat; returns FsStat plain shape mirroring v1.2.3 contextBridge structured-clone-safe return; planned_phase B2-step-2 (M-002)" />
+        <fn-mt_fs_readdir PURPOSE="Backend stub for mt::fs::readdir; planned_phase B2-step-2 (M-002)" />
+        <fn-mt_fs_unlink PURPOSE="Backend stub for mt::fs::unlink; planned_phase B2-step-2 (M-002)" />
+        <fn-mt_search_spawn PURPOSE="Backend stub for mt::search::spawn; planned_phase B2-step-4 (M-004)" />
+        <fn-mt_search_cancel PURPOSE="Backend stub for mt::search::cancel; planned_phase B2-step-4 (M-004)" />
+        <fn-mt_watch_subscribe PURPOSE="Backend stub for mt::watch::subscribe; planned_phase B2-step-3 (M-003)" />
+        <fn-mt_watch_unsubscribe PURPOSE="Backend stub for mt::watch::unsubscribe; planned_phase B2-step-3 (M-003)" />
       </annotations>
+      <stub-ship-evidence commit="step-6" date="2026-04-28">
+        <files>src-tauri/src/m013b/{error,fs,search,watch,mod}.rs (435 LOC) + tauri::generate_handler! registration in main.rs</files>
+        <verification>cargo test --bin mark = 61 passed (47 baseline + 14 m013b: 3 error + 5 fs + 3 search + 2 watch + 1 mod); zero panic/unwrap/expect in production code paths</verification>
+        <log-markers-shipped>9 [m013b][${kind}][BLOCK_MT_${KIND}_${ACTION}_NOT_IMPLEMENTED] markers (one per command)</log-markers-shipped>
+        <known-gap>Tauri command name limitation: Rust function names can't contain `::`; M-013a CommandName 'mt::*' must translate to 'mt_*' before ipcInvoke. B1 step-6.5 follow-up adds translation in invoke.ts.</known-gap>
+        <frontend-status>Frontend ipc/runtime/ namespace (ipcClipboard / ipcWindow / ipcContextMenu) is still planned — lands in Phase-B2 once M-013b backend grows real fs/search/watch impls.</frontend-status>
+      </stub-ship-evidence>
     </M-013b>
 
     <M-021 NAME="mt-fs-core" TYPE="CORE_LOGIC" STATUS="planned">
