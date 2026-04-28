@@ -5,9 +5,9 @@
     "file": "src/renderer/src/ipc/contract/types.ts",
     "generated_from": "CommandMap interface"
   },
-  "generated_at": "2026-04-28T09:35:43.130Z",
+  "generated_at": "2026-04-28T10:11:16.206Z",
   "counts": {
-    "commands": 1,
+    "commands": 10,
     "error_codes": 4
   },
   "error_codes": [
@@ -18,7 +18,79 @@
   ],
   "channels": [
     {
+      "name": "mt::fs::read",
+      "direction": "renderer->main",
+      "transport": "invoke",
+      "layer": "M-013a",
+      "has_args": true,
+      "has_result": true
+    },
+    {
+      "name": "mt::fs::readdir",
+      "direction": "renderer->main",
+      "transport": "invoke",
+      "layer": "M-013a",
+      "has_args": true,
+      "has_result": true
+    },
+    {
+      "name": "mt::fs::stat",
+      "direction": "renderer->main",
+      "transport": "invoke",
+      "layer": "M-013a",
+      "has_args": true,
+      "has_result": true
+    },
+    {
+      "name": "mt::fs::unlink",
+      "direction": "renderer->main",
+      "transport": "invoke",
+      "layer": "M-013a",
+      "has_args": true,
+      "has_result": true
+    },
+    {
+      "name": "mt::fs::write",
+      "direction": "renderer->main",
+      "transport": "invoke",
+      "layer": "M-013a",
+      "has_args": true,
+      "has_result": true
+    },
+    {
       "name": "mt::ping",
+      "direction": "renderer->main",
+      "transport": "invoke",
+      "layer": "M-013a",
+      "has_args": true,
+      "has_result": true
+    },
+    {
+      "name": "mt::search::cancel",
+      "direction": "renderer->main",
+      "transport": "invoke",
+      "layer": "M-013a",
+      "has_args": true,
+      "has_result": true
+    },
+    {
+      "name": "mt::search::spawn",
+      "direction": "renderer->main",
+      "transport": "invoke",
+      "layer": "M-013a",
+      "has_args": true,
+      "has_result": true
+    },
+    {
+      "name": "mt::watch::subscribe",
+      "direction": "renderer->main",
+      "transport": "invoke",
+      "layer": "M-013a",
+      "has_args": true,
+      "has_result": true
+    },
+    {
+      "name": "mt::watch::unsubscribe",
       "direction": "renderer->main",
       "transport": "invoke",
       "layer": "M-013a",

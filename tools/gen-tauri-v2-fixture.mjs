@@ -56,7 +56,7 @@ function extractCommandMap(src) {
   // Each entry: `'mt::name': { args: ..., result: ... }`.
   // We only need the names + a structural marker that args/result exist.
   const entries = []
-  const re = /['"](mt::[a-z0-9_]+)['"]\s*:\s*\{/g
+  const re = /['"](mt(?:::[a-z0-9_]+)+)['"]\s*:\s*\{/g
   let m
   while ((m = re.exec(body))) entries.push(m[1])
   return entries
@@ -67,7 +67,7 @@ function extractCommandNameUnion(src) {
   if (!m) throw new Error('no CommandName export found in types.ts')
   const lit = m[1]
   const names = []
-  const re = /['"](mt::[a-z0-9_]+)['"]/g
+  const re = /['"](mt(?:::[a-z0-9_]+)+)['"]/g
   let n
   while ((n = re.exec(lit))) names.push(n[1])
   return names

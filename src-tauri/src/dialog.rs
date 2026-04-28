@@ -72,6 +72,21 @@ pub fn ask_migration(strings: &MigrationStrings, body: &str) -> DialogChoice {
     choice
 }
 
+/// Single-button error dialog. Used by M-001 BLOCK_VALIDATE_AGAINST_FIXTURE
+/// and the panic hook (B1 step-10). Title is shown in the OS dialog
+/// chrome; description carries the diagnostic body. Always returns —
+/// never panics — so callers can decide their own exit code.
+pub fn ask_native_error(title: &str, body: &str) {
+    eprintln!("[dialog][ask_native_error][BLOCK_DIALOG_OPEN title={title}]");
+    let _ = MessageDialog::new()
+        .set_level(MessageLevel::Error)
+        .set_title(title)
+        .set_description(body)
+        .set_buttons(MessageButtons::Ok)
+        .show();
+    eprintln!("[dialog][ask_native_error][BLOCK_DIALOG_CLOSED]");
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

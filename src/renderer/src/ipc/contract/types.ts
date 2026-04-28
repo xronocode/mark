@@ -48,24 +48,115 @@ export class IpcError extends Error {
 }
 
 /**
- * Phase-B1 stub command set. Real entries land in B2/B3 as each Rust-side
- * `#[tauri::command]` ships. The `mt::ping` entry exists so the typecheck
- * self-test in invoke.test.ts has a deterministic name to assert against.
+ * Command name set. Each entry pairs with a Rust `#[tauri::command]`
+ * handler in src-tauri/src/m013b/. The `::` separator is namespace-only;
+ * invoke.ts translates it to `_` before calling tauriInvoke (Tauri 2
+ * requires Rust-identifier names).
  *
  * Pattern: every command name MUST start with `mt::` and use lowercase
- * snake_case for the suffix. CI grep enforces this in V-M-013a.
+ * snake_case for each segment. CI grep enforces this in V-M-013a.
+ *
+ * Phase-B1 stub state: 9 commands registered (5 fs + 2 search + 2 watch)
+ * + 1 typecheck-only ping. All handlers return Err(MT_NOT_IMPLEMENTED)
+ * until Phase-B2 ships real impls in M-002 / M-003 / M-004.
  */
-export type CommandName = 'mt::ping'
+export type CommandName =
+  | 'mt::ping'
+  | 'mt::fs::read'
+  | 'mt::fs::write'
+  | 'mt::fs::stat'
+  | 'mt::fs::readdir'
+  | 'mt::fs::unlink'
+  | 'mt::search::spawn'
+  | 'mt::search::cancel'
+  | 'mt::watch::subscribe'
+  | 'mt::watch::unsubscribe'
 
 /**
- * Generic payload→result map. Phase-B1 only declares the ping pair; later
- * steps extend by intersecting:
- *   type CommandMap = PingMap & FsMap & SearchMap & ...
+ * Plain JSON-cloneable file stats. Mirrors v1.2.3's contextBridge
+ * structured-clone-safe shape (preload step-8z follow-up commit
+ * 99cb11d2) so renderer callers don't need to differentiate between
+ * Tauri-era and Electron-era stat returns.
+ */
+export interface FsStat {
+  size: number
+  mode: number
+  mtimeMs: number
+  isFile: boolean
+  isDirectory: boolean
+  isSymbolicLink: boolean
+}
+
+/**
+ * v1's RipgrepDirectorySearcher options after _serializeOptions
+ * whitelist (post-JSON-flatten in v1.2.3 ripgrepSearcher fix).
+ * camelCase matches the Rust-side serde rename_all attribute.
+ */
+export interface SearchOptions {
+  isRegexp?: boolean
+  isCaseSensitive?: boolean
+  isWholeWord?: boolean
+  followSymlinks?: boolean
+  maxFileSize?: number
+  includeHidden?: boolean
+  noIgnore?: boolean
+  leadingContextLineCount?: number
+  trailingContextLineCount?: number
+  inclusions?: string[]
+  exclusions?: string[]
+}
+
+/**
+ * Per-command args/result pairs. Extended each phase as M-013b grows
+ * real impls. Empty args use `Record<string, never>` so a renderer
+ * caller is forced to pass `{}` rather than rely on undefined.
  */
 export interface CommandMap {
   'mt::ping': {
     args: { nonce?: string }
     result: { pong: true; nonce: string | undefined }
+  }
+  'mt::fs::read': {
+    args: { path: string }
+    result: string
+  }
+  'mt::fs::write': {
+    args: { path: string; content: string }
+    result: void
+  }
+  'mt::fs::stat': {
+    args: { path: string }
+    result: FsStat
+  }
+  'mt::fs::readdir': {
+    args: { path: string }
+    result: string[]
+  }
+  'mt::fs::unlink': {
+    args: { path: string }
+    result: void
+  }
+  'mt::search::spawn': {
+    args: {
+      searchId: string
+      mode: string
+      directories: string[]
+      pattern: string
+      options?: SearchOptions
+    }
+    result: void
+  }
+  'mt::search::cancel': {
+    args: { searchId: string }
+    result: void
+  }
+  'mt::watch::subscribe': {
+    args: { path: string; recursive?: boolean }
+    result: string
+  }
+  'mt::watch::unsubscribe': {
+    args: { subscriptionId: string }
+    result: void
   }
 }
 

@@ -4,6 +4,7 @@
 mod cancel_log;
 mod dialog;
 mod legacy;
+mod m001_validate;
 mod m013b;
 mod migration_strings;
 mod mt_paths;
@@ -120,6 +121,14 @@ fn main() {
     } else {
         eprintln!("[main][bootstrap][BLOCK_NO_MIGRATION_NEEDED]");
     }
+
+    // Phase-B1 step-7: M-001 BLOCK_VALIDATE_AGAINST_FIXTURE on-boot
+    // parity check. Embedded test/fixtures/ipc-channels/tauri.v2.json
+    // is compared against the same command name set passed to
+    // tauri::generate_handler! below. Drift → native dialog + exit 1.
+    // Per V-M-001: never panic; this guards against silent
+    // contract violations sneaking past code review.
+    m001_validate::validate_or_exit();
 
     // Phase-B1 step-6: register M-013b stub commands. All return
     // Err(IpcError::not_implemented) until B2 ships real impls.
