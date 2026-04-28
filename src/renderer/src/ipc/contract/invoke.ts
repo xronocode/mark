@@ -104,7 +104,14 @@ export async function ipcInvoke<C extends CommandName>(
   }
 
   try {
-    const invokePromise = tauriInvoke<CommandResult<C>>(command, args as Record<string, unknown>)
+    // B1 step-6.5: Tauri command names can't contain `::` (Rust function
+    // identifier rule). M-013a CommandName uses `mt::ping`-style for
+    // namespace clarity at the contract level; translate to `mt_ping`
+    // before invoking. Preserves the contract surface while satisfying
+    // Tauri 2's #[tauri::command] naming. M-013b backend handlers are
+    // named accordingly (mt_fs_read, mt_search_spawn, etc.).
+    const tauriCommand = command.replace(/::/g, '_')
+    const invokePromise = tauriInvoke<CommandResult<C>>(tauriCommand, args as Record<string, unknown>)
     const timeoutPromise = new Promise<never>((_, reject) => {
       if (timeoutMs === Infinity) return
       timeoutHandle = setTimeout(() => {
