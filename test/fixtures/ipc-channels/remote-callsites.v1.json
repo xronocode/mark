@@ -1,0 +1,59 @@
+{
+  "schema_version": 1,
+  "source": {
+    "repo": "xronocode/mark",
+    "ref": "v1.2.3",
+    "commit": "e4d9e4210ee43aaad0d159e03e35be1e92524734"
+  },
+  "purpose": "@electron/remote usage audit. v1.2.3 removed all active usage during the step-8 hardening track; surviving references are in comments documenting the removals. Active count MUST stay at 0 — any non-zero is a regression that breaks the contextIsolation:true guarantee.",
+  "counts": {
+    "total": 7,
+    "active": 0,
+    "historical": 7
+  },
+  "invariant": "counts.active === 0",
+  "callsites": [
+    {
+      "path": "src/renderer/src/commands/index.js",
+      "line": 2,
+      "kind": "historical",
+      "excerpt": "// step-8f: @electron/remote.getCurrentWindow removed. window.minimize"
+    },
+    {
+      "path": "src/renderer/src/components/titleBar/index.vue",
+      "line": 159,
+      "kind": "historical",
+      "excerpt": "// step-8g: @electron/remote.Menu also gone. Application-menu popup"
+    },
+    {
+      "path": "src/renderer/src/contextMenu/tabs/index.js",
+      "line": 1,
+      "kind": "historical",
+      "excerpt": "// step-8g: @electron/remote.Menu / MenuItem / getCurrentWindow gone."
+    },
+    {
+      "path": "src/renderer/src/prefComponents/common/titlebar.vue",
+      "line": 14,
+      "kind": "historical",
+      "excerpt": "// step-8f: @electron/remote.getCurrentWindow → mt::close-window IPC"
+    },
+    {
+      "path": "src/renderer/src/util/clipboard.js",
+      "line": 3,
+      "kind": "historical",
+      "excerpt": "// step-8e: @electron/remote.clipboard → window.electron.clipboard."
+    },
+    {
+      "path": "src/renderer/src/util/clipboard.js",
+      "line": 6,
+      "kind": "historical",
+      "excerpt": "// surface as @electron/remote.clipboard, but works without the"
+    },
+    {
+      "path": "src/renderer/src/util/clipboard.js",
+      "line": 7,
+      "kind": "historical",
+      "excerpt": "// @electron/remote shim and remains valid after step-8z flips"
+    }
+  ]
+}

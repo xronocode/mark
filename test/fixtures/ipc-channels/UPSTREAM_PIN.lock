@@ -76,6 +76,11 @@
       "bytes": 254
     },
     {
+      "path": "src/main/menu/actions/index.js",
+      "blob_sha256": "935bee7b2dbc76706a97cc4ed0ce2e522bb53b9409f0639651890e9847213017",
+      "bytes": 633
+    },
+    {
       "path": "src/main/menu/actions/marktext.js",
       "blob_sha256": "55fd7279747949a6d004cc3994a2b2cb5b917c08c6da8ea199c37e755d3df122",
       "bytes": 2400
@@ -86,14 +91,84 @@
       "bytes": 7980
     },
     {
+      "path": "src/main/menu/actions/theme.js",
+      "blob_sha256": "c57aabd2761892115d187935abffd8a4ca0aff1ba2bea4dd7ed9b51759234ad3",
+      "bytes": 252
+    },
+    {
       "path": "src/main/menu/actions/view.js",
       "blob_sha256": "2ca756620f80dd88c8ed2311c25301c0eb465207186aa2a75f5620dd1efa26f4",
       "bytes": 3917
     },
     {
+      "path": "src/main/menu/actions/window.js",
+      "blob_sha256": "2d08c8a829efe072be474c88ed3e0a62806741c397b913500831b8a12cc64913",
+      "bytes": 1066
+    },
+    {
       "path": "src/main/menu/index.js",
       "blob_sha256": "aa46cff15a784110f17788ab9e24a7029ce7bdafc6f39fd55ea7060868778bdf",
       "bytes": 14650
+    },
+    {
+      "path": "src/main/menu/templates/dock.js",
+      "blob_sha256": "e807c1f3f9d6c96ac9cb08f1ee9f78f23593bb937eeebafb600bcee87c981dcd",
+      "bytes": 405
+    },
+    {
+      "path": "src/main/menu/templates/edit.js",
+      "blob_sha256": "86b7bd3367a7e0ee17cb5a889a588216d232735695dc6ac0bfd763374e71a7ee",
+      "bytes": 5513
+    },
+    {
+      "path": "src/main/menu/templates/file.js",
+      "blob_sha256": "eafdb03a6e86799a25efbfa479a9aefffbd374681995cd231ec68d57513ad82e",
+      "bytes": 5121
+    },
+    {
+      "path": "src/main/menu/templates/format.js",
+      "blob_sha256": "209a72de72ae7683e39a33d00e219b201d8daf9659d7d53859dbe101ab102491",
+      "bytes": 3410
+    },
+    {
+      "path": "src/main/menu/templates/help.js",
+      "blob_sha256": "3bd3d3df1a6f5dff7dc622bffd71bbf1aad8a7efda822045de5b601254efc383",
+      "bytes": 2951
+    },
+    {
+      "path": "src/main/menu/templates/index.js",
+      "blob_sha256": "f778cb2cc029a25cd3cfd0141802c5414ab918f2f7e99807f121d2c40b3376fa",
+      "bytes": 1253
+    },
+    {
+      "path": "src/main/menu/templates/marktext.js",
+      "blob_sha256": "d0e10e674c2959df50f84c991ecb5c88f173e9af4aeea200e7d03ca3275a1526",
+      "bytes": 1500
+    },
+    {
+      "path": "src/main/menu/templates/paragraph.js",
+      "blob_sha256": "d43bc7cbc0e3157a1ba9c8bbd4924ff41bdcf0a6e920dc0c6ad3d3863f28679d",
+      "bytes": 5753
+    },
+    {
+      "path": "src/main/menu/templates/prefEdit.js",
+      "blob_sha256": "b2bc02043a8630e35c67d50f9c0b5cf02723209b14e9bf052adc62548376f18d",
+      "bytes": 672
+    },
+    {
+      "path": "src/main/menu/templates/theme.js",
+      "blob_sha256": "d8f65b0f48faaf9e61a0a16b7fe5d7f023d5976a46dbf908f78134e711f09478",
+      "bytes": 9985
+    },
+    {
+      "path": "src/main/menu/templates/view.js",
+      "blob_sha256": "6da1726c72872d45a77d9c5131abc2a961eb93eb12975172cd3c3a005f816911",
+      "bytes": 2966
+    },
+    {
+      "path": "src/main/menu/templates/window.js",
+      "blob_sha256": "66680dc90a86b4fed05504540194b02ea52dfd5bad9b0720ebbe1880e85cad2a",
+      "bytes": 2025
     },
     {
       "path": "src/main/preferences/index.js",
@@ -111,6 +186,11 @@
       "bytes": 3619
     },
     {
+      "path": "src/main/windows/base.js",
+      "blob_sha256": "0285ee842196791d3f8c037ea5370c0cbf2c3bf3b28eadb284a1b8f07d1542fc",
+      "bytes": 3548
+    },
+    {
       "path": "src/main/windows/editor.js",
       "blob_sha256": "51cb4959a837cfba22a6ab4c3aeb3c7df6ce6dbf14d1f9f297705ed246ad6949",
       "bytes": 20231
@@ -124,6 +204,36 @@
       "path": "src/main/windows/utils.js",
       "blob_sha256": "5239895c25888361ff918891d3627978133e09d9897dcc636382c1ebf5190fce",
       "bytes": 1982
+    },
+    {
+      "path": "src/preload/index.js",
+      "blob_sha256": "c44383a57c8dd033db35ed321bb8fcbaff10710f2b29e3cf45288ccfce72791b",
+      "bytes": 5748
+    },
+    {
+      "path": "src/renderer/src/commands/index.js",
+      "blob_sha256": "8ef3b071f670fb9303260579dd934290eb6554374dfb65770120abb11c4cc4c9",
+      "bytes": 17305
+    },
+    {
+      "path": "src/renderer/src/components/titleBar/index.vue",
+      "blob_sha256": "6a41925dd2eb4cbc99e15bb679c7046a5bef2c8798907db70ded2db0d212e858",
+      "bytes": 20157
+    },
+    {
+      "path": "src/renderer/src/contextMenu/tabs/index.js",
+      "blob_sha256": "4cf242eb67d8cd2a82bd5774ec1a888b1144a519a5866eebc6fcfd5a05d125a6",
+      "bytes": 1005
+    },
+    {
+      "path": "src/renderer/src/prefComponents/common/titlebar.vue",
+      "blob_sha256": "da44d37efc481e1bb8ae4bafc17324317b18b7e7265f869cb019201e6085113b",
+      "bytes": 1609
+    },
+    {
+      "path": "src/renderer/src/util/clipboard.js",
+      "blob_sha256": "39e7172fb48c222c778abf722ef417b2d57e98530a0f2ecc7fc4c4ad85a59d04",
+      "bytes": 1366
     }
   ]
 }

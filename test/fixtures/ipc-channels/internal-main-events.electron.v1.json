@@ -1,0 +1,385 @@
+{
+  "schema_version": 1,
+  "source": {
+    "repo": "xronocode/mark",
+    "ref": "v1.2.3",
+    "commit": "e4d9e4210ee43aaad0d159e03e35be1e92524734"
+  },
+  "purpose": "Internal main-process event bus. NOT IPC — events that stay inside main and never cross the renderer boundary. Captures emit() callsites only; listener callsites omitted as high-noise.",
+  "counts": {
+    "events": 31
+  },
+  "events": [
+    {
+      "name": "activeWindowChanged",
+      "sites": [
+        {
+          "path": "src/main/app/windowManager.js",
+          "line": 159
+        }
+      ]
+    },
+    {
+      "name": "app-create-editor-window",
+      "sites": [
+        {
+          "path": "src/main/menu/actions/file.js",
+          "line": 637
+        }
+      ]
+    },
+    {
+      "name": "app-create-settings-window",
+      "sites": [
+        {
+          "path": "src/main/contextMenu/editor/spellcheck.js",
+          "line": 62
+        },
+        {
+          "path": "src/main/menu/actions/marktext.js",
+          "line": 67
+        }
+      ]
+    },
+    {
+      "name": "app-open-directory-by-id",
+      "sites": [
+        {
+          "path": "src/main/menu/actions/file.js",
+          "line": 466
+        },
+        {
+          "path": "src/main/menu/actions/file.js",
+          "line": 623
+        }
+      ]
+    },
+    {
+      "name": "app-open-file-by-id",
+      "sites": [
+        {
+          "path": "src/main/menu/actions/file.js",
+          "line": 621
+        }
+      ]
+    },
+    {
+      "name": "app-open-files-by-id",
+      "sites": [
+        {
+          "path": "src/main/menu/actions/file.js",
+          "line": 604
+        }
+      ]
+    },
+    {
+      "name": "app-open-markdown-by-id",
+      "sites": [
+        {
+          "path": "src/main/menu/actions/file.js",
+          "line": 208
+        }
+      ]
+    },
+    {
+      "name": "broadcast-preferences-changed",
+      "sites": [
+        {
+          "path": "src/main/preferences/index.js",
+          "line": 122
+        }
+      ]
+    },
+    {
+      "name": "broadcast-user-data-changed",
+      "sites": [
+        {
+          "path": "src/main/dataCenter/index.js",
+          "line": 129
+        }
+      ]
+    },
+    {
+      "name": "broadcast-web-image-added",
+      "sites": [
+        {
+          "path": "src/main/dataCenter/index.js",
+          "line": 95
+        }
+      ]
+    },
+    {
+      "name": "broadcast-web-image-removed",
+      "sites": [
+        {
+          "path": "src/main/dataCenter/index.js",
+          "line": 105
+        }
+      ]
+    },
+    {
+      "name": "menu-add-recently-used",
+      "sites": [
+        {
+          "path": "src/main/menu/actions/file.js",
+          "line": 150
+        },
+        {
+          "path": "src/main/menu/actions/file.js",
+          "line": 297
+        }
+      ]
+    },
+    {
+      "name": "menu-clear-recently-used",
+      "sites": [
+        {
+          "path": "src/main/menu/actions/file.js",
+          "line": 688
+        }
+      ]
+    },
+    {
+      "name": "screen-capture",
+      "sites": [
+        {
+          "path": "src/main/app/index.js",
+          "line": 757
+        },
+        {
+          "path": "src/main/menu/actions/edit.js",
+          "line": 119
+        }
+      ]
+    },
+    {
+      "name": "set-user-preference",
+      "sites": [
+        {
+          "path": "src/main/menu/actions/file.js",
+          "line": 672
+        },
+        {
+          "path": "src/main/menu/actions/theme.js",
+          "line": 4
+        },
+        {
+          "path": "src/main/menu/actions/theme.js",
+          "line": 8
+        }
+      ]
+    },
+    {
+      "name": "watcher-unwatch-all-by-id",
+      "sites": [
+        {
+          "path": "src/main/windows/editor.js",
+          "line": 503
+        }
+      ]
+    },
+    {
+      "name": "watcher-unwatch-directory",
+      "sites": [
+        {
+          "path": "src/main/windows/editor.js",
+          "line": 344
+        },
+        {
+          "path": "src/main/windows/editor.js",
+          "line": 417
+        }
+      ]
+    },
+    {
+      "name": "watcher-unwatch-file",
+      "sites": [
+        {
+          "path": "src/main/windows/editor.js",
+          "line": 448
+        },
+        {
+          "path": "src/main/windows/editor.js",
+          "line": 463
+        }
+      ]
+    },
+    {
+      "name": "watcher-watch-directory",
+      "sites": [
+        {
+          "path": "src/main/windows/editor.js",
+          "line": 387
+        }
+      ]
+    },
+    {
+      "name": "watcher-watch-file",
+      "sites": [
+        {
+          "path": "src/main/windows/editor.js",
+          "line": 430
+        },
+        {
+          "path": "src/main/windows/editor.js",
+          "line": 449
+        },
+        {
+          "path": "src/main/windows/editor.js",
+          "line": 583
+        }
+      ]
+    },
+    {
+      "name": "window-add-file-path",
+      "sites": [
+        {
+          "path": "src/main/menu/actions/file.js",
+          "line": 149
+        },
+        {
+          "path": "src/main/menu/actions/file.js",
+          "line": 296
+        }
+      ]
+    },
+    {
+      "name": "window-blur",
+      "sites": [
+        {
+          "path": "src/main/windows/editor.js",
+          "line": 177
+        },
+        {
+          "path": "src/main/windows/setting.js",
+          "line": 73
+        }
+      ]
+    },
+    {
+      "name": "window-change-file-path",
+      "sites": [
+        {
+          "path": "src/main/menu/actions/file.js",
+          "line": 303
+        },
+        {
+          "path": "src/main/menu/actions/file.js",
+          "line": 405
+        },
+        {
+          "path": "src/main/menu/actions/file.js",
+          "line": 447
+        }
+      ]
+    },
+    {
+      "name": "window-close",
+      "sites": [
+        {
+          "path": "src/main/windows/editor.js",
+          "line": 188
+        },
+        {
+          "path": "src/main/windows/setting.js",
+          "line": 78
+        }
+      ]
+    },
+    {
+      "name": "window-close-by-id",
+      "sites": [
+        {
+          "path": "src/main/menu/actions/file.js",
+          "line": 343
+        },
+        {
+          "path": "src/main/menu/actions/file.js",
+          "line": 358
+        },
+        {
+          "path": "src/main/menu/actions/file.js",
+          "line": 363
+        },
+        {
+          "path": "src/main/windows/setting.js",
+          "line": 81
+        }
+      ]
+    },
+    {
+      "name": "window-closed",
+      "sites": [
+        {
+          "path": "src/main/windows/base.js",
+          "line": 59
+        },
+        {
+          "path": "src/main/windows/editor.js",
+          "line": 199
+        },
+        {
+          "path": "src/main/windows/setting.js",
+          "line": 86
+        }
+      ]
+    },
+    {
+      "name": "window-file-saved",
+      "sites": [
+        {
+          "path": "src/main/menu/actions/file.js",
+          "line": 155
+        },
+        {
+          "path": "src/main/menu/actions/file.js",
+          "line": 308
+        }
+      ]
+    },
+    {
+      "name": "window-focus",
+      "sites": [
+        {
+          "path": "src/main/windows/editor.js",
+          "line": 171
+        },
+        {
+          "path": "src/main/windows/setting.js",
+          "line": 67
+        }
+      ]
+    },
+    {
+      "name": "window-ready",
+      "sites": [
+        {
+          "path": "src/main/windows/editor.js",
+          "line": 105
+        },
+        {
+          "path": "src/main/windows/setting.js",
+          "line": 63
+        }
+      ]
+    },
+    {
+      "name": "window-reload-by-id",
+      "sites": [
+        {
+          "path": "src/main/menu/actions/view.js",
+          "line": 33
+        }
+      ]
+    },
+    {
+      "name": "window-toggle-always-on-top",
+      "sites": [
+        {
+          "path": "src/main/menu/actions/window.js",
+          "line": 19
+        }
+      ]
+    }
+  ]
+}

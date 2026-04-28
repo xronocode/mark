@@ -1,0 +1,45 @@
+{
+  "schema_version": 1,
+  "source": {
+    "repo": "xronocode/mark",
+    "ref": "v1.2.3",
+    "commit": "e4d9e4210ee43aaad0d159e03e35be1e92524734",
+    "file": "src/preload/index.js"
+  },
+  "purpose": "v1.2.3 preload contextBridge surface. Each entry is a window.* property the renderer can use; M-013b must emulate the same API surface so renderer code transfers without changes (variant-(a) port decision).",
+  "counts": {
+    "surfaces": 6
+  },
+  "surfaces": [
+    {
+      "name": "commandExists",
+      "window_path": "window.commandExists",
+      "line": 143
+    },
+    {
+      "name": "electron",
+      "window_path": "window.electron",
+      "line": 136
+    },
+    {
+      "name": "fileUtils",
+      "window_path": "window.fileUtils",
+      "line": 141
+    },
+    {
+      "name": "i18nUtils",
+      "window_path": "window.i18nUtils",
+      "line": 144
+    },
+    {
+      "name": "path",
+      "window_path": "window.path",
+      "line": 142
+    },
+    {
+      "name": "rgPath",
+      "window_path": "window.rgPath",
+      "line": 140
+    }
+  ]
+}

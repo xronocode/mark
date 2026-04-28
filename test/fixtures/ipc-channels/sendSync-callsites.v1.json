@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "source": {
+    "repo": "xronocode/mark",
+    "ref": "v1.2.3",
+    "commit": "e4d9e4210ee43aaad0d159e03e35be1e92524734"
+  },
+  "purpose": "ipcRenderer.sendSync callsites. Tauri has no synchronous-invoke equivalent; every active callsite must be converted to ipcRenderer.invoke (async) before Phase-B3a alpha cut. v1.2.3 audit established 0 active callsites.",
+  "counts": {
+    "total": 0
+  },
+  "invariant": "counts.total === 0",
+  "callsites": []
+}

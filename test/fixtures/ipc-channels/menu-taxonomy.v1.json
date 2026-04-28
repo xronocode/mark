@@ -1,0 +1,117 @@
+{
+  "schema_version": 1,
+  "source": {
+    "repo": "xronocode/mark",
+    "ref": "v1.2.3",
+    "commit": "e4d9e4210ee43aaad0d159e03e35be1e92524734"
+  },
+  "purpose": "v1.2.3 native menu structural map. Lists template files (top-level menus: File, Edit, Format, Paragraph, Theme, View, Window, Help, MarkText, prefEdit) + action files (handlers). Deep label/accelerator parsing deferred to M-009 implementation in Phase-B3 step-12.",
+  "counts": {
+    "templates": 12,
+    "actions": 10
+  },
+  "templates": [
+    {
+      "path": "src/main/menu/templates/dock.js",
+      "name": "dock",
+      "line": 20
+    },
+    {
+      "path": "src/main/menu/templates/edit.js",
+      "name": "edit",
+      "line": 6
+    },
+    {
+      "path": "src/main/menu/templates/file.js",
+      "name": "file",
+      "line": 7
+    },
+    {
+      "path": "src/main/menu/templates/format.js",
+      "name": "format",
+      "line": 4
+    },
+    {
+      "path": "src/main/menu/templates/help.js",
+      "name": "help",
+      "line": 31
+    },
+    {
+      "path": "src/main/menu/templates/index.js",
+      "name": "index",
+      "line": 33
+    },
+    {
+      "path": "src/main/menu/templates/marktext.js",
+      "name": "marktext",
+      "line": 8
+    },
+    {
+      "path": "src/main/menu/templates/paragraph.js",
+      "name": "paragraph",
+      "line": 4
+    },
+    {
+      "path": "src/main/menu/templates/prefEdit.js",
+      "name": "prefEdit",
+      "line": 3
+    },
+    {
+      "path": "src/main/menu/templates/theme.js",
+      "name": "theme",
+      "line": 4
+    },
+    {
+      "path": "src/main/menu/templates/view.js",
+      "name": "view",
+      "line": 4
+    },
+    {
+      "path": "src/main/menu/templates/window.js",
+      "name": "window",
+      "line": 7
+    }
+  ],
+  "actions": [
+    {
+      "path": "src/main/menu/actions/edit.js",
+      "name": "edit"
+    },
+    {
+      "path": "src/main/menu/actions/file.js",
+      "name": "file"
+    },
+    {
+      "path": "src/main/menu/actions/format.js",
+      "name": "format"
+    },
+    {
+      "path": "src/main/menu/actions/help.js",
+      "name": "help"
+    },
+    {
+      "path": "src/main/menu/actions/index.js",
+      "name": "index"
+    },
+    {
+      "path": "src/main/menu/actions/marktext.js",
+      "name": "marktext"
+    },
+    {
+      "path": "src/main/menu/actions/paragraph.js",
+      "name": "paragraph"
+    },
+    {
+      "path": "src/main/menu/actions/theme.js",
+      "name": "theme"
+    },
+    {
+      "path": "src/main/menu/actions/view.js",
+      "name": "view"
+    },
+    {
+      "path": "src/main/menu/actions/window.js",
+      "name": "window"
+    }
+  ]
+}
