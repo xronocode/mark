@@ -15,7 +15,7 @@
         "height": 768,
         "resizable": true,
         "fullscreen": false,
-        "url": "index.html"
+        "url": "bench/index.html"
       }
     ],
     "security": {

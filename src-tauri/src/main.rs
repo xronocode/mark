@@ -30,11 +30,26 @@ fn main() {
     let layouts = legacy::detect_layouts();
     legacy::log_detection(&layouts);
 
+    // Phase-B-pre2-followup-FIX (2026-04-28): MARK_SKIP_MIGRATION=1 env-var
+    // bypass. Migration dialog texts on 10 locales already promised this
+    // escape hatch ("To stop seeing this dialog, set MARK_SKIP_MIGRATION=1
+    // in your environment.") but the actual code path was never wired up
+    // in pre2 step-4 — it shipped only the rate-limit hint text. Without
+    // this branch the dialog could not be skipped at all, regardless of
+    // env state. Now the env-var fully bypasses both the dialog and the
+    // prefs::init() stub gate, so Tauri::Builder runs and a window opens.
+    let skip_migration = std::env::var_os("MARK_SKIP_MIGRATION")
+        .map(|v| v != "0" && !v.is_empty())
+        .unwrap_or(false);
+    if skip_migration {
+        eprintln!("[main][bootstrap][BLOCK_MIGRATION_SKIPPED_BY_ENV]");
+    }
+
     // Phase-B-pre2 step-2: if any legacy namespace was detected, ask the user
     // (via a native-OS modal — NSAlert / MessageBoxW / GTK MessageDialog,
     // never a Tauri webview) whether to migrate. Strings are locale-resolved
     // from sys_locale; en_US is the universal fallback.
-    if layouts.any_detected() {
+    if layouts.any_detected() && !skip_migration {
         let strings = migration_strings::detect();
 
         // Phase-B-pre2 step-4: count recent cancels in the last 7 days.
