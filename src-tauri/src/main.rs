@@ -64,6 +64,7 @@ mod m001_panic;
 mod m001_pdf;
 mod m001_security;
 mod m001_validate;
+mod m010_security;
 mod m013b;
 mod migration_strings;
 mod mt_paths;
