@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>baseline perf harness (no muya)</title>
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src * data:; font-src 'self' data:;"
+    />
+    <style>
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+        background: #fff;
+        color: #1a1a1a;
+      }
+      #editor {
+        padding: 24px 32px 240px 32px;
+        max-width: 880px;
+        margin: 0 auto;
+        min-height: 100vh;
+        white-space: pre-wrap;
+        font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+        font-size: 13px;
+      }
+      #report {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: #0d0d0d;
+        color: #7cffc4;
+        font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+        font-size: 11px;
+        line-height: 1.4;
+        padding: 8px 12px;
+        max-height: 220px;
+        overflow: auto;
+        white-space: pre-wrap;
+        z-index: 9999;
+        border-top: 1px solid #333;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="editor"></div>
+    <div id="report">[BENCH] baseline harness loading…</div>
+    <script type="module" src="/bench/baseline/main.js"></script>
+  </body>
+</html>

@@ -71,7 +71,8 @@ export default defineConfig({
         // emulate or re-shim these; until then, attempting to bundle
         // main fails. Bench is independent and builds clean.
         // main: resolve(__dirname, 'src/renderer/index.html'),
-        bench: resolve(__dirname, 'src/renderer/bench/index.html')
+        bench: resolve(__dirname, 'src/renderer/bench/index.html'),
+        baseline: resolve(__dirname, 'src/renderer/bench/baseline/index.html')
       },
       // Temporarily external during Phase-B1: the main entry transitively
       // imports electron-log/renderer + similar Electron-bridge modules
