@@ -17,7 +17,7 @@ name: tauri-release-dryrun
 
 on:
   push:
-    branches: [modernize-tauri]
+    branches: [tauri]
     paths:
       - 'src-tauri/**'
       - 'package.json'
@@ -28,7 +28,7 @@ on:
       - '.github/workflows/release-tauri.yml'
       - 'docs/ci-warnings-allowlist.md'
   pull_request:
-    branches: [main, modernize-tauri]
+    branches: [main, tauri]
     paths:
       - 'src-tauri/**'
       - 'package.json'
