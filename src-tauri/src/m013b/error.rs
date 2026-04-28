@@ -21,6 +21,10 @@ use serde::Serialize;
 
 /// Stable error code returned by every M-013b stub command.
 /// Renderer matches on this string in M-013a's mapInvokeError().
+/// allow(dead_code) — B1 stubs replaced by B2 real impls; B3 will reuse
+/// for M-005/006/007/008/009 stubs (mt-prefs, mt-shortcuts, mt-spell,
+/// mt-fonts, mt-menu).
+#[allow(dead_code)]
 pub const MT_NOT_IMPLEMENTED: &str = "MT_NOT_IMPLEMENTED";
 
 /// M-002 / M-003 / M-004 error codes. Stable strings: telemetry +
@@ -56,6 +60,8 @@ impl IpcError {
     /// Construct a not-implemented error for a stub command.
     /// `command` is the M-013a-side channel name (with `mt::` prefix);
     /// `planned_phase` is the dev-plan phase reference (e.g. "B2-step-2").
+    /// allow(dead_code) — see MT_NOT_IMPLEMENTED const above.
+    #[allow(dead_code)]
     pub fn not_implemented(command: &str, planned_phase: &str) -> Self {
         Self {
             code: MT_NOT_IMPLEMENTED.to_string(),

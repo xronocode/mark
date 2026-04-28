@@ -228,6 +228,7 @@ fn main() {
     tauri::Builder::default()
         .manage(m013b::SecurityCtx::default())
         .manage(m013b::WatchRegistry::default())
+        .manage(m013b::SearchRegistry::default())
         .invoke_handler(tauri::generate_handler![
             m013b::fs::mt_fs_read,
             m013b::fs::mt_fs_write,

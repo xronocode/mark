@@ -29,6 +29,7 @@ pub mod watch;
 #[allow(unused_imports)]
 pub use error::{IpcError, MT_NOT_IMPLEMENTED};
 pub use state::SecurityCtx;
+pub use search::SearchRegistry;
 pub use watch::WatchRegistry;
 
 #[cfg(test)]

@@ -21,6 +21,8 @@ serde_json = "1"
 sys-locale = "0.3"
 rfd = "0.17"
 notify-debouncer-full = "0.5"
+ignore = "0.4"
+regex = "1"
 
 [dev-dependencies]
 tempfile = "3"
