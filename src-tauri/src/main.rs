@@ -5,6 +5,7 @@ mod cancel_log;
 mod dialog;
 mod legacy;
 mod m001_pdf;
+mod m001_security;
 mod m001_validate;
 mod m013b;
 mod migration_strings;
@@ -122,6 +123,15 @@ fn main() {
     } else {
         eprintln!("[main][bootstrap][BLOCK_NO_MIGRATION_NEEDED]");
     }
+
+    // Phase-B1 step-9: WebView shell security posture audit. Reads the
+    // embedded tauri.conf.json + asserts the security block carries
+    // the expected hardened settings (explicit CSP, assetProtocol
+    // disabled, freezePrototype on, no dangerous CSP overrides).
+    // Drift → native dialog + exit 1. Step-9 fires BEFORE step-7
+    // because a contract-aligned binary running on a security-degraded
+    // config is worse than failing fast.
+    m001_security::audit_or_exit();
 
     // Phase-B1 step-7: M-001 BLOCK_VALIDATE_AGAINST_FIXTURE on-boot
     // parity check. Embedded test/fixtures/ipc-channels/tauri.v2.json
