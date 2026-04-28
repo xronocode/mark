@@ -1,3 +1,58 @@
+// MODULE_CONTRACT
+//   PURPOSE: M-001 entry point. Strict boot order:
+//              (1) m001_panic::install_panic_hook  — first, so any later
+//                  step's panic produces a crash log + dialog instead of
+//                  a zombie process.
+//              (2) legacy::detect_layouts          — read-only scan for
+//                  pre-existing electron-store data (marktext + mark
+//                  namespaces under ~/Library/Application Support/).
+//              (3) MARK_SKIP_MIGRATION env check   — optional escape
+//                  hatch documented in migration_strings on 10 locales;
+//                  bypasses the dialog and the prefs::init stub gate.
+//              (4) migration dialog (if needed)    — native rfd dialog
+//                  with rate-limit hint after 3+ cancels in 7 days.
+//              (5) m001_security::audit_or_exit    — tauri.conf.json
+//                  posture check (CSP, freezePrototype, assetProtocol,
+//                  dangerousDisableAssetCspModification).
+//              (6) m001_validate::validate_or_exit — embedded
+//                  tauri.v2.json fixture vs REGISTERED_COMMANDS parity
+//                  check. Drift → native dialog + exit(1).
+//              (7) tauri::Builder::default with M-013b + m001_pdf
+//                  invoke handlers, then run.
+//   SCOPE:    process bootstrap orchestration only. NO command logic,
+//             NO file I/O beyond what legacy::detect_layouts and
+//             cancel_log do, NO Tauri runtime work — that's after run().
+//   DEPENDS:  cancel_log, dialog, legacy, m001_panic, m001_pdf,
+//             m001_security, m001_validate, m013b, migration_strings,
+//             mt_paths, prefs, snapshot.
+//   LINKS:    docs/development-plan.xml Phase-B1 step-7..11 + step-B-pre2;
+//             docs/knowledge-graph.xml M-001;
+//             docs/verification-plan.xml V-M-001;
+//             docs/gate-phase-b1-closure.md (Gate-Phase-B1 verdict).
+//   STATUS:   Phase-B1 closed; M-001 is partially-implemented at the
+//             boot-orchestration layer. Real impls of M-013b commands
+//             ship in Phase-B2.
+//
+// CHANGE_SUMMARY:
+//   - 2026-04-28 B-pre2-followup-FIX: MARK_SKIP_MIGRATION env-var bypass
+//     wired (texts on 10 locales already promised it; only hint was
+//     shipped in pre2 step-4, code path was missing).
+//   - 2026-04-28 B1-step-11: m001_lifecycle module declared (types only;
+//     no boot-order changes here — runtime hooks deferred to B2/B3).
+//   - 2026-04-28 B1-step-10: m001_panic::install_panic_hook prepended
+//     as the first call in main(). NEVER panic guarantee per V-M-001.
+//   - 2026-04-28 B1-step-9: m001_security::audit_or_exit added BEFORE
+//     m001_validate (degraded-security binary running aligned IPC is
+//     worse than failing fast).
+//   - 2026-04-28 B1-step-8: m001_pdf::mt_print_to_pdf registered in
+//     generate_handler! alongside M-013b commands.
+//   - 2026-04-28 B1-step-7: m001_validate::validate_or_exit added
+//     before tauri::Builder; embedded tauri.v2.json fixture parity check.
+//   - 2026-04-28 B1-step-6: m013b commands (5 fs + 2 search + 2 watch)
+//     registered via tauri::generate_handler!.
+//   - 2026-04-27 B-pre2 step-1..5: legacy detection + migration dialog
+//     + cancel_log + snapshot + prefs::init stub gate boot pipeline.
+
 // Prevent additional console window on Windows in release.
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
