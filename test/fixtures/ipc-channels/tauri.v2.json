@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "source": {
+    "module": "M-013a",
+    "file": "src/renderer/src/ipc/contract/types.ts",
+    "generated_from": "CommandMap interface"
+  },
+  "generated_at": "2026-04-28T09:35:43.130Z",
+  "counts": {
+    "commands": 1,
+    "error_codes": 4
+  },
+  "error_codes": [
+    "MT_IPC_TIMEOUT",
+    "MT_IPC_UNKNOWN_CHANNEL",
+    "MT_IPC_UNKNOWN_COMMAND",
+    "MT_IPC_VALIDATION"
+  ],
+  "channels": [
+    {
+      "name": "mt::ping",
+      "direction": "renderer->main",
+      "transport": "invoke",
+      "layer": "M-013a",
+      "has_args": true,
+      "has_result": true
+    }
+  ]
+}
