@@ -32,6 +32,26 @@ export type { IpcFonts } from './fonts'
 export { ipcRecent } from './recent'
 export type { IpcRecent } from './recent'
 
+export {
+  ipcShortcut,
+  ipcSpell,
+  ipcMenu,
+  ipcPandoc,
+  ipcUpdater,
+  ipcScreenshot,
+  ipcSecret
+} from './integrations'
+export type {
+  IpcShortcut,
+  IpcSpell,
+  IpcMenu,
+  IpcPandoc,
+  IpcUpdater,
+  IpcScreenshot,
+  IpcSecret,
+  MenuItem
+} from './integrations'
+
 // Convenience namespace: `import { ipc } from '@/ipc/runtime'`
 import { ipcFs } from './fs'
 import { ipcWatch } from './watch'
@@ -39,6 +59,15 @@ import { ipcSearch } from './search'
 import { ipcPrefs, ipcWorkspace } from './prefs'
 import { ipcFonts } from './fonts'
 import { ipcRecent } from './recent'
+import {
+  ipcShortcut,
+  ipcSpell,
+  ipcMenu,
+  ipcPandoc,
+  ipcUpdater,
+  ipcScreenshot,
+  ipcSecret
+} from './integrations'
 
 export const ipc = {
   fs: ipcFs,
@@ -47,5 +76,12 @@ export const ipc = {
   prefs: ipcPrefs,
   workspace: ipcWorkspace,
   fonts: ipcFonts,
-  recent: ipcRecent
+  recent: ipcRecent,
+  shortcut: ipcShortcut,
+  spell: ipcSpell,
+  menu: ipcMenu,
+  pandoc: ipcPandoc,
+  updater: ipcUpdater,
+  screenshot: ipcScreenshot,
+  secret: ipcSecret
 }

@@ -56,6 +56,20 @@ const REGISTERED_COMMANDS: &[&str] = &[
     "mt_recent_add",
     "mt_recent_list",
     "mt_recent_clear",
+    "mt_shortcut_register",
+    "mt_shortcut_unregister",
+    "mt_shortcut_list",
+    "mt_spell_get_config",
+    "mt_spell_set_enabled",
+    "mt_spell_set_lang",
+    "mt_menu_taxonomy",
+    "mt_pandoc_status",
+    "mt_pandoc_export",
+    "mt_updater_check",
+    "mt_screenshot_capture",
+    "mt_secret_set",
+    "mt_secret_get",
+    "mt_secret_delete",
 ];
 
 /// `mt::ping` is declared in M-013a's CommandMap as a typecheck

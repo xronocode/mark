@@ -80,6 +80,20 @@ export type CommandName =
   | 'mt::recent::add'
   | 'mt::recent::list'
   | 'mt::recent::clear'
+  | 'mt::shortcut::register'
+  | 'mt::shortcut::unregister'
+  | 'mt::shortcut::list'
+  | 'mt::spell::get_config'
+  | 'mt::spell::set_enabled'
+  | 'mt::spell::set_lang'
+  | 'mt::menu::taxonomy'
+  | 'mt::pandoc::status'
+  | 'mt::pandoc::export'
+  | 'mt::updater::check'
+  | 'mt::screenshot::capture'
+  | 'mt::secret::set'
+  | 'mt::secret::get'
+  | 'mt::secret::delete'
 
 /**
  * Plain JSON-cloneable file stats. Mirrors v1.2.3's contextBridge
@@ -201,6 +215,74 @@ export interface CommandMap {
   }
   'mt::recent::clear': {
     args: Record<string, never>
+    result: void
+  }
+  'mt::shortcut::register': {
+    args: { command: string; accelerator: string }
+    result: void
+  }
+  'mt::shortcut::unregister': {
+    args: { command: string }
+    result: void
+  }
+  'mt::shortcut::list': {
+    args: Record<string, never>
+    result: Array<{ command: string; accelerator: { modifiers: number; key: string } }>
+  }
+  'mt::spell::get_config': {
+    args: Record<string, never>
+    result: { enabled: boolean; lang: string }
+  }
+  'mt::spell::set_enabled': {
+    args: { enabled: boolean }
+    result: void
+  }
+  'mt::spell::set_lang': {
+    args: { lang: string }
+    result: void
+  }
+  'mt::menu::taxonomy': {
+    args: Record<string, never>
+    result: Array<{
+      id: string
+      label: string
+      command: string | null
+      accelerator: string | null
+      items: unknown[] | null
+    }>
+  }
+  'mt::pandoc::status': {
+    args: Record<string, never>
+    result: { available: boolean; version: string | null; path: string | null }
+  }
+  'mt::pandoc::export': {
+    args: { input: string; format: string }
+    result: Uint8Array
+  }
+  'mt::updater::check': {
+    args: Record<string, never>
+    result: {
+      currentVersion: string
+      available: boolean
+      latestVersion: string | null
+      downloadUrl: string | null
+      statusNote: string | null
+    }
+  }
+  'mt::screenshot::capture': {
+    args: { options?: { mode?: string } }
+    result: Uint8Array
+  }
+  'mt::secret::set': {
+    args: { key: string; value: string }
+    result: void
+  }
+  'mt::secret::get': {
+    args: { key: string }
+    result: string | null
+  }
+  'mt::secret::delete': {
+    args: { key: string }
     result: void
   }
 }

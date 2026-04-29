@@ -65,10 +65,17 @@ mod m001_pdf;
 mod m001_security;
 mod m001_validate;
 mod m005_prefs;
+mod m006_shortcuts;
+mod m007_spell;
 mod m008_fonts;
+mod m009_menu;
 mod m010_security;
 mod m014_encoding;
+mod m015_pandoc;
+mod m016_updater;
 mod m017_recent;
+mod m018_screenshot;
+mod m019_datacenter;
 mod m020_cli;
 mod m013b;
 mod migration_strings;
@@ -300,6 +307,20 @@ fn main() {
             m017_recent::mt_recent_add,
             m017_recent::mt_recent_list,
             m017_recent::mt_recent_clear,
+            m006_shortcuts::mt_shortcut_register,
+            m006_shortcuts::mt_shortcut_unregister,
+            m006_shortcuts::mt_shortcut_list,
+            m007_spell::mt_spell_get_config,
+            m007_spell::mt_spell_set_enabled,
+            m007_spell::mt_spell_set_lang,
+            m009_menu::mt_menu_taxonomy,
+            m015_pandoc::mt_pandoc_status,
+            m015_pandoc::mt_pandoc_export,
+            m016_updater::mt_updater_check,
+            m018_screenshot::mt_screenshot_capture,
+            m019_datacenter::mt_secret_set,
+            m019_datacenter::mt_secret_get,
+            m019_datacenter::mt_secret_delete,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

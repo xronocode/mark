@@ -5,9 +5,9 @@
     "file": "src/renderer/src/ipc/contract/types.ts",
     "generated_from": "CommandMap interface"
   },
-  "generated_at": "2026-04-29T03:00:02.590Z",
+  "generated_at": "2026-04-29T03:08:16.662Z",
   "counts": {
-    "commands": 19,
+    "commands": 33,
     "error_codes": 4
   },
   "error_codes": [
@@ -59,6 +59,30 @@
     },
     {
       "name": "mt::fs::write",
+      "direction": "renderer->main",
+      "transport": "invoke",
+      "layer": "M-013a",
+      "has_args": true,
+      "has_result": true
+    },
+    {
+      "name": "mt::menu::taxonomy",
+      "direction": "renderer->main",
+      "transport": "invoke",
+      "layer": "M-013a",
+      "has_args": true,
+      "has_result": true
+    },
+    {
+      "name": "mt::pandoc::export",
+      "direction": "renderer->main",
+      "transport": "invoke",
+      "layer": "M-013a",
+      "has_args": true,
+      "has_result": true
+    },
+    {
+      "name": "mt::pandoc::status",
       "direction": "renderer->main",
       "transport": "invoke",
       "layer": "M-013a",
@@ -130,6 +154,14 @@
       "has_result": true
     },
     {
+      "name": "mt::screenshot::capture",
+      "direction": "renderer->main",
+      "transport": "invoke",
+      "layer": "M-013a",
+      "has_args": true,
+      "has_result": true
+    },
+    {
       "name": "mt::search::cancel",
       "direction": "renderer->main",
       "transport": "invoke",
@@ -139,6 +171,86 @@
     },
     {
       "name": "mt::search::spawn",
+      "direction": "renderer->main",
+      "transport": "invoke",
+      "layer": "M-013a",
+      "has_args": true,
+      "has_result": true
+    },
+    {
+      "name": "mt::secret::delete",
+      "direction": "renderer->main",
+      "transport": "invoke",
+      "layer": "M-013a",
+      "has_args": true,
+      "has_result": true
+    },
+    {
+      "name": "mt::secret::get",
+      "direction": "renderer->main",
+      "transport": "invoke",
+      "layer": "M-013a",
+      "has_args": true,
+      "has_result": true
+    },
+    {
+      "name": "mt::secret::set",
+      "direction": "renderer->main",
+      "transport": "invoke",
+      "layer": "M-013a",
+      "has_args": true,
+      "has_result": true
+    },
+    {
+      "name": "mt::shortcut::list",
+      "direction": "renderer->main",
+      "transport": "invoke",
+      "layer": "M-013a",
+      "has_args": true,
+      "has_result": true
+    },
+    {
+      "name": "mt::shortcut::register",
+      "direction": "renderer->main",
+      "transport": "invoke",
+      "layer": "M-013a",
+      "has_args": true,
+      "has_result": true
+    },
+    {
+      "name": "mt::shortcut::unregister",
+      "direction": "renderer->main",
+      "transport": "invoke",
+      "layer": "M-013a",
+      "has_args": true,
+      "has_result": true
+    },
+    {
+      "name": "mt::spell::get_config",
+      "direction": "renderer->main",
+      "transport": "invoke",
+      "layer": "M-013a",
+      "has_args": true,
+      "has_result": true
+    },
+    {
+      "name": "mt::spell::set_enabled",
+      "direction": "renderer->main",
+      "transport": "invoke",
+      "layer": "M-013a",
+      "has_args": true,
+      "has_result": true
+    },
+    {
+      "name": "mt::spell::set_lang",
+      "direction": "renderer->main",
+      "transport": "invoke",
+      "layer": "M-013a",
+      "has_args": true,
+      "has_result": true
+    },
+    {
+      "name": "mt::updater::check",
       "direction": "renderer->main",
       "transport": "invoke",
       "layer": "M-013a",
