@@ -23,13 +23,19 @@ export {
 } from './search'
 export type { IpcSearch, SearchHit, SearcherOptions, CancelablePromise } from './search'
 
+export { ipcPrefs, ipcWorkspace } from './prefs'
+export type { IpcPrefs, IpcWorkspace } from './prefs'
+
 // Convenience namespace: `import { ipc } from '@/ipc/runtime'`
 import { ipcFs } from './fs'
 import { ipcWatch } from './watch'
 import { ipcSearch } from './search'
+import { ipcPrefs, ipcWorkspace } from './prefs'
 
 export const ipc = {
   fs: ipcFs,
   watch: ipcWatch,
-  search: ipcSearch
+  search: ipcSearch,
+  prefs: ipcPrefs,
+  workspace: ipcWorkspace
 }

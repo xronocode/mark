@@ -72,6 +72,10 @@ export type CommandName =
   | 'mt::watch::subscribe'
   | 'mt::watch::unsubscribe'
   | 'mt::print_to_pdf'
+  | 'mt::prefs::get'
+  | 'mt::prefs::set'
+  | 'mt::prefs::get_all'
+  | 'mt::workspace::set'
 
 /**
  * Plain JSON-cloneable file stats. Mirrors v1.2.3's contextBridge
@@ -162,6 +166,22 @@ export interface CommandMap {
   'mt::print_to_pdf': {
     args: { html: string }
     result: Uint8Array
+  }
+  'mt::prefs::get': {
+    args: { key: string }
+    result: unknown
+  }
+  'mt::prefs::set': {
+    args: { key: string; value: unknown }
+    result: void
+  }
+  'mt::prefs::get_all': {
+    args: Record<string, never>
+    result: Record<string, unknown>
+  }
+  'mt::workspace::set': {
+    args: { path: string }
+    result: void
   }
 }
 

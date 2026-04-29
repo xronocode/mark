@@ -64,6 +64,7 @@ mod m001_panic;
 mod m001_pdf;
 mod m001_security;
 mod m001_validate;
+mod m005_prefs;
 mod m010_security;
 mod m013b;
 mod migration_strings;
@@ -225,8 +226,17 @@ fn main() {
     // (permissive) until M-005 (B3 step-1) wires "Open Folder" → set
     // sandbox via menu/prefs. M-010 absolute-safety guards
     // (NUL/overlong/symlink-escape) still active under permissive default.
+    // Phase-B3 step-1: M-005 prefs store boots before tauri::Builder so
+    // we can restore the persisted workspace into SecurityCtx BEFORE any
+    // command handler runs. SecurityCtx default is "/" (permissive); if
+    // prefs has a valid workspaceRoot path, sandbox tightens immediately.
+    let prefs = m005_prefs::PrefsState::boot();
+    let sec_ctx = m013b::SecurityCtx::default();
+    m005_prefs::restore_workspace(&prefs, &sec_ctx);
+
     tauri::Builder::default()
-        .manage(m013b::SecurityCtx::default())
+        .manage(sec_ctx)
+        .manage(prefs)
         .manage(m013b::WatchRegistry::default())
         .manage(m013b::SearchRegistry::default())
         .invoke_handler(tauri::generate_handler![
@@ -240,6 +250,10 @@ fn main() {
             m013b::watch::mt_watch_subscribe,
             m013b::watch::mt_watch_unsubscribe,
             m001_pdf::mt_print_to_pdf,
+            m005_prefs::mt_prefs_get,
+            m005_prefs::mt_prefs_set,
+            m005_prefs::mt_prefs_get_all,
+            m005_prefs::mt_workspace_set,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

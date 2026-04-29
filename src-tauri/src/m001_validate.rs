@@ -48,6 +48,10 @@ const REGISTERED_COMMANDS: &[&str] = &[
     "mt_watch_subscribe",
     "mt_watch_unsubscribe",
     "mt_print_to_pdf",
+    "mt_prefs_get",
+    "mt_prefs_set",
+    "mt_prefs_get_all",
+    "mt_workspace_set",
 ];
 
 /// `mt::ping` is declared in M-013a's CommandMap as a typecheck
