@@ -7,7 +7,11 @@ import SpellIcon from '@/assets/icons/pref_spellcheck.svg'
 import KeyBindingIcon from '@/assets/icons/pref_key_binding.svg'
 import LanguageIcon from '@/assets/icons/pref_language.svg'
 
-import preferences from '../../../../main/preferences/schema.json'
+// F-MAIN-ENTRY-DISABLED close: schema.json copied into renderer-local
+// _shims/preferences/ since src/main/ doesn't exist in the Tauri port
+// (M-005 prefs is the runtime equivalent). Schema bytes preserved
+// verbatim from mark-electron@v1.2.3 for renderer-side prefs UI.
+import preferences from '@/_shims/preferences/schema.json'
 import { t } from '../../i18n'
 
 export const getCategory = () => [

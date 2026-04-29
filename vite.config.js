@@ -37,9 +37,20 @@ export default defineConfig({
       // Browser polyfills for Node-builtin imports surviving in vendored
       // libs (muya/lib/utils path, sequence-diagram-snap fs/path stubs).
       path: 'path-browserify',
-      fs: resolve(__dirname, 'src/renderer/src/util/fs-shim.js')
+      fs: resolve(__dirname, 'src/renderer/src/util/fs-shim.js'),
+      // F-MAIN-ENTRY-DISABLED close (2026-04-29):
+      // Build-time replacements for v1.2.3 renderer's Electron-only
+      // imports. Real impls in src/renderer/src/_shims/ —
+      // electron-log/renderer + electron-log → console facade;
+      // @hfelix/electron-localshortcut + /src/atom-keymap deep import →
+      // 4-fn pure-JS replacement. See _shims/electron-log.js +
+      // _shims/hfelix-localshortcut.js.
+      'electron-log/renderer': resolve(__dirname, 'src/renderer/src/_shims/electron-log.js'),
+      'electron-log': resolve(__dirname, 'src/renderer/src/_shims/electron-log.js'),
+      '@hfelix/electron-localshortcut/src/atom-keymap': resolve(__dirname, 'src/renderer/src/_shims/hfelix-localshortcut.js'),
+      '@hfelix/electron-localshortcut': resolve(__dirname, 'src/renderer/src/_shims/hfelix-localshortcut.js')
     },
-    extensions: ['.mjs', '.js', '.json', '.vue']
+    extensions: ['.mjs', '.js', '.ts', '.json', '.vue']
   },
   define: {
     'process.platform': JSON.stringify(process.platform),
@@ -64,28 +75,25 @@ export default defineConfig({
       // frontendDist points at src/renderer/dist so both ship in the
       // bundle.
       input: {
-        // Phase-B1 step-2.5b: main entry temporarily disabled. The v1.2.3
-        // renderer transitively imports several modules removed in the
-        // Tauri port (electron-log, @hfelix/electron-localshortcut,
-        // src/main/preferences/schema.json). M-013b in Phase-B2 will
-        // emulate or re-shim these; until then, attempting to bundle
-        // main fails. Bench is independent and builds clean.
-        // main: resolve(__dirname, 'src/renderer/index.html'),
+        // F-MAIN-ENTRY-DISABLED closed 2026-04-29. Renderer-local shims:
+        //   - electron-log + electron-log/renderer → _shims/electron-log.js
+        //   - @hfelix/electron-localshortcut + /src/atom-keymap →
+        //     _shims/hfelix-localshortcut.js
+        //   - main/preferences/schema.json → _shims/preferences/schema.json
+        //   - window.* contextBridge surface → _shims/install-window-globals
+        //     (imported FIRST in main.js so renderer code resolves
+        //     window.fileUtils.X / window.electron.X correctly)
+        main: resolve(__dirname, 'src/renderer/index.html'),
         bench: resolve(__dirname, 'src/renderer/bench/index.html'),
         baseline: resolve(__dirname, 'src/renderer/bench/baseline/index.html')
       },
-      // Temporarily external during Phase-B1: the main entry transitively
-      // imports electron-log/renderer + similar Electron-bridge modules
-      // that are removed in the Tauri port and will be re-shimmed by
-      // M-013b in Phase-B2. The bench entry does NOT touch them, so
-      // externalizing avoids blocking step-2.5b on a dependency that
-      // belongs to a later phase. Will be removed once M-013b ships.
+      // Externals trimmed: only electron-store / electron-updater /
+      // @electron/* / electron itself remain. electron-log + @hfelix
+      // moved to alias-replaced shims above.
       external: [
-        /^electron-log(\/.*)?$/,
         /^electron-store(\/.*)?$/,
         /^electron-updater(\/.*)?$/,
         /^@electron\/.*$/,
-        /^@hfelix\/electron-localshortcut(\/.*)?$/,
         /^electron$/
       ],
       output: {

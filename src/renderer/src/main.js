@@ -1,3 +1,8 @@
+// MUST be the FIRST import: installs window.fileUtils / window.electron /
+// window.path / window.commandExists / window.i18nUtils / window.rgPath
+// so v1.2.3-ported renderer code resolves these globals at script-eval
+// time. Closes F-MAIN-ENTRY-DISABLED. See _shims/install-window-globals.js.
+import './_shims/install-window-globals'
 import { createApp } from 'vue'
 import { createRouter, createWebHashHistory } from 'vue-router'
 import bootstrapRenderer from './bootstrap'
