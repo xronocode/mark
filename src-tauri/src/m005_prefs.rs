@@ -35,6 +35,24 @@ const PREFS_FILENAME: &str = "preferences.json";
 /// this to know which folder is currently open.
 pub const KEY_WORKSPACE_ROOT: &str = "workspaceRoot";
 
+/// Phase-B3a step-7: alpha-channel migration markers. mark@alpha sets
+/// app_version="alpha" so stable v2 (when it ships) can detect alpha
+/// users + rerun missing migration sub-steps via mt_migration.
+/// schema_version. Stable v2 ships with schema_version > the alpha's,
+/// so any pref store created during alpha gets re-checked on first
+/// stable launch.
+pub const KEY_MIGRATION_NS: &str = "mt_migration";
+/// Current migration schema version. Bumped when a new migration step
+/// ships so older alpha installs re-run the missing pieces.
+pub const MIGRATION_SCHEMA_VERSION_ALPHA: u32 = 1;
+/// App-version channel marker: "alpha" / "stable" / "rc-N".
+/// Renderer / updater inspect this to decide UX (show "alpha banner"
+/// in title bar, refuse downgrade in F-UPDATER-WIRE-PLUGIN, etc.).
+/// allow(dead_code) — current alpha-ship code uses the literal "alpha"
+/// inline; this const is the contract surface for B4 stable/RC channels.
+#[allow(dead_code)]
+pub const KEY_APP_VERSION_CHANNEL: &str = "app_version";
+
 /// Loose-typed prefs store. Schema validation is the renderer's job
 /// — backend persists arbitrary JSON value-typed keys. Atomic writes
 /// guarantee no half-written file even on disk-full.
@@ -135,8 +153,59 @@ impl PrefsState {
     pub fn boot() -> Self {
         let path = PrefsStore::default_path().unwrap_or_else(|| PathBuf::from("preferences.json"));
         let store = PrefsStore::load_from(path);
-        Self {
+        let state = Self {
             inner: Mutex::new(store),
+        };
+        // Phase-B3a step-7: stamp the alpha channel marker on first
+        // launch (or refresh it if an older alpha bumped the schema).
+        // Stable v2 detects alpha installs via mt_migration.app_version
+        // and reruns missing sub-steps based on schema_version.
+        state.ensure_migration_marker();
+        state
+    }
+
+    /// Initialize or upgrade the mt_migration namespace. Idempotent —
+    /// running twice on the same store is a no-op when the schema
+    /// version already matches.
+    fn ensure_migration_marker(&self) {
+        let existing = self.get(KEY_MIGRATION_NS);
+        let needs_init = match &existing {
+            Some(serde_json::Value::Object(map)) => {
+                let v = map
+                    .get("schema_version")
+                    .and_then(|v| v.as_u64())
+                    .unwrap_or(0);
+                v < MIGRATION_SCHEMA_VERSION_ALPHA as u64
+            }
+            _ => true,
+        };
+        if needs_init {
+            let mut map = match existing {
+                Some(serde_json::Value::Object(m)) => m,
+                _ => serde_json::Map::new(),
+            };
+            map.insert(
+                "app_version".to_string(),
+                serde_json::Value::String("alpha".to_string()),
+            );
+            map.insert(
+                "schema_version".to_string(),
+                serde_json::Value::Number(MIGRATION_SCHEMA_VERSION_ALPHA.into()),
+            );
+            map.insert(
+                "marker_written_at".to_string(),
+                serde_json::Value::Number(
+                    std::time::SystemTime::now()
+                        .duration_since(std::time::UNIX_EPOCH)
+                        .map(|d| d.as_secs())
+                        .unwrap_or(0)
+                        .into(),
+                ),
+            );
+            let _ = self.set(KEY_MIGRATION_NS.to_string(), serde_json::Value::Object(map));
+            eprintln!(
+                "[Prefs][migrate][BLOCK_MARKER_STAMPED app_version=alpha schema_version={MIGRATION_SCHEMA_VERSION_ALPHA}]"
+            );
         }
     }
 
@@ -370,6 +439,54 @@ mod tests {
         restore_workspace(&prefs, &sec);
         // Sandbox unchanged when target doesn't exist.
         assert_eq!(sec.sandbox(), original);
+    }
+
+    #[test]
+    fn migration_marker_stamped_on_fresh_boot() {
+        // PrefsState::boot() default_path is system cache — for tests
+        // we replicate the boot logic over a tempdir path.
+        let dir = TempDir::new().unwrap();
+        let path = dir.path().join("preferences.json");
+        let state = PrefsState::from_path(path);
+        state.ensure_migration_marker();
+        let v = state.get(KEY_MIGRATION_NS).unwrap();
+        assert_eq!(v["app_version"], json!("alpha"));
+        assert_eq!(v["schema_version"], json!(MIGRATION_SCHEMA_VERSION_ALPHA));
+        assert!(v["marker_written_at"].is_number());
+    }
+
+    #[test]
+    fn migration_marker_idempotent_on_same_schema() {
+        let dir = TempDir::new().unwrap();
+        let path = dir.path().join("preferences.json");
+        let state = PrefsState::from_path(path);
+        state.ensure_migration_marker();
+        let first = state.get(KEY_MIGRATION_NS).unwrap();
+        let first_ts = first["marker_written_at"].as_u64().unwrap();
+        // Sleep briefly so a second stamp would have a different ts.
+        std::thread::sleep(std::time::Duration::from_millis(1100));
+        state.ensure_migration_marker();
+        let second = state.get(KEY_MIGRATION_NS).unwrap();
+        let second_ts = second["marker_written_at"].as_u64().unwrap();
+        assert_eq!(first_ts, second_ts, "idempotent: ts should NOT change");
+    }
+
+    #[test]
+    fn migration_marker_upgrades_on_bumped_schema() {
+        let dir = TempDir::new().unwrap();
+        let path = dir.path().join("preferences.json");
+        let state = PrefsState::from_path(path);
+        // Plant an old-schema marker.
+        let mut map = serde_json::Map::new();
+        map.insert("app_version".to_string(), json!("alpha"));
+        map.insert("schema_version".to_string(), json!(0u32));
+        map.insert("marker_written_at".to_string(), json!(1u64));
+        state.set(KEY_MIGRATION_NS.to_string(), Value::Object(map)).unwrap();
+        // Boot logic re-runs.
+        state.ensure_migration_marker();
+        let v = state.get(KEY_MIGRATION_NS).unwrap();
+        assert_eq!(v["schema_version"], json!(MIGRATION_SCHEMA_VERSION_ALPHA));
+        assert_ne!(v["marker_written_at"], json!(1u64));
     }
 
     #[test]
