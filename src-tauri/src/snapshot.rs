@@ -27,6 +27,7 @@ const RELEVANT_FILES: &[&str] = &[
     "preferences.json",
     "dataCenter.json",
     "window-state.json",
+    "keybindings.json",
 ];
 
 const RELEVANT_DIRS: &[&str] = &["Local Storage"];

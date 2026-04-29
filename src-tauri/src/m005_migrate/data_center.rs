@@ -193,7 +193,7 @@ mod tests {
     }
 
     #[test]
-    fn migrates_full_real_user_dataCenter() {
+    fn migrates_full_real_user_data_center() {
         // Mirrors the real user's dataCenter.json captured from
         // ~/Library/Application Support/marktext/dataCenter.json
         let tmp = TempDir::new().unwrap();

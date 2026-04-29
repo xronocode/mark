@@ -20,6 +20,7 @@
 pub mod snapshot;
 pub mod preferences;
 pub mod data_center;
+pub mod keybindings;
 
 // Re-exports for steps 2-9 consumers (caller may pull either through the
 // barrel or via `use crate::m005_migrate::snapshot::*`). Until the
@@ -38,4 +39,10 @@ pub use data_center::{
     migrate_data_center, mark_done as mark_data_center_done,
     is_already_done as is_data_center_done, DataCenterMigrationOutcome,
     DataCenterMigrationError,
+};
+#[allow(unused_imports)]
+pub use keybindings::{
+    migrate_keybindings, mark_done as mark_keybindings_done,
+    is_already_done as is_keybindings_done, KeybindingsMigrationOutcome,
+    KeybindingsMigrationError,
 };

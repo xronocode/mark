@@ -35,6 +35,9 @@ pub struct NamespaceSnapshot {
     /// window-state.json — window geometry. Currently consumed by mt_window_state
     /// at runtime; not part of the v1.2.3 prefs migration scope.
     pub window_state: Option<PathBuf>,
+    /// keybindings.json — user shortcut overrides. Step-4 migrator owns parsing.
+    /// Absent for users who never customized accelerators (the default case).
+    pub keybindings: Option<PathBuf>,
     /// Local Storage/leveldb/ — Chromium localStorage IndexedDB. Contains
     /// keybindings + recent-docs in v1.2.3. Step-4/5 migrators own parsing
     /// (leveldb LDB record extraction is non-trivial; if this dir is
@@ -47,7 +50,10 @@ impl NamespaceSnapshot {
     /// window_state alone does NOT count — it's not part of the migration
     /// scope (see field doc).
     pub fn has_migratable_data(&self) -> bool {
-        self.preferences.is_some() || self.data_center.is_some() || self.local_storage.is_some()
+        self.preferences.is_some()
+            || self.data_center.is_some()
+            || self.keybindings.is_some()
+            || self.local_storage.is_some()
     }
 }
 
@@ -163,6 +169,7 @@ fn scan_namespace(ns_root: &Path) -> Option<NamespaceSnapshot> {
     let preferences = present_file(ns_root, "preferences.json");
     let data_center = present_file(ns_root, "dataCenter.json");
     let window_state = present_file(ns_root, "window-state.json");
+    let keybindings = present_file(ns_root, "keybindings.json");
     let local_storage = {
         let p = ns_root.join("Local Storage");
         if p.is_dir() { Some(p) } else { None }
@@ -172,6 +179,7 @@ fn scan_namespace(ns_root: &Path) -> Option<NamespaceSnapshot> {
         preferences,
         data_center,
         window_state,
+        keybindings,
         local_storage,
     })
 }
