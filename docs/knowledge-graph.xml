@@ -6,6 +6,8 @@
       <doc id="gate-phase-b1-closure" path="docs/gate-phase-b1-closure.md" phase="B1" verdict="PASS-WITH-FOLLOWUP" />
       <doc id="gate-phase-b2-closure" path="docs/gate-phase-b2-closure.md" phase="B2" verdict="PASS-WITH-FOLLOWUP" />
       <doc id="gate-phase-b3-closure" path="docs/gate-phase-b3-closure.md" phase="B3" verdict="PASS-WITH-FOLLOWUP" />
+      <doc id="gate-phase-b3a-closure" path="docs/gate-phase-b3a-closure.md" phase="B3a" verdict="contract-shipped-pending-renderer-wire" />
+      <doc id="phase-b3a-unsupported-features-audit" path="docs/phase-b3a-unsupported-features-audit.md" phase="B3a-step-9" verdict="32-items-no-hidden-noops" />
       <doc id="perf-bench-step-2.5b-path1" path="docs/perf-bench-v1.2.3-step-2.5b.md" phase="B1-step-2.5b" verdict="superseded-by-path3" />
       <doc id="perf-bench-step-2.5b-path3" path="docs/perf-bench-v1.2.3-step-2.5b-path3.md" phase="B1-step-2.5b" verdict="PASS-MARGINAL" />
       <doc id="phase-b1-pdf-export-strategy" path="docs/phase-b1-pdf-export-strategy.md" phase="B1-step-8" verdict="decision: defer to M-015 pandoc-bridge" />
