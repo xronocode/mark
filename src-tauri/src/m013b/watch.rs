@@ -59,8 +59,9 @@ fn map_event_kind(k: &EventKind) -> &'static str {
 }
 
 /// Outbound event payload. Renderer listener parses this from Tauri's
-/// event envelope.
+/// event envelope. camelCase rename matches M-013a CommandMap shape.
 #[derive(Serialize, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
 pub struct WatchEvent {
     pub subscription_id: String,
     pub kind: String,

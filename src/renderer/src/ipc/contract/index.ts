@@ -26,5 +26,7 @@ export {
   type CommandName,
   type CommandArgs,
   type CommandResult,
-  type CommandMap
+  type CommandMap,
+  type FsStat,
+  type SearchOptions
 } from './types'

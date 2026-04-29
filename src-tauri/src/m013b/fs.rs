@@ -125,6 +125,7 @@ pub async fn mt_fs_write(
 /// Plain JSON-cloneable file stats. Preserves the v1.2.3 contextBridge
 /// structured-clone-safe shape (preload step-8z follow-up).
 #[derive(serde::Serialize, Debug)]
+#[serde(rename_all = "camelCase")]
 pub struct FsStat {
     pub size: u64,
     pub mode: u32,
