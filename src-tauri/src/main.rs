@@ -79,6 +79,7 @@ mod m019_datacenter;
 mod m020_cli;
 mod m013b;
 mod m_v1_compat;
+mod m005_migrate;
 mod migration_strings;
 mod mt_paths;
 mod prefs;
