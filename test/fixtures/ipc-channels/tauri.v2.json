@@ -288,6 +288,38 @@
       "layer": "M-V1-COMPAT",
       "has_args": false,
       "has_result": true
+    },
+    {
+      "name": "mt::request-keybindings",
+      "direction": "renderer->main",
+      "transport": "invoke",
+      "layer": "M-V1-COMPAT",
+      "has_args": false,
+      "has_result": true
+    },
+    {
+      "name": "mt::cmd-open-folder",
+      "direction": "renderer->main",
+      "transport": "invoke",
+      "layer": "M-V1-COMPAT",
+      "has_args": false,
+      "has_result": true
+    },
+    {
+      "name": "mt::cmd-open-file",
+      "direction": "renderer->main",
+      "transport": "invoke",
+      "layer": "M-V1-COMPAT",
+      "has_args": false,
+      "has_result": true
+    },
+    {
+      "name": "mt::ask-for-open-project-in-sidebar",
+      "direction": "renderer->main",
+      "transport": "invoke",
+      "layer": "M-V1-COMPAT",
+      "has_args": false,
+      "has_result": true
     }
   ]
 }

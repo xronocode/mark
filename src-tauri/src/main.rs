@@ -444,6 +444,10 @@ fn main() {
             m019_datacenter::mt_secret_get,
             m019_datacenter::mt_secret_delete,
             m_v1_compat::mt_window_state,
+            m_v1_compat::mt_request_keybindings,
+            m_v1_compat::mt_cmd_open_folder,
+            m_v1_compat::mt_cmd_open_file,
+            m_v1_compat::mt_ask_for_open_project_in_sidebar,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

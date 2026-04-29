@@ -18,7 +18,8 @@
         "height": 768,
         "resizable": true,
         "fullscreen": false,
-        "url": "index.html"
+        "url": "index.html",
+        "dragDropEnabled": true
       }
     ],
     "security": {

@@ -71,6 +71,10 @@ const REGISTERED_COMMANDS: &[&str] = &[
     "mt_secret_get",
     "mt_secret_delete",
     "mt_window_state",
+    "mt_request_keybindings",
+    "mt_cmd_open_folder",
+    "mt_cmd_open_file",
+    "mt_ask_for_open_project_in_sidebar",
 ];
 
 /// `mt::ping` is declared in M-013a's CommandMap as a typecheck

@@ -43,6 +43,71 @@ import { appLocalDataDir } from '@tauri-apps/api/path'
   }
 }
 
+// ─── Drag-drop bridge ───────────────────────────────────────────────
+// Tauri 2 with dragDropEnabled:true intercepts OS drag-drop and emits
+// its own structured event. The v1.2.3 renderer's HTML5 dropHandler
+// expected Electron's non-standard File.path attribute to recover
+// the OS path; in a standard webview that attribute doesn't exist.
+//
+// Rather than fight the synthesis path, we bypass renderer drop
+// handlers entirely: read each dropped path's content via M-013b
+// fs.read and emit `mt::open-new-tab` directly to the renderer. The
+// editor store's LISTEN_FOR_NEW_TAB picks it up and creates the tab
+// with content. (See store/editor.js:634.)
+const _droppedFilePaths = new WeakMap()
+const MARKDOWN_DROP_EXTS = ['md', 'markdown', 'mmd', 'mkd', 'mkdn', 'mdown', 'mdtxt', 'mdtext', 'mdx', 'text', 'txt']
+{
+  const { getCurrentWebview } = await import('@tauri-apps/api/webview')
+  const { emit: tauriEmit } = await import('@tauri-apps/api/event')
+  const webview = getCurrentWebview()
+
+  const isMarkdownPath = (p) => {
+    const lower = p.toLowerCase()
+    return MARKDOWN_DROP_EXTS.some((e) => lower.endsWith('.' + e))
+  }
+
+  const openDroppedPath = async (filePath) => {
+    if (!isMarkdownPath(filePath)) {
+      console.warn(`[drop] non-markdown path skipped: ${filePath}`)
+      return
+    }
+    let content
+    try {
+      content = await ipc.fs.read(filePath)
+    } catch (e) {
+      console.error(`[drop] read failed for ${filePath}:`, e)
+      return
+    }
+    const filename = filePath.split(/[\\/]/).pop() || filePath
+    const markdownDocument = {
+      markdown: typeof content === 'string' ? content : (content?.text ?? ''),
+      filename,
+      pathname: filePath,
+      encoding: { encoding: 'utf8', isBom: false },
+      lineEnding: 'lf',
+      adjustLineEndingOnSave: false,
+      trimTrailingNewline: 3,
+      cursor: null,
+      isMixedLineEndings: false
+    }
+    try {
+      await tauriEmit('mt::open-new-tab', markdownDocument)
+    } catch (e) {
+      console.error(`[drop] emit mt::open-new-tab failed:`, e)
+    }
+  }
+
+  await webview.onDragDropEvent(async (event) => {
+    const payload = event.payload
+    if (payload.type === 'drop') {
+      const paths = payload.paths || []
+      for (const p of paths) {
+        await openDroppedPath(p)
+      }
+    }
+  })
+}
+
 // ─── window.fileUtils ───────────────────────────────────────────────
 // v1.2.3 preload exposed a 13-method fileUtils API. Most map cleanly
 // to ipc.fs / ipc.workspace; the few that don't (sync isImageFile,
@@ -269,10 +334,17 @@ const electron = {
     getZoomFactor: () => 1
   },
 
-  // webUtils — v1 file-drop path resolution. Tauri offers
-  // @tauri-apps/plugin-fs convertFileSrc; stub for now.
+  // webUtils — v1 file-drop path resolution. Tauri intercepts OS-level
+  // drag-drop and emits its own event (dragDropEnabled: true), so the
+  // standard HTML5 drop event's File.path attribute is unavailable.
+  // Renderer drop handlers call getPathForFile(file) expecting a real
+  // path; we keep a session-bound WeakMap populated by the Tauri
+  // drag-drop bridge below so this lookup returns the actual path.
   webUtils: {
-    getPathForFile: () => ''
+    getPathForFile: (file) => {
+      if (!file) return ''
+      return _droppedFilePaths.get(file) || ''
+    }
   },
 
   // Static surface
