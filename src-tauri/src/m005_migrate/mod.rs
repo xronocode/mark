@@ -21,6 +21,7 @@ pub mod snapshot;
 pub mod preferences;
 pub mod data_center;
 pub mod keybindings;
+pub mod recent_docs;
 
 // Re-exports for steps 2-9 consumers (caller may pull either through the
 // barrel or via `use crate::m005_migrate::snapshot::*`). Until the
@@ -45,4 +46,10 @@ pub use keybindings::{
     migrate_keybindings, mark_done as mark_keybindings_done,
     is_already_done as is_keybindings_done, KeybindingsMigrationOutcome,
     KeybindingsMigrationError,
+};
+#[allow(unused_imports)]
+pub use recent_docs::{
+    migrate_recent_docs, mark_done as mark_recent_docs_done,
+    is_already_done as is_recent_docs_done, RecentDocsMigrationOutcome,
+    RecentDocsMigrationError,
 };
