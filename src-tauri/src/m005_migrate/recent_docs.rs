@@ -138,7 +138,15 @@ pub fn migrate_recent_docs(
             }
         }
         if merged.len() > MAX_RECENT_DOCS {
+            // Reviewer note 2026-04-29: post-merge truncation must bump
+            // the capped counter so the runner's summary dialog reports
+            // the correct number of dropped entries.
+            let post_merge_dropped = (merged.len() - MAX_RECENT_DOCS) as u32;
+            capped += post_merge_dropped;
             merged.truncate(MAX_RECENT_DOCS);
+            eprintln!(
+                "[m005-migrate][recent_docs][BLOCK_CAPPED_POST_MERGE dropped={post_merge_dropped} kept={MAX_RECENT_DOCS}]"
+            );
         }
 
         migrated = deduped.len() as u32;
@@ -322,6 +330,36 @@ mod tests {
         assert_eq!(arr[2], Value::String("/existing1.md".into()));
         assert_eq!(arr[3], Value::String("/existing2.md".into()));
         assert_eq!(arr.len(), 4);
+    }
+
+    #[test]
+    fn post_merge_truncation_bumps_capped_counter() {
+        // Reviewer regression net: merge can push the combined list over
+        // MAX_RECENT_DOCS even when individual sources were under the cap.
+        // The capped counter must reflect both pre-merge AND post-merge drops.
+        let tmp = TempDir::new().unwrap();
+        let mut store = fresh_store(&tmp);
+        // Pre-seed with 8 entries (under cap)
+        let pre: Vec<Value> = (0..8)
+            .map(|i| Value::String(format!("/pre{i}.md")))
+            .collect();
+        store.set(KEY_RECENT_DOCS.to_string(), Value::Array(pre));
+        // Legacy adds 5 more (total 13 unique → must truncate to 10)
+        let body: String = (0..5)
+            .map(|i| format!("\"/leg{i}.md\""))
+            .collect::<Vec<_>>()
+            .join(",");
+        let src = write_legacy(&tmp, "rd.json", &format!("[{body}]"));
+        let outcome = migrate_recent_docs(Some(&src), &mut store).unwrap();
+        match outcome {
+            RecentDocsMigrationOutcome::Migrated { keys_migrated, keys_capped, .. } => {
+                assert_eq!(keys_migrated, 5, "5 legacy entries migrated");
+                assert_eq!(keys_capped, 3, "13 - 10 = 3 dropped post-merge");
+            }
+            other => panic!("unexpected {other:?}"),
+        }
+        let arr = store.get(KEY_RECENT_DOCS).unwrap().as_array().unwrap();
+        assert_eq!(arr.len(), MAX_RECENT_DOCS);
     }
 
     #[test]
