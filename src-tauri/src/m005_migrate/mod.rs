@@ -18,11 +18,17 @@
 //   - 2026-04-29 F-PREFS-MIGRATE-V1 step-1: snapshot reader scaffold.
 
 pub mod snapshot;
+pub mod preferences;
 
 // Re-exports for steps 2-9 consumers (caller may pull either through the
-// barrel or via `use crate::m005_migrate::snapshot::*`). At step-1 the
-// rest of the codebase doesn't consume these yet, so allow the warning
-// — Cargo's release-build allowlist (docs/ci-warnings-allowlist.md)
-// covers post-step-1 zero-consumer state.
+// barrel or via `use crate::m005_migrate::snapshot::*`). Until the
+// runner (step-7) lands, no other module consumes these — allow until
+// then.
 #[allow(unused_imports)]
 pub use snapshot::{load_latest, LegacySnapshot, NamespaceSnapshot, SnapshotLoadError};
+#[allow(unused_imports)]
+pub use preferences::{
+    migrate_preferences, mark_done as mark_preferences_done,
+    is_already_done as is_preferences_done, PreferencesMigrationOutcome,
+    PreferencesMigrationError,
+};
