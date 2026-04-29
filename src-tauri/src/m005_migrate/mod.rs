@@ -23,6 +23,7 @@ pub mod data_center;
 pub mod keybindings;
 pub mod recent_docs;
 pub mod keychain;
+pub mod runner;
 
 // Re-exports for steps 2-9 consumers (caller may pull either through the
 // barrel or via `use crate::m005_migrate::snapshot::*`). Until the
@@ -61,3 +62,5 @@ pub use keychain::{
     KeychainMigrationOutcome, KeychainMigrationError, RealKeychain,
     LEGACY_SERVICE, NEW_SERVICE, LEGACY_KEYS,
 };
+#[allow(unused_imports)]
+pub use runner::{run, RunnerSummary, RunnerFailure, MAX_SOURCE_BYTES};
