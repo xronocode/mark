@@ -22,6 +22,7 @@ pub mod preferences;
 pub mod data_center;
 pub mod keybindings;
 pub mod recent_docs;
+pub mod keychain;
 
 // Re-exports for steps 2-9 consumers (caller may pull either through the
 // barrel or via `use crate::m005_migrate::snapshot::*`). Until the
@@ -52,4 +53,11 @@ pub use recent_docs::{
     migrate_recent_docs, mark_done as mark_recent_docs_done,
     is_already_done as is_recent_docs_done, RecentDocsMigrationOutcome,
     RecentDocsMigrationError,
+};
+#[allow(unused_imports)]
+pub use keychain::{
+    migrate_keychain, mark_done as mark_keychain_done,
+    is_already_done as is_keychain_done, KeychainBackend, KeychainBackendError,
+    KeychainMigrationOutcome, KeychainMigrationError, RealKeychain,
+    LEGACY_SERVICE, NEW_SERVICE, LEGACY_KEYS,
 };
