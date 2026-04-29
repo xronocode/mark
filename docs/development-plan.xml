@@ -2399,7 +2399,7 @@ src/main/config.js declares `contextIsolation: false`, `nodeIntegration: true`, 
        canonical list. Each entry has id + phase-of-origin + status +
        resolves-at (target phase) + brief description.
        =================================================================== -->
-  <FollowupIndex generated="2026-04-29" total-active="44" total-resolved="3" resolved="F-MAIN-ENTRY-DISABLED, F-PREFS-MIGRATE-V1, F-MIGRATE-SIZE-LIMIT">
+  <FollowupIndex generated="2026-04-29" total-active="46" total-resolved="3" resolved="F-MAIN-ENTRY-DISABLED, F-PREFS-MIGRATE-V1, F-MIGRATE-SIZE-LIMIT">
     <!-- Phase-B1 era (7) -->
     <followup id="F-PERF-1" origin="B1-step-2.5b" status="open" resolves-at="post-B1-step-7-window-creation">Measure real Tauri WKWebView (system, not playwright-bundled) once M-001 step-7 wires window creation. Path-3 used Playwright WebKit which is bundled, not system.</followup>
     <followup id="F-PERF-2" origin="B1-step-2.5a" status="open" resolves-at="B2-after-window-boots">Fill PHASE_TYPING + PHASE_SCROLL stubs in bench harness; needs Tauri window with real input event dispatch.</followup>
@@ -2453,6 +2453,12 @@ src/main/config.js declares `contextIsolation: false`, `nodeIntegration: true`, 
 
     <!-- F-MAIN-ENTRY-DISABLED runtime debug era (1 new) -->
     <followup id="F-V1-IPC-COMPAT-STUBS" origin="F-MAIN-ENTRY-DISABLED-runtime-debug" status="open" resolves-at="B3a-renderer-feature-pass">Port 11 v1.2.3 IPC channels to Tauri commands. The renderer-shim's soft-fail wrapper currently logs them as console.warn and returns undefined. Channels: mt::get-current-language, mt::ask-for-user-preference, mt::ask-for-user-data, mt::request-keybindings, mt::open-setting-window, mt::update-sidebar-menu, mt::set-user-preference, mt::ask-for-open-project-in-sidebar, mt::request-window-content-size, mt::view-layout-changed, mt::current-language. Most map to existing modules: prefs → m005_prefs (set/get/ask-for-*), keybindings → m006_shortcuts, language → m007_spell or i18n bridge, sidebar/layout/window-size → m_v1_compat. Each port should also add a fixture entry under appropriate layer (M-V1-COMPAT or owning module) and update REGISTERED_COMMANDS.</followup>
+
+    <!-- F-PREFS-MIGRATE-V1 post-close runtime-blockers -->
+    <followup id="F-EDITOR-BOOTSTRAP-EVENT" origin="F-PREFS-MIGRATE-V1-smoke" status="open" priority="critical-alpha-blocker" resolves-at="immediate">Renderer in src/renderer/src/store/editor.js:593 listens for `mt::bootstrap-editor` event with config {addBlankTab, markdownList, lineEnding, sideBarVisibility, tabBarVisibility, sourceCodeModeEnabled}; until this event fires, mainStore.SET_INITIALIZED() never runs and editor stays in editor-placeholder mode (clicks no-op, "open file" menu doesn't trigger dialog, settings window can't open). v1.2.3 Electron main process emitted this on window-ready; Tauri must do the same in setup() hook after window creation. Read values from migrated PrefsStore (sideBarVisibility, tabBarVisibility from preferences.json) or fall back to sensible defaults. This is the actual ship-blocker — F-V1-IPC-COMPAT-STUBS commands are useless until the editor initializes.</followup>
+
+    <!-- F-PREFS-MIGRATE-V1 post-close (UX polish) -->
+    <followup id="F-MIGRATE-DIALOG-SUPPRESS-AFTER-DONE" origin="F-PREFS-MIGRATE-V1-smoke" status="open" resolves-at="B3a-pre-alpha-ship">After successful F-PREFS-MIGRATE-V1 run, the migration dialog still shows on every boot because legacy data is preserved on disk (intentional safety net per F-LEGACY-CLEANUP-POST-V2.0). UX fix: before showing the dialog, peek at cache_root/preferences.json and check if all 5 mt_migration markers are 'done'. If yes, log BLOCK_MIGRATION_ALREADY_COMPLETE and skip the dialog entirely. Runner step-7 already short-circuits idempotently (~50 ms), so this is purely a UX improvement.</followup>
 
     <!-- F-PREFS-MIGRATE-V1 wave checkpoint (steps 1-5 audit, 2 defensive followups) -->
     <followup id="F-MIGRATE-SIZE-LIMIT" origin="F-PREFS-MIGRATE-V1-checkpoint" status="resolved" resolved-by="step-7-runner" resolves-at="step-7-runner">Sanity max-bytes guard (16 MiB) shipped in m005_migrate::runner::guard_size; trips RunnerFailure::SourceTooLarge per-step before delegating to migrators. Test source_too_large_aborts_step verifies a 17 MiB preferences.json triggers the guard.</followup>
