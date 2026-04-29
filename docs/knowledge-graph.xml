@@ -7,6 +7,7 @@
       <doc id="gate-phase-b2-closure" path="docs/gate-phase-b2-closure.md" phase="B2" verdict="PASS-WITH-FOLLOWUP" />
       <doc id="gate-phase-b3-closure" path="docs/gate-phase-b3-closure.md" phase="B3" verdict="PASS-WITH-FOLLOWUP" />
       <doc id="gate-phase-b3a-closure" path="docs/gate-phase-b3a-closure.md" phase="B3a" verdict="contract-shipped-pending-renderer-wire" />
+      <doc id="f-main-entry-disabled-runtime-close" inline-evidence="V-M-001/closed-evidence@F-MAIN-ENTRY-DISABLED-runtime-close" phase="post-B3a" verdict="resolved-runtime" reborn-mark-commits="3eb95bf9+8e83964c" />
       <doc id="phase-b3a-unsupported-features-audit" path="docs/phase-b3a-unsupported-features-audit.md" phase="B3a-step-9" verdict="32-items-no-hidden-noops" />
       <doc id="perf-bench-step-2.5b-path1" path="docs/perf-bench-v1.2.3-step-2.5b.md" phase="B1-step-2.5b" verdict="superseded-by-path3" />
       <doc id="perf-bench-step-2.5b-path3" path="docs/perf-bench-v1.2.3-step-2.5b-path3.md" phase="B1-step-2.5b" verdict="PASS-MARGINAL" />
@@ -19,16 +20,18 @@
       <path>src-tauri/src/main.rs</path>
       <sub-modules>
         <sub-module name="m001_validate" path="src-tauri/src/m001_validate.rs" purpose="BLOCK_VALIDATE_AGAINST_FIXTURE on-boot parity check (embedded tauri.v2.json vs REGISTERED_COMMANDS); native dialog + exit(1) on drift" phase="B1-step-7" />
-        <sub-module name="m001_security" path="src-tauri/src/m001_security.rs" purpose="WebView shell security posture audit (CSP, freezePrototype, assetProtocol, dangerousDisableAssetCspModification); native dialog + exit(1) on regression" phase="B1-step-9" />
+        <sub-module name="m001_security" path="src-tauri/src/m001_security.rs" purpose="WebView shell security posture audit (CSP, freezePrototype:FALSE [inverted 2026-04-29 — Element Plus + Vue ecosystem requires writable Object.prototype; defense moves to CSP+DOMPurify], assetProtocol disabled, dangerousDisableAssetCspModification false); native dialog + exit(1) on regression" phase="B1-step-9; contract-inverted-2026-04-29" />
         <sub-module name="m001_panic" path="src-tauri/src/m001_panic.rs" purpose="std::panic::set_hook installer + crash-log writer to cache_root/crash-{ts}-{chain}.log; re-entrancy-safe; never panics in handler" phase="B1-step-10" />
         <sub-module name="m001_pdf" path="src-tauri/src/m001_pdf.rs" purpose="mt::print_to_pdf MT_UNSUPPORTED stub; PDF export delegated to M-015 mt-pandoc-bridge per phase-b1-pdf-export-strategy.md" phase="B1-step-8" />
         <sub-module name="m001_lifecycle" path="src-tauri/src/m001_lifecycle.rs" purpose="CloseStateMachine (8 states), MenuGeneration AtomicU64, ReplayPolicy enum; types only at B1, runtime hooks deferred to B2/B3 (F-LIFECYCLE-WIRE, F-MENU-GEN-WIRE, F-REPLAY-POLICY-WIRE)" phase="B1-step-11" />
+        <sub-module name="m_v1_compat" path="src-tauri/src/m_v1_compat.rs" purpose="Tauri-side stubs for v1.2.3 IPC channels not yet ported to dedicated modules. Currently houses mt_window_state (titleBar/index.vue startup invoke). Each command has an F-V1-IPC-COMPAT-STUBS followup pointing at its long-term owning module." phase="F-MAIN-ENTRY-DISABLED-runtime-debug-2026-04-29" />
       </sub-modules>
       <depends>M-002, M-003, M-004, M-005, M-006, M-007, M-008, M-009, M-010, M-014, M-015, M-016, M-017, M-018, M-019, M-020, M-013b</depends>
       <verification-ref>V-M-001</verification-ref>
       <annotations>
         <fn-main PURPOSE="Boot order: panic_hook → legacy detect → MARK_SKIP_MIGRATION env check → migration dialog (if needed) → security audit → fixture validate → tauri::Builder with M-013b + m001_pdf invoke handlers" />
         <fn-mt_print_to_pdf PURPOSE="MT_UNSUPPORTED stub; lives at m001_pdf::mt_print_to_pdf — registered in main.rs generate_handler! alongside M-013b commands" />
+        <fn-mt_window_state PURPOSE="m_v1_compat::mt_window_state — returns {isFullScreen, isMaximized} from tauri::Window queries; replaces v1.2.3 main-process titleBar handler. Maps from renderer channel mt::window-state via shim hyphen→underscore translation." />
         <fn-validate_or_exit PURPOSE="m001_validate runtime entry; emits BLOCK_VALIDATE_AGAINST_FIXTURE_{OK,FAIL,PARSE_FAIL}" />
         <fn-audit_or_exit PURPOSE="m001_security runtime entry; emits BLOCK_SECURITY_POSTURE_{OK,FAIL}" />
         <fn-install_panic_hook PURPOSE="m001_panic runtime entry; emits BLOCK_PANIC_HOOK_INSTALLED + (on panic) BLOCK_PANIC_HOOK_FIRED" />

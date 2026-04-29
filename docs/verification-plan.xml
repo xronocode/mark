@@ -674,6 +674,35 @@
           Multi-root populated v1.1.0 fixture (F-PRE1-FOLLOWUP-1) still owned by V-MIGRATE-MULTIROOT scenario in a later step; not blocking this evidence packet.
         </deferred-followup>
       </closed-evidence>
+      <closed-evidence generation="F-MAIN-ENTRY-DISABLED-runtime-close" date="2026-04-29" reborn-mark-commit="3eb95bf9+8e83964c">
+        <scope>End-to-end runtime boot of variant-(a) Vue shell in Tauri 2 WKWebView. Closes the F-MAIN-ENTRY-DISABLED followup that gated B3a alpha shipping.</scope>
+        <test-file>src-tauri/src/m001_security.rs + src-tauri/src/m001_validate.rs + src-tauri/src/m_v1_compat.rs (#[cfg(test)] blocks)</test-file>
+        <command-run>cd reborn-mark/src-tauri &amp;&amp; cargo test --release &amp;&amp; cargo tauri build --target aarch64-apple-darwin</command-run>
+        <result>207/207 cargo tests pass; tauri build green; Mark.app boots, Vue shell mounts, sidebar icons render, no critical console errors.</result>
+        <contract-inversion>
+          M-001 step-9 freezePrototype contract INVERTED. Was require true (prototype-pollution defense); now require false. Element Plus 2.x writes to Object.prototype-derived slots at module init time; freezePrototype:true causes "TypeError: Attempted to assign to readonly property" in vendor-element-plus chunk WR Module Code. Defense moves to layered network/sanitization controls: CSP script-src 'self' (no remote scripts), DOMPurify on user content (existing v1.2.3 path), no eval()/Function() in renderer.
+        </contract-inversion>
+        <structural-defects-fixed>
+          <d-1>tauri.conf.json had no beforeBuildCommand → vite never re-ran on cargo tauri build → CSP/index.html source edits never reached the bundle (silent stale dist).</d-1>
+          <d-2>CSP connect-src missed ipc://localhost (Tauri 2 runtime IPC scheme); Tauri only had legacy http://ipc.localhost.</d-2>
+          <d-3>capabilities array empty → plugin:event|listen blocked by ACL → Vue listeners never registered.</d-3>
+          <d-4>index.html static meta CSP intersected restrictively with Tauri's header CSP, blocking all invoke().</d-4>
+          <d-5>Static index.html had no userDataPath query string (v1 main process used to inject); bootstrap.js threw "No user data path is given" before Vue mount. Solved with TLA + appLocalDataDir() in install-window-globals.js.</d-5>
+          <d-6>Renderer ipcRenderer.invoke channel→command translation only mapped '::' → '_'; v1 channel hyphens (mt::window-state) broke Rust identifier rules. Now also map '-' → '_'.</d-6>
+        </structural-defects-fixed>
+        <log-markers-emitted>
+          <marker>[m001][security][BLOCK_SECURITY_POSTURE_OK] (with inverted freezePrototype contract)</marker>
+          <marker>[m001][validate][BLOCK_VALIDATE_AGAINST_FIXTURE_OK registered=33 fixture_only=0 registered_only=0]</marker>
+        </log-markers-emitted>
+        <runtime-evidence>
+          <evidence>cargo tauri build emits Mark.app + Mark_0.0.1_aarch64.dmg.</evidence>
+          <evidence>Mark.app launched with MARK_SKIP_MIGRATION=1 boots through panic_hook → legacy_detect → migration_skipped → security_audit_ok → validate_ok → tauri::Builder.run().</evidence>
+          <evidence>WKWebView Console: editor-placeholder div present; sidebar icons render; only soft-warns logged (Element Plus deprecation slot warnings + 11 v1 IPC channels degrading via shim soft-fail wrapper).</evidence>
+        </runtime-evidence>
+        <deferred-followup>
+          F-V1-IPC-COMPAT-STUBS (11 v1 IPC channels logged as warn instead of throwing — port required before B3a alpha ships); F-PREFS-MIGRATE-V1 (legacy migration still gated by stub abort — users with legacy on disk need MARK_SKIP_MIGRATION=1 env-var); visual feature smoke (open file/edit/save) remains user-driven.
+        </deferred-followup>
+      </closed-evidence>
     </V-M-001>
 
     <V-M-002 MODULE="M-002 mt-fs-commands" PRIORITY="critical">
