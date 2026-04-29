@@ -190,18 +190,84 @@ fn main() {
                     }
                 }
 
-                // Phase-B-pre2 step-6: M-005 stub gate. Even after the
-                // preflight snapshot, the stub still refuses to run
-                // because real migration hasn't shipped — original
-                // legacy data is still present. Phase-B3 will replace
-                // this stub with the real migration that consumes the
-                // snapshot and clears the original.
-                if let Err(marker) = prefs::init(&layouts) {
-                    eprintln!(
-                        "[prefs][init][{marker}] legacy still present; M-005 stub refuses bootstrap until B3 ships real migration"
-                    );
-                    eprintln!("[main][bootstrap][BLOCK_PREFS_STUB_ABORT marker={marker}]");
-                    std::process::exit(1);
+                // F-PREFS-MIGRATE-V1 step-8 (was Phase-B-pre2 step-6 stub gate
+                // until 2026-04-29). The B-pre2 stub aborted with
+                // MT_PREFS_V1_RUNNING; now we run the real 6-step migration
+                // pipeline (snapshot loader → preferences → dataCenter →
+                // keybindings → recent_docs → keychain rename) under a
+                // process-level lockfile. Steps are idempotent — partial
+                // completion is recoverable on next boot.
+                let cache_root = match mt_paths::cache_root() {
+                    Some(c) => c,
+                    None => {
+                        eprintln!("[main][bootstrap][BLOCK_MIGRATION_NO_CACHE_ROOT]");
+                        dialog::ask_native_error(
+                            "Mark — migration aborted",
+                            "Could not resolve the cache directory required for migration. \
+                             Please ensure ~/Library/Caches is writable and try again.",
+                        );
+                        std::process::exit(2);
+                    }
+                };
+                let mut migrate_store = m005_prefs::PrefsStore::load_from(
+                    cache_root.join("preferences.json"),
+                );
+                let backend = m005_migrate::keychain::RealKeychain;
+                match m005_migrate::runner::run(&cache_root, &backend, &mut migrate_store) {
+                    Ok(summary) => {
+                        if let Some(failure) = summary.first_failure.as_ref() {
+                            eprintln!(
+                                "[main][bootstrap][BLOCK_MIGRATION_PARTIAL failure={failure:?}]"
+                            );
+                            // Persist whatever progress was made (each
+                            // successful step already wrote its idempotency
+                            // marker; saving locks them in for the next
+                            // boot to skip via AlreadyDone).
+                            let _ = migrate_store.save();
+                            dialog::ask_native_error(
+                                "Mark — migration partially completed",
+                                &format!(
+                                    "A step in the migration pipeline failed:\n\n{failure:?}\n\n\
+                                     Successful steps were saved and will be skipped on the next launch. \
+                                     The original Mark Text v1.x data in ~/Library/Application Support/marktext \
+                                     was not modified. Please report this on the project tracker so the failure can be diagnosed.",
+                                ),
+                            );
+                            std::process::exit(1);
+                        }
+                        if let Err(e) = migrate_store.save() {
+                            eprintln!(
+                                "[main][bootstrap][BLOCK_MIGRATION_PERSIST_FAILED err={e}]"
+                            );
+                            dialog::ask_native_error(
+                                "Mark — migration save failed",
+                                &format!(
+                                    "Migration completed in memory but could not be persisted to disk: {e}\n\n\
+                                     This is usually a permission or disk-space problem. Original v1.x data is intact.",
+                                ),
+                            );
+                            std::process::exit(1);
+                        }
+                        eprintln!(
+                            "[main][bootstrap][BLOCK_MIGRATION_COMPLETED prefs={:?} dc={:?} kb={:?} recent={:?} keychain={:?}]",
+                            summary.preferences,
+                            summary.data_center,
+                            summary.keybindings,
+                            summary.recent_docs,
+                            summary.keychain,
+                        );
+                    }
+                    Err(failure) => {
+                        eprintln!("[main][bootstrap][BLOCK_MIGRATION_RUNNER_FAILED failure={failure:?}]");
+                        dialog::ask_native_error(
+                            "Mark — migration could not start",
+                            &format!(
+                                "The migration runner could not begin:\n\n{failure:?}\n\n\
+                                 The original Mark Text v1.x data has not been modified.",
+                            ),
+                        );
+                        std::process::exit(1);
+                    }
                 }
             }
             DialogChoice::Cancel => {
