@@ -19,6 +19,7 @@
 
 pub mod snapshot;
 pub mod preferences;
+pub mod data_center;
 
 // Re-exports for steps 2-9 consumers (caller may pull either through the
 // barrel or via `use crate::m005_migrate::snapshot::*`). Until the
@@ -31,4 +32,10 @@ pub use preferences::{
     migrate_preferences, mark_done as mark_preferences_done,
     is_already_done as is_preferences_done, PreferencesMigrationOutcome,
     PreferencesMigrationError,
+};
+#[allow(unused_imports)]
+pub use data_center::{
+    migrate_data_center, mark_done as mark_data_center_done,
+    is_already_done as is_data_center_done, DataCenterMigrationOutcome,
+    DataCenterMigrationError,
 };
