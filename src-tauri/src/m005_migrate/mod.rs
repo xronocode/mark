@@ -24,6 +24,8 @@ pub mod keybindings;
 pub mod recent_docs;
 pub mod keychain;
 pub mod runner;
+#[cfg(test)]
+pub mod fixture_e2e;
 
 // Re-exports for steps 2-9 consumers (caller may pull either through the
 // barrel or via `use crate::m005_migrate::snapshot::*`). Until the

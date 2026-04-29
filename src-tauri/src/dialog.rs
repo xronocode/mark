@@ -87,6 +87,21 @@ pub fn ask_native_error(title: &str, body: &str) {
     eprintln!("[dialog][ask_native_error][BLOCK_DIALOG_CLOSED]");
 }
 
+/// Single-button informational dialog. Used by F-PREFS-MIGRATE-V1
+/// step-9 to confirm a successful migration to the user. Same shape as
+/// ask_native_error but uses MessageLevel::Info so the OS chrome
+/// renders the friendly icon.
+pub fn ask_native_info(title: &str, body: &str) {
+    eprintln!("[dialog][ask_native_info][BLOCK_DIALOG_OPEN title={title}]");
+    let _ = MessageDialog::new()
+        .set_level(MessageLevel::Info)
+        .set_title(title)
+        .set_description(body)
+        .set_buttons(MessageButtons::Ok)
+        .show();
+    eprintln!("[dialog][ask_native_info][BLOCK_DIALOG_CLOSED]");
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

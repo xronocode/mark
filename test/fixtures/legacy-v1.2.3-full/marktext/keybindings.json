@@ -1,0 +1,7 @@
+{
+	"file.save": "CmdOrCtrl+S",
+	"file.save-as": "CmdOrCtrl+Shift+S",
+	"edit.undo": "CmdOrCtrl+Z",
+	"view.toggle-sidebar": "CmdOrCtrl+J",
+	"file.new-tab": "CmdOrCtrl+N"
+}

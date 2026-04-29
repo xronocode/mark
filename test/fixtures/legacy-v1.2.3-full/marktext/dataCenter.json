@@ -1,0 +1,14 @@
+{
+	"imageFolderPath": "/tmp/fixture/images",
+	"screenshotFolderPath": "/tmp/fixture/screenshot",
+	"webImages": [],
+	"cloudImages": [],
+	"currentUploader": "github",
+	"imageBed": {
+		"github": {
+			"owner": "fixture-user",
+			"repo": "fixture-repo",
+			"branch": "main"
+		}
+	}
+}

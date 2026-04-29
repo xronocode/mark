@@ -256,6 +256,60 @@ fn main() {
                             summary.recent_docs,
                             summary.keychain,
                         );
+                        // Step-9: surface a one-shot success dialog only
+                        // when at least one migrator did real work
+                        // (Migrated{...}). Re-runs that hit AlreadyDone /
+                        // NoSourceFile across the board are silent — no
+                        // user-visible noise on every boot.
+                        let did_migrate = matches!(
+                            summary.preferences,
+                            Some(m005_migrate::PreferencesMigrationOutcome::Migrated { .. })
+                        ) || matches!(
+                            summary.data_center,
+                            Some(m005_migrate::DataCenterMigrationOutcome::Migrated { .. })
+                        ) || matches!(
+                            summary.keybindings,
+                            Some(m005_migrate::KeybindingsMigrationOutcome::Migrated { .. })
+                        ) || matches!(
+                            summary.recent_docs,
+                            Some(m005_migrate::RecentDocsMigrationOutcome::Migrated { .. })
+                        ) || summary
+                            .keychain
+                            .as_ref()
+                            .map(|k| k.renamed > 0)
+                            .unwrap_or(false);
+                        if did_migrate {
+                            let prefs_n = match &summary.preferences {
+                                Some(m005_migrate::PreferencesMigrationOutcome::Migrated { keys_migrated, .. }) => *keys_migrated,
+                                _ => 0,
+                            };
+                            let dc_n = match &summary.data_center {
+                                Some(m005_migrate::DataCenterMigrationOutcome::Migrated { keys_migrated, .. }) => *keys_migrated,
+                                _ => 0,
+                            };
+                            let kb_n = match &summary.keybindings {
+                                Some(m005_migrate::KeybindingsMigrationOutcome::Migrated { keys_migrated, .. }) => *keys_migrated,
+                                _ => 0,
+                            };
+                            let recent_n = match &summary.recent_docs {
+                                Some(m005_migrate::RecentDocsMigrationOutcome::Migrated { keys_migrated, .. }) => *keys_migrated,
+                                _ => 0,
+                            };
+                            let kc_n = summary.keychain.as_ref().map(|k| k.renamed).unwrap_or(0);
+                            dialog::ask_native_info(
+                                "Mark — settings migrated from Mark Text v1.x",
+                                &format!(
+                                    "Your data has been imported successfully:\n\n\
+                                     • Preferences: {prefs_n} keys\n\
+                                     • Image-uploader configs: {dc_n} keys\n\
+                                     • Custom shortcuts: {kb_n}\n\
+                                     • Recent files: {recent_n}\n\
+                                     • Keychain entries: {kc_n}\n\n\
+                                     Your original Mark Text v1.x data in ~/Library/Application Support/marktext is unchanged — \
+                                     this migration only copied settings into Mark's new storage location.",
+                                ),
+                            );
+                        }
                     }
                     Err(failure) => {
                         eprintln!("[main][bootstrap][BLOCK_MIGRATION_RUNNER_FAILED failure={failure:?}]");
