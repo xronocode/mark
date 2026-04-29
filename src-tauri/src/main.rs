@@ -67,6 +67,7 @@ mod m001_validate;
 mod m005_prefs;
 mod m010_security;
 mod m014_encoding;
+mod m020_cli;
 mod m013b;
 mod migration_strings;
 mod mt_paths;
@@ -76,11 +77,28 @@ mod snapshot;
 use dialog::DialogChoice;
 
 fn main() {
-    // Phase-B1 step-10: install panic hook FIRST. Before legacy
-    // detection, before security audit, before contract validation —
-    // any panic in any of those paths must produce a crash log + dialog
-    // rather than a zombie process. V-M-001 hard requirement.
+    // Phase-B3 step-3: parse CLI BEFORE installing the panic hook.
+    // clap auto-handles --help / --version by printing + exit(0); a
+    // panic hook firing on those paths would write a spurious crash
+    // log. parse() is read-only over argv — no FS, no IPC.
+    let cli = m020_cli::parse();
+    if cli.print_version {
+        println!("mark {}", env!("CARGO_PKG_VERSION"));
+        std::process::exit(0);
+    }
+
+    // Phase-B1 step-10: install panic hook FIRST (after CLI parse).
+    // Before legacy detection, before security audit, before contract
+    // validation — any panic in any of those paths must produce a
+    // crash log + dialog rather than a zombie process. V-M-001 hard
+    // requirement.
     m001_panic::install_panic_hook();
+
+    // Verbose flag from CLI: future hook for diagnostic stream.
+    if cli.verbose {
+        eprintln!("[main][cli][BLOCK_VERBOSE_ENABLED files={} dir={:?} new_window={}]",
+            cli.files.len(), cli.directory, cli.new_window);
+    }
 
     // Phase-B-pre2 step-1: detect pre-existing electron-store layouts BEFORE
     // tauri::Builder takes ownership of the runtime. Read-only at this stage —
@@ -234,6 +252,27 @@ fn main() {
     let prefs = m005_prefs::PrefsState::boot();
     let sec_ctx = m013b::SecurityCtx::default();
     m005_prefs::restore_workspace(&prefs, &sec_ctx);
+
+    // CLI -d / --dir overrides the prefs-restored workspace for this
+    // session. Persistence semantics: explicit CLI flag does NOT update
+    // prefs (one-shot session), so the next launch without -d resumes
+    // the previous workspaceRoot.
+    if let Some(cli_dir) = cli.directory.as_ref() {
+        if cli_dir.is_dir() {
+            if let Ok(canonical) = std::fs::canonicalize(cli_dir) {
+                eprintln!(
+                    "[main][cli][BLOCK_WORKSPACE_FROM_CLI path={}]",
+                    canonical.display()
+                );
+                sec_ctx.set_sandbox(canonical);
+            }
+        } else {
+            eprintln!(
+                "[main][cli][BLOCK_CLI_DIR_INVALID path={}]",
+                cli_dir.display()
+            );
+        }
+    }
 
     tauri::Builder::default()
         .manage(sec_ctx)
