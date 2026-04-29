@@ -21,6 +21,27 @@
 
 import { ipc } from '@/ipc/runtime'
 import * as path from 'path-browserify'
+import { appLocalDataDir } from '@tauri-apps/api/path'
+
+// ─── URL args parity with v1.2.3 main process ─────────────────────────
+// In Electron, the main process appended `?udp=<path>&wid=0&type=editor`
+// to the renderer URL so bootstrap.js → parseUrlArgs() could read them
+// synchronously. Tauri loads a static index.html, so we synthesize the
+// same query string here using Tauri's appLocalDataDir() before any
+// downstream module reads window.location.search. Top-level await runs
+// before main.js continues with createApp().
+{
+  const search = new URLSearchParams(window.location.search)
+  if (!search.has('udp')) {
+    const udp = await appLocalDataDir()
+    search.set('udp', udp)
+    search.set('wid', '0')
+    search.set('type', 'editor')
+    search.set('debug', '0')
+    const next = `${window.location.pathname}?${search.toString()}${window.location.hash}`
+    history.replaceState(null, '', next)
+  }
+}
 
 // ─── window.fileUtils ───────────────────────────────────────────────
 // v1.2.3 preload exposed a 13-method fileUtils API. Most map cleanly
@@ -124,15 +145,28 @@ const electron = {
   // ipcRenderer surface — minimal compat with v1 raw access
   ipcRenderer: {
     invoke: async (channel, ...args) => {
-      // v1 channels use mt::xxx::yyy; M-013a translates :: → _ at the
-      // Tauri layer. Pass through untyped.
+      // v1 channels use mt::xxx-yyy::zzz; Tauri commands cannot contain
+      // hyphens (Rust identifier rules), so we map '::' AND '-' to '_'.
       const { invoke } = await import('@tauri-apps/api/core')
-      const tauriCmd = channel.replace(/::/g, '_')
+      const tauriCmd = channel.replace(/::/g, '_').replace(/-/g, '_')
       // Most v1 calls pass a single object as the first arg; spread
       // multiple args into a positional-style payload if the renderer
       // passed N>1.
       const payload = args.length === 1 ? args[0] : { args }
-      return invoke(tauriCmd, payload)
+      try {
+        return await invoke(tauriCmd, payload)
+      } catch (e) {
+        const msg = String(e || '')
+        // F-V1-IPC-COMPAT-STUBS: many v1 channels are not yet ported to
+        // Rust commands. Degrade silently with a console warning so the
+        // renderer's `.then(state => state && ...)` pattern resolves to
+        // undefined instead of throwing an unhandled rejection.
+        if (msg.includes('not found') || msg.includes('not allowed by ACL')) {
+          console.warn(`[ipc-shim] ${channel} (→ ${tauriCmd}): ${msg} — returning undefined`)
+          return undefined
+        }
+        throw e
+      }
     },
     send: async (channel, ...args) => {
       // Fire-and-forget — same as invoke but ignore result.

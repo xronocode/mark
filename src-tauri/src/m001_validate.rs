@@ -70,6 +70,7 @@ const REGISTERED_COMMANDS: &[&str] = &[
     "mt_secret_set",
     "mt_secret_get",
     "mt_secret_delete",
+    "mt_window_state",
 ];
 
 /// `mt::ping` is declared in M-013a's CommandMap as a typecheck
@@ -133,11 +134,15 @@ pub fn validate(
         .and_then(|c| c.as_array())
         .ok_or_else(|| "fixture has no channels[] array".to_string())?;
 
-    // Normalize fixture names: replace `::` with `_`, drop frontend-only.
+    // Normalize fixture names: replace `::` and `-` with `_`, drop
+    // frontend-only. v1.2.3 used hyphens inside channel segments
+    // (e.g. mt::window-state); Rust command names cannot contain
+    // hyphens, so the renderer-side shim translates both. Validation
+    // must apply the same normalization to compare apples-to-apples.
     let mut fixture_normalized: Vec<String> = channels
         .iter()
         .filter_map(|c| c.get("name").and_then(|n| n.as_str()))
-        .map(|name| name.replace("::", "_"))
+        .map(|name| name.replace("::", "_").replace('-', "_"))
         .filter(|n| !frontend_only.contains(&n.as_str()))
         .collect();
     fixture_normalized.sort();

@@ -78,6 +78,7 @@ mod m018_screenshot;
 mod m019_datacenter;
 mod m020_cli;
 mod m013b;
+mod m_v1_compat;
 mod migration_strings;
 mod mt_paths;
 mod prefs;
@@ -321,6 +322,7 @@ fn main() {
             m019_datacenter::mt_secret_set,
             m019_datacenter::mt_secret_get,
             m019_datacenter::mt_secret_delete,
+            m_v1_compat::mt_window_state,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

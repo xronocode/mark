@@ -3,16 +3,12 @@
   <head>
     <meta charset="UTF-8" />
     <title>MarkText</title>
-    <!-- https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP -->
-    <meta
-      http-equiv="Content-Security-Policy"
-      content="default-src 'self';
-                  script-src 'self';
-                  style-src 'self' 'unsafe-inline';
-                  img-src * data: file:;
-                  font-src 'self' data:;
-                  "
-    />
+    <!-- CSP is injected by Tauri at runtime from tauri.conf.json's
+         app.security.csp. Static meta CSP removed because it cannot
+         contain ipc://localhost (the Tauri runtime IPC scheme), and
+         meta+header CSPs intersect to the most restrictive — which
+         then blocks every invoke() call. See F-MAIN-ENTRY-DISABLED
+         debug 2026-04-29. -->
   </head>
 
   <body>

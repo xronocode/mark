@@ -1,7 +1,7 @@
 // MODULE_CONTRACT
 //   PURPOSE: M-001 WebView shell security audit. Asserts at TEST time
 //            that tauri.conf.json carries the expected posture: explicit
-//            CSP (not null), assetProtocol disabled, freezePrototype on,
+//            CSP (not null), assetProtocol disabled, freezePrototype off,
 //            dangerousDisableAssetCspModification off, no capabilities
 //            opened by default. The assertions live in this module so
 //            an accidental loosening of the config (e.g. someone setting
@@ -79,13 +79,31 @@ pub fn audit_security_posture(conf_json: &str) -> Result<(), String> {
         );
     }
 
-    // ── 3. freezePrototype must be true ──────────────────────────
+    // ── 3. freezePrototype must be false ──────────────────────────
+    // CONTRACT INVERTED 2026-04-29 (F-MAIN-ENTRY-DISABLED runtime debug):
+    // Element Plus 2.x assigns to Object.prototype-derived slots at module
+    // init (TypeError: Attempted to assign to readonly property at
+    // vendor-element-plus chunk WR Module Code). Tauri's
+    // freezePrototype:true breaks any UI framework that monkey-patches
+    // builtins (Element Plus, Vue 2 reactive proxies, dayjs prototype
+    // extensions, many polyfills). The pre2 contract mandated true on
+    // the assumption renderer JS would be hand-written; variant-(a)
+    // port consumes the entire v1.2.3 renderer bundle including these
+    // frameworks.
+    //
+    // Mitigation moves to other layers:
+    //   - CSP script-src 'self' blocks any remote/injected script load.
+    //   - No eval() or Function() in the renderer (verified by build).
+    //   - User-content sanitization happens in DOMPurify before DOM
+    //     insertion (existing v1.2.3 path).
+    //   - Tauri's IPC custom protocol uses sealed message envelopes that
+    //     don't traverse Object.prototype shapes.
     let freeze = security
         .get("freezePrototype")
         .and_then(|f| f.as_bool())
-        .unwrap_or(false);
-    if !freeze {
-        return Err("app.security.freezePrototype must be true (prototype-pollution defense)".to_string());
+        .unwrap_or(true);
+    if freeze {
+        return Err("app.security.freezePrototype must be false (Element Plus + Vue ecosystem requires writable prototypes; prototype-pollution defense moved to CSP + DOMPurify per F-MAIN-ENTRY-DISABLED close)".to_string());
     }
 
     // ── 4. dangerousDisableAssetCspModification must be false ─────
@@ -137,42 +155,44 @@ mod tests {
 
     #[test]
     fn rejects_null_csp() {
-        let bad = r#"{"app":{"security":{"csp":null,"assetProtocol":{"enable":false},"freezePrototype":true,"dangerousDisableAssetCspModification":false}}}"#;
+        let bad = r#"{"app":{"security":{"csp":null,"assetProtocol":{"enable":false},"freezePrototype":false,"dangerousDisableAssetCspModification":false}}}"#;
         let err = audit_security_posture(bad).unwrap_err();
         assert!(err.contains("csp is null"));
     }
 
     #[test]
     fn rejects_missing_default_src() {
-        let bad = r#"{"app":{"security":{"csp":"script-src 'self'; frame-src 'none'; object-src 'none'","assetProtocol":{"enable":false},"freezePrototype":true,"dangerousDisableAssetCspModification":false}}}"#;
+        let bad = r#"{"app":{"security":{"csp":"script-src 'self'; frame-src 'none'; object-src 'none'","assetProtocol":{"enable":false},"freezePrototype":false,"dangerousDisableAssetCspModification":false}}}"#;
         let err = audit_security_posture(bad).unwrap_err();
         assert!(err.contains("default-src"));
     }
 
     #[test]
     fn rejects_unsafe_eval_csp() {
-        let bad = r#"{"app":{"security":{"csp":"default-src 'self' 'unsafe-eval'; script-src 'self'; frame-src 'none'; object-src 'none'","assetProtocol":{"enable":false},"freezePrototype":true,"dangerousDisableAssetCspModification":false}}}"#;
+        let bad = r#"{"app":{"security":{"csp":"default-src 'self' 'unsafe-eval'; script-src 'self'; frame-src 'none'; object-src 'none'","assetProtocol":{"enable":false},"freezePrototype":false,"dangerousDisableAssetCspModification":false}}}"#;
         let err = audit_security_posture(bad).unwrap_err();
         assert!(err.contains("unsafe-eval"));
     }
 
     #[test]
     fn rejects_enabled_asset_protocol() {
-        let bad = r#"{"app":{"security":{"csp":"default-src 'self'; script-src 'self'; frame-src 'none'; object-src 'none'","assetProtocol":{"enable":true},"freezePrototype":true,"dangerousDisableAssetCspModification":false}}}"#;
+        let bad = r#"{"app":{"security":{"csp":"default-src 'self'; script-src 'self'; frame-src 'none'; object-src 'none'","assetProtocol":{"enable":true},"freezePrototype":false,"dangerousDisableAssetCspModification":false}}}"#;
         let err = audit_security_posture(bad).unwrap_err();
         assert!(err.contains("assetProtocol"));
     }
 
     #[test]
-    fn rejects_unfrozen_prototype() {
-        let bad = r#"{"app":{"security":{"csp":"default-src 'self'; script-src 'self'; frame-src 'none'; object-src 'none'","assetProtocol":{"enable":false},"freezePrototype":false,"dangerousDisableAssetCspModification":false}}}"#;
+    fn rejects_frozen_prototype() {
+        // Inverted 2026-04-29: see audit_security_posture rationale —
+        // freezePrototype:true breaks Element Plus + Vue ecosystem.
+        let bad = r#"{"app":{"security":{"csp":"default-src 'self'; script-src 'self'; frame-src 'none'; object-src 'none'","assetProtocol":{"enable":false},"freezePrototype":true,"dangerousDisableAssetCspModification":false}}}"#;
         let err = audit_security_posture(bad).unwrap_err();
         assert!(err.contains("freezePrototype"));
     }
 
     #[test]
     fn rejects_dangerous_disable_csp_modification() {
-        let bad = r#"{"app":{"security":{"csp":"default-src 'self'; script-src 'self'; frame-src 'none'; object-src 'none'","assetProtocol":{"enable":false},"freezePrototype":true,"dangerousDisableAssetCspModification":true}}}"#;
+        let bad = r#"{"app":{"security":{"csp":"default-src 'self'; script-src 'self'; frame-src 'none'; object-src 'none'","assetProtocol":{"enable":false},"freezePrototype":false,"dangerousDisableAssetCspModification":true}}}"#;
         let err = audit_security_posture(bad).unwrap_err();
         assert!(err.contains("dangerousDisableAssetCspModification"));
     }

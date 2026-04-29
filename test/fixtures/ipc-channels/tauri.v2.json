@@ -280,6 +280,14 @@
       "layer": "M-013a",
       "has_args": true,
       "has_result": true
+    },
+    {
+      "name": "mt::window-state",
+      "direction": "renderer->main",
+      "transport": "invoke",
+      "layer": "M-V1-COMPAT",
+      "has_args": false,
+      "has_result": true
     }
   ]
 }
