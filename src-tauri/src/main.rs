@@ -65,8 +65,10 @@ mod m001_pdf;
 mod m001_security;
 mod m001_validate;
 mod m005_prefs;
+mod m008_fonts;
 mod m010_security;
 mod m014_encoding;
+mod m017_recent;
 mod m020_cli;
 mod m013b;
 mod migration_strings;
@@ -294,6 +296,10 @@ fn main() {
             m005_prefs::mt_prefs_set,
             m005_prefs::mt_prefs_get_all,
             m005_prefs::mt_workspace_set,
+            m008_fonts::mt_fonts_list,
+            m017_recent::mt_recent_add,
+            m017_recent::mt_recent_list,
+            m017_recent::mt_recent_clear,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -76,6 +76,10 @@ export type CommandName =
   | 'mt::prefs::set'
   | 'mt::prefs::get_all'
   | 'mt::workspace::set'
+  | 'mt::fonts::list'
+  | 'mt::recent::add'
+  | 'mt::recent::list'
+  | 'mt::recent::clear'
 
 /**
  * Plain JSON-cloneable file stats. Mirrors v1.2.3's contextBridge
@@ -181,6 +185,22 @@ export interface CommandMap {
   }
   'mt::workspace::set': {
     args: { path: string }
+    result: void
+  }
+  'mt::fonts::list': {
+    args: Record<string, never>
+    result: string[]
+  }
+  'mt::recent::add': {
+    args: { path: string }
+    result: void
+  }
+  'mt::recent::list': {
+    args: Record<string, never>
+    result: string[]
+  }
+  'mt::recent::clear': {
+    args: Record<string, never>
     result: void
   }
 }

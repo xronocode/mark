@@ -26,16 +26,26 @@ export type { IpcSearch, SearchHit, SearcherOptions, CancelablePromise } from '.
 export { ipcPrefs, ipcWorkspace } from './prefs'
 export type { IpcPrefs, IpcWorkspace } from './prefs'
 
+export { ipcFonts } from './fonts'
+export type { IpcFonts } from './fonts'
+
+export { ipcRecent } from './recent'
+export type { IpcRecent } from './recent'
+
 // Convenience namespace: `import { ipc } from '@/ipc/runtime'`
 import { ipcFs } from './fs'
 import { ipcWatch } from './watch'
 import { ipcSearch } from './search'
 import { ipcPrefs, ipcWorkspace } from './prefs'
+import { ipcFonts } from './fonts'
+import { ipcRecent } from './recent'
 
 export const ipc = {
   fs: ipcFs,
   watch: ipcWatch,
   search: ipcSearch,
   prefs: ipcPrefs,
-  workspace: ipcWorkspace
+  workspace: ipcWorkspace,
+  fonts: ipcFonts,
+  recent: ipcRecent
 }

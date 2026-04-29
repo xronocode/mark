@@ -52,6 +52,10 @@ const REGISTERED_COMMANDS: &[&str] = &[
     "mt_prefs_set",
     "mt_prefs_get_all",
     "mt_workspace_set",
+    "mt_fonts_list",
+    "mt_recent_add",
+    "mt_recent_list",
+    "mt_recent_clear",
 ];
 
 /// `mt::ping` is declared in M-013a's CommandMap as a typecheck
