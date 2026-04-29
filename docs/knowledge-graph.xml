@@ -2,6 +2,15 @@
   <Project NAME="marktext-modernized" VERSION="0.2.0">
     <keywords>markdown, editor, wysiwyg, electron, tauri, vue3, muya, macos, homebrew, port, modernization</keywords>
     <annotation>Phase-A (Electron 30 + Vue 3) and Phase-B (Tauri v2 + Rust) module graph. Phase-A retains upstream structure (src/main, src/renderer, src/muya, src/common) and is represented only by muya (M-012) and renderer (M-011) here. Phase-B introduces Rust backend modules M-001..M-010 plus the IPC bridge M-013.</annotation>
+    <ClosureDocuments index="2026-04-29">
+      <doc id="gate-phase-b1-closure" path="docs/gate-phase-b1-closure.md" phase="B1" verdict="PASS-WITH-FOLLOWUP" />
+      <doc id="gate-phase-b2-closure" path="docs/gate-phase-b2-closure.md" phase="B2" verdict="PASS-WITH-FOLLOWUP" />
+      <doc id="gate-phase-b3-closure" path="docs/gate-phase-b3-closure.md" phase="B3" verdict="PASS-WITH-FOLLOWUP" />
+      <doc id="perf-bench-step-2.5b-path1" path="docs/perf-bench-v1.2.3-step-2.5b.md" phase="B1-step-2.5b" verdict="superseded-by-path3" />
+      <doc id="perf-bench-step-2.5b-path3" path="docs/perf-bench-v1.2.3-step-2.5b-path3.md" phase="B1-step-2.5b" verdict="PASS-MARGINAL" />
+      <doc id="phase-b1-pdf-export-strategy" path="docs/phase-b1-pdf-export-strategy.md" phase="B1-step-8" verdict="decision: defer to M-015 pandoc-bridge" />
+      <doc id="ci-warnings-allowlist" path="reborn-mark/docs/ci-warnings-allowlist.md" phase="B1.5a" verdict="active-allowlist" />
+    </ClosureDocuments>
 
     <M-001 NAME="mt-tauri-shell" TYPE="ENTRY_POINT" STATUS="partially-implemented" PHASE-REF="B1-step-7..11">
       <purpose>Tauri app entrypoint; builds app, registers plugins, manages windows and lifecycle. Phase-B1 delivered 5 sub-modules covering boot-time guards, validation, security audit, panic recovery, lifecycle primitives, and the PDF-export contract surface.</purpose>
@@ -73,7 +82,7 @@
       </annotations>
     </M-004>
 
-    <M-005 NAME="mt-prefs" TYPE="DATA_LAYER" STATUS="planned">
+    <M-005 NAME="mt-prefs" TYPE="DATA_LAYER" STATUS="lite-shipped" PHASE-REF="B3-step-1" PATH="src-tauri/src/m005_prefs.rs" CLOSURE="docs/gate-phase-b3-closure.md" DEFERRED="F-PREFS-MIGRATE-V1 (4-store legacy migration)">
       <purpose>Persistent preferences via tauri-plugin-store with legacy electron-store migration.</purpose>
       <path>src-tauri/src/prefs/mod.rs</path>
       <depends>none</depends>
@@ -85,7 +94,7 @@
       </annotations>
     </M-005>
 
-    <M-006 NAME="mt-shortcuts" TYPE="INTEGRATION" STATUS="planned">
+    <M-006 NAME="mt-shortcuts" TYPE="INTEGRATION" STATUS="lite-shipped" PHASE-REF="B3-step-4" PATH="src-tauri/src/m006_shortcuts.rs" CLOSURE="docs/gate-phase-b3-closure.md" DEFERRED="F-SHORTCUT-PLATFORM-BIND (tauri-plugin-global-shortcut + capability config)">
       <purpose>Global/local keyboard shortcut registration and dispatch (accelerator parser honors capitalized modifiers per #4134).</purpose>
       <path>src-tauri/src/shortcuts/mod.rs</path>
       <depends>none</depends>
@@ -96,7 +105,7 @@
       </annotations>
     </M-006>
 
-    <M-007 NAME="mt-spell" TYPE="INTEGRATION" STATUS="planned">
+    <M-007 NAME="mt-spell" TYPE="INTEGRATION" STATUS="lite-shipped" PHASE-REF="B3-step-5" PATH="src-tauri/src/m007_spell.rs" CLOSURE="docs/gate-phase-b3-closure.md" DEFERRED="F-SPELL-HUNSPELL-EMBED (Linux bundled-dict path)">
       <purpose>Spellcheck through the WebView's native spellchecker + bundled hunspell dictionaries for extra languages; thin shim over tauri-plugin-spellcheck if available or manual session config.</purpose>
       <path>src-tauri/src/spell/mod.rs</path>
       <depends>M-005</depends>
@@ -107,7 +116,7 @@
       </annotations>
     </M-007>
 
-    <M-008 NAME="mt-fonts" TYPE="INTEGRATION" STATUS="planned">
+    <M-008 NAME="mt-fonts" TYPE="INTEGRATION" STATUS="shipped" PHASE-REF="B3-step-6" PATH="src-tauri/src/m008_fonts.rs" CLOSURE="docs/gate-phase-b3-closure.md" DEFERRED="F-FONTS-FILTER-MONOSPACE">
       <purpose>System font enumeration via `font-kit`; per-session cache.</purpose>
       <path>src-tauri/src/fonts/mod.rs</path>
       <depends>none</depends>
@@ -118,7 +127,7 @@
       </annotations>
     </M-008>
 
-    <M-009 NAME="mt-menu" TYPE="UI_COMPONENT" STATUS="planned">
+    <M-009 NAME="mt-menu" TYPE="UI_COMPONENT" STATUS="skeleton-shipped" PHASE-REF="B3-step-12" PATH="src-tauri/src/m009_menu.rs" CLOSURE="docs/gate-phase-b3-closure.md" DEFERRED="F-MENU-WIRE-TAURI (native OS menu via tauri::menu::* in Builder.setup)">
       <purpose>Native menu bar and context menus; dispatches command IDs to renderer.</purpose>
       <path>src-tauri/src/menu/mod.rs</path>
       <depends>M-005</depends>
@@ -181,7 +190,7 @@
       </annotations>
     </M-012>
 
-    <M-014 NAME="mt-encoding" TYPE="UTILITY" STATUS="planned">
+    <M-014 NAME="mt-encoding" TYPE="UTILITY" STATUS="shipped" PHASE-REF="B3-step-2" PATH="src-tauri/src/m014_encoding.rs" CLOSURE="docs/gate-phase-b3-closure.md" DEFERRED="F-FS-DETECT-META-INLINE, F-ENCODING-MANUAL-PICK, F-ENCODING-WRITE-PRESERVE">
       <purpose>Text encoding detection + conversion + line-ending normalization; replaces upstream ced + iconv-lite.</purpose>
       <path>src-tauri/src/encoding/mod.rs</path>
       <depends>none</depends>
@@ -196,7 +205,7 @@
       </annotations>
     </M-014>
 
-    <M-015 NAME="mt-pandoc-bridge" TYPE="INTEGRATION" STATUS="planned">
+    <M-015 NAME="mt-pandoc-bridge" TYPE="INTEGRATION" STATUS="shipped" PHASE-REF="B3-step-9" PATH="src-tauri/src/m015_pandoc.rs" CLOSURE="docs/gate-phase-b3-closure.md" RELATED-DOC="docs/phase-b1-pdf-export-strategy.md" DEFERRED="F-PANDOC-PROGRESS">
       <purpose>Import docx/odt/latex/rst/etc. → Markdown via pandoc subprocess with macOS /Library/TeX/texbin PATH patching.</purpose>
       <path>src-tauri/src/pandoc/mod.rs</path>
       <depends>M-010</depends>
@@ -207,7 +216,7 @@
       </annotations>
     </M-015>
 
-    <M-016 NAME="mt-updater" TYPE="INTEGRATION" STATUS="planned">
+    <M-016 NAME="mt-updater" TYPE="INTEGRATION" STATUS="stub-shipped" PHASE-REF="B3-step-10" PATH="src-tauri/src/m016_updater.rs" CLOSURE="docs/gate-phase-b3-closure.md" DEFERRED="F-UPDATER-WIRE-PLUGIN (B4: tauri-plugin-updater + dual-pubkey ed25519 signing)">
       <purpose>Manual-download auto-update via tauri-plugin-updater; feeds from xronocode/mark releases.</purpose>
       <path>src-tauri/src/updater/mod.rs</path>
       <depends>none</depends>
@@ -219,7 +228,7 @@
       </annotations>
     </M-016>
 
-    <M-017 NAME="mt-recent-docs" TYPE="DATA_LAYER" STATUS="planned">
+    <M-017 NAME="mt-recent-docs" TYPE="DATA_LAYER" STATUS="shipped" PHASE-REF="B3-step-8" PATH="src-tauri/src/m017_recent.rs" CLOSURE="docs/gate-phase-b3-closure.md" DEFERRED="F-RECENT-OS-INTEGRATION (macOS NSDocumentController + Win JumpList)">
       <purpose>Recently-used documents list (max 12) with OS integration (macOS Dock, Windows Jump List, Linux JSON).</purpose>
       <path>src-tauri/src/recent/mod.rs</path>
       <depends>M-010</depends>
@@ -231,7 +240,7 @@
       </annotations>
     </M-017>
 
-    <M-018 NAME="mt-screenshot" TYPE="INTEGRATION" STATUS="planned">
+    <M-018 NAME="mt-screenshot" TYPE="INTEGRATION" STATUS="shipped-macos-only" PHASE-REF="B3-step-11" PATH="src-tauri/src/m018_screenshot.rs" CLOSURE="docs/gate-phase-b3-closure.md" DEFERRED="F-SCREENSHOT-CROSS-PLATFORM (Windows + Linux for v2.1+)">
       <purpose>macOS-only screenshot capture via `screencapture -i -c`; clipboard PNG → workspace file.</purpose>
       <path>src-tauri/src/screenshot/mod.rs</path>
       <depends>M-002</depends>
@@ -241,7 +250,7 @@
       </annotations>
     </M-018>
 
-    <M-019 NAME="mt-datacenter" TYPE="DATA_LAYER" STATUS="planned">
+    <M-019 NAME="mt-datacenter" TYPE="DATA_LAYER" STATUS="lite-shipped" PHASE-REF="B3-step-7" PATH="src-tauri/src/m019_datacenter.rs" CLOSURE="docs/gate-phase-b3-closure.md" DEFERRED="F-DC-MIGRATE-V1-KEYCHAIN, F-DC-IMAGE-UPLOAD (PicGo/aliyun/qiniu/smms runtimes)">
       <purpose>User image history, ImageBed config, and secrets (GitHub token) via keychain; legacy serviceName migration marktext → com.xronocode.mark.</purpose>
       <path>src-tauri/src/datacenter/mod.rs</path>
       <depends>M-005</depends>
@@ -255,7 +264,7 @@
       </annotations>
     </M-019>
 
-    <M-020 NAME="mt-cli-flags" TYPE="UTILITY" STATUS="planned">
+    <M-020 NAME="mt-cli-flags" TYPE="UTILITY" STATUS="shipped" PHASE-REF="B3-step-3" PATH="src-tauri/src/m020_cli.rs" CLOSURE="docs/gate-phase-b3-closure.md" DEFERRED="F-MULTI-WINDOW (--new-window wiring), F-CLI-OPEN-FILES (positional FILE dispatch needs M-009 menu bus)">
       <purpose>Parse CLI args --safe, --user-data-dir, --debug, --new-window, --disable-gpu, --disable-spellcheck, plus portable-mode auto-detect.</purpose>
       <path>src-tauri/src/cli/mod.rs</path>
       <depends>none</depends>
