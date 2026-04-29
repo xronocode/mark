@@ -34,8 +34,9 @@
 use crate::m010_security;
 use crate::m013b::error::IpcError;
 use crate::m013b::state::SecurityCtx;
+use crate::m014_encoding;
 use std::fs;
-use std::io::{Read, Write};
+use std::io::Write;
 use std::path::Path;
 use tauri::State;
 
@@ -79,15 +80,24 @@ pub async fn mt_fs_read(
         });
     }
 
-    let mut f = fs::File::open(&validated).map_err(|e| IpcError::from_io(cmd, e))?;
-    let mut s = String::with_capacity(meta.len() as usize);
-    f.read_to_string(&mut s).map_err(|e| IpcError::from_io(cmd, e))?;
+    // Read bytes, then dispatch through M-014 encoding detect+decode.
+    // Plain ASCII / UTF-8 takes the fast path (no chardet call); legacy
+    // CP-1251 / Shift_JIS / etc. files decode via encoding_rs with a
+    // chardet best-guess label. Bytes-replaced flag and detected label
+    // logged for diagnostic; renderer caller gets the String only —
+    // metadata travels via mt_fs_stat for now (extension F-FS-DETECT-
+    // META-INLINE could attach label to the read result later).
+    let bytes = fs::read(&validated).map_err(|e| IpcError::from_io(cmd, e))?;
+    let decoded = m014_encoding::detect_and_decode(&bytes);
     eprintln!(
-        "[FsCmd][read][BLOCK_READ_FROM_DISK path={} bytes={}]",
+        "[FsCmd][read][BLOCK_READ_FROM_DISK path={} bytes={} chars={} label={} replaced={}]",
         redact(&path),
-        s.len()
+        bytes.len(),
+        decoded.text.len(),
+        decoded.label,
+        decoded.bytes_replaced
     );
-    Ok(s)
+    Ok(decoded.text)
 }
 
 /// Write a UTF-8 string to a file. Creates parent dirs if missing
@@ -271,10 +281,8 @@ mod tests {
         if !meta.is_file() {
             return Err(IpcError::not_regular_file(cmd, &validated));
         }
-        let mut f = fs::File::open(&validated).map_err(|e| IpcError::from_io(cmd, e))?;
-        let mut s = String::new();
-        f.read_to_string(&mut s).map_err(|e| IpcError::from_io(cmd, e))?;
-        Ok(s)
+        let bytes = fs::read(&validated).map_err(|e| IpcError::from_io(cmd, e))?;
+        Ok(m014_encoding::detect_and_decode(&bytes).text)
     }
 
     async fn write_under(sandbox: &Path, path: &str, content: &str) -> Result<(), IpcError> {

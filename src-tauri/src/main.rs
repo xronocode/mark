@@ -66,6 +66,7 @@ mod m001_security;
 mod m001_validate;
 mod m005_prefs;
 mod m010_security;
+mod m014_encoding;
 mod m013b;
 mod migration_strings;
 mod mt_paths;
