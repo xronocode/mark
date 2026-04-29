@@ -8,6 +8,7 @@
       <doc id="gate-phase-b3-closure" path="docs/gate-phase-b3-closure.md" phase="B3" verdict="PASS-WITH-FOLLOWUP" />
       <doc id="gate-phase-b3a-closure" path="docs/gate-phase-b3a-closure.md" phase="B3a" verdict="contract-shipped-pending-renderer-wire" />
       <doc id="f-main-entry-disabled-runtime-close" inline-evidence="V-M-001/closed-evidence@F-MAIN-ENTRY-DISABLED-runtime-close" phase="post-B3a" verdict="resolved-runtime" reborn-mark-commits="3eb95bf9+8e83964c" />
+      <doc id="f-prefs-migrate-v1-full-close" inline-evidence="V-M-005/closed-evidence@F-PREFS-MIGRATE-V1-full-close" phase="post-B3a" verdict="resolved" reborn-mark-commits="dbd4c2fa+386bb5c2+065257c3+45a81387+d666dd0a+7b1bf02a+1655b8c7+33dca8d0" />
       <doc id="phase-b3a-unsupported-features-audit" path="docs/phase-b3a-unsupported-features-audit.md" phase="B3a-step-9" verdict="32-items-no-hidden-noops" />
       <doc id="perf-bench-step-2.5b-path1" path="docs/perf-bench-v1.2.3-step-2.5b.md" phase="B1-step-2.5b" verdict="superseded-by-path3" />
       <doc id="perf-bench-step-2.5b-path3" path="docs/perf-bench-v1.2.3-step-2.5b-path3.md" phase="B1-step-2.5b" verdict="PASS-MARGINAL" />
@@ -25,6 +26,7 @@
         <sub-module name="m001_pdf" path="src-tauri/src/m001_pdf.rs" purpose="mt::print_to_pdf MT_UNSUPPORTED stub; PDF export delegated to M-015 mt-pandoc-bridge per phase-b1-pdf-export-strategy.md" phase="B1-step-8" />
         <sub-module name="m001_lifecycle" path="src-tauri/src/m001_lifecycle.rs" purpose="CloseStateMachine (8 states), MenuGeneration AtomicU64, ReplayPolicy enum; types only at B1, runtime hooks deferred to B2/B3 (F-LIFECYCLE-WIRE, F-MENU-GEN-WIRE, F-REPLAY-POLICY-WIRE)" phase="B1-step-11" />
         <sub-module name="m_v1_compat" path="src-tauri/src/m_v1_compat.rs" purpose="Tauri-side stubs for v1.2.3 IPC channels not yet ported to dedicated modules. Currently houses mt_window_state (titleBar/index.vue startup invoke). Each command has an F-V1-IPC-COMPAT-STUBS followup pointing at its long-term owning module." phase="F-MAIN-ENTRY-DISABLED-runtime-debug-2026-04-29" />
+        <sub-module name="m005_migrate" path="src-tauri/src/m005_migrate/" purpose="F-PREFS-MIGRATE-V1 9-step migration pipeline: snapshot reader → preferences/dataCenter/keybindings/recent_docs migrators → keychain rename → orchestrator runner with lockfile + 16 MiB size guard → main.rs gate replacement → e2e fixture harness. 286/286 tests; replaces the MT_PREFS_V1_RUNNING stub abort." phase="F-PREFS-MIGRATE-V1-2026-04-29" />
       </sub-modules>
       <depends>M-002, M-003, M-004, M-005, M-006, M-007, M-008, M-009, M-010, M-014, M-015, M-016, M-017, M-018, M-019, M-020, M-013b</depends>
       <verification-ref>V-M-001</verification-ref>

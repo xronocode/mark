@@ -975,6 +975,63 @@
           correct bytes and the correct schema).
         </coverage-summary>
       </live-end-to-end-evidence>
+      <closed-evidence generation="F-PREFS-MIGRATE-V1-full-close" date="2026-04-29" reborn-mark-commits="dbd4c2fa, 386bb5c2, 065257c3, 45a81387, d666dd0a, 13d6, 612c1e64, 7b1bf02a, 1655b8c7, 33dca8d0">
+        <scope>The full F-PREFS-MIGRATE-V1 9-step migration pipeline replaces the Phase-B-pre2 MT_PREFS_V1_RUNNING stub abort gate. Closes V-M-005 mainline scenarios that were deferred from B-pre2.</scope>
+        <test-files>
+          <f>reborn-mark/src-tauri/src/m005_migrate/snapshot.rs (10 tests)</f>
+          <f>reborn-mark/src-tauri/src/m005_migrate/preferences.rs (10 tests)</f>
+          <f>reborn-mark/src-tauri/src/m005_migrate/data_center.rs (11 tests)</f>
+          <f>reborn-mark/src-tauri/src/m005_migrate/keybindings.rs (11 tests)</f>
+          <f>reborn-mark/src-tauri/src/m005_migrate/recent_docs.rs (12 tests, +1 reviewer regression)</f>
+          <f>reborn-mark/src-tauri/src/m005_migrate/keychain.rs (10 tests, mock-driven)</f>
+          <f>reborn-mark/src-tauri/src/m005_migrate/runner.rs (11 tests)</f>
+          <f>reborn-mark/src-tauri/src/m005_migrate/fixture_e2e.rs (4 tests, fixture-driven)</f>
+          <f>reborn-mark/test/fixtures/legacy-v1.2.3-full/marktext/ (canonical legacy data tree)</f>
+        </test-files>
+        <command-run>cd reborn-mark/src-tauri &amp;&amp; cargo test --release</command-run>
+        <result>286/286 pass in 1.84s on rustc 1.95.0, tauri 2.10.3, keyring 3.6.3</result>
+        <scenarios-covered>
+          <s kind="step-1">Snapshot reader — missing dir, empty dir, non-ts subdirs, full marktext namespace, partial namespace, window-state-not-migratable, latest-mtime selection, both-namespaces co-existence, missing-namespace returns None, snapshot-as-file IoError.</s>
+          <s kind="step-2">preferences.json migrator — full v1.2.3 fixture (theme, fontSize, language, ...), no-source-file (NoSourceFile non-error), idempotency marker short-circuit, corrupt-array root, truncated JSON, missing-file SourceReadFailed, mt_migration namespace defense, mark_done preserves schema_version+app_version, empty-object zero-keys.</s>
+          <s kind="step-3">dataCenter.json migrator — full real-user dataCenter (6 keys), collision against preferences (preferences wins), unknown-key forward-compat, no-source-file, idempotency, corrupt-array root, truncated JSON, missing-file, mt_migration defense, empty-object zero-keys, independent marker coexistence.</s>
+          <s kind="step-4">keybindings migrator — standard user overrides via parse_accelerator, empty-string value as unset (not invalid), invalid accelerator counted+skipped, non-string value as invalid, no-source-file, idempotency, last-write-wins merge with pre-existing, corrupt root, truncated, missing-file, empty-object zero-keys.</s>
+          <s kind="step-5">recent-docs migrator — short list, dedupe of repeats, MAX_RECENT_DOCS cap (15→10), non-string elements skipped, empty-string skipped, merge legacy-first ordering, merge-collision keeps legacy position, post-merge truncation bumps capped counter (reviewer regression net), no-source-file, idempotency, corrupt root-is-object, empty array.</s>
+          <s kind="step-6">keychain rename — standard rename of githubToken, no legacy entry (absent), permission-denied on legacy get, target collision (v2 keeps own value, legacy preserved), target-set failure (legacy NEVER deleted — data-loss prevention), legacy-delete failure still counts as renamed, idempotency, target-get failure, independent marker coexistence with all 4 prior steps, empty-LEGACY_KEYS defensive.</s>
+          <s kind="step-7">orchestrator runner — no-snapshot-dir clean exit, full pipeline with all 5 sources + keychain, failed step preserves prior markers (preferences ok then dataCenter corrupt → only preferences marker set), idempotent re-run after full success, lock held by active process, stale lockfile takeover (5+ min old), corrupt lockfile, source-too-large (17 MiB → SourceTooLarge), lockfile released on clean completion, lockfile released on step failure, snapshot-with-no-namespace clean exit.</s>
+          <s kind="step-8">main.rs runner integration — verified at runtime on maintainer's real legacy install: 68 prefs migrated, 6 dataCenter, 0 keybindings (NoSourceFile), 0 recent-docs (NoSourceFile, macOS), 0 keychain (githubToken absent). Lockfile at $HOME/Library/Caches/com.xronocode.mark/.migration.lock acquired/released. cache_root/preferences.json populated with 75 keys (68+6+1 mt_migration), all 5 done markers landed, theme=ayu-mirage and imageFolderPath survived, Tauri::Builder boot continued normally with Vue shell render.</s>
+          <s kind="step-9">e2e fixture — fixture_files_exist sanity check, full pipeline against canonical fixture (68 prefs + 6 dataCenter + 5 keybindings + 4 recent + 1 keychain), idempotent re-run preserves local edits, no-snapshot fresh-cache-root clean exit.</s>
+        </scenarios-covered>
+        <log-markers-emitted>
+          <marker>[m005-migrate][snapshot][BLOCK_SNAPSHOT_NOT_FOUND|BLOCK_SNAPSHOT_PATH_NOT_DIR|BLOCK_SNAPSHOT_EMPTY|BLOCK_SNAPSHOT_VALIDATED]</marker>
+          <marker>[m005-migrate][preferences][BLOCK_ALREADY_DONE|BLOCK_NO_SOURCE_FILE|BLOCK_SOURCE_READ_FAILED|BLOCK_SOURCE_PARSE_FAILED|BLOCK_SOURCE_NOT_OBJECT|BLOCK_KEY_SKIPPED|BLOCK_MIGRATED|BLOCK_MARK_DONE]</marker>
+          <marker>[m005-migrate][data_center][BLOCK_KEY_COLLISION|BLOCK_KEY_UNKNOWN|...]</marker>
+          <marker>[m005-migrate][keybindings][BLOCK_KEY_INVALID|BLOCK_KEY_UNSET|...]</marker>
+          <marker>[m005-migrate][recent_docs][BLOCK_ELEM_SKIPPED|BLOCK_ELEM_DEDUPED|BLOCK_CAPPED|BLOCK_CAPPED_POST_MERGE|...]</marker>
+          <marker>[m005-migrate][keychain][BLOCK_LEGACY_ABSENT|BLOCK_LEGACY_PERM_DENIED|BLOCK_TARGET_COLLISION|BLOCK_RENAMED|...]</marker>
+          <marker>[m005-migrate][runner][BLOCK_LOCK_ACQUIRED|BLOCK_LOCK_RELEASED|BLOCK_LOCK_HELD|BLOCK_LOCK_TAKEOVER|BLOCK_NO_SNAPSHOT_NOOP|BLOCK_NAMESPACE_SELECTED|BLOCK_SOURCE_TOO_LARGE|BLOCK_RUN_COMPLETE]</marker>
+          <marker>[main][bootstrap][BLOCK_MIGRATION_COMPLETED|BLOCK_MIGRATION_PARTIAL|BLOCK_MIGRATION_PERSIST_FAILED|BLOCK_MIGRATION_RUNNER_FAILED]</marker>
+          <marker>[dialog][ask_native_info][BLOCK_DIALOG_OPEN|BLOCK_DIALOG_CLOSED] — step-9 success dialog</marker>
+        </log-markers-emitted>
+        <real-world-smoke>
+          <command>./target/aarch64-apple-darwin/release/bundle/macos/Mark.app/Contents/MacOS/mark (no MARK_SKIP_MIGRATION env var)</command>
+          <stderr-captured>BLOCK_LEGACY_FOUND marktext=Some(...) mark=Some(...) → migration dialog → user clicked Continue → BLOCK_SNAPSHOT_LEGACY dest=.../snapshot/ts-1777467238 files=18 bytes=7592 → BLOCK_LOCK_ACQUIRED pid=75747 → preferences migrated=68 skipped=1 → data_center migrated=6 → keybindings NoSourceFile → recent_docs NoSourceFile → keychain absent=1 → BLOCK_RUN_COMPLETE → BLOCK_LOCK_RELEASED → BLOCK_MIGRATION_COMPLETED → success dialog</stderr-captured>
+          <store-side-effect>$HOME/Library/Caches/com.xronocode.mark/preferences.json populated with 75 keys including mt_migration namespace { app_version: alpha, schema_version: 1, preferences_v1: done, data_center_v1: done, keybindings_v1: done, recent_docs_v1: done, keychain_v1: done }. theme=ayu-mirage and imageFolderPath survived as expected.</store-side-effect>
+          <legacy-untouched>$HOME/Library/Application Support/marktext/ unchanged — read-only snapshot semantics preserved.</legacy-untouched>
+        </real-world-smoke>
+        <constraints-honored>
+          <c>Per-step idempotency markers under KEY_MIGRATION_NS short-circuit re-runs (each step reads its own _v1='done' marker and returns AlreadyDone).</c>
+          <c>Process-level lockfile (.migration.lock with PID+UNIX_TS, 5-min stale takeover, RAII LockGuard) prevents concurrent boot corruption.</c>
+          <c>16 MiB max-bytes guard before each migrator's read_to_string (closes F-MIGRATE-SIZE-LIMIT).</c>
+          <c>Stop-and-report on first per-step failure; subsequent steps skipped, partial markers preserved for next-boot resume via AlreadyDone.</c>
+          <c>Keychain step uses trait-based KeychainBackend so unit tests stay deterministic; production wires keyring 3.x via RealKeychain. Real OS keystore never touched in #[test].</c>
+          <c>Native success dialog (ask_native_info) only fires when at least one step did real work (Migrated{...} or keychain.renamed&gt;0); idempotent re-runs are silent.</c>
+        </constraints-honored>
+        <deferred-followups>
+          <d kind="defense-in-depth" id="F-MIGRATE-SNAPSHOT-MTIME-FALLBACK">UNIX_EPOCH fallback in latest-ts selection could theoretically shadow real candidates; skip-on-error is safer (post-v2.0).</d>
+          <d kind="defense-in-depth" id="F-MIGRATE-DEFENSE-EDGE-CASES">Symlink source readability + macOS NFC/NFD path normalization in recent_docs dedupe — consistent with renderer m017_recent so flagged for follow-up only.</d>
+          <d kind="cleanup" id="F-LEGACY-CLEANUP-POST-V2.0">Original $HOME/Library/Application Support/marktext/ kept intact as safety net; future cleanup pass after v2.0 stable can prompt for removal.</d>
+        </deferred-followups>
+      </closed-evidence>
     </V-M-005>
 
     <V-M-006 MODULE="M-006 mt-shortcuts" PRIORITY="medium">
