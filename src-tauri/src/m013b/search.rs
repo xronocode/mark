@@ -40,7 +40,7 @@ use std::io::{BufRead, BufReader};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
-use tauri::{AppHandle, Emitter, State};
+use tauri::{AppHandle, Emitter, Manager, State};
 
 /// Tauri event channel for streaming search results.
 pub const SEARCH_EVENT_CHANNEL: &str = "mt::search-event";
@@ -373,42 +373,210 @@ pub async fn mt_search_spawn(
         validated_roots.push(v);
     }
 
-    let _ = registry.insert(&search_id);
-    let _ = (validated_roots, pattern, opts); // silence unused after disable
-
-    // F-SEARCH-PERF-OR-REPLACE-WITH-RIPGREP-SIDECAR (alpha decision
-    // 2026-04-30): the hand-rolled ignore+regex walker is too slow for
-    // real markdown vaults (1k+ files). For the alpha ship we
-    // short-circuit to an immediate completion with zero hits — the
-    // search panel renders "0 results" instead of hanging. Real fix in
-    // B4: bundle @vscode/ripgrep as a Tauri sidecar and shell out per
-    // search, matching v1.2.3 architecture.
-    //
-    // Spawn the emit on a worker thread with a 120 ms delay so the
-    // renderer's `ipcRenderer.on('mt::search-event', ...)` listener
-    // registration (a Tauri plugin:event|listen invoke roundtrip)
-    // completes BEFORE the complete event fires. Otherwise the event
-    // is missed and the search panel hangs on "Searching...".
+    let cancel = registry.insert(&search_id);
     let sink: Arc<dyn SearchSink> = Arc::new(TauriSearchSink { app: app.clone() });
+
+    // F-SEARCH-RIPGREP-SHELLOUT (closes F-SEARCH-DISABLED-FOR-ALPHA on
+    // 2026-04-30): shell out to system `rg` with --json streaming
+    // output. For dev / brew users `rg` is on PATH; B4 ships a bundled
+    // sidecar at src-tauri/binaries/rg-<TARGET_TRIPLE> via Tauri's
+    // bundle.externalBin. Cancellation drives Child::kill().
     let search_id_for_thread = search_id.clone();
+    let registry_app_handle = app.clone();
     std::thread::spawn(move || {
+        // 120 ms warm-up so the renderer's listen() registration
+        // completes before any event fires (see RACE rationale in
+        // F-SEARCH-DISABLED-FOR-ALPHA followup).
         std::thread::sleep(std::time::Duration::from_millis(120));
+        let mut total_hits: u32 = 0;
+        let mut seq: u32 = 0;
+        for root in &validated_roots {
+            if cancel.load(Ordering::SeqCst) {
+                break;
+            }
+            match run_ripgrep(
+                &search_id_for_thread,
+                root,
+                &pattern,
+                &opts,
+                cancel.clone(),
+                sink.clone(),
+                seq,
+            ) {
+                Ok((hits, last_seq)) => {
+                    total_hits += hits;
+                    seq = last_seq;
+                }
+                Err(e) => {
+                    seq += 1;
+                    sink.emit(&SearchEvent {
+                        search_id: search_id_for_thread.clone(),
+                        kind: "error".to_string(),
+                        hits: vec![],
+                        error: Some(e.clone()),
+                        seq,
+                    });
+                    eprintln!("[Search][run][BLOCK_RIPGREP_FAILED search_id={search_id_for_thread} err={e}]");
+                }
+            }
+        }
+        seq += 1;
+        let final_kind = if cancel.load(Ordering::SeqCst) {
+            "cancelled"
+        } else {
+            "complete"
+        };
         sink.emit(&SearchEvent {
             search_id: search_id_for_thread.clone(),
-            kind: "complete".to_string(),
+            kind: final_kind.to_string(),
             hits: vec![],
             error: None,
-            seq: 1,
+            seq,
         });
         eprintln!(
-            "[Search][run][BLOCK_ALPHA_DISABLED search_id={search_id_for_thread}] short-circuited to complete"
+            "[Search][run][BLOCK_RIPGREP_DONE search_id={search_id_for_thread} hits={total_hits} kind={final_kind}]"
         );
+        let registry: tauri::State<'_, SearchRegistry> = registry_app_handle.state();
+        registry.remove(&search_id_for_thread);
     });
 
-    // Drop registry entry immediately since no real worker is running.
-    registry.remove(&search_id);
-
     Ok(())
+}
+
+/// Shell out to ripgrep, stream stdout JSON, emit batched SearchEvent
+/// `match` events to the sink. Returns (total_hits, last_seq) on clean
+/// completion; Err on spawn/IO failure (caller emits an error event).
+fn run_ripgrep(
+    search_id: &str,
+    root: &Path,
+    pattern: &str,
+    opts: &SearchOptions,
+    cancel: Arc<AtomicBool>,
+    sink: Arc<dyn SearchSink>,
+    starting_seq: u32,
+) -> Result<(u32, u32), String> {
+    use std::io::{BufRead, BufReader};
+    use std::process::{Command, Stdio};
+
+    let mut cmd = Command::new("rg");
+    cmd.arg("--json").arg("--no-heading");
+    if !opts.is_regexp.unwrap_or(false) {
+        cmd.arg("--fixed-strings");
+    }
+    if opts.is_case_sensitive.unwrap_or(false) {
+        cmd.arg("--case-sensitive");
+    } else {
+        cmd.arg("--smart-case");
+    }
+    if opts.is_whole_word.unwrap_or(false) {
+        cmd.arg("--word-regexp");
+    }
+    if opts.include_hidden.unwrap_or(false) {
+        cmd.arg("--hidden");
+    }
+    if opts.no_ignore.unwrap_or(false) {
+        cmd.arg("--no-ignore");
+    }
+    if opts.follow_symlinks.unwrap_or(false) {
+        cmd.arg("--follow");
+    }
+    if let Some(max) = opts.max_file_size {
+        cmd.arg(format!("--max-filesize={max}"));
+    }
+    cmd.arg("--").arg(pattern).arg(root);
+    cmd.stdout(Stdio::piped()).stderr(Stdio::null());
+
+    eprintln!("[Search][rg][BLOCK_SPAWN search_id={search_id} root={}]", root.display());
+    let mut child = cmd.spawn().map_err(|e| format!("spawn rg: {e}"))?;
+    let stdout = child.stdout.take().ok_or("no stdout")?;
+    let reader = BufReader::new(stdout);
+
+    let mut total: u32 = 0;
+    let mut seq = starting_seq;
+    let mut batch: Vec<SearchHit> = Vec::with_capacity(DEFAULT_BATCH_SIZE);
+    let pattern_len = pattern.chars().count() as u32;
+
+    for line in reader.lines() {
+        if cancel.load(Ordering::SeqCst) {
+            let _ = child.kill();
+            break;
+        }
+        let line = match line {
+            Ok(l) => l,
+            Err(_) => break,
+        };
+        let msg: serde_json::Value = match serde_json::from_str(&line) {
+            Ok(m) => m,
+            Err(_) => continue, // skip non-JSON lines (rare; rg --json is well-formed)
+        };
+        let kind = msg.get("type").and_then(|v| v.as_str()).unwrap_or("");
+        if kind != "match" {
+            continue;
+        }
+        let data = match msg.get("data") {
+            Some(d) => d,
+            None => continue,
+        };
+        let path_text = data
+            .get("path")
+            .and_then(|p| p.get("text"))
+            .and_then(|t| t.as_str())
+            .unwrap_or("")
+            .to_string();
+        let line_num = data
+            .get("line_number")
+            .and_then(|n| n.as_u64())
+            .unwrap_or(0) as u32;
+        let snippet = data
+            .get("lines")
+            .and_then(|l| l.get("text"))
+            .and_then(|t| t.as_str())
+            .unwrap_or("")
+            .trim_end_matches('\n')
+            .to_string();
+        // First submatch's start column for the column field. Renderer
+        // shim re-derives a range from snippet for highlighting.
+        let column = data
+            .get("submatches")
+            .and_then(|sm| sm.as_array())
+            .and_then(|arr| arr.first())
+            .and_then(|m| m.get("start"))
+            .and_then(|s| s.as_u64())
+            .unwrap_or(0) as u32;
+        batch.push(SearchHit {
+            path: path_text,
+            line: line_num,
+            column,
+            snippet,
+            truncated: false,
+        });
+        total += 1;
+        if batch.len() >= DEFAULT_BATCH_SIZE {
+            seq += 1;
+            sink.emit(&SearchEvent {
+                search_id: search_id.to_string(),
+                kind: "match".to_string(),
+                hits: std::mem::take(&mut batch),
+                error: None,
+                seq,
+            });
+        }
+    }
+
+    if !batch.is_empty() {
+        seq += 1;
+        sink.emit(&SearchEvent {
+            search_id: search_id.to_string(),
+            kind: "match".to_string(),
+            hits: std::mem::take(&mut batch),
+            error: None,
+            seq,
+        });
+    }
+
+    let _ = child.wait();
+    let _ = pattern_len; // reserved for future range-end calc
+    Ok((total, seq))
 }
 
 /// Cancel an in-flight search by id. Idempotent — calling on a non-
