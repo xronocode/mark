@@ -2495,7 +2495,7 @@ src/main/config.js declares `contextIsolation: false`, `nodeIntegration: true`, 
         5. Drop the 120 ms sleep workaround once spawn-process latency
            naturally exceeds the listen-registration window.
       NON-BLOCKERS for resolution: F-SEARCH-PERF-MEASURE (B2 followup, 10k
-      file fixture <500ms first-batch), F-SEARCH-UTF16, F-SEARCH-CONTEXT-LINES,
+      file fixture &lt;500ms first-batch), F-SEARCH-UTF16, F-SEARCH-CONTEXT-LINES,
       F-SEARCH-INCLUDE-EXCLUDE-GLOBS — all roll into the rewrite.
     </followup>
 
