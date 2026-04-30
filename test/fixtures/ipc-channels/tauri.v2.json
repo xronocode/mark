@@ -328,6 +328,78 @@
       "layer": "M-V1-COMPAT",
       "has_args": true,
       "has_result": true
+    },
+    {
+      "name": "mt::ask-for-user-preference",
+      "direction": "renderer->main",
+      "transport": "invoke",
+      "layer": "M-V1-COMPAT",
+      "has_args": false,
+      "has_result": true
+    },
+    {
+      "name": "mt::ask-for-user-data",
+      "direction": "renderer->main",
+      "transport": "invoke",
+      "layer": "M-V1-COMPAT",
+      "has_args": false,
+      "has_result": true
+    },
+    {
+      "name": "mt::set-user-preference",
+      "direction": "renderer->main",
+      "transport": "invoke",
+      "layer": "M-V1-COMPAT",
+      "has_args": true,
+      "has_result": true
+    },
+    {
+      "name": "mt::set-user-data",
+      "direction": "renderer->main",
+      "transport": "invoke",
+      "layer": "M-V1-COMPAT",
+      "has_args": true,
+      "has_result": true
+    },
+    {
+      "name": "mt::get-current-language",
+      "direction": "renderer->main",
+      "transport": "invoke",
+      "layer": "M-V1-COMPAT",
+      "has_args": false,
+      "has_result": true
+    },
+    {
+      "name": "mt::view-layout-changed",
+      "direction": "renderer->main",
+      "transport": "invoke",
+      "layer": "M-V1-COMPAT",
+      "has_args": true,
+      "has_result": true
+    },
+    {
+      "name": "mt::update-sidebar-menu",
+      "direction": "renderer->main",
+      "transport": "invoke",
+      "layer": "M-V1-COMPAT",
+      "has_args": true,
+      "has_result": true
+    },
+    {
+      "name": "mt::request-window-content-size",
+      "direction": "renderer->main",
+      "transport": "invoke",
+      "layer": "M-V1-COMPAT",
+      "has_args": true,
+      "has_result": true
+    },
+    {
+      "name": "mt::open-setting-window",
+      "direction": "renderer->main",
+      "transport": "invoke",
+      "layer": "M-V1-COMPAT",
+      "has_args": false,
+      "has_result": true
     }
   ]
 }

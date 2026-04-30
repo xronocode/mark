@@ -22,9 +22,12 @@
 //     mt_ask_for_open_project_in_sidebar use rfd file pickers and emit
 //     mt::open-directory / mt::open-file events so File→Open and the
 //     sidebar's Open Folder button work.
+//   - 2026-04-30 F-V1-IPC-COMPAT-STUBS: 7 prefs/i18n/layout channels
+//     wired through PrefsState; 2 no-op channels stubbed; 1 deferred
+//     to F-SETTINGS-WINDOW-WIRE (open-setting-window).
 
 use serde::Serialize;
-use serde_json::json;
+use serde_json::{json, Value};
 use tauri::{Emitter, Manager};
 
 use crate::m005_prefs::PrefsState;
@@ -359,6 +362,207 @@ fn emit_open_new_tab(window: &tauri::Window, pathname: &str) -> Result<(), Strin
     }
     eprintln!("[v1_compat][open_new_tab][BLOCK_OPENED path={pathname}]");
     Ok(())
+}
+
+// ──────────────────────────────────────────────────────────────────────
+// F-V1-IPC-COMPAT-STUBS — prefs / i18n / layout / sidebar IPC channels
+// ──────────────────────────────────────────────────────────────────────
+
+/// Maps to v1 'mt::ask-for-user-preference' AND 'mt::ask-for-user-data'
+/// sends from store/preferences.js. Renderer listens for the response
+/// on `mt::user-preference` event with the full prefs object as payload.
+/// We answer with the entire PrefsStore Map so renderer's
+/// SET_USER_PREFERENCE picks up theme / fontSize / language / layout
+/// state at startup.
+#[tauri::command]
+pub async fn mt_ask_for_user_preference(
+    window: tauri::Window,
+    prefs: tauri::State<'_, PrefsState>,
+) -> Result<(), String> {
+    let snapshot = prefs.all();
+    if let Err(e) = window.emit("mt::user-preference", &snapshot) {
+        eprintln!("[v1_compat][prefs_ask][BLOCK_EMIT_FAILED err={e}]");
+        return Err(e.to_string());
+    }
+    eprintln!("[v1_compat][prefs_ask][BLOCK_RESPONDED keys={}]", snapshot.len());
+    Ok(())
+}
+
+/// Alias of mt_ask_for_user_preference. v1 main process answered both
+/// channels with the same prefs payload (dataCenter keys are mixed in
+/// the same flat namespace per F-PREFS-MIGRATE-V1 dataCenter merge).
+#[tauri::command]
+pub async fn mt_ask_for_user_data(
+    window: tauri::Window,
+    prefs: tauri::State<'_, PrefsState>,
+) -> Result<(), String> {
+    mt_ask_for_user_preference(window, prefs).await
+}
+
+/// Maps to v1 'mt::set-user-preference' AND 'mt::set-user-data' sends.
+/// Renderer dispatches `{key: value}` (single entry) or full sub-object
+/// per call — for example, theme switcher sends `{ theme: 'ayu-mirage' }`.
+/// We merge into PrefsStore and broadcast `mt::user-preference` so
+/// other windows / panels stay in sync.
+#[tauri::command]
+pub async fn mt_set_user_preference(
+    window: tauri::Window,
+    prefs: tauri::State<'_, PrefsState>,
+    args: Value,
+) -> Result<(), String> {
+    let payload = unwrap_first_arg(&args).unwrap_or(args);
+    let map = match payload {
+        Value::Object(m) => m,
+        other => {
+            eprintln!("[v1_compat][prefs_set][BLOCK_NOT_OBJECT got={other:?}]");
+            return Ok(()); // best-effort; renderer doesn't await result
+        }
+    };
+    let mut written = 0u32;
+    for (k, v) in map {
+        if k == crate::m005_prefs::KEY_MIGRATION_NS {
+            continue; // never overwrite our migration tracker
+        }
+        if let Err(e) = prefs.set(k.clone(), v) {
+            eprintln!("[v1_compat][prefs_set][BLOCK_WRITE_FAILED key={k} err={e}]");
+            continue;
+        }
+        written += 1;
+    }
+    eprintln!("[v1_compat][prefs_set][BLOCK_WRITTEN keys={written}]");
+    // Broadcast updated snapshot so any other UI mirrors stay coherent.
+    let snapshot = prefs.all();
+    let _ = window.emit("mt::user-preference", &snapshot);
+    Ok(())
+}
+
+/// Alias of mt_set_user_preference for the dataCenter-side send.
+#[tauri::command]
+pub async fn mt_set_user_data(
+    window: tauri::Window,
+    prefs: tauri::State<'_, PrefsState>,
+    args: Value,
+) -> Result<(), String> {
+    mt_set_user_preference(window, prefs, args).await
+}
+
+/// Maps to v1 'mt::get-current-language'. Renderer's i18n bootstrap
+/// awaits a `mt::current-language` event with the language string
+/// (e.g. "en", "ru"). We resolve from PrefsStore[language] (set by
+/// F-PREFS-MIGRATE-V1) and fall back to sys_locale.
+#[tauri::command]
+pub async fn mt_get_current_language(
+    window: tauri::Window,
+    prefs: tauri::State<'_, PrefsState>,
+) -> Result<(), String> {
+    let lang = prefs
+        .get("language")
+        .and_then(|v| v.as_str().map(|s| s.to_string()))
+        .or_else(|| sys_locale::get_locale())
+        .unwrap_or_else(|| "en".to_string());
+    eprintln!("[v1_compat][i18n][BLOCK_LANGUAGE_RESOLVED lang={lang}]");
+    if let Err(e) = window.emit("mt::current-language", &lang) {
+        eprintln!("[v1_compat][i18n][BLOCK_EMIT_FAILED err={e}]");
+        return Err(e.to_string());
+    }
+    Ok(())
+}
+
+/// Maps to v1 'mt::view-layout-changed'. Renderer dispatches layout
+/// state — we persist into PrefsStore so subsequent sessions restore
+/// the user's sidebar/tabbar/right-column choices. v1 also synced the
+/// native menu's checkmarks; that re-sync waits on F-MENU-WIRE-TAURI.
+#[tauri::command]
+pub async fn mt_view_layout_changed(
+    prefs: tauri::State<'_, PrefsState>,
+    args: Value,
+) -> Result<(), String> {
+    // Renderer call: ipcRenderer.send('mt::view-layout-changed', windowId, viewState)
+    // Shim wraps positional 2-arg as args=[windowId, viewState].
+    let view_state = match &args {
+        Value::Array(arr) if arr.len() >= 2 => arr.get(1).cloned(),
+        Value::Object(map) if map.contains_key("args") => {
+            if let Some(Value::Array(arr)) = map.get("args") {
+                arr.get(1).cloned()
+            } else {
+                None
+            }
+        }
+        _ => None,
+    };
+    let map = match view_state {
+        Some(Value::Object(m)) => m,
+        _ => {
+            eprintln!("[v1_compat][layout][BLOCK_NO_VIEW_STATE]");
+            return Ok(());
+        }
+    };
+    let mut written = 0u32;
+    for (k, v) in map {
+        if let Err(e) = prefs.set(k.clone(), v) {
+            eprintln!("[v1_compat][layout][BLOCK_WRITE_FAILED key={k} err={e}]");
+            continue;
+        }
+        written += 1;
+    }
+    eprintln!("[v1_compat][layout][BLOCK_PERSISTED keys={written}]");
+    Ok(())
+}
+
+/// Maps to v1 'mt::update-sidebar-menu'. v1 main process toggled the
+/// View menu's "Toggle Sidebar" checkmark to match. We have no native
+/// menu yet (F-MENU-WIRE-TAURI), so this is a no-op stub that records
+/// a marker for diagnostic visibility.
+#[tauri::command]
+pub async fn mt_update_sidebar_menu(args: Value) -> Result<(), String> {
+    eprintln!("[v1_compat][layout][BLOCK_UPDATE_SIDEBAR_MENU_NOOP args={args}]");
+    Ok(())
+}
+
+/// Maps to v1 'mt::request-window-content-size'. v1 main process
+/// resized the OS window to match the requested inner content width
+/// (Mode → Source ↔ WYSIWYG transitions). Tauri's tao window API can
+/// do this; deferring as a no-op for alpha because user can resize
+/// manually and the auto-resize can fight macOS Stage Manager.
+/// Closes when F-WINDOW-AUTO-RESIZE wires tauri::Window::set_inner_size.
+#[tauri::command]
+pub async fn mt_request_window_content_size(args: Value) -> Result<(), String> {
+    eprintln!("[v1_compat][layout][BLOCK_REQUEST_WINDOW_CONTENT_SIZE_NOOP args={args}]");
+    Ok(())
+}
+
+/// Maps to v1 'mt::open-setting-window'. v1 spawned a SECOND BrowserWindow
+/// with type=settings URL arg. Tauri equivalent (WebviewWindow::builder
+/// with same index.html + ?type=settings query) is non-trivial because
+/// renderer's bootstrap.js would need to handle the type=settings route
+/// AND we'd need to ensure the new window inherits the same prefs
+/// state. Deferred to F-SETTINGS-WINDOW-WIRE; for alpha we surface a
+/// log marker so tester can see the click reached backend.
+#[tauri::command]
+pub async fn mt_open_setting_window(_args: Value) -> Result<(), String> {
+    eprintln!("[v1_compat][settings][BLOCK_OPEN_SETTING_WINDOW_DEFERRED reason=F-SETTINGS-WINDOW-WIRE]");
+    Ok(())
+}
+
+// ──────────────────────────────────────────────────────────────────────
+// Helpers
+// ──────────────────────────────────────────────────────────────────────
+
+/// Tauri's invoke wrapper unwraps single-arg sends to the bare value
+/// while wrapping multi-arg sends as `{args: [...]}`. For prefs setters
+/// the renderer always sends ONE positional `{key: value}` object, but
+/// we accept both shapes defensively.
+fn unwrap_first_arg(args: &Value) -> Option<Value> {
+    match args {
+        Value::Object(map) if map.contains_key("args") => {
+            if let Some(Value::Array(arr)) = map.get("args") {
+                arr.first().cloned()
+            } else {
+                None
+            }
+        }
+        _ => None,
+    }
 }
 
 #[cfg(test)]

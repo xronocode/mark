@@ -449,6 +449,15 @@ fn main() {
             m_v1_compat::mt_cmd_open_file,
             m_v1_compat::mt_ask_for_open_project_in_sidebar,
             m_v1_compat::mt_open_file,
+            m_v1_compat::mt_ask_for_user_preference,
+            m_v1_compat::mt_ask_for_user_data,
+            m_v1_compat::mt_set_user_preference,
+            m_v1_compat::mt_set_user_data,
+            m_v1_compat::mt_get_current_language,
+            m_v1_compat::mt_view_layout_changed,
+            m_v1_compat::mt_update_sidebar_menu,
+            m_v1_compat::mt_request_window_content_size,
+            m_v1_compat::mt_open_setting_window,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

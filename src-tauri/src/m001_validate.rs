@@ -76,6 +76,15 @@ const REGISTERED_COMMANDS: &[&str] = &[
     "mt_cmd_open_file",
     "mt_ask_for_open_project_in_sidebar",
     "mt_open_file",
+    "mt_ask_for_user_preference",
+    "mt_ask_for_user_data",
+    "mt_set_user_preference",
+    "mt_set_user_data",
+    "mt_get_current_language",
+    "mt_view_layout_changed",
+    "mt_update_sidebar_menu",
+    "mt_request_window_content_size",
+    "mt_open_setting_window",
 ];
 
 /// `mt::ping` is declared in M-013a's CommandMap as a typecheck
