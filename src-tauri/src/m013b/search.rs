@@ -383,19 +383,29 @@ pub async fn mt_search_spawn(
     // search panel renders "0 results" instead of hanging. Real fix in
     // B4: bundle @vscode/ripgrep as a Tauri sidecar and shell out per
     // search, matching v1.2.3 architecture.
+    //
+    // Spawn the emit on a worker thread with a 120 ms delay so the
+    // renderer's `ipcRenderer.on('mt::search-event', ...)` listener
+    // registration (a Tauri plugin:event|listen invoke roundtrip)
+    // completes BEFORE the complete event fires. Otherwise the event
+    // is missed and the search panel hangs on "Searching...".
     let sink: Arc<dyn SearchSink> = Arc::new(TauriSearchSink { app: app.clone() });
-    sink.emit(&SearchEvent {
-        search_id: search_id.clone(),
-        kind: "complete".to_string(),
-        hits: vec![],
-        error: None,
-        seq: 1,
+    let search_id_for_thread = search_id.clone();
+    std::thread::spawn(move || {
+        std::thread::sleep(std::time::Duration::from_millis(120));
+        sink.emit(&SearchEvent {
+            search_id: search_id_for_thread.clone(),
+            kind: "complete".to_string(),
+            hits: vec![],
+            error: None,
+            seq: 1,
+        });
+        eprintln!(
+            "[Search][run][BLOCK_ALPHA_DISABLED search_id={search_id_for_thread}] short-circuited to complete"
+        );
     });
-    eprintln!(
-        "[Search][run][BLOCK_ALPHA_DISABLED search_id={search_id}] short-circuited to complete"
-    );
 
-    // Drop registry entry immediately since no thread will run.
+    // Drop registry entry immediately since no real worker is running.
     registry.remove(&search_id);
 
     Ok(())

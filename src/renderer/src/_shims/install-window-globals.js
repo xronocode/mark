@@ -22,6 +22,12 @@
 import { ipc } from '@/ipc/runtime'
 import * as path from 'path-browserify'
 import { appLocalDataDir } from '@tauri-apps/api/path'
+// Pre-import the event/core modules statically so ipcRenderer.on /
+// .invoke / .send paths don't have to await dynamic imports — that
+// async boundary races with backend emit-on-spawn (renderer subscribes
+// AFTER backend has already fired the response, event is missed).
+import { invoke as _tauriInvoke } from '@tauri-apps/api/core'
+import { listen as _tauriListen, once as _tauriOnce, emit as _tauriEmit } from '@tauri-apps/api/event'
 
 // ─── URL args parity with v1.2.3 main process ─────────────────────────
 // In Electron, the main process appended `?udp=<path>&wid=0&type=editor`
@@ -212,7 +218,7 @@ const electron = {
     invoke: async (channel, ...args) => {
       // v1 channels use mt::xxx-yyy::zzz; Tauri commands cannot contain
       // hyphens (Rust identifier rules), so we map '::' AND '-' to '_'.
-      const { invoke } = await import('@tauri-apps/api/core')
+      const invoke = _tauriInvoke
       const tauriCmd = channel.replace(/::/g, '_').replace(/-/g, '_')
       // Most v1 calls pass a single object as the first arg; spread
       // multiple args into a positional-style payload if the renderer
@@ -241,8 +247,8 @@ const electron = {
         // best-effort
       }
     },
-    on: async (channel, handler) => {
-      const { listen } = await import('@tauri-apps/api/event')
+    on: (channel, handler) => {
+      const listen = _tauriListen
       // Special-case: mt::search-event uses an M-013a-shape payload
       // ({searchId, kind, hits[], error, seq}) but v1.2.3 renderer
       // (ripgrepSearcher.js) expects v1 shape ({searchId, type,
@@ -282,8 +288,8 @@ const electron = {
       }
       return listen(channel, (event) => handler(event, event.payload))
     },
-    once: async (channel, handler) => {
-      const { once } = await import('@tauri-apps/api/event')
+    once: (channel, handler) => {
+      const once = _tauriOnce
       return once(channel, (event) => handler(event, event.payload))
     },
     removeListener: () => {},
