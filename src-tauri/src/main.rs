@@ -448,6 +448,7 @@ fn main() {
             m_v1_compat::mt_cmd_open_folder,
             m_v1_compat::mt_cmd_open_file,
             m_v1_compat::mt_ask_for_open_project_in_sidebar,
+            m_v1_compat::mt_open_file,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

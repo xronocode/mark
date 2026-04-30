@@ -320,6 +320,14 @@
       "layer": "M-V1-COMPAT",
       "has_args": false,
       "has_result": true
+    },
+    {
+      "name": "mt::open-file",
+      "direction": "renderer->main",
+      "transport": "invoke",
+      "layer": "M-V1-COMPAT",
+      "has_args": true,
+      "has_result": true
     }
   ]
 }

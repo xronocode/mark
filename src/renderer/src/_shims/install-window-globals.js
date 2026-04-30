@@ -243,6 +243,43 @@ const electron = {
     },
     on: async (channel, handler) => {
       const { listen } = await import('@tauri-apps/api/event')
+      // Special-case: mt::search-event uses an M-013a-shape payload
+      // ({searchId, kind, hits[], error, seq}) but v1.2.3 renderer
+      // (ripgrepSearcher.js) expects v1 shape ({searchId, type,
+      // payload}). Translate kind→type and split hits[] into per-file
+      // groups so didMatch sees one filePath per event.
+      if (channel === 'mt::search-event') {
+        return listen(channel, (event) => {
+          const m = event.payload
+          if (!m) return
+          const sid = m.searchId
+          if (m.kind === 'match' && Array.isArray(m.hits) && m.hits.length) {
+            const byPath = new Map()
+            for (const h of m.hits) {
+              if (!byPath.has(h.path)) byPath.set(h.path, [])
+              byPath.get(h.path).push({
+                matchText: h.snippet || '',
+                lineText: h.snippet || '',
+                range: [
+                  { row: Math.max(0, (h.line || 1) - 1), column: h.column || 0 },
+                  { row: Math.max(0, (h.line || 1) - 1), column: (h.column || 0) + (h.snippet ? h.snippet.length : 0) }
+                ],
+                leadingContextLines: [],
+                trailingContextLines: []
+              })
+            }
+            for (const [filePath, matches] of byPath) {
+              handler(event, { searchId: sid, type: 'match', payload: { filePath, matches } })
+            }
+          } else if (m.kind === 'complete') {
+            handler(event, { searchId: sid, type: 'complete' })
+          } else if (m.kind === 'cancelled') {
+            handler(event, { searchId: sid, type: 'complete' })
+          } else if (m.kind === 'error') {
+            handler(event, { searchId: sid, type: 'error', payload: { message: m.error || 'search error' } })
+          }
+        })
+      }
       return listen(channel, (event) => handler(event, event.payload))
     },
     once: async (channel, handler) => {

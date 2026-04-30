@@ -145,12 +145,164 @@ async fn open_folder_internal(window: tauri::Window) -> Result<(), String> {
         eprintln!("[v1_compat][open_folder][BLOCK_EMIT_FAILED err={e}]");
         return Err(e.to_string());
     }
+
+    // Renderer's project store renders an empty root and waits for
+    // mt::update-object-tree events. Walk the directory and emit one
+    // event per file/folder. Spawn on blocking pool so the dialog
+    // returns immediately and the renderer paints the empty root
+    // before the tree fills in.
+    let walk_path = std::path::PathBuf::from(&path);
+    let walk_window = window.clone();
+    std::thread::spawn(move || {
+        if let Err(e) = walk_and_emit(&walk_path, &walk_window) {
+            eprintln!("[v1_compat][open_folder][BLOCK_WALK_FAILED err={e}]");
+        }
+    });
+
+    Ok(())
+}
+
+const MARKDOWN_EXTS: &[&str] = &[
+    "md", "markdown", "mmd", "mkd", "mkdn", "mdown", "mdtxt", "mdtext", "mdx", "text", "txt",
+];
+
+fn is_markdown(name: &str) -> bool {
+    let lower = name.to_lowercase();
+    MARKDOWN_EXTS.iter().any(|ext| lower.ends_with(&format!(".{ext}")))
+}
+
+/// Recursively walk a directory. For each file emit
+/// `mt::update-object-tree` with `{type:"add", change:{pathname, name,
+/// isFile:true, isDirectory:false, isMarkdown}}`; for each subdirectory
+/// emit `{type:"addDir", change:{pathname, name}}`. Skips hidden
+/// entries (names starting with ".") so .git / .DS_Store don't pollute
+/// the sidebar tree.
+fn walk_and_emit(root: &std::path::Path, window: &tauri::Window) -> std::io::Result<()> {
+    let mut stack: Vec<std::path::PathBuf> = vec![root.to_path_buf()];
+    while let Some(current) = stack.pop() {
+        let entries = match std::fs::read_dir(&current) {
+            Ok(it) => it,
+            Err(e) => {
+                eprintln!(
+                    "[v1_compat][walk][BLOCK_READ_DIR_FAILED dir={} err={e}]",
+                    current.display()
+                );
+                continue;
+            }
+        };
+        for entry in entries.flatten() {
+            let name_os = entry.file_name();
+            let name = match name_os.to_str() {
+                Some(s) => s.to_string(),
+                None => continue, // non-UTF-8 names skipped
+            };
+            if name.starts_with('.') {
+                continue;
+            }
+            let path = entry.path();
+            let pathname = path.to_string_lossy().to_string();
+            let ft = match entry.file_type() {
+                Ok(ft) => ft,
+                Err(_) => continue,
+            };
+            if ft.is_dir() {
+                let _ = window.emit(
+                    "mt::update-object-tree",
+                    json!({
+                        "type": "addDir",
+                        "change": {
+                            "pathname": pathname,
+                            "name": name,
+                        }
+                    }),
+                );
+                stack.push(path);
+            } else if ft.is_file() {
+                let _ = window.emit(
+                    "mt::update-object-tree",
+                    json!({
+                        "type": "add",
+                        "change": {
+                            "pathname": pathname,
+                            "name": name,
+                            "isFile": true,
+                            "isDirectory": false,
+                            "isMarkdown": is_markdown(&name),
+                        }
+                    }),
+                );
+            }
+        }
+    }
+    eprintln!(
+        "[v1_compat][walk][BLOCK_WALK_COMPLETE root={}]",
+        root.display()
+    );
+    Ok(())
+}
+
+/// Maps to v1 'mt::open-file' send from sidebar treeFile.vue:69 +
+/// searchResultItem.vue:150 (single-click / double-click on a file in
+/// the sidebar). Reads the file content via std::fs and emits
+/// mt::open-new-tab back to the renderer with a IMarkdownDocumentRaw
+/// payload — same shape the drag-drop bridge in install-window-globals.js
+/// produces. Editor's LISTEN_FOR_NEW_TAB picks it up.
+#[tauri::command]
+pub async fn mt_open_file(
+    window: tauri::Window,
+    args: serde_json::Value,
+) -> Result<(), String> {
+    // Renderer sends positional args via the shim's invoke wrapper:
+    //   ipcRenderer.send('mt::open-file', pathname, options)
+    //   → invoke('mt_open_file', { args: [pathname, options] })
+    // For single-arg sends the shim still wraps as { pathname }, so
+    // accept either shape.
+    let pathname = match &args {
+        // Tauri unwraps positional invoke args into a JSON array when
+        // the renderer passes multiple positional values
+        // (ipcRenderer.send('mt::open-file', pathname, options) ⇒ args=[path, {}]).
+        serde_json::Value::Array(arr) => arr
+            .first()
+            .and_then(|v| v.as_str())
+            .map(|s| s.to_string()),
+        serde_json::Value::Object(map) => {
+            // Single-arg wrap {pathname: "..."} or {path: "..."}.
+            if let Some(s) = map.get("pathname").and_then(|v| v.as_str()) {
+                Some(s.to_string())
+            } else if let Some(s) = map.get("path").and_then(|v| v.as_str()) {
+                Some(s.to_string())
+            } else if let Some(serde_json::Value::Array(inner)) = map.get("args") {
+                // Defensive: shim may double-wrap as {args: [...]}.
+                inner
+                    .first()
+                    .and_then(|v| v.as_str())
+                    .map(|s| s.to_string())
+            } else {
+                None
+            }
+        }
+        serde_json::Value::String(s) => Some(s.clone()),
+        _ => None,
+    };
+    let pathname = match pathname {
+        Some(p) if !p.is_empty() => p,
+        _ => {
+            eprintln!("[v1_compat][open_file_send][BLOCK_NO_PATH args={args}]");
+            return Ok(());
+        }
+    };
+
+    // Best-effort: log + swallow read failures. Sidebar click on a
+    // file that vanished between watcher event and click should not
+    // raise a Promise rejection in the renderer.
+    let _ = emit_open_new_tab(&window, &pathname);
     Ok(())
 }
 
 /// Maps to v1 'mt::cmd-open-file'. Shows a native file picker (markdown
-/// extensions); emits mt::open-file with the chosen path so the editor
-/// store can load it as a new tab.
+/// extensions); reads the chosen file and emits mt::open-new-tab so the
+/// editor store creates a tab with content. Reuses the same emit shape
+/// as mt_open_file (sidebar click) and the drag-drop bridge.
 #[tauri::command]
 pub async fn mt_cmd_open_file(window: tauri::Window) -> Result<(), String> {
     let chosen = rfd::AsyncFileDialog::new()
@@ -169,10 +321,43 @@ pub async fn mt_cmd_open_file(window: tauri::Window) -> Result<(), String> {
         }
     };
     eprintln!("[v1_compat][open_file][BLOCK_PICKED path={path}]");
-    if let Err(e) = window.emit("mt::open-file", &path) {
-        eprintln!("[v1_compat][open_file][BLOCK_EMIT_FAILED err={e}]");
+    emit_open_new_tab(&window, &path)
+}
+
+/// Shared body: read file at `path` and emit mt::open-new-tab with a
+/// IMarkdownDocumentRaw payload. Used by mt_cmd_open_file (picker),
+/// mt_open_file (sidebar click), and (in future) recents wiring.
+fn emit_open_new_tab(window: &tauri::Window, pathname: &str) -> Result<(), String> {
+    let content = match std::fs::read_to_string(pathname) {
+        Ok(s) => s,
+        Err(e) => {
+            eprintln!(
+                "[v1_compat][open_new_tab][BLOCK_READ_FAILED path={pathname} err={e}]"
+            );
+            return Err(e.to_string());
+        }
+    };
+    let filename = std::path::Path::new(pathname)
+        .file_name()
+        .and_then(|n| n.to_str())
+        .unwrap_or(pathname)
+        .to_string();
+    let markdown_document = json!({
+        "markdown": content,
+        "filename": filename,
+        "pathname": pathname,
+        "encoding": { "encoding": "utf8", "isBom": false },
+        "lineEnding": "lf",
+        "adjustLineEndingOnSave": false,
+        "trimTrailingNewline": 3,
+        "cursor": null,
+        "isMixedLineEndings": false,
+    });
+    if let Err(e) = window.emit("mt::open-new-tab", &markdown_document) {
+        eprintln!("[v1_compat][open_new_tab][BLOCK_EMIT_FAILED err={e}]");
         return Err(e.to_string());
     }
+    eprintln!("[v1_compat][open_new_tab][BLOCK_OPENED path={pathname}]");
     Ok(())
 }
 

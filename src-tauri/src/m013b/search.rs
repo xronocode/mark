@@ -40,7 +40,7 @@ use std::io::{BufRead, BufReader};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
-use tauri::{AppHandle, Emitter, Manager, State};
+use tauri::{AppHandle, Emitter, State};
 
 /// Tauri event channel for streaming search results.
 pub const SEARCH_EVENT_CHANNEL: &str = "mt::search-event";
@@ -373,34 +373,30 @@ pub async fn mt_search_spawn(
         validated_roots.push(v);
     }
 
-    let cancel = registry.insert(&search_id);
-    let sink: Arc<dyn SearchSink> = Arc::new(TauriSearchSink {
-        app: app.clone(),
-    });
+    let _ = registry.insert(&search_id);
+    let _ = (validated_roots, pattern, opts); // silence unused after disable
 
-    // Move the heavy work to a background thread so the command returns
-    // immediately. Renderer's outerPromise resolves on the 'complete'
-    // or 'cancelled' event.
-    let search_id_for_thread = search_id.clone();
-    let registry_app_handle = app.clone();
-    std::thread::spawn(move || {
-        for root in &validated_roots {
-            if cancel.load(Ordering::SeqCst) {
-                break;
-            }
-            let _ = run_search(
-                &search_id_for_thread,
-                root,
-                &pattern,
-                &opts,
-                cancel.clone(),
-                sink.clone(),
-            );
-        }
-        // Auto-clean the registry entry on completion/cancellation.
-        let registry: tauri::State<'_, SearchRegistry> = registry_app_handle.state();
-        registry.remove(&search_id_for_thread);
+    // F-SEARCH-PERF-OR-REPLACE-WITH-RIPGREP-SIDECAR (alpha decision
+    // 2026-04-30): the hand-rolled ignore+regex walker is too slow for
+    // real markdown vaults (1k+ files). For the alpha ship we
+    // short-circuit to an immediate completion with zero hits — the
+    // search panel renders "0 results" instead of hanging. Real fix in
+    // B4: bundle @vscode/ripgrep as a Tauri sidecar and shell out per
+    // search, matching v1.2.3 architecture.
+    let sink: Arc<dyn SearchSink> = Arc::new(TauriSearchSink { app: app.clone() });
+    sink.emit(&SearchEvent {
+        search_id: search_id.clone(),
+        kind: "complete".to_string(),
+        hits: vec![],
+        error: None,
+        seq: 1,
     });
+    eprintln!(
+        "[Search][run][BLOCK_ALPHA_DISABLED search_id={search_id}] short-circuited to complete"
+    );
+
+    // Drop registry entry immediately since no thread will run.
+    registry.remove(&search_id);
 
     Ok(())
 }
