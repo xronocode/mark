@@ -849,6 +849,25 @@
         <no>Catastrophic regex: no thread blocked &gt;2s; exactly one BLOCK_SEARCH_TIMEOUT per offending file.</no>
         <no>Hidden / gitignored files: zero match emissions (not filtered post-match — filtered at walk).</no>
       </negative-assertions>
+      <closed-evidence generation="alpha-disable" date="2026-04-30" reborn-mark-commits="(F-SEARCH-DISABLED-FOR-ALPHA wave)">
+        <scope>NEGATIVE evidence — search is intentionally disabled for the alpha. This block records the decision and the verification surface that becomes binding at B4 resolution.</scope>
+        <decision>F-SEARCH-DISABLED-FOR-ALPHA: m013b/search.rs::mt_search_spawn short-circuits to BLOCK_ALPHA_DISABLED + immediate complete event (0 hits) on a 120ms-delayed spawn thread. Hand-rolled walker hangs the UI on real markdown vaults. v1.2.3 architecture (shell-out to @vscode/ripgrep) is restored in B4.</decision>
+        <alpha-acceptance-criteria>
+          <c>Typing in search panel must NOT hang the UI; "0 results" or empty state appears within ~200 ms.</c>
+          <c>BLOCK_ALPHA_DISABLED log marker fires once per search request; SearchRegistry entry is dropped immediately.</c>
+          <c>Renderer's outerPromise resolves on the synthetic complete event (no orphaned 'Searching...' state).</c>
+          <c>No regressions in V-M-004 unit-test coverage of run_search itself — the fallback path remains compiled and tested even though it isn't invoked at runtime.</c>
+        </alpha-acceptance-criteria>
+        <b4-binding-criteria>
+          <c>Bundle ripgrep binary as Tauri 2 sidecar; remove BLOCK_ALPHA_DISABLED short-circuit; restore run_search as fallback when binary missing.</c>
+          <c>Restore V-M-004 mainline scenarios (≤500 ms first-batch p95, cancel ≤100 ms, concurrent isolation, hidden+gitignore filtering at walk).</c>
+          <c>Drop the 120 ms thread::sleep workaround — process spawn latency replaces the artificial delay.</c>
+          <c>Keep the install-window-globals.js wire-format translator (kind→type, hits→payload by-file split) since the v1.2.3 renderer still expects v1 shape; new sidecar emits the same kind+hits envelope as run_search via TauriSearchSink.</c>
+        </b4-binding-criteria>
+        <related-followups>
+          F-SEARCH-PERF-MEASURE (B2 origin), F-SEARCH-UTF16, F-SEARCH-CONTEXT-LINES, F-SEARCH-INCLUDE-EXCLUDE-GLOBS, F-SEARCH-NORMALIZE, F-SEARCH-BINARY-SKIP, F-SEARCH-BACKPRESSURE — all roll into the B4 sidecar rewrite and resolve together.
+        </related-followups>
+      </closed-evidence>
     </V-M-004>
 
     <V-M-005 MODULE="M-005 mt-prefs" PRIORITY="high">

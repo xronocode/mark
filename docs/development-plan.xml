@@ -2455,7 +2455,49 @@ src/main/config.js declares `contextIsolation: false`, `nodeIntegration: true`, 
     <followup id="F-V1-IPC-COMPAT-STUBS" origin="F-MAIN-ENTRY-DISABLED-runtime-debug" status="open" resolves-at="B3a-renderer-feature-pass">Port 11 v1.2.3 IPC channels to Tauri commands. The renderer-shim's soft-fail wrapper currently logs them as console.warn and returns undefined. Channels: mt::get-current-language, mt::ask-for-user-preference, mt::ask-for-user-data, mt::request-keybindings, mt::open-setting-window, mt::update-sidebar-menu, mt::set-user-preference, mt::ask-for-open-project-in-sidebar, mt::request-window-content-size, mt::view-layout-changed, mt::current-language. Most map to existing modules: prefs → m005_prefs (set/get/ask-for-*), keybindings → m006_shortcuts, language → m007_spell or i18n bridge, sidebar/layout/window-size → m_v1_compat. Each port should also add a fixture entry under appropriate layer (M-V1-COMPAT or owning module) and update REGISTERED_COMMANDS.</followup>
 
     <!-- alpha smoke runtime-blockers + decisions -->
-    <followup id="F-SEARCH-DISABLED-FOR-ALPHA" origin="alpha-smoke-2026-04-30" status="open" priority="post-alpha" resolves-at="B4">m013b/search.rs hand-rolled ignore+regex walker is too slow for real markdown vaults (~1k+ files); search hangs in the UI. ALPHA SHIP DECISION: short-circuit mt_search_spawn to an immediate `complete` event with zero hits so the search panel shows "0 results" instead of hanging. Real fix: bundle @vscode/ripgrep as a Tauri sidecar and shell out per search (matches v1.2.3 architecture, gives full ripgrep performance + correctness). Until B4: search panel deliberately returns 0 results — workaround: macOS Spotlight or OS-level `grep -r`.</followup>
+    <followup id="F-SEARCH-DISABLED-FOR-ALPHA" origin="alpha-smoke-2026-04-30" status="open" priority="post-alpha" resolves-at="B4">
+      ALPHA-SHIP TECHNICAL DEBT — search panel deliberately returns 0 results.
+      Discovered during alpha smoke: m013b/search.rs hand-rolled ignore+regex
+      walker hangs the UI on real markdown vaults (~1k+ files). User sat
+      through "Searching..." indefinitely. Root causes layered:
+        (a) PERF — std::io::BufReader + per-line regex match per file,
+            single-threaded; no SIMD; no mmap. Even with respect_ignore=true
+            via WalkBuilder, walker re-stats every file. Acceptable for ≤100
+            files, unusable for vaults.
+        (b) RACE — Tauri 2 listen() registration is async (plugin:event|listen
+            invoke roundtrip). Backend that emits its reply within the same
+            async fn — before the listener is wired — produces a missed event.
+            The renderer's outerPromise never settles → "Searching..." hang.
+            Patched 2026-04-30 via 120ms thread::sleep before emit + statically
+            pre-imported @tauri-apps/api/event in install-window-globals.js.
+            The sleep is a band-aid; the real B4 spawn-process path inherently
+            introduces enough latency that no delay is needed.
+        (c) WIRE-FORMAT — m013b's SearchEvent {searchId, kind, hits[]} mismatched
+            v1.2.3 ripgrepSearcher.js {searchId, type, payload:{filePath, matches[]}}.
+            Patched in install-window-globals.js translator (split by file path,
+            map kind→type, etc.).
+      ALPHA SHIP DECISION: short-circuit mt_search_spawn to an immediate
+      `complete` event with zero hits so the search panel shows "0 results"
+      instead of hanging. Marker: BLOCK_ALPHA_DISABLED. Workaround: macOS
+      Spotlight or OS-level `grep -r`.
+      B4 RESOLUTION DESIGN:
+        1. Bundle @vscode/ripgrep static binary as a Tauri 2 sidecar
+           (src-tauri/binaries/rg-{aarch64,x86_64}-apple-darwin).
+        2. mt_search_spawn shells out: `rg --json $pattern $directories`,
+           streams stdout line-by-line, parses begin/match/end JSON envelopes,
+           emits per-file aggregated `match` events with rich match shape
+           (matchText, lineText, range[start,end], leading/trailing context).
+        3. Cancellation via Child::kill() driven by SearchRegistry's existing
+           cancel AtomicBool.
+        4. Restore the existing m013b/search.rs run_search() as the FALLBACK
+           when the sidecar binary is missing (Linux package builds, etc.) —
+           keep the wire-format translator that already exists.
+        5. Drop the 120 ms sleep workaround once spawn-process latency
+           naturally exceeds the listen-registration window.
+      NON-BLOCKERS for resolution: F-SEARCH-PERF-MEASURE (B2 followup, 10k
+      file fixture <500ms first-batch), F-SEARCH-UTF16, F-SEARCH-CONTEXT-LINES,
+      F-SEARCH-INCLUDE-EXCLUDE-GLOBS — all roll into the rewrite.
+    </followup>
 
     <!-- F-PREFS-MIGRATE-V1 post-close runtime-blockers -->
     <followup id="F-EDITOR-BOOTSTRAP-EVENT" origin="F-PREFS-MIGRATE-V1-smoke" status="open" priority="critical-alpha-blocker" resolves-at="immediate">Renderer in src/renderer/src/store/editor.js:593 listens for `mt::bootstrap-editor` event with config {addBlankTab, markdownList, lineEnding, sideBarVisibility, tabBarVisibility, sourceCodeModeEnabled}; until this event fires, mainStore.SET_INITIALIZED() never runs and editor stays in editor-placeholder mode (clicks no-op, "open file" menu doesn't trigger dialog, settings window can't open). v1.2.3 Electron main process emitted this on window-ready; Tauri must do the same in setup() hook after window creation. Read values from migrated PrefsStore (sideBarVisibility, tabBarVisibility from preferences.json) or fall back to sensible defaults. This is the actual ship-blocker — F-V1-IPC-COMPAT-STUBS commands are useless until the editor initializes.</followup>
