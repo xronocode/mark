@@ -1,0 +1,36 @@
+# cargo-about configuration. See https://embarkstudios.github.io/cargo-about/
+#
+# Phase-B4 step-8: NOTICES-rust.md generated from this config covers all
+# Rust crates the Tauri binary links against. Combined with NOTICES-node.md
+# (Vite renderer deps), the two files satisfy v2.0 attribution-completeness
+# gate (B4 step-8 + verify-attributions.sh CI gate).
+
+# Allowed licenses — any crate using a license outside this list fails
+# the build via `cargo about generate --fail`. Update this list with
+# CARE — adding a copyleft license without verifying compatibility with
+# the Mark MIT license is a legal regression.
+accepted = [
+    "MIT",
+    "Apache-2.0",
+    "Apache-2.0 WITH LLVM-exception",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "BSL-1.0",
+    "CC0-1.0",
+    "ISC",
+    "MPL-2.0",
+    "OpenSSL",
+    "Unicode-3.0",
+    "Unicode-DFS-2016",
+    "Zlib",
+    "0BSD",
+    "Unlicense",
+]
+
+# Workarounds for crates that don't expose proper SPDX identifiers in
+# their Cargo.toml or whose license-file points to a path the harvester
+# can't read. Each entry should justify the override in a comment.
+[ring]
+# ring's license is a custom OpenSSL-derived ISC-equivalent. cargo-about
+# can't auto-classify; we accept based on upstream license review.
+accepted = ["MIT", "ISC", "OpenSSL"]
