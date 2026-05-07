@@ -104,10 +104,24 @@ jobs:
       - name: vite build
         run: npm run build
 
-      # ── tauri build (unsigned) ───────────────────────────────────
+      # ── tauri build (with updater signing) ───────────────────────
+      # F-UPDATER-WIRE-PLUGIN: TAURI_SIGNING_PRIVATE_KEY +
+      # TAURI_SIGNING_PRIVATE_KEY_PASSWORD env feed tauri-action's
+      # auto-sign. The action emits Mark.app + DMG + Mark.app.tar.gz
+      # + Mark.app.tar.gz.sig (ed25519 signature). The .sig is what
+      # the updater plugin verifies against plugins.updater.pubkey
+      # when downloading the new version on user machines.
+      #
+      # If secrets are missing (first runs before user provisions
+      # the keypair), tauri-action falls through to unsigned build —
+      # users on those builds won't have working in-app updates,
+      # but `brew upgrade --cask mark` still works.
       - name: tauri build
         id: tauri
         uses: tauri-apps/tauri-action@v0
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
           args: --target ${{ matrix.platform.target }}
 
@@ -224,6 +238,48 @@ jobs:
           (cd src-tauri && cargo cyclonedx --format json)
           mv src-tauri/mark.cdx.json sbom/sbom-rust.cdx.json
           ls -la sbom/
+
+      # ── updater latest.json feed (B4 step-5) ─────────────────────
+      # tauri-plugin-updater fetches this file from the URL configured
+      # in tauri.conf.json plugins.updater.endpoints[]. It contains the
+      # ed25519 signature of the .app.tar.gz updater bundle that
+      # tauri-action produced; the plugin verifies before downloading.
+      # If signing keys aren't provisioned, the .sig file is missing
+      # and we skip the feed (graceful degradation).
+      - name: build updater feed (latest.json)
+        if: matrix.platform.os == 'macos-14'
+        id: feed
+        run: |
+          set -euo pipefail
+          TAG=${{ steps.resolve_tag.outputs.tag }}
+          VER="${TAG#v}"
+          SIG_FILE=$(find target -name '*.app.tar.gz.sig' | head -1)
+          TGZ_FILE=$(find target -name '*.app.tar.gz' ! -name '*.sig' | head -1)
+          if [ -z "$SIG_FILE" ] || [ -z "$TGZ_FILE" ]; then
+            echo "::warning::updater signing artifacts missing; latest.json not generated. Configure TAURI_SIGNING_PRIVATE_KEY+_PASSWORD secrets per docs/F-UPDATER-WIRE-PLUGIN-handoff.md."
+            echo "skipped=1" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          SIG=$(cat "$SIG_FILE")
+          PUB_DATE=$(date -u '+%Y-%m-%dT%H:%M:%SZ')
+          mkdir -p /tmp/release
+          # Copy the .app.tar.gz so it gets uploaded as a release asset.
+          cp "$TGZ_FILE" "/tmp/release/Mark_${VER}_aarch64.app.tar.gz"
+          cat > /tmp/release/latest.json <<JSON
+          {
+            "version": "${TAG}",
+            "notes": "See release notes at https://github.com/xronocode/mark/releases/tag/${TAG}",
+            "pub_date": "${PUB_DATE}",
+            "platforms": {
+              "darwin-aarch64": {
+                "signature": "${SIG}",
+                "url": "https://github.com/xronocode/mark/releases/download/${TAG}/Mark_${VER}_aarch64.app.tar.gz"
+              }
+            }
+          }
+          JSON
+          echo "skipped=0" >> "$GITHUB_OUTPUT"
+          cat /tmp/release/latest.json
 
       # ── stage release artifacts ──────────────────────────────────
       # Per B2CR-3: the cask sources sha256 from a .sha256 sidecar that

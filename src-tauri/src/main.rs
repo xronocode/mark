@@ -436,6 +436,12 @@ fn main() {
     }
 
     tauri::Builder::default()
+        // F-UPDATER-WIRE-PLUGIN: tauri-plugin-updater wires the
+        // ed25519-signed feed at endpoints[] in tauri.conf.json. The
+        // plugin verifies signatures against pubkey before downloading
+        // anything. Renderer calls via @tauri-apps/plugin-updater
+        // (M-016 mt_updater_check now proxies to the plugin).
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .manage(sec_ctx)
         .manage(prefs)
         .manage(m013b::WatchRegistry::default())

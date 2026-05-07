@@ -37,5 +37,16 @@
     "active": true,
     "targets": ["app", "dmg"],
     "icon": ["icons/icon.png"]
+  },
+  "plugins": {
+    "updater": {
+      "endpoints": [
+        "https://github.com/xronocode/mark/releases/latest/download/latest.json"
+      ],
+      "pubkey": "PLACEHOLDER_REPLACE_BEFORE_FIRST_RELEASE",
+      "windows": {
+        "installMode": "passive"
+      }
+    }
   }
 }

@@ -9,6 +9,7 @@
     "core:window:default",
     "core:webview:default",
     "core:path:default",
-    "core:app:default"
+    "core:app:default",
+    "updater:default"
   ]
 }
