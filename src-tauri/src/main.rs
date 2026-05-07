@@ -132,11 +132,41 @@ fn main() {
         eprintln!("[main][bootstrap][BLOCK_MIGRATION_SKIPPED_BY_ENV]");
     }
 
+    // F-MIGRATE-DIALOG-SUPPRESS-AFTER-DONE (2026-05-07): if every
+    // F-PREFS-MIGRATE-V1 idempotency marker is already set in
+    // cache_root/preferences.json, skip the dialog entirely so users
+    // who completed migration once don't see it on every boot. We
+    // peek at the file directly (no PrefsState — that's not booted
+    // yet at this point in main()).
+    let migration_already_done = mt_paths::cache_root()
+        .and_then(|cr| {
+            let prefs_path = cr.join("preferences.json");
+            std::fs::read_to_string(&prefs_path).ok()
+        })
+        .and_then(|content| serde_json::from_str::<serde_json::Value>(&content).ok())
+        .and_then(|json| {
+            let ns = json.get("mt_migration")?;
+            let all_done = [
+                "preferences_v1",
+                "data_center_v1",
+                "keybindings_v1",
+                "recent_docs_v1",
+                "keychain_v1",
+            ]
+            .iter()
+            .all(|k| ns.get(*k).and_then(|v| v.as_str()) == Some("done"));
+            Some(all_done)
+        })
+        .unwrap_or(false);
+    if migration_already_done {
+        eprintln!("[main][bootstrap][BLOCK_MIGRATION_ALREADY_COMPLETE] all 5 markers present; skipping dialog");
+    }
+
     // Phase-B-pre2 step-2: if any legacy namespace was detected, ask the user
     // (via a native-OS modal — NSAlert / MessageBoxW / GTK MessageDialog,
     // never a Tauri webview) whether to migrate. Strings are locale-resolved
     // from sys_locale; en_US is the universal fallback.
-    if layouts.any_detected() && !skip_migration {
+    if layouts.any_detected() && !skip_migration && !migration_already_done {
         let strings = migration_strings::detect();
 
         // Phase-B-pre2 step-4: count recent cancels in the last 7 days.
