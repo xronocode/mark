@@ -1,0 +1,272 @@
+# Phase-B4 step-1 release workflow.
+#
+# Triggered by git tag push matching v*.* — produces signed, smoke-
+# tested DMG artifacts and publishes them as a GitHub Release with
+# .sha256 sidecars. The Homebrew cask formula sources sha256 from
+# the sidecar (NOT recomputed) per B2CR-3.
+#
+# Replaces the Phase-B1.5 dryrun workflow (release-tauri.yml) which
+# was triggered by branch pushes. release-tauri.yml is retained as a
+# named-environment dryrun for branch-time validation.
+#
+# Phase-B4 prerequisites still in flight: ed25519 signer keypair for
+# tauri-plugin-updater (F-UPDATER-WIRE-PLUGIN), SLSA-3 provenance via
+# actions/attest-build-provenance + Sigstore Fulcio (B4 step-11/12),
+# cross-repo cask PR via xronocode-release-bot GitHub App (B4 step-15).
+# Each lands in its own follow-up PR; this workflow ships the build +
+# release skeleton that they wire into.
+
+name: release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+      - 'v*.*.*-*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag name to release (e.g. v2.0.0). Leave empty for current ref.'
+        required: false
+        default: ''
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write   # gh release create needs write
+  id-token: write   # B4 step-11 SLSA + Sigstore OIDC (wired in follow-up PR)
+  attestations: write  # B4 step-11 actions/attest-build-provenance (follow-up)
+
+jobs:
+  build:
+    name: build (${{ matrix.platform.name }})
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+          - name: macos-arm64
+            os: macos-14
+            target: aarch64-apple-darwin
+    runs-on: ${{ matrix.platform.os }}
+    timeout-minutes: 60
+
+    outputs:
+      tag: ${{ steps.resolve_tag.outputs.tag }}
+
+    steps:
+      # ── checkout + tooling ────────────────────────────────────────
+      - name: checkout
+        uses: actions/checkout@v4
+
+      - name: resolve tag
+        id: resolve_tag
+        run: |
+          if [ -n "${{ inputs.tag }}" ]; then
+            TAG="${{ inputs.tag }}"
+          else
+            TAG="${GITHUB_REF#refs/tags/}"
+          fi
+          if [ -z "$TAG" ] || [ "$TAG" = "$GITHUB_REF" ]; then
+            echo "::error::could not resolve tag from ref=$GITHUB_REF inputs.tag='${{ inputs.tag }}'"
+            exit 1
+          fi
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "resolved tag: $TAG"
+
+      - name: setup node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: setup rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.platform.target }}
+
+      - name: cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            src-tauri/target
+          key: cargo-${{ matrix.platform.target }}-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            cargo-${{ matrix.platform.target }}-
+
+      # ── install + build frontend ─────────────────────────────────
+      - name: npm ci
+        run: npm ci
+
+      - name: vite build
+        run: npm run build
+
+      # ── tauri build (unsigned) ───────────────────────────────────
+      - name: tauri build
+        id: tauri
+        uses: tauri-apps/tauri-action@v0
+        with:
+          args: --target ${{ matrix.platform.target }}
+
+      # ── ad-hoc signing ───────────────────────────────────────────
+      - name: ad-hoc codesign
+        if: matrix.platform.os == 'macos-14'
+        run: |
+          set -euo pipefail
+          APP_PATH=$(find target -name 'Mark.app' -type d | head -1)
+          if [ -z "$APP_PATH" ]; then
+            echo "::error::Mark.app not found under target"
+            exit 1
+          fi
+          echo "signing: $APP_PATH"
+          codesign --force --deep --sign - "$APP_PATH"
+          codesign --verify --verbose=4 "$APP_PATH"
+
+      # ── smoke launch ─────────────────────────────────────────────
+      - name: smoke launch
+        if: matrix.platform.os == 'macos-14'
+        run: |
+          set -euo pipefail
+          DMG=$(find target -name '*.dmg' | head -1)
+          if [ -z "$DMG" ]; then
+            echo "::error::no .dmg artifact produced"
+            exit 1
+          fi
+          MOUNT=/tmp/mark-dmg
+          mkdir -p "$MOUNT"
+          hdiutil attach "$DMG" -nobrowse -mountpoint "$MOUNT" -readonly
+          cp -R "$MOUNT/Mark.app" /Applications/
+          hdiutil detach "$MOUNT"
+          xattr -cr /Applications/Mark.app
+          MARK_SKIP_MIGRATION=1 open -a /Applications/Mark.app
+          for i in $(seq 1 10); do
+            if pgrep -f 'Mark.app/Contents/MacOS/mark' > /dev/null; then
+              echo "alive after ${i}s"
+              break
+            fi
+            sleep 1
+          done
+          if ! pgrep -f 'Mark.app/Contents/MacOS/mark' > /dev/null; then
+            echo "::error::Mark process did not appear within 10s of open"
+            exit 1
+          fi
+          pkill -9 -f 'Mark.app/Contents/MacOS/mark' || true
+
+      # ── bundle size budget ───────────────────────────────────────
+      - name: bundle size
+        if: matrix.platform.os == 'macos-14'
+        id: size
+        run: |
+          set -euo pipefail
+          APP_PATH=/Applications/Mark.app
+          if [ ! -d "$APP_PATH" ]; then
+            APP_PATH=$(find target -name 'Mark.app' -type d | head -1)
+          fi
+          BYTES=$(du -sk "$APP_PATH" | awk '{print $1*1024}')
+          HUMAN=$(du -sh "$APP_PATH" | awk '{print $1}')
+          echo "bundle_bytes=$BYTES" >> "$GITHUB_OUTPUT"
+          echo "bundle_human=$HUMAN" >> "$GITHUB_OUTPUT"
+          {
+            echo "## Bundle size — ${{ matrix.platform.name }}"
+            echo
+            echo "- \`du -sh\`: **$HUMAN**"
+            echo "- bytes: $BYTES"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # ── warnings allowlist ───────────────────────────────────────
+      - name: warnings allowlist check
+        if: matrix.platform.os == 'macos-14'
+        run: |
+          set -euo pipefail
+          cd src-tauri
+          cargo build --release --bin mark --message-format=json > /tmp/cargo.json
+          cd ..
+          node tools/check-warnings-allowlist.mjs /tmp/cargo.json docs/ci-warnings-allowlist.md \
+            > /tmp/toolchain-warnings.json
+          cat /tmp/toolchain-warnings.json
+
+      # ── stage release artifacts ──────────────────────────────────
+      # Per B2CR-3: the cask sources sha256 from a .sha256 sidecar that
+      # ships with the DMG, NOT a recomputed value. CI emits the sidecar
+      # so the cask formula and the release artifact agree.
+      - name: stage release artifacts
+        if: matrix.platform.os == 'macos-14'
+        id: stage
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/release
+          DMG_SRC=$(find target -name '*.dmg' | head -1)
+          if [ -z "$DMG_SRC" ]; then
+            echo "::error::no .dmg artifact produced"
+            exit 1
+          fi
+          TAG=${{ steps.resolve_tag.outputs.tag }}
+          # Strip leading 'v' from tag for filename version segment
+          # (matches v1 cask convention: Mark_1.2.3_aarch64.dmg).
+          VER=${TAG#v}
+          DMG_DST=/tmp/release/Mark_${VER}_aarch64.dmg
+          cp "$DMG_SRC" "$DMG_DST"
+          shasum -a 256 "$DMG_DST" | awk '{print $1}' > "$DMG_DST.sha256"
+          ls -la /tmp/release
+          echo "dmg=$DMG_DST" >> "$GITHUB_OUTPUT"
+          echo "sha256=$DMG_DST.sha256" >> "$GITHUB_OUTPUT"
+
+      # ── upload as workflow artifact for downstream jobs ──────────
+      - name: upload release artifacts
+        if: matrix.platform.os == 'macos-14'
+        uses: actions/upload-artifact@v4
+        with:
+          name: mark-${{ matrix.platform.name }}-release
+          path: |
+            /tmp/release/*.dmg
+            /tmp/release/*.sha256
+          if-no-files-found: error
+          retention-days: 30
+
+  publish:
+    name: publish github release
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+
+      - name: download release artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: /tmp/release-stage
+
+      - name: list staged
+        run: |
+          find /tmp/release-stage -type f -exec ls -la {} \;
+
+      # ── create GitHub release + upload assets ────────────────────
+      # B4 step-15 will replace this with cross-repo cask PR via the
+      # xronocode-release-bot GitHub App + environment-protection
+      # `release` requiring manual approval. For now, ambient
+      # GITHUB_TOKEN with contents:write permission ships the build
+      # to the project's own Releases page.
+      - name: gh release create
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          TAG=${{ needs.build.outputs.tag }}
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "release $TAG already exists; uploading assets idempotently"
+            FILES=$(find /tmp/release-stage -type f)
+            gh release upload "$TAG" $FILES --repo "$GITHUB_REPOSITORY" --clobber
+          else
+            FILES=$(find /tmp/release-stage -type f)
+            gh release create "$TAG" \
+              --repo "$GITHUB_REPOSITORY" \
+              --title "Mark $TAG" \
+              --notes "Automated release from $GITHUB_SHA. Provenance + SBOM + signed sidecars land via follow-up PRs (B4 step-11..12)." \
+              $FILES
+          fi
