@@ -53,6 +53,12 @@ pub const DEFAULT_BATCH_SIZE: usize = 16;
 /// Per-line read ceiling. V-M-004 ec calls for "no full-line buffer
 /// >4 MB allocated" — we cap at 1 MB per line; matches beyond the cap
 /// are reported with a truncation marker rather than streamed in full.
+///
+/// allow(dead_code) — referenced by run_search native fallback which
+/// is currently unused at runtime (F-SEARCH-RIPGREP-SHELLOUT routes
+/// through run_ripgrep instead). Retained for the binary-missing
+/// fallback path planned for B4 sidecar bundling.
+#[allow(dead_code)]
 pub const MAX_LINE_BYTES: usize = 1024 * 1024;
 
 /// Search options — superset of v1's RipgrepDirectorySearcher whitelist

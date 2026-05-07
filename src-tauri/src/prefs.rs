@@ -21,6 +21,12 @@ use crate::legacy::LegacyLayouts;
 /// stub refuses to run. Tests assert against this exact byte string.
 /// MT_ prefix follows the V-M-005 convention for error/abort markers
 /// (vs BLOCK_ for milestones).
+///
+/// allow(dead_code) — F-PREFS-MIGRATE-V1 step-8 retired the prefs::init
+/// caller from main.rs in favor of m005_migrate::runner. Marker
+/// retained as V-M-005 contract surface (verification scenarios assert
+/// the byte string). Module-local tests still exercise the value.
+#[allow(dead_code)]
 pub const MT_PREFS_V1_RUNNING: &str = "MT_PREFS_V1_RUNNING";
 
 /// Phase-B-pre2 step-6 stub gate.
