@@ -402,11 +402,12 @@ pub async fn mt_ask_for_user_data(
 /// Maps to v1 'mt::set-user-preference' AND 'mt::set-user-data' sends.
 /// Renderer dispatches `{key: value}` (single entry) or full sub-object
 /// per call — for example, theme switcher sends `{ theme: 'ayu-mirage' }`.
-/// We merge into PrefsStore and broadcast `mt::user-preference` so
-/// other windows / panels stay in sync.
+/// We merge into PrefsStore and broadcast `mt::user-preference` to ALL
+/// windows so the editor view picks up changes made in the Settings
+/// window (theme switch, font changes, etc.).
 #[tauri::command]
 pub async fn mt_set_user_preference(
-    window: tauri::Window,
+    app: tauri::AppHandle,
     prefs: tauri::State<'_, PrefsState>,
     args: Value,
 ) -> Result<(), String> {
@@ -415,13 +416,13 @@ pub async fn mt_set_user_preference(
         Value::Object(m) => m,
         other => {
             eprintln!("[v1_compat][prefs_set][BLOCK_NOT_OBJECT got={other:?}]");
-            return Ok(()); // best-effort; renderer doesn't await result
+            return Ok(());
         }
     };
     let mut written = 0u32;
     for (k, v) in map {
         if k == crate::m005_prefs::KEY_MIGRATION_NS {
-            continue; // never overwrite our migration tracker
+            continue;
         }
         if let Err(e) = prefs.set(k.clone(), v) {
             eprintln!("[v1_compat][prefs_set][BLOCK_WRITE_FAILED key={k} err={e}]");
@@ -430,20 +431,37 @@ pub async fn mt_set_user_preference(
         written += 1;
     }
     eprintln!("[v1_compat][prefs_set][BLOCK_WRITTEN keys={written}]");
-    // Broadcast updated snapshot so any other UI mirrors stay coherent.
+    // Broadcast to ALL webviews (main + settings), so a theme switch
+    // in the Settings window propagates back to the editor view.
+    // app.emit is documented as broadcasting; we additionally iterate
+    // webview_windows() and emit to each individually for diagnostic
+    // visibility (BLOCK_BROADCAST_HIT per window).
     let snapshot = prefs.all();
-    let _ = window.emit("mt::user-preference", &snapshot);
+    let _ = app.emit("mt::user-preference", &snapshot);
+    let windows = app.webview_windows();
+    eprintln!(
+        "[v1_compat][prefs_set][BLOCK_BROADCAST_FANOUT count={}]",
+        windows.len()
+    );
+    for (label, win) in windows.iter() {
+        match win.emit("mt::user-preference", &snapshot) {
+            Ok(_) => eprintln!("[v1_compat][prefs_set][BLOCK_BROADCAST_HIT window={label}]"),
+            Err(e) => eprintln!(
+                "[v1_compat][prefs_set][BLOCK_BROADCAST_FAILED window={label} err={e}]"
+            ),
+        }
+    }
     Ok(())
 }
 
 /// Alias of mt_set_user_preference for the dataCenter-side send.
 #[tauri::command]
 pub async fn mt_set_user_data(
-    window: tauri::Window,
+    app: tauri::AppHandle,
     prefs: tauri::State<'_, PrefsState>,
     args: Value,
 ) -> Result<(), String> {
-    mt_set_user_preference(window, prefs, args).await
+    mt_set_user_preference(app, prefs, args).await
 }
 
 /// Maps to v1 'mt::get-current-language'. Renderer's i18n bootstrap
@@ -531,16 +549,36 @@ pub async fn mt_request_window_content_size(args: Value) -> Result<(), String> {
     Ok(())
 }
 
-/// Maps to v1 'mt::open-setting-window'. v1 spawned a SECOND BrowserWindow
-/// with type=settings URL arg. Tauri equivalent (WebviewWindow::builder
-/// with same index.html + ?type=settings query) is non-trivial because
-/// renderer's bootstrap.js would need to handle the type=settings route
-/// AND we'd need to ensure the new window inherits the same prefs
-/// state. Deferred to F-SETTINGS-WINDOW-WIRE; for alpha we surface a
-/// log marker so tester can see the click reached backend.
+/// Maps to v1 'mt::open-setting-window'. Spawns a second WebviewWindow
+/// with label="settings" loading index.html?type=settings — renderer's
+/// router (router/index.js) redirects '/' to '/preference' when
+/// `type !== 'editor'`. If a settings window already exists, focuses
+/// the existing one instead of opening a duplicate.
 #[tauri::command]
-pub async fn mt_open_setting_window(_args: Value) -> Result<(), String> {
-    eprintln!("[v1_compat][settings][BLOCK_OPEN_SETTING_WINDOW_DEFERRED reason=F-SETTINGS-WINDOW-WIRE]");
+pub async fn mt_open_setting_window(app: tauri::AppHandle) -> Result<(), String> {
+    if let Some(existing) = app.get_webview_window("settings") {
+        let _ = existing.set_focus();
+        eprintln!("[v1_compat][settings][BLOCK_FOCUS_EXISTING]");
+        return Ok(());
+    }
+    let win = tauri::WebviewWindowBuilder::new(
+        &app,
+        "settings",
+        tauri::WebviewUrl::App("index.html?type=settings&wid=1&debug=0".into()),
+    )
+    .title("Mark — Preferences")
+    .inner_size(960.0, 720.0)
+    .resizable(true)
+    .build()
+    .map_err(|e| {
+        eprintln!("[v1_compat][settings][BLOCK_BUILD_FAILED err={e}]");
+        e.to_string()
+    })?;
+    // F-SETTINGS-WINDOW-WIRE diagnostic (2026-05-07): blank-content
+    // bug in Settings window. Open devtools so renderer console errors
+    // are visible. Remove once root cause identified.
+    win.open_devtools();
+    eprintln!("[v1_compat][settings][BLOCK_OPENED label=settings devtools=on]");
     Ok(())
 }
 

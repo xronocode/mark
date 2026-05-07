@@ -38,12 +38,27 @@ import { listen as _tauriListen, once as _tauriOnce, emit as _tauriEmit } from '
 // before main.js continues with createApp().
 {
   const search = new URLSearchParams(window.location.search)
+  // Only synthesize defaults that are missing — preserve params the
+  // window URL already specified (e.g. ?type=settings on the second
+  // window spawned by mt::open-setting-window).
+  let mutated = false
   if (!search.has('udp')) {
-    const udp = await appLocalDataDir()
-    search.set('udp', udp)
+    search.set('udp', await appLocalDataDir())
+    mutated = true
+  }
+  if (!search.has('wid')) {
     search.set('wid', '0')
+    mutated = true
+  }
+  if (!search.has('type')) {
     search.set('type', 'editor')
+    mutated = true
+  }
+  if (!search.has('debug')) {
     search.set('debug', '0')
+    mutated = true
+  }
+  if (mutated) {
     const next = `${window.location.pathname}?${search.toString()}${window.location.hash}`
     history.replaceState(null, '', next)
   }
