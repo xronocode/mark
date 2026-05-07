@@ -1,6 +1,6 @@
 {
   "name": "reborn-mark",
-  "version": "0.0.2-test",
+  "version": "0.0.1",
   "description": "Mark — Tauri 2 reborn build (frontend half: Vue 3 + muya from mark-electron@v1.2.3)",
   "private": true,
   "type": "module",
