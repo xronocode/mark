@@ -20,13 +20,22 @@ const input = process.argv[2] === '-' || !process.argv[2]
 const data = JSON.parse(input)
 
 // Group packages by license string.
+//
+// Self-package exclusion: license-checker includes the workspace
+// root package in its output (here: reborn-mark@<workspace-version>).
+// That entry would re-write NOTICES-node.md every version bump,
+// breaking the verify-attributions CI gate without anything actually
+// changing about third-party deps. Skip the self-package by name.
+const SELF_PACKAGE_NAMES = new Set(['reborn-mark', 'mark'])
+
 const byLicense = new Map()
 for (const [pkgKey, info] of Object.entries(data)) {
-  const lic = Array.isArray(info.licenses) ? info.licenses.join(' OR ') : (info.licenses || 'UNKNOWN')
   // pkgKey is "name@version"; split off last @ to handle scoped names.
   const lastAt = pkgKey.lastIndexOf('@')
   const name = pkgKey.slice(0, lastAt)
+  if (SELF_PACKAGE_NAMES.has(name)) continue
   const version = pkgKey.slice(lastAt + 1)
+  const lic = Array.isArray(info.licenses) ? info.licenses.join(' OR ') : (info.licenses || 'UNKNOWN')
   if (!byLicense.has(lic)) byLicense.set(lic, [])
   byLicense.get(lic).push({ name, version, repo: info.repository || '', publisher: info.publisher || '' })
 }

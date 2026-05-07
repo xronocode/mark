@@ -20,7 +20,6 @@ npx --package license-checker -- license-checker --production --json | \
 | BSD-2-Clause | 7 |
 | Apache* | 2 |
 | Unlicense | 2 |
-| UNLICENSED | 2 |
 | (MIT OR CC0-1.0) | 1 |
 | (MPL-2.0 OR Apache-2.0) | 1 |
 | 0BSD | 1 |
@@ -30,6 +29,7 @@ npx --package license-checker -- license-checker --production --json | \
 | CC-BY-4.0 | 1 |
 | MIT-0 | 1 |
 | MIT* | 1 |
+| UNLICENSED | 1 |
 | WTFPL | 1 |
 
 ## MIT (529)
@@ -772,13 +772,6 @@ npx --package license-checker -- license-checker --production --json | \
 | humanize-duration | 3.33.2 | https://github.com/EvanHahn/HumanizeDuration.js |
 | robust-predicates | 3.0.3 | https://github.com/mourner/robust-predicates |
 
-## UNLICENSED (2)
-
-| Package | Version | Repository |
-|---|---|---|
-| file-icons | 2.1.47 | https://github.com/file-icons/atom |
-| reborn-mark | 0.0.1 |  |
-
 ## (MIT OR CC0-1.0) (1)
 
 | Package | Version | Repository |
@@ -832,6 +825,12 @@ npx --package license-checker -- license-checker --production --json | \
 | Package | Version | Repository |
 |---|---|---|
 | khroma | 2.1.0 | https://github.com/fabiospampinato/khroma |
+
+## UNLICENSED (1)
+
+| Package | Version | Repository |
+|---|---|---|
+| file-icons | 2.1.47 | https://github.com/file-icons/atom |
 
 ## WTFPL (1)
 

@@ -20,8 +20,14 @@ if (!path || path === '-') {
 const data = JSON.parse(readFileSync(path, 'utf8'))
 const libs = data.third_party_libraries || []
 
+// Self-crate exclusion (same rationale as Node side): cargo-bundle-
+// licenses includes the workspace root crate. Version bumps would
+// otherwise re-write NOTICES-rust.md + break verify-attributions.
+const SELF_CRATE_NAMES = new Set(['mark', 'reborn-mark'])
+
 const byLicense = new Map()
 for (const lib of libs) {
+  if (SELF_CRATE_NAMES.has(lib.package_name)) continue
   const lic = lib.license || 'UNKNOWN'
   if (!byLicense.has(lic)) byLicense.set(lic, [])
   byLicense.get(lic).push({
