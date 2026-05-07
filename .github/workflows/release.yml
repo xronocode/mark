@@ -198,13 +198,19 @@ jobs:
       - name: warnings allowlist check
         if: matrix.platform.os == 'macos-14'
         run: |
-          set -euo pipefail
+          set -uo pipefail  # NOT -e so we can show JSON before failing
           cd src-tauri
+          # Force re-emit of warnings: cargo's incremental cache
+          # otherwise hides warnings from already-compiled crates.
+          touch src/main.rs
           cargo build --release --bin mark --message-format=json > /tmp/cargo.json
           cd ..
           node tools/check-warnings-allowlist.mjs /tmp/cargo.json docs/ci-warnings-allowlist.md \
-            > /tmp/toolchain-warnings.json
-          cat /tmp/toolchain-warnings.json
+            | tee /tmp/toolchain-warnings.json
+          RC=${PIPESTATUS[0]}
+          echo "---"
+          echo "verifier exit code: $RC"
+          exit $RC
 
       # ── attribution-completeness gate (B4 step-9) ────────────────
       # Re-runs license-checker + cargo-bundle-licenses, diffs against
