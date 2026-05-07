@@ -259,6 +259,45 @@ jobs:
           echo "sha256=$DMG_DST.sha256" >> "$GITHUB_OUTPUT"
 
       # ── upload as workflow artifact for downstream jobs ──────────
+      # ── SLSA-3 build provenance (B4 step-11) ─────────────────────
+      # actions/attest-build-provenance@v2 issues a Sigstore-anchored
+      # in-toto attestation that proves the artifact was built by THIS
+      # workflow run on THIS commit. OIDC → Fulcio → ephemeral cert →
+      # signed bundle published to the GH Releases page alongside the
+      # DMG. Verification command goes in release notes:
+      #   gh attestation verify Mark_v2.0.0_aarch64.dmg --owner xronocode
+      - name: SLSA build provenance
+        if: matrix.platform.os == 'macos-14'
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: '/tmp/release/Mark_*.dmg'
+
+      # ── Cosign keyless sign-blob (B4 step-12) ────────────────────
+      # Belt-and-braces over the SLSA attestation: a keyless cosign
+      # signature using the same OIDC → Fulcio path. Produces a
+      # .bundle file users can verify with:
+      #   cosign verify-blob \
+      #     --bundle Mark_v2.0.0_aarch64.dmg.bundle \
+      #     --certificate-identity-regexp 'https://github\.com/xronocode/mark/.*' \
+      #     --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+      #     Mark_v2.0.0_aarch64.dmg
+      - name: install cosign
+        if: matrix.platform.os == 'macos-14'
+        uses: sigstore/cosign-installer@v3
+        with:
+          cosign-release: 'v2.4.1'
+
+      - name: cosign sign-blob
+        if: matrix.platform.os == 'macos-14'
+        env:
+          COSIGN_EXPERIMENTAL: '1'
+        run: |
+          set -euo pipefail
+          for DMG in /tmp/release/Mark_*.dmg; do
+            cosign sign-blob --yes --bundle "$DMG.bundle" "$DMG"
+            ls -la "$DMG.bundle"
+          done
+
       - name: upload release artifacts
         if: matrix.platform.os == 'macos-14'
         uses: actions/upload-artifact@v4
@@ -267,6 +306,9 @@ jobs:
           path: |
             /tmp/release/*.dmg
             /tmp/release/*.sha256
+            /tmp/release/*.bundle
+            /tmp/release/Mark_*_sbom-*.cdx.json
+            /tmp/release/NOTICES-*.md
           if-no-files-found: error
           retention-days: 30
 
@@ -308,9 +350,41 @@ jobs:
             gh release upload "$TAG" $FILES --repo "$GITHUB_REPOSITORY" --clobber
           else
             FILES=$(find /tmp/release-stage -type f)
+            NOTES=$(cat <<NOTES_EOF
+            Automated release from \`$GITHUB_SHA\`.
+
+            **Verification:**
+
+            Build provenance (SLSA-3):
+            \`\`\`
+            gh attestation verify Mark_${TAG#v}_aarch64.dmg --owner xronocode
+            \`\`\`
+
+            Cosign keyless signature:
+            \`\`\`
+            cosign verify-blob \\
+              --bundle Mark_${TAG#v}_aarch64.dmg.bundle \\
+              --certificate-identity-regexp 'https://github.com/xronocode/mark/.*' \\
+              --certificate-oidc-issuer https://token.actions.githubusercontent.com \\
+              Mark_${TAG#v}_aarch64.dmg
+            \`\`\`
+
+            DMG SHA-256 sidecar published as \`Mark_${TAG#v}_aarch64.dmg.sha256\`.
+
+            CycloneDX SBOMs published for both Node renderer and Rust backend
+            dependency closures. NOTICES-{node,rust}.md attribution lists
+            shipped alongside.
+
+            **Updater:** F-UPDATER-WIRE-PLUGIN ed25519-signed feed lands in a follow-up
+            patch release. Until then, upgrade via:
+            \`\`\`
+            brew upgrade --cask mark
+            \`\`\`
+            NOTES_EOF
+            )
             gh release create "$TAG" \
               --repo "$GITHUB_REPOSITORY" \
               --title "Mark $TAG" \
-              --notes "Automated release from $GITHUB_SHA. Provenance + SBOM + signed sidecars land via follow-up PRs (B4 step-11..12)." \
+              --notes "$NOTES" \
               $FILES
           fi
