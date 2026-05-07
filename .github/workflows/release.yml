@@ -188,6 +188,43 @@ jobs:
             > /tmp/toolchain-warnings.json
           cat /tmp/toolchain-warnings.json
 
+      # ── attribution-completeness gate (B4 step-9) ────────────────
+      # Re-runs license-checker + cargo-bundle-licenses, diffs against
+      # committed NOTICES-{node,rust}.md. New deps without an attribution
+      # line fail the build.
+      - name: install cargo-bundle-licenses
+        if: matrix.platform.os == 'macos-14'
+        run: cargo install cargo-bundle-licenses
+
+      - name: verify attributions
+        if: matrix.platform.os == 'macos-14'
+        run: ./tools/verify-attributions.sh
+
+      # ── SBOM generation (B4 step-9) ──────────────────────────────
+      # CycloneDX SPDX-compatible SBOM for the Tauri binary + Node
+      # renderer dependency closure. Published alongside the DMG so
+      # downstream auditors can verify the supply chain.
+      - name: install cargo-cyclonedx
+        if: matrix.platform.os == 'macos-14'
+        run: cargo install cargo-cyclonedx
+
+      - name: generate SBOM
+        if: matrix.platform.os == 'macos-14'
+        run: |
+          set -euo pipefail
+          mkdir -p sbom
+          # Node side: production deps only
+          npx --yes --package @cyclonedx/cyclonedx-npm -- cyclonedx-npm \
+            --output-format JSON \
+            --output-file sbom/sbom-node.cdx.json \
+            --omit dev \
+            --ignore-npm-errors
+          # Rust side — cargo-cyclonedx 0.5.x writes <crate>.cdx.json
+          # to the manifest directory; we relocate to sbom/.
+          (cd src-tauri && cargo cyclonedx --format json)
+          mv src-tauri/mark.cdx.json sbom/sbom-rust.cdx.json
+          ls -la sbom/
+
       # ── stage release artifacts ──────────────────────────────────
       # Per B2CR-3: the cask sources sha256 from a .sha256 sidecar that
       # ships with the DMG, NOT a recomputed value. CI emits the sidecar
@@ -210,6 +247,13 @@ jobs:
           DMG_DST=/tmp/release/Mark_${VER}_aarch64.dmg
           cp "$DMG_SRC" "$DMG_DST"
           shasum -a 256 "$DMG_DST" | awk '{print $1}' > "$DMG_DST.sha256"
+          # B4-step-8 attribution + B4-step-9 SBOM artifacts shipped
+          # alongside the DMG so downstream cask + audit consumers
+          # don't need to re-clone the repo.
+          cp NOTICES-node.md /tmp/release/
+          cp NOTICES-rust.md /tmp/release/
+          cp sbom/sbom-node.cdx.json /tmp/release/Mark_${VER}_sbom-node.cdx.json
+          cp sbom/sbom-rust.cdx.json /tmp/release/Mark_${VER}_sbom-rust.cdx.json
           ls -la /tmp/release
           echo "dmg=$DMG_DST" >> "$GITHUB_OUTPUT"
           echo "sha256=$DMG_DST.sha256" >> "$GITHUB_OUTPUT"
