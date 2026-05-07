@@ -515,6 +515,11 @@ jobs:
           fi
           SHA256=$(awk '{print $1}' < "$SHA256_FILE")
 
+          # Configure git to use the GH App token via gh's credential
+          # helper. Without this, `git push` falls through to the default
+          # askpass and fails: "could not read Username for github.com".
+          gh auth setup-git
+
           # Clone tap, bump, push, open PR.
           gh repo clone xronocode/homebrew-mark /tmp/tap -- --depth 1
           cd /tmp/tap
