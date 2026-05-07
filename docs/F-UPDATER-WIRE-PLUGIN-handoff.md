@@ -68,18 +68,30 @@ Open `src-tauri/tauri.conf.json`, find:
 Replace `PLACEHOLDER_REPLACE_BEFORE_FIRST_RELEASE` with the contents
 of `mark.key.pub`. Commit.
 
-### Step 3 — add CI secrets (3 min)
+### Step 3 — add CI secrets
 
 Open <https://github.com/xronocode/mark/settings/secrets/actions>
 
-**Two new repository secrets:**
+**Required secret:**
 
 1. Name: `TAURI_SIGNING_PRIVATE_KEY`
    Value: paste the **entire contents** of `~/.tauri/mark.key`
    (it's base64-encoded ciphertext; copy the file as-is).
 
+**Optional secret (only if you set a password in Step 1):**
+
 2. Name: `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`
    Value: the password you chose in Step 1.
+
+   If you generated the keypair with an **empty password** (just
+   pressed Enter twice at the prompt), **skip this secret entirely**.
+   GitHub Actions will resolve the missing reference to an empty
+   string, and `tauri-action` interprets empty as "key has no password"
+   — decryption succeeds and signing proceeds normally.
+
+   GitHub's UI does not allow saving a literal empty string as a
+   secret value; either you have a real password (then create the
+   secret), or you don't (then don't create the secret).
 
 CI's `tauri-action` reads these envs and passes them to
 `tauri build --signer` → produces `Mark.app.tar.gz.sig` alongside the

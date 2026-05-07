@@ -105,17 +105,21 @@ jobs:
         run: npm run build
 
       # ── tauri build (with updater signing) ───────────────────────
-      # F-UPDATER-WIRE-PLUGIN: TAURI_SIGNING_PRIVATE_KEY +
-      # TAURI_SIGNING_PRIVATE_KEY_PASSWORD env feed tauri-action's
-      # auto-sign. The action emits Mark.app + DMG + Mark.app.tar.gz
-      # + Mark.app.tar.gz.sig (ed25519 signature). The .sig is what
-      # the updater plugin verifies against plugins.updater.pubkey
-      # when downloading the new version on user machines.
+      # F-UPDATER-WIRE-PLUGIN: TAURI_SIGNING_PRIVATE_KEY env feeds
+      # tauri-action's auto-sign. _PASSWORD is optional — if the
+      # keypair was generated with empty password, GH resolves the
+      # missing secret to "" and tauri-action treats it as no-password.
       #
-      # If secrets are missing (first runs before user provisions
-      # the keypair), tauri-action falls through to unsigned build —
-      # users on those builds won't have working in-app updates,
-      # but `brew upgrade --cask mark` still works.
+      # tauri-action emits Mark.app + DMG + Mark.app.tar.gz +
+      # Mark.app.tar.gz.sig (ed25519 signature). The .sig is what
+      # the updater plugin verifies against plugins.updater.pubkey
+      # before applying an update on user machines.
+      #
+      # If TAURI_SIGNING_PRIVATE_KEY itself is missing (first runs
+      # before user provisions the keypair), tauri-action falls
+      # through to unsigned build — users on those builds won't have
+      # working in-app updates, but `brew upgrade --cask mark` still
+      # works.
       - name: tauri build
         id: tauri
         uses: tauri-apps/tauri-action@v0
