@@ -344,47 +344,144 @@ jobs:
         run: |
           set -euo pipefail
           TAG=${{ needs.build.outputs.tag }}
+          VER="${TAG#v}"
+          FILES=$(find /tmp/release-stage -type f)
+
+          NOTES=$(cat <<NOTES_EOF
+          Automated release from \`$GITHUB_SHA\`.
+
+          **Verification:**
+
+          Build provenance (SLSA-3):
+          \`\`\`
+          gh attestation verify Mark_${VER}_aarch64.dmg --owner xronocode
+          \`\`\`
+
+          Cosign keyless signature:
+          \`\`\`
+          cosign verify-blob \\
+            --bundle Mark_${VER}_aarch64.dmg.bundle \\
+            --certificate-identity-regexp 'https://github.com/xronocode/mark/.*' \\
+            --certificate-oidc-issuer https://token.actions.githubusercontent.com \\
+            Mark_${VER}_aarch64.dmg
+          \`\`\`
+
+          DMG SHA-256 sidecar published as \`Mark_${VER}_aarch64.dmg.sha256\`.
+
+          CycloneDX SBOMs published for both Node renderer and Rust backend
+          dependency closures. NOTICES-{node,rust}.md attribution lists
+          shipped alongside.
+
+          **Updater:** F-UPDATER-WIRE-PLUGIN ed25519-signed feed lands in a follow-up
+          patch release. Until then, upgrade via:
+          \`\`\`
+          brew upgrade --cask mark
+          \`\`\`
+          NOTES_EOF
+          )
+
           if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             echo "release $TAG already exists; uploading assets idempotently"
-            FILES=$(find /tmp/release-stage -type f)
             gh release upload "$TAG" $FILES --repo "$GITHUB_REPOSITORY" --clobber
           else
-            FILES=$(find /tmp/release-stage -type f)
-            NOTES=$(cat <<NOTES_EOF
-            Automated release from \`$GITHUB_SHA\`.
-
-            **Verification:**
-
-            Build provenance (SLSA-3):
-            \`\`\`
-            gh attestation verify Mark_${TAG#v}_aarch64.dmg --owner xronocode
-            \`\`\`
-
-            Cosign keyless signature:
-            \`\`\`
-            cosign verify-blob \\
-              --bundle Mark_${TAG#v}_aarch64.dmg.bundle \\
-              --certificate-identity-regexp 'https://github.com/xronocode/mark/.*' \\
-              --certificate-oidc-issuer https://token.actions.githubusercontent.com \\
-              Mark_${TAG#v}_aarch64.dmg
-            \`\`\`
-
-            DMG SHA-256 sidecar published as \`Mark_${TAG#v}_aarch64.dmg.sha256\`.
-
-            CycloneDX SBOMs published for both Node renderer and Rust backend
-            dependency closures. NOTICES-{node,rust}.md attribution lists
-            shipped alongside.
-
-            **Updater:** F-UPDATER-WIRE-PLUGIN ed25519-signed feed lands in a follow-up
-            patch release. Until then, upgrade via:
-            \`\`\`
-            brew upgrade --cask mark
-            \`\`\`
-            NOTES_EOF
-            )
             gh release create "$TAG" \
               --repo "$GITHUB_REPOSITORY" \
               --title "Mark $TAG" \
               --notes "$NOTES" \
               $FILES
           fi
+
+  publish-cask:
+    name: cross-repo cask PR
+    needs: [build, publish]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: release  # gates on environment-protection approval
+    # B4 step-15: cross-repo PR via xronocode-release-bot GitHub App.
+    # The App's installation token has contents:write on
+    # xronocode/homebrew-mark and pull-requests:write to open the bump
+    # PR. Falls through with a noisy warning if APP_ID/PRIVATE_KEY
+    # secrets are missing — this lets the rest of the release ship
+    # while the App is being provisioned.
+    steps:
+      - name: checkout reborn-mark
+        uses: actions/checkout@v4
+
+      - name: download release artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: /tmp/release-stage
+
+      - name: gate on App secrets
+        id: gate
+        run: |
+          if [ -z "${{ secrets.RELEASE_BOT_APP_ID }}" ] || [ -z "${{ secrets.RELEASE_BOT_PRIVATE_KEY }}" ]; then
+            echo "::warning::xronocode-release-bot App secrets not configured; skipping cask PR. See docs/F-CASK-PUBLISH-HANDOFF.md."
+            echo "skip=1" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=0" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: mint app installation token
+        if: steps.gate.outputs.skip == '0'
+        id: app_token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.RELEASE_BOT_APP_ID }}
+          private-key: ${{ secrets.RELEASE_BOT_PRIVATE_KEY }}
+          owner: xronocode
+          repositories: homebrew-mark
+
+      - name: open cask bump PR
+        if: steps.gate.outputs.skip == '0'
+        env:
+          GH_TOKEN: ${{ steps.app_token.outputs.token }}
+          TAG: ${{ needs.build.outputs.tag }}
+        run: |
+          set -euo pipefail
+          VER="${TAG#v}"
+
+          # Pull the .sha256 sidecar value (NOT recompute) per B2CR-3.
+          SHA256_FILE=$(find /tmp/release-stage -name "Mark_${VER}_aarch64.dmg.sha256" | head -1)
+          if [ -z "$SHA256_FILE" ]; then
+            echo "::error::sha256 sidecar missing for $TAG"
+            exit 1
+          fi
+          SHA256=$(awk '{print $1}' < "$SHA256_FILE")
+
+          # Clone tap, bump, push, open PR.
+          gh repo clone xronocode/homebrew-mark /tmp/tap -- --depth 1
+          cd /tmp/tap
+
+          git config user.name 'xronocode-release-bot[bot]'
+          git config user.email 'xronocode-release-bot[bot]@users.noreply.github.com'
+
+          BRANCH="bump/mark-${VER}"
+          git checkout -b "$BRANCH"
+
+          # Update version + sha256. Cask uses on_arm sha256 + url.
+          sed -i'' -e "s|version \".*\"|version \"$VER\"|" Casks/mark.rb
+          # Replace the on_arm sha256 line.
+          awk -v sha="$SHA256" '
+            BEGIN { in_arm=0 }
+            /^  on_arm do/ { in_arm=1 }
+            in_arm && /sha256 / { sub(/sha256 \"[a-f0-9]+\"/, "sha256 \"" sha "\""); in_arm=0 }
+            { print }
+          ' Casks/mark.rb > Casks/mark.rb.tmp && mv Casks/mark.rb.tmp Casks/mark.rb
+
+          git add Casks/mark.rb
+          git commit -m "Bump mark to ${VER}"
+          git push origin "$BRANCH"
+
+          gh pr create \
+            --repo xronocode/homebrew-mark \
+            --title "Bump mark to ${VER}" \
+            --body "Auto-generated by release.yml on tag ${TAG}.
+
+          - DMG sha256 sourced verbatim from Mark_${VER}_aarch64.dmg.sha256 sidecar.
+          - SLSA-3 attestation + Cosign bundle published with the release.
+          - Smoke launch + warnings allowlist passed in CI.
+
+          Verification before merge: \`brew install --cask --no-quarantine ./Casks/mark.rb\`" \
+            --base main \
+            --head "$BRANCH"
