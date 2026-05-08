@@ -41,11 +41,14 @@ const groups = [...byLicense.entries()].sort((a, b) => b[1].length - a[1].length
 for (const [, pkgs] of groups) pkgs.sort((a, b) => a.name.localeCompare(b.name))
 
 const total = libs.length
-const generatedAt = new Date().toISOString().slice(0, 10)
+
+// No date line — regenerated daily, would drift verify-attributions
+// against committed file on calendar boundaries. See sibling script
+// build-notices-node.mjs for full rationale.
 
 let out = ''
 out += `# NOTICES — Rust dependencies (Tauri backend)\n\n`
-out += `Generated ${generatedAt} from \`cargo-bundle-licenses --format json\` over **${total} crates**.\n\n`
+out += `Generated from \`cargo-bundle-licenses --format json\` over **${total} crates**.\n\n`
 out += `Each entry lists the crate name, version, license SPDX identifier, and upstream repository when available. Re-generate with:\n\n`
 out += '```sh\n'
 out += '(cd src-tauri && cargo-bundle-licenses --format json --output /tmp/rust-licenses.json)\n'

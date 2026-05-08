@@ -1,6 +1,6 @@
 # NOTICES — Rust dependencies (Tauri backend)
 
-Generated 2026-05-07 from `cargo-bundle-licenses --format json` over **533 crates**.
+Generated from `cargo-bundle-licenses --format json` over **533 crates**.
 
 Each entry lists the crate name, version, license SPDX identifier, and upstream repository when available. Re-generate with:
 

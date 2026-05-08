@@ -1,6 +1,6 @@
 # NOTICES — Node.js production dependencies
 
-Generated 2026-05-07 from `license-checker --production` over **717 packages**.
+Generated from `license-checker --production` over **717 packages**.
 
 Each entry lists the package name, version, license SPDX identifier, and upstream repository when available. Re-generate with:
 
