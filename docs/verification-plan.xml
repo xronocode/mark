@@ -3092,6 +3092,33 @@
         <evidence-2>`brew upgrade --cask mark` transitions from v1 to v2 with user prefs intact (migrated from electron-store JSON).</evidence-2>
       </required-evidence>
     </Gate-Phase-B4>
+
+    <Gate-Phase-B4-pre-alpha PHASE="Phase-B4-pre-alpha" added="2026-05-08">
+      <goal>v2.0.0-alpha.1 ships with working save flow + dirty-tab close-prompt + native menu/shortcuts. Smoke-driven gate after user found 3 critical and 1 high blocker on local v0.0.3-test DMG.</goal>
+      <commands>
+        <command-1>cargo test --manifest-path src-tauri/Cargo.toml --workspace</command-1>
+        <command-2>npm run tauri build &amp;&amp; open target/aarch64-apple-darwin/release/bundle/macos/Mark.app</command-2>
+        <command-3>(manual) Cmd+S writes; Cmd+W on dirty tab prompts; File menu shows Save</command-3>
+      </commands>
+      <required-evidence>
+        <evidence-1>V-M-009 scenario-native-menu-renders green: macOS menu bar shows File/Edit/View/Window/Help with all expected items, Save accelerator shown as ⌘S in the menu item.</evidence-1>
+        <evidence-2>V-M-001 scenario-close-prompt-on-dirty green: trying to close window with one dirty tab raises native dialog with Save/Discard/Cancel; each branch behaves per contract.</evidence-2>
+        <evidence-3>V-M-006 scenario-menu-accelerator-fires green: Cmd+S keypress triggers `mt::save` event reaching renderer (assert log marker [Menu][on_event][BLOCK_DISPATCH] {menu_id="save"}); save flow completes write to disk.</evidence-3>
+        <evidence-4>USER REVIEW on smoke (step-4 of Phase-B4-pre-alpha): user opens dir, edits file, Cmd+S, verifies file content changed on disk; closes dirty tab, verifies dialog appears.</evidence-4>
+      </required-evidence>
+      <new-scenarios target-V-M-009="scenario-native-menu-renders, scenario-on-event-emits-MenuInvoked" target-V-M-006="scenario-menu-accelerator-fires-Cmd-S, scenario-global-shortcut-Cmd-Shift-M-show-window" target-V-M-001="scenario-close-prompt-on-dirty, scenario-discard-closes-unconditionally, scenario-cancel-keeps-window-open"/>
+      <required-log-markers>
+        <marker>[Menu][build][BLOCK_BUILD_NATIVE_MENU]</marker>
+        <marker>[Menu][on_event][BLOCK_DISPATCH] {menu_id, target_window}</marker>
+        <marker>[Lifecycle][close_requested][BLOCK_CLOSE_REQUESTED] {dirty_tab_count}</marker>
+        <marker>[Lifecycle][close_requested][BLOCK_PROMPT_OPEN]</marker>
+        <marker>[Lifecycle][close_requested][BLOCK_PROMPT_RESOLVED] {choice}</marker>
+        <marker>[Shortcuts][register_global][BLOCK_PARSE_ACCELERATOR]</marker>
+      </required-log-markers>
+      <followup-id-closure>F-MENU-WIRE-TAURI, F-SHORTCUT-PLATFORM-BIND, F-LIFECYCLE-WIRE</followup-id-closure>
+      <risk-1 severity="medium">Cmd+F may not have a renderer-side in-file find handler; if menu-driven Cmd+F fires `mt::editor-find` and muya doesn't have a built-in find UI, escalate to `F-INFILE-FIND-UI` as alpha-blocker addendum. Mitigation: code-probe muya's keymap for Cmd+F handler before step-1; if missing, file follow-up before tagging alpha.</risk-1>
+      <predecessor-of>Phase-B4 step-4 (the actual v2.0.0-alpha.1 tag).</predecessor-of>
+    </Gate-Phase-B4-pre-alpha>
   </PhaseGates>
 
   <TestFixtures>
