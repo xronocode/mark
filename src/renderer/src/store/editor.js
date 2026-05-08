@@ -16,6 +16,7 @@ import {
   TrailingNewlineCommand
 } from '../commands'
 import { defineStore } from 'pinia'
+import { ElMessageBox } from 'element-plus'
 import { usePreferencesStore } from './preferences'
 import { useProjectStore } from './project'
 import { useLayoutStore } from './layout'
@@ -396,7 +397,7 @@ export const useEditorStore = defineStore('editor', {
 
     LISTEN_FOR_CLOSE() {
       const projectStore = useProjectStore()
-      window.electron.ipcRenderer.on('mt::ask-for-close', () => {
+      window.electron.ipcRenderer.on('mt::ask-for-close', async () => {
         const unsavedFiles = this.tabs
           .filter((file) => !file.isSaved)
           .map((file) => {
@@ -412,10 +413,46 @@ export const useEditorStore = defineStore('editor', {
             }
           })
 
-        if (unsavedFiles.length) {
-          window.electron.ipcRenderer.send('mt::close-window-confirm', deepClone(unsavedFiles))
-        } else {
+        if (!unsavedFiles.length) {
           window.electron.ipcRenderer.send('mt::close-window')
+          return
+        }
+
+        // F-LIFECYCLE-WIRE (B4-pre-alpha-step-3): renderer-driven save
+        // confirmation dialog. v1.2.3 used the Electron main process
+        // for this; in Tauri port the renderer owns the dialog because
+        // it already has the dirty-tab state and Element Plus is loaded.
+        // Cancel-on-close (X / Escape) keeps the window open so users
+        // never lose work to a misclicked close button.
+        const tabCount = unsavedFiles.length
+        const namedCount = unsavedFiles.filter((f) => f.pathname).length
+        const message =
+          namedCount === tabCount
+            ? `${tabCount} tab${tabCount > 1 ? 's have' : ' has'} unsaved changes. Save them before closing?`
+            : `${tabCount} tab${tabCount > 1 ? 's have' : ' has'} unsaved changes. ${tabCount - namedCount} ${tabCount - namedCount > 1 ? 'are' : 'is'} untitled and cannot be auto-saved — Save will commit the named ${namedCount} and discard the rest.`
+        try {
+          await ElMessageBox.confirm(message, 'Unsaved changes', {
+            confirmButtonText: namedCount > 0 ? 'Save & Close' : 'Discard & Close',
+            cancelButtonText: "Don't Save",
+            type: 'warning',
+            distinguishCancelAndClose: true,
+            closeOnClickModal: false,
+            closeOnPressEscape: true
+          })
+          // Confirm pressed.
+          if (namedCount > 0) {
+            window.electron.ipcRenderer.send('mt::save-and-close-tabs', deepClone(unsavedFiles))
+          } else {
+            // No named tabs to save — Save button labelled "Discard &
+            // Close" so confirm = discard.
+            window.electron.ipcRenderer.send('mt::close-window')
+          }
+        } catch (action) {
+          if (action === 'cancel') {
+            // "Don't Save" → discard everything and close
+            window.electron.ipcRenderer.send('mt::close-window')
+          }
+          // 'close' (X) or 'pressEscape' → keep window open, no IPC
         }
       })
     },

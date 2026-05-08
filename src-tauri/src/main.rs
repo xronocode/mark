@@ -69,6 +69,7 @@ mod m006_shortcuts;
 mod m007_spell;
 mod m008_fonts;
 mod m009_menu;
+mod m001_save_close;
 mod m010_security;
 mod m014_encoding;
 mod m015_pandoc;
@@ -456,6 +457,7 @@ fn main() {
         // `mt::menu-invoked` event and the renderer's menu-bridge
         // dispatches to the matching command in commands/index.js.
         .setup(|app| {
+            use tauri::Manager;
             let handle = app.handle().clone();
             let menu = m009_menu::build_native_menu(&handle).inspect_err(|e| {
                 eprintln!("[menu][build][BLOCK_BUILD_NATIVE_MENU_FAILED reason={e}]");
@@ -467,6 +469,17 @@ fn main() {
             // with menu accelerators are visible in the log.
             if let Err(e) = m006_shortcuts::register_global_shortcuts(&handle) {
                 eprintln!("[shortcuts][register_global][BLOCK_BATCH_FAILED reason={e}]");
+            }
+            // F-LIFECYCLE-WIRE: manage MainCloseSm state and attach
+            // CloseRequested handler so dirty-tab close-prompt can fire.
+            // The handler queries the managed state at event time so it
+            // does not need to capture an Arc.
+            app.manage(m001_save_close::MainCloseSm::default());
+            if let Some(main_win) = app.get_webview_window("main") {
+                m001_save_close::wire_close_handler(&main_win);
+                eprintln!("[m001][lifecycle][BLOCK_CLOSE_HANDLER_WIRED label=main]");
+            } else {
+                eprintln!("[m001][lifecycle][BLOCK_CLOSE_HANDLER_SKIPPED reason=no-main-window]");
             }
             Ok(())
         })
@@ -533,6 +546,12 @@ fn main() {
             m_v1_compat::mt_update_sidebar_menu,
             m_v1_compat::mt_request_window_content_size,
             m_v1_compat::mt_open_setting_window,
+            // F-LIFECYCLE-WIRE / F-SAVE-FLOW-WIRE (B4-pre-alpha-step-3):
+            m001_save_close::mt_response_file_save,
+            m001_save_close::mt_response_file_save_as,
+            m001_save_close::mt_close_window,
+            m001_save_close::mt_save_and_close_tabs,
+            m001_save_close::mt_close_window_confirm,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
