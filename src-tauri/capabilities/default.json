@@ -10,6 +10,7 @@
     "core:webview:default",
     "core:path:default",
     "core:app:default",
-    "updater:default"
+    "updater:default",
+    "global-shortcut:default"
   ]
 }

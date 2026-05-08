@@ -1,22 +1,28 @@
 // MODULE_CONTRACT
 //   PURPOSE: M-006 mt-shortcuts. Accelerator parser + normalizer +
-//            in-process registry. Platform binding (tauri-plugin-
-//            global-shortcut for system-wide hotkeys; renderer-side
-//            keydown for in-window) deferred to F-SHORTCUT-PLATFORM-
-//            BIND.
-//   SCOPE:   parse "Cmd+Shift+M" → typed Accelerator; canonical form
-//            for equality (PR #4134 regression net: Cmd+Shift+M ==
-//            shift+CommandOrControl+m); register/unregister stub
-//            commands that store specs in PrefsState[KEY_SHORTCUTS]
-//            so renderer can dispatch.
-//   DEPENDS: m005_prefs (PrefsState).
-//   LINKS:   docs/development-plan.xml Phase-B3 step-4;
-//            docs/verification-plan.xml V-M-006 (PR #4134 regression).
-//   STATUS:  Phase-B3 step-4 lite — parser real, platform binding
-//            deferred to F-SHORTCUT-PLATFORM-BIND.
+//            in-process registry + tauri-plugin-global-shortcut
+//            platform binding for system-wide app hotkeys
+//            (Cmd+Shift+M show-window class). In-editor accelerators
+//            (Cmd+S/F/O/W) ride the macOS native menu via M-009 — the
+//            menu binding handles them at the OS level, no global
+//            registration needed.
+//   SCOPE:   (a) parse "Cmd+Shift+M" → typed Accelerator; canonical
+//            form for equality (PR #4134 regression net); (b) persist
+//            bindings in PrefsState[KEY_SHORTCUTS] so renderer can
+//            dispatch in-window shortcuts; (c) register a small set
+//            of system-wide accelerators with the OS via
+//            tauri-plugin-global-shortcut (default: Cmd+Shift+M → show
+//            main window).
+//   DEPENDS: m005_prefs (PrefsState), tauri_plugin_global_shortcut.
+//   LINKS:   docs/development-plan.xml Phase-B3 step-4 (parser),
+//            Phase-B4-pre-alpha step-2 (platform binding closes
+//            F-SHORTCUT-PLATFORM-BIND).
+//   STATUS:  Phase-B4-pre-alpha step-2 — global-shortcut wired.
 //
 // CHANGE_SUMMARY:
 //   - 2026-04-29 B3-step-4: parser + canonical form + persistence.
+//   - 2026-05-08 B4-pre-alpha-step-2: register_global_shortcuts
+//                helper + tauri-plugin-global-shortcut wiring.
 
 use crate::m005_prefs::PrefsState;
 use serde::{Deserialize, Serialize};
@@ -234,6 +240,98 @@ pub async fn mt_shortcut_list(prefs: State<'_, PrefsState>) -> Result<Value, Str
     serde_json::to_value(load_bindings(&prefs)).map_err(|e| e.to_string())
 }
 
+// ─────────────────────────────────────────────────────────────────────
+// START_BLOCK platform_binding_global
+// PURPOSE:    Register OS-level system-wide shortcuts via
+//             tauri-plugin-global-shortcut. Distinct from menu
+//             accelerators (handled by M-009 — those fire only when
+//             the app window has focus or the menu is active).
+// CONTRACT:   Called once from main.rs Builder.setup AFTER set_menu.
+//             Registers builtin shortcuts (Cmd+Shift+M show-window).
+//             User-defined globals from prefs[shortcuts] are NOT
+//             auto-registered yet — that flow needs a UI for picking
+//             them and a conflict-detection pass against OS reservations
+//             (Spotlight, Raycast, etc, V-M-006 ec) — deferred follow-
+//             up under the existing F-SHORTCUT-PLATFORM-BIND envelope.
+// LOG MARKERS: [Shortcuts][register_global][BLOCK_OK shortcut=…]
+//              [Shortcuts][register_global][BLOCK_FAILED shortcut=… reason=…]
+//              [Shortcuts][on_global_fired][BLOCK_DISPATCH shortcut=…]
+// ─────────────────────────────────────────────────────────────────────
+
+/// Builtin global shortcuts registered at app boot. Keep this list
+/// small — every entry holds an OS-level hotkey reservation that may
+/// conflict with user tools (Spotlight, Raycast, CleanShot, etc).
+///
+/// Returns the (accelerator-string, command-id) pairs so the same
+/// list drives both registration and the on-fire dispatcher below.
+pub fn builtin_globals() -> &'static [(&'static str, &'static str)] {
+    &[
+        // Cmd+Shift+M: bring Mark window to front from anywhere on the
+        // OS. v1.2.3 had no global shortcut; this is a Phase-B
+        // affordance from MarkText community wishlist.
+        ("CmdOrCtrl+Shift+M", "app.show-window"),
+    ]
+}
+
+/// Register the builtin global shortcuts with the OS. Wires the plugin's
+/// on-shortcut handler so that when the OS fires a registered combo,
+/// we look up the command id and emit `mt::menu-invoked` with that id —
+/// reusing the same renderer dispatcher path the native menu uses.
+///
+/// Errors per-shortcut are logged and skipped (one bad shortcut should
+/// not block the others). The function as a whole returns Ok(()) once
+/// the iteration completes.
+pub fn register_global_shortcuts<R: tauri::Runtime>(
+    handle: &tauri::AppHandle<R>,
+) -> tauri::Result<()> {
+    use tauri::Manager;
+    use tauri_plugin_global_shortcut::{GlobalShortcutExt, ShortcutState};
+
+    let plugin = handle.global_shortcut();
+    for (accel, cmd_id) in builtin_globals() {
+        let cmd_id_owned = cmd_id.to_string();
+        let accel_owned = accel.to_string();
+        match plugin.on_shortcut(*accel, move |app, _shortcut, event| {
+            // Only fire on key DOWN, not on release (state is auto-
+            // emitted twice otherwise).
+            if event.state() != ShortcutState::Pressed {
+                return;
+            }
+            eprintln!(
+                "[Shortcuts][on_global_fired][BLOCK_DISPATCH shortcut={accel_owned} cmd={cmd_id_owned}]"
+            );
+            // Show + focus main window if the dispatched command is
+            // app.show-window (the only builtin today). Otherwise
+            // forward into the menu pipeline.
+            if cmd_id_owned == "app.show-window" {
+                if let Some(win) = app.get_webview_window("main") {
+                    let _ = win.show();
+                    let _ = win.set_focus();
+                }
+                return;
+            }
+            // Generic path: emit through the menu-invoked event so the
+            // renderer's menu-bridge dispatches via the static command
+            // registry (one path for both menu and global shortcut).
+            if let Err(e) = tauri::Emitter::emit(app, "mt::menu-invoked", &cmd_id_owned) {
+                eprintln!(
+                    "[Shortcuts][on_global_fired][BLOCK_EMIT_FAILED shortcut={accel_owned} reason={e}]"
+                );
+            }
+        }) {
+            Ok(()) => eprintln!(
+                "[Shortcuts][register_global][BLOCK_OK shortcut={accel} cmd={cmd_id}]"
+            ),
+            Err(e) => eprintln!(
+                "[Shortcuts][register_global][BLOCK_FAILED shortcut={accel} reason={e}]"
+            ),
+        }
+    }
+    Ok(())
+}
+
+// END_BLOCK platform_binding_global
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -375,5 +473,36 @@ mod tests {
         combined.insert(Modifiers::SHIFT);
         assert!(combined.contains(Modifiers::CMD));
         assert!(combined.contains(Modifiers::SHIFT));
+    }
+
+    #[test]
+    fn builtin_globals_parse_cleanly() {
+        // Every entry in builtin_globals() must parse — otherwise
+        // register_global_shortcuts would silently fail at runtime
+        // with a Tauri-side "invalid accelerator" instead of a clear
+        // dev-time test failure.
+        for (accel, cmd) in builtin_globals() {
+            let parsed = parse_accelerator(accel)
+                .unwrap_or_else(|e| panic!("builtin global {accel} ({cmd}) failed to parse: {e}"));
+            // Sanity: builtin globals SHOULD have at least one modifier
+            // (raw "M" would conflict with typing in any text field).
+            assert_ne!(
+                parsed.modifiers, 0,
+                "builtin global {accel} has no modifier — would fire on every keypress"
+            );
+        }
+    }
+
+    #[test]
+    fn builtin_globals_include_show_window() {
+        // Smoke for B4-pre-alpha-step-2: Cmd+Shift+M must show the
+        // main window. Documented user expectation from MarkText
+        // community wishlist.
+        let pairs: Vec<_> = builtin_globals().to_vec();
+        assert!(
+            pairs.iter().any(|(_, cmd)| *cmd == "app.show-window"),
+            "builtin globals must include app.show-window — found: {:?}",
+            pairs
+        );
     }
 }

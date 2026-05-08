@@ -442,6 +442,13 @@ fn main() {
         // anything. Renderer calls via @tauri-apps/plugin-updater
         // (M-016 mt_updater_check now proxies to the plugin).
         .plugin(tauri_plugin_updater::Builder::new().build())
+        // F-SHORTCUT-PLATFORM-BIND (B4-pre-alpha step-2): the
+        // global-shortcut plugin handles system-wide hotkeys
+        // (Cmd+Shift+M show-window class) — distinct from menu
+        // accelerators which fire only when Mark has focus. The
+        // setup hook below calls m006_shortcuts::register_global_shortcuts
+        // after the menu is wired.
+        .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         // F-MENU-WIRE-TAURI (B4-pre-alpha step-1): build the native
         // macOS menu in Builder.setup so accelerators bind to menu
         // items at app boot. Each menu item with `with_id(...)` becomes
@@ -455,6 +462,12 @@ fn main() {
             })?;
             app.set_menu(menu)?;
             eprintln!("[menu][build][BLOCK_BUILD_NATIVE_MENU] installed");
+            // F-SHORTCUT-PLATFORM-BIND: register builtin global shortcuts
+            // (Cmd+Shift+M show-window) AFTER set_menu so any conflicts
+            // with menu accelerators are visible in the log.
+            if let Err(e) = m006_shortcuts::register_global_shortcuts(&handle) {
+                eprintln!("[shortcuts][register_global][BLOCK_BATCH_FAILED reason={e}]");
+            }
             Ok(())
         })
         .on_menu_event(|app_handle, event| {
