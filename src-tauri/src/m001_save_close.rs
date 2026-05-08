@@ -62,79 +62,82 @@ impl Default for MainCloseSm {
 //             events; success as mt::tab-saved.
 // ─────────────────────────────────────────────────────────────────────
 
-/// Renderer's FILE_SAVE sends 6 positional args:
-/// [id, filename, pathname, markdown, options, defaultPath].
-/// The install-window-globals shim wraps positional args as
-/// `{ args: [...] }`, so this command accepts a single `args` vector
-/// and unpacks by index.
+/// Outcome of a successful save. Returned from invoke so the renderer
+/// can update the tab state directly without listening for separate
+/// `mt::tab-saved` / `mt::set-pathname` events. Path B-clean W2a
+/// canonical save flow.
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SavedTabState {
+    pub id: String,
+    pub pathname: String,
+    pub filename: String,
+    pub is_saved: bool,
+}
+
+/// Path B-clean W2a: canonical save command. Returns
+/// `Some(SavedTabState)` on successful write, `None` on user-cancel
+/// of the save-as picker. Errors propagate as `Err(String)`.
 ///
-/// SEMANTICS: if pathname is non-empty, write to that path. If empty
-/// (untitled tab), open a native Save File dialog seeded with
-/// `filename` + `defaultPath`; on chosen path, write + emit
-/// `mt::set-pathname` so the renderer updates the tab. User cancel of
-/// the dialog returns Ok(()) silently.
+/// SEMANTICS:
+///   - if `pathname` is `Some(p)` and non-empty: write to p
+///   - if `pathname` is `None` or empty string: open save dialog,
+///     seeded with `filename` + `default_path`. On chosen path,
+///     write + return new pathname. On cancel, return None.
+///
+/// Replaces the old positional-args version that emitted
+/// `mt::tab-saved` + `mt::set-pathname` events. Listeners for those
+/// events are kept ALIVE for batch-save flows (mt_save_and_close_tabs)
+/// but no longer required for single-tab save.
 #[tauri::command]
 pub async fn mt_response_file_save(
-    args: Vec<serde_json::Value>,
+    id: String,
+    filename: String,
+    pathname: Option<String>,
+    markdown: String,
+    #[allow(non_snake_case)] defaultPath: Option<String>,
     app: AppHandle,
     sec: State<'_, SecurityCtx>,
-) -> Result<(), String> {
-    let arg_str = |i: usize| args.get(i).and_then(|v| v.as_str()).unwrap_or("").to_string();
-    let id = arg_str(0);
-    let filename = arg_str(1);
-    let pathname = arg_str(2);
-    let markdown = arg_str(3);
-    let default_path = arg_str(5);
+) -> Result<Option<SavedTabState>, String> {
+    let default_path = defaultPath.unwrap_or_default();
+    let pathname = pathname.unwrap_or_default();
 
-    let target_path = if pathname.is_empty() {
+    let (target_path, was_picked) = if pathname.is_empty() {
         match pick_save_path(&app, &filename, &default_path).await {
-            Some(p) => p,
+            Some(p) => (p, true),
             None => {
                 eprintln!("[m001][save_close][BLOCK_SAVE_AS_CANCELLED id={id}]");
-                return Ok(());
+                return Ok(None);
             }
         }
     } else {
-        pathname
+        (pathname, false)
     };
 
-    save_to_path(&app, &sec, &id, &target_path, &markdown, pathname_was_picked(&args)).await
+    save_to_path_outcome(&app, &sec, &id, &target_path, &markdown, was_picked).await
 }
 
-/// Renderer's FILE_SAVE_AS sends the same 6 positional args.
-/// Always opens the picker (forces a fresh path even if the tab has
-/// one) and writes there.
+/// Path B-clean W2a: forces a new save-as picker regardless of
+/// existing pathname. Same return shape as mt_response_file_save.
 #[tauri::command]
 pub async fn mt_response_file_save_as(
-    args: Vec<serde_json::Value>,
+    id: String,
+    filename: String,
+    markdown: String,
+    #[allow(non_snake_case)] defaultPath: Option<String>,
     app: AppHandle,
     sec: State<'_, SecurityCtx>,
-) -> Result<(), String> {
-    let arg_str = |i: usize| args.get(i).and_then(|v| v.as_str()).unwrap_or("").to_string();
-    let id = arg_str(0);
-    let filename = arg_str(1);
-    let markdown = arg_str(3);
-    let default_path = arg_str(5);
-
+) -> Result<Option<SavedTabState>, String> {
+    let default_path = defaultPath.unwrap_or_default();
     let target_path = match pick_save_path(&app, &filename, &default_path).await {
         Some(p) => p,
         None => {
             eprintln!("[m001][save_close][BLOCK_SAVE_AS_CANCELLED id={id}]");
-            return Ok(());
+            return Ok(None);
         }
     };
 
-    save_to_path(&app, &sec, &id, &target_path, &markdown, true).await
-}
-
-/// `args[2]` (pathname) was empty when called → caller path was picked
-/// via the dialog. Renderer needs the new pathname pushed back via
-/// mt::set-pathname so the tab can update its filename + isSaved flag.
-fn pathname_was_picked(args: &[serde_json::Value]) -> bool {
-    args.get(2)
-        .and_then(|v| v.as_str())
-        .map(|s| s.is_empty())
-        .unwrap_or(true)
+    save_to_path_outcome(&app, &sec, &id, &target_path, &markdown, true).await
 }
 
 async fn pick_save_path(
@@ -177,42 +180,41 @@ async fn pick_save_path(
     Some(path_str)
 }
 
-async fn save_to_path(
+/// Path B-clean W2a: returns SavedTabState directly (folds tab-saved
+/// + set-pathname events into the invoke return). Single-window
+/// save flow no longer needs to listen for those events. Multi-tab
+/// batch save (mt_save_and_close_tabs) still emits them so the
+/// renderer can update tabs as each completes.
+async fn save_to_path_outcome(
     app: &AppHandle,
     sec: &State<'_, SecurityCtx>,
     id: &str,
     target_path: &str,
     markdown: &str,
-    notify_set_pathname: bool,
-) -> Result<(), String> {
+    was_picked: bool,
+) -> Result<Option<SavedTabState>, String> {
     match crate::m013b::fs::mt_fs_write(target_path.to_string(), markdown.to_string(), sec.clone())
         .await
     {
         Ok(()) => {
-            eprintln!("[m001][save_close][BLOCK_FILE_SAVED id={id} path={target_path}]");
-            if notify_set_pathname {
-                let filename = std::path::Path::new(target_path)
-                    .file_name()
-                    .and_then(|s| s.to_str())
-                    .unwrap_or("")
-                    .to_string();
-                let payload = serde_json::json!({
-                    "id": id,
-                    "pathname": target_path,
-                    "filename": filename,
-                });
-                let _ = app.emit("mt::set-pathname", payload);
-                eprintln!("[m001][save_close][BLOCK_SET_PATHNAME_EMITTED id={id} path={target_path}]");
-            }
-            let _ = app.emit("mt::tab-saved", id.to_string());
-            Ok(())
+            eprintln!("[m001][save_close][BLOCK_FILE_SAVED id={id} path={target_path} was_picked={was_picked}]");
+            let filename = std::path::Path::new(target_path)
+                .file_name()
+                .and_then(|s| s.to_str())
+                .unwrap_or("")
+                .to_string();
+            Ok(Some(SavedTabState {
+                id: id.to_string(),
+                pathname: target_path.to_string(),
+                filename,
+                is_saved: true,
+            }))
         }
         Err(e) => {
             let msg = format!("{e:?}");
             eprintln!(
                 "[m001][save_close][BLOCK_FILE_SAVE_FAILED id={id} path={target_path} reason={msg}]"
             );
-            let _ = app.emit("mt::tab-save-failure", (id.to_string(), msg.clone()));
             Err(msg)
         }
     }

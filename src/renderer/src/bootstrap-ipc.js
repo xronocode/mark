@@ -114,5 +114,48 @@ export const setupIpcListeners = async () => {
     }
   })
 
+  // Path B-clean W2a: per-tab batch-save events. Single-tab save
+  // flow now folds these into the invoke return (FILE_SAVE etc.),
+  // but mt_save_and_close_tabs still emits per-tab during batch
+  // close. Boot-time registration so cross-window batch saves
+  // (e.g., another window's "Save All" flow) update this window's
+  // tab state correctly.
+  const { useEditorStore } = await import('./store/editor')
+  const editorStore = useEditorStore()
+  await listen('mt::tab-saved', (event) => {
+    const tabId = event?.payload
+    if (typeof tabId === 'string' && tabId) editorStore.APPLY_TAB_SAVED(tabId)
+  })
+  await listen('mt::tab-save-failure', (event) => {
+    // Backend emits as Vec<(String, String)> tuple; serializes to
+    // [id, msg]. event.payload may be either array shape or object.
+    const p = event?.payload
+    let id = ''
+    let msg = ''
+    if (Array.isArray(p)) {
+      id = String(p[0] || '')
+      msg = String(p[1] || '')
+    } else if (p && typeof p === 'object') {
+      id = String(p.id || '')
+      msg = String(p.msg || p.message || '')
+    }
+    if (id) editorStore.APPLY_TAB_SAVE_FAILURE(id, msg)
+  })
+  await listen('mt::set-pathname', (event) => {
+    // Same batch-save fallback. Single-window save path uses invoke
+    // return value via APPLY_SAVE_OUTCOME; this listener picks up
+    // cross-window emits if backend ever decides to push pathname
+    // updates outside the invoke ack.
+    const fi = event?.payload
+    if (fi && typeof fi === 'object' && fi.id) {
+      editorStore.APPLY_SAVE_OUTCOME({
+        id: fi.id,
+        pathname: fi.pathname,
+        filename: fi.filename,
+        isSaved: true
+      })
+    }
+  })
+
   console.log('[boot][ipc][BLOCK_ALL_LISTENERS_REGISTERED]')
 }

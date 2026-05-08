@@ -275,21 +275,72 @@ export const useEditorStore = defineStore('editor', {
       }
     },
 
-    FILE_SAVE() {
+    /**
+     * Path B-clean W2a: invoke returns SavedTabState directly.
+     * Backend writes file + returns {id,pathname,filename,isSaved}.
+     * Renderer applies state via APPLY_SAVE_OUTCOME — no listener
+     * race for the per-tab save ack.
+     */
+    async FILE_SAVE() {
       const projectStore = useProjectStore()
       const { id, filename, pathname, markdown } = this.currentFile
-      const options = getOptionsFromState(this.currentFile)
       const defaultPath = getRootFolderFromState(projectStore)
-      if (id) {
-        window.electron.ipcRenderer.send(
-          'mt::response-file-save',
+      if (!id) return
+      try {
+        const { invoke } = await import('@tauri-apps/api/core')
+        const outcome = await invoke('mt_response_file_save', {
           id,
           filename,
-          pathname,
+          pathname: pathname || null,
           markdown,
-          deepClone(options),
-          defaultPath
+          defaultPath: defaultPath || null
+        })
+        if (outcome) this.APPLY_SAVE_OUTCOME(outcome)
+      } catch (e) {
+        notice.notify({
+          title: i18n.global.t('dialog.saveFailure'),
+          message: String(e),
+          type: 'error',
+          time: 20000,
+          showConfirm: false
+        })
+      }
+    },
+
+    /**
+     * Path B-clean W2a: applies a SavedTabState ({id, pathname,
+     * filename, isSaved}) returned from mt_response_file_save /
+     * mt_response_file_save_as. Replaces the listener-driven
+     * mt::tab-saved + mt::set-pathname update path. Idempotent —
+     * also called from the bootstrap-ipc.js batch-save listener
+     * for cross-window mt_save_and_close_tabs flow.
+     */
+    APPLY_SAVE_OUTCOME(outcome) {
+      if (!outcome || !outcome.id) return
+      const tab = this.tabs.find((t) => t.id === outcome.id)
+      if (!tab) return
+      // Pathname change (save-as or first save of untitled)
+      if (outcome.pathname && outcome.pathname !== tab.pathname) {
+        // Drop any existing tab pointing at the same path (overwrite
+        // semantics that mt::set-pathname listener used to enforce).
+        const existing = this.tabs.find(
+          (t) => t.id !== outcome.id && window.fileUtils.isSamePathSync(t.pathname, outcome.pathname)
         )
+        if (existing) this.CLOSE_TAB(existing)
+        tab.pathname = outcome.pathname
+        tab.filename = outcome.filename || tab.filename
+        if (outcome.id === this.currentFile.id && outcome.pathname) {
+          window.DIRNAME = window.path.dirname(outcome.pathname)
+        }
+      }
+      tab.isSaved = !!outcome.isSaved
+      if (
+        tab.isSaved &&
+        tab.history &&
+        tab.history.lastEditIndex >= 0 &&
+        tab.history.lastEditIndex < tab.history.stack.length
+      ) {
+        tab.lastSavedHistoryId = tab.history.stack[tab.history.lastEditIndex].id
       }
     },
 
@@ -303,22 +354,28 @@ export const useEditorStore = defineStore('editor', {
       })
     },
 
-    FILE_SAVE_AS() {
+    async FILE_SAVE_AS() {
       const projectStore = useProjectStore()
-      const { id, filename, pathname, markdown } = this.currentFile
-      const options = getOptionsFromState(this.currentFile)
+      const { id, filename, markdown } = this.currentFile
       const defaultPath = getRootFolderFromState(projectStore)
-
-      if (id) {
-        window.electron.ipcRenderer.send(
-          'mt::response-file-save-as',
+      if (!id) return
+      try {
+        const { invoke } = await import('@tauri-apps/api/core')
+        const outcome = await invoke('mt_response_file_save_as', {
           id,
           filename,
-          pathname,
           markdown,
-          deepClone(options),
-          defaultPath
-        )
+          defaultPath: defaultPath || null
+        })
+        if (outcome) this.APPLY_SAVE_OUTCOME(outcome)
+      } catch (e) {
+        notice.notify({
+          title: i18n.global.t('dialog.saveFailure'),
+          message: String(e),
+          type: 'error',
+          time: 20000,
+          showConfirm: false
+        })
       }
     },
 
@@ -332,66 +389,59 @@ export const useEditorStore = defineStore('editor', {
       })
     },
 
+    /**
+     * Path B-clean W2a: per-tab save events (mt::tab-saved /
+     * mt::tab-save-failure / mt::set-pathname) are still emitted by
+     * the BATCH save path mt_save_and_close_tabs (cross-window
+     * close-flow). Their listeners moved to bootstrap-ipc.js — boot
+     * registration eliminates the listener-race once and for all.
+     * This action stays as a no-op alias for app.vue's onMounted
+     * call; deletion comes in W6 cleanup wave.
+     */
     LISTEN_FOR_SET_PATHNAME() {
-      window.electron.ipcRenderer.on('mt::set-pathname', (_, fileInfo) => {
-        const { tabs } = this
-        const { pathname, id } = fileInfo
-        const tab = tabs.find((f) => f.id === id)
-        if (!tab) {
-          console.error('[ERROR] Cannot change file path from unknown tab.')
-          return
-        }
+      // no-op; see bootstrap-ipc.js
+    },
 
-        // If a tab with the same file path already exists we need to close the tab.
-        // The existing tab is overwritten by this tab.
-        const existingTab = tabs.find(
-          (t) => t.id !== id && window.fileUtils.isSamePathSync(t.pathname, pathname)
-        )
-        if (existingTab) {
-          this.CLOSE_TAB(existingTab)
-        }
+    /**
+     * Public action — invoked by bootstrap-ipc.js mt::tab-saved
+     * listener for cross-window batch-save. Same logic as the inline
+     * v1 listener body had.
+     */
+    APPLY_TAB_SAVED(tabId) {
+      const tab = this.tabs.find((f) => f.id === tabId)
+      if (
+        tab &&
+        tab.history &&
+        tab.history.lastEditIndex >= 0 &&
+        tab.history.lastEditIndex < tab.history.stack.length
+      ) {
+        tab.lastSavedHistoryId = tab.history.stack[tab.history.lastEditIndex].id
+        tab.isSaved = true
+      }
+    },
 
-        // SET_PATHNAME
-        const { filename } = fileInfo
-        if (id === this.currentFile.id && pathname) {
-          window.DIRNAME = window.path.dirname(pathname)
-        }
-        if (tab) {
-          Object.assign(tab, { filename, pathname, isSaved: true })
-        }
-      })
-
-      window.electron.ipcRenderer.on('mt::tab-saved', (_, tabId) => {
-        const tab = this.tabs.find((f) => f.id === tabId)
-        if (
-          tab &&
-          tab.history.lastEditIndex >= 0 &&
-          tab.history.lastEditIndex < tab.history.stack.length
-        ) {
-          tab.lastSavedHistoryId = tab.history.stack[tab.history.lastEditIndex].id
-          tab.isSaved = true
-        }
-      })
-
-      window.electron.ipcRenderer.on('mt::tab-save-failure', (_, tabId, msg) => {
-        const tab = this.tabs.find((t) => t.id === tabId)
-        if (!tab) {
-          notice.notify({
-            title: i18n.global.t('dialog.saveFailure'),
-            message: msg,
-            type: 'error',
-            time: 20000,
-            showConfirm: false
-          })
-          return
-        }
-
-        tab.isSaved = false
-        this.pushTabNotification({
-          tabId,
-          msg: i18n.global.t('store.editor.errorWhileSaving', { msg }),
-          style: 'crit'
+    /**
+     * Public action — invoked by bootstrap-ipc.js mt::tab-save-failure
+     * listener for cross-window batch-save errors. Surfaces user-
+     * visible toast + dirties the tab.
+     */
+    APPLY_TAB_SAVE_FAILURE(tabId, msg) {
+      const tab = this.tabs.find((t) => t.id === tabId)
+      if (!tab) {
+        notice.notify({
+          title: i18n.global.t('dialog.saveFailure'),
+          message: msg,
+          type: 'error',
+          time: 20000,
+          showConfirm: false
         })
+        return
+      }
+      tab.isSaved = false
+      this.pushTabNotification({
+        tabId,
+        msg: i18n.global.t('store.editor.errorWhileSaving', { msg }),
+        style: 'crit'
       })
     },
 
@@ -513,25 +563,20 @@ export const useEditorStore = defineStore('editor', {
       }
     },
 
-    MOVE_FILE_TO() {
-      const projectStore = useProjectStore()
-      const { id, filename, pathname, markdown } = this.currentFile
-      const options = getOptionsFromState(this.currentFile)
-      const defaultPath = getRootFolderFromState(projectStore)
+    /**
+     * Path B-clean W2a: untitled tab → save-as picker (same flow as
+     * FILE_SAVE_AS); existing tab → mt::response-file-move-to event
+     * (handled by m_v1_compat shim; W2b will migrate the move flow).
+     */
+    async MOVE_FILE_TO() {
+      const { id, pathname } = this.currentFile
       if (!id) return
       if (!pathname) {
-        // if current file is a newly created file, just save it!
-        window.electron.ipcRenderer.send(
-          'mt::response-file-save',
-          id,
-          filename,
-          pathname,
-          markdown,
-          deepClone(options),
-          defaultPath
-        )
+        await this.FILE_SAVE_AS()
       } else {
-        // if not, move to a new(maybe) folder
+        // if not, move to a new(maybe) folder — still legacy IPC
+        // since mt_response_file_move_to backend wasn't migrated in
+        // W2a; covered in W2b.
         window.electron.ipcRenderer.send('mt::response-file-move-to', { id, pathname })
       }
     },
@@ -554,23 +599,16 @@ export const useEditorStore = defineStore('editor', {
       })
     },
 
-    RESPONSE_FOR_RENAME() {
-      const projectStore = useProjectStore()
-      const { id, filename, pathname, markdown } = this.currentFile
-      const options = getOptionsFromState(this.currentFile)
-      const defaultPath = getRootFolderFromState(projectStore)
+    /**
+     * Path B-clean W2a: untitled file → save-as flow; existing file
+     * → bus.emit('rename') so the title-bar inline-rename UI takes
+     * over (handled in W2b/W5 with mt_rename invoke).
+     */
+    async RESPONSE_FOR_RENAME() {
+      const { id, pathname } = this.currentFile
       if (!id) return
       if (!pathname) {
-        // if current file is a newly created file, just save it!
-        window.electron.ipcRenderer.send(
-          'mt::response-file-save',
-          id,
-          filename,
-          pathname,
-          markdown,
-          deepClone(options),
-          defaultPath
-        )
+        await this.FILE_SAVE_AS()
       } else {
         bus.emit('rename')
       }
@@ -1207,21 +1245,29 @@ export const useEditorStore = defineStore('editor', {
         autoSaveTimers.delete(id)
       }
 
-      const timer = setTimeout(() => {
+      const timer = setTimeout(async () => {
         autoSaveTimers.delete(id)
 
         const tab = this.tabs.find((t) => t.id === id)
         if (tab && !tab.isSaved) {
           const defaultPath = getRootFolderFromState(projectStore)
-          window.electron.ipcRenderer.send(
-            'mt::response-file-save',
-            id,
-            filename,
-            pathname,
-            markdown,
-            deepClone(options),
-            defaultPath
-          )
+          // Path B-clean W2a: auto-save through canonical invoke.
+          // Untitled tabs skip auto-save (would open picker mid-edit
+          // which is awful UX). Named tabs write straight through.
+          if (!pathname) return
+          try {
+            const { invoke } = await import('@tauri-apps/api/core')
+            const outcome = await invoke('mt_response_file_save', {
+              id,
+              filename,
+              pathname: pathname || null,
+              markdown,
+              defaultPath: defaultPath || null
+            })
+            if (outcome) this.APPLY_SAVE_OUTCOME(outcome)
+          } catch (e) {
+            console.warn('[editor][auto-save] failed', e)
+          }
         }
       }, autoSaveDelay)
       autoSaveTimers.set(id, timer)
