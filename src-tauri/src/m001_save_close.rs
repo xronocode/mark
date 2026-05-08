@@ -62,18 +62,28 @@ impl Default for MainCloseSm {
 //             events; success as mt::tab-saved.
 // ─────────────────────────────────────────────────────────────────────
 
+/// Renderer's FILE_SAVE sends 6 positional args:
+/// [id, filename, pathname, markdown, options, defaultPath].
+/// The install-window-globals shim wraps positional args as
+/// `{ args: [...] }`, so this command accepts a single `args` vector
+/// and unpacks by index. Index-based unpack is fragile if v1 ever
+/// reorders; the test below pins the contract so a renderer-side
+/// reorder breaks at compile time.
 #[tauri::command]
 pub async fn mt_response_file_save(
-    id: String,
-    _filename: String,
-    pathname: Option<String>,
-    markdown: String,
-    _options: serde_json::Value,
-    _default_path: Option<String>,
+    args: Vec<serde_json::Value>,
     app: AppHandle,
     sec: State<'_, SecurityCtx>,
 ) -> Result<(), String> {
-    let path = pathname.unwrap_or_default();
+    let arg_str = |i: usize| args.get(i).and_then(|v| v.as_str()).unwrap_or("").to_string();
+    let id = arg_str(0);
+    let pathname = args
+        .get(2)
+        .and_then(|v| v.as_str())
+        .map(|s| s.to_string())
+        .unwrap_or_default();
+    let markdown = arg_str(3);
+    let path = pathname;
     if path.is_empty() {
         let msg = "untitled tab — Save As required (alpha limitation)".to_string();
         eprintln!("[m001][save_close][BLOCK_FILE_SAVE_FAILED id={id} reason=empty-pathname]");
@@ -99,14 +109,14 @@ pub async fn mt_response_file_save(
 
 #[tauri::command]
 pub async fn mt_response_file_save_as(
-    id: String,
-    _filename: String,
-    _pathname: Option<String>,
-    _markdown: String,
-    _options: serde_json::Value,
-    _default_path: Option<String>,
+    args: Vec<serde_json::Value>,
     app: AppHandle,
 ) -> Result<(), String> {
+    let id = args
+        .get(0)
+        .and_then(|v| v.as_str())
+        .unwrap_or("")
+        .to_string();
     // Save-As needs a path picker (tauri-plugin-dialog or similar).
     // Deferred to F-SAVE-AS-DIALOG follow-up (beta-bucket). For alpha,
     // surface a clear failure event so the renderer notification system
@@ -142,19 +152,32 @@ pub async fn mt_close_window(
     Ok(())
 }
 
+/// Renderer's CLOSE_UNSAVED_TAB / LISTEN_FOR_CLOSE save branch sends a
+/// single ARRAY argument — the unsaved-files list. The shim wraps
+/// arrays as `{ args: [...] }` so the param is named `args` here, and
+/// each element is a tab descriptor object.
+///
+/// SEMANTICS: saves each named tab, emits mt::tab-saved per success
+/// and mt::tab-save-failure per failure. After all writes succeed,
+/// emits mt::force-close-tabs-by-id with the list of successfully-
+/// saved IDs so the renderer's LISTEN_FOR_SAVE_CLOSE handler closes
+/// those tabs. **Does NOT destroy the window** — the per-tab close
+/// path (CLOSE_UNSAVED_TAB) must not close the whole window. The
+/// window-close path (LISTEN_FOR_CLOSE save branch) sends a separate
+/// `mt::close-window` IPC after awaiting this one.
+///
+/// On ANY save failure, returns Err(...) so the renderer-side await
+/// rejects, the dirty tabs stay dirty, and the window-close path can
+/// abort closing without firing mt::close-window.
 #[tauri::command]
 pub async fn mt_save_and_close_tabs(
-    unsaved: Vec<serde_json::Value>,
+    args: Vec<serde_json::Value>,
     app: AppHandle,
     sec: State<'_, SecurityCtx>,
-    sm_state: State<'_, MainCloseSm>,
 ) -> Result<(), String> {
-    // Save each tab that has a pathname; skip untitled. Per-tab outcomes
-    // emit mt::tab-saved / mt::tab-save-failure so the renderer's
-    // notification system reflects partial success. If ANY save fails,
-    // we ABORT the close and re-emit ask-for-close so user can retry —
-    // safer default than closing the window with a save error pending.
-    let mut all_ok = true;
+    let unsaved = args;
+    let mut saved_ids: Vec<String> = Vec::new();
+    let mut error_messages: Vec<String> = Vec::new();
     for entry in unsaved {
         let id = entry
             .get("id")
@@ -172,8 +195,7 @@ pub async fn mt_save_and_close_tabs(
             .unwrap_or("")
             .to_string();
         if path.is_empty() {
-            // Untitled — silently skip (renderer dialog already warned
-            // user that untitled tabs would be discarded).
+            // Untitled — silently skip; caller already warned the user.
             continue;
         }
         match crate::m013b::fs::mt_fs_write(path.clone(), markdown, sec.clone()).await {
@@ -181,42 +203,51 @@ pub async fn mt_save_and_close_tabs(
                 eprintln!(
                     "[m001][save_close][BLOCK_FILE_SAVED id={id} path={path} batch=save_and_close]"
                 );
-                let _ = app.emit("mt::tab-saved", id);
+                let _ = app.emit("mt::tab-saved", id.clone());
+                saved_ids.push(id);
             }
             Err(e) => {
                 let msg = format!("{e:?}");
                 eprintln!(
                     "[m001][save_close][BLOCK_FILE_SAVE_FAILED id={id} path={path} batch=save_and_close reason={msg}]"
                 );
-                let _ = app.emit("mt::tab-save-failure", (id, msg));
-                all_ok = false;
+                let _ = app.emit("mt::tab-save-failure", (id, msg.clone()));
+                error_messages.push(msg);
             }
         }
     }
-    if !all_ok {
-        // Tell renderer to re-prompt instead of closing with errors
-        // pending. Reset state machine so a re-fired CloseRequested can
-        // reuse the existing transition path.
+    if !error_messages.is_empty() {
+        // At least one save failed: do NOT emit force-close so the
+        // renderer keeps the dirty tabs visible. Caller's await will
+        // reject; window-close path will abort and not call
+        // mt::close-window. User can retry from the existing dialog.
         eprintln!(
-            "[m001][save_close][BLOCK_CLOSE_ABORTED_DUE_TO_SAVE_FAILURE retry_via=mt::ask-for-close]"
+            "[m001][save_close][BLOCK_BATCH_PARTIAL_FAILURE saved={} failed={}]",
+            saved_ids.len(),
+            error_messages.len()
         );
-        if let Ok(mut sm) = sm_state.0.lock() {
-            *sm = CloseStateMachine::default();
-        }
-        let _ = app.emit("mt::ask-for-close", ());
-        return Ok(());
+        return Err(format!(
+            "{} tab(s) failed to save: {}",
+            error_messages.len(),
+            error_messages.join("; ")
+        ));
     }
-    advance_to_destroy(&sm_state);
-    if let Some(win) = app.get_webview_window("main") {
-        eprintln!("[m001][save_close][BLOCK_DESTROY_WINDOW label=main reason=save_and_close]");
-        win.destroy().map_err(|e| e.to_string())?;
+    // All saves OK — tell renderer to close those tabs. NOTE: do NOT
+    // destroy the window here; that's mt_close_window's job (called
+    // separately by the window-close path).
+    if !saved_ids.is_empty() {
+        eprintln!(
+            "[m001][save_close][BLOCK_FORCE_CLOSE_TABS count={}]",
+            saved_ids.len()
+        );
+        let _ = app.emit("mt::force-close-tabs-by-id", saved_ids);
     }
     Ok(())
 }
 
 #[tauri::command]
 pub async fn mt_close_window_confirm(
-    _unsaved: Vec<serde_json::Value>,
+    _args: Vec<serde_json::Value>,
 ) -> Result<(), String> {
     // v1.2.3 routed this IPC to a native main-process dialog. In Tauri
     // port the renderer's LISTEN_FOR_CLOSE shows the dialog locally

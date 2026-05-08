@@ -235,10 +235,18 @@ const electron = {
       // hyphens (Rust identifier rules), so we map '::' AND '-' to '_'.
       const invoke = _tauriInvoke
       const tauriCmd = channel.replace(/::/g, '_').replace(/-/g, '_')
-      // Most v1 calls pass a single object as the first arg; spread
-      // multiple args into a positional-style payload if the renderer
-      // passed N>1.
-      const payload = args.length === 1 ? args[0] : { args }
+      // Tauri 2 invoke requires the body to be a JSON OBJECT (named
+      // params). v1 IPC convention sent positional args. Wrap in
+      // { args: [...] } for multi-arg AND single-array calls so
+      // backend commands can declare `args: Vec<Value>` uniformly.
+      // Single-OBJECT callers keep their object-shape payload so
+      // backends that declare named params still work unchanged.
+      const payload =
+        args.length === 1
+          ? Array.isArray(args[0])
+            ? { args: args[0] }
+            : args[0]
+          : { args }
       try {
         return await invoke(tauriCmd, payload)
       } catch (e) {

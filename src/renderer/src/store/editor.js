@@ -441,7 +441,25 @@ export const useEditorStore = defineStore('editor', {
           })
           // Confirm pressed.
           if (namedCount > 0) {
-            window.electron.ipcRenderer.send('mt::save-and-close-tabs', deepClone(unsavedFiles))
+            // Save first — backend emits force-close-tabs-by-id for
+            // successfully-saved IDs (renderer closes those tabs) but
+            // does NOT destroy window. We send mt::close-window only
+            // after save succeeds; if any save fails the await rejects
+            // and we abort close so the user can retry.
+            try {
+              await window.electron.ipcRenderer.invoke(
+                'mt::save-and-close-tabs',
+                deepClone(unsavedFiles)
+              )
+              window.electron.ipcRenderer.send('mt::close-window')
+            } catch (err) {
+              notice.notify({
+                title: 'Save failed',
+                type: 'error',
+                message: String(err)
+              })
+              // window stays open; dirty tabs remain
+            }
           } else {
             // No named tabs to save — Save button labelled "Discard &
             // Close" so confirm = discard.
@@ -789,12 +807,43 @@ export const useEditorStore = defineStore('editor', {
       }
     },
 
-    CLOSE_UNSAVED_TAB(file) {
+    async CLOSE_UNSAVED_TAB(file) {
+      // F-LIFECYCLE-WIRE (B4-pre-alpha-step-3): renderer-driven confirm
+      // dialog before discarding/saving an unsaved tab on Cmd+W. v1.2.3
+      // would silently save+close which surprised the 2026-05-08 smoke
+      // user ("ничего не появляется"). Three outcomes mirror the
+      // window-close dialog in LISTEN_FOR_CLOSE.
       const { id, pathname, filename, markdown } = file
       const options = getOptionsFromState(file)
-      window.electron.ipcRenderer.send('mt::save-and-close-tabs', [
-        { id, pathname, filename, markdown, options: deepClone(options) }
-      ])
+      const named = !!pathname
+      const message = named
+        ? `"${filename}" has unsaved changes. Save before closing the tab?`
+        : `"${filename}" is unsaved and untitled — closing the tab will discard it.`
+      try {
+        await ElMessageBox.confirm(message, 'Unsaved changes', {
+          confirmButtonText: named ? 'Save & Close' : 'Discard & Close',
+          cancelButtonText: "Don't Save",
+          type: 'warning',
+          distinguishCancelAndClose: true,
+          closeOnClickModal: false,
+          closeOnPressEscape: true
+        })
+        // Confirm
+        if (named) {
+          window.electron.ipcRenderer.send('mt::save-and-close-tabs', [
+            { id, pathname, filename, markdown, options: deepClone(options) }
+          ])
+        } else {
+          // No path → can't save; treat confirm as Discard
+          this.FORCE_CLOSE_TAB(file)
+        }
+      } catch (action) {
+        if (action === 'cancel') {
+          // "Don't Save" → discard tab
+          this.FORCE_CLOSE_TAB(file)
+        }
+        // 'close' (X) or 'pressEscape' → keep tab open
+      }
     },
 
     CLOSE_OTHER_TABS(file) {
