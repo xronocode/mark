@@ -375,6 +375,8 @@ jobs:
             /tmp/release/*.bundle
             /tmp/release/Mark_*_sbom-*.cdx.json
             /tmp/release/NOTICES-*.md
+            /tmp/release/Mark_*.app.tar.gz
+            /tmp/release/latest.json
           if-no-files-found: error
           retention-days: 30
 
@@ -438,8 +440,9 @@ jobs:
           dependency closures. NOTICES-{node,rust}.md attribution lists
           shipped alongside.
 
-          **Updater:** F-UPDATER-WIRE-PLUGIN ed25519-signed feed lands in a follow-up
-          patch release. Until then, upgrade via:
+          **Updater:** ed25519-signed feed (\`latest.json\` + \`Mark_${VER}_aarch64.app.tar.gz\`) shipped.
+          tauri-plugin-updater verifies against the embedded pubkey before applying. To upgrade
+          outside the in-app updater:
           \`\`\`
           brew upgrade --cask mark
           \`\`\`
