@@ -1,43 +1,44 @@
 import { isOsx } from '@/util'
+import { invoke } from '@tauri-apps/api/core'
 
 /**
- * High level spell checker API based on Chromium built-in spell checker.
+ * High level spell checker API. Path B-clean W8: backend Rust commands
+ * (m007_spell.rs::mt_spell_set_enabled / mt_spell_set_lang) are
+ * called via direct @tauri-apps/api/core invoke; the v1 Electron
+ * spellChecker IPC compat layer has been removed.
+ *
+ * On macOS the OS-level NSSpellChecker handles language detection;
+ * the Rust side just persists the enable flag. On Linux/Windows the
+ * full Hunspell flow is deferred per F-SPELL-HUNSPELL-EMBED — the
+ * dictionary-listing + word-removal commands below are NEW backend
+ * surfaces that don't yet exist, so calls degrade to empty defaults.
  */
 export class SpellChecker {
   /**
-   * ctor
-   *
    * @param {boolean} enabled Whether spell checking is enabled in settings.
+   * @param {string} lang Initial language code.
    */
   constructor(enabled = true, lang) {
     this.enabled = enabled
     this.currentSpellcheckerLanguage = lang
-
-    // Helper to forbid the usage of the spell checker (e.g. failed to create native spell checker),
-    // even if spell checker is enabled in settings.
     this.isProviderAvailable = true
   }
 
-  /**
-   * Whether the spell checker is available and enabled.
-   */
   get isEnabled() {
     return this.isProviderAvailable && this.enabled
   }
 
   /**
-   * Enable the spell checker and sets `lang` or tries to find a fallback.
-   *
-   * @param {string} lang The language to set.
-   * @returns {Promise<boolean>}
+   * Enable the spell checker and set `lang` (or detect on macOS).
+   * Returns a boolean indicating success.
    */
   async activateSpellchecker(lang) {
     try {
       this.enabled = true
       this.isProviderAvailable = true
       if (isOsx) {
-        // No language string needed on macOS.
-        return await window.electron.ipcRenderer.invoke('mt::spellchecker-set-enabled', true)
+        await invoke('mt_spell_set_enabled', { enabled: true })
+        return true
       }
       return await this.switchLanguage(lang || this.currentSpellcheckerLanguage)
     } catch (error) {
@@ -46,23 +47,16 @@ export class SpellChecker {
     }
   }
 
-  /**
-   * Disables the native spell checker.
-   */
   deactivateSpellchecker() {
     this.enabled = false
     this.isProviderAvailable = false
-    window.electron.ipcRenderer.invoke('mt::spellchecker-set-enabled', false)
+    invoke('mt_spell_set_enabled', { enabled: false }).catch((e) => {
+      console.warn('[spellchecker] deactivate invoke failed', e)
+    })
   }
 
-  /**
-   * Return the current language.
-   */
   get lang() {
-    if (this.isEnabled) {
-      return this.currentSpellcheckerLanguage
-    }
-    return ''
+    return this.isEnabled ? this.currentSpellcheckerLanguage : ''
   }
 
   set lang(lang) {
@@ -70,21 +64,16 @@ export class SpellChecker {
   }
 
   /**
-   * Explicitly switch the language to a specific language.
-   *
-   * NOTE: This function can throw an exception.
-   *
-   * @param {string} lang The language code
-   * @returns {Promise<boolean>} Return the language on success or null.
+   * Switch language. macOS auto-detects; Linux/Windows fail without
+   * F-SPELL-HUNSPELL-EMBED. NOTE: can throw.
    */
   async switchLanguage(lang) {
     if (isOsx) {
-      // NB: On macOS the OS spell checker is used and will detect the language automatically.
       return true
     } else if (!lang) {
       throw new Error('Expected non-empty language for spell checker.')
     } else if (this.isEnabled) {
-      await window.electron.ipcRenderer.invoke('mt::spellchecker-switch-language', lang)
+      await invoke('mt_spell_set_lang', { lang })
       this.lang = lang
       return true
     }
@@ -92,14 +81,19 @@ export class SpellChecker {
   }
 
   /**
-   * Returns a list of available dictionaries.
-   * @returns {Promise<string[]>} Available dictionary languages.
+   * Returns available dictionaries. macOS returns empty (OS handles).
+   * Linux/Windows: deferred to F-SPELL-HUNSPELL-EMBED — currently
+   * empty array as well.
    */
   static async getAvailableDictionaries() {
     if (isOsx) {
-      // NB: On macOS the OS spell checker is used and will detect the language automatically.
       return []
     }
-    return window.electron.ipcRenderer.invoke('mt::spellchecker-get-available-dictionaries')
+    try {
+      return await invoke('mt_spell_get_available_dictionaries')
+    } catch (e) {
+      console.warn('[spellchecker] available dicts not yet implemented (F-SPELL-HUNSPELL-EMBED)', e)
+      return []
+    }
   }
 }

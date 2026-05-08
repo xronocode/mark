@@ -76,6 +76,7 @@ import log from 'electron-log'
 import { usePreferencesStore } from '@/store/preferences'
 import { ref, onMounted } from 'vue'
 import { storeToRefs } from 'pinia'
+import { invoke } from '@tauri-apps/api/core'
 import Compound from '../common/compound'
 import CurSelect from '../common/select'
 import Bool from '../common/bool'
@@ -103,13 +104,17 @@ onMounted(async () => {
 
   availableDictionaries.value = await getAvailableDictionaries()
 
-  window.electron.ipcRenderer
-    .invoke('mt::spellchecker-get-custom-dictionary-words')
-    .then((words) => {
-      wordsInCustomDictionary.value = words.map((word) => {
-        return { word }
-      })
-    })
+  // Path B-clean W8: custom dictionary backend not yet implemented
+  // (F-SPELL-HUNSPELL-EMBED). Keep call gated behind try/catch so a
+  // missing command logs a warning instead of throwing.
+  try {
+    const words = await invoke('mt_spell_get_custom_dictionary_words')
+    if (Array.isArray(words)) {
+      wordsInCustomDictionary.value = words.map((word) => ({ word }))
+    }
+  } catch (e) {
+    console.warn('[spellchecker] custom-dictionary words not yet implemented (F-SPELL-HUNSPELL-EMBED)', e)
+  }
 })
 
 const getAvailableDictionaries = async () => {
@@ -125,8 +130,11 @@ const getAvailableDictionaries = async () => {
 
 const handleSpellcheckerLanguage = async (languageCode) => {
   onSelectChange('spellcheckerLanguage', languageCode)
-
-  await window.electron.ipcRenderer.invoke('mt::spellchecker-switch-language', languageCode)
+  try {
+    await invoke('mt_spell_set_lang', { lang: languageCode })
+  } catch (e) {
+    console.warn('[spellchecker] set-lang failed', e)
+  }
 }
 
 const handleSpellcheckerEnabled = (isEnabled) => {
@@ -139,8 +147,7 @@ const onSelectChange = (type, value) => {
 
 const handleDeleteClick = (selectedItem) => {
   if (selectedItem && typeof selectedItem.word === 'string') {
-    window.electron.ipcRenderer
-      .invoke('mt::spellchecker-remove-word', selectedItem.word)
+    invoke('mt_spell_remove_word', { word: selectedItem.word })
       .then((success) => {
         if (success) {
           wordsInCustomDictionary.value = wordsInCustomDictionary.value.filter(
