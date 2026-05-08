@@ -24,10 +24,16 @@ export const useMainStore = defineStore('main', {
       this.init = true
     },
 
+    /**
+     * Path B-clean W1: cross-window focus/blur listener moved to
+     * src/renderer/src/bootstrap-ipc.js (registered ONCE at boot).
+     * This action is kept as a no-op alias for app.vue's existing
+     * `mainStore.LISTEN_WIN_STATUS()` call so the diff stays small.
+     * Will be deleted in W4 wave when app.vue's onMounted IPC list is
+     * cleaned up.
+     */
     LISTEN_WIN_STATUS() {
-      window.electron.ipcRenderer.on('mt::window-active-status', (e, { status }) => {
-        this.windowActive = status
-      })
+      // no-op; see bootstrap-ipc.js
     }
   }
 })

@@ -28,7 +28,7 @@ use std::fs;
 use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
-use tauri::State;
+use tauri::{Emitter, Manager, State};
 
 const PREFS_FILENAME: &str = "preferences.json";
 /// Special pref key that mirrors SecurityCtx.sandbox(). Renderer reads
@@ -249,14 +249,31 @@ pub async fn mt_prefs_get(key: String, prefs: State<'_, PrefsState>) -> Result<V
 }
 
 /// Write a single pref. Persists synchronously to disk (atomic via
-/// .tmp + rename).
+/// .tmp + rename) AND broadcasts the new full snapshot to every
+/// open window via `mt::user-preference` so cross-window state stays
+/// in sync (e.g. theme picked in Settings reflects in editor).
+///
+/// Path B-clean W1: this is the canonical pref-set surface — replaces
+/// the legacy `mt_set_user_preference` in m_v1_compat.rs which is
+/// retired during W4 disassembly.
 #[tauri::command]
 pub async fn mt_prefs_set(
     key: String,
     value: Value,
+    app: tauri::AppHandle,
     prefs: State<'_, PrefsState>,
 ) -> Result<(), String> {
-    prefs.set(key, value).map_err(|e| e.to_string())
+    prefs.set(key.clone(), value).map_err(|e| e.to_string())?;
+    let snapshot = prefs.all();
+    // Broadcast to all webviews so cross-window listeners (registered
+    // once at boot in src/renderer/src/bootstrap-ipc.js) update their
+    // store state.
+    let _ = app.emit("mt::user-preference", &Value::Object(snapshot));
+    eprintln!(
+        "[Prefs][broadcast][BLOCK_FANOUT count={} key={key}]",
+        app.webview_windows().len()
+    );
+    Ok(())
 }
 
 /// Snapshot all prefs as an object. Useful for renderer bootstrap.

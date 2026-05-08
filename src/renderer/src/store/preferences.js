@@ -131,17 +131,28 @@ export const usePreferencesStore = defineStore('preferences', {
     TOGGLE_VIEW_MODE(entryName) {
       this[entryName] = !this[entryName]
     },
-    ASK_FOR_USER_PREFERENCE() {
-      window.electron.ipcRenderer.send('mt::ask-for-user-preference')
-      window.electron.ipcRenderer.send('mt::ask-for-user-data')
-
-      window.electron.ipcRenderer.on('mt::user-preference', (e, preferences) => {
-        this.SET_USER_PREFERENCE(preferences)
-      })
+    /**
+     * Path B-clean W1: pull initial prefs via direct invoke, no
+     * listener race. The cross-window broadcast listener for
+     * mt::user-preference is registered ONCE at boot in bootstrap-ipc.js
+     * — it stays warm for the app's lifetime and catches all SET_* from
+     * other windows.
+     */
+    async ASK_FOR_USER_PREFERENCE() {
+      try {
+        const { invoke } = await import('@tauri-apps/api/core')
+        const prefs = await invoke('mt_prefs_get_all')
+        if (prefs && typeof prefs === 'object') {
+          this.SET_USER_PREFERENCE(prefs)
+        }
+        console.log('[ipc][prefs_get_all][BLOCK_INVOKE_OK]')
+      } catch (e) {
+        console.error('[ipc][prefs_get_all][BLOCK_INVOKE_FAILED]', e)
+      }
     },
 
-    SET_SINGLE_PREFERENCE({ type, value }) {
-      // Update local state
+    async SET_SINGLE_PREFERENCE({ type, value }) {
+      // Update local state immediately for responsive UI
       this[type] = value
 
       // Update i18n language if language preference changed
@@ -149,20 +160,38 @@ export const usePreferencesStore = defineStore('preferences', {
         setLanguage(value)
       }
 
-      // save to electron-store
-      window.electron.ipcRenderer.send('mt::set-user-preference', { [type]: value })
+      // Persist + broadcast via backend. Backend persists to prefs.json
+      // and emits mt::user-preference to all windows; the boot-time
+      // listener in bootstrap-ipc.js folds the broadcast into store
+      // state for OTHER windows.
+      try {
+        const { invoke } = await import('@tauri-apps/api/core')
+        await invoke('mt_prefs_set', { key: type, value })
+        console.log(`[ipc][prefs_set][BLOCK_INVOKE_OK key=${type}]`)
+      } catch (e) {
+        console.error(`[ipc][prefs_set][BLOCK_INVOKE_FAILED key=${type}]`, e)
+      }
     },
 
-    SET_USER_DATA({ type, value }) {
-      window.electron.ipcRenderer.send('mt::set-user-data', { [type]: value })
+    async SET_USER_DATA({ type, value }) {
+      try {
+        const { invoke } = await import('@tauri-apps/api/core')
+        await invoke('mt_prefs_set', { key: type, value })
+      } catch (e) {
+        console.error(`[ipc][prefs_set][BLOCK_INVOKE_FAILED user_data key=${type}]`, e)
+      }
     },
 
     SET_IMAGE_FOLDER_PATH(value) {
-      window.electron.ipcRenderer.send('mt::ask-for-modify-image-folder-path', value)
+      // Deferred — F-PREFS-IMAGE-DIALOG. For now, just persist the
+      // path verbatim if user typed it manually.
+      this.SET_SINGLE_PREFERENCE({ type: 'imageFolderPath', value })
     },
 
     SELECT_DEFAULT_DIRECTORY_TO_OPEN() {
-      window.electron.ipcRenderer.send('mt::select-default-directory-to-open')
+      // Deferred — F-PREFS-DIR-PICKER. No-op until directory picker
+      // wired through tauri-plugin-dialog.
+      console.warn('[prefs] SELECT_DEFAULT_DIRECTORY_TO_OPEN: not yet implemented in Tauri port')
     },
 
     LISTEN_FOR_VIEW() {

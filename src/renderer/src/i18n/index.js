@@ -73,17 +73,11 @@ export const getCurrentLanguage = () => i18n.global.locale.value
 export { i18n }
 export default i18n
 
-// 监听语言变化
-if (window.electron && window.electron.ipcRenderer) {
-  window.electron.ipcRenderer.on('language-changed', (event, newLocale) => {
-    setLanguage(newLocale)
-    bus.emit('language-changed', newLocale)
-  })
-
-  // 启动时请求当前语言设置
-  window.electron.ipcRenderer.send('mt::get-current-language')
-  window.electron.ipcRenderer.on('mt::current-language', (event, language) => {
-    setLanguage(language)
-    bus.emit('language-changed', language)
-  })
-}
+// Path B-clean W1: cross-window language broadcasts (`language-changed` +
+// `mt::current-language`) are registered ONCE at boot in
+// src/renderer/src/bootstrap-ipc.js — no more per-import side-effect
+// listeners which raced with backend emit. Initial language is pulled
+// from prefs.json synchronously by the URL-param injection in
+// _shims/install-window-globals.js (theme + language both ride that path).
+// On boot, App.vue → preferencesStore.SET_USER_PREFERENCE applies the
+// language from initialState before any user interaction.
