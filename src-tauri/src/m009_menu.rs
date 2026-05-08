@@ -396,11 +396,14 @@ pub fn build_native_menu<R: tauri::Runtime>(
             .hide_others()
             .show_all()
             .separator()
-            .item(
-                &MenuItemBuilder::with_id("file.quit", "Quit Mark")
-                    .accelerator("Cmd+Q")
-                    .build(handle)?,
-            )
+            // Path B-clean W4: use Tauri's predefined `.quit()` so macOS
+            // Cmd+Q routes through NSApp's standard responder chain
+            // instead of needing our menu accelerator. Custom id was
+            // ignored by macOS (Cmd+Q is system-reserved without a
+            // predefined Quit menu item). Each window's CloseRequested
+            // still fires before NSApp terminate, so the dirty-tab
+            // dialog in m001_save_close.wire_close_handler runs.
+            .quit()
             .build()?;
         top = top.item(&app_submenu);
     }

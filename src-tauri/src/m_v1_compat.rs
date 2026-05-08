@@ -158,6 +158,20 @@ pub async fn mt_pick_folder(app: tauri::AppHandle) -> Result<Option<String>, Str
     Ok(Some(path))
 }
 
+/// Path B-clean W4: file.quit menu command target. Renderer's
+/// `commands/index.js` "file.quit" entry now invokes this. Pre-W4
+/// `mt::app-try-quit` was a dead-end send (no backend listener) so
+/// File→Quit / Cmd+Q via menu was a no-op visually. Lifecycle hooks
+/// in `m001_save_close::wire_close_handler` still run because Tauri
+/// fires `WindowEvent::CloseRequested` for every window before
+/// `app.exit()` returns.
+#[tauri::command]
+pub async fn mt_app_quit(app: tauri::AppHandle) -> Result<(), String> {
+    eprintln!("[m_app][quit][BLOCK_REQUESTED]");
+    app.exit(0);
+    Ok(())
+}
+
 /// W3 stub for `mt::close-project-root`. Currently a no-op:
 /// open_folder doesn't yet subscribe a notify-rs watcher, so there's
 /// nothing to unsubscribe. When file-watch-on-open lands (future

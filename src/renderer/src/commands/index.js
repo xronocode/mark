@@ -90,9 +90,13 @@ const commands = [
     }
   },
   {
+    // Path B-clean W4: direct Window API. Lifecycle handler in
+    // m001_save_close intercepts CloseRequested for the dirty-tab
+    // dialog before destroy.
     id: 'file.close-window',
     execute: async () => {
-      window.electron.ipcRenderer.send('mt::cmd-close-window')
+      const { getCurrentWindow } = await import('@tauri-apps/api/window')
+      await getCurrentWindow().close()
     }
   },
 
@@ -425,22 +429,33 @@ const commands = [
   // --------------------------------------------------------------------------
   // Window
 
+  // Path B-clean W4: window-management commands call
+  // @tauri-apps/api/window directly — no backend wrapper required.
+  // Single source of truth (Tauri Window API) for state queries +
+  // mutations. Eliminates 3 dead-end ipcRenderer.send calls.
   {
     id: 'window.minimize',
     execute: async () => {
-      window.electron.ipcRenderer.send('mt::window-minimize')
+      const { getCurrentWindow } = await import('@tauri-apps/api/window')
+      await getCurrentWindow().minimize()
     }
   },
   {
     id: 'window.toggle-always-on-top',
     execute: async () => {
-      window.electron.ipcRenderer.send('mt::window-toggle-always-on-top')
+      const { getCurrentWindow } = await import('@tauri-apps/api/window')
+      const win = getCurrentWindow()
+      const current = await win.isAlwaysOnTop()
+      await win.setAlwaysOnTop(!current)
     }
   },
   {
     id: 'window.toggle-full-screen',
     execute: async () => {
-      window.electron.ipcRenderer.send('mt::window-fullscreen-toggle')
+      const { getCurrentWindow } = await import('@tauri-apps/api/window')
+      const win = getCurrentWindow()
+      const current = await win.isFullscreen()
+      await win.setFullscreen(!current)
     }
   },
 
@@ -619,9 +634,16 @@ const commands = [
     }
   },
   {
+    // Path B-clean W4: file.quit was a dead-end send (no backend
+    // listener for mt::app-try-quit). Now invokes mt_app_quit which
+    // calls app.exit(0). The wired close-handler in
+    // m001_save_close.wire_close_handler still fires CloseRequested
+    // for every window first, so the dirty-tab dialog runs as
+    // expected.
     id: 'file.quit',
     execute: async () => {
-      window.electron.ipcRenderer.send('mt::app-try-quit')
+      const { invoke } = await import('@tauri-apps/api/core')
+      await invoke('mt_app_quit')
     }
   },
   {

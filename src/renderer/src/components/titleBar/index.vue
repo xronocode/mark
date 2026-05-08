@@ -212,18 +212,24 @@ const windowIconRestore = restorePath
 const windowIconMaximize = maximizePath
 const windowIconClose = closePath
 
-// step-8f: initial state previously read synchronously via
-// getCurrentWindow().isFullScreen()/isMaximized(). Now seeded via
-// mt::window-state invoke. Defaults to false during the brief async
-// gap; subsequent maximize/fullscreen events from main update reactively.
+// Path B-clean W4: direct Tauri Window API replaces the v1
+// mt::window-state IPC roundtrip. No backend command needed —
+// is_fullscreen() and is_maximized() are sync-ish promise calls
+// that resolve from the OS. Subsequent state changes are tracked
+// via tauri://resize event (fires on max/unmax/fullscreen).
 const isFullScreen = ref(false)
 const isMaximized = ref(false)
-window.electron.ipcRenderer.invoke('mt::window-state').then((state) => {
-  if (state) {
-    isFullScreen.value = !!state.isFullScreen
-    isMaximized.value = !!state.isMaximized
+const refreshWindowState = async () => {
+  try {
+    const { getCurrentWindow } = await import('@tauri-apps/api/window')
+    const win = getCurrentWindow()
+    isFullScreen.value = await win.isFullscreen()
+    isMaximized.value = await win.isMaximized()
+  } catch (e) {
+    console.warn('[titleBar][refreshWindowState] failed', e)
   }
-})
+}
+refreshWindowState()
 const show = ref('word')
 
 const { titleBarStyle } = storeToRefs(preferencesStore)
@@ -353,17 +359,28 @@ const handleWordClick = () => {
   show.value = ITEMS[index]
 }
 
-// step-8f: window-control handlers now use mt::* IPCs.
-// mt::window-maximize-toggle replicates the original 3-state machine
-// (fullscreen→exit-fs, maximized→unmaximize, otherwise→maximize)
-// inside main process, eliminating the need for renderer-side state
-// queries.
-const handleCloseClick = () => {
-  window.electron.ipcRenderer.send('mt::close-window')
+// Path B-clean W4: window controls call @tauri-apps/api/window
+// directly. The 3-state machine for maximize-toggle (fullscreen →
+// exit; maximized → unmaximize; else → maximize) lives renderer-side
+// now since Tauri's Window API exposes the state queries cheaply.
+const handleCloseClick = async () => {
+  // Lifecycle hook in m001_save_close.wire_close_handler will
+  // intercept WindowEvent::CloseRequested and run the dirty-tab
+  // dialog before destroy.
+  const { getCurrentWindow } = await import('@tauri-apps/api/window')
+  await getCurrentWindow().close()
 }
 
-const handleMaximizeClick = () => {
-  window.electron.ipcRenderer.send('mt::window-maximize-toggle')
+const handleMaximizeClick = async () => {
+  const { getCurrentWindow } = await import('@tauri-apps/api/window')
+  const win = getCurrentWindow()
+  if (await win.isFullscreen()) {
+    await win.setFullscreen(false)
+  } else if (await win.isMaximized()) {
+    await win.unmaximize()
+  } else {
+    await win.maximize()
+  }
 }
 
 const toggleMaxmizeOnMacOS = () => {
@@ -372,15 +389,20 @@ const toggleMaxmizeOnMacOS = () => {
   }
 }
 
-const handleMinimizeClick = () => {
-  window.electron.ipcRenderer.send('mt::window-minimize')
+const handleMinimizeClick = async () => {
+  const { getCurrentWindow } = await import('@tauri-apps/api/window')
+  await getCurrentWindow().minimize()
 }
 
 const handleMenuClick = () => {
-  // step-8g: native popup via mt::window-popup-app-menu IPC.
-  // Coordinates are relative to the calling window's content area;
-  // main resolves the BrowserWindow via fromWebContents(e.sender).
-  window.electron.ipcRenderer.send('mt::window-popup-app-menu', { x: 23, y: 20 })
+  // Custom titlebar's hamburger menu is only used on Windows/Linux
+  // when titleBarStyle === 'custom' AND !isOsx (see template guard).
+  // Tauri 2 menu popup needs a Menu instance + window.popup_at(); the
+  // renderer doesn't have direct access to the native menu Menu<R>
+  // built in m009_menu.rs. Defer to W6 via a new
+  // mt_window_popup_app_menu invoke that takes (x, y). For alpha,
+  // log warning so behaviour is observable, no crash.
+  console.warn('[titleBar] custom-titlebar menu popup deferred to W6 (mt_window_popup_app_menu)')
 }
 
 const rename = () => {
@@ -389,29 +411,29 @@ const rename = () => {
   }
 }
 
-const onMaximize = () => {
-  isMaximized.value = true
-}
-const onUnmaximize = () => {
-  isMaximized.value = false
-}
-const onEnterFullScreen = () => {
-  isFullScreen.value = true
-}
-const onLeaveFullScreen = () => {
-  isFullScreen.value = false
-}
-
-window.electron.ipcRenderer.on('mt::window-maximize', onMaximize)
-window.electron.ipcRenderer.on('mt::window-unmaximize', onUnmaximize)
-window.electron.ipcRenderer.on('mt::window-enter-full-screen', onEnterFullScreen)
-window.electron.ipcRenderer.on('mt::window-leave-full-screen', onLeaveFullScreen)
+// Path B-clean W4: Tauri 2 doesn't expose discrete max/unmax/fullscreen
+// events the way Electron did. Instead, every window state change
+// (maximize/unmaximize/enter-fs/leave-fs) triggers a `tauri://resize`
+// event since the inner-size changes. We listen to resize and re-query
+// is_fullscreen + is_maximized — single source of truth, no event-bridge
+// needed in Rust.
+let resizeUnlisten = null
+;(async () => {
+  try {
+    const { getCurrentWindow } = await import('@tauri-apps/api/window')
+    resizeUnlisten = await getCurrentWindow().onResized(() => {
+      refreshWindowState()
+    })
+  } catch (e) {
+    console.warn('[titleBar] onResized listener registration failed', e)
+  }
+})()
 
 onBeforeUnmount(() => {
-  window.electron.ipcRenderer.removeListener('mt::window-maximize', onMaximize)
-  window.electron.ipcRenderer.removeListener('mt::window-unmaximize', onUnmaximize)
-  window.electron.ipcRenderer.removeListener('mt::window-enter-full-screen', onEnterFullScreen)
-  window.electron.ipcRenderer.removeListener('mt::window-leave-full-screen', onLeaveFullScreen)
+  if (typeof resizeUnlisten === 'function') {
+    resizeUnlisten()
+    resizeUnlisten = null
+  }
 })
 </script>
 
