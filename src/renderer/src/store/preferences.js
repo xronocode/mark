@@ -194,14 +194,14 @@ export const usePreferencesStore = defineStore('preferences', {
       console.warn('[prefs] SELECT_DEFAULT_DIRECTORY_TO_OPEN: not yet implemented in Tauri port')
     },
 
+    /**
+     * Path B-clean review M-7: cross-window listeners moved to
+     * bootstrap-ipc.js (registered ONCE at boot). This action stays
+     * as a no-op so app.vue's onMounted call doesn't break;
+     * deletion comes in W6 cleanup wave.
+     */
     LISTEN_FOR_VIEW() {
-      window.electron.ipcRenderer.on('mt::show-command-palette', () => {
-        bus.emit('show-command-palette')
-      })
-      window.electron.ipcRenderer.on('mt::toggle-view-mode-entry', (event, entryName) => {
-        this.TOGGLE_VIEW_MODE(entryName)
-        this.DISPATCH_EDITOR_VIEW_STATE({ [entryName]: this[entryName] })
-      })
+      // no-op; see bootstrap-ipc.js
     },
 
     // Toggle a view option and notify main process to toggle menu item.

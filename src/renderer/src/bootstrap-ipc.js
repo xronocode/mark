@@ -99,5 +99,20 @@ export const setupIpcListeners = async () => {
     }
   })
 
+  // Path B-clean review M-7: command-palette + view-mode-entry
+  // listeners (formerly preferences.js LISTEN_FOR_VIEW). Boot-time
+  // registration eliminates the listener-race the W1 wave already
+  // closed for prefs broadcasts.
+  await listen('mt::show-command-palette', () => {
+    bus.emit('show-command-palette')
+  })
+  await listen('mt::toggle-view-mode-entry', (event) => {
+    const entryName = event?.payload
+    if (typeof entryName === 'string' && entryName) {
+      prefs.TOGGLE_VIEW_MODE(entryName)
+      prefs.DISPATCH_EDITOR_VIEW_STATE({ [entryName]: prefs[entryName] })
+    }
+  })
+
   console.log('[boot][ipc][BLOCK_ALL_LISTENERS_REGISTERED]')
 }

@@ -7,6 +7,7 @@ import { delay, isOsx } from '@/util'
 import { isUpdatable } from './utils'
 import getCommandDescriptionById from './descriptions'
 import { t } from '../i18n'
+import { usePreferencesStore } from '../store/preferences'
 
 export { default as FileEncodingCommand } from './fileEncoding'
 export { default as LineEndingCommand } from './lineEnding'
@@ -567,7 +568,11 @@ const commands = [
       }
     ],
     executeSubcommand: async (_, theme) => {
-      window.electron.ipcRenderer.send('mt::set-user-preference', { theme })
+      // Path B-clean review M-3: route through canonical W1 path
+      // (preferenceStore → mt_prefs_set → broadcast). Local state
+      // updates immediately so the theme switch shows without
+      // round-trip latency, plus broadcast hits other windows.
+      usePreferencesStore().SET_SINGLE_PREFERENCE({ type: 'theme', value: theme })
     }
   },
 
@@ -620,7 +625,8 @@ const commands = [
       }
     ],
     executeSubcommand: async (_, value) => {
-      window.electron.ipcRenderer.send('mt::set-user-preference', { textDirection: value })
+      // Path B-clean review M-3: same canonical path as theme switch.
+      usePreferencesStore().SET_SINGLE_PREFERENCE({ type: 'textDirection', value })
     }
   },
 
