@@ -73,10 +73,15 @@ export const useProjectStore = defineStore('project', {
   }),
 
   actions: {
+    /**
+     * Path B-clean W3: this listener was needed because v1 Electron
+     * main emitted mt::open-directory after the picker. Tauri W3 makes
+     * mt_pick_folder return the path directly, so ASK_FOR_OPEN_PROJECT
+     * calls ADD_PROJECT itself. Kept as no-op for app.vue's existing
+     * onMounted invocation; deleted in W6 cleanup wave.
+     */
     LISTEN_FOR_LOAD_PROJECT() {
-      window.electron.ipcRenderer.on('mt::open-directory', (e, pathname) => {
-        this.ADD_PROJECT(pathname)
-      })
+      // no-op
     },
 
     // Append a root tree for the given pathname unless it's already present
@@ -93,6 +98,14 @@ export const useProjectStore = defineStore('project', {
       if (this.projectTrees.some((r) => r.pathname === canonical)) {
         // eslint-disable-next-line no-console
         console.debug(`[ProjectStore][ADD_PROJECT][BLOCK_DEDUP] path=${canonical}`)
+        // W3: surface to user instead of silent log; without this,
+        // re-clicking Open Folder of an already-open root looked
+        // identical to "picker dismissed" — impossible to tell apart.
+        notice.notify({
+          title: 'Folder already open',
+          type: 'info',
+          message: `"${canonical}" is already loaded in the sidebar.`
+        })
         return
       }
       // Refuse nested inside an existing root (parent direction).
@@ -154,10 +167,14 @@ export const useProjectStore = defineStore('project', {
       }
     },
 
+    /**
+     * Path B-clean W3: tree-update listener moved to bootstrap-ipc.js
+     * (registered ONCE at boot). This action stays as a no-op alias
+     * so app.vue's onMounted call doesn't break; deletion comes in W6
+     * cleanup wave.
+     */
     LISTEN_FOR_UPDATE_PROJECT() {
-      window.electron.ipcRenderer.on('mt::update-object-tree', (e, { type, change }) => {
-        this._processTreeEvent(type, change)
-      })
+      // no-op
     },
 
     _processTreeEvent(type, change) {
@@ -220,17 +237,35 @@ export const useProjectStore = defineStore('project', {
       this.clipboard = data
     },
 
-    // Open Folder dialog → main process resolves user pick → emits
-    // mt::open-directory back to renderer (handled by LISTEN_FOR_LOAD_PROJECT).
-    // We don't append synchronously here because main owns the canonical path
-    // (resolves symlinks etc.) and the watcher subscription.
-    ASK_FOR_OPEN_PROJECT() {
-      window.electron.ipcRenderer.send('mt::ask-for-open-project-in-sidebar')
+    /**
+     * Path B-clean W3: pick folder via direct invoke. Backend opens
+     * native picker and returns Option<String>; on Some we add the
+     * project. On None (user cancelled) silent no-op.
+     */
+    async ASK_FOR_OPEN_PROJECT() {
+      try {
+        const { invoke } = await import('@tauri-apps/api/core')
+        const path = await invoke('mt_pick_folder')
+        if (path) {
+          this.ADD_PROJECT(path)
+        }
+        console.log(`[ipc][pick_folder][BLOCK_INVOKE_OK chosen=${!!path}]`)
+      } catch (e) {
+        console.error('[ipc][pick_folder][BLOCK_INVOKE_FAILED]', e)
+        notice.notify({
+          title: 'Open Folder failed',
+          type: 'error',
+          message: String(e)
+        })
+      }
     },
 
-    // Synchronously remove a root + tell main to unwatch + drop pending bucket.
-    // Idempotent: closing an unknown path is a no-op with a NOOP_NOT_FOUND marker.
-    CLOSE_PROJECT(rootPathname) {
+    /**
+     * Synchronously remove a root + tell main to unwatch (no-op stub
+     * until F-WATCH-WIRE-PROJECT) + drop pending bucket. Idempotent:
+     * closing an unknown path is a no-op with a NOOP_NOT_FOUND marker.
+     */
+    async CLOSE_PROJECT(rootPathname) {
       const canonical = canonicalizePath(rootPathname)
       const idx = this.projectTrees.findIndex((r) => r.pathname === canonical)
       if (idx < 0) {
@@ -242,7 +277,13 @@ export const useProjectStore = defineStore('project', {
       delete this.pendingTreeEvents[canonical]
       // eslint-disable-next-line no-console
       console.debug(`[ProjectStore][CLOSE_PROJECT][REMOVE] path=${canonical} remaining=${this.projectTrees.length}`)
-      window.electron.ipcRenderer.send('mt::close-project-root', canonical)
+      try {
+        const { invoke } = await import('@tauri-apps/api/core')
+        await invoke('mt_close_project_root', { pathname: canonical })
+      } catch (e) {
+        console.error('[ipc][close_project_root][BLOCK_INVOKE_FAILED]', e)
+        // local state already removed; backend cleanup is best-effort
+      }
     },
 
     LISTEN_FOR_SIDEBAR_CONTEXT_MENU() {
@@ -341,8 +382,13 @@ export const useProjectStore = defineStore('project', {
       })
     },
 
-    OPEN_SETTING_WINDOW() {
-      window.electron.ipcRenderer.send('mt::open-setting-window')
+    async OPEN_SETTING_WINDOW() {
+      try {
+        const { invoke } = await import('@tauri-apps/api/core')
+        await invoke('mt_open_setting_window')
+      } catch (e) {
+        console.error('[ipc][open_setting_window][BLOCK_INVOKE_FAILED]', e)
+      }
     }
   },
 

@@ -87,5 +87,17 @@ export const setupIpcListeners = async () => {
     }
   })
 
+  // Path B-clean W3: tree-walk events from open-folder backend.
+  // Streamed during recursive walk; renderer's ProjectStore folds
+  // each into the sidebar tree via _processTreeEvent.
+  const { useProjectStore } = await import('./store/project')
+  const projectStore = useProjectStore()
+  await listen('mt::update-object-tree', (event) => {
+    const payload = event?.payload
+    if (payload && typeof payload === 'object' && payload.type) {
+      projectStore._processTreeEvent(payload.type, payload.change)
+    }
+  })
+
   console.log('[boot][ipc][BLOCK_ALL_LISTENERS_REGISTERED]')
 }

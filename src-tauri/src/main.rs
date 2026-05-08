@@ -552,6 +552,10 @@ fn main() {
             m_v1_compat::mt_update_sidebar_menu,
             m_v1_compat::mt_request_window_content_size,
             m_v1_compat::mt_open_setting_window,
+            // Path B-clean W3 — pick_folder returns Option<String>;
+            // close_project_root no-op stub awaiting watcher wiring.
+            m_v1_compat::mt_pick_folder,
+            m_v1_compat::mt_close_project_root,
             // F-LIFECYCLE-WIRE / F-SAVE-FLOW-WIRE (B4-pre-alpha-step-3):
             m001_save_close::mt_response_file_save,
             m001_save_close::mt_response_file_save_as,

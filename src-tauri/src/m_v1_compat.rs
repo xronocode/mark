@@ -114,55 +114,80 @@ pub async fn mt_request_keybindings(
     Ok(())
 }
 
-/// Maps to v1 'mt::cmd-open-folder' and 'mt::ask-for-open-project-in-sidebar'.
-/// Shows a native folder picker; on selection, emits mt::open-directory
-/// with the chosen path. Renderer's project store listens for this and
-/// adds the folder as a project root + watches it.
+/// Path B-clean W3: opens the OS folder picker and RETURNS the chosen
+/// path directly. Renderer awaits the invoke result and calls
+/// project.ADD_PROJECT(path) without going through `mt::open-directory`
+/// event roundtrip — eliminating the listener race.
+///
+/// On success additionally spawns the walk-and-emit thread streaming
+/// `mt::update-object-tree` events for the new root. The streaming
+/// listener is registered ONCE at boot in bootstrap-ipc.js (W1).
+///
+/// User cancel of the dialog returns `Ok(None)` — renderer treats as
+/// no-op.
 #[tauri::command]
-pub async fn mt_cmd_open_folder(window: tauri::Window) -> Result<(), String> {
-    open_folder_internal(window).await
-}
-
-/// Alias of mt_cmd_open_folder. v1.2.3 used a separate channel for the
-/// sidebar's "Open Folder" button vs the File menu; the dialog flow is
-/// identical so we route both through the same impl.
-#[tauri::command]
-pub async fn mt_ask_for_open_project_in_sidebar(window: tauri::Window) -> Result<(), String> {
-    open_folder_internal(window).await
-}
-
-async fn open_folder_internal(window: tauri::Window) -> Result<(), String> {
-    let chosen = rfd::AsyncFileDialog::new()
+pub async fn mt_pick_folder(app: tauri::AppHandle) -> Result<Option<String>, String> {
+    use tauri_plugin_dialog::DialogExt;
+    let (tx, rx) = tokio::sync::oneshot::channel::<Option<tauri_plugin_dialog::FilePath>>();
+    app.dialog()
+        .file()
         .set_title("Open Folder")
-        .pick_folder()
-        .await;
-    let path = match chosen {
-        Some(handle) => handle.path().to_string_lossy().to_string(),
+        .pick_folder(move |result| {
+            let _ = tx.send(result);
+        });
+    let chosen = rx.await.map_err(|e| e.to_string())?;
+    let path = match chosen.and_then(|p| p.into_path().ok()) {
+        Some(p) => p.to_string_lossy().to_string(),
         None => {
-            eprintln!("[v1_compat][open_folder][BLOCK_USER_CANCELLED]");
-            return Ok(());
+            eprintln!("[m_fs_ops][open_folder][BLOCK_USER_CANCELLED]");
+            return Ok(None);
         }
     };
-    eprintln!("[v1_compat][open_folder][BLOCK_PICKED path={path}]");
-    if let Err(e) = window.emit("mt::open-directory", &path) {
-        eprintln!("[v1_compat][open_folder][BLOCK_EMIT_FAILED err={e}]");
-        return Err(e.to_string());
-    }
+    eprintln!("[m_fs_ops][open_folder][BLOCK_PICKED path={path}]");
 
-    // Renderer's project store renders an empty root and waits for
-    // mt::update-object-tree events. Walk the directory and emit one
-    // event per file/folder. Spawn on blocking pool so the dialog
-    // returns immediately and the renderer paints the empty root
-    // before the tree fills in.
+    // Walk the directory off-thread; events arrive via the
+    // mt::update-object-tree listener registered at boot.
     let walk_path = std::path::PathBuf::from(&path);
-    let walk_window = window.clone();
+    let walk_app = app.clone();
     std::thread::spawn(move || {
-        if let Err(e) = walk_and_emit(&walk_path, &walk_window) {
-            eprintln!("[v1_compat][open_folder][BLOCK_WALK_FAILED err={e}]");
+        if let Err(e) = walk_and_emit_app(&walk_path, &walk_app) {
+            eprintln!("[m_fs_ops][open_folder][BLOCK_WALK_FAILED err={e}]");
         }
     });
 
+    Ok(Some(path))
+}
+
+/// W3 stub for `mt::close-project-root`. Currently a no-op:
+/// open_folder doesn't yet subscribe a notify-rs watcher, so there's
+/// nothing to unsubscribe. When file-watch-on-open lands (future
+/// wave; F-WATCH-WIRE-PROJECT), this command will call into
+/// WatchRegistry to remove the watcher attached to `pathname`.
+/// Logging the close lets the renderer-side smoke verify the IPC
+/// reached backend.
+#[tauri::command]
+pub async fn mt_close_project_root(pathname: String) -> Result<(), String> {
+    eprintln!("[m_fs_ops][close_project_root][BLOCK_RECEIVED path={pathname}]");
+    // TODO F-WATCH-WIRE-PROJECT: lookup subscription_id by pathname,
+    // call WatchRegistry::remove(sub_id). Currently no watcher per
+    // root, so this command is just a marker for V-Phase-Bclean-W3.
     Ok(())
+}
+
+/// Legacy v1 channels — kept as thin shims around mt_pick_folder for
+/// the duration of W3 in case any old code path still expects the
+/// emit-event-then-listen pattern. Will be removed in W6 (delete shim).
+/// They simply forward to the new command without emitting.
+#[tauri::command]
+pub async fn mt_cmd_open_folder(app: tauri::AppHandle) -> Result<Option<String>, String> {
+    mt_pick_folder(app).await
+}
+
+#[tauri::command]
+pub async fn mt_ask_for_open_project_in_sidebar(
+    app: tauri::AppHandle,
+) -> Result<Option<String>, String> {
+    mt_pick_folder(app).await
 }
 
 const MARKDOWN_EXTS: &[&str] = &[
@@ -180,7 +205,22 @@ fn is_markdown(name: &str) -> bool {
 /// emit `{type:"addDir", change:{pathname, name}}`. Skips hidden
 /// entries (names starting with ".") so .git / .DS_Store don't pollute
 /// the sidebar tree.
+fn walk_and_emit_app(root: &std::path::Path, app: &tauri::AppHandle) -> std::io::Result<()> {
+    walk_and_emit_inner(root, |payload| {
+        let _ = app.emit("mt::update-object-tree", payload);
+    })
+}
+
 fn walk_and_emit(root: &std::path::Path, window: &tauri::Window) -> std::io::Result<()> {
+    walk_and_emit_inner(root, |payload| {
+        let _ = window.emit("mt::update-object-tree", payload);
+    })
+}
+
+fn walk_and_emit_inner(
+    root: &std::path::Path,
+    mut emit: impl FnMut(serde_json::Value),
+) -> std::io::Result<()> {
     let mut stack: Vec<std::path::PathBuf> = vec![root.to_path_buf()];
     while let Some(current) = stack.pop() {
         let entries = match std::fs::read_dir(&current) {
@@ -209,36 +249,30 @@ fn walk_and_emit(root: &std::path::Path, window: &tauri::Window) -> std::io::Res
                 Err(_) => continue,
             };
             if ft.is_dir() {
-                let _ = window.emit(
-                    "mt::update-object-tree",
-                    json!({
-                        "type": "addDir",
-                        "change": {
-                            "pathname": pathname,
-                            "name": name,
-                        }
-                    }),
-                );
+                emit(json!({
+                    "type": "addDir",
+                    "change": {
+                        "pathname": pathname,
+                        "name": name,
+                    }
+                }));
                 stack.push(path);
             } else if ft.is_file() {
-                let _ = window.emit(
-                    "mt::update-object-tree",
-                    json!({
-                        "type": "add",
-                        "change": {
-                            "pathname": pathname,
-                            "name": name,
-                            "isFile": true,
-                            "isDirectory": false,
-                            "isMarkdown": is_markdown(&name),
-                        }
-                    }),
-                );
+                emit(json!({
+                    "type": "add",
+                    "change": {
+                        "pathname": pathname,
+                        "name": name,
+                        "isFile": true,
+                        "isDirectory": false,
+                        "isMarkdown": is_markdown(&name),
+                    }
+                }));
             }
         }
     }
     eprintln!(
-        "[v1_compat][walk][BLOCK_WALK_COMPLETE root={}]",
+        "[m_fs_ops][walk][BLOCK_WALK_COMPLETE root={}]",
         root.display()
     );
     Ok(())
