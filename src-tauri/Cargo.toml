@@ -30,6 +30,8 @@ font-kit = "0.14"
 keyring = "3"
 tauri-plugin-updater = "2"
 tauri-plugin-global-shortcut = "2"
+tauri-plugin-dialog = "2"
+tokio = { version = "1", features = ["sync"] }
 
 [dev-dependencies]
 tempfile = "3"

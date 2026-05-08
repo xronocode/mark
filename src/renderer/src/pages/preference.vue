@@ -40,7 +40,11 @@ const showCustomTitleBar = computed(() => {
 // Watchers
 watch(theme, (newValue, oldValue) => {
   if (newValue !== oldValue) {
-    addThemeStyle(newValue)
+    try {
+      addThemeStyle(newValue)
+    } catch (e) {
+      console.error('[preference][addThemeStyle] failed:', newValue, e)
+    }
   }
 })
 
@@ -48,7 +52,11 @@ watch(theme, (newValue, oldValue) => {
 onMounted(() => {
   nextTick(() => {
     const state = window.marktext.initialState || DEFAULT_STYLE
-    addThemeStyle(state.theme)
+    try {
+      addThemeStyle(state.theme)
+    } catch (e) {
+      console.error('[preference][addThemeStyle] init failed:', state.theme, e)
+    }
 
     preferencesStore.ASK_FOR_USER_PREFERENCE()
   })

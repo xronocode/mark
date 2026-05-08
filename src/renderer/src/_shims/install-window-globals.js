@@ -58,6 +58,27 @@ import { listen as _tauriListen, once as _tauriOnce, emit as _tauriEmit } from '
     search.set('debug', '0')
     mutated = true
   }
+  // F-THEME-BOOT-RACE (B4-pre-alpha smoke fix 2026-05-09): inject the
+  // persisted theme value into URL params BEFORE bootstrap.js reads
+  // them. Otherwise app.vue's onMounted calls addStyles({theme:null})
+  // which falls back to DEFAULT_STYLE.theme — user sees a dark flash
+  // on cold boot even when their persisted theme is light. The async
+  // mt::user-preference broadcast that arrives ~50ms later DOES set
+  // the right theme, but the visual flash is jarring.
+  if (!search.has('theme')) {
+    try {
+      const allPrefs = await _tauriInvoke('mt_prefs_get_all')
+      const persistedTheme = allPrefs?.theme
+      if (typeof persistedTheme === 'string' && persistedTheme.length) {
+        search.set('theme', persistedTheme)
+        mutated = true
+      }
+    } catch (e) {
+      // Non-fatal; renderer will fall back to DEFAULT_STYLE then
+      // re-paint when mt::user-preference broadcast arrives.
+      console.warn('[boot] persisted theme read failed:', e)
+    }
+  }
   if (mutated) {
     const next = `${window.location.pathname}?${search.toString()}${window.location.hash}`
     history.replaceState(null, '', next)

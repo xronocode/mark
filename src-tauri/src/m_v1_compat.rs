@@ -574,11 +574,20 @@ pub async fn mt_open_setting_window(app: tauri::AppHandle) -> Result<(), String>
         eprintln!("[v1_compat][settings][BLOCK_BUILD_FAILED err={e}]");
         e.to_string()
     })?;
-    // F-SETTINGS-WINDOW-WIRE diagnostic (2026-05-07): blank-content
-    // bug in Settings window. Open devtools so renderer console errors
-    // are visible. Remove once root cause identified.
-    win.open_devtools();
-    eprintln!("[v1_compat][settings][BLOCK_OPENED label=settings devtools=on]");
+    // F-SETTINGS-WINDOW-WIRE: blank-content bug from 2026-05-07 was
+    // root-caused (capability + bootstrap-event). DevTools auto-open
+    // retired 2026-05-09 so users don't see a debug panel on first
+    // Preferences click. Re-enable manually with Cmd+Option+I or via
+    // a debug build (cfg!(debug_assertions)) if needed.
+    #[cfg(debug_assertions)]
+    if std::env::var("MARK_SETTINGS_DEVTOOLS").as_deref() == Ok("1") {
+        win.open_devtools();
+        eprintln!("[v1_compat][settings][BLOCK_OPENED label=settings devtools=on env=MARK_SETTINGS_DEVTOOLS]");
+    } else {
+        eprintln!("[v1_compat][settings][BLOCK_OPENED label=settings devtools=off]");
+    }
+    #[cfg(not(debug_assertions))]
+    eprintln!("[v1_compat][settings][BLOCK_OPENED label=settings devtools=off]");
     Ok(())
 }
 

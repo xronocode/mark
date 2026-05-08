@@ -64,21 +64,21 @@ pub fn standard_menu() -> Vec<MenuItem> {
             accelerator: None,
             items: Some(vec![
                 MenuItem {
-                    id: "app.about".to_string(),
+                    id: "about".to_string(),
                     label: "About Mark".to_string(),
                     command: Some("about".to_string()),
                     accelerator: None,
                     items: None,
                 },
                 MenuItem {
-                    id: "app.preferences".to_string(),
+                    id: "file.preferences".to_string(),
                     label: "Preferences…".to_string(),
                     command: Some("openPreferences".to_string()),
                     accelerator: Some("Cmd+,".to_string()),
                     items: None,
                 },
                 MenuItem {
-                    id: "app.quit".to_string(),
+                    id: "file.quit".to_string(),
                     label: "Quit Mark".to_string(),
                     command: Some("quit".to_string()),
                     accelerator: Some("Cmd+Q".to_string()),
@@ -223,14 +223,14 @@ pub fn standard_menu() -> Vec<MenuItem> {
             accelerator: None,
             items: Some(vec![
                 MenuItem {
-                    id: "help.docs".to_string(),
+                    id: "docs.user-guide".to_string(),
                     label: "Documentation".to_string(),
                     command: Some("openDocs".to_string()),
                     accelerator: None,
                     items: None,
                 },
                 MenuItem {
-                    id: "help.check-updates".to_string(),
+                    id: "file.check-update".to_string(),
                     label: "Check for Updates…".to_string(),
                     command: Some("checkForUpdates".to_string()),
                     accelerator: None,
@@ -364,9 +364,9 @@ pub fn build_native_menu<R: tauri::Runtime>(
 
     // ── Help menu ────────────────────────────────────────────────────
     let help_submenu = SubmenuBuilder::new(handle, "Help")
-        .item(&MenuItemBuilder::with_id("help.docs", "Documentation").build(handle)?)
+        .item(&MenuItemBuilder::with_id("docs.user-guide", "Documentation").build(handle)?)
         .item(
-            &MenuItemBuilder::with_id("help.check-updates", "Check for Updates…")
+            &MenuItemBuilder::with_id("file.check-update", "Check for Updates…")
                 .build(handle)?,
         )
         .build()?;
@@ -376,11 +376,16 @@ pub fn build_native_menu<R: tauri::Runtime>(
 
     #[cfg(target_os = "macos")]
     {
+        // IDs use renderer-command convention so menu-bridge dispatches
+        // them via the existing static command list. Tauri's predefined
+        // .about() / .quit() are NOT used here because we want clicks
+        // routed through MenuInvoked → renderer (consistent dispatch
+        // path for telemetry + extensibility).
         let app_submenu = SubmenuBuilder::new(handle, "Mark")
-            .item(&MenuItemBuilder::with_id("app.about", "About Mark").build(handle)?)
+            .item(&MenuItemBuilder::with_id("about", "About Mark").build(handle)?)
             .separator()
             .item(
-                &MenuItemBuilder::with_id("app.preferences", "Preferences…")
+                &MenuItemBuilder::with_id("file.preferences", "Preferences…")
                     .accelerator("Cmd+,")
                     .build(handle)?,
             )
@@ -391,7 +396,11 @@ pub fn build_native_menu<R: tauri::Runtime>(
             .hide_others()
             .show_all()
             .separator()
-            .quit()
+            .item(
+                &MenuItemBuilder::with_id("file.quit", "Quit Mark")
+                    .accelerator("Cmd+Q")
+                    .build(handle)?,
+            )
             .build()?;
         top = top.item(&app_submenu);
     }

@@ -98,10 +98,10 @@
         <h6>{{ t('preferences.general.startup.layoutOptions') }}</h6>
         <section>
           <el-radio-group v-model="restoreLayoutState" class="startup-action-ctrl">
-            <el-radio :label="true">{{
+            <el-radio :value="true">{{
               t('preferences.general.startup.restorePreviousState')
             }}</el-radio>
-            <el-radio :label="false">{{
+            <el-radio :value="false">{{
               t('preferences.general.startup.openBlankState')
             }}</el-radio>
           </el-radio-group>
@@ -111,13 +111,13 @@
           <el-radio-group v-model="startUpAction" class="startup-action-ctrl">
             <!--
               Hide "lastState" for now (#2064).
-            <el-radio class="ag-underdevelop" label="lastState">Restore last editor session</el-radio>
+            <el-radio class="ag-underdevelop" value="lastState">Restore last editor session</el-radio>
             -->
-            <el-radio label="openLastFolder">{{
+            <el-radio value="openLastFolder">{{
               t('preferences.general.startup.openLastFolder')
             }}</el-radio>
             <div>
-              <el-radio label="folder"
+              <el-radio value="folder"
                 >{{ t('preferences.general.startup.openDefaultDirectory')
                 }}<span>: {{ defaultDirectoryToOpen }}</span></el-radio
               >
@@ -126,7 +126,7 @@
               }}</el-button>
             </div>
             <div>
-              <el-radio label="blank">{{
+              <el-radio value="blank">{{
                 t('preferences.general.startup.openBlankPage')
               }}</el-radio>
             </div>

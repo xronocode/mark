@@ -450,6 +450,12 @@ fn main() {
         // setup hook below calls m006_shortcuts::register_global_shortcuts
         // after the menu is wired.
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
+        // F-SAVE-AS-DIALOG (B4-pre-alpha-step-3): tauri-plugin-dialog
+        // for native Save/Open file picker. rfd::save_file crashes
+        // on async commands ("unexpected NULL from NSSavePanel") so
+        // we use the official Tauri plugin which dispatches to the
+        // main thread internally.
+        .plugin(tauri_plugin_dialog::init())
         // F-MENU-WIRE-TAURI (B4-pre-alpha step-1): build the native
         // macOS menu in Builder.setup so accelerators bind to menu
         // items at app boot. Each menu item with `with_id(...)` becomes

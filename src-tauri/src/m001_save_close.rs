@@ -66,9 +66,13 @@ impl Default for MainCloseSm {
 /// [id, filename, pathname, markdown, options, defaultPath].
 /// The install-window-globals shim wraps positional args as
 /// `{ args: [...] }`, so this command accepts a single `args` vector
-/// and unpacks by index. Index-based unpack is fragile if v1 ever
-/// reorders; the test below pins the contract so a renderer-side
-/// reorder breaks at compile time.
+/// and unpacks by index.
+///
+/// SEMANTICS: if pathname is non-empty, write to that path. If empty
+/// (untitled tab), open a native Save File dialog seeded with
+/// `filename` + `defaultPath`; on chosen path, write + emit
+/// `mt::set-pathname` so the renderer updates the tab. User cancel of
+/// the dialog returns Ok(()) silently.
 #[tauri::command]
 pub async fn mt_response_file_save(
     args: Vec<serde_json::Value>,
@@ -77,54 +81,141 @@ pub async fn mt_response_file_save(
 ) -> Result<(), String> {
     let arg_str = |i: usize| args.get(i).and_then(|v| v.as_str()).unwrap_or("").to_string();
     let id = arg_str(0);
-    let pathname = args
-        .get(2)
-        .and_then(|v| v.as_str())
-        .map(|s| s.to_string())
-        .unwrap_or_default();
+    let filename = arg_str(1);
+    let pathname = arg_str(2);
     let markdown = arg_str(3);
-    let path = pathname;
-    if path.is_empty() {
-        let msg = "untitled tab — Save As required (alpha limitation)".to_string();
-        eprintln!("[m001][save_close][BLOCK_FILE_SAVE_FAILED id={id} reason=empty-pathname]");
-        let _ = app.emit("mt::tab-save-failure", (id, msg.clone()));
-        return Err(msg);
+    let default_path = arg_str(5);
+
+    let target_path = if pathname.is_empty() {
+        match pick_save_path(&app, &filename, &default_path).await {
+            Some(p) => p,
+            None => {
+                eprintln!("[m001][save_close][BLOCK_SAVE_AS_CANCELLED id={id}]");
+                return Ok(());
+            }
+        }
+    } else {
+        pathname
+    };
+
+    save_to_path(&app, &sec, &id, &target_path, &markdown, pathname_was_picked(&args)).await
+}
+
+/// Renderer's FILE_SAVE_AS sends the same 6 positional args.
+/// Always opens the picker (forces a fresh path even if the tab has
+/// one) and writes there.
+#[tauri::command]
+pub async fn mt_response_file_save_as(
+    args: Vec<serde_json::Value>,
+    app: AppHandle,
+    sec: State<'_, SecurityCtx>,
+) -> Result<(), String> {
+    let arg_str = |i: usize| args.get(i).and_then(|v| v.as_str()).unwrap_or("").to_string();
+    let id = arg_str(0);
+    let filename = arg_str(1);
+    let markdown = arg_str(3);
+    let default_path = arg_str(5);
+
+    let target_path = match pick_save_path(&app, &filename, &default_path).await {
+        Some(p) => p,
+        None => {
+            eprintln!("[m001][save_close][BLOCK_SAVE_AS_CANCELLED id={id}]");
+            return Ok(());
+        }
+    };
+
+    save_to_path(&app, &sec, &id, &target_path, &markdown, true).await
+}
+
+/// `args[2]` (pathname) was empty when called → caller path was picked
+/// via the dialog. Renderer needs the new pathname pushed back via
+/// mt::set-pathname so the tab can update its filename + isSaved flag.
+fn pathname_was_picked(args: &[serde_json::Value]) -> bool {
+    args.get(2)
+        .and_then(|v| v.as_str())
+        .map(|s| s.is_empty())
+        .unwrap_or(true)
+}
+
+async fn pick_save_path(
+    app: &AppHandle,
+    default_filename: &str,
+    default_dir: &str,
+) -> Option<String> {
+    use tauri_plugin_dialog::DialogExt;
+    let fname = if default_filename.is_empty() {
+        "Untitled.md".to_string()
+    } else {
+        default_filename.to_string()
+    };
+    // Plugin's save_file() is callback-based + main-thread-safe; bridge
+    // to async via a oneshot. rfd::save_file panics with "unexpected
+    // NULL from NSSavePanel" when called from non-main thread (which
+    // is where Tauri async commands run) — this plugin handles the
+    // dispatch internally.
+    let (tx, rx) = tokio::sync::oneshot::channel::<Option<tauri_plugin_dialog::FilePath>>();
+    let mut builder = app.dialog().file().set_title("Save File").set_file_name(fname);
+    builder = builder
+        .add_filter("Markdown", &["md", "markdown", "mdown", "mkd", "mkdn", "mdtxt"])
+        .add_filter("Text", &["txt", "text"])
+        .add_filter("All Files", &["*"]);
+    if !default_dir.is_empty() {
+        builder = builder.set_directory(default_dir);
     }
-    match crate::m013b::fs::mt_fs_write(path.clone(), markdown, sec).await {
+    builder.save_file(move |result| {
+        let _ = tx.send(result);
+    });
+    let chosen = rx.await.ok().flatten()?;
+    // FilePath has Display; convert to String. file_path() returns the
+    // PathBuf when on a real filesystem (vs a content URI on Android).
+    let path_str = chosen
+        .into_path()
+        .ok()?
+        .to_string_lossy()
+        .to_string();
+    eprintln!("[m001][save_close][BLOCK_SAVE_AS_PICKED path={path_str}]");
+    Some(path_str)
+}
+
+async fn save_to_path(
+    app: &AppHandle,
+    sec: &State<'_, SecurityCtx>,
+    id: &str,
+    target_path: &str,
+    markdown: &str,
+    notify_set_pathname: bool,
+) -> Result<(), String> {
+    match crate::m013b::fs::mt_fs_write(target_path.to_string(), markdown.to_string(), sec.clone())
+        .await
+    {
         Ok(()) => {
-            eprintln!("[m001][save_close][BLOCK_FILE_SAVED id={id} path={path}]");
-            let _ = app.emit("mt::tab-saved", id);
+            eprintln!("[m001][save_close][BLOCK_FILE_SAVED id={id} path={target_path}]");
+            if notify_set_pathname {
+                let filename = std::path::Path::new(target_path)
+                    .file_name()
+                    .and_then(|s| s.to_str())
+                    .unwrap_or("")
+                    .to_string();
+                let payload = serde_json::json!({
+                    "id": id,
+                    "pathname": target_path,
+                    "filename": filename,
+                });
+                let _ = app.emit("mt::set-pathname", payload);
+                eprintln!("[m001][save_close][BLOCK_SET_PATHNAME_EMITTED id={id} path={target_path}]");
+            }
+            let _ = app.emit("mt::tab-saved", id.to_string());
             Ok(())
         }
         Err(e) => {
             let msg = format!("{e:?}");
             eprintln!(
-                "[m001][save_close][BLOCK_FILE_SAVE_FAILED id={id} path={path} reason={msg}]"
+                "[m001][save_close][BLOCK_FILE_SAVE_FAILED id={id} path={target_path} reason={msg}]"
             );
-            let _ = app.emit("mt::tab-save-failure", (id, msg.clone()));
+            let _ = app.emit("mt::tab-save-failure", (id.to_string(), msg.clone()));
             Err(msg)
         }
     }
-}
-
-#[tauri::command]
-pub async fn mt_response_file_save_as(
-    args: Vec<serde_json::Value>,
-    app: AppHandle,
-) -> Result<(), String> {
-    let id = args
-        .get(0)
-        .and_then(|v| v.as_str())
-        .unwrap_or("")
-        .to_string();
-    // Save-As needs a path picker (tauri-plugin-dialog or similar).
-    // Deferred to F-SAVE-AS-DIALOG follow-up (beta-bucket). For alpha,
-    // surface a clear failure event so the renderer notification system
-    // tells the user instead of silently appearing to fail.
-    let msg = "Save As is not implemented in alpha. Save existing files with Cmd+S; create new files in Finder first then open them.".to_string();
-    eprintln!("[m001][save_close][BLOCK_SAVE_AS_NOT_IMPLEMENTED id={id}]");
-    let _ = app.emit("mt::tab-save-failure", (id, msg.clone()));
-    Err(msg)
 }
 
 // END_BLOCK save_commands

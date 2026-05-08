@@ -11,6 +11,7 @@
     "core:path:default",
     "core:app:default",
     "updater:default",
-    "global-shortcut:default"
+    "global-shortcut:default",
+    "dialog:default"
   ]
 }

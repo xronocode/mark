@@ -97,7 +97,11 @@ const hasCurrentFile = computed(() => {
 // Watchers
 watch(theme, (value, oldValue) => {
   if (value !== oldValue) {
-    addThemeStyle(value)
+    try {
+      addThemeStyle(value)
+    } catch (e) {
+      console.error('[app][addThemeStyle] failed:', value, e)
+    }
   }
 })
 
@@ -193,7 +197,11 @@ onMounted(async () => {
 
   nextTick(() => {
     const style = window.marktext.initialState || DEFAULT_STYLE
-    addStyles(style)
+    try {
+      addStyles(style)
+    } catch (e) {
+      console.error('[app][addStyles] failed:', style, e)
+    }
   })
 })
 </script>
