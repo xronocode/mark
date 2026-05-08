@@ -157,5 +157,54 @@ export const setupIpcListeners = async () => {
     }
   })
 
+  // Path B-clean W2b: editor-event listeners (open-new-tab,
+  // new-untitled-tab, close-tab, tab-cycle, switch-tab, screenshot,
+  // bootstrap-editor). Single boot registration replaces 10+
+  // per-action listener installs in editor.js.
+  await listen('mt::screenshot-captured', () => {
+    bus.emit('screenshot-captured')
+  })
+  await listen('mt::bootstrap-editor', (event) => {
+    if (event?.payload) editorStore.APPLY_BOOTSTRAP_EDITOR(event.payload)
+  })
+  await listen('mt::open-new-tab', (event) => {
+    // v1 sent (markdownDocument, options, selected); via Tauri the
+    // payload is a single object — pick fields tolerantly.
+    const p = event?.payload
+    if (p && typeof p === 'object') {
+      const markdownDocument = p.markdown !== undefined || p.pathname ? p : p.markdownDocument
+      const options = p.options || {}
+      const selected = typeof p.selected === 'boolean' ? p.selected : true
+      if (markdownDocument) {
+        editorStore.NEW_TAB_WITH_CONTENT({ markdownDocument, options, selected })
+      } else {
+        editorStore.NEW_UNTITLED_TAB({})
+      }
+    }
+  })
+  await listen('mt::new-untitled-tab', (event) => {
+    const p = event?.payload
+    const selected = (p && typeof p.selected === 'boolean') ? p.selected : true
+    const markdown = (p && typeof p.markdown === 'string') ? p.markdown : ''
+    editorStore.NEW_UNTITLED_TAB({ markdown, selected })
+  })
+  await listen('mt::editor-close-tab', () => {
+    editorStore.CLOSE_TAB()
+  })
+  await listen('mt::tabs-cycle-left', () => {
+    editorStore.CYCLE_TABS(false)
+  })
+  await listen('mt::tabs-cycle-right', () => {
+    editorStore.CYCLE_TABS(true)
+  })
+  await listen('mt::switch-tab-by-index', (event) => {
+    const index = event?.payload
+    if (typeof index === 'number') editorStore.SWITCH_TAB_BY_INDEX(index)
+  })
+  await listen('mt::switch-tab-by-file_path', (event) => {
+    const filePath = event?.payload
+    if (typeof filePath === 'string') editorStore.SWITCH_TAB_BY_FILEPATH(filePath)
+  })
+
   console.log('[boot][ipc][BLOCK_ALL_LISTENERS_REGISTERED]')
 }

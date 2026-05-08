@@ -219,10 +219,12 @@ export const useEditorStore = defineStore('editor', {
       window.electron.ipcRenderer.send('mt::format-link-click', { data, dirname })
     },
 
+    /**
+     * Path B-clean W2b: listener moved to bootstrap-ipc.js.
+     * No-op alias for app.vue's onMounted call; deletion in W6.
+     */
     LISTEN_SCREEN_SHOT() {
-      window.electron.ipcRenderer.on('mt::screenshot-captured', () => {
-        bus.emit('screenshot-captured')
-      })
+      // no-op; see bootstrap-ipc.js
     },
 
     // image path auto complement
@@ -683,68 +685,62 @@ export const useEditorStore = defineStore('editor', {
         }, 100)
       }, 400)
 
-      window.electron.ipcRenderer.on('mt::bootstrap-editor', (_, config) => {
-        const {
-          addBlankTab,
-          markdownList,
-          lineEnding,
-          sideBarVisibility,
-          tabBarVisibility,
-          sourceCodeModeEnabled
-        } = config
-
-        window.electron.ipcRenderer.send('mt::window-initialized')
-        mainStore.SET_INITIALIZED()
-        preferencesStore.SET_USER_PREFERENCE({ endOfLine: lineEnding })
-        layoutStore.SET_LAYOUT({
-          rightColumn: 'files',
-          showSideBar: !!sideBarVisibility,
-          showTabBar: !!tabBarVisibility
-        })
-        layoutStore.DISPATCH_LAYOUT_MENU_ITEMS()
-        // V-A5-2: snap window content width to ideal once after the
-        // initial layout is settled. Main process gates on user pref
-        // and window state, so unconditional call is safe.
-        layoutStore.REQUEST_INITIAL_WINDOW_RESIZE()
-        preferencesStore.SET_MODE({
-          type: 'sourceCode',
-          checked: !!sourceCodeModeEnabled
-        })
-
-        if (addBlankTab) {
-          this.NEW_UNTITLED_TAB({ selected: true })
-        } else if (markdownList.length) {
-          let isFirst = true
-          for (const markdown of markdownList) {
-            this.NEW_UNTITLED_TAB({ markdown, selected: isFirst })
-            isFirst = false
-          }
-        }
-      })
+      // Path B-clean W2b: mt::bootstrap-editor listener moved to
+      // bootstrap-ipc.js — calls APPLY_BOOTSTRAP_EDITOR below.
     },
 
-    // Open a new tab, optionally with content.
-    LISTEN_FOR_NEW_TAB() {
-      window.electron.ipcRenderer.on(
-        'mt::open-new-tab',
-        (_, markdownDocument, options = {}, selected = true) => {
-          if (markdownDocument) {
-            // Create tab with content.
-            this.NEW_TAB_WITH_CONTENT({ markdownDocument, options, selected })
-          } else {
-            // Fallback: create a blank tab and always select it
-            this.NEW_UNTITLED_TAB({})
-          }
-        }
-      )
+    /**
+     * Path B-clean W2b: applies the boot-time editor configuration
+     * blast (sidebar/tabbar visibility, source-code mode, initial
+     * tabs). Called from bootstrap-ipc.js mt::bootstrap-editor
+     * listener. Idempotent enough to be re-played by tests.
+     */
+    APPLY_BOOTSTRAP_EDITOR(config) {
+      const {
+        addBlankTab,
+        markdownList,
+        lineEnding,
+        sideBarVisibility,
+        tabBarVisibility,
+        sourceCodeModeEnabled
+      } = config || {}
 
-      window.electron.ipcRenderer.on(
-        'mt::new-untitled-tab',
-        (_, selected = true, markdown = '') => {
-          // Create a blank tab
-          this.NEW_UNTITLED_TAB({ markdown, selected })
+      const mainStore = useMainStore()
+      const preferencesStore = usePreferencesStore()
+      const layoutStore = useLayoutStore()
+
+      window.electron.ipcRenderer.send('mt::window-initialized')
+      mainStore.SET_INITIALIZED()
+      preferencesStore.SET_USER_PREFERENCE({ endOfLine: lineEnding })
+      layoutStore.SET_LAYOUT({
+        rightColumn: 'files',
+        showSideBar: !!sideBarVisibility,
+        showTabBar: !!tabBarVisibility
+      })
+      layoutStore.DISPATCH_LAYOUT_MENU_ITEMS()
+      layoutStore.REQUEST_INITIAL_WINDOW_RESIZE()
+      preferencesStore.SET_MODE({
+        type: 'sourceCode',
+        checked: !!sourceCodeModeEnabled
+      })
+
+      if (addBlankTab) {
+        this.NEW_UNTITLED_TAB({ selected: true })
+      } else if (Array.isArray(markdownList) && markdownList.length) {
+        let isFirst = true
+        for (const markdown of markdownList) {
+          this.NEW_UNTITLED_TAB({ markdown, selected: isFirst })
+          isFirst = false
         }
-      )
+      }
+    },
+
+    /**
+     * Path B-clean W2b: open-new-tab + new-untitled-tab listeners
+     * moved to bootstrap-ipc.js. Bus subscription kept inline since
+     * it doesn't cross IPC. Action stays as no-op alias for app.vue.
+     */
+    LISTEN_FOR_NEW_TAB() {
       bus.on('mt::new-untitled-tab', ({ selected = true, markdown = '' }) => {
         this.NEW_UNTITLED_TAB({ markdown, selected })
       })
@@ -763,22 +759,18 @@ export const useEditorStore = defineStore('editor', {
       }
     },
 
+    /**
+     * Path B-clean W2b: close-tab / tab-cycle / switch-tab IPC
+     * listeners moved to bootstrap-ipc.js. Bus subscriptions
+     * kept inline since they don't cross IPC.
+     */
     LISTEN_FOR_CLOSE_TAB() {
-      window.electron.ipcRenderer.on('mt::editor-close-tab', () => {
-        this.CLOSE_TAB()
-      })
       bus.on('mt::editor-close-tab', () => {
         this.CLOSE_TAB()
       })
     },
 
     LISTEN_FOR_TAB_CYCLE() {
-      window.electron.ipcRenderer.on('mt::tabs-cycle-left', () => {
-        this.CYCLE_TABS(false)
-      })
-      window.electron.ipcRenderer.on('mt::tabs-cycle-right', () => {
-        this.CYCLE_TABS(true)
-      })
       bus.on('mt::tabs-cycle-left', () => {
         this.CYCLE_TABS(false)
       })
@@ -788,12 +780,7 @@ export const useEditorStore = defineStore('editor', {
     },
 
     LISTEN_FOR_SWITCH_TABS() {
-      window.electron.ipcRenderer.on('mt::switch-tab-by-index', (_, index) => {
-        this.SWITCH_TAB_BY_INDEX(index)
-      })
-      window.electron.ipcRenderer.on('mt::switch-tab-by-file_path', (_, filePath) => {
-        this.SWITCH_TAB_BY_FILEPATH(filePath)
-      })
+      // no-op; see bootstrap-ipc.js
     },
 
     FORCE_CLOSE_TAB(file) {
