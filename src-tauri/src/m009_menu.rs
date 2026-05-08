@@ -1,30 +1,41 @@
 // MODULE_CONTRACT
-//   PURPOSE: M-009 mt-menu. Native macOS application menu skeleton +
-//            command-palette dispatcher. Recent-docs submenu pulls
-//            from M-017; theme submenu reads from M-005 prefs.
-//   SCOPE:   menu STRUCTURE declaration only (taxonomy + accelerators
-//            + dispatch payload). Actual Tauri menu API binding via
-//            tauri::menu::* requires a tauri::AppHandle and runs
-//            inside Builder.setup; B3-step-12 ships the structure
-//            constants and a build_menu(app) helper, leaving full
-//            wire-up to the Builder.setup hook in main.rs.
-//   DEPENDS: serde, m017_recent (recent-docs read), m005_prefs (theme).
-//   LINKS:   docs/development-plan.xml Phase-B3 step-12;
-//            test/fixtures/ipc-channels/menu-taxonomy.v1.json (v1
-//            template structure preserved).
-//   STATUS:  Phase-B3 step-12 skeleton — taxonomy + dispatcher
-//            shape; full Tauri menu wiring in F-MENU-WIRE-TAURI.
+//   PURPOSE: M-009 mt-menu. Native macOS application menu + command-id
+//            taxonomy for the renderer's command palette / sidebar /
+//            breadcrumb. Native menu wires accelerators (Cmd+S etc) +
+//            emits MenuInvoked → renderer dispatch via `mt::menu-invoked`.
+//   SCOPE:   (a) MenuItem taxonomy data (legacy mt_menu_taxonomy IPC
+//            for future renderer consumers), (b) build_native_menu —
+//            constructs the Tauri Menu<R> using tauri::menu::* and
+//            returns it for main.rs to wire into Builder.setup +
+//            on_menu_event. Edit basics (cut/copy/paste/undo/redo/
+//            select-all) use Tauri predefined items so the macOS
+//            responder chain handles them in the WebView; only Find /
+//            Replace / Find-in-Folder are custom dispatched.
+//   DEPENDS: serde, tauri (Runtime, AppHandle, menu::* in target build).
+//   LINKS:   docs/development-plan.xml Phase-B4-pre-alpha step-1
+//            (closes F-MENU-WIRE-TAURI). Renderer command registry:
+//            src/renderer/src/commands/index.js (id contract).
+//   STATUS:  Phase-B4-pre-alpha step-1 — native menu wired.
+//   LOG MARKERS: [Menu][build][BLOCK_BUILD_NATIVE_MENU] count=N (in main.rs);
+//                [Menu][on_event][BLOCK_DISPATCH] menu_id=… (in main.rs).
 //
 // CHANGE_SUMMARY:
 //   - 2026-04-29 B3-step-12: initial skeleton.
+//   - 2026-05-08 B4-pre-alpha-step-1: build_native_menu + Tauri menu.
+//                Renamed ids to dashed convention to match renderer
+//                command registry (file.new → file.new-tab etc) so
+//                the menu-bridge in renderer can dispatch by id
+//                without translation. Predefined edit basics use
+//                Tauri SubmenuBuilder helpers.
 
 use serde::{Deserialize, Serialize};
 
 /// A single menu item. `id` is the dispatch handle the renderer
-/// receives via the menu-clicked event. `accelerator` is the parsed
-/// shortcut string per M-006 (e.g. "Cmd+S"); empty string = no
-/// accelerator. `command` is the v1.2.3-compatible command name (for
-/// the renderer's command dispatcher).
+/// receives via the `mt::menu-invoked` event AND the command-id used
+/// in `src/renderer/src/commands/index.js`. `accelerator` is the
+/// shortcut string per Tauri's parser ("CmdOrCtrl+S", "Cmd+Shift+O").
+/// `command` is the v1.2.3-compatible command name retained for the
+/// renderer's older command dispatcher; alpha+ uses `id` directly.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MenuItem {
     pub id: String,
@@ -35,9 +46,13 @@ pub struct MenuItem {
 }
 
 /// Standard top-level menus for v2.0. Order matches v1.2.3 templates
-/// (file → edit → format → paragraph → view → window → help). On
-/// macOS a "Mark" application menu prepends with About / Preferences /
-/// Quit per HIG.
+/// (file → edit → view → help). On macOS a "Mark" application menu
+/// prepends with About / Preferences / Quit per HIG.
+///
+/// IDs use dashed convention so they map 1:1 to renderer command ids
+/// (file.new-tab, file.open-folder, file.save-as, view.toggle-sidebar,
+/// view.source-code-mode, etc) — the menu-bridge in main.js looks
+/// them up directly in `src/renderer/src/commands/index.js`.
 pub fn standard_menu() -> Vec<MenuItem> {
     vec![
         // macOS application menu — only on macOS.
@@ -78,28 +93,28 @@ pub fn standard_menu() -> Vec<MenuItem> {
             accelerator: None,
             items: Some(vec![
                 MenuItem {
-                    id: "file.new".to_string(),
-                    label: "New".to_string(),
+                    id: "file.new-tab".to_string(),
+                    label: "New Tab".to_string(),
                     command: Some("newTab".to_string()),
-                    accelerator: Some("Cmd+N".to_string()),
+                    accelerator: Some("CmdOrCtrl+N".to_string()),
                     items: None,
                 },
                 MenuItem {
-                    id: "file.open".to_string(),
+                    id: "file.open-file".to_string(),
                     label: "Open File…".to_string(),
                     command: Some("openFile".to_string()),
-                    accelerator: Some("Cmd+O".to_string()),
+                    accelerator: Some("CmdOrCtrl+O".to_string()),
                     items: None,
                 },
                 MenuItem {
-                    id: "file.openFolder".to_string(),
+                    id: "file.open-folder".to_string(),
                     label: "Open Folder…".to_string(),
                     command: Some("openFolder".to_string()),
-                    accelerator: Some("Cmd+Shift+O".to_string()),
+                    accelerator: Some("CmdOrCtrl+Shift+O".to_string()),
                     items: None,
                 },
                 MenuItem {
-                    id: "file.openRecent".to_string(),
+                    id: "file.open-recent".to_string(),
                     label: "Open Recent".to_string(),
                     command: None,
                     accelerator: None,
@@ -110,20 +125,34 @@ pub fn standard_menu() -> Vec<MenuItem> {
                     id: "file.save".to_string(),
                     label: "Save".to_string(),
                     command: Some("save".to_string()),
-                    accelerator: Some("Cmd+S".to_string()),
+                    accelerator: Some("CmdOrCtrl+S".to_string()),
                     items: None,
                 },
                 MenuItem {
-                    id: "file.saveAs".to_string(),
+                    id: "file.save-as".to_string(),
                     label: "Save As…".to_string(),
                     command: Some("saveAs".to_string()),
-                    accelerator: Some("Cmd+Shift+S".to_string()),
+                    accelerator: Some("CmdOrCtrl+Shift+S".to_string()),
                     items: None,
                 },
                 MenuItem {
-                    id: "file.exportPdf".to_string(),
-                    label: "Export to PDF (via pandoc)".to_string(),
+                    id: "file.close-tab".to_string(),
+                    label: "Close Tab".to_string(),
+                    command: Some("closeTab".to_string()),
+                    accelerator: Some("CmdOrCtrl+W".to_string()),
+                    items: None,
+                },
+                MenuItem {
+                    id: "file.export-file-pdf".to_string(),
+                    label: "Export to PDF…".to_string(),
                     command: Some("exportPdf".to_string()),
+                    accelerator: None,
+                    items: None,
+                },
+                MenuItem {
+                    id: "file.export-file-html".to_string(),
+                    label: "Export to HTML…".to_string(),
+                    command: Some("exportHtml".to_string()),
                     accelerator: None,
                     items: None,
                 },
@@ -136,45 +165,24 @@ pub fn standard_menu() -> Vec<MenuItem> {
             accelerator: None,
             items: Some(vec![
                 MenuItem {
-                    id: "edit.undo".to_string(),
-                    label: "Undo".to_string(),
-                    command: Some("undo".to_string()),
-                    accelerator: Some("Cmd+Z".to_string()),
-                    items: None,
-                },
-                MenuItem {
-                    id: "edit.redo".to_string(),
-                    label: "Redo".to_string(),
-                    command: Some("redo".to_string()),
-                    accelerator: Some("Cmd+Shift+Z".to_string()),
-                    items: None,
-                },
-                MenuItem {
-                    id: "edit.cut".to_string(),
-                    label: "Cut".to_string(),
-                    command: Some("cut".to_string()),
-                    accelerator: Some("Cmd+X".to_string()),
-                    items: None,
-                },
-                MenuItem {
-                    id: "edit.copy".to_string(),
-                    label: "Copy".to_string(),
-                    command: Some("copy".to_string()),
-                    accelerator: Some("Cmd+C".to_string()),
-                    items: None,
-                },
-                MenuItem {
-                    id: "edit.paste".to_string(),
-                    label: "Paste".to_string(),
-                    command: Some("paste".to_string()),
-                    accelerator: Some("Cmd+V".to_string()),
-                    items: None,
-                },
-                MenuItem {
                     id: "edit.find".to_string(),
                     label: "Find".to_string(),
                     command: Some("find".to_string()),
-                    accelerator: Some("Cmd+F".to_string()),
+                    accelerator: Some("CmdOrCtrl+F".to_string()),
+                    items: None,
+                },
+                MenuItem {
+                    id: "edit.replace".to_string(),
+                    label: "Replace".to_string(),
+                    command: Some("replace".to_string()),
+                    accelerator: Some("CmdOrCtrl+H".to_string()),
+                    items: None,
+                },
+                MenuItem {
+                    id: "edit.find-in-folder".to_string(),
+                    label: "Find in Folder".to_string(),
+                    command: Some("findInFolder".to_string()),
+                    accelerator: Some("CmdOrCtrl+Shift+F".to_string()),
                     items: None,
                 },
             ]),
@@ -186,17 +194,17 @@ pub fn standard_menu() -> Vec<MenuItem> {
             accelerator: None,
             items: Some(vec![
                 MenuItem {
-                    id: "view.sidebar".to_string(),
+                    id: "view.toggle-sidebar".to_string(),
                     label: "Toggle Sidebar".to_string(),
                     command: Some("toggleSidebar".to_string()),
-                    accelerator: Some("Cmd+B".to_string()),
+                    accelerator: Some("CmdOrCtrl+B".to_string()),
                     items: None,
                 },
                 MenuItem {
-                    id: "view.sourceCode".to_string(),
+                    id: "view.source-code-mode".to_string(),
                     label: "Source Code Mode".to_string(),
                     command: Some("toggleSourceMode".to_string()),
-                    accelerator: Some("Cmd+Shift+E".to_string()),
+                    accelerator: Some("CmdOrCtrl+Alt+S".to_string()),
                     items: None,
                 },
                 MenuItem {
@@ -222,7 +230,7 @@ pub fn standard_menu() -> Vec<MenuItem> {
                     items: None,
                 },
                 MenuItem {
-                    id: "help.update".to_string(),
+                    id: "help.check-updates".to_string(),
                     label: "Check for Updates…".to_string(),
                     command: Some("checkForUpdates".to_string()),
                     accelerator: None,
@@ -235,12 +243,167 @@ pub fn standard_menu() -> Vec<MenuItem> {
 
 /// Tauri command exposing the menu structure to the renderer. Renderer
 /// uses this to build the in-window menu UI (sidebar, command palette
-/// search, breadcrumb). Native OS menu rendering still happens via
-/// tauri::menu::* in F-MENU-WIRE-TAURI.
+/// search, breadcrumb). Native OS menu rendering happens in
+/// `build_native_menu`.
 #[tauri::command]
 pub async fn mt_menu_taxonomy() -> Result<Vec<MenuItem>, String> {
     Ok(standard_menu())
 }
+
+// ─────────────────────────────────────────────────────────────────────
+// START_BLOCK build_native_menu
+// PURPOSE:    Construct the Tauri Menu<R> wired to the macOS app
+//             menu bar (and falls back to in-window menu on Linux/
+//             Windows). Wire this from main.rs setup() via
+//             app.set_menu(menu)?.
+// MENU EVENTS: each .item() with `with_id(...)` becomes a MenuId that
+//             on_menu_event will receive; main.rs forwards by id via
+//             `mt::menu-invoked` event broadcast.
+// EDIT BASICS: cut/copy/paste/undo/redo/select-all use Tauri
+//             SubmenuBuilder predefined helpers — they route through
+//             the macOS responder chain so the WebView gets the
+//             keypress for free (no IPC round-trip).
+// ─────────────────────────────────────────────────────────────────────
+
+/// Build the native application menu. Call once in Builder.setup with
+/// `app.set_menu(m009_menu::build_native_menu(app.handle())?)`.
+///
+/// Returns a `Menu<R>` ready to be installed. Errors propagate from
+/// MenuItemBuilder/SubmenuBuilder construction (rare — typically
+/// indicates a Tauri runtime startup problem).
+pub fn build_native_menu<R: tauri::Runtime>(
+    handle: &tauri::AppHandle<R>,
+) -> tauri::Result<tauri::menu::Menu<R>> {
+    use tauri::menu::{MenuBuilder, MenuItemBuilder, SubmenuBuilder};
+
+    // ── File menu ────────────────────────────────────────────────────
+    let file_submenu = SubmenuBuilder::new(handle, "File")
+        .item(
+            &MenuItemBuilder::with_id("file.new-tab", "New Tab")
+                .accelerator("CmdOrCtrl+N")
+                .build(handle)?,
+        )
+        .item(
+            &MenuItemBuilder::with_id("file.open-file", "Open File…")
+                .accelerator("CmdOrCtrl+O")
+                .build(handle)?,
+        )
+        .item(
+            &MenuItemBuilder::with_id("file.open-folder", "Open Folder…")
+                .accelerator("CmdOrCtrl+Shift+O")
+                .build(handle)?,
+        )
+        .separator()
+        .item(
+            &MenuItemBuilder::with_id("file.save", "Save")
+                .accelerator("CmdOrCtrl+S")
+                .build(handle)?,
+        )
+        .item(
+            &MenuItemBuilder::with_id("file.save-as", "Save As…")
+                .accelerator("CmdOrCtrl+Shift+S")
+                .build(handle)?,
+        )
+        .separator()
+        .item(
+            &MenuItemBuilder::with_id("file.close-tab", "Close Tab")
+                .accelerator("CmdOrCtrl+W")
+                .build(handle)?,
+        )
+        .separator()
+        .item(
+            &MenuItemBuilder::with_id("file.export-file-pdf", "Export to PDF…")
+                .build(handle)?,
+        )
+        .item(
+            &MenuItemBuilder::with_id("file.export-file-html", "Export to HTML…")
+                .build(handle)?,
+        )
+        .build()?;
+
+    // ── Edit menu (predefined items handle clipboard/undo via OS) ────
+    let edit_submenu = SubmenuBuilder::new(handle, "Edit")
+        .undo()
+        .redo()
+        .separator()
+        .cut()
+        .copy()
+        .paste()
+        .select_all()
+        .separator()
+        .item(
+            &MenuItemBuilder::with_id("edit.find", "Find")
+                .accelerator("CmdOrCtrl+F")
+                .build(handle)?,
+        )
+        .item(
+            &MenuItemBuilder::with_id("edit.replace", "Replace")
+                .accelerator("CmdOrCtrl+H")
+                .build(handle)?,
+        )
+        .item(
+            &MenuItemBuilder::with_id("edit.find-in-folder", "Find in Folder")
+                .accelerator("CmdOrCtrl+Shift+F")
+                .build(handle)?,
+        )
+        .build()?;
+
+    // ── View menu ────────────────────────────────────────────────────
+    let view_submenu = SubmenuBuilder::new(handle, "View")
+        .item(
+            &MenuItemBuilder::with_id("view.toggle-sidebar", "Toggle Sidebar")
+                .accelerator("CmdOrCtrl+B")
+                .build(handle)?,
+        )
+        .item(
+            &MenuItemBuilder::with_id("view.source-code-mode", "Source Code Mode")
+                .accelerator("CmdOrCtrl+Alt+S")
+                .build(handle)?,
+        )
+        .build()?;
+
+    // ── Help menu ────────────────────────────────────────────────────
+    let help_submenu = SubmenuBuilder::new(handle, "Help")
+        .item(&MenuItemBuilder::with_id("help.docs", "Documentation").build(handle)?)
+        .item(
+            &MenuItemBuilder::with_id("help.check-updates", "Check for Updates…")
+                .build(handle)?,
+        )
+        .build()?;
+
+    // ── Top-level builder; macOS prepends app menu ───────────────────
+    let mut top = MenuBuilder::new(handle);
+
+    #[cfg(target_os = "macos")]
+    {
+        let app_submenu = SubmenuBuilder::new(handle, "Mark")
+            .item(&MenuItemBuilder::with_id("app.about", "About Mark").build(handle)?)
+            .separator()
+            .item(
+                &MenuItemBuilder::with_id("app.preferences", "Preferences…")
+                    .accelerator("Cmd+,")
+                    .build(handle)?,
+            )
+            .separator()
+            .services()
+            .separator()
+            .hide()
+            .hide_others()
+            .show_all()
+            .separator()
+            .quit()
+            .build()?;
+        top = top.item(&app_submenu);
+    }
+
+    top.item(&file_submenu)
+        .item(&edit_submenu)
+        .item(&view_submenu)
+        .item(&help_submenu)
+        .build()
+}
+
+// END_BLOCK build_native_menu
 
 #[cfg(test)]
 mod tests {
@@ -298,7 +461,7 @@ mod tests {
                 .unwrap_or(false);
             let dynamic_submenu = matches!(
                 item.id.as_str(),
-                "file.openRecent" | "view.theme"
+                "file.open-recent" | "view.theme"
             );
             if !has_static_children && !dynamic_submenu {
                 assert!(
@@ -315,7 +478,7 @@ mod tests {
         let menu = standard_menu();
         let flat = flatten(&menu);
         let save = flat.iter().find(|i| i.id == "file.save").unwrap();
-        assert_eq!(save.accelerator.as_deref(), Some("Cmd+S"));
+        assert_eq!(save.accelerator.as_deref(), Some("CmdOrCtrl+S"));
         assert_eq!(save.command.as_deref(), Some("save"));
     }
 
@@ -323,8 +486,57 @@ mod tests {
     fn open_recent_is_dynamic_empty_submenu() {
         let menu = standard_menu();
         let flat = flatten(&menu);
-        let recent = flat.iter().find(|i| i.id == "file.openRecent").unwrap();
+        let recent = flat.iter().find(|i| i.id == "file.open-recent").unwrap();
         assert!(recent.command.is_none());
         assert!(recent.items.as_ref().is_some_and(|s| s.is_empty()));
+    }
+
+    #[test]
+    fn ids_use_dashed_renderer_convention() {
+        // B4-pre-alpha-step-1 alignment: every menu id with a dot must
+        // use dashes for multi-word segments so it matches the renderer
+        // command registry verbatim (no translation layer needed).
+        let menu = standard_menu();
+        let flat = flatten(&menu);
+        for item in &flat {
+            if !item.id.contains('.') {
+                continue;
+            }
+            // Reject camelCase: any uppercase letter after the first
+            // segment indicates the legacy convention.
+            for (idx, segment) in item.id.split('.').enumerate() {
+                if idx == 0 {
+                    continue;
+                }
+                assert!(
+                    segment.chars().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '-'),
+                    "menu id {} segment {} should be lowercase-with-dashes",
+                    item.id,
+                    segment
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn key_alpha_blockers_present() {
+        // Smoke for 2026-05-08 user-smoke regression: menu MUST have
+        // Save, Open Folder, Find, and Close Tab so Cmd+S, Cmd+Shift+O,
+        // Cmd+F, and Cmd+W all bind to commands the renderer dispatches.
+        let menu = standard_menu();
+        let flat = flatten(&menu);
+        for required in &[
+            "file.save",
+            "file.open-folder",
+            "file.open-file",
+            "file.close-tab",
+            "edit.find",
+        ] {
+            assert!(
+                flat.iter().any(|i| i.id == *required),
+                "menu missing required alpha-ship id: {}",
+                required
+            );
+        }
     }
 }

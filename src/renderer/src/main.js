@@ -26,10 +26,17 @@ import Main from './Main.vue'
 import './assets/styles/index.css'
 import './assets/styles/printService.css'
 
+// F-MENU-WIRE-TAURI (B4-pre-alpha step-1): listen for native-menu
+// invocations emitted by the Rust backend and dispatch them through
+// the existing static command registry. Imported here so the bridge
+// is wired before bootstrapRenderer kicks the rest of the app off.
+import { installMenuBridge } from './menu-bridge'
+
 // -----------------------------------------------
 
 window.marktext = {}
 bootstrapRenderer()
+installMenuBridge()
 
 // -----------------------------------------------
 // Be careful when changing code before this line!

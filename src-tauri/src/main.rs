@@ -442,6 +442,32 @@ fn main() {
         // anything. Renderer calls via @tauri-apps/plugin-updater
         // (M-016 mt_updater_check now proxies to the plugin).
         .plugin(tauri_plugin_updater::Builder::new().build())
+        // F-MENU-WIRE-TAURI (B4-pre-alpha step-1): build the native
+        // macOS menu in Builder.setup so accelerators bind to menu
+        // items at app boot. Each menu item with `with_id(...)` becomes
+        // a MenuId that on_menu_event receives; we forward by id via
+        // `mt::menu-invoked` event and the renderer's menu-bridge
+        // dispatches to the matching command in commands/index.js.
+        .setup(|app| {
+            let handle = app.handle().clone();
+            let menu = m009_menu::build_native_menu(&handle).inspect_err(|e| {
+                eprintln!("[menu][build][BLOCK_BUILD_NATIVE_MENU_FAILED reason={e}]");
+            })?;
+            app.set_menu(menu)?;
+            eprintln!("[menu][build][BLOCK_BUILD_NATIVE_MENU] installed");
+            Ok(())
+        })
+        .on_menu_event(|app_handle, event| {
+            // Tauri's MenuId wraps a String; .as_ref() yields &str.
+            let id_str: String = event.id().as_ref().to_string();
+            eprintln!("[menu][on_event][BLOCK_DISPATCH menu_id={id_str}]");
+            // Broadcast to all windows. Renderer's menu-bridge filters
+            // by listening on the main window only; Settings window
+            // ignores menu events for now (per F-V1-IPC-COMPAT-STUBS).
+            if let Err(e) = tauri::Emitter::emit(app_handle, "mt::menu-invoked", &id_str) {
+                eprintln!("[menu][on_event][BLOCK_EMIT_FAILED reason={e}]");
+            }
+        })
         .manage(sec_ctx)
         .manage(prefs)
         .manage(m013b::WatchRegistry::default())
