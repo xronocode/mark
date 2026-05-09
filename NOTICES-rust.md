@@ -1,6 +1,6 @@
 # NOTICES — Rust dependencies (Tauri backend)
 
-Generated from `cargo-bundle-licenses --format json` over **533 crates**.
+Generated from `cargo-bundle-licenses --format json` over **542 crates**.
 
 Each entry lists the crate name, version, license SPDX identifier, and upstream repository when available. Re-generate with:
 
@@ -13,24 +13,25 @@ node tools/build-notices-rust.mjs /tmp/rust-licenses.json > NOTICES-rust.md
 
 | License | Crate count |
 |---|---:|
-| MIT OR Apache-2.0 | 254 |
-| MIT | 124 |
+| MIT OR Apache-2.0 | 256 |
+| MIT | 125 |
+| Apache-2.0 OR MIT | 31 |
 | MIT/Apache-2.0 | 28 |
-| Apache-2.0 OR MIT | 27 |
 | Unicode-3.0 | 18 |
 | Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT | 15 |
 | Zlib OR Apache-2.0 OR MIT | 11 |
 | MPL-2.0 | 8 |
 | Unlicense OR MIT | 6 |
 | ISC | 5 |
+| Apache-2.0 | 3 |
 | Apache-2.0 OR ISC OR MIT | 3 |
 | Apache-2.0/MIT | 3 |
 | BSD-3-Clause | 3 |
-| Apache-2.0 | 2 |
 | BSD-2-Clause OR Apache-2.0 OR MIT | 2 |
 | BSD-3-Clause OR MIT OR Apache-2.0 | 2 |
 | MIT / Apache-2.0 | 2 |
 | MIT OR Apache-2.0 OR LGPL-2.1-or-later | 2 |
+| MIT OR Apache-2.0 OR Zlib | 2 |
 | Unlicense/MIT | 2 |
 | Zlib | 2 |
 | (Apache-2.0 OR MIT) AND BSD-3-Clause | 1 |
@@ -45,10 +46,9 @@ node tools/build-notices-rust.mjs /tmp/rust-licenses.json > NOTICES-rust.md
 | CC0-1.0 OR MIT-0 OR Apache-2.0 | 1 |
 | CDLA-Permissive-2.0 | 1 |
 | LGPL-3.0 | 1 |
-| MIT OR Apache-2.0 OR Zlib | 1 |
 | MIT OR Zlib OR Apache-2.0 | 1 |
 
-## MIT OR Apache-2.0 (254)
+## MIT OR Apache-2.0 (256)
 
 | Crate | Version | Repository |
 |---|---|---|
@@ -305,9 +305,11 @@ node tools/build-notices-rust.mjs /tmp/rust-licenses.json > NOTICES-rust.md
 | windows-targets | 0.53.5 | https://github.com/microsoft/windows-rs |
 | windows-threading | 0.1.0 | https://github.com/microsoft/windows-rs |
 | windows-version | 0.1.7 | https://github.com/microsoft/windows-rs |
+| x11rb | 0.13.2 | https://github.com/psychon/x11rb |
+| x11rb-protocol | 0.13.2 | https://github.com/psychon/x11rb |
 | xattr | 1.6.1 | https://github.com/Stebalien/xattr |
 
-## MIT (124)
+## MIT (125)
 
 | Crate | Version | Repository |
 |---|---|---|
@@ -393,6 +395,7 @@ node tools/build-notices-rust.mjs /tmp/rust-licenses.json > NOTICES-rust.md
 | redox_syscall | 0.5.18 | https://gitlab.redox-os.org/redox-os/syscall |
 | redox_syscall | 0.7.5 | https://gitlab.redox-os.org/redox-os/syscall |
 | redox_users | 0.5.2 | https://gitlab.redox-os.org/redox-os/users |
+| rfd | 0.16.0 | https://github.com/PolyMeilex/rfd |
 | rfd | 0.17.2 | https://github.com/PolyMeilex/rfd |
 | schannel | 0.1.29 | https://github.com/steffengy/schannel-rs |
 | schemars | 0.8.22 | https://github.com/GREsau/schemars |
@@ -436,6 +439,42 @@ node tools/build-notices-rust.mjs /tmp/rust-licenses.json > NOTICES-rust.md
 | zip | 4.6.1 | https://github.com/zip-rs/zip2.git |
 | zmij | 1.0.21 | https://github.com/dtolnay/zmij |
 
+## Apache-2.0 OR MIT (31)
+
+| Crate | Version | Repository |
+|---|---|---|
+| atomic-waker | 1.1.2 | https://github.com/smol-rs/atomic-waker |
+| bit-set | 0.8.0 | https://github.com/contain-rs/bit-set |
+| bit-vec | 0.8.0 | https://github.com/contain-rs/bit-vec |
+| ctor | 0.2.9 | https://github.com/mmastrac/rust-ctor |
+| equivalent | 1.0.2 | https://github.com/indexmap-rs/equivalent |
+| fastrand | 2.4.1 | https://github.com/smol-rs/fastrand |
+| global-hotkey | 0.7.0 | https://github.com/amrbashir/global-hotkey |
+| idna_adapter | 1.2.1 | https://github.com/hsivonen/idna_adapter |
+| indexmap | 1.9.3 | https://github.com/bluss/indexmap |
+| indexmap | 2.14.0 | https://github.com/indexmap-rs/indexmap |
+| libappindicator | 0.9.0 |  |
+| libappindicator-sys | 0.9.0 |  |
+| muda | 0.17.2 | https://github.com/tauri-apps/muda |
+| pin-project-lite | 0.2.17 | https://github.com/taiki-e/pin-project-lite |
+| rustc-hash | 2.1.2 | https://github.com/rust-lang/rustc-hash |
+| tauri | 2.10.3 | https://github.com/tauri-apps/tauri |
+| tauri-codegen | 2.5.5 | https://github.com/tauri-apps/tauri |
+| tauri-macros | 2.5.5 | https://github.com/tauri-apps/tauri |
+| tauri-plugin-dialog | 2.7.1 | https://github.com/tauri-apps/plugins-workspace |
+| tauri-plugin-fs | 2.5.1 | https://github.com/tauri-apps/plugins-workspace |
+| tauri-plugin-global-shortcut | 2.3.1 | https://github.com/tauri-apps/plugins-workspace |
+| tauri-plugin-updater | 2.10.1 | https://github.com/tauri-apps/plugins-workspace |
+| tauri-runtime | 2.10.1 | https://github.com/tauri-apps/tauri |
+| tauri-runtime-wry | 2.10.1 | https://github.com/tauri-apps/tauri |
+| tauri-utils | 2.8.3 | https://github.com/tauri-apps/tauri |
+| utf8_iter | 1.0.4 | https://github.com/hsivonen/utf8_iter |
+| utf8parse | 0.2.2 | https://github.com/alacritty/vte |
+| uuid | 1.23.1 | https://github.com/uuid-rs/uuid |
+| window-vibrancy | 0.6.0 | https://github.com/tauri-apps/tauri-plugin-vibrancy |
+| wry | 0.54.4 | https://github.com/tauri-apps/wry |
+| zeroize | 1.8.2 | https://github.com/RustCrypto/utils |
+
 ## MIT/Apache-2.0 (28)
 
 | Crate | Version | Repository |
@@ -468,38 +507,6 @@ node tools/build-notices-rust.mjs /tmp/rust-licenses.json > NOTICES-rust.md
 | winapi-i686-pc-windows-gnu | 0.4.0 | https://github.com/retep998/winapi-rs |
 | winapi-x86_64-pc-windows-gnu | 0.4.0 | https://github.com/retep998/winapi-rs |
 | wio | 0.2.2 | https://github.com/retep998/wio-rs |
-
-## Apache-2.0 OR MIT (27)
-
-| Crate | Version | Repository |
-|---|---|---|
-| atomic-waker | 1.1.2 | https://github.com/smol-rs/atomic-waker |
-| bit-set | 0.8.0 | https://github.com/contain-rs/bit-set |
-| bit-vec | 0.8.0 | https://github.com/contain-rs/bit-vec |
-| ctor | 0.2.9 | https://github.com/mmastrac/rust-ctor |
-| equivalent | 1.0.2 | https://github.com/indexmap-rs/equivalent |
-| fastrand | 2.4.1 | https://github.com/smol-rs/fastrand |
-| idna_adapter | 1.2.1 | https://github.com/hsivonen/idna_adapter |
-| indexmap | 1.9.3 | https://github.com/bluss/indexmap |
-| indexmap | 2.14.0 | https://github.com/indexmap-rs/indexmap |
-| libappindicator | 0.9.0 |  |
-| libappindicator-sys | 0.9.0 |  |
-| muda | 0.17.2 | https://github.com/tauri-apps/muda |
-| pin-project-lite | 0.2.17 | https://github.com/taiki-e/pin-project-lite |
-| rustc-hash | 2.1.2 | https://github.com/rust-lang/rustc-hash |
-| tauri | 2.10.3 | https://github.com/tauri-apps/tauri |
-| tauri-codegen | 2.5.5 | https://github.com/tauri-apps/tauri |
-| tauri-macros | 2.5.5 | https://github.com/tauri-apps/tauri |
-| tauri-plugin-updater | 2.10.1 | https://github.com/tauri-apps/plugins-workspace |
-| tauri-runtime | 2.10.1 | https://github.com/tauri-apps/tauri |
-| tauri-runtime-wry | 2.10.1 | https://github.com/tauri-apps/tauri |
-| tauri-utils | 2.8.3 | https://github.com/tauri-apps/tauri |
-| utf8_iter | 1.0.4 | https://github.com/hsivonen/utf8_iter |
-| utf8parse | 0.2.2 | https://github.com/alacritty/vte |
-| uuid | 1.23.1 | https://github.com/uuid-rs/uuid |
-| window-vibrancy | 0.6.0 | https://github.com/tauri-apps/tauri-plugin-vibrancy |
-| wry | 0.54.4 | https://github.com/tauri-apps/wry |
-| zeroize | 1.8.2 | https://github.com/RustCrypto/utils |
 
 ## Unicode-3.0 (18)
 
@@ -594,6 +601,14 @@ node tools/build-notices-rust.mjs /tmp/rust-licenses.json > NOTICES-rust.md
 | rustls-webpki | 0.103.13 | https://github.com/rustls/webpki |
 | untrusted | 0.9.0 | https://github.com/briansmith/untrusted |
 
+## Apache-2.0 (3)
+
+| Crate | Version | Repository |
+|---|---|---|
+| gethostname | 1.1.0 | https://codeberg.org/swsnr/gethostname.rs.git |
+| sync_wrapper | 1.0.2 | https://github.com/Actyx/sync_wrapper |
+| tao | 0.34.8 | https://github.com/tauri-apps/tao |
+
 ## Apache-2.0 OR ISC OR MIT (3)
 
 | Crate | Version | Repository |
@@ -617,13 +632,6 @@ node tools/build-notices-rust.mjs /tmp/rust-licenses.json > NOTICES-rust.md
 | alloc-no-stdlib | 2.0.4 | https://github.com/dropbox/rust-alloc-no-stdlib |
 | alloc-stdlib | 0.2.2 | https://github.com/dropbox/rust-alloc-no-stdlib |
 | subtle | 2.6.1 | https://github.com/dalek-cryptography/subtle |
-
-## Apache-2.0 (2)
-
-| Crate | Version | Repository |
-|---|---|---|
-| sync_wrapper | 1.0.2 | https://github.com/Actyx/sync_wrapper |
-| tao | 0.34.8 | https://github.com/tauri-apps/tao |
 
 ## BSD-2-Clause OR Apache-2.0 OR MIT (2)
 
@@ -652,6 +660,13 @@ node tools/build-notices-rust.mjs /tmp/rust-licenses.json > NOTICES-rust.md
 |---|---|---|
 | r-efi | 5.3.0 | https://github.com/r-efi/r-efi |
 | r-efi | 6.0.0 | https://github.com/r-efi/r-efi |
+
+## MIT OR Apache-2.0 OR Zlib (2)
+
+| Crate | Version | Repository |
+|---|---|---|
+| raw-window-handle | 0.6.2 | https://github.com/rust-windowing/raw-window-handle |
+| xkeysym | 0.2.1 | https://github.com/notgull/xkeysym |
 
 ## Unlicense/MIT (2)
 
@@ -738,12 +753,6 @@ node tools/build-notices-rust.mjs /tmp/rust-licenses.json > NOTICES-rust.md
 | Crate | Version | Repository |
 |---|---|---|
 | chardet | 0.2.4 | https://github.com/thuleqaid/rust-chardet |
-
-## MIT OR Apache-2.0 OR Zlib (1)
-
-| Crate | Version | Repository |
-|---|---|---|
-| raw-window-handle | 0.6.2 | https://github.com/rust-windowing/raw-window-handle |
 
 ## MIT OR Zlib OR Apache-2.0 (1)
 
