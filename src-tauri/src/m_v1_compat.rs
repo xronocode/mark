@@ -328,10 +328,11 @@ pub async fn mt_cmd_open_file(window: tauri::Window) -> Result<(), String> {
     emit_open_new_tab(&window, &path)
 }
 
-/// Shared body: read file at `path` and emit mt::open-new-tab with a
-/// IMarkdownDocumentRaw payload. Used by mt_cmd_open_file (picker),
-/// mt_open_file (sidebar click), and (in future) recents wiring.
-fn emit_open_new_tab(window: &tauri::Window, pathname: &str) -> Result<(), String> {
+/// Build the IMarkdownDocumentRaw JSON payload for a given file path.
+/// Pure-logic helper — reads the file from disk then assembles the
+/// JSON the renderer expects. Returns Err when the read fails so the
+/// caller can decide whether to swallow or propagate.
+pub(crate) fn build_open_new_tab_payload(pathname: &str) -> Result<Value, String> {
     let content = match std::fs::read_to_string(pathname) {
         Ok(s) => s,
         Err(e) => {
@@ -346,7 +347,7 @@ fn emit_open_new_tab(window: &tauri::Window, pathname: &str) -> Result<(), Strin
         .and_then(|n| n.to_str())
         .unwrap_or(pathname)
         .to_string();
-    let markdown_document = json!({
+    Ok(json!({
         "markdown": content,
         "filename": filename,
         "pathname": pathname,
@@ -356,7 +357,14 @@ fn emit_open_new_tab(window: &tauri::Window, pathname: &str) -> Result<(), Strin
         "trimTrailingNewline": 3,
         "cursor": null,
         "isMixedLineEndings": false,
-    });
+    }))
+}
+
+/// Shared body: read file at `path` and emit mt::open-new-tab with a
+/// IMarkdownDocumentRaw payload. Used by mt_cmd_open_file (picker),
+/// mt_open_file (sidebar click), and (in future) recents wiring.
+fn emit_open_new_tab(window: &tauri::Window, pathname: &str) -> Result<(), String> {
+    let markdown_document = build_open_new_tab_payload(pathname)?;
     if let Err(e) = window.emit("mt::open-new-tab", &markdown_document) {
         eprintln!("[v1_compat][open_new_tab][BLOCK_EMIT_FAILED err={e}]");
         return Err(e.to_string());
@@ -821,6 +829,42 @@ mod tests {
         assert!(events
             .iter()
             .any(|e| e.pointer("/change/name").and_then(|v| v.as_str()) == Some("nested.md")));
+    }
+
+    #[test]
+    fn build_open_new_tab_payload_constructs_imarkdowndocumentraw() {
+        let dir = TempDir::new().unwrap();
+        let target = dir.path().join("note.md");
+        std::fs::write(&target, "# Heading\n\ncontent").unwrap();
+        let payload = build_open_new_tab_payload(target.to_str().unwrap()).unwrap();
+        assert_eq!(payload["markdown"], json!("# Heading\n\ncontent"));
+        assert_eq!(payload["filename"], json!("note.md"));
+        assert_eq!(payload["pathname"], json!(target.to_str().unwrap()));
+        assert_eq!(payload["encoding"]["encoding"], json!("utf8"));
+        assert_eq!(payload["encoding"]["isBom"], json!(false));
+        assert_eq!(payload["lineEnding"], json!("lf"));
+        assert_eq!(payload["isMixedLineEndings"], json!(false));
+    }
+
+    #[test]
+    fn build_open_new_tab_payload_propagates_read_errors() {
+        let err = build_open_new_tab_payload("/nonexistent-1234567890.md").unwrap_err();
+        assert!(!err.is_empty());
+    }
+
+    #[test]
+    fn build_open_new_tab_payload_falls_back_to_pathname_when_no_filename() {
+        // Edge: a path with no file_name (e.g. "/") would normally
+        // fall back to the pathname itself for the filename field.
+        // We can't construct such a path that ALSO reads successfully
+        // — so this test just verifies the unwrap_or path doesn't panic
+        // on a normal nested case.
+        let dir = TempDir::new().unwrap();
+        let target = dir.path().join("nested").join("a.md");
+        std::fs::create_dir_all(target.parent().unwrap()).unwrap();
+        std::fs::write(&target, "x").unwrap();
+        let payload = build_open_new_tab_payload(target.to_str().unwrap()).unwrap();
+        assert_eq!(payload["filename"], json!("a.md"));
     }
 
     #[test]

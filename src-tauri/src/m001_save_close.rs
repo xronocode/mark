@@ -391,30 +391,31 @@ pub async fn mt_close_window_confirm(
 
 // END_BLOCK close_commands
 
+/// Pure-logic state-machine driver. Walks the SM through the cleanup
+/// edges (CloseRequested → ForceClose → WatchersCleaned → WindowDestroyed)
+/// regardless of the entry state, synthesizing the path when invoked from
+/// a renderer-initiated close. Idempotent on terminal states.
+pub(crate) fn advance_close_state_machine(sm: &mut CloseStateMachine) {
+    if sm.state() == CloseState::Idle {
+        let _ = sm.transition(CloseState::CloseRequested);
+    }
+    if sm.state() == CloseState::CloseRequested
+        || sm.state() == CloseState::PromptOpen
+        || sm.state() == CloseState::SaveFailed
+    {
+        let _ = sm.transition(CloseState::ForceClose);
+    }
+    if sm.state() == CloseState::ForceClose {
+        let _ = sm.transition(CloseState::WatchersCleaned);
+    }
+    if sm.state() == CloseState::WatchersCleaned {
+        let _ = sm.transition(CloseState::WindowDestroyed);
+    }
+}
+
 fn advance_to_destroy(sm_state: &State<'_, MainCloseSm>) {
-    // Drive the state machine through the cleanup → destroy edges so
-    // the V-M-001 trace shows the full lifecycle even when the close
-    // came from a renderer-initiated path (no PromptOpen first because
-    // the dialog was renderer-side).
     if let Ok(mut sm) = sm_state.0.lock() {
-        if sm.state() == CloseState::Idle {
-            // Renderer-initiated close where backend never saw
-            // CloseRequested (e.g. user-triggered "Close Window" menu
-            // not yet wired). Synthesize the path.
-            let _ = sm.transition(CloseState::CloseRequested);
-        }
-        if sm.state() == CloseState::CloseRequested
-            || sm.state() == CloseState::PromptOpen
-            || sm.state() == CloseState::SaveFailed
-        {
-            let _ = sm.transition(CloseState::ForceClose);
-        }
-        if sm.state() == CloseState::ForceClose {
-            let _ = sm.transition(CloseState::WatchersCleaned);
-        }
-        if sm.state() == CloseState::WatchersCleaned {
-            let _ = sm.transition(CloseState::WindowDestroyed);
-        }
+        advance_close_state_machine(&mut sm);
     }
 }
 
@@ -593,6 +594,45 @@ mod tests {
         assert!(json.contains("\"isSaved\":true"), "got {json}");
         assert!(json.contains("\"pathname\":\"/tmp/note.md\""));
         assert!(json.contains("\"filename\":\"note.md\""));
+    }
+
+    #[test]
+    fn advance_close_state_machine_from_idle_walks_full_path() {
+        let mut sm = CloseStateMachine::default();
+        assert_eq!(sm.state(), CloseState::Idle);
+        advance_close_state_machine(&mut sm);
+        assert!(sm.is_terminal(), "expected terminal state, got {:?}", sm.state());
+    }
+
+    #[test]
+    fn advance_close_state_machine_from_prompt_open_walks_to_destroy() {
+        let mut sm = CloseStateMachine::default();
+        sm.transition(CloseState::CloseRequested).unwrap();
+        sm.transition(CloseState::PromptOpen).unwrap();
+        advance_close_state_machine(&mut sm);
+        assert!(sm.is_terminal());
+    }
+
+    #[test]
+    fn advance_close_state_machine_from_save_failed_recovers_to_destroy() {
+        // SaveFailed branch — renderer reported a save error, then user
+        // chose "Close anyway" so we still walk to destroy.
+        let mut sm = CloseStateMachine::default();
+        sm.transition(CloseState::CloseRequested).unwrap();
+        sm.transition(CloseState::PromptOpen).unwrap();
+        sm.transition(CloseState::SaveFailed).unwrap();
+        advance_close_state_machine(&mut sm);
+        assert!(sm.is_terminal());
+    }
+
+    #[test]
+    fn advance_close_state_machine_idempotent_on_terminal() {
+        let mut sm = CloseStateMachine::default();
+        advance_close_state_machine(&mut sm);
+        let final_state = sm.state();
+        // Calling again must not panic and must leave the machine alone.
+        advance_close_state_machine(&mut sm);
+        assert_eq!(sm.state(), final_state);
     }
 
     #[test]
