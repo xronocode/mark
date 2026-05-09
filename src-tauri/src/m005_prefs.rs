@@ -282,16 +282,15 @@ pub async fn mt_prefs_get_all(prefs: State<'_, PrefsState>) -> Result<Value, Str
     Ok(Value::Object(prefs.all()))
 }
 
-/// Open a workspace folder. Validates the path, updates SecurityCtx
-/// sandbox, persists to prefs[KEY_WORKSPACE_ROOT]. The renderer's
-/// "Open Folder" menu calls this.
-#[tauri::command]
-pub async fn mt_workspace_set(
-    path: String,
-    sec: State<'_, SecurityCtx>,
-    prefs: State<'_, PrefsState>,
+/// Pure-logic workspace setter. Validates the path, canonicalizes,
+/// updates SecurityCtx + persists to prefs. Extracted so unit tests can
+/// drive the whole flow without an AppHandle / Tauri State wrapper.
+pub(crate) fn workspace_set_inner(
+    path: &str,
+    sec: &SecurityCtx,
+    prefs: &PrefsState,
 ) -> Result<(), String> {
-    let p = PathBuf::from(&path);
+    let p = PathBuf::from(path);
     if !p.exists() {
         return Err(format!("workspace path does not exist: {path}"));
     }
@@ -310,6 +309,18 @@ pub async fn mt_workspace_set(
             Value::String(canonical.display().to_string()),
         )
         .map_err(|e| e.to_string())
+}
+
+/// Open a workspace folder. Validates the path, updates SecurityCtx
+/// sandbox, persists to prefs[KEY_WORKSPACE_ROOT]. The renderer's
+/// "Open Folder" menu calls this.
+#[tauri::command]
+pub async fn mt_workspace_set(
+    path: String,
+    sec: State<'_, SecurityCtx>,
+    prefs: State<'_, PrefsState>,
+) -> Result<(), String> {
+    workspace_set_inner(&path, sec.inner(), prefs.inner())
 }
 
 /// Restore the workspace from prefs at boot. Called from main.rs after
@@ -515,5 +526,80 @@ mod tests {
         let original = sec.sandbox();
         restore_workspace(&prefs, &sec);
         assert_eq!(sec.sandbox(), original);
+    }
+
+    #[test]
+    fn workspace_set_inner_happy_path_canonicalizes_and_persists() {
+        let dir = TempDir::new().unwrap();
+        let prefs_path = dir.path().join("preferences.json");
+        let prefs = PrefsState::from_path(prefs_path);
+        let sec = SecurityCtx::default();
+        let workspace = dir.path().to_path_buf();
+        workspace_set_inner(workspace.to_str().unwrap(), &sec, &prefs).unwrap();
+        let canonical = fs::canonicalize(&workspace).unwrap();
+        assert_eq!(sec.sandbox(), canonical);
+        // Pref was persisted as the canonical display string.
+        let stored = prefs.get(KEY_WORKSPACE_ROOT).unwrap();
+        assert_eq!(stored, Value::String(canonical.display().to_string()));
+    }
+
+    #[test]
+    fn workspace_set_inner_rejects_nonexistent_path() {
+        let dir = TempDir::new().unwrap();
+        let prefs = PrefsState::from_path(dir.path().join("p.json"));
+        let sec = SecurityCtx::default();
+        let original = sec.sandbox();
+        let err =
+            workspace_set_inner("/nonexistent-12345-workspace", &sec, &prefs).unwrap_err();
+        assert!(err.contains("does not exist"), "got {err}");
+        // Sandbox unchanged on rejection.
+        assert_eq!(sec.sandbox(), original);
+        assert!(prefs.get(KEY_WORKSPACE_ROOT).is_none());
+    }
+
+    #[test]
+    fn workspace_set_inner_rejects_path_that_is_a_file() {
+        let dir = TempDir::new().unwrap();
+        let prefs = PrefsState::from_path(dir.path().join("p.json"));
+        let sec = SecurityCtx::default();
+        let file = dir.path().join("a-file.txt");
+        std::fs::write(&file, "x").unwrap();
+        let err = workspace_set_inner(file.to_str().unwrap(), &sec, &prefs).unwrap_err();
+        assert!(err.contains("is not a directory"), "got {err}");
+    }
+
+    #[test]
+    fn prefs_store_save_roundtrip_writes_pretty_json() {
+        let dir = TempDir::new().unwrap();
+        let path = dir.path().join("preferences.json");
+        let mut store = PrefsStore::load_from(path.clone());
+        store.set("theme".to_string(), Value::String("dark".to_string()));
+        store.save().unwrap();
+        let raw = std::fs::read_to_string(&path).unwrap();
+        // Pretty-printed: contains a newline.
+        assert!(raw.contains('\n'));
+        assert!(raw.contains("\"theme\""));
+        assert!(raw.contains("\"dark\""));
+    }
+
+    #[test]
+    fn prefs_store_all_returns_full_map() {
+        let dir = TempDir::new().unwrap();
+        let path = dir.path().join("preferences.json");
+        let mut store = PrefsStore::load_from(path);
+        store.set("a".to_string(), json!(1));
+        store.set("b".to_string(), json!(2));
+        let all = store.all();
+        assert_eq!(all.len(), 2);
+        assert_eq!(all.get("a"), Some(&json!(1)));
+        assert_eq!(all.get("b"), Some(&json!(2)));
+    }
+
+    #[test]
+    fn prefs_state_get_returns_none_for_missing_key() {
+        let dir = TempDir::new().unwrap();
+        let path = dir.path().join("preferences.json");
+        let state = PrefsState::from_path(path);
+        assert!(state.get("ghost").is_none());
     }
 }
