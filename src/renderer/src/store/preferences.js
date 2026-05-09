@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import bus from '../bus'
+import notice from '../services/notification'
 import { setLanguage } from '../i18n'
 
 export const usePreferencesStore = defineStore('preferences', {
@@ -83,6 +84,13 @@ export const usePreferencesStore = defineStore('preferences', {
 
     watcherUsePolling: false,
 
+    // M-022 mt-preview-mode: when true (default) Finder/CLI opened files
+    // enter preview mode (read-only + sidebar collapsed) on first load;
+    // user can disable via Settings later. Honoured by bootstrap-ipc.js
+    // (gate before APPLY_PREVIEW_MODE) and by APPLY_PREVIEW_MODE itself
+    // (so direct programmatic callers also respect it).
+    previewModeOnFinderOpen: true,
+
     // --------------------------------------------------------------------------
 
     // Edit modes of the current window (not part of persistent settings)
@@ -103,7 +111,11 @@ export const usePreferencesStore = defineStore('preferences', {
         branch: ''
       }
     },
-    cliScript: ''
+    cliScript: '',
+
+    // M-021 default-handler — F-1 status (queried, not persisted).
+    // Populated by REFRESH_DEFAULT_MD_HANDLER from the backend.
+    defaultMdHandler: { is_default: false, current_handler: null }
   }),
 
   getters: {
@@ -208,6 +220,73 @@ export const usePreferencesStore = defineStore('preferences', {
       // backend remains alive and functional.
       const { windowId } = window.marktext.env
       window.electron.ipcRenderer.send('mt::view-layout-changed', windowId, viewState)
+    },
+
+    // ─── M-021 default-handler (macOS Integration) ────────────────────
+    // Three actions wrap the m021_default_handler Tauri commands:
+    //   mt_get_default_md_handler   → { is_default, current_handler }
+    //   mt_set_default_md_handler   → register Mark for .md
+    //   mt_unset_default_md_handler → unregister
+    // F-1 status is queried (not persisted in prefs.json); state is
+    // refreshed on Settings panel mount and after each set/unset.
+    async REFRESH_DEFAULT_MD_HANDLER() {
+      try {
+        const { invoke } = await import('@tauri-apps/api/core')
+        const result = await invoke('mt_get_default_md_handler')
+        if (result && typeof result === 'object') {
+          this.defaultMdHandler = {
+            is_default: !!result.is_default,
+            current_handler: result.current_handler ?? null
+          }
+        }
+        console.debug(
+          `[prefs][handler][BLOCK_QUERY_OK is_default=${this.defaultMdHandler.is_default}]`
+        )
+      } catch (e) {
+        console.error('[prefs][handler][BLOCK_QUERY_FAILED]', e)
+      }
+    },
+
+    async SET_DEFAULT_MD_HANDLER() {
+      try {
+        const { invoke } = await import('@tauri-apps/api/core')
+        await invoke('mt_set_default_md_handler')
+        console.debug('[prefs][handler][BLOCK_SET_OK]')
+        await this.REFRESH_DEFAULT_MD_HANDLER()
+        notice.notify({
+          title: 'macOS Integration',
+          type: 'primary',
+          message: 'Mark is now the default app for .md files'
+        })
+      } catch (e) {
+        console.error('[prefs][handler][BLOCK_SET_FAILED]', e)
+        notice.notify({
+          title: 'macOS Integration',
+          type: 'error',
+          message: 'Failed to set Mark as the default app for .md files'
+        })
+      }
+    },
+
+    async UNSET_DEFAULT_MD_HANDLER() {
+      try {
+        const { invoke } = await import('@tauri-apps/api/core')
+        await invoke('mt_unset_default_md_handler')
+        console.debug('[prefs][handler][BLOCK_UNSET_OK]')
+        await this.REFRESH_DEFAULT_MD_HANDLER()
+        notice.notify({
+          title: 'macOS Integration',
+          type: 'primary',
+          message: 'Mark is no longer the default app for .md files'
+        })
+      } catch (e) {
+        console.error('[prefs][handler][BLOCK_UNSET_FAILED]', e)
+        notice.notify({
+          title: 'macOS Integration',
+          type: 'error',
+          message: 'Failed to remove Mark as the default app for .md files'
+        })
+      }
     }
   }
 })

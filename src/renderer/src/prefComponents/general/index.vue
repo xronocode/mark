@@ -1,6 +1,48 @@
 <template>
   <div class="pref-general">
     <h4>{{ t('preferences.general.title') }}</h4>
+
+    <!--
+      M-021 default-handler — macOS Integration cluster.
+      User explicit ask: a prominent way to make Mark the default
+      app for .md files. Lives at the TOP of General settings.
+    -->
+    <section class="macos-integration">
+      <div class="macos-integration-head">
+        <h6 class="title">macOS Integration</h6>
+      </div>
+      <div class="macos-integration-body">
+        <p class="status">
+          <template v-if="isDefault">
+            Mark is the default app for <code>.md</code> files.
+          </template>
+          <template v-else-if="currentHandler">
+            Default app for <code>.md</code> files: <strong>{{ currentHandler }}</strong>
+          </template>
+          <template v-else>
+            No default app is set for <code>.md</code> files.
+          </template>
+        </p>
+        <div class="actions">
+          <el-button
+            v-if="!isDefault"
+            type="primary"
+            size="default"
+            @click="setAsDefault"
+          >
+            Set Mark as default for .md files
+          </el-button>
+          <el-button
+            v-else
+            size="default"
+            @click="unsetDefault"
+          >
+            Remove as default
+          </el-button>
+        </div>
+      </div>
+    </section>
+
     <compound>
       <template #head>
         <h6 class="title">{{ t('preferences.general.autoSave.title') }}</h6>
@@ -139,7 +181,7 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, onMounted } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useI18n } from 'vue-i18n'
 import { usePreferencesStore } from '@/store/preferences'
@@ -196,9 +238,62 @@ const onSelectChange = (type, value) => {
 const selectDefaultDirectoryToOpen = () => {
   preferenceStore.SELECT_DEFAULT_DIRECTORY_TO_OPEN()
 }
+
+// ─── M-021 default-handler bindings ──────────────────────────────────
+const isDefault = computed(() => preferenceStore.defaultMdHandler.is_default)
+const currentHandler = computed(() => preferenceStore.defaultMdHandler.current_handler)
+
+const setAsDefault = () => {
+  preferenceStore.SET_DEFAULT_MD_HANDLER()
+}
+
+const unsetDefault = () => {
+  preferenceStore.UNSET_DEFAULT_MD_HANDLER()
+}
+
+onMounted(() => {
+  preferenceStore.REFRESH_DEFAULT_MD_HANDLER()
+})
 </script>
 
 <style scoped>
+/* M-021 macOS Integration cluster — visually distinct, sits at top. */
+.pref-general .macos-integration {
+  display: block;
+  padding: 16px 20px;
+  margin-bottom: 24px;
+  background: var(--floatBgColor, var(--editorBgColor));
+  border: 1px solid var(--itemBgColor, rgba(0, 0, 0, 0.08));
+  border-radius: 6px;
+}
+.pref-general .macos-integration-head {
+  margin-bottom: 8px;
+}
+.pref-general .macos-integration-head .title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--editorColor);
+}
+.pref-general .macos-integration-body .status {
+  margin: 0 0 12px 0;
+  font-size: 13px;
+  color: var(--editorColor);
+  line-height: 1.5;
+}
+.pref-general .macos-integration-body .status code {
+  font-family: var(--monoFont, monospace);
+  font-size: 12px;
+  background: var(--itemBgColor, rgba(0, 0, 0, 0.05));
+  padding: 1px 4px;
+  border-radius: 3px;
+}
+.pref-general .macos-integration-body .actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .pref-general .startup-action-ctrl div {
   display: flex;
   align-items: center;
