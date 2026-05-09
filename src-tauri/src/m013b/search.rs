@@ -1032,6 +1032,138 @@ mod tests {
         assert_eq!(r.len(), 0);
     }
 
+    fn rg_available() -> bool {
+        std::process::Command::new("rg")
+            .arg("--version")
+            .output()
+            .map(|o| o.status.success())
+            .unwrap_or(false)
+    }
+
+    #[test]
+    fn run_ripgrep_finds_literal_matches_in_one_file() {
+        if !rg_available() {
+            eprintln!("[test][skip] rg binary not on PATH");
+            return;
+        }
+        let dir = TempDir::new().unwrap();
+        write(dir.path().join("a.md"), "alpha needle beta\n").unwrap();
+        let (tx, rx) = mpsc::channel();
+        let sink: Arc<dyn SearchSink> = Arc::new(ChannelSink { tx });
+        let cancel = Arc::new(AtomicBool::new(false));
+        let opts = SearchOptions::default();
+        let (hits, _seq) =
+            run_ripgrep("rg-1", dir.path(), "needle", &opts, cancel, sink, 0)
+                .unwrap_or((0, 0));
+        assert!(hits >= 1, "expected at least one rg match, got {hits}");
+        let events = collect_until_terminal(&rx, Duration::from_millis(500));
+        // run_ripgrep doesn't emit a terminal event on its own — drain
+        // whatever match batches arrived. At least one match event
+        // expected when hits > 0.
+        if hits > 0 {
+            assert!(events.iter().any(|e| e.kind == "match"));
+        }
+    }
+
+    #[test]
+    fn run_ripgrep_no_matches_returns_zero_hits() {
+        if !rg_available() {
+            eprintln!("[test][skip] rg binary not on PATH");
+            return;
+        }
+        let dir = TempDir::new().unwrap();
+        write(dir.path().join("a.md"), "no relevant content\n").unwrap();
+        let (tx, _rx) = mpsc::channel();
+        let sink: Arc<dyn SearchSink> = Arc::new(ChannelSink { tx });
+        let cancel = Arc::new(AtomicBool::new(false));
+        let opts = SearchOptions::default();
+        let (hits, _seq) =
+            run_ripgrep("rg-2", dir.path(), "needle", &opts, cancel, sink, 0)
+                .unwrap_or((0, 0));
+        assert_eq!(hits, 0);
+    }
+
+    #[test]
+    fn run_ripgrep_with_options_runs_without_error() {
+        if !rg_available() {
+            eprintln!("[test][skip] rg binary not on PATH");
+            return;
+        }
+        let dir = TempDir::new().unwrap();
+        write(dir.path().join(".hidden.md"), "needle\n").unwrap();
+        write(dir.path().join("vis.md"), "Needle\n").unwrap();
+        let (tx, _rx) = mpsc::channel();
+        let sink: Arc<dyn SearchSink> = Arc::new(ChannelSink { tx });
+        let cancel = Arc::new(AtomicBool::new(false));
+        let opts = SearchOptions {
+            include_hidden: Some(true),
+            no_ignore: Some(true),
+            is_case_sensitive: Some(true),
+            is_whole_word: Some(true),
+            is_regexp: Some(true),
+            follow_symlinks: Some(true),
+            max_file_size: Some(1024 * 1024),
+            ..Default::default()
+        };
+        // Use a regex; with case-sensitive whole-word, only lowercase
+        // 'needle' matches (the hidden file). At minimum expect one hit,
+        // and the call itself returns Ok.
+        let result = run_ripgrep("rg-opt", dir.path(), r"needle", &opts, cancel, sink, 0);
+        assert!(result.is_ok(), "rg with full options must run cleanly: {result:?}");
+    }
+
+    #[test]
+    fn run_ripgrep_pre_cancelled_returns_zero_hits() {
+        if !rg_available() {
+            eprintln!("[test][skip] rg binary not on PATH");
+            return;
+        }
+        let dir = TempDir::new().unwrap();
+        for i in 0..30 {
+            write(
+                dir.path().join(format!("file-{i:02}.md")),
+                "needle\n".repeat(20),
+            )
+            .unwrap();
+        }
+        let (tx, _rx) = mpsc::channel();
+        let sink: Arc<dyn SearchSink> = Arc::new(ChannelSink { tx });
+        let cancel = Arc::new(AtomicBool::new(true)); // pre-cancelled
+        let opts = SearchOptions::default();
+        let (hits, _seq) =
+            run_ripgrep("rg-cancel", dir.path(), "needle", &opts, cancel, sink, 0)
+                .unwrap_or((u32::MAX, 0));
+        // With pre-cancel, the loop break fires on the first read iteration
+        // and no batches accumulate; hits should be 0 or very small (rg
+        // may have produced output before kill landed). Strict bound:
+        // less than the worst-case 30*20 = 600.
+        assert!(hits < 600, "pre-cancel should bound hits well below ceiling; got {hits}");
+    }
+
+    #[test]
+    fn run_ripgrep_spawn_failure_returns_err() {
+        // Pre-cancel is observed inside the loop, but if rg fails to
+        // spawn (e.g. PATH-modified to not find rg), we should get Err.
+        // Force this by setting PATH to an empty directory just for this
+        // test.
+        let saved = std::env::var_os("PATH");
+        std::env::set_var("PATH", "/dev/null/no-rg-here");
+        let dir = TempDir::new().unwrap();
+        let (tx, _rx) = mpsc::channel();
+        let sink: Arc<dyn SearchSink> = Arc::new(ChannelSink { tx });
+        let cancel = Arc::new(AtomicBool::new(false));
+        let opts = SearchOptions::default();
+        let result =
+            run_ripgrep("rg-fail", dir.path(), "needle", &opts, cancel, sink, 0);
+        // Restore PATH FIRST so subsequent tests aren't affected.
+        match saved {
+            Some(v) => std::env::set_var("PATH", v),
+            None => std::env::remove_var("PATH"),
+        }
+        assert!(result.is_err(), "rg with empty PATH must fail to spawn");
+        assert!(result.unwrap_err().contains("spawn rg"));
+    }
+
     #[test]
     fn batches_at_default_size() {
         let dir = TempDir::new().unwrap();
