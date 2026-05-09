@@ -93,4 +93,12 @@ mod tests {
             assert!(seen.insert(f.clone()), "duplicate family: {f}");
         }
     }
+
+    #[tokio::test]
+    async fn mt_fonts_list_command_returns_ok() {
+        let families = mt_fonts_list().await.unwrap();
+        // Same shape as cached helper.
+        let cached = list_families();
+        assert_eq!(families, cached);
+    }
 }

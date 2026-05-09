@@ -831,6 +831,37 @@ mod tests {
             .any(|e| e.pointer("/change/name").and_then(|v| v.as_str()) == Some("nested.md")));
     }
 
+    #[tokio::test]
+    async fn mt_close_project_root_is_a_no_op_stub() {
+        // No watchers are registered yet, so the command is a marker-
+        // only IPC sink. Just verify it returns Ok without panicking.
+        mt_close_project_root("/some/path".to_string()).await.unwrap();
+        mt_close_project_root("".to_string()).await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn mt_close_window_confirm_is_a_no_op_sink() {
+        // Phase-B4 step-3 uses this purely as a v1-IPC-compat sink; the
+        // dialog runs renderer-side. Returns Ok unconditionally.
+        crate::m001_save_close::mt_close_window_confirm(vec![])
+            .await
+            .unwrap();
+        crate::m001_save_close::mt_close_window_confirm(vec![serde_json::json!({"k":"v"})])
+            .await
+            .unwrap();
+    }
+
+    #[tokio::test]
+    async fn mt_update_sidebar_menu_is_a_no_op_stub() {
+        mt_update_sidebar_menu(serde_json::json!({"any": 1})).await.unwrap();
+        mt_update_sidebar_menu(serde_json::json!(null)).await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn mt_request_window_content_size_is_a_no_op_stub() {
+        mt_request_window_content_size(serde_json::json!([800, 600])).await.unwrap();
+    }
+
     #[test]
     fn build_open_new_tab_payload_constructs_imarkdowndocumentraw() {
         let dir = TempDir::new().unwrap();
