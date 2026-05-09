@@ -66,7 +66,7 @@ impl Default for MainCloseSm {
 /// can update the tab state directly without listening for separate
 /// `mt::tab-saved` / `mt::set-pathname` events. Path B-clean W2a
 /// canonical save flow.
-#[derive(serde::Serialize)]
+#[derive(serde::Serialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct SavedTabState {
     pub id: String,
@@ -186,16 +186,28 @@ async fn pick_save_path(
 /// batch save (mt_save_and_close_tabs) still emits them so the
 /// renderer can update tabs as each completes.
 async fn save_to_path_outcome(
-    app: &AppHandle,
+    _app: &AppHandle,
     sec: &State<'_, SecurityCtx>,
     id: &str,
     target_path: &str,
     markdown: &str,
     was_picked: bool,
 ) -> Result<Option<SavedTabState>, String> {
-    match crate::m013b::fs::mt_fs_write(target_path.to_string(), markdown.to_string(), sec.clone())
-        .await
-    {
+    save_to_path_inner(&sec.sandbox(), id, target_path, markdown, was_picked)
+}
+
+/// Pure-logic save: writes via fs_write_inner, formats SavedTabState on
+/// success, and produces the same error text the renderer expects.
+/// Extracted so unit tests can exercise the save flow without an
+/// AppHandle / Tauri runtime.
+pub(crate) fn save_to_path_inner(
+    sandbox: &std::path::Path,
+    id: &str,
+    target_path: &str,
+    markdown: &str,
+    was_picked: bool,
+) -> Result<Option<SavedTabState>, String> {
+    match crate::m013b::fs::fs_write_inner(target_path, markdown, sandbox) {
         Ok(()) => {
             eprintln!("[m001][save_close][BLOCK_FILE_SAVED id={id} path={target_path} was_picked={was_picked}]");
             let filename = std::path::Path::new(target_path)
@@ -262,16 +274,20 @@ pub async fn mt_close_window(
 /// On ANY save failure, returns Err(...) so the renderer-side await
 /// rejects, the dirty tabs stay dirty, and the window-close path can
 /// abort closing without firing mt::close-window.
-#[tauri::command]
-pub async fn mt_save_and_close_tabs(
+/// Pure-logic core of mt_save_and_close_tabs. Returns
+/// `Ok((saved_ids, success_events))` where success_events is a list of
+/// `(channel, id)` the caller emits, or `Err((aggregated_msg, failure_events))`
+/// on partial/total failure. Extracted so unit tests can exercise both
+/// outcomes without an AppHandle. Untitled entries (empty pathname) are
+/// silently skipped — caller is expected to have warned the user.
+pub(crate) fn save_and_close_inner(
+    sandbox: &std::path::Path,
     args: Vec<serde_json::Value>,
-    app: AppHandle,
-    sec: State<'_, SecurityCtx>,
-) -> Result<(), String> {
-    let unsaved = args;
+) -> Result<Vec<String>, (String, Vec<(String, String)>, Vec<String>)> {
     let mut saved_ids: Vec<String> = Vec::new();
     let mut error_messages: Vec<String> = Vec::new();
-    for entry in unsaved {
+    let mut failure_pairs: Vec<(String, String)> = Vec::new();
+    for entry in args {
         let id = entry
             .get("id")
             .and_then(|v| v.as_str())
@@ -288,15 +304,13 @@ pub async fn mt_save_and_close_tabs(
             .unwrap_or("")
             .to_string();
         if path.is_empty() {
-            // Untitled — silently skip; caller already warned the user.
             continue;
         }
-        match crate::m013b::fs::mt_fs_write(path.clone(), markdown, sec.clone()).await {
+        match crate::m013b::fs::fs_write_inner(&path, &markdown, sandbox) {
             Ok(()) => {
                 eprintln!(
                     "[m001][save_close][BLOCK_FILE_SAVED id={id} path={path} batch=save_and_close]"
                 );
-                let _ = app.emit("mt::tab-saved", id.clone());
                 saved_ids.push(id);
             }
             Err(e) => {
@@ -304,38 +318,63 @@ pub async fn mt_save_and_close_tabs(
                 eprintln!(
                     "[m001][save_close][BLOCK_FILE_SAVE_FAILED id={id} path={path} batch=save_and_close reason={msg}]"
                 );
-                let _ = app.emit("mt::tab-save-failure", (id, msg.clone()));
+                failure_pairs.push((id, msg.clone()));
                 error_messages.push(msg);
             }
         }
     }
     if !error_messages.is_empty() {
-        // At least one save failed: do NOT emit force-close so the
-        // renderer keeps the dirty tabs visible. Caller's await will
-        // reject; window-close path will abort and not call
-        // mt::close-window. User can retry from the existing dialog.
         eprintln!(
             "[m001][save_close][BLOCK_BATCH_PARTIAL_FAILURE saved={} failed={}]",
             saved_ids.len(),
             error_messages.len()
         );
-        return Err(format!(
-            "{} tab(s) failed to save: {}",
-            error_messages.len(),
-            error_messages.join("; ")
+        return Err((
+            format!(
+                "{} tab(s) failed to save: {}",
+                error_messages.len(),
+                error_messages.join("; ")
+            ),
+            failure_pairs,
+            saved_ids,
         ));
     }
-    // All saves OK — tell renderer to close those tabs. NOTE: do NOT
-    // destroy the window here; that's mt_close_window's job (called
-    // separately by the window-close path).
     if !saved_ids.is_empty() {
         eprintln!(
             "[m001][save_close][BLOCK_FORCE_CLOSE_TABS count={}]",
             saved_ids.len()
         );
-        let _ = app.emit("mt::force-close-tabs-by-id", saved_ids);
     }
-    Ok(())
+    Ok(saved_ids)
+}
+
+#[tauri::command]
+pub async fn mt_save_and_close_tabs(
+    args: Vec<serde_json::Value>,
+    app: AppHandle,
+    sec: State<'_, SecurityCtx>,
+) -> Result<(), String> {
+    let sandbox = sec.sandbox();
+    match save_and_close_inner(&sandbox, args) {
+        Ok(saved_ids) => {
+            for id in &saved_ids {
+                let _ = app.emit("mt::tab-saved", id.clone());
+            }
+            if !saved_ids.is_empty() {
+                let _ = app.emit("mt::force-close-tabs-by-id", saved_ids);
+            }
+            Ok(())
+        }
+        Err((agg_msg, failures, saved_ids)) => {
+            for id in &saved_ids {
+                let _ = app.emit("mt::tab-saved", id.clone());
+            }
+            for (id, msg) in failures {
+                let _ = app.emit("mt::tab-save-failure", (id, msg));
+            }
+            Err(agg_msg)
+        }
+    }
 }
 
 #[tauri::command]
@@ -418,11 +457,159 @@ pub fn wire_close_handler<R: tauri::Runtime>(window: &WebviewWindow<R>) {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serde_json::json;
+    use tempfile::TempDir;
 
     #[test]
     fn main_close_sm_default_is_idle() {
         let sm = MainCloseSm::default();
         assert_eq!(sm.0.lock().unwrap().state(), CloseState::Idle);
+    }
+
+    #[test]
+    fn save_to_path_inner_writes_and_returns_state() {
+        let dir = TempDir::new().unwrap();
+        let target = dir.path().join("note.md");
+        let result = save_to_path_inner(
+            dir.path(),
+            "tab-1",
+            target.to_str().unwrap(),
+            "# hello",
+            true,
+        )
+        .unwrap()
+        .unwrap();
+        assert_eq!(result.id, "tab-1");
+        assert_eq!(result.pathname, target.to_str().unwrap());
+        assert_eq!(result.filename, "note.md");
+        assert!(result.is_saved);
+        assert_eq!(std::fs::read_to_string(&target).unwrap(), "# hello");
+    }
+
+    #[test]
+    fn save_to_path_inner_propagates_write_errors_as_string() {
+        // Write outside sandbox to force m010 PATH_DENIED.
+        let dir = TempDir::new().unwrap();
+        let outside = TempDir::new().unwrap();
+        let target = outside.path().join("nope.md");
+        let err = save_to_path_inner(
+            dir.path(),
+            "tab-1",
+            target.to_str().unwrap(),
+            "x",
+            false,
+        )
+        .unwrap_err();
+        assert!(err.contains("MT_FS_PATH_DENIED"), "got {err}");
+    }
+
+    #[test]
+    fn save_to_path_inner_handles_filename_extraction_for_root_path() {
+        // Edge: path with no file_name (e.g. "/") — filename falls back to "".
+        let dir = TempDir::new().unwrap();
+        // Try writing to something with empty filename — fs::create on "/"
+        // will fail but we use a path that DOES write but extracts "" as
+        // filename: writing to a normal nested path proves the happy
+        // file_name extraction; writing to "" path exercises the fallback.
+        // Use a file ending in / which extract returns None for.
+        let res = save_to_path_inner(
+            dir.path(),
+            "tab-empty",
+            dir.path().to_str().unwrap(), // a directory path → file_name returns the dirname
+            "x",
+            false,
+        );
+        // Writing to an existing dir fails (File::create on dir).
+        assert!(res.is_err());
+    }
+
+    #[test]
+    fn save_and_close_inner_all_succeed_returns_saved_ids() {
+        let dir = TempDir::new().unwrap();
+        let p1 = dir.path().join("a.md");
+        let p2 = dir.path().join("b.md");
+        let args = vec![
+            json!({"id": "1", "pathname": p1.to_str().unwrap(), "markdown": "hello"}),
+            json!({"id": "2", "pathname": p2.to_str().unwrap(), "markdown": "world"}),
+        ];
+        let saved = save_and_close_inner(dir.path(), args).unwrap();
+        assert_eq!(saved, vec!["1".to_string(), "2".to_string()]);
+        assert_eq!(std::fs::read_to_string(&p1).unwrap(), "hello");
+        assert_eq!(std::fs::read_to_string(&p2).unwrap(), "world");
+    }
+
+    #[test]
+    fn save_and_close_inner_skips_untitled_entries() {
+        let dir = TempDir::new().unwrap();
+        let p = dir.path().join("real.md");
+        let args = vec![
+            // Untitled — empty pathname; should be silently skipped.
+            json!({"id": "untitled-1", "pathname": "", "markdown": "lost"}),
+            json!({"id": "real-1", "pathname": p.to_str().unwrap(), "markdown": "kept"}),
+            // Missing pathname key → defaults to "" → skipped.
+            json!({"id": "untitled-2", "markdown": "lost-too"}),
+        ];
+        let saved = save_and_close_inner(dir.path(), args).unwrap();
+        assert_eq!(saved, vec!["real-1".to_string()]);
+    }
+
+    #[test]
+    fn save_and_close_inner_partial_failure_reports_aggregated_error() {
+        let dir = TempDir::new().unwrap();
+        let outside = TempDir::new().unwrap();
+        let p_ok = dir.path().join("ok.md");
+        let p_bad = outside.path().join("blocked.md"); // outside sandbox
+        let args = vec![
+            json!({"id": "good", "pathname": p_ok.to_str().unwrap(), "markdown": "yay"}),
+            json!({"id": "bad", "pathname": p_bad.to_str().unwrap(), "markdown": "boom"}),
+        ];
+        let (msg, failures, saved) =
+            save_and_close_inner(dir.path(), args).unwrap_err();
+        assert!(msg.contains("1 tab(s) failed"), "got {msg}");
+        assert_eq!(saved, vec!["good".to_string()]);
+        assert_eq!(failures.len(), 1);
+        assert_eq!(failures[0].0, "bad");
+        assert!(failures[0].1.contains("MT_FS_PATH_DENIED"));
+        // The good file did get written (we save first, fail second).
+        assert!(p_ok.exists());
+    }
+
+    #[test]
+    fn save_and_close_inner_empty_args_is_ok_with_no_ids() {
+        let dir = TempDir::new().unwrap();
+        let saved = save_and_close_inner(dir.path(), vec![]).unwrap();
+        assert!(saved.is_empty());
+    }
+
+    #[test]
+    fn saved_tab_state_serializes_with_camel_case() {
+        let s = SavedTabState {
+            id: "tab-1".to_string(),
+            pathname: "/tmp/note.md".to_string(),
+            filename: "note.md".to_string(),
+            is_saved: true,
+        };
+        let json = serde_json::to_string(&s).unwrap();
+        assert!(json.contains("\"isSaved\":true"), "got {json}");
+        assert!(json.contains("\"pathname\":\"/tmp/note.md\""));
+        assert!(json.contains("\"filename\":\"note.md\""));
+    }
+
+    #[test]
+    fn save_and_close_inner_all_failures_returns_empty_saved_list() {
+        let dir = TempDir::new().unwrap();
+        let outside = TempDir::new().unwrap();
+        let p1 = outside.path().join("blocked-1.md");
+        let p2 = outside.path().join("blocked-2.md");
+        let args = vec![
+            json!({"id": "a", "pathname": p1.to_str().unwrap(), "markdown": "x"}),
+            json!({"id": "b", "pathname": p2.to_str().unwrap(), "markdown": "y"}),
+        ];
+        let (msg, failures, saved) =
+            save_and_close_inner(dir.path(), args).unwrap_err();
+        assert!(msg.contains("2 tab(s) failed"));
+        assert!(saved.is_empty());
+        assert_eq!(failures.len(), 2);
     }
 
     #[test]
