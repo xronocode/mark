@@ -265,5 +265,77 @@ export const setupIpcListeners = async () => {
     bus.emit('open-command-spellchecker-switch-language')
   })
 
+  // Path B-clean W6: listenForMain + layout + commandCenter +
+  // notification listeners. All bus.emit forwarders or APPLY_*
+  // action calls.
+  const { useListenForMainStore } = await import('./store/listenForMain')
+  const lfm = useListenForMainStore()
+  await listen('mt::editor-edit-action', (event) => {
+    const type = event?.payload
+    if (type) lfm.EDITOR_EDIT_ACTION(type)
+  })
+  await listen('mt::about-dialog', () => bus.emit('aboutDialog'))
+  await listen('mt::show-export-dialog', (event) => {
+    bus.emit('showExportDialog', event?.payload)
+  })
+  await listen('mt::editor-paragraph-action', (event) => {
+    const p = event?.payload
+    const type = (p && typeof p === 'object') ? p.type : p
+    if (type) bus.emit('paragraph', type)
+  })
+  await listen('mt::editor-format-action', (event) => {
+    const p = event?.payload
+    const type = (p && typeof p === 'object') ? p.type : p
+    if (type) bus.emit('format', type)
+  })
+
+  // Layout listeners (kept dormant until F-MENU-WIRE-TAURI emits).
+  const { useLayoutStore } = await import('./store/layout')
+  const layoutStore = useLayoutStore()
+  await listen('mt::set-view-layout', (event) => {
+    const layout = event?.payload
+    if (layout && typeof layout === 'object') {
+      if (layout.rightColumn) {
+        layoutStore.SET_LAYOUT({
+          ...layout,
+          rightColumn: layout.rightColumn === layoutStore.rightColumn ? '' : layout.rightColumn,
+          showSideBar: true
+        })
+      } else {
+        layoutStore.SET_LAYOUT(layout)
+      }
+      layoutStore.DISPATCH_LAYOUT_MENU_ITEMS()
+    }
+  })
+  await listen('mt::toggle-view-layout-entry', (event) => {
+    const entryName = event?.payload
+    if (typeof entryName === 'string') {
+      layoutStore.TOGGLE_LAYOUT_ENTRY(entryName)
+      layoutStore.DISPATCH_LAYOUT_MENU_ITEMS()
+    }
+  })
+
+  // Command center (keybindings + execute-by-id)
+  const { useCommandCenterStore } = await import('./store/commandCenter')
+  const ccStore = useCommandCenterStore()
+  await listen('mt::keybindings-response', (event) => {
+    const map = event?.payload
+    if (map && typeof map === 'object') ccStore.APPLY_KEYBINDINGS(map)
+  })
+  await listen('mt::execute-command-by-id', (event) => {
+    const id = event?.payload
+    if (typeof id === 'string') ccStore.EXECUTE_COMMAND_BY_ID(id)
+  })
+
+  // Notifications
+  const { useNotificationStore } = await import('./store/notification')
+  const noteStore = useNotificationStore()
+  await listen('mt::show-notification', (event) => {
+    noteStore.SHOW_NOTIFICATION(event?.payload)
+  })
+  await listen('mt::pandoc-not-exists', (event) => {
+    noteStore.SHOW_PANDOC_MISSING(event?.payload)
+  })
+
   console.log('[boot][ipc][BLOCK_ALL_LISTENERS_REGISTERED]')
 }

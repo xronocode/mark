@@ -213,6 +213,9 @@ export const usePreferencesStore = defineStore('preferences', {
     },
 
     DISPATCH_EDITOR_VIEW_STATE(viewState) {
+      // Path B-clean W6: legacy mt::view-layout-changed → mt_view_layout_changed
+      // (m_v1_compat). Backend command still works; full migration to
+      // canonical module deferred to W6+.
       const { windowId } = window.marktext.env
       window.electron.ipcRenderer.send('mt::view-layout-changed', windowId, viewState)
     }

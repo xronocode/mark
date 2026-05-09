@@ -29,15 +29,9 @@ export const useCommandCenterStore = defineStore('commandCenter', {
       bus.on('cmd::sort-commands', () => {
         this.SORT_COMMANDS()
       })
-      window.electron.ipcRenderer.on('mt::keybindings-response', (e, keybindingMap) => {
-        const { subcommands } = this.rootCommand
-        for (const entry of subcommands) {
-          const value = keybindingMap[entry.id]
-          if (value) {
-            entry.shortcut = normalizeAccelerator(value)
-          }
-        }
-      })
+      // Path B-clean W6: 2 IPC listeners (mt::keybindings-response,
+      // mt::execute-command-by-id) moved to bootstrap-ipc.js. They
+      // call APPLY_KEYBINDINGS / EXECUTE_COMMAND_BY_ID below.
 
       // Register commands that are created at runtime.
       bus.on('cmd::register-command', (command) => {
@@ -48,9 +42,19 @@ export const useCommandCenterStore = defineStore('commandCenter', {
       bus.on('cmd::execute', (commandId) => {
         executeCommand(this, commandId)
       })
-      window.electron.ipcRenderer.on('mt::execute-command-by-id', (e, commandId) => {
-        executeCommand(this, commandId)
-      })
+    },
+
+    APPLY_KEYBINDINGS(keybindingMap) {
+      if (!keybindingMap || typeof keybindingMap !== 'object') return
+      const { subcommands } = this.rootCommand
+      for (const entry of subcommands) {
+        const value = keybindingMap[entry.id]
+        if (value) entry.shortcut = normalizeAccelerator(value)
+      }
+    },
+
+    EXECUTE_COMMAND_BY_ID(commandId) {
+      executeCommand(this, commandId)
     }
   }
 })

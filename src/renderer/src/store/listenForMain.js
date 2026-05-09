@@ -16,31 +16,25 @@ export const useListenForMainStore = defineStore('listenForMain', {
       bus.emit(type, type)
     },
 
+    /**
+     * Path B-clean W6: 5 IPC listeners moved to bootstrap-ipc.js
+     * (boot-time registration). Bus subscriptions kept inline since
+     * they don't cross IPC. All three actions reduce to no-op aliases
+     * for app.vue's existing onMounted calls; deletion in a final
+     * post-W6 cleanup pass.
+     */
     LISTEN_FOR_EDIT() {
-      window.electron.ipcRenderer.on('mt::editor-edit-action', (e, type) => {
-        this.EDITOR_EDIT_ACTION(type)
-      })
       bus.on('mt::editor-edit-action', (type) => {
         this.EDITOR_EDIT_ACTION(type)
       })
     },
 
     LISTEN_FOR_SHOW_DIALOG() {
-      window.electron.ipcRenderer.on('mt::about-dialog', () => {
-        bus.emit('aboutDialog')
-      })
-      window.electron.ipcRenderer.on('mt::show-export-dialog', (e, type) => {
-        bus.emit('showExportDialog', type)
-      })
+      // no-op; see bootstrap-ipc.js
     },
 
     LISTEN_FOR_PARAGRAPH_INLINE_STYLE() {
-      window.electron.ipcRenderer.on('mt::editor-paragraph-action', (e, { type }) => {
-        bus.emit('paragraph', type)
-      })
-      window.electron.ipcRenderer.on('mt::editor-format-action', (e, { type }) => {
-        bus.emit('format', type)
-      })
+      // no-op; see bootstrap-ipc.js
     }
   }
 })
