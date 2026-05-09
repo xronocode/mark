@@ -46,24 +46,21 @@ use tauri::State;
 /// silently OOM the editor process. Configurable in B3 prefs.
 pub const MAX_READ_BYTES: u64 = 10 * 1024 * 1024;
 
-/// Read a UTF-8 file from disk. v1 equivalent: fileUtils.readFile(path, 'utf8').
-#[tauri::command]
-pub async fn mt_fs_read(
-    path: String,
-    sec: State<'_, SecurityCtx>,
-) -> Result<String, IpcError> {
+/// Inner pure-logic read: same body as `mt_fs_read` but takes a sandbox
+/// directly instead of a Tauri `State`. Lets the unit tests exercise the
+/// full code path without booting an app.
+pub(crate) fn fs_read_inner(path: &str, sandbox: &Path) -> Result<String, IpcError> {
     let cmd = "mt::fs::read";
-    let requested = Path::new(&path);
-    let sandbox = sec.sandbox();
+    let requested = Path::new(path);
 
-    eprintln!("[FsCmd][read][BLOCK_VALIDATE_PATH path={}]", redact(&path));
-    let validated = m010_security::check_path(&sandbox, requested)
+    eprintln!("[FsCmd][read][BLOCK_VALIDATE_PATH path={}]", redact(path));
+    let validated = m010_security::check_path(sandbox, requested)
         .map_err(|e| IpcError::from_security_path(cmd, e))?;
 
     // Refuse non-regular inodes (FIFO, socket, dir, device).
     let meta = fs::metadata(&validated).map_err(|e| IpcError::from_io(cmd, e))?;
     if !meta.is_file() {
-        eprintln!("[FsCmd][read][BLOCK_NOT_REGULAR path={}]", redact(&path));
+        eprintln!("[FsCmd][read][BLOCK_NOT_REGULAR path={}]", redact(path));
         return Err(IpcError::not_regular_file(cmd, &validated));
     }
     if meta.len() > MAX_READ_BYTES {
@@ -91,7 +88,7 @@ pub async fn mt_fs_read(
     let decoded = m014_encoding::detect_and_decode(&bytes);
     eprintln!(
         "[FsCmd][read][BLOCK_READ_FROM_DISK path={} bytes={} chars={} label={} replaced={}]",
-        redact(&path),
+        redact(path),
         bytes.len(),
         decoded.text.len(),
         decoded.label,
@@ -100,21 +97,22 @@ pub async fn mt_fs_read(
     Ok(decoded.text)
 }
 
-/// Write a UTF-8 string to a file. Creates parent dirs if missing
-/// (mirrors v1.2.3 fs-extra outputFile semantics). NOT atomic at the
-/// rename level — atomic write is a B2-step-2a follow-up.
+/// Read a UTF-8 file from disk. v1 equivalent: fileUtils.readFile(path, 'utf8').
 #[tauri::command]
-pub async fn mt_fs_write(
+pub async fn mt_fs_read(
     path: String,
-    content: String,
     sec: State<'_, SecurityCtx>,
-) -> Result<(), IpcError> {
-    let cmd = "mt::fs::write";
-    let requested = Path::new(&path);
-    let sandbox = sec.sandbox();
+) -> Result<String, IpcError> {
+    fs_read_inner(&path, &sec.sandbox())
+}
 
-    eprintln!("[FsCmd][write][BLOCK_VALIDATE_PATH path={}]", redact(&path));
-    let validated = m010_security::check_path(&sandbox, requested)
+/// Inner pure-logic write — see `fs_read_inner` for rationale.
+pub(crate) fn fs_write_inner(path: &str, content: &str, sandbox: &Path) -> Result<(), IpcError> {
+    let cmd = "mt::fs::write";
+    let requested = Path::new(path);
+
+    eprintln!("[FsCmd][write][BLOCK_VALIDATE_PATH path={}]", redact(path));
+    let validated = m010_security::check_path(sandbox, requested)
         .map_err(|e| IpcError::from_security_path(cmd, e))?;
 
     if let Some(parent) = validated.parent() {
@@ -126,10 +124,22 @@ pub async fn mt_fs_write(
     f.sync_all().map_err(|e| IpcError::from_io(cmd, e))?;
     eprintln!(
         "[FsCmd][write][BLOCK_WRITE_TO_DISK path={} bytes={} fsync=true]",
-        redact(&path),
+        redact(path),
         content.len()
     );
     Ok(())
+}
+
+/// Write a UTF-8 string to a file. Creates parent dirs if missing
+/// (mirrors v1.2.3 fs-extra outputFile semantics). NOT atomic at the
+/// rename level — atomic write is a B2-step-2a follow-up.
+#[tauri::command]
+pub async fn mt_fs_write(
+    path: String,
+    content: String,
+    sec: State<'_, SecurityCtx>,
+) -> Result<(), IpcError> {
+    fs_write_inner(&path, &content, &sec.sandbox())
 }
 
 /// Plain JSON-cloneable file stats. Preserves the v1.2.3 contextBridge
@@ -145,18 +155,12 @@ pub struct FsStat {
     pub is_symbolic_link: bool,
 }
 
-/// Stat a path. Uses symlink_metadata so symlinks themselves are
-/// reported (is_symbolic_link), not their targets.
-#[tauri::command]
-pub async fn mt_fs_stat(
-    path: String,
-    sec: State<'_, SecurityCtx>,
-) -> Result<FsStat, IpcError> {
+/// Inner pure-logic stat — see `fs_read_inner` for rationale.
+pub(crate) fn fs_stat_inner(path: &str, sandbox: &Path) -> Result<FsStat, IpcError> {
     let cmd = "mt::fs::stat";
-    let requested = Path::new(&path);
-    let sandbox = sec.sandbox();
+    let requested = Path::new(path);
 
-    let validated = m010_security::check_path(&sandbox, requested)
+    let validated = m010_security::check_path(sandbox, requested)
         .map_err(|e| IpcError::from_security_path(cmd, e))?;
 
     let meta = fs::symlink_metadata(&validated).map_err(|e| IpcError::from_io(cmd, e))?;
@@ -187,18 +191,22 @@ pub async fn mt_fs_stat(
     })
 }
 
-/// List directory entry names (NOT full paths — matches v1's
-/// fs.readdir(path) → string[]).
+/// Stat a path. Uses symlink_metadata so symlinks themselves are
+/// reported (is_symbolic_link), not their targets.
 #[tauri::command]
-pub async fn mt_fs_readdir(
+pub async fn mt_fs_stat(
     path: String,
     sec: State<'_, SecurityCtx>,
-) -> Result<Vec<String>, IpcError> {
-    let cmd = "mt::fs::readdir";
-    let requested = Path::new(&path);
-    let sandbox = sec.sandbox();
+) -> Result<FsStat, IpcError> {
+    fs_stat_inner(&path, &sec.sandbox())
+}
 
-    let validated = m010_security::check_path(&sandbox, requested)
+/// Inner pure-logic readdir — see `fs_read_inner` for rationale.
+pub(crate) fn fs_readdir_inner(path: &str, sandbox: &Path) -> Result<Vec<String>, IpcError> {
+    let cmd = "mt::fs::readdir";
+    let requested = Path::new(path);
+
+    let validated = m010_security::check_path(sandbox, requested)
         .map_err(|e| IpcError::from_security_path(cmd, e))?;
 
     let mut names = Vec::new();
@@ -212,18 +220,22 @@ pub async fn mt_fs_readdir(
     Ok(names)
 }
 
-/// Delete a file. Refuses directories (use a separate command if/when
-/// directory deletion is exposed in v2.x).
+/// List directory entry names (NOT full paths — matches v1's
+/// fs.readdir(path) → string[]).
 #[tauri::command]
-pub async fn mt_fs_unlink(
+pub async fn mt_fs_readdir(
     path: String,
     sec: State<'_, SecurityCtx>,
-) -> Result<(), IpcError> {
-    let cmd = "mt::fs::unlink";
-    let requested = Path::new(&path);
-    let sandbox = sec.sandbox();
+) -> Result<Vec<String>, IpcError> {
+    fs_readdir_inner(&path, &sec.sandbox())
+}
 
-    let validated = m010_security::check_path(&sandbox, requested)
+/// Inner pure-logic unlink — see `fs_read_inner` for rationale.
+pub(crate) fn fs_unlink_inner(path: &str, sandbox: &Path) -> Result<(), IpcError> {
+    let cmd = "mt::fs::unlink";
+    let requested = Path::new(path);
+
+    let validated = m010_security::check_path(sandbox, requested)
         .map_err(|e| IpcError::from_security_path(cmd, e))?;
 
     let meta = fs::symlink_metadata(&validated).map_err(|e| IpcError::from_io(cmd, e))?;
@@ -233,9 +245,19 @@ pub async fn mt_fs_unlink(
     fs::remove_file(&validated).map_err(|e| IpcError::from_io(cmd, e))?;
     eprintln!(
         "[FsCmd][unlink][BLOCK_UNLINK_DONE path={}]",
-        redact(&path)
+        redact(path)
     );
     Ok(())
+}
+
+/// Delete a file. Refuses directories (use a separate command if/when
+/// directory deletion is exposed in v2.x).
+#[tauri::command]
+pub async fn mt_fs_unlink(
+    path: String,
+    sec: State<'_, SecurityCtx>,
+) -> Result<(), IpcError> {
+    fs_unlink_inner(&path, &sec.sandbox())
 }
 
 /// Path redaction for trace logs. V-M-002 marker spec calls for
@@ -261,85 +283,42 @@ mod tests {
         c
     }
 
-    // Tauri State requires constructing one; for unit tests we drop down
-    // to the inner logic by extracting it. The #[tauri::command] handlers
-    // are thin wrappers — we test via a direct State construction is
-    // hard outside Builder, so we reach into the underlying logic by
-    // calling tauri::State::default() — which doesn't work. Instead
-    // we rewrite the body into a private fn and test that, OR we test
-    // via end-to-end runtime. For now: thin re-implement inline to
-    // test the same logic path.
-
-    async fn read_under(sandbox: &Path, path: &str) -> Result<String, IpcError> {
-        // Mirror mt_fs_read body without the State wrapper. Real Tauri
-        // command dispatch is identical; we test the functional core.
-        let cmd = "mt::fs::read";
-        let requested = Path::new(path);
-        let validated = m010_security::check_path(sandbox, requested)
-            .map_err(|e| IpcError::from_security_path(cmd, e))?;
-        let meta = fs::metadata(&validated).map_err(|e| IpcError::from_io(cmd, e))?;
-        if !meta.is_file() {
-            return Err(IpcError::not_regular_file(cmd, &validated));
-        }
-        let bytes = fs::read(&validated).map_err(|e| IpcError::from_io(cmd, e))?;
-        Ok(m014_encoding::detect_and_decode(&bytes).text)
-    }
-
-    async fn write_under(sandbox: &Path, path: &str, content: &str) -> Result<(), IpcError> {
-        let cmd = "mt::fs::write";
-        let requested = Path::new(path);
-        let validated = m010_security::check_path(sandbox, requested)
-            .map_err(|e| IpcError::from_security_path(cmd, e))?;
-        if let Some(parent) = validated.parent() {
-            fs::create_dir_all(parent).map_err(|e| IpcError::from_io(cmd, e))?;
-        }
-        let mut f = fs::File::create(&validated).map_err(|e| IpcError::from_io(cmd, e))?;
-        f.write_all(content.as_bytes())
-            .map_err(|e| IpcError::from_io(cmd, e))?;
-        Ok(())
-    }
-
-    #[tokio::test]
-    async fn read_write_utf8_roundtrip() {
+    #[test]
+    fn read_write_utf8_roundtrip() {
         let dir = TempDir::new().unwrap();
         let target = dir.path().join("note.md");
-        write_under(dir.path(), target.to_str().unwrap(), "# Hello\n\nutf8 пример 🚀")
-            .await
-            .unwrap();
-        let read = read_under(dir.path(), target.to_str().unwrap()).await.unwrap();
+        fs_write_inner(target.to_str().unwrap(), "# Hello\n\nutf8 пример 🚀", dir.path()).unwrap();
+        let read = fs_read_inner(target.to_str().unwrap(), dir.path()).unwrap();
         assert_eq!(read, "# Hello\n\nutf8 пример 🚀");
     }
 
-    #[tokio::test]
-    async fn read_outside_sandbox_rejected_by_m010() {
+    #[test]
+    fn read_outside_sandbox_rejected_by_m010() {
         let dir = TempDir::new().unwrap();
-        // Write a file inside another tempdir.
         let outside = TempDir::new().unwrap();
         let target = outside.path().join("secret.txt");
         write(&target, "secret").unwrap();
-        let err = read_under(dir.path(), target.to_str().unwrap()).await.unwrap_err();
+        let err = fs_read_inner(target.to_str().unwrap(), dir.path()).unwrap_err();
         assert_eq!(err.code, MT_FS_PATH_DENIED, "got {err:?}");
     }
 
-    #[tokio::test]
-    async fn read_nonexistent_returns_not_found() {
+    #[test]
+    fn read_nonexistent_returns_not_found() {
         let dir = TempDir::new().unwrap();
         let missing = dir.path().join("ghost.md");
-        let err = read_under(dir.path(), missing.to_str().unwrap())
-            .await
-            .unwrap_err();
+        let err = fs_read_inner(missing.to_str().unwrap(), dir.path()).unwrap_err();
         assert_eq!(err.code, MT_FS_NOT_FOUND);
     }
 
-    #[tokio::test]
-    async fn read_directory_returns_not_regular() {
+    #[test]
+    fn read_directory_returns_not_regular() {
         let dir = TempDir::new().unwrap();
-        let err = read_under(dir.path(), dir.path().to_str().unwrap()).await.unwrap_err();
+        let err = fs_read_inner(dir.path().to_str().unwrap(), dir.path()).unwrap_err();
         assert_eq!(err.code, "MT_FS_NOT_REGULAR");
     }
 
-    #[tokio::test]
-    async fn read_oversized_rejected() {
+    #[test]
+    fn read_oversized_rejected() {
         let dir = TempDir::new().unwrap();
         let big = dir.path().join("big.bin");
         // 11 MB file — over MAX_READ_BYTES
@@ -349,49 +328,148 @@ mod tests {
             f.write_all(&chunk).unwrap();
         }
         drop(f);
-        // Use mt_fs_read's pre-read size check (test via direct fn would
-        // skip the size guard; replicate inline for fidelity)
-        let validated = m010_security::check_path(dir.path(), &big).unwrap();
-        let meta = fs::metadata(&validated).unwrap();
-        assert!(meta.len() > MAX_READ_BYTES);
+        let err = fs_read_inner(big.to_str().unwrap(), dir.path()).unwrap_err();
+        assert_eq!(err.code, "MT_FS_TOO_LARGE");
+        assert!(err.message.contains("MAX_READ_BYTES"));
     }
 
     #[test]
     fn nul_byte_path_rejected_via_m010() {
         let _ctx = ctx_for(Path::new("/tmp"));
-        let err = m010_security::check_path(Path::new("/tmp"), Path::new("/tmp/x\0.md"))
-            .unwrap_err();
-        let mapped = IpcError::from_security_path("mt::fs::read", err);
-        assert_eq!(mapped.code, MT_FS_PATH_DENIED);
+        let err = fs_read_inner("/tmp/x\0.md", Path::new("/tmp")).unwrap_err();
+        assert_eq!(err.code, MT_FS_PATH_DENIED);
     }
 
-    #[tokio::test]
-    async fn readdir_returns_sorted_names() {
+    #[test]
+    fn readdir_returns_sorted_names() {
         let dir = TempDir::new().unwrap();
         write(dir.path().join("c.md"), "").unwrap();
         write(dir.path().join("a.md"), "").unwrap();
         write(dir.path().join("b.md"), "").unwrap();
-        let cmd = "mt::fs::readdir";
-        let validated = m010_security::check_path(dir.path(), dir.path()).unwrap();
-        let mut names = Vec::new();
-        for entry in fs::read_dir(&validated).unwrap() {
-            names.push(entry.unwrap().file_name().to_string_lossy().to_string());
-        }
-        names.sort();
+        let names = fs_readdir_inner(dir.path().to_str().unwrap(), dir.path()).unwrap();
         assert_eq!(names, vec!["a.md", "b.md", "c.md"]);
-        let _ = cmd; // suppress unused-warn
     }
 
-    #[tokio::test]
-    async fn unlink_removes_file_inside_sandbox() {
+    #[test]
+    fn readdir_outside_sandbox_rejected() {
+        let dir = TempDir::new().unwrap();
+        let outside = TempDir::new().unwrap();
+        let err = fs_readdir_inner(outside.path().to_str().unwrap(), dir.path()).unwrap_err();
+        assert_eq!(err.code, MT_FS_PATH_DENIED);
+    }
+
+    #[test]
+    fn readdir_on_missing_dir_returns_not_found() {
+        let dir = TempDir::new().unwrap();
+        let missing = dir.path().join("ghost-dir");
+        let err = fs_readdir_inner(missing.to_str().unwrap(), dir.path()).unwrap_err();
+        assert_eq!(err.code, MT_FS_NOT_FOUND);
+    }
+
+    #[test]
+    fn unlink_removes_file_inside_sandbox() {
         let dir = TempDir::new().unwrap();
         let target = dir.path().join("trash.md");
         write(&target, "x").unwrap();
-        let validated = m010_security::check_path(dir.path(), &target).unwrap();
-        let meta = fs::symlink_metadata(&validated).unwrap();
-        assert!(meta.is_file());
-        fs::remove_file(&validated).unwrap();
+        fs_unlink_inner(target.to_str().unwrap(), dir.path()).unwrap();
         assert!(!target.exists());
+    }
+
+    #[test]
+    fn unlink_directory_rejected_as_not_regular() {
+        let dir = TempDir::new().unwrap();
+        let sub = dir.path().join("subdir");
+        fs::create_dir(&sub).unwrap();
+        let err = fs_unlink_inner(sub.to_str().unwrap(), dir.path()).unwrap_err();
+        assert_eq!(err.code, "MT_FS_NOT_REGULAR");
+        assert!(sub.exists(), "directory must remain untouched");
+    }
+
+    #[test]
+    fn unlink_outside_sandbox_rejected() {
+        let dir = TempDir::new().unwrap();
+        let outside = TempDir::new().unwrap();
+        let target = outside.path().join("evict.txt");
+        write(&target, "x").unwrap();
+        let err = fs_unlink_inner(target.to_str().unwrap(), dir.path()).unwrap_err();
+        assert_eq!(err.code, MT_FS_PATH_DENIED);
+        assert!(target.exists(), "outside file must remain");
+    }
+
+    #[test]
+    fn unlink_nonexistent_returns_not_found() {
+        let dir = TempDir::new().unwrap();
+        let missing = dir.path().join("nope.md");
+        let err = fs_unlink_inner(missing.to_str().unwrap(), dir.path()).unwrap_err();
+        assert_eq!(err.code, MT_FS_NOT_FOUND);
+    }
+
+    #[test]
+    fn stat_reports_file_size_and_mtime() {
+        let dir = TempDir::new().unwrap();
+        let target = dir.path().join("a.txt");
+        write(&target, "hello world").unwrap();
+        let s = fs_stat_inner(target.to_str().unwrap(), dir.path()).unwrap();
+        assert_eq!(s.size, 11);
+        assert!(s.is_file);
+        assert!(!s.is_directory);
+        assert!(!s.is_symbolic_link);
+        assert!(s.mtime_ms > 0.0);
+    }
+
+    #[test]
+    fn stat_reports_directory_flag() {
+        let dir = TempDir::new().unwrap();
+        let s = fs_stat_inner(dir.path().to_str().unwrap(), dir.path()).unwrap();
+        assert!(!s.is_file);
+        assert!(s.is_directory);
+        assert!(!s.is_symbolic_link);
+    }
+
+    #[test]
+    fn stat_outside_sandbox_rejected() {
+        let dir = TempDir::new().unwrap();
+        let outside = TempDir::new().unwrap();
+        let target = outside.path().join("secret.bin");
+        write(&target, "x").unwrap();
+        let err = fs_stat_inner(target.to_str().unwrap(), dir.path()).unwrap_err();
+        assert_eq!(err.code, MT_FS_PATH_DENIED);
+    }
+
+    #[test]
+    fn stat_nonexistent_returns_not_found() {
+        let dir = TempDir::new().unwrap();
+        let missing = dir.path().join("ghost.bin");
+        let err = fs_stat_inner(missing.to_str().unwrap(), dir.path()).unwrap_err();
+        assert_eq!(err.code, MT_FS_NOT_FOUND);
+    }
+
+    #[test]
+    fn write_creates_parent_dirs_when_missing() {
+        let dir = TempDir::new().unwrap();
+        let nested = dir.path().join("a/b/c/note.md");
+        fs_write_inner(nested.to_str().unwrap(), "deep", dir.path()).unwrap();
+        assert!(nested.exists());
+        assert_eq!(std::fs::read_to_string(&nested).unwrap(), "deep");
+    }
+
+    #[test]
+    fn write_outside_sandbox_rejected() {
+        let dir = TempDir::new().unwrap();
+        let outside = TempDir::new().unwrap();
+        let target = outside.path().join("intruder.md");
+        let err = fs_write_inner(target.to_str().unwrap(), "x", dir.path()).unwrap_err();
+        assert_eq!(err.code, MT_FS_PATH_DENIED);
+        assert!(!target.exists());
+    }
+
+    #[test]
+    fn write_overwrites_existing_file() {
+        let dir = TempDir::new().unwrap();
+        let target = dir.path().join("note.md");
+        fs_write_inner(target.to_str().unwrap(), "v1", dir.path()).unwrap();
+        fs_write_inner(target.to_str().unwrap(), "v2 longer", dir.path()).unwrap();
+        assert_eq!(std::fs::read_to_string(&target).unwrap(), "v2 longer");
     }
 
     #[test]
