@@ -9,6 +9,9 @@ node_modules/
 dist/
 src/renderer/dist/
 
+# Test coverage reports
+coverage/
+
 # OS / editor cruft
 .DS_Store
 *.log
