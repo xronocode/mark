@@ -8,6 +8,8 @@
 
 **A native, lightweight, security-first WYSIWYG Markdown editor for macOS, built on Tauri 2.**
 
+![Mark editor showing demo markdown with WYSIWYG rendering — dark theme](assets/screenshots/hero-dark.png)
+
 Mark is a from-scratch rewrite of [Mark Text](https://github.com/marktext/marktext) that ditches the 200 MB Electron shell and ships a 25 MB native binary instead. WKWebView for the UI, Rust for the backend, no Chromium runtime, no Node.js runtime. Boots in under a second, sandboxes filesystem access by design, and code-signs ad-hoc — no $99/year Apple Developer account required to ship to friends.
 
 ## Why Mark?
@@ -21,6 +23,12 @@ A markdown editor shouldn't weigh as much as Photoshop and shouldn't take six se
 - **Yours**: No telemetry, no cloud, no plugin marketplace pulling code from strangers. Files are files; the editor stays local.
 
 Mark isn't trying to be the most feature-rich Markdown editor — it's trying to be the lightest one that still feels native on macOS.
+
+### Themes
+
+Light, dark, sepia, and 15+ named palettes (gruvbox, catppuccin, ayu, tokyo-night, solarized, rose-pine, …) ship in the box. Live cross-window broadcast keeps the Editor and Settings windows in sync.
+
+![Mark Preferences — Theme picker](assets/screenshots/themes.png)
 
 > ⚠️ **This is an alpha.** Daily-driver-quality for routine writing on Apple Silicon (that's how it's developed), but it has known gaps. For a frozen-but-shipping Electron-engine alternative right now, install [`mark` (Phase A)](#electron-stable-channel) instead.
 

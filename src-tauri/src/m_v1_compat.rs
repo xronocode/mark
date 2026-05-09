@@ -362,10 +362,18 @@ pub(crate) fn build_open_new_tab_payload(pathname: &str) -> Result<Value, String
 
 /// Shared body: read file at `path` and emit mt::open-new-tab with a
 /// IMarkdownDocumentRaw payload. Used by mt_cmd_open_file (picker),
-/// mt_open_file (sidebar click), and (in future) recents wiring.
-fn emit_open_new_tab(window: &tauri::Window, pathname: &str) -> Result<(), String> {
+/// mt_open_file (sidebar click), main.rs setup (CLI args / `open -a`
+/// Apple Events), and (in future) recents wiring.
+///
+/// Generic over the Emitter trait so callers can pass either `tauri::Window`
+/// (the legacy command-handler param type) or `tauri::WebviewWindow`
+/// (the newer window builder return type used by main.rs setup).
+pub(crate) fn emit_open_new_tab<E: tauri::Emitter<tauri::Wry>>(
+    emitter: &E,
+    pathname: &str,
+) -> Result<(), String> {
     let markdown_document = build_open_new_tab_payload(pathname)?;
-    if let Err(e) = window.emit("mt::open-new-tab", &markdown_document) {
+    if let Err(e) = emitter.emit("mt::open-new-tab", &markdown_document) {
         eprintln!("[v1_compat][open_new_tab][BLOCK_EMIT_FAILED err={e}]");
         return Err(e.to_string());
     }

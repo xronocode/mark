@@ -361,6 +361,21 @@ fn main() {
         }
     }
 
+    // Capture CLI files for the setup hook (move into closure). Each
+    // valid path is converted to absolute form upfront so a path like
+    // `./demo.md` doesn't resolve relative to wherever the binary is
+    // launched-from (which differs between `cargo run` vs `open -a`).
+    let cli_files: Vec<String> = cli
+        .files
+        .iter()
+        .filter_map(|p| {
+            std::fs::canonicalize(p)
+                .ok()
+                .and_then(|abs| abs.to_str().map(|s| s.to_string()))
+                .or_else(|| p.to_str().map(|s| s.to_string()))
+        })
+        .collect();
+
     tauri::Builder::default()
         // F-UPDATER-WIRE-PLUGIN: tauri-plugin-updater wires the
         // ed25519-signed feed at endpoints[] in tauri.conf.json. The
@@ -387,7 +402,7 @@ fn main() {
         // a MenuId that on_menu_event receives; we forward by id via
         // `mt::menu-invoked` event and the renderer's menu-bridge
         // dispatches to the matching command in commands/index.js.
-        .setup(|app| {
+        .setup(move |app| {
             use tauri::Manager;
             let handle = app.handle().clone();
             let menu = m009_menu::build_native_menu(&handle).inspect_err(|e| {
@@ -443,6 +458,29 @@ fn main() {
 })();"#,
                     );
                     eprintln!("[dev-diag][installed]");
+                }
+
+                // CLI args: open files passed on the command line. macOS
+                // `open -a Mark.app foo.md` and direct `mark foo.md` both
+                // populate cli.files. emit_open_new_tab needs the renderer's
+                // mt::open-new-tab listener to be live, which happens after
+                // bootstrap-editor — so spawn a deferred thread (~1.5s)
+                // rather than racing with renderer init.
+                if !cli_files.is_empty() {
+                    let win = main_win.clone();
+                    let files = cli_files.clone();
+                    std::thread::spawn(move || {
+                        std::thread::sleep(std::time::Duration::from_millis(1500));
+                        for path in &files {
+                            if let Err(e) = m_v1_compat::emit_open_new_tab(&win, path) {
+                                eprintln!(
+                                    "[main][cli][BLOCK_CLI_OPEN_FAILED path={path} err={e}]"
+                                );
+                            } else {
+                                eprintln!("[main][cli][BLOCK_CLI_OPENED path={path}]");
+                            }
+                        }
+                    });
                 }
             } else {
                 eprintln!("[m001][lifecycle][BLOCK_CLOSE_HANDLER_SKIPPED reason=no-main-window]");
