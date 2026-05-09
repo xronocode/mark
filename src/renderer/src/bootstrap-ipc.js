@@ -206,5 +206,64 @@ export const setupIpcListeners = async () => {
     if (typeof filePath === 'string') editorStore.SWITCH_TAB_BY_FILEPATH(filePath)
   })
 
+  // Path B-clean W5: editor-event IPC listeners (line-ending,
+  // export, file-watcher, zoom, image-cache, context menu, spelling).
+  // Most are bus.emit forwarders; a few have inline state updates
+  // that became APPLY_* actions.
+  await listen('mt::editor-ask-file-save', () => {
+    editorStore.FILE_SAVE()
+  })
+  await listen('mt::editor-ask-file-save-as', () => {
+    editorStore.FILE_SAVE_AS()
+  })
+  await listen('mt::editor-move-file', () => {
+    editorStore.MOVE_FILE_TO()
+  })
+  await listen('mt::editor-rename-file', () => {
+    editorStore.RESPONSE_FOR_RENAME()
+  })
+  await listen('mt::force-close-tabs-by-id', (event) => {
+    const list = event?.payload
+    if (Array.isArray(list) && list.length) editorStore.CLOSE_TABS(list)
+  })
+  await listen('mt::set-line-ending', (event) => {
+    const lineEnding = event?.payload
+    if (typeof lineEnding === 'string') editorStore.SET_LINE_ENDING(lineEnding)
+  })
+  await listen('mt::update-file', (event) => {
+    const p = event?.payload
+    if (p && typeof p === 'object' && p.type) {
+      editorStore.APPLY_FILE_CHANGE(p.type, p.change)
+    }
+  })
+  await listen('mt::window-zoom', (event) => {
+    const z = event?.payload
+    if (typeof z === 'number') editorStore.EDIT_ZOOM(z)
+  })
+  await listen('mt::invalidate-image-cache', () => {
+    bus.emit('invalidate-image-cache')
+  })
+  await listen('mt::export-success', (event) => {
+    const p = event?.payload
+    const filePath = (p && typeof p === 'object') ? p.filePath : null
+    if (filePath) editorStore.APPLY_EXPORT_SUCCESS(filePath)
+  })
+  await listen('mt::print-service-clearup', () => {
+    bus.emit('print-service-clearup')
+  })
+  // Context menu
+  await listen('mt::cm-copy-as-rich', () => bus.emit('copyAsRich', 'copyAsRich'))
+  await listen('mt::cm-copy-as-html', () => bus.emit('copyAsHtml', 'copyAsHtml'))
+  await listen('mt::cm-paste-as-plain-text', () => bus.emit('pasteAsPlainText', 'pasteAsPlainText'))
+  await listen('mt::cm-insert-paragraph', (event) => {
+    bus.emit('insertParagraph', event?.payload)
+  })
+  await listen('mt::spelling-replace-misspelling', (event) => {
+    bus.emit('replace-misspelling', event?.payload)
+  })
+  await listen('mt::spelling-show-switch-language', () => {
+    bus.emit('open-command-spellchecker-switch-language')
+  })
+
   console.log('[boot][ipc][BLOCK_ALL_LISTENERS_REGISTERED]')
 }

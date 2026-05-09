@@ -346,11 +346,11 @@ export const useEditorStore = defineStore('editor', {
       }
     },
 
-    // need pass some data to main process when `save` menu item clicked
+    /**
+     * Path B-clean W5: IPC listener moved to bootstrap-ipc.js;
+     * bus subscription stays inline.
+     */
     LISTEN_FOR_SAVE() {
-      window.electron.ipcRenderer.on('mt::editor-ask-file-save', () => {
-        this.FILE_SAVE()
-      })
       bus.on('mt::editor-ask-file-save', () => {
         this.FILE_SAVE()
       })
@@ -381,11 +381,11 @@ export const useEditorStore = defineStore('editor', {
       }
     },
 
-    // need pass some data to main process when `save as` menu item clicked
+    /**
+     * Path B-clean W5: IPC listener moved to bootstrap-ipc.js;
+     * bus subscription stays inline.
+     */
     LISTEN_FOR_SAVE_AS() {
-      window.electron.ipcRenderer.on('mt::editor-ask-file-save-as', () => {
-        this.FILE_SAVE_AS()
-      })
       bus.on('mt::editor-ask-file-save-as', () => {
         this.FILE_SAVE_AS()
       })
@@ -527,12 +527,13 @@ export const useEditorStore = defineStore('editor', {
       })
     },
 
+    /**
+     * Path B-clean W5: mt::force-close-tabs-by-id listener moved to
+     * bootstrap-ipc.js (boot-time registration). No-op alias for
+     * app.vue onMounted call; deletion in W6.
+     */
     LISTEN_FOR_SAVE_CLOSE() {
-      window.electron.ipcRenderer.on('mt::force-close-tabs-by-id', (_, tabIdList) => {
-        if (Array.isArray(tabIdList) && tabIdList.length) {
-          this.CLOSE_TABS(tabIdList)
-        }
-      })
+      // no-op; see bootstrap-ipc.js
     },
 
     ASK_FOR_SAVE_ALL(closeTabs) {
@@ -584,18 +585,17 @@ export const useEditorStore = defineStore('editor', {
     },
 
     LISTEN_FOR_MOVE_TO() {
-      window.electron.ipcRenderer.on('mt::editor-move-file', () => {
-        this.MOVE_FILE_TO()
-      })
+      // Path B-clean W5: IPC listener moved to bootstrap-ipc.js.
       bus.on('mt::editor-move-file', () => {
         this.MOVE_FILE_TO()
       })
     },
 
+    /**
+     * Path B-clean W5: IPC listener moved to bootstrap-ipc.js;
+     * bus subscription stays.
+     */
     LISTEN_FOR_RENAME() {
-      window.electron.ipcRenderer.on('mt::editor-rename-file', () => {
-        this.RESPONSE_FOR_RENAME()
-      })
       bus.on('mt::editor-rename-file', () => {
         this.RESPONSE_FOR_RENAME()
       })
@@ -1317,20 +1317,27 @@ export const useEditorStore = defineStore('editor', {
       })
     },
 
+    /**
+     * Path B-clean W5: listener moved to bootstrap-ipc.js, calls
+     * APPLY_EXPORT_SUCCESS below.
+     */
     LINTEN_FOR_EXPORT_SUCCESS() {
-      window.electron.ipcRenderer.on('mt::export-success', (_, { filePath }) => {
-        notice
-          .notify({
-            title: i18n.global.t('store.editor.exportSuccessTitle'),
-            message: i18n.global.t('store.editor.exportSuccessMessage', {
-              name: window.path.basename(filePath)
-            }),
-            showConfirm: true
-          })
-          .then(() => {
-            window.electron.shell.showItemInFolder(filePath)
-          })
-      })
+      // no-op; see bootstrap-ipc.js
+    },
+
+    APPLY_EXPORT_SUCCESS(filePath) {
+      if (!filePath) return
+      notice
+        .notify({
+          title: i18n.global.t('store.editor.exportSuccessTitle'),
+          message: i18n.global.t('store.editor.exportSuccessMessage', {
+            name: window.path.basename(filePath)
+          }),
+          showConfirm: true
+        })
+        .then(() => {
+          window.electron.shell.showItemInFolder(filePath)
+        })
     },
 
     PRINT_RESPONSE() {
@@ -1338,9 +1345,7 @@ export const useEditorStore = defineStore('editor', {
     },
 
     LINTEN_FOR_PRINT_SERVICE_CLEARUP() {
-      window.electron.ipcRenderer.on('mt::print-service-clearup', () => {
-        bus.emit('print-service-clearup')
-      })
+      // Path B-clean W5: listener moved to bootstrap-ipc.js.
     },
 
     SET_LINE_ENDING(lineEnding) {
@@ -1354,9 +1359,7 @@ export const useEditorStore = defineStore('editor', {
     },
 
     LINTEN_FOR_SET_LINE_ENDING() {
-      window.electron.ipcRenderer.on('mt::set-line-ending', (_, lineEnding) => {
-        this.SET_LINE_ENDING(lineEnding)
-      })
+      // Path B-clean W5: IPC listener moved to bootstrap-ipc.js.
       bus.on('mt::set-line-ending', (lineEnding) => {
         this.SET_LINE_ENDING(lineEnding)
       })
@@ -1383,63 +1386,65 @@ export const useEditorStore = defineStore('editor', {
       })
     },
 
+    /**
+     * Path B-clean W5: IPC listener moved to bootstrap-ipc.js, calls
+     * APPLY_FILE_CHANGE below. The action is the canonical entry-
+     * point so tests + non-IPC callers can replay file-watcher events.
+     */
     LISTEN_FOR_FILE_CHANGE() {
+      // no-op; see bootstrap-ipc.js
+    },
+
+    APPLY_FILE_CHANGE(type, change) {
       const preferencesStore = usePreferencesStore()
-      window.electron.ipcRenderer.on('mt::update-file', (_, { type, change }) => {
-        const { tabs } = this
-        const { pathname } = change
-        const tab = tabs.find((t) => window.fileUtils.isSamePathSync(t.pathname, pathname))
-        if (tab) {
-          const { id, isSaved, filename } = tab
-          switch (type) {
-            case 'unlink': {
-              tab.isSaved = false
-              this.pushTabNotification({
-                tabId: id,
-                msg: i18n.global.t('store.editor.fileRemovedOnDisk', { name: filename }),
-                style: 'warn',
-                showConfirm: false,
-                exclusiveType: 'file_changed'
-              })
-              break
+      const { tabs } = this
+      const { pathname } = change || {}
+      if (!pathname) return
+      const tab = tabs.find((t) => window.fileUtils.isSamePathSync(t.pathname, pathname))
+      if (!tab) {
+        console.error(`APPLY_FILE_CHANGE: Cannot find tab for path "${pathname}".`)
+        return
+      }
+      const { id, isSaved, filename } = tab
+      switch (type) {
+        case 'unlink':
+          tab.isSaved = false
+          this.pushTabNotification({
+            tabId: id,
+            msg: i18n.global.t('store.editor.fileRemovedOnDisk', { name: filename }),
+            style: 'warn',
+            showConfirm: false,
+            exclusiveType: 'file_changed'
+          })
+          break
+        case 'add':
+        case 'change': {
+          const { autoSave } = preferencesStore
+          if (autoSave) {
+            if (autoSaveTimers.has(id)) {
+              clearTimeout(autoSaveTimers.get(id))
+              autoSaveTimers.delete(id)
             }
-            case 'add':
-            case 'change': {
-              const { autoSave } = preferencesStore
-              if (autoSave) {
-                if (autoSaveTimers.has(id)) {
-                  const timer = autoSaveTimers.get(id)
-                  clearTimeout(timer)
-                  autoSaveTimers.delete(id)
-                }
-
-                if (isSaved) {
-                  this.loadChange(change)
-                  return
-                }
-              }
-
-              tab.isSaved = false
-              this.pushTabNotification({
-                tabId: id,
-                msg: i18n.global.t('store.editor.fileChangedOnDisk', { name: filename }),
-                showConfirm: true,
-                exclusiveType: 'file_changed',
-                action: (status) => {
-                  if (status) {
-                    this.loadChange(change)
-                  }
-                }
-              })
-              break
+            if (isSaved) {
+              this.loadChange(change)
+              return
             }
-            default:
-              console.error(`LISTEN_FOR_FILE_CHANGE: Invalid type "${type}"`)
           }
-        } else {
-          console.error(`LISTEN_FOR_FILE_CHANGE: Cannot find tab for path "${pathname}".`)
+          tab.isSaved = false
+          this.pushTabNotification({
+            tabId: id,
+            msg: i18n.global.t('store.editor.fileChangedOnDisk', { name: filename }),
+            showConfirm: true,
+            exclusiveType: 'file_changed',
+            action: (status) => {
+              if (status) this.loadChange(change)
+            }
+          })
+          break
         }
-      })
+        default:
+          console.error(`APPLY_FILE_CHANGE: Invalid type "${type}"`)
+      }
     },
 
     ASK_FOR_IMAGE_PATH() {
@@ -1460,42 +1465,20 @@ export const useEditorStore = defineStore('editor', {
     },
 
     LISTEN_WINDOW_ZOOM() {
-      window.electron.ipcRenderer.on('mt::window-zoom', (_, zoomFactor) => {
-        this.EDIT_ZOOM(zoomFactor)
-      })
+      // Path B-clean W5: IPC listener moved to bootstrap-ipc.js.
       bus.on('mt::window-zoom', (zoomFactor) => {
         this.EDIT_ZOOM(zoomFactor)
       })
     },
 
     LISTEN_FOR_RELOAD_IMAGES() {
-      window.electron.ipcRenderer.on('mt::invalidate-image-cache', () => {
-        bus.emit('invalidate-image-cache')
-      })
+      // Path B-clean W5: listener moved to bootstrap-ipc.js (it just
+      // forwards to bus.emit('invalidate-image-cache')).
     },
 
     LISTEN_FOR_CONTEXT_MENU() {
-      // General context menu
-      window.electron.ipcRenderer.on('mt::cm-copy-as-rich', () => {
-        bus.emit('copyAsRich', 'copyAsRich')
-      })
-      window.electron.ipcRenderer.on('mt::cm-copy-as-html', () => {
-        bus.emit('copyAsHtml', 'copyAsHtml')
-      })
-      window.electron.ipcRenderer.on('mt::cm-paste-as-plain-text', () => {
-        bus.emit('pasteAsPlainText', 'pasteAsPlainText')
-      })
-      window.electron.ipcRenderer.on('mt::cm-insert-paragraph', (_, location) => {
-        bus.emit('insertParagraph', location)
-      })
-
-      // Spelling
-      window.electron.ipcRenderer.on('mt::spelling-replace-misspelling', (_, info) => {
-        bus.emit('replace-misspelling', info)
-      })
-      window.electron.ipcRenderer.on('mt::spelling-show-switch-language', () => {
-        bus.emit('open-command-spellchecker-switch-language')
-      })
+      // Path B-clean W5: 6 context-menu listeners moved to
+      // bootstrap-ipc.js. Each just forwards to a bus event.
     }
   }
 })
