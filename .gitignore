@@ -12,6 +12,11 @@ src/renderer/dist/
 # Test coverage reports
 coverage/
 
+# Playwright e2e artifacts
+test-results/
+playwright-report/
+playwright/.cache/
+
 # OS / editor cruft
 .DS_Store
 *.log
