@@ -1387,12 +1387,14 @@ export const useEditorStore = defineStore('editor', {
     },
 
     /**
-     * Path B-clean W5: IPC listener moved to bootstrap-ipc.js, calls
-     * APPLY_FILE_CHANGE below. The action is the canonical entry-
-     * point so tests + non-IPC callers can replay file-watcher events.
+     * C-1 fix: file-watch events now flow through project.js's
+     * per-root ipcWatch subscription, which calls APPLY_FILE_CHANGE
+     * directly when the changed path matches an open tab. The action
+     * is the canonical entry point so tests + non-IPC callers can
+     * still replay file-watcher events.
      */
     LISTEN_FOR_FILE_CHANGE() {
-      // no-op; see bootstrap-ipc.js
+      // no-op; see store/project.js#_handleWatchEvent
     },
 
     APPLY_FILE_CHANGE(type, change) {
