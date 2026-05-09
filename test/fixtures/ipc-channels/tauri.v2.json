@@ -5,7 +5,7 @@
     "file": "src/renderer/src/ipc/contract/types.ts",
     "generated_from": "CommandMap interface"
   },
-  "generated_at": "2026-04-29T03:08:16.662Z",
+  "generated_at": "2026-05-09T08:23:20.661Z",
   "counts": {
     "commands": 33,
     "error_codes": 4
@@ -279,126 +279,6 @@
       "transport": "invoke",
       "layer": "M-013a",
       "has_args": true,
-      "has_result": true
-    },
-    {
-      "name": "mt::window-state",
-      "direction": "renderer->main",
-      "transport": "invoke",
-      "layer": "M-V1-COMPAT",
-      "has_args": false,
-      "has_result": true
-    },
-    {
-      "name": "mt::request-keybindings",
-      "direction": "renderer->main",
-      "transport": "invoke",
-      "layer": "M-V1-COMPAT",
-      "has_args": false,
-      "has_result": true
-    },
-    {
-      "name": "mt::cmd-open-folder",
-      "direction": "renderer->main",
-      "transport": "invoke",
-      "layer": "M-V1-COMPAT",
-      "has_args": false,
-      "has_result": true
-    },
-    {
-      "name": "mt::cmd-open-file",
-      "direction": "renderer->main",
-      "transport": "invoke",
-      "layer": "M-V1-COMPAT",
-      "has_args": false,
-      "has_result": true
-    },
-    {
-      "name": "mt::ask-for-open-project-in-sidebar",
-      "direction": "renderer->main",
-      "transport": "invoke",
-      "layer": "M-V1-COMPAT",
-      "has_args": false,
-      "has_result": true
-    },
-    {
-      "name": "mt::open-file",
-      "direction": "renderer->main",
-      "transport": "invoke",
-      "layer": "M-V1-COMPAT",
-      "has_args": true,
-      "has_result": true
-    },
-    {
-      "name": "mt::ask-for-user-preference",
-      "direction": "renderer->main",
-      "transport": "invoke",
-      "layer": "M-V1-COMPAT",
-      "has_args": false,
-      "has_result": true
-    },
-    {
-      "name": "mt::ask-for-user-data",
-      "direction": "renderer->main",
-      "transport": "invoke",
-      "layer": "M-V1-COMPAT",
-      "has_args": false,
-      "has_result": true
-    },
-    {
-      "name": "mt::set-user-preference",
-      "direction": "renderer->main",
-      "transport": "invoke",
-      "layer": "M-V1-COMPAT",
-      "has_args": true,
-      "has_result": true
-    },
-    {
-      "name": "mt::set-user-data",
-      "direction": "renderer->main",
-      "transport": "invoke",
-      "layer": "M-V1-COMPAT",
-      "has_args": true,
-      "has_result": true
-    },
-    {
-      "name": "mt::get-current-language",
-      "direction": "renderer->main",
-      "transport": "invoke",
-      "layer": "M-V1-COMPAT",
-      "has_args": false,
-      "has_result": true
-    },
-    {
-      "name": "mt::view-layout-changed",
-      "direction": "renderer->main",
-      "transport": "invoke",
-      "layer": "M-V1-COMPAT",
-      "has_args": true,
-      "has_result": true
-    },
-    {
-      "name": "mt::update-sidebar-menu",
-      "direction": "renderer->main",
-      "transport": "invoke",
-      "layer": "M-V1-COMPAT",
-      "has_args": true,
-      "has_result": true
-    },
-    {
-      "name": "mt::request-window-content-size",
-      "direction": "renderer->main",
-      "transport": "invoke",
-      "layer": "M-V1-COMPAT",
-      "has_args": true,
-      "has_result": true
-    },
-    {
-      "name": "mt::open-setting-window",
-      "direction": "renderer->main",
-      "transport": "invoke",
-      "layer": "M-V1-COMPAT",
-      "has_args": false,
       "has_result": true
     }
   ]
