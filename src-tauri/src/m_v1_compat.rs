@@ -557,7 +557,11 @@ pub async fn mt_open_setting_window(app: tauri::AppHandle) -> Result<(), String>
         eprintln!("[v1_compat][settings][BLOCK_FOCUS_EXISTING]");
         return Ok(());
     }
-    let win = tauri::WebviewWindowBuilder::new(
+    // _win prefix: only read inside the debug-assertions block below;
+    // in release builds the cfg-gated arm is stripped and `win` would
+    // otherwise warn `unused_variable`. Underscore keeps the binding
+    // accessible while opting out of the lint per Rust convention.
+    let _win = tauri::WebviewWindowBuilder::new(
         &app,
         "settings",
         tauri::WebviewUrl::App("index.html?type=settings&wid=1&debug=0".into()),
@@ -577,7 +581,7 @@ pub async fn mt_open_setting_window(app: tauri::AppHandle) -> Result<(), String>
     // a debug build (cfg!(debug_assertions)) if needed.
     #[cfg(debug_assertions)]
     if std::env::var("MARK_SETTINGS_DEVTOOLS").as_deref() == Ok("1") {
-        win.open_devtools();
+        _win.open_devtools();
         eprintln!("[v1_compat][settings][BLOCK_OPENED label=settings devtools=on env=MARK_SETTINGS_DEVTOOLS]");
     } else {
         eprintln!("[v1_compat][settings][BLOCK_OPENED label=settings devtools=off]");
