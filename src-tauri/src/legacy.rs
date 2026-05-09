@@ -154,4 +154,58 @@ mod tests {
         let layouts = detect_layouts_in(tmp.path());
         assert!(layouts.marktext.is_none());
     }
+
+    #[test]
+    fn log_detection_runs_without_panic_for_both_branches() {
+        let empty = LegacyLayouts::default();
+        log_detection(&empty); // BLOCK_LEGACY_NONE branch
+        let with = LegacyLayouts {
+            marktext: Some(LegacyNamespace {
+                root: PathBuf::from("/tmp/x"),
+                has_preferences: true,
+                has_data_center: false,
+                has_window_state: false,
+                has_local_storage: false,
+            }),
+            mark: None,
+        };
+        log_detection(&with); // BLOCK_LEGACY_FOUND branch
+    }
+
+    #[test]
+    fn macos_app_support_root_resolves_when_home_set() {
+        // Save and restore HOME to avoid cross-test contamination.
+        let saved = std::env::var_os("HOME");
+        std::env::set_var("HOME", "/tmp/__test_home_legacy");
+        let root = macos_app_support_root().unwrap();
+        assert_eq!(
+            root,
+            PathBuf::from("/tmp/__test_home_legacy/Library/Application Support")
+        );
+        // Restore.
+        match saved {
+            Some(v) => std::env::set_var("HOME", v),
+            None => std::env::remove_var("HOME"),
+        }
+    }
+
+    #[test]
+    fn any_detected_true_when_only_marktext_present() {
+        let l = LegacyLayouts {
+            marktext: Some(LegacyNamespace {
+                root: PathBuf::from("/x"),
+                has_preferences: false,
+                has_data_center: false,
+                has_window_state: false,
+                has_local_storage: false,
+            }),
+            mark: None,
+        };
+        assert!(l.any_detected());
+    }
+
+    #[test]
+    fn any_detected_false_when_default() {
+        assert!(!LegacyLayouts::default().any_detected());
+    }
 }
