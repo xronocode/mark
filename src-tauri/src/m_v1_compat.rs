@@ -25,33 +25,19 @@
 //   - 2026-04-30 F-V1-IPC-COMPAT-STUBS: 7 prefs/i18n/layout channels
 //     wired through PrefsState; 2 no-op channels stubbed; 1 deferred
 //     to F-SETTINGS-WINDOW-WIRE (open-setting-window).
+//   - 2026-05-09 audit-M-3: drop 5 orphan compat commands superseded
+//     by Path B-clean canonical modules (mt_window_state — direct
+//     Tauri Window API in titleBar; mt_ask_for_user_preference +
+//     mt_ask_for_user_data — m005_prefs::mt_prefs_get_all in W1;
+//     mt_get_current_language — event-driven mt::current-language;
+//     mt_ask_for_open_project_in_sidebar — deferred F-OPEN-PROJECT-
+//     SIDEBAR, no live caller). Drops unused WindowState struct +
+//     its serializer test alongside.
 
-use serde::Serialize;
 use serde_json::{json, Value};
 use tauri::{Emitter, Manager};
 
 use crate::m005_prefs::PrefsState;
-
-#[derive(Debug, Clone, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct WindowState {
-    pub is_full_screen: bool,
-    pub is_maximized: bool,
-}
-
-/// Maps to v1 'mt::window-state' invoke from titleBar/index.vue.
-/// Renderer uses this to seed initial isFullScreen/isMaximized refs;
-/// subsequent state changes flow through Tauri WindowEvent listeners
-/// (wired in F-LIFECYCLE-WIRE).
-#[tauri::command]
-pub async fn mt_window_state(window: tauri::Window) -> Result<WindowState, String> {
-    let is_full_screen = window.is_fullscreen().unwrap_or(false);
-    let is_maximized = window.is_maximized().unwrap_or(false);
-    Ok(WindowState {
-        is_full_screen,
-        is_maximized,
-    })
-}
 
 /// Maps to v1 'mt::request-keybindings' send from editor.js:588 — the
 /// renderer fires this ~500 ms after registering the
@@ -194,13 +180,6 @@ pub async fn mt_close_project_root(pathname: String) -> Result<(), String> {
 /// They simply forward to the new command without emitting.
 #[tauri::command]
 pub async fn mt_cmd_open_folder(app: tauri::AppHandle) -> Result<Option<String>, String> {
-    mt_pick_folder(app).await
-}
-
-#[tauri::command]
-pub async fn mt_ask_for_open_project_in_sidebar(
-    app: tauri::AppHandle,
-) -> Result<Option<String>, String> {
     mt_pick_folder(app).await
 }
 
@@ -416,37 +395,6 @@ fn emit_open_new_tab(window: &tauri::Window, pathname: &str) -> Result<(), Strin
 // F-V1-IPC-COMPAT-STUBS — prefs / i18n / layout / sidebar IPC channels
 // ──────────────────────────────────────────────────────────────────────
 
-/// Maps to v1 'mt::ask-for-user-preference' AND 'mt::ask-for-user-data'
-/// sends from store/preferences.js. Renderer listens for the response
-/// on `mt::user-preference` event with the full prefs object as payload.
-/// We answer with the entire PrefsStore Map so renderer's
-/// SET_USER_PREFERENCE picks up theme / fontSize / language / layout
-/// state at startup.
-#[tauri::command]
-pub async fn mt_ask_for_user_preference(
-    window: tauri::Window,
-    prefs: tauri::State<'_, PrefsState>,
-) -> Result<(), String> {
-    let snapshot = prefs.all();
-    if let Err(e) = window.emit("mt::user-preference", &snapshot) {
-        eprintln!("[v1_compat][prefs_ask][BLOCK_EMIT_FAILED err={e}]");
-        return Err(e.to_string());
-    }
-    eprintln!("[v1_compat][prefs_ask][BLOCK_RESPONDED keys={}]", snapshot.len());
-    Ok(())
-}
-
-/// Alias of mt_ask_for_user_preference. v1 main process answered both
-/// channels with the same prefs payload (dataCenter keys are mixed in
-/// the same flat namespace per F-PREFS-MIGRATE-V1 dataCenter merge).
-#[tauri::command]
-pub async fn mt_ask_for_user_data(
-    window: tauri::Window,
-    prefs: tauri::State<'_, PrefsState>,
-) -> Result<(), String> {
-    mt_ask_for_user_preference(window, prefs).await
-}
-
 /// Maps to v1 'mt::set-user-preference' AND 'mt::set-user-data' sends.
 /// Renderer dispatches `{key: value}` (single entry) or full sub-object
 /// per call — for example, theme switcher sends `{ theme: 'ayu-mirage' }`.
@@ -510,28 +458,6 @@ pub async fn mt_set_user_data(
     args: Value,
 ) -> Result<(), String> {
     mt_set_user_preference(app, prefs, args).await
-}
-
-/// Maps to v1 'mt::get-current-language'. Renderer's i18n bootstrap
-/// awaits a `mt::current-language` event with the language string
-/// (e.g. "en", "ru"). We resolve from PrefsStore[language] (set by
-/// F-PREFS-MIGRATE-V1) and fall back to sys_locale.
-#[tauri::command]
-pub async fn mt_get_current_language(
-    window: tauri::Window,
-    prefs: tauri::State<'_, PrefsState>,
-) -> Result<(), String> {
-    let lang = prefs
-        .get("language")
-        .and_then(|v| v.as_str().map(|s| s.to_string()))
-        .or_else(|| sys_locale::get_locale())
-        .unwrap_or_else(|| "en".to_string());
-    eprintln!("[v1_compat][i18n][BLOCK_LANGUAGE_RESOLVED lang={lang}]");
-    if let Err(e) = window.emit("mt::current-language", &lang) {
-        eprintln!("[v1_compat][i18n][BLOCK_EMIT_FAILED err={e}]");
-        return Err(e.to_string());
-    }
-    Ok(())
 }
 
 /// Maps to v1 'mt::view-layout-changed'. Renderer dispatches layout
@@ -660,15 +586,3 @@ fn unwrap_first_arg(args: &Value) -> Option<Value> {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn window_state_serializes_camel_case() {
-        let s = WindowState { is_full_screen: true, is_maximized: false };
-        let json = serde_json::to_string(&s).unwrap();
-        assert!(json.contains("isFullScreen"));
-        assert!(json.contains("isMaximized"));
-    }
-}
