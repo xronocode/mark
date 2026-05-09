@@ -91,9 +91,9 @@ const commands = [
     }
   },
   {
-    // Path B-clean W4: direct Window API. Lifecycle handler in
-    // m001_save_close intercepts CloseRequested for the dirty-tab
-    // dialog before destroy.
+    // Direct Window API. Lifecycle handler in m001_save_close
+    // intercepts CloseRequested for the dirty-tab dialog before
+    // destroy.
     id: 'file.close-window',
     execute: async () => {
       const { getCurrentWindow } = await import('@tauri-apps/api/window')
@@ -430,10 +430,9 @@ const commands = [
   // --------------------------------------------------------------------------
   // Window
 
-  // Path B-clean W4: window-management commands call
-  // @tauri-apps/api/window directly — no backend wrapper required.
-  // Single source of truth (Tauri Window API) for state queries +
-  // mutations. Eliminates 3 dead-end ipcRenderer.send calls.
+  // Window-management commands call @tauri-apps/api/window directly —
+  // no backend wrapper required. Single source of truth (Tauri Window
+  // API) for state queries + mutations.
   {
     id: 'window.minimize',
     execute: async () => {
@@ -568,10 +567,10 @@ const commands = [
       }
     ],
     executeSubcommand: async (_, theme) => {
-      // Path B-clean review M-3: route through canonical W1 path
-      // (preferenceStore → mt_prefs_set → broadcast). Local state
-      // updates immediately so the theme switch shows without
-      // round-trip latency, plus broadcast hits other windows.
+      // Route through canonical preferenceStore → mt_prefs_set →
+      // broadcast path. Local state updates immediately so the theme
+      // switch shows without round-trip latency, plus broadcast hits
+      // other windows.
       usePreferencesStore().SET_SINGLE_PREFERENCE({ type: 'theme', value: theme })
     }
   },
@@ -625,7 +624,7 @@ const commands = [
       }
     ],
     executeSubcommand: async (_, value) => {
-      // Path B-clean review M-3: same canonical path as theme switch.
+      // Same canonical preferenceStore broadcast path as theme switch.
       usePreferencesStore().SET_SINGLE_PREFERENCE({ type: 'textDirection', value })
     }
   },
@@ -640,12 +639,10 @@ const commands = [
     }
   },
   {
-    // Path B-clean W4: file.quit was a dead-end send (no backend
-    // listener for mt::app-try-quit). Now invokes mt_app_quit which
-    // calls app.exit(0). The wired close-handler in
-    // m001_save_close.wire_close_handler still fires CloseRequested
-    // for every window first, so the dirty-tab dialog runs as
-    // expected.
+    // file.quit invokes mt_app_quit which calls app.exit(0). The
+    // wired close-handler in m001_save_close.wire_close_handler still
+    // fires CloseRequested for every window first, so the dirty-tab
+    // dialog runs as expected.
     id: 'file.quit',
     execute: async () => {
       const { invoke } = await import('@tauri-apps/api/core')

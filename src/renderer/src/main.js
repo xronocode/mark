@@ -32,10 +32,10 @@ import './assets/styles/printService.css'
 // is wired before bootstrapRenderer kicks the rest of the app off.
 import { installMenuBridge } from './menu-bridge'
 
-// Path B-clean W1: register all boot-time Tauri event listeners ONCE
-// in a single place (`bootstrap-ipc.js`). Replaces the per-action
-// `ipcRenderer.on()` pattern that produced the listener-race bug
-// (theme/lang broadcasts missed if backend emit beat subscribe).
+// Register all boot-time Tauri event listeners ONCE in a single place
+// (`bootstrap-ipc.js`). Replaces the per-action `ipcRenderer.on()`
+// pattern that produced the listener-race bug (theme/lang broadcasts
+// missed if backend emit beat subscribe).
 import { setupIpcListeners } from './bootstrap-ipc'
 
 // -----------------------------------------------
@@ -74,13 +74,12 @@ services.forEach((s) => {
   app.config.globalProperties['$' + s.name] = s[s.name]
 })
 
-// Path B-clean W1: register Tauri event listeners AFTER pinia is
-// installed (stores are usable inside setupIpcListeners) but BEFORE
-// app.mount (so listeners are warm before any component invoke()
-// triggers a backend broadcast). Returns a Promise; ignoring is OK
-// here — listen() resolves quickly and any in-flight invoke that
-// races us still gets caught when the listener finishes registration
-// (Tauri buffers the emit briefly).
+// Register Tauri event listeners AFTER pinia is installed (stores are
+// usable inside setupIpcListeners) but BEFORE app.mount (so listeners
+// are warm before any component invoke() triggers a backend broadcast).
+// Returns a Promise; ignoring is OK here — listen() resolves quickly
+// and any in-flight invoke that races us still gets caught when the
+// listener finishes registration (Tauri buffers the emit briefly).
 setupIpcListeners().catch((e) => console.error('[boot] setupIpcListeners failed:', e))
 
 // Mount the app

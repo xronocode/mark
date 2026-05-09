@@ -104,8 +104,8 @@ onMounted(async () => {
 
   availableDictionaries.value = await getAvailableDictionaries()
 
-  // Path B-clean W8: custom dictionary backend not yet implemented
-  // (F-SPELL-HUNSPELL-EMBED). Keep call gated behind try/catch so a
+  // Custom dictionary backend is not yet implemented
+  // (F-SPELL-HUNSPELL-EMBED). Call is gated behind try/catch so a
   // missing command logs a warning instead of throwing.
   try {
     const words = await invoke('mt_spell_get_custom_dictionary_words')

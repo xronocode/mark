@@ -132,11 +132,10 @@ export const usePreferencesStore = defineStore('preferences', {
       this[entryName] = !this[entryName]
     },
     /**
-     * Path B-clean W1: pull initial prefs via direct invoke, no
-     * listener race. The cross-window broadcast listener for
-     * mt::user-preference is registered ONCE at boot in bootstrap-ipc.js
-     * — it stays warm for the app's lifetime and catches all SET_* from
-     * other windows.
+     * Pull initial prefs via direct invoke. The cross-window broadcast
+     * listener for mt::user-preference is registered ONCE at boot in
+     * bootstrap-ipc.js — it stays warm for the app's lifetime and
+     * catches all SET_* from other windows, avoiding a listener race.
      */
     async ASK_FOR_USER_PREFERENCE() {
       try {
@@ -203,9 +202,10 @@ export const usePreferencesStore = defineStore('preferences', {
     },
 
     DISPATCH_EDITOR_VIEW_STATE(viewState) {
-      // Path B-clean W6: legacy mt::view-layout-changed → mt_view_layout_changed
-      // (m_v1_compat). Backend command still works; full migration to
-      // canonical module deferred to W6+.
+      // mt::view-layout-changed routes through the v1-compat command
+      // mt_view_layout_changed (m_v1_compat.rs) for view-state
+      // persistence. Migration to a canonical module is deferred —
+      // backend remains alive and functional.
       const { windowId } = window.marktext.env
       window.electron.ipcRenderer.send('mt::view-layout-changed', windowId, viewState)
     }

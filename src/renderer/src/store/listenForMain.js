@@ -17,9 +17,8 @@ export const useListenForMainStore = defineStore('listenForMain', {
     },
 
     /**
-     * Path B-clean W6: IPC listeners moved to bootstrap-ipc.js
-     * (boot-time registration). Bus subscription kept inline since
-     * it doesn't cross IPC.
+     * IPC listeners live in bootstrap-ipc.js (boot-time registration).
+     * Bus subscription kept inline since it doesn't cross IPC.
      */
     LISTEN_FOR_EDIT() {
       bus.on('mt::editor-edit-action', (type) => {

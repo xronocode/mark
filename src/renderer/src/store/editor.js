@@ -270,10 +270,10 @@ export const useEditorStore = defineStore('editor', {
     },
 
     /**
-     * Path B-clean W2a: invoke returns SavedTabState directly.
-     * Backend writes file + returns {id,pathname,filename,isSaved}.
-     * Renderer applies state via APPLY_SAVE_OUTCOME — no listener
-     * race for the per-tab save ack.
+     * invoke returns SavedTabState directly. Backend writes the file
+     * and returns {id,pathname,filename,isSaved}. Renderer applies
+     * state via APPLY_SAVE_OUTCOME — no listener race for the per-tab
+     * save ack.
      */
     async FILE_SAVE() {
       const projectStore = useProjectStore()
@@ -302,12 +302,11 @@ export const useEditorStore = defineStore('editor', {
     },
 
     /**
-     * Path B-clean W2a: applies a SavedTabState ({id, pathname,
-     * filename, isSaved}) returned from mt_response_file_save /
-     * mt_response_file_save_as. Replaces the listener-driven
-     * mt::tab-saved + mt::set-pathname update path. Idempotent —
-     * also called from the bootstrap-ipc.js batch-save listener
-     * for cross-window mt_save_and_close_tabs flow.
+     * Applies a SavedTabState ({id, pathname, filename, isSaved})
+     * returned from mt_response_file_save / mt_response_file_save_as.
+     * Replaces the listener-driven mt::tab-saved + mt::set-pathname
+     * update path. Idempotent — also called from the bootstrap-ipc.js
+     * batch-save listener for cross-window mt_save_and_close_tabs flow.
      */
     APPLY_SAVE_OUTCOME(outcome) {
       if (!outcome || !outcome.id) return
@@ -339,8 +338,8 @@ export const useEditorStore = defineStore('editor', {
     },
 
     /**
-     * Path B-clean W5: IPC listener moved to bootstrap-ipc.js;
-     * bus subscription stays inline.
+     * IPC listener moved to bootstrap-ipc.js; bus subscription stays
+     * inline.
      */
     LISTEN_FOR_SAVE() {
       bus.on('mt::editor-ask-file-save', () => {
@@ -374,8 +373,8 @@ export const useEditorStore = defineStore('editor', {
     },
 
     /**
-     * Path B-clean W5: IPC listener moved to bootstrap-ipc.js;
-     * bus subscription stays inline.
+     * IPC listener moved to bootstrap-ipc.js; bus subscription stays
+     * inline.
      */
     LISTEN_FOR_SAVE_AS() {
       bus.on('mt::editor-ask-file-save-as', () => {
@@ -537,9 +536,9 @@ export const useEditorStore = defineStore('editor', {
     },
 
     /**
-     * Path B-clean W2a: untitled tab → save-as picker (same flow as
-     * FILE_SAVE_AS); existing tab → mt::response-file-move-to event
-     * (handled by m_v1_compat shim; W2b will migrate the move flow).
+     * Untitled tab → save-as picker (same flow as FILE_SAVE_AS);
+     * existing tab → mt::response-file-move-to event (handled by the
+     * m_v1_compat shim; full migration of the move flow is deferred).
      */
     async MOVE_FILE_TO() {
       const { id, pathname } = this.currentFile
@@ -547,23 +546,21 @@ export const useEditorStore = defineStore('editor', {
       if (!pathname) {
         await this.FILE_SAVE_AS()
       } else {
-        // if not, move to a new(maybe) folder — still legacy IPC
-        // since mt_response_file_move_to backend wasn't migrated in
-        // W2a; covered in W2b.
+        // Move to a new (maybe) folder — still legacy IPC because
+        // mt_response_file_move_to backend lives in m_v1_compat.
         window.electron.ipcRenderer.send('mt::response-file-move-to', { id, pathname })
       }
     },
 
     LISTEN_FOR_MOVE_TO() {
-      // Path B-clean W5: IPC listener moved to bootstrap-ipc.js.
+      // IPC listener lives in bootstrap-ipc.js; bus subscription only.
       bus.on('mt::editor-move-file', () => {
         this.MOVE_FILE_TO()
       })
     },
 
     /**
-     * Path B-clean W5: IPC listener moved to bootstrap-ipc.js;
-     * bus subscription stays.
+     * IPC listener moved to bootstrap-ipc.js; bus subscription stays.
      */
     LISTEN_FOR_RENAME() {
       bus.on('mt::editor-rename-file', () => {
@@ -572,9 +569,8 @@ export const useEditorStore = defineStore('editor', {
     },
 
     /**
-     * Path B-clean W2a: untitled file → save-as flow; existing file
-     * → bus.emit('rename') so the title-bar inline-rename UI takes
-     * over (handled in W2b/W5 with mt_rename invoke).
+     * Untitled file → save-as flow; existing file → bus.emit('rename')
+     * so the title-bar inline-rename UI takes over.
      */
     async RESPONSE_FOR_RENAME() {
       const { id, pathname } = this.currentFile
@@ -655,15 +651,15 @@ export const useEditorStore = defineStore('editor', {
         }, 100)
       }, 400)
 
-      // Path B-clean W2b: mt::bootstrap-editor listener moved to
-      // bootstrap-ipc.js — calls APPLY_BOOTSTRAP_EDITOR below.
+      // mt::bootstrap-editor listener lives in bootstrap-ipc.js —
+      // it calls APPLY_BOOTSTRAP_EDITOR below.
     },
 
     /**
-     * Path B-clean W2b: applies the boot-time editor configuration
-     * blast (sidebar/tabbar visibility, source-code mode, initial
-     * tabs). Called from bootstrap-ipc.js mt::bootstrap-editor
-     * listener. Idempotent enough to be re-played by tests.
+     * Applies the boot-time editor configuration blast (sidebar/tabbar
+     * visibility, source-code mode, initial tabs). Called from the
+     * bootstrap-ipc.js mt::bootstrap-editor listener. Idempotent
+     * enough to be re-played by tests.
      */
     APPLY_BOOTSTRAP_EDITOR(config) {
       const {
@@ -706,9 +702,9 @@ export const useEditorStore = defineStore('editor', {
     },
 
     /**
-     * Path B-clean W2b: open-new-tab + new-untitled-tab listeners
-     * moved to bootstrap-ipc.js. Bus subscription kept inline since
-     * it doesn't cross IPC. Action stays as no-op alias for app.vue.
+     * open-new-tab + new-untitled-tab IPC listeners live in
+     * bootstrap-ipc.js. Bus subscription kept inline since it doesn't
+     * cross IPC. Action stays as a no-op alias for app.vue.
      */
     LISTEN_FOR_NEW_TAB() {
       bus.on('mt::new-untitled-tab', ({ selected = true, markdown = '' }) => {
@@ -730,9 +726,9 @@ export const useEditorStore = defineStore('editor', {
     },
 
     /**
-     * Path B-clean W2b: close-tab / tab-cycle / switch-tab IPC
-     * listeners moved to bootstrap-ipc.js. Bus subscriptions
-     * kept inline since they don't cross IPC.
+     * close-tab / tab-cycle / switch-tab IPC listeners live in
+     * bootstrap-ipc.js. Bus subscriptions kept inline since they
+     * don't cross IPC.
      */
     LISTEN_FOR_CLOSE_TAB() {
       bus.on('mt::editor-close-tab', () => {
@@ -1204,9 +1200,9 @@ export const useEditorStore = defineStore('editor', {
         const tab = this.tabs.find((t) => t.id === id)
         if (tab && !tab.isSaved) {
           const defaultPath = getRootFolderFromState(projectStore)
-          // Path B-clean W2a: auto-save through canonical invoke.
-          // Untitled tabs skip auto-save (would open picker mid-edit
-          // which is awful UX). Named tabs write straight through.
+          // Auto-save through canonical invoke. Untitled tabs skip
+          // auto-save (would open picker mid-edit which is awful UX).
+          // Named tabs write straight through.
           if (!pathname) return
           try {
             const { invoke } = await import('@tauri-apps/api/core')
@@ -1313,7 +1309,7 @@ export const useEditorStore = defineStore('editor', {
     },
 
     LINTEN_FOR_SET_LINE_ENDING() {
-      // Path B-clean W5: IPC listener moved to bootstrap-ipc.js.
+      // IPC listener lives in bootstrap-ipc.js; bus subscription only.
       bus.on('mt::set-line-ending', (lineEnding) => {
         this.SET_LINE_ENDING(lineEnding)
       })
@@ -1410,7 +1406,7 @@ export const useEditorStore = defineStore('editor', {
     },
 
     LISTEN_WINDOW_ZOOM() {
-      // Path B-clean W5: IPC listener moved to bootstrap-ipc.js.
+      // IPC listener lives in bootstrap-ipc.js; bus subscription only.
       bus.on('mt::window-zoom', (zoomFactor) => {
         this.EDIT_ZOOM(zoomFactor)
       })

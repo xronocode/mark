@@ -2,10 +2,10 @@ import { isOsx } from '@/util'
 import { invoke } from '@tauri-apps/api/core'
 
 /**
- * High level spell checker API. Path B-clean W8: backend Rust commands
- * (m007_spell.rs::mt_spell_set_enabled / mt_spell_set_lang) are
- * called via direct @tauri-apps/api/core invoke; the v1 Electron
- * spellChecker IPC compat layer has been removed.
+ * High level spell checker API. Backend Rust commands
+ * (m007_spell.rs::mt_spell_set_enabled / mt_spell_set_lang) are called
+ * via direct @tauri-apps/api/core invoke; the v1 Electron spellChecker
+ * IPC compat layer has been removed.
  *
  * On macOS the OS-level NSSpellChecker handles language detection;
  * the Rust side just persists the enable flag. On Linux/Windows the

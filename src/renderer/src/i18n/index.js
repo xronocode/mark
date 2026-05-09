@@ -73,7 +73,7 @@ export const getCurrentLanguage = () => i18n.global.locale.value
 export { i18n }
 export default i18n
 
-// Path B-clean W1: cross-window language broadcasts (`language-changed` +
+// Cross-window language broadcasts (`language-changed` +
 // `mt::current-language`) are registered ONCE at boot in
 // src/renderer/src/bootstrap-ipc.js — no more per-import side-effect
 // listeners which raced with backend emit. Initial language is pulled

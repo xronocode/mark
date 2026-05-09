@@ -93,7 +93,7 @@ export const useProjectStore = defineStore('project', {
       if (this.projectTrees.some((r) => r.pathname === canonical)) {
         // eslint-disable-next-line no-console
         console.debug(`[ProjectStore][ADD_PROJECT][BLOCK_DEDUP] path=${canonical}`)
-        // W3: surface to user instead of silent log; without this,
+        // Surface to user instead of silent log; without this,
         // re-clicking Open Folder of an already-open root looked
         // identical to "picker dismissed" — impossible to tell apart.
         notice.notify({
@@ -315,9 +315,9 @@ export const useProjectStore = defineStore('project', {
     },
 
     /**
-     * Path B-clean W3: pick folder via direct invoke. Backend opens
-     * native picker and returns Option<String>; on Some we add the
-     * project. On None (user cancelled) silent no-op.
+     * Pick folder via direct invoke. Backend opens native picker and
+     * returns Option<String>; on Some we add the project. On None
+     * (user cancelled) silent no-op.
      */
     async ASK_FOR_OPEN_PROJECT() {
       try {

@@ -1,18 +1,17 @@
 // MODULE_CONTRACT
-//   PURPOSE: Path B-clean wave W1 — boot-time Tauri event listener
-//            registration. Replaces the per-action `ipcRenderer.on()`
-//            pattern in store/preferences.js, store/index.js, i18n/
-//            index.js with a SINGLE registration call at app boot.
-//            Eliminates the listener-race bug that produced the
-//            theme-broken-after-Settings-click smoke regression.
+//   PURPOSE: Boot-time Tauri event listener registration. Replaces the
+//            per-action `ipcRenderer.on()` pattern in store/preferences.js,
+//            store/index.js, i18n/index.js with a SINGLE registration
+//            call at app boot. Eliminates the listener-race bug that
+//            produced the theme-broken-after-Settings-click smoke
+//            regression.
 //   SCOPE:   Only listeners that need to fire BEFORE any invoke() can
 //            arrive (cross-window broadcasts + initial-state pushes
 //            from main process). Per-component listeners that fire
 //            AFTER user interaction stay in their component as bus.on
 //            or local listen() calls.
 //   DEPENDS: @tauri-apps/api/event, pinia stores (preferences, project, editor).
-//   LINKS:   docs/path-bclean-step1-inventory.md (W1 wave site list),
-//            verification-plan.xml V-Phase-Bclean-W1.
+//   LINKS:   verification-plan.xml V-Phase-Bclean-W1.
 //
 // CHANGE_SUMMARY:
 //   - 2026-05-09 W1 initial: prefs broadcast + window-active-status +
@@ -35,7 +34,7 @@ let installed = false
  * Boot-stage contract: this function MUST resolve before any
  * `invoke()` call that could trigger a backend broadcast. Otherwise
  * the broadcast lands before the listener is ready and the event is
- * lost (the bug Path B-clean is fixing).
+ * lost.
  */
 export const setupIpcListeners = async () => {
   if (installed) {
@@ -69,9 +68,9 @@ export const setupIpcListeners = async () => {
     }
   })
 
-  // Path B-clean W3: tree-walk events from open-folder backend.
-  // Streamed during recursive walk; renderer's ProjectStore folds
-  // each into the sidebar tree via _processTreeEvent.
+  // tree-walk events from open-folder backend. Streamed during recursive
+  // walk; renderer's ProjectStore folds each into the sidebar tree via
+  // _processTreeEvent.
   const { useProjectStore } = await import('./store/project')
   const projectStore = useProjectStore()
   await listen('mt::update-object-tree', (event) => {
@@ -81,12 +80,11 @@ export const setupIpcListeners = async () => {
     }
   })
 
-  // Path B-clean W2a: per-tab batch-save events. Single-tab save
-  // flow now folds these into the invoke return (FILE_SAVE etc.),
-  // but mt_save_and_close_tabs still emits per-tab during batch
-  // close. Boot-time registration so cross-window batch saves
-  // (e.g., another window's "Save All" flow) update this window's
-  // tab state correctly.
+  // Per-tab batch-save events. Single-tab save flow folds these into
+  // the invoke return (FILE_SAVE etc.), but mt_save_and_close_tabs
+  // still emits per-tab during batch close. Boot-time registration so
+  // cross-window batch saves (e.g., another window's "Save All" flow)
+  // update this window's tab state correctly.
   const { useEditorStore } = await import('./store/editor')
   const editorStore = useEditorStore()
   await listen('mt::tab-saved', (event) => {
@@ -124,11 +122,11 @@ export const setupIpcListeners = async () => {
     }
   })
 
-  // Path B-clean W2b: editor-event listeners. Live channels:
-  // bootstrap-editor + open-new-tab. Other W2b listeners (close-tab,
-  // tab-cycle, switch-tab, new-untitled-tab, screenshot) were deleted
-  // in audit-M-1: those flow through mt::menu-invoked → install-menu-bridge.js
-  // and have no direct backend emitter.
+  // Editor-event listeners. Live channels: bootstrap-editor +
+  // open-new-tab. Other editor listeners (close-tab, tab-cycle,
+  // switch-tab, new-untitled-tab, screenshot) were deleted in audit-M-1:
+  // those flow through mt::menu-invoked → install-menu-bridge.js and
+  // have no direct backend emitter.
   await listen('mt::bootstrap-editor', (event) => {
     if (event?.payload) editorStore.APPLY_BOOTSTRAP_EDITOR(event.payload)
   })
@@ -148,12 +146,12 @@ export const setupIpcListeners = async () => {
     }
   })
 
-  // Path B-clean W5: live cross-window listener kept after audit-M-1.
-  // Other W5 channels (file-save{,-as}, move/rename-file, set-line-ending,
-  // window-zoom, image-cache, export-success, print-service-clearup,
-  // context-menu, spelling) were deleted: they are menu-driven and now
-  // flow through mt::menu-invoked → install-menu-bridge.js, or have no
-  // backend emitter at all.
+  // Live cross-window listener kept after audit-M-1. Other channels
+  // (file-save{,-as}, move/rename-file, set-line-ending, window-zoom,
+  // image-cache, export-success, print-service-clearup, context-menu,
+  // spelling) were deleted: they are menu-driven and now flow through
+  // mt::menu-invoked → install-menu-bridge.js, or have no backend
+  // emitter at all.
   await listen('mt::force-close-tabs-by-id', (event) => {
     const list = event?.payload
     if (Array.isArray(list) && list.length) editorStore.CLOSE_TABS(list)
@@ -165,7 +163,7 @@ export const setupIpcListeners = async () => {
   // + APPLY_FILE_CHANGE calls. No boot-time listener is needed for
   // file-watch — subscriptions are per-root and scoped to project life.
 
-  // Path B-clean W6 listeners (listenForMain edit-action, about-dialog,
+  // Additional listeners (listenForMain edit-action, about-dialog,
   // show-export-dialog, editor-paragraph-action, editor-format-action,
   // layout set-view-layout / toggle-view-layout-entry, commandCenter
   // keybindings-response / execute-command-by-id, notifications
