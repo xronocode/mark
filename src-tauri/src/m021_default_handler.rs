@@ -30,7 +30,6 @@
 //     (`tooling_missing:<tool>`, `defaults_write_failed:<rc>`, etc.).
 
 use serde::Serialize;
-use std::collections::HashMap;
 use std::process::Command;
 use std::time::Instant;
 
@@ -557,6 +556,7 @@ pub async fn mt_unset_default_md_handler() -> Result<(), String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::collections::HashMap;
     use std::sync::Mutex;
 
     /// Scripted-output runner. Each entry maps a `(program, args-joined)`
