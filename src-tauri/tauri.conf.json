@@ -37,7 +37,10 @@
     "active": true,
     "targets": ["app", "dmg"],
     "icon": ["icons/icon.png"],
-    "createUpdaterArtifacts": true
+    "createUpdaterArtifacts": true,
+    "macOS": {
+      "info-plist": "./Info.partial.plist"
+    }
   },
   "plugins": {
     "updater": {

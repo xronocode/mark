@@ -299,7 +299,9 @@ pub async fn mt_open_file(
     // Best-effort: log + swallow read failures. Sidebar click on a
     // file that vanished between watcher event and click should not
     // raise a Promise rejection in the renderer.
-    let _ = emit_open_new_tab(&window, &pathname);
+    // M-022: sidebar click is an explicit "edit this file" gesture, so
+    // preview_mode=false (open in editor view).
+    let _ = emit_open_new_tab(&window, &pathname, false);
     Ok(())
 }
 
@@ -325,14 +327,26 @@ pub async fn mt_cmd_open_file(window: tauri::Window) -> Result<(), String> {
         }
     };
     eprintln!("[v1_compat][open_file][BLOCK_PICKED path={path}]");
-    emit_open_new_tab(&window, &path)
+    // M-022: picker is an explicit "I want to edit this" gesture →
+    // preview_mode=false.
+    emit_open_new_tab(&window, &path, false)
 }
 
 /// Build the IMarkdownDocumentRaw JSON payload for a given file path.
 /// Pure-logic helper — reads the file from disk then assembles the
 /// JSON the renderer expects. Returns Err when the read fails so the
 /// caller can decide whether to swallow or propagate.
-pub(crate) fn build_open_new_tab_payload(pathname: &str) -> Result<Value, String> {
+///
+/// `preview_mode` (M-022): when `true`, the payload carries
+/// `previewMode: true` so the renderer creates the tab in preview
+/// (read-only) view rather than the default editing view. Used by the
+/// CLI / Finder open-document path (Phase-B4-pre-alpha-add) so a user
+/// double-clicking an `.md` in Finder lands on a preview rather than
+/// the editor surface.
+pub(crate) fn build_open_new_tab_payload(
+    pathname: &str,
+    preview_mode: bool,
+) -> Result<Value, String> {
     let content = match std::fs::read_to_string(pathname) {
         Ok(s) => s,
         Err(e) => {
@@ -357,6 +371,7 @@ pub(crate) fn build_open_new_tab_payload(pathname: &str) -> Result<Value, String
         "trimTrailingNewline": 3,
         "cursor": null,
         "isMixedLineEndings": false,
+        "previewMode": preview_mode,
     }))
 }
 
@@ -368,16 +383,23 @@ pub(crate) fn build_open_new_tab_payload(pathname: &str) -> Result<Value, String
 /// Generic over the Emitter trait so callers can pass either `tauri::Window`
 /// (the legacy command-handler param type) or `tauri::WebviewWindow`
 /// (the newer window builder return type used by main.rs setup).
+///
+/// `preview_mode` (M-022): pass `true` for Finder/CLI-launched files so
+/// the new tab lands in preview view; pass `false` for sidebar clicks /
+/// picker invocations where the user is actively editing.
 pub(crate) fn emit_open_new_tab<E: tauri::Emitter<tauri::Wry>>(
     emitter: &E,
     pathname: &str,
+    preview_mode: bool,
 ) -> Result<(), String> {
-    let markdown_document = build_open_new_tab_payload(pathname)?;
+    let markdown_document = build_open_new_tab_payload(pathname, preview_mode)?;
     if let Err(e) = emitter.emit("mt::open-new-tab", &markdown_document) {
         eprintln!("[v1_compat][open_new_tab][BLOCK_EMIT_FAILED err={e}]");
         return Err(e.to_string());
     }
-    eprintln!("[v1_compat][open_new_tab][BLOCK_OPENED path={pathname}]");
+    eprintln!(
+        "[v1_compat][open_new_tab][BLOCK_OPENED path={pathname} preview={preview_mode}]"
+    );
     Ok(())
 }
 
@@ -879,7 +901,7 @@ mod tests {
         let dir = TempDir::new().unwrap();
         let target = dir.path().join("note.md");
         std::fs::write(&target, "# Heading\n\ncontent").unwrap();
-        let payload = build_open_new_tab_payload(target.to_str().unwrap()).unwrap();
+        let payload = build_open_new_tab_payload(target.to_str().unwrap(), false).unwrap();
         assert_eq!(payload["markdown"], json!("# Heading\n\ncontent"));
         assert_eq!(payload["filename"], json!("note.md"));
         assert_eq!(payload["pathname"], json!(target.to_str().unwrap()));
@@ -887,11 +909,21 @@ mod tests {
         assert_eq!(payload["encoding"]["isBom"], json!(false));
         assert_eq!(payload["lineEnding"], json!("lf"));
         assert_eq!(payload["isMixedLineEndings"], json!(false));
+        assert_eq!(payload["previewMode"], json!(false));
+    }
+
+    #[test]
+    fn build_open_new_tab_payload_carries_preview_mode_true() {
+        let dir = TempDir::new().unwrap();
+        let target = dir.path().join("note.md");
+        std::fs::write(&target, "x").unwrap();
+        let payload = build_open_new_tab_payload(target.to_str().unwrap(), true).unwrap();
+        assert_eq!(payload["previewMode"], json!(true));
     }
 
     #[test]
     fn build_open_new_tab_payload_propagates_read_errors() {
-        let err = build_open_new_tab_payload("/nonexistent-1234567890.md").unwrap_err();
+        let err = build_open_new_tab_payload("/nonexistent-1234567890.md", false).unwrap_err();
         assert!(!err.is_empty());
     }
 
@@ -906,7 +938,7 @@ mod tests {
         let target = dir.path().join("nested").join("a.md");
         std::fs::create_dir_all(target.parent().unwrap()).unwrap();
         std::fs::write(&target, "x").unwrap();
-        let payload = build_open_new_tab_payload(target.to_str().unwrap()).unwrap();
+        let payload = build_open_new_tab_payload(target.to_str().unwrap(), false).unwrap();
         assert_eq!(payload["filename"], json!("a.md"));
     }
 

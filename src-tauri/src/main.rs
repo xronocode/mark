@@ -79,6 +79,7 @@ mod m017_recent;
 mod m018_screenshot;
 mod m019_datacenter;
 mod m020_cli;
+mod m021_default_handler;
 mod m013b;
 mod m_v1_compat;
 mod m005_migrate;
@@ -472,7 +473,11 @@ fn main() {
                     std::thread::spawn(move || {
                         std::thread::sleep(std::time::Duration::from_millis(1500));
                         for path in &files {
-                            if let Err(e) = m_v1_compat::emit_open_new_tab(&win, path) {
+                            // M-022: Finder/CLI-launched files start in
+                            // preview view per V-M-022 design. Sidebar
+                            // clicks + picker invocations stay in editor
+                            // view (preview_mode=false).
+                            if let Err(e) = m_v1_compat::emit_open_new_tab(&win, path, true) {
                                 eprintln!(
                                     "[main][cli][BLOCK_CLI_OPEN_FAILED path={path} err={e}]"
                                 );
@@ -557,6 +562,13 @@ fn main() {
             m001_save_close::mt_close_window,
             m001_save_close::mt_save_and_close_tabs,
             m001_save_close::mt_close_window_confirm,
+            // M-021 (B4-pre-alpha-add): macOS .md default-handler
+            // registration. Settings UI invokes these. Outside the
+            // M-013a typed CommandMap surface — see m001_validate.rs
+            // header comment for the v1_compat / dev-helper exclusion.
+            m021_default_handler::mt_set_default_md_handler,
+            m021_default_handler::mt_get_default_md_handler,
+            m021_default_handler::mt_unset_default_md_handler,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
