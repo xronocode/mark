@@ -10,13 +10,15 @@
 //            from main process). Per-component listeners that fire
 //            AFTER user interaction stay in their component as bus.on
 //            or local listen() calls.
-//   DEPENDS: @tauri-apps/api/event, pinia stores (preferences, main).
+//   DEPENDS: @tauri-apps/api/event, pinia stores (preferences, project, editor).
 //   LINKS:   docs/path-bclean-step1-inventory.md (W1 wave site list),
 //            verification-plan.xml V-Phase-Bclean-W1.
 //
 // CHANGE_SUMMARY:
 //   - 2026-05-09 W1 initial: prefs broadcast + window-active-status +
 //                language-changed listeners.
+//   - 2026-05-09 audit-M-1: delete 37 dead listeners (24 menu-driven +
+//                13 never-wired); see docs/path-b-clean-audit.md
 
 import { listen } from '@tauri-apps/api/event'
 import bus from './bus'
@@ -45,10 +47,8 @@ export const setupIpcListeners = async () => {
   // Lazy-import Pinia stores so they're created in the calling app
   // context (must run AFTER app.use(pinia) but BEFORE app.mount).
   const { usePreferencesStore } = await import('./store/preferences')
-  const { useMainStore } = await import('./store')
 
   const prefs = usePreferencesStore()
-  const main = useMainStore()
 
   // mt::user-preference — fires on every cross-window pref change
   // (broadcast from backend mt_set_user_preference). When Settings
@@ -69,24 +69,6 @@ export const setupIpcListeners = async () => {
     }
   })
 
-  // language-changed — same payload, separate channel for backwards-compat
-  // with i18n module's old listen pattern. Single emitter eventually.
-  await listen('language-changed', (event) => {
-    const lang = event?.payload
-    if (typeof lang === 'string' && lang) {
-      setLanguage(lang)
-      bus.emit('language-changed', lang)
-    }
-  })
-
-  // mt::window-active-status — focus/blur for current window
-  await listen('mt::window-active-status', (event) => {
-    const status = event?.payload?.status
-    if (typeof status === 'boolean') {
-      main.windowActive = status
-    }
-  })
-
   // Path B-clean W3: tree-walk events from open-folder backend.
   // Streamed during recursive walk; renderer's ProjectStore folds
   // each into the sidebar tree via _processTreeEvent.
@@ -96,21 +78,6 @@ export const setupIpcListeners = async () => {
     const payload = event?.payload
     if (payload && typeof payload === 'object' && payload.type) {
       projectStore._processTreeEvent(payload.type, payload.change)
-    }
-  })
-
-  // Path B-clean review M-7: command-palette + view-mode-entry
-  // listeners (formerly preferences.js LISTEN_FOR_VIEW). Boot-time
-  // registration eliminates the listener-race the W1 wave already
-  // closed for prefs broadcasts.
-  await listen('mt::show-command-palette', () => {
-    bus.emit('show-command-palette')
-  })
-  await listen('mt::toggle-view-mode-entry', (event) => {
-    const entryName = event?.payload
-    if (typeof entryName === 'string' && entryName) {
-      prefs.TOGGLE_VIEW_MODE(entryName)
-      prefs.DISPATCH_EDITOR_VIEW_STATE({ [entryName]: prefs[entryName] })
     }
   })
 
@@ -157,13 +124,11 @@ export const setupIpcListeners = async () => {
     }
   })
 
-  // Path B-clean W2b: editor-event listeners (open-new-tab,
-  // new-untitled-tab, close-tab, tab-cycle, switch-tab, screenshot,
-  // bootstrap-editor). Single boot registration replaces 10+
-  // per-action listener installs in editor.js.
-  await listen('mt::screenshot-captured', () => {
-    bus.emit('screenshot-captured')
-  })
+  // Path B-clean W2b: editor-event listeners. Live channels:
+  // bootstrap-editor + open-new-tab. Other W2b listeners (close-tab,
+  // tab-cycle, switch-tab, new-untitled-tab, screenshot) were deleted
+  // in audit-M-1: those flow through mt::menu-invoked → install-menu-bridge.js
+  // and have no direct backend emitter.
   await listen('mt::bootstrap-editor', (event) => {
     if (event?.payload) editorStore.APPLY_BOOTSTRAP_EDITOR(event.payload)
   })
@@ -182,53 +147,16 @@ export const setupIpcListeners = async () => {
       }
     }
   })
-  await listen('mt::new-untitled-tab', (event) => {
-    const p = event?.payload
-    const selected = (p && typeof p.selected === 'boolean') ? p.selected : true
-    const markdown = (p && typeof p.markdown === 'string') ? p.markdown : ''
-    editorStore.NEW_UNTITLED_TAB({ markdown, selected })
-  })
-  await listen('mt::editor-close-tab', () => {
-    editorStore.CLOSE_TAB()
-  })
-  await listen('mt::tabs-cycle-left', () => {
-    editorStore.CYCLE_TABS(false)
-  })
-  await listen('mt::tabs-cycle-right', () => {
-    editorStore.CYCLE_TABS(true)
-  })
-  await listen('mt::switch-tab-by-index', (event) => {
-    const index = event?.payload
-    if (typeof index === 'number') editorStore.SWITCH_TAB_BY_INDEX(index)
-  })
-  await listen('mt::switch-tab-by-file_path', (event) => {
-    const filePath = event?.payload
-    if (typeof filePath === 'string') editorStore.SWITCH_TAB_BY_FILEPATH(filePath)
-  })
 
-  // Path B-clean W5: editor-event IPC listeners (line-ending,
-  // export, file-watcher, zoom, image-cache, context menu, spelling).
-  // Most are bus.emit forwarders; a few have inline state updates
-  // that became APPLY_* actions.
-  await listen('mt::editor-ask-file-save', () => {
-    editorStore.FILE_SAVE()
-  })
-  await listen('mt::editor-ask-file-save-as', () => {
-    editorStore.FILE_SAVE_AS()
-  })
-  await listen('mt::editor-move-file', () => {
-    editorStore.MOVE_FILE_TO()
-  })
-  await listen('mt::editor-rename-file', () => {
-    editorStore.RESPONSE_FOR_RENAME()
-  })
+  // Path B-clean W5: live cross-window listener kept after audit-M-1.
+  // Other W5 channels (file-save{,-as}, move/rename-file, set-line-ending,
+  // window-zoom, image-cache, export-success, print-service-clearup,
+  // context-menu, spelling) were deleted: they are menu-driven and now
+  // flow through mt::menu-invoked → install-menu-bridge.js, or have no
+  // backend emitter at all.
   await listen('mt::force-close-tabs-by-id', (event) => {
     const list = event?.payload
     if (Array.isArray(list) && list.length) editorStore.CLOSE_TABS(list)
-  })
-  await listen('mt::set-line-ending', (event) => {
-    const lineEnding = event?.payload
-    if (typeof lineEnding === 'string') editorStore.SET_LINE_ENDING(lineEnding)
   })
   // C-1 fix: the legacy mt::update-file listener was dead. Backend
   // emits file-watcher events on mt::watch::event (see m013b/watch.rs);
@@ -236,106 +164,15 @@ export const setupIpcListeners = async () => {
   // which translates kind=create/modify/remove into _processTreeEvent
   // + APPLY_FILE_CHANGE calls. No boot-time listener is needed for
   // file-watch — subscriptions are per-root and scoped to project life.
-  await listen('mt::window-zoom', (event) => {
-    const z = event?.payload
-    if (typeof z === 'number') editorStore.EDIT_ZOOM(z)
-  })
-  await listen('mt::invalidate-image-cache', () => {
-    bus.emit('invalidate-image-cache')
-  })
-  await listen('mt::export-success', (event) => {
-    const p = event?.payload
-    const filePath = (p && typeof p === 'object') ? p.filePath : null
-    if (filePath) editorStore.APPLY_EXPORT_SUCCESS(filePath)
-  })
-  await listen('mt::print-service-clearup', () => {
-    bus.emit('print-service-clearup')
-  })
-  // Context menu
-  await listen('mt::cm-copy-as-rich', () => bus.emit('copyAsRich', 'copyAsRich'))
-  await listen('mt::cm-copy-as-html', () => bus.emit('copyAsHtml', 'copyAsHtml'))
-  await listen('mt::cm-paste-as-plain-text', () => bus.emit('pasteAsPlainText', 'pasteAsPlainText'))
-  await listen('mt::cm-insert-paragraph', (event) => {
-    bus.emit('insertParagraph', event?.payload)
-  })
-  await listen('mt::spelling-replace-misspelling', (event) => {
-    bus.emit('replace-misspelling', event?.payload)
-  })
-  await listen('mt::spelling-show-switch-language', () => {
-    bus.emit('open-command-spellchecker-switch-language')
-  })
 
-  // Path B-clean W6: listenForMain + layout + commandCenter +
-  // notification listeners. All bus.emit forwarders or APPLY_*
-  // action calls.
-  const { useListenForMainStore } = await import('./store/listenForMain')
-  const lfm = useListenForMainStore()
-  await listen('mt::editor-edit-action', (event) => {
-    const type = event?.payload
-    if (type) lfm.EDITOR_EDIT_ACTION(type)
-  })
-  await listen('mt::about-dialog', () => bus.emit('aboutDialog'))
-  await listen('mt::show-export-dialog', (event) => {
-    bus.emit('showExportDialog', event?.payload)
-  })
-  await listen('mt::editor-paragraph-action', (event) => {
-    const p = event?.payload
-    const type = (p && typeof p === 'object') ? p.type : p
-    if (type) bus.emit('paragraph', type)
-  })
-  await listen('mt::editor-format-action', (event) => {
-    const p = event?.payload
-    const type = (p && typeof p === 'object') ? p.type : p
-    if (type) bus.emit('format', type)
-  })
-
-  // Layout listeners (kept dormant until F-MENU-WIRE-TAURI emits).
-  const { useLayoutStore } = await import('./store/layout')
-  const layoutStore = useLayoutStore()
-  await listen('mt::set-view-layout', (event) => {
-    const layout = event?.payload
-    if (layout && typeof layout === 'object') {
-      if (layout.rightColumn) {
-        layoutStore.SET_LAYOUT({
-          ...layout,
-          rightColumn: layout.rightColumn === layoutStore.rightColumn ? '' : layout.rightColumn,
-          showSideBar: true
-        })
-      } else {
-        layoutStore.SET_LAYOUT(layout)
-      }
-      layoutStore.DISPATCH_LAYOUT_MENU_ITEMS()
-    }
-  })
-  await listen('mt::toggle-view-layout-entry', (event) => {
-    const entryName = event?.payload
-    if (typeof entryName === 'string') {
-      layoutStore.TOGGLE_LAYOUT_ENTRY(entryName)
-      layoutStore.DISPATCH_LAYOUT_MENU_ITEMS()
-    }
-  })
-
-  // Command center (keybindings + execute-by-id)
-  const { useCommandCenterStore } = await import('./store/commandCenter')
-  const ccStore = useCommandCenterStore()
-  await listen('mt::keybindings-response', (event) => {
-    const map = event?.payload
-    if (map && typeof map === 'object') ccStore.APPLY_KEYBINDINGS(map)
-  })
-  await listen('mt::execute-command-by-id', (event) => {
-    const id = event?.payload
-    if (typeof id === 'string') ccStore.EXECUTE_COMMAND_BY_ID(id)
-  })
-
-  // Notifications
-  const { useNotificationStore } = await import('./store/notification')
-  const noteStore = useNotificationStore()
-  await listen('mt::show-notification', (event) => {
-    noteStore.SHOW_NOTIFICATION(event?.payload)
-  })
-  await listen('mt::pandoc-not-exists', (event) => {
-    noteStore.SHOW_PANDOC_MISSING(event?.payload)
-  })
+  // Path B-clean W6 listeners (listenForMain edit-action, about-dialog,
+  // show-export-dialog, editor-paragraph-action, editor-format-action,
+  // layout set-view-layout / toggle-view-layout-entry, commandCenter
+  // keybindings-response / execute-command-by-id, notifications
+  // show-notification / pandoc-not-exists) were deleted in audit-M-1:
+  // all are either menu-driven (route through mt::menu-invoked →
+  // install-menu-bridge.js) or have no Rust emitter. See
+  // docs/path-b-clean-audit.md.
 
   console.log('[boot][ipc][BLOCK_ALL_LISTENERS_REGISTERED]')
 }
