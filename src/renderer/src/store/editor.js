@@ -1410,6 +1410,74 @@ export const useEditorStore = defineStore('editor', {
       bus.on('mt::window-zoom', (zoomFactor) => {
         this.EDIT_ZOOM(zoomFactor)
       })
+    },
+
+    // M-022 mt-preview-mode: per-tab preview state. When entered the
+    // editor surface goes contenteditable=false + caret-color:transparent
+    // and the sidebar collapses for a clean read-only view. Exit via
+    // mousedown on editor body, Cmd+\\ toggle, or tab close. The
+    // previewMode flag lives on the tab itself (multi-tab support per
+    // V-M-022 S-02). Sidebar visibility is snapshotted on entry and
+    // restored per the `previewModeOnFinderOpen` pref on exit.
+    APPLY_PREVIEW_MODE(tabId, on) {
+      if (!tabId) return
+      const tab = this.tabs.find((t) => t.id === tabId)
+      if (!tab) return
+      // Routing helper: APPLY(false) is conventional EXIT.
+      if (!on) {
+        this.EXIT_PREVIEW_MODE(tabId, 'cmd-toggle')
+        return
+      }
+      // I-01 idempotency: re-apply when already in preview is a no-op.
+      if (tab.previewMode) return
+      const preferencesStore = usePreferencesStore()
+      // S-04 gate: when pref is disabled the apply is a silent no-op
+      // (no log markers, no sidebar churn). Bootstrap-ipc gates this
+      // externally too, but we double-gate here so direct callers
+      // (tests, future hot-key handlers) honour the user preference.
+      if (!preferencesStore.previewModeOnFinderOpen) return
+      const layoutStore = useLayoutStore()
+      // Snapshot prior sidebar state on the tab so EXIT can restore it.
+      tab._previewSideBarSnapshot = !!layoutStore.showSideBar
+      tab.previewMode = true
+      // Collapse sidebar for the minimal preview view. Use direct
+      // state assignment (not SET_LAYOUT) to avoid persisting the
+      // transient hide as the user's saved sideBarVisibility pref.
+      layoutStore.showSideBar = false
+      // eslint-disable-next-line no-console
+      console.debug(
+        `[editor][preview][BLOCK_ENTERED tab=${tabId} file=${tab.pathname || ''}]`
+      )
+    },
+
+    EXIT_PREVIEW_MODE(tabId, reason) {
+      if (!tabId) return
+      const tab = this.tabs.find((t) => t.id === tabId)
+      if (!tab) return
+      // I-02 idempotency: exit on non-preview tab is a silent no-op.
+      if (!tab.previewMode) return
+      tab.previewMode = false
+      const preferencesStore = usePreferencesStore()
+      const layoutStore = useLayoutStore()
+      // T-01 / T-02: pref true (default) → keep sidebar hidden after
+      // preview exit (treat preview-mode opens as minimal-view sessions).
+      // pref false → restore prior snapshot.
+      let restoredVisibility
+      if (preferencesStore.previewModeOnFinderOpen) {
+        restoredVisibility = false
+      } else {
+        restoredVisibility = !!tab._previewSideBarSnapshot
+      }
+      layoutStore.showSideBar = restoredVisibility
+      delete tab._previewSideBarSnapshot
+      // eslint-disable-next-line no-console
+      console.debug(
+        `[editor][preview][BLOCK_EXITED tab=${tabId} reason=${reason || 'click'}]`
+      )
+      // eslint-disable-next-line no-console
+      console.debug(
+        `[editor][preview][BLOCK_SIDEBAR_RESTORED visibility=${restoredVisibility}]`
+      )
     }
   }
 })

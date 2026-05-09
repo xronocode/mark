@@ -1,7 +1,10 @@
 <template>
   <div
     class="editor-wrapper"
-    :class="[{ typewriter: typewriter, focus: focus, source: sourceCode }]"
+    :class="[
+      { typewriter: typewriter, focus: focus, source: sourceCode },
+      { 'is-preview': isPreviewMode }
+    ]"
     :style="{
       lineHeight: lineHeight,
       fontSize: `${fontSize}px`,
@@ -11,7 +14,13 @@
     }"
     :dir="textDirection"
   >
-    <div ref="editorRef" class="editor-component"></div>
+    <div
+      ref="editorRef"
+      class="editor-component"
+      :contenteditable="isPreviewMode ? 'false' : undefined"
+      @mousedown="handlePreviewMousedown"
+      @keydown="handlePreviewKeydown"
+    ></div>
     <div v-show="imageViewerVisible" class="image-viewer">
       <span class="icon-close" @click="setImageViewerVisible(false)">
         <CloseIcon />
@@ -65,7 +74,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
+import { ref, reactive, watch, onMounted, onBeforeUnmount, nextTick, computed } from 'vue'
 import log from 'electron-log'
 // import ViewImage from 'view-image'
 import Muya from 'muya/lib'
@@ -97,6 +106,7 @@ import { addCommonStyle, setEditorWidth, setWrapCodeBlocks } from '@/util/theme'
 import { usePreferencesStore } from '@/store/preferences'
 import { useEditorStore } from '@/store/editor'
 import { useProjectStore } from '@/store/project'
+import { useLayoutStore } from '@/store/layout'
 import { storeToRefs } from 'pinia'
 import { useI18n } from 'vue-i18n'
 
@@ -122,6 +132,7 @@ const props = defineProps({
 const preferencesStore = usePreferencesStore()
 const editorStore = useEditorStore()
 const projectStore = useProjectStore()
+const layoutStore = useLayoutStore()
 
 // Use storeToRefs to extract reactive properties from the stores
 const {
@@ -197,6 +208,53 @@ let printer = null
 let spellchecker = null
 let switchLanguageCommand = null
 let imageViewer = null
+
+// M-022 mt-preview-mode: derive preview state from the active tab so
+// the .is-preview class flips reactively when APPLY_PREVIEW_MODE /
+// EXIT_PREVIEW_MODE mutate currentFile.previewMode.
+const isPreviewMode = computed(() => !!currentFile.value?.previewMode)
+
+// E-04 ORDERING NOTE: handler runs on `mousedown` (NOT mouseup / click).
+// Reason: the user's drag-select gesture starts at mousedown — exiting
+// preview at mouseup would leave the first click in a no-op limbo where
+// caret-color is still transparent. By firing EXIT immediately on
+// mousedown, the contenteditable flag flips before the browser starts
+// extending the selection, and drag-select works on the very first
+// gesture out of preview. DO NOT "fix" this to mouseup/click.
+const handlePreviewMousedown = (event) => {
+  if (!isPreviewMode.value) return
+  // E-02: right-click (contextmenu) shouldn't exit preview. mousedown
+  // fires for button=2 too, so gate on left button.
+  if (event && typeof event.button === 'number' && event.button !== 0) return
+  const tabId = currentFile.value && currentFile.value.id
+  if (tabId) editorStore.EXIT_PREVIEW_MODE(tabId, 'click')
+}
+
+// Cmd+\\ handler — preview-aware sidebar toggle. When in preview, the
+// chord exits preview AND toggles the sidebar in one gesture (the
+// EXIT_PREVIEW_MODE call already restores sidebar visibility per the
+// `previewModeOnFinderOpen` pref, so we run TOGGLE_LAYOUT_ENTRY only
+// when NOT in preview to avoid flipping the user-restored value back).
+// Other key events (arrows, Escape, plain typing) must not exit preview
+// per V-M-022 E-05.
+const handlePreviewKeydown = (event) => {
+  if (!event) return
+  const isCmdBackslash =
+    event.key === '\\' && (event.metaKey || event.ctrlKey)
+  if (!isCmdBackslash) return
+  if (isPreviewMode.value) {
+    const tabId = currentFile.value && currentFile.value.id
+    if (tabId) {
+      editorStore.EXIT_PREVIEW_MODE(tabId, 'cmd-toggle')
+      // EXIT already adjusted sidebar per pref; do not double-toggle.
+      event.preventDefault()
+      return
+    }
+  }
+  // Not in preview → plain sidebar toggle.
+  layoutStore.TOGGLE_LAYOUT_ENTRY('showSideBar')
+  event.preventDefault()
+}
 
 // Watchers
 watch(typewriter, (value) => {
@@ -1243,6 +1301,19 @@ onBeforeUnmount(() => {
   box-sizing: border-box;
   cursor: default;
   overflow-anchor: none !important;
+}
+
+/* M-022 mt-preview-mode: read-only visual treatment.
+ * - caret-color:transparent hides the blinking cursor that contenteditable
+ *   would otherwise show on focus.
+ * - pointer-events:auto preserved so the mousedown handler still fires.
+ * - Editing surface keeps contenteditable=false (set via the template
+ *   attribute) so muya's typed-input pipeline can't mutate the document
+ *   while in preview.
+ */
+.is-preview .editor-component {
+  caret-color: transparent;
+  pointer-events: auto;
 }
 
 .typewriter .editor-component {

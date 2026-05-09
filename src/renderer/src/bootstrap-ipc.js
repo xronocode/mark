@@ -130,19 +130,45 @@ export const setupIpcListeners = async () => {
   await listen('mt::bootstrap-editor', (event) => {
     if (event?.payload) editorStore.APPLY_BOOTSTRAP_EDITOR(event.payload)
   })
-  await listen('mt::open-new-tab', (event) => {
+  await listen('mt::open-new-tab', async (event) => {
     // v1 sent (markdownDocument, options, selected); via Tauri the
     // payload is a single object — pick fields tolerantly.
     const p = event?.payload
-    if (p && typeof p === 'object') {
-      const markdownDocument = p.markdown !== undefined || p.pathname ? p : p.markdownDocument
-      const options = p.options || {}
-      const selected = typeof p.selected === 'boolean' ? p.selected : true
-      if (markdownDocument) {
-        editorStore.NEW_TAB_WITH_CONTENT({ markdownDocument, options, selected })
-      } else {
-        editorStore.NEW_UNTITLED_TAB({})
+    if (!p || typeof p !== 'object') {
+      // F-01: malformed payload (string / null / missing) — log marker
+      // for verification and bail without touching tabs.
+      // eslint-disable-next-line no-console
+      console.debug('[editor][preview][BLOCK_PAYLOAD_INVALID reason=missing-field]')
+      return
+    }
+    const markdownDocument = p.markdown !== undefined || p.pathname ? p : p.markdownDocument
+    const options = p.options || {}
+    const selected = typeof p.selected === 'boolean' ? p.selected : true
+    if (markdownDocument) {
+      editorStore.NEW_TAB_WITH_CONTENT({ markdownDocument, options, selected })
+    } else {
+      editorStore.NEW_UNTITLED_TAB({})
+    }
+    // M-022: preview-mode flag is set by Agent A's backend hook on
+    // Finder/CLI-launched files. Apply AFTER tab creation so the new
+    // tab id resolves through editorStore.currentFile (or the last
+    // pushed tab when selected=false). We gate on the user pref so the
+    // setting takes effect immediately without a relaunch.
+    if (p.previewMode) {
+      const { usePreferencesStore: _usePref } = await import('./store/preferences')
+      const _prefs = _usePref()
+      if (typeof p.previewMode !== 'boolean') {
+        // eslint-disable-next-line no-console
+        console.debug('[editor][preview][BLOCK_PAYLOAD_INVALID reason=wrong-type]')
+        return
       }
+      if (!_prefs.previewModeOnFinderOpen) return
+      const newTabId = selected
+        ? editorStore.currentFile && editorStore.currentFile.id
+        : editorStore.tabs.length
+          ? editorStore.tabs[editorStore.tabs.length - 1].id
+          : null
+      if (newTabId) editorStore.APPLY_PREVIEW_MODE(newTabId, true)
     }
   })
 
