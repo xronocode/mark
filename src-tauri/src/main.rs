@@ -570,6 +570,38 @@ fn main() {
             m021_default_handler::mt_get_default_md_handler,
             m021_default_handler::mt_unset_default_md_handler,
         ])
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .build(tauri::generate_context!())
+        .expect("error while building tauri application")
+        .run(|app, event| {
+            // macOS Finder double-click + `open file.md` send open-document
+            // Apple Events that Tauri 2 surfaces as RunEvent::Opened. CLI
+            // args (mark file.md direct invocation) don't go through here —
+            // those are handled in setup() via cli.files. Files dispatched
+            // via Apple Event get the same preview-on-open treatment per
+            // M-022 design.
+            if let tauri::RunEvent::Opened { urls } = event {
+                if let Some(window) = tauri::Manager::get_webview_window(app, "main") {
+                    for url in urls {
+                        if let Ok(path) = url.to_file_path() {
+                            let path_str = path.to_string_lossy().to_string();
+                            if let Err(e) =
+                                m_v1_compat::emit_open_new_tab(&window, &path_str, true)
+                            {
+                                eprintln!(
+                                    "[main][apple_event][BLOCK_OPEN_FAILED path={path_str} err={e}]"
+                                );
+                            } else {
+                                eprintln!(
+                                    "[main][apple_event][BLOCK_OPENED path={path_str}]"
+                                );
+                            }
+                        } else {
+                            eprintln!("[main][apple_event][BLOCK_NON_FILE_URL url={url}]");
+                        }
+                    }
+                } else {
+                    eprintln!("[main][apple_event][BLOCK_NO_MAIN_WINDOW]");
+                }
+            }
+        });
 }
