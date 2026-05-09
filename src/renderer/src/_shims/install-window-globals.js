@@ -470,7 +470,12 @@ const i18nUtils = {
     try {
       const response = await fetch(`/locales/${locale}.min.json`)
       if (!response.ok) throw new Error(`HTTP ${response.status}`)
-      return response.json()
+      // Guard against vite dev's catch-all serving index.html for
+      // missing static paths — content-type check catches HTML before
+      // `.json()` throws an unhandled rejection.
+      const ct = response.headers.get('content-type') || ''
+      if (!ct.includes('json')) throw new Error(`non-JSON content-type: ${ct}`)
+      return await response.json()
     } catch (e) {
       // Graceful fallback — empty map; vue-i18n falls back to keys.
       // eslint-disable-next-line no-console

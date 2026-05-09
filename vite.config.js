@@ -54,7 +54,12 @@ export default defineConfig({
   },
   define: {
     'process.platform': JSON.stringify(process.platform),
-    'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV || 'production')
+    'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV || 'production'),
+    // F-DEV-MODE-WHITE-SCREEN root cause: dragula → custom-event references
+    // the Node-only `global`. Production rollup tree-shakes it out; dev
+    // mode doesn't. globalThis is available in both Node and browser
+    // (and Tauri's webview), so this define makes both surfaces happy.
+    global: 'globalThis'
   },
   plugins: [
     vue(),
