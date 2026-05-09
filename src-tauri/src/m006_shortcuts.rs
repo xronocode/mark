@@ -196,14 +196,14 @@ fn load_bindings(prefs: &PrefsState) -> Vec<ShortcutBinding> {
     }
 }
 
-#[tauri::command]
-pub async fn mt_shortcut_register(
-    command: String,
-    accelerator: String,
-    prefs: State<'_, PrefsState>,
+/// Pure-logic register — see m013b/fs.rs for the inner/outer split.
+pub(crate) fn shortcut_register_inner(
+    prefs: &PrefsState,
+    command: &str,
+    accelerator: &str,
 ) -> Result<(), String> {
-    let parsed = parse_accelerator(&accelerator).map_err(|e| e.to_string())?;
-    let mut bindings = load_bindings(&prefs);
+    let parsed = parse_accelerator(accelerator).map_err(|e| e.to_string())?;
+    let mut bindings = load_bindings(prefs);
     // Last-write-wins for a given accelerator.
     if let Some(idx) = bindings.iter().position(|b| b.accelerator == parsed) {
         eprintln!(
@@ -215,10 +215,33 @@ pub async fn mt_shortcut_register(
     // Also remove any prior binding for the same command (one-cmd-one-accel).
     bindings.retain(|b| b.command != command);
     bindings.push(ShortcutBinding {
-        command,
+        command: command.to_string(),
         accelerator: parsed,
     });
-    store_bindings(&prefs, &bindings)
+    store_bindings(prefs, &bindings)
+}
+
+pub(crate) fn shortcut_unregister_inner(prefs: &PrefsState, command: &str) -> Result<(), String> {
+    let mut bindings = load_bindings(prefs);
+    let before = bindings.len();
+    bindings.retain(|b| b.command != command);
+    if bindings.len() < before {
+        eprintln!("[Shortcuts][unregister][BLOCK_REMOVED command={command}]");
+    }
+    store_bindings(prefs, &bindings)
+}
+
+pub(crate) fn shortcut_list_inner(prefs: &PrefsState) -> Result<Value, String> {
+    serde_json::to_value(load_bindings(prefs)).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn mt_shortcut_register(
+    command: String,
+    accelerator: String,
+    prefs: State<'_, PrefsState>,
+) -> Result<(), String> {
+    shortcut_register_inner(prefs.inner(), &command, &accelerator)
 }
 
 #[tauri::command]
@@ -226,18 +249,12 @@ pub async fn mt_shortcut_unregister(
     command: String,
     prefs: State<'_, PrefsState>,
 ) -> Result<(), String> {
-    let mut bindings = load_bindings(&prefs);
-    let before = bindings.len();
-    bindings.retain(|b| b.command != command);
-    if bindings.len() < before {
-        eprintln!("[Shortcuts][unregister][BLOCK_REMOVED command={command}]");
-    }
-    store_bindings(&prefs, &bindings)
+    shortcut_unregister_inner(prefs.inner(), &command)
 }
 
 #[tauri::command]
 pub async fn mt_shortcut_list(prefs: State<'_, PrefsState>) -> Result<Value, String> {
-    serde_json::to_value(load_bindings(&prefs)).map_err(|e| e.to_string())
+    shortcut_list_inner(prefs.inner())
 }
 
 // ─────────────────────────────────────────────────────────────────────
@@ -504,5 +521,87 @@ mod tests {
             "builtin globals must include app.show-window — found: {:?}",
             pairs
         );
+    }
+
+    #[test]
+    fn shortcut_register_inner_persists_binding() {
+        let (_dir, prefs) = fresh_prefs();
+        shortcut_register_inner(&prefs, "save", "Cmd+S").unwrap();
+        let loaded = load_bindings(&prefs);
+        assert_eq!(loaded.len(), 1);
+        assert_eq!(loaded[0].command, "save");
+        assert_eq!(loaded[0].accelerator.key, "S");
+    }
+
+    #[test]
+    fn shortcut_register_inner_invalid_accel_returns_error() {
+        let (_dir, prefs) = fresh_prefs();
+        let err = shortcut_register_inner(&prefs, "save", "").unwrap_err();
+        assert!(err.contains("empty"), "got {err}");
+        assert_eq!(load_bindings(&prefs).len(), 0);
+    }
+
+    #[test]
+    fn shortcut_register_inner_dedupes_command() {
+        let (_dir, prefs) = fresh_prefs();
+        shortcut_register_inner(&prefs, "save", "Cmd+S").unwrap();
+        shortcut_register_inner(&prefs, "save", "Cmd+Shift+S").unwrap();
+        let loaded = load_bindings(&prefs);
+        assert_eq!(loaded.len(), 1, "command must remain a single binding");
+        let parsed = parse_accelerator("Cmd+Shift+S").unwrap();
+        assert_eq!(loaded[0].accelerator, parsed);
+    }
+
+    #[test]
+    fn shortcut_register_inner_overrides_duplicate_accelerator() {
+        let (_dir, prefs) = fresh_prefs();
+        shortcut_register_inner(&prefs, "save", "Cmd+S").unwrap();
+        shortcut_register_inner(&prefs, "save-as", "Cmd+S").unwrap();
+        let loaded = load_bindings(&prefs);
+        assert_eq!(loaded.len(), 1, "accelerator owned by last registrant");
+        assert_eq!(loaded[0].command, "save-as");
+    }
+
+    #[test]
+    fn shortcut_unregister_inner_removes_binding() {
+        let (_dir, prefs) = fresh_prefs();
+        shortcut_register_inner(&prefs, "save", "Cmd+S").unwrap();
+        shortcut_register_inner(&prefs, "find", "Cmd+F").unwrap();
+        shortcut_unregister_inner(&prefs, "save").unwrap();
+        let loaded = load_bindings(&prefs);
+        assert_eq!(loaded.len(), 1);
+        assert_eq!(loaded[0].command, "find");
+    }
+
+    #[test]
+    fn shortcut_unregister_inner_unknown_command_is_noop() {
+        let (_dir, prefs) = fresh_prefs();
+        shortcut_register_inner(&prefs, "save", "Cmd+S").unwrap();
+        shortcut_unregister_inner(&prefs, "ghost").unwrap();
+        assert_eq!(load_bindings(&prefs).len(), 1);
+    }
+
+    #[test]
+    fn shortcut_list_inner_returns_json_array() {
+        let (_dir, prefs) = fresh_prefs();
+        shortcut_register_inner(&prefs, "save", "Cmd+S").unwrap();
+        let v = shortcut_list_inner(&prefs).unwrap();
+        let arr = v.as_array().expect("expected JSON array");
+        assert_eq!(arr.len(), 1);
+        assert_eq!(arr[0]["command"], serde_json::json!("save"));
+    }
+
+    #[test]
+    fn unknown_token_in_non_last_position_rejected() {
+        let err = parse_accelerator("Bogus+S").unwrap_err();
+        assert!(matches!(err, ParseError::UnknownToken(_)));
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn cmd_or_ctrl_maps_to_cmd_on_macos() {
+        let a = parse_accelerator("CmdOrCtrl+S").unwrap();
+        let b = parse_accelerator("Cmd+S").unwrap();
+        assert_eq!(a, b);
     }
 }

@@ -45,31 +45,36 @@ fn store(prefs: &PrefsState, list: &[String]) -> Result<(), String> {
         .map_err(|e| e.to_string())
 }
 
-/// Add a path to the recent list. Dedupes by exact-string match;
-/// most-recent moves to head; cap enforced.
-#[tauri::command]
-pub async fn mt_recent_add(path: String, prefs: State<'_, PrefsState>) -> Result<(), String> {
-    let mut current = load(&prefs);
-    current.retain(|p| p != &path);
-    current.insert(0, path);
+/// Pure-logic add — see m013b/fs.rs for the inner/outer split rationale.
+pub(crate) fn recent_add_inner(prefs: &PrefsState, path: &str) -> Result<(), String> {
+    let mut current = load(prefs);
+    current.retain(|p| p != path);
+    current.insert(0, path.to_string());
     if current.len() > MAX_RECENT_DOCS {
         current.truncate(MAX_RECENT_DOCS);
     }
     eprintln!("[Recent][add][BLOCK_RECENT_UPDATED count={}]", current.len());
-    store(&prefs, &current)
+    store(prefs, &current)
+}
+
+/// Add a path to the recent list. Dedupes by exact-string match;
+/// most-recent moves to head; cap enforced.
+#[tauri::command]
+pub async fn mt_recent_add(path: String, prefs: State<'_, PrefsState>) -> Result<(), String> {
+    recent_add_inner(prefs.inner(), &path)
 }
 
 /// Snapshot the recent list (most-recent first, ≤ MAX_RECENT_DOCS).
 #[tauri::command]
 pub async fn mt_recent_list(prefs: State<'_, PrefsState>) -> Result<Vec<String>, String> {
-    Ok(load(&prefs))
+    Ok(load(prefs.inner()))
 }
 
 /// Clear the entire list. v1.2.3 menu has "Clear Recent" item.
 #[tauri::command]
 pub async fn mt_recent_clear(prefs: State<'_, PrefsState>) -> Result<(), String> {
     eprintln!("[Recent][clear][BLOCK_RECENT_CLEARED]");
-    store(&prefs, &[])
+    store(prefs.inner(), &[])
 }
 
 #[cfg(test)]
@@ -86,13 +91,7 @@ mod tests {
     }
 
     fn add_sync(prefs: &PrefsState, path: &str) {
-        let mut current = load(prefs);
-        current.retain(|p| p != path);
-        current.insert(0, path.to_string());
-        if current.len() > MAX_RECENT_DOCS {
-            current.truncate(MAX_RECENT_DOCS);
-        }
-        store(prefs, &current).unwrap();
+        recent_add_inner(prefs, path).unwrap();
     }
 
     #[test]
@@ -191,4 +190,32 @@ mod tests {
     // since we deal in String).
     #[allow(dead_code)]
     fn _suppress(_: PathBuf) {}
+
+    #[test]
+    fn recent_add_inner_dedupes_and_promotes_to_head() {
+        let (_dir, prefs) = fresh_prefs();
+        recent_add_inner(&prefs, "/x.md").unwrap();
+        recent_add_inner(&prefs, "/y.md").unwrap();
+        recent_add_inner(&prefs, "/x.md").unwrap();
+        let list = load(&prefs);
+        assert_eq!(list, vec!["/x.md".to_string(), "/y.md".to_string()]);
+    }
+
+    #[test]
+    fn recent_add_inner_enforces_cap() {
+        let (_dir, prefs) = fresh_prefs();
+        for i in 0..(MAX_RECENT_DOCS + 3) {
+            recent_add_inner(&prefs, &format!("/n-{i:03}.md")).unwrap();
+        }
+        let list = load(&prefs);
+        assert_eq!(list.len(), MAX_RECENT_DOCS);
+    }
+
+    #[test]
+    fn store_persists_then_load_returns_same_order() {
+        let (_dir, prefs) = fresh_prefs();
+        store(&prefs, &["/c.md".to_string(), "/b.md".to_string(), "/a.md".to_string()]).unwrap();
+        let list = load(&prefs);
+        assert_eq!(list, vec!["/c.md".to_string(), "/b.md".to_string(), "/a.md".to_string()]);
+    }
 }
