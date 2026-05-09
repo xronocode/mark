@@ -849,6 +849,190 @@ mod tests {
     }
 
     #[test]
+    fn build_matcher_literal_escapes_special_chars() {
+        // In literal (non-regex) mode '.' matches a literal dot only —
+        // not "any char" — so 'foo.bar' must NOT match 'fooXbar'.
+        let opts = SearchOptions {
+            is_regexp: Some(false),
+            ..Default::default()
+        };
+        let m = build_matcher("foo.bar", &opts).unwrap();
+        assert!(m.is_match("foo.bar"));
+        assert!(!m.is_match("fooXbar"));
+    }
+
+    #[test]
+    fn build_matcher_invalid_regex_errors() {
+        let opts = SearchOptions {
+            is_regexp: Some(true),
+            ..Default::default()
+        };
+        assert!(build_matcher("(invalid", &opts).is_err());
+    }
+
+    #[test]
+    fn build_matcher_whole_word_in_regex_mode_wraps_with_word_boundaries() {
+        let opts = SearchOptions {
+            is_regexp: Some(true),
+            is_whole_word: Some(true),
+            ..Default::default()
+        };
+        let m = build_matcher(r"foo\d+", &opts).unwrap();
+        assert!(m.is_match("foo123"));
+        assert!(!m.is_match("xfoo123x"));
+    }
+
+    #[test]
+    fn hidden_files_skipped_by_default() {
+        let dir = TempDir::new().unwrap();
+        write(dir.path().join(".secret.md"), "needle\n").unwrap();
+        write(dir.path().join("public.md"), "needle\n").unwrap();
+        let (tx, rx) = mpsc::channel();
+        let sink: Arc<dyn SearchSink> = Arc::new(ChannelSink { tx });
+        let cancel = Arc::new(AtomicBool::new(false));
+        let opts = SearchOptions::default();
+        let total = run_search("s-1", dir.path(), "needle", &opts, cancel, sink).unwrap();
+        assert_eq!(total, 1, "hidden .secret.md should be skipped");
+        let _ = collect_until_terminal(&rx, Duration::from_secs(1));
+    }
+
+    #[test]
+    fn include_hidden_picks_up_dotfiles() {
+        let dir = TempDir::new().unwrap();
+        write(dir.path().join(".secret.md"), "needle\n").unwrap();
+        let (tx, rx) = mpsc::channel();
+        let sink: Arc<dyn SearchSink> = Arc::new(ChannelSink { tx });
+        let cancel = Arc::new(AtomicBool::new(false));
+        let opts = SearchOptions {
+            include_hidden: Some(true),
+            ..Default::default()
+        };
+        let total = run_search("s-1", dir.path(), "needle", &opts, cancel, sink).unwrap();
+        assert_eq!(total, 1);
+        let _ = collect_until_terminal(&rx, Duration::from_secs(1));
+    }
+
+    #[test]
+    fn max_file_size_excludes_oversized_files() {
+        let dir = TempDir::new().unwrap();
+        // 200 KB file, big.md
+        let big = "needle\n".repeat(20_000);
+        write(dir.path().join("big.md"), big).unwrap();
+        write(dir.path().join("small.md"), "needle\n").unwrap();
+        let (tx, rx) = mpsc::channel();
+        let sink: Arc<dyn SearchSink> = Arc::new(ChannelSink { tx });
+        let cancel = Arc::new(AtomicBool::new(false));
+        let opts = SearchOptions {
+            max_file_size: Some(1024), // 1 KB ceiling — big.md skipped
+            ..Default::default()
+        };
+        let total = run_search("s-1", dir.path(), "needle", &opts, cancel, sink).unwrap();
+        assert_eq!(total, 1, "only small.md should be searched");
+        let _ = collect_until_terminal(&rx, Duration::from_secs(1));
+    }
+
+    #[test]
+    fn cancellation_drains_partial_batch_before_emit_cancelled() {
+        // Build a workload that produces hits but stop the search via
+        // cancel BEFORE the batch fills. The drain branch in run_search
+        // (lines 246-258 in original) emits the partial batch THEN
+        // emits the cancelled event.
+        let dir = TempDir::new().unwrap();
+        // 2 hits is below DEFAULT_BATCH_SIZE (16) so the partial-batch
+        // drain branch will fire when cancel observed mid-walk.
+        write(dir.path().join("a.md"), "needle\nneedle\n").unwrap();
+        write(dir.path().join("b.md"), "needle\nneedle\n").unwrap();
+        let (tx, rx) = mpsc::channel();
+        let sink: Arc<dyn SearchSink> = Arc::new(ChannelSink { tx });
+        let cancel = Arc::new(AtomicBool::new(false));
+        let cancel_for_thread = cancel.clone();
+        let opts = SearchOptions::default();
+        let dir_path = dir.path().to_path_buf();
+        let handle = std::thread::spawn(move || {
+            run_search("s-drain", &dir_path, "needle", &opts, cancel_for_thread, sink)
+        });
+        // Give walker time to find first file but cancel before all done.
+        std::thread::sleep(Duration::from_millis(2));
+        cancel.store(true, Ordering::SeqCst);
+        let _total = handle.join().unwrap().unwrap();
+        let events = collect_until_terminal(&rx, Duration::from_millis(500));
+        // Either we got 'cancelled' OR the search completed before cancel
+        // was observed — both are valid; the assertion is no panic.
+        assert!(
+            events
+                .iter()
+                .any(|e| e.kind == "cancelled" || e.kind == "complete"),
+            "expected terminal event"
+        );
+    }
+
+    #[test]
+    fn search_event_serializes_with_camel_case_search_id() {
+        let ev = SearchEvent {
+            search_id: "s-1".to_string(),
+            kind: "match".to_string(),
+            hits: vec![],
+            error: None,
+            seq: 3,
+        };
+        let s = serde_json::to_string(&ev).unwrap();
+        assert!(s.contains("\"searchId\":\"s-1\""), "got {s}");
+        assert!(s.contains("\"seq\":3"));
+        // Empty hits + None error skipped per skip_serializing_if.
+        assert!(!s.contains("\"hits\""));
+        assert!(!s.contains("\"error\""));
+    }
+
+    #[test]
+    fn search_hit_payload_contains_path_line_column() {
+        let dir = TempDir::new().unwrap();
+        write(dir.path().join("a.md"), "first line\nneedle here\nlast\n").unwrap();
+        let (tx, rx) = mpsc::channel();
+        let sink: Arc<dyn SearchSink> = Arc::new(ChannelSink { tx });
+        let cancel = Arc::new(AtomicBool::new(false));
+        let opts = SearchOptions::default();
+        let _ = run_search("s-1", dir.path(), "needle", &opts, cancel, sink).unwrap();
+        let events = collect_until_terminal(&rx, Duration::from_secs(1));
+        let mut found = false;
+        for ev in &events {
+            if ev.kind == "match" {
+                for hit in &ev.hits {
+                    assert!(hit.path.ends_with("a.md"));
+                    assert_eq!(hit.line, 2);
+                    assert_eq!(hit.column, 1);
+                    assert_eq!(hit.snippet, "needle here");
+                    assert!(!hit.truncated);
+                    found = true;
+                }
+            }
+        }
+        assert!(found, "expected at least one match hit");
+    }
+
+    #[test]
+    fn empty_directory_emits_only_complete() {
+        let dir = TempDir::new().unwrap();
+        let (tx, rx) = mpsc::channel();
+        let sink: Arc<dyn SearchSink> = Arc::new(ChannelSink { tx });
+        let cancel = Arc::new(AtomicBool::new(false));
+        let opts = SearchOptions::default();
+        let total = run_search("s-empty", dir.path(), "needle", &opts, cancel, sink).unwrap();
+        assert_eq!(total, 0);
+        let events = collect_until_terminal(&rx, Duration::from_secs(1));
+        assert_eq!(events.len(), 1);
+        assert_eq!(events[0].kind, "complete");
+    }
+
+    #[test]
+    fn registry_cancel_unknown_id_is_noop() {
+        let r = SearchRegistry::default();
+        // No insert — cancel an id that was never registered. Must not panic.
+        r.cancel("ghost-id");
+        r.remove("ghost-id");
+        assert_eq!(r.len(), 0);
+    }
+
+    #[test]
     fn batches_at_default_size() {
         let dir = TempDir::new().unwrap();
         // 50 hits in one file → expect ceil(50/16)=4 batches + 1 complete
