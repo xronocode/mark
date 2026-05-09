@@ -4,9 +4,14 @@
 ![Status](https://img.shields.io/badge/status-alpha-orange)
 ![Platform](https://img.shields.io/badge/platform-macOS%20arm64%20%7C%20x86__64-lightgrey)
 ![Binary](https://img.shields.io/badge/binary-~25%20MB-brightgreen)
-[![ko-fi](https://img.shields.io/badge/ko--fi-support-FF5E5B?logo=ko-fi&logoColor=white)](https://ko-fi.com/xronocode)
 
 **A native, lightweight, security-first WYSIWYG Markdown editor for macOS, built on Tauri 2.**
+
+<p align="left">
+  <a href="https://ko-fi.com/xronocode" target="_blank" title="If Mark saves you a 200 MB Electron install — buy the maintainer a coffee">
+    <img height="36" src="https://storage.ko-fi.com/cdn/kofi3.png?v=3" alt="Buy Me a Coffee at ko-fi.com" />
+  </a>
+</p>
 
 ![Mark editor showing demo markdown with WYSIWYG rendering — dark theme](assets/screenshots/hero-dark.png)
 
