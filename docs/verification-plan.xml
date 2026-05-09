@@ -1980,6 +1980,181 @@
     </V-M-013>
 
     <!--
+      V-M-021 / V-M-022 / V-M-023 — Phase-B4-pre-alpha-add (3 features).
+      Designed via $grace-verification deep swarm 2026-05-09; recorded
+      alongside Wave-1 implementation by 3 parallel workers (Agent A
+      backend, Agent B renderer M-022, Agent C settings UI for M-021).
+    -->
+    <V-M-021 MODULE="M-021 mt-default-handler" PRIORITY="high">
+      <test-files>
+        <file>src-tauri/src/m021_default_handler.rs (#[cfg(test)] mod tests)</file>
+      </test-files>
+      <module-checks>
+        <check-1>cd src-tauri && cargo test --bin mark m021_default_handler</check-1>
+        <check-2>cd src-tauri && cargo build --release --bin mark (warnings-allowlist gate)</check-2>
+      </module-checks>
+      <scenarios>
+        <scenario-S-01 kind="success">Set registers our bundle in LSHandlers for both UTIs (net.daringfireball.markdown + public.markdown).</scenario-S-01>
+        <scenario-S-02 kind="success">Idempotent re-set produces no duplicate entry — second call hits BLOCK_IDEMPOTENT_NOOP.</scenario-S-02>
+        <scenario-S-03 kind="success">Set → unset → re-set roundtrip leaves consistent prefs state.</scenario-S-03>
+        <scenario-S-04 kind="success">Get-after-set returns is_default=true, current_handler=Some(com.xronocode.mark).</scenario-S-04>
+        <scenario-S-05 kind="success">Get when no handler set returns is_default=false, current_handler=None.</scenario-S-05>
+        <scenario-F-01 kind="failure">/usr/bin/defaults missing → typed error ToolingMissing, no panic.</scenario-F-01>
+        <scenario-F-02 kind="failure">lsregister non-zero / hangs → caught with timeout (10s), typed ToolingFailed.</scenario-F-02>
+        <scenario-F-03 kind="failure">Pref domain locked / SIP / EPERM → BLOCK_DEFAULTS_WRITE_FAILED reason=permission_denied.</scenario-F-03>
+        <scenario-F-04 kind="failure">Malformed existing LSHandlers (user-edited) — preserve other entries; only mutate our keys.</scenario-F-04>
+        <scenario-F-05 kind="failure">CFBundleDocumentTypes missing from bundle plist → BLOCK_CFBUNDLEDOCUMENTTYPES_MISSING boot warning.</scenario-F-05>
+        <scenario-F-06 kind="failure">Get with malformed plist output — typed parse_error, not panic.</scenario-F-06>
+        <scenario-R-01 kind="race">Concurrent set + set from two windows → second observes first marker, BLOCK_IDEMPOTENT_NOOP.</scenario-R-01>
+        <scenario-R-02 kind="race">Set during in-flight Finder open Apple Event — AE completes pre-LSHandlers-rebuild; no corruption.</scenario-R-02>
+        <scenario-E-01 kind="edge">Apple Silicon vs Intel parity — both arches produce identical BLOCK_* sequences (CI matrix).</scenario-E-01>
+        <scenario-E-02 kind="edge">Ad-hoc signed (unnotarized) build — set succeeds; document Finder dispatch nuance.</scenario-E-02>
+        <scenario-E-03 kind="edge">Multi-user — only -domain user mutated; system pref untouched.</scenario-E-03>
+        <scenario-E-04 kind="edge">Both UTIs registered (legacy net.daringfireball + system public.markdown).</scenario-E-04>
+        <scenario-E-05 kind="edge">Bundle id case canonicalization — input com.xronocode.Mark stored as com.xronocode.mark.</scenario-E-05>
+        <scenario-I-01 kind="idempotency">Unset before any set is no-op success.</scenario-I-01>
+        <scenario-I-02 kind="idempotency">Set after another app is default → our entry takes precedence.</scenario-I-02>
+        <scenario-I-03 kind="idempotency">Get is read-only (no side effects on prefs).</scenario-I-03>
+        <scenario-RC-01 kind="recovery">Partial failure: write OK + lsregister fail → re-run heals.</scenario-RC-01>
+      </scenarios>
+      <required-log-markers>
+        <marker-set-write-ok>[m021][set_handler][BLOCK_DEFAULTS_WRITE_OK domain=user uti=&lt;uti&gt;]</marker-set-write-ok>
+        <marker-set-write-failed>[m021][set_handler][BLOCK_DEFAULTS_WRITE_FAILED reason=&lt;permission_denied|io_error|tooling_missing&gt; rc=&lt;n&gt;]</marker-set-write-failed>
+        <marker-set-lsregister-ok>[m021][set_handler][BLOCK_LSREGISTER_RELOADED domain=user duration_ms=&lt;n&gt;]</marker-set-lsregister-ok>
+        <marker-set-lsregister-fail>[m021][set_handler][BLOCK_LSREGISTER_FAILED rc=&lt;n&gt;]</marker-set-lsregister-fail>
+        <marker-set-lsregister-timeout>[m021][set_handler][BLOCK_LSREGISTER_TIMEOUT after_ms=10000]</marker-set-lsregister-timeout>
+        <marker-set-registered>[m021][set_handler][BLOCK_REGISTERED uti=&lt;uti&gt; bundle=com.xronocode.mark]</marker-set-registered>
+        <marker-set-idempotent>[m021][set_handler][BLOCK_IDEMPOTENT_NOOP existing=com.xronocode.mark uti=&lt;uti&gt;]</marker-set-idempotent>
+        <marker-set-bundle-norm>[m021][set_handler][BLOCK_BUNDLE_ID_NORMALIZED from=&lt;input&gt; to=com.xronocode.mark]</marker-set-bundle-norm>
+        <marker-set-parse-warn>[m021][set_handler][BLOCK_LSHANDLERS_PARSE_WARN preserved=&lt;n&gt;]</marker-set-parse-warn>
+        <marker-get-queried>[m021][get_handler][BLOCK_QUERIED is_default=&lt;true|false&gt; current=&lt;bundle|none&gt; uti=&lt;uti&gt;]</marker-get-queried>
+        <marker-get-failed>[m021][get_handler][BLOCK_DEFAULTS_READ_FAILED reason=&lt;parse_error|tooling_missing|io_error&gt;]</marker-get-failed>
+        <marker-unset-removed>[m021][unset_handler][BLOCK_REMOVED existing=&lt;bundle|none&gt;]</marker-unset-removed>
+        <marker-unset-lsregister>[m021][unset_handler][BLOCK_LSREGISTER_RELOADED domain=user duration_ms=&lt;n&gt;]</marker-unset-lsregister>
+        <marker-bootstrap-ok>[m021][bootstrap][BLOCK_CFBUNDLEDOCUMENTTYPES_OK utis=net.daringfireball.markdown,public.markdown]</marker-bootstrap-ok>
+        <marker-bootstrap-missing>[m021][bootstrap][BLOCK_CFBUNDLEDOCUMENTTYPES_MISSING]</marker-bootstrap-missing>
+        <marker-tooling-missing>[m021][&lt;op&gt;][BLOCK_TOOLING_MISSING tool=&lt;defaults|lsregister&gt;]</marker-tooling-missing>
+        <marker-domain-scope>[m021][&lt;op&gt;][BLOCK_DOMAIN_SCOPE domain=user]</marker-domain-scope>
+      </required-log-markers>
+      <forbidden-markers>
+        <forbidden>[m021][*][BLOCK_PANIC] — module must never panic; all errors typed</forbidden>
+        <forbidden>[m021][*][BLOCK_DOMAIN_SCOPE domain=system] — never touch system domain</forbidden>
+        <forbidden>[m021][*][BLOCK_DOMAIN_SCOPE domain=local] — never touch local domain</forbidden>
+      </forbidden-markers>
+      <required-trace-assertions>
+        <assertion-1>set_handler emits exactly one BLOCK_REGISTERED per UTI per call (modulo idempotent path).</assertion-1>
+        <assertion-2>unset_handler followed by set_handler shows REMOVED → REGISTERED ordering.</assertion-2>
+        <assertion-3>Mock CommandRunner records zero writes during get (read-only invariant).</assertion-3>
+      </required-trace-assertions>
+      <test-surface-design>
+        Mirror EventSink pattern from src-tauri/src/m013b/watch.rs. Define CommandRunner trait with run(&amp;self, bin: &amp;str, args: &amp;[&amp;str]) -&gt; Result&lt;Output, RunErr&gt;. Production wraps std::process::Command. Test impl is MockRunner recording calls + returning scripted exit codes / stdout / stderr. Pref-domain isolation in module tests via in-memory HashMap&lt;String, plist::Value&gt;. Wave-level integration test gated #[cfg(target_os = "macos")] runs against real defaults under tempfile::TempDir-scoped pref domain.
+      </test-surface-design>
+      <wave-follow-up>Wave: integration test on macOS-14 runner using real /usr/bin/defaults + lsregister; arch parity check (E-01); domain scope assertion (E-03).</wave-follow-up>
+      <phase-follow-up>Alpha gate: user smoke WT-1 — click "Set as default" in Settings, double-click .md in Finder, verify Mark.app dispatches the Apple Event. Cannot be observed from in-process API; mandatory user checkpoint.</phase-follow-up>
+      <failure-packet-template>
+        contract:        V-M-021 / &lt;scenario-id&gt;
+        expected_blocks: list of BLOCK_* markers per scenario
+        observed:        stderr capture
+        first_divergent: function name + sub-block
+        suggested:       $grace-fix V-M-021 &lt;scenario-id&gt;
+      </failure-packet-template>
+      <ai-friendliness assessment="autonomous-ish">
+        ~95% autonomous-verifiable. 17/22 scenarios fully assertable from BLOCK_* stderr markers in mocked module-local tests. E-01 (CI matrix), E-03 (real domain), F-05 (boot path), R-02 (AE timing) require wave-level integration runs (still autonomous in CI). Only E-02 (ad-hoc vs notarized signing dispatch) and the alpha-gate WT-1 (Finder double-click) genuinely require user smoke.
+      </ai-friendliness>
+    </V-M-021>
+
+    <V-M-022 MODULE="M-022 mt-preview-mode" PRIORITY="medium">
+      <test-files>
+        <file>tests/renderer/store/editor.preview.test.ts (vitest store, ~10 cases)</file>
+        <file>tests/renderer/components/editor.preview.test.ts (vitest component, ~8 cases)</file>
+        <file>tests/e2e/preview-mode.spec.ts (Playwright, S-01/S-02/E-04)</file>
+        <file>src-tauri/src/main.rs OR src-tauri/src/m_v1_compat.rs (Rust unit, B-01 payload builder)</file>
+      </test-files>
+      <module-checks>
+        <check-1>npm test tests/renderer/store/editor.preview.test.ts</check-1>
+        <check-2>npm test tests/renderer/components/editor.preview.test.ts</check-2>
+        <check-3>cd src-tauri &amp;&amp; cargo test --bin mark emit_open_new_tab_preview</check-3>
+      </module-checks>
+      <scenarios>
+        <scenario-S-01 kind="success">CLI happy path: Finder open → preview → click-to-exit. BLOCK_ENTERED then BLOCK_EXITED reason=click; .is-preview class present then absent; contenteditable false→true.</scenario-S-01>
+        <scenario-S-02 kind="success">Multi-tab: 2 CLI files → both preview, click first → first exits, second stays preview.</scenario-S-02>
+        <scenario-S-03 kind="success">Empty .md file → preview applies, no muya parse crash.</scenario-S-03>
+        <scenario-S-04 kind="success">Pref previewModeOnFinderOpen=false → CLI open is regular (no preview).</scenario-S-04>
+        <scenario-F-01 kind="failure">Malformed payload (no previewMode field) → default false, BLOCK_PAYLOAD_INVALID, no crash.</scenario-F-01>
+        <scenario-F-02 kind="failure">EXIT_PREVIEW_MODE while not in preview → idempotent no-op.</scenario-F-02>
+        <scenario-F-03 kind="failure">Component unmounts mid-click → handler no-op on stale store.</scenario-F-03>
+        <scenario-R-01 kind="race">Click before muya ready → exit fires regardless.</scenario-R-01>
+        <scenario-R-02 kind="race">Two back-to-back mt::open-new-tab events → both tabs preview.</scenario-R-02>
+        <scenario-E-01 kind="edge">Sidebar hidden in preview — no element to click → preview persists.</scenario-E-01>
+        <scenario-E-02 kind="edge">Right-click on editor body → does NOT exit preview.</scenario-E-02>
+        <scenario-E-03 kind="edge">Cmd-click → DOES exit preview (treat as click).</scenario-E-03>
+        <scenario-E-04 kind="edge">Drag-select: mousedown exits IMMEDIATELY (not mouseup), drag-select continues normally. CRITICAL ordering — flag in test file header so future readers don't "fix" to mouseup.</scenario-E-04>
+        <scenario-E-05 kind="edge">Arrow / Escape keys do NOT exit preview (only pointer events).</scenario-E-05>
+        <scenario-E-06 kind="edge">Cmd+\ in preview → exits AND toggles sidebar (reason=cmd-toggle).</scenario-E-06>
+        <scenario-E-07 kind="edge">Switching tabs preserves per-tab previewMode.</scenario-E-07>
+        <scenario-I-01 kind="idempotency">APPLY_PREVIEW_MODE(true) while already preview → no state change.</scenario-I-01>
+        <scenario-I-02 kind="idempotency">EXIT_PREVIEW_MODE x2 → second is no-op.</scenario-I-02>
+        <scenario-I-03 kind="idempotency">File watcher APPLY_FILE_CHANGE on preview tab — content updates, preview preserved.</scenario-I-03>
+        <scenario-T-01 kind="telemetry">Sidebar restore on exit when pref=true → stays hidden.</scenario-T-01>
+        <scenario-T-02 kind="telemetry">Sidebar restore on exit when pref=false → restored to prior value.</scenario-T-02>
+        <scenario-B-01 kind="backend">Rust: CLI-args path attaches previewMode: true to emit_open_new_tab payload; non-CLI path omits it.</scenario-B-01>
+      </scenarios>
+      <required-log-markers>
+        <marker-entered>[editor][preview][BLOCK_ENTERED tab=&lt;tabId&gt; file=&lt;absPath&gt;]</marker-entered>
+        <marker-exited>[editor][preview][BLOCK_EXITED tab=&lt;tabId&gt; reason=click|cmd-toggle|tab-close]</marker-exited>
+        <marker-sidebar>[editor][preview][BLOCK_SIDEBAR_RESTORED visibility=&lt;true|false&gt;]</marker-sidebar>
+        <marker-payload-invalid>[editor][preview][BLOCK_PAYLOAD_INVALID reason=missing-field|wrong-type]</marker-payload-invalid>
+      </required-log-markers>
+      <forbidden-markers>
+        <forbidden>[editor][preview][BLOCK_ERROR ...] — must never appear; presence = test fail</forbidden>
+      </forbidden-markers>
+      <required-trace-assertions>
+        <assertion-1>BLOCK_EXITED fires on mousedown, NOT mouseup (E-04 ordering invariant).</assertion-1>
+        <assertion-2>Tab switch produces no spurious BLOCK_ENTERED/BLOCK_EXITED (E-07).</assertion-2>
+        <assertion-3>BLOCK_ERROR negative invariant asserted in every scenario via shared helper.</assertion-3>
+      </required-trace-assertions>
+      <wave-follow-up>Wave: full vitest + Playwright e2e (S-01/S-02/E-04 require real DOM).</wave-follow-up>
+      <phase-follow-up>Alpha gate: user smoke WT-1 — real Finder open path; Mark.app must be default handler (V-M-021 prereq).</phase-follow-up>
+      <failure-packet-template>
+        contract:        V-M-022 / &lt;scenario-id&gt;
+        expected:        BLOCK_* markers + DOM/store assertions
+        observed:        console.debug capture + wrapper.html() snapshot + Pinia state JSON
+        first_divergent: action name + sub-block
+        suggested:       $grace-fix V-M-022 &lt;scenario-id&gt;
+      </failure-packet-template>
+      <ai-friendliness assessment="strong">
+        Each scenario has single observable invariant (one-two BLOCK_* + one DOM/store assertion). LLM can mechanically translate row → test. Negative BLOCK_ERROR invariant uniform across scenarios (shared helper). Marker key=value parseable. Risks: R-01 needs controlled async (stub muya init promise); E-04 ordering must be flagged in header. Module-local tier covers 17/22; alpha gate adds 1 manual smoke.
+      </ai-friendliness>
+    </V-M-022>
+
+    <V-M-023 MODULE="M-023 mt-quicklook-ext" PRIORITY="low" status="deferred" resolves-at="phase-B5-beta">
+      <followup-ref>F-3 / F-QUICK-LOOK-EXTENSION</followup-ref>
+      <prereq>V-M-021 (F-DEFAULT-MD-HANDLER)</prereq>
+      <status-note>Skeleton entry — full verification design deferred to Beta scope. Real Xcode app-extension target + signing pipeline; not a weekend feature. Do NOT gate alpha or B1-B4 on this.</status-note>
+      <high-level-scenarios>
+        <scenario-1>Happy path — Finder + Space on valid .md renders styled preview within timeout.</scenario-1>
+        <scenario-2>Malformed markdown — parser failure falls back to plain-text preview; no crash.</scenario-2>
+        <scenario-3>Sandbox-denied resource — missing font/CDN degrades gracefully (no broken pane).</scenario-3>
+        <scenario-4>Oversized file (&gt;5 MB) — renders truncated preview or "too large" placeholder before QL timeout.</scenario-4>
+        <scenario-5>Extension not loaded (host uninstalled/quarantined) — Finder falls back to system text preview without error dialog.</scenario-5>
+      </high-level-scenarios>
+      <open-questions-tbd>
+        <question-1>API choice: deprecated .qlgenerator vs modern QLPreviewProvider (Sonoma+ only)?</question-1>
+        <question-2>muya code-sharing strategy — shared crate? duplicated bundle? WASM?</question-2>
+        <question-3>Code-signing: current Mark is ad-hoc signed; extensions typically require Team ID. Is ad-hoc extension signing viable?</question-3>
+        <question-4>Sandbox profile: font access, KaTeX/Mermaid (network or bundled?), local image references.</question-4>
+        <question-5>Async/timeout strategy — QL ~5s ceiling; Mermaid-heavy docs WILL exceed.</question-5>
+        <question-6>Memory ceiling — extension OOM behavior on 50 MB input.</question-6>
+      </open-questions-tbd>
+      <test-surface-placeholder>
+        <unit>src-tauri-quicklook/src/render.rs::tests (renderer subset)</unit>
+        <integration>qlmanage -p &lt;fixture.md&gt; shell-driven, assert exit + HTML output shape</integration>
+        <manual>Open Finder, select .md, press Space; verify rendered preview pane</manual>
+      </test-surface-placeholder>
+      <verification-level>Deferred until Beta — re-open at Phase B5 kickoff. Skeleton exists only to keep F-3 tracked.</verification-level>
+    </V-M-023>
+
+    <!--
       V-A5-* — patch-level verification for Phase-A5 (v1.0.1 polish).
       No new modules introduced; these entries verify three discrete UX
       changes applied to existing renderer + main components.
