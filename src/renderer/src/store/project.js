@@ -7,12 +7,6 @@ import notice from '../services/notification'
 import { getFileStateFromData } from './help'
 import { useLayoutStore } from './layout'
 import { useEditorStore } from './editor'
-import { ipcWatch, ipcFs } from '../ipc/runtime'
-
-// C-1 fix: per-root file-watcher disposers. Module-scoped (not in
-// reactive state) so Pinia doesn't try to proxy the dispose closures.
-// Keyed by canonical root pathname.
-const watchDisposers = new Map()
 
 // v1.1.0 Phase-A6: multi-root workspace.
 // Replaces the legacy single `projectTree` object with `projectTrees: TreeRoot[]`.
@@ -171,98 +165,6 @@ export const useProjectStore = defineStore('project', {
         }
         delete this.pendingTreeEvents[canonical]
       }
-
-      // C-1 fix: subscribe the file-watcher for this root. Backend
-      // emits debounced WatchEvents on mt::watch::event; the handler
-      // translates them into tree-update events and open-tab change
-      // notifications. Dispose on CLOSE_PROJECT.
-      ipcWatch
-        .subscribe(canonical, (event) => this._handleWatchEvent(canonical, event))
-        .then((dispose) => {
-          watchDisposers.set(canonical, dispose)
-          // eslint-disable-next-line no-console
-          console.debug(`[ProjectStore][Watcher][SUBSCRIBED] root=${canonical}`)
-        })
-        .catch((e) => {
-          console.error(`[ProjectStore][Watcher][SUBSCRIBE_FAILED] root=${canonical}`, e)
-        })
-    },
-
-    /**
-     * C-1 fix: translate a backend WatchEvent (notify-debouncer-full
-     * shape) into v1.2.3-style tree events + open-tab notifications.
-     *
-     *   WatchEvent { subscriptionId, kind: "create"|"modify"|"remove"
-     *                                       |"access"|"other"|"any",
-     *                paths: string[] }
-     *
-     * notify cannot tell file-vs-dir on "remove" (path is gone), so
-     * for removes we dispatch BOTH unlink and unlinkDir — treeCtrl's
-     * helpers no-op when the path isn't present in either set.
-     */
-    async _handleWatchEvent(rootPath, event) {
-      const { kind, paths } = event || {}
-      if (!Array.isArray(paths) || paths.length === 0) return
-      const editorStore = useEditorStore()
-      for (const path of paths) {
-        // Defensive scope check (backend already filters by sandbox).
-        if (!isPathContained(path, rootPath)) continue
-        switch (kind) {
-          case 'create': {
-            try {
-              const stat = await ipcFs.stat(path)
-              if (stat.isDirectory) {
-                this._processTreeEvent('addDir', { pathname: path })
-              } else if (stat.isFile) {
-                const isMarkdown = !!window.fileUtils?.hasMarkdownExtension(path)
-                if (isMarkdown) {
-                  this._processTreeEvent('add', {
-                    pathname: path,
-                    name: window.path.basename(path),
-                    isFile: true,
-                    isDirectory: false,
-                    isMarkdown: true,
-                    birthTime: stat.mtimeMs
-                  })
-                }
-                if (this._tabExists(editorStore, path)) {
-                  editorStore.APPLY_FILE_CHANGE('add', { pathname: path })
-                }
-              }
-            } catch (e) {
-              // stat may race the create event on fast churn; log and
-              // drop. Next debouncer tick will catch the steady state.
-              console.debug(`[ProjectStore][Watcher][STAT_FAILED] path=${path}`, e)
-            }
-            break
-          }
-          case 'modify': {
-            // Tree shape doesn't change on content modify; only open-tab
-            // notification matters here (matches v1.2.3 chokidar 'change').
-            if (this._tabExists(editorStore, path)) {
-              editorStore.APPLY_FILE_CHANGE('change', { pathname: path })
-            }
-            break
-          }
-          case 'remove': {
-            this._processTreeEvent('unlink', { pathname: path })
-            this._processTreeEvent('unlinkDir', { pathname: path })
-            if (this._tabExists(editorStore, path)) {
-              editorStore.APPLY_FILE_CHANGE('unlink', { pathname: path })
-            }
-            break
-          }
-          // 'access' | 'other' | 'any' — not actionable in v1 semantics.
-          default:
-            break
-        }
-      }
-    },
-
-    _tabExists(editorStore, path) {
-      const tabs = editorStore?.tabs
-      if (!Array.isArray(tabs)) return false
-      return tabs.some((t) => window.fileUtils?.isSamePathSync?.(t.pathname, path))
     },
 
     /**
@@ -375,17 +277,6 @@ export const useProjectStore = defineStore('project', {
       delete this.pendingTreeEvents[canonical]
       // eslint-disable-next-line no-console
       console.debug(`[ProjectStore][CLOSE_PROJECT][REMOVE] path=${canonical} remaining=${this.projectTrees.length}`)
-      // C-1 fix: tear down the file-watcher subscription. dispose() is
-      // idempotent and best-effort; calling on a missing entry is OK.
-      const dispose = watchDisposers.get(canonical)
-      if (dispose) {
-        try {
-          dispose()
-        } catch (e) {
-          console.debug(`[ProjectStore][Watcher][DISPOSE_FAILED] root=${canonical}`, e)
-        }
-        watchDisposers.delete(canonical)
-      }
       try {
         const { invoke } = await import('@tauri-apps/api/core')
         await invoke('mt_close_project_root', { pathname: canonical })

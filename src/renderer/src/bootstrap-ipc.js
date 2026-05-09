@@ -230,12 +230,12 @@ export const setupIpcListeners = async () => {
     const lineEnding = event?.payload
     if (typeof lineEnding === 'string') editorStore.SET_LINE_ENDING(lineEnding)
   })
-  // C-1 fix: the legacy mt::update-file listener was dead. Backend
-  // emits file-watcher events on mt::watch::event (see m013b/watch.rs);
-  // the renderer subscribes through ipcWatch in project.js#ADD_PROJECT,
-  // which translates kind=create/modify/remove into _processTreeEvent
-  // + APPLY_FILE_CHANGE calls. No boot-time listener is needed for
-  // file-watch — subscriptions are per-root and scoped to project life.
+  await listen('mt::update-file', (event) => {
+    const p = event?.payload
+    if (p && typeof p === 'object' && p.type) {
+      editorStore.APPLY_FILE_CHANGE(p.type, p.change)
+    }
+  })
   await listen('mt::window-zoom', (event) => {
     const z = event?.payload
     if (typeof z === 'number') editorStore.EDIT_ZOOM(z)
