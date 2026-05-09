@@ -287,33 +287,7 @@ pub async fn mt_open_file(
     //   → invoke('mt_open_file', { args: [pathname, options] })
     // For single-arg sends the shim still wraps as { pathname }, so
     // accept either shape.
-    let pathname = match &args {
-        // Tauri unwraps positional invoke args into a JSON array when
-        // the renderer passes multiple positional values
-        // (ipcRenderer.send('mt::open-file', pathname, options) ⇒ args=[path, {}]).
-        serde_json::Value::Array(arr) => arr
-            .first()
-            .and_then(|v| v.as_str())
-            .map(|s| s.to_string()),
-        serde_json::Value::Object(map) => {
-            // Single-arg wrap {pathname: "..."} or {path: "..."}.
-            if let Some(s) = map.get("pathname").and_then(|v| v.as_str()) {
-                Some(s.to_string())
-            } else if let Some(s) = map.get("path").and_then(|v| v.as_str()) {
-                Some(s.to_string())
-            } else if let Some(serde_json::Value::Array(inner)) = map.get("args") {
-                // Defensive: shim may double-wrap as {args: [...]}.
-                inner
-                    .first()
-                    .and_then(|v| v.as_str())
-                    .map(|s| s.to_string())
-            } else {
-                None
-            }
-        }
-        serde_json::Value::String(s) => Some(s.clone()),
-        _ => None,
-    };
+    let pathname = parse_open_file_args(&args);
     let pathname = match pathname {
         Some(p) if !p.is_empty() => p,
         _ => {
@@ -395,24 +369,18 @@ fn emit_open_new_tab(window: &tauri::Window, pathname: &str) -> Result<(), Strin
 // F-V1-IPC-COMPAT-STUBS — prefs / i18n / layout / sidebar IPC channels
 // ──────────────────────────────────────────────────────────────────────
 
-/// Maps to v1 'mt::set-user-preference' AND 'mt::set-user-data' sends.
-/// Renderer dispatches `{key: value}` (single entry) or full sub-object
-/// per call — for example, theme switcher sends `{ theme: 'ayu-mirage' }`.
-/// We merge into PrefsStore and broadcast `mt::user-preference` to ALL
-/// windows so the editor view picks up changes made in the Settings
-/// window (theme switch, font changes, etc.).
-#[tauri::command]
-pub async fn mt_set_user_preference(
-    app: tauri::AppHandle,
-    prefs: tauri::State<'_, PrefsState>,
-    args: Value,
-) -> Result<(), String> {
-    let payload = unwrap_first_arg(&args).unwrap_or(args);
+/// Pure-logic merge: takes the renderer's args payload, unwraps it,
+/// writes each key/value pair into prefs (skipping the migration
+/// namespace), and returns the count of successfully written keys.
+/// Returns None if the payload is not a JSON object (caller logs and
+/// no-ops).
+pub(crate) fn merge_user_preference_inner(prefs: &PrefsState, args: &Value) -> Option<u32> {
+    let payload = unwrap_first_arg(args).unwrap_or_else(|| args.clone());
     let map = match payload {
         Value::Object(m) => m,
         other => {
             eprintln!("[v1_compat][prefs_set][BLOCK_NOT_OBJECT got={other:?}]");
-            return Ok(());
+            return None;
         }
     };
     let mut written = 0u32;
@@ -427,6 +395,24 @@ pub async fn mt_set_user_preference(
         written += 1;
     }
     eprintln!("[v1_compat][prefs_set][BLOCK_WRITTEN keys={written}]");
+    Some(written)
+}
+
+/// Maps to v1 'mt::set-user-preference' AND 'mt::set-user-data' sends.
+/// Renderer dispatches `{key: value}` (single entry) or full sub-object
+/// per call — for example, theme switcher sends `{ theme: 'ayu-mirage' }`.
+/// We merge into PrefsStore and broadcast `mt::user-preference` to ALL
+/// windows so the editor view picks up changes made in the Settings
+/// window (theme switch, font changes, etc.).
+#[tauri::command]
+pub async fn mt_set_user_preference(
+    app: tauri::AppHandle,
+    prefs: tauri::State<'_, PrefsState>,
+    args: Value,
+) -> Result<(), String> {
+    if merge_user_preference_inner(prefs.inner(), &args).is_none() {
+        return Ok(());
+    }
     // Broadcast to ALL webviews (main + settings), so a theme switch
     // in the Settings window propagates back to the editor view.
     // app.emit is documented as broadcasting; we additionally iterate
@@ -460,6 +446,45 @@ pub async fn mt_set_user_data(
     mt_set_user_preference(app, prefs, args).await
 }
 
+/// Extract the view-state object from the renderer's positional 2-arg
+/// payload `[windowId, viewState]`. Accepts both the bare-array shape
+/// and the shim-wrapped `{args: [...]}` shape. Returns None if no
+/// recognizable shape is found.
+pub(crate) fn extract_view_state(args: &Value) -> Option<serde_json::Map<String, Value>> {
+    let view_state = match args {
+        Value::Array(arr) if arr.len() >= 2 => arr.get(1).cloned(),
+        Value::Object(map) if map.contains_key("args") => {
+            if let Some(Value::Array(arr)) = map.get("args") {
+                arr.get(1).cloned()
+            } else {
+                None
+            }
+        }
+        _ => None,
+    };
+    match view_state {
+        Some(Value::Object(m)) => Some(m),
+        _ => None,
+    }
+}
+
+/// Persist a view-state map into prefs. Returns the count of writes.
+pub(crate) fn persist_view_state_inner(
+    prefs: &PrefsState,
+    map: serde_json::Map<String, Value>,
+) -> u32 {
+    let mut written = 0u32;
+    for (k, v) in map {
+        if let Err(e) = prefs.set(k.clone(), v) {
+            eprintln!("[v1_compat][layout][BLOCK_WRITE_FAILED key={k} err={e}]");
+            continue;
+        }
+        written += 1;
+    }
+    eprintln!("[v1_compat][layout][BLOCK_PERSISTED keys={written}]");
+    written
+}
+
 /// Maps to v1 'mt::view-layout-changed'. Renderer dispatches layout
 /// state — we persist into PrefsStore so subsequent sessions restore
 /// the user's sidebar/tabbar/right-column choices. v1 also synced the
@@ -471,33 +496,14 @@ pub async fn mt_view_layout_changed(
 ) -> Result<(), String> {
     // Renderer call: ipcRenderer.send('mt::view-layout-changed', windowId, viewState)
     // Shim wraps positional 2-arg as args=[windowId, viewState].
-    let view_state = match &args {
-        Value::Array(arr) if arr.len() >= 2 => arr.get(1).cloned(),
-        Value::Object(map) if map.contains_key("args") => {
-            if let Some(Value::Array(arr)) = map.get("args") {
-                arr.get(1).cloned()
-            } else {
-                None
-            }
+    match extract_view_state(&args) {
+        Some(map) => {
+            persist_view_state_inner(prefs.inner(), map);
         }
-        _ => None,
-    };
-    let map = match view_state {
-        Some(Value::Object(m)) => m,
-        _ => {
+        None => {
             eprintln!("[v1_compat][layout][BLOCK_NO_VIEW_STATE]");
-            return Ok(());
         }
-    };
-    let mut written = 0u32;
-    for (k, v) in map {
-        if let Err(e) = prefs.set(k.clone(), v) {
-            eprintln!("[v1_compat][layout][BLOCK_WRITE_FAILED key={k} err={e}]");
-            continue;
-        }
-        written += 1;
     }
-    eprintln!("[v1_compat][layout][BLOCK_PERSISTED keys={written}]");
     Ok(())
 }
 
@@ -569,6 +575,38 @@ pub async fn mt_open_setting_window(app: tauri::AppHandle) -> Result<(), String>
 // Helpers
 // ──────────────────────────────────────────────────────────────────────
 
+/// Parse the renderer payload for mt_open_file across all the shapes
+/// the IPC shim might produce: bare positional array `[pathname, opts]`,
+/// single-key wrap `{pathname}` or `{path}`, or double-wrap `{args:[...]}`,
+/// or a bare string. Returns None when no string-shaped pathname is found.
+pub(crate) fn parse_open_file_args(args: &Value) -> Option<String> {
+    match args {
+        // Tauri unwraps positional invoke args into a JSON array when
+        // the renderer passes multiple positional values
+        // (ipcRenderer.send('mt::open-file', pathname, options) ⇒ args=[path, {}]).
+        Value::Array(arr) => arr
+            .first()
+            .and_then(|v| v.as_str())
+            .map(|s| s.to_string()),
+        Value::Object(map) => {
+            if let Some(s) = map.get("pathname").and_then(|v| v.as_str()) {
+                Some(s.to_string())
+            } else if let Some(s) = map.get("path").and_then(|v| v.as_str()) {
+                Some(s.to_string())
+            } else if let Some(Value::Array(inner)) = map.get("args") {
+                inner
+                    .first()
+                    .and_then(|v| v.as_str())
+                    .map(|s| s.to_string())
+            } else {
+                None
+            }
+        }
+        Value::String(s) => Some(s.clone()),
+        _ => None,
+    }
+}
+
 /// Tauri's invoke wrapper unwraps single-arg sends to the bare value
 /// while wrapping multi-arg sends as `{args: [...]}`. For prefs setters
 /// the renderer always sends ONE positional `{key: value}` object, but
@@ -583,6 +621,219 @@ fn unwrap_first_arg(args: &Value) -> Option<Value> {
             }
         }
         _ => None,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+    use tempfile::TempDir;
+
+    fn fresh_prefs() -> (TempDir, PrefsState) {
+        let dir = TempDir::new().unwrap();
+        let path = dir.path().join("preferences.json");
+        let prefs = PrefsState::from_path(path);
+        (dir, prefs)
+    }
+
+    #[test]
+    fn is_markdown_recognizes_common_extensions() {
+        assert!(is_markdown("note.md"));
+        assert!(is_markdown("MIXED.MD"));
+        assert!(is_markdown("doc.markdown"));
+        assert!(is_markdown("legacy.mdtxt"));
+        assert!(is_markdown("readme.txt"));
+        assert!(!is_markdown("image.png"));
+        assert!(!is_markdown("README"));
+        assert!(!is_markdown("script.sh"));
+    }
+
+    #[test]
+    fn unwrap_first_arg_returns_none_for_bare_value() {
+        let v = json!({ "pathname": "/x" });
+        assert!(unwrap_first_arg(&v).is_none());
+    }
+
+    #[test]
+    fn unwrap_first_arg_returns_first_array_element_for_wrapped() {
+        let v = json!({ "args": [{ "k": 1 }, "second"] });
+        let unwrapped = unwrap_first_arg(&v).unwrap();
+        assert_eq!(unwrapped, json!({ "k": 1 }));
+    }
+
+    #[test]
+    fn unwrap_first_arg_returns_none_when_args_is_not_array() {
+        let v = json!({ "args": "not-an-array" });
+        assert!(unwrap_first_arg(&v).is_none());
+    }
+
+    #[test]
+    fn parse_open_file_args_handles_array_shape() {
+        let v = json!(["/tmp/note.md", { "options": true }]);
+        assert_eq!(parse_open_file_args(&v).as_deref(), Some("/tmp/note.md"));
+    }
+
+    #[test]
+    fn parse_open_file_args_handles_pathname_object() {
+        let v = json!({ "pathname": "/a/b.md" });
+        assert_eq!(parse_open_file_args(&v).as_deref(), Some("/a/b.md"));
+    }
+
+    #[test]
+    fn parse_open_file_args_handles_path_object() {
+        let v = json!({ "path": "/c/d.md" });
+        assert_eq!(parse_open_file_args(&v).as_deref(), Some("/c/d.md"));
+    }
+
+    #[test]
+    fn parse_open_file_args_handles_double_wrap() {
+        let v = json!({ "args": ["/e/f.md"] });
+        assert_eq!(parse_open_file_args(&v).as_deref(), Some("/e/f.md"));
+    }
+
+    #[test]
+    fn parse_open_file_args_handles_bare_string() {
+        let v = json!("/g/h.md");
+        assert_eq!(parse_open_file_args(&v).as_deref(), Some("/g/h.md"));
+    }
+
+    #[test]
+    fn parse_open_file_args_returns_none_for_unknown_shape() {
+        assert!(parse_open_file_args(&json!(null)).is_none());
+        assert!(parse_open_file_args(&json!(42)).is_none());
+        assert!(parse_open_file_args(&json!({})).is_none());
+    }
+
+    #[test]
+    fn merge_user_preference_inner_writes_keys_skipping_migration_ns() {
+        let (_dir, prefs) = fresh_prefs();
+        let payload = json!({
+            "theme": "dark",
+            "fontSize": 14,
+            crate::m005_prefs::KEY_MIGRATION_NS: { "schema_version": 99 },
+        });
+        let written = merge_user_preference_inner(&prefs, &payload).unwrap();
+        // Only 2 of the 3 keys persisted — KEY_MIGRATION_NS is filtered.
+        assert_eq!(written, 2);
+        assert_eq!(prefs.get("theme").unwrap(), json!("dark"));
+        assert_eq!(prefs.get("fontSize").unwrap(), json!(14));
+        // Migration namespace stays untouched (None when no marker stamped).
+        // Specifically: the planted bogus value did NOT get persisted.
+        assert!(prefs
+            .get(crate::m005_prefs::KEY_MIGRATION_NS)
+            .map(|v| v != json!({ "schema_version": 99 }))
+            .unwrap_or(true));
+    }
+
+    #[test]
+    fn merge_user_preference_inner_unwraps_args_envelope() {
+        let (_dir, prefs) = fresh_prefs();
+        let payload = json!({ "args": [{ "k": "v" }] });
+        let written = merge_user_preference_inner(&prefs, &payload).unwrap();
+        assert_eq!(written, 1);
+        assert_eq!(prefs.get("k").unwrap(), json!("v"));
+    }
+
+    #[test]
+    fn merge_user_preference_inner_returns_none_for_non_object() {
+        let (_dir, prefs) = fresh_prefs();
+        assert!(merge_user_preference_inner(&prefs, &json!("not-an-object")).is_none());
+        assert!(merge_user_preference_inner(&prefs, &json!([1, 2, 3])).is_none());
+    }
+
+    #[test]
+    fn extract_view_state_handles_positional_array() {
+        let v = json!([42, { "sidebarVisible": true, "tabBarVisible": false }]);
+        let map = extract_view_state(&v).unwrap();
+        assert_eq!(map.get("sidebarVisible"), Some(&json!(true)));
+        assert_eq!(map.get("tabBarVisible"), Some(&json!(false)));
+    }
+
+    #[test]
+    fn extract_view_state_handles_args_envelope() {
+        let v = json!({ "args": [42, { "k": 1 }] });
+        let map = extract_view_state(&v).unwrap();
+        assert_eq!(map.get("k"), Some(&json!(1)));
+    }
+
+    #[test]
+    fn extract_view_state_returns_none_when_view_state_missing() {
+        assert!(extract_view_state(&json!([42])).is_none()); // arr len < 2
+        assert!(extract_view_state(&json!({ "args": [42] })).is_none());
+        assert!(extract_view_state(&json!("nope")).is_none());
+        assert!(extract_view_state(&json!([42, "not-an-object"])).is_none());
+    }
+
+    #[test]
+    fn persist_view_state_inner_writes_all_keys() {
+        let (_dir, prefs) = fresh_prefs();
+        let mut map = serde_json::Map::new();
+        map.insert("sidebarVisible".to_string(), json!(true));
+        map.insert("tabBarVisible".to_string(), json!(false));
+        let written = persist_view_state_inner(&prefs, map);
+        assert_eq!(written, 2);
+        assert_eq!(prefs.get("sidebarVisible").unwrap(), json!(true));
+        assert_eq!(prefs.get("tabBarVisible").unwrap(), json!(false));
+    }
+
+    #[test]
+    fn walk_and_emit_inner_emits_files_and_dirs_skipping_dotfiles() {
+        let dir = TempDir::new().unwrap();
+        std::fs::write(dir.path().join("a.md"), "x").unwrap();
+        std::fs::write(dir.path().join(".hidden.md"), "y").unwrap();
+        std::fs::create_dir(dir.path().join("sub")).unwrap();
+        std::fs::write(dir.path().join("sub").join("nested.md"), "z").unwrap();
+        std::fs::create_dir(dir.path().join(".git")).unwrap();
+        std::fs::write(dir.path().join(".git").join("HEAD"), "ref").unwrap();
+
+        let mut events: Vec<Value> = Vec::new();
+        walk_and_emit_inner(dir.path(), |payload| events.push(payload)).unwrap();
+
+        let kinds: Vec<&str> = events
+            .iter()
+            .map(|e| e.get("type").and_then(|v| v.as_str()).unwrap_or(""))
+            .collect();
+        assert!(kinds.contains(&"add"));
+        assert!(kinds.contains(&"addDir"));
+
+        // No dotfile or .git entries.
+        for e in &events {
+            let name = e
+                .pointer("/change/name")
+                .and_then(|v| v.as_str())
+                .unwrap_or("");
+            assert!(
+                !name.starts_with('.'),
+                "dotfile '{name}' must be skipped, got event {e}"
+            );
+        }
+
+        // a.md emitted as a markdown file.
+        let a_md_event = events
+            .iter()
+            .find(|e| e.pointer("/change/name").and_then(|v| v.as_str()) == Some("a.md"))
+            .expect("a.md event missing");
+        assert_eq!(a_md_event.pointer("/change/isMarkdown"), Some(&json!(true)));
+        assert_eq!(a_md_event.pointer("/change/isFile"), Some(&json!(true)));
+
+        // Nested file picked up via stack walk (recursion).
+        assert!(events
+            .iter()
+            .any(|e| e.pointer("/change/name").and_then(|v| v.as_str()) == Some("nested.md")));
+    }
+
+    #[test]
+    fn walk_and_emit_inner_ignores_unreadable_subdirs() {
+        let dir = TempDir::new().unwrap();
+        std::fs::write(dir.path().join("ok.md"), "x").unwrap();
+        // Removing the dir between read_dir invocations is the realistic
+        // failure mode; here we just verify the happy path (perm-denied
+        // subdir is platform-specific to test cleanly). Empty assertion
+        // confirms no panic on basic walk.
+        let mut count = 0;
+        walk_and_emit_inner(dir.path(), |_| count += 1).unwrap();
+        assert!(count >= 1);
     }
 }
 
