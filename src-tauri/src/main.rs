@@ -88,6 +88,19 @@ mod snapshot;
 
 use dialog::DialogChoice;
 
+/// F-DEV-MODE-WHITE-SCREEN diagnostic: dev-only renderer error sink.
+/// Receives JS exceptions / unhandledrejection / console.error from
+/// the webview (injected via WebviewWindow::eval in setup) and dumps
+/// them to stderr. Production keeps the command but the JS hook is
+/// not installed — invocations never come, so this is a no-op there.
+#[tauri::command]
+fn mt_dev_diag(payload: serde_json::Value) {
+    eprintln!(
+        "[dev-diag][js] {}",
+        serde_json::to_string(&payload).unwrap_or_else(|_| "<unserializable>".to_string())
+    );
+}
+
 fn main() {
     // Phase-B3 step-3: parse CLI BEFORE installing the panic hook.
     // clap auto-handles --help / --version by printing + exit(0); a
@@ -484,6 +497,41 @@ fn main() {
             if let Some(main_win) = app.get_webview_window("main") {
                 m001_save_close::wire_close_handler(&main_win);
                 eprintln!("[m001][lifecycle][BLOCK_CLOSE_HANDLER_WIRED label=main]");
+                // F-DEV-MODE-WHITE-SCREEN diagnostic: dev-only inject
+                // window.onerror + unhandledrejection + console.error
+                // hooks that pipe through `mt_dev_diag` so JS exceptions
+                // surface in backend stderr. Production no-op.
+                #[cfg(debug_assertions)]
+                {
+                    let _ = main_win.eval(
+                        r#"(() => {
+  const post = (payload) => {
+    try { window.__TAURI_INTERNALS__?.invoke('mt_dev_diag', { payload }); } catch (_) {}
+  };
+  window.addEventListener('error', (e) => {
+    post({ kind: 'error', message: e.message, file: e.filename, line: e.lineno, col: e.colno, stack: e.error?.stack ?? null });
+  });
+  window.addEventListener('unhandledrejection', (e) => {
+    let reason = '';
+    let stack = null;
+    try { reason = String(e.reason); stack = e.reason?.stack ?? null; } catch (_) {}
+    post({ kind: 'unhandledrejection', reason, stack });
+  });
+  const _ce = console.error.bind(console);
+  console.error = (...args) => {
+    try {
+      post({ kind: 'console.error', args: args.map(a => {
+        try { return typeof a === 'object' ? JSON.stringify(a) : String(a); }
+        catch { return '[unserializable]'; }
+      })});
+    } catch (_) {}
+    return _ce(...args);
+  };
+  post({ kind: 'hook-installed' });
+})();"#,
+                    );
+                    eprintln!("[dev-diag][installed]");
+                }
             } else {
                 eprintln!("[m001][lifecycle][BLOCK_CLOSE_HANDLER_SKIPPED reason=no-main-window]");
             }
@@ -505,6 +553,7 @@ fn main() {
         .manage(m013b::WatchRegistry::default())
         .manage(m013b::SearchRegistry::default())
         .invoke_handler(tauri::generate_handler![
+            mt_dev_diag,
             m013b::fs::mt_fs_read,
             m013b::fs::mt_fs_write,
             m013b::fs::mt_fs_stat,
