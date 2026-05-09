@@ -59,8 +59,6 @@ import { usePreferencesStore } from '@/store/preferences'
 import { useEditorStore } from '@/store/editor'
 import { useCommandCenterStore } from '@/store/commandCenter'
 import { useProjectStore } from '@/store/project'
-import { useAutoUpdatesStore } from '@/store/autoUpdates'
-import { useNotificationStore } from '@/store/notification'
 
 const mainStore = useMainStore()
 const editorStore = useEditorStore()
@@ -69,9 +67,7 @@ const layoutStore = useLayoutStore()
 const projectStore = useProjectStore()
 const tweetStore = useTweetStore()
 const listenForMainStore = useListenForMainStore()
-const autoUpdateStore = useAutoUpdatesStore()
 const commandCenterStore = useCommandCenterStore()
-const notificationStore = useNotificationStore()
 
 const timer = ref(null)
 
@@ -153,28 +149,18 @@ onMounted(async () => {
     preferencesStore.SET_USER_PREFERENCE(window.marktext.initialState)
   }
 
-  mainStore.LISTEN_WIN_STATUS()
   await commandCenterStore.LISTEN_COMMAND_CENTER_BUS()
   tweetStore.LISTEN_FOR_TWEET()
   layoutStore.LISTEN_FOR_LAYOUT()
   listenForMainStore.LISTEN_FOR_EDIT()
-  preferencesStore.LISTEN_FOR_VIEW()
-  listenForMainStore.LISTEN_FOR_SHOW_DIALOG()
-  listenForMainStore.LISTEN_FOR_PARAGRAPH_INLINE_STYLE()
-  projectStore.LISTEN_FOR_UPDATE_PROJECT()
-  projectStore.LISTEN_FOR_LOAD_PROJECT()
   projectStore.LISTEN_FOR_SIDEBAR_CONTEXT_MENU()
-  autoUpdateStore.LISTEN_FOR_UPDATE()
   preferencesStore.ASK_FOR_USER_PREFERENCE()
   preferencesStore.LISTEN_TOGGLE_VIEW()
-  editorStore.LISTEN_SCREEN_SHOT()
   editorStore.LISTEN_FOR_CLOSE()
   editorStore.LISTEN_FOR_SAVE_AS()
   editorStore.LISTEN_FOR_MOVE_TO()
   editorStore.LISTEN_FOR_SAVE()
-  editorStore.LISTEN_FOR_SET_PATHNAME()
   editorStore.LISTEN_FOR_BOOTSTRAP_WINDOW()
-  editorStore.LISTEN_FOR_SAVE_CLOSE()
   editorStore.LISTEN_FOR_RENAME()
   editorStore.LINTEN_FOR_SET_LINE_ENDING()
   editorStore.LINTEN_FOR_SET_ENCODING()
@@ -182,16 +168,7 @@ onMounted(async () => {
   editorStore.LISTEN_FOR_NEW_TAB()
   editorStore.LISTEN_FOR_CLOSE_TAB()
   editorStore.LISTEN_FOR_TAB_CYCLE()
-  editorStore.LISTEN_FOR_SWITCH_TABS()
-  editorStore.LINTEN_FOR_PRINT_SERVICE_CLEARUP()
-  editorStore.LINTEN_FOR_EXPORT_SUCCESS()
-  editorStore.LISTEN_FOR_FILE_CHANGE()
   editorStore.LISTEN_WINDOW_ZOOM()
-  editorStore.LISTEN_FOR_RELOAD_IMAGES()
-  editorStore.LISTEN_FOR_CONTEXT_MENU()
-
-  // module: notification
-  notificationStore.listenForNotification()
 
   setupDragDropHandler()
 

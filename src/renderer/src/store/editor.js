@@ -219,14 +219,6 @@ export const useEditorStore = defineStore('editor', {
       window.electron.ipcRenderer.send('mt::format-link-click', { data, dirname })
     },
 
-    /**
-     * Path B-clean W2b: listener moved to bootstrap-ipc.js.
-     * No-op alias for app.vue's onMounted call; deletion in W6.
-     */
-    LISTEN_SCREEN_SHOT() {
-      // no-op; see bootstrap-ipc.js
-    },
-
     // image path auto complement
     ASK_FOR_IMAGE_AUTO_PATH(src) {
       const { pathname } = this.currentFile
@@ -392,19 +384,6 @@ export const useEditorStore = defineStore('editor', {
     },
 
     /**
-     * Path B-clean W2a: per-tab save events (mt::tab-saved /
-     * mt::tab-save-failure / mt::set-pathname) are still emitted by
-     * the BATCH save path mt_save_and_close_tabs (cross-window
-     * close-flow). Their listeners moved to bootstrap-ipc.js — boot
-     * registration eliminates the listener-race once and for all.
-     * This action stays as a no-op alias for app.vue's onMounted
-     * call; deletion comes in W6 cleanup wave.
-     */
-    LISTEN_FOR_SET_PATHNAME() {
-      // no-op; see bootstrap-ipc.js
-    },
-
-    /**
      * Public action — invoked by bootstrap-ipc.js mt::tab-saved
      * listener for cross-window batch-save. Same logic as the inline
      * v1 listener body had.
@@ -525,15 +504,6 @@ export const useEditorStore = defineStore('editor', {
           // 'close' (X) or 'pressEscape' → keep window open, no IPC
         }
       })
-    },
-
-    /**
-     * Path B-clean W5: mt::force-close-tabs-by-id listener moved to
-     * bootstrap-ipc.js (boot-time registration). No-op alias for
-     * app.vue onMounted call; deletion in W6.
-     */
-    LISTEN_FOR_SAVE_CLOSE() {
-      // no-op; see bootstrap-ipc.js
     },
 
     ASK_FOR_SAVE_ALL(closeTabs) {
@@ -777,10 +747,6 @@ export const useEditorStore = defineStore('editor', {
       bus.on('mt::tabs-cycle-right', () => {
         this.CYCLE_TABS(true)
       })
-    },
-
-    LISTEN_FOR_SWITCH_TABS() {
-      // no-op; see bootstrap-ipc.js
     },
 
     FORCE_CLOSE_TAB(file) {
@@ -1317,14 +1283,6 @@ export const useEditorStore = defineStore('editor', {
       })
     },
 
-    /**
-     * Path B-clean W5: listener moved to bootstrap-ipc.js, calls
-     * APPLY_EXPORT_SUCCESS below.
-     */
-    LINTEN_FOR_EXPORT_SUCCESS() {
-      // no-op; see bootstrap-ipc.js
-    },
-
     APPLY_EXPORT_SUCCESS(filePath) {
       if (!filePath) return
       notice
@@ -1342,10 +1300,6 @@ export const useEditorStore = defineStore('editor', {
 
     PRINT_RESPONSE() {
       window.electron.ipcRenderer.send('mt::response-print')
-    },
-
-    LINTEN_FOR_PRINT_SERVICE_CLEARUP() {
-      // Path B-clean W5: listener moved to bootstrap-ipc.js.
     },
 
     SET_LINE_ENDING(lineEnding) {
@@ -1384,17 +1338,6 @@ export const useEditorStore = defineStore('editor', {
           this.currentFile.isSaved = true
         }
       })
-    },
-
-    /**
-     * C-1 fix: file-watch events now flow through project.js's
-     * per-root ipcWatch subscription, which calls APPLY_FILE_CHANGE
-     * directly when the changed path matches an open tab. The action
-     * is the canonical entry point so tests + non-IPC callers can
-     * still replay file-watcher events.
-     */
-    LISTEN_FOR_FILE_CHANGE() {
-      // no-op; see store/project.js#_handleWatchEvent
     },
 
     APPLY_FILE_CHANGE(type, change) {
@@ -1471,16 +1414,6 @@ export const useEditorStore = defineStore('editor', {
       bus.on('mt::window-zoom', (zoomFactor) => {
         this.EDIT_ZOOM(zoomFactor)
       })
-    },
-
-    LISTEN_FOR_RELOAD_IMAGES() {
-      // Path B-clean W5: listener moved to bootstrap-ipc.js (it just
-      // forwards to bus.emit('invalidate-image-cache')).
-    },
-
-    LISTEN_FOR_CONTEXT_MENU() {
-      // Path B-clean W5: 6 context-menu listeners moved to
-      // bootstrap-ipc.js. Each just forwards to a bus event.
     }
   }
 })

@@ -35,14 +35,5 @@ export const useAutoUpdatesStore = defineStore('autoUpdates', {
      * a progress UI. F-UPDATER-PROGRESS-UI tracks that.
      */
   }),
-  actions: {
-    /**
-     * No-op alias for app.vue's onMounted call. Retained for source
-     * compatibility; deleted in W6 cleanup wave when app.vue's
-     * 30-action listener-list gets pruned.
-     */
-    LISTEN_FOR_UPDATE() {
-      // intentionally empty — see module contract above
-    }
-  }
+  actions: {}
 })

@@ -79,17 +79,6 @@ export const useProjectStore = defineStore('project', {
   }),
 
   actions: {
-    /**
-     * Path B-clean W3: this listener was needed because v1 Electron
-     * main emitted mt::open-directory after the picker. Tauri W3 makes
-     * mt_pick_folder return the path directly, so ASK_FOR_OPEN_PROJECT
-     * calls ADD_PROJECT itself. Kept as no-op for app.vue's existing
-     * onMounted invocation; deleted in W6 cleanup wave.
-     */
-    LISTEN_FOR_LOAD_PROJECT() {
-      // no-op
-    },
-
     // Append a root tree for the given pathname unless it's already present
     // (canonical equality) or nested inside an existing root. Main process
     // also dedups (V-A6-6 BLOCK_DUPLICATE) — this is defense in depth and the
@@ -263,16 +252,6 @@ export const useProjectStore = defineStore('project', {
       const tabs = editorStore?.tabs
       if (!Array.isArray(tabs)) return false
       return tabs.some((t) => window.fileUtils?.isSamePathSync?.(t.pathname, path))
-    },
-
-    /**
-     * Path B-clean W3: tree-update listener moved to bootstrap-ipc.js
-     * (registered ONCE at boot). This action stays as a no-op alias
-     * so app.vue's onMounted call doesn't break; deletion comes in W6
-     * cleanup wave.
-     */
-    LISTEN_FOR_UPDATE_PROJECT() {
-      // no-op
     },
 
     _processTreeEvent(type, change) {

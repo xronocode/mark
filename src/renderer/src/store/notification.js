@@ -5,15 +5,6 @@ import { t } from '../i18n'
 export const useNotificationStore = defineStore('notification', {
   state: () => ({}),
   actions: {
-    /**
-     * Path B-clean W6: 2 IPC listeners moved to bootstrap-ipc.js
-     * (mt::show-notification + mt::pandoc-not-exists). They call
-     * SHOW_NOTIFICATION / SHOW_PANDOC_MISSING below.
-     */
-    listenForNotification() {
-      // no-op; see bootstrap-ipc.js
-    },
-
     SHOW_NOTIFICATION(opts) {
       const DEFAULT_OPTS = {
         title: t('notifications.defaultTitle'),
