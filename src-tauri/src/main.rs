@@ -56,6 +56,7 @@
 // Prevent additional console window on Windows in release.
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+#[allow(dead_code)] // dialog flow auto-migrates 2026-05-09; kept for future re-enable
 mod cancel_log;
 mod dialog;
 mod legacy;
@@ -81,11 +82,13 @@ mod m020_cli;
 mod m013b;
 mod m_v1_compat;
 mod m005_migrate;
+#[allow(dead_code)] // dialog flow auto-migrates 2026-05-09; locale strings kept for future re-enable
 mod migration_strings;
 mod mt_paths;
 mod prefs;
 mod snapshot;
 
+#[allow(unused_imports)]
 use dialog::DialogChoice;
 
 /// F-DEV-MODE-WHITE-SCREEN diagnostic: dev-only renderer error sink.
@@ -176,35 +179,17 @@ fn main() {
         eprintln!("[main][bootstrap][BLOCK_MIGRATION_ALREADY_COMPLETE] all 5 markers present; skipping dialog");
     }
 
-    // Phase-B-pre2 step-2: if any legacy namespace was detected, ask the user
-    // (via a native-OS modal — NSAlert / MessageBoxW / GTK MessageDialog,
-    // never a Tauri webview) whether to migrate. Strings are locale-resolved
-    // from sys_locale; en_US is the universal fallback.
+    // Auto-migrate when legacy data is detected. Earlier builds asked via a
+    // native dialog with Cancel / Continue buttons + rate-limit hint after
+    // 3+ cancels. Per user feedback 2026-05-09, that dialog is friction
+    // without value — if there's something to migrate, just migrate it.
+    // The original v1.x data in ~/Library/Application Support is read-only
+    // for the migrator, so this is a non-destructive auto-import. Set
+    // MARK_SKIP_MIGRATION=1 if you really don't want it (e.g. for tests).
     if layouts.any_detected() && !skip_migration && !migration_already_done {
-        let strings = migration_strings::detect();
-
-        // Phase-B-pre2 step-4: count recent cancels in the last 7 days.
-        // If the user has cancelled 3+ times we augment the dialog body
-        // with a rate-limit hint pointing to docs / cancel history /
-        // opt-out env var. Never force-migrates, never blocks the dialog.
-        let recent_cancels: usize = mt_paths::cache_root()
-            .map(|cr| cancel_log::count_recent_cancels(&cr, 7 * 86400))
-            .unwrap_or(0);
-        eprintln!(
-            "[main][bootstrap][BLOCK_RECENT_CANCELS_COUNTED count={recent_cancels}]"
-        );
-        let body_text: String = if recent_cancels >= 3 {
-            eprintln!("[main][bootstrap][BLOCK_RATE_LIMIT_HINT_ATTACHED]");
-            format!("{}\n\n{}", strings.body, strings.rate_limit_hint)
-        } else {
-            strings.body.to_string()
-        };
-
-        let choice = dialog::ask_migration(&strings, &body_text);
-        eprintln!("[main][bootstrap][BLOCK_DIALOG_CHOICE choice={:?}]", choice);
-
-        match choice {
-            DialogChoice::Continue => {
+        eprintln!("[main][bootstrap][BLOCK_MIGRATION_AUTO_CONTINUE]");
+        {
+            {
                 eprintln!("[main][bootstrap][BLOCK_MIGRATION_CONTINUE]");
 
                 // Phase-B-pre2 step-5: snapshot legacy data into
@@ -300,60 +285,12 @@ fn main() {
                             summary.recent_docs,
                             summary.keychain,
                         );
-                        // Step-9: surface a one-shot success dialog only
-                        // when at least one migrator did real work
-                        // (Migrated{...}). Re-runs that hit AlreadyDone /
-                        // NoSourceFile across the board are silent — no
-                        // user-visible noise on every boot.
-                        let did_migrate = matches!(
-                            summary.preferences,
-                            Some(m005_migrate::PreferencesMigrationOutcome::Migrated { .. })
-                        ) || matches!(
-                            summary.data_center,
-                            Some(m005_migrate::DataCenterMigrationOutcome::Migrated { .. })
-                        ) || matches!(
-                            summary.keybindings,
-                            Some(m005_migrate::KeybindingsMigrationOutcome::Migrated { .. })
-                        ) || matches!(
-                            summary.recent_docs,
-                            Some(m005_migrate::RecentDocsMigrationOutcome::Migrated { .. })
-                        ) || summary
-                            .keychain
-                            .as_ref()
-                            .map(|k| k.renamed > 0)
-                            .unwrap_or(false);
-                        if did_migrate {
-                            let prefs_n = match &summary.preferences {
-                                Some(m005_migrate::PreferencesMigrationOutcome::Migrated { keys_migrated, .. }) => *keys_migrated,
-                                _ => 0,
-                            };
-                            let dc_n = match &summary.data_center {
-                                Some(m005_migrate::DataCenterMigrationOutcome::Migrated { keys_migrated, .. }) => *keys_migrated,
-                                _ => 0,
-                            };
-                            let kb_n = match &summary.keybindings {
-                                Some(m005_migrate::KeybindingsMigrationOutcome::Migrated { keys_migrated, .. }) => *keys_migrated,
-                                _ => 0,
-                            };
-                            let recent_n = match &summary.recent_docs {
-                                Some(m005_migrate::RecentDocsMigrationOutcome::Migrated { keys_migrated, .. }) => *keys_migrated,
-                                _ => 0,
-                            };
-                            let kc_n = summary.keychain.as_ref().map(|k| k.renamed).unwrap_or(0);
-                            dialog::ask_native_info(
-                                "Mark — settings migrated from Mark Text v1.x",
-                                &format!(
-                                    "Your data has been imported successfully:\n\n\
-                                     • Preferences: {prefs_n} keys\n\
-                                     • Image-uploader configs: {dc_n} keys\n\
-                                     • Custom shortcuts: {kb_n}\n\
-                                     • Recent files: {recent_n}\n\
-                                     • Keychain entries: {kc_n}\n\n\
-                                     Your original Mark Text v1.x data in ~/Library/Application Support/marktext is unchanged — \
-                                     this migration only copied settings into Mark's new storage location.",
-                                ),
-                            );
-                        }
+                        // Earlier builds surfaced a one-shot native info
+                        // dialog summarizing migrated key counts. Per user
+                        // feedback 2026-05-09, dialogs in the boot path are
+                        // friction; the migration summary already prints to
+                        // stderr (BLOCK_MIGRATION_COMPLETED above) and users
+                        // can verify imported state via Settings. No banner.
                     }
                     Err(failure) => {
                         eprintln!("[main][bootstrap][BLOCK_MIGRATION_RUNNER_FAILED failure={failure:?}]");
@@ -367,31 +304,6 @@ fn main() {
                         std::process::exit(1);
                     }
                 }
-            }
-            DialogChoice::Cancel => {
-                // Phase-B-pre2 step-3: persist a JSONL record to
-                // mt_paths::cache_root().join("sessions.jsonl") (outside
-                // Application Support per plan) and exit with code 0 so the
-                // user is never force-migrated. step-4 reads this file to
-                // rate-limit the dialog after 3+ cancels in 7 days.
-                let record = cancel_log::CancelRecord::new_now(env!("CARGO_PKG_VERSION"));
-                match mt_paths::cache_root() {
-                    Some(cache_root) => match cancel_log::append_record(&cache_root, &record) {
-                        Ok(()) => eprintln!(
-                            "[main][bootstrap][BLOCK_MIGRATION_CANCEL_PERSISTED ts_unix={} version={}]",
-                            record.ts_unix, record.app_version
-                        ),
-                        Err(e) => eprintln!(
-                            "[main][bootstrap][BLOCK_MIGRATION_CANCEL_PERSIST_FAILED reason={}]",
-                            e
-                        ),
-                    },
-                    None => eprintln!(
-                        "[main][bootstrap][BLOCK_MIGRATION_CANCEL_NO_CACHE_ROOT]"
-                    ),
-                }
-                eprintln!("[main][bootstrap][BLOCK_MIGRATION_CANCEL_EXIT_0]");
-                std::process::exit(0);
             }
         }
     } else {
