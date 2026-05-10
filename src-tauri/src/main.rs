@@ -579,29 +579,49 @@ fn main() {
             // those are handled in setup() via cli.files. Files dispatched
             // via Apple Event get the same preview-on-open treatment per
             // M-022 design.
+            //
+            // Race fix (alpha.3 → alpha.4): emit must happen AFTER the
+            // renderer's mt::open-new-tab listener is registered. On cold
+            // launch the Apple Event arrives before bootstrap-editor fires,
+            // so we defer 1.5s in a worker thread (same pattern as the
+            // CLI-args setup hook).
             if let tauri::RunEvent::Opened { urls } = event {
-                if let Some(window) = tauri::Manager::get_webview_window(app, "main") {
+                eprintln!(
+                    "[main][apple_event][BLOCK_RECEIVED count={}]",
+                    urls.len()
+                );
+                let app_handle = app.clone();
+                std::thread::spawn(move || {
+                    std::thread::sleep(std::time::Duration::from_millis(1500));
+                    let window = match tauri::Manager::get_webview_window(&app_handle, "main") {
+                        Some(w) => w,
+                        None => {
+                            eprintln!("[main][apple_event][BLOCK_NO_MAIN_WINDOW]");
+                            return;
+                        }
+                    };
                     for url in urls {
-                        if let Ok(path) = url.to_file_path() {
-                            let path_str = path.to_string_lossy().to_string();
-                            if let Err(e) =
-                                m_v1_compat::emit_open_new_tab(&window, &path_str, true)
-                            {
-                                eprintln!(
-                                    "[main][apple_event][BLOCK_OPEN_FAILED path={path_str} err={e}]"
-                                );
-                            } else {
-                                eprintln!(
-                                    "[main][apple_event][BLOCK_OPENED path={path_str}]"
-                                );
+                        match url.to_file_path() {
+                            Ok(path) => {
+                                let path_str = path.to_string_lossy().to_string();
+                                if let Err(e) =
+                                    m_v1_compat::emit_open_new_tab(&window, &path_str, true)
+                                {
+                                    eprintln!(
+                                        "[main][apple_event][BLOCK_OPEN_FAILED path={path_str} err={e}]"
+                                    );
+                                } else {
+                                    eprintln!(
+                                        "[main][apple_event][BLOCK_OPENED path={path_str}]"
+                                    );
+                                }
                             }
-                        } else {
-                            eprintln!("[main][apple_event][BLOCK_NON_FILE_URL url={url}]");
+                            Err(_) => {
+                                eprintln!("[main][apple_event][BLOCK_NON_FILE_URL url={url}]");
+                            }
                         }
                     }
-                } else {
-                    eprintln!("[main][apple_event][BLOCK_NO_MAIN_WINDOW]");
-                }
+                });
             }
         });
 }
