@@ -92,6 +92,44 @@ mod snapshot;
 #[allow(unused_imports)]
 use dialog::DialogChoice;
 
+/// F-FILE-OPEN-PENDING (alpha.5): macOS Apple Event handling for
+/// "Open With" + Finder double-click. Per Tauri 2 docs, RunEvent::Opened
+/// fires BEFORE Ready/Window — listeners aren't yet active. We push paths
+/// into this AppState; frontend drains via mt_drain_pending_opens after
+/// bootstrap-editor completes. Race-free (vs the 1.5s deferred-thread
+/// hack that preceded this).
+pub struct PendingOpens(pub std::sync::Mutex<Vec<String>>);
+
+impl Default for PendingOpens {
+    fn default() -> Self {
+        Self(std::sync::Mutex::new(Vec::new()))
+    }
+}
+
+#[tauri::command]
+fn mt_drain_pending_opens(
+    window: tauri::WebviewWindow,
+    state: tauri::State<'_, PendingOpens>,
+) -> Vec<String> {
+    let drained: Vec<String> = {
+        let mut q = state.0.lock().unwrap_or_else(|e| e.into_inner());
+        std::mem::take(&mut *q)
+    };
+    eprintln!("[main][pending_opens][BLOCK_DRAINED count={}]", drained.len());
+    // Emit mt::open-new-tab for each queued path. Reuses
+    // m_v1_compat::emit_open_new_tab (reads file via std::fs, builds
+    // IMarkdownDocumentRaw payload, fires the event). preview_mode=true
+    // per M-022: Apple Event / CLI launches start read-only.
+    for path in &drained {
+        if let Err(e) = m_v1_compat::emit_open_new_tab(&window, path, true) {
+            eprintln!("[main][pending_opens][BLOCK_EMIT_FAILED path={path} err={e}]");
+        } else {
+            eprintln!("[main][pending_opens][BLOCK_EMITTED path={path}]");
+        }
+    }
+    drained
+}
+
 /// F-DEV-MODE-WHITE-SCREEN diagnostic: dev-only renderer error sink.
 /// Receives JS exceptions / unhandledrejection / console.error from
 /// the webview (injected via WebviewWindow::eval in setup) and dumps
@@ -461,31 +499,17 @@ fn main() {
                     eprintln!("[dev-diag][installed]");
                 }
 
-                // CLI args: open files passed on the command line. macOS
-                // `open -a Mark.app foo.md` and direct `mark foo.md` both
-                // populate cli.files. emit_open_new_tab needs the renderer's
-                // mt::open-new-tab listener to be live, which happens after
-                // bootstrap-editor — so spawn a deferred thread (~1.5s)
-                // rather than racing with renderer init.
+                // CLI args (`mark file.md` direct invocation): push into
+                // PendingOpens AppState alongside Apple Event paths.
+                // Frontend drains both via mt_drain_pending_opens after
+                // bootstrap-editor — race-free, no deferred-thread sleep.
                 if !cli_files.is_empty() {
-                    let win = main_win.clone();
-                    let files = cli_files.clone();
-                    std::thread::spawn(move || {
-                        std::thread::sleep(std::time::Duration::from_millis(1500));
-                        for path in &files {
-                            // M-022: Finder/CLI-launched files start in
-                            // preview view per V-M-022 design. Sidebar
-                            // clicks + picker invocations stay in editor
-                            // view (preview_mode=false).
-                            if let Err(e) = m_v1_compat::emit_open_new_tab(&win, path, true) {
-                                eprintln!(
-                                    "[main][cli][BLOCK_CLI_OPEN_FAILED path={path} err={e}]"
-                                );
-                            } else {
-                                eprintln!("[main][cli][BLOCK_CLI_OPENED path={path}]");
-                            }
-                        }
-                    });
+                    let state = tauri::Manager::state::<PendingOpens>(app);
+                    let mut q = state.0.lock().unwrap_or_else(|e| e.into_inner());
+                    for path in &cli_files {
+                        eprintln!("[main][cli][BLOCK_CLI_QUEUED path={path}]");
+                        q.push(path.clone());
+                    }
                 }
             } else {
                 eprintln!("[m001][lifecycle][BLOCK_CLOSE_HANDLER_SKIPPED reason=no-main-window]");
@@ -507,8 +531,10 @@ fn main() {
         .manage(prefs)
         .manage(m013b::WatchRegistry::default())
         .manage(m013b::SearchRegistry::default())
+        .manage(PendingOpens::default())
         .invoke_handler(tauri::generate_handler![
             mt_dev_diag,
+            mt_drain_pending_opens,
             m013b::fs::mt_fs_read,
             m013b::fs::mt_fs_write,
             m013b::fs::mt_fs_stat,
@@ -574,54 +600,34 @@ fn main() {
         .expect("error while building tauri application")
         .run(|app, event| {
             // macOS Finder double-click + `open file.md` send open-document
-            // Apple Events that Tauri 2 surfaces as RunEvent::Opened. CLI
-            // args (mark file.md direct invocation) don't go through here —
-            // those are handled in setup() via cli.files. Files dispatched
-            // via Apple Event get the same preview-on-open treatment per
-            // M-022 design.
+            // Apple Events that Tauri 2 surfaces as RunEvent::Opened.
             //
-            // Race fix (alpha.3 → alpha.4): emit must happen AFTER the
-            // renderer's mt::open-new-tab listener is registered. On cold
-            // launch the Apple Event arrives before bootstrap-editor fires,
-            // so we defer 1.5s in a worker thread (same pattern as the
-            // CLI-args setup hook).
+            // Per Tauri 2 docs, this event fires BEFORE Ready/Window — the
+            // renderer's mt::open-new-tab listener isn't yet active. Pushing
+            // the paths into PendingOpens AppState lets the frontend drain
+            // them via mt_drain_pending_opens after bootstrap-editor.
+            // Race-free, no timing assumptions.
             if let tauri::RunEvent::Opened { urls } = event {
                 eprintln!(
                     "[main][apple_event][BLOCK_RECEIVED count={}]",
                     urls.len()
                 );
-                let app_handle = app.clone();
-                std::thread::spawn(move || {
-                    std::thread::sleep(std::time::Duration::from_millis(1500));
-                    let window = match tauri::Manager::get_webview_window(&app_handle, "main") {
-                        Some(w) => w,
-                        None => {
-                            eprintln!("[main][apple_event][BLOCK_NO_MAIN_WINDOW]");
-                            return;
+                let state = tauri::Manager::state::<PendingOpens>(app);
+                let mut q = state.0.lock().unwrap_or_else(|e| e.into_inner());
+                for url in urls {
+                    match url.to_file_path() {
+                        Ok(path) => {
+                            let path_str = path.to_string_lossy().to_string();
+                            eprintln!(
+                                "[main][apple_event][BLOCK_QUEUED path={path_str}]"
+                            );
+                            q.push(path_str);
                         }
-                    };
-                    for url in urls {
-                        match url.to_file_path() {
-                            Ok(path) => {
-                                let path_str = path.to_string_lossy().to_string();
-                                if let Err(e) =
-                                    m_v1_compat::emit_open_new_tab(&window, &path_str, true)
-                                {
-                                    eprintln!(
-                                        "[main][apple_event][BLOCK_OPEN_FAILED path={path_str} err={e}]"
-                                    );
-                                } else {
-                                    eprintln!(
-                                        "[main][apple_event][BLOCK_OPENED path={path_str}]"
-                                    );
-                                }
-                            }
-                            Err(_) => {
-                                eprintln!("[main][apple_event][BLOCK_NON_FILE_URL url={url}]");
-                            }
+                        Err(_) => {
+                            eprintln!("[main][apple_event][BLOCK_NON_FILE_URL url={url}]");
                         }
                     }
-                });
+                }
             }
         });
 }

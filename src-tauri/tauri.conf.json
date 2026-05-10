@@ -38,9 +38,15 @@
     "targets": ["app", "dmg"],
     "icon": ["icons/icon.png"],
     "createUpdaterArtifacts": true,
-    "macOS": {
-      "infoPlist": "./Info.partial.plist"
-    }
+    "fileAssociations": [
+      {
+        "ext": ["md", "markdown", "mmd", "mkd", "mkdn", "mdown"],
+        "role": "Editor",
+        "name": "Markdown Document",
+        "mimeType": "text/markdown",
+        "description": "Markdown text file"
+      }
+    ]
   },
   "plugins": {
     "updater": {

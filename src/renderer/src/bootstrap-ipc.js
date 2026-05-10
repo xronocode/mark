@@ -127,8 +127,26 @@ export const setupIpcListeners = async () => {
   // switch-tab, new-untitled-tab, screenshot) were deleted in audit-M-1:
   // those flow through mt::menu-invoked → install-menu-bridge.js and
   // have no direct backend emitter.
-  await listen('mt::bootstrap-editor', (event) => {
+  await listen('mt::bootstrap-editor', async (event) => {
     if (event?.payload) editorStore.APPLY_BOOTSTRAP_EDITOR(event.payload)
+    // F-FILE-OPEN-PENDING (alpha.5): drain pending file-open paths
+    // queued by RunEvent::Opened (Apple Event from Finder/Open With)
+    // and CLI args. Per Tauri 2 docs RunEvent::Opened fires BEFORE
+    // Ready/Window so the renderer's mt::open-new-tab listener isn't
+    // yet active when the event lands — backend stashes paths in
+    // PendingOpens AppState. Now (after bootstrap-editor → renderer
+    // fully wired), invoke the drain: backend emits mt::open-new-tab
+    // for each path with preview_mode=true (M-022: Finder-launched
+    // files start read-only). Race-free; no timing assumptions.
+    try {
+      const { invoke } = await import('@tauri-apps/api/core')
+      const paths = await invoke('mt_drain_pending_opens')
+      if (Array.isArray(paths) && paths.length) {
+        console.debug(`[boot][pending_opens][BLOCK_DRAINED count=${paths.length}]`)
+      }
+    } catch (e) {
+      console.debug('[boot][pending_opens][BLOCK_DRAIN_FAILED]', e)
+    }
   })
   await listen('mt::open-new-tab', async (event) => {
     // v1 sent (markdownDocument, options, selected); via Tauri the
