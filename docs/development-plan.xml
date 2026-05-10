@@ -1651,6 +1651,106 @@ src/main/config.js declares `contextIsolation: false`, `nodeIntegration: true`, 
       <step-16 status="pending">Verify Gate-Phase-B4. [USER REVIEW]</step-16>
       <gate>Gate-Phase-B4: see verification-plan UpdatedPhaseGates Gate-Phase-B4 (full evidence list).</gate>
     </Phase-B4>
+
+    <Phase-B5-perf name="Performance pass — cold launch + bundle reduction" status="pending" added="2026-05-10" smoke-source="user-smoke-of-v2.0.0-alpha.5-2026-05-10">
+      <goal>
+        Cold launch first-paint ≤600ms (from estimated ~1500ms), file-rendered-in-tab ≤900ms (from ~2500ms),
+        initial bundle ≤2.0MB (from ~5MB). User smoke 2026-05-10: "запуск тяжеловат, белый экран → думает →
+        брынкс → длительнее чем Electron". 7 modules across 3 waves; established baselines via V-M-030 bench
+        harness.
+      </goal>
+      <design-source>7-agent parallel grace-verification swarm 2026-05-10; merged + approved 2026-05-10.</design-source>
+      <cross-module-contracts>
+        <c1>Shared BOOT_T0 anchor: V-M-024 inline &lt;head&gt; script sets `window.__BOOT_T0__ = performance.now()` BEFORE module scripts; V-M-030 `bootMark()` reads (never reassigns); Rust BOOT_T0 = `Lazy&lt;Instant&gt;` deref'd as literal first stmt of main() before panic hook install.</c1>
+        <c2>Splash dismount tied to ACTIVE-tab muya ready (V-M-028 contract), NOT all-tabs ready. V-M-001 must set `show: true` initially (was show:false until bootstrap-editor — contract change).</c2>
+        <c3>Phase ordering invariant: panic &lt; window &lt; renderer-load &lt; splash &lt; vue-mount &lt; ipc-listeners &lt; bootstrap-editor &lt; first-paint ≤ first-tab-loaded. V-M-030 emits BLOCK_ORDER_VIOLATION on breach.</c3>
+        <c4>V-M-025 needs M-021 ready-signal (`drained: bool` flag in PendingOpens AppState) so M-021 switches from enqueue to direct-emit mode after drain. NEW gap discovered during design — small backend change in M-021 may be needed.</c4>
+        <c5>V-M-027 keeps `element-plus/dist/index.css` as single monolithic CSS chunk; only JS tree-shakes (palette tokens, animations, dark-theme cascade preserved).</c5>
+      </cross-module-contracts>
+
+      <Phase-B5-perf-wave1 name="alpha.6 quick wins (splash + parallel pending-opens)" status="pending" gate="Gate-Phase-B5-perf-wave1">
+        <step-1 module="M-024" status="pending" verification="V-M-024" closes="F-PERF-SPLASH">
+          Static HTML+CSS splash inside `src/renderer/index.html` + `src/renderer/static/splash.css`. Inline timing
+          script in &lt;head&gt; CSP-hash-allowlisted. Vue mount removes splash on first paint (atomic). DOM-only,
+          zero JS runtime deps. Markers `[boot][splash][BLOCK_*]` (11 markers). BOOT_T0 anchor (`window.__BOOT_T0__ =
+          performance.now()`) lives here. Active-tab-ready (NOT all-tabs-ready) triggers dismount.
+        </step-1>
+        <step-2 module="M-025" status="pending" verification="V-M-025" closes="F-PERF-PENDING-OPENS-PARALLEL">
+          Move `mt_drain_pending_opens` invoke from inside mt::bootstrap-editor handler to setupIpcListeners()
+          top-level (parallel with Vue mount). Backend mt_drain_pending_opens unchanged. Markers
+          `[boot][pending_opens][BLOCK_*]` (9 markers). 6 ordering invariants encoded as trace-grep test.
+          GAP: M-021 may need `drained: bool` flag in PendingOpens AppState — investigate during step-2 implementation.
+        </step-2>
+        <step-3 status="pending">Local smoke: cold-launch /tmp/test.md from Finder; verify splash visible &lt;100ms,
+          editor rendered ≤1500ms; trace-grep invariants pass. [USER REVIEW]</step-3>
+        <gate>Gate-Phase-B5-perf-wave1: see verification-plan Gate-Phase-B5-perf-wave1. Tag v2.0.0-alpha.6 on success.</gate>
+      </Phase-B5-perf-wave1>
+
+      <Phase-B5-perf-wave2 name="alpha.7 bundle reduction (lazy-renderers + EP-treeshake)" status="pending" gate="Gate-Phase-B5-perf-wave2">
+        <step-1 module="M-026" status="pending" verification="V-M-026" closes="F-PERF-LAZY-RENDERERS">
+          Convert eager imports of Mermaid/Vega/Cytoscape/KaTeX/plantuml/flowchart/sequence in
+          `src/muya/lib/parser/render/` to dynamic `import()` triggered by first occurrence of each block type.
+          Async adapter wraps muya parser dispatch (parser stays sync). muya CORE frozen upstream — only the
+          render/ adapter layer modified. Markers `[muya][render][BLOCK_*]` (7 markers). 7 ordering invariants.
+          Bundle assertion: dist/index.html does NOT reference vendor-{mermaid,cytoscape,vega,katex,plantuml,flowchart}.
+          Target ~2.5MB savings on initial bundle.
+        </step-1>
+        <step-2 module="M-027" status="pending" verification="V-M-027" closes="F-PERF-EP-TREESHAKE">
+          Replace `app.use(ElementPlus)` with per-component imports across all .vue files in
+          `src/renderer/src/`. CSS-monolithic preserved (only JS tree-shakes). Recommendation: manual per-component
+          allowlist (~15 components) over `unplugin-element-plus` for current surface size. Pre-build audit script
+          (AST-based via @vue/compiler-sfc) blocks build on missing component or imperative-API import. Build
+          assertion: vendor-element-plus chunk ≤200KB gzip / ≤600KB uncompressed (was 880KB). Target ~600KB
+          savings.
+        </step-2>
+        <step-3 status="pending">Verify combined wave: initial bundle ≤2.0MB; first-paint with plain.md within
+          ±50ms of V-M-024 baseline; mermaid-only.md fetches only mermaid+cytoscape chunks. [USER REVIEW]</step-3>
+        <gate>Gate-Phase-B5-perf-wave2: see verification-plan Gate-Phase-B5-perf-wave2. Tag v2.0.0-alpha.7 on success.</gate>
+      </Phase-B5-perf-wave2>
+
+      <Phase-B5-perf-wave3 name="post-alpha refinement (muya-defer + window-state + bench-harness)" status="pending" gate="Gate-Phase-B5-perf-wave3">
+        <step-1 module="M-028" status="pending" verification="V-M-028" closes="F-PERF-MUYA-DEFER">
+          In `src/renderer/src/components/editorWithTabs/editor.vue`, defer muya engine init for non-active
+          (background) tabs via requestIdleCallback. Active visible tab: sync init (current). Background tab:
+          placeholder rendered first, muya inits on idle ≤2s timeout. Switch to deferred tab triggers immediate
+          init. Per-tab state machine: pending → initializing → ready → (closed) destroyed | error. Polyfill via
+          setTimeout(50) at `src/renderer/src/util/idle.ts` (single chokepoint). Markers `[editor][muya][BLOCK_*]`
+          (13 markers). 5 ordering invariants. Active-tab muya ready time MUST be unchanged from baseline.
+        </step-1>
+        <step-2 module="M-029" status="pending" verification="V-M-029" closes="F-PERF-WINDOW-STATE">
+          Add `tauri-plugin-window-state = "2"` to `src-tauri/Cargo.toml` + Builder.plugin chain. Storage:
+          `~/Library/Application Support/com.xronocode.mark/.window-state.json`. Restore happens BEFORE renderer
+          mount (no resize jank). Markers `[m001][window_state][BLOCK_*]` (11 markers; some may need shim wrapper at
+          `src-tauri/src/window_state_log.rs` if plugin doesn't emit natively). Multi-display fallback to primary if
+          saved screen disconnected. Confirm no invoke-namespace collision with M-021. Settings window NOT tracked
+          in this phase (Phase D scope).
+        </step-2>
+        <step-3 module="M-030" status="pending" verification="V-M-030" closes="F-PERF-BENCH-HARNESS">
+          Three parts:
+          (A) instrumentation — `boot_marker!()` Rust proc-macro at `src-tauri/src/boot_marker.rs` (eager BOOT_T0
+            via `Lazy&lt;Instant&gt;`); JS `bootMark(label)` helper at `src/renderer/src/boot-marker.js` reading
+            `window.__BOOT_T0__` set by V-M-024; auto-interpolates `elapsed_ms=N` across ALL existing BLOCK_*
+            markers in M-001..M-029.
+          (B) harness — `tools/bench-launch.mjs` Node CLI launches Mark, parses BLOCK_* markers, builds waterfall
+            report (panic → window → renderer-load → splash → vue-mount → ipc-listeners → bootstrap-editor →
+            first-paint → first-tab-loaded). Median-of-last-2-runs strategy with proper-lockfile + retry.
+          (C) CI gate — `--ci` mode reads `tools/bench-baseline.json` (checked-in ground truth, schema-versioned).
+            Fails if any waterfall stage regresses &gt;10% (per-stage tunable via `tools/bench-config.json`).
+            `.github/workflows/perf-gate.yml` runs on macos-14 for PRs touching src-tauri or src/renderer.
+            `tools/bench-lint-markers.mjs` enforces elapsed_ms uniformity across all V-M-024..029 markers.
+          BLOCK_* (21 harness markers). Phase ordering invariant emits BLOCK_ORDER_VIOLATION on breach.
+        </step-3>
+        <step-4 status="pending">Generate baseline via `npm run bench:update-baseline`; commit
+          tools/bench-baseline.json + tools/bench-config.json. Verify perf-gate.yml green on synthetic regression
+          test. [USER REVIEW]</step-4>
+        <gate>Gate-Phase-B5-perf-wave3: see verification-plan Gate-Phase-B5-perf-wave3. Tag v2.0.0-alpha.8 on success
+          (or fold into beta scope per user decision at wave-3 closeout).</gate>
+      </Phase-B5-perf-wave3>
+
+      <gate>Phase-B5-perf overall: cold launch first-paint ≤600ms M2; first-tab-loaded ≤900ms M2; initial
+        bundle ≤2.0MB; bench harness CI gate operational; baseline JSON checked-in. Predecessor of Phase-B6 if any.
+      </gate>
+    </Phase-B5-perf>
   </ImplementationOrder>
 
   <ExecutionPolicy>

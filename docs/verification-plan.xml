@@ -165,6 +165,48 @@
       <AUTONOMY>autonomous — deterministic path helper with cross-platform fixtures</AUTONOMY>
     </matrix-row>
 
+    <matrix-row MODULE="M-024" V-M="V-M-024" PRIORITY="high" SCENARIOS="6" EC="11" ALM="11" NA="3" RTA="5" PHF="1" WAF="1">
+      <VF-COVERAGE>VF-perf-cold-launch</VF-COVERAGE>
+      <GATE>Gate-Phase-B5-perf-wave1</GATE>
+      <AUTONOMY>autonomous — DOM-only static splash; markers + sizes + ordering invariants fully deterministic; timings p95-gated</AUTONOMY>
+    </matrix-row>
+
+    <matrix-row MODULE="M-025" V-M="V-M-025" PRIORITY="high" SCENARIOS="5" EC="8" ALM="9" NA="3" RTA="5" PHF="1" WAF="1">
+      <VF-COVERAGE>VF-perf-cold-launch, VF-finder-open</VF-COVERAGE>
+      <GATE>Gate-Phase-B5-perf-wave1</GATE>
+      <AUTONOMY>autonomous — 5 trace-grep ordering invariants drive primary verification surface</AUTONOMY>
+    </matrix-row>
+
+    <matrix-row MODULE="M-026" V-M="V-M-026" PRIORITY="high" SCENARIOS="7" EC="5" ALM="7" NA="2" RTA="7" PHF="1" WAF="1">
+      <VF-COVERAGE>VF-perf-bundle-size, VF-diagram-render</VF-COVERAGE>
+      <GATE>Gate-Phase-B5-perf-wave2</GATE>
+      <AUTONOMY>autonomous for build assertions + unit tests; trace-based runtime checks p95-gated</AUTONOMY>
+    </matrix-row>
+
+    <matrix-row MODULE="M-027" V-M="V-M-027" PRIORITY="high" SCENARIOS="5" EC="2" ALM="0" NA="3" RTA="0" PHF="1" WAF="1">
+      <VF-COVERAGE>VF-perf-bundle-size</VF-COVERAGE>
+      <GATE>Gate-Phase-B5-perf-wave2</GATE>
+      <AUTONOMY>autonomous — entirely deterministic build-time; AST audit + bundle byte-budget + visual snapshot diff</AUTONOMY>
+    </matrix-row>
+
+    <matrix-row MODULE="M-028" V-M="V-M-028" PRIORITY="medium" SCENARIOS="6" EC="6" ALM="13" NA="3" RTA="5" PHF="1" WAF="1">
+      <VF-COVERAGE>VF-perf-multi-tab-restore</VF-COVERAGE>
+      <GATE>Gate-Phase-B5-perf-wave3</GATE>
+      <AUTONOMY>autonomous — 5-state machine with 5 formal ordering invariants; per-tab markers parseable</AUTONOMY>
+    </matrix-row>
+
+    <matrix-row MODULE="M-029" V-M="V-M-029" PRIORITY="medium" SCENARIOS="6" EC="6" ALM="11" NA="4" RTA="4" PHF="1" WAF="1">
+      <VF-COVERAGE>VF-perf-window-restore</VF-COVERAGE>
+      <GATE>Gate-Phase-B5-perf-wave3</GATE>
+      <AUTONOMY>partial — single-display autonomous; multi-display + Spaces + display-rotation require manual checklist</AUTONOMY>
+    </matrix-row>
+
+    <matrix-row MODULE="M-030" V-M="V-M-030" PRIORITY="high" SCENARIOS="7" EC="7" ALM="21" NA="6" RTA="2" PHF="1" WAF="1">
+      <VF-COVERAGE>VF-perf-bench-gate</VF-COVERAGE>
+      <GATE>Gate-Phase-B5-perf-wave3</GATE>
+      <AUTONOMY>autonomous — schema-versioned baseline JSON, lockfile, median-of-2 with retry; baseline-regen requires human approval</AUTONOMY>
+    </matrix-row>
+
     <matrix-row MODULE="M-901" V-M="V-M-901" PRIORITY="high" SCENARIOS="3" EC="5" ALM="3" NA="2" RTA="1" PHF="0" WAF="1">
       <VF-COVERAGE>V-GH-001, V-GH-002</VF-COVERAGE>
       <GATE>Gate-Phase-H</GATE>
@@ -213,20 +255,23 @@
       <gate PHASE="Phase-B2" MODULES="M-002, M-003, M-004, M-010, M-013b, M-021" GATE-ID="Gate-Phase-B2" VERIFICATION="V-M-002, V-M-003, V-M-004, V-M-010, V-M-013b, V-M-021" />
       <gate PHASE="Phase-B3" MODULES="M-005, M-006, M-007, M-008, M-009, M-014, M-015, M-016, M-017, M-018, M-019, M-020" GATE-ID="Gate-Phase-B3" VERIFICATION="ALL REMAINING V-M" />
       <gate PHASE="Phase-B4" MODULES="ALL" GATE-ID="Gate-Phase-B4" VERIFICATION="ALL V-M, VF-005" />
+      <gate PHASE="Phase-B5-perf-wave1" MODULES="M-024, M-025" GATE-ID="Gate-Phase-B5-perf-wave1" VERIFICATION="V-M-024, V-M-025" STATUS="pending" />
+      <gate PHASE="Phase-B5-perf-wave2" MODULES="M-026, M-027" GATE-ID="Gate-Phase-B5-perf-wave2" VERIFICATION="V-M-026, V-M-027" STATUS="pending" />
+      <gate PHASE="Phase-B5-perf-wave3" MODULES="M-028, M-029, M-030" GATE-ID="Gate-Phase-B5-perf-wave3" VERIFICATION="V-M-028, V-M-029, V-M-030" STATUS="pending" />
     </phase-gate-matrix>
 
     <coverage-summary>
-      <metric name="total-modules">30</metric>
-      <metric name="total-V-M-entries">30</metric>
-      <metric name="total-VF-flows">16</metric>
-      <metric name="total-scenarios">119</metric>
-      <metric name="total-edge-cases">280</metric>
-      <metric name="total-trace-assertions">28</metric>
-      <metric name="total-negative-assertions">91</metric>
-      <metric name="total-log-markers-catalogued">77</metric>
-      <metric name="phase-gates">11</metric>
-      <metric name="autonomous-safe-modules">18 of 30</metric>
-      <metric name="modules-with-full-coverage">30 of 30 (100%)</metric>
+      <metric name="total-modules">37</metric>
+      <metric name="total-V-M-entries">37</metric>
+      <metric name="total-VF-flows">21</metric>
+      <metric name="total-scenarios">161</metric>
+      <metric name="total-edge-cases">325</metric>
+      <metric name="total-trace-assertions">56</metric>
+      <metric name="total-negative-assertions">115</metric>
+      <metric name="total-log-markers-catalogued">149</metric>
+      <metric name="phase-gates">14</metric>
+      <metric name="autonomous-safe-modules">24 of 37</metric>
+      <metric name="modules-with-full-coverage">37 of 37 (100%)</metric>
     </coverage-summary>
   </VerificationMatrix>
 
@@ -2153,6 +2198,497 @@
       </test-surface-placeholder>
       <verification-level>Deferred until Beta — re-open at Phase B5 kickoff. Skeleton exists only to keep F-3 tracked.</verification-level>
     </V-M-023>
+
+    <!--
+      ============================================================
+      V-M-024 .. V-M-030 — Phase-B5-perf (7 modules, 3 waves)
+      ============================================================
+      Source: docs/perf-bench-v1.2.3-step-2.5b-path3.md + smoke 2026-05-10.
+      User feedback: "запуск тяжеловат, белый экран → думает → брынкс
+      → длительнее чем Electron". Goal: cold launch first-paint <600ms,
+      first-tab-loaded <900ms, initial bundle ≤2.0MB (vs current ~5MB).
+      Designed via 7-agent parallel swarm 2026-05-10.
+
+      Wave-1 (alpha.6 quick wins): V-M-024 splash + V-M-025 pending-opens.
+      Wave-2 (alpha.7 bundle):     V-M-026 lazy-renderers + V-M-027 EP-treeshake.
+      Wave-3 (post-alpha):         V-M-028 muya-defer + V-M-029 window-state + V-M-030 bench-harness.
+
+      Cross-module contracts (all enforced via trace-grep invariants):
+      - Shared BOOT_T0 anchor: V-M-024 inline `<head>` script sets
+        `window.__BOOT_T0__ = performance.now()` BEFORE any module
+        script. V-M-030 `bootMark()` reads it (never reassigns).
+        Rust BOOT_T0 = `Lazy<Instant>` deref'd as literal first stmt
+        of main() before panic hook install.
+      - Splash dismount tied to ACTIVE-tab muya ready (V-M-028 contract),
+        not all-tabs ready. V-M-001 must set `show: true` initially.
+      - Phase ordering: panic < window < renderer-load < splash <
+        vue-mount < ipc-listeners < bootstrap-editor < first-paint
+        ≤ first-tab-loaded. V-M-030 emits BLOCK_ORDER_VIOLATION on
+        breach.
+      - V-M-025 needs M-021 ready-signal (drained:bool flag in
+        PendingOpens AppState) so M-021 can switch from enqueue to
+        direct-emit mode. NEW gap discovered during design.
+      - V-M-027 keeps `element-plus/dist/index.css` as single
+        monolithic CSS chunk; only JS tree-shakes.
+    -->
+
+    <V-M-024 MODULE="M-024 perf-splash" PRIORITY="high" wave="alpha.6">
+      <followup-ref>F-PERF-SPLASH</followup-ref>
+      <prereq>V-M-001 (window lifecycle — show:true contract)</prereq>
+      <module-surface>
+        src/renderer/index.html (inline splash DOM + inline timing script
+        with CSP hash-allowlist), src/renderer/static/splash.css (sync
+        link in &lt;head&gt;), src/renderer/main.ts (dismount call site only).
+        DOM-only; zero JS runtime deps.
+      </module-surface>
+      <high-level-scenarios>
+        <S1>splash-paints-before-js — cold launch, BLOCK_VISIBLE &lt;50ms target / &lt;100ms ceiling, computed style #splash-root display:flex.</S1>
+        <S2>splash-replaced-on-vue-mount — single-shot atomic replacement, aria-hidden flip, no FOUC frame.</S2>
+        <S3>splash-honors-dark-theme — prefers-color-scheme media query, contrast ≥4.5:1, dark-variant logo or currentColor SVG.</S3>
+        <S4>splash-no-fouc-on-warm-cache — second-launch &lt;16ms delta, system-ui font stack only, CLS=0.</S4>
+        <S5>splash-single-shot-after-hmr — dismount idempotent during HMR, no re-mount.</S5>
+        <S6>splash-css-non-blocking — Resource Timing splash.css responseEnd &lt; vendor chunk requestStart + 5ms.</S6>
+      </high-level-scenarios>
+      <failure-scenarios>
+        <F1>splash-css-404 — inline fallback &lt;style&gt; in &lt;head&gt; provides minimum viable layout; BLOCK_CSS_FAILED warning; BLOCK_VISIBLE still fires.</F1>
+        <F2>splash-vue-mount-throws — splash remains visible; 5s watchdog renders error overlay into #splash-root; BLOCK_WATCHDOG_FIRED.</F2>
+        <F3>splash-replacement-leaves-orphan — assertion fails on #splash-root present after BLOCK_VUE_READY+200ms; BLOCK_ORPHAN_DETECTED.</F3>
+        <F4>splash-double-mount — `document.querySelectorAll('#splash-root').length === 1` always, even after window.location.reload.</F4>
+        <F5>splash-blocks-mt::open-new-tab — Finder cold-open: BLOCK_REPLACED &lt; mt::open-new-tab[listener-ready] &lt; mt::open-new-tab[fire].</F5>
+      </failure-scenarios>
+      <race-conditions>
+        <R1>vue-mount-vs-finder-open — mt::open-new-tab buffered until splash dismount.</R1>
+        <R2>theme-change-during-splash — prefers-color-scheme reflow within 1 frame; BLOCK_THEME_CHANGED if mid-splash toggle.</R2>
+        <R3>hmr-update-during-splash — dismount idempotent; second call no-op.</R3>
+        <R4>window-resize-during-splash — flexbox center; CLS &lt;0.05 during pre-mount restore (V-M-029 interaction).</R4>
+      </race-conditions>
+      <numeric-thresholds>
+        <T1>BLOCK_VISIBLE_DELTA_MS ≤50ms target / ≤100ms ceiling (cold) / 150ms hard fail.</T1>
+        <T2>BLOCK_REPLACED_DELTA_MS ≤800ms target cold / ≤400ms warm.</T2>
+        <T3>splash.css ≤4KB minified; inline markup ≤2KB.</T3>
+        <T4>CLS contribution from splash region = 0.</T4>
+        <T5>FCP ≤80ms; tagline FOUT = none (system-ui only).</T5>
+        <T6>splash → editor transition: 0 blank frames (frame-granularity screenshot diff).</T6>
+      </numeric-thresholds>
+      <log-markers namespace="[boot][splash]" count="11">
+        BLOCK_HEAD_PARSED, BLOCK_CSS_LOADED, BLOCK_VISIBLE, BLOCK_THEME_RESOLVED, BLOCK_THEME_CHANGED, BLOCK_VUE_READY, BLOCK_REPLACED, BLOCK_HMR_BYPASS, BLOCK_CSS_FAILED, BLOCK_VUE_FAILED, BLOCK_WATCHDOG_FIRED, BLOCK_ORPHAN_DETECTED. All carry performance.now() value.
+      </log-markers>
+      <test-files>
+        <e2e>src-tauri/tests/e2e/splash.{cold-launch,warm-launch,replacement,finder-open,theme}.spec.ts (Playwright via tauri-driver — WKWebView, NOT headless Chromium)</e2e>
+        <vitest>src/renderer/__tests__/splash-{dismount,markers}.spec.ts</vitest>
+        <perf>tests/perf/splash-{timing,cls}.bench.ts (N=20 cold launches, p95 gates)</perf>
+        <build>scripts/verify-splash-budget.mjs, scripts/verify-csp-script-hash.mjs</build>
+      </test-files>
+      <module-local-commands>
+        npm run test:unit -- splash; npm run test:e2e -- splash; npm run test:e2e:cold; npm run test:perf -- splash; node scripts/verify-splash-budget.mjs; node scripts/verify-csp-script-hash.mjs; npm run verify:v-m-024 (alias for full suite, fail-fast).
+      </module-local-commands>
+      <integration>
+        V-M-022 preview: dismount before mt::open-new-tab handler. V-M-001 window: contract change — show:true initially (was show:false until bootstrap-editor). V-M-024 itself does NOT interact with V-M-005/010/014.
+      </integration>
+      <ai-friendliness assessment="strong">
+        70% deterministic (markers, ordering, sizes, hashes, idempotency, a11y, theme media-query); 25% trace-based with statistical p95 gates; 5% visual-snapshot (one-time human bootstrap then auto pixel-diff at 0.1% tolerance). Forbid: setTimeout-based "wait for splash" (use markers); body.innerHTML string-match (use selectors); headless Chromium (WKWebView ships different defaults — tauri-driver only).
+      </ai-friendliness>
+      <verification-level>module-local for all rows except T1/T2 timing (run per-PR via tauri-driver) and visual snapshots (nightly + tag-PRs).</verification-level>
+    </V-M-024>
+
+    <V-M-025 MODULE="M-025 perf-pending-opens-parallel" PRIORITY="high" wave="alpha.6">
+      <followup-ref>F-PERF-PENDING-OPENS-PARALLEL</followup-ref>
+      <prereq>V-M-021 (default-handler), V-M-022 (preview-mode), V-M-001 (window lifecycle)</prereq>
+      <module-surface>
+        Renderer: src/renderer/src/bootstrap-ipc.js — move `mt_drain_pending_opens` invoke from INSIDE mt::bootstrap-editor handler (sequential after Vue mount + IPC roundtrip) to setupIpcListeners() top-level (parallel with Vue mount). Backend mt_drain_pending_opens unchanged.
+      </module-surface>
+      <high-level-scenarios>
+        <S1>Finder double-click cold-launch — single .md, end-to-end ≤1500ms cold / ≤600ms warm.</S1>
+        <S2>Drag-drop multi-file onto Dock — 3 files, all open in queue order, previewMode=true honored on all.</S2>
+        <S3>CLI args + RunEvent::Opened mix — `mark a.md b.md` plus async `open -a Mark.app c.md` ≤200ms later, all 3 queued.</S3>
+        <S4>Open With from another app (warm launch) — drain NOT invoked second time; M-021 direct-emits.</S4>
+        <S5>Cold launch with empty queue — drain invoked unconditionally, BLOCK_DRAIN_EMPTY (NOT BLOCK_DRAINED count=0).</S5>
+      </high-level-scenarios>
+      <failure-scenarios>
+        <F1>File deleted between queue and drain — per-file error via mt::open-new-tab-error event (recommended schema), other queued files succeed.</F1>
+        <F2>File unreadable (perms 000) — same graceful path, distinct reason=PermissionDenied.</F2>
+        <F3>Backend panic during drain — try/catch logs BLOCK_DRAIN_FAILED, app continues to functional empty state.</F3>
+        <F4>Listener registration throws — drain MUST NOT be invoked (else events lost). Invariant: BLOCK_DRAIN_INVOKED ⇒ BLOCK_LISTENERS_READY.</F4>
+        <F5>NEW_TAB_WITH_CONTENT pre-Pinia — defensive assertPiniaReady() at top of setupIpcListeners; clear error not silent loss.</F5>
+      </failure-scenarios>
+      <race-conditions>
+        <R1>Listener registration vs drain invoke — await Promise.all([all listen() calls]) BEFORE invoke. Invariant: BLOCK_LISTENERS_READY.elapsed_ms ≤ BLOCK_DRAIN_INVOKED.elapsed_ms.</R1>
+        <R2>Drain response vs Vue mount completion — editorStore.NEW_TAB_WITH_CONTENT must work pre-mount (Pinia ready, components not yet mounted).</R2>
+        <R3>Multiple RunEvent::Opened bursts — exact-once delivery: every queued path delivered via either drain OR direct emit, never both, never neither. Backend marker [m021][pending][BLOCK_DIRECT_EMIT] vs [BLOCK_QUEUED] distinguishes paths.</R3>
+        <R4>Drain invoked twice (regression guard) — assert BLOCK_DRAIN_INVOKED count == 1 in cold-launch trace.</R4>
+      </race-conditions>
+      <numeric-thresholds>
+        <T1>BLOCK_LISTENERS_READY ≤150ms cold / ≤80ms warm.</T1>
+        <T2>BLOCK_DRAIN_INVOKED − BLOCK_LISTENERS_READY gap ≤5ms (no awaits between).</T2>
+        <T3>BLOCK_DRAIN_RESPONSE_RECEIVED − BLOCK_DRAIN_INVOKED ≤80ms cold / ≤30ms warm (single &lt;100KB file).</T3>
+        <T4>End-to-end Finder→muya rendered ≤1500ms cold / ≤600ms warm.</T4>
+        <T5>Improvement vs sequential baseline ≥150ms cold (justifies refactor).</T5>
+        <T6>Parallelism invariant: BLOCK_DRAIN_INVOKED.elapsed_ms &lt; BLOCK_APP_MOUNTED.elapsed_ms (the entire point).</T6>
+      </numeric-thresholds>
+      <log-markers namespace="[boot][pending_opens]" count="9">
+        NEW: BLOCK_LISTENERS_READY, BLOCK_DRAIN_INVOKED, BLOCK_DRAIN_RESPONSE_RECEIVED, BLOCK_DRAIN_EMPTY, BLOCK_NEW_TAB_RECEIVED, BLOCK_FILE_READ_FAILED, BLOCK_PINIA_NOT_READY. EXISTING: BLOCK_DRAINED, BLOCK_DRAIN_FAILED.
+      </log-markers>
+      <ordering-invariants>
+        (1) BOOTSTRAP_START → LISTENERS_READY → DRAIN_INVOKED strict.
+        (2) DRAIN_INVOKED → exactly one of {DRAIN_RESPONSE_RECEIVED, DRAIN_FAILED}.
+        (3) RESPONSE count=N&gt;0 ⇒ exactly one DRAINED count=N AND ≥N NEW_TAB_RECEIVED markers.
+        (4) RESPONSE count=0 ⇒ exactly one DRAIN_EMPTY, zero DRAINED.
+        (5) DRAIN_INVOKED.elapsed_ms &lt; APP_MOUNTED.elapsed_ms (parallelism).
+        (6) Set equality: every queued path appears in exactly one NEW_TAB_RECEIVED.
+      </ordering-invariants>
+      <test-files>
+        <cargo>src-tauri/tests/integration_pending_opens.rs (drain semantics, queue ordering, per-file errors, preview-flag, M-021/V-M-001 contract)</cargo>
+        <vitest>src/renderer/__tests__/{bootstrap-ipc,editor-store.pending-opens,pending_opens_invariants}.test.js</vitest>
+        <playwright>tests/e2e/finder-open.spec.ts, tests/e2e/cold-launch-perf.spec.ts</playwright>
+        <trace>tests/trace/pending_opens_invariants.test.js (log-grep against captured cold-launch trace)</trace>
+      </test-files>
+      <module-local-commands>
+        cargo test --test integration_pending_opens; npm test -- bootstrap-ipc; npm test -- editor-store.pending-opens; npm test -- pending_opens_invariants; npx playwright test finder-open.spec.ts; npx playwright test cold-launch-perf.spec.ts --repeat-each=5; manual: `osascript -e 'tell application "Finder" to open POSIX file "/tmp/test-fixture.md"'`.
+      </module-local-commands>
+      <integration>
+        V-M-022 preview-mode preserved: previewMode flag in mt::open-new-tab payload, set per usePreferencesStore.previewModeOnFinderOpen pref. V-M-021 contract verified: M-021 enqueues during pre-listener-registration window, switches to direct-emit after drain (NEEDS ready-signal — gap discovered, may require small backend change to add `drained: bool` flag in PendingOpens AppState). V-M-001: RunEvent::Opened pre-window-creation still queues correctly.
+      </integration>
+      <ai-friendliness assessment="strong">
+        Primary surface: trace-invariants test (Section 7 invariants 1–6) — pure textual log assertions, machine-checkable via grep/regex, AI agent verifies pass/fail without runtime interpretation. Latency thresholds use p95-of-5 strategy with cold/warm/first-run tiers. macOS RunEvent::Opened coalescing non-deterministic — backend integration simulates via direct enqueue API; manual smoke covers true OS path.
+      </ai-friendliness>
+      <verification-level>module-local for invariants + unit + Rust integration; per-PR for Playwright cold-launch; alpha-tag pre-flight for perf thresholds; manual macOS coalescing smoke at alpha.6 sign-off.</verification-level>
+    </V-M-025>
+
+    <V-M-026 MODULE="M-026 perf-lazy-renderers" PRIORITY="high" wave="alpha.7">
+      <followup-ref>F-PERF-LAZY-RENDERERS</followup-ref>
+      <prereq>V-M-024 (splash dismount before lazy-load), V-M-028 (muya-defer compatibility)</prereq>
+      <module-surface>
+        muya CORE is FROZEN upstream. Only the dispatch wrapper at src/muya/lib/parser/render/ adapter layer is modified. Convert eager imports of Mermaid/Vega/Cytoscape/KaTeX/plantuml/flowchart/sequence to dynamic `import()` triggered by first occurrence of each block type. Wrap in async adapter so muya parser stays synchronous.
+      </module-surface>
+      <high-level-scenarios>
+        <S1>plain.md — zero diagram chunks fetched, zero BLOCK_LAZY_LOAD_* markers.</S1>
+        <S2>mermaid-only.md — vendor-mermaid + transitive vendor-cytoscape fetched once, vega/katex/plantuml/flowchart NOT fetched.</S2>
+        <S3>multi-renderer.md — mermaid + math + vega in parallel; render order independent of fetch order.</S3>
+        <S4>katex-100.md — singleton cache: 1× LOAD_START / 1× LOAD_OK / 99× CACHE_HIT.</S4>
+        <S5>concurrent same-type singleton — 3 mermaid blocks dispatched in same tick; 1 fetch, 1 LOAD_OK, 2 CACHE_HIT (in-flight reuse).</S5>
+        <S6>reuse across docs in session — module-level cache survives doc switch.</S6>
+        <S7>build artifact shape — dist/index.html does NOT reference vendor-{mermaid,cytoscape,vega,katex,plantuml,flowchart}; chunks present as separate files in dist/assets/; vite manifest.json exposes them as dynamic entries.</S7>
+      </high-level-scenarios>
+      <failure-scenarios>
+        <F1>Chunk fetch 404/network-error — fallback to plain code block + small "diagram unavailable" badge; BLOCK_RENDER_FALLBACK_PLAIN; cache cleared so future render dispatch retries.</F1>
+        <F2>Chunk parse SyntaxError — same fallback, reason=parse_error.</F2>
+        <F3>Renderer init throws on bad input — block-level fallback only, OTHER blocks of same type still render.</F3>
+        <F4>Chunk fetch hangs — 10s timeout treats as F1 (BLOCK_LAZY_LOAD_FAILED reason=timeout).</F4>
+        <F5>Tauri custom-protocol misroutes chunk URL — reproduces only in packaged .app, not vite dev.</F5>
+      </failure-scenarios>
+      <race-conditions>
+        <R1>Concurrent first-load same renderer — singleton in-flight Promise; exactly ONE network request.</R1>
+        <R2>File switch mid-load — mermaid fetch continues, render targets stale DOM, silently dropped (BLOCK_RENDER_DROPPED reason=stale_target).</R2>
+        <R3>Same-type render across rapid edits — keystroke re-parse triggers CACHE_HIT, NOT new LOAD_START.</R3>
+        <R4>Splash dismount race — invariant: timestamp(SPLASH_DISMOUNTED) ≤ timestamp(first BLOCK_LAZY_LOAD_START).</R4>
+      </race-conditions>
+      <numeric-thresholds>
+        <T1>main+vendor-vue+vendor-element-plus+vendor-codemirror initial bundle ≤2.0MB uncompressed (sum of entry-referenced chunks).</T1>
+        <T2>vendor-{mermaid,cytoscape,vega,katex,plantuml,flowchart} grep count in dist/index.html = 0 (each).</T2>
+        <T3>Each diagram chunk exists as separate file in dist/assets/ (build fails if merged).</T3>
+        <T4>First-paint with plain.md within ±50ms of V-M-024 baseline.</T4>
+        <T5>Mermaid-only doc: vendor-*.js network request count = 2 (mermaid + cytoscape).</T5>
+        <T6>vendor-cytoscape network request count = 0 when only katex used.</T6>
+        <T7>LOAD_OK elapsed_ms ≤1500ms on local file:// chunk fetch.</T7>
+        <T8>Singleton: N renders of same type → 1 fetch, for N ∈ {3,10,100}.</T8>
+      </numeric-thresholds>
+      <log-markers namespace="[muya][render]" count="7">
+        BLOCK_LAZY_LOAD_START (type, chunk_url), BLOCK_LAZY_LOAD_OK (type, elapsed_ms, chunk_size_bytes), BLOCK_LAZY_LOAD_FAILED (type, reason, error_message), BLOCK_LAZY_CACHE_HIT (type, state=resolved|in_flight), BLOCK_RENDER_FALLBACK_PLAIN (type, reason, block_id), BLOCK_RENDER_DROPPED (type, reason=stale_target, block_id), BLOCK_RENDER_OK (type, block_id, elapsed_ms).
+      </log-markers>
+      <ordering-invariants>
+        (1) Every LOAD_OK preceded by exactly one LOAD_START of same type.
+        (2) Every LOAD_FAILED preceded by exactly one LOAD_START of same type.
+        (3) After LOAD_OK, all subsequent dispatches of same type emit CACHE_HIT state=resolved.
+        (4) CACHE_HIT state=in_flight only valid between LOAD_START and LOAD_OK of same type.
+        (5) RENDER_FALLBACK_PLAIN reason=load_failed preceded by LOAD_FAILED of same type.
+        (6) SPLASH_DISMOUNTED precedes first LOAD_START.
+        (7) Per-type LOAD_START at most once per session unless prior LOAD_FAILED cleared cache.
+      </ordering-invariants>
+      <test-files>
+        <vitest>src/muya/__tests__/render-lazy.test.js (singleton cache, failure paths via vi.doMock dynamic import), render-dispatch.test.js (async adapter, sync parser path)</vitest>
+        <playwright>tests/e2e/diagram-load.spec.ts (network panel inspection — page.on('request') filtered by vendor-*), diagram-failure.spec.ts (route interception), diagram-race.spec.ts (R-2, R-4)</playwright>
+        <build>tests/build/bundle-size.test.mjs (entry chunk sum, vendor-* exclusion), chunk-graph.test.mjs (vite manualChunks regression)</build>
+        <fixtures>tests/fixtures/markdown/{plain,mermaid-only,multi-renderer,katex-100,mermaid-3x}.md</fixtures>
+      </test-files>
+      <module-local-commands>
+        npm test -- render-lazy render-dispatch; npm run build &amp;&amp; node tests/build/bundle-size.test.mjs &amp;&amp; node tests/build/chunk-graph.test.mjs; npx playwright test diagram-load.spec.ts diagram-failure.spec.ts diagram-race.spec.ts --reporter=list; manual smoke on Big Sur 11.x WKWebView for P-3.
+      </module-local-commands>
+      <integration>
+        V-M-024: splash dismount precedes first LAZY_LOAD_START. V-M-028 muya-defer: lazy chunks work across requestIdleCallback ticks (10 mermaid blocks across 10 idle frames → 1 fetch / 1 LOAD_OK / 9 CACHE_HIT). muya frozen-upstream: NO diff inside src/muya/lib/parser/ core, only in render/ adapter.
+      </integration>
+      <ai-friendliness assessment="strong">
+        ~70% highly AI-verifiable: bundle assertions deterministic byte-level, unit tests for singleton+failure semantics with mocked import(), marker-count E2E checks. Build concerns gate merge (deterministic, fail fast). Runtime concerns gate release tag. Environment concerns (Big Sur, packaged .app, signed) gate alpha.7 ship. CI tier structure: (1) bundle+unit on every commit, (2) Tauri-dev E2E on PR, (3) Tauri-prod packaged E2E + Big Sur smoke on RC tag.
+      </ai-friendliness>
+      <verification-level>module-local: unit + bundle assertions on every commit. Wave-level: Tauri-dev E2E on PR. Phase-level: packaged Tauri-prod E2E + Big Sur smoke at alpha.7 tag.</verification-level>
+    </V-M-026>
+
+    <V-M-027 MODULE="M-027 perf-element-plus-treeshake" PRIORITY="high" wave="alpha.7">
+      <followup-ref>F-PERF-EP-TREESHAKE</followup-ref>
+      <prereq>V-M-024 (smaller bundle helps splash dismount)</prereq>
+      <module-surface>
+        Replace `app.use(ElementPlus)` (full-lib import → 880KB chunk) with per-component imports across all .vue files in src/renderer/src/. CSS-monolithic decision: `element-plus/dist/index.css` STAYS as single chunk (palette tokens, animations, dark-theme cascade) — only JS tree-shakes. Recommendation: manual per-component allowlist (~15 components) over `unplugin-element-plus` for current surface size.
+      </module-surface>
+      <high-level-scenarios>
+        <S1>Settings dialog open/close cycle — ElDialog/ElForm/ElFormItem/ElInput/ElSwitch/ElSelect/ElButton/ElScrollbar/ElCheckbox; densest single ElementPlus consumer.</S1>
+        <S2>Command palette — ElMenu/ElMenuItem/ElSubMenu, keyboard nav, ElIcon SVG present.</S2>
+        <S3>Imperative ElMessage / ElMessageBox / ElNotification — #1 footgun in tree-shaken EP (don't appear in &lt;el-xxx&gt; greps); requires explicit JS imports + side-effect CSS.</S3>
+        <S4>Dropdown + tooltip — ElDropdown/ElDropdownMenu/ElTooltip/ElPopper transitive (manual list often forgets ElPopper).</S4>
+        <S5>Color/palette picker if used — AUDIT first, drop if unused (saves ~40KB).</S5>
+      </high-level-scenarios>
+      <failure-scenarios>
+        <F1>Missing component import — Vue runtime warns "Failed to resolve component: el-xxx"; audit script FAILS at build time with file:line.</F1>
+        <F2>Missing CSS — visual regression Playwright pixel-diff fails on settings dialog (unstyled); assertion `getComputedStyle('.el-button').padding === '8px 15px'`.</F2>
+        <F3>Missing imperative API — TypeError "ElMessage is not a function"; audit script: any `ElMessage(` call site MUST have matching `import { ElMessage }` in same file.</F3>
+        <F4>Bundle budget regression — vendor-element-plus chunk exceeds 200KB gzip threshold; bundle-size.test.mjs FAILS CI with diff report.</F4>
+        <F5>Locale regression — tree-shake misconfigures locale, ElDatePicker renders Chinese day labels; assertion `document.querySelector('.el-date-picker')` text matches /Mon|Tue|Wed/i.</F5>
+      </failure-scenarios>
+      <edge-cases>
+        <E1>Dynamic component (`&lt;component :is="...">`) — audit grep for `:is=` and runtime smoke.</E1>
+        <E2>v-if lazy-mounted rare component (e.g. `&lt;el-image-viewer v-if="lightboxOpen">`) — exercise every v-if-gated component in E2E.</E2>
+      </edge-cases>
+      <numeric-thresholds>
+        <T1>vendor-element-plus chunk ≤200KB gzip / ≤600KB uncompressed (was 880KB).</T1>
+        <T2>element-plus/dist/index.css preserved ≤50KB gzip / ≤340KB uncompressed (one chunk, NOT split).</T2>
+        <T3>Direct `'element-plus'` (root) imports in main bundle = 0 (named imports allowed).</T3>
+        <T4>Renderer savings vs baseline ≥600KB uncompressed.</T4>
+        <T5>Hash-tolerance: filename glob `vendor-element-plus-*.js`; ±10% size band before hard fail.</T5>
+      </numeric-thresholds>
+      <log-markers namespace="N/A">build-time only — no runtime markers</log-markers>
+      <audit-completeness>
+        Phase-1: glob src/renderer/**/*.vue, parse with @vue/compiler-sfc, walk AST for ComponentNode where tag.startsWith('el-') → templateTags Set.
+        Phase-2: grep `from 'element-plus'` named imports + side-effect CSS imports → jsNamedImports Set.
+        Phase-3: grep `ElMessage(`, `ElMessageBox.(confirm|alert|prompt)`, `ElNotification(` → require corresponding imports.
+        Phase-4: parse main.ts registered list → registeredComponents Set.
+        Phase-5: cross-reference. Fail if any templateTag not in registeredComponents. Soft warn for orphans.
+        Locale audit: assert exactly one `import locale from 'element-plus/dist/locale/en.mjs'`.
+      </audit-completeness>
+      <test-files>
+        <build>tests/build/element-plus-audit.test.mjs, tests/build/bundle-size.test.mjs (shared with V-M-026), tests/build/bundle-baseline.json</build>
+        <playwright>tests/e2e/{settings-dialog,command-palette,imperative-apis,dropdown-tooltip,visual-regression}.spec.ts</playwright>
+        <screenshots>tests/e2e/__screenshots__/v-m-027/*.png (VR1-VR7: settings General, settings Appearance + theme dropdown, command palette, tab dropdown, dirty-tab close confirm, ElMessage error toast, light-theme variant)</screenshots>
+      </test-files>
+      <module-local-commands>
+        node tests/build/element-plus-audit.test.mjs; npm run build &amp;&amp; node tests/build/bundle-size.test.mjs; npx playwright test settings-dialog.spec.ts command-palette.spec.ts imperative-apis.spec.ts dropdown-tooltip.spec.ts; npx playwright test visual-regression.spec.ts --update-snapshots (initial baseline; commit only after human inspection); npm run audit:el; full smoke: `npm run audit:el &amp;&amp; npm run build &amp;&amp; npm test &amp;&amp; npx playwright test`.
+      </module-local-commands>
+      <integration>
+        V-M-024 splash benefits indirectly from smaller initial bundle. V-M-025/026 lazy-load chunks share same tree-shaken vendor-element-plus chunk via Vite manualChunks (verify single chunk shared, not re-pulled).
+      </integration>
+      <ai-friendliness assessment="very-strong">
+        9/10 autonomous-trust: fully deterministic (bundle byte sizes reproducible byte-exact given lockfile), grep+AST audit 100% reproducible, pixel diffs at 0.1%, static surface (.vue templates + JS imports closed set). Failures obvious: missing component prints exact "Failed to resolve component: el-xxx" — agent greps for pattern. Bundle size has trivial diff format. Limitation: visual regression baseline updates require human eyes for aesthetic intent; locale audit brittle if i18n added later.
+      </ai-friendliness>
+      <verification-level>module-local: audit + bundle-size + functional E2E on every commit. Visual regression: nightly + bundle-labeled PRs.</verification-level>
+    </V-M-027>
+
+    <V-M-028 MODULE="M-028 perf-muya-defer" PRIORITY="medium" wave="post-alpha">
+      <followup-ref>F-PERF-MUYA-DEFER</followup-ref>
+      <prereq>V-M-022 (preview-mode active-tab sync path), V-M-024 (splash dismount on active-tab ready), V-M-025 (Finder-launched tab is active), V-M-026 (lazy renderers post-init)</prereq>
+      <module-surface>
+        src/renderer/src/components/editorWithTabs/editor.vue: defer muya engine init for non-active (background) tabs via requestIdleCallback. Active visible tab: sync init (current behavior). Background tab: placeholder rendered first, muya inits on idle ≤2s timeout. Switch to deferred tab triggers immediate init. Per-tab state machine: pending → initializing → ready → (closed) destroyed | error.
+        Polyfill via setTimeout(50) at src/renderer/src/util/idle.ts (single chokepoint).
+      </module-surface>
+      <high-level-scenarios>
+        <S1>Single tab cold open — sync path, no placeholder flash.</S1>
+        <S2>5-tab session restore — 1 sync (active) + 4 deferred; placeholder &lt;50ms each; idle queue serial.</S2>
+        <S3>Tab switch to deferred (still pending) — promotion: muya ready ≤300ms; idle callback cancelled.</S3>
+        <S4>Tab close before idle slot — clearTimeout/cancelIdleCallback; no orphan muya allocation; bounded memory.</S4>
+        <S5>Finder-open while session has 5 tabs — new tab is active, sync path; previous active demotes but does NOT re-defer warm muya.</S5>
+        <S6>Re-activation of already-ready deferred tab — no-op (silence is the contract).</S6>
+      </high-level-scenarios>
+      <failure-scenarios>
+        <F1>muya init throws on background tab — placeholder transitions to error state; sibling deferred tabs continue queue; no unhandled promise rejection.</F1>
+        <F2>requestIdleCallback never fires within 2s — fallback setTimeout(2000) macrotask init; idle handle cancelled; deterministic completion.</F2>
+        <F3>Tab closed during in-flight initializing — disposal flag; on muya ready, `if(disposed) muya.destroy(); return`; bounded memory.</F3>
+        <F4>Window close during idle queue — V-M-001 vault teardown; cancelIdleCallback for all pending; no Tauri panic; no leaked muya in heap snapshot.</F4>
+        <F5>Placeholder render itself throws — error boundary fallback; tab marked error; user can close.</F5>
+        <F6>muya ready never fires — 2s deferred-init watchdog escalates: warn, mark error, surface in placeholder.</F6>
+      </failure-scenarios>
+      <race-conditions>
+        <R1>Rapid Cmd+Tab through 4 deferred — each switch promotes synchronously; previously promoted continue background; no double-init via per-tab `state !== pending` guard.</R1>
+        <R2>Tab close during idle queue processing — current init completes; closed tab cancelled cleanly; queue advances.</R2>
+        <R3>10-tab session + immediate Cmd+9 — tab 9 promoted synchronously, queue continues serial 1-8 behind; no skipped, no re-init.</R3>
+        <R4>Two near-simultaneous switches (16ms double-tap) — first promotes (state=initializing); second sees `state !== pending` → no-op.</R4>
+        <R5>Idle callback fires concurrent with user switch — compare-and-swap on per-tab state; one wins, other no-op.</R5>
+        <R6>Window-close during placeholder render of newly opened — placeholder render aborts via component teardown; idle never registered or cancelled.</R6>
+      </race-conditions>
+      <numeric-thresholds>
+        <T1>Active-tab muya ready (cold) ≤500ms P95 / ≤800ms P99.</T1>
+        <T2>Background-tab placeholder rendered &lt;50ms P95 after tab DOM mount.</T2>
+        <T3>Background-tab idle init ≤2000ms timeout, typical ≤500ms in idle window.</T3>
+        <T4>Tab-switch-to-deferred promotion ≤300ms P95.</T4>
+        <T5>Memory per deferred tab ≤10KB resident until init.</T5>
+        <T6>First-paint regression vs single-tab ≤5% increase.</T6>
+        <T7>Idle queue throughput ≥2 tabs/sec on idle baseline.</T7>
+        <T8>Cancel-on-close latency &lt;16ms (one frame).</T8>
+      </numeric-thresholds>
+      <log-markers namespace="[editor][muya]" count="13">
+        BLOCK_IDLE_API_DETECTED (native bool), BLOCK_TAB_MOUNT_ACTIVE (tab), BLOCK_TAB_MOUNT_DEFERRED (tab), BLOCK_PLACEHOLDER_RENDERED (tab, elapsed_ms), BLOCK_IDLE_INIT_QUEUED (tab), BLOCK_IDLE_INIT_START (tab, mode=idle|promoted|fallback|sync), BLOCK_IDLE_INIT_DONE (tab, elapsed_ms), BLOCK_IDLE_INIT_ERROR (tab, error), BLOCK_IDLE_INIT_TIMEOUT (tab), BLOCK_DEFER_PROMOTED (tab, reason=switch), BLOCK_DEFER_CANCELLED (tab, reason=close|close-mid-init|window-close), BLOCK_DEFER_FALLBACK_TIMEOUT (tab), BLOCK_PLACEHOLDER_ERROR (tab).
+      </log-markers>
+      <ordering-invariants>
+        (1) For every tab N: MOUNT_* precedes any other tab=N marker.
+        (2) Deferred path: MOUNT_DEFERRED → PLACEHOLDER_RENDERED → IDLE_INIT_QUEUED → (IDLE_INIT_START | DEFER_CANCELLED).
+        (3) IDLE_INIT_START tab=N appears at most once per tab lifetime (state machine guard).
+        (4) IDLE_INIT_DONE tab=N only after exactly one IDLE_INIT_START tab=N AND no DEFER_CANCELLED tab=N intervened.
+        (5) DEFER_PROMOTED always followed by IDLE_INIT_START mode=promoted (or DEFER_CANCELLED reason=close-mid-init).
+      </ordering-invariants>
+      <test-files>
+        <vitest>src/renderer/__tests__/{editor-defer,editor-defer-state-machine}.test.js (mocked requestIdleCallback via util/idle.ts mock; pure state-transition coverage; muya mocked)</vitest>
+        <playwright>tests/e2e/{multi-tab-defer,multi-tab-defer-stress,defer-finder-open,defer-window-close}.spec.ts</playwright>
+        <perf>tests/perf/{tab-deferral-timing,defer-memory}.spec.ts (P95/P99 over N=20 cold launches; Performance.memory heap snapshot)</perf>
+        <utility>tests/utils/marker-parser.ts (consume captured console logs, typed marker stream, assertOrder/assertNoDuplicate/assertEventuallyEmits — reused across all E2E)</utility>
+      </test-files>
+      <module-local-commands>
+        npm test -- editor-defer; npm test -- editor-defer-state-machine; npx playwright test multi-tab-defer.spec.ts; npx playwright test multi-tab-defer-stress.spec.ts; npx playwright test defer-finder-open.spec.ts; npx playwright test defer-window-close.spec.ts; npx playwright test tab-deferral-timing.spec.ts --reporter=line; npx playwright test defer-memory.spec.ts; offline triage: `node tests/utils/marker-parser-cli.js &lt; trace.log`.
+      </module-local-commands>
+      <integration>
+        V-M-022: preview-mode tab never emits BLOCK_TAB_MOUNT_DEFERRED. V-M-024: splash dismount timestamp matches BLOCK_IDLE_INIT_DONE tab=&lt;active&gt; mode=sync (NOT last deferred); on active-init error, splash MUST still dismount (subscribe to BLOCK_IDLE_INIT_ERROR tab=0). V-M-025: Finder-launched tab always sync. V-M-026: lazy diagram chunks load AFTER muya init for both sync AND deferred paths. V-M-001: window close drains pending idle handles, no panic.
+      </integration>
+      <ai-friendliness assessment="strong">
+        Deterministic 5-state machine + 5 formal ordering invariants encodable as ~50 LOC parser. AI given failing trace + invariant list can localize failure to specific transition. Negative assertions first-class ("no IDLE_INIT_START tab=N after cancel"). Limitations: timing stochastic (idle window scheduler-dependent — assert ranges not equality); heap-snapshot noisy; Tauri/macOS system races slow to test. muya is frozen — when F-028-01 fires due to muya bug, AI must NOT propose muya changes; contract is wrap+log+surface to placeholder.
+      </ai-friendliness>
+      <verification-level>module-local: unit (state machine) on every commit. Wave-level: Playwright multi-tab + finder-open. Phase-C closeout: full E2E + perf suite gates V-M-028.</verification-level>
+    </V-M-028>
+
+    <V-M-029 MODULE="M-029 perf-window-state" PRIORITY="medium" wave="post-alpha">
+      <followup-ref>F-PERF-WINDOW-STATE</followup-ref>
+      <prereq>V-M-001 (window lifecycle), V-M-024 (splash sees correct frame), M-021 (invoke registry no-collision)</prereq>
+      <module-surface>
+        Add `tauri-plugin-window-state = "2"` to src-tauri/Cargo.toml + Builder.plugin chain. Storage: ~/Library/Application Support/com.xronocode.mark/.window-state.json. Replaces hardcoded 1024x768 from tauri.conf.json. Restore happens BEFORE renderer mount (no resize jank). If plugin doesn't emit our markers natively, wrap with thin shim at src-tauri/src/window_state_log.rs.
+      </module-surface>
+      <high-level-scenarios>
+        <S1>First launch with no state file — defaults from tauri.conf.json; state file created on quit.</S1>
+        <S2>Second launch restore — width/height/x/y exact restore; no flash of default 1024x768; position drift = 0px.</S2>
+        <S3>Maximized restore — green traffic light zoom preserved; no transient unmaximized frame.</S3>
+        <S4>Fullscreen restore — Cmd+Ctrl+F state preserved with display memory; no flicker through windowed.</S4>
+        <S5>Multi-display restore — saved on display 2; both still connected; restore on display 2.</S5>
+        <S6>Multi-window main-only — settings window NOT tracked (intentional scope); state file labels=1.</S6>
+      </high-level-scenarios>
+      <failure-scenarios>
+        <F1>Corrupt state file (invalid JSON) — fall back to tauri.conf.json defaults; heal on next clean quit.</F1>
+        <F2>Partial write from kill -9 mid-debounce — same fallback; verify atomic-rename pattern (write .tmp + rename(2)).</F2>
+        <F3>Saved display disconnected — re-center on primary; preserve dimensions if fit, else clamp.</F3>
+        <F4>Off-screen coords (resolution downscaled) — clamp position to display bounds; all 4 corners on-screen.</F4>
+        <F5>App Support dir not writable (chmod 000) — defaults; logged IO error; quit-write fails gracefully.</F5>
+        <F6>Schema mismatch from older plugin version — tolerate unknown keys; defaults for missing; rewrite on quit.</F6>
+      </failure-scenarios>
+      <race-conditions>
+        <R1>Rapid quit-relaunch lock contention — atomic rename ensures readable file; second instance reads previous-prior valid state worst case.</R1>
+        <R2>Settings window opened during main-window drag — labels independent; main's debounce flush + quit not affected.</R2>
+        <R3>Debounce vs quit — pending debounced write flushed synchronously before window destroy.</R3>
+        <R4>Display change mid-run (USB-C unplug) — macOS handles window jump; plugin records new geometry on quit.</R4>
+      </race-conditions>
+      <numeric-thresholds>
+        <T1>Restore-to-paint latency ≤100ms (BLOCK_PLUGIN_REGISTERED → BLOCK_RESTORE_APPLIED + WKWebView load).</T1>
+        <T2>State write debounce ≤500ms (resize → write); ≥50ms (avoid pixel-rate writes); ≤10 writes per 5s drag.</T2>
+        <T3>State file size ≤2KB per window-label entry.</T3>
+        <T4>Position drift across launches = 0px exact.</T4>
+        <T5>Dimension drift across launches = 0px exact.</T5>
+        <T6>Visual snap frames = 0 (no intermediate paint at defaults).</T6>
+        <T7>Pre-mount restore order: BLOCK_STATE_PARSED &lt; renderer mount.</T7>
+        <T8>State file write atomicity: rename(2) on .tmp → final via fs_usage trace.</T8>
+      </numeric-thresholds>
+      <log-markers namespace="[m001][window_state]" count="11">
+        BLOCK_PLUGIN_REGISTERED (version), BLOCK_STATE_FILE_FOUND (path, size_bytes), BLOCK_STATE_FILE_MISSING (path), BLOCK_STATE_PARSED (labels, labels_list), BLOCK_STATE_PARSE_FAILED (reason, path), BLOCK_STATE_FALLBACK_DEFAULTS (cause), BLOCK_DISPLAY_FALLBACK_PRIMARY (saved_display, reason, clamped_to), BLOCK_GEOMETRY_CLAMPED (original, clamped) [proposed-new], BLOCK_STATE_WRITTEN (bytes, elapsed_ms, labels, trigger), BLOCK_STATE_WRITE_FAILED (reason, path) [proposed-new], BLOCK_RESTORE_APPLIED (label, geometry, maximized, fullscreen) [proposed-new].
+      </log-markers>
+      <ordering-invariants>
+        (1) BLOCK_PLUGIN_REGISTERED precedes any BLOCK_STATE_*.
+        (2) BLOCK_STATE_PARSED (or _MISSING + _FALLBACK) precedes BLOCK_RESTORE_APPLIED.
+        (3) BLOCK_RESTORE_APPLIED precedes V-M-024 splash markers and V-M-001 vue_app_mounted.
+        (4) On quit: BLOCK_STATE_WRITTEN fires before process exit.
+      </ordering-invariants>
+      <test-files>
+        <cargo>src-tauri/tests/window_state.rs (tempdir state-path injection; F1, F6, atomic write, debounce), window_state_geometry.rs (display fallback F3, F4 via mock displays)</cargo>
+        <playwright>tests/e2e/{window-restore,window-state-corrupt}.spec.ts</playwright>
+        <perf>tests/perf/window-restore-latency.sh (10× launches via `open -W`, scrape timestamps, p95 ≤100ms)</perf>
+        <manual>tests/manual/multi-display-checklist.md (S5, F3, F4, E3 Spaces, E4 display rotation — cannot automate on macOS CI)</manual>
+      </test-files>
+      <module-local-commands>
+        cd src-tauri &amp;&amp; cargo test --test window_state; cargo test --test window_state_geometry; cargo test (full backend); E2E=1 pnpm exec playwright test tests/e2e/window-restore.spec.ts; E2E=1 pnpm exec playwright test tests/e2e/window-state-corrupt.spec.ts; bash tests/perf/window-restore-latency.sh; manual: tests/manual/multi-display-checklist.md; inspect: `cat ~/Library/Application\ Support/com.xronocode.mark/.window-state.json | jq`; reset: `rm ~/Library/Application\ Support/com.xronocode.mark/.window-state.json`.
+      </module-local-commands>
+      <integration>
+        V-M-001: plugin's on_window_event registers ALONGSIDE M-001 close handler (both fire on CloseRequested). V-M-024: pre-mount restore → splash sees correct frame; no "splash at default size then resize" jank. M-021: capability audit — plugin commands `plugin:window-state|<cmd>` MUST not collide with M-021 invoke handlers (grep `#[tauri::command]` for `restore_state`, `save_state`, `save_window_state`); plugin commands NOT exposed to renderer via capabilities.
+      </integration>
+      <open-questions>
+        <Q1>Restore as minimized when quit-while-minimized? Recommendation: NO — restore as normal (override plugin default).</Q1>
+        <Q2>Settings window tracked? Recommendation: NO for Phase C; defer to Phase D.</Q2>
+        <Q3>Dev mode shared state path? Recommendation: YES (acceptable); add MARK_WINDOW_STATE_PATH override only if pollution painful.</Q3>
+        <Q4>Persist position in points or pixels? Recommendation: POINTS (logical, plugin default; verify on macOS).</Q4>
+        <Q5>Atomic write guaranteed? REQUIRED. If plugin doesn't tmp+rename, file BUG_WS_NON_ATOMIC_WRITE upstream.</Q5>
+      </open-questions>
+      <ai-friendliness assessment="partial">
+        HIGH for single-display, on-disk-state, timing concerns: state file is plain JSON, fully inspectable; deterministic given file + display config; numeric metrics direct (timestamps, stat, log counting). MEDIUM for multi-display, Spaces, display rotation: require physical hardware → manual checklist gating (R2/R4 require sophisticated automation or human). Plugin opacity risk MEDIUM — mitigation: thin Rust shim emits markers around plugin entry points.
+      </ai-friendliness>
+      <verification-level>module-local: cargo test on every commit. Wave-level: Playwright restore + corrupt-file. Phase-C closeout: perf latency + manual multi-display checklist before alpha.7+1 ship.</verification-level>
+    </V-M-029>
+
+    <V-M-030 MODULE="M-030 perf-bench-harness" PRIORITY="high" wave="post-alpha">
+      <followup-ref>F-PERF-BENCH-HARNESS</followup-ref>
+      <prereq>V-M-024 (BOOT_T0 anchor), V-M-025/026/028/029 (consume their elapsed_ms markers)</prereq>
+      <module-surface>
+        Three-part module:
+        PART A (instrumentation): BOOT_T0 = `Lazy&lt;Instant&gt;` referenced as LITERAL first stmt of main() in src-tauri/src/m001_main.rs (`let _ = *boot_marker::BOOT_T0;`) BEFORE panic hook install. `boot_marker!()` Rust proc-macro/fn at src-tauri/src/boot_marker.rs auto-interpolates `elapsed_ms=N`. JS BOOT_T0 captured as inline `&lt;script&gt;` in &lt;head&gt; BEFORE module scripts: `window.__BOOT_T0__ = performance.now()`. JS helper at src/renderer/src/boot-marker.js exports `bootMark(label)` reading window.__BOOT_T0__ (never reassigns).
+        PART B (harness): tools/bench-launch.mjs CLI launches Mark via `time mark /tmp/test.md`, captures stderr+stdout, parses BLOCK_* markers, builds waterfall report.
+        PART C (CI gate): `--ci` mode reads tools/bench-baseline.json, fails if any waterfall stage regresses >10%. tools/bench-config.json tunable thresholds. .github/workflows/perf-gate.yml on macos-14.
+      </module-surface>
+      <high-level-scenarios>
+        <S1>Bench-launch cold cache single-file — `node tools/bench-launch.mjs --runs 3 --cold /tmp/test.md`; 3 launches, median of last 2, all 9 phases present, total ≤1500ms M2.</S1>
+        <S2>Bench-launch warm cache repeat — `--warm`; median 30-50% faster; same phase set; cache_state="warm" in report header.</S2>
+        <S3>CI regression gate — no regression — `--ci`; all ratios ≤1.10; exit 0; PASS summary.</S3>
+        <S4>Baseline regen — `npm run bench:update-baseline` (= `--update-baseline --runs 5`); writes median + p95, git SHA, chip, Tauri/Vue version; backup to .prev.json.</S4>
+        <S5>Multi-file launch — `mark a.md b.md c.md`; extra phases pending-opens-flushed + per-tab tab-loaded + all-tabs-loaded.</S5>
+        <S6>Per-stage threshold override — bench-config.json overrides vue-mount to 1.05; other stages keep 1.10 default.</S6>
+        <S7>Graceful missing-stage handling — future V-M deletes splash marker; harness emits BLOCK_STAGE_MISSING warning; default exit 0; `--strict-stages` exit 2.</S7>
+      </high-level-scenarios>
+      <failure-scenarios>
+        <F1>Mark binary missing — fail fast BEFORE first launch; BLOCK_FATAL reason=binary_not_found; exit 10.</F1>
+        <F2>BLOCK_* markers missing (instrumentation regression) — BLOCK_INSTRUMENTATION_REGRESSION expected_phases=9 found=8 missing=[panic]; exit 11.</F2>
+        <F3>Parser fails on malformed marker (elapsed_ms=NaN) — quarantine bad lines; abort if &gt;5% threshold; BLOCK_PARSE_ERROR; exit 12.</F3>
+        <F4>CI regression detected — vue-mount 80→280ms; ratio 3.50; BLOCK_REGRESSION per run + summary; exit 1.</F4>
+        <F5>Mark hangs at vue-mount — per-launch wall-clock timeout 30s; BLOCK_LAUNCH_TIMEOUT last_phase_seen; partial waterfall; exit 13.</F5>
+        <F6>Baseline JSON corrupt or schema-incompatible — fail before launching; BLOCK_FATAL reason=baseline_invalid; exit 14.</F6>
+        <F7>`time` output unparseable — Node hrtime() fallback; warning only; exit 0.</F7>
+      </failure-scenarios>
+      <race-conditions>
+        <R1>Concurrent bench runs — proper-lockfile on tools/.bench.lock; second errors with BLOCK_FATAL holder_pid; exit 15.</R1>
+        <R2>System load spike (CI runner contention) — median-of-last-2-runs (run 1 priming); MAD-trimmed median if spread &gt;25%; up to 3 retries; BLOCK_INSTABILITY; CI yellow not red.</R2>
+        <R3>Launch-services cache state varies — explicit mode (`--cold` purges via lsregister, `--warm` primes); baseline records cache_state; CI compares like-to-like.</R3>
+        <R4>BOOT_T0 capture race (Rust) — eager Lazy deref as LITERAL first stmt before panic hook; rustc --emit=mir inspection; cargo test test_boot_t0_eager.</R4>
+        <R5>BOOT_T0 capture race (JS) — inline script in &lt;head&gt; BEFORE any &lt;script type="module">; helper reads, never reassigns.</R5>
+        <R6>stderr/stdout interleaving — parser tags each line with capture timestamp; sorts by elapsed_ms field, NOT capture order.</R6>
+      </race-conditions>
+      <numeric-thresholds>
+        <T1>Every BLOCK_* marker carries elapsed_ms=N (100% coverage; 0 missing); CI lint tools/bench-lint-markers.mjs.</T1>
+        <T2>elapsed_ms accuracy vs independent stopwatch ±5ms.</T2>
+        <T3>BOOT_T0 init cost (eager Lazy deref) ≤1ms.</T3>
+        <T4>Harness end-to-end (3 runs × ~8s) ≤30s.</T4>
+        <T5>Per-stage regression threshold 1.10 default; cumulative end-to-end 1.15.</T5>
+        <T6>Median spread tolerance ≤25% between last 2 runs; retry up to 3×.</T6>
+        <T7>Phase budgets M2: panic ≤5ms, window ≤50ms, renderer-load ≤200ms, splash ≤30ms, vue-mount ≤150ms, ipc-listeners ≤30ms, bootstrap-editor ≤250ms, first-paint ≤600ms cumulative SLA, first-tab-loaded ≤900ms cumulative SLA.</T7>
+        <T8>Baseline freshness: regenerate quarterly OR on Tauri/Vue major; warn if &gt;90 days.</T8>
+      </numeric-thresholds>
+      <log-markers namespace="[bench][waterfall]" count="21">
+        BLOCK_RUN_START, BLOCK_LAUNCH_BEGIN, BLOCK_LAUNCH_END, BLOCK_PHASE, BLOCK_PHASE_AGGREGATE, BLOCK_STAGE_CHECK, BLOCK_REGRESSION, BLOCK_IMPROVEMENT, BLOCK_STAGE_MISSING, BLOCK_INSTRUMENTATION_REGRESSION, BLOCK_PARSE_ERROR, BLOCK_INSTABILITY, BLOCK_LAUNCH_TIMEOUT, BLOCK_ORDER_VIOLATION, BLOCK_BASELINE_STALE, BLOCK_BASELINE_UPDATED, BLOCK_TIME_FALLBACK, BLOCK_CI_GATE_START, BLOCK_CI_GATE_END, BLOCK_RUN_END, BLOCK_FATAL.
+      </log-markers>
+      <phase-ordering-invariant>
+        panic &lt; window &lt; renderer-load &lt; splash &lt; vue-mount &lt; ipc-listeners &lt; bootstrap-editor &lt; first-paint ≤ first-tab-loaded ≤ pending-opens-flushed ≤ all-tabs-loaded ≤ muya-loaded. Violation emits BLOCK_ORDER_VIOLATION.
+      </phase-ordering-invariant>
+      <test-files>
+        <source>src-tauri/src/boot_marker.rs (Rust macro + eager BOOT_T0), src/renderer/src/boot-marker.js (JS helper), tools/bench-launch.mjs (Node 20+ ESM CLI), tools/bench-config.json (per-stage thresholds), tools/bench-baseline.json (checked-in ground truth), tools/bench-baseline.prev.json (auto-backup), tools/bench-lint-markers.mjs (CI lint)</source>
+        <cargo>src-tauri/tests/boot_marker.rs (eager init, NaN guard, monotonic)</cargo>
+        <vitest>tests/perf/bench-harness.test.mjs (synthetic stdout fixtures S1-S7, F1-F7), tests/perf/fixtures/*.txt</vitest>
+        <ci>.github/workflows/perf-gate.yml (PRs touching src-tauri or src/renderer), .github/workflows/perf-baseline-update.yml (manual-dispatch, opens PR)</ci>
+        <package>package.json scripts: bench, bench:ci, bench:update-baseline, bench:lint-markers; .gitignore: tools/bench-results/</package>
+      </test-files>
+      <module-local-commands>
+        node tools/bench-launch.mjs --runs 3 /tmp/test.md; node tools/bench-launch.mjs --runs 3 --warm /tmp/test.md; node tools/bench-launch.mjs --runs 3 --cold /tmp/test.md; node tools/bench-launch.mjs /tmp/a.md /tmp/b.md /tmp/c.md; node tools/bench-launch.mjs --ci; node tools/bench-launch.mjs --ci --strict-stages; node tools/bench-launch.mjs --update-baseline --runs 5; node tools/bench-launch.mjs --help; node tools/bench-launch.mjs --validate-baseline; npm run bench; npm run bench:ci; npm run bench:update-baseline; npm run bench:lint-markers; cargo test --test boot_marker; cargo test --test boot_marker -- test_boot_t0_eager; npm test -- boot-marker; npm test -- bench-harness.
+      </module-local-commands>
+      <integration>
+        V-M-024 splash inline script provides JS BOOT_T0 anchor. V-M-025 pending-opens markers feed BLOCK_PENDING_OPEN_QUEUED and FLUSHED phases. V-M-026 lazy-load contributes BLOCK_LAZY_CHUNK_LOADED to bootstrap-editor phase. V-M-028 muya-defer BLOCK_MUYA_LOADED MUST land AFTER first-paint (bench asserts ordering). V-M-029 BLOCK_WINDOW_STATE_RESTORED contributes to window phase. V-M-030 lint script enforces elapsed_ms uniformity across all siblings — PR fails if any V-M-* emits BLOCK_* without elapsed_ms.
+      </integration>
+      <ai-friendliness assessment="very-strong">
+        Autonomy trust 0.92/1.0. Suitable for fully autonomous AI agent: parse exit code + last BLOCK_CI_GATE_END marker → pass/fail decision. Determinism HIGH (median-of-2 with retry; explicit cold/warm; lockfile prevents contamination; baseline JSON single source of truth). Trace structure VERY HIGH (single-line, namespaced, key=value, regex-parseable). Self-documentation HIGH (`--help` enumerates flags; BLOCK_RUN_START header records mode/baseline/runner/chip/OS). Caveat (-0.08): baseline regen requires human review of perf intent; cannot self-tune thresholds without UX SLA from human. Pure observation tool — no production code path; worst case CI yellow + manual rerun.
+      </ai-friendliness>
+      <verification-level>module-local: bench-harness meta-test on every commit; cargo test boot_marker on every commit. Wave-level: bench:ci on PRs touching src-tauri or src/renderer (perf-gate.yml). Phase-C closeout: full waterfall report + baseline freshness check before alpha.7+1 ship.</verification-level>
+    </V-M-030>
 
     <!--
       V-A5-* — patch-level verification for Phase-A5 (v1.0.1 polish).
