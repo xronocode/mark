@@ -23,7 +23,7 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: asset: https://asset.localhost; font-src 'self' data:; connect-src 'self' ipc: http://ipc.localhost ipc://localhost; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'none'; worker-src 'self' blob:",
+      "csp": "default-src 'self'; script-src 'self' 'sha256-T82NzNaL0x23XyWjsfY3/0ot0HtaSOx5MRC1p/MsGRw=' 'sha256-6TjcBJBn6HapSIs4eEnyHrbkRAIHWMnwFoc3M0VlGV4=' 'sha256-tQdfhkOEDyM38ahQf6AU8yWFHirCppHUnjZDP56gU4I='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: asset: https://asset.localhost; font-src 'self' data:; connect-src 'self' ipc: http://ipc.localhost ipc://localhost; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'none'; worker-src 'self' blob:",
       "freezePrototype": false,
       "dangerousDisableAssetCspModification": false,
       "assetProtocol": {

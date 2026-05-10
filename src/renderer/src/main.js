@@ -82,5 +82,58 @@ services.forEach((s) => {
 // listener finishes registration (Tauri buffers the emit briefly).
 setupIpcListeners().catch((e) => console.error('[boot] setupIpcListeners failed:', e))
 
+// -----------------------------------------------
+// M-024 perf-splash: dismount helper.
+//
+// Removes the static #splash-root injected by index.html on first paint.
+// Idempotent (HMR re-runs main.js → second call short-circuits with
+// BLOCK_HMR_BYPASS). Aria-hidden flip BEFORE .remove() prevents
+// screen-reader double-announcement. Cancels the index.html watchdog.
+//
+// Cross-module: V-M-030 bootMark() reads window.__BOOT_T0__ (set in
+// index.html <head> BEFORE this module ever parses). Do NOT reassign.
+// -----------------------------------------------
+export const dismountSplash = () => {
+  if (window.__SPLASH_REPLACED__) {
+    console.log('[boot][splash] BLOCK_HMR_BYPASS')
+    return false
+  }
+  const root = document.getElementById('splash-root')
+  if (!root) {
+    // Already gone (unexpected, but treat as no-op).
+    window.__SPLASH_REPLACED__ = true
+    return false
+  }
+  root.setAttribute('aria-hidden', 'true')
+  root.remove()
+  window.__SPLASH_REPLACED__ = true
+  if (window.__SPLASH_WATCHDOG__) {
+    clearTimeout(window.__SPLASH_WATCHDOG__)
+    window.__SPLASH_WATCHDOG__ = null
+  }
+  console.log('[boot][splash] BLOCK_REPLACED', performance.now())
+  // Dev-only orphan check: if a second #splash-root exists (e.g. accidental
+  // duplicate insertion), surface it so we don't leave invisible DOM behind.
+  if (process.env.NODE_ENV !== 'production') {
+    const orphan = document.getElementById('splash-root')
+    if (orphan) {
+      console.log('[boot][splash] BLOCK_ORPHAN_DETECTED')
+    }
+  }
+  return true
+}
+
 // Mount the app
-app.mount('#app')
+const mounted = app.mount('#app')
+console.log('[boot][splash] BLOCK_VUE_READY', performance.now())
+// Dismount synchronously after mount returns. Vue 3 mount is sync (returns
+// the root component instance once the initial render has flushed), so the
+// splash is replaced on the same task as first paint — no extra frame.
+try {
+  dismountSplash()
+} catch (e) {
+  console.log('[boot][splash] BLOCK_VUE_FAILED', (e && e.message) || String(e))
+}
+// Avoid unused-var lint on `mounted` while keeping the assignment for HMR
+// clarity (Vue HMR can read the returned root instance).
+void mounted

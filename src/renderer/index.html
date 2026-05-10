@@ -8,11 +8,41 @@
          contain ipc://localhost (the Tauri runtime IPC scheme), and
          meta+header CSPs intersect to the most restrictive — which
          then blocks every invoke() call. See F-MAIN-ENTRY-DISABLED
-         debug 2026-04-29. -->
+         debug 2026-04-29.
+
+         M-024 perf-splash: three inline scripts below are CSP-allowlisted
+         by SHA-256 hash in tauri.conf.json (script-src). Build assertion
+         scripts/verify-csp-script-hash.mjs recomputes and diffs. Do NOT
+         alter inline-script byte content without updating the CSP hash.
+
+         The splash <style> block below is the minified copy of
+         src/renderer/static/splash.css. Build assertion
+         scripts/verify-splash-budget.mjs verifies the two are in sync
+         (file parity check) and within the 4KB CSS / 2KB markup budget.
+         A `<link>` to the file would have worked too, but Vite bundles
+         linked CSS into the main async chunk — we need the splash CSS
+         applied SYNCHRONOUSLY, before any JS parses, hence the inline
+         <style>. style-src 'unsafe-inline' is already in the CSP.
+    -->
+    <script>window.__BOOT_T0__=performance.now();window.__SPLASH_T__={t0:window.__BOOT_T0__};console.log("[boot][splash] BLOCK_HEAD_PARSED",window.__BOOT_T0__);try{var d=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches;console.log("[boot][splash] BLOCK_THEME_RESOLVED",d?"dark":"light")}catch(e){console.log("[boot][splash] BLOCK_THEME_RESOLVED light")}window.addEventListener("error",function(e){console.log("[boot][splash] BLOCK_VUE_FAILED",(e&&e.message)||String(e))});</script>
+    <style id="splash-style">#splash-root{position:fixed;inset:0;z-index:2147483647;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;background:#ffffff;color:#1d1d1f;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-size:14px;line-height:1.4;user-select:none;-webkit-user-select:none;contain:layout style paint;transition:opacity 120ms ease-out;}#splash-root[aria-hidden="true"]{opacity:0;pointer-events:none;}#splash-root .splash-logo{width:64px;height:64px;color:currentColor;flex:none;}#splash-root .splash-spinner{width:28px;height:28px;border-radius:50%;border:3px solid currentColor;border-top-color:transparent;opacity:0.6;animation:splash-spin 720ms linear infinite;flex:none;}#splash-root .splash-spinner-fallback{display:none;font-size:13px;opacity:0.7;}#splash-root .splash-tagline{font-size:13px;letter-spacing:0.02em;opacity:0.7;margin:0;}#splash-root .splash-error{display:none;max-width:70%;padding:12px 16px;border-radius:8px;background:rgba(255,59,48,0.08);color:#c0392b;font-size:12px;line-height:1.5;white-space:pre-wrap;text-align:center;}#splash-root[data-error="1"] .splash-spinner,#splash-root[data-error="1"] .splash-spinner-fallback{display:none;}#splash-root[data-error="1"] .splash-error{display:block;}@keyframes splash-spin{to{transform:rotate(360deg);}}@media (prefers-reduced-motion:reduce){#splash-root .splash-spinner{display:none;}#splash-root .splash-spinner-fallback{display:inline-block;}#splash-root{transition:none;}}@media (prefers-color-scheme:dark){#splash-root{background:#1e1e1e;color:#e8e8e8;}#splash-root .splash-error{background:rgba(255,99,99,0.12);color:#ff8a8a;}}</style>
+    <script>console.log("[boot][splash] BLOCK_CSS_LOADED",performance.now());if(!document.getElementById("splash-style")){console.log("[boot][splash] BLOCK_CSS_FAILED")}</script>
   </head>
 
   <body>
     <div id="app"></div>
+    <div id="splash-root" role="status" aria-live="polite" aria-label="Loading Mark">
+      <svg class="splash-logo" viewBox="0 0 64 64" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg">
+        <rect x="6" y="10" width="52" height="44" rx="6" ry="6" fill="none" stroke="currentColor" stroke-width="3"/>
+        <path d="M14 44 V22 L24 36 L34 22 V44" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+        <path d="M44 22 V44 M44 38 L52 30 M44 38 L52 46" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+      </svg>
+      <div class="splash-spinner" aria-hidden="true"></div>
+      <div class="splash-spinner-fallback" aria-hidden="true">Loading&hellip;</div>
+      <p class="splash-tagline">Starting Mark&hellip;</p>
+      <pre class="splash-error" id="splash-error-text" aria-live="assertive"></pre>
+    </div>
+    <script>console.log("[boot][splash] BLOCK_VISIBLE",performance.now());window.__SPLASH_WATCHDOG__=setTimeout(function(){var r=document.getElementById("splash-root");if(r&&!window.__SPLASH_REPLACED__){console.log("[boot][splash] BLOCK_WATCHDOG_FIRED");r.setAttribute("data-error","1");var t=document.getElementById("splash-error-text");if(t){t.textContent="Mark failed to start within 5s. Check Console.app for errors."}}},5000);</script>
     <script type="module" src="/src/main.js"></script>
   </body>
 </html>
