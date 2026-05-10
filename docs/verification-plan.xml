@@ -2232,14 +2232,15 @@
         monolithic CSS chunk; only JS tree-shakes.
     -->
 
-    <V-M-024 MODULE="M-024 perf-splash" PRIORITY="high" wave="alpha.6">
+    <V-M-024 MODULE="M-024 perf-splash" PRIORITY="high" wave="alpha.6" status="done" implemented-at="reborn-mark@7e8afce2">
       <followup-ref>F-PERF-SPLASH</followup-ref>
-      <prereq>V-M-001 (window lifecycle — show:true contract)</prereq>
+      <prereq>V-M-001 (window lifecycle — Tauri 2 default visible=true already satisfies contract; no JSON edit needed)</prereq>
       <module-surface>
-        src/renderer/index.html (inline splash DOM + inline timing script
-        with CSP hash-allowlist), src/renderer/static/splash.css (sync
-        link in &lt;head&gt;), src/renderer/main.ts (dismount call site only).
-        DOM-only; zero JS runtime deps.
+        src/renderer/index.html (inline splash DOM + 3 inline CSP-hash-allowlisted timing scripts + inline &lt;style id="splash-style"&gt; for sync apply — Vite bundles linked CSS into the main async chunk, defeating "before JS parses" requirement; inline guarantees zero-FOUC).
+        src/renderer/static/splash.css (canonical source-of-truth file ≤4KB; minified content mirrored in inline &lt;style&gt; block; parity enforced by scripts/verify-splash-budget.mjs).
+        src/renderer/src/main.js (NOT main.ts — renderer entry is JS) dismount call site after app.mount returns.
+        src-tauri/tauri.conf.json (CSP script-src sha256 hashes for the 3 inline scripts).
+        DOM-only; zero JS runtime deps. Implementation drift from original spec: inline &lt;style&gt; instead of &lt;link rel="stylesheet"&gt; — same intent (synchronous CSS application), different mechanism forced by Vite asset pipeline.
       </module-surface>
       <high-level-scenarios>
         <S1>splash-paints-before-js — cold launch, BLOCK_VISIBLE &lt;50ms target / &lt;100ms ceiling, computed style #splash-root display:flex.</S1>
@@ -2271,7 +2272,7 @@
         <T6>splash → editor transition: 0 blank frames (frame-granularity screenshot diff).</T6>
       </numeric-thresholds>
       <log-markers namespace="[boot][splash]" count="11">
-        BLOCK_HEAD_PARSED, BLOCK_CSS_LOADED, BLOCK_VISIBLE, BLOCK_THEME_RESOLVED, BLOCK_THEME_CHANGED, BLOCK_VUE_READY, BLOCK_REPLACED, BLOCK_HMR_BYPASS, BLOCK_CSS_FAILED, BLOCK_VUE_FAILED, BLOCK_WATCHDOG_FIRED, BLOCK_ORPHAN_DETECTED. All carry performance.now() value.
+        BLOCK_HEAD_PARSED, BLOCK_CSS_LOADED (emitted after &lt;style id="splash-style"&gt; — implementation drift from original "after &lt;link&gt;" wording; same intent), BLOCK_VISIBLE, BLOCK_THEME_RESOLVED, BLOCK_VUE_READY, BLOCK_REPLACED, BLOCK_HMR_BYPASS, BLOCK_CSS_FAILED, BLOCK_VUE_FAILED, BLOCK_WATCHDOG_FIRED, BLOCK_ORPHAN_DETECTED (dev-only). All carry performance.now() value. BOOT_T0 anchor: window.__BOOT_T0__ set in first inline script BEFORE any module script (V-M-030 reads, never reassigns); convenience handle window.__SPLASH_T__ = {t0: number}; idempotency flag window.__SPLASH_REPLACED__.
       </log-markers>
       <test-files>
         <e2e>src-tauri/tests/e2e/splash.{cold-launch,warm-launch,replacement,finder-open,theme}.spec.ts (Playwright via tauri-driver — WKWebView, NOT headless Chromium)</e2e>
@@ -2291,11 +2292,13 @@
       <verification-level>module-local for all rows except T1/T2 timing (run per-PR via tauri-driver) and visual snapshots (nightly + tag-PRs).</verification-level>
     </V-M-024>
 
-    <V-M-025 MODULE="M-025 perf-pending-opens-parallel" PRIORITY="high" wave="alpha.6">
+    <V-M-025 MODULE="M-025 perf-pending-opens-parallel" PRIORITY="high" wave="alpha.6" status="done" implemented-at="reborn-mark@4af0b52">
       <followup-ref>F-PERF-PENDING-OPENS-PARALLEL</followup-ref>
-      <prereq>V-M-021 (default-handler), V-M-022 (preview-mode), V-M-001 (window lifecycle)</prereq>
+      <prereq>V-M-021 (default-handler), V-M-022 (preview-mode), V-M-001 (window lifecycle), V-M-024 (consumes window.__BOOT_T0__ anchor for elapsed_ms)</prereq>
       <module-surface>
-        Renderer: src/renderer/src/bootstrap-ipc.js — move `mt_drain_pending_opens` invoke from INSIDE mt::bootstrap-editor handler (sequential after Vue mount + IPC roundtrip) to setupIpcListeners() top-level (parallel with Vue mount). Backend mt_drain_pending_opens unchanged.
+        Renderer: src/renderer/src/bootstrap-ipc.js — `mt_drain_pending_opens` invoke RELOCATED from INSIDE mt::bootstrap-editor handler (sequential) to setupIpcListeners() top-level after Promise.all of all 9 listen() calls (parallel with Vue mount).
+        Backend: src-tauri/src/main.rs — PendingOpens AppState refactored from tuple of Mutex&lt;Vec&lt;String&gt;&gt; to named { queue, drained: AtomicBool } per M-021 ready-signal contract (Option A from design). mt_drain_pending_opens flips drained=true after queue snapshot lock releases. RunEvent::Opened consults flag: drained=true → direct-emit via m_v1_compat::emit_open_new_tab on main webview window; drained=false → enqueue. Defensive fallback: missing main-window re-queues path.
+        Backend trace markers: BLOCK_DRAIN_COMPLETE, BLOCK_DIRECT_EMIT, BLOCK_DIRECT_EMIT_FAILED, BLOCK_DIRECT_EMIT_NO_WINDOW, BLOCK_QUEUED. AtomicBool ordering: SeqCst (matches m013b convention, over-approximates required Acquire/Release).
       </module-surface>
       <high-level-scenarios>
         <S1>Finder double-click cold-launch — single .md, end-to-end ≤1500ms cold / ≤600ms warm.</S1>
@@ -2325,8 +2328,10 @@
         <T5>Improvement vs sequential baseline ≥150ms cold (justifies refactor).</T5>
         <T6>Parallelism invariant: BLOCK_DRAIN_INVOKED.elapsed_ms &lt; BLOCK_APP_MOUNTED.elapsed_ms (the entire point).</T6>
       </numeric-thresholds>
-      <log-markers namespace="[boot][pending_opens]" count="9">
-        NEW: BLOCK_LISTENERS_READY, BLOCK_DRAIN_INVOKED, BLOCK_DRAIN_RESPONSE_RECEIVED, BLOCK_DRAIN_EMPTY, BLOCK_NEW_TAB_RECEIVED, BLOCK_FILE_READ_FAILED, BLOCK_PINIA_NOT_READY. EXISTING: BLOCK_DRAINED, BLOCK_DRAIN_FAILED.
+      <log-markers namespace="[boot][pending_opens]" count="8" implemented="6+2">
+        IMPLEMENTED (renderer): BLOCK_LISTENERS_READY, BLOCK_DRAIN_INVOKED, BLOCK_DRAIN_RESPONSE_RECEIVED, BLOCK_DRAIN_EMPTY, BLOCK_NEW_TAB_RECEIVED, BLOCK_PINIA_NOT_READY, BLOCK_DRAINED (suppressed when count=0), BLOCK_DRAIN_FAILED.
+        BACKEND markers (m_v1_compat / pending namespace): BLOCK_DRAIN_COMPLETE, BLOCK_DIRECT_EMIT, BLOCK_DIRECT_EMIT_FAILED, BLOCK_DIRECT_EMIT_NO_WINDOW, BLOCK_QUEUED, BLOCK_READ_FAILED.
+        DEFERRED: BLOCK_FILE_READ_FAILED renderer-side marker reserved — see follow-up F-PERF-PENDING-OPENS-PER-FILE-ERROR. Implementing it requires new mt::open-new-tab-error event channel (Option B) which expands Rust scope beyond the perf goal. Current behavior for F1/F2: backend logs `[v1_compat][open_new_tab][BLOCK_READ_FAILED]`, missing tab silently absent, other queued files succeed (set-equality invariant 6 is best-effort in this case).
       </log-markers>
       <ordering-invariants>
         (1) BOOTSTRAP_START → LISTENERS_READY → DRAIN_INVOKED strict.

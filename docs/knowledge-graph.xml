@@ -372,6 +372,30 @@
       </annotations>
     </M-022>
 
+    <M-024 NAME="perf-splash" TYPE="UI_COMPONENT" STATUS="implemented" implemented-at="reborn-mark@7e8afce2">
+      <purpose>Static HTML+CSS splash screen visible before any JS parses; replaced by Vue mount on first paint. Provides BOOT_T0 anchor for V-M-030 instrumentation.</purpose>
+      <path>src/renderer/index.html, src/renderer/static/splash.css, src/renderer/src/main.js</path>
+      <depends>M-001 (window lifecycle: visible=true Tauri 2 default)</depends>
+      <verification-ref>V-M-024</verification-ref>
+      <annotations>
+        <fn-dismountSplash PURPOSE="Idempotent splash removal after Vue mount; aria-hidden flip BEFORE .remove(); BLOCK_HMR_BYPASS guard on second call; returns boolean (true on first dismount, false on no-op)" />
+        <global-window-BOOT_T0 PURPOSE="performance.now() at first inline-script execution; never reassigned; consumed by V-M-030 bootMark()" />
+        <global-window-SPLASH_REPLACED PURPOSE="Idempotency flag" />
+      </annotations>
+    </M-024>
+
+    <M-025 NAME="perf-pending-opens-parallel" TYPE="INTEGRATION" STATUS="implemented" implemented-at="reborn-mark@4af0b52">
+      <purpose>Reorder mt_drain_pending_opens invocation from sequential (inside mt::bootstrap-editor handler) to parallel (top-level setupIpcListeners). Backend gains drained:bool flag in PendingOpens AppState for M-021 ready-signal contract; RunEvent::Opened direct-emits when drained=true.</purpose>
+      <path>src/renderer/src/bootstrap-ipc.js, src-tauri/src/main.rs</path>
+      <depends>M-021 (default-handler), M-024 (BOOT_T0 anchor)</depends>
+      <verification-ref>V-M-025</verification-ref>
+      <annotations>
+        <type-PendingOpens PURPOSE="AppState struct: { queue: Mutex&lt;Vec&lt;String&gt;&gt;, drained: AtomicBool }; SeqCst ordering" />
+        <fn-mt_drain_pending_opens PURPOSE="Drain queue snapshot; flip drained=true; return Vec&lt;String&gt; to renderer" />
+        <fn-setupIpcListeners PURPOSE="Register all 9 listen() calls via Promise.all; emit BLOCK_LISTENERS_READY; invoke drain at top-level (parallel with Vue mount); preserve V-M-022 previewMode flow" />
+      </annotations>
+    </M-025>
+
     <M-901 NAME="grace-context-hygiene-policy" TYPE="PROCESS_POLICY" STATUS="implemented">
       <purpose>GRACE-compatible AI Standards token/session hygiene overlay with context modes, precedence rules, and escalation triggers.</purpose>
       <path>docs/grace-ai-standards-hygiene-methodology.md</path>
@@ -530,5 +554,10 @@
     <CrossLink from="M-901" to="M-013b" relation="runtime-scope-boundary" />
     <CrossLink from="M-901" to="M-021" relation="runtime-scope-boundary" />
     <CrossLink from="M-901" to="M-022" relation="runtime-scope-boundary" />
+    <CrossLink from="M-024" to="M-001" relation="dismounts-after-vue-mount" />
+    <CrossLink from="M-025" to="M-024" relation="consumes-BOOT_T0-anchor-for-elapsed_ms" />
+    <CrossLink from="M-025" to="M-021" relation="ready-signal-via-drained-AtomicBool" />
+    <CrossLink from="M-030" to="M-024" relation="reads-window-BOOT_T0-via-bootMark" pending="true" />
+    <CrossLink from="M-030" to="M-025" relation="consumes-pending-opens-elapsed_ms-markers" pending="true" />
   </Project>
 </KnowledgeGraph>
