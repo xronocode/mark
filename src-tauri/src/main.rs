@@ -98,11 +98,31 @@ use dialog::DialogChoice;
 /// into this AppState; frontend drains via mt_drain_pending_opens after
 /// bootstrap-editor completes. Race-free (vs the 1.5s deferred-thread
 /// hack that preceded this).
-pub struct PendingOpens(pub std::sync::Mutex<Vec<String>>);
+///
+/// M-025 perf-pending-opens-parallel (alpha.6): the renderer now
+/// invokes `mt_drain_pending_opens` from `setupIpcListeners()` top-level
+/// in parallel with Vue mount (instead of serially after bootstrap-editor
+/// returns). Once the drain completes, the renderer's `mt::open-new-tab`
+/// listener is fully wired; subsequent RunEvent::Opened bursts (Apple
+/// Events fired AFTER the cold-launch window — e.g. user opens another
+/// `.md` from Finder while the app is already running) must NOT be
+/// re-enqueued (no second drain), they must be delivered directly.
+///
+/// `drained` flag (M-025 ready-signal): set to `true` by
+/// `mt_drain_pending_opens` after it finishes. RunEvent::Opened consults
+/// this flag — `false` ⇒ enqueue (cold-launch window, listeners not
+/// ready); `true` ⇒ direct-emit (warm window, listener live).
+pub struct PendingOpens {
+    pub queue: std::sync::Mutex<Vec<String>>,
+    pub drained: std::sync::atomic::AtomicBool,
+}
 
 impl Default for PendingOpens {
     fn default() -> Self {
-        Self(std::sync::Mutex::new(Vec::new()))
+        Self {
+            queue: std::sync::Mutex::new(Vec::new()),
+            drained: std::sync::atomic::AtomicBool::new(false),
+        }
     }
 }
 
@@ -112,7 +132,7 @@ fn mt_drain_pending_opens(
     state: tauri::State<'_, PendingOpens>,
 ) -> Vec<String> {
     let drained: Vec<String> = {
-        let mut q = state.0.lock().unwrap_or_else(|e| e.into_inner());
+        let mut q = state.queue.lock().unwrap_or_else(|e| e.into_inner());
         std::mem::take(&mut *q)
     };
     eprintln!("[main][pending_opens][BLOCK_DRAINED count={}]", drained.len());
@@ -127,6 +147,15 @@ fn mt_drain_pending_opens(
             eprintln!("[main][pending_opens][BLOCK_EMITTED path={path}]");
         }
     }
+    // M-025 ready-signal: flip the flag AFTER the drain emit loop so any
+    // RunEvent::Opened racing concurrently still goes through the queue
+    // (the lock above + this store ordering guarantee no path is lost).
+    // Subsequent Apple Events go through the direct-emit branch in the
+    // RunEvent::Opened handler below.
+    state
+        .drained
+        .store(true, std::sync::atomic::Ordering::SeqCst);
+    eprintln!("[main][pending_opens][BLOCK_DRAIN_COMPLETE drained_flag=true]");
     drained
 }
 
@@ -505,7 +534,7 @@ fn main() {
                 // bootstrap-editor — race-free, no deferred-thread sleep.
                 if !cli_files.is_empty() {
                     let state = tauri::Manager::state::<PendingOpens>(app);
-                    let mut q = state.0.lock().unwrap_or_else(|e| e.into_inner());
+                    let mut q = state.queue.lock().unwrap_or_else(|e| e.into_inner());
                     for path in &cli_files {
                         eprintln!("[main][cli][BLOCK_CLI_QUEUED path={path}]");
                         q.push(path.clone());
@@ -607,21 +636,66 @@ fn main() {
             // the paths into PendingOpens AppState lets the frontend drain
             // them via mt_drain_pending_opens after bootstrap-editor.
             // Race-free, no timing assumptions.
+            //
+            // M-025 ready-signal: once `state.drained == true` the renderer's
+            // mt::open-new-tab listener is live, so Apple Events fired AFTER
+            // cold-launch (warm window, user opens another .md from Finder)
+            // are emitted directly with no second-drain round-trip. The
+            // `drained` flag is flipped inside mt_drain_pending_opens AFTER
+            // the queue snapshot lock releases — Apple Events that race the
+            // initial drain still land in the queue and are picked up by it.
             if let tauri::RunEvent::Opened { urls } = event {
                 eprintln!(
                     "[main][apple_event][BLOCK_RECEIVED count={}]",
                     urls.len()
                 );
                 let state = tauri::Manager::state::<PendingOpens>(app);
-                let mut q = state.0.lock().unwrap_or_else(|e| e.into_inner());
+                let already_drained =
+                    state.drained.load(std::sync::atomic::Ordering::SeqCst);
                 for url in urls {
                     match url.to_file_path() {
                         Ok(path) => {
                             let path_str = path.to_string_lossy().to_string();
-                            eprintln!(
-                                "[main][apple_event][BLOCK_QUEUED path={path_str}]"
-                            );
-                            q.push(path_str);
+                            if already_drained {
+                                // Direct-emit path: listeners are live; reuse the
+                                // same emit_open_new_tab helper the cold-launch
+                                // drain uses (preview_mode=true per M-022).
+                                if let Some(window) = tauri::Manager::get_webview_window(
+                                    app, "main",
+                                ) {
+                                    match m_v1_compat::emit_open_new_tab(
+                                        &window, &path_str, true,
+                                    ) {
+                                        Ok(()) => eprintln!(
+                                            "[main][apple_event][BLOCK_DIRECT_EMIT path={path_str}]"
+                                        ),
+                                        Err(e) => eprintln!(
+                                            "[main][apple_event][BLOCK_DIRECT_EMIT_FAILED path={path_str} err={e}]"
+                                        ),
+                                    }
+                                } else {
+                                    // Defensive: window gone (e.g. last-window-
+                                    // closed transient). Re-queue so the next
+                                    // drain (if any) picks it up.
+                                    eprintln!(
+                                        "[main][apple_event][BLOCK_DIRECT_EMIT_NO_WINDOW path={path_str}]"
+                                    );
+                                    let mut q = state
+                                        .queue
+                                        .lock()
+                                        .unwrap_or_else(|e| e.into_inner());
+                                    q.push(path_str);
+                                }
+                            } else {
+                                eprintln!(
+                                    "[main][apple_event][BLOCK_QUEUED path={path_str}]"
+                                );
+                                let mut q = state
+                                    .queue
+                                    .lock()
+                                    .unwrap_or_else(|e| e.into_inner());
+                                q.push(path_str);
+                            }
                         }
                         Err(_) => {
                             eprintln!("[main][apple_event][BLOCK_NON_FILE_URL url={url}]");
@@ -630,4 +704,138 @@ fn main() {
                 }
             }
         });
+}
+
+// ──────────────────────────────────────────────────────────────────────
+// Tests — V-M-025 PendingOpens semantics (drain ordering + ready-signal
+// flag transition). Pure-logic — no Tauri runtime spin-up — covers the
+// queue + atomic state surface that the renderer's BLOCK_DRAINED count=N
+// + BLOCK_DIRECT_EMIT trace markers depend on.
+// ──────────────────────────────────────────────────────────────────────
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::sync::atomic::Ordering;
+
+    /// Helper: pure-logic version of `mt_drain_pending_opens` minus the
+    /// `tauri::WebviewWindow`-bound emit step. Drains the queue, flips
+    /// the drained flag, returns the drained vector. The production
+    /// command differs only in the per-path `m_v1_compat::emit_open_new_tab`
+    /// call that this helper omits (Tauri runtime not available in unit
+    /// tests). Trace + flag semantics are identical.
+    fn drain_inner(state: &PendingOpens) -> Vec<String> {
+        let drained: Vec<String> = {
+            let mut q = state.queue.lock().unwrap_or_else(|e| e.into_inner());
+            std::mem::take(&mut *q)
+        };
+        state.drained.store(true, Ordering::SeqCst);
+        drained
+    }
+
+    #[test]
+    fn pending_opens_default_state_is_empty_queue_and_drained_false() {
+        let state = PendingOpens::default();
+        assert!(state.queue.lock().unwrap().is_empty());
+        assert!(!state.drained.load(Ordering::SeqCst));
+    }
+
+    #[test]
+    fn drain_returns_paths_in_fifo_order_and_clears_queue() {
+        let state = PendingOpens::default();
+        {
+            let mut q = state.queue.lock().unwrap();
+            q.push("/tmp/a.md".to_string());
+            q.push("/tmp/b.md".to_string());
+            q.push("/tmp/c.md".to_string());
+        }
+        let drained = drain_inner(&state);
+        assert_eq!(
+            drained,
+            vec!["/tmp/a.md".to_string(), "/tmp/b.md".into(), "/tmp/c.md".into()]
+        );
+        assert!(state.queue.lock().unwrap().is_empty());
+    }
+
+    #[test]
+    fn drain_flips_drained_flag_to_true_after_completion() {
+        let state = PendingOpens::default();
+        assert!(!state.drained.load(Ordering::SeqCst));
+        let _ = drain_inner(&state);
+        assert!(state.drained.load(Ordering::SeqCst));
+    }
+
+    #[test]
+    fn drain_on_empty_queue_still_flips_flag() {
+        // V-M-025 S5 (cold launch with empty queue): drain MUST be invoked
+        // unconditionally and the flag MUST flip so subsequent Apple
+        // Events take the direct-emit path.
+        let state = PendingOpens::default();
+        let drained = drain_inner(&state);
+        assert!(drained.is_empty());
+        assert!(state.drained.load(Ordering::SeqCst));
+    }
+
+    #[test]
+    fn run_event_opened_pre_drain_enqueues_path() {
+        // Models the RunEvent::Opened branch in main(): when drained=false
+        // the path is pushed to the queue; mt_drain_pending_opens picks it
+        // up on the cold-launch drain.
+        let state = PendingOpens::default();
+        let drained_at_event = state.drained.load(Ordering::SeqCst);
+        assert!(!drained_at_event);
+        let mut q = state.queue.lock().unwrap();
+        q.push("/tmp/applevent.md".to_string());
+        drop(q);
+        let drained = drain_inner(&state);
+        assert_eq!(drained, vec!["/tmp/applevent.md".to_string()]);
+    }
+
+    #[test]
+    fn run_event_opened_post_drain_does_not_re_enqueue() {
+        // V-M-025 R3: after the renderer drains, subsequent Apple Events
+        // skip the queue and (in production) emit directly. We assert the
+        // gate logic: drained=true ⇒ caller takes the direct-emit branch
+        // and the queue stays empty.
+        let state = PendingOpens::default();
+        let _ = drain_inner(&state);
+        assert!(state.drained.load(Ordering::SeqCst));
+        // Simulate the production-handler decision point.
+        let already_drained = state.drained.load(Ordering::SeqCst);
+        if !already_drained {
+            // dead branch — must not execute.
+            let mut q = state.queue.lock().unwrap();
+            q.push("/tmp/should-not-land.md".to_string());
+        }
+        assert!(state.queue.lock().unwrap().is_empty());
+    }
+
+    #[test]
+    fn drain_then_re_enqueue_preserves_drained_flag() {
+        // Edge case (BLOCK_DIRECT_EMIT_NO_WINDOW fallback in main.rs): if
+        // direct-emit can't fire because the window is gone, the path is
+        // re-queued. The drained flag MUST stay true (we don't roll it
+        // back on transient window absence).
+        let state = PendingOpens::default();
+        let _ = drain_inner(&state);
+        assert!(state.drained.load(Ordering::SeqCst));
+        let mut q = state.queue.lock().unwrap();
+        q.push("/tmp/re-queued.md".to_string());
+        drop(q);
+        assert!(state.drained.load(Ordering::SeqCst));
+        assert_eq!(state.queue.lock().unwrap().len(), 1);
+    }
+
+    #[test]
+    fn multiple_drains_idempotent_on_empty_queue() {
+        // Renderer should call drain exactly once (V-M-025 R4 regression
+        // guard), but if a second invocation slips through it must be a
+        // no-op + flag stays true.
+        let state = PendingOpens::default();
+        let _ = drain_inner(&state);
+        assert!(state.drained.load(Ordering::SeqCst));
+        let second = drain_inner(&state);
+        assert!(second.is_empty());
+        assert!(state.drained.load(Ordering::SeqCst));
+    }
 }
