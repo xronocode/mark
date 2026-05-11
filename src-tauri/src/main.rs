@@ -673,6 +673,18 @@ fn main() {
         .build(tauri::generate_context!())
         .expect("error while building tauri application")
         .run(|app, event| {
+            // M-025.5: silence unused-variable warnings on non-macOS builds
+            // where the entire body below is cfg-gated out. The release CI
+            // workflow runs warnings-allowlist check; bare `app`/`event`
+            // would trip it on Linux/Windows. We don't ship to those
+            // platforms yet, but `cargo test` runs on Ubuntu in the test
+            // workflow.
+            #[cfg(not(target_os = "macos"))]
+            {
+                let _ = (app, event);
+                return;
+            }
+
             // macOS Finder double-click + `open file.md` send open-document
             // Apple Events that Tauri 2 surfaces as RunEvent::Opened.
             //
@@ -689,6 +701,16 @@ fn main() {
             // `drained` flag is flipped inside mt_drain_pending_opens AFTER
             // the queue snapshot lock releases — Apple Events that race the
             // initial drain still land in the queue and are picked up by it.
+            //
+            // M-025.5 (alpha.6.3, smoke 2026-05-11): `RunEvent::Opened` is a
+            // macOS-only variant (Apple Event for Finder double-click / Open
+            // With). The Linux / Windows enum has no such variant, so
+            // referencing it unconditionally was failing `cargo test` on
+            // Ubuntu since alpha.5 — the release workflow shipped fine
+            // (macOS-only build) but the test workflow turned red. Gate
+            // the entire arm with cfg(target_os="macos"). Sibling test
+            // suite is also gated below.
+            #[cfg(target_os = "macos")]
             if let tauri::RunEvent::Opened { urls } = event {
                 eprintln!(
                     "[main][apple_event][BLOCK_RECEIVED count={}]",
