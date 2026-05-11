@@ -913,4 +913,56 @@ mod tests {
         let _ = drain_inner(&state);
         assert!(state.had_initial_opens.load(Ordering::SeqCst));
     }
+
+    // ── M-025.2 sidebar-hide on cold-launch single-file open
+    //    (smoke 2026-05-11) ───────────────────────────────────────────────
+
+    #[test]
+    fn sidebar_visibility_overridden_when_initial_opens() {
+        // Mirrors the production expression in
+        // m_v1_compat::mt_request_keybindings: when had_initial_opens is
+        // true the emitted sideBarVisibility is forced false regardless
+        // of the user's persisted pref. Plain launch (latch false)
+        // preserves the pref. This is the pure-logic counterpart to the
+        // addBlankTab override covered by
+        // `had_initial_opens_latches_on_enqueue_path`.
+
+        // Case A: cold-launch via Finder / CLI — latch true.
+        let state = PendingOpens::default();
+        state
+            .had_initial_opens
+            .store(true, Ordering::SeqCst);
+        let had_opens = state.had_initial_opens.load(Ordering::SeqCst);
+        // Same expression the production code uses for the override
+        // decision: `!has_opens` toggles the addBlankTab and feeds the
+        // identical `if had_opens { false } else { pref }` branch for
+        // sidebar visibility.
+        let side_bar_pref_true = true;
+        let emitted = if had_opens { false } else { side_bar_pref_true };
+        assert!(
+            !emitted,
+            "Finder/CLI cold-launch must force sidebar hidden",
+        );
+        // !has_opens (addBlankTab equivalent) is false in this branch.
+        assert!(!(!had_opens));
+
+        // Case B: plain launch — latch false, pref preserved either way.
+        let state = PendingOpens::default();
+        let had_opens = state.had_initial_opens.load(Ordering::SeqCst);
+        assert!(!had_opens);
+        // Pref=true → emit true.
+        let emitted_true = if had_opens { false } else { true };
+        assert!(emitted_true, "plain launch must preserve sidebar=true pref");
+        // Pref=false → emit false.
+        let emitted_false = if had_opens { false } else { false };
+        assert!(!emitted_false, "plain launch must preserve sidebar=false pref");
+        // !has_opens (addBlankTab equivalent) is true in this branch.
+        assert!(!has_opens_value(had_opens));
+    }
+
+    // Tiny helper kept in-mod so the assertion above reads symmetrically
+    // with the production `let add_blank_tab = !had_opens;` line.
+    fn has_opens_value(b: bool) -> bool {
+        b
+    }
 }

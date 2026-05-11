@@ -58,6 +58,16 @@ use crate::PendingOpens;
 /// addBlankTab=false so the renderer does NOT create a spurious
 /// Untitled-1 alongside the opened file. Plain launches (no pending
 /// opens) keep addBlankTab=true and get the empty workspace.
+///
+/// M-025.2 sidebar-hide on cold-launch single-file open (smoke
+/// 2026-05-11): when `had_initial_opens` is true, also force
+/// `sideBarVisibility=false` in the emitted config. Rationale: a Finder
+/// double-click / CLI `mark a.md` opens a SINGLE file with no folder
+/// context, so the sidebar tree is useless and visually noisy.
+/// Complements V-M-022 (preview-mode on Finder open) to create a clean
+/// "focus reader" mode. User's persisted `sideBarVisibility` pref stays
+/// untouched on disk — toolbar toggle re-shows the sidebar, and a plain
+/// launch (no pending opens) restores the saved pref as before.
 #[tauri::command]
 pub async fn mt_request_keybindings(
     app: tauri::AppHandle,
@@ -65,7 +75,7 @@ pub async fn mt_request_keybindings(
     prefs: tauri::State<'_, PrefsState>,
     pending: tauri::State<'_, PendingOpens>,
 ) -> Result<(), String> {
-    let side_bar_visibility = prefs
+    let side_bar_visibility_pref = prefs
         .get("sideBarVisibility")
         .and_then(|v| v.as_bool())
         .unwrap_or(true);
@@ -86,6 +96,10 @@ pub async fn mt_request_keybindings(
         .had_initial_opens
         .load(std::sync::atomic::Ordering::SeqCst);
     let add_blank_tab = !had_opens;
+    // M-025.2: same `!had_opens` expression — when the app was cold-
+    // launched via Finder / CLI with a path, hide the sidebar; otherwise
+    // honor the user's persisted pref.
+    let side_bar_visibility = if had_opens { false } else { side_bar_visibility_pref };
 
     let config = json!({
         "addBlankTab": add_blank_tab,
@@ -97,7 +111,7 @@ pub async fn mt_request_keybindings(
     });
 
     eprintln!(
-        "[v1_compat][bootstrap_editor][BLOCK_EMIT add_blank_tab={add_blank_tab} had_initial_opens={had_opens} side_bar={side_bar_visibility} tab_bar={tab_bar_visibility} source_code={source_code_mode_enabled} line_ending={line_ending}]"
+        "[v1_compat][bootstrap_editor][BLOCK_EMIT add_blank_tab={add_blank_tab} had_initial_opens={had_opens} side_bar={side_bar_visibility} side_bar_pref={side_bar_visibility_pref} side_bar_overridden={had_opens} tab_bar={tab_bar_visibility} source_code={source_code_mode_enabled} line_ending={line_ending}]"
     );
 
     // Use AppHandle::emit so the event reaches every listener; window
