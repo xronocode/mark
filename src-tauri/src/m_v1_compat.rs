@@ -38,6 +38,7 @@ use serde_json::{json, Value};
 use tauri::{Emitter, Manager};
 
 use crate::m005_prefs::PrefsState;
+use crate::PendingOpens;
 
 /// Maps to v1 'mt::request-keybindings' send from editor.js:588 — the
 /// renderer fires this ~500 ms after registering the
@@ -50,11 +51,19 @@ use crate::m005_prefs::PrefsState;
 ///
 /// Config fields read from the migrated PrefsStore (set by F-PREFS-MIGRATE-V1).
 /// Defaults match v1.2.3 schema defaults so a fresh install also boots cleanly.
+///
+/// M-025.1 untitled-suppression (smoke 2026-05-11): `addBlankTab` is now
+/// driven by `PendingOpens.had_initial_opens`. If any path was enqueued
+/// or direct-emitted (Finder double-click, CLI args, drag-onto-Dock),
+/// addBlankTab=false so the renderer does NOT create a spurious
+/// Untitled-1 alongside the opened file. Plain launches (no pending
+/// opens) keep addBlankTab=true and get the empty workspace.
 #[tauri::command]
 pub async fn mt_request_keybindings(
     app: tauri::AppHandle,
     window: tauri::Window,
     prefs: tauri::State<'_, PrefsState>,
+    pending: tauri::State<'_, PendingOpens>,
 ) -> Result<(), String> {
     let side_bar_visibility = prefs
         .get("sideBarVisibility")
@@ -73,8 +82,13 @@ pub async fn mt_request_keybindings(
         .and_then(|v| v.as_str().map(|s| s.to_string()))
         .unwrap_or_else(|| "default".to_string());
 
+    let had_opens = pending
+        .had_initial_opens
+        .load(std::sync::atomic::Ordering::SeqCst);
+    let add_blank_tab = !had_opens;
+
     let config = json!({
-        "addBlankTab": true,
+        "addBlankTab": add_blank_tab,
         "markdownList": [],
         "lineEnding": line_ending,
         "sideBarVisibility": side_bar_visibility,
@@ -83,7 +97,7 @@ pub async fn mt_request_keybindings(
     });
 
     eprintln!(
-        "[v1_compat][bootstrap_editor][BLOCK_EMIT side_bar={side_bar_visibility} tab_bar={tab_bar_visibility} source_code={source_code_mode_enabled} line_ending={line_ending}]"
+        "[v1_compat][bootstrap_editor][BLOCK_EMIT add_blank_tab={add_blank_tab} had_initial_opens={had_opens} side_bar={side_bar_visibility} tab_bar={tab_bar_visibility} source_code={source_code_mode_enabled} line_ending={line_ending}]"
     );
 
     // Use AppHandle::emit so the event reaches every listener; window

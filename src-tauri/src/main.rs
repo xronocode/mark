@@ -112,9 +112,18 @@ use dialog::DialogChoice;
 /// `mt_drain_pending_opens` after it finishes. RunEvent::Opened consults
 /// this flag — `false` ⇒ enqueue (cold-launch window, listeners not
 /// ready); `true` ⇒ direct-emit (warm window, listener live).
+///
+/// `had_initial_opens` flag (M-025.1 untitled-suppression): latched
+/// `true` the moment ANY path is enqueued OR direct-emitted. Consumed by
+/// `mt_request_keybindings` to decide `addBlankTab` in the
+/// bootstrap-editor payload — suppresses the spurious Untitled-1 tab
+/// that previously appeared alongside Finder-opened files (user smoke
+/// 2026-05-11: "по умолчанию всё ещё дополнительно открывается файл
+/// untitled"). Set-only, never reset; single session lifetime.
 pub struct PendingOpens {
     pub queue: std::sync::Mutex<Vec<String>>,
     pub drained: std::sync::atomic::AtomicBool,
+    pub had_initial_opens: std::sync::atomic::AtomicBool,
 }
 
 impl Default for PendingOpens {
@@ -122,6 +131,7 @@ impl Default for PendingOpens {
         Self {
             queue: std::sync::Mutex::new(Vec::new()),
             drained: std::sync::atomic::AtomicBool::new(false),
+            had_initial_opens: std::sync::atomic::AtomicBool::new(false),
         }
     }
 }
@@ -539,6 +549,11 @@ fn main() {
                         eprintln!("[main][cli][BLOCK_CLI_QUEUED path={path}]");
                         q.push(path.clone());
                     }
+                    // M-025.1: latch so mt_request_keybindings suppresses
+                    // the addBlankTab Untitled-1 tab.
+                    state
+                        .had_initial_opens
+                        .store(true, std::sync::atomic::Ordering::SeqCst);
                 }
             } else {
                 eprintln!("[m001][lifecycle][BLOCK_CLOSE_HANDLER_SKIPPED reason=no-main-window]");
@@ -656,6 +671,15 @@ fn main() {
                     match url.to_file_path() {
                         Ok(path) => {
                             let path_str = path.to_string_lossy().to_string();
+                            // M-025.1: latch on every path observed, regardless
+                            // of branch — covers cold-launch enqueue, defensive
+                            // re-queue, AND warm direct-emit (the last is
+                            // mostly defensive; request_keybindings has long
+                            // since run on a warm window, but the invariant is
+                            // "any opened-document path latches the flag").
+                            state
+                                .had_initial_opens
+                                .store(true, std::sync::atomic::Ordering::SeqCst);
                             if already_drained {
                                 // Direct-emit path: listeners are live; reuse the
                                 // same emit_open_new_tab helper the cold-launch
@@ -837,5 +861,56 @@ mod tests {
         let second = drain_inner(&state);
         assert!(second.is_empty());
         assert!(state.drained.load(Ordering::SeqCst));
+    }
+
+    // ── M-025.1 untitled-suppression (smoke 2026-05-11) ────────────────
+
+    #[test]
+    fn default_state_had_initial_opens_false() {
+        // Plain launch (no Finder path, no CLI args): flag stays false →
+        // mt_request_keybindings will emit addBlankTab=true → renderer
+        // creates Untitled-1 as before.
+        let state = PendingOpens::default();
+        assert!(!state.had_initial_opens.load(Ordering::SeqCst));
+    }
+
+    #[test]
+    fn had_initial_opens_latches_on_enqueue_path() {
+        // Cold-launch with Finder double-click: RunEvent::Opened
+        // enqueues the path AND latches the flag. mt_request_keybindings
+        // (called ~500ms later) reads true → emits addBlankTab=false →
+        // renderer skips Untitled-1, only the Finder file is open.
+        let state = PendingOpens::default();
+        {
+            let mut q = state.queue.lock().unwrap();
+            q.push("/tmp/finder.md".to_string());
+        }
+        state
+            .had_initial_opens
+            .store(true, Ordering::SeqCst);
+        assert!(state.had_initial_opens.load(Ordering::SeqCst));
+        // Latch is not affected by subsequent drain.
+        let _ = drain_inner(&state);
+        assert!(state.had_initial_opens.load(Ordering::SeqCst));
+    }
+
+    #[test]
+    fn had_initial_opens_latch_is_set_only_never_reset() {
+        // Single-session lifetime invariant: once latched, always
+        // latched. No code path should clear the flag (we don't roll it
+        // back on transient state, on drain, on window close, etc.).
+        let state = PendingOpens::default();
+        state
+            .had_initial_opens
+            .store(true, Ordering::SeqCst);
+        let _ = drain_inner(&state);
+        // simulate post-drain noise: another drain, a re-queue, another
+        // drain — flag still true.
+        {
+            let mut q = state.queue.lock().unwrap();
+            q.push("/tmp/noise.md".to_string());
+        }
+        let _ = drain_inner(&state);
+        assert!(state.had_initial_opens.load(Ordering::SeqCst));
     }
 }
