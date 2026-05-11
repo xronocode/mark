@@ -90,6 +90,15 @@ const getThemeCluster = (themeColor) => {
 }
 
 export const addThemeStyle = (theme) => {
+  // F-THEME-DIAG (smoke 2026-05-11): track every entry so we can see
+  // whether a click → state mutation actually drives the apply step.
+  // The case=match/default flag tells us whether the theme name was
+  // recognized; default=no CSS gets written and the editor stays on
+  // whatever style was painted last (typical symptom: "click does
+  // nothing" for a newly-added theme).
+  console.log(
+    `[theme][addThemeStyle][BLOCK_ENTRY theme=${theme === null ? 'null' : theme === undefined ? 'undef' : theme}]`
+  )
   const isCmRailscasts = railscastsThemes.includes(theme)
   const isCmOneDark = oneDarkThemes.includes(theme)
   const isDarkTheme = isCmOneDark || isCmRailscasts
@@ -100,6 +109,7 @@ export const addThemeStyle = (theme) => {
     document.head.appendChild(themeStyleEle)
   }
 
+  let _matched = true
   switch (theme) {
     case 'light':
       themeStyleEle.innerHTML = ''
@@ -203,8 +213,15 @@ export const addThemeStyle = (theme) => {
       themeStyleEle.innerHTML = patchTheme(rosePineDawn())
       break
     default:
+      _matched = false
       break
   }
+  // F-THEME-DIAG: case=match means a switch arm ran (CSS written or
+  // 'light' which intentionally clears it); case=default means the
+  // theme name was unrecognized so innerHTML was left untouched.
+  console.log(
+    `[theme][addThemeStyle][BLOCK_APPLIED theme=${theme === null ? 'null' : theme === undefined ? 'undef' : theme} case=${_matched ? 'match' : 'default'}]`
+  )
 
   // workaround: use dark icons
   document.body.classList.remove('dark')

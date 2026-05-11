@@ -92,6 +92,14 @@ const hasCurrentFile = computed(() => {
 
 // Watchers
 watch(theme, (value, oldValue) => {
+  // F-THEME-DIAG (smoke 2026-05-11): fires when the main editor's
+  // theme ref changes. If a Settings-window click writes a new theme
+  // to backend prefs but this marker never appears here, the
+  // mt::user-preference broadcast→SET_USER_PREFERENCE chain is
+  // broken.
+  console.log(
+    `[app][watch_theme][BLOCK_FIRED old=${oldValue === null ? 'null' : oldValue === undefined ? 'undef' : oldValue} new=${value === null ? 'null' : value === undefined ? 'undef' : value}]`
+  )
   if (value !== oldValue) {
     try {
       addThemeStyle(value)

@@ -267,8 +267,12 @@ pub async fn mt_prefs_set(
     let snapshot = prefs.all();
     // Broadcast to all webviews so cross-window listeners (registered
     // once at boot in src/renderer/src/bootstrap-ipc.js) update their
-    // store state.
-    let _ = app.emit("mt::user-preference", &Value::Object(snapshot));
+    // store state. Smart-review 2026-05-11 caught the swallowed Result
+    // (F-THEME-DIAG: makes a silently-failed emit indistinguishable
+    // from "broadcast worked but renderer ignored it" during smoke).
+    if let Err(e) = app.emit("mt::user-preference", &Value::Object(snapshot)) {
+        eprintln!("[Prefs][broadcast][BLOCK_EMIT_FAILED key={key} err={e}]");
+    }
     eprintln!(
         "[Prefs][broadcast][BLOCK_FANOUT count={} key={key}]",
         app.webview_windows().len()

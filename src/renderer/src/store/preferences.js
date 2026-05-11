@@ -62,7 +62,18 @@ export const usePreferencesStore = defineStore('preferences', {
     sequenceTheme: 'hand',
 
     theme: 'light',
-    followSystemTheme: true,
+    // Default flipped to false in alpha.6.2: the v1 Electron port wired
+    // followSystemTheme through main-process nativeTheme, but the Tauri
+    // port has not implemented that flow yet (no matchMedia listener +
+    // no apply-on-toggle hook). With the legacy default of `true`, the
+    // theme picker cards rendered as disabled (opacity 0.4) and the
+    // click handler was guarded by `!followSystemTheme && …` — so
+    // clicking a card was a silent no-op, matching the user smoke
+    // 2026-05-11 alpha.6.1 report "Карточки видны, но клик не применяет
+    // тему". Flipping the default unblocks the manual theme switcher;
+    // the follow-system path is tracked separately as
+    // F-THEME-FOLLOW-SYSTEM (Tauri port).
+    followSystemTheme: false,
     lightModeTheme: 'light',
     darkModeTheme: 'dark',
     customCss: '',
@@ -126,11 +137,24 @@ export const usePreferencesStore = defineStore('preferences', {
     SET_USER_PREFERENCE(preference) {
       const oldLanguage = this.language
 
-      Object.keys(preference).forEach((key) => {
+      const _keys = preference && typeof preference === 'object' ? Object.keys(preference) : []
+      let _applied = 0
+      _keys.forEach((key) => {
         if (typeof preference[key] !== 'undefined' && typeof this[key] !== 'undefined') {
           this[key] = preference[key]
+          _applied += 1
         }
       })
+      // F-THEME-DIAG (smoke 2026-05-11): expose which keys actually
+      // landed in the store vs. were dropped (unknown key OR undefined
+      // value). theme=Y/N flags whether the broadcast/init carried a
+      // theme update — used to localize the break point in the picker
+      // → broadcast → editor chain.
+      const _themeFlag =
+        typeof preference?.theme !== 'undefined' && typeof this.theme !== 'undefined' ? 'Y' : 'N'
+      console.log(
+        `[prefs][SET_USER][BLOCK_KEYS_APPLIED count=${_applied} total=${_keys.length} theme=${_themeFlag} themeValue=${preference?.theme ?? 'undef'}]`
+      )
 
       // Update i18n language if language preference changed
       if (preference.language && preference.language !== oldLanguage) {
@@ -163,6 +187,13 @@ export const usePreferencesStore = defineStore('preferences', {
     },
 
     async SET_SINGLE_PREFERENCE({ type, value }) {
+      // F-THEME-DIAG (smoke 2026-05-11): record the call site BEFORE
+      // the local state mutation. If a user click on a theme card lands
+      // here but no BLOCK_LOCAL_SET marker appears, the click handler
+      // itself was guarded out (e.g. followSystemTheme flag).
+      console.log(
+        `[prefs][SET_SINGLE][BLOCK_LOCAL_SET key=${type} value=${typeof value === 'string' ? value : JSON.stringify(value)}]`
+      )
       // Update local state immediately for responsive UI
       this[type] = value
 

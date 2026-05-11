@@ -485,7 +485,14 @@ pub async fn mt_set_user_preference(
     // webview_windows() and emit to each individually for diagnostic
     // visibility (BLOCK_BROADCAST_HIT per window).
     let snapshot = prefs.all();
-    let _ = app.emit("mt::user-preference", &snapshot);
+    // Smart-review 2026-05-11 (F-THEME-DIAG): surface broadcast emit
+    // failures so a silent emit fault doesn't masquerade as a renderer
+    // listener bug. The per-window loop below also logs each emit, but
+    // app.emit failing wholesale is a distinct symptom worth its own
+    // marker.
+    if let Err(e) = app.emit("mt::user-preference", &snapshot) {
+        eprintln!("[v1_compat][prefs_set][BLOCK_EMIT_FAILED err={e}]");
+    }
     let windows = app.webview_windows();
     eprintln!(
         "[v1_compat][prefs_set][BLOCK_BROADCAST_FANOUT count={}]",
