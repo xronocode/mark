@@ -2,31 +2,42 @@
   <div class="pref-theme">
     <h4>{{ t('preferences.theme.title') }}</h4>
     <section class="offcial-themes">
+      <!--
+        M-025.4 (alpha.6.3, smoke 2026-05-11): drop the `!followSystemTheme &&`
+        click-guard and the `.disabled` class. The follow-system feature is
+        not wired in the Tauri port — its `nativeTheme.shouldUseDarkColors`
+        listener was never carried over from v1.2.x. Until F-THEME-FOLLOW-
+        SYSTEM lands, every theme-card click should unconditionally update
+        the active theme. Backend M-025.3 also force-overrides the persisted
+        `followSystemTheme=false` at boot for the same reason.
+      -->
       <div
         v-for="t of themes"
         :key="t.name"
         class="theme"
-        :class="[
-          t.name,
-          {
-            active: t.name === theme,
-            disabled: followSystemTheme
-          }
-        ]"
-        @click="!followSystemTheme && onSelectChange('theme', t.name)"
+        :class="[t.name, { active: t.name === theme }]"
+        @click="onSelectChange('theme', t.name)"
       >
         <div v-html="t.html"></div>
       </div>
     </section>
     <separator></separator>
 
+    <!--
+      M-025.4: hide the followSystemTheme + lightModeTheme/darkModeTheme
+      controls until F-THEME-FOLLOW-SYSTEM is properly ported (needs a
+      `matchMedia('(prefers-color-scheme: dark)')` listener that drives
+      addThemeStyle). Showing a non-functional toggle is anti-UX and
+      previously bricked the manual picker via the click guard above.
+    -->
     <Bool
+      v-if="false"
       :description="t('preferences.theme.followSystemTheme')"
       :bool="followSystemTheme"
       :on-change="(value) => onSelectChange('followSystemTheme', value)"
     />
 
-    <compound v-if="followSystemTheme">
+    <compound v-if="false && followSystemTheme">
       <template #head>
         <h6 class="title">{{ t('preferences.theme.modeThemes') }}</h6>
       </template>

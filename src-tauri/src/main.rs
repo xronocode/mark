@@ -513,13 +513,27 @@ fn main() {
                 // F-DEV-MODE-WHITE-SCREEN diagnostic: dev-only inject
                 // window.onerror + unhandledrejection + console.error
                 // hooks that pipe through `mt_dev_diag` so JS exceptions
-                // surface in backend stderr. Production no-op.
-                #[cfg(debug_assertions)]
-                {
+                // surface in backend stderr. Active when EITHER:
+                //   (a) debug build (`#[cfg(debug_assertions)]` true), OR
+                //   (b) env var `MARK_DEV_DIAG=1` set at launch — release-
+                //       smoke escape hatch added 2026-05-11 alpha.6.3 so
+                //       theme-picker BLOCK_* markers (currently console.log
+                //       only) reach stderr without rebuilding. Hooks
+                //       console.log + console.warn + console.error +
+                //       window.error + unhandledrejection. Defaults OFF in
+                //       release so production users don't see noisy stderr.
+                let dev_diag_via_env = std::env::var_os("MARK_DEV_DIAG")
+                    .map(|v| v != "0" && !v.is_empty())
+                    .unwrap_or(false);
+                if cfg!(debug_assertions) || dev_diag_via_env {
                     let _ = main_win.eval(
                         r#"(() => {
   const post = (payload) => {
     try { window.__TAURI_INTERNALS__?.invoke('mt_dev_diag', { payload }); } catch (_) {}
+  };
+  const _stringify = (a) => {
+    try { return typeof a === 'object' ? JSON.stringify(a) : String(a); }
+    catch { return '[unserializable]'; }
   };
   window.addEventListener('error', (e) => {
     post({ kind: 'error', message: e.message, file: e.filename, line: e.lineno, col: e.colno, stack: e.error?.stack ?? null });
@@ -532,18 +546,26 @@ fn main() {
   });
   const _ce = console.error.bind(console);
   console.error = (...args) => {
-    try {
-      post({ kind: 'console.error', args: args.map(a => {
-        try { return typeof a === 'object' ? JSON.stringify(a) : String(a); }
-        catch { return '[unserializable]'; }
-      })});
-    } catch (_) {}
+    try { post({ kind: 'console.error', args: args.map(_stringify) }); } catch (_) {}
     return _ce(...args);
+  };
+  const _cw = console.warn.bind(console);
+  console.warn = (...args) => {
+    try { post({ kind: 'console.warn', args: args.map(_stringify) }); } catch (_) {}
+    return _cw(...args);
+  };
+  const _cl = console.log.bind(console);
+  console.log = (...args) => {
+    try { post({ kind: 'console.log', args: args.map(_stringify) }); } catch (_) {}
+    return _cl(...args);
   };
   post({ kind: 'hook-installed' });
 })();"#,
                     );
-                    eprintln!("[dev-diag][installed]");
+                    eprintln!(
+                        "[dev-diag][installed via={}]",
+                        if cfg!(debug_assertions) { "debug_cfg" } else { "MARK_DEV_DIAG" }
+                    );
                 }
 
                 // CLI args (`mark file.md` direct invocation): push into
