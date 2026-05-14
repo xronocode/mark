@@ -89,6 +89,12 @@ const getThemeCluster = (themeColor) => {
   return clusters
 }
 
+// F-THEME-DIAG (smoke 2026-05-11): normalize null/undefined for log
+// readability — single helper shared by BLOCK_ENTRY / BLOCK_APPLIED /
+// BLOCK_VERIFY so all three markers display the same sentinels.
+const _formatTheme = (theme) =>
+  theme === null ? 'null' : theme === undefined ? 'undef' : theme
+
 export const addThemeStyle = (theme) => {
   // F-THEME-DIAG (smoke 2026-05-11): track every entry so we can see
   // whether a click → state mutation actually drives the apply step.
@@ -96,9 +102,7 @@ export const addThemeStyle = (theme) => {
   // recognized; default=no CSS gets written and the editor stays on
   // whatever style was painted last (typical symptom: "click does
   // nothing" for a newly-added theme).
-  console.log(
-    `[theme][addThemeStyle][BLOCK_ENTRY theme=${theme === null ? 'null' : theme === undefined ? 'undef' : theme}]`
-  )
+  console.log(`[theme][addThemeStyle][BLOCK_ENTRY theme=${_formatTheme(theme)}]`)
   const isCmRailscasts = railscastsThemes.includes(theme)
   const isCmOneDark = oneDarkThemes.includes(theme)
   const isDarkTheme = isCmOneDark || isCmRailscasts
@@ -220,8 +224,47 @@ export const addThemeStyle = (theme) => {
   // 'light' which intentionally clears it); case=default means the
   // theme name was unrecognized so innerHTML was left untouched.
   console.log(
-    `[theme][addThemeStyle][BLOCK_APPLIED theme=${theme === null ? 'null' : theme === undefined ? 'undef' : theme} case=${_matched ? 'match' : 'default'}]`
+    `[theme][addThemeStyle][BLOCK_APPLIED theme=${_formatTheme(theme)} case=${_matched ? 'match' : 'default'}]`
   )
+  // F-THEME-DIAG-VERIFY (smoke 2026-05-11 alpha.6.5): the prior smoke
+  // confirmed BLOCK_APPLIED case=match fires on every click, BUT both
+  // windows stayed visually unstyled. Probe BOTH the :root cascade
+  // origin AND a consumer element so one smoke cycle localizes the
+  // break to one of three layers:
+  //   :root.editorBg=#... + consumer.bg=#...   → cascade works, both layers see new theme — break is purely visual (paint? compositor?)
+  //   :root.editorBg=#... + consumer.bg=white  → :root got it, consumer doesn't read it (specificity / Vue scoped / Element Plus override)
+  //   :root.editorBg=''                        → innerHTML write didn't propagate to :root (WKWebView parse fail / nested @media / stale stylesheet)
+  // TODO(F-THEME-DIAG-VERIFY): remove this block after root-cause known.
+  try {
+    const cs = getComputedStyle(document.documentElement)
+    const editorBg = cs.getPropertyValue('--editorBgColor').trim()
+    const editorColor = cs.getPropertyValue('--editorColor').trim()
+    const themeColor = cs.getPropertyValue('--themeColor').trim()
+    const inlineLength = themeStyleEle.innerHTML?.length ?? 0
+    const styleElementPresent = !!document.querySelector(`#${THEME_STYLE_ID}`)
+    // Consumer-element probe: pick the highest-LOC user of --editorBgColor
+    // (`.editor-with-tabs` is the main editor surface; falls back through
+    // `.pref-container` for Settings window, then `body`).
+    const consumer =
+      document.querySelector('.editor-with-tabs') ||
+      document.querySelector('.pref-container') ||
+      document.body
+    const consumerSelector = consumer === document.body
+      ? 'body'
+      : consumer.className.split(' ').filter(Boolean)[0] || consumer.tagName.toLowerCase()
+    const consumerCs = getComputedStyle(consumer)
+    const consumerBg = consumerCs.backgroundColor
+    const consumerColor = consumerCs.color
+    console.log(
+      `[theme][addThemeStyle][BLOCK_VERIFY theme=${_formatTheme(theme)} editorBg=${editorBg} editorColor=${editorColor} themeColor=${themeColor} inlineLen=${inlineLength} styleElPresent=${styleElementPresent} consumer=${consumerSelector} consumerBg=${consumerBg} consumerColor=${consumerColor}]`
+    )
+  } catch (e) {
+    console.error('[theme][addThemeStyle][BLOCK_VERIFY_FAILED]', {
+      theme,
+      err: e?.message ?? String(e),
+      stack: e?.stack ?? null
+    })
+  }
 
   // workaround: use dark icons
   document.body.classList.remove('dark')
