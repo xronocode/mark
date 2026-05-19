@@ -947,6 +947,9 @@ const setMarkdownToEditor = ({ markdown: newMarkdown, cursor: newCursor }) => {
     } else {
       editor.value.setMarkdown(newMarkdown)
     }
+    if (!isPreviewMode.value) {
+      nextTick(() => editor.value?.focus())
+    }
   }
 }
 

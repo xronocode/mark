@@ -124,6 +124,9 @@ pub struct PendingOpens {
     pub queue: std::sync::Mutex<Vec<String>>,
     pub drained: std::sync::atomic::AtomicBool,
     pub had_initial_opens: std::sync::atomic::AtomicBool,
+    /// Set by mt_app_quit before calling app.exit(0) so the
+    /// ExitRequested handler lets the exit proceed on the second pass.
+    pub quit_approved: std::sync::atomic::AtomicBool,
 }
 
 impl Default for PendingOpens {
@@ -132,6 +135,7 @@ impl Default for PendingOpens {
             queue: std::sync::Mutex::new(Vec::new()),
             drained: std::sync::atomic::AtomicBool::new(false),
             had_initial_opens: std::sync::atomic::AtomicBool::new(false),
+            quit_approved: std::sync::atomic::AtomicBool::new(false),
         }
     }
 }
@@ -673,6 +677,22 @@ fn main() {
         .build(tauri::generate_context!())
         .expect("error while building tauri application")
         .run(|app, event| {
+            if let tauri::RunEvent::ExitRequested { api, .. } = &event {
+                let state = tauri::Manager::state::<PendingOpens>(app);
+                if state.quit_approved.load(std::sync::atomic::Ordering::SeqCst) {
+                    return;
+                }
+                api.prevent_exit();
+                eprintln!("[m001][lifecycle][BLOCK_EXIT_INTERCEPTED]");
+                if let Some(win) = tauri::Manager::get_webview_window(app, "main") {
+                    let _ = tauri::Emitter::emit(&win, "mt::ask-for-close", ());
+                } else {
+                    state.quit_approved.store(true, std::sync::atomic::Ordering::SeqCst);
+                    app.exit(0);
+                }
+                return;
+            }
+
             // M-025.5: silence unused-variable warnings on non-macOS builds
             // where the entire body below is cfg-gated out. The release CI
             // workflow runs warnings-allowlist check; bare `app`/`event`

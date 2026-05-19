@@ -182,6 +182,8 @@ pub async fn mt_pick_folder(app: tauri::AppHandle) -> Result<Option<String>, Str
 #[tauri::command]
 pub async fn mt_app_quit(app: tauri::AppHandle) -> Result<(), String> {
     eprintln!("[m_app][quit][BLOCK_REQUESTED]");
+    let state = tauri::Manager::state::<crate::PendingOpens>(&app);
+    state.quit_approved.store(true, std::sync::atomic::Ordering::SeqCst);
     app.exit(0);
     Ok(())
 }

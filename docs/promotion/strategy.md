@@ -1,11 +1,15 @@
 # Mark Promotion Strategy
 
 Created: 2026-05-20
-Status: draft — ready for first wave (GitHub presence)
+Status: draft, ready for first wave (GitHub presence)
 
 ## Product positioning
 
-Mark is the spiritual successor to Mark Text (54k+ stars, abandoned 2023).
+**UPDATE 2026-05-20: @Jocs returned to Mark Text (issue #4191, May 12 2026).**
+Mark Text is no longer abandoned. Tkaixiang's fork merged back to upstream.
+All messaging pivots from "successor to dead project" → "native macOS alternative."
+
+Mark is a native Tauri 2 + Rust markdown editor inspired by Mark Text's design philosophy.
 Unique gap: **open-source + native performance + true inline WYSIWYG**.
 
 Key numbers:
@@ -16,14 +20,15 @@ Key numbers:
 - 33 built-in themes
 - MIT license
 
-One-liner: "The WYSIWYG Markdown editor that Mark Text should have become."
+One-liner: "A modern WYSIWYG markdown editor built on Tauri 2 + Rust, inspired by Mark Text's design."
+(Retired: "The WYSIWYG Markdown editor that Mark Text should have become.")
 
 ## Competitive landscape
 
 | Editor | Engine | Size | RAM | Price | OSS | True WYSIWYG | Status |
 |---|---|---|---|---|---|---|---|
 | **Mark** | Tauri 2/Rust | 11 MB | 61 MB | Free | MIT | Yes | Active |
-| Mark Text | Electron | 200 MB | 400 MB | Free | MIT | Yes | Abandoned 2023 |
+| Mark Text | Electron | 200 MB | 400 MB | Free | MIT | Yes | Resumed 2026 |
 | Typora | Electron | 100 MB | 200 MB | $14.99 | No | Yes | Active |
 | Obsidian | Electron | 300 MB | 250 MB | Free/$50yr | No | No | Active |
 | Zettlr | Electron | 100 MB | 200 MB | Free | GPL-3 | Partial | Active |
@@ -33,35 +38,39 @@ One-liner: "The WYSIWYG Markdown editor that Mark Text should have become."
 
 ## Wave 1: GitHub ecosystem presence (NOW)
 
-### 1a. marktext/marktext — comment in abandonment issue
+### 1a. marktext/marktext#4191: Jocs recovery thread
 
-Target: https://github.com/marktext/marktext/issues/3918
+Target: https://github.com/marktext/marktext/issues/4191
 
-Tone: grateful, not self-promotional. Credit the original project.
+Tone: congratulatory on Jocs's return, complementary positioning, NOT competitive.
+Acknowledge Mark Text is alive again. Position Mark as a different technical approach, not a replacement.
 
 ```
-For those looking for an actively maintained alternative:
+Great to see you back, @Jocs! Mark Text's WYSIWYG approach to markdown editing
+has been a huge inspiration for many of us.
 
-I've been building [Mark](https://github.com/xronocode/mark) — a Tauri 2 + Rust
-rewrite that keeps the same muya WYSIWYG engine and UX paradigm but ships as an
-11 MB native macOS app instead of a 200 MB Electron bundle. 792 tests, 33 themes,
-MIT licensed.
+While Mark Text was on hiatus, I started building
+[Mark](https://github.com/xronocode/mark), exploring what the same UX paradigm
+looks like on a native stack (Tauri 2 + Rust + muya). It's currently in alpha on
+macOS: 11 MB on disk, 61 MB RAM, 33 themes, MIT licensed.
+
+Not a replacement for Mark Text. A different technical take on the same idea.
+Would love to hear your thoughts. The muya engine is incredible and none of this
+would exist without your work. 🙏
 
 brew tap xronocode/mark && brew install --cask mark@alpha
-
-This wouldn't exist without the incredible work by @Jocs and the Mark Text
-community. Thank you for muya — it's what makes WYSIWYG markdown editing possible.
 ```
 
 Rules:
 - ONE comment only. Do not spam multiple issues.
 - Do not disparage original maintainers.
 - Do not claim to be "Mark Text 2.0" or imply official affiliation.
+- Do not position as successor/replacement. Jocs is back, Mark Text is alive.
+- Emphasize technical differentiation (Tauri vs Electron), not filling a vacancy.
 
-### 1b. Active forks — check for user demand
+### 1b. Active forks (no longer relevant)
 
-- **Tkaixiang/marktext** — our upstream for Electron stable. Check if they have issues/discussions about future direction.
-- Other forks with recent activity — leave similar respectful comment if they have "alternatives" threads.
+Tkaixiang/marktext merged back into upstream (2026-05-13). No active independent forks to target.
 
 ### 1c. GitHub Discoverability (DONE)
 
@@ -72,9 +81,9 @@ Rules:
 ## Wave 2: Awesome-lists (after Wave 1 settles, ~1 week)
 
 Submit PRs to:
-- [ ] mundimark/awesome-markdown — Editors section
-- [ ] BubuAnabelas/awesome-markdown — Editors section
-- [ ] Awesome-tauri lists — Apps section
+- [ ] mundimark/awesome-markdown: Editors section
+- [ ] BubuAnabelas/awesome-markdown: Editors section
+- [ ] Awesome-tauri lists: Apps section
 
 Format: one-line entry with link + brief description.
 
@@ -89,10 +98,10 @@ Prerequisite: cold start <400ms, bundle <2MB, GIF/video demo recorded.
 - Be prepared to answer: "why not just use Typora/Obsidian/VS Code?"
 
 ### Reddit
-- r/rust — "I rewrote a 200 MB Electron app in Tauri 2 + Rust. Here's what happened."
-- r/macapps — "Mark: native WYSIWYG markdown editor, 11 MB, open source"
-- r/markdown — "Open-source alternative to Mark Text, rebuilt on Tauri 2"
-- r/opensource — project showcase
+- r/rust: "I rewrote a 200 MB Electron app in Tauri 2 + Rust. Here's what happened."
+- r/macapps: "Mark: native WYSIWYG markdown editor, 11 MB, open source"
+- r/markdown: "Open-source alternative to Mark Text, rebuilt on Tauri 2"
+- r/opensource: project showcase
 
 Rules:
 - Stagger posts across 2-3 weeks
@@ -117,13 +126,16 @@ Rules:
 ## Messaging guidelines
 
 DO:
-- "Inspired by Mark Text" or "Continuing the vision of Mark Text"
-- Credit the original project, link to it, acknowledge its community
-- Explain what's different (Tauri 2 vs Electron, active maintenance, performance numbers)
-- Use specific numbers (11 MB, 61 MB, 792 tests) — concrete beats vague
+- "Inspired by Mark Text's design philosophy"
+- "A different technical take on the same idea" (Tauri vs Electron)
+- Credit @Jocs and muya, link to Mark Text
+- Congratulate Jocs's return when relevant
+- Use specific numbers (11 MB, 61 MB, 792 tests). Concrete beats vague
 
 DON'T:
 - Claim to be "Mark Text 2.0" or imply official affiliation
+- Position as "successor" or "replacement". Mark Text is alive again
 - Fork the brand identity
-- Disparage original maintainers for abandoning
+- Disparage original maintainers
 - Spam the same message in multiple places
+- Use "abandoned" language. It's factually wrong now
