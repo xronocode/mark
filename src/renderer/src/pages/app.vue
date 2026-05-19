@@ -91,18 +91,16 @@ const hasCurrentFile = computed(() => {
 })
 
 // Watchers
-watch(theme, (value, oldValue) => {
-  if (value !== oldValue) {
+watch(theme, (value) => {
+  try {
     addThemeStyle(value)
+  } catch (e) {
+    console.error('[app][theme-watcher] failed:', value, e)
   }
 })
 
-watch(customCss, (value, oldValue) => {
-  if (value !== oldValue) {
-    addCustomStyle({
-      customCss: value
-    })
-  }
+watch(customCss, (value) => {
+  addCustomStyle({ customCss: value })
 })
 
 watch(zoom, (zoomValue) => {

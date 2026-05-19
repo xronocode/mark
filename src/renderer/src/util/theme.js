@@ -11,7 +11,6 @@ import {
   materialDark,
   oneDark,
   ulysses,
-  // New gogh themes - Dark
   dracula,
   nord,
   catppuccinMocha,
@@ -32,7 +31,6 @@ import {
   kanagawa,
   nightfox,
   cyberdream,
-  // New gogh themes - Light
   catppuccinLatte,
   gruvboxLight,
   tokyoNightLight,
@@ -42,6 +40,41 @@ import {
   rosePineDawn
 } from './themeColor'
 import { isLinux } from './index'
+
+const themeMap = {
+  'dark': dark,
+  'material-dark': materialDark,
+  'ulysses': ulysses,
+  'graphite': graphite,
+  'one-dark': oneDark,
+  'dracula': dracula,
+  'nord': nord,
+  'catppuccin-mocha': catppuccinMocha,
+  'gruvbox-dark': gruvboxDark,
+  'tokyo-night': tokyoNight,
+  'tokyo-night-storm': tokyoNightStorm,
+  'solarized-dark': solarizedDark,
+  'ayu-dark': ayuDark,
+  'ayu-mirage': ayuMirage,
+  'everforest-dark': everforestDark,
+  'rose-pine': rosePine,
+  'rose-pine-moon': rosePineMoon,
+  'monokai-pro': monokaiPro,
+  'synthwave-84': synthwave84,
+  'horizon-dark': horizonDark,
+  'palenight': palenight,
+  'oxocarbon-dark': oxocarbonDark,
+  'kanagawa': kanagawa,
+  'nightfox': nightfox,
+  'cyberdream': cyberdream,
+  'catppuccin-latte': catppuccinLatte,
+  'gruvbox-light': gruvboxLight,
+  'tokyo-night-light': tokyoNightLight,
+  'solarized-light': solarizedLight,
+  'ayu-light': ayuLight,
+  'everforest-light': everforestLight,
+  'rose-pine-dawn': rosePineDawn
+}
 
 const patchTheme = (css) => {
   return `@media not print {\n${css}\n}`
@@ -53,128 +86,32 @@ const getEmojiPickerPatch = () => {
     : ''
 }
 
+const getOrCreateStyleEl = (id) => {
+  let el = document.querySelector(`#${id}`)
+  if (!el) {
+    el = document.createElement('style')
+    el.id = id
+    document.head.appendChild(el)
+  }
+  return el
+}
+
 export const addThemeStyle = (theme) => {
+  if (!theme || typeof theme !== 'string') return
+
   const isCmRailscasts = railscastsThemes.includes(theme)
   const isCmOneDark = oneDarkThemes.includes(theme)
   const isDarkTheme = isCmOneDark || isCmRailscasts
-  let themeStyleEle = document.querySelector(`#${THEME_STYLE_ID}`)
-  if (!themeStyleEle) {
-    themeStyleEle = document.createElement('style')
-    themeStyleEle.id = THEME_STYLE_ID
-    document.head.appendChild(themeStyleEle)
-  }
+  const themeStyleEle = getOrCreateStyleEl(THEME_STYLE_ID)
 
-  switch (theme) {
-    case 'light':
-      themeStyleEle.textContent = ''
-      break
-    case 'dark':
-      themeStyleEle.textContent = patchTheme(dark())
-      break
-    case 'material-dark':
-      themeStyleEle.textContent = patchTheme(materialDark())
-      break
-    case 'ulysses':
-      themeStyleEle.textContent = patchTheme(ulysses())
-      break
-    case 'graphite':
-      themeStyleEle.textContent = patchTheme(graphite())
-      break
-    case 'one-dark':
-      themeStyleEle.textContent = patchTheme(oneDark())
-      break
-    case 'dracula':
-      themeStyleEle.textContent = patchTheme(dracula())
-      break
-    case 'nord':
-      themeStyleEle.textContent = patchTheme(nord())
-      break
-    case 'catppuccin-mocha':
-      themeStyleEle.textContent = patchTheme(catppuccinMocha())
-      break
-    case 'gruvbox-dark':
-      themeStyleEle.textContent = patchTheme(gruvboxDark())
-      break
-    case 'tokyo-night':
-      themeStyleEle.textContent = patchTheme(tokyoNight())
-      break
-    case 'tokyo-night-storm':
-      themeStyleEle.textContent = patchTheme(tokyoNightStorm())
-      break
-    case 'solarized-dark':
-      themeStyleEle.textContent = patchTheme(solarizedDark())
-      break
-    case 'ayu-dark':
-      themeStyleEle.textContent = patchTheme(ayuDark())
-      break
-    case 'ayu-mirage':
-      themeStyleEle.textContent = patchTheme(ayuMirage())
-      break
-    case 'everforest-dark':
-      themeStyleEle.textContent = patchTheme(everforestDark())
-      break
-    case 'rose-pine':
-      themeStyleEle.textContent = patchTheme(rosePine())
-      break
-    case 'rose-pine-moon':
-      themeStyleEle.textContent = patchTheme(rosePineMoon())
-      break
-    case 'monokai-pro':
-      themeStyleEle.textContent = patchTheme(monokaiPro())
-      break
-    case 'synthwave-84':
-      themeStyleEle.textContent = patchTheme(synthwave84())
-      break
-    case 'horizon-dark':
-      themeStyleEle.textContent = patchTheme(horizonDark())
-      break
-    case 'palenight':
-      themeStyleEle.textContent = patchTheme(palenight())
-      break
-    case 'oxocarbon-dark':
-      themeStyleEle.textContent = patchTheme(oxocarbonDark())
-      break
-    case 'kanagawa':
-      themeStyleEle.textContent = patchTheme(kanagawa())
-      break
-    case 'nightfox':
-      themeStyleEle.textContent = patchTheme(nightfox())
-      break
-    case 'cyberdream':
-      themeStyleEle.textContent = patchTheme(cyberdream())
-      break
-    case 'catppuccin-latte':
-      themeStyleEle.textContent = patchTheme(catppuccinLatte())
-      break
-    case 'gruvbox-light':
-      themeStyleEle.textContent = patchTheme(gruvboxLight())
-      break
-    case 'tokyo-night-light':
-      themeStyleEle.textContent = patchTheme(tokyoNightLight())
-      break
-    case 'solarized-light':
-      themeStyleEle.textContent = patchTheme(solarizedLight())
-      break
-    case 'ayu-light':
-      themeStyleEle.textContent = patchTheme(ayuLight())
-      break
-    case 'everforest-light':
-      themeStyleEle.textContent = patchTheme(everforestLight())
-      break
-    case 'rose-pine-dawn':
-      themeStyleEle.textContent = patchTheme(rosePineDawn())
-      break
-    default:
-      break
-  }
+  const themeFn = themeMap[theme]
+  themeStyleEle.textContent = themeFn ? patchTheme(themeFn()) : ''
 
-  // workaround: use dark icons
   document.body.classList.remove('dark')
   if (isDarkTheme) {
     document.body.classList.add('dark')
   }
 
-  // change CodeMirror theme
   const cm = document.querySelector('.CodeMirror')
   if (cm) {
     cm.classList.remove('cm-s-default')
@@ -191,50 +128,23 @@ export const addThemeStyle = (theme) => {
 }
 
 export const setWrapCodeBlocks = (value) => {
-  const CODE_WRAP_STYLE_ID = 'ag-code-wrap'
-  let result = ''
-  if (value) {
-    result =
-      '.ag-code-content { display: block; white-space: pre-wrap; word-break: break-word; overflow: hidden; }'
-  } else {
-    result =
-      '.ag-code-content { display: block; white-space: pre; word-break: break-word; overflow: auto; }'
-  }
-  let styleEle = document.querySelector(`#${CODE_WRAP_STYLE_ID}`)
-  if (!styleEle) {
-    styleEle = document.createElement('style')
-    styleEle.setAttribute('id', CODE_WRAP_STYLE_ID)
-    document.head.appendChild(styleEle)
-  }
-
-  styleEle.textContent = result
+  const result = value
+    ? '.ag-code-content { display: block; white-space: pre-wrap; word-break: break-word; overflow: hidden; }'
+    : '.ag-code-content { display: block; white-space: pre; word-break: break-word; overflow: auto; }'
+  getOrCreateStyleEl('ag-code-wrap').textContent = result
 }
 
 export const setEditorWidth = (value) => {
-  const EDITOR_WIDTH_STYLE_ID = 'editor-width'
   let result = ''
   if (value && /^[0-9]+(?:ch|px|%)$/.test(value)) {
-    // Overwrite the theme value and add 100px for padding.
     result = `:root { --editorAreaWidth: calc(100px + ${value}); }`
   }
-  let styleEle = document.querySelector(`#${EDITOR_WIDTH_STYLE_ID}`)
-  if (!styleEle) {
-    styleEle = document.createElement('style')
-    styleEle.setAttribute('id', EDITOR_WIDTH_STYLE_ID)
-    document.head.appendChild(styleEle)
-  }
-
-  styleEle.textContent = result
+  getOrCreateStyleEl('editor-width').textContent = result
 }
 
 export const addCommonStyle = (options) => {
   const { codeFontFamily, codeFontSize, hideScrollbar } = options
-  let sheet = document.querySelector(`#${COMMON_STYLE_ID}`)
-  if (!sheet) {
-    sheet = document.createElement('style')
-    sheet.id = COMMON_STYLE_ID
-    document.head.appendChild(sheet)
-  }
+  const sheet = getOrCreateStyleEl(COMMON_STYLE_ID)
 
   let scrollbarStyle = ''
   if (hideScrollbar) {
@@ -260,17 +170,9 @@ ${getEmojiPickerPatch()}
 export const addCustomStyle = (options) => {
   const { customCss } = options
   if (!customCss) return
-
-  let customStyleEle = document.querySelector('#custom-styles')
-  if (!customStyleEle) {
-    customStyleEle = document.createElement('style')
-    customStyleEle.id = 'custom-styles'
-    document.head.appendChild(customStyleEle)
-  }
-  customStyleEle.textContent = customCss
+  getOrCreateStyleEl('custom-styles').textContent = customCss
 }
 
-// Append common sheet and theme at the end of head - order is important.
 export const addStyles = (options) => {
   const { theme } = options
   addThemeStyle(theme)

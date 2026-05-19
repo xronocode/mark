@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia'
+import { invoke } from '@tauri-apps/api/core'
 import bus from '../bus'
 import notice from '../services/notification'
 import { setLanguage } from '../i18n'
@@ -137,8 +138,8 @@ export const usePreferencesStore = defineStore('preferences', {
     SET_USER_PREFERENCE(preference) {
       const oldLanguage = this.language
 
-      const keys = preference && typeof preference === 'object' ? Object.keys(preference) : []
-      keys.forEach((key) => {
+      const prefKeys = preference && typeof preference === 'object' ? Object.keys(preference) : []
+      prefKeys.forEach((key) => {
         if (typeof preference[key] !== 'undefined' && typeof this[key] !== 'undefined') {
           this[key] = preference[key]
         }
@@ -162,7 +163,6 @@ export const usePreferencesStore = defineStore('preferences', {
      */
     async ASK_FOR_USER_PREFERENCE() {
       try {
-        const { invoke } = await import('@tauri-apps/api/core')
         const prefs = await invoke('mt_prefs_get_all')
         if (prefs && typeof prefs === 'object') {
           this.SET_USER_PREFERENCE(prefs)
@@ -174,20 +174,19 @@ export const usePreferencesStore = defineStore('preferences', {
     },
 
     async SET_SINGLE_PREFERENCE({ type, value }) {
-      if (typeof this[type] === 'undefined') return
+      if (typeof this[type] === 'undefined') {
+        if (import.meta.env.DEV) {
+          console.warn(`[prefs] SET_SINGLE_PREFERENCE: unknown key "${type}"`)
+        }
+        return
+      }
       this[type] = value
 
-      // Update i18n language if language preference changed
       if (type === 'language') {
         setLanguage(value)
       }
 
-      // Persist + broadcast via backend. Backend persists to prefs.json
-      // and emits mt::user-preference to all windows; the boot-time
-      // listener in bootstrap-ipc.js folds the broadcast into store
-      // state for OTHER windows.
       try {
-        const { invoke } = await import('@tauri-apps/api/core')
         await invoke('mt_prefs_set', { key: type, value })
         console.log(`[ipc][prefs_set][BLOCK_INVOKE_OK key=${type}]`)
       } catch (e) {
@@ -197,7 +196,6 @@ export const usePreferencesStore = defineStore('preferences', {
 
     async SET_USER_DATA({ type, value }) {
       try {
-        const { invoke } = await import('@tauri-apps/api/core')
         await invoke('mt_prefs_set', { key: type, value })
       } catch (e) {
         console.error(`[ipc][prefs_set][BLOCK_INVOKE_FAILED user_data key=${type}]`, e)
@@ -242,7 +240,6 @@ export const usePreferencesStore = defineStore('preferences', {
     // refreshed on Settings panel mount and after each set/unset.
     async REFRESH_DEFAULT_MD_HANDLER() {
       try {
-        const { invoke } = await import('@tauri-apps/api/core')
         const result = await invoke('mt_get_default_md_handler')
         if (result && typeof result === 'object') {
           this.defaultMdHandler = {
@@ -260,7 +257,6 @@ export const usePreferencesStore = defineStore('preferences', {
 
     async SET_DEFAULT_MD_HANDLER() {
       try {
-        const { invoke } = await import('@tauri-apps/api/core')
         await invoke('mt_set_default_md_handler')
         console.debug('[prefs][handler][BLOCK_SET_OK]')
         await this.REFRESH_DEFAULT_MD_HANDLER()
@@ -281,7 +277,6 @@ export const usePreferencesStore = defineStore('preferences', {
 
     async UNSET_DEFAULT_MD_HANDLER() {
       try {
-        const { invoke } = await import('@tauri-apps/api/core')
         await invoke('mt_unset_default_md_handler')
         console.debug('[prefs][handler][BLOCK_UNSET_OK]')
         await this.REFRESH_DEFAULT_MD_HANDLER()
