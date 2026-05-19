@@ -1,5 +1,5 @@
 <KnowledgeGraph>
-  <Project NAME="marktext-modernized" VERSION="0.2.0">
+  <Project NAME="marktext-modernized" VERSION="0.3.0">
     <keywords>markdown, editor, wysiwyg, electron, tauri, vue3, muya, macos, homebrew, port, modernization</keywords>
     <annotation>Phase-A (Electron 30 + Vue 3) and Phase-B (Tauri v2 + Rust) module graph. Phase-A retains upstream structure (src/main, src/renderer, src/muya, src/common) and is represented only by muya (M-012) and renderer (M-011) here. Phase-B introduces Rust backend modules M-001..M-010 plus the IPC bridge M-013.</annotation>
     <ClosureDocuments index="2026-04-29">
@@ -27,6 +27,8 @@
         <sub-module name="m001_lifecycle" path="src-tauri/src/m001_lifecycle.rs" purpose="CloseStateMachine (8 states), MenuGeneration AtomicU64, ReplayPolicy enum; types only at B1, runtime hooks deferred to B2/B3 (F-LIFECYCLE-WIRE, F-MENU-GEN-WIRE, F-REPLAY-POLICY-WIRE)" phase="B1-step-11" />
         <sub-module name="m_v1_compat" path="src-tauri/src/m_v1_compat.rs" purpose="Tauri-side stubs for v1.2.3 IPC channels not yet ported to dedicated modules. After Path B-clean M-3 (commit 014218fb 2026-05-09) holds the remaining 13 shims: mt_app_quit, mt_close_project_root, mt_cmd_open_file, mt_cmd_open_folder, mt_open_file, mt_open_setting_window, mt_pick_folder, mt_request_keybindings, mt_request_window_content_size, mt_set_user_data, mt_set_user_preference, mt_update_sidebar_menu, mt_view_layout_changed. Each is a thin shim around a canonical or future-canonical destination." phase="F-MAIN-ENTRY-DISABLED-runtime-debug-2026-04-29" />
         <sub-module name="m005_migrate" path="src-tauri/src/m005_migrate/" purpose="F-PREFS-MIGRATE-V1 9-step migration pipeline: snapshot reader → preferences/dataCenter/keybindings/recent_docs migrators → keychain rename → orchestrator runner with lockfile + 16 MiB size guard → main.rs gate replacement → e2e fixture harness. 286/286 tests; replaces the MT_PREFS_V1_RUNNING stub abort." phase="F-PREFS-MIGRATE-V1-2026-04-29" />
+        <sub-module name="m001_save_close" path="src-tauri/src/m001_save_close.rs" purpose="Save/close IPC bridge: mt_response_file_save, mt_response_file_save_as, mt_save_and_close_tabs, mt_close_window, mt_close_window_confirm. wire_close_handler registers WindowEvent::CloseRequested handler that prevents default close and emits mt::ask-for-close. SavedTabState return type for canonical save flow." phase="B4-pre-alpha-step-3" />
+        <sub-module name="m021_default_handler" path="src-tauri/src/m021_default_handler.rs" purpose="macOS .md default-handler registration: mt_set_default_md_handler, mt_get_default_md_handler, mt_unset_default_md_handler. Uses LSSetDefaultRoleHandlerForContentType via Objective-C bridge." phase="B4-pre-alpha-add" />
       </sub-modules>
       <depends>M-002, M-003, M-004, M-005, M-006, M-007, M-008, M-009, M-010, M-014, M-015, M-016, M-017, M-018, M-019, M-020, M-013b</depends>
       <verification-ref>V-M-001</verification-ref>
@@ -42,6 +44,7 @@
         <type-MenuGeneration PURPOSE="AtomicU64 counter; bump_menu_generation/check_stale; emits BLOCK_MENU_GENERATION_BUMPED + BLOCK_STALE_MENU_GENERATION" />
         <type-ReplayPolicy PURPOSE="Replay/DropAfterCleanup/DropIfBusy enum + should_deliver(policy, current_state)" />
         <type-IpcError PURPOSE="m001_pdf-side UnsupportedError envelope; distinct from M-013b's MT_NOT_IMPLEMENTED — code MT_UNSUPPORTED" />
+        <fn-exit_requested_handler PURPOSE="RunEvent::ExitRequested interceptor in main.rs run callback. Prevents immediate exit, emits mt::ask-for-close to trigger dirty-tab dialog. Checks PendingOpens.quit_approved flag to allow confirmed exits through. Handles no-window case by force-exiting." />
       </annotations>
       <stub-ship-evidence commits="3c6afbc,b1166c2,a3cfe0a,6346130,c1a8597a,3b531150,94e84966,995ee2e,7630851b" date="2026-04-28">
         <files-shipped>5 sub-modules @ 1217 LOC + main.rs wiring (186 LOC); 11 #[tauri::command] handlers registered (10 m013b + 1 m001_pdf)</files-shipped>
@@ -390,11 +393,59 @@
       <depends>M-021 (default-handler), M-024 (BOOT_T0 anchor)</depends>
       <verification-ref>V-M-025</verification-ref>
       <annotations>
-        <type-PendingOpens PURPOSE="AppState struct: { queue: Mutex&lt;Vec&lt;String&gt;&gt;, drained: AtomicBool }; SeqCst ordering" />
+        <type-PendingOpens PURPOSE="AppState struct: { queue: Mutex&lt;Vec&lt;String&gt;&gt;, drained: AtomicBool, had_initial_opens: AtomicBool, quit_approved: AtomicBool }; SeqCst ordering. quit_approved: two-phase exit flag set by mt_app_quit before app.exit(0) so ExitRequested handler can let the confirmed exit proceed." />
         <fn-mt_drain_pending_opens PURPOSE="Drain queue snapshot; flip drained=true; return Vec&lt;String&gt; to renderer" />
         <fn-setupIpcListeners PURPOSE="Register all 9 listen() calls via Promise.all; emit BLOCK_LISTENERS_READY; invoke drain at top-level (parallel with Vue mount); preserve V-M-022 previewMode flow" />
       </annotations>
     </M-025>
+
+    <M-026 NAME="perf-lazy-renderers" TYPE="CORE_LOGIC" STATUS="planned" PHASE-REF="B5-perf-wave2">
+      <purpose>Convert eager imports of Mermaid/Vega/Cytoscape/KaTeX/plantuml/flowchart/sequence in muya parser/render to dynamic import() triggered by first occurrence. ~2.5MB initial bundle savings.</purpose>
+      <path>src/muya/lib/parser/render/</path>
+      <depends>M-012</depends>
+      <verification-ref>V-M-026</verification-ref>
+    </M-026>
+
+    <M-027 NAME="perf-element-plus-treeshake" TYPE="UI_COMPONENT" STATUS="planned" PHASE-REF="B5-perf-wave2">
+      <purpose>Replace app.use(ElementPlus) with per-component imports. Audit actual usage across all .vue files. ~600KB bundle savings.</purpose>
+      <path>src/renderer/src/main.js</path>
+      <depends>M-011</depends>
+      <verification-ref>V-M-027</verification-ref>
+    </M-027>
+
+    <M-028 NAME="perf-muya-defer" TYPE="UI_COMPONENT" STATUS="planned" PHASE-REF="B5-perf-wave3">
+      <purpose>Defer muya init for non-active tabs via requestIdleCallback. Active tab: synchronous. Background tab: placeholder first, muya inits on idle within 2s timeout.</purpose>
+      <path>src/renderer/src/components/editorWithTabs/editor.vue</path>
+      <depends>M-012, M-011</depends>
+      <verification-ref>V-M-028</verification-ref>
+    </M-028>
+
+    <M-029 NAME="perf-window-state" TYPE="INTEGRATION" STATUS="planned" PHASE-REF="B5-perf-wave3">
+      <purpose>Add tauri-plugin-window-state to persist/restore window geometry across launches. Eliminates resize jank on second launch.</purpose>
+      <path>src-tauri/Cargo.toml, src-tauri/src/main.rs</path>
+      <depends>M-001</depends>
+      <verification-ref>V-M-029</verification-ref>
+    </M-029>
+
+    <M-030 NAME="perf-bench-harness" TYPE="UTILITY" STATUS="planned" PHASE-REF="B5-perf-wave3">
+      <purpose>Instrument BLOCK_* markers with elapsed_ms since BOOT_T0. tools/bench-launch.mjs parses markers and produces waterfall report. CI regression gate at 10% threshold.</purpose>
+      <path>tools/bench-launch.mjs, src-tauri/src/m001_panic.rs</path>
+      <depends>M-024, M-025</depends>
+      <verification-ref>V-M-030</verification-ref>
+    </M-030>
+
+    <M-031 NAME="diff-view" TYPE="UI_COMPONENT" STATUS="planned" PHASE-REF="B6-diff">
+      <purpose>Inline and side-by-side diff view mode using CodeMirror 5 MergeView addon + diff-match-patch. Shows changes between baseline (git HEAD or .before file) and current editor content. Key component of Claude-Mark agent pipeline.</purpose>
+      <path>src/renderer/src/components/editorWithTabs/diffView.vue</path>
+      <depends>M-011, M-012, M-010</depends>
+      <verification-ref>V-M-031</verification-ref>
+      <annotations>
+        <fn-mt_diff_baseline PURPOSE="Rust command: read .before file or git show HEAD:path. Returns baseline text string. Validated through SecurityCtx (M-010 sandbox)." />
+        <fn-diffView PURPOSE="Vue component: CodeMirror MergeView with original (baseline) and current (modified) panes. Read-only. Inline/side-by-side toggle. Themed via railscasts/one-dark." />
+        <fn-toggleDiffMode PURPOSE="Bus event handler for view.diff-mode toggle. Loads baseline via mt_diff_baseline, switches index.vue to show diffView.vue." />
+        <type-DiffBaseline PURPOSE="{ source: 'git' | 'file' | 'ipc', content: string, path: string }" />
+      </annotations>
+    </M-031>
 
     <M-901 NAME="grace-context-hygiene-policy" TYPE="PROCESS_POLICY" STATUS="implemented">
       <purpose>GRACE-compatible AI Standards token/session hygiene overlay with context modes, precedence rules, and escalation triggers.</purpose>
@@ -557,7 +608,15 @@
     <CrossLink from="M-024" to="M-001" relation="dismounts-after-vue-mount" />
     <CrossLink from="M-025" to="M-024" relation="consumes-BOOT_T0-anchor-for-elapsed_ms" />
     <CrossLink from="M-025" to="M-021" relation="ready-signal-via-drained-AtomicBool" />
-    <CrossLink from="M-030" to="M-024" relation="reads-window-BOOT_T0-via-bootMark" pending="true" />
-    <CrossLink from="M-030" to="M-025" relation="consumes-pending-opens-elapsed_ms-markers" pending="true" />
+    <CrossLink from="M-026" to="M-012" relation="lazy-loads-renderers-from" />
+    <CrossLink from="M-027" to="M-011" relation="treeshakes-imports-in" />
+    <CrossLink from="M-028" to="M-012" relation="defers-init-of" />
+    <CrossLink from="M-028" to="M-011" relation="renders-placeholder-in" />
+    <CrossLink from="M-029" to="M-001" relation="restores-geometry-before-mount" />
+    <CrossLink from="M-030" to="M-024" relation="reads-window-BOOT_T0-via-bootMark" />
+    <CrossLink from="M-030" to="M-025" relation="consumes-pending-opens-elapsed_ms-markers" />
+    <CrossLink from="M-031" to="M-011" relation="renders-diff-in-editor-container" />
+    <CrossLink from="M-031" to="M-012" relation="reads-current-markdown-from" />
+    <CrossLink from="M-031" to="M-010" relation="validates-baseline-path-via" />
   </Project>
 </KnowledgeGraph>

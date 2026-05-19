@@ -207,6 +207,12 @@
       <AUTONOMY>autonomous — schema-versioned baseline JSON, lockfile, median-of-2 with retry; baseline-regen requires human approval</AUTONOMY>
     </matrix-row>
 
+    <matrix-row MODULE="M-031" V-M="V-M-031" PRIORITY="high" SCENARIOS="10" EC="14" ALM="12" NA="7" RTA="6" PHF="1" WAF="1">
+      <VF-COVERAGE>VF-agent-diff-review</VF-COVERAGE>
+      <GATE>Gate-Phase-B6-agent-pipeline</GATE>
+      <AUTONOMY>partial — CodeMirror MergeView integration + SecurityCtx sandbox check for .before path; review diff-match-patch wiring and baseline resolution logic</AUTONOMY>
+    </matrix-row>
+
     <matrix-row MODULE="M-901" V-M="V-M-901" PRIORITY="high" SCENARIOS="3" EC="5" ALM="3" NA="2" RTA="1" PHF="0" WAF="1">
       <VF-COVERAGE>V-GH-001, V-GH-002</VF-COVERAGE>
       <GATE>Gate-Phase-H</GATE>
@@ -258,20 +264,21 @@
       <gate PHASE="Phase-B5-perf-wave1" MODULES="M-024, M-025" GATE-ID="Gate-Phase-B5-perf-wave1" VERIFICATION="V-M-024, V-M-025" STATUS="pending" />
       <gate PHASE="Phase-B5-perf-wave2" MODULES="M-026, M-027" GATE-ID="Gate-Phase-B5-perf-wave2" VERIFICATION="V-M-026, V-M-027" STATUS="pending" />
       <gate PHASE="Phase-B5-perf-wave3" MODULES="M-028, M-029, M-030" GATE-ID="Gate-Phase-B5-perf-wave3" VERIFICATION="V-M-028, V-M-029, V-M-030" STATUS="pending" />
+      <gate PHASE="Phase-B6-agent-pipeline" MODULES="M-031" GATE-ID="Gate-Phase-B6-agent-pipeline" VERIFICATION="V-M-031" STATUS="design" />
     </phase-gate-matrix>
 
     <coverage-summary>
-      <metric name="total-modules">37</metric>
-      <metric name="total-V-M-entries">37</metric>
-      <metric name="total-VF-flows">21</metric>
-      <metric name="total-scenarios">161</metric>
-      <metric name="total-edge-cases">325</metric>
-      <metric name="total-trace-assertions">56</metric>
-      <metric name="total-negative-assertions">115</metric>
-      <metric name="total-log-markers-catalogued">149</metric>
-      <metric name="phase-gates">14</metric>
-      <metric name="autonomous-safe-modules">24 of 37</metric>
-      <metric name="modules-with-full-coverage">37 of 37 (100%)</metric>
+      <metric name="total-modules">38</metric>
+      <metric name="total-V-M-entries">38</metric>
+      <metric name="total-VF-flows">22</metric>
+      <metric name="total-scenarios">171</metric>
+      <metric name="total-edge-cases">339</metric>
+      <metric name="total-trace-assertions">62</metric>
+      <metric name="total-negative-assertions">122</metric>
+      <metric name="total-log-markers-catalogued">161</metric>
+      <metric name="phase-gates">15</metric>
+      <metric name="autonomous-safe-modules">24 of 38</metric>
+      <metric name="modules-with-full-coverage">38 of 38 (100%)</metric>
     </coverage-summary>
   </VerificationMatrix>
 
@@ -2035,8 +2042,8 @@
         <file>src-tauri/src/m021_default_handler.rs (#[cfg(test)] mod tests)</file>
       </test-files>
       <module-checks>
-        <check-1>cd src-tauri && cargo test --bin mark m021_default_handler</check-1>
-        <check-2>cd src-tauri && cargo build --release --bin mark (warnings-allowlist gate)</check-2>
+        <check-1>cd src-tauri &amp;&amp; cargo test --bin mark m021_default_handler</check-1>
+        <check-2>cd src-tauri &amp;&amp; cargo build --release --bin mark (warnings-allowlist gate)</check-2>
       </module-checks>
       <scenarios>
         <scenario-S-01 kind="success">Set registers our bundle in LSHandlers for both UTIs (net.daringfireball.markdown + public.markdown).</scenario-S-01>
@@ -2610,7 +2617,7 @@
         cd src-tauri &amp;&amp; cargo test --test window_state; cargo test --test window_state_geometry; cargo test (full backend); E2E=1 pnpm exec playwright test tests/e2e/window-restore.spec.ts; E2E=1 pnpm exec playwright test tests/e2e/window-state-corrupt.spec.ts; bash tests/perf/window-restore-latency.sh; manual: tests/manual/multi-display-checklist.md; inspect: `cat ~/Library/Application\ Support/com.xronocode.mark/.window-state.json | jq`; reset: `rm ~/Library/Application\ Support/com.xronocode.mark/.window-state.json`.
       </module-local-commands>
       <integration>
-        V-M-001: plugin's on_window_event registers ALONGSIDE M-001 close handler (both fire on CloseRequested). V-M-024: pre-mount restore → splash sees correct frame; no "splash at default size then resize" jank. M-021: capability audit — plugin commands `plugin:window-state|<cmd>` MUST not collide with M-021 invoke handlers (grep `#[tauri::command]` for `restore_state`, `save_state`, `save_window_state`); plugin commands NOT exposed to renderer via capabilities.
+        V-M-001: plugin's on_window_event registers ALONGSIDE M-001 close handler (both fire on CloseRequested). V-M-024: pre-mount restore → splash sees correct frame; no "splash at default size then resize" jank. M-021: capability audit — plugin commands `plugin:window-state|cmd` MUST not collide with M-021 invoke handlers (grep `#[tauri::command]` for `restore_state`, `save_state`, `save_window_state`); plugin commands NOT exposed to renderer via capabilities.
       </integration>
       <open-questions>
         <Q1>Restore as minimized when quit-while-minimized? Recommendation: NO — restore as normal (override plugin default).</Q1>
@@ -2694,6 +2701,146 @@
       </ai-friendliness>
       <verification-level>module-local: bench-harness meta-test on every commit; cargo test boot_marker on every commit. Wave-level: bench:ci on PRs touching src-tauri or src/renderer (perf-gate.yml). Phase-C closeout: full waterfall report + baseline freshness check before alpha.7+1 ship.</verification-level>
     </V-M-030>
+
+    <!--
+      ============================================================
+      V-M-031 — Phase-B6-agent-pipeline: diff-view for Claude Code
+      agent review workflow
+      ============================================================
+      Source: M-031 design — CodeMirror 5 MergeView + diff-match-patch
+      diffing engine. Key component of the Claude Code agent pipeline:
+      Claude writes markdown → opens in Mark → user reviews diff of
+      changes → edits/saves → Claude detects changes via file watcher.
+
+      Dependencies: CodeMirror 5 MergeView addon (already bundled at
+      node_modules/codemirror/addon/merge/merge.js, ~38KB), diff-match-patch
+      npm library (~8KB gzip). Vue component pattern follows sourceCode.vue.
+      Rust command mt_diff_baseline resolves baseline from .before sibling
+      file or `git show HEAD:path`. Toggle via Cmd+D in editorWithTabs.
+
+      Cross-module contracts:
+      - V-M-010 SecurityCtx: .before path MUST pass sandbox validation
+        (no traversal outside allowed roots).
+      - V-M-011 editorWithTabs/index.vue: Cmd+D toggle coexists with
+        WYSIWYG/sourceCode mode switching without state corruption.
+      - V-M-012 muya: editor state preserved across diff-mode enter/exit
+        (muya instance NOT destroyed, only hidden).
+      - V-M-024 splash: diff-view lazy-loaded; no impact on cold-launch.
+      - V-M-025 pending-opens: auto-diff detection (.before file present)
+        triggers diff mode AFTER file fully opened and rendered.
+    -->
+
+    <V-M-031 MODULE="M-031 diff-view" PRIORITY="high" wave="alpha.8" status="design">
+      <followup-ref>F-DIFF-VIEW</followup-ref>
+      <prereq>V-M-010 (SecurityCtx sandbox for .before path resolution), V-M-011 (editorWithTabs mode switching contract), V-M-012 (muya state preservation across mode transitions), V-M-002 (fs commands for .before file reading), V-M-003 (watcher integration for live diff refresh on external changes)</prereq>
+      <module-surface>
+        Renderer: src/renderer/src/components/editorWithTabs/diffView.vue — new Vue SFC wrapping CodeMirror 5 MergeView addon. Pattern follows existing src/renderer/src/components/editorWithTabs/sourceCode.vue (shared editor chrome, lifecycle hooks, theme wiring). MergeView instantiated with `origLeft` (baseline) and `value` (current content), using diff-match-patch as the diff algorithm provider. Supports inline (combined pane, default) and side-by-side (two-pane, toggle via toolbar button) modes with synchronized scrolling.
+        Renderer: src/renderer/src/components/editorWithTabs/index.vue — extended with third editor mode 'diff' alongside 'wysiwyg' and 'sourceCode'. Cmd+D keyboard shortcut toggles diff mode on/off. When entering diff mode, current content captured and baseline fetched via Tauri invoke `mt_diff_baseline`. When exiting, previous mode (wysiwyg or sourceCode) restored. diffView component conditionally mounted via v-if alongside existing editor components.
+        Renderer: src/renderer/src/store/editor.js — per-tab state extended with `diffMode: boolean`, `diffBaseline: string|null`, `diffBaselineSource: 'file'|'git'|null` fields. Tab state persisted across tab switches.
+        Backend: src-tauri/src/m031_diff.rs — new Tauri command `mt_diff_baseline` accepting file path, returning `{ baseline: String, source: "file"|"git" }`. Resolution order: (1) check for `{path}.before` sibling file, (2) if in git repo, attempt `git show HEAD:{relative_path}`, (3) return error with reason. All paths validated through SecurityCtx sandbox. Git invocation uses `std::process::Command` with timeout.
+        Backend: src-tauri/src/main.rs — register `mt_diff_baseline` in Builder invoke_handler chain.
+        Dependencies: `diff-match-patch` npm package (new, ~8KB gzip); `codemirror/addon/merge/merge.js` (already installed, ~38KB); `codemirror/addon/merge/merge.css` (already installed).
+        Auto-detect: when a file is opened and a `.before` sibling exists, diff mode is automatically suggested/activated (configurable via preference `autoDiffOnBeforeFile`, default true).
+      </module-surface>
+      <high-level-scenarios>
+        <S1>inline-diff-additions — open file with .before baseline containing 3 new paragraphs added; MergeView renders green-highlighted additions inline with gutter markers; BLOCK_DIFF_RENDERED mode=inline lines_added=N.</S1>
+        <S2>inline-diff-deletions — baseline contains paragraphs removed in current file; MergeView renders red-highlighted deletions inline with strikethrough; deleted line count matches expected.</S2>
+        <S3>inline-diff-modifications — mixed additions and deletions (paragraph reworded); both red and green highlights present; character-level diff within modified lines via diff-match-patch charDiff.</S3>
+        <S4>side-by-side-mode — toolbar toggle switches to two-pane view; left pane shows baseline (read-only), right pane shows current content (editable); synchronized vertical scroll; pane widths equal.</S4>
+        <S5>baseline-from-before-file — file `/path/to/doc.md` opened; `/path/to/doc.md.before` exists and is readable; baseline loaded from .before file; BLOCK_BASELINE_LOADED source=file path=...before.</S5>
+        <S6>baseline-from-git — file opened, no .before sibling, file is in git repo with committed version; baseline loaded from `git show HEAD:{path}`; BLOCK_BASELINE_LOADED source=git path=... revision=HEAD.</S6>
+        <S7>toggle-cmd-d-enter-exit — in wysiwyg mode, press Cmd+D; diff view appears with baseline fetched async; press Cmd+D again; returns to wysiwyg mode with muya state intact; cursor position preserved. Same flow starting from sourceCode mode restores to sourceCode.</S7>
+        <S8>theme-switching-in-diff — railscasts theme active; diff view renders with railscasts CodeMirror theme; switch to one-dark via preferences; diff view re-themes without remount; gutter and highlight colors match theme palette.</S8>
+        <S9>tab-switch-preserves-diff-state — tab A in diff mode, tab B in wysiwyg; switch to B then back to A; diff view restored with same baseline and scroll position; no re-fetch of baseline.</S9>
+        <S10>auto-detect-before-file — open doc.md where doc.md.before exists; diff mode activated automatically; BLOCK_AUTO_DIFF_TRIGGERED; user can dismiss via Cmd+D or toolbar close button.</S10>
+      </high-level-scenarios>
+      <failure-scenarios>
+        <F1>no-baseline-available — no .before file, not in git repo (or file never committed); Cmd+D shows informative inline banner "No baseline available: file has no .before neighbor and is not tracked by git"; BLOCK_BASELINE_FAILED reason=no_source; diff mode NOT entered; previous mode remains.</F1>
+        <F2>before-file-outside-sandbox — .before file exists but resolves to path outside SecurityCtx sandbox (e.g., symlink escape); SecurityCtx rejects; BLOCK_BASELINE_FAILED reason=sandbox_violation path=...; error surfaced as inline banner; diff mode NOT entered.</F2>
+        <F3>git-not-available — git binary not installed or not in PATH; `std::process::Command` returns io::Error NotFound; fallback to .before-file-only resolution; if .before also missing, F1 path; BLOCK_GIT_UNAVAILABLE reason=binary_not_found.</F3>
+        <F4>empty-file-diff — current file empty, baseline has content (or vice versa, or both empty); MergeView renders correctly (all-green, all-red, or "no differences" message); no crash; BLOCK_DIFF_RENDERED with lines_added/lines_deleted reflecting actual counts including zero.</F4>
+        <F5>binary-file-opened — file detected as binary (null bytes in first 8KB); diff mode disabled; Cmd+D shows banner "Diff view unavailable for binary files"; BLOCK_DIFF_REJECTED reason=binary_file.</F5>
+        <F6>large-file-performance-guard — file exceeds 100K lines; diff computation deferred with warning banner "Large file — diff may be slow (N lines). Continue?"; user confirms or cancels; if confirmed, diff computed with progress indicator; BLOCK_LARGE_FILE_WARNING lines=N; if cancelled, BLOCK_DIFF_CANCELLED reason=user_declined_large_file.</F6>
+        <F7>corrupt-before-file — .before file exists but contains invalid UTF-8; Rust read returns Err; BLOCK_BASELINE_FAILED reason=invalid_utf8 path=...; fallback to git source; if git also fails, F1 path.</F7>
+      </failure-scenarios>
+      <race-conditions>
+        <R1>edit-during-baseline-fetch — user types in editor while async `mt_diff_baseline` invoke is in-flight; baseline fetch completes, but current content has changed since Cmd+D press; diff view uses CURRENT content at render time (not stale snapshot); small timing window acceptable as diff-match-patch re-diffs on mount; BLOCK_BASELINE_FETCH_ELAPSED_MS logged.</R1>
+        <R2>external-change-while-diff-open — notify-debouncer (V-M-003) fires file-changed event while diff view is active; current content updated from disk; diff view re-diffs against same baseline; MergeView.setValue() triggers incremental re-render; BLOCK_DIFF_REFRESHED trigger=external_change.</R2>
+        <R3>tab-switch-during-baseline-fetch — user presses Cmd+D on tab A, then immediately switches to tab B before baseline returns; invoke response arrives for tab A while tab B is active; response stored in tab A's editor store state; when user switches back to tab A, diff view renders from stored baseline; no orphan render on wrong tab; BLOCK_BASELINE_STORED_DEFERRED tab=A.</R3>
+        <R4>rapid-toggle-cmd-d: user double-presses Cmd+D within 100ms; first press initiates baseline fetch, second press should cancel/toggle back; debounce guard: ignore second Cmd+D if baseline fetch in-flight (BLOCK_TOGGLE_DEBOUNCED); OR let second press cancel fetch and return to previous mode (BLOCK_DIFF_CANCELLED reason=rapid_toggle); chosen approach: debounce, 200ms cooldown on Cmd+D.</R4>
+        <R5>before-file-deleted-while-diff-open — .before file existed at diff-enter time but is deleted externally while diff view is open; watcher fires; diff view shows stale baseline (acceptable — baseline is a snapshot); banner appears "Baseline file removed — diff shows last loaded baseline"; BLOCK_BASELINE_SOURCE_REMOVED.</R5>
+        <R6>concurrent-baseline-requests — multiple tabs opened simultaneously with .before files (e.g., session restore); each invokes mt_diff_baseline independently; Rust handler is stateless per-call; no shared mutable state; concurrent execution safe; BLOCK_BASELINE_LOADED carries tab_id for correlation.</R6>
+      </race-conditions>
+      <numeric-thresholds>
+        <T1>Diff render time (MergeView mount + diff-match-patch compute) ≤200ms for 10K-line file on M2 MacBook; BLOCK_DIFF_RENDERED.elapsed_ms measured from baseline-received to first-paint of diff gutter.</T1>
+        <T2>Bundle impact: diff-match-patch ≤15KB gzipped; verified by tests/build/bundle-size.test.mjs entry for vendor-diff-match-patch chunk.</T2>
+        <T3>MergeView addon: 0 additional network cost (already loaded as part of CodeMirror bundle used by sourceCode.vue); verified by grep of dist/assets/ for merge.js chunk — should be in existing codemirror vendor chunk.</T3>
+        <T4>Memory: diff view for 10K-line file ≤50MB additional heap over base editor; measured via `performance.measureUserAgentSpecificMemory()` before/after diff mount; BLOCK_DIFF_MEMORY_DELTA_MB logged in dev mode.</T4>
+        <T5>Baseline fetch latency: .before file ≤50ms for ≤1MB file; git show ≤200ms for ≤1MB file in repo with ≤10K commits; BLOCK_BASELINE_FETCH_ELAPSED_MS.</T5>
+        <T6>Cmd+D toggle responsiveness: ≤100ms from keypress to diff-view visible (excluding baseline fetch, which shows spinner); ≤50ms from keypress to previous-mode-restored on exit.</T6>
+        <T7>Side-by-side scroll sync latency: ≤1 frame (16ms) between panes; visual jank = 0 during synchronized scroll.</T7>
+        <T8>Cold-launch impact: 0ms regression on cold-launch first-paint when diff mode NOT active (lazy-loaded); verified against V-M-024/V-M-030 baselines.</T8>
+      </numeric-thresholds>
+      <edge-cases>
+        <E1>no-newline-at-eof — file ends without trailing newline; .before has trailing newline (or vice versa); diff correctly shows the newline difference; MergeView "No newline at end of file" indicator present if applicable.</E1>
+        <E2>unicode-content-cjk — file contains CJK characters, emoji (multi-codepoint sequences), RTL (Arabic/Hebrew) text; diff-match-patch handles Unicode correctly (operates on UTF-16 code units); MergeView renders bidirectional text; character-level diff within CJK lines accurate.</E2>
+        <E3>very-long-lines — lines exceeding 10K characters; horizontal scroll in both inline and side-by-side modes; no layout overflow or clipping; synchronized horizontal scroll in side-by-side mode.</E3>
+        <E4>markdown-with-diff-syntax — file contains fenced code block with ````diff` language tag containing +/- lines; these are NOT interpreted as actual diffs; MergeView diffs the raw markdown source, not rendered output; diff-like content inside code blocks treated as plain text.</E4>
+        <E5>before-file-newer-than-current — .before file has mtime newer than current file (unusual but possible if agent wrote .before after user already started editing); diff still computed correctly (baseline = .before content regardless of mtime); BLOCK_BASELINE_MTIME_NEWER logged as info for debugging.</E5>
+        <E6>symlinked-before-file — .before is a symlink; resolved path MUST pass SecurityCtx sandbox check (symlink target, not symlink itself); if target outside sandbox, F2 path; if target inside sandbox, normal operation.</E6>
+        <E7>identical-files — current content exactly equals baseline; MergeView renders with "No differences" state; all-white gutter (no red/green); BLOCK_DIFF_RENDERED lines_added=0 lines_deleted=0 identical=true.</E7>
+        <E8>file-with-windows-line-endings — file uses CRLF, .before uses LF (or mixed); diff-match-patch treats line endings as significant; option to normalize line endings before diff (configurable); default: normalize to LF for diff comparison.</E8>
+        <E9>very-large-baseline-from-git — git show returns very large file (>10MB); same 100K-line guard as F6 applied to baseline content; streaming not required (baseline loaded fully into memory for MergeView).</E9>
+        <E10>concurrent-before-file-write — external process (Claude agent) writes to .before file while Mark is reading it; Rust fs::read uses single read syscall for small files; for large files, potential partial read; mitigation: retry once on unexpected EOF; BLOCK_BASELINE_READ_RETRY.</E10>
+        <E11>diff-mode-with-unsaved-changes — user has unsaved edits in editor; enters diff mode; diff compares baseline against CURRENT BUFFER content (not last-saved disk content); "unsaved changes" indicator still visible; save while in diff mode persists current buffer; diff re-renders if baseline differs from new saved content.</E11>
+        <E12>multiple-before-files — both doc.md.before and .before exist in same directory; resolution priority: exact-match `{filename}.before` first; ignore generic `.before`; BLOCK_BASELINE_RESOLUTION strategy=exact_sibling.</E12>
+        <E13>readonly-file-diff — file opened as read-only (permissions or preference); diff view left pane read-only (always); right pane also read-only; no edit capability; visual indicator "Read-only" present.</E13>
+        <E14>whitespace-only-changes — baseline and current differ only in whitespace (trailing spaces, tab vs spaces, blank lines); diff highlights whitespace changes; option to toggle "ignore whitespace" in diff toolbar; BLOCK_DIFF_RENDERED whitespace_only=true when applicable.</E14>
+      </edge-cases>
+      <log-markers namespace="[m031][diff]" count="12">
+        BLOCK_BASELINE_LOADED (source=file|git, path=..., size_bytes=N, elapsed_ms=N, tab_id=...), BLOCK_BASELINE_FAILED (reason=no_source|sandbox_violation|invalid_utf8|git_error|file_not_found, path=..., tab_id=...), BLOCK_DIFF_RENDERED (mode=inline|side-by-side, lines_total=N, lines_added=N, lines_deleted=N, elapsed_ms=N, identical=bool, tab_id=...), BLOCK_DIFF_TOGGLED (state=on|off, previous_mode=wysiwyg|sourceCode, tab_id=...), BLOCK_DIFF_REFRESHED (trigger=external_change|user_edit, elapsed_ms=N, tab_id=...), BLOCK_AUTO_DIFF_TRIGGERED (path=..., before_path=..., tab_id=...), BLOCK_TOGGLE_DEBOUNCED (tab_id=..., cooldown_ms=200), BLOCK_DIFF_CANCELLED (reason=rapid_toggle|user_declined_large_file|no_baseline, tab_id=...), BLOCK_GIT_UNAVAILABLE (reason=binary_not_found|not_a_repo|timeout), BLOCK_LARGE_FILE_WARNING (lines=N, path=..., tab_id=...), BLOCK_BASELINE_SOURCE_REMOVED (source=file, path=..., tab_id=...), BLOCK_DIFF_REJECTED (reason=binary_file, path=..., tab_id=...).
+      </log-markers>
+      <negative-assertions>
+        <NA1>diff-match-patch MUST NOT be loaded on cold launch when diff mode is not active — verify vendor-diff-match-patch chunk NOT in initial network waterfall for plain file open; dynamic import() only.</NA1>
+        <NA2>MergeView MUST NOT instantiate until baseline is successfully fetched — no empty/null-baseline diff render; BLOCK_DIFF_RENDERED never precedes BLOCK_BASELINE_LOADED in same tab_id trace.</NA2>
+        <NA3>.before path MUST NOT bypass SecurityCtx — every mt_diff_baseline call validates resolved path through same sandbox check as mt_read_file; no separate "trusted" path.</NA3>
+        <NA4>Diff mode MUST NOT destroy muya instance — entering diff mode hides muya container (display:none or v-show), does NOT unmount; exiting diff mode restores muya visibility; muya selection/cursor state preserved.</NA4>
+        <NA5>Diff mode MUST NOT affect file save behavior — Cmd+S in diff mode saves current buffer (right pane content in side-by-side, or current content in inline); baseline (left pane) is NEVER written to disk by save action.</NA5>
+        <NA6>git show MUST NOT be invoked with unsanitized path — path argument shell-escaped or passed via stdin/--; no command injection via crafted filenames containing backticks, $(), semicolons, etc.</NA6>
+        <NA7>Diff view MUST NOT introduce a Content-Security-Policy violation — diff-match-patch and MergeView operate on string data, no eval(); CSP sha256 hashes unchanged from V-M-024 baseline; no new inline scripts.</NA7>
+      </negative-assertions>
+      <ordering-invariants>
+        (1) BLOCK_DIFF_TOGGLED state=on precedes BLOCK_BASELINE_LOADED|BLOCK_BASELINE_FAILED for same tab_id interaction.
+        (2) BLOCK_BASELINE_LOADED precedes BLOCK_DIFF_RENDERED for same tab_id (no render without baseline).
+        (3) BLOCK_DIFF_TOGGLED state=off precedes next BLOCK_DIFF_TOGGLED state=on for same tab_id (no double-enter).
+        (4) BLOCK_AUTO_DIFF_TRIGGERED precedes BLOCK_BASELINE_LOADED for auto-detected .before files.
+        (5) BLOCK_BASELINE_FAILED with reason=sandbox_violation includes path field matching SecurityCtx rejection log from V-M-010.
+        (6) When diff mode is NOT active for any tab, zero BLOCK_DIFF_REFRESHED markers emitted (no background diffing).
+      </ordering-invariants>
+      <cross-module-integration>
+        <dep module="V-M-010" type="security">.before file path and symlink-resolved path MUST pass SecurityCtx sandbox validation. mt_diff_baseline invokes same `security::validate_path()` used by mt_read_file. Test: craft .before symlink pointing outside sandbox → BLOCK_BASELINE_FAILED reason=sandbox_violation.</dep>
+        <dep module="V-M-011" type="mode-switching">index.vue mode state extended from {wysiwyg, sourceCode} to {wysiwyg, sourceCode, diff}. Cmd+D toggle MUST NOT interfere with existing Cmd+/ (source toggle) or toolbar mode buttons. Mode transition matrix: wysiwyg→diff→wysiwyg, sourceCode→diff→sourceCode (returns to origin mode). Test: Cmd+/ then Cmd+D then Cmd+D → back in sourceCode, NOT wysiwyg.</dep>
+        <dep module="V-M-012" type="state-preservation">muya instance stays alive (hidden) during diff mode. Entering diff: muya container gets `display:none`; exiting diff: muya container restored to `display:block`. muya.getContent() === buffer content at all times. Test: type in wysiwyg → Cmd+D → Cmd+D → verify typed text present and cursor position restored.</dep>
+        <dep module="V-M-024" type="launch-performance">diffView.vue and diff-match-patch are lazy-loaded (dynamic import). Splash screen timing unaffected. Test: cold launch plain.md → V-M-024 BLOCK_REPLACED timing within ±20ms of baseline; no vendor-diff-match-patch in initial network waterfall.</dep>
+        <dep module="V-M-025" type="open-flow">File open with .before neighbor: after BLOCK_NEW_TAB_RECEIVED (V-M-025), auto-diff detection checks for .before file. BLOCK_AUTO_DIFF_TRIGGERED fires AFTER tab is fully loaded and rendered. Test: Finder-open doc.md where doc.md.before exists → tab opens, content renders, THEN diff mode activates.</dep>
+        <dep module="V-M-003" type="watcher">fs watcher event for opened file while diff view active triggers re-diff. Watcher event for .before file deletion triggers BLOCK_BASELINE_SOURCE_REMOVED. Test: externally modify opened file → diff view updates; delete .before → banner appears.</dep>
+        <dep module="V-M-005" type="preferences">New preference `autoDiffOnBeforeFile` (boolean, default true) stored via prefs module. Preference `diffViewDefaultMode` (enum: inline|side-by-side, default inline). Test: set autoDiffOnBeforeFile=false → open file with .before → no auto-diff.</dep>
+      </cross-module-integration>
+      <test-files>
+        <vitest>src/renderer/__tests__/diffView.test.js (component mount with mock baseline, inline/side-by-side mode toggle, theme application, empty diff, identical files, unicode content), diffView-toggle.test.js (Cmd+D enter/exit, mode restoration, debounce guard, rapid toggle), diffView-store.test.js (per-tab diff state in editor store, tab switch preservation, baseline caching)</vitest>
+        <cargo>src-tauri/tests/m031_diff.rs (unit: .before file resolution with tempdir, git show baseline via test repo init, sandbox validation rejection, invalid UTF-8 handling, binary file detection, git-not-available fallback, concurrent baseline requests, symlink resolution, path sanitization for git command)</cargo>
+        <playwright>tests/e2e/diff-view.spec.ts (open file with .before → diff renders, Cmd+D toggle on/off, side-by-side switch, theme change in diff mode, tab switch preserves diff, auto-detect .before), diff-view-failure.spec.ts (no baseline → error banner, sandbox violation → error, large file warning), diff-view-race.spec.ts (external file change during diff, rapid Cmd+D toggle, tab switch during baseline fetch)</playwright>
+        <build>tests/build/bundle-size.test.mjs (extended: vendor-diff-match-patch chunk ≤15KB gzip; not in initial waterfall), tests/build/diff-lazy-load.test.mjs (dynamic import verification: diff-match-patch and merge.js not in entry chunks)</build>
+        <fixtures>tests/fixtures/diff/{simple-add.md,simple-add.md.before,simple-delete.md,simple-delete.md.before,mixed-change.md,mixed-change.md.before,unicode-cjk.md,unicode-cjk.md.before,long-lines.md,long-lines.md.before,identical.md,identical.md.before,empty.md,empty.md.before,binary.dat,crlf.md,crlf.md.before,large-10k.md,large-10k.md.before,invalid-utf8.md.before,whitespace-only.md,whitespace-only.md.before}</fixtures>
+      </test-files>
+      <module-local-commands>
+        npm test -- diffView diffView-toggle diffView-store; cd src-tauri &amp;&amp; cargo test m031_diff; npm run build &amp;&amp; node tests/build/bundle-size.test.mjs &amp;&amp; node tests/build/diff-lazy-load.test.mjs; npx playwright test diff-view.spec.ts diff-view-failure.spec.ts diff-view-race.spec.ts --reporter=list; manual: create /tmp/test-diff.md and /tmp/test-diff.md.before with known differences, open in Mark, verify diff renders, toggle with Cmd+D, switch themes; manual: `echo "original" > /tmp/d.md.before &amp;&amp; echo "modified" > /tmp/d.md &amp;&amp; open -a Mark.app /tmp/d.md` (auto-diff detection end-to-end).
+      </module-local-commands>
+      <ai-friendliness assessment="strong">
+        Autonomy trust 0.85/1.0. ~65% deterministic: bundle-size assertions (exact bytes), lazy-load verification (grep dist/), Rust unit tests (.before resolution, sandbox, git show mock), store state assertions, marker ordering invariants. ~25% trace-based: render timing thresholds p95-gated, baseline fetch latency, memory delta measurements. ~10% visual/interactive: diff gutter colors match theme (pixel-diff at 0.1% tolerance for VR snapshots), side-by-side scroll sync (requires frame-level inspection), MergeView layout correctness. Forbidden patterns: setTimeout-based "wait for diff" (use BLOCK_DIFF_RENDERED marker); innerHTML parsing for diff content (use CodeMirror API); headless Chromium for E2E (use tauri-driver WKWebView). Limitation: visual regression baselines for diff color themes require initial human sign-off; git show tests require real git repo initialization in tempdir (deterministic but slow). Agent pipeline end-to-end (Claude writes → Mark shows diff → user edits → Claude reads) requires coordinated multi-process smoke — manual or CI orchestration script.
+      </ai-friendliness>
+      <verification-level>module-local: vitest + cargo test on every commit (diff component + Rust baseline resolver). Wave-level: Playwright diff-view E2E + bundle-size gate on PRs touching src/renderer/src/components/editorWithTabs/ or src-tauri/src/m031_diff.rs. Phase-level: full agent-pipeline smoke (Claude writes .before → opens in Mark → user reviews diff → saves → Claude detects changes) at alpha.8 sign-off. Visual regression: nightly + diff-labeled PRs.</verification-level>
+    </V-M-031>
 
     <!--
       V-A5-* — patch-level verification for Phase-A5 (v1.0.1 polish).
