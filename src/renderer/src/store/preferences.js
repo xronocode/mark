@@ -174,6 +174,7 @@ export const usePreferencesStore = defineStore('preferences', {
     },
 
     async SET_SINGLE_PREFERENCE({ type, value }) {
+      if (typeof this[type] === 'undefined') return
       this[type] = value
 
       // Update i18n language if language preference changed

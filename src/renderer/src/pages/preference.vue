@@ -48,7 +48,9 @@ watch(theme, (newValue, oldValue) => {
 onMounted(() => {
   nextTick(() => {
     const state = window.marktext.initialState || DEFAULT_STYLE
-    addThemeStyle(state.theme)
+    try {
+      addThemeStyle(state.theme)
+    } catch (_) { /* theme failure must not block pref init */ }
     preferencesStore.ASK_FOR_USER_PREFERENCE()
   })
 })
