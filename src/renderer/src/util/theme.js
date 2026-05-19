@@ -89,20 +89,7 @@ const getThemeCluster = (themeColor) => {
   return clusters
 }
 
-// F-THEME-DIAG (smoke 2026-05-11): normalize null/undefined for log
-// readability — single helper shared by BLOCK_ENTRY / BLOCK_APPLIED /
-// BLOCK_VERIFY so all three markers display the same sentinels.
-const _formatTheme = (theme) =>
-  theme === null ? 'null' : theme === undefined ? 'undef' : theme
-
 export const addThemeStyle = (theme) => {
-  // F-THEME-DIAG (smoke 2026-05-11): track every entry so we can see
-  // whether a click → state mutation actually drives the apply step.
-  // The case=match/default flag tells us whether the theme name was
-  // recognized; default=no CSS gets written and the editor stays on
-  // whatever style was painted last (typical symptom: "click does
-  // nothing" for a newly-added theme).
-  console.log(`[theme][addThemeStyle][BLOCK_ENTRY theme=${_formatTheme(theme)}]`)
   const isCmRailscasts = railscastsThemes.includes(theme)
   const isCmOneDark = oneDarkThemes.includes(theme)
   const isDarkTheme = isCmOneDark || isCmRailscasts
@@ -113,157 +100,108 @@ export const addThemeStyle = (theme) => {
     document.head.appendChild(themeStyleEle)
   }
 
-  let _matched = true
   switch (theme) {
     case 'light':
-      themeStyleEle.innerHTML = ''
+      themeStyleEle.textContent = ''
       break
     case 'dark':
-      themeStyleEle.innerHTML = patchTheme(dark())
+      themeStyleEle.textContent = patchTheme(dark())
       break
     case 'material-dark':
-      themeStyleEle.innerHTML = patchTheme(materialDark())
+      themeStyleEle.textContent = patchTheme(materialDark())
       break
     case 'ulysses':
-      themeStyleEle.innerHTML = patchTheme(ulysses())
+      themeStyleEle.textContent = patchTheme(ulysses())
       break
     case 'graphite':
-      themeStyleEle.innerHTML = patchTheme(graphite())
+      themeStyleEle.textContent = patchTheme(graphite())
       break
     case 'one-dark':
-      themeStyleEle.innerHTML = patchTheme(oneDark())
+      themeStyleEle.textContent = patchTheme(oneDark())
       break
-    // New gogh themes - Dark
     case 'dracula':
-      themeStyleEle.innerHTML = patchTheme(dracula())
+      themeStyleEle.textContent = patchTheme(dracula())
       break
     case 'nord':
-      themeStyleEle.innerHTML = patchTheme(nord())
+      themeStyleEle.textContent = patchTheme(nord())
       break
     case 'catppuccin-mocha':
-      themeStyleEle.innerHTML = patchTheme(catppuccinMocha())
+      themeStyleEle.textContent = patchTheme(catppuccinMocha())
       break
     case 'gruvbox-dark':
-      themeStyleEle.innerHTML = patchTheme(gruvboxDark())
+      themeStyleEle.textContent = patchTheme(gruvboxDark())
       break
     case 'tokyo-night':
-      themeStyleEle.innerHTML = patchTheme(tokyoNight())
+      themeStyleEle.textContent = patchTheme(tokyoNight())
       break
     case 'tokyo-night-storm':
-      themeStyleEle.innerHTML = patchTheme(tokyoNightStorm())
+      themeStyleEle.textContent = patchTheme(tokyoNightStorm())
       break
     case 'solarized-dark':
-      themeStyleEle.innerHTML = patchTheme(solarizedDark())
+      themeStyleEle.textContent = patchTheme(solarizedDark())
       break
     case 'ayu-dark':
-      themeStyleEle.innerHTML = patchTheme(ayuDark())
+      themeStyleEle.textContent = patchTheme(ayuDark())
       break
     case 'ayu-mirage':
-      themeStyleEle.innerHTML = patchTheme(ayuMirage())
+      themeStyleEle.textContent = patchTheme(ayuMirage())
       break
     case 'everforest-dark':
-      themeStyleEle.innerHTML = patchTheme(everforestDark())
+      themeStyleEle.textContent = patchTheme(everforestDark())
       break
     case 'rose-pine':
-      themeStyleEle.innerHTML = patchTheme(rosePine())
+      themeStyleEle.textContent = patchTheme(rosePine())
       break
     case 'rose-pine-moon':
-      themeStyleEle.innerHTML = patchTheme(rosePineMoon())
+      themeStyleEle.textContent = patchTheme(rosePineMoon())
       break
     case 'monokai-pro':
-      themeStyleEle.innerHTML = patchTheme(monokaiPro())
+      themeStyleEle.textContent = patchTheme(monokaiPro())
       break
     case 'synthwave-84':
-      themeStyleEle.innerHTML = patchTheme(synthwave84())
+      themeStyleEle.textContent = patchTheme(synthwave84())
       break
     case 'horizon-dark':
-      themeStyleEle.innerHTML = patchTheme(horizonDark())
+      themeStyleEle.textContent = patchTheme(horizonDark())
       break
     case 'palenight':
-      themeStyleEle.innerHTML = patchTheme(palenight())
+      themeStyleEle.textContent = patchTheme(palenight())
       break
     case 'oxocarbon-dark':
-      themeStyleEle.innerHTML = patchTheme(oxocarbonDark())
+      themeStyleEle.textContent = patchTheme(oxocarbonDark())
       break
     case 'kanagawa':
-      themeStyleEle.innerHTML = patchTheme(kanagawa())
+      themeStyleEle.textContent = patchTheme(kanagawa())
       break
     case 'nightfox':
-      themeStyleEle.innerHTML = patchTheme(nightfox())
+      themeStyleEle.textContent = patchTheme(nightfox())
       break
     case 'cyberdream':
-      themeStyleEle.innerHTML = patchTheme(cyberdream())
+      themeStyleEle.textContent = patchTheme(cyberdream())
       break
-    // New gogh themes - Light
     case 'catppuccin-latte':
-      themeStyleEle.innerHTML = patchTheme(catppuccinLatte())
+      themeStyleEle.textContent = patchTheme(catppuccinLatte())
       break
     case 'gruvbox-light':
-      themeStyleEle.innerHTML = patchTheme(gruvboxLight())
+      themeStyleEle.textContent = patchTheme(gruvboxLight())
       break
     case 'tokyo-night-light':
-      themeStyleEle.innerHTML = patchTheme(tokyoNightLight())
+      themeStyleEle.textContent = patchTheme(tokyoNightLight())
       break
     case 'solarized-light':
-      themeStyleEle.innerHTML = patchTheme(solarizedLight())
+      themeStyleEle.textContent = patchTheme(solarizedLight())
       break
     case 'ayu-light':
-      themeStyleEle.innerHTML = patchTheme(ayuLight())
+      themeStyleEle.textContent = patchTheme(ayuLight())
       break
     case 'everforest-light':
-      themeStyleEle.innerHTML = patchTheme(everforestLight())
+      themeStyleEle.textContent = patchTheme(everforestLight())
       break
     case 'rose-pine-dawn':
-      themeStyleEle.innerHTML = patchTheme(rosePineDawn())
+      themeStyleEle.textContent = patchTheme(rosePineDawn())
       break
     default:
-      _matched = false
       break
-  }
-  // F-THEME-DIAG: case=match means a switch arm ran (CSS written or
-  // 'light' which intentionally clears it); case=default means the
-  // theme name was unrecognized so innerHTML was left untouched.
-  console.log(
-    `[theme][addThemeStyle][BLOCK_APPLIED theme=${_formatTheme(theme)} case=${_matched ? 'match' : 'default'}]`
-  )
-  // F-THEME-DIAG-VERIFY (smoke 2026-05-11 alpha.6.5): the prior smoke
-  // confirmed BLOCK_APPLIED case=match fires on every click, BUT both
-  // windows stayed visually unstyled. Probe BOTH the :root cascade
-  // origin AND a consumer element so one smoke cycle localizes the
-  // break to one of three layers:
-  //   :root.editorBg=#... + consumer.bg=#...   → cascade works, both layers see new theme — break is purely visual (paint? compositor?)
-  //   :root.editorBg=#... + consumer.bg=white  → :root got it, consumer doesn't read it (specificity / Vue scoped / Element Plus override)
-  //   :root.editorBg=''                        → innerHTML write didn't propagate to :root (WKWebView parse fail / nested @media / stale stylesheet)
-  // TODO(F-THEME-DIAG-VERIFY): remove this block after root-cause known.
-  try {
-    const cs = getComputedStyle(document.documentElement)
-    const editorBg = cs.getPropertyValue('--editorBgColor').trim()
-    const editorColor = cs.getPropertyValue('--editorColor').trim()
-    const themeColor = cs.getPropertyValue('--themeColor').trim()
-    const inlineLength = themeStyleEle.innerHTML?.length ?? 0
-    const styleElementPresent = !!document.querySelector(`#${THEME_STYLE_ID}`)
-    // Consumer-element probe: pick the highest-LOC user of --editorBgColor
-    // (`.editor-with-tabs` is the main editor surface; falls back through
-    // `.pref-container` for Settings window, then `body`).
-    const consumer =
-      document.querySelector('.editor-with-tabs') ||
-      document.querySelector('.pref-container') ||
-      document.body
-    const consumerSelector = consumer === document.body
-      ? 'body'
-      : consumer.className.split(' ').filter(Boolean)[0] || consumer.tagName.toLowerCase()
-    const consumerCs = getComputedStyle(consumer)
-    const consumerBg = consumerCs.backgroundColor
-    const consumerColor = consumerCs.color
-    console.log(
-      `[theme][addThemeStyle][BLOCK_VERIFY theme=${_formatTheme(theme)} editorBg=${editorBg} editorColor=${editorColor} themeColor=${themeColor} inlineLen=${inlineLength} styleElPresent=${styleElementPresent} consumer=${consumerSelector} consumerBg=${consumerBg} consumerColor=${consumerColor}]`
-    )
-  } catch (e) {
-    console.error('[theme][addThemeStyle][BLOCK_VERIFY_FAILED]', {
-      theme,
-      err: e?.message ?? String(e),
-      stack: e?.stack ?? null
-    })
   }
 
   // workaround: use dark icons
@@ -305,7 +243,7 @@ export const setWrapCodeBlocks = (value) => {
     document.head.appendChild(styleEle)
   }
 
-  styleEle.innerHTML = result
+  styleEle.textContent = result
 }
 
 export const setEditorWidth = (value) => {
@@ -322,7 +260,7 @@ export const setEditorWidth = (value) => {
     document.head.appendChild(styleEle)
   }
 
-  styleEle.innerHTML = result
+  styleEle.textContent = result
 }
 
 export const addCommonStyle = (options) => {
@@ -339,7 +277,7 @@ export const addCommonStyle = (options) => {
     scrollbarStyle = '::-webkit-scrollbar {display: none;}'
   }
 
-  sheet.innerHTML = `${scrollbarStyle}
+  sheet.textContent = `${scrollbarStyle}
 span code,
 td code,
 th code,
@@ -365,7 +303,7 @@ export const addCustomStyle = (options) => {
     customStyleEle.id = 'custom-styles'
     document.head.appendChild(customStyleEle)
   }
-  customStyleEle.innerHTML = customCss
+  customStyleEle.textContent = customCss
 }
 
 // Append common sheet and theme at the end of head - order is important.

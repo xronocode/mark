@@ -130,24 +130,6 @@ export const setupIpcListeners = async () => {
     // (broadcast from backend mt_set_user_preference). When Settings
     // window changes theme, editor window receives this and updates.
     listen('mt::user-preference', (event) => {
-      // F-THEME-DIAG (smoke 2026-05-11): record every broadcast that
-      // reaches this listener. theme=Y/N tells us whether the backend's
-      // snapshot carried a theme entry; missing marker on the editor
-      // window after a Settings click means the backend emit never
-      // reached this webview.
-      const _p = event?.payload
-      const _keys =
-        _p && typeof _p === 'object' && !Array.isArray(_p) ? Object.keys(_p) : []
-      const _themeFlag =
-        _p && typeof _p === 'object' && Object.prototype.hasOwnProperty.call(_p, 'theme')
-          ? 'Y'
-          : 'N'
-      const _themeValue =
-        _p && typeof _p === 'object' ? _p.theme : undefined
-      // eslint-disable-next-line no-console
-      console.log(
-        `[boot][prefs][BLOCK_PREF_BROADCAST keys=${_keys.length} theme=${_themeFlag} themeValue=${_themeValue === undefined ? 'undef' : _themeValue}]`
-      )
       if (event?.payload && typeof event.payload === 'object') {
         prefs.SET_USER_PREFERENCE(event.payload)
       }

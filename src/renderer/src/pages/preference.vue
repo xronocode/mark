@@ -39,19 +39,8 @@ const showCustomTitleBar = computed(() => {
 
 // Watchers
 watch(theme, (newValue, oldValue) => {
-  // F-THEME-DIAG (smoke 2026-05-11): fires inside the Settings window
-  // when SET_SINGLE_PREFERENCE flips state.theme locally. If a card
-  // click reaches the store but this marker is missing, the watcher
-  // wiring on `theme` is the break — not the broadcast.
-  console.log(
-    `[preference][watch_theme][BLOCK_FIRED old=${oldValue === null ? 'null' : oldValue === undefined ? 'undef' : oldValue} new=${newValue === null ? 'null' : newValue === undefined ? 'undef' : newValue}]`
-  )
   if (newValue !== oldValue) {
-    try {
-      addThemeStyle(newValue)
-    } catch (e) {
-      console.error('[preference][addThemeStyle] failed:', newValue, e)
-    }
+    addThemeStyle(newValue)
   }
 })
 
@@ -59,12 +48,7 @@ watch(theme, (newValue, oldValue) => {
 onMounted(() => {
   nextTick(() => {
     const state = window.marktext.initialState || DEFAULT_STYLE
-    try {
-      addThemeStyle(state.theme)
-    } catch (e) {
-      console.error('[preference][addThemeStyle] init failed:', state.theme, e)
-    }
-
+    addThemeStyle(state.theme)
     preferencesStore.ASK_FOR_USER_PREFERENCE()
   })
 })
