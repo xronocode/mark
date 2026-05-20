@@ -650,6 +650,34 @@ pub async fn mt_open_setting_window(app: tauri::AppHandle) -> Result<(), String>
     Ok(())
 }
 
+/// Opens a clicked link in the system browser.
+/// Renderer calls this via `ipcRenderer.send('mt::format-link-click', { data, dirname })`.
+#[tauri::command]
+pub async fn mt_format_link_click(data: Value, dirname: Value) -> Result<(), String> {
+    let href = data
+        .get("href")
+        .and_then(|v| v.as_str())
+        .unwrap_or_default();
+    if href.is_empty() {
+        return Ok(());
+    }
+    let url = if href.starts_with("http://") || href.starts_with("https://") {
+        href.to_string()
+    } else if href.starts_with('/') || href.starts_with('.') {
+        let dir = dirname.as_str().unwrap_or(".");
+        let path = std::path::Path::new(dir).join(href);
+        path.to_string_lossy().to_string()
+    } else {
+        href.to_string()
+    };
+    eprintln!("[v1_compat][link][BLOCK_OPEN_URL url={url}]");
+    std::process::Command::new("open")
+        .arg(&url)
+        .spawn()
+        .map_err(|e| format!("Failed to open URL: {e}"))?;
+    Ok(())
+}
+
 // ──────────────────────────────────────────────────────────────────────
 // Helpers
 // ──────────────────────────────────────────────────────────────────────

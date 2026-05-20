@@ -58,7 +58,12 @@ class LinkTools extends BaseFloat {
     }
 
     const mouseOutHandler = () => {
-      this.hide()
+      if (this.hideTimer) {
+        clearTimeout(this.hideTimer)
+      }
+      this.hideTimer = setTimeout(() => {
+        this.hide()
+      }, 300)
     }
 
     eventCenter.attachDOMEvent(this.container, 'mouseover', mouseOverHandler)

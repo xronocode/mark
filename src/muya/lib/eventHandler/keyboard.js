@@ -137,6 +137,16 @@ class Keyboard {
     const handler = (event) => {
       if (event.metaKey || event.ctrlKey) {
         container.classList.add('ag-meta-or-ctrl')
+
+        if (event.key === 'z' || event.key === 'Z') {
+          event.preventDefault()
+          if (event.shiftKey) {
+            this.muya.redo()
+          } else {
+            this.muya.undo()
+          }
+          return
+        }
       }
 
       if (

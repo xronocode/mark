@@ -766,6 +766,10 @@ figure.ag-container-block div.ag-container-preview {
 
 figure.ag-container-block div.ag-container-preview > svg {
   width: 100%;
+  background: #f8f8f8;
+  border-radius: 6px;
+  padding: 8px;
+  box-sizing: border-box;
 }
 
 figure.ag-active.ag-container-block > div.ag-container-preview {

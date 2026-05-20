@@ -655,6 +655,7 @@ fn main() {
             m_v1_compat::mt_update_sidebar_menu,
             m_v1_compat::mt_request_window_content_size,
             m_v1_compat::mt_open_setting_window,
+            m_v1_compat::mt_format_link_click,
             // Path B-clean W3 — pick_folder returns Option<String>;
             // close_project_root no-op stub awaiting watcher wiring.
             m_v1_compat::mt_pick_folder,
