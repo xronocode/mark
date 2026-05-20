@@ -56,7 +56,7 @@ const { clipboard } = storeToRefs(projectStore)
 const { currentFile, tabs } = storeToRefs(editorStore)
 
 const isDirty = computed(() => {
-  const tab = tabs.value.find((t) => window.fileUtils.isSamePathSync(t.pathname, props.file.pathname))
+  const tab = tabs.value.find((t) => window.fileUtils?.isSamePathSync?.(t.pathname, props.file.pathname))
   return tab ? !tab.isSaved : false
 })
 

@@ -129,13 +129,10 @@ pub async fn mt_request_keybindings(
 }
 
 /// Path B-clean W3: opens the OS folder picker and RETURNS the chosen
-/// path directly. Renderer awaits the invoke result and calls
-/// project.ADD_PROJECT(path) without going through `mt::open-directory`
-/// event roundtrip — eliminating the listener race.
-///
-/// On success additionally spawns the walk-and-emit thread streaming
-/// `mt::update-object-tree` events for the new root. The streaming
-/// listener is registered ONCE at boot in bootstrap-ipc.js (W1).
+/// path directly. Renderer awaits the invoke result, calls
+/// project.ADD_PROJECT(path) to create the tree root, then invokes
+/// mt_walk_project to stream directory contents. Walk is separate so
+/// the root exists before any events arrive.
 ///
 /// User cancel of the dialog returns `Ok(None)` — renderer treats as
 /// no-op.

@@ -324,10 +324,13 @@ export const useProjectStore = defineStore('project', {
         const { invoke } = await import('@tauri-apps/api/core')
         const path = await invoke('mt_pick_folder')
         if (path) {
+          const before = this.projectTrees.length
           this.ADD_PROJECT(path)
-          invoke('mt_walk_project', { path }).catch((e) => {
-            console.error('[ipc][walk_project][BLOCK_INVOKE_FAILED]', e)
-          })
+          if (this.projectTrees.length > before) {
+            invoke('mt_walk_project', { path }).catch((e) => {
+              console.error('[ipc][walk_project][BLOCK_INVOKE_FAILED]', e)
+            })
+          }
         }
         console.log(`[ipc][pick_folder][BLOCK_INVOKE_OK chosen=${!!path}]`)
       } catch (e) {
