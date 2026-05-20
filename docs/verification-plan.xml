@@ -5083,4 +5083,47 @@
     <stub-note>Wikilink [[ ]] syntax + backlinks panel. Detailed verification deferred until Phase-B9.</stub-note>
   </V-M-037>
 
+  <!-- Sidebar walk race fix + dirty-file highlighting (2026-05-20, commits 9bb39e36 + 3f3efe74) -->
+  <V-SIDEBAR-WALK-RACE MODULE="m_v1_compat + project.js" PRIORITY="high" SCOPE="backend-ipc + renderer-project-store" status="done" verified-at="2026-05-20">
+    <intent>Walk events (mt::update-object-tree) must arrive AFTER ADD_PROJECT creates the tree root in projectTrees[]. Previously mt_pick_folder fired walk inline, causing DROPPED_NO_ROOT when events arrived before frontend created root. Fix: extract walk into mt_walk_project; frontend calls it after ADD_PROJECT completes.</intent>
+    <touched-files>
+      <file>src-tauri/src/m_v1_compat.rs (mt_walk_project extracted from mt_pick_folder)</file>
+      <file>src-tauri/src/main.rs (mt_walk_project registered in invoke_handler)</file>
+      <file>src/renderer/src/store/project.js (ASK_FOR_OPEN_PROJECT calls mt_walk_project after ADD_PROJECT)</file>
+    </touched-files>
+    <scenarios>
+      <scenario-1 kind="success">Open folder via titlebar: ADD_PROJECT creates root, then mt_walk_project fires walk events. All events routed to correct root, none dropped.</scenario-1>
+      <scenario-2 kind="success">Dedup rejection: ADD_PROJECT for already-loaded folder no-ops (BLOCK_DEDUP), projectTrees length unchanged, mt_walk_project NOT called (length guard).</scenario-2>
+      <scenario-3 kind="success">Nested rejection: ADD_PROJECT for subfolder of loaded root shows warning (BLOCK_NESTED), projectTrees length unchanged, mt_walk_project NOT called.</scenario-3>
+      <scenario-4 kind="success">Two sequential folder opens: each gets its own walk after its root is created. No cross-root event leakage.</scenario-4>
+      <scenario-5 kind="regression">No DROPPED_NO_ROOT markers in console during normal folder-open flow.</scenario-5>
+    </scenarios>
+    <negative-assertions>
+      <no>MUST NOT call mt_walk_project when ADD_PROJECT rejects (dedup/nested) — length guard prevents.</no>
+      <no>MUST NOT emit walk events from mt_pick_folder — walk is now exclusively in mt_walk_project.</no>
+    </negative-assertions>
+  </V-SIDEBAR-WALK-RACE>
+
+  <V-SIDEBAR-DIRTY-HIGHLIGHT MODULE="treeFile.vue + treeOpenedTab.vue" PRIORITY="medium" SCOPE="renderer-sidebar-ui" status="done" verified-at="2026-05-20">
+    <intent>Unsaved (dirty) files show amber visual indicators in both the folder tree (treeFile.vue) and the Opened Files section (treeOpenedTab.vue). isDirty computed in treeFile.vue cross-references editor tabs. CSS priority: dirty overrides current-file styling. Optional chaining prevents crash when fileUtils unavailable.</intent>
+    <touched-files>
+      <file>src/renderer/src/components/sideBar/treeFile.vue (isDirty computed + amber CSS)</file>
+      <file>src/renderer/src/components/sideBar/treeOpenedTab.vue (amber unsaved indicator)</file>
+    </touched-files>
+    <scenarios>
+      <scenario-1 kind="success">Open folder, edit a file without saving: that file in the folder tree shows amber text + dot indicator.</scenario-1>
+      <scenario-2 kind="success">Save the file (Cmd+S): amber indicator clears immediately (isDirty flips to false).</scenario-2>
+      <scenario-3 kind="success">CSS priority: dirty file that is also the current file shows amber (dirty overrides current-file highlight).</scenario-3>
+      <scenario-4 kind="success">Opened Files section: unsaved tab shows amber dot and amber filename (--warningColor / #d97706), not green.</scenario-4>
+      <scenario-5 kind="success">Saved tab in Opened Files section: no amber, normal text color.</scenario-5>
+      <scenario-6 kind="edge">fileUtils not loaded (optional chaining): isSamePathSync?.() returns undefined, isDirty stays false. No crash.</scenario-6>
+      <scenario-7 kind="edge">File open in multiple editor tabs (split view): isDirty reflects any unsaved instance.</scenario-7>
+    </scenarios>
+    <negative-assertions>
+      <no>MUST NOT use green (--highlightThemeColor) for unsaved indicators — amber only.</no>
+      <no>MUST NOT crash when fileUtils is unavailable — optional chaining required.</no>
+      <no>MUST NOT show dirty indicator for files not open in any editor tab.</no>
+    </negative-assertions>
+  </V-SIDEBAR-DIRTY-HIGHLIGHT>
+
 </VerificationPlan>
