@@ -5,7 +5,7 @@
     class="side-bar-file"
     :style="{ 'padding-left': `${depth * 20 + 20}px`, opacity: file.isMarkdown ? 1 : 0.75 }"
     :class="[
-      { current: currentFile.pathname === file.pathname, active: file.id === activeItem.id }
+      { current: currentFile.pathname === file.pathname, active: file.id === activeItem.id, dirty: isDirty }
     ]"
     @click="handleFileClick"
   >
@@ -24,7 +24,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, nextTick } from 'vue'
+import { ref, computed, onMounted, nextTick } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useProjectStore } from '@/store/project'
 import { useEditorStore } from '@/store/editor'
@@ -54,6 +54,11 @@ const { renameCache } = storeToRefs(projectStore)
 const { activeItem } = storeToRefs(projectStore)
 const { clipboard } = storeToRefs(projectStore)
 const { currentFile, tabs } = storeToRefs(editorStore)
+
+const isDirty = computed(() => {
+  const tab = tabs.value.find((t) => window.fileUtils.isSamePathSync(t.pathname, props.file.pathname))
+  return tab ? !tab.isSaved : false
+})
 
 // from fileMixins
 const handleFileClick = () => {
@@ -139,6 +144,18 @@ onMounted(() => {
 }
 .side-bar-file.active > span {
   color: var(--sideBarTitleColor);
+}
+.side-bar-file.dirty > span {
+  color: var(--warningColor, #d97706);
+}
+.side-bar-file.dirty::after {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--warningColor, #d97706);
+  margin-left: 6px;
+  flex-shrink: 0;
 }
 input.rename {
   height: 22px;

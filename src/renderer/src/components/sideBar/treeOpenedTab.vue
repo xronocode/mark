@@ -80,10 +80,13 @@ const removeFileInTab = (file) => {
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: var(--highlightThemeColor);
+  background: var(--warningColor, #d97706);
   position: absolute;
   top: 11px;
   left: 12px;
+}
+.unsaved.opened-file > .name {
+  color: var(--warningColor, #d97706);
 }
 .unsaved.opened-file:hover::before {
   content: none;

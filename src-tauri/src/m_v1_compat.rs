@@ -159,17 +159,21 @@ pub async fn mt_pick_folder(app: tauri::AppHandle) -> Result<Option<String>, Str
     };
     eprintln!("[m_fs_ops][open_folder][BLOCK_PICKED path={path}]");
 
-    // Walk the directory off-thread; events arrive via the
-    // mt::update-object-tree listener registered at boot.
+    Ok(Some(path))
+}
+
+/// Walk a project root and stream `mt::update-object-tree` events.
+/// Frontend calls this AFTER ADD_PROJECT creates the tree root, so
+/// events always find an owning root in _processTreeEvent.
+#[tauri::command]
+pub fn mt_walk_project(path: String, app: tauri::AppHandle) -> Result<(), String> {
     let walk_path = std::path::PathBuf::from(&path);
-    let walk_app = app.clone();
     std::thread::spawn(move || {
-        if let Err(e) = walk_and_emit_app(&walk_path, &walk_app) {
-            eprintln!("[m_fs_ops][open_folder][BLOCK_WALK_FAILED err={e}]");
+        if let Err(e) = walk_and_emit_app(&walk_path, &app) {
+            eprintln!("[m_fs_ops][walk_project][BLOCK_WALK_FAILED path={path} err={e}]");
         }
     });
-
-    Ok(Some(path))
+    Ok(())
 }
 
 /// Path B-clean W4: file.quit menu command target. Renderer's

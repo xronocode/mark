@@ -325,6 +325,9 @@ export const useProjectStore = defineStore('project', {
         const path = await invoke('mt_pick_folder')
         if (path) {
           this.ADD_PROJECT(path)
+          invoke('mt_walk_project', { path }).catch((e) => {
+            console.error('[ipc][walk_project][BLOCK_INVOKE_FAILED]', e)
+          })
         }
         console.log(`[ipc][pick_folder][BLOCK_INVOKE_OK chosen=${!!path}]`)
       } catch (e) {
