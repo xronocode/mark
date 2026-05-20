@@ -283,7 +283,9 @@ pub async fn mt_prefs_set(
 /// Snapshot all prefs as an object. Useful for renderer bootstrap.
 #[tauri::command]
 pub async fn mt_prefs_get_all(prefs: State<'_, PrefsState>) -> Result<Value, String> {
-    Ok(Value::Object(prefs.all()))
+    let all = prefs.all();
+    eprintln!("[Prefs][get_all][BLOCK_INVOKED keys={}]", all.len());
+    Ok(Value::Object(all))
 }
 
 /// Pure-logic workspace setter. Validates the path, canonicalizes,

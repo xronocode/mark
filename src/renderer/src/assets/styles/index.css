@@ -1,6 +1,8 @@
 /* Common CSS use by both light and dark themes */
 :root {
   --titleBarHeight: 32px;
+  --titleBarBgColor: #f6f6f6;
+  --titleBarBorderColor: rgba(0, 0, 0, 0.08);
   --editorAreaWidth: 750px;
 
   /*editor*/
@@ -132,7 +134,7 @@ html,
 body {
   margin: 0;
   padding: 0;
-  background: transparent !important;
+  background: var(--editorBgColor, #ffffff);
   caret-color: var(--editorColor);
 }
 

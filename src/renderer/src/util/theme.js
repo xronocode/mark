@@ -110,6 +110,11 @@ export const addThemeStyle = (theme) => {
   document.body.classList.remove('dark')
   if (isDarkTheme) {
     document.body.classList.add('dark')
+    document.documentElement.style.setProperty('--titleBarBgColor', '#2d2d2d')
+    document.documentElement.style.setProperty('--titleBarBorderColor', 'rgba(255, 255, 255, 0.06)')
+  } else {
+    document.documentElement.style.setProperty('--titleBarBgColor', '#f6f6f6')
+    document.documentElement.style.setProperty('--titleBarBorderColor', 'rgba(0, 0, 0, 0.08)')
   }
 
   const cm = document.querySelector('.CodeMirror')

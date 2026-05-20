@@ -3,6 +3,7 @@
     <div class="title-bar-editor-bg" :class="{ 'tabs-visible': showTabBar }"></div>
     <div
       class="title-bar"
+      data-tauri-drag-region
       :class="[
         { active: active },
         { 'tabs-visible': showTabBar },
@@ -10,7 +11,7 @@
         { isOsx: isOsx }
       ]"
     >
-      <div class="title" @dblclick.stop="toggleMaxmizeOnMacOS">
+      <div class="title" data-tauri-drag-region @dblclick.stop="toggleMaxmizeOnMacOS">
         <span v-if="!filename">Mark</span>
         <span v-else>
           <span v-for="(path, index) of paths" :key="index">
@@ -440,7 +441,8 @@ onBeforeUnmount(() => {
 <style scoped>
 .title-bar-editor-bg {
   height: var(--titleBarHeight);
-  background: var(--editorBgColor);
+  background: var(--titleBarBgColor, #f6f6f6);
+  border-bottom: 1px solid var(--titleBarBorderColor, rgba(0, 0, 0, 0.08));
   position: relative;
   left: 0;
   top: 0;

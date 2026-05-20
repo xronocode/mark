@@ -20,7 +20,7 @@
         "fullscreen": false,
         "url": "index.html",
         "dragDropEnabled": true,
-        "titleBarStyle": "Overlay",
+        "titleBarStyle": "Transparent",
         "hiddenTitle": true
       }
     ],
