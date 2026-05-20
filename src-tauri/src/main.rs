@@ -127,6 +127,9 @@ pub struct PendingOpens {
     /// Set by mt_app_quit before calling app.exit(0) so the
     /// ExitRequested handler lets the exit proceed on the second pass.
     pub quit_approved: std::sync::atomic::AtomicBool,
+    /// M-033: CLI --preview flag. When true, all files opened from CLI
+    /// or Apple Events start in preview (read-only) mode.
+    pub preview_mode: std::sync::atomic::AtomicBool,
 }
 
 impl Default for PendingOpens {
@@ -136,6 +139,7 @@ impl Default for PendingOpens {
             drained: std::sync::atomic::AtomicBool::new(false),
             had_initial_opens: std::sync::atomic::AtomicBool::new(false),
             quit_approved: std::sync::atomic::AtomicBool::new(false),
+            preview_mode: std::sync::atomic::AtomicBool::new(false),
         }
     }
 }
@@ -152,10 +156,12 @@ fn mt_drain_pending_opens(
     eprintln!("[main][pending_opens][BLOCK_DRAINED count={}]", drained.len());
     // Emit mt::open-new-tab for each queued path. Reuses
     // m_v1_compat::emit_open_new_tab (reads file via std::fs, builds
-    // IMarkdownDocumentRaw payload, fires the event). preview_mode=true
-    // per M-022: Apple Event / CLI launches start read-only.
+    // IMarkdownDocumentRaw payload, fires the event).
+    // M-033: use stored preview_mode instead of hardcoded true.
+    // `mark file.md` → preview=false (editable); `mark --preview file.md` → preview=true.
+    let preview = state.preview_mode.load(std::sync::atomic::Ordering::SeqCst);
     for path in &drained {
-        if let Err(e) = m_v1_compat::emit_open_new_tab(&window, path, true) {
+        if let Err(e) = m_v1_compat::emit_open_new_tab(&window, path, preview) {
             eprintln!("[main][pending_opens][BLOCK_EMIT_FAILED path={path} err={e}]");
         } else {
             eprintln!("[main][pending_opens][BLOCK_EMITTED path={path}]");
@@ -451,6 +457,9 @@ fn main() {
         }
     }
 
+    // M-033: capture CLI --preview flag for the setup hook closure.
+    let cli_preview = cli.preview;
+
     // Capture CLI files for the setup hook (move into closure). Each
     // valid path is converted to absolute form upfront so a path like
     // `./demo.md` doesn't resolve relative to wherever the binary is
@@ -576,6 +585,17 @@ fn main() {
                 // PendingOpens AppState alongside Apple Event paths.
                 // Frontend drains both via mt_drain_pending_opens after
                 // bootstrap-editor — race-free, no deferred-thread sleep.
+                // M-033: seed preview_mode from CLI --preview flag.
+                // `mark file.md` → false (editable); `mark --preview file.md` → true (read-only).
+                // Apple Events (Finder double-click) keep their own hardcoded true in
+                // RunEvent::Opened — this flag only governs the mt_drain_pending_opens path.
+                {
+                    let state = tauri::Manager::state::<PendingOpens>(app);
+                    state
+                        .preview_mode
+                        .store(cli_preview, std::sync::atomic::Ordering::SeqCst);
+                }
+
                 if !cli_files.is_empty() {
                     let state = tauri::Manager::state::<PendingOpens>(app);
                     let mut q = state.queue.lock().unwrap_or_else(|e| e.into_inner());

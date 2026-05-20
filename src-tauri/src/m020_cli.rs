@@ -13,6 +13,7 @@
 //
 // CHANGE_SUMMARY:
 //   - 2026-04-29 B3-step-3: initial clap parser + CliBoot facade.
+//   - 2026-05-20 B7-M-033: add --preview flag for read-only tab opens.
 
 use clap::Parser;
 use std::path::PathBuf;
@@ -46,6 +47,13 @@ pub struct CliArgs {
     /// guards even in release builds.
     #[arg(short = 'v', long = "verbose")]
     pub verbose: bool,
+
+    /// Open files in preview (read-only) mode. Preview tabs have
+    /// contenteditable=false; clicking the editor body exits preview.
+    /// Used by `mark --preview notes.md` for quick reading and by
+    /// live-reload watchers that want read-only by default.
+    #[arg(long = "preview")]
+    pub preview: bool,
 
     /// Print version and exit.
     #[arg(long = "print-version")]
@@ -158,5 +166,32 @@ mod tests {
             clap::error::ErrorKind::DisplayHelp
                 | clap::error::ErrorKind::DisplayVersion
         ));
+    }
+
+    #[test]
+    fn preview_flag() {
+        let args = parse_from(&["mark", "--preview"]).unwrap();
+        assert!(args.preview);
+    }
+
+    #[test]
+    fn preview_flag_default_false() {
+        let args = parse_from(&["mark"]).unwrap();
+        assert!(!args.preview);
+    }
+
+    #[test]
+    fn preview_with_files() {
+        let args = parse_from(&["mark", "--preview", "notes.md", "todo.md"]).unwrap();
+        assert!(args.preview);
+        assert_eq!(args.files, vec![PathBuf::from("notes.md"), PathBuf::from("todo.md")]);
+    }
+
+    #[test]
+    fn preview_combined_with_verbose() {
+        let args = parse_from(&["mark", "--preview", "-v", "a.md"]).unwrap();
+        assert!(args.preview);
+        assert!(args.verbose);
+        assert_eq!(args.files, vec![PathBuf::from("a.md")]);
     }
 }
