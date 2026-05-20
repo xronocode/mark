@@ -1,250 +1,456 @@
+<div align="center">
+
+<br>
+
 # Mark
 
+## Your AI agents write Markdown. Finally, an editor that does it justice.
+
+<br>
+
 [![Tests](https://github.com/xronocode/mark/actions/workflows/test.yml/badge.svg)](https://github.com/xronocode/mark/actions/workflows/test.yml)
-![Status](https://img.shields.io/badge/status-alpha-orange)
-![Platform](https://img.shields.io/badge/platform-macOS%20arm64-lightgrey)
-![App Size](https://img.shields.io/badge/app_size-11%20MB-brightgreen)
-![RAM](https://img.shields.io/badge/RAM_idle-61%20MB-brightgreen)
+&ensp;![Status](https://img.shields.io/badge/alpha-orange?style=flat-square)
+&ensp;![Platform](https://img.shields.io/badge/macOS%20arm64-black?style=flat-square)
+&ensp;![Size](https://img.shields.io/badge/11%20MB-brightgreen?style=flat-square)
+&ensp;![RAM](https://img.shields.io/badge/61%20MB%20RAM-brightgreen?style=flat-square)
+&ensp;![License](https://img.shields.io/badge/MIT-blue?style=flat-square)
 
-**A modern WYSIWYG Markdown editor built on Tauri 2 + Rust, inspired by Mark Text.**
-**11 MB on disk. 61 MB RAM. Native macOS. Open source.**
+<br>
 
-<p align="left">
-  <a href="https://ko-fi.com/xronocode" target="_blank" title="If Mark saves you a 200 MB Electron install, buy the maintainer a coffee">
-    <img height="36" src="https://storage.ko-fi.com/cdn/kofi3.png?v=3" alt="Buy Me a Coffee at ko-fi.com" />
-  </a>
-</p>
+<img src="reborn-mark/assets/screenshots/hero-dark.png" alt="Mark — WYSIWYG Markdown editor, dark theme" width="820">
 
-![Mark editor showing demo markdown with WYSIWYG rendering, dark theme](assets/screenshots/hero-dark.png)
+<br>
 
-[Mark Text](https://github.com/marktext/marktext) (54k+ stars) pioneered free WYSIWYG Markdown editing. Mark takes the same design philosophy (the muya engine, the same UX paradigm) and explores what it looks like on a native stack: **Tauri 2 + Rust + WKWebView**. No Chromium. No Node.js. 18x smaller on disk.
+```
+brew tap xronocode/mark && brew install --cask mark@alpha
+```
+
+> **⚠️ Alpha** — daily-driver quality for writing on Apple Silicon, but it has known gaps.<br>
+> What works has 792 tests and CI. What doesn't is [tracked openly](#status--v200-alpha6).
+
+<br>
+
+</div>
+
+You run Claude Code. Or Aider. Or Codex. Or your own agents.
+
+They generate *beautiful* Markdown — plans, specs, reports, Mermaid diagrams, LaTeX math, comparison tables. Then you try to **actually read it**:
+
+> **Terminal** — tables collapse, diagrams vanish, colors don't exist.<br>
+> **VS Code / Obsidian** — 300 MB of RAM before you open a single file. You already have LLMs eating 8–16 GB.<br>
+> **Export to HTML** — burns tokens, triples prompt size, needs a browser tab per file.<br>
+
+Sound familiar? That's **Markdown fatigue**. Everyone building with AI agents in 2026 feels it.
+
+Mark fixes it. **11 megabytes.** Opens in under a second. Renders everything. Gets out of your way.
+
+---
+
+<div align="center">
+
+### How it feels
+
+</div>
+
+```
+  You                          Mark                        Your agent
+   │                            │                             │
+   │   "open plan.md"           │                             │
+   │ ──────────────────────────▶│                             │
+   │                            │  tables, mermaid, math      │
+   │                            │  rendered live, inline       │
+   │   read ← ── ── ── ── ── ──│                             │
+   │                            │                             │
+   │   edit directly in Mark    │                             │
+   │ ──────────────────────────▶│                             │
+   │                            │──── file saved ────────────▶│
+   │                            │                             │
+   │                            │◀─── agent updates file ─────│
+   │                            │  live reload, no refresh    │
+   │   see changes instantly ◀──│                             │
+   │                            │                             │
+```
+
+One window. No browser. No context switch. The human-in-the-loop just works.
+
+---
+
+<div align="center">
+
+### Set up your agent in 30 seconds
+
+</div>
+
+Add this to your agent's system prompt, `CLAUDE.md`, `.aider.conf.yml`, or whatever config your agent reads:
+
+```markdown
+When you produce a plan, spec, report, or any document longer than ~50 lines,
+write it to a .md file and open it in the user's editor:
+
+    open -a Mark <file>.md        # macOS
+
+The user will read and edit directly in Mark (a lightweight WYSIWYG Markdown
+editor with live file-watcher reload). When you see the file has changed on
+disk, read the updated version — the user left feedback or corrections inline.
+Treat the diff as your next instruction.
+```
+
+That's it. Your agent writes → Mark renders → you edit → the agent picks up the diff.
+
+<details>
+<summary><b>Use case: review a plan before the agent executes</b></summary>
+
+```
+You: "Write an implementation plan for the new auth module."
+
+Agent writes plan.md, runs `open -a Mark plan.md`.
+
+You see a beautifully rendered doc with Mermaid diagrams and tables.
+You delete step 3, rewrite step 5, add a note: "— use JWT, not sessions".
+Save.
+
+Agent detects the change:
+"I see you removed step 3 and updated step 5 to use JWT. Proceeding with
+the revised plan."
+```
+
+</details>
+
+<details>
+<summary><b>Use case: structured feedback on a report</b></summary>
+
+```
+You: "Analyze our API latency data and give me a report."
+
+Agent writes report.md with tables, charts, and recommendations.
+Opens in Mark — you see everything rendered inline.
+
+You add a line at the bottom:
+"— Good analysis. But ignore the /health endpoint, it skews the p99.
+   Re-run without it."
+
+Agent reads the update, re-runs the analysis, appends the new results
+to the same file. Mark live-reloads. You see the diff without switching
+windows.
+```
+
+</details>
+
+<details>
+<summary><b>Use case: knowledge base your agent maintains</b></summary>
+
+```
+Add to your agent config:
+
+    Maintain a living knowledge base in docs/kb.md.
+    After each significant decision, append a dated entry.
+    The user may reorganize or annotate entries in Mark —
+    respect their edits as authoritative.
+
+Open docs/kb.md in Mark once. Leave it open.
+Every time the agent appends, Mark live-reloads.
+You curate, the agent accumulates. One file, two authors.
+```
+
+</details>
+
+<details>
+<summary><b>Use case: spec review with Mermaid diagrams</b></summary>
+
+```
+You: "Design the data flow for the new ingestion pipeline."
+
+Agent writes spec.md:
+
+    ## Data Flow
+    ```mermaid
+    graph LR
+      A[S3 Upload] --> B[Lambda Trigger]
+      B --> C{Validate}
+      C -->|pass| D[Transform]
+      C -->|fail| E[Dead Letter Queue]
+      D --> F[Write to Postgres]
+    ```
+
+In the terminal this is raw text. In Mark it's a rendered diagram.
+You drag the DLQ branch, add a retry step, save.
+The agent sees your edit and adjusts the implementation.
+```
+
+</details>
+
+---
+
+<div align="center">
+
+### 11 MB. Not 200 MB.
+
+</div>
+
+|  | **Mark** | Mark Text | Typora | Obsidian | iA Writer |
+|:---|:---:|:---:|:---:|:---:|:---:|
+| **App size** | **11 MB** | 200 MB | 100 MB | 300 MB | 30 MB |
+| **RAM at idle** | **61 MB** | 400 MB | 200 MB | 250 MB | 50 MB |
+| **True inline WYSIWYG** | **Yes** | Yes | Yes | No | Partial |
+| **Mermaid + KaTeX + Vega** | **All three** | Yes | Partial | Plugins | No |
+| **Live file-watcher reload** | **Yes** | No | No | Yes | No |
+| **Themes** | **33** | 6 | CSS | CSS | 3 |
+| **Open source** | **MIT** | MIT | No | No | No |
+| **Price** | **Free** | Free | $15 | $50/yr | $50 |
+| **Native macOS** | **WKWebView** | Chromium | Chromium | Chromium | AppKit |
+
+No Chromium. No Node.js. No Electron. Just your system WebView doing what it was designed to do.
+
+---
+
+<div align="center">
+
+### But what about the AI-native tools?
+
+</div>
+
+The 2025–2026 wave brought a crop of tools built specifically for AI-agent workflows. Here's how Mark compares:
+
+| Tool | What it is | Where Mark differs |
+|:---|:---|:---|
+| **glow / mdcat** | Terminal-based MD renderers | No images, no Mermaid, no editing. Great for quick glances — not for 200-line specs with diagrams. |
+| **leaf** | Rust TUI viewer with watch mode | Still a terminal. No inline WYSIWYG, no rich rendering. |
+| **Ferrite** | Rust + egui editor | Split-view, not inline WYSIWYG. Different UX paradigm. |
+| **Marky** | Tauri CLI viewer (`marky plan.md`) | Viewer only, no editing. Mark does both. |
+| **Ritemark** | MD editor + built-in terminal | Electron-based, heavier footprint. |
+| **Obsidian** | Knowledge base with plugins | 300 MB, plugin ecosystem needed for basics. Overkill for reading agent output. |
+
+Mark sits in a specific gap: **native + lightweight + full WYSIWYG + file-watcher + edit-in-place**. If you need a vault or a second brain, use Obsidian. If you need to read and edit what your agents write without burning RAM — that's Mark.
+
+---
+
+<div align="center">
+
+### 33 themes. Because your eyes matter at 2 AM.
+
+<br>
+
+<img src="reborn-mark/assets/screenshots/themes.png" alt="Mark — 33 built-in themes" width="820">
+
+</div>
+
+<br>
+
+**Gruvbox** · **Catppuccin** · **Nord** · **Tokyo Night** · **Dracula** · **Solarized** · **Rose Pine** · **Ayu** · **One Dark** · **Material** — and 23 more.
+
+Switch themes in Settings — every open editor syncs instantly. Or write your own CSS.
+
+---
+
+<div align="center">
+
+### Built by AI agents. For AI agents.
+
+</div>
+
+This project is its own proof of concept.
+
+The entire Tauri rewrite — **30+ Rust modules, 792 tests**, typed IPC, native menu, spellchecker, auto-updater — was architected and shipped by one developer with AI agents using the **GRACE methodology** (Graph-RAG Anchored Code Engineering).
+
+Structured plans. Module contracts. Knowledge graphs. Agents executing against verifiable specs.
+
+One person. AI agents. A native desktop app that rivals what teams of five ship.
+
+> *Mark is the tool that was missing from the workflow that built it.*
+
+---
+
+<div align="center">
+
+### What's inside
+
+</div>
+
+**The essentials** — true inline WYSIWYG (muya engine), multi-tab editing, folder sidebar, find in file & folder
+
+**The rendering** — Mermaid v11 diagrams, KaTeX math, Vega charts — all inline, no preview pane
+
+**The native feel** — system WKWebView, macOS menu bar, NSSpellChecker, real Cmd+shortcuts, ad-hoc code signing
+
+**The agent workflow** — file-watcher live reload, dirty-tab protection (Save/Discard/Cancel), preview mode on Finder open
+
+**The trust** — no telemetry, no cloud, no account, no plugin marketplace. Files are files. 792 tests. MIT licensed.
+
+---
+
+<div align="center">
+
+### Status — v2.0.0-alpha.6
+
+</div>
+
+Daily-driver quality for routine Markdown on Apple Silicon.
+
+**Editing**
+
+| Feature | Status |
+|:---|:---:|
+| True inline WYSIWYG (muya engine) | ✅ |
+| Multi-tab editing | ✅ |
+| Open Folder + sidebar file tree | ✅ |
+| Mermaid v11 / KaTeX / Vega inline rendering | ✅ |
+| Find in file (Cmd+F) | 🔶 Beta |
+| Find in folder (in-process ripgrep) | 🔶 Beta |
+| Search context lines + include/exclude globs | Planned |
+
+**File handling**
+
+| Feature | Status |
+|:---|:---:|
+| Save / Save As / Open | ✅ |
+| Dirty-tab close prompt (Save / Discard / Cancel) | ✅ |
+| External-edit live reload (file-watcher) | ✅ |
+| Auto-detect file encoding (UTF-8, windows-1251, Shift_JIS, …) | ✅ |
+| v1 preferences migration (5-store, idempotent) | ✅ |
+| Recent documents | ✅ |
+| Preserve source encoding on save | Planned |
+| Manual encoding picker | Planned |
+| File move / rename commands | Planned |
+
+**Appearance & UX**
+
+| Feature | Status |
+|:---|:---:|
+| 33 themes + custom CSS | ✅ |
+| Live theme sync across windows | ✅ |
+| Preview mode on Finder double-click | ✅ |
+| Set as default `.md` handler | ✅ |
+| System font enumeration | ✅ |
+| Monospace font filter for code editor | Planned |
+
+**Native macOS**
+
+| Feature | Status |
+|:---|:---:|
+| System WKWebView (no Chromium) | ✅ |
+| Native menu bar + Cmd+shortcuts | ✅ |
+| Spell-check via NSSpellChecker | ✅ |
+| Screenshot capture (macOS screencapture) | ✅ |
+| Ad-hoc code signing (no Developer account) | ✅ |
+| Global shortcuts (Cmd+Shift+M show window) | 🔶 In progress |
+| Auto-update via Homebrew cask (ed25519 signed) | ✅ |
+
+**CLI & integration**
+
+| Feature | Status |
+|:---|:---:|
+| CLI flags (--safe-mode, --debug, --new-window) | ✅ |
+| `open -a Mark file.md` from terminal / agents | ✅ |
+| Pandoc export (HTML, PDF) | ✅ Requires Pandoc |
+| Pandoc progress indicator | Planned |
+| Image upload (PicGo, smms, aliyun) | Planned |
+
+**Platform**
+
+| Feature | Status |
+|:---|:---:|
+| macOS Apple Silicon | ✅ |
+| macOS Intel | Untested |
+| Linux | Planned |
+| Windows | Planned |
+| Multi-window support | Planned |
+
+> Alpha is alpha. What works has **792 tests** and CI. What doesn't is tracked openly with a target milestone.
+
+---
+
+<div align="center">
+
+### Install
+
+</div>
+
+**One command:**
 
 ```sh
 brew tap xronocode/mark && brew install --cask mark@alpha
 ```
 
----
+Gatekeeper handled automatically. No `sudo xattr` dance. No $99/year Apple Developer account.
 
-## Mark vs. the alternatives
-
-| | **Mark** | Mark Text | Typora | Obsidian | iA Writer |
-|---|:---:|:---:|:---:|:---:|:---:|
-| WYSIWYG (inline, not split-pane) | **Yes** | Yes | Yes | No | Partial |
-| App size on disk | **11 MB** | 200 MB | 100 MB | 300 MB | 30 MB |
-| RAM at idle | **61 MB** | 400 MB | 200 MB | 250 MB | 50 MB |
-| Open source | **MIT** | MIT | No | No | No |
-| Price | **Free** | Free | $14.99 | Free / $50yr | $49.99 |
-| Native macOS feel | **Yes** (WKWebView) | No (Chromium) | No (Chromium) | No (Chromium) | Yes (AppKit) |
-| Mermaid / KaTeX / Vega | **Yes** | Yes | Mermaid+KaTeX | Via plugins | No |
-| 33 built-in themes | **Yes** | 6 themes | CSS themes | CSS themes | 3 themes |
-| Active development | **Yes** | Resumed 2026 | Slow | Active | Active |
-
-Mark occupies a gap no one else fills: **open-source + native performance + true inline WYSIWYG**.
-
----
-
-## Why Mark?
-
-- **11 MB, not 200 MB.** Tauri 2 uses the system WebView. No bundled Chromium, no bundled Node.js. The DMG is 5.4 MB.
-- **61 MB RAM, not 400 MB.** One process, not five. Your battery will thank you.
-- **Native macOS.** System WKWebView, native menu bar, NSSpellChecker, ad-hoc code signing (no $99/year Apple Developer account).
-- **33 themes out of the box.** Gruvbox, Catppuccin, Nord, Tokyo Night, Dracula, Solarized, Rose Pine, Ayu, and more. Live cross-window sync between Editor and Settings.
-- **Open and honest.** MIT licensed. Alpha is alpha. The [feature matrix](#status) is front-and-center, not buried. What works has 792 tests; what doesn't is tracked with a target milestone.
-- **Yours.** No telemetry, no cloud, no plugin marketplace pulling code from strangers. Files are files.
-
-### Themes
-
-![Mark Preferences: Theme picker](assets/screenshots/themes.png)
-
-> **This is an alpha.** Daily-driver-quality for routine writing on Apple Silicon (that's how it's developed), but it has known gaps. For a battle-tested Electron alternative right now, install [`mark` (Electron channel)](#electron-stable-channel) instead.
-
----
-
-## How it works
-
-```
-┌──────────────────────────────────────────────────────┐
-│  Vue 3 + Pinia + Element Plus + muya WYSIWYG engine  │   <-  src/renderer/
-├──────────────────────────────────────────────────────┤
-│  M-013a typed IPC contract (32 commands)             │
-│  ipc.runtime: invoke / listen wrappers, type-checked │
-├──────────────────────────────────────────────────────┤
-│              Tauri 2 webview + IPC bridge            │
-├──────────────────────────────────────────────────────┤
-│  Rust backend (src-tauri/src/)                       │
-│  ├─ m001  panic, save/close state machine, validate  │
-│  ├─ m005  prefs (tauri-plugin-store + migration)     │
-│  ├─ m006  global shortcuts                           │
-│  ├─ m007  spellchecker (NSSpellChecker)              │
-│  ├─ m008  font enumeration (font-kit)                │
-│  ├─ m009  native menu                                │
-│  ├─ m010  path sandbox + URL whitelist               │
-│  ├─ m013b fs / search / watcher (notify-debouncer)   │
-│  ├─ m015  pandoc bridge                              │
-│  ├─ m016  auto-updater (ed25519)                     │
-│  ├─ m017  recent docs                                │
-│  ├─ m018  screenshot (macOS screencapture)           │
-│  └─ m019  keychain (datacenter)                      │
-└──────────────────────────────────────────────────────┘
-```
-
-The Vue frontend is ported from Mark Text v1.2.3; the muya engine has zero Electron coupling (verified: `grep -r 'require..electron' src/muya/` returns 0 hits). The IPC layer between Vue and Rust is fully typed: every renderer→backend call goes through `M-013a CommandMap` which is schema-validated against the `tauri::generate_handler!` list at boot. Drift between frontend and backend trips a startup dialog instead of a confusing runtime error.
-
-Backend libraries doing the actual work: [`notify`](https://crates.io/crates/notify) + [`notify-debouncer-full`](https://crates.io/crates/notify-debouncer-full) for file-watching, [`grep-searcher`](https://crates.io/crates/grep-searcher) (in-process, no ripgrep shell-out) for folder search, [`font-kit`](https://crates.io/crates/font-kit) for system font enumeration, [`tauri-plugin-store`](https://crates.io/crates/tauri-plugin-store) for prefs persistence, [`tauri-plugin-updater`](https://crates.io/crates/tauri-plugin-updater) for ed25519-signed auto-update.
-
----
-
-## Status
-
-**v2.0.0-alpha.6**: usable as a daily driver for routine markdown writing on macOS Apple Silicon.
-
-| Feature | Status |
-|---|---|
-| WYSIWYG markdown editing (muya engine) | **Working** |
-| Save / Save As / Open file | **Working** |
-| Multi-tab editing | **Working** |
-| Open Folder / sidebar tree | **Working** |
-| External-edit live reload (file-watcher) | **Working** |
-| Cross-window preference broadcast | **Working** |
-| 33 themes + custom CSS | **Working** |
-| Native macOS menu + keyboard shortcuts | **Working** |
-| Dirty-tab close prompt (Save/Discard/Cancel) | **Working** |
-| Mermaid v11 / KaTeX / Vega diagrams | **Working** |
-| Spell-check via NSSpellChecker | **Working** |
-| Preview mode on Finder open | **Working** |
-| Set as default .md handler | **Working** |
-| Auto-update via Homebrew cask | **Working** |
-| Find in file (Cmd+F) | Beta |
-| Find in folder (ripgrep) | Beta |
-| Print to PDF via Pandoc | Requires Pandoc |
-| Linux / Windows builds | macOS-only at alpha |
-
-Full roadmap with 55+ tracked items lives in [`docs/development-plan.xml`](https://github.com/xronocode/mark/blob/main/docs/development-plan.xml).
-
----
-
-## Install
-
-### Tauri alpha (recommended)
+<details>
+<summary><b>Electron stable channel</b> (frozen at v1.2.3, security fixes only)</summary>
 
 ```sh
-brew tap xronocode/mark
-brew install --cask mark@alpha
+brew tap xronocode/mark && brew install --cask mark
 ```
 
-Ad-hoc signed. The cask postflight clears `com.apple.quarantine` so Gatekeeper accepts the local signature without prompting. No `sudo xattr` dance needed.
+Both casks coexist. When v2.0 stable ships, `mark` rolls forward to Tauri.
 
-### Electron stable channel
+</details>
 
-Battle-tested Electron build (frozen at v1.2.3, security fixes only):
+<details>
+<summary><b>Build from source</b></summary>
 
-```sh
-brew tap xronocode/mark
-brew install --cask mark
-```
-
-Both casks coexist (`Mark.app` + `Mark Alpha.app`). When v2.0 stable ships, the `mark` cask rolls forward to Tauri and `mark@v1` becomes a 12-month maintenance channel.
-
----
-
-## Quality
-
-This isn't a weekend port. 10 phases of sign-off work, every module contract-tested:
-
-| Surface | Coverage |
-|---|---|
-| Renderer (vitest) | **374 tests** |
-| Backend (cargo test) | **418 tests** |
-| End-to-end (Playwright) | 5 specs against built renderer |
-| CI matrix | macOS-14 + ubuntu-latest, on push & PR |
-| Code review | smart-review 5-agent audit (excellence + failure-hunt + simplify) |
-
-**792 unit tests** + 5 e2e + CI gate. See [`.github/workflows/test.yml`](https://github.com/xronocode/mark/blob/main/.github/workflows/test.yml).
-
----
-
-## Build from source
-
-Requirements:
-
-- Rust **1.79+** (`rustup install stable`)
-- Node **20 LTS**
-- Xcode Command Line Tools (`xcode-select --install`) for `safaridriver`, code-signing, and the Tauri webview shim
+Rust 1.79+ · Node 20 LTS · Xcode CLI Tools
 
 ```sh
-git clone https://github.com/xronocode/mark.git
-cd mark
+git clone https://github.com/xronocode/mark.git && cd mark/reborn-mark
 npm ci
-npm run tauri build --debug      # → target/debug/bundle/macos/Mark.app
-# or
-npm run tauri build              # release: ~22 MB binary, LTO + strip
+npm run tauri dev       # hot-reload
+npm run tauri build     # release
 ```
-
-For a fast inner loop:
 
 ```sh
-npm run tauri dev                # watches src/renderer + src-tauri
+npm test                                    # 374 renderer tests
+cd src-tauri && cargo test --bin mark       # 418 Rust tests
+npm run test:e2e                            # Playwright
 ```
 
-If `tauri dev` shows a blank window, see `src-tauri/tauri.dev.conf.json`. Vue 3 dev mode requires `'unsafe-eval'` in CSP for runtime template compilation, and that override is gated to dev only.
-
-### Test
-
-```sh
-npm test                         # vitest (renderer)
-cd src-tauri && cargo test --bin mark   # rust unit tests
-npm run test:e2e                 # Playwright against built renderer
-```
+</details>
 
 ---
 
-## Heritage
+<div align="center">
 
-Mark is inspired by [Mark Text](https://github.com/marktext/marktext) (54k+ stars). Built on the shoulders of:
+### Acknowledgements
 
-1. **[marktext/marktext](https://github.com/marktext/marktext)**: the original Electron Mark Text by [@Jocs](https://github.com/Jocs). The muya WYSIWYG engine, themes, and the entire UX paradigm.
-2. **[Tkaixiang/marktext](https://github.com/Tkaixiang/marktext)**: community fork with critical security and crash fixes (CVE-2023-2318, Mermaid v11). Our Electron stable channel is downstream of Tkaixiang.
-3. **This repo**: Phase A was Electron 41 modernization (shipped v1.2.3), Phase B is the Tauri 2 rewrite (this branch, active development).
+</div>
 
-| Branch | Engine | Status | Cask |
-|---|---|---|---|
-| `main` (this) | Tauri 2 + Rust + Vue 3 | **alpha** | `mark@alpha` |
-| `electron` | Electron 41 + Vue 2 | frozen, security-only | `mark` |
+Mark wouldn't exist without the people who built the foundation:
 
----
+- **[@Jocs](https://github.com/Jocs)** — creator of [Mark Text](https://github.com/marktext/marktext) (54k+ ⭐). The muya WYSIWYG engine, the theme system, and the entire UX paradigm that makes inline Markdown editing feel right. Everything Mark does starts with his work.
+- **[@Tkaixiang](https://github.com/Tkaixiang)** — maintainer of the [community fork](https://github.com/Tkaixiang/marktext) that kept Mark Text alive with critical security fixes (CVE-2023-2318), crash fixes, and the Mermaid v11 upgrade. Mark's Electron stable channel is downstream of his fork.
+- **The Mark Text community** — 54,000+ stargazers, hundreds of contributors, and years of issues and PRs that shaped what a good Markdown editor should be.
+- **The Tauri team** — for building a framework that makes 11 MB native apps possible without Chromium.
 
-## Contributing
-
-Pull requests welcome. The project follows the **GRACE** (Graph-RAG Anchored Code Engineering) methodology. Every module has a `MODULE_CONTRACT` header documenting its purpose, scope, dependencies, and verification reference. The `docs/` directory carries the development plan, knowledge graph, and verification matrix as XML artifacts that humans and agents both read.
-
-Path of least friction:
-
-1. Fork → branch from `main`.
-2. Run `npm test && cd src-tauri && cargo test --bin mark` locally.
-3. Open a PR. The GitHub Actions matrix gates merge on macOS + Linux.
-
-For larger changes, please open an issue first; the codebase has a fairly opinionated layout (see [How it works](#how-it-works)).
+Mark is what Mark Text looks like **without Electron, without the bloat, and with an AI-agent workflow in mind**. We stand on the shoulders of giants — and we say thank you.
 
 ---
 
-## Support the project
+<div align="center">
 
-Mark is built on personal time. If it saves you from a 200 MB Electron install or 6-second cold starts, consider buying me a coffee. It goes directly into more polish phases like the one this repo just went through.
+### Contributing
 
-<p align="left">
-  <a href="https://ko-fi.com/xronocode" target="_blank">
-    <img src="https://ko-fi.com/img/githubbutton_sm.svg" alt="Buy Me a Coffee at ko-fi.com" />
-  </a>
-</p>
+</div>
 
-Other ways to help: ⭐ star the repo, file issues with concrete repros, or send a PR fixing something on the [followup list](https://github.com/xronocode/mark/blob/main/docs/development-plan.xml).
+PRs welcome. Fork → branch from `main` → run tests → open a PR. CI gates merge on macOS + Linux. For larger changes, open an issue first.
 
 ---
 
-## License
+<div align="center">
 
-[MIT](LICENSE), inherited from upstream Mark Text.
+Mark is built on personal time.
 
-## Maintainer
+If it saves you from reading agent specs in raw terminal — or from yet another 400 MB Electron install:
 
-[@xronocode](https://github.com/xronocode) · [Ko-fi](https://ko-fi.com/xronocode)
+<br>
+
+<a href="https://ko-fi.com/xronocode" target="_blank">
+  <img src="https://ko-fi.com/img/githubbutton_sm.svg" alt="Buy Me a Coffee at ko-fi.com" />
+</a>
+
+<br><br>
+
+⭐ **Star the repo** · File issues · Send a PR
+
+<br>
+
+[MIT](reborn-mark/LICENSE) · **[@xronocode](https://github.com/xronocode)**
+
+</div>
