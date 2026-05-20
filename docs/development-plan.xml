@@ -1837,6 +1837,115 @@ src/main/config.js declares `contextIsolation: false`, `nodeIntegration: true`, 
         </test-targets>
       </step-4>
     </Phase-B6-diff>
+
+    <!-- =================================================================
+         Phase-B7: Agent-Compat — features derived from competitive analysis
+         (Ferrite, Marky, Ritemark, Nimbalyst, Zed, Obsidian, Inkwell, leaf)
+         Source: 2026-05-20 competitive swarm research (10 tools analyzed).
+         Strategic goal: position Mark as "default markdown companion for
+         Claude Code" by filling the gap no tool occupies: tiny binary +
+         CLI open + live-reload + diff review + WYSIWYG — all under 20 MB.
+         ================================================================= -->
+
+    <Phase-B7-agent-compat name="Agent Compatibility — live-reload + CLI preview" status="done" priority="high" estimated-effort="7h" target-tag="v2.0.0-alpha.9">
+      <rationale>Marky (Tauri 2, &lt;15MB) proved that live-reload-on-disk-write is the killer feature for AI-agent workflows. Mark already has fs-watcher infrastructure (M-003 V-M-003) but doesn't refresh the open tab on external changes. Adding this + a read-only CLI preview mode makes Mark instantly useful as Claude Code's markdown companion. Competitive gap: no tool combines WYSIWYG + live-reload + tiny binary.</rationale>
+
+      <step-1 module="M-032" status="done" verification="V-M-032" closes="F-LIVE-RELOAD">
+        <description>Fix latent bug + add live-reload on external file change. LATENT BUG: APPLY_FILE_CHANGE in editor.js:1339 calls loadChange({ pathname }) but loadChange:116 expects change.data with file content — crashes on undefined. FIX: (1) make APPLY_FILE_CHANGE async, read file via ipcFs.read before loadChange; (2) preserve cursor/scrollTop across reload (save before Object.assign, restore after); (3) add "liveReload" preference (default true) — auto-reload clean tabs without notification; (4) same-content hash skip; (5) 100ms settle delay after debounced watcher event. NO backend changes — watcher (m013b/watch.rs) and ipcFs.read already work.</description>
+        <write-scope>
+          <file>src/renderer/src/store/editor.js — fix APPLY_FILE_CHANGE: async read + construct data; fix loadChange: preserve cursor/scrollTop; add hash-skip + settle delay + liveReload pref check</file>
+          <file>src/renderer/src/store/preferences.js — add liveReload: true default</file>
+        </write-scope>
+        <depends>M-003 (watcher — already works), M-012 (muya — setMarkdown/getCursor already exist), M-011 (editorWithTabs — tab state already tracks cursor/scrollTop)</depends>
+        <test-targets>
+          <test>src/renderer/test/liveReload.test.js — 8 unit tests: file-read-before-loadChange, cursor-preservation, scrollTop-preservation, same-content-skip, dirty-conflict, liveReload-pref-off, settle-delay, tab-closed-during-read</test>
+        </test-targets>
+      </step-1>
+
+      <step-2 module="M-033" status="done" verification="V-M-033" closes="F-CLI-PREVIEW">
+        <description>CLI --preview flag for read-only WYSIWYG preview. Small scope: previewMode per-tab flag ALREADY EXISTS and works (M-022 infrastructure). Only need: (1) add --preview flag to CliArgs in m020_cli.rs; (2) thread preview flag through PendingOpens → emit_open_new_tab(preview_mode=true); (3) in M-032's APPLY_FILE_CHANGE, skip dirty check for previewMode tabs (always auto-reload). NO renderer changes needed — contenteditable=false, Cmd+S no-op, no save dialog already work. --watch deferred to M-036.</description>
+        <write-scope>
+          <file>src-tauri/src/m020_cli.rs — add preview: bool to CliArgs struct</file>
+          <file>src-tauri/src/main.rs — pass cli_args.preview to emit_open_new_tab in setup hook</file>
+          <file>src/renderer/src/store/editor.js — in APPLY_FILE_CHANGE: skip dirty check when tab.previewMode=true</file>
+        </write-scope>
+        <depends>M-020 (cli-flags), M-032 (live-reload), M-001 (lifecycle)</depends>
+        <test-targets>
+          <test>src-tauri/tests/m020_cli_preview.rs — 4 cargo tests: parse flag, no flag, no file, multiple files</test>
+          <test>src/renderer/test/previewMode.test.js — verify existing preview behavior not broken</test>
+        </test-targets>
+      </step-2>
+
+      <gate>verify live-reload works end-to-end: external write → editor updates within 500ms; --preview mode opens read-only; --preview --watch opens folder sidebar. Tag v2.0.0-alpha.9 on success.</gate>
+    </Phase-B7-agent-compat>
+
+    <Phase-B8-terminal name="Embedded Terminal Panel (AI agent companion)" status="planned" priority="medium" estimated-effort="12h" target-tag="v2.0.0-beta.1">
+      <rationale>Ritemark's unique selling point is a built-in terminal where Claude Code runs alongside the editor. Nimbalyst wraps Claude Code as a GUI. Mark can offer a simpler version: a toggleable split-pane terminal (xterm.js + node-pty via Tauri shell plugin) that agents run in. Not a full IDE — just enough to see agent output while editing the file it's modifying.</rationale>
+
+      <step-1 module="M-034" status="pending" verification="V-M-034" closes="F-TERMINAL-PANEL">
+        <description>Split-pane terminal panel. Cmd+` toggles a bottom panel with xterm.js terminal. Tauri shell plugin spawns user's default shell. Terminal output rendered. Panel resizable. State persisted per-window (open/closed + height). Terminal killed on window close.</description>
+        <write-scope>
+          <file>src/renderer/src/components/terminal/TerminalPanel.vue — new component</file>
+          <file>src/renderer/src/components/layout/index.vue — integrate terminal panel slot</file>
+          <file>src-tauri/src/m034_terminal.rs — shell spawn + PTY management via tauri-plugin-shell</file>
+          <file>src-tauri/Cargo.toml — add tauri-plugin-shell dependency</file>
+        </write-scope>
+        <depends>M-001 (lifecycle), M-011 (editorWithTabs layout)</depends>
+        <test-targets>
+          <test>src/renderer/test/terminalPanel.test.js</test>
+          <test>src-tauri/tests/m034_terminal.rs</test>
+        </test-targets>
+      </step-1>
+
+      <step-2 module="M-035" status="pending" verification="V-M-035" closes="F-AGENT-STATUS">
+        <description>AI agent status indicator. When terminal detects patterns like "claude>" prompt or "[agent]" log prefixes, show a subtle status pill in the title bar: "Agent active" / "Agent idle". Optional: breathing animation (inspired by Ferrite). Non-intrusive, opt-out via preferences.</description>
+        <write-scope>
+          <file>src/renderer/src/components/terminal/agentDetector.js — pattern matching for agent prompts</file>
+          <file>src/renderer/src/components/titlebar/AgentStatus.vue — status pill component</file>
+          <file>src/renderer/src/store/terminal.js — agent state tracking</file>
+        </write-scope>
+        <depends>M-034 (terminal panel)</depends>
+        <test-targets>
+          <test>src/renderer/test/agentDetector.test.js</test>
+        </test-targets>
+      </step-2>
+
+      <gate>Terminal panel opens/closes with Cmd+`; shell spawns; agent status pill appears when Claude Code is running. Tag v2.0.0-beta.1 on success.</gate>
+    </Phase-B8-terminal>
+
+    <Phase-B9-knowledge name="Workspace + Knowledge Navigation" status="planned" priority="low" estimated-effort="25h" target-tag="v2.0.0-beta.2">
+      <rationale>Ferrite has folder workspaces + wikilinks + backlinks panel. Obsidian's entire value prop is graph-based knowledge navigation. Marky has folder sidebar. Mark needs at minimum a project sidebar (folder tree) to compete. Wikilinks/backlinks are stretch goals that differentiate Mark from pure editors.</rationale>
+
+      <step-1 module="M-036" status="pending" verification="V-M-036" closes="F-PROJECT-SIDEBAR">
+        <description>Folder workspace sidebar. `mark folder/` opens folder as project. Left sidebar shows file tree (recursive, lazy-loaded). Click opens file in tab. Sidebar collapsible. Persisted per-project. File icons by extension. Context menu: new file, rename, delete, reveal in Finder.</description>
+        <write-scope>
+          <file>src/renderer/src/components/sidebar/ProjectTree.vue — new component</file>
+          <file>src/renderer/src/store/project.js — project state (root path, tree, selection)</file>
+          <file>src-tauri/src/m036_project.rs — directory listing, file operations</file>
+        </write-scope>
+        <depends>M-002 (fs commands), M-020 (cli-flags), M-010 (SecurityCtx)</depends>
+        <test-targets>
+          <test>src/renderer/test/projectTree.test.js</test>
+          <test>src-tauri/tests/m036_project.rs</test>
+        </test-targets>
+      </step-1>
+
+      <step-2 module="M-037" status="pending" verification="V-M-037" closes="F-WIKILINKS">
+        <description>Wikilinks + backlinks panel. `[[page-name]]` syntax in editor resolves to files in project. Backlinks panel shows which files link to the current file. Click navigates. Autocomplete for `[[` in muya. No full knowledge graph — just file-level link resolution.</description>
+        <write-scope>
+          <file>src/muya/lib/parser/rules/wikilink.js — new inline rule for [[ ]] syntax</file>
+          <file>src/renderer/src/components/sidebar/BacklinksPanel.vue — new component</file>
+          <file>src/renderer/src/store/project.js — extend with link index</file>
+        </write-scope>
+        <depends>M-036 (project sidebar), M-012 (muya)</depends>
+        <test-targets>
+          <test>src/renderer/test/wikilinks.test.js</test>
+          <test>src/muya/test/wikilink.test.js</test>
+        </test-targets>
+      </step-2>
+
+      <gate>Folder sidebar functional; wikilinks resolve within project; backlinks panel shows incoming links. Tag v2.0.0-beta.2 on success.</gate>
+    </Phase-B9-knowledge>
   </ImplementationOrder>
 
   <ExecutionPolicy>

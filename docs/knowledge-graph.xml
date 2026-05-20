@@ -451,6 +451,78 @@
       </annotations>
     </M-031>
 
+    <!-- Phase-B7: Agent Compatibility (competitive analysis 2026-05-20) -->
+    <M-032 NAME="live-reload" TYPE="INTEGRATION" STATUS="done" PHASE-REF="B7-step-1">
+      <purpose>Live-reload on external file change: fixed APPLY_FILE_CHANGE async read path (latent bug: project.js sends {pathname} without data); fixed loadChange cursor/scrollTop preservation; added liveReload preference + hash-skip + 100ms settle delay. Uses existing watcher (m013b/watch.rs) + ipcFs.read.</purpose>
+      <path>src/renderer/src/store/editor.js, src/renderer/src/store/preferences.js</path>
+      <depends>M-003, M-012, M-011</depends>
+      <verification-ref>V-M-032</verification-ref>
+      <annotations>
+        <fn-APPLY_FILE_CHANGE PURPOSE="Async ipcFs.read fallback when change.data missing. Checks autoSave/liveReload/previewMode. 100ms settle delay. Hash-skip." />
+        <fn-loadChange PURPOSE="Saves cursor/scrollTop/muyaIndexCursor before Object.assign, restores after." />
+        <type-liveReload PURPOSE="Preference: boolean, default true. Auto-reload clean tabs without notification." />
+      </annotations>
+    </M-032>
+
+    <M-033 NAME="cli-preview" TYPE="ENTRY_POINT" STATUS="done" PHASE-REF="B7-step-2">
+      <purpose>CLI --preview flag: `mark --preview notes.md` opens read-only. preview: bool in CliArgs, threaded through PendingOpens.preview_mode AtomicBool to mt_drain_pending_opens. Apple Events keep hardcoded preview=true. editor.js: previewMode tabs always auto-reload.</purpose>
+      <path>src-tauri/src/m020_cli.rs, src-tauri/src/main.rs, src/renderer/src/store/editor.js</path>
+      <depends>M-020, M-032, M-001</depends>
+      <verification-ref>V-M-033</verification-ref>
+      <annotations>
+        <fn-CliArgs-preview PURPOSE="bool field, --preview long flag. Default false. `mark file.md` → editable, `mark --preview file.md` → read-only." />
+        <fn-PendingOpens-preview_mode PURPOSE="AtomicBool seeded from cli.preview in setup hook. Consumed by mt_drain_pending_opens." />
+        <fn-APPLY_FILE_CHANGE-preview-skip PURPOSE="In editor.js: tab.previewMode=true bypasses dirty check — always auto-reload." />
+      </annotations>
+    </M-033>
+
+    <!-- Phase-B8: Terminal Panel -->
+    <M-034 NAME="terminal-panel" TYPE="UI_COMPONENT" STATUS="planned" PHASE-REF="B8-step-1">
+      <purpose>Split-pane terminal panel (xterm.js + tauri-plugin-shell). Cmd+` toggles. Agent runs alongside editor. Panel resizable, state persisted.</purpose>
+      <path>src/renderer/src/components/terminal/TerminalPanel.vue, src-tauri/src/m034_terminal.rs</path>
+      <depends>M-001, M-011</depends>
+      <verification-ref>V-M-034</verification-ref>
+      <annotations>
+        <fn-toggleTerminal PURPOSE="Cmd+` handler: show/hide terminal panel" />
+        <fn-spawnShell PURPOSE="Rust: spawn user default shell via tauri-plugin-shell" />
+      </annotations>
+    </M-034>
+
+    <M-035 NAME="agent-status" TYPE="UI_COMPONENT" STATUS="planned" PHASE-REF="B8-step-2">
+      <purpose>AI agent status indicator in titlebar. Detects agent prompts in terminal output (claude>, [agent]), shows status pill. Optional breathing animation.</purpose>
+      <path>src/renderer/src/components/terminal/agentDetector.js, src/renderer/src/components/titlebar/AgentStatus.vue</path>
+      <depends>M-034</depends>
+      <verification-ref>V-M-035</verification-ref>
+      <annotations>
+        <fn-detectAgent PURPOSE="Pattern matcher for agent CLI prompts in terminal output stream" />
+        <fn-AgentStatusPill PURPOSE="Vue component: 'Agent active' / 'Agent idle' pill with optional animation" />
+      </annotations>
+    </M-035>
+
+    <!-- Phase-B9: Knowledge Navigation -->
+    <M-036 NAME="project-sidebar" TYPE="UI_COMPONENT" STATUS="planned" PHASE-REF="B9-step-1">
+      <purpose>Folder workspace sidebar. `mark folder/` opens project tree. Lazy-loaded file tree, click-to-open, context menu (new/rename/delete/reveal). Persisted per-project.</purpose>
+      <path>src/renderer/src/components/sidebar/ProjectTree.vue, src/renderer/src/store/project.js, src-tauri/src/m036_project.rs</path>
+      <depends>M-002, M-020, M-010</depends>
+      <verification-ref>V-M-036</verification-ref>
+      <annotations>
+        <fn-loadProjectTree PURPOSE="Recursive lazy directory listing with file icons" />
+        <fn-openFileFromTree PURPOSE="Click handler: open file in new tab from project tree" />
+      </annotations>
+    </M-036>
+
+    <M-037 NAME="wikilinks" TYPE="CORE_LOGIC" STATUS="planned" PHASE-REF="B9-step-2">
+      <purpose>[[page-name]] wikilink syntax in muya with autocomplete. Backlinks panel shows incoming links. File-level resolution within project.</purpose>
+      <path>src/muya/lib/parser/rules/wikilink.js, src/renderer/src/components/sidebar/BacklinksPanel.vue</path>
+      <depends>M-036, M-012</depends>
+      <verification-ref>V-M-037</verification-ref>
+      <annotations>
+        <fn-wikilinkRule PURPOSE="muya inline parser rule for [[ ]] syntax" />
+        <fn-buildLinkIndex PURPOSE="Index all wikilinks in project for backlinks resolution" />
+        <fn-BacklinksPanel PURPOSE="Vue component: shows files linking to current file" />
+      </annotations>
+    </M-037>
+
     <M-901 NAME="grace-context-hygiene-policy" TYPE="PROCESS_POLICY" STATUS="implemented">
       <purpose>GRACE-compatible AI Standards token/session hygiene overlay with context modes, precedence rules, and escalation triggers.</purpose>
       <path>docs/grace-ai-standards-hygiene-methodology.md</path>
@@ -622,5 +694,17 @@
     <CrossLink from="M-031" to="M-011" relation="renders-diff-in-editor-container" />
     <CrossLink from="M-031" to="M-012" relation="reads-current-markdown-from" />
     <CrossLink from="M-031" to="M-010" relation="validates-baseline-path-via" />
+    <!-- Phase-B7/B8/B9 agent-compat crosslinks -->
+    <CrossLink from="M-032" to="M-003" relation="consumes-file-changed-events-from" />
+    <CrossLink from="M-032" to="M-012" relation="updates-muya-content-on-reload" />
+    <CrossLink from="M-032" to="M-011" relation="resolves-active-tab-in" />
+    <CrossLink from="M-033" to="M-032" relation="requires-live-reload-for-preview" />
+    <CrossLink from="M-033" to="M-020" relation="extends-cli-flags" />
+    <CrossLink from="M-034" to="M-001" relation="shell-lifecycle-bound-to-window" />
+    <CrossLink from="M-035" to="M-034" relation="reads-terminal-output-from" />
+    <CrossLink from="M-036" to="M-002" relation="reads-directory-tree-via" />
+    <CrossLink from="M-036" to="M-010" relation="validates-project-root-via" />
+    <CrossLink from="M-037" to="M-036" relation="resolves-wikilinks-within-project" />
+    <CrossLink from="M-037" to="M-012" relation="extends-muya-inline-parser" />
   </Project>
 </KnowledgeGraph>

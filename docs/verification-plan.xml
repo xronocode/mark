@@ -4745,4 +4745,342 @@
     </IterationMetaTrigger>
 
   </Iteration2Verification>
+  <!-- =================================================================
+       Phase-B7: Agent Compatibility (competitive analysis 2026-05-20)
+       Nearest wave — detailed verification for M-032 + M-033
+       ================================================================= -->
+
+  <V-M-032 MODULE="M-032 live-reload" PRIORITY="high" wave="alpha.9" status="implemented">
+    <followup-ref>F-LIVE-RELOAD</followup-ref>
+    <prereq>V-M-003 (watcher infrastructure), V-M-012 (muya API), V-M-011 (editorWithTabs tabs)</prereq>
+
+    <texture-audit date="2026-05-20">
+      CRITICAL FINDING: loadChange(change) at editor.js:116 expects change.data with { markdown, filename, encoding, lineEnding, ... } but APPLY_FILE_CHANGE at editor.js:1339 is called from project.js:232 with only { pathname } — change.data is undefined. This is a LATENT BUG: the reload-on-external-change path crashes on destructuring undefined. Never triggered because autoSave defaults to false and the notification action path (line 1381) hits the same crash.
+
+      Existing infrastructure:
+      - Watcher: m013b/watch.rs emits on "mt::watch::event" channel (not "mt::file-changed"). WatchEvent shape: { subscriptionId, kind, paths[] }. Debounce: 200ms (DEBOUNCE_TICK).
+      - Project store: project.js:192 _handleWatchEvent receives kind="modify" → calls editorStore.APPLY_FILE_CHANGE('change', { pathname }).
+      - File read: ipcFs.read(path) → invoke('mt::fs::read', { path }) returns UTF-8 string. Available for frontend file reading.
+      - Muya API: setMarkdown(markdown, cursor, isRenderCursor, muyaIndexCursor, blocks) at muya/lib/index.js:190. getCursor() at :186. NO getScrollTop/setScrollTop — scroll managed by editor.vue via DOM.
+      - Tab state: isSaved flag (false = dirty). cursor, scrollTop, history preserved in tab object.
+      - autoSave default: false (preferences.js:9).
+      - loadChange at editor.js:116 creates fresh FileState via getSingleFileState, overwrites tab via Object.assign — cursor/scrollTop from NEW state (not preserved from old).
+
+      Scope revision: M-032 is NOT "add watcher + reload from scratch." It is:
+      1. FIX the broken loadChange path (add ipcFs.read before calling loadChange)
+      2. PRESERVE cursor/scrollTop across reload (save before Object.assign, restore after)
+      3. ADD auto-reload for non-dirty files regardless of autoSave preference (new "liveReload" pref, default true)
+      4. ADD same-content skip (hash compare before muya.setMarkdown)
+      5. ADD 100ms settle delay after debounced event to avoid reading mid-write
+    </texture-audit>
+
+    <module-surface>
+      Renderer: src/renderer/src/store/editor.js —
+        (a) Fix APPLY_FILE_CHANGE 'change' branch: async read file via ipcFs.read(pathname) + construct data object with { markdown, filename, encoding, lineEnding, ... } BEFORE calling loadChange. This fixes the latent bug.
+        (b) In loadChange: save old cursor + scrollTop BEFORE Object.assign(tab, newFileState). Restore after.
+        (c) New preference "liveReload" (default: true). When liveReload=true AND isSaved=true: auto-reload without notification. When liveReload=false: fall back to existing notification behavior.
+        (d) Same-content optimization: compare old markdown hash vs new before calling bus.emit('file-changed'). Skip if identical.
+        (e) 100ms setTimeout after watcher event before reading file (settle delay for agent burst writes).
+      Renderer: src/renderer/src/store/preferences.js — add liveReload: true default.
+      Backend: NO changes needed. Watcher infrastructure (m013b/watch.rs) and ipcFs.read (m002_fs.rs) already exist.
+    </module-surface>
+
+    <mental-walkthroughs>
+      <walkthrough-1 name="happy-path-agent-write">
+        1. User opens file.md in Mark, edits some text, saves (isSaved=true)
+        2. Claude Code writes file.md via tool_use (file write)
+        3. notify-debouncer fires after 200ms quiet: WatchEvent { kind: "modify", paths: ["/path/file.md"] }
+        4. project.js._handleWatchEvent → editorStore.APPLY_FILE_CHANGE('change', { pathname })
+        5. NEW: APPLY_FILE_CHANGE checks liveReload pref + isSaved flag
+        6. NEW: setTimeout(100ms) settle delay
+        7. NEW: await ipcFs.read(pathname) → markdown string
+        8. NEW: construct data = { markdown, filename: path.basename(pathname), encoding: tab.encoding, lineEnding: tab.lineEnding, ... }
+        9. NEW: hash compare: if markdown === tab.markdown → BLOCK_RELOAD_SKIPPED reason=no_diff, return
+        10. Save old cursor/scrollTop: const { cursor: oldCursor, scrollTop: oldScrollTop } = tab
+        11. loadChange({ pathname, data }) → Object.assign(tab, newFileState)
+        12. Restore: tab.cursor = oldCursor; tab.scrollTop = oldScrollTop
+        13. bus.emit('file-changed', { markdown, cursor: oldCursor, scrollTop: oldScrollTop, ... })
+        14. editor.vue handleFileChange → muya.setMarkdown(markdown, oldCursor, ...)
+        15. editor.vue scrollToCords(oldScrollTop)
+        RESULT: Editor shows new content, cursor stays at same position, scroll doesn't jump
+      </walkthrough-1>
+
+      <walkthrough-2 name="dirty-conflict">
+        1. User types unsaved text (isSaved=false)
+        2. Claude Code writes file.md
+        3. Watcher fires → APPLY_FILE_CHANGE
+        4. Check: isSaved=false → dirty conflict
+        5. Show notification: "File changed on disk. Reload / Keep mine"
+        6a. User clicks "Reload": await ipcFs.read → loadChange → content replaced, unsaved edits lost (user chose this)
+        6b. User clicks "Keep mine": dismiss notification, mark tab.isSaved=false, keep current content
+        RESULT: No silent data loss
+      </walkthrough-2>
+
+      <walkthrough-3 name="rapid-burst-5-writes">
+        1. Claude Code writes file.md 5 times in 200ms (common with tool_use edit chains)
+        2. notify-debouncer coalesces all 5 events into ONE after 200ms quiet period
+        3. ONE WatchEvent { kind: "modify" } fires
+        4. 100ms settle delay
+        5. Read file → gets final content (5th write)
+        6. ONE reload in editor
+        RESULT: No flicker, no 5x reload, correct final content
+      </walkthrough-3>
+
+      <walkthrough-4 name="save-then-watcher-echo">
+        1. User presses Cmd+S → file written to disk
+        2. Watcher detects OUR OWN write → fires WatchEvent modify
+        3. APPLY_FILE_CHANGE: settle delay 100ms → read file → content hash matches current tab.markdown
+        4. BLOCK_RELOAD_SKIPPED reason=no_diff
+        RESULT: No unnecessary reload after save
+      </walkthrough-4>
+
+      <walkthrough-5 name="no-project-no-watcher">
+        1. User opens file via Cmd+O (no project root, file opened standalone)
+        2. No watcher subscribed for this file (watcher is per-project-root in project.js)
+        3. External change → no event fires → no reload
+        GAP: Live-reload only works for files inside an open project. Standalone files have no watcher.
+        FUTURE: M-032 could add per-tab watcher subscription for standalone files. Scope decision for user.
+      </walkthrough-5>
+    </mental-walkthroughs>
+
+    <high-level-scenarios>
+      <S1>single-file-external-edit — file open in project tab, external tool writes; Mark auto-reloads within 500ms (200ms debounce + 100ms settle + read time); BLOCK_LIVE_RELOAD trigger=watcher path=... elapsed_ms=N.</S1>
+      <S2>rapid-burst-writes — agent writes file 5 times in 200ms; debouncer coalesces to ONE event; ONE reload fires; content matches final write; no flicker.</S2>
+      <S3>cursor-preservation — file has 100 lines, cursor at line 50; external edit appends 3 lines at end; after reload, cursor restored to line 50 (saved before Object.assign, restored after).</S3>
+      <S4>scroll-preservation — editor scrolled to middle; external edit changes first paragraph; scrollTop value preserved across reload; viewport doesn't jump.</S4>
+      <S5>dirty-conflict — user has unsaved edits (isSaved=false); external write fires; notification shown with "Reload / Keep mine"; user choice respected. BLOCK_RELOAD_CONFLICT action=user_choice.</S5>
+      <S6>save-echo-suppression — user saves file; watcher detects our write; hash compare finds no diff; reload skipped. BLOCK_RELOAD_SKIPPED reason=no_diff.</S6>
+      <S7>file-deleted-externally — watcher fires kind="remove"; APPLY_FILE_CHANGE('unlink', ...) shows "File removed" banner; content kept in memory. (Already works.)</S7>
+      <S8>liveReload-pref-off — user sets liveReload=false in preferences; external change triggers notification (old behavior) instead of auto-reload.</S8>
+    </high-level-scenarios>
+
+    <failure-scenarios>
+      <F1>file-read-error — external write replaces file with unreadable permissions; ipcFs.read rejects; catch error; show toast "Could not reload: permission denied"; editor keeps old content; BLOCK_RELOAD_FAILED reason=io_error.</F1>
+      <F2>invalid-utf8 — external tool writes binary/Latin-1 content; Rust mt::fs::read returns error (read_to_string fails on non-UTF8); catch; keep old content; toast error.</F2>
+      <F3>watcher-stopped — notify-debouncer thread crashes or OS FSEvents limit reached; no events fire; user must manually re-open file; BLOCK_WATCHER_LOST logged when detected via watchdog (future enhancement).</F3>
+      <F4>tab-closed-during-read — user closes tab while async ipcFs.read is in-flight; read completes; tab no longer in tabs array; loadChange returns early at line 132-143. No crash.</F4>
+    </failure-scenarios>
+
+    <race-conditions>
+      <R1>user-types-during-read — user starts typing while async read is pending (100ms settle + read time); isSaved transitions to false during this window; read completes → re-check isSaved: if now false, show conflict notification instead of auto-replacing. GUARD: re-check dirty flag after read.</R1>
+      <R2>tab-switch-during-read — user switches tab while read for tab A is pending; read completes; store updates tab A state (not visible); on switch back to A, handleFileChange fires from bus. No wrong-tab contamination.</R2>
+      <R3>save-races-reload — user Cmd+S at same instant watcher fires; save writes file (updates mtime), then reload reads file; content from reload matches save content → hash skip → no duplicate work.</R3>
+      <R4>two-files-changed-simultaneously — two watcher events for different files; two parallel async reads; each targets correct tab by pathname match. No cross-contamination.</R4>
+    </race-conditions>
+
+    <numeric-thresholds>
+      <T1>Reload latency (watcher event → editor updated): ≤500ms for files under 100KB on M2 Mac. Breakdown: 200ms debounce + 100ms settle + ~50ms read + ~50ms muya parse. BLOCK_LIVE_RELOAD.elapsed_ms measured from watcher event timestamp.</T1>
+      <T2>Debounce: existing 200ms in m013b/watch.rs. Settle delay: 100ms added in APPLY_FILE_CHANGE. Total: 300ms from last write to read attempt.</T2>
+      <T3>Memory: reload of 1MB file adds ≤5MB transient heap (two copies of markdown string + muya block tree rebuild). Old blocks GC'd after render.</T3>
+      <T4>No main-thread block >50ms: ipcFs.read is async (IPC round-trip); muya.setMarkdown is synchronous but sub-50ms for &lt;100KB files.</T4>
+    </numeric-thresholds>
+
+    <edge-cases>
+      <E1>Empty file — external tool truncates to 0 bytes; read returns ""; muya.setMarkdown("") → empty editor; no crash.</E1>
+      <E2>Same content (touch) — content hash matches; skip reload. Hash: simple string equality (markdown strings are typically &lt;1MB, equality is fast).</E2>
+      <E3>Standalone file (no project) — file opened via Cmd+O without project root; no watcher subscription exists; external changes NOT detected. Known limitation. Future: per-tab watcher for standalone files.</E3>
+      <E4>Very large file (>1MB) — read + muya.setMarkdown may take >50ms; consider requestIdleCallback for non-active tabs. Active tab: accept the jank for large files.</E4>
+      <E5>File renamed externally — watcher fires "remove" + "create"; handled as unlink (banner) + potential re-open if new name matches. Complex edge case; defer to future.</E5>
+    </edge-cases>
+
+    <log-markers>
+      <M1>[editor][reload][BLOCK_LIVE_RELOAD trigger=watcher path=... elapsed_ms=N] — successful auto-reload</M1>
+      <M2>[editor][reload][BLOCK_RELOAD_SKIPPED reason=no_diff|dirty|pref_off path=...] — reload suppressed</M2>
+      <M3>[editor][reload][BLOCK_RELOAD_CONFLICT action=reload|keep path=...] — user resolved conflict</M3>
+      <M4>[editor][reload][BLOCK_RELOAD_FAILED reason=io_error|parse_error path=... err=...] — read or parse failed</M4>
+    </log-markers>
+
+    <negative-assertions>
+      <N1>Reload NEVER silently discards unsaved user edits (isSaved=false MUST trigger conflict flow).</N1>
+      <N2>Reload NEVER fires for same-content writes (hash compare gate).</N2>
+      <N3>loadChange NEVER called with undefined change.data (the latent bug MUST be fixed).</N3>
+      <N4>Reload NEVER runs for files outside open project roots (watcher scope is per-project).</N4>
+    </negative-assertions>
+
+    <latent-bugs-to-fix>
+      <BUG-1 severity="critical" file="editor.js" lines="1339-1389">
+        APPLY_FILE_CHANGE calls loadChange({ pathname }) but loadChange expects change.data with file content.
+        FIX: Make APPLY_FILE_CHANGE async. Before loadChange call: await ipcFs.read(pathname) to fetch content, construct data object from content + tab's existing encoding/lineEnding metadata.
+      </BUG-1>
+      <BUG-2 severity="medium" file="editor.js" lines="116-198">
+        loadChange overwrites cursor/scrollTop via Object.assign(tab, newFileState). Cursor and scroll position lost on reload.
+        FIX: Save cursor + scrollTop before Object.assign, restore after. Pass old cursor/scrollTop to bus.emit('file-changed').
+      </BUG-2>
+    </latent-bugs-to-fix>
+
+    <test-targets>
+      <test>src/renderer/test/liveReload.test.js — vitest unit tests:
+        - APPLY_FILE_CHANGE_reads_file_before_loadChange: mock ipcFs.read, verify loadChange receives populated data
+        - cursor_preserved_across_reload: set cursor at line 50, trigger reload, verify cursor still at line 50
+        - scrollTop_preserved_across_reload: set scrollTop=500, trigger reload, verify scrollTop=500 in bus event
+        - same_content_skips_reload: trigger with identical markdown, verify BLOCK_RELOAD_SKIPPED
+        - dirty_file_shows_conflict: set isSaved=false, trigger change, verify notification pushed (not auto-reload)
+        - liveReload_pref_off_shows_notification: set liveReload=false, trigger change on clean tab, verify notification
+        - settle_delay_applied: verify 100ms timeout before ipcFs.read call
+        - tab_closed_during_read_no_crash: close tab while read pending, verify no error
+      </test>
+      <test>tests/e2e/live-reload.spec.js — Playwright e2e:
+        - external_write_updates_editor: open file, write externally, verify content updated
+        - rapid_writes_single_reload: write 5x in 200ms, verify only one content update
+      </test>
+    </test-targets>
+
+    <commands>
+      <module-local>cd reborn-mark &amp;&amp; npx vitest run src/renderer/test/liveReload.test.js</module-local>
+      <e2e>cd reborn-mark &amp;&amp; npx playwright test tests/e2e/live-reload.spec.js</e2e>
+    </commands>
+  </V-M-032>
+
+  <V-M-033 MODULE="M-033 cli-preview" PRIORITY="high" wave="alpha.9" status="implemented">
+    <followup-ref>F-CLI-PREVIEW</followup-ref>
+    <prereq>V-M-032 (live-reload), V-M-020 (cli-flags), V-M-001 (lifecycle)</prereq>
+
+    <texture-audit date="2026-05-20">
+      FINDING: previewMode per-tab flag ALREADY EXISTS and WORKS:
+      - editor.vue:215: isPreviewMode = computed(() => !!currentFile.value?.previewMode)
+      - editor.vue:20: :contenteditable="isPreviewMode ? 'false' : undefined"
+      - editor.vue:224-231: handlePreviewMousedown exits preview on left-click
+      - bootstrap-ipc.js:251-266: previewMode flag from mt::open-new-tab payload → APPLY_PREVIEW_MODE
+      - m_v1_compat.rs:376-406: build_open_new_tab_payload(pathname, preview_mode: bool) passes flag in payload
+      - preferences.js: previewModeOnFinderOpen preference controls auto-preview for Finder-launched files
+
+      FINDING: CLI flags in m020_cli.rs:29-53: CliArgs { files, directory, new_window, verbose, print_version }. NO --preview or --watch flag.
+
+      FINDING: PendingOpens flow: main.rs queues CLI args → mt_drain_pending_opens → for each file, emit_open_new_tab(pathname, preview_mode). preview_mode is currently always false for CLI opens. Just needs to be threaded from CliArgs.
+
+      FINDING: muya has NO readOnly property. Preview mode is implemented at Vue template level (contenteditable=false). Muya still allocates undo/redo stack. The N4 negative assertion about "undo/redo stack NEVER allocates" is INCORRECT — muya doesn't have that optimization.
+
+      FINDING: --watch for folder sidebar is M-036 scope (Phase-B9). Decouple from M-033 to reduce scope. M-033 = --preview flag only.
+
+      Scope revision: M-033 is small:
+      1. Add --preview flag to CliArgs in m020_cli.rs
+      2. Thread preview flag through PendingOpens → emit_open_new_tab(preview_mode=true)
+      3. When --preview: set liveReload=true by default (force-enable from M-032)
+      4. Test: cargo test for flag parsing + vitest for preview behavior
+      --watch deferred to M-036 (project sidebar).
+    </texture-audit>
+
+    <module-surface>
+      Backend: src-tauri/src/m020_cli.rs — add `preview: bool` to CliArgs struct (#[arg(long)]). Default false.
+      Backend: src-tauri/src/main.rs — in setup hook where PendingOpens are queued from CLI args, pass cli_args.preview as preview_mode to emit_open_new_tab.
+      Renderer: NO changes needed — previewMode per-tab flag already works via existing bootstrap-ipc.js + editor.vue + APPLY_PREVIEW_MODE infrastructure.
+      Frontend store: When previewMode=true on a tab, M-032 live-reload ALWAYS auto-reloads (skip dirty check — preview tabs can't be dirty since they're read-only).
+    </module-surface>
+
+    <mental-walkthroughs>
+      <walkthrough-1 name="cli-preview-happy-path">
+        1. User runs `mark --preview README.md`
+        2. m020_cli.rs parses CliArgs { files: ["README.md"], preview: true, ... }
+        3. main.rs setup: queues PendingOpen { pathname: "/abs/path/README.md", preview_mode: true }
+        4. Renderer drains pending opens via mt_drain_pending_opens
+        5. For each pending open: emit_open_new_tab(pathname, preview_mode=true)
+        6. build_open_new_tab_payload reads file, returns { markdown, ..., previewMode: true }
+        7. bootstrap-ipc.js receives mt::open-new-tab → NEW_TAB_WITH_CONTENT
+        8. editor.vue detects isPreviewMode=true → contenteditable="false"
+        9. User sees rendered markdown, can't edit, Cmd+S does nothing
+        RESULT: Works with zero renderer changes
+      </walkthrough-1>
+
+      <walkthrough-2 name="preview-plus-live-reload">
+        1. File open in preview mode (isSaved=true always because read-only)
+        2. Claude Code writes file
+        3. Watcher fires → APPLY_FILE_CHANGE → M-032 live-reload
+        4. Since previewMode=true: skip dirty check entirely, always auto-reload
+        5. Content updates instantly
+        RESULT: Perfect companion for AI agent workflows
+      </walkthrough-2>
+
+      <walkthrough-3 name="preview-exit-no-dialog">
+        1. User closes preview window (Cmd+W or close button)
+        2. Close handler checks tab.isSaved → always true (preview is read-only)
+        3. No "unsaved changes" dialog appears
+        4. Window closes immediately
+        RESULT: Clean exit
+      </walkthrough-3>
+    </mental-walkthroughs>
+
+    <high-level-scenarios>
+      <S1>basic-preview — `mark --preview README.md` opens file in read-only WYSIWYG; contenteditable=false; Cmd+S no-op; content renders correctly including Mermaid/KaTeX.</S1>
+      <S2>preview-live-reload — `mark --preview file.md`; external tool writes file; editor auto-reloads (M-032); no conflict banner since preview can't be dirty.</S2>
+      <S3>preview-exit-clean — close preview window; no "unsaved changes" dialog; window closes immediately.</S3>
+      <S4>preview-click-exits — user left-clicks in preview content; handlePreviewMousedown fires; exits preview mode → enters edit mode (existing behavior from M-022).</S4>
+      <S5>multiple-files-preview — `mark --preview a.md b.md c.md`; three tabs opened, all in preview mode.</S5>
+      <S6>preview-with-diagrams — `mark --preview diagram.md` with Mermaid + KaTeX; diagrams render; live-reload on external change preserves rendered diagrams.</S6>
+    </high-level-scenarios>
+
+    <failure-scenarios>
+      <F1>file-not-found — `mark --preview nonexistent.md`; emit_open_new_tab returns error; error logged; app opens with blank tab or error message.</F1>
+      <F2>binary-file — `mark --preview image.png`; read_to_string fails on binary content; error surfaced; no crash.</F2>
+      <F3>no-file-arg — `mark --preview` with no file; app opens normally without preview tab (same as `mark`).</F3>
+    </failure-scenarios>
+
+    <race-conditions>
+      <R1>file-deleted-during-preview — file deleted while preview open; watcher fires "remove"; banner "File removed"; content stays in memory; preview remains read-only.</R1>
+    </race-conditions>
+
+    <numeric-thresholds>
+      <T1>Preview opens in same time as normal file open — no additional overhead (previewMode is just a flag, no extra init).</T1>
+      <T2>Live-reload in preview: ≤500ms latency (same as M-032 since preview reuses exact same reload path).</T2>
+    </numeric-thresholds>
+
+    <edge-cases>
+      <E1>Preview + edit same file — `mark --preview file.md` in one window, `mark file.md` in another; both windows receive watcher events; preview auto-reloads, editor shows conflict if dirty. No state collision (separate Tauri windows).</E1>
+      <E2>Preview click-to-edit then save — user clicks in preview → exits preview → edits → Cmd+S saves; file is now in edit mode; watcher reload follows M-032 normal (dirty-check) flow.</E2>
+    </edge-cases>
+
+    <log-markers>
+      <M1>[boot][cli][BLOCK_PREVIEW_MODE path=...] — CLI --preview flag detected</M1>
+      <M2>[v1_compat][open_new_tab][BLOCK_OPENED path=... preview=true] — already exists in m_v1_compat.rs:431</M2>
+    </log-markers>
+
+    <negative-assertions>
+      <N1>Cmd+S NEVER triggers save flow in preview mode (existing behavior, no code change needed).</N1>
+      <N2>Unsaved-changes dialog NEVER appears on preview window close (isSaved always true).</N2>
+      <N3>Preview tab dirty flag is NEVER set to false by user edits (contenteditable=false prevents typing).</N3>
+    </negative-assertions>
+
+    <test-targets>
+      <test>src-tauri/tests/m020_cli_preview.rs — cargo test:
+        - parse_preview_flag: CliArgs::parse_from(["mark", "--preview", "file.md"]) → preview=true, files=["file.md"]
+        - parse_no_preview: CliArgs::parse_from(["mark", "file.md"]) → preview=false
+        - parse_preview_no_file: CliArgs::parse_from(["mark", "--preview"]) → preview=true, files=[]
+        - parse_preview_multiple_files: CliArgs::parse_from(["mark", "--preview", "a.md", "b.md"]) → preview=true, files=["a.md", "b.md"]
+      </test>
+      <test>src/renderer/test/previewMode.test.js — vitest (existing tests, verify no regression):
+        - preview_tab_is_readonly: tab with previewMode=true → isPreviewMode computed returns true
+        - preview_tab_isSaved_always_true: verify isSaved stays true on preview tab
+      </test>
+    </test-targets>
+
+    <commands>
+      <module-local>cd reborn-mark &amp;&amp; cargo test -p mark --test m020_cli_preview &amp;&amp; npx vitest run src/renderer/test/previewMode.test.js</module-local>
+    </commands>
+  </V-M-033>
+
+  <!-- Phase-B8/B9 stubs — will be detailed when those waves become nearest -->
+
+  <V-M-034 MODULE="M-034 terminal-panel" PRIORITY="medium" wave="beta.1" status="stub">
+    <followup-ref>F-TERMINAL-PANEL</followup-ref>
+    <prereq>V-M-001 (lifecycle), V-M-011 (layout)</prereq>
+    <stub-note>Terminal panel with xterm.js + tauri-plugin-shell. Detailed verification deferred until Phase-B8 becomes active.</stub-note>
+  </V-M-034>
+
+  <V-M-035 MODULE="M-035 agent-status" PRIORITY="medium" wave="beta.1" status="stub">
+    <followup-ref>F-AGENT-STATUS</followup-ref>
+    <prereq>V-M-034</prereq>
+    <stub-note>Agent status indicator. Pattern detection for CLI agent prompts. Detailed verification deferred until Phase-B8.</stub-note>
+  </V-M-035>
+
+  <V-M-036 MODULE="M-036 project-sidebar" PRIORITY="low" wave="beta.2" status="stub">
+    <followup-ref>F-PROJECT-SIDEBAR</followup-ref>
+    <prereq>V-M-002, V-M-020, V-M-010</prereq>
+    <stub-note>Folder workspace sidebar with file tree. Detailed verification deferred until Phase-B9.</stub-note>
+  </V-M-036>
+
+  <V-M-037 MODULE="M-037 wikilinks" PRIORITY="low" wave="beta.2" status="stub">
+    <followup-ref>F-WIKILINKS</followup-ref>
+    <prereq>V-M-036, V-M-012</prereq>
+    <stub-note>Wikilink [[ ]] syntax + backlinks panel. Detailed verification deferred until Phase-B9.</stub-note>
+  </V-M-037>
+
 </VerificationPlan>
