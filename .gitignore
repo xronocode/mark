@@ -6,8 +6,10 @@ src-tauri/gen/schemas/
 
 # Node + Vite
 node_modules/
+.pnpm-store/
 dist/
 src/renderer/dist/
+build/
 
 # Test coverage reports
 coverage/

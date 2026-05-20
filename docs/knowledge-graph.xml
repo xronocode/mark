@@ -1,0 +1,714 @@
+<KnowledgeGraph>
+  <Project NAME="marktext-modernized" VERSION="0.3.0">
+    <keywords>markdown, editor, wysiwyg, electron, tauri, vue3, muya, macos, homebrew, port, modernization</keywords>
+    <annotation>Phase-A (Electron 30 + Vue 3) and Phase-B (Tauri v2 + Rust) module graph. Phase-A retains upstream structure (src/main, src/renderer, src/muya, src/common) and is represented only by muya (M-012) and renderer (M-011) here. Phase-B introduces Rust backend modules M-001..M-010 plus the IPC bridge M-013.</annotation>
+    <ClosureDocuments index="2026-04-29">
+      <doc id="gate-phase-b1-closure" path="docs/gate-phase-b1-closure.md" phase="B1" verdict="PASS-WITH-FOLLOWUP" />
+      <doc id="gate-phase-b2-closure" path="docs/gate-phase-b2-closure.md" phase="B2" verdict="PASS-WITH-FOLLOWUP" />
+      <doc id="gate-phase-b3-closure" path="docs/gate-phase-b3-closure.md" phase="B3" verdict="PASS-WITH-FOLLOWUP" />
+      <doc id="gate-phase-b3a-closure" path="docs/gate-phase-b3a-closure.md" phase="B3a" verdict="contract-shipped-pending-renderer-wire" />
+      <doc id="f-main-entry-disabled-runtime-close" inline-evidence="V-M-001/closed-evidence@F-MAIN-ENTRY-DISABLED-runtime-close" phase="post-B3a" verdict="resolved-runtime" reborn-mark-commits="3eb95bf9+8e83964c" />
+      <doc id="f-prefs-migrate-v1-full-close" inline-evidence="V-M-005/closed-evidence@F-PREFS-MIGRATE-V1-full-close" phase="post-B3a" verdict="resolved" reborn-mark-commits="dbd4c2fa+386bb5c2+065257c3+45a81387+d666dd0a+7b1bf02a+1655b8c7+33dca8d0" />
+      <doc id="phase-b3a-unsupported-features-audit" path="docs/phase-b3a-unsupported-features-audit.md" phase="B3a-step-9" verdict="32-items-no-hidden-noops" />
+      <doc id="perf-bench-step-2.5b-path1" path="docs/perf-bench-v1.2.3-step-2.5b.md" phase="B1-step-2.5b" verdict="superseded-by-path3" />
+      <doc id="perf-bench-step-2.5b-path3" path="docs/perf-bench-v1.2.3-step-2.5b-path3.md" phase="B1-step-2.5b" verdict="PASS-MARGINAL" />
+      <doc id="phase-b1-pdf-export-strategy" path="docs/phase-b1-pdf-export-strategy.md" phase="B1-step-8" verdict="decision: defer to M-015 pandoc-bridge" />
+      <doc id="ci-warnings-allowlist" path="reborn-mark/docs/ci-warnings-allowlist.md" phase="B1.5a" verdict="active-allowlist" />
+    </ClosureDocuments>
+
+    <M-001 NAME="mt-tauri-shell" TYPE="ENTRY_POINT" STATUS="partially-implemented" PHASE-REF="B1-step-7..11">
+      <purpose>Tauri app entrypoint; builds app, registers plugins, manages windows and lifecycle. Phase-B1 delivered 5 sub-modules covering boot-time guards, validation, security audit, panic recovery, lifecycle primitives, and the PDF-export contract surface.</purpose>
+      <path>src-tauri/src/main.rs</path>
+      <sub-modules>
+        <sub-module name="m001_validate" path="src-tauri/src/m001_validate.rs" purpose="BLOCK_VALIDATE_AGAINST_FIXTURE on-boot parity check (embedded tauri.v2.json vs REGISTERED_COMMANDS); native dialog + exit(1) on drift" phase="B1-step-7" />
+        <sub-module name="m001_security" path="src-tauri/src/m001_security.rs" purpose="WebView shell security posture audit (CSP, freezePrototype:FALSE [inverted 2026-04-29 — Element Plus + Vue ecosystem requires writable Object.prototype; defense moves to CSP+DOMPurify], assetProtocol disabled, dangerousDisableAssetCspModification false); native dialog + exit(1) on regression" phase="B1-step-9; contract-inverted-2026-04-29" />
+        <sub-module name="m001_panic" path="src-tauri/src/m001_panic.rs" purpose="std::panic::set_hook installer + crash-log writer to cache_root/crash-{ts}-{chain}.log; re-entrancy-safe; never panics in handler" phase="B1-step-10" />
+        <sub-module name="m001_pdf" path="src-tauri/src/m001_pdf.rs" purpose="mt::print_to_pdf MT_UNSUPPORTED stub; PDF export delegated to M-015 mt-pandoc-bridge per phase-b1-pdf-export-strategy.md" phase="B1-step-8" />
+        <sub-module name="m001_lifecycle" path="src-tauri/src/m001_lifecycle.rs" purpose="CloseStateMachine (8 states), MenuGeneration AtomicU64, ReplayPolicy enum; types only at B1, runtime hooks deferred to B2/B3 (F-LIFECYCLE-WIRE, F-MENU-GEN-WIRE, F-REPLAY-POLICY-WIRE)" phase="B1-step-11" />
+        <sub-module name="m_v1_compat" path="src-tauri/src/m_v1_compat.rs" purpose="Tauri-side stubs for v1.2.3 IPC channels not yet ported to dedicated modules. After Path B-clean M-3 (commit 014218fb 2026-05-09) + sidebar-walk-fix (2026-05-20) holds 15 shims: mt_app_quit, mt_close_project_root, mt_cmd_open_file, mt_cmd_open_folder, mt_format_link_click, mt_open_file, mt_open_setting_window, mt_pick_folder, mt_request_keybindings, mt_request_window_content_size, mt_set_user_data, mt_set_user_preference, mt_update_sidebar_menu, mt_view_layout_changed, mt_walk_project. mt_walk_project extracted from mt_pick_folder to decouple folder-pick from walk — frontend calls walk AFTER ADD_PROJECT creates the tree root, fixing DROPPED_NO_ROOT race." phase="F-MAIN-ENTRY-DISABLED-runtime-debug-2026-04-29" />
+        <sub-module name="m005_migrate" path="src-tauri/src/m005_migrate/" purpose="F-PREFS-MIGRATE-V1 9-step migration pipeline: snapshot reader → preferences/dataCenter/keybindings/recent_docs migrators → keychain rename → orchestrator runner with lockfile + 16 MiB size guard → main.rs gate replacement → e2e fixture harness. 286/286 tests; replaces the MT_PREFS_V1_RUNNING stub abort." phase="F-PREFS-MIGRATE-V1-2026-04-29" />
+        <sub-module name="m001_save_close" path="src-tauri/src/m001_save_close.rs" purpose="Save/close IPC bridge: mt_response_file_save, mt_response_file_save_as, mt_save_and_close_tabs, mt_close_window, mt_close_window_confirm. wire_close_handler registers WindowEvent::CloseRequested handler that prevents default close and emits mt::ask-for-close. SavedTabState return type for canonical save flow." phase="B4-pre-alpha-step-3" />
+        <sub-module name="m021_default_handler" path="src-tauri/src/m021_default_handler.rs" purpose="macOS .md default-handler registration: mt_set_default_md_handler, mt_get_default_md_handler, mt_unset_default_md_handler. Uses LSSetDefaultRoleHandlerForContentType via Objective-C bridge." phase="B4-pre-alpha-add" />
+      </sub-modules>
+      <depends>M-002, M-003, M-004, M-005, M-006, M-007, M-008, M-009, M-010, M-014, M-015, M-016, M-017, M-018, M-019, M-020, M-013b</depends>
+      <verification-ref>V-M-001</verification-ref>
+      <annotations>
+        <fn-main PURPOSE="Boot order: panic_hook → legacy detect → MARK_SKIP_MIGRATION env check → migration dialog (if needed) → security audit → fixture validate → tauri::Builder with M-013b + m001_pdf invoke handlers" />
+        <fn-mt_print_to_pdf PURPOSE="MT_UNSUPPORTED stub; lives at m001_pdf::mt_print_to_pdf — registered in main.rs generate_handler! alongside M-013b commands" />
+        <!-- mt_window_state removed in Path B-clean M-3 (commit 014218fb 2026-05-09); window state now read directly via @tauri-apps/api/window from titleBar/index.vue. -->
+        <fn-mt_dev_diag PURPOSE="main.rs::mt_dev_diag — dev-only renderer error sink. WebviewWindow::eval injects window.onerror + unhandledrejection + console.error hooks (gated by cfg!(debug_assertions)) that pipe payloads here for backend stderr. Production no-op (command compiled in but never invoked). Added Phase 8 to diagnose F-DEV-MODE-WHITE-SCREEN; kept as permanent dev aid." />
+        <fn-validate_or_exit PURPOSE="m001_validate runtime entry; emits BLOCK_VALIDATE_AGAINST_FIXTURE_{OK,FAIL,PARSE_FAIL}" />
+        <fn-audit_or_exit PURPOSE="m001_security runtime entry; emits BLOCK_SECURITY_POSTURE_{OK,FAIL}" />
+        <fn-install_panic_hook PURPOSE="m001_panic runtime entry; emits BLOCK_PANIC_HOOK_INSTALLED + (on panic) BLOCK_PANIC_HOOK_FIRED" />
+        <type-CloseStateMachine PURPOSE="Window-close lifecycle enforcement; 8 states + transition validator + 8 BLOCK_* markers per state" />
+        <type-MenuGeneration PURPOSE="AtomicU64 counter; bump_menu_generation/check_stale; emits BLOCK_MENU_GENERATION_BUMPED + BLOCK_STALE_MENU_GENERATION" />
+        <type-ReplayPolicy PURPOSE="Replay/DropAfterCleanup/DropIfBusy enum + should_deliver(policy, current_state)" />
+        <type-IpcError PURPOSE="m001_pdf-side UnsupportedError envelope; distinct from M-013b's MT_NOT_IMPLEMENTED — code MT_UNSUPPORTED" />
+        <fn-exit_requested_handler PURPOSE="RunEvent::ExitRequested interceptor in main.rs run callback. Prevents immediate exit, emits mt::ask-for-close to trigger dirty-tab dialog. Checks PendingOpens.quit_approved flag to allow confirmed exits through. Handles no-window case by force-exiting." />
+        <fn-mt_format_link_click PURPOSE="m_v1_compat command: extracts href from data payload, resolves relative paths against dirname, opens URL/file via macOS open command. Handles mt::format-link-click IPC from linkTools jump action." />
+        <fn-mt_walk_project PURPOSE="m_v1_compat command: extracted from mt_pick_folder. Accepts a directory path, runs WalkBuilder walk, and emits mt::update-object-tree events. Called by frontend AFTER ADD_PROJECT creates tree root, fixing race where walk events arrived before root existed (DROPPED_NO_ROOT). Registered in main.rs invoke_handler." />
+        <fn-isDirty-treeFile PURPOSE="treeFile.vue computed: cross-refs file pathname against editor tabs via isSamePathSync (with optional chaining for fileUtils safety). Returns true when matching tab exists and is unsaved. Drives amber text + dot CSS styling for dirty files in folder tree." />
+        <fn-isDirty-treeOpenedTab PURPOSE="treeOpenedTab.vue: unsaved indicator changed from green (--highlightThemeColor) to amber (--warningColor, #d97706). Amber text applied to unsaved filenames for consistency with treeFile dirty styling." />
+        <fn-ASK_FOR_OPEN_PROJECT-walk-guard PURPOSE="project.js: ASK_FOR_OPEN_PROJECT calls mt_walk_project AFTER ADD_PROJECT, guarded by projectTrees length check to skip walk when ADD_PROJECT rejects (dedup/nested). Ensures walk events are never emitted before root exists." />
+      </annotations>
+      <stub-ship-evidence commits="3c6afbc,b1166c2,a3cfe0a,6346130,c1a8597a,3b531150,94e84966,995ee2e,7630851b" date="2026-04-28">
+        <files-shipped>5 sub-modules @ 1217 LOC + main.rs wiring (186 LOC); 11 #[tauri::command] handlers registered (10 m013b + 1 m001_pdf)</files-shipped>
+        <verification>cargo test --bin mark = 95 passed (47 baseline + 48 in B1: 7 validate + 7 security + 3 panic + 3 pdf + 14 lifecycle + 14 m013b); cargo build --release zero warnings; tsc --noEmit clean</verification>
+        <log-markers-shipped>BLOCK_PANIC_HOOK_INSTALLED, BLOCK_PANIC_HOOK_FIRED, BLOCK_SECURITY_POSTURE_{OK,FAIL}, BLOCK_VALIDATE_AGAINST_FIXTURE_{OK,FAIL,PARSE_FAIL}, BLOCK_MIGRATION_SKIPPED_BY_ENV, BLOCK_MT_PRINT_TO_PDF_UNSUPPORTED, 8 close-state markers, BLOCK_MENU_GENERATION_BUMPED, BLOCK_STALE_MENU_GENERATION</log-markers-shipped>
+        <ci-evidence run="25066008872" repo="xronocode/mark" branch="tauri">macos-14 tauri-action build success, codesign success, smoke launch alive after 1s, DMG 5.4 MB, allowlist 0 unaccounted</ci-evidence>
+      </stub-ship-evidence>
+    </M-001>
+
+    <M-002 NAME="mt-fs-commands" TYPE="INTEGRATION" STATUS="planned">
+      <purpose>Filesystem IPC commands (read, write, stat, rename, delete) with sandbox guard from M-010.</purpose>
+      <path>src-tauri/src/commands/fs.rs</path>
+      <depends>M-010, M-014</depends>
+      <verification-ref>V-M-002</verification-ref>
+      <annotations>
+        <fn-fs_read PURPOSE="Read UTF-8 file after sandbox check" />
+        <fn-fs_write PURPOSE="Write UTF-8 content with fsync" />
+        <fn-fs_stat PURPOSE="Return file metadata" />
+        <fn-fs_rename PURPOSE="Rename within sandbox" />
+        <fn-fs_delete PURPOSE="Move to Trash (not hard-delete)" />
+        <type-FsError PURPOSE="Stable error codes MT_FS_*" />
+      </annotations>
+    </M-002>
+
+    <M-003 NAME="mt-fs-watcher" TYPE="CORE_LOGIC" STATUS="planned">
+      <purpose>Filesystem watcher via `notify` crate with 200ms debounce; emits change events to renderer.</purpose>
+      <path>src-tauri/src/fs/watcher.rs</path>
+      <depends>none</depends>
+      <verification-ref>V-M-003</verification-ref>
+      <annotations>
+        <fn-watcher_start PURPOSE="Subscribe to path events" />
+        <fn-watcher_stop PURPOSE="Release notify handle" />
+        <type-FsChangeEvent PURPOSE="{ kind, path, mtime } payload" />
+      </annotations>
+    </M-003>
+
+    <M-004 NAME="mt-search" TYPE="CORE_LOGIC" STATUS="planned">
+      <purpose>Streaming text search via `grep-searcher` crate; honors .gitignore.</purpose>
+      <path>src-tauri/src/search/mod.rs</path>
+      <depends>none</depends>
+      <verification-ref>V-M-004</verification-ref>
+      <annotations>
+        <fn-search_run PURPOSE="Stream search results with cancellation token" />
+        <type-SearchQuery PURPOSE="{ pattern, regex, caseSensitive, wholeWord, folder }" />
+        <type-SearchHit PURPOSE="{ path, line, col, snippet }" />
+      </annotations>
+    </M-004>
+
+    <M-005 NAME="mt-prefs" TYPE="DATA_LAYER" STATUS="lite-shipped" PHASE-REF="B3-step-1" PATH="src-tauri/src/m005_prefs.rs" CLOSURE="docs/gate-phase-b3-closure.md" DEFERRED="F-PREFS-MIGRATE-V1 (4-store legacy migration)">
+      <purpose>Persistent preferences via tauri-plugin-store with legacy electron-store migration.</purpose>
+      <path>src-tauri/src/prefs/mod.rs</path>
+      <depends>none</depends>
+      <verification-ref>V-M-005</verification-ref>
+      <annotations>
+        <fn-prefs_get PURPOSE="Read a pref key" />
+        <fn-prefs_set PURPOSE="Write a pref key (emits change event)" />
+        <fn-prefs_migrate PURPOSE="One-shot migration from electron-store JSON" />
+      </annotations>
+    </M-005>
+
+    <M-006 NAME="mt-shortcuts" TYPE="INTEGRATION" STATUS="lite-shipped" PHASE-REF="B3-step-4" PATH="src-tauri/src/m006_shortcuts.rs" CLOSURE="docs/gate-phase-b3-closure.md" DEFERRED="F-SHORTCUT-PLATFORM-BIND (tauri-plugin-global-shortcut + capability config)">
+      <purpose>Global/local keyboard shortcut registration and dispatch (accelerator parser honors capitalized modifiers per #4134).</purpose>
+      <path>src-tauri/src/shortcuts/mod.rs</path>
+      <depends>none</depends>
+      <verification-ref>V-M-006</verification-ref>
+      <annotations>
+        <fn-shortcuts_register PURPOSE="Register accelerator with conflict detection" />
+        <fn-shortcuts_unregister PURPOSE="Remove accelerator" />
+      </annotations>
+    </M-006>
+
+    <M-007 NAME="mt-spell" TYPE="INTEGRATION" STATUS="lite-shipped" PHASE-REF="B3-step-5" PATH="src-tauri/src/m007_spell.rs" CLOSURE="docs/gate-phase-b3-closure.md" DEFERRED="F-SPELL-HUNSPELL-EMBED (Linux bundled-dict path)">
+      <purpose>Spellcheck through the WebView's native spellchecker + bundled hunspell dictionaries for extra languages; thin shim over tauri-plugin-spellcheck if available or manual session config.</purpose>
+      <path>src-tauri/src/spell/mod.rs</path>
+      <depends>M-005</depends>
+      <verification-ref>V-M-007</verification-ref>
+      <annotations>
+        <fn-spell_suggest PURPOSE="Get suggestions from OS spell checker" />
+        <fn-spell_add_to_dictionary PURPOSE="Persist user-added word" />
+      </annotations>
+    </M-007>
+
+    <M-008 NAME="mt-fonts" TYPE="INTEGRATION" STATUS="shipped" PHASE-REF="B3-step-6" PATH="src-tauri/src/m008_fonts.rs" CLOSURE="docs/gate-phase-b3-closure.md" DEFERRED="F-FONTS-FILTER-MONOSPACE">
+      <purpose>System font enumeration via `font-kit`; per-session cache.</purpose>
+      <path>src-tauri/src/fonts/mod.rs</path>
+      <depends>none</depends>
+      <verification-ref>V-M-008</verification-ref>
+      <annotations>
+        <fn-fonts_list PURPOSE="Return available font families (cached)" />
+        <type-FontFamily PURPOSE="{ name, postscriptName, style }" />
+      </annotations>
+    </M-008>
+
+    <M-009 NAME="mt-menu" TYPE="UI_COMPONENT" STATUS="skeleton-shipped" PHASE-REF="B3-step-12" PATH="src-tauri/src/m009_menu.rs" CLOSURE="docs/gate-phase-b3-closure.md" DEFERRED="F-MENU-WIRE-TAURI (native OS menu via tauri::menu::* in Builder.setup)">
+      <purpose>Native menu bar and context menus; dispatches command IDs to renderer.</purpose>
+      <path>src-tauri/src/menu/mod.rs</path>
+      <depends>M-005</depends>
+      <verification-ref>V-M-009</verification-ref>
+      <annotations>
+        <fn-menu_build PURPOSE="Build menu tree from MenuSpec" />
+        <fn-menu_dispatch PURPOSE="Emit MenuInvoked event to focused window" />
+        <type-MenuSpec PURPOSE="Declarative menu structure with command IDs" />
+      </annotations>
+    </M-009>
+
+    <M-010 NAME="mt-security" TYPE="UTILITY" STATUS="backend-stub-shipped" PHASE-REF="B2-step-1">
+      <purpose>Backend security primitives: path sandbox (lexical + canonical, rejects traversal/symlink-escape/NUL/overlong), URL scheme allowlist (http/https/file: only; rejects javascript:, data:, vbscript:, mt://, tab/CRLF-smuggled variants), shell-open executable-extension blocklist. Renderer-side concerns (HTML sanitizer / KaTeX / Vega / punycode warning / shell.open user-confirm prompt) deferred to Phase-B3.</purpose>
+      <path>src-tauri/src/m010_security.rs</path>
+      <depends>none</depends>
+      <verification-ref>V-M-010</verification-ref>
+      <annotations>
+        <fn-check_path PURPOSE="Reject NUL/overlong/traversal/symlink-escape; canonicalize when both paths exist; emit BLOCK_NUL_OR_OVERLONG / BLOCK_REJECT_TRAVERSAL / BLOCK_SYMLINK_ESCAPES" />
+        <fn-check_url_scheme PURPOSE="Allowlist http/https/file; strip control chars + whitespace before scheme parse to defeat tab/CRLF smuggling; emit BLOCK_SCHEME scheme=&lt;name&gt;" />
+        <fn-check_shell_open_extension PURPOSE="Block .command/.app/.scpt/.scptd/.lnk/.url/.desktop/.applescript regardless of sandbox; emit BLOCK_EXECUTABLE_EXT ext=&lt;name&gt;" />
+        <fn-lexical_normalize PURPOSE="Internal: fold . and .. against parent components without touching FS; returns None on root-escape" />
+        <fn-extract_scheme PURPOSE="Internal: pull scheme from URL string, control-char-stripped + lowercased" />
+        <type-SecurityError PURPOSE="7-variant enum: NulByteInPath, OverlongPath, PathTraversal, SymlinkEscapesSandbox, DisallowedUrlScheme, DangerousShellOpenExtension, IoError. Display + Error impls." />
+        <const-MAX_PATH_BYTES PURPOSE="POSIX PATH_MAX=4096 ceiling; rejected before any syscall" />
+        <const-ALLOWED_URL_SCHEMES PURPOSE="['http', 'https', 'file'] — caller still sandbox-checks file:// targets" />
+        <const-DANGEROUS_SHELL_OPEN_EXTENSIONS PURPOSE="8 entries covering macOS+Linux+cross-platform; Windows .bat/.cmd/.ps1/.vbs added when Windows port lands" />
+      </annotations>
+      <stub-ship-evidence commit="B2-step-1" date="2026-04-28">
+        <files-shipped>src-tauri/src/m010_security.rs (335 LOC)</files-shipped>
+        <verification>cargo test --bin mark m010_security = 23 passed; full suite 118 passed (95 baseline + 23 m010); cargo build --release zero warnings (after #![allow(dead_code)] for stub-surface acknowledgement, same pattern as m001_lifecycle)</verification>
+        <coverage-vs-V-M-010>
+          <covered>scenario-2 file:// outside sandbox refused; scenario-4 path traversal rejected; scenario-7 case-fold partial (canonicalize-based); scenario-10 (BOM) NOT covered — renderer concern; ec NUL/overlong; ec symlink-escape post-canonicalize; ec URL schemes (8 categories); ec executable-ext.</covered>
+          <not-covered-renderer-side>scenario-1 (CVE-2023-2318 script tag) — DOMPurify renderer; scenario-3 (shell.open user confirm prompt) — needs Tauri runtime; scenario-5 (DOMPurify config parity) — renderer; scenario-6 (22 fixture-xss payloads) — renderer; scenario-8 (KaTeX javascript:) — renderer; scenario-9 (Vega expression) — renderer.</not-covered-renderer-side>
+          <not-covered-windows>ec Windows UNC + device-namespace; ec Windows case-fold traversal — both deferred to v2.1+ (Windows port).</not-covered-windows>
+        </coverage-vs-V-M-010>
+        <log-markers-shipped>BLOCK_NUL_OR_OVERLONG, BLOCK_REJECT_TRAVERSAL, BLOCK_SYMLINK_ESCAPES, BLOCK_SCHEME, BLOCK_EXECUTABLE_EXT</log-markers-shipped>
+      </stub-ship-evidence>
+    </M-010>
+
+    <M-011 NAME="mt-renderer" TYPE="UI_COMPONENT" STATUS="partial">
+      <purpose>Vue 3 renderer app (migrated in Phase A via PR #4001); hosts muya, theme controller, command dispatcher.</purpose>
+      <path>src/renderer/</path>
+      <depends>M-012, M-013</depends>
+      <verification-ref>V-M-011</verification-ref>
+      <annotations>
+        <fn-mountApp PURPOSE="Bootstrap Vue app and mount muya" />
+      </annotations>
+    </M-011>
+
+    <M-012 NAME="muya" TYPE="CORE_LOGIC" STATUS="partial">
+      <purpose>WYSIWYG Markdown engine (existing, zero Electron coupling, ports to WebView as is).</purpose>
+      <path>src/muya/</path>
+      <depends>none</depends>
+      <verification-ref>V-M-012</verification-ref>
+      <annotations>
+        <fn-setContent PURPOSE="Load markdown source into editor" />
+        <fn-getMarkdown PURPOSE="Export current editor state as markdown" />
+        <fn-setOptions PURPOSE="Change theme/mode/options at runtime" />
+        <class-Muya PURPOSE="Engine root exported from src/muya/lib/index.js" />
+        <fn-renderMermaid PURPOSE="Async renderer using mermaid.render() API (v11+); clears cache pre-await to prevent race; unique ID per render call via Date.now() suffix; imports full ESM build (mermaid.esm.mjs)" />
+        <fn-keyboardUndoRedo PURPOSE="Cmd+Z/Cmd+Shift+Z interceptor in keyboard.js; routes to muya.undo()/redo() bypassing macOS responder chain that cannot reach muya's internal contentState.history" />
+        <fn-linkTooltipDelay PURPOSE="mouseOutHandler in linkTools/index.js; 300ms setTimeout delay before hide() to allow mouse travel from link text to tooltip popup" />
+      </annotations>
+    </M-012>
+
+    <M-014 NAME="mt-encoding" TYPE="UTILITY" STATUS="shipped" PHASE-REF="B3-step-2" PATH="src-tauri/src/m014_encoding.rs" CLOSURE="docs/gate-phase-b3-closure.md" DEFERRED="F-FS-DETECT-META-INLINE, F-ENCODING-MANUAL-PICK, F-ENCODING-WRITE-PRESERVE">
+      <purpose>Text encoding detection + conversion + line-ending normalization; replaces upstream ced + iconv-lite.</purpose>
+      <path>src-tauri/src/encoding/mod.rs</path>
+      <depends>none</depends>
+      <verification-ref>V-M-014</verification-ref>
+      <annotations>
+        <fn-detect_encoding PURPOSE="BOM + chardet fallback" />
+        <fn-decode PURPOSE="Bytes → UTF-8" />
+        <fn-encode PURPOSE="UTF-8 → bytes with original/requested encoding" />
+        <fn-detect_line_ending PURPOSE="LF/CRLF/MIXED/UNKNOWN" />
+        <fn-normalize_newlines PURPOSE="Apply trimTrailingNewline 0-3 + EOL convert" />
+        <type-EncodingMeta PURPOSE="{ detectedEncoding, bom, lineEnding, hadTrailingNewline }" />
+      </annotations>
+    </M-014>
+
+    <M-015 NAME="mt-pandoc-bridge" TYPE="INTEGRATION" STATUS="shipped" PHASE-REF="B3-step-9" PATH="src-tauri/src/m015_pandoc.rs" CLOSURE="docs/gate-phase-b3-closure.md" RELATED-DOC="docs/phase-b1-pdf-export-strategy.md" DEFERRED="F-PANDOC-PROGRESS">
+      <purpose>Import docx/odt/latex/rst/etc. → Markdown via pandoc subprocess with macOS /Library/TeX/texbin PATH patching.</purpose>
+      <path>src-tauri/src/pandoc/mod.rs</path>
+      <depends>M-010</depends>
+      <verification-ref>V-M-015</verification-ref>
+      <annotations>
+        <fn-pandoc_available PURPOSE="Probe pandoc on PATH with MARKTEXT_PANDOC override" />
+        <fn-pandoc_import PURPOSE="Spawn pandoc; pipe stdio; return markdown" />
+      </annotations>
+    </M-015>
+
+    <M-016 NAME="mt-updater" TYPE="INTEGRATION" STATUS="stub-shipped" PHASE-REF="B3-step-10" PATH="src-tauri/src/m016_updater.rs" CLOSURE="docs/gate-phase-b3-closure.md" DEFERRED="F-UPDATER-WIRE-PLUGIN (B4: tauri-plugin-updater + dual-pubkey ed25519 signing)">
+      <purpose>Manual-download auto-update via tauri-plugin-updater; feeds from xronocode/mark releases.</purpose>
+      <path>src-tauri/src/updater/mod.rs</path>
+      <depends>none</depends>
+      <verification-ref>V-M-016</verification-ref>
+      <annotations>
+        <fn-updater_check PURPOSE="Fetch feed; emit state events" />
+        <fn-updater_download PURPOSE="Download on user confirm" />
+        <fn-updater_quit_and_install PURPOSE="Restart into update" />
+      </annotations>
+    </M-016>
+
+    <M-017 NAME="mt-recent-docs" TYPE="DATA_LAYER" STATUS="shipped" PHASE-REF="B3-step-8" PATH="src-tauri/src/m017_recent.rs" CLOSURE="docs/gate-phase-b3-closure.md" DEFERRED="F-RECENT-OS-INTEGRATION (macOS NSDocumentController + Win JumpList)">
+      <purpose>Recently-used documents list (max 12) with OS integration (macOS Dock, Windows Jump List, Linux JSON).</purpose>
+      <path>src-tauri/src/recent/mod.rs</path>
+      <depends>M-010</depends>
+      <verification-ref>V-M-017</verification-ref>
+      <annotations>
+        <fn-recent_add PURPOSE="Add path; dedup; trim; OS-integrate" />
+        <fn-recent_list PURPOSE="Return current list" />
+        <fn-recent_clear PURPOSE="Empty list" />
+      </annotations>
+    </M-017>
+
+    <M-018 NAME="mt-screenshot" TYPE="INTEGRATION" STATUS="shipped-macos-only" PHASE-REF="B3-step-11" PATH="src-tauri/src/m018_screenshot.rs" CLOSURE="docs/gate-phase-b3-closure.md" DEFERRED="F-SCREENSHOT-CROSS-PLATFORM (Windows + Linux for v2.1+)">
+      <purpose>macOS-only screenshot capture via `screencapture -i -c`; clipboard PNG → workspace file.</purpose>
+      <path>src-tauri/src/screenshot/mod.rs</path>
+      <depends>M-002</depends>
+      <verification-ref>V-M-018</verification-ref>
+      <annotations>
+        <fn-screenshot_capture PURPOSE="Spawn screencapture; read clipboard; write PNG; return path" />
+      </annotations>
+    </M-018>
+
+    <M-019 NAME="mt-datacenter" TYPE="DATA_LAYER" STATUS="lite-shipped" PHASE-REF="B3-step-7" PATH="src-tauri/src/m019_datacenter.rs" CLOSURE="docs/gate-phase-b3-closure.md" DEFERRED="F-DC-MIGRATE-V1-KEYCHAIN, F-DC-IMAGE-UPLOAD (PicGo/aliyun/qiniu/smms runtimes)">
+      <purpose>User image history, ImageBed config, and secrets (GitHub token) via keychain; legacy serviceName migration marktext → com.xronocode.mark.</purpose>
+      <path>src-tauri/src/datacenter/mod.rs</path>
+      <depends>M-005</depends>
+      <verification-ref>V-M-019</verification-ref>
+      <annotations>
+        <fn-dc_get PURPOSE="Read non-secret key" />
+        <fn-dc_set PURPOSE="Write non-secret key" />
+        <fn-dc_get_secret PURPOSE="Read via keyring (async)" />
+        <fn-dc_set_secret PURPOSE="Write via keyring" />
+        <fn-dc_migrate PURPOSE="Rename legacy keychain service" />
+      </annotations>
+    </M-019>
+
+    <M-020 NAME="mt-cli-flags" TYPE="UTILITY" STATUS="shipped" PHASE-REF="B3-step-3" PATH="src-tauri/src/m020_cli.rs" CLOSURE="docs/gate-phase-b3-closure.md" DEFERRED="F-MULTI-WINDOW (--new-window wiring), F-CLI-OPEN-FILES (positional FILE dispatch needs M-009 menu bus)">
+      <purpose>Parse CLI args --safe, --user-data-dir, --debug, --new-window, --disable-gpu, --disable-spellcheck, plus portable-mode auto-detect.</purpose>
+      <path>src-tauri/src/cli/mod.rs</path>
+      <depends>none</depends>
+      <verification-ref>V-M-020</verification-ref>
+      <annotations>
+        <fn-parse_argv PURPOSE="Parse; exit with usage on error" />
+        <type-CliFlags PURPOSE="Consumed by M-001 at startup" />
+      </annotations>
+    </M-020>
+
+    <M-013 NAME="mt-ipc-bridge" TYPE="UTILITY" STATUS="planned">
+      <purpose>Frontend wrapper over Tauri invoke/listen that mirrors Electron-era ipcRenderer surface for port-unchanged renderer code.</purpose>
+      <path>src/renderer/src/ipc/</path>
+      <depends>M-013a, M-013b</depends>
+      <verification-ref>V-M-013</verification-ref>
+      <annotations>
+        <fn-ipcInvoke PURPOSE="Typed invoke with schema check" />
+        <fn-ipcListen PURPOSE="Typed listen with auto-unsubscribe" />
+        <export-ipc PURPOSE="Facade: ipc.fs / ipc.search / ipc.prefs / ipc.shortcuts / ipc.spell / ipc.fonts" />
+      </annotations>
+    </M-013>
+
+    <M-013a NAME="mt-ipc-contract" TYPE="UTILITY" STATUS="stub-shipped" PHASE-REF="B1-step-2">
+      <purpose>Typed frontend invoke/listen contract, command name-set, payload schema, and ts-rs parity surface.</purpose>
+      <path>src/renderer/src/ipc/contract/</path>
+      <depends>none</depends>
+      <verification-ref>V-M-013a</verification-ref>
+      <annotations>
+        <fn-ipcInvoke PURPOSE="Typed invoke with schema validation and timeout" />
+        <fn-useIpcListener PURPOSE="Vue listener composable with unmount/HMR cleanup" />
+        <fn-ipcCorrelated PURPOSE="Request/response req_id correlation" />
+        <type-IpcError PURPOSE="Tagged error class preserving stack across invoke boundary" />
+        <type-IpcErrorCode PURPOSE="Stable 4-code enum: MT_IPC_TIMEOUT/UNKNOWN_CHANNEL/UNKNOWN_COMMAND/VALIDATION" />
+        <type-CommandName PURPOSE="String-literal union of supported `mt::*` commands; B1 stub has only mt::ping" />
+        <type-CommandMap PURPOSE="Per-command args/result type pair; CommandArgs/CommandResult are derived helpers" />
+      </annotations>
+      <stub-ship-evidence commit="cfd8a1b" date="2026-04-28">
+        <files>src/renderer/src/ipc/contract/{types,invoke,listener,correlated,index,contract.test}.ts + tsconfig.json</files>
+        <verification>tsc --noEmit -p tsconfig.json clean against contract.test.ts (6 typecheck guarantees) with typescript@5.9.3 + @tauri-apps/api@2.0.0 + vue@3.5.32</verification>
+        <log-markers-shipped>BLOCK_INVOKE, BLOCK_INVOKE_RESOLVED, BLOCK_LISTENER_REFCOUNT</log-markers-shipped>
+        <log-markers-deferred>BLOCK_HMR_REPLACE — needs real components in B2</log-markers-deferred>
+      </stub-ship-evidence>
+    </M-013a>
+
+    <M-013b NAME="mt-ipc-runtime" TYPE="UTILITY" STATUS="backend-stub-shipped" PHASE-REF="B1-step-6">
+      <purpose>Runtime IPC facade owning BOTH sides of the channel boundary: backend Rust #[tauri::command] handlers (signatures stable, real impls in B2/B3) AND frontend ipc/runtime/ namespace exporting Electron-era command parity (clipboard, window, menu, dialog) on top of M-013a's typed invoke wrapper.</purpose>
+      <path frontend="src/renderer/src/ipc/runtime/" backend="src-tauri/src/m013b/" />
+      <depends>M-013a, M-002, M-003, M-004, M-005, M-006, M-007, M-008, M-009, M-010, M-014, M-015, M-016, M-017, M-018, M-019</depends>
+      <verification-ref>V-M-013b</verification-ref>
+      <annotations>
+        <export-ipc PURPOSE="Facade namespaces for runtime commands and events (frontend; planned B2)" />
+        <fn-ipcClipboard PURPOSE="@electron/remote.clipboard replacement (frontend; planned B2)" />
+        <fn-ipcWindow PURPOSE="@electron/remote.getCurrentWindow replacement (frontend; planned B2)" />
+        <fn-ipcContextMenu PURPOSE="@electron/remote.Menu/MenuItem replacement (frontend; planned B2)" />
+        <type-IpcError PURPOSE="Backend Rust structured error envelope: {code, message, command, planned_phase}; serializes to JSON for renderer M-013a" />
+        <fn-mt_fs_read PURPOSE="Backend stub for mt::fs::read; planned_phase B2-step-2 (M-002)" />
+        <fn-mt_fs_write PURPOSE="Backend stub for mt::fs::write; planned_phase B2-step-2 (M-002)" />
+        <fn-mt_fs_stat PURPOSE="Backend stub for mt::fs::stat; returns FsStat plain shape mirroring v1.2.3 contextBridge structured-clone-safe return; planned_phase B2-step-2 (M-002)" />
+        <fn-mt_fs_readdir PURPOSE="Backend stub for mt::fs::readdir; planned_phase B2-step-2 (M-002)" />
+        <fn-mt_fs_unlink PURPOSE="Backend stub for mt::fs::unlink; planned_phase B2-step-2 (M-002)" />
+        <fn-mt_search_spawn PURPOSE="Backend stub for mt::search::spawn; planned_phase B2-step-4 (M-004)" />
+        <fn-mt_search_cancel PURPOSE="Backend stub for mt::search::cancel; planned_phase B2-step-4 (M-004)" />
+        <fn-mt_watch_subscribe PURPOSE="Backend stub for mt::watch::subscribe; planned_phase B2-step-3 (M-003)" />
+        <fn-mt_watch_unsubscribe PURPOSE="Backend stub for mt::watch::unsubscribe; planned_phase B2-step-3 (M-003)" />
+      </annotations>
+      <stub-ship-evidence commit="step-6" date="2026-04-28">
+        <files>src-tauri/src/m013b/{error,fs,search,watch,mod}.rs (435 LOC) + tauri::generate_handler! registration in main.rs</files>
+        <verification>cargo test --bin mark = 61 passed (47 baseline + 14 m013b: 3 error + 5 fs + 3 search + 2 watch + 1 mod); zero panic/unwrap/expect in production code paths</verification>
+        <log-markers-shipped>9 [m013b][${kind}][BLOCK_MT_${KIND}_${ACTION}_NOT_IMPLEMENTED] markers (one per command)</log-markers-shipped>
+        <known-gap>Tauri command name limitation: Rust function names can't contain `::`; M-013a CommandName 'mt::*' must translate to 'mt_*' before ipcInvoke. B1 step-6.5 follow-up adds translation in invoke.ts.</known-gap>
+        <frontend-status>Frontend ipc/runtime/ namespace (ipcClipboard / ipcWindow / ipcContextMenu) is still planned — lands in Phase-B2 once M-013b backend grows real fs/search/watch impls.</frontend-status>
+      </stub-ship-evidence>
+    </M-013b>
+
+    <M-021 NAME="mt-fs-core" TYPE="CORE_LOGIC" STATUS="planned">
+      <purpose>Internal Rust filesystem primitive layer for validated open, raw byte IO, atomic write, trash fallback, and per-path mutexes.</purpose>
+      <path>src-tauri/src/fs_core/mod.rs</path>
+      <depends>M-010, M-014</depends>
+      <verification-ref>V-M-021</verification-ref>
+      <annotations>
+        <fn-fs_core_open_validated PURPOSE="Canonicalize, validate, and open a TOCTOU-safe ValidatedPath" />
+        <fn-fs_core_read_bytes PURPOSE="Read bytes through held fd" />
+        <fn-fs_core_write_bytes_atomic PURPOSE="Atomic write with fsync, rename, dir-fsync, and concurrency guard" />
+        <fn-fs_core_delete_to_trash PURPOSE="Move to Trash without hard-unlink fallback" />
+      </annotations>
+    </M-021>
+
+    <M-022 NAME="mt-paths" TYPE="UTILITY" STATUS="planned">
+      <purpose>Cross-platform path helper for cache, app support, and logs roots.</purpose>
+      <path>src-tauri/src/mt_paths/mod.rs</path>
+      <depends>none</depends>
+      <verification-ref>V-M-022</verification-ref>
+      <annotations>
+        <fn-cache_root PURPOSE="Return OS-native Mark cache root" />
+        <fn-app_support_root PURPOSE="Return OS-native com.xronocode.mark application support root" />
+        <fn-logs_root PURPOSE="Return OS-native logs root" />
+      </annotations>
+    </M-022>
+
+    <M-024 NAME="perf-splash" TYPE="UI_COMPONENT" STATUS="implemented" implemented-at="reborn-mark@7e8afce2">
+      <purpose>Static HTML+CSS splash screen visible before any JS parses; replaced by Vue mount on first paint. Provides BOOT_T0 anchor for V-M-030 instrumentation.</purpose>
+      <path>src/renderer/index.html, src/renderer/static/splash.css, src/renderer/src/main.js</path>
+      <depends>M-001 (window lifecycle: visible=true Tauri 2 default)</depends>
+      <verification-ref>V-M-024</verification-ref>
+      <annotations>
+        <fn-dismountSplash PURPOSE="Idempotent splash removal after Vue mount; aria-hidden flip BEFORE .remove(); BLOCK_HMR_BYPASS guard on second call; returns boolean (true on first dismount, false on no-op)" />
+        <global-window-BOOT_T0 PURPOSE="performance.now() at first inline-script execution; never reassigned; consumed by V-M-030 bootMark()" />
+        <global-window-SPLASH_REPLACED PURPOSE="Idempotency flag" />
+      </annotations>
+    </M-024>
+
+    <M-025 NAME="perf-pending-opens-parallel" TYPE="INTEGRATION" STATUS="implemented" implemented-at="reborn-mark@4af0b52">
+      <purpose>Reorder mt_drain_pending_opens invocation from sequential (inside mt::bootstrap-editor handler) to parallel (top-level setupIpcListeners). Backend gains drained:bool flag in PendingOpens AppState for M-021 ready-signal contract; RunEvent::Opened direct-emits when drained=true.</purpose>
+      <path>src/renderer/src/bootstrap-ipc.js, src-tauri/src/main.rs</path>
+      <depends>M-021 (default-handler), M-024 (BOOT_T0 anchor)</depends>
+      <verification-ref>V-M-025</verification-ref>
+      <annotations>
+        <type-PendingOpens PURPOSE="AppState struct: { queue: Mutex&lt;Vec&lt;String&gt;&gt;, drained: AtomicBool, had_initial_opens: AtomicBool, quit_approved: AtomicBool }; SeqCst ordering. quit_approved: two-phase exit flag set by mt_app_quit before app.exit(0) so ExitRequested handler can let the confirmed exit proceed." />
+        <fn-mt_drain_pending_opens PURPOSE="Drain queue snapshot; flip drained=true; return Vec&lt;String&gt; to renderer" />
+        <fn-setupIpcListeners PURPOSE="Register all 9 listen() calls via Promise.all; emit BLOCK_LISTENERS_READY; invoke drain at top-level (parallel with Vue mount); preserve V-M-022 previewMode flow" />
+      </annotations>
+    </M-025>
+
+    <M-026 NAME="perf-lazy-renderers" TYPE="CORE_LOGIC" STATUS="planned" PHASE-REF="B5-perf-wave2">
+      <purpose>Convert eager imports of Mermaid/Vega/Cytoscape/KaTeX/plantuml/flowchart/sequence in muya parser/render to dynamic import() triggered by first occurrence. ~2.5MB initial bundle savings.</purpose>
+      <path>src/muya/lib/parser/render/</path>
+      <depends>M-012</depends>
+      <verification-ref>V-M-026</verification-ref>
+    </M-026>
+
+    <M-027 NAME="perf-element-plus-treeshake" TYPE="UI_COMPONENT" STATUS="planned" PHASE-REF="B5-perf-wave2">
+      <purpose>Replace app.use(ElementPlus) with per-component imports. Audit actual usage across all .vue files. ~600KB bundle savings.</purpose>
+      <path>src/renderer/src/main.js</path>
+      <depends>M-011</depends>
+      <verification-ref>V-M-027</verification-ref>
+    </M-027>
+
+    <M-028 NAME="perf-muya-defer" TYPE="UI_COMPONENT" STATUS="planned" PHASE-REF="B5-perf-wave3">
+      <purpose>Defer muya init for non-active tabs via requestIdleCallback. Active tab: synchronous. Background tab: placeholder first, muya inits on idle within 2s timeout.</purpose>
+      <path>src/renderer/src/components/editorWithTabs/editor.vue</path>
+      <depends>M-012, M-011</depends>
+      <verification-ref>V-M-028</verification-ref>
+    </M-028>
+
+    <M-029 NAME="perf-window-state" TYPE="INTEGRATION" STATUS="planned" PHASE-REF="B5-perf-wave3">
+      <purpose>Add tauri-plugin-window-state to persist/restore window geometry across launches. Eliminates resize jank on second launch.</purpose>
+      <path>src-tauri/Cargo.toml, src-tauri/src/main.rs</path>
+      <depends>M-001</depends>
+      <verification-ref>V-M-029</verification-ref>
+    </M-029>
+
+    <M-030 NAME="perf-bench-harness" TYPE="UTILITY" STATUS="planned" PHASE-REF="B5-perf-wave3">
+      <purpose>Instrument BLOCK_* markers with elapsed_ms since BOOT_T0. tools/bench-launch.mjs parses markers and produces waterfall report. CI regression gate at 10% threshold.</purpose>
+      <path>tools/bench-launch.mjs, src-tauri/src/m001_panic.rs</path>
+      <depends>M-024, M-025</depends>
+      <verification-ref>V-M-030</verification-ref>
+    </M-030>
+
+    <M-031 NAME="diff-view" TYPE="UI_COMPONENT" STATUS="planned" PHASE-REF="B6-diff">
+      <purpose>Inline and side-by-side diff view mode using CodeMirror 5 MergeView addon + diff-match-patch. Shows changes between baseline (git HEAD or .before file) and current editor content. Key component of Claude-Mark agent pipeline.</purpose>
+      <path>src/renderer/src/components/editorWithTabs/diffView.vue</path>
+      <depends>M-011, M-012, M-010</depends>
+      <verification-ref>V-M-031</verification-ref>
+      <annotations>
+        <fn-mt_diff_baseline PURPOSE="Rust command: read .before file or git show HEAD:path. Returns baseline text string. Validated through SecurityCtx (M-010 sandbox)." />
+        <fn-diffView PURPOSE="Vue component: CodeMirror MergeView with original (baseline) and current (modified) panes. Read-only. Inline/side-by-side toggle. Themed via railscasts/one-dark." />
+        <fn-toggleDiffMode PURPOSE="Bus event handler for view.diff-mode toggle. Loads baseline via mt_diff_baseline, switches index.vue to show diffView.vue." />
+        <type-DiffBaseline PURPOSE="{ source: 'git' | 'file' | 'ipc', content: string, path: string }" />
+      </annotations>
+    </M-031>
+
+    <!-- Phase-B7: Agent Compatibility (competitive analysis 2026-05-20) -->
+    <M-032 NAME="live-reload" TYPE="INTEGRATION" STATUS="done" PHASE-REF="B7-step-1">
+      <purpose>Live-reload on external file change: fixed APPLY_FILE_CHANGE async read path (latent bug: project.js sends {pathname} without data); fixed loadChange cursor/scrollTop preservation; added liveReload preference + hash-skip + 100ms settle delay. Uses existing watcher (m013b/watch.rs) + ipcFs.read.</purpose>
+      <path>src/renderer/src/store/editor.js, src/renderer/src/store/preferences.js</path>
+      <depends>M-003, M-012, M-011</depends>
+      <verification-ref>V-M-032</verification-ref>
+      <annotations>
+        <fn-APPLY_FILE_CHANGE PURPOSE="Async ipcFs.read fallback when change.data missing. Checks autoSave/liveReload/previewMode. 100ms settle delay. Hash-skip." />
+        <fn-loadChange PURPOSE="Saves cursor/scrollTop/muyaIndexCursor before Object.assign, restores after." />
+        <type-liveReload PURPOSE="Preference: boolean, default true. Auto-reload clean tabs without notification." />
+      </annotations>
+    </M-032>
+
+    <M-033 NAME="cli-preview" TYPE="ENTRY_POINT" STATUS="done" PHASE-REF="B7-step-2">
+      <purpose>CLI --preview flag: `mark --preview notes.md` opens read-only. preview: bool in CliArgs, threaded through PendingOpens.preview_mode AtomicBool to mt_drain_pending_opens. Apple Events keep hardcoded preview=true. editor.js: previewMode tabs always auto-reload.</purpose>
+      <path>src-tauri/src/m020_cli.rs, src-tauri/src/main.rs, src/renderer/src/store/editor.js</path>
+      <depends>M-020, M-032, M-001</depends>
+      <verification-ref>V-M-033</verification-ref>
+      <annotations>
+        <fn-CliArgs-preview PURPOSE="bool field, --preview long flag. Default false. `mark file.md` → editable, `mark --preview file.md` → read-only." />
+        <fn-PendingOpens-preview_mode PURPOSE="AtomicBool seeded from cli.preview in setup hook. Consumed by mt_drain_pending_opens." />
+        <fn-APPLY_FILE_CHANGE-preview-skip PURPOSE="In editor.js: tab.previewMode=true bypasses dirty check — always auto-reload." />
+      </annotations>
+    </M-033>
+
+    <!-- Phase-B8: Terminal Panel -->
+    <M-034 NAME="terminal-panel" TYPE="UI_COMPONENT" STATUS="planned" PHASE-REF="B8-step-1">
+      <purpose>Split-pane terminal panel (xterm.js + tauri-plugin-shell). Cmd+` toggles. Agent runs alongside editor. Panel resizable, state persisted.</purpose>
+      <path>src/renderer/src/components/terminal/TerminalPanel.vue, src-tauri/src/m034_terminal.rs</path>
+      <depends>M-001, M-011</depends>
+      <verification-ref>V-M-034</verification-ref>
+      <annotations>
+        <fn-toggleTerminal PURPOSE="Cmd+` handler: show/hide terminal panel" />
+        <fn-spawnShell PURPOSE="Rust: spawn user default shell via tauri-plugin-shell" />
+      </annotations>
+    </M-034>
+
+    <M-035 NAME="agent-status" TYPE="UI_COMPONENT" STATUS="planned" PHASE-REF="B8-step-2">
+      <purpose>AI agent status indicator in titlebar. Detects agent prompts in terminal output (claude>, [agent]), shows status pill. Optional breathing animation.</purpose>
+      <path>src/renderer/src/components/terminal/agentDetector.js, src/renderer/src/components/titlebar/AgentStatus.vue</path>
+      <depends>M-034</depends>
+      <verification-ref>V-M-035</verification-ref>
+      <annotations>
+        <fn-detectAgent PURPOSE="Pattern matcher for agent CLI prompts in terminal output stream" />
+        <fn-AgentStatusPill PURPOSE="Vue component: 'Agent active' / 'Agent idle' pill with optional animation" />
+      </annotations>
+    </M-035>
+
+    <!-- Phase-B9: Knowledge Navigation -->
+    <M-036 NAME="project-sidebar" TYPE="UI_COMPONENT" STATUS="planned" PHASE-REF="B9-step-1">
+      <purpose>Folder workspace sidebar. `mark folder/` opens project tree. Lazy-loaded file tree, click-to-open, context menu (new/rename/delete/reveal). Persisted per-project.</purpose>
+      <path>src/renderer/src/components/sidebar/ProjectTree.vue, src/renderer/src/store/project.js, src-tauri/src/m036_project.rs</path>
+      <depends>M-002, M-020, M-010</depends>
+      <verification-ref>V-M-036</verification-ref>
+      <annotations>
+        <fn-loadProjectTree PURPOSE="Recursive lazy directory listing with file icons" />
+        <fn-openFileFromTree PURPOSE="Click handler: open file in new tab from project tree" />
+      </annotations>
+    </M-036>
+
+    <M-037 NAME="wikilinks" TYPE="CORE_LOGIC" STATUS="planned" PHASE-REF="B9-step-2">
+      <purpose>[[page-name]] wikilink syntax in muya with autocomplete. Backlinks panel shows incoming links. File-level resolution within project.</purpose>
+      <path>src/muya/lib/parser/rules/wikilink.js, src/renderer/src/components/sidebar/BacklinksPanel.vue</path>
+      <depends>M-036, M-012</depends>
+      <verification-ref>V-M-037</verification-ref>
+      <annotations>
+        <fn-wikilinkRule PURPOSE="muya inline parser rule for [[ ]] syntax" />
+        <fn-buildLinkIndex PURPOSE="Index all wikilinks in project for backlinks resolution" />
+        <fn-BacklinksPanel PURPOSE="Vue component: shows files linking to current file" />
+      </annotations>
+    </M-037>
+
+    <M-901 NAME="grace-context-hygiene-policy" TYPE="PROCESS_POLICY" STATUS="implemented">
+      <purpose>GRACE-compatible AI Standards token/session hygiene overlay with context modes, precedence rules, and escalation triggers.</purpose>
+      <path>docs/grace-ai-standards-hygiene-methodology.md</path>
+      <depends>AI Standards 1.6.0, GRACE Core Principles</depends>
+      <verification-ref>V-M-901</verification-ref>
+      <annotations>
+        <fn-select_context_mode PURPOSE="Choose targeted, wave, or full context" />
+        <fn-enforce_precedence PURPOSE="Protect correctness, verification, and graph consistency above context economy" />
+      </annotations>
+    </M-901>
+
+    <M-902 NAME="grace-packet-context-budget" TYPE="PROCESS_SCHEMA" STATUS="implemented">
+      <purpose>Operational packet context-budget fields that make loaded/skipped context and risk explicit.</purpose>
+      <path>docs/operational-packets.xml</path>
+      <depends>M-901</depends>
+      <verification-ref>V-M-902</verification-ref>
+      <annotations>
+        <fn-build_execution_packet PURPOSE="Attach context-policy, loaded/skipped artifacts, and verification-not-skipped fields" />
+        <fn-validate_packet_hygiene PURPOSE="Reject hidden context risk or silent verification skips" />
+      </annotations>
+    </M-902>
+
+    <M-903 NAME="grace-session-handoff" TYPE="PROCESS_POLICY" STATUS="implemented">
+      <purpose>Durable handoff policy for compaction, agent rotation, and paused execution.</purpose>
+      <path>docs/grace-ai-standards-hygiene-methodology.md</path>
+      <depends>M-901, M-902</depends>
+      <verification-ref>V-M-903</verification-ref>
+      <annotations>
+        <fn-write_handoff PURPOSE="Record task, decisions, changed files, blockers, verification status, and next action" />
+        <fn-resume_from_handoff PURPOSE="Continue from durable context before opening broad artifacts" />
+      </annotations>
+    </M-903>
+
+    <M-904 NAME="grace-skill-scope-rules" TYPE="PROCESS_POLICY" STATUS="implemented">
+      <purpose>Skill-specific context defaults and escalation rules for GRACE planning, execution, review, verification, refresh, and multiagent execution.</purpose>
+      <path>docs/grace-ai-standards-hygiene-methodology.md</path>
+      <depends>M-901, M-902, M-903</depends>
+      <verification-ref>V-M-904</verification-ref>
+      <annotations>
+        <fn-resolve_skill_scope PURPOSE="Return default and escalation context mode for a GRACE skill" />
+        <fn-check_scope_override PURPOSE="Require explicit reason when lower context is used under risk" />
+      </annotations>
+    </M-904>
+
+    <M-905 NAME="grace-context-verification" TYPE="PROCESS_VERIFICATION" STATUS="implemented">
+      <purpose>Verification gates proving context hygiene did not suppress required tests, log markers, or review scope.</purpose>
+      <path>docs/verification-plan.xml</path>
+      <depends>M-901, M-902, M-904</depends>
+      <verification-ref>V-M-905</verification-ref>
+      <annotations>
+        <fn-verify_context_gate PURPOSE="Assert required verification is present or an explicit blocker is recorded" />
+        <fn-audit_skip_rationale PURPOSE="Reject vague skipped-artifacts explanations" />
+      </annotations>
+    </M-905>
+
+    <M-906 NAME="grace-knowledge-graph-hygiene" TYPE="PROCESS_GRAPH" STATUS="implemented">
+      <purpose>Knowledge graph representation for hygiene modules while preserving a runtime-scope-boundary from product modules.</purpose>
+      <path>docs/knowledge-graph.xml</path>
+      <depends>M-901, M-902, M-903, M-904, M-905</depends>
+      <verification-ref>V-M-906</verification-ref>
+      <annotations>
+        <fn-sync_hygiene_graph PURPOSE="Sync hygiene nodes and CrossLinks" />
+        <fn-check_runtime_boundary PURPOSE="Ensure M-901..M-906 do not become runtime dependencies of M-001..M-020" />
+      </annotations>
+    </M-906>
+
+    <!-- CrossLinks -->
+    <CrossLink from="M-001" to="M-002" relation="invokes" />
+    <CrossLink from="M-001" to="M-003" relation="starts" />
+    <CrossLink from="M-001" to="M-004" relation="invokes" />
+    <CrossLink from="M-001" to="M-005" relation="reads-prefs-from" />
+    <CrossLink from="M-001" to="M-006" relation="registers-shortcuts-via" />
+    <CrossLink from="M-001" to="M-007" relation="delegates-spell-to" />
+    <CrossLink from="M-001" to="M-008" relation="queries-fonts-from" />
+    <CrossLink from="M-001" to="M-009" relation="installs-menu-from" />
+    <CrossLink from="M-001" to="M-010" relation="validates-through" />
+
+    <CrossLink from="M-002" to="M-010" relation="validates-paths-via" />
+
+    <CrossLink from="M-007" to="M-005" relation="reads-prefs-from" />
+    <CrossLink from="M-009" to="M-005" relation="reads-recent-files-from" />
+    <CrossLink from="M-009" to="M-007" relation="queries-spell-from" />
+
+    <CrossLink from="M-011" to="M-012" relation="hosts" />
+    <CrossLink from="M-011" to="M-013" relation="uses-ipc-from" />
+    <CrossLink from="M-011" to="M-013a" relation="uses-ipc-contract-from" />
+    <CrossLink from="M-011" to="M-013b" relation="uses-ipc-runtime-from" />
+
+    <CrossLink from="M-013" to="M-013a" relation="split-contract-layer" />
+    <CrossLink from="M-013" to="M-013b" relation="split-runtime-layer" />
+    <CrossLink from="M-013b" to="M-013a" relation="implements-contract-from" />
+    <CrossLink from="M-013" to="M-002" relation="invokes-commands-on" />
+    <CrossLink from="M-013" to="M-003" relation="listens-events-from" />
+    <CrossLink from="M-013" to="M-004" relation="invokes-commands-on" />
+    <CrossLink from="M-013" to="M-005" relation="invokes-commands-on" />
+    <CrossLink from="M-013" to="M-006" relation="invokes-commands-on" />
+    <CrossLink from="M-013" to="M-007" relation="invokes-commands-on" />
+    <CrossLink from="M-013" to="M-008" relation="invokes-commands-on" />
+    <CrossLink from="M-013" to="M-014" relation="invokes-commands-on" />
+    <CrossLink from="M-013" to="M-015" relation="invokes-commands-on" />
+    <CrossLink from="M-013" to="M-016" relation="listens-events-from" />
+    <CrossLink from="M-013" to="M-017" relation="invokes-commands-on" />
+    <CrossLink from="M-013" to="M-018" relation="invokes-commands-on" />
+    <CrossLink from="M-013" to="M-019" relation="invokes-commands-on" />
+    <CrossLink from="M-013b" to="M-002" relation="invokes-commands-on" />
+    <CrossLink from="M-013b" to="M-003" relation="listens-events-from" />
+    <CrossLink from="M-013b" to="M-004" relation="invokes-commands-on" />
+    <CrossLink from="M-013b" to="M-005" relation="invokes-commands-on" />
+    <CrossLink from="M-013b" to="M-006" relation="invokes-commands-on" />
+    <CrossLink from="M-013b" to="M-007" relation="invokes-commands-on" />
+    <CrossLink from="M-013b" to="M-008" relation="invokes-commands-on" />
+    <CrossLink from="M-013b" to="M-009" relation="invokes-commands-on" />
+    <CrossLink from="M-013b" to="M-010" relation="validates-through" />
+    <CrossLink from="M-013b" to="M-014" relation="invokes-commands-on" />
+    <CrossLink from="M-013b" to="M-015" relation="invokes-commands-on" />
+    <CrossLink from="M-013b" to="M-016" relation="listens-events-from" />
+    <CrossLink from="M-013b" to="M-017" relation="invokes-commands-on" />
+    <CrossLink from="M-013b" to="M-018" relation="invokes-commands-on" />
+    <CrossLink from="M-013b" to="M-019" relation="invokes-commands-on" />
+
+    <!-- New module wiring -->
+    <CrossLink from="M-001" to="M-014" relation="decodes-files-via" />
+    <CrossLink from="M-001" to="M-015" relation="imports-via" />
+    <CrossLink from="M-001" to="M-016" relation="updates-via" />
+    <CrossLink from="M-001" to="M-017" relation="tracks-recent-via" />
+    <CrossLink from="M-001" to="M-018" relation="screenshots-via" />
+    <CrossLink from="M-001" to="M-019" relation="reads-data-from" />
+    <CrossLink from="M-001" to="M-020" relation="parses-cli-at-startup" />
+
+    <CrossLink from="M-002" to="M-021" relation="wraps-fs-core" />
+    <CrossLink from="M-021" to="M-010" relation="validates-paths-via" />
+    <CrossLink from="M-021" to="M-014" relation="decodes-through" />
+    <CrossLink from="M-002" to="M-014" relation="legacy-direct-decode-replaced-by-M-021" />
+    <CrossLink from="M-015" to="M-010" relation="validates-paths-via" />
+    <CrossLink from="M-017" to="M-010" relation="validates-paths-via" />
+    <CrossLink from="M-017" to="M-021" relation="writes-through" />
+    <CrossLink from="M-019" to="M-005" relation="extends-storage-of" />
+    <CrossLink from="M-019" to="M-021" relation="writes-through" />
+    <CrossLink from="M-018" to="M-021" relation="writes-file-via" />
+    <CrossLink from="M-001" to="M-022" relation="resolves-system-paths-via" />
+    <CrossLink from="M-005" to="M-022" relation="resolves-cache-and-data-paths-via" />
+    <CrossLink from="M-019" to="M-022" relation="resolves-secret-and-log-paths-via" />
+
+    <!-- AI Standards hygiene overlay wiring (meta-process only; not runtime dependencies). -->
+    <CrossLink from="M-901" to="M-902" relation="packet-schema-extends" />
+    <CrossLink from="M-901" to="M-903" relation="handoff-policy-governs" />
+    <CrossLink from="M-901" to="M-904" relation="skill-scope-governs" />
+    <CrossLink from="M-901" to="M-905" relation="verification-governs" />
+    <CrossLink from="M-906" to="M-901" relation="graph-represents" />
+    <CrossLink from="M-906" to="M-902" relation="graph-represents" />
+    <CrossLink from="M-906" to="M-903" relation="graph-represents" />
+    <CrossLink from="M-906" to="M-904" relation="graph-represents" />
+    <CrossLink from="M-906" to="M-905" relation="graph-represents" />
+    <CrossLink from="M-901" to="M-001" relation="runtime-scope-boundary" />
+    <CrossLink from="M-901" to="M-013a" relation="runtime-scope-boundary" />
+    <CrossLink from="M-901" to="M-013b" relation="runtime-scope-boundary" />
+    <CrossLink from="M-901" to="M-021" relation="runtime-scope-boundary" />
+    <CrossLink from="M-901" to="M-022" relation="runtime-scope-boundary" />
+    <CrossLink from="M-024" to="M-001" relation="dismounts-after-vue-mount" />
+    <CrossLink from="M-025" to="M-024" relation="consumes-BOOT_T0-anchor-for-elapsed_ms" />
+    <CrossLink from="M-025" to="M-021" relation="ready-signal-via-drained-AtomicBool" />
+    <CrossLink from="M-026" to="M-012" relation="lazy-loads-renderers-from" />
+    <CrossLink from="M-027" to="M-011" relation="treeshakes-imports-in" />
+    <CrossLink from="M-028" to="M-012" relation="defers-init-of" />
+    <CrossLink from="M-028" to="M-011" relation="renders-placeholder-in" />
+    <CrossLink from="M-029" to="M-001" relation="restores-geometry-before-mount" />
+    <CrossLink from="M-030" to="M-024" relation="reads-window-BOOT_T0-via-bootMark" />
+    <CrossLink from="M-030" to="M-025" relation="consumes-pending-opens-elapsed_ms-markers" />
+    <CrossLink from="M-031" to="M-011" relation="renders-diff-in-editor-container" />
+    <CrossLink from="M-031" to="M-012" relation="reads-current-markdown-from" />
+    <CrossLink from="M-031" to="M-010" relation="validates-baseline-path-via" />
+    <!-- Phase-B7/B8/B9 agent-compat crosslinks -->
+    <CrossLink from="M-032" to="M-003" relation="consumes-file-changed-events-from" />
+    <CrossLink from="M-032" to="M-012" relation="updates-muya-content-on-reload" />
+    <CrossLink from="M-032" to="M-011" relation="resolves-active-tab-in" />
+    <CrossLink from="M-033" to="M-032" relation="requires-live-reload-for-preview" />
+    <CrossLink from="M-033" to="M-020" relation="extends-cli-flags" />
+    <CrossLink from="M-034" to="M-001" relation="shell-lifecycle-bound-to-window" />
+    <CrossLink from="M-035" to="M-034" relation="reads-terminal-output-from" />
+    <CrossLink from="M-036" to="M-002" relation="reads-directory-tree-via" />
+    <CrossLink from="M-036" to="M-010" relation="validates-project-root-via" />
+    <CrossLink from="M-037" to="M-036" relation="resolves-wikilinks-within-project" />
+    <CrossLink from="M-037" to="M-012" relation="extends-muya-inline-parser" />
+  </Project>
+</KnowledgeGraph>

@@ -1,0 +1,27 @@
+# fixture-pin.lock
+# Generated: 2026-04-25T19:19:12Z
+# Source userData captured from /Users/myevdokimov live state
+# Mark.app installed version at capture: 1.1.0
+# Phase-B-pre1 step-3 + step-4 evidence
+
+7b0ac2051ab3583b3195906aec86852808e314445d0e0152ceb27224851bb842         291  v0-marktext-userdata/migration-relevant/Local Storage/leveldb/000003.log
+0f1bad70c7bd1e0a69562853ec529355462fcd0423263a3d39d6d0d70b780443          16  v0-marktext-userdata/migration-relevant/Local Storage/leveldb/CURRENT
+e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855           0  v0-marktext-userdata/migration-relevant/Local Storage/leveldb/LOCK
+dd61a32f61c0308b3467aa215369ebf06191909de4f4b354d2ebefbd40c3fe57         328  v0-marktext-userdata/migration-relevant/Local Storage/leveldb/LOG
+ec0480031648aca98cd45facf999d3eed68ce71acd5dd4b28c635d6a187ccdbc         328  v0-marktext-userdata/migration-relevant/Local Storage/leveldb/LOG.old
+f9d31b278e215eb0d0e9cd709edfa037e828f36214ab7906f612160fead4b2b4          41  v0-marktext-userdata/migration-relevant/Local Storage/leveldb/MANIFEST-000001
+60519fbd4f257476c0b6483a4c38cce6832e0f4080331c57997f39b06b93d8bf         333  v0-marktext-userdata/migration-relevant/dataCenter.json
+cfecc914dc25391f032be9eec54e7bc8b0651b51120c7f15301245243ab6d57d        1998  v0-marktext-userdata/migration-relevant/preferences.json
+b01914b2fa464c6dc64d06716b8dab48bb919c7512821f50ef3983afe14d719f         140  v0-marktext-userdata/migration-relevant/window-state.json
+5eabca76d61a58dda7ae1134b9fc7ac188bc41a827adb6ea1c0e9f8dc08d9754        7969  v0-marktext-userdata/userdata.tar.gz
+d2f50d205a766ed1fe30e20ed9bd187b016e420e462491c0e67d4a17b4484b2a         744  v1-userdata-mark-1.0.2/migration-relevant/Local Storage/leveldb/000003.log
+0f1bad70c7bd1e0a69562853ec529355462fcd0423263a3d39d6d0d70b780443          16  v1-userdata-mark-1.0.2/migration-relevant/Local Storage/leveldb/CURRENT
+e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855           0  v1-userdata-mark-1.0.2/migration-relevant/Local Storage/leveldb/LOCK
+3c744a6818364c1415fe3cbd2b6b47867dbc32ef29ecd1ac2e6aa258886dbb40         320  v1-userdata-mark-1.0.2/migration-relevant/Local Storage/leveldb/LOG
+bc084521dc0571c846c76dce91f635258035d4a0dc459d0c4b83fd540a2ad523         320  v1-userdata-mark-1.0.2/migration-relevant/Local Storage/leveldb/LOG.old
+f9d31b278e215eb0d0e9cd709edfa037e828f36214ab7906f612160fead4b2b4          41  v1-userdata-mark-1.0.2/migration-relevant/Local Storage/leveldb/MANIFEST-000001
+cc0fe17b02eaeb766579cda00952341ac73e0f39e009863c77b486bcf1720164         932  v1-userdata-mark-1.0.2/migration-relevant/com.xronocode.mark.plist
+dd7e2220573a9710e08abdc064df5f939c6cd8acdcf528d4df427d30a98350a7         325  v1-userdata-mark-1.0.2/migration-relevant/dataCenter.json
+fc39cacc21de5126fa2391ed24e86c1497703653a97b54b6db99b81be5910be0        2017  v1-userdata-mark-1.0.2/migration-relevant/preferences.json
+fd8f1677795669066652675aa4ddaf347aa0edbd5bce4d9669456d017cdc5c28         138  v1-userdata-mark-1.0.2/migration-relevant/window-state.json
+b68e76f91aa5c799007806d01533c94696bb6ee2074ee49482a2d2feff332447        9533  v1-userdata-mark-1.0.2/userdata.tar.gz
