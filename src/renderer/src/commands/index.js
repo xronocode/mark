@@ -62,7 +62,9 @@ const commands = [
   {
     id: 'file.open-folder',
     execute: async () => {
-      window.electron.ipcRenderer.send('mt::cmd-open-folder')
+      const { useProjectStore } = await import('../store/project')
+      const projectStore = useProjectStore()
+      projectStore.ASK_FOR_OPEN_PROJECT()
     }
   },
   {
