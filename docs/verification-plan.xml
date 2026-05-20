@@ -87,7 +87,7 @@
       <AUTONOMY>not-autonomous — Phase-A1.5 interactive refactor required</AUTONOMY>
     </matrix-row>
 
-    <matrix-row MODULE="M-012" V-M="V-M-012" PRIORITY="critical" SCENARIOS="8" EC="22" ALM="7" NA="6" RTA="1" PHF="1" WAF="1">
+    <matrix-row MODULE="M-012" V-M="V-M-012" PRIORITY="critical" SCENARIOS="13" EC="22" ALM="7" NA="6" RTA="1" PHF="1" WAF="1">
       <VF-COVERAGE>VF-001 (parse+render), VF-003 (sanitize path)</VF-COVERAGE>
       <GATE>Gate-Phase-A1 (specs green), Gate-Phase-A2 (muya API snapshot), Gate-Phase-B2</GATE>
       <AUTONOMY>autonomous — API snapshot regression guards every merge</AUTONOMY>
@@ -1444,6 +1444,11 @@
         <scenario-6 kind="success">5 diagram renderers (Mermaid, Vega-Lite, Flowchart, Sequence, PlantUML) all load lazily and return SVG on fixture input.</scenario-6>
         <scenario-7 kind="success">Host hooks contract: `window.DIRNAME`, `imageAction()`, `clipboardFilePath()`, `_replaceCurrentWordInlineUnsafe()` callable before first setMarkdown.</scenario-7>
         <scenario-8 kind="success">CJK word count (utils/index.js:342): sample Chinese/Japanese/Korean text returns expected counts.</scenario-8>
+        <scenario-9 kind="success" added="2026-05-20" hotfix="Phase-Hotfix-alpha6">Mermaid render: mermaid code block renders visible SVG with non-empty &lt;g&gt; element using mermaid.render() API (v11+); re-render of same block produces unique render IDs (Date.now() suffix); async race-safe cache clearing (cache entry removed before await); full ESM build (mermaid.esm.mjs) includes all diagram type renderers.</scenario-9>
+        <scenario-10 kind="success" added="2026-05-20" hotfix="Phase-Hotfix-alpha6">Keyboard undo/redo: Cmd+Z in muya editor undoes last edit via muya.undo(); Cmd+Shift+Z redoes via muya.redo(); intercepted in keyboard.js before switch statement, bypassing macOS responder chain.</scenario-10>
+        <scenario-11 kind="success" added="2026-05-20" hotfix="Phase-Hotfix-alpha6">Link tooltip persistence: tooltip stays visible for at least 300ms after mouse leaves link text, allowing mouse travel to tooltip popup; mouseOutHandler uses setTimeout delay instead of immediate hide.</scenario-11>
+        <scenario-12 kind="success" added="2026-05-20" hotfix="Phase-Hotfix-alpha6">Link click navigation: clicking jump icon in link tooltip triggers mt::format-link-click IPC; mt_format_link_click command in m_v1_compat extracts href, resolves relative paths against dirname, and opens URL in system browser via macOS open command.</scenario-12>
+        <scenario-13 kind="known-issue" added="2026-05-20" hotfix="Phase-Hotfix-alpha6">Mermaid dark theme contrast: diagram SVG renders correctly but dark theme colors (background/text) blend with editor dark background. Needs smart auto-inversion or light background substrate under diagram containers. Non-blocking.</scenario-13>
       </scenarios>
       <required-log-markers>
         <marker-1>[Muya][parse][BLOCK_TOKENIZE]</marker-1>

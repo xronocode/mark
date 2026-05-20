@@ -1652,6 +1652,16 @@ src/main/config.js declares `contextIsolation: false`, `nodeIntegration: true`, 
       <gate>Gate-Phase-B4: see verification-plan UpdatedPhaseGates Gate-Phase-B4 (full evidence list).</gate>
     </Phase-B4>
 
+    <Phase-Hotfix-alpha6 name="Pre-alpha.7 bugfixes from user smoke 2026-05-20" status="done" added="2026-05-20" smoke-source="user-smoke-of-v2.0.0-alpha.6.6-2026-05-20">
+      <goal>Fix 4 user-reported bugs discovered during smoke testing of v2.0.0-alpha.6.6: Cmd+Z undo, mermaid diagram rendering, link tooltip UX, link click navigation.</goal>
+      <fix-1 scope="M-012" status="done">Cmd+Z/Cmd+Shift+Z undo/redo interceptor in muya keyboard handler (src/muya/lib/eventHandler/keyboard.js) — bypasses macOS responder chain which cannot reach muya's internal contentState.history, routes to muya.undo()/redo() directly before the switch statement.</fix-1>
+      <fix-2 scope="M-012" status="done">Mermaid v11 rendering: (a) switch from deprecated mermaid.init() to mermaid.render(id, code) API returning {svg, bindFunctions}, (b) import full ESM build mermaid/dist/mermaid.esm.mjs instead of minimal core (162 chunks vs 102), (c) fix race condition — clear cache immediately before await + append Date.now() to render ID for uniqueness, (d) same pattern applied to exportHtml.js. Files: src/muya/lib/parser/render/index.js, src/muya/lib/renderers/index.js, src/muya/lib/utils/exportHtml.js.</fix-2>
+      <fix-3 scope="M-012" status="done">Link tooltip mouseOutHandler: add 300ms setTimeout delay before hide() (was immediate 0ms), giving time to move mouse from link text to tooltip popup. Matches existing 500ms pattern in subscribe handler. File: src/muya/lib/ui/linkTools/index.js.</fix-3>
+      <fix-4 scope="M-001/m_v1_compat" status="done">Add mt_format_link_click command to m_v1_compat.rs: extracts href from data payload, resolves relative paths against dirname, opens via macOS open command. Handles mt::format-link-click IPC channel from linkTools jump action. Files: src-tauri/src/m_v1_compat.rs, src-tauri/src/main.rs.</fix-4>
+      <remaining>Mermaid dark theme contrast: diagram renders correctly but dark theme colors blend with editor background. Needs either smart auto-inversion or light background substrate under diagrams. Non-blocking for alpha.7.</remaining>
+      <gate>No formal gate — hotfix batch applied directly. Verified by user smoke on 2026-05-20.</gate>
+    </Phase-Hotfix-alpha6>
+
     <Phase-B5-perf name="Performance pass — cold launch + bundle reduction" status="pending" added="2026-05-10" smoke-source="user-smoke-of-v2.0.0-alpha.5-2026-05-10">
       <goal>
         Cold launch first-paint ≤600ms (from estimated ~1500ms), file-rendered-in-tab ≤900ms (from ~2500ms),

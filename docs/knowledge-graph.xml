@@ -25,7 +25,7 @@
         <sub-module name="m001_panic" path="src-tauri/src/m001_panic.rs" purpose="std::panic::set_hook installer + crash-log writer to cache_root/crash-{ts}-{chain}.log; re-entrancy-safe; never panics in handler" phase="B1-step-10" />
         <sub-module name="m001_pdf" path="src-tauri/src/m001_pdf.rs" purpose="mt::print_to_pdf MT_UNSUPPORTED stub; PDF export delegated to M-015 mt-pandoc-bridge per phase-b1-pdf-export-strategy.md" phase="B1-step-8" />
         <sub-module name="m001_lifecycle" path="src-tauri/src/m001_lifecycle.rs" purpose="CloseStateMachine (8 states), MenuGeneration AtomicU64, ReplayPolicy enum; types only at B1, runtime hooks deferred to B2/B3 (F-LIFECYCLE-WIRE, F-MENU-GEN-WIRE, F-REPLAY-POLICY-WIRE)" phase="B1-step-11" />
-        <sub-module name="m_v1_compat" path="src-tauri/src/m_v1_compat.rs" purpose="Tauri-side stubs for v1.2.3 IPC channels not yet ported to dedicated modules. After Path B-clean M-3 (commit 014218fb 2026-05-09) holds the remaining 13 shims: mt_app_quit, mt_close_project_root, mt_cmd_open_file, mt_cmd_open_folder, mt_open_file, mt_open_setting_window, mt_pick_folder, mt_request_keybindings, mt_request_window_content_size, mt_set_user_data, mt_set_user_preference, mt_update_sidebar_menu, mt_view_layout_changed. Each is a thin shim around a canonical or future-canonical destination." phase="F-MAIN-ENTRY-DISABLED-runtime-debug-2026-04-29" />
+        <sub-module name="m_v1_compat" path="src-tauri/src/m_v1_compat.rs" purpose="Tauri-side stubs for v1.2.3 IPC channels not yet ported to dedicated modules. After Path B-clean M-3 (commit 014218fb 2026-05-09) + hotfix-alpha6 (2026-05-20) holds 14 shims: mt_app_quit, mt_close_project_root, mt_cmd_open_file, mt_cmd_open_folder, mt_format_link_click, mt_open_file, mt_open_setting_window, mt_pick_folder, mt_request_keybindings, mt_request_window_content_size, mt_set_user_data, mt_set_user_preference, mt_update_sidebar_menu, mt_view_layout_changed. Each is a thin shim around a canonical or future-canonical destination." phase="F-MAIN-ENTRY-DISABLED-runtime-debug-2026-04-29" />
         <sub-module name="m005_migrate" path="src-tauri/src/m005_migrate/" purpose="F-PREFS-MIGRATE-V1 9-step migration pipeline: snapshot reader → preferences/dataCenter/keybindings/recent_docs migrators → keychain rename → orchestrator runner with lockfile + 16 MiB size guard → main.rs gate replacement → e2e fixture harness. 286/286 tests; replaces the MT_PREFS_V1_RUNNING stub abort." phase="F-PREFS-MIGRATE-V1-2026-04-29" />
         <sub-module name="m001_save_close" path="src-tauri/src/m001_save_close.rs" purpose="Save/close IPC bridge: mt_response_file_save, mt_response_file_save_as, mt_save_and_close_tabs, mt_close_window, mt_close_window_confirm. wire_close_handler registers WindowEvent::CloseRequested handler that prevents default close and emits mt::ask-for-close. SavedTabState return type for canonical save flow." phase="B4-pre-alpha-step-3" />
         <sub-module name="m021_default_handler" path="src-tauri/src/m021_default_handler.rs" purpose="macOS .md default-handler registration: mt_set_default_md_handler, mt_get_default_md_handler, mt_unset_default_md_handler. Uses LSSetDefaultRoleHandlerForContentType via Objective-C bridge." phase="B4-pre-alpha-add" />
@@ -45,6 +45,7 @@
         <type-ReplayPolicy PURPOSE="Replay/DropAfterCleanup/DropIfBusy enum + should_deliver(policy, current_state)" />
         <type-IpcError PURPOSE="m001_pdf-side UnsupportedError envelope; distinct from M-013b's MT_NOT_IMPLEMENTED — code MT_UNSUPPORTED" />
         <fn-exit_requested_handler PURPOSE="RunEvent::ExitRequested interceptor in main.rs run callback. Prevents immediate exit, emits mt::ask-for-close to trigger dirty-tab dialog. Checks PendingOpens.quit_approved flag to allow confirmed exits through. Handles no-window case by force-exiting." />
+        <fn-mt_format_link_click PURPOSE="m_v1_compat command: extracts href from data payload, resolves relative paths against dirname, opens URL/file via macOS open command. Handles mt::format-link-click IPC from linkTools jump action." />
       </annotations>
       <stub-ship-evidence commits="3c6afbc,b1166c2,a3cfe0a,6346130,c1a8597a,3b531150,94e84966,995ee2e,7630851b" date="2026-04-28">
         <files-shipped>5 sub-modules @ 1217 LOC + main.rs wiring (186 LOC); 11 #[tauri::command] handlers registered (10 m013b + 1 m001_pdf)</files-shipped>
@@ -198,6 +199,9 @@
         <fn-getMarkdown PURPOSE="Export current editor state as markdown" />
         <fn-setOptions PURPOSE="Change theme/mode/options at runtime" />
         <class-Muya PURPOSE="Engine root exported from src/muya/lib/index.js" />
+        <fn-renderMermaid PURPOSE="Async renderer using mermaid.render() API (v11+); clears cache pre-await to prevent race; unique ID per render call via Date.now() suffix; imports full ESM build (mermaid.esm.mjs)" />
+        <fn-keyboardUndoRedo PURPOSE="Cmd+Z/Cmd+Shift+Z interceptor in keyboard.js; routes to muya.undo()/redo() bypassing macOS responder chain that cannot reach muya's internal contentState.history" />
+        <fn-linkTooltipDelay PURPOSE="mouseOutHandler in linkTools/index.js; 300ms setTimeout delay before hide() to allow mouse travel from link text to tooltip popup" />
       </annotations>
     </M-012>
 
