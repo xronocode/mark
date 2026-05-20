@@ -8,6 +8,7 @@ export const usePreferencesStore = defineStore('preferences', {
   state: () => ({
     autoSave: false,
     autoSaveDelay: 5000,
+    liveReload: true,
     titleBarStyle: 'custom',
     openFilesInNewWindow: false,
     openFolderInNewWindow: false,

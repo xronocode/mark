@@ -1,5 +1,6 @@
 import equal from 'deep-equal'
 import bus from '../bus'
+import { ipcFs } from '../ipc/runtime'
 import { hasKeys, getUniqueId, deepClone } from '../util'
 import listToTree from '../util/listToTree'
 import {
@@ -159,10 +160,21 @@ export const useEditorStore = defineStore('editor', {
         tab.history.stack.pop()
       }
 
+      // Preserve cursor/scroll state across reload.
+      const savedCursor = tab.cursor
+      const savedScrollTop = tab.scrollTop
+      const savedMuyaIndexCursor = tab.muyaIndexCursor
+
       // Update file content and restore some entries.
       Object.assign(tab, newFileState)
       tab.id = oldId
       tab.notifications = oldNotifications
+
+      // Restore cursor/scroll state (Object.assign overwrites with defaults).
+      tab.cursor = savedCursor
+      tab.scrollTop = savedScrollTop
+      tab.muyaIndexCursor = savedMuyaIndexCursor
+
       if (oldHistory) {
         tab.history = oldHistory
       }
@@ -1360,14 +1372,40 @@ export const useEditorStore = defineStore('editor', {
           break
         case 'add':
         case 'change': {
-          const { autoSave } = preferencesStore
-          if (autoSave) {
+          // B7-M-032: integrate liveReload preference alongside autoSave.
+          const { autoSave, liveReload } = preferencesStore
+          if (autoSave || liveReload) {
             if (autoSaveTimers.has(id)) {
               clearTimeout(autoSaveTimers.get(id))
               autoSaveTimers.delete(id)
             }
-            if (isSaved) {
-              this.loadChange(change)
+            if (isSaved || liveReload) {
+              // If change already has data (legacy path), use it directly.
+              // Otherwise read from disk (watcher path: project.js sends only {pathname}).
+              if (change.data) {
+                this.loadChange(change)
+              } else {
+                // Settle delay: let the disk write finish flushing
+                setTimeout(async () => {
+                  try {
+                    const markdown = await ipcFs.read(pathname)
+                    // Hash-skip: don't reload if content matches current tab
+                    if (markdown === tab.markdown) return
+                    const data = {
+                      markdown,
+                      filename: tab.filename,
+                      encoding: tab.encoding,
+                      lineEnding: tab.lineEnding,
+                      adjustLineEndingOnSave: tab.adjustLineEndingOnSave,
+                      trimTrailingNewline: tab.trimTrailingNewline,
+                      isMixedLineEndings: false
+                    }
+                    this.loadChange({ ...change, data })
+                  } catch (e) {
+                    console.error(`[editor][live_reload][BLOCK_READ_FAILED path=${pathname}]`, e)
+                  }
+                }, 100)
+              }
               return
             }
           }
@@ -1482,6 +1520,11 @@ export const useEditorStore = defineStore('editor', {
   }
 })
 
+// ----------------------------------------------------------------------------
+// CHANGE_SUMMARY:
+//   - 2026-05-20 B7-M-032: fix APPLY_FILE_CHANGE async read path (latent bug:
+//     project.js sends {pathname} without data); fix loadChange cursor/scrollTop
+//     preservation; add liveReload preference integration + hash-skip.
 // ----------------------------------------------------------------------------
 
 /**

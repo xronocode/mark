@@ -55,6 +55,32 @@ vi.mock('element-plus', () => ({
   }
 }))
 
+// M-032: mock ipcFs for the async disk-read path in APPLY_FILE_CHANGE.
+const __ipcFsMock = {
+  read: vi.fn(async () => 'mocked content'),
+  write: vi.fn(),
+  stat: vi.fn(),
+  readdir: vi.fn(),
+  unlink: vi.fn()
+}
+vi.mock('@/ipc/runtime', () => ({
+  ipcFs: __ipcFsMock,
+  ipcWatch: {},
+  ipcSearch: {},
+  ipcPrefs: {},
+  ipcWorkspace: {},
+  ipcFonts: {},
+  ipcRecent: {},
+  ipcShortcut: {},
+  ipcSpell: {},
+  ipcMenu: {},
+  ipcPandoc: {},
+  ipcUpdater: {},
+  ipcScreenshot: {},
+  ipcSecret: {},
+  ipc: { fs: __ipcFsMock }
+}))
+
 // Commands are constructed inside LISTEN_FOR_BOOTSTRAP_WINDOW (not exercised
 // here) but importing the module triggers their evaluation. Stub them as
 // empty classes so no transitive muya/electron-log surface loads.
@@ -74,6 +100,7 @@ vi.mock('@/commands', () => ({
 const __preferencesStub: Record<string, any> = {
   autoSave: false,
   autoSaveDelay: 5000,
+  liveReload: true,
   defaultEncoding: 'utf8',
   endOfLine: 'lf',
   zoom: 1,
@@ -120,7 +147,8 @@ vi.mock('@/store/index', () => ({
   preferences: __preferencesStub,
   project: __projectStub,
   layout: __layoutStub,
-  main: __mainStub
+  main: __mainStub,
+  ipcFs: __ipcFsMock
 }
 
 // ─── test suite ───────────────────────────────────────────────────────
@@ -507,19 +535,27 @@ describe('store/editor', () => {
     }
 
     it("'change' marks tab dirty and pushes fileChangedOnDisk notification", () => {
+      // Disable auto-reload to test notification path
+      const stubs = (globalThis as any).__editorStubs
+      stubs.preferences.liveReload = false
       seedTab({ isSaved: true })
       editor.APPLY_FILE_CHANGE('change', { pathname: '/tmp/watched.md' })
       expect(editor.tabs[0].isSaved).toBe(false)
       expect(editor.tabs[0].notifications).toHaveLength(1)
       expect(editor.tabs[0].notifications[0].showConfirm).toBe(true)
       expect(editor.tabs[0].notifications[0].exclusiveType).toBe('file_changed')
+      stubs.preferences.liveReload = true
     })
 
     it("'add' takes the same path as 'change' (case fall-through)", () => {
+      // Disable auto-reload to test notification path
+      const stubs = (globalThis as any).__editorStubs
+      stubs.preferences.liveReload = false
       seedTab({ isSaved: true })
       editor.APPLY_FILE_CHANGE('add', { pathname: '/tmp/watched.md' })
       expect(editor.tabs[0].isSaved).toBe(false)
       expect(editor.tabs[0].notifications[0].exclusiveType).toBe('file_changed')
+      stubs.preferences.liveReload = true
     })
 
     it("'unlink' marks dirty + pushes fileRemovedOnDisk notification (showConfirm=false)", () => {
@@ -1252,9 +1288,24 @@ describe('store/editor', () => {
     })
   })
 
-  describe('APPLY_FILE_CHANGE autoSave branch', () => {
-    it("autoSave=true + isSaved=true triggers loadChange (no notification)", () => {
-      const stubs = (globalThis as any).__editorStubs
+  // ─── APPLY_FILE_CHANGE live-reload (M-032) ──────────────────────────
+
+  describe('APPLY_FILE_CHANGE autoSave / liveReload', () => {
+    let stubs: any
+
+    beforeEach(() => {
+      stubs = (globalThis as any).__editorStubs
+      stubs.ipcFs.read.mockReset()
+    })
+
+    afterEach(() => {
+      stubs.preferences.autoSave = false
+      stubs.preferences.liveReload = true
+      vi.useRealTimers()
+    })
+
+    // (a) Legacy path: autoSave=true + change WITH data -> loadChange, content updated
+    it('autoSave=true + change WITH data triggers loadChange directly (legacy path)', () => {
       stubs.preferences.autoSave = true
       const tab = makeTab({
         id: 't1',
@@ -1278,9 +1329,194 @@ describe('store/editor', () => {
           isMixedLineEndings: false
         }
       })
-      // loadChange path: content updated, no fileChangedOnDisk notif
       expect(editor.tabs[0].markdown).toBe('new disk content')
+      // ipcFs.read should NOT be called when data is present
+      expect(stubs.ipcFs.read).not.toHaveBeenCalled()
+    })
+
+    // (b) Watcher path: autoSave=true + change WITHOUT data -> async ipcFs.read
+    it('autoSave=true + change WITHOUT data reads from disk after settle delay', async () => {
+      vi.useFakeTimers()
+      stubs.preferences.autoSave = true
+      stubs.ipcFs.read.mockResolvedValueOnce('disk content from watcher')
+
+      const tab = makeTab({
+        id: 't1',
+        pathname: '/tmp/x.md',
+        filename: 'x.md',
+        markdown: 'old content',
+        isSaved: true
+      })
+      editor.tabs = [tab]
+      editor.currentFile = tab
+      editor.updateTabIdToIndex()
+
+      editor.APPLY_FILE_CHANGE('change', { pathname: '/tmp/x.md' })
+
+      // Before settle delay: content unchanged
+      expect(editor.tabs[0].markdown).toBe('old content')
+
+      // Advance past the 100ms settle delay and flush async
+      vi.advanceTimersByTime(100)
+      await vi.runAllTimersAsync()
+
+      expect(stubs.ipcFs.read).toHaveBeenCalledWith('/tmp/x.md')
+      expect(editor.tabs[0].markdown).toBe('disk content from watcher')
+    })
+
+    // (c) liveReload=true + tab is dirty -> still reloads
+    it('liveReload=true + dirty tab (isSaved=false) still reloads via async read', async () => {
+      vi.useFakeTimers()
       stubs.preferences.autoSave = false
+      stubs.preferences.liveReload = true
+      stubs.ipcFs.read.mockResolvedValueOnce('live reload content')
+
+      const tab = makeTab({
+        id: 't1',
+        pathname: '/tmp/x.md',
+        filename: 'x.md',
+        markdown: 'unsaved edits',
+        isSaved: false
+      })
+      editor.tabs = [tab]
+      editor.currentFile = tab
+      editor.updateTabIdToIndex()
+
+      editor.APPLY_FILE_CHANGE('change', { pathname: '/tmp/x.md' })
+
+      vi.advanceTimersByTime(100)
+      await vi.runAllTimersAsync()
+
+      expect(stubs.ipcFs.read).toHaveBeenCalledWith('/tmp/x.md')
+      expect(editor.tabs[0].markdown).toBe('live reload content')
+    })
+
+    // (d) Hash-skip: content unchanged -> no reload
+    it('liveReload=true + content unchanged (hash-skip) does not reload', async () => {
+      vi.useFakeTimers()
+      stubs.preferences.autoSave = false
+      stubs.preferences.liveReload = true
+      stubs.ipcFs.read.mockResolvedValueOnce('same content')
+
+      const tab = makeTab({
+        id: 't1',
+        pathname: '/tmp/x.md',
+        filename: 'x.md',
+        markdown: 'same content',
+        isSaved: true
+      })
+      editor.tabs = [tab]
+      editor.currentFile = tab
+      editor.updateTabIdToIndex()
+
+      const originalMarkdown = editor.tabs[0].markdown
+
+      editor.APPLY_FILE_CHANGE('change', { pathname: '/tmp/x.md' })
+
+      vi.advanceTimersByTime(100)
+      await vi.runAllTimersAsync()
+
+      expect(stubs.ipcFs.read).toHaveBeenCalledWith('/tmp/x.md')
+      // Content should be unchanged (hash-skip)
+      expect(editor.tabs[0].markdown).toBe(originalMarkdown)
+      // bus.emit should NOT have been called with file-changed for this
+      expect(bus.emit).not.toHaveBeenCalledWith('file-changed', expect.anything())
+    })
+
+    // (e) liveReload=false + autoSave=false -> notification, no auto-reload
+    it('liveReload=false + autoSave=false shows notification instead of auto-reload', () => {
+      stubs.preferences.autoSave = false
+      stubs.preferences.liveReload = false
+
+      const tab = makeTab({
+        id: 't1',
+        pathname: '/tmp/x.md',
+        filename: 'x.md',
+        isSaved: true
+      })
+      editor.tabs = [tab]
+      editor.currentFile = tab
+      editor.updateTabIdToIndex()
+
+      editor.APPLY_FILE_CHANGE('change', { pathname: '/tmp/x.md' })
+
+      // Should show notification, not auto-reload
+      expect(editor.tabs[0].notifications).toHaveLength(1)
+      expect(editor.tabs[0].notifications[0].showConfirm).toBe(true)
+      expect(stubs.ipcFs.read).not.toHaveBeenCalled()
+    })
+
+    // (f) ipcFs.read failure -> console.error, no crash, tab unchanged
+    it('ipcFs.read failure logs error and leaves tab unchanged', async () => {
+      vi.useFakeTimers()
+      stubs.preferences.autoSave = true
+      stubs.ipcFs.read.mockRejectedValueOnce(new Error('ENOENT'))
+
+      const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+      const tab = makeTab({
+        id: 't1',
+        pathname: '/tmp/x.md',
+        filename: 'x.md',
+        markdown: 'original',
+        isSaved: true
+      })
+      editor.tabs = [tab]
+      editor.currentFile = tab
+      editor.updateTabIdToIndex()
+
+      editor.APPLY_FILE_CHANGE('change', { pathname: '/tmp/x.md' })
+
+      vi.advanceTimersByTime(100)
+      await vi.runAllTimersAsync()
+
+      expect(spy).toHaveBeenCalledWith(
+        expect.stringContaining('[editor][live_reload][BLOCK_READ_FAILED'),
+        expect.any(Error)
+      )
+      // Tab content unchanged
+      expect(editor.tabs[0].markdown).toBe('original')
+      spy.mockRestore()
+    })
+  })
+
+  // ─── loadChange cursor/scrollTop preservation (M-032) ───────────────
+
+  describe('loadChange cursor/scrollTop preservation', () => {
+    // (g) loadChange preserves cursor, scrollTop, muyaIndexCursor
+    it('preserves cursor, scrollTop, and muyaIndexCursor after Object.assign', () => {
+      const savedCursor = { start: { key: 'k1', offset: 5 }, end: { key: 'k1', offset: 10 } }
+      const tab = makeTab({
+        id: 't1',
+        pathname: '/tmp/x.md',
+        filename: 'x.md',
+        markdown: 'old',
+        cursor: savedCursor,
+        scrollTop: 350,
+        muyaIndexCursor: { key: 'block-7', offset: 3 }
+      })
+      editor.tabs = [tab]
+      editor.currentFile = tab
+      editor.updateTabIdToIndex()
+
+      editor.loadChange({
+        pathname: '/tmp/x.md',
+        data: {
+          markdown: 'new content after reload',
+          filename: 'x.md',
+          encoding: { encoding: 'utf8', isBom: false },
+          lineEnding: 'lf',
+          adjustLineEndingOnSave: false,
+          trimTrailingNewline: 3,
+          isMixedLineEndings: false
+        }
+      })
+
+      expect(editor.tabs[0].markdown).toBe('new content after reload')
+      // Cursor/scroll state must survive the reload
+      expect(editor.tabs[0].cursor).toEqual(savedCursor)
+      expect(editor.tabs[0].scrollTop).toBe(350)
+      expect(editor.tabs[0].muyaIndexCursor).toEqual({ key: 'block-7', offset: 3 })
     })
   })
 })
