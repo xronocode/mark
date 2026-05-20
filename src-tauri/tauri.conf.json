@@ -19,7 +19,9 @@
         "resizable": true,
         "fullscreen": false,
         "url": "index.html",
-        "dragDropEnabled": true
+        "dragDropEnabled": true,
+        "titleBarStyle": "Overlay",
+        "hiddenTitle": true
       }
     ],
     "security": {
