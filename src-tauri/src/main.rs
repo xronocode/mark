@@ -56,6 +56,9 @@
 // Prevent additional console window on Windows in release.
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+#[cfg(target_os = "macos")]
+use raw_window_handle::HasWindowHandle;
+
 #[allow(dead_code)] // dialog flow auto-migrates 2026-05-09; kept for future re-enable
 mod cancel_log;
 mod dialog;
@@ -521,6 +524,40 @@ fn main() {
             // does not need to capture an Arc.
             app.manage(m001_save_close::MainCloseSm::default());
             if let Some(main_win) = app.get_webview_window("main") {
+                // Extend content behind the title bar via NSWindow API.
+                // tauri.conf.json uses "Transparent" (safe) instead of "Overlay"
+                // (crashes on macOS 26.4 in WebPageProxy::dispatchSetObscuredContentInsets).
+                // Setting NSFullSizeContentViewWindowMask manually after window
+                // creation avoids the crash while giving the same visual result.
+                #[cfg(target_os = "macos")]
+                {
+                    #[allow(deprecated)]
+                    use cocoa::appkit::{NSWindow as NSWindowExt, NSWindowStyleMask};
+                    use cocoa::base::id;
+                    use objc::{msg_send, sel, sel_impl};
+                    use raw_window_handle::RawWindowHandle;
+
+                    match main_win.window_handle() {
+                        Ok(wh) => {
+                            if let RawWindowHandle::AppKit(appkit) = wh.as_raw() {
+                                let ns_view: id = appkit.ns_view.as_ptr() as id;
+                                unsafe {
+                                    let ns_win: id = msg_send![ns_view, window];
+                                    let mask = NSWindowExt::styleMask(ns_win);
+                                    #[allow(deprecated)]
+                                    let full_size =
+                                        NSWindowStyleMask::NSFullSizeContentViewWindowMask;
+                                    NSWindowExt::setStyleMask_(ns_win, mask | full_size);
+                                }
+                                eprintln!("[m001][titlebar][BLOCK_FULLSIZE_CONTENT_VIEW_SET]");
+                            }
+                        }
+                        Err(e) => {
+                            eprintln!("[m001][titlebar][BLOCK_FULLSIZE_FAILED reason={e}]");
+                        }
+                    }
+                }
+
                 m001_save_close::wire_close_handler(&main_win);
                 eprintln!("[m001][lifecycle][BLOCK_CLOSE_HANDLER_WIRED label=main]");
                 // F-DEV-MODE-WHITE-SCREEN diagnostic: dev-only inject
