@@ -20,13 +20,12 @@
         "fullscreen": false,
         "url": "index.html",
         "dragDropEnabled": true,
-        "titleBarStyle": "Transparent",
-        "hiddenTitle": true,
-        "backgroundColor": "#282a36"
+        "titleBarStyle": "Visible",
+        "hiddenTitle": true
       }
     ],
     "security": {
-      "csp": "default-src 'self'; script-src 'self' 'sha256-Vi1OxgwWno4nibjU/wCsMrsqd4b5OVs7ms0EC9jTt7U=' 'sha256-6TjcBJBn6HapSIs4eEnyHrbkRAIHWMnwFoc3M0VlGV4=' 'sha256-tQdfhkOEDyM38ahQf6AU8yWFHirCppHUnjZDP56gU4I='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: asset: https://asset.localhost; font-src 'self' data:; connect-src 'self' ipc: http://ipc.localhost ipc://localhost; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'none'; worker-src 'self' blob:",
+      "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: asset: https://asset.localhost; font-src 'self' data:; connect-src 'self' ipc: http://ipc.localhost ipc://localhost; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'none'; worker-src 'self' blob:",
       "freezePrototype": false,
       "dangerousDisableAssetCspModification": false,
       "assetProtocol": {
