@@ -48,9 +48,10 @@ class ExportHtml {
   async renderMermaid() {
     const codes = this.exportContainer.querySelectorAll('code.language-mermaid')
     const mermaid = await loadRenderer('mermaid')
+    const isDark = document.body.classList.contains('dark')
     mermaid.initialize({
       securityLevel: 'strict',
-      theme: 'default'
+      theme: isDark ? 'dark' : 'default'
     })
     let index = 0
     for (const code of codes) {

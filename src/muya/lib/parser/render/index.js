@@ -105,9 +105,10 @@ class StateRender {
       const entries = [...this.mermaidCache.entries()]
       this.mermaidCache.clear()
       const mermaid = await loadRenderer('mermaid')
+      const isDark = document.body.classList.contains('dark')
       mermaid.initialize({
         securityLevel: 'strict',
-        theme: 'default'
+        theme: isDark ? 'dark' : 'default'
       })
       for (const [key, value] of entries) {
         const { code } = value
