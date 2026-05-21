@@ -1,4 +1,4 @@
-import { getKatex, loadKatex } from '../../../utils/lazy-katex'
+import { getKatex, scheduleRerender } from '../../../utils/lazy-katex'
 import { CLASS_OR_ID } from '../../../config'
 import { htmlToVNode } from '../snabbdom'
 
@@ -39,11 +39,7 @@ export default function displayMath (h, cursor, block, token, outerClass) {
         previewSelector += `.${CLASS_OR_ID.AG_MATH_ERROR}`
       }
     } else {
-      const muya = this.muya
-      loadKatex().then(() => {
-        loadMathMap.clear()
-        muya.contentState.render()
-      })
+      scheduleRerender(this.muya)
       mathVnode = '...'
     }
   }

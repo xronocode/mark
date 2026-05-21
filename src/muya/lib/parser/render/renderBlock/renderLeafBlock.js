@@ -1,4 +1,4 @@
-import { getKatex, loadKatex } from '../../../utils/lazy-katex'
+import { getKatex, scheduleRerender } from '../../../utils/lazy-katex'
 import prism, { loadedLanguages, transformAliasToOrigin } from '../../../prism/'
 import { CLASS_OR_ID, DEVICE_MEMORY, PREVIEW_DOMPURIFY_CONFIG, HAS_TEXT_BLOCK_REG } from '../../../config'
 import { tokenizer } from '../../'
@@ -174,11 +174,7 @@ export default function renderLeafBlock (parent, block, activeBlocks, matches, u
               selector += `.${CLASS_OR_ID.AG_MATH_ERROR}`
             }
           } else {
-            const muya = this.muya
-            loadKatex().then(() => {
-              loadMathMap.clear()
-              muya.contentState.render()
-            })
+            scheduleRerender(this.muya)
             children = t('editor.loading')
             selector += `.${CLASS_OR_ID.AG_EMPTY}`
           }
