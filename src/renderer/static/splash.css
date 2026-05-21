@@ -24,8 +24,8 @@
   align-items: center;
   justify-content: center;
   gap: 18px;
-  background: #ffffff;
-  color: #1d1d1f;
+  background: inherit;
+  color: inherit;
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   font-size: 14px;
   line-height: 1.4;
@@ -112,10 +112,6 @@
 }
 
 @media (prefers-color-scheme: dark) {
-  #splash-root {
-    background: #1e1e1e;
-    color: #e8e8e8;
-  }
   #splash-root .splash-error {
     background: rgba(255, 99, 99, 0.12);
     color: #ff8a8a;

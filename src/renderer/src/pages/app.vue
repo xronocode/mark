@@ -67,6 +67,7 @@ import Rename from '@/components/rename'
 import Tweet from '@/components/tweet'
 import ImportModal from '@/components/import'
 import bus from '@/bus'
+import { dismountSplash } from '@/util/splash'
 import { DEFAULT_STYLE } from '@/config'
 import { useTweetStore } from '@/store/tweet'
 import { useLayoutStore } from '@/store/layout'
@@ -166,6 +167,7 @@ onMounted(async () => {
   projectStore.LISTEN_FOR_SIDEBAR_CONTEXT_MENU()
   await preferencesStore.ASK_FOR_USER_PREFERENCE()
   addThemeStyle(preferencesStore.theme)
+  dismountSplash()
   preferencesStore.LISTEN_TOGGLE_VIEW()
   editorStore.LISTEN_FOR_CLOSE()
   editorStore.LISTEN_FOR_SAVE_AS()

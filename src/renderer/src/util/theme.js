@@ -145,6 +145,8 @@ export const addThemeStyle = (theme) => {
     root.style.setProperty('--titleBarBorderColor', 'rgba(0, 0, 0, 0.08)')
   }
 
+  try { localStorage.setItem('mark-cached-theme', theme) } catch (_) {}
+
   const cm = document.querySelector('.CodeMirror')
   if (cm) {
     cm.classList.remove('cm-s-default')
