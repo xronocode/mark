@@ -38,21 +38,63 @@ pre.ag-paragraph {
   white-space: normal;
 }
 
+/* Comments — muted green */
 .token.comment,
 .token.prolog,
 .token.doctype,
 .token.cdata {
   color: #6a9955;
+  font-style: italic;
 }
 
+/* Punctuation — subtle gray */
 .token.punctuation {
-  color: #d4d4d4;
+  color: #808080;
 }
 
+/* Namespace — dim teal (Rust modules like tauri::) */
 .namespace {
-  opacity: .7;
+  color: #4ec9b0;
+  opacity: .8;
 }
 
+/* Keywords — blue (fn, let, const, if, return, pub, use, impl) */
+.token.keyword {
+  color: #569cd6;
+}
+
+/* Control-flow keywords — magenta/purple (if, else, for, while, match, return) */
+.token.keyword.control-flow {
+  color: #c586c0;
+}
+
+/* Types / class names — teal (Builder, Ok, String, Vec, Result) */
+.token.class-name {
+  color: #4ec9b0;
+}
+
+/* Functions — yellow (main, setup, build, forEach, addThemeStyle) */
+.token.function,
+.token.function-definition {
+  color: #dcdcaa;
+}
+
+/* Strings — warm orange */
+.token.selector,
+.token.attr-name,
+.token.string,
+.token.char,
+.token.template-string {
+  color: #ce9178;
+}
+
+/* Numbers, booleans — light green */
+.token.boolean,
+.token.number {
+  color: #b5cea8;
+}
+
+/* Properties, tags, constants — blue */
 .token.property,
 .token.tag,
 .token.constant,
@@ -60,27 +102,27 @@ pre.ag-paragraph {
   color: #569cd6;
 }
 
-.token.boolean,
-.token.number {
-  color: #b5cea8;
-}
-
-.token.selector,
-.token.attr-name,
-.token.string,
-.token.char,
+/* Built-in types/functions — teal */
 .token.builtin {
-  color: #ce9178;
+  color: #4ec9b0;
 }
 
-.token.inserted {
-  color: #b5cea8;
+/* Macros (Rust println!, vec!) — teal like types */
+.token.macro {
+  color: #4ec9b0;
 }
 
-.token.deleted {
-  color: #ce9178;
+/* Parameters (arrow fn params in JS) — light blue */
+.token.parameter {
+  color: #9cdcfe;
 }
 
+/* Variables — light blue */
+.token.variable {
+  color: #9cdcfe;
+}
+
+/* Operators — light gray */
 .token.operator,
 .token.entity,
 .token.url,
@@ -89,24 +131,38 @@ pre.ag-paragraph {
   color: #d4d4d4;
 }
 
-.token.atrule,
-.token.attr-value,
-.token.function,
-.token.class-name {
-  color: #dcdcaa;
-}
-
-.token.keyword {
+/* Arrow, spread — specific operator color */
+.token.arrow {
   color: #569cd6;
 }
 
-.token.regex,
-.token.important,
-.token.variable {
-  color: #d7ba7d;
+/* Attribute values, at-rules */
+.token.atrule,
+.token.attr-value {
+  color: #ce9178;
 }
 
-.token.important,
+/* Regex — gold */
+.token.regex {
+  color: #d16969;
+}
+
+/* Important */
+.token.important {
+  color: #569cd6;
+  font-weight: bold;
+}
+
+/* Inserted — green (diffs) */
+.token.inserted {
+  color: #b5cea8;
+}
+
+/* Deleted — red (diffs) */
+.token.deleted {
+  color: #ce9178;
+}
+
 .token.bold {
   font-weight: bold;
 }

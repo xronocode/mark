@@ -43,14 +43,16 @@ pre.ag-paragraph {
 .token.doctype,
 .token.cdata {
   color: #6c6f93;
+  font-style: italic;
 }
 
 .token.punctuation {
-  color: #d5d8da;
+  color: #6c6f93;
 }
 
 .namespace {
-  opacity: .7;
+  color: #fab795;
+  opacity: .85;
 }
 
 .token.property,
@@ -85,8 +87,19 @@ pre.ag-paragraph {
 
 .token.atrule,
 .token.attr-value,
-.token.function,
+.token.function {
+  color: #fab795;
+}
+
 .token.class-name {
+  color: #fab795;
+}
+
+.token.parameter {
+  color: #e95678;
+}
+
+.token.macro {
   color: #fab795;
 }
 

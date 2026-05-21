@@ -71,10 +71,11 @@ pre.ag-paragraph {
 .token.doctype,
 .token.cdata {
   color: #5C6370;
+  font-style: italic;
 }
 
 .token.punctuation {
-  color: #abb2bf;
+  color: #5c6370;
 }
 
 .token.selector,
@@ -115,6 +116,18 @@ pre.ag-paragraph {
 
 .token.function {
   color: #61afef;
+}
+
+.token.class-name {
+  color: #56b6c2;
+}
+
+.token.parameter {
+  color: #d19a66;
+}
+
+.token.macro {
+  color: #56b6c2;
 }
 
 .token.regex,
