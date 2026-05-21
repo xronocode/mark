@@ -1,5 +1,14 @@
 export const dismountSplash = () => {
+  if (import.meta.hot) {
+    console.log('[boot][splash] BLOCK_HMR_BYPASS')
+    return false
+  }
   if (window.__SPLASH_REPLACED__) {
+    const orphan = document.getElementById('splash-root')
+    if (orphan) {
+      console.log('[boot][splash] BLOCK_ORPHAN_DETECTED')
+      orphan.remove()
+    }
     return false
   }
   const root = document.getElementById('splash-root')

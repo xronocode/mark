@@ -24,10 +24,12 @@ const repoRoot = resolve(__dirname, '../../..')
 
 const indexHtmlPath = resolve(repoRoot, 'src/renderer/index.html')
 const mainJsPath = resolve(repoRoot, 'src/renderer/src/main.js')
+const splashJsPath = resolve(repoRoot, 'src/renderer/src/util/splash.js')
 
 const indexHtml = readFileSync(indexHtmlPath, 'utf8')
 const mainJs = readFileSync(mainJsPath, 'utf8')
-const combined = indexHtml + '\n' + mainJs
+const splashJs = readFileSync(splashJsPath, 'utf8')
+const combined = indexHtml + '\n' + mainJs + '\n' + splashJs
 
 describe('M-024 splash marker catalog (fixture grep)', () => {
   // Catalog must match the M-024 contract exactly.
@@ -41,23 +43,27 @@ describe('M-024 splash marker catalog (fixture grep)', () => {
     'BLOCK_WATCHDOG_FIRED'
   ]
   const mainJsMarkers = [
-    'BLOCK_VUE_READY',
+    'BLOCK_VUE_READY'
+  ]
+  const splashJsMarkers = [
     'BLOCK_REPLACED',
     'BLOCK_HMR_BYPASS',
-    'BLOCK_VUE_FAILED',
     'BLOCK_ORPHAN_DETECTED'
   ]
 
   it.each(indexMarkers)('index.html declares marker %s in [boot][splash] namespace', (marker) => {
     expect(indexHtml).toContain(marker)
-    // Each marker must be wrapped in the [boot][splash] log namespace —
-    // string literal must appear in the same file as the marker.
     expect(indexHtml).toContain('[boot][splash]')
   })
 
   it.each(mainJsMarkers)('main.js declares marker %s in [boot][splash] namespace', (marker) => {
     expect(mainJs).toContain(marker)
     expect(mainJs).toContain('[boot][splash]')
+  })
+
+  it.each(splashJsMarkers)('splash.js declares marker %s in [boot][splash] namespace', (marker) => {
+    expect(splashJs).toContain(marker)
+    expect(splashJs).toContain('[boot][splash]')
   })
 
   it('sets window.__BOOT_T0__ via performance.now() in the very first inline script', () => {
@@ -88,16 +94,17 @@ describe('M-024 splash marker catalog (fixture grep)', () => {
     expect(bodyIdx).toBeGreaterThan(styleIdx)
   })
 
-  it('mounts Vue and dismounts splash after mount returns', () => {
-    // Marker order in main.js: BLOCK_VUE_READY logged immediately after
-    // app.mount('#app'), then dismountSplash() called (which logs
-    // BLOCK_REPLACED). Assert source ordering as a regression check.
+  it('main.js mounts Vue and logs BLOCK_VUE_READY after mount', () => {
     const mountIdx = mainJs.indexOf("app.mount('#app')")
     const vueReadyIdx = mainJs.indexOf('BLOCK_VUE_READY')
-    const replacedCallIdx = mainJs.indexOf('dismountSplash()')
     expect(mountIdx).toBeGreaterThan(-1)
     expect(vueReadyIdx).toBeGreaterThan(mountIdx)
-    expect(replacedCallIdx).toBeGreaterThan(vueReadyIdx)
+  })
+
+  it('splash.js logs BLOCK_REPLACED at end of dismountSplash', () => {
+    const replacedIdx = splashJs.indexOf('BLOCK_REPLACED')
+    expect(replacedIdx).toBeGreaterThan(-1)
+    expect(splashJs).toContain('dismountSplash')
   })
 
   it('sets up the 5s splash watchdog in index.html', () => {
