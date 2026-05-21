@@ -77,6 +77,7 @@
           </svg>
         </div>
       </div>
+      <span class="version-badge" data-tauri-drag-region>v{{ appVersion }}{{ isDev ? ' DEV' : '' }}</span>
       <div :class="showCustomTitleBar ? 'left-toolbar title-no-drag' : 'right-toolbar'">
         <div
           v-if="showCustomTitleBar"
@@ -190,6 +191,8 @@ const projectStore = useProjectStore()
 const { t } = useI18n()
 
 const isOsx = isOsxPlatform
+const appVersion = __APP_VERSION__
+const isDev = import.meta.env.DEV
 const HASH = {
   word: {
     short: 'W',
@@ -464,6 +467,17 @@ onBeforeUnmount(() => {
 }
 .active {
   color: var(--editorColor);
+}
+.version-badge {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 11px;
+  color: var(--editorColor);
+  opacity: 0.5;
+  font-weight: 400;
+  letter-spacing: 0.03em;
 }
 img {
   height: 90%;

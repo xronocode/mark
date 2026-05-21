@@ -53,6 +53,7 @@ export default defineConfig({
     extensions: ['.mjs', '.js', '.ts', '.json', '.vue']
   },
   define: {
+    '__APP_VERSION__': JSON.stringify(process.env.npm_package_version || '0.0.0'),
     'process.platform': JSON.stringify(process.platform),
     'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV || 'production'),
     // F-DEV-MODE-WHITE-SCREEN root cause: dragula → custom-event references
