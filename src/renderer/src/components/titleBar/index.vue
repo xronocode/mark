@@ -158,6 +158,23 @@
 </template>
 
 <script setup>
+// MODULE_CONTRACT
+//   PURPOSE: Render the main window title bar, including navigation,
+//            version badge, window controls, and drag affordances.
+//   SCOPE:   Renderer-side titlebar behavior only. Owns sidebar/view
+//            navigation, title updates, direct window control calls, and
+//            transparent-titlebar drag fallbacks for WKWebView/macOS.
+//   DEPENDS: preferences/layout/project/editor stores, bus,
+//            @tauri-apps/api/window.
+//   LINKS:   docs/verification-plan.xml V-A6-5, V-A6-6; docs/knowledge-graph.xml M-011.
+//   STATUS:  Transparent-titlebar drag support hardened with CSS and JS
+//            fallbacks while preserving Tauri drag-region attributes.
+//
+// CHANGE_SUMMARY:
+//   - 2026-05-21 drag-theme-refactor: restore `-webkit-app-region: drag`
+//     on the title bar and add a macOS mousedown -> startDragging()
+//     fallback for transparent WKWebView windows.
+
 // step-8g: @electron/remote.Menu also gone. Application-menu popup
 // now routes through mt::window-popup-app-menu IPC (windowManager).
 // Click handlers for the application menu are already main-side, so
@@ -165,7 +182,7 @@
 import { usePreferencesStore } from '@/store/preferences.js'
 import { useLayoutStore } from '@/store/layout.js'
 import { useProjectStore } from '@/store/project'
-import { ref, computed, watch, onBeforeUnmount } from 'vue'
+import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import { storeToRefs } from 'pinia'
 import bus from '@/bus'
 import { minimizePath, restorePath, maximizePath, closePath } from '../../assets/window-controls.js'
@@ -248,6 +265,23 @@ const paths = computed(() => {
 const showCustomTitleBar = computed(() => {
   return titleBarStyle.value === 'custom' && !isOsx
 })
+
+const handleWindowDragMouseDown = async (event) => {
+  if (!isOsx || event.button !== 0) return
+  const target = event.target instanceof Element ? event.target : null
+  if (!target) return
+
+  const dragTarget = target.closest('[data-tauri-drag-region]')
+  if (!dragTarget || target.closest('.title-no-drag')) return
+
+  event.preventDefault()
+  try {
+    const { getCurrentWindow } = await import('@tauri-apps/api/window')
+    await getCurrentWindow().startDragging()
+  } catch (e) {
+    console.warn('[titleBar][drag] startDragging failed', e)
+  }
+}
 
 watch(
   () => props.filename,
@@ -433,7 +467,16 @@ let resizeUnlisten = null
   }
 })()
 
+onMounted(() => {
+  if (isOsx) {
+    document.addEventListener('mousedown', handleWindowDragMouseDown)
+  }
+})
+
 onBeforeUnmount(() => {
+  if (isOsx) {
+    document.removeEventListener('mousedown', handleWindowDragMouseDown)
+  }
   if (typeof resizeUnlisten === 'function') {
     resizeUnlisten()
     resizeUnlisten = null
@@ -452,6 +495,7 @@ onBeforeUnmount(() => {
   right: 0;
 }
 .title-bar {
+  -webkit-app-region: drag;
   user-select: none;
   background: transparent;
   height: var(--titleBarHeight);

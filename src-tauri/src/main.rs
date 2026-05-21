@@ -34,6 +34,10 @@
 //             ship in Phase-B2.
 //
 // CHANGE_SUMMARY:
+//   - 2026-05-21 drag-theme-refactor: keep macOS full-size content view
+//     patch but remove setMovable/setMovableByWindowBackground overrides so
+//     renderer-side drag fallbacks can control transparent titlebar dragging
+//     without conflicting AppKit flags.
 //   - 2026-04-28 B-pre2-followup-FIX: MARK_SKIP_MIGRATION env-var bypass
 //     wired (texts on 10 locales already promised it; only hint was
 //     shipped in pre2 step-4, code path was missing).
@@ -548,10 +552,6 @@ fn main() {
                                     let full_size =
                                         NSWindowStyleMask::NSFullSizeContentViewWindowMask;
                                     NSWindowExt::setStyleMask_(ns_win, mask | full_size);
-                                    let no: cocoa::base::BOOL = cocoa::base::NO;
-                                    let _: () = msg_send![ns_win, setMovable: no];
-                                    let _: () =
-                                        msg_send![ns_win, setMovableByWindowBackground: no];
                                 }
                                 eprintln!("[m001][titlebar][BLOCK_FULLSIZE_CONTENT_VIEW_SET]");
                             }

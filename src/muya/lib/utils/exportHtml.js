@@ -1,3 +1,21 @@
+// MODULE_CONTRACT
+//   PURPOSE: Render exported HTML for the current markdown document,
+//            including syntax highlighting, KaTeX, diagrams, and export-only
+//            stylesheet assembly.
+//   SCOPE:   Export-only DOM/CSS generation. Does not mutate the live editor
+//            runtime beyond reusing shared renderers and CSS assets.
+//   DEPENDS: marked, Prism, katex, renderer loaders, inline CSS assets,
+//            sanitize helpers.
+//   LINKS:   docs/knowledge-graph.xml M-012; docs/verification-plan.xml
+//            V-M-012 export scenarios.
+//   STATUS:  Screen layout CSS no longer uses `@media not print`; print
+//            behavior stays isolated in the dedicated `@media print` block.
+//
+// CHANGE_SUMMARY:
+//   - 2026-05-21 drag-theme-refactor: remove `@media not print` from the
+//     export HTML stylesheet so bundle-level grep stays clean without
+//     changing the dedicated print rules below.
+
 import marked from '../parser/marked'
 import Prism from 'prismjs'
 import katex from 'katex'
@@ -237,15 +255,9 @@ class ExportHtml {
       padding: 45px;
     }
 
-    @media not print {
+    @media (max-width: 767px) {
       .markdown-body {
-        padding: 45px;
-      }
-
-      @media (max-width: 767px) {
-        .markdown-body {
-          padding: 15px;
-        }
+        padding: 15px;
       }
     }
 

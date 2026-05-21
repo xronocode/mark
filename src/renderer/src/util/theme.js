@@ -1,3 +1,20 @@
+// MODULE_CONTRACT
+//   PURPOSE: Apply theme CSS, mirrored theme variables, and shared editor
+//            style sheets to the renderer document.
+//   SCOPE:   Theme/common/custom style tag management only. Owns raw theme
+//            CSS injection plus the inline CSS-variable mirror consumed by
+//            WKWebView-native surfaces such as the transparent title bar.
+//   DEPENDS: themeColor factories, config style ids, DOM style tags.
+//   LINKS:   docs/verification-plan.xml V-M-011 scenario-4, ec theme swap;
+//            docs/knowledge-graph.xml M-011.
+//   STATUS:  Raw theme CSS injection preserved; `@media not print` wrapper
+//            removed to reduce WKWebView stylesheet parsing fragility.
+//
+// CHANGE_SUMMARY:
+//   - 2026-05-21 drag-theme-refactor: stop wrapping theme CSS in
+//     `@media not print` so Prism/scrollbar/sidebar rules are emitted as
+//     direct stylesheet text while keeping the variable mirror unchanged.
+
 import {
   THEME_STYLE_ID,
   COMMON_STYLE_ID,
@@ -76,10 +93,6 @@ const themeMap = {
   'rose-pine-dawn': rosePineDawn
 }
 
-const patchTheme = (css) => {
-  return `@media not print {\n${css}\n}`
-}
-
 const getEmojiPickerPatch = () => {
   return isLinux
     ? '.ag-emoji-picker section .emoji-wrapper .item span { font-family: sans-serif, "Noto Color Emoji"; }'
@@ -106,7 +119,7 @@ export const addThemeStyle = (theme) => {
 
   const themeFn = themeMap[theme]
   const css = themeFn ? themeFn() : ''
-  themeStyleEle.textContent = css ? patchTheme(css) : ''
+  themeStyleEle.textContent = css
 
   const root = document.documentElement
   const prevVars = root.__themeVars || []

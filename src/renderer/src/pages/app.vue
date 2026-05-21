@@ -36,10 +36,26 @@
 </template>
 
 <script setup>
+// MODULE_CONTRACT
+//   PURPOSE: Mount the main renderer shell, hydrate preferences, and apply
+//            document-wide theme/common styles for the editor window.
+//   SCOPE:   App-level startup wiring only. Owns initial style injection,
+//            store listener registration, drag-drop bootstrap, and shell
+//            component composition.
+//   DEPENDS: Pinia stores, bus, util/theme helpers, shell components.
+//   LINKS:   docs/knowledge-graph.xml M-011; docs/verification-plan.xml
+//            V-M-011 theme swap expectations.
+//   STATUS:  Initial mount path dedupes theme application so raw theme CSS
+//            is injected once while common styles still initialize on boot.
+//
+// CHANGE_SUMMARY:
+//   - 2026-05-21 drag-theme-refactor: dedupe initial addThemeStyle() calls
+//     by separating common-style bootstrap from theme-style bootstrap.
+
 import { computed, watch, nextTick, onMounted, ref } from 'vue'
 import { useMainStore } from '@/store'
 import { storeToRefs } from 'pinia'
-import { addStyles, addThemeStyle, addCustomStyle } from '@/util/theme'
+import { addCommonStyle, addThemeStyle, addCustomStyle } from '@/util/theme'
 import Recent from '@/components/recent'
 import EditorWithTabs from '@/components/editorWithTabs'
 import TitleBar from '@/components/titleBar'
@@ -175,9 +191,9 @@ onMounted(async () => {
       hideScrollbar: preferencesStore.hideScrollbar
     }
     try {
-      addStyles(style)
+      addCommonStyle(style)
     } catch (e) {
-      console.error('[app][addStyles] failed:', style, e)
+      console.error('[app][addCommonStyle] failed:', style, e)
     }
   })
 })
