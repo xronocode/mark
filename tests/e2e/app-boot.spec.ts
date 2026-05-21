@@ -39,7 +39,7 @@ test.describe('app boot', () => {
       { timeout: 15_000 }
     )
 
-    await expect(page).toHaveTitle('MarkText')
+    await expect(page).toHaveTitle('Mark')
 
     // Give muya / codemirror a moment to settle, then assert no fatal
     // errors landed in the console.
