@@ -107,6 +107,10 @@ export const addThemeStyle = (theme) => {
   const themeFn = themeMap[theme]
   themeStyleEle.textContent = themeFn ? patchTheme(themeFn()) : ''
 
+  document.documentElement.style.removeProperty('--editorBgColor')
+  const editorBg = getComputedStyle(document.documentElement).getPropertyValue('--editorBgColor').trim()
+  document.documentElement.style.setProperty('--editorBgColor', editorBg || 'rgba(255, 255, 255, 1)')
+
   document.body.classList.remove('dark')
   if (isDarkTheme) {
     document.body.classList.add('dark')

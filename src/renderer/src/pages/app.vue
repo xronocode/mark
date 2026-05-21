@@ -148,7 +148,8 @@ onMounted(async () => {
   layoutStore.LISTEN_FOR_LAYOUT()
   listenForMainStore.LISTEN_FOR_EDIT()
   projectStore.LISTEN_FOR_SIDEBAR_CONTEXT_MENU()
-  preferencesStore.ASK_FOR_USER_PREFERENCE()
+  await preferencesStore.ASK_FOR_USER_PREFERENCE()
+  addThemeStyle(preferencesStore.theme)
   preferencesStore.LISTEN_TOGGLE_VIEW()
   editorStore.LISTEN_FOR_CLOSE()
   editorStore.LISTEN_FOR_SAVE_AS()
@@ -167,7 +168,12 @@ onMounted(async () => {
   setupDragDropHandler()
 
   nextTick(() => {
-    const style = window.marktext.initialState || DEFAULT_STYLE
+    const style = {
+      theme: preferencesStore.theme,
+      codeFontFamily: preferencesStore.codeFontFamily,
+      codeFontSize: preferencesStore.codeFontSize,
+      hideScrollbar: preferencesStore.hideScrollbar
+    }
     try {
       addStyles(style)
     } catch (e) {
