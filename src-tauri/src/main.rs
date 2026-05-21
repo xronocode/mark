@@ -548,6 +548,10 @@ fn main() {
                                     let full_size =
                                         NSWindowStyleMask::NSFullSizeContentViewWindowMask;
                                     NSWindowExt::setStyleMask_(ns_win, mask | full_size);
+                                    let no: cocoa::base::BOOL = cocoa::base::NO;
+                                    let _: () = msg_send![ns_win, setMovable: no];
+                                    let _: () =
+                                        msg_send![ns_win, setMovableByWindowBackground: no];
                                 }
                                 eprintln!("[m001][titlebar][BLOCK_FULLSIZE_CONTENT_VIEW_SET]");
                             }
