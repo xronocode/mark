@@ -135,7 +135,13 @@ body {
   margin: 0;
   padding: 0;
   background: var(--editorBgColor, #ffffff);
+  color-scheme: var(--colorScheme, light);
   caret-color: var(--editorColor);
+}
+
+[contenteditable] {
+  background: var(--editorBgColor);
+  color: var(--editorColor);
 }
 
 body {

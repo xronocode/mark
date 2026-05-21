@@ -1304,6 +1304,8 @@ onBeforeUnmount(() => {
   box-sizing: border-box;
   cursor: default;
   overflow-anchor: none !important;
+  background: var(--editorBgColor);
+  color: var(--editorColor);
 }
 
 /* M-022 mt-preview-mode: read-only visual treatment.

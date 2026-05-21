@@ -193,7 +193,9 @@ fn mt_drain_pending_opens(
 /// not installed — invocations never come, so this is a no-op there.
 #[tauri::command]
 fn mt_dev_diag(payload: serde_json::Value) {
-    eprintln!(
+    use std::io::Write;
+    let _ = writeln!(
+        std::io::stderr(),
         "[dev-diag][js] {}",
         serde_json::to_string(&payload).unwrap_or_else(|_| "<unserializable>".to_string())
     );
@@ -552,6 +554,44 @@ fn main() {
                                     let full_size =
                                         NSWindowStyleMask::NSFullSizeContentViewWindowMask;
                                     NSWindowExt::setStyleMask_(ns_win, mask | full_size);
+
+                                    // WKWebView paints an opaque white bg behind
+                                    // web content. Disable via KVC on the
+                                    // WryWebView subview so CSS backgrounds
+                                    // paint through from the first frame.
+                                    let content_view: id = msg_send![ns_win, contentView];
+                                    let subviews: id = msg_send![content_view, subviews];
+                                    let sv_count: usize = msg_send![subviews, count];
+                                    let ns_str_cls =
+                                        objc::runtime::Class::get("NSString").unwrap();
+                                    let ns_num_cls =
+                                        objc::runtime::Class::get("NSNumber").unwrap();
+                                    let key: id = msg_send![
+                                        ns_str_cls,
+                                        stringWithUTF8String:
+                                            b"drawsBackground\0".as_ptr()
+                                    ];
+                                    let no_val: id = msg_send![
+                                        ns_num_cls,
+                                        numberWithBool: cocoa::base::NO
+                                    ];
+                                    for i in 0..sv_count {
+                                        let sv: id =
+                                            msg_send![subviews, objectAtIndex: i];
+                                        let _ = std::panic::catch_unwind(
+                                            std::panic::AssertUnwindSafe(|| {
+                                                let _: () = msg_send![
+                                                    sv,
+                                                    setValue: no_val
+                                                    forKey: key
+                                                ];
+                                            }),
+                                        );
+                                    }
+                                    eprintln!(
+                                        "[m001][webview]\
+                                         [BLOCK_DRAWS_BACKGROUND_DISABLED]"
+                                    );
                                 }
                                 eprintln!("[m001][titlebar][BLOCK_FULLSIZE_CONTENT_VIEW_SET]");
                             }

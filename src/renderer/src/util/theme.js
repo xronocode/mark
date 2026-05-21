@@ -147,6 +147,8 @@ export const addThemeStyle = (theme) => {
 
   try { localStorage.setItem('mark-cached-theme', theme) } catch (_) {}
 
+  root.style.colorScheme = isDarkTheme ? 'dark' : 'light'
+
   const cm = document.querySelector('.CodeMirror')
   if (cm) {
     cm.classList.remove('cm-s-default')

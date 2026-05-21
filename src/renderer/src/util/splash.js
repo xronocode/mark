@@ -9,6 +9,8 @@ export const dismountSplash = () => {
   }
   root.setAttribute('aria-hidden', 'true')
   root.remove()
+  const splashStyle = document.getElementById('splash-style')
+  if (splashStyle) splashStyle.remove()
   window.__SPLASH_REPLACED__ = true
   if (window.__SPLASH_WATCHDOG__) {
     clearTimeout(window.__SPLASH_WATCHDOG__)

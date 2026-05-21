@@ -112,10 +112,17 @@ pub fn install_panic_hook() {
 
         // 1. Stderr trace: fire the BLOCK marker even if file-write
         //    and dialog both fail — V-M-001 requires the marker.
-        eprintln!(
-            "[m001][panic][BLOCK_PANIC_HOOK_FIRED ts={ts} session_chain={chain_str}]"
-        );
-        eprintln!("{body}");
+        //    Use write! instead of eprintln! — eprintln! panics on
+        //    broken stderr (e.g. parent process died), causing a
+        //    double-panic abort.
+        {
+            use std::io::Write;
+            let mut err = std::io::stderr().lock();
+            let _ = writeln!(err,
+                "[m001][panic][BLOCK_PANIC_HOOK_FIRED ts={ts} session_chain={chain_str}]"
+            );
+            let _ = writeln!(err, "{body}");
+        }
 
         // 2. Best-effort crash-log file. Failure is non-fatal; we
         //    still want the dialog to show.
