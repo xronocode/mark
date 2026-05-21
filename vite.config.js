@@ -125,9 +125,6 @@ export default defineConfig({
           if (/[\\/]node_modules[\\/](vega|vega-lite|vega-embed|d3-[a-z-]+|d3)[\\/]/.test(id)) {
             return 'vendor-vega'
           }
-          if (/[\\/]node_modules[\\/]cytoscape/.test(id)) {
-            return 'vendor-cytoscape'
-          }
           return undefined
         }
       }

@@ -1,6 +1,5 @@
-import katex from 'katex'
+import { getKatex, loadKatex } from '../../../utils/lazy-katex'
 import prism, { loadedLanguages, transformAliasToOrigin } from '../../../prism/'
-import 'katex/dist/contrib/mhchem.min.js'
 import { CLASS_OR_ID, DEVICE_MEMORY, PREVIEW_DOMPURIFY_CONFIG, HAS_TEXT_BLOCK_REG } from '../../../config'
 import { tokenizer } from '../../'
 import { snakeToCamel, sanitize, escapeHTML, getLongUniqueId, getImageInfo } from '../../../utils'
@@ -161,16 +160,27 @@ export default function renderLeafBlock (parent, block, activeBlocks, matches, u
         } else if (loadMathMap.has(key)) {
           children = loadMathMap.get(key)
         } else {
-          try {
-            const html = katex.renderToString(code, {
-              displayMode: true
-            })
+          const katex = getKatex()
+          if (katex) {
+            try {
+              const html = katex.renderToString(code, {
+                displayMode: true
+              })
 
-            children = htmlToVNode(html)
-            loadMathMap.set(key, children)
-          } catch (err) {
-            children = t('editor.invalidMathFormula')
-            selector += `.${CLASS_OR_ID.AG_MATH_ERROR}`
+              children = htmlToVNode(html)
+              loadMathMap.set(key, children)
+            } catch (err) {
+              children = t('editor.invalidMathFormula')
+              selector += `.${CLASS_OR_ID.AG_MATH_ERROR}`
+            }
+          } else {
+            const muya = this.muya
+            loadKatex().then(() => {
+              loadMathMap.clear()
+              muya.contentState.render()
+            })
+            children = t('editor.loading')
+            selector += `.${CLASS_OR_ID.AG_EMPTY}`
           }
         }
         break

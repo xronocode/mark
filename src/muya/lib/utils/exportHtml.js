@@ -18,13 +18,11 @@
 
 import marked from '../parser/marked'
 import Prism from 'prismjs'
-import katex from 'katex'
-import 'katex/dist/contrib/mhchem.min.js'
+import { getKatex, loadKatex } from './lazy-katex'
 import loadRenderer from '../renderers'
 import githubMarkdownCss from 'github-markdown-css/github-markdown.css?inline'
 import exportStyle from '../assets/styles/exportStyle.css?inline'
 import highlightCss from 'prismjs/themes/prism.css?inline'
-import katexCss from 'katex/dist/katex.css?inline'
 import footerHeaderCss from '../assets/styles/headerFooterStyle.css?inline'
 import { EXPORT_DOMPURIFY_CONFIG } from '../config'
 import { sanitize, unescapeHTML } from '../utils'
@@ -132,6 +130,12 @@ class ExportHtml {
 
   mathRenderer = (math, displayMode) => {
     this.mathRendererCalled = true
+    const katex = getKatex()
+    if (!katex) {
+      return displayMode
+        ? `<pre class="multiple-math">\n${math}</pre>\n`
+        : `<span class="inline-math">${math}</span>`
+    }
 
     try {
       return katex.renderToString(math, {
@@ -146,6 +150,7 @@ class ExportHtml {
 
   // render pure html by marked
   async renderHtml(toc) {
+    await loadKatex()
     this.mathRendererCalled = false
     let html = marked(this.markdown, {
       superSubScript: this.muya ? this.muya.options.superSubScript : false,
@@ -226,7 +231,9 @@ class ExportHtml {
     // WORKAROUND: Hide Prism.js style when exporting or printing. Otherwise the background color is white in the dark theme.
     const highlightCssStyle = printOptimization ? `@media print { ${highlightCss} }` : highlightCss
     const html = this._prepareHtml(await this.renderHtml(options.toc), options)
-    const katexCssStyle = this.mathRendererCalled ? katexCss : ''
+    const katexCssStyle = this.mathRendererCalled
+      ? (await import('katex/dist/katex.css?inline')).default
+      : ''
     this.mathRendererCalled = false
 
     // `extraCss` may changed in the mean time.

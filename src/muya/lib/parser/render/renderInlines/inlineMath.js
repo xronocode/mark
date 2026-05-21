@@ -1,9 +1,6 @@
-import katex from 'katex'
-import 'katex/dist/contrib/mhchem.min.js'
+import { getKatex, loadKatex } from '../../../utils/lazy-katex'
 import { CLASS_OR_ID } from '../../../config'
 import { htmlToVNode } from '../snabbdom'
-
-import 'katex/dist/katex.min.css'
 
 export default function displayMath (h, cursor, block, token, outerClass) {
   const className = this.getClassName(outerClass, block, token, cursor)
@@ -29,15 +26,25 @@ export default function displayMath (h, cursor, block, token, outerClass) {
   if (loadMathMap.has(key)) {
     mathVnode = loadMathMap.get(key)
   } else {
-    try {
-      const html = katex.renderToString(math, {
-        displayMode
+    const katex = getKatex()
+    if (katex) {
+      try {
+        const html = katex.renderToString(math, {
+          displayMode
+        })
+        mathVnode = htmlToVNode(html)
+        loadMathMap.set(key, mathVnode)
+      } catch (err) {
+        mathVnode = '< Invalid Mathematical Formula >'
+        previewSelector += `.${CLASS_OR_ID.AG_MATH_ERROR}`
+      }
+    } else {
+      const muya = this.muya
+      loadKatex().then(() => {
+        loadMathMap.clear()
+        muya.contentState.render()
       })
-      mathVnode = htmlToVNode(html)
-      loadMathMap.set(key, mathVnode)
-    } catch (err) {
-      mathVnode = '< Invalid Mathematical Formula >'
-      previewSelector += `.${CLASS_OR_ID.AG_MATH_ERROR}`
+      mathVnode = '...'
     }
   }
 

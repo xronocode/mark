@@ -10,10 +10,35 @@ import axios from './axios'
 import pinia from './store'
 import './assets/symbolIcon'
 
-// Element Plus instead of Element UI for Vue 3
-import ElementPlus from 'element-plus'
+// Element Plus — deep per-component imports for tree-shaking
+import { makeInstaller } from 'element-plus/es/make-installer.mjs'
+import { ElAutocomplete } from 'element-plus/es/components/autocomplete/index.mjs'
+import { ElButton } from 'element-plus/es/components/button/index.mjs'
+import { ElCheckbox } from 'element-plus/es/components/checkbox/index.mjs'
+import { ElCol } from 'element-plus/es/components/col/index.mjs'
+import { ElDialog } from 'element-plus/es/components/dialog/index.mjs'
+import { ElForm, ElFormItem } from 'element-plus/es/components/form/index.mjs'
+import { ElInput } from 'element-plus/es/components/input/index.mjs'
+import { ElInputNumber } from 'element-plus/es/components/input-number/index.mjs'
+import { ElRadio, ElRadioGroup } from 'element-plus/es/components/radio/index.mjs'
+import { ElRow } from 'element-plus/es/components/row/index.mjs'
+import { ElSelect, ElOption } from 'element-plus/es/components/select/index.mjs'
+import { ElSlider } from 'element-plus/es/components/slider/index.mjs'
+import { ElSwitch } from 'element-plus/es/components/switch/index.mjs'
+import { ElTable, ElTableColumn } from 'element-plus/es/components/table/index.mjs'
+import { ElTabs, ElTabPane } from 'element-plus/es/components/tabs/index.mjs'
+import { ElTooltip } from 'element-plus/es/components/tooltip/index.mjs'
+import { ElTree } from 'element-plus/es/components/tree/index.mjs'
 import 'element-plus/dist/index.css'
 import en from 'element-plus/es/locale/lang/en'
+
+const ElementPlusPartial = makeInstaller([
+  ElAutocomplete, ElButton, ElCheckbox, ElCol, ElDialog,
+  ElForm, ElFormItem, ElInput, ElInputNumber, ElOption,
+  ElRadio, ElRadioGroup, ElRow, ElSelect, ElSlider,
+  ElSwitch, ElTabPane, ElTable, ElTableColumn, ElTabs,
+  ElTooltip, ElTree
+])
 
 // I18n translation system
 import i18nPlugin from './i18n'
@@ -50,10 +75,7 @@ installMenuBridge()
 // Create Vue app
 const app = createApp(Main)
 
-// Configure Element Plus with locale
-app.use(ElementPlus, {
-  locale: en
-})
+app.use(ElementPlusPartial, { locale: en })
 
 const router = createRouter({
   history: createWebHashHistory(),
