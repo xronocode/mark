@@ -105,11 +105,14 @@ export const addThemeStyle = (theme) => {
   const themeStyleEle = getOrCreateStyleEl(THEME_STYLE_ID)
 
   const themeFn = themeMap[theme]
-  themeStyleEle.textContent = themeFn ? patchTheme(themeFn()) : ''
+  const css = themeFn ? themeFn() : ''
+  themeStyleEle.textContent = css ? patchTheme(css) : ''
 
-  document.documentElement.style.removeProperty('--editorBgColor')
-  const editorBg = getComputedStyle(document.documentElement).getPropertyValue('--editorBgColor').trim()
-  document.documentElement.style.setProperty('--editorBgColor', editorBg || 'rgba(255, 255, 255, 1)')
+  const bgMatch = css.match(/--editorBgColor:\s*([^;]+)/)
+  document.documentElement.style.setProperty(
+    '--editorBgColor',
+    bgMatch ? bgMatch[1].trim() : 'rgba(255, 255, 255, 1)'
+  )
 
   document.body.classList.remove('dark')
   if (isDarkTheme) {
