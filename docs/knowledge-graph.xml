@@ -384,14 +384,14 @@
     </M-022>
 
     <M-024 NAME="perf-splash" TYPE="UI_COMPONENT" STATUS="implemented" implemented-at="reborn-mark@7e8afce2">
-      <purpose>Static HTML+CSS splash screen visible before any JS parses; replaced by Vue mount on first paint. Provides BOOT_T0 anchor for V-M-030 instrumentation.</purpose>
-      <path>src/renderer/index.html, src/renderer/static/splash.css, src/renderer/src/main.js</path>
+      <purpose>Static HTML+CSS splash screen visible before any JS parses; dismounted by app.vue onMounted via util/splash.js dismountSplash(). Provides BOOT_T0 anchor for V-M-030 instrumentation.</purpose>
+      <path>src/renderer/index.html, src/renderer/static/splash.css, src/renderer/src/util/splash.js, src/renderer/src/pages/app.vue</path>
       <depends>M-001 (window lifecycle: visible=true Tauri 2 default)</depends>
       <verification-ref>V-M-024</verification-ref>
       <annotations>
-        <fn-dismountSplash PURPOSE="Idempotent splash removal after Vue mount; aria-hidden flip BEFORE .remove(); BLOCK_HMR_BYPASS guard on second call; returns boolean (true on first dismount, false on no-op)" />
+        <fn-dismountSplash PURPOSE="Idempotent splash removal called from app.vue onMounted; import.meta.hot guard returns false in dev HMR; orphan cleanup via BLOCK_ORPHAN_DETECTED; removes both #splash-root and #splash-style; aria-hidden flip BEFORE .remove(); returns boolean" LOCATION="src/renderer/src/util/splash.js" />
         <global-window-BOOT_T0 PURPOSE="performance.now() at first inline-script execution; never reassigned; consumed by V-M-030 bootMark()" />
-        <global-window-SPLASH_REPLACED PURPOSE="Idempotency flag" />
+        <global-window-SPLASH_REPLACED PURPOSE="Idempotency flag; prevents double-dismount and enables orphan detection" />
       </annotations>
     </M-024>
 

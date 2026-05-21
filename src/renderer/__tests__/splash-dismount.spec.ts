@@ -1,26 +1,30 @@
 /**
  * MODULE_CONTRACT
  *   PURPOSE: Unit tests for M-024 perf-splash dismount helper. Verifies
- *            (1) #splash-root is removed and aria-hidden flipped on
- *            first call, (2) second call short-circuits with
- *            BLOCK_HMR_BYPASS, (3) watchdog timer is cleared, (4)
- *            BLOCK_REPLACED marker is emitted exactly once.
- *   SCOPE:   JSDOM only — no Vue mount, no Tauri APIs. We avoid
- *            importing src/main.js (it pulls bootstrap + Element Plus
- *            + i18n side effects). Instead we inline a faithful copy
- *            of the dismountSplash function below; if main.js drifts,
- *            splash-markers.spec.ts will catch the inline-script side,
- *            and a full E2E in V-M-024 catches the runtime side.
+ *            (1) #splash-root + #splash-style removed and aria-hidden
+ *            flipped on first call, (2) second call short-circuits,
+ *            (3) orphan cleanup emits BLOCK_ORPHAN_DETECTED,
+ *            (4) watchdog timer is cleared,
+ *            (5) BLOCK_REPLACED marker emitted exactly once.
+ *   SCOPE:   JSDOM only — no Vue mount, no Tauri APIs. We inline the
+ *            dismountSplash logic because import.meta.hot is truthy
+ *            under vitest's Vite transform, causing the real module to
+ *            always take the HMR bypass path. The HMR branch + marker
+ *            presence are covered by splash-markers.spec.ts instead.
  *   DEPENDS: vitest globals (describe/it/expect/vi), jsdom env.
  *   LINKS:   docs/verification-plan.xml V-M-024.
  */
 
-// Faithful re-implementation of dismountSplash from src/renderer/src/main.js.
-// Kept in sync by the splash-markers fixture test (which also reads main.js
-// indirectly through marker presence in console.log calls).
+// Faithful inline of dismountSplash from src/renderer/src/util/splash.js,
+// minus the import.meta.hot guard (untestable under vitest — always truthy).
+// splash-markers.spec.ts verifies BLOCK_HMR_BYPASS marker exists in source.
 const dismountSplash = () => {
   if ((window as any).__SPLASH_REPLACED__) {
-    console.log('[boot][splash] BLOCK_HMR_BYPASS')
+    const orphan = document.getElementById('splash-root')
+    if (orphan) {
+      console.log('[boot][splash] BLOCK_ORPHAN_DETECTED')
+      orphan.remove()
+    }
     return false
   }
   const root = document.getElementById('splash-root')
@@ -30,6 +34,8 @@ const dismountSplash = () => {
   }
   root.setAttribute('aria-hidden', 'true')
   root.remove()
+  const splashStyle = document.getElementById('splash-style')
+  if (splashStyle) splashStyle.remove()
   ;(window as any).__SPLASH_REPLACED__ = true
   if ((window as any).__SPLASH_WATCHDOG__) {
     clearTimeout((window as any).__SPLASH_WATCHDOG__)
@@ -58,10 +64,6 @@ describe('M-024 splash dismount helper', () => {
     root.id = 'splash-root'
     document.body.appendChild(root)
 
-    // Capture the aria-hidden value AT the moment .remove() runs by
-    // wrapping HTMLElement.prototype.remove. This proves the flip
-    // happened BEFORE the removal (a11y contract: prevent screen
-    // reader double-announcement).
     let ariaAtRemove: string | null = 'NOT_CAPTURED'
     const origRemove = HTMLElement.prototype.remove
     HTMLElement.prototype.remove = function () {
@@ -80,6 +82,20 @@ describe('M-024 splash dismount helper', () => {
     }
   })
 
+  it('removes #splash-style element during dismount', () => {
+    const root = document.createElement('div')
+    root.id = 'splash-root'
+    document.body.appendChild(root)
+
+    const style = document.createElement('style')
+    style.id = 'splash-style'
+    document.head.appendChild(style)
+
+    dismountSplash()
+
+    expect(document.getElementById('splash-style')).toBeNull()
+  })
+
   it('emits BLOCK_REPLACED exactly once on first dismount', () => {
     const root = document.createElement('div')
     root.id = 'splash-root'
@@ -93,25 +109,37 @@ describe('M-024 splash dismount helper', () => {
     expect(replacedCalls).toHaveLength(1)
   })
 
-  it('second call is idempotent and emits BLOCK_HMR_BYPASS', () => {
+  it('second call is idempotent — no BLOCK_REPLACED, returns false', () => {
     const root = document.createElement('div')
     root.id = 'splash-root'
     document.body.appendChild(root)
 
     expect(dismountSplash()).toBe(true)
-    // Second invocation: no #splash-root in DOM, but flag already set.
     expect(dismountSplash()).toBe(false)
 
-    const bypassCalls = logSpy.mock.calls.filter(
-      (c) => typeof c[0] === 'string' && c[0].includes('BLOCK_HMR_BYPASS')
-    )
-    expect(bypassCalls).toHaveLength(1)
-
-    // BLOCK_REPLACED must NOT fire a second time.
     const replacedCalls = logSpy.mock.calls.filter(
       (c) => typeof c[0] === 'string' && c[0].includes('BLOCK_REPLACED')
     )
     expect(replacedCalls).toHaveLength(1)
+  })
+
+  it('cleans up orphan #splash-root on repeat call and emits BLOCK_ORPHAN_DETECTED', () => {
+    const root = document.createElement('div')
+    root.id = 'splash-root'
+    document.body.appendChild(root)
+    dismountSplash()
+
+    const orphan = document.createElement('div')
+    orphan.id = 'splash-root'
+    document.body.appendChild(orphan)
+
+    expect(dismountSplash()).toBe(false)
+    expect(document.getElementById('splash-root')).toBeNull()
+
+    const orphanCalls = logSpy.mock.calls.filter(
+      (c) => typeof c[0] === 'string' && c[0].includes('BLOCK_ORPHAN_DETECTED')
+    )
+    expect(orphanCalls).toHaveLength(1)
   })
 
   it('clears the watchdog timer when dismounting', () => {
@@ -124,7 +152,6 @@ describe('M-024 splash dismount helper', () => {
 
     dismountSplash()
 
-    // Wait past the timer's deadline; if watchdog wasn't cleared, fired runs.
     return new Promise<void>((resolve) => {
       setTimeout(() => {
         expect(fired).not.toHaveBeenCalled()
@@ -135,16 +162,13 @@ describe('M-024 splash dismount helper', () => {
   })
 
   it('returns false (no-op) when #splash-root is missing on first call', () => {
-    // Edge case: index.html somehow lost the splash markup before mount.
     expect(document.getElementById('splash-root')).toBeNull()
     expect(dismountSplash()).toBe(false)
-    // Flag still flips so subsequent calls don't repeat work.
     expect((window as any).__SPLASH_REPLACED__).toBe(true)
-    // No BLOCK_REPLACED, no BLOCK_HMR_BYPASS.
     const flagCalls = logSpy.mock.calls.filter(
       (c) =>
         typeof c[0] === 'string' &&
-        (c[0].includes('BLOCK_REPLACED') || c[0].includes('BLOCK_HMR_BYPASS'))
+        (c[0].includes('BLOCK_REPLACED') || c[0].includes('BLOCK_ORPHAN_DETECTED'))
     )
     expect(flagCalls).toHaveLength(0)
   })

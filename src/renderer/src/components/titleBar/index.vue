@@ -20,7 +20,7 @@
               <use xlink:href="#icon-arrow-right"></use>
             </svg>
           </span>
-          <span class="filename" :class="{ isOsx: platform === 'darwin' }" @click="rename">
+          <span class="filename title-no-drag" :class="{ isOsx: platform === 'darwin' }" @click="rename">
             {{ filename }}
           </span>
           <span class="save-dot" :class="{ show: !isSaved }"></span>
@@ -79,7 +79,7 @@
         <div class="titlebar-nav-divider"></div>
         <div
           class="titlebar-nav-btn"
-          :title="currentIsDark ? 'Switch to light theme' : 'Switch to dark theme'"
+          :title="currentIsDark ? t('titleBar.switchToLight') : t('titleBar.switchToDark')"
           @click.stop="handleThemeToggle"
         >
           <!-- Sun icon when dark (click → go light) -->
@@ -131,8 +131,7 @@
           </template>
           <div
             v-if="wordCount"
-            class="word-count"
-            :class="[{ 'title-no-drag': platform !== 'darwin' }]"
+            class="word-count title-no-drag"
             @click.stop="handleWordClick"
           >
             <span class="text-center-vertical">{{ `${HASH[show].short} ${wordCount[show]}` }}</span>
