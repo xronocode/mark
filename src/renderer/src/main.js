@@ -104,9 +104,8 @@ services.forEach((s) => {
 // listener finishes registration (Tauri buffers the emit briefly).
 setupIpcListeners().catch((e) => console.error('[boot] setupIpcListeners failed:', e))
 
-// Mount the app. Splash stays visible until app.vue applies the theme
-// and calls dismountSplash() — this prevents the white flash between
-// splash removal and theme CSS injection.
-const mounted = app.mount('#app')
-console.log('[boot][splash] BLOCK_VUE_READY', performance.now())
-void mounted
+// Boot timestamp for elapsed_ms diagnostics in bootstrap-ipc.js
+window.__BOOT_T0__ = performance.now()
+
+// Mount the app
+app.mount('#app')
