@@ -211,6 +211,7 @@ onMounted(async () => {
   left: 0;
   right: 0;
   bottom: 0;
+  background: var(--editorBgColor, #ffffff);
 }
 .editor-container .hide {
   z-index: -1;

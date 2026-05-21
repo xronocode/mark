@@ -77,7 +77,7 @@
           </svg>
         </div>
       </div>
-      <span class="version-badge" data-tauri-drag-region>v{{ appVersion }}{{ isDev ? ' DEV' : '' }}</span>
+      <span v-if="isDev" class="version-badge" data-tauri-drag-region>v{{ appVersion }} DEV</span>
       <div :class="showCustomTitleBar ? 'left-toolbar title-no-drag' : 'right-toolbar'">
         <div
           v-if="showCustomTitleBar"
@@ -179,6 +179,7 @@
 // now routes through mt::window-popup-app-menu IPC (windowManager).
 // Click handlers for the application menu are already main-side, so
 // the IPC is fire-and-forget.
+import { getCurrentWindow } from '@tauri-apps/api/window'
 import { usePreferencesStore } from '@/store/preferences.js'
 import { useLayoutStore } from '@/store/layout.js'
 import { useProjectStore } from '@/store/project'
@@ -266,7 +267,7 @@ const showCustomTitleBar = computed(() => {
   return titleBarStyle.value === 'custom' && !isOsx
 })
 
-const handleWindowDragMouseDown = async (event) => {
+const handleWindowDragMouseDown = (event) => {
   if (!isOsx || event.button !== 0) return
   const target = event.target instanceof Element ? event.target : null
   if (!target) return
@@ -275,12 +276,7 @@ const handleWindowDragMouseDown = async (event) => {
   if (!dragTarget || target.closest('.title-no-drag')) return
 
   event.preventDefault()
-  try {
-    const { getCurrentWindow } = await import('@tauri-apps/api/window')
-    await getCurrentWindow().startDragging()
-  } catch (e) {
-    console.warn('[titleBar][drag] startDragging failed', e)
-  }
+  getCurrentWindow().startDragging()
 }
 
 watch(
@@ -487,7 +483,7 @@ onBeforeUnmount(() => {
 <style scoped>
 .title-bar-editor-bg {
   height: var(--titleBarHeight);
-  background: var(--titleBarBgColor, #f6f6f6);
+  background: var(--editorBgColor, #ffffff);
   border-bottom: 1px solid var(--titleBarBorderColor, rgba(0, 0, 0, 0.08));
   position: relative;
   left: 0;
@@ -514,14 +510,15 @@ onBeforeUnmount(() => {
 }
 .version-badge {
   position: absolute;
-  right: 12px;
+  right: 150px;
   top: 50%;
   transform: translateY(-50%);
-  font-size: 11px;
-  color: var(--editorColor);
-  opacity: 0.5;
+  font-size: 10px;
+  color: var(--editorColor50);
+  opacity: 0.6;
   font-weight: 400;
   letter-spacing: 0.03em;
+  pointer-events: none;
 }
 img {
   height: 90%;
