@@ -1,0 +1,175 @@
+{
+  "$schema": "regression-tests-schema",
+  "version": "1.0.0",
+  "app": "Mark v2.0.0-alpha.7",
+  "lastRun": null,
+  "categories": [
+    {
+      "id": "boot",
+      "name": "Boot & Splash",
+      "tests": [
+        { "id": "boot-001", "name": "Cold start dark theme — no white flash", "steps": "Launch app with dark theme cached → observe first frame", "expected": "Window background is dark from frame 1, no white flash", "status": "pass", "lastRun": "2026-05-21", "notes": "Fixed in 3066d054 + boot refactor commit" },
+        { "id": "boot-002", "name": "Cold start light theme — no dark flash", "steps": "Clear cache or set light theme → launch", "expected": "Window background is white/light from frame 1", "status": "pending" },
+        { "id": "boot-003", "name": "First-ever launch (no cache) — system dark", "steps": "Clear localStorage → system dark mode → launch", "expected": "CSS media query fallback sets dark background", "status": "pending" },
+        { "id": "boot-004", "name": "Splash dismount timing", "steps": "Launch → observe splash → observe editor", "expected": "Splash visible until theme applied, then fades out 120ms, no gap between splash and themed editor", "status": "pending" },
+        { "id": "boot-005", "name": "Watchdog fires on stuck boot", "steps": "Break JS module load → wait 5s", "expected": "Error overlay appears after 5s timeout", "status": "pending" }
+      ]
+    },
+    {
+      "id": "themes",
+      "name": "Theme Switching",
+      "tests": [
+        { "id": "theme-001", "name": "Switch to each dark theme", "steps": "Settings → Theme → select each dark theme", "expected": "Editor, sidebar, title bar all update. body.dark class added", "status": "pending" },
+        { "id": "theme-002", "name": "Switch to each light theme", "steps": "Settings → Theme → select each light theme", "expected": "Editor, sidebar, title bar all update. body.dark class removed", "status": "pending" },
+        { "id": "theme-003", "name": "Theme toggle button (title bar)", "steps": "Click sun/moon toggle in title bar", "expected": "Switches to paired light/dark theme from themePairs map", "status": "pending" },
+        { "id": "theme-004", "name": "Theme persistence across restart", "steps": "Set dracula → quit → relaunch", "expected": "Dracula theme loads on restart, localStorage has 'dracula'", "status": "pending" },
+        { "id": "theme-005", "name": "Custom CSS applied on top of theme", "steps": "Settings → Custom CSS → add rule → verify", "expected": "Custom CSS rule visible in DOM, overrides theme", "status": "pending" }
+      ]
+    },
+    {
+      "id": "syntax",
+      "name": "Code Block Syntax Highlighting",
+      "tests": [
+        { "id": "syntax-001", "name": "Rust code — VS Code Dark+ colors", "steps": "Insert rust code block with fn, let, struct, String", "expected": "Keywords pink, functions yellow, types teal, strings orange-ish", "status": "pass", "lastRun": "2026-05-21" },
+        { "id": "syntax-002", "name": "JavaScript code — token separation", "steps": "Insert JS code with class, function, parameter, const", "expected": "class-name teal, function yellow, parameter distinct color", "status": "pass", "lastRun": "2026-05-21" },
+        { "id": "syntax-003", "name": "All 31 Prism themes have distinct class-name color", "steps": "Switch to each theme → check .token.class-name color", "expected": "class-name color differs from function color in each theme", "status": "pass", "lastRun": "2026-05-21" },
+        { "id": "syntax-004", "name": "Code block on light themes", "steps": "Switch to light theme → insert code block", "expected": "Syntax colors visible and readable on light background", "status": "pending" }
+      ]
+    },
+    {
+      "id": "mermaid",
+      "name": "Mermaid Diagrams",
+      "tests": [
+        { "id": "merm-001", "name": "Flowchart renders on dark theme", "steps": "Insert mermaid graph LR diagram on dark theme", "expected": "Dark node fills, light text, proper contrast", "status": "pass", "lastRun": "2026-05-21" },
+        { "id": "merm-002", "name": "Sequence diagram renders on dark theme", "steps": "Insert mermaid sequenceDiagram on dark theme", "expected": "Dark actor boxes, light text, visible message lines", "status": "pass", "lastRun": "2026-05-21" },
+        { "id": "merm-003", "name": "Flowchart renders on light theme", "steps": "Switch to light → insert mermaid graph", "expected": "Light theme diagram colors, readable on white", "status": "pending" },
+        { "id": "merm-004", "name": "Theme switch re-renders diagrams", "steps": "Render mermaid on dark → switch to light → scroll to diagram", "expected": "Diagram re-renders with light theme on next edit cycle", "status": "pending" },
+        { "id": "merm-005", "name": "SVG container background matches theme", "steps": "Check figure.ag-container-block background", "expected": "Uses var(--codeBlockBgColor), not hardcoded #f8f8f8", "status": "pass", "lastRun": "2026-05-21" },
+        { "id": "merm-006", "name": "Invalid mermaid code shows error", "steps": "Insert invalid mermaid syntax", "expected": "Shows '< Invalid Mermaid Codes >' with error class", "status": "pending" }
+      ]
+    },
+    {
+      "id": "katex",
+      "name": "KaTeX Math",
+      "tests": [
+        { "id": "katex-001", "name": "Inline math renders", "steps": "Type $e^{i\\pi} + 1 = 0$ inline", "expected": "Euler's identity renders as formatted math", "status": "pass", "lastRun": "2026-05-21" },
+        { "id": "katex-002", "name": "Block math renders", "steps": "Type $$ on separate lines with integral formula between", "expected": "Centered display math with integral sign", "status": "pass", "lastRun": "2026-05-21" },
+        { "id": "katex-003", "name": "Invalid math shows error", "steps": "Type $\\invalid{broken}$ ", "expected": "Error indicator shown, not crash", "status": "pending" },
+        { "id": "katex-004", "name": "Math in export HTML", "steps": "Export file with math to HTML", "expected": "KaTeX CSS included, math renders in browser", "status": "pending" }
+      ]
+    },
+    {
+      "id": "images",
+      "name": "Image Handling",
+      "tests": [
+        { "id": "img-001", "name": "Insert image via markdown syntax", "steps": "Type ![alt](path/to/image.png)", "expected": "Image renders inline in WYSIWYG mode", "status": "pending" },
+        { "id": "img-002", "name": "Paste image from clipboard", "steps": "Copy image → paste in editor", "expected": "Image saved to configured folder, inserted with path", "status": "pending" },
+        { "id": "img-003", "name": "Drag-drop image file", "steps": "Drag PNG/JPG from Finder onto editor", "expected": "Image inserted at drop position", "status": "pending" },
+        { "id": "img-004", "name": "Image toolbar on click", "steps": "Click image in WYSIWYG mode", "expected": "Toolbar with alt text, resize options appears", "status": "pending" },
+        { "id": "img-005", "name": "Relative image path resolution", "steps": "Open .md file with relative image paths", "expected": "Images resolve relative to .md file location", "status": "pending" },
+        { "id": "img-006", "name": "Broken image path shows placeholder", "steps": "Insert image with nonexistent path", "expected": "Broken image placeholder shown, no crash", "status": "pending" }
+      ]
+    },
+    {
+      "id": "editor-modes",
+      "name": "Editor Modes",
+      "tests": [
+        { "id": "mode-001", "name": "WYSIWYG mode (default)", "steps": "Open file → verify rich text rendering", "expected": "Bold, italic, headings, lists render visually", "status": "pending" },
+        { "id": "mode-002", "name": "Source code mode toggle", "steps": "Ctrl+` or command palette → source code mode", "expected": "CodeMirror editor shows raw markdown, syntax highlighted", "status": "pending" },
+        { "id": "mode-003", "name": "Mode switch preserves content", "steps": "Edit in WYSIWYG → switch to source → switch back", "expected": "All content preserved, no data loss", "status": "pending" },
+        { "id": "mode-004", "name": "Typewriter mode", "steps": "Enable typewriter mode → type text", "expected": "Cursor stays vertically centered as you type", "status": "pending" },
+        { "id": "mode-005", "name": "Focus mode", "steps": "Enable focus mode → type text", "expected": "Only current paragraph highlighted, rest dimmed", "status": "pending" }
+      ]
+    },
+    {
+      "id": "files",
+      "name": "File Operations",
+      "tests": [
+        { "id": "file-001", "name": "Create new file", "steps": "Cmd+N or File → New", "expected": "New untitled tab created, editable", "status": "pending" },
+        { "id": "file-002", "name": "Open existing file", "steps": "Cmd+O → select .md file", "expected": "File content loads in editor", "status": "pending" },
+        { "id": "file-003", "name": "Save file", "steps": "Edit file → Cmd+S", "expected": "File saved to disk, dirty indicator cleared", "status": "pending" },
+        { "id": "file-004", "name": "Save As", "steps": "File → Save As → new name", "expected": "File saved with new name, tab title updates", "status": "pending" },
+        { "id": "file-005", "name": "Close dirty file — save dialog", "steps": "Edit file → close tab without saving", "expected": "Dialog: Save / Discard / Cancel", "status": "pending" },
+        { "id": "file-006", "name": "Open folder as project", "steps": "File → Open Folder → select directory", "expected": "Sidebar shows file tree, files clickable", "status": "pending" },
+        { "id": "file-007", "name": "Auto-save", "steps": "Enable auto-save → edit → wait delay", "expected": "File auto-saved after configured delay", "status": "pending" }
+      ]
+    },
+    {
+      "id": "tabs",
+      "name": "Tab Management",
+      "tests": [
+        { "id": "tab-001", "name": "Multiple tabs", "steps": "Open 3+ files", "expected": "All files have tabs, click to switch", "status": "pending" },
+        { "id": "tab-002", "name": "Tab close", "steps": "Click X on tab or middle-click", "expected": "Tab closes, adjacent tab activates", "status": "pending" },
+        { "id": "tab-003", "name": "Tab dirty indicator", "steps": "Edit file content", "expected": "Tab shows unsaved dot/indicator", "status": "pending" },
+        { "id": "tab-004", "name": "Tab keyboard navigation", "steps": "Cmd+Shift+] and Cmd+Shift+[", "expected": "Cycles through tabs forward/backward", "status": "pending" },
+        { "id": "tab-005", "name": "Tab scroll on overflow", "steps": "Open 10+ tabs exceeding width", "expected": "Tabs scrollable horizontally", "status": "pending" }
+      ]
+    },
+    {
+      "id": "markdown",
+      "name": "Markdown Rendering",
+      "tests": [
+        { "id": "md-001", "name": "Headings H1-H6", "steps": "Type # through ###### with text", "expected": "Each heading level renders with correct size", "status": "pending" },
+        { "id": "md-002", "name": "Bold, italic, strikethrough", "steps": "Type **bold**, *italic*, ~~strike~~", "expected": "Each format renders correctly in WYSIWYG", "status": "pending" },
+        { "id": "md-003", "name": "Unordered and ordered lists", "steps": "Type - item and 1. item", "expected": "Bullet and numbered lists render", "status": "pending" },
+        { "id": "md-004", "name": "Task lists with checkboxes", "steps": "Type - [ ] task and - [x] done", "expected": "Checkboxes render, clickable to toggle", "status": "pending" },
+        { "id": "md-005", "name": "Blockquotes", "steps": "Type > quoted text", "expected": "Indented quote block renders", "status": "pending" },
+        { "id": "md-006", "name": "Horizontal rule", "steps": "Type --- on empty line", "expected": "Horizontal line renders", "status": "pending" },
+        { "id": "md-007", "name": "Links", "steps": "Type [text](url)", "expected": "Clickable link renders, Ctrl+click opens in browser", "status": "pending" },
+        { "id": "md-008", "name": "Tables", "steps": "Insert table 3x3", "expected": "Table grid renders, cells editable", "status": "pending" },
+        { "id": "md-009", "name": "Inline code", "steps": "Type `code` inline", "expected": "Monospace code span renders", "status": "pending" },
+        { "id": "md-010", "name": "Highlight/mark", "steps": "Type ==highlighted==", "expected": "Yellow/colored background highlight", "status": "pending" }
+      ]
+    },
+    {
+      "id": "search",
+      "name": "Find & Replace",
+      "tests": [
+        { "id": "search-001", "name": "Find bar opens", "steps": "Cmd+F", "expected": "Find bar appears at top of editor", "status": "pending" },
+        { "id": "search-002", "name": "Find highlights matches", "steps": "Type search term → matches highlighted", "expected": "All occurrences highlighted, count shown", "status": "pending" },
+        { "id": "search-003", "name": "Navigate results", "steps": "Click next/prev in find bar", "expected": "Cycles through matches, scrolls to each", "status": "pending" },
+        { "id": "search-004", "name": "Replace single", "steps": "Find → Replace → click replace", "expected": "Current match replaced, moves to next", "status": "pending" },
+        { "id": "search-005", "name": "Replace all", "steps": "Find → Replace → click replace all", "expected": "All matches replaced, count shown", "status": "pending" }
+      ]
+    },
+    {
+      "id": "sidebar",
+      "name": "Sidebar",
+      "tests": [
+        { "id": "side-001", "name": "Toggle sidebar", "steps": "Cmd+\\ or view menu", "expected": "Sidebar shows/hides, editor resizes", "status": "pending" },
+        { "id": "side-002", "name": "File tree navigation", "steps": "Open folder → expand directories → click file", "expected": "File loads in editor, tree reflects structure", "status": "pending" },
+        { "id": "side-003", "name": "TOC tab", "steps": "Open file with headings → TOC tab", "expected": "Headings listed, click jumps to heading", "status": "pending" },
+        { "id": "side-004", "name": "Sidebar resize", "steps": "Drag sidebar edge", "expected": "Width changes, min 220px enforced", "status": "pending" }
+      ]
+    },
+    {
+      "id": "export",
+      "name": "Export",
+      "tests": [
+        { "id": "exp-001", "name": "Export as HTML", "steps": "File → Export → HTML", "expected": "HTML file with styles, diagrams, math", "status": "pending" },
+        { "id": "exp-002", "name": "Export as PDF", "steps": "File → Export → PDF", "expected": "PDF generated with correct layout", "status": "pending" },
+        { "id": "exp-003", "name": "Export preserves Mermaid diagrams", "steps": "File with mermaid → export HTML", "expected": "SVG diagrams rendered in exported HTML", "status": "pending" },
+        { "id": "exp-004", "name": "Export preserves KaTeX math", "steps": "File with math → export HTML", "expected": "Math rendered, KaTeX CSS included", "status": "pending" }
+      ]
+    },
+    {
+      "id": "settings",
+      "name": "Settings & Preferences",
+      "tests": [
+        { "id": "pref-001", "name": "Settings window opens", "steps": "Cmd+, or File → Preferences", "expected": "Settings window opens with all categories", "status": "pending" },
+        { "id": "pref-002", "name": "Font size change applies", "steps": "Settings → Editor → change font size", "expected": "Editor font size updates immediately", "status": "pending" },
+        { "id": "pref-003", "name": "Preferences persist across restart", "steps": "Change setting → quit → relaunch", "expected": "Setting preserved", "status": "pending" }
+      ]
+    },
+    {
+      "id": "keyboard",
+      "name": "Keyboard Shortcuts",
+      "tests": [
+        { "id": "key-001", "name": "Cmd+S saves", "steps": "Edit file → Cmd+S", "expected": "File saved, dirty indicator cleared", "status": "pending" },
+        { "id": "key-002", "name": "Cmd+Z undo / Cmd+Shift+Z redo", "steps": "Type text → Cmd+Z → Cmd+Shift+Z", "expected": "Text undone then redone", "status": "pending" },
+        { "id": "key-003", "name": "Cmd+B bold toggle", "steps": "Select text → Cmd+B", "expected": "Text becomes bold, repeat unboldens", "status": "pending" },
+        { "id": "key-004", "name": "Cmd+1-6 heading levels", "steps": "Place cursor → Cmd+1", "expected": "Line becomes H1, Cmd+2 → H2, etc.", "status": "pending" }
+      ]
+    }
+  ]
+}
