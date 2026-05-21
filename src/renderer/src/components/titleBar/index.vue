@@ -449,7 +449,6 @@ onBeforeUnmount(() => {
   right: 0;
 }
 .title-bar {
-  -webkit-app-region: drag;
   user-select: none;
   background: transparent;
   height: var(--titleBarHeight);
@@ -480,15 +479,6 @@ img {
   transition: all 0.25s ease-in-out;
   & .filename {
     transition: all 0.25s ease-in-out;
-  }
-  &::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    height: 1px;
-    width: 100%;
-    z-index: 1;
-    -webkit-app-region: no-drag;
   }
 }
 div.title > span {

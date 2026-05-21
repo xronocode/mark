@@ -108,20 +108,30 @@ export const addThemeStyle = (theme) => {
   const css = themeFn ? themeFn() : ''
   themeStyleEle.textContent = css ? patchTheme(css) : ''
 
-  const bgMatch = css.match(/--editorBgColor:\s*([^;]+)/)
-  document.documentElement.style.setProperty(
-    '--editorBgColor',
-    bgMatch ? bgMatch[1].trim() : 'rgba(255, 255, 255, 1)'
-  )
+  const root = document.documentElement
+  const prevVars = root.__themeVars || []
+  prevVars.forEach(name => root.style.removeProperty(name))
+
+  const setVars = []
+  if (css) {
+    const varRegex = /--([\w-]+):\s*([^;]+)/g
+    let m
+    while ((m = varRegex.exec(css)) !== null) {
+      const name = `--${m[1]}`
+      root.style.setProperty(name, m[2].trim())
+      setVars.push(name)
+    }
+  }
+  root.__themeVars = setVars
 
   document.body.classList.remove('dark')
   if (isDarkTheme) {
     document.body.classList.add('dark')
-    document.documentElement.style.setProperty('--titleBarBgColor', '#2d2d2d')
-    document.documentElement.style.setProperty('--titleBarBorderColor', 'rgba(255, 255, 255, 0.06)')
+    root.style.setProperty('--titleBarBgColor', '#2d2d2d')
+    root.style.setProperty('--titleBarBorderColor', 'rgba(255, 255, 255, 0.06)')
   } else {
-    document.documentElement.style.setProperty('--titleBarBgColor', '#f6f6f6')
-    document.documentElement.style.setProperty('--titleBarBorderColor', 'rgba(0, 0, 0, 0.08)')
+    root.style.setProperty('--titleBarBgColor', '#f6f6f6')
+    root.style.setProperty('--titleBarBorderColor', 'rgba(0, 0, 0, 0.08)')
   }
 
   const cm = document.querySelector('.CodeMirror')
