@@ -29,7 +29,7 @@ pre.ag-paragraph {
 
 :not(pre) > code[class*="language-"],
 pre.ag-paragraph {
-  background: #e6e9ef;
+  background: var(--codeBlockBgColor, #e6e9ef);
 }
 
 :not(pre) > code[class*="language-"] {

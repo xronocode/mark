@@ -1,12 +1,11 @@
 /*
- * ------------------------------------
- * Prism.js dark theme
+ * Prism.js Dark Theme — VS Code Dark+ inspired
+ * Based on https://github.com/microsoft/vscode dark_vs.json + dark_plus.json
  */
 
 code[class*="language-"],
 pre.ag-paragraph {
-  color: #f8f8f2;
-  /*font-family: Consolas, Monaco, 'Andale Mono', 'Ubuntu Mono', monospace;*/
+  color: #d4d4d4;
   text-align: left;
   white-space: pre;
   word-spacing: normal;
@@ -15,7 +14,6 @@ pre.ag-paragraph {
   -moz-tab-size: 4;
   -o-tab-size: 4;
   tab-size: 4;
-
   -webkit-hyphens: none;
   -moz-hyphens: none;
   -ms-hyphens: none;
@@ -23,20 +21,17 @@ pre.ag-paragraph {
   overflow: visible;
 }
 
-/* Code Fence */
 pre.ag-paragraph {
   padding: 1em;
   margin: 1em 0;
   border-radius: 0.3em;
 }
 
-/* Inline Code */
 :not(pre) > code[class*="language-"],
 pre.ag-paragraph {
-  background: #272822;
+  background: var(--codeBlockBgColor, #1e1e1e);
 }
 
-/* Inline Code */
 :not(pre) > code[class*="language-"] {
   padding: .1em;
   border-radius: .3em;
@@ -47,45 +42,43 @@ pre.ag-paragraph {
 .token.prolog,
 .token.doctype,
 .token.cdata {
-  color: slategray;
+  color: #6a9955;
 }
 
 .token.punctuation {
-  color: #f8f8f2;
+  color: #d4d4d4;
 }
 
 .namespace {
   opacity: .7;
 }
- 
+
 .token.property,
 .token.tag,
 .token.constant,
 .token.symbol {
-  color: #f92672;
+  color: #569cd6;
 }
- 
+
 .token.boolean,
 .token.number {
-  color: #ae81ff;
+  color: #b5cea8;
 }
- 
+
 .token.selector,
 .token.attr-name,
 .token.string,
 .token.char,
 .token.builtin {
-  color: #a6e22e;
+  color: #ce9178;
 }
 
 .token.inserted {
-  color: #22863a;
-  background: #f0fff4;
+  color: #b5cea8;
 }
 
 .token.deleted {
-  color: #b31d28;
-  background: #ffeef0;
+  color: #ce9178;
 }
 
 .token.operator,
@@ -93,26 +86,26 @@ pre.ag-paragraph {
 .token.url,
 .language-css .token.string,
 .style .token.string {
-  color: #e67e65;
+  color: #d4d4d4;
 }
 
 .token.atrule,
 .token.attr-value,
 .token.function,
 .token.class-name {
-  color: #e6db74;
+  color: #dcdcaa;
 }
- 
+
 .token.keyword {
-  color: #66d9ef;
+  color: #569cd6;
 }
- 
+
 .token.regex,
 .token.important,
 .token.variable {
-  color: #fd971f;
+  color: #d7ba7d;
 }
- 
+
 .token.important,
 .token.bold {
   font-weight: bold;
