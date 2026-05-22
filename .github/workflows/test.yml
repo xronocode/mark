@@ -61,8 +61,8 @@ jobs:
       - name: npm ci
         run: npm ci
 
-      - name: vitest run
-        run: npm test
+      - name: vitest run with coverage
+        run: npm run test:coverage
 
   backend-unit:
     name: backend unit (${{ matrix.os }})
