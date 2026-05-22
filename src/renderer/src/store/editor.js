@@ -1,6 +1,6 @@
 import equal from 'deep-equal'
 import bus from '../bus'
-import { ipcFs } from '../ipc/runtime'
+import { ipcFs, ipcWatch } from '../ipc/runtime'
 import { hasKeys, getUniqueId, deepClone } from '../util'
 import listToTree from '../util/listToTree'
 import {
@@ -25,6 +25,7 @@ import { useMainStore } from '.'
 import { i18n } from '../i18n'
 
 const autoSaveTimers = new Map()
+const fileWatchDisposers = new Map()
 
 export const useEditorStore = defineStore('editor', {
   state: () => ({
@@ -771,6 +772,10 @@ export const useEditorStore = defineStore('editor', {
         autoSaveTimers.delete(file.id)
       }
 
+      if (file.pathname) {
+        this._unsubscribeFileWatch(file.pathname)
+      }
+
       this.updateTabIdToIndex() // Update before sending it out to prevent stale mappings.
 
       if (file.id === currentFile.id) {
@@ -1107,6 +1112,10 @@ export const useEditorStore = defineStore('editor', {
           })
         })
       }
+
+      if (pathname) {
+        this._subscribeFileWatch(pathname)
+      }
     },
 
     SHOW_TAB_VIEW(always) {
@@ -1425,6 +1434,54 @@ export const useEditorStore = defineStore('editor', {
         default:
           console.error(`APPLY_FILE_CHANGE: Invalid type "${type}"`)
       }
+    },
+
+    _subscribeFileWatch(pathname) {
+      if (fileWatchDisposers.has(pathname)) return
+      try {
+        const projectStore = useProjectStore()
+        const trees = projectStore.projectTrees || []
+        if (trees.some((r) =>
+          pathname.startsWith(r.pathname + window.path.sep) || pathname === r.pathname
+        )) {
+          return
+        }
+      } catch {
+        // project store not initialized yet — proceed with per-file watch
+      }
+      if (!window.path || typeof ipcWatch?.subscribe !== 'function') return
+      const dir = window.path.dirname(pathname)
+      const basename = window.path.basename(pathname)
+      ipcWatch
+        .subscribe(dir, (event) => {
+          const { kind, paths } = event || {}
+          if (!Array.isArray(paths)) return
+          for (const p of paths) {
+            if (window.path.basename(p) !== basename) continue
+            if (kind === 'modify') {
+              this.APPLY_FILE_CHANGE('change', { pathname })
+            } else if (kind === 'remove') {
+              this.APPLY_FILE_CHANGE('unlink', { pathname })
+            }
+          }
+        }, { recursive: false, listener: { manual: true } })
+        .then((dispose) => {
+          fileWatchDisposers.set(pathname, dispose)
+        })
+        .catch((e) => {
+          console.error(`[editor][file-watch][SUBSCRIBE_FAILED] path=${pathname}`, e)
+        })
+    },
+
+    _unsubscribeFileWatch(pathname) {
+      const dispose = fileWatchDisposers.get(pathname)
+      if (!dispose) return
+      const otherTabsWithSamePath = this.tabs.some(
+        (t) => t.pathname === pathname
+      )
+      if (otherTabsWithSamePath) return
+      dispose()
+      fileWatchDisposers.delete(pathname)
     },
 
     ASK_FOR_IMAGE_PATH() {
