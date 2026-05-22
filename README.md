@@ -17,7 +17,7 @@
 
 <br>
 
-<img src="reborn-mark/assets/screenshots/hero-dark.png" alt="Mark — WYSIWYG Markdown editor, dark theme" width="820">
+<img src="screenshots/mark-showcase.webp" alt="Mark — themes, code highlighting, Mermaid diagrams, KaTeX math, tables" width="820">
 
 <br>
 
