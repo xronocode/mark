@@ -226,24 +226,6 @@ Mark sits in a specific gap: **native + lightweight + full WYSIWYG + file-watche
 
 <div align="center">
 
-### 33 themes. Because your eyes matter at 2 AM.
-
-<br>
-
-<img src="reborn-mark/assets/screenshots/themes.png" alt="Mark — 33 built-in themes" width="820">
-
-</div>
-
-<br>
-
-**Gruvbox** · **Catppuccin** · **Nord** · **Tokyo Night** · **Dracula** · **Solarized** · **Rose Pine** · **Ayu** · **One Dark** · **Material** — and 23 more.
-
-Switch themes in Settings — every open editor syncs instantly. Or write your own CSS.
-
----
-
-<div align="center">
-
 ### Built by AI agents. For AI agents.
 
 </div>
