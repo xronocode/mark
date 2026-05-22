@@ -95,7 +95,12 @@ const bootstrapRenderer = () => {
   window.addEventListener('unhandledrejection', handleRendererError)
 
   const { debug, initialState, userDataPath, windowId, type } = parseUrlArgs()
-  const paths = new RendererPaths(userDataPath)
+  let paths = null
+  try {
+    paths = new RendererPaths(userDataPath)
+  } catch {
+    // Settings window doesn't pass userDataPath — paths stays null
+  }
   const marktext = {
     initialState,
     env: {
