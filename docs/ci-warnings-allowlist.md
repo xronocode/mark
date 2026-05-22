@@ -27,8 +27,17 @@ fail; matched ones pass through.
 
 ## Active entries
 
-(none — current B1 release build is warning-free as of 2026-04-28
-commit closing Phase-B1)
+### W-003 — cocoa crate deprecated type aliases and methods
+
+- pattern: `use of deprecated (type alias|method) .cocoa::`
+- code: `deprecated`
+- emitter: upstream `cocoa` crate (transitive dep via Tauri/wry/tao)
+- rationale: Tauri's windowing stack still depends on the `cocoa` crate
+  which uses pre-objc2 APIs. These deprecation warnings come from
+  upstream dependencies, not our code. We cannot fix them — only Tauri
+  upstream can migrate to objc2-app-kit.
+- planned: resolves when Tauri upgrades its cocoa dependency to objc2.
+- status: **active**
 
 ## Historical entries (resolved)
 
