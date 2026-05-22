@@ -39,6 +39,17 @@ fail; matched ones pass through.
 - planned: resolves when Tauri upgrades its cocoa dependency to objc2.
 - status: **active**
 
+### W-004 — upstream cfg(cargo-clippy) checks
+
+- pattern: `unexpected .cfg. condition value: .cargo-clippy.`
+- code: `unexpected_cfgs`
+- emitter: upstream crates (encoding_rs, chardet, etc.)
+- rationale: Several transitive dependencies use the legacy
+  `cfg(feature = "cargo-clippy")` pattern which newer Rust toolchains
+  flag as unexpected. These are upstream — not our code.
+- planned: resolves as upstream crates migrate to `cfg(clippy)`.
+- status: **active**
+
 ## Historical entries (resolved)
 
 ### W-001 — m001_lifecycle stub surface dead at release
