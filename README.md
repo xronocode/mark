@@ -21,12 +21,16 @@
 
 <br>
 
-```
+### Install (macOS Apple Silicon)
+
+```sh
 brew tap xronocode/mark && brew install --cask mark@alpha
 ```
 
+No Gatekeeper prompts. No `sudo xattr` dance. [Build from source →](#install)
+
 > **⚠️ Alpha** — daily-driver quality for writing on Apple Silicon, but it has known gaps.<br>
-> What works has 792 tests and CI. What doesn't is [tracked openly](#status--v200-alpha6).
+> What works has 2620 tests and CI. What doesn't is [tracked openly](#status--v200-alpha8).
 
 <br>
 
@@ -232,7 +236,7 @@ Mark sits in a specific gap: **native + lightweight + full WYSIWYG + file-watche
 
 This project is its own proof of concept.
 
-The entire Tauri rewrite — **30+ Rust modules, 792 tests**, typed IPC, native menu, spellchecker, auto-updater — was architected and shipped by one developer with AI agents using the **GRACE methodology** (Graph-RAG Anchored Code Engineering).
+The entire Tauri rewrite — **30+ Rust modules, 2620 tests**, typed IPC, native menu, spellchecker, auto-updater — was architected and shipped by one developer with AI agents using the **GRACE methodology** (Graph-RAG Anchored Code Engineering).
 
 Structured plans. Module contracts. Knowledge graphs. Agents executing against verifiable specs.
 
@@ -256,13 +260,13 @@ One person. AI agents. A native desktop app that rivals what teams of five ship.
 
 **The agent workflow** — file-watcher live reload, dirty-tab protection (Save/Discard/Cancel), preview mode on Finder open
 
-**The trust** — no telemetry, no cloud, no account, no plugin marketplace. Files are files. 792 tests. MIT licensed.
+**The trust** — no telemetry, no cloud, no account, no plugin marketplace. Files are files. 2620 tests. MIT licensed.
 
 ---
 
 <div align="center">
 
-### Status — v2.0.0-alpha.6
+### Status — v2.0.0-alpha.8
 
 </div>
 
@@ -337,7 +341,7 @@ Daily-driver quality for routine Markdown on Apple Silicon.
 | Windows | Planned |
 | Multi-window support | Planned |
 
-> Alpha is alpha. What works has **792 tests** and CI. What doesn't is tracked openly with a target milestone.
+> Alpha is alpha. What works has **2620 tests** and CI. What doesn't is tracked openly with a target milestone.
 
 ---
 
