@@ -120,6 +120,14 @@ class StateRender {
           const id = 'mermaid-' + key.replace(/^#/, '') + '-' + Date.now()
           const { svg, bindFunctions } = await mermaid.render(id, code)
           target.innerHTML = svg
+          // Hoist <style> out of the SVG for WKWebView CSP compatibility.
+          // WKWebView blocks <style> inside dynamically-inserted SVGs even
+          // with 'unsafe-inline'. Mermaid scopes rules by SVG ID so they
+          // still apply from the parent container.
+          const svgStyle = target.querySelector('svg > style')
+          if (svgStyle) {
+            target.insertBefore(svgStyle, target.firstChild)
+          }
           if (bindFunctions) {
             bindFunctions(target)
           }
