@@ -634,17 +634,50 @@ pub async fn mt_open_setting_window(app: tauri::AppHandle) -> Result<(), String>
         eprintln!("[v1_compat][settings][BLOCK_BUILD_FAILED err={e}]");
         e.to_string()
     })?;
-    // F-SETTINGS-WINDOW-WIRE: blank-content bug from 2026-05-07 was
-    // root-caused (capability + bootstrap-event). DevTools auto-open
-    // retired 2026-05-09 so users don't see a debug panel on first
-    // Preferences click. Re-enable manually with Cmd+Option+I or via
-    // a debug build (cfg!(debug_assertions)) if needed.
     #[cfg(debug_assertions)]
-    if std::env::var("MARK_SETTINGS_DEVTOOLS").as_deref() == Ok("1") {
-        _win.open_devtools();
-        eprintln!("[v1_compat][settings][BLOCK_OPENED label=settings devtools=on env=MARK_SETTINGS_DEVTOOLS]");
-    } else {
-        eprintln!("[v1_compat][settings][BLOCK_OPENED label=settings devtools=off]");
+    {
+        let _ = _win.eval(
+            r#"(() => {
+  const post = (payload) => {
+    try { window.__TAURI_INTERNALS__?.invoke('mt_dev_diag', { payload }); } catch (_) {}
+  };
+  const _stringify = (a) => {
+    try { return typeof a === 'object' ? JSON.stringify(a) : String(a); }
+    catch { return '[unserializable]'; }
+  };
+  window.addEventListener('error', (e) => {
+    post({ kind: 'settings-error', message: e.message, file: e.filename, line: e.lineno, col: e.colno, stack: e.error?.stack ?? null });
+  });
+  window.addEventListener('unhandledrejection', (e) => {
+    let reason = '';
+    let stack = null;
+    try { reason = String(e.reason); stack = e.reason?.stack ?? null; } catch (_) {}
+    post({ kind: 'settings-unhandledrejection', reason, stack });
+  });
+  const _ce = console.error.bind(console);
+  console.error = (...args) => {
+    try { post({ kind: 'settings-console.error', args: args.map(_stringify) }); } catch (_) {}
+    return _ce(...args);
+  };
+  const _cw = console.warn.bind(console);
+  console.warn = (...args) => {
+    try { post({ kind: 'settings-console.warn', args: args.map(_stringify) }); } catch (_) {}
+    return _cw(...args);
+  };
+  const _cl = console.log.bind(console);
+  console.log = (...args) => {
+    try { post({ kind: 'settings-console.log', args: args.map(_stringify) }); } catch (_) {}
+    return _cl(...args);
+  };
+  post({ kind: 'settings-hook-installed' });
+})();"#,
+        );
+        if std::env::var("MARK_SETTINGS_DEVTOOLS").as_deref() == Ok("1") {
+            _win.open_devtools();
+            eprintln!("[v1_compat][settings][BLOCK_OPENED label=settings devtools=on]");
+        } else {
+            eprintln!("[v1_compat][settings][BLOCK_OPENED label=settings devtools=off diag=on]");
+        }
     }
     #[cfg(not(debug_assertions))]
     eprintln!("[v1_compat][settings][BLOCK_OPENED label=settings devtools=off]");
