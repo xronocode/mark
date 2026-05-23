@@ -1,15 +1,15 @@
 // MODULE_CONTRACT
-//   PURPOSE: M-013b frontend facade for filesystem commands. Thin
+//   PURPOSE: M-013-B frontend facade for filesystem commands. Thin
 //            ergonomic wrappers over typed ipcInvoke that mirror v1.2.3's
 //            window.fileUtils.* API surface so renderer code from
 //            mark-electron transfers without rewrites (variant-(a)
 //            port decision).
 //   SCOPE:   read / write / stat / readdir / unlink. Watcher → watch.ts;
 //            search → search.ts.
-//   DEPENDS: M-013a contract (ipcInvoke + types).
+//   DEPENDS: M-013-A contract (ipcInvoke + types).
 //   LINKS:   docs/development-plan.xml Phase-B2 step-5;
 //            v1.2.3 src/preload/index.js fileUtilsAPI for the API
-//            shape M-013b emulates.
+//            shape M-013-B emulates.
 //   STATUS:  Phase-B2 step-5 shipped.
 //
 // CHANGE_SUMMARY:

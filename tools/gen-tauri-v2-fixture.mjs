@@ -1,14 +1,14 @@
 #!/usr/bin/env node
 // Generate test/fixtures/ipc-channels/tauri.v2.json — the Tauri-side
-// reborn-mark IPC surface, derived from the M-013a typed-invoke
+// reborn-mark IPC surface, derived from the M-013-A typed-invoke
 // CommandMap. Source of truth is src/renderer/src/ipc/contract/types.ts.
 //
 // Phase-B1 step-4 per docs/development-plan.xml. Pairs with electron.v1.json
-// (step-3) — the schema-parity checker (V-M-013a, Phase-B2 step-1) compares
+// (step-3) — the schema-parity checker (V-M-013-A, Phase-B2 step-1) compares
 // the two fixtures to flag channels v1 has but v2 does not yet implement
 // (expected during the port; turns into a coverage report).
 //
-// Why a static fixture and not a runtime introspection: M-013a's CommandMap
+// Why a static fixture and not a runtime introspection: M-013-A's CommandMap
 // is a TypeScript type, not a runtime object. We extract by parsing the
 // types.ts AST. This is faster than spinning up tsc + a runtime checker
 // and gives the schema-parity check a stable artifact to diff against.
@@ -106,7 +106,7 @@ function main() {
     name,
     direction: 'renderer->main',
     transport: 'invoke',
-    layer: 'M-013a',
+    layer: 'M-013-A',
     has_args: true,
     has_result: true
   }))
@@ -114,7 +114,7 @@ function main() {
   const fixture = {
     schema_version: 1,
     source: {
-      module: 'M-013a',
+      module: 'M-013-A',
       file: 'src/renderer/src/ipc/contract/types.ts',
       generated_from: 'CommandMap interface'
     },
@@ -130,7 +130,7 @@ function main() {
   mkdirSync(OUT_DIR, { recursive: true })
   writeFileSync(OUT_PATH, JSON.stringify(fixture, null, 2) + '\n')
 
-  process.stderr.write(`wrote ${channels.length} M-013a command(s)\n`)
+  process.stderr.write(`wrote ${channels.length} M-013-A command(s)\n`)
   process.stderr.write(`error codes: ${errorCodes.length}\n`)
   process.stderr.write(`out: test/fixtures/ipc-channels/tauri.v2.json\n`)
 }

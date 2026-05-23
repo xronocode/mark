@@ -8,13 +8,13 @@
 //            through ipcCorrelated.
 //   DEPENDS: types.ts (IpcError + IpcErrorCode + CommandName/Args/Result),
 //            @tauri-apps/api/core invoke().
-//   LINKS:   M-013a fn-ipcInvoke; docs/verification-plan.xml V-M-013a.
+//   LINKS:   M-013-A fn-ipcInvoke; docs/verification-plan.xml V-M-013-A.
 //   STATUS:  Phase-B1 stub. Schema validation is a no-op pass-through
 //            until ts-rs codegen lands in B1 step-3/4. Default 10s timeout.
 //
 // CHANGE_SUMMARY:
 //   - 2026-04-28 B1-step-2: initial stub. Real invoke + AbortController
-//     timeout + error mapping; schema validation skipped (V-M-013a leaves
+//     timeout + error mapping; schema validation skipped (V-M-013-A leaves
 //     a deterministic check for the future ts-rs entry).
 
 import { invoke as tauriInvoke } from '@tauri-apps/api/core'
@@ -37,7 +37,7 @@ export interface InvokeOptions {
 
 /**
  * BLOCK_INVOKE — emitted at the start of every invoke. Stable trace marker
- * required by V-M-013a.
+ * required by V-M-013-A.
  */
 function logInvokeStart(cmd: string, hasArgs: boolean): void {
   // eslint-disable-next-line no-console
@@ -46,7 +46,7 @@ function logInvokeStart(cmd: string, hasArgs: boolean): void {
 
 /**
  * BLOCK_INVOKE_RESOLVED — emitted on every settled invoke (success or
- * mapped error). Stable trace marker required by V-M-013a.
+ * mapped error). Stable trace marker required by V-M-013-A.
  */
 function logInvokeResolved(cmd: string, durationMs: number, ok: boolean, errCode?: string): void {
   // eslint-disable-next-line no-console
@@ -74,7 +74,7 @@ function mapInvokeError(cmd: string, raw: unknown): IpcError {
     return new IpcError(IpcErrorCode.VALIDATION, message, cmd, raw)
   }
   // Unknown channel / handler-not-registered surfaces as a different shape;
-  // V-M-013a treats UNKNOWN_CHANNEL as the listener-side error and reuses
+  // V-M-013-A treats UNKNOWN_CHANNEL as the listener-side error and reuses
   // UNKNOWN_COMMAND for the invoke side.
   return new IpcError(IpcErrorCode.UNKNOWN_COMMAND, message, cmd, raw)
 }
@@ -105,10 +105,10 @@ export async function ipcInvoke<C extends CommandName>(
 
   try {
     // B1 step-6.5: Tauri command names can't contain `::` (Rust function
-    // identifier rule). M-013a CommandName uses `mt::ping`-style for
+    // identifier rule). M-013-A CommandName uses `mt::ping`-style for
     // namespace clarity at the contract level; translate to `mt_ping`
     // before invoking. Preserves the contract surface while satisfying
-    // Tauri 2's #[tauri::command] naming. M-013b backend handlers are
+    // Tauri 2's #[tauri::command] naming. M-013-B backend handlers are
     // named accordingly (mt_fs_read, mt_search_spawn, etc.).
     const tauriCommand = command.replace(/::/g, '_')
     const invokePromise = tauriInvoke<CommandResult<C>>(tauriCommand, args as Record<string, unknown>)

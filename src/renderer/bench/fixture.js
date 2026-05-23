@@ -125,7 +125,7 @@ async fn search_run(
 - [x] Phase-A v1.2.3 shipped
 - [x] Gate-Phase-B-pre2 closed
 - [x] Phase-B1 step-1 frontend imported
-- [x] Phase-B1 step-2 M-013a stub
+- [x] Phase-B1 step-2 M-013-A stub
 - [ ] Phase-B1 step-2.5 perf gate (this fixture)
 - [ ] Phase-B2 FS+Search backend
 
@@ -142,7 +142,7 @@ async fn search_run(
 | Phase | Module | Status | Verification |
 |-------|--------|--------|--------------|
 | B1    | M-001  | pending | V-M-001 |
-| B1    | M-013a | done    | V-M-013a |
+| B1    | M-013-A | done    | V-M-013-A |
 | B1    | muya   | imported | V-M-012-VB-08 |
 | B2    | M-002  | pending | V-M-002 |
 | B2    | M-003  | pending | V-M-003 |

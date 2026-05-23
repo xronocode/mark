@@ -34,7 +34,7 @@
 
 // Module-level allow(dead_code) — same pattern as m001_lifecycle. M-010
 // is the contract surface for B2 step-2..5 (M-002 fs commands, M-003
-// watch, M-004 search, M-013b dispatch) which all consume these guards.
+// watch, M-004 search, M-013-B dispatch) which all consume these guards.
 // At step-1 stub-shipping no in-tree caller exists yet — tests
 // exercise everything via #[cfg(test)]. Removed when B2 step-2 wires
 // check_path into M-002.

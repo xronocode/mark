@@ -1,12 +1,12 @@
 // MODULE_CONTRACT
-//   PURPOSE: M-013b frontend search facade. Provides a
+//   PURPOSE: M-013-B frontend search facade. Provides a
 //            RipgrepDirectorySearcher-compatible class so v1.2.3's
 //            store/search.js works without changes (variant-(a) port).
 //            Also exposes a slim `ipcSearch` namespace for new code.
 //   SCOPE:   spawn (returns thenable+cancel) + cancel. Streaming hits
 //            arrive on the 'mt::search-event' Tauri channel; we filter
 //            by searchId.
-//   DEPENDS: M-013a contract (ipcInvoke, useIpcListener).
+//   DEPENDS: M-013-A contract (ipcInvoke, useIpcListener).
 //   LINKS:   v1.2.3 src/renderer/src/node/ripgrepSearcher.js — the API
 //            shape we mirror;
 //            src-tauri/src/m013b/search.rs SEARCH_EVENT_CHANNEL.

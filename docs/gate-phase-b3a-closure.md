@@ -45,7 +45,7 @@ boot-time markers, M-016 stub deterministic answer). But the alpha
   installing this cask would get an app that opens but doesn't do
   anything they expect.
 - The renderer Vue stores still call `window.fileUtils.*` (v1.2.3
-  Electron preload API) instead of `@/ipc/runtime` (M-013b facades).
+  Electron preload API) instead of `@/ipc/runtime` (M-013-B facades).
   This rewrite is the substantial work that closes
   F-MAIN-ENTRY-DISABLED.
 

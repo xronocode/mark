@@ -127,5 +127,5 @@ NOOP with stable BLOCK marker.
 
 The 11 items blocked by F-MAIN-ENTRY-DISABLED are NOT step-9 violations
 — they're the natural consequence of the alpha shipping the boot guards
-+ M-013b backend without the wired Vue shell. The cask caveats make
++ M-013-B backend without the wired Vue shell. The cask caveats make
 this explicit; the audit makes it traceable.

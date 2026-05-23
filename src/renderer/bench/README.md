@@ -37,7 +37,7 @@ reborn-mark/
 │       │   ├── fixture.js
 │       │   └── README.md
 │       └── src/             ← Vue 3 app
-└── src-tauri/               ← Rust side (M-001..M-013b)
+└── src-tauri/               ← Rust side (M-001..M-013-B)
 ```
 
 ## Phases

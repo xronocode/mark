@@ -8,7 +8,7 @@
 //            useIpcListener; fire-and-forget invokes stay on ipcInvoke.
 //   DEPENDS: types.ts (IpcError + IpcErrorCode), invoke.ts (ipcInvoke),
 //            listener.ts (useIpcListener), @tauri-apps/api/event listen.
-//   LINKS:   M-013a fn-ipcCorrelated; V-M-013a.
+//   LINKS:   M-013-A fn-ipcCorrelated; V-M-013-A.
 //   STATUS:  Phase-B1 stub. Default 30s timeout. req_id is UUIDv4 generated
 //            in renderer; future B2 step swaps to UUIDv7 from a Rust-side
 //            tauri::Request extension to align with TraceContract.

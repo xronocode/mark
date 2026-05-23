@@ -1,7 +1,7 @@
 // MODULE_CONTRACT
 //   PURPOSE: Install the v1.2.3 window.* contextBridge surface (electron,
 //            fileUtils, path, commandExists, i18nUtils, rgPath) by
-//            proxying through M-013b @/ipc/runtime so renderer code
+//            proxying through M-013-B @/ipc/runtime so renderer code
 //            ported from mark-electron@v1.2.3 transfers without changes.
 //            This is the closing piece of F-MAIN-ENTRY-DISABLED.
 //   SCOPE:   side-effect module — installs globals when imported. MUST
@@ -92,7 +92,7 @@ import { listen as _tauriListen, once as _tauriOnce, emit as _tauriEmit } from '
 // the OS path; in a standard webview that attribute doesn't exist.
 //
 // Rather than fight the synthesis path, we bypass renderer drop
-// handlers entirely: read each dropped path's content via M-013b
+// handlers entirely: read each dropped path's content via M-013-B
 // fs.read and emit `mt::open-new-tab` directly to the renderer. The
 // editor store's LISTEN_FOR_NEW_TAB picks it up and creates the tab
 // with content. (See store/editor.js:634.)
@@ -181,7 +181,7 @@ const fileUtils = {
   },
   MARKDOWN_INCLUSIONS: Object.freeze(MARKDOWN_EXTENSIONS.map((x) => '*.' + x)),
 
-  // async — route to M-013b
+  // async — route to M-013-B
   readFile: async (filePath, _encoding) => ipc.fs.read(filePath),
   writeFile: async (filePath, data, _options) => ipc.fs.write(filePath, typeof data === 'string' ? data : new TextDecoder().decode(data)),
   outputFile: async (filePath, data) => ipc.fs.write(filePath, typeof data === 'string' ? data : new TextDecoder().decode(data)),
@@ -237,7 +237,7 @@ const fileUtils = {
 // extensions (clipboard, shell, fonts, tmpDir, resourcesPath).
 // Tauri equivalent surfaces:
 //   - ipcRenderer.invoke / send / on → @tauri-apps/api/core invoke +
-//     @tauri-apps/api/event listen. M-013a contract ipcInvoke /
+//     @tauri-apps/api/event listen. M-013-A contract ipcInvoke /
 //     useIpcListener already provide typed access; THIS shim provides
 //     the lower-level untyped calls v1 renderer uses.
 //   - shell.openExternal / openPath → @tauri-apps/plugin-shell (TODO:
@@ -293,7 +293,7 @@ const electron = {
     },
     on: (channel, handler) => {
       const listen = _tauriListen
-      // Special-case: mt::search-event uses an M-013a-shape payload
+      // Special-case: mt::search-event uses an M-013-A-shape payload
       // ({searchId, kind, hits[], error, seq}) but v1.2.3 renderer
       // (ripgrepSearcher.js) expects v1 shape ({searchId, type,
       // payload}). Translate kind→type and split hits[] into per-file

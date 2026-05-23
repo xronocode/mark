@@ -261,7 +261,7 @@ mod tests {
     }
 
     fn synth_fs_panic() {
-        // Stand-in for a panic during M-013b fs path resolution. Real
+        // Stand-in for a panic during M-013-B fs path resolution. Real
         // m013b/fs.rs paths use Result; this is the regression net for
         // any future unwrap that escapes.
         panic!("fs path resolve catastrophic failure");

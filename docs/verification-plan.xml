@@ -141,13 +141,13 @@
       <AUTONOMY>autonomous</AUTONOMY>
     </matrix-row>
 
-    <matrix-row MODULE="M-013a" V-M="V-M-013a" PRIORITY="critical" SCENARIOS="4" EC="8" ALM="4" NA="3" RTA="1" PHF="1" WAF="1">
+    <matrix-row MODULE="M-013-A" V-M="V-M-013-A" PRIORITY="critical" SCENARIOS="4" EC="8" ALM="4" NA="3" RTA="1" PHF="1" WAF="1">
       <VF-COVERAGE>VF-010, VF-015, VF-016</VF-COVERAGE>
       <GATE>Gate-Phase-B1, Gate-Phase-B3a</GATE>
       <AUTONOMY>partial — public IPC contract; review generated schema and channel fixtures</AUTONOMY>
     </matrix-row>
 
-    <matrix-row MODULE="M-013b" V-M="V-M-013b" PRIORITY="critical" SCENARIOS="5" EC="10" ALM="6" NA="4" RTA="2" PHF="1" WAF="1">
+    <matrix-row MODULE="M-013-B" V-M="V-M-013-B" PRIORITY="critical" SCENARIOS="5" EC="10" ALM="6" NA="4" RTA="2" PHF="1" WAF="1">
       <VF-COVERAGE>VF-001, VF-010, VF-015, VF-016</VF-COVERAGE>
       <GATE>Gate-Phase-B2, Gate-Phase-B3, Gate-Phase-B3a</GATE>
       <AUTONOMY>partial — 146-channel runtime facade; review command parity and no-panic stubs</AUTONOMY>
@@ -257,8 +257,8 @@
       <gate PHASE="Phase-A2" MODULES="M-011, M-012" GATE-ID="Gate-Phase-A2" VERIFICATION="V-M-011, V-M-012" />
       <gate PHASE="Phase-A3" MODULES="—" GATE-ID="Gate-Phase-A3" VERIFICATION="VF-004" />
       <gate PHASE="Phase-A4" MODULES="ALL" GATE-ID="Gate-Phase-A4" VERIFICATION="ALL V-M, VF-005" />
-      <gate PHASE="Phase-B1" MODULES="M-001, M-013a, M-022" GATE-ID="Gate-Phase-B1" VERIFICATION="V-M-001, V-M-013a, V-M-022" />
-      <gate PHASE="Phase-B2" MODULES="M-002, M-003, M-004, M-010, M-013b, M-021" GATE-ID="Gate-Phase-B2" VERIFICATION="V-M-002, V-M-003, V-M-004, V-M-010, V-M-013b, V-M-021" />
+      <gate PHASE="Phase-B1" MODULES="M-001, M-013-A, M-022" GATE-ID="Gate-Phase-B1" VERIFICATION="V-M-001, V-M-013-A, V-M-022" />
+      <gate PHASE="Phase-B2" MODULES="M-002, M-003, M-004, M-010, M-013-B, M-021" GATE-ID="Gate-Phase-B2" VERIFICATION="V-M-002, V-M-003, V-M-004, V-M-010, V-M-013-B, V-M-021" />
       <gate PHASE="Phase-B3" MODULES="M-005, M-006, M-007, M-008, M-009, M-014, M-015, M-016, M-017, M-018, M-019, M-020" GATE-ID="Gate-Phase-B3" VERIFICATION="ALL REMAINING V-M" />
       <gate PHASE="Phase-B4" MODULES="ALL" GATE-ID="Gate-Phase-B4" VERIFICATION="ALL V-M, VF-005" />
       <gate PHASE="Phase-B5-perf-wave1" MODULES="M-024, M-025" GATE-ID="Gate-Phase-B5-perf-wave1" VERIFICATION="V-M-024, V-M-025" STATUS="pending" />
@@ -417,7 +417,7 @@
 
     <VF-015 NAME="TraceContractPath" USE_CASES="cross-cutting observability" DATA_FLOW="all DFs" PRIORITY="critical" added="iter4-master-plan">
       <scenario>End-to-end trace_id propagated across renderer↔main↔modules per OG-iter2-001. Single user gesture (open file → edit → save → close) emits a chain of BLOCK_* markers all sharing the same trace_id (or linked trace_ids with parent=session_chain_id).</scenario>
-      <expected-outcome>Every BLOCK_*/MT_* log line contains `trace_id` field (UUIDv7). tauri::Request extension propagates X-Mark-Trace-Id from renderer to Rust handler and back. Renderer console.log echoes same id. CI grep groups by trace_id; verifies each X-1..X-12 cross-module scenario forms one complete chain. req_id correlation for IPC fan-out via M-013a/b decorator. session_chain_id stitches across update/migration boundaries.</expected-outcome>
+      <expected-outcome>Every BLOCK_*/MT_* log line contains `trace_id` field (UUIDv7). tauri::Request extension propagates X-Mark-Trace-Id from renderer to Rust handler and back. Renderer console.log echoes same id. CI grep groups by trace_id; verifies each X-1..X-12 cross-module scenario forms one complete chain. req_id correlation for IPC fan-out via M-013-A/b decorator. session_chain_id stitches across update/migration boundaries.</expected-outcome>
       <required-signals>
         <log-marker-schema>trace_id (UUIDv7, mandatory), req_id (per-IPC, optional), session_chain_id (per-process, mandatory)</log-marker-schema>
         <static-check>grep -rE "tracing::[a-z]+!\(" src-tauri/src/ shows every macro invocation has trace_id field via tracing::Span ambient context</static-check>
@@ -426,7 +426,7 @@
     </VF-015>
 
     <VF-016 NAME="PreloadRemoteDialogLifecyclePath" USE_CASES="UC-001, UC-009 (window mgmt)" DATA_FLOW="DF-001+DF-007+DF-009+DF-020" PRIORITY="high" added="iter4-master-plan">
-      <scenario>Phase-B1 lifecycle hardening: preload globals, remote shims, typed dialog outcomes (cancel/destroyed-parent/late-reply discard/focus-return), close lifecycle state machine, stale menu-generation discard, replay/drop policy. v1 used @electron/remote in 6 sites; v2 routes through M-013b ipc.window/clipboard/menu/dialog facades. WebView shell security blocks webview attachment, navigation escape, window.open, unknown protocols, file URI access outside origin.</scenario>
+      <scenario>Phase-B1 lifecycle hardening: preload globals, remote shims, typed dialog outcomes (cancel/destroyed-parent/late-reply discard/focus-return), close lifecycle state machine, stale menu-generation discard, replay/drop policy. v1 used @electron/remote in 6 sites; v2 routes through M-013-B ipc.window/clipboard/menu/dialog facades. WebView shell security blocks webview attachment, navigation escape, window.open, unknown protocols, file URI access outside origin.</scenario>
       <expected-outcome>Static-grep '@electron/remote' over renderer src/ = 0 matches in production bundle. Static-grep `sendSync\(` = 0. All 6 v1 call-sites mapped to ipc.* replacement (companion fixture remote-callsites.v1.json). Dialog table tests cover cancel + destroyed parent + late reply discard + focus return exactly once. Close lifecycle: CLOSE_REQUESTED → PROMPT_OPEN → SAVE_FAILED → CLOSE_CANCELLED OR FORCE_CLOSE → WATCHERS_CLEANED → WINDOW_DESTROYED with negative assertion against double prompt and double cleanup. Stale menu generation: invoke from gen N after rebuild N+1 discarded with BLOCK_STALE_MENU_GENERATION.</expected-outcome>
       <required-signals>
         <log-marker>[IpcRuntime][window][BLOCK_STATE op=&lt;minimize|...&gt;]</log-marker>
@@ -441,7 +441,7 @@
   </CriticalFlows>
 
   <!-- ============================================================ -->
-  <!-- Trace Contract (Phase-B-pre2 step-7, V-M-013a / V-M-013b)    -->
+  <!-- Trace Contract (Phase-B-pre2 step-7, V-M-013-A / V-M-013-B)    -->
   <!-- Schema-only definition. Runtime instrumentation lands in B1   -->
   <!-- (tracing crate replaces eprintln!), B1.5 (e2e trace assertion -->
   <!-- harness), B3 (session_chain_id propagation through M-013).    -->
@@ -469,7 +469,7 @@
         <semantics>One per renderer→main IPC roundtrip. Renderer
           generates; main echoes back unchanged in both ack and event
           fanout payloads.</semantics>
-        <emission>Phase-B3 (M-013a/M-013b IPC bridge); not present
+        <emission>Phase-B3 (M-013-A/M-013-B IPC bridge); not present
           today (no IPC layer yet).</emission>
       </req_id>
 
@@ -541,7 +541,7 @@
         BLOCK_MIGRATE_KEYCHAIN, BLOCK_MIGRATED, BLOCK_RESUME, BLOCK_ROLLBACK,
         BLOCK_SKIP_ALREADY_DONE, BLOCK_COERCE, BLOCK_PATH_FALLBACK.
       </module>
-      <module label="ipc" home-M="M-013a/M-013b" deferred-to="Phase-B3">
+      <module label="ipc" home-M="M-013-A/M-013-B" deferred-to="Phase-B3">
         BLOCK_IPC_REQ_RECV, BLOCK_IPC_DISPATCH, BLOCK_IPC_REPLY_SEND,
         BLOCK_EVENT_FANOUT, BLOCK_TRACE_PROPAGATE_FAIL.
       </module>
@@ -593,7 +593,7 @@
     <runtime-deferred-to>
       <phase id="B1">tracing crate replaces eprintln! macros; trace_id auto-attached via tracing::Span; format on the wire stays "[label][block][BLOCK_NAME k=v]" so historical scenario assertions keep working.</phase>
       <phase id="B1.5">e2e harness captures stdout from `cargo tauri dev` runs and asserts marker order against per-scenario sequences.</phase>
-      <phase id="B3">session_chain_id propagation through M-013a/M-013b; req_id arrives from frontend in payload header; menu/IPC/prefs runtime markers go live.</phase>
+      <phase id="B3">session_chain_id propagation through M-013-A/M-013-B; req_id arrives from frontend in payload header; menu/IPC/prefs runtime markers go live.</phase>
     </runtime-deferred-to>
 
     <doc-fixups generation="phase-b-pre2-step-7" status="applied-inline">
@@ -3598,7 +3598,7 @@
       </negative-assertions>
     </V-M-906>
 
-    <V-M-013a MODULE="M-013a" PRIORITY="critical" SCOPE="ipc-contract">
+    <V-M-013-A MODULE="M-013-A" PRIORITY="critical" SCOPE="ipc-contract">
       <intent>Verify the typed IPC contract layer owns command names, payload schemas, generated TypeScript, listener lifecycle, and req_id correlation without relying on runtime backend implementations.</intent>
       <touched-files>
         <file>src/renderer/src/ipc/contract/</file>
@@ -3641,9 +3641,9 @@
         <no>MUST NOT commit generated TypeScript drift after codegen.</no>
         <no>MUST NOT use `any` in public IPC contract exports.</no>
       </negative-assertions>
-    </V-M-013a>
+    </V-M-013-A>
 
-    <V-M-013b MODULE="M-013b" PRIORITY="critical" SCOPE="ipc-runtime">
+    <V-M-013-B MODULE="M-013-B" PRIORITY="critical" SCOPE="ipc-runtime">
       <intent>Verify the runtime IPC facade maps Electron-era channels to Tauri commands/events, returns MT_NOT_IMPLEMENTED for pending wave stubs, and preserves command parity through B2/B3 growth.</intent>
       <touched-files>
         <file>src/renderer/src/ipc/runtime/</file>
@@ -3671,7 +3671,7 @@
       <edge-cases>
         <ec kind="failure" severity="critical">Unknown runtime channel returns MT_IPC_UNKNOWN_CHANNEL with bundle version and channel name.</ec>
         <ec kind="concurrency" severity="high">Queued replay into a closed window is dropped with a marker, not delivered to stale state.</ec>
-        <ec kind="contract" severity="critical">Runtime facade may depend on M-013a and backend modules; backend modules must not import the frontend facade.</ec>
+        <ec kind="contract" severity="critical">Runtime facade may depend on M-013-A and backend modules; backend modules must not import the frontend facade.</ec>
         <ec kind="security" severity="critical">No @electron/remote bridge remains in production code after Gate-B3a.</ec>
         <ec kind="performance" severity="medium">1MB payload threshold rejects oversize requests deterministically.</ec>
       </edge-cases>
@@ -3681,7 +3681,7 @@
         <no>MUST NOT leave dynamic response channel names without req_id correlation.</no>
         <no>MUST NOT expose raw native menu/window APIs to renderer outside typed facade.</no>
       </negative-assertions>
-    </V-M-013b>
+    </V-M-013-B>
 
     <V-M-021 MODULE="M-021" PRIORITY="critical" SCOPE="fs-core">
       <intent>Verify the internal filesystem primitive layer provides TOCTOU-safe validated paths, raw-byte IO, atomic writes, trash-only delete semantics, and bounded concurrency for all Rust-internal callers.</intent>

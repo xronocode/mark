@@ -30,11 +30,11 @@
         <sub-module name="m001_save_close" path="src-tauri/src/m001_save_close.rs" purpose="Save/close IPC bridge: mt_response_file_save, mt_response_file_save_as, mt_save_and_close_tabs, mt_close_window, mt_close_window_confirm. wire_close_handler registers WindowEvent::CloseRequested handler that prevents default close and emits mt::ask-for-close. SavedTabState return type for canonical save flow." phase="B4-pre-alpha-step-3" />
         <sub-module name="m021_default_handler" path="src-tauri/src/m021_default_handler.rs" purpose="macOS .md default-handler registration: mt_set_default_md_handler, mt_get_default_md_handler, mt_unset_default_md_handler. Uses LSSetDefaultRoleHandlerForContentType via Objective-C bridge." phase="B4-pre-alpha-add" />
       </sub-modules>
-      <depends>M-002, M-003, M-004, M-005, M-006, M-007, M-008, M-009, M-010, M-014, M-015, M-016, M-017, M-018, M-019, M-020, M-013b</depends>
+      <depends>M-002, M-003, M-004, M-005, M-006, M-007, M-008, M-009, M-010, M-014, M-015, M-016, M-017, M-018, M-019, M-020, M-013-B</depends>
       <verification-ref>V-M-001</verification-ref>
       <annotations>
-        <fn-main PURPOSE="Boot order: panic_hook → legacy detect → MARK_SKIP_MIGRATION env check → migration dialog (if needed) → security audit → fixture validate → tauri::Builder with M-013b + m001_pdf invoke handlers" />
-        <fn-mt_print_to_pdf PURPOSE="MT_UNSUPPORTED stub; lives at m001_pdf::mt_print_to_pdf — registered in main.rs generate_handler! alongside M-013b commands" />
+        <fn-main PURPOSE="Boot order: panic_hook → legacy detect → MARK_SKIP_MIGRATION env check → migration dialog (if needed) → security audit → fixture validate → tauri::Builder with M-013-B + m001_pdf invoke handlers" />
+        <fn-mt_print_to_pdf PURPOSE="MT_UNSUPPORTED stub; lives at m001_pdf::mt_print_to_pdf — registered in main.rs generate_handler! alongside M-013-B commands" />
         <!-- mt_window_state removed in Path B-clean M-3 (commit 014218fb 2026-05-09); window state now read directly via @tauri-apps/api/window from titleBar/index.vue. -->
         <fn-mt_dev_diag PURPOSE="main.rs::mt_dev_diag — dev-only renderer error sink. WebviewWindow::eval injects window.onerror + unhandledrejection + console.error hooks (gated by cfg!(debug_assertions)) that pipe payloads here for backend stderr. Production no-op (command compiled in but never invoked). Added Phase 8 to diagnose F-DEV-MODE-WHITE-SCREEN; kept as permanent dev aid." />
         <fn-validate_or_exit PURPOSE="m001_validate runtime entry; emits BLOCK_VALIDATE_AGAINST_FIXTURE_{OK,FAIL,PARSE_FAIL}" />
@@ -43,7 +43,7 @@
         <type-CloseStateMachine PURPOSE="Window-close lifecycle enforcement; 8 states + transition validator + 8 BLOCK_* markers per state" />
         <type-MenuGeneration PURPOSE="AtomicU64 counter; bump_menu_generation/check_stale; emits BLOCK_MENU_GENERATION_BUMPED + BLOCK_STALE_MENU_GENERATION" />
         <type-ReplayPolicy PURPOSE="Replay/DropAfterCleanup/DropIfBusy enum + should_deliver(policy, current_state)" />
-        <type-IpcError PURPOSE="m001_pdf-side UnsupportedError envelope; distinct from M-013b's MT_NOT_IMPLEMENTED — code MT_UNSUPPORTED" />
+        <type-IpcError PURPOSE="m001_pdf-side UnsupportedError envelope; distinct from M-013-B's MT_NOT_IMPLEMENTED — code MT_UNSUPPORTED" />
         <fn-exit_requested_handler PURPOSE="RunEvent::ExitRequested interceptor in main.rs run callback. Prevents immediate exit, emits mt::ask-for-close to trigger dirty-tab dialog. Checks PendingOpens.quit_approved flag to allow confirmed exits through. Handles no-window case by force-exiting." />
         <fn-mt_format_link_click PURPOSE="m_v1_compat command: extracts href from data payload, resolves relative paths against dirname, opens URL/file via macOS open command. Handles mt::format-link-click IPC from linkTools jump action." />
         <fn-mt_walk_project PURPOSE="m_v1_compat command: extracted from mt_pick_folder. Accepts a directory path, runs WalkBuilder walk, and emits mt::update-object-tree events. Called by frontend AFTER ADD_PROJECT creates tree root, fixing race where walk events arrived before root existed (DROPPED_NO_ROOT). Registered in main.rs invoke_handler." />
@@ -297,7 +297,7 @@
     <M-013 NAME="mt-ipc-bridge" TYPE="UTILITY" STATUS="planned">
       <purpose>Frontend wrapper over Tauri invoke/listen that mirrors Electron-era ipcRenderer surface for port-unchanged renderer code.</purpose>
       <path>src/renderer/src/ipc/</path>
-      <depends>M-013a, M-013b</depends>
+      <depends>M-013-A, M-013-B</depends>
       <verification-ref>V-M-013</verification-ref>
       <annotations>
         <fn-ipcInvoke PURPOSE="Typed invoke with schema check" />
@@ -306,11 +306,11 @@
       </annotations>
     </M-013>
 
-    <M-013a NAME="mt-ipc-contract" TYPE="UTILITY" STATUS="stub-shipped" PHASE-REF="B1-step-2">
+    <M-013-A NAME="mt-ipc-contract" TYPE="UTILITY" STATUS="stub-shipped" PHASE-REF="B1-step-2">
       <purpose>Typed frontend invoke/listen contract, command name-set, payload schema, and ts-rs parity surface.</purpose>
       <path>src/renderer/src/ipc/contract/</path>
       <depends>none</depends>
-      <verification-ref>V-M-013a</verification-ref>
+      <verification-ref>V-M-013-A</verification-ref>
       <annotations>
         <fn-ipcInvoke PURPOSE="Typed invoke with schema validation and timeout" />
         <fn-useIpcListener PURPOSE="Vue listener composable with unmount/HMR cleanup" />
@@ -326,19 +326,19 @@
         <log-markers-shipped>BLOCK_INVOKE, BLOCK_INVOKE_RESOLVED, BLOCK_LISTENER_REFCOUNT</log-markers-shipped>
         <log-markers-deferred>BLOCK_HMR_REPLACE — needs real components in B2</log-markers-deferred>
       </stub-ship-evidence>
-    </M-013a>
+    </M-013-A>
 
-    <M-013b NAME="mt-ipc-runtime" TYPE="UTILITY" STATUS="backend-stub-shipped" PHASE-REF="B1-step-6">
-      <purpose>Runtime IPC facade owning BOTH sides of the channel boundary: backend Rust #[tauri::command] handlers (signatures stable, real impls in B2/B3) AND frontend ipc/runtime/ namespace exporting Electron-era command parity (clipboard, window, menu, dialog) on top of M-013a's typed invoke wrapper.</purpose>
+    <M-013-B NAME="mt-ipc-runtime" TYPE="UTILITY" STATUS="backend-stub-shipped" PHASE-REF="B1-step-6">
+      <purpose>Runtime IPC facade owning BOTH sides of the channel boundary: backend Rust #[tauri::command] handlers (signatures stable, real impls in B2/B3) AND frontend ipc/runtime/ namespace exporting Electron-era command parity (clipboard, window, menu, dialog) on top of M-013-A's typed invoke wrapper.</purpose>
       <path frontend="src/renderer/src/ipc/runtime/" backend="src-tauri/src/m013b/" />
-      <depends>M-013a, M-002, M-003, M-004, M-005, M-006, M-007, M-008, M-009, M-010, M-014, M-015, M-016, M-017, M-018, M-019</depends>
-      <verification-ref>V-M-013b</verification-ref>
+      <depends>M-013-A, M-002, M-003, M-004, M-005, M-006, M-007, M-008, M-009, M-010, M-014, M-015, M-016, M-017, M-018, M-019</depends>
+      <verification-ref>V-M-013-B</verification-ref>
       <annotations>
         <export-ipc PURPOSE="Facade namespaces for runtime commands and events (frontend; planned B2)" />
         <fn-ipcClipboard PURPOSE="@electron/remote.clipboard replacement (frontend; planned B2)" />
         <fn-ipcWindow PURPOSE="@electron/remote.getCurrentWindow replacement (frontend; planned B2)" />
         <fn-ipcContextMenu PURPOSE="@electron/remote.Menu/MenuItem replacement (frontend; planned B2)" />
-        <type-IpcError PURPOSE="Backend Rust structured error envelope: {code, message, command, planned_phase}; serializes to JSON for renderer M-013a" />
+        <type-IpcError PURPOSE="Backend Rust structured error envelope: {code, message, command, planned_phase}; serializes to JSON for renderer M-013-A" />
         <fn-mt_fs_read PURPOSE="Backend stub for mt::fs::read; planned_phase B2-step-2 (M-002)" />
         <fn-mt_fs_write PURPOSE="Backend stub for mt::fs::write; planned_phase B2-step-2 (M-002)" />
         <fn-mt_fs_stat PURPOSE="Backend stub for mt::fs::stat; returns FsStat plain shape mirroring v1.2.3 contextBridge structured-clone-safe return; planned_phase B2-step-2 (M-002)" />
@@ -353,10 +353,10 @@
         <files>src-tauri/src/m013b/{error,fs,search,watch,mod}.rs (435 LOC) + tauri::generate_handler! registration in main.rs</files>
         <verification>cargo test --bin mark = 61 passed (47 baseline + 14 m013b: 3 error + 5 fs + 3 search + 2 watch + 1 mod); zero panic/unwrap/expect in production code paths</verification>
         <log-markers-shipped>9 [m013b][${kind}][BLOCK_MT_${KIND}_${ACTION}_NOT_IMPLEMENTED] markers (one per command)</log-markers-shipped>
-        <known-gap>Tauri command name limitation: Rust function names can't contain `::`; M-013a CommandName 'mt::*' must translate to 'mt_*' before ipcInvoke. B1 step-6.5 follow-up adds translation in invoke.ts.</known-gap>
-        <frontend-status>Frontend ipc/runtime/ namespace (ipcClipboard / ipcWindow / ipcContextMenu) is still planned — lands in Phase-B2 once M-013b backend grows real fs/search/watch impls.</frontend-status>
+        <known-gap>Tauri command name limitation: Rust function names can't contain `::`; M-013-A CommandName 'mt::*' must translate to 'mt_*' before ipcInvoke. B1 step-6.5 follow-up adds translation in invoke.ts.</known-gap>
+        <frontend-status>Frontend ipc/runtime/ namespace (ipcClipboard / ipcWindow / ipcContextMenu) is still planned — lands in Phase-B2 once M-013-B backend grows real fs/search/watch impls.</frontend-status>
       </stub-ship-evidence>
-    </M-013b>
+    </M-013-B>
 
     <M-021 NAME="mt-fs-core" TYPE="CORE_LOGIC" STATUS="planned">
       <purpose>Internal Rust filesystem primitive layer for validated open, raw byte IO, atomic write, trash fallback, and per-path mutexes.</purpose>
@@ -612,12 +612,12 @@
 
     <CrossLink from="M-011" to="M-012" relation="hosts" />
     <CrossLink from="M-011" to="M-013" relation="uses-ipc-from" />
-    <CrossLink from="M-011" to="M-013a" relation="uses-ipc-contract-from" />
-    <CrossLink from="M-011" to="M-013b" relation="uses-ipc-runtime-from" />
+    <CrossLink from="M-011" to="M-013-A" relation="uses-ipc-contract-from" />
+    <CrossLink from="M-011" to="M-013-B" relation="uses-ipc-runtime-from" />
 
-    <CrossLink from="M-013" to="M-013a" relation="split-contract-layer" />
-    <CrossLink from="M-013" to="M-013b" relation="split-runtime-layer" />
-    <CrossLink from="M-013b" to="M-013a" relation="implements-contract-from" />
+    <CrossLink from="M-013" to="M-013-A" relation="split-contract-layer" />
+    <CrossLink from="M-013" to="M-013-B" relation="split-runtime-layer" />
+    <CrossLink from="M-013-B" to="M-013-A" relation="implements-contract-from" />
     <CrossLink from="M-013" to="M-002" relation="invokes-commands-on" />
     <CrossLink from="M-013" to="M-003" relation="listens-events-from" />
     <CrossLink from="M-013" to="M-004" relation="invokes-commands-on" />
@@ -631,21 +631,21 @@
     <CrossLink from="M-013" to="M-017" relation="invokes-commands-on" />
     <CrossLink from="M-013" to="M-018" relation="invokes-commands-on" />
     <CrossLink from="M-013" to="M-019" relation="invokes-commands-on" />
-    <CrossLink from="M-013b" to="M-002" relation="invokes-commands-on" />
-    <CrossLink from="M-013b" to="M-003" relation="listens-events-from" />
-    <CrossLink from="M-013b" to="M-004" relation="invokes-commands-on" />
-    <CrossLink from="M-013b" to="M-005" relation="invokes-commands-on" />
-    <CrossLink from="M-013b" to="M-006" relation="invokes-commands-on" />
-    <CrossLink from="M-013b" to="M-007" relation="invokes-commands-on" />
-    <CrossLink from="M-013b" to="M-008" relation="invokes-commands-on" />
-    <CrossLink from="M-013b" to="M-009" relation="invokes-commands-on" />
-    <CrossLink from="M-013b" to="M-010" relation="validates-through" />
-    <CrossLink from="M-013b" to="M-014" relation="invokes-commands-on" />
-    <CrossLink from="M-013b" to="M-015" relation="invokes-commands-on" />
-    <CrossLink from="M-013b" to="M-016" relation="listens-events-from" />
-    <CrossLink from="M-013b" to="M-017" relation="invokes-commands-on" />
-    <CrossLink from="M-013b" to="M-018" relation="invokes-commands-on" />
-    <CrossLink from="M-013b" to="M-019" relation="invokes-commands-on" />
+    <CrossLink from="M-013-B" to="M-002" relation="invokes-commands-on" />
+    <CrossLink from="M-013-B" to="M-003" relation="listens-events-from" />
+    <CrossLink from="M-013-B" to="M-004" relation="invokes-commands-on" />
+    <CrossLink from="M-013-B" to="M-005" relation="invokes-commands-on" />
+    <CrossLink from="M-013-B" to="M-006" relation="invokes-commands-on" />
+    <CrossLink from="M-013-B" to="M-007" relation="invokes-commands-on" />
+    <CrossLink from="M-013-B" to="M-008" relation="invokes-commands-on" />
+    <CrossLink from="M-013-B" to="M-009" relation="invokes-commands-on" />
+    <CrossLink from="M-013-B" to="M-010" relation="validates-through" />
+    <CrossLink from="M-013-B" to="M-014" relation="invokes-commands-on" />
+    <CrossLink from="M-013-B" to="M-015" relation="invokes-commands-on" />
+    <CrossLink from="M-013-B" to="M-016" relation="listens-events-from" />
+    <CrossLink from="M-013-B" to="M-017" relation="invokes-commands-on" />
+    <CrossLink from="M-013-B" to="M-018" relation="invokes-commands-on" />
+    <CrossLink from="M-013-B" to="M-019" relation="invokes-commands-on" />
 
     <!-- New module wiring -->
     <CrossLink from="M-001" to="M-014" relation="decodes-files-via" />
@@ -681,8 +681,8 @@
     <CrossLink from="M-906" to="M-904" relation="graph-represents" />
     <CrossLink from="M-906" to="M-905" relation="graph-represents" />
     <CrossLink from="M-901" to="M-001" relation="runtime-scope-boundary" />
-    <CrossLink from="M-901" to="M-013a" relation="runtime-scope-boundary" />
-    <CrossLink from="M-901" to="M-013b" relation="runtime-scope-boundary" />
+    <CrossLink from="M-901" to="M-013-A" relation="runtime-scope-boundary" />
+    <CrossLink from="M-901" to="M-013-B" relation="runtime-scope-boundary" />
     <CrossLink from="M-901" to="M-021" relation="runtime-scope-boundary" />
     <CrossLink from="M-901" to="M-022" relation="runtime-scope-boundary" />
     <CrossLink from="M-024" to="M-001" relation="dismounts-after-vue-mount" />

@@ -6,7 +6,7 @@
 //            line against a regex::Regex compiled from the user's
 //            options (literal/regex/case-insensitive/whole-word),
 //            streams batches of hits through tauri::AppHandle::emit on
-//            the 'mt::search-event' channel that M-013a useIpcListener
+//            the 'mt::search-event' channel that M-013-A useIpcListener
 //            consumes.
 //   SCOPE:   content search only. Path-only "find by name" → M-002
 //            mt_fs_readdir + renderer-side filter. Real ripgrep binary
@@ -97,7 +97,7 @@ pub struct SearchHit {
 
 /// Outbound event payload. Renderer parses {searchId, kind, hits[],
 /// error?}. The kind discriminator is "match" | "complete" | "error" |
-/// "cancelled" — same shape M-013a's RipgrepDirectorySearcher expects.
+/// "cancelled" — same shape M-013-A's RipgrepDirectorySearcher expects.
 #[derive(Serialize, Debug, Clone)]
 pub struct SearchEvent {
     #[serde(rename = "searchId")]
@@ -353,7 +353,7 @@ pub fn run_search(
 
 /// Spawn a search across one or more directories. Returns immediately;
 /// results stream via mt::search-event events. Renderer's
-/// RipgrepDirectorySearcher subscribes via M-013a useIpcListener.
+/// RipgrepDirectorySearcher subscribes via M-013-A useIpcListener.
 #[tauri::command]
 pub async fn mt_search_spawn(
     search_id: String,

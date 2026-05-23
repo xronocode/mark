@@ -1,10 +1,10 @@
 // MODULE_CONTRACT
-//   PURPOSE: Type-level surface for the M-013a frontend IPC contract.
+//   PURPOSE: Type-level surface for the M-013-A frontend IPC contract.
 //   SCOPE:   Command name set, payload/result discriminated unions, error
 //            code enum. NOT runtime — pure types + a string-literal union
 //            that downstream code grep-checks against fixture parity.
 //   DEPENDS: (none — LAYER=0)
-//   LINKS:   docs/knowledge-graph.xml M-013a, docs/development-plan.xml
+//   LINKS:   docs/knowledge-graph.xml M-013-A, docs/development-plan.xml
 //            Phase-B1 step-2.
 //   STATUS:  Phase-B1 stub. Command set grows in B2 (fs/search/watcher),
 //            B3 (prefs/shortcuts/spell/fonts/menu/recent/datacenter/cli/
@@ -54,7 +54,7 @@ export class IpcError extends Error {
  * requires Rust-identifier names).
  *
  * Pattern: every command name MUST start with `mt::` and use lowercase
- * snake_case for each segment. CI grep enforces this in V-M-013a.
+ * snake_case for each segment. CI grep enforces this in V-M-013-A.
  *
  * Phase-B1 stub state: 9 commands registered (5 fs + 2 search + 2 watch)
  * + 1 typecheck-only ping. All handlers return Err(MT_NOT_IMPLEMENTED)
@@ -130,7 +130,7 @@ export interface SearchOptions {
 }
 
 /**
- * Per-command args/result pairs. Extended each phase as M-013b grows
+ * Per-command args/result pairs. Extended each phase as M-013-B grows
  * real impls. Empty args use `Record<string, never>` so a renderer
  * caller is forced to pass `{}` rather than rely on undefined.
  */

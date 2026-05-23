@@ -1,5 +1,5 @@
 // MODULE_CONTRACT
-//   PURPOSE: M-013b frontend facade for the file-watcher. subscribe()
+//   PURPOSE: M-013-B frontend facade for the file-watcher. subscribe()
 //            registers a listener, calls mt::watch::subscribe, returns
 //            a dispose function that both unregisters the listener and
 //            calls mt::watch::unsubscribe. Mirrors v1.2.3's chokidar-
@@ -8,7 +8,7 @@
 //   SCOPE:   subscribe + unsubscribe. Streaming events flow on the
 //            'mt::watch::event' Tauri channel; we filter by
 //            subscriptionId so multiple subscriptions don't cross-feed.
-//   DEPENDS: M-013a contract (ipcInvoke, useIpcListener, IpcError).
+//   DEPENDS: M-013-A contract (ipcInvoke, useIpcListener, IpcError).
 //   LINKS:   docs/development-plan.xml Phase-B2 step-5;
 //            src-tauri/src/m013b/watch.rs WATCH_EVENT_CHANNEL constant.
 //   STATUS:  Phase-B2 step-5 shipped.

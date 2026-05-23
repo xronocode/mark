@@ -18,7 +18,7 @@
 
 use serde::Serialize;
 
-/// Error envelope distinct from M-013b's MT_NOT_IMPLEMENTED.
+/// Error envelope distinct from M-013-B's MT_NOT_IMPLEMENTED.
 /// MT_UNSUPPORTED = "deliberately not built; expected to fail forever
 /// at this layer". MT_NOT_IMPLEMENTED = "stub awaiting Phase-B2/B3
 /// real impl". Renderer code branches on this distinction to grey

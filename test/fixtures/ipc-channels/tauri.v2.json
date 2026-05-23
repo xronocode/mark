@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "source": {
-    "module": "M-013a",
+    "module": "M-013-A",
     "file": "src/renderer/src/ipc/contract/types.ts",
     "generated_from": "CommandMap interface"
   },
@@ -21,7 +21,7 @@
       "name": "mt::fonts::list",
       "direction": "renderer->main",
       "transport": "invoke",
-      "layer": "M-013a",
+      "layer": "M-013-A",
       "has_args": true,
       "has_result": true
     },
@@ -29,7 +29,7 @@
       "name": "mt::fs::read",
       "direction": "renderer->main",
       "transport": "invoke",
-      "layer": "M-013a",
+      "layer": "M-013-A",
       "has_args": true,
       "has_result": true
     },
@@ -37,7 +37,7 @@
       "name": "mt::fs::readdir",
       "direction": "renderer->main",
       "transport": "invoke",
-      "layer": "M-013a",
+      "layer": "M-013-A",
       "has_args": true,
       "has_result": true
     },
@@ -45,7 +45,7 @@
       "name": "mt::fs::stat",
       "direction": "renderer->main",
       "transport": "invoke",
-      "layer": "M-013a",
+      "layer": "M-013-A",
       "has_args": true,
       "has_result": true
     },
@@ -53,7 +53,7 @@
       "name": "mt::fs::unlink",
       "direction": "renderer->main",
       "transport": "invoke",
-      "layer": "M-013a",
+      "layer": "M-013-A",
       "has_args": true,
       "has_result": true
     },
@@ -61,7 +61,7 @@
       "name": "mt::fs::write",
       "direction": "renderer->main",
       "transport": "invoke",
-      "layer": "M-013a",
+      "layer": "M-013-A",
       "has_args": true,
       "has_result": true
     },
@@ -69,7 +69,7 @@
       "name": "mt::menu::taxonomy",
       "direction": "renderer->main",
       "transport": "invoke",
-      "layer": "M-013a",
+      "layer": "M-013-A",
       "has_args": true,
       "has_result": true
     },
@@ -77,7 +77,7 @@
       "name": "mt::pandoc::export",
       "direction": "renderer->main",
       "transport": "invoke",
-      "layer": "M-013a",
+      "layer": "M-013-A",
       "has_args": true,
       "has_result": true
     },
@@ -85,7 +85,7 @@
       "name": "mt::pandoc::status",
       "direction": "renderer->main",
       "transport": "invoke",
-      "layer": "M-013a",
+      "layer": "M-013-A",
       "has_args": true,
       "has_result": true
     },
@@ -93,7 +93,7 @@
       "name": "mt::ping",
       "direction": "renderer->main",
       "transport": "invoke",
-      "layer": "M-013a",
+      "layer": "M-013-A",
       "has_args": true,
       "has_result": true
     },
@@ -101,7 +101,7 @@
       "name": "mt::prefs::get",
       "direction": "renderer->main",
       "transport": "invoke",
-      "layer": "M-013a",
+      "layer": "M-013-A",
       "has_args": true,
       "has_result": true
     },
@@ -109,7 +109,7 @@
       "name": "mt::prefs::get_all",
       "direction": "renderer->main",
       "transport": "invoke",
-      "layer": "M-013a",
+      "layer": "M-013-A",
       "has_args": true,
       "has_result": true
     },
@@ -117,7 +117,7 @@
       "name": "mt::prefs::set",
       "direction": "renderer->main",
       "transport": "invoke",
-      "layer": "M-013a",
+      "layer": "M-013-A",
       "has_args": true,
       "has_result": true
     },
@@ -125,7 +125,7 @@
       "name": "mt::print_to_pdf",
       "direction": "renderer->main",
       "transport": "invoke",
-      "layer": "M-013a",
+      "layer": "M-013-A",
       "has_args": true,
       "has_result": true
     },
@@ -133,7 +133,7 @@
       "name": "mt::recent::add",
       "direction": "renderer->main",
       "transport": "invoke",
-      "layer": "M-013a",
+      "layer": "M-013-A",
       "has_args": true,
       "has_result": true
     },
@@ -141,7 +141,7 @@
       "name": "mt::recent::clear",
       "direction": "renderer->main",
       "transport": "invoke",
-      "layer": "M-013a",
+      "layer": "M-013-A",
       "has_args": true,
       "has_result": true
     },
@@ -149,7 +149,7 @@
       "name": "mt::recent::list",
       "direction": "renderer->main",
       "transport": "invoke",
-      "layer": "M-013a",
+      "layer": "M-013-A",
       "has_args": true,
       "has_result": true
     },
@@ -157,7 +157,7 @@
       "name": "mt::screenshot::capture",
       "direction": "renderer->main",
       "transport": "invoke",
-      "layer": "M-013a",
+      "layer": "M-013-A",
       "has_args": true,
       "has_result": true
     },
@@ -165,7 +165,7 @@
       "name": "mt::search::cancel",
       "direction": "renderer->main",
       "transport": "invoke",
-      "layer": "M-013a",
+      "layer": "M-013-A",
       "has_args": true,
       "has_result": true
     },
@@ -173,7 +173,7 @@
       "name": "mt::search::spawn",
       "direction": "renderer->main",
       "transport": "invoke",
-      "layer": "M-013a",
+      "layer": "M-013-A",
       "has_args": true,
       "has_result": true
     },
@@ -181,7 +181,7 @@
       "name": "mt::secret::delete",
       "direction": "renderer->main",
       "transport": "invoke",
-      "layer": "M-013a",
+      "layer": "M-013-A",
       "has_args": true,
       "has_result": true
     },
@@ -189,7 +189,7 @@
       "name": "mt::secret::get",
       "direction": "renderer->main",
       "transport": "invoke",
-      "layer": "M-013a",
+      "layer": "M-013-A",
       "has_args": true,
       "has_result": true
     },
@@ -197,7 +197,7 @@
       "name": "mt::secret::set",
       "direction": "renderer->main",
       "transport": "invoke",
-      "layer": "M-013a",
+      "layer": "M-013-A",
       "has_args": true,
       "has_result": true
     },
@@ -205,7 +205,7 @@
       "name": "mt::shortcut::list",
       "direction": "renderer->main",
       "transport": "invoke",
-      "layer": "M-013a",
+      "layer": "M-013-A",
       "has_args": true,
       "has_result": true
     },
@@ -213,7 +213,7 @@
       "name": "mt::shortcut::register",
       "direction": "renderer->main",
       "transport": "invoke",
-      "layer": "M-013a",
+      "layer": "M-013-A",
       "has_args": true,
       "has_result": true
     },
@@ -221,7 +221,7 @@
       "name": "mt::shortcut::unregister",
       "direction": "renderer->main",
       "transport": "invoke",
-      "layer": "M-013a",
+      "layer": "M-013-A",
       "has_args": true,
       "has_result": true
     },
@@ -229,7 +229,7 @@
       "name": "mt::spell::get_config",
       "direction": "renderer->main",
       "transport": "invoke",
-      "layer": "M-013a",
+      "layer": "M-013-A",
       "has_args": true,
       "has_result": true
     },
@@ -237,7 +237,7 @@
       "name": "mt::spell::set_enabled",
       "direction": "renderer->main",
       "transport": "invoke",
-      "layer": "M-013a",
+      "layer": "M-013-A",
       "has_args": true,
       "has_result": true
     },
@@ -245,7 +245,7 @@
       "name": "mt::spell::set_lang",
       "direction": "renderer->main",
       "transport": "invoke",
-      "layer": "M-013a",
+      "layer": "M-013-A",
       "has_args": true,
       "has_result": true
     },
@@ -253,7 +253,7 @@
       "name": "mt::updater::check",
       "direction": "renderer->main",
       "transport": "invoke",
-      "layer": "M-013a",
+      "layer": "M-013-A",
       "has_args": true,
       "has_result": true
     },
@@ -261,7 +261,7 @@
       "name": "mt::watch::subscribe",
       "direction": "renderer->main",
       "transport": "invoke",
-      "layer": "M-013a",
+      "layer": "M-013-A",
       "has_args": true,
       "has_result": true
     },
@@ -269,7 +269,7 @@
       "name": "mt::watch::unsubscribe",
       "direction": "renderer->main",
       "transport": "invoke",
-      "layer": "M-013a",
+      "layer": "M-013-A",
       "has_args": true,
       "has_result": true
     },
@@ -277,7 +277,7 @@
       "name": "mt::workspace::set",
       "direction": "renderer->main",
       "transport": "invoke",
-      "layer": "M-013a",
+      "layer": "M-013-A",
       "has_args": true,
       "has_result": true
     }

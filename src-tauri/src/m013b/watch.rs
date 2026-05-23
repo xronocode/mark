@@ -2,7 +2,7 @@
 //   PURPOSE: M-003 mt-fs-watcher real impl. Tauri commands subscribe /
 //            unsubscribe drive a notify-debouncer-full watcher; events
 //            are emitted on the 'mt::watch::event' channel that the
-//            M-013a useIpcListener consumes.
+//            M-013-A useIpcListener consumes.
 //   SCOPE:   subscribe (returns subscription_id) + unsubscribe by id.
 //            Streaming events flow through tauri::AppHandle::emit;
 //            the registry below holds the active debouncers so
@@ -42,7 +42,7 @@ use tauri::{AppHandle, Emitter, State};
 /// budget.
 pub const DEBOUNCE_TICK: Duration = Duration::from_millis(200);
 
-/// Tauri event channel name. M-013a useIpcListener subscribes here.
+/// Tauri event channel name. M-013-A useIpcListener subscribes here.
 pub const WATCH_EVENT_CHANNEL: &str = "mt::watch::event";
 
 /// Stable kind strings emitted over the wire. Renderer matches on
@@ -59,7 +59,7 @@ fn map_event_kind(k: &EventKind) -> &'static str {
 }
 
 /// Outbound event payload. Renderer listener parses this from Tauri's
-/// event envelope. camelCase rename matches M-013a CommandMap shape.
+/// event envelope. camelCase rename matches M-013-A CommandMap shape.
 #[derive(Serialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct WatchEvent {

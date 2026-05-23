@@ -6,7 +6,7 @@
     "commit": "e4d9e4210ee43aaad0d159e03e35be1e92524734",
     "file": "src/preload/index.js"
   },
-  "purpose": "v1.2.3 preload contextBridge surface. Each entry is a window.* property the renderer can use; M-013b must emulate the same API surface so renderer code transfers without changes (variant-(a) port decision).",
+  "purpose": "v1.2.3 preload contextBridge surface. Each entry is a window.* property the renderer can use; M-013-B must emulate the same API surface so renderer code transfers without changes (variant-(a) port decision).",
   "counts": {
     "surfaces": 6
   },

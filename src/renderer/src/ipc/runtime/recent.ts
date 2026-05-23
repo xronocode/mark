@@ -3,7 +3,7 @@
 //            typed ipcInvoke; bounded list (10 items, dedupe-by-path,
 //            most-recent-first) is enforced backend-side.
 //   SCOPE:   thin wrappers; no per-platform OS integration.
-//   DEPENDS: M-013a contract.
+//   DEPENDS: M-013-A contract.
 //   LINKS:   docs/development-plan.xml Phase-B3 step-8.
 //   STATUS:  Phase-B3 step-8 shipped.
 //

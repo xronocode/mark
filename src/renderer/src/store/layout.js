@@ -86,7 +86,7 @@ export const useLayoutStore = defineStore('layout', {
         // mt::view-layout-changed persists layout state via the v1-compat
         // mt_view_layout_changed Rust command (m_v1_compat.rs). We stay on
         // the ipcRenderer shim because the backend command lives in the
-        // compat layer and is not surfaced through the canonical M-013a
+        // compat layer and is not surfaced through the canonical M-013-A
         // typed contract; migration to ipcInvoke would require adding a
         // v1-compat command to the canonical surface.
         const { windowId } = window.marktext.env

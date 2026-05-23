@@ -26,10 +26,10 @@ The existing XML artifacts contain strong late addenda, but the canonical B1-B4 
 Deliverables:
 - Repair invalid XML in `docs/development-plan.xml`.
 - Fold mandatory addenda into canonical `DevelopmentPlan`, `VerificationPlan`, and `KnowledgeGraph`.
-- Add canonical `M-021`, `M-013a`, and `M-013b`.
+- Add canonical `M-021`, `M-013-A`, and `M-013-B`.
 - Replace stale `Gate-Phase-B1..B4` entries with measurable gates.
 - Add Phase-A main-process module mappings for every `mark-electron/src/main` owner.
-- Split `M-013a mt-ipc-contract` and `M-013b mt-ipc-runtime` into separate graph nodes, contracts, V-M entries, and phase gates.
+- Split `M-013-A mt-ipc-contract` and `M-013-B mt-ipc-runtime` into separate graph nodes, contracts, V-M entries, and phase gates.
 
 Gate:
 - XML parses.
@@ -53,7 +53,7 @@ Deliverables:
 - `src-tauri/src/migration_strings.rs` contains pre-window native-dialog strings for 10 locales.
 - `sys_locale` detection is wired before WebView creation.
 - `M-005` migration stub aborts with `MT_PREFS_V1_RUNNING` when legacy data is present until full B3 migration ships.
-- End-to-end `trace_id`, `req_id`, `session_chain_id`, and `BLOCK_*` marker schema is defined for `M-001`, `M-009`, `M-011`, `M-013a`, and `M-013b`.
+- End-to-end `trace_id`, `req_id`, `session_chain_id`, and `BLOCK_*` marker schema is defined for `M-001`, `M-009`, `M-011`, `M-013-A`, and `M-013-B`.
 - Renderer cleanup preflight has zero production-bundle usages of Node core modules or globals: `fs`, `path`, `child_process`, `crypto`, `Buffer`, `os.tmpdir`, `process` escape hatches, `node:*`, and deep `electron` imports.
 
 Gate:
@@ -66,8 +66,8 @@ Gate:
 
 Modules:
 - `M-001 mt-tauri-shell`
-- `M-013a mt-ipc-contract`
-- `M-013b mt-ipc-runtime` skeleton only
+- `M-013-A mt-ipc-contract`
+- `M-013-B mt-ipc-runtime` skeleton only
 - `M-011 mt-renderer` bootstrap adapter
 - `M-012 muya` unchanged
 
@@ -122,18 +122,18 @@ Modules:
 - `M-003 mt-fs-watcher`
 - `M-004 mt-search`
 - `M-002 mt-fs-commands`
-- `M-013b` concrete fs/search/watcher bridge
+- `M-013-B` concrete fs/search/watcher bridge
 - `M-014 mt-encoding` read/write path integration
 
 Order:
 1. `M-010` path, URL, shell, sanitizer, KaTeX, Vega policy.
-2. `M-013b` command/event signatures for fs/search/watcher are skeletonized.
+2. `M-013-B` command/event signatures for fs/search/watcher are skeletonized.
 3. `M-021`, `M-003`, and `M-004` run in parallel against the skeletonized contracts; `M-003/M-004` use the stable M-021 interface shape and do not call public `M-002`.
 4. `M-002` is implemented serially as public IPC commands wrapping `M-021`; internal Rust modules must not call `M-002`.
-5. `M-013b` enables concrete fs/search/watcher wiring.
+5. `M-013-B` enables concrete fs/search/watcher wiring.
 
 Gate:
-- `V-M-010`, `V-M-021`, `V-M-002`, `V-M-003`, `V-M-004`, `V-M-013a`, `V-M-013b`.
+- `V-M-010`, `V-M-021`, `V-M-002`, `V-M-003`, `V-M-004`, `V-M-013-A`, `V-M-013-B`.
 - Cross-engine sanitizer B2 corpus count follows the current GO/NO-GO gate: 27 payloads in WKWebView/WebView2/webkit2gtk. If the checked-in fixture contains 30 payloads, all checked-in payloads must pass by B4 and the count must be normalized during artifact sync.
 - Atomic-write tests cover crash points at temp-create, temp-write, temp-fsync, metadata-copy, rename, parent-dir-fsync, cleanup failure, ENOSPC, SIGKILL windows, symlink swap, non-regular inode, APFS/ext4/NTFS evidence, permissions, executable bit, macOS xattrs/resource forks, and hardlink behavior.
 - Watcher payload parity covers file vs directory modes, markdown load payloads, self-change suppression, ENOSPC once, Linux atomic rename rewatch, per-window cleanup.
@@ -195,10 +195,10 @@ Gate:
 |---|---|---|
 | `index.js`, `app/index.js`, `app/env.js`, `app/paths.js` | M-001, M-020, M-005 | startup, CLI, paths, lifecycle |
 | `cli/index.js`, `cli/parser.js` | M-020, M-001 | CLI flags, usage, portable mode, startup handoff |
-| `app/accessor.js` | M-001, M-005, M-009, M-013b | dependency injection, command/menu/window/data stores |
-| `app/windowManager.js`, `windows/*` | M-001, M-013b | window registry, close state machine, event bus |
-| `commands/*`, `menu/actions/*`, `menu/templates/*`, `menu/index.js` | M-009, M-013a, M-013b | M-013a owns command/menu schema taxonomy; M-013b owns runtime native dispatch and per-window menu state |
-| `contextMenu/editor/*` | M-009, M-007, M-013b | native context menu and spelling actions |
+| `app/accessor.js` | M-001, M-005, M-009, M-013-B | dependency injection, command/menu/window/data stores |
+| `app/windowManager.js`, `windows/*` | M-001, M-013-B | window registry, close state machine, event bus |
+| `commands/*`, `menu/actions/*`, `menu/templates/*`, `menu/index.js` | M-009, M-013-A, M-013-B | M-013-A owns command/menu schema taxonomy; M-013-B owns runtime native dispatch and per-window menu state |
+| `contextMenu/editor/*` | M-009, M-007, M-013-B | native context menu and spelling actions |
 | `filesystem/*` | M-021, M-002, M-014 | raw bytes, markdown load/save, encoding, atomicity |
 | `filesystem/watcher.js` | M-003, M-014, M-011 | event payload parity and markdown reload coupling |
 | `preferences/*` | M-005 | four-store migration, schema validation |
@@ -217,29 +217,29 @@ Gate:
 
 | Flow | Modules | Evidence |
 |---|---|---|
-| `VF-001 WYSIWYG` | M-011, M-012, M-013a, M-013b, M-002, M-021 | open/edit/source-toggle/save, trace chain read-parse-render-write |
-| `VF-002 Folder Search` | M-003, M-004, M-013b | 10k files, first result <= 500ms, watcher update <= 500ms |
-| `VF-003 Security` | M-010, M-012, M-013b | 27-payload B2 cross-engine corpus, extended fixture by B4, shell prompt before open |
+| `VF-001 WYSIWYG` | M-011, M-012, M-013-A, M-013-B, M-002, M-021 | open/edit/source-toggle/save, trace chain read-parse-render-write |
+| `VF-002 Folder Search` | M-003, M-004, M-013-B | 10k files, first result <= 500ms, watcher update <= 500ms |
+| `VF-003 Security` | M-010, M-012, M-013-B | 27-payload B2 cross-engine corpus, extended fixture by B4, shell prompt before open |
 | `VF-004 Homebrew` | release, cask | install, upgrade, rollback, livecheck, xattr, codesign |
 | `VF-005 Release` | CI, updater, cask | macOS blocking jobs, artifacts, sha256, cask PR |
 | `VF-006 Encoding` | M-014, M-021, M-002 | 28 codecs, BOM, CRLF/mixed, no-edit byte equality |
 | `VF-007 Pandoc` | M-015, M-010, M-021 | missing tool, TeX path, timeout, cancel, tab-close race |
 | `VF-008 Updater` | M-016 | signed feed, tamper, downgrade, quarantine strip |
-| `VF-009 Command/Menu` | M-009, M-013a, M-013b | 128 menu taxonomy, command palette, stale window generation |
-| `VF-010 Renderer Cleanup` | M-011, M-013a, M-013b | restricted imports, bundle grep, runtime isolation smoke |
+| `VF-009 Command/Menu` | M-009, M-013-A, M-013-B | 128 menu taxonomy, command palette, stale window generation |
+| `VF-010 Renderer Cleanup` | M-011, M-013-A, M-013-B | restricted imports, bundle grep, runtime isolation smoke |
 | `VF-011 IME Composition` | M-012, M-011 | six handlers gated by composition lock, CJK runtime traces |
 | `VF-012 Table Roundtrip` | M-012 | leading pipe escape, short rows, no `undefined`, byte roundtrip |
 | `VF-013 Perf Budget` | M-001, M-011, M-012 | B1 5k smoke, B4 50k/100k soak, long-task trace |
 | `VF-014 FS Atomicity` | M-021, M-002 | fd-held validation, fsync ordering, ENOSPC/SIGKILL/FS matrix |
-| `VF-015 Trace Contract` | M-001, M-009, M-011, M-013a, M-013b | trace_id, req_id, session_chain_id, BLOCK markers, fanout confirmation |
-| `VF-016 Preload/Remote/Dialog Lifecycle` | M-001, M-009, M-013a, M-013b | preload globals, remote shims, typed dialog outcomes, replay/drop policy |
+| `VF-015 Trace Contract` | M-001, M-009, M-011, M-013-A, M-013-B | trace_id, req_id, session_chain_id, BLOCK markers, fanout confirmation |
+| `VF-016 Preload/Remote/Dialog Lifecycle` | M-001, M-009, M-013-A, M-013-B | preload globals, remote shims, typed dialog outcomes, replay/drop policy |
 
 ## Risk Table
 
 | Risk | Severity | Mitigation | Gate |
 |---|---:|---|---|
 | Canonical XML drift | Critical | preflight canonicalization before code | Preflight |
-| M-013a/M-013b under-scoped | Critical | IPC/preload/remote fixtures, contract/runtime split, and separate verification entries | B-pre1/B1 |
+| M-013-A/M-013-B under-scoped | Critical | IPC/preload/remote fixtures, contract/runtime split, and separate verification entries | B-pre1/B1 |
 | Internal `ipcMain` event bus mismatch | Critical | Rust event bus + window registry | B1 |
 | Filesystem TOCTOU/data loss | Critical | M-021 fd-held validated paths + atomic writes | B2 |
 | Sanitizer mismatch across WebViews | Critical | 27-payload B2 corpus across three engines plus full checked-in corpus by B4 | B2/B4 |
@@ -254,7 +254,7 @@ Gate:
 ## Go/No-Go Checklist For Phase-B1 Gate
 
 - Preflight, B-pre1, and B-pre2 gates are green.
-- XML artifacts parse and contain canonical `M-013a`, `M-013b`, `M-021`.
+- XML artifacts parse and contain canonical `M-013-A`, `M-013-B`, `M-021`.
 - `mark-electron/src/main` owner mapping exists in graph or the master plan is accepted as temporary canonical input.
 - IPC/preload/remote/menu/sendSync fixtures are committed by the first B1 work item and before any bridge stub is accepted.
 - PDF strategy is chosen.
@@ -270,9 +270,9 @@ Gate:
 2. B-pre1: publish v1.1.0 user-data fixture and fixture pin lock.
 3. B-pre2: implement migration safety floor, trace contract, and renderer restricted-import preflight.
 4. Before each source edit: add MODULE_CONTRACT/MODULE_MAP to touched `mark-electron/src/main` owner or target Rust module.
-5. B1: generate legacy IPC/preload/remote/menu/internal-event snapshots, scaffold `src-tauri`, `M-001`, `M-013a`, `M-013b`, configure secure WebView shell, and run synthetic muya perf gate.
+5. B1: generate legacy IPC/preload/remote/menu/internal-event snapshots, scaffold `src-tauri`, `M-001`, `M-013-A`, `M-013-B`, configure secure WebView shell, and run synthetic muya perf gate.
 6. B1.5: run release-tauri.yml CI dry run, ad-hoc signing smoke, launch smoke, and footprint measurement.
-7. B2: implement `M-010`, skeletonize `M-013b` fs/search/watcher signatures, run `M-021`, `M-003`, and `M-004` in parallel against those contracts, then serialize `M-002` and concrete bridge integration.
+7. B2: implement `M-010`, skeletonize `M-013-B` fs/search/watcher signatures, run `M-021`, `M-003`, and `M-004` in parallel against those contracts, then serialize `M-002` and concrete bridge integration.
 8. B3: implement integrations in dependency waves; complete migration, updater, spell, menu, pandoc, datacenter gates.
 9. B3a: publish and test `mark@v1`, then cut `mark@alpha` with visible alpha warnings and rollback path.
 10. B4: complete arm64 v2.0 release, Homebrew upgrade/rollback, updater quarantine, footprint, perf soak, and compliance gates.

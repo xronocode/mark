@@ -60,7 +60,7 @@ fail; matched ones pass through.
 - rationale: B1 step-11 ships the lifecycle primitives (CloseStateMachine,
   MenuGeneration, ReplayPolicy) as the contract surface; tests
   exercise them in `#[cfg(test)]` but no production caller has landed
-  yet. Callers come in B2 (M-013b dispatch wiring ReplayPolicy) and
+  yet. Callers come in B2 (M-013-B dispatch wiring ReplayPolicy) and
   B3 step-12 (M-009 menu wiring MenuGeneration).
 - planned: resolved 2026-04-28 by adding `#![allow(dead_code)]` at
   module level in m001_lifecycle.rs. Suppression is intentional and
@@ -73,7 +73,7 @@ fail; matched ones pass through.
 - pattern: `unused imports?: .IpcError. and .MT_NOT_IMPLEMENTED.`
 - code: `unused_imports`
 - emitter: `src-tauri/src/m013b/mod.rs`
-- rationale: M-013b mod.rs re-exports `IpcError` and `MT_NOT_IMPLEMENTED`
+- rationale: M-013-B mod.rs re-exports `IpcError` and `MT_NOT_IMPLEMENTED`
   for downstream B2 consumers (`use crate::m013b::IpcError`). Internal
   callers (m013b::fs, search, watch) reach into `error::` directly,
   so the re-export has no in-tree user yet.
@@ -106,7 +106,7 @@ These categories MUST NEVER appear in cargo output, even via allowlist.
 The verifier rejects them unconditionally:
 
 - `unsafe_code` — Mark v2 builds with `#![deny(unsafe_code)]`-equivalent
-  posture. Any unsafe block in M-001..M-013b indicates a contract
+  posture. Any unsafe block in M-001..M-013-B indicates a contract
   violation requiring escalation.
 - Lints from rustc's `correctness` group (e.g. `unconditional_recursion`,
   `useless_attribute`) — always real bugs.

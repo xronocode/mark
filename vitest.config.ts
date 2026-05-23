@@ -60,7 +60,7 @@ export default defineConfig({
       'src/renderer/**/*.{test,spec}.{js,ts}',
       'tests/renderer/**/*.{test,spec}.{js,ts}'
     ],
-    // Existing M-013a contract stubs in src/renderer/src/ipc/**/*.test.ts
+    // Existing M-013-A contract stubs in src/renderer/src/ipc/**/*.test.ts
     // are TYPE-ONLY assertions (no describe/it blocks) consumed by
     // `npm run typecheck:ipc`, not by vitest. Exclude them here so vitest
     // doesn't fail on "No test suite found". Phase-4 may relocate them

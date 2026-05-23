@@ -17,7 +17,7 @@
 //              (6) m001_validate::validate_or_exit — embedded
 //                  tauri.v2.json fixture vs REGISTERED_COMMANDS parity
 //                  check. Drift → native dialog + exit(1).
-//              (7) tauri::Builder::default with M-013b + m001_pdf
+//              (7) tauri::Builder::default with M-013-B + m001_pdf
 //                  invoke handlers, then run.
 //   SCOPE:    process bootstrap orchestration only. NO command logic,
 //             NO file I/O beyond what legacy::detect_layouts and
@@ -30,7 +30,7 @@
 //             docs/verification-plan.xml V-M-001;
 //             docs/gate-phase-b1-closure.md (Gate-Phase-B1 verdict).
 //   STATUS:   Phase-B1 closed; M-001 is partially-implemented at the
-//             boot-orchestration layer. Real impls of M-013b commands
+//             boot-orchestration layer. Real impls of M-013-B commands
 //             ship in Phase-B2.
 //
 // CHANGE_SUMMARY:
@@ -49,7 +49,7 @@
 //     m001_validate (degraded-security binary running aligned IPC is
 //     worse than failing fast).
 //   - 2026-04-28 B1-step-8: m001_pdf::mt_print_to_pdf registered in
-//     generate_handler! alongside M-013b commands.
+//     generate_handler! alongside M-013-B commands.
 //   - 2026-04-28 B1-step-7: m001_validate::validate_or_exit added
 //     before tauri::Builder; embedded tauri.v2.json fixture parity check.
 //   - 2026-04-28 B1-step-6: m013b commands (5 fs + 2 search + 2 watch)
@@ -428,7 +428,7 @@ fn main() {
     // contract violations sneaking past code review.
     m001_validate::validate_or_exit();
 
-    // Phase-B2 step-2: M-013b commands gain real fs impls. SecurityCtx
+    // Phase-B2 step-2: M-013-B commands gain real fs impls. SecurityCtx
     // managed-state holds the active workspace sandbox; default = "/"
     // (permissive) until M-005 (B3 step-1) wires "Open Folder" → set
     // sandbox via menu/prefs. M-010 absolute-safety guards
@@ -776,7 +776,7 @@ fn main() {
             m001_save_close::mt_close_window_confirm,
             // M-021 (B4-pre-alpha-add): macOS .md default-handler
             // registration. Settings UI invokes these. Outside the
-            // M-013a typed CommandMap surface — see m001_validate.rs
+            // M-013-A typed CommandMap surface — see m001_validate.rs
             // header comment for the v1_compat / dev-helper exclusion.
             m021_default_handler::mt_set_default_md_handler,
             m021_default_handler::mt_get_default_md_handler,

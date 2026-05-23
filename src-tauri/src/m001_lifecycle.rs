@@ -11,7 +11,7 @@
 //            Plus the ReplayPolicy enum that documents which IPC event
 //            classes are replayable vs droppable post-window-destroy.
 //   SCOPE:   pure types + atomic counter. No Tauri runtime hooks —
-//            those wire up in post-B1 once M-013b ships real impls
+//            those wire up in post-B1 once M-013-B ships real impls
 //            and we have real windows to attach event handlers to.
 //   DEPENDS: stdlib only (sync::atomic).
 //   LINKS:   docs/development-plan.xml Phase-B1 step-11;
@@ -23,7 +23,7 @@
 //   - 2026-04-28 B1-step-11: initial state-machines + replay-drop spec.
 
 // Module-level allow(dead_code) is intentional. M-001 lifecycle types
-// are the contract surface for B2/B3 wiring (M-013b dispatch picks
+// are the contract surface for B2/B3 wiring (M-013-B dispatch picks
 // ReplayPolicy; M-009 menu calls bump_menu_generation; M-001 close
 // hooks drive CloseStateMachine). At B1 stub level, callers haven't
 // landed yet — tests exercise the surface in #[cfg(test)]. Release

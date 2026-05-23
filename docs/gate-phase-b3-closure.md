@@ -12,7 +12,7 @@ screenshot / menu)
 |---|-----------|--------|
 | 1 | cargo test --bin mark | ✅ 203 passed |
 | 2 | cargo build --release | ✅ 12 MB binary, zero warnings |
-| 3 | tsc --noEmit (M-013a + M-013b runtime + integrations) | ✅ clean |
+| 3 | tsc --noEmit (M-013-A + M-013-B runtime + integrations) | ✅ clean |
 | 4 | IPC fixture parity (33 commands ↔ REGISTERED_COMMANDS) | ✅ embedded_fixture green |
 | 5 | Per-module tests (B3): | ✅ 65 new tests across 11 modules |
 

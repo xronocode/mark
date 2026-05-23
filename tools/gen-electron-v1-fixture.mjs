@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Generate test/fixtures/ipc-channels/electron.v1.json — the frozen
-// reference of the mark-electron@v1.2.3 IPC surface that M-013b is
+// reference of the mark-electron@v1.2.3 IPC surface that M-013-B is
 // contractually obligated to emulate.
 //
 // Phase-B1 step-3 per docs/development-plan.xml. Reframed from the
@@ -73,7 +73,7 @@ function gitShow(repoPath, ref, path) {
 //   ipcRenderer.send/invoke/sendSync/once/on('channel', ...)
 //
 // For the v1.json fixture we focus on the MAIN-process surface (what
-// ipcMain knows about) since that's what M-013b emulates. Renderer
+// ipcMain knows about) since that's what M-013-B emulates. Renderer
 // callsites are captured in remote-callsites.v1.json (separate fixture
 // in step-5).
 
@@ -134,7 +134,7 @@ function extractOutbound(repoPath, ref) {
 // "blob-sha256" semantics: SHA-256 of the file content as it exists at
 // `ref`. Different from git's SHA-1 blob hash but gives us a cryptographic
 // pin that's audit-friendly and doesn't depend on git's internal hash
-// algorithm. Used by V-M-013a to detect drift from the frozen baseline.
+// algorithm. Used by V-M-013-A to detect drift from the frozen baseline.
 
 function buildPinLock(repoPath, ref, channels) {
   const files = new Set()

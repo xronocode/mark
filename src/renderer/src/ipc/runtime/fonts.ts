@@ -2,7 +2,7 @@
 //   PURPOSE: M-008 frontend fonts facade. List system fonts for the
 //            renderer font-picker (theme + editor + UI font prefs).
 //   SCOPE:   list only.
-//   DEPENDS: M-013a contract.
+//   DEPENDS: M-013-A contract.
 //   LINKS:   docs/development-plan.xml Phase-B3 step-6.
 //   STATUS:  Phase-B3 step-6 shipped.
 //

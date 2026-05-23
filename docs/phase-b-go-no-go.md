@@ -7,7 +7,7 @@
 **Reconciliation done:**
 - 6 master-plan-only items absorbed as `<Iteration4MasterPlanReconcile>` patches R4-1..R4-9
 - Phase-B-pre1, B-pre2, B1, B1.5, B3a, B4 promoted to canonical `<Phase-*>` elements in `<ImplementationOrder>`
-- M-013a, M-013b, M-021, M-022 promoted to canonical `<M-XXX>` entries in `<Modules>`
+- M-013-A, M-013-B, M-021, M-022 promoted to canonical `<M-XXX>` entries in `<Modules>`
 - M-901..M-906 already added by parallel agent
 - 16 verification flows VF-001..VF-016 documented (need mirror in verification-plan.xml)
 
@@ -39,7 +39,7 @@ Phase-B1 (2d)      ← Tauri Skeleton + muya WKWebView perf gate
     ↓
 Phase-B1.5 (1.5d)  ← release-tauri.yml CI dry-run
     ↓
-Phase-B2 (5-6d)    ← FS+Search+Security (waves: M-010 → M-013b skeleton → [M-021+M-003+M-004 parallel] → M-002 serial → integration)
+Phase-B2 (5-6d)    ← FS+Search+Security (waves: M-010 → M-013-B skeleton → [M-021+M-003+M-004 parallel] → M-002 serial → integration)
     ↓
 Phase-B3 (8-10d)   ← 12 Integration modules (5 parallel waves of ~2d each)
     ↓
@@ -182,10 +182,10 @@ Real-codebase grounding for Phase-B implementation. Each Tauri target absorbs th
 |---|---|---|
 | `index.js`, `app/index.js`, `app/env.js`, `app/paths.js` | M-001, M-020, M-005, M-022 | startup, CLI, paths, lifecycle |
 | `cli/index.js`, `cli/parser.js` | M-020, M-001 | CLI flags, usage, portable mode |
-| `app/accessor.js` | M-001, M-005, M-009, M-013b | DI; command/menu/window/data stores |
-| `app/windowManager.js`, `windows/*` | M-001, M-013b | window registry, close state machine, event bus |
-| `commands/*`, `menu/*` | M-009, M-013a, M-013b | M-013a owns schema taxonomy; M-013b owns runtime dispatch |
-| `contextMenu/editor/*` | M-009, M-007, M-013b | native context menu + spelling |
+| `app/accessor.js` | M-001, M-005, M-009, M-013-B | DI; command/menu/window/data stores |
+| `app/windowManager.js`, `windows/*` | M-001, M-013-B | window registry, close state machine, event bus |
+| `commands/*`, `menu/*` | M-009, M-013-A, M-013-B | M-013-A owns schema taxonomy; M-013-B owns runtime dispatch |
+| `contextMenu/editor/*` | M-009, M-007, M-013-B | native context menu + spelling |
 | `filesystem/*` | M-021, M-002, M-014 | raw bytes, markdown load/save, encoding, atomicity |
 | `filesystem/watcher.js` | M-003, M-014, M-011 | event payload parity, markdown reload |
 | `preferences/*` | M-005 | 4-store migration, schema validation |
@@ -207,22 +207,22 @@ End-to-end traceability anchors. Each flow pulls together multiple modules + sce
 
 | Flow | Modules | Evidence |
 |---|---|---|
-| VF-001 WYSIWYG | M-011, M-012, M-013a/b, M-002, M-021 | open/edit/source-toggle/save trace chain |
-| VF-002 FolderSearch | M-003, M-004, M-013b | 10k files; first result ≤500ms |
-| VF-003 Security | M-010, M-012, M-013b | 27-payload B2 cross-engine corpus |
+| VF-001 WYSIWYG | M-011, M-012, M-013-A/b, M-002, M-021 | open/edit/source-toggle/save trace chain |
+| VF-002 FolderSearch | M-003, M-004, M-013-B | 10k files; first result ≤500ms |
+| VF-003 Security | M-010, M-012, M-013-B | 27-payload B2 cross-engine corpus |
 | VF-004 Homebrew | release, cask | install/upgrade/rollback/livecheck/xattr/codesign |
 | VF-005 Release | CI, M-016, cask | macOS blocking jobs; sha256; cask PR via GitHub App |
 | VF-006 Encoding | M-014, M-021, M-002 | 28 codecs; BOM; CRLF/mixed; byte equality |
 | VF-007 Pandoc | M-015, M-010, M-021 | missing tool; TeX path; timeout; cancel |
 | VF-008 Updater | M-016 | signed feed; tamper; downgrade; quarantine; dual-pubkey rescue |
-| VF-009 CommandMenu | M-009, M-013a/b | 128-item menu taxonomy; command palette; stale gen |
-| VF-010 RendererCleanup | M-011, M-013a/b | restricted imports; bundle grep; runtime isolation |
+| VF-009 CommandMenu | M-009, M-013-A/b | 128-item menu taxonomy; command palette; stale gen |
+| VF-010 RendererCleanup | M-011, M-013-A/b | restricted imports; bundle grep; runtime isolation |
 | VF-011 IMEComposition | M-012, M-011 | 6 handlers gated by composition lock; CJK traces |
 | VF-012 TableRoundtrip | M-012 | leading pipe escape; short rows; no `undefined` |
 | VF-013 PerfBudget | M-001, M-011, M-012 | B1 5k smoke; B4 50k/100k soak; long-task trace |
 | VF-014 FSAtomicity | M-021, M-002 | fd-held; fsync ordering; ENOSPC/SIGKILL/FS matrix |
-| VF-015 TraceContract | M-001, M-009, M-011, M-013a/b | trace_id; req_id; session_chain_id; fanout |
-| VF-016 PreloadRemoteDialogLifecycle | M-001, M-009, M-013a/b | preload globals; remote shims; dialog outcomes |
+| VF-015 TraceContract | M-001, M-009, M-011, M-013-A/b | trace_id; req_id; session_chain_id; fanout |
+| VF-016 PreloadRemoteDialogLifecycle | M-001, M-009, M-013-A/b | preload globals; remote shims; dialog outcomes |
 
 ---
 

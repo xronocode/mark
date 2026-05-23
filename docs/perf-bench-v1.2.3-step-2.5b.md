@@ -8,7 +8,7 @@
 **Bundle:** `vite build` of bench entry only — main entry temporarily
 disabled because v1.2.3 renderer transitively pulls in
 `electron-log/renderer`, `@hfelix/electron-localshortcut`,
-`src/main/preferences/schema.json` — all to be re-shimmed by M-013b in B2.
+`src/main/preferences/schema.json` — all to be re-shimmed by M-013-B in B2.
 **Bundle size:** bench = 742 KB JS (gzip 201 KB) + lazy mermaid/vega/
 cytoscape chunks (~3 MB total uncompressed; only ~742 KB executed at boot).
 

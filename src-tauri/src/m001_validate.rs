@@ -37,13 +37,13 @@ const TAURI_V2_FIXTURE: &str =
 ///
 /// Keep this in sync with main.rs by hand. B2 step-1 introduces the
 /// macro that derives both lists from the same #[derive] hierarchy.
-// Scope: M-013a typed contract commands ONLY. v1_compat shims
+// Scope: M-013-A typed contract commands ONLY. v1_compat shims
 // (m_v1_compat::*) are intentionally outside this list — they do NOT
 // flow through the typed CommandMap and the validator only catches
-// drift in the M-013a contract surface. Same applies to dev-only
+// drift in the M-013-A contract surface. Same applies to dev-only
 // helpers like mt_dev_diag and save-flow handlers (mt_close_window,
 // mt_response_file_save*, mt_save_and_close_tabs) which are wired
-// through SavedTabState rather than M-013a CommandMap.
+// through SavedTabState rather than M-013-A CommandMap.
 const REGISTERED_COMMANDS: &[&str] = &[
     "mt_fonts_list",
     "mt_fs_read",
@@ -79,7 +79,7 @@ const REGISTERED_COMMANDS: &[&str] = &[
     "mt_workspace_set",
 ];
 
-/// `mt::ping` is declared in M-013a's CommandMap as a typecheck
+/// `mt::ping` is declared in M-013-A's CommandMap as a typecheck
 /// fixture but has no Rust handler — it's frontend-only documentation
 /// so the typecheck self-test in contract.test.ts has a deterministic
 /// name to assert against. The validator must EXCLUDE it from the
@@ -118,7 +118,7 @@ impl ValidationReport {
             s.push('\n');
         }
         s.push_str(
-            "Re-run `node tools/gen-tauri-v2-fixture.mjs` to refresh the fixture from M-013a CommandMap, then update m001_validate::REGISTERED_COMMANDS to match.",
+            "Re-run `node tools/gen-tauri-v2-fixture.mjs` to refresh the fixture from M-013-A CommandMap, then update m001_validate::REGISTERED_COMMANDS to match.",
         );
         s
     }

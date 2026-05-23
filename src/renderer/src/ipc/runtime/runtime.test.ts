@@ -1,5 +1,5 @@
 // MODULE_CONTRACT
-//   PURPOSE: V-M-013 deterministic surface check for the M-013b runtime
+//   PURPOSE: V-M-013 deterministic surface check for the M-013-B runtime
 //            facade. Type-only — no Tauri runtime required. Asserts:
 //              (1) ipc.fs / ipc.watch / ipc.search namespaces export the
 //                  expected method shapes,

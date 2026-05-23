@@ -8,7 +8,7 @@
 //            ipcCorrelated; single-shot belongs in ipcInvoke.
 //   DEPENDS: types.ts (IpcError + IpcErrorCode for unknown-channel mapping),
 //            @tauri-apps/api/event listen, vue onUnmounted.
-//   LINKS:   M-013a fn-useIpcListener; V-M-013a.
+//   LINKS:   M-013-A fn-useIpcListener; V-M-013-A.
 //   STATUS:  Phase-B1 stub. Per-event ref-count is process-wide so multiple
 //            mounted components sharing one channel don't tear each other down.
 //
@@ -23,7 +23,7 @@ import { IpcError, IpcErrorCode } from './types'
 
 /**
  * BLOCK_LISTENER_REFCOUNT — emitted on every subscribe + unsubscribe so
- * leaks are visible in DevTools console. Required by V-M-013a.
+ * leaks are visible in DevTools console. Required by V-M-013-A.
  */
 function logRefcount(channel: string, op: 'subscribe' | 'unsubscribe', count: number): void {
   // eslint-disable-next-line no-console

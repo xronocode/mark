@@ -10,8 +10,8 @@
 |---|-----------|--------|----------|
 | 1 | cargo test --bin mark passes | ✅ | 138 passed |
 | 2 | cargo build --release succeeds | ✅ | 11 MB binary, zero warnings |
-| 3 | tsc --noEmit (M-013a + M-013b runtime) | ✅ | clean |
-| 4 | IPC fixture parity (M-013b ↔ tauri.v2.json) | ✅ | embedded_fixture_parses_and_matches_registered green |
+| 3 | tsc --noEmit (M-013-A + M-013-B runtime) | ✅ | clean |
+| 4 | IPC fixture parity (M-013-B ↔ tauri.v2.json) | ✅ | embedded_fixture_parses_and_matches_registered green |
 | 5a | M-010 security primitives | ✅ | 23 tests |
 | 5b | M-002 fs real impl | ✅ | 9 tests |
 | 5c | M-003 watcher real impl | ✅ | 6 tests |
@@ -27,7 +27,7 @@
 | 2 | M-002 fs real impl + SecurityCtx | +7 (118→125) | B2-step-2 |
 | 3 | M-003 watcher real impl + WatchRegistry | +4 (125→129) | B2-step-3 |
 | 4 | M-004 search real impl + SearchRegistry | +9 (129→138) | B2-step-4 |
-| 5 | M-013b runtime facades + serde rename fixes | +0 (TS-only) | B2-step-5 |
+| 5 | M-013-B runtime facades + serde rename fixes | +0 (TS-only) | B2-step-5 |
 
 Cargo test trajectory (this phase): 95 → **138 passing** (+43 from B2 work).
 
@@ -89,13 +89,13 @@ Plus 9 followups inherited from B1 (F-PERF-1/2/3, F-MAIN-ENTRY-DISABLED, F-MT-UN
 
 ## Gate decision
 
-**PASS-WITH-FOLLOWUP.** All 6 verification criteria green. The 16 deferred followups are quality-of-finish items: most are platform-specific edge cases (Linux inotify overflow, Windows ReadDirectoryChangesW, macOS FSEvents coalesce) that need fixture infrastructure not yet in place. None block Phase-B3 entry — M-013b's three core surfaces (fs / watch / search) are functional, type-checked, fixture-paired, and exercise the full M-010 security boundary.
+**PASS-WITH-FOLLOWUP.** All 6 verification criteria green. The 16 deferred followups are quality-of-finish items: most are platform-specific edge cases (Linux inotify overflow, Windows ReadDirectoryChangesW, macOS FSEvents coalesce) that need fixture infrastructure not yet in place. None block Phase-B3 entry — M-013-B's three core surfaces (fs / watch / search) are functional, type-checked, fixture-paired, and exercise the full M-010 security boundary.
 
 The atomic-write follow-up (F-FS-ATOMIC-WRITE) is the most user-visible miss — disk-full mid-write could corrupt the target. Tracked but acceptable for B3 because B3 wires real Vue-shell + prefs which exercises write paths and surfaces real-world frequency of disk-full conditions.
 
 ## Phase-B3 readiness
 
-Gate-Phase-B2 satisfied. Phase-B3 (Integrations: 12 modules — prefs, encoding, cli, shortcuts, spell, fonts, datacenter, recent, pandoc, updater, screenshot, menu) unblocked. M-013b runtime facades (ipcFs / ipcWatch / ipcSearch) are the substrate Phase-B3 builds on for the actual Vue-shell wiring.
+Gate-Phase-B2 satisfied. Phase-B3 (Integrations: 12 modules — prefs, encoding, cli, shortcuts, spell, fonts, datacenter, recent, pandoc, updater, screenshot, menu) unblocked. M-013-B runtime facades (ipcFs / ipcWatch / ipcSearch) are the substrate Phase-B3 builds on for the actual Vue-shell wiring.
 
 ---
 

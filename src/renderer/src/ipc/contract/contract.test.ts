@@ -1,7 +1,7 @@
 // MODULE_CONTRACT
-//   PURPOSE: V-M-013a deterministic surface check. Type-level only — no
+//   PURPOSE: V-M-013-A deterministic surface check. Type-level only — no
 //            runtime Tauri context required, no actual IPC dispatched.
-//   SCOPE:   verify that the M-013a public API is exported with the names
+//   SCOPE:   verify that the M-013-A public API is exported with the names
 //            and shapes the contract promises. If a future refactor renames
 //            ipcInvoke / useIpcListener / ipcCorrelated or removes any of
 //            the four IpcErrorCode entries, `tsc --noEmit` fails here.
@@ -24,8 +24,8 @@ import {
 } from './index'
 
 // ---------------------------------------------------------------
-// 1. The four error codes named in the M-013a contract MUST exist.
-//    docs/development-plan.xml M-013a contract.errors lists exactly:
+// 1. The four error codes named in the M-013-A contract MUST exist.
+//    docs/development-plan.xml M-013-A contract.errors lists exactly:
 //    MT_IPC_UNKNOWN_COMMAND, MT_IPC_TIMEOUT, MT_IPC_VALIDATION,
 //    MT_IPC_UNKNOWN_CHANNEL.
 // ---------------------------------------------------------------

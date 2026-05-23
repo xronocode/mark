@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Phase-B1 step-5: generate the 5 supporting v1.2.3 fixtures.
-// Each captures a different aspect of the v1 surface that M-013b /
+// Each captures a different aspect of the v1 surface that M-013-B /
 // M-009 / M-005 must understand to faithfully port:
 //
 //   1. internal-main-events.electron.v1.json — internal main-process
@@ -15,7 +15,7 @@
 //   4. menu-taxonomy.v1.json — top-level menu structure parsed from
 //      src/main/menu/templates/*.js. Source of truth for M-009 mt-menu.
 //   5. preload-surface.v1.json — contextBridge.exposeInMainWorld surface.
-//      Each `window.X` becomes a M-013b emulation target.
+//      Each `window.X` becomes a M-013-B emulation target.
 //
 // Reproducibility: re-run any time v1.2.3 source is reaudited; outputs
 // are deterministic (sorted, no timestamps in deep structures).
@@ -212,7 +212,7 @@ function buildMenuTaxonomy() {
 // ─── 5. preload-surface ────────────────────────────────────────────────
 function buildPreloadSurface() {
   // contextBridge.exposeInMainWorld('name', value) — each entry is a
-  // window.name surface that M-013b must emulate. Read the file once
+  // window.name surface that M-013-B must emulate. Read the file once
   // for context-aware extraction (the call shape is multi-line in
   // some cases).
   const src = gitShow('src/preload/index.js')
@@ -226,7 +226,7 @@ function buildPreloadSurface() {
   return {
     schema_version: 1,
     source: { ...SOURCE_META, file: 'src/preload/index.js' },
-    purpose: 'v1.2.3 preload contextBridge surface. Each entry is a window.* property the renderer can use; M-013b must emulate the same API surface so renderer code transfers without changes (variant-(a) port decision).',
+    purpose: 'v1.2.3 preload contextBridge surface. Each entry is a window.* property the renderer can use; M-013-B must emulate the same API surface so renderer code transfers without changes (variant-(a) port decision).',
     counts: { surfaces: surfaces.length },
     surfaces
   }

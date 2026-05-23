@@ -120,7 +120,7 @@ instead of an error toast).
   enabled IFF `M-015 mt-pandoc-bridge.is_pandoc_available()` is true,
   else greyed-out with hint.
 - v1.2.3's existing HTML export path (turndown → html → save-as) ports
-  unchanged via M-013b's `mt::fs::write` once that lands in B2 step-2.
+  unchanged via M-013-B's `mt::fs::write` once that lands in B2 step-2.
 - No `mt::print_to_pdf` runtime call is expected to succeed at any
   point in v2.0 — it's a contract surface for future Mark forks that
   want to add their own PDF backend without breaking the namespace.
@@ -140,7 +140,7 @@ instead of an error toast).
   parity check passes.
 - Behavior: `await ipcInvoke('mt::print_to_pdf', { html: '...' })`
   rejects with IpcError { code: 'MT_UNSUPPORTED', ... }.
-- Frontend M-013a's mapInvokeError currently maps unknown error codes
+- Frontend M-013-A's mapInvokeError currently maps unknown error codes
   to UNKNOWN_COMMAND; F-MT-UNSUPPORTED-MAPPING (B2 followup) extends
   it to recognize MT_UNSUPPORTED distinctly.
 

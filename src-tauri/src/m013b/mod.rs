@@ -1,16 +1,16 @@
 // MODULE_CONTRACT
-//   PURPOSE: M-013b runtime IPC façade — Phase-B1 step-6 skeleton.
+//   PURPOSE: M-013-B runtime IPC façade — Phase-B1 step-6 skeleton.
 //            Owns Rust-side `#[tauri::command]` signatures for fs +
 //            search + watch channels. Every command logs a stable
 //            BLOCK_*_NOT_IMPLEMENTED marker and returns
 //            Err(IpcError::not_implemented). NEVER panics
-//            (V-M-013b hard requirement).
+//            (V-M-013-B hard requirement).
 //   SCOPE:   B1-stub-level command surface. Real impls (M-002 fs,
 //            M-003 watch, M-004 search) ship in Phase-B2 and SHADOW
 //            this module's signatures rather than coexist.
 //   DEPENDS: serde, tauri::command, error::IpcError.
 //   LINKS:   docs/development-plan.xml Phase-B1 step-6;
-//            verification-plan.xml V-M-013b;
+//            verification-plan.xml V-M-013-B;
 //            test/fixtures/ipc-channels/{electron.v1,tauri.v2}.json.
 //   STATUS:  Phase-B1 stub. 9 commands total: 5 fs + 2 search + 2 watch.
 //
@@ -23,7 +23,7 @@ pub mod search;
 pub mod state;
 pub mod watch;
 
-// Re-exports kept for downstream M-013b consumers (B2 wiring will
+// Re-exports kept for downstream M-013-B consumers (B2 wiring will
 // import from crate::m013b::{IpcError, MT_NOT_IMPLEMENTED} rather
 // than reach into the error submodule). Unused in B1 release build.
 #[allow(unused_imports)]

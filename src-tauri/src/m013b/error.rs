@@ -1,11 +1,11 @@
 // MODULE_CONTRACT
-//   PURPOSE: Structured error envelope for M-013b stubs. Every Phase-B1
-//            stub command returns this shape on Err so the M-013a
+//   PURPOSE: Structured error envelope for M-013-B stubs. Every Phase-B1
+//            stub command returns this shape on Err so the M-013-A
 //            renderer-side mapInvokeError() can route MT_NOT_IMPLEMENTED
 //            distinctly from real validation/timeout/unknown-command errors.
 //   SCOPE:   error type only — no command logic.
 //   DEPENDS: serde (Serialize) so Tauri can JSON-serialize Err to renderer.
-//   LINKS:   M-013b runtime façade; V-M-013b verification.
+//   LINKS:   M-013-B runtime façade; V-M-013-B verification.
 //   STATUS:  Phase-B1 stub. Real impls (B2/B3) will define their own
 //            error variants and may shadow this with richer types.
 //
@@ -13,14 +13,14 @@
 //   - 2026-04-28 B1-step-6: initial stub. IpcError + MT_NOT_IMPLEMENTED.
 //   - 2026-04-28 B2-step-2: added MT_FS_PATH_DENIED, MT_FS_NOT_FOUND,
 //     MT_FS_PERM_DENIED, MT_FS_NOT_REGULAR, MT_FS_IO codes + factory
-//     constructors for M-002 fs commands. Renderer M-013a mapInvokeError
+//     constructors for M-002 fs commands. Renderer M-013-A mapInvokeError
 //     branches on `code` to surface different UX (toast vs path dialog).
 
 use crate::m010_security::SecurityError;
 use serde::Serialize;
 
-/// Stable error code returned by every M-013b stub command.
-/// Renderer matches on this string in M-013a's mapInvokeError().
+/// Stable error code returned by every M-013-B stub command.
+/// Renderer matches on this string in M-013-A's mapInvokeError().
 /// allow(dead_code) — B1 stubs replaced by B2 real impls; B3 will reuse
 /// for M-005/006/007/008/009 stubs (mt-prefs, mt-shortcuts, mt-spell,
 /// mt-fonts, mt-menu).
@@ -36,7 +36,7 @@ pub const MT_FS_NOT_REGULAR: &str = "MT_FS_NOT_REGULAR";
 pub const MT_FS_IO: &str = "MT_FS_IO";
 
 /// Structured error envelope. Tauri serializes this to JSON for the
-/// renderer; M-013a's invoke.ts maps it to an IpcError with the
+/// renderer; M-013-A's invoke.ts maps it to an IpcError with the
 /// preserved code field.
 #[derive(Serialize, Debug, Clone, PartialEq, Eq)]
 pub struct IpcError {
@@ -58,7 +58,7 @@ pub struct IpcError {
 
 impl IpcError {
     /// Construct a not-implemented error for a stub command.
-    /// `command` is the M-013a-side channel name (with `mt::` prefix);
+    /// `command` is the M-013-A-side channel name (with `mt::` prefix);
     /// `planned_phase` is the dev-plan phase reference (e.g. "B2-step-2").
     /// allow(dead_code) — see MT_NOT_IMPLEMENTED const above.
     #[allow(dead_code)]

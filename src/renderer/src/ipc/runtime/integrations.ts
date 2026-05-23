@@ -5,7 +5,7 @@
 //   SCOPE:   shortcuts / spell / menu / pandoc / updater / screenshot /
 //            secrets. fs/watch/search/prefs/workspace/fonts/recent live
 //            in their own files.
-//   DEPENDS: M-013a contract.
+//   DEPENDS: M-013-A contract.
 //   LINKS:   docs/development-plan.xml Phase-B3 step-4..12.
 //   STATUS:  Phase-B3 step-12 — facade roll-up.
 //
