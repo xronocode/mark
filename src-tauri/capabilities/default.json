@@ -13,6 +13,7 @@
     "core:app:default",
     "updater:default",
     "global-shortcut:default",
-    "dialog:default"
+    "dialog:default",
+    "window-state:default"
   ]
 }
