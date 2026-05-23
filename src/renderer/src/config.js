@@ -73,7 +73,8 @@ export const themePairs = Object.freeze({
   'oxocarbon-dark': 'catppuccin-latte',
   'kanagawa': 'tokyo-night-light',
   'nightfox': 'solarized-light',
-  'cyberdream': 'catppuccin-latte'
+  'cyberdream': 'catppuccin-latte',
+  'light': 'dark'
 })
 
 export const isDarkTheme = (theme) => {
