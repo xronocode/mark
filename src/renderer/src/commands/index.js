@@ -587,6 +587,14 @@ const commands = [
     }
   },
   {
+    id: 'view.diff-mode',
+    execute: async () => {
+      const { usePreferencesStore } = await import('@/store/preferences')
+      const prefs = usePreferencesStore()
+      prefs.diffMode = !prefs.diffMode
+    }
+  },
+  {
     id: 'view.typewriter-mode',
     execute: async () => {
       focusEditorAndExecute(() => bus.emit('view:toggle-view-entry', 'typewriter'))

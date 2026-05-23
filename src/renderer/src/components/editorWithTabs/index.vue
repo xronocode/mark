@@ -17,6 +17,11 @@
         :muyaIndexCursor="muyaIndexCursor"
         :text-direction="textDirection"
       ></source-code>
+      <diff-view
+        v-if="diffMode"
+        :markdown="markdown"
+        :pathname="pathname"
+      ></diff-view>
     </div>
     <tab-notifications></tab-notifications>
   </div>
@@ -28,6 +33,7 @@ import { storeToRefs } from 'pinia'
 import Tabs from './tabs.vue'
 import Editor from './editor.vue'
 import SourceCode from './sourceCode.vue'
+import DiffView from './diffView.vue'
 import TabNotifications from './notifications.vue'
 
 defineProps({
@@ -47,6 +53,14 @@ defineProps({
   sourceCode: {
     type: Boolean,
     required: true
+  },
+  diffMode: {
+    type: Boolean,
+    default: false
+  },
+  pathname: {
+    type: String,
+    default: ''
   },
   showTabBar: {
     type: Boolean,

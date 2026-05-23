@@ -21,6 +21,8 @@
         :cursor="cursor"
         :muyaIndexCursor="muyaIndexCursor"
         :source-code="sourceCode"
+        :diff-mode="diffMode"
+        :pathname="pathname"
         :show-tab-bar="showTabBar"
         :text-direction="textDirection"
         :platform="platform"
@@ -90,7 +92,7 @@ const timer = ref(null)
 // States from Pini
 const { windowActive, platform, init } = storeToRefs(mainStore)
 const { showTabBar } = storeToRefs(layoutStore)
-const { sourceCode, theme, customCss, textDirection, zoom } = storeToRefs(preferencesStore)
+const { sourceCode, diffMode, theme, customCss, textDirection, zoom } = storeToRefs(preferencesStore)
 const { projectTree } = storeToRefs(projectStore)
 const { currentFile } = storeToRefs(editorStore)
 

@@ -88,6 +88,7 @@ export const usePreferencesStore = defineStore('preferences', {
     sideBarVisibility: false,
     tabBarVisibility: false,
     sourceCodeModeEnabled: false,
+    diffMode: false,
 
     searchExclusions: [],
     searchMaxFileSize: '',

@@ -30,6 +30,7 @@
     "axios": "^1.13.2",
     "codemirror": "^5.65.19",
     "deep-equal": "^2.2.3",
+    "diff-match-patch": "^1.0.5",
     "dom-autoscroller": "^2.3.4",
     "dompurify": "^3.3.1",
     "dragula": "^3.7.3",

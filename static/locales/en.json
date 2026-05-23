@@ -129,6 +129,7 @@
       "commandPalette": "Command Palette",
       "sourceCode": "Source Code Mode",
       "sourceCodeMode": "Source Code Mode",
+      "diffMode": "Diff Mode",
       "typewriter": "Typewriter Mode",
       "typewriterMode": "Typewriter Mode",
       "focus": "Focus Mode",
@@ -1037,6 +1038,7 @@
     "view": {
       "commandPalette": "Command Palette",
       "sourceCodeMode": "Source Code Mode",
+      "diffMode": "Diff Mode",
       "typewriterMode": "Typewriter Mode",
       "focusMode": "Focus Mode",
       "toggleSourceCodeMode": "Toggle Source Code Mode",
