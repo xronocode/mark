@@ -221,11 +221,11 @@ fn set_one_uti(runner: &dyn CommandRunner, uti: &str) -> Result<(), String> {
     let read_out = match runner.run(DEFAULTS_BIN, &["read", LS_DOMAIN, "LSHandlers"]) {
         Ok(o) => o,
         Err(CmdError::ToolingMissing) => {
-            eprintln!("[m021][set_handler][BLOCK_TOOLING_MISSING tool=defaults]");
+            safe_eprintln!("[m021][set_handler][BLOCK_TOOLING_MISSING tool=defaults]");
             return Err("tooling_missing:defaults".into());
         }
         Err(CmdError::IoError(msg)) => {
-            eprintln!(
+            safe_eprintln!(
                 "[m021][set_handler][BLOCK_DEFAULTS_WRITE_FAILED reason=io_error rc=-1] err={msg}"
             );
             return Err(format!("defaults_read_failed:{msg}"));
@@ -241,7 +241,7 @@ fn set_one_uti(runner: &dyn CommandRunner, uti: &str) -> Result<(), String> {
     };
     if let Some(existing) = parse_handler_for_uti(&plist, uti) {
         if existing == MARK_BUNDLE_ID {
-            eprintln!(
+            safe_eprintln!(
                 "[m021][set_handler][BLOCK_IDEMPOTENT_NOOP existing={MARK_BUNDLE_ID} uti={uti}]"
             );
             return Ok(());
@@ -266,11 +266,11 @@ fn set_one_uti(runner: &dyn CommandRunner, uti: &str) -> Result<(), String> {
     let out = match write_out {
         Ok(o) => o,
         Err(CmdError::ToolingMissing) => {
-            eprintln!("[m021][set_handler][BLOCK_TOOLING_MISSING tool=defaults]");
+            safe_eprintln!("[m021][set_handler][BLOCK_TOOLING_MISSING tool=defaults]");
             return Err("tooling_missing:defaults".into());
         }
         Err(CmdError::IoError(msg)) => {
-            eprintln!(
+            safe_eprintln!(
                 "[m021][set_handler][BLOCK_DEFAULTS_WRITE_FAILED reason=io_error rc=-1]"
             );
             return Err(format!("defaults_write_failed:{msg}"));
@@ -290,13 +290,13 @@ fn set_one_uti(runner: &dyn CommandRunner, uti: &str) -> Result<(), String> {
         } else {
             "io_error"
         };
-        eprintln!(
+        safe_eprintln!(
             "[m021][set_handler][BLOCK_DEFAULTS_WRITE_FAILED reason={reason} rc={rc}]"
         );
         return Err(format!("defaults_write_failed:{rc}"));
     }
-    eprintln!("[m021][set_handler][BLOCK_DEFAULTS_WRITE_OK domain=user uti={uti}]");
-    eprintln!(
+    safe_eprintln!("[m021][set_handler][BLOCK_DEFAULTS_WRITE_OK domain=user uti={uti}]");
+    safe_eprintln!(
         "[m021][set_handler][BLOCK_REGISTERED uti={uti} bundle={MARK_BUNDLE_ID}]"
     );
     Ok(())
@@ -314,22 +314,22 @@ fn lsregister_reload(runner: &dyn CommandRunner, op: &str) -> Result<(), String>
     let elapsed_ms = started.elapsed().as_millis();
     match out {
         Ok(o) if o.success() => {
-            eprintln!(
+            safe_eprintln!(
                 "[m021][{op}][BLOCK_LSREGISTER_RELOADED domain=user duration_ms={elapsed_ms}]"
             );
             Ok(())
         }
         Ok(o) => {
             let rc = o.code.unwrap_or(-1);
-            eprintln!("[m021][{op}][BLOCK_LSREGISTER_FAILED rc={rc}]");
+            safe_eprintln!("[m021][{op}][BLOCK_LSREGISTER_FAILED rc={rc}]");
             Err(format!("lsregister_failed:{rc}"))
         }
         Err(CmdError::ToolingMissing) => {
-            eprintln!("[m021][{op}][BLOCK_TOOLING_MISSING tool=lsregister]");
+            safe_eprintln!("[m021][{op}][BLOCK_TOOLING_MISSING tool=lsregister]");
             Err("tooling_missing:lsregister".into())
         }
         Err(CmdError::IoError(msg)) => {
-            eprintln!("[m021][{op}][BLOCK_LSREGISTER_FAILED rc=-1]");
+            safe_eprintln!("[m021][{op}][BLOCK_LSREGISTER_FAILED rc=-1]");
             Err(format!("lsregister_failed:{msg}"))
         }
     }
@@ -356,11 +356,11 @@ pub(crate) fn get_default_md_handler_inner(
     let read_out = match runner.run(DEFAULTS_BIN, &["read", LS_DOMAIN, "LSHandlers"]) {
         Ok(o) => o,
         Err(CmdError::ToolingMissing) => {
-            eprintln!("[m021][get_handler][BLOCK_TOOLING_MISSING tool=defaults]");
+            safe_eprintln!("[m021][get_handler][BLOCK_TOOLING_MISSING tool=defaults]");
             return Err("tooling_missing:defaults".into());
         }
         Err(CmdError::IoError(msg)) => {
-            eprintln!(
+            safe_eprintln!(
                 "[m021][get_handler][BLOCK_DEFAULTS_READ_FAILED reason=io_error]"
             );
             return Err(format!("defaults_read_failed:{msg}"));
@@ -380,7 +380,7 @@ pub(crate) fn get_default_md_handler_inner(
     for uti in MD_UTIS {
         if let Some(bundle) = parse_handler_for_uti(&plist, uti) {
             if bundle == MARK_BUNDLE_ID {
-                eprintln!(
+                safe_eprintln!(
                     "[m021][get_handler][BLOCK_QUERIED is_default=true current={MARK_BUNDLE_ID} uti={uti}]"
                 );
                 return Ok(DefaultHandlerInfo {
@@ -395,7 +395,7 @@ pub(crate) fn get_default_md_handler_inner(
     // We are not the default. Return whatever IS, if anything.
     match other_handler {
         Some((uti, bundle)) => {
-            eprintln!(
+            safe_eprintln!(
                 "[m021][get_handler][BLOCK_QUERIED is_default=false current={bundle} uti={uti}]"
             );
             Ok(DefaultHandlerInfo {
@@ -404,7 +404,7 @@ pub(crate) fn get_default_md_handler_inner(
             })
         }
         None => {
-            eprintln!("[m021][get_handler][BLOCK_QUERIED is_default=false current=none uti=none]");
+            safe_eprintln!("[m021][get_handler][BLOCK_QUERIED is_default=false current=none uti=none]");
             Ok(DefaultHandlerInfo {
                 is_default: false,
                 current_handler: None,
@@ -426,11 +426,11 @@ pub(crate) fn unset_default_md_handler_inner(
     let read_out = match runner.run(DEFAULTS_BIN, &["read", LS_DOMAIN, "LSHandlers"]) {
         Ok(o) => o,
         Err(CmdError::ToolingMissing) => {
-            eprintln!("[m021][unset_handler][BLOCK_TOOLING_MISSING tool=defaults]");
+            safe_eprintln!("[m021][unset_handler][BLOCK_TOOLING_MISSING tool=defaults]");
             return Err("tooling_missing:defaults".into());
         }
         Err(CmdError::IoError(msg)) => {
-            eprintln!(
+            safe_eprintln!(
                 "[m021][unset_handler][BLOCK_DEFAULTS_READ_FAILED reason=io_error]"
             );
             return Err(format!("defaults_read_failed:{msg}"));
@@ -453,7 +453,7 @@ pub(crate) fn unset_default_md_handler_inner(
         }
     }
     if !had_mark_entry {
-        eprintln!("[m021][unset_handler][BLOCK_REMOVED existing=none]");
+        safe_eprintln!("[m021][unset_handler][BLOCK_REMOVED existing=none]");
         // Even when there's nothing to remove, still reload LS so the
         // operation is observable end-to-end (BLOCK_LSREGISTER_RELOADED
         // is part of the V-M-021 unset trace).
@@ -473,18 +473,18 @@ pub(crate) fn unset_default_md_handler_inner(
             let stderr_lower = o.stderr.to_lowercase();
             if !(stderr_lower.contains("does not exist") || stderr_lower.is_empty()) {
                 let rc = o.code.unwrap_or(-1);
-                eprintln!(
+                safe_eprintln!(
                     "[m021][unset_handler][BLOCK_DEFAULTS_WRITE_FAILED reason=io_error rc={rc}]"
                 );
                 return Err(format!("defaults_delete_failed:{rc}"));
             }
         }
         Err(CmdError::ToolingMissing) => {
-            eprintln!("[m021][unset_handler][BLOCK_TOOLING_MISSING tool=defaults]");
+            safe_eprintln!("[m021][unset_handler][BLOCK_TOOLING_MISSING tool=defaults]");
             return Err("tooling_missing:defaults".into());
         }
         Err(CmdError::IoError(msg)) => {
-            eprintln!(
+            safe_eprintln!(
                 "[m021][unset_handler][BLOCK_DEFAULTS_WRITE_FAILED reason=io_error rc=-1]"
             );
             return Err(format!("defaults_delete_failed:{msg}"));
@@ -525,7 +525,7 @@ pub(crate) fn unset_default_md_handler_inner(
         }
     }
 
-    eprintln!("[m021][unset_handler][BLOCK_REMOVED existing={MARK_BUNDLE_ID}]");
+    safe_eprintln!("[m021][unset_handler][BLOCK_REMOVED existing={MARK_BUNDLE_ID}]");
     lsregister_reload(runner, "unset_handler")?;
     Ok(())
 }

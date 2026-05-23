@@ -185,26 +185,26 @@ pub fn validate_or_exit() {
         FIXTURE_FRONTEND_ONLY,
     ) {
         Ok(report) if report.is_clean() => {
-            eprintln!(
+            safe_eprintln!(
                 "[m001][validate][BLOCK_VALIDATE_AGAINST_FIXTURE_OK registered={} fixture_only=0 registered_only=0]",
                 REGISTERED_COMMANDS.len()
             );
         }
         Ok(report) => {
-            eprintln!(
+            safe_eprintln!(
                 "[m001][validate][BLOCK_VALIDATE_AGAINST_FIXTURE_FAIL fixture_only={} registered_only={}]",
                 report.fixture_only.len(),
                 report.registered_only.len()
             );
             let msg = report.fail_message();
-            eprintln!("{msg}");
+            safe_eprintln!("{msg}");
             // Native dialog — does not panic, returns DialogChoice ignored;
             // we exit regardless. Title kept short to fit NSAlert.
             crate::dialog::ask_native_error("Mark — IPC contract drift", &msg);
             std::process::exit(1);
         }
         Err(parse_err) => {
-            eprintln!("[m001][validate][BLOCK_VALIDATE_FIXTURE_PARSE_FAIL reason={parse_err}]");
+            safe_eprintln!("[m001][validate][BLOCK_VALIDATE_FIXTURE_PARSE_FAIL reason={parse_err}]");
             crate::dialog::ask_native_error(
                 "Mark — IPC fixture parse error",
                 &format!(

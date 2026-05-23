@@ -95,7 +95,7 @@ pub fn format_panic_body(info: &PanicHookInfo, ts_unix: u64, chain: &str) -> Str
 pub fn install_panic_hook() {
     let chain = new_session_chain();
     let _ = SESSION_CHAIN.set(chain.clone());
-    eprintln!(
+    safe_eprintln!(
         "[m001][panic][BLOCK_PANIC_HOOK_INSTALLED session_chain={chain}]"
     );
 

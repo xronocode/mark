@@ -63,7 +63,7 @@ pub fn detect_label(bytes: &[u8]) -> &'static str {
     match encoding_rs::Encoding::for_label(best.as_bytes()) {
         Some(enc) => enc.name(),
         None => {
-            eprintln!("[Encoding][detect][BLOCK_LABEL_UNKNOWN chardet_label={best}]");
+            safe_eprintln!("[Encoding][detect][BLOCK_LABEL_UNKNOWN chardet_label={best}]");
             "windows-1252"
         }
     }
@@ -86,7 +86,7 @@ pub fn decode_with_label(bytes: &[u8], label: &str) -> DecodedFile {
         .unwrap_or(encoding_rs::WINDOWS_1252);
     let (cow, _used_enc, had_errors) = enc.decode(stripped);
     let text = cow.into_owned();
-    eprintln!(
+    safe_eprintln!(
         "[Encoding][decode][BLOCK_DECODED label={} bytes={} chars={} replaced={} bom={}]",
         enc.name(),
         bytes.len(),

@@ -126,10 +126,10 @@ pub fn audit_security_posture(conf_json: &str) -> Result<(), String> {
 pub fn audit_or_exit() {
     match audit_security_posture(TAURI_CONF_JSON) {
         Ok(()) => {
-            eprintln!("[m001][security][BLOCK_SECURITY_POSTURE_OK]");
+            safe_eprintln!("[m001][security][BLOCK_SECURITY_POSTURE_OK]");
         }
         Err(reason) => {
-            eprintln!("[m001][security][BLOCK_SECURITY_POSTURE_FAIL reason={reason}]");
+            safe_eprintln!("[m001][security][BLOCK_SECURITY_POSTURE_FAIL reason={reason}]");
             crate::dialog::ask_native_error(
                 "Mark — security posture violation",
                 &format!(

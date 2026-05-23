@@ -110,7 +110,7 @@ pub async fn mt_request_keybindings(
         "sourceCodeModeEnabled": source_code_mode_enabled,
     });
 
-    eprintln!(
+    safe_eprintln!(
         "[v1_compat][bootstrap_editor][BLOCK_EMIT add_blank_tab={add_blank_tab} had_initial_opens={had_opens} side_bar={side_bar_visibility} side_bar_pref={side_bar_visibility_pref} side_bar_overridden={had_opens} tab_bar={tab_bar_visibility} source_code={source_code_mode_enabled} line_ending={line_ending}]"
     );
 
@@ -119,7 +119,7 @@ pub async fn mt_request_keybindings(
     let _ = window.label();
     let _ = app.webview_windows();
     if let Err(e) = window.emit("mt::bootstrap-editor", &config) {
-        eprintln!(
+        safe_eprintln!(
             "[v1_compat][bootstrap_editor][BLOCK_EMIT_FAILED err={e}]"
         );
         return Err(e.to_string());
@@ -150,11 +150,11 @@ pub async fn mt_pick_folder(app: tauri::AppHandle) -> Result<Option<String>, Str
     let path = match chosen.and_then(|p| p.into_path().ok()) {
         Some(p) => p.to_string_lossy().to_string(),
         None => {
-            eprintln!("[m_fs_ops][open_folder][BLOCK_USER_CANCELLED]");
+            safe_eprintln!("[m_fs_ops][open_folder][BLOCK_USER_CANCELLED]");
             return Ok(None);
         }
     };
-    eprintln!("[m_fs_ops][open_folder][BLOCK_PICKED path={path}]");
+    safe_eprintln!("[m_fs_ops][open_folder][BLOCK_PICKED path={path}]");
 
     Ok(Some(path))
 }
@@ -167,7 +167,7 @@ pub fn mt_walk_project(path: String, app: tauri::AppHandle) -> Result<(), String
     let walk_path = std::path::PathBuf::from(&path);
     std::thread::spawn(move || {
         if let Err(e) = walk_and_emit_app(&walk_path, &app) {
-            eprintln!("[m_fs_ops][walk_project][BLOCK_WALK_FAILED path={path} err={e}]");
+            safe_eprintln!("[m_fs_ops][walk_project][BLOCK_WALK_FAILED path={path} err={e}]");
         }
     });
     Ok(())
@@ -182,7 +182,7 @@ pub fn mt_walk_project(path: String, app: tauri::AppHandle) -> Result<(), String
 /// `app.exit()` returns.
 #[tauri::command]
 pub async fn mt_app_quit(app: tauri::AppHandle) -> Result<(), String> {
-    eprintln!("[m_app][quit][BLOCK_REQUESTED]");
+    safe_eprintln!("[m_app][quit][BLOCK_REQUESTED]");
     let state = tauri::Manager::state::<crate::PendingOpens>(&app);
     state.quit_approved.store(true, std::sync::atomic::Ordering::SeqCst);
     app.exit(0);
@@ -198,7 +198,7 @@ pub async fn mt_app_quit(app: tauri::AppHandle) -> Result<(), String> {
 /// reached backend.
 #[tauri::command]
 pub async fn mt_close_project_root(pathname: String) -> Result<(), String> {
-    eprintln!("[m_fs_ops][close_project_root][BLOCK_RECEIVED path={pathname}]");
+    safe_eprintln!("[m_fs_ops][close_project_root][BLOCK_RECEIVED path={pathname}]");
     // TODO F-WATCH-WIRE-PROJECT: lookup subscription_id by pathname,
     // call WatchRegistry::remove(sub_id). Currently no watcher per
     // root, so this command is just a marker for V-Phase-Bclean-W3.
@@ -250,7 +250,7 @@ fn walk_and_emit_inner(
         let entries = match std::fs::read_dir(&current) {
             Ok(it) => it,
             Err(e) => {
-                eprintln!(
+                safe_eprintln!(
                     "[v1_compat][walk][BLOCK_READ_DIR_FAILED dir={} err={e}]",
                     current.display()
                 );
@@ -295,7 +295,7 @@ fn walk_and_emit_inner(
             }
         }
     }
-    eprintln!(
+    safe_eprintln!(
         "[m_fs_ops][walk][BLOCK_WALK_COMPLETE root={}]",
         root.display()
     );
@@ -322,7 +322,7 @@ pub async fn mt_open_file(
     let pathname = match pathname {
         Some(p) if !p.is_empty() => p,
         _ => {
-            eprintln!("[v1_compat][open_file_send][BLOCK_NO_PATH args={args}]");
+            safe_eprintln!("[v1_compat][open_file_send][BLOCK_NO_PATH args={args}]");
             return Ok(());
         }
     };
@@ -353,11 +353,11 @@ pub async fn mt_cmd_open_file(window: tauri::Window) -> Result<(), String> {
     let path = match chosen {
         Some(handle) => handle.path().to_string_lossy().to_string(),
         None => {
-            eprintln!("[v1_compat][open_file][BLOCK_USER_CANCELLED]");
+            safe_eprintln!("[v1_compat][open_file][BLOCK_USER_CANCELLED]");
             return Ok(());
         }
     };
-    eprintln!("[v1_compat][open_file][BLOCK_PICKED path={path}]");
+    safe_eprintln!("[v1_compat][open_file][BLOCK_PICKED path={path}]");
     // M-022: picker is an explicit "I want to edit this" gesture →
     // preview_mode=false.
     emit_open_new_tab(&window, &path, false)
@@ -381,7 +381,7 @@ pub(crate) fn build_open_new_tab_payload(
     let content = match std::fs::read_to_string(pathname) {
         Ok(s) => s,
         Err(e) => {
-            eprintln!(
+            safe_eprintln!(
                 "[v1_compat][open_new_tab][BLOCK_READ_FAILED path={pathname} err={e}]"
             );
             return Err(e.to_string());
@@ -425,10 +425,10 @@ pub(crate) fn emit_open_new_tab<E: tauri::Emitter<tauri::Wry>>(
 ) -> Result<(), String> {
     let markdown_document = build_open_new_tab_payload(pathname, preview_mode)?;
     if let Err(e) = emitter.emit("mt::open-new-tab", &markdown_document) {
-        eprintln!("[v1_compat][open_new_tab][BLOCK_EMIT_FAILED err={e}]");
+        safe_eprintln!("[v1_compat][open_new_tab][BLOCK_EMIT_FAILED err={e}]");
         return Err(e.to_string());
     }
-    eprintln!(
+    safe_eprintln!(
         "[v1_compat][open_new_tab][BLOCK_OPENED path={pathname} preview={preview_mode}]"
     );
     Ok(())
@@ -448,7 +448,7 @@ pub(crate) fn merge_user_preference_inner(prefs: &PrefsState, args: &Value) -> O
     let map = match payload {
         Value::Object(m) => m,
         other => {
-            eprintln!("[v1_compat][prefs_set][BLOCK_NOT_OBJECT got={other:?}]");
+            safe_eprintln!("[v1_compat][prefs_set][BLOCK_NOT_OBJECT got={other:?}]");
             return None;
         }
     };
@@ -458,12 +458,12 @@ pub(crate) fn merge_user_preference_inner(prefs: &PrefsState, args: &Value) -> O
             continue;
         }
         if let Err(e) = prefs.set(k.clone(), v) {
-            eprintln!("[v1_compat][prefs_set][BLOCK_WRITE_FAILED key={k} err={e}]");
+            safe_eprintln!("[v1_compat][prefs_set][BLOCK_WRITE_FAILED key={k} err={e}]");
             continue;
         }
         written += 1;
     }
-    eprintln!("[v1_compat][prefs_set][BLOCK_WRITTEN keys={written}]");
+    safe_eprintln!("[v1_compat][prefs_set][BLOCK_WRITTEN keys={written}]");
     Some(written)
 }
 
@@ -494,17 +494,17 @@ pub async fn mt_set_user_preference(
     // app.emit failing wholesale is a distinct symptom worth its own
     // marker.
     if let Err(e) = app.emit("mt::user-preference", &snapshot) {
-        eprintln!("[v1_compat][prefs_set][BLOCK_EMIT_FAILED err={e}]");
+        safe_eprintln!("[v1_compat][prefs_set][BLOCK_EMIT_FAILED err={e}]");
     }
     let windows = app.webview_windows();
-    eprintln!(
+    safe_eprintln!(
         "[v1_compat][prefs_set][BLOCK_BROADCAST_FANOUT count={}]",
         windows.len()
     );
     for (label, win) in windows.iter() {
         match win.emit("mt::user-preference", &snapshot) {
-            Ok(_) => eprintln!("[v1_compat][prefs_set][BLOCK_BROADCAST_HIT window={label}]"),
-            Err(e) => eprintln!(
+            Ok(_) => safe_eprintln!("[v1_compat][prefs_set][BLOCK_BROADCAST_HIT window={label}]"),
+            Err(e) => safe_eprintln!(
                 "[v1_compat][prefs_set][BLOCK_BROADCAST_FAILED window={label} err={e}]"
             ),
         }
@@ -552,12 +552,12 @@ pub(crate) fn persist_view_state_inner(
     let mut written = 0u32;
     for (k, v) in map {
         if let Err(e) = prefs.set(k.clone(), v) {
-            eprintln!("[v1_compat][layout][BLOCK_WRITE_FAILED key={k} err={e}]");
+            safe_eprintln!("[v1_compat][layout][BLOCK_WRITE_FAILED key={k} err={e}]");
             continue;
         }
         written += 1;
     }
-    eprintln!("[v1_compat][layout][BLOCK_PERSISTED keys={written}]");
+    safe_eprintln!("[v1_compat][layout][BLOCK_PERSISTED keys={written}]");
     written
 }
 
@@ -577,7 +577,7 @@ pub async fn mt_view_layout_changed(
             persist_view_state_inner(prefs.inner(), map);
         }
         None => {
-            eprintln!("[v1_compat][layout][BLOCK_NO_VIEW_STATE]");
+            safe_eprintln!("[v1_compat][layout][BLOCK_NO_VIEW_STATE]");
         }
     }
     Ok(())
@@ -589,7 +589,7 @@ pub async fn mt_view_layout_changed(
 /// a marker for diagnostic visibility.
 #[tauri::command]
 pub async fn mt_update_sidebar_menu(args: Value) -> Result<(), String> {
-    eprintln!("[v1_compat][layout][BLOCK_UPDATE_SIDEBAR_MENU_NOOP args={args}]");
+    safe_eprintln!("[v1_compat][layout][BLOCK_UPDATE_SIDEBAR_MENU_NOOP args={args}]");
     Ok(())
 }
 
@@ -601,7 +601,7 @@ pub async fn mt_update_sidebar_menu(args: Value) -> Result<(), String> {
 /// Closes when F-WINDOW-AUTO-RESIZE wires tauri::Window::set_inner_size.
 #[tauri::command]
 pub async fn mt_request_window_content_size(args: Value) -> Result<(), String> {
-    eprintln!("[v1_compat][layout][BLOCK_REQUEST_WINDOW_CONTENT_SIZE_NOOP args={args}]");
+    safe_eprintln!("[v1_compat][layout][BLOCK_REQUEST_WINDOW_CONTENT_SIZE_NOOP args={args}]");
     Ok(())
 }
 
@@ -614,7 +614,7 @@ pub async fn mt_request_window_content_size(args: Value) -> Result<(), String> {
 pub async fn mt_open_setting_window(app: tauri::AppHandle) -> Result<(), String> {
     if let Some(existing) = app.get_webview_window("settings") {
         let _ = existing.set_focus();
-        eprintln!("[v1_compat][settings][BLOCK_FOCUS_EXISTING]");
+        safe_eprintln!("[v1_compat][settings][BLOCK_FOCUS_EXISTING]");
         return Ok(());
     }
     // _win prefix: only read inside the debug-assertions block below;
@@ -631,7 +631,7 @@ pub async fn mt_open_setting_window(app: tauri::AppHandle) -> Result<(), String>
     .resizable(true)
     .build()
     .map_err(|e| {
-        eprintln!("[v1_compat][settings][BLOCK_BUILD_FAILED err={e}]");
+        safe_eprintln!("[v1_compat][settings][BLOCK_BUILD_FAILED err={e}]");
         e.to_string()
     })?;
     #[cfg(debug_assertions)]
@@ -674,13 +674,13 @@ pub async fn mt_open_setting_window(app: tauri::AppHandle) -> Result<(), String>
         );
         if std::env::var("MARK_SETTINGS_DEVTOOLS").as_deref() == Ok("1") {
             _win.open_devtools();
-            eprintln!("[v1_compat][settings][BLOCK_OPENED label=settings devtools=on]");
+            safe_eprintln!("[v1_compat][settings][BLOCK_OPENED label=settings devtools=on]");
         } else {
-            eprintln!("[v1_compat][settings][BLOCK_OPENED label=settings devtools=off diag=on]");
+            safe_eprintln!("[v1_compat][settings][BLOCK_OPENED label=settings devtools=off diag=on]");
         }
     }
     #[cfg(not(debug_assertions))]
-    eprintln!("[v1_compat][settings][BLOCK_OPENED label=settings devtools=off]");
+    safe_eprintln!("[v1_compat][settings][BLOCK_OPENED label=settings devtools=off]");
     Ok(())
 }
 
@@ -704,7 +704,7 @@ pub async fn mt_format_link_click(data: Value, dirname: Value) -> Result<(), Str
     } else {
         href.to_string()
     };
-    eprintln!("[v1_compat][link][BLOCK_OPEN_URL url={url}]");
+    safe_eprintln!("[v1_compat][link][BLOCK_OPEN_URL url={url}]");
     std::process::Command::new("open")
         .arg(&url)
         .spawn()

@@ -66,20 +66,20 @@ pub fn migrate_preferences(
     target: &mut PrefsStore,
 ) -> Result<PreferencesMigrationOutcome, PreferencesMigrationError> {
     if is_already_done(target) {
-        eprintln!("[m005-migrate][preferences][BLOCK_ALREADY_DONE]");
+        safe_eprintln!("[m005-migrate][preferences][BLOCK_ALREADY_DONE]");
         return Ok(PreferencesMigrationOutcome::AlreadyDone);
     }
 
     let path = match source_path {
         Some(p) => p,
         None => {
-            eprintln!("[m005-migrate][preferences][BLOCK_NO_SOURCE_FILE]");
+            safe_eprintln!("[m005-migrate][preferences][BLOCK_NO_SOURCE_FILE]");
             return Ok(PreferencesMigrationOutcome::NoSourceFile);
         }
     };
 
     let content = std::fs::read_to_string(path).map_err(|e| {
-        eprintln!(
+        safe_eprintln!(
             "[m005-migrate][preferences][BLOCK_SOURCE_READ_FAILED path={} err={e}]",
             path.display()
         );
@@ -87,7 +87,7 @@ pub fn migrate_preferences(
     })?;
 
     let parsed: Value = serde_json::from_str(&content).map_err(|e| {
-        eprintln!(
+        safe_eprintln!(
             "[m005-migrate][preferences][BLOCK_SOURCE_PARSE_FAILED path={} err={e}]",
             path.display()
         );
@@ -98,7 +98,7 @@ pub fn migrate_preferences(
         Value::Object(m) => m,
         other => {
             let kind = json_kind(&other);
-            eprintln!(
+            safe_eprintln!(
                 "[m005-migrate][preferences][BLOCK_SOURCE_NOT_OBJECT kind={kind}]"
             );
             return Err(PreferencesMigrationError::SourceCorrupt(format!(
@@ -112,14 +112,14 @@ pub fn migrate_preferences(
 
     for (key, value) in map {
         if key == ELECTRON_STORE_INTERNAL_KEY {
-            eprintln!("[m005-migrate][preferences][BLOCK_KEY_SKIPPED key={key} reason=electron-store-internal]");
+            safe_eprintln!("[m005-migrate][preferences][BLOCK_KEY_SKIPPED key={key} reason=electron-store-internal]");
             skipped += 1;
             continue;
         }
         // Don't overwrite the M-005 mt_migration namespace marker if
         // present — that's the runner's domain.
         if key == crate::m005_prefs::KEY_MIGRATION_NS {
-            eprintln!("[m005-migrate][preferences][BLOCK_KEY_SKIPPED key={key} reason=mt_migration-reserved]");
+            safe_eprintln!("[m005-migrate][preferences][BLOCK_KEY_SKIPPED key={key} reason=mt_migration-reserved]");
             skipped += 1;
             continue;
         }
@@ -127,7 +127,7 @@ pub fn migrate_preferences(
         migrated += 1;
     }
 
-    eprintln!("[m005-migrate][preferences][BLOCK_MIGRATED migrated={migrated} skipped={skipped}]");
+    safe_eprintln!("[m005-migrate][preferences][BLOCK_MIGRATED migrated={migrated} skipped={skipped}]");
     Ok(PreferencesMigrationOutcome::Migrated {
         keys_migrated: migrated,
         keys_skipped: skipped,
@@ -163,7 +163,7 @@ pub fn mark_done(target: &mut PrefsStore) {
         crate::m005_prefs::KEY_MIGRATION_NS.to_string(),
         Value::Object(ns),
     );
-    eprintln!("[m005-migrate][preferences][BLOCK_MARK_DONE]");
+    safe_eprintln!("[m005-migrate][preferences][BLOCK_MARK_DONE]");
 }
 
 fn json_kind(v: &Value) -> &'static str {

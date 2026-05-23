@@ -46,20 +46,20 @@ pub fn migrate_recent_docs(
     target: &mut PrefsStore,
 ) -> Result<RecentDocsMigrationOutcome, RecentDocsMigrationError> {
     if is_already_done(target) {
-        eprintln!("[m005-migrate][recent_docs][BLOCK_ALREADY_DONE]");
+        safe_eprintln!("[m005-migrate][recent_docs][BLOCK_ALREADY_DONE]");
         return Ok(RecentDocsMigrationOutcome::AlreadyDone);
     }
 
     let path = match source_path {
         Some(p) => p,
         None => {
-            eprintln!("[m005-migrate][recent_docs][BLOCK_NO_SOURCE_FILE]");
+            safe_eprintln!("[m005-migrate][recent_docs][BLOCK_NO_SOURCE_FILE]");
             return Ok(RecentDocsMigrationOutcome::NoSourceFile);
         }
     };
 
     let content = std::fs::read_to_string(path).map_err(|e| {
-        eprintln!(
+        safe_eprintln!(
             "[m005-migrate][recent_docs][BLOCK_SOURCE_READ_FAILED path={} err={e}]",
             path.display()
         );
@@ -67,7 +67,7 @@ pub fn migrate_recent_docs(
     })?;
 
     let parsed: Value = serde_json::from_str(&content).map_err(|e| {
-        eprintln!(
+        safe_eprintln!(
             "[m005-migrate][recent_docs][BLOCK_SOURCE_PARSE_FAILED path={} err={e}]",
             path.display()
         );
@@ -78,7 +78,7 @@ pub fn migrate_recent_docs(
         Value::Array(a) => a,
         other => {
             let kind = json_kind(&other);
-            eprintln!("[m005-migrate][recent_docs][BLOCK_SOURCE_NOT_ARRAY kind={kind}]");
+            safe_eprintln!("[m005-migrate][recent_docs][BLOCK_SOURCE_NOT_ARRAY kind={kind}]");
             return Err(RecentDocsMigrationError::SourceCorrupt(format!(
                 "recently-used-documents.json root is not a JSON array (kind={kind})"
             )));
@@ -95,7 +95,7 @@ pub fn migrate_recent_docs(
             Value::String(s) => s,
             other => {
                 let kind = json_kind(&other);
-                eprintln!(
+                safe_eprintln!(
                     "[m005-migrate][recent_docs][BLOCK_ELEM_SKIPPED reason=non-string kind={kind}]"
                 );
                 skipped += 1;
@@ -103,12 +103,12 @@ pub fn migrate_recent_docs(
             }
         };
         if s.is_empty() {
-            eprintln!("[m005-migrate][recent_docs][BLOCK_ELEM_SKIPPED reason=empty-string]");
+            safe_eprintln!("[m005-migrate][recent_docs][BLOCK_ELEM_SKIPPED reason=empty-string]");
             skipped += 1;
             continue;
         }
         if deduped.iter().any(|existing| existing == &s) {
-            eprintln!("[m005-migrate][recent_docs][BLOCK_ELEM_DEDUPED path={s}]");
+            safe_eprintln!("[m005-migrate][recent_docs][BLOCK_ELEM_DEDUPED path={s}]");
             skipped += 1;
             continue;
         }
@@ -118,7 +118,7 @@ pub fn migrate_recent_docs(
     if deduped.len() > MAX_RECENT_DOCS {
         capped = (deduped.len() - MAX_RECENT_DOCS) as u32;
         deduped.truncate(MAX_RECENT_DOCS);
-        eprintln!(
+        safe_eprintln!(
             "[m005-migrate][recent_docs][BLOCK_CAPPED dropped={capped} kept={MAX_RECENT_DOCS}]"
         );
     }
@@ -144,7 +144,7 @@ pub fn migrate_recent_docs(
             let post_merge_dropped = (merged.len() - MAX_RECENT_DOCS) as u32;
             capped += post_merge_dropped;
             merged.truncate(MAX_RECENT_DOCS);
-            eprintln!(
+            safe_eprintln!(
                 "[m005-migrate][recent_docs][BLOCK_CAPPED_POST_MERGE dropped={post_merge_dropped} kept={MAX_RECENT_DOCS}]"
             );
         }
@@ -154,7 +154,7 @@ pub fn migrate_recent_docs(
         target.set(KEY_RECENT_DOCS.to_string(), value);
     }
 
-    eprintln!(
+    safe_eprintln!(
         "[m005-migrate][recent_docs][BLOCK_MIGRATED migrated={migrated} skipped={skipped} capped={capped}]"
     );
     Ok(RecentDocsMigrationOutcome::Migrated {
@@ -188,7 +188,7 @@ pub fn mark_done(target: &mut PrefsStore) {
         crate::m005_prefs::KEY_MIGRATION_NS.to_string(),
         Value::Object(ns),
     );
-    eprintln!("[m005-migrate][recent_docs][BLOCK_MARK_DONE]");
+    safe_eprintln!("[m005-migrate][recent_docs][BLOCK_MARK_DONE]");
 }
 
 fn json_kind(v: &Value) -> &'static str {

@@ -59,20 +59,20 @@ pub fn migrate_data_center(
     target: &mut PrefsStore,
 ) -> Result<DataCenterMigrationOutcome, DataCenterMigrationError> {
     if is_already_done(target) {
-        eprintln!("[m005-migrate][data_center][BLOCK_ALREADY_DONE]");
+        safe_eprintln!("[m005-migrate][data_center][BLOCK_ALREADY_DONE]");
         return Ok(DataCenterMigrationOutcome::AlreadyDone);
     }
 
     let path = match source_path {
         Some(p) => p,
         None => {
-            eprintln!("[m005-migrate][data_center][BLOCK_NO_SOURCE_FILE]");
+            safe_eprintln!("[m005-migrate][data_center][BLOCK_NO_SOURCE_FILE]");
             return Ok(DataCenterMigrationOutcome::NoSourceFile);
         }
     };
 
     let content = std::fs::read_to_string(path).map_err(|e| {
-        eprintln!(
+        safe_eprintln!(
             "[m005-migrate][data_center][BLOCK_SOURCE_READ_FAILED path={} err={e}]",
             path.display()
         );
@@ -80,7 +80,7 @@ pub fn migrate_data_center(
     })?;
 
     let parsed: Value = serde_json::from_str(&content).map_err(|e| {
-        eprintln!(
+        safe_eprintln!(
             "[m005-migrate][data_center][BLOCK_SOURCE_PARSE_FAILED path={} err={e}]",
             path.display()
         );
@@ -91,7 +91,7 @@ pub fn migrate_data_center(
         Value::Object(m) => m,
         other => {
             let kind = json_kind(&other);
-            eprintln!("[m005-migrate][data_center][BLOCK_SOURCE_NOT_OBJECT kind={kind}]");
+            safe_eprintln!("[m005-migrate][data_center][BLOCK_SOURCE_NOT_OBJECT kind={kind}]");
             return Err(DataCenterMigrationError::SourceCorrupt(format!(
                 "dataCenter.json root is not a JSON object (kind={kind})"
             )));
@@ -105,13 +105,13 @@ pub fn migrate_data_center(
     for (key, value) in map {
         // Reserved keys — never overwrite our migration tracker.
         if key == crate::m005_prefs::KEY_MIGRATION_NS {
-            eprintln!("[m005-migrate][data_center][BLOCK_KEY_SKIPPED key={key} reason=mt_migration-reserved]");
+            safe_eprintln!("[m005-migrate][data_center][BLOCK_KEY_SKIPPED key={key} reason=mt_migration-reserved]");
             continue;
         }
 
         let is_known = KNOWN_DATA_CENTER_KEYS.contains(&key.as_str());
         if !is_known {
-            eprintln!("[m005-migrate][data_center][BLOCK_KEY_UNKNOWN key={key}]");
+            safe_eprintln!("[m005-migrate][data_center][BLOCK_KEY_UNKNOWN key={key}]");
             unknown += 1;
         }
 
@@ -119,7 +119,7 @@ pub fn migrate_data_center(
         // value (preferences wins because it's the user-facing settings
         // surface; dataCenter is a runtime cache).
         if target.get(&key).is_some() {
-            eprintln!("[m005-migrate][data_center][BLOCK_KEY_COLLISION key={key} kept=preferences]");
+            safe_eprintln!("[m005-migrate][data_center][BLOCK_KEY_COLLISION key={key} kept=preferences]");
             collided += 1;
             continue;
         }
@@ -128,7 +128,7 @@ pub fn migrate_data_center(
         migrated += 1;
     }
 
-    eprintln!(
+    safe_eprintln!(
         "[m005-migrate][data_center][BLOCK_MIGRATED migrated={migrated} collided={collided} unknown={unknown}]"
     );
     Ok(DataCenterMigrationOutcome::Migrated {
@@ -162,7 +162,7 @@ pub fn mark_done(target: &mut PrefsStore) {
         crate::m005_prefs::KEY_MIGRATION_NS.to_string(),
         Value::Object(ns),
     );
-    eprintln!("[m005-migrate][data_center][BLOCK_MARK_DONE]");
+    safe_eprintln!("[m005-migrate][data_center][BLOCK_MARK_DONE]");
 }
 
 fn json_kind(v: &Value) -> &'static str {

@@ -22,10 +22,10 @@ const SERVICE_NAME: &str = "com.xronocode.mark";
 pub async fn mt_secret_set(key: String, value: String) -> Result<(), String> {
     let entry = keyring::Entry::new(SERVICE_NAME, &key).map_err(|e| e.to_string())?;
     entry.set_password(&value).map_err(|e| {
-        eprintln!("[DataCenter][secret][BLOCK_KEYRING_SET_FAILED reason={e}]");
+        safe_eprintln!("[DataCenter][secret][BLOCK_KEYRING_SET_FAILED reason={e}]");
         e.to_string()
     })?;
-    eprintln!("[DataCenter][secret][BLOCK_KEYRING_SET_OK key={key}]");
+    safe_eprintln!("[DataCenter][secret][BLOCK_KEYRING_SET_OK key={key}]");
     Ok(())
 }
 
@@ -34,15 +34,15 @@ pub async fn mt_secret_get(key: String) -> Result<Option<String>, String> {
     let entry = keyring::Entry::new(SERVICE_NAME, &key).map_err(|e| e.to_string())?;
     match entry.get_password() {
         Ok(p) => {
-            eprintln!("[DataCenter][secret][BLOCK_KEYRING_GET_HIT key={key}]");
+            safe_eprintln!("[DataCenter][secret][BLOCK_KEYRING_GET_HIT key={key}]");
             Ok(Some(p))
         }
         Err(keyring::Error::NoEntry) => {
-            eprintln!("[DataCenter][secret][BLOCK_KEYRING_GET_MISS key={key}]");
+            safe_eprintln!("[DataCenter][secret][BLOCK_KEYRING_GET_MISS key={key}]");
             Ok(None)
         }
         Err(e) => {
-            eprintln!("[DataCenter][secret][BLOCK_KEYRING_GET_FAILED reason={e}]");
+            safe_eprintln!("[DataCenter][secret][BLOCK_KEYRING_GET_FAILED reason={e}]");
             Err(e.to_string())
         }
     }
@@ -53,7 +53,7 @@ pub async fn mt_secret_delete(key: String) -> Result<(), String> {
     let entry = keyring::Entry::new(SERVICE_NAME, &key).map_err(|e| e.to_string())?;
     match entry.delete_credential() {
         Ok(_) | Err(keyring::Error::NoEntry) => {
-            eprintln!("[DataCenter][secret][BLOCK_KEYRING_DELETE key={key}]");
+            safe_eprintln!("[DataCenter][secret][BLOCK_KEYRING_DELETE key={key}]");
             Ok(())
         }
         Err(e) => Err(e.to_string()),

@@ -63,6 +63,9 @@
 #[cfg(target_os = "macos")]
 use raw_window_handle::HasWindowHandle;
 
+#[macro_use]
+mod safe_log;
+
 #[allow(dead_code)] // dialog flow auto-migrates 2026-05-09; kept for future re-enable
 mod cancel_log;
 mod dialog;
@@ -160,7 +163,7 @@ fn mt_drain_pending_opens(
         let mut q = state.queue.lock().unwrap_or_else(|e| e.into_inner());
         std::mem::take(&mut *q)
     };
-    eprintln!("[main][pending_opens][BLOCK_DRAINED count={}]", drained.len());
+    safe_eprintln!("[main][pending_opens][BLOCK_DRAINED count={}]", drained.len());
     // Emit mt::open-new-tab for each queued path. Reuses
     // m_v1_compat::emit_open_new_tab (reads file via std::fs, builds
     // IMarkdownDocumentRaw payload, fires the event).
@@ -169,9 +172,9 @@ fn mt_drain_pending_opens(
     let preview = state.preview_mode.load(std::sync::atomic::Ordering::SeqCst);
     for path in &drained {
         if let Err(e) = m_v1_compat::emit_open_new_tab(&window, path, preview) {
-            eprintln!("[main][pending_opens][BLOCK_EMIT_FAILED path={path} err={e}]");
+            safe_eprintln!("[main][pending_opens][BLOCK_EMIT_FAILED path={path} err={e}]");
         } else {
-            eprintln!("[main][pending_opens][BLOCK_EMITTED path={path}]");
+            safe_eprintln!("[main][pending_opens][BLOCK_EMITTED path={path}]");
         }
     }
     // M-025 ready-signal: flip the flag AFTER the drain emit loop so any
@@ -182,7 +185,7 @@ fn mt_drain_pending_opens(
     state
         .drained
         .store(true, std::sync::atomic::Ordering::SeqCst);
-    eprintln!("[main][pending_opens][BLOCK_DRAIN_COMPLETE drained_flag=true]");
+    safe_eprintln!("[main][pending_opens][BLOCK_DRAIN_COMPLETE drained_flag=true]");
     drained
 }
 
@@ -221,7 +224,7 @@ fn main() {
 
     // Verbose flag from CLI: future hook for diagnostic stream.
     if cli.verbose {
-        eprintln!("[main][cli][BLOCK_VERBOSE_ENABLED files={} dir={:?} new_window={}]",
+        safe_eprintln!("[main][cli][BLOCK_VERBOSE_ENABLED files={} dir={:?} new_window={}]",
             cli.files.len(), cli.directory, cli.new_window);
     }
 
@@ -243,7 +246,7 @@ fn main() {
         .map(|v| v != "0" && !v.is_empty())
         .unwrap_or(false);
     if skip_migration {
-        eprintln!("[main][bootstrap][BLOCK_MIGRATION_SKIPPED_BY_ENV]");
+        safe_eprintln!("[main][bootstrap][BLOCK_MIGRATION_SKIPPED_BY_ENV]");
     }
 
     // F-MIGRATE-DIALOG-SUPPRESS-AFTER-DONE (2026-05-07): if every
@@ -273,7 +276,7 @@ fn main() {
         })
         .unwrap_or(false);
     if migration_already_done {
-        eprintln!("[main][bootstrap][BLOCK_MIGRATION_ALREADY_COMPLETE] all 5 markers present; skipping dialog");
+        safe_eprintln!("[main][bootstrap][BLOCK_MIGRATION_ALREADY_COMPLETE] all 5 markers present; skipping dialog");
     }
 
     // Auto-migrate when legacy data is detected. Earlier builds asked via a
@@ -284,10 +287,10 @@ fn main() {
     // for the migrator, so this is a non-destructive auto-import. Set
     // MARK_SKIP_MIGRATION=1 if you really don't want it (e.g. for tests).
     if layouts.any_detected() && !skip_migration && !migration_already_done {
-        eprintln!("[main][bootstrap][BLOCK_MIGRATION_AUTO_CONTINUE]");
+        safe_eprintln!("[main][bootstrap][BLOCK_MIGRATION_AUTO_CONTINUE]");
         {
             {
-                eprintln!("[main][bootstrap][BLOCK_MIGRATION_CONTINUE]");
+                safe_eprintln!("[main][bootstrap][BLOCK_MIGRATION_CONTINUE]");
 
                 // Phase-B-pre2 step-5: snapshot legacy data into
                 // cache_root/snapshot/ts-<unix>/ BEFORE the stub gate
@@ -297,21 +300,21 @@ fn main() {
                 match mt_paths::cache_root() {
                     Some(cache_root) => match snapshot::snapshot_legacy(&layouts, &cache_root) {
                         Ok(r) => {
-                            eprintln!(
+                            safe_eprintln!(
                                 "[snapshot][run][BLOCK_SNAPSHOT_LEGACY dest={} files={} bytes={}]",
                                 r.dest.display(), r.files, r.bytes
                             );
-                            eprintln!("[main][bootstrap][BLOCK_MIGRATION_PREFLIGHT_DONE]");
+                            safe_eprintln!("[main][bootstrap][BLOCK_MIGRATION_PREFLIGHT_DONE]");
                         }
                         Err(e) => {
-                            eprintln!("[snapshot][run][BLOCK_SNAPSHOT_FAILED reason={e}]");
-                            eprintln!("[main][bootstrap][BLOCK_MIGRATION_PREFLIGHT_FAILED]");
+                            safe_eprintln!("[snapshot][run][BLOCK_SNAPSHOT_FAILED reason={e}]");
+                            safe_eprintln!("[main][bootstrap][BLOCK_MIGRATION_PREFLIGHT_FAILED]");
                             std::process::exit(2);
                         }
                     },
                     None => {
-                        eprintln!("[snapshot][run][BLOCK_SNAPSHOT_NO_CACHE_ROOT]");
-                        eprintln!("[main][bootstrap][BLOCK_MIGRATION_PREFLIGHT_FAILED]");
+                        safe_eprintln!("[snapshot][run][BLOCK_SNAPSHOT_NO_CACHE_ROOT]");
+                        safe_eprintln!("[main][bootstrap][BLOCK_MIGRATION_PREFLIGHT_FAILED]");
                         std::process::exit(3);
                     }
                 }
@@ -326,7 +329,7 @@ fn main() {
                 let cache_root = match mt_paths::cache_root() {
                     Some(c) => c,
                     None => {
-                        eprintln!("[main][bootstrap][BLOCK_MIGRATION_NO_CACHE_ROOT]");
+                        safe_eprintln!("[main][bootstrap][BLOCK_MIGRATION_NO_CACHE_ROOT]");
                         dialog::ask_native_error(
                             "Mark — migration aborted",
                             "Could not resolve the cache directory required for migration. \
@@ -342,7 +345,7 @@ fn main() {
                 match m005_migrate::runner::run(&cache_root, &backend, &mut migrate_store) {
                     Ok(summary) => {
                         if let Some(failure) = summary.first_failure.as_ref() {
-                            eprintln!(
+                            safe_eprintln!(
                                 "[main][bootstrap][BLOCK_MIGRATION_PARTIAL failure={failure:?}]"
                             );
                             // Persist whatever progress was made (each
@@ -362,7 +365,7 @@ fn main() {
                             std::process::exit(1);
                         }
                         if let Err(e) = migrate_store.save() {
-                            eprintln!(
+                            safe_eprintln!(
                                 "[main][bootstrap][BLOCK_MIGRATION_PERSIST_FAILED err={e}]"
                             );
                             dialog::ask_native_error(
@@ -374,7 +377,7 @@ fn main() {
                             );
                             std::process::exit(1);
                         }
-                        eprintln!(
+                        safe_eprintln!(
                             "[main][bootstrap][BLOCK_MIGRATION_COMPLETED prefs={:?} dc={:?} kb={:?} recent={:?} keychain={:?}]",
                             summary.preferences,
                             summary.data_center,
@@ -390,7 +393,7 @@ fn main() {
                         // can verify imported state via Settings. No banner.
                     }
                     Err(failure) => {
-                        eprintln!("[main][bootstrap][BLOCK_MIGRATION_RUNNER_FAILED failure={failure:?}]");
+                        safe_eprintln!("[main][bootstrap][BLOCK_MIGRATION_RUNNER_FAILED failure={failure:?}]");
                         dialog::ask_native_error(
                             "Mark — migration could not start",
                             &format!(
@@ -404,7 +407,7 @@ fn main() {
             }
         }
     } else {
-        eprintln!("[main][bootstrap][BLOCK_NO_MIGRATION_NEEDED]");
+        safe_eprintln!("[main][bootstrap][BLOCK_NO_MIGRATION_NEEDED]");
     }
 
     // Phase-B1 step-9: WebView shell security posture audit. Reads the
@@ -452,14 +455,14 @@ fn main() {
     if let Some(cli_dir) = cli.directory.as_ref() {
         if cli_dir.is_dir() {
             if let Ok(canonical) = std::fs::canonicalize(cli_dir) {
-                eprintln!(
+                safe_eprintln!(
                     "[main][cli][BLOCK_WORKSPACE_FROM_CLI path={}]",
                     canonical.display()
                 );
                 sec_ctx.set_sandbox(canonical);
             }
         } else {
-            eprintln!(
+            safe_eprintln!(
                 "[main][cli][BLOCK_CLI_DIR_INVALID path={}]",
                 cli_dir.display()
             );
@@ -515,15 +518,15 @@ fn main() {
             use tauri::Manager;
             let handle = app.handle().clone();
             let menu = m009_menu::build_native_menu(&handle).inspect_err(|e| {
-                eprintln!("[menu][build][BLOCK_BUILD_NATIVE_MENU_FAILED reason={e}]");
+                safe_eprintln!("[menu][build][BLOCK_BUILD_NATIVE_MENU_FAILED reason={e}]");
             })?;
             app.set_menu(menu)?;
-            eprintln!("[menu][build][BLOCK_BUILD_NATIVE_MENU] installed");
+            safe_eprintln!("[menu][build][BLOCK_BUILD_NATIVE_MENU] installed");
             // F-SHORTCUT-PLATFORM-BIND: register builtin global shortcuts
             // (Cmd+Shift+M show-window) AFTER set_menu so any conflicts
             // with menu accelerators are visible in the log.
             if let Err(e) = m006_shortcuts::register_global_shortcuts(&handle) {
-                eprintln!("[shortcuts][register_global][BLOCK_BATCH_FAILED reason={e}]");
+                safe_eprintln!("[shortcuts][register_global][BLOCK_BATCH_FAILED reason={e}]");
             }
             // F-LIFECYCLE-WIRE: manage MainCloseSm state and attach
             // CloseRequested handler so dirty-tab close-prompt can fire.
@@ -589,22 +592,22 @@ fn main() {
                                             }),
                                         );
                                     }
-                                    eprintln!(
+                                    safe_eprintln!(
                                         "[m001][webview]\
                                          [BLOCK_DRAWS_BACKGROUND_DISABLED]"
                                     );
                                 }
-                                eprintln!("[m001][titlebar][BLOCK_FULLSIZE_CONTENT_VIEW_SET]");
+                                safe_eprintln!("[m001][titlebar][BLOCK_FULLSIZE_CONTENT_VIEW_SET]");
                             }
                         }
                         Err(e) => {
-                            eprintln!("[m001][titlebar][BLOCK_FULLSIZE_FAILED reason={e}]");
+                            safe_eprintln!("[m001][titlebar][BLOCK_FULLSIZE_FAILED reason={e}]");
                         }
                     }
                 }
 
                 m001_save_close::wire_close_handler(&main_win);
-                eprintln!("[m001][lifecycle][BLOCK_CLOSE_HANDLER_WIRED label=main]");
+                safe_eprintln!("[m001][lifecycle][BLOCK_CLOSE_HANDLER_WIRED label=main]");
                 // F-DEV-MODE-WHITE-SCREEN diagnostic: dev-only inject
                 // window.onerror + unhandledrejection + console.error
                 // hooks that pipe through `mt_dev_diag` so JS exceptions
@@ -657,7 +660,7 @@ fn main() {
   post({ kind: 'hook-installed' });
 })();"#,
                     );
-                    eprintln!(
+                    safe_eprintln!(
                         "[dev-diag][installed via={}]",
                         if cfg!(debug_assertions) { "debug_cfg" } else { "MARK_DEV_DIAG" }
                     );
@@ -682,7 +685,7 @@ fn main() {
                     let state = tauri::Manager::state::<PendingOpens>(app);
                     let mut q = state.queue.lock().unwrap_or_else(|e| e.into_inner());
                     for path in &cli_files {
-                        eprintln!("[main][cli][BLOCK_CLI_QUEUED path={path}]");
+                        safe_eprintln!("[main][cli][BLOCK_CLI_QUEUED path={path}]");
                         q.push(path.clone());
                     }
                     // M-025.1: latch so mt_request_keybindings suppresses
@@ -692,19 +695,19 @@ fn main() {
                         .store(true, std::sync::atomic::Ordering::SeqCst);
                 }
             } else {
-                eprintln!("[m001][lifecycle][BLOCK_CLOSE_HANDLER_SKIPPED reason=no-main-window]");
+                safe_eprintln!("[m001][lifecycle][BLOCK_CLOSE_HANDLER_SKIPPED reason=no-main-window]");
             }
             Ok(())
         })
         .on_menu_event(|app_handle, event| {
             // Tauri's MenuId wraps a String; .as_ref() yields &str.
             let id_str: String = event.id().as_ref().to_string();
-            eprintln!("[menu][on_event][BLOCK_DISPATCH menu_id={id_str}]");
+            safe_eprintln!("[menu][on_event][BLOCK_DISPATCH menu_id={id_str}]");
             // Broadcast to all windows. Renderer's menu-bridge filters
             // by listening on the main window only; Settings window
             // ignores menu events for now (per F-V1-IPC-COMPAT-STUBS).
             if let Err(e) = tauri::Emitter::emit(app_handle, "mt::menu-invoked", &id_str) {
-                eprintln!("[menu][on_event][BLOCK_EMIT_FAILED reason={e}]");
+                safe_eprintln!("[menu][on_event][BLOCK_EMIT_FAILED reason={e}]");
             }
         })
         .manage(sec_ctx)
@@ -787,7 +790,7 @@ fn main() {
                     return;
                 }
                 api.prevent_exit();
-                eprintln!("[m001][lifecycle][BLOCK_EXIT_INTERCEPTED]");
+                safe_eprintln!("[m001][lifecycle][BLOCK_EXIT_INTERCEPTED]");
                 if let Some(win) = tauri::Manager::get_webview_window(app, "main") {
                     let _ = tauri::Emitter::emit(&win, "mt::ask-for-close", ());
                 } else {
@@ -836,7 +839,7 @@ fn main() {
             // suite is also gated below.
             #[cfg(target_os = "macos")]
             if let tauri::RunEvent::Opened { urls } = event {
-                eprintln!(
+                safe_eprintln!(
                     "[main][apple_event][BLOCK_RECEIVED count={}]",
                     urls.len()
                 );
@@ -866,10 +869,10 @@ fn main() {
                                     match m_v1_compat::emit_open_new_tab(
                                         &window, &path_str, true,
                                     ) {
-                                        Ok(()) => eprintln!(
+                                        Ok(()) => safe_eprintln!(
                                             "[main][apple_event][BLOCK_DIRECT_EMIT path={path_str}]"
                                         ),
-                                        Err(e) => eprintln!(
+                                        Err(e) => safe_eprintln!(
                                             "[main][apple_event][BLOCK_DIRECT_EMIT_FAILED path={path_str} err={e}]"
                                         ),
                                     }
@@ -877,7 +880,7 @@ fn main() {
                                     // Defensive: window gone (e.g. last-window-
                                     // closed transient). Re-queue so the next
                                     // drain (if any) picks it up.
-                                    eprintln!(
+                                    safe_eprintln!(
                                         "[main][apple_event][BLOCK_DIRECT_EMIT_NO_WINDOW path={path_str}]"
                                     );
                                     let mut q = state
@@ -887,7 +890,7 @@ fn main() {
                                     q.push(path_str);
                                 }
                             } else {
-                                eprintln!(
+                                safe_eprintln!(
                                     "[main][apple_event][BLOCK_QUEUED path={path_str}]"
                                 );
                                 let mut q = state
@@ -898,7 +901,7 @@ fn main() {
                             }
                         }
                         Err(_) => {
-                            eprintln!("[main][apple_event][BLOCK_NON_FILE_URL url={url}]");
+                            safe_eprintln!("[main][apple_event][BLOCK_NON_FILE_URL url={url}]");
                         }
                     }
                 }

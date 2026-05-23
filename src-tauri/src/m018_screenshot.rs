@@ -27,7 +27,7 @@ pub async fn mt_screenshot_capture(
     options: Option<ScreenshotOptions>,
 ) -> Result<Vec<u8>, String> {
     if !cfg!(target_os = "macos") {
-        eprintln!("[Screenshot][capture][BLOCK_PLATFORM_UNSUPPORTED]");
+        safe_eprintln!("[Screenshot][capture][BLOCK_PLATFORM_UNSUPPORTED]");
         return Err("MT_SCREENSHOT_PLATFORM: screencapture is macOS-only at v2.0".to_string());
     }
     let opts = options.unwrap_or_default();
@@ -52,11 +52,11 @@ pub async fn mt_screenshot_capture(
         .arg(&tmp)
         .status()
         .map_err(|e| {
-            eprintln!("[Screenshot][capture][BLOCK_SPAWN_FAILED reason={e}]");
+            safe_eprintln!("[Screenshot][capture][BLOCK_SPAWN_FAILED reason={e}]");
             e.to_string()
         })?;
     if !status.success() {
-        eprintln!(
+        safe_eprintln!(
             "[Screenshot][capture][BLOCK_USER_CANCELLED status={}]",
             status
         );
@@ -67,7 +67,7 @@ pub async fn mt_screenshot_capture(
     }
     let bytes = std::fs::read(&tmp).map_err(|e| e.to_string())?;
     let _ = std::fs::remove_file(&tmp);
-    eprintln!(
+    safe_eprintln!(
         "[Screenshot][capture][BLOCK_CAPTURE_OK mode={mode} bytes={}]",
         bytes.len()
     );

@@ -48,7 +48,7 @@ pub async fn mt_updater_check(app: tauri::AppHandle) -> Result<UpdateStatus, Str
     let updater = match app.updater() {
         Ok(u) => u,
         Err(e) => {
-            eprintln!("[Updater][check][BLOCK_PLUGIN_UNAVAILABLE err={e}]");
+            safe_eprintln!("[Updater][check][BLOCK_PLUGIN_UNAVAILABLE err={e}]");
             return Ok(UpdateStatus {
                 current_version: current,
                 available: false,
@@ -61,7 +61,7 @@ pub async fn mt_updater_check(app: tauri::AppHandle) -> Result<UpdateStatus, Str
 
     match updater.check().await {
         Ok(Some(update)) => {
-            eprintln!(
+            safe_eprintln!(
                 "[Updater][check][BLOCK_UPDATE_AVAILABLE current={current} latest={}]",
                 update.version
             );
@@ -74,7 +74,7 @@ pub async fn mt_updater_check(app: tauri::AppHandle) -> Result<UpdateStatus, Str
             })
         }
         Ok(None) => {
-            eprintln!("[Updater][check][BLOCK_UP_TO_DATE current={current}]");
+            safe_eprintln!("[Updater][check][BLOCK_UP_TO_DATE current={current}]");
             Ok(UpdateStatus {
                 current_version: current,
                 available: false,
@@ -84,7 +84,7 @@ pub async fn mt_updater_check(app: tauri::AppHandle) -> Result<UpdateStatus, Str
             })
         }
         Err(e) => {
-            eprintln!("[Updater][check][BLOCK_FEED_FAILED err={e}]");
+            safe_eprintln!("[Updater][check][BLOCK_FEED_FAILED err={e}]");
             // Soft-fail: don't surface as Result::Err so the renderer
             // gets a user-friendly status_note instead of an error
             // toast. Network glitches shouldn't crash the menu item.

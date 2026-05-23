@@ -106,11 +106,11 @@ pub enum SnapshotLoadError {
 pub fn load_latest(cache_root: &Path) -> Result<LegacySnapshot, SnapshotLoadError> {
     let snapshot_root = cache_root.join("snapshot");
     if !snapshot_root.exists() {
-        eprintln!("[m005-migrate][snapshot][BLOCK_SNAPSHOT_NOT_FOUND]");
+        safe_eprintln!("[m005-migrate][snapshot][BLOCK_SNAPSHOT_NOT_FOUND]");
         return Err(SnapshotLoadError::SnapshotDirMissing);
     }
     if !snapshot_root.is_dir() {
-        eprintln!("[m005-migrate][snapshot][BLOCK_SNAPSHOT_PATH_NOT_DIR]");
+        safe_eprintln!("[m005-migrate][snapshot][BLOCK_SNAPSHOT_PATH_NOT_DIR]");
         return Err(SnapshotLoadError::IoError("snapshot path is not a directory".to_string()));
     }
 
@@ -144,7 +144,7 @@ pub fn load_latest(cache_root: &Path) -> Result<LegacySnapshot, SnapshotLoadErro
     let ts_dir = match latest {
         Some((p, _)) => p,
         None => {
-            eprintln!("[m005-migrate][snapshot][BLOCK_SNAPSHOT_EMPTY]");
+            safe_eprintln!("[m005-migrate][snapshot][BLOCK_SNAPSHOT_EMPTY]");
             return Err(SnapshotLoadError::NoTimestampedDir);
         }
     };
@@ -152,7 +152,7 @@ pub fn load_latest(cache_root: &Path) -> Result<LegacySnapshot, SnapshotLoadErro
     let marktext = scan_namespace(&ts_dir.join("marktext"));
     let mark = scan_namespace(&ts_dir.join("mark"));
 
-    eprintln!(
+    safe_eprintln!(
         "[m005-migrate][snapshot][BLOCK_SNAPSHOT_VALIDATED ts_dir={} marktext={} mark={}]",
         ts_dir.display(),
         marktext.is_some(),

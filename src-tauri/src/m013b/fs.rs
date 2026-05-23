@@ -53,18 +53,18 @@ pub(crate) fn fs_read_inner(path: &str, sandbox: &Path) -> Result<String, IpcErr
     let cmd = "mt::fs::read";
     let requested = Path::new(path);
 
-    eprintln!("[FsCmd][read][BLOCK_VALIDATE_PATH path={}]", redact(path));
+    safe_eprintln!("[FsCmd][read][BLOCK_VALIDATE_PATH path={}]", redact(path));
     let validated = m010_security::check_path(sandbox, requested)
         .map_err(|e| IpcError::from_security_path(cmd, e))?;
 
     // Refuse non-regular inodes (FIFO, socket, dir, device).
     let meta = fs::metadata(&validated).map_err(|e| IpcError::from_io(cmd, e))?;
     if !meta.is_file() {
-        eprintln!("[FsCmd][read][BLOCK_NOT_REGULAR path={}]", redact(path));
+        safe_eprintln!("[FsCmd][read][BLOCK_NOT_REGULAR path={}]", redact(path));
         return Err(IpcError::not_regular_file(cmd, &validated));
     }
     if meta.len() > MAX_READ_BYTES {
-        eprintln!("[FsCmd][read][BLOCK_OVERSIZE bytes={}]", meta.len());
+        safe_eprintln!("[FsCmd][read][BLOCK_OVERSIZE bytes={}]", meta.len());
         return Err(IpcError {
             code: "MT_FS_TOO_LARGE".to_string(),
             message: format!(
@@ -86,7 +86,7 @@ pub(crate) fn fs_read_inner(path: &str, sandbox: &Path) -> Result<String, IpcErr
     // META-INLINE could attach label to the read result later).
     let bytes = fs::read(&validated).map_err(|e| IpcError::from_io(cmd, e))?;
     let decoded = m014_encoding::detect_and_decode(&bytes);
-    eprintln!(
+    safe_eprintln!(
         "[FsCmd][read][BLOCK_READ_FROM_DISK path={} bytes={} chars={} label={} replaced={}]",
         redact(path),
         bytes.len(),
@@ -111,7 +111,7 @@ pub(crate) fn fs_write_inner(path: &str, content: &str, sandbox: &Path) -> Resul
     let cmd = "mt::fs::write";
     let requested = Path::new(path);
 
-    eprintln!("[FsCmd][write][BLOCK_VALIDATE_PATH path={}]", redact(path));
+    safe_eprintln!("[FsCmd][write][BLOCK_VALIDATE_PATH path={}]", redact(path));
     let validated = m010_security::check_path(sandbox, requested)
         .map_err(|e| IpcError::from_security_path(cmd, e))?;
 
@@ -122,7 +122,7 @@ pub(crate) fn fs_write_inner(path: &str, content: &str, sandbox: &Path) -> Resul
     f.write_all(content.as_bytes())
         .map_err(|e| IpcError::from_io(cmd, e))?;
     f.sync_all().map_err(|e| IpcError::from_io(cmd, e))?;
-    eprintln!(
+    safe_eprintln!(
         "[FsCmd][write][BLOCK_WRITE_TO_DISK path={} bytes={} fsync=true]",
         redact(path),
         content.len()
@@ -243,7 +243,7 @@ pub(crate) fn fs_unlink_inner(path: &str, sandbox: &Path) -> Result<(), IpcError
         return Err(IpcError::not_regular_file(cmd, &validated));
     }
     fs::remove_file(&validated).map_err(|e| IpcError::from_io(cmd, e))?;
-    eprintln!(
+    safe_eprintln!(
         "[FsCmd][unlink][BLOCK_UNLINK_DONE path={}]",
         redact(path)
     );

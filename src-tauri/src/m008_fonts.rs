@@ -33,7 +33,7 @@ fn list_families_uncached() -> Vec<String> {
             families
         }
         Err(e) => {
-            eprintln!("[Fonts][list][BLOCK_ENUMERATE_FAILED reason={e}]");
+            safe_eprintln!("[Fonts][list][BLOCK_ENUMERATE_FAILED reason={e}]");
             Vec::new()
         }
     }
@@ -44,7 +44,7 @@ pub fn list_families() -> Vec<String> {
     CACHED_FAMILIES
         .get_or_init(|| {
             let f = list_families_uncached();
-            eprintln!("[Fonts][list][BLOCK_FONTS_ENUMERATED count={}]", f.len());
+            safe_eprintln!("[Fonts][list][BLOCK_FONTS_ENUMERATED count={}]", f.len());
             f
         })
         .clone()

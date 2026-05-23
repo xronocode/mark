@@ -48,20 +48,20 @@ pub fn migrate_keybindings(
     target: &mut PrefsStore,
 ) -> Result<KeybindingsMigrationOutcome, KeybindingsMigrationError> {
     if is_already_done(target) {
-        eprintln!("[m005-migrate][keybindings][BLOCK_ALREADY_DONE]");
+        safe_eprintln!("[m005-migrate][keybindings][BLOCK_ALREADY_DONE]");
         return Ok(KeybindingsMigrationOutcome::AlreadyDone);
     }
 
     let path = match source_path {
         Some(p) => p,
         None => {
-            eprintln!("[m005-migrate][keybindings][BLOCK_NO_SOURCE_FILE]");
+            safe_eprintln!("[m005-migrate][keybindings][BLOCK_NO_SOURCE_FILE]");
             return Ok(KeybindingsMigrationOutcome::NoSourceFile);
         }
     };
 
     let content = std::fs::read_to_string(path).map_err(|e| {
-        eprintln!(
+        safe_eprintln!(
             "[m005-migrate][keybindings][BLOCK_SOURCE_READ_FAILED path={} err={e}]",
             path.display()
         );
@@ -69,7 +69,7 @@ pub fn migrate_keybindings(
     })?;
 
     let parsed: Value = serde_json::from_str(&content).map_err(|e| {
-        eprintln!(
+        safe_eprintln!(
             "[m005-migrate][keybindings][BLOCK_SOURCE_PARSE_FAILED path={} err={e}]",
             path.display()
         );
@@ -80,7 +80,7 @@ pub fn migrate_keybindings(
         Value::Object(m) => m,
         other => {
             let kind = json_kind(&other);
-            eprintln!("[m005-migrate][keybindings][BLOCK_SOURCE_NOT_OBJECT kind={kind}]");
+            safe_eprintln!("[m005-migrate][keybindings][BLOCK_SOURCE_NOT_OBJECT kind={kind}]");
             return Err(KeybindingsMigrationError::SourceCorrupt(format!(
                 "keybindings.json root is not a JSON object (kind={kind})"
             )));
@@ -97,7 +97,7 @@ pub fn migrate_keybindings(
             Value::String(s) => s,
             other => {
                 let kind = json_kind(&other);
-                eprintln!(
+                safe_eprintln!(
                     "[m005-migrate][keybindings][BLOCK_KEY_INVALID command={command} reason=value-not-string kind={kind}]"
                 );
                 invalid += 1;
@@ -109,7 +109,7 @@ pub fn migrate_keybindings(
         // We don't write a binding for unsets but count them so callers can
         // surface "1 binding unset" in the migration summary dialog.
         if accel_str.is_empty() {
-            eprintln!("[m005-migrate][keybindings][BLOCK_KEY_UNSET command={command}]");
+            safe_eprintln!("[m005-migrate][keybindings][BLOCK_KEY_UNSET command={command}]");
             unset += 1;
             continue;
         }
@@ -123,7 +123,7 @@ pub fn migrate_keybindings(
                 migrated += 1;
             }
             Err(e) => {
-                eprintln!(
+                safe_eprintln!(
                     "[m005-migrate][keybindings][BLOCK_KEY_INVALID command={command} reason=parse-failed err={e:?} input={accel_str}]"
                 );
                 invalid += 1;
@@ -151,7 +151,7 @@ pub fn migrate_keybindings(
         target.set(KEY_SHORTCUTS.to_string(), serialized);
     }
 
-    eprintln!(
+    safe_eprintln!(
         "[m005-migrate][keybindings][BLOCK_MIGRATED migrated={migrated} invalid={invalid} unset={unset}]"
     );
     Ok(KeybindingsMigrationOutcome::Migrated {
@@ -185,7 +185,7 @@ pub fn mark_done(target: &mut PrefsStore) {
         crate::m005_prefs::KEY_MIGRATION_NS.to_string(),
         Value::Object(ns),
     );
-    eprintln!("[m005-migrate][keybindings][BLOCK_MARK_DONE]");
+    safe_eprintln!("[m005-migrate][keybindings][BLOCK_MARK_DONE]");
 }
 
 fn json_kind(v: &Value) -> &'static str {

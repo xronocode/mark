@@ -77,7 +77,7 @@ impl PrefsStore {
             Ok(content) => match serde_json::from_str::<Value>(&content) {
                 Ok(Value::Object(map)) => map,
                 Ok(other) => {
-                    eprintln!(
+                    safe_eprintln!(
                         "[Prefs][load][BLOCK_PREFS_CORRUPT reason=non-object kind={}]",
                         match other {
                             Value::Null => "null",
@@ -91,16 +91,16 @@ impl PrefsStore {
                     Map::new()
                 }
                 Err(e) => {
-                    eprintln!("[Prefs][load][BLOCK_PREFS_CORRUPT reason=parse_failed err={e}]");
+                    safe_eprintln!("[Prefs][load][BLOCK_PREFS_CORRUPT reason=parse_failed err={e}]");
                     Map::new()
                 }
             },
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
-                eprintln!("[Prefs][load][BLOCK_FIRST_LAUNCH]");
+                safe_eprintln!("[Prefs][load][BLOCK_FIRST_LAUNCH]");
                 Map::new()
             }
             Err(e) => {
-                eprintln!("[Prefs][load][BLOCK_PREFS_CORRUPT reason=io err={e}]");
+                safe_eprintln!("[Prefs][load][BLOCK_PREFS_CORRUPT reason=io err={e}]");
                 Map::new()
             }
         };
@@ -122,7 +122,7 @@ impl PrefsStore {
         f.sync_all()?;
         drop(f);
         fs::rename(&tmp, &self.path)?;
-        eprintln!(
+        safe_eprintln!(
             "[Prefs][save][BLOCK_PERSISTED bytes={} keys={}]",
             serialized.len(),
             self.data.len()
@@ -203,7 +203,7 @@ impl PrefsState {
                 ),
             );
             let _ = self.set(KEY_MIGRATION_NS.to_string(), serde_json::Value::Object(map));
-            eprintln!(
+            safe_eprintln!(
                 "[Prefs][migrate][BLOCK_MARKER_STAMPED app_version=alpha schema_version={MIGRATION_SCHEMA_VERSION_ALPHA}]"
             );
         }
@@ -271,9 +271,9 @@ pub async fn mt_prefs_set(
     // (F-THEME-DIAG: makes a silently-failed emit indistinguishable
     // from "broadcast worked but renderer ignored it" during smoke).
     if let Err(e) = app.emit("mt::user-preference", &Value::Object(snapshot)) {
-        eprintln!("[Prefs][broadcast][BLOCK_EMIT_FAILED key={key} err={e}]");
+        safe_eprintln!("[Prefs][broadcast][BLOCK_EMIT_FAILED key={key} err={e}]");
     }
-    eprintln!(
+    safe_eprintln!(
         "[Prefs][broadcast][BLOCK_FANOUT count={} key={key}]",
         app.webview_windows().len()
     );
@@ -284,7 +284,7 @@ pub async fn mt_prefs_set(
 #[tauri::command]
 pub async fn mt_prefs_get_all(prefs: State<'_, PrefsState>) -> Result<Value, String> {
     let all = prefs.all();
-    eprintln!("[Prefs][get_all][BLOCK_INVOKED keys={}]", all.len());
+    safe_eprintln!("[Prefs][get_all][BLOCK_INVOKED keys={}]", all.len());
     Ok(Value::Object(all))
 }
 
@@ -304,7 +304,7 @@ pub(crate) fn workspace_set_inner(
         return Err(format!("workspace path is not a directory: {path}"));
     }
     let canonical = fs::canonicalize(&p).map_err(|e| e.to_string())?;
-    eprintln!(
+    safe_eprintln!(
         "[Prefs][workspace][BLOCK_WORKSPACE_SET path={}]",
         canonical.display()
     );
@@ -337,12 +337,12 @@ pub fn restore_workspace(prefs: &PrefsState, sec: &SecurityCtx) {
         let path = Path::new(&p);
         if path.is_dir() {
             sec.set_sandbox(path.to_path_buf());
-            eprintln!("[Prefs][workspace][BLOCK_WORKSPACE_RESTORED path={p}]");
+            safe_eprintln!("[Prefs][workspace][BLOCK_WORKSPACE_RESTORED path={p}]");
         } else {
-            eprintln!("[Prefs][workspace][BLOCK_WORKSPACE_VANISHED path={p}]");
+            safe_eprintln!("[Prefs][workspace][BLOCK_WORKSPACE_VANISHED path={p}]");
         }
     } else {
-        eprintln!("[Prefs][workspace][BLOCK_WORKSPACE_UNSET]");
+        safe_eprintln!("[Prefs][workspace][BLOCK_WORKSPACE_UNSET]");
     }
 }
 
@@ -383,16 +383,16 @@ pub fn override_unimplemented_follow_system_theme(prefs: &PrefsState) {
             "followSystemTheme".to_string(),
             Value::Bool(false),
         ) {
-            eprintln!(
+            safe_eprintln!(
                 "[Prefs][followSystemTheme][BLOCK_OVERRIDE_FAILED err={e}]"
             );
         } else {
-            eprintln!(
+            safe_eprintln!(
                 "[Prefs][followSystemTheme][BLOCK_OVERRIDDEN_TO_FALSE] one-shot until F-THEME-FOLLOW-SYSTEM lands"
             );
         }
     } else {
-        eprintln!("[Prefs][followSystemTheme][BLOCK_ALREADY_FALSE]");
+        safe_eprintln!("[Prefs][followSystemTheme][BLOCK_ALREADY_FALSE]");
     }
 }
 

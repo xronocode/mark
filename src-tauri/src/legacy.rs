@@ -70,13 +70,13 @@ fn detect_namespace(dir: &Path) -> Option<LegacyNamespace> {
 /// Used both at boot (main.rs) and asserted by V-M-001 tests.
 pub fn log_detection(layouts: &LegacyLayouts) {
     if layouts.any_detected() {
-        eprintln!(
+        safe_eprintln!(
             "[legacy][detect][BLOCK_LEGACY_FOUND] marktext={:?} mark={:?}",
             layouts.marktext.as_ref().map(|n| n.root.display().to_string()),
             layouts.mark.as_ref().map(|n| n.root.display().to_string()),
         );
     } else {
-        eprintln!("[legacy][detect][BLOCK_LEGACY_NONE]");
+        safe_eprintln!("[legacy][detect][BLOCK_LEGACY_NONE]");
     }
 }
 

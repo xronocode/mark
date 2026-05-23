@@ -161,7 +161,7 @@ fn lexical_normalize(p: &Path) -> Option<PathBuf> {
 pub fn check_path(sandbox: &Path, requested: &Path) -> Result<PathBuf, SecurityError> {
     // 1. NUL byte
     if requested.as_os_str().as_encoded_bytes().contains(&0) {
-        eprintln!(
+        safe_eprintln!(
             "[Security][path][BLOCK_NUL_OR_OVERLONG reason=nul len={}]",
             requested.as_os_str().len()
         );
@@ -171,7 +171,7 @@ pub fn check_path(sandbox: &Path, requested: &Path) -> Result<PathBuf, SecurityE
     // 2. Overlong
     let len_bytes = requested.as_os_str().as_encoded_bytes().len();
     if len_bytes > MAX_PATH_BYTES {
-        eprintln!("[Security][path][BLOCK_NUL_OR_OVERLONG reason=overlong len={len_bytes}]");
+        safe_eprintln!("[Security][path][BLOCK_NUL_OR_OVERLONG reason=overlong len={len_bytes}]");
         return Err(SecurityError::OverlongPath { len: len_bytes });
     }
 
@@ -184,7 +184,7 @@ pub fn check_path(sandbox: &Path, requested: &Path) -> Result<PathBuf, SecurityE
     let lexical = match lexical_normalize(&joined) {
         Some(p) => p,
         None => {
-            eprintln!("[Security][path][BLOCK_REJECT_TRAVERSAL reason=above_root request={}]", joined.display());
+            safe_eprintln!("[Security][path][BLOCK_REJECT_TRAVERSAL reason=above_root request={}]", joined.display());
             return Err(SecurityError::PathTraversal {
                 request: joined.display().to_string(),
                 sandbox: sandbox.display().to_string(),
@@ -197,7 +197,7 @@ pub fn check_path(sandbox: &Path, requested: &Path) -> Result<PathBuf, SecurityE
     //    fixture).
     let sandbox_lex = lexical_normalize(sandbox).unwrap_or_else(|| sandbox.to_path_buf());
     if !lexical.starts_with(&sandbox_lex) {
-        eprintln!(
+        safe_eprintln!(
             "[Security][path][BLOCK_REJECT_TRAVERSAL reason=outside_sandbox request={} sandbox={}]",
             lexical.display(),
             sandbox_lex.display()
@@ -217,7 +217,7 @@ pub fn check_path(sandbox: &Path, requested: &Path) -> Result<PathBuf, SecurityE
         match (std::fs::canonicalize(&lexical), std::fs::canonicalize(&sandbox_lex)) {
             (Ok(req_canon), Ok(box_canon)) => {
                 if !req_canon.starts_with(&box_canon) {
-                    eprintln!(
+                    safe_eprintln!(
                         "[Security][path][BLOCK_SYMLINK_ESCAPES resolved={} sandbox={}]",
                         req_canon.display(),
                         box_canon.display()
@@ -268,14 +268,14 @@ pub fn check_url_scheme(url: &str) -> Result<(), SecurityError> {
     let scheme = match extract_scheme(url) {
         Some(s) => s,
         None => {
-            eprintln!("[Security][url][BLOCK_SCHEME scheme=<malformed>]");
+            safe_eprintln!("[Security][url][BLOCK_SCHEME scheme=<malformed>]");
             return Err(SecurityError::DisallowedUrlScheme {
                 scheme: "<malformed>".to_string(),
             });
         }
     };
     if !ALLOWED_URL_SCHEMES.contains(&scheme.as_str()) {
-        eprintln!("[Security][url][BLOCK_SCHEME scheme={scheme}]");
+        safe_eprintln!("[Security][url][BLOCK_SCHEME scheme={scheme}]");
         return Err(SecurityError::DisallowedUrlScheme { scheme });
     }
     Ok(())
@@ -291,7 +291,7 @@ pub fn check_shell_open_extension(path: &Path) -> Result<(), SecurityError> {
     if let Some(ext) = path.extension().and_then(OsStr::to_str) {
         let lower = ext.to_ascii_lowercase();
         if DANGEROUS_SHELL_OPEN_EXTENSIONS.contains(&lower.as_str()) {
-            eprintln!("[Security][shellOpen][BLOCK_EXECUTABLE_EXT ext={lower}]");
+            safe_eprintln!("[Security][shellOpen][BLOCK_EXECUTABLE_EXT ext={lower}]");
             return Err(SecurityError::DangerousShellOpenExtension { ext: lower });
         }
     }

@@ -81,7 +81,7 @@ struct TauriEventSink {
 impl EventSink for TauriEventSink {
     fn emit(&self, event: &WatchEvent) {
         if let Err(e) = self.app.emit(WATCH_EVENT_CHANNEL, event.clone()) {
-            eprintln!("[FsWatcher][onEvent][BLOCK_EMIT_FAILED reason={e}]");
+            safe_eprintln!("[FsWatcher][onEvent][BLOCK_EMIT_FAILED reason={e}]");
         }
     }
 }
@@ -148,7 +148,7 @@ impl WatchRegistry {
                             paths,
                         });
                     }
-                    eprintln!(
+                    safe_eprintln!(
                         "[FsWatcher][onEvent][BLOCK_DEBOUNCE_COALESCE in={} out={} window_ms={}]",
                         in_count,
                         in_count,
@@ -157,7 +157,7 @@ impl WatchRegistry {
                 }
                 Err(errors) => {
                     for e in errors {
-                        eprintln!("[FsWatcher][onEvent][BLOCK_WATCH_FAULT source={}]", e);
+                        safe_eprintln!("[FsWatcher][onEvent][BLOCK_WATCH_FAULT source={}]", e);
                     }
                 }
             },
@@ -170,7 +170,7 @@ impl WatchRegistry {
         };
         debouncer.watch(path, mode)?;
 
-        eprintln!(
+        safe_eprintln!(
             "[FsWatcher][start][BLOCK_REGISTER_NOTIFY sub_id={} path={} recursive={}]",
             sub_id,
             path.display(),
@@ -187,7 +187,7 @@ impl WatchRegistry {
     fn remove(&self, sub_id: &str) {
         let mut guard = self.entries.lock().expect("WatchRegistry poisoned");
         let removed = guard.remove(sub_id).is_some();
-        eprintln!(
+        safe_eprintln!(
             "[FsWatcher][stop][BLOCK_UNREGISTER_NOTIFY sub_id={} found={}]",
             sub_id, removed
         );

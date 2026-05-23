@@ -123,7 +123,7 @@ struct TauriSearchSink {
 impl SearchSink for TauriSearchSink {
     fn emit(&self, event: &SearchEvent) {
         if let Err(e) = self.app.emit(SEARCH_EVENT_CHANNEL, event.clone()) {
-            eprintln!("[Search][emit][BLOCK_EMIT_FAILED reason={e}]");
+            safe_eprintln!("[Search][emit][BLOCK_EMIT_FAILED reason={e}]");
         }
     }
 }
@@ -164,7 +164,7 @@ impl SearchRegistry {
         let guard = self.entries.lock().expect("SearchRegistry poisoned");
         if let Some(h) = guard.get(search_id) {
             h.cancel.store(true, Ordering::SeqCst);
-            eprintln!("[Search][cancel][BLOCK_CANCEL_OBSERVED search_id={search_id}]");
+            safe_eprintln!("[Search][cancel][BLOCK_CANCEL_OBSERVED search_id={search_id}]");
         }
     }
 
@@ -210,7 +210,7 @@ pub fn run_search(
     sink: Arc<dyn SearchSink>,
 ) -> Result<u32, IpcError> {
     let cmd = "mt::search::spawn";
-    eprintln!(
+    safe_eprintln!(
         "[Search][run][BLOCK_COMPILE_MATCHER pattern_len={} regex={} case_sensitive={} whole_word={}]",
         pattern.len(),
         opts.is_regexp.unwrap_or(false),
@@ -306,7 +306,7 @@ pub fn run_search(
                 if batch.len() >= DEFAULT_BATCH_SIZE {
                     seq += 1;
                     let to_emit = std::mem::take(&mut batch);
-                    eprintln!(
+                    safe_eprintln!(
                         "[Search][run][BLOCK_STREAM_RESULTS batch_size={} seq={}]",
                         to_emit.len(),
                         seq
@@ -327,7 +327,7 @@ pub fn run_search(
     if !batch.is_empty() {
         seq += 1;
         let to_emit = std::mem::take(&mut batch);
-        eprintln!(
+        safe_eprintln!(
             "[Search][run][BLOCK_STREAM_RESULTS batch_size={} seq={}]",
             to_emit.len(),
             seq
@@ -422,7 +422,7 @@ pub async fn mt_search_spawn(
                         error: Some(e.clone()),
                         seq,
                     });
-                    eprintln!("[Search][run][BLOCK_RIPGREP_FAILED search_id={search_id_for_thread} err={e}]");
+                    safe_eprintln!("[Search][run][BLOCK_RIPGREP_FAILED search_id={search_id_for_thread} err={e}]");
                 }
             }
         }
@@ -439,7 +439,7 @@ pub async fn mt_search_spawn(
             error: None,
             seq,
         });
-        eprintln!(
+        safe_eprintln!(
             "[Search][run][BLOCK_RIPGREP_DONE search_id={search_id_for_thread} hits={total_hits} kind={final_kind}]"
         );
         let registry: tauri::State<'_, SearchRegistry> = registry_app_handle.state();
@@ -492,7 +492,7 @@ fn run_ripgrep(
     cmd.arg("--").arg(pattern).arg(root);
     cmd.stdout(Stdio::piped()).stderr(Stdio::null());
 
-    eprintln!("[Search][rg][BLOCK_SPAWN search_id={search_id} root={}]", root.display());
+    safe_eprintln!("[Search][rg][BLOCK_SPAWN search_id={search_id} root={}]", root.display());
     let mut child = cmd.spawn().map_err(|e| format!("spawn rg: {e}"))?;
     let stdout = child.stdout.take().ok_or("no stdout")?;
     let reader = BufReader::new(stdout);
@@ -1043,7 +1043,7 @@ mod tests {
     #[test]
     fn run_ripgrep_finds_literal_matches_in_one_file() {
         if !rg_available() {
-            eprintln!("[test][skip] rg binary not on PATH");
+            safe_eprintln!("[test][skip] rg binary not on PATH");
             return;
         }
         let dir = TempDir::new().unwrap();
@@ -1068,7 +1068,7 @@ mod tests {
     #[test]
     fn run_ripgrep_no_matches_returns_zero_hits() {
         if !rg_available() {
-            eprintln!("[test][skip] rg binary not on PATH");
+            safe_eprintln!("[test][skip] rg binary not on PATH");
             return;
         }
         let dir = TempDir::new().unwrap();
@@ -1086,7 +1086,7 @@ mod tests {
     #[test]
     fn run_ripgrep_with_options_runs_without_error() {
         if !rg_available() {
-            eprintln!("[test][skip] rg binary not on PATH");
+            safe_eprintln!("[test][skip] rg binary not on PATH");
             return;
         }
         let dir = TempDir::new().unwrap();
@@ -1115,7 +1115,7 @@ mod tests {
     #[test]
     fn run_ripgrep_pre_cancelled_returns_zero_hits() {
         if !rg_available() {
-            eprintln!("[test][skip] rg binary not on PATH");
+            safe_eprintln!("[test][skip] rg binary not on PATH");
             return;
         }
         let dir = TempDir::new().unwrap();

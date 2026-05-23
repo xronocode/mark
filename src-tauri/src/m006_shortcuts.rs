@@ -149,7 +149,7 @@ pub fn parse_accelerator(spec: &str) -> Result<Accelerator, ParseError> {
         }
     }
     let key = key.ok_or(ParseError::ModifierOnly)?;
-    eprintln!(
+    safe_eprintln!(
         "[Shortcuts][register][BLOCK_PARSE_ACCELERATOR mods={:08b} key={key}]",
         mods.0
     );
@@ -206,7 +206,7 @@ pub(crate) fn shortcut_register_inner(
     let mut bindings = load_bindings(prefs);
     // Last-write-wins for a given accelerator.
     if let Some(idx) = bindings.iter().position(|b| b.accelerator == parsed) {
-        eprintln!(
+        safe_eprintln!(
             "[Shortcuts][register][BLOCK_DUPLICATE_OVERRIDE prior={}]",
             bindings[idx].command
         );
@@ -226,7 +226,7 @@ pub(crate) fn shortcut_unregister_inner(prefs: &PrefsState, command: &str) -> Re
     let before = bindings.len();
     bindings.retain(|b| b.command != command);
     if bindings.len() < before {
-        eprintln!("[Shortcuts][unregister][BLOCK_REMOVED command={command}]");
+        safe_eprintln!("[Shortcuts][unregister][BLOCK_REMOVED command={command}]");
     }
     store_bindings(prefs, &bindings)
 }
@@ -314,7 +314,7 @@ pub fn register_global_shortcuts<R: tauri::Runtime>(
             if event.state() != ShortcutState::Pressed {
                 return;
             }
-            eprintln!(
+            safe_eprintln!(
                 "[Shortcuts][on_global_fired][BLOCK_DISPATCH shortcut={accel_owned} cmd={cmd_id_owned}]"
             );
             // Show + focus main window if the dispatched command is
@@ -331,15 +331,15 @@ pub fn register_global_shortcuts<R: tauri::Runtime>(
             // renderer's menu-bridge dispatches via the static command
             // registry (one path for both menu and global shortcut).
             if let Err(e) = tauri::Emitter::emit(app, "mt::menu-invoked", &cmd_id_owned) {
-                eprintln!(
+                safe_eprintln!(
                     "[Shortcuts][on_global_fired][BLOCK_EMIT_FAILED shortcut={accel_owned} reason={e}]"
                 );
             }
         }) {
-            Ok(()) => eprintln!(
+            Ok(()) => safe_eprintln!(
                 "[Shortcuts][register_global][BLOCK_OK shortcut={accel} cmd={cmd_id}]"
             ),
-            Err(e) => eprintln!(
+            Err(e) => safe_eprintln!(
                 "[Shortcuts][register_global][BLOCK_FAILED shortcut={accel} reason={e}]"
             ),
         }

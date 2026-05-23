@@ -54,7 +54,7 @@ impl SecurityCtx {
     #[allow(dead_code)]
     pub fn set_sandbox(&self, new_root: PathBuf) {
         let mut guard = self.sandbox.lock().expect("SecurityCtx mutex poisoned");
-        eprintln!(
+        safe_eprintln!(
             "[m013b][state][BLOCK_SANDBOX_UPDATED old={} new={}]",
             guard.display(),
             new_root.display()

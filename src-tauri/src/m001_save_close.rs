@@ -106,7 +106,7 @@ pub async fn mt_response_file_save(
         match pick_save_path(&app, &filename, &default_path).await {
             Some(p) => (p, true),
             None => {
-                eprintln!("[m001][save_close][BLOCK_SAVE_AS_CANCELLED id={id}]");
+                safe_eprintln!("[m001][save_close][BLOCK_SAVE_AS_CANCELLED id={id}]");
                 return Ok(None);
             }
         }
@@ -132,7 +132,7 @@ pub async fn mt_response_file_save_as(
     let target_path = match pick_save_path(&app, &filename, &default_path).await {
         Some(p) => p,
         None => {
-            eprintln!("[m001][save_close][BLOCK_SAVE_AS_CANCELLED id={id}]");
+            safe_eprintln!("[m001][save_close][BLOCK_SAVE_AS_CANCELLED id={id}]");
             return Ok(None);
         }
     };
@@ -176,7 +176,7 @@ async fn pick_save_path(
         .ok()?
         .to_string_lossy()
         .to_string();
-    eprintln!("[m001][save_close][BLOCK_SAVE_AS_PICKED path={path_str}]");
+    safe_eprintln!("[m001][save_close][BLOCK_SAVE_AS_PICKED path={path_str}]");
     Some(path_str)
 }
 
@@ -209,7 +209,7 @@ pub(crate) fn save_to_path_inner(
 ) -> Result<Option<SavedTabState>, String> {
     match crate::m013b::fs::fs_write_inner(target_path, markdown, sandbox) {
         Ok(()) => {
-            eprintln!("[m001][save_close][BLOCK_FILE_SAVED id={id} path={target_path} was_picked={was_picked}]");
+            safe_eprintln!("[m001][save_close][BLOCK_FILE_SAVED id={id} path={target_path} was_picked={was_picked}]");
             let filename = std::path::Path::new(target_path)
                 .file_name()
                 .and_then(|s| s.to_str())
@@ -224,7 +224,7 @@ pub(crate) fn save_to_path_inner(
         }
         Err(e) => {
             let msg = format!("{e:?}");
-            eprintln!(
+            safe_eprintln!(
                 "[m001][save_close][BLOCK_FILE_SAVE_FAILED id={id} path={target_path} reason={msg}]"
             );
             Err(msg)
@@ -249,10 +249,10 @@ pub async fn mt_close_window(
 ) -> Result<(), String> {
     advance_to_destroy(&sm_state);
     if let Some(win) = app.get_webview_window("main") {
-        eprintln!("[m001][save_close][BLOCK_DESTROY_WINDOW label=main]");
+        safe_eprintln!("[m001][save_close][BLOCK_DESTROY_WINDOW label=main]");
         win.destroy().map_err(|e| e.to_string())?;
     } else {
-        eprintln!("[m001][save_close][BLOCK_DESTROY_WINDOW_SKIPPED label=main reason=not-found]");
+        safe_eprintln!("[m001][save_close][BLOCK_DESTROY_WINDOW_SKIPPED label=main reason=not-found]");
     }
     Ok(())
 }
@@ -308,14 +308,14 @@ pub(crate) fn save_and_close_inner(
         }
         match crate::m013b::fs::fs_write_inner(&path, &markdown, sandbox) {
             Ok(()) => {
-                eprintln!(
+                safe_eprintln!(
                     "[m001][save_close][BLOCK_FILE_SAVED id={id} path={path} batch=save_and_close]"
                 );
                 saved_ids.push(id);
             }
             Err(e) => {
                 let msg = format!("{e:?}");
-                eprintln!(
+                safe_eprintln!(
                     "[m001][save_close][BLOCK_FILE_SAVE_FAILED id={id} path={path} batch=save_and_close reason={msg}]"
                 );
                 failure_pairs.push((id, msg.clone()));
@@ -324,7 +324,7 @@ pub(crate) fn save_and_close_inner(
         }
     }
     if !error_messages.is_empty() {
-        eprintln!(
+        safe_eprintln!(
             "[m001][save_close][BLOCK_BATCH_PARTIAL_FAILURE saved={} failed={}]",
             saved_ids.len(),
             error_messages.len()
@@ -340,7 +340,7 @@ pub(crate) fn save_and_close_inner(
         ));
     }
     if !saved_ids.is_empty() {
-        eprintln!(
+        safe_eprintln!(
             "[m001][save_close][BLOCK_FORCE_CLOSE_TABS count={}]",
             saved_ids.len()
         );
@@ -385,7 +385,7 @@ pub async fn mt_close_window_confirm(
     // port the renderer's LISTEN_FOR_CLOSE shows the dialog locally
     // (ElMessageBox), so this command is just an acknowledgement sink
     // for compatibility with renderer code that still issues the send.
-    eprintln!("[m001][save_close][BLOCK_CLOSE_CONFIRM_RECEIVED renderer_handles_dialog]");
+    safe_eprintln!("[m001][save_close][BLOCK_CLOSE_CONFIRM_RECEIVED renderer_handles_dialog]");
     Ok(())
 }
 
@@ -445,9 +445,9 @@ pub fn wire_close_handler<R: tauri::Runtime>(window: &WebviewWindow<R>) {
                 let _ = sm.transition(CloseState::CloseRequested);
                 let _ = sm.transition(CloseState::PromptOpen);
             }
-            eprintln!("[m001][lifecycle][BLOCK_CLOSE_REQUESTED]");
+            safe_eprintln!("[m001][lifecycle][BLOCK_CLOSE_REQUESTED]");
             if let Err(e) = app.emit("mt::ask-for-close", ()) {
-                eprintln!("[m001][lifecycle][BLOCK_EMIT_FAILED reason={e}]");
+                safe_eprintln!("[m001][lifecycle][BLOCK_EMIT_FAILED reason={e}]");
             }
         }
     });

@@ -108,7 +108,7 @@ pub fn migrate_keychain<B: KeychainBackend>(
     target: &mut PrefsStore,
 ) -> Result<KeychainMigrationOutcome, KeychainMigrationError> {
     if is_already_done(target) {
-        eprintln!("[m005-migrate][keychain][BLOCK_ALREADY_DONE]");
+        safe_eprintln!("[m005-migrate][keychain][BLOCK_ALREADY_DONE]");
         return Ok(KeychainMigrationOutcome {
             renamed: 0,
             absent: 0,
@@ -126,17 +126,17 @@ pub fn migrate_keychain<B: KeychainBackend>(
         let legacy_value = match backend.get(LEGACY_SERVICE, key) {
             Ok(Some(v)) => v,
             Ok(None) => {
-                eprintln!("[m005-migrate][keychain][BLOCK_LEGACY_ABSENT key={key}]");
+                safe_eprintln!("[m005-migrate][keychain][BLOCK_LEGACY_ABSENT key={key}]");
                 absent += 1;
                 continue;
             }
             Err(KeychainBackendError::PermissionDenied) => {
-                eprintln!("[m005-migrate][keychain][BLOCK_LEGACY_PERM_DENIED key={key}]");
+                safe_eprintln!("[m005-migrate][keychain][BLOCK_LEGACY_PERM_DENIED key={key}]");
                 permission_denied += 1;
                 continue;
             }
             Err(KeychainBackendError::Other(e)) => {
-                eprintln!(
+                safe_eprintln!(
                     "[m005-migrate][keychain][BLOCK_LEGACY_GET_FAILED key={key} err={e}]"
                 );
                 permission_denied += 1; // bucket all backend failures here
@@ -148,7 +148,7 @@ pub fn migrate_keychain<B: KeychainBackend>(
         // have already set up after fresh-installing v2.
         match backend.get(NEW_SERVICE, key) {
             Ok(Some(_)) => {
-                eprintln!(
+                safe_eprintln!(
                     "[m005-migrate][keychain][BLOCK_TARGET_COLLISION key={key} kept=v2]"
                 );
                 target_collision += 1;
@@ -156,7 +156,7 @@ pub fn migrate_keychain<B: KeychainBackend>(
             }
             Ok(None) => { /* ok, free to write */ }
             Err(e) => {
-                eprintln!(
+                safe_eprintln!(
                     "[m005-migrate][keychain][BLOCK_TARGET_GET_FAILED key={key} err={e:?}]"
                 );
                 permission_denied += 1;
@@ -166,7 +166,7 @@ pub fn migrate_keychain<B: KeychainBackend>(
 
         // Write v2 first — if write fails, legacy is still intact, no data loss.
         if let Err(e) = backend.set(NEW_SERVICE, key, &legacy_value) {
-            eprintln!(
+            safe_eprintln!(
                 "[m005-migrate][keychain][BLOCK_TARGET_SET_FAILED key={key} err={e:?}]"
             );
             permission_denied += 1;
@@ -176,16 +176,16 @@ pub fn migrate_keychain<B: KeychainBackend>(
         // Now safe to delete legacy. If delete fails, log but count as
         // renamed — the secret IS at v2; legacy just lingers (cosmetic).
         if let Err(e) = backend.delete(LEGACY_SERVICE, key) {
-            eprintln!(
+            safe_eprintln!(
                 "[m005-migrate][keychain][BLOCK_LEGACY_DELETE_FAILED key={key} err={e:?}] (already mirrored to v2)"
             );
         }
 
         renamed += 1;
-        eprintln!("[m005-migrate][keychain][BLOCK_RENAMED key={key}]");
+        safe_eprintln!("[m005-migrate][keychain][BLOCK_RENAMED key={key}]");
     }
 
-    eprintln!(
+    safe_eprintln!(
         "[m005-migrate][keychain][BLOCK_MIGRATED renamed={renamed} absent={absent} target_collision={target_collision} permission_denied={permission_denied}]"
     );
     Ok(KeychainMigrationOutcome {
@@ -220,7 +220,7 @@ pub fn mark_done(target: &mut PrefsStore) {
         crate::m005_prefs::KEY_MIGRATION_NS.to_string(),
         Value::Object(ns),
     );
-    eprintln!("[m005-migrate][keychain][BLOCK_MARK_DONE]");
+    safe_eprintln!("[m005-migrate][keychain][BLOCK_MARK_DONE]");
 }
 
 // ──────────────────────────────────────────────────────────────────────

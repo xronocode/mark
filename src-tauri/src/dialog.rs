@@ -50,7 +50,7 @@ pub fn map_result(result: &MessageDialogResult, continue_label: &str) -> DialogC
 /// Side effects: opens a modal window. Emits stable log markers around the
 /// open/close transitions so V-M-005 trace assertions can fire.
 pub fn ask_migration(strings: &MigrationStrings, body: &str) -> DialogChoice {
-    eprintln!("[dialog][ask_migration][BLOCK_DIALOG_OPEN]");
+    safe_eprintln!("[dialog][ask_migration][BLOCK_DIALOG_OPEN]");
 
     let result = MessageDialog::new()
         .set_level(MessageLevel::Info)
@@ -64,7 +64,7 @@ pub fn ask_migration(strings: &MigrationStrings, body: &str) -> DialogChoice {
 
     let choice = map_result(&result, strings.continue_label);
 
-    eprintln!(
+    safe_eprintln!(
         "[dialog][ask_migration][BLOCK_DIALOG_CLOSED choice={:?}]",
         choice
     );
@@ -77,14 +77,14 @@ pub fn ask_migration(strings: &MigrationStrings, body: &str) -> DialogChoice {
 /// chrome; description carries the diagnostic body. Always returns —
 /// never panics — so callers can decide their own exit code.
 pub fn ask_native_error(title: &str, body: &str) {
-    eprintln!("[dialog][ask_native_error][BLOCK_DIALOG_OPEN title={title}]");
+    safe_eprintln!("[dialog][ask_native_error][BLOCK_DIALOG_OPEN title={title}]");
     let _ = MessageDialog::new()
         .set_level(MessageLevel::Error)
         .set_title(title)
         .set_description(body)
         .set_buttons(MessageButtons::Ok)
         .show();
-    eprintln!("[dialog][ask_native_error][BLOCK_DIALOG_CLOSED]");
+    safe_eprintln!("[dialog][ask_native_error][BLOCK_DIALOG_CLOSED]");
 }
 
 /// Single-button informational dialog. Used by F-PREFS-MIGRATE-V1
@@ -92,14 +92,14 @@ pub fn ask_native_error(title: &str, body: &str) {
 /// ask_native_error but uses MessageLevel::Info so the OS chrome
 /// renders the friendly icon.
 pub fn ask_native_info(title: &str, body: &str) {
-    eprintln!("[dialog][ask_native_info][BLOCK_DIALOG_OPEN title={title}]");
+    safe_eprintln!("[dialog][ask_native_info][BLOCK_DIALOG_OPEN title={title}]");
     let _ = MessageDialog::new()
         .set_level(MessageLevel::Info)
         .set_title(title)
         .set_description(body)
         .set_buttons(MessageButtons::Ok)
         .show();
-    eprintln!("[dialog][ask_native_info][BLOCK_DIALOG_CLOSED]");
+    safe_eprintln!("[dialog][ask_native_info][BLOCK_DIALOG_CLOSED]");
 }
 
 #[cfg(test)]

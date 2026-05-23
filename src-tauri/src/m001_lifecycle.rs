@@ -180,7 +180,7 @@ impl CloseStateMachine {
         }
         let from = self.state;
         self.state = to;
-        eprintln!(
+        safe_eprintln!(
             "[m001][lifecycle][{} from={:?} to={:?}]",
             to.block_marker(),
             from,
@@ -211,7 +211,7 @@ pub fn current_menu_generation() -> u64 {
 /// caller can stamp the freshly-built menu's events.
 pub fn bump_menu_generation() -> u64 {
     let next = MENU_GENERATION.fetch_add(1, Ordering::SeqCst) + 1;
-    eprintln!("[m001][lifecycle][BLOCK_MENU_GENERATION_BUMPED next={next}]");
+    safe_eprintln!("[m001][lifecycle][BLOCK_MENU_GENERATION_BUMPED next={next}]");
     next
 }
 
@@ -224,7 +224,7 @@ pub fn check_stale(event_generation: u64) -> bool {
     if event_generation == current {
         return false;
     }
-    eprintln!(
+    safe_eprintln!(
         "[m001][lifecycle][BLOCK_STALE_MENU_GENERATION expected={current} actual={event_generation}]"
     );
     true

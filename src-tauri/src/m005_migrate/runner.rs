@@ -105,7 +105,7 @@ pub fn run<B: keychain::KeychainBackend>(
         Ok(s) => s,
         Err(snapshot::SnapshotLoadError::SnapshotDirMissing)
         | Err(snapshot::SnapshotLoadError::NoTimestampedDir) => {
-            eprintln!(
+            safe_eprintln!(
                 "[m005-migrate][runner][BLOCK_NO_SNAPSHOT_NOOP] no migration source — runner exits cleanly"
             );
             drop(lock);
@@ -130,7 +130,7 @@ pub fn run<B: keychain::KeychainBackend>(
         (Some(m), _) => m,
         (None, Some(m)) => m,
         (None, None) => {
-            eprintln!("[m005-migrate][runner][BLOCK_NO_NAMESPACE_NOOP] snapshot has no migratable data");
+            safe_eprintln!("[m005-migrate][runner][BLOCK_NO_NAMESPACE_NOOP] snapshot has no migratable data");
             drop(lock);
             return Ok(RunnerSummary {
                 snapshot_ts_dir: Some(snap.ts_dir),
@@ -143,7 +143,7 @@ pub fn run<B: keychain::KeychainBackend>(
             });
         }
     };
-    eprintln!(
+    safe_eprintln!(
         "[m005-migrate][runner][BLOCK_NAMESPACE_SELECTED ns={}]",
         ns.root.display()
     );
@@ -258,7 +258,7 @@ pub fn run<B: keychain::KeychainBackend>(
         }
     }
 
-    eprintln!(
+    safe_eprintln!(
         "[m005-migrate][runner][BLOCK_RUN_COMPLETE preferences=ok data_center=ok keybindings=ok recent_docs=ok keychain=ok]"
     );
     drop(lock);
@@ -279,7 +279,7 @@ pub struct LockGuard {
 impl Drop for LockGuard {
     fn drop(&mut self) {
         let _ = fs::remove_file(&self.path);
-        eprintln!(
+        safe_eprintln!(
             "[m005-migrate][runner][BLOCK_LOCK_RELEASED path={}]",
             self.path.display()
         );
@@ -308,12 +308,12 @@ fn acquire_lock(path: &Path) -> Result<LockGuard, RunnerFailure> {
         let age_secs = now.saturating_sub(ts);
 
         if Duration::from_secs(age_secs) < LOCK_STALE_AFTER {
-            eprintln!(
+            safe_eprintln!(
                 "[m005-migrate][runner][BLOCK_LOCK_HELD pid={pid} age_secs={age_secs}]"
             );
             return Err(RunnerFailure::LockHeldByActiveProcess { pid, age_secs });
         }
-        eprintln!(
+        safe_eprintln!(
             "[m005-migrate][runner][BLOCK_LOCK_TAKEOVER stale_pid={pid} age_secs={age_secs}]"
         );
         // Stale — overwrite below.
@@ -347,7 +347,7 @@ fn acquire_lock(path: &Path) -> Result<LockGuard, RunnerFailure> {
     })?;
     drop(f);
 
-    eprintln!(
+    safe_eprintln!(
         "[m005-migrate][runner][BLOCK_LOCK_ACQUIRED pid={pid} path={}]",
         path.display()
     );
@@ -369,7 +369,7 @@ fn guard_size(step: &'static str, path: Option<&Path>) -> Result<(), RunnerFailu
         Ok(m) => {
             let bytes = m.len();
             if bytes > MAX_SOURCE_BYTES {
-                eprintln!(
+                safe_eprintln!(
                     "[m005-migrate][runner][BLOCK_SOURCE_TOO_LARGE step={step} bytes={bytes} limit={MAX_SOURCE_BYTES}]"
                 );
                 return Err(RunnerFailure::SourceTooLarge {

@@ -53,7 +53,7 @@ pub(crate) fn recent_add_inner(prefs: &PrefsState, path: &str) -> Result<(), Str
     if current.len() > MAX_RECENT_DOCS {
         current.truncate(MAX_RECENT_DOCS);
     }
-    eprintln!("[Recent][add][BLOCK_RECENT_UPDATED count={}]", current.len());
+    safe_eprintln!("[Recent][add][BLOCK_RECENT_UPDATED count={}]", current.len());
     store(prefs, &current)
 }
 
@@ -73,7 +73,7 @@ pub async fn mt_recent_list(prefs: State<'_, PrefsState>) -> Result<Vec<String>,
 /// Clear the entire list. v1.2.3 menu has "Clear Recent" item.
 #[tauri::command]
 pub async fn mt_recent_clear(prefs: State<'_, PrefsState>) -> Result<(), String> {
-    eprintln!("[Recent][clear][BLOCK_RECENT_CLEARED]");
+    safe_eprintln!("[Recent][clear][BLOCK_RECENT_CLEARED]");
     store(prefs.inner(), &[])
 }
 

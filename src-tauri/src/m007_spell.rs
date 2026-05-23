@@ -38,7 +38,7 @@ pub(crate) fn spell_set_enabled_inner(prefs: &PrefsState, enabled: bool) -> Resu
         _ => serde_json::Map::new(),
     };
     current.insert("enabled".to_string(), Value::Bool(enabled));
-    eprintln!("[Spell][config][BLOCK_ENABLED_SET enabled={enabled}]");
+    safe_eprintln!("[Spell][config][BLOCK_ENABLED_SET enabled={enabled}]");
     prefs
         .set(KEY_SPELL.to_string(), Value::Object(current))
         .map_err(|e| e.to_string())
@@ -50,7 +50,7 @@ pub(crate) fn spell_set_lang_inner(prefs: &PrefsState, lang: &str) -> Result<(),
         _ => serde_json::Map::new(),
     };
     current.insert("lang".to_string(), Value::String(lang.to_string()));
-    eprintln!("[Spell][config][BLOCK_LANG_SET lang={lang}]");
+    safe_eprintln!("[Spell][config][BLOCK_LANG_SET lang={lang}]");
     prefs
         .set(KEY_SPELL.to_string(), Value::Object(current))
         .map_err(|e| e.to_string())

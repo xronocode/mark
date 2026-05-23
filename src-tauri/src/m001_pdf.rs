@@ -49,7 +49,7 @@ impl UnsupportedError {
 /// M-015 pandoc-availability instead of invoking this.
 #[tauri::command]
 pub async fn mt_print_to_pdf(html: String) -> Result<Vec<u8>, UnsupportedError> {
-    eprintln!(
+    safe_eprintln!(
         "[m001][pdf][BLOCK_MT_PRINT_TO_PDF_UNSUPPORTED html_bytes={}]",
         html.len()
     );

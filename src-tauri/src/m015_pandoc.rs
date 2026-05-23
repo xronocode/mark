@@ -74,7 +74,7 @@ pub async fn mt_pandoc_status() -> Result<PandocStatus, String> {
                         None
                     }
                 });
-            eprintln!("[Pandoc][status][BLOCK_PANDOC_AVAILABLE version={version:?}]");
+            safe_eprintln!("[Pandoc][status][BLOCK_PANDOC_AVAILABLE version={version:?}]");
             Ok(PandocStatus {
                 available: true,
                 version,
@@ -82,7 +82,7 @@ pub async fn mt_pandoc_status() -> Result<PandocStatus, String> {
             })
         }
         _ => {
-            eprintln!("[Pandoc][status][BLOCK_PANDOC_MISSING]");
+            safe_eprintln!("[Pandoc][status][BLOCK_PANDOC_MISSING]");
             Ok(PandocStatus {
                 available: false,
                 version: None,
@@ -109,7 +109,7 @@ pub async fn mt_pandoc_export(
         .stderr(std::process::Stdio::piped())
         .spawn()
         .map_err(|e| {
-            eprintln!("[Pandoc][export][BLOCK_SPAWN_FAILED reason={e}]");
+            safe_eprintln!("[Pandoc][export][BLOCK_SPAWN_FAILED reason={e}]");
             e.to_string()
         })?;
     if let Some(mut stdin) = child.stdin.take() {
@@ -121,10 +121,10 @@ pub async fn mt_pandoc_export(
     let output = child.wait_with_output().map_err(|e| e.to_string())?;
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);
-        eprintln!("[Pandoc][export][BLOCK_EXPORT_FAILED stderr={stderr}]");
+        safe_eprintln!("[Pandoc][export][BLOCK_EXPORT_FAILED stderr={stderr}]");
         return Err(format!("pandoc exit {}: {}", output.status, stderr));
     }
-    eprintln!(
+    safe_eprintln!(
         "[Pandoc][export][BLOCK_EXPORT_OK format={} input_bytes={} output_bytes={}]",
         format,
         input.len(),
