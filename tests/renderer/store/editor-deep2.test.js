@@ -191,7 +191,9 @@ describe('store/editor — deep coverage (wave 2)', () => {
     elMessageBoxConfirmMock.mockResolvedValue('confirm')
 
     const editorMod = await import('@/store/editor')
+    editorMod.__resetBootPhase()
     editor = editorMod.useEditorStore()
+    editor.END_BOOT_PHASE()
     invoke = (await import('@tauri-apps/api/core')).invoke
     bus = (await import('@/bus')).default
     notice = (await import('@/services/notification')).default

@@ -343,4 +343,6 @@ export const setupIpcListeners = async () => {
     // Existing marker preserved.
     console.debug('[boot][pending_opens][BLOCK_DRAIN_FAILED]', e)
   }
+
+  setTimeout(() => editorStore.END_BOOT_PHASE(), 0)
 }

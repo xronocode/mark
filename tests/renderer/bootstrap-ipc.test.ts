@@ -62,7 +62,8 @@ const __editorStub: Record<string, any> = {
   APPLY_BOOTSTRAP_EDITOR: vi.fn(),
   NEW_TAB_WITH_CONTENT: vi.fn(),
   NEW_UNTITLED_TAB: vi.fn(),
-  CLOSE_TABS: vi.fn()
+  CLOSE_TABS: vi.fn(),
+  END_BOOT_PHASE: vi.fn()
 }
 
 vi.mock('@/store/preferences', () => ({

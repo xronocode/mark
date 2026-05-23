@@ -27,6 +27,9 @@ import { i18n } from '../i18n'
 const autoSaveTimers = new Map()
 const fileWatchDisposers = new Map()
 
+let _bootPhase = true
+export const __resetBootPhase = () => { _bootPhase = true }
+
 export const useEditorStore = defineStore('editor', {
   state: () => ({
     currentFile: {},
@@ -619,21 +622,32 @@ export const useEditorStore = defineStore('editor', {
 
         if (!this.tabs.some((file) => file.id === currentFile.id)) {
           this.tabs.push(currentFile)
-          this.updateTabIdToIndex()
+          if (!_bootPhase) this.updateTabIdToIndex()
         }
 
-        bus.emit('file-changed', {
-          id,
-          markdown,
-          cursor,
-          muyaIndexCursor,
-          renderCursor: true,
-          history,
-          scrollTop,
-          blocks
-        })
+        if (!_bootPhase) {
+          bus.emit('file-changed', {
+            id,
+            markdown,
+            cursor,
+            muyaIndexCursor,
+            renderCursor: true,
+            history,
+            scrollTop,
+            blocks
+          })
+        }
       }
 
+      if (!_bootPhase) this.UPDATE_LINE_ENDING_MENU()
+    },
+
+    END_BOOT_PHASE() {
+      if (!_bootPhase) return
+      _bootPhase = false
+      // eslint-disable-next-line no-console
+      console.log(`[boot][editor][BLOCK_BOOT_PHASE_ENDED tabs=${this.tabs.length}]`)
+      this.updateTabIdToIndex()
       this.UPDATE_LINE_ENDING_MENU()
     },
 
@@ -1096,9 +1110,9 @@ export const useEditorStore = defineStore('editor', {
 
       if (selected) {
         this.UPDATE_CURRENT_FILE(docState)
-        bus.emit('file-loaded', { id, markdown, cursor })
+        if (!_bootPhase) bus.emit('file-loaded', { id, markdown, cursor })
       } else {
-        this.updateTabIdToIndex()
+        if (!_bootPhase) this.updateTabIdToIndex()
         this.tabs.push(docState)
       }
 

@@ -41,6 +41,7 @@ const __editorStub = {
   NEW_UNTITLED_TAB: vi.fn(),
   CLOSE_TABS: vi.fn(),
   APPLY_PREVIEW_MODE: vi.fn(),
+  END_BOOT_PHASE: vi.fn(),
   currentFile: { id: 'tab-1' },
   tabs: []
 }
