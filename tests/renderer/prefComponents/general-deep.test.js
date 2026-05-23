@@ -27,7 +27,7 @@ vi.mock('element-plus', () => ({
 }))
 
 vi.mock('@/util', () => ({
-  isOsx: false,
+  isOsx: true,
   delay: vi.fn(),
   serialize: vi.fn(),
   merge: vi.fn()
@@ -134,29 +134,29 @@ describe('GeneralSettings.vue – deep tests', () => {
 
   // ── M-021 default handler ────────────────────────────────────────────
 
-  it('isDefault computed reflects store defaultMdHandler.is_default', () => {
+  it('isDefault computed reflects store defaultMdHandler.isDefault', () => {
     const store = usePreferencesStore()
-    store.defaultMdHandler = { is_default: true, current_handler: 'Mark' }
+    store.defaultMdHandler = { isDefault: true, currentHandler: 'Mark' }
     expect(wrapper.vm.isDefault).toBe(true)
   })
 
-  it('currentHandler computed reflects store defaultMdHandler.current_handler', () => {
+  it('currentHandler computed reflects store defaultMdHandler.currentHandler', () => {
     const store = usePreferencesStore()
-    store.defaultMdHandler = { is_default: false, current_handler: 'VSCode' }
+    store.defaultMdHandler = { isDefault: false, currentHandler: 'VSCode' }
     expect(wrapper.vm.currentHandler).toBe('VSCode')
   })
 
-  it('setAsDefault calls SET_DEFAULT_MD_HANDLER', () => {
+  it('setAsDefault calls SET_DEFAULT_MD_HANDLER', async () => {
     const store = usePreferencesStore()
-    const spy = vi.spyOn(store, 'SET_DEFAULT_MD_HANDLER')
-    wrapper.vm.setAsDefault()
+    const spy = vi.spyOn(store, 'SET_DEFAULT_MD_HANDLER').mockResolvedValue(undefined)
+    await wrapper.vm.setAsDefault()
     expect(spy).toHaveBeenCalled()
   })
 
-  it('unsetDefault calls UNSET_DEFAULT_MD_HANDLER', () => {
+  it('unsetDefault calls UNSET_DEFAULT_MD_HANDLER', async () => {
     const store = usePreferencesStore()
-    const spy = vi.spyOn(store, 'UNSET_DEFAULT_MD_HANDLER')
-    wrapper.vm.unsetDefault()
+    const spy = vi.spyOn(store, 'UNSET_DEFAULT_MD_HANDLER').mockResolvedValue(undefined)
+    await wrapper.vm.unsetDefault()
     expect(spy).toHaveBeenCalled()
   })
 
@@ -164,25 +164,27 @@ describe('GeneralSettings.vue – deep tests', () => {
 
   it('shows "Set as default" button when not default', async () => {
     const store = usePreferencesStore()
-    store.defaultMdHandler = { is_default: false, current_handler: 'Other' }
+    store.defaultMdHandler = { isDefault: false, currentHandler: 'Other' }
     await nextTick()
 
-    const html = wrapper.html()
-    // Should contain button text
-    expect(html).toContain('.md')
+    const buttons = wrapper.findAll('.macos-integration-body .actions button')
+    expect(buttons.length).toBe(1)
+    expect(buttons[0].text()).toContain('Set Mark as default')
   })
 
   it('shows "Remove as default" button when is default', async () => {
     const store = usePreferencesStore()
-    store.defaultMdHandler = { is_default: true, current_handler: 'Mark' }
+    store.defaultMdHandler = { isDefault: true, currentHandler: 'Mark' }
     await nextTick()
 
-    expect(wrapper.vm.isDefault).toBe(true)
+    const buttons = wrapper.findAll('.macos-integration-body .actions button')
+    expect(buttons.length).toBe(1)
+    expect(buttons[0].text()).toContain('Remove as default')
   })
 
   it('shows current handler name when not default and handler exists', async () => {
     const store = usePreferencesStore()
-    store.defaultMdHandler = { is_default: false, current_handler: 'Typora' }
+    store.defaultMdHandler = { isDefault: false, currentHandler: 'Typora' }
     await nextTick()
 
     const statusEl = wrapper.find('.macos-integration-body .status')
@@ -192,7 +194,7 @@ describe('GeneralSettings.vue – deep tests', () => {
 
   it('shows "no default app" message when handler is null', async () => {
     const store = usePreferencesStore()
-    store.defaultMdHandler = { is_default: false, current_handler: null }
+    store.defaultMdHandler = { isDefault: false, currentHandler: null }
     await nextTick()
 
     const statusEl = wrapper.find('.macos-integration-body .status')

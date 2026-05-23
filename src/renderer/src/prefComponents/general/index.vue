@@ -7,7 +7,7 @@
       User explicit ask: a prominent way to make Mark the default
       app for .md files. Lives at the TOP of General settings.
     -->
-    <section class="macos-integration">
+    <section v-if="isOsx" class="macos-integration">
       <div class="macos-integration-head">
         <h6 class="title">macOS Integration</h6>
       </div>
@@ -240,19 +240,19 @@ const selectDefaultDirectoryToOpen = () => {
 }
 
 // ─── M-021 default-handler bindings ──────────────────────────────────
-const isDefault = computed(() => preferenceStore.defaultMdHandler.is_default)
-const currentHandler = computed(() => preferenceStore.defaultMdHandler.current_handler)
+const isDefault = computed(() => preferenceStore.defaultMdHandler.isDefault)
+const currentHandler = computed(() => preferenceStore.defaultMdHandler.currentHandler)
 
-const setAsDefault = () => {
-  preferenceStore.SET_DEFAULT_MD_HANDLER()
+const setAsDefault = async () => {
+  await preferenceStore.SET_DEFAULT_MD_HANDLER()
 }
 
-const unsetDefault = () => {
-  preferenceStore.UNSET_DEFAULT_MD_HANDLER()
+const unsetDefault = async () => {
+  await preferenceStore.UNSET_DEFAULT_MD_HANDLER()
 }
 
-onMounted(() => {
-  preferenceStore.REFRESH_DEFAULT_MD_HANDLER()
+onMounted(async () => {
+  await preferenceStore.REFRESH_DEFAULT_MD_HANDLER()
 })
 </script>
 

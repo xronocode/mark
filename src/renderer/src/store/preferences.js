@@ -128,8 +128,8 @@ export const usePreferencesStore = defineStore('preferences', {
     cliScript: '',
 
     // M-021 default-handler — F-1 status (queried, not persisted).
-    // Populated by REFRESH_DEFAULT_MD_HANDLER from the backend.
-    defaultMdHandler: { is_default: false, current_handler: null }
+    // Shape matches Rust DefaultHandlerInfo (camelCase via serde).
+    defaultMdHandler: { isDefault: false, currentHandler: null }
   }),
 
   getters: {
@@ -235,7 +235,7 @@ export const usePreferencesStore = defineStore('preferences', {
 
     // ─── M-021 default-handler (macOS Integration) ────────────────────
     // Three actions wrap the m021_default_handler Tauri commands:
-    //   mt_get_default_md_handler   → { is_default, current_handler }
+    //   mt_get_default_md_handler   → { isDefault, currentHandler }  (camelCase via serde)
     //   mt_set_default_md_handler   → register Mark for .md
     //   mt_unset_default_md_handler → unregister
     // F-1 status is queried (not persisted in prefs.json); state is
@@ -245,56 +245,46 @@ export const usePreferencesStore = defineStore('preferences', {
         const result = await invoke('mt_get_default_md_handler')
         if (result && typeof result === 'object') {
           this.defaultMdHandler = {
-            is_default: !!result.is_default,
-            current_handler: result.current_handler ?? null
+            isDefault: !!result.isDefault,
+            currentHandler: result.currentHandler ?? null
           }
+          console.debug(
+            `[prefs][handler][BLOCK_QUERY_OK isDefault=${this.defaultMdHandler.isDefault}]`
+          )
+        } else {
+          console.warn('[prefs][handler][BLOCK_QUERY_UNEXPECTED_RESULT]', result)
         }
-        console.debug(
-          `[prefs][handler][BLOCK_QUERY_OK is_default=${this.defaultMdHandler.is_default}]`
-        )
       } catch (e) {
         console.error('[prefs][handler][BLOCK_QUERY_FAILED]', e)
       }
     },
 
-    async SET_DEFAULT_MD_HANDLER() {
+    async _mutateDefaultHandler(cmd, okMsg, failMsg) {
       try {
-        await invoke('mt_set_default_md_handler')
-        console.debug('[prefs][handler][BLOCK_SET_OK]')
+        await invoke(cmd)
+        console.debug(`[prefs][handler][BLOCK_${cmd.replace('mt_', '').toUpperCase()}_OK]`)
         await this.REFRESH_DEFAULT_MD_HANDLER()
-        notice.notify({
-          title: 'macOS Integration',
-          type: 'primary',
-          message: 'Mark is now the default app for .md files'
-        })
+        try { notice.notify({ title: 'macOS Integration', type: 'primary', message: okMsg }) } catch (_) {}
       } catch (e) {
-        console.error('[prefs][handler][BLOCK_SET_FAILED]', e)
-        notice.notify({
-          title: 'macOS Integration',
-          type: 'error',
-          message: 'Failed to set Mark as the default app for .md files'
-        })
+        console.error(`[prefs][handler][BLOCK_${cmd.replace('mt_', '').toUpperCase()}_FAILED]`, e)
+        try { notice.notify({ title: 'macOS Integration', type: 'error', message: failMsg }) } catch (_) {}
       }
     },
 
+    async SET_DEFAULT_MD_HANDLER() {
+      return this._mutateDefaultHandler(
+        'mt_set_default_md_handler',
+        'Mark is now the default app for .md files',
+        'Failed to set Mark as the default app for .md files'
+      )
+    },
+
     async UNSET_DEFAULT_MD_HANDLER() {
-      try {
-        await invoke('mt_unset_default_md_handler')
-        console.debug('[prefs][handler][BLOCK_UNSET_OK]')
-        await this.REFRESH_DEFAULT_MD_HANDLER()
-        notice.notify({
-          title: 'macOS Integration',
-          type: 'primary',
-          message: 'Mark is no longer the default app for .md files'
-        })
-      } catch (e) {
-        console.error('[prefs][handler][BLOCK_UNSET_FAILED]', e)
-        notice.notify({
-          title: 'macOS Integration',
-          type: 'error',
-          message: 'Failed to remove Mark as the default app for .md files'
-        })
-      }
+      return this._mutateDefaultHandler(
+        'mt_unset_default_md_handler',
+        'Mark is no longer the default app for .md files',
+        'Failed to remove Mark as the default app for .md files'
+      )
     }
   }
 })

@@ -9,7 +9,7 @@
  *   4. SET_DEFAULT_MD_HANDLER reject → notice.notify(error) + no state change
  *   5. UNSET_DEFAULT_MD_HANDLER happy → invokes unset + REFRESH chain
  *   6. UNSET_DEFAULT_MD_HANDLER reject → notice.notify(error) + no state change
- *   7. State default → defaultMdHandler.is_default === false initially
+ *   7. State default → defaultMdHandler.isDefault === false initially
  */
 
 import { setupTestPinia } from '../pinia'
@@ -44,24 +44,36 @@ describe('store/preferences — M-021 default-handler actions', () => {
     noticeNotifyMock.mockReset()
   })
 
-  it('state default — defaultMdHandler.is_default is false initially', async () => {
+  it('state default — defaultMdHandler.isDefault is false initially', async () => {
     const { usePreferencesStore } = await import('@/store/preferences')
     const s = usePreferencesStore()
-    expect(s.defaultMdHandler).toEqual({ is_default: false, current_handler: null })
+    expect(s.defaultMdHandler).toEqual({ isDefault: false, currentHandler: null })
   })
 
   describe('REFRESH_DEFAULT_MD_HANDLER', () => {
     it('happy — populates state from invoke result', async () => {
       ;(invoke as any).mockResolvedValueOnce({
-        is_default: true,
-        current_handler: 'com.xronocode.mark'
+        isDefault: true,
+        currentHandler: 'com.xronocode.mark'
       })
       const { usePreferencesStore } = await import('@/store/preferences')
       const s = usePreferencesStore()
       await s.REFRESH_DEFAULT_MD_HANDLER()
       expect(invoke).toHaveBeenCalledWith('mt_get_default_md_handler')
-      expect(s.defaultMdHandler.is_default).toBe(true)
-      expect(s.defaultMdHandler.current_handler).toBe('com.xronocode.mark')
+      expect(s.defaultMdHandler.isDefault).toBe(true)
+      expect(s.defaultMdHandler.currentHandler).toBe('com.xronocode.mark')
+    })
+
+    it('null result — invoke resolves with null → state preserved, warning logged', async () => {
+      ;(invoke as any).mockResolvedValueOnce(null)
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+      const { usePreferencesStore } = await import('@/store/preferences')
+      const s = usePreferencesStore()
+      await s.REFRESH_DEFAULT_MD_HANDLER()
+      expect(s.defaultMdHandler.isDefault).toBe(false)
+      expect(s.defaultMdHandler.currentHandler).toBe(null)
+      expect(warnSpy).toHaveBeenCalled()
+      warnSpy.mockRestore()
     })
 
     it('error — invoke rejects → state preserved, console.error called', async () => {
@@ -70,10 +82,10 @@ describe('store/preferences — M-021 default-handler actions', () => {
       const { usePreferencesStore } = await import('@/store/preferences')
       const s = usePreferencesStore()
       // Pre-state: defaults
-      expect(s.defaultMdHandler.is_default).toBe(false)
+      expect(s.defaultMdHandler.isDefault).toBe(false)
       await expect(s.REFRESH_DEFAULT_MD_HANDLER()).resolves.toBeUndefined()
-      expect(s.defaultMdHandler.is_default).toBe(false)
-      expect(s.defaultMdHandler.current_handler).toBe(null)
+      expect(s.defaultMdHandler.isDefault).toBe(false)
+      expect(s.defaultMdHandler.currentHandler).toBe(null)
       expect(errSpy).toHaveBeenCalled()
       errSpy.mockRestore()
     })
@@ -83,7 +95,7 @@ describe('store/preferences — M-021 default-handler actions', () => {
     it('happy — invokes set then chains REFRESH and notifies success', async () => {
       ;(invoke as any)
         .mockResolvedValueOnce(undefined) // set
-        .mockResolvedValueOnce({ is_default: true, current_handler: 'com.xronocode.mark' }) // refresh
+        .mockResolvedValueOnce({ isDefault: true, currentHandler: 'com.xronocode.mark' }) // refresh
       const { usePreferencesStore } = await import('@/store/preferences')
       const s = usePreferencesStore()
       await s.SET_DEFAULT_MD_HANDLER()
@@ -91,7 +103,7 @@ describe('store/preferences — M-021 default-handler actions', () => {
       expect((invoke as any).mock.calls[0][0]).toBe('mt_set_default_md_handler')
       // Second: the chained refresh
       expect((invoke as any).mock.calls[1][0]).toBe('mt_get_default_md_handler')
-      expect(s.defaultMdHandler.is_default).toBe(true)
+      expect(s.defaultMdHandler.isDefault).toBe(true)
       expect(noticeNotifyMock).toHaveBeenCalledWith(
         expect.objectContaining({ type: 'primary' })
       )
@@ -105,7 +117,7 @@ describe('store/preferences — M-021 default-handler actions', () => {
       await s.SET_DEFAULT_MD_HANDLER()
       // Only one invoke call (the failed set) — no refresh chain.
       expect((invoke as any).mock.calls.length).toBe(1)
-      expect(s.defaultMdHandler.is_default).toBe(false)
+      expect(s.defaultMdHandler.isDefault).toBe(false)
       expect(noticeNotifyMock).toHaveBeenCalledWith(
         expect.objectContaining({ type: 'error' })
       )
@@ -118,16 +130,16 @@ describe('store/preferences — M-021 default-handler actions', () => {
     it('happy — invokes unset then chains REFRESH and notifies success', async () => {
       ;(invoke as any)
         .mockResolvedValueOnce(undefined) // unset
-        .mockResolvedValueOnce({ is_default: false, current_handler: null }) // refresh
+        .mockResolvedValueOnce({ isDefault: false, currentHandler: null }) // refresh
       const { usePreferencesStore } = await import('@/store/preferences')
       const s = usePreferencesStore()
       // Pre-seed as default to make the transition observable.
-      s.defaultMdHandler = { is_default: true, current_handler: 'com.xronocode.mark' }
+      s.defaultMdHandler = { isDefault: true, currentHandler: 'com.xronocode.mark' }
       await s.UNSET_DEFAULT_MD_HANDLER()
       expect((invoke as any).mock.calls[0][0]).toBe('mt_unset_default_md_handler')
       expect((invoke as any).mock.calls[1][0]).toBe('mt_get_default_md_handler')
-      expect(s.defaultMdHandler.is_default).toBe(false)
-      expect(s.defaultMdHandler.current_handler).toBe(null)
+      expect(s.defaultMdHandler.isDefault).toBe(false)
+      expect(s.defaultMdHandler.currentHandler).toBe(null)
       expect(noticeNotifyMock).toHaveBeenCalledWith(
         expect.objectContaining({ type: 'primary' })
       )
@@ -138,11 +150,11 @@ describe('store/preferences — M-021 default-handler actions', () => {
       const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
       const { usePreferencesStore } = await import('@/store/preferences')
       const s = usePreferencesStore()
-      s.defaultMdHandler = { is_default: true, current_handler: 'com.xronocode.mark' }
+      s.defaultMdHandler = { isDefault: true, currentHandler: 'com.xronocode.mark' }
       await s.UNSET_DEFAULT_MD_HANDLER()
       expect((invoke as any).mock.calls.length).toBe(1)
       // State preserved (no REFRESH ran on error).
-      expect(s.defaultMdHandler.is_default).toBe(true)
+      expect(s.defaultMdHandler.isDefault).toBe(true)
       expect(noticeNotifyMock).toHaveBeenCalledWith(
         expect.objectContaining({ type: 'error' })
       )

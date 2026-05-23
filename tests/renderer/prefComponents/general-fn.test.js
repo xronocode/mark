@@ -86,12 +86,12 @@ describe('GeneralSettings – function coverage', () => {
   })
 
   it('isDefault computed', () => {
-    store.defaultMdHandler = { is_default: true, current_handler: 'Mark' }
+    store.defaultMdHandler = { isDefault: true, currentHandler: 'Mark' }
     expect(wrapper.vm.isDefault).toBe(true)
   })
 
   it('currentHandler computed', () => {
-    store.defaultMdHandler = { is_default: false, current_handler: 'VSCode' }
+    store.defaultMdHandler = { isDefault: false, currentHandler: 'VSCode' }
     expect(wrapper.vm.currentHandler).toBe('VSCode')
   })
 
