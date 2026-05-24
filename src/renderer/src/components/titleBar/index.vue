@@ -671,7 +671,7 @@ div.title > span {
   justify-content: center;
   border-radius: 5px;
   cursor: pointer;
-  color: var(--editorColor50);
+  color: var(--editorColor80);
   transition: background-color 0.15s ease, color 0.15s ease;
 }
 .titlebar-nav-divider {

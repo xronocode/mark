@@ -16,6 +16,8 @@
         "title": "Mark",
         "width": 1024,
         "height": 768,
+        "minWidth": 600,
+        "minHeight": 400,
         "resizable": true,
         "fullscreen": false,
         "url": "index.html",
