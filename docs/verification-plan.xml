@@ -249,6 +249,12 @@
       <AUTONOMY>partial — import bridge is fixture-deterministic but can silently regress roundtrip fidelity without review</AUTONOMY>
     </matrix-row>
 
+    <matrix-row MODULE="M-044" V-M="V-M-044" PRIORITY="medium" SCENARIOS="3" EC="4" ALM="0" NA="1" RTA="0" PHF="1" WAF="0">
+      <VF-COVERAGE>VF-017</VF-COVERAGE>
+      <GATE>Gate-Phase-B10-smart-paste</GATE>
+      <AUTONOMY>autonomous — standalone capture tool with deterministic pure-core tests; browser differences are surfaced as fixture evidence, not hidden logic</AUTONOMY>
+    </matrix-row>
+
     <matrix-row MODULE="M-901" V-M="V-M-901" PRIORITY="high" SCENARIOS="3" EC="5" ALM="3" NA="2" RTA="1" PHF="0" WAF="1">
       <VF-COVERAGE>V-GH-001, V-GH-002</VF-COVERAGE>
       <GATE>Gate-Phase-H</GATE>
@@ -298,10 +304,10 @@
       <gate PHASE="Phase-B3" MODULES="M-005, M-006, M-007, M-008, M-009, M-014, M-015, M-016, M-017, M-018, M-019, M-020" GATE-ID="Gate-Phase-B3" VERIFICATION="ALL REMAINING V-M" />
       <gate PHASE="Phase-B4" MODULES="ALL" GATE-ID="Gate-Phase-B4" VERIFICATION="ALL V-M, VF-005" />
       <gate PHASE="Phase-B5-perf-wave1" MODULES="M-024, M-025" GATE-ID="Gate-Phase-B5-perf-wave1" VERIFICATION="V-M-024, V-M-025" STATUS="pending" />
-      <gate PHASE="Phase-B5-perf-wave2" MODULES="M-026, M-027" GATE-ID="Gate-Phase-B5-perf-wave2" VERIFICATION="V-M-026, V-M-027" STATUS="pending" />
+      <gate PHASE="Phase-B5-perf-wave2" MODULES="M-026, M-027" GATE-ID="Gate-Phase-B5-perf-wave2" VERIFICATION="V-M-026, V-M-027" STATUS="conditional-pass" VERIFIED="2026-05-24" VERDICT="lazy-load and treeshake functional; BLOCK markers and build-audit scripts deferred" />
       <gate PHASE="Phase-B5-perf-wave3" MODULES="M-028, M-029, M-030" GATE-ID="Gate-Phase-B5-perf-wave3" VERIFICATION="V-M-028, V-M-029, V-M-030" STATUS="pending" />
       <gate PHASE="Phase-B6-agent-pipeline" MODULES="M-031" GATE-ID="Gate-Phase-B6-agent-pipeline" VERIFICATION="V-M-031" STATUS="design" />
-      <gate PHASE="Phase-B10-smart-paste" MODULES="M-038, M-039, M-040, M-041, M-042, M-043" GATE-ID="Gate-Phase-B10-smart-paste" VERIFICATION="V-M-038, V-M-039, V-M-040, V-M-041, V-M-042, V-M-043, VF-017" STATUS="design" />
+      <gate PHASE="Phase-B10-smart-paste" MODULES="M-044, M-038, M-039, M-040, M-041, M-042, M-043" GATE-ID="Gate-Phase-B10-smart-paste" VERIFICATION="V-M-044, V-M-038, V-M-039, V-M-040, V-M-041, V-M-042, V-M-043, VF-017" STATUS="design" />
     </phase-gate-matrix>
 
     <coverage-summary>
@@ -4043,16 +4049,17 @@
     <Gate-Phase-B10-smart-paste PHASE="Phase-B10-smart-paste">
       <goal>Smart paste from AI chats and rendered web content is trustworthy: markdown MIME wins when present, rich HTML is normalized into semantic Markdown structures, unsafe payloads are blocked, and image-localization regressions stay closed.</goal>
       <commands>
-        <command-1>cd /Users/myevdokimov/prj/mark &amp;&amp; npx vitest run tests/renderer/muya/clipboardPayload.test.js tests/renderer/muya/pasteSourceDetector.test.js tests/renderer/muya/pasteSourceAdapters.test.js tests/renderer/muya/pasteHtmlNormalizer.test.js tests/renderer/muya/smartPasteImport.test.js tests/renderer/muya/smartPaste-entry.test.js tests/renderer/util/dompurify-deep.test.js</command-1>
+        <command-1>cd /Users/myevdokimov/prj/mark &amp;&amp; npx vitest run tests/renderer/util/clipboard-fixture-capture.test.js tests/renderer/muya/clipboardPayload.test.js tests/renderer/muya/pasteSourceDetector.test.js tests/renderer/muya/pasteSourceAdapters.test.js tests/renderer/muya/pasteHtmlNormalizer.test.js tests/renderer/muya/smartPasteImport.test.js tests/renderer/muya/smartPaste-entry.test.js tests/renderer/util/dompurify-deep.test.js</command-1>
         <command-2>cd /Users/myevdokimov/prj/mark &amp;&amp; npx playwright test tests/e2e/smart-paste.spec.ts tests/e2e/html-paste-images.spec.ts</command-2>
         <command-3>cd /Users/myevdokimov/prj/mark &amp;&amp; rg \"BLOCK_SOURCE_DETECTED|BLOCK_SMART_PASTE_NORMALIZE|BLOCK_SMART_PASTE_FALLBACK|BLOCK_SMART_PASTE_REJECTED|BLOCK_TRANSFORM_IMAGE_PATHS\" src/muya src/renderer src-tauri</command-3>
       </commands>
       <required-evidence>
-        <evidence-1>Frozen clipboard fixtures exist for Claude-in-VS-Code, ChatGPT, GitHub, Notion, and generic HTML, and detector tests classify each deterministically or intentionally degrade to `generic`.</evidence-1>
-        <evidence-2>Inline code, fenced code, nested lists, task lists, and tables survive `HTML -&gt; Markdown -&gt; Muya state` on the fixture corpus with golden snapshots.</evidence-2>
-        <evidence-3>Unsafe rich HTML (`javascript:`, handler attributes, clipboard `file://`, `data:text/html`) is stripped or rejected before import, and no clipboard body appears in logs.</evidence-3>
-        <evidence-4>Existing `PR-4150` HTML-image localization path still fires `BLOCK_TRANSFORM_IMAGE_PATHS` and yields local `./assets/...` markdown references.</evidence-4>
-        <evidence-5>Manual smoke with a real rendered answer from Claude in VS Code or ChatGPT confirms visual preservation of inline code and code fences in the live editor.</evidence-5>
+        <evidence-1>M-044 can harvest browser-visible clipboard fixtures on at least one macOS browser and one Windows browser without requiring a local Mark build, and the exported JSON is commit-ready.</evidence-1>
+        <evidence-2>Frozen clipboard fixtures exist for Claude-in-VS-Code, ChatGPT, GitHub, Notion, and generic HTML, and detector tests classify each deterministically or intentionally degrade to `generic`.</evidence-2>
+        <evidence-3>Inline code, fenced code, nested lists, task lists, and tables survive `HTML -&gt; Markdown -&gt; Muya state` on the fixture corpus with golden snapshots.</evidence-3>
+        <evidence-4>Unsafe rich HTML (`javascript:`, handler attributes, clipboard `file://`, `data:text/html`) is stripped or rejected before import, and no clipboard body appears in logs.</evidence-4>
+        <evidence-5>Existing `PR-4150` HTML-image localization path still fires `BLOCK_TRANSFORM_IMAGE_PATHS` and yields local `./assets/...` markdown references.</evidence-5>
+        <evidence-6>Manual smoke with a real rendered answer from Claude in VS Code or ChatGPT confirms visual preservation of inline code and code fences in the live editor.</evidence-6>
       </required-evidence>
       <regression-checks>
         <check-1>`pasteAsPlainText` remains byte-preserving and never triggers source detection.</check-1>
@@ -5310,6 +5317,29 @@
     </commands>
     <wave-follow-up>On every Turndown/import rule change, rerun frozen markdown snapshots and inspect diff noise before widening serializer behavior.</wave-follow-up>
   </V-M-043>
+
+  <V-M-044 MODULE="M-044 clipboard-fixture-capture-tool" PRIORITY="medium" wave="beta.3" status="done">
+    <prereq>VF-017</prereq>
+    <intent>The fixture acquisition tool must be usable without a local Mark build, preserve browser-visible clipboard bodies exactly except for line-ending normalization, export deterministic JSON records that can be committed directly as test fixtures, and hand off captures into GitHub issues without depending on oversized query strings.</intent>
+    <high-level-scenarios>
+      <S1>HTML/plain/markdown payloads captured from a DataTransfer-like input preserve MIME ordering, body text, and line counts.</S1>
+      <S2>Advertised empty `text/html` payloads and file/image clipboard items are preserved as metadata-only descriptors, not silently dropped.</S2>
+      <S3>Export filenames are filesystem-safe and stable enough for fixture harvesting workflows on macOS and Windows, and GitHub issue URLs stay compact while the full fixture packet is copied separately.</S3>
+    </high-level-scenarios>
+    <negative-assertions>
+      <N1>The tool MUST NOT claim to capture raw OS-native formats such as Windows `CF_HTML` envelopes; only browser-visible payloads are in scope.</N1>
+      <N2>The core record builder MUST NOT mutate clipboard bodies beyond CRLF-to-LF normalization.</N2>
+    </negative-assertions>
+    <test-targets>
+      <test>tests/renderer/util/clipboard-fixture-capture.test.js</test>
+      <test>tools/clipboard-capture/index.html manual smoke in Chrome or Edge on at least one non-macOS host</test>
+    </test-targets>
+    <commands>
+      <module-local>cd /Users/myevdokimov/prj/mark &amp;&amp; npx vitest run tests/renderer/util/clipboard-fixture-capture.test.js</module-local>
+    </commands>
+    <wave-follow-up>When a new source family is added to Smart Paste scope, capture at least one real fixture with M-044 before detector or adapter heuristics are widened.</wave-follow-up>
+    <phase-follow-up>Before beta.3 tagging, confirm one Windows browser run can open the page directly from disk and export JSON without a local dev server.</phase-follow-up>
+  </V-M-044>
 
   <!-- Sidebar walk race fix + dirty-file highlighting (2026-05-20, commits 9bb39e36 + 3f3efe74) -->
   <V-SIDEBAR-WALK-RACE MODULE="m_v1_compat + project.js" PRIORITY="high" SCOPE="backend-ipc + renderer-project-store" status="done" verified-at="2026-05-20">

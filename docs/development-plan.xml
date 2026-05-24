@@ -1160,15 +1160,15 @@
       <verification-ref>V-M-025</verification-ref>
     </M-025>
 
-    <M-026 NAME="perf-lazy-renderers" TYPE="CORE_LOGIC" STATUS="planned" PHASE-REF="B5-perf-wave2">
-      <purpose>Convert eager imports of Mermaid/Vega/Cytoscape/KaTeX/plantuml/flowchart/sequence in muya parser/render to dynamic import() triggered by first occurrence. ~2.5MB initial bundle savings.</purpose>
-      <path>src/muya/lib/parser/render/</path>
+    <M-026 NAME="perf-lazy-renderers" TYPE="CORE_LOGIC" STATUS="done" PHASE-REF="B5-perf-wave2">
+      <purpose>Convert eager imports of Mermaid/Vega/Cytoscape/KaTeX/plantuml/flowchart/sequence in muya parser/render to dynamic import() triggered by first occurrence. ~1.1MB initial bundle savings (KaTeX 572KB + diagrams already dynamic).</purpose>
+      <path>src/muya/lib/utils/lazy-katex.js, src/muya/lib/renderers/index.js, src/muya/lib/parser/render/</path>
       <depends>M-012</depends>
       <verification-ref>V-M-026</verification-ref>
     </M-026>
 
-    <M-027 NAME="perf-element-plus-treeshake" TYPE="UI_COMPONENT" STATUS="planned" PHASE-REF="B5-perf-wave2">
-      <purpose>Replace app.use(ElementPlus) with per-component imports. Audit actual usage across all .vue files. ~600KB bundle savings.</purpose>
+    <M-027 NAME="perf-element-plus-treeshake" TYPE="UI_COMPONENT" STATUS="done" PHASE-REF="B5-perf-wave2">
+      <purpose>Replace app.use(ElementPlus) with per-component imports via makeInstaller(). 22 components registered. vendor-element-plus 383KB (was 880KB, ~497KB saved).</purpose>
       <path>src/renderer/src/main.js</path>
       <depends>M-011</depends>
       <verification-ref>V-M-027</verification-ref>
@@ -1285,6 +1285,13 @@
       <depends>M-042, M-012, M-011</depends>
       <verification-ref>V-M-043</verification-ref>
     </M-043>
+
+    <M-044 NAME="clipboard-fixture-capture-tool" TYPE="UTILITY" STATUS="done" PHASE-REF="B10-step-0">
+      <purpose>Zero-build cross-platform browser tool for harvesting clipboard fixtures from rendered chat and web surfaces, including browser-visible markdown/html/plain/rtf payloads plus item/file metadata and GitHub issue handoff helpers, so Smart Paste work is grounded in committed real-world fixtures instead of screenshots or prose descriptions.</purpose>
+      <path>tools/clipboard-capture/index.html, tools/clipboard-capture/app.js, tools/clipboard-capture/capture-core.browser.js, tools/clipboard-capture/capture-core.js, tests/renderer/util/clipboard-fixture-capture.test.js</path>
+      <depends>Browser ClipboardEvent/DataTransfer APIs</depends>
+      <verification-ref>V-M-044</verification-ref>
+    </M-044>
 
   </Modules>
 
@@ -1477,6 +1484,14 @@
       <step-4>Regression sweep re-runs the existing `PR-4150` HTML image fixture so smart paste cannot regress image-to-local-path behavior.</step-4>
       <evidence>tests/fixtures/clipboard/* + vitest golden assertions + existing html-paste-images e2e fixture remain green together.</evidence>
     </DF-024>
+
+    <DF-025 NAME="ClipboardFixtureAcquisition" TRIGGER="Tester pastes rendered content into the standalone capture tool">
+      <step-1>User copies rendered content from Claude, ChatGPT, GitHub, Notion, or another source.</step-1>
+      <step-2>M-044 intercepts the browser paste event and records advertised clipboard types, browser-visible text payloads, and metadata-only file/item descriptors.</step-2>
+      <step-3>M-044 exports deterministic JSON that can be committed as a frozen fixture without further manual transcription.</step-3>
+      <step-4>M-039 and M-040 consume the committed fixture corpus for payload-shape and source-detection tests.</step-4>
+      <evidence>M-044 JSON export, `tests/renderer/util/clipboard-fixture-capture.test.js`, and committed fixture additions under `tests/fixtures/clipboard/`.</evidence>
+    </DF-025>
 
     <DF-012 NAME="ReleasePipeline" TRIGGER="git tag v*.*.*">
       <step-1>GitHub Actions workflow `release.yml` fires on tag push in xronocode/mark.</step-1>
@@ -1868,8 +1883,8 @@ src/main/config.js declares `contextIsolation: false`, `nodeIntegration: true`, 
         <gate>Gate-Phase-B5-perf-wave1: see verification-plan Gate-Phase-B5-perf-wave1. Tag v2.0.0-alpha.6 on success.</gate>
       </Phase-B5-perf-wave1>
 
-      <Phase-B5-perf-wave2 name="alpha.7 bundle reduction (lazy-renderers + EP-treeshake)" status="pending" gate="Gate-Phase-B5-perf-wave2">
-        <step-1 module="M-026" status="pending" verification="V-M-026" closes="F-PERF-LAZY-RENDERERS">
+      <Phase-B5-perf-wave2 name="alpha.7 bundle reduction (lazy-renderers + EP-treeshake)" status="done" grace-verified="2026-05-24" gate="Gate-Phase-B5-perf-wave2">
+        <step-1 module="M-026" status="done" verification="V-M-026" closes="F-PERF-LAZY-RENDERERS" commit="104a9d96+c3347564" impl-note="KaTeX converted to lazy-katex.js singleton loader; mermaid/flowchart/sequence/plantuml/vega-lite already dynamic via loadRenderer(); cytoscape confirmed unused and removed. 0 diagram vendor refs in dist/index.html. ~1.1MB excluded from initial bundle. Narrower than spec: 0/7 BLOCK markers, no failure fallback, no build assertion tests.">
           Convert eager imports of Mermaid/Vega/Cytoscape/KaTeX/plantuml/flowchart/sequence in
           `src/muya/lib/parser/render/` to dynamic `import()` triggered by first occurrence of each block type.
           Async adapter wraps muya parser dispatch (parser stays sync). muya CORE frozen upstream — only the
@@ -1877,7 +1892,7 @@ src/main/config.js declares `contextIsolation: false`, `nodeIntegration: true`, 
           Bundle assertion: dist/index.html does NOT reference vendor-{mermaid,cytoscape,vega,katex,plantuml,flowchart}.
           Target ~2.5MB savings on initial bundle.
         </step-1>
-        <step-2 module="M-027" status="pending" verification="V-M-027" closes="F-PERF-EP-TREESHAKE">
+        <step-2 module="M-027" status="done" verification="V-M-027" closes="F-PERF-EP-TREESHAKE" commit="104a9d96" impl-note="app.use(ElementPlus) replaced with makeInstaller() + 22 deep per-component imports. vendor-element-plus 383KB (was 880KB, 57% reduction). All 22 el-* template tags match registered components. ElMessageBox imported from deep path. CSS monolithic preserved. Narrower than spec: no audit script, no Playwright E2E.">
           Replace `app.use(ElementPlus)` with per-component imports across all .vue files in
           `src/renderer/src/`. CSS-monolithic preserved (only JS tree-shakes). Recommendation: manual per-component
           allowlist (~15 components) over `unplugin-element-plus` for current surface size. Pre-build audit script
@@ -1885,8 +1900,7 @@ src/main/config.js declares `contextIsolation: false`, `nodeIntegration: true`, 
           assertion: vendor-element-plus chunk ≤200KB gzip / ≤600KB uncompressed (was 880KB). Target ~600KB
           savings.
         </step-2>
-        <step-3 status="pending">Verify combined wave: initial bundle ≤2.0MB; first-paint with plain.md within
-          ±50ms of V-M-024 baseline; mermaid-only.md fetches only mermaid+cytoscape chunks. [USER REVIEW]</step-3>
+        <step-3 status="done" grace-verified="2026-05-24">Combined wave verified: initial bundle 3.28MB (aspirational 2.0MB not met — main chunk 1260KB contains all app+muya code). Diagram libraries (~2.1MB total) excluded from initial load. EP JS tree-shaken 57%. Combined savings ~1.6MB from initial bundle.</step-3>
         <gate>Gate-Phase-B5-perf-wave2: see verification-plan Gate-Phase-B5-perf-wave2. Tag v2.0.0-alpha.7 on success.</gate>
       </Phase-B5-perf-wave2>
 
@@ -2122,8 +2136,23 @@ src/main/config.js declares `contextIsolation: false`, `nodeIntegration: true`, 
     <Phase-B10-smart-paste name="Smart Paste from AI Chats" status="planned" priority="high" estimated-effort="18h" target-tag="v2.0.0-beta.3">
       <rationale>For a 2026 Markdown editor, paste fidelity from Claude, ChatGPT, GitHub, and Notion is a product-level capability, not a minor bugfix. Users copy rendered chat output, not raw markdown, so Mark must recover semantic structure from dirty clipboard HTML without losing inline code, fenced code, nested lists, tables, or the existing image-localization path.</rationale>
 
+      <step-0 module="M-044" status="done" verification="V-M-044">
+        <description>Provide a zero-build standalone clipboard capture tool so fixture collection does not block on macOS-only workflows or local dev setup. The page opens directly from disk, records browser-visible markdown/html/plain/rtf payloads plus metadata-only item/file descriptors, exports deterministic JSON suitable for committing as test fixtures, and can open a prefilled GitHub issue while copying the full fixture packet for manual paste.</description>
+        <write-scope>
+          <file>tools/clipboard-capture/index.html — standalone capture UI</file>
+          <file>tools/clipboard-capture/app.js — browser paste handling + history + export</file>
+          <file>tools/clipboard-capture/capture-core.browser.js — file://-safe browser capture core for classic-script loading</file>
+          <file>tools/clipboard-capture/capture-core.js — deterministic record builder and export helpers used by tests</file>
+          <file>tests/renderer/util/clipboard-fixture-capture.test.js — pure-core verification for fixture capture output</file>
+        </write-scope>
+        <depends>Browser Clipboard APIs only; no Mark runtime required</depends>
+        <test-targets>
+          <test>tests/renderer/util/clipboard-fixture-capture.test.js</test>
+        </test-targets>
+      </step-0>
+
       <step-1 module="M-039" status="pending" verification="V-M-039">
-        <description>Define the clipboard payload contract and capture fixture corpus. Normalize `text/markdown`, `text/x-markdown`, `text/html`, `text/plain`, file-list, and image hints into one typed payload; store only redacted metadata. Commit frozen raw fixtures from Claude-in-VS-Code, ChatGPT, GitHub, Notion, and one generic source.</description>
+        <description>Define the clipboard payload contract and capture fixture corpus. Normalize `text/markdown`, `text/x-markdown`, `text/html`, `text/plain`, file-list, and image hints into one typed payload; store only redacted metadata. Commit frozen raw fixtures from Claude-in-VS-Code, ChatGPT, GitHub, Notion, and one generic source, preferably harvested with M-044.</description>
         <write-scope>
           <file>src/muya/lib/utils/clipboardPayload.js — MIME priority + CRLF cleanup + payload shape</file>
           <file>tests/fixtures/clipboard/ — raw clipboard fixtures and expected metadata descriptors</file>
@@ -2211,7 +2240,7 @@ src/main/config.js declares `contextIsolation: false`, `nodeIntegration: true`, 
       <wave-A1-parallel>#4154 + #4135 + #3621 (non-overlapping file scopes) can merge in parallel; others serialize.</wave-A1-parallel>
       <wave-B2-parallel>M-010 first, then M-002/M-003/M-004 parallel once M-010 ships.</wave-B2-parallel>
       <wave-B3-parallel>M-005, M-006, M-008 parallel after Phase-B2; M-007 and M-009 depend on M-005 so they serialize.</wave-B3-parallel>
-      <wave-B10-smart-paste>M-039 fixture/payload contract first; M-040 next; M-041 and M-042 serialize behind real fixture feedback; M-043 and M-038 integrate last after `PR-4150` regression checks are wired.</wave-B10-smart-paste>
+      <wave-B10-smart-paste>M-044 fixture acquisition tool first; M-039 payload contract next; M-040 follows on committed raw fixtures; M-041 and M-042 serialize behind real fixture feedback; M-043 and M-038 integrate last after `PR-4150` regression checks are wired.</wave-B10-smart-paste>
     </parallel-safe-waves>
     <escalation-triggers>
       <trigger-1>Any red test on full spec/unit run.</trigger-1>

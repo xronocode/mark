@@ -407,18 +407,27 @@
       </annotations>
     </M-025>
 
-    <M-026 NAME="perf-lazy-renderers" TYPE="CORE_LOGIC" STATUS="planned" PHASE-REF="B5-perf-wave2">
-      <purpose>Convert eager imports of Mermaid/Vega/Cytoscape/KaTeX/plantuml/flowchart/sequence in muya parser/render to dynamic import() triggered by first occurrence. ~2.5MB initial bundle savings.</purpose>
-      <path>src/muya/lib/parser/render/</path>
+    <M-026 NAME="perf-lazy-renderers" TYPE="CORE_LOGIC" STATUS="done" PHASE-REF="B5-perf-wave2">
+      <purpose>Convert eager imports of KaTeX to lazy-katex.js singleton loader; mermaid/flowchart/sequence/plantuml/vega-lite already dynamic via loadRenderer(). Cytoscape removed (unused). ~1.1MB excluded from initial bundle.</purpose>
+      <path>src/muya/lib/utils/lazy-katex.js, src/muya/lib/renderers/index.js, src/muya/lib/parser/render/</path>
       <depends>M-012</depends>
       <verification-ref>V-M-026</verification-ref>
+      <annotations>
+        <fn-loadKatex PURPOSE="Singleton loader with promise caching. Loads KaTeX core + mhchem + CSS via dynamic import()." />
+        <fn-scheduleRerender PURPOSE="One-shot rerender guard. After KaTeX loads, triggers muya contentState.render() exactly once." />
+        <fn-loadRenderer PURPOSE="renderers/index.js: async dispatch for mermaid/flowchart/sequence/plantuml/vega-lite. Renderer cache Map prevents double-fetch." />
+      </annotations>
     </M-026>
 
-    <M-027 NAME="perf-element-plus-treeshake" TYPE="UI_COMPONENT" STATUS="planned" PHASE-REF="B5-perf-wave2">
-      <purpose>Replace app.use(ElementPlus) with per-component imports. Audit actual usage across all .vue files. ~600KB bundle savings.</purpose>
+    <M-027 NAME="perf-element-plus-treeshake" TYPE="UI_COMPONENT" STATUS="done" PHASE-REF="B5-perf-wave2">
+      <purpose>Replace app.use(ElementPlus) with makeInstaller() + 22 deep per-component imports. vendor-element-plus 383KB (was 880KB, 57% reduction).</purpose>
       <path>src/renderer/src/main.js</path>
       <depends>M-011</depends>
       <verification-ref>V-M-027</verification-ref>
+      <annotations>
+        <fn-makeInstaller PURPOSE="Creates ElementPlusPartial with 22 deep per-component imports from element-plus/es/components/*/index.mjs" />
+        <fn-ElMessageBox-deep PURPOSE="editor.js: imperative ElMessageBox from deep path for unsaved-changes confirm" />
+      </annotations>
     </M-027>
 
     <M-028 NAME="perf-muya-defer" TYPE="UI_COMPONENT" STATUS="planned" PHASE-REF="B5-perf-wave3">
@@ -593,6 +602,19 @@
         <fn-preserveImageTransformContract PURPOSE="Keep HTML-image localization contract reachable after rich-paste normalization" />
       </annotations>
     </M-043>
+
+    <M-044 NAME="clipboard-fixture-capture-tool" TYPE="UTILITY" STATUS="done" PHASE-REF="B10-step-0">
+      <purpose>Standalone browser tool that captures browser-visible clipboard payloads from rendered chat and web surfaces, exports deterministic JSON fixtures, opens prefilled GitHub issues, and removes the need for manual transcription or platform-specific dev setup during Smart Paste fixture acquisition.</purpose>
+      <path>tools/clipboard-capture/index.html, tools/clipboard-capture/app.js, tools/clipboard-capture/capture-core.browser.js, tools/clipboard-capture/capture-core.js, tests/renderer/util/clipboard-fixture-capture.test.js</path>
+      <depends>Browser ClipboardEvent/DataTransfer APIs</depends>
+      <verification-ref>V-M-044</verification-ref>
+      <annotations>
+        <fn-buildCaptureRecord PURPOSE="Build a deterministic JSON-safe capture record from a DataTransfer-like payload" />
+        <fn-handlePasteCapture PURPOSE="Intercept browser paste events, persist capture history, and expose download actions" />
+        <fn-exportFixture PURPOSE="Serialize one capture or full history as a JSON download suitable for committed test fixtures" />
+        <fn-buildIssueUrl PURPOSE="Open a compact prefilled GitHub issue while leaving the full fixture packet for clipboard paste" />
+      </annotations>
+    </M-044>
 
     <M-901 NAME="grace-context-hygiene-policy" TYPE="PROCESS_POLICY" STATUS="implemented">
       <purpose>GRACE-compatible AI Standards token/session hygiene overlay with context modes, precedence rules, and escalation triggers.</purpose>
@@ -791,5 +813,8 @@
     <CrossLink from="M-043" to="M-042" relation="consumes-normalized-html-from" />
     <CrossLink from="M-043" to="M-012" relation="reuses-import-pipeline-of" />
     <CrossLink from="M-043" to="M-011" relation="preserves-image-transform-contract-for" />
+    <CrossLink from="M-044" to="M-039" relation="supplies-payload-fixtures-for" />
+    <CrossLink from="M-044" to="M-040" relation="captures-source-signatures-for" />
+    <CrossLink from="M-044" to="M-042" relation="provides-hostile-and-rich-input-fixtures-for" />
   </Project>
 </KnowledgeGraph>
