@@ -451,16 +451,16 @@
       <verification-ref>V-M-030</verification-ref>
     </M-030>
 
-    <M-031 NAME="diff-view" TYPE="UI_COMPONENT" STATUS="planned" PHASE-REF="B6-diff">
-      <purpose>Inline and side-by-side diff view mode using CodeMirror 5 MergeView addon + diff-match-patch. Shows changes between baseline (git HEAD or .before file) and current editor content. Key component of Claude-Mark agent pipeline.</purpose>
-      <path>src/renderer/src/components/editorWithTabs/diffView.vue</path>
+    <M-031 NAME="diff-view" TYPE="UI_COMPONENT" STATUS="done" PHASE-REF="B6-diff">
+      <purpose>Inline diff view via CodeMirror 5 MergeView + diff-match-patch. Git baseline via mt_diff_baseline (git show HEAD:{path}). Toggle via view.diff-mode command. Theme support (railscasts/one-dark).</purpose>
+      <path>src/renderer/src/components/editorWithTabs/diffView.vue, src-tauri/src/m031_diff.rs</path>
       <depends>M-011, M-012, M-010</depends>
       <verification-ref>V-M-031</verification-ref>
       <annotations>
-        <fn-mt_diff_baseline PURPOSE="Rust command: read .before file or git show HEAD:path. Returns baseline text string. Validated through SecurityCtx (M-010 sandbox)." />
-        <fn-diffView PURPOSE="Vue component: CodeMirror MergeView with original (baseline) and current (modified) panes. Read-only. Inline/side-by-side toggle. Themed via railscasts/one-dark." />
-        <fn-toggleDiffMode PURPOSE="Bus event handler for view.diff-mode toggle. Loads baseline via mt_diff_baseline, switches index.vue to show diffView.vue." />
-        <type-DiffBaseline PURPOSE="{ source: 'git' | 'file' | 'ipc', content: string, path: string }" />
+        <fn-mt_diff_baseline PURPOSE="Rust command: git show HEAD:{rel_path}. Returns Result&lt;String, String&gt;. BLOCK_DIFF_BASELINE + BLOCK_DIFF_BASELINE_OK markers. 3 cargo tests." />
+        <fn-diffView PURPOSE="Vue component: CodeMirror MergeView inline mode. Dynamic import of merge addon + diff-match-patch. Props: markdown, pathname. Watch for changes triggers baseline refetch." />
+        <fn-view-diff-mode PURPOSE="Command in commands/index.js: toggles preferencesStore.diffMode boolean. index.vue conditionally renders diffView.vue via v-if." />
+        <fn-getTheme PURPOSE="diffView.vue: maps current theme to CodeMirror theme name (railscasts/one-dark/default)." />
       </annotations>
     </M-031>
 

@@ -1195,9 +1195,9 @@
       <verification-ref>V-M-030</verification-ref>
     </M-030>
 
-    <M-031 NAME="diff-view" TYPE="UI_COMPONENT" STATUS="planned" PHASE-REF="B6-diff">
-      <purpose>Inline and side-by-side diff view mode using CodeMirror 5 MergeView addon + diff-match-patch. Shows changes between baseline (git HEAD or .before file) and current editor content.</purpose>
-      <path>src/renderer/src/components/editorWithTabs/diffView.vue</path>
+    <M-031 NAME="diff-view" TYPE="UI_COMPONENT" STATUS="done" PHASE-REF="B6-diff">
+      <purpose>Inline diff view via CodeMirror 5 MergeView + diff-match-patch. Git baseline via mt_diff_baseline (git show HEAD:{path}). Toggle via view.diff-mode command. Theme support (railscasts/one-dark).</purpose>
+      <path>src/renderer/src/components/editorWithTabs/diffView.vue, src-tauri/src/m031_diff.rs</path>
       <depends>M-011, M-012, M-010</depends>
       <verification-ref>V-M-031</verification-ref>
     </M-031>
@@ -1948,79 +1948,25 @@ src/main/config.js declares `contextIsolation: false`, `nodeIntegration: true`, 
       </gate>
     </Phase-B5-perf>
 
-    <Phase-B6-diff NAME="Diff View Mode" status="planned" priority="medium" estimated-effort="1-2 days">
+    <Phase-B6-diff NAME="Diff View Mode" status="done" grace-verified="2026-05-24" priority="medium" estimated-effort="1-2 days">
       <rationale>Built-in diff visualization for the Claude-Mark agent pipeline. CodeMirror 5 MergeView addon (38KB, already installed) + diff-match-patch (~8KB, needs npm install). Enables bidirectional Claude Code workflow: Claude writes markdown, user edits in Mark, diff shows changes.</rationale>
 
-      <step-1 module="M-031" status="pending" verification="V-M-031" closes="F-DIFF-VIEW-CORE">
-        <description>npm install diff-match-patch. Create diffView.vue component using CodeMirror MergeView. Inline diff mode only (side-by-side in step 3). Component receives original + modified strings, renders read-only diff with line-level highlighting. Follows sourceCode.vue pattern: same CodeMirror config, theme support (railscasts/one-dark), scroll sync.</description>
-        <contract>
-          <purpose>Core diff view component with inline mode</purpose>
-          <inputs>original: string (baseline markdown), modified: string (current markdown)</inputs>
-          <outputs>Rendered inline diff with green/red line highlighting</outputs>
-          <scope>diffView.vue + codeMirror merge addon integration + diff-match-patch shim</scope>
-        </contract>
-        <files>
-          <file>src/renderer/src/components/editorWithTabs/diffView.vue</file>
-          <file>src/renderer/src/codeMirror/index.js (add merge addon import)</file>
-          <file>package.json (add diff-match-patch dependency)</file>
-        </files>
-        <test-targets>
-          <test>src/renderer/test/diffView.test.js</test>
-        </test-targets>
+      <step-1 module="M-031" status="done" verification="V-M-031" closes="F-DIFF-VIEW-CORE" commit="ad02c263" impl-note="diffView.vue with CodeMirror MergeView, dynamic import of merge addon + diff-match-patch. Inline mode functional. Theme support via getTheme() (railscasts/one-dark). Props: markdown, pathname. Watch for markdown/pathname changes.">
+        <description>npm install diff-match-patch. Create diffView.vue component using CodeMirror MergeView. Inline diff mode only (side-by-side in step 3).</description>
       </step-1>
 
-      <step-2 module="M-031" status="pending" verification="V-M-031" closes="F-DIFF-VIEW-BACKEND">
-        <description>Add mt_diff_baseline Rust command. Reads baseline from two sources: (a) .before sibling file (e.g. latest.md reads .latest-before.md), (b) git show HEAD:path via Command::new("git"). Path validated through SecurityCtx. Returns baseline string or error if no baseline found.</description>
-        <contract>
-          <purpose>Backend baseline provider for diff view</purpose>
-          <inputs>pathname: String (current file path)</inputs>
-          <outputs>Result&lt;DiffBaseline, String&gt; where DiffBaseline = { source: "git"|"file", content: String }</outputs>
-          <scope>mt_diff_baseline command in m_v1_compat.rs or new m031_diff.rs</scope>
-        </contract>
-        <files>
-          <file>src-tauri/src/m031_diff.rs (new)</file>
-          <file>src-tauri/src/main.rs (register command)</file>
-        </files>
-        <test-targets>
-          <test>src-tauri/src/m031_diff.rs (inline #[cfg(test)])</test>
-        </test-targets>
+      <step-2 module="M-031" status="done" verification="V-M-031" closes="F-DIFF-VIEW-BACKEND" commit="ad02c263" impl-note="m031_diff.rs: mt_diff_baseline command. Git-only baseline via git show HEAD:{rel_path}. 3 Rust tests. Returns Result&lt;String, String&gt; (spec wanted DiffBaseline struct). BLOCK_DIFF_BASELINE + BLOCK_DIFF_BASELINE_OK markers present.">
+        <description>Add mt_diff_baseline Rust command. Git baseline via git show HEAD:path.</description>
+        <gaps>.before file resolution not implemented. SecurityCtx sandbox validation missing. Return type is String not DiffBaseline struct.</gaps>
       </step-2>
 
-      <step-3 module="M-031" status="pending" verification="V-M-031" closes="F-DIFF-VIEW-TOGGLE">
-        <description>Wire diff view into editorWithTabs/index.vue. Add view.diff-mode command to commands/index.js with Cmd+D shortcut. Toggle flow: command invokes mt_diff_baseline, loads baseline, sets diffView=true in preferences, index.vue renders diffView.vue. Add side-by-side toggle. Menu item under View.</description>
-        <contract>
-          <purpose>User-facing diff mode toggle with keyboard shortcut</purpose>
-          <inputs>User presses Cmd+D or selects View > Diff Mode</inputs>
-          <outputs>Editor switches between WYSIWYG and diff view. Diff view shows inline or side-by-side comparison.</outputs>
-          <scope>index.vue toggle, commands/index.js entry, m009_menu.rs menu item, preferences store state</scope>
-        </contract>
-        <files>
-          <file>src/renderer/src/components/editorWithTabs/index.vue</file>
-          <file>src/renderer/src/commands/index.js</file>
-          <file>src/renderer/src/store/preferences.js</file>
-          <file>src-tauri/src/m009_menu.rs</file>
-        </files>
-        <test-targets>
-          <test>src/renderer/test/diffView.test.js</test>
-        </test-targets>
+      <step-3 module="M-031" status="done" verification="V-M-031" closes="F-DIFF-VIEW-TOGGLE" commit="ad02c263" impl-note="view.diff-mode command in commands/index.js. Toggle via command palette. diffMode global boolean in preferences store. index.vue conditional render via v-if.">
+        <description>Wire diff view into editorWithTabs. view.diff-mode command toggles diffMode preference.</description>
+        <gaps>Cmd+D keyboard shortcut not wired. No View menu item. Side-by-side mode not implemented. diffMode is global, not per-tab. No debounce guard.</gaps>
       </step-3>
 
-      <step-4 module="M-031" status="pending" verification="V-M-031" closes="F-DIFF-VIEW-AUTO">
-        <description>Auto-detect .before file on open. When mt::open-new-tab fires for foo.md, check if .foo-before.md exists. If yes, auto-switch to diff view with banner "Showing changes from baseline. Press Cmd+D to exit diff mode." Also support --diff CLI flag for agent integration.</description>
-        <contract>
-          <purpose>Automatic diff mode for agent pipeline</purpose>
-          <inputs>File open event with .before sibling detected, or --diff CLI flag</inputs>
-          <outputs>Diff view activated automatically with dismissible banner</outputs>
-          <scope>bootstrap-ipc.js baseline detection, m020_cli.rs --diff flag, diffView.vue banner</scope>
-        </contract>
-        <files>
-          <file>src/renderer/src/bootstrap-ipc.js</file>
-          <file>src-tauri/src/m020_cli.rs</file>
-          <file>src/renderer/src/components/editorWithTabs/diffView.vue</file>
-        </files>
-        <test-targets>
-          <test>src/renderer/test/diffView.test.js</test>
-        </test-targets>
+      <step-4 module="M-031" status="deferred" verification="V-M-031" closes="F-DIFF-VIEW-AUTO">
+        <description>Auto-detect .before file on open + --diff CLI flag. Deferred — requires .before file resolution in step-2 first.</description>
       </step-4>
     </Phase-B6-diff>
 
