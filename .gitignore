@@ -19,6 +19,12 @@ test-results/
 playwright-report/
 playwright/.cache/
 
+# Debug artifacts & screenshots
+.artifacts/
+
+# Vision sidecar
+.vision-sidecar-telemetry/
+
 # OS / editor cruft
 .DS_Store
 *.log
