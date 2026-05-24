@@ -213,6 +213,42 @@
       <AUTONOMY>partial — CodeMirror MergeView integration + SecurityCtx sandbox check for .before path; review diff-match-patch wiring and baseline resolution logic</AUTONOMY>
     </matrix-row>
 
+    <matrix-row MODULE="M-038" V-M="V-M-038" PRIORITY="high" SCENARIOS="3" EC="7" ALM="3" NA="2" RTA="2" PHF="1" WAF="1">
+      <VF-COVERAGE>VF-017, VF-001, VF-003</VF-COVERAGE>
+      <GATE>Gate-Phase-B10-smart-paste</GATE>
+      <AUTONOMY>partial — paste orchestration crosses html/plain/image branches and must preserve PR-4150 plus table/code special cases</AUTONOMY>
+    </matrix-row>
+
+    <matrix-row MODULE="M-039" V-M="V-M-039" PRIORITY="high" SCENARIOS="3" EC="3" ALM="1" NA="1" RTA="0" PHF="1" WAF="1">
+      <VF-COVERAGE>VF-017</VF-COVERAGE>
+      <GATE>Gate-Phase-B10-smart-paste</GATE>
+      <AUTONOMY>autonomous — deterministic MIME normalization with metadata-only logging</AUTONOMY>
+    </matrix-row>
+
+    <matrix-row MODULE="M-040" V-M="V-M-040" PRIORITY="high" SCENARIOS="3" EC="3" ALM="1" NA="1" RTA="0" PHF="1" WAF="1">
+      <VF-COVERAGE>VF-017</VF-COVERAGE>
+      <GATE>Gate-Phase-B10-smart-paste</GATE>
+      <AUTONOMY>autonomous — frozen-fixture classifier with safe generic fallback</AUTONOMY>
+    </matrix-row>
+
+    <matrix-row MODULE="M-041" V-M="V-M-041" PRIORITY="high" SCENARIOS="3" EC="4" ALM="1" NA="1" RTA="0" PHF="1" WAF="1">
+      <VF-COVERAGE>VF-017</VF-COVERAGE>
+      <GATE>Gate-Phase-B10-smart-paste</GATE>
+      <AUTONOMY>partial — heuristic DOM rewrites are deterministic on fixtures but drift-prone across chat sources</AUTONOMY>
+    </matrix-row>
+
+    <matrix-row MODULE="M-042" V-M="V-M-042" PRIORITY="critical" SCENARIOS="3" EC="6" ALM="2" NA="2" RTA="1" PHF="1" WAF="1">
+      <VF-COVERAGE>VF-017, VF-003</VF-COVERAGE>
+      <GATE>Gate-Phase-B10-smart-paste</GATE>
+      <AUTONOMY>not-autonomous — sanitizer ordering and unsafe-scheme rejection are security-critical</AUTONOMY>
+    </matrix-row>
+
+    <matrix-row MODULE="M-043" V-M="V-M-043" PRIORITY="high" SCENARIOS="3" EC="4" ALM="1" NA="1" RTA="1" PHF="1" WAF="1">
+      <VF-COVERAGE>VF-017, VF-001</VF-COVERAGE>
+      <GATE>Gate-Phase-B10-smart-paste</GATE>
+      <AUTONOMY>partial — import bridge is fixture-deterministic but can silently regress roundtrip fidelity without review</AUTONOMY>
+    </matrix-row>
+
     <matrix-row MODULE="M-901" V-M="V-M-901" PRIORITY="high" SCENARIOS="3" EC="5" ALM="3" NA="2" RTA="1" PHF="0" WAF="1">
       <VF-COVERAGE>V-GH-001, V-GH-002</VF-COVERAGE>
       <GATE>Gate-Phase-H</GATE>
@@ -265,20 +301,21 @@
       <gate PHASE="Phase-B5-perf-wave2" MODULES="M-026, M-027" GATE-ID="Gate-Phase-B5-perf-wave2" VERIFICATION="V-M-026, V-M-027" STATUS="pending" />
       <gate PHASE="Phase-B5-perf-wave3" MODULES="M-028, M-029, M-030" GATE-ID="Gate-Phase-B5-perf-wave3" VERIFICATION="V-M-028, V-M-029, V-M-030" STATUS="pending" />
       <gate PHASE="Phase-B6-agent-pipeline" MODULES="M-031" GATE-ID="Gate-Phase-B6-agent-pipeline" VERIFICATION="V-M-031" STATUS="design" />
+      <gate PHASE="Phase-B10-smart-paste" MODULES="M-038, M-039, M-040, M-041, M-042, M-043" GATE-ID="Gate-Phase-B10-smart-paste" VERIFICATION="V-M-038, V-M-039, V-M-040, V-M-041, V-M-042, V-M-043, VF-017" STATUS="design" />
     </phase-gate-matrix>
 
     <coverage-summary>
-      <metric name="total-modules">38</metric>
-      <metric name="total-V-M-entries">38</metric>
-      <metric name="total-VF-flows">22</metric>
-      <metric name="total-scenarios">171</metric>
-      <metric name="total-edge-cases">339</metric>
-      <metric name="total-trace-assertions">62</metric>
-      <metric name="total-negative-assertions">122</metric>
-      <metric name="total-log-markers-catalogued">161</metric>
-      <metric name="phase-gates">15</metric>
-      <metric name="autonomous-safe-modules">24 of 38</metric>
-      <metric name="modules-with-full-coverage">38 of 38 (100%)</metric>
+      <metric name="total-modules">44</metric>
+      <metric name="total-V-M-entries">44</metric>
+      <metric name="total-VF-flows">23</metric>
+      <metric name="total-scenarios">189</metric>
+      <metric name="total-edge-cases">364</metric>
+      <metric name="total-trace-assertions">66</metric>
+      <metric name="total-negative-assertions">130</metric>
+      <metric name="total-log-markers-catalogued">165</metric>
+      <metric name="phase-gates">16</metric>
+      <metric name="autonomous-safe-modules">26 of 44</metric>
+      <metric name="modules-with-full-coverage">44 of 44 (100%)</metric>
     </coverage-summary>
   </VerificationMatrix>
 
@@ -438,6 +475,21 @@
         <ci-check>WebView shell security parity test: webview attach attempt rejected, navigation to http://attacker rejected, window.open(...) rejected, unknown protocol rejected, file:// outside origin rejected — each emits explicit BLOCK_REJECT_* marker</ci-check>
       </required-signals>
     </VF-016>
+
+    <!-- VF-017 added 2026-05-24 from Smart Paste grace-plan approval -->
+    <VF-017 NAME="SmartPasteFromRichClipboardPath" USE_CASES="UC-001, UC-009, UC-011" DATA_FLOW="DF-021+DF-022+DF-023+DF-024" PRIORITY="high" added="2026-05-24 grace-plan">
+      <scenario>User copies rendered content from Claude in VS Code, ChatGPT, GitHub, or Notion and pastes it into Mark. Clipboard may contain markdown MIME, dirty rendered HTML, plain text, file/image hints, or hostile HTML. Existing generic Turndown path already preserves semantic `li + code`; the regression target is source-specific HTML where inline/fenced code is encoded as styled spans/divs and chat chrome is mixed into the content.</scenario>
+      <expected-outcome>Markdown MIME wins when present. Otherwise source-aware normalization restores inline code, fenced code, nested lists, task items, and tables before import. Clipboard-only UI chrome (copy buttons, citation chips, line numbers, hover wrappers) is stripped. Unsafe schemes/handlers never survive. Existing `PR-4150` rich-HTML image localization still works unchanged. Fallback to markdown/plain text is explicit and deterministic when semantic recovery is unsafe.</expected-outcome>
+      <required-signals>
+        <log-marker>[Renderer][clipboard][BLOCK_SOURCE_DETECTED] { source, has_markdown, has_html, has_plain }</log-marker>
+        <log-marker>[Renderer][clipboard][BLOCK_SMART_PASTE_NORMALIZE] { source, transforms_applied, restored_code_nodes, stripped_nodes }</log-marker>
+        <log-marker>[Renderer][clipboard][BLOCK_SMART_PASTE_FALLBACK] { reason, from, to }</log-marker>
+        <log-marker>[Renderer][clipboard][BLOCK_SMART_PASTE_REJECTED] { reason, rejected_scheme }</log-marker>
+        <trace-sequence>BLOCK_SOURCE_DETECTED → BLOCK_SMART_PASTE_NORMALIZE → BLOCK_PARSE_MARKDOWN, with BLOCK_TRANSFORM_IMAGE_PATHS preserved on image-bearing HTML fixtures.</trace-sequence>
+        <fixture>tests/fixtures/clipboard/{claude-vscode,chatgpt,github,notion,generic}-{html,meta}.*</fixture>
+        <fixture>tests/e2e/html-paste-images.spec.ts remains mandatory regression for PR-4150 image-localization path.</fixture>
+      </required-signals>
+    </VF-017>
   </CriticalFlows>
 
   <!-- ============================================================ -->
@@ -3987,6 +4039,29 @@
       <risk-1 severity="medium">Cmd+F may not have a renderer-side in-file find handler; if menu-driven Cmd+F fires `mt::editor-find` and muya doesn't have a built-in find UI, escalate to `F-INFILE-FIND-UI` as alpha-blocker addendum. Mitigation: code-probe muya's keymap for Cmd+F handler before step-1; if missing, file follow-up before tagging alpha.</risk-1>
       <predecessor-of>Phase-B4 step-4 (the actual v2.0.0-alpha.1 tag).</predecessor-of>
     </Gate-Phase-B4-pre-alpha>
+
+    <Gate-Phase-B10-smart-paste PHASE="Phase-B10-smart-paste">
+      <goal>Smart paste from AI chats and rendered web content is trustworthy: markdown MIME wins when present, rich HTML is normalized into semantic Markdown structures, unsafe payloads are blocked, and image-localization regressions stay closed.</goal>
+      <commands>
+        <command-1>cd /Users/myevdokimov/prj/mark &amp;&amp; npx vitest run tests/renderer/muya/clipboardPayload.test.js tests/renderer/muya/pasteSourceDetector.test.js tests/renderer/muya/pasteSourceAdapters.test.js tests/renderer/muya/pasteHtmlNormalizer.test.js tests/renderer/muya/smartPasteImport.test.js tests/renderer/muya/smartPaste-entry.test.js tests/renderer/util/dompurify-deep.test.js</command-1>
+        <command-2>cd /Users/myevdokimov/prj/mark &amp;&amp; npx playwright test tests/e2e/smart-paste.spec.ts tests/e2e/html-paste-images.spec.ts</command-2>
+        <command-3>cd /Users/myevdokimov/prj/mark &amp;&amp; rg \"BLOCK_SOURCE_DETECTED|BLOCK_SMART_PASTE_NORMALIZE|BLOCK_SMART_PASTE_FALLBACK|BLOCK_SMART_PASTE_REJECTED|BLOCK_TRANSFORM_IMAGE_PATHS\" src/muya src/renderer src-tauri</command-3>
+      </commands>
+      <required-evidence>
+        <evidence-1>Frozen clipboard fixtures exist for Claude-in-VS-Code, ChatGPT, GitHub, Notion, and generic HTML, and detector tests classify each deterministically or intentionally degrade to `generic`.</evidence-1>
+        <evidence-2>Inline code, fenced code, nested lists, task lists, and tables survive `HTML -&gt; Markdown -&gt; Muya state` on the fixture corpus with golden snapshots.</evidence-2>
+        <evidence-3>Unsafe rich HTML (`javascript:`, handler attributes, clipboard `file://`, `data:text/html`) is stripped or rejected before import, and no clipboard body appears in logs.</evidence-3>
+        <evidence-4>Existing `PR-4150` HTML-image localization path still fires `BLOCK_TRANSFORM_IMAGE_PATHS` and yields local `./assets/...` markdown references.</evidence-4>
+        <evidence-5>Manual smoke with a real rendered answer from Claude in VS Code or ChatGPT confirms visual preservation of inline code and code fences in the live editor.</evidence-5>
+      </required-evidence>
+      <regression-checks>
+        <check-1>`pasteAsPlainText` remains byte-preserving and never triggers source detection.</check-1>
+        <check-2>Table-cell paste and `languageInput` / `codeContent` special cases in `pasteCtrl.js` remain unchanged.</check-2>
+        <check-3>`tests/renderer/util/dompurify-deep.test.js` stays green, proving smart paste did not widen sanitizer allowances.</check-3>
+      </regression-checks>
+      <wave-follow-up>Review one successful Claude fixture trace and one rejected hostile fixture trace to verify trajectory correctness, not only final markdown equality.</wave-follow-up>
+      <phase-follow-up>Before tagging `v2.0.0-beta.3`, replay at least one Windows-style clipboard fixture to catch platform MIME differences outside macOS.</phase-follow-up>
+    </Gate-Phase-B10-smart-paste>
   </PhaseGates>
 
   <TestFixtures>
@@ -4224,7 +4299,7 @@
     <PR-4150 TITLE="HTML paste transforms images to local paths" AUTHOR="kiliansinger" SIZE="+71/-2" RISK="low" PARALLEL_SAFE="no">
       <before-check>Paste fixture-common image-paste-source.html; image src stays as http://example.com/x.png.</before-check>
       <after-check>Image src is transformed to a local path (copied to workspace assets/), markdown output references the local path.</after-check>
-      <test-file>test/e2e/html-paste-images.spec.ts</test-file>
+      <test-file>tests/e2e/html-paste-images.spec.ts</test-file>
       <harness>E2e: paste HTML via clipboard, wait for download, assert file exists under workspace/assets/, assert markdown uses ./assets/ relative path.</harness>
       <assertion>[Renderer][clipboard][BLOCK_TRANSFORM_IMAGE_PATHS] fires; resulting markdown matches regex `!\[.*\]\(\./assets/.+\)`.</assertion>
       <verification-ref>V-M-011</verification-ref>
@@ -4380,6 +4455,23 @@
         <marker-2>Any Node core module import in renderer bundle (Vite externals assertion at build time).</marker-2>
       </forbidden-markers>
     </TS-VF-010>
+
+    <TS-VF-017 FLOW="VF-017 SmartPasteFromRichClipboardPath">
+      <expected-order>
+        <marker-1>[Renderer][clipboard][BLOCK_SOURCE_DETECTED]</marker-1>
+        <marker-2>[Renderer][clipboard][BLOCK_SMART_PASTE_NORMALIZE]</marker-2>
+        <marker-3>[Muya][setContent][BLOCK_PARSE_MARKDOWN]</marker-3>
+      </expected-order>
+      <branching>
+        <branch-1>Markdown fast path: source=markdown-fast-path, BLOCK_SMART_PASTE_NORMALIZE may be skipped, but BLOCK_PARSE_MARKDOWN remains mandatory.</branch-1>
+        <branch-2>Rich HTML with images: BLOCK_TRANSFORM_IMAGE_PATHS MUST still fire for PR-4150 fixtures after BLOCK_SMART_PASTE_NORMALIZE.</branch-2>
+        <branch-3>Unsafe HTML: BLOCK_SMART_PASTE_REJECTED OR BLOCK_SMART_PASTE_FALLBACK fires; BLOCK_PARSE_MARKDOWN only fires if fallback path imported safe markdown/plain text.</branch-3>
+      </branching>
+      <forbidden-markers>
+        <marker-1>Clipboard body, HTML, or raw markdown in any log payload.</marker-1>
+        <marker-2>Any `onclick`, `onload`, `javascript:`, or unvalidated `file://` payload surviving the normalize stage.</marker-2>
+      </forbidden-markers>
+    </TS-VF-017>
   </TraceSequences>
 
   <LogMarkerCatalog>
@@ -4432,6 +4524,10 @@
     <marker ID="Renderer.tab.BLOCK_CLOSE_TAB" module="M-011" required-fields="correlationId, tab_id, dirty" />
     <marker ID="Renderer.editor.BLOCK_READ_ONLY_BLOCKED_INPUT" module="M-011" required-fields="correlationId, suppressed_keys" />
     <marker ID="Renderer.clipboard.BLOCK_TRANSFORM_IMAGE_PATHS" module="M-011" required-fields="correlationId, image_count, target_dir_redacted" />
+    <marker ID="Renderer.clipboard.BLOCK_SOURCE_DETECTED" module="M-038" required-fields="correlationId, source, has_markdown, has_html, has_plain" />
+    <marker ID="Renderer.clipboard.BLOCK_SMART_PASTE_NORMALIZE" module="M-042" required-fields="correlationId, source, transforms_applied, restored_code_nodes, stripped_nodes" />
+    <marker ID="Renderer.clipboard.BLOCK_SMART_PASTE_FALLBACK" module="M-043" required-fields="correlationId, reason, from, to" />
+    <marker ID="Renderer.clipboard.BLOCK_SMART_PASTE_REJECTED" module="M-042" required-fields="correlationId, reason, rejected_scheme" />
     <marker ID="Renderer.theme.BLOCK_APPLY_LIVE_THEME" module="M-011" required-fields="correlationId, system_theme, resolved_theme" />
     <marker ID="Renderer.mode.BLOCK_TOGGLE_FULL_WYSIWYG" module="M-011" required-fields="correlationId, enabled" />
     <marker ID="Muya.parse.BLOCK_TOKENIZE" module="M-012" required-fields="correlationId, doc_size_bytes, token_count" />
@@ -5082,6 +5178,138 @@
     <prereq>V-M-036, V-M-012</prereq>
     <stub-note>Wikilink [[ ]] syntax + backlinks panel. Detailed verification deferred until Phase-B9.</stub-note>
   </V-M-037>
+
+  <!-- Phase-B10 smart-paste plan — detailed now because clipboard fidelity is a core editor contract -->
+
+  <V-M-038 MODULE="M-038 smart-paste-entry" PRIORITY="high" wave="beta.3" status="planned">
+    <prereq>V-M-011, V-M-012, V-M-010, VF-017</prereq>
+    <intent>Paste orchestration must prefer markdown MIME when present, otherwise route rich HTML through source-aware normalization, while preserving current plain-text paste, code-block paste, table-cell paste, and image paste behavior.</intent>
+    <scenarios>
+      <scenario-1 kind="success">Clipboard contains both markdown MIME and rendered HTML: markdown fast path wins, inline code and list structure preserved.</scenario-1>
+      <scenario-2 kind="success">Clipboard contains rich HTML from Claude/ChatGPT/GitHub/Notion: source-aware pipeline imports semantic markdown blocks into Muya without manual cleanup by the user.</scenario-2>
+      <scenario-3 kind="regression">Existing image-bearing HTML paste still localizes image paths through the `PR-4150` path; BLOCK_TRANSFORM_IMAGE_PATHS still fires.</scenario-3>
+    </scenarios>
+    <negative-assertions>
+      <no>Entry integration MUST NOT bypass current pasteImage/imageAction flow for bitmap clipboard payloads.</no>
+      <no>Entry integration MUST NOT regress table-cell special-case paste or languageInput/codeContent special cases in pasteCtrl.js.</no>
+    </negative-assertions>
+    <test-targets>
+      <test>tests/renderer/muya/smartPaste-entry.test.js — path selection, regression cases, metadata-only logging</test>
+      <test>tests/e2e/smart-paste.spec.ts — top-source paste smoke</test>
+      <test>tests/e2e/html-paste-images.spec.ts — existing PR-4150 regression remains mandatory</test>
+    </test-targets>
+    <commands>
+      <module-local>cd /Users/myevdokimov/prj/mark &amp;&amp; npx vitest run tests/renderer/muya/clipboardPayload.test.js tests/renderer/muya/pasteSourceDetector.test.js tests/renderer/muya/pasteSourceAdapters.test.js tests/renderer/muya/pasteHtmlNormalizer.test.js tests/renderer/muya/smartPasteImport.test.js tests/renderer/muya/smartPaste-entry.test.js tests/renderer/util/dompurify-deep.test.js</module-local>
+      <e2e>cd /Users/myevdokimov/prj/mark &amp;&amp; npx playwright test tests/e2e/smart-paste.spec.ts tests/e2e/html-paste-images.spec.ts</e2e>
+    </commands>
+    <wave-follow-up>Run the frozen fixture corpus on a macOS dev session and capture one success trace plus one hostile-payload trace to prove trajectory correctness, not just final markdown equality.</wave-follow-up>
+    <phase-follow-up>Manual clipboard smoke with real rendered answers from Claude in VS Code and ChatGPT; verify inline code, nested lists, fenced code, and tables visually.</phase-follow-up>
+  </V-M-038>
+
+  <V-M-039 MODULE="M-039 clipboard-payload" PRIORITY="high" wave="beta.3" status="planned">
+    <prereq>V-M-011, VF-017</prereq>
+    <intent>Typed payload extraction must normalize MIME priority and CRLF handling without ever logging clipboard body content.</intent>
+    <high-level-scenarios>
+      <S1>`text/markdown` present → `has_markdown=true`, markdown payload retained verbatim.</S1>
+      <S2>Only `text/html` + `text/plain` present → both payloads retained; HTML is not parsed here.</S2>
+      <S3>Empty HTML plus image/file hints → payload shape remains valid for downstream image path logic.</S3>
+    </high-level-scenarios>
+    <negative-assertions>
+      <N1>No raw clipboard HTML, markdown, or plain text appears in logs.</N1>
+    </negative-assertions>
+    <test-targets>
+      <test>tests/renderer/muya/clipboardPayload.test.js</test>
+    </test-targets>
+    <commands>
+      <module-local>cd /Users/myevdokimov/prj/mark &amp;&amp; npx vitest run tests/renderer/muya/clipboardPayload.test.js</module-local>
+    </commands>
+    <wave-follow-up>Replay payload fixtures under macOS and Windows clipboard mocks to ensure MIME priority and CRLF normalization stay platform-stable.</wave-follow-up>
+  </V-M-039>
+
+  <V-M-040 MODULE="M-040 paste-source-detector" PRIORITY="high" wave="beta.3" status="planned">
+    <prereq>V-M-039</prereq>
+    <intent>Source detection must be deterministic on frozen fixtures and degrade safely to `generic` when signatures drift.</intent>
+    <high-level-scenarios>
+      <S1>Claude-in-VS-Code fixture classified as `claude_vscode`.</S1>
+      <S2>ChatGPT/GitHub/Notion fixtures classified correctly.</S2>
+      <S3>Unknown source classified as `generic`, not mis-identified.</S3>
+    </high-level-scenarios>
+    <negative-assertions>
+      <N1>Detector MUST NOT rely on post-sanitize DOM that has already lost source-specific signatures.</N1>
+    </negative-assertions>
+    <test-targets>
+      <test>tests/renderer/muya/pasteSourceDetector.test.js</test>
+    </test-targets>
+    <commands>
+      <module-local>cd /Users/myevdokimov/prj/mark &amp;&amp; npx vitest run tests/renderer/muya/pasteSourceDetector.test.js</module-local>
+    </commands>
+    <wave-follow-up>Any detector loosenings must be justified by a committed raw fixture update first; do not patch heuristics against screenshots or prose descriptions alone.</wave-follow-up>
+  </V-M-040>
+
+  <V-M-041 MODULE="M-041 paste-source-adapters" PRIORITY="high" wave="beta.3" status="planned">
+    <prereq>V-M-040, V-M-010</prereq>
+    <intent>Adapters must recover semantic structures from source-specific chat HTML: inline code from monospace spans, fenced code from highlighted blocks, nested lists/task lists/tables from wrapper-heavy markup, and removal of chat-only chrome.</intent>
+    <high-level-scenarios>
+      <S1>List item with monospace span becomes markdown inline code inside the list item.</S1>
+      <S2>Highlighted multi-line code block with line numbers becomes fenced code without line-number residue.</S2>
+      <S3>Copy buttons, citation chips, and hover wrappers are removed.</S3>
+    </high-level-scenarios>
+    <negative-assertions>
+      <N1>Adapter MUST NOT convert every monospace span to code if fixture evidence shows it is plain UI text.</N1>
+    </negative-assertions>
+    <test-targets>
+      <test>tests/renderer/muya/pasteSourceAdapters.test.js</test>
+    </test-targets>
+    <commands>
+      <module-local>cd /Users/myevdokimov/prj/mark &amp;&amp; npx vitest run tests/renderer/muya/pasteSourceAdapters.test.js</module-local>
+    </commands>
+    <wave-follow-up>Review adapter diff output against frozen fixtures side by side before merge; source-specific heuristics are intentionally narrow and easy to overfit.</wave-follow-up>
+  </V-M-041>
+
+  <V-M-042 MODULE="M-042 paste-html-normalizer" PRIORITY="high" wave="beta.3" status="planned">
+    <prereq>V-M-041, V-M-010, VF-003, VF-017</prereq>
+    <intent>Normalization is the security boundary for smart paste: sanitize ordering, unsafe scheme rejection, and final DOM shape must be explicit and regression-tested.</intent>
+    <scenarios>
+      <scenario-1 kind="success">Safe rich HTML from supported chat sources normalizes into semantic HTML with code/list/table structure preserved.</scenario-1>
+      <scenario-2 kind="adversarial">`javascript:`, handler attributes, `data:text/html`, and clipboard `file://` payloads are stripped or rejected before import.</scenario-2>
+      <scenario-3 kind="regression">Image-bearing HTML still reaches the existing local-path transform contract used by PR-4150.</scenario-3>
+    </scenarios>
+    <negative-assertions>
+      <no>Normalization MUST NOT emit clipboard body content to logs or error payloads.</no>
+      <no>Normalization MUST NOT skip final sanitize after source-specific DOM rewrites.</no>
+    </negative-assertions>
+    <test-targets>
+      <test>tests/renderer/muya/pasteHtmlNormalizer.test.js</test>
+      <test>tests/e2e/html-paste-images.spec.ts</test>
+      <test>tests/renderer/util/dompurify-deep.test.js — existing sanitizer invariants stay green</test>
+    </test-targets>
+    <commands>
+      <module-local>cd /Users/myevdokimov/prj/mark &amp;&amp; npx vitest run tests/renderer/muya/pasteHtmlNormalizer.test.js tests/renderer/util/dompurify-deep.test.js</module-local>
+      <e2e>cd /Users/myevdokimov/prj/mark &amp;&amp; npx playwright test tests/e2e/html-paste-images.spec.ts</e2e>
+    </commands>
+    <wave-follow-up>Security review checkpoint: inspect sanitize ordering and assert every unsafe-scheme regression is backed by deterministic fixtures before autonomous execution is allowed.</wave-follow-up>
+    <phase-follow-up>Run the broader XSS suite around clipboard `file://` and rich-HTML paste payloads to confirm smart paste did not weaken M-010 guarantees.</phase-follow-up>
+  </V-M-042>
+
+  <V-M-043 MODULE="M-043 smart-paste-import-bridge" PRIORITY="high" wave="beta.3" status="planned">
+    <prereq>V-M-042, V-M-012, V-M-011</prereq>
+    <intent>Bridge layer must reuse the existing import path where it already works, centralize fallback behavior, and prove that `HTML -> Markdown -> Muya state` remains deterministic on frozen fixtures.</intent>
+    <high-level-scenarios>
+      <S1>Normalized HTML fixture produces expected golden markdown output.</S1>
+      <S2>Same fixture imported to Muya state preserves list nesting, inline code, code fences, and table structure.</S2>
+      <S3>Unsafe or structurally ambiguous HTML falls back to markdown/plain text with explicit marker, not silent corruption.</S3>
+    </high-level-scenarios>
+    <negative-assertions>
+      <N1>Bridge MUST NOT fork a second HTML serializer when the existing Turndown path already satisfies the fixture.</N1>
+    </negative-assertions>
+    <test-targets>
+      <test>tests/renderer/muya/smartPasteImport.test.js</test>
+    </test-targets>
+    <commands>
+      <module-local>cd /Users/myevdokimov/prj/mark &amp;&amp; npx vitest run tests/renderer/muya/smartPasteImport.test.js</module-local>
+    </commands>
+    <wave-follow-up>On every Turndown/import rule change, rerun frozen markdown snapshots and inspect diff noise before widening serializer behavior.</wave-follow-up>
+  </V-M-043>
 
   <!-- Sidebar walk race fix + dirty-file highlighting (2026-05-20, commits 9bb39e36 + 3f3efe74) -->
   <V-SIDEBAR-WALK-RACE MODULE="m_v1_compat + project.js" PRIORITY="high" SCOPE="backend-ipc + renderer-project-store" status="done" verified-at="2026-05-20">

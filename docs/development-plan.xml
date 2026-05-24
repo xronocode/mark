@@ -1244,6 +1244,48 @@
       <verification-ref>V-M-037</verification-ref>
     </M-037>
 
+    <M-038 NAME="smart-paste-entry" TYPE="ENTRY_POINT" STATUS="planned" PHASE-REF="B10-step-6">
+      <purpose>Clipboard-rich paste entry path that prefers markdown MIME when available and otherwise routes rendered HTML through source detection, normalization, and existing Muya import without regressing plain-text, image, table-cell, or code-block paste behavior.</purpose>
+      <path>src/muya/lib/contentState/pasteCtrl.js, src/muya/lib/utils/smartPasteImport.js</path>
+      <depends>M-011, M-012, M-010, M-039, M-040, M-042, M-043</depends>
+      <verification-ref>V-M-038</verification-ref>
+    </M-038>
+
+    <M-039 NAME="clipboard-payload" TYPE="UTILITY" STATUS="planned" PHASE-REF="B10-step-1">
+      <purpose>Normalize clipboard MIME payloads into a typed shape across `text/markdown`, `text/x-markdown`, `text/html`, `text/plain`, and file/image hints; clean CRLF and record only redacted source metadata.</purpose>
+      <path>src/muya/lib/utils/clipboardPayload.js, tests/fixtures/clipboard/</path>
+      <depends>M-011</depends>
+      <verification-ref>V-M-039</verification-ref>
+    </M-039>
+
+    <M-040 NAME="paste-source-detector" TYPE="CORE_LOGIC" STATUS="planned" PHASE-REF="B10-step-2">
+      <purpose>Detect rich clipboard HTML sources such as Claude-in-VS-Code, ChatGPT, GitHub, Notion, and generic web content using raw clipboard signatures before destructive normalization.</purpose>
+      <path>src/muya/lib/utils/pasteSourceDetector.js, tests/fixtures/clipboard/</path>
+      <depends>M-039</depends>
+      <verification-ref>V-M-040</verification-ref>
+    </M-040>
+
+    <M-041 NAME="paste-source-adapters" TYPE="CORE_LOGIC" STATUS="planned" PHASE-REF="B10-step-3">
+      <purpose>Apply source-specific DOM rewrites that recover semantic Markdown structures from chat/webview HTML: inline code, fenced code, nested lists, task items, tables, and chat-only chrome stripping.</purpose>
+      <path>src/muya/lib/utils/pasteSourceAdapters.js</path>
+      <depends>M-040, M-010</depends>
+      <verification-ref>V-M-041</verification-ref>
+    </M-041>
+
+    <M-042 NAME="paste-html-normalizer" TYPE="CORE_LOGIC" STATUS="planned" PHASE-REF="B10-step-4">
+      <purpose>Own the safe rich-paste pipeline `detect -> sanitize -> adapt -> final sanitize`, preserving existing image/local-path behavior and rejecting unsafe schemes before any import path can read them.</purpose>
+      <path>src/muya/lib/utils/pasteHtmlNormalizer.js</path>
+      <depends>M-041, M-010, M-012</depends>
+      <verification-ref>V-M-042</verification-ref>
+    </M-042>
+
+    <M-043 NAME="smart-paste-import-bridge" TYPE="CORE_LOGIC" STATUS="planned" PHASE-REF="B10-step-5">
+      <purpose>Bridge normalized clipboard payloads back into the current `htmlToMarkdown() -> markdownToState()` path, preserve `PR-4150` image-transform invariants, and centralize fallback from unsafe/unrecoverable HTML to markdown/plain text.</purpose>
+      <path>src/muya/lib/utils/smartPasteImport.js, src/muya/lib/utils/importMarkdown.js</path>
+      <depends>M-042, M-012, M-011</depends>
+      <verification-ref>V-M-043</verification-ref>
+    </M-043>
+
   </Modules>
 
   <DataFlow>
@@ -1403,6 +1445,38 @@
       <step-3>On Enter, dispatch command via `ipc.execute-command-by-id`.</step-3>
       <evidence>[Renderer][commandPalette][BLOCK_OPEN] ; [Renderer][commandPalette][BLOCK_EXECUTE] { command_id }.</evidence>
     </DF-020>
+
+    <DF-021 NAME="SmartPasteMarkdownFastPath" TRIGGER="Clipboard contains `text/markdown` or `text/x-markdown`">
+      <step-1>Paste event enters M-038.</step-1>
+      <step-2>M-039 reads MIME payloads, normalizes CRLF, and records only presence metadata.</step-2>
+      <step-3>If markdown MIME exists, M-038 bypasses source-specific HTML heuristics and sends markdown directly through M-043.</step-3>
+      <step-4>M-043 reuses M-012 markdown import path and renders without touching HTML normalization.</step-4>
+      <evidence>[Renderer][clipboard][BLOCK_SOURCE_DETECTED] { source: markdown-fast-path, has_markdown: true } followed by [Muya][setContent][BLOCK_PARSE_MARKDOWN].</evidence>
+    </DF-021>
+
+    <DF-022 NAME="SmartPasteRichHtmlPath" TRIGGER="Clipboard contains rendered HTML from chat/webview/document source">
+      <step-1>M-039 extracts raw HTML plus plain-text fallback.</step-1>
+      <step-2>M-040 classifies source (`claude_vscode`, `chatgpt`, `github`, `notion`, `generic`) from raw clipboard signatures.</step-2>
+      <step-3>M-042 runs safe normalization: sanitize, source adapter rewrite, final sanitize.</step-3>
+      <step-4>M-043 converts normalized HTML through existing `htmlToMarkdown()` / `markdownToState()` and returns fragments to M-038.</step-4>
+      <step-5>M-038 inserts content into the current block model while preserving list/table merge rules and existing image transform behavior.</step-5>
+      <evidence>[Renderer][clipboard][BLOCK_SOURCE_DETECTED] -&gt; [Renderer][clipboard][BLOCK_SMART_PASTE_NORMALIZE] -&gt; [Muya][setContent][BLOCK_PARSE_MARKDOWN]; image-bearing HTML additionally preserves [Renderer][clipboard][BLOCK_TRANSFORM_IMAGE_PATHS].</evidence>
+    </DF-022>
+
+    <DF-023 NAME="SmartPasteSecurityPath" TRIGGER="Clipboard HTML contains scriptable or unsafe payloads">
+      <step-1>Raw HTML is inspected only for source fingerprints; clipboard body is never logged.</step-1>
+      <step-2>M-042 strips dangerous nodes/attributes, re-validates URLs and file schemes through M-010 rules, and blocks unsafe `file://`, `javascript:`, and handler-bearing HTML before import.</step-2>
+      <step-3>If semantic recovery cannot be done safely, M-038 falls back to markdown/plain text or rejects the paste with explicit telemetry markers.</step-3>
+      <evidence>[Security][sanitize][BLOCK_STRIP_DANGEROUS_NODES] plus [Renderer][clipboard][BLOCK_SMART_PASTE_REJECTED] or [Renderer][clipboard][BLOCK_SMART_PASTE_FALLBACK].</evidence>
+    </DF-023>
+
+    <DF-024 NAME="SmartPasteFixtureRegressionPath" TRIGGER="Module-local or CI verification run for frozen clipboard fixtures">
+      <step-1>Fixture corpus loads raw clipboard payloads captured from Claude in VS Code, ChatGPT, GitHub, Notion, and generic HTML sources.</step-1>
+      <step-2>M-040, M-042, and M-043 run deterministically over each fixture.</step-2>
+      <step-3>Golden markdown snapshots and Muya state assertions compare against expected outputs for inline code, fenced code, nested lists, tables, and task items.</step-3>
+      <step-4>Regression sweep re-runs the existing `PR-4150` HTML image fixture so smart paste cannot regress image-to-local-path behavior.</step-4>
+      <evidence>tests/fixtures/clipboard/* + vitest golden assertions + existing html-paste-images e2e fixture remain green together.</evidence>
+    </DF-024>
 
     <DF-012 NAME="ReleasePipeline" TRIGGER="git tag v*.*.*">
       <step-1>GitHub Actions workflow `release.yml` fires on tag push in xronocode/mark.</step-1>
@@ -1777,7 +1851,7 @@ src/main/config.js declares `contextIsolation: false`, `nodeIntegration: true`, 
       </cross-module-contracts>
 
       <Phase-B5-perf-wave1 name="alpha.6 quick wins (splash + parallel pending-opens)" status="implementation-done-pending-smoke" gate="Gate-Phase-B5-perf-wave1">
-        <step-1 module="M-024" status="done" verification="V-M-024" closes="F-PERF-SPLASH" commit="reborn-mark@7e8afce2">
+        <step-1 module="M-024" status="superseded" verification="V-M-024" closes="F-PERF-SPLASH" commit="reborn-mark@7e8afce2" superseded-by="1b3a5c04" superseded-reason="splash removed — Tauri 2 cold-launch fast enough without it">
           Static HTML+CSS splash inside `src/renderer/index.html` + `src/renderer/static/splash.css`. Inline timing
           script in &lt;head&gt; CSP-hash-allowlisted. Vue mount removes splash on first paint (atomic). DOM-only,
           zero JS runtime deps. Markers `[boot][splash][BLOCK_*]` (11 markers). BOOT_T0 anchor (`window.__BOOT_T0__ =
@@ -1816,8 +1890,8 @@ src/main/config.js declares `contextIsolation: false`, `nodeIntegration: true`, 
         <gate>Gate-Phase-B5-perf-wave2: see verification-plan Gate-Phase-B5-perf-wave2. Tag v2.0.0-alpha.7 on success.</gate>
       </Phase-B5-perf-wave2>
 
-      <Phase-B5-perf-wave3 name="post-alpha refinement (muya-defer + window-state + bench-harness)" status="pending" gate="Gate-Phase-B5-perf-wave3">
-        <step-1 module="M-028" status="pending" verification="V-M-028" closes="F-PERF-MUYA-DEFER">
+      <Phase-B5-perf-wave3 name="post-alpha refinement (muya-defer + window-state + bench-harness)" status="implemented-narrow-scope" grace-verified="2026-05-24" gate="Gate-Phase-B5-perf-wave3">
+        <step-1 module="M-028" status="implemented-narrow" verification="V-M-028" closes="F-PERF-MUYA-DEFER" commit="ad866663" impl-note="bootPhase flag suppresses reactive churn during drain — narrower than spec requestIdleCallback approach">
           In `src/renderer/src/components/editorWithTabs/editor.vue`, defer muya engine init for non-active
           (background) tabs via requestIdleCallback. Active visible tab: sync init (current). Background tab:
           placeholder rendered first, muya inits on idle ≤2s timeout. Switch to deferred tab triggers immediate
@@ -1825,7 +1899,7 @@ src/main/config.js declares `contextIsolation: false`, `nodeIntegration: true`, 
           setTimeout(50) at `src/renderer/src/util/idle.ts` (single chokepoint). Markers `[editor][muya][BLOCK_*]`
           (13 markers). 5 ordering invariants. Active-tab muya ready time MUST be unchanged from baseline.
         </step-1>
-        <step-2 module="M-029" status="pending" verification="V-M-029" closes="F-PERF-WINDOW-STATE">
+        <step-2 module="M-029" status="implemented-minimal" verification="V-M-029" closes="F-PERF-WINDOW-STATE" commit="7862d249" impl-note="Plugin registered, geometry persists — no BLOCK markers, settings window not excluded, no tests">
           Add `tauri-plugin-window-state = "2"` to `src-tauri/Cargo.toml` + Builder.plugin chain. Storage:
           `~/Library/Application Support/com.xronocode.mark/.window-state.json`. Restore happens BEFORE renderer
           mount (no resize jank). Markers `[m001][window_state][BLOCK_*]` (11 markers; some may need shim wrapper at
@@ -1833,7 +1907,7 @@ src/main/config.js declares `contextIsolation: false`, `nodeIntegration: true`, 
           saved screen disconnected. Confirm no invoke-namespace collision with M-021. Settings window NOT tracked
           in this phase (Phase D scope).
         </step-2>
-        <step-3 module="M-030" status="pending" verification="V-M-030" closes="F-PERF-BENCH-HARNESS">
+        <step-3 module="M-030" status="implemented-partial" verification="V-M-030" closes="F-PERF-BENCH-HARNESS" commit="fc36a2c6" impl-note="Part B (CLI harness) done — Part A (Rust BOOT_T0) and Part C (CI gate) not implemented">
           Three parts:
           (A) instrumentation — `boot_marker!()` Rust proc-macro at `src-tauri/src/boot_marker.rs` (eager BOOT_T0
             via `Lazy&lt;Instant&gt;`); JS `bootMark(label)` helper at `src/renderer/src/boot-marker.js` reading
@@ -2044,6 +2118,89 @@ src/main/config.js declares `contextIsolation: false`, `nodeIntegration: true`, 
 
       <gate>Folder sidebar functional; wikilinks resolve within project; backlinks panel shows incoming links. Tag v2.0.0-beta.2 on success.</gate>
     </Phase-B9-knowledge>
+
+    <Phase-B10-smart-paste name="Smart Paste from AI Chats" status="planned" priority="high" estimated-effort="18h" target-tag="v2.0.0-beta.3">
+      <rationale>For a 2026 Markdown editor, paste fidelity from Claude, ChatGPT, GitHub, and Notion is a product-level capability, not a minor bugfix. Users copy rendered chat output, not raw markdown, so Mark must recover semantic structure from dirty clipboard HTML without losing inline code, fenced code, nested lists, tables, or the existing image-localization path.</rationale>
+
+      <step-1 module="M-039" status="pending" verification="V-M-039">
+        <description>Define the clipboard payload contract and capture fixture corpus. Normalize `text/markdown`, `text/x-markdown`, `text/html`, `text/plain`, file-list, and image hints into one typed payload; store only redacted metadata. Commit frozen raw fixtures from Claude-in-VS-Code, ChatGPT, GitHub, Notion, and one generic source.</description>
+        <write-scope>
+          <file>src/muya/lib/utils/clipboardPayload.js — MIME priority + CRLF cleanup + payload shape</file>
+          <file>tests/fixtures/clipboard/ — raw clipboard fixtures and expected metadata descriptors</file>
+          <file>tests/renderer/muya/clipboardPayload.test.js — MIME priority and metadata-only logging assertions</file>
+        </write-scope>
+        <depends>M-011 (renderer clipboard surface)</depends>
+        <test-targets>
+          <test>tests/renderer/muya/clipboardPayload.test.js</test>
+        </test-targets>
+      </step-1>
+
+      <step-2 module="M-040" status="pending" verification="V-M-040">
+        <description>Source detector on raw clipboard HTML. Identify `claude_vscode`, `chatgpt`, `github`, `notion`, and `generic` before any destructive cleanup so later adapters can be heuristic but bounded.</description>
+        <write-scope>
+          <file>src/muya/lib/utils/pasteSourceDetector.js — signature classifier on raw HTML/text payloads</file>
+          <file>tests/renderer/muya/pasteSourceDetector.test.js — positive and generic-fallback fixtures</file>
+        </write-scope>
+        <depends>M-039 (typed payload shape + fixture corpus)</depends>
+        <test-targets>
+          <test>tests/renderer/muya/pasteSourceDetector.test.js</test>
+        </test-targets>
+      </step-2>
+
+      <step-3 module="M-041" status="pending" verification="V-M-041">
+        <description>Implement source adapters that convert dirty chat/webview DOM into semantic HTML: restore inline code from monospace spans, collapse syntax-highlight wrappers into fenced code, strip copy buttons/citation chips/line numbers, and keep nested list/task/table structure.</description>
+        <write-scope>
+          <file>src/muya/lib/utils/pasteSourceAdapters.js — source-specific DOM rewrite rules</file>
+          <file>tests/renderer/muya/pasteSourceAdapters.test.js — source-specific golden DOM rewrites</file>
+        </write-scope>
+        <depends>M-040 (source hint), M-010 (safe-tag discipline)</depends>
+        <test-targets>
+          <test>tests/renderer/muya/pasteSourceAdapters.test.js</test>
+        </test-targets>
+      </step-3>
+
+      <step-4 module="M-042" status="pending" verification="V-M-042">
+        <description>Own the safe normalize pipeline `detect -> sanitize -> adapt -> final sanitize`. This step is the security boundary: no clipboard body logging, no unsafe scheme survives, and `PR-4150` image/local-path transform remains reachable on safe rich HTML.</description>
+        <write-scope>
+          <file>src/muya/lib/utils/pasteHtmlNormalizer.js — safe rich-paste normalization pipeline</file>
+          <file>tests/renderer/muya/pasteHtmlNormalizer.test.js — sanitize ordering, unsafe-scheme rejection, image-path regression guards</file>
+        </write-scope>
+        <depends>M-041, M-010, M-012</depends>
+        <test-targets>
+          <test>tests/renderer/muya/pasteHtmlNormalizer.test.js</test>
+          <test>tests/e2e/html-paste-images.spec.ts — existing PR-4150 regression MUST stay green</test>
+        </test-targets>
+      </step-4>
+
+      <step-5 module="M-043" status="pending" verification="V-M-043">
+        <description>Bridge normalized payloads into the current import path instead of rewriting Muya. Centralize fallback from unsafe/unrecoverable HTML to markdown/plain text and preserve current `htmlToMarkdown() -> markdownToState()` semantics where they already work.</description>
+        <write-scope>
+          <file>src/muya/lib/utils/smartPasteImport.js — normalized HTML/markdown/plain import bridge</file>
+          <file>src/muya/lib/utils/importMarkdown.js — targeted integration hooks only</file>
+          <file>tests/renderer/muya/smartPasteImport.test.js — HTML -&gt; Markdown and HTML -&gt; state goldens</file>
+        </write-scope>
+        <depends>M-042, M-012, M-011</depends>
+        <test-targets>
+          <test>tests/renderer/muya/smartPasteImport.test.js</test>
+        </test-targets>
+      </step-5>
+
+      <step-6 module="M-038" status="pending" verification="V-M-038">
+        <description>Integrate smart paste into the live paste entry path. Prefer markdown MIME, run rich HTML through the new pipeline, keep current image/code/table-cell special cases, and verify no regression in plain-text paste, code-block paste, or image paste.</description>
+        <write-scope>
+          <file>src/muya/lib/contentState/pasteCtrl.js — orchestrate smart-paste branch selection</file>
+          <file>tests/renderer/muya/smartPaste-entry.test.js — entry-path regression coverage</file>
+          <file>tests/e2e/smart-paste.spec.ts — end-to-end paste smoke for top fixture classes</file>
+        </write-scope>
+        <depends>M-039, M-040, M-042, M-043</depends>
+        <test-targets>
+          <test>tests/renderer/muya/smartPaste-entry.test.js</test>
+          <test>tests/e2e/smart-paste.spec.ts</test>
+        </test-targets>
+      </step-6>
+
+      <gate>Claude/ChatGPT/GitHub/Notion fixture pastes preserve inline code, fenced code, nested lists, tables, and task lists; unsafe clipboard HTML is stripped or rejected; `PR-4150` HTML-image localization still passes unchanged. Tag v2.0.0-beta.3 on success.</gate>
+    </Phase-B10-smart-paste>
   </ImplementationOrder>
 
   <ExecutionPolicy>
@@ -2054,6 +2211,7 @@ src/main/config.js declares `contextIsolation: false`, `nodeIntegration: true`, 
       <wave-A1-parallel>#4154 + #4135 + #3621 (non-overlapping file scopes) can merge in parallel; others serialize.</wave-A1-parallel>
       <wave-B2-parallel>M-010 first, then M-002/M-003/M-004 parallel once M-010 ships.</wave-B2-parallel>
       <wave-B3-parallel>M-005, M-006, M-008 parallel after Phase-B2; M-007 and M-009 depend on M-005 so they serialize.</wave-B3-parallel>
+      <wave-B10-smart-paste>M-039 fixture/payload contract first; M-040 next; M-041 and M-042 serialize behind real fixture feedback; M-043 and M-038 integrate last after `PR-4150` regression checks are wired.</wave-B10-smart-paste>
     </parallel-safe-waves>
     <escalation-triggers>
       <trigger-1>Any red test on full spec/unit run.</trigger-1>

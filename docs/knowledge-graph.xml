@@ -527,6 +527,73 @@
       </annotations>
     </M-037>
 
+    <!-- Phase-B10: Smart Paste from AI chats -->
+    <M-038 NAME="smart-paste-entry" TYPE="ENTRY_POINT" STATUS="planned" PHASE-REF="B10-step-6">
+      <purpose>Clipboard-rich paste entry path that prefers markdown MIME when available and otherwise routes rendered HTML through source detection, normalization, and the existing Muya import path.</purpose>
+      <path>src/muya/lib/contentState/pasteCtrl.js, src/muya/lib/utils/smartPasteImport.js</path>
+      <depends>M-011, M-012, M-010, M-039, M-040, M-042, M-043</depends>
+      <verification-ref>V-M-038</verification-ref>
+      <annotations>
+        <fn-smartPasteEntry PURPOSE="Entry gate for paste event; chooses markdown/html/plain import path" />
+        <fn-smartPasteFallback PURPOSE="Fallback from unsafe/unrecoverable rich HTML to markdown/plain text" />
+      </annotations>
+    </M-038>
+
+    <M-039 NAME="clipboard-payload" TYPE="UTILITY" STATUS="planned" PHASE-REF="B10-step-1">
+      <purpose>Normalize clipboard MIME payloads into a typed shape across markdown/html/plain/file hints while preserving source metadata and CRLF cleanup without logging clipboard body content.</purpose>
+      <path>src/muya/lib/utils/clipboardPayload.js</path>
+      <depends>M-011</depends>
+      <verification-ref>V-M-039</verification-ref>
+      <annotations>
+        <fn-readClipboardPayload PURPOSE="Read markdown/html/plain/file hints from clipboard event and normalize line endings" />
+        <type-ClipboardPayload PURPOSE="Typed clipboard envelope: markdown/html/plain/file hints + presence metadata" />
+      </annotations>
+    </M-039>
+
+    <M-040 NAME="paste-source-detector" TYPE="CORE_LOGIC" STATUS="planned" PHASE-REF="B10-step-2">
+      <purpose>Detect source-specific clipboard HTML signatures for Claude-in-VS-Code, ChatGPT, GitHub, Notion, and generic web content before normalization strips identifying structure.</purpose>
+      <path>src/muya/lib/utils/pasteSourceDetector.js</path>
+      <depends>M-039</depends>
+      <verification-ref>V-M-040</verification-ref>
+      <annotations>
+        <fn-detectPasteSource PURPOSE="Classify raw clipboard HTML/text into known source families or generic fallback" />
+        <type-PasteSource PURPOSE="String-literal source id used to select adapter heuristics" />
+      </annotations>
+    </M-040>
+
+    <M-041 NAME="paste-source-adapters" TYPE="CORE_LOGIC" STATUS="planned" PHASE-REF="B10-step-3">
+      <purpose>Source-specific DOM rewrite layer that restores semantic Markdown structures from dirty chat/webview HTML and strips source-only chrome.</purpose>
+      <path>src/muya/lib/utils/pasteSourceAdapters.js</path>
+      <depends>M-040, M-010</depends>
+      <verification-ref>V-M-041</verification-ref>
+      <annotations>
+        <fn-restoreInlineCode PURPOSE="Recover semantic inline code from monospace span wrappers inside prose or list items" />
+        <fn-stripChatChrome PURPOSE="Remove copy buttons, citation chips, line numbers, hover wrappers, and similar non-content nodes" />
+      </annotations>
+    </M-041>
+
+    <M-042 NAME="paste-html-normalizer" TYPE="CORE_LOGIC" STATUS="planned" PHASE-REF="B10-step-4">
+      <purpose>Own the safe rich-paste pipeline `detect -> sanitize -> adapt -> final sanitize`, preserving image/local-path transform compatibility and rejecting unsafe schemes before import.</purpose>
+      <path>src/muya/lib/utils/pasteHtmlNormalizer.js</path>
+      <depends>M-041, M-010, M-012</depends>
+      <verification-ref>V-M-042</verification-ref>
+      <annotations>
+        <fn-normalizePasteHtml PURPOSE="Run detection-aware sanitize/adapt/final-sanitize pipeline over rich clipboard HTML" />
+        <fn-applyFinalSanitize PURPOSE="Ensure source adapters cannot reintroduce unsafe DOM after semantic recovery" />
+      </annotations>
+    </M-042>
+
+    <M-043 NAME="smart-paste-import-bridge" TYPE="CORE_LOGIC" STATUS="planned" PHASE-REF="B10-step-5">
+      <purpose>Bridge normalized payloads back into the current `htmlToMarkdown() -> markdownToState()` path and centralize fallback to markdown/plain text while preserving existing rich-paste regressions such as PR-4150.</purpose>
+      <path>src/muya/lib/utils/smartPasteImport.js, src/muya/lib/utils/importMarkdown.js</path>
+      <depends>M-042, M-012, M-011</depends>
+      <verification-ref>V-M-043</verification-ref>
+      <annotations>
+        <fn-importSmartPaste PURPOSE="Convert normalized payloads into markdown or Muya state using the current import pipeline" />
+        <fn-preserveImageTransformContract PURPOSE="Keep HTML-image localization contract reachable after rich-paste normalization" />
+      </annotations>
+    </M-043>
+
     <M-901 NAME="grace-context-hygiene-policy" TYPE="PROCESS_POLICY" STATUS="implemented">
       <purpose>GRACE-compatible AI Standards token/session hygiene overlay with context modes, precedence rules, and escalation triggers.</purpose>
       <path>docs/grace-ai-standards-hygiene-methodology.md</path>
@@ -710,5 +777,19 @@
     <CrossLink from="M-036" to="M-010" relation="validates-project-root-via" />
     <CrossLink from="M-037" to="M-036" relation="resolves-wikilinks-within-project" />
     <CrossLink from="M-037" to="M-012" relation="extends-muya-inline-parser" />
+    <CrossLink from="M-038" to="M-011" relation="intercepts-clipboard-events-in" />
+    <CrossLink from="M-038" to="M-012" relation="imports-content-into" />
+    <CrossLink from="M-038" to="M-010" relation="validates-rich-html-through" />
+    <CrossLink from="M-038" to="M-039" relation="reads-payload-via" />
+    <CrossLink from="M-038" to="M-040" relation="detects-source-via" />
+    <CrossLink from="M-038" to="M-042" relation="normalizes-html-via" />
+    <CrossLink from="M-038" to="M-043" relation="bridges-rich-paste-via" />
+    <CrossLink from="M-040" to="M-039" relation="classifies-payload-from" />
+    <CrossLink from="M-041" to="M-040" relation="selects-adapter-from" />
+    <CrossLink from="M-042" to="M-041" relation="applies-source-adapters-from" />
+    <CrossLink from="M-042" to="M-010" relation="sanitizes-rich-html-through" />
+    <CrossLink from="M-043" to="M-042" relation="consumes-normalized-html-from" />
+    <CrossLink from="M-043" to="M-012" relation="reuses-import-pipeline-of" />
+    <CrossLink from="M-043" to="M-011" relation="preserves-image-transform-contract-for" />
   </Project>
 </KnowledgeGraph>
