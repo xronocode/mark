@@ -19,7 +19,10 @@
     "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
-    "bench:launch": "node tools/bench-launch.mjs"
+    "bench:launch": "node tools/bench-launch.mjs",
+    "dev:smoke": "bash tools/dev-smoke.sh",
+    "dev:check": "bash tools/dev-smoke.sh --check",
+    "dev:quick": "bash tools/dev-smoke.sh --quick"
   },
   "dependencies": {
     "@element-plus/icons-vue": "^2.3.2",

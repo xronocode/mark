@@ -34,6 +34,12 @@
 //             ship in Phase-B2.
 //
 // CHANGE_SUMMARY:
+//   - 2026-05-24 visible-titlebar-transparent-overlay: use "Visible"
+//     mode (gives FullSizeContentView without crash) and set
+//     titlebarAppearsTransparent post-creation for overlay layout.
+//     Removed setMovableByWindowBackground (conflicts with renderer
+//     data-tauri-drag-region, see 2026-05-21 entry). Replaced
+//     catch_unwind KVC loop with respondsToSelector guard.
 //   - 2026-05-21 drag-theme-refactor: keep macOS full-size content view
 //     patch but remove setMovable/setMovableByWindowBackground overrides so
 //     renderer-side drag fallbacks can control transparent titlebar dragging
@@ -535,15 +541,13 @@ fn main() {
             // does not need to capture an Arc.
             app.manage(m001_save_close::MainCloseSm::default());
             if let Some(main_win) = app.get_webview_window("main") {
-                // Extend content behind the title bar via NSWindow API.
-                // tauri.conf.json uses "Transparent" (safe) instead of "Overlay"
-                // (crashes on macOS 26.4 in WebPageProxy::dispatchSetObscuredContentInsets).
-                // Setting NSFullSizeContentViewWindowMask manually after window
-                // creation avoids the crash while giving the same visual result.
+                // "Visible" mode gives us NSFullSizeContentViewWindowMask
+                // (content extends behind titlebar) without crash on macOS 26.
+                // We make the titlebar transparent post-creation so HTML
+                // content shows through — equivalent to "Overlay" but safe
+                // because the WKWebView is already initialized.
                 #[cfg(target_os = "macos")]
                 {
-                    #[allow(deprecated)]
-                    use cocoa::appkit::{NSWindow as NSWindowExt, NSWindowStyleMask};
                     use cocoa::base::id;
                     use objc::{msg_send, sel, sel_impl};
                     use raw_window_handle::RawWindowHandle;
@@ -554,55 +558,55 @@ fn main() {
                                 let ns_view: id = appkit.ns_view.as_ptr() as id;
                                 unsafe {
                                     let ns_win: id = msg_send![ns_view, window];
-                                    let mask = NSWindowExt::styleMask(ns_win);
-                                    #[allow(deprecated)]
-                                    let full_size =
-                                        NSWindowStyleMask::NSFullSizeContentViewWindowMask;
-                                    NSWindowExt::setStyleMask_(ns_win, mask | full_size);
 
-                                    // WKWebView paints an opaque white bg behind
-                                    // web content. Disable via KVC on the
-                                    // WryWebView subview so CSS backgrounds
-                                    // paint through from the first frame.
+                                    let _: () = msg_send![
+                                        ns_win,
+                                        setTitlebarAppearsTransparent: cocoa::base::YES
+                                    ];
+
+                                    let sel_draws: objc::runtime::Sel =
+                                        sel!(drawsBackground);
                                     let content_view: id = msg_send![ns_win, contentView];
                                     let subviews: id = msg_send![content_view, subviews];
                                     let sv_count: usize = msg_send![subviews, count];
-                                    let ns_str_cls =
-                                        objc::runtime::Class::get("NSString").unwrap();
-                                    let ns_num_cls =
-                                        objc::runtime::Class::get("NSNumber").unwrap();
-                                    let key: id = msg_send![
-                                        ns_str_cls,
-                                        stringWithUTF8String:
-                                            b"drawsBackground\0".as_ptr()
-                                    ];
+                                    let ns_num_cls = objc::runtime::Class::get("NSNumber")
+                                        .expect("NSNumber");
                                     let no_val: id = msg_send![
                                         ns_num_cls,
                                         numberWithBool: cocoa::base::NO
                                     ];
+                                    let key: id = msg_send![
+                                        objc::runtime::Class::get("NSString")
+                                            .expect("NSString"),
+                                        stringWithUTF8String:
+                                            b"drawsBackground\0".as_ptr()
+                                    ];
                                     for i in 0..sv_count {
-                                        let sv: id =
-                                            msg_send![subviews, objectAtIndex: i];
-                                        let _ = std::panic::catch_unwind(
-                                            std::panic::AssertUnwindSafe(|| {
-                                                let _: () = msg_send![
-                                                    sv,
-                                                    setValue: no_val
-                                                    forKey: key
-                                                ];
-                                            }),
-                                        );
+                                        let sv: id = msg_send![subviews, objectAtIndex: i];
+                                        let responds: cocoa::base::BOOL = msg_send![
+                                            sv,
+                                            respondsToSelector: sel_draws
+                                        ];
+                                        if responds != cocoa::base::NO {
+                                            let _: () = msg_send![
+                                                sv,
+                                                setValue: no_val
+                                                forKey: key
+                                            ];
+                                        }
                                     }
-                                    safe_eprintln!(
-                                        "[m001][webview]\
-                                         [BLOCK_DRAWS_BACKGROUND_DISABLED]"
-                                    );
                                 }
-                                safe_eprintln!("[m001][titlebar][BLOCK_FULLSIZE_CONTENT_VIEW_SET]");
+                                safe_eprintln!(
+                                    "[m001][titlebar]\
+                                     [BLOCK_TITLEBAR_TRANSPARENT_OVERLAY_OK]"
+                                );
                             }
                         }
                         Err(e) => {
-                            safe_eprintln!("[m001][titlebar][BLOCK_FULLSIZE_FAILED reason={e}]");
+                            safe_eprintln!(
+                                "[m001][titlebar]\
+                                 [BLOCK_TITLEBAR_FAILED reason={e}]"
+                            );
                         }
                     }
                 }
@@ -625,7 +629,7 @@ fn main() {
                     .map(|v| v != "0" && !v.is_empty())
                     .unwrap_or(false);
                 if cfg!(debug_assertions) || dev_diag_via_env {
-                    let _ = main_win.eval(
+                    if let Err(e) = main_win.eval(
                         r#"(() => {
   const post = (payload) => {
     try { window.__TAURI_INTERNALS__?.invoke('mt_dev_diag', { payload }); } catch (_) {}
@@ -660,7 +664,9 @@ fn main() {
   };
   post({ kind: 'hook-installed' });
 })();"#,
-                    );
+                    ) {
+                        safe_eprintln!("[dev-diag][eval][BLOCK_FAILED stage=hook err={e}]");
+                    }
                     safe_eprintln!(
                         "[dev-diag][installed via={}]",
                         if cfg!(debug_assertions) { "debug_cfg" } else { "MARK_DEV_DIAG" }
