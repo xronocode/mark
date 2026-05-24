@@ -14,6 +14,7 @@
 import { spawn } from 'node:child_process'
 import { readFileSync, writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { parseArgs } from 'node:util'
 
 const TIMEOUT_MS = 30_000
@@ -30,7 +31,7 @@ const { values: opts } = parseArgs({
     timeout: { type: 'string', default: String(TIMEOUT_MS) },
     help: { type: 'boolean', default: false }
   },
-  strict: true
+  strict: false
 })
 
 if (opts.help) {
@@ -260,7 +261,10 @@ async function main() {
   }
 }
 
-main().catch((err) => {
-  process.stderr.write(`bench-launch error: ${err.message}\n`)
-  process.exit(2)
-})
+const isDirectRun = process.argv[1] && resolve(process.argv[1]) === resolve(fileURLToPath(import.meta.url))
+if (isDirectRun) {
+  main().catch((err) => {
+    process.stderr.write(`bench-launch error: ${err.message}\n`)
+    process.exit(2)
+  })
+}
