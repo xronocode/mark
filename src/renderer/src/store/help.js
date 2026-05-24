@@ -36,6 +36,8 @@ export const defaultFileState = {
     matches: [],
     value: ''
   },
+  // Per-tab diff mode (M-031)
+  diffMode: false,
   // Per tab notifications
   notifications: []
 }

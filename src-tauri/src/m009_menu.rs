@@ -208,6 +208,13 @@ pub fn standard_menu() -> Vec<MenuItem> {
                     items: None,
                 },
                 MenuItem {
+                    id: "view.diff-mode".to_string(),
+                    label: "Diff Mode".to_string(),
+                    command: Some("toggleDiffMode".to_string()),
+                    accelerator: Some("CmdOrCtrl+D".to_string()),
+                    items: None,
+                },
+                MenuItem {
                     id: "view.theme".to_string(),
                     label: "Theme".to_string(),
                     command: None,
@@ -399,6 +406,11 @@ pub fn build_native_menu<R: tauri::Runtime>(
         .item(
             &MenuItemBuilder::with_id("view.source-code-mode", "Source Code Mode")
                 .accelerator("CmdOrCtrl+Alt+S")
+                .build(handle)?,
+        )
+        .item(
+            &MenuItemBuilder::with_id("view.diff-mode", "Diff Mode")
+                .accelerator("CmdOrCtrl+D")
                 .build(handle)?,
         )
         .item(&theme_submenu)

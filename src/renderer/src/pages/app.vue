@@ -92,7 +92,7 @@ const timer = ref(null)
 // States from Pini
 const { windowActive, platform, init } = storeToRefs(mainStore)
 const { showTabBar } = storeToRefs(layoutStore)
-const { sourceCode, diffMode, theme, customCss, textDirection, zoom } = storeToRefs(preferencesStore)
+const { sourceCode, theme, customCss, textDirection, zoom } = storeToRefs(preferencesStore)
 const { projectTree } = storeToRefs(projectStore)
 const { currentFile } = storeToRefs(editorStore)
 
@@ -103,6 +103,7 @@ const markdown = computed(() => currentFile.value?.markdown)
 const cursor = computed(() => currentFile.value?.cursor)
 const wordCount = computed(() => currentFile.value?.wordCount)
 const muyaIndexCursor = computed(() => currentFile.value?.muyaIndexCursor)
+const diffMode = computed(() => !!currentFile.value?.diffMode)
 
 const hasCurrentFile = computed(() => {
   return markdown.value !== undefined

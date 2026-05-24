@@ -587,10 +587,15 @@ const commands = [
   },
   {
     id: 'view.diff-mode',
+    shortcut: [isOsx ? 'Cmd' : 'Ctrl', 'D'],
     execute: async () => {
-      const { usePreferencesStore } = await import('@/store/preferences')
-      const prefs = usePreferencesStore()
-      prefs.diffMode = !prefs.diffMode
+      const { useEditorStore } = await import('@/store/editor')
+      const editor = useEditorStore()
+      const tab = editor.currentFile
+      if (tab && tab.id) {
+        tab.diffMode = !tab.diffMode
+        console.error(`[editor][diff][BLOCK_DIFF_TOGGLED state=${tab.diffMode ? 'on' : 'off'}]`)
+      }
     }
   },
   {

@@ -25,20 +25,21 @@ describe('M-031 diff-mode integration', () => {
     expect(prefs.diffMode).toBe(false)
   })
 
-  it('view.diff-mode command toggles diffMode', async () => {
-    const { usePreferencesStore } = await import('@/store/preferences')
-    const prefs = usePreferencesStore()
-    expect(prefs.diffMode).toBe(false)
+  it('view.diff-mode command toggles diffMode on current tab', async () => {
+    const { useEditorStore } = await import('@/store/editor')
+    const editor = useEditorStore()
+    // Set up a current file with an id so the command can toggle its diffMode.
+    editor.currentFile = { id: 'test-tab-1', diffMode: false }
 
     const commands = (await import('@/commands/index.js')).default
     const diffCmd = commands.find(c => c.id === 'view.diff-mode')
     expect(diffCmd).toBeDefined()
 
     await diffCmd.execute()
-    expect(prefs.diffMode).toBe(true)
+    expect(editor.currentFile.diffMode).toBe(true)
 
     await diffCmd.execute()
-    expect(prefs.diffMode).toBe(false)
+    expect(editor.currentFile.diffMode).toBe(false)
   })
 
   it('view.diff-mode has a description entry', async () => {

@@ -89,6 +89,9 @@ const createMergeView = async () => {
     collapseIdentical: true,
     connect: 'align'
   })
+
+  const totalLines = props.markdown.split('\n').length
+  console.error(`[editor][diff][BLOCK_DIFF_RENDERED mode=inline lines_total=${totalLines}]`)
 }
 
 watch(() => props.markdown, (val) => {

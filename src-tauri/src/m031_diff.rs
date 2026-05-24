@@ -10,6 +10,16 @@ pub fn mt_diff_baseline(path: String) -> Result<String, String> {
         return Err("File does not exist".to_string());
     }
 
+    // Check for {path}.before first — explicit baseline takes priority over git.
+    let before_str = format!("{}.before", path);
+    let before_path = Path::new(&before_str);
+    if before_path.exists() {
+        let content = std::fs::read_to_string(before_path)
+            .map_err(|e| format!("Failed to read .before file: {e}"))?;
+        safe_eprintln!("[m031][diff][BLOCK_DIFF_BASELINE_OK source=before bytes={}]", content.len());
+        return Ok(content);
+    }
+
     let dir = file_path
         .parent()
         .ok_or_else(|| "Cannot determine parent directory".to_string())?;
@@ -83,6 +93,21 @@ mod tests {
             ),
         }
         let _ = std::fs::remove_file(&tmp);
+    }
+
+    #[test]
+    fn baseline_before_file_takes_priority() {
+        let tmp = std::env::temp_dir().join("m031-before-test.md");
+        let before = std::env::temp_dir().join("m031-before-test.md.before");
+        std::fs::write(&tmp, "# current content").unwrap();
+        std::fs::write(&before, "# original content").unwrap();
+
+        let result = mt_diff_baseline(tmp.to_string_lossy().to_string());
+        assert!(result.is_ok(), "expected Ok, got {:?}", result);
+        assert_eq!(result.unwrap(), "# original content");
+
+        let _ = std::fs::remove_file(&tmp);
+        let _ = std::fs::remove_file(&before);
     }
 
     #[test]
