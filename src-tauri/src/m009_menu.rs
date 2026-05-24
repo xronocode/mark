@@ -349,6 +349,47 @@ pub fn build_native_menu<R: tauri::Runtime>(
         .build()?;
 
     // ── View menu ────────────────────────────────────────────────────
+    let theme_submenu = SubmenuBuilder::new(handle, "Theme")
+        .items(&[
+            &MenuItemBuilder::with_id("window.change-theme-light", "Cadmium Light").build(handle)?,
+            &MenuItemBuilder::with_id("window.change-theme-graphite", "Graphite").build(handle)?,
+            &MenuItemBuilder::with_id("window.change-theme-ulysses", "Ulysses").build(handle)?,
+            &MenuItemBuilder::with_id("window.change-theme-ayu-light", "Ayu Light").build(handle)?,
+            &MenuItemBuilder::with_id("window.change-theme-catppuccin-latte", "Catppuccin Latte").build(handle)?,
+            &MenuItemBuilder::with_id("window.change-theme-everforest-light", "Everforest Light").build(handle)?,
+            &MenuItemBuilder::with_id("window.change-theme-gruvbox-light", "Gruvbox Light").build(handle)?,
+            &MenuItemBuilder::with_id("window.change-theme-rose-pine-dawn", "Rosé Pine Dawn").build(handle)?,
+            &MenuItemBuilder::with_id("window.change-theme-solarized-light", "Solarized Light").build(handle)?,
+            &MenuItemBuilder::with_id("window.change-theme-tokyo-night-light", "Tokyo Night Light").build(handle)?,
+        ])
+        .separator()
+        .items(&[
+            &MenuItemBuilder::with_id("window.change-theme-dark", "Dark").build(handle)?,
+            &MenuItemBuilder::with_id("window.change-theme-material-dark", "Material Dark").build(handle)?,
+            &MenuItemBuilder::with_id("window.change-theme-one-dark", "One Dark").build(handle)?,
+            &MenuItemBuilder::with_id("window.change-theme-ayu-dark", "Ayu Dark").build(handle)?,
+            &MenuItemBuilder::with_id("window.change-theme-ayu-mirage", "Ayu Mirage").build(handle)?,
+            &MenuItemBuilder::with_id("window.change-theme-catppuccin-mocha", "Catppuccin Mocha").build(handle)?,
+            &MenuItemBuilder::with_id("window.change-theme-cyberdream", "Cyberdream").build(handle)?,
+            &MenuItemBuilder::with_id("window.change-theme-dracula", "Dracula").build(handle)?,
+            &MenuItemBuilder::with_id("window.change-theme-everforest-dark", "Everforest Dark").build(handle)?,
+            &MenuItemBuilder::with_id("window.change-theme-gruvbox-dark", "Gruvbox Dark").build(handle)?,
+            &MenuItemBuilder::with_id("window.change-theme-horizon-dark", "Horizon Dark").build(handle)?,
+            &MenuItemBuilder::with_id("window.change-theme-kanagawa", "Kanagawa").build(handle)?,
+            &MenuItemBuilder::with_id("window.change-theme-monokai-pro", "Monokai Pro").build(handle)?,
+            &MenuItemBuilder::with_id("window.change-theme-nightfox", "Nightfox").build(handle)?,
+            &MenuItemBuilder::with_id("window.change-theme-nord", "Nord").build(handle)?,
+            &MenuItemBuilder::with_id("window.change-theme-oxocarbon-dark", "Oxocarbon Dark").build(handle)?,
+            &MenuItemBuilder::with_id("window.change-theme-palenight", "Palenight").build(handle)?,
+            &MenuItemBuilder::with_id("window.change-theme-rose-pine", "Rosé Pine").build(handle)?,
+            &MenuItemBuilder::with_id("window.change-theme-rose-pine-moon", "Rosé Pine Moon").build(handle)?,
+            &MenuItemBuilder::with_id("window.change-theme-solarized-dark", "Solarized Dark").build(handle)?,
+            &MenuItemBuilder::with_id("window.change-theme-synthwave-84", "Synthwave '84").build(handle)?,
+            &MenuItemBuilder::with_id("window.change-theme-tokyo-night", "Tokyo Night").build(handle)?,
+            &MenuItemBuilder::with_id("window.change-theme-tokyo-night-storm", "Tokyo Night Storm").build(handle)?,
+        ])
+        .build()?;
+
     let view_submenu = SubmenuBuilder::new(handle, "View")
         .item(
             &MenuItemBuilder::with_id("view.toggle-sidebar", "Toggle Sidebar")
@@ -360,6 +401,7 @@ pub fn build_native_menu<R: tauri::Runtime>(
                 .accelerator("CmdOrCtrl+Alt+S")
                 .build(handle)?,
         )
+        .item(&theme_submenu)
         .build()?;
 
     // ── Help menu ────────────────────────────────────────────────────

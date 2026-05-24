@@ -537,42 +537,41 @@ const commands = [
   {
     id: 'window.change-theme',
     subcommands: [
-      {
-        id: 'window.change-theme-light',
-        description: 'Cadmium Light',
-        value: 'light'
-      },
-      {
-        id: 'window.change-theme-dark',
-        description: 'Dark',
-        value: 'dark'
-      },
-      {
-        id: 'window.change-theme-graphite',
-        description: 'Graphite',
-        value: 'graphite'
-      },
-      {
-        id: 'window.change-theme-material-dark',
-        description: 'Material Dark',
-        value: 'material-dark'
-      },
-      {
-        id: 'window.change-theme-one-dark',
-        description: 'One Dark',
-        value: 'one-dark'
-      },
-      {
-        id: 'window.change-theme-ulysses',
-        description: 'Ulysses',
-        value: 'ulysses'
-      }
+      { id: 'window.change-theme-light', description: 'Cadmium Light', value: 'light' },
+      { id: 'window.change-theme-graphite', description: 'Graphite', value: 'graphite' },
+      { id: 'window.change-theme-ulysses', description: 'Ulysses', value: 'ulysses' },
+      { id: 'window.change-theme-ayu-light', description: 'Ayu Light', value: 'ayu-light' },
+      { id: 'window.change-theme-catppuccin-latte', description: 'Catppuccin Latte', value: 'catppuccin-latte' },
+      { id: 'window.change-theme-everforest-light', description: 'Everforest Light', value: 'everforest-light' },
+      { id: 'window.change-theme-gruvbox-light', description: 'Gruvbox Light', value: 'gruvbox-light' },
+      { id: 'window.change-theme-rose-pine-dawn', description: 'Rosé Pine Dawn', value: 'rose-pine-dawn' },
+      { id: 'window.change-theme-solarized-light', description: 'Solarized Light', value: 'solarized-light' },
+      { id: 'window.change-theme-tokyo-night-light', description: 'Tokyo Night Light', value: 'tokyo-night-light' },
+      { id: 'window.change-theme-dark', description: 'Dark', value: 'dark' },
+      { id: 'window.change-theme-material-dark', description: 'Material Dark', value: 'material-dark' },
+      { id: 'window.change-theme-one-dark', description: 'One Dark', value: 'one-dark' },
+      { id: 'window.change-theme-ayu-dark', description: 'Ayu Dark', value: 'ayu-dark' },
+      { id: 'window.change-theme-ayu-mirage', description: 'Ayu Mirage', value: 'ayu-mirage' },
+      { id: 'window.change-theme-catppuccin-mocha', description: 'Catppuccin Mocha', value: 'catppuccin-mocha' },
+      { id: 'window.change-theme-cyberdream', description: 'Cyberdream', value: 'cyberdream' },
+      { id: 'window.change-theme-dracula', description: 'Dracula', value: 'dracula' },
+      { id: 'window.change-theme-everforest-dark', description: 'Everforest Dark', value: 'everforest-dark' },
+      { id: 'window.change-theme-gruvbox-dark', description: 'Gruvbox Dark', value: 'gruvbox-dark' },
+      { id: 'window.change-theme-horizon-dark', description: 'Horizon Dark', value: 'horizon-dark' },
+      { id: 'window.change-theme-kanagawa', description: 'Kanagawa', value: 'kanagawa' },
+      { id: 'window.change-theme-monokai-pro', description: 'Monokai Pro', value: 'monokai-pro' },
+      { id: 'window.change-theme-nightfox', description: 'Nightfox', value: 'nightfox' },
+      { id: 'window.change-theme-nord', description: 'Nord', value: 'nord' },
+      { id: 'window.change-theme-oxocarbon-dark', description: 'Oxocarbon Dark', value: 'oxocarbon-dark' },
+      { id: 'window.change-theme-palenight', description: 'Palenight', value: 'palenight' },
+      { id: 'window.change-theme-rose-pine', description: 'Rosé Pine', value: 'rose-pine' },
+      { id: 'window.change-theme-rose-pine-moon', description: 'Rosé Pine Moon', value: 'rose-pine-moon' },
+      { id: 'window.change-theme-solarized-dark', description: 'Solarized Dark', value: 'solarized-dark' },
+      { id: 'window.change-theme-synthwave-84', description: "Synthwave '84", value: 'synthwave-84' },
+      { id: 'window.change-theme-tokyo-night', description: 'Tokyo Night', value: 'tokyo-night' },
+      { id: 'window.change-theme-tokyo-night-storm', description: 'Tokyo Night Storm', value: 'tokyo-night-storm' }
     ],
     executeSubcommand: async (_, theme) => {
-      // Route through canonical preferenceStore → mt_prefs_set →
-      // broadcast path. Local state updates immediately so the theme
-      // switch shows without round-trip latency, plus broadcast hits
-      // other windows.
       usePreferencesStore().SET_SINGLE_PREFERENCE({ type: 'theme', value: theme })
     }
   },
@@ -723,26 +722,6 @@ export const getCommandsWithDescriptions = async () => {
       // Always update description for commands with ID, regardless of existing description
       if (id) {
         item.description = getCommandDescriptionById(id)
-      }
-
-      // Special handling for theme subcommands
-      if (id === 'window.change-theme' && subcommands && Array.isArray(subcommands)) {
-        for (const subcommand of subcommands) {
-          const { value } = subcommand
-          if (value === 'light') {
-            subcommand.description = t('theme.cadmiumLight')
-          } else if (value === 'dark') {
-            subcommand.description = t('theme.dark')
-          } else if (value === 'graphite') {
-            subcommand.description = t('theme.graphiteLight')
-          } else if (value === 'material-dark') {
-            subcommand.description = t('theme.materialDark')
-          } else if (value === 'one-dark') {
-            subcommand.description = t('theme.oneDark')
-          } else if (value === 'ulysses') {
-            subcommand.description = t('theme.ulyssesLight')
-          }
-        }
       }
 
       // Also update other subcommands descriptions

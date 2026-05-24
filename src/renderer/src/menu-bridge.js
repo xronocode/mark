@@ -18,11 +18,11 @@
 
 import staticCommands from './commands'
 
-const findCommandById = (commands, id) => {
+const findCommandById = (commands, id, parent = null) => {
   for (const c of commands) {
-    if (c?.id === id) return c
+    if (c?.id === id) return { command: c, parent }
     if (Array.isArray(c?.subcommands)) {
-      const nested = findCommandById(c.subcommands, id)
+      const nested = findCommandById(c.subcommands, id, c)
       if (nested) return nested
     }
   }
@@ -50,17 +50,20 @@ export const installMenuBridge = () => {
       return
     }
 
-    const command = findCommandById(staticCommands, id)
-    if (!command) {
+    const result = findCommandById(staticCommands, id)
+    if (!result) {
       console.warn(`[menu-bridge] no command for menu id "${id}" — ignoring`)
       return
     }
-    if (typeof command.execute !== 'function') {
-      console.warn(`[menu-bridge] command "${id}" has no execute() — ignoring`)
-      return
-    }
+    const { command, parent } = result
     try {
-      await command.execute()
+      if (typeof command.execute === 'function') {
+        await command.execute()
+      } else if (parent && typeof parent.executeSubcommand === 'function' && command.value !== undefined) {
+        await parent.executeSubcommand(null, command.value)
+      } else {
+        console.warn(`[menu-bridge] command "${id}" has no execute() — ignoring`)
+      }
     } catch (e) {
       console.error(`[menu-bridge] command "${id}" execute failed:`, e)
     }
