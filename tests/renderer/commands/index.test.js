@@ -20,9 +20,10 @@ vi.mock('@/util', () => ({
   isLinux: false
 }))
 
+const { cmdSetPrefMock } = vi.hoisted(() => ({ cmdSetPrefMock: vi.fn() }))
 vi.mock('@/store/preferences', () => ({
   usePreferencesStore: () => ({
-    SET_SINGLE_PREFERENCE: vi.fn()
+    SET_SINGLE_PREFERENCE: cmdSetPrefMock
   })
 }))
 
@@ -208,6 +209,58 @@ describe('command execute actions', () => {
     const cmd = commands.find((c) => c.id === 'tabs.cycleBackward')
     await cmd.execute()
     expect(bus.emit).toHaveBeenCalledWith('mt::tabs-cycle-left')
+  })
+})
+
+describe('window.change-theme subcommands', () => {
+  const themeCmd = commands.find((c) => c.id === 'window.change-theme')
+
+  it('has 33 theme subcommands', () => {
+    expect(themeCmd.subcommands).toHaveLength(33)
+  })
+
+  it('all subcommands have id, description, and value', () => {
+    for (const sub of themeCmd.subcommands) {
+      expect(sub.id).toMatch(/^window\.change-theme-/)
+      expect(sub.description).toBeTruthy()
+      expect(sub.value).toBeTruthy()
+    }
+  })
+
+  it('subcommand ids match value pattern', () => {
+    for (const sub of themeCmd.subcommands) {
+      expect(sub.id).toBe(`window.change-theme-${sub.value}`)
+    }
+  })
+
+  it('includes all light themes', () => {
+    const values = themeCmd.subcommands.map((s) => s.value)
+    for (const t of ['light', 'graphite', 'ulysses', 'ayu-light', 'catppuccin-latte',
+      'everforest-light', 'gruvbox-light', 'rose-pine-dawn', 'solarized-light', 'tokyo-night-light']) {
+      expect(values).toContain(t)
+    }
+  })
+
+  it('includes all dark themes', () => {
+    const values = themeCmd.subcommands.map((s) => s.value)
+    for (const t of ['dark', 'material-dark', 'one-dark', 'dracula', 'nord',
+      'catppuccin-mocha', 'tokyo-night', 'synthwave-84']) {
+      expect(values).toContain(t)
+    }
+  })
+
+  it('executeSubcommand sets theme preference', async () => {
+    cmdSetPrefMock.mockClear()
+    await themeCmd.executeSubcommand(null, 'dracula')
+    expect(cmdSetPrefMock).toHaveBeenCalledWith({
+      type: 'theme',
+      value: 'dracula'
+    })
+  })
+
+  it('no duplicate subcommand values', () => {
+    const values = themeCmd.subcommands.map((s) => s.value)
+    expect(new Set(values).size).toBe(values.length)
   })
 })
 

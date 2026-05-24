@@ -21,9 +21,10 @@ vi.mock('@/util', () => ({
   isLinux: true
 }))
 
+const { setPrefMock } = vi.hoisted(() => ({ setPrefMock: vi.fn() }))
 vi.mock('@/store/preferences', () => ({
   usePreferencesStore: vi.fn(() => ({
-    SET_SINGLE_PREFERENCE: vi.fn()
+    SET_SINGLE_PREFERENCE: setPrefMock
   }))
 }))
 
@@ -160,5 +161,31 @@ describe('installMenuBridge', () => {
 
     expect(warnSpy).toHaveBeenCalled()
     warnSpy.mockRestore()
+  })
+
+  it('dispatches subcommand via parent.executeSubcommand', async () => {
+    setPrefMock.mockClear()
+    installMenuBridge()
+    const handler = ipcOnCallbacks['mt::menu-invoked']
+
+    await handler({}, 'window.change-theme-dracula')
+
+    expect(setPrefMock).toHaveBeenCalledWith({
+      type: 'theme',
+      value: 'dracula'
+    })
+  })
+
+  it('dispatches light theme subcommand', async () => {
+    setPrefMock.mockClear()
+    installMenuBridge()
+    const handler = ipcOnCallbacks['mt::menu-invoked']
+
+    await handler({}, 'window.change-theme-light')
+
+    expect(setPrefMock).toHaveBeenCalledWith({
+      type: 'theme',
+      value: 'light'
+    })
   })
 })
