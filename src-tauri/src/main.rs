@@ -704,6 +704,35 @@ fn main() {
             } else {
                 safe_eprintln!("[m001][lifecycle][BLOCK_CLOSE_HANDLER_SKIPPED reason=no-main-window]");
             }
+
+            // BUG-5: SIGTERM bypasses Tauri's RunEvent::Exit, so
+            // tauri-plugin-window-state never flushes to disk.
+            // Catch SIGTERM → trigger graceful exit → plugin saves state.
+            #[cfg(unix)]
+            {
+                let sigterm_handle = app.handle().clone();
+                let term_flag = std::sync::Arc::new(
+                    std::sync::atomic::AtomicBool::new(false),
+                );
+                signal_hook::flag::register(
+                    signal_hook::consts::SIGTERM,
+                    std::sync::Arc::clone(&term_flag),
+                )
+                .ok();
+                std::thread::spawn(move || {
+                    while !term_flag.load(std::sync::atomic::Ordering::Relaxed) {
+                        std::thread::sleep(std::time::Duration::from_millis(250));
+                    }
+                    safe_eprintln!(
+                        "[m001][lifecycle][BLOCK_SIGTERM_GRACEFUL_EXIT]"
+                    );
+                    tauri::Manager::state::<PendingOpens>(&sigterm_handle)
+                        .quit_approved
+                        .store(true, std::sync::atomic::Ordering::SeqCst);
+                    sigterm_handle.exit(0);
+                });
+            }
+
             Ok(())
         })
         .on_menu_event(|app_handle, event| {
