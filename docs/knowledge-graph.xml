@@ -513,7 +513,7 @@
     </M-035>
 
     <!-- Phase-B9: Knowledge Navigation -->
-    <M-036 NAME="project-sidebar" TYPE="UI_COMPONENT" STATUS="planned" PHASE-REF="B9-step-1">
+    <M-036 NAME="project-sidebar" TYPE="UI_COMPONENT" STATUS="done" PHASE-REF="B9-step-1">
       <purpose>Folder workspace sidebar. `mark folder/` opens project tree. Lazy-loaded file tree, click-to-open, context menu (new/rename/delete/reveal). Persisted per-project.</purpose>
       <path>src/renderer/src/components/sidebar/ProjectTree.vue, src/renderer/src/store/project.js, src-tauri/src/m036_project.rs</path>
       <depends>M-002, M-020, M-010</depends>
@@ -524,7 +524,7 @@
       </annotations>
     </M-036>
 
-    <M-037 NAME="wikilinks" TYPE="CORE_LOGIC" STATUS="planned" PHASE-REF="B9-step-2">
+    <M-037 NAME="wikilinks" TYPE="CORE_LOGIC" STATUS="deferred" PHASE-REF="B9-step-2">
       <purpose>[[page-name]] wikilink syntax in muya with autocomplete. Backlinks panel shows incoming links. File-level resolution within project.</purpose>
       <path>src/muya/lib/parser/rules/wikilink.js, src/renderer/src/components/sidebar/BacklinksPanel.vue</path>
       <depends>M-036, M-012</depends>

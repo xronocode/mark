@@ -1230,14 +1230,14 @@
       <verification-ref>V-M-035</verification-ref>
     </M-035>
 
-    <M-036 NAME="project-sidebar" TYPE="UI_COMPONENT" STATUS="planned" PHASE-REF="B9-step-1">
+    <M-036 NAME="project-sidebar" TYPE="UI_COMPONENT" STATUS="done" PHASE-REF="B9-step-1">
       <purpose>Folder workspace sidebar. `mark folder/` opens project tree. Lazy-loaded file tree, click-to-open, context menu (new/rename/delete/reveal). Persisted per-project.</purpose>
       <path>src/renderer/src/components/sidebar/ProjectTree.vue, src/renderer/src/store/project.js, src-tauri/src/m036_project.rs</path>
       <depends>M-002, M-020, M-010</depends>
       <verification-ref>V-M-036</verification-ref>
     </M-036>
 
-    <M-037 NAME="wikilinks" TYPE="CORE_LOGIC" STATUS="planned" PHASE-REF="B9-step-2">
+    <M-037 NAME="wikilinks" TYPE="CORE_LOGIC" STATUS="deferred" PHASE-REF="B9-step-2">
       <purpose>[[page-name]] wikilink syntax in muya with autocomplete. Backlinks panel shows incoming links. File-level resolution within project.</purpose>
       <path>src/muya/lib/parser/rules/wikilink.js, src/renderer/src/components/sidebar/BacklinksPanel.vue</path>
       <depends>M-036, M-012</depends>
@@ -2048,7 +2048,7 @@ src/main/config.js declares `contextIsolation: false`, `nodeIntegration: true`, 
     <Phase-B9-knowledge name="Workspace + Knowledge Navigation" status="planned" priority="low" estimated-effort="25h" target-tag="v2.0.0-beta.2">
       <rationale>Ferrite has folder workspaces + wikilinks + backlinks panel. Obsidian's entire value prop is graph-based knowledge navigation. Marky has folder sidebar. Mark needs at minimum a project sidebar (folder tree) to compete. Wikilinks/backlinks are stretch goals that differentiate Mark from pure editors.</rationale>
 
-      <step-1 module="M-036" status="pending" verification="V-M-036" closes="F-PROJECT-SIDEBAR">
+      <step-1 module="M-036" status="done" verification="V-M-036" closes="F-PROJECT-SIDEBAR">
         <description>Folder workspace sidebar. `mark folder/` opens folder as project. Left sidebar shows file tree (recursive, lazy-loaded). Click opens file in tab. Sidebar collapsible. Persisted per-project. File icons by extension. Context menu: new file, rename, delete, reveal in Finder.</description>
         <write-scope>
           <file>src/renderer/src/components/sidebar/ProjectTree.vue — new component</file>
@@ -2062,7 +2062,7 @@ src/main/config.js declares `contextIsolation: false`, `nodeIntegration: true`, 
         </test-targets>
       </step-1>
 
-      <step-2 module="M-037" status="pending" verification="V-M-037" closes="F-WIKILINKS">
+      <step-2 module="M-037" status="deferred" verification="V-M-037" closes="F-WIKILINKS">
         <description>Wikilinks + backlinks panel. `[[page-name]]` syntax in editor resolves to files in project. Backlinks panel shows which files link to the current file. Click navigates. Autocomplete for `[[` in muya. No full knowledge graph — just file-level link resolution.</description>
         <write-scope>
           <file>src/muya/lib/parser/rules/wikilink.js — new inline rule for [[ ]] syntax</file>
