@@ -1,10 +1,10 @@
 /**
  * Unit tests for src/renderer/src/store/listenForMain.js
  *
- * Post-Path-B-clean (W6) the surface is small. Two actions:
- *   - EDITOR_EDIT_ACTION(type) — for 'findInFolder' it forces sidebar
- *     layout to { rightColumn:'search', showSideBar:true }; always
- *     emits the bus event.
+ * Two actions:
+ *   - EDITOR_EDIT_ACTION(type) — for 'findInFolder' it emits
+ *     'projectSearch' on the bus and returns; for other types it emits
+ *     the type directly.
  *   - LISTEN_FOR_EDIT() — registers a bus.on('mt::editor-edit-action')
  *     handler that delegates to EDITOR_EDIT_ACTION.
  */
@@ -57,22 +57,18 @@ describe('store/listenForMain', () => {
       expect(setLayoutMock).not.toHaveBeenCalled()
     })
 
-    it('findInFolder forces sidebar to search column + emits', async () => {
+    it('findInFolder emits projectSearch and returns early', async () => {
       const { useListenForMainStore } = await import('@/store/listenForMain')
       const s = useListenForMainStore()
       s.EDITOR_EDIT_ACTION('findInFolder')
-      expect(setLayoutMock).toHaveBeenCalledWith({
-        rightColumn: 'search',
-        showSideBar: true
-      })
-      expect(busEmitMock).toHaveBeenCalledWith('findInFolder', 'findInFolder')
+      expect(busEmitMock).toHaveBeenCalledWith('projectSearch')
+      expect(busEmitMock).not.toHaveBeenCalledWith('findInFolder', 'findInFolder')
     })
 
-    it('non-findInFolder does NOT touch layout', async () => {
+    it('non-findInFolder emits the type directly', async () => {
       const { useListenForMainStore } = await import('@/store/listenForMain')
       const s = useListenForMainStore()
       s.EDITOR_EDIT_ACTION('replace')
-      expect(setLayoutMock).not.toHaveBeenCalled()
       expect(busEmitMock).toHaveBeenCalledWith('replace', 'replace')
     })
   })
@@ -93,11 +89,7 @@ describe('store/listenForMain', () => {
       const handler = busOnMock.mock.calls[0][1] as (t: string) => void
 
       handler('findInFolder')
-      expect(setLayoutMock).toHaveBeenCalledWith({
-        rightColumn: 'search',
-        showSideBar: true
-      })
-      expect(busEmitMock).toHaveBeenCalledWith('findInFolder', 'findInFolder')
+      expect(busEmitMock).toHaveBeenCalledWith('projectSearch')
     })
 
     it('handler with non-findInFolder type only emits', async () => {

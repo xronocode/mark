@@ -7,8 +7,9 @@ const setDiffMode = (page: any, value: boolean) =>
     const app = el?.__vue_app__
     const pinia = app?.config?.globalProperties?.$pinia
     if (pinia) {
-      const state = pinia.state.value.preferences
-      if (state) state.diffMode = v
+      const editorState = pinia.state.value.editor
+      const tab = editorState?.currentFile
+      if (tab) tab.diffMode = v
     }
   }, value)
 

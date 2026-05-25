@@ -6,18 +6,13 @@
     :style="{ width: `${finalSideBarWidth}px` }"
   >
     <div class="side-bar-content">
-      <search-toolbar></search-toolbar>
       <div class="side-bar-body">
-        <!-- Results take over when there's an active query, regardless of rightColumn. -->
-        <side-bar-search v-if="hasSearchQuery"></side-bar-search>
         <tree
-          v-else-if="rightColumn === 'files'"
+          v-if="rightColumn === 'files'"
           :openedFiles="openedFiles"
           :tabs="tabs"
         ></tree>
         <toc v-else-if="rightColumn === 'toc'"></toc>
-        <!-- Default empty state when sidebar is open but no view is selected — per
-             spec, do NOT default to Files; the search toolbar above is the cue. -->
       </div>
     </div>
     <div ref="dragBar" class="drag-bar"></div>
@@ -30,16 +25,12 @@ import { storeToRefs } from 'pinia'
 import { useLayoutStore } from '@/store/layout'
 import { useProjectStore } from '@/store/project'
 import { useEditorStore } from '@/store/editor'
-import { useSearchStore } from '@/store/search'
 import Tree from './tree.vue'
-import SideBarSearch from './search.vue'
 import Toc from './toc.vue'
-import SearchToolbar from './searchToolbar.vue'
 
 const layoutStore = useLayoutStore()
 const projectStore = useProjectStore()
 const editorStore = useEditorStore()
-const searchStore = useSearchStore()
 
 const sideBar = ref(null)
 const dragBar = ref(null)
@@ -48,10 +39,7 @@ const openedFiles = ref([])
 const sideBarViewWidth = ref(280)
 
 const { rightColumn, showSideBar, sideBarWidth } = storeToRefs(layoutStore)
-// projectTrees no longer destructured here — tree.vue reads directly from store.
 const { tabs } = storeToRefs(editorStore)
-
-const hasSearchQuery = computed(() => searchStore.hasQuery)
 
 const finalSideBarWidth = computed(() => {
   if (!showSideBar.value) return 0

@@ -902,10 +902,9 @@ describe('sideBar/index.vue — deep coverage', () => {
         wrapper.find('toc-stub').exists()).toBe(true)
     })
 
-    it('renders SideBarSearch when hasSearchQuery', async () => {
+    it('does not render SideBarSearch (moved to floating panel)', async () => {
       const { useSearchStore } = await import('@/store/search')
       const searchStore = useSearchStore()
-      // hasQuery is a getter derived from keyword.length > 0
       searchStore.keyword = 'test'
 
       const { useLayoutStore } = await import('@/store/layout')
@@ -916,7 +915,7 @@ describe('sideBar/index.vue — deep coverage', () => {
       await nextTick()
 
       expect(wrapper.findComponent({ name: 'SideBarSearch' }).exists() ||
-        wrapper.find('side-bar-search-stub').exists()).toBe(true)
+        wrapper.find('side-bar-search-stub').exists()).toBe(false)
     })
   })
 })

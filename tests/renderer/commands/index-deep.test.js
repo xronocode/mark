@@ -199,9 +199,9 @@ describe('commands/index — deep coverage', () => {
       expect(bus.emit).toHaveBeenCalledWith('replace', 'replace')
     })
 
-    it('edit.find-in-folder emits mt::editor-edit-action findInFolder', async () => {
+    it('edit.find-in-folder emits projectSearch', async () => {
       await findCmd('edit.find-in-folder').execute()
-      expect(bus.emit).toHaveBeenCalledWith('mt::editor-edit-action', 'findInFolder')
+      expect(bus.emit).toHaveBeenCalledWith('projectSearch')
     })
   })
 
@@ -375,10 +375,15 @@ describe('commands/index — deep coverage', () => {
       expect(invoke).toHaveBeenCalledWith('mt_app_quit')
     })
 
+    it('about emits aboutDialog', async () => {
+      await findCmd('about').execute()
+      expect(bus.emit).toHaveBeenCalledWith('aboutDialog')
+    })
+
     it('docs.user-guide opens external link', async () => {
       await findCmd('docs.user-guide').execute()
       expect(window.electron.shell.openExternal).toHaveBeenCalledWith(
-        expect.stringContaining('BASICS.md')
+        expect.stringContaining('github.com/xronocode/mark')
       )
     })
 

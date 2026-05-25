@@ -1,8 +1,7 @@
 /**
  * Function coverage tests for search/index.vue
  * Covers: toggleCtrl, listenFind, listenReplace, listenFindNext, listenFindPrev,
- * docKeyup, docClick, emptySearch, toggleSearchType, find, handleEnterKey,
- * searchFn, replace, noop, blurSearch
+ * docKeyup, emptySearch, toggleSearchType, find, handleEnterKey, searchFn, replace
  */
 import { shallowMount, flushPromises } from '@vue/test-utils'
 import { setupTestPinia } from '../pinia'
@@ -87,17 +86,24 @@ describe('search/index.vue — fn coverage', () => {
     expect(bus.emit).toHaveBeenCalledWith('find-action', 'next')
   })
 
-  it('handleEnterKey calls find on Enter key', () => {
+  it('handleEnterKey calls find next on Enter key', () => {
     const w = mount()
     bus.emit.mockClear()
-    w.vm.handleEnterKey({ key: 'Enter' })
+    w.vm.handleEnterKey({ key: 'Enter', shiftKey: false })
     expect(bus.emit).toHaveBeenCalledWith('find-action', 'next')
+  })
+
+  it('handleEnterKey calls find prev on Shift+Enter', () => {
+    const w = mount()
+    bus.emit.mockClear()
+    w.vm.handleEnterKey({ key: 'Enter', shiftKey: true })
+    expect(bus.emit).toHaveBeenCalledWith('find-action', 'prev')
   })
 
   it('handleEnterKey does nothing on non-Enter key', () => {
     const w = mount()
     bus.emit.mockClear()
-    w.vm.handleEnterKey({ key: 'a' })
+    w.vm.handleEnterKey({ key: 'a', shiftKey: false })
     expect(bus.emit).not.toHaveBeenCalledWith('find-action', expect.anything())
   })
 
@@ -119,11 +125,6 @@ describe('search/index.vue — fn coverage', () => {
     w.vm.replace(false)
     const args = bus.emit.mock.calls.find(c => c[0] === 'replaceValue')[1]
     expect(args.opt.isSingle).toBe(false)
-  })
-
-  it('noop does nothing', () => {
-    const w = mount()
-    w.vm.noop() // Should not throw
   })
 
   it('emptySearch clears values and hides search', () => {
@@ -180,30 +181,6 @@ describe('search/index.vue — fn coverage', () => {
     expect(w.vm.showSearch).toBe(false)
   })
 
-  it('docClick hides search when visible', () => {
-    const w = mount()
-    w.vm.showSearch = true
-    document.dispatchEvent(new Event('click'))
-    expect(w.vm.showSearch).toBe(false)
-  })
-
-  it('docClick does nothing when search is hidden', () => {
-    const w = mount()
-    w.vm.showSearch = false
-    bus.emit.mockClear()
-    document.dispatchEvent(new Event('click'))
-    // No searchValue emit
-    expect(bus.emit).not.toHaveBeenCalledWith('searchValue', expect.anything())
-  })
-
-  it('blurSearch hides search via bus', () => {
-    const w = mount()
-    w.vm.showSearch = true
-    const handler = bus.on.mock.calls.find(c => c[0] === 'search-blur')[1]
-    handler()
-    expect(w.vm.showSearch).toBe(false)
-  })
-
   it('searchFn with invalid regex sets error', () => {
     const w = mount()
     w.vm.isRegexp = true
@@ -233,7 +210,6 @@ describe('search/index.vue — fn coverage', () => {
     expect(bus.off).toHaveBeenCalledWith('replace', expect.any(Function))
     expect(bus.off).toHaveBeenCalledWith('findNext', expect.any(Function))
     expect(bus.off).toHaveBeenCalledWith('findPrev', expect.any(Function))
-    expect(bus.off).toHaveBeenCalledWith('search-blur', expect.any(Function))
   })
 
   it('highlightIndex returns -1 when no searchMatches', () => {

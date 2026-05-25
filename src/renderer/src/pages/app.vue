@@ -28,6 +28,7 @@
         :platform="platform"
       ></editor-with-tabs>
       <command-palette></command-palette>
+      <project-search></project-search>
       <about-dialog></about-dialog>
       <export-setting-dialog></export-setting-dialog>
       <rename></rename>
@@ -64,6 +65,7 @@ import TitleBar from '@/components/titleBar'
 import SideBar from '@/components/sideBar'
 import AboutDialog from '@/components/about'
 import CommandPalette from '@/components/commandPalette'
+import ProjectSearch from '@/components/projectSearch'
 import ExportSettingDialog from '@/components/exportSettings'
 import Rename from '@/components/rename'
 import Tweet from '@/components/tweet'

@@ -75,7 +75,6 @@ describe('search/index.vue — deep coverage', () => {
       expect(bus.on).toHaveBeenCalledWith('replace', expect.any(Function))
       expect(bus.on).toHaveBeenCalledWith('findNext', expect.any(Function))
       expect(bus.on).toHaveBeenCalledWith('findPrev', expect.any(Function))
-      expect(bus.on).toHaveBeenCalledWith('search-blur', expect.any(Function))
     })
 
     it('unregisters all listeners on unmount', () => {
@@ -85,7 +84,6 @@ describe('search/index.vue — deep coverage', () => {
       expect(bus.off).toHaveBeenCalledWith('replace', expect.any(Function))
       expect(bus.off).toHaveBeenCalledWith('findNext', expect.any(Function))
       expect(bus.off).toHaveBeenCalledWith('findPrev', expect.any(Function))
-      expect(bus.off).toHaveBeenCalledWith('search-blur', expect.any(Function))
     })
   })
 
@@ -188,8 +186,8 @@ describe('search/index.vue — deep coverage', () => {
     })
   })
 
-  // --- emptySearch ---
-  describe('emptySearch / docClick / docKeyup / blurSearch', () => {
+  // --- emptySearch / docKeyup ---
+  describe('emptySearch / docKeyup', () => {
     it('hides search, clears values, emits searchValue', () => {
       const wrapper = mountComponent()
 
@@ -206,26 +204,6 @@ describe('search/index.vue — deep coverage', () => {
         value: '',
         opt: { selectHighlight: true }
       })
-    })
-
-    it('docClick triggers emptySearch when search is shown', () => {
-      const wrapper = mountComponent()
-      wrapper.vm.showSearch = true
-
-      // Simulate document click
-      wrapper.vm.docClick()
-
-      expect(wrapper.vm.showSearch).toBe(false)
-    })
-
-    it('docClick does nothing when search is hidden', () => {
-      const wrapper = mountComponent()
-      wrapper.vm.showSearch = false
-
-      wrapper.vm.docClick()
-
-      // Should not emit searchValue from emptySearch
-      expect(bus.emit).not.toHaveBeenCalledWith('searchValue', expect.anything())
     })
 
     it('Escape key triggers emptySearch via docKeyup', () => {
@@ -246,12 +224,13 @@ describe('search/index.vue — deep coverage', () => {
       expect(wrapper.vm.showSearch).toBe(true)
     })
 
-    it('blurSearch hides search', () => {
+    it('close button triggers emptySearch', async () => {
       const wrapper = mountComponent()
       wrapper.vm.showSearch = true
+      await nextTick()
 
-      const blurHandler = bus.on.mock.calls.find((c) => c[0] === 'search-blur')[1]
-      blurHandler()
+      const closeBtn = wrapper.find('.search-close')
+      await closeBtn.trigger('click')
 
       expect(wrapper.vm.showSearch).toBe(false)
     })
@@ -260,20 +239,23 @@ describe('search/index.vue — deep coverage', () => {
   // --- handleEnterKey ---
   describe('handleEnterKey', () => {
     it('emits find-action next on Enter', () => {
-      mountComponent()
-
       const wrapper = mountComponent()
-      wrapper.vm.handleEnterKey({ key: 'Enter' })
+      wrapper.vm.handleEnterKey({ key: 'Enter', shiftKey: false })
 
       expect(bus.emit).toHaveBeenCalledWith('find-action', 'next')
     })
 
-    it('does nothing on other keys', () => {
-      mountComponent()
-      bus.emit.mockClear()
-
+    it('emits find-action prev on Shift+Enter', () => {
       const wrapper = mountComponent()
-      wrapper.vm.handleEnterKey({ key: 'a' })
+      wrapper.vm.handleEnterKey({ key: 'Enter', shiftKey: true })
+
+      expect(bus.emit).toHaveBeenCalledWith('find-action', 'prev')
+    })
+
+    it('does nothing on other keys', () => {
+      bus.emit.mockClear()
+      const wrapper = mountComponent()
+      wrapper.vm.handleEnterKey({ key: 'a', shiftKey: false })
 
       expect(bus.emit).not.toHaveBeenCalledWith('find-action', expect.anything())
     })

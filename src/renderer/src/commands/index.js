@@ -190,22 +190,20 @@ const commands = [
       bus.emit('find', 'find')
     }
   },
-  // TODO: Find next/previous doesn't work.
-  // {
-  //   id: 'edit.find-next',
-  //   description: 'Edit: Find Next',
-  //   execute: async () => {
-  //     await delay(150)
-  //     bus.emit('findNext', 'findNext')
-  //   }
-  // }, {
-  //   id: 'edit.find-previous',
-  //   description: 'Edit: Find Previous',
-  //   execute: async () => {
-  //     await delay(150)
-  //     bus.emit('findPrev', 'findPrev')
-  //   }
-  // },
+  {
+    id: 'edit.find-next',
+    shortcut: [isOsx ? 'Cmd' : 'Ctrl', 'G'],
+    execute: async () => {
+      bus.emit('findNext')
+    }
+  },
+  {
+    id: 'edit.find-previous',
+    shortcut: [isOsx ? 'Cmd' : 'Ctrl', 'Shift', 'G'],
+    execute: async () => {
+      bus.emit('findPrev')
+    }
+  },
   {
     id: 'edit.replace',
     execute: async () => {
@@ -215,9 +213,9 @@ const commands = [
   },
   {
     id: 'edit.find-in-folder',
+    shortcut: [isOsx ? 'Cmd' : 'Ctrl', 'Shift', 'F'],
     execute: async () => {
-      await delay(150)
-      bus.emit('mt::editor-edit-action', 'findInFolder')
+      bus.emit('projectSearch')
     }
   },
 
@@ -664,10 +662,16 @@ const commands = [
     }
   },
   {
+    id: 'about',
+    execute: async () => {
+      bus.emit('aboutDialog')
+    }
+  },
+  {
     id: 'docs.user-guide',
     execute: async () => {
       window.electron.shell.openExternal(
-        'https://github.com/xronocode/mark/blob/electron/docs/BASICS.md'
+        'https://github.com/xronocode/mark'
       )
     }
   },
@@ -675,7 +679,7 @@ const commands = [
     id: 'docs.markdown-syntax',
     execute: async () => {
       window.electron.shell.openExternal(
-        'https://github.com/xronocode/mark/blob/electron/docs/MARKDOWN_SYNTAX.md'
+        'https://github.com/xronocode/mark/blob/main/docs/MARKDOWN_SYNTAX.md'
       )
     }
   },

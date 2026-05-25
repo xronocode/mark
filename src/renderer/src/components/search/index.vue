@@ -1,5 +1,5 @@
 <template>
-  <div v-show="showSearch" class="search-bar" @click.stop="noop">
+  <div v-show="showSearch" class="search-bar">
     <div class="left-arrow" @click="toggleSearchType">
       <svg class="icon" aria-hidden="true" :class="{ 'arrow-right': type === 'search' }">
         <use xlink:href="#icon-arrowdown"></use>
@@ -102,6 +102,7 @@
         </div>
       </section>
     </div>
+    <button class="search-close" @click="emptySearch(true)">&times;</button>
   </div>
 </template>
 
@@ -167,9 +168,7 @@ onMounted(() => {
   bus.on('replace', listenReplace)
   bus.on('findNext', listenFindNext)
   bus.on('findPrev', listenFindPrev)
-  document.addEventListener('click', docClick)
   document.addEventListener('keyup', docKeyup)
-  bus.on('search-blur', blurSearch)
 })
 
 onBeforeUnmount(() => {
@@ -177,9 +176,7 @@ onBeforeUnmount(() => {
   bus.off('replace', listenReplace)
   bus.off('findNext', listenFindNext)
   bus.off('findPrev', listenFindPrev)
-  document.removeEventListener('click', docClick)
   document.removeEventListener('keyup', docKeyup)
-  bus.off('search-blur', blurSearch)
 })
 
 const toggleCtrl = (ctrl) => {
@@ -227,15 +224,6 @@ const docKeyup = (event) => {
   }
 }
 
-const docClick = () => {
-  if (!showSearch.value) return
-  emptySearch(true)
-}
-
-const blurSearch = () => {
-  emptySearch(true)
-}
-
 const emptySearch = (selectHighlight = false) => {
   showSearch.value = false
   searchValue.value = ''
@@ -257,7 +245,7 @@ const find = (action) => {
 
 const handleEnterKey = (event) => {
   if (event.key === 'Enter') {
-    find('next')
+    find(event.shiftKey ? 'prev' : 'next')
   }
 }
 
@@ -308,21 +296,21 @@ const replace = (isSingle = true) => {
   })
 }
 
-const noop = () => {}
 </script>
 
 <style scoped>
 .search-bar {
-  position: absolute;
-  width: 400px;
+  position: fixed;
+  width: 420px;
   padding: 0;
-  top: 0;
-  right: 20px;
-  border-radius: 3px;
-  box-shadow: var(--floatShadow);
+  top: var(--titleBarHeight);
+  right: 24px;
+  border-radius: 0 0 6px 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   background: var(--floatBgColor);
   display: flex;
   flex-direction: row;
+  z-index: 100;
 }
 .search-bar .left-arrow {
   width: 20px;
@@ -457,5 +445,25 @@ const noop = () => {}
   color: var(--editorColor);
   padding: 0 8px;
   background: transparent;
+}
+.search-close {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 24px;
+  height: 24px;
+  border: none;
+  background: transparent;
+  color: var(--sideBarIconColor);
+  font-size: 18px;
+  line-height: 24px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  &:hover {
+    background: var(--floatHoverColor);
+  }
 }
 </style>
