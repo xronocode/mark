@@ -25,6 +25,10 @@ playwright/.cache/
 # Vision sidecar
 .vision-sidecar-telemetry/
 
+# VitePress docs build output
+site/.vitepress/dist/
+site/.vitepress/cache/
+
 # OS / editor cruft
 .DS_Store
 *.log
