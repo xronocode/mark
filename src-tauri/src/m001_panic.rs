@@ -144,14 +144,16 @@ pub fn install_panic_hook() {
             }
         }
 
-        // 3. Native dialog. Best-effort — never panics on its own
-        //    per dialog::ask_native_error contract.
-        crate::dialog::ask_native_error(
-            "Mark — fatal error",
-            &format!(
-                "{body}\nA crash log was written to:\n  {log_path_str}\n\nPlease attach this file when filing an issue at https://github.com/xronocode/mark/issues."
-            ),
+        // 3. Native dialog. Wrapped in catch_unwind because rfd can
+        //    panic (e.g. NSApplication not initialized during early
+        //    setup) — a panic here would be a panic-inside-panic-hook,
+        //    which Rust aborts on.
+        let dialog_body = format!(
+            "{body}\nA crash log was written to:\n  {log_path_str}\n\nPlease attach this file when filing an issue at https://github.com/xronocode/mark/issues."
         );
+        let _ = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            crate::dialog::ask_native_error("Mark — fatal error", &dialog_body);
+        }));
 
         IN_HOOK.store(false, Ordering::SeqCst);
     }));
@@ -346,5 +348,16 @@ mod tests {
         // install_panic_hook; here we verify the static directly.
         assert!(IN_HOOK.load(Ordering::SeqCst));
         IN_HOOK.store(false, Ordering::SeqCst);
+    }
+
+    #[test]
+    fn catch_unwind_prevents_double_panic_abort() {
+        // Simulates the dialog path panicking inside the panic hook.
+        // catch_unwind must absorb the inner panic so the hook
+        // returns normally instead of triggering a process abort.
+        let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            panic!("rfd dialog failed: NSApplication not initialized");
+        }));
+        assert!(result.is_err(), "catch_unwind must capture the inner panic");
     }
 }
