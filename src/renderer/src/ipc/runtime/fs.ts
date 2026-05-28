@@ -45,6 +45,26 @@ export const ipcFs = {
   /** Delete a file. Refuses directories. */
   unlink(path: string): Promise<void> {
     return ipcInvoke('mt::fs::unlink', { path })
+  },
+
+  /** Read a file as raw bytes. 10 MB limit. */
+  readBinary(path: string): Promise<Uint8Array> {
+    return ipcInvoke('mt::fs::read_binary', { path })
+  },
+
+  /** Write raw bytes to a file. Creates parents if missing. */
+  writeBinary(path: string, data: Uint8Array): Promise<void> {
+    return ipcInvoke('mt::fs::write_binary', { path, data })
+  },
+
+  /** Copy a file. Creates parent dirs on dest side. */
+  copy(src: string, dest: string): Promise<void> {
+    return ipcInvoke('mt::fs::copy', { src, dest })
+  },
+
+  /** Move/rename a file. Falls back to copy+delete on cross-device. */
+  move(src: string, dest: string): Promise<void> {
+    return ipcInvoke('mt::fs::move', { src, dest })
   }
 }
 
