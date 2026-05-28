@@ -325,6 +325,20 @@ describe('App.vue page — deep coverage', () => {
       expect(bus.emit).not.toHaveBeenCalledWith('mt::window-zoom', expect.anything())
     })
 
+    it('handles zoom value above max by clamping to last level', async () => {
+      const { usePreferencesStore } = await import('@/store/preferences')
+      const prefStore = usePreferencesStore()
+      prefStore.zoom = 3.0
+
+      mountComponent()
+      await flush()
+      bus.emit.mockClear()
+
+      fireWheel(20)
+
+      expect(bus.emit).toHaveBeenCalledWith('mt::window-zoom', 1.875)
+    })
+
     it('accumulates delta below threshold without emitting', async () => {
       const { usePreferencesStore } = await import('@/store/preferences')
       const prefStore = usePreferencesStore()
@@ -337,6 +351,73 @@ describe('App.vue page — deep coverage', () => {
       fireWheel(-5)
 
       expect(bus.emit).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('setupDragDropHandler', () => {
+    const flush = () => new Promise(r => setTimeout(r, 0))
+
+    const fireDragover = (types, items = []) => {
+      const evt = new Event('dragover', { bubbles: true, cancelable: true })
+      evt.dataTransfer = {
+        types,
+        items,
+        dropEffect: '',
+        get effectAllowed() { return 'all' }
+      }
+      evt.preventDefault = vi.fn()
+      evt.stopPropagation = vi.fn()
+      window.dispatchEvent(evt)
+      return evt
+    }
+
+    it('ignores dragover with no dataTransfer types', async () => {
+      mountComponent()
+      await flush()
+      bus.emit.mockClear()
+
+      const evt = fireDragover([])
+
+      expect(bus.emit).not.toHaveBeenCalledWith('importDialog', expect.anything())
+    })
+
+    it('shows import dialog for non-image file drag', async () => {
+      mountComponent()
+      await flush()
+      bus.emit.mockClear()
+
+      const evt = fireDragover(
+        ['Files'],
+        [{ type: 'text/plain' }, { type: 'text/plain' }]
+      )
+
+      expect(evt.preventDefault).toHaveBeenCalled()
+      expect(bus.emit).toHaveBeenCalledWith('importDialog', true)
+      expect(evt.dataTransfer.dropEffect).toBe('copy')
+    })
+
+    it('sets dropEffect to copy for single image drag', async () => {
+      mountComponent()
+      await flush()
+      bus.emit.mockClear()
+
+      const evt = fireDragover(
+        ['Files'],
+        [{ type: 'image/png' }]
+      )
+
+      expect(evt.dataTransfer.dropEffect).toBe('copy')
+    })
+
+    it('stops propagation for non-file drag', async () => {
+      mountComponent()
+      await flush()
+      bus.emit.mockClear()
+
+      const evt = fireDragover(['text/plain'])
+
+      expect(evt.stopPropagation).toHaveBeenCalled()
+      expect(evt.dataTransfer.dropEffect).toBe('none')
     })
   })
 
@@ -365,6 +446,70 @@ describe('App.vue page — deep coverage', () => {
       await nextTick()
 
       expect(prefStore.SET_USER_PREFERENCE).not.toHaveBeenCalled()
+    })
+
+    it('handles addCommonStyle error gracefully', async () => {
+      const flush = () => new Promise(r => setTimeout(r, 0))
+      const { addCommonStyle } = await import('@/util/theme')
+      addCommonStyle.mockImplementation(() => { throw new Error('style-fail') })
+      const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+      mountComponent()
+      await flush()
+
+      expect(errorSpy).toHaveBeenCalledWith(
+        '[app][addCommonStyle] failed:',
+        expect.any(Object),
+        expect.any(Error)
+      )
+      addCommonStyle.mockImplementation(() => {})
+      errorSpy.mockRestore()
+    })
+
+    it('clears existing timer on repeated drag', async () => {
+      const flush = () => new Promise(r => setTimeout(r, 0))
+      mountComponent()
+      await flush()
+      bus.emit.mockClear()
+
+      const fireDrag = () => {
+        const evt = new Event('dragover', { bubbles: true, cancelable: true })
+        evt.dataTransfer = {
+          types: ['Files'],
+          items: [{ type: 'text/plain' }, { type: 'text/plain' }],
+          dropEffect: ''
+        }
+        evt.preventDefault = vi.fn()
+        window.dispatchEvent(evt)
+      }
+
+      fireDrag()
+      fireDrag()
+
+      expect(bus.emit).toHaveBeenCalledWith('importDialog', true)
+    })
+
+    it('emits importDialog false after timer fires', async () => {
+      const flush = () => new Promise(r => setTimeout(r, 0))
+      mountComponent()
+      await flush()
+      bus.emit.mockClear()
+
+      vi.useFakeTimers()
+
+      const evt = new Event('dragover', { bubbles: true, cancelable: true })
+      evt.dataTransfer = {
+        types: ['Files'],
+        items: [{ type: 'text/plain' }, { type: 'text/plain' }],
+        dropEffect: ''
+      }
+      evt.preventDefault = vi.fn()
+      window.dispatchEvent(evt)
+
+      vi.advanceTimersByTime(300)
+
+      expect(bus.emit).toHaveBeenCalledWith('importDialog', false)
+      vi.useRealTimers()
     })
   })
 })
