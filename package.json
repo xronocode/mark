@@ -32,7 +32,7 @@
     "@marktext/file-icons": "^1.0.6",
     "@octokit/rest": "^22.0.1",
     "@popperjs/core": "^2.11.8",
-    "@tauri-apps/api": "^2.0.0",
+    "@tauri-apps/api": "^2.10.1",
     "@tauri-apps/plugin-dialog": "^2.7.1",
     "@tauri-apps/plugin-opener": "^2.5.4",
     "axios": "^1.13.2",
