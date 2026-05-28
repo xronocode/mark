@@ -30,7 +30,7 @@ brew tap xronocode/mark && brew install --cask mark@alpha
 No Gatekeeper prompts. No `sudo xattr` dance. [Build from source →](#install)
 
 > **⚠️ Alpha** — daily-driver quality for writing on Apple Silicon, but it has known gaps.<br>
-> What works has 2620 tests and CI. What doesn't is [tracked openly](#status--v200-alpha8).
+> What works has 2700+ tests and CI. What doesn't is [tracked openly](#status--v200-alpha9).
 
 <br>
 
@@ -266,7 +266,7 @@ One person. AI agents. A native desktop app that rivals what teams of five ship.
 
 <div align="center">
 
-### Status — v2.0.0-alpha.8
+### Status — v2.0.0-alpha.9
 
 </div>
 
@@ -280,6 +280,7 @@ Daily-driver quality for routine Markdown on Apple Silicon.
 | Multi-tab editing | ✅ |
 | Open Folder + sidebar file tree | ✅ |
 | Mermaid v11 / KaTeX / Vega inline rendering | ✅ |
+| Inline diff view (CodeMirror MergeView) | ✅ |
 | Find in file (Cmd+F) | 🔶 Beta |
 | Find in folder (in-process ripgrep) | 🔶 Beta |
 | Search context lines + include/exclude globs | Planned |
@@ -296,7 +297,9 @@ Daily-driver quality for routine Markdown on Apple Silicon.
 | Recent documents | ✅ |
 | Preserve source encoding on save | Planned |
 | Manual encoding picker | Planned |
-| File move / rename commands | Planned |
+| File move / rename commands | ✅ |
+| Print (Cmd+P → system dialog) | ✅ |
+| Export as HTML | ✅ |
 
 **Appearance & UX**
 
@@ -307,6 +310,8 @@ Daily-driver quality for routine Markdown on Apple Silicon.
 | Preview mode on Finder double-click | ✅ |
 | Set as default `.md` handler | ✅ |
 | System font enumeration | ✅ |
+| Trackpad pinch-to-zoom | ✅ |
+| Window geometry persistence | ✅ |
 | Monospace font filter for code editor | Planned |
 
 **Native macOS**
@@ -341,7 +346,7 @@ Daily-driver quality for routine Markdown on Apple Silicon.
 | Windows | Planned |
 | Multi-window support | Planned |
 
-> Alpha is alpha. What works has **2620 tests** and CI. What doesn't is tracked openly with a target milestone.
+> Alpha is alpha. What works has **2700+ tests** and CI. What doesn't is tracked openly with a target milestone.
 
 ---
 

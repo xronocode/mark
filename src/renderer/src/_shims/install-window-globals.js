@@ -406,7 +406,9 @@ const electron = {
       chrome: '',
       v8: ''
     },
-    env: {}
+    env: {
+      MARKTEXT_VERSION_STRING: __APP_VERSION__
+    }
   },
 
   // M-008 frontend facade
