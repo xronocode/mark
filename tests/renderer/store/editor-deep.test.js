@@ -854,27 +854,28 @@ describe('store/editor — deep coverage', () => {
   // ─── EXPORT — edge cases ─────────────────────────────────────────
 
   describe('EXPORT — deep', () => {
-    it('empty listToc results in empty title', () => {
+    it('PDF type shows warning instead of exporting', async () => {
+      const notice = (await import('@/services/notification')).default
       editor.currentFile = makeTab({ id: 't1', pathname: '/tmp/a.md', filename: 'a.md' })
       editor.tabs = [editor.currentFile]
       editor.listToc = []
-      editor.EXPORT({ type: 'pdf', content: '<p/>', pageOptions: {} })
-      expect(window.electron.ipcRenderer.send).toHaveBeenCalledWith(
-        'mt::response-export',
-        expect.objectContaining({ title: '' })
+      await editor.EXPORT({ type: 'pdf', content: '<p/>' })
+      expect(notice.notify).toHaveBeenCalledWith(
+        expect.objectContaining({ type: 'warning' })
       )
     })
 
-    it('single header with lvl > 1 is used as title', () => {
+    it('styledHtml export calls save dialog', async () => {
       editor.currentFile = makeTab({ id: 't1', pathname: '/tmp/a.md', filename: 'a.md' })
       editor.tabs = [editor.currentFile]
       editor.listToc = [
         { slug: 's1', githubSlug: 'g1', content: 'SubTitle', lvl: 3 }
       ]
-      editor.EXPORT({ type: 'pdf', content: '<p/>', pageOptions: {} })
-      expect(window.electron.ipcRenderer.send).toHaveBeenCalledWith(
-        'mt::response-export',
-        expect.objectContaining({ title: 'SubTitle' })
+      const { save } = await import('@tauri-apps/plugin-dialog')
+      save.mockResolvedValueOnce('/tmp/out.html')
+      await editor.EXPORT({ type: 'styledHtml', content: '<p/>' })
+      expect(save).toHaveBeenCalledWith(
+        expect.objectContaining({ defaultPath: 'a.html' })
       )
     })
   })

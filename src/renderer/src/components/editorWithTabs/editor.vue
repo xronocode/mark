@@ -878,7 +878,8 @@ const handleExport = async (options) => {
           headerFooterStyled
         })
         printer.renderMarkdown(html, true)
-        editorStore.PRINT_RESPONSE()
+        window.print()
+        handlePrintServiceClearup()
       } catch (err) {
         log.error('Failed to export document:', err)
         notice.notify({

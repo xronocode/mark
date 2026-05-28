@@ -229,19 +229,7 @@ const fileUtils = {
   pathExistsSync: () => false, // sync FS ops are not available; renderer should be using async
   ensureDirSync: () => {}, // no-op — mt_fs_write does create_dir_all internally
 
-  // F-FS-COPY-MOVE-ENSUREDIR not yet shipped (no mt_fs_copy/move/mkdir
-  // commands at backend); these are required by v1.2.3 image-paste +
-  // file-rename flows. Stub with deterministic errors so callers fail
-  // visibly rather than silently corrupt state.
-  ensureDir: async (dirPath) => {
-    // best-effort: write empty .keep file so create_dir_all fires
-    try {
-      await ipc.fs.write(`${dirPath}/.mt_keep`, '')
-      await ipc.fs.unlink(`${dirPath}/.mt_keep`)
-    } catch {
-      // swallow — caller treats as "directory exists"
-    }
-  },
+  ensureDir: async (dirPath) => ipc.fs.mkdir(dirPath),
   copy: async (src, dest) => ipc.fs.copy(src, dest),
   move: async (src, dest) => ipc.fs.move(src, dest),
   emptyDir: async (_path) => {
