@@ -55,7 +55,7 @@
 //   - 2026-05-21 drag-theme-refactor: dedupe initial addThemeStyle() calls
 //     by separating common-style bootstrap from theme-style bootstrap.
 
-import { computed, watch, nextTick, onMounted, ref } from 'vue'
+import { computed, watch, nextTick, onMounted, onUnmounted, ref } from 'vue'
 import { useMainStore } from '@/store'
 import { storeToRefs } from 'pinia'
 import { addCommonStyle, addThemeStyle, addCustomStyle } from '@/util/theme'
@@ -90,6 +90,7 @@ const listenForMainStore = useListenForMainStore()
 const commandCenterStore = useCommandCenterStore()
 
 const timer = ref(null)
+let cleanupPinchZoom = null
 
 // States from Pini
 const { windowActive, platform, init } = storeToRefs(mainStore)
@@ -166,7 +167,7 @@ const setupPinchZoomHandler = () => {
   let accumulatedDelta = 0
   const STEP_THRESHOLD = 15
 
-  document.addEventListener('wheel', (e) => {
+  const handler = (e) => {
     if (!e.ctrlKey) return
     e.preventDefault()
 
@@ -184,7 +185,10 @@ const setupPinchZoomHandler = () => {
     if (ZOOM_LEVELS[nextIdx] !== currentZoom) {
       bus.emit('mt::window-zoom', ZOOM_LEVELS[nextIdx])
     }
-  }, { passive: false })
+  }
+
+  document.addEventListener('wheel', handler, { passive: false })
+  return () => document.removeEventListener('wheel', handler)
 }
 
 onMounted(async () => {
@@ -215,7 +219,7 @@ onMounted(async () => {
   editorStore.LISTEN_WINDOW_ZOOM()
 
   setupDragDropHandler()
-  setupPinchZoomHandler()
+  cleanupPinchZoom = setupPinchZoomHandler()
 
   nextTick(() => {
     const style = {
@@ -230,6 +234,10 @@ onMounted(async () => {
       console.error('[app][addCommonStyle] failed:', style, e)
     }
   })
+})
+
+onUnmounted(() => {
+  if (cleanupPinchZoom) cleanupPinchZoom()
 })
 </script>
 
