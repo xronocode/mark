@@ -1,6 +1,6 @@
 # NOTICES — Rust dependencies (Tauri backend)
 
-Generated from `cargo-bundle-licenses --format json` over **548 crates**.
+Generated from `cargo-bundle-licenses --format json` over **587 crates**.
 
 Each entry lists the crate name, version, license SPDX identifier, and upstream repository when available. Re-generate with:
 
@@ -13,19 +13,19 @@ node tools/build-notices-rust.mjs /tmp/rust-licenses.json > NOTICES-rust.md
 
 | License | Crate count |
 |---|---:|
-| MIT OR Apache-2.0 | 259 |
-| MIT | 128 |
-| Apache-2.0 OR MIT | 31 |
-| MIT/Apache-2.0 | 28 |
+| MIT OR Apache-2.0 | 268 |
+| MIT | 140 |
+| Apache-2.0 OR MIT | 47 |
+| MIT/Apache-2.0 | 29 |
 | Unicode-3.0 | 18 |
 | Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT | 15 |
 | Zlib OR Apache-2.0 OR MIT | 11 |
 | MPL-2.0 | 8 |
 | Unlicense OR MIT | 6 |
 | ISC | 5 |
+| Apache-2.0/MIT | 4 |
 | Apache-2.0 | 3 |
 | Apache-2.0 OR ISC OR MIT | 3 |
-| Apache-2.0/MIT | 3 |
 | BSD-3-Clause | 3 |
 | BSD-2-Clause OR Apache-2.0 OR MIT | 2 |
 | BSD-3-Clause OR MIT OR Apache-2.0 | 2 |
@@ -48,7 +48,7 @@ node tools/build-notices-rust.mjs /tmp/rust-licenses.json > NOTICES-rust.md
 | LGPL-3.0 | 1 |
 | MIT OR Zlib OR Apache-2.0 | 1 |
 
-## MIT OR Apache-2.0 (259)
+## MIT OR Apache-2.0 (268)
 
 | Crate | Version | Repository |
 |---|---|---|
@@ -59,6 +59,9 @@ node tools/build-notices-rust.mjs /tmp/rust-licenses.json > NOTICES-rust.md
 | anstyle-wincon | 3.0.11 | https://github.com/rust-cli/anstyle.git |
 | anyhow | 1.0.102 | https://github.com/dtolnay/anyhow |
 | arbitrary | 1.4.2 | https://github.com/rust-fuzz/arbitrary/ |
+| async-broadcast | 0.7.2 | https://github.com/smol-rs/async-broadcast |
+| async-recursion | 1.1.1 | https://github.com/dcchut/async-recursion |
+| async-trait | 0.1.89 | https://github.com/dtolnay/async-trait |
 | base64 | 0.21.7 | https://github.com/marshallpierce/rust-base64 |
 | base64 | 0.22.1 | https://github.com/marshallpierce/rust-base64 |
 | bitflags | 2.11.1 | https://github.com/bitflags/bitflags |
@@ -102,6 +105,8 @@ node tools/build-notices-rust.mjs /tmp/rust-licenses.json > NOTICES-rust.md
 | dtoa | 1.0.11 | https://github.com/dtolnay/dtoa |
 | dyn-clone | 1.0.20 | https://github.com/dtolnay/dyn-clone |
 | embed_plist | 1.2.2 | https://github.com/nvzqz/embed-plist-rs |
+| enumflags2 | 0.7.12 | https://github.com/meithecatte/enumflags2 |
+| enumflags2_derive | 0.7.12 | https://github.com/meithecatte/enumflags2 |
 | erased-serde | 0.4.10 | https://github.com/dtolnay/erased-serde |
 | errno | 0.3.14 | https://github.com/lambda-fairy/rust-errno |
 | fdeflate | 0.3.7 | https://github.com/image-rs/fdeflate |
@@ -127,6 +132,7 @@ node tools/build-notices-rust.mjs /tmp/rust-licenses.json > NOTICES-rust.md
 | hashbrown | 0.17.0 | https://github.com/rust-lang/hashbrown |
 | heck | 0.4.1 | https://github.com/withoutboats/heck |
 | heck | 0.5.0 | https://github.com/withoutboats/heck |
+| hermit-abi | 0.5.2 | https://github.com/hermit-os/hermit-rs |
 | hex | 0.4.3 | https://github.com/KokaKiwi/rust-hex |
 | html5ever | 0.29.1 | https://github.com/servo/html5ever |
 | html5ever | 0.38.0 | https://github.com/servo/html5ever |
@@ -165,11 +171,13 @@ node tools/build-notices-rust.mjs /tmp/rust-licenses.json > NOTICES-rust.md
 | once_cell | 1.21.4 | https://github.com/matklad/once_cell |
 | once_cell_polyfill | 1.70.2 | https://github.com/polyfill-rs/once_cell_polyfill |
 | openssl-probe | 0.2.1 | https://github.com/rustls/openssl-probe |
+| ordered-stream | 0.2.0 | https://github.com/danieldg/ordered-stream |
 | osakit | 0.3.1 | https://github.com/mdevils/rust-osakit |
 | parking_lot | 0.12.5 | https://github.com/Amanieu/parking_lot |
 | parking_lot_core | 0.9.12 | https://github.com/Amanieu/parking_lot |
 | pathfinder_simd | 0.5.6 | https://github.com/servo/pathfinder |
 | percent-encoding | 2.3.2 | https://github.com/servo/rust-url/ |
+| piper | 0.2.5 | https://github.com/smol-rs/piper |
 | png | 0.17.16 | https://github.com/image-rs/image-png |
 | powerfmt | 0.2.0 | https://github.com/jhpratt/powerfmt |
 | ppv-lite86 | 0.2.21 | https://github.com/cryptocorrosion/cryptocorrosion |
@@ -215,6 +223,7 @@ node tools/build-notices-rust.mjs /tmp/rust-licenses.json > NOTICES-rust.md
 | servo_arc | 0.2.0 | https://github.com/servo/servo |
 | servo_arc | 0.4.3 | https://github.com/servo/stylo |
 | sha2 | 0.10.9 | https://github.com/RustCrypto/hashes |
+| signal-hook-registry | 1.4.8 | https://github.com/vorner/signal-hook |
 | smallvec | 1.15.1 | https://github.com/servo/rust-smallvec |
 | socket2 | 0.6.3 | https://github.com/rust-lang/socket2 |
 | softbuffer | 0.4.8 | https://github.com/rust-windowing/softbuffer |
@@ -312,7 +321,7 @@ node tools/build-notices-rust.mjs /tmp/rust-licenses.json > NOTICES-rust.md
 | x11rb-protocol | 0.13.2 | https://github.com/psychon/x11rb |
 | xattr | 1.6.1 | https://github.com/Stebalien/xattr |
 
-## MIT (128)
+## MIT (140)
 
 | Crate | Version | Repository |
 |---|---|---|
@@ -337,6 +346,7 @@ node tools/build-notices-rust.mjs /tmp/rust-licenses.json > NOTICES-rust.md
 | dlopen2 | 0.8.2 | https://github.com/OpenByteDev/dlopen2 |
 | dlopen2_derive | 0.4.3 | https://github.com/OpenByteDev/dlopen2 |
 | dom_query | 0.27.0 | https://github.com/niklak/dom_query |
+| endi | 1.1.1 | https://github.com/zeenix/endi |
 | freetype-sys | 0.20.1 | https://github.com/PistonDevelopers/freetype-sys.git |
 | fsevent-sys | 4.1.0 | https://github.com/octplane/fsevent-rust/tree/master/fsevent-sys |
 | gdk | 0.18.2 | https://github.com/gtk-rs/gtk3-rs |
@@ -362,6 +372,8 @@ node tools/build-notices-rust.mjs /tmp/rust-licenses.json > NOTICES-rust.md
 | hyper-util | 0.1.20 | https://github.com/hyperium/hyper-util |
 | ico | 0.5.0 | https://github.com/mdsteele/rust-ico |
 | infer | 0.19.0 | https://github.com/bojand/infer |
+| is-docker | 0.2.0 | https://github.com/TheLarkInn/is-docker |
+| is-wsl | 0.4.0 | https://github.com/TheLarkInn/is-wsl |
 | javascriptcore-rs | 1.1.2 | https://github.com/tauri-apps/javascriptcore-rs |
 | javascriptcore-rs-sys | 1.1.1 | https://github.com/tauri-apps/javascriptcore-rs |
 | kqueue | 1.1.1 | https://gitlab.com/rust-kqueue/rust-kqueue |
@@ -378,6 +390,7 @@ node tools/build-notices-rust.mjs /tmp/rust-licenses.json > NOTICES-rust.md
 | objc2 | 0.6.4 | https://github.com/madsmtm/objc2 |
 | objc2-encode | 4.1.0 | https://github.com/madsmtm/objc2 |
 | objc2-foundation | 0.3.2 | https://github.com/madsmtm/objc2 |
+| open | 5.3.5 | https://github.com/Byron/open-rs |
 | pango | 0.18.3 | https://github.com/gtk-rs/gtk-rs-core |
 | pango-sys | 0.18.0 | https://github.com/gtk-rs/gtk-rs-core |
 | phf | 0.8.0 | https://github.com/sfackler/rust-phf |
@@ -422,8 +435,10 @@ node tools/build-notices-rust.mjs /tmp/rust-licenses.json > NOTICES-rust.md
 | tower-layer | 0.3.3 | https://github.com/tower-rs/tower |
 | tower-service | 0.3.3 | https://github.com/tower-rs/tower |
 | tracing | 0.1.44 | https://github.com/tokio-rs/tracing |
+| tracing-attributes | 0.1.31 | https://github.com/tokio-rs/tracing |
 | tracing-core | 0.1.36 | https://github.com/tokio-rs/tracing |
 | try-lock | 0.2.5 | https://github.com/seanmonstar/try-lock |
+| uds_windows | 1.2.1 | https://github.com/haraldh/rust_uds_windows |
 | urlpattern | 0.3.0 | https://github.com/denoland/rust-urlpattern |
 | want | 0.3.1 | https://github.com/seanmonstar/want |
 | wayland-backend | 0.3.15 | https://github.com/smithay/wayland-rs |
@@ -442,19 +457,37 @@ node tools/build-notices-rust.mjs /tmp/rust-licenses.json > NOTICES-rust.md
 | x11 | 2.21.0 | https://github.com/AltF02/x11-rs.git |
 | x11-dl | 2.21.0 | https://github.com/AltF02/x11-rs.git |
 | yeslogic-fontconfig-sys | 6.0.0 | https://github.com/yeslogic/fontconfig-rs |
+| zbus | 5.15.0 | https://github.com/z-galaxy/zbus/ |
+| zbus_macros | 5.15.0 | https://github.com/z-galaxy/zbus/ |
+| zbus_names | 4.3.2 | https://github.com/z-galaxy/zbus/ |
 | zip | 4.6.1 | https://github.com/zip-rs/zip2.git |
 | zmij | 1.0.21 | https://github.com/dtolnay/zmij |
+| zvariant | 5.11.0 | https://github.com/z-galaxy/zbus/ |
+| zvariant_derive | 5.11.0 | https://github.com/z-galaxy/zbus/ |
+| zvariant_utils | 3.3.1 | https://github.com/z-galaxy/zbus/ |
 
-## Apache-2.0 OR MIT (31)
+## Apache-2.0 OR MIT (47)
 
 | Crate | Version | Repository |
 |---|---|---|
+| async-channel | 2.5.0 | https://github.com/smol-rs/async-channel |
+| async-executor | 1.14.0 | https://github.com/smol-rs/async-executor |
+| async-io | 2.6.0 | https://github.com/smol-rs/async-io |
+| async-lock | 3.4.2 | https://github.com/smol-rs/async-lock |
+| async-process | 2.5.0 | https://github.com/smol-rs/async-process |
+| async-signal | 0.2.14 | https://github.com/smol-rs/async-signal |
+| async-task | 4.7.1 | https://github.com/smol-rs/async-task |
 | atomic-waker | 1.1.2 | https://github.com/smol-rs/atomic-waker |
 | bit-set | 0.8.0 | https://github.com/contain-rs/bit-set |
 | bit-vec | 0.8.0 | https://github.com/contain-rs/bit-vec |
+| blocking | 1.6.2 | https://github.com/smol-rs/blocking |
+| concurrent-queue | 2.5.0 | https://github.com/smol-rs/concurrent-queue |
 | ctor | 0.2.9 | https://github.com/mmastrac/rust-ctor |
 | equivalent | 1.0.2 | https://github.com/indexmap-rs/equivalent |
+| event-listener | 5.4.1 | https://github.com/smol-rs/event-listener |
+| event-listener-strategy | 0.5.4 | https://github.com/smol-rs/event-listener-strategy |
 | fastrand | 2.4.1 | https://github.com/smol-rs/fastrand |
+| futures-lite | 2.6.1 | https://github.com/smol-rs/futures-lite |
 | global-hotkey | 0.7.0 | https://github.com/amrbashir/global-hotkey |
 | idna_adapter | 1.2.1 | https://github.com/hsivonen/idna_adapter |
 | indexmap | 1.9.3 | https://github.com/bluss/indexmap |
@@ -462,7 +495,9 @@ node tools/build-notices-rust.mjs /tmp/rust-licenses.json > NOTICES-rust.md
 | libappindicator | 0.9.0 |  |
 | libappindicator-sys | 0.9.0 |  |
 | muda | 0.17.2 | https://github.com/tauri-apps/muda |
+| parking | 2.2.1 | https://github.com/smol-rs/parking |
 | pin-project-lite | 0.2.17 | https://github.com/taiki-e/pin-project-lite |
+| polling | 3.11.0 | https://github.com/smol-rs/polling |
 | rustc-hash | 2.1.2 | https://github.com/rust-lang/rustc-hash |
 | tauri | 2.10.3 | https://github.com/tauri-apps/tauri |
 | tauri-codegen | 2.5.5 | https://github.com/tauri-apps/tauri |
@@ -470,7 +505,9 @@ node tools/build-notices-rust.mjs /tmp/rust-licenses.json > NOTICES-rust.md
 | tauri-plugin-dialog | 2.7.1 | https://github.com/tauri-apps/plugins-workspace |
 | tauri-plugin-fs | 2.5.1 | https://github.com/tauri-apps/plugins-workspace |
 | tauri-plugin-global-shortcut | 2.3.1 | https://github.com/tauri-apps/plugins-workspace |
+| tauri-plugin-opener | 2.5.4 | https://github.com/tauri-apps/plugins-workspace |
 | tauri-plugin-updater | 2.10.1 | https://github.com/tauri-apps/plugins-workspace |
+| tauri-plugin-window-state | 2.4.1 | https://github.com/tauri-apps/plugins-workspace |
 | tauri-runtime | 2.10.1 | https://github.com/tauri-apps/tauri |
 | tauri-runtime-wry | 2.10.1 | https://github.com/tauri-apps/tauri |
 | tauri-utils | 2.8.3 | https://github.com/tauri-apps/tauri |
@@ -481,7 +518,7 @@ node tools/build-notices-rust.mjs /tmp/rust-licenses.json > NOTICES-rust.md
 | wry | 0.54.4 | https://github.com/tauri-apps/wry |
 | zeroize | 1.8.2 | https://github.com/RustCrypto/utils |
 
-## MIT/Apache-2.0 (28)
+## MIT/Apache-2.0 (29)
 
 | Crate | Version | Repository |
 |---|---|---|
@@ -498,6 +535,7 @@ node tools/build-notices-rust.mjs /tmp/rust-licenses.json > NOTICES-rust.md
 | json-patch | 3.0.1 | https://github.com/idubrov/json-patch |
 | mac | 0.1.1 | https://github.com/reem/rust-mac.git |
 | nodrop | 0.1.14 | https://github.com/bluss/arrayvec |
+| pathdiff | 0.2.3 | https://github.com/Manishearth/pathdiff |
 | pathfinder_geometry | 0.5.1 | https://github.com/servo/pathfinder |
 | plain | 0.2.3 | https://github.com/randomites/plain |
 | scoped-tls | 1.0.1 | https://github.com/alexcrichton/scoped-tls |
@@ -607,6 +645,15 @@ node tools/build-notices-rust.mjs /tmp/rust-licenses.json > NOTICES-rust.md
 | rustls-webpki | 0.103.13 | https://github.com/rustls/webpki |
 | untrusted | 0.9.0 | https://github.com/briansmith/untrusted |
 
+## Apache-2.0/MIT (4)
+
+| Crate | Version | Repository |
+|---|---|---|
+| cesu8 | 1.1.0 | https://github.com/emk/cesu8-rs |
+| fxhash | 0.2.1 | https://github.com/cbreeden/fxhash |
+| pollster | 0.4.0 | https://github.com/zesterer/pollster |
+| signal-hook | 0.3.18 | https://github.com/vorner/signal-hook |
+
 ## Apache-2.0 (3)
 
 | Crate | Version | Repository |
@@ -622,14 +669,6 @@ node tools/build-notices-rust.mjs /tmp/rust-licenses.json > NOTICES-rust.md
 | hyper-rustls | 0.27.9 | https://github.com/rustls/hyper-rustls |
 | rustls | 0.23.40 | https://github.com/rustls/rustls |
 | rustls-native-certs | 0.8.3 | https://github.com/rustls/rustls-native-certs |
-
-## Apache-2.0/MIT (3)
-
-| Crate | Version | Repository |
-|---|---|---|
-| cesu8 | 1.1.0 | https://github.com/emk/cesu8-rs |
-| fxhash | 0.2.1 | https://github.com/cbreeden/fxhash |
-| pollster | 0.4.0 | https://github.com/zesterer/pollster |
 
 ## BSD-3-Clause (3)
 
