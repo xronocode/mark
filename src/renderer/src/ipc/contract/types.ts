@@ -66,6 +66,7 @@ export type CommandName =
   | 'mt::fs::write'
   | 'mt::fs::stat'
   | 'mt::fs::readdir'
+  | 'mt::fs::mkdir'
   | 'mt::fs::unlink'
   | 'mt::search::spawn'
   | 'mt::search::cancel'
@@ -158,6 +159,10 @@ export interface CommandMap {
   'mt::fs::readdir': {
     args: { path: string }
     result: string[]
+  }
+  'mt::fs::mkdir': {
+    args: { path: string }
+    result: void
   }
   'mt::fs::unlink': {
     args: { path: string }

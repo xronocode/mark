@@ -192,7 +192,7 @@ export function installWindowGlobals() {
     writeFile: vi.fn(async (_p: string, _data: string) => undefined),
     outputFile: vi.fn(async (_p: string, _data: string) => undefined),
     readdir: vi.fn(async (_p: string) => []),
-    stat: vi.fn(async (_p: string) => ({ isFile: true, isDirectory: false, size: 0 })),
+    stat: vi.fn(async (_p: string) => ({ is_file: true, is_directory: false, size: 0, mode: 0, mtime_ms: 0, is_symbolic_link: false })),
     unlink: vi.fn(async (_p: string) => undefined),
     isFile: vi.fn(async (_p: string) => true),
     isDirectory: vi.fn(async (_p: string) => false),

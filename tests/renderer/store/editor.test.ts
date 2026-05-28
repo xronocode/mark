@@ -1063,51 +1063,44 @@ describe('store/editor', () => {
       expect(bus.emit).toHaveBeenCalledWith('rename')
     })
 
-    it('RENAME ipc-sends with new pathname', () => {
+    it('RENAME calls move and updates tab state', async () => {
       const tab = makeTab({ id: 't1', pathname: '/tmp/a.md', filename: 'a.md' })
       editor.tabs = [tab]
       editor.currentFile = tab
       editor.updateTabIdToIndex()
-      editor.RENAME('b.md')
-      expect(window.electron.ipcRenderer.send).toHaveBeenCalledWith(
-        'mt::rename',
-        expect.objectContaining({ id: 't1' })
-      )
+      await editor.RENAME('b.md')
+      expect(window.fileUtils.move).toHaveBeenCalledWith('/tmp/a.md', '/tmp/b.md')
     })
 
-    it('RENAME no-ops when filename unchanged', () => {
+    it('RENAME no-ops when filename unchanged', async () => {
       const tab = makeTab({ id: 't1', pathname: '/tmp/a.md', filename: 'a.md' })
       editor.tabs = [tab]
       editor.currentFile = tab
-      editor.RENAME('a.md')
-      expect(window.electron.ipcRenderer.send).not.toHaveBeenCalledWith(
-        'mt::rename',
-        expect.any(Object)
-      )
+      await editor.RENAME('a.md')
+      expect(window.fileUtils.move).not.toHaveBeenCalled()
     })
   })
 
   describe('EXPORT', () => {
-    it('returns early when currentFile is empty', () => {
+    it('returns early when currentFile is empty', async () => {
       editor.currentFile = {}
-      editor.EXPORT({ type: 'pdf', content: '<p/>', pageOptions: {} })
-      expect(window.electron.ipcRenderer.send).not.toHaveBeenCalled()
+      await editor.EXPORT({ type: 'styledHtml', content: '<p/>' })
+      const { save } = await import('@tauri-apps/plugin-dialog')
+      expect(save).not.toHaveBeenCalled()
     })
 
-    it('sends mt::response-export with title from listToc top header', () => {
+    it('PDF type shows warning notification', async () => {
+      const notice = (await import('@/services/notification')).default
       editor.currentFile = makeTab({ id: 't1', pathname: '/tmp/a.md', filename: 'a.md' })
       editor.tabs = [editor.currentFile]
-      editor.listToc = [{ slug: 's1', githubSlug: 'g1', content: 'Title', lvl: 1 }]
-      editor.EXPORT({ type: 'pdf', content: '<p/>', pageOptions: {} })
-      expect(window.electron.ipcRenderer.send).toHaveBeenCalledWith(
-        'mt::response-export',
-        expect.objectContaining({ title: 'Title', type: 'pdf' })
+      await editor.EXPORT({ type: 'pdf', content: '<p/>' })
+      expect(notice.notify).toHaveBeenCalledWith(
+        expect.objectContaining({ type: 'warning' })
       )
     })
 
-    it('PRINT_RESPONSE sends mt::response-print', () => {
-      editor.PRINT_RESPONSE()
-      expect(window.electron.ipcRenderer.send).toHaveBeenCalledWith('mt::response-print')
+    it('PRINT_RESPONSE removed — print now uses window.print()', () => {
+      expect(editor.PRINT_RESPONSE).toBeUndefined()
     })
   })
 
@@ -1241,25 +1234,22 @@ describe('store/editor', () => {
   })
 
   describe('MOVE_FILE_TO + RESPONSE_FOR_RENAME', () => {
-    it('MOVE_FILE_TO with named file sends mt::response-file-move-to', async () => {
-      const tab = makeTab({ id: 't1', pathname: '/tmp/a.md' })
+    it('MOVE_FILE_TO opens folder picker and moves file', async () => {
+      const { open } = await import('@tauri-apps/plugin-dialog')
+      ;(open as any).mockResolvedValueOnce('/new/dir')
+      const tab = makeTab({ id: 't1', pathname: '/tmp/a.md', filename: 'a.md' })
       editor.tabs = [tab]
       editor.currentFile = tab
       editor.updateTabIdToIndex()
       await editor.MOVE_FILE_TO()
-      expect(window.electron.ipcRenderer.send).toHaveBeenCalledWith(
-        'mt::response-file-move-to',
-        expect.objectContaining({ id: 't1', pathname: '/tmp/a.md' })
-      )
+      expect(open).toHaveBeenCalledWith({ directory: true, multiple: false })
+      expect(window.fileUtils.move).toHaveBeenCalledWith('/tmp/a.md', '/new/dir/a.md')
     })
 
     it('MOVE_FILE_TO with no id is a no-op', async () => {
       editor.currentFile = {}
       await editor.MOVE_FILE_TO()
-      expect(window.electron.ipcRenderer.send).not.toHaveBeenCalledWith(
-        'mt::response-file-move-to',
-        expect.anything()
-      )
+      expect(window.fileUtils.move).not.toHaveBeenCalled()
     })
 
     it('RESPONSE_FOR_RENAME emits rename when path is set', async () => {

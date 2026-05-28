@@ -126,19 +126,18 @@ describe('store/editor.js — fn coverage', () => {
     editorStore.toc = []
   })
 
-  it('RENAME calls ipcRenderer.send when filename changes', () => {
-    editorStore.currentFile = { id: '1', pathname: '/a/test.md', filename: 'test.md' }
-    editorStore.RENAME('renamed.md')
-    expect(window.electron.ipcRenderer.send).toHaveBeenCalledWith('mt::rename', expect.objectContaining({
-      id: '1',
-      newPathname: '/a/renamed.md'
-    }))
+  it('RENAME calls fileUtils.move when filename changes', async () => {
+    const tab = { id: '1', pathname: '/a/test.md', filename: 'test.md' }
+    editorStore.currentFile = tab
+    editorStore.tabs = [tab]
+    await editorStore.RENAME('renamed.md')
+    expect(window.fileUtils.move).toHaveBeenCalledWith('/a/test.md', '/a/renamed.md')
   })
 
-  it('RENAME does nothing when filename is the same', () => {
+  it('RENAME does nothing when filename is the same', async () => {
     editorStore.currentFile = { id: '1', pathname: '/a/test.md', filename: 'test.md' }
-    editorStore.RENAME('test.md')
-    expect(window.electron.ipcRenderer.send).not.toHaveBeenCalledWith('mt::rename', expect.anything())
+    await editorStore.RENAME('test.md')
+    expect(window.fileUtils.move).not.toHaveBeenCalled()
   })
 
   it('RENAME_FILE calls UPDATE_CURRENT_FILE and emits rename', () => {
@@ -377,9 +376,8 @@ describe('store/editor.js — fn coverage', () => {
     expect(notice.notify).toHaveBeenCalled()
   })
 
-  it('PRINT_RESPONSE sends ipc', () => {
-    editorStore.PRINT_RESPONSE()
-    expect(window.electron.ipcRenderer.send).toHaveBeenCalledWith('mt::response-print')
+  it('PRINT_RESPONSE removed — print now uses window.print()', () => {
+    expect(editorStore.PRINT_RESPONSE).toBeUndefined()
   })
 
   it('ASK_FOR_IMAGE_PATH calls invoke', () => {

@@ -230,6 +230,28 @@ pub async fn mt_fs_readdir(
     fs_readdir_inner(&path, &sec.sandbox())
 }
 
+pub(crate) fn fs_mkdir_inner(path: &str, sandbox: &Path) -> Result<(), IpcError> {
+    let cmd = "mt::fs::mkdir";
+    let requested = Path::new(path);
+
+    safe_eprintln!("[FsCmd][mkdir][BLOCK_VALIDATE_PATH path={}]", redact(path));
+    let validated = m010_security::check_path(sandbox, requested)
+        .map_err(|e| IpcError::from_security_path(cmd, e))?;
+
+    fs::create_dir_all(&validated).map_err(|e| IpcError::from_io(cmd, e))?;
+
+    safe_eprintln!("[FsCmd][mkdir][BLOCK_MKDIR_DONE path={}]", redact(path));
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn mt_fs_mkdir(
+    path: String,
+    sec: State<'_, SecurityCtx>,
+) -> Result<(), IpcError> {
+    fs_mkdir_inner(&path, &sec.sandbox())
+}
+
 /// Inner pure-logic unlink — see `fs_read_inner` for rationale.
 pub(crate) fn fs_unlink_inner(path: &str, sandbox: &Path) -> Result<(), IpcError> {
     let cmd = "mt::fs::unlink";
@@ -535,6 +557,28 @@ mod tests {
         let missing = dir.path().join("ghost-dir");
         let err = fs_readdir_inner(missing.to_str().unwrap(), dir.path()).unwrap_err();
         assert_eq!(err.code, MT_FS_NOT_FOUND);
+    }
+
+    #[test]
+    fn mkdir_creates_nested_dirs() {
+        let dir = TempDir::new().unwrap();
+        let target = dir.path().join("a/b/c");
+        fs_mkdir_inner(target.to_str().unwrap(), dir.path()).unwrap();
+        assert!(target.is_dir());
+    }
+
+    #[test]
+    fn mkdir_existing_dir_is_ok() {
+        let dir = TempDir::new().unwrap();
+        fs_mkdir_inner(dir.path().to_str().unwrap(), dir.path()).unwrap();
+    }
+
+    #[test]
+    fn mkdir_rejects_sandbox_escape() {
+        let dir = TempDir::new().unwrap();
+        let escape = dir.path().join("../escape");
+        let err = fs_mkdir_inner(escape.to_str().unwrap(), dir.path()).unwrap_err();
+        assert_eq!(err.code, MT_FS_PATH_DENIED);
     }
 
     #[test]

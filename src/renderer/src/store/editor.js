@@ -235,27 +235,45 @@ export const useEditorStore = defineStore('editor', {
       window.electron.ipcRenderer.send('mt::format-link-click', { data, dirname })
     },
 
-    // image path auto complement
-    ASK_FOR_IMAGE_AUTO_PATH(src) {
+    async ASK_FOR_IMAGE_AUTO_PATH(src) {
       const { pathname } = this.currentFile
-      if (pathname) {
-        let rs
-        const promise = new Promise((resolve) => {
-          rs = resolve
-        })
-        const id = getUniqueId()
-        window.electron.ipcRenderer.once(`mt::response-of-image-path-${id}`, (_, files) => {
-          rs(files)
-        })
-        window.electron.ipcRenderer.send('mt::ask-for-image-auto-path', {
-          pathname,
-          src,
-          id,
-          currentFile: deepClone(this.currentFile)
-        })
-        return promise
-      } else {
-        return Promise.resolve([])
+      if (!pathname || !src) return []
+
+      const IMAGE_EXTS = new Set([
+        'png', 'jpg', 'jpeg', 'gif', 'svg', 'webp', 'bmp', 'ico', 'tiff', 'tif', 'avif'
+      ])
+
+      try {
+        const fileDir = window.path.dirname(pathname)
+        const lastSep = Math.max(src.lastIndexOf('/'), src.lastIndexOf('\\'))
+        const dirPart = lastSep >= 0 ? src.substring(0, lastSep + 1) : ''
+        const prefix = lastSep >= 0
+          ? src.substring(lastSep + 1).toLowerCase()
+          : src.toLowerCase()
+
+        const resolvedDir = window.path.resolve(fileDir, dirPart || '.')
+        const names = await window.fileUtils.readdir(resolvedDir)
+        const filtered = names
+          .filter((n) => n.toLowerCase().startsWith(prefix))
+          .slice(0, 50)
+
+        const results = await Promise.all(
+          filtered.map(async (name) => {
+            try {
+              const full = window.path.join(resolvedDir, name)
+              const s = await window.fileUtils.stat(full)
+              if (s.is_directory) return { text: name + '/', iconClass: 'icon-folder' }
+              const ext = (name.split('.').pop() || '').toLowerCase()
+              if (IMAGE_EXTS.has(ext)) return { text: name, iconClass: 'icon-image' }
+              return null
+            } catch {
+              return null
+            }
+          })
+        )
+        return results.filter(Boolean)
+      } catch {
+        return []
       }
     },
 
@@ -551,20 +569,33 @@ export const useEditorStore = defineStore('editor', {
       }
     },
 
-    /**
-     * Untitled tab → save-as picker (same flow as FILE_SAVE_AS);
-     * existing tab → mt::response-file-move-to event (handled by the
-     * m_v1_compat shim; full migration of the move flow is deferred).
-     */
     async MOVE_FILE_TO() {
       const { id, pathname } = this.currentFile
       if (!id) return
       if (!pathname) {
         await this.FILE_SAVE_AS()
-      } else {
-        // Move to a new (maybe) folder — still legacy IPC because
-        // mt_response_file_move_to backend lives in m_v1_compat.
-        window.electron.ipcRenderer.send('mt::response-file-move-to', { id, pathname })
+        return
+      }
+      const { open } = await import('@tauri-apps/plugin-dialog')
+      const destDir = await open({ directory: true, multiple: false })
+      if (!destDir) return
+
+      const filename = window.path.basename(pathname)
+      const newPathname = window.path.join(destDir, filename)
+      try {
+        await window.fileUtils.move(pathname, newPathname)
+        this.APPLY_SAVE_OUTCOME({
+          id,
+          pathname: newPathname,
+          filename,
+          isSaved: true
+        })
+      } catch (e) {
+        notice.notify({
+          title: 'Move failed',
+          type: 'error',
+          message: String(e)
+        })
       }
     },
 
@@ -598,16 +629,23 @@ export const useEditorStore = defineStore('editor', {
       }
     },
 
-    // ask for main process to rename this file to a new name `newFilename`
-    RENAME(newFilename) {
+    async RENAME(newFilename) {
       const { id, pathname, filename } = this.currentFile
-      if (typeof filename === 'string' && filename !== newFilename) {
-        const newPathname = window.path.join(window.path.dirname(pathname), newFilename)
-        window.electron.ipcRenderer.send('mt::rename', {
+      if (typeof filename !== 'string' || filename === newFilename) return
+      const newPathname = window.path.join(window.path.dirname(pathname), newFilename)
+      try {
+        await window.fileUtils.move(pathname, newPathname)
+        this.APPLY_SAVE_OUTCOME({
           id,
-          pathname,
-          newPathname,
-          currentFile: deepClone(this.currentFile)
+          pathname: newPathname,
+          filename: newFilename,
+          isSaved: true
+        })
+      } catch (e) {
+        notice.notify({
+          title: 'Rename failed',
+          type: 'error',
+          message: String(e)
         })
       }
     },
@@ -1285,8 +1323,18 @@ export const useEditorStore = defineStore('editor', {
       )
     },
 
-    EXPORT({ type, content, pageOptions }) {
+    async EXPORT({ type, content }) {
       if (!hasKeys(this.currentFile)) return
+
+      if (type === 'pdf') {
+        notice.notify({
+          title: i18n.global.t('editor.export.failed', { type: 'PDF' }),
+          type: 'warning',
+          message: 'PDF export is not yet available. Use Print or export as HTML.'
+        })
+        bus.emit('print-service-clearup')
+        return
+      }
 
       let title = ''
       const { listToc } = this
@@ -1303,15 +1351,29 @@ export const useEditorStore = defineStore('editor', {
         title = headerRef.content
       }
 
-      const { filename, pathname } = this.currentFile
-      window.electron.ipcRenderer.send('mt::response-export', {
-        type,
-        title,
-        content,
-        filename,
-        pathname,
-        pageOptions
+      const { filename } = this.currentFile
+      const defaultName = filename
+        ? filename.replace(/\.md$/i, '.html')
+        : (title || 'export') + '.html'
+
+      const { save } = await import('@tauri-apps/plugin-dialog')
+      const filePath = await save({
+        title: 'Export HTML',
+        defaultPath: defaultName,
+        filters: [{ name: 'HTML', extensions: ['html', 'htm'] }]
       })
+      if (!filePath) return
+
+      try {
+        await ipcFs.write(filePath, content)
+        this.APPLY_EXPORT_SUCCESS(filePath)
+      } catch (e) {
+        notice.notify({
+          title: i18n.global.t('editor.export.failed', { type: 'HTML' }),
+          type: 'error',
+          message: String(e)
+        })
+      }
     },
 
     APPLY_EXPORT_SUCCESS(filePath) {
@@ -1327,10 +1389,6 @@ export const useEditorStore = defineStore('editor', {
         .then(() => {
           window.electron.shell.showItemInFolder(filePath)
         })
-    },
-
-    PRINT_RESPONSE() {
-      window.electron.ipcRenderer.send('mt::response-print')
     },
 
     SET_LINE_ENDING(lineEnding) {

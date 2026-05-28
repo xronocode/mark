@@ -617,7 +617,7 @@ describe('store/editor — coverage gaps', () => {
   // ─── EXPORT — toc scanning for best title ────────────────────────
 
   describe('EXPORT — toc header scanning', () => {
-    it('picks the lowest-level header from first 6 toc entries', () => {
+    it('picks the lowest-level header from first 6 toc entries', async () => {
       editor.currentFile = makeTab({ id: 't1', pathname: '/tmp/a.md', filename: 'a.md' })
       editor.tabs = [editor.currentFile]
       editor.listToc = [
@@ -625,35 +625,43 @@ describe('store/editor — coverage gaps', () => {
         { slug: 's2', githubSlug: 'g2', content: 'Section', lvl: 2 },
         { slug: 's1', githubSlug: 'g1', content: 'MainTitle', lvl: 1 }
       ]
-      editor.EXPORT({ type: 'pdf', content: '<p/>', pageOptions: {} })
-      expect(window.electron.ipcRenderer.send).toHaveBeenCalledWith(
-        'mt::response-export',
-        expect.objectContaining({ title: 'MainTitle' })
+      const { save } = await import('@tauri-apps/plugin-dialog')
+      save.mockResolvedValueOnce('/tmp/out.html')
+      await editor.EXPORT({ type: 'styledHtml', content: '<p/>' })
+      expect(save).toHaveBeenCalledWith(
+        expect.objectContaining({ defaultPath: 'a.html' })
       )
     })
 
-    it('stops scanning when it finds lvl=1', () => {
+    it('stops scanning when it finds lvl=1', async () => {
       editor.currentFile = makeTab({ id: 't1', pathname: '/tmp/a.md', filename: 'a.md' })
       editor.tabs = [editor.currentFile]
       editor.listToc = [
         { slug: 's1', githubSlug: 'g1', content: 'Title', lvl: 1 },
         { slug: 's2', githubSlug: 'g2', content: 'Sub', lvl: 2 }
       ]
-      editor.EXPORT({ type: 'html', content: '<h1/>', pageOptions: {} })
-      expect(window.electron.ipcRenderer.send).toHaveBeenCalledWith(
-        'mt::response-export',
-        expect.objectContaining({ title: 'Title' })
-      )
+      const { save } = await import('@tauri-apps/plugin-dialog')
+      save.mockResolvedValueOnce('/tmp/out.html')
+      await editor.EXPORT({ type: 'styledHtml', content: '<h1/>' })
+      expect(save).toHaveBeenCalled()
     })
 
-    it('uses empty title when listToc is empty', () => {
+    it('uses empty title when listToc is empty', async () => {
       editor.currentFile = makeTab({ id: 't1', pathname: '/tmp/a.md', filename: 'a.md' })
       editor.tabs = [editor.currentFile]
       editor.listToc = []
-      editor.EXPORT({ type: 'pdf', content: '<p/>', pageOptions: {} })
-      expect(window.electron.ipcRenderer.send).toHaveBeenCalledWith(
-        'mt::response-export',
-        expect.objectContaining({ title: '' })
+      const { save } = await import('@tauri-apps/plugin-dialog')
+      save.mockResolvedValueOnce('/tmp/out.html')
+      await editor.EXPORT({ type: 'styledHtml', content: '<p/>' })
+      expect(save).toHaveBeenCalled()
+    })
+
+    it('PDF type shows warning notification', async () => {
+      editor.currentFile = makeTab({ id: 't1', pathname: '/tmp/a.md', filename: 'a.md' })
+      editor.tabs = [editor.currentFile]
+      await editor.EXPORT({ type: 'pdf', content: '<p/>' })
+      expect(notice.notify).toHaveBeenCalledWith(
+        expect.objectContaining({ type: 'warning' })
       )
     })
   })
@@ -728,25 +736,27 @@ describe('store/editor — coverage gaps', () => {
   // ─── ASK_FOR_IMAGE_AUTO_PATH — with pathname ─────────────────────
 
   describe('ASK_FOR_IMAGE_AUTO_PATH — with pathname', () => {
-    it('sends ipc message and returns promise that resolves from ipcRenderer.once', async () => {
+    it('resolves image files from readdir + stat', async () => {
       editor.currentFile = makeTab({ id: 't1', pathname: '/tmp/doc.md' })
       editor.tabs = [editor.currentFile]
 
-      // Mock ipcRenderer.once to immediately call the handler
-      window.electron.ipcRenderer.once.mockImplementation((_channel, handler) => {
-        handler(null, ['/tmp/images/img.png'])
-        return () => {}
-      })
+      window.fileUtils.readdir.mockResolvedValueOnce(['img.png', 'other.txt', 'sub'])
+      window.fileUtils.stat
+        .mockResolvedValueOnce({ is_directory: false, is_file: true })
+        .mockResolvedValueOnce({ is_directory: false, is_file: true })
+        .mockResolvedValueOnce({ is_directory: true, is_file: false })
 
+      const result = await editor.ASK_FOR_IMAGE_AUTO_PATH('./')
+      expect(result).toEqual([
+        { text: 'img.png', iconClass: 'icon-image' },
+        { text: 'sub/', iconClass: 'icon-folder' }
+      ])
+    })
+
+    it('returns empty array when no pathname', async () => {
+      editor.currentFile = makeTab({ id: 't1' })
       const result = await editor.ASK_FOR_IMAGE_AUTO_PATH('img.png')
-      expect(result).toEqual(['/tmp/images/img.png'])
-      expect(window.electron.ipcRenderer.send).toHaveBeenCalledWith(
-        'mt::ask-for-image-auto-path',
-        expect.objectContaining({
-          pathname: '/tmp/doc.md',
-          src: 'img.png'
-        })
-      )
+      expect(result).toEqual([])
     })
   })
 

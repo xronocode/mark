@@ -331,25 +331,18 @@ describe('store/editor — deep coverage (wave 2)', () => {
   // ─── RENAME ─────────────────────────────────────────────────────
 
   describe('RENAME', () => {
-    it('sends mt::rename IPC when filename differs', () => {
-      editor.currentFile = makeTab({ id: 't1', pathname: '/tmp/old.md', filename: 'old.md' })
-      editor.RENAME('new.md')
-      expect(window.electron.ipcRenderer.send).toHaveBeenCalledWith(
-        'mt::rename',
-        expect.objectContaining({
-          id: 't1',
-          pathname: '/tmp/old.md'
-        })
-      )
+    it('calls move and updates tab state when filename differs', async () => {
+      const tab = makeTab({ id: 't1', pathname: '/tmp/old.md', filename: 'old.md' })
+      editor.currentFile = tab
+      editor.tabs = [tab]
+      await editor.RENAME('new.md')
+      expect(window.fileUtils.move).toHaveBeenCalledWith('/tmp/old.md', '/tmp/new.md')
     })
 
-    it('does nothing when newFilename equals current filename', () => {
+    it('does nothing when newFilename equals current filename', async () => {
       editor.currentFile = makeTab({ id: 't1', pathname: '/tmp/same.md', filename: 'same.md' })
-      editor.RENAME('same.md')
-      expect(window.electron.ipcRenderer.send).not.toHaveBeenCalledWith(
-        'mt::rename',
-        expect.anything()
-      )
+      await editor.RENAME('same.md')
+      expect(window.fileUtils.move).not.toHaveBeenCalled()
     })
   })
 
@@ -597,14 +590,7 @@ describe('store/editor — deep coverage (wave 2)', () => {
     })
   })
 
-  // ─── PRINT_RESPONSE ────────────────────────────────────────────
-
-  describe('PRINT_RESPONSE', () => {
-    it('sends mt::response-print IPC', () => {
-      editor.PRINT_RESPONSE()
-      expect(window.electron.ipcRenderer.send).toHaveBeenCalledWith('mt::response-print')
-    })
-  })
+  // ─── PRINT_RESPONSE — removed (print now uses window.print() directly) ───
 
   // ─── Bus listener registrations ─────────────────────────────────
 
@@ -718,22 +704,20 @@ describe('store/editor — deep coverage (wave 2)', () => {
   // ─── MOVE_FILE_TO — with pathname ───────────────────────────────
 
   describe('MOVE_FILE_TO', () => {
-    it('sends IPC when pathname exists', async () => {
-      editor.currentFile = makeTab({ id: 't1', pathname: '/tmp/file.md' })
+    it('opens folder picker and moves file when pathname exists', async () => {
+      const { open } = await import('@tauri-apps/plugin-dialog')
+      open.mockResolvedValueOnce('/new/folder')
+      editor.currentFile = makeTab({ id: 't1', pathname: '/tmp/file.md', filename: 'file.md' })
+      editor.tabs = [editor.currentFile]
       await editor.MOVE_FILE_TO()
-      expect(window.electron.ipcRenderer.send).toHaveBeenCalledWith(
-        'mt::response-file-move-to',
-        { id: 't1', pathname: '/tmp/file.md' }
-      )
+      expect(open).toHaveBeenCalledWith({ directory: true, multiple: false })
+      expect(window.fileUtils.move).toHaveBeenCalledWith('/tmp/file.md', '/new/folder/file.md')
     })
 
     it('returns early when no id', async () => {
       editor.currentFile = {}
       await editor.MOVE_FILE_TO()
-      expect(window.electron.ipcRenderer.send).not.toHaveBeenCalledWith(
-        'mt::response-file-move-to',
-        expect.anything()
-      )
+      expect(window.fileUtils.move).not.toHaveBeenCalled()
     })
   })
 

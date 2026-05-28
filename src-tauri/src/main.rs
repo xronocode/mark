@@ -759,6 +759,7 @@ fn main() {
             m013b::fs::mt_fs_write,
             m013b::fs::mt_fs_stat,
             m013b::fs::mt_fs_readdir,
+            m013b::fs::mt_fs_mkdir,
             m013b::fs::mt_fs_unlink,
             m013b::fs::mt_fs_read_binary,
             m013b::fs::mt_fs_write_binary,

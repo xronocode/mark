@@ -202,7 +202,6 @@ describe('editor.vue — coverage', () => {
     editorStore.SEARCH = vi.fn()
     editorStore.SHOW_IMAGE_DELETION_URL = vi.fn()
     editorStore.EXPORT = vi.fn()
-    editorStore.PRINT_RESPONSE = vi.fn()
     editorStore.SELECTION_CHANGE = vi.fn()
     editorStore.SELECTION_FORMATS = vi.fn()
     editorStore.EXIT_PREVIEW_MODE = vi.fn()
@@ -1127,7 +1126,8 @@ describe('editor.vue — coverage', () => {
     expect(mockPrinter.clearup).toHaveBeenCalled()
   })
 
-  it('handleExport print calls PRINT_RESPONSE', async () => {
+  it('handleExport print calls window.print', async () => {
+    window.print = vi.fn()
     await mountEditor()
     await getBusHandler('export')({
       type: 'print',
@@ -1137,7 +1137,8 @@ describe('editor.vue — coverage', () => {
       htmlTitle: ''
     })
     expect(mockPrinter.renderMarkdown).toHaveBeenCalled()
-    expect(editorStore.PRINT_RESPONSE).toHaveBeenCalled()
+    expect(window.print).toHaveBeenCalled()
+    expect(mockPrinter.clearup).toHaveBeenCalled()
   })
 
   it('handleExport print handles error', async () => {

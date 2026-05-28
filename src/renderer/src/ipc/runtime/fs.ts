@@ -42,6 +42,11 @@ export const ipcFs = {
     return ipcInvoke('mt::fs::readdir', { path })
   },
 
+  /** Create directory (and parents). Idempotent. */
+  mkdir(path: string): Promise<void> {
+    return ipcInvoke('mt::fs::mkdir', { path })
+  },
+
   /** Delete a file. Refuses directories. */
   unlink(path: string): Promise<void> {
     return ipcInvoke('mt::fs::unlink', { path })
