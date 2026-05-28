@@ -51,7 +51,7 @@ const makeStubs = () => ({
 })
 
 describe('App.vue page — deep coverage', () => {
-  let pinia, bus, AppPage
+  let pinia, bus, AppPage, _wrapper
 
   beforeEach(async () => {
     pinia = setupTestPinia()
@@ -65,13 +65,22 @@ describe('App.vue page — deep coverage', () => {
     AppPage = (await import('@/pages/app.vue')).default
   })
 
-  const mountComponent = () =>
-    shallowMount(AppPage, {
+  afterEach(() => {
+    if (_wrapper) {
+      _wrapper.unmount()
+      _wrapper = null
+    }
+  })
+
+  const mountComponent = () => {
+    _wrapper = shallowMount(AppPage, {
       global: {
         plugins: [pinia, i18n],
         stubs: makeStubs()
       }
     })
+    return _wrapper
+  }
 
   describe('computed properties', () => {
     it('hasCurrentFile is true when markdown is defined', async () => {
@@ -235,6 +244,99 @@ describe('App.vue page — deep coverage', () => {
       await nextTick()
 
       expect(wrapper.find('.editor-placeholder').exists()).toBe(false)
+    })
+  })
+
+  describe('pinch-to-zoom handler', () => {
+    const flush = () => new Promise(r => setTimeout(r, 0))
+
+    const fireWheel = (deltaY, ctrlKey = true) => {
+      const evt = new WheelEvent('wheel', { deltaY, ctrlKey, bubbles: true, cancelable: true })
+      document.dispatchEvent(evt)
+    }
+
+    it('zooms in on negative deltaY with ctrlKey', async () => {
+      const { usePreferencesStore } = await import('@/store/preferences')
+      const prefStore = usePreferencesStore()
+      prefStore.zoom = 1.0
+
+      mountComponent()
+      await flush()
+      bus.emit.mockClear()
+
+      fireWheel(-20)
+
+      expect(bus.emit).toHaveBeenCalledWith('mt::window-zoom', 1.125)
+    })
+
+    it('zooms out on positive deltaY with ctrlKey', async () => {
+      const { usePreferencesStore } = await import('@/store/preferences')
+      const prefStore = usePreferencesStore()
+      prefStore.zoom = 1.0
+
+      mountComponent()
+      await flush()
+      bus.emit.mockClear()
+
+      fireWheel(20)
+
+      expect(bus.emit).toHaveBeenCalledWith('mt::window-zoom', 0.875)
+    })
+
+    it('ignores wheel events without ctrlKey', async () => {
+      const { usePreferencesStore } = await import('@/store/preferences')
+      const prefStore = usePreferencesStore()
+      prefStore.zoom = 1.0
+
+      mountComponent()
+      await flush()
+      bus.emit.mockClear()
+
+      fireWheel(-20, false)
+
+      expect(bus.emit).not.toHaveBeenCalled()
+    })
+
+    it('does not zoom past max level', async () => {
+      const { usePreferencesStore } = await import('@/store/preferences')
+      const prefStore = usePreferencesStore()
+      prefStore.zoom = 2.0
+
+      mountComponent()
+      await flush()
+      bus.emit.mockClear()
+
+      fireWheel(-20)
+
+      expect(bus.emit).not.toHaveBeenCalledWith('mt::window-zoom', expect.anything())
+    })
+
+    it('does not zoom past min level', async () => {
+      const { usePreferencesStore } = await import('@/store/preferences')
+      const prefStore = usePreferencesStore()
+      prefStore.zoom = 0.5
+
+      mountComponent()
+      await flush()
+      bus.emit.mockClear()
+
+      fireWheel(20)
+
+      expect(bus.emit).not.toHaveBeenCalledWith('mt::window-zoom', expect.anything())
+    })
+
+    it('accumulates delta below threshold without emitting', async () => {
+      const { usePreferencesStore } = await import('@/store/preferences')
+      const prefStore = usePreferencesStore()
+      prefStore.zoom = 1.0
+
+      mountComponent()
+      await flush()
+      bus.emit.mockClear()
+
+      fireWheel(-5)
+
+      expect(bus.emit).not.toHaveBeenCalled()
     })
   })
 
