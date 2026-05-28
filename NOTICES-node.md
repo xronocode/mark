@@ -1,6 +1,6 @@
 # NOTICES — Node.js production dependencies
 
-Generated from `license-checker --production` over **717 packages**.
+Generated from `license-checker --production` over **721 packages**.
 
 Each entry lists the package name, version, license SPDX identifier, and upstream repository when available. Re-generate with:
 
@@ -16,14 +16,15 @@ npx --package license-checker -- license-checker --production --json | \
 | MIT | 529 |
 | ISC | 62 |
 | BSD-3-Clause | 61 |
-| Apache-2.0 | 42 |
+| Apache-2.0 | 43 |
 | BSD-2-Clause | 7 |
+| Apache-2.0 OR MIT | 2 |
 | Apache* | 2 |
+| MIT OR Apache-2.0 | 2 |
 | Unlicense | 2 |
 | (MIT OR CC0-1.0) | 1 |
 | (MPL-2.0 OR Apache-2.0) | 1 |
 | 0BSD | 1 |
-| Apache-2.0 OR MIT | 1 |
 | BlueOak-1.0.0 | 1 |
 | BSD* | 1 |
 | CC-BY-4.0 | 1 |
@@ -699,7 +700,7 @@ npx --package license-checker -- license-checker --production --json | \
 | vega-voronoi | 5.1.0 | https://github.com/vega/vega |
 | vega-wordcloud | 5.1.0 | https://github.com/vega/vega |
 
-## Apache-2.0 (42)
+## Apache-2.0 (43)
 
 | Package | Version | Repository |
 |---|---|---|
@@ -736,6 +737,7 @@ npx --package license-checker -- license-checker --production --json | \
 | baseline-browser-mapping | 2.10.23 | https://github.com/web-platform-dx/baseline-browser-mapping |
 | before-after-hook | 4.0.0 | https://github.com/gr2m/before-after-hook |
 | chevrotain | 12.0.0 | https://github.com/Chevrotain/chevrotain |
+| diff-match-patch | 1.0.5 | https://github.com/JackuB/diff-match-patch |
 | eve | 0.5.4 | https://github.com/adobe-webplatform/eve |
 | find-yarn-workspace-root2 | 1.2.16 | https://github.com/bluelovers/find-yarn-workspace-root |
 | human-signals | 5.0.0 | https://github.com/ehmicky/human-signals |
@@ -758,12 +760,26 @@ npx --package license-checker -- license-checker --production --json | \
 | shimmer | 1.2.1 | https://github.com/othiym23/shimmer |
 | webidl-conversions | 7.0.0 | https://github.com/jsdom/webidl-conversions |
 
+## Apache-2.0 OR MIT (2)
+
+| Package | Version | Repository |
+|---|---|---|
+| @tauri-apps/api | 2.10.1 | https://github.com/tauri-apps/tauri |
+| @tauri-apps/api | 2.11.0 | https://github.com/tauri-apps/tauri |
+
 ## Apache* (2)
 
 | Package | Version | Repository |
 |---|---|---|
 | @electric-sql/client | 1.0.0-beta.1 | https://github.com/electric-sql/electric |
 | eve-raphael | 0.5.0 | https://github.com/tomasAlabes/eve |
+
+## MIT OR Apache-2.0 (2)
+
+| Package | Version | Repository |
+|---|---|---|
+| @tauri-apps/plugin-dialog | 2.7.1 | https://github.com/tauri-apps/plugins-workspace |
+| @tauri-apps/plugin-opener | 2.5.4 | https://github.com/tauri-apps/plugins-workspace |
 
 ## Unlicense (2)
 
@@ -789,12 +805,6 @@ npx --package license-checker -- license-checker --production --json | \
 | Package | Version | Repository |
 |---|---|---|
 | tslib | 2.8.1 | https://github.com/Microsoft/tslib |
-
-## Apache-2.0 OR MIT (1)
-
-| Package | Version | Repository |
-|---|---|---|
-| @tauri-apps/api | 2.10.1 | https://github.com/tauri-apps/tauri |
 
 ## BlueOak-1.0.0 (1)
 
