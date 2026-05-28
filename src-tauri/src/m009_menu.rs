@@ -399,7 +399,8 @@ pub fn build_native_menu<R: tauri::Runtime>(
 
     let view_submenu = SubmenuBuilder::new(handle, "View")
         .item(
-            &MenuItemBuilder::with_id("view.toggle-sidebar", "Toggle Sidebar")
+            &tauri::menu::CheckMenuItemBuilder::with_id("view.toggle-sidebar", "Toggle Sidebar")
+                .checked(true)
                 .accelerator("CmdOrCtrl+B")
                 .build(handle)?,
         )
@@ -470,6 +471,22 @@ pub fn build_native_menu<R: tauri::Runtime>(
 }
 
 // END_BLOCK build_native_menu
+
+#[tauri::command]
+pub async fn mt_window_popup_app_menu(
+    app: tauri::AppHandle,
+    window: tauri::Window,
+    x: f64,
+    y: f64,
+) -> Result<(), String> {
+    use tauri::menu::{ContextMenu, Menu};
+    use tauri::{LogicalPosition, Position};
+
+    let menu: Menu<tauri::Wry> = app.menu().ok_or("no app menu set")?;
+    let pos = Position::Logical(LogicalPosition::new(x, y));
+    menu.popup_at(window, pos)
+        .map_err(|e| format!("popup failed: {e}"))
+}
 
 #[cfg(test)]
 mod tests {

@@ -459,15 +459,16 @@ const handleMinimizeClick = async () => {
   await getCurrentWindow().minimize()
 }
 
-const handleMenuClick = () => {
-  // Custom titlebar's hamburger menu is only used on Windows/Linux
-  // when titleBarStyle === 'custom' AND !isOsx (see template guard).
-  // Tauri 2 menu popup needs a Menu instance + window.popup_at(); the
-  // renderer doesn't have direct access to the native menu Menu<R>
-  // built in m009_menu.rs. Deferred to a future mt_window_popup_app_menu
-  // invoke that takes (x, y). For alpha, log a warning so behaviour is
-  // observable, no crash.
-  console.warn('[titleBar] custom-titlebar menu popup deferred (mt_window_popup_app_menu)')
+const handleMenuClick = async (event) => {
+  try {
+    const rect = event.currentTarget.getBoundingClientRect()
+    await window.electron.ipcRenderer.invoke('mt::window-popup-app-menu', {
+      x: rect.left,
+      y: rect.bottom
+    })
+  } catch (e) {
+    console.warn('[titleBar] menu popup failed:', e)
+  }
 }
 
 const rename = () => {
