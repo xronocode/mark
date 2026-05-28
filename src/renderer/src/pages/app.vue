@@ -159,6 +159,34 @@ const setupDragDropHandler = () => {
     false
   )
 }
+
+const ZOOM_LEVELS = [0.5, 0.625, 0.75, 0.875, 1.0, 1.125, 1.25, 1.375, 1.5, 1.625, 1.75, 1.875, 2.0]
+
+const setupPinchZoomHandler = () => {
+  let accumulatedDelta = 0
+  const STEP_THRESHOLD = 15
+
+  document.addEventListener('wheel', (e) => {
+    if (!e.ctrlKey) return
+    e.preventDefault()
+
+    accumulatedDelta += e.deltaY
+    if (Math.abs(accumulatedDelta) < STEP_THRESHOLD) return
+
+    const currentZoom = preferencesStore.zoom
+    let idx = ZOOM_LEVELS.findIndex(z => z >= currentZoom)
+    if (idx === -1) idx = ZOOM_LEVELS.length - 1
+
+    const step = accumulatedDelta > 0 ? -1 : 1
+    accumulatedDelta = 0
+
+    const nextIdx = Math.max(0, Math.min(ZOOM_LEVELS.length - 1, idx + step))
+    if (ZOOM_LEVELS[nextIdx] !== currentZoom) {
+      bus.emit('mt::window-zoom', ZOOM_LEVELS[nextIdx])
+    }
+  }, { passive: false })
+}
+
 onMounted(async () => {
   if (window.marktext.initialState) {
     preferencesStore.SET_USER_PREFERENCE(window.marktext.initialState)
@@ -187,6 +215,7 @@ onMounted(async () => {
   editorStore.LISTEN_WINDOW_ZOOM()
 
   setupDragDropHandler()
+  setupPinchZoomHandler()
 
   nextTick(() => {
     const style = {
