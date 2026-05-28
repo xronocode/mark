@@ -204,16 +204,24 @@ export const usePreferencesStore = defineStore('preferences', {
       }
     },
 
-    SET_IMAGE_FOLDER_PATH(value) {
-      // Deferred — F-PREFS-IMAGE-DIALOG. For now, just persist the
-      // path verbatim if user typed it manually.
+    async SET_IMAGE_FOLDER_PATH(value) {
+      if (value === undefined) {
+        const { open } = await import('@tauri-apps/plugin-dialog')
+        const selected = await open({ directory: true, multiple: false })
+        if (selected) {
+          this.SET_SINGLE_PREFERENCE({ type: 'imageFolderPath', value: selected })
+        }
+        return
+      }
       this.SET_SINGLE_PREFERENCE({ type: 'imageFolderPath', value })
     },
 
-    SELECT_DEFAULT_DIRECTORY_TO_OPEN() {
-      // Deferred — F-PREFS-DIR-PICKER. No-op until directory picker
-      // wired through tauri-plugin-dialog.
-      console.warn('[prefs] SELECT_DEFAULT_DIRECTORY_TO_OPEN: not yet implemented in Tauri port')
+    async SELECT_DEFAULT_DIRECTORY_TO_OPEN() {
+      const { open } = await import('@tauri-apps/plugin-dialog')
+      const selected = await open({ directory: true, multiple: false })
+      if (selected) {
+        this.SET_SINGLE_PREFERENCE({ type: 'defaultDirectoryToOpen', value: selected })
+      }
     },
 
     // Toggle a view option and notify main process to toggle menu item.

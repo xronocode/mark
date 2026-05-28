@@ -167,3 +167,50 @@ describe('util/clipboard (macOS, non-array plist)', () => {
     expect(guessFn()).toBe('')
   })
 })
+
+describe('util/clipboard (Tauri shim — no native .has/.read)', () => {
+  it('throws when clipboard shim lacks .has() method', async () => {
+    vi.resetModules()
+    vi.doMock('@/util/index', () => ({
+      isLinux: false,
+      isOsx: true,
+      isWindows: false
+    }))
+    vi.doMock('plist', () => ({
+      default: { parse: vi.fn() }
+    }))
+
+    window.electron.clipboard = {
+      readText: async () => '',
+      writeText: async () => {},
+      read: async () => [],
+      write: async () => {}
+    }
+
+    const { guessClipboardFilePath: guessFn } = await import('@/util/clipboard')
+    expect(() => guessFn()).toThrow()
+  })
+
+  it('returns empty string when clipboard shim has .has() returning false', async () => {
+    vi.resetModules()
+    vi.doMock('@/util/index', () => ({
+      isLinux: false,
+      isOsx: true,
+      isWindows: false
+    }))
+    vi.doMock('plist', () => ({
+      default: { parse: vi.fn() }
+    }))
+
+    window.electron.clipboard = {
+      readText: async () => '',
+      writeText: async () => {},
+      read: async (format) => (typeof format === 'string' ? '' : []),
+      has: () => false,
+      write: async () => {}
+    }
+
+    const { guessClipboardFilePath: guessFn } = await import('@/util/clipboard')
+    expect(guessFn()).toBe('')
+  })
+})

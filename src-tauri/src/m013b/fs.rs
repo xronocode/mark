@@ -260,6 +260,177 @@ pub async fn mt_fs_unlink(
     fs_unlink_inner(&path, &sec.sandbox())
 }
 
+// ── Binary I/O + copy/move (B10 image pipeline) ──
+
+/// Inner binary read — raw bytes, no encoding detection.
+pub(crate) fn fs_read_binary_inner(path: &str, sandbox: &Path) -> Result<Vec<u8>, IpcError> {
+    let cmd = "mt::fs::read_binary";
+    let requested = Path::new(path);
+
+    let validated = m010_security::check_path(sandbox, requested)
+        .map_err(|e| IpcError::from_security_path(cmd, e))?;
+
+    let meta = fs::metadata(&validated).map_err(|e| IpcError::from_io(cmd, e))?;
+    if !meta.is_file() {
+        return Err(IpcError::not_regular_file(cmd, &validated));
+    }
+    if meta.len() > MAX_READ_BYTES {
+        return Err(IpcError {
+            code: "MT_FS_TOO_LARGE".to_string(),
+            message: format!(
+                "file is {} bytes, exceeds MAX_READ_BYTES ({})",
+                meta.len(),
+                MAX_READ_BYTES
+            ),
+            command: cmd.to_string(),
+            planned_phase: String::new(),
+        });
+    }
+
+    let bytes = fs::read(&validated).map_err(|e| IpcError::from_io(cmd, e))?;
+    safe_eprintln!(
+        "[FsCmd][read_binary][BLOCK_READ_FROM_DISK path={} bytes={}]",
+        redact(path),
+        bytes.len()
+    );
+    Ok(bytes)
+}
+
+/// Read file as raw bytes (binary-safe; no encoding detection).
+/// Tauri 2 auto-serializes Vec<u8> → Uint8Array on the JS side.
+#[tauri::command]
+pub async fn mt_fs_read_binary(
+    path: String,
+    sec: State<'_, SecurityCtx>,
+) -> Result<Vec<u8>, IpcError> {
+    fs_read_binary_inner(&path, &sec.sandbox())
+}
+
+/// Inner binary write — raw bytes, no UTF-8 assumption.
+pub(crate) fn fs_write_binary_inner(
+    path: &str,
+    data: &[u8],
+    sandbox: &Path,
+) -> Result<(), IpcError> {
+    let cmd = "mt::fs::write_binary";
+    let requested = Path::new(path);
+
+    let validated = m010_security::check_path(sandbox, requested)
+        .map_err(|e| IpcError::from_security_path(cmd, e))?;
+
+    if let Some(parent) = validated.parent() {
+        fs::create_dir_all(parent).map_err(|e| IpcError::from_io(cmd, e))?;
+    }
+    let mut f = fs::File::create(&validated).map_err(|e| IpcError::from_io(cmd, e))?;
+    f.write_all(data).map_err(|e| IpcError::from_io(cmd, e))?;
+    f.sync_all().map_err(|e| IpcError::from_io(cmd, e))?;
+    safe_eprintln!(
+        "[FsCmd][write_binary][BLOCK_WRITE_TO_DISK path={} bytes={} fsync=true]",
+        redact(path),
+        data.len()
+    );
+    Ok(())
+}
+
+/// Write raw bytes to a file (binary-safe). Creates parent dirs if missing.
+#[tauri::command]
+pub async fn mt_fs_write_binary(
+    path: String,
+    data: Vec<u8>,
+    sec: State<'_, SecurityCtx>,
+) -> Result<(), IpcError> {
+    fs_write_binary_inner(&path, &data, &sec.sandbox())
+}
+
+/// Inner copy — validate both paths, std::fs::copy.
+pub(crate) fn fs_copy_inner(
+    src: &str,
+    dest: &str,
+    sandbox: &Path,
+) -> Result<(), IpcError> {
+    let cmd = "mt::fs::copy";
+
+    let val_src = m010_security::check_path(sandbox, Path::new(src))
+        .map_err(|e| IpcError::from_security_path(cmd, e))?;
+    let val_dest = m010_security::check_path(sandbox, Path::new(dest))
+        .map_err(|e| IpcError::from_security_path(cmd, e))?;
+
+    let meta = fs::metadata(&val_src).map_err(|e| IpcError::from_io(cmd, e))?;
+    if !meta.is_file() {
+        return Err(IpcError::not_regular_file(cmd, &val_src));
+    }
+
+    if let Some(parent) = val_dest.parent() {
+        fs::create_dir_all(parent).map_err(|e| IpcError::from_io(cmd, e))?;
+    }
+    fs::copy(&val_src, &val_dest).map_err(|e| IpcError::from_io(cmd, e))?;
+    safe_eprintln!(
+        "[FsCmd][copy][BLOCK_COPY_DONE src={} dest={}]",
+        redact(src),
+        redact(dest)
+    );
+    Ok(())
+}
+
+/// Copy a file. Creates parent dirs for dest if missing.
+#[tauri::command]
+pub async fn mt_fs_copy(
+    src: String,
+    dest: String,
+    sec: State<'_, SecurityCtx>,
+) -> Result<(), IpcError> {
+    fs_copy_inner(&src, &dest, &sec.sandbox())
+}
+
+/// Inner move — try rename first, fallback to copy+delete on cross-device.
+pub(crate) fn fs_move_inner(
+    src: &str,
+    dest: &str,
+    sandbox: &Path,
+) -> Result<(), IpcError> {
+    let cmd = "mt::fs::move";
+
+    let val_src = m010_security::check_path(sandbox, Path::new(src))
+        .map_err(|e| IpcError::from_security_path(cmd, e))?;
+    let val_dest = m010_security::check_path(sandbox, Path::new(dest))
+        .map_err(|e| IpcError::from_security_path(cmd, e))?;
+
+    let meta = fs::metadata(&val_src).map_err(|e| IpcError::from_io(cmd, e))?;
+    if !meta.is_file() {
+        return Err(IpcError::not_regular_file(cmd, &val_src));
+    }
+
+    if let Some(parent) = val_dest.parent() {
+        fs::create_dir_all(parent).map_err(|e| IpcError::from_io(cmd, e))?;
+    }
+
+    match fs::rename(&val_src, &val_dest) {
+        Ok(()) => {}
+        Err(e) if e.raw_os_error() == Some(18/* EXDEV */) => {
+            fs::copy(&val_src, &val_dest).map_err(|e| IpcError::from_io(cmd, e))?;
+            fs::remove_file(&val_src).map_err(|e| IpcError::from_io(cmd, e))?;
+        }
+        Err(e) => return Err(IpcError::from_io(cmd, e)),
+    }
+    safe_eprintln!(
+        "[FsCmd][move][BLOCK_MOVE_DONE src={} dest={}]",
+        redact(src),
+        redact(dest)
+    );
+    Ok(())
+}
+
+/// Move (rename) a file. Falls back to copy+delete on cross-device.
+/// Creates parent dirs for dest if missing.
+#[tauri::command]
+pub async fn mt_fs_move(
+    src: String,
+    dest: String,
+    sec: State<'_, SecurityCtx>,
+) -> Result<(), IpcError> {
+    fs_move_inner(&src, &dest, &sec.sandbox())
+}
+
 /// Path redaction for trace logs. V-M-002 marker spec calls for
 /// path_redacted — we surface basename only (no parent path leaks).
 fn redact(path: &str) -> String {
@@ -477,5 +648,115 @@ mod tests {
         assert_eq!(redact("/Users/secret/folder/note.md"), "…/note.md");
         assert_eq!(redact("note.md"), "…/note.md");
         assert_eq!(redact("/"), "…");
+    }
+
+    // ── Binary read/write tests ──
+
+    #[test]
+    fn read_binary_roundtrip_preserves_bytes() {
+        let dir = TempDir::new().unwrap();
+        let target = dir.path().join("image.png");
+        let png_header: Vec<u8> = vec![0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0xFF, 0x00, 0xFE];
+        std::fs::write(&target, &png_header).unwrap();
+        let read = fs_read_binary_inner(target.to_str().unwrap(), dir.path()).unwrap();
+        assert_eq!(read, png_header, "binary bytes must survive roundtrip");
+    }
+
+    #[test]
+    fn write_binary_roundtrip_preserves_bytes() {
+        let dir = TempDir::new().unwrap();
+        let target = dir.path().join("output.png");
+        let data: Vec<u8> = vec![0x89, 0x50, 0x4E, 0x47, 0x00, 0xFF, 0xFE, 0xFD];
+        fs_write_binary_inner(target.to_str().unwrap(), &data, dir.path()).unwrap();
+        let read_back = std::fs::read(&target).unwrap();
+        assert_eq!(read_back, data);
+    }
+
+    #[test]
+    fn read_binary_outside_sandbox_rejected() {
+        let dir = TempDir::new().unwrap();
+        let outside = TempDir::new().unwrap();
+        let target = outside.path().join("secret.bin");
+        std::fs::write(&target, b"secret").unwrap();
+        let err = fs_read_binary_inner(target.to_str().unwrap(), dir.path()).unwrap_err();
+        assert_eq!(err.code, MT_FS_PATH_DENIED);
+    }
+
+    #[test]
+    fn write_binary_creates_parent_dirs() {
+        let dir = TempDir::new().unwrap();
+        let nested = dir.path().join("a/b/img.png");
+        fs_write_binary_inner(nested.to_str().unwrap(), &[1, 2, 3], dir.path()).unwrap();
+        assert_eq!(std::fs::read(&nested).unwrap(), vec![1, 2, 3]);
+    }
+
+    // ── Copy tests ──
+
+    #[test]
+    fn copy_file_within_sandbox() {
+        let dir = TempDir::new().unwrap();
+        let src = dir.path().join("a.txt");
+        write(&src, "copy me").unwrap();
+        let dest = dir.path().join("b.txt");
+        fs_copy_inner(src.to_str().unwrap(), dest.to_str().unwrap(), dir.path()).unwrap();
+        assert_eq!(std::fs::read_to_string(&dest).unwrap(), "copy me");
+        assert!(src.exists(), "source must remain after copy");
+    }
+
+    #[test]
+    fn copy_creates_parent_dirs_for_dest() {
+        let dir = TempDir::new().unwrap();
+        let src = dir.path().join("a.txt");
+        write(&src, "x").unwrap();
+        let dest = dir.path().join("sub/deep/b.txt");
+        fs_copy_inner(src.to_str().unwrap(), dest.to_str().unwrap(), dir.path()).unwrap();
+        assert!(dest.exists());
+    }
+
+    #[test]
+    fn copy_outside_sandbox_rejected() {
+        let dir = TempDir::new().unwrap();
+        let outside = TempDir::new().unwrap();
+        let src = dir.path().join("a.txt");
+        write(&src, "x").unwrap();
+        let dest = outside.path().join("stolen.txt");
+        let err = fs_copy_inner(src.to_str().unwrap(), dest.to_str().unwrap(), dir.path()).unwrap_err();
+        assert_eq!(err.code, MT_FS_PATH_DENIED);
+    }
+
+    // ── Move tests ──
+
+    #[test]
+    fn move_renames_file_within_sandbox() {
+        let dir = TempDir::new().unwrap();
+        let src = dir.path().join("old.txt");
+        write(&src, "move me").unwrap();
+        let dest = dir.path().join("new.txt");
+        fs_move_inner(src.to_str().unwrap(), dest.to_str().unwrap(), dir.path()).unwrap();
+        assert!(!src.exists(), "source must be gone after move");
+        assert_eq!(std::fs::read_to_string(&dest).unwrap(), "move me");
+    }
+
+    #[test]
+    fn move_creates_parent_dirs_for_dest() {
+        let dir = TempDir::new().unwrap();
+        let src = dir.path().join("a.txt");
+        write(&src, "x").unwrap();
+        let dest = dir.path().join("sub/deep/b.txt");
+        fs_move_inner(src.to_str().unwrap(), dest.to_str().unwrap(), dir.path()).unwrap();
+        assert!(dest.exists());
+        assert!(!src.exists());
+    }
+
+    #[test]
+    fn move_outside_sandbox_rejected() {
+        let dir = TempDir::new().unwrap();
+        let outside = TempDir::new().unwrap();
+        let src = dir.path().join("a.txt");
+        write(&src, "x").unwrap();
+        let dest = outside.path().join("stolen.txt");
+        let err = fs_move_inner(src.to_str().unwrap(), dest.to_str().unwrap(), dir.path()).unwrap_err();
+        assert_eq!(err.code, MT_FS_PATH_DENIED);
+        assert!(src.exists(), "source must remain after rejected move");
     }
 }

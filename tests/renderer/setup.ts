@@ -138,6 +138,26 @@ vi.mock('@tauri-apps/api/path', () => {
   }
 })
 
+// ─── @tauri-apps/plugin-dialog ─────────────────────────────────────
+vi.mock('@tauri-apps/plugin-dialog', () => {
+  return {
+    open: vi.fn(async () => null),
+    save: vi.fn(async () => null),
+    message: vi.fn(async () => undefined),
+    ask: vi.fn(async () => false),
+    confirm: vi.fn(async () => false)
+  }
+})
+
+// ─── @tauri-apps/plugin-opener ────────────────────────────────────
+vi.mock('@tauri-apps/plugin-opener', () => {
+  return {
+    openUrl: vi.fn(async () => undefined),
+    openPath: vi.fn(async () => undefined),
+    revealItemInDir: vi.fn(async () => undefined)
+  }
+})
+
 // ─── @tauri-apps/api/webview ───────────────────────────────────────
 vi.mock('@tauri-apps/api/webview', () => {
   const stubWebview = {

@@ -515,6 +515,7 @@ fn main() {
         // main thread internally.
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_window_state::Builder::new().with_denylist(&["settings"]).build())
+        .plugin(tauri_plugin_opener::init())
         // F-MENU-WIRE-TAURI (B4-pre-alpha step-1): build the native
         // macOS menu in Builder.setup so accelerators bind to menu
         // items at app boot. Each menu item with `with_id(...)` becomes
@@ -759,6 +760,10 @@ fn main() {
             m013b::fs::mt_fs_stat,
             m013b::fs::mt_fs_readdir,
             m013b::fs::mt_fs_unlink,
+            m013b::fs::mt_fs_read_binary,
+            m013b::fs::mt_fs_write_binary,
+            m013b::fs::mt_fs_copy,
+            m013b::fs::mt_fs_move,
             m013b::search::mt_search_spawn,
             m013b::search::mt_search_cancel,
             m013b::watch::mt_watch_subscribe,

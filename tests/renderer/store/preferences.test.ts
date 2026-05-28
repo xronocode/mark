@@ -227,13 +227,12 @@ describe('store/preferences', () => {
     expect(invoke).toHaveBeenCalledWith('mt_prefs_set', { key: 'imageFolderPath', value: '/img/path' })
   })
 
-  it('SELECT_DEFAULT_DIRECTORY_TO_OPEN warns (deferred)', async () => {
-    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+  it('SELECT_DEFAULT_DIRECTORY_TO_OPEN opens native directory picker', async () => {
+    const { open } = await import('@tauri-apps/plugin-dialog')
     const { usePreferencesStore } = await import('@/store/preferences')
     const s = usePreferencesStore()
-    s.SELECT_DEFAULT_DIRECTORY_TO_OPEN()
-    expect(warnSpy).toHaveBeenCalled()
-    warnSpy.mockRestore()
+    await s.SELECT_DEFAULT_DIRECTORY_TO_OPEN()
+    expect(open).toHaveBeenCalledWith({ directory: true, multiple: false })
   })
 
   it('LISTEN_TOGGLE_VIEW registers bus handler that toggles + dispatches', async () => {

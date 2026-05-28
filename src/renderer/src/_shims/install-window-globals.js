@@ -98,6 +98,7 @@ import { listen as _tauriListen, once as _tauriOnce, emit as _tauriEmit } from '
 // with content. (See store/editor.js:634.)
 const _droppedFilePaths = new WeakMap()
 const MARKDOWN_DROP_EXTS = ['md', 'markdown', 'mmd', 'mkd', 'mkdn', 'mdown', 'mdtxt', 'mdtext', 'mdx', 'text', 'txt']
+const IMAGE_DROP_EXTS = ['jpeg', 'jpg', 'png', 'gif', 'svg', 'webp', 'bmp', 'ico', 'tif', 'tiff']
 {
   const { getCurrentWebview } = await import('@tauri-apps/api/webview')
   const { emit: tauriEmit } = await import('@tauri-apps/api/event')
@@ -108,7 +109,16 @@ const MARKDOWN_DROP_EXTS = ['md', 'markdown', 'mmd', 'mkd', 'mkdn', 'mdown', 'md
     return MARKDOWN_DROP_EXTS.some((e) => lower.endsWith('.' + e))
   }
 
+  const isImagePath = (p) => {
+    const lower = p.toLowerCase()
+    return IMAGE_DROP_EXTS.some((e) => lower.endsWith('.' + e))
+  }
+
   const openDroppedPath = async (filePath) => {
+    if (isImagePath(filePath)) {
+      await tauriEmit('mt::drop-image', { path: filePath })
+      return
+    }
     if (!isMarkdownPath(filePath)) {
       console.warn(`[drop] non-markdown path skipped: ${filePath}`)
       return
@@ -183,8 +193,20 @@ const fileUtils = {
 
   // async — route to M-013-B
   readFile: async (filePath, _encoding) => ipc.fs.read(filePath),
-  writeFile: async (filePath, data, _options) => ipc.fs.write(filePath, typeof data === 'string' ? data : new TextDecoder().decode(data)),
-  outputFile: async (filePath, data) => ipc.fs.write(filePath, typeof data === 'string' ? data : new TextDecoder().decode(data)),
+  writeFile: async (filePath, data, _options) => {
+    if (data instanceof Uint8Array || data instanceof ArrayBuffer) {
+      const bytes = data instanceof ArrayBuffer ? new Uint8Array(data) : data
+      return ipc.fs.writeBinary(filePath, bytes)
+    }
+    return ipc.fs.write(filePath, typeof data === 'string' ? data : new TextDecoder().decode(data))
+  },
+  outputFile: async (filePath, data) => {
+    if (data instanceof Uint8Array || data instanceof ArrayBuffer) {
+      const bytes = data instanceof ArrayBuffer ? new Uint8Array(data) : data
+      return ipc.fs.writeBinary(filePath, bytes)
+    }
+    return ipc.fs.write(filePath, typeof data === 'string' ? data : new TextDecoder().decode(data))
+  },
   readdir: async (dirPath) => ipc.fs.readdir(dirPath),
   stat: async (filePath) => ipc.fs.stat(filePath),
   unlink: async (filePath) => ipc.fs.unlink(filePath),
@@ -220,12 +242,8 @@ const fileUtils = {
       // swallow — caller treats as "directory exists"
     }
   },
-  copy: async (_src, _dest) => {
-    throw new Error('MT_NOT_IMPLEMENTED: window.fileUtils.copy — wired in F-FS-COPY-MOVE-ENSUREDIR')
-  },
-  move: async (_src, _dest) => {
-    throw new Error('MT_NOT_IMPLEMENTED: window.fileUtils.move — wired in F-FS-MOVE')
-  },
+  copy: async (src, dest) => ipc.fs.copy(src, dest),
+  move: async (src, dest) => ipc.fs.move(src, dest),
   emptyDir: async (_path) => {
     throw new Error('MT_NOT_IMPLEMENTED: window.fileUtils.emptyDir — wired in F-FS-COPY-MOVE-ENSUREDIR')
   }
@@ -356,7 +374,8 @@ const electron = {
         // ignore
       }
     },
-    read: async () => {
+    read: async (format) => {
+      if (typeof format === 'string') return ''
       try {
         const items = await navigator.clipboard.read()
         return items
@@ -364,6 +383,7 @@ const electron = {
         return []
       }
     },
+    has: () => false,
     write: async () => {
       // image+html clipboard write — not currently used by muya since
       // muya uses execCommand for paste; leave stub.
@@ -376,22 +396,16 @@ const electron = {
   // surfaces an error toast).
   shell: {
     openExternal: async (url) => {
-      try {
-        const u = new URL(url)
-        if (u.protocol === 'http:' || u.protocol === 'https:') {
-          window.open(url, '_blank', 'noopener,noreferrer')
-          return
-        }
-        throw new Error(`MT_NOT_IMPLEMENTED: shell.openExternal scheme=${u.protocol} — wired in F-SHELL-PLUGIN`)
-      } catch (e) {
-        throw e
-      }
+      const { openUrl } = await import('@tauri-apps/plugin-opener')
+      await openUrl(url)
     },
-    openPath: async (_path) => {
-      throw new Error('MT_NOT_IMPLEMENTED: shell.openPath — wired in F-SHELL-PLUGIN')
+    openPath: async (p) => {
+      const { openPath } = await import('@tauri-apps/plugin-opener')
+      await openPath(p)
     },
-    showItemInFolder: async (_path) => {
-      throw new Error('MT_NOT_IMPLEMENTED: shell.showItemInFolder — wired in F-SHELL-PLUGIN')
+    showItemInFolder: async (p) => {
+      const { revealItemInDir } = await import('@tauri-apps/plugin-opener')
+      await revealItemInDir(p)
     }
   },
 
@@ -495,6 +509,29 @@ const i18nUtils = {
 // so any defensive `if (!window.rgPath) throw` checks pass.
 const rgPath = '/ipc-routed/rg'
 
+// ─── image loader (blob: URL bridge) ────────────────────────────────
+// CSP blocks file:// in img-src. Read image bytes via IPC, return a
+// blob: URL the webview can display. Consumed by muya's loadImageAsync.
+const MIME_BY_EXT = {
+  png: 'image/png',
+  jpg: 'image/jpeg',
+  jpeg: 'image/jpeg',
+  gif: 'image/gif',
+  svg: 'image/svg+xml',
+  webp: 'image/webp',
+  bmp: 'image/bmp',
+  ico: 'image/x-icon',
+  tif: 'image/tiff',
+  tiff: 'image/tiff'
+}
+
+const __markImageLoader = async (filePath) => {
+  const bytes = await ipc.fs.readBinary(filePath)
+  const ext = (filePath.split('.').pop() || '').toLowerCase()
+  const mime = MIME_BY_EXT[ext] || 'application/octet-stream'
+  return URL.createObjectURL(new Blob([bytes], { type: mime }))
+}
+
 // ─── install ────────────────────────────────────────────────────────
 if (typeof window !== 'undefined') {
   // eslint-disable-next-line no-undef
@@ -509,6 +546,8 @@ if (typeof window !== 'undefined') {
   window.i18nUtils = i18nUtils
   // eslint-disable-next-line no-undef
   window.rgPath = rgPath
+  // eslint-disable-next-line no-undef
+  window.__markImageLoader = __markImageLoader
   // eslint-disable-next-line no-console
   console.info('[Shim][window-globals][BLOCK_SHIM_INSTALLED]')
 }

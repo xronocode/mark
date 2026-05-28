@@ -40,18 +40,33 @@ export default function loadImageAsync(imageInfo, attrs, className, imageClass) 
     reload = true
   }
   if (reload) {
+    const prev = this.loadImageMap.get(src)
+    if (prev && prev.domsrc && prev.domsrc.startsWith('blob:')) {
+      URL.revokeObjectURL(prev.domsrc)
+    }
     let addedToImageContainer = false
     id = getUniqueId()
 
     const img = document.createElement('img')
     let dispMsec = Date.now()
     let touchMsec = dispMsec
-    if (/^file:\/\//.test(src)) {
-      domsrc = src + '?msec=' + dispMsec
+    if (/^file:\/\//.test(src) && typeof window.__markImageLoader === 'function') {
+      const osPath = decodeURIComponent(src.replace(/^file:\/\//, ''))
+      domsrc = src
+      window.__markImageLoader(osPath).then((blobUrl) => {
+        domsrc = blobUrl
+        img.src = blobUrl
+        this.loadImageMap.set(src, {
+          ...this.loadImageMap.get(src),
+          domsrc: blobUrl
+        })
+      }).catch(() => {
+        img.src = src
+      })
     } else {
       domsrc = src
+      img.src = domsrc
     }
-    img.src = domsrc
     if (attrs.alt) img.alt = attrs.alt.replace(/[`*{}[\]()#+\-.!_>~:|<>$]/g, '')
     if (attrs.title) img.setAttribute('title', attrs.title)
     if (attrs.width && typeof attrs.width === 'number') {

@@ -94,6 +94,10 @@ export type CommandName =
   | 'mt::secret::set'
   | 'mt::secret::get'
   | 'mt::secret::delete'
+  | 'mt::fs::read_binary'
+  | 'mt::fs::write_binary'
+  | 'mt::fs::copy'
+  | 'mt::fs::move'
 
 /**
  * Plain JSON-cloneable file stats. Mirrors v1.2.3's contextBridge
@@ -283,6 +287,22 @@ export interface CommandMap {
   }
   'mt::secret::delete': {
     args: { key: string }
+    result: void
+  }
+  'mt::fs::read_binary': {
+    args: { path: string }
+    result: Uint8Array
+  }
+  'mt::fs::write_binary': {
+    args: { path: string; data: Uint8Array }
+    result: void
+  }
+  'mt::fs::copy': {
+    args: { src: string; dest: string }
+    result: void
+  }
+  'mt::fs::move': {
+    args: { src: string; dest: string }
     result: void
   }
 }
