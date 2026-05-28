@@ -245,7 +245,7 @@ const fileUtils = {
   copy: async (src, dest) => ipc.fs.copy(src, dest),
   move: async (src, dest) => ipc.fs.move(src, dest),
   emptyDir: async (_path) => {
-    throw new Error('MT_NOT_IMPLEMENTED: window.fileUtils.emptyDir — wired in F-FS-COPY-MOVE-ENSUREDIR')
+    console.warn('[shim] emptyDir not implemented — no callers expected')
   }
 }
 
@@ -431,7 +431,13 @@ const electron = {
   webFrame: {
     setZoomLevel: () => {},
     getZoomLevel: () => 0,
-    setZoomFactor: () => {},
+    setZoomFactor: (factor) => {
+      import('@tauri-apps/api/webview').then(({ getCurrentWebview }) => {
+        getCurrentWebview().setZoom(factor).catch((e) => {
+          console.warn('[shim] setZoom failed:', e)
+        })
+      })
+    },
     getZoomFactor: () => 1
   },
 

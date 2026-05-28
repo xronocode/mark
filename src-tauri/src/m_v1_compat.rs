@@ -583,13 +583,25 @@ pub async fn mt_view_layout_changed(
     Ok(())
 }
 
-/// Maps to v1 'mt::update-sidebar-menu'. v1 main process toggled the
-/// View menu's "Toggle Sidebar" checkmark to match. We have no native
-/// menu yet (F-MENU-WIRE-TAURI), so this is a no-op stub that records
-/// a marker for diagnostic visibility.
+/// Maps to v1 'mt::update-sidebar-menu'. Syncs the native menu's
+/// "Toggle Sidebar" checkmark to match the renderer's sidebar state.
 #[tauri::command]
-pub async fn mt_update_sidebar_menu(args: Value) -> Result<(), String> {
-    safe_eprintln!("[v1_compat][layout][BLOCK_UPDATE_SIDEBAR_MENU_NOOP args={args}]");
+pub async fn mt_update_sidebar_menu(
+    app: tauri::AppHandle,
+    args: Value,
+) -> Result<(), String> {
+    let visible = args
+        .get("showSideBar")
+        .and_then(|v| v.as_bool())
+        .unwrap_or(true);
+
+    if let Some(menu) = app.menu() {
+        if let Some(item) = menu.get("view.toggle-sidebar") {
+            if let Some(check) = item.as_check_menuitem() {
+                let _ = check.set_checked(visible);
+            }
+        }
+    }
     Ok(())
 }
 
@@ -982,12 +994,6 @@ mod tests {
         crate::m001_save_close::mt_close_window_confirm(vec![serde_json::json!({"k":"v"})])
             .await
             .unwrap();
-    }
-
-    #[tokio::test]
-    async fn mt_update_sidebar_menu_is_a_no_op_stub() {
-        mt_update_sidebar_menu(serde_json::json!({"any": 1})).await.unwrap();
-        mt_update_sidebar_menu(serde_json::json!(null)).await.unwrap();
     }
 
     #[tokio::test]

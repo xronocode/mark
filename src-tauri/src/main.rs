@@ -784,6 +784,7 @@ fn main() {
             m007_spell::mt_spell_set_enabled,
             m007_spell::mt_spell_set_lang,
             m009_menu::mt_menu_taxonomy,
+            m009_menu::mt_window_popup_app_menu,
             m015_pandoc::mt_pandoc_status,
             m015_pandoc::mt_pandoc_export,
             m016_updater::mt_updater_check,

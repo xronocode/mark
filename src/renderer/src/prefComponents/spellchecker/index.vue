@@ -37,7 +37,7 @@
       {{ t('preferences.spellchecker.autoDetectDescription') }}
     </div>
 
-    <div v-if="!isOsx && spellcheckerEnabled">
+    <div v-if="!isOsx && spellcheckerEnabled && dictionarySupported">
       <h6 class="title">{{ t('preferences.spellchecker.customDictionary.title') }}</h6>
       <div class="description">
         {{ t('preferences.spellchecker.customDictionary.description') }}
@@ -91,6 +91,7 @@ const { t } = useI18n()
 const isOsx = checkIsOsx
 const availableDictionaries = ref([])
 const wordsInCustomDictionary = ref([])
+const dictionarySupported = ref(false)
 
 const preferenceStore = usePreferencesStore()
 
@@ -103,6 +104,7 @@ onMounted(async () => {
   }
 
   availableDictionaries.value = await getAvailableDictionaries()
+  dictionarySupported.value = availableDictionaries.value.length > 0
 
   // Custom dictionary backend is not yet implemented
   // (F-SPELL-HUNSPELL-EMBED). Call is gated behind try/catch so a

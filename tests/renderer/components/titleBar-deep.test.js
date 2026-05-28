@@ -296,16 +296,20 @@ describe('titleBar/index.vue — deep coverage', () => {
 
   // --- handleMenuClick ---
   describe('handleMenuClick', () => {
-    it('logs warning', () => {
-      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    it('invokes mt::window-popup-app-menu with position', async () => {
       const wrapper = mountComponent()
+      const fakeEvent = {
+        currentTarget: {
+          getBoundingClientRect: () => ({ left: 10, top: 0, bottom: 30, right: 50 })
+        }
+      }
 
-      wrapper.vm.handleMenuClick()
+      await wrapper.vm.handleMenuClick(fakeEvent)
 
-      expect(warnSpy).toHaveBeenCalledWith(
-        expect.stringContaining('custom-titlebar menu popup deferred')
+      expect(window.electron.ipcRenderer.invoke).toHaveBeenCalledWith(
+        'mt::window-popup-app-menu',
+        { x: 10, y: 30 }
       )
-      warnSpy.mockRestore()
     })
   })
 
