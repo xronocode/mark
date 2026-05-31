@@ -85,4 +85,67 @@ describe('store/preferences — coverage gaps', () => {
       expect(setLanguageMock).not.toHaveBeenCalled()
     })
   })
+
+  describe('SET_IMAGE_FOLDER_PATH', () => {
+    it('opens dialog when value is undefined and sets preference on selection', async () => {
+      const { open } = await import('@tauri-apps/plugin-dialog')
+      open.mockResolvedValueOnce('/picked/images')
+      ;(invoke).mockResolvedValue(undefined)
+
+      const { usePreferencesStore } = await import('@/store/preferences')
+      const s = usePreferencesStore()
+      await s.SET_IMAGE_FOLDER_PATH(undefined)
+
+      expect(open).toHaveBeenCalledWith({ directory: true, multiple: false })
+      expect(s.imageFolderPath).toBe('/picked/images')
+    })
+
+    it('opens dialog when value is undefined and user cancels', async () => {
+      const { open } = await import('@tauri-apps/plugin-dialog')
+      open.mockResolvedValueOnce(null)
+
+      const { usePreferencesStore } = await import('@/store/preferences')
+      const s = usePreferencesStore()
+      const before = s.imageFolderPath
+      await s.SET_IMAGE_FOLDER_PATH(undefined)
+
+      expect(s.imageFolderPath).toBe(before)
+    })
+
+    it('sets preference directly when value is provided', async () => {
+      ;(invoke).mockResolvedValue(undefined)
+      const { usePreferencesStore } = await import('@/store/preferences')
+      const s = usePreferencesStore()
+      await s.SET_IMAGE_FOLDER_PATH('/direct/path')
+
+      expect(s.imageFolderPath).toBe('/direct/path')
+    })
+  })
+
+  describe('SELECT_DEFAULT_DIRECTORY_TO_OPEN', () => {
+    it('opens dialog and sets preference on selection', async () => {
+      const { open } = await import('@tauri-apps/plugin-dialog')
+      open.mockResolvedValueOnce('/default/dir')
+      ;(invoke).mockResolvedValue(undefined)
+
+      const { usePreferencesStore } = await import('@/store/preferences')
+      const s = usePreferencesStore()
+      await s.SELECT_DEFAULT_DIRECTORY_TO_OPEN()
+
+      expect(open).toHaveBeenCalledWith({ directory: true, multiple: false })
+      expect(s.defaultDirectoryToOpen).toBe('/default/dir')
+    })
+
+    it('does nothing when user cancels dialog', async () => {
+      const { open } = await import('@tauri-apps/plugin-dialog')
+      open.mockResolvedValueOnce(null)
+
+      const { usePreferencesStore } = await import('@/store/preferences')
+      const s = usePreferencesStore()
+      const before = s.defaultDirectoryToOpen
+      await s.SELECT_DEFAULT_DIRECTORY_TO_OPEN()
+
+      expect(s.defaultDirectoryToOpen).toBe(before)
+    })
+  })
 })

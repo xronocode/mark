@@ -751,3 +751,4 @@ const importRegister = (ContentState) => {
 }
 
 export default importRegister
+export { mergeDetailsTokens }
