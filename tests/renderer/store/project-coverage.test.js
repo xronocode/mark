@@ -54,12 +54,18 @@ vi.mock('@/store/layout', () => ({
 
 const ipcWatchSubscribeMock = vi.fn()
 const ipcFsStatMock = vi.fn()
+const ipcPrefsGetMock = vi.fn()
+const ipcPrefsSetMock = vi.fn()
 vi.mock('@/ipc/runtime', () => ({
   ipcWatch: {
     subscribe: (path, handler) => ipcWatchSubscribeMock(path, handler)
   },
   ipcFs: {
     stat: (path) => ipcFsStatMock(path)
+  },
+  ipcPrefs: {
+    get: (...a) => ipcPrefsGetMock(...a),
+    set: (...a) => ipcPrefsSetMock(...a)
   }
 }))
 
@@ -412,6 +418,97 @@ describe('store/project — coverage gaps', () => {
 
       // mt_walk_project should NOT have been called (dedup)
       expect(invoke).not.toHaveBeenCalledWith('mt_walk_project', expect.anything())
+    })
+  })
+
+  describe('GET_RECENT_FOLDERS', () => {
+    it('returns an array from ipcPrefs', async () => {
+      ipcPrefsGetMock.mockResolvedValue(['/a', '/b'])
+      const store = await loadStore()
+      const result = await store.GET_RECENT_FOLDERS()
+      expect(result).toEqual(['/a', '/b'])
+    })
+
+    it('returns empty array when ipcPrefs throws', async () => {
+      ipcPrefsGetMock.mockRejectedValue(new Error('fail'))
+      const store = await loadStore()
+      const result = await store.GET_RECENT_FOLDERS()
+      expect(result).toEqual([])
+    })
+
+    it('filters falsy values and limits to 5', async () => {
+      ipcPrefsGetMock.mockResolvedValue(['/a', null, '/b', '', '/c', '/d', '/e', '/f'])
+      const store = await loadStore()
+      const result = await store.GET_RECENT_FOLDERS()
+      expect(result).toEqual(['/a', '/b', '/c', '/d', '/e'])
+    })
+  })
+
+  describe('OPEN_RECENT_FOLDER', () => {
+    it('adds project and triggers walk', async () => {
+      const invoke = vi.fn().mockResolvedValue(undefined)
+      vi.doMock('@tauri-apps/api/core', () => ({ invoke }))
+      ipcPrefsGetMock.mockResolvedValue([])
+      ipcPrefsSetMock.mockResolvedValue(undefined)
+
+      const store = await loadStore()
+      await store.OPEN_RECENT_FOLDER('/recent/proj')
+
+      expect(store.projectTrees).toHaveLength(1)
+      expect(store.projectTrees[0].pathname).toBe('/recent/proj')
+      expect(invoke).toHaveBeenCalledWith('mt_walk_project', { path: '/recent/proj' })
+    })
+
+    it('does not walk if project was already added (dedup)', async () => {
+      const invoke = vi.fn().mockResolvedValue(undefined)
+      vi.doMock('@tauri-apps/api/core', () => ({ invoke }))
+      ipcPrefsGetMock.mockResolvedValue([])
+      ipcPrefsSetMock.mockResolvedValue(undefined)
+
+      const store = await loadStore()
+      store.ADD_PROJECT('/dup')
+      invoke.mockClear()
+
+      await store.OPEN_RECENT_FOLDER('/dup')
+      expect(invoke).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('_handleWatchEvent skips heavy directories', () => {
+    it('ignores events inside node_modules', async () => {
+      let capturedHandler
+      ipcWatchSubscribeMock.mockImplementation((_path, handler) => {
+        capturedHandler = handler
+        return Promise.resolve(vi.fn())
+      })
+      ipcFsStatMock.mockResolvedValue({ is_directory: false, is_file: true })
+      ipcPrefsGetMock.mockResolvedValue([])
+      ipcPrefsSetMock.mockResolvedValue(undefined)
+
+      const store = await loadStore()
+      store.ADD_PROJECT('/proj')
+      await vi.waitFor(() => expect(capturedHandler).toBeDefined())
+      capturedHandler([{ kind: 'create', path: '/proj/node_modules/pkg/index.js' }])
+
+      expect(addFileSpy).not.toHaveBeenCalled()
+    })
+
+    it('ignores events inside target directory', async () => {
+      let capturedHandler
+      ipcWatchSubscribeMock.mockImplementation((_path, handler) => {
+        capturedHandler = handler
+        return Promise.resolve(vi.fn())
+      })
+      ipcFsStatMock.mockResolvedValue({ is_directory: false, is_file: true })
+      ipcPrefsGetMock.mockResolvedValue([])
+      ipcPrefsSetMock.mockResolvedValue(undefined)
+
+      const store = await loadStore()
+      store.ADD_PROJECT('/proj')
+      await vi.waitFor(() => expect(capturedHandler).toBeDefined())
+      capturedHandler([{ kind: 'create', path: '/proj/target/debug/build/lib.rs' }])
+
+      expect(addFileSpy).not.toHaveBeenCalled()
     })
   })
 })
