@@ -389,7 +389,13 @@
   },
   "recent": {
     "noTabsOpen": "Нет открытых вкладок.",
-    "newFile": "Новый файл"
+    "newFile": "Новый файл",
+    "welcome": "Добро пожаловать в Mark",
+    "recentFiles": "Недавние файлы",
+    "restoreSession": "Восстановить сессию",
+    "openFile": "Открыть файл",
+    "openFolder": "Открыть папку",
+    "noRecentFiles": "Нет недавних файлов"
   },
   "import": {
     "title": "Импорт или открытие",

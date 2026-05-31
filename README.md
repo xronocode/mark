@@ -30,7 +30,7 @@ brew tap xronocode/mark && brew install --cask mark@alpha
 No Gatekeeper prompts. No `sudo xattr` dance. [Build from source →](#install)
 
 > **⚠️ Alpha** — daily-driver quality for writing on Apple Silicon, but it has known gaps.<br>
-> What works has 2700+ tests and CI. What doesn't is [tracked openly](#status--v200-alpha9).
+> What works has 2700+ tests and CI. What doesn't is [tracked openly](#status--v201-alpha1).
 
 <br>
 
@@ -236,7 +236,7 @@ Mark sits in a specific gap: **native + lightweight + full WYSIWYG + file-watche
 
 This project is its own proof of concept.
 
-The entire Tauri rewrite — **30+ Rust modules, 2620 tests**, typed IPC, native menu, spellchecker, auto-updater — was architected and shipped by one developer with AI agents using the **GRACE methodology** (Graph-RAG Anchored Code Engineering).
+The entire Tauri rewrite — **30+ Rust modules, 2700+ tests**, typed IPC, native menu, spellchecker, auto-updater — was architected and shipped by one developer with AI agents using the **GRACE methodology** (Graph-RAG Anchored Code Engineering).
 
 Structured plans. Module contracts. Knowledge graphs. Agents executing against verifiable specs.
 
@@ -258,7 +258,7 @@ One person. AI agents. A native desktop app that rivals what teams of five ship.
 
 **The native feel** — system WKWebView, macOS menu bar, NSSpellChecker, real Cmd+shortcuts, ad-hoc code signing
 
-**The agent workflow** — file-watcher live reload, dirty-tab protection (Save/Discard/Cancel), preview mode on Finder open
+**The agent workflow** — file-watcher live reload, dirty-tab protection (Save/Discard/Cancel), preview mode on Finder open, welcome screen with recent files & session restore
 
 **The trust** — no telemetry, no cloud, no account, no plugin marketplace. Files are files. 2620 tests. MIT licensed.
 
@@ -266,7 +266,7 @@ One person. AI agents. A native desktop app that rivals what teams of five ship.
 
 <div align="center">
 
-### Status — v2.0.0-alpha.9
+### Status — v2.0.1-alpha.1
 
 </div>
 
@@ -310,6 +310,7 @@ Daily-driver quality for routine Markdown on Apple Silicon.
 | Preview mode on Finder double-click | ✅ |
 | Set as default `.md` handler | ✅ |
 | System font enumeration | ✅ |
+| Welcome screen with recent files + session restore | ✅ |
 | Trackpad pinch-to-zoom | ✅ |
 | Window geometry persistence | ✅ |
 | Monospace font filter for code editor | Planned |

@@ -148,7 +148,7 @@ describe('command execute actions', () => {
     const cmd = commands.find((c) => c.id === 'file.new-tab')
     await cmd.execute()
     expect(bus.emit).toHaveBeenCalledWith('mt::new-untitled-tab', {
-      selected: '',
+      selected: true,
       markdown: ''
     })
   })

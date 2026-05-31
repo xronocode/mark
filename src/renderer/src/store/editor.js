@@ -1,6 +1,6 @@
 import equal from 'deep-equal'
 import bus from '../bus'
-import { ipcFs, ipcWatch } from '../ipc/runtime'
+import { ipcFs, ipcWatch, ipcRecent, ipcPrefs } from '../ipc/runtime'
 import { hasKeys, getUniqueId, deepClone } from '../util'
 import listToTree from '../util/listToTree'
 import {
@@ -369,6 +369,9 @@ export const useEditorStore = defineStore('editor', {
       ) {
         tab.lastSavedHistoryId = tab.history.stack[tab.history.lastEditIndex].id
       }
+      if (outcome.pathname) {
+        ipcRecent.add(outcome.pathname).catch(() => {})
+      }
     },
 
     /**
@@ -459,6 +462,57 @@ export const useEditorStore = defineStore('editor', {
       })
     },
 
+    async _saveSessionState() {
+      const paths = this.tabs
+        .map((t) => t.pathname)
+        .filter(Boolean)
+      await ipcPrefs.set('lastSessionTabs', paths).catch(() => {})
+    },
+
+    async RESTORE_SESSION() {
+      const paths = await ipcPrefs.get('lastSessionTabs').catch(() => null)
+      if (!Array.isArray(paths) || !paths.length) return
+      let isFirst = true
+      for (const p of paths) {
+        try {
+          const markdown = await ipcFs.read(p)
+          const filename = window.path.basename(p)
+          this.NEW_TAB_WITH_CONTENT({
+            markdownDocument: {
+              markdown,
+              pathname: p,
+              filename,
+              encoding: { encoding: 'utf8', isBom: false },
+              lineEnding: 'lf',
+              trimTrailingNewline: 3
+            },
+            selected: isFirst
+          })
+          isFirst = false
+        } catch {
+          // file no longer exists — skip silently
+        }
+      }
+    },
+
+    async GET_RECENT_FILES() {
+      try {
+        return await ipcRecent.list()
+      } catch {
+        return []
+      }
+    },
+
+    async GET_SESSION_PATHS() {
+      try {
+        const paths = await ipcPrefs.get('lastSessionTabs')
+        if (Array.isArray(paths)) return paths.filter(Boolean)
+        return []
+      } catch {
+        return []
+      }
+    },
+
     LISTEN_FOR_CLOSE() {
       const projectStore = useProjectStore()
       window.electron.ipcRenderer.on('mt::ask-for-close', async () => {
@@ -478,16 +532,11 @@ export const useEditorStore = defineStore('editor', {
           })
 
         if (!unsavedFiles.length) {
+          await this._saveSessionState()
           window.electron.ipcRenderer.send('mt::close-window')
           return
         }
 
-        // F-LIFECYCLE-WIRE (B4-pre-alpha-step-3): renderer-driven save
-        // confirmation dialog. v1.2.3 used the Electron main process
-        // for this; in Tauri port the renderer owns the dialog because
-        // it already has the dirty-tab state and Element Plus is loaded.
-        // Cancel-on-close (X / Escape) keeps the window open so users
-        // never lose work to a misclicked close button.
         const tabCount = unsavedFiles.length
         const namedCount = unsavedFiles.filter((f) => f.pathname).length
         const message =
@@ -503,18 +552,13 @@ export const useEditorStore = defineStore('editor', {
             closeOnClickModal: false,
             closeOnPressEscape: true
           })
-          // Confirm pressed.
           if (namedCount > 0) {
-            // Save first — backend emits force-close-tabs-by-id for
-            // successfully-saved IDs (renderer closes those tabs) but
-            // does NOT destroy window. We send mt::close-window only
-            // after save succeeds; if any save fails the await rejects
-            // and we abort close so the user can retry.
             try {
               await window.electron.ipcRenderer.invoke(
                 'mt::save-and-close-tabs',
                 deepClone(unsavedFiles)
               )
+              await this._saveSessionState()
               window.electron.ipcRenderer.send('mt::close-window')
             } catch (err) {
               notice.notify({
@@ -522,19 +566,16 @@ export const useEditorStore = defineStore('editor', {
                 type: 'error',
                 message: String(err)
               })
-              // window stays open; dirty tabs remain
             }
           } else {
-            // No named tabs to save — Save button labelled "Discard &
-            // Close" so confirm = discard.
+            await this._saveSessionState()
             window.electron.ipcRenderer.send('mt::close-window')
           }
         } catch (action) {
           if (action === 'cancel') {
-            // "Don't Save" → discard everything and close
+            await this._saveSessionState()
             window.electron.ipcRenderer.send('mt::close-window')
           }
-          // 'close' (X) or 'pressEscape' → keep window open, no IPC
         }
       })
     },
@@ -756,7 +797,7 @@ export const useEditorStore = defineStore('editor', {
       })
 
       if (addBlankTab) {
-        this.NEW_UNTITLED_TAB({ selected: true })
+        // Welcome screen shows when no tabs are open — skip blank tab
       } else if (Array.isArray(markdownList) && markdownList.length) {
         let isFirst = true
         for (const markdown of markdownList) {
@@ -1167,6 +1208,7 @@ export const useEditorStore = defineStore('editor', {
 
       if (pathname) {
         this._subscribeFileWatch(pathname)
+        ipcRecent.add(pathname).catch(() => {})
       }
     },
 

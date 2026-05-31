@@ -390,7 +390,13 @@
   },
   "recent": {
     "noTabsOpen": "You have no tabs open.",
-    "newFile": "New File"
+    "newFile": "New File",
+    "welcome": "Welcome to Mark",
+    "recentFiles": "Recent Files",
+    "restoreSession": "Restore Session",
+    "openFile": "Open File",
+    "openFolder": "Open Folder",
+    "noRecentFiles": "No recent files"
   },
   "import": {
     "title": "Import or Open",

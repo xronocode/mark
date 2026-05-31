@@ -85,7 +85,7 @@ describe('installMenuBridge', () => {
     await handler({}, 'file.new-tab')
 
     expect(busEmitMock).toHaveBeenCalledWith('mt::new-untitled-tab', {
-      selected: '',
+      selected: true,
       markdown: ''
     })
   })
