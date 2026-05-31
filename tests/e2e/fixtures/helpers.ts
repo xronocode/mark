@@ -24,8 +24,8 @@ export async function bootEditor(page: Page, opts: BootOptions = {}): Promise<vo
 
   await page.evaluate(({ sbv, tbv, scm }: { sbv: boolean; tbv: boolean; scm: boolean }) => {
     ;(window as any).__emitFakeEvent('mt::bootstrap-editor', {
-      addBlankTab: true,
-      markdownList: [],
+      addBlankTab: false,
+      markdownList: [''],
       lineEnding: 'lf',
       sideBarVisibility: sbv,
       tabBarVisibility: tbv,
