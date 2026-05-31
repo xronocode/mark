@@ -231,11 +231,11 @@ describe('store/editor.js — fn coverage', () => {
     expect(notice.notify).toHaveBeenCalled()
   })
 
-  it('UPDATE_LINE_ENDING_MENU sends ipc when lineEnding exists', () => {
+  it('UPDATE_LINE_ENDING_MENU invokes tauri command when lineEnding exists', async () => {
+    const { invoke } = await import('@tauri-apps/api/core')
     editorStore.currentFile = { lineEnding: 'crlf' }
-    window.marktext = { env: { windowId: 1, type: 'editor', debug: false, paths: { userDataPath: '/tmp' } } }
-    editorStore.UPDATE_LINE_ENDING_MENU()
-    expect(window.electron.ipcRenderer.send).toHaveBeenCalledWith('mt::update-line-ending-menu', 1, 'crlf')
+    await editorStore.UPDATE_LINE_ENDING_MENU()
+    expect(invoke).toHaveBeenCalledWith('mt_update_line_ending_menu', { lineEnding: 'crlf' })
   })
 
   it('LISTEN_FOR_SAVE registers bus listener', () => {

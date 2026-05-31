@@ -165,10 +165,7 @@ mod tests {
 
     #[test]
     fn format_panic_body_with_string_payload() {
-        // Manually construct a fake panic context. PanicHookInfo can't
-        // be built outside the panic runtime, so we test the parts we
-        // CAN build deterministically: the rest of the body string
-        // shape is exercised by the format! template directly.
+        let _g = synth_panic_lock().lock().unwrap_or_else(|e| e.into_inner());
         let chain = "abc-def";
         let ts = 1_777_000_000_u64;
         // Use a real panic hook to capture a real PanicHookInfo, then
@@ -340,9 +337,7 @@ mod tests {
 
     #[test]
     fn re_entrancy_guard_short_circuits() {
-        // If the hook itself panics, the IN_HOOK AtomicBool prevents
-        // re-entry. Set the guard to true manually and verify the
-        // hook closure returns immediately.
+        let _g = synth_panic_lock().lock().unwrap_or_else(|e| e.into_inner());
         IN_HOOK.store(true, Ordering::SeqCst);
         // The closure under test is normally registered via
         // install_panic_hook; here we verify the static directly.

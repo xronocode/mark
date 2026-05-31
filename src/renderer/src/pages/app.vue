@@ -208,6 +208,7 @@ onMounted(async () => {
   editorStore.LISTEN_FOR_SAVE_AS()
   editorStore.LISTEN_FOR_MOVE_TO()
   editorStore.LISTEN_FOR_SAVE()
+  editorStore.LISTEN_FOR_SAVE_ALL()
   editorStore.LISTEN_FOR_BOOTSTRAP_WINDOW()
   editorStore.LISTEN_FOR_RENAME()
   editorStore.LINTEN_FOR_SET_LINE_ENDING()

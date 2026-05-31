@@ -80,6 +80,24 @@ const commands = [
     }
   },
   {
+    id: 'file.save-all',
+    execute: async () => {
+      bus.emit('mt::editor-ask-file-save-all')
+    }
+  },
+  {
+    id: 'file.line-ending-lf',
+    execute: async () => {
+      bus.emit('mt::set-line-ending', 'lf')
+    }
+  },
+  {
+    id: 'file.line-ending-crlf',
+    execute: async () => {
+      bus.emit('mt::set-line-ending', 'crlf')
+    }
+  },
+  {
     id: 'file.print',
     execute: async () => {
       await delay(50)

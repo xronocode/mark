@@ -299,13 +299,9 @@ const electron = {
     },
     on: (channel, handler) => {
       const listen = _tauriListen
-      // Special-case: mt::search-event uses an M-013-A-shape payload
-      // ({searchId, kind, hits[], error, seq}) but v1.2.3 renderer
-      // (ripgrepSearcher.js) expects v1 shape ({searchId, type,
-      // payload}). Translate kind→type and split hits[] into per-file
-      // groups so didMatch sees one filePath per event.
+      let wrappedListener
       if (channel === 'mt::search-event') {
-        return listen(channel, (event) => {
+        wrappedListener = listen(channel, (event) => {
           const m = event.payload
           if (!m) return
           const sid = m.searchId
@@ -335,12 +331,15 @@ const electron = {
             handler(event, { searchId: sid, type: 'error', payload: { message: m.error || 'search error' } })
           }
         })
+      } else {
+        wrappedListener = listen(channel, (event) => handler(event, event.payload))
       }
-      return listen(channel, (event) => handler(event, event.payload))
+      return () => { wrappedListener.then(fn => fn()) }
     },
     once: (channel, handler) => {
       const once = _tauriOnce
-      return once(channel, (event) => handler(event, event.payload))
+      const p = once(channel, (event) => handler(event, event.payload))
+      return () => { p.then(fn => fn()) }
     },
     removeListener: () => {},
     removeAllListeners: () => {}
