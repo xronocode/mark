@@ -37,7 +37,7 @@ test.describe('sidebar empty state', () => {
 
     // The empty-state lives inside .open-project (sideBar/tree.vue:123).
     const cta = page
-      .locator('.tree-view .open-project .button-primary')
+      .locator('.tree-view .open-project .open-folder-btn')
       .first()
     await cta.waitFor({ state: 'visible', timeout: 5_000 })
     expect(await cta.isVisible()).toBe(true)
