@@ -54,7 +54,7 @@ describe('sideBar/tree.vue', () => {
       }
     })
     expect(wrapper.find('.open-project').exists()).toBe(true)
-    expect(wrapper.find('.button-primary').exists()).toBe(true)
+    expect(wrapper.find('.open-folder-btn').exists()).toBe(true)
   })
 
   it('renders opened files section when tabs are present', async () => {

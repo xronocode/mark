@@ -16,6 +16,57 @@ import { CURSOR_ANCHOR_DNA, CURSOR_FOCUS_DNA } from '../config'
 
 const languageLoaded = new Set()
 
+const DETAILS_OPEN_RE = /^\s*<details[\s>]/i
+const DETAILS_CLOSE_RE = /<\/details\s*>\s*$/i
+
+const escapeHtmlForDetails = s =>
+  s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+
+const tokenToHtml = t => {
+  switch (t.type) {
+    case 'html': return t.text
+    case 'paragraph': return `<p>${t.text}</p>\n\n`
+    case 'code': {
+      const cls = t.lang ? ` class="language-${t.lang}"` : ''
+      return `<pre><code${cls}>${escapeHtmlForDetails(t.text)}</code></pre>\n\n`
+    }
+    case 'heading': return `<h${t.depth}>${t.text}</h${t.depth}>\n\n`
+    case 'hr': return '<hr>\n\n'
+    case 'space': return '\n'
+    case 'blockquote': return `<blockquote><p>${t.text || ''}</p></blockquote>\n\n`
+    case 'list': return t.raw || t.text || ''
+    default: return t.text || ''
+  }
+}
+
+const mergeDetailsTokens = tokens => {
+  const result = []
+  let i = 0
+  while (i < tokens.length) {
+    const tok = tokens[i]
+    if (tok.type === 'html' && DETAILS_OPEN_RE.test(tok.text) &&
+        !DETAILS_CLOSE_RE.test(tok.text)) {
+      let depth = 1
+      let html = tok.text
+      i++
+      while (i < tokens.length && depth > 0) {
+        const t = tokens[i]
+        if (t.type === 'html') {
+          if (DETAILS_OPEN_RE.test(t.text)) depth++
+          if (DETAILS_CLOSE_RE.test(t.text)) depth--
+        }
+        html += tokenToHtml(t)
+        i++
+      }
+      result.push({ type: 'html', text: html })
+    } else {
+      result.push(tok)
+      i++
+    }
+  }
+  return result
+}
+
 // Just because turndown change `\n`(soft line break) to space, So we add `span.ag-soft-line-break` to workaround.
 const turnSoftBreakToSpan = (html) => {
   const parser = new DOMParser()
@@ -91,12 +142,13 @@ const importRegister = (ContentState) => {
       trimUnnecessaryCodeBlockEmptyLines
     } = this.muya.options
 
-    const tokens = new Lexer({
+    const rawTokens = new Lexer({
       disableInline: true,
       footnote,
       isGitlabCompatibilityEnabled,
       superSubScript
     }).lex(markdown, checkCursorSignature)
+    const tokens = mergeDetailsTokens(rawTokens)
 
     let token
     let block

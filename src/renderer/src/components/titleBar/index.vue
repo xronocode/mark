@@ -523,7 +523,6 @@ onBeforeUnmount(() => {
   right: 0;
 }
 .title-bar {
-  -webkit-app-region: drag;
   user-select: none;
   background: transparent;
   height: var(--titleBarHeight);

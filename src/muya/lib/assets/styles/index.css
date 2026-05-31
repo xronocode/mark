@@ -137,6 +137,14 @@ div.ag-show-quick-insert-hint
   display: block;
 }
 
+p.ag-paragraph:not(.ag-active) .ag-soft-line-break {
+  white-space: normal;
+}
+
+p.ag-paragraph:not(.ag-active) .ag-soft-line-break.ag-line-end {
+  display: inline;
+}
+
 *:not(.ag-hide)::selection,
 .ag-selection {
   background: var(--selectionColor);
