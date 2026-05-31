@@ -141,4 +141,34 @@ describe('sideBar/tree.vue — fn coverage', () => {
     document.dispatchEvent(event)
     expect(projectStore.createCache).toEqual({})
   })
+
+  it('folderName extracts last path segment', () => {
+    const w = mount()
+    expect(w.vm.folderName('/home/user/project')).toBe('project')
+    expect(w.vm.folderName('/single')).toBe('single')
+    expect(w.vm.folderName('')).toBe('')
+    expect(w.vm.folderName(null)).toBe('')
+  })
+
+  it('shortenPath returns parent directory', () => {
+    const w = mount()
+    expect(w.vm.shortenPath('/home/user/project')).toBe('/home/user')
+    expect(w.vm.shortenPath('')).toBe('')
+    expect(w.vm.shortenPath(null)).toBe('')
+    expect(w.vm.shortenPath('/root')).toBe('/')
+  })
+
+  it('openRecentFolder delegates to store', () => {
+    const spy = vi.spyOn(projectStore, 'OPEN_RECENT_FOLDER').mockImplementation(() => {})
+    const w = mount()
+    w.vm.openRecentFolder('/recent/path')
+    expect(spy).toHaveBeenCalledWith('/recent/path')
+  })
+
+  it('loads recent folders on mount', async () => {
+    const spy = vi.spyOn(projectStore, 'GET_RECENT_FOLDERS').mockResolvedValue(['/a', '/b'])
+    const w = mount()
+    await new Promise(r => setTimeout(r, 10))
+    expect(spy).toHaveBeenCalled()
+  })
 })
