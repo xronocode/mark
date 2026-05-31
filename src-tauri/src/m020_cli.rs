@@ -55,6 +55,19 @@ pub struct CliArgs {
     #[arg(long = "preview")]
     pub preview: bool,
 
+    /// Watch opened files for external changes and auto-reload.
+    /// Enables live-reload for these tabs regardless of the user's
+    /// liveReload preference. Useful for AI agent workflows:
+    /// `mark --watch notes.md` reloads when an agent edits the file.
+    #[arg(short = 'w', long = "watch")]
+    pub watch: bool,
+
+    /// Open files in diff view, showing changes against git HEAD or a
+    /// .before sidecar file. Useful for reviewing agent-generated edits:
+    /// `mark --diff modified.md`.
+    #[arg(long = "diff")]
+    pub diff: bool,
+
     /// Print version and exit.
     #[arg(long = "print-version")]
     pub print_version: bool,
@@ -193,5 +206,44 @@ mod tests {
         assert!(args.preview);
         assert!(args.verbose);
         assert_eq!(args.files, vec![PathBuf::from("a.md")]);
+    }
+
+    #[test]
+    fn watch_flag() {
+        let args = parse_from(&["mark", "--watch", "notes.md"]).unwrap();
+        assert!(args.watch);
+        assert_eq!(args.files, vec![PathBuf::from("notes.md")]);
+    }
+
+    #[test]
+    fn watch_short_form() {
+        let args = parse_from(&["mark", "-w", "notes.md"]).unwrap();
+        assert!(args.watch);
+    }
+
+    #[test]
+    fn watch_default_false() {
+        let args = parse_from(&["mark"]).unwrap();
+        assert!(!args.watch);
+    }
+
+    #[test]
+    fn diff_flag() {
+        let args = parse_from(&["mark", "--diff", "modified.md"]).unwrap();
+        assert!(args.diff);
+        assert_eq!(args.files, vec![PathBuf::from("modified.md")]);
+    }
+
+    #[test]
+    fn diff_default_false() {
+        let args = parse_from(&["mark"]).unwrap();
+        assert!(!args.diff);
+    }
+
+    #[test]
+    fn watch_and_diff_combined() {
+        let args = parse_from(&["mark", "--watch", "--diff", "a.md"]).unwrap();
+        assert!(args.watch);
+        assert!(args.diff);
     }
 }
