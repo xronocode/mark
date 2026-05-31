@@ -90,6 +90,7 @@ onMounted(() => {
   position: relative;
   color: var(--sideBarColor);
   user-select: none;
+  -webkit-app-region: no-drag;
   background: var(--sideBarBgColor);
   border-right: 1px solid var(--itemBgColor);
 }

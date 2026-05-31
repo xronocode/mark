@@ -118,7 +118,7 @@ describe('sideBar/tree.vue — deep coverage', () => {
       projectStore.ASK_FOR_OPEN_PROJECT = vi.fn()
 
       const wrapper = mountComponent()
-      await wrapper.find('.button-primary').trigger('click')
+      await wrapper.find('.open-folder-btn').trigger('click')
 
       expect(projectStore.ASK_FOR_OPEN_PROJECT).toHaveBeenCalled()
     })

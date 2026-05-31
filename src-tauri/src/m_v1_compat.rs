@@ -241,6 +241,15 @@ fn walk_and_emit(root: &std::path::Path, window: &tauri::Window) -> std::io::Res
     })
 }
 
+const SKIP_DIRS: &[&str] = &[
+    "node_modules", "target", "dist", "build", ".output", "__pycache__",
+    "vendor", "Pods", ".next", ".nuxt", "out",
+];
+
+fn should_skip_dir(name: &str) -> bool {
+    name.starts_with('.') || SKIP_DIRS.contains(&name)
+}
+
 fn walk_and_emit_inner(
     root: &std::path::Path,
     mut emit: impl FnMut(serde_json::Value),
@@ -273,6 +282,9 @@ fn walk_and_emit_inner(
                 Err(_) => continue,
             };
             if ft.is_dir() {
+                if should_skip_dir(&name) {
+                    continue;
+                }
                 emit(json!({
                     "type": "addDir",
                     "change": {

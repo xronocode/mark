@@ -522,7 +522,8 @@ const MIME_BY_EXT = {
 }
 
 const __markImageLoader = async (filePath) => {
-  const bytes = await ipc.fs.readBinary(filePath)
+  const raw = await ipc.fs.readBinary(filePath)
+  const bytes = raw instanceof Uint8Array ? raw : new Uint8Array(raw)
   const ext = (filePath.split('.').pop() || '').toLowerCase()
   const mime = MIME_BY_EXT[ext] || 'application/octet-stream'
   return URL.createObjectURL(new Blob([bytes], { type: mime }))

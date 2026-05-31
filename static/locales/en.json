@@ -282,7 +282,8 @@
       "createFile": "Create File",
       "openFolder": "Open Folder",
       "closeFolder": "Close folder",
-      "newFile": "New file"
+      "newFile": "New file",
+      "recentFolders": "Recent"
     },
     "toc": {
       "title": "Table Of Contents"

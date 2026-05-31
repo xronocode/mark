@@ -281,7 +281,8 @@
       "createFile": "Создать файл",
       "openFolder": "Открыть папку",
       "closeFolder": "Закрыть папку",
-      "newFile": "Новый файл"
+      "newFile": "Новый файл",
+      "recentFolders": "Недавние"
     },
     "toc": {
       "title": "Оглавление"

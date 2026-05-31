@@ -7,12 +7,26 @@ import notice from '../services/notification'
 import { getFileStateFromData } from './help'
 import { useLayoutStore } from './layout'
 import { useEditorStore } from './editor'
-import { ipcWatch, ipcFs } from '../ipc/runtime'
+import { ipcWatch, ipcFs, ipcPrefs } from '../ipc/runtime'
 
 // C-1 fix: per-root file-watcher disposers. Module-scoped (not in
 // reactive state) so Pinia doesn't try to proxy the dispose closures.
 // Keyed by canonical root pathname.
 const watchDisposers = new Map()
+
+const MAX_RECENT_FOLDERS = 5
+const RECENT_FOLDERS_KEY = 'recentFolders'
+
+async function _pushRecentFolder(pathname) {
+  try {
+    const raw = await ipcPrefs.get(RECENT_FOLDERS_KEY).catch(() => null)
+    let list = Array.isArray(raw) ? raw.filter(Boolean) : []
+    list = list.filter((p) => p !== pathname)
+    list.unshift(pathname)
+    if (list.length > MAX_RECENT_FOLDERS) list.length = MAX_RECENT_FOLDERS
+    await ipcPrefs.set(RECENT_FOLDERS_KEY, list)
+  } catch { /* best-effort */ }
+}
 
 // v1.1.0 Phase-A6: multi-root workspace.
 // Replaces the legacy single `projectTree` object with `projectTrees: TreeRoot[]`.
@@ -21,6 +35,20 @@ const watchDisposers = new Map()
 // dispatches by longest-prefix path-segment match (NOT raw startsWith).
 
 const PENDING_BUCKET_LIMIT = 10000
+
+const SKIP_DIR_SEGMENTS = new Set([
+  'node_modules', 'target', 'dist', 'build', '.output', '__pycache__',
+  'vendor', 'Pods', '.next', '.nuxt', 'out'
+])
+
+function isInsideSkippedDir(pathname) {
+  const sep = PATH_SEPARATOR
+  const parts = pathname.split(sep)
+  for (let i = 1; i < parts.length - 1; i++) {
+    if (SKIP_DIR_SEGMENTS.has(parts[i])) return true
+  }
+  return false
+}
 
 // Path-segment-aware containment check. Returns true if `inner` is contained
 // inside `outer` (either equal or a child path), false otherwise.
@@ -138,6 +166,7 @@ export const useProjectStore = defineStore('project', {
         files: []
       }
       this.projectTrees.push(root)
+      _pushRecentFolder(canonical)
       // eslint-disable-next-line no-console
       console.debug(`[ProjectStore][ADD_PROJECT][APPEND] path=${canonical} total=${this.projectTrees.length}`)
 
@@ -196,6 +225,7 @@ export const useProjectStore = defineStore('project', {
       for (const path of paths) {
         // Defensive scope check (backend already filters by sandbox).
         if (!isPathContained(path, rootPath)) continue
+        if (isInsideSkippedDir(path)) continue
         switch (kind) {
           case 'create': {
             try {
@@ -340,6 +370,30 @@ export const useProjectStore = defineStore('project', {
           type: 'error',
           message: String(e)
         })
+      }
+    },
+
+    async GET_RECENT_FOLDERS() {
+      try {
+        const raw = await ipcPrefs.get(RECENT_FOLDERS_KEY)
+        return Array.isArray(raw) ? raw.filter(Boolean).slice(0, MAX_RECENT_FOLDERS) : []
+      } catch {
+        return []
+      }
+    },
+
+    async OPEN_RECENT_FOLDER(pathname) {
+      const before = this.projectTrees.length
+      this.ADD_PROJECT(pathname)
+      if (this.projectTrees.length > before) {
+        try {
+          const { invoke } = await import('@tauri-apps/api/core')
+          invoke('mt_walk_project', { path: pathname }).catch((e) => {
+            console.error('[ipc][walk_project][BLOCK_INVOKE_FAILED]', e)
+          })
+        } catch (e) {
+          console.error('[ipc][walk_project][BLOCK_IMPORT_FAILED]', e)
+        }
       }
     },
 

@@ -122,16 +122,30 @@
     <!-- Empty state shown only when there are NO open folders. -->
     <div v-if="projectTrees.length === 0" class="open-project">
       <div class="centered-group">
-        <button class="button-primary" @click="openFolder">
+        <button class="open-folder-btn" @click="openFolder">
           {{ t('sideBar.tree.openFolder') }}
         </button>
+        <div v-if="recentFolders.length" class="recent-folders-section">
+          <span class="recent-folders-title">{{ t('sideBar.tree.recentFolders') }}</span>
+        </div>
+        <ul v-if="recentFolders.length" class="recent-folders">
+          <li
+            v-for="folder in recentFolders"
+            :key="folder"
+            class="recent-folder-item"
+            @click="openRecentFolder(folder)"
+          >
+            <span class="recent-folder-name">{{ folderName(folder) }}</span>
+            <span class="recent-folder-path">{{ shortenPath(folder) }}</span>
+          </li>
+        </ul>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, nextTick } from 'vue'
+import { ref, watch, onMounted, nextTick } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useProjectStore } from '@/store/project'
 import { useEditorStore } from '@/store/editor'
@@ -152,6 +166,8 @@ const depth = 0
 const showOpenedFiles = ref(true)
 const createName = ref('')
 const input = ref(null)
+const recentFolders = ref([])
+let _homeDir = ''
 
 const projectStore = useProjectStore()
 const editorStore = useEditorStore()
@@ -162,6 +178,14 @@ const collapsedRoots = ref({})
 
 // Computed properties
 const { createCache, projectTrees } = storeToRefs(projectStore)
+
+const _refreshRecentFolders = async () => {
+  recentFolders.value = await projectStore.GET_RECENT_FOLDERS()
+}
+
+watch(projectTrees, (trees) => {
+  if (trees.length === 0) _refreshRecentFolders()
+})
 
 const isRootExpanded = (pathname) => collapsedRoots.value[pathname] !== true
 
@@ -187,6 +211,25 @@ const handleCloseRoot = (pathname) => {
 // Methods
 const openFolder = () => {
   projectStore.ASK_FOR_OPEN_PROJECT()
+}
+
+const openRecentFolder = (path) => {
+  projectStore.OPEN_RECENT_FOLDER(path)
+}
+
+const folderName = (p) => {
+  if (!p) return ''
+  const parts = p.split('/')
+  return parts[parts.length - 1] || p
+}
+
+const shortenPath = (p) => {
+  if (!p) return ''
+  const idx = p.lastIndexOf('/')
+  if (idx <= 0) return '/'
+  const dir = p.substring(0, idx)
+  if (_homeDir && dir.startsWith(_homeDir)) return '~' + dir.substring(_homeDir.length)
+  return dir
 }
 
 const saveAll = (isClose) => {
@@ -246,6 +289,15 @@ onMounted(() => {
       projectStore.renameCache = null
     }
   })
+
+  // Load recent folders asynchronously (non-blocking)
+  ;(async () => {
+    try {
+      const { homeDir } = await import('@tauri-apps/api/path')
+      _homeDir = (await homeDir()).replace(/\/+$/, '')
+    } catch { /* dev/test fallback */ }
+    recentFolders.value = await projectStore.GET_RECENT_FOLDERS()
+  })()
 })
 </script>
 
@@ -419,9 +471,70 @@ onMounted(() => {
   align-items: center;
 }
 
-.open-project button.button-primary {
+.open-folder-btn {
   display: block;
   margin-top: 20px;
+  padding: 6px 18px;
+  border: 1px solid var(--floatBorderColor, rgba(255, 255, 255, 0.15));
+  border-radius: 4px;
+  background: transparent;
+  color: var(--sideBarColor);
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.open-folder-btn:hover {
+  background: var(--sideBarItemHoverBgColor, rgba(255, 255, 255, 0.06));
+  border-color: var(--themeColor, #409eff);
+  color: var(--themeColor, #409eff);
+}
+.recent-folders-section {
+  margin-top: 20px;
+  width: 100%;
+  padding: 0 10px;
+}
+.recent-folders-title {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--sideBarColor);
+  opacity: 0.5;
+}
+.recent-folders {
+  list-style: none;
+  margin: 16px 0 0;
+  padding: 0;
+  width: 100%;
+}
+.recent-folder-item {
+  display: flex;
+  flex-direction: column;
+  padding: 5px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+.recent-folder-item:hover {
+  background: var(--sideBarItemHoverBgColor, rgba(255, 255, 255, 0.06));
+}
+.recent-folder-name {
+  font-size: 13px;
+  color: var(--sideBarColor);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.recent-folder-item:hover .recent-folder-name {
+  color: var(--themeColor, #409eff);
+}
+.recent-folder-path {
+  font-size: 11px;
+  color: var(--sideBarColor);
+  opacity: 0.5;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .new-input {
   outline: none;
