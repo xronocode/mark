@@ -123,6 +123,10 @@ describe('store/project — coverage gaps', () => {
     renameMock.mockResolvedValue(undefined)
     ipcWatchSubscribeMock.mockReset()
     ipcFsStatMock.mockReset()
+    ipcPrefsGetMock.mockReset()
+    ipcPrefsSetMock.mockReset()
+    ipcPrefsGetMock.mockResolvedValue([])
+    ipcPrefsSetMock.mockResolvedValue(undefined)
     ipcWatchSubscribeMock.mockImplementation(() => Promise.resolve(vi.fn()))
   })
 
@@ -418,6 +422,45 @@ describe('store/project — coverage gaps', () => {
 
       // mt_walk_project should NOT have been called (dedup)
       expect(invoke).not.toHaveBeenCalledWith('mt_walk_project', expect.anything())
+    })
+  })
+
+  describe('_pushRecentFolder (via ADD_PROJECT)', () => {
+    it('persists added folder to recent list', async () => {
+      ipcPrefsGetMock.mockResolvedValue(['/old'])
+      const store = await loadStore()
+      store.ADD_PROJECT('/new/proj')
+      await vi.waitFor(() => expect(ipcPrefsSetMock).toHaveBeenCalled())
+      const saved = ipcPrefsSetMock.mock.calls[0][1]
+      expect(saved[0]).toBe('/new/proj')
+      expect(saved).toContain('/old')
+    })
+
+    it('deduplicates existing entry and moves to front', async () => {
+      ipcPrefsGetMock.mockResolvedValue(['/a', '/b', '/c'])
+      const store = await loadStore()
+      store.ADD_PROJECT('/b')
+      await vi.waitFor(() => expect(ipcPrefsSetMock).toHaveBeenCalled())
+      const saved = ipcPrefsSetMock.mock.calls[0][1]
+      expect(saved[0]).toBe('/b')
+      expect(saved.filter(p => p === '/b')).toHaveLength(1)
+    })
+
+    it('limits list to 5 entries', async () => {
+      ipcPrefsGetMock.mockResolvedValue(['/1', '/2', '/3', '/4', '/5'])
+      const store = await loadStore()
+      store.ADD_PROJECT('/new')
+      await vi.waitFor(() => expect(ipcPrefsSetMock).toHaveBeenCalled())
+      const saved = ipcPrefsSetMock.mock.calls[0][1]
+      expect(saved).toHaveLength(5)
+      expect(saved[0]).toBe('/new')
+    })
+
+    it('handles ipcPrefs.get failure gracefully', async () => {
+      ipcPrefsGetMock.mockRejectedValue(new Error('storage error'))
+      const store = await loadStore()
+      store.ADD_PROJECT('/safe')
+      expect(store.projectTrees).toHaveLength(1)
     })
   })
 
