@@ -66,8 +66,8 @@ onMounted(async () => {
     editorStore.GET_RECENT_FILES(),
     editorStore.GET_SESSION_PATHS()
   ])
-  recentFiles.value = recent.slice(0, 5)
-  sessionPaths.value = session
+  recentFiles.value = (recent || []).slice(0, 5)
+  sessionPaths.value = session || []
 })
 
 const basename = (p) => {
