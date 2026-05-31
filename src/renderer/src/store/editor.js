@@ -1548,12 +1548,12 @@ export const useEditorStore = defineStore('editor', {
           // B7-M-032: integrate liveReload preference alongside autoSave.
           // B7-M-033: preview-mode tabs always auto-reload (read-only, no dirty conflict).
           const { autoSave, liveReload } = preferencesStore
-          if (autoSave || liveReload || tab.previewMode) {
+          if (autoSave || liveReload || tab.previewMode || tab.watchMode) {
             if (autoSaveTimers.has(id)) {
               clearTimeout(autoSaveTimers.get(id))
               autoSaveTimers.delete(id)
             }
-            if (isSaved || liveReload || tab.previewMode) {
+            if (isSaved || liveReload || tab.previewMode || tab.watchMode) {
               // If change already has data (legacy path), use it directly.
               // Otherwise read from disk (watcher path: project.js sends only {pathname}).
               if (change.data) {

@@ -435,7 +435,21 @@ pub(crate) fn emit_open_new_tab<E: tauri::Emitter<tauri::Wry>>(
     pathname: &str,
     preview_mode: bool,
 ) -> Result<(), String> {
-    let markdown_document = build_open_new_tab_payload(pathname, preview_mode)?;
+    emit_open_new_tab_ext(emitter, pathname, preview_mode, false, false)
+}
+
+pub(crate) fn emit_open_new_tab_ext<E: tauri::Emitter<tauri::Wry>>(
+    emitter: &E,
+    pathname: &str,
+    preview_mode: bool,
+    watch_mode: bool,
+    diff_mode: bool,
+) -> Result<(), String> {
+    let mut markdown_document = build_open_new_tab_payload(pathname, preview_mode)?;
+    if let Some(obj) = markdown_document.as_object_mut() {
+        obj.insert("watchMode".to_string(), json!(watch_mode));
+        obj.insert("diffMode".to_string(), json!(diff_mode));
+    }
     if let Err(e) = emitter.emit("mt::open-new-tab", &markdown_document) {
         safe_eprintln!("[v1_compat][open_new_tab][BLOCK_EMIT_FAILED err={e}]");
         return Err(e.to_string());

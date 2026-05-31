@@ -147,6 +147,12 @@ pub struct PendingOpens {
     /// M-033: CLI --preview flag. When true, all files opened from CLI
     /// or Apple Events start in preview (read-only) mode.
     pub preview_mode: std::sync::atomic::AtomicBool,
+    /// B9: CLI --watch flag. When true, opened files auto-reload on
+    /// external changes regardless of the user's liveReload pref.
+    pub watch_mode: std::sync::atomic::AtomicBool,
+    /// B9: CLI --diff flag. When true, opened files start in diff view
+    /// showing changes against git HEAD or .before sidecar.
+    pub diff_mode: std::sync::atomic::AtomicBool,
 }
 
 impl Default for PendingOpens {
@@ -157,6 +163,8 @@ impl Default for PendingOpens {
             had_initial_opens: std::sync::atomic::AtomicBool::new(false),
             quit_approved: std::sync::atomic::AtomicBool::new(false),
             preview_mode: std::sync::atomic::AtomicBool::new(false),
+            watch_mode: std::sync::atomic::AtomicBool::new(false),
+            diff_mode: std::sync::atomic::AtomicBool::new(false),
         }
     }
 }
@@ -177,8 +185,10 @@ fn mt_drain_pending_opens(
     // M-033: use stored preview_mode instead of hardcoded true.
     // `mark file.md` → preview=false (editable); `mark --preview file.md` → preview=true.
     let preview = state.preview_mode.load(std::sync::atomic::Ordering::SeqCst);
+    let watch = state.watch_mode.load(std::sync::atomic::Ordering::SeqCst);
+    let diff = state.diff_mode.load(std::sync::atomic::Ordering::SeqCst);
     for path in &drained {
-        if let Err(e) = m_v1_compat::emit_open_new_tab(&window, path, preview) {
+        if let Err(e) = m_v1_compat::emit_open_new_tab_ext(&window, path, preview, watch, diff) {
             safe_eprintln!("[main][pending_opens][BLOCK_EMIT_FAILED path={path} err={e}]");
         } else {
             safe_eprintln!("[main][pending_opens][BLOCK_EMITTED path={path}]");
@@ -476,8 +486,9 @@ fn main() {
         }
     }
 
-    // M-033: capture CLI --preview flag for the setup hook closure.
     let cli_preview = cli.preview;
+    let cli_watch = cli.watch;
+    let cli_diff = cli.diff;
 
     // Capture CLI files for the setup hook (move into closure). Each
     // valid path is converted to absolute form upfront so a path like
@@ -687,6 +698,12 @@ fn main() {
                     state
                         .preview_mode
                         .store(cli_preview, std::sync::atomic::Ordering::SeqCst);
+                    state
+                        .watch_mode
+                        .store(cli_watch, std::sync::atomic::Ordering::SeqCst);
+                    state
+                        .diff_mode
+                        .store(cli_diff, std::sync::atomic::Ordering::SeqCst);
                 }
 
                 if !cli_files.is_empty() {

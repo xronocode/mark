@@ -248,6 +248,18 @@ export const setupIpcListeners = async () => {
       // tab id resolves through editorStore.currentFile (or the last
       // pushed tab when selected=false). We gate on the user pref so the
       // setting takes effect immediately without a relaunch.
+      if (p.watchMode) {
+        const tab = selected
+          ? editorStore.currentFile
+          : editorStore.tabs[editorStore.tabs.length - 1]
+        if (tab) tab.watchMode = true
+      }
+      if (p.diffMode) {
+        const tab = selected
+          ? editorStore.currentFile
+          : editorStore.tabs[editorStore.tabs.length - 1]
+        if (tab) tab.diffMode = true
+      }
       if (p.previewMode) {
         const { usePreferencesStore: _usePref } = await import('./store/preferences')
         const _prefs = _usePref()
