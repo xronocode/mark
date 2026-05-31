@@ -454,4 +454,75 @@ describe('store/editor.js — fn coverage', () => {
     editorStore.EXPORT({ type: 'pdf', content: '' })
     // Should return early without sending ipc
   })
+
+  it('_saveSessionState persists tab paths to ipcPrefs', async () => {
+    const { ipcPrefs } = await import('@/ipc/runtime')
+    editorStore.tabs = [
+      { pathname: '/a.md' },
+      { pathname: '' },
+      { pathname: '/b.md' }
+    ]
+    await editorStore._saveSessionState()
+    expect(ipcPrefs.set).toHaveBeenCalledWith('lastSessionTabs', ['/a.md', '/b.md'])
+  })
+
+  it('RESTORE_SESSION opens tabs from saved session paths', async () => {
+    const { ipcPrefs, ipcFs } = await import('@/ipc/runtime')
+    ipcPrefs.get.mockResolvedValueOnce(['/x.md', '/y.md'])
+    ipcFs.read.mockResolvedValueOnce('# X').mockResolvedValueOnce('# Y')
+    await editorStore.RESTORE_SESSION()
+    expect(editorStore.tabs.length).toBeGreaterThanOrEqual(2)
+  })
+
+  it('RESTORE_SESSION returns early when no saved paths', async () => {
+    const { ipcPrefs } = await import('@/ipc/runtime')
+    ipcPrefs.get.mockResolvedValueOnce(null)
+    const tabsBefore = editorStore.tabs.length
+    await editorStore.RESTORE_SESSION()
+    expect(editorStore.tabs.length).toBe(tabsBefore)
+  })
+
+  it('RESTORE_SESSION skips files that no longer exist', async () => {
+    const { ipcPrefs, ipcFs } = await import('@/ipc/runtime')
+    ipcPrefs.get.mockResolvedValueOnce(['/gone.md'])
+    ipcFs.read.mockRejectedValueOnce(new Error('ENOENT'))
+    const tabsBefore = editorStore.tabs.length
+    await editorStore.RESTORE_SESSION()
+    expect(editorStore.tabs.length).toBe(tabsBefore)
+  })
+
+  it('GET_RECENT_FILES returns list from ipcRecent', async () => {
+    const { ipcRecent } = await import('@/ipc/runtime')
+    ipcRecent.list.mockResolvedValueOnce(['/a.md', '/b.md'])
+    const result = await editorStore.GET_RECENT_FILES()
+    expect(result).toEqual(['/a.md', '/b.md'])
+  })
+
+  it('GET_RECENT_FILES returns empty array on error', async () => {
+    const { ipcRecent } = await import('@/ipc/runtime')
+    ipcRecent.list.mockRejectedValueOnce(new Error('fail'))
+    const result = await editorStore.GET_RECENT_FILES()
+    expect(result).toEqual([])
+  })
+
+  it('GET_SESSION_PATHS returns filtered paths', async () => {
+    const { ipcPrefs } = await import('@/ipc/runtime')
+    ipcPrefs.get.mockResolvedValueOnce(['/a.md', '', null, '/b.md'])
+    const result = await editorStore.GET_SESSION_PATHS()
+    expect(result).toEqual(['/a.md', '/b.md'])
+  })
+
+  it('GET_SESSION_PATHS returns empty array when no data', async () => {
+    const { ipcPrefs } = await import('@/ipc/runtime')
+    ipcPrefs.get.mockResolvedValueOnce(null)
+    const result = await editorStore.GET_SESSION_PATHS()
+    expect(result).toEqual([])
+  })
+
+  it('GET_SESSION_PATHS returns empty array on error', async () => {
+    const { ipcPrefs } = await import('@/ipc/runtime')
+    ipcPrefs.get.mockRejectedValueOnce(new Error('fail'))
+    const result = await editorStore.GET_SESSION_PATHS()
+    expect(result).toEqual([])
+  })
 })
