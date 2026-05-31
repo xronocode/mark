@@ -423,6 +423,38 @@ describe('store/project — coverage gaps', () => {
       // mt_walk_project should NOT have been called (dedup)
       expect(invoke).not.toHaveBeenCalledWith('mt_walk_project', expect.anything())
     })
+
+    it('handles mt_walk_project rejection gracefully', async () => {
+      const { invoke } = await import('@tauri-apps/api/core')
+      invoke.mockReset()
+
+      // pick_folder succeeds, walk fails
+      invoke
+        .mockResolvedValueOnce('/walkfail')
+        .mockRejectedValueOnce(new Error('walk error'))
+
+      const store = await loadStore()
+      await store.ASK_FOR_OPEN_PROJECT()
+
+      // Project was added despite walk failure
+      expect(store.projectTrees).toHaveLength(1)
+      // Let the rejection settle
+      await new Promise((r) => setTimeout(r, 10))
+    })
+
+    it('handles pick_folder rejection (user permission denied)', async () => {
+      const { invoke } = await import('@tauri-apps/api/core')
+      const notice = (await import('@/services/notification')).default
+      invoke.mockReset()
+      invoke.mockRejectedValueOnce(new Error('permission denied'))
+
+      const store = await loadStore()
+      await store.ASK_FOR_OPEN_PROJECT()
+
+      expect(notice.notify).toHaveBeenCalledWith(
+        expect.objectContaining({ type: 'error' })
+      )
+    })
   })
 
   describe('_pushRecentFolder (via ADD_PROJECT)', () => {
@@ -514,6 +546,19 @@ describe('store/project — coverage gaps', () => {
 
       await store.OPEN_RECENT_FOLDER('/dup')
       expect(invoke).not.toHaveBeenCalled()
+    })
+
+    it('handles import failure gracefully', async () => {
+      vi.doMock('@tauri-apps/api/core', () => {
+        throw new Error('import failed')
+      })
+      ipcPrefsGetMock.mockResolvedValue([])
+      ipcPrefsSetMock.mockResolvedValue(undefined)
+
+      const store = await loadStore()
+      await store.OPEN_RECENT_FOLDER('/fail/proj')
+
+      expect(store.projectTrees).toHaveLength(1)
     })
   })
 
