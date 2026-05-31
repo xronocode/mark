@@ -35,8 +35,8 @@ test.describe('M-031 diff-view', () => {
 
     await page.evaluate(() => {
       ;(window as any).__emitFakeEvent('mt::bootstrap-editor', {
-        addBlankTab: true,
-        markdownList: [],
+        addBlankTab: false,
+        markdownList: [''],
         lineEnding: 'lf',
         sideBarVisibility: false,
         tabBarVisibility: true,

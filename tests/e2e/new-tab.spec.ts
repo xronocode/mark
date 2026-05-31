@@ -21,8 +21,8 @@ test.describe('new tab', () => {
     }, undefined, { timeout: 15_000 })
     await page.evaluate(() => {
       ;(window as any).__emitFakeEvent('mt::bootstrap-editor', {
-        addBlankTab: true,
-        markdownList: [],
+        addBlankTab: false,
+        markdownList: [''],
         lineEnding: 'lf',
         sideBarVisibility: true,
         tabBarVisibility: true,
@@ -34,7 +34,7 @@ test.describe('new tab', () => {
     const tabContainer = page.locator('.editor-tabs .tabs-container')
     await tabContainer.waitFor({ state: 'visible', timeout: 15_000 })
 
-    // Boot auto-creates an untitled tab via addBlankTab=true; capture baseline.
+    // Boot creates one untitled tab via markdownList; capture baseline.
     const initialCount = await tabContainer.locator('li').count()
 
     // Click the "+" button (.editor-tabs .new-file).
