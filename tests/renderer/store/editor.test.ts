@@ -67,10 +67,10 @@ vi.mock('@/ipc/runtime', () => ({
   ipcFs: __ipcFsMock,
   ipcWatch: {},
   ipcSearch: {},
-  ipcPrefs: {},
+  ipcPrefs: { get: vi.fn(async () => null), set: vi.fn(async () => {}), getAll: vi.fn(async () => ({})) },
   ipcWorkspace: {},
   ipcFonts: {},
-  ipcRecent: {},
+  ipcRecent: { add: vi.fn(async () => {}), list: vi.fn(async () => []), clear: vi.fn(async () => {}) },
   ipcShortcut: {},
   ipcSpell: {},
   ipcMenu: {},
@@ -598,7 +598,7 @@ describe('store/editor', () => {
   // ─── Bootstrap ────────────────────────────────────────────────────
 
   describe('APPLY_BOOTSTRAP_EDITOR', () => {
-    it('marks main store initialized and creates a blank tab when addBlankTab=true', async () => {
+    it('marks main store initialized and shows welcome screen (no blank tab) when addBlankTab=true', async () => {
       const main = (globalThis as any).__editorStubs.main
       main.init = false // reset (vi.resetAllMocks does not touch plain state)
 
@@ -612,8 +612,7 @@ describe('store/editor', () => {
       })
 
       expect(main.SET_INITIALIZED).toHaveBeenCalled()
-      expect(editor.tabs).toHaveLength(1)
-      expect(editor.tabs[0].markdown).toBe('')
+      expect(editor.tabs).toHaveLength(0)
     })
 
     it('opens a blank tab per markdownList entry when addBlankTab=false', () => {

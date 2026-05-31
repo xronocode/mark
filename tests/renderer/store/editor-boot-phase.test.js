@@ -16,8 +16,8 @@ vi.mock('@/ipc/runtime', () => ({
     write: vi.fn(), stat: vi.fn(), readdir: vi.fn(), unlink: vi.fn()
   },
   ipcWatch: {},
-  ipcSearch: {}, ipcPrefs: {}, ipcWorkspace: {}, ipcFonts: {},
-  ipcRecent: {}, ipcShortcut: {}, ipcSpell: {}, ipcMenu: {},
+  ipcSearch: {}, ipcPrefs: { get: vi.fn(async () => null), set: vi.fn(async () => {}), getAll: vi.fn(async () => ({})) }, ipcWorkspace: {}, ipcFonts: {},
+  ipcRecent: { add: vi.fn(async () => {}), list: vi.fn(async () => []), clear: vi.fn(async () => {}) }, ipcShortcut: {}, ipcSpell: {}, ipcMenu: {},
   ipcPandoc: {}, ipcUpdater: {}, ipcScreenshot: {}, ipcSecret: {},
   ipc: { fs: { read: vi.fn(async () => 'mocked content') } }
 }))

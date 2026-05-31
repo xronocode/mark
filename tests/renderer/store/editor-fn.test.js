@@ -26,7 +26,9 @@ vi.mock('element-plus/es/components/message-box/index.mjs', () => ({
 }))
 vi.mock('@/ipc/runtime', () => ({
   ipcFs: { read: vi.fn(async () => 'mocked'), write: vi.fn() },
-  ipcWatch: { subscribe: vi.fn(async () => vi.fn()) }
+  ipcWatch: { subscribe: vi.fn(async () => vi.fn()) },
+  ipcRecent: { add: vi.fn(async () => {}), list: vi.fn(async () => []), clear: vi.fn(async () => {}) },
+  ipcPrefs: { get: vi.fn(async () => null), set: vi.fn(async () => {}), getAll: vi.fn(async () => ({})) }
 }))
 vi.mock('deep-equal', () => ({ default: vi.fn(() => false) }))
 vi.mock('@/util', () => ({
