@@ -136,6 +136,13 @@ pub fn standard_menu() -> Vec<MenuItem> {
                     items: None,
                 },
                 MenuItem {
+                    id: "file.save-all".to_string(),
+                    label: "Save All".to_string(),
+                    command: Some("saveAll".to_string()),
+                    accelerator: None,
+                    items: None,
+                },
+                MenuItem {
                     id: "file.close-tab".to_string(),
                     label: "Close Tab".to_string(),
                     command: Some("closeTab".to_string()),
@@ -311,6 +318,10 @@ pub fn build_native_menu<R: tauri::Runtime>(
                 .accelerator("CmdOrCtrl+Shift+S")
                 .build(handle)?,
         )
+        .item(
+            &MenuItemBuilder::with_id("file.save-all", "Save All")
+                .build(handle)?,
+        )
         .separator()
         .item(
             &MenuItemBuilder::with_id("file.close-tab", "Close Tab")
@@ -325,6 +336,21 @@ pub fn build_native_menu<R: tauri::Runtime>(
         .item(
             &MenuItemBuilder::with_id("file.export-file-html", "Export to HTML…")
                 .build(handle)?,
+        )
+        .separator()
+        .item(
+            &SubmenuBuilder::new(handle, "Line Ending")
+                .item(
+                    &tauri::menu::CheckMenuItemBuilder::with_id("file.line-ending-lf", "LF")
+                        .checked(true)
+                        .build(handle)?,
+                )
+                .item(
+                    &tauri::menu::CheckMenuItemBuilder::with_id("file.line-ending-crlf", "CRLF")
+                        .checked(false)
+                        .build(handle)?,
+                )
+                .build()?,
         )
         .build()?;
 
@@ -486,6 +512,35 @@ pub async fn mt_window_popup_app_menu(
     let pos = Position::Logical(LogicalPosition::new(x, y));
     menu.popup_at(window, pos)
         .map_err(|e| format!("popup failed: {e}"))
+}
+
+#[tauri::command]
+pub async fn mt_update_line_ending_menu(
+    app: tauri::AppHandle,
+    line_ending: String,
+) -> Result<(), String> {
+    use tauri::menu::MenuItemKind;
+    let menu = app.menu().ok_or("no app menu")?;
+    let is_lf = line_ending == "lf";
+    for item in menu.items().map_err(|e| e.to_string())? {
+        if let MenuItemKind::Submenu(sub) = item {
+            for child in sub.items().map_err(|e| e.to_string())? {
+                if let MenuItemKind::Submenu(inner) = child {
+                    for inner_child in inner.items().map_err(|e| e.to_string())? {
+                        if let MenuItemKind::Check(check) = inner_child {
+                            let id = check.id().as_ref();
+                            if id == "file.line-ending-lf" {
+                                let _ = check.set_checked(is_lf);
+                            } else if id == "file.line-ending-crlf" {
+                                let _ = check.set_checked(!is_lf);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    Ok(())
 }
 
 #[cfg(test)]

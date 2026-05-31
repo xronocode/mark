@@ -282,22 +282,23 @@ describe('store/editor — deep coverage (wave 2)', () => {
   // ─── UPDATE_LINE_ENDING_MENU ────────────────────────────────────
 
   describe('UPDATE_LINE_ENDING_MENU', () => {
-    it('sends IPC when lineEnding exists', () => {
+    it('invokes tauri command when lineEnding exists', async () => {
+      const { invoke } = await import('@tauri-apps/api/core')
       editor.currentFile = makeTab({ id: 't1', lineEnding: 'crlf' })
-      editor.UPDATE_LINE_ENDING_MENU()
-      expect(window.electron.ipcRenderer.send).toHaveBeenCalledWith(
-        'mt::update-line-ending-menu',
-        expect.any(Number),
-        'crlf'
+      await editor.UPDATE_LINE_ENDING_MENU()
+      expect(invoke).toHaveBeenCalledWith(
+        'mt_update_line_ending_menu',
+        { lineEnding: 'crlf' }
       )
     })
 
-    it('does nothing when lineEnding is falsy', () => {
+    it('does nothing when lineEnding is falsy', async () => {
+      const { invoke } = await import('@tauri-apps/api/core')
+      ;(invoke).mockClear()
       editor.currentFile = { lineEnding: '' }
-      editor.UPDATE_LINE_ENDING_MENU()
-      expect(window.electron.ipcRenderer.send).not.toHaveBeenCalledWith(
-        'mt::update-line-ending-menu',
-        expect.anything(),
+      await editor.UPDATE_LINE_ENDING_MENU()
+      expect(invoke).not.toHaveBeenCalledWith(
+        'mt_update_line_ending_menu',
         expect.anything()
       )
     })

@@ -1132,20 +1132,25 @@ describe('store/editor', () => {
   })
 
   describe('UPDATE_LINE_ENDING_MENU', () => {
-    it('sends ipc when currentFile has lineEnding', () => {
+    it('invokes mt_update_line_ending_menu when lineEnding exists', async () => {
+      const { invoke } = await import('@tauri-apps/api/core')
       editor.currentFile = makeTab({ id: 't1', lineEnding: 'lf' })
-      editor.UPDATE_LINE_ENDING_MENU()
-      expect(window.electron.ipcRenderer.send).toHaveBeenCalledWith(
-        'mt::update-line-ending-menu',
-        expect.any(Number),
-        'lf'
+      await editor.UPDATE_LINE_ENDING_MENU()
+      expect(invoke).toHaveBeenCalledWith(
+        'mt_update_line_ending_menu',
+        { lineEnding: 'lf' }
       )
     })
 
-    it('no-ops without lineEnding', () => {
+    it('no-ops without lineEnding', async () => {
+      const { invoke } = await import('@tauri-apps/api/core')
+      ;(invoke as any).mockClear()
       editor.currentFile = {}
-      editor.UPDATE_LINE_ENDING_MENU()
-      expect(window.electron.ipcRenderer.send).not.toHaveBeenCalled()
+      await editor.UPDATE_LINE_ENDING_MENU()
+      expect(invoke).not.toHaveBeenCalledWith(
+        'mt_update_line_ending_menu',
+        expect.anything()
+      )
     })
   })
 

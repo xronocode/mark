@@ -295,11 +295,15 @@ export const useEditorStore = defineStore('editor', {
     },
 
     // We need to update line endings menu when changing tabs.
-    UPDATE_LINE_ENDING_MENU() {
+    async UPDATE_LINE_ENDING_MENU() {
       const { lineEnding } = this.currentFile
       if (lineEnding) {
-        const { windowId } = window.marktext.env
-        window.electron.ipcRenderer.send('mt::update-line-ending-menu', windowId, lineEnding)
+        try {
+          const { invoke } = await import('@tauri-apps/api/core')
+          await invoke('mt_update_line_ending_menu', { lineEnding })
+        } catch {
+          // menu update is best-effort
+        }
       }
     },
 
@@ -416,6 +420,12 @@ export const useEditorStore = defineStore('editor', {
     LISTEN_FOR_SAVE_AS() {
       bus.on('mt::editor-ask-file-save-as', () => {
         this.FILE_SAVE_AS()
+      })
+    },
+
+    LISTEN_FOR_SAVE_ALL() {
+      bus.on('mt::editor-ask-file-save-all', () => {
+        this.ASK_FOR_SAVE_ALL(false)
       })
     },
 
@@ -1369,12 +1379,8 @@ export const useEditorStore = defineStore('editor', {
       if (!hasKeys(this.currentFile)) return
 
       if (type === 'pdf') {
-        notice.notify({
-          title: i18n.global.t('editor.export.failed', { type: 'PDF' }),
-          type: 'warning',
-          message: 'PDF export is not yet available. Use Print or export as HTML.'
-        })
         bus.emit('print-service-clearup')
+        await this._EXPORT_PDF()
         return
       }
 
@@ -1412,6 +1418,50 @@ export const useEditorStore = defineStore('editor', {
       } catch (e) {
         notice.notify({
           title: i18n.global.t('editor.export.failed', { type: 'HTML' }),
+          type: 'error',
+          message: String(e)
+        })
+      }
+    },
+
+    async _EXPORT_PDF() {
+      const { invoke } = await import('@tauri-apps/api/core')
+      let status
+      try {
+        status = await invoke('mt_pandoc_status')
+      } catch {
+        // ignored
+      }
+      if (!status || !status.available) {
+        notice.notify({
+          title: i18n.global.t('editor.export.failed', { type: 'PDF' }),
+          type: 'warning',
+          message: 'PDF export requires pandoc. Install it with: brew install pandoc'
+        })
+        return
+      }
+
+      const { markdown, filename } = this.currentFile
+      const defaultName = filename
+        ? filename.replace(/\.md$/i, '.pdf')
+        : 'export.pdf'
+
+      const { save } = await import('@tauri-apps/plugin-dialog')
+      const filePath = await save({
+        title: 'Export PDF',
+        defaultPath: defaultName,
+        filters: [{ name: 'PDF', extensions: ['pdf'] }]
+      })
+      if (!filePath) return
+
+      try {
+        const raw = await invoke('mt_pandoc_export', { input: markdown, format: 'pdf' })
+        const bytes = new Uint8Array(raw)
+        await ipcFs.writeBinary(filePath, bytes)
+        this.APPLY_EXPORT_SUCCESS(filePath)
+      } catch (e) {
+        notice.notify({
+          title: i18n.global.t('editor.export.failed', { type: 'PDF' }),
           type: 'error',
           message: String(e)
         })

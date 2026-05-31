@@ -21,6 +21,7 @@ const COMMAND_KEY_MAP = {
   // 文件保存和导出
   'file.save': 'commands.file.save',
   'file.save-as': 'commands.file.saveAs',
+  'file.save-all': 'commands.file.saveAll',
   'file.export-file': 'commands.file.exportFile',
   'file.export-file.pdf': 'commands.file.exportFilePdf',
 
