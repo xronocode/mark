@@ -1557,6 +1557,7 @@ export const useEditorStore = defineStore('editor', {
               // If change already has data (legacy path), use it directly.
               // Otherwise read from disk (watcher path: project.js sends only {pathname}).
               if (change.data) {
+                console.log(`[editor][live_reload][BLOCK_LIVE_RELOAD path=${filename} source=data]`)
                 this.loadChange(change)
               } else {
                 // Settle delay: let the disk write finish flushing
@@ -1564,7 +1565,11 @@ export const useEditorStore = defineStore('editor', {
                   try {
                     const markdown = await ipcFs.read(pathname)
                     // Hash-skip: don't reload if content matches current tab
-                    if (markdown === tab.markdown) return
+                    if (markdown === tab.markdown) {
+                      console.log(`[editor][live_reload][BLOCK_RELOAD_SKIPPED path=${filename} reason=hash-match]`)
+                      return
+                    }
+                    console.log(`[editor][live_reload][BLOCK_LIVE_RELOAD path=${filename} source=disk]`)
                     const data = {
                       markdown,
                       filename: tab.filename,
@@ -1583,6 +1588,7 @@ export const useEditorStore = defineStore('editor', {
               return
             }
           }
+          console.log(`[editor][live_reload][BLOCK_RELOAD_CONFLICT path=${filename} reason=dirty-tab]`)
           tab.isSaved = false
           this.pushTabNotification({
             tabId: id,

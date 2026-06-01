@@ -34,6 +34,7 @@ import { listen } from '@tauri-apps/api/event'
 import { invoke } from '@tauri-apps/api/core'
 import bus from './bus'
 import { setLanguage } from './i18n'
+import { ipcFs } from './ipc/runtime'
 
 let installed = false
 
@@ -274,7 +275,26 @@ export const setupIpcListeners = async () => {
           : editorStore.tabs.length
             ? editorStore.tabs[editorStore.tabs.length - 1].id
             : null
-        if (newTabId) editorStore.APPLY_PREVIEW_MODE(newTabId, true)
+        if (newTabId) {
+          // eslint-disable-next-line no-console
+          console.log(`[editor][preview][BLOCK_PREVIEW_MODE tab=${newTabId} path=${_basename}]`)
+          editorStore.APPLY_PREVIEW_MODE(newTabId, true)
+        }
+      }
+      // Auto-detect .before sidecar: if file has a {path}.before neighbor
+      // and diffMode wasn't explicitly set, auto-enable diff view.
+      if (!p.diffMode && p.pathname) {
+        ipcFs.stat(p.pathname + '.before').then((st) => {
+          if (!st || !st.isFile) return
+          const tab = selected
+            ? editorStore.currentFile
+            : editorStore.tabs[editorStore.tabs.length - 1]
+          if (tab && tab.pathname === p.pathname && !tab.diffMode) {
+            // eslint-disable-next-line no-console
+            console.log(`[editor][diff][BLOCK_AUTO_DIFF_TRIGGERED path=${_basename}]`)
+            tab.diffMode = true
+          }
+        }).catch(() => {})
       }
     }),
 
