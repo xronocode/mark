@@ -552,8 +552,8 @@
       </interface>
       <depends>M-010</depends>
       <target>
-        <source>src-tauri/src/pandoc/mod.rs</source>
-        <tests>src-tauri/src/pandoc/mod.rs (#[cfg(test)])</tests>
+        <source>src-tauri/src/m015_pandoc.rs</source>
+        <tests>src-tauri/src/m015_pandoc.rs (#[cfg(test)])</tests>
       </target>
       <observability>
         <log-prefix>[Pandoc]</log-prefix>
@@ -1965,8 +1965,8 @@ src/main/config.js declares `contextIsolation: false`, `nodeIntegration: true`, 
         <gaps>Cmd+D keyboard shortcut not wired. No View menu item. Side-by-side mode not implemented. diffMode is global, not per-tab. No debounce guard.</gaps>
       </step-3>
 
-      <step-4 module="M-031" status="deferred" verification="V-M-031" closes="F-DIFF-VIEW-AUTO">
-        <description>Auto-detect .before file on open + --diff CLI flag. Deferred — requires .before file resolution in step-2 first.</description>
+      <step-4 module="M-031" status="done" verification="V-M-031" closes="F-DIFF-VIEW-AUTO" commit="35e49133" impl-note="--diff CLI flag in m020_cli.rs, PendingOpens.diff_mode AtomicBool in main.rs, emit_open_new_tab_ext passes diffMode in payload, bootstrap-ipc.js sets tab.diffMode=true. .before file baseline already implemented in step-2. Auto-detect .before on open still deferred (not blocking).">
+        <description>--diff CLI flag opens files in diff view on launch. `mark --diff modified.md` sets tab.diffMode=true via PendingOpens threading.</description>
       </step-4>
     </Phase-B6-diff>
 
@@ -1995,7 +1995,7 @@ src/main/config.js declares `contextIsolation: false`, `nodeIntegration: true`, 
       </step-1>
 
       <step-2 module="M-033" status="done" verification="V-M-033" closes="F-CLI-PREVIEW">
-        <description>CLI --preview flag for read-only WYSIWYG preview. Small scope: previewMode per-tab flag ALREADY EXISTS and works (M-022 infrastructure). Only need: (1) add --preview flag to CliArgs in m020_cli.rs; (2) thread preview flag through PendingOpens → emit_open_new_tab(preview_mode=true); (3) in M-032's APPLY_FILE_CHANGE, skip dirty check for previewMode tabs (always auto-reload). NO renderer changes needed — contenteditable=false, Cmd+S no-op, no save dialog already work. --watch deferred to M-036.</description>
+        <description>CLI --preview flag for read-only WYSIWYG preview. Small scope: previewMode per-tab flag ALREADY EXISTS and works (M-022 infrastructure). Only need: (1) add --preview flag to CliArgs in m020_cli.rs; (2) thread preview flag through PendingOpens → emit_open_new_tab(preview_mode=true); (3) in M-032's APPLY_FILE_CHANGE, skip dirty check for previewMode tabs (always auto-reload). NO renderer changes needed — contenteditable=false, Cmd+S no-op, no save dialog already work.</description>
         <write-scope>
           <file>src-tauri/src/m020_cli.rs — add preview: bool to CliArgs struct</file>
           <file>src-tauri/src/main.rs — pass cli_args.preview to emit_open_new_tab in setup hook</file>
@@ -2008,7 +2008,33 @@ src/main/config.js declares `contextIsolation: false`, `nodeIntegration: true`, 
         </test-targets>
       </step-2>
 
-      <gate>verify live-reload works end-to-end: external write → editor updates within 500ms; --preview mode opens read-only; --preview --watch opens folder sidebar. Tag v2.0.0-alpha.9 on success.</gate>
+      <step-3 module="M-032,M-033" status="done" verification="V-M-032,V-M-033" closes="F-CLI-WATCH-DIFF" commit="35e49133" impl-note="--watch (-w) and --diff CLI flags in m020_cli.rs. PendingOpens.watch_mode/diff_mode AtomicBool in main.rs. emit_open_new_tab_ext in m_v1_compat.rs passes watchMode/diffMode in payload. bootstrap-ipc.js sets tab.watchMode/tab.diffMode. APPLY_FILE_CHANGE gates on tab.watchMode for auto-reload. 6 new cargo tests.">
+        <description>CLI --watch and --diff flags for agent-compat workflows. `mark --watch file.md` auto-reloads on external changes regardless of liveReload pref. `mark --diff file.md` opens in diff view. Full pipeline: clap → PendingOpens AtomicBool → emit_open_new_tab_ext → bootstrap-ipc tab flag → APPLY_FILE_CHANGE watchMode gate.</description>
+        <write-scope>
+          <file>src-tauri/src/m020_cli.rs — add watch: bool and diff: bool to CliArgs</file>
+          <file>src-tauri/src/main.rs — PendingOpens.watch_mode/diff_mode AtomicBool; mt_drain_pending_opens uses emit_open_new_tab_ext</file>
+          <file>src-tauri/src/m_v1_compat.rs — emit_open_new_tab_ext with watch_mode/diff_mode params</file>
+          <file>src/renderer/src/bootstrap-ipc.js — set tab.watchMode/tab.diffMode on mt::open-new-tab</file>
+          <file>src/renderer/src/store/editor.js — APPLY_FILE_CHANGE: tab.watchMode auto-reload gate</file>
+        </write-scope>
+        <depends>M-020 (cli-flags), M-032 (live-reload), M-031 (diff-view), M-001 (lifecycle)</depends>
+        <test-targets>
+          <test>src-tauri/src/m020_cli.rs (#[cfg(test)]) — 6 tests: watch_flag, watch_short_form, watch_default_false, diff_flag, diff_default_false, watch_and_diff_combined</test>
+        </test-targets>
+      </step-3>
+
+      <step-4 status="done" closes="F-DEFERRED-WIRE" commit="582b59ba" impl-note="Wired deferred features: save-all (command + menu + bus listener), PDF export (_EXPORT_PDF via mt_pandoc_status/mt_pandoc_export), line ending menu (LF/CRLF CheckMenuItems + mt_update_line_ending_menu invoke), listener leak fix (on()/once() return unsubscribe fn), panic test race fix (mutex in m001_panic.rs).">
+        <description>Wire deferred features from B3a/B4-pre-alpha: save-all menu + command, PDF export invoke, line ending submenu, IPC listener leak fix, panic test flake fix.</description>
+        <write-scope>
+          <file>src/renderer/src/commands/index.js — file.save-all, file.line-ending-lf, file.line-ending-crlf</file>
+          <file>src/renderer/src/store/editor.js — LISTEN_FOR_SAVE_ALL, _EXPORT_PDF, UPDATE_LINE_ENDING_MENU invoke</file>
+          <file>src-tauri/src/m009_menu.rs — Save All item, Line Ending submenu, mt_update_line_ending_menu command</file>
+          <file>src/renderer/src/_shims/install-window-globals.js — on()/once() return unsubscribe functions</file>
+          <file>src-tauri/src/m001_panic.rs — synth_panic_lock mutex for test isolation</file>
+        </write-scope>
+      </step-4>
+
+      <gate>verify live-reload works end-to-end: external write → editor updates within 500ms; --preview opens read-only; --watch auto-reloads regardless of pref; --diff opens diff view. save-all, PDF export, line endings functional. vitest 2758 pass, cargo 445 pass. Tag v2.0.0-alpha.9 on success.</gate>
     </Phase-B7-agent-compat>
 
     <Phase-B8-terminal name="Embedded Terminal Panel (AI agent companion)" status="planned" priority="medium" estimated-effort="12h" target-tag="v2.0.0-beta.1">

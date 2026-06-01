@@ -226,12 +226,14 @@
 
     <M-015 NAME="mt-pandoc-bridge" TYPE="INTEGRATION" STATUS="shipped" PHASE-REF="B3-step-9" PATH="src-tauri/src/m015_pandoc.rs" CLOSURE="docs/gate-phase-b3-closure.md" RELATED-DOC="docs/phase-b1-pdf-export-strategy.md" DEFERRED="F-PANDOC-PROGRESS">
       <purpose>Import docx/odt/latex/rst/etc. → Markdown via pandoc subprocess with macOS /Library/TeX/texbin PATH patching.</purpose>
-      <path>src-tauri/src/pandoc/mod.rs</path>
+      <path>src-tauri/src/m015_pandoc.rs</path>
       <depends>M-010</depends>
       <verification-ref>V-M-015</verification-ref>
       <annotations>
         <fn-pandoc_available PURPOSE="Probe pandoc on PATH with MARKTEXT_PANDOC override" />
         <fn-pandoc_import PURPOSE="Spawn pandoc; pipe stdio; return markdown" />
+        <fn-mt_pandoc_status PURPOSE="Tauri command: check pandoc availability, return {available, version, path}" />
+        <fn-mt_pandoc_export PURPOSE="Tauri command: convert markdown to target format (PDF) via pandoc subprocess" />
       </annotations>
     </M-015>
 
@@ -459,7 +461,7 @@
       <annotations>
         <fn-mt_diff_baseline PURPOSE="Rust command: git show HEAD:{rel_path}. Returns Result&lt;String, String&gt;. BLOCK_DIFF_BASELINE + BLOCK_DIFF_BASELINE_OK markers. 3 cargo tests." />
         <fn-diffView PURPOSE="Vue component: CodeMirror MergeView inline mode. Dynamic import of merge addon + diff-match-patch. Props: markdown, pathname. Watch for changes triggers baseline refetch." />
-        <fn-view-diff-mode PURPOSE="Command in commands/index.js: toggles preferencesStore.diffMode boolean. index.vue conditionally renders diffView.vue via v-if." />
+        <fn-view-diff-mode PURPOSE="Command in commands/index.js: toggles currentFile.diffMode per-tab boolean. app.vue derives diffMode from currentFile.diffMode; editorWithTabs/index.vue conditionally renders diffView.vue via v-if. Cmd+D native accelerator + command palette." />
         <fn-getTheme PURPOSE="diffView.vue: maps current theme to CodeMirror theme name (railscasts/one-dark/default)." />
       </annotations>
     </M-031>
@@ -471,21 +473,26 @@
       <depends>M-003, M-012, M-011</depends>
       <verification-ref>V-M-032</verification-ref>
       <annotations>
-        <fn-APPLY_FILE_CHANGE PURPOSE="Async ipcFs.read fallback when change.data missing. Checks autoSave/liveReload/previewMode. 100ms settle delay. Hash-skip." />
+        <fn-APPLY_FILE_CHANGE PURPOSE="Async ipcFs.read fallback when change.data missing. Checks autoSave/liveReload/previewMode/watchMode. 100ms settle delay. Hash-skip." />
         <fn-loadChange PURPOSE="Saves cursor/scrollTop/muyaIndexCursor before Object.assign, restores after." />
         <type-liveReload PURPOSE="Preference: boolean, default true. Auto-reload clean tabs without notification." />
       </annotations>
     </M-032>
 
-    <M-033 NAME="cli-preview" TYPE="ENTRY_POINT" STATUS="done" PHASE-REF="B7-step-2">
-      <purpose>CLI --preview flag: `mark --preview notes.md` opens read-only. preview: bool in CliArgs, threaded through PendingOpens.preview_mode AtomicBool to mt_drain_pending_opens. Apple Events keep hardcoded preview=true. editor.js: previewMode tabs always auto-reload.</purpose>
-      <path>src-tauri/src/m020_cli.rs, src-tauri/src/main.rs, src/renderer/src/store/editor.js</path>
-      <depends>M-020, M-032, M-001</depends>
+    <M-033 NAME="cli-preview" TYPE="ENTRY_POINT" STATUS="done" PHASE-REF="B7-step-2,B7-step-3">
+      <purpose>CLI --preview/--watch/--diff flags: `mark --preview notes.md` opens read-only; `mark --watch file.md` auto-reloads on external change; `mark --diff file.md` opens diff view. Flags threaded through PendingOpens AtomicBool fields to emit_open_new_tab_ext → bootstrap-ipc.js tab flags. Apple Events keep hardcoded preview=true.</purpose>
+      <path>src-tauri/src/m020_cli.rs, src-tauri/src/main.rs, src-tauri/src/m_v1_compat.rs, src/renderer/src/bootstrap-ipc.js, src/renderer/src/store/editor.js</path>
+      <depends>M-020, M-032, M-031, M-001</depends>
       <verification-ref>V-M-033</verification-ref>
       <annotations>
         <fn-CliArgs-preview PURPOSE="bool field, --preview long flag. Default false. `mark file.md` → editable, `mark --preview file.md` → read-only." />
+        <fn-CliArgs-watch PURPOSE="bool field, --watch / -w short flag. Default false. `mark --watch file.md` auto-reloads regardless of liveReload pref." />
+        <fn-CliArgs-diff PURPOSE="bool field, --diff long flag. Default false. `mark --diff file.md` opens in diff view." />
         <fn-PendingOpens-preview_mode PURPOSE="AtomicBool seeded from cli.preview in setup hook. Consumed by mt_drain_pending_opens." />
-        <fn-APPLY_FILE_CHANGE-preview-skip PURPOSE="In editor.js: tab.previewMode=true bypasses dirty check — always auto-reload." />
+        <fn-PendingOpens-watch_mode PURPOSE="AtomicBool seeded from cli.watch in setup hook. Consumed by mt_drain_pending_opens via emit_open_new_tab_ext." />
+        <fn-PendingOpens-diff_mode PURPOSE="AtomicBool seeded from cli.diff in setup hook. Consumed by mt_drain_pending_opens via emit_open_new_tab_ext." />
+        <fn-emit_open_new_tab_ext PURPOSE="m_v1_compat: extended emit with watch_mode/diff_mode bools. Inserts watchMode/diffMode into JSON payload. Legacy emit_open_new_tab delegates with false/false." />
+        <fn-APPLY_FILE_CHANGE-preview-skip PURPOSE="In editor.js: tab.previewMode=true OR tab.watchMode=true bypasses dirty check — always auto-reload." />
       </annotations>
     </M-033>
 
@@ -791,8 +798,10 @@
     <CrossLink from="M-032" to="M-003" relation="consumes-file-changed-events-from" />
     <CrossLink from="M-032" to="M-012" relation="updates-muya-content-on-reload" />
     <CrossLink from="M-032" to="M-011" relation="resolves-active-tab-in" />
-    <CrossLink from="M-033" to="M-032" relation="requires-live-reload-for-preview" />
+    <CrossLink from="M-033" to="M-032" relation="requires-live-reload-for-preview-and-watch" />
+    <CrossLink from="M-033" to="M-031" relation="opens-diff-view-via-cli-flag" />
     <CrossLink from="M-033" to="M-020" relation="extends-cli-flags" />
+    <CrossLink from="M-033" to="M-001" relation="threads-flags-through-PendingOpens" />
     <CrossLink from="M-034" to="M-001" relation="shell-lifecycle-bound-to-window" />
     <CrossLink from="M-035" to="M-034" relation="reads-terminal-output-from" />
     <CrossLink from="M-036" to="M-002" relation="reads-directory-tree-via" />
