@@ -30,7 +30,7 @@ brew tap xronocode/mark && brew install --cask mark@alpha
 No Gatekeeper prompts. No `sudo xattr` dance. [Build from source →](#install)
 
 > **⚠️ Alpha** — daily-driver quality for writing on Apple Silicon, but it has known gaps.<br>
-> What works has 2700+ tests and CI. What doesn't is [tracked openly](#status--v201-alpha1).
+> What works has 2750+ tests and CI. What doesn't is [tracked openly](#status--v201-alpha1).
 
 <br>
 
@@ -266,7 +266,7 @@ One person. AI agents. A native desktop app that rivals what teams of five ship.
 
 <div align="center">
 
-### Status — v2.0.1-alpha.1
+### Status — v2.0.1-alpha.2
 
 </div>
 
@@ -300,6 +300,7 @@ Daily-driver quality for routine Markdown on Apple Silicon.
 | File move / rename commands | ✅ |
 | Print (Cmd+P → system dialog) | ✅ |
 | Export as HTML | ✅ |
+| Line ending control (LF / CRLF) | ✅ |
 
 **Appearance & UX**
 
@@ -331,10 +332,13 @@ Daily-driver quality for routine Markdown on Apple Silicon.
 
 | Feature | Status |
 |:---|:---:|
-| CLI flags (--safe-mode, --debug, --new-window) | ✅ |
+| CLI flags (--preview, --watch, --diff, --new-window) | ✅ |
 | `open -a Mark file.md` from terminal / agents | ✅ |
+| `mark --watch file.md` live-reload for agents | ✅ |
+| `mark --diff file.md` auto-open diff view | ✅ |
+| Auto-detect `.before` sidecar → diff view | ✅ |
+| Save All (menu + command palette) | ✅ |
 | Pandoc export (HTML, PDF) | ✅ Requires Pandoc |
-| Pandoc progress indicator | Planned |
 | Image upload (PicGo, smms, aliyun) | Planned |
 
 **Platform**
@@ -347,7 +351,7 @@ Daily-driver quality for routine Markdown on Apple Silicon.
 | Windows | Planned |
 | Multi-window support | Planned |
 
-> Alpha is alpha. What works has **2700+ tests** and CI. What doesn't is tracked openly with a target milestone.
+> Alpha is alpha. What works has **2750+ tests** and CI. What doesn't is tracked openly with a target milestone.
 
 ---
 
@@ -389,8 +393,8 @@ npm run tauri build     # release
 ```
 
 ```sh
-npm test                                    # 374 renderer tests
-cd src-tauri && cargo test --bin mark       # 418 Rust tests
+npm test                                    # 2758 renderer tests
+cd src-tauri && cargo test --bin mark       # 445 Rust tests
 npm run test:e2e                            # Playwright
 ```
 
