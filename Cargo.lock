@@ -2510,7 +2510,7 @@ dependencies = [
 
 [[package]]
 name = "mark"
-version = "2.0.1-alpha.1"
+version = "2.0.2-alpha"
 dependencies = [
  "chardet",
  "clap",
