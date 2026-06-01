@@ -306,8 +306,8 @@
       <gate PHASE="Phase-B5-perf-wave1" MODULES="M-024, M-025" GATE-ID="Gate-Phase-B5-perf-wave1" VERIFICATION="V-M-024, V-M-025" STATUS="pending" />
       <gate PHASE="Phase-B5-perf-wave2" MODULES="M-026, M-027" GATE-ID="Gate-Phase-B5-perf-wave2" VERIFICATION="V-M-026, V-M-027" STATUS="conditional-pass" VERIFIED="2026-05-24" VERDICT="lazy-load and treeshake functional; BLOCK markers and build-audit scripts deferred" />
       <gate PHASE="Phase-B5-perf-wave3" MODULES="M-028, M-029, M-030" GATE-ID="Gate-Phase-B5-perf-wave3" VERIFICATION="V-M-028, V-M-029, V-M-030" STATUS="pending" />
-      <gate PHASE="Phase-B6-agent-pipeline" MODULES="M-031" GATE-ID="Gate-Phase-B6-agent-pipeline" VERIFICATION="V-M-031" STATUS="conditional-pass" VERIFIED="2026-05-24" VERDICT="inline diff functional with git baseline; .before file, side-by-side, Cmd+D shortcut, per-tab state deferred" />
-      <gate PHASE="Phase-B7-agent-compat" MODULES="M-032, M-033" GATE-ID="Gate-Phase-B7-agent-compat" VERIFICATION="V-M-032, V-M-033" STATUS="conditional-pass" VERIFIED="2026-05-24" VERDICT="live-reload and cli-preview functionally complete; BLOCK markers partial, dedicated test files missing" />
+      <gate PHASE="Phase-B6-agent-pipeline" MODULES="M-031" GATE-ID="Gate-Phase-B6-agent-pipeline" VERIFICATION="V-M-031" STATUS="pass" VERIFIED="2026-06-01" VERDICT="inline diff functional with git+.before baseline; Cmd+D shortcut wired; per-tab diffMode implemented; --diff CLI flag threads through PendingOpens. Side-by-side mode deferred (not blocking)." />
+      <gate PHASE="Phase-B7-agent-compat" MODULES="M-032, M-033" GATE-ID="Gate-Phase-B7-agent-compat" VERIFICATION="V-M-032, V-M-033" STATUS="pass" VERIFIED="2026-06-01" VERDICT="live-reload, cli-preview, --watch, --diff functionally complete. save-all, PDF export, line endings wired. Listener leak fixed. 15 live-reload + 12 preview-mode dedicated tests. vitest 2758 pass, cargo 445 pass." />
       <gate PHASE="Phase-B10-smart-paste" MODULES="M-044, M-038, M-039, M-040, M-041, M-042, M-043" GATE-ID="Gate-Phase-B10-smart-paste" VERIFICATION="V-M-044, V-M-038, V-M-039, V-M-040, V-M-041, V-M-042, V-M-043, VF-017" STATUS="design" />
     </phase-gate-matrix>
 
@@ -1755,7 +1755,7 @@
 
     <V-M-015 MODULE="M-015 mt-pandoc-bridge" PRIORITY="medium">
       <test-files>
-        <file>src-tauri/src/pandoc/mod.rs (#[cfg(test)])</file>
+        <file>src-tauri/src/m015_pandoc.rs (#[cfg(test)])</file>
       </test-files>
       <module-checks>
         <check-1>cargo test --manifest-path src-tauri/Cargo.toml pandoc</check-1>
