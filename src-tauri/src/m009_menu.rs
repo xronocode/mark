@@ -143,10 +143,31 @@ pub fn standard_menu() -> Vec<MenuItem> {
                     items: None,
                 },
                 MenuItem {
+                    id: "file.rename-file".to_string(),
+                    label: "Rename…".to_string(),
+                    command: Some("renameFile".to_string()),
+                    accelerator: None,
+                    items: None,
+                },
+                MenuItem {
+                    id: "file.move-file".to_string(),
+                    label: "Move To…".to_string(),
+                    command: Some("moveFile".to_string()),
+                    accelerator: None,
+                    items: None,
+                },
+                MenuItem {
                     id: "file.close-tab".to_string(),
                     label: "Close Tab".to_string(),
                     command: Some("closeTab".to_string()),
                     accelerator: Some("CmdOrCtrl+W".to_string()),
+                    items: None,
+                },
+                MenuItem {
+                    id: "file.print".to_string(),
+                    label: "Print…".to_string(),
+                    command: Some("print".to_string()),
+                    accelerator: Some("CmdOrCtrl+P".to_string()),
                     items: None,
                 },
                 MenuItem {
@@ -179,6 +200,20 @@ pub fn standard_menu() -> Vec<MenuItem> {
                     items: None,
                 },
                 MenuItem {
+                    id: "edit.find-next".to_string(),
+                    label: "Find Next".to_string(),
+                    command: Some("findNext".to_string()),
+                    accelerator: Some("CmdOrCtrl+G".to_string()),
+                    items: None,
+                },
+                MenuItem {
+                    id: "edit.find-previous".to_string(),
+                    label: "Find Previous".to_string(),
+                    command: Some("findPrevious".to_string()),
+                    accelerator: Some("CmdOrCtrl+Shift+G".to_string()),
+                    items: None,
+                },
+                MenuItem {
                     id: "edit.replace".to_string(),
                     label: "Replace".to_string(),
                     command: Some("replace".to_string()),
@@ -208,10 +243,31 @@ pub fn standard_menu() -> Vec<MenuItem> {
                     items: None,
                 },
                 MenuItem {
+                    id: "view.toggle-tabbar".to_string(),
+                    label: "Toggle Tab Bar".to_string(),
+                    command: Some("toggleTabBar".to_string()),
+                    accelerator: None,
+                    items: None,
+                },
+                MenuItem {
                     id: "view.source-code-mode".to_string(),
                     label: "Source Code Mode".to_string(),
                     command: Some("toggleSourceMode".to_string()),
                     accelerator: Some("CmdOrCtrl+Alt+S".to_string()),
+                    items: None,
+                },
+                MenuItem {
+                    id: "view.typewriter-mode".to_string(),
+                    label: "Typewriter Mode".to_string(),
+                    command: Some("toggleTypewriter".to_string()),
+                    accelerator: None,
+                    items: None,
+                },
+                MenuItem {
+                    id: "view.focus-mode".to_string(),
+                    label: "Focus Mode".to_string(),
+                    command: Some("toggleFocus".to_string()),
+                    accelerator: None,
                     items: None,
                 },
                 MenuItem {
@@ -227,6 +283,28 @@ pub fn standard_menu() -> Vec<MenuItem> {
                     command: None,
                     accelerator: None,
                     items: Some(vec![]), // populated from prefs
+                },
+            ]),
+        },
+        MenuItem {
+            id: "window".to_string(),
+            label: "Window".to_string(),
+            command: None,
+            accelerator: None,
+            items: Some(vec![
+                MenuItem {
+                    id: "window.minimize".to_string(),
+                    label: "Minimize".to_string(),
+                    command: Some("minimize".to_string()),
+                    accelerator: Some("CmdOrCtrl+M".to_string()),
+                    items: None,
+                },
+                MenuItem {
+                    id: "window.toggle-full-screen".to_string(),
+                    label: "Toggle Full Screen".to_string(),
+                    command: Some("toggleFullScreen".to_string()),
+                    accelerator: Some("Ctrl+CmdOrCtrl+F".to_string()),
+                    items: None,
                 },
             ]),
         },
@@ -324,11 +402,25 @@ pub fn build_native_menu<R: tauri::Runtime>(
         )
         .separator()
         .item(
+            &MenuItemBuilder::with_id("file.rename-file", "Rename…")
+                .build(handle)?,
+        )
+        .item(
+            &MenuItemBuilder::with_id("file.move-file", "Move To…")
+                .build(handle)?,
+        )
+        .separator()
+        .item(
             &MenuItemBuilder::with_id("file.close-tab", "Close Tab")
                 .accelerator("CmdOrCtrl+W")
                 .build(handle)?,
         )
         .separator()
+        .item(
+            &MenuItemBuilder::with_id("file.print", "Print…")
+                .accelerator("CmdOrCtrl+P")
+                .build(handle)?,
+        )
         .item(
             &MenuItemBuilder::with_id("file.export-file-pdf", "Export to PDF…")
                 .build(handle)?,
@@ -367,6 +459,16 @@ pub fn build_native_menu<R: tauri::Runtime>(
         .item(
             &MenuItemBuilder::with_id("edit.find", "Find")
                 .accelerator("CmdOrCtrl+F")
+                .build(handle)?,
+        )
+        .item(
+            &MenuItemBuilder::with_id("edit.find-next", "Find Next")
+                .accelerator("CmdOrCtrl+G")
+                .build(handle)?,
+        )
+        .item(
+            &MenuItemBuilder::with_id("edit.find-previous", "Find Previous")
+                .accelerator("CmdOrCtrl+Shift+G")
                 .build(handle)?,
         )
         .item(
@@ -431,8 +533,22 @@ pub fn build_native_menu<R: tauri::Runtime>(
                 .build(handle)?,
         )
         .item(
+            &tauri::menu::CheckMenuItemBuilder::with_id("view.toggle-tabbar", "Toggle Tab Bar")
+                .checked(true)
+                .build(handle)?,
+        )
+        .separator()
+        .item(
             &MenuItemBuilder::with_id("view.source-code-mode", "Source Code Mode")
                 .accelerator("CmdOrCtrl+Alt+S")
+                .build(handle)?,
+        )
+        .item(
+            &MenuItemBuilder::with_id("view.typewriter-mode", "Typewriter Mode")
+                .build(handle)?,
+        )
+        .item(
+            &MenuItemBuilder::with_id("view.focus-mode", "Focus Mode")
                 .build(handle)?,
         )
         .item(
@@ -440,7 +556,22 @@ pub fn build_native_menu<R: tauri::Runtime>(
                 .accelerator("CmdOrCtrl+D")
                 .build(handle)?,
         )
+        .separator()
         .item(&theme_submenu)
+        .build()?;
+
+    // ── Window menu ──────────────────────────────────────────────────
+    let window_submenu = SubmenuBuilder::new(handle, "Window")
+        .item(
+            &MenuItemBuilder::with_id("window.minimize", "Minimize")
+                .accelerator("CmdOrCtrl+M")
+                .build(handle)?,
+        )
+        .item(
+            &MenuItemBuilder::with_id("window.toggle-full-screen", "Toggle Full Screen")
+                .accelerator("Ctrl+CmdOrCtrl+F")
+                .build(handle)?,
+        )
         .build()?;
 
     // ── Help menu ────────────────────────────────────────────────────
@@ -492,6 +623,7 @@ pub fn build_native_menu<R: tauri::Runtime>(
     top.item(&file_submenu)
         .item(&edit_submenu)
         .item(&view_submenu)
+        .item(&window_submenu)
         .item(&help_submenu)
         .build()
 }
