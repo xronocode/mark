@@ -27,7 +27,7 @@
 brew tap xronocode/mark && brew install --cask mark@alpha
 ```
 
-No Gatekeeper prompts. No `sudo xattr` dance. [Build from source →](#install)
+Developer ID signed + Apple notarized. No Gatekeeper prompts. [Build from source →](#install)
 
 > **⚠️ Alpha** — daily-driver quality for writing on Apple Silicon, but it has known gaps.<br>
 > What works has 2750+ tests and CI. What doesn't is [tracked openly](#status--v201-alpha1).
@@ -256,7 +256,7 @@ One person. AI agents. A native desktop app that rivals what teams of five ship.
 
 **The rendering** — Mermaid v11 diagrams, KaTeX math, Vega charts — all inline, no preview pane
 
-**The native feel** — system WKWebView, macOS menu bar, NSSpellChecker, real Cmd+shortcuts, ad-hoc code signing
+**The native feel** — system WKWebView, macOS menu bar, NSSpellChecker, real Cmd+shortcuts, Developer ID signed + notarized
 
 **The agent workflow** — file-watcher live reload, dirty-tab protection (Save/Discard/Cancel), preview mode on Finder open, welcome screen with recent files & session restore
 
@@ -324,7 +324,7 @@ Daily-driver quality for routine Markdown on Apple Silicon.
 | Native menu bar + Cmd+shortcuts | ✅ |
 | Spell-check via NSSpellChecker | ✅ |
 | Screenshot capture (macOS screencapture) | ✅ |
-| Ad-hoc code signing (no Developer account) | ✅ |
+| Developer ID signed + Apple notarized | ✅ |
 | Global shortcuts (Cmd+Shift+M show window) | 🔶 In progress |
 | Auto-update via Homebrew cask (ed25519 signed) | ✅ |
 
@@ -367,7 +367,7 @@ Daily-driver quality for routine Markdown on Apple Silicon.
 brew tap xronocode/mark && brew install --cask mark@alpha
 ```
 
-Gatekeeper handled automatically. No `sudo xattr` dance. No $99/year Apple Developer account.
+Developer ID signed + Apple notarized. No Gatekeeper warnings.
 
 <details>
 <summary><b>Electron stable channel</b> (frozen at v1.2.3, security fixes only)</summary>
