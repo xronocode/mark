@@ -796,15 +796,13 @@ const paragraphCtrl = (ContentState) => {
   ContentState.prototype.selectAllContent = function () {
     const firstTextBlock = this.getFirstBlock()
     const lastTextBlock = this.getLastBlock()
+    const anchor = { key: firstTextBlock.key, offset: 0 }
+    const focus = { key: lastTextBlock.key, offset: lastTextBlock.text.length }
     this.cursor = {
-      start: {
-        key: firstTextBlock.key,
-        offset: 0
-      },
-      end: {
-        key: lastTextBlock.key,
-        offset: lastTextBlock.text.length
-      },
+      anchor,
+      focus,
+      start: anchor,
+      end: focus,
       isEdit: false
     }
 

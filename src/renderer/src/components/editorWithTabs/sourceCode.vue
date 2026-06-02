@@ -131,16 +131,17 @@ const handleSelectAll = () => {
     return
   }
 
-  if (editor.value && editor.value.hasFocus()) {
-    editor.value.execCommand('selectAll')
-  } else {
-    const activeElement = document.activeElement
-    const nodeName = activeElement.nodeName
-    if (nodeName === 'INPUT' || nodeName === 'TEXTAREA') {
-      if (typeof activeElement.select === 'function') {
-        activeElement.select()
-      }
+  const activeElement = document.activeElement
+  const nodeName = activeElement.nodeName
+  if (nodeName === 'INPUT' || nodeName === 'TEXTAREA') {
+    if (typeof activeElement.select === 'function') {
+      activeElement.select()
     }
+    return
+  }
+
+  if (editor.value) {
+    editor.value.execCommand('selectAll')
   }
 }
 
