@@ -2,6 +2,11 @@
   background: transparent;
   height: auto;
 }
+.CodeMirror-cursor {
+  border-left: 2px solid var(--editorColor, black) !important;
+}
+.CodeMirror-selected { background: var(--selectionColor, rgba(59, 130, 246, 0.3)) !important; }
+.CodeMirror-focused .CodeMirror-selected { background: var(--selectionColor, rgba(59, 130, 246, 0.3)) !important; }
 .CodeMirror-line::selection, .CodeMirror-line > span::selection, .CodeMirror-line > span > span::selection {
-  background: rgb(178, 215, 254);
+  background: var(--selectionColor, rgba(59, 130, 246, 0.3));
 }

@@ -20,7 +20,7 @@
   --highlightThemeColor: var(--themeColor);
 
   --highlightColor: rgba(33, 181, 111, 0.4);
-  --selectionColor: rgba(0, 0, 0, 0.1);
+  --selectionColor: rgba(59, 130, 246, 0.3);
   --editorColor: rgba(0, 0, 0, 0.7);
   --editorColor80: rgba(0, 0, 0, 0.8);
   --editorColor60: rgba(0, 0, 0, 0.6);

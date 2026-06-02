@@ -172,6 +172,12 @@ const commands = [
   // Edit
 
   {
+    id: 'edit.select-all',
+    execute: async () => {
+      bus.emit('selectAll')
+    }
+  },
+  {
     id: 'edit.undo',
     execute: async () => {
       focusEditorAndExecute(() => bus.emit('undo', 'undo'))

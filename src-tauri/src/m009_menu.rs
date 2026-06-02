@@ -193,6 +193,13 @@ pub fn standard_menu() -> Vec<MenuItem> {
             accelerator: None,
             items: Some(vec![
                 MenuItem {
+                    id: "edit.select-all".to_string(),
+                    label: "Select All".to_string(),
+                    command: Some("selectAll".to_string()),
+                    accelerator: Some("CmdOrCtrl+A".to_string()),
+                    items: None,
+                },
+                MenuItem {
                     id: "edit.find".to_string(),
                     label: "Find".to_string(),
                     command: Some("find".to_string()),
@@ -454,7 +461,11 @@ pub fn build_native_menu<R: tauri::Runtime>(
         .cut()
         .copy()
         .paste()
-        .select_all()
+        .item(
+            &MenuItemBuilder::with_id("edit.select-all", "Select All")
+                .accelerator("CmdOrCtrl+A")
+                .build(handle)?,
+        )
         .separator()
         .item(
             &MenuItemBuilder::with_id("edit.find", "Find")
