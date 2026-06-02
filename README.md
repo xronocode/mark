@@ -266,7 +266,7 @@ One person. AI agents. A native desktop app that rivals what teams of five ship.
 
 <div align="center">
 
-### Status — v2.0.4-alpha
+### Status — v2.0.5-alpha
 
 </div>
 
@@ -351,7 +351,7 @@ Daily-driver quality for routine Markdown on Apple Silicon.
 | Windows | Planned |
 | Multi-window support | Planned |
 
-> Alpha is alpha. What works has **2750+ tests** and CI. What doesn't is tracked openly with a target milestone.
+> Alpha is alpha. What works has **2760+ tests** and CI. What doesn't is tracked openly with a target milestone.
 
 ---
 
