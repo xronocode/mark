@@ -23,7 +23,6 @@
 //   - 2026-05-08 B4-step-5: proxy to tauri-plugin-updater.
 
 use serde::Serialize;
-use tauri_plugin_updater::UpdaterExt;
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -32,19 +31,15 @@ pub struct UpdateStatus {
     pub available: bool,
     pub latest_version: Option<String>,
     pub download_url: Option<String>,
-    /// Reason if a real check couldn't run (e.g. "no-feed-configured",
-    /// "feed-unreachable"). Renderer surfaces this as a tooltip.
     pub status_note: Option<String>,
 }
 
+#[cfg(not(feature = "app-store"))]
 #[tauri::command]
 pub async fn mt_updater_check(app: tauri::AppHandle) -> Result<UpdateStatus, String> {
+    use tauri_plugin_updater::UpdaterExt;
     let current = env!("CARGO_PKG_VERSION").to_string();
 
-    // tauri-plugin-updater performs the GET on plugins.updater
-    // .endpoints[] from tauri.conf.json; verifies the ed25519
-    // signature against plugins.updater.pubkey; parses latest.json
-    // to determine if a newer version is available.
     let updater = match app.updater() {
         Ok(u) => u,
         Err(e) => {
@@ -85,9 +80,6 @@ pub async fn mt_updater_check(app: tauri::AppHandle) -> Result<UpdateStatus, Str
         }
         Err(e) => {
             safe_eprintln!("[Updater][check][BLOCK_FEED_FAILED err={e}]");
-            // Soft-fail: don't surface as Result::Err so the renderer
-            // gets a user-friendly status_note instead of an error
-            // toast. Network glitches shouldn't crash the menu item.
             Ok(UpdateStatus {
                 current_version: current,
                 available: false,
@@ -97,4 +89,16 @@ pub async fn mt_updater_check(app: tauri::AppHandle) -> Result<UpdateStatus, Str
             })
         }
     }
+}
+
+#[cfg(feature = "app-store")]
+#[tauri::command]
+pub async fn mt_updater_check(_app: tauri::AppHandle) -> Result<UpdateStatus, String> {
+    Ok(UpdateStatus {
+        current_version: env!("CARGO_PKG_VERSION").to_string(),
+        available: false,
+        latest_version: None,
+        download_url: None,
+        status_note: Some("Updates are managed by the App Store".to_string()),
+    })
 }

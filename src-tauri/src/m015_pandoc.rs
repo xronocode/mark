@@ -17,7 +17,6 @@
 //   - 2026-04-29 B3-step-9: initial detection + export.
 
 use serde::Serialize;
-use std::process::Command;
 
 #[derive(Debug, Clone, Serialize)]
 pub struct PandocStatus {
@@ -26,21 +25,38 @@ pub struct PandocStatus {
     pub path: Option<String>,
 }
 
-/// PATH augmentation for macOS LaTeX install. Pandoc is usually in
-/// /usr/local/bin or /opt/homebrew/bin (Homebrew); pdflatex/xelatex
-/// live in /Library/TeX/texbin under MacTeX. GUI Tauri apps inherit
-/// a sparse PATH — augment so shell-out finds the binaries.
+#[tauri::command]
+pub async fn mt_pandoc_status() -> Result<PandocStatus, String> {
+    #[cfg(feature = "app-store")]
+    {
+        return Ok(PandocStatus { available: false, version: None, path: None });
+    }
+    #[cfg(not(feature = "app-store"))]
+    _pandoc_status_impl().await
+}
+
+#[tauri::command]
+pub async fn mt_pandoc_export(
+    input: String,
+    format: String,
+) -> Result<Vec<u8>, String> {
+    #[cfg(feature = "app-store")]
+    {
+        let _ = (&input, &format);
+        return Err("PDF/DOCX export requires pandoc (not available in App Store build)".to_string());
+    }
+    #[cfg(not(feature = "app-store"))]
+    _pandoc_export_impl(input, format).await
+}
+
+#[cfg(not(feature = "app-store"))]
 fn augmented_path() -> String {
     let mut paths: Vec<String> = std::env::var("PATH")
         .unwrap_or_default()
         .split(':')
         .map(String::from)
         .collect();
-    let extras = [
-        "/usr/local/bin",
-        "/opt/homebrew/bin",
-        "/Library/TeX/texbin",
-    ];
+    let extras = ["/usr/local/bin", "/opt/homebrew/bin", "/Library/TeX/texbin"];
     for p in &extras {
         if !paths.iter().any(|x| x == p) {
             paths.push(p.to_string());
@@ -49,9 +65,9 @@ fn augmented_path() -> String {
     paths.join(":")
 }
 
-/// Is pandoc available on PATH? Runs `pandoc --version` and parses.
-#[tauri::command]
-pub async fn mt_pandoc_status() -> Result<PandocStatus, String> {
+#[cfg(not(feature = "app-store"))]
+async fn _pandoc_status_impl() -> Result<PandocStatus, String> {
+    use std::process::Command;
     let path = augmented_path();
     let output = Command::new("pandoc")
         .arg("--version")
@@ -61,7 +77,6 @@ pub async fn mt_pandoc_status() -> Result<PandocStatus, String> {
         Ok(o) if o.status.success() => {
             let stdout = String::from_utf8_lossy(&o.stdout);
             let version = stdout.lines().next().map(|l| l.trim().to_string());
-            // Try `which pandoc` for the resolved path.
             let which = Command::new("which")
                 .arg("pandoc")
                 .env("PATH", &path)
@@ -75,31 +90,18 @@ pub async fn mt_pandoc_status() -> Result<PandocStatus, String> {
                     }
                 });
             safe_eprintln!("[Pandoc][status][BLOCK_PANDOC_AVAILABLE version={version:?}]");
-            Ok(PandocStatus {
-                available: true,
-                version,
-                path: which,
-            })
+            Ok(PandocStatus { available: true, version, path: which })
         }
         _ => {
             safe_eprintln!("[Pandoc][status][BLOCK_PANDOC_MISSING]");
-            Ok(PandocStatus {
-                available: false,
-                version: None,
-                path: None,
-            })
+            Ok(PandocStatus { available: false, version: None, path: None })
         }
     }
 }
 
-/// Export input bytes (markdown) to a target format via pandoc.
-/// Returns the output bytes (e.g. PDF binary, DOCX binary, HTML string).
-/// `format` is a pandoc -t value (e.g. "pdf", "docx", "html5").
-#[tauri::command]
-pub async fn mt_pandoc_export(
-    input: String,
-    format: String,
-) -> Result<Vec<u8>, String> {
+#[cfg(not(feature = "app-store"))]
+async fn _pandoc_export_impl(input: String, format: String) -> Result<Vec<u8>, String> {
+    use std::process::Command;
     let path = augmented_path();
     let mut child = Command::new("pandoc")
         .args(["-f", "markdown", "-t", &format, "-o", "-"])
@@ -114,9 +116,7 @@ pub async fn mt_pandoc_export(
         })?;
     if let Some(mut stdin) = child.stdin.take() {
         use std::io::Write;
-        stdin
-            .write_all(input.as_bytes())
-            .map_err(|e| e.to_string())?;
+        stdin.write_all(input.as_bytes()).map_err(|e| e.to_string())?;
     }
     let output = child.wait_with_output().map_err(|e| e.to_string())?;
     if !output.status.success() {
@@ -126,9 +126,7 @@ pub async fn mt_pandoc_export(
     }
     safe_eprintln!(
         "[Pandoc][export][BLOCK_EXPORT_OK format={} input_bytes={} output_bytes={}]",
-        format,
-        input.len(),
-        output.stdout.len()
+        format, input.len(), output.stdout.len()
     );
     Ok(output.stdout)
 }

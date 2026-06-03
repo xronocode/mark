@@ -1,5 +1,4 @@
 use std::path::Path;
-use std::process::Command;
 
 #[tauri::command]
 pub fn mt_diff_baseline(path: String) -> Result<String, String> {
@@ -10,7 +9,6 @@ pub fn mt_diff_baseline(path: String) -> Result<String, String> {
         return Err("File does not exist".to_string());
     }
 
-    // Check for {path}.before first — explicit baseline takes priority over git.
     let before_str = format!("{}.before", path);
     let before_path = Path::new(&before_str);
     if before_path.exists() {
@@ -19,6 +17,19 @@ pub fn mt_diff_baseline(path: String) -> Result<String, String> {
         safe_eprintln!("[m031][diff][BLOCK_DIFF_BASELINE_OK source=before bytes={}]", content.len());
         return Ok(content);
     }
+
+    #[cfg(feature = "app-store")]
+    {
+        return Err("Git diff baseline not available in App Store build".to_string());
+    }
+
+    #[cfg(not(feature = "app-store"))]
+    _diff_git_baseline(file_path)
+}
+
+#[cfg(not(feature = "app-store"))]
+fn _diff_git_baseline(file_path: &Path) -> Result<String, String> {
+    use std::process::Command;
 
     let dir = file_path
         .parent()

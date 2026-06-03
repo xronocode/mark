@@ -505,13 +505,14 @@ fn main() {
         })
         .collect();
 
-    tauri::Builder::default()
-        // F-UPDATER-WIRE-PLUGIN: tauri-plugin-updater wires the
-        // ed25519-signed feed at endpoints[] in tauri.conf.json. The
-        // plugin verifies signatures against pubkey before downloading
-        // anything. Renderer calls via @tauri-apps/plugin-updater
-        // (M-016 mt_updater_check now proxies to the plugin).
-        .plugin(tauri_plugin_updater::Builder::new().build())
+    let mut builder = tauri::Builder::default();
+
+    #[cfg(not(feature = "app-store"))]
+    {
+        builder = builder.plugin(tauri_plugin_updater::Builder::new().build());
+    }
+
+    builder
         // F-SHORTCUT-PLATFORM-BIND (B4-pre-alpha step-2): the
         // global-shortcut plugin handles system-wide hotkeys
         // (Cmd+Shift+M show-window class) — distinct from menu
