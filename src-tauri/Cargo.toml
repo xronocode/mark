@@ -11,6 +11,11 @@ repository.workspace = true
 name = "mark"
 path = "src/main.rs"
 
+[features]
+default = ["updater"]
+updater = ["dep:tauri-plugin-updater"]
+app-store = []
+
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
 
@@ -28,7 +33,7 @@ encoding_rs = "0.8"
 clap = { version = "4", features = ["derive"] }
 font-kit = "0.14"
 keyring = "3"
-tauri-plugin-updater = "2"
+tauri-plugin-updater = { version = "2", optional = true }
 tauri-plugin-global-shortcut = "2"
 tauri-plugin-dialog = "2"
 tauri-plugin-window-state = "2"

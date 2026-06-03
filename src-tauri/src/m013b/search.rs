@@ -366,7 +366,14 @@ pub async fn mt_search_spawn(
     app: AppHandle,
 ) -> Result<(), IpcError> {
     let cmd = "mt::search::spawn";
-    let _ = mode; // 'content' is the only mode v1 ships; kept in payload for future
+
+    #[cfg(feature = "app-store")]
+    {
+        let _ = (&search_id, &mode, &directories, &pattern, &options, &sec, &registry, &app);
+        return Err(IpcError::not_implemented(cmd, "app-store: ripgrep unavailable"));
+    }
+
+    let _ = mode;
     let opts = options.unwrap_or_default();
     let sandbox = sec.sandbox();
 

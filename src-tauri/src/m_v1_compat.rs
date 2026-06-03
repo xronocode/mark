@@ -743,6 +743,7 @@ pub async fn mt_format_link_click(data: Value, dirname: Value) -> Result<(), Str
         href.to_string()
     };
     safe_eprintln!("[v1_compat][link][BLOCK_OPEN_URL url={url}]");
+    // `open` delegates to NSWorkspace.shared.open() which is sandbox-safe
     std::process::Command::new("open")
         .arg(&url)
         .spawn()

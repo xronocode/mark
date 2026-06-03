@@ -1,7 +1,7 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
-  "identifier": "default",
-  "description": "Default capability for the main Mark window. Grants core:event:default so @tauri-apps/api event listeners work, plus all custom mt_* commands.",
+  "identifier": "mas",
+  "description": "Mac App Store capability — same as default but without updater plugin.",
   "windows": ["main", "settings"],
   "permissions": [
     "core:default",

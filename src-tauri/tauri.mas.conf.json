@@ -1,0 +1,18 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "app": {
+    "security": {
+      "capabilities": ["mas"]
+    }
+  },
+  "bundle": {
+    "targets": ["app"],
+    "createUpdaterArtifacts": false,
+    "macOS": {
+      "entitlements": "entitlements.mas.plist",
+      "signingIdentity": "Apple Distribution: Mikhail Yevdokimov (NY72L3P5TN)",
+      "minimumSystemVersion": "12.0"
+    }
+  },
+  "plugins": {}
+}

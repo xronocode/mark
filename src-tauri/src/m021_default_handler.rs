@@ -536,16 +536,28 @@ pub(crate) fn unset_default_md_handler_inner(
 
 #[tauri::command]
 pub async fn mt_set_default_md_handler() -> Result<(), String> {
+    #[cfg(feature = "app-store")]
+    return Err("Default handler registration not available in App Store build".to_string());
+    #[cfg(not(feature = "app-store"))]
     set_default_md_handler_inner(&RealRunner)
 }
 
 #[tauri::command]
 pub async fn mt_get_default_md_handler() -> Result<DefaultHandlerInfo, String> {
+    #[cfg(feature = "app-store")]
+    return Ok(DefaultHandlerInfo {
+        is_default: false,
+        current_handler: None,
+    });
+    #[cfg(not(feature = "app-store"))]
     get_default_md_handler_inner(&RealRunner)
 }
 
 #[tauri::command]
 pub async fn mt_unset_default_md_handler() -> Result<(), String> {
+    #[cfg(feature = "app-store")]
+    return Err("Default handler registration not available in App Store build".to_string());
+    #[cfg(not(feature = "app-store"))]
     unset_default_md_handler_inner(&RealRunner)
 }
 

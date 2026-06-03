@@ -12,13 +12,9 @@
 // CHANGE_SUMMARY:
 //   - 2026-04-29 B3-step-11: initial macOS impl + cross-platform stubs.
 
-use std::process::Command;
-
 #[derive(serde::Deserialize, Debug, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct ScreenshotOptions {
-    /// "interactive" (-i, user selects region), "window" (-w),
-    /// or "main" (-m, main display fullscreen). Defaults to "interactive".
     pub mode: Option<String>,
 }
 
@@ -26,10 +22,18 @@ pub struct ScreenshotOptions {
 pub async fn mt_screenshot_capture(
     options: Option<ScreenshotOptions>,
 ) -> Result<Vec<u8>, String> {
+    if cfg!(feature = "app-store") {
+        return Err("MT_SCREENSHOT_UNAVAILABLE: not available in App Store build".to_string());
+    }
     if !cfg!(target_os = "macos") {
-        safe_eprintln!("[Screenshot][capture][BLOCK_PLATFORM_UNSUPPORTED]");
         return Err("MT_SCREENSHOT_PLATFORM: screencapture is macOS-only at v2.0".to_string());
     }
+    _screenshot_impl(options).await
+}
+
+#[cfg(not(feature = "app-store"))]
+async fn _screenshot_impl(options: Option<ScreenshotOptions>) -> Result<Vec<u8>, String> {
+    use std::process::Command;
     let opts = options.unwrap_or_default();
     let mode = opts.mode.unwrap_or_else(|| "interactive".to_string());
     let mode_flag = match mode.as_str() {
@@ -39,7 +43,6 @@ pub async fn mt_screenshot_capture(
         other => return Err(format!("MT_SCREENSHOT_BAD_MODE: '{other}'")),
     };
 
-    // Temp file: cache_root/screenshot-{ts}.png
     let ts = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .map(|d| d.as_secs())
@@ -48,7 +51,7 @@ pub async fn mt_screenshot_capture(
 
     let status = Command::new("screencapture")
         .arg(mode_flag)
-        .arg("-x") // no shutter sound
+        .arg("-x")
         .arg(&tmp)
         .status()
         .map_err(|e| {
@@ -56,10 +59,6 @@ pub async fn mt_screenshot_capture(
             e.to_string()
         })?;
     if !status.success() {
-        safe_eprintln!(
-            "[Screenshot][capture][BLOCK_USER_CANCELLED status={}]",
-            status
-        );
         return Err("MT_SCREENSHOT_CANCELLED".to_string());
     }
     if !tmp.exists() {
@@ -67,11 +66,13 @@ pub async fn mt_screenshot_capture(
     }
     let bytes = std::fs::read(&tmp).map_err(|e| e.to_string())?;
     let _ = std::fs::remove_file(&tmp);
-    safe_eprintln!(
-        "[Screenshot][capture][BLOCK_CAPTURE_OK mode={mode} bytes={}]",
-        bytes.len()
-    );
+    safe_eprintln!("[Screenshot][capture][BLOCK_CAPTURE_OK mode={mode} bytes={}]", bytes.len());
     Ok(bytes)
+}
+
+#[cfg(feature = "app-store")]
+async fn _screenshot_impl(_options: Option<ScreenshotOptions>) -> Result<Vec<u8>, String> {
+    Err("MT_SCREENSHOT_UNAVAILABLE: not available in App Store build".to_string())
 }
 
 #[cfg(test)]
