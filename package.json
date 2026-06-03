@@ -32,7 +32,7 @@
     "@marktext/file-icons": "^1.0.6",
     "@octokit/rest": "^22.0.1",
     "@popperjs/core": "^2.11.8",
-    "@tauri-apps/api": "^2.10.1",
+    "@tauri-apps/api": "^2.11.0",
     "@tauri-apps/plugin-dialog": "^2.7.1",
     "@tauri-apps/plugin-opener": "^2.5.4",
     "axios": "^1.13.2",
@@ -71,7 +71,7 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.59.1",
-    "@tauri-apps/cli": "^2.0.0",
+    "@tauri-apps/cli": "^2.11.2",
     "@vitejs/plugin-vue": "^6.0.3",
     "@vitest/coverage-v8": "^4.1.5",
     "@vue/test-utils": "^2.4.10",
