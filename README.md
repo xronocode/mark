@@ -266,7 +266,7 @@ One person. AI agents. A native desktop app that rivals what teams of five ship.
 
 <div align="center">
 
-### Status — v2.0.5-alpha
+### Status — v2.0.6-alpha
 
 </div>
 

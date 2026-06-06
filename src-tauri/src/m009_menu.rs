@@ -164,6 +164,13 @@ pub fn standard_menu() -> Vec<MenuItem> {
                     items: None,
                 },
                 MenuItem {
+                    id: "file.share".to_string(),
+                    label: "Share…".to_string(),
+                    command: Some("share".to_string()),
+                    accelerator: None,
+                    items: None,
+                },
+                MenuItem {
                     id: "file.print".to_string(),
                     label: "Print…".to_string(),
                     command: Some("print".to_string()),
@@ -420,6 +427,10 @@ pub fn build_native_menu<R: tauri::Runtime>(
         .item(
             &MenuItemBuilder::with_id("file.close-tab", "Close Tab")
                 .accelerator("CmdOrCtrl+W")
+                .build(handle)?,
+        )
+        .item(
+            &MenuItemBuilder::with_id("file.share", "Share…")
                 .build(handle)?,
         )
         .separator()
