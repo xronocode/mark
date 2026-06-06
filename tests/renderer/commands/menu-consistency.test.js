@@ -150,10 +150,14 @@ describe('menu ↔ commands consistency', () => {
     shortcutIds = extractRendererShortcutIds()
   })
 
+  const DISPLAY_ONLY_MENU_IDS = new Set([
+    'help.version',
+  ])
+
   it('every native menu ID has a renderer command', () => {
     const missing = []
     for (const id of menuIds) {
-      if (!commandIds.has(id)) {
+      if (!commandIds.has(id) && !DISPLAY_ONLY_MENU_IDS.has(id)) {
         missing.push(id)
       }
     }
