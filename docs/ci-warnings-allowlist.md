@@ -29,13 +29,14 @@ fail; matched ones pass through.
 
 ### W-003 — cocoa crate deprecated type aliases and methods
 
-- pattern: `use of deprecated (type alias|method) .cocoa::`
+- pattern: `use of deprecated (type alias|method|struct|constant|trait|associated function|field) .cocoa::`
 - code: `deprecated`
-- emitter: upstream `cocoa` crate (transitive dep via Tauri/wry/tao)
+- emitter: upstream `cocoa` crate (transitive dep via Tauri/wry/tao) + m032_share.rs
 - rationale: Tauri's windowing stack still depends on the `cocoa` crate
   which uses pre-objc2 APIs. These deprecation warnings come from
-  upstream dependencies, not our code. We cannot fix them — only Tauri
-  upstream can migrate to objc2-app-kit.
+  upstream dependencies and our NSSharingServicePicker bridge code that
+  uses the same cocoa crate APIs. We cannot migrate until Tauri upstream
+  moves to objc2-app-kit.
 - planned: resolves when Tauri upgrades its cocoa dependency to objc2.
 - status: **active**
 
