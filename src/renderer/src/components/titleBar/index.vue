@@ -109,6 +109,18 @@
         >
           <span class="text-center-vertical">&#9776;</span>
         </div>
+        <div
+          v-if="pathname"
+          class="titlebar-share-btn title-no-drag"
+          :title="t('titleBar.share')"
+          @click.stop="handleShareClick"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/>
+            <polyline points="16 6 12 2 8 6"/>
+            <line x1="12" y1="2" x2="12" y2="15"/>
+          </svg>
+        </div>
         <el-tooltip
           v-if="wordCount"
           class="item"
@@ -408,6 +420,16 @@ const handleSettingsClick = () => {
   projectStore.OPEN_SETTING_WINDOW()
 }
 
+const handleShareClick = async () => {
+  if (!props.pathname) return
+  try {
+    const { invoke } = await import('@tauri-apps/api/core')
+    await invoke('mt_share_file', { path: props.pathname })
+  } catch (e) {
+    console.warn('[titleBar] share failed:', e)
+  }
+}
+
 const handleThemeToggle = () => {
   const paired = themePairs[theme.value]
   if (paired) {
@@ -619,6 +641,23 @@ div.title > span {
   & .item {
     margin-right: 10px;
   }
+}
+
+.titlebar-share-btn {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 5px;
+  cursor: pointer;
+  color: var(--editorColor50);
+  transition: background-color 0.15s ease, color 0.15s ease;
+  margin-right: 2px;
+}
+.titlebar-share-btn:hover {
+  background-color: var(--floatHoverColor, rgba(0, 0, 0, 0.06));
+  color: var(--sideBarTitleColor);
 }
 
 .word-count {

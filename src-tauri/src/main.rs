@@ -97,6 +97,7 @@ mod m019_datacenter;
 mod m020_cli;
 mod m021_default_handler;
 mod m031_diff;
+mod m032_share;
 mod m013b;
 mod m_v1_compat;
 mod m005_migrate;
@@ -843,6 +844,7 @@ fn main() {
             m021_default_handler::mt_get_default_md_handler,
             m021_default_handler::mt_unset_default_md_handler,
             m031_diff::mt_diff_baseline,
+            m032_share::mt_share_file,
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")

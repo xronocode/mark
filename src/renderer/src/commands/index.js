@@ -105,6 +105,17 @@ const commands = [
     }
   },
   {
+    id: 'file.share',
+    execute: async () => {
+      const { useEditorStore } = await import('../store/editor')
+      const editor = useEditorStore()
+      const path = editor.currentFile?.pathname
+      if (!path) return
+      const { invoke } = await import('@tauri-apps/api/core')
+      await invoke('mt_share_file', { path })
+    }
+  },
+  {
     id: 'file.close-tab',
     execute: async () => {
       bus.emit('mt::editor-close-tab', null)
