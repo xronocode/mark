@@ -55,6 +55,11 @@ vi.mock('@/store/project', () => ({
   })
 }))
 
+const editorStoreMock = { currentFile: null }
+vi.mock('@/store/editor', () => ({
+  useEditorStore: () => editorStoreMock
+}))
+
 import commands, {
   RootCommand,
   getCommandsWithDescriptions
@@ -116,6 +121,23 @@ describe('commands/index — deep coverage', () => {
       await cmd.execute()
       const { getCurrentWindow } = await import('@tauri-apps/api/window')
       expect(getCurrentWindow().close).toHaveBeenCalled()
+    })
+
+    it('file.share invokes mt_share_file with current file path', async () => {
+      editorStoreMock.currentFile = { pathname: '/tmp/test.md' }
+      const cmd = findCmd('file.share')
+      await cmd.execute()
+      const { invoke } = await import('@tauri-apps/api/core')
+      expect(invoke).toHaveBeenCalledWith('mt_share_file', { path: '/tmp/test.md' })
+    })
+
+    it('file.share does nothing when no file is open', async () => {
+      editorStoreMock.currentFile = null
+      const { invoke } = await import('@tauri-apps/api/core')
+      invoke.mockClear()
+      const cmd = findCmd('file.share')
+      await cmd.execute()
+      expect(invoke).not.toHaveBeenCalled()
     })
 
     it('file.toggle-auto-save sends mt::cmd-toggle-autosave', async () => {

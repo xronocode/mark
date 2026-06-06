@@ -129,4 +129,73 @@ describe('titleBar/index.vue', () => {
     // sidebar toggle, files, toc, settings, theme toggle = 5
     expect(navBtns.length).toBe(5)
   })
+
+  it('shows share button when pathname is set', async () => {
+    const TitleBar = (await import('@/components/titleBar/index.vue')).default
+    const wrapper = shallowMount(TitleBar, {
+      props: {
+        project: null,
+        filename: 'test.md',
+        pathname: '/tmp/test.md',
+        active: true,
+        wordCount: null,
+        platform: 'darwin',
+        isSaved: true
+      },
+      global: {
+        plugins: [pinia, i18n],
+        stubs: {
+          ElTooltip: true
+        }
+      }
+    })
+    expect(wrapper.find('.titlebar-share-btn').exists()).toBe(true)
+  })
+
+  it('hides share button when no pathname', async () => {
+    const TitleBar = (await import('@/components/titleBar/index.vue')).default
+    const wrapper = shallowMount(TitleBar, {
+      props: {
+        project: null,
+        filename: '',
+        pathname: '',
+        active: true,
+        wordCount: null,
+        platform: 'darwin',
+        isSaved: true
+      },
+      global: {
+        plugins: [pinia, i18n],
+        stubs: {
+          ElTooltip: true
+        }
+      }
+    })
+    expect(wrapper.find('.titlebar-share-btn').exists()).toBe(false)
+  })
+
+  it('share button click invokes mt_share_file', async () => {
+    const TitleBar = (await import('@/components/titleBar/index.vue')).default
+    const wrapper = shallowMount(TitleBar, {
+      props: {
+        project: null,
+        filename: 'test.md',
+        pathname: '/tmp/test.md',
+        active: true,
+        wordCount: null,
+        platform: 'darwin',
+        isSaved: true
+      },
+      global: {
+        plugins: [pinia, i18n],
+        stubs: {
+          ElTooltip: true
+        }
+      }
+    })
+    await wrapper.find('.titlebar-share-btn').trigger('click')
+    await vi.dynamicImportSettled()
+    const { invoke } = await import('@tauri-apps/api/core')
+    expect(invoke).toHaveBeenCalledWith('mt_share_file', { path: '/tmp/test.md' })
+  })
 })
