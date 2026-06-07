@@ -748,39 +748,43 @@ if (isUpdatable()) {
       try {
         const status = await invoke('mt_updater_check')
         if (!status.available) {
-          notice.notify({
-            title: status.statusNote || `Mark ${status.currentVersion} is up to date`,
-            type: 'info'
-          })
+          if (status.statusNote) {
+            notice.notify({ title: status.statusNote, type: 'warning' })
+          } else {
+            notice.notify({
+              title: `Mark ${status.currentVersion} is up to date`,
+              type: 'info'
+            })
+          }
           return
         }
         if (status.installMethod === 'homebrew') {
           notice.notify({
             title: `Mark ${status.latestVersion} available`,
-            message: 'Launching brew upgrade…',
+            message: 'Opening Terminal for brew upgrade…',
             type: 'info'
           })
           await invoke('mt_updater_brew_upgrade')
-        } else if (status.installMethod === 'app-store') {
-          notice.notify({
-            title: 'Updates are managed by the App Store',
-            type: 'info'
-          })
         } else {
-          notice.notify({
-            title: `Updating to Mark ${status.latestVersion}…`,
-            type: 'info'
-          })
           const { check } = await import('@tauri-apps/plugin-updater')
           const update = await check()
           if (update) {
+            notice.notify({
+              title: `Updating to Mark ${status.latestVersion}…`,
+              type: 'info'
+            })
             await update.downloadAndInstall()
             const { relaunch } = await import('@tauri-apps/plugin-process')
             await relaunch()
+          } else {
+            notice.notify({
+              title: `Mark ${status.currentVersion} is up to date`,
+              type: 'info'
+            })
           }
         }
       } catch (e) {
-        notice.notify({ title: 'Update check failed', message: String(e), type: 'warning' })
+        notice.notify({ title: 'Update failed', message: String(e), type: 'warning' })
       }
     }
   })
@@ -790,10 +794,15 @@ if (isOsx) {
   commands.push({
     id: 'edit.screenshot',
     execute: async () => {
-      const { invoke } = await import('@tauri-apps/api/core')
-      const bytes = await invoke('mt_screenshot_capture', { options: { mode: 'interactive' } })
-      if (bytes && bytes.length) {
-        bus.emit('screenshot-captured', bytes)
+      try {
+        const { invoke } = await import('@tauri-apps/api/core')
+        const bytes = await invoke('mt_screenshot_capture', { options: { mode: 'interactive' } })
+        if (bytes && bytes.length) {
+          bus.emit('screenshot-captured', bytes)
+        }
+      } catch (e) {
+        const notice = (await import('../services/notification')).default
+        notice.notify({ title: 'Screenshot failed', message: String(e), type: 'warning' })
       }
     }
   })

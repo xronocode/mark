@@ -1,3 +1,1 @@
-export const isUpdatable = () => {
-  return window.__TAURI_INTERNALS__ != null
-}
+export const isUpdatable = () => window.__TAURI_INTERNALS__ != null
