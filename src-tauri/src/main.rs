@@ -529,6 +529,7 @@ fn main() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_window_state::Builder::new().with_denylist(&["settings"]).build())
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_process::init())
         // F-MENU-WIRE-TAURI (B4-pre-alpha step-1): build the native
         // macOS menu in Builder.setup so accelerators bind to menu
         // items at app boot. Each menu item with `with_id(...)` becomes
@@ -809,6 +810,7 @@ fn main() {
             m015_pandoc::mt_pandoc_status,
             m015_pandoc::mt_pandoc_export,
             m016_updater::mt_updater_check,
+            m016_updater::mt_updater_brew_upgrade,
             m018_screenshot::mt_screenshot_capture,
             m019_datacenter::mt_secret_set,
             m019_datacenter::mt_secret_get,

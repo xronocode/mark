@@ -32,6 +32,20 @@ pub struct UpdateStatus {
     pub latest_version: Option<String>,
     pub download_url: Option<String>,
     pub status_note: Option<String>,
+    pub install_method: String,
+}
+
+fn detect_install_method() -> String {
+    let paths = [
+        "/opt/homebrew/Caskroom/mark@alpha",
+        "/usr/local/Caskroom/mark@alpha",
+    ];
+    for p in &paths {
+        if std::path::Path::new(p).exists() {
+            return "homebrew".to_string();
+        }
+    }
+    "dmg".to_string()
 }
 
 #[cfg(not(feature = "app-store"))]
@@ -39,6 +53,7 @@ pub struct UpdateStatus {
 pub async fn mt_updater_check(app: tauri::AppHandle) -> Result<UpdateStatus, String> {
     use tauri_plugin_updater::UpdaterExt;
     let current = env!("CARGO_PKG_VERSION").to_string();
+    let method = detect_install_method();
 
     let updater = match app.updater() {
         Ok(u) => u,
@@ -50,6 +65,7 @@ pub async fn mt_updater_check(app: tauri::AppHandle) -> Result<UpdateStatus, Str
                 latest_version: None,
                 download_url: None,
                 status_note: Some(format!("updater plugin not initialized: {e}")),
+                install_method: method,
             });
         }
     };
@@ -57,7 +73,7 @@ pub async fn mt_updater_check(app: tauri::AppHandle) -> Result<UpdateStatus, Str
     match updater.check().await {
         Ok(Some(update)) => {
             safe_eprintln!(
-                "[Updater][check][BLOCK_UPDATE_AVAILABLE current={current} latest={}]",
+                "[Updater][check][BLOCK_UPDATE_AVAILABLE current={current} latest={} method={method}]",
                 update.version
             );
             Ok(UpdateStatus {
@@ -66,6 +82,7 @@ pub async fn mt_updater_check(app: tauri::AppHandle) -> Result<UpdateStatus, Str
                 latest_version: Some(update.version.clone()),
                 download_url: Some(update.download_url.to_string()),
                 status_note: None,
+                install_method: method,
             })
         }
         Ok(None) => {
@@ -76,6 +93,7 @@ pub async fn mt_updater_check(app: tauri::AppHandle) -> Result<UpdateStatus, Str
                 latest_version: None,
                 download_url: None,
                 status_note: None,
+                install_method: method,
             })
         }
         Err(e) => {
@@ -86,6 +104,7 @@ pub async fn mt_updater_check(app: tauri::AppHandle) -> Result<UpdateStatus, Str
                 latest_version: None,
                 download_url: None,
                 status_note: Some(format!("update check failed: {e}")),
+                install_method: method,
             })
         }
     }
@@ -100,5 +119,21 @@ pub async fn mt_updater_check(_app: tauri::AppHandle) -> Result<UpdateStatus, St
         latest_version: None,
         download_url: None,
         status_note: Some("Updates are managed by the App Store".to_string()),
+        install_method: "app-store".to_string(),
     })
+}
+
+#[tauri::command]
+pub async fn mt_updater_brew_upgrade() -> Result<(), String> {
+    std::process::Command::new("osascript")
+        .args([
+            "-e",
+            "tell application \"Terminal\"\n\
+                activate\n\
+                do script \"brew upgrade --cask mark@alpha\"\n\
+            end tell",
+        ])
+        .spawn()
+        .map_err(|e| format!("failed to open Terminal: {e}"))?;
+    Ok(())
 }

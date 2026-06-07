@@ -747,19 +747,37 @@ if (isUpdatable()) {
       const notice = (await import('../services/notification')).default
       try {
         const status = await invoke('mt_updater_check')
-        if (status.available) {
-          const { openUrl } = await import('@tauri-apps/plugin-opener')
-          notice.notify({
-            title: t('notifications.updateAvailable') || 'Update available',
-            message: `Mark ${status.latestVersion}`,
-            type: 'info'
-          })
-          await openUrl(status.downloadUrl)
-        } else {
+        if (!status.available) {
           notice.notify({
             title: status.statusNote || `Mark ${status.currentVersion} is up to date`,
             type: 'info'
           })
+          return
+        }
+        if (status.installMethod === 'homebrew') {
+          notice.notify({
+            title: `Mark ${status.latestVersion} available`,
+            message: 'Launching brew upgrade…',
+            type: 'info'
+          })
+          await invoke('mt_updater_brew_upgrade')
+        } else if (status.installMethod === 'app-store') {
+          notice.notify({
+            title: 'Updates are managed by the App Store',
+            type: 'info'
+          })
+        } else {
+          notice.notify({
+            title: `Updating to Mark ${status.latestVersion}…`,
+            type: 'info'
+          })
+          const { check } = await import('@tauri-apps/plugin-updater')
+          const update = await check()
+          if (update) {
+            await update.downloadAndInstall()
+            const { relaunch } = await import('@tauri-apps/plugin-process')
+            await relaunch()
+          }
         }
       } catch (e) {
         notice.notify({ title: 'Update check failed', message: String(e), type: 'warning' })
