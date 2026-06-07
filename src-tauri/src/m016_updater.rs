@@ -35,17 +35,34 @@ pub struct UpdateStatus {
     pub install_method: String,
 }
 
+const HOMEBREW_CASK_PATHS: &[&str] = &[
+    "/opt/homebrew/Caskroom/mark@alpha",
+    "/usr/local/Caskroom/mark@alpha",
+];
+
+#[cfg(not(feature = "app-store"))]
 fn detect_install_method() -> String {
-    let paths = [
-        "/opt/homebrew/Caskroom/mark@alpha",
-        "/usr/local/Caskroom/mark@alpha",
-    ];
-    for p in &paths {
-        if std::path::Path::new(p).exists() {
-            return "homebrew".to_string();
-        }
+    use std::path::Path;
+    if HOMEBREW_CASK_PATHS
+        .iter()
+        .any(|p| Path::new(p).try_exists().unwrap_or(false))
+    {
+        "homebrew".to_string()
+    } else {
+        "dmg".to_string()
     }
-    "dmg".to_string()
+}
+
+#[cfg(not(feature = "app-store"))]
+fn no_update(current: String, method: String, note: Option<String>) -> UpdateStatus {
+    UpdateStatus {
+        current_version: current,
+        available: false,
+        latest_version: None,
+        download_url: None,
+        status_note: note,
+        install_method: method,
+    }
 }
 
 #[cfg(not(feature = "app-store"))]
@@ -59,14 +76,11 @@ pub async fn mt_updater_check(app: tauri::AppHandle) -> Result<UpdateStatus, Str
         Ok(u) => u,
         Err(e) => {
             safe_eprintln!("[Updater][check][BLOCK_PLUGIN_UNAVAILABLE err={e}]");
-            return Ok(UpdateStatus {
-                current_version: current,
-                available: false,
-                latest_version: None,
-                download_url: None,
-                status_note: Some(format!("updater plugin not initialized: {e}")),
-                install_method: method,
-            });
+            return Ok(no_update(
+                current,
+                method,
+                Some(format!("updater plugin not initialized: {e}")),
+            ));
         }
     };
 
@@ -87,25 +101,15 @@ pub async fn mt_updater_check(app: tauri::AppHandle) -> Result<UpdateStatus, Str
         }
         Ok(None) => {
             safe_eprintln!("[Updater][check][BLOCK_UP_TO_DATE current={current}]");
-            Ok(UpdateStatus {
-                current_version: current,
-                available: false,
-                latest_version: None,
-                download_url: None,
-                status_note: None,
-                install_method: method,
-            })
+            Ok(no_update(current, method, None))
         }
         Err(e) => {
             safe_eprintln!("[Updater][check][BLOCK_FEED_FAILED err={e}]");
-            Ok(UpdateStatus {
-                current_version: current,
-                available: false,
-                latest_version: None,
-                download_url: None,
-                status_note: Some(format!("update check failed: {e}")),
-                install_method: method,
-            })
+            Ok(no_update(
+                current,
+                method,
+                Some(format!("update check failed: {e}")),
+            ))
         }
     }
 }
@@ -123,9 +127,10 @@ pub async fn mt_updater_check(_app: tauri::AppHandle) -> Result<UpdateStatus, St
     })
 }
 
+#[cfg(not(feature = "app-store"))]
 #[tauri::command]
 pub async fn mt_updater_brew_upgrade() -> Result<(), String> {
-    std::process::Command::new("osascript")
+    let output = std::process::Command::new("osascript")
         .args([
             "-e",
             "tell application \"Terminal\"\n\
@@ -133,7 +138,17 @@ pub async fn mt_updater_brew_upgrade() -> Result<(), String> {
                 do script \"brew upgrade --cask mark@alpha\"\n\
             end tell",
         ])
-        .spawn()
-        .map_err(|e| format!("failed to open Terminal: {e}"))?;
+        .output()
+        .map_err(|e| format!("failed to launch Terminal: {e}"))?;
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        return Err(format!("osascript failed ({}): {stderr}", output.status));
+    }
     Ok(())
+}
+
+#[cfg(feature = "app-store")]
+#[tauri::command]
+pub async fn mt_updater_brew_upgrade() -> Result<(), String> {
+    Err("brew upgrade is not available in the App Store build".to_string())
 }

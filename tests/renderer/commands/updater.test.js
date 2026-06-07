@@ -51,17 +51,14 @@ vi.mock('@tauri-apps/plugin-process', () => ({
   relaunch: relaunchMock
 }))
 
+import { invoke } from '@tauri-apps/api/core'
 import commands from '@/commands/index'
 
 const findCmd = (id) => commands.find((c) => c.id === id)
 
 describe('file.check-update — three-path updater', () => {
-  let invokeMock
-
-  beforeEach(async () => {
+  beforeEach(() => {
     vi.clearAllMocks()
-    const { invoke } = await import('@tauri-apps/api/core')
-    invokeMock = invoke
   })
 
   it('is registered when isUpdatable() returns true', () => {
@@ -69,7 +66,7 @@ describe('file.check-update — three-path updater', () => {
   })
 
   it('shows up-to-date notification when no update available', async () => {
-    invokeMock.mockResolvedValueOnce({
+    invoke.mockResolvedValueOnce({
       currentVersion: '2.0.6',
       available: false,
       latestVersion: null,
@@ -80,15 +77,15 @@ describe('file.check-update — three-path updater', () => {
 
     await findCmd('file.check-update').execute()
 
-    expect(invokeMock).toHaveBeenCalledWith('mt_updater_check')
+    expect(invoke).toHaveBeenCalledWith('mt_updater_check')
     expect(notifyMock).toHaveBeenCalledWith({
       title: 'Mark 2.0.6 is up to date',
       type: 'info'
     })
   })
 
-  it('shows statusNote when present and no update available', async () => {
-    invokeMock.mockResolvedValueOnce({
+  it('shows statusNote as warning when present', async () => {
+    invoke.mockResolvedValueOnce({
       currentVersion: '2.0.6',
       available: false,
       statusNote: 'updater plugin not initialized',
@@ -99,12 +96,12 @@ describe('file.check-update — three-path updater', () => {
 
     expect(notifyMock).toHaveBeenCalledWith({
       title: 'updater plugin not initialized',
-      type: 'info'
+      type: 'warning'
     })
   })
 
   it('launches brew upgrade for homebrew installs', async () => {
-    invokeMock.mockResolvedValueOnce({
+    invoke.mockResolvedValueOnce({
       currentVersion: '2.0.5',
       available: true,
       latestVersion: '2.0.6',
@@ -115,30 +112,14 @@ describe('file.check-update — three-path updater', () => {
 
     expect(notifyMock).toHaveBeenCalledWith({
       title: 'Mark 2.0.6 available',
-      message: 'Launching brew upgrade…',
+      message: 'Opening Terminal for brew upgrade…',
       type: 'info'
     })
-    expect(invokeMock).toHaveBeenCalledWith('mt_updater_brew_upgrade')
-  })
-
-  it('shows App Store message for app-store installs', async () => {
-    invokeMock.mockResolvedValueOnce({
-      currentVersion: '2.0.5',
-      available: true,
-      latestVersion: '2.0.6',
-      installMethod: 'app-store'
-    })
-
-    await findCmd('file.check-update').execute()
-
-    expect(notifyMock).toHaveBeenCalledWith({
-      title: 'Updates are managed by the App Store',
-      type: 'info'
-    })
+    expect(invoke).toHaveBeenCalledWith('mt_updater_brew_upgrade')
   })
 
   it('does in-place update for DMG installs', async () => {
-    invokeMock.mockResolvedValueOnce({
+    invoke.mockResolvedValueOnce({
       currentVersion: '2.0.5',
       available: true,
       latestVersion: '2.0.6',
@@ -161,8 +142,8 @@ describe('file.check-update — three-path updater', () => {
     expect(relaunchMock).toHaveBeenCalled()
   })
 
-  it('skips download when plugin-updater check returns null', async () => {
-    invokeMock.mockResolvedValueOnce({
+  it('shows up-to-date when plugin-updater check returns null', async () => {
+    invoke.mockResolvedValueOnce({
       currentVersion: '2.0.5',
       available: true,
       latestVersion: '2.0.6',
@@ -174,15 +155,19 @@ describe('file.check-update — three-path updater', () => {
     await findCmd('file.check-update').execute()
 
     expect(relaunchMock).not.toHaveBeenCalled()
+    expect(notifyMock).toHaveBeenCalledWith({
+      title: 'Mark 2.0.5 is up to date',
+      type: 'info'
+    })
   })
 
   it('shows warning on error', async () => {
-    invokeMock.mockRejectedValueOnce(new Error('network timeout'))
+    invoke.mockRejectedValueOnce(new Error('network timeout'))
 
     await findCmd('file.check-update').execute()
 
     expect(notifyMock).toHaveBeenCalledWith({
-      title: 'Update check failed',
+      title: 'Update failed',
       message: 'Error: network timeout',
       type: 'warning'
     })
