@@ -1,6 +1,6 @@
 # NOTICES — Rust dependencies (Tauri backend)
 
-Generated from `cargo-bundle-licenses --format json` over **566 crates**.
+Generated from `cargo-bundle-licenses --format json` over **567 crates**.
 
 Each entry lists the crate name, version, license SPDX identifier, and upstream repository when available. Re-generate with:
 
@@ -15,7 +15,7 @@ node tools/build-notices-rust.mjs /tmp/rust-licenses.json > NOTICES-rust.md
 |---|---:|
 | MIT OR Apache-2.0 | 259 |
 | MIT | 123 |
-| Apache-2.0 OR MIT | 51 |
+| Apache-2.0 OR MIT | 52 |
 | MIT/Apache-2.0 | 25 |
 | Unicode-3.0 | 18 |
 | Zlib OR Apache-2.0 OR MIT | 18 |
@@ -63,14 +63,14 @@ node tools/build-notices-rust.mjs /tmp/rust-licenses.json > NOTICES-rust.md
 | async-trait | 0.1.89 | https://github.com/dtolnay/async-trait |
 | base64 | 0.21.7 | https://github.com/marshallpierce/rust-base64 |
 | base64 | 0.22.1 | https://github.com/marshallpierce/rust-base64 |
-| bitflags | 2.12.1 | https://github.com/bitflags/bitflags |
+| bitflags | 2.13.0 | https://github.com/bitflags/bitflags |
 | block-buffer | 0.10.4 | https://github.com/RustCrypto/utils |
 | bstr | 1.12.1 | https://github.com/BurntSushi/bstr |
 | bumpalo | 3.20.3 | https://github.com/fitzgen/bumpalo |
 | camino | 1.2.2 | https://github.com/camino-rs/camino |
 | cargo-platform | 0.1.9 | https://github.com/rust-lang/cargo |
 | cfg-if | 1.0.4 | https://github.com/rust-lang/cfg-if |
-| chrono | 0.4.44 | https://github.com/chronotope/chrono |
+| chrono | 0.4.45 | https://github.com/chronotope/chrono |
 | clap | 4.6.1 | https://github.com/clap-rs/clap |
 | clap_builder | 4.6.0 | https://github.com/clap-rs/clap |
 | clap_derive | 4.6.1 | https://github.com/clap-rs/clap |
@@ -155,7 +155,7 @@ node tools/build-notices-rust.mjs /tmp/rust-licenses.json > NOTICES-rust.md
 | leb128fmt | 0.1.0 | https://github.com/bluk/leb128fmt |
 | libc | 0.2.186 | https://github.com/rust-lang/libc |
 | lock_api | 0.4.14 | https://github.com/Amanieu/parking_lot |
-| log | 0.4.31 | https://github.com/rust-lang/log |
+| log | 0.4.32 | https://github.com/rust-lang/log |
 | markup5ever | 0.38.0 | https://github.com/servo/html5ever |
 | mime | 0.3.17 | https://github.com/hyperium/mime |
 | ndk | 0.9.0 | https://github.com/rust-mobile/ndk |
@@ -207,8 +207,8 @@ node tools/build-notices-rust.mjs /tmp/rust-licenses.json > NOTICES-rust.md
 | serde_repr | 0.1.20 | https://github.com/dtolnay/serde-repr |
 | serde_spanned | 0.6.9 | https://github.com/toml-rs/toml |
 | serde_spanned | 1.1.1 | https://github.com/toml-rs/toml |
-| serde_with | 3.20.0 | https://github.com/jonasbb/serde_with/ |
-| serde_with_macros | 3.20.0 | https://github.com/jonasbb/serde_with/ |
+| serde_with | 3.21.0 | https://github.com/jonasbb/serde_with/ |
+| serde_with_macros | 3.21.0 | https://github.com/jonasbb/serde_with/ |
 | serde-untagged | 0.1.9 | https://github.com/dtolnay/serde-untagged |
 | serialize-to-javascript | 0.1.2 | https://github.com/chippers/serialize-to-javascript |
 | serialize-to-javascript-impl | 0.1.2 | https://github.com/chippers/serialize-to-javascript |
@@ -439,7 +439,7 @@ node tools/build-notices-rust.mjs /tmp/rust-licenses.json > NOTICES-rust.md
 | zvariant_derive | 5.12.0 | https://github.com/z-galaxy/zbus/ |
 | zvariant_utils | 3.4.0 | https://github.com/z-galaxy/zbus/ |
 
-## Apache-2.0 OR MIT (51)
+## Apache-2.0 OR MIT (52)
 
 | Crate | Version | Repository |
 |---|---|---|
@@ -483,6 +483,7 @@ node tools/build-notices-rust.mjs /tmp/rust-licenses.json > NOTICES-rust.md
 | tauri-plugin-fs | 2.5.1 | https://github.com/tauri-apps/plugins-workspace |
 | tauri-plugin-global-shortcut | 2.3.2 | https://github.com/tauri-apps/plugins-workspace |
 | tauri-plugin-opener | 2.5.4 | https://github.com/tauri-apps/plugins-workspace |
+| tauri-plugin-process | 2.3.1 | https://github.com/tauri-apps/plugins-workspace |
 | tauri-plugin-updater | 2.10.1 | https://github.com/tauri-apps/plugins-workspace |
 | tauri-plugin-window-state | 2.4.1 | https://github.com/tauri-apps/plugins-workspace |
 | tauri-runtime | 2.11.2 | https://github.com/tauri-apps/tauri |
@@ -540,7 +541,7 @@ node tools/build-notices-rust.mjs /tmp/rust-licenses.json > NOTICES-rust.md
 | potential_utf | 0.1.5 | https://github.com/unicode-org/icu4x |
 | tinystr | 0.8.3 | https://github.com/unicode-org/icu4x |
 | writeable | 0.6.3 | https://github.com/unicode-org/icu4x |
-| yoke | 0.8.2 | https://github.com/unicode-org/icu4x |
+| yoke | 0.8.3 | https://github.com/unicode-org/icu4x |
 | yoke-derive | 0.8.2 | https://github.com/unicode-org/icu4x |
 | zerofrom | 0.1.8 | https://github.com/unicode-org/icu4x |
 | zerofrom-derive | 0.1.7 | https://github.com/unicode-org/icu4x |
@@ -620,7 +621,7 @@ node tools/build-notices-rust.mjs /tmp/rust-licenses.json > NOTICES-rust.md
 | aho-corasick | 1.1.4 | https://github.com/BurntSushi/aho-corasick |
 | byteorder | 1.5.0 | https://github.com/BurntSushi/byteorder |
 | globset | 0.4.18 | https://github.com/BurntSushi/ripgrep/tree/master/crates/globset |
-| ignore | 0.4.25 | https://github.com/BurntSushi/ripgrep/tree/master/crates/ignore |
+| ignore | 0.4.26 | https://github.com/BurntSushi/ripgrep/tree/master/crates/ignore |
 | memchr | 2.8.1 | https://github.com/BurntSushi/memchr |
 | winapi-util | 0.1.11 | https://github.com/BurntSushi/winapi-util |
 
