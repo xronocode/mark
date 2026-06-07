@@ -384,6 +384,17 @@ describe('commands/index — deep coverage', () => {
       await findCmd('view.toggle-tabbar').execute()
       expect(bus.emit).toHaveBeenCalledWith('view:toggle-layout-entry', 'showTabBar')
     })
+
+    it('view.diff-mode toggles diffMode on current tab', async () => {
+      editorStoreMock.currentFile = { id: 'tab-1', diffMode: false }
+      await findCmd('view.diff-mode').execute()
+      expect(editorStoreMock.currentFile.diffMode).toBe(true)
+    })
+
+    it('view.diff-mode does nothing when no file is open', async () => {
+      editorStoreMock.currentFile = null
+      await findCmd('view.diff-mode').execute()
+    })
   })
 
   // ---- Subcommand executeSubcommand methods ----
