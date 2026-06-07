@@ -599,11 +599,7 @@ pub fn build_native_menu<R: tauri::Runtime>(
     // ── Help menu ────────────────────────────────────────────────────
     let version_label = format!("Version {}", env!("CARGO_PKG_VERSION"));
     let help_submenu = SubmenuBuilder::new(handle, "Help")
-        .item(
-            &MenuItemBuilder::with_id("help.version", &version_label)
-                .enabled(false)
-                .build(handle)?,
-        )
+        .text("help.version", &version_label)
         .separator()
         .item(&MenuItemBuilder::with_id("docs.user-guide", "Documentation").build(handle)?)
         .item(
