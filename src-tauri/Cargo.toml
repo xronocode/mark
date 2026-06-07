@@ -39,7 +39,10 @@ tauri-plugin-dialog = "2"
 tauri-plugin-window-state = "2"
 tauri-plugin-opener = "2"
 tauri-plugin-process = "2"
-tokio = { version = "1", features = ["sync"] }
+reqwest = { version = "0.12", features = ["json"] }
+rand = "0.8"
+tokio = { version = "1", features = ["sync", "rt", "time", "net", "macros"] }
+axum = "0.8"
 signal-hook = "0.3"
 raw-window-handle = "0.6"
 

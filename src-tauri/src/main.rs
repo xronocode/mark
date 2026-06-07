@@ -99,6 +99,7 @@ mod m021_default_handler;
 mod m031_diff;
 mod m032_share;
 mod m013b;
+mod m045_ext;
 mod m_v1_compat;
 mod m005_migrate;
 #[allow(dead_code)] // dialog flow auto-migrates 2026-05-09; locale strings kept for future re-enable
@@ -772,6 +773,7 @@ fn main() {
         .manage(m013b::WatchRegistry::default())
         .manage(m013b::SearchRegistry::default())
         .manage(PendingOpens::default())
+        .manage(m045_ext::ExtRegistry::new())
         .invoke_handler(tauri::generate_handler![
             mt_dev_diag,
             mt_drain_pending_opens,
@@ -815,6 +817,11 @@ fn main() {
             m019_datacenter::mt_secret_set,
             m019_datacenter::mt_secret_get,
             m019_datacenter::mt_secret_delete,
+            m045_ext::mt_ext_discover,
+            m045_ext::mt_ext_enable,
+            m045_ext::mt_ext_disable,
+            m045_ext::mt_ext_invoke,
+            m045_ext::mt_ext_list,
             m_v1_compat::mt_request_keybindings,
             m_v1_compat::mt_cmd_open_folder,
             m_v1_compat::mt_cmd_open_file,

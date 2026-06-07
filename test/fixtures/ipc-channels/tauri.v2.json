@@ -7,7 +7,7 @@
   },
   "generated_at": "2026-05-09T08:23:20.661Z",
   "counts": {
-    "commands": 33,
+    "commands": 38,
     "error_codes": 4
   },
   "error_codes": [
@@ -17,6 +17,46 @@
     "MT_IPC_VALIDATION"
   ],
   "channels": [
+    {
+      "name": "mt::ext::disable",
+      "direction": "renderer->main",
+      "transport": "invoke",
+      "layer": "M-045",
+      "has_args": true,
+      "has_result": true
+    },
+    {
+      "name": "mt::ext::discover",
+      "direction": "renderer->main",
+      "transport": "invoke",
+      "layer": "M-045",
+      "has_args": true,
+      "has_result": true
+    },
+    {
+      "name": "mt::ext::enable",
+      "direction": "renderer->main",
+      "transport": "invoke",
+      "layer": "M-045",
+      "has_args": true,
+      "has_result": true
+    },
+    {
+      "name": "mt::ext::invoke",
+      "direction": "renderer->main",
+      "transport": "invoke",
+      "layer": "M-045",
+      "has_args": true,
+      "has_result": true
+    },
+    {
+      "name": "mt::ext::list",
+      "direction": "renderer->main",
+      "transport": "invoke",
+      "layer": "M-045",
+      "has_args": true,
+      "has_result": true
+    },
     {
       "name": "mt::fonts::list",
       "direction": "renderer->main",
