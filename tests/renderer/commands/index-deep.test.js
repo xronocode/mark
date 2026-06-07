@@ -477,11 +477,13 @@ describe('commands/index — deep coverage', () => {
   // ---- edit.screenshot exists on macOS ----
 
   describe('edit.screenshot (macOS)', () => {
-    it('sends mt::make-screenshot', async () => {
+    it('invokes mt_screenshot_capture', async () => {
       const cmd = findCmd('edit.screenshot')
       expect(cmd).toBeDefined()
+      const { invoke } = await import('@tauri-apps/api/core')
+      invoke.mockResolvedValueOnce([1, 2, 3])
       await cmd.execute()
-      expect(window.electron.ipcRenderer.send).toHaveBeenCalledWith('mt::make-screenshot')
+      expect(invoke).toHaveBeenCalledWith('mt_screenshot_capture', { options: { mode: 'interactive' } })
     })
   })
 })
