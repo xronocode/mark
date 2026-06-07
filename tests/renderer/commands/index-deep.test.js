@@ -225,6 +225,40 @@ describe('commands/index — deep coverage', () => {
       await findCmd('edit.find-in-folder').execute()
       expect(bus.emit).toHaveBeenCalledWith('projectSearch')
     })
+
+    it('edit.select-all emits selectAll', async () => {
+      await findCmd('edit.select-all').execute()
+      expect(bus.emit).toHaveBeenCalledWith('selectAll')
+    })
+
+    it('edit.find-next emits findNext', async () => {
+      await findCmd('edit.find-next').execute()
+      expect(bus.emit).toHaveBeenCalledWith('findNext')
+    })
+
+    it('edit.find-previous emits findPrev', async () => {
+      await findCmd('edit.find-previous').execute()
+      expect(bus.emit).toHaveBeenCalledWith('findPrev')
+    })
+  })
+
+  // ---- File save/line-ending commands ----
+
+  describe('file save and line-ending commands', () => {
+    it('file.save-all emits mt::editor-ask-file-save-all', async () => {
+      await findCmd('file.save-all').execute()
+      expect(bus.emit).toHaveBeenCalledWith('mt::editor-ask-file-save-all')
+    })
+
+    it('file.line-ending-lf emits mt::set-line-ending lf', async () => {
+      await findCmd('file.line-ending-lf').execute()
+      expect(bus.emit).toHaveBeenCalledWith('mt::set-line-ending', 'lf')
+    })
+
+    it('file.line-ending-crlf emits mt::set-line-ending crlf', async () => {
+      await findCmd('file.line-ending-crlf').execute()
+      expect(bus.emit).toHaveBeenCalledWith('mt::set-line-ending', 'crlf')
+    })
   })
 
   // ---- Paragraph commands ----
