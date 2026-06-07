@@ -825,5 +825,40 @@
     <CrossLink from="M-044" to="M-039" relation="supplies-payload-fixtures-for" />
     <CrossLink from="M-044" to="M-040" relation="captures-source-signatures-for" />
     <CrossLink from="M-044" to="M-042" relation="provides-hostile-and-rich-input-fixtures-for" />
+
+    <!-- Phase-B11: Extension Host (TokMo integration) -->
+    <M-045 NAME="ExtensionHost" TYPE="CORE_LOGIC" STATUS="planned" PHASE-REF="B11-ext-host" LAYER="APPLICATION">
+      <purpose>Extension host module: manifest parsing/validation, extension discovery (scan installed bundles), registry (enable/disable, state persistence), auth (keychain-based shared secret via M-019), invocation (HTTP POST to 127.0.0.1 per D1), and live document server (axum HTTP endpoint for stream.document). First consumer: TokMo meeting intelligence extension.</purpose>
+      <path>src-tauri/src/m045_ext/mod.rs</path>
+      <sub-modules>
+        <sub-module name="m045_manifest" path="src-tauri/src/m045_ext/manifest.rs" purpose="Parse and validate extension manifest (YAML); enforce required fields (id, name, version, capabilities, port); reject unknown capabilities; size and depth guards" />
+        <sub-module name="m045_discovery" path="src-tauri/src/m045_ext/discovery.rs" purpose="Scan extension directories (~/Library/Application Support/com.xronocode.mark/extensions/) for valid manifest files; return discovered extension list with validation status" />
+        <sub-module name="m045_registry" path="src-tauri/src/m045_ext/registry.rs" purpose="Enable/disable extensions; persist enabled state via M-005 prefs; maintain in-memory ExtensionState map; emit state-change events to renderer" />
+        <sub-module name="m045_auth" path="src-tauri/src/m045_ext/auth.rs" purpose="Generate, store, and validate per-extension shared secrets via M-019 datacenter keychain; rotate on re-enable; verify Authorization header on inbound requests" />
+        <sub-module name="m045_invoke" path="src-tauri/src/m045_ext/invoke.rs" purpose="HTTP POST invocation to extension at 127.0.0.1:{port}/{endpoint}; timeout enforcement; Authorization header injection; response deserialization" />
+        <sub-module name="m045_live_server" path="src-tauri/src/m045_ext/live_server.rs" purpose="axum HTTP server on 127.0.0.1 for stream.document endpoint; receives live document updates from extensions; validates auth; forwards content to renderer via Tauri event" />
+        <sub-module name="m045_live_endpoint" path="src-tauri/src/m045_ext/live_endpoint.rs" purpose="Write/cleanup LiveEndpointDiscovery file for TokMo to discover Mark HTTP server port; writes on server start, cleanup on exit, stale file detection" />
+        <sub-module name="m045_live_bridge" path="src-tauri/src/m045_ext/live_bridge.rs" purpose="Tauri event bridge: emit_live_update / emit_doc_open / emit_doc_patch / emit_doc_close forwarding live server content to renderer" />
+      </sub-modules>
+      <depends>M-001, M-005, M-019</depends>
+      <verification-ref>V-M-045</verification-ref>
+      <annotations>
+        <fn-mt_ext_discover PURPOSE="Tauri command: scan extension directories, parse manifests, return list of discovered extensions with validation status" />
+        <fn-mt_ext_enable PURPOSE="Tauri command: enable extension by ID; generate auth secret; persist state; emit mt::ext-state-changed" />
+        <fn-mt_ext_disable PURPOSE="Tauri command: disable extension by ID; revoke auth secret; persist state; emit mt::ext-state-changed" />
+        <fn-mt_ext_invoke PURPOSE="Tauri command: send HTTP POST to enabled extension endpoint with auth header; enforce timeout; return response" />
+        <fn-mt_ext_list PURPOSE="Tauri command: return current registry state (discovered + enabled/disabled + health)" />
+        <type-ExtensionManifest PURPOSE="Parsed manifest: id, name, version, description, capabilities Vec, port u16, endpoints Vec" />
+        <type-ExtensionState PURPOSE="Per-extension runtime state: manifest, enabled bool, last_health_check, auth_secret_ref" />
+        <type-ExtInvokeRequest PURPOSE="{ extension_id, endpoint, payload: serde_json::Value }" />
+        <type-ExtInvokeResponse PURPOSE="{ status: u16, body: serde_json::Value, elapsed_ms: u64 }" />
+      </annotations>
+    </M-045>
+
+    <!-- M-045 CrossLinks -->
+    <CrossLink from="M-045" to="M-001" relation="registered-in-main-invoke-handler" />
+    <CrossLink from="M-045" to="M-005" relation="persists-extension-state-via" />
+    <CrossLink from="M-045" to="M-019" relation="stores-extension-secrets-via" />
+    <CrossLink from="M-001" to="M-045" relation="registers-ext-commands" />
   </Project>
 </KnowledgeGraph>
