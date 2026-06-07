@@ -27,6 +27,14 @@ vi.mock('@/i18n', () => ({
   t: (key) => `t:${key}`
 }))
 
+const { notifyMock: deepNotifyMock } = vi.hoisted(() => ({
+  notifyMock: vi.fn()
+}))
+
+vi.mock('@/services/notification', () => ({
+  default: { notify: deepNotifyMock }
+}))
+
 vi.mock('@/bus', () => ({
   default: { emit: vi.fn(), on: vi.fn(), off: vi.fn() }
 }))
@@ -35,7 +43,8 @@ vi.mock('@/util', () => ({
   delay: () => Promise.resolve(),
   isOsx: true,
   isWindows: false,
-  isLinux: false
+  isLinux: false,
+  getUniqueId: () => `id-${Math.random().toString(36).slice(2)}`
 }))
 
 const setSinglePreferenceMock = vi.fn()
@@ -529,6 +538,18 @@ describe('commands/index — deep coverage', () => {
       invoke.mockResolvedValueOnce([1, 2, 3])
       await cmd.execute()
       expect(invoke).toHaveBeenCalledWith('mt_screenshot_capture', { options: { mode: 'interactive' } })
+    })
+
+    it('shows warning notification on screenshot error', async () => {
+      const cmd = findCmd('edit.screenshot')
+      const { invoke } = await import('@tauri-apps/api/core')
+      invoke.mockRejectedValueOnce(new Error('permission denied'))
+      await cmd.execute()
+      expect(deepNotifyMock).toHaveBeenCalledWith({
+        title: 'Screenshot failed',
+        message: 'Error: permission denied',
+        type: 'warning'
+      })
     })
   })
 })
