@@ -255,6 +255,12 @@
       <AUTONOMY>autonomous — standalone capture tool with deterministic pure-core tests; browser differences are surfaced as fixture evidence, not hidden logic</AUTONOMY>
     </matrix-row>
 
+    <matrix-row MODULE="M-045" V-M="V-M-045" PRIORITY="critical" SCENARIOS="6" EC="10" ALM="7" NA="5" RTA="3" PHF="1" WAF="1">
+      <VF-COVERAGE>VF-ext-host (extension lifecycle)</VF-COVERAGE>
+      <GATE>Gate-Phase-B11-ext-host</GATE>
+      <AUTONOMY>not-autonomous — security-critical auth + HTTP invocation + keychain secrets; review auth flow, timeout handling, and m001_validate parity</AUTONOMY>
+    </matrix-row>
+
     <matrix-row MODULE="M-901" V-M="V-M-901" PRIORITY="high" SCENARIOS="3" EC="5" ALM="3" NA="2" RTA="1" PHF="0" WAF="1">
       <VF-COVERAGE>V-GH-001, V-GH-002</VF-COVERAGE>
       <GATE>Gate-Phase-H</GATE>
@@ -309,20 +315,21 @@
       <gate PHASE="Phase-B6-agent-pipeline" MODULES="M-031" GATE-ID="Gate-Phase-B6-agent-pipeline" VERIFICATION="V-M-031" STATUS="pass" VERIFIED="2026-06-01" VERDICT="inline diff functional with git+.before baseline; Cmd+D shortcut wired; per-tab diffMode implemented; --diff CLI flag threads through PendingOpens. Side-by-side mode deferred (not blocking)." />
       <gate PHASE="Phase-B7-agent-compat" MODULES="M-032, M-033" GATE-ID="Gate-Phase-B7-agent-compat" VERIFICATION="V-M-032, V-M-033" STATUS="pass" VERIFIED="2026-06-01" VERDICT="live-reload, cli-preview, --watch, --diff functionally complete. save-all, PDF export, line endings wired. Listener leak fixed. 15 live-reload + 12 preview-mode dedicated tests. vitest 2758 pass, cargo 445 pass." />
       <gate PHASE="Phase-B10-smart-paste" MODULES="M-044, M-038, M-039, M-040, M-041, M-042, M-043" GATE-ID="Gate-Phase-B10-smart-paste" VERIFICATION="V-M-044, V-M-038, V-M-039, V-M-040, V-M-041, V-M-042, V-M-043, VF-017" STATUS="design" />
+      <gate PHASE="Phase-B11-ext-host" MODULES="M-045" GATE-ID="Gate-Phase-B11-ext-host" VERIFICATION="V-M-045" STATUS="planned" />
     </phase-gate-matrix>
 
     <coverage-summary>
-      <metric name="total-modules">44</metric>
-      <metric name="total-V-M-entries">44</metric>
+      <metric name="total-modules">45</metric>
+      <metric name="total-V-M-entries">45</metric>
       <metric name="total-VF-flows">23</metric>
-      <metric name="total-scenarios">189</metric>
-      <metric name="total-edge-cases">364</metric>
-      <metric name="total-trace-assertions">66</metric>
-      <metric name="total-negative-assertions">130</metric>
-      <metric name="total-log-markers-catalogued">165</metric>
-      <metric name="phase-gates">16</metric>
-      <metric name="autonomous-safe-modules">26 of 44</metric>
-      <metric name="modules-with-full-coverage">44 of 44 (100%)</metric>
+      <metric name="total-scenarios">195</metric>
+      <metric name="total-edge-cases">374</metric>
+      <metric name="total-trace-assertions">69</metric>
+      <metric name="total-negative-assertions">135</metric>
+      <metric name="total-log-markers-catalogued">172</metric>
+      <metric name="phase-gates">17</metric>
+      <metric name="autonomous-safe-modules">26 of 45</metric>
+      <metric name="modules-with-full-coverage">45 of 45 (100%)</metric>
     </coverage-summary>
   </VerificationMatrix>
 
@@ -5341,6 +5348,83 @@
     <wave-follow-up>When a new source family is added to Smart Paste scope, capture at least one real fixture with M-044 before detector or adapter heuristics are widened.</wave-follow-up>
     <phase-follow-up>Before beta.3 tagging, confirm one Windows browser run can open the page directly from disk and export JSON without a local dev server.</phase-follow-up>
   </V-M-044>
+
+  <V-M-045 MODULE="M-045 ExtensionHost" PRIORITY="critical" wave="beta.4" status="planned">
+    <prereq>V-M-001 (lifecycle + command registration), V-M-005 (prefs for state persistence), V-M-019 (datacenter keychain for auth secrets)</prereq>
+    <module-surface>
+      Backend: src-tauri/src/m045_ext/mod.rs — module root with re-exports and ExtensionHost AppState struct.
+      Backend: src-tauri/src/m045_ext/manifest.rs — YAML manifest parser with ExtensionManifest type; validates required fields (id, name, version, capabilities, port, endpoints), capability allowlist, size guards (manifest &lt;64KB, id &lt;128 chars), depth guards (no nested capabilities).
+      Backend: src-tauri/src/m045_ext/discovery.rs — scans ~/Library/Application Support/com.xronocode.mark/extensions/ subdirectories for manifest.yaml files; returns Vec with per-extension validation status.
+      Backend: src-tauri/src/m045_ext/registry.rs — in-memory HashMap&lt;ExtensionId, ExtensionState&gt;; enable/disable with state persistence via M-005 prefs store; emits mt::ext-state-changed Tauri event on transitions.
+      Backend: src-tauri/src/m045_ext/auth.rs — per-extension shared secret generation (32-byte random via ring/rand); store/retrieve/revoke via M-019 datacenter keychain (service: com.xronocode.mark.ext.{id}); Authorization: Bearer header validation.
+      Backend: src-tauri/src/m045_ext/invoke.rs — reqwest HTTP POST to 127.0.0.1:{port}/{endpoint}; Authorization header from auth module; configurable timeout (default 30s); JSON request/response; ExtInvokeRequest/ExtInvokeResponse types.
+      Backend: src-tauri/src/m045_ext/live_server.rs — axum HTTP server on 127.0.0.1:{configured_port}; POST /stream/document endpoint; auth middleware validates Bearer token against registered secrets; forwards document content to renderer via Tauri emit mt::ext-live-document; graceful shutdown on app exit via tokio::sync::watch channel.
+      Backend: src-tauri/src/m045_ext/live_endpoint.rs — writes/cleans up LiveEndpointDiscovery JSON file so TokMo can discover Mark's HTTP server port; stale file detection via pid check.
+      Backend: src-tauri/src/m045_ext/live_bridge.rs — Tauri event bridge: emit_live_update / emit_doc_open / emit_doc_patch / emit_doc_close forwarding live server content to renderer via Tauri emit.
+      Backend: src-tauri/src/main.rs — register mt_ext_discover, mt_ext_enable, mt_ext_disable, mt_ext_invoke, mt_ext_list in generate_handler!; start live server in setup hook; shutdown in exit handler.
+      Backend: src-tauri/src/m001_validate.rs — REGISTERED_COMMANDS extended with mt_ext_discover, mt_ext_enable, mt_ext_disable, mt_ext_invoke, mt_ext_list.
+      Fixture: tests/tauri.v2.json — add mt_ext_* command entries for m001_validate parity check.
+    </module-surface>
+    <high-level-scenarios>
+      <S1>manifest-parse-valid — valid YAML manifest with all required fields parses into ExtensionManifest; capabilities matched against allowlist; BLOCK_EXT_MANIFEST_PARSED id=test-ext status=valid.</S1>
+      <S2>discovery-scan — extension directory contains two subdirs (one valid manifest, one invalid); mt_ext_discover returns list with valid entry status=ok and invalid entry status=manifest_error with reason; BLOCK_EXT_DISCOVER count=2 valid=1 invalid=1.</S2>
+      <S3>enable-disable-cycle — mt_ext_enable generates auth secret via M-019 keychain, persists enabled=true via M-005, emits mt::ext-state-changed; mt_ext_disable revokes secret, persists enabled=false, emits event; mt_ext_list reflects transitions; BLOCK_EXT_ENABLE id=..., BLOCK_EXT_DISABLE id=...</S3>
+      <S4>invoke-success — enabled extension with mock HTTP server on 127.0.0.1; mt_ext_invoke sends POST with auth header; mock returns JSON response; ExtInvokeResponse.status=200, body matches expected; BLOCK_EXT_INVOKE id=... endpoint=text.transform status=200 elapsed_ms=N.</S4>
+      <S5>invoke-timeout — enabled extension with slow/unresponsive mock server; mt_ext_invoke enforces timeout; returns MT_EXT_INVOKE_TIMEOUT error; BLOCK_EXT_INVOKE id=... endpoint=... status=timeout elapsed_ms=N.</S5>
+      <S6>live-server-document-stream — axum server running; extension POSTs to /stream/document with valid auth; server validates token, forwards content via Tauri emit mt::ext-live-document; renderer receives event with document payload; BLOCK_EXT_LIVE_SERVER_DOCUMENT id=... size_bytes=N.</S6>
+      <S7>live-endpoint-discovery-lifecycle — LiveEndpointDiscovery file written on server start with pid, port, protocol_version; cleaned up on exit; stale file with dead pid detected and overwritten on next start; BLOCK_EXT_ENDPOINT_WRITE port=N, BLOCK_EXT_ENDPOINT_CLEANUP.</S7>
+      <S8>live-bridge-event-forwarding — emit_doc_open/emit_doc_patch/emit_doc_close called from live_server handlers; Tauri events emitted to renderer with correct payloads (session_id, title, content, revision); renderer receives and renders live document updates.</S8>
+    </high-level-scenarios>
+    <edge-cases>
+      <E1>manifest-missing-required-field — manifest.yaml lacks "port" field; parse succeeds but validation fails with specific missing-field error; BLOCK_EXT_MANIFEST_PARSED status=invalid reason=missing_field:port.</E1>
+      <E2>manifest-unknown-capability — manifest declares capability "system.shutdown" not in allowlist; validation rejects with unknown_capability error; extension not discoverable as valid.</E2>
+      <E3>manifest-oversized — manifest.yaml exceeds 64KB; rejected before parse with size_exceeded error.</E3>
+      <E4>discovery-empty-directory — extension directory exists but contains no subdirectories; mt_ext_discover returns empty list; BLOCK_EXT_DISCOVER count=0.</E4>
+      <E5>discovery-directory-missing — extension directory does not exist; mt_ext_discover creates it and returns empty list; BLOCK_EXT_DISCOVER count=0 created_dir=true.</E5>
+      <E6>enable-already-enabled — mt_ext_enable called for already-enabled extension; idempotent no-op, secret not rotated; returns current state.</E6>
+      <E7>invoke-disabled-extension — mt_ext_invoke called with disabled extension ID; returns MT_EXT_DISABLED error without making HTTP request.</E7>
+      <E8>invoke-unknown-extension — mt_ext_invoke called with non-existent extension ID; returns MT_EXT_NOT_FOUND error.</E8>
+      <E9>live-server-invalid-auth — POST to /stream/document with wrong or missing Authorization header; server returns 401; document not forwarded; BLOCK_EXT_AUTH_REJECTED reason=invalid_token.</E9>
+      <E10>live-server-bind-conflict — configured port already in use; axum server returns bind error; BLOCK_EXT_LIVE_SERVER_BIND status=error reason=address_in_use; app continues without live server (degraded mode).</E10>
+    </edge-cases>
+    <log-markers namespace="[m045_ext]" count="7">
+      BLOCK_EXT_DISCOVER (count=N, valid=N, invalid=N, elapsed_ms=N),
+      BLOCK_EXT_MANIFEST_PARSED (id=..., status=valid|invalid, reason=...),
+      BLOCK_EXT_ENABLE (id=..., secret_stored=bool),
+      BLOCK_EXT_DISABLE (id=..., secret_revoked=bool),
+      BLOCK_EXT_INVOKE (id=..., endpoint=..., status=N|timeout, elapsed_ms=N),
+      BLOCK_EXT_LIVE_SERVER_START (port=N, status=ok|error),
+      BLOCK_EXT_AUTH_GENERATED (id=..., service=com.xronocode.mark.ext.{id}),
+      BLOCK_EXT_ENDPOINT_WRITE (port=N, pid=N, path=...),
+      BLOCK_EXT_ENDPOINT_CLEANUP (path=...)
+    </log-markers>
+    <negative-assertions>
+      <N1>Extension auth secrets MUST NOT appear in logs — only service name and success/failure status logged; secret value never serialized.</N1>
+      <N2>mt_ext_invoke MUST NOT connect to any address other than 127.0.0.1 — reject manifests with non-loopback host; no DNS resolution.</N2>
+      <N3>Live server MUST NOT bind to 0.0.0.0 — always 127.0.0.1; no external network exposure.</N3>
+      <N4>Extension IPC MUST NOT weaken frontend CSP — all extension communication is backend Rust only (m001_security gate).</N4>
+      <N5>mt_ext_invoke MUST NOT proceed without valid auth secret for the target extension — missing secret = MT_EXT_AUTH_FAILED, not a request without Authorization header.</N5>
+    </negative-assertions>
+    <ordering-invariants>
+      (1) BLOCK_EXT_DISCOVER precedes BLOCK_EXT_ENABLE for any extension ID (cannot enable undiscovered extension).
+      (2) BLOCK_EXT_ENABLE precedes BLOCK_EXT_INVOKE for same extension ID (cannot invoke disabled extension).
+      (3) BLOCK_EXT_AUTH_GENERATED precedes BLOCK_EXT_INVOKE for same extension ID (auth secret must exist before invocation).
+    </ordering-invariants>
+    <cross-module-integration>
+      <dep module="V-M-001" type="registration">mt_ext_discover, mt_ext_enable, mt_ext_disable, mt_ext_invoke, mt_ext_list MUST be registered in generate_handler! and present in m001_validate::REGISTERED_COMMANDS + tauri.v2.json fixture. Miss any = app crashes at startup (BLOCK_VALIDATE_AGAINST_FIXTURE_FAIL).</dep>
+      <dep module="V-M-005" type="state-persistence">Extension enabled/disabled state persisted via M-005 prefs store. On app restart, registry restores last-known state from prefs. Test: enable extension, restart app, mt_ext_list shows extension still enabled.</dep>
+      <dep module="V-M-019" type="keychain-secrets">Auth secrets stored via M-019 datacenter keychain with service name com.xronocode.mark.ext.{id}. On disable, secret revoked from keychain. Test: enable extension, verify keychain entry exists; disable, verify keychain entry removed.</dep>
+      <dep module="V-M-010" type="security">Extension directory paths validated through M-010 sandbox checks. No symlink escape from extension directory. Manifest file paths canonicalized before read.</dep>
+    </cross-module-integration>
+    <test-targets>
+      <test>src-tauri/src/m045_ext/tests.rs</test>
+    </test-targets>
+    <commands>
+      <module-local>cd /Users/myevdokimov/prj/mark &amp;&amp; cargo test --bin mark m045_ext</module-local>
+    </commands>
+    <wave-follow-up>When a second extension type is added beyond TokMo, verify that no M-045 code changes are required (extensibility test).</wave-follow-up>
+    <phase-follow-up>Before beta.4 tagging, run full integration test: mock extension discovered, enabled, responds to text.transform via mt_ext_invoke, streams document via live server. m001_validate must pass with all 5 new commands registered.</phase-follow-up>
+  </V-M-045>
 
   <!-- Sidebar walk race fix + dirty-file highlighting (2026-05-20, commits 9bb39e36 + 3f3efe74) -->
   <V-SIDEBAR-WALK-RACE MODULE="m_v1_compat + project.js" PRIORITY="high" SCOPE="backend-ipc + renderer-project-store" status="done" verified-at="2026-05-20">

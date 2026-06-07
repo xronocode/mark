@@ -1293,6 +1293,58 @@
       <verification-ref>V-M-044</verification-ref>
     </M-044>
 
+    <!-- Phase-B11: Extension Host (TokMo integration) -->
+    <M-045 NAME="ExtensionHost" TYPE="CORE_LOGIC" LAYER="2" ORDER="1" STATUS="planned">
+      <contract>
+        <purpose>Extension host: manifest parsing, discovery, registry, keychain auth, HTTP invocation, and live document server. Enables Mark to host external extensions (first consumer: TokMo meeting intelligence).</purpose>
+        <inputs>
+          <param name="extension_dir" type="PathBuf" description="Extension bundle scan root (~/Library/Application Support/com.xronocode.mark/extensions/)" />
+          <param name="invoke_request" type="ExtInvokeRequest" description="{ extension_id, endpoint, payload }" />
+        </inputs>
+        <outputs>
+          <param name="discovered" type="Vec&lt;ExtensionManifest&gt;" />
+          <param name="invoke_response" type="ExtInvokeResponse" description="{ status, body, elapsed_ms }" />
+        </outputs>
+        <errors>
+          <error code="MT_EXT_MANIFEST_INVALID" description="Manifest parse or validation failure" />
+          <error code="MT_EXT_NOT_FOUND" description="Extension ID not in registry" />
+          <error code="MT_EXT_DISABLED" description="Invoke attempted on disabled extension" />
+          <error code="MT_EXT_INVOKE_TIMEOUT" description="HTTP POST to extension exceeded timeout" />
+          <error code="MT_EXT_AUTH_FAILED" description="Auth secret mismatch or keychain error" />
+          <error code="MT_EXT_LIVE_SERVER_BIND" description="axum server failed to bind 127.0.0.1 port" />
+        </errors>
+      </contract>
+      <interface>
+        <fn-mt_ext_discover PURPOSE="Scan extension directories, parse manifests, return discovered list with validation status" />
+        <fn-mt_ext_enable PURPOSE="Enable extension by ID; generate auth secret via M-019; persist state via M-005; emit mt::ext-state-changed" />
+        <fn-mt_ext_disable PURPOSE="Disable extension by ID; revoke auth secret; persist state; emit mt::ext-state-changed" />
+        <fn-mt_ext_invoke PURPOSE="HTTP POST to 127.0.0.1:{port}/{endpoint} with Authorization header; enforce timeout; return response" />
+        <fn-mt_ext_list PURPOSE="Return current registry state: discovered + enabled/disabled + health" />
+      </interface>
+      <depends>M-001, M-005, M-019</depends>
+      <target>
+        <source>src-tauri/src/m045_ext/mod.rs, manifest.rs, discovery.rs, registry.rs, auth.rs, invoke.rs, live_server.rs, live_endpoint.rs, live_bridge.rs</source>
+        <tests>src-tauri/src/m045_ext/tests.rs</tests>
+      </target>
+      <observability>
+        <log-prefix>[ExtHost]</log-prefix>
+        <critical-block>BLOCK_EXT_DISCOVER</critical-block>
+        <critical-block>BLOCK_EXT_MANIFEST_PARSED</critical-block>
+        <critical-block>BLOCK_EXT_ENABLE</critical-block>
+        <critical-block>BLOCK_EXT_DISABLE</critical-block>
+        <critical-block>BLOCK_EXT_INVOKE</critical-block>
+        <critical-block>BLOCK_EXT_LIVE_SERVER_START</critical-block>
+        <critical-block>BLOCK_EXT_AUTH_GENERATED</critical-block>
+      </observability>
+      <verification-ref>V-M-045</verification-ref>
+      <notes>
+        <note-1>IPC to extensions is HTTP POST, not WebSocket (decision D1). All calls go to 127.0.0.1 only.</note-1>
+        <note-2>Extension secrets stored via M-019 datacenter keychain. Never build a separate secret store.</note-2>
+        <note-3>New commands mt_ext_* require: generate_handler! + tauri.v2.json fixture + m001_validate::REGISTERED_COMMANDS updates.</note-3>
+        <note-4>Extensibility test: design must support a second hypothetical extension beyond TokMo without code changes.</note-4>
+      </notes>
+    </M-045>
+
   </Modules>
 
   <DataFlow>
@@ -2202,6 +2254,69 @@ src/main/config.js declares `contextIsolation: false`, `nodeIntegration: true`, 
 
       <gate>Claude/ChatGPT/GitHub/Notion fixture pastes preserve inline code, fenced code, nested lists, tables, and task lists; unsafe clipboard HTML is stripped or rejected; `PR-4150` HTML-image localization still passes unchanged. Tag v2.0.0-beta.3 on success.</gate>
     </Phase-B10-smart-paste>
+
+    <!-- =================================================================
+         Phase-B11: Extension Host
+         Enables Mark to host external extensions via bidirectional HTTP
+         contract. First consumer: TokMo meeting intelligence.
+         Cross-ref: TokMo spec 20_MARK_EXTENSION_HOST.md + 30_INTEGRATION.md
+         ================================================================= -->
+
+    <Phase-B11-ext-host name="Extension Host — manifest, registry, invocation, live server" status="planned" priority="high" estimated-effort="5-7 days" target-tag="v2.0.0-beta.4">
+      <rationale>Mark needs a generic extension host so TokMo (meeting intelligence) can stream live documents into the editor. The extension contract is bidirectional: Mark discovers and invokes extensions via HTTP POST (D1), extensions push live document updates back to Mark via an axum HTTP endpoint. Auth uses keychain-based shared secrets (M-019). Design must pass the extensibility test: a second extension should work without code changes.</rationale>
+
+      <step-1 module="M-045" status="pending" verification="V-M-045">
+        <description>Implement manifest parser (YAML) with validation: required fields (id, name, version, capabilities, port, endpoints), capability allowlist, size guards. Create ExtensionManifest type.</description>
+        <write-scope>
+          <file>src-tauri/src/m045_ext/mod.rs — module root, re-exports</file>
+          <file>src-tauri/src/m045_ext/manifest.rs — YAML parse + validate + ExtensionManifest type</file>
+          <file>src-tauri/src/m045_ext/tests.rs — manifest parse/validate unit tests</file>
+        </write-scope>
+        <depends>serde_yaml crate</depends>
+      </step-1>
+
+      <step-2 module="M-045" status="pending" verification="V-M-045">
+        <description>Implement discovery: scan ~/Library/Application Support/com.xronocode.mark/extensions/ for subdirectories containing manifest.yaml. Return Vec of parsed manifests with per-extension validation status. Wire mt_ext_discover Tauri command.</description>
+        <write-scope>
+          <file>src-tauri/src/m045_ext/discovery.rs — directory scan + manifest collect</file>
+          <file>src-tauri/src/main.rs — register mt_ext_discover in generate_handler!</file>
+          <file>src-tauri/capabilities/default.json — add mt_ext_discover permission</file>
+        </write-scope>
+        <depends>M-001 (main.rs registration), step-1 (manifest parser)</depends>
+      </step-2>
+
+      <step-3 module="M-045" status="pending" verification="V-M-045">
+        <description>Implement registry (enable/disable) and auth (keychain secret generation). Wire mt_ext_enable, mt_ext_disable, mt_ext_list commands. Persist enabled state via M-005. Generate per-extension auth secret via M-019 keychain on enable, revoke on disable.</description>
+        <write-scope>
+          <file>src-tauri/src/m045_ext/registry.rs — ExtensionState map, enable/disable logic, state persistence</file>
+          <file>src-tauri/src/m045_ext/auth.rs — secret generation, keychain store/revoke via M-019, header validation</file>
+          <file>src-tauri/src/main.rs — register mt_ext_enable, mt_ext_disable, mt_ext_list</file>
+          <file>src-tauri/src/m001_validate.rs — add mt_ext_* to REGISTERED_COMMANDS</file>
+          <file>tests/tauri.v2.json — add mt_ext_* command fixtures</file>
+        </write-scope>
+        <depends>M-005 (prefs), M-019 (keychain), step-2 (discovery)</depends>
+      </step-3>
+
+      <step-4 module="M-045" status="pending" verification="V-M-045">
+        <description>Implement HTTP invocation: POST to 127.0.0.1:{port}/{endpoint} with Authorization header. Enforce configurable timeout (default 30s). Wire mt_ext_invoke command. Deserialize JSON response.</description>
+        <write-scope>
+          <file>src-tauri/src/m045_ext/invoke.rs — reqwest HTTP client, timeout, auth header, response parse</file>
+          <file>src-tauri/src/main.rs — register mt_ext_invoke</file>
+        </write-scope>
+        <depends>reqwest crate, step-3 (registry + auth)</depends>
+      </step-4>
+
+      <step-5 module="M-045" status="pending" verification="V-M-045">
+        <description>Implement live document server: axum HTTP server on 127.0.0.1 accepting POST /stream/document from extensions. Validate Authorization header against registered secrets. Forward document content to renderer via Tauri emit mt::ext-live-document event. Graceful shutdown on app exit.</description>
+        <write-scope>
+          <file>src-tauri/src/m045_ext/live_server.rs — axum server, auth middleware, document handler, Tauri event emit</file>
+          <file>src-tauri/src/main.rs — start live server in setup hook, shutdown in exit handler</file>
+        </write-scope>
+        <depends>axum crate, tokio, step-3 (auth)</depends>
+      </step-5>
+
+      <gate>Mock extension discovered via mt_ext_discover; enabled via mt_ext_enable; mt_ext_invoke sends text.transform request and receives response; live document server accepts stream.document POST and emits event to renderer; m001_validate passes with new commands registered. Tag v2.0.0-beta.4 on success.</gate>
+    </Phase-B11-ext-host>
   </ImplementationOrder>
 
   <ExecutionPolicy>
