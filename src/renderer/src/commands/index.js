@@ -743,7 +743,27 @@ if (isUpdatable()) {
   commands.push({
     id: 'file.check-update',
     execute: async () => {
-      window.electron.ipcRenderer.send('mt::check-for-update')
+      const { invoke } = await import('@tauri-apps/api/core')
+      const notice = (await import('../services/notification')).default
+      try {
+        const status = await invoke('mt_updater_check')
+        if (status.available) {
+          const { openUrl } = await import('@tauri-apps/plugin-opener')
+          notice.notify({
+            title: t('notifications.updateAvailable') || 'Update available',
+            message: `Mark ${status.latestVersion}`,
+            type: 'info'
+          })
+          await openUrl(status.downloadUrl)
+        } else {
+          notice.notify({
+            title: status.statusNote || `Mark ${status.currentVersion} is up to date`,
+            type: 'info'
+          })
+        }
+      } catch (e) {
+        notice.notify({ title: 'Update check failed', message: String(e), type: 'warning' })
+      }
     }
   })
 }
@@ -752,7 +772,11 @@ if (isOsx) {
   commands.push({
     id: 'edit.screenshot',
     execute: async () => {
-      window.electron.ipcRenderer.send('mt::make-screenshot')
+      const { invoke } = await import('@tauri-apps/api/core')
+      const bytes = await invoke('mt_screenshot_capture', { options: { mode: 'interactive' } })
+      if (bytes && bytes.length) {
+        bus.emit('screenshot-captured', bytes)
+      }
     }
   })
 }
