@@ -27,6 +27,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Instant;
+use tauri::Emitter;
 use tokio::sync::Mutex;
 
 // START_BLOCK_TYPES
@@ -124,6 +125,12 @@ pub struct HeartbeatResponse {
     pub revision: u64,
 }
 
+#[derive(Debug, Deserialize)]
+pub struct TextInsertRequest {
+    pub text: String,
+    pub source: Option<String>,
+}
+
 // END_BLOCK_REQUEST_TYPES
 
 // START_BLOCK_AUTH_EXTRACT
@@ -207,33 +214,45 @@ async fn handle_pair(
         req.protocol_version,
     );
 
-    // Show native dialog for user approval before storing the pairing secret.
-    // rfd dialogs must run on a blocking thread (they are synchronous).
-    let ext_name_for_dialog = req.extension_name.clone();
-    let ext_id_for_dialog = req.extension_id.clone();
-    let approved = tokio::task::spawn_blocking(move || {
-        use rfd::{MessageButtons, MessageDialog, MessageDialogResult, MessageLevel};
-        let result = MessageDialog::new()
-            .set_level(MessageLevel::Info)
-            .set_title("Mark — Extension Pairing Request")
-            .set_description(&format!(
-                "The extension \"{}\" ({}) wants to pair with Mark.\n\nAllow this extension to send documents and data to Mark?",
-                ext_name_for_dialog, ext_id_for_dialog,
-            ))
-            .set_buttons(MessageButtons::OkCancelCustom(
-                "Allow".to_string(),
-                "Deny".to_string(),
-            ))
-            .show();
-        match result {
-            MessageDialogResult::Ok
-            | MessageDialogResult::Yes => true,
-            MessageDialogResult::Custom(ref s) if s == "Allow" => true,
-            _ => false,
-        }
-    })
-    .await
-    .unwrap_or(false);
+    // In debug builds, auto-approve pairing (rfd dialogs from axum's
+    // background threads don't reliably show on macOS).
+    // Release builds show a native confirmation dialog.
+    #[cfg(debug_assertions)]
+    let approved = {
+        safe_eprintln!(
+            "[ExtHost][live_server][BLOCK_PAIR_AUTO_APPROVE ext_id={} (debug build)]",
+            req.extension_id,
+        );
+        true
+    };
+    #[cfg(not(debug_assertions))]
+    let approved = {
+        let ext_name_for_dialog = req.extension_name.clone();
+        let ext_id_for_dialog = req.extension_id.clone();
+        tokio::task::spawn_blocking(move || {
+            use rfd::{MessageButtons, MessageDialog, MessageDialogResult, MessageLevel};
+            let result = MessageDialog::new()
+                .set_level(MessageLevel::Info)
+                .set_title("Mark — Extension Pairing Request")
+                .set_description(&format!(
+                    "The extension \"{}\" ({}) wants to pair with Mark.\n\nAllow this extension to send documents and data to Mark?",
+                    ext_name_for_dialog, ext_id_for_dialog,
+                ))
+                .set_buttons(MessageButtons::OkCancelCustom(
+                    "Allow".to_string(),
+                    "Deny".to_string(),
+                ))
+                .show();
+            match result {
+                MessageDialogResult::Ok
+                | MessageDialogResult::Yes => true,
+                MessageDialogResult::Custom(ref s) if s == "Allow" => true,
+                _ => false,
+            }
+        })
+        .await
+        .unwrap_or(false)
+    };
 
     if !approved {
         safe_eprintln!(
@@ -620,6 +639,74 @@ async fn handle_heartbeat(
     )
 }
 
+/// POST /ext/text-insert — insert text at cursor from an external app.
+/// No auth required (pairing auth is for stream.document only in v1).
+/// Emits `mt::text::op` in the same format that text_ops.rs uses so the
+/// frontend textOps.js listener handles it identically.
+async fn handle_text_insert(
+    State(state): State<Arc<LiveServerState>>,
+    Json(req): Json<TextInsertRequest>,
+) -> impl IntoResponse {
+    safe_eprintln!(
+        "[ExtHost][live_server][BLOCK_TEXT_INSERT len={} source={:?}]",
+        req.text.len(),
+        req.source,
+    );
+
+    let payload = serde_json::json!({
+        "text": req.text,
+        "position": null,
+    });
+
+    let event = super::text_ops::TextOpEvent {
+        op_type: "insert".to_string(),
+        payload,
+        extension_id: "com.tokmo.voice".to_string(),
+    };
+
+    if let Err(e) = state.app_handle.emit("mt::text::op", &event) {
+        safe_eprintln!(
+            "[ExtHost][live_server][BLOCK_TEXT_INSERT_EMIT_FAILED reason={e}]"
+        );
+        return (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(serde_json::json!({"error": format!("emit failed: {e}")})),
+        );
+    }
+
+    safe_eprintln!(
+        "[ExtHost][live_server][BLOCK_TEXT_INSERT_OK len={}]",
+        req.text.len(),
+    );
+
+    (
+        StatusCode::OK,
+        Json(serde_json::json!({"ok": true})),
+    )
+}
+
+/// GET /debug/auth — diagnostic endpoint (dev builds only).
+/// Returns keychain lookup result for a given extension_id.
+#[cfg(debug_assertions)]
+async fn handle_debug_auth(
+    axum::extract::Query(params): axum::extract::Query<HashMap<String, String>>,
+) -> impl IntoResponse {
+    let ext_id = params.get("ext_id").cloned().unwrap_or_default();
+    let result = super::auth::get_secret(&ext_id);
+    let info = match &result {
+        Ok(Some(secret)) => format!("found, len={}", secret.len()),
+        Ok(None) => "no_entry".to_string(),
+        Err(e) => format!("error: {e}"),
+    };
+    (
+        StatusCode::OK,
+        Json(serde_json::json!({
+            "ext_id": ext_id,
+            "keychain_result": info,
+        })),
+    )
+}
+
 // END_BLOCK_HANDLERS
 
 // START_BLOCK_HEARTBEAT_MONITOR
@@ -692,11 +779,16 @@ pub async fn start_live_server(state: Arc<LiveServerState>) -> Result<u16, Strin
 
     let app = Router::new()
         .route("/ext/pair", post(handle_pair))
+        .route("/ext/text-insert", post(handle_text_insert))
         .route("/stream/open", post(handle_doc_open))
         .route("/stream/patch", post(handle_doc_patch))
         .route("/stream/close", post(handle_doc_close))
-        .route("/stream/heartbeat", post(handle_heartbeat))
-        .with_state(state);
+        .route("/stream/heartbeat", post(handle_heartbeat));
+
+    #[cfg(debug_assertions)]
+    let app = app.route("/debug/auth", axum::routing::get(handle_debug_auth));
+
+    let app = app.with_state(state);
 
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
         .await
