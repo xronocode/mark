@@ -28,5 +28,6 @@ export {
   type CommandResult,
   type CommandMap,
   type FsStat,
-  type SearchOptions
+  type SearchOptions,
+  type ExtensionInfo
 } from './types'

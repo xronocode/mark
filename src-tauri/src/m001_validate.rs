@@ -78,6 +78,8 @@ const REGISTERED_COMMANDS: &[&str] = &[
     "mt_ext_enable",
     "mt_ext_invoke",
     "mt_ext_list",
+    "mt_ext_text_insert",
+    "mt_ext_text_transform",
     "mt_updater_check",
     "mt_watch_subscribe",
     "mt_watch_unsubscribe",

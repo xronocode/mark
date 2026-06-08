@@ -15,9 +15,12 @@
 //   LINKS:   docs/knowledge-graph.xml M-045;
 //            docs/development-plan.xml Phase-B2b, Phase-B5a;
 //            ROADMAP.md Decisions D1 (HTTP POST IPC), D10 (notarized DMG).
-//   STATUS:  Phase-B5b — live_bridge + LiveViewer.vue added.
+//   STATUS:  Phase-B5b — live_bridge + LiveViewer.vue added;
+//            Phase-B4 — text_ops (text.insert + text.transform) added.
 //
 // CHANGE_SUMMARY:
+//   - 2026-06-08 B4: text_ops module added (text.insert + text.transform
+//     capabilities for extensions).
 //   - 2026-06-08 B5b: live_bridge (Tauri event bridge) module added;
 //     live_server handlers now emit to frontend via live_bridge.
 //   - 2026-06-08 B5a: live_server (axum HTTP server) + live_endpoint
@@ -32,6 +35,7 @@ pub mod invoke;
 pub mod live_server;
 pub mod live_endpoint;
 pub mod live_bridge;
+pub mod text_ops;
 
 #[cfg(test)]
 mod tests;
@@ -41,6 +45,7 @@ pub use registry::{ExtRegistry, ExtensionInfo};
 pub use live_server::{start_live_server, LiveServerState};
 pub use live_endpoint::{write_endpoint, cleanup_endpoint, make_endpoint};
 pub use live_bridge::{emit_live_update, emit_doc_open, emit_doc_patch, emit_doc_close, LiveUpdate};
+pub use text_ops::{mt_ext_text_insert, mt_ext_text_transform};
 
 // START_BLOCK_TAURI_COMMANDS
 

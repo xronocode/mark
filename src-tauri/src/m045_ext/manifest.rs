@@ -28,6 +28,12 @@ pub struct ExtensionManifest {
     pub name: String,
     /// SemVer version string.
     pub version: String,
+    /// Human-readable description of the extension.
+    #[serde(default)]
+    pub description: Option<String>,
+    /// URL where users can download/install this extension.
+    #[serde(default)]
+    pub install_url: Option<String>,
     /// Minimum Mark version required (optional).
     pub min_mark_version: Option<String>,
     /// Protocol versions this extension supports.

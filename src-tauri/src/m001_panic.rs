@@ -170,24 +170,33 @@ mod tests {
         let ts = 1_777_000_000_u64;
         // Use a real panic hook to capture a real PanicHookInfo, then
         // call format_panic_body. catch_unwind is the standard way.
-        let captured = std::panic::catch_unwind(|| {
-            std::panic::set_hook(Box::new(move |info| {
-                let body = format_panic_body(info, ts, chain);
-                assert!(body.contains("ts_unix:"));
-                assert!(body.contains("session_chain:  abc-def"));
-                assert!(body.contains("synthetic test panic"));
-                assert!(body.contains("location:"));
-                // SAVE for the outer assert
-                std::env::set_var("__MT_TEST_PANIC_BODY", body);
-            }));
+        //
+        // NOTE: Do NOT assert inside the hook — the global panic hook
+        // can fire from any thread's panic (including parallel tests).
+        // Instead, capture the body and assert after catch_unwind.
+        let captured_body: std::sync::Arc<std::sync::Mutex<Option<String>>> =
+            std::sync::Arc::new(std::sync::Mutex::new(None));
+        let captured_body_clone = captured_body.clone();
+        let prev_hook = std::panic::take_hook();
+        std::panic::set_hook(Box::new(move |info| {
+            let body = format_panic_body(info, ts, chain);
+            *captured_body_clone.lock().unwrap() = Some(body);
+        }));
+        let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
             panic!("synthetic test panic");
-        });
-        let _ = std::panic::take_hook();
-        assert!(captured.is_err());
-        let body = std::env::var("__MT_TEST_PANIC_BODY").unwrap();
+        }));
+        std::panic::set_hook(prev_hook);
+        assert!(result.is_err());
+        let body = captured_body
+            .lock()
+            .unwrap()
+            .take()
+            .expect("custom panic hook must have been called");
         assert!(body.starts_with("Mark crash report\n"));
+        assert!(body.contains("ts_unix:"));
+        assert!(body.contains("session_chain:  abc-def"));
         assert!(body.contains("synthetic test panic"));
-        std::env::remove_var("__MT_TEST_PANIC_BODY");
+        assert!(body.contains("location:"));
     }
 
     #[test]
@@ -350,6 +359,12 @@ mod tests {
         // Simulates the dialog path panicking inside the panic hook.
         // catch_unwind must absorb the inner panic so the hook
         // returns normally instead of triggering a process abort.
+        //
+        // Acquire synth_panic_lock: this test triggers a panic which
+        // fires the global hook — without the lock, a concurrently
+        // installed custom hook (from another test) would see this
+        // panic's payload and fail its own assertions.
+        let _g = synth_panic_lock().lock().unwrap_or_else(|e| e.into_inner());
         let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
             panic!("rfd dialog failed: NSApplication not initialized");
         }));
