@@ -1,13 +1,19 @@
 <!--
-  LiveViewer — read-only Muya renderer for live-streamed documents.
+  LiveViewer — Muya renderer for live-streamed documents.
 
   Receives mt::live::update events from the Rust backend (via
   live_bridge.rs) and renders the document in real time using a
-  dedicated Muya instance in read-only mode (contenteditable=false).
+  dedicated Muya instance. During a live session the container is
+  read-only (contenteditable=false, keyboard/paste blocked). When
+  the session ends (doc_close) editing is re-enabled and the undo
+  stack is cleared so the user starts with a clean history.
 
   Phase B5b: initial implementation. Uses setMarkdown() for full
-  content replacement on each patch. TODO: incremental contentState
-  updates (S2 spike result).
+  content replacement on each patch.
+
+  S2 spike decision: setMarkdown() confirmed for v1. Incremental
+  contentState deferred to v2 if documents exceed 100 KB.
+  See: tokmo/docs/research/s2-muya-spike.md
 -->
 <template>
   <div class="live-viewer" :class="{ 'live-active': isLive }">
@@ -68,10 +74,11 @@ let unlisten = null
 // START_BLOCK_MUYA_INIT
 
 /**
- * Initialize a minimal, read-only Muya instance. No UI plugins
- * (QuickInsert, FormatPicker, etc.) are registered — the live viewer
- * is display-only. The container is set to contenteditable=false
- * after Muya init to prevent user edits.
+ * Initialize a minimal Muya instance. No UI plugins (QuickInsert,
+ * FormatPicker, etc.) are registered — the live viewer is
+ * display-only during live sessions. The container starts as
+ * contenteditable=false; it is toggled to true on doc_close so the
+ * user can edit the final document.
  */
 const initMuya = () => {
   if (!editorContainer.value || muya) return
@@ -89,7 +96,7 @@ const initMuya = () => {
 
   muya = new Muya(editorContainer.value, options)
 
-  // Make read-only: disable contenteditable on the Muya container.
+  // Default to read-only; toggled on doc_open / doc_close.
   if (muya.container) {
     muya.container.setAttribute('contenteditable', 'false')
   }
@@ -99,6 +106,66 @@ const initMuya = () => {
 }
 
 // END_BLOCK_MUYA_INIT
+
+// START_BLOCK_READONLY
+
+/**
+ * Block keyboard and paste input during a live session. Attached to
+ * the Muya container element so events are caught before Muya's own
+ * handlers can process them.
+ */
+const blockInputHandler = (e) => {
+  e.preventDefault()
+  e.stopPropagation()
+}
+
+/**
+ * Enter read-only mode: set contenteditable=false and block
+ * keyboard/paste events on the Muya container.
+ */
+const enterReadOnly = () => {
+  if (!muya?.container) return
+  muya.container.setAttribute('contenteditable', 'false')
+  muya.container.addEventListener('keydown', blockInputHandler, true)
+  muya.container.addEventListener('keypress', blockInputHandler, true)
+  muya.container.addEventListener('paste', blockInputHandler, true)
+
+  // eslint-disable-next-line no-console
+  console.log('[LiveViewer][BLOCK_READONLY_ENTER]')
+}
+
+/**
+ * Exit read-only mode: restore contenteditable=true and remove the
+ * keyboard/paste blockers so the user can edit the final document.
+ */
+const exitReadOnly = () => {
+  if (!muya?.container) return
+  muya.container.setAttribute('contenteditable', 'true')
+  muya.container.removeEventListener('keydown', blockInputHandler, true)
+  muya.container.removeEventListener('keypress', blockInputHandler, true)
+  muya.container.removeEventListener('paste', blockInputHandler, true)
+
+  // eslint-disable-next-line no-console
+  console.log('[LiveViewer][BLOCK_READONLY_EXIT]')
+}
+
+/**
+ * Clear Muya's undo/redo history. Called on doc_close so the user
+ * gets a clean undo stack after a live session (Option A — v1).
+ */
+const clearUndoHistory = () => {
+  if (!muya) return
+  try {
+    muya.clearHistory()
+    // eslint-disable-next-line no-console
+    console.log('[LiveViewer][BLOCK_UNDO_CLEARED]')
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.warn('[LiveViewer][BLOCK_UNDO_CLEAR_FAILED]', err)
+  }
+}
+
+// END_BLOCK_READONLY
 
 // START_BLOCK_EVENT_HANDLER
 
@@ -124,6 +191,9 @@ const handleLiveUpdate = (event) => {
     isLive.value = true
     sessionInfo.value = payload.title || 'Meeting'
 
+    // Lock the editor for the duration of the live session.
+    enterReadOnly()
+
     if (muya) {
       muya.setMarkdown(payload.content || '')
     }
@@ -134,8 +204,8 @@ const handleLiveUpdate = (event) => {
     )
   } else if (type === 'doc_patch') {
     if (muya && isLive.value) {
-      // Full content replacement. TODO(S2): incremental contentState
-      // updates for better performance with large documents.
+      // Full content replacement — S2 spike confirmed setMarkdown() for v1.
+      // See: tokmo/docs/research/s2-muya-spike.md
       muya.setMarkdown(payload.full_content || '')
     }
 
@@ -145,6 +215,14 @@ const handleLiveUpdate = (event) => {
     )
   } else if (type === 'doc_close') {
     isLive.value = false
+
+    // Unlock the editor so the user can edit the final document.
+    exitReadOnly()
+
+    // Clear undo/redo history accumulated during the live session
+    // (Option A — v1: full clear). The user starts with a clean
+    // undo stack after each live session.
+    clearUndoHistory()
 
     // eslint-disable-next-line no-console
     console.log(
@@ -172,6 +250,12 @@ onBeforeUnmount(() => {
   if (unlisten) {
     unlisten()
     unlisten = null
+  }
+
+  // Remove keyboard blockers before destroying Muya to avoid
+  // dangling event listeners on the container element.
+  if (isLive.value && muya?.container) {
+    exitReadOnly()
   }
 
   if (muya) {

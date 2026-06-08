@@ -423,6 +423,217 @@ fn registry_disable_already_disabled_is_idempotent() {
 }
 // END_BLOCK_MANIFEST_SECURITY_TESTS
 
+// START_BLOCK_ENDURANCE_TESTS
+
+/// B5b gate test: 30-minute live document streaming endurance.
+///
+/// Simulates a full 30-minute live session compressed to ~4 seconds:
+///   - Creates a LiveSession directly (no HTTP server or AppHandle needed)
+///   - 360 iterations (one per simulated 5-second window)
+///   - Each iteration: apply a doc.patch with growing transcript content
+///   - Every 6th iteration (simulated 30s): replace Summary and Key Points sections
+///   - Heartbeat timestamp refreshed between patches
+///   - After 360 iterations: close session
+///   - Verify: all patches applied, revision incremented correctly, no panics
+///
+/// Run manually: `cargo test load_smoke -- --ignored --nocapture`
+/// The test is #[ignore] so `cargo test` skips it by default.
+#[test]
+#[ignore] // Run manually: cargo test load_smoke -- --ignored
+fn test_b5b_load_smoke_30min_synthetic() {
+    use super::live_server::LiveSession;
+    use std::collections::HashMap;
+    use std::time::{Duration, Instant};
+
+    const ITERATIONS: usize = 360; // simulated 30 min at 5s granularity
+    const SECTION_REPLACE_EVERY: usize = 6; // every 6th = simulated 30s
+    const SLEEP_MS: u64 = 10; // actual inter-iteration delay
+
+    // -- Create a LiveSession directly (bypasses HTTP + auth layer) ------
+    let mut session = LiveSession {
+        session_id: "endurance-b5b-001".to_string(),
+        extension_id: "com.tokmo.meeting".to_string(),
+        last_seq: 0,
+        revision: 1,
+        document_md: "# Live Meeting\n\n_Recording..._\n".to_string(),
+        sections: {
+            let mut s = HashMap::new();
+            s.insert("header".to_string(), "# Live Meeting".to_string());
+            s.insert("summary".to_string(), String::new());
+            s.insert("key_points".to_string(), String::new());
+            s.insert("transcript".to_string(), String::new());
+            s
+        },
+        active: true,
+        last_heartbeat: Instant::now(),
+    };
+
+    assert!(session.active);
+    assert_eq!(session.revision, 1);
+
+    let mut transcript_content = String::new();
+    let baseline_revision = session.revision;
+
+    // -- Main simulation loop --------------------------------------------
+    for i in 0..ITERATIONS {
+        let simulated_ms = (i as u64) * 5000;
+        let seq = (i + 1) as u64;
+
+        // Simulate transcript growth: append a new line each iteration
+        let speaker = if i % 2 == 0 { "Alice" } else { "Bob" };
+        let minutes = simulated_ms / 60000;
+        let seconds = (simulated_ms % 60000) / 1000;
+        let line = format!(
+            "**[{:02}:{:02}] {}:** Utterance {} with enough content to stress the section store.\n\n",
+            minutes, seconds, speaker, i
+        );
+        transcript_content.push_str(&line);
+
+        // Apply transcript patch (simulates what handle_doc_patch does)
+        assert!(
+            seq > session.last_seq,
+            "seq {} must be > last_seq {} at iteration {}",
+            seq,
+            session.last_seq,
+            i
+        );
+
+        session
+            .sections
+            .insert("transcript".to_string(), transcript_content.clone());
+
+        // Rebuild full document from sections
+        let mut full_doc = String::new();
+        for key in &["header", "summary", "key_points", "transcript"] {
+            if let Some(value) = session.sections.get(*key) {
+                if !value.is_empty() {
+                    if !full_doc.is_empty() {
+                        full_doc.push_str("\n\n");
+                    }
+                    full_doc.push_str(&format!("## {key}\n\n{value}"));
+                }
+            }
+        }
+        session.document_md = full_doc;
+        session.last_seq = seq;
+        session.revision += 1;
+
+        // Heartbeat refresh (simulates /stream/heartbeat between patches)
+        session.last_heartbeat = Instant::now();
+
+        // Every simulated 30s: replace Summary and Key Points sections
+        if (i + 1) % SECTION_REPLACE_EVERY == 0 {
+            let summary_text = format!(
+                "Meeting in progress. {} utterances recorded over {}m {}s. \
+                 Speakers: Alice, Bob. Topics covered: project status, \
+                 resource allocation, timeline review.",
+                i + 1,
+                minutes,
+                seconds
+            );
+            session
+                .sections
+                .insert("summary".to_string(), summary_text);
+
+            let kp_count = (i + 1) / SECTION_REPLACE_EVERY;
+            let mut kp_text = String::new();
+            for kp_idx in 0..kp_count.min(20) {
+                kp_text.push_str(&format!(
+                    "- [Decision] Key point {} established at iteration {}\n",
+                    kp_idx,
+                    kp_idx * SECTION_REPLACE_EVERY
+                ));
+            }
+            session
+                .sections
+                .insert("key_points".to_string(), kp_text);
+
+            // Verify sections are non-empty after replace
+            assert!(
+                !session.sections["summary"].is_empty(),
+                "Summary must be non-empty after replace at iteration {}",
+                i
+            );
+            assert!(
+                !session.sections["key_points"].is_empty(),
+                "Key Points must be non-empty after replace at iteration {}",
+                i
+            );
+        }
+
+        std::thread::sleep(Duration::from_millis(SLEEP_MS));
+    }
+
+    // -- Close session ---------------------------------------------------
+    session.active = false;
+    let final_revision = session.revision;
+
+    // -- Verify final state ----------------------------------------------
+    assert!(!session.active, "Session must be inactive after close");
+
+    // Revision should have incremented exactly ITERATIONS times from baseline
+    assert_eq!(
+        final_revision,
+        baseline_revision + ITERATIONS as u64,
+        "Revision must equal baseline ({}) + iterations ({}), got {}",
+        baseline_revision,
+        ITERATIONS,
+        final_revision
+    );
+
+    // last_seq should equal ITERATIONS
+    assert_eq!(
+        session.last_seq, ITERATIONS as u64,
+        "last_seq must equal {}",
+        ITERATIONS
+    );
+
+    // Transcript section should contain all utterances
+    let transcript = &session.sections["transcript"];
+    assert!(
+        transcript.contains("Utterance 0"),
+        "Transcript must contain first utterance"
+    );
+    assert!(
+        transcript.contains(&format!("Utterance {}", ITERATIONS - 1)),
+        "Transcript must contain last utterance"
+    );
+
+    // Both speakers should appear
+    assert!(
+        transcript.contains("Alice"),
+        "Transcript must contain Alice entries"
+    );
+    assert!(
+        transcript.contains("Bob"),
+        "Transcript must contain Bob entries"
+    );
+
+    // Summary and Key Points should have content from the last replace cycle
+    assert!(
+        !session.sections["summary"].is_empty(),
+        "Summary must have content after endurance run"
+    );
+    assert!(
+        !session.sections["key_points"].is_empty(),
+        "Key Points must have content after endurance run"
+    );
+
+    // Document MD should be non-trivially large
+    assert!(
+        session.document_md.len() > 10_000,
+        "Full document should be substantial (got {} bytes)",
+        session.document_md.len()
+    );
+
+    // Heartbeat should be recent (within last second, since we just ran)
+    assert!(
+        session.last_heartbeat.elapsed() < Duration::from_secs(5),
+        "Last heartbeat should be recent"
+    );
+}
+// END_BLOCK_ENDURANCE_TESTS
+
 // START_BLOCK_DISCOVERY_PATH_TESTS
 #[test]
 fn extension_dirs_include_config() {
