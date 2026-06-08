@@ -62,6 +62,12 @@ export const getCategory = () => [
     label: 'language',
     icon: LanguageIcon,
     path: '/preference/language'
+  },
+  {
+    name: 'Extensions',
+    label: 'extensions',
+    icon: GeneralIcon,
+    path: '/preference/extensions'
   }
 ]
 
@@ -103,7 +109,8 @@ export const getTranslatedSearchContent = () => {
       'theme',
       'image',
       'keybindings',
-      'language'
+      'language',
+      'extensions'
     ]
     if (!validRoutes.includes(routeCategory)) routeCategory = 'general'
 
