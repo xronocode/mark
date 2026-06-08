@@ -822,6 +822,8 @@ fn main() {
             m045_ext::mt_ext_disable,
             m045_ext::mt_ext_invoke,
             m045_ext::mt_ext_list,
+            m045_ext::text_ops::mt_ext_text_insert,
+            m045_ext::text_ops::mt_ext_text_transform,
             m_v1_compat::mt_request_keybindings,
             m_v1_compat::mt_cmd_open_folder,
             m_v1_compat::mt_cmd_open_file,

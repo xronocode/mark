@@ -7,7 +7,7 @@
   },
   "generated_at": "2026-05-09T08:23:20.661Z",
   "counts": {
-    "commands": 38,
+    "commands": 40,
     "error_codes": 4
   },
   "error_codes": [
@@ -51,6 +51,22 @@
     },
     {
       "name": "mt::ext::list",
+      "direction": "renderer->main",
+      "transport": "invoke",
+      "layer": "M-045",
+      "has_args": true,
+      "has_result": true
+    },
+    {
+      "name": "mt::ext::text_insert",
+      "direction": "renderer->main",
+      "transport": "invoke",
+      "layer": "M-045",
+      "has_args": true,
+      "has_result": true
+    },
+    {
+      "name": "mt::ext::text_transform",
       "direction": "renderer->main",
       "transport": "invoke",
       "layer": "M-045",

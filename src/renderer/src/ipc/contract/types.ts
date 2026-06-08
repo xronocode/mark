@@ -99,6 +99,13 @@ export type CommandName =
   | 'mt::fs::write_binary'
   | 'mt::fs::copy'
   | 'mt::fs::move'
+  | 'mt::ext::discover'
+  | 'mt::ext::enable'
+  | 'mt::ext::disable'
+  | 'mt::ext::invoke'
+  | 'mt::ext::list'
+  | 'mt::ext::text_insert'
+  | 'mt::ext::text_transform'
 
 /**
  * Plain JSON-cloneable file stats. Mirrors v1.2.3's contextBridge
@@ -310,6 +317,49 @@ export interface CommandMap {
     args: { src: string; dest: string }
     result: void
   }
+  'mt::ext::discover': {
+    args: Record<string, never>
+    result: ExtensionInfo[]
+  }
+  'mt::ext::enable': {
+    args: { id: string }
+    result: void
+  }
+  'mt::ext::disable': {
+    args: { id: string }
+    result: void
+  }
+  'mt::ext::invoke': {
+    args: { id: string; capability: string; payload: unknown }
+    result: unknown
+  }
+  'mt::ext::list': {
+    args: Record<string, never>
+    result: ExtensionInfo[]
+  }
+  'mt::ext::text_insert': {
+    args: { extension_id: string; text: string; position?: { line: number; ch: number } }
+    result: void
+  }
+  'mt::ext::text_transform': {
+    args: { extension_id: string; text: string }
+    result: void
+  }
+}
+
+/**
+ * Extension info returned from the M-045 registry. Matches the Rust
+ * ExtensionInfo struct in m045_ext/registry.rs.
+ */
+export interface ExtensionInfo {
+  id: string
+  name: string
+  version: string
+  description: string | null
+  install_url: string | null
+  enabled: boolean
+  healthy: boolean
+  capabilities: string[]
 }
 
 export type CommandArgs<C extends CommandName> = CommandMap[C]['args']

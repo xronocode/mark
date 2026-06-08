@@ -994,6 +994,67 @@ const handleInsertParagraph = (location) => {
   editor.value && editor.value.insertParagraph(location)
 }
 
+// START_BLOCK_EXT_TEXT_OPS
+
+/**
+ * Handle extension text.insert: insert text at cursor position.
+ * Emitted by textOps.js via bus when the backend receives
+ * mt_ext_text_insert from an extension.
+ *
+ * Strategy: insert a new paragraph after the current cursor with the
+ * provided markdown content. Muya's insertParagraph('after', text, true)
+ * inserts a block after the currently focused block.
+ */
+const handleExtTextInsert = ({ text }) => {
+  if (!editor.value || typeof text !== 'string') return
+  try {
+    editor.value.insertParagraph('after', text, true)
+    // eslint-disable-next-line no-console
+    console.log(`[Editor][BLOCK_EXT_TEXT_INSERT_OK len=${text.length}]`)
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error('[Editor][BLOCK_EXT_TEXT_INSERT_FAILED]', err)
+  }
+}
+
+/**
+ * Handle extension text.transform: replace current selection with new text.
+ * Emitted by textOps.js via bus when the backend receives
+ * mt_ext_text_transform from an extension.
+ *
+ * Strategy: get the current selection, use Muya's replace mechanism to
+ * substitute the selected text. If nothing is selected, insert at cursor.
+ */
+const handleExtTextTransform = ({ text }) => {
+  if (!editor.value || typeof text !== 'string') return
+  try {
+    // Use the internal word replacement method if selection exists,
+    // otherwise fall back to paragraph insert.
+    const selection = editor.value.getSelection()
+    if (selection && selection.selectedText) {
+      // Replace selected text via the search/replace mechanism.
+      // Build a search-replace call targeting the exact selection.
+      const searchMatches = editor.value.replace(
+        { value: text, opt: { isSingle: true } }
+      )
+      if (searchMatches === undefined) {
+        // Fallback: if replace didn't work, insert as new paragraph
+        editor.value.insertParagraph('after', text, true)
+      }
+    } else {
+      // No selection — insert at cursor position.
+      editor.value.insertParagraph('after', text, true)
+    }
+    // eslint-disable-next-line no-console
+    console.log(`[Editor][BLOCK_EXT_TEXT_TRANSFORM_OK len=${text.length}]`)
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error('[Editor][BLOCK_EXT_TEXT_TRANSFORM_FAILED]', err)
+  }
+}
+
+// END_BLOCK_EXT_TEXT_OPS
+
 const blurEditor = () => {
   editor.value.blur(false, true)
 }
@@ -1147,6 +1208,8 @@ onMounted(() => {
   bus.on('switch-spellchecker-language', switchSpellcheckLanguage)
   bus.on('open-command-spellchecker-switch-language', openSpellcheckerLanguageCommand)
   bus.on('replace-misspelling', replaceMisspelling)
+  bus.on('ext-text-insert', handleExtTextInsert)
+  bus.on('ext-text-transform', handleExtTextTransform)
 
   editor.value.on('change', (changes) => {
     // There is a chance that this event is fired AFTER the tab is switched. If we purely rely on this.currentFile later on
@@ -1263,6 +1326,8 @@ onBeforeUnmount(() => {
   bus.off('switch-spellchecker-language', switchSpellcheckLanguage)
   bus.off('open-command-spellchecker-switch-language', openSpellcheckerLanguageCommand)
   bus.off('replace-misspelling', replaceMisspelling)
+  bus.off('ext-text-insert', handleExtTextInsert)
+  bus.off('ext-text-transform', handleExtTextTransform)
 
   document.removeEventListener('keyup', keyup)
   editor.value.off('change')
