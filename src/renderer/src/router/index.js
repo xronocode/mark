@@ -8,6 +8,7 @@ import Theme from '@/prefComponents/theme'
 import Image from '@/prefComponents/image'
 import Keybindings from '@/prefComponents/keybindings'
 import Language from '@/prefComponents/language'
+import ExtensionGallery from '@/components/extensionGallery'
 
 const parseSettingsPage = (type) => {
   let pageUrl = '/preference'
@@ -73,6 +74,11 @@ const routes = (type) => [
         path: 'language',
         component: Language,
         name: 'language'
+      },
+      {
+        path: 'extensions',
+        component: ExtensionGallery,
+        name: 'extensions'
       }
     ]
   }
