@@ -755,6 +755,36 @@ fn main() {
                 });
             }
 
+            // M-045 B5a: start the live-viewer HTTP server for extension
+            // document streaming (D1 HTTP POST IPC). Spawns axum on a
+            // random port and writes the discovery file so TokMo can
+            // locate Mark's endpoint at runtime.
+            {
+                let live_state = std::sync::Arc::new(
+                    m045_ext::LiveServerState {
+                        session: tokio::sync::Mutex::new(None),
+                        app_handle: app.handle().clone(),
+                    },
+                );
+                tauri::async_runtime::spawn(async move {
+                    match m045_ext::start_live_server(live_state).await {
+                        Ok(port) => {
+                            let endpoint = m045_ext::make_endpoint(port);
+                            if let Err(e) = m045_ext::write_endpoint(&endpoint) {
+                                safe_eprintln!(
+                                    "[ExtHost][live_server][BLOCK_ENDPOINT_WRITE_FAILED reason={e}]"
+                                );
+                            }
+                        }
+                        Err(e) => {
+                            safe_eprintln!(
+                                "[ExtHost][live_server][BLOCK_START_FAILED reason={e}]"
+                            );
+                        }
+                    }
+                });
+            }
+
             Ok(())
         })
         .on_menu_event(|app_handle, event| {

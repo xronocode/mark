@@ -1,8 +1,8 @@
 // MODULE_CONTRACT
 //   PURPOSE: M-045 extension authentication. Keychain-based shared
 //            secrets for extension <-> Mark IPC auth (HTTP POST with
-//            Bearer token). Uses keyring crate directly, same pattern
-//            as m019_datacenter.
+//            Bearer token). Uses keyring crate with in-memory fallback
+//            for unsigned debug builds where keychain may silently fail.
 //   SCOPE:   Generate / store / retrieve / revoke / validate shared
 //            secrets. One secret per extension id.
 //   DEPENDS: keyring 3, rand 0.8 (hex secret generation).
@@ -11,18 +11,21 @@
 //   STATUS:  Phase-B2b initial.
 
 use rand::Rng;
+use std::collections::HashMap;
+use std::sync::Mutex;
 
 // START_BLOCK_CONSTANTS
 const SERVICE_NAME: &str = "com.xronocode.mark";
 
-/// Keyring key prefix for extension secrets.
 fn secret_key(ext_id: &str) -> String {
     format!("ext:{ext_id}:shared_secret")
 }
+
+static MEM_STORE: std::sync::LazyLock<Mutex<HashMap<String, String>>> =
+    std::sync::LazyLock::new(|| Mutex::new(HashMap::new()));
 // END_BLOCK_CONSTANTS
 
 // START_BLOCK_GENERATE
-/// Generate a cryptographically random 32-byte hex secret.
 pub fn generate_secret() -> String {
     let mut bytes = [0u8; 32];
     rand::thread_rng().fill(&mut bytes);
@@ -39,69 +42,95 @@ pub(crate) fn hex_encode(bytes: &[u8]) -> String {
 // END_BLOCK_GENERATE
 
 // START_BLOCK_STORE
-/// Store a shared secret for an extension in the OS keychain.
 pub fn store_secret(ext_id: &str, secret: &str) -> Result<(), String> {
     let key = secret_key(ext_id);
-    let entry = keyring::Entry::new(SERVICE_NAME, &key).map_err(|e| {
-        safe_eprintln!("[ExtHost][auth][BLOCK_KEYRING_ENTRY_FAILED id={ext_id} reason={e}]");
-        e.to_string()
-    })?;
-    entry.set_password(secret).map_err(|e| {
-        safe_eprintln!("[ExtHost][auth][BLOCK_STORE_FAILED id={ext_id} reason={e}]");
-        e.to_string()
-    })?;
+
+    // Always store in memory (guaranteed to work).
+    if let Ok(mut store) = MEM_STORE.lock() {
+        store.insert(key.clone(), secret.to_string());
+    }
+
+    // Best-effort keychain persistence.
+    match keyring::Entry::new(SERVICE_NAME, &key) {
+        Ok(entry) => {
+            if let Err(e) = entry.set_password(secret) {
+                safe_eprintln!("[ExtHost][auth][BLOCK_KEYCHAIN_STORE_FAILED id={ext_id} reason={e} (in-memory fallback active)]");
+            } else {
+                // Verify the store actually persisted.
+                match entry.get_password() {
+                    Ok(ref read_back) if read_back == secret => {
+                        safe_eprintln!("[ExtHost][auth][BLOCK_STORE_OK id={ext_id} backend=keychain]");
+                    }
+                    _ => {
+                        safe_eprintln!("[ExtHost][auth][BLOCK_KEYCHAIN_VERIFY_FAILED id={ext_id} (in-memory fallback active)]");
+                    }
+                }
+            }
+        }
+        Err(e) => {
+            safe_eprintln!("[ExtHost][auth][BLOCK_KEYRING_ENTRY_FAILED id={ext_id} reason={e} (in-memory fallback active)]");
+        }
+    }
+
     safe_eprintln!("[ExtHost][auth][BLOCK_STORE_OK id={ext_id}]");
     Ok(())
 }
 // END_BLOCK_STORE
 
 // START_BLOCK_GET
-/// Retrieve the shared secret for an extension from the OS keychain.
-/// Returns Ok(None) if no secret is stored.
 pub fn get_secret(ext_id: &str) -> Result<Option<String>, String> {
     let key = secret_key(ext_id);
-    let entry = keyring::Entry::new(SERVICE_NAME, &key).map_err(|e| {
-        safe_eprintln!("[ExtHost][auth][BLOCK_KEYRING_ENTRY_FAILED id={ext_id} reason={e}]");
-        e.to_string()
-    })?;
-    match entry.get_password() {
-        Ok(secret) => {
-            safe_eprintln!("[ExtHost][auth][BLOCK_GET_HIT id={ext_id}]");
-            Ok(Some(secret))
-        }
-        Err(keyring::Error::NoEntry) => {
-            safe_eprintln!("[ExtHost][auth][BLOCK_GET_MISS id={ext_id}]");
-            Ok(None)
-        }
-        Err(e) => {
-            safe_eprintln!("[ExtHost][auth][BLOCK_GET_FAILED id={ext_id} reason={e}]");
-            Err(e.to_string())
+
+    // Try keychain first.
+    if let Ok(entry) = keyring::Entry::new(SERVICE_NAME, &key) {
+        match entry.get_password() {
+            Ok(secret) => {
+                safe_eprintln!("[ExtHost][auth][BLOCK_GET_HIT id={ext_id} backend=keychain]");
+                return Ok(Some(secret));
+            }
+            Err(keyring::Error::NoEntry) => {}
+            Err(e) => {
+                safe_eprintln!("[ExtHost][auth][BLOCK_KEYCHAIN_GET_FAILED id={ext_id} reason={e}]");
+            }
         }
     }
+
+    // Fall back to in-memory store.
+    if let Ok(store) = MEM_STORE.lock() {
+        if let Some(secret) = store.get(&key) {
+            safe_eprintln!("[ExtHost][auth][BLOCK_GET_HIT id={ext_id} backend=memory]");
+            return Ok(Some(secret.clone()));
+        }
+    }
+
+    safe_eprintln!("[ExtHost][auth][BLOCK_GET_MISS id={ext_id}]");
+    Ok(None)
 }
 // END_BLOCK_GET
 
 // START_BLOCK_REVOKE
-/// Delete the shared secret for an extension from the OS keychain.
 pub fn revoke_secret(ext_id: &str) -> Result<(), String> {
     let key = secret_key(ext_id);
-    let entry = keyring::Entry::new(SERVICE_NAME, &key).map_err(|e| e.to_string())?;
-    match entry.delete_credential() {
-        Ok(_) | Err(keyring::Error::NoEntry) => {
-            safe_eprintln!("[ExtHost][auth][BLOCK_REVOKE id={ext_id}]");
-            Ok(())
-        }
-        Err(e) => {
-            safe_eprintln!("[ExtHost][auth][BLOCK_REVOKE_FAILED id={ext_id} reason={e}]");
-            Err(e.to_string())
+
+    if let Ok(mut store) = MEM_STORE.lock() {
+        store.remove(&key);
+    }
+
+    if let Ok(entry) = keyring::Entry::new(SERVICE_NAME, &key) {
+        match entry.delete_credential() {
+            Ok(_) | Err(keyring::Error::NoEntry) => {}
+            Err(e) => {
+                safe_eprintln!("[ExtHost][auth][BLOCK_REVOKE_FAILED id={ext_id} reason={e}]");
+            }
         }
     }
+
+    safe_eprintln!("[ExtHost][auth][BLOCK_REVOKE id={ext_id}]");
+    Ok(())
 }
 // END_BLOCK_REVOKE
 
 // START_BLOCK_VALIDATE
-/// Validate a token against the stored secret for an extension.
-/// Returns false if no secret is stored or if the token doesn't match.
 pub fn validate_token(ext_id: &str, token: &str) -> bool {
     match get_secret(ext_id) {
         Ok(Some(secret)) => {
@@ -122,7 +151,6 @@ pub fn validate_token(ext_id: &str, token: &str) -> bool {
     }
 }
 
-/// Constant-time byte comparison to prevent timing attacks.
 pub(crate) fn constant_time_eq(a: &[u8], b: &[u8]) -> bool {
     if a.len() != b.len() {
         return false;

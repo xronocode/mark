@@ -14,6 +14,7 @@
       ></title-bar>
 
       <div v-if="!init" class="editor-placeholder"></div>
+      <live-viewer v-if="init"></live-viewer>
       <recent v-if="!hasCurrentFile && init"></recent>
       <editor-with-tabs
         v-if="hasCurrentFile && init"
@@ -70,6 +71,7 @@ import ExportSettingDialog from '@/components/exportSettings'
 import Rename from '@/components/rename'
 import Tweet from '@/components/tweet'
 import ImportModal from '@/components/import'
+import LiveViewer from '@/components/liveViewer'
 import bus from '@/bus'
 import { DEFAULT_STYLE } from '@/config'
 import { useTweetStore } from '@/store/tweet'
