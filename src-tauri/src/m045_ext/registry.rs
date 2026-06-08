@@ -29,6 +29,8 @@ pub struct ExtensionInfo {
     pub id: String,
     pub name: String,
     pub version: String,
+    pub description: Option<String>,
+    pub install_url: Option<String>,
     pub enabled: bool,
     pub healthy: bool,
     pub capabilities: Vec<String>,
@@ -40,6 +42,8 @@ impl From<&ExtensionState> for ExtensionInfo {
             id: state.manifest.id.clone(),
             name: state.manifest.name.clone(),
             version: state.manifest.version.clone(),
+            description: state.manifest.description.clone(),
+            install_url: state.manifest.install_url.clone(),
             enabled: state.enabled,
             healthy: state.healthy,
             capabilities: state
