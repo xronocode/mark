@@ -35,6 +35,7 @@ import { invoke } from '@tauri-apps/api/core'
 import bus from './bus'
 import { setLanguage } from './i18n'
 import { ipcFs } from './ipc/runtime'
+import { initTextOpsListener } from './components/extensionGallery/textOps'
 
 let installed = false
 
@@ -307,7 +308,7 @@ export const setupIpcListeners = async () => {
     listen('mt::force-close-tabs-by-id', (event) => {
       const list = event?.payload
       if (Array.isArray(list) && list.length) editorStore.CLOSE_TABS(list)
-    })
+    }),
     // C-1 fix: the legacy mt::update-file listener was dead. Backend
     // emits file-watcher events on mt::watch::event (see m013b/watch.rs);
     // the renderer subscribes through ipcWatch in project.js#ADD_PROJECT,
@@ -323,6 +324,9 @@ export const setupIpcListeners = async () => {
     // all are either menu-driven (route through mt::menu-invoked →
     // install-menu-bridge.js) or have no Rust emitter. See
     // docs/path-b-clean-audit.md.
+
+    // M-045 extension text operations (text.insert / text.transform).
+    initTextOpsListener(),
   ])
   // Retained legacy marker for backwards-compat with smoke-script grep.
   console.log('[boot][ipc][BLOCK_PREFS_LISTENER_REGISTERED]')
@@ -331,7 +335,7 @@ export const setupIpcListeners = async () => {
   // V-M-025 invariant (1): LISTENERS_READY immediately precedes
   // DRAIN_INVOKED. count=9 matches the 9-listener post-audit-M-1 surface.
   console.log(
-    `[boot][pending_opens][BLOCK_LISTENERS_READY elapsed_ms=${_elapsedMs()} count=9]`
+    `[boot][pending_opens][BLOCK_LISTENERS_READY elapsed_ms=${_elapsedMs()} count=10]`
   )
 
   // F-FILE-OPEN-PENDING (alpha.5) + M-025 perf-pending-opens-parallel
