@@ -46,9 +46,9 @@ import {
 
 describe('sideBar/config.js', () => {
   describe('getCategory', () => {
-    it('returns an array of 8 categories', () => {
+    it('returns an array of 9 categories', () => {
       const categories = getCategory()
-      expect(categories).toHaveLength(8)
+      expect(categories).toHaveLength(9)
     })
 
     it('each category has name, label, icon, path', () => {

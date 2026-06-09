@@ -59,6 +59,11 @@
           :on-change="(value) => onSelectChange('footnote', value)"
           more="https://pandoc.org/MANUAL.html#footnotes"
         ></bool>
+        <bool
+          :description="t('preferences.markdown.extensions.mathRendering')"
+          :bool="mathEnabled"
+          :on-change="(value) => onSelectChange('mathEnabled', value)"
+        ></bool>
       </template>
     </compound>
 
@@ -141,6 +146,7 @@ const {
   frontmatterType,
   superSubScript,
   footnote,
+  mathEnabled,
   isHtmlEnabled,
   isGitlabCompatibilityEnabled,
   sequenceTheme

@@ -8,48 +8,10 @@ vi.mock('@tauri-apps/api/event', () => ({
   listen: listenMock
 }))
 
-const setMarkdownMock = vi.fn()
-const destroyMock = vi.fn()
-const clearHistoryMock = vi.fn()
+const busMock = { emit: vi.fn() }
 
-vi.mock('muya/lib', () => ({
-  default: class Muya {
-    constructor (el) {
-      this.container = el
-      this.setMarkdown = setMarkdownMock
-      this.destroy = destroyMock
-      this.clearHistory = clearHistoryMock
-    }
-  }
-}))
-
-vi.mock('muya/themes/default.css', () => ({}))
-
-vi.mock('@/config', () => ({
-  DEFAULT_EDITOR_FONT_FAMILY: 'Open Sans'
-}))
-
-vi.mock('vue-i18n', () => ({
-  useI18n: () => ({ t: (key, fallback) => fallback || key })
-}))
-
-vi.mock('@/store/preferences', () => ({
-  usePreferencesStore: () => ({
-    lineHeight: '1.6',
-    fontSize: 16,
-    editorFontFamily: ''
-  })
-}))
-
-vi.mock('pinia', () => ({
-  storeToRefs: (store) => {
-    const { ref } = require('vue')
-    return {
-      lineHeight: ref(store.lineHeight),
-      fontSize: ref(store.fontSize),
-      editorFontFamily: ref(store.editorFontFamily)
-    }
-  }
+vi.mock('@/bus', () => ({
+  default: busMock
 }))
 
 describe('LiveViewer – extended coverage', () => {
@@ -77,18 +39,19 @@ describe('LiveViewer – extended coverage', () => {
 
   it('renders idle state initially', async () => {
     const wrapper = await mountComponent()
-    expect(wrapper.find('.live-idle').exists()).toBe(true)
+    // In idle state (isLive=false), indicator is hidden via v-if
     expect(wrapper.find('.live-indicator').exists()).toBe(false)
   })
 
-  it('has live-viewer root element', async () => {
+  it('has a root element', async () => {
     const wrapper = await mountComponent()
-    expect(wrapper.find('.live-viewer').exists()).toBe(true)
+    expect(wrapper.element).toBeTruthy()
   })
 
-  it('does not apply live-active class when idle', async () => {
+  it('does not show indicator when idle', async () => {
     const wrapper = await mountComponent()
-    expect(wrapper.find('.live-viewer.live-active').exists()).toBe(false)
+    expect(wrapper.find('.live-indicator').exists()).toBe(false)
+    expect(wrapper.find('.live-session-info').exists()).toBe(false)
   })
 
   // ── Listener registration ───────────────────────────────────
@@ -100,7 +63,7 @@ describe('LiveViewer – extended coverage', () => {
 
   // ── doc_open ─────────────────────────────────────────────────
 
-  it('doc_open — shows indicator, sets session info, calls setMarkdown', async () => {
+  it('doc_open — shows indicator, sets session info, emits new-untitled-tab', async () => {
     const wrapper = await mountComponent()
     eventHandler({
       payload: {
@@ -112,8 +75,10 @@ describe('LiveViewer – extended coverage', () => {
 
     expect(wrapper.find('.live-indicator').exists()).toBe(true)
     expect(wrapper.find('.live-session-info').text()).toContain('Test Meeting')
-    expect(wrapper.find('.live-viewer.live-active').exists()).toBe(true)
-    expect(setMarkdownMock).toHaveBeenCalledWith('# Hello')
+    expect(busMock.emit).toHaveBeenCalledWith('mt::new-untitled-tab', {
+      markdown: '# Hello',
+      selected: true
+    })
   })
 
   it('doc_open with missing title defaults to Meeting', async () => {
@@ -139,12 +104,15 @@ describe('LiveViewer – extended coverage', () => {
     })
     await nextTick()
 
-    expect(setMarkdownMock).toHaveBeenCalledWith('')
+    expect(busMock.emit).toHaveBeenCalledWith('mt::new-untitled-tab', {
+      markdown: '',
+      selected: true
+    })
   })
 
-  it('doc_open hides idle message', async () => {
+  it('doc_open shows indicator', async () => {
     const wrapper = await mountComponent()
-    expect(wrapper.find('.live-idle').exists()).toBe(true)
+    expect(wrapper.find('.live-indicator').exists()).toBe(false)
 
     eventHandler({
       payload: {
@@ -154,7 +122,7 @@ describe('LiveViewer – extended coverage', () => {
     })
     await nextTick()
 
-    expect(wrapper.find('.live-idle').exists()).toBe(false)
+    expect(wrapper.find('.live-indicator').exists()).toBe(true)
   })
 
   // ── doc_patch ────────────────────────────────────────────────
@@ -169,7 +137,7 @@ describe('LiveViewer – extended coverage', () => {
       }
     })
     await nextTick()
-    setMarkdownMock.mockClear()
+    busMock.emit.mockClear()
 
     eventHandler({
       payload: {
@@ -179,7 +147,7 @@ describe('LiveViewer – extended coverage', () => {
     })
     await nextTick()
 
-    expect(setMarkdownMock).toHaveBeenCalledWith('# Updated')
+    expect(busMock.emit).toHaveBeenCalledWith('file-loaded', { markdown: '# Updated' })
   })
 
   it('doc_patch with missing full_content defaults to empty string', async () => {
@@ -191,7 +159,7 @@ describe('LiveViewer – extended coverage', () => {
       }
     })
     await nextTick()
-    setMarkdownMock.mockClear()
+    busMock.emit.mockClear()
 
     eventHandler({
       payload: {
@@ -201,12 +169,12 @@ describe('LiveViewer – extended coverage', () => {
     })
     await nextTick()
 
-    expect(setMarkdownMock).toHaveBeenCalledWith('')
+    expect(busMock.emit).toHaveBeenCalledWith('file-loaded', { markdown: '' })
   })
 
   it('doc_patch is ignored when not live', async () => {
     await mountComponent()
-    setMarkdownMock.mockClear()
+    busMock.emit.mockClear()
 
     eventHandler({
       payload: {
@@ -216,12 +184,12 @@ describe('LiveViewer – extended coverage', () => {
     })
     await nextTick()
 
-    expect(setMarkdownMock).not.toHaveBeenCalled()
+    expect(busMock.emit).not.toHaveBeenCalledWith('file-loaded', expect.anything())
   })
 
   // ── doc_close ────────────────────────────────────────────────
 
-  it('doc_close exits live mode and clears undo history', async () => {
+  it('doc_close exits live mode', async () => {
     const wrapper = await mountComponent()
     eventHandler({
       payload: {
@@ -240,24 +208,11 @@ describe('LiveViewer – extended coverage', () => {
     })
     await nextTick()
 
-    expect(wrapper.find('.live-idle').exists()).toBe(true)
     expect(wrapper.find('.live-indicator').exists()).toBe(false)
-    expect(clearHistoryMock).toHaveBeenCalled()
   })
 
-  it('doc_close handles clearHistory throwing', async () => {
+  it('doc_close does not throw without prior open', async () => {
     await mountComponent()
-    eventHandler({
-      payload: {
-        update_type: 'doc_open',
-        payload: { session_id: 's1', title: 'X', content: '' }
-      }
-    })
-    await nextTick()
-
-    clearHistoryMock.mockImplementationOnce(() => {
-      throw new Error('no history')
-    })
 
     // Should not throw
     eventHandler({
@@ -269,9 +224,9 @@ describe('LiveViewer – extended coverage', () => {
     await nextTick()
   })
 
-  // ── Read-only mode & blockInputHandler ───────────────────────
+  // ── doc_open shows live-dot and live-label ──────────────────
 
-  it('blocks keyboard input during live session', async () => {
+  it('doc_open renders live-dot and live-label', async () => {
     const wrapper = await mountComponent()
     eventHandler({
       payload: {
@@ -281,89 +236,14 @@ describe('LiveViewer – extended coverage', () => {
     })
     await nextTick()
 
-    // The editor container should be contenteditable=false
-    const container = wrapper.find('.live-editor-container').element
-    expect(container).toBeTruthy()
-
-    // Simulate a keyboard event on the container element — exercises
-    // blockInputHandler (lines 117-120) which calls preventDefault /
-    // stopPropagation.
-    const keyEvent = new KeyboardEvent('keydown', {
-      key: 'a',
-      bubbles: true,
-      cancelable: true
-    })
-    const prevented = !container.dispatchEvent(keyEvent)
-    // The event is captured and prevented by blockInputHandler.
-    expect(prevented).toBe(true)
+    expect(wrapper.find('.live-dot').exists()).toBe(true)
+    expect(wrapper.find('.live-label').text()).toBe('LIVE')
   })
 
-  it('blocks keypress input during live session', async () => {
+  it('live-dot and live-label hidden when idle', async () => {
     const wrapper = await mountComponent()
-    eventHandler({
-      payload: {
-        update_type: 'doc_open',
-        payload: { session_id: 's1', title: 'X', content: '' }
-      }
-    })
-    await nextTick()
-
-    const container = wrapper.find('.live-editor-container').element
-    const keypressEvent = new KeyboardEvent('keypress', {
-      key: 'b',
-      bubbles: true,
-      cancelable: true
-    })
-    const prevented = !container.dispatchEvent(keypressEvent)
-    expect(prevented).toBe(true)
-  })
-
-  it('blocks paste input during live session', async () => {
-    const wrapper = await mountComponent()
-    eventHandler({
-      payload: {
-        update_type: 'doc_open',
-        payload: { session_id: 's1', title: 'X', content: '' }
-      }
-    })
-    await nextTick()
-
-    const container = wrapper.find('.live-editor-container').element
-    const pasteEvent = new Event('paste', {
-      bubbles: true,
-      cancelable: true
-    })
-    const prevented = !container.dispatchEvent(pasteEvent)
-    expect(prevented).toBe(true)
-  })
-
-  it('restores keyboard input after doc_close', async () => {
-    const wrapper = await mountComponent()
-    eventHandler({
-      payload: {
-        update_type: 'doc_open',
-        payload: { session_id: 's1', title: 'X', content: '' }
-      }
-    })
-    await nextTick()
-
-    eventHandler({
-      payload: {
-        update_type: 'doc_close',
-        payload: { session_id: 's1', final_revision: 1 }
-      }
-    })
-    await nextTick()
-
-    // After close, keyboard events should not be prevented
-    const container = wrapper.find('.live-editor-container').element
-    const keyEvent = new KeyboardEvent('keydown', {
-      key: 'a',
-      bubbles: true,
-      cancelable: true
-    })
-    const prevented = !container.dispatchEvent(keyEvent)
-    expect(prevented).toBe(false)
+    expect(wrapper.find('.live-dot').exists()).toBe(false)
+    expect(wrapper.find('.live-label').exists()).toBe(false)
   })
 
   // ── Invalid event payloads ───────────────────────────────────
@@ -396,14 +276,13 @@ describe('LiveViewer – extended coverage', () => {
 
   // ── Unmount ──────────────────────────────────────────────────
 
-  it('unregisters listener and destroys muya on unmount when idle', async () => {
+  it('unregisters listener on unmount when idle', async () => {
     const wrapper = await mountComponent()
     wrapper.unmount()
     expect(unlistenMock).toHaveBeenCalled()
-    expect(destroyMock).toHaveBeenCalled()
   })
 
-  it('exits read-only before destroy when still live on unmount', async () => {
+  it('unregisters listener on unmount when still live', async () => {
     const wrapper = await mountComponent()
     eventHandler({
       payload: {
@@ -415,7 +294,6 @@ describe('LiveViewer – extended coverage', () => {
 
     wrapper.unmount()
     expect(unlistenMock).toHaveBeenCalled()
-    expect(destroyMock).toHaveBeenCalled()
   })
 
   // ── Multiple open/close cycles ───────────────────────────────
@@ -440,7 +318,7 @@ describe('LiveViewer – extended coverage', () => {
       }
     })
     await nextTick()
-    expect(wrapper.find('.live-idle').exists()).toBe(true)
+    expect(wrapper.find('.live-indicator').exists()).toBe(false)
 
     // Second session
     eventHandler({
@@ -459,15 +337,7 @@ describe('LiveViewer – extended coverage', () => {
       }
     })
     await nextTick()
-    expect(clearHistoryMock).toHaveBeenCalledTimes(2)
-  })
-
-  // ── Font family rendering ────────────────────────────────────
-
-  it('renders with default font family when editorFontFamily is empty', async () => {
-    const wrapper = await mountComponent()
-    const container = wrapper.find('.live-editor-container')
-    expect(container.attributes('style')).toContain('Open Sans')
+    expect(wrapper.find('.live-indicator').exists()).toBe(false)
   })
 
   // ── Branch coverage: console.log || fallback operators ───────
@@ -484,7 +354,11 @@ describe('LiveViewer – extended coverage', () => {
       }
     })
     await nextTick()
-    // No error — the fallback '?' is used in the console.log
+    // No error — emits bus event regardless
+    expect(busMock.emit).toHaveBeenCalledWith('mt::new-untitled-tab', {
+      markdown: '',
+      selected: true
+    })
   })
 
   it('doc_open with explicit session_id hits truthy branch', async () => {
@@ -507,7 +381,7 @@ describe('LiveViewer – extended coverage', () => {
       }
     })
     await nextTick()
-    setMarkdownMock.mockClear()
+    busMock.emit.mockClear()
 
     // No revision or section — both `|| "?"` branches fire
     eventHandler({
@@ -517,7 +391,7 @@ describe('LiveViewer – extended coverage', () => {
       }
     })
     await nextTick()
-    expect(setMarkdownMock).toHaveBeenCalledWith('# No meta')
+    expect(busMock.emit).toHaveBeenCalledWith('file-loaded', { markdown: '# No meta' })
   })
 
   it('doc_patch with explicit revision and section hits truthy branches', async () => {
@@ -529,7 +403,7 @@ describe('LiveViewer – extended coverage', () => {
       }
     })
     await nextTick()
-    setMarkdownMock.mockClear()
+    busMock.emit.mockClear()
 
     eventHandler({
       payload: {
@@ -538,11 +412,11 @@ describe('LiveViewer – extended coverage', () => {
       }
     })
     await nextTick()
-    expect(setMarkdownMock).toHaveBeenCalledWith('# Meta')
+    expect(busMock.emit).toHaveBeenCalledWith('file-loaded', { markdown: '# Meta' })
   })
 
   it('doc_close with missing session_id and final_revision hits fallback branches', async () => {
-    await mountComponent()
+    const wrapper = await mountComponent()
     eventHandler({
       payload: {
         update_type: 'doc_open',
@@ -559,11 +433,11 @@ describe('LiveViewer – extended coverage', () => {
       }
     })
     await nextTick()
-    expect(clearHistoryMock).toHaveBeenCalled()
+    expect(wrapper.find('.live-indicator').exists()).toBe(false)
   })
 
   it('doc_close with explicit session_id and final_revision hits truthy branches', async () => {
-    await mountComponent()
+    const wrapper = await mountComponent()
     eventHandler({
       payload: {
         update_type: 'doc_open',
@@ -579,7 +453,7 @@ describe('LiveViewer – extended coverage', () => {
       }
     })
     await nextTick()
-    expect(clearHistoryMock).toHaveBeenCalled()
+    expect(wrapper.find('.live-indicator').exists()).toBe(false)
   })
 
   // ── Branch coverage: template conditionals ───────────────────
@@ -605,13 +479,13 @@ describe('LiveViewer – extended coverage', () => {
       }
     })
     await nextTick()
-    // title '' is falsy, so sessionInfo.value = 'Meeting'
+    // title '' is falsy, so sessionTitle.value = 'Meeting' (default)
     expect(wrapper.find('.live-session-info').text()).toContain('Meeting')
   })
 
-  // ── Branch coverage: guard clauses in enterReadOnly/exitReadOnly ──
+  // ── Branch coverage: guard clauses ──────────────────────────
 
-  it('doc_open with content triggers setMarkdown, without content uses empty string', async () => {
+  it('doc_open with content emits correct markdown', async () => {
     await mountComponent()
     // With content
     eventHandler({
@@ -621,7 +495,10 @@ describe('LiveViewer – extended coverage', () => {
       }
     })
     await nextTick()
-    expect(setMarkdownMock).toHaveBeenCalledWith('# Content')
+    expect(busMock.emit).toHaveBeenCalledWith('mt::new-untitled-tab', {
+      markdown: '# Content',
+      selected: true
+    })
   })
 
   // ── Edge: unknown update_type is silently ignored ────────────
@@ -635,7 +512,7 @@ describe('LiveViewer – extended coverage', () => {
       }
     })
     await nextTick()
-    // No state change
-    expect(wrapper.find('.live-idle').exists()).toBe(true)
+    // No state change — still idle
+    expect(wrapper.find('.live-indicator').exists()).toBe(false)
   })
 })

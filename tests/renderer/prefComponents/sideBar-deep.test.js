@@ -285,9 +285,9 @@ describe('SideBar.vue – deep tests', () => {
 
   // ── Rendering ────────────────────────────────────────────────────────
 
-  it('renders 8 category items', () => {
+  it('renders 9 category items', () => {
     const items = wrapper.findAll('.item')
-    expect(items).toHaveLength(8)
+    expect(items).toHaveLength(9)
   })
 
   it('renders h3 title', () => {

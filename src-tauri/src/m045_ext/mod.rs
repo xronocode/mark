@@ -44,7 +44,7 @@ mod tests;
 pub use registry::{ExtRegistry, ExtensionInfo};
 pub use live_server::{start_live_server, LiveServerState};
 pub use live_endpoint::{write_endpoint, cleanup_endpoint, make_endpoint};
-pub use live_bridge::{emit_live_update, emit_doc_open, emit_doc_patch, emit_doc_close, LiveUpdate};
+pub use live_bridge::{emit_live_update, emit_doc_open, emit_doc_patch, emit_doc_close, emit_context_request, LiveUpdate};
 pub use text_ops::{mt_ext_text_insert, mt_ext_text_transform};
 
 // START_BLOCK_TAURI_COMMANDS

@@ -1183,9 +1183,9 @@ describe('store/editor', () => {
   })
 
   describe('zoom + listeners surface', () => {
-    it('EDIT_ZOOM updates preferences and webFrame', () => {
+    it('EDIT_ZOOM updates preferences and sets CSS variable', () => {
       editor.EDIT_ZOOM(1.25)
-      expect(window.electron.webFrame.setZoomFactor).toHaveBeenCalledWith(1.25)
+      expect(document.documentElement.style.getPropertyValue('--content-zoom')).toBe('1.25')
     })
 
     it('LISTEN_WINDOW_ZOOM subscribes', () => {
