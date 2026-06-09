@@ -94,13 +94,13 @@ describe('sideBar/config.js – deep tests', () => {
   // ── getCategory ──────────────────────────────────────────────────────
 
   describe('getCategory deep', () => {
-    it('returns exactly 8 categories with correct labels', () => {
+    it('returns exactly 9 categories with correct labels', () => {
       const cats = getCategory()
-      expect(cats).toHaveLength(8)
+      expect(cats).toHaveLength(9)
       const labels = cats.map((c) => c.label)
       expect(labels).toEqual([
         'general', 'editor', 'markdown', 'spelling',
-        'theme', 'image', 'keybindings', 'language'
+        'theme', 'image', 'keybindings', 'language', 'extensions'
       ])
     })
 

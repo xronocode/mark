@@ -955,7 +955,7 @@ describe('store/editor — coverage gaps', () => {
       __preferencesStub.zoom = 1.0
       editor.EDIT_ZOOM(1.0)
       expect(__preferencesStub.SET_SINGLE_PREFERENCE).not.toHaveBeenCalled()
-      expect(window.electron.webFrame.setZoomFactor).toHaveBeenCalledWith(1)
+      expect(document.documentElement.style.getPropertyValue('--content-zoom')).toBe('1')
     })
   })
 

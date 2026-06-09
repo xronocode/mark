@@ -14,6 +14,7 @@
 //   STATUS:  Phase-B5b initial — bridge emit helpers.
 //
 // CHANGE_SUMMARY:
+//   - 2026-06-09 E1a: add emit_context_request helper for /ext/context.
 //   - 2026-06-08 B5b: initial live_bridge module creation.
 
 use serde::Serialize;
@@ -110,6 +111,28 @@ pub fn emit_doc_close(
             "session_id": session_id,
             "final_revision": final_revision,
         }),
+    })
+}
+
+/// E1a: emit a context request event to the frontend.
+/// The frontend gathers the Muya editor state and emits
+/// `mt::ext::context_response` back with the result.
+pub fn emit_context_request(
+    app: &AppHandle,
+    request_id: &str,
+) -> Result<(), String> {
+    safe_eprintln!(
+        "[ExtHost][live_bridge][BLOCK_EMIT_CONTEXT_REQUEST request_id={request_id}]"
+    );
+
+    app.emit("mt::ext::context_request", &serde_json::json!({
+        "request_id": request_id,
+    }))
+    .map_err(|e| {
+        safe_eprintln!(
+            "[ExtHost][live_bridge][BLOCK_EMIT_CONTEXT_REQUEST_FAILED reason={e}]"
+        );
+        e.to_string()
     })
 }
 

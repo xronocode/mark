@@ -150,6 +150,7 @@ const {
   superSubScript,
   footnote,
   isHtmlEnabled,
+  mathEnabled,
   isGitlabCompatibilityEnabled,
   lineHeight,
   fontSize,
@@ -345,6 +346,12 @@ watch(superSubScript, (value, oldValue) => {
 watch(footnote, (value, oldValue) => {
   if (value !== oldValue && editor.value) {
     editor.value.setOptions({ footnote: value }, true)
+  }
+})
+
+watch(mathEnabled, (value, oldValue) => {
+  if (value !== oldValue && editor.value) {
+    editor.value.setOptions({ math: value }, true)
   }
 })
 
@@ -1053,6 +1060,57 @@ const handleExtTextTransform = ({ text }) => {
   }
 }
 
+/**
+ * Handle undo request from an extension.
+ * E1a: triggered by TokMo EditAgent "Марк, отмена" command.
+ */
+const handleExtUndo = ({ extensionId }) => {
+  if (!editor.value) return
+  try {
+    editor.value.contentState.undo()
+    // eslint-disable-next-line no-console
+    console.log(`[Editor][BLOCK_EXT_UNDO_OK ext=${extensionId}]`)
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error('[Editor][BLOCK_EXT_UNDO_FAILED]', err)
+  }
+}
+
+/**
+ * Handle context request from the backend.
+ * E1a: the TokMo EditAgent asked for the current editor state via
+ * POST /ext/context. Gather Muya state and emit the response back
+ * to the backend so it can forward to TokMo.
+ */
+const handleExtContextRequest = async ({ requestId }) => {
+  if (!editor.value || !requestId) return
+  try {
+    const markdown = editor.value.getMarkdown?.() || ''
+    const selectionData = editor.value.getSelection?.() || {}
+    const filePath = currentFile.value?.pathname || null
+
+    const cursor = selectionData.cursorCoords
+      ? { line: selectionData.cursorCoords.y || 0, ch: 0 }
+      : null
+
+    const selection = selectionData.selectedText
+      ? { text: selectionData.selectedText, start: null, end: null }
+      : null
+
+    const { emit: tauriEmit } = await import('@tauri-apps/api/event')
+    await tauriEmit('mt::ext::context_response', {
+      request_id: requestId,
+      context: { markdown, cursor, selection, file_path: filePath }
+    })
+
+    // eslint-disable-next-line no-console
+    console.log(`[Editor][BLOCK_EXT_CONTEXT_RESPONSE_OK request_id=${requestId} md_len=${markdown.length}]`)
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error('[Editor][BLOCK_EXT_CONTEXT_RESPONSE_FAILED]', err)
+  }
+}
+
 // END_BLOCK_EXT_TEXT_OPS
 
 const blurEditor = () => {
@@ -1130,6 +1188,7 @@ onMounted(() => {
     frontmatterType: frontmatterType.value,
     superSubScript: superSubScript.value,
     footnote: footnote.value,
+    math: mathEnabled.value,
     disableHtml: !isHtmlEnabled.value,
     isGitlabCompatibilityEnabled: isGitlabCompatibilityEnabled.value,
     hideQuickInsertHint: hideQuickInsertHint.value,
@@ -1210,6 +1269,8 @@ onMounted(() => {
   bus.on('replace-misspelling', replaceMisspelling)
   bus.on('ext-text-insert', handleExtTextInsert)
   bus.on('ext-text-transform', handleExtTextTransform)
+  bus.on('ext-undo', handleExtUndo)
+  bus.on('ext-context-request', handleExtContextRequest)
 
   editor.value.on('change', (changes) => {
     // There is a chance that this event is fired AFTER the tab is switched. If we purely rely on this.currentFile later on
@@ -1328,6 +1389,8 @@ onBeforeUnmount(() => {
   bus.off('replace-misspelling', replaceMisspelling)
   bus.off('ext-text-insert', handleExtTextInsert)
   bus.off('ext-text-transform', handleExtTextTransform)
+  bus.off('ext-undo', handleExtUndo)
+  bus.off('ext-context-request', handleExtContextRequest)
 
   document.removeEventListener('keyup', keyup)
   editor.value.off('change')

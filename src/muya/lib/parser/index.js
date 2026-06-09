@@ -51,7 +51,7 @@ const tokenizerFac = (src, beginRules, inlineRules, pos = 0, top, labels, option
   const tokens = []
   let pending = ''
   let pendingStartPos = pos
-  const { disableHtml, superSubScript, footnote } = options
+  const { disableHtml, superSubScript, footnote, math } = options
   const pushPending = () => {
     if (pending) {
       tokens.push({
@@ -70,7 +70,9 @@ const tokenizerFac = (src, beginRules, inlineRules, pos = 0, top, labels, option
   }
 
   if (beginRules && pos === 0) {
-    const beginRuleList = ['header', 'hr', 'code_fense', 'multiple_math']
+    const beginRuleList = math !== false
+      ? ['header', 'hr', 'code_fense', 'multiple_math']
+      : ['header', 'hr', 'code_fense']
 
     for (const ruleName of beginRuleList) {
       const to = beginRules[ruleName].exec(src)
@@ -177,7 +179,9 @@ const tokenizerFac = (src, beginRules, inlineRules, pos = 0, top, labels, option
     if (inChunk) continue
 
     // strong | em | emoji | inline_code | del | inline_math
-    const chunks = ['inline_code', 'del', 'emoji', 'inline_math']
+    const chunks = math !== false
+      ? ['inline_code', 'del', 'emoji', 'inline_math']
+      : ['inline_code', 'del', 'emoji']
     for (const rule of chunks) {
       const to = inlineRules[rule].exec(src)
       if (to && isLengthEven(to[3])) {

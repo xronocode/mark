@@ -94,6 +94,7 @@ const { showSideBar, sideBarWidth } = storeToRefs(layoutStore)
   & > .container {
     flex: 1;
     overflow: hidden;
+    zoom: var(--content-zoom, 1);
   }
 }
 </style>

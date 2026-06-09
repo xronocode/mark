@@ -764,6 +764,7 @@ fn main() {
                     m045_ext::LiveServerState {
                         session: tokio::sync::Mutex::new(None),
                         app_handle: app.handle().clone(),
+                        pending_context: std::sync::Mutex::new(std::collections::HashMap::new()),
                     },
                 );
                 tauri::async_runtime::spawn(async move {
