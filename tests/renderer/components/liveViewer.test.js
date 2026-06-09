@@ -8,48 +8,10 @@ vi.mock('@tauri-apps/api/event', () => ({
   listen: listenMock
 }))
 
-const setMarkdownMock = vi.fn()
-const destroyMock = vi.fn()
-const clearHistoryMock = vi.fn()
+const busMock = { emit: vi.fn() }
 
-vi.mock('muya/lib', () => ({
-  default: class Muya {
-    constructor(el) {
-      this.container = el
-      this.setMarkdown = setMarkdownMock
-      this.destroy = destroyMock
-      this.clearHistory = clearHistoryMock
-    }
-  }
-}))
-
-vi.mock('muya/themes/default.css', () => ({}))
-
-vi.mock('@/config', () => ({
-  DEFAULT_EDITOR_FONT_FAMILY: 'Open Sans'
-}))
-
-vi.mock('vue-i18n', () => ({
-  useI18n: () => ({ t: (key, fallback) => fallback || key })
-}))
-
-vi.mock('@/store/preferences', () => ({
-  usePreferencesStore: () => ({
-    lineHeight: '1.6',
-    fontSize: 16,
-    editorFontFamily: ''
-  })
-}))
-
-vi.mock('pinia', () => ({
-  storeToRefs: (store) => {
-    const { ref } = require('vue')
-    return {
-      lineHeight: ref(store.lineHeight),
-      fontSize: ref(store.fontSize),
-      editorFontFamily: ref(store.editorFontFamily)
-    }
-  }
+vi.mock('@/bus', () => ({
+  default: busMock
 }))
 
 describe('LiveViewer', () => {
@@ -75,7 +37,7 @@ describe('LiveViewer', () => {
 
   it('renders idle state initially', async () => {
     const wrapper = await mountComponent()
-    expect(wrapper.find('.live-idle').exists()).toBe(true)
+    // In idle state (isLive=false), the v-if hides the indicator
     expect(wrapper.find('.live-indicator').exists()).toBe(false)
   })
 
@@ -84,13 +46,16 @@ describe('LiveViewer', () => {
     expect(listenMock).toHaveBeenCalledWith('mt::live::update', expect.any(Function))
   })
 
-  it('handles doc_open — shows indicator and enters read-only', async () => {
+  it('handles doc_open — shows indicator and emits new-untitled-tab', async () => {
     const wrapper = await mountComponent()
     eventHandler({ payload: { update_type: 'doc_open', payload: { session_id: 's1', title: 'Test', content: '# Hello' } } })
     await nextTick()
     expect(wrapper.find('.live-indicator').exists()).toBe(true)
     expect(wrapper.find('.live-session-info').text()).toContain('Test')
-    expect(setMarkdownMock).toHaveBeenCalledWith('# Hello')
+    expect(busMock.emit).toHaveBeenCalledWith('mt::new-untitled-tab', {
+      markdown: '# Hello',
+      selected: true
+    })
   })
 
   it('handles doc_open with missing title — defaults to Meeting', async () => {
@@ -104,35 +69,33 @@ describe('LiveViewer', () => {
     await mountComponent()
     eventHandler({ payload: { update_type: 'doc_open', payload: { session_id: 's1', title: 'X', content: '' } } })
     await nextTick()
-    setMarkdownMock.mockClear()
+    busMock.emit.mockClear()
     eventHandler({ payload: { update_type: 'doc_patch', payload: { full_content: '# Updated', revision: 2, section: 'body' } } })
     await nextTick()
-    expect(setMarkdownMock).toHaveBeenCalledWith('# Updated')
+    expect(busMock.emit).toHaveBeenCalledWith('file-loaded', { markdown: '# Updated' })
   })
 
   it('ignores doc_patch when not live', async () => {
     await mountComponent()
-    setMarkdownMock.mockClear()
+    busMock.emit.mockClear()
     eventHandler({ payload: { update_type: 'doc_patch', payload: { full_content: 'X', revision: 1 } } })
     await nextTick()
-    expect(setMarkdownMock).not.toHaveBeenCalled()
+    expect(busMock.emit).not.toHaveBeenCalledWith('file-loaded', expect.anything())
   })
 
-  it('handles doc_close — exits read-only and clears undo history', async () => {
+  it('handles doc_close — exits live mode', async () => {
     const wrapper = await mountComponent()
     eventHandler({ payload: { update_type: 'doc_open', payload: { session_id: 's1', title: 'X', content: '' } } })
     await nextTick()
+    expect(wrapper.find('.live-indicator').exists()).toBe(true)
     eventHandler({ payload: { update_type: 'doc_close', payload: { session_id: 's1', final_revision: 5 } } })
     await nextTick()
-    expect(wrapper.find('.live-idle').exists()).toBe(true)
-    expect(clearHistoryMock).toHaveBeenCalled()
+    expect(wrapper.find('.live-indicator').exists()).toBe(false)
   })
 
-  it('handles clearHistory throwing', async () => {
+  it('handles doc_close gracefully even without prior open', async () => {
     await mountComponent()
-    eventHandler({ payload: { update_type: 'doc_open', payload: { session_id: 's1', title: 'X', content: '' } } })
-    await nextTick()
-    clearHistoryMock.mockImplementationOnce(() => { throw new Error('no history') })
+    // Should not throw
     eventHandler({ payload: { update_type: 'doc_close', payload: { session_id: 's1', final_revision: 1 } } })
     await nextTick()
   })
@@ -145,7 +108,7 @@ describe('LiveViewer', () => {
     eventHandler({ payload: { update_type: 'doc_open', payload: null } })
   })
 
-  it('exits read-only on unmount if still live', async () => {
+  it('unlistens on unmount if still live', async () => {
     const wrapper = await mountComponent()
     eventHandler({ payload: { update_type: 'doc_open', payload: { session_id: 's1', title: 'X', content: '' } } })
     await nextTick()
@@ -153,10 +116,9 @@ describe('LiveViewer', () => {
     expect(unlistenMock).toHaveBeenCalled()
   })
 
-  it('unlistens and destroys muya on unmount when idle', async () => {
+  it('unlistens on unmount when idle', async () => {
     const wrapper = await mountComponent()
     wrapper.unmount()
     expect(unlistenMock).toHaveBeenCalled()
-    expect(destroyMock).toHaveBeenCalled()
   })
 })

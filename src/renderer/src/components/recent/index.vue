@@ -113,6 +113,7 @@ const restoreSession = () => {
   justify-content: center;
   overflow-y: auto;
   user-select: none;
+  zoom: var(--content-zoom, 1);
 }
 
 .welcome-content {

@@ -121,12 +121,12 @@ function captureLogs() {
 // ─── test suite ────────────────────────────────────────────────────
 
 describe('bootstrap-ipc / setupIpcListeners (M-025 reorder)', () => {
-  it('registers all 9 listeners, emits LISTENERS_READY then DRAIN_INVOKED', async () => {
+  it('registers all 10 listeners, emits LISTENERS_READY then DRAIN_INVOKED', async () => {
     const { setupIpcListeners, handlers } = await freshBootstrap()
     const cap = captureLogs()
     await setupIpcListeners()
 
-    expect(handlers.size).toBe(9)
+    expect(handlers.size).toBe(10)
     const channels = Array.from(handlers.keys()).sort()
     expect(channels).toEqual(
       [
@@ -138,7 +138,8 @@ describe('bootstrap-ipc / setupIpcListeners (M-025 reorder)', () => {
         'mt::set-pathname',
         'mt::bootstrap-editor',
         'mt::open-new-tab',
-        'mt::force-close-tabs-by-id'
+        'mt::force-close-tabs-by-id',
+        'mt::text::op'
       ].sort()
     )
 

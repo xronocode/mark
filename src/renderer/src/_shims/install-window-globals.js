@@ -420,13 +420,7 @@ const electron = {
   webFrame: {
     setZoomLevel: () => {},
     getZoomLevel: () => 0,
-    setZoomFactor: (factor) => {
-      import('@tauri-apps/api/webview').then(({ getCurrentWebview }) => {
-        getCurrentWebview().setZoom(factor).catch((e) => {
-          console.warn('[shim] setZoom failed:', e)
-        })
-      })
-    },
+    setZoomFactor: () => {},
     getZoomFactor: () => 1
   },
 

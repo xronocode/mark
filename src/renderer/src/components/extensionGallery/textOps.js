@@ -16,11 +16,13 @@
 //   - 2026-06-08 B4: initial textOps listener creation.
 
 import { listen } from '@tauri-apps/api/event'
+import { emit } from '@tauri-apps/api/event'
 import bus from '../../bus'
 
 // START_BLOCK_STATE
 
 let unlisten = null
+let unlistenContext = null
 
 // END_BLOCK_STATE
 
@@ -47,6 +49,8 @@ function handleTextOp (event) {
     handleInsert(payload, extId)
   } else if (opType === 'transform') {
     handleTransform(payload, extId)
+  } else if (opType === 'undo') {
+    handleUndo(extId)
   } else {
     // eslint-disable-next-line no-console
     console.warn(`[TextOps][BLOCK_UNKNOWN_OP op_type=${opType}]`)
@@ -100,6 +104,38 @@ function handleTransform (payload, extId) {
   )
 }
 
+/**
+ * Undo the last editor operation. Emits a bus event that the editor.vue
+ * handles by calling Muya's contentState.undo().
+ * E1a: used by TokMo EditAgent for "Марк, отмена" voice command.
+ */
+function handleUndo (extId) {
+  bus.emit('ext-undo', { extensionId: extId })
+
+  // eslint-disable-next-line no-console
+  console.log(`[TextOps][BLOCK_UNDO_EMITTED ext=${extId}]`)
+}
+
+/**
+ * Handle mt::ext::context_request — the backend is asking for the
+ * current editor state. Emit a bus event that editor.vue handles;
+ * editor.vue gathers the Muya state and emits the response back
+ * to the backend via a Tauri event.
+ * E1a: used by TokMo EditAgent to fetch document context.
+ */
+function handleContextRequest (event) {
+  const data = event?.payload
+  if (!data || typeof data !== 'object') return
+
+  const { request_id: requestId } = data
+  if (!requestId) return
+
+  bus.emit('ext-context-request', { requestId })
+
+  // eslint-disable-next-line no-console
+  console.log(`[TextOps][BLOCK_CONTEXT_REQUEST_EMITTED request_id=${requestId}]`)
+}
+
 // END_BLOCK_HANDLERS
 
 // START_BLOCK_LIFECYCLE
@@ -118,6 +154,7 @@ export async function initTextOpsListener () {
   }
 
   unlisten = await listen('mt::text::op', handleTextOp)
+  unlistenContext = await listen('mt::ext::context_request', handleContextRequest)
 
   // eslint-disable-next-line no-console
   console.log('[TextOps][BLOCK_LISTENER_REGISTERED]')
@@ -130,9 +167,13 @@ export function destroyTextOpsListener () {
   if (unlisten) {
     unlisten()
     unlisten = null
-    // eslint-disable-next-line no-console
-    console.log('[TextOps][BLOCK_LISTENER_DESTROYED]')
   }
+  if (unlistenContext) {
+    unlistenContext()
+    unlistenContext = null
+  }
+  // eslint-disable-next-line no-console
+  console.log('[TextOps][BLOCK_LISTENER_DESTROYED]')
 }
 
 // END_BLOCK_LIFECYCLE

@@ -93,6 +93,7 @@ const commandCenterStore = useCommandCenterStore()
 
 const timer = ref(null)
 let cleanupPinchZoom = null
+let cleanupNativeZoom = null
 
 // States from Pini
 const { windowActive, platform, init } = storeToRefs(mainStore)
@@ -165,6 +166,16 @@ const setupDragDropHandler = () => {
 
 const ZOOM_LEVELS = [0.5, 0.625, 0.75, 0.875, 1.0, 1.125, 1.25, 1.375, 1.5, 1.625, 1.75, 1.875, 2.0]
 
+const blockNativeZoom = () => {
+  const handler = (e) => {
+    if ((e.metaKey || e.ctrlKey) && (e.key === '=' || e.key === '+' || e.key === '-' || e.key === '0')) {
+      e.preventDefault()
+    }
+  }
+  document.addEventListener('keydown', handler)
+  return () => document.removeEventListener('keydown', handler)
+}
+
 const setupPinchZoomHandler = () => {
   let accumulatedDelta = 0
   const STEP_THRESHOLD = 15
@@ -223,6 +234,7 @@ onMounted(async () => {
 
   setupDragDropHandler()
   cleanupPinchZoom = setupPinchZoomHandler()
+  cleanupNativeZoom = blockNativeZoom()
 
   nextTick(() => {
     const style = {
@@ -241,6 +253,7 @@ onMounted(async () => {
 
 onUnmounted(() => {
   if (cleanupPinchZoom) cleanupPinchZoom()
+  if (cleanupNativeZoom) cleanupNativeZoom()
 })
 </script>
 

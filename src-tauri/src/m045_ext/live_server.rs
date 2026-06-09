@@ -14,6 +14,9 @@
 //   STATUS:  Phase-B5b — handlers emit to frontend via live_bridge.
 //
 // CHANGE_SUMMARY:
+//   - 2026-06-09 E1a: add /ext/context and /ext/apply endpoints for
+//     TokMo EditAgent. Context uses oneshot+event request-response pattern.
+//     Apply reuses mt::text::op events. Bearer auth without active session.
 //   - 2026-06-08 B5b: add live_bridge emit calls in doc_open, doc_patch,
 //     doc_close handlers + heartbeat timeout auto-close.
 //   - 2026-06-08 B5a: initial live_server module creation.
@@ -25,9 +28,10 @@ use axum::routing::post;
 use axum::{Json, Router};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 use std::time::Instant;
-use tauri::Emitter;
+use tauri::{Emitter, Listener};
 use tokio::sync::Mutex;
 
 // START_BLOCK_TYPES
@@ -50,6 +54,10 @@ pub struct LiveSession {
 pub struct LiveServerState {
     pub session: Mutex<Option<LiveSession>>,
     pub app_handle: tauri::AppHandle,
+    /// Pending /ext/context requests awaiting frontend response.
+    /// Uses std::sync::Mutex (not tokio) because the lock is held
+    /// only briefly for insert/remove — never across await points.
+    pub pending_context: std::sync::Mutex<HashMap<String, tokio::sync::oneshot::Sender<ExtContextResponse>>>,
 }
 
 // END_BLOCK_TYPES
@@ -131,6 +139,63 @@ pub struct TextInsertRequest {
     pub source: Option<String>,
 }
 
+// --- E1a: /ext/context + /ext/apply types ---
+
+static CONTEXT_REQUEST_COUNTER: AtomicU64 = AtomicU64::new(0);
+
+#[derive(Debug, Deserialize)]
+pub struct ExtContextRequest {
+    pub extension_id: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct ExtContextResponse {
+    pub markdown: String,
+    pub cursor: Option<CursorCoords>,
+    pub selection: Option<SelectionInfo>,
+    pub file_path: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct CursorCoords {
+    pub line: u32,
+    pub ch: u32,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct SelectionInfo {
+    pub text: String,
+    pub start: Option<CursorCoords>,
+    pub end: Option<CursorCoords>,
+}
+
+/// Payload emitted back by the frontend in response to a context request.
+#[derive(Debug, Deserialize)]
+struct ContextCallbackPayload {
+    request_id: String,
+    context: ExtContextResponse,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct ExtApplyRequest {
+    pub extension_id: String,
+    pub operations: Vec<EditOperation>,
+    pub undo_label: Option<String>,
+}
+
+#[derive(Debug, Deserialize, Clone)]
+pub struct EditOperation {
+    /// "replace_selection", "insert_at_cursor", or "undo"
+    pub op_type: String,
+    pub content: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct ExtApplyResponse {
+    pub applied: bool,
+    pub operations_count: usize,
+}
+
 // END_BLOCK_REQUEST_TYPES
 
 // START_BLOCK_AUTH_EXTRACT
@@ -192,6 +257,23 @@ async fn validate_bearer(
     }
 
     Ok(ext_id)
+}
+
+/// Validate bearer token against a specific extension's stored secret.
+/// Unlike validate_bearer(), this does NOT require an active LiveSession —
+/// used by /ext/context and /ext/apply which work with the normal editor.
+async fn validate_bearer_extension(
+    headers: &HeaderMap,
+    extension_id: &str,
+) -> Result<(), (StatusCode, String)> {
+    let token = extract_bearer(headers)?;
+    if !super::auth::validate_token(extension_id, &token) {
+        safe_eprintln!(
+            "[ExtHost][live_server][BLOCK_AUTH_FAILED_EXT ext_id={extension_id}]"
+        );
+        return Err((StatusCode::UNAUTHORIZED, "invalid token".to_string()));
+    }
+    Ok(())
 }
 
 // END_BLOCK_AUTH_EXTRACT
@@ -685,6 +767,164 @@ async fn handle_text_insert(
     )
 }
 
+/// POST /ext/context — return current editor state (markdown, cursor, selection).
+/// E1a: used by TokMo EditAgent to fetch document context before LLM call.
+/// Emits a Tauri event to the frontend, which gathers the Muya editor state
+/// and emits a response event back. Uses a oneshot channel with 5s timeout.
+async fn handle_ext_context(
+    State(state): State<Arc<LiveServerState>>,
+    headers: HeaderMap,
+    Json(req): Json<ExtContextRequest>,
+) -> impl IntoResponse {
+    if let Err(e) = validate_bearer_extension(&headers, &req.extension_id).await {
+        return (e.0, Json(serde_json::json!({"error": e.1})));
+    }
+
+    safe_eprintln!(
+        "[ExtHost][live_server][BLOCK_EXT_CONTEXT_REQUEST ext_id={}]",
+        req.extension_id,
+    );
+
+    let request_id = format!(
+        "ctx_{}",
+        CONTEXT_REQUEST_COUNTER.fetch_add(1, Ordering::Relaxed)
+    );
+
+    let (tx, rx) = tokio::sync::oneshot::channel::<ExtContextResponse>();
+
+    {
+        let mut pending = state.pending_context.lock().unwrap();
+        pending.insert(request_id.clone(), tx);
+    }
+
+    if let Err(e) = super::live_bridge::emit_context_request(
+        &state.app_handle,
+        &request_id,
+    ) {
+        // Clean up the pending request on emit failure.
+        let mut pending = state.pending_context.lock().unwrap();
+        pending.remove(&request_id);
+        safe_eprintln!(
+            "[ExtHost][live_server][BLOCK_EXT_CONTEXT_EMIT_FAILED reason={e}]"
+        );
+        return (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(serde_json::json!({"error": format!("emit failed: {e}")})),
+        );
+    }
+
+    match tokio::time::timeout(std::time::Duration::from_secs(5), rx).await {
+        Ok(Ok(context)) => {
+            safe_eprintln!(
+                "[ExtHost][live_server][BLOCK_EXT_CONTEXT_OK ext_id={} md_len={}]",
+                req.extension_id,
+                context.markdown.len(),
+            );
+            (StatusCode::OK, Json(serde_json::to_value(&context).unwrap()))
+        }
+        Ok(Err(_)) => {
+            safe_eprintln!(
+                "[ExtHost][live_server][BLOCK_EXT_CONTEXT_CHANNEL_CLOSED]"
+            );
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(serde_json::json!({"error": "context channel closed unexpectedly"})),
+            )
+        }
+        Err(_) => {
+            let mut pending = state.pending_context.lock().unwrap();
+            pending.remove(&request_id);
+            safe_eprintln!(
+                "[ExtHost][live_server][BLOCK_EXT_CONTEXT_TIMEOUT request_id={request_id}]"
+            );
+            (
+                StatusCode::GATEWAY_TIMEOUT,
+                Json(serde_json::json!({"error": "frontend did not respond within 5s"})),
+            )
+        }
+    }
+}
+
+/// POST /ext/apply — apply edit operations to the active editor.
+/// E1a: used by TokMo EditAgent to apply LLM-generated edits.
+/// Emits mt::text::op events for each operation; Muya's 1500ms debounce
+/// groups rapid operations as a single undo step.
+async fn handle_ext_apply(
+    State(state): State<Arc<LiveServerState>>,
+    headers: HeaderMap,
+    Json(req): Json<ExtApplyRequest>,
+) -> impl IntoResponse {
+    if let Err(e) = validate_bearer_extension(&headers, &req.extension_id).await {
+        return (e.0, Json(serde_json::json!({"error": e.1})));
+    }
+
+    safe_eprintln!(
+        "[ExtHost][live_server][BLOCK_EXT_APPLY ext_id={} ops={}]",
+        req.extension_id,
+        req.operations.len(),
+    );
+
+    for (i, op) in req.operations.iter().enumerate() {
+        let (op_type, payload) = match op.op_type.as_str() {
+            "replace_selection" => (
+                "transform",
+                serde_json::json!({
+                    "text": op.content.clone().unwrap_or_default(),
+                }),
+            ),
+            "insert_at_cursor" => (
+                "insert",
+                serde_json::json!({
+                    "text": op.content.clone().unwrap_or_default(),
+                    "position": null,
+                }),
+            ),
+            "undo" => (
+                "undo",
+                serde_json::json!({}),
+            ),
+            other => {
+                safe_eprintln!(
+                    "[ExtHost][live_server][BLOCK_EXT_APPLY_UNKNOWN_OP op_type={other} index={i}]"
+                );
+                continue;
+            }
+        };
+
+        let event = super::text_ops::TextOpEvent {
+            op_type: op_type.to_string(),
+            payload,
+            extension_id: req.extension_id.clone(),
+        };
+
+        if let Err(e) = state.app_handle.emit("mt::text::op", &event) {
+            safe_eprintln!(
+                "[ExtHost][live_server][BLOCK_EXT_APPLY_EMIT_FAILED op={op_type} index={i} reason={e}]"
+            );
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(serde_json::json!({
+                    "error": format!("emit failed for operation {i}: {e}"),
+                })),
+            );
+        }
+    }
+
+    safe_eprintln!(
+        "[ExtHost][live_server][BLOCK_EXT_APPLY_OK ext_id={} ops={}]",
+        req.extension_id,
+        req.operations.len(),
+    );
+
+    (
+        StatusCode::OK,
+        Json(serde_json::json!(ExtApplyResponse {
+            applied: true,
+            operations_count: req.operations.len(),
+        })),
+    )
+}
+
 /// GET /debug/auth — diagnostic endpoint (dev builds only).
 /// Returns keychain lookup result for a given extension_id.
 #[cfg(debug_assertions)]
@@ -780,6 +1020,8 @@ pub async fn start_live_server(state: Arc<LiveServerState>) -> Result<u16, Strin
     let app = Router::new()
         .route("/ext/pair", post(handle_pair))
         .route("/ext/text-insert", post(handle_text_insert))
+        .route("/ext/context", post(handle_ext_context))
+        .route("/ext/apply", post(handle_ext_apply))
         .route("/stream/open", post(handle_doc_open))
         .route("/stream/patch", post(handle_doc_patch))
         .route("/stream/close", post(handle_doc_close))
@@ -788,6 +1030,7 @@ pub async fn start_live_server(state: Arc<LiveServerState>) -> Result<u16, Strin
     #[cfg(debug_assertions)]
     let app = app.route("/debug/auth", axum::routing::get(handle_debug_auth));
 
+    let ctx_state = Arc::clone(&state);
     let app = app.with_state(state);
 
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
@@ -816,6 +1059,28 @@ pub async fn start_live_server(state: Arc<LiveServerState>) -> Result<u16, Strin
 
     // Spawn the heartbeat monitor.
     tokio::spawn(heartbeat_monitor(heartbeat_state));
+
+    // E1a: listen for context response events from the frontend.
+    // When the frontend gathers the Muya editor state, it emits
+    // `mt::ext::context_response` back — we resolve the pending
+    // oneshot channel here.
+    let listener_handle = ctx_state.app_handle.clone();
+    listener_handle.listen("mt::ext::context_response", move |event| {
+        let payload_str = event.payload();
+        match serde_json::from_str::<ContextCallbackPayload>(payload_str) {
+            Ok(resp) => {
+                let mut pending = ctx_state.pending_context.lock().unwrap();
+                if let Some(tx) = pending.remove(&resp.request_id) {
+                    let _ = tx.send(resp.context);
+                }
+            }
+            Err(e) => {
+                safe_eprintln!(
+                    "[ExtHost][live_server][BLOCK_CONTEXT_RESPONSE_PARSE_FAILED reason={e}]"
+                );
+            }
+        }
+    });
 
     Ok(port)
 }

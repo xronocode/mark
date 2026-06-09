@@ -4,7 +4,7 @@
  * `setupIpcListeners()` is the boot-time wiring of all Tauri-event →
  * Pinia-action handlers (Path B-clean wave W1). The function:
  *   - is idempotent (warn + return on second call)
- *   - registers 9 listeners (post audit-M-1)
+ *   - registers 10 listeners (post M-045 textOps)
  *   - dynamically imports preferences/project/editor stores AFTER the
  *     pinia instance is active.
  *
@@ -133,11 +133,11 @@ describe('bootstrap-ipc / setupIpcListeners', () => {
     // and matches the Wave-1 idiom.
   })
 
-  it('registers all 9 listeners and logs the BLOCK_ALL_LISTENERS marker', async () => {
+  it('registers all 10 listeners and logs the BLOCK_ALL_LISTENERS marker', async () => {
     const { setupIpcListeners, handlers } = await freshBootstrap()
     const log = vi.spyOn(console, 'log').mockImplementation(() => {})
     await setupIpcListeners()
-    expect(handlers.size).toBe(9)
+    expect(handlers.size).toBe(10)
     const channels = Array.from(handlers.keys()).sort()
     expect(channels).toEqual(
       [
@@ -149,7 +149,8 @@ describe('bootstrap-ipc / setupIpcListeners', () => {
         'mt::set-pathname',
         'mt::bootstrap-editor',
         'mt::open-new-tab',
-        'mt::force-close-tabs-by-id'
+        'mt::force-close-tabs-by-id',
+        'mt::text::op'
       ].sort()
     )
     expect(log).toHaveBeenCalledWith('[boot][ipc][BLOCK_ALL_LISTENERS_REGISTERED]')

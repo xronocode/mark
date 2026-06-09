@@ -1668,7 +1668,7 @@ export const useEditorStore = defineStore('editor', {
       if (zoom !== zoomFactor) {
         preferencesStore.SET_SINGLE_PREFERENCE({ type: 'zoom', value: zoomFactor })
       }
-      window.electron.webFrame.setZoomFactor(zoomFactor)
+      document.documentElement.style.setProperty('--content-zoom', zoomFactor)
     },
 
     LISTEN_WINDOW_ZOOM() {
