@@ -335,7 +335,7 @@ export const setupIpcListeners = async () => {
   // V-M-025 invariant (1): LISTENERS_READY immediately precedes
   // DRAIN_INVOKED. count=9 matches the 9-listener post-audit-M-1 surface.
   console.log(
-    `[boot][pending_opens][BLOCK_LISTENERS_READY elapsed_ms=${_elapsedMs()} count=10]`
+    `[boot][pending_opens][BLOCK_LISTENERS_READY elapsed_ms=${_elapsedMs()} count=11]`
   )
 
   // F-FILE-OPEN-PENDING (alpha.5) + M-025 perf-pending-opens-parallel

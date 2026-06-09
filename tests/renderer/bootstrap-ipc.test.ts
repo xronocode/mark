@@ -133,11 +133,11 @@ describe('bootstrap-ipc / setupIpcListeners', () => {
     // and matches the Wave-1 idiom.
   })
 
-  it('registers all 10 listeners and logs the BLOCK_ALL_LISTENERS marker', async () => {
+  it('registers all 11 listeners and logs the BLOCK_ALL_LISTENERS marker', async () => {
     const { setupIpcListeners, handlers } = await freshBootstrap()
     const log = vi.spyOn(console, 'log').mockImplementation(() => {})
     await setupIpcListeners()
-    expect(handlers.size).toBe(10)
+    expect(handlers.size).toBe(11)
     const channels = Array.from(handlers.keys()).sort()
     expect(channels).toEqual(
       [
@@ -150,7 +150,8 @@ describe('bootstrap-ipc / setupIpcListeners', () => {
         'mt::bootstrap-editor',
         'mt::open-new-tab',
         'mt::force-close-tabs-by-id',
-        'mt::text::op'
+        'mt::text::op',
+        'mt::ext::context_request'
       ].sort()
     )
     expect(log).toHaveBeenCalledWith('[boot][ipc][BLOCK_ALL_LISTENERS_REGISTERED]')

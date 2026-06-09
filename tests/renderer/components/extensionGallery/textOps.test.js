@@ -10,12 +10,14 @@ vi.mock('@/bus', () => ({
 }))
 
 describe('textOps listener – extended coverage', () => {
-  let initTextOpsListener, destroyTextOpsListener, eventHandler
+  let initTextOpsListener, destroyTextOpsListener
+  const handlers = {}
 
   beforeEach(async () => {
     vi.clearAllMocks()
-    listenMock.mockImplementation(async (_event, handler) => {
-      eventHandler = handler
+    Object.keys(handlers).forEach(k => delete handlers[k])
+    listenMock.mockImplementation(async (event, handler) => {
+      handlers[event] = handler
       return vi.fn()
     })
     vi.resetModules()
@@ -24,25 +26,27 @@ describe('textOps listener – extended coverage', () => {
     destroyTextOpsListener = mod.destroyTextOpsListener
   })
 
+  const eventHandler = (payload) => handlers['mt::text::op']?.(payload)
+
   // ── Lifecycle ────────────────────────────────────────────────
 
-  it('registers listener on init', async () => {
+  it('registers listeners on init', async () => {
     await initTextOpsListener()
     expect(listenMock).toHaveBeenCalledWith('mt::text::op', expect.any(Function))
+    expect(listenMock).toHaveBeenCalledWith('mt::ext::context_request', expect.any(Function))
   })
 
   it('is idempotent — second init does not re-register', async () => {
     await initTextOpsListener()
     await initTextOpsListener()
-    expect(listenMock).toHaveBeenCalledTimes(1)
+    expect(listenMock).toHaveBeenCalledTimes(2)
   })
 
   it('destroy unregisters listener', async () => {
     await initTextOpsListener()
     destroyTextOpsListener()
-    // After destroy, calling init again should re-register
     await initTextOpsListener()
-    expect(listenMock).toHaveBeenCalledTimes(2)
+    expect(listenMock).toHaveBeenCalledTimes(4)
   })
 
   it('destroy is safe to call without prior init (no-op)', () => {
