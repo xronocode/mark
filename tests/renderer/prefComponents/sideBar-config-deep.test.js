@@ -5,8 +5,15 @@
  * refreshSearchContent, debugLanguageState, createDebugPopup, getI18nInstance.
  */
 
+// Mutable delegate so tests can swap the t() implementation per-test.
+// vi.hoisted runs before vi.mock factories, avoiding the TDZ issue.
+const { tRef } = vi.hoisted(() => {
+  const tRef = { fn: (key) => key }
+  return { tRef }
+})
+
 vi.mock('@/i18n', () => ({
-  t: (key) => key
+  t: (...args) => tRef.fn(...args)
 }))
 
 // Mock SVG icon imports
@@ -69,6 +76,10 @@ vi.mock('@/_shims/preferences/schema.json', () => ({
     },
     unknownCategory: {
       description: 'SomeNewCategory--Unknown setting',
+      type: 'string'
+    },
+    bareDescription: {
+      description: 'NoDashItem',
       type: 'string'
     }
   }
@@ -225,6 +236,138 @@ describe('sideBar/config.js – deep tests', () => {
       const content = getTranslatedSearchContent()
       const fontSize = content.find((c) => c.key === 'fontSize')
       expect(fontSize.enum).toBeUndefined()
+    })
+  })
+
+  // ── getTranslatedSearchContent — t() throwing (catch branches) ──────
+
+  describe('getTranslatedSearchContent with throwing t()', () => {
+    afterEach(() => {
+      tRef.fn = (key) => key
+    })
+
+    it('catches category translation failure and tries fallback', () => {
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+
+      tRef.fn = (key) => {
+        if (key.startsWith('preferences.search.categories.')) {
+          throw new Error('no-category')
+        }
+        return key
+      }
+
+      const content = getTranslatedSearchContent()
+      expect(content.length).toBeGreaterThan(0)
+      expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('搜索分类翻译失败'))
+      warnSpy.mockRestore()
+    })
+
+    it('catches both category translation and fallback failure', () => {
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+
+      tRef.fn = (key) => {
+        if (key.startsWith('preferences.search.categories.') ||
+            key.startsWith('preferences.categories.')) {
+          throw new Error('no-category-at-all')
+        }
+        return key
+      }
+
+      const content = getTranslatedSearchContent()
+      expect(content.length).toBeGreaterThan(0)
+      expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('搜索分类翻译失败'))
+      expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('搜索分类fallback也失败'))
+      warnSpy.mockRestore()
+    })
+
+    it('catches item translation failure and tries fallback', () => {
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+
+      tRef.fn = (key) => {
+        if (key.startsWith('preferences.search.items.')) {
+          throw new Error('no-item')
+        }
+        return key
+      }
+
+      const content = getTranslatedSearchContent()
+      expect(content.length).toBeGreaterThan(0)
+      expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('搜索项目翻译失败'))
+      warnSpy.mockRestore()
+    })
+
+    it('catches both item translation and fallback failure', () => {
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+
+      tRef.fn = (key) => {
+        if (key.startsWith('preferences.search.items.') ||
+            key.startsWith('preferences.items.')) {
+          throw new Error('no-item-at-all')
+        }
+        return key
+      }
+
+      const content = getTranslatedSearchContent()
+      expect(content.length).toBeGreaterThan(0)
+      expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('搜索项目翻译失败'))
+      expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('搜索项目fallback也失败'))
+      warnSpy.mockRestore()
+    })
+
+    it('falls back to original category name when all translations throw', () => {
+      vi.spyOn(console, 'warn').mockImplementation(() => {})
+
+      tRef.fn = () => { throw new Error('all-fail') }
+
+      const content = getTranslatedSearchContent()
+      const autoSave = content.find(c => c.key === 'autoSave')
+      expect(autoSave).toBeDefined()
+      expect(autoSave.category).toBe('General')
+      expect(autoSave.preferenceEn).toBe('Auto save')
+
+      console.warn.mockRestore()
+    })
+
+    it('uses fallback category value when primary throws but fallback succeeds', () => {
+      vi.spyOn(console, 'warn').mockImplementation(() => {})
+
+      tRef.fn = (key) => {
+        if (key.startsWith('preferences.search.categories.')) {
+          throw new Error('primary-fail')
+        }
+        if (key.startsWith('preferences.categories.')) {
+          return 'fallback-category-value'
+        }
+        return key
+      }
+
+      const content = getTranslatedSearchContent()
+      const autoSave = content.find(c => c.key === 'autoSave')
+      expect(autoSave).toBeDefined()
+      expect(autoSave.category).toBe('fallback-category-value')
+
+      console.warn.mockRestore()
+    })
+
+    it('uses fallback item value when primary throws but fallback succeeds', () => {
+      vi.spyOn(console, 'warn').mockImplementation(() => {})
+
+      tRef.fn = (key) => {
+        if (key.startsWith('preferences.search.items.')) {
+          throw new Error('primary-fail')
+        }
+        if (key.startsWith('preferences.items.')) {
+          return 'fallback-item-value'
+        }
+        return key
+      }
+
+      const content = getTranslatedSearchContent()
+      const autoSave = content.find(c => c.key === 'autoSave')
+      expect(autoSave).toBeDefined()
+      expect(autoSave.preference).toBe('fallback-item-value')
+
+      console.warn.mockRestore()
     })
   })
 
@@ -386,6 +529,124 @@ describe('sideBar/config.js – deep tests', () => {
       expect(buttons.length).toBeGreaterThan(0)
       buttons[0].click()
       expect(document.getElementById('debugPopup')).toBeNull()
+    })
+
+    it('replaces existing popup when called twice (createDebugPopup branch)', () => {
+      // First call creates the popup
+      debugLanguageState()
+      const popup1 = document.getElementById('debugPopup')
+      expect(popup1).not.toBeNull()
+      // Remove popup and create a fresh one manually to hit the "existingPopup" branch
+      const fake = document.createElement('div')
+      fake.id = 'debugPopup'
+      document.body.appendChild(fake)
+      // Now debugLanguageState should find and remove the existing popup
+      debugLanguageState()
+      const popup2 = document.getElementById('debugPopup')
+      expect(popup2).not.toBeNull()
+    })
+
+    it('handles __VUE_I18N__ with locale.value undefined (uses locale directly)', () => {
+      window.__VUE_I18N__ = {
+        global: { locale: 'zh', t: (k) => k }
+      }
+      debugLanguageState()
+      vi.advanceTimersByTime(600)
+      const content = document.getElementById('debugContent')
+      expect(content).not.toBeNull()
+      expect(content.innerHTML).toContain('zh')
+      delete window.__VUE_I18N__
+    })
+  })
+
+  // ── setupLanguageChangeListener interval handler ────────────────────
+
+  describe('setupLanguageChangeListener interval', () => {
+    beforeEach(() => {
+      vi.useFakeTimers()
+    })
+
+    afterEach(() => {
+      vi.useRealTimers()
+      delete window.__VUE_I18N__
+    })
+
+    it('interval handler detects language change and dispatches event', () => {
+      window.__VUE_I18N__ = {
+        global: { locale: { value: 'en' }, t: (k) => k }
+      }
+      setupLanguageChangeListener()
+      // Set initial language
+      getTranslatedSearchContent.lastLanguage = 'en'
+
+      const handler = vi.fn()
+      window.addEventListener('languageChanged', handler)
+
+      // Change the language
+      window.__VUE_I18N__.global.locale.value = 'fr'
+
+      // Advance timers past the 1-second interval
+      vi.advanceTimersByTime(1100)
+
+      expect(handler).toHaveBeenCalled()
+      window.removeEventListener('languageChanged', handler)
+    })
+
+    it('interval handler does nothing when language has not changed', () => {
+      window.__VUE_I18N__ = {
+        global: { locale: { value: 'en' }, t: (k) => k }
+      }
+      setupLanguageChangeListener()
+      getTranslatedSearchContent.lastLanguage = 'en'
+
+      const handler = vi.fn()
+      window.addEventListener('languageChanged', handler)
+
+      // Don't change language, advance timer
+      vi.advanceTimersByTime(1100)
+
+      expect(handler).not.toHaveBeenCalled()
+      window.removeEventListener('languageChanged', handler)
+    })
+
+    it('interval handler with global as function', () => {
+      window.__VUE_I18N__ = {
+        global: () => ({ locale: { value: 'de' }, t: (k) => k })
+      }
+      setupLanguageChangeListener()
+      getTranslatedSearchContent.lastLanguage = 'en'
+
+      const handler = vi.fn()
+      window.addEventListener('languageChanged', handler)
+
+      vi.advanceTimersByTime(1100)
+
+      expect(handler).toHaveBeenCalled()
+      window.removeEventListener('languageChanged', handler)
+    })
+
+    it('interval handler with locale as string (no .value)', () => {
+      window.__VUE_I18N__ = {
+        global: { locale: 'ja' }
+      }
+      setupLanguageChangeListener()
+      getTranslatedSearchContent.lastLanguage = 'en'
+
+      vi.advanceTimersByTime(1100)
+      expect(getTranslatedSearchContent.lastLanguage).toBe('ja')
+    })
+  })
+
+  // ── getTranslatedSearchContent edge cases ──────────────────────────
+
+  describe('getTranslatedSearchContent edge cases', () => {
+    it('handles description without -- separator (fallback path)', () => {
+      const content = getTranslatedSearchContent()
+      const bare = content.find((c) => c.key === 'bareDescription')
+      expect(bare).toBeDefined()
+      // Description "NoDashItem" has no --, so split('--')[1] is undefined
+      // Falls back to the full description
+      expect(bare.preferenceEn).toBe('NoDashItem')
     })
   })
 })
