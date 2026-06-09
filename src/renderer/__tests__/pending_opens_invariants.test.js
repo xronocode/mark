@@ -303,10 +303,10 @@ describe('V-M-025 trace-invariants (log-grep parser)', () => {
     expect(iInvoked).toBeGreaterThan(iReady)
   })
 
-  it('LISTENERS_READY count=10 matches the 10-listener post-M-045 surface', async () => {
+  it('LISTENERS_READY count=11 matches the 11-listener post-E1a surface', async () => {
     const { trace } = await runBootstrapWithTrace({ drainPaths: [] })
     const ready = trace.find((l) => l.includes('BLOCK_LISTENERS_READY'))
     expect(ready).toBeTruthy()
-    expect(ready).toMatch(/count=10/)
+    expect(ready).toMatch(/count=11/)
   })
 })

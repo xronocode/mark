@@ -10,12 +10,14 @@ vi.mock('@/bus', () => ({
 }))
 
 describe('textOps listener', () => {
-  let initTextOpsListener, destroyTextOpsListener, eventHandler
+  let initTextOpsListener, destroyTextOpsListener
+  const handlers = {}
 
   beforeEach(async () => {
     vi.clearAllMocks()
-    listenMock.mockImplementation(async (_event, handler) => {
-      eventHandler = handler
+    Object.keys(handlers).forEach(k => delete handlers[k])
+    listenMock.mockImplementation(async (event, handler) => {
+      handlers[event] = handler
       return vi.fn()
     })
     vi.resetModules()
@@ -23,6 +25,8 @@ describe('textOps listener', () => {
     initTextOpsListener = mod.initTextOpsListener
     destroyTextOpsListener = mod.destroyTextOpsListener
   })
+
+  const eventHandler = (payload) => handlers['mt::text::op']?.(payload)
 
   it('registers listener on init', async () => {
     await initTextOpsListener()
@@ -32,7 +36,7 @@ describe('textOps listener', () => {
   it('is idempotent — second init does not re-register', async () => {
     await initTextOpsListener()
     await initTextOpsListener()
-    expect(listenMock).toHaveBeenCalledTimes(1)
+    expect(listenMock).toHaveBeenCalledTimes(2)
   })
 
   it('handles insert op — emits ext-text-insert', async () => {
