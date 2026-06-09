@@ -34,8 +34,8 @@ describe('sideBar/help.js', () => {
   })
 
   it('icon entries have name functions', async () => {
-    const { sideBarIcons } = await import('@/components/sideBar/help.js')
-    for (const icon of sideBarIcons) {
+    const { sideBarIcons, sideBarBottomIcons } = await import('@/components/sideBar/help.js')
+    for (const icon of [...sideBarIcons, ...sideBarBottomIcons]) {
       expect(typeof icon.name).toBe('function')
       expect(typeof icon.name()).toBe('string')
     }

@@ -354,6 +354,83 @@ describe('App.vue page — deep coverage', () => {
     })
   })
 
+  describe('blockNativeZoom handler', () => {
+    const flush = () => new Promise(r => setTimeout(r, 0))
+
+    const fireKeydown = (key, { metaKey = false, ctrlKey = false } = {}) => {
+      const evt = new KeyboardEvent('keydown', {
+        key,
+        metaKey,
+        ctrlKey,
+        bubbles: true,
+        cancelable: true
+      })
+      const prevented = { value: false }
+      const origPreventDefault = evt.preventDefault.bind(evt)
+      Object.defineProperty(evt, 'preventDefault', {
+        value: () => { prevented.value = true; origPreventDefault() }
+      })
+      document.dispatchEvent(evt)
+      return prevented.value
+    }
+
+    it('prevents Cmd+= (zoom in)', async () => {
+      mountComponent()
+      await flush()
+      expect(fireKeydown('=', { metaKey: true })).toBe(true)
+    })
+
+    it('prevents Cmd+- (zoom out)', async () => {
+      mountComponent()
+      await flush()
+      expect(fireKeydown('-', { metaKey: true })).toBe(true)
+    })
+
+    it('prevents Cmd+0 (reset zoom)', async () => {
+      mountComponent()
+      await flush()
+      expect(fireKeydown('0', { metaKey: true })).toBe(true)
+    })
+
+    it('prevents Cmd++ (plus key)', async () => {
+      mountComponent()
+      await flush()
+      expect(fireKeydown('+', { metaKey: true })).toBe(true)
+    })
+
+    it('does NOT prevent regular keys without modifier', async () => {
+      mountComponent()
+      await flush()
+      expect(fireKeydown('=', {})).toBe(false)
+      expect(fireKeydown('-', {})).toBe(false)
+      expect(fireKeydown('0', {})).toBe(false)
+    })
+
+    it('prevents Ctrl+= on non-Mac (ctrlKey)', async () => {
+      mountComponent()
+      await flush()
+      expect(fireKeydown('=', { ctrlKey: true })).toBe(true)
+    })
+
+    it('prevents Ctrl+- on non-Mac (ctrlKey)', async () => {
+      mountComponent()
+      await flush()
+      expect(fireKeydown('-', { ctrlKey: true })).toBe(true)
+    })
+
+    it('prevents Ctrl+0 on non-Mac (ctrlKey)', async () => {
+      mountComponent()
+      await flush()
+      expect(fireKeydown('0', { ctrlKey: true })).toBe(true)
+    })
+
+    it('does NOT prevent Cmd+other keys (e.g. Cmd+a)', async () => {
+      mountComponent()
+      await flush()
+      expect(fireKeydown('a', { metaKey: true })).toBe(false)
+    })
+  })
+
   describe('setupDragDropHandler', () => {
     const flush = () => new Promise(r => setTimeout(r, 0))
 
