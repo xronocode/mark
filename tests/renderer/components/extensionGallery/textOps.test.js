@@ -205,6 +205,70 @@ describe('textOps listener – extended coverage', () => {
     expect(busMock.emit).not.toHaveBeenCalled()
   })
 
+  // ── Undo operations ──────────────────────────────────────────
+
+  it('handles undo op — emits ext-undo', async () => {
+    await initTextOpsListener()
+    eventHandler({
+      payload: {
+        op_type: 'undo',
+        payload: {},
+        extension_id: 'ext3'
+      }
+    })
+    expect(busMock.emit).toHaveBeenCalledWith('ext-undo', { extensionId: 'ext3' })
+  })
+
+  it('handles undo op — logs BLOCK_UNDO_EMITTED', async () => {
+    const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+    await initTextOpsListener()
+    eventHandler({
+      payload: {
+        op_type: 'undo',
+        payload: {},
+        extension_id: 'ext-log-test'
+      }
+    })
+    expect(logSpy).toHaveBeenCalledWith(
+      expect.stringContaining('BLOCK_UNDO_EMITTED')
+    )
+    expect(logSpy).toHaveBeenCalledWith(
+      expect.stringContaining('ext-log-test')
+    )
+    logSpy.mockRestore()
+  })
+
+  // ── Context request ─────────────────────────────────────────
+
+  it('handles context_request event — emits ext-context-request', async () => {
+    await initTextOpsListener()
+    const ctxHandler = handlers['mt::ext::context_request']
+    expect(ctxHandler).toBeTruthy()
+    ctxHandler({ payload: { request_id: 'req-123' } })
+    expect(busMock.emit).toHaveBeenCalledWith('ext-context-request', { requestId: 'req-123' })
+  })
+
+  it('ignores context_request with no request_id', async () => {
+    await initTextOpsListener()
+    const ctxHandler = handlers['mt::ext::context_request']
+    ctxHandler({ payload: { other: 'value' } })
+    expect(busMock.emit).not.toHaveBeenCalled()
+  })
+
+  it('ignores context_request with null payload', async () => {
+    await initTextOpsListener()
+    const ctxHandler = handlers['mt::ext::context_request']
+    ctxHandler({ payload: null })
+    expect(busMock.emit).not.toHaveBeenCalled()
+  })
+
+  it('ignores context_request with non-object payload', async () => {
+    await initTextOpsListener()
+    const ctxHandler = handlers['mt::ext::context_request']
+    ctxHandler({ payload: 'string' })
+    expect(busMock.emit).not.toHaveBeenCalled()
+  })
+
   // ── Unknown / invalid events ─────────────────────────────────
 
   it('handles unknown op_type without emitting', async () => {
