@@ -1035,25 +1035,20 @@ const handleExtTextInsert = ({ text }) => {
 const handleExtTextTransform = ({ text }) => {
   if (!editor.value || typeof text !== 'string') return
   try {
-    // Use the internal word replacement method if selection exists,
-    // otherwise fall back to paragraph insert.
     const selection = editor.value.getSelection()
     if (selection && selection.selectedText) {
-      // Replace selected text via the search/replace mechanism.
-      // Build a search-replace call targeting the exact selection.
       const searchMatches = editor.value.replace(
         { value: text, opt: { isSingle: true } }
       )
       if (searchMatches === undefined) {
-        // Fallback: if replace didn't work, insert as new paragraph
         editor.value.insertParagraph('after', text, true)
       }
     } else {
-      // No selection — insert at cursor position.
-      editor.value.insertParagraph('after', text, true)
+      // No selection — replace entire document (Edit Agent sends full markdown).
+      editor.value.setMarkdown(text)
     }
     // eslint-disable-next-line no-console
-    console.log(`[Editor][BLOCK_EXT_TEXT_TRANSFORM_OK len=${text.length}]`)
+    console.log(`[Editor][BLOCK_EXT_TEXT_TRANSFORM_OK len=${text.length} hadSelection=${!!(selection && selection.selectedText)}]`)
   } catch (err) {
     // eslint-disable-next-line no-console
     console.error('[Editor][BLOCK_EXT_TEXT_TRANSFORM_FAILED]', err)
