@@ -174,9 +174,6 @@ jobs:
         run: |
           set -uo pipefail  # NOT -e so we can show JSON before failing
           cd src-tauri
-          # Force re-emit of warnings: cargo's incremental cache
-          # otherwise hides warnings from already-compiled crates.
-          touch src/main.rs
           cargo build --release --bin mark --message-format=json > /tmp/cargo.json
           cd ..
           node tools/check-warnings-allowlist.mjs /tmp/cargo.json docs/ci-warnings-allowlist.md \
