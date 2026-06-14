@@ -97,6 +97,7 @@ pub struct DocOpenResponse {
 #[derive(Debug, Deserialize)]
 pub struct DocPatchRequest {
     pub session_id: String,
+    #[allow(dead_code)]
     pub seq: u64,
     pub base_revision: u64,
     pub section: String,
@@ -113,6 +114,7 @@ pub struct DocPatchResponse {
 #[derive(Debug, Deserialize)]
 pub struct DocCloseRequest {
     pub session_id: String,
+    #[allow(dead_code)]
     pub seq: u64,
 }
 
@@ -180,6 +182,7 @@ struct ContextCallbackPayload {
 pub struct ExtApplyRequest {
     pub extension_id: String,
     pub operations: Vec<EditOperation>,
+    #[allow(dead_code)]
     pub undo_label: Option<String>,
 }
 
@@ -286,7 +289,7 @@ async fn validate_bearer_extension(
 /// approval; for now auto-approves (TODO: wire native dialog via
 /// app_handle).
 async fn handle_pair(
-    State(state): State<Arc<LiveServerState>>,
+    State(_state): State<Arc<LiveServerState>>,
     Json(req): Json<PairRequest>,
 ) -> impl IntoResponse {
     safe_eprintln!(

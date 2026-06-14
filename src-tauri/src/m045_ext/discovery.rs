@@ -16,6 +16,7 @@ use std::time::Duration;
 #[derive(Debug, Clone)]
 pub struct DiscoveredExtension {
     pub manifest: ExtensionManifest,
+    #[allow(dead_code)]
     pub source_path: PathBuf,
     pub healthy: bool,
 }

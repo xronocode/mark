@@ -131,7 +131,7 @@ impl ExtRegistry {
         }
     }
 
-    /// Update health status for an extension.
+    #[allow(dead_code)]
     pub fn set_health(&self, id: &str, healthy: bool) -> Result<(), String> {
         let mut map = self.extensions.lock().map_err(|e| {
             safe_eprintln!("[ExtHost][registry][BLOCK_LOCK_POISONED reason={e}]");
@@ -157,7 +157,7 @@ impl ExtRegistry {
         }
     }
 
-    /// Get manifests of enabled extensions that offer a specific capability.
+    #[allow(dead_code)]
     pub fn get_enabled(&self, capability: &str) -> Vec<ExtensionManifest> {
         match self.extensions.lock() {
             Ok(map) => map
