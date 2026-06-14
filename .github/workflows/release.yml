@@ -87,8 +87,9 @@ jobs:
             ~/.cargo/registry
             ~/.cargo/git
             src-tauri/target
-          key: cargo-${{ matrix.platform.target }}-${{ hashFiles('**/Cargo.lock') }}
+          key: cargo-${{ matrix.platform.target }}-${{ hashFiles('**/Cargo.lock') }}-${{ hashFiles('src-tauri/src/**/*.rs') }}
           restore-keys: |
+            cargo-${{ matrix.platform.target }}-${{ hashFiles('**/Cargo.lock') }}-
             cargo-${{ matrix.platform.target }}-
 
       # ── install + build frontend ─────────────────────────────────
