@@ -431,6 +431,9 @@ jobs:
               $FILES
           fi
 
+          # tauri-action creates draft releases by default; ensure published
+          gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --draft=false
+
   publish-cask:
     name: cross-repo cask PR
     needs: [build, publish]
