@@ -158,8 +158,8 @@ pub struct ExtContextResponse {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct CursorCoords {
-    pub line: u32,
-    pub ch: u32,
+    pub line: f64,
+    pub ch: f64,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
