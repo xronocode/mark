@@ -1392,6 +1392,7 @@
         <note-1>The next release version after the published v2.1.0-beta is v2.1.1-beta.</note-1>
         <note-2>The release workflow owns Developer ID signing/notarization; a raw local `tauri build` output is not a distributable artifact until explicitly re-signed.</note-2>
         <note-3>Release Playwright runs only after `npm run build`; `vite preview` must never start against an absent clean-checkout renderer dist.</note-3>
+        <note-4>Hyphenated SemVer tags such as v2.1.1-beta must be created and idempotently updated as GitHub prereleases; stable tags must clear the prerelease flag.</note-4>
       </notes>
     </M-046>
 
