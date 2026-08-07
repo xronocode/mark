@@ -1,7 +1,7 @@
 // FILE: tests/renderer/release-preflight.test.js
-// VERSION: 1.3.0
+// VERSION: 1.4.0
 // START_MODULE_CONTRACT
-//   PURPOSE: Verify exact release metadata/tag consistency, production workflow gate ordering, and GitHub prerelease classification for M-046.
+//   PURPOSE: Verify exact release metadata/tag consistency, production workflow gates, GitHub prerelease classification, and Homebrew artifact routing for M-046.
 //   SCOPE: Pure mismatch tests, current-workspace integration, CLI marker evidence, and static release-workflow assertions.
 //   DEPENDS: Vitest, Node.js child_process/fs/path, tools/release-preflight.mjs, .github/workflows/release.yml.
 //   LINKS: docs/knowledge-graph.xml M-046; docs/verification-plan.xml V-M-046; docs/requirements.xml UC-032.
@@ -15,8 +15,9 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: 2026-08-07 v1.3.0 - require hyphenated SemVer tags to publish as GitHub prereleases.
-//   PREVIOUS: 2026-08-07 v1.2.0 - require a clean-checkout Vite build before Playwright preview.
+//   LAST_CHANGE: 2026-08-07 v1.4.0 - require Homebrew cask URLs to use the staged Tauri DMG filename.
+//   PREVIOUS: 2026-08-07 v1.3.0 - require hyphenated SemVer tags to publish as GitHub prereleases.
+//   PREVIOUS_E2E: 2026-08-07 v1.2.0 - require a clean-checkout Vite build before Playwright preview.
 //   PREVIOUS_UPDATER: 2026-08-07 v1.1.0 - require strict SemVer without a leading v in the updater feed.
 //   INITIAL: 2026-08-07 v1.0.0 - add release version, tag, workflow verification, and marker regressions.
 // END_CHANGE_SUMMARY
@@ -150,6 +151,15 @@ describe('production release workflow', () => {
     expect(workflow).toContain('if [[ "$VER" == *-* ]]')
     expect(workflow).toContain('PRERELEASE=true')
     expect(workflow.match(/--prerelease="\$PRERELEASE"/g)).toHaveLength(2)
+  })
+
+  it('rejects a Homebrew cask whose URL does not match the staged Tauri DMG', () => {
+    expect(workflow).toContain(
+      "EXPECTED_DMG_TEMPLATE='Mark_#{version}_aarch64.dmg'"
+    )
+    expect(workflow).toContain(
+      'grep -Fq "$EXPECTED_DMG_TEMPLATE" "$CASK"'
+    )
   })
 })
 // END_BLOCK_RELEASE_WORKFLOW_TESTS
