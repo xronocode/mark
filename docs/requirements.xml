@@ -294,6 +294,46 @@
       <Priority>high</Priority>
       <RelatedFlows>DF-002</RelatedFlows>
     </UC-028>
+
+    <UC-029>
+      <Actor>User</Actor>
+      <Action>Right-clicks the file path shown in the window title bar and chooses Copy Path</Action>
+      <Goal>Copy the current document's absolute path without navigating away from the editor</Goal>
+      <Preconditions>The active tab is backed by a file on disk</Preconditions>
+      <AcceptanceCriteria>A native context menu opens at the pointer; Copy Path writes the exact active pathname to the clipboard; untitled documents do not expose a path menu</AcceptanceCriteria>
+      <Priority>high</Priority>
+      <RelatedFlows>DF-001</RelatedFlows>
+    </UC-029>
+
+    <UC-030>
+      <Actor>User</Actor>
+      <Action>Opens or switches to a Markdown file while the WKWebView window is launching or returning from the background</Action>
+      <Goal>See the document immediately without an empty editor surface</Goal>
+      <Preconditions>The file has valid Markdown content and may have a saved scroll position</Preconditions>
+      <AcceptanceCriteria>The editor surface is visible synchronously after the Muya DOM update; scroll restoration does not depend solely on requestAnimationFrame; the first keyboard or pointer event is not required to reveal content</AcceptanceCriteria>
+      <Priority>critical</Priority>
+      <RelatedFlows>DF-001</RelatedFlows>
+    </UC-030>
+
+    <UC-031>
+      <Actor>User</Actor>
+      <Action>Exits Finder preview mode and begins editing the document</Action>
+      <Goal>Receive an immediately visible caret on the first editing gesture</Goal>
+      <Preconditions>The active tab may have previewMode enabled</Preconditions>
+      <AcceptanceCriteria>The actual Muya contenteditable container, not the replaced Vue placeholder, mirrors preview state synchronously; exiting preview restores contenteditable and the editor selection/focus before the first edit</AcceptanceCriteria>
+      <Priority>critical</Priority>
+      <RelatedFlows>DF-001</RelatedFlows>
+    </UC-031>
+
+    <UC-032>
+      <Actor>Release maintainer</Actor>
+      <Action>Cuts the next macOS release tag from a validated commit</Action>
+      <Goal>Publish a version-consistent, tested, signed, notarized, and smoke-tested release artifact</Goal>
+      <Preconditions>The target tag is new and the release commit contains all intended product and GRACE changes</Preconditions>
+      <AcceptanceCriteria>The tag exactly matches package, lockfile, Cargo, and Tauri versions; renderer unit/E2E/typecheck and Rust tests pass in the release workflow; the produced app passes strict codesign and Gatekeeper assessment before publication</AcceptanceCriteria>
+      <Priority>critical</Priority>
+      <RelatedFlows>DF-015</RelatedFlows>
+    </UC-032>
   </UseCases>
 
   <ResolvedDecisions>
@@ -308,9 +348,9 @@
   </ResolvedDecisions>
 
   <NonGoals>
-    <item-1>No paid Apple Developer notarization in Phase A or B (explicitly ad-hoc only).</item-1>
+    <item-1>No Apple signing credentials are required on developer machines: local smoke builds remain ad-hoc signed, while production tags use the CI-managed Developer ID and notarization secrets.</item-1>
     <item-2>No rewrite of muya engine — it ports to WebView unchanged.</item-2>
-    <item-3>No feature additions beyond the approved 4 community feature PRs (#4145, #4025, #4070, #4150).</item-3>
+    <item-3>No feature additions beyond the approved 4 community feature PRs (#4145, #4025, #4070, #4150), except explicitly approved maintenance UX such as UC-029.</item-3>
     <item-4>No Windows/Linux blocking gates in Phase A; those platforms are best-effort (continue-on-error in CI).</item-4>
     <item-5>No telemetry or analytics added to the app.</item-5>
     <item-6>No re-engagement with upstream marktext/marktext maintainers — this is an independent fork.</item-6>

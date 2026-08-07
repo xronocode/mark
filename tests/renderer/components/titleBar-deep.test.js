@@ -1,3 +1,24 @@
+// FILE: tests/renderer/components/titleBar-deep.test.js
+// VERSION: 1.1.0
+// START_MODULE_CONTRACT
+//   PURPOSE: Verify titleBar/index.vue computed state, native actions, navigation decisions, window controls, and lifecycle behavior.
+//   SCOPE: Deterministic Vue/jsdom component tests with mocked Tauri and compatibility facades.
+//   DEPENDS: Vue Test Utils, Vitest, Pinia test setup, i18n, titleBar/index.vue.
+//   LINKS: docs/verification-plan.xml V-M-011 scenario 14; docs/knowledge-graph.xml M-011.
+//   ROLE: TEST
+//   MAP_MODE: LOCALS
+// END_MODULE_CONTRACT
+//
+// START_MODULE_MAP
+//   mountComponent - Mounts the titlebar with stable default props and mocked services.
+//   titlePathContextMenuAssertions - Verify native menu position, untitled no-op, and exact clipboard dispatch.
+//   navigationAssertions - Verify sidebar/view decision branches and dialog deduplication.
+// END_MODULE_MAP
+//
+// START_CHANGE_SUMMARY
+//   - 2026-08-07 v1.1.0: add UC-029 title-path context-menu coverage.
+// END_CHANGE_SUMMARY
+
 import { shallowMount } from '@vue/test-utils'
 import { setupTestPinia } from '../pinia'
 import { createI18n } from 'vue-i18n'
@@ -44,6 +65,9 @@ const i18n = createI18n({
       titleBar: {
         switchToLight: 'Switch to Light',
         switchToDark: 'Switch to Dark'
+      },
+      contextMenu: {
+        tabs: { copyPath: 'Copy Path' }
       }
     }
   }
@@ -312,6 +336,53 @@ describe('titleBar/index.vue — deep coverage', () => {
       )
     })
   })
+
+  // START_BLOCK_TITLE_PATH_CONTEXT_MENU_TESTS
+  describe('handleTitleContextMenu', () => {
+    it('opens the native menu and copies the exact active pathname', async () => {
+      const wrapper = mountComponent({ pathname: '/home/user/docs/test.md' })
+      window.electron.ipcRenderer.invoke.mockResolvedValueOnce('copyPath')
+
+      await wrapper.vm.handleTitleContextMenu({ clientX: 48, clientY: 22 })
+
+      expect(window.electron.ipcRenderer.invoke).toHaveBeenCalledWith(
+        'mt::window-popup-context-menu',
+        {
+          items: [{ label: 'Copy Path', id: 'copyPath' }],
+          x: 48,
+          y: 22
+        }
+      )
+      expect(window.electron.clipboard.writeText).toHaveBeenCalledWith(
+        '/home/user/docs/test.md'
+      )
+    })
+
+    it('does nothing for an untitled document', async () => {
+      const wrapper = mountComponent({ pathname: '', filename: '' })
+
+      await wrapper.vm.handleTitleContextMenu({ clientX: 1, clientY: 2 })
+
+      expect(window.electron.ipcRenderer.invoke).not.toHaveBeenCalled()
+      expect(window.electron.clipboard.writeText).not.toHaveBeenCalled()
+    })
+
+    it('binds the contextmenu gesture to the visible title', async () => {
+      const wrapper = mountComponent({ pathname: '/tmp/context.md' })
+      window.electron.ipcRenderer.invoke.mockResolvedValueOnce(undefined)
+
+      await wrapper.find('.title').trigger('contextmenu', {
+        clientX: 14,
+        clientY: 9
+      })
+
+      expect(window.electron.ipcRenderer.invoke).toHaveBeenCalledWith(
+        'mt::window-popup-context-menu',
+        expect.objectContaining({ x: 14, y: 9 })
+      )
+    })
+  })
+  // END_BLOCK_TITLE_PATH_CONTEXT_MENU_TESTS
 
   // --- rename ---
   describe('rename', () => {
