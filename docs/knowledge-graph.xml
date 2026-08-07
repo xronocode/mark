@@ -152,7 +152,7 @@
       <verification-ref>V-M-009</verification-ref>
       <annotations>
         <fn-menu_build PURPOSE="Build menu tree from MenuSpec" />
-        <fn-menu_dispatch PURPOSE="Emit MenuInvoked event to focused window" />
+        <fn-menu_dispatch PURPOSE="Emit MenuInvoked event to the renderer, including explicit edit.undo/edit.redo commands that target Muya history" />
         <fn-window_popup_context_menu PURPOSE="Open a dynamic native context menu and return the selected renderer item id" />
         <fn-capture_context_menu_selection PURPOSE="Route dynamic context-menu selections back to their pending invoke without global menu dispatch" />
         <type-MenuSpec PURPOSE="Declarative menu structure with command IDs" />
@@ -191,11 +191,11 @@
     <M-011 NAME="mt-renderer" TYPE="UI_COMPONENT" STATUS="partial">
       <purpose>Vue 3 renderer app (migrated in Phase A via PR #4001); hosts muya, theme controller, command dispatcher, native title-path actions, and editor visibility/focus lifecycle.</purpose>
       <path>src/renderer/</path>
-      <depends>M-012, M-013</depends>
+      <depends>M-001, M-009, M-012, M-013</depends>
       <verification-ref>V-M-011</verification-ref>
       <annotations>
         <fn-mountApp PURPOSE="Bootstrap Vue app and mount muya" />
-        <fn-handleTitleContextMenu PURPOSE="titleBar/index.vue opens native context menu for saved documents and copies the active pathname on explicit Copy Path selection" />
+        <fn-handleTitleContextMenu PURPOSE="titleBar/index.vue opens the native menu and writes the selected saved pathname through the write-only Tauri clipboard-manager capability" />
         <fn-scrollToCords PURPOSE="editorWithTabs/editor.vue restores saved scrollTop while releasing visibility synchronously, independent of WKWebView requestAnimationFrame scheduling" />
         <fn-syncPreviewSurface PURPOSE="editorWithTabs/editor.vue mirrors previewMode onto the actual Muya contenteditable container and restores caret focus/selection on exit" />
       </annotations>
@@ -212,7 +212,7 @@
         <fn-setOptions PURPOSE="Change theme/mode/options at runtime" />
         <class-Muya PURPOSE="Engine root exported from src/muya/lib/index.js" />
         <fn-renderMermaid PURPOSE="Async renderer using mermaid.render() API (v11+); clears cache pre-await to prevent race; unique ID per render call via Date.now() suffix; imports full ESM build (mermaid.esm.mjs)" />
-        <fn-keyboardUndoRedo PURPOSE="Cmd+Z/Cmd+Shift+Z interceptor in keyboard.js; routes to muya.undo()/redo() bypassing macOS responder chain that cannot reach muya's internal contentState.history" />
+        <fn-keyboardUndoRedo PURPOSE="Layout-independent Cmd/Ctrl+Z interceptor in keyboard.js matches physical KeyZ (including Russian Cmd+Я) and routes to muya.undo()/redo(); native menu edit.undo/edit.redo use the same renderer history path" />
         <fn-linkTooltipDelay PURPOSE="mouseOutHandler in linkTools/index.js; 300ms setTimeout delay before hide() to allow mouse travel from link text to tooltip popup" />
       </annotations>
     </M-012>
