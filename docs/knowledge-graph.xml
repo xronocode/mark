@@ -874,6 +874,7 @@
         <fn-runReleasePreflight PURPOSE="Run the release metadata gate and emit stable pass/fail markers" />
         <gate-release-e2e PURPOSE="Build renderer dist before bounded Playwright preview on clean release runners" />
         <gate-release-classification PURPOSE="Publish hyphenated SemVer tags as GitHub prereleases and stable tags as non-prereleases" />
+        <gate-cask-artifact-url PURPOSE="Reject Homebrew cask URL templates that do not match the staged Tauri DMG filename" />
       </annotations>
     </M-046>
 
