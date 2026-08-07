@@ -9,7 +9,7 @@
 <br>
 
 [![Tests](https://github.com/xronocode/mark/actions/workflows/test.yml/badge.svg)](https://github.com/xronocode/mark/actions/workflows/test.yml)
-&ensp;![Status](https://img.shields.io/badge/alpha-orange?style=flat-square)
+&ensp;![Status](https://img.shields.io/badge/beta-blue?style=flat-square)
 &ensp;![Platform](https://img.shields.io/badge/macOS%20arm64-black?style=flat-square)
 &ensp;![Size](https://img.shields.io/badge/11%20MB-brightgreen?style=flat-square)
 &ensp;![RAM](https://img.shields.io/badge/61%20MB%20RAM-brightgreen?style=flat-square)
@@ -24,13 +24,13 @@
 ### Install (macOS Apple Silicon)
 
 ```sh
-brew tap xronocode/mark && brew install --cask mark@alpha
+brew tap xronocode/mark && brew install --cask mark
 ```
 
 Developer ID signed + Apple notarized. No Gatekeeper prompts. [Build from source →](#install)
 
-> **⚠️ Alpha** — daily-driver quality for writing on Apple Silicon, but it has known gaps.<br>
-> What works has 2750+ tests and CI. What doesn't is [tracked openly](#status--v201-alpha1).
+> **Beta** — daily-driver quality for writing on Apple Silicon; known gaps remain tracked openly.<br>
+> What works has 2900+ tests and CI. What doesn't is [tracked openly](#status--v212-beta).
 
 <br>
 
@@ -266,7 +266,7 @@ One person. AI agents. A native desktop app that rivals what teams of five ship.
 
 <div align="center">
 
-### Status — v2.0.6-alpha
+### Status — v2.1.2-beta
 
 </div>
 
@@ -351,7 +351,7 @@ Daily-driver quality for routine Markdown on Apple Silicon.
 | Windows | Planned |
 | Multi-window support | Planned |
 
-> Alpha is alpha. What works has **2760+ tests** and CI. What doesn't is tracked openly with a target milestone.
+> Beta builds pass the same signed release gates as production artifacts. Remaining gaps are tracked openly with target milestones.
 
 ---
 
@@ -364,19 +364,21 @@ Daily-driver quality for routine Markdown on Apple Silicon.
 **One command:**
 
 ```sh
-brew tap xronocode/mark && brew install --cask mark@alpha
+brew tap xronocode/mark && brew install --cask mark
 ```
 
 Developer ID signed + Apple notarized. No Gatekeeper warnings.
 
 <details>
-<summary><b>Electron stable channel</b> (frozen at v1.2.3, security fixes only)</summary>
+<summary><b>Legacy alpha migration</b></summary>
 
 ```sh
-brew tap xronocode/mark && brew install --cask mark
+brew trust xronocode/mark
+brew uninstall --cask mark@alpha
+brew install --cask mark
 ```
 
-Both casks coexist. When v2.0 stable ships, `mark` rolls forward to Tauri.
+The uninstall step does not use `--zap`, so Mark preferences and documents are preserved.
 
 </details>
 
@@ -411,7 +413,7 @@ npm run test:e2e                            # Playwright
 Mark wouldn't exist without the people who built the foundation:
 
 - **[@Jocs](https://github.com/Jocs)** — creator of [Mark Text](https://github.com/marktext/marktext) (54k+ ⭐). The muya WYSIWYG engine, the theme system, and the entire UX paradigm that makes inline Markdown editing feel right. Everything Mark does starts with his work.
-- **[@Tkaixiang](https://github.com/Tkaixiang)** — maintainer of the [community fork](https://github.com/Tkaixiang/marktext) that kept Mark Text alive with critical security fixes (CVE-2023-2318), crash fixes, and the Mermaid v11 upgrade. Mark's Electron stable channel is downstream of his fork.
+- **[@Tkaixiang](https://github.com/Tkaixiang)** — maintainer of the [community fork](https://github.com/Tkaixiang/marktext) that kept Mark Text alive with critical security fixes (CVE-2023-2318), crash fixes, and the Mermaid v11 upgrade. Mark's original Electron phase was downstream of his fork.
 - **The Mark Text community** — 54,000+ stargazers, hundreds of contributors, and years of issues and PRs that shaped what a good Markdown editor should be.
 - **The Tauri team** — for building a framework that makes 11 MB native apps possible without Chromium.
 
