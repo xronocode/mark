@@ -5458,6 +5458,7 @@
       <S5>Release workflow verifies strict codesign and Gatekeeper acceptance before its installed-app smoke launch and publish job.</S5>
       <S6>Isolated local v2.1.1-beta bundle is ad-hoc re-signed, passes strict codesign, launches separately from the installed Mark instance, and renders a Markdown document without first-input reveal.</S6>
       <S7>The updater feed uses strict SemVer `2.1.1-beta` while release asset URLs retain the canonical Git tag `v2.1.1-beta`.</S7>
+      <S8>GitHub publication derives prerelease state from the normalized SemVer: hyphenated versions set `--prerelease`, while stable versions explicitly set `--prerelease=false`.</S8>
     </high-level-scenarios>
     <test-targets>
       <test>tests/renderer/release-preflight.test.js</test>
@@ -5480,6 +5481,7 @@
       <N1>No release filename or updater feed version may be derived from a tag that differs from embedded app metadata; updater `version` must strip the tag's leading `v`.</N1>
       <N2>No publish job may run when renderer, Rust, signature, Gatekeeper, or smoke gates fail.</N2>
       <N3>No signing private key, certificate content, updater key, or password may appear in preflight output.</N3>
+      <N4>No hyphenated SemVer release may remain classified as stable on GitHub after either creation or idempotent asset upload.</N4>
     </negative-assertions>
     <phase-follow-up>Tag and push remain explicit maintainer actions after the clean release commit and green remote CI.</phase-follow-up>
   </V-M-046>
