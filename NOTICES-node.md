@@ -1,6 +1,6 @@
 # NOTICES — Node.js production dependencies
 
-Generated from `license-checker --production` over **722 packages**.
+Generated from `license-checker --production` over **723 packages**.
 
 Each entry lists the package name, version, license SPDX identifier, and upstream repository when available. Re-generate with:
 
@@ -18,7 +18,7 @@ npx --package license-checker -- license-checker --production --json | \
 | BSD-3-Clause | 61 |
 | Apache-2.0 | 43 |
 | BSD-2-Clause | 7 |
-| MIT OR Apache-2.0 | 4 |
+| MIT OR Apache-2.0 | 5 |
 | Apache* | 2 |
 | Unlicense | 2 |
 | (MIT OR CC0-1.0) | 1 |
@@ -760,10 +760,11 @@ npx --package license-checker -- license-checker --production --json | \
 | shimmer | 1.2.1 | https://github.com/othiym23/shimmer |
 | webidl-conversions | 7.0.0 | https://github.com/jsdom/webidl-conversions |
 
-## MIT OR Apache-2.0 (4)
+## MIT OR Apache-2.0 (5)
 
 | Package | Version | Repository |
 |---|---|---|
+| @tauri-apps/plugin-clipboard-manager | 2.3.2 | https://github.com/tauri-apps/plugins-workspace |
 | @tauri-apps/plugin-dialog | 2.7.1 | https://github.com/tauri-apps/plugins-workspace |
 | @tauri-apps/plugin-opener | 2.5.4 | https://github.com/tauri-apps/plugins-workspace |
 | @tauri-apps/plugin-process | 2.3.1 | https://github.com/tauri-apps/plugins-workspace |
