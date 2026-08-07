@@ -1,5 +1,5 @@
 // FILE: src-tauri/src/m009_menu.rs
-// VERSION: 2.1.1-beta
+// VERSION: 2.1.3-beta
 // START_MODULE_CONTRACT
 //   PURPOSE: M-009 mt-menu. Native macOS application menu + command-id
 //            taxonomy for the renderer's command palette / sidebar /
@@ -9,10 +9,10 @@
 //            for future renderer consumers), (b) build_native_menu —
 //            constructs the Tauri Menu<R> using tauri::menu::* and
 //            returns it for main.rs to wire into Builder.setup +
-//            on_menu_event. Edit basics (cut/copy/paste/undo/redo/
-//            select-all) use Tauri predefined items so the macOS
-//            responder chain handles them in the WebView; only Find /
-//            Replace / Find-in-Folder are custom dispatched; (c) dynamic
+//            on_menu_event. Undo/redo use explicit renderer command IDs
+//            because Muya owns history; cut/copy/paste remain Tauri
+//            predefined responder-chain items; Find / Replace /
+//            Find-in-Folder are custom dispatched; (c) dynamic
 //            renderer-requested native context menus return the selected
 //            renderer item id without leaking their events onto the global
 //            application-menu bus.
@@ -50,6 +50,8 @@
 //                Tauri SubmenuBuilder helpers.
 //   - 2026-08-07 v2.1.1-beta: implement renderer-requested native
 //                context menus and return the selected item id.
+//   - 2026-08-07 v2.1.3-beta: route native Cmd+Z/Cmd+Shift+Z through
+//                edit.undo/edit.redo so Muya history receives them.
 // END_CHANGE_SUMMARY
 
 use serde::{Deserialize, Serialize};
@@ -543,10 +545,9 @@ pub async fn mt_menu_taxonomy() -> Result<Vec<MenuItem>, String> {
 // MENU EVENTS: each .item() with `with_id(...)` becomes a MenuId that
 //             on_menu_event will receive; main.rs forwards by id via
 //             `mt::menu-invoked` event broadcast.
-// EDIT BASICS: cut/copy/paste/undo/redo/select-all use Tauri
-//             SubmenuBuilder predefined helpers — they route through
-//             the macOS responder chain so the WebView gets the
-//             keypress for free (no IPC round-trip).
+// EDIT BASICS: undo/redo use explicit IDs and renderer dispatch because
+//             the macOS responder chain cannot reach Muya history;
+//             cut/copy/paste remain predefined responder-chain items.
 // ─────────────────────────────────────────────────────────────────────
 
 /// Build the native application menu. Call once in Builder.setup with
@@ -642,10 +643,18 @@ pub fn build_native_menu<R: tauri::Runtime>(
         )
         .build()?;
 
-    // ── Edit menu (predefined items handle clipboard/undo via OS) ────
+    // ── Edit menu ────────────────────────────────────────────────────
     let edit_submenu = SubmenuBuilder::new(handle, "Edit")
-        .undo()
-        .redo()
+        .item(
+            &MenuItemBuilder::with_id("edit.undo", "Undo")
+                .accelerator("CmdOrCtrl+Z")
+                .build(handle)?,
+        )
+        .item(
+            &MenuItemBuilder::with_id("edit.redo", "Redo")
+                .accelerator("CmdOrCtrl+Shift+Z")
+                .build(handle)?,
+        )
         .separator()
         .cut()
         .copy()

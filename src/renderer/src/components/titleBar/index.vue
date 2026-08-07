@@ -198,11 +198,11 @@
 
 <script setup>
 // FILE: src/renderer/src/components/titleBar/index.vue
-// VERSION: 1.1.0
+// VERSION: 1.2.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Render the main window title bar and expose its navigation, native file-path actions, window controls, and drag affordances.
 //   SCOPE: Renderer-side titlebar behavior, including sidebar/view navigation, title updates, native title context menus, direct window controls, and WKWebView/macOS drag fallbacks.
-//   DEPENDS: preferences/layout/project/editor stores, bus, i18n, window.electron IPC/clipboard facade, @tauri-apps/api/window.
+//   DEPENDS: preferences/layout/project/editor stores, bus, i18n, window.electron IPC facade, @tauri-apps/api/window, @tauri-apps/plugin-clipboard-manager.
 //   LINKS: docs/knowledge-graph.xml M-011; docs/verification-plan.xml V-M-011 scenarios 14, V-A6-5, V-A6-6.
 //   ROLE: RUNTIME
 //   MAP_MODE: LOCALS
@@ -224,6 +224,7 @@
 //     on the title bar and add a macOS mousedown -> startDragging()
 //     fallback for transparent WKWebView windows.
 //   - 2026-08-07 v1.1.0: add the native title-path Copy Path menu for UC-029.
+//   - 2026-08-07 v1.2.0: write Copy Path through the native Tauri clipboard plugin because WKWebView user activation expires while the native menu is open.
 // END_CHANGE_SUMMARY
 
 // step-8g: @electron/remote.Menu also gone. Application-menu popup
@@ -242,6 +243,7 @@ import { PATH_SEPARATOR, themePairs, isDarkTheme } from '../../config'
 import { isOsx as isOsxPlatform } from '@/util'
 import { useEditorStore } from '@/store/editor'
 import { useI18n } from 'vue-i18n'
+import { writeText as writeClipboardText } from '@tauri-apps/plugin-clipboard-manager'
 
 const props = defineProps({
   project: Object,
@@ -338,7 +340,7 @@ const handleTitleContextMenu = async (event) => {
     )
 
     if (clickedId === 'copyPath') {
-      await window.electron.clipboard.writeText(props.pathname)
+      await writeClipboardText(props.pathname)
       // Do not log the absolute path (docs/technology.xml redaction contract).
       console.debug('[TitleBar][handleTitleContextMenu][BLOCK_COPY_PATH] copied=true')
     }

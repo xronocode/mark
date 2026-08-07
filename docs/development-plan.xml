@@ -438,11 +438,11 @@
         <fn-mountApp PURPOSE="Bootstrap Vue app; register Pinia stores; set window.DIRNAME; wire all 7 host hooks; mount muya instance" />
         <fn-setMuyaHostHooks PURPOSE="Inject 7 required host hooks (see notes) — enumerated and contract-tested" />
         <fn-setMuyaOptions PURPOSE="Wire 11 parser option flags (gfm, breaks, pedantic, footnote, frontMatter, math, superSubScript, emoji, isGitlabCompatibilityEnabled, disableHtml, smartLists) from prefs" />
-        <fn-handleTitleContextMenu PURPOSE="Open the native title-path context menu and copy the active pathname only after the Copy Path item is selected" />
+        <fn-handleTitleContextMenu PURPOSE="Open the native title-path context menu and copy the active pathname through the native clipboard-manager plugin only after Copy Path is selected" />
         <fn-scrollToCords PURPOSE="Restore a tab's saved scroll position while keeping the editor surface synchronously visible" />
         <fn-syncPreviewSurface PURPOSE="Mirror previewMode onto the actual Muya container and restore editable focus/selection on exit" />
       </interface>
-      <depends>M-012, M-013</depends>
+      <depends>M-001, M-009, M-012, M-013</depends>
       <target>
         <source>src/renderer/</source>
         <tests>test/unit/renderer/**.spec.js + test/e2e/renderer.spec.ts</tests>
@@ -462,6 +462,7 @@
         <note-6>**muya.options.unsplashAccessKey** — if bundled, exposed in browser (SECURITY risk R-35). Phase-B plan: proxy through main/backend, OR prompt user to supply at runtime, OR disable Unsplash tab entirely.</note-6>
         <note-7>UI plugin layer tech-debt accepted for v1.0 (R-35): no ARIA / i18n / virtualization / touch. Document in release notes. Revisit in v2.x.</note-7>
         <note-8>2026-08-07 maintenance contract: title-path context menu, synchronous first-paint visibility, and Muya preview-surface/caret synchronization are renderer-owned M-011 behavior verified by V-M-011 scenarios 14-16.</note-8>
+        <note-9>Title-path Copy Path must use `@tauri-apps/plugin-clipboard-manager` with write-text-only capability. `navigator.clipboard` is not valid after awaiting native-menu selection because WKWebView transient user activation has expired.</note-9>
       </notes>
     </M-011>
 
@@ -1395,6 +1396,7 @@
         <note-3>Release Playwright runs only after `npm run build`; `vite preview` must never start against an absent clean-checkout renderer dist.</note-3>
         <note-4>While the embedded endpoint uses GitHub `/releases/latest`, shipped beta tags must be created and idempotently updated with `prerelease=false`; SemVer still carries the `-beta` channel label.</note-4>
         <note-5>The Homebrew cask publication gate must prove its URL template resolves to `Mark_#{version}_aarch64.dmg`, matching the staged and published Tauri asset.</note-5>
+        <note-6>The native title-path clipboard and layout-independent undo repair releases as v2.1.3-beta and doubles as the first real installed-client verification of the signed v2.1.2-beta in-app updater.</note-6>
       </notes>
     </M-046>
 
@@ -2434,6 +2436,28 @@ src/main/config.js declares `contextIsolation: false`, `nodeIntegration: true`, 
         <file>docs/development-plan.xml, docs/verification-plan.xml, docs/knowledge-graph.xml</file>
       </write-scope>
     </Phase-Updater-Hotfix-2026-08-07>
+
+    <Phase-Clipboard-Hotfix-2026-08-07 name="v2.1.3-beta Copy Path and undo repair" status="in-progress">
+      <goal>Make title-path Copy Path write the exact saved pathname to the macOS system clipboard and make Cmd+Z/Cmd+Shift+Z reach Muya history on every keyboard layout.</goal>
+      <step-1 status="done" verification="V-M-011">Replace the expired WKWebView `navigator.clipboard` path with the native Tauri clipboard-manager writeText API.</step-1>
+      <step-2 status="done" verification="V-M-011">Initialize the plugin and grant only `clipboard-manager:allow-write-text` to default and App Store capabilities.</step-2>
+      <step-3 status="done" verification="V-M-011">Strengthen the titlebar test to require native plugin dispatch, forbid the legacy facade, and assert production plugin/capability wiring.</step-3>
+      <step-4 status="done" verification="V-M-009,V-M-012">Match Muya undo/redo with physical `KeyZ` as well as Latin `z`, covering Cmd+Я/Cmd+Shift+Я on the Russian layout.</step-4>
+      <step-5 status="done" verification="V-M-009,V-M-012">Replace native predefined undo/redo responder items with explicit `edit.undo` and `edit.redo` accelerators dispatched through the renderer command bridge to Muya history.</step-5>
+      <step-6 status="in-progress" verification="V-M-009,V-M-011,V-M-012,V-M-046">Run full gates, publish v2.1.3-beta, update from installed v2.1.2-beta in app, and verify both the real system clipboard and undo/redo behavior.</step-6>
+      <write-scope>
+        <file>src/renderer/src/components/titleBar/index.vue</file>
+        <file>tests/renderer/components/titleBar-deep.test.js</file>
+        <file>src/muya/lib/eventHandler/keyboard.js</file>
+        <file>src-tauri/src/m009_menu.rs</file>
+        <file>tests/renderer/muya/keyboard-undo.test.js, tests/renderer/commands/menu-consistency.test.js</file>
+        <file>src-tauri/src/main.rs</file>
+        <file>src-tauri/capabilities/default.json, src-tauri/capabilities/mas.json</file>
+        <file>src-tauri/Cargo.toml, package.json, package-lock.json, Cargo.toml, Cargo.lock, src-tauri/tauri.conf.json</file>
+        <file>README.md</file>
+        <file>docs/development-plan.xml, docs/verification-plan.xml, docs/knowledge-graph.xml</file>
+      </write-scope>
+    </Phase-Clipboard-Hotfix-2026-08-07>
   </ImplementationOrder>
 
   <ExecutionPolicy>

@@ -1,9 +1,9 @@
 // FILE: tests/renderer/components/titleBar-deep.test.js
-// VERSION: 1.1.0
+// VERSION: 1.2.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Verify titleBar/index.vue computed state, native actions, navigation decisions, window controls, and lifecycle behavior.
 //   SCOPE: Deterministic Vue/jsdom component tests with mocked Tauri and compatibility facades.
-//   DEPENDS: Vue Test Utils, Vitest, Pinia test setup, i18n, titleBar/index.vue.
+//   DEPENDS: Vue Test Utils, Vitest, Pinia test setup, i18n, titleBar/index.vue, @tauri-apps/plugin-clipboard-manager.
 //   LINKS: docs/verification-plan.xml V-M-011 scenario 14; docs/knowledge-graph.xml M-011.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
@@ -16,13 +16,24 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-08-07 v1.2.0: require native clipboard dispatch and production plugin/capability wiring for Copy Path.
 //   - 2026-08-07 v1.1.0: add UC-029 title-path context-menu coverage.
 // END_CHANGE_SUMMARY
 
 import { shallowMount } from '@vue/test-utils'
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 import { setupTestPinia } from '../pinia'
 import { createI18n } from 'vue-i18n'
 import { nextTick } from 'vue'
+
+const { writeClipboardTextMock } = vi.hoisted(() => ({
+  writeClipboardTextMock: vi.fn()
+}))
+
+vi.mock('@tauri-apps/plugin-clipboard-manager', () => ({
+  writeText: writeClipboardTextMock
+}))
 
 vi.mock('@/bus', () => ({
   default: { on: vi.fn(), off: vi.fn(), emit: vi.fn() }
@@ -77,6 +88,7 @@ describe('titleBar/index.vue — deep coverage', () => {
   let pinia, TitleBar, bus
 
   beforeEach(async () => {
+    writeClipboardTextMock.mockReset()
     pinia = setupTestPinia()
     bus = (await import('@/bus')).default
     TitleBar = (await import('@/components/titleBar/index.vue')).default
@@ -353,9 +365,30 @@ describe('titleBar/index.vue — deep coverage', () => {
           y: 22
         }
       )
-      expect(window.electron.clipboard.writeText).toHaveBeenCalledWith(
+      expect(writeClipboardTextMock).toHaveBeenCalledWith(
         '/home/user/docs/test.md'
       )
+      expect(window.electron.clipboard.writeText).not.toHaveBeenCalled()
+    })
+
+    it('ships the native plugin with write-only clipboard permission', () => {
+      const workspaceRoot = resolve(import.meta.dirname, '../../..')
+      const defaultCapability = JSON.parse(
+        readFileSync(resolve(workspaceRoot, 'src-tauri/capabilities/default.json'), 'utf8')
+      )
+      const masCapability = JSON.parse(
+        readFileSync(resolve(workspaceRoot, 'src-tauri/capabilities/mas.json'), 'utf8')
+      )
+      const mainSource = readFileSync(
+        resolve(workspaceRoot, 'src-tauri/src/main.rs'),
+        'utf8'
+      )
+
+      for (const capability of [defaultCapability, masCapability]) {
+        expect(capability.permissions).toContain('clipboard-manager:allow-write-text')
+        expect(capability.permissions).not.toContain('clipboard-manager:allow-read-text')
+      }
+      expect(mainSource).toContain('.plugin(tauri_plugin_clipboard_manager::init())')
     })
 
     it('does nothing for an untitled document', async () => {
@@ -364,6 +397,7 @@ describe('titleBar/index.vue — deep coverage', () => {
       await wrapper.vm.handleTitleContextMenu({ clientX: 1, clientY: 2 })
 
       expect(window.electron.ipcRenderer.invoke).not.toHaveBeenCalled()
+      expect(writeClipboardTextMock).not.toHaveBeenCalled()
       expect(window.electron.clipboard.writeText).not.toHaveBeenCalled()
     })
 

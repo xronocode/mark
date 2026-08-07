@@ -1,3 +1,23 @@
+// FILE: src/muya/lib/eventHandler/keyboard.js
+// VERSION: 1.1.0
+// START_MODULE_CONTRACT
+//   PURPOSE: Route Muya keyboard events to editing commands, including layout-independent undo and redo.
+//   SCOPE: Composition tracking, editor state dispatch, keydown/keyup/input routing, floating-tool keyboard handling, and direct Muya history shortcuts.
+//   DEPENDS: Muya event center/content state, selection helpers, editor config, emoji UI.
+//   LINKS: docs/knowledge-graph.xml M-012; docs/verification-plan.xml V-M-012 scenario-10.
+//   ROLE: RUNTIME
+//   MAP_MODE: LOCALS
+// END_MODULE_CONTRACT
+//
+// START_MODULE_MAP
+//   Keyboard - Binds DOM keyboard/input events to Muya content-state and history operations.
+//   keydownBinding - Handles editing keys and layout-independent Cmd/Ctrl+Z undo/redo routing.
+// END_MODULE_MAP
+//
+// START_CHANGE_SUMMARY
+//   LAST_CHANGE: v1.1.0 - Match undo/redo by physical KeyZ so Cmd+Я on a Russian layout reaches Muya history.
+// END_CHANGE_SUMMARY
+
 import { EVENT_KEYS, KEYS_TO_IGNORE } from '../config'
 import selection from '../selection'
 import { findNearestParagraph } from '../selection/dom'
@@ -138,7 +158,9 @@ class Keyboard {
       if (event.metaKey || event.ctrlKey) {
         container.classList.add('ag-meta-or-ctrl')
 
-        if (event.key === 'z' || event.key === 'Z') {
+        // START_BLOCK_KEYBOARD_UNDO_REDO
+        const isUndoKey = event.code === 'KeyZ' || event.key === 'z' || event.key === 'Z'
+        if (isUndoKey) {
           event.preventDefault()
           if (event.shiftKey) {
             this.muya.redo()
@@ -147,6 +169,7 @@ class Keyboard {
           }
           return
         }
+        // END_BLOCK_KEYBOARD_UNDO_REDO
       }
 
       if (

@@ -69,7 +69,7 @@
       <AUTONOMY>autonomous</AUTONOMY>
     </matrix-row>
 
-    <matrix-row MODULE="M-009" V-M="V-M-009" PRIORITY="high" SCENARIOS="10" EC="10" ALM="5" NA="4" RTA="1" PHF="1" WAF="1">
+    <matrix-row MODULE="M-009" V-M="V-M-009" PRIORITY="high" SCENARIOS="12" EC="10" ALM="5" NA="4" RTA="1" PHF="1" WAF="1">
       <VF-COVERAGE>VF-009 (CommandPalettePath, via menu → command dispatch)</VF-COVERAGE>
       <GATE>Gate-Phase-B3 (128-item menu contract snapshot)</GATE>
       <AUTONOMY>partial — 128 menu items; review contract snapshot</AUTONOMY>
@@ -1311,6 +1311,8 @@
     <V-M-009 MODULE="M-009 mt-menu" PRIORITY="medium" status="done">
       <test-files>
         <file>src-tauri/src/m009_menu.rs (#[cfg(test)])</file>
+        <file>tests/renderer/commands/menu-consistency.test.js</file>
+        <file>tests/renderer/menu-bridge.test.js</file>
         <file>tests/renderer/contextMenu/tabs-index.test.js</file>
         <file>tests/renderer/contextMenu/sideBar-index.test.js</file>
         <file>tests/renderer/components/titleBar-deep.test.js</file>
@@ -1330,6 +1332,7 @@
         <scenario-9 kind="success">Debug items (Show Developer Tools, Reload window) visible ONLY when `MARKTEXT_DEBUG=true` flag set by M-020.</scenario-9>
         <scenario-10 kind="success">Platform visibility: `Preferences` visible on non-macOS; in MarkText App menu on macOS; Screenshot only macOS.</scenario-10>
         <scenario-11 kind="success">Renderer-requested context menus render native item/separator/enabled states, resolve the selected public id, resolve null on dismissal, and never emit the internal item id on `mt::menu-invoked`.</scenario-11>
+        <scenario-12 kind="regression">Native Cmd+Z/Cmd+Shift+Z items use explicit `edit.undo`/`edit.redo` IDs and dispatch through `mt::menu-invoked` to renderer commands; the macOS responder chain is never the sole Muya history route.</scenario-12>
       </scenarios>
       <required-log-markers>
         <marker-1>[Menu][onInvoke][BLOCK_DISPATCH] { menu_id }</marker-1>
@@ -1361,7 +1364,7 @@
       <negative-assertions generation="swarm-2026-04-25">
         <no>MUST NOT emit `MenuInvoked` for dismissed context menus.</no>
         <no>MUST NOT block &gt; 100ms waiting for spell suggestions.</no>
-        <no>MUST NOT shadow WebView edit shortcuts inside input focus on macOS.</no>
+        <no>MUST NOT leave Muya undo/redo solely to predefined macOS responder items that cannot reach contentState.history.</no>
         <no>MUST NOT lose checked/radio state across rebuild.</no>
       </negative-assertions>
     </V-M-009>
@@ -1439,6 +1442,7 @@
         <file>test/e2e/renderer.spec.ts</file>
         <file>test/unit/renderer/store/editor.spec.js (store-level regression)</file>
         <file>tests/renderer/components/titleBar-deep.test.js (title path context menu)</file>
+        <file>src-tauri/capabilities/default.json + mas.json (native clipboard write-only permission)</file>
         <file>tests/renderer/components/editor-coverage.test.js (first paint and preview caret surface)</file>
       </test-files>
       <module-checks>
@@ -1462,7 +1466,7 @@
         <scenario-11 kind="success">External file rename (main fs.watch detects) → RENAME_IF_NEEDED mutation updates all affected tabs without data loss.</scenario-11>
         <scenario-12 kind="success">Pinia migration (PR #4001) preserves 8 stores (project/editor/layout/preferences/commandCenter/listenForMain/notification/autoUpdates) — all 62 pref keys readable, 50+ actions wired to same IPC channels.</scenario-12>
         <scenario-13 kind="failure">Renderer attempts to import `fs`, `path`, `child_process`, `crypto`, `Buffer`, `os`: build-time typecheck fails (Phase-A1.5 regression guard).</scenario-13>
-        <scenario-14 kind="success">Right-click on a saved file title opens the native context menu; choosing Copy Path writes the exact pathname; untitled title is a no-op.</scenario-14>
+        <scenario-14 kind="regression">Right-click on a saved file title opens the native context menu; choosing Copy Path writes the exact pathname through `@tauri-apps/plugin-clipboard-manager`; browser/facade clipboard fallback is forbidden; untitled title is a no-op.</scenario-14>
         <scenario-15 kind="regression">Saved-scroll restoration makes the editor visible synchronously and then applies scrollTop; a delayed requestAnimationFrame cannot leave the file blank until user input.</scenario-15>
         <scenario-16 kind="regression">Finder preview mode updates the real Muya container to contenteditable=false; the first left mousedown exits preview synchronously, restores contenteditable=true, and restores focus/selection so the caret is visible.</scenario-16>
       </scenarios>
@@ -1506,6 +1510,7 @@
         <no>No `fs`/`path`/`child_process` symbols reachable in renderer bundle (Vite externals assertion).</no>
         <no>No animation observed when `prefers-reduced-motion: reduce`.</no>
         <no>No absolute pathname emitted by the title-path menu log marker.</no>
+        <no>No title-path Copy Path write through `navigator.clipboard` or the legacy `window.electron.clipboard` facade after native-menu selection.</no>
         <no>No editor visibility release that depends exclusively on requestAnimationFrame.</no>
       </negative-assertions>
     </V-M-011>
@@ -1515,10 +1520,12 @@
         <file>test/specs/commonMark/**</file>
         <file>test/specs/gfm/**</file>
         <file>test/unit/muya/api-snapshot.spec.js (new)</file>
+        <file>tests/renderer/muya/keyboard-undo.test.js</file>
       </test-files>
       <module-checks>
         <check-1>yarn test:specs</check-1>
         <check-2>yarn unit -- test/unit/muya/api-snapshot.spec.js</check-2>
+        <check-3>npx vitest run tests/renderer/muya/keyboard-undo.test.js tests/renderer/commands/menu-consistency.test.js tests/renderer/menu-bridge.test.js</check-3>
       </module-checks>
       <scenarios>
         <scenario-1 kind="success">CommonMark spec compliance: all passing tests remain green across every merge commit.</scenario-1>
@@ -1530,7 +1537,7 @@
         <scenario-7 kind="success">Host hooks contract: `window.DIRNAME`, `imageAction()`, `clipboardFilePath()`, `_replaceCurrentWordInlineUnsafe()` callable before first setMarkdown.</scenario-7>
         <scenario-8 kind="success">CJK word count (utils/index.js:342): sample Chinese/Japanese/Korean text returns expected counts.</scenario-8>
         <scenario-9 kind="success" added="2026-05-20" hotfix="Phase-Hotfix-alpha6">Mermaid render: mermaid code block renders visible SVG with non-empty &lt;g&gt; element using mermaid.render() API (v11+); re-render of same block produces unique render IDs (Date.now() suffix); async race-safe cache clearing (cache entry removed before await); full ESM build (mermaid.esm.mjs) includes all diagram type renderers.</scenario-9>
-        <scenario-10 kind="success" added="2026-05-20" hotfix="Phase-Hotfix-alpha6">Keyboard undo/redo: Cmd+Z in muya editor undoes last edit via muya.undo(); Cmd+Shift+Z redoes via muya.redo(); intercepted in keyboard.js before switch statement, bypassing macOS responder chain.</scenario-10>
+        <scenario-10 kind="regression" added="2026-05-20" hardened="2026-08-07" hotfix="Phase-Clipboard-Hotfix-2026-08-07">Keyboard undo/redo: Cmd/Ctrl+Z in Muya undoes via muya.undo(); shifted KeyZ redoes via muya.redo(); matching uses physical `KeyZ` so Russian-layout Cmd+Я works, while explicit native `edit.undo`/`edit.redo` menu IDs provide the macOS accelerator route.</scenario-10>
         <scenario-11 kind="success" added="2026-05-20" hotfix="Phase-Hotfix-alpha6">Link tooltip persistence: tooltip stays visible for at least 300ms after mouse leaves link text, allowing mouse travel to tooltip popup; mouseOutHandler uses setTimeout delay instead of immediate hide.</scenario-11>
         <scenario-12 kind="success" added="2026-05-20" hotfix="Phase-Hotfix-alpha6">Link click navigation: clicking jump icon in link tooltip triggers mt::format-link-click IPC; mt_format_link_click command in m_v1_compat extracts href, resolves relative paths against dirname, and opens URL in system browser via macOS open command.</scenario-12>
         <scenario-13 kind="known-issue" added="2026-05-20" hotfix="Phase-Hotfix-alpha6">Mermaid dark theme contrast: diagram SVG renders correctly but dark theme colors (background/text) blend with editor dark background. Needs smart auto-inversion or light background substrate under diagram containers. Non-blocking.</scenario-13>
@@ -5454,19 +5461,19 @@
     <phase-follow-up>Before beta.4 tagging, run full integration test: mock extension discovered, enabled, responds to text.transform via mt_ext_invoke, streams document via live server. m001_validate must pass with all 5 new commands registered.</phase-follow-up>
   </V-M-045>
 
-  <V-M-046 MODULE="M-046 ReleasePreflight" PRIORITY="critical" wave="v2.1.2-beta" status="done">
+  <V-M-046 MODULE="M-046 ReleasePreflight" PRIORITY="critical" wave="v2.1.3-beta" status="active">
     <module-surface>
       Tool: tools/release-preflight.mjs reads package.json, package-lock.json, Cargo.toml, Cargo.lock, and src-tauri/tauri.conf.json; validates one exact version and optional v&lt;version&gt; tag.
       Workflow: .github/workflows/release.yml invokes the metadata preflight before build, runs renderer unit/E2E/typecheck and Rust tests, then requires strict codesign + Gatekeeper evidence before smoke and publication.
     </module-surface>
     <high-level-scenarios>
-      <S1>All six metadata values across five files contain 2.1.2-beta and tag v2.1.2-beta: preflight passes and emits BLOCK_RELEASE_VERSION_CONSISTENT.</S1>
+      <S1>All six metadata values across five files contain 2.1.3-beta and tag v2.1.3-beta: preflight passes and emits BLOCK_RELEASE_VERSION_CONSISTENT.</S1>
       <S2>Any metadata source differs: preflight fails with MT_RELEASE_VERSION_MISMATCH and names sources/versions without secrets.</S2>
       <S3>Metadata agrees but tag differs: preflight fails with MT_RELEASE_TAG_MISMATCH before packaging.</S3>
       <S4>Release workflow contains renderer unit/typecheck, a clean-checkout Vite build before bounded Playwright E2E, and Rust test gates before tauri packaging.</S4>
       <S5>Release workflow verifies strict codesign and Gatekeeper acceptance before its installed-app smoke launch and publish job.</S5>
-      <S6>Isolated local v2.1.2-beta bundle is ad-hoc re-signed, passes strict codesign, launches separately from the installed Mark instance, and renders a Markdown document without first-input reveal.</S6>
-      <S7>The updater feed uses strict SemVer `2.1.2-beta` while release asset URLs retain the canonical Git tag `v2.1.2-beta`.</S7>
+      <S6>Isolated local v2.1.3-beta bundle is ad-hoc re-signed, passes strict codesign, launches separately from the installed Mark instance, and renders a Markdown document without first-input reveal.</S6>
+      <S7>The updater feed uses strict SemVer `2.1.3-beta` while release asset URLs retain the canonical Git tag `v2.1.3-beta`.</S7>
       <S8>GitHub publication keeps signed beta tags as normal releases so `/releases/latest/download/latest.json` advances to the newest shipped feed.</S8>
       <S9>Cross-repo cask publication rejects any URL template that does not resolve to the staged `Mark_&lt;version&gt;_aarch64.dmg` release asset.</S9>
     </high-level-scenarios>
@@ -5476,7 +5483,7 @@
       <test>tests/renderer/components/editor-coverage.test.js</test>
     </test-targets>
     <commands>
-      <module-local>npm run release:preflight -- --tag v2.1.2-beta</module-local>
+      <module-local>npm run release:preflight -- --tag v2.1.3-beta</module-local>
       <module-local>npx vitest run tests/renderer/release-preflight.test.js tests/renderer/components/titleBar-deep.test.js tests/renderer/components/editor-coverage.test.js</module-local>
       <local-bundle>npm run tauri:build -- --config '{"bundle":{"createUpdaterArtifacts":false}}' (local artifact build without access to the production updater private key)</local-bundle>
       <phase-gate>npm test &amp;&amp; npm run test:e2e &amp;&amp; npm run typecheck:ipc &amp;&amp; cargo test --bin mark &amp;&amp; npm run build &amp;&amp; npm run tauri:build</phase-gate>
