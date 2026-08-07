@@ -1,5 +1,5 @@
 // FILE: src-tauri/src/main.rs
-// VERSION: 2.1.2-beta
+// VERSION: 2.1.3-beta
 // START_MODULE_CONTRACT
 //   PURPOSE: M-001 entry point. Strict boot order:
 //              (1) m001_panic::install_panic_hook  — first, so any later
@@ -46,6 +46,8 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-08-07 v2.1.3-beta: initialize the native clipboard-manager
+//     plugin for title-path Copy Path after WKWebView user activation expires.
 //   - 2026-08-07 v2.1.2-beta: remove the obsolete Terminal/Homebrew
 //     updater command; M-016 now uses the signed Tauri updater only.
 //   - 2026-08-07 v2.1.1-beta: register dynamic native context menus and
@@ -548,6 +550,7 @@ fn main() {
         .plugin(tauri_plugin_window_state::Builder::new().with_denylist(&["settings"]).build())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_process::init())
+        .plugin(tauri_plugin_clipboard_manager::init())
         // F-MENU-WIRE-TAURI (B4-pre-alpha step-1): build the native
         // macOS menu in Builder.setup so accelerators bind to menu
         // items at app boot. Each menu item with `with_id(...)` becomes

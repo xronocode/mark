@@ -15,6 +15,7 @@
     "dialog:default",
     "window-state:default",
     "opener:default",
+    "clipboard-manager:allow-write-text",
     "updater:default",
     "process:default",
     "core:webview:allow-set-webview-zoom"

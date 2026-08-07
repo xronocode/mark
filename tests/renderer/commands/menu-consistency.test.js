@@ -1,14 +1,24 @@
-/**
- * Menu ↔ Commands consistency test.
- *
- * Ensures every native menu item ID (m009_menu.rs build_native_menu)
- * has a matching renderer command (commands/index.js), and that no
- * renderer command with a keyboard shortcut is missing from the
- * native menu (which would make the shortcut silently dead).
- *
- * This test parses both source files directly — no runtime imports —
- * so it catches drift even when the app doesn't boot.
- */
+// FILE: tests/renderer/commands/menu-consistency.test.js
+// VERSION: 1.1.0
+// START_MODULE_CONTRACT
+//   PURPOSE: Keep native application-menu IDs and renderer command IDs synchronized.
+//   SCOPE: Source-level native-menu extraction, renderer command/shortcut extraction, and intentional renderer-only exceptions.
+//   DEPENDS: src-tauri/src/m009_menu.rs, src/renderer/src/commands/index.js, Vitest, Node fs/path.
+//   LINKS: docs/verification-plan.xml V-M-009 and V-M-012 scenario-10; docs/knowledge-graph.xml M-009 and M-012.
+//   ROLE: TEST
+//   MAP_MODE: LOCALS
+// END_MODULE_CONTRACT
+//
+// START_MODULE_MAP
+//   extractNativeMenuIds - Reads explicit native menu IDs from build_native_menu.
+//   extractRendererCommandIds - Reads renderer command registry IDs.
+//   extractRendererShortcutIds - Maps renderer keyboard shortcuts back to command IDs.
+//   RENDERER_ONLY_ALLOWLIST - Documents commands intentionally absent from the native menu.
+// END_MODULE_MAP
+//
+// START_CHANGE_SUMMARY
+//   LAST_CHANGE: v1.1.0 - Require edit.undo/edit.redo to be native menu IDs routed to Muya history.
+// END_CHANGE_SUMMARY
 
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
@@ -59,9 +69,6 @@ const extractRendererShortcutIds = () => {
 // palette / internal dispatch) and don't need a native menu entry.
 // Each entry must have a reason — add new entries only with a comment.
 const RENDERER_ONLY_ALLOWLIST = new Set([
-  // Tauri predefined items handle these via macOS responder chain
-  'edit.undo',
-  'edit.redo',
   // Tauri predefined .quit() on macOS
   'file.quit',
   // Multi-window not yet implemented
@@ -182,6 +189,18 @@ describe('menu ↔ commands consistency', () => {
       }
     }
     expect(missing).toEqual([])
+  })
+
+  it('routes native undo/redo accelerators through explicit renderer command IDs', () => {
+    const rust = readSource('src-tauri/src/m009_menu.rs')
+    const buildFn = rust.slice(rust.indexOf('pub fn build_native_menu'))
+
+    expect(buildFn).toMatch(
+      /with_id\("edit\.undo", "Undo"\)[\s\S]*?accelerator\("CmdOrCtrl\+Z"\)/
+    )
+    expect(buildFn).toMatch(
+      /with_id\("edit\.redo", "Redo"\)[\s\S]*?accelerator\("CmdOrCtrl\+Shift\+Z"\)/
+    )
   })
 
   it('allowlist entries actually exist in renderer commands', () => {
