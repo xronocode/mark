@@ -1,7 +1,7 @@
 # FILE: .github/workflows/release.yml
-# VERSION: 1.4.0
+# VERSION: 1.5.0
 # START_MODULE_CONTRACT
-#   PURPOSE: Build, verify, sign, notarize, smoke-test, attest, publish with correct stable/prerelease classification, and route the Homebrew update for a tagged macOS release.
+#   PURPOSE: Build, verify, sign, notarize, smoke-test, attest, publish with correct stable/prerelease classification, and route a verified artifact URL into the Homebrew update.
 #   SCOPE: Tag-triggered production release orchestration; does not own application runtime behavior or signing credentials.
 #   DEPENDS: M-046 release preflight, Node 22, Rust stable, Playwright Chromium, tauri-action, Apple signing/notary secrets, GitHub OIDC, release environment.
 #   LINKS: docs/knowledge-graph.xml M-046; docs/verification-plan.xml V-M-046; docs/requirements.xml UC-032.
@@ -16,6 +16,7 @@
 # END_MODULE_MAP
 #
 # START_CHANGE_SUMMARY
+#   - 2026-08-07 v1.5.0: fail cask publication unless its URL template resolves to the staged Tauri DMG filename.
 #   - 2026-08-07 v1.4.0: classify hyphenated SemVer tags as GitHub prereleases during create and idempotent update paths.
 #   - 2026-08-07 v1.3.0: build the clean-checkout renderer before Playwright preview and bound the E2E release gate to 15 minutes.
 #   - 2026-08-07 v1.2.0: emit strict SemVer without the Git tag's leading v in the Tauri updater feed.
@@ -582,6 +583,15 @@ jobs:
 
           sed -i'' -e "s|version \".*\"|version \"$VER\"|" "$CASK"
           sed -i'' -e "s|sha256 \"[a-f0-9]*\"|sha256 \"$SHA256\"|" "$CASK"
+
+          # The v1 Electron cask used mark-mac-arm64-<version>.dmg, while
+          # the Tauri release contract publishes Mark_<version>_aarch64.dmg.
+          # Keep the template explicit and fail before opening a 404ing PR.
+          EXPECTED_DMG_TEMPLATE='Mark_#{version}_aarch64.dmg'
+          if ! grep -Fq "$EXPECTED_DMG_TEMPLATE" "$CASK"; then
+            echo "::error::$CASK URL must reference $EXPECTED_DMG_TEMPLATE"
+            exit 1
+          fi
 
           git add "$CASK"
           git commit -m "Bump ${CASK_NAME} to ${VER}"

@@ -5459,6 +5459,7 @@
       <S6>Isolated local v2.1.1-beta bundle is ad-hoc re-signed, passes strict codesign, launches separately from the installed Mark instance, and renders a Markdown document without first-input reveal.</S6>
       <S7>The updater feed uses strict SemVer `2.1.1-beta` while release asset URLs retain the canonical Git tag `v2.1.1-beta`.</S7>
       <S8>GitHub publication derives prerelease state from the normalized SemVer: hyphenated versions set `--prerelease`, while stable versions explicitly set `--prerelease=false`.</S8>
+      <S9>Cross-repo cask publication rejects any URL template that does not resolve to the staged `Mark_&lt;version&gt;_aarch64.dmg` release asset.</S9>
     </high-level-scenarios>
     <test-targets>
       <test>tests/renderer/release-preflight.test.js</test>
@@ -5482,6 +5483,7 @@
       <N2>No publish job may run when renderer, Rust, signature, Gatekeeper, or smoke gates fail.</N2>
       <N3>No signing private key, certificate content, updater key, or password may appear in preflight output.</N3>
       <N4>No hyphenated SemVer release may remain classified as stable on GitHub after either creation or idempotent asset upload.</N4>
+      <N5>No Homebrew PR may be opened with a legacy Electron DMG filename or another URL that differs from the published Tauri artifact.</N5>
     </negative-assertions>
     <phase-follow-up>Tag and push remain explicit maintainer actions after the clean release commit and green remote CI.</phase-follow-up>
   </V-M-046>
