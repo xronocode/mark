@@ -872,6 +872,7 @@
         <fn-readVersionEvidence PURPOSE="Read release version values from Node, Cargo, Tauri, and lock metadata" />
         <fn-validateVersionEvidence PURPOSE="Reject inconsistent metadata or a tag that is not exactly v&lt;version&gt;" />
         <fn-runReleasePreflight PURPOSE="Run the release metadata gate and emit stable pass/fail markers" />
+        <gate-release-e2e PURPOSE="Build renderer dist before bounded Playwright preview on clean release runners" />
       </annotations>
     </M-046>
 
