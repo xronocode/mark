@@ -923,7 +923,7 @@
 
     <V-M-004 MODULE="M-004 mt-search" PRIORITY="high">
       <test-files>
-        <file>src-tauri/src/search/mod.rs (#[cfg(test)])</file>
+        <file>src-tauri/src/m013b/search.rs (#[cfg(test)])</file>
       </test-files>
       <module-checks>
         <check-1>cargo test --manifest-path src-tauri/Cargo.toml search</check-1>
@@ -933,6 +933,7 @@
         <scenario-2 kind="success">10k-file fixture: first batch delivered in &lt; 500ms.</scenario-2>
         <scenario-3 kind="success">Cancellation mid-stream stops yielding results within 100ms.</scenario-3>
         <scenario-4 kind="success">.gitignore patterns honored.</scenario-4>
+        <scenario-5 kind="failure">An invalid injected rg executable returns a stable spawn error without changing process-global PATH or racing parallel tests.</scenario-5>
       </scenarios>
       <required-log-markers>
         <marker-1>[Search][run][BLOCK_COMPILE_MATCHER]</marker-1>
@@ -966,6 +967,7 @@
         <no>After cancel: zero BLOCK_STREAM_RESULTS with seq &gt; cancel_seq; zero child rg PIDs on ps snapshot.</no>
         <no>Catastrophic regex: no thread blocked &gt;2s; exactly one BLOCK_SEARCH_TIMEOUT per offending file.</no>
         <no>Hidden / gitignored files: zero match emissions (not filtered post-match — filtered at walk).</no>
+        <no>Spawn-failure tests must not mutate PATH or any other process-global environment variable.</no>
       </negative-assertions>
       <closed-evidence generation="alpha-disable" date="2026-04-30" reborn-mark-commits="(F-SEARCH-DISABLED-FOR-ALPHA wave)">
         <scope>NEGATIVE evidence — search is intentionally disabled for the alpha. This block records the decision and the verification surface that becomes binding at B4 resolution.</scope>
@@ -1306,10 +1308,12 @@
       </negative-assertions>
     </V-M-008>
 
-    <V-M-009 MODULE="M-009 mt-menu" PRIORITY="medium">
+    <V-M-009 MODULE="M-009 mt-menu" PRIORITY="medium" status="done">
       <test-files>
-        <file>src-tauri/src/menu/mod.rs (#[cfg(test)])</file>
-        <file>test/e2e/menu.spec.ts</file>
+        <file>src-tauri/src/m009_menu.rs (#[cfg(test)])</file>
+        <file>tests/renderer/contextMenu/tabs-index.test.js</file>
+        <file>tests/renderer/contextMenu/sideBar-index.test.js</file>
+        <file>tests/renderer/components/titleBar-deep.test.js</file>
       </test-files>
       <module-checks>
         <check-1>cargo test --manifest-path src-tauri/Cargo.toml menu</check-1>
@@ -1325,6 +1329,7 @@
         <scenario-8 kind="failure">Tauri-missing roles (`services`, `recentdocuments`, "Bring All to Front") stubbed or self-implemented; no runtime error on macOS.</scenario-8>
         <scenario-9 kind="success">Debug items (Show Developer Tools, Reload window) visible ONLY when `MARKTEXT_DEBUG=true` flag set by M-020.</scenario-9>
         <scenario-10 kind="success">Platform visibility: `Preferences` visible on non-macOS; in MarkText App menu on macOS; Screenshot only macOS.</scenario-10>
+        <scenario-11 kind="success">Renderer-requested context menus render native item/separator/enabled states, resolve the selected public id, resolve null on dismissal, and never emit the internal item id on `mt::menu-invoked`.</scenario-11>
       </scenarios>
       <required-log-markers>
         <marker-1>[Menu][onInvoke][BLOCK_DISPATCH] { menu_id }</marker-1>
@@ -1433,9 +1438,15 @@
         <file>test/unit/renderer/**.spec.js (existing Karma)</file>
         <file>test/e2e/renderer.spec.ts</file>
         <file>test/unit/renderer/store/editor.spec.js (store-level regression)</file>
+        <file>tests/renderer/components/titleBar-deep.test.js (title path context menu)</file>
+        <file>tests/renderer/components/editor-coverage.test.js (first paint and preview caret surface)</file>
       </test-files>
       <module-checks>
         <check-1>yarn unit</check-1>
+        <check-2>npx vitest run tests/renderer/components/titleBar-deep.test.js tests/renderer/components/editor-coverage.test.js</check-2>
+        <check-3>npm run typecheck:ipc</check-3>
+        <check-4>npm run build</check-4>
+        <check-5>npm run tauri:build</check-5>
       </module-checks>
       <scenarios>
         <scenario-1 kind="success">muya mounts and renders a fixture document with all 7 host hooks wired.</scenario-1>
@@ -1451,10 +1462,16 @@
         <scenario-11 kind="success">External file rename (main fs.watch detects) → RENAME_IF_NEEDED mutation updates all affected tabs without data loss.</scenario-11>
         <scenario-12 kind="success">Pinia migration (PR #4001) preserves 8 stores (project/editor/layout/preferences/commandCenter/listenForMain/notification/autoUpdates) — all 62 pref keys readable, 50+ actions wired to same IPC channels.</scenario-12>
         <scenario-13 kind="failure">Renderer attempts to import `fs`, `path`, `child_process`, `crypto`, `Buffer`, `os`: build-time typecheck fails (Phase-A1.5 regression guard).</scenario-13>
+        <scenario-14 kind="success">Right-click on a saved file title opens the native context menu; choosing Copy Path writes the exact pathname; untitled title is a no-op.</scenario-14>
+        <scenario-15 kind="regression">Saved-scroll restoration makes the editor visible synchronously and then applies scrollTop; a delayed requestAnimationFrame cannot leave the file blank until user input.</scenario-15>
+        <scenario-16 kind="regression">Finder preview mode updates the real Muya container to contenteditable=false; the first left mousedown exits preview synchronously, restores contenteditable=true, and restores focus/selection so the caret is visible.</scenario-16>
       </scenarios>
       <required-log-markers>
         <marker-1>[Renderer][mount][BLOCK_INSTANTIATE_MUYA]</marker-1>
         <marker-2>[Renderer][mount][BLOCK_HOST_HOOKS_WIRED] { hooks: 7 }</marker-2>
+        <marker-3>[TitleBar][handleTitleContextMenu][BLOCK_COPY_PATH]</marker-3>
+        <marker-4>[Editor][scrollToCords][BLOCK_SCROLL_RESTORED]</marker-4>
+        <marker-5>[Editor][syncPreviewSurface][BLOCK_PREVIEW_SURFACE_SYNC]</marker-5>
       </required-log-markers>
       <required-trace-assertions>
         <assertion-1>IPC command invoked after component destroy must NOT reach backend; BLOCK_INVOKE_GUARD_DESTROYED fires.</assertion-1>
@@ -1488,6 +1505,8 @@
         <no>`window.__PINIA__` not present in production build.</no>
         <no>No `fs`/`path`/`child_process` symbols reachable in renderer bundle (Vite externals assertion).</no>
         <no>No animation observed when `prefers-reduced-motion: reduce`.</no>
+        <no>No absolute pathname emitted by the title-path menu log marker.</no>
+        <no>No editor visibility release that depends exclusively on requestAnimationFrame.</no>
       </negative-assertions>
     </V-M-011>
 
@@ -5425,6 +5444,45 @@
     <wave-follow-up>When a second extension type is added beyond TokMo, verify that no M-045 code changes are required (extensibility test).</wave-follow-up>
     <phase-follow-up>Before beta.4 tagging, run full integration test: mock extension discovered, enabled, responds to text.transform via mt_ext_invoke, streams document via live server. m001_validate must pass with all 5 new commands registered.</phase-follow-up>
   </V-M-045>
+
+  <V-M-046 MODULE="M-046 ReleasePreflight" PRIORITY="critical" wave="v2.1.1-beta" status="done">
+    <module-surface>
+      Tool: tools/release-preflight.mjs reads package.json, package-lock.json, Cargo.toml, Cargo.lock, and src-tauri/tauri.conf.json; validates one exact version and optional v&lt;version&gt; tag.
+      Workflow: .github/workflows/release.yml invokes the metadata preflight before build, runs renderer unit/E2E/typecheck and Rust tests, then requires strict codesign + Gatekeeper evidence before smoke and publication.
+    </module-surface>
+    <high-level-scenarios>
+      <S1>All six metadata values across five files contain 2.1.1-beta and tag v2.1.1-beta: preflight passes and emits BLOCK_RELEASE_VERSION_CONSISTENT.</S1>
+      <S2>Any metadata source differs: preflight fails with MT_RELEASE_VERSION_MISMATCH and names sources/versions without secrets.</S2>
+      <S3>Metadata agrees but tag differs: preflight fails with MT_RELEASE_TAG_MISMATCH before packaging.</S3>
+      <S4>Release workflow contains renderer unit/E2E/typecheck and Rust test gates before tauri build.</S4>
+      <S5>Release workflow verifies strict codesign and Gatekeeper acceptance before its installed-app smoke launch and publish job.</S5>
+      <S6>Isolated local v2.1.1-beta bundle is ad-hoc re-signed, passes strict codesign, launches separately from the installed Mark instance, and renders a Markdown document without first-input reveal.</S6>
+      <S7>The updater feed uses strict SemVer `2.1.1-beta` while release asset URLs retain the canonical Git tag `v2.1.1-beta`.</S7>
+    </high-level-scenarios>
+    <test-targets>
+      <test>tests/renderer/release-preflight.test.js</test>
+      <test>tests/renderer/components/titleBar-deep.test.js</test>
+      <test>tests/renderer/components/editor-coverage.test.js</test>
+    </test-targets>
+    <commands>
+      <module-local>npm run release:preflight -- --tag v2.1.1-beta</module-local>
+      <module-local>npx vitest run tests/renderer/release-preflight.test.js tests/renderer/components/titleBar-deep.test.js tests/renderer/components/editor-coverage.test.js</module-local>
+      <local-bundle>npm run tauri:build -- --config '{"bundle":{"createUpdaterArtifacts":false}}' (local artifact build without access to the production updater private key)</local-bundle>
+      <phase-gate>npm test &amp;&amp; npm run test:e2e &amp;&amp; npm run typecheck:ipc &amp;&amp; cargo test --bin mark &amp;&amp; npm run build &amp;&amp; npm run tauri:build</phase-gate>
+      <signature-gate>codesign --verify --deep --strict --verbose=4 Mark.app; spctl --assess --type execute --verbose=4 Mark.app</signature-gate>
+    </commands>
+    <required-log-markers>
+      <marker>[ReleasePreflight][validateVersions][BLOCK_RELEASE_VERSION_CONSISTENT]</marker>
+      <marker>[ReleasePreflight][validateVersions][BLOCK_RELEASE_VERSION_MISMATCH]</marker>
+      <marker>[ReleasePreflight][validateVersions][BLOCK_RELEASE_TAG_MISMATCH]</marker>
+    </required-log-markers>
+    <negative-assertions>
+      <N1>No release filename or updater feed version may be derived from a tag that differs from embedded app metadata; updater `version` must strip the tag's leading `v`.</N1>
+      <N2>No publish job may run when renderer, Rust, signature, Gatekeeper, or smoke gates fail.</N2>
+      <N3>No signing private key, certificate content, updater key, or password may appear in preflight output.</N3>
+    </negative-assertions>
+    <phase-follow-up>Tag and push remain explicit maintainer actions after the clean release commit and green remote CI.</phase-follow-up>
+  </V-M-046>
 
   <!-- Sidebar walk race fix + dirty-file highlighting (2026-05-20, commits 9bb39e36 + 3f3efe74) -->
   <V-SIDEBAR-WALK-RACE MODULE="m_v1_compat + project.js" PRIORITY="high" SCOPE="backend-ipc + renderer-project-store" status="done" verified-at="2026-05-20">

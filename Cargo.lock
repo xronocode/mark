@@ -2600,7 +2600,7 @@ dependencies = [
 
 [[package]]
 name = "mark"
-version = "2.1.0-beta"
+version = "2.1.1-beta"
 dependencies = [
  "axum",
  "chardet",

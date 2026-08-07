@@ -17,7 +17,7 @@
     <div
       ref="editorRef"
       class="editor-component"
-      :contenteditable="isPreviewMode ? 'false' : undefined"
+      :contenteditable="isPreviewMode ? 'false' : 'true'"
       @mousedown="handlePreviewMousedown"
       @keydown="handlePreviewKeydown"
     ></div>
@@ -74,6 +74,30 @@
 </template>
 
 <script setup>
+// FILE: src/renderer/src/components/editorWithTabs/editor.vue
+// VERSION: 1.1.0
+// START_MODULE_CONTRACT
+//   PURPOSE: Host the Muya WYSIWYG surface and coordinate document rendering, selection, scroll, preview, editor tools, and store/bus integration.
+//   SCOPE: Renderer-side Muya lifecycle and UI orchestration; does not own Markdown parsing rules or backend file persistence.
+//   DEPENDS: Muya, Pinia preferences/editor/project/layout stores, bus, renderer services/utilities, window.electron compatibility facade.
+//   LINKS: docs/knowledge-graph.xml M-011 and M-012; docs/verification-plan.xml V-M-011 scenarios 15-16 and V-M-012.
+//   ROLE: RUNTIME
+//   MAP_MODE: LOCALS
+// END_MODULE_CONTRACT
+//
+// START_MODULE_MAP
+//   setMarkdownToEditor - Loads a newly opened document into Muya.
+//   handleFileChange - Restores a switched/reloaded tab's document, cursor, history, and scroll state.
+//   scrollToCords - Restores saved scrollTop without leaving the editor hidden behind a delayed animation frame.
+//   syncPreviewSurface - Mirrors previewMode onto Muya's real replacement container and restores caret focus on exit.
+//   imageAction - Applies configured local/upload image insertion behavior.
+//   handleExport - Routes supported export formats to renderer services.
+// END_MODULE_MAP
+//
+// START_CHANGE_SUMMARY
+//   - 2026-08-07 v1.1.0: fix first-paint blankness and synchronize preview/caret state on Muya's actual surface for UC-030 and UC-031.
+// END_CHANGE_SUMMARY
+
 import { ref, reactive, watch, onMounted, onBeforeUnmount, nextTick, computed } from 'vue'
 import log from 'electron-log'
 // import ViewImage from 'view-image'
@@ -214,6 +238,48 @@ let imageViewer = null
 // the .is-preview class flips reactively when APPLY_PREVIEW_MODE /
 // EXIT_PREVIEW_MODE mutate currentFile.previewMode.
 const isPreviewMode = computed(() => !!currentFile.value?.previewMode)
+
+// START_CONTRACT: syncPreviewSurface
+//   PURPOSE: Keep previewMode synchronized with Muya's actual replacement container and restore an editable caret immediately on preview exit.
+//   INPUTS: { preview: Boolean - desired read-only preview state, restoreCaret: Boolean - whether to restore Muya focus/selection }
+//   OUTPUTS: { void }
+//   SIDE_EFFECTS: Mutates contenteditable/aria-readonly/caret-color on the Muya container and may focus it.
+//   LINKS: docs/verification-plan.xml V-M-011 scenario-16; docs/knowledge-graph.xml M-011.fn-syncPreviewSurface
+// END_CONTRACT: syncPreviewSurface
+// START_BLOCK_PREVIEW_SURFACE_SYNC
+const syncPreviewSurface = (preview, restoreCaret = false) => {
+  const surface = editor.value?.container
+  if (!surface) return
+
+  surface.setAttribute('contenteditable', String(!preview))
+  // Vue removes the wrapper's `.is-preview` class on its next DOM patch.
+  // Keep an explicit editable color meanwhile so the same mousedown that
+  // exits preview cannot place a caret hidden by the still-present class.
+  surface.style.caretColor = preview ? 'transparent' : 'var(--editorColor)'
+  if (preview) {
+    surface.setAttribute('aria-readonly', 'true')
+  } else {
+    surface.removeAttribute('aria-readonly')
+  }
+
+  const shouldRestoreCaret = restoreCaret && !preview && !sourceCode.value
+  if (shouldRestoreCaret) {
+    editor.value.focus()
+  }
+
+  console.debug(
+    `[Editor][syncPreviewSurface][BLOCK_PREVIEW_SURFACE_SYNC] preview=${preview} editable=${!preview} restoredCaret=${shouldRestoreCaret}`
+  )
+}
+
+watch(
+  isPreviewMode,
+  (preview, previousPreview) => {
+    syncPreviewSurface(preview, previousPreview === true && preview === false)
+  },
+  { flush: 'sync' }
+)
+// END_BLOCK_PREVIEW_SURFACE_SYNC
 
 // E-04 ORDERING NOTE: handler runs on `mousedown` (NOT mouseup / click).
 // Reason: the user's drag-select gesture starts at mousedown — exiting
@@ -756,6 +822,14 @@ const scrollToCursor = (duration = 300) => {
   })
 }
 
+// START_CONTRACT: scrollToCords
+//   PURPOSE: Restore a saved editor scroll position without allowing delayed animation-frame scheduling to leave the document hidden.
+//   INPUTS: { y: Number - saved scrollTop in CSS pixels }
+//   OUTPUTS: { void }
+//   SIDE_EFFECTS: May add temporary bottom padding, observes editor size, updates scrollTop, visibility, and pointer-events.
+//   LINKS: docs/verification-plan.xml V-M-011 scenario-15; docs/knowledge-graph.xml M-011.fn-scrollToCords
+// END_CONTRACT: scrollToCords
+// START_BLOCK_FIRST_PAINT_SCROLL_RESTORE
 const scrollToCords = (y) => {
   const { container } = editor.value
   // Depending on how much the user previously scrolled, sometimes the container has not fully rendered all elements.
@@ -769,14 +843,24 @@ const scrollToCords = (y) => {
     // attach a resize observer so we know when to remove the padding when it is of the "correct" height
     resizeObserverForEditor.observe(editorId)
   }
+
+  // WKWebView may throttle requestAnimationFrame while a new window is
+  // backgrounded. Reveal and position synchronously so the document can
+  // never remain blank until the first keyboard/pointer event.
+  container.scrollTop = y
+  container.style.visibility = 'visible'
+  container.style.pointerEvents = 'auto'
+  console.debug(
+    `[Editor][scrollToCords][BLOCK_SCROLL_RESTORED] scrollTop=${y} phase=sync`
+  )
+
+  // Re-apply once after layout settles; correctness no longer depends on it.
   requestAnimationFrame(() => {
     if (!container) return
-    // wait for the padding to be applied (if any)
-    container.style.visibility = 'visible'
-    container.style.pointerEvents = 'auto'
     container.scrollTop = y
   })
 }
+// END_BLOCK_FIRST_PAINT_SCROLL_RESTORE
 
 const scrollToHighlight = () => {
   return scrollToElement('.ag-highlight')
@@ -972,9 +1056,8 @@ const handleFileChange = ({
   muyaIndexCursor,
   blocks = undefined
 }) => {
-  const { container } = editor.value
-
   if (editor.value) {
+    const { container } = editor.value
     if (history) {
       editor.value.setHistory(history)
     }
@@ -986,8 +1069,6 @@ const handleFileChange = ({
     }
 
     if (typeof scrollTop === 'number') {
-      container.style.visibility = 'hidden'
-      container.style.pointerEvents = 'none'
       scrollToCords(scrollTop)
     } else {
       container.style.visibility = 'visible'
@@ -1211,6 +1292,11 @@ onMounted(() => {
   }
 
   editor.value = new Muya(ele, options)
+
+  // Muya replaces the Vue ref node, so apply preview/editable state to the
+  // actual replacement surface after construction. Normal editing also gets
+  // an initial focused selection, making the caret visible on first paint.
+  syncPreviewSurface(isPreviewMode.value, !isPreviewMode.value)
 
   const { container } = editor.value
 

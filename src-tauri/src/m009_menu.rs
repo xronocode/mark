@@ -1,4 +1,6 @@
-// MODULE_CONTRACT
+// FILE: src-tauri/src/m009_menu.rs
+// VERSION: 2.1.1-beta
+// START_MODULE_CONTRACT
 //   PURPOSE: M-009 mt-menu. Native macOS application menu + command-id
 //            taxonomy for the renderer's command palette / sidebar /
 //            breadcrumb. Native menu wires accelerators (Cmd+S etc) +
@@ -10,16 +12,35 @@
 //            on_menu_event. Edit basics (cut/copy/paste/undo/redo/
 //            select-all) use Tauri predefined items so the macOS
 //            responder chain handles them in the WebView; only Find /
-//            Replace / Find-in-Folder are custom dispatched.
+//            Replace / Find-in-Folder are custom dispatched; (c) dynamic
+//            renderer-requested native context menus return the selected
+//            renderer item id without leaking their events onto the global
+//            application-menu bus.
 //   DEPENDS: serde, tauri (Runtime, AppHandle, menu::* in target build).
-//   LINKS:   docs/development-plan.xml Phase-B4-pre-alpha step-1
-//            (closes F-MENU-WIRE-TAURI). Renderer command registry:
-//            src/renderer/src/commands/index.js (id contract).
-//   STATUS:  Phase-B4-pre-alpha step-1 — native menu wired.
+//   LINKS:   docs/development-plan.xml M-009; docs/knowledge-graph.xml
+//            M-009; docs/verification-plan.xml V-M-009. Renderer command
+//            registry: src/renderer/src/commands/index.js (id contract).
+//   STATUS:  shipped — native app and dynamic context menus wired.
 //   LOG MARKERS: [Menu][build][BLOCK_BUILD_NATIVE_MENU] count=N (in main.rs);
-//                [Menu][on_event][BLOCK_DISPATCH] menu_id=… (in main.rs).
+//                [Menu][on_event][BLOCK_DISPATCH] menu_id=… (in main.rs);
+//                [Menu][context][BLOCK_CONTEXT_MENU_RESULT] selected=… .
+//   ROLE: RUNTIME
+//   MAP_MODE: EXPORTS
+// END_MODULE_CONTRACT
 //
-// CHANGE_SUMMARY:
+// START_MODULE_MAP
+//   MenuItem - Declarative application-menu taxonomy entry.
+//   ContextMenuItemSpec - Validated renderer payload for a native context-menu row.
+//   standard_menu - Returns the renderer-facing application-menu taxonomy.
+//   mt_menu_taxonomy - Exposes the application-menu taxonomy through Tauri IPC.
+//   build_native_menu - Builds the installed native application menu.
+//   mt_window_popup_app_menu - Opens the installed application menu at renderer coordinates.
+//   mt_window_popup_context_menu - Opens a dynamic native context menu and returns the selected public id.
+//   capture_context_menu_selection - Diverts dynamic context-menu events from the global app-menu bus.
+//   mt_update_line_ending_menu - Synchronizes native LF/CRLF checked state for the active document.
+// END_MODULE_MAP
+//
+// START_CHANGE_SUMMARY
 //   - 2026-04-29 B3-step-12: initial skeleton.
 //   - 2026-05-08 B4-pre-alpha-step-1: build_native_menu + Tauri menu.
 //                Renamed ids to dashed convention to match renderer
@@ -27,8 +48,165 @@
 //                the menu-bridge in renderer can dispatch by id
 //                without translation. Predefined edit basics use
 //                Tauri SubmenuBuilder helpers.
+//   - 2026-08-07 v2.1.1-beta: implement renderer-requested native
+//                context menus and return the selected item id.
+// END_CHANGE_SUMMARY
 
 use serde::{Deserialize, Serialize};
+use std::collections::{HashMap, HashSet};
+use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::{Mutex, OnceLock};
+
+const MT_CONTEXT_MENU_INVALID: &str = "MT_CONTEXT_MENU_INVALID";
+const MT_CONTEXT_MENU_POPUP_FAILED: &str = "MT_CONTEXT_MENU_POPUP_FAILED";
+const CONTEXT_MENU_EVENT_PREFIX: &str = "__mt_context__:";
+
+static NEXT_CONTEXT_MENU_TOKEN: AtomicU64 = AtomicU64::new(1);
+static PENDING_CONTEXT_MENUS: OnceLock<Mutex<HashMap<u64, PendingContextMenu>>> = OnceLock::new();
+
+#[derive(Debug, Clone, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct ContextMenuItemSpec {
+    pub id: Option<String>,
+    pub label: Option<String>,
+    #[serde(rename = "type")]
+    pub item_type: Option<String>,
+    pub enabled: Option<bool>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+enum ValidatedContextMenuItem {
+    Item {
+        id: String,
+        label: String,
+        enabled: bool,
+    },
+    Separator,
+}
+
+#[derive(Debug)]
+struct PendingContextMenu {
+    public_ids: Vec<String>,
+    selected: Option<String>,
+}
+
+fn pending_context_menus() -> &'static Mutex<HashMap<u64, PendingContextMenu>> {
+    PENDING_CONTEXT_MENUS.get_or_init(|| Mutex::new(HashMap::new()))
+}
+
+// START_CONTRACT: validate_context_menu_items
+//   PURPOSE: Reject malformed or ambiguous renderer context-menu payloads before any native UI is built.
+//   INPUTS: { items: Vec<ContextMenuItemSpec> - untrusted renderer menu rows }
+//   OUTPUTS: { Result<Vec<ValidatedContextMenuItem>, String> - normalized native-menu rows or MT_CONTEXT_MENU_INVALID }
+//   SIDE_EFFECTS: none
+//   LINKS: docs/verification-plan.xml V-M-009 scenario-11
+// END_CONTRACT: validate_context_menu_items
+// START_BLOCK_VALIDATE_CONTEXT_MENU
+fn validate_context_menu_items(
+    items: Vec<ContextMenuItemSpec>,
+) -> Result<Vec<ValidatedContextMenuItem>, String> {
+    let mut validated = Vec::with_capacity(items.len());
+    let mut seen_ids = HashSet::new();
+    let mut actionable_count = 0usize;
+
+    for item in items {
+        if item.item_type.as_deref() == Some("separator") {
+            validated.push(ValidatedContextMenuItem::Separator);
+            continue;
+        }
+        if item.item_type.is_some() {
+            return Err(format!(
+                "{MT_CONTEXT_MENU_INVALID}: unsupported context-menu item type"
+            ));
+        }
+
+        let id = item.id.unwrap_or_default().trim().to_string();
+        let label = item.label.unwrap_or_default().trim().to_string();
+        if id.is_empty() || label.is_empty() || id.len() > 128 || label.len() > 512 {
+            return Err(format!(
+                "{MT_CONTEXT_MENU_INVALID}: item id or label is empty or too long"
+            ));
+        }
+        if !seen_ids.insert(id.clone()) {
+            return Err(format!(
+                "{MT_CONTEXT_MENU_INVALID}: duplicate context-menu item id"
+            ));
+        }
+
+        actionable_count += 1;
+        validated.push(ValidatedContextMenuItem::Item {
+            id,
+            label,
+            enabled: item.enabled.unwrap_or(true),
+        });
+    }
+
+    if actionable_count == 0 {
+        return Err(format!(
+            "{MT_CONTEXT_MENU_INVALID}: at least one actionable item is required"
+        ));
+    }
+
+    Ok(validated)
+}
+// END_BLOCK_VALIDATE_CONTEXT_MENU
+
+fn context_menu_native_id(token: u64, item_index: usize) -> String {
+    format!("{CONTEXT_MENU_EVENT_PREFIX}{token}:{item_index}")
+}
+
+fn register_pending_context_menu(token: u64, public_ids: Vec<String>) {
+    let mut pending = pending_context_menus()
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner());
+    pending.insert(
+        token,
+        PendingContextMenu {
+            public_ids,
+            selected: None,
+        },
+    );
+}
+
+fn take_pending_context_menu(token: u64) -> Option<String> {
+    let mut pending = pending_context_menus()
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner());
+    pending.remove(&token).and_then(|entry| entry.selected)
+}
+
+// START_CONTRACT: capture_context_menu_selection
+//   PURPOSE: Capture an internal dynamic context-menu event for its pending invoke instead of broadcasting it as an application command.
+//   INPUTS: { native_id: &str - Tauri MenuId received by the global menu callback }
+//   OUTPUTS: { bool - true only when the event belongs to a currently pending dynamic context menu }
+//   SIDE_EFFECTS: Stores the corresponding public renderer item id in the pending-menu registry.
+//   LINKS: docs/verification-plan.xml V-M-009 scenario-11
+// END_CONTRACT: capture_context_menu_selection
+// START_BLOCK_CAPTURE_CONTEXT_SELECTION
+pub fn capture_context_menu_selection(native_id: &str) -> bool {
+    let Some(encoded) = native_id.strip_prefix(CONTEXT_MENU_EVENT_PREFIX) else {
+        return false;
+    };
+    let Some((token, item_index)) = encoded.split_once(':') else {
+        return false;
+    };
+    let (Ok(token), Ok(item_index)) = (token.parse::<u64>(), item_index.parse::<usize>()) else {
+        return false;
+    };
+
+    let mut pending = pending_context_menus()
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner());
+    let Some(entry) = pending.get_mut(&token) else {
+        return false;
+    };
+    let Some(public_id) = entry.public_ids.get(item_index) else {
+        return false;
+    };
+    entry.selected = Some(public_id.clone());
+    true
+}
+// END_BLOCK_CAPTURE_CONTEXT_SELECTION
 
 /// A single menu item. `id` is the dispatch handle the renderer
 /// receives via the `mt::menu-invoked` event AND the command-id used
@@ -671,6 +849,66 @@ pub async fn mt_window_popup_app_menu(
         .map_err(|e| format!("popup failed: {e}"))
 }
 
+// START_CONTRACT: mt_window_popup_context_menu
+//   PURPOSE: Build and show a native context menu requested by the renderer, then return only the selected renderer-facing item id.
+//   INPUTS: { app: AppHandle - Tauri menu owner; window: Window - popup target; items: Vec<ContextMenuItemSpec> - rows; x/y: f64 - logical client coordinates }
+//   OUTPUTS: { Result<Option<String>, String> - selected public id, null on dismissal, or a stable MT_CONTEXT_MENU_* error }
+//   SIDE_EFFECTS: Shows native UI and temporarily registers internal MenuIds until the popup closes.
+//   LINKS: docs/development-plan.xml M-009.fn-window_popup_context_menu; docs/verification-plan.xml V-M-009 scenario-11
+// END_CONTRACT: mt_window_popup_context_menu
+// START_BLOCK_POPUP_CONTEXT_MENU
+#[tauri::command]
+pub async fn mt_window_popup_context_menu(
+    app: tauri::AppHandle,
+    window: tauri::Window,
+    items: Vec<ContextMenuItemSpec>,
+    x: f64,
+    y: f64,
+) -> Result<Option<String>, String> {
+    use tauri::menu::{ContextMenu, Menu, MenuItemBuilder, PredefinedMenuItem};
+    use tauri::{LogicalPosition, Position};
+
+    let validated = validate_context_menu_items(items)?;
+    let token = NEXT_CONTEXT_MENU_TOKEN.fetch_add(1, Ordering::Relaxed);
+    let menu = Menu::new(&app)
+        .map_err(|error| format!("{MT_CONTEXT_MENU_POPUP_FAILED}: {error}"))?;
+    let mut public_ids = Vec::new();
+
+    for item in validated {
+        match item {
+            ValidatedContextMenuItem::Separator => {
+                let separator = PredefinedMenuItem::separator(&app)
+                    .map_err(|error| format!("{MT_CONTEXT_MENU_POPUP_FAILED}: {error}"))?;
+                menu.append(&separator)
+                    .map_err(|error| format!("{MT_CONTEXT_MENU_POPUP_FAILED}: {error}"))?;
+            }
+            ValidatedContextMenuItem::Item { id, label, enabled } => {
+                let native_id = context_menu_native_id(token, public_ids.len());
+                let native_item = MenuItemBuilder::with_id(native_id, label)
+                    .enabled(enabled)
+                    .build(&app)
+                    .map_err(|error| format!("{MT_CONTEXT_MENU_POPUP_FAILED}: {error}"))?;
+                menu.append(&native_item)
+                    .map_err(|error| format!("{MT_CONTEXT_MENU_POPUP_FAILED}: {error}"))?;
+                public_ids.push(id);
+            }
+        }
+    }
+
+    register_pending_context_menu(token, public_ids);
+    let position = Position::Logical(LogicalPosition::new(x.max(0.0), y.max(0.0)));
+    let popup_result = menu.popup_at(window, position);
+    let selected = take_pending_context_menu(token);
+    popup_result.map_err(|error| format!("{MT_CONTEXT_MENU_POPUP_FAILED}: {error}"))?;
+
+    safe_eprintln!(
+        "[Menu][context][BLOCK_CONTEXT_MENU_RESULT selected={}]",
+        selected.is_some()
+    );
+    Ok(selected)
+}
+// END_BLOCK_POPUP_CONTEXT_MENU
+
 #[tauri::command]
 pub async fn mt_update_line_ending_menu(
     app: tauri::AppHandle,
@@ -833,5 +1071,71 @@ mod tests {
                 required
             );
         }
+    }
+
+    #[test]
+    fn context_menu_payload_preserves_item_separator_and_enabled_state() {
+        let items = vec![
+            ContextMenuItemSpec {
+                id: Some("copyPath".into()),
+                label: Some("Copy Path".into()),
+                item_type: None,
+                enabled: Some(false),
+            },
+            ContextMenuItemSpec {
+                id: None,
+                label: None,
+                item_type: Some("separator".into()),
+                enabled: None,
+            },
+        ];
+
+        assert_eq!(
+            validate_context_menu_items(items).unwrap(),
+            vec![
+                ValidatedContextMenuItem::Item {
+                    id: "copyPath".into(),
+                    label: "Copy Path".into(),
+                    enabled: false,
+                },
+                ValidatedContextMenuItem::Separator,
+            ]
+        );
+    }
+
+    #[test]
+    fn context_menu_payload_rejects_duplicate_ids_and_separator_only_menus() {
+        let duplicate = ContextMenuItemSpec {
+            id: Some("copyPath".into()),
+            label: Some("Copy Path".into()),
+            item_type: None,
+            enabled: None,
+        };
+        let duplicate_error = validate_context_menu_items(vec![duplicate.clone(), duplicate])
+            .unwrap_err();
+        assert!(duplicate_error.starts_with(MT_CONTEXT_MENU_INVALID));
+        assert!(duplicate_error.contains("duplicate"));
+
+        let separator_error = validate_context_menu_items(vec![ContextMenuItemSpec {
+            id: None,
+            label: None,
+            item_type: Some("separator".into()),
+            enabled: None,
+        }])
+        .unwrap_err();
+        assert!(separator_error.starts_with(MT_CONTEXT_MENU_INVALID));
+        assert!(separator_error.contains("actionable"));
+    }
+
+    #[test]
+    fn context_menu_event_is_captured_without_app_menu_dispatch() {
+        let token = NEXT_CONTEXT_MENU_TOKEN.fetch_add(1, Ordering::Relaxed);
+        register_pending_context_menu(token, vec!["copyPath".into()]);
+        let native_id = context_menu_native_id(token, 0);
+
+        assert!(capture_context_menu_selection(&native_id));
+        assert_eq!(take_pending_context_menu(token).as_deref(), Some("copyPath"));
+        assert!(!capture_context_menu_selection("file.save"));
+        assert!(!capture_context_menu_selection(&native_id));
     }
 }

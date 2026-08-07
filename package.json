@@ -1,6 +1,6 @@
 {
   "name": "reborn-mark",
-  "version": "2.1.0-beta",
+  "version": "2.1.1-beta",
   "description": "Mark — Tauri 2 reborn build (frontend half: Vue 3 + muya from mark-electron@v1.2.3)",
   "private": true,
   "type": "module",
@@ -19,6 +19,7 @@
     "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
+    "release:preflight": "node tools/release-preflight.mjs",
     "bench:launch": "node tools/bench-launch.mjs",
     "dev:smoke": "bash tools/dev-smoke.sh",
     "dev:check": "bash tools/dev-smoke.sh --check",

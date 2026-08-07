@@ -1,4 +1,6 @@
-// MODULE_CONTRACT
+// FILE: src-tauri/src/main.rs
+// VERSION: 2.1.1-beta
+// START_MODULE_CONTRACT
 //   PURPOSE: M-001 entry point. Strict boot order:
 //              (1) m001_panic::install_panic_hook  — first, so any later
 //                  step's panic produces a crash log + dialog instead of
@@ -32,8 +34,20 @@
 //   STATUS:   Phase-B1 closed; M-001 is partially-implemented at the
 //             boot-orchestration layer. Real impls of M-013-B commands
 //             ship in Phase-B2.
+//   ROLE: RUNTIME
+//   MAP_MODE: LOCALS
+// END_MODULE_CONTRACT
 //
-// CHANGE_SUMMARY:
+// START_MODULE_MAP
+//   PendingOpens - Stores launch/open-file requests until the renderer is ready.
+//   mt_drain_pending_opens - Delivers queued launch/open-file requests to the ready renderer.
+//   mt_dev_diag - Emits redacted renderer diagnostics in development builds.
+//   main - Validates startup state and runs the configured Tauri application with commands, lifecycle hooks, and native menu routing.
+// END_MODULE_MAP
+//
+// START_CHANGE_SUMMARY
+//   - 2026-08-07 v2.1.1-beta: register dynamic native context menus and
+//     route their internal selection events back to the pending invoke.
 //   - 2026-05-24 visible-titlebar-transparent-overlay: use "Visible"
 //     mode (gives FullSizeContentView without crash) and set
 //     titlebarAppearsTransparent post-creation for overlay layout.
@@ -62,6 +76,7 @@
 //     registered via tauri::generate_handler!.
 //   - 2026-04-27 B-pre2 step-1..5: legacy detection + migration dialog
 //     + cancel_log + snapshot + prefs::init stub gate boot pipeline.
+// END_CHANGE_SUMMARY
 
 // Prevent additional console window on Windows in release.
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
@@ -791,6 +806,13 @@ fn main() {
         .on_menu_event(|app_handle, event| {
             // Tauri's MenuId wraps a String; .as_ref() yields &str.
             let id_str: String = event.id().as_ref().to_string();
+            // Dynamic renderer-requested context menus resolve their
+            // pending invoke directly. Their internal IDs must never
+            // leak onto the application-menu command bus.
+            if m009_menu::capture_context_menu_selection(&id_str) {
+                safe_eprintln!("[menu][context][BLOCK_CONTEXT_MENU_CAPTURED]");
+                return;
+            }
             safe_eprintln!("[menu][on_event][BLOCK_DISPATCH menu_id={id_str}]");
             // Broadcast to all windows. Renderer's menu-bridge filters
             // by listening on the main window only; Settings window
@@ -839,6 +861,7 @@ fn main() {
             m007_spell::mt_spell_set_lang,
             m009_menu::mt_menu_taxonomy,
             m009_menu::mt_window_popup_app_menu,
+            m009_menu::mt_window_popup_context_menu,
             m009_menu::mt_update_line_ending_menu,
             m015_pandoc::mt_pandoc_status,
             m015_pandoc::mt_pandoc_export,

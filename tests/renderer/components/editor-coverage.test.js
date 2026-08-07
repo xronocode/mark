@@ -1,9 +1,26 @@
-/**
- * Coverage tests for editorWithTabs/editor.vue
- *
- * Exercises all methods, watchers, computed properties, event handlers,
- * and lifecycle hooks that are NOT covered by the base editor.test.js.
- */
+// FILE: tests/renderer/components/editor-coverage.test.js
+// VERSION: 1.1.0
+// START_MODULE_CONTRACT
+//   PURPOSE: Verify editorWithTabs/editor.vue methods, watchers, computed state, event handlers, and lifecycle behavior beyond the base editor test.
+//   SCOPE: Deterministic Vue/jsdom tests with mocked Muya, stores, bus, services, and browser scheduling.
+//   DEPENDS: Vue Test Utils, Vitest, Pinia test setup, mocked Muya and renderer services.
+//   LINKS: docs/verification-plan.xml V-M-011 scenarios 15-16; docs/knowledge-graph.xml M-011.
+//   ROLE: TEST
+//   MAP_MODE: LOCALS
+// END_MODULE_CONTRACT
+//
+// START_MODULE_MAP
+//   mountEditor - Mounts editor.vue with a controllable Muya replacement surface.
+//   seedStores - Seeds active tab and preference state for each scenario.
+//   getBusHandler - Resolves registered editor bus handlers for direct assertions.
+//   firstPaintAssertions - Verify scroll restoration cannot leave the surface hidden.
+//   previewCaretAssertions - Verify actual Muya contenteditable and caret focus synchronization.
+// END_MODULE_MAP
+//
+// START_CHANGE_SUMMARY
+//   - 2026-08-07 v1.1.0: add UC-030 first-paint and UC-031 preview-caret regression coverage.
+// END_CHANGE_SUMMARY
+
 import { shallowMount } from '@vue/test-utils'
 import { nextTick } from 'vue'
 import { setupTestPinia } from '../pinia'
@@ -353,6 +370,35 @@ describe('editor.vue — coverage', () => {
     await wrapper.find('.editor-component').trigger('mousedown', { button: 0 })
     expect(editorStore.EXIT_PREVIEW_MODE).toHaveBeenCalledWith('tab-1', 'click')
   })
+
+  // START_BLOCK_PREVIEW_CARET_TESTS
+  it('applies preview read-only state to the actual Muya container', async () => {
+    await seedStores({ previewMode: true })
+    const wrapper = await mountEditor()
+    const surface = wrapper.find('.editor-component').element
+
+    expect(surface.getAttribute('contenteditable')).toBe('false')
+    expect(surface.getAttribute('aria-readonly')).toBe('true')
+    expect(surface.style.caretColor).toBe('transparent')
+  })
+
+  it('restores editable surface and caret focus synchronously on preview exit', async () => {
+    await seedStores({ previewMode: true })
+    editorStore.EXIT_PREVIEW_MODE = vi.fn(() => {
+      editorStore.currentFile.previewMode = false
+    })
+    const wrapper = await mountEditor()
+    const surface = wrapper.find('.editor-component').element
+    mockEditorInstance.focus.mockClear()
+
+    await wrapper.find('.editor-component').trigger('mousedown', { button: 0 })
+
+    expect(surface.getAttribute('contenteditable')).toBe('true')
+    expect(surface.hasAttribute('aria-readonly')).toBe(false)
+    expect(surface.style.caretColor).toBe('var(--editorColor)')
+    expect(mockEditorInstance.focus).toHaveBeenCalledTimes(1)
+  })
+  // END_BLOCK_PREVIEW_CARET_TESTS
 
   it('handlePreviewMousedown does nothing for right-click', async () => {
     await seedStores({ previewMode: true })
@@ -1011,25 +1057,40 @@ describe('editor.vue — coverage', () => {
     expect(mockEditorInstance.setMarkdown).toHaveBeenCalled()
   })
 
-  it('handleFileChange with scrollTop calls scrollToCords', async () => {
+  // START_BLOCK_FIRST_PAINT_TESTS
+  it('handleFileChange reveals saved-scroll content without waiting for requestAnimationFrame', async () => {
     const wrapper = await mountEditor()
     // Add a child element to the container so scrollToCords doesn't fail
     const editorComponent = wrapper.find('.editor-component').element
     const child = document.createElement('div')
     child.id = 'ag-editor-id'
     editorComponent.appendChild(child)
+    editorComponent.style.visibility = 'hidden'
+    editorComponent.style.pointerEvents = 'none'
+    const animationFrameSpy = vi
+      .spyOn(window, 'requestAnimationFrame')
+      .mockImplementation(() => 1)
 
-    getBusHandler('file-changed')({
-      markdown: '# Scrolled',
-      cursor: null,
-      renderCursor: false,
-      history: null,
-      scrollTop: 200,
-      muyaIndexCursor: null,
-      blocks: undefined
-    })
-    // scrollToCords uses requestAnimationFrame — verify no throw
+    try {
+      getBusHandler('file-changed')({
+        markdown: '# Scrolled',
+        cursor: null,
+        renderCursor: false,
+        history: null,
+        scrollTop: 200,
+        muyaIndexCursor: null,
+        blocks: undefined
+      })
+
+      expect(animationFrameSpy).toHaveBeenCalledTimes(1)
+      expect(editorComponent.style.visibility).toBe('visible')
+      expect(editorComponent.style.pointerEvents).toBe('auto')
+      expect(editorComponent.scrollTop).toBe(200)
+    } finally {
+      animationFrameSpy.mockRestore()
+    }
   })
+  // END_BLOCK_FIRST_PAINT_TESTS
 
   it('handleFileChange with cursor but no markdown calls setCursor', async () => {
     await mountEditor()

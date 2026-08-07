@@ -86,15 +86,17 @@
       </annotations>
     </M-003>
 
-    <M-004 NAME="mt-search" TYPE="CORE_LOGIC" STATUS="planned">
-      <purpose>Streaming text search via `grep-searcher` crate; honors .gitignore.</purpose>
-      <path>src-tauri/src/search/mod.rs</path>
-      <depends>none</depends>
+    <M-004 NAME="mt-search" TYPE="CORE_LOGIC" STATUS="shipped">
+      <purpose>Streaming text search through an `rg` child process with an embedded ignore/regex fallback; honors .gitignore and cancellation.</purpose>
+      <path>src-tauri/src/m013b/search.rs</path>
+      <depends>M-010, M-013</depends>
       <verification-ref>V-M-004</verification-ref>
       <annotations>
         <fn-search_run PURPOSE="Stream search results with cancellation token" />
+        <fn-run_ripgrep PURPOSE="Parse rg JSON output into bounded renderer batches" />
         <type-SearchQuery PURPOSE="{ pattern, regex, caseSensitive, wholeWord, folder }" />
         <type-SearchHit PURPOSE="{ path, line, col, snippet }" />
+        <test-spawn-failure PURPOSE="Inject an invalid rg executable without mutating process-global PATH" />
       </annotations>
     </M-004>
 
@@ -143,15 +145,18 @@
       </annotations>
     </M-008>
 
-    <M-009 NAME="mt-menu" TYPE="UI_COMPONENT" STATUS="skeleton-shipped" PHASE-REF="B3-step-12" PATH="src-tauri/src/m009_menu.rs" CLOSURE="docs/gate-phase-b3-closure.md" DEFERRED="F-MENU-WIRE-TAURI (native OS menu via tauri::menu::* in Builder.setup)">
+    <M-009 NAME="mt-menu" TYPE="UI_COMPONENT" STATUS="shipped" PHASE-REF="Release-Readiness-2026-08-07" PATH="src-tauri/src/m009_menu.rs">
       <purpose>Native menu bar and context menus; dispatches command IDs to renderer.</purpose>
-      <path>src-tauri/src/menu/mod.rs</path>
+      <path>src-tauri/src/m009_menu.rs</path>
       <depends>M-005</depends>
       <verification-ref>V-M-009</verification-ref>
       <annotations>
         <fn-menu_build PURPOSE="Build menu tree from MenuSpec" />
         <fn-menu_dispatch PURPOSE="Emit MenuInvoked event to focused window" />
+        <fn-window_popup_context_menu PURPOSE="Open a dynamic native context menu and return the selected renderer item id" />
+        <fn-capture_context_menu_selection PURPOSE="Route dynamic context-menu selections back to their pending invoke without global menu dispatch" />
         <type-MenuSpec PURPOSE="Declarative menu structure with command IDs" />
+        <type-ContextMenuItemSpec PURPOSE="Serializable context-menu item with id, label, enabled state, or separator type" />
       </annotations>
     </M-009>
 
@@ -184,12 +189,15 @@
     </M-010>
 
     <M-011 NAME="mt-renderer" TYPE="UI_COMPONENT" STATUS="partial">
-      <purpose>Vue 3 renderer app (migrated in Phase A via PR #4001); hosts muya, theme controller, command dispatcher.</purpose>
+      <purpose>Vue 3 renderer app (migrated in Phase A via PR #4001); hosts muya, theme controller, command dispatcher, native title-path actions, and editor visibility/focus lifecycle.</purpose>
       <path>src/renderer/</path>
       <depends>M-012, M-013</depends>
       <verification-ref>V-M-011</verification-ref>
       <annotations>
         <fn-mountApp PURPOSE="Bootstrap Vue app and mount muya" />
+        <fn-handleTitleContextMenu PURPOSE="titleBar/index.vue opens native context menu for saved documents and copies the active pathname on explicit Copy Path selection" />
+        <fn-scrollToCords PURPOSE="editorWithTabs/editor.vue restores saved scrollTop while releasing visibility synchronously, independent of WKWebView requestAnimationFrame scheduling" />
+        <fn-syncPreviewSurface PURPOSE="editorWithTabs/editor.vue mirrors previewMode onto the actual Muya contenteditable container and restores caret focus/selection on exit" />
       </annotations>
     </M-011>
 
@@ -855,10 +863,24 @@
       </annotations>
     </M-045>
 
+    <M-046 NAME="ReleasePreflight" TYPE="UTILITY" STATUS="shipped" PHASE-REF="Release-Readiness-2026-08-07" LAYER="TOOLING">
+      <purpose>Provide a deterministic pre-publication gate for exact version/tag consistency, complete automated verification, and signed/notarized macOS artifact evidence.</purpose>
+      <path>tools/release-preflight.mjs, .github/workflows/release.yml</path>
+      <depends>M-001, M-016</depends>
+      <verification-ref>V-M-046</verification-ref>
+      <annotations>
+        <fn-readVersionEvidence PURPOSE="Read release version values from Node, Cargo, Tauri, and lock metadata" />
+        <fn-validateVersionEvidence PURPOSE="Reject inconsistent metadata or a tag that is not exactly v&lt;version&gt;" />
+        <fn-runReleasePreflight PURPOSE="Run the release metadata gate and emit stable pass/fail markers" />
+      </annotations>
+    </M-046>
+
     <!-- M-045 CrossLinks -->
     <CrossLink from="M-045" to="M-001" relation="registered-in-main-invoke-handler" />
     <CrossLink from="M-045" to="M-005" relation="persists-extension-state-via" />
     <CrossLink from="M-045" to="M-019" relation="stores-extension-secrets-via" />
     <CrossLink from="M-001" to="M-045" relation="registers-ext-commands" />
+    <CrossLink from="M-046" to="M-001" relation="verifies-packaged-shell-release-of" />
+    <CrossLink from="M-046" to="M-016" relation="verifies-updater-version-metadata-for" />
   </Project>
 </KnowledgeGraph>
