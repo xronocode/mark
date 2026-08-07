@@ -5454,7 +5454,7 @@
     <phase-follow-up>Before beta.4 tagging, run full integration test: mock extension discovered, enabled, responds to text.transform via mt_ext_invoke, streams document via live server. m001_validate must pass with all 5 new commands registered.</phase-follow-up>
   </V-M-045>
 
-  <V-M-046 MODULE="M-046 ReleasePreflight" PRIORITY="critical" wave="v2.1.2-beta" status="active">
+  <V-M-046 MODULE="M-046 ReleasePreflight" PRIORITY="critical" wave="v2.1.2-beta" status="done">
     <module-surface>
       Tool: tools/release-preflight.mjs reads package.json, package-lock.json, Cargo.toml, Cargo.lock, and src-tauri/tauri.conf.json; validates one exact version and optional v&lt;version&gt; tag.
       Workflow: .github/workflows/release.yml invokes the metadata preflight before build, runs renderer unit/E2E/typecheck and Rust tests, then requires strict codesign + Gatekeeper evidence before smoke and publication.

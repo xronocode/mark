@@ -2415,12 +2415,12 @@ src/main/config.js declares `contextIsolation: false`, `nodeIntegration: true`, 
       </write-scope>
     </Phase-Release-Readiness-2026-08-07>
 
-    <Phase-Updater-Hotfix-2026-08-07 name="v2.1.2-beta in-app updater repair" status="in-progress">
+    <Phase-Updater-Hotfix-2026-08-07 name="v2.1.2-beta in-app updater repair" status="done">
       <goal>Restore a complete signed in-app update path and remove the obsolete Terminal/mark@alpha route exposed by v2.0.7-alpha installations.</goal>
       <step-1 status="done" verification="V-M-016">Unify Homebrew-origin and DMG-origin updates on tauri-plugin-updater check, downloadAndInstall, and relaunch.</step-1>
       <step-2 status="done" verification="V-M-016">Grant `updater:default` to normal desktop windows while keeping the App Store capability updater-free.</step-2>
       <step-3 status="done" verification="V-M-046">Publish shipped beta tags as normal GitHub releases so the configured `/releases/latest/download/latest.json` feed advances.</step-3>
-      <step-4 status="in-progress" verification="V-M-016,V-M-046">Run full gates, publish v2.1.2-beta, update Homebrew cask, and verify an older installed build discovers and applies the signed update.</step-4>
+      <step-4 status="done" verification="V-M-016,V-M-046">Release workflow 31177542602 passed build, signing, notarization, smoke, updater-feed, publication, and cask-PR jobs; v2.1.2-beta is GitHub latest and Homebrew PR xronocode/homebrew-mark#26 is merged. The legacy v2.0.7-alpha client still requires its documented one-time cask migration because shipped binaries cannot be retroactively rewired; subsequent releases use the signed in-app path.</step-4>
       <write-scope>
         <file>src-tauri/src/m016_updater.rs</file>
         <file>src-tauri/src/main.rs</file>
