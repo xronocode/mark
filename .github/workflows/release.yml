@@ -1,3 +1,25 @@
+# FILE: .github/workflows/release.yml
+# VERSION: 1.2.0
+# START_MODULE_CONTRACT
+#   PURPOSE: Build, verify, sign, notarize, smoke-test, attest, publish, and route the Homebrew update for a tagged macOS release.
+#   SCOPE: Tag-triggered production release orchestration; does not own application runtime behavior or signing credentials.
+#   DEPENDS: M-046 release preflight, Node 22, Rust stable, Playwright Chromium, tauri-action, Apple signing/notary secrets, GitHub OIDC, release environment.
+#   LINKS: docs/knowledge-graph.xml M-046; docs/verification-plan.xml V-M-046; docs/requirements.xml UC-032.
+#   ROLE: CONFIG
+#   MAP_MODE: SUMMARY
+# END_MODULE_CONTRACT
+#
+# START_MODULE_MAP
+#   build - Validate metadata and tests, create the signed/notarized app and release artifacts, and enforce smoke/supply-chain gates.
+#   publish - Publish or update the GitHub Release only after build succeeds.
+#   publish-cask - Open the downstream Homebrew cask update after build and publication succeed.
+# END_MODULE_MAP
+#
+# START_CHANGE_SUMMARY
+#   - 2026-08-07 v1.2.0: emit strict SemVer without the Git tag's leading v in the Tauri updater feed.
+#   - 2026-08-07 v1.1.0: gate v2.1.1-beta on exact metadata/tag parity, complete tests, strict codesign, and Gatekeeper assessment.
+# END_CHANGE_SUMMARY
+#
 # Phase-B4 release workflow.
 #
 # Triggered by git tag push matching v*.* — produces Developer ID
@@ -96,6 +118,24 @@ jobs:
       - name: npm ci
         run: npm ci
 
+      - name: release metadata preflight
+        run: npm run release:preflight -- --tag "${{ steps.resolve_tag.outputs.tag }}"
+
+      - name: renderer IPC typecheck
+        run: npm run typecheck:ipc
+
+      - name: renderer unit tests
+        run: npm test
+
+      - name: install Playwright Chromium
+        run: npx playwright install chromium
+
+      - name: renderer E2E tests
+        run: npm run test:e2e
+
+      - name: Rust unit tests
+        run: cargo test --bin mark --manifest-path src-tauri/Cargo.toml
+
       - name: vite build
         run: npm run build
 
@@ -117,6 +157,18 @@ jobs:
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         with:
           args: --target ${{ matrix.platform.target }}
+
+      - name: verify signed and notarized app
+        if: matrix.platform.os == 'macos-14'
+        run: |
+          set -euo pipefail
+          APP_PATH=$(find target -path '*/release/bundle/macos/Mark.app' -type d | head -1)
+          if [ -z "$APP_PATH" ]; then
+            echo "::error::signed Mark.app not found"
+            exit 1
+          fi
+          codesign --verify --deep --strict --verbose=4 "$APP_PATH"
+          spctl --assess --type execute --verbose=4 "$APP_PATH"
 
       # ── smoke launch ─────────────────────────────────────────────
       - name: smoke launch
@@ -248,7 +300,7 @@ jobs:
           cp "$TGZ_FILE" "/tmp/release/Mark_${VER}_aarch64.app.tar.gz"
           cat > /tmp/release/latest.json <<JSON
           {
-            "version": "${TAG}",
+            "version": "${VER}",
             "notes": "See release notes at https://github.com/xronocode/mark/releases/tag/${TAG}",
             "pub_date": "${PUB_DATE}",
             "platforms": {

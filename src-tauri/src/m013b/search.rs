@@ -1,33 +1,32 @@
-// MODULE_CONTRACT
-//   PURPOSE: M-004 mt-search real impl. Tauri commands spawn / cancel
-//            content searches across one or more directories. Walks the
-//            file tree via the `ignore` crate (.gitignore + .ignore +
-//            hidden-file conventions matching ripgrep), matches each
-//            line against a regex::Regex compiled from the user's
-//            options (literal/regex/case-insensitive/whole-word),
-//            streams batches of hits through tauri::AppHandle::emit on
-//            the 'mt::search-event' channel that M-013-A useIpcListener
-//            consumes.
-//   SCOPE:   content search only. Path-only "find by name" → M-002
-//            mt_fs_readdir + renderer-side filter. Real ripgrep binary
-//            shell-out is NOT used; embedded grep crate path was also
-//            considered but `regex` + `ignore` directly keeps the
-//            dep graph slim (~2 crates vs grep umbrella's 6+).
-//   DEPENDS: ignore (gitignore-aware walker), regex (matcher),
-//            m010_security::check_path (per-root path validation),
-//            m013b::error::IpcError (typed envelope),
-//            m013b::state::SecurityCtx (active sandbox).
-//   LINKS:   docs/development-plan.xml Phase-B2 step-4;
-//            docs/verification-plan.xml V-M-004 (4 scenarios + 12 ec).
-//   STATUS:  Phase-B2 step-4 real-impl shipped. Cancellation via
-//            AtomicBool token; cancellation latency target ≤100ms
-//            achieved via per-file check between WalkBuilder yields.
+// FILE: src-tauri/src/m013b/search.rs
+// VERSION: 2.1.1-beta
+// START_MODULE_CONTRACT
+//   PURPOSE: Run cancellable content searches and stream bounded result batches to the renderer.
+//   SCOPE: Tauri search commands, rg JSON-process transport, embedded ignore/regex fallback, cancellation, and search-event payloads.
+//   DEPENDS: ignore, regex, serde_json, tauri, m010_security, m013b::error, m013b::state.
+//   LINKS: M-004, V-M-004, Phase-B2 step-4.
+//   ROLE: RUNTIME
+//   MAP_MODE: EXPORTS
+// END_MODULE_CONTRACT
 //
-// CHANGE_SUMMARY:
-//   - 2026-04-28 B2-step-4: replace B1 stubs with real ignore-walker +
-//     regex matcher + streaming batches + cancellation token +
-//     SearchRegistry test sink abstraction.
-//   - 2026-04-28 B1-step-6: initial stub returning Err(MT_NOT_IMPLEMENTED).
+// START_MODULE_MAP
+//   SEARCH_EVENT_CHANNEL - Renderer event channel for streamed search updates.
+//   DEFAULT_BATCH_SIZE - Default renderer result-batch capacity.
+//   MAX_LINE_BYTES - Maximum line size admitted by the embedded fallback.
+//   SearchOptions - Search preferences accepted from the renderer.
+//   SearchHit - One normalized text-match result.
+//   SearchEvent - Batched search-event wire payload.
+//   SearchSink - Event-sink abstraction shared by Tauri and tests.
+//   SearchRegistry - Registry of cancellable in-flight searches.
+//   run_search - Execute the embedded ignore/regex fallback search.
+//   mt_search_spawn - Validate and start an asynchronous rg-backed search.
+//   mt_search_cancel - Cancel an in-flight search and emit its terminal event.
+// END_MODULE_MAP
+//
+// START_CHANGE_SUMMARY
+//   LAST_CHANGE: 2.1.1-beta - Defined injectable rg execution so spawn-failure tests remain deterministic under parallel cargo test.
+//   PREVIOUS: 2026-04-28 B2-step-4 - Replaced stubs with ignore/regex fallback, streaming batches, cancellation, and SearchRegistry.
+// END_CHANGE_SUMMARY
 
 use crate::m010_security;
 use crate::m013b::error::IpcError;
@@ -456,10 +455,43 @@ pub async fn mt_search_spawn(
     Ok(())
 }
 
-/// Shell out to ripgrep, stream stdout JSON, emit batched SearchEvent
-/// `match` events to the sink. Returns (total_hits, last_seq) on clean
-/// completion; Err on spawn/IO failure (caller emits an error event).
+// START_CONTRACT: run_ripgrep
+//   PURPOSE: Execute the production rg binary and stream normalized match batches.
+//   INPUTS: { search_id: &str, root: &Path, pattern: &str, opts: &SearchOptions, cancel: Arc<AtomicBool>, sink: Arc<dyn SearchSink>, starting_seq: u32 }
+//   OUTPUTS: { Result<(u32, u32), String> - total hits and last sequence, or a stable spawn/stream error }
+//   SIDE_EFFECTS: Spawns and waits for an rg child process; emits match events through sink.
+//   LINKS: M-004, V-M-004
+// END_CONTRACT: run_ripgrep
 fn run_ripgrep(
+    search_id: &str,
+    root: &Path,
+    pattern: &str,
+    opts: &SearchOptions,
+    cancel: Arc<AtomicBool>,
+    sink: Arc<dyn SearchSink>,
+    starting_seq: u32,
+) -> Result<(u32, u32), String> {
+    run_ripgrep_with_program(
+        std::ffi::OsStr::new("rg"),
+        search_id,
+        root,
+        pattern,
+        opts,
+        cancel,
+        sink,
+        starting_seq,
+    )
+}
+
+// START_CONTRACT: run_ripgrep_with_program
+//   PURPOSE: Run the rg transport with an explicitly selected executable for deterministic failure verification.
+//   INPUTS: { rg_program: &OsStr - executable path/name, remaining inputs: same as run_ripgrep }
+//   OUTPUTS: { Result<(u32, u32), String> - total hits and last sequence, or a stable spawn/stream error }
+//   SIDE_EFFECTS: Spawns and waits for the selected child process; emits match events through sink.
+//   LINKS: run_ripgrep, V-M-004 scenario-5
+// END_CONTRACT: run_ripgrep_with_program
+fn run_ripgrep_with_program(
+    rg_program: &std::ffi::OsStr,
     search_id: &str,
     root: &Path,
     pattern: &str,
@@ -471,7 +503,8 @@ fn run_ripgrep(
     use std::io::{BufRead, BufReader};
     use std::process::{Command, Stdio};
 
-    let mut cmd = Command::new("rg");
+    // START_BLOCK_BUILD_RIPGREP_COMMAND
+    let mut cmd = Command::new(rg_program);
     cmd.arg("--json").arg("--no-heading");
     if !opts.is_regexp.unwrap_or(false) {
         cmd.arg("--fixed-strings");
@@ -498,11 +531,17 @@ fn run_ripgrep(
     }
     cmd.arg("--").arg(pattern).arg(root);
     cmd.stdout(Stdio::piped()).stderr(Stdio::null());
+    // END_BLOCK_BUILD_RIPGREP_COMMAND
 
-    safe_eprintln!("[Search][rg][BLOCK_SPAWN search_id={search_id} root={}]", root.display());
+    // START_BLOCK_SPAWN_RIPGREP_PROCESS
+    safe_eprintln!(
+        "[Search][rg][BLOCK_SPAWN search_id={search_id} root={}]",
+        root.display()
+    );
     let mut child = cmd.spawn().map_err(|e| format!("spawn rg: {e}"))?;
     let stdout = child.stdout.take().ok_or("no stdout")?;
     let reader = BufReader::new(stdout);
+    // END_BLOCK_SPAWN_RIPGREP_PROCESS
 
     let mut total: u32 = 0;
     let mut seq = starting_seq;
@@ -1149,25 +1188,25 @@ mod tests {
 
     #[test]
     fn run_ripgrep_spawn_failure_returns_err() {
-        // Pre-cancel is observed inside the loop, but if rg fails to
-        // spawn (e.g. PATH-modified to not find rg), we should get Err.
-        // Force this by setting PATH to an empty directory just for this
-        // test.
-        let saved = std::env::var_os("PATH");
-        std::env::set_var("PATH", "/dev/null/no-rg-here");
+        // Inject an impossible executable path rather than mutating PATH:
+        // Rust tests share one process and execute in parallel by default.
+        let invalid_rg = Path::new("/dev/null/mark-rg-does-not-exist").as_os_str();
         let dir = TempDir::new().unwrap();
         let (tx, _rx) = mpsc::channel();
         let sink: Arc<dyn SearchSink> = Arc::new(ChannelSink { tx });
         let cancel = Arc::new(AtomicBool::new(false));
         let opts = SearchOptions::default();
-        let result =
-            run_ripgrep("rg-fail", dir.path(), "needle", &opts, cancel, sink, 0);
-        // Restore PATH FIRST so subsequent tests aren't affected.
-        match saved {
-            Some(v) => std::env::set_var("PATH", v),
-            None => std::env::remove_var("PATH"),
-        }
-        assert!(result.is_err(), "rg with empty PATH must fail to spawn");
+        let result = run_ripgrep_with_program(
+            invalid_rg,
+            "rg-fail",
+            dir.path(),
+            "needle",
+            &opts,
+            cancel,
+            sink,
+            0,
+        );
+        assert!(result.is_err(), "invalid rg executable must fail to spawn");
         assert!(result.unwrap_err().contains("spawn rg"));
     }
 

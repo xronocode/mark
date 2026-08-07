@@ -140,9 +140,9 @@
       </notes>
     </M-003>
 
-    <M-004 NAME="mt-search" TYPE="CORE_LOGIC" LAYER="0" ORDER="3" STATUS="planned">
+    <M-004 NAME="mt-search" TYPE="CORE_LOGIC" LAYER="0" ORDER="3" STATUS="shipped">
       <contract>
-        <purpose>Search text across files using `grep-searcher`; stream results to renderer in batches; honor 5 search prefs (exclusions, max-file-size, include-hidden, no-ignore, follow-symlinks).</purpose>
+        <purpose>Search text across files through the `rg` process with an embedded `ignore` + `regex` fallback; stream results to renderer in batches; honor search preferences and cancellation.</purpose>
         <inputs>
           <param name="query" type="SearchQuery { pattern, regex, caseSensitive, wholeWord, folder }" />
           <param name="opts" type="SearchPrefs { exclusions[], maxFileSize (K/M/G), includeHidden, noIgnore, followSymlinks }" />
@@ -154,23 +154,26 @@
           <error code="MT_SEARCH_INVALID_PATTERN" />
           <error code="MT_SEARCH_INVALID_MAXSIZE" />
           <error code="MT_SEARCH_CANCELLED" />
+          <error code="MT_SEARCH_SPAWN_FAILED" />
         </errors>
       </contract>
       <interface>
         <fn-search_run PURPOSE="Stream results; accepts CancellationToken; honors SearchPrefs" />
+        <fn-run_ripgrep PURPOSE="Launch rg, parse its JSON stream, and emit bounded result batches" />
         <fn-search_parse_max_size PURPOSE="Parse '100K' / '5M' / '1G' into byte budget" />
         <type-SearchPrefs PURPOSE="Mirrors 5 upstream prefs: searchExclusions, searchMaxFileSize, searchIncludeHidden, searchNoIgnore, searchFollowSymlinks" />
       </interface>
       <depends></depends>
       <target>
-        <source>src-tauri/src/search/mod.rs</source>
-        <tests>src-tauri/src/search/mod.rs (#[cfg(test)])</tests>
+        <source>src-tauri/src/m013b/search.rs</source>
+        <tests>src-tauri/src/m013b/search.rs (#[cfg(test)])</tests>
       </target>
       <observability>
         <log-prefix>[Search]</log-prefix>
         <critical-block>BLOCK_COMPILE_MATCHER</critical-block>
         <critical-block>BLOCK_APPLY_PREFS</critical-block>
         <critical-block>BLOCK_STREAM_RESULTS</critical-block>
+        <critical-block>BLOCK_SPAWN</critical-block>
       </observability>
       <verification-ref>V-M-004</verification-ref>
       <notes>
@@ -178,6 +181,7 @@
         <note-2>Batch size tuned for 10k-file fixture first-batch &lt; 500ms.</note-2>
         <note-3>Follow-symlinks bounded — reject cycles via visited-inode set.</note-3>
         <note-4>Mirrors upstream `src/renderer/node/ripgrepSearcher.js` (will be deleted during Phase-A1.5 renderer-Node cleanup).</note-4>
+        <note-5>Spawn-failure verification injects an invalid executable path directly; tests must not mutate process-global PATH because Rust tests execute in parallel.</note-5>
       </notes>
     </M-004>
 
@@ -327,25 +331,32 @@
       <verification-ref>V-M-008</verification-ref>
     </M-008>
 
-    <M-009 NAME="mt-menu" TYPE="UI_COMPONENT" LAYER="2" ORDER="1" STATUS="planned">
+    <M-009 NAME="mt-menu" TYPE="UI_COMPONENT" LAYER="2" ORDER="1" STATUS="shipped">
       <contract>
         <purpose>Native menu bar and context menus; dispatch to command IDs handled by frontend.</purpose>
         <inputs>
           <param name="menuDef" type="MenuSpec" />
+          <param name="contextItems" type="ContextMenuItemSpec[]" />
+          <param name="contextPosition" type="LogicalPosition" />
         </inputs>
         <outputs>
           <param name="event" type="MenuInvoked { id }" />
+          <param name="contextSelection" type="Option&lt;String&gt;" />
         </outputs>
-        <errors />
+        <errors>
+          <error code="MT_CONTEXT_MENU_INVALID">Renderer context-menu payload is empty, duplicated, or structurally invalid.</error>
+          <error code="MT_CONTEXT_MENU_POPUP_FAILED">The native context menu could not be built or shown.</error>
+        </errors>
       </contract>
       <interface>
         <fn-menu_build PURPOSE="Build menu tree from spec" />
         <fn-menu_dispatch PURPOSE="Emit MenuInvoked event" />
+        <fn-window_popup_context_menu PURPOSE="Build a native renderer-requested context menu and resolve with the selected public id or null on dismissal" />
       </interface>
       <depends>M-005</depends>
       <target>
-        <source>src-tauri/src/menu/mod.rs</source>
-        <tests>src-tauri/src/menu/mod.rs (#[cfg(test)]) + test/e2e/menu.spec.ts</tests>
+        <source>src-tauri/src/m009_menu.rs</source>
+        <tests>src-tauri/src/m009_menu.rs (#[cfg(test)]) + tests/renderer/contextMenu/*.test.js + tests/renderer/components/titleBar-deep.test.js</tests>
       </target>
       <observability>
         <log-prefix>[Menu]</log-prefix>
@@ -427,6 +438,9 @@
         <fn-mountApp PURPOSE="Bootstrap Vue app; register Pinia stores; set window.DIRNAME; wire all 7 host hooks; mount muya instance" />
         <fn-setMuyaHostHooks PURPOSE="Inject 7 required host hooks (see notes) — enumerated and contract-tested" />
         <fn-setMuyaOptions PURPOSE="Wire 11 parser option flags (gfm, breaks, pedantic, footnote, frontMatter, math, superSubScript, emoji, isGitlabCompatibilityEnabled, disableHtml, smartLists) from prefs" />
+        <fn-handleTitleContextMenu PURPOSE="Open the native title-path context menu and copy the active pathname only after the Copy Path item is selected" />
+        <fn-scrollToCords PURPOSE="Restore a tab's saved scroll position while keeping the editor surface synchronously visible" />
+        <fn-syncPreviewSurface PURPOSE="Mirror previewMode onto the actual Muya container and restore editable focus/selection on exit" />
       </interface>
       <depends>M-012, M-013</depends>
       <target>
@@ -447,6 +461,7 @@
         <note-5>**Required muya host hooks (7 total)** — enumerated contract: (1) `window.DIRNAME`: string for relative image base; (2) `imageAction(src, id, alt)`: async server-side image processing; (3) `clipboardFilePath()`: async OS clipboard file path lookup; (4) `imagePathAutoComplete(path)`: async path autocomplete for src field; (5) `imagePathPicker()`: async file-browser returning Promise&lt;filePath&gt;; (6) `photoCreatorClick(url)`: Unsplash photo-creator click handler; (7) `jumpClick(href)`: link jump callback for linkTools.</note-5>
         <note-6>**muya.options.unsplashAccessKey** — if bundled, exposed in browser (SECURITY risk R-35). Phase-B plan: proxy through main/backend, OR prompt user to supply at runtime, OR disable Unsplash tab entirely.</note-6>
         <note-7>UI plugin layer tech-debt accepted for v1.0 (R-35): no ARIA / i18n / virtualization / touch. Document in release notes. Revisit in v2.x.</note-7>
+        <note-8>2026-08-07 maintenance contract: title-path context menu, synchronous first-paint visibility, and Muya preview-surface/caret synchronization are renderer-owned M-011 behavior verified by V-M-011 scenarios 14-16.</note-8>
       </notes>
     </M-011>
 
@@ -1344,6 +1359,40 @@
         <note-4>Extensibility test: design must support a second hypothetical extension beyond TokMo without code changes.</note-4>
       </notes>
     </M-045>
+
+    <M-046 NAME="ReleasePreflight" TYPE="UTILITY" LAYER="0" ORDER="1" STATUS="shipped">
+      <contract>
+        <purpose>Fail a release before packaging when version metadata, the requested tag, automated verification, or macOS signature evidence is inconsistent.</purpose>
+        <inputs>
+          <param name="workspaceRoot" type="Path" description="Repository root containing package, Cargo, Tauri, workflow, and lock metadata" />
+          <param name="expectedTag" type="string?" description="Optional release tag in exact v&lt;version&gt; form" />
+        </inputs>
+        <outputs>
+          <param name="versionEvidence" type="VersionEvidence" description="Normalized version values from all authoritative release metadata" />
+          <param name="releaseGate" type="pass|fail" description="Deterministic decision used before any artifact is published" />
+        </outputs>
+        <errors>
+          <error code="MT_RELEASE_VERSION_MISMATCH" description="One or more package, lockfile, Cargo, or Tauri versions differ" />
+          <error code="MT_RELEASE_TAG_MISMATCH" description="Requested tag is not exactly v&lt;metadata-version&gt;" />
+          <error code="MT_RELEASE_SIGNATURE_INVALID" description="Packaged macOS app fails strict codesign or Gatekeeper assessment" />
+        </errors>
+      </contract>
+      <interface>
+        <fn-readVersionEvidence PURPOSE="Read normalized versions from package.json, package-lock.json, Cargo.toml, Cargo.lock, and tauri.conf.json" />
+        <fn-validateVersionEvidence PURPOSE="Reject any metadata or exact-tag mismatch with stable, non-secret diagnostics" />
+        <fn-runReleasePreflight PURPOSE="Execute version checks and emit the stable release-consistency marker" />
+      </interface>
+      <depends>M-001, M-016</depends>
+      <target>
+        <source>tools/release-preflight.mjs, package.json, package-lock.json, Cargo.toml, Cargo.lock, src-tauri/tauri.conf.json, .github/workflows/release.yml</source>
+        <tests>tests/renderer/release-preflight.test.js</tests>
+      </target>
+      <verification-ref>V-M-046</verification-ref>
+      <notes>
+        <note-1>The next release version after the published v2.1.0-beta is v2.1.1-beta.</note-1>
+        <note-2>The release workflow owns Developer ID signing/notarization; a raw local `tauri build` output is not a distributable artifact until explicitly re-signed.</note-2>
+      </notes>
+    </M-046>
 
   </Modules>
 
@@ -2317,6 +2366,50 @@ src/main/config.js declares `contextIsolation: false`, `nodeIntegration: true`, 
 
       <gate>Mock extension discovered via mt_ext_discover; enabled via mt_ext_enable; mt_ext_invoke sends text.transform request and receives response; live document server accepts stream.document POST and emits event to renderer; m001_validate passes with new commands registered. Tag v2.0.0-beta.4 on success.</gate>
     </Phase-B11-ext-host>
+
+    <Phase-Hotfix-2026-08-07 name="Title path menu and WKWebView editor visibility/caret hardening" status="done">
+      <goal>Deliver UC-029, UC-030, and UC-031 without changing the M-011/M-012 public architecture.</goal>
+      <step-1 status="done" verification="V-M-011">Add a native right-click menu to the current file title; Copy Path writes only the active pathname and untitled tabs no-op.</step-1>
+      <step-2 status="done" verification="V-M-011">Remove the requestAnimationFrame-only visibility release from saved-scroll restoration so a backgrounded WKWebView cannot remain blank until input.</step-2>
+      <step-3 status="done" verification="V-M-011">Synchronize previewMode to Muya's replacement container and restore editable focus/selection synchronously when preview exits.</step-3>
+      <step-4 status="done" verification="V-M-011">Run targeted renderer tests, lint/type/build gates, and scoped GRACE review.</step-4>
+      <write-scope>
+        <file>src/renderer/src/components/titleBar/index.vue</file>
+        <file>src/renderer/src/components/editorWithTabs/editor.vue</file>
+        <file>tests/renderer/components/titleBar-deep.test.js</file>
+        <file>tests/renderer/components/editor-coverage.test.js</file>
+        <file>docs/requirements.xml</file>
+        <file>docs/development-plan.xml</file>
+        <file>docs/verification-plan.xml</file>
+        <file>docs/knowledge-graph.xml</file>
+      </write-scope>
+    </Phase-Hotfix-2026-08-07>
+
+    <Phase-Release-Readiness-2026-08-07 name="v2.1.1-beta release preflight hardening" status="done">
+      <goal>Make the current maintenance fixes safe to tag by closing metadata, test, signature, and native-smoke gaps.</goal>
+      <step-1 status="done" verification="V-M-046">Align all release metadata on v2.1.1-beta and add an exact tag/version preflight.</step-1>
+      <step-2 status="done" verification="V-M-046">Require renderer unit/E2E/typecheck, Rust tests, strict codesign, Gatekeeper assessment, and smoke launch in the production release workflow.</step-2>
+      <step-3 status="done" verification="V-M-046">Build and ad-hoc sign an isolated local bundle, then execute native first-paint/title/caret smoke evidence without replacing the user's running Mark process.</step-3>
+      <step-4 status="done" verification="V-M-046">Run full verification, full-integrity GRACE review, and commit only the approved release packet.</step-4>
+      <step-5 status="done" verification="V-M-004">Remove process-global PATH mutation from the rg spawn-failure test so the complete parallel Rust gate is deterministic.</step-5>
+      <write-scope>
+        <file>package.json</file>
+        <file>package-lock.json</file>
+        <file>Cargo.toml</file>
+        <file>Cargo.lock</file>
+        <file>src-tauri/tauri.conf.json</file>
+        <file>tools/release-preflight.mjs</file>
+        <file>tests/renderer/release-preflight.test.js</file>
+        <file>.github/workflows/release.yml</file>
+        <file>src-tauri/src/m009_menu.rs</file>
+        <file>src-tauri/src/m013b/search.rs</file>
+        <file>src-tauri/src/main.rs</file>
+        <file>docs/requirements.xml</file>
+        <file>docs/development-plan.xml</file>
+        <file>docs/verification-plan.xml</file>
+        <file>docs/knowledge-graph.xml</file>
+      </write-scope>
+    </Phase-Release-Readiness-2026-08-07>
   </ImplementationOrder>
 
   <ExecutionPolicy>

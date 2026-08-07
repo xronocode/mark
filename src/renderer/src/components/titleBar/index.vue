@@ -11,7 +11,12 @@
         { isOsx: isOsx }
       ]"
     >
-      <div class="title" data-tauri-drag-region @dblclick.stop="toggleMaxmizeOnMacOS">
+      <div
+        class="title"
+        data-tauri-drag-region
+        @dblclick.stop="toggleMaxmizeOnMacOS"
+        @contextmenu.stop.prevent="handleTitleContextMenu"
+      >
         <span v-if="!filename">Mark</span>
         <span v-else>
           <span v-for="(path, index) of paths" :key="index">
@@ -192,22 +197,34 @@
 </template>
 
 <script setup>
-// MODULE_CONTRACT
-//   PURPOSE: Render the main window title bar, including navigation,
-//            version badge, window controls, and drag affordances.
-//   SCOPE:   Renderer-side titlebar behavior only. Owns sidebar/view
-//            navigation, title updates, direct window control calls, and
-//            transparent-titlebar drag fallbacks for WKWebView/macOS.
-//   DEPENDS: preferences/layout/project/editor stores, bus,
-//            @tauri-apps/api/window.
-//   LINKS:   docs/verification-plan.xml V-A6-5, V-A6-6; docs/knowledge-graph.xml M-011.
-//   STATUS:  Transparent-titlebar drag support hardened with CSS and JS
-//            fallbacks while preserving Tauri drag-region attributes.
+// FILE: src/renderer/src/components/titleBar/index.vue
+// VERSION: 1.1.0
+// START_MODULE_CONTRACT
+//   PURPOSE: Render the main window title bar and expose its navigation, native file-path actions, window controls, and drag affordances.
+//   SCOPE: Renderer-side titlebar behavior, including sidebar/view navigation, title updates, native title context menus, direct window controls, and WKWebView/macOS drag fallbacks.
+//   DEPENDS: preferences/layout/project/editor stores, bus, i18n, window.electron IPC/clipboard facade, @tauri-apps/api/window.
+//   LINKS: docs/knowledge-graph.xml M-011; docs/verification-plan.xml V-M-011 scenarios 14, V-A6-5, V-A6-6.
+//   ROLE: RUNTIME
+//   MAP_MODE: LOCALS
+// END_MODULE_CONTRACT
 //
-// CHANGE_SUMMARY:
+// START_MODULE_MAP
+//   paths - Derives the visible tail of the active file path.
+//   handleTitleContextMenu - Opens the native file-title menu and dispatches Copy Path.
+//   handleNavClick - Applies multi-root-aware titlebar navigation behavior.
+//   handleWindowDragMouseDown - Starts the macOS transparent-titlebar drag fallback.
+//   handleCloseClick - Requests native window close.
+//   handleMaximizeClick - Toggles native maximize/fullscreen state.
+//   handleMinimizeClick - Requests native window minimize.
+//   handleMenuClick - Opens the native application menu at the pointer.
+// END_MODULE_MAP
+//
+// START_CHANGE_SUMMARY
 //   - 2026-05-21 drag-theme-refactor: restore `-webkit-app-region: drag`
 //     on the title bar and add a macOS mousedown -> startDragging()
 //     fallback for transparent WKWebView windows.
+//   - 2026-08-07 v1.1.0: add the native title-path Copy Path menu for UC-029.
+// END_CHANGE_SUMMARY
 
 // step-8g: @electron/remote.Menu also gone. Application-menu popup
 // now routes through mt::window-popup-app-menu IPC (windowManager).
@@ -298,6 +315,38 @@ const paths = computed(() => {
   const pathnameToken = props.pathname.split(PATH_SEPARATOR).filter((i) => i)
   return pathnameToken.slice(0, pathnameToken.length - 1).slice(-3)
 })
+
+// START_CONTRACT: handleTitleContextMenu
+//   PURPOSE: Open a native context menu for the active title path and copy the exact pathname only after explicit user selection.
+//   INPUTS: { event: MouseEvent - context-menu pointer coordinates }
+//   OUTPUTS: { Promise<void> - resolves after menu dismissal and optional clipboard write }
+//   SIDE_EFFECTS: Invokes native context-menu IPC, may write the active pathname to the OS clipboard, and emits path-redacted diagnostics.
+//   LINKS: docs/verification-plan.xml V-M-011 scenario-14; docs/knowledge-graph.xml M-011.fn-handleTitleContextMenu
+// END_CONTRACT: handleTitleContextMenu
+// START_BLOCK_TITLE_PATH_CONTEXT_MENU
+const handleTitleContextMenu = async (event) => {
+  if (!props.pathname) return
+
+  try {
+    const clickedId = await window.electron.ipcRenderer.invoke(
+      'mt::window-popup-context-menu',
+      {
+        items: [{ label: t('contextMenu.tabs.copyPath'), id: 'copyPath' }],
+        x: Number.isFinite(event?.clientX) ? event.clientX : 0,
+        y: Number.isFinite(event?.clientY) ? event.clientY : 0
+      }
+    )
+
+    if (clickedId === 'copyPath') {
+      await window.electron.clipboard.writeText(props.pathname)
+      // Do not log the absolute path (docs/technology.xml redaction contract).
+      console.debug('[TitleBar][handleTitleContextMenu][BLOCK_COPY_PATH] copied=true')
+    }
+  } catch (error) {
+    console.warn('[TitleBar][handleTitleContextMenu][BLOCK_COPY_PATH] copied=false', error)
+  }
+}
+// END_BLOCK_TITLE_PATH_CONTEXT_MENU
 
 const showCustomTitleBar = computed(() => {
   return titleBarStyle.value === 'custom' && !isOsx
