@@ -5454,7 +5454,7 @@
       <S1>All six metadata values across five files contain 2.1.1-beta and tag v2.1.1-beta: preflight passes and emits BLOCK_RELEASE_VERSION_CONSISTENT.</S1>
       <S2>Any metadata source differs: preflight fails with MT_RELEASE_VERSION_MISMATCH and names sources/versions without secrets.</S2>
       <S3>Metadata agrees but tag differs: preflight fails with MT_RELEASE_TAG_MISMATCH before packaging.</S3>
-      <S4>Release workflow contains renderer unit/E2E/typecheck and Rust test gates before tauri build.</S4>
+      <S4>Release workflow contains renderer unit/typecheck, a clean-checkout Vite build before bounded Playwright E2E, and Rust test gates before tauri packaging.</S4>
       <S5>Release workflow verifies strict codesign and Gatekeeper acceptance before its installed-app smoke launch and publish job.</S5>
       <S6>Isolated local v2.1.1-beta bundle is ad-hoc re-signed, passes strict codesign, launches separately from the installed Mark instance, and renders a Markdown document without first-input reveal.</S6>
       <S7>The updater feed uses strict SemVer `2.1.1-beta` while release asset URLs retain the canonical Git tag `v2.1.1-beta`.</S7>

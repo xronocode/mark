@@ -1,5 +1,5 @@
 // FILE: tests/renderer/release-preflight.test.js
-// VERSION: 1.1.0
+// VERSION: 1.2.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Verify exact release metadata/tag consistency and production workflow gate ordering for M-046.
 //   SCOPE: Pure mismatch tests, current-workspace integration, CLI marker evidence, and static release-workflow assertions.
@@ -15,8 +15,9 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: 2026-08-07 v1.1.0 - require strict SemVer without a leading v in the updater feed.
-//   PREVIOUS: 2026-08-07 v1.0.0 - add release version, tag, workflow verification, and marker regressions.
+//   LAST_CHANGE: 2026-08-07 v1.2.0 - require a clean-checkout Vite build before Playwright preview.
+//   PREVIOUS: 2026-08-07 v1.1.0 - require strict SemVer without a leading v in the updater feed.
+//   INITIAL: 2026-08-07 v1.0.0 - add release version, tag, workflow verification, and marker regressions.
 // END_CHANGE_SUMMARY
 
 import { spawnSync } from 'node:child_process'
@@ -112,11 +113,19 @@ describe('production release workflow', () => {
       'npm run release:preflight',
       'npm run typecheck:ipc',
       'npm test',
+      'npm run build',
       'npm run test:e2e',
       'cargo test --bin mark'
     ]) {
       expect(commandIndex(command)).toBeLessThan(buildIndex)
     }
+  })
+
+  it('builds the renderer before Playwright starts vite preview', () => {
+    expect(commandIndex('npm run build')).toBeLessThan(
+      commandIndex('npm run test:e2e')
+    )
+    expect(workflow).toContain('timeout-minutes: 15')
   })
 
   it('verifies signature and Gatekeeper before smoke launch', () => {
