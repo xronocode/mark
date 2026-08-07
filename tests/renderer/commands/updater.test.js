@@ -1,3 +1,23 @@
+// FILE: tests/renderer/commands/updater.test.js
+// VERSION: 2.1.2-beta
+// START_MODULE_CONTRACT
+//   PURPOSE: Verify the user-visible Help-menu updater command across current, available, missing-feed, and failure states.
+//   SCOPE: Renderer command orchestration with mocked Tauri APIs; network, signature cryptography, and bundle replacement are out of scope.
+//   DEPENDS: src/renderer/src/commands/index.js, @tauri-apps/plugin-updater, @tauri-apps/plugin-process.
+//   LINKS: docs/knowledge-graph.xml M-016; docs/verification-plan.xml V-M-016.
+//   ROLE: TEST
+//   MAP_MODE: LOCALS
+// END_MODULE_CONTRACT
+//
+// START_MODULE_MAP
+//   findCmd - Resolves the command under test from the production registry.
+//   updater cases - Assert one signed in-app path regardless of original install method.
+// END_MODULE_MAP
+//
+// START_CHANGE_SUMMARY
+//   - 2026-08-07 v2.1.2-beta: replace Homebrew Terminal expectations with the unified signed updater path.
+// END_CHANGE_SUMMARY
+
 vi.mock('@/i18n', () => ({
   t: (key) => `t:${key}`
 }))
@@ -52,11 +72,13 @@ vi.mock('@tauri-apps/plugin-process', () => ({
 }))
 
 import { invoke } from '@tauri-apps/api/core'
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 import commands from '@/commands/index'
 
 const findCmd = (id) => commands.find((c) => c.id === id)
 
-describe('file.check-update — three-path updater', () => {
+describe('file.check-update — signed in-app updater', () => {
   beforeEach(() => {
     vi.clearAllMocks()
   })
@@ -71,8 +93,7 @@ describe('file.check-update — three-path updater', () => {
       available: false,
       latestVersion: null,
       downloadUrl: null,
-      statusNote: null,
-      installMethod: 'dmg'
+      statusNote: null
     })
 
     await findCmd('file.check-update').execute()
@@ -88,8 +109,7 @@ describe('file.check-update — three-path updater', () => {
     invoke.mockResolvedValueOnce({
       currentVersion: '2.0.6',
       available: false,
-      statusNote: 'updater plugin not initialized',
-      installMethod: 'dmg'
+      statusNote: 'updater plugin not initialized'
     })
 
     await findCmd('file.check-update').execute()
@@ -100,30 +120,34 @@ describe('file.check-update — three-path updater', () => {
     })
   })
 
-  it('launches brew upgrade for homebrew installs', async () => {
+  it('updates Homebrew-origin installs without opening Terminal', async () => {
     invoke.mockResolvedValueOnce({
       currentVersion: '2.0.5',
       available: true,
-      latestVersion: '2.0.6',
-      installMethod: 'homebrew'
+      latestVersion: '2.0.6'
+    })
+
+    const downloadAndInstallMock = vi.fn()
+    checkMock.mockResolvedValueOnce({
+      downloadAndInstall: downloadAndInstallMock
     })
 
     await findCmd('file.check-update').execute()
 
     expect(notifyMock).toHaveBeenCalledWith({
-      title: 'Mark 2.0.6 available',
-      message: 'Opening Terminal for brew upgrade…',
+      title: 'Updating to Mark 2.0.6…',
       type: 'info'
     })
-    expect(invoke).toHaveBeenCalledWith('mt_updater_brew_upgrade')
+    expect(invoke).not.toHaveBeenCalledWith('mt_updater_brew_upgrade')
+    expect(downloadAndInstallMock).toHaveBeenCalled()
+    expect(relaunchMock).toHaveBeenCalled()
   })
 
   it('does in-place update for DMG installs', async () => {
     invoke.mockResolvedValueOnce({
       currentVersion: '2.0.5',
       available: true,
-      latestVersion: '2.0.6',
-      installMethod: 'dmg'
+      latestVersion: '2.0.6'
     })
 
     const downloadAndInstallMock = vi.fn()
@@ -146,8 +170,7 @@ describe('file.check-update — three-path updater', () => {
     invoke.mockResolvedValueOnce({
       currentVersion: '2.0.5',
       available: true,
-      latestVersion: '2.0.6',
-      installMethod: 'dmg'
+      latestVersion: '2.0.6'
     })
 
     checkMock.mockResolvedValueOnce(null)
@@ -171,5 +194,21 @@ describe('file.check-update — three-path updater', () => {
       message: 'Error: network timeout',
       type: 'warning'
     })
+  })
+
+  it('ships updater capability and no obsolete Terminal command', () => {
+    const workspaceRoot = resolve(import.meta.dirname, '../../..')
+    const capability = JSON.parse(
+      readFileSync(resolve(workspaceRoot, 'src-tauri/capabilities/default.json'), 'utf8')
+    )
+    const updaterSource = readFileSync(
+      resolve(workspaceRoot, 'src-tauri/src/m016_updater.rs'),
+      'utf8'
+    )
+
+    expect(capability.permissions).toContain('updater:default')
+    expect(updaterSource).not.toContain('mark@alpha')
+    expect(updaterSource).not.toContain('osascript')
+    expect(updaterSource).not.toContain('brew upgrade')
   })
 })

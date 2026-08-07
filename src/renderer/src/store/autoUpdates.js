@@ -3,18 +3,19 @@
 //            ipcRenderer.on() listeners for mt::UPDATE_{ERROR,
 //            NOT_AVAILABLE,DOWNLOADED,AVAILABLE} fired by Electron's
 //            electron-updater main-process module. The Tauri 2 port
-//            uses tauri-plugin-updater whose JS API
-//            (`@tauri-apps/plugin-updater` package) is not yet a
-//            dependency, so the user-facing check + install flow goes
-//            through `file.check-update` command in commands/index.js
-//            which invokes the `mt_updater_check` Rust command (m016).
-//   SCOPE:   Minimal stub. LISTEN_FOR_UPDATE retained as a no-op so
-//            App.vue's onMounted call doesn't break.
+//            uses tauri-plugin-updater. The user-facing check + signed
+//            install flow goes through `file.check-update` in
+//            commands/index.js; this store stays empty until background
+//            progress UI is implemented.
+//   SCOPE:   No background listeners or automatic download. Explicit
+//            Help-menu updates are owned by commands/index.js.
 //   LINKS:   src/renderer/src/commands/index.js id="file.check-update";
 //            src-tauri/src/m016_updater.rs.
 //   STATUS:  Dead-code purged.
 //
 // CHANGE_SUMMARY:
+//   - 2026-08-07: document the live signed in-app flow; Terminal and
+//                Homebrew subprocess routing were removed.
 //   - 2026-05-09: removed 4 dead listeners + 1 dead send. Prior code
 //                referenced channels (mt::UPDATE_*, mt::NEED_UPDATE)
 //                that the Tauri backend never emitted, so the original

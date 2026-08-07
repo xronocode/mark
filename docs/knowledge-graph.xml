@@ -245,15 +245,15 @@
       </annotations>
     </M-015>
 
-    <M-016 NAME="mt-updater" TYPE="INTEGRATION" STATUS="stub-shipped" PHASE-REF="B3-step-10" PATH="src-tauri/src/m016_updater.rs" CLOSURE="docs/gate-phase-b3-closure.md" DEFERRED="F-UPDATER-WIRE-PLUGIN (B4: tauri-plugin-updater + dual-pubkey ed25519 signing)">
-      <purpose>Manual-download auto-update via tauri-plugin-updater; feeds from xronocode/mark releases.</purpose>
-      <path>src-tauri/src/updater/mod.rs</path>
-      <depends>none</depends>
+    <M-016 NAME="mt-updater" TYPE="INTEGRATION" STATUS="shipped" PHASE-REF="B4-step-5" PATH="src-tauri/src/m016_updater.rs" CLOSURE="docs/gate-phase-b4-closure.md">
+      <purpose>Signed in-app updates via tauri-plugin-updater for Homebrew and DMG installations; feed from xronocode/mark GitHub latest release.</purpose>
+      <path>src-tauri/src/m016_updater.rs</path>
+      <depends>M-001,M-013-A</depends>
       <verification-ref>V-M-016</verification-ref>
       <annotations>
         <fn-updater_check PURPOSE="Fetch feed; emit state events" />
-        <fn-updater_download PURPOSE="Download on user confirm" />
-        <fn-updater_quit_and_install PURPOSE="Restart into update" />
+        <fn-updater_download PURPOSE="Download and verify after explicit Help-menu invocation" />
+        <fn-updater_quit_and_install PURPOSE="Install and relaunch without Terminal or Homebrew subprocesses" />
       </annotations>
     </M-016>
 

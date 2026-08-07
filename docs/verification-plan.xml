@@ -1831,16 +1831,21 @@
 
     <V-M-016 MODULE="M-016 mt-updater" PRIORITY="medium">
       <test-files>
-        <file>src-tauri/src/updater/mod.rs (#[cfg(test)])</file>
+        <file>src-tauri/src/m016_updater.rs (#[cfg(test)])</file>
+        <file>tests/renderer/commands/updater.test.js</file>
+        <file>src-tauri/capabilities/default.json</file>
       </test-files>
       <module-checks>
-        <check-1>cargo test --manifest-path src-tauri/Cargo.toml updater</check-1>
+        <check-1>cargo test --bin mark --manifest-path src-tauri/Cargo.toml m016_updater</check-1>
+        <check-2>npx vitest run tests/renderer/commands/updater.test.js</check-2>
       </module-checks>
       <scenarios>
         <scenario-1 kind="success">Feed fetch: mock GitHub Releases response → emits Available(v).</scenario-1>
         <scenario-2 kind="success">NotAvailable when feed version ≤ current.</scenario-2>
         <scenario-3 kind="failure">Network error → MT_UPD_NETWORK; renderer shows stale-cache warning.</scenario-3>
         <scenario-4 kind="failure">Signature mismatch → MT_UPD_SIGNATURE; download rejected.</scenario-4>
+        <scenario-5 kind="success">Homebrew-origin installation follows the same updater `check → downloadAndInstall → relaunch` path as a DMG installation.</scenario-5>
+        <scenario-6 kind="contract">Default renderer capability grants `updater:default`; App Store capability does not.</scenario-6>
       </scenarios>
       <required-log-markers>
         <marker-1>[Updater][check][BLOCK_FEED_FETCH]</marker-1>
@@ -1849,6 +1854,10 @@
       <required-trace-assertions>
         <assertion-1>Signature verification BLOCK_VERIFY_SIGNATURE must NOT fire if BLOCK_FEED_FETCH returned NotAvailable.</assertion-1>
       </required-trace-assertions>
+      <negative-assertions>
+        <N1>No Help-menu updater path may invoke Terminal, `osascript`, `brew upgrade`, or the retired `mark@alpha` cask.</N1>
+        <N2>No beta release may be excluded from the `/releases/latest/download/latest.json` endpoint configured in `tauri.conf.json`.</N2>
+      </negative-assertions>
       <wave-follow-up>E2e: tag v9.9.9 test release; check updater detects.</wave-follow-up>
       <phase-follow-up>Force-update flow test with real GitHub Releases tag; signature verification against known-good public key; rollback integrity check.</phase-follow-up>
       <edge-cases generation="swarm-2026-04-25">
@@ -5445,20 +5454,20 @@
     <phase-follow-up>Before beta.4 tagging, run full integration test: mock extension discovered, enabled, responds to text.transform via mt_ext_invoke, streams document via live server. m001_validate must pass with all 5 new commands registered.</phase-follow-up>
   </V-M-045>
 
-  <V-M-046 MODULE="M-046 ReleasePreflight" PRIORITY="critical" wave="v2.1.1-beta" status="done">
+  <V-M-046 MODULE="M-046 ReleasePreflight" PRIORITY="critical" wave="v2.1.2-beta" status="active">
     <module-surface>
       Tool: tools/release-preflight.mjs reads package.json, package-lock.json, Cargo.toml, Cargo.lock, and src-tauri/tauri.conf.json; validates one exact version and optional v&lt;version&gt; tag.
       Workflow: .github/workflows/release.yml invokes the metadata preflight before build, runs renderer unit/E2E/typecheck and Rust tests, then requires strict codesign + Gatekeeper evidence before smoke and publication.
     </module-surface>
     <high-level-scenarios>
-      <S1>All six metadata values across five files contain 2.1.1-beta and tag v2.1.1-beta: preflight passes and emits BLOCK_RELEASE_VERSION_CONSISTENT.</S1>
+      <S1>All six metadata values across five files contain 2.1.2-beta and tag v2.1.2-beta: preflight passes and emits BLOCK_RELEASE_VERSION_CONSISTENT.</S1>
       <S2>Any metadata source differs: preflight fails with MT_RELEASE_VERSION_MISMATCH and names sources/versions without secrets.</S2>
       <S3>Metadata agrees but tag differs: preflight fails with MT_RELEASE_TAG_MISMATCH before packaging.</S3>
       <S4>Release workflow contains renderer unit/typecheck, a clean-checkout Vite build before bounded Playwright E2E, and Rust test gates before tauri packaging.</S4>
       <S5>Release workflow verifies strict codesign and Gatekeeper acceptance before its installed-app smoke launch and publish job.</S5>
-      <S6>Isolated local v2.1.1-beta bundle is ad-hoc re-signed, passes strict codesign, launches separately from the installed Mark instance, and renders a Markdown document without first-input reveal.</S6>
-      <S7>The updater feed uses strict SemVer `2.1.1-beta` while release asset URLs retain the canonical Git tag `v2.1.1-beta`.</S7>
-      <S8>GitHub publication derives prerelease state from the normalized SemVer: hyphenated versions set `--prerelease`, while stable versions explicitly set `--prerelease=false`.</S8>
+      <S6>Isolated local v2.1.2-beta bundle is ad-hoc re-signed, passes strict codesign, launches separately from the installed Mark instance, and renders a Markdown document without first-input reveal.</S6>
+      <S7>The updater feed uses strict SemVer `2.1.2-beta` while release asset URLs retain the canonical Git tag `v2.1.2-beta`.</S7>
+      <S8>GitHub publication keeps signed beta tags as normal releases so `/releases/latest/download/latest.json` advances to the newest shipped feed.</S8>
       <S9>Cross-repo cask publication rejects any URL template that does not resolve to the staged `Mark_&lt;version&gt;_aarch64.dmg` release asset.</S9>
     </high-level-scenarios>
     <test-targets>
@@ -5467,7 +5476,7 @@
       <test>tests/renderer/components/editor-coverage.test.js</test>
     </test-targets>
     <commands>
-      <module-local>npm run release:preflight -- --tag v2.1.1-beta</module-local>
+      <module-local>npm run release:preflight -- --tag v2.1.2-beta</module-local>
       <module-local>npx vitest run tests/renderer/release-preflight.test.js tests/renderer/components/titleBar-deep.test.js tests/renderer/components/editor-coverage.test.js</module-local>
       <local-bundle>npm run tauri:build -- --config '{"bundle":{"createUpdaterArtifacts":false}}' (local artifact build without access to the production updater private key)</local-bundle>
       <phase-gate>npm test &amp;&amp; npm run test:e2e &amp;&amp; npm run typecheck:ipc &amp;&amp; cargo test --bin mark &amp;&amp; npm run build &amp;&amp; npm run tauri:build</phase-gate>
@@ -5482,7 +5491,7 @@
       <N1>No release filename or updater feed version may be derived from a tag that differs from embedded app metadata; updater `version` must strip the tag's leading `v`.</N1>
       <N2>No publish job may run when renderer, Rust, signature, Gatekeeper, or smoke gates fail.</N2>
       <N3>No signing private key, certificate content, updater key, or password may appear in preflight output.</N3>
-      <N4>No hyphenated SemVer release may remain classified as stable on GitHub after either creation or idempotent asset upload.</N4>
+      <N4>No shipped beta release may be classified as a GitHub prerelease while the application consumes the `/releases/latest/` updater endpoint.</N4>
       <N5>No Homebrew PR may be opened with a legacy Electron DMG filename or another URL that differs from the published Tauri artifact.</N5>
     </negative-assertions>
     <phase-follow-up>Tag and push remain explicit maintainer actions after the clean release commit and green remote CI.</phase-follow-up>

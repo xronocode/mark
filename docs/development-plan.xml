@@ -582,9 +582,9 @@
       </notes>
     </M-015>
 
-    <M-016 NAME="mt-updater" TYPE="INTEGRATION" LAYER="1" ORDER="4" STATUS="planned">
+    <M-016 NAME="mt-updater" TYPE="INTEGRATION" LAYER="1" ORDER="4" STATUS="shipped">
       <contract>
-        <purpose>Manual-download auto-update via tauri-plugin-updater, replacing electron-updater; checks GitHub Releases feed on xronocode/mark.</purpose>
+        <purpose>User-confirmed signed updates via tauri-plugin-updater, replacing electron-updater; checks the GitHub latest feed on xronocode/mark without launching Terminal.</purpose>
         <inputs>
           <param name="trigger" type="enum { UserCheck, StartupCheck }" />
         </inputs>
@@ -615,6 +615,7 @@
       <notes>
         <note-1>Auto-download is OFF (mirrors upstream `autoUpdater.autoDownload = false`); user must confirm.</note-1>
         <note-2>Bundle id `com.xronocode.mark` — new feed; no continuity with upstream fork.</note-2>
+        <note-3>Homebrew and DMG installations share the same ed25519-verified in-app path; `brew upgrade --cask mark` is an external fallback only.</note-3>
       </notes>
     </M-016>
 
@@ -1389,10 +1390,10 @@
       </target>
       <verification-ref>V-M-046</verification-ref>
       <notes>
-        <note-1>The next release version after the published v2.1.0-beta is v2.1.1-beta.</note-1>
+        <note-1>The updater-channel repair releases as v2.1.2-beta after the published v2.1.1-beta.</note-1>
         <note-2>The release workflow owns Developer ID signing/notarization; a raw local `tauri build` output is not a distributable artifact until explicitly re-signed.</note-2>
         <note-3>Release Playwright runs only after `npm run build`; `vite preview` must never start against an absent clean-checkout renderer dist.</note-3>
-        <note-4>Hyphenated SemVer tags such as v2.1.1-beta must be created and idempotently updated as GitHub prereleases; stable tags must clear the prerelease flag.</note-4>
+        <note-4>While the embedded endpoint uses GitHub `/releases/latest`, shipped beta tags must be created and idempotently updated with `prerelease=false`; SemVer still carries the `-beta` channel label.</note-4>
         <note-5>The Homebrew cask publication gate must prove its URL template resolves to `Mark_#{version}_aarch64.dmg`, matching the staged and published Tauri asset.</note-5>
       </notes>
     </M-046>
@@ -1511,8 +1512,8 @@
       <step-1>Renderer calls `ipc.updater.check()` → M-016.</step-1>
       <step-2>M-016 fetches feed from GitHub Releases `xronocode/mark`.</step-2>
       <step-3>Emit states: Checking → Available(v) | NotAvailable | Error.</step-3>
-      <step-4>On Available, renderer shows dialog: "Download v?" User confirms → `ipc.updater.download()`.</step-4>
-      <step-5>On Downloaded, renderer shows "Restart to apply" → `ipc.updater.quitAndInstall()`.</step-5>
+      <step-4>On Available, the explicit Help-menu action is the user confirmation; renderer calls tauri-plugin-updater `downloadAndInstall()` for Homebrew and DMG installs alike.</step-4>
+      <step-5>On successful verified install, renderer relaunches Mark through tauri-plugin-process; Terminal is never opened.</step-5>
       <evidence>[Updater][check][BLOCK_FEED_FETCH]; [Updater][download][BLOCK_VERIFY_SIGNATURE].</evidence>
     </DF-015>
 
@@ -1891,7 +1892,7 @@ src/main/config.js declares `contextIsolation: false`, `nodeIntegration: true`, 
       <step-7 module="M-019" status="lite-shipped" verification="V-M-019">Implement mt-datacenter (keyring + image uploaders); migrate legacy `marktext` serviceName to `com.xronocode.mark`. **Lite shipped 2026-04-29.** src-tauri/src/m019_datacenter.rs (~70 LOC). keyring 3 with serviceName "com.xronocode.mark". Three commands (mt_secret_set/get/delete). Tests skipped because keyring I/O hits real OS store; manual smoke + V-M-019 e2e in B3a. **F-DC-MIGRATE-V1-KEYCHAIN** deferred (rename "marktext" entries when migration lands). **F-DC-IMAGE-UPLOAD** deferred (PicGo/aliyun/qiniu/smms runtimes — substantial feature integrating with renderer image-paste flow).</step-7>
       <step-8 module="M-017" status="done" verification="V-M-017">Implement mt-recent-docs with per-platform OS integration. **Closed 2026-04-29 (core; OS integration deferred).** src-tauri/src/m017_recent.rs (~165 LOC, 8 tests). KEY_RECENT_DOCS prefs key; MAX_RECENT_DOCS=10 (matches v1.2.3 cap). Three commands (add/list/clear). Head-insert with dedupe; defensive against malformed prefs. Tests: empty load, head insert, dedupe, cap, clear, malformed fallback, non-string filtering, persistence. **F-RECENT-OS-INTEGRATION** deferred (macOS NSDocumentController + Windows JumpList).</step-8>
       <step-9 module="M-015" status="done" verification="V-M-015">Implement mt-pandoc-bridge with macOS `/Library/TeX/texbin` PATH patching. **Closed 2026-04-29.** src-tauri/src/m015_pandoc.rs (~150 LOC, 1 test). Real impl. mt_pandoc_status (detect via `pandoc --version` + `which pandoc`); mt_pandoc_export (shell-out with stdin/stdout pipes). PATH augmentation prepends /usr/local/bin, /opt/homebrew/bin, /Library/TeX/texbin so GUI Tauri (sparse PATH) finds pandoc + LaTeX distributions. Live invocations skipped in unit tests; PATH augmentation is the deterministic check. F-PANDOC-PROGRESS deferred (progress events for long exports).</step-9>
-      <step-10 module="M-016" status="stub-shipped" verification="V-M-016">Implement mt-updater (tauri-plugin-updater) with manual-download flow. **Stub shipped 2026-04-29.** src-tauri/src/m016_updater.rs (~60 LOC, 1 test). mt_updater_check returns "no update available" with status_note explaining the feed is unconfigured. **F-UPDATER-WIRE-PLUGIN** deferred to Phase-B4 — tauri-plugin-updater wiring needs dual-pubkey ed25519 signing infra that's a B4 step-5 deliverable.</step-10>
+      <step-10 module="M-016" status="shipped" verification="V-M-016">Implement mt-updater with a signed, user-triggered tauri-plugin-updater flow. **Closed through Phase-B4 and hardened 2026-08-07.** `src-tauri/src/m016_updater.rs` checks the configured ed25519 feed; renderer `file.check-update` downloads, verifies, installs, and relaunches for both Homebrew and DMG origins. The obsolete Terminal/`mark@alpha` branch was removed and `updater:default` is a verified capability.</step-10>
       <step-11 module="M-018" status="done" verification="V-M-018">Implement mt-screenshot (macOS-only). **Closed 2026-04-29.** src-tauri/src/m018_screenshot.rs (~100 LOC, 2 tests). Shell-out to /usr/sbin/screencapture with -i / -w / -m mode flags + -x (no shutter sound); writes to temp file, reads bytes, deletes temp. Modes: interactive (default), window, main. Non-macOS rejects with stable code MT_SCREENSHOT_PLATFORM. **F-SCREENSHOT-CROSS-PLATFORM** deferred to v2.1+ (Windows + Linux equivalents).</step-11>
       <step-12 module="M-009" status="skeleton-shipped" verification="V-M-009">Implement mt-menu; wire recent-docs + command palette dispatcher. **Skeleton shipped 2026-04-29.** src-tauri/src/m009_menu.rs (~290 LOC, 5 tests). standard_menu() returns v2.0 top-level taxonomy matching v1.2.3 templates (file/edit/view/help + macOS Mark app menu). MenuItem { id, label, command, accelerator, items }. Dynamic submenu placeholders (file.openRecent, view.theme) populated client-side from M-017 + M-005. mt_menu_taxonomy command exposes structure to renderer for in-window UI. Tests: top-level groups present, no duplicate IDs, every leaf has command or is dynamic submenu, save uses Cmd+S, openRecent is dynamic empty submenu. **F-MENU-WIRE-TAURI** deferred — native OS menu via tauri::menu::* in Builder.setup hook with AppHandle access.</step-12>
       <step-13 status="done">Verify Gate-Phase-B3. **Closed 2026-04-29 PASS-WITH-FOLLOWUP.** Full closure report in docs/gate-phase-b3-closure.md. 5 verification criteria green: cargo test 203 passed (138→203, +65 in B3); cargo build --release 12 MB binary zero warnings; tsc --noEmit clean (M-013-A + M-013-B runtime + integrations); IPC fixture parity green (33 commands ↔ REGISTERED_COMMANDS); per-module test counts (m005=9, m006=11, m007=3, m008=4, m009=5, m014=11, m015=1, m016=1, m017=8, m018=1, m020=11). 12 of 12 implementation modules shipped (M-005 lite + M-006 lite + M-007 lite + M-008 + M-009 skeleton + M-014 + M-015 + M-016 stub + M-017 + M-018 + M-019 lite + M-020). 15 new followups recorded; none block B3a entry. Phase-B3 status: pending → done-with-followup.</step-13>
@@ -2413,6 +2414,26 @@ src/main/config.js declares `contextIsolation: false`, `nodeIntegration: true`, 
         <file>docs/knowledge-graph.xml</file>
       </write-scope>
     </Phase-Release-Readiness-2026-08-07>
+
+    <Phase-Updater-Hotfix-2026-08-07 name="v2.1.2-beta in-app updater repair" status="in-progress">
+      <goal>Restore a complete signed in-app update path and remove the obsolete Terminal/mark@alpha route exposed by v2.0.7-alpha installations.</goal>
+      <step-1 status="done" verification="V-M-016">Unify Homebrew-origin and DMG-origin updates on tauri-plugin-updater check, downloadAndInstall, and relaunch.</step-1>
+      <step-2 status="done" verification="V-M-016">Grant `updater:default` to normal desktop windows while keeping the App Store capability updater-free.</step-2>
+      <step-3 status="done" verification="V-M-046">Publish shipped beta tags as normal GitHub releases so the configured `/releases/latest/download/latest.json` feed advances.</step-3>
+      <step-4 status="in-progress" verification="V-M-016,V-M-046">Run full gates, publish v2.1.2-beta, update Homebrew cask, and verify an older installed build discovers and applies the signed update.</step-4>
+      <write-scope>
+        <file>src-tauri/src/m016_updater.rs</file>
+        <file>src-tauri/src/main.rs</file>
+        <file>src-tauri/capabilities/default.json</file>
+        <file>src/renderer/src/commands/index.js</file>
+        <file>src/renderer/src/store/autoUpdates.js</file>
+        <file>tests/renderer/commands/updater.test.js</file>
+        <file>.github/workflows/release.yml</file>
+        <file>README.md</file>
+        <file>package.json, package-lock.json, Cargo.toml, Cargo.lock, src-tauri/tauri.conf.json</file>
+        <file>docs/development-plan.xml, docs/verification-plan.xml, docs/knowledge-graph.xml</file>
+      </write-scope>
+    </Phase-Updater-Hotfix-2026-08-07>
   </ImplementationOrder>
 
   <ExecutionPolicy>
@@ -3223,7 +3244,7 @@ src/main/config.js declares `contextIsolation: false`, `nodeIntegration: true`, 
     <followup id="F-SPELL-HUNSPELL-EMBED" origin="B3-step-5" status="open" resolves-at="post-v2.0">Linux bundled-dict path (macOS NSSpellChecker + Win Edge Chromium cover those platforms via WebView native).</followup>
     <followup id="F-MENU-WIRE-TAURI" origin="B3-step-12" status="alpha-blocker-in-flight" resolves-at="B4-pre-alpha-step-1" bucket="alpha">Native OS menu via tauri::menu::* in Builder.setup hook with AppHandle access. Promoted from B3a 2026-05-08 after smoke confirmed File menu has no Save item — Cmd+S binds via menu accelerator on macOS so this is the upstream of F-SHORTCUT-PLATFORM-BIND for all editor shortcuts.</followup>
     <followup id="F-PANDOC-PROGRESS" origin="B3-step-9" status="open" resolves-at="B4">Progress events for long pandoc exports.</followup>
-    <followup id="F-UPDATER-WIRE-PLUGIN" origin="B3-step-10" status="open" resolves-at="B4-step-5">tauri-plugin-updater + dual-pubkey ed25519 signing infra (per dev-plan B4 step-5).</followup>
+    <followup id="F-UPDATER-WIRE-PLUGIN" origin="B3-step-10" status="resolved" resolved-at="B4-step-5" hardened="2026-08-07-v2.1.2-beta">tauri-plugin-updater, ed25519 signing, renderer capability, unified in-app install, and relaunch are wired; Homebrew Terminal routing removed.</followup>
     <followup id="F-SCREENSHOT-CROSS-PLATFORM" origin="B3-step-11" status="open" resolves-at="v2.1+">Windows + Linux screencapture equivalents.</followup>
     <followup id="F-DC-MIGRATE-V1-KEYCHAIN" origin="B3-step-7" status="resolved" resolved-by="F-PREFS-MIGRATE-V1-step-6-keychain" resolves-at="subsumed">Rename "marktext" keychain entries → "com.xronocode.mark". Verified resolved 2026-05-08: real impl in `m005_migrate/keychain.rs`, called from runner.rs:246, idempotency marker `keychain_v1` shipped, e2e fixture `m005_migrate/fixture_e2e.rs` covers the legacy githubToken → v2 rename. Subsumed by F-PREFS-MIGRATE-V1.</followup>
     <followup id="F-DC-IMAGE-UPLOAD" origin="B3-step-7" status="open" resolves-at="post-v2.0">PicGo / aliyun / qiniu / smms image-uploader runtimes; integrates with renderer image-paste flow.</followup>

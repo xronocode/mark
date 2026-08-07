@@ -1,3 +1,24 @@
+// FILE: src/renderer/src/commands/index.js
+// VERSION: 2.1.2-beta
+// START_MODULE_CONTRACT
+//   PURPOSE: Register renderer commands and route each command to its typed store, event-bus, or Tauri integration.
+//   SCOPE: Static command definitions, platform-gated commands, and user-visible command outcomes; backend implementation is out of scope.
+//   DEPENDS: renderer bus/stores, Tauri core, M-016 updater plugin, notification service.
+//   LINKS: docs/knowledge-graph.xml M-009,M-013-A,M-016; docs/verification-plan.xml V-M-016.
+//   ROLE: RUNTIME
+//   MAP_MODE: LOCALS
+// END_MODULE_CONTRACT
+//
+// START_MODULE_MAP
+//   RootCommand - Command-palette root and subcommand coordinator.
+//   commands - Static and platform-gated renderer command registry.
+//   file.check-update - Checks the signed feed and applies an available update entirely in app.
+// END_MODULE_MAP
+//
+// START_CHANGE_SUMMARY
+//   - 2026-08-07 v2.1.2-beta: remove the Terminal/Homebrew update branch and use the signed Tauri updater for every non-App-Store install.
+// END_CHANGE_SUMMARY
+//
 // List of all static commands that are loaded into command center.
 // step-8f: @electron/remote.getCurrentWindow removed. window.minimize
 // and window.toggle-full-screen now route through mt::window-* IPCs
@@ -758,30 +779,21 @@ if (isUpdatable()) {
           }
           return
         }
-        if (status.installMethod === 'homebrew') {
+        const { check } = await import('@tauri-apps/plugin-updater')
+        const update = await check()
+        if (update) {
           notice.notify({
-            title: `Mark ${status.latestVersion} available`,
-            message: 'Opening Terminal for brew upgrade…',
+            title: `Updating to Mark ${status.latestVersion}…`,
             type: 'info'
           })
-          await invoke('mt_updater_brew_upgrade')
+          await update.downloadAndInstall()
+          const { relaunch } = await import('@tauri-apps/plugin-process')
+          await relaunch()
         } else {
-          const { check } = await import('@tauri-apps/plugin-updater')
-          const update = await check()
-          if (update) {
-            notice.notify({
-              title: `Updating to Mark ${status.latestVersion}…`,
-              type: 'info'
-            })
-            await update.downloadAndInstall()
-            const { relaunch } = await import('@tauri-apps/plugin-process')
-            await relaunch()
-          } else {
-            notice.notify({
-              title: `Mark ${status.currentVersion} is up to date`,
-              type: 'info'
-            })
-          }
+          notice.notify({
+            title: `Mark ${status.currentVersion} is up to date`,
+            type: 'info'
+          })
         }
       } catch (e) {
         notice.notify({ title: 'Update failed', message: String(e), type: 'warning' })
