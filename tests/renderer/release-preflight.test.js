@@ -1,7 +1,7 @@
 // FILE: tests/renderer/release-preflight.test.js
-// VERSION: 1.2.0
+// VERSION: 1.3.0
 // START_MODULE_CONTRACT
-//   PURPOSE: Verify exact release metadata/tag consistency and production workflow gate ordering for M-046.
+//   PURPOSE: Verify exact release metadata/tag consistency, production workflow gate ordering, and GitHub prerelease classification for M-046.
 //   SCOPE: Pure mismatch tests, current-workspace integration, CLI marker evidence, and static release-workflow assertions.
 //   DEPENDS: Vitest, Node.js child_process/fs/path, tools/release-preflight.mjs, .github/workflows/release.yml.
 //   LINKS: docs/knowledge-graph.xml M-046; docs/verification-plan.xml V-M-046; docs/requirements.xml UC-032.
@@ -15,8 +15,9 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: 2026-08-07 v1.2.0 - require a clean-checkout Vite build before Playwright preview.
-//   PREVIOUS: 2026-08-07 v1.1.0 - require strict SemVer without a leading v in the updater feed.
+//   LAST_CHANGE: 2026-08-07 v1.3.0 - require hyphenated SemVer tags to publish as GitHub prereleases.
+//   PREVIOUS: 2026-08-07 v1.2.0 - require a clean-checkout Vite build before Playwright preview.
+//   PREVIOUS_UPDATER: 2026-08-07 v1.1.0 - require strict SemVer without a leading v in the updater feed.
 //   INITIAL: 2026-08-07 v1.0.0 - add release version, tag, workflow verification, and marker regressions.
 // END_CHANGE_SUMMARY
 
@@ -142,6 +143,13 @@ describe('production release workflow', () => {
     expect(workflow).toContain('VER="${TAG#v}"')
     expect(workflow).toContain('"version": "${VER}"')
     expect(workflow).not.toContain('"version": "${TAG}"')
+  })
+
+  it('publishes hyphenated SemVer tags as GitHub prereleases on create and rerun', () => {
+    expect(workflow).toContain('PRERELEASE=false')
+    expect(workflow).toContain('if [[ "$VER" == *-* ]]')
+    expect(workflow).toContain('PRERELEASE=true')
+    expect(workflow.match(/--prerelease="\$PRERELEASE"/g)).toHaveLength(2)
   })
 })
 // END_BLOCK_RELEASE_WORKFLOW_TESTS
