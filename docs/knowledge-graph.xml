@@ -198,6 +198,7 @@
         <fn-handleTitleContextMenu PURPOSE="titleBar/index.vue opens the native menu and writes the selected saved pathname through the write-only Tauri clipboard-manager capability" />
         <fn-scrollToCords PURPOSE="editorWithTabs/editor.vue restores saved scrollTop while releasing visibility synchronously, independent of WKWebView requestAnimationFrame scheduling" />
         <fn-syncPreviewSurface PURPOSE="editorWithTabs/editor.vue mirrors previewMode onto the actual Muya contenteditable container and restores caret focus/selection on exit" />
+        <fn-previewExitEvents PURPOSE="editorWithTabs/editor.vue delegates preview exit mousedown and Cmd+backslash keydown from the persistent editor wrapper in capture phase because Muya replaces the inner Vue mount node" />
       </annotations>
     </M-011>
 
