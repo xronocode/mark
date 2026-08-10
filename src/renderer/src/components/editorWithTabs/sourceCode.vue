@@ -1,3 +1,11 @@
+<!-- MODULE_CONTRACT
+  PURPOSE: Host CodeMirror Source Code mode and commit edits to the active tab.
+  SCOPE: CodeMirror lifecycle, cursor/scroll synchronization, and file event handling.
+  DEPENDS: editor/preferences stores, bus, CodeMirror adapter.
+  ROLE: RUNTIME
+END_MODULE_CONTRACT
+CHANGE_SUMMARY: 2026-08-10 v2.1.7 rebinds tab identity after file-loaded events and guards null unmount commits.
+-->
 <template>
   <div ref="sourceCodeContainer" class="source-code"></div>
 </template>
@@ -99,7 +107,8 @@ const scrollToCords = (y) => {
 const handleFileChange = ({ id, markdown: newMarkdown, muyaIndexCursor, scrollTop }) => {
   if (!editor.value) return
 
-  prepareTabSwitch()
+  if (id && currentTab.value?.id && currentTab.value.id !== id) prepareTabSwitch()
+  if (id) tabId.value = id
 
   if (typeof newMarkdown === 'string') {
     editor.value.setValue(newMarkdown)
@@ -291,13 +300,15 @@ onBeforeUnmount(() => {
   bus.off('selectAll', handleSelectAll)
   bus.off('image-action', handleImageAction)
 
-  const { cursor, markdown: newMarkdown } = getMarkdownAndCursor(editor.value)
-  bus.emit('file-changed', {
-    id: tabId.value,
-    markdown: newMarkdown,
-    muyaIndexCursor: cursor,
-    renderCursor: true
-  })
+  if (tabId.value && editor.value) {
+    const { cursor, markdown: newMarkdown } = getMarkdownAndCursor(editor.value)
+    bus.emit('file-changed', {
+      id: tabId.value,
+      markdown: newMarkdown,
+      muyaIndexCursor: cursor,
+      renderCursor: true
+    })
+  }
 
   sourceCodeContainer.value.removeEventListener('scroll', handleScroll)
 })

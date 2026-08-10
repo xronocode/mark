@@ -38,6 +38,7 @@ import { ipcFs } from './ipc/runtime'
 import { initTextOpsListener } from './components/extensionGallery/textOps'
 
 let installed = false
+let installPromise = null
 
 /**
  * V-M-025/V-M-030: render `elapsed_ms` for boot-stage markers.
@@ -102,13 +103,11 @@ const _safeUseStore = async (label, importer) => {
  * the drain in parallel with Vue mount (the caller in main.js does NOT
  * await this Promise — it returns to mount the app).
  */
-export const setupIpcListeners = async () => {
+const setupIpcListenersImpl = async () => {
   if (installed) {
     console.warn('[boot][ipc] setupIpcListeners called twice — ignoring')
     return
   }
-  installed = true
-
   // Lazy-import Pinia stores so they're created in the calling app
   // context (must run AFTER app.use(pinia) but BEFORE app.mount).
   const prefsMod = await _safeUseStore('preferences', () =>
@@ -245,21 +244,22 @@ export const setupIpcListeners = async () => {
       } else {
         editorStore.NEW_UNTITLED_TAB({})
       }
+      const tabs = Array.isArray(editorStore.tabs) ? editorStore.tabs : []
+      const targetTab = selected
+        ? editorStore.currentFile
+        : tabs[tabs.length - 1]
+      const targetTabId = targetTab?.id
       // M-022: preview-mode flag is set by Agent A's backend hook on
       // Finder/CLI-launched files. Apply AFTER tab creation so the new
       // tab id resolves through editorStore.currentFile (or the last
       // pushed tab when selected=false). We gate on the user pref so the
       // setting takes effect immediately without a relaunch.
       if (p.watchMode) {
-        const tab = selected
-          ? editorStore.currentFile
-          : editorStore.tabs[editorStore.tabs.length - 1]
+        const tab = editorStore.tabs.find((item) => item.id === targetTabId)
         if (tab) tab.watchMode = true
       }
       if (p.diffMode) {
-        const tab = selected
-          ? editorStore.currentFile
-          : editorStore.tabs[editorStore.tabs.length - 1]
+        const tab = editorStore.tabs.find((item) => item.id === targetTabId)
         if (tab) tab.diffMode = true
       }
       if (p.previewMode) {
@@ -271,11 +271,7 @@ export const setupIpcListeners = async () => {
           return
         }
         if (!_prefs.previewModeOnFinderOpen) return
-        const newTabId = selected
-          ? editorStore.currentFile && editorStore.currentFile.id
-          : editorStore.tabs.length
-            ? editorStore.tabs[editorStore.tabs.length - 1].id
-            : null
+        const newTabId = targetTabId
         if (newTabId) {
           // eslint-disable-next-line no-console
           console.log(`[editor][preview][BLOCK_PREVIEW_MODE tab=${newTabId} path=${_basename}]`)
@@ -287,15 +283,13 @@ export const setupIpcListeners = async () => {
       if (!p.diffMode && p.pathname) {
         ipcFs.stat(p.pathname + '.before').then((st) => {
           if (!st || !st.isFile) return
-          const tab = selected
-            ? editorStore.currentFile
-            : editorStore.tabs[editorStore.tabs.length - 1]
+          const tab = editorStore.tabs.find((item) => item.id === targetTabId)
           if (tab && tab.pathname === p.pathname && !tab.diffMode) {
             // eslint-disable-next-line no-console
             console.log(`[editor][diff][BLOCK_AUTO_DIFF_TRIGGERED path=${_basename}]`)
             tab.diffMode = true
           }
-        }).catch(() => {})
+        }).catch((err) => console.debug(`[editor][diff][BLOCK_BEFORE_STAT_FAILED path=${_basename}]`, err))
       }
     }),
 
@@ -328,6 +322,7 @@ export const setupIpcListeners = async () => {
     // M-045 extension text operations (text.insert / text.transform).
     initTextOpsListener(),
   ])
+  installed = true
   // Retained legacy marker for backwards-compat with smoke-script grep.
   console.log('[boot][ipc][BLOCK_PREFS_LISTENER_REGISTERED]')
   console.log('[boot][ipc][BLOCK_ALL_LISTENERS_REGISTERED]')
@@ -381,4 +376,20 @@ export const setupIpcListeners = async () => {
   }
 
   setTimeout(() => editorStore.END_BOOT_PHASE(), 0)
+}
+
+export const setupIpcListeners = () => {
+  if (installed) {
+    console.warn('[boot][ipc] setupIpcListeners called twice — ignoring')
+    return Promise.resolve()
+  }
+  if (!installPromise) {
+    installPromise = setupIpcListenersImpl().catch((error) => {
+      installed = false
+      installPromise = null
+      console.error('[boot][ipc][BLOCK_LISTENER_SETUP_FAILED]', error)
+      throw error
+    })
+  }
+  return installPromise
 }
