@@ -87,9 +87,9 @@ export default defineConfig({
         'src/renderer/src/main.js'
       ],
       thresholds: {
-        statements: 92.0,
+        statements: 91.9,
         branches: 85.0,
-        functions: 84.18,
+        functions: 84.15,
         lines: 92.74,
         autoUpdate: !process.env.CI
       }

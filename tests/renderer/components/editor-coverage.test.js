@@ -1125,6 +1125,75 @@ describe('editor.vue — coverage', () => {
     expect(mockEditorInstance.setCursor).toHaveBeenCalledWith({ line: 1, ch: 5 })
   })
 
+  it('preserves selection when file-loaded repeats the active Markdown', async () => {
+    await mountEditor()
+    editorStore.currentFile.markdown = '# Same document'
+    mockEditorInstance.setCursor.mockClear()
+    mockEditorInstance.setMarkdown.mockClear()
+
+    getBusHandler('file-loaded')({
+      id: editorStore.currentFile.id,
+      markdown: '# Same document',
+      cursor: { line: 0, ch: 3 }
+    })
+
+    expect(mockEditorInstance.setCursor).toHaveBeenCalledWith({ line: 0, ch: 3 })
+    expect(mockEditorInstance.setMarkdown).not.toHaveBeenCalled()
+  })
+
+  it('does not reparse repeated file-loaded Markdown without a cursor', async () => {
+    await mountEditor()
+    editorStore.currentFile.markdown = '# Same document'
+    mockEditorInstance.setMarkdown.mockClear()
+
+    getBusHandler('file-loaded')({
+      id: editorStore.currentFile.id,
+      markdown: '# Same document'
+    })
+
+    expect(mockEditorInstance.setMarkdown).not.toHaveBeenCalled()
+  })
+
+  it('moves the cursor without reparsing identical file-changed Markdown', async () => {
+    await mountEditor()
+    editorStore.currentFile.markdown = '# Same document'
+    mockEditorInstance.setCursor.mockClear()
+    mockEditorInstance.setMarkdown.mockClear()
+
+    getBusHandler('file-changed')({
+      id: editorStore.currentFile.id,
+      markdown: '# Same document',
+      cursor: { line: 0, ch: 5 },
+      renderCursor: false,
+      history: null,
+      scrollTop: undefined,
+      muyaIndexCursor: null,
+      blocks: undefined
+    })
+
+    expect(mockEditorInstance.setCursor).toHaveBeenCalledWith({ line: 0, ch: 5 })
+    expect(mockEditorInstance.setMarkdown).not.toHaveBeenCalled()
+  })
+
+  it('reparses identical file-changed Markdown when a full render is requested', async () => {
+    await mountEditor()
+    editorStore.currentFile.markdown = '# Same document'
+    mockEditorInstance.setMarkdown.mockClear()
+
+    getBusHandler('file-changed')({
+      id: editorStore.currentFile.id,
+      markdown: '# Same document',
+      cursor: { line: 0, ch: 5 },
+      renderCursor: true,
+      history: null,
+      scrollTop: undefined,
+      muyaIndexCursor: null,
+      blocks: undefined
+    })
+
+    expect(mockEditorInstance.setMarkdown).toHaveBeenCalled()
+  })
+
   it('ignores stale file-changed markdown for a dirty active tab', async () => {
     await mountEditor()
     editorStore.currentFile.isSaved = false
