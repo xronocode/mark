@@ -2500,6 +2500,22 @@ src/main/config.js declares `contextIsolation: false`, `nodeIntegration: true`, 
         <file>docs/development-plan.xml, docs/verification-plan.xml, docs/knowledge-graph.xml</file>
       </write-scope>
     </Phase-Stale-Change-Hotfix-2026-08-10>
+
+    <Phase-Async-Race-Hotfix-2026-08-10 name="v2.1.7-beta async editor race repair" status="done">
+      <goal>Prevent stale save acknowledgements, file-loaded events, and live-reload reads from overwriting newer editor state.</goal>
+      <step-1 status="done" verification="V-M-011">Track per-tab content revisions and reject stale save outcomes.</step-1>
+      <step-2 status="done" verification="V-M-011">Restore Source Code tab identity and guard stale file-loaded/unmount events.</step-2>
+      <step-3 status="done" verification="V-M-011,V-M-046">Serialize live-reload generations and make boot listener installation retry-safe.</step-3>
+      <step-4 status="done" verification="V-M-011,V-M-046">Run full renderer tests, IPC typecheck, production build, and release preflight.</step-4>
+      <write-scope>
+        <file>src/renderer/src/store/help.js, src/renderer/src/store/editor.js</file>
+        <file>src/renderer/src/components/editorWithTabs/editor.vue, src/renderer/src/components/editorWithTabs/sourceCode.vue</file>
+        <file>src/renderer/src/bootstrap-ipc.js</file>
+        <file>package.json, package-lock.json, Cargo.toml, Cargo.lock, src-tauri/tauri.conf.json</file>
+        <file>README.md, tests/renderer/release-preflight.test.js</file>
+        <file>docs/development-plan.xml, docs/verification-plan.xml, docs/knowledge-graph.xml</file>
+      </write-scope>
+    </Phase-Async-Race-Hotfix-2026-08-10>
   </ImplementationOrder>
 
   <ExecutionPolicy>
