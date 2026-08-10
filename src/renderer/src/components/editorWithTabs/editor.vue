@@ -75,7 +75,7 @@
 
 <script setup>
 // FILE: src/renderer/src/components/editorWithTabs/editor.vue
-// VERSION: 1.2.0
+// VERSION: 1.3.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Host the Muya WYSIWYG surface and coordinate document rendering, selection, scroll, preview, editor tools, and store/bus integration.
 //   SCOPE: Renderer-side Muya lifecycle and UI orchestration; does not own Markdown parsing rules or backend file persistence.
@@ -97,6 +97,7 @@
 // START_CHANGE_SUMMARY
 //   - 2026-08-07 v1.1.0: fix first-paint blankness and synchronize preview/caret state on Muya's actual surface for UC-030 and UC-031.
 //   - 2026-08-10 v1.2.0: bind preview exit gestures to Muya's replacement surface; Finder-opened files no longer remain permanently read-only.
+//   - 2026-08-10 v1.3.0: hydrate the Muya surface from the already-selected tab on mount; agent/Finder opens cannot lose their first file-loaded event during boot.
 // END_CHANGE_SUMMARY
 
 import { ref, reactive, watch, onMounted, onBeforeUnmount, nextTick, computed } from 'vue'
@@ -1079,6 +1080,33 @@ const handleFileChange = ({
   }
 }
 
+// START_CONTRACT: hydrateMountedDocument
+//   PURPOSE: Render the selected tab when its open event arrived before the editor component subscribed to the event bus during parallel boot.
+//   INPUTS: { none - reads the active editor tab }
+//   OUTPUTS: { void - Muya surface is synchronized with the active tab }
+//   SIDE_EFFECTS: Calls Muya history/markdown/cursor APIs and reveals the editor container.
+//   LINKS: docs/verification-plan.xml V-M-011 scenario-17; docs/knowledge-graph.xml M-011.fn-hydrateMountedDocument
+// END_CONTRACT: hydrateMountedDocument
+// START_BLOCK_BOOT_DOCUMENT_HYDRATION
+const hydrateMountedDocument = () => {
+  const file = currentFile.value
+  if (!editor.value || !file || typeof file.markdown !== 'string') return
+
+  handleFileChange({
+    markdown: file.markdown,
+    cursor: file.cursor,
+    renderCursor: true,
+    history: file.history,
+    scrollTop: file.scrollTop,
+    muyaIndexCursor: file.muyaIndexCursor,
+    blocks: file.blocks
+  })
+  console.debug(
+    `[Editor][hydrateMountedDocument][BLOCK_BOOT_DOCUMENT_HYDRATED] tab=${file.id || '<untitled>'}`
+  )
+}
+// END_BLOCK_BOOT_DOCUMENT_HYDRATION
+
 const handleInsertParagraph = (location) => {
   editor.value && editor.value.insertParagraph(location)
 }
@@ -1353,6 +1381,11 @@ onMounted(() => {
   bus.on('ext-text-transform', handleExtTextTransform)
   bus.on('ext-undo', handleExtUndo)
   bus.on('ext-context-request', handleExtContextRequest)
+
+  // The pending-open drain runs in parallel with Vue mount. If an agent or
+  // Finder event selected a tab before this component subscribed, replay the
+  // active tab once so the first paint cannot be an empty white surface.
+  hydrateMountedDocument()
 
   editor.value.on('change', (changes) => {
     // There is a chance that this event is fired AFTER the tab is switched. If we purely rely on this.currentFile later on

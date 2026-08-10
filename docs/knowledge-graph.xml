@@ -199,6 +199,7 @@
         <fn-scrollToCords PURPOSE="editorWithTabs/editor.vue restores saved scrollTop while releasing visibility synchronously, independent of WKWebView requestAnimationFrame scheduling" />
         <fn-syncPreviewSurface PURPOSE="editorWithTabs/editor.vue mirrors previewMode onto the actual Muya contenteditable container and restores caret focus/selection on exit" />
         <fn-previewExitEvents PURPOSE="editorWithTabs/editor.vue delegates preview exit mousedown and Cmd+backslash keydown from the persistent editor wrapper in capture phase because Muya replaces the inner Vue mount node" />
+        <fn-hydrateMountedDocument PURPOSE="editorWithTabs/editor.vue replays the active tab into Muya after mount when parallel pending-open boot delivered the tab before editor bus listeners subscribed" />
       </annotations>
     </M-011>
 
