@@ -1,5 +1,5 @@
 // FILE: tests/renderer/components/editor-coverage.test.js
-// VERSION: 1.1.0
+// VERSION: 1.2.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Verify editorWithTabs/editor.vue methods, watchers, computed state, event handlers, and lifecycle behavior beyond the base editor test.
 //   SCOPE: Deterministic Vue/jsdom tests with mocked Muya, stores, bus, services, and browser scheduling.
@@ -19,6 +19,7 @@
 //
 // START_CHANGE_SUMMARY
 //   - 2026-08-07 v1.1.0: add UC-030 first-paint and UC-031 preview-caret regression coverage.
+//   - 2026-08-10 v1.2.0: cover boot hydration when an agent/Finder open selects a tab before editor bus listeners are ready.
 // END_CHANGE_SUMMARY
 
 import { shallowMount } from '@vue/test-utils'
@@ -1091,6 +1092,24 @@ describe('editor.vue — coverage', () => {
     }
   })
   // END_BLOCK_FIRST_PAINT_TESTS
+
+  it('hydrates the selected boot-open document after the editor subscribes', async () => {
+    editorStore.currentFile.markdown = '# Agent opened'
+    editorStore.currentFile.cursor = { line: 0, ch: 0 }
+    editorStore.currentFile.history = null
+    editorStore.currentFile.scrollTop = 0
+    editorStore.currentFile.muyaIndexCursor = null
+
+    await mountEditor()
+
+    expect(mockEditorInstance.setMarkdown).toHaveBeenCalledWith(
+      '# Agent opened',
+      { line: 0, ch: 0 },
+      true,
+      null,
+      undefined
+    )
+  })
 
   it('handleFileChange with cursor but no markdown calls setCursor', async () => {
     await mountEditor()
