@@ -5,21 +5,21 @@
       { typewriter: typewriter, focus: focus, source: sourceCode },
       { 'is-preview': isPreviewMode }
     ]"
-    :style="{
+      :style="{
       lineHeight: lineHeight,
       fontSize: `${fontSize}px`,
       'font-family': editorFontFamily
         ? `${editorFontFamily}, ${defaultFontFamily}`
         : `${defaultFontFamily}`
-    }"
-    :dir="textDirection"
+      }"
+      :dir="textDirection"
+      @mousedown.capture="handlePreviewMousedown"
+      @keydown.capture="handlePreviewKeydown"
   >
     <div
       ref="editorRef"
       class="editor-component"
       :contenteditable="isPreviewMode ? 'false' : 'true'"
-      @mousedown="handlePreviewMousedown"
-      @keydown="handlePreviewKeydown"
     ></div>
     <div v-show="imageViewerVisible" class="image-viewer">
       <span class="icon-close" @click="setImageViewerVisible(false)">
@@ -75,7 +75,7 @@
 
 <script setup>
 // FILE: src/renderer/src/components/editorWithTabs/editor.vue
-// VERSION: 1.1.0
+// VERSION: 1.2.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Host the Muya WYSIWYG surface and coordinate document rendering, selection, scroll, preview, editor tools, and store/bus integration.
 //   SCOPE: Renderer-side Muya lifecycle and UI orchestration; does not own Markdown parsing rules or backend file persistence.
@@ -96,6 +96,7 @@
 //
 // START_CHANGE_SUMMARY
 //   - 2026-08-07 v1.1.0: fix first-paint blankness and synchronize preview/caret state on Muya's actual surface for UC-030 and UC-031.
+//   - 2026-08-10 v1.2.0: bind preview exit gestures to Muya's replacement surface; Finder-opened files no longer remain permanently read-only.
 // END_CHANGE_SUMMARY
 
 import { ref, reactive, watch, onMounted, onBeforeUnmount, nextTick, computed } from 'vue'
