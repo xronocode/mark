@@ -10,12 +10,12 @@
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
-//   consistentEvidence - Complete v2.1.5-beta version fixture.
+//   consistentEvidence - Complete v2.1.6-beta version fixture.
 //   commandIndex - Locates a required release command for ordering assertions.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: 2026-08-10 v1.8.0 - advance the release fixture to the boot-hydration hotfix v2.1.5-beta.
+//   LAST_CHANGE: 2026-08-10 v1.9.0 - advance the release fixture to the stale-change guard hotfix v2.1.6-beta.
 //   PREVIOUS_LATEST: 2026-08-07 v1.5.0 - require beta tags to advance the GitHub /latest updater feed.
 //   PREVIOUS_CASK: 2026-08-07 v1.4.0 - require Homebrew cask URLs to use the staged Tauri DMG filename.
 //   PREVIOUS: 2026-08-07 v1.3.0 - require hyphenated SemVer tags to publish as GitHub prereleases.
@@ -36,22 +36,22 @@ import {
 
 const workspaceRoot = resolve(import.meta.dirname, '../..')
 const consistentEvidence = {
-  packageJson: '2.1.5-beta',
-  packageLock: '2.1.5-beta',
-  packageLockRoot: '2.1.5-beta',
-  cargoWorkspace: '2.1.5-beta',
-  cargoLockMark: '2.1.5-beta',
-  tauriConfig: '2.1.5-beta'
+  packageJson: '2.1.6-beta',
+  packageLock: '2.1.6-beta',
+  packageLockRoot: '2.1.6-beta',
+  cargoWorkspace: '2.1.6-beta',
+  cargoLockMark: '2.1.6-beta',
+  tauriConfig: '2.1.6-beta'
 }
 
 // START_BLOCK_RELEASE_VERSION_TESTS
 describe('M-046 release version preflight', () => {
   it('accepts one exact metadata version and matching release tag', () => {
     expect(
-      validateVersionEvidence(consistentEvidence, 'v2.1.5-beta')
+      validateVersionEvidence(consistentEvidence, 'v2.1.6-beta')
     ).toEqual({
-      version: '2.1.5-beta',
-      tag: 'v2.1.5-beta',
+      version: '2.1.6-beta',
+      tag: 'v2.1.6-beta',
       sourceCount: 6
     })
   })
@@ -60,7 +60,7 @@ describe('M-046 release version preflight', () => {
     expect(() =>
       validateVersionEvidence(
         { ...consistentEvidence, packageLockRoot: '2.0.6-alpha' },
-        'v2.1.5-beta'
+        'v2.1.6-beta'
       )
     ).toThrowError(
       expect.objectContaining({
@@ -87,7 +87,7 @@ describe('M-046 release version preflight', () => {
   it('CLI emits the stable success marker for the target tag', () => {
     const result = spawnSync(
       process.execPath,
-      ['tools/release-preflight.mjs', '--tag', 'v2.1.5-beta'],
+      ['tools/release-preflight.mjs', '--tag', 'v2.1.6-beta'],
       { cwd: workspaceRoot, encoding: 'utf8' }
     )
 
