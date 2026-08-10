@@ -2473,11 +2473,11 @@ src/main/config.js declares `contextIsolation: false`, `nodeIntegration: true`, 
       </write-scope>
     </Phase-Preview-Input-Hotfix-2026-08-10>
 
-    <Phase-Boot-Hydration-Hotfix-2026-08-10 name="v2.1.5-beta agent-open white-screen repair" status="in-progress">
+    <Phase-Boot-Hydration-Hotfix-2026-08-10 name="v2.1.5-beta agent-open white-screen repair" status="done">
       <goal>Render Markdown reliably when an agent or Finder pending-open selects a tab before editor event listeners mount.</goal>
       <step-1 status="done" verification="V-M-011">Replay the active tab into Muya during editor mount so a lost file-loaded event cannot leave a white surface.</step-1>
       <step-2 status="done" verification="V-M-011">Add deterministic regression coverage for boot-open document hydration.</step-2>
-      <step-3 status="in-progress" verification="V-M-011,V-M-046">Run release gates and publish v2.1.5-beta with the updater feed.</step-3>
+      <step-3 status="done" verification="V-M-011,V-M-046">Run release gates and publish v2.1.5-beta with the updater feed.</step-3>
       <write-scope>
         <file>src/renderer/src/components/editorWithTabs/editor.vue</file>
         <file>tests/renderer/components/editor-coverage.test.js</file>
