@@ -1474,6 +1474,7 @@
         <scenario-19 kind="regression">A save or autosave acknowledgement captured before a newer content revision must leave the tab dirty and preserve the newer history marker.</scenario-19>
         <scenario-20 kind="regression">Out-of-order filesystem reads from successive watcher events apply only the newest generation.</scenario-20>
         <scenario-21 kind="regression">Source Code file-loaded/unmount lifecycle never commits with a null or stale tab id.</scenario-21>
+        <scenario-22 kind="regression">Repeated file-loaded/file-changed events for the active document with identical Markdown preserve the user's live text selection.</scenario-22>
       </scenarios>
       <required-log-markers>
         <marker-1>[Renderer][mount][BLOCK_INSTANTIATE_MUYA]</marker-1>
@@ -5469,13 +5470,13 @@
     <phase-follow-up>Before beta.4 tagging, run full integration test: mock extension discovered, enabled, responds to text.transform via mt_ext_invoke, streams document via live server. m001_validate must pass with all 5 new commands registered.</phase-follow-up>
   </V-M-045>
 
-  <V-M-046 MODULE="M-046 ReleasePreflight" PRIORITY="critical" wave="v2.1.7-beta" status="active">
+  <V-M-046 MODULE="M-046 ReleasePreflight" PRIORITY="critical" wave="v2.1.8-beta" status="active">
     <module-surface>
       Tool: tools/release-preflight.mjs reads package.json, package-lock.json, Cargo.toml, Cargo.lock, and src-tauri/tauri.conf.json; validates one exact version and optional v&lt;version&gt; tag.
       Workflow: .github/workflows/release.yml invokes the metadata preflight before build, runs renderer unit/E2E/typecheck and Rust tests, then requires strict codesign + Gatekeeper evidence before smoke and publication.
     </module-surface>
     <high-level-scenarios>
-      <S1>All six metadata values across five files contain 2.1.7-beta and tag v2.1.7-beta: preflight passes and emits BLOCK_RELEASE_VERSION_CONSISTENT.</S1>
+      <S1>All six metadata values across five files contain 2.1.8-beta and tag v2.1.8-beta: preflight passes and emits BLOCK_RELEASE_VERSION_CONSISTENT.</S1>
       <S2>Any metadata source differs: preflight fails with MT_RELEASE_VERSION_MISMATCH and names sources/versions without secrets.</S2>
       <S3>Metadata agrees but tag differs: preflight fails with MT_RELEASE_TAG_MISMATCH before packaging.</S3>
       <S4>Release workflow contains renderer unit/typecheck, a clean-checkout Vite build before bounded Playwright E2E, and Rust test gates before tauri packaging.</S4>

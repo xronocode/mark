@@ -99,7 +99,7 @@
 //   - 2026-08-10 v1.2.0: bind preview exit gestures to Muya's replacement surface; Finder-opened files no longer remain permanently read-only.
 //   - 2026-08-10 v1.3.0: hydrate the Muya surface from the already-selected tab on mount; agent/Finder opens cannot lose their first file-loaded event during boot.
 //   - 2026-08-10 v1.4.0: ignore stale file-changed payloads that would replace unsaved Muya edits when focus moves inside the document.
-//   - 2026-08-10 v1.5.0: ignore stale file-loaded payloads from a different active tab.
+//   - 2026-08-10 v1.5.0: ignore stale file-loaded payloads from a different active tab and avoid reloading identical content over a live selection.
 // END_CHANGE_SUMMARY
 
 import { ref, reactive, watch, onMounted, onBeforeUnmount, nextTick, computed } from 'vue'
@@ -1042,6 +1042,15 @@ const setMarkdownToEditor = ({ id, markdown: newMarkdown, cursor: newCursor }) =
     return
   }
   if (editor.value) {
+    if (
+      id &&
+      currentFile.value?.id === id &&
+      typeof newMarkdown === 'string' &&
+      newMarkdown === currentFile.value.markdown
+    ) {
+      if (newCursor) editor.value.setCursor(newCursor)
+      return
+    }
     editor.value.clearHistory()
     if (newCursor) {
       editor.value.setMarkdown(newMarkdown, newCursor, true)
@@ -1089,7 +1098,12 @@ const handleFileChange = ({
     }
 
     if (typeof newMarkdown === 'string') {
-      editor.value.setMarkdown(newMarkdown, newCursor, renderCursor, muyaIndexCursor, blocks)
+      const sameDocument = id && activeFile?.id === id && newMarkdown === activeFile.markdown
+      if (sameDocument && newCursor && renderCursor !== true && !history && !blocks && !muyaIndexCursor) {
+        editor.value.setCursor(newCursor)
+      } else {
+        editor.value.setMarkdown(newMarkdown, newCursor, renderCursor, muyaIndexCursor, blocks)
+      }
     } else if (newCursor) {
       editor.value.setCursor(newCursor)
     }

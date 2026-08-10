@@ -36,22 +36,22 @@ import {
 
 const workspaceRoot = resolve(import.meta.dirname, '../..')
 const consistentEvidence = {
-  packageJson: '2.1.7-beta',
-  packageLock: '2.1.7-beta',
-  packageLockRoot: '2.1.7-beta',
-  cargoWorkspace: '2.1.7-beta',
-  cargoLockMark: '2.1.7-beta',
-  tauriConfig: '2.1.7-beta'
+  packageJson: '2.1.8-beta',
+  packageLock: '2.1.8-beta',
+  packageLockRoot: '2.1.8-beta',
+  cargoWorkspace: '2.1.8-beta',
+  cargoLockMark: '2.1.8-beta',
+  tauriConfig: '2.1.8-beta'
 }
 
 // START_BLOCK_RELEASE_VERSION_TESTS
 describe('M-046 release version preflight', () => {
   it('accepts one exact metadata version and matching release tag', () => {
     expect(
-      validateVersionEvidence(consistentEvidence, 'v2.1.7-beta')
+      validateVersionEvidence(consistentEvidence, 'v2.1.8-beta')
     ).toEqual({
-      version: '2.1.7-beta',
-      tag: 'v2.1.7-beta',
+      version: '2.1.8-beta',
+      tag: 'v2.1.8-beta',
       sourceCount: 6
     })
   })
@@ -60,7 +60,7 @@ describe('M-046 release version preflight', () => {
     expect(() =>
       validateVersionEvidence(
         { ...consistentEvidence, packageLockRoot: '2.0.6-alpha' },
-        'v2.1.7-beta'
+        'v2.1.8-beta'
       )
     ).toThrowError(
       expect.objectContaining({
@@ -87,7 +87,7 @@ describe('M-046 release version preflight', () => {
   it('CLI emits the stable success marker for the target tag', () => {
     const result = spawnSync(
       process.execPath,
-      ['tools/release-preflight.mjs', '--tag', 'v2.1.7-beta'],
+      ['tools/release-preflight.mjs', '--tag', 'v2.1.8-beta'],
       { cwd: workspaceRoot, encoding: 'utf8' }
     )
 
