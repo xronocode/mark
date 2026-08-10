@@ -1,5 +1,5 @@
 // FILE: tests/renderer/components/editor-coverage.test.js
-// VERSION: 1.2.0
+// VERSION: 1.3.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Verify editorWithTabs/editor.vue methods, watchers, computed state, event handlers, and lifecycle behavior beyond the base editor test.
 //   SCOPE: Deterministic Vue/jsdom tests with mocked Muya, stores, bus, services, and browser scheduling.
@@ -20,6 +20,7 @@
 // START_CHANGE_SUMMARY
 //   - 2026-08-07 v1.1.0: add UC-030 first-paint and UC-031 preview-caret regression coverage.
 //   - 2026-08-10 v1.2.0: cover boot hydration when an agent/Finder open selects a tab before editor bus listeners are ready.
+//   - 2026-08-10 v1.3.0: cover stale file-changed events not overwriting unsaved active-tab content.
 // END_CHANGE_SUMMARY
 
 import { shallowMount } from '@vue/test-utils'
@@ -1122,6 +1123,25 @@ describe('editor.vue — coverage', () => {
       muyaIndexCursor: null
     })
     expect(mockEditorInstance.setCursor).toHaveBeenCalledWith({ line: 1, ch: 5 })
+  })
+
+  it('ignores stale file-changed markdown for a dirty active tab', async () => {
+    await mountEditor()
+    editorStore.currentFile.isSaved = false
+    editorStore.currentFile.markdown = '# Newer local edit'
+    mockEditorInstance.setMarkdown.mockClear()
+
+    getBusHandler('file-changed')({
+      id: editorStore.currentFile.id,
+      markdown: '# Older payload',
+      cursor: null,
+      renderCursor: true,
+      history: null,
+      scrollTop: undefined,
+      muyaIndexCursor: null
+    })
+
+    expect(mockEditorInstance.setMarkdown).not.toHaveBeenCalled()
   })
 
   it('handleFileChange without scrollTop scrolls to cursor', async () => {
