@@ -1470,6 +1470,7 @@
         <scenario-15 kind="regression">Saved-scroll restoration makes the editor visible synchronously and then applies scrollTop; a delayed requestAnimationFrame cannot leave the file blank until user input.</scenario-15>
         <scenario-16 kind="regression">Finder preview mode updates the real Muya container to contenteditable=false; the first left mousedown, delegated from the persistent editor wrapper in capture phase, exits preview synchronously, restores contenteditable=true, and restores focus/selection so the caret is visible.</scenario-16>
         <scenario-17 kind="regression">Agent/Finder pending-open delivery may select a tab before the editor bus listeners mount; editor mount replays the active tab into Muya so Markdown is rendered and the surface is revealed without a first-input-triggered repaint.</scenario-17>
+        <scenario-18 kind="regression">A delayed file-changed payload with older Markdown must not replace newer unsaved content in the active tab when the user moves the cursor or focus.</scenario-18>
       </scenarios>
       <required-log-markers>
         <marker-1>[Renderer][mount][BLOCK_INSTANTIATE_MUYA]</marker-1>
@@ -1478,6 +1479,7 @@
         <marker-4>[Editor][scrollToCords][BLOCK_SCROLL_RESTORED]</marker-4>
         <marker-5>[Editor][syncPreviewSurface][BLOCK_PREVIEW_SURFACE_SYNC]</marker-5>
         <marker-6>[Editor][hydrateMountedDocument][BLOCK_BOOT_DOCUMENT_HYDRATED]</marker-6>
+        <marker-7>[Editor][handleFileChange][BLOCK_STALE_CHANGE_IGNORED]</marker-7>
       </required-log-markers>
       <required-trace-assertions>
         <assertion-1>IPC command invoked after component destroy must NOT reach backend; BLOCK_INVOKE_GUARD_DESTROYED fires.</assertion-1>
@@ -5463,19 +5465,19 @@
     <phase-follow-up>Before beta.4 tagging, run full integration test: mock extension discovered, enabled, responds to text.transform via mt_ext_invoke, streams document via live server. m001_validate must pass with all 5 new commands registered.</phase-follow-up>
   </V-M-045>
 
-  <V-M-046 MODULE="M-046 ReleasePreflight" PRIORITY="critical" wave="v2.1.5-beta" status="active">
+  <V-M-046 MODULE="M-046 ReleasePreflight" PRIORITY="critical" wave="v2.1.6-beta" status="active">
     <module-surface>
       Tool: tools/release-preflight.mjs reads package.json, package-lock.json, Cargo.toml, Cargo.lock, and src-tauri/tauri.conf.json; validates one exact version and optional v&lt;version&gt; tag.
       Workflow: .github/workflows/release.yml invokes the metadata preflight before build, runs renderer unit/E2E/typecheck and Rust tests, then requires strict codesign + Gatekeeper evidence before smoke and publication.
     </module-surface>
     <high-level-scenarios>
-      <S1>All six metadata values across five files contain 2.1.5-beta and tag v2.1.5-beta: preflight passes and emits BLOCK_RELEASE_VERSION_CONSISTENT.</S1>
+      <S1>All six metadata values across five files contain 2.1.6-beta and tag v2.1.6-beta: preflight passes and emits BLOCK_RELEASE_VERSION_CONSISTENT.</S1>
       <S2>Any metadata source differs: preflight fails with MT_RELEASE_VERSION_MISMATCH and names sources/versions without secrets.</S2>
       <S3>Metadata agrees but tag differs: preflight fails with MT_RELEASE_TAG_MISMATCH before packaging.</S3>
       <S4>Release workflow contains renderer unit/typecheck, a clean-checkout Vite build before bounded Playwright E2E, and Rust test gates before tauri packaging.</S4>
       <S5>Release workflow verifies strict codesign and Gatekeeper acceptance before its installed-app smoke launch and publish job.</S5>
-      <S6>Isolated local v2.1.5-beta bundle is ad-hoc re-signed, passes strict codesign, launches separately from the installed Mark instance, and renders a Markdown document without first-input reveal.</S6>
-      <S7>The updater feed uses strict SemVer `2.1.5-beta` while release asset URLs retain the canonical Git tag `v2.1.5-beta`.</S7>
+      <S6>Isolated local v2.1.6-beta bundle is ad-hoc re-signed, passes strict codesign, launches separately from the installed Mark instance, and renders a Markdown document without first-input reveal.</S6>
+      <S7>The updater feed uses strict SemVer `2.1.6-beta` while release asset URLs retain the canonical Git tag `v2.1.6-beta`.</S7>
       <S8>GitHub publication keeps signed beta tags as normal releases so `/releases/latest/download/latest.json` advances to the newest shipped feed.</S8>
       <S9>Cross-repo cask publication rejects any URL template that does not resolve to the staged `Mark_&lt;version&gt;_aarch64.dmg` release asset.</S9>
     </high-level-scenarios>
@@ -5485,7 +5487,7 @@
       <test>tests/renderer/components/editor-coverage.test.js</test>
     </test-targets>
     <commands>
-      <module-local>npm run release:preflight -- --tag v2.1.5-beta</module-local>
+      <module-local>npm run release:preflight -- --tag v2.1.6-beta</module-local>
       <module-local>npx vitest run tests/renderer/release-preflight.test.js tests/renderer/components/titleBar-deep.test.js tests/renderer/components/editor-coverage.test.js</module-local>
       <local-bundle>npm run tauri:build -- --config '{"bundle":{"createUpdaterArtifacts":false}}' (local artifact build without access to the production updater private key)</local-bundle>
       <phase-gate>npm test &amp;&amp; npm run test:e2e &amp;&amp; npm run typecheck:ipc &amp;&amp; cargo test --bin mark &amp;&amp; npm run build &amp;&amp; npm run tauri:build</phase-gate>

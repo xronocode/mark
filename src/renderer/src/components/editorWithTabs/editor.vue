@@ -75,7 +75,7 @@
 
 <script setup>
 // FILE: src/renderer/src/components/editorWithTabs/editor.vue
-// VERSION: 1.3.0
+// VERSION: 1.4.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Host the Muya WYSIWYG surface and coordinate document rendering, selection, scroll, preview, editor tools, and store/bus integration.
 //   SCOPE: Renderer-side Muya lifecycle and UI orchestration; does not own Markdown parsing rules or backend file persistence.
@@ -98,6 +98,7 @@
 //   - 2026-08-07 v1.1.0: fix first-paint blankness and synchronize preview/caret state on Muya's actual surface for UC-030 and UC-031.
 //   - 2026-08-10 v1.2.0: bind preview exit gestures to Muya's replacement surface; Finder-opened files no longer remain permanently read-only.
 //   - 2026-08-10 v1.3.0: hydrate the Muya surface from the already-selected tab on mount; agent/Finder opens cannot lose their first file-loaded event during boot.
+//   - 2026-08-10 v1.4.0: ignore stale file-changed payloads that would replace unsaved Muya edits when focus moves inside the document.
 // END_CHANGE_SUMMARY
 
 import { ref, reactive, watch, onMounted, onBeforeUnmount, nextTick, computed } from 'vue'
@@ -1050,6 +1051,7 @@ const setMarkdownToEditor = ({ markdown: newMarkdown, cursor: newCursor }) => {
 
 // listen for markdown change form source mode or change tabs etc
 const handleFileChange = ({
+  id,
   markdown: newMarkdown,
   cursor: newCursor,
   renderCursor,
@@ -1059,6 +1061,23 @@ const handleFileChange = ({
   blocks = undefined
 }) => {
   if (editor.value) {
+    const activeFile = currentFile.value
+    // A delayed tab/render event must not overwrite newer unsaved Muya
+    // content. Legitimate tab switches and disk reloads update the store
+    // before emitting file-changed, so their Markdown already matches.
+    if (
+      id &&
+      activeFile?.id === id &&
+      activeFile.isSaved === false &&
+      typeof activeFile.markdown === 'string' &&
+      typeof newMarkdown === 'string' &&
+      activeFile.markdown !== newMarkdown
+    ) {
+      console.debug(
+        `[Editor][handleFileChange][BLOCK_STALE_CHANGE_IGNORED] tab=${id}`
+      )
+      return
+    }
     const { container } = editor.value
     if (history) {
       editor.value.setHistory(history)
@@ -1098,6 +1117,7 @@ const hydrateMountedDocument = () => {
   ) return
 
   handleFileChange({
+    id: file.id,
     markdown: file.markdown,
     cursor: file.cursor,
     renderCursor: true,
