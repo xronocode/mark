@@ -26,6 +26,7 @@ import { i18n } from '../i18n'
 
 const autoSaveTimers = new Map()
 const fileWatchDisposers = new Map()
+const liveReloadGenerations = new Map()
 
 let _bootPhase = true
 export const __resetBootPhase = () => { _bootPhase = true }
@@ -316,6 +317,7 @@ export const useEditorStore = defineStore('editor', {
     async FILE_SAVE() {
       const projectStore = useProjectStore()
       const { id, filename, pathname, markdown } = this.currentFile
+      const revision = this.currentFile.contentRevision || 0
       const defaultPath = getRootFolderFromState(projectStore)
       if (!id) return
       try {
@@ -327,7 +329,7 @@ export const useEditorStore = defineStore('editor', {
           markdown,
           defaultPath: defaultPath || null
         })
-        if (outcome) this.APPLY_SAVE_OUTCOME(outcome)
+        if (outcome) this.APPLY_SAVE_OUTCOME(outcome, revision)
       } catch (e) {
         notice.notify({
           title: i18n.global.t('dialog.saveFailure'),
@@ -346,7 +348,7 @@ export const useEditorStore = defineStore('editor', {
      * update path. Idempotent — also called from the bootstrap-ipc.js
      * batch-save listener for cross-window mt_save_and_close_tabs flow.
      */
-    APPLY_SAVE_OUTCOME(outcome) {
+    APPLY_SAVE_OUTCOME(outcome, expectedRevision = null) {
       if (!outcome || !outcome.id) return
       const tab = this.tabs.find((t) => t.id === outcome.id)
       if (!tab) return
@@ -364,14 +366,20 @@ export const useEditorStore = defineStore('editor', {
           window.DIRNAME = window.path.dirname(outcome.pathname)
         }
       }
-      tab.isSaved = !!outcome.isSaved
+      const stale = expectedRevision !== null && (tab.contentRevision || 0) !== expectedRevision
+      if (stale) {
+        console.warn(`[editor][save][BLOCK_STALE_SAVE_OUTCOME_IGNORED id=${outcome.id}]`)
+        tab.isSaved = false
+      } else {
+        tab.isSaved = !!outcome.isSaved
+      }
       if (
         tab.isSaved &&
         tab.history &&
         tab.history.lastEditIndex >= 0 &&
         tab.history.lastEditIndex < tab.history.stack.length
       ) {
-        tab.lastSavedHistoryId = tab.history.stack[tab.history.lastEditIndex].id
+        if (!stale) tab.lastSavedHistoryId = tab.history.stack[tab.history.lastEditIndex].id
       }
       if (outcome.pathname) {
         ipcRecent.add(outcome.pathname).catch(() => {})
@@ -391,6 +399,7 @@ export const useEditorStore = defineStore('editor', {
     async FILE_SAVE_AS() {
       const projectStore = useProjectStore()
       const { id, filename, markdown } = this.currentFile
+      const revision = this.currentFile.contentRevision || 0
       const defaultPath = getRootFolderFromState(projectStore)
       if (!id) return
       try {
@@ -401,7 +410,7 @@ export const useEditorStore = defineStore('editor', {
           markdown,
           defaultPath: defaultPath || null
         })
-        if (outcome) this.APPLY_SAVE_OUTCOME(outcome)
+        if (outcome) this.APPLY_SAVE_OUTCOME(outcome, revision)
       } catch (e) {
         notice.notify({
           title: i18n.global.t('dialog.saveFailure'),
@@ -1269,6 +1278,7 @@ export const useEditorStore = defineStore('editor', {
 
       markdown = adjustTrailingNewlines(markdown, trimTrailingNewline)
       tab.markdown = markdown
+      tab.contentRevision = (tab.contentRevision || 0) + 1
 
       if (oldMarkdown.length === 0 && markdown.length === 1 && markdown[0] === '\n') {
         return
@@ -1298,13 +1308,14 @@ export const useEditorStore = defineStore('editor', {
             filename,
             pathname,
             markdown,
+            revision: tab.contentRevision,
             options
           })
         }
       } else tab.isSaved = true // An undo can trigger this
     },
 
-    HANDLE_AUTO_SAVE({ id, filename, pathname, markdown, options }) {
+    HANDLE_AUTO_SAVE({ id, filename, pathname, markdown, options, revision: requestedRevision }) {
       if (!id || !pathname) {
         throw new Error('HANDLE_AUTO_SAVE: Invalid tab.')
       }
@@ -1319,6 +1330,7 @@ export const useEditorStore = defineStore('editor', {
         autoSaveTimers.delete(id)
       }
 
+      const revision = requestedRevision ?? (this.tabs.find((tab) => tab.id === id)?.contentRevision || 0)
       const timer = setTimeout(async () => {
         autoSaveTimers.delete(id)
 
@@ -1338,7 +1350,7 @@ export const useEditorStore = defineStore('editor', {
               markdown,
               defaultPath: defaultPath || null
             })
-            if (outcome) this.APPLY_SAVE_OUTCOME(outcome)
+            if (outcome) this.APPLY_SAVE_OUTCOME(outcome, revision)
           } catch (e) {
             console.warn('[editor][auto-save] failed', e)
           }
@@ -1532,6 +1544,8 @@ export const useEditorStore = defineStore('editor', {
         return
       }
       const { id, isSaved, filename } = tab
+      const generation = (liveReloadGenerations.get(pathname) || 0) + 1
+      liveReloadGenerations.set(pathname, generation)
       switch (type) {
         case 'unlink':
           tab.isSaved = false
@@ -1557,6 +1571,7 @@ export const useEditorStore = defineStore('editor', {
               // If change already has data (legacy path), use it directly.
               // Otherwise read from disk (watcher path: project.js sends only {pathname}).
               if (change.data) {
+                if (liveReloadGenerations.get(pathname) !== generation) return
                 console.log(`[editor][live_reload][BLOCK_LIVE_RELOAD path=${filename} source=data]`)
                 this.loadChange(change)
               } else {
@@ -1564,6 +1579,7 @@ export const useEditorStore = defineStore('editor', {
                 setTimeout(async () => {
                   try {
                     const markdown = await ipcFs.read(pathname)
+                    if (liveReloadGenerations.get(pathname) !== generation) return
                     // Hash-skip: don't reload if content matches current tab
                     if (markdown === tab.markdown) {
                       console.log(`[editor][live_reload][BLOCK_RELOAD_SKIPPED path=${filename} reason=hash-match]`)
@@ -1749,10 +1765,18 @@ export const useEditorStore = defineStore('editor', {
 })
 
 // ----------------------------------------------------------------------------
+// MODULE_CONTRACT:
+//   PURPOSE: Pinia state and actions for open documents, persistence, autosave, and filesystem reloads.
+//   SCOPE: Tab lifecycle, content revisions, save outcomes, and watcher coordination.
+//   DEPENDS: ipc runtime, Pinia, editor/project/preferences stores, renderer bus.
+//   ROLE: RUNTIME
+// END_MODULE_CONTRACT
+//
 // CHANGE_SUMMARY:
 //   - 2026-05-20 B7-M-032: fix APPLY_FILE_CHANGE async read path (latent bug:
 //     project.js sends {pathname} without data); fix loadChange cursor/scrollTop
 //     preservation; add liveReload preference integration + hash-skip.
+//   - 2026-08-10 v2.1.7: reject stale save outcomes and out-of-order live-reload reads by revision/generation.
 // ----------------------------------------------------------------------------
 
 /**

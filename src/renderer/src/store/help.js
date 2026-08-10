@@ -1,3 +1,10 @@
+// MODULE_CONTRACT:
+//   PURPOSE: Define canonical per-document state and state-construction helpers.
+//   SCOPE: Defaults and cloning/option extraction for editor tabs.
+//   DEPENDS: renderer util and i18n helpers.
+//   ROLE: UTILITY
+// END_MODULE_CONTRACT
+
 import { getUniqueId, deepClone } from '../util'
 import { i18n } from '../i18n'
 
@@ -7,6 +14,8 @@ import { i18n } from '../i18n'
  * @type {IDocumentState} Internel markdown document
  */
 export const defaultFileState = {
+  // Monotonic renderer revision used to reject stale async save/reload outcomes.
+  contentRevision: 0,
   // Indicates whether there are unsaved changes.
   isSaved: true,
   // Full path to the file or empty. If the value is empty the file doesn't exist on disk.

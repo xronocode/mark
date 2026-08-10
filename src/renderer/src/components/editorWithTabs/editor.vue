@@ -75,7 +75,7 @@
 
 <script setup>
 // FILE: src/renderer/src/components/editorWithTabs/editor.vue
-// VERSION: 1.4.0
+// VERSION: 1.5.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Host the Muya WYSIWYG surface and coordinate document rendering, selection, scroll, preview, editor tools, and store/bus integration.
 //   SCOPE: Renderer-side Muya lifecycle and UI orchestration; does not own Markdown parsing rules or backend file persistence.
@@ -99,6 +99,7 @@
 //   - 2026-08-10 v1.2.0: bind preview exit gestures to Muya's replacement surface; Finder-opened files no longer remain permanently read-only.
 //   - 2026-08-10 v1.3.0: hydrate the Muya surface from the already-selected tab on mount; agent/Finder opens cannot lose their first file-loaded event during boot.
 //   - 2026-08-10 v1.4.0: ignore stale file-changed payloads that would replace unsaved Muya edits when focus moves inside the document.
+//   - 2026-08-10 v1.5.0: ignore stale file-loaded payloads from a different active tab.
 // END_CHANGE_SUMMARY
 
 import { ref, reactive, watch, onMounted, onBeforeUnmount, nextTick, computed } from 'vue'
@@ -1035,7 +1036,11 @@ const handleDialogTableConfirm = () => {
 }
 
 // listen for `open-single-file` event, it will call this method only when open a new file.
-const setMarkdownToEditor = ({ markdown: newMarkdown, cursor: newCursor }) => {
+const setMarkdownToEditor = ({ id, markdown: newMarkdown, cursor: newCursor }) => {
+  if (id && currentFile.value?.id && id !== currentFile.value.id) {
+    console.warn(`[Editor][setMarkdownToEditor][BLOCK_STALE_FILE_LOADED_IGNORED id=${id}]`)
+    return
+  }
   if (editor.value) {
     editor.value.clearHistory()
     if (newCursor) {

@@ -201,6 +201,9 @@
         <fn-previewExitEvents PURPOSE="editorWithTabs/editor.vue delegates preview exit mousedown and Cmd+backslash keydown from the persistent editor wrapper in capture phase because Muya replaces the inner Vue mount node" />
         <fn-hydrateMountedDocument PURPOSE="editorWithTabs/editor.vue replays the active tab into Muya after mount when parallel pending-open boot delivered the tab before editor bus listeners subscribed" />
         <fn-handleFileChange-stale-guard PURPOSE="editorWithTabs/editor.vue rejects delayed file-changed Markdown when it differs from newer unsaved content in the same active tab" />
+        <fn-applySaveOutcome-revision-guard PURPOSE="editor store rejects asynchronous save acknowledgements captured before a newer content revision" />
+        <fn-liveReload-generation-guard PURPOSE="editor store ignores out-of-order disk reads from superseded file watcher events" />
+        <fn-sourceCode-tabId-rebind PURPOSE="Source Code editor rebinds its CodeMirror commit target after file-loaded tab changes" />
       </annotations>
     </M-011>
 
