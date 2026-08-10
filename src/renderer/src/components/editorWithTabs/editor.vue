@@ -1090,7 +1090,12 @@ const handleFileChange = ({
 // START_BLOCK_BOOT_DOCUMENT_HYDRATION
 const hydrateMountedDocument = () => {
   const file = currentFile.value
-  if (!editor.value || !file || typeof file.markdown !== 'string') return
+  if (
+    !editor.value ||
+    typeof editor.value.setMarkdown !== 'function' ||
+    !file ||
+    typeof file.markdown !== 'string'
+  ) return
 
   handleFileChange({
     markdown: file.markdown,
