@@ -163,3 +163,13 @@ In `docs/*.xml`, repeated entities must use their unique ID as the XML tag name 
 4. After changing test files, commands, critical scenarios, or log markers, update `docs/verification-plan.xml`.
 5. After fixing bugs, add a CHANGE_SUMMARY entry and strengthen nearby verification if the old evidence was weak.
 6. Never remove semantic markup anchors unless the structure is intentionally replaced with better anchors.
+
+## Local AI safety
+
+If this project runs local AI inference — ollama, LM Studio, mlx/mlx-whisper, or llama.cpp — follow the canonical protocol (the full reference lives outside this repo):
+
+- **Canon + rationale:** `~/prj/_skills/local-ai-safety/PROTOCOL.md`
+- **Pre-flight check — run before any inference:** `~/prj/_skills/local-ai-safety/gpu_check.sh`
+
+One hard rule: **GPU inference slots = 1** — never run two inference engines concurrently (ollama + LM Studio, or either + llama.cpp/mlx). That concurrent load triggered the macOS `IOGPUFamily` kernel panic on this machine. Run `gpu_check.sh` before starting inference; on **exit code 3** (engine conflict) do **not** start another engine — unload the current one first. Any engine used here is run one at a time, never simultaneously.
+
