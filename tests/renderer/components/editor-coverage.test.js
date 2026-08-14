@@ -1229,6 +1229,42 @@ describe('editor.vue — coverage', () => {
     expect(animatedScrollToMock).toHaveBeenCalled()
   })
 
+  it('handleFileChange without scrollTop resets a stale scrollTop synchronously', async () => {
+    const wrapper = await mountEditor()
+    const editorComponent = wrapper.find('.editor-component').element
+    // Previous tab scrolled far down; a tab with no saved scrollTop must not inherit it.
+    editorComponent.scrollTop = 5000
+
+    getBusHandler('file-changed')({
+      markdown: '# Fresh tab',
+      cursor: null,
+      renderCursor: false,
+      history: null,
+      scrollTop: undefined,
+      muyaIndexCursor: null
+    })
+
+    expect(editorComponent.scrollTop).toBe(0)
+  })
+
+  it('handleFileChange without scrollTop skips animating to an invalid cursor position', async () => {
+    await mountEditor()
+    mockEditorInstance.getSelection.mockReturnValueOnce({ cursorCoords: { y: NaN } })
+    animatedScrollToMock.mockClear()
+
+    getBusHandler('file-changed')({
+      markdown: '# No cursor yet',
+      cursor: null,
+      renderCursor: false,
+      history: null,
+      scrollTop: undefined,
+      muyaIndexCursor: null
+    })
+    await nextTick()
+
+    expect(animatedScrollToMock).not.toHaveBeenCalled()
+  })
+
   /* ── handleExport ──────────────────────────────────────────── */
   it('handleExport styledHtml calls EXPORT', async () => {
     await mountEditor()
