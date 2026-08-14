@@ -75,7 +75,7 @@
 
 <script setup>
 // FILE: src/renderer/src/components/editorWithTabs/editor.vue
-// VERSION: 1.5.0
+// VERSION: 1.6.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Host the Muya WYSIWYG surface and coordinate document rendering, selection, scroll, preview, editor tools, and store/bus integration.
 //   SCOPE: Renderer-side Muya lifecycle and UI orchestration; does not own Markdown parsing rules or backend file persistence.
@@ -100,6 +100,7 @@
 //   - 2026-08-10 v1.3.0: hydrate the Muya surface from the already-selected tab on mount; agent/Finder opens cannot lose their first file-loaded event during boot.
 //   - 2026-08-10 v1.4.0: ignore stale file-changed payloads that would replace unsaved Muya edits when focus moves inside the document.
 //   - 2026-08-10 v1.5.0: ignore stale file-loaded payloads from a different active tab and avoid reloading identical content over a live selection.
+//   - 2026-08-14 v1.6.0: reset scrollTop synchronously for tabs with no saved scroll position so an agent-opened tab cannot inherit a stale scrollTop from the previously active tab and read as blank until manual scroll.
 // END_CHANGE_SUMMARY
 
 import { ref, reactive, watch, onMounted, onBeforeUnmount, nextTick, computed } from 'vue'
@@ -822,6 +823,11 @@ const scrollToCursor = (duration = 300) => {
     const { container } = editor.value
     if (!container) return
     const { y } = editor.value.getSelection().cursorCoords
+    // The DOM selection may not yet be inside the freshly rendered document
+    // (e.g. right after setMarkdown for a tab with no saved scrollTop), in
+    // which case cursorCoords can report a stale/invalid y. Skip the
+    // animation rather than scroll to a meaningless offset.
+    if (!Number.isFinite(y)) return
     animatedScrollTo(container, container.scrollTop + y - STANDAR_Y, duration)
   })
 }
@@ -1113,6 +1119,11 @@ const handleFileChange = ({
     } else {
       container.style.visibility = 'visible'
       container.style.pointerEvents = 'auto'
+      // Tabs with no saved scroll position (new/agent-opened documents) must
+      // not inherit the previously active tab's scrollTop: a shorter document
+      // would then sit scrolled out of view and read as blank until the user
+      // manually scrolls and the browser clamps scrollTop back into range.
+      container.scrollTop = 0
       scrollToCursor(0)
     }
   }
