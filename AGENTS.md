@@ -164,6 +164,25 @@ In `docs/*.xml`, repeated entities must use their unique ID as the XML tag name 
 5. After fixing bugs, add a CHANGE_SUMMARY entry and strengthen nearby verification if the old evidence was weak.
 6. Never remove semantic markup anchors unless the structure is intentionally replaced with better anchors.
 
+## Release (cutting a new version)
+
+Releases are tag-triggered via `.github/workflows/release.yml` — **do NOT build or publish locally**. Remote is `fork` (`xronocode/mark`), not `origin`. Flow:
+
+1. Bump the version in **all six synchronized places** (M-046 preflight `release:preflight` enforces this and fails the build on any drift):
+   - `package.json` → `"version"`
+   - `package-lock.json` → **two** fields: root `"version"` and `packages."".version`
+   - `src-tauri/tauri.conf.json` → `"version"`
+   - root `Cargo.toml` (`[workspace.package]` → `version`; `src-tauri/Cargo.toml` inherits via `version.workspace = true`)
+   - root `Cargo.lock` → the `name = "mark"` package entry version (lock lives in the repo **root**, not `src-tauri/`)
+2. **Advance the M-046 fixture** in `tests/renderer/release-preflight.test.js`: replace the old version literal everywhere (`consistentEvidence` object, `validateVersionEvidence` tag args, the CLI `--tag` arg) and add a CHANGE_SUMMARY entry (+ VERSION + MODULE_MAP fixture line). The renderer suite pins the current release version — forgetting this fails `npm test` in CI after ~2.5 min.
+3. Validate locally BEFORE tagging:
+   - `npm run release:preflight -- --tag v2.X.Y-beta` → must print `BLOCK_RELEASE_VERSION_CONSISTENT ... sources=6`
+   - `npx vitest run tests/renderer/release-preflight.test.js` → 11 passed
+4. Commit `chore(release): v2.X.Y-beta`, push `fork main`, then `git tag v2.X.Y-beta && git push fork v2.X.Y-beta` (tag pattern `v*.*.*` / `v*.*.*-*`).
+5. Watch the run: `gh run list -R xronocode/mark`. If a tag was pushed on a bad commit, delete the remote tag, retag on the fix, push again — the release re-runs.
+
+**Semantics that matter:** beta tags are published as **normal releases** (`PRERELEASE=false` in the workflow, asserted by tests) so the `/releases/latest` feed advances — the in-app updater reads `https://github.com/xronocode/mark/releases/latest/download/latest.json`. A release is live iff that `latest.json` serves the new version.
+
 ## Local AI safety
 
 If this project runs local AI inference — ollama, LM Studio, mlx/mlx-whisper, or llama.cpp — follow the canonical protocol (the full reference lives outside this repo):
