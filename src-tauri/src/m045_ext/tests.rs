@@ -441,37 +441,36 @@ fn registry_disable_already_disabled_is_idempotent() {
 #[test]
 #[ignore] // Run manually: cargo test load_smoke -- --ignored
 fn test_b5b_load_smoke_30min_synthetic() {
-    use super::live_server::LiveSession;
-    use std::collections::HashMap;
+    use super::live_server::{apply_section_patch, rebuild_document_md, LiveSession};
     use std::time::{Duration, Instant};
 
     const ITERATIONS: usize = 360; // simulated 30 min at 5s granularity
     const SECTION_REPLACE_EVERY: usize = 6; // every 6th = simulated 30s
     const SLEEP_MS: u64 = 10; // actual inter-iteration delay
 
-    // -- Create a LiveSession directly (bypasses HTTP + auth layer) ------
+    // -- Create a LiveSession the same way handle_doc_open does ---------
+    // (sections ordered, content self-contained markdown; core patch
+    // logic is exercised via the real apply_section_patch fn).
     let mut session = LiveSession {
         session_id: "endurance-b5b-001".to_string(),
         extension_id: "com.tokmo.meeting".to_string(),
         last_seq: 0,
         revision: 1,
-        document_md: "# Live Meeting\n\n_Recording..._\n".to_string(),
-        sections: {
-            let mut s = HashMap::new();
-            s.insert("header".to_string(), "# Live Meeting".to_string());
-            s.insert("summary".to_string(), String::new());
-            s.insert("key_points".to_string(), String::new());
-            s.insert("transcript".to_string(), String::new());
-            s
-        },
+        document_md: String::new(),
+        sections: vec![
+            ("header".to_string(), "# Live Meeting\n\n".to_string()),
+            ("summary".to_string(), String::new()),
+            ("key_points".to_string(), String::new()),
+            ("transcript".to_string(), "## Transcript\n\n".to_string()),
+        ],
         active: true,
         last_heartbeat: Instant::now(),
     };
 
     assert!(session.active);
     assert_eq!(session.revision, 1);
+    session.document_md = rebuild_document_md(&session.sections);
 
-    let mut transcript_content = String::new();
     let baseline_revision = session.revision;
 
     // -- Main simulation loop --------------------------------------------
@@ -487,9 +486,8 @@ fn test_b5b_load_smoke_30min_synthetic() {
             "**[{:02}:{:02}] {}:** Utterance {} with enough content to stress the section store.\n\n",
             minutes, seconds, speaker, i
         );
-        transcript_content.push_str(&line);
 
-        // Apply transcript patch (simulates what handle_doc_patch does)
+        // Apply transcript patch through the REAL patch core (append op)
         assert!(
             seq > session.last_seq,
             "seq {} must be > last_seq {} at iteration {}",
@@ -497,24 +495,16 @@ fn test_b5b_load_smoke_30min_synthetic() {
             session.last_seq,
             i
         );
+        apply_section_patch(
+            &mut session.sections,
+            "transcript",
+            Some("append"),
+            &line,
+        )
+        .expect("transcript section must exist (declared at open)");
 
-        session
-            .sections
-            .insert("transcript".to_string(), transcript_content.clone());
-
-        // Rebuild full document from sections
-        let mut full_doc = String::new();
-        for key in &["header", "summary", "key_points", "transcript"] {
-            if let Some(value) = session.sections.get(*key) {
-                if !value.is_empty() {
-                    if !full_doc.is_empty() {
-                        full_doc.push_str("\n\n");
-                    }
-                    full_doc.push_str(&format!("## {key}\n\n{value}"));
-                }
-            }
-        }
-        session.document_md = full_doc;
+        // Rebuild full document from sections via the REAL rebuild fn
+        session.document_md = rebuild_document_md(&session.sections);
         session.last_seq = seq;
         session.revision += 1;
 
@@ -524,19 +514,23 @@ fn test_b5b_load_smoke_30min_synthetic() {
         // Every simulated 30s: replace Summary and Key Points sections
         if (i + 1) % SECTION_REPLACE_EVERY == 0 {
             let summary_text = format!(
-                "Meeting in progress. {} utterances recorded over {}m {}s. \
+                "## Summary\n\nMeeting in progress. {} utterances recorded over {}m {}s. \
                  Speakers: Alice, Bob. Topics covered: project status, \
-                 resource allocation, timeline review.",
+                 resource allocation, timeline review.\n",
                 i + 1,
                 minutes,
                 seconds
             );
-            session
-                .sections
-                .insert("summary".to_string(), summary_text);
+            apply_section_patch(
+                &mut session.sections,
+                "summary",
+                Some("replace"),
+                &summary_text,
+            )
+            .expect("summary section must exist");
 
             let kp_count = (i + 1) / SECTION_REPLACE_EVERY;
-            let mut kp_text = String::new();
+            let mut kp_text = String::from("## Key Points\n\n");
             for kp_idx in 0..kp_count.min(20) {
                 kp_text.push_str(&format!(
                     "- [Decision] Key point {} established at iteration {}\n",
@@ -544,19 +538,24 @@ fn test_b5b_load_smoke_30min_synthetic() {
                     kp_idx * SECTION_REPLACE_EVERY
                 ));
             }
-            session
-                .sections
-                .insert("key_points".to_string(), kp_text);
+            apply_section_patch(
+                &mut session.sections,
+                "key_points",
+                Some("replace"),
+                &kp_text,
+            )
+            .expect("key_points section must exist");
 
             // Verify sections are non-empty after replace
+            let summary = session
+                .sections
+                .iter()
+                .find(|(n, _)| n == "summary")
+                .map(|(_, c)| c.as_str())
+                .unwrap();
             assert!(
-                !session.sections["summary"].is_empty(),
+                !summary.is_empty(),
                 "Summary must be non-empty after replace at iteration {}",
-                i
-            );
-            assert!(
-                !session.sections["key_points"].is_empty(),
-                "Key Points must be non-empty after replace at iteration {}",
                 i
             );
         }
@@ -588,8 +587,17 @@ fn test_b5b_load_smoke_30min_synthetic() {
         ITERATIONS
     );
 
-    // Transcript section should contain all utterances
-    let transcript = &session.sections["transcript"];
+    let section = |name: &str| {
+        session
+            .sections
+            .iter()
+            .find(|(n, _)| n == name)
+            .map(|(_, c)| c.as_str())
+            .unwrap_or_else(|| panic!("section {name} must exist"))
+    };
+
+    // Transcript section should contain ALL utterances (append accumulates)
+    let transcript = section("transcript");
     assert!(
         transcript.contains("Utterance 0"),
         "Transcript must contain first utterance"
@@ -611,11 +619,11 @@ fn test_b5b_load_smoke_30min_synthetic() {
 
     // Summary and Key Points should have content from the last replace cycle
     assert!(
-        !session.sections["summary"].is_empty(),
+        !section("summary").is_empty(),
         "Summary must have content after endurance run"
     );
     assert!(
-        !session.sections["key_points"].is_empty(),
+        !section("key_points").is_empty(),
         "Key Points must have content after endurance run"
     );
 
@@ -626,6 +634,15 @@ fn test_b5b_load_smoke_30min_synthetic() {
         session.document_md.len()
     );
 
+    // The full document must contain every utterance too — the exact
+    // regression that hid the append-as-replace bug.
+    for probe in [0, 1, ITERATIONS / 2, ITERATIONS - 1] {
+        assert!(
+            session.document_md.contains(&format!("Utterance {probe}")),
+            "Rebuilt document must contain Utterance {probe} (accumulation regression)"
+        );
+    }
+
     // Heartbeat should be recent (within last second, since we just ran)
     assert!(
         session.last_heartbeat.elapsed() < Duration::from_secs(5),
@@ -633,6 +650,231 @@ fn test_b5b_load_smoke_30min_synthetic() {
     );
 }
 // END_BLOCK_ENDURANCE_TESTS
+
+// START_BLOCK_LIVE_DOC_V2_TESTS
+// Live-doc wire contract v2: ordered sections, op semantics, no
+// synthetic headers, deterministic rebuild. Exercise the same pure
+// functions the HTTP handlers call.
+use super::live_server::{
+    apply_section_patch, build_sections_from_init, decide_open, rebuild_document_md, LiveSession,
+    OpenDecision, SectionInit, SectionPatchError,
+};
+
+#[test]
+fn v2_open_same_session_id_replaces_for_resync() {
+    // Recovery path for needs_resync: re-open with the SAME session id
+    // must be allowed to replace the active session state wholesale.
+    let session = LiveSession {
+        session_id: "s1".to_string(),
+        extension_id: "com.tokmo.voice".to_string(),
+        last_seq: 42,
+        revision: 99,
+        document_md: "stale".to_string(),
+        sections: vec![],
+        active: true,
+        last_heartbeat: std::time::Instant::now(),
+    };
+    assert_eq!(
+        decide_open(Some(&session), "s1"),
+        OpenDecision::ReplaceSameSession
+    );
+}
+
+#[test]
+fn v2_open_different_active_session_conflicts() {
+    let session = LiveSession {
+        session_id: "s1".to_string(),
+        extension_id: "com.tokmo.voice".to_string(),
+        last_seq: 0,
+        revision: 1,
+        document_md: String::new(),
+        sections: vec![],
+        active: true,
+        last_heartbeat: std::time::Instant::now(),
+    };
+    assert_eq!(decide_open(Some(&session), "s2"), OpenDecision::Conflict);
+}
+
+#[test]
+fn v2_open_after_close_or_without_session_is_fresh() {
+    assert_eq!(decide_open(None, "s1"), OpenDecision::FreshOpen);
+    let mut closed = LiveSession {
+        session_id: "s1".to_string(),
+        extension_id: "com.tokmo.voice".to_string(),
+        last_seq: 0,
+        revision: 1,
+        document_md: String::new(),
+        sections: vec![],
+        active: true,
+        last_heartbeat: std::time::Instant::now(),
+    };
+    closed.active = false;
+    assert_eq!(decide_open(Some(&closed), "s1"), OpenDecision::FreshOpen);
+    assert_eq!(decide_open(Some(&closed), "s2"), OpenDecision::FreshOpen);
+}
+
+fn tokmo_like_sections() -> Vec<(String, String)> {
+    build_sections_from_init(vec![
+        SectionInit {
+            name: "header".to_string(),
+            content: "# Meeting - 0m 00s\n\n".to_string(),
+        },
+        SectionInit {
+            name: "key_points".to_string(),
+            content: String::new(),
+        },
+        SectionInit {
+            name: "summary".to_string(),
+            content: String::new(),
+        },
+        SectionInit {
+            name: "transcript".to_string(),
+            content: "## Transcript\n\n".to_string(),
+        },
+    ])
+}
+
+#[test]
+fn v2_append_accumulates_across_patches() {
+    let mut sections = tokmo_like_sections();
+    for i in 0..5 {
+        apply_section_patch(
+            &mut sections,
+            "transcript",
+            Some("append"),
+            &format!("**[00:0{i}] Alice:** line {i}\n\n"),
+        )
+        .unwrap();
+    }
+    let transcript = &sections
+        .iter()
+        .find(|(n, _)| n == "transcript")
+        .unwrap()
+        .1;
+    for i in 0..5 {
+        assert!(
+            transcript.contains(&format!("line {i}")),
+            "append must accumulate: line {i} missing"
+        );
+    }
+}
+
+#[test]
+fn v2_replace_replaces_and_defaults_when_op_missing() {
+    let mut sections = tokmo_like_sections();
+    apply_section_patch(&mut sections, "summary", Some("replace"), "## Summary\n\nv1\n")
+        .unwrap();
+    apply_section_patch(&mut sections, "summary", None, "## Summary\n\nv2\n").unwrap();
+    let summary = &sections
+        .iter()
+        .find(|(n, _)| n == "summary")
+        .unwrap()
+        .1;
+    assert_eq!(summary, "## Summary\n\nv2\n");
+    assert!(!summary.contains("v1"), "replace must drop old content");
+}
+
+#[test]
+fn v2_replace_section_is_legacy_synonym_for_replace() {
+    let mut sections = tokmo_like_sections();
+    apply_section_patch(&mut sections, "summary", Some("replace"), "old").unwrap();
+    apply_section_patch(&mut sections, "summary", Some("replace_section"), "new").unwrap();
+    assert_eq!(
+        sections.iter().find(|(n, _)| n == "summary").unwrap().1,
+        "new"
+    );
+}
+
+#[test]
+fn v2_unknown_op_rejected() {
+    let mut sections = tokmo_like_sections();
+    assert_eq!(
+        apply_section_patch(&mut sections, "transcript", Some("delete"), "x"),
+        Err(SectionPatchError::UnknownOp("delete".to_string()))
+    );
+}
+
+#[test]
+fn v2_unknown_section_rejected() {
+    let mut sections = tokmo_like_sections();
+    assert_eq!(
+        apply_section_patch(&mut sections, "nope", Some("replace"), "x"),
+        Err(SectionPatchError::UnknownSection("nope".to_string()))
+    );
+}
+
+#[test]
+fn v2_rebuild_is_deterministic_ordered_and_headerless() {
+    let sections = vec![
+        ("a".to_string(), "one".to_string()),
+        ("b".to_string(), String::new()), // empty -> skipped
+        ("c".to_string(), "two".to_string()),
+    ];
+    let doc = rebuild_document_md(&sections);
+    assert_eq!(doc, "one\n\ntwo");
+    // Rebuild twice: identical (HashMap iteration used to randomize this)
+    assert_eq!(rebuild_document_md(&sections), doc);
+    // No synthetic headers are injected
+    assert!(!doc.contains("## a"));
+    assert!(!doc.contains("## c"));
+}
+
+#[test]
+fn v2_first_patch_after_open_keeps_open_content() {
+    // Regression: open used to send empty section strings, so the first
+    // patch wiped initial_md. Now open carries real content and the
+    // first append only adds to it.
+    let mut sections = tokmo_like_sections();
+    let before = rebuild_document_md(&sections);
+    assert!(before.contains("# Meeting - 0m 00s"));
+    apply_section_patch(
+        &mut sections,
+        "transcript",
+        Some("append"),
+        "**[00:00] Alice:** first delta\n\n",
+    )
+    .unwrap();
+    let after = rebuild_document_md(&sections);
+    assert!(
+        after.contains("# Meeting - 0m 00s"),
+        "first patch must not wipe open content"
+    );
+    assert!(after.contains("first delta"));
+}
+
+#[test]
+fn v2_append_to_empty_section_works() {
+    let mut sections = tokmo_like_sections();
+    apply_section_patch(&mut sections, "summary", Some("append"), "## Summary\n\ns\n")
+        .unwrap();
+    assert_eq!(
+        sections.iter().find(|(n, _)| n == "summary").unwrap().1,
+        "## Summary\n\ns\n"
+    );
+}
+
+#[test]
+fn v2_duplicate_section_names_keep_first_position_last_content() {
+    let sections = build_sections_from_init(vec![
+        SectionInit {
+            name: "a".to_string(),
+            content: "first".to_string(),
+        },
+        SectionInit {
+            name: "b".to_string(),
+            content: "mid".to_string(),
+        },
+        SectionInit {
+            name: "a".to_string(),
+            content: "updated".to_string(),
+        },
+    ]);
+    assert_eq!(sections.len(), 2, "duplicate must not add a slot");
+    assert_eq!(sections[0], ("a".to_string(), "updated".to_string()));
+    assert_eq!(sections[1], ("b".to_string(), "mid".to_string()));
+    assert_eq!(rebuild_document_md(&sections), "updated\n\nmid");
+}
+// END_BLOCK_LIVE_DOC_V2_TESTS
 
 // START_BLOCK_DISCOVERY_PATH_TESTS
 #[test]

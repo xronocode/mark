@@ -866,6 +866,13 @@
         <type-ExtensionState PURPOSE="Per-extension runtime state: manifest, enabled bool, last_health_check, auth_secret_ref" />
         <type-ExtInvokeRequest PURPOSE="{ extension_id, endpoint, payload: serde_json::Value }" />
         <type-ExtInvokeResponse PURPOSE="{ status: u16, body: serde_json::Value, elapsed_ms: u64 }" />
+        <fn-apply_section_patch PURPOSE="Pure core: apply one live-doc v2 patch op (append|replace; missing op = replace; replace_section legacy synonym) to a named section of the ordered section list; Err(SectionPatchError::UnknownOp|UnknownSection) -> HTTP 400" />
+        <fn-decide_open PURPOSE="Pure core: decide how /stream/open interacts with the active session — FreshOpen | ReplaceSameSession (resync path) | Conflict (409); token is validated before this decision" />
+        <type-OpenDecision PURPOSE="FreshOpen | ReplaceSameSession | Conflict — outcome of decide_open for an incoming /stream/open" />
+        <fn-rebuild_document_md PURPOSE="Pure core: concatenate non-empty sections in declared order with blank-line separator; deterministic; never adds synthetic headers" />
+        <fn-build_sections_from_init PURPOSE="Build the ordered section list from /stream/open SectionInit array; duplicate names keep first position, last content wins" />
+        <type-SectionInit PURPOSE="/stream/open section payload: { name, content } — content is self-contained markdown" />
+        <type-SectionPatchError PURPOSE="UnknownOp(String) | UnknownSection(String) — mapped to HTTP 400 by /stream/patch handler" />
       </annotations>
     </M-045>
 

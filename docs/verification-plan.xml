@@ -255,7 +255,7 @@
       <AUTONOMY>autonomous — standalone capture tool with deterministic pure-core tests; browser differences are surfaced as fixture evidence, not hidden logic</AUTONOMY>
     </matrix-row>
 
-    <matrix-row MODULE="M-045" V-M="V-M-045" PRIORITY="critical" SCENARIOS="6" EC="10" ALM="7" NA="5" RTA="3" PHF="1" WAF="1">
+    <matrix-row MODULE="M-045" V-M="V-M-045" PRIORITY="critical" SCENARIOS="10" EC="13" ALM="10" NA="6" RTA="3" PHF="1" WAF="1">
       <VF-COVERAGE>VF-ext-host (extension lifecycle)</VF-COVERAGE>
       <GATE>Gate-Phase-B11-ext-host</GATE>
       <AUTONOMY>not-autonomous — security-critical auth + HTTP invocation + keychain secrets; review auth flow, timeout handling, and m001_validate parity</AUTONOMY>
@@ -5402,7 +5402,7 @@
       Backend: src-tauri/src/m045_ext/registry.rs — in-memory HashMap&lt;ExtensionId, ExtensionState&gt;; enable/disable with state persistence via M-005 prefs store; emits mt::ext-state-changed Tauri event on transitions.
       Backend: src-tauri/src/m045_ext/auth.rs — per-extension shared secret generation (32-byte random via ring/rand); store/retrieve/revoke via M-019 datacenter keychain (service: com.xronocode.mark.ext.{id}); Authorization: Bearer header validation.
       Backend: src-tauri/src/m045_ext/invoke.rs — reqwest HTTP POST to 127.0.0.1:{port}/{endpoint}; Authorization header from auth module; configurable timeout (default 30s); JSON request/response; ExtInvokeRequest/ExtInvokeResponse types.
-      Backend: src-tauri/src/m045_ext/live_server.rs — axum HTTP server on 127.0.0.1:{configured_port}; POST /stream/document endpoint; auth middleware validates Bearer token against registered secrets; forwards document content to renderer via Tauri emit mt::ext-live-document; graceful shutdown on app exit via tokio::sync::watch channel.
+      Backend: src-tauri/src/m045_ext/live_server.rs — axum HTTP server on 127.0.0.1:{configured_port}; /stream/open + /stream/patch + /stream/close + /stream/heartbeat endpoints (live-doc wire contract v2: ordered sections array at open, op: append|replace on patch, default replace, replace_section legacy synonym, unknown op/section rejected 400); auth middleware validates Bearer token against registered secrets; deterministic document rebuild (declared order, empty sections skipped, no synthetic headers) via pure fns apply_section_patch/rebuild_document_md/build_sections_from_init; forwards document content to renderer via Tauri emit mt::ext-live-document; graceful shutdown on app exit via tokio::sync::watch channel.
       Backend: src-tauri/src/m045_ext/live_endpoint.rs — writes/cleans up LiveEndpointDiscovery JSON file so TokMo can discover Mark's HTTP server port; stale file detection via pid check.
       Backend: src-tauri/src/m045_ext/live_bridge.rs — Tauri event bridge: emit_live_update / emit_doc_open / emit_doc_patch / emit_doc_close forwarding live server content to renderer via Tauri emit.
       Backend: src-tauri/src/main.rs — register mt_ext_discover, mt_ext_enable, mt_ext_disable, mt_ext_invoke, mt_ext_list in generate_handler!; start live server in setup hook; shutdown in exit handler.
@@ -5418,6 +5418,8 @@
       <S6>live-server-document-stream — axum server running; extension POSTs to /stream/document with valid auth; server validates token, forwards content via Tauri emit mt::ext-live-document; renderer receives event with document payload; BLOCK_EXT_LIVE_SERVER_DOCUMENT id=... size_bytes=N.</S6>
       <S7>live-endpoint-discovery-lifecycle — LiveEndpointDiscovery file written on server start with pid, port, protocol_version; cleaned up on exit; stale file with dead pid detected and overwritten on next start; BLOCK_EXT_ENDPOINT_WRITE port=N, BLOCK_EXT_ENDPOINT_CLEANUP.</S7>
       <S8>live-bridge-event-forwarding — emit_doc_open/emit_doc_patch/emit_doc_close called from live_server handlers; Tauri events emitted to renderer with correct payloads (session_id, title, content, revision); renderer receives and renders live document updates.</S8>
+      <S9>live-doc-patch-op-semantics (v2) — apply_section_patch: "append" concatenates onto existing section body (transcript accumulates across patches); "replace" replaces wholesale; missing op defaults to replace; "replace_section" accepted as legacy synonym; rebuild_document_md concatenates non-empty sections in declared order with "\n\n" separator and adds no synthetic headers; first patch after open with real section content preserves open content. Tests: m045_ext/tests.rs START_BLOCK_LIVE_DOC_V2_TESTS + rewritten test_b5b_load_smoke_30min_synthetic now exercising the real patch core (regression: smoke test used to accumulate in the test body and never call handler logic, hiding the append-as-replace bug).</S9>
+      <S10>live-doc-resync-recovery (v2) — decide_open: /stream/open with the SAME session_id on an active session replaces state wholesale (OpenDecision::ReplaceSameSession, BLOCK_DOC_OPEN_RESYNC) — recovery for a client stuck on needs_resync (stale base_revision) which re-sends the full document; a DIFFERENT active session_id still conflicts (409). doc_open emits the authoritative document_md (join of sections), not the raw client initial_md. On /stream/open the Bearer token is validated BEFORE any session-state disclosure (401 precedes 409 — no unauthenticated existing_session_id leak on open; the other /stream/* endpoints still answer "no active session" before token validation because their requests carry no extension_id — known, accepted scope). Duplicate and needs_resync patch responses refresh last_heartbeat so an actively-retrying client is not timed out mid-recovery.</S10>
     </high-level-scenarios>
     <edge-cases>
       <E1>manifest-missing-required-field — manifest.yaml lacks "port" field; parse succeeds but validation fails with specific missing-field error; BLOCK_EXT_MANIFEST_PARSED status=invalid reason=missing_field:port.</E1>
@@ -5430,8 +5432,11 @@
       <E8>invoke-unknown-extension — mt_ext_invoke called with non-existent extension ID; returns MT_EXT_NOT_FOUND error.</E8>
       <E9>live-server-invalid-auth — POST to /stream/document with wrong or missing Authorization header; server returns 401; document not forwarded; BLOCK_EXT_AUTH_REJECTED reason=invalid_token.</E9>
       <E10>live-server-bind-conflict — configured port already in use; axum server returns bind error; BLOCK_EXT_LIVE_SERVER_BIND status=error reason=address_in_use; app continues without live server (degraded mode).</E10>
+      <E11>live-doc-unknown-op (v2) — /stream/patch with op not in {append, replace, replace_section} (e.g. "delete"); apply_section_patch returns SectionPatchError::UnknownOp; handler responds 400; BLOCK_DOC_PATCH_UNKNOWN_OP op=... section=... seq=N.</E11>
+      <E12>live-doc-unknown-section (v2) — /stream/patch targeting a section not declared at /stream/open; apply_section_patch returns SectionPatchError::UnknownSection; handler responds 400 (no silent section creation); BLOCK_DOC_PATCH_UNKNOWN_SECTION section=... seq=N.</E12>
+      <E13>live-doc-append-to-empty-section (v2) — append op against a section that is empty since open (e.g. summary before first summarizer pass); content becomes the section body; empty sections are skipped by rebuild_document_md so no stray separators appear.</E13>
     </edge-cases>
-    <log-markers namespace="[m045_ext]" count="7">
+    <log-markers namespace="[m045_ext]" count="13">
       BLOCK_EXT_DISCOVER (count=N, valid=N, invalid=N, elapsed_ms=N),
       BLOCK_EXT_MANIFEST_PARSED (id=..., status=valid|invalid, reason=...),
       BLOCK_EXT_ENABLE (id=..., secret_stored=bool),
@@ -5440,7 +5445,11 @@
       BLOCK_EXT_LIVE_SERVER_START (port=N, status=ok|error),
       BLOCK_EXT_AUTH_GENERATED (id=..., service=com.xronocode.mark.ext.{id}),
       BLOCK_EXT_ENDPOINT_WRITE (port=N, pid=N, path=...),
-      BLOCK_EXT_ENDPOINT_CLEANUP (path=...)
+      BLOCK_EXT_ENDPOINT_CLEANUP (path=...),
+      BLOCK_DOC_PATCH_OK (session_id=..., seq=N, rev=N, op=append|replace, section=...),
+      BLOCK_DOC_PATCH_UNKNOWN_OP (op=..., section=..., seq=N),
+      BLOCK_DOC_PATCH_UNKNOWN_SECTION (section=..., seq=N),
+      BLOCK_DOC_OPEN_RESYNC (session_id=...)
     </log-markers>
     <negative-assertions>
       <N1>Extension auth secrets MUST NOT appear in logs — only service name and success/failure status logged; secret value never serialized.</N1>
@@ -5448,6 +5457,7 @@
       <N3>Live server MUST NOT bind to 0.0.0.0 — always 127.0.0.1; no external network exposure.</N3>
       <N4>Extension IPC MUST NOT weaken frontend CSP — all extension communication is backend Rust only (m001_security gate).</N4>
       <N5>mt_ext_invoke MUST NOT proceed without valid auth secret for the target extension — missing secret = MT_EXT_AUTH_FAILED, not a request without Authorization header.</N5>
+      <N6>/stream/open MUST validate the Bearer token before consulting or disclosing session state — an unauthenticated caller never learns whether a session is active or its session_id (401 precedes 409).</N6>
     </negative-assertions>
     <ordering-invariants>
       (1) BLOCK_EXT_DISCOVER precedes BLOCK_EXT_ENABLE for any extension ID (cannot enable undiscovered extension).
