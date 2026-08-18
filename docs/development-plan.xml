@@ -1337,6 +1337,10 @@
         <fn-mt_ext_disable PURPOSE="Disable extension by ID; revoke auth secret; persist state; emit mt::ext-state-changed" />
         <fn-mt_ext_invoke PURPOSE="HTTP POST to 127.0.0.1:{port}/{endpoint} with Authorization header; enforce timeout; return response" />
         <fn-mt_ext_list PURPOSE="Return current registry state: discovered + enabled/disabled + health" />
+        <fn-apply_section_patch PURPOSE="Pure function: apply one patch op (append|replace, default replace, replace_section synonym) to a named section in the ordered section list; Err on unknown op or unknown section" />
+        <fn-decide_open PURPOSE="Pure function: /stream/open vs active session — FreshOpen | ReplaceSameSession (wholesale replace, resync path) | Conflict (different session_id, 409)" />
+        <type-OpenDecision PURPOSE="FreshOpen | ReplaceSameSession | Conflict — outcome of decide_open for an incoming /stream/open" />
+        <fn-rebuild_document_md PURPOSE="Pure function: concatenate non-empty sections in declared order separated by blank lines; never adds synthetic headers" />
       </interface>
       <depends>M-001, M-005, M-019</depends>
       <target>
@@ -1359,6 +1363,7 @@
         <note-2>Extension secrets stored via M-019 datacenter keychain. Never build a separate secret store.</note-2>
         <note-3>New commands mt_ext_* require: generate_handler! + tauri.v2.json fixture + m001_validate::REGISTERED_COMMANDS updates.</note-3>
         <note-4>Extensibility test: design must support a second hypothetical extension beyond TokMo without code changes.</note-4>
+        <note-5>Live-doc wire contract v2 (breaking): /stream/open sends sections as an ordered array of {name, content} with real initial content; document_md is the authoritative join of sections (initial_md advisory). /stream/patch carries op: "append" | "replace" ("replace_section" accepted as synonym, missing op defaults to "replace"); section content is self-contained markdown — Mark never adds headers; unknown op or unknown section is rejected with 400. Document rebuild is deterministic: declared section order, empty sections skipped, "\n\n" separator. Recovery: /stream/open with the SAME session_id on an active session replaces state wholesale (resync path, log BLOCK_DOC_OPEN_RESYNC) — the escape hatch for a client stuck on needs_resync; a DIFFERENT session_id still gets 409. TokMo is the only consumer; both apps ship together.</note-5>
       </notes>
     </M-045>
 

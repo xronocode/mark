@@ -14,6 +14,12 @@
 //   STATUS:  Phase-B5b — handlers emit to frontend via live_bridge.
 //
 // CHANGE_SUMMARY:
+//   - 2026-08-14 live-doc v2: DocPatchRequest gained `op` (append|replace,
+//     default replace; replace_section synonym). LiveSession.sections is now
+//     an ordered Vec (was HashMap) set at /stream/open from an ordered
+//     array of {name, content}; document rebuild is deterministic and adds
+//     no synthetic headers. Unknown op/section -> 400. Core logic extracted
+//     into pure fns apply_section_patch/rebuild_document_md for testing.
 //   - 2026-06-09 E1a: add /ext/context and /ext/apply endpoints for
 //     TokMo EditAgent. Context uses oneshot+event request-response pattern.
 //     Apply reuses mt::text::op events. Bearer auth without active session.
@@ -44,7 +50,10 @@ pub struct LiveSession {
     pub last_seq: u64,
     pub revision: u64,
     pub document_md: String,
-    pub sections: HashMap<String, String>,
+    /// Ordered sections: (name, markdown content). Order is fixed at
+    /// /stream/open and preserved for the whole session. Content is
+    /// self-contained markdown (sections carry their own headers).
+    pub sections: Vec<(String, String)>,
     pub active: bool,
     pub last_heartbeat: Instant,
 }
@@ -79,13 +88,22 @@ pub struct PairResponse {
     pub mark_version: String,
 }
 
+/// Initial section payload for /stream/open. Sections are ordered;
+/// content is self-contained markdown (with its own headers) and must
+/// concatenate (in order, "\n\n"-separated) to initial_md.
+#[derive(Debug, Deserialize)]
+pub struct SectionInit {
+    pub name: String,
+    pub content: String,
+}
+
 #[derive(Debug, Deserialize)]
 pub struct DocOpenRequest {
     pub session_id: String,
     pub extension_id: String,
     pub title: String,
     pub initial_md: Option<String>,
-    pub sections: Option<HashMap<String, String>>,
+    pub sections: Option<Vec<SectionInit>>,
 }
 
 #[derive(Debug, Serialize)]
@@ -97,9 +115,11 @@ pub struct DocOpenResponse {
 #[derive(Debug, Deserialize)]
 pub struct DocPatchRequest {
     pub session_id: String,
-    #[allow(dead_code)]
     pub seq: u64,
     pub base_revision: u64,
+    /// Patch semantics: "append" | "replace". Missing -> "replace".
+    /// "replace_section" is accepted as a legacy synonym of "replace".
+    pub op: Option<String>,
     pub section: String,
     pub content: String,
 }
@@ -200,6 +220,117 @@ pub struct ExtApplyResponse {
 }
 
 // END_BLOCK_REQUEST_TYPES
+
+// START_BLOCK_SECTION_PATCH_CORE
+
+/// Errors from applying a section patch. Mapped to HTTP 400 by the
+/// /stream/patch handler.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum SectionPatchError {
+    UnknownOp(String),
+    UnknownSection(String),
+}
+
+impl std::fmt::Display for SectionPatchError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            SectionPatchError::UnknownOp(op) => {
+                write!(f, "unknown patch op: {op} (expected \"append\" or \"replace\")")
+            }
+            SectionPatchError::UnknownSection(section) => {
+                write!(f, "unknown section: {section} (sections are fixed at /stream/open)")
+            }
+        }
+    }
+}
+
+/// Normalize the wire op into canonical form.
+/// None (missing field), "replace", and the legacy synonym
+/// "replace_section" all normalize to "replace".
+fn normalize_patch_op(op: Option<&str>) -> Result<&'static str, SectionPatchError> {
+    match op {
+        None | Some("replace") | Some("replace_section") => Ok("replace"),
+        Some("append") => Ok("append"),
+        Some(other) => Err(SectionPatchError::UnknownOp(other.to_string())),
+    }
+}
+
+/// Apply a single patch operation to the ordered section list.
+/// Pure function (no HTTP, no session state) so tests can exercise the
+/// exact semantics the /stream/patch handler uses.
+///
+/// - "append": concatenate content onto the existing section body.
+/// - "replace": replace the section body wholesale.
+///
+/// Unknown op or a section not declared at /stream/open is an error.
+pub fn apply_section_patch(
+    sections: &mut [(String, String)],
+    section: &str,
+    op: Option<&str>,
+    content: &str,
+) -> Result<(), SectionPatchError> {
+    let normalized = normalize_patch_op(op)?;
+    let slot = sections
+        .iter_mut()
+        .find(|(name, _)| name == section)
+        .ok_or_else(|| SectionPatchError::UnknownSection(section.to_string()))?;
+    match normalized {
+        "append" => slot.1.push_str(content),
+        _ => slot.1 = content.to_string(),
+    }
+    Ok(())
+}
+
+/// Rebuild the full document from the ordered section list.
+/// Deterministic: declared order, empty sections skipped, "\n\n"
+/// separator. Never adds synthetic headers — section content is
+/// self-contained markdown owned by the sender.
+pub fn rebuild_document_md(sections: &[(String, String)]) -> String {
+    sections
+        .iter()
+        .filter(|(_, value)| !value.is_empty())
+        .map(|(_, value)| value.as_str())
+        .collect::<Vec<&str>>()
+        .join("\n\n")
+}
+
+/// Build the ordered section list from /stream/open payload.
+/// Duplicate names keep their first position; the last content wins.
+pub fn build_sections_from_init(inits: Vec<SectionInit>) -> Vec<(String, String)> {
+    let mut sections: Vec<(String, String)> = Vec::with_capacity(inits.len());
+    for init in inits {
+        match sections.iter_mut().find(|(name, _)| *name == init.name) {
+            Some(slot) => slot.1 = init.content,
+            None => sections.push((init.name, init.content)),
+        }
+    }
+    sections
+}
+
+/// Decision for an incoming /stream/open against the current session.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum OpenDecision {
+    /// No active session — start fresh.
+    FreshOpen,
+    /// Active session with the SAME id — replace state wholesale
+    /// (resync path; live-doc v2 recovery for a client stuck on
+    /// needs_resync).
+    ReplaceSameSession,
+    /// Active session with a DIFFERENT id — reject with 409.
+    Conflict,
+}
+
+/// Pure core: decide how /stream/open interacts with the active session.
+pub fn decide_open(existing: Option<&LiveSession>, incoming_session_id: &str) -> OpenDecision {
+    match existing {
+        None => OpenDecision::FreshOpen,
+        Some(s) if !s.active => OpenDecision::FreshOpen,
+        Some(s) if s.session_id == incoming_session_id => OpenDecision::ReplaceSameSession,
+        Some(_) => OpenDecision::Conflict,
+    }
+}
+
+// END_BLOCK_SECTION_PATCH_CORE
 
 // START_BLOCK_AUTH_EXTRACT
 
@@ -389,6 +520,20 @@ async fn handle_doc_open(
         Err(e) => return (e.0, Json(serde_json::json!({"error": e.1}))),
     };
 
+    // Authenticate BEFORE any session-state disclosure (401 must precede
+    // 409 — otherwise an unauthenticated local caller gets a session
+    // existence oracle plus the real existing_session_id). Identity comes
+    // from the request's extension_id, validated against the
+    // keychain-stored secret — not client-controlled session state.
+    let extension_id = req.extension_id.clone();
+    if !super::auth::validate_token(&extension_id, &bearer_token) {
+        safe_eprintln!("[ExtHost][live_server][BLOCK_DOC_OPEN_AUTH_FAILED ext_id={extension_id}]");
+        return (
+            StatusCode::UNAUTHORIZED,
+            Json(serde_json::json!({"error": "invalid token for extension"})),
+        );
+    }
+
     safe_eprintln!(
         "[ExtHost][live_server][BLOCK_DOC_OPEN session_id={} title={}]",
         req.session_id,
@@ -397,48 +542,57 @@ async fn handle_doc_open(
 
     let mut session_guard = state.session.lock().await;
 
-    if let Some(existing) = session_guard.as_ref() {
-        if existing.active {
+    match decide_open(session_guard.as_ref(), &req.session_id) {
+        OpenDecision::Conflict => {
+            let existing_id = session_guard
+                .as_ref()
+                .map(|s| s.session_id.clone())
+                .unwrap_or_default();
             safe_eprintln!(
-                "[ExtHost][live_server][BLOCK_DOC_OPEN_CONFLICT existing={}]",
-                existing.session_id,
+                "[ExtHost][live_server][BLOCK_DOC_OPEN_CONFLICT existing={existing_id}]",
             );
             return (
                 StatusCode::CONFLICT,
                 Json(serde_json::json!({
-                    "error": "a session is already active",
-                    "existing_session_id": existing.session_id,
+                    "error": "a different session is already active",
+                    "existing_session_id": existing_id,
                 })),
             );
         }
+        OpenDecision::ReplaceSameSession => {
+            // Resync path (live-doc v2): re-open with the same session_id
+            // replaces session state wholesale. This is the recovery for
+            // a client stuck on needs_resync (stale base_revision): the
+            // client re-sends the full document (sections with content)
+            // and streaming continues from a fresh revision.
+            safe_eprintln!(
+                "[ExtHost][live_server][BLOCK_DOC_OPEN_RESYNC session_id={}]",
+                req.session_id,
+            );
+        }
+        OpenDecision::FreshOpen => {}
     }
 
     let initial_md = req.initial_md.unwrap_or_default();
-    let initial_md_for_emit = initial_md.clone();
-    let sections = req.sections.unwrap_or_default();
-
-    // Use the explicit extension_id from the request (not derived from
-    // session_id) so that identity comes from a trusted source validated
-    // against the keychain-stored secret, not client-controlled input.
-    let extension_id = req.extension_id.clone();
-
-    // Validate the bearer token against the extension's stored secret.
-    if !super::auth::validate_token(&extension_id, &bearer_token) {
-        safe_eprintln!(
-            "[ExtHost][live_server][BLOCK_DOC_OPEN_AUTH_FAILED ext_id={extension_id}]"
-        );
-        return (
-            StatusCode::UNAUTHORIZED,
-            Json(serde_json::json!({"error": "invalid token for extension"})),
-        );
-    }
+    let sections = build_sections_from_init(req.sections.unwrap_or_default());
+    // When sections are declared, the document is exactly their
+    // concatenation (live-doc v2); initial_md is advisory only. The
+    // server tracks and emits document_md — the authoritative value —
+    // so a client violating the initial_md==join(sections) invariant
+    // cannot desync the frontend from server state.
+    let document_md = if sections.is_empty() {
+        initial_md
+    } else {
+        rebuild_document_md(&sections)
+    };
+    let document_md_for_emit = document_md.clone();
 
     let session = LiveSession {
         session_id: req.session_id.clone(),
         extension_id,
         last_seq: 0,
         revision: 1,
-        document_md: initial_md,
+        document_md,
         sections,
         active: true,
         last_heartbeat: Instant::now(),
@@ -447,12 +601,14 @@ async fn handle_doc_open(
     *session_guard = Some(session);
     drop(session_guard);
 
-    // B5b: emit doc_open to frontend for live rendering.
+    // B5b: emit doc_open to frontend for live rendering. Emits the
+    // authoritative document_md (== join of sections), not the raw
+    // client-supplied initial_md.
     if let Err(e) = super::live_bridge::emit_doc_open(
         &state.app_handle,
         &req.session_id,
         &req.title,
-        &initial_md_for_emit,
+        &document_md_for_emit,
     ) {
         safe_eprintln!(
             "[ExtHost][live_server][BLOCK_DOC_OPEN_EMIT_FAILED reason={e}]"
@@ -519,12 +675,19 @@ async fn handle_doc_patch(
     }
 
     // Duplicate detection: if seq <= last_seq, this is a retransmit.
+    // Deliberately short-circuits BEFORE op/section validation and
+    // before apply: the original delivery was already validated and
+    // applied, and re-applying an append op would duplicate content.
+    // A retransmit still proves the client is alive — refresh the
+    // heartbeat so an actively-retrying client is not timed out
+    // mid-recovery.
     if req.seq <= session.last_seq {
         safe_eprintln!(
             "[ExtHost][live_server][BLOCK_DOC_PATCH_DUPLICATE seq={} last_seq={}]",
             req.seq,
             session.last_seq,
         );
+        session.last_heartbeat = Instant::now();
         return (
             StatusCode::OK,
             Json(serde_json::json!(DocPatchResponse {
@@ -536,13 +699,16 @@ async fn handle_doc_patch(
     }
 
     // Base revision check: if base_revision != current revision,
-    // the client is out of sync.
+    // the client is out of sync. The client is alive (it is patching) —
+    // refresh the heartbeat before answering needs_resync so the
+    // session survives the upcoming re-open round trip.
     if req.base_revision != session.revision {
         safe_eprintln!(
             "[ExtHost][live_server][BLOCK_DOC_PATCH_RESYNC base={} current={}]",
             req.base_revision,
             session.revision,
         );
+        session.last_heartbeat = Instant::now();
         return (
             StatusCode::OK,
             Json(serde_json::json!(DocPatchResponse {
@@ -553,20 +719,34 @@ async fn handle_doc_patch(
         );
     }
 
-    // Apply the patch: update the section content.
-    session.sections.insert(req.section.clone(), req.content.clone());
-
-    // Rebuild the full document from sections (sections are ordered by
-    // insertion; in a real implementation this would be more
-    // sophisticated with OT/CRDT).
-    let mut full_doc = String::new();
-    for (key, value) in &session.sections {
-        if !full_doc.is_empty() {
-            full_doc.push_str("\n\n");
+    // Apply the patch: append or replace the section content (live-doc
+    // v2 op semantics; missing op defaults to replace). Unknown op or a
+    // section not declared at /stream/open is a client bug -> 400.
+    // START_BLOCK_APPLY_PATCH
+    if let Err(e) = apply_section_patch(
+        &mut session.sections,
+        &req.section,
+        req.op.as_deref(),
+        &req.content,
+    ) {
+        match &e {
+            SectionPatchError::UnknownOp(op) => safe_eprintln!(
+                "[ExtHost][live_server][BLOCK_DOC_PATCH_UNKNOWN_OP op={op} section={} seq={}]",
+                req.section,
+                req.seq,
+            ),
+            SectionPatchError::UnknownSection(section) => safe_eprintln!(
+                "[ExtHost][live_server][BLOCK_DOC_PATCH_UNKNOWN_SECTION section={section} seq={}]",
+                req.seq,
+            ),
         }
-        full_doc.push_str(&format!("## {key}\n\n{value}"));
+        return (
+            StatusCode::BAD_REQUEST,
+            Json(serde_json::json!({"error": e.to_string()})),
+        );
     }
-    session.document_md = full_doc;
+    session.document_md = rebuild_document_md(&session.sections);
+    // END_BLOCK_APPLY_PATCH
 
     session.last_seq = req.seq;
     session.revision += 1;
@@ -590,10 +770,12 @@ async fn handle_doc_patch(
     }
 
     safe_eprintln!(
-        "[ExtHost][live_server][BLOCK_DOC_PATCH_OK session_id={} seq={} rev={}]",
+        "[ExtHost][live_server][BLOCK_DOC_PATCH_OK session_id={} seq={} rev={} op={:?} section={}]",
         req.session_id,
         req.seq,
         revision,
+        req.op.as_deref().unwrap_or("replace"),
+        section,
     );
 
     (
