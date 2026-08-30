@@ -1,0 +1,1113 @@
+<GraceVerificationDocument graceVersion='4.0'>
+  <VD-GOVERNANCE>
+    <V-M-901>
+      <Priority>high</Priority>
+      <Commands>
+        <Command>test -f docs/grace-ai-standards-hygiene-methodology.md</Command>
+        <Command>
+          rg &quot;correctness &gt; required verification|correctness &gt;
+          required verification&quot;
+          docs/grace-ai-standards-hygiene-methodology.md
+          docs/development-plan.xml
+        </Command>
+        <Command>
+          rg &quot;targeted|wave|full&quot;
+          docs/grace-ai-standards-hygiene-methodology.md
+          docs/development-plan.xml
+        </Command>
+        <Command>
+          rg
+          &quot;BLOCK_TARGETED_CONTEXT|BLOCK_CONTEXT_ESCALATION|BLOCK_CORRECTNESS_OVERRIDE&quot; docs/development-plan.xml docs/grace-ai-standards-hygiene-methodology.md
+        </Command>
+      </Commands>
+      <Scenarios>
+        <Scenario>
+          scenario-1: Small localized doc/code task uses targeted context only
+          after contract, KG, and verification references are identified.
+        </Scenario>
+        <Scenario>
+          scenario-2: Security, migration, shared API, or architectural drift
+          forces wave/full context even when token budget is high.
+        </Scenario>
+        <Scenario>
+          scenario-3: If a worker proposes skipping verification for economy,
+          GH_VERIFICATION_SKIPPED blocks execution.
+        </Scenario>
+      </Scenarios>
+      <Markers>
+        <Marker>[GraceContext][selectScope][BLOCK_TARGETED_CONTEXT]</Marker>
+        <Marker>[GraceContext][selectScope][BLOCK_CONTEXT_ESCALATION]</Marker>
+        <Marker>[GraceContext][economy][BLOCK_CORRECTNESS_OVERRIDE]</Marker>
+      </Markers>
+      <TraceAssertions>
+        <TraceAssertion>
+          Negative assertion: MUST NOT replace GRACE XML artifacts with
+          Markdown-only policy.
+        </TraceAssertion>
+        <TraceAssertion>
+          Negative assertion: MUST NOT allow token economy to overrule required
+          verification.
+        </TraceAssertion>
+      </TraceAssertions>
+      <LegacyMatrixEvidence>
+        <Module>M-901</Module>
+        <VM>V-M-901</VM>
+        <Priority>high</Priority>
+        <Scenarios>3</Scenarios>
+        <Ec>5</Ec>
+        <Alm>3</Alm>
+        <Na>2</Na>
+        <Rta>1</Rta>
+        <Phf>0</Phf>
+        <Waf>1</Waf>
+        <Gate>Gate-Phase-H</Gate>
+      </LegacyMatrixEvidence>
+      <LegacyBase>
+        <Source>docs/verification-plan.xml</Source>
+        <intent>
+          Verify that AI Standards token/session hygiene is adopted only as a
+          GRACE-compatible overlay and cannot bypass contracts, knowledge graph
+          updates, or required verification.
+        </intent>
+        <touched-files>
+          <file>docs/grace-ai-standards-hygiene-methodology.md</file>
+          <file>docs/development-plan.xml</file>
+        </touched-files>
+        <module-checks>
+          <check-1>test -f docs/grace-ai-standards-hygiene-methodology.md</check-1>
+          <check-2>
+            rg &quot;correctness &gt; required verification|correctness &gt;
+            required verification&quot;
+            docs/grace-ai-standards-hygiene-methodology.md
+            docs/development-plan.xml
+          </check-2>
+          <check-3>
+            rg &quot;targeted|wave|full&quot;
+            docs/grace-ai-standards-hygiene-methodology.md
+            docs/development-plan.xml
+          </check-3>
+          <check-4>
+            rg
+            &quot;BLOCK_TARGETED_CONTEXT|BLOCK_CONTEXT_ESCALATION|BLOCK_CORRECTNESS_OVERRIDE&quot; docs/development-plan.xml docs/grace-ai-standards-hygiene-methodology.md
+          </check-4>
+        </module-checks>
+        <scenarios>
+          <scenario-1>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>kind</Name>
+                <Value>contract</Value>
+              </Attribute>
+            </LegacyAttributes>
+            Small localized doc/code task uses targeted context only after
+            contract, KG, and verification references are identified.
+          </scenario-1>
+          <scenario-2>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>kind</Name>
+                <Value>escalation</Value>
+              </Attribute>
+            </LegacyAttributes>
+            Security, migration, shared API, or architectural drift forces
+            wave/full context even when token budget is high.
+          </scenario-2>
+          <scenario-3>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>kind</Name>
+                <Value>failure</Value>
+              </Attribute>
+            </LegacyAttributes>
+            If a worker proposes skipping verification for economy,
+            GH_VERIFICATION_SKIPPED blocks execution.
+          </scenario-3>
+        </scenarios>
+        <required-log-markers>
+          <marker-1>[GraceContext][selectScope][BLOCK_TARGETED_CONTEXT]</marker-1>
+          <marker-2>[GraceContext][selectScope][BLOCK_CONTEXT_ESCALATION]</marker-2>
+          <marker-3>[GraceContext][economy][BLOCK_CORRECTNESS_OVERRIDE]</marker-3>
+        </required-log-markers>
+        <edge-cases>
+          <ec>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>kind</Name>
+                <Value>contract</Value>
+              </Attribute>
+              <Attribute>
+                <Name>severity</Name>
+                <Value>critical</Value>
+              </Attribute>
+            </LegacyAttributes>
+            A task that touches docs/verification-plan.xml must not be treated
+            as read-only context optimization.
+          </ec>
+          <ec>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>kind</Name>
+                <Value>security</Value>
+              </Attribute>
+              <Attribute>
+                <Name>severity</Name>
+                <Value>critical</Value>
+              </Attribute>
+            </LegacyAttributes>
+            Security modules require full or wave context regardless of token
+            economy.
+          </ec>
+          <ec>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>kind</Name>
+                <Value>migration</Value>
+              </Attribute>
+              <Attribute>
+                <Name>severity</Name>
+                <Value>high</Value>
+              </Attribute>
+            </LegacyAttributes>
+            Data migration modules require old/new schema and rollback evidence
+            loaded together.
+          </ec>
+          <ec>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>kind</Name>
+                <Value>review</Value>
+              </Attribute>
+              <Attribute>
+                <Name>severity</Name>
+                <Value>high</Value>
+              </Attribute>
+            </LegacyAttributes>
+            Scoped review may start targeted but must escalate if dependency
+            boundary is unclear.
+          </ec>
+          <ec>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>kind</Name>
+                <Value>performance</Value>
+              </Attribute>
+              <Attribute>
+                <Name>severity</Name>
+                <Value>medium</Value>
+              </Attribute>
+            </LegacyAttributes>
+            Large artifact loading may be summarized, but source-of-truth
+            excerpts must remain precise.
+          </ec>
+        </edge-cases>
+        <negative-assertions>
+          <no>MUST NOT replace GRACE XML artifacts with Markdown-only policy.</no>
+          <no>MUST NOT allow token economy to overrule required verification.</no>
+        </negative-assertions>
+      </LegacyBase>
+      <LegacySource>docs/verification-plan.xml: V-M-901</LegacySource>
+    </V-M-901>
+    <V-M-902>
+      <Priority>high</Priority>
+      <Commands>
+        <Command>
+          rg
+          &quot;context-policy|loaded-artifacts|skipped-artifacts|context-risk|additional-context-needed|verification-not-skipped&quot; docs/operational-packets.xml
+        </Command>
+        <Command>
+          rg &quot;BLOCK_PACKET_CONTEXT_FIELDS&quot; docs/development-plan.xml
+          docs/operational-packets.xml
+        </Command>
+      </Commands>
+      <Scenarios>
+        <Scenario>
+          scenario-1: ExecutionPacket includes enough context to execute one
+          module without loading unrelated modules.
+        </Scenario>
+        <Scenario>scenario-2: Packet with skipped verification and no blocker is rejected.</Scenario>
+        <Scenario>scenario-3: Reviewer can reconstruct scope decisions from packet fields alone.</Scenario>
+      </Scenarios>
+      <Markers>
+        <Marker>[GracePacket][validate][BLOCK_PACKET_CONTEXT_FIELDS]</Marker>
+      </Markers>
+      <TraceAssertions>
+        <TraceAssertion>
+          Negative assertion: MUST NOT omit verification-excerpt when module
+          checks exist.
+        </TraceAssertion>
+        <TraceAssertion>
+          Negative assertion: MUST NOT hide unknowns inside notes instead of
+          context-risk.
+        </TraceAssertion>
+      </TraceAssertions>
+      <LegacyMatrixEvidence>
+        <Module>M-902</Module>
+        <VM>V-M-902</VM>
+        <Priority>high</Priority>
+        <Scenarios>3</Scenarios>
+        <Ec>5</Ec>
+        <Alm>1</Alm>
+        <Na>2</Na>
+        <Rta>1</Rta>
+        <Phf>0</Phf>
+        <Waf>1</Waf>
+        <Gate>Gate-Phase-H</Gate>
+      </LegacyMatrixEvidence>
+      <LegacyBase>
+        <Source>docs/verification-plan.xml</Source>
+        <intent>
+          Verify operational packets expose context hygiene decisions
+          explicitly, including what was loaded, what was skipped, why, and
+          whether verification remained mandatory.
+        </intent>
+        <touched-files>
+          <file>docs/operational-packets.xml</file>
+        </touched-files>
+        <module-checks>
+          <check-1>
+            rg
+            &quot;context-policy|loaded-artifacts|skipped-artifacts|context-risk|additional-context-needed|verification-not-skipped&quot; docs/operational-packets.xml
+          </check-1>
+          <check-2>
+            rg &quot;BLOCK_PACKET_CONTEXT_FIELDS&quot; docs/development-plan.xml
+            docs/operational-packets.xml
+          </check-2>
+        </module-checks>
+        <scenarios>
+          <scenario-1>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>kind</Name>
+                <Value>success</Value>
+              </Attribute>
+            </LegacyAttributes>
+            ExecutionPacket includes enough context to execute one module
+            without loading unrelated modules.
+          </scenario-1>
+          <scenario-2>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>kind</Name>
+                <Value>failure</Value>
+              </Attribute>
+            </LegacyAttributes>
+            Packet with skipped verification and no blocker is rejected.
+          </scenario-2>
+          <scenario-3>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>kind</Name>
+                <Value>review</Value>
+              </Attribute>
+            </LegacyAttributes>
+            Reviewer can reconstruct scope decisions from packet fields alone.
+          </scenario-3>
+        </scenarios>
+        <required-log-markers>
+          <marker-1>[GracePacket][validate][BLOCK_PACKET_CONTEXT_FIELDS]</marker-1>
+        </required-log-markers>
+        <edge-cases>
+          <ec>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>kind</Name>
+                <Value>contract</Value>
+              </Attribute>
+              <Attribute>
+                <Name>severity</Name>
+                <Value>critical</Value>
+              </Attribute>
+            </LegacyAttributes>
+            Skipped artifact references must be concrete file paths or module
+            IDs, not vague prose.
+          </ec>
+          <ec>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>kind</Name>
+                <Value>review</Value>
+              </Attribute>
+              <Attribute>
+                <Name>severity</Name>
+                <Value>high</Value>
+              </Attribute>
+            </LegacyAttributes>
+            If dependency summaries are stale, packet validation escalates to
+            graph refresh.
+          </ec>
+          <ec>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>kind</Name>
+                <Value>failure</Value>
+              </Attribute>
+              <Attribute>
+                <Name>severity</Name>
+                <Value>high</Value>
+              </Attribute>
+            </LegacyAttributes>
+            additional-context-needed must block execution until resolved.
+          </ec>
+          <ec>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>kind</Name>
+                <Value>concurrency</Value>
+              </Attribute>
+              <Attribute>
+                <Name>severity</Name>
+                <Value>medium</Value>
+              </Attribute>
+            </LegacyAttributes>
+            Parallel workers may use different targeted packets but must share
+            the same graph baseline.
+          </ec>
+          <ec>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>kind</Name>
+                <Value>security</Value>
+              </Attribute>
+              <Attribute>
+                <Name>severity</Name>
+                <Value>critical</Value>
+              </Attribute>
+            </LegacyAttributes>
+            Security packets must record redaction and secret-handling
+            constraints.
+          </ec>
+        </edge-cases>
+        <negative-assertions>
+          <no>MUST NOT omit verification-excerpt when module checks exist.</no>
+          <no>MUST NOT hide unknowns inside notes instead of context-risk.</no>
+        </negative-assertions>
+      </LegacyBase>
+      <LegacySource>docs/verification-plan.xml: V-M-902</LegacySource>
+    </V-M-902>
+    <V-M-903>
+      <Priority>high</Priority>
+      <Commands>
+        <Command>
+          rg &quot;HandoffPacket|handoff|BLOCK_COMPACT_SUMMARY&quot;
+          docs/grace-ai-standards-hygiene-methodology.md
+          docs/operational-packets.xml docs/development-plan.xml
+        </Command>
+      </Commands>
+      <Scenarios>
+        <Scenario>
+          scenario-1: Compacted summary names current task, changed files,
+          verification status, blockers, and next exact action.
+        </Scenario>
+        <Scenario>
+          scenario-2: Resume detects stale decision or missing blocker and
+          pauses before editing.
+        </Scenario>
+        <Scenario>
+          scenario-3: Swarm continuation keeps independent reviewer/verifier
+          findings separate until orchestration merge.
+        </Scenario>
+      </Scenarios>
+      <Markers>
+        <Marker>[GraceContext][handoff][BLOCK_COMPACT_SUMMARY]</Marker>
+      </Markers>
+      <TraceAssertions>
+        <TraceAssertion>
+          Negative assertion: MUST NOT resume from memory when handoff
+          contradicts current git status.
+        </TraceAssertion>
+        <TraceAssertion>
+          Negative assertion: MUST NOT mark verification passed without
+          command/evidence names.
+        </TraceAssertion>
+      </TraceAssertions>
+      <LegacyMatrixEvidence>
+        <Module>M-903</Module>
+        <VM>V-M-903</VM>
+        <Priority>high</Priority>
+        <Scenarios>3</Scenarios>
+        <Ec>5</Ec>
+        <Alm>1</Alm>
+        <Na>2</Na>
+        <Rta>1</Rta>
+        <Phf>0</Phf>
+        <Waf>1</Waf>
+        <Gate>Gate-Phase-H</Gate>
+      </LegacyMatrixEvidence>
+      <LegacyBase>
+        <Source>docs/verification-plan.xml</Source>
+        <intent>
+          Verify session handoffs preserve exact continuation state across
+          compaction, agent rotation, and paused execution.
+        </intent>
+        <touched-files>
+          <file>docs/grace-ai-standards-hygiene-methodology.md</file>
+          <file>docs/operational-packets.xml</file>
+        </touched-files>
+        <module-checks>
+          <check-1>
+            rg &quot;HandoffPacket|handoff|BLOCK_COMPACT_SUMMARY&quot;
+            docs/grace-ai-standards-hygiene-methodology.md
+            docs/operational-packets.xml docs/development-plan.xml
+          </check-1>
+        </module-checks>
+        <scenarios>
+          <scenario-1>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>kind</Name>
+                <Value>success</Value>
+              </Attribute>
+            </LegacyAttributes>
+            Compacted summary names current task, changed files, verification
+            status, blockers, and next exact action.
+          </scenario-1>
+          <scenario-2>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>kind</Name>
+                <Value>failure</Value>
+              </Attribute>
+            </LegacyAttributes>
+            Resume detects stale decision or missing blocker and pauses before
+            editing.
+          </scenario-2>
+          <scenario-3>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>kind</Name>
+                <Value>concurrency</Value>
+              </Attribute>
+            </LegacyAttributes>
+            Swarm continuation keeps independent reviewer/verifier findings
+            separate until orchestration merge.
+          </scenario-3>
+        </scenarios>
+        <required-log-markers>
+          <marker-1>[GraceContext][handoff][BLOCK_COMPACT_SUMMARY]</marker-1>
+        </required-log-markers>
+        <edge-cases>
+          <ec>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>kind</Name>
+                <Value>failure</Value>
+              </Attribute>
+              <Attribute>
+                <Name>severity</Name>
+                <Value>critical</Value>
+              </Attribute>
+            </LegacyAttributes>
+            Dirty worktree files not owned by the current task are recorded and
+            not reverted.
+          </ec>
+          <ec>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>kind</Name>
+                <Value>review</Value>
+              </Attribute>
+              <Attribute>
+                <Name>severity</Name>
+                <Value>high</Value>
+              </Attribute>
+            </LegacyAttributes>
+            Handoff after failed verification includes first divergent block and
+            observed evidence.
+          </ec>
+          <ec>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>kind</Name>
+                <Value>contract</Value>
+              </Attribute>
+              <Attribute>
+                <Name>severity</Name>
+                <Value>high</Value>
+              </Attribute>
+            </LegacyAttributes>
+            Handoff for plan-only work explicitly says no source code changed.
+          </ec>
+          <ec>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>kind</Name>
+                <Value>concurrency</Value>
+              </Attribute>
+              <Attribute>
+                <Name>severity</Name>
+                <Value>medium</Value>
+              </Attribute>
+            </LegacyAttributes>
+            Multiple subagent outputs are deduplicated only by orchestrator, not
+            by individual workers.
+          </ec>
+          <ec>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>kind</Name>
+                <Value>performance</Value>
+              </Attribute>
+              <Attribute>
+                <Name>severity</Name>
+                <Value>medium</Value>
+              </Attribute>
+            </LegacyAttributes>
+            Handoff is compact, but every claim points to a concrete file or
+            command.
+          </ec>
+        </edge-cases>
+        <negative-assertions>
+          <no>MUST NOT resume from memory when handoff contradicts current git status.</no>
+          <no>MUST NOT mark verification passed without command/evidence names.</no>
+        </negative-assertions>
+      </LegacyBase>
+      <LegacySource>docs/verification-plan.xml: V-M-903</LegacySource>
+    </V-M-903>
+    <V-M-904>
+      <Priority>high</Priority>
+      <Commands>
+        <Command>
+          rg
+          &quot;\\$grace-plan|\\$grace-execute|\\$grace-reviewer|\\$grace-verification|\\$grace-refresh|\\$grace-multiagent-execute&quot; docs/grace-ai-standards-hygiene-methodology.md
+        </Command>
+        <Command>
+          rg &quot;BLOCK_ESCALATE_TO_FULL&quot; docs/development-plan.xml
+          docs/grace-ai-standards-hygiene-methodology.md
+        </Command>
+      </Commands>
+      <Scenarios>
+        <Scenario>
+          scenario-1: $grace-execute uses targeted packets for one module after
+          canonical artifacts are loaded by controller.
+        </Scenario>
+        <Scenario>
+          scenario-2: $grace-reviewer starts scoped but escalates on
+          architecture, security, migration, or graph ambiguity.
+        </Scenario>
+        <Scenario>
+          scenario-3: $grace-verification may summarize unrelated suites but
+          cannot omit critical path gates.
+        </Scenario>
+      </Scenarios>
+      <Markers>
+        <Marker>[GraceReview][scope][BLOCK_ESCALATE_TO_FULL]</Marker>
+      </Markers>
+      <TraceAssertions>
+        <TraceAssertion>
+          Negative assertion: MUST NOT downgrade mandatory swarm
+          review/verification because of token budget.
+        </TraceAssertion>
+        <TraceAssertion>
+          Negative assertion: MUST NOT treat skill instructions as replacing
+          project AGENTS.md rules.
+        </TraceAssertion>
+      </TraceAssertions>
+      <LegacyMatrixEvidence>
+        <Module>M-904</Module>
+        <VM>V-M-904</VM>
+        <Priority>high</Priority>
+        <Scenarios>3</Scenarios>
+        <Ec>5</Ec>
+        <Alm>1</Alm>
+        <Na>2</Na>
+        <Rta>1</Rta>
+        <Phf>0</Phf>
+        <Waf>1</Waf>
+        <Gate>Gate-Phase-H</Gate>
+      </LegacyMatrixEvidence>
+      <LegacyBase>
+        <Source>docs/verification-plan.xml</Source>
+        <intent>
+          Verify GRACE skills have explicit context defaults and escalation
+          rules that preserve strict review and verification quality.
+        </intent>
+        <touched-files>
+          <file>docs/grace-ai-standards-hygiene-methodology.md</file>
+        </touched-files>
+        <module-checks>
+          <check-1>
+            rg
+            &quot;\\$grace-plan|\\$grace-execute|\\$grace-reviewer|\\$grace-verification|\\$grace-refresh|\\$grace-multiagent-execute&quot; docs/grace-ai-standards-hygiene-methodology.md
+          </check-1>
+          <check-2>
+            rg &quot;BLOCK_ESCALATE_TO_FULL&quot; docs/development-plan.xml
+            docs/grace-ai-standards-hygiene-methodology.md
+          </check-2>
+        </module-checks>
+        <scenarios>
+          <scenario-1>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>kind</Name>
+                <Value>success</Value>
+              </Attribute>
+            </LegacyAttributes>
+            $grace-execute uses targeted packets for one module after canonical
+            artifacts are loaded by controller.
+          </scenario-1>
+          <scenario-2>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>kind</Name>
+                <Value>review</Value>
+              </Attribute>
+            </LegacyAttributes>
+            $grace-reviewer starts scoped but escalates on architecture,
+            security, migration, or graph ambiguity.
+          </scenario-2>
+          <scenario-3>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>kind</Name>
+                <Value>verification</Value>
+              </Attribute>
+            </LegacyAttributes>
+            $grace-verification may summarize unrelated suites but cannot omit
+            critical path gates.
+          </scenario-3>
+        </scenarios>
+        <required-log-markers>
+          <marker-1>[GraceReview][scope][BLOCK_ESCALATE_TO_FULL]</marker-1>
+        </required-log-markers>
+        <edge-cases>
+          <ec>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>kind</Name>
+                <Value>security</Value>
+              </Attribute>
+              <Attribute>
+                <Name>severity</Name>
+                <Value>critical</Value>
+              </Attribute>
+            </LegacyAttributes>
+            Reviewer scope cannot stay targeted for secret-handling, sandbox, or
+            updater signature changes.
+          </ec>
+          <ec>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>kind</Name>
+                <Value>migration</Value>
+              </Attribute>
+              <Attribute>
+                <Name>severity</Name>
+                <Value>critical</Value>
+              </Attribute>
+            </LegacyAttributes>
+            Verification must load both legacy and target schema references for
+            migration tasks.
+          </ec>
+          <ec>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>kind</Name>
+                <Value>graph</Value>
+              </Attribute>
+              <Attribute>
+                <Name>severity</Name>
+                <Value>high</Value>
+              </Attribute>
+            </LegacyAttributes>
+            Refresh must inspect KG, development plan, and verification plan
+            together when node edges changed.
+          </ec>
+          <ec>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>kind</Name>
+                <Value>swarm</Value>
+              </Attribute>
+              <Attribute>
+                <Name>severity</Name>
+                <Value>high</Value>
+              </Attribute>
+            </LegacyAttributes>
+            Independent swarm outputs must not share a pre-deduplicated finding
+            list.
+          </ec>
+          <ec>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>kind</Name>
+                <Value>contract</Value>
+              </Attribute>
+              <Attribute>
+                <Name>severity</Name>
+                <Value>medium</Value>
+              </Attribute>
+            </LegacyAttributes>
+            Plan phase may summarize code but must read
+            requirements/technology/verification intent.
+          </ec>
+        </edge-cases>
+        <negative-assertions>
+          <no>MUST NOT downgrade mandatory swarm review/verification because of token budget.</no>
+          <no>MUST NOT treat skill instructions as replacing project AGENTS.md rules.</no>
+        </negative-assertions>
+      </LegacyBase>
+      <LegacySource>docs/verification-plan.xml: V-M-904</LegacySource>
+    </V-M-904>
+    <V-M-905>
+      <Priority>critical</Priority>
+      <Commands>
+        <Command>
+          rg &quot;V-GH-001|V-GH-002|V-GH-003|V-GH-004|V-GH-005&quot;
+          docs/verification-plan.xml
+          docs/grace-ai-standards-hygiene-methodology.md
+        </Command>
+        <Command>
+          rg &quot;GH_FALSE_PASS|GH_UNDECLARED_SKIP|BLOCK_CONTEXT_GATE&quot;
+          docs/development-plan.xml docs/verification-plan.xml
+          docs/grace-ai-standards-hygiene-methodology.md
+        </Command>
+      </Commands>
+      <Scenarios>
+        <Scenario>
+          scenario-1: A packet with verification-not-skipped=false and no
+          blocker fails Gate-Phase-H.
+        </Scenario>
+        <Scenario>
+          scenario-2: A targeted context decision on a shared contract edit
+          without dependency summaries fails.
+        </Scenario>
+        <Scenario>
+          scenario-3: A properly scoped packet with concrete skipped-artifacts
+          rationale passes hygiene verification.
+        </Scenario>
+      </Scenarios>
+      <Markers>
+        <Marker>[GraceVerification][context][BLOCK_CONTEXT_GATE]</Marker>
+      </Markers>
+      <TraceAssertions>
+        <TraceAssertion>Negative assertion: MUST NOT mark a verification skip as pass.</TraceAssertion>
+        <TraceAssertion>
+          Negative assertion: MUST NOT accept &quot;not relevant&quot; without
+          module/flow evidence.
+        </TraceAssertion>
+      </TraceAssertions>
+      <LegacyMatrixEvidence>
+        <Module>M-905</Module>
+        <VM>V-M-905</VM>
+        <Priority>critical</Priority>
+        <Scenarios>3</Scenarios>
+        <Ec>5</Ec>
+        <Alm>1</Alm>
+        <Na>2</Na>
+        <Rta>1</Rta>
+        <Phf>0</Phf>
+        <Waf>1</Waf>
+        <Gate>Gate-Phase-H</Gate>
+      </LegacyMatrixEvidence>
+      <LegacyBase>
+        <Source>docs/verification-plan.xml</Source>
+        <intent>
+          Verify hygiene gates catch false passes, undeclared skips, and
+          insufficient context before execution continues.
+        </intent>
+        <touched-files>
+          <file>docs/verification-plan.xml</file>
+        </touched-files>
+        <module-checks>
+          <check-1>
+            rg &quot;V-GH-001|V-GH-002|V-GH-003|V-GH-004|V-GH-005&quot;
+            docs/verification-plan.xml
+            docs/grace-ai-standards-hygiene-methodology.md
+          </check-1>
+          <check-2>
+            rg &quot;GH_FALSE_PASS|GH_UNDECLARED_SKIP|BLOCK_CONTEXT_GATE&quot;
+            docs/development-plan.xml docs/verification-plan.xml
+            docs/grace-ai-standards-hygiene-methodology.md
+          </check-2>
+        </module-checks>
+        <scenarios>
+          <scenario-1>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>kind</Name>
+                <Value>failure</Value>
+              </Attribute>
+            </LegacyAttributes>
+            A packet with verification-not-skipped=false and no blocker fails
+            Gate-Phase-H.
+          </scenario-1>
+          <scenario-2>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>kind</Name>
+                <Value>failure</Value>
+              </Attribute>
+            </LegacyAttributes>
+            A targeted context decision on a shared contract edit without
+            dependency summaries fails.
+          </scenario-2>
+          <scenario-3>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>kind</Name>
+                <Value>success</Value>
+              </Attribute>
+            </LegacyAttributes>
+            A properly scoped packet with concrete skipped-artifacts rationale
+            passes hygiene verification.
+          </scenario-3>
+        </scenarios>
+        <required-log-markers>
+          <marker-1>[GraceVerification][context][BLOCK_CONTEXT_GATE]</marker-1>
+        </required-log-markers>
+        <edge-cases>
+          <ec>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>kind</Name>
+                <Value>review</Value>
+              </Attribute>
+              <Attribute>
+                <Name>severity</Name>
+                <Value>critical</Value>
+              </Attribute>
+            </LegacyAttributes>
+            Review says &quot;no issues&quot; but did not inspect verification
+            excerpt; gate fails.
+          </ec>
+          <ec>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>kind</Name>
+                <Value>contract</Value>
+              </Attribute>
+              <Attribute>
+                <Name>severity</Name>
+                <Value>critical</Value>
+              </Attribute>
+            </LegacyAttributes>
+            Source code changed without MODULE_CONTRACT or MODULE_MAP update;
+            hygiene cannot excuse it.
+          </ec>
+          <ec>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>kind</Name>
+                <Value>graph</Value>
+              </Attribute>
+              <Attribute>
+                <Name>severity</Name>
+                <Value>high</Value>
+              </Attribute>
+            </LegacyAttributes>
+            New module added without KG node; gate fails even if tests pass.
+          </ec>
+          <ec>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>kind</Name>
+                <Value>performance</Value>
+              </Attribute>
+              <Attribute>
+                <Name>severity</Name>
+                <Value>medium</Value>
+              </Attribute>
+            </LegacyAttributes>
+            Large logs may be sampled, but required markers must be searched
+            deterministically.
+          </ec>
+          <ec>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>kind</Name>
+                <Value>security</Value>
+              </Attribute>
+              <Attribute>
+                <Name>severity</Name>
+                <Value>critical</Value>
+              </Attribute>
+            </LegacyAttributes>
+            Redaction and secret logging checks cannot be skipped as expensive.
+          </ec>
+        </edge-cases>
+        <negative-assertions>
+          <no>MUST NOT mark a verification skip as pass.</no>
+          <no>MUST NOT accept &quot;not relevant&quot; without module/flow evidence.</no>
+        </negative-assertions>
+      </LegacyBase>
+      <LegacySource>docs/verification-plan.xml: V-M-905</LegacySource>
+    </V-M-905>
+    <V-M-906>
+      <Priority>medium</Priority>
+      <Commands>
+        <Command>rg &quot;M-901|M-902|M-903|M-904|M-905|M-906&quot; docs/knowledge-graph.xml</Command>
+        <Command>
+          rg
+          &quot;runtime-scope-boundary|process-governs|packet-schema-extends|verification-governs&quot; docs/knowledge-graph.xml
+        </Command>
+      </Commands>
+      <Scenarios>
+        <Scenario>
+          scenario-1: KG navigation from M-901 reaches packet, handoff,
+          skill-scope, verification, and graph hygiene modules.
+        </Scenario>
+        <Scenario>
+          scenario-2: M-901..M-906 paths point to docs artifacts only, not src/
+          or src-tauri/ runtime code.
+        </Scenario>
+        <Scenario>
+          scenario-3: A hygiene rule that changes execution behavior without KG
+          CrossLink is rejected.
+        </Scenario>
+      </Scenarios>
+      <Markers>
+        <Marker>[GraceGraph][sync][BLOCK_HYGIENE_GRAPH_SYNC]</Marker>
+      </Markers>
+      <TraceAssertions>
+        <TraceAssertion>
+          Negative assertion: MUST NOT add M-901..M-906 as runtime dependencies
+          of M-001..M-020.
+        </TraceAssertion>
+        <TraceAssertion>
+          Negative assertion: MUST NOT leave hygiene policy only in AGENTS.md or
+          chat history.
+        </TraceAssertion>
+      </TraceAssertions>
+      <LegacyMatrixEvidence>
+        <Module>M-906</Module>
+        <VM>V-M-906</VM>
+        <Priority>medium</Priority>
+        <Scenarios>3</Scenarios>
+        <Ec>5</Ec>
+        <Alm>1</Alm>
+        <Na>2</Na>
+        <Rta>1</Rta>
+        <Phf>0</Phf>
+        <Waf>1</Waf>
+        <Gate>Gate-Phase-H</Gate>
+      </LegacyMatrixEvidence>
+      <LegacyBase>
+        <Source>docs/verification-plan.xml</Source>
+        <intent>
+          Verify context hygiene modules are discoverable in KG while remaining
+          meta-process modules, not Mark Text runtime modules.
+        </intent>
+        <touched-files>
+          <file>docs/knowledge-graph.xml</file>
+        </touched-files>
+        <module-checks>
+          <check-1>rg &quot;M-901|M-902|M-903|M-904|M-905|M-906&quot; docs/knowledge-graph.xml</check-1>
+          <check-2>
+            rg
+            &quot;runtime-scope-boundary|process-governs|packet-schema-extends|verification-governs&quot; docs/knowledge-graph.xml
+          </check-2>
+        </module-checks>
+        <scenarios>
+          <scenario-1>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>kind</Name>
+                <Value>success</Value>
+              </Attribute>
+            </LegacyAttributes>
+            KG navigation from M-901 reaches packet, handoff, skill-scope,
+            verification, and graph hygiene modules.
+          </scenario-1>
+          <scenario-2>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>kind</Name>
+                <Value>contract</Value>
+              </Attribute>
+            </LegacyAttributes>
+            M-901..M-906 paths point to docs artifacts only, not src/ or
+            src-tauri/ runtime code.
+          </scenario-2>
+          <scenario-3>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>kind</Name>
+                <Value>failure</Value>
+              </Attribute>
+            </LegacyAttributes>
+            A hygiene rule that changes execution behavior without KG CrossLink
+            is rejected.
+          </scenario-3>
+        </scenarios>
+        <required-log-markers>
+          <marker-1>[GraceGraph][sync][BLOCK_HYGIENE_GRAPH_SYNC]</marker-1>
+        </required-log-markers>
+        <edge-cases>
+          <ec>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>kind</Name>
+                <Value>graph</Value>
+              </Attribute>
+              <Attribute>
+                <Name>severity</Name>
+                <Value>high</Value>
+              </Attribute>
+            </LegacyAttributes>
+            CrossLinks must show policy, packet, handoff, skill, verification,
+            and boundary relationships.
+          </ec>
+          <ec>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>kind</Name>
+                <Value>contract</Value>
+              </Attribute>
+              <Attribute>
+                <Name>severity</Name>
+                <Value>medium</Value>
+              </Attribute>
+            </LegacyAttributes>
+            Meta modules must not inflate runtime dependency order for Phase A/B
+            implementation.
+          </ec>
+          <ec>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>kind</Name>
+                <Value>review</Value>
+              </Attribute>
+              <Attribute>
+                <Name>severity</Name>
+                <Value>medium</Value>
+              </Attribute>
+            </LegacyAttributes>
+            Reviewer can find the methodology from KG without scanning all docs.
+          </ec>
+          <ec>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>kind</Name>
+                <Value>failure</Value>
+              </Attribute>
+              <Attribute>
+                <Name>severity</Name>
+                <Value>medium</Value>
+              </Attribute>
+            </LegacyAttributes>
+            Missing V-M reference for a hygiene node fails graph verification.
+          </ec>
+          <ec>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>kind</Name>
+                <Value>maintenance</Value>
+              </Attribute>
+              <Attribute>
+                <Name>severity</Name>
+                <Value>medium</Value>
+              </Attribute>
+            </LegacyAttributes>
+            Future standards update must version the methodology and graph
+            annotation.
+          </ec>
+        </edge-cases>
+        <negative-assertions>
+          <no>MUST NOT add M-901..M-906 as runtime dependencies of M-001..M-020.</no>
+          <no>MUST NOT leave hygiene policy only in AGENTS.md or chat history.</no>
+        </negative-assertions>
+      </LegacyBase>
+      <LegacySource>docs/verification-plan.xml: V-M-906</LegacySource>
+    </V-M-906>
+  </VD-GOVERNANCE>
+</GraceVerificationDocument>

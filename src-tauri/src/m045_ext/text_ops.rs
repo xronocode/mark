@@ -1,4 +1,5 @@
-// MODULE_CONTRACT
+// FILE: src-tauri/src/m045_ext/text_ops.rs
+// START_MODULE_CONTRACT
 //   PURPOSE: M-045 text operation capabilities for extensions.
 //            Provides text.insert and text.transform commands that
 //            extensions can invoke to modify the active editor document.
@@ -16,6 +17,13 @@
 //
 // CHANGE_SUMMARY:
 //   - 2026-06-08 B4: initial text_ops module creation.
+//   ROLE: RUNTIME
+//   MAP_MODE: EXPORTS
+// END_MODULE_CONTRACT
+//
+// START_MODULE_MAP
+//   Coverage: GRACE 4 synchronized surface for M-045.
+// END_MODULE_MAP
 
 use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Emitter};

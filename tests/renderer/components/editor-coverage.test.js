@@ -10,11 +10,24 @@
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
-//   mountEditor - Mounts editor.vue with a controllable Muya replacement surface.
-//   seedStores - Seeds active tab and preference state for each scenario.
-//   getBusHandler - Resolves registered editor bus handlers for direct assertions.
-//   firstPaintAssertions - Verify scroll restoration cannot leave the surface hidden.
-//   previewCaretAssertions - Verify actual Muya contenteditable and caret focus synchronization.
+//   MockMuya - GRACE 4 synchronized symbol
+//   addCommonStyleMock - GRACE 4 synchronized symbol
+//   animatedScrollToMock - GRACE 4 synchronized symbol
+//   busMock - GRACE 4 synchronized symbol
+//   getCssForOptionsMock - GRACE 4 synchronized symbol
+//   getHtmlTocMock - GRACE 4 synchronized symbol
+//   i18n - GRACE 4 synchronized symbol
+//   lastMuyaOptions - GRACE 4 synchronized symbol
+//   logMock - GRACE 4 synchronized symbol
+//   mockEditorInstance - GRACE 4 synchronized symbol
+//   mockPrinter - GRACE 4 synchronized symbol
+//   mockSpellchecker - GRACE 4 synchronized symbol
+//   moveImageToFolderMock - GRACE 4 synchronized symbol
+//   moveToRelativeFolderMock - GRACE 4 synchronized symbol
+//   noticeMock - GRACE 4 synchronized symbol
+//   setEditorWidthMock - GRACE 4 synchronized symbol
+//   setWrapCodeBlocksMock - GRACE 4 synchronized symbol
+//   uploadImageMock - GRACE 4 synchronized symbol
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY

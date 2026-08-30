@@ -1,4 +1,5 @@
-// MODULE_CONTRACT
+// FILE: src/renderer/src/components/extensionGallery/textOps.js
+// START_MODULE_CONTRACT
 //   PURPOSE: Frontend event listeners for extension text operations.
 //            Listens for mt::text::op events from the Rust backend
 //            (emitted by text_ops.rs) and applies them to the active
@@ -14,6 +15,15 @@
 //
 // CHANGE_SUMMARY:
 //   - 2026-06-08 B4: initial textOps listener creation.
+//   ROLE: RUNTIME
+//   MAP_MODE: EXPORTS
+// END_MODULE_CONTRACT
+//
+// START_MODULE_MAP
+//   Coverage: GRACE 4 synchronized surface for M-045.
+//   destroyTextOpsListener - GRACE 4 synchronized symbol
+//   initTextOpsListener - GRACE 4 synchronized symbol
+// END_MODULE_MAP
 
 import { listen } from '@tauri-apps/api/event'
 import { emit } from '@tauri-apps/api/event'

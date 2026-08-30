@@ -14,6 +14,8 @@
 //   extractRendererCommandIds - Reads renderer command registry IDs.
 //   extractRendererShortcutIds - Maps renderer keyboard shortcuts back to command IDs.
 //   RENDERER_ONLY_ALLOWLIST - Documents commands intentionally absent from the native menu.
+//   ROOT - GRACE 4 synchronized symbol
+//   readSource - GRACE 4 synchronized symbol
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY

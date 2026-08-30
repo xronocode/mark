@@ -1,0 +1,106 @@
+<GracePrinciples graceVersion='4.0'>
+  <MigrationProvenance>
+    <LegacySource>AGENTS.md</LegacySource>
+    <LegacySource>docs/development-plan.xml</LegacySource>
+    <LegacySource>docs/operational-packets.xml</LegacySource>
+    <MigratedAt>2026-08-30T11:49:48Z</MigratedAt>
+    <Policy>
+      Semantic copy into GRACE 4 current state; legacy sources remain
+      byte-for-byte as migration provenance.
+    </Policy>
+  </MigrationProvenance>
+  <Principles>
+    <ContractFirst>
+      Read or update the module contract before implementation; code implements
+      the contract.
+    </ContractFirst>
+    <SemanticMarkup>
+      START_MODULE_CONTRACT, START_MODULE_MAP, START_CONTRACT, START_BLOCK_*,
+      and START_CHANGE_SUMMARY are load-bearing navigation and evidence.
+    </SemanticMarkup>
+    <PreserveMuya>
+      Do not rewrite the Muya editor engine; modernize the shell and adapters
+      around its established WYSIWYG behavior.
+    </PreserveMuya>
+    <DocumentIntegrity>
+      Opening, editing, saving, mode switching, import, export, and external
+      reload must preserve user content or fail visibly without destructive
+      fallback.
+    </DocumentIntegrity>
+    <LocalFirstSecurity>
+      File content, clipboard material, keys, and absolute home paths remain
+      local and redacted; path and shell operations pass explicit security
+      guards.
+    </LocalFirstSecurity>
+    <CompatibilityBeforeRewrite>
+      Inspect and extend working upstream or shipped Mark behavior before adding
+      replacement implementations.
+    </CompatibilityBeforeRewrite>
+    <ReleaseReproducibility>
+      Version sources, release fixtures, tags, artifacts, updater metadata, and
+      Homebrew delivery remain synchronized and mechanically verified.
+    </ReleaseReproducibility>
+    <VerificationFirstClass>
+      Module commands, scenarios, markers, traces, fixtures, and phase gates are
+      maintained with implementation and graph changes.
+    </VerificationFirstClass>
+    <GovernedChangeLifecycle>
+      New work starts with an approved GRACE 4 spec and plan. Legacy operational
+      packets remain provenance and are not retroactive changes.
+    </GovernedChangeLifecycle>
+    <GpuSlotOne>
+      Local inference uses one GPU engine at a time and follows the canonical
+      local-AI preflight protocol before inference.
+    </GpuSlotOne>
+  </Principles>
+  <ArchitectureNotes>
+    <objective>
+      Port Mark Text off abandoned Electron 18 + Vue 2 stack onto (A) modern
+      Electron 30 + Vue 3 as intermediate v1.0, then (B) Tauri v2 + Rust as
+      final v2.0, while merging 13 community PRs and delivering a
+      Homebrew-installable, ad-hoc-signed macOS app.
+    </objective>
+    <non-goal>
+      Do NOT rewrite muya. It has zero Electron coupling (verified by grep) and
+      ports to WebView unchanged.
+    </non-goal>
+    <non-goal>
+      Do NOT engage with upstream marktext/marktext maintainers. This is an
+      independent fork.
+    </non-goal>
+    <risk-1>
+      PR #4001 (electron-vite refactor) conflicts with bugfix PRs — resolved by
+      merge-order: bugfixes first, then #4001.
+    </risk-1>
+    <risk-2>
+      muya in WKWebView may be slower than Chromium on large docs — benchmark
+      gate at Phase-B1.
+    </risk-2>
+    <risk-3>
+      All 6 native modules (keytar, chokidar, fontmanager-redux, native-keymap,
+      vscode-ripgrep, @hfelix/electron-localshortcut) must be replaced in Phase
+      B.
+    </risk-3>
+    <risk-4>
+      electron-store → tauri-plugin-store schema migration is one-way and must
+      preserve user prefs.
+    </risk-4>
+    <risk-5>
+      NSSpellChecker has no existing Tauri plugin; custom objc2 FFI required for
+      Phase-B3.
+    </risk-5>
+    <strategy>
+      Hybrid two-phase: Phase A ships value quickly (bugfixes + Vue 3 + slim
+      build) as v1.0; Phase B is the radical Tauri port as v2.0. Between phases,
+      ~2 weeks user-stabilization window.
+    </strategy>
+  </ArchitectureNotes>
+  <LegacyOperationalPackets>
+    <Source>docs/operational-packets.xml</Source>
+    <Disposition>
+      Preserved as GRACE 3 communication-template provenance. Future execution,
+      graph, verification, failure, and handoff state belongs in approved GRACE
+      4 change bundles and current projections.
+    </Disposition>
+  </LegacyOperationalPackets>
+</GracePrinciples>

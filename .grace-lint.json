@@ -1,0 +1,8 @@
+{
+  "ignoredDirs": [
+    ".playwright-mcp",
+    "clipboard-capture",
+    "homebrew-mark",
+    "mark-quicklook"
+  ]
+}

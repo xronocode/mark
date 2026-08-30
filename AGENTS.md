@@ -1,4 +1,4 @@
-# GRACE Framework - Project Engineering Protocol
+# GRACE 4 Framework - Project Engineering Protocol
 
 ## Keywords
 markdown, editor, wysiwyg, electron, tauri, vue3, muya, macos, homebrew, port, modernization
@@ -6,10 +6,21 @@ markdown, editor, wysiwyg, electron, tauri, vue3, muya, macos, homebrew, port, m
 ## Annotation
 Mark Text — заброшенный автором, но живой в комьюнити WYSIWYG Markdown редактор. Цель проекта — модернизировать стек (Electron + Vue 2 → Electron 30 + Vue 3 в Фазе A, затем Tauri v2 + Rust в Фазе B), включить 13 комьюнити-PR-ов (bugfixes + features + refactor), уменьшить footprint с 200 MB до ~15 MB, и обеспечить простую установку на macOS через собственный Homebrew tap с ad-hoc signing, без необходимости ручного снятия Gatekeeper quarantine.
 
+## GRACE 4 Source of Truth
+
+Mark uses the routed GRACE 4 layout as its current-state governance model:
+
+- `.grace/context/*.xml` — requirements, technology, principles, deployment, and UX context
+- `.grace/graph/index.xml` plus routed `.grace/graph/*.xml` — modules, contracts, dependencies, relationships, and data flows
+- `.grace/verification/index.xml` plus routed `.grace/verification/*.xml` — commands, scenarios, markers, and assertion evidence
+- `.grace/changes/active/C-*/` and `.grace/changes/archive/C-*/` — approved future change specs and plans
+
+The former flat XML files under `docs/` are preserved byte-for-byte as GRACE 3 migration provenance. They are not current-state artifacts and must not be edited to describe new work. Migration decisions, source hashes, verification-anchor conflicts, and their non-active evidence policy are recorded in `docs/migrations/GRACE3_to_GRACE4_2026-08-30.xml`.
+
 ## Core Principles
 
 ### 1. Never Write Code Without a Contract
-Before generating or editing any module, create or update its MODULE_CONTRACT with PURPOSE, SCOPE, INPUTS, and OUTPUTS. The contract is the source of truth. Code implements the contract, not the other way around.
+Before generating or editing a governed module, read its routed graph contract and file-local MODULE_CONTRACT. Update PURPOSE, SCOPE, DEPENDS, LINKS, ROLE, and MAP_MODE when the file responsibility changes. New behavior or scope also requires an approved GRACE 4 change spec and plan under `.grace/changes/active/C-*/`. Code implements the contract, not the other way around.
 
 ### 2. Semantic Markup Is Load-Bearing Structure
 Markers like `// START_BLOCK_<NAME>` and `// END_BLOCK_<NAME>` are navigation anchors, not documentation. They must be:
@@ -18,14 +29,14 @@ Markers like `// START_BLOCK_<NAME>` and `// END_BLOCK_<NAME>` are navigation an
 - proportionally sized so one block fits inside an LLM working window
 
 ### 3. Knowledge Graph Is Always Current
-`docs/knowledge-graph.xml` is the project map. When you add a module, move a module, rename exports, or add dependencies, update the graph so future agents can navigate deterministically.
+`.grace/graph/index.xml` routes graph ownership. When you add a module, move a module, rename exports, or add dependencies, update the owning routed graph document and its index entry so future agents can navigate deterministically.
 
 ### 4. Verification Is a First-Class Artifact
-Testing, traces, and log anchors are designed before large execution waves. `docs/verification-plan.xml` is part of the architecture, not an afterthought. Logs are evidence. Tests are executable contracts.
+Testing, traces, and log anchors are designed before large execution waves. `.grace/verification/index.xml` and its routed verification documents are part of the architecture, not an afterthought. Logs are evidence. Tests are executable contracts.
 
 ### 5. Top-Down Synthesis
 Code generation follows:
-`RequirementsAnalysis -> TechnologyStack -> DevelopmentPlan -> VerificationPlan -> Code + Tests`
+`.grace/context -> approved GraceChangeSpec -> GraceChangePlan -> graph + verification deltas -> code + tests -> evidence`
 
 Never jump straight to code when requirements, architecture, or verification intent are still unclear.
 
@@ -106,7 +117,7 @@ Rules:
 
 ## Verification Conventions
 
-`docs/verification-plan.xml` is the project-wide verification contract. Keep it current when module scope, test files, commands, critical log markers, or gate expectations change. Use `docs/operational-packets.xml` as the canonical schema for execution packets, graph deltas, verification deltas, and failure handoff packets.
+`.grace/verification/index.xml` and the routed verification documents are the project-wide verification contract. Keep them current when module scope, test files, commands, critical log markers, assertions, or gate expectations change. Future execution is governed by the active GRACE 4 change spec/plan; `docs/operational-packets.xml` is retained only as GRACE 3 provenance.
 
 Testing rules:
 - deterministic assertions first
@@ -118,12 +129,19 @@ Testing rules:
 ## File Structure
 ```
 docs/
-  requirements.xml       - Product requirements and use cases
-  technology.xml         - Stack decisions, tooling, observability, testing
-  development-plan.xml   - Modules, phases, data flows, ownership, write scopes
-  verification-plan.xml  - Test strategy, trace expectations, module and phase gates
-  knowledge-graph.xml    - Project-wide navigation graph
-  operational-packets.xml - Canonical packet, delta, and failure handoff templates
+  requirements.xml       - Preserved GRACE 3 provenance; not current state
+  technology.xml         - Preserved GRACE 3 provenance; not current state
+  development-plan.xml   - Preserved GRACE 3 provenance; not current state
+  verification-plan.xml  - Preserved GRACE 3 provenance; not current state
+  knowledge-graph.xml    - Preserved GRACE 3 provenance; not current state
+  operational-packets.xml - Preserved GRACE 3 provenance; not current state
+  migrations/            - Migration inventory, hashes, decisions, and validation
+.grace/
+  context/               - Current requirements, technology, principles, deployment, UX
+  graph/                 - Routed module/data-flow graph plus index.xml
+  verification/          - Routed verification contracts plus index.xml
+  changes/active/        - Approved work in progress (C-*)
+  changes/archive/       - Completed or retired change bundles (C-*)
 marktext/                - Upstream clone (reference only, do not commit into the port repo)
 src/                     - will be populated in Phase-A (electron-vite restructure)
 src-tauri/               - will be populated in Phase-B (Tauri Rust backend)
@@ -131,38 +149,39 @@ tests/
   ... tests with GRACE-aware evidence where appropriate ...
 ```
 
-## Documentation Artifacts - Unique Tag Convention
+## GRACE 4 XML Anchor Convention
 
-In `docs/*.xml`, repeated entities must use their unique ID as the XML tag name instead of a generic tag with an `ID` attribute. This reduces closing-tag ambiguity and gives LLMs stronger anchors.
+In current `.grace/*.xml` artifacts, semantic entities use their unique ID as the XML tag name. Semantic anchor identity must not be stored in XML attributes. Use child elements for names, paths, types, and other metadata.
 
 ### Tag naming conventions
 
-| Entity type | Anti-pattern | Correct (unique tags) |
+| Entity type | Anti-pattern | Correct (attribute-free semantic anchor) |
 |---|---|---|
-| Module | `<Module ID="M-CONFIG">...</Module>` | `<M-CONFIG NAME="Config" TYPE="UTILITY">...</M-CONFIG>` |
-| Verification module | `<Verification ID="V-M-AUTH">...</Verification>` | `<V-M-AUTH MODULE="M-AUTH">...</V-M-AUTH>` |
-| Phase | `<Phase number="1">...</Phase>` | `<Phase-1 name="Foundation">...</Phase-1>` |
-| Flow | `<Flow ID="DF-SEARCH">...</Flow>` | `<DF-SEARCH NAME="...">...</DF-SEARCH>` |
+| Module | `<Module ID="M-045">...</Module>` | `<M-045><Name>ExtensionHost</Name>...</M-045>` |
+| Verification module | `<Verification ID="V-M-045">...</Verification>` | `<V-M-045><Priority>high</Priority>...</V-M-045>` |
+| Graph document | `<GraphDocument ID="GD-FEATURES">...</GraphDocument>` | `<GD-FEATURES><Path>graph/features.xml</Path>...</GD-FEATURES>` |
+| Verification document | `<VerificationDocument ID="VD-FEATURES">...</VerificationDocument>` | `<VD-FEATURES><Path>verification/features.xml</Path>...</VD-FEATURES>` |
+| Flow | `<Flow ID="DF-SEARCH">...</Flow>` | `<DF-SEARCH><Name>Search</Name>...</DF-SEARCH>` |
 | Use case | `<UseCase ID="UC-001">...</UseCase>` | `<UC-001>...</UC-001>` |
-| Step | `<step order="1">...</step>` | `<step-1>...</step-1>` |
-| Export | `<export name="config" .../>` | `<export-config .../>` |
-| Function | `<function name="search" .../>` | `<fn-search .../>` |
-| Type | `<type name="SearchResult" .../>` | `<type-SearchResult .../>` |
-| Class | `<class name="Error" .../>` | `<class-Error .../>` |
+| Function | `<Function ID="fn-search">...</Function>` | `<fn-search>...</fn-search>` |
+| Change/task | `<Change ID="C-...">` / `<Task ID="T-...">` | `<C-...>...</C-...>` / `<T-...>...</T-...>` |
 
 ### What NOT to change
-- `CrossLink` tags stay self-closing
-- single-use structural wrappers like `<contract>`, `<inputs>`, `<outputs>`, `<annotations>`, `<test-files>`, `<module-checks>`, and `<phase-gates>` stay generic
+- structural wrappers such as `<Contract>`, `<Inputs>`, `<Outputs>`, `<Commands>`, `<Scenarios>`, and `<Markers>` stay generic
+- conflicting or orphan legacy verification bodies remain under non-anchor evidence wrappers and never become active duplicate V-M-* anchors
+- preserved GRACE 3 XML remains byte-for-byte and is not rewritten to this convention
 - code-level markup already uses unique names and stays as-is
 
 ## Rules for Modifications
 
 1. Read the MODULE_CONTRACT before editing any file.
 2. After editing source or test files, update MODULE_MAP in a way that matches the file's role and map mode.
-3. After adding or removing modules, update `docs/knowledge-graph.xml`.
-4. After changing test files, commands, critical scenarios, or log markers, update `docs/verification-plan.xml`.
+3. After adding, removing, moving, or changing modules, update `.grace/graph/index.xml` and the owning routed graph document.
+4. After changing test files, commands, critical scenarios, assertions, or log markers, update `.grace/verification/index.xml` and the owning routed verification document.
 5. After fixing bugs, add a CHANGE_SUMMARY entry and strengthen nearby verification if the old evidence was weak.
 6. Never remove semantic markup anchors unless the structure is intentionally replaced with better anchors.
+7. New behavior or scope starts from an approved `.grace/changes/active/C-*/change-spec.xml` and `change-plan.xml`; do not reconstruct historical work as retroactive changes.
+8. Run `grace lint --path . --assertions current` and `grace status --path . --with modules --json` before handing off a governed change.
 
 ## Release (cutting a new version)
 
@@ -191,4 +210,3 @@ If this project runs local AI inference — ollama, LM Studio, mlx/mlx-whisper, 
 - **Pre-flight check — run before any inference:** `~/prj/_skills/local-ai-safety/gpu_check.sh`
 
 One hard rule: **GPU inference slots = 1** — never run two inference engines concurrently (ollama + LM Studio, or either + llama.cpp/mlx). That concurrent load triggered the macOS `IOGPUFamily` kernel panic on this machine. Run `gpu_check.sh` before starting inference; on **exit code 3** (engine conflict) do **not** start another engine — unload the current one first. Any engine used here is run one at a time, never simultaneously.
-

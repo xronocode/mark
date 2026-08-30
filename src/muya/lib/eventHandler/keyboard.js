@@ -6,12 +6,11 @@
 //   DEPENDS: Muya event center/content state, selection helpers, editor config, emoji UI.
 //   LINKS: docs/knowledge-graph.xml M-012; docs/verification-plan.xml V-M-012 scenario-10.
 //   ROLE: RUNTIME
-//   MAP_MODE: LOCALS
+//   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
-//   Keyboard - Binds DOM keyboard/input events to Muya content-state and history operations.
-//   keydownBinding - Handles editing keys and layout-independent Cmd/Ctrl+Z undo/redo routing.
+//   default - GRACE 4 synchronized symbol
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY

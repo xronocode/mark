@@ -1,0 +1,2584 @@
+<GraceGraphDocument graceVersion='4.0'>
+  <GD-FEATURES>
+    <ProjectMetadata>
+      <Name>Mark</Name>
+      <LegacyDevelopmentPlanVersion>0.2.0</LegacyDevelopmentPlanVersion>
+      <LegacySources>docs/knowledge-graph.xml; docs/development-plan.xml</LegacySources>
+    </ProjectMetadata>
+    <M-031>
+      <Name>diff-view</Name>
+      <DisplayName>diff-view</DisplayName>
+      <Type>UI_COMPONENT</Type>
+      <Status>done</Status>
+      <PhaseRef>B6-diff</PhaseRef>
+      <Summary>
+        Inline diff view via CodeMirror 5 MergeView + diff-match-patch. Git
+        baseline via mt_diff_baseline (git show HEAD:{path}). Toggle via
+        view.diff-mode command. Theme support (railscasts/one-dark).
+      </Summary>
+      <PlannedPath>
+        src/renderer/src/components/editorWithTabs/diffView.vue,
+        src-tauri/src/m031_diff.rs
+      </PlannedPath>
+      <Dependencies>
+        <M-010/>
+        <M-011/>
+        <M-012/>
+      </Dependencies>
+      <VerificationRef>V-M-031</VerificationRef>
+      <Contract>
+        <Purpose>
+          No explicit legacy module contract; use Summary and
+          LegacyKnowledgeDetail until the module is next changed.
+        </Purpose>
+        <Inputs/>
+        <Outputs/>
+        <Errors/>
+      </Contract>
+      <Interface/>
+      <Sources>
+        <KnowledgeGraphPath>
+          src/renderer/src/components/editorWithTabs/diffView.vue,
+          src-tauri/src/m031_diff.rs
+        </KnowledgeGraphPath>
+      </Sources>
+      <Observability/>
+      <LegacyKnowledgeDetail>
+        <annotations>
+          <fn-mt_diff_baseline>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>PURPOSE</Name>
+                <Value>
+                  Rust command: git show HEAD:{rel_path}. Returns
+                  Result&lt;String, String&gt;. BLOCK_DIFF_BASELINE +
+                  BLOCK_DIFF_BASELINE_OK markers. 3 cargo tests.
+                </Value>
+              </Attribute>
+            </LegacyAttributes>
+          </fn-mt_diff_baseline>
+          <fn-diffView>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>PURPOSE</Name>
+                <Value>
+                  Vue component: CodeMirror MergeView inline mode. Dynamic
+                  import of merge addon + diff-match-patch. Props: markdown,
+                  pathname. Watch for changes triggers baseline refetch.
+                </Value>
+              </Attribute>
+            </LegacyAttributes>
+          </fn-diffView>
+          <fn-view-diff-mode>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>PURPOSE</Name>
+                <Value>
+                  Command in commands/index.js: toggles currentFile.diffMode
+                  per-tab boolean. app.vue derives diffMode from
+                  currentFile.diffMode; editorWithTabs/index.vue conditionally
+                  renders diffView.vue via v-if. Cmd+D native accelerator +
+                  command palette.
+                </Value>
+              </Attribute>
+            </LegacyAttributes>
+          </fn-view-diff-mode>
+          <fn-getTheme>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>PURPOSE</Name>
+                <Value>
+                  diffView.vue: maps current theme to CodeMirror theme name
+                  (railscasts/one-dark/default).
+                </Value>
+              </Attribute>
+            </LegacyAttributes>
+          </fn-getTheme>
+        </annotations>
+      </LegacyKnowledgeDetail>
+      <LegacyDevelopmentDetail>
+        <purpose>
+          Inline diff view via CodeMirror 5 MergeView + diff-match-patch. Git
+          baseline via mt_diff_baseline (git show HEAD:{path}). Toggle via
+          view.diff-mode command. Theme support (railscasts/one-dark).
+        </purpose>
+        <path>
+          src/renderer/src/components/editorWithTabs/diffView.vue,
+          src-tauri/src/m031_diff.rs
+        </path>
+      </LegacyDevelopmentDetail>
+      <LegacyAttributes>
+        <Attribute>
+          <Source>knowledge-graph</Source>
+          <Name>NAME</Name>
+          <Value>diff-view</Value>
+        </Attribute>
+        <Attribute>
+          <Source>knowledge-graph</Source>
+          <Name>TYPE</Name>
+          <Value>UI_COMPONENT</Value>
+        </Attribute>
+        <Attribute>
+          <Source>knowledge-graph</Source>
+          <Name>STATUS</Name>
+          <Value>done</Value>
+        </Attribute>
+        <Attribute>
+          <Source>knowledge-graph</Source>
+          <Name>PHASE-REF</Name>
+          <Value>B6-diff</Value>
+        </Attribute>
+        <Attribute>
+          <Source>development-plan</Source>
+          <Name>NAME</Name>
+          <Value>diff-view</Value>
+        </Attribute>
+        <Attribute>
+          <Source>development-plan</Source>
+          <Name>TYPE</Name>
+          <Value>UI_COMPONENT</Value>
+        </Attribute>
+        <Attribute>
+          <Source>development-plan</Source>
+          <Name>STATUS</Name>
+          <Value>done</Value>
+        </Attribute>
+        <Attribute>
+          <Source>development-plan</Source>
+          <Name>PHASE-REF</Name>
+          <Value>B6-diff</Value>
+        </Attribute>
+      </LegacyAttributes>
+      <LegacySource>docs/knowledge-graph.xml: M-031; docs/development-plan.xml: M-031</LegacySource>
+    </M-031>
+    <M-032>
+      <Name>live-reload</Name>
+      <DisplayName>live-reload</DisplayName>
+      <Type>INTEGRATION</Type>
+      <Status>done</Status>
+      <PhaseRef>B7-step-1</PhaseRef>
+      <Summary>
+        Live-reload on external file change: fixed APPLY_FILE_CHANGE async read
+        path (latent bug: project.js sends {pathname} without data); fixed
+        loadChange cursor/scrollTop preservation; added liveReload preference +
+        hash-skip + 100ms settle delay. Uses existing watcher (m013b/watch.rs) +
+        ipcFs.read.
+      </Summary>
+      <PlannedPath>src/renderer/src/store/editor.js, src/renderer/src/store/preferences.js</PlannedPath>
+      <Dependencies>
+        <M-003/>
+        <M-011/>
+        <M-012/>
+      </Dependencies>
+      <VerificationRef>V-M-032</VerificationRef>
+      <Contract>
+        <Purpose>
+          No explicit legacy module contract; use Summary and
+          LegacyKnowledgeDetail until the module is next changed.
+        </Purpose>
+        <Inputs/>
+        <Outputs/>
+        <Errors/>
+      </Contract>
+      <Interface/>
+      <Sources>
+        <KnowledgeGraphPath>src/renderer/src/store/editor.js, src/renderer/src/store/preferences.js</KnowledgeGraphPath>
+      </Sources>
+      <Observability/>
+      <LegacyKnowledgeDetail>
+        <annotations>
+          <fn-APPLY_FILE_CHANGE>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>PURPOSE</Name>
+                <Value>
+                  Async ipcFs.read fallback when change.data missing. Checks
+                  autoSave/liveReload/previewMode/watchMode. 100ms settle delay.
+                  Hash-skip.
+                </Value>
+              </Attribute>
+            </LegacyAttributes>
+          </fn-APPLY_FILE_CHANGE>
+          <fn-loadChange>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>PURPOSE</Name>
+                <Value>Saves cursor/scrollTop/muyaIndexCursor before Object.assign, restores after.</Value>
+              </Attribute>
+            </LegacyAttributes>
+          </fn-loadChange>
+          <type-liveReload>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>PURPOSE</Name>
+                <Value>Preference: boolean, default true. Auto-reload clean tabs without notification.</Value>
+              </Attribute>
+            </LegacyAttributes>
+          </type-liveReload>
+        </annotations>
+      </LegacyKnowledgeDetail>
+      <LegacyDevelopmentDetail>
+        <purpose>
+          Live-reload on external file change: fixed APPLY_FILE_CHANGE async
+          read path; fixed loadChange cursor/scrollTop preservation; added
+          liveReload preference + hash-skip + 100ms settle delay.
+        </purpose>
+        <path>src/renderer/src/store/editor.js, src/renderer/src/store/preferences.js</path>
+      </LegacyDevelopmentDetail>
+      <LegacyAttributes>
+        <Attribute>
+          <Source>knowledge-graph</Source>
+          <Name>NAME</Name>
+          <Value>live-reload</Value>
+        </Attribute>
+        <Attribute>
+          <Source>knowledge-graph</Source>
+          <Name>TYPE</Name>
+          <Value>INTEGRATION</Value>
+        </Attribute>
+        <Attribute>
+          <Source>knowledge-graph</Source>
+          <Name>STATUS</Name>
+          <Value>done</Value>
+        </Attribute>
+        <Attribute>
+          <Source>knowledge-graph</Source>
+          <Name>PHASE-REF</Name>
+          <Value>B7-step-1</Value>
+        </Attribute>
+        <Attribute>
+          <Source>development-plan</Source>
+          <Name>NAME</Name>
+          <Value>live-reload</Value>
+        </Attribute>
+        <Attribute>
+          <Source>development-plan</Source>
+          <Name>TYPE</Name>
+          <Value>INTEGRATION</Value>
+        </Attribute>
+        <Attribute>
+          <Source>development-plan</Source>
+          <Name>STATUS</Name>
+          <Value>done</Value>
+        </Attribute>
+        <Attribute>
+          <Source>development-plan</Source>
+          <Name>PHASE-REF</Name>
+          <Value>B7-step-1</Value>
+        </Attribute>
+      </LegacyAttributes>
+      <LegacySource>docs/knowledge-graph.xml: M-032; docs/development-plan.xml: M-032</LegacySource>
+    </M-032>
+    <M-033>
+      <Name>cli-preview</Name>
+      <DisplayName>cli-preview</DisplayName>
+      <Type>ENTRY_POINT</Type>
+      <Status>done</Status>
+      <PhaseRef>B7-step-2,B7-step-3</PhaseRef>
+      <Summary>
+        CLI --preview/--watch/--diff flags: `mark --preview notes.md` opens
+        read-only; `mark --watch file.md` auto-reloads on external change; `mark
+        --diff file.md` opens diff view. Flags threaded through PendingOpens
+        AtomicBool fields to emit_open_new_tab_ext → bootstrap-ipc.js tab flags.
+        Apple Events keep hardcoded preview=true.
+      </Summary>
+      <PlannedPath>
+        src-tauri/src/m020_cli.rs, src-tauri/src/main.rs,
+        src-tauri/src/m_v1_compat.rs, src/renderer/src/bootstrap-ipc.js,
+        src/renderer/src/store/editor.js
+      </PlannedPath>
+      <Dependencies>
+        <M-001/>
+        <M-020/>
+        <M-031/>
+        <M-032/>
+      </Dependencies>
+      <VerificationRef>V-M-033</VerificationRef>
+      <Contract>
+        <Purpose>
+          No explicit legacy module contract; use Summary and
+          LegacyKnowledgeDetail until the module is next changed.
+        </Purpose>
+        <Inputs/>
+        <Outputs/>
+        <Errors/>
+      </Contract>
+      <Interface/>
+      <Sources>
+        <KnowledgeGraphPath>
+          src-tauri/src/m020_cli.rs, src-tauri/src/main.rs,
+          src-tauri/src/m_v1_compat.rs, src/renderer/src/bootstrap-ipc.js,
+          src/renderer/src/store/editor.js
+        </KnowledgeGraphPath>
+      </Sources>
+      <Observability/>
+      <LegacyKnowledgeDetail>
+        <annotations>
+          <fn-CliArgs-preview>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>PURPOSE</Name>
+                <Value>
+                  bool field, --preview long flag. Default false. `mark file.md`
+                  → editable, `mark --preview file.md` → read-only.
+                </Value>
+              </Attribute>
+            </LegacyAttributes>
+          </fn-CliArgs-preview>
+          <fn-CliArgs-watch>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>PURPOSE</Name>
+                <Value>
+                  bool field, --watch / -w short flag. Default false. `mark
+                  --watch file.md` auto-reloads regardless of liveReload pref.
+                </Value>
+              </Attribute>
+            </LegacyAttributes>
+          </fn-CliArgs-watch>
+          <fn-CliArgs-diff>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>PURPOSE</Name>
+                <Value>
+                  bool field, --diff long flag. Default false. `mark --diff
+                  file.md` opens in diff view.
+                </Value>
+              </Attribute>
+            </LegacyAttributes>
+          </fn-CliArgs-diff>
+          <fn-PendingOpens-preview_mode>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>PURPOSE</Name>
+                <Value>
+                  AtomicBool seeded from cli.preview in setup hook. Consumed by
+                  mt_drain_pending_opens.
+                </Value>
+              </Attribute>
+            </LegacyAttributes>
+          </fn-PendingOpens-preview_mode>
+          <fn-PendingOpens-watch_mode>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>PURPOSE</Name>
+                <Value>
+                  AtomicBool seeded from cli.watch in setup hook. Consumed by
+                  mt_drain_pending_opens via emit_open_new_tab_ext.
+                </Value>
+              </Attribute>
+            </LegacyAttributes>
+          </fn-PendingOpens-watch_mode>
+          <fn-PendingOpens-diff_mode>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>PURPOSE</Name>
+                <Value>
+                  AtomicBool seeded from cli.diff in setup hook. Consumed by
+                  mt_drain_pending_opens via emit_open_new_tab_ext.
+                </Value>
+              </Attribute>
+            </LegacyAttributes>
+          </fn-PendingOpens-diff_mode>
+          <fn-emit_open_new_tab_ext>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>PURPOSE</Name>
+                <Value>
+                  m_v1_compat: extended emit with watch_mode/diff_mode bools.
+                  Inserts watchMode/diffMode into JSON payload. Legacy
+                  emit_open_new_tab delegates with false/false.
+                </Value>
+              </Attribute>
+            </LegacyAttributes>
+          </fn-emit_open_new_tab_ext>
+          <fn-APPLY_FILE_CHANGE-preview-skip>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>PURPOSE</Name>
+                <Value>
+                  In editor.js: tab.previewMode=true OR tab.watchMode=true
+                  bypasses dirty check — always auto-reload.
+                </Value>
+              </Attribute>
+            </LegacyAttributes>
+          </fn-APPLY_FILE_CHANGE-preview-skip>
+        </annotations>
+      </LegacyKnowledgeDetail>
+      <LegacyDevelopmentDetail>
+        <purpose>
+          CLI --preview flag: `mark --preview notes.md` opens read-only.
+          preview: bool in CliArgs, threaded through PendingOpens.preview_mode
+          AtomicBool to mt_drain_pending_opens.
+        </purpose>
+        <path>
+          src-tauri/src/m020_cli.rs, src-tauri/src/main.rs,
+          src/renderer/src/store/editor.js
+        </path>
+      </LegacyDevelopmentDetail>
+      <LegacyAttributes>
+        <Attribute>
+          <Source>knowledge-graph</Source>
+          <Name>NAME</Name>
+          <Value>cli-preview</Value>
+        </Attribute>
+        <Attribute>
+          <Source>knowledge-graph</Source>
+          <Name>TYPE</Name>
+          <Value>ENTRY_POINT</Value>
+        </Attribute>
+        <Attribute>
+          <Source>knowledge-graph</Source>
+          <Name>STATUS</Name>
+          <Value>done</Value>
+        </Attribute>
+        <Attribute>
+          <Source>knowledge-graph</Source>
+          <Name>PHASE-REF</Name>
+          <Value>B7-step-2,B7-step-3</Value>
+        </Attribute>
+        <Attribute>
+          <Source>development-plan</Source>
+          <Name>NAME</Name>
+          <Value>cli-preview</Value>
+        </Attribute>
+        <Attribute>
+          <Source>development-plan</Source>
+          <Name>TYPE</Name>
+          <Value>ENTRY_POINT</Value>
+        </Attribute>
+        <Attribute>
+          <Source>development-plan</Source>
+          <Name>STATUS</Name>
+          <Value>done</Value>
+        </Attribute>
+        <Attribute>
+          <Source>development-plan</Source>
+          <Name>PHASE-REF</Name>
+          <Value>B7-step-2</Value>
+        </Attribute>
+      </LegacyAttributes>
+      <LegacySource>docs/knowledge-graph.xml: M-033; docs/development-plan.xml: M-033</LegacySource>
+    </M-033>
+    <M-034>
+      <Name>terminal-panel</Name>
+      <DisplayName>terminal-panel</DisplayName>
+      <Type>UI_COMPONENT</Type>
+      <Status>planned</Status>
+      <PhaseRef>B8-step-1</PhaseRef>
+      <Summary>
+        Split-pane terminal panel (xterm.js + tauri-plugin-shell). Cmd+`
+        toggles. Agent runs alongside editor. Panel resizable, state persisted.
+      </Summary>
+      <PlannedPath>
+        src/renderer/src/components/terminal/TerminalPanel.vue,
+        src-tauri/src/m034_terminal.rs
+      </PlannedPath>
+      <Dependencies>
+        <M-001/>
+        <M-011/>
+      </Dependencies>
+      <VerificationRef>V-M-034</VerificationRef>
+      <Contract>
+        <Purpose>
+          No explicit legacy module contract; use Summary and
+          LegacyKnowledgeDetail until the module is next changed.
+        </Purpose>
+        <Inputs/>
+        <Outputs/>
+        <Errors/>
+      </Contract>
+      <Interface/>
+      <Sources>
+        <KnowledgeGraphPath>
+          src/renderer/src/components/terminal/TerminalPanel.vue,
+          src-tauri/src/m034_terminal.rs
+        </KnowledgeGraphPath>
+      </Sources>
+      <Observability/>
+      <LegacyKnowledgeDetail>
+        <annotations>
+          <fn-toggleTerminal>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>PURPOSE</Name>
+                <Value>Cmd+` handler: show/hide terminal panel</Value>
+              </Attribute>
+            </LegacyAttributes>
+          </fn-toggleTerminal>
+          <fn-spawnShell>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>PURPOSE</Name>
+                <Value>Rust: spawn user default shell via tauri-plugin-shell</Value>
+              </Attribute>
+            </LegacyAttributes>
+          </fn-spawnShell>
+        </annotations>
+      </LegacyKnowledgeDetail>
+      <LegacyDevelopmentDetail>
+        <purpose>
+          Split-pane terminal panel (xterm.js + tauri-plugin-shell). Cmd+`
+          toggles. Agent runs alongside editor. Panel resizable, state
+          persisted.
+        </purpose>
+        <path>
+          src/renderer/src/components/terminal/TerminalPanel.vue,
+          src-tauri/src/m034_terminal.rs
+        </path>
+      </LegacyDevelopmentDetail>
+      <LegacyAttributes>
+        <Attribute>
+          <Source>knowledge-graph</Source>
+          <Name>NAME</Name>
+          <Value>terminal-panel</Value>
+        </Attribute>
+        <Attribute>
+          <Source>knowledge-graph</Source>
+          <Name>TYPE</Name>
+          <Value>UI_COMPONENT</Value>
+        </Attribute>
+        <Attribute>
+          <Source>knowledge-graph</Source>
+          <Name>STATUS</Name>
+          <Value>planned</Value>
+        </Attribute>
+        <Attribute>
+          <Source>knowledge-graph</Source>
+          <Name>PHASE-REF</Name>
+          <Value>B8-step-1</Value>
+        </Attribute>
+        <Attribute>
+          <Source>development-plan</Source>
+          <Name>NAME</Name>
+          <Value>terminal-panel</Value>
+        </Attribute>
+        <Attribute>
+          <Source>development-plan</Source>
+          <Name>TYPE</Name>
+          <Value>UI_COMPONENT</Value>
+        </Attribute>
+        <Attribute>
+          <Source>development-plan</Source>
+          <Name>STATUS</Name>
+          <Value>planned</Value>
+        </Attribute>
+        <Attribute>
+          <Source>development-plan</Source>
+          <Name>PHASE-REF</Name>
+          <Value>B8-step-1</Value>
+        </Attribute>
+      </LegacyAttributes>
+      <LegacySource>docs/knowledge-graph.xml: M-034; docs/development-plan.xml: M-034</LegacySource>
+    </M-034>
+    <M-035>
+      <Name>agent-status</Name>
+      <DisplayName>agent-status</DisplayName>
+      <Type>UI_COMPONENT</Type>
+      <Status>planned</Status>
+      <PhaseRef>B8-step-2</PhaseRef>
+      <Summary>
+        AI agent status indicator in titlebar. Detects agent prompts in terminal
+        output (claude&gt;, [agent]), shows status pill. Optional breathing
+        animation.
+      </Summary>
+      <PlannedPath>
+        src/renderer/src/components/terminal/agentDetector.js,
+        src/renderer/src/components/titlebar/AgentStatus.vue
+      </PlannedPath>
+      <Dependencies>
+        <M-034/>
+      </Dependencies>
+      <VerificationRef>V-M-035</VerificationRef>
+      <Contract>
+        <Purpose>
+          No explicit legacy module contract; use Summary and
+          LegacyKnowledgeDetail until the module is next changed.
+        </Purpose>
+        <Inputs/>
+        <Outputs/>
+        <Errors/>
+      </Contract>
+      <Interface/>
+      <Sources>
+        <KnowledgeGraphPath>
+          src/renderer/src/components/terminal/agentDetector.js,
+          src/renderer/src/components/titlebar/AgentStatus.vue
+        </KnowledgeGraphPath>
+      </Sources>
+      <Observability/>
+      <LegacyKnowledgeDetail>
+        <annotations>
+          <fn-detectAgent>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>PURPOSE</Name>
+                <Value>Pattern matcher for agent CLI prompts in terminal output stream</Value>
+              </Attribute>
+            </LegacyAttributes>
+          </fn-detectAgent>
+          <fn-AgentStatusPill>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>PURPOSE</Name>
+                <Value>
+                  Vue component: &apos;Agent active&apos; / &apos;Agent
+                  idle&apos; pill with optional animation
+                </Value>
+              </Attribute>
+            </LegacyAttributes>
+          </fn-AgentStatusPill>
+        </annotations>
+      </LegacyKnowledgeDetail>
+      <LegacyDevelopmentDetail>
+        <purpose>
+          AI agent status indicator in titlebar. Detects agent prompts in
+          terminal output (claude&gt;, [agent]), shows status pill. Optional
+          breathing animation.
+        </purpose>
+        <path>
+          src/renderer/src/components/terminal/agentDetector.js,
+          src/renderer/src/components/titlebar/AgentStatus.vue
+        </path>
+      </LegacyDevelopmentDetail>
+      <LegacyAttributes>
+        <Attribute>
+          <Source>knowledge-graph</Source>
+          <Name>NAME</Name>
+          <Value>agent-status</Value>
+        </Attribute>
+        <Attribute>
+          <Source>knowledge-graph</Source>
+          <Name>TYPE</Name>
+          <Value>UI_COMPONENT</Value>
+        </Attribute>
+        <Attribute>
+          <Source>knowledge-graph</Source>
+          <Name>STATUS</Name>
+          <Value>planned</Value>
+        </Attribute>
+        <Attribute>
+          <Source>knowledge-graph</Source>
+          <Name>PHASE-REF</Name>
+          <Value>B8-step-2</Value>
+        </Attribute>
+        <Attribute>
+          <Source>development-plan</Source>
+          <Name>NAME</Name>
+          <Value>agent-status</Value>
+        </Attribute>
+        <Attribute>
+          <Source>development-plan</Source>
+          <Name>TYPE</Name>
+          <Value>UI_COMPONENT</Value>
+        </Attribute>
+        <Attribute>
+          <Source>development-plan</Source>
+          <Name>STATUS</Name>
+          <Value>planned</Value>
+        </Attribute>
+        <Attribute>
+          <Source>development-plan</Source>
+          <Name>PHASE-REF</Name>
+          <Value>B8-step-2</Value>
+        </Attribute>
+      </LegacyAttributes>
+      <LegacySource>docs/knowledge-graph.xml: M-035; docs/development-plan.xml: M-035</LegacySource>
+    </M-035>
+    <M-036>
+      <Name>project-sidebar</Name>
+      <DisplayName>project-sidebar</DisplayName>
+      <Type>UI_COMPONENT</Type>
+      <Status>done</Status>
+      <PhaseRef>B9-step-1</PhaseRef>
+      <Summary>
+        Folder workspace sidebar. `mark folder/` opens project tree. Lazy-loaded
+        file tree, click-to-open, context menu (new/rename/delete/reveal).
+        Persisted per-project.
+      </Summary>
+      <PlannedPath>
+        src/renderer/src/components/sidebar/ProjectTree.vue,
+        src/renderer/src/store/project.js, src-tauri/src/m036_project.rs
+      </PlannedPath>
+      <Dependencies>
+        <M-002/>
+        <M-010/>
+        <M-020/>
+      </Dependencies>
+      <VerificationRef>V-M-036</VerificationRef>
+      <Contract>
+        <Purpose>
+          No explicit legacy module contract; use Summary and
+          LegacyKnowledgeDetail until the module is next changed.
+        </Purpose>
+        <Inputs/>
+        <Outputs/>
+        <Errors/>
+      </Contract>
+      <Interface/>
+      <Sources>
+        <KnowledgeGraphPath>
+          src/renderer/src/components/sidebar/ProjectTree.vue,
+          src/renderer/src/store/project.js, src-tauri/src/m036_project.rs
+        </KnowledgeGraphPath>
+      </Sources>
+      <Observability/>
+      <LegacyKnowledgeDetail>
+        <annotations>
+          <fn-loadProjectTree>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>PURPOSE</Name>
+                <Value>Recursive lazy directory listing with file icons</Value>
+              </Attribute>
+            </LegacyAttributes>
+          </fn-loadProjectTree>
+          <fn-openFileFromTree>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>PURPOSE</Name>
+                <Value>Click handler: open file in new tab from project tree</Value>
+              </Attribute>
+            </LegacyAttributes>
+          </fn-openFileFromTree>
+        </annotations>
+      </LegacyKnowledgeDetail>
+      <LegacyDevelopmentDetail>
+        <purpose>
+          Folder workspace sidebar. `mark folder/` opens project tree.
+          Lazy-loaded file tree, click-to-open, context menu
+          (new/rename/delete/reveal). Persisted per-project.
+        </purpose>
+        <path>
+          src/renderer/src/components/sidebar/ProjectTree.vue,
+          src/renderer/src/store/project.js, src-tauri/src/m036_project.rs
+        </path>
+      </LegacyDevelopmentDetail>
+      <LegacyAttributes>
+        <Attribute>
+          <Source>knowledge-graph</Source>
+          <Name>NAME</Name>
+          <Value>project-sidebar</Value>
+        </Attribute>
+        <Attribute>
+          <Source>knowledge-graph</Source>
+          <Name>TYPE</Name>
+          <Value>UI_COMPONENT</Value>
+        </Attribute>
+        <Attribute>
+          <Source>knowledge-graph</Source>
+          <Name>STATUS</Name>
+          <Value>done</Value>
+        </Attribute>
+        <Attribute>
+          <Source>knowledge-graph</Source>
+          <Name>PHASE-REF</Name>
+          <Value>B9-step-1</Value>
+        </Attribute>
+        <Attribute>
+          <Source>development-plan</Source>
+          <Name>NAME</Name>
+          <Value>project-sidebar</Value>
+        </Attribute>
+        <Attribute>
+          <Source>development-plan</Source>
+          <Name>TYPE</Name>
+          <Value>UI_COMPONENT</Value>
+        </Attribute>
+        <Attribute>
+          <Source>development-plan</Source>
+          <Name>STATUS</Name>
+          <Value>done</Value>
+        </Attribute>
+        <Attribute>
+          <Source>development-plan</Source>
+          <Name>PHASE-REF</Name>
+          <Value>B9-step-1</Value>
+        </Attribute>
+      </LegacyAttributes>
+      <LegacySource>docs/knowledge-graph.xml: M-036; docs/development-plan.xml: M-036</LegacySource>
+    </M-036>
+    <M-037>
+      <Name>wikilinks</Name>
+      <DisplayName>wikilinks</DisplayName>
+      <Type>CORE_LOGIC</Type>
+      <Status>deferred</Status>
+      <PhaseRef>B9-step-2</PhaseRef>
+      <Summary>
+        [[page-name]] wikilink syntax in muya with autocomplete. Backlinks panel
+        shows incoming links. File-level resolution within project.
+      </Summary>
+      <PlannedPath>
+        src/muya/lib/parser/rules/wikilink.js,
+        src/renderer/src/components/sidebar/BacklinksPanel.vue
+      </PlannedPath>
+      <Dependencies>
+        <M-012/>
+        <M-036/>
+      </Dependencies>
+      <VerificationRef>V-M-037</VerificationRef>
+      <Contract>
+        <Purpose>
+          No explicit legacy module contract; use Summary and
+          LegacyKnowledgeDetail until the module is next changed.
+        </Purpose>
+        <Inputs/>
+        <Outputs/>
+        <Errors/>
+      </Contract>
+      <Interface/>
+      <Sources>
+        <KnowledgeGraphPath>
+          src/muya/lib/parser/rules/wikilink.js,
+          src/renderer/src/components/sidebar/BacklinksPanel.vue
+        </KnowledgeGraphPath>
+      </Sources>
+      <Observability/>
+      <LegacyKnowledgeDetail>
+        <annotations>
+          <fn-wikilinkRule>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>PURPOSE</Name>
+                <Value>muya inline parser rule for [[ ]] syntax</Value>
+              </Attribute>
+            </LegacyAttributes>
+          </fn-wikilinkRule>
+          <fn-buildLinkIndex>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>PURPOSE</Name>
+                <Value>Index all wikilinks in project for backlinks resolution</Value>
+              </Attribute>
+            </LegacyAttributes>
+          </fn-buildLinkIndex>
+          <fn-BacklinksPanel>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>PURPOSE</Name>
+                <Value>Vue component: shows files linking to current file</Value>
+              </Attribute>
+            </LegacyAttributes>
+          </fn-BacklinksPanel>
+        </annotations>
+      </LegacyKnowledgeDetail>
+      <LegacyDevelopmentDetail>
+        <purpose>
+          [[page-name]] wikilink syntax in muya with autocomplete. Backlinks
+          panel shows incoming links. File-level resolution within project.
+        </purpose>
+        <path>
+          src/muya/lib/parser/rules/wikilink.js,
+          src/renderer/src/components/sidebar/BacklinksPanel.vue
+        </path>
+      </LegacyDevelopmentDetail>
+      <LegacyAttributes>
+        <Attribute>
+          <Source>knowledge-graph</Source>
+          <Name>NAME</Name>
+          <Value>wikilinks</Value>
+        </Attribute>
+        <Attribute>
+          <Source>knowledge-graph</Source>
+          <Name>TYPE</Name>
+          <Value>CORE_LOGIC</Value>
+        </Attribute>
+        <Attribute>
+          <Source>knowledge-graph</Source>
+          <Name>STATUS</Name>
+          <Value>deferred</Value>
+        </Attribute>
+        <Attribute>
+          <Source>knowledge-graph</Source>
+          <Name>PHASE-REF</Name>
+          <Value>B9-step-2</Value>
+        </Attribute>
+        <Attribute>
+          <Source>development-plan</Source>
+          <Name>NAME</Name>
+          <Value>wikilinks</Value>
+        </Attribute>
+        <Attribute>
+          <Source>development-plan</Source>
+          <Name>TYPE</Name>
+          <Value>CORE_LOGIC</Value>
+        </Attribute>
+        <Attribute>
+          <Source>development-plan</Source>
+          <Name>STATUS</Name>
+          <Value>deferred</Value>
+        </Attribute>
+        <Attribute>
+          <Source>development-plan</Source>
+          <Name>PHASE-REF</Name>
+          <Value>B9-step-2</Value>
+        </Attribute>
+      </LegacyAttributes>
+      <LegacySource>docs/knowledge-graph.xml: M-037; docs/development-plan.xml: M-037</LegacySource>
+    </M-037>
+    <M-038>
+      <Name>smart-paste-entry</Name>
+      <DisplayName>smart-paste-entry</DisplayName>
+      <Type>ENTRY_POINT</Type>
+      <Status>planned</Status>
+      <PhaseRef>B10-step-6</PhaseRef>
+      <Summary>
+        Clipboard-rich paste entry path that prefers markdown MIME when
+        available and otherwise routes rendered HTML through source detection,
+        normalization, and the existing Muya import path.
+      </Summary>
+      <PlannedPath>src/muya/lib/contentState/pasteCtrl.js, src/muya/lib/utils/smartPasteImport.js</PlannedPath>
+      <Dependencies>
+        <M-010/>
+        <M-011/>
+        <M-012/>
+        <M-039/>
+        <M-040/>
+        <M-042/>
+        <M-043/>
+      </Dependencies>
+      <VerificationRef>V-M-038</VerificationRef>
+      <Contract>
+        <Purpose>
+          No explicit legacy module contract; use Summary and
+          LegacyKnowledgeDetail until the module is next changed.
+        </Purpose>
+        <Inputs/>
+        <Outputs/>
+        <Errors/>
+      </Contract>
+      <Interface/>
+      <Sources>
+        <KnowledgeGraphPath>src/muya/lib/contentState/pasteCtrl.js, src/muya/lib/utils/smartPasteImport.js</KnowledgeGraphPath>
+      </Sources>
+      <Observability/>
+      <LegacyKnowledgeDetail>
+        <annotations>
+          <fn-smartPasteEntry>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>PURPOSE</Name>
+                <Value>Entry gate for paste event; chooses markdown/html/plain import path</Value>
+              </Attribute>
+            </LegacyAttributes>
+          </fn-smartPasteEntry>
+          <fn-smartPasteFallback>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>PURPOSE</Name>
+                <Value>Fallback from unsafe/unrecoverable rich HTML to markdown/plain text</Value>
+              </Attribute>
+            </LegacyAttributes>
+          </fn-smartPasteFallback>
+        </annotations>
+      </LegacyKnowledgeDetail>
+      <LegacyDevelopmentDetail>
+        <purpose>
+          Clipboard-rich paste entry path that prefers markdown MIME when
+          available and otherwise routes rendered HTML through source detection,
+          normalization, and existing Muya import without regressing plain-text,
+          image, table-cell, or code-block paste behavior.
+        </purpose>
+        <path>src/muya/lib/contentState/pasteCtrl.js, src/muya/lib/utils/smartPasteImport.js</path>
+      </LegacyDevelopmentDetail>
+      <LegacyAttributes>
+        <Attribute>
+          <Source>knowledge-graph</Source>
+          <Name>NAME</Name>
+          <Value>smart-paste-entry</Value>
+        </Attribute>
+        <Attribute>
+          <Source>knowledge-graph</Source>
+          <Name>TYPE</Name>
+          <Value>ENTRY_POINT</Value>
+        </Attribute>
+        <Attribute>
+          <Source>knowledge-graph</Source>
+          <Name>STATUS</Name>
+          <Value>planned</Value>
+        </Attribute>
+        <Attribute>
+          <Source>knowledge-graph</Source>
+          <Name>PHASE-REF</Name>
+          <Value>B10-step-6</Value>
+        </Attribute>
+        <Attribute>
+          <Source>development-plan</Source>
+          <Name>NAME</Name>
+          <Value>smart-paste-entry</Value>
+        </Attribute>
+        <Attribute>
+          <Source>development-plan</Source>
+          <Name>TYPE</Name>
+          <Value>ENTRY_POINT</Value>
+        </Attribute>
+        <Attribute>
+          <Source>development-plan</Source>
+          <Name>STATUS</Name>
+          <Value>planned</Value>
+        </Attribute>
+        <Attribute>
+          <Source>development-plan</Source>
+          <Name>PHASE-REF</Name>
+          <Value>B10-step-6</Value>
+        </Attribute>
+      </LegacyAttributes>
+      <LegacySource>docs/knowledge-graph.xml: M-038; docs/development-plan.xml: M-038</LegacySource>
+    </M-038>
+    <M-039>
+      <Name>clipboard-payload</Name>
+      <DisplayName>clipboard-payload</DisplayName>
+      <Type>UTILITY</Type>
+      <Status>planned</Status>
+      <PhaseRef>B10-step-1</PhaseRef>
+      <Summary>
+        Normalize clipboard MIME payloads into a typed shape across
+        markdown/html/plain/file hints while preserving source metadata and CRLF
+        cleanup without logging clipboard body content.
+      </Summary>
+      <PlannedPath>src/muya/lib/utils/clipboardPayload.js</PlannedPath>
+      <Dependencies>
+        <M-011/>
+      </Dependencies>
+      <VerificationRef>V-M-039</VerificationRef>
+      <Contract>
+        <Purpose>
+          No explicit legacy module contract; use Summary and
+          LegacyKnowledgeDetail until the module is next changed.
+        </Purpose>
+        <Inputs/>
+        <Outputs/>
+        <Errors/>
+      </Contract>
+      <Interface/>
+      <Sources>
+        <KnowledgeGraphPath>src/muya/lib/utils/clipboardPayload.js</KnowledgeGraphPath>
+      </Sources>
+      <Observability/>
+      <LegacyKnowledgeDetail>
+        <annotations>
+          <fn-readClipboardPayload>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>PURPOSE</Name>
+                <Value>
+                  Read markdown/html/plain/file hints from clipboard event and
+                  normalize line endings
+                </Value>
+              </Attribute>
+            </LegacyAttributes>
+          </fn-readClipboardPayload>
+          <type-ClipboardPayload>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>PURPOSE</Name>
+                <Value>Typed clipboard envelope: markdown/html/plain/file hints + presence metadata</Value>
+              </Attribute>
+            </LegacyAttributes>
+          </type-ClipboardPayload>
+        </annotations>
+      </LegacyKnowledgeDetail>
+      <LegacyDevelopmentDetail>
+        <purpose>
+          Normalize clipboard MIME payloads into a typed shape across
+          `text/markdown`, `text/x-markdown`, `text/html`, `text/plain`, and
+          file/image hints; clean CRLF and record only redacted source metadata.
+        </purpose>
+        <path>src/muya/lib/utils/clipboardPayload.js, tests/fixtures/clipboard/</path>
+      </LegacyDevelopmentDetail>
+      <LegacyAttributes>
+        <Attribute>
+          <Source>knowledge-graph</Source>
+          <Name>NAME</Name>
+          <Value>clipboard-payload</Value>
+        </Attribute>
+        <Attribute>
+          <Source>knowledge-graph</Source>
+          <Name>TYPE</Name>
+          <Value>UTILITY</Value>
+        </Attribute>
+        <Attribute>
+          <Source>knowledge-graph</Source>
+          <Name>STATUS</Name>
+          <Value>planned</Value>
+        </Attribute>
+        <Attribute>
+          <Source>knowledge-graph</Source>
+          <Name>PHASE-REF</Name>
+          <Value>B10-step-1</Value>
+        </Attribute>
+        <Attribute>
+          <Source>development-plan</Source>
+          <Name>NAME</Name>
+          <Value>clipboard-payload</Value>
+        </Attribute>
+        <Attribute>
+          <Source>development-plan</Source>
+          <Name>TYPE</Name>
+          <Value>UTILITY</Value>
+        </Attribute>
+        <Attribute>
+          <Source>development-plan</Source>
+          <Name>STATUS</Name>
+          <Value>planned</Value>
+        </Attribute>
+        <Attribute>
+          <Source>development-plan</Source>
+          <Name>PHASE-REF</Name>
+          <Value>B10-step-1</Value>
+        </Attribute>
+      </LegacyAttributes>
+      <LegacySource>docs/knowledge-graph.xml: M-039; docs/development-plan.xml: M-039</LegacySource>
+    </M-039>
+    <M-040>
+      <Name>paste-source-detector</Name>
+      <DisplayName>paste-source-detector</DisplayName>
+      <Type>CORE_LOGIC</Type>
+      <Status>planned</Status>
+      <PhaseRef>B10-step-2</PhaseRef>
+      <Summary>
+        Detect source-specific clipboard HTML signatures for Claude-in-VS-Code,
+        ChatGPT, GitHub, Notion, and generic web content before normalization
+        strips identifying structure.
+      </Summary>
+      <PlannedPath>src/muya/lib/utils/pasteSourceDetector.js</PlannedPath>
+      <Dependencies>
+        <M-039/>
+      </Dependencies>
+      <VerificationRef>V-M-040</VerificationRef>
+      <Contract>
+        <Purpose>
+          No explicit legacy module contract; use Summary and
+          LegacyKnowledgeDetail until the module is next changed.
+        </Purpose>
+        <Inputs/>
+        <Outputs/>
+        <Errors/>
+      </Contract>
+      <Interface/>
+      <Sources>
+        <KnowledgeGraphPath>src/muya/lib/utils/pasteSourceDetector.js</KnowledgeGraphPath>
+      </Sources>
+      <Observability/>
+      <LegacyKnowledgeDetail>
+        <annotations>
+          <fn-detectPasteSource>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>PURPOSE</Name>
+                <Value>Classify raw clipboard HTML/text into known source families or generic fallback</Value>
+              </Attribute>
+            </LegacyAttributes>
+          </fn-detectPasteSource>
+          <type-PasteSource>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>PURPOSE</Name>
+                <Value>String-literal source id used to select adapter heuristics</Value>
+              </Attribute>
+            </LegacyAttributes>
+          </type-PasteSource>
+        </annotations>
+      </LegacyKnowledgeDetail>
+      <LegacyDevelopmentDetail>
+        <purpose>
+          Detect rich clipboard HTML sources such as Claude-in-VS-Code, ChatGPT,
+          GitHub, Notion, and generic web content using raw clipboard signatures
+          before destructive normalization.
+        </purpose>
+        <path>src/muya/lib/utils/pasteSourceDetector.js, tests/fixtures/clipboard/</path>
+      </LegacyDevelopmentDetail>
+      <LegacyAttributes>
+        <Attribute>
+          <Source>knowledge-graph</Source>
+          <Name>NAME</Name>
+          <Value>paste-source-detector</Value>
+        </Attribute>
+        <Attribute>
+          <Source>knowledge-graph</Source>
+          <Name>TYPE</Name>
+          <Value>CORE_LOGIC</Value>
+        </Attribute>
+        <Attribute>
+          <Source>knowledge-graph</Source>
+          <Name>STATUS</Name>
+          <Value>planned</Value>
+        </Attribute>
+        <Attribute>
+          <Source>knowledge-graph</Source>
+          <Name>PHASE-REF</Name>
+          <Value>B10-step-2</Value>
+        </Attribute>
+        <Attribute>
+          <Source>development-plan</Source>
+          <Name>NAME</Name>
+          <Value>paste-source-detector</Value>
+        </Attribute>
+        <Attribute>
+          <Source>development-plan</Source>
+          <Name>TYPE</Name>
+          <Value>CORE_LOGIC</Value>
+        </Attribute>
+        <Attribute>
+          <Source>development-plan</Source>
+          <Name>STATUS</Name>
+          <Value>planned</Value>
+        </Attribute>
+        <Attribute>
+          <Source>development-plan</Source>
+          <Name>PHASE-REF</Name>
+          <Value>B10-step-2</Value>
+        </Attribute>
+      </LegacyAttributes>
+      <LegacySource>docs/knowledge-graph.xml: M-040; docs/development-plan.xml: M-040</LegacySource>
+    </M-040>
+    <M-041>
+      <Name>paste-source-adapters</Name>
+      <DisplayName>paste-source-adapters</DisplayName>
+      <Type>CORE_LOGIC</Type>
+      <Status>planned</Status>
+      <PhaseRef>B10-step-3</PhaseRef>
+      <Summary>
+        Source-specific DOM rewrite layer that restores semantic Markdown
+        structures from dirty chat/webview HTML and strips source-only chrome.
+      </Summary>
+      <PlannedPath>src/muya/lib/utils/pasteSourceAdapters.js</PlannedPath>
+      <Dependencies>
+        <M-010/>
+        <M-040/>
+      </Dependencies>
+      <VerificationRef>V-M-041</VerificationRef>
+      <Contract>
+        <Purpose>
+          No explicit legacy module contract; use Summary and
+          LegacyKnowledgeDetail until the module is next changed.
+        </Purpose>
+        <Inputs/>
+        <Outputs/>
+        <Errors/>
+      </Contract>
+      <Interface/>
+      <Sources>
+        <KnowledgeGraphPath>src/muya/lib/utils/pasteSourceAdapters.js</KnowledgeGraphPath>
+      </Sources>
+      <Observability/>
+      <LegacyKnowledgeDetail>
+        <annotations>
+          <fn-restoreInlineCode>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>PURPOSE</Name>
+                <Value>
+                  Recover semantic inline code from monospace span wrappers
+                  inside prose or list items
+                </Value>
+              </Attribute>
+            </LegacyAttributes>
+          </fn-restoreInlineCode>
+          <fn-stripChatChrome>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>PURPOSE</Name>
+                <Value>
+                  Remove copy buttons, citation chips, line numbers, hover
+                  wrappers, and similar non-content nodes
+                </Value>
+              </Attribute>
+            </LegacyAttributes>
+          </fn-stripChatChrome>
+        </annotations>
+      </LegacyKnowledgeDetail>
+      <LegacyDevelopmentDetail>
+        <purpose>
+          Apply source-specific DOM rewrites that recover semantic Markdown
+          structures from chat/webview HTML: inline code, fenced code, nested
+          lists, task items, tables, and chat-only chrome stripping.
+        </purpose>
+        <path>src/muya/lib/utils/pasteSourceAdapters.js</path>
+      </LegacyDevelopmentDetail>
+      <LegacyAttributes>
+        <Attribute>
+          <Source>knowledge-graph</Source>
+          <Name>NAME</Name>
+          <Value>paste-source-adapters</Value>
+        </Attribute>
+        <Attribute>
+          <Source>knowledge-graph</Source>
+          <Name>TYPE</Name>
+          <Value>CORE_LOGIC</Value>
+        </Attribute>
+        <Attribute>
+          <Source>knowledge-graph</Source>
+          <Name>STATUS</Name>
+          <Value>planned</Value>
+        </Attribute>
+        <Attribute>
+          <Source>knowledge-graph</Source>
+          <Name>PHASE-REF</Name>
+          <Value>B10-step-3</Value>
+        </Attribute>
+        <Attribute>
+          <Source>development-plan</Source>
+          <Name>NAME</Name>
+          <Value>paste-source-adapters</Value>
+        </Attribute>
+        <Attribute>
+          <Source>development-plan</Source>
+          <Name>TYPE</Name>
+          <Value>CORE_LOGIC</Value>
+        </Attribute>
+        <Attribute>
+          <Source>development-plan</Source>
+          <Name>STATUS</Name>
+          <Value>planned</Value>
+        </Attribute>
+        <Attribute>
+          <Source>development-plan</Source>
+          <Name>PHASE-REF</Name>
+          <Value>B10-step-3</Value>
+        </Attribute>
+      </LegacyAttributes>
+      <LegacySource>docs/knowledge-graph.xml: M-041; docs/development-plan.xml: M-041</LegacySource>
+    </M-041>
+    <M-042>
+      <Name>paste-html-normalizer</Name>
+      <DisplayName>paste-html-normalizer</DisplayName>
+      <Type>CORE_LOGIC</Type>
+      <Status>planned</Status>
+      <PhaseRef>B10-step-4</PhaseRef>
+      <Summary>
+        Own the safe rich-paste pipeline `detect -&gt; sanitize -&gt; adapt
+        -&gt; final sanitize`, preserving image/local-path transform
+        compatibility and rejecting unsafe schemes before import.
+      </Summary>
+      <PlannedPath>src/muya/lib/utils/pasteHtmlNormalizer.js</PlannedPath>
+      <Dependencies>
+        <M-010/>
+        <M-012/>
+        <M-041/>
+      </Dependencies>
+      <VerificationRef>V-M-042</VerificationRef>
+      <Contract>
+        <Purpose>
+          No explicit legacy module contract; use Summary and
+          LegacyKnowledgeDetail until the module is next changed.
+        </Purpose>
+        <Inputs/>
+        <Outputs/>
+        <Errors/>
+      </Contract>
+      <Interface/>
+      <Sources>
+        <KnowledgeGraphPath>src/muya/lib/utils/pasteHtmlNormalizer.js</KnowledgeGraphPath>
+      </Sources>
+      <Observability/>
+      <LegacyKnowledgeDetail>
+        <annotations>
+          <fn-normalizePasteHtml>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>PURPOSE</Name>
+                <Value>
+                  Run detection-aware sanitize/adapt/final-sanitize pipeline
+                  over rich clipboard HTML
+                </Value>
+              </Attribute>
+            </LegacyAttributes>
+          </fn-normalizePasteHtml>
+          <fn-applyFinalSanitize>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>PURPOSE</Name>
+                <Value>Ensure source adapters cannot reintroduce unsafe DOM after semantic recovery</Value>
+              </Attribute>
+            </LegacyAttributes>
+          </fn-applyFinalSanitize>
+        </annotations>
+      </LegacyKnowledgeDetail>
+      <LegacyDevelopmentDetail>
+        <purpose>
+          Own the safe rich-paste pipeline `detect -&gt; sanitize -&gt; adapt
+          -&gt; final sanitize`, preserving existing image/local-path behavior
+          and rejecting unsafe schemes before any import path can read them.
+        </purpose>
+        <path>src/muya/lib/utils/pasteHtmlNormalizer.js</path>
+      </LegacyDevelopmentDetail>
+      <LegacyAttributes>
+        <Attribute>
+          <Source>knowledge-graph</Source>
+          <Name>NAME</Name>
+          <Value>paste-html-normalizer</Value>
+        </Attribute>
+        <Attribute>
+          <Source>knowledge-graph</Source>
+          <Name>TYPE</Name>
+          <Value>CORE_LOGIC</Value>
+        </Attribute>
+        <Attribute>
+          <Source>knowledge-graph</Source>
+          <Name>STATUS</Name>
+          <Value>planned</Value>
+        </Attribute>
+        <Attribute>
+          <Source>knowledge-graph</Source>
+          <Name>PHASE-REF</Name>
+          <Value>B10-step-4</Value>
+        </Attribute>
+        <Attribute>
+          <Source>development-plan</Source>
+          <Name>NAME</Name>
+          <Value>paste-html-normalizer</Value>
+        </Attribute>
+        <Attribute>
+          <Source>development-plan</Source>
+          <Name>TYPE</Name>
+          <Value>CORE_LOGIC</Value>
+        </Attribute>
+        <Attribute>
+          <Source>development-plan</Source>
+          <Name>STATUS</Name>
+          <Value>planned</Value>
+        </Attribute>
+        <Attribute>
+          <Source>development-plan</Source>
+          <Name>PHASE-REF</Name>
+          <Value>B10-step-4</Value>
+        </Attribute>
+      </LegacyAttributes>
+      <LegacySource>docs/knowledge-graph.xml: M-042; docs/development-plan.xml: M-042</LegacySource>
+    </M-042>
+    <M-043>
+      <Name>smart-paste-import-bridge</Name>
+      <DisplayName>smart-paste-import-bridge</DisplayName>
+      <Type>CORE_LOGIC</Type>
+      <Status>planned</Status>
+      <PhaseRef>B10-step-5</PhaseRef>
+      <Summary>
+        Bridge normalized payloads back into the current `htmlToMarkdown() -&gt;
+        markdownToState()` path and centralize fallback to markdown/plain text
+        while preserving existing rich-paste regressions such as PR-4150.
+      </Summary>
+      <PlannedPath>src/muya/lib/utils/smartPasteImport.js, src/muya/lib/utils/importMarkdown.js</PlannedPath>
+      <Dependencies>
+        <M-011/>
+        <M-012/>
+        <M-042/>
+      </Dependencies>
+      <VerificationRef>V-M-043</VerificationRef>
+      <Contract>
+        <Purpose>
+          No explicit legacy module contract; use Summary and
+          LegacyKnowledgeDetail until the module is next changed.
+        </Purpose>
+        <Inputs/>
+        <Outputs/>
+        <Errors/>
+      </Contract>
+      <Interface/>
+      <Sources>
+        <KnowledgeGraphPath>src/muya/lib/utils/smartPasteImport.js, src/muya/lib/utils/importMarkdown.js</KnowledgeGraphPath>
+      </Sources>
+      <Observability/>
+      <LegacyKnowledgeDetail>
+        <annotations>
+          <fn-importSmartPaste>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>PURPOSE</Name>
+                <Value>
+                  Convert normalized payloads into markdown or Muya state using
+                  the current import pipeline
+                </Value>
+              </Attribute>
+            </LegacyAttributes>
+          </fn-importSmartPaste>
+          <fn-preserveImageTransformContract>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>PURPOSE</Name>
+                <Value>Keep HTML-image localization contract reachable after rich-paste normalization</Value>
+              </Attribute>
+            </LegacyAttributes>
+          </fn-preserveImageTransformContract>
+        </annotations>
+      </LegacyKnowledgeDetail>
+      <LegacyDevelopmentDetail>
+        <purpose>
+          Bridge normalized clipboard payloads back into the current
+          `htmlToMarkdown() -&gt; markdownToState()` path, preserve `PR-4150`
+          image-transform invariants, and centralize fallback from
+          unsafe/unrecoverable HTML to markdown/plain text.
+        </purpose>
+        <path>src/muya/lib/utils/smartPasteImport.js, src/muya/lib/utils/importMarkdown.js</path>
+      </LegacyDevelopmentDetail>
+      <LegacyAttributes>
+        <Attribute>
+          <Source>knowledge-graph</Source>
+          <Name>NAME</Name>
+          <Value>smart-paste-import-bridge</Value>
+        </Attribute>
+        <Attribute>
+          <Source>knowledge-graph</Source>
+          <Name>TYPE</Name>
+          <Value>CORE_LOGIC</Value>
+        </Attribute>
+        <Attribute>
+          <Source>knowledge-graph</Source>
+          <Name>STATUS</Name>
+          <Value>planned</Value>
+        </Attribute>
+        <Attribute>
+          <Source>knowledge-graph</Source>
+          <Name>PHASE-REF</Name>
+          <Value>B10-step-5</Value>
+        </Attribute>
+        <Attribute>
+          <Source>development-plan</Source>
+          <Name>NAME</Name>
+          <Value>smart-paste-import-bridge</Value>
+        </Attribute>
+        <Attribute>
+          <Source>development-plan</Source>
+          <Name>TYPE</Name>
+          <Value>CORE_LOGIC</Value>
+        </Attribute>
+        <Attribute>
+          <Source>development-plan</Source>
+          <Name>STATUS</Name>
+          <Value>planned</Value>
+        </Attribute>
+        <Attribute>
+          <Source>development-plan</Source>
+          <Name>PHASE-REF</Name>
+          <Value>B10-step-5</Value>
+        </Attribute>
+      </LegacyAttributes>
+      <LegacySource>docs/knowledge-graph.xml: M-043; docs/development-plan.xml: M-043</LegacySource>
+    </M-043>
+    <M-044>
+      <Name>clipboard-fixture-capture-tool</Name>
+      <DisplayName>clipboard-fixture-capture-tool</DisplayName>
+      <Type>UTILITY</Type>
+      <Status>done</Status>
+      <PhaseRef>B10-step-0</PhaseRef>
+      <Summary>
+        Standalone browser tool that captures browser-visible clipboard payloads
+        from rendered chat and web surfaces, exports deterministic JSON
+        fixtures, opens prefilled GitHub issues, and removes the need for manual
+        transcription or platform-specific dev setup during Smart Paste fixture
+        acquisition.
+      </Summary>
+      <PlannedPath>
+        tools/clipboard-capture/index.html, tools/clipboard-capture/app.js,
+        tools/clipboard-capture/capture-core.browser.js,
+        tools/clipboard-capture/capture-core.js,
+        tests/renderer/util/clipboard-fixture-capture.test.js
+      </PlannedPath>
+      <Dependencies/>
+      <VerificationRef>V-M-044</VerificationRef>
+      <Contract>
+        <Purpose>
+          No explicit legacy module contract; use Summary and
+          LegacyKnowledgeDetail until the module is next changed.
+        </Purpose>
+        <Inputs/>
+        <Outputs/>
+        <Errors/>
+      </Contract>
+      <Interface/>
+      <Sources>
+        <KnowledgeGraphPath>
+          tools/clipboard-capture/index.html, tools/clipboard-capture/app.js,
+          tools/clipboard-capture/capture-core.browser.js,
+          tools/clipboard-capture/capture-core.js,
+          tests/renderer/util/clipboard-fixture-capture.test.js
+        </KnowledgeGraphPath>
+      </Sources>
+      <Observability/>
+      <LegacyKnowledgeDetail>
+        <annotations>
+          <fn-buildCaptureRecord>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>PURPOSE</Name>
+                <Value>Build a deterministic JSON-safe capture record from a DataTransfer-like payload</Value>
+              </Attribute>
+            </LegacyAttributes>
+          </fn-buildCaptureRecord>
+          <fn-handlePasteCapture>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>PURPOSE</Name>
+                <Value>
+                  Intercept browser paste events, persist capture history, and
+                  expose download actions
+                </Value>
+              </Attribute>
+            </LegacyAttributes>
+          </fn-handlePasteCapture>
+          <fn-exportFixture>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>PURPOSE</Name>
+                <Value>
+                  Serialize one capture or full history as a JSON download
+                  suitable for committed test fixtures
+                </Value>
+              </Attribute>
+            </LegacyAttributes>
+          </fn-exportFixture>
+          <fn-buildIssueUrl>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>PURPOSE</Name>
+                <Value>
+                  Open a compact prefilled GitHub issue while leaving the full
+                  fixture packet for clipboard paste
+                </Value>
+              </Attribute>
+            </LegacyAttributes>
+          </fn-buildIssueUrl>
+        </annotations>
+      </LegacyKnowledgeDetail>
+      <LegacyDevelopmentDetail>
+        <purpose>
+          Zero-build cross-platform browser tool for harvesting clipboard
+          fixtures from rendered chat and web surfaces, including
+          browser-visible markdown/html/plain/rtf payloads plus item/file
+          metadata and GitHub issue handoff helpers, so Smart Paste work is
+          grounded in committed real-world fixtures instead of screenshots or
+          prose descriptions.
+        </purpose>
+        <path>
+          tools/clipboard-capture/index.html, tools/clipboard-capture/app.js,
+          tools/clipboard-capture/capture-core.browser.js,
+          tools/clipboard-capture/capture-core.js,
+          tests/renderer/util/clipboard-fixture-capture.test.js
+        </path>
+      </LegacyDevelopmentDetail>
+      <LegacyAttributes>
+        <Attribute>
+          <Source>knowledge-graph</Source>
+          <Name>NAME</Name>
+          <Value>clipboard-fixture-capture-tool</Value>
+        </Attribute>
+        <Attribute>
+          <Source>knowledge-graph</Source>
+          <Name>TYPE</Name>
+          <Value>UTILITY</Value>
+        </Attribute>
+        <Attribute>
+          <Source>knowledge-graph</Source>
+          <Name>STATUS</Name>
+          <Value>done</Value>
+        </Attribute>
+        <Attribute>
+          <Source>knowledge-graph</Source>
+          <Name>PHASE-REF</Name>
+          <Value>B10-step-0</Value>
+        </Attribute>
+        <Attribute>
+          <Source>development-plan</Source>
+          <Name>NAME</Name>
+          <Value>clipboard-fixture-capture-tool</Value>
+        </Attribute>
+        <Attribute>
+          <Source>development-plan</Source>
+          <Name>TYPE</Name>
+          <Value>UTILITY</Value>
+        </Attribute>
+        <Attribute>
+          <Source>development-plan</Source>
+          <Name>STATUS</Name>
+          <Value>done</Value>
+        </Attribute>
+        <Attribute>
+          <Source>development-plan</Source>
+          <Name>PHASE-REF</Name>
+          <Value>B10-step-0</Value>
+        </Attribute>
+      </LegacyAttributes>
+      <LegacySource>docs/knowledge-graph.xml: M-044; docs/development-plan.xml: M-044</LegacySource>
+    </M-044>
+    <M-045>
+      <Name>ExtensionHost</Name>
+      <DisplayName>ExtensionHost</DisplayName>
+      <Type>CORE_LOGIC</Type>
+      <Status>planned</Status>
+      <Layer>APPLICATION</Layer>
+      <PhaseRef>B11-ext-host</PhaseRef>
+      <Summary>
+        Extension host module: manifest parsing/validation, extension discovery
+        (scan installed bundles), registry (enable/disable, state persistence),
+        auth (keychain-based shared secret via M-019), invocation (HTTP POST to
+        127.0.0.1 per D1), and live document server (axum HTTP endpoint for
+        stream.document). First consumer: TokMo meeting intelligence extension.
+      </Summary>
+      <Path>src-tauri/src/m045_ext/mod.rs</Path>
+      <Dependencies>
+        <M-001/>
+        <M-005/>
+        <M-019/>
+      </Dependencies>
+      <VerificationRef>V-M-045</VerificationRef>
+      <Contract>
+        <Purpose>
+          Extension host: manifest parsing, discovery, registry, keychain auth,
+          HTTP invocation, and live document server. Enables Mark to host
+          external extensions (first consumer: TokMo meeting intelligence).
+        </Purpose>
+        <Inputs>
+          <Input>
+            <Name>extension_dir</Name>
+            <Type>PathBuf</Type>
+            <Description>
+              Extension bundle scan root (~/Library/Application
+              Support/com.xronocode.mark/extensions/)
+            </Description>
+          </Input>
+          <Input>
+            <Name>invoke_request</Name>
+            <Type>ExtInvokeRequest</Type>
+            <Description>{ extension_id, endpoint, payload }</Description>
+          </Input>
+        </Inputs>
+        <Outputs>
+          <Output>
+            <Name>discovered</Name>
+            <Type>Vec&lt;ExtensionManifest&gt;</Type>
+          </Output>
+          <Output>
+            <Name>invoke_response</Name>
+            <Type>ExtInvokeResponse</Type>
+            <Description>{ status, body, elapsed_ms }</Description>
+          </Output>
+        </Outputs>
+        <Errors>
+          <Error>
+            <Code>MT_EXT_MANIFEST_INVALID</Code>
+            <Description>Manifest parse or validation failure</Description>
+          </Error>
+          <Error>
+            <Code>MT_EXT_NOT_FOUND</Code>
+            <Description>Extension ID not in registry</Description>
+          </Error>
+          <Error>
+            <Code>MT_EXT_DISABLED</Code>
+            <Description>Invoke attempted on disabled extension</Description>
+          </Error>
+          <Error>
+            <Code>MT_EXT_INVOKE_TIMEOUT</Code>
+            <Description>HTTP POST to extension exceeded timeout</Description>
+          </Error>
+          <Error>
+            <Code>MT_EXT_AUTH_FAILED</Code>
+            <Description>Auth secret mismatch or keychain error</Description>
+          </Error>
+          <Error>
+            <Code>MT_EXT_LIVE_SERVER_BIND</Code>
+            <Description>axum server failed to bind 127.0.0.1 port</Description>
+          </Error>
+        </Errors>
+      </Contract>
+      <Interface>
+        <fn-mt_ext_discover>
+          <LegacyAttributes>
+            <Attribute>
+              <Name>PURPOSE</Name>
+              <Value>
+                Scan extension directories, parse manifests, return discovered
+                list with validation status
+              </Value>
+            </Attribute>
+          </LegacyAttributes>
+        </fn-mt_ext_discover>
+        <fn-mt_ext_enable>
+          <LegacyAttributes>
+            <Attribute>
+              <Name>PURPOSE</Name>
+              <Value>
+                Enable extension by ID; generate auth secret via M-019; persist
+                state via M-005; emit mt::ext-state-changed
+              </Value>
+            </Attribute>
+          </LegacyAttributes>
+        </fn-mt_ext_enable>
+        <fn-mt_ext_disable>
+          <LegacyAttributes>
+            <Attribute>
+              <Name>PURPOSE</Name>
+              <Value>
+                Disable extension by ID; revoke auth secret; persist state; emit
+                mt::ext-state-changed
+              </Value>
+            </Attribute>
+          </LegacyAttributes>
+        </fn-mt_ext_disable>
+        <fn-mt_ext_invoke>
+          <LegacyAttributes>
+            <Attribute>
+              <Name>PURPOSE</Name>
+              <Value>
+                HTTP POST to 127.0.0.1:{port}/{endpoint} with Authorization
+                header; enforce timeout; return response
+              </Value>
+            </Attribute>
+          </LegacyAttributes>
+        </fn-mt_ext_invoke>
+        <fn-mt_ext_list>
+          <LegacyAttributes>
+            <Attribute>
+              <Name>PURPOSE</Name>
+              <Value>Return current registry state: discovered + enabled/disabled + health</Value>
+            </Attribute>
+          </LegacyAttributes>
+        </fn-mt_ext_list>
+        <fn-apply_section_patch>
+          <LegacyAttributes>
+            <Attribute>
+              <Name>PURPOSE</Name>
+              <Value>
+                Pure function: apply one patch op (append|replace, default
+                replace, replace_section synonym) to a named section in the
+                ordered section list; Err on unknown op or unknown section
+              </Value>
+            </Attribute>
+          </LegacyAttributes>
+        </fn-apply_section_patch>
+        <fn-decide_open>
+          <LegacyAttributes>
+            <Attribute>
+              <Name>PURPOSE</Name>
+              <Value>
+                Pure function: /stream/open vs active session — FreshOpen |
+                ReplaceSameSession (wholesale replace, resync path) | Conflict
+                (different session_id, 409)
+              </Value>
+            </Attribute>
+          </LegacyAttributes>
+        </fn-decide_open>
+        <type-OpenDecision>
+          <LegacyAttributes>
+            <Attribute>
+              <Name>PURPOSE</Name>
+              <Value>
+                FreshOpen | ReplaceSameSession | Conflict — outcome of
+                decide_open for an incoming /stream/open
+              </Value>
+            </Attribute>
+          </LegacyAttributes>
+        </type-OpenDecision>
+        <fn-rebuild_document_md>
+          <LegacyAttributes>
+            <Attribute>
+              <Name>PURPOSE</Name>
+              <Value>
+                Pure function: concatenate non-empty sections in declared order
+                separated by blank lines; never adds synthetic headers
+              </Value>
+            </Attribute>
+          </LegacyAttributes>
+        </fn-rebuild_document_md>
+      </Interface>
+      <Sources>
+        <Source>
+          src-tauri/src/m045_ext/mod.rs, manifest.rs, discovery.rs, registry.rs,
+          auth.rs, invoke.rs, live_server.rs, live_endpoint.rs, live_bridge.rs
+        </Source>
+        <KnowledgeGraphPath>src-tauri/src/m045_ext/mod.rs</KnowledgeGraphPath>
+        <Tests>src-tauri/src/m045_ext/tests.rs</Tests>
+      </Sources>
+      <Observability>
+        <LogPrefix>[ExtHost]</LogPrefix>
+        <CriticalBlock>BLOCK_EXT_DISCOVER</CriticalBlock>
+        <CriticalBlock>BLOCK_EXT_MANIFEST_PARSED</CriticalBlock>
+        <CriticalBlock>BLOCK_EXT_ENABLE</CriticalBlock>
+        <CriticalBlock>BLOCK_EXT_DISABLE</CriticalBlock>
+        <CriticalBlock>BLOCK_EXT_INVOKE</CriticalBlock>
+        <CriticalBlock>BLOCK_EXT_LIVE_SERVER_START</CriticalBlock>
+        <CriticalBlock>BLOCK_EXT_AUTH_GENERATED</CriticalBlock>
+      </Observability>
+      <LegacyKnowledgeDetail>
+        <sub-modules>
+          <sub-module>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>name</Name>
+                <Value>m045_manifest</Value>
+              </Attribute>
+              <Attribute>
+                <Name>path</Name>
+                <Value>src-tauri/src/m045_ext/manifest.rs</Value>
+              </Attribute>
+              <Attribute>
+                <Name>purpose</Name>
+                <Value>
+                  Parse and validate extension manifest (YAML); enforce required
+                  fields (id, name, version, capabilities, port); reject unknown
+                  capabilities; size and depth guards
+                </Value>
+              </Attribute>
+            </LegacyAttributes>
+          </sub-module>
+          <sub-module>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>name</Name>
+                <Value>m045_discovery</Value>
+              </Attribute>
+              <Attribute>
+                <Name>path</Name>
+                <Value>src-tauri/src/m045_ext/discovery.rs</Value>
+              </Attribute>
+              <Attribute>
+                <Name>purpose</Name>
+                <Value>
+                  Scan extension directories (~/Library/Application
+                  Support/com.xronocode.mark/extensions/) for valid manifest
+                  files; return discovered extension list with validation status
+                </Value>
+              </Attribute>
+            </LegacyAttributes>
+          </sub-module>
+          <sub-module>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>name</Name>
+                <Value>m045_registry</Value>
+              </Attribute>
+              <Attribute>
+                <Name>path</Name>
+                <Value>src-tauri/src/m045_ext/registry.rs</Value>
+              </Attribute>
+              <Attribute>
+                <Name>purpose</Name>
+                <Value>
+                  Enable/disable extensions; persist enabled state via M-005
+                  prefs; maintain in-memory ExtensionState map; emit
+                  state-change events to renderer
+                </Value>
+              </Attribute>
+            </LegacyAttributes>
+          </sub-module>
+          <sub-module>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>name</Name>
+                <Value>m045_auth</Value>
+              </Attribute>
+              <Attribute>
+                <Name>path</Name>
+                <Value>src-tauri/src/m045_ext/auth.rs</Value>
+              </Attribute>
+              <Attribute>
+                <Name>purpose</Name>
+                <Value>
+                  Generate, store, and validate per-extension shared secrets via
+                  M-019 datacenter keychain; rotate on re-enable; verify
+                  Authorization header on inbound requests
+                </Value>
+              </Attribute>
+            </LegacyAttributes>
+          </sub-module>
+          <sub-module>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>name</Name>
+                <Value>m045_invoke</Value>
+              </Attribute>
+              <Attribute>
+                <Name>path</Name>
+                <Value>src-tauri/src/m045_ext/invoke.rs</Value>
+              </Attribute>
+              <Attribute>
+                <Name>purpose</Name>
+                <Value>
+                  HTTP POST invocation to extension at
+                  127.0.0.1:{port}/{endpoint}; timeout enforcement;
+                  Authorization header injection; response deserialization
+                </Value>
+              </Attribute>
+            </LegacyAttributes>
+          </sub-module>
+          <sub-module>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>name</Name>
+                <Value>m045_live_server</Value>
+              </Attribute>
+              <Attribute>
+                <Name>path</Name>
+                <Value>src-tauri/src/m045_ext/live_server.rs</Value>
+              </Attribute>
+              <Attribute>
+                <Name>purpose</Name>
+                <Value>
+                  axum HTTP server on 127.0.0.1 for stream.document endpoint;
+                  receives live document updates from extensions; validates
+                  auth; forwards content to renderer via Tauri event
+                </Value>
+              </Attribute>
+            </LegacyAttributes>
+          </sub-module>
+          <sub-module>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>name</Name>
+                <Value>m045_live_endpoint</Value>
+              </Attribute>
+              <Attribute>
+                <Name>path</Name>
+                <Value>src-tauri/src/m045_ext/live_endpoint.rs</Value>
+              </Attribute>
+              <Attribute>
+                <Name>purpose</Name>
+                <Value>
+                  Write/cleanup LiveEndpointDiscovery file for TokMo to discover
+                  Mark HTTP server port; writes on server start, cleanup on
+                  exit, stale file detection
+                </Value>
+              </Attribute>
+            </LegacyAttributes>
+          </sub-module>
+          <sub-module>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>name</Name>
+                <Value>m045_live_bridge</Value>
+              </Attribute>
+              <Attribute>
+                <Name>path</Name>
+                <Value>src-tauri/src/m045_ext/live_bridge.rs</Value>
+              </Attribute>
+              <Attribute>
+                <Name>purpose</Name>
+                <Value>
+                  Tauri event bridge: emit_live_update / emit_doc_open /
+                  emit_doc_patch / emit_doc_close forwarding live server content
+                  to renderer
+                </Value>
+              </Attribute>
+            </LegacyAttributes>
+          </sub-module>
+        </sub-modules>
+        <annotations>
+          <fn-mt_ext_discover>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>PURPOSE</Name>
+                <Value>
+                  Tauri command: scan extension directories, parse manifests,
+                  return list of discovered extensions with validation status
+                </Value>
+              </Attribute>
+            </LegacyAttributes>
+          </fn-mt_ext_discover>
+          <fn-mt_ext_enable>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>PURPOSE</Name>
+                <Value>
+                  Tauri command: enable extension by ID; generate auth secret;
+                  persist state; emit mt::ext-state-changed
+                </Value>
+              </Attribute>
+            </LegacyAttributes>
+          </fn-mt_ext_enable>
+          <fn-mt_ext_disable>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>PURPOSE</Name>
+                <Value>
+                  Tauri command: disable extension by ID; revoke auth secret;
+                  persist state; emit mt::ext-state-changed
+                </Value>
+              </Attribute>
+            </LegacyAttributes>
+          </fn-mt_ext_disable>
+          <fn-mt_ext_invoke>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>PURPOSE</Name>
+                <Value>
+                  Tauri command: send HTTP POST to enabled extension endpoint
+                  with auth header; enforce timeout; return response
+                </Value>
+              </Attribute>
+            </LegacyAttributes>
+          </fn-mt_ext_invoke>
+          <fn-mt_ext_list>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>PURPOSE</Name>
+                <Value>
+                  Tauri command: return current registry state (discovered +
+                  enabled/disabled + health)
+                </Value>
+              </Attribute>
+            </LegacyAttributes>
+          </fn-mt_ext_list>
+          <type-ExtensionManifest>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>PURPOSE</Name>
+                <Value>
+                  Parsed manifest: id, name, version, description, capabilities
+                  Vec, port u16, endpoints Vec
+                </Value>
+              </Attribute>
+            </LegacyAttributes>
+          </type-ExtensionManifest>
+          <type-ExtensionState>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>PURPOSE</Name>
+                <Value>
+                  Per-extension runtime state: manifest, enabled bool,
+                  last_health_check, auth_secret_ref
+                </Value>
+              </Attribute>
+            </LegacyAttributes>
+          </type-ExtensionState>
+          <type-ExtInvokeRequest>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>PURPOSE</Name>
+                <Value>{ extension_id, endpoint, payload: serde_json::Value }</Value>
+              </Attribute>
+            </LegacyAttributes>
+          </type-ExtInvokeRequest>
+          <type-ExtInvokeResponse>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>PURPOSE</Name>
+                <Value>{ status: u16, body: serde_json::Value, elapsed_ms: u64 }</Value>
+              </Attribute>
+            </LegacyAttributes>
+          </type-ExtInvokeResponse>
+          <fn-apply_section_patch>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>PURPOSE</Name>
+                <Value>
+                  Pure core: apply one live-doc v2 patch op (append|replace;
+                  missing op = replace; replace_section legacy synonym) to a
+                  named section of the ordered section list;
+                  Err(SectionPatchError::UnknownOp|UnknownSection) -&gt; HTTP
+                  400
+                </Value>
+              </Attribute>
+            </LegacyAttributes>
+          </fn-apply_section_patch>
+          <fn-decide_open>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>PURPOSE</Name>
+                <Value>
+                  Pure core: decide how /stream/open interacts with the active
+                  session — FreshOpen | ReplaceSameSession (resync path) |
+                  Conflict (409); token is validated before this decision
+                </Value>
+              </Attribute>
+            </LegacyAttributes>
+          </fn-decide_open>
+          <type-OpenDecision>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>PURPOSE</Name>
+                <Value>
+                  FreshOpen | ReplaceSameSession | Conflict — outcome of
+                  decide_open for an incoming /stream/open
+                </Value>
+              </Attribute>
+            </LegacyAttributes>
+          </type-OpenDecision>
+          <fn-rebuild_document_md>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>PURPOSE</Name>
+                <Value>
+                  Pure core: concatenate non-empty sections in declared order
+                  with blank-line separator; deterministic; never adds synthetic
+                  headers
+                </Value>
+              </Attribute>
+            </LegacyAttributes>
+          </fn-rebuild_document_md>
+          <fn-build_sections_from_init>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>PURPOSE</Name>
+                <Value>
+                  Build the ordered section list from /stream/open SectionInit
+                  array; duplicate names keep first position, last content wins
+                </Value>
+              </Attribute>
+            </LegacyAttributes>
+          </fn-build_sections_from_init>
+          <type-SectionInit>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>PURPOSE</Name>
+                <Value>
+                  /stream/open section payload: { name, content } — content is
+                  self-contained markdown
+                </Value>
+              </Attribute>
+            </LegacyAttributes>
+          </type-SectionInit>
+          <type-SectionPatchError>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>PURPOSE</Name>
+                <Value>
+                  UnknownOp(String) | UnknownSection(String) — mapped to HTTP
+                  400 by /stream/patch handler
+                </Value>
+              </Attribute>
+            </LegacyAttributes>
+          </type-SectionPatchError>
+        </annotations>
+      </LegacyKnowledgeDetail>
+      <LegacyDevelopmentDetail>
+        <notes>
+          <note-1>
+            IPC to extensions is HTTP POST, not WebSocket (decision D1). All
+            calls go to 127.0.0.1 only.
+          </note-1>
+          <note-2>
+            Extension secrets stored via M-019 datacenter keychain. Never build
+            a separate secret store.
+          </note-2>
+          <note-3>
+            New commands mt_ext_* require: generate_handler! + tauri.v2.json
+            fixture + m001_validate::REGISTERED_COMMANDS updates.
+          </note-3>
+          <note-4>
+            Extensibility test: design must support a second hypothetical
+            extension beyond TokMo without code changes.
+          </note-4>
+          <note-5>
+            Live-doc wire contract v2 (breaking): /stream/open sends sections as
+            an ordered array of {name, content} with real initial content;
+            document_md is the authoritative join of sections (initial_md
+            advisory). /stream/patch carries op: &quot;append&quot; |
+            &quot;replace&quot; (&quot;replace_section&quot; accepted as
+            synonym, missing op defaults to &quot;replace&quot;); section
+            content is self-contained markdown — Mark never adds headers;
+            unknown op or unknown section is rejected with 400. Document rebuild
+            is deterministic: declared section order, empty sections skipped,
+            &quot;\n\n&quot; separator. Recovery: /stream/open with the SAME
+            session_id on an active session replaces state wholesale (resync
+            path, log BLOCK_DOC_OPEN_RESYNC) — the escape hatch for a client
+            stuck on needs_resync; a DIFFERENT session_id still gets 409. TokMo
+            is the only consumer; both apps ship together.
+          </note-5>
+        </notes>
+      </LegacyDevelopmentDetail>
+      <LegacyAttributes>
+        <Attribute>
+          <Source>knowledge-graph</Source>
+          <Name>NAME</Name>
+          <Value>ExtensionHost</Value>
+        </Attribute>
+        <Attribute>
+          <Source>knowledge-graph</Source>
+          <Name>TYPE</Name>
+          <Value>CORE_LOGIC</Value>
+        </Attribute>
+        <Attribute>
+          <Source>knowledge-graph</Source>
+          <Name>STATUS</Name>
+          <Value>planned</Value>
+        </Attribute>
+        <Attribute>
+          <Source>knowledge-graph</Source>
+          <Name>PHASE-REF</Name>
+          <Value>B11-ext-host</Value>
+        </Attribute>
+        <Attribute>
+          <Source>knowledge-graph</Source>
+          <Name>LAYER</Name>
+          <Value>APPLICATION</Value>
+        </Attribute>
+        <Attribute>
+          <Source>development-plan</Source>
+          <Name>NAME</Name>
+          <Value>ExtensionHost</Value>
+        </Attribute>
+        <Attribute>
+          <Source>development-plan</Source>
+          <Name>TYPE</Name>
+          <Value>CORE_LOGIC</Value>
+        </Attribute>
+        <Attribute>
+          <Source>development-plan</Source>
+          <Name>LAYER</Name>
+          <Value>2</Value>
+        </Attribute>
+        <Attribute>
+          <Source>development-plan</Source>
+          <Name>ORDER</Name>
+          <Value>1</Value>
+        </Attribute>
+        <Attribute>
+          <Source>development-plan</Source>
+          <Name>STATUS</Name>
+          <Value>planned</Value>
+        </Attribute>
+      </LegacyAttributes>
+      <LegacySource>docs/knowledge-graph.xml: M-045; docs/development-plan.xml: M-045</LegacySource>
+    </M-045>
+    <M-046>
+      <Name>ReleasePreflight</Name>
+      <DisplayName>ReleasePreflight</DisplayName>
+      <Type>UTILITY</Type>
+      <Status>shipped</Status>
+      <Layer>TOOLING</Layer>
+      <PhaseRef>Release-Readiness-2026-08-07</PhaseRef>
+      <Summary>
+        Provide a deterministic pre-publication gate for exact version/tag
+        consistency, complete automated verification, and signed/notarized macOS
+        artifact evidence.
+      </Summary>
+      <PlannedPath>
+        tools/release-preflight.mjs, package.json, package-lock.json,
+        Cargo.toml, Cargo.lock, src-tauri/tauri.conf.json,
+        .github/workflows/release.yml
+      </PlannedPath>
+      <Dependencies>
+        <M-001/>
+        <M-016/>
+      </Dependencies>
+      <VerificationRef>V-M-046</VerificationRef>
+      <Contract>
+        <Purpose>
+          Fail a release before packaging when version metadata, the requested
+          tag, automated verification, or macOS signature evidence is
+          inconsistent.
+        </Purpose>
+        <Inputs>
+          <Input>
+            <Name>workspaceRoot</Name>
+            <Type>Path</Type>
+            <Description>Repository root containing package, Cargo, Tauri, workflow, and lock metadata</Description>
+          </Input>
+          <Input>
+            <Name>expectedTag</Name>
+            <Type>string?</Type>
+            <Description>Optional release tag in exact v&lt;version&gt; form</Description>
+          </Input>
+        </Inputs>
+        <Outputs>
+          <Output>
+            <Name>versionEvidence</Name>
+            <Type>VersionEvidence</Type>
+            <Description>Normalized version values from all authoritative release metadata</Description>
+          </Output>
+          <Output>
+            <Name>releaseGate</Name>
+            <Type>pass|fail</Type>
+            <Description>Deterministic decision used before any artifact is published</Description>
+          </Output>
+        </Outputs>
+        <Errors>
+          <Error>
+            <Code>MT_RELEASE_VERSION_MISMATCH</Code>
+            <Description>One or more package, lockfile, Cargo, or Tauri versions differ</Description>
+          </Error>
+          <Error>
+            <Code>MT_RELEASE_TAG_MISMATCH</Code>
+            <Description>Requested tag is not exactly v&lt;metadata-version&gt;</Description>
+          </Error>
+          <Error>
+            <Code>MT_RELEASE_SIGNATURE_INVALID</Code>
+            <Description>Packaged macOS app fails strict codesign or Gatekeeper assessment</Description>
+          </Error>
+        </Errors>
+      </Contract>
+      <Interface>
+        <fn-readVersionEvidence>
+          <LegacyAttributes>
+            <Attribute>
+              <Name>PURPOSE</Name>
+              <Value>
+                Read normalized versions from package.json, package-lock.json,
+                Cargo.toml, Cargo.lock, and tauri.conf.json
+              </Value>
+            </Attribute>
+          </LegacyAttributes>
+        </fn-readVersionEvidence>
+        <fn-validateVersionEvidence>
+          <LegacyAttributes>
+            <Attribute>
+              <Name>PURPOSE</Name>
+              <Value>Reject any metadata or exact-tag mismatch with stable, non-secret diagnostics</Value>
+            </Attribute>
+          </LegacyAttributes>
+        </fn-validateVersionEvidence>
+        <fn-runReleasePreflight>
+          <LegacyAttributes>
+            <Attribute>
+              <Name>PURPOSE</Name>
+              <Value>Execute version checks and emit the stable release-consistency marker</Value>
+            </Attribute>
+          </LegacyAttributes>
+        </fn-runReleasePreflight>
+      </Interface>
+      <Sources>
+        <Source>
+          tools/release-preflight.mjs, package.json, package-lock.json,
+          Cargo.toml, Cargo.lock, src-tauri/tauri.conf.json,
+          .github/workflows/release.yml
+        </Source>
+        <KnowledgeGraphPath>tools/release-preflight.mjs, .github/workflows/release.yml</KnowledgeGraphPath>
+        <Tests>tests/renderer/release-preflight.test.js</Tests>
+      </Sources>
+      <Observability/>
+      <LegacyKnowledgeDetail>
+        <annotations>
+          <fn-readVersionEvidence>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>PURPOSE</Name>
+                <Value>Read release version values from Node, Cargo, Tauri, and lock metadata</Value>
+              </Attribute>
+            </LegacyAttributes>
+          </fn-readVersionEvidence>
+          <fn-validateVersionEvidence>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>PURPOSE</Name>
+                <Value>Reject inconsistent metadata or a tag that is not exactly v&lt;version&gt;</Value>
+              </Attribute>
+            </LegacyAttributes>
+          </fn-validateVersionEvidence>
+          <fn-runReleasePreflight>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>PURPOSE</Name>
+                <Value>Run the release metadata gate and emit stable pass/fail markers</Value>
+              </Attribute>
+            </LegacyAttributes>
+          </fn-runReleasePreflight>
+          <gate-release-e2e>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>PURPOSE</Name>
+                <Value>Build renderer dist before bounded Playwright preview on clean release runners</Value>
+              </Attribute>
+            </LegacyAttributes>
+          </gate-release-e2e>
+          <gate-release-classification>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>PURPOSE</Name>
+                <Value>
+                  Publish hyphenated SemVer tags as GitHub prereleases and
+                  stable tags as non-prereleases
+                </Value>
+              </Attribute>
+            </LegacyAttributes>
+          </gate-release-classification>
+          <gate-cask-artifact-url>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>PURPOSE</Name>
+                <Value>
+                  Reject Homebrew cask URL templates that do not match the
+                  staged Tauri DMG filename
+                </Value>
+              </Attribute>
+            </LegacyAttributes>
+          </gate-cask-artifact-url>
+        </annotations>
+      </LegacyKnowledgeDetail>
+      <LegacyDevelopmentDetail>
+        <notes>
+          <note-1>
+            The updater-channel repair releases as v2.1.2-beta after the
+            published v2.1.1-beta.
+          </note-1>
+          <note-2>
+            The release workflow owns Developer ID signing/notarization; a raw
+            local `tauri build` output is not a distributable artifact until
+            explicitly re-signed.
+          </note-2>
+          <note-3>
+            Release Playwright runs only after `npm run build`; `vite preview`
+            must never start against an absent clean-checkout renderer dist.
+          </note-3>
+          <note-4>
+            While the embedded endpoint uses GitHub `/releases/latest`, shipped
+            beta tags must be created and idempotently updated with
+            `prerelease=false`; SemVer still carries the `-beta` channel label.
+          </note-4>
+          <note-5>
+            The Homebrew cask publication gate must prove its URL template
+            resolves to `Mark_#{version}_aarch64.dmg`, matching the staged and
+            published Tauri asset.
+          </note-5>
+          <note-6>
+            The native title-path clipboard and layout-independent undo repair
+            releases as v2.1.3-beta and doubles as the first real
+            installed-client verification of the signed v2.1.2-beta in-app
+            updater.
+          </note-6>
+        </notes>
+      </LegacyDevelopmentDetail>
+      <LegacyAttributes>
+        <Attribute>
+          <Source>knowledge-graph</Source>
+          <Name>NAME</Name>
+          <Value>ReleasePreflight</Value>
+        </Attribute>
+        <Attribute>
+          <Source>knowledge-graph</Source>
+          <Name>TYPE</Name>
+          <Value>UTILITY</Value>
+        </Attribute>
+        <Attribute>
+          <Source>knowledge-graph</Source>
+          <Name>STATUS</Name>
+          <Value>shipped</Value>
+        </Attribute>
+        <Attribute>
+          <Source>knowledge-graph</Source>
+          <Name>PHASE-REF</Name>
+          <Value>Release-Readiness-2026-08-07</Value>
+        </Attribute>
+        <Attribute>
+          <Source>knowledge-graph</Source>
+          <Name>LAYER</Name>
+          <Value>TOOLING</Value>
+        </Attribute>
+        <Attribute>
+          <Source>development-plan</Source>
+          <Name>NAME</Name>
+          <Value>ReleasePreflight</Value>
+        </Attribute>
+        <Attribute>
+          <Source>development-plan</Source>
+          <Name>TYPE</Name>
+          <Value>UTILITY</Value>
+        </Attribute>
+        <Attribute>
+          <Source>development-plan</Source>
+          <Name>LAYER</Name>
+          <Value>0</Value>
+        </Attribute>
+        <Attribute>
+          <Source>development-plan</Source>
+          <Name>ORDER</Name>
+          <Value>1</Value>
+        </Attribute>
+        <Attribute>
+          <Source>development-plan</Source>
+          <Name>STATUS</Name>
+          <Value>shipped</Value>
+        </Attribute>
+      </LegacyAttributes>
+      <LegacySource>docs/knowledge-graph.xml: M-046; docs/development-plan.xml: M-046</LegacySource>
+    </M-046>
+  </GD-FEATURES>
+</GraceGraphDocument>
