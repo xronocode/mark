@@ -1,0 +1,3248 @@
+<GraceGraphDocument graceVersion='4.0'>
+  <GD-FLOWS>
+    <DF-001>
+      <Name>OpenAndEditFile</Name>
+      <Summary>
+        User picks a file via tauri-plugin-dialog. Renderer calls
+        `ipc.fs.read(path)` (M-013 → M-002 via `invoke(&apos;fs_read&apos;)`).
+        M-010 validates path against workspace sandbox. M-002 reads file,
+        returns UTF-8 string. Renderer hands content to muya.setContent (M-012).
+        muya tokenizes, parses, and renders DOM.
+      </Summary>
+      <Steps>
+        <Step>
+          <Order>1</Order>
+          <Description>User picks a file via tauri-plugin-dialog.</Description>
+        </Step>
+        <Step>
+          <Order>2</Order>
+          <Description>
+            Renderer calls `ipc.fs.read(path)` (M-013 → M-002 via
+            `invoke(&apos;fs_read&apos;)`).
+          </Description>
+        </Step>
+        <Step>
+          <Order>3</Order>
+          <Description>M-010 validates path against workspace sandbox.</Description>
+        </Step>
+        <Step>
+          <Order>4</Order>
+          <Description>M-002 reads file, returns UTF-8 string.</Description>
+        </Step>
+        <Step>
+          <Order>5</Order>
+          <Description>Renderer hands content to muya.setContent (M-012).</Description>
+        </Step>
+        <Step>
+          <Order>6</Order>
+          <Description>muya tokenizes, parses, and renders DOM.</Description>
+        </Step>
+      </Steps>
+      <Modules/>
+      <LegacyDetail>
+        <evidence>
+          Log chain: BLOCK_VALIDATE_PATH → BLOCK_READ_FROM_DISK →
+          BLOCK_PARSE_MARKDOWN → BLOCK_RENDER_BLOCKS.
+        </evidence>
+      </LegacyDetail>
+      <LegacySource>docs/development-plan.xml: DF-001</LegacySource>
+    </DF-001>
+    <DF-002>
+      <Name>SaveFile</Name>
+      <Summary>
+        Renderer gets markdown via muya.getMarkdown (M-012). `ipc.fs.write(path,
+        content)` → M-002. M-010 re-validates path. M-002 writes + fsyncs; acks
+        back.
+      </Summary>
+      <Steps>
+        <Step>
+          <Order>1</Order>
+          <Description>Renderer gets markdown via muya.getMarkdown (M-012).</Description>
+        </Step>
+        <Step>
+          <Order>2</Order>
+          <Description>`ipc.fs.write(path, content)` → M-002.</Description>
+        </Step>
+        <Step>
+          <Order>3</Order>
+          <Description>M-010 re-validates path.</Description>
+        </Step>
+        <Step>
+          <Order>4</Order>
+          <Description>M-002 writes + fsyncs; acks back.</Description>
+        </Step>
+      </Steps>
+      <Modules/>
+      <LegacyDetail>
+        <evidence>BLOCK_WRITE_TO_DISK log with { path_redacted, bytes, fsync: true }.</evidence>
+      </LegacyDetail>
+      <LegacySource>docs/development-plan.xml: DF-002</LegacySource>
+    </DF-002>
+    <DF-003>
+      <Name>SearchFolder</Name>
+      <Summary>
+        Renderer constructs SearchQuery. `ipc.search.run(query)` → M-004 via
+        `invoke(&apos;search_run&apos;)`. M-004 uses grep-searcher to stream
+        hits. Backend batches hits (default 50 per batch) and emits
+        `mt:search:batch` events. Renderer subscribes via `ipc.search.onBatch`
+        and updates UI.
+      </Summary>
+      <Steps>
+        <Step>
+          <Order>1</Order>
+          <Description>Renderer constructs SearchQuery.</Description>
+        </Step>
+        <Step>
+          <Order>2</Order>
+          <Description>`ipc.search.run(query)` → M-004 via `invoke(&apos;search_run&apos;)`.</Description>
+        </Step>
+        <Step>
+          <Order>3</Order>
+          <Description>M-004 uses grep-searcher to stream hits.</Description>
+        </Step>
+        <Step>
+          <Order>4</Order>
+          <Description>Backend batches hits (default 50 per batch) and emits `mt:search:batch` events.</Description>
+        </Step>
+        <Step>
+          <Order>5</Order>
+          <Description>Renderer subscribes via `ipc.search.onBatch` and updates UI.</Description>
+        </Step>
+      </Steps>
+      <Modules/>
+      <LegacyDetail>
+        <evidence>BLOCK_COMPILE_MATCHER then repeated BLOCK_STREAM_RESULTS with monotonic seq.</evidence>
+      </LegacyDetail>
+      <LegacySource>docs/development-plan.xml: DF-003</LegacySource>
+    </DF-003>
+    <DF-004>
+      <Name>ExternalFileChanged</Name>
+      <Summary>
+        notify crate observes change in watched path (M-003). Debounced to
+        `mt:fs:changed` event with FsChangeEvent payload. Renderer listens via
+        `ipc.fs.onChange`; reconciles state. If file is currently open: compare
+        content hash; if no unsaved changes, reload preserving scroll (#4152).
+        If unsaved, prompt (#4146 logic).
+      </Summary>
+      <Steps>
+        <Step>
+          <Order>1</Order>
+          <Description>notify crate observes change in watched path (M-003).</Description>
+        </Step>
+        <Step>
+          <Order>2</Order>
+          <Description>Debounced to `mt:fs:changed` event with FsChangeEvent payload.</Description>
+        </Step>
+        <Step>
+          <Order>3</Order>
+          <Description>Renderer listens via `ipc.fs.onChange`; reconciles state.</Description>
+        </Step>
+        <Step>
+          <Order>4</Order>
+          <Description>
+            If file is currently open: compare content hash; if no unsaved
+            changes, reload preserving scroll (#4152). If unsaved, prompt (#4146
+            logic).
+          </Description>
+        </Step>
+      </Steps>
+      <Modules/>
+      <LegacyDetail>
+        <evidence>BLOCK_EMIT_CHANGE with { kind, path_redacted, mtime }.</evidence>
+      </LegacyDetail>
+      <LegacySource>docs/development-plan.xml: DF-004</LegacySource>
+    </DF-004>
+    <DF-005>
+      <Name>GlobalShortcutFired</Name>
+      <Summary>
+        M-006 receives platform event. Emits `mt:shortcut:fired` event to
+        focused window. Renderer command dispatcher handles (e.g. focus window,
+        new doc).
+      </Summary>
+      <Steps>
+        <Step>
+          <Order>1</Order>
+          <Description>M-006 receives platform event.</Description>
+        </Step>
+        <Step>
+          <Order>2</Order>
+          <Description>Emits `mt:shortcut:fired` event to focused window.</Description>
+        </Step>
+        <Step>
+          <Order>3</Order>
+          <Description>Renderer command dispatcher handles (e.g. focus window, new doc).</Description>
+        </Step>
+      </Steps>
+      <Modules/>
+      <LegacyDetail>
+        <evidence>
+          BLOCK_PARSE_ACCELERATOR at registration time; BLOCK_DISPATCH in
+          renderer (M-009 pathway).
+        </evidence>
+      </LegacyDetail>
+      <LegacySource>docs/development-plan.xml: DF-005</LegacySource>
+    </DF-005>
+    <DF-006>
+      <Name>PreferencesRoundtrip</Name>
+      <Summary>
+        Renderer calls `ipc.prefs.set(key, value)` → M-005. M-005 persists via
+        tauri-plugin-store. M-005 emits `mt:prefs:changed` event. Renderer store
+        subscribers update reactive state.
+      </Summary>
+      <Steps>
+        <Step>
+          <Order>1</Order>
+          <Description>Renderer calls `ipc.prefs.set(key, value)` → M-005.</Description>
+        </Step>
+        <Step>
+          <Order>2</Order>
+          <Description>M-005 persists via tauri-plugin-store.</Description>
+        </Step>
+        <Step>
+          <Order>3</Order>
+          <Description>M-005 emits `mt:prefs:changed` event.</Description>
+        </Step>
+        <Step>
+          <Order>4</Order>
+          <Description>Renderer store subscribers update reactive state.</Description>
+        </Step>
+      </Steps>
+      <Modules/>
+      <LegacyDetail>
+        <evidence>No new critical block by default; log optionally on save.</evidence>
+      </LegacyDetail>
+      <LegacySource>docs/development-plan.xml: DF-006</LegacySource>
+    </DF-006>
+    <DF-007>
+      <Name>ExportHtmlOrPdf</Name>
+      <Summary>
+        Renderer requests muya.exportHtml (M-012). For PDF: renderer uses
+        Tauri&apos;s window.printToPDF API via M-001 shell.
+        `ipc.fs.write(exportPath, bytes)` → M-002 with sandbox check.
+      </Summary>
+      <Steps>
+        <Step>
+          <Order>1</Order>
+          <Description>Renderer requests muya.exportHtml (M-012).</Description>
+        </Step>
+        <Step>
+          <Order>2</Order>
+          <Description>For PDF: renderer uses Tauri&apos;s window.printToPDF API via M-001 shell.</Description>
+        </Step>
+        <Step>
+          <Order>3</Order>
+          <Description>`ipc.fs.write(exportPath, bytes)` → M-002 with sandbox check.</Description>
+        </Step>
+      </Steps>
+      <Modules/>
+      <LegacyDetail>
+        <evidence>BLOCK_EXPORT_HTML / BLOCK_EXPORT_PDF in [Renderer].</evidence>
+      </LegacyDetail>
+      <LegacySource>docs/development-plan.xml: DF-007</LegacySource>
+    </DF-007>
+    <DF-008>
+      <Name>SpellCheckOnType</Name>
+      <Summary>
+        muya identifies word boundary. Renderer calls `ipc.spell.suggest(word,
+        lang)` → M-007. M-007 queries NSSpellChecker / hunspell; returns
+        suggestions. Context menu on right-click shows suggestions (M-009).
+      </Summary>
+      <Steps>
+        <Step>
+          <Order>1</Order>
+          <Description>muya identifies word boundary.</Description>
+        </Step>
+        <Step>
+          <Order>2</Order>
+          <Description>Renderer calls `ipc.spell.suggest(word, lang)` → M-007.</Description>
+        </Step>
+        <Step>
+          <Order>3</Order>
+          <Description>M-007 queries NSSpellChecker / hunspell; returns suggestions.</Description>
+        </Step>
+        <Step>
+          <Order>4</Order>
+          <Description>Context menu on right-click shows suggestions (M-009).</Description>
+        </Step>
+      </Steps>
+      <Modules/>
+      <LegacyDetail>
+        <evidence>BLOCK_QUERY_OS in [Spell].</evidence>
+      </LegacyDetail>
+      <LegacySource>docs/development-plan.xml: DF-008</LegacySource>
+    </DF-008>
+    <DF-009>
+      <Name>DragDropImage</Name>
+      <Summary>
+        muya intercepts drop event with File handle. If preference &quot;copy to
+        workspace&quot; enabled: renderer calls `ipc.fs.write(relPath, bytes)` →
+        M-002. muya inserts `![alt](relPath)` markdown at cursor.
+      </Summary>
+      <Steps>
+        <Step>
+          <Order>1</Order>
+          <Description>muya intercepts drop event with File handle.</Description>
+        </Step>
+        <Step>
+          <Order>2</Order>
+          <Description>
+            If preference &quot;copy to workspace&quot; enabled: renderer calls
+            `ipc.fs.write(relPath, bytes)` → M-002.
+          </Description>
+        </Step>
+        <Step>
+          <Order>3</Order>
+          <Description>muya inserts `![alt](relPath)` markdown at cursor.</Description>
+        </Step>
+      </Steps>
+      <Modules/>
+      <LegacyDetail>
+        <evidence>BLOCK_WRITE_TO_DISK for the image; BLOCK_INSERT_NODE in muya.</evidence>
+      </LegacyDetail>
+      <LegacySource>docs/development-plan.xml: DF-009</LegacySource>
+    </DF-009>
+    <DF-010>
+      <Name>SecurityGuard</Name>
+      <Summary>
+        muya parser passes HTML fragments through M-010.sec_sanitize_html.
+        Dangerous nodes stripped (fix for CVE-2023-2318 / #3621). On link click,
+        M-010.sec_confirm_shell_open gates before any shell invocation (#4177).
+      </Summary>
+      <Steps>
+        <Step>
+          <Order>1</Order>
+          <Description>muya parser passes HTML fragments through M-010.sec_sanitize_html.</Description>
+        </Step>
+        <Step>
+          <Order>2</Order>
+          <Description>Dangerous nodes stripped (fix for CVE-2023-2318 / #3621).</Description>
+        </Step>
+        <Step>
+          <Order>3</Order>
+          <Description>
+            On link click, M-010.sec_confirm_shell_open gates before any shell
+            invocation (#4177).
+          </Description>
+        </Step>
+      </Steps>
+      <Modules/>
+      <LegacyDetail>
+        <evidence>
+          BLOCK_STRIP_DANGEROUS_NODES then either BLOCK_CONFIRM_PROMPT or
+          BLOCK_REJECT_TRAVERSAL.
+        </evidence>
+      </LegacyDetail>
+      <LegacySource>docs/development-plan.xml: DF-010</LegacySource>
+    </DF-010>
+    <DF-011>
+      <Name>HomebrewInstall</Name>
+      <Summary>
+        Homebrew clones tap xronocode/homebrew-mark from GitHub. Reads
+        Casks/mark.rb; resolves `url` to GH Release DMG under
+        github.com/xronocode/mark. Downloads + verifies sha256. Mounts DMG,
+        copies Mark.app to /Applications. Postflight: `xattr -cr
+        /Applications/Mark.app` strips quarantine. User launches via Spotlight;
+        Gatekeeper accepts ad-hoc signature.
+      </Summary>
+      <Steps>
+        <Step>
+          <Order>1</Order>
+          <Description>Homebrew clones tap xronocode/homebrew-mark from GitHub.</Description>
+        </Step>
+        <Step>
+          <Order>2</Order>
+          <Description>
+            Reads Casks/mark.rb; resolves `url` to GH Release DMG under
+            github.com/xronocode/mark.
+          </Description>
+        </Step>
+        <Step>
+          <Order>3</Order>
+          <Description>Downloads + verifies sha256.</Description>
+        </Step>
+        <Step>
+          <Order>4</Order>
+          <Description>Mounts DMG, copies Mark.app to /Applications.</Description>
+        </Step>
+        <Step>
+          <Order>5</Order>
+          <Description>Postflight: `xattr -cr /Applications/Mark.app` strips quarantine.</Description>
+        </Step>
+        <Step>
+          <Order>6</Order>
+          <Description>User launches via Spotlight; Gatekeeper accepts ad-hoc signature.</Description>
+        </Step>
+      </Steps>
+      <Modules/>
+      <LegacyDetail>
+        <evidence>Cask install log ends success; `xattr -l` on app has no com.apple.quarantine.</evidence>
+      </LegacyDetail>
+      <LegacySource>docs/development-plan.xml: DF-011</LegacySource>
+    </DF-011>
+    <DF-013>
+      <Name>CliStartup</Name>
+      <Summary>
+        M-020 parses argv; produces CliFlags struct. M-001 consumes flags:
+        disables user prefs/keybindings if --safe; relocates data dir if
+        --user-data-dir; skips spellcheck if --disable-spellcheck. Portable-mode
+        auto-detect: check for `marktext-user-data/` folder adjacent to binary;
+        if present, behaves as --user-data-dir. On unknown flag or malformed
+        arg, print usage and exit 1.
+      </Summary>
+      <Steps>
+        <Step>
+          <Order>1</Order>
+          <Description>M-020 parses argv; produces CliFlags struct.</Description>
+        </Step>
+        <Step>
+          <Order>2</Order>
+          <Description>
+            M-001 consumes flags: disables user prefs/keybindings if --safe;
+            relocates data dir if --user-data-dir; skips spellcheck if
+            --disable-spellcheck.
+          </Description>
+        </Step>
+        <Step>
+          <Order>3</Order>
+          <Description>
+            Portable-mode auto-detect: check for `marktext-user-data/` folder
+            adjacent to binary; if present, behaves as --user-data-dir.
+          </Description>
+        </Step>
+        <Step>
+          <Order>4</Order>
+          <Description>On unknown flag or malformed arg, print usage and exit 1.</Description>
+        </Step>
+      </Steps>
+      <Modules/>
+      <LegacyDetail>
+        <evidence>[Cli][parse][BLOCK_PARSE] with flag inventory logged once at startup.</evidence>
+      </LegacyDetail>
+      <LegacySource>docs/development-plan.xml: DF-013</LegacySource>
+    </DF-013>
+    <DF-014>
+      <Name>PandocImport</Name>
+      <Summary>
+        Renderer opens file dialog, user selects docx/odt/etc.
+        `ipc.pandoc.import(path)` → M-015. M-015 probes pandoc via
+        M-015.pandoc_available (PATH, `/Library/TeX/texbin` on macOS,
+        MARKTEXT_PANDOC env). If missing, emit `mt:pandoc:not-found` with
+        install URL. Else spawn pandoc, pipe stdin/stdout, return markdown.
+        Renderer opens new tab with markdown + `UntitledDocument` pathname.
+      </Summary>
+      <Steps>
+        <Step>
+          <Order>1</Order>
+          <Description>Renderer opens file dialog, user selects docx/odt/etc.</Description>
+        </Step>
+        <Step>
+          <Order>2</Order>
+          <Description>`ipc.pandoc.import(path)` → M-015.</Description>
+        </Step>
+        <Step>
+          <Order>3</Order>
+          <Description>
+            M-015 probes pandoc via M-015.pandoc_available (PATH,
+            `/Library/TeX/texbin` on macOS, MARKTEXT_PANDOC env).
+          </Description>
+        </Step>
+        <Step>
+          <Order>4</Order>
+          <Description>If missing, emit `mt:pandoc:not-found` with install URL.</Description>
+        </Step>
+        <Step>
+          <Order>5</Order>
+          <Description>Else spawn pandoc, pipe stdin/stdout, return markdown.</Description>
+        </Step>
+        <Step>
+          <Order>6</Order>
+          <Description>Renderer opens new tab with markdown + `UntitledDocument` pathname.</Description>
+        </Step>
+      </Steps>
+      <Modules/>
+      <LegacyDetail>
+        <evidence>
+          [Pandoc][pandoc_available][BLOCK_PROBE_BIN] path_resolved;
+          [Pandoc][pandoc_import][BLOCK_SPAWN] exit_code.
+        </evidence>
+      </LegacyDetail>
+      <LegacySource>docs/development-plan.xml: DF-014</LegacySource>
+    </DF-014>
+    <DF-015>
+      <Name>AutoUpdateCheck</Name>
+      <Summary>
+        Renderer calls `ipc.updater.check()` → M-016. M-016 fetches feed from
+        GitHub Releases `xronocode/mark`. Emit states: Checking → Available(v) |
+        NotAvailable | Error. On Available, the explicit Help-menu action is the
+        user confirmation; renderer calls tauri-plugin-updater
+        `downloadAndInstall()` for Homebrew and DMG installs alike. On
+        successful verified install, renderer relaunches Mark through
+        tauri-plugin-process; Terminal is never opened.
+      </Summary>
+      <Steps>
+        <Step>
+          <Order>1</Order>
+          <Description>Renderer calls `ipc.updater.check()` → M-016.</Description>
+        </Step>
+        <Step>
+          <Order>2</Order>
+          <Description>M-016 fetches feed from GitHub Releases `xronocode/mark`.</Description>
+        </Step>
+        <Step>
+          <Order>3</Order>
+          <Description>Emit states: Checking → Available(v) | NotAvailable | Error.</Description>
+        </Step>
+        <Step>
+          <Order>4</Order>
+          <Description>
+            On Available, the explicit Help-menu action is the user
+            confirmation; renderer calls tauri-plugin-updater
+            `downloadAndInstall()` for Homebrew and DMG installs alike.
+          </Description>
+        </Step>
+        <Step>
+          <Order>5</Order>
+          <Description>
+            On successful verified install, renderer relaunches Mark through
+            tauri-plugin-process; Terminal is never opened.
+          </Description>
+        </Step>
+      </Steps>
+      <Modules/>
+      <LegacyDetail>
+        <evidence>
+          [Updater][check][BLOCK_FEED_FETCH];
+          [Updater][download][BLOCK_VERIFY_SIGNATURE].
+        </evidence>
+      </LegacyDetail>
+      <LegacySource>docs/development-plan.xml: DF-015</LegacySource>
+    </DF-015>
+    <DF-016>
+      <Name>RecentDocsAdd</Name>
+      <Summary>
+        M-001 (or file-opening flow) calls `recent_add(path)` → M-017. M-017
+        dedups, trims to 12, persists to config. OS-integrate: macOS Dock
+        NSDocumentController, Windows Jump List, Linux no-op. Menu rebuild emits
+        `mt::menu:recent-updated` event → renderer refreshes recent panel.
+      </Summary>
+      <Steps>
+        <Step>
+          <Order>1</Order>
+          <Description>M-001 (or file-opening flow) calls `recent_add(path)` → M-017.</Description>
+        </Step>
+        <Step>
+          <Order>2</Order>
+          <Description>M-017 dedups, trims to 12, persists to config.</Description>
+        </Step>
+        <Step>
+          <Order>3</Order>
+          <Description>OS-integrate: macOS Dock NSDocumentController, Windows Jump List, Linux no-op.</Description>
+        </Step>
+        <Step>
+          <Order>4</Order>
+          <Description>
+            Menu rebuild emits `mt::menu:recent-updated` event → renderer
+            refreshes recent panel.
+          </Description>
+        </Step>
+      </Steps>
+      <Modules/>
+      <LegacyDetail>
+        <evidence>
+          [Recent][add][BLOCK_ADD] path_redacted;
+          [Recent][add][BLOCK_OS_INTEGRATE] platform.
+        </evidence>
+      </LegacyDetail>
+      <LegacySource>docs/development-plan.xml: DF-016</LegacySource>
+    </DF-016>
+    <DF-017>
+      <Name>ScreenshotCapture</Name>
+      <Summary>
+        Renderer calls `ipc.screenshot.capture(targetDir)` → M-018. M-018 spawns
+        `screencapture -i -c`; user selects region; image goes to clipboard.
+        M-018 reads clipboard image, writes PNG to targetDir with timestamp
+        name. Returns relative path to renderer. Renderer inserts
+        `![](relative/path)` at cursor via muya.insertImage.
+      </Summary>
+      <Steps>
+        <Step>
+          <Order>1</Order>
+          <Description>Renderer calls `ipc.screenshot.capture(targetDir)` → M-018.</Description>
+        </Step>
+        <Step>
+          <Order>2</Order>
+          <Description>
+            M-018 spawns `screencapture -i -c`; user selects region; image goes
+            to clipboard.
+          </Description>
+        </Step>
+        <Step>
+          <Order>3</Order>
+          <Description>M-018 reads clipboard image, writes PNG to targetDir with timestamp name.</Description>
+        </Step>
+        <Step>
+          <Order>4</Order>
+          <Description>Returns relative path to renderer.</Description>
+        </Step>
+        <Step>
+          <Order>5</Order>
+          <Description>Renderer inserts `![](relative/path)` at cursor via muya.insertImage.</Description>
+        </Step>
+      </Steps>
+      <Modules/>
+      <LegacyDetail>
+        <evidence>
+          [Screenshot][capture][BLOCK_SPAWN_CAPTURE];
+          [Screenshot][capture][BLOCK_WRITE_FILE].
+        </evidence>
+      </LegacyDetail>
+      <LegacySource>docs/development-plan.xml: DF-017</LegacySource>
+    </DF-017>
+    <DF-018>
+      <Name>ImageBedUpload</Name>
+      <Summary>
+        Renderer extracts image bytes from clipboard/file.
+        `ipc.datacenter.uploadImage({ bytes, mime })` → M-019. M-019 dispatches
+        by `currentUploader`: github (REST API + token from M-019.get_secret) |
+        picgo (subprocess) | cliScript (M-010 validates path, then subprocess).
+        Returns URL or MT_DC_UPLOAD_FAILED. Renderer replaces Markdown image src
+        with remote URL.
+      </Summary>
+      <Steps>
+        <Step>
+          <Order>1</Order>
+          <Description>Renderer extracts image bytes from clipboard/file.</Description>
+        </Step>
+        <Step>
+          <Order>2</Order>
+          <Description>`ipc.datacenter.uploadImage({ bytes, mime })` → M-019.</Description>
+        </Step>
+        <Step>
+          <Order>3</Order>
+          <Description>
+            M-019 dispatches by `currentUploader`: github (REST API + token from
+            M-019.get_secret) | picgo (subprocess) | cliScript (M-010 validates
+            path, then subprocess).
+          </Description>
+        </Step>
+        <Step>
+          <Order>4</Order>
+          <Description>Returns URL or MT_DC_UPLOAD_FAILED.</Description>
+        </Step>
+        <Step>
+          <Order>5</Order>
+          <Description>Renderer replaces Markdown image src with remote URL.</Description>
+        </Step>
+      </Steps>
+      <Modules/>
+      <LegacyDetail>
+        <evidence>
+          [DataCenter][upload][BLOCK_DISPATCH_UPLOADER] { uploader,
+          bytes_redacted }; never logs token.
+        </evidence>
+      </LegacyDetail>
+      <LegacySource>docs/development-plan.xml: DF-018</LegacySource>
+    </DF-018>
+    <DF-019>
+      <Name>EncodingRoundtrip</Name>
+      <Summary>
+        On read: M-014.detect_encoding → M-014.decode; returns (UTF-8 string,
+        EncodingMeta). M-014.detect_line_ending and M-014.normalize_newlines
+        apply trimTrailingNewline prefs. Renderer stores EncodingMeta per-tab.
+        On save: M-014.encode reuses original encoding unless user switched via
+        menu; applies `endOfLine` pref.
+      </Summary>
+      <Steps>
+        <Step>
+          <Order>1</Order>
+          <Description>
+            On read: M-014.detect_encoding → M-014.decode; returns (UTF-8
+            string, EncodingMeta).
+          </Description>
+        </Step>
+        <Step>
+          <Order>2</Order>
+          <Description>
+            M-014.detect_line_ending and M-014.normalize_newlines apply
+            trimTrailingNewline prefs.
+          </Description>
+        </Step>
+        <Step>
+          <Order>3</Order>
+          <Description>Renderer stores EncodingMeta per-tab.</Description>
+        </Step>
+        <Step>
+          <Order>4</Order>
+          <Description>
+            On save: M-014.encode reuses original encoding unless user switched
+            via menu; applies `endOfLine` pref.
+          </Description>
+        </Step>
+      </Steps>
+      <Modules/>
+      <LegacyDetail>
+        <evidence>
+          [Encoding][detect_encoding][BLOCK_DETECT_BOM];
+          [Encoding][normalize_newlines][BLOCK_NORMALIZE_EOL] { from, to,
+          trim_mode }.
+        </evidence>
+      </LegacyDetail>
+      <LegacySource>docs/development-plan.xml: DF-019</LegacySource>
+    </DF-019>
+    <DF-020>
+      <Name>CommandPalette</Name>
+      <Summary>
+        Renderer opens command palette component; queries commandCenter Pinia
+        store for all commands. Fuzzy match against typed input. On Enter,
+        dispatch command via `ipc.execute-command-by-id`.
+      </Summary>
+      <Steps>
+        <Step>
+          <Order>1</Order>
+          <Description>
+            Renderer opens command palette component; queries commandCenter
+            Pinia store for all commands.
+          </Description>
+        </Step>
+        <Step>
+          <Order>2</Order>
+          <Description>Fuzzy match against typed input.</Description>
+        </Step>
+        <Step>
+          <Order>3</Order>
+          <Description>On Enter, dispatch command via `ipc.execute-command-by-id`.</Description>
+        </Step>
+      </Steps>
+      <Modules/>
+      <LegacyDetail>
+        <evidence>
+          [Renderer][commandPalette][BLOCK_OPEN] ;
+          [Renderer][commandPalette][BLOCK_EXECUTE] { command_id }.
+        </evidence>
+      </LegacyDetail>
+      <LegacySource>docs/development-plan.xml: DF-020</LegacySource>
+    </DF-020>
+    <DF-021>
+      <Name>SmartPasteMarkdownFastPath</Name>
+      <Summary>
+        Paste event enters M-038. M-039 reads MIME payloads, normalizes CRLF,
+        and records only presence metadata. If markdown MIME exists, M-038
+        bypasses source-specific HTML heuristics and sends markdown directly
+        through M-043. M-043 reuses M-012 markdown import path and renders
+        without touching HTML normalization.
+      </Summary>
+      <Steps>
+        <Step>
+          <Order>1</Order>
+          <Description>Paste event enters M-038.</Description>
+        </Step>
+        <Step>
+          <Order>2</Order>
+          <Description>M-039 reads MIME payloads, normalizes CRLF, and records only presence metadata.</Description>
+        </Step>
+        <Step>
+          <Order>3</Order>
+          <Description>
+            If markdown MIME exists, M-038 bypasses source-specific HTML
+            heuristics and sends markdown directly through M-043.
+          </Description>
+        </Step>
+        <Step>
+          <Order>4</Order>
+          <Description>
+            M-043 reuses M-012 markdown import path and renders without touching
+            HTML normalization.
+          </Description>
+        </Step>
+      </Steps>
+      <Modules/>
+      <LegacyDetail>
+        <evidence>
+          [Renderer][clipboard][BLOCK_SOURCE_DETECTED] { source:
+          markdown-fast-path, has_markdown: true } followed by
+          [Muya][setContent][BLOCK_PARSE_MARKDOWN].
+        </evidence>
+      </LegacyDetail>
+      <LegacySource>docs/development-plan.xml: DF-021</LegacySource>
+    </DF-021>
+    <DF-022>
+      <Name>SmartPasteRichHtmlPath</Name>
+      <Summary>
+        M-039 extracts raw HTML plus plain-text fallback. M-040 classifies
+        source (`claude_vscode`, `chatgpt`, `github`, `notion`, `generic`) from
+        raw clipboard signatures. M-042 runs safe normalization: sanitize,
+        source adapter rewrite, final sanitize. M-043 converts normalized HTML
+        through existing `htmlToMarkdown()` / `markdownToState()` and returns
+        fragments to M-038. M-038 inserts content into the current block model
+        while preserving list/table merge rules and existing image transform
+        behavior.
+      </Summary>
+      <Steps>
+        <Step>
+          <Order>1</Order>
+          <Description>M-039 extracts raw HTML plus plain-text fallback.</Description>
+        </Step>
+        <Step>
+          <Order>2</Order>
+          <Description>
+            M-040 classifies source (`claude_vscode`, `chatgpt`, `github`,
+            `notion`, `generic`) from raw clipboard signatures.
+          </Description>
+        </Step>
+        <Step>
+          <Order>3</Order>
+          <Description>
+            M-042 runs safe normalization: sanitize, source adapter rewrite,
+            final sanitize.
+          </Description>
+        </Step>
+        <Step>
+          <Order>4</Order>
+          <Description>
+            M-043 converts normalized HTML through existing `htmlToMarkdown()` /
+            `markdownToState()` and returns fragments to M-038.
+          </Description>
+        </Step>
+        <Step>
+          <Order>5</Order>
+          <Description>
+            M-038 inserts content into the current block model while preserving
+            list/table merge rules and existing image transform behavior.
+          </Description>
+        </Step>
+      </Steps>
+      <Modules/>
+      <LegacyDetail>
+        <evidence>
+          [Renderer][clipboard][BLOCK_SOURCE_DETECTED] -&gt;
+          [Renderer][clipboard][BLOCK_SMART_PASTE_NORMALIZE] -&gt;
+          [Muya][setContent][BLOCK_PARSE_MARKDOWN]; image-bearing HTML
+          additionally preserves
+          [Renderer][clipboard][BLOCK_TRANSFORM_IMAGE_PATHS].
+        </evidence>
+      </LegacyDetail>
+      <LegacySource>docs/development-plan.xml: DF-022</LegacySource>
+    </DF-022>
+    <DF-023>
+      <Name>SmartPasteSecurityPath</Name>
+      <Summary>
+        Raw HTML is inspected only for source fingerprints; clipboard body is
+        never logged. M-042 strips dangerous nodes/attributes, re-validates URLs
+        and file schemes through M-010 rules, and blocks unsafe `file://`,
+        `javascript:`, and handler-bearing HTML before import. If semantic
+        recovery cannot be done safely, M-038 falls back to markdown/plain text
+        or rejects the paste with explicit telemetry markers.
+      </Summary>
+      <Steps>
+        <Step>
+          <Order>1</Order>
+          <Description>
+            Raw HTML is inspected only for source fingerprints; clipboard body
+            is never logged.
+          </Description>
+        </Step>
+        <Step>
+          <Order>2</Order>
+          <Description>
+            M-042 strips dangerous nodes/attributes, re-validates URLs and file
+            schemes through M-010 rules, and blocks unsafe `file://`,
+            `javascript:`, and handler-bearing HTML before import.
+          </Description>
+        </Step>
+        <Step>
+          <Order>3</Order>
+          <Description>
+            If semantic recovery cannot be done safely, M-038 falls back to
+            markdown/plain text or rejects the paste with explicit telemetry
+            markers.
+          </Description>
+        </Step>
+      </Steps>
+      <Modules/>
+      <LegacyDetail>
+        <evidence>
+          [Security][sanitize][BLOCK_STRIP_DANGEROUS_NODES] plus
+          [Renderer][clipboard][BLOCK_SMART_PASTE_REJECTED] or
+          [Renderer][clipboard][BLOCK_SMART_PASTE_FALLBACK].
+        </evidence>
+      </LegacyDetail>
+      <LegacySource>docs/development-plan.xml: DF-023</LegacySource>
+    </DF-023>
+    <DF-024>
+      <Name>SmartPasteFixtureRegressionPath</Name>
+      <Summary>
+        Fixture corpus loads raw clipboard payloads captured from Claude in VS
+        Code, ChatGPT, GitHub, Notion, and generic HTML sources. M-040, M-042,
+        and M-043 run deterministically over each fixture. Golden markdown
+        snapshots and Muya state assertions compare against expected outputs for
+        inline code, fenced code, nested lists, tables, and task items.
+        Regression sweep re-runs the existing `PR-4150` HTML image fixture so
+        smart paste cannot regress image-to-local-path behavior.
+      </Summary>
+      <Steps>
+        <Step>
+          <Order>1</Order>
+          <Description>
+            Fixture corpus loads raw clipboard payloads captured from Claude in
+            VS Code, ChatGPT, GitHub, Notion, and generic HTML sources.
+          </Description>
+        </Step>
+        <Step>
+          <Order>2</Order>
+          <Description>M-040, M-042, and M-043 run deterministically over each fixture.</Description>
+        </Step>
+        <Step>
+          <Order>3</Order>
+          <Description>
+            Golden markdown snapshots and Muya state assertions compare against
+            expected outputs for inline code, fenced code, nested lists, tables,
+            and task items.
+          </Description>
+        </Step>
+        <Step>
+          <Order>4</Order>
+          <Description>
+            Regression sweep re-runs the existing `PR-4150` HTML image fixture
+            so smart paste cannot regress image-to-local-path behavior.
+          </Description>
+        </Step>
+      </Steps>
+      <Modules/>
+      <LegacyDetail>
+        <evidence>
+          tests/fixtures/clipboard/* + vitest golden assertions + existing
+          html-paste-images e2e fixture remain green together.
+        </evidence>
+      </LegacyDetail>
+      <LegacySource>docs/development-plan.xml: DF-024</LegacySource>
+    </DF-024>
+    <DF-025>
+      <Name>ClipboardFixtureAcquisition</Name>
+      <Summary>
+        User copies rendered content from Claude, ChatGPT, GitHub, Notion, or
+        another source. M-044 intercepts the browser paste event and records
+        advertised clipboard types, browser-visible text payloads, and
+        metadata-only file/item descriptors. M-044 exports deterministic JSON
+        that can be committed as a frozen fixture without further manual
+        transcription. M-039 and M-040 consume the committed fixture corpus for
+        payload-shape and source-detection tests.
+      </Summary>
+      <Steps>
+        <Step>
+          <Order>1</Order>
+          <Description>
+            User copies rendered content from Claude, ChatGPT, GitHub, Notion,
+            or another source.
+          </Description>
+        </Step>
+        <Step>
+          <Order>2</Order>
+          <Description>
+            M-044 intercepts the browser paste event and records advertised
+            clipboard types, browser-visible text payloads, and metadata-only
+            file/item descriptors.
+          </Description>
+        </Step>
+        <Step>
+          <Order>3</Order>
+          <Description>
+            M-044 exports deterministic JSON that can be committed as a frozen
+            fixture without further manual transcription.
+          </Description>
+        </Step>
+        <Step>
+          <Order>4</Order>
+          <Description>
+            M-039 and M-040 consume the committed fixture corpus for
+            payload-shape and source-detection tests.
+          </Description>
+        </Step>
+      </Steps>
+      <Modules/>
+      <LegacyDetail>
+        <evidence>
+          M-044 JSON export,
+          `tests/renderer/util/clipboard-fixture-capture.test.js`, and committed
+          fixture additions under `tests/fixtures/clipboard/`.
+        </evidence>
+      </LegacyDetail>
+      <LegacySource>docs/development-plan.xml: DF-025</LegacySource>
+    </DF-025>
+    <DF-012>
+      <Name>ReleasePipeline</Name>
+      <Summary>
+        GitHub Actions workflow `release.yml` fires on tag push in
+        xronocode/mark. Matrix: macos-14 (arm64, BLOCKING), macos-13 (x86_64,
+        BLOCKING), ubuntu-latest (continue-on-error: true), windows-latest
+        (continue-on-error: true). Each job: `yarn install`, build (`yarn build`
+        or `tauri build`), macOS sign (`codesign --force --deep --sign -
+        Mark.app`). Packages artifacts as DMG/ZIP (macOS, required),
+        AppImage/deb (Linux, best effort), NSIS/MSI (Windows, best effort). `gh
+        release create` publishes artifacts + auto-generated notes on
+        xronocode/mark. Separate job opens PR to xronocode/homebrew-mark
+        updating Casks/mark.rb version + sha256 (automated via actions-user
+        token; user reviews and merges).
+      </Summary>
+      <Steps>
+        <Step>
+          <Order>1</Order>
+          <Description>GitHub Actions workflow `release.yml` fires on tag push in xronocode/mark.</Description>
+        </Step>
+        <Step>
+          <Order>2</Order>
+          <Description>
+            Matrix: macos-14 (arm64, BLOCKING), macos-13 (x86_64, BLOCKING),
+            ubuntu-latest (continue-on-error: true), windows-latest
+            (continue-on-error: true).
+          </Description>
+        </Step>
+        <Step>
+          <Order>3</Order>
+          <Description>
+            Each job: `yarn install`, build (`yarn build` or `tauri build`),
+            macOS sign (`codesign --force --deep --sign - Mark.app`).
+          </Description>
+        </Step>
+        <Step>
+          <Order>4</Order>
+          <Description>
+            Packages artifacts as DMG/ZIP (macOS, required), AppImage/deb
+            (Linux, best effort), NSIS/MSI (Windows, best effort).
+          </Description>
+        </Step>
+        <Step>
+          <Order>5</Order>
+          <Description>
+            `gh release create` publishes artifacts + auto-generated notes on
+            xronocode/mark.
+          </Description>
+        </Step>
+        <Step>
+          <Order>6</Order>
+          <Description>
+            Separate job opens PR to xronocode/homebrew-mark updating
+            Casks/mark.rb version + sha256 (automated via actions-user token;
+            user reviews and merges).
+          </Description>
+        </Step>
+      </Steps>
+      <Modules/>
+      <LegacyDetail>
+        <evidence>
+          GH Actions: macOS jobs green; Linux/Windows may be yellow. GH Release
+          has DMGs. Cask livecheck detects new version.
+        </evidence>
+      </LegacyDetail>
+      <LegacySource>docs/development-plan.xml: DF-012</LegacySource>
+    </DF-012>
+    <DF-901>
+      <Name>GraceContextSelection</Name>
+      <Summary>
+        Controller reads the task, touched modules, dependency risk, and
+        requested skill. M-901 selects targeted, wave, or full context. M-902
+        records loaded and skipped artifacts plus context-risk in the execution
+        packet. M-905 blocks execution if verification evidence is missing or
+        silently skipped.
+      </Summary>
+      <Steps>
+        <Step>
+          <Order>1</Order>
+          <Description>
+            Controller reads the task, touched modules, dependency risk, and
+            requested skill.
+          </Description>
+        </Step>
+        <Step>
+          <Order>2</Order>
+          <Description>M-901 selects targeted, wave, or full context.</Description>
+        </Step>
+        <Step>
+          <Order>3</Order>
+          <Description>
+            M-902 records loaded and skipped artifacts plus context-risk in the
+            execution packet.
+          </Description>
+        </Step>
+        <Step>
+          <Order>4</Order>
+          <Description>M-905 blocks execution if verification evidence is missing or silently skipped.</Description>
+        </Step>
+      </Steps>
+      <Modules/>
+      <LegacyDetail>
+        <evidence>
+          [GraceContext][selectScope][BLOCK_TARGETED_CONTEXT] or
+          [GraceContext][selectScope][BLOCK_CONTEXT_ESCALATION].
+        </evidence>
+      </LegacyDetail>
+      <LegacySource>docs/development-plan.xml: DF-901</LegacySource>
+    </DF-901>
+    <DF-902>
+      <Name>GraceSessionHandoff</Name>
+      <Summary>
+        M-903 writes current task, decisions, changed files, blockers, and next
+        exact action. Next agent resumes from the handoff before opening
+        additional broad context. If handoff lacks blockers or verification
+        status, M-905 forces a clarification pass.
+      </Summary>
+      <Steps>
+        <Step>
+          <Order>1</Order>
+          <Description>
+            M-903 writes current task, decisions, changed files, blockers, and
+            next exact action.
+          </Description>
+        </Step>
+        <Step>
+          <Order>2</Order>
+          <Description>Next agent resumes from the handoff before opening additional broad context.</Description>
+        </Step>
+        <Step>
+          <Order>3</Order>
+          <Description>
+            If handoff lacks blockers or verification status, M-905 forces a
+            clarification pass.
+          </Description>
+        </Step>
+      </Steps>
+      <Modules/>
+      <LegacyDetail>
+        <evidence>
+          [GraceContext][handoff][BLOCK_COMPACT_SUMMARY] with changed-files and
+          verification-status fields.
+        </evidence>
+      </LegacyDetail>
+      <LegacySource>docs/development-plan.xml: DF-902</LegacySource>
+    </DF-902>
+    <DF-903>
+      <Name>GraceSkillScopeEscalation</Name>
+      <Summary>
+        M-904 checks the skill default scope and escalation triggers. Reviewer
+        or verifier escalates from targeted to wave/full context when risk
+        triggers fire. M-906 updates KG links if the hygiene rule affects
+        durable GRACE navigation.
+      </Summary>
+      <Steps>
+        <Step>
+          <Order>1</Order>
+          <Description>M-904 checks the skill default scope and escalation triggers.</Description>
+        </Step>
+        <Step>
+          <Order>2</Order>
+          <Description>
+            Reviewer or verifier escalates from targeted to wave/full context
+            when risk triggers fire.
+          </Description>
+        </Step>
+        <Step>
+          <Order>3</Order>
+          <Description>M-906 updates KG links if the hygiene rule affects durable GRACE navigation.</Description>
+        </Step>
+      </Steps>
+      <Modules/>
+      <LegacyDetail>
+        <evidence>[GraceReview][scope][BLOCK_ESCALATE_TO_FULL] with trigger and artifact list.</evidence>
+      </LegacyDetail>
+      <LegacySource>docs/development-plan.xml: DF-903</LegacySource>
+    </DF-903>
+    <Relationships>
+      <CrossLink>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>from</Name>
+            <Value>M-001</Value>
+          </Attribute>
+          <Attribute>
+            <Name>to</Name>
+            <Value>M-002</Value>
+          </Attribute>
+          <Attribute>
+            <Name>relation</Name>
+            <Value>invokes</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </CrossLink>
+      <CrossLink>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>from</Name>
+            <Value>M-001</Value>
+          </Attribute>
+          <Attribute>
+            <Name>to</Name>
+            <Value>M-003</Value>
+          </Attribute>
+          <Attribute>
+            <Name>relation</Name>
+            <Value>starts</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </CrossLink>
+      <CrossLink>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>from</Name>
+            <Value>M-001</Value>
+          </Attribute>
+          <Attribute>
+            <Name>to</Name>
+            <Value>M-004</Value>
+          </Attribute>
+          <Attribute>
+            <Name>relation</Name>
+            <Value>invokes</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </CrossLink>
+      <CrossLink>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>from</Name>
+            <Value>M-001</Value>
+          </Attribute>
+          <Attribute>
+            <Name>to</Name>
+            <Value>M-005</Value>
+          </Attribute>
+          <Attribute>
+            <Name>relation</Name>
+            <Value>reads-prefs-from</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </CrossLink>
+      <CrossLink>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>from</Name>
+            <Value>M-001</Value>
+          </Attribute>
+          <Attribute>
+            <Name>to</Name>
+            <Value>M-006</Value>
+          </Attribute>
+          <Attribute>
+            <Name>relation</Name>
+            <Value>registers-shortcuts-via</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </CrossLink>
+      <CrossLink>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>from</Name>
+            <Value>M-001</Value>
+          </Attribute>
+          <Attribute>
+            <Name>to</Name>
+            <Value>M-007</Value>
+          </Attribute>
+          <Attribute>
+            <Name>relation</Name>
+            <Value>delegates-spell-to</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </CrossLink>
+      <CrossLink>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>from</Name>
+            <Value>M-001</Value>
+          </Attribute>
+          <Attribute>
+            <Name>to</Name>
+            <Value>M-008</Value>
+          </Attribute>
+          <Attribute>
+            <Name>relation</Name>
+            <Value>queries-fonts-from</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </CrossLink>
+      <CrossLink>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>from</Name>
+            <Value>M-001</Value>
+          </Attribute>
+          <Attribute>
+            <Name>to</Name>
+            <Value>M-009</Value>
+          </Attribute>
+          <Attribute>
+            <Name>relation</Name>
+            <Value>installs-menu-from</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </CrossLink>
+      <CrossLink>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>from</Name>
+            <Value>M-001</Value>
+          </Attribute>
+          <Attribute>
+            <Name>to</Name>
+            <Value>M-010</Value>
+          </Attribute>
+          <Attribute>
+            <Name>relation</Name>
+            <Value>validates-through</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </CrossLink>
+      <CrossLink>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>from</Name>
+            <Value>M-002</Value>
+          </Attribute>
+          <Attribute>
+            <Name>to</Name>
+            <Value>M-010</Value>
+          </Attribute>
+          <Attribute>
+            <Name>relation</Name>
+            <Value>validates-paths-via</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </CrossLink>
+      <CrossLink>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>from</Name>
+            <Value>M-007</Value>
+          </Attribute>
+          <Attribute>
+            <Name>to</Name>
+            <Value>M-005</Value>
+          </Attribute>
+          <Attribute>
+            <Name>relation</Name>
+            <Value>reads-prefs-from</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </CrossLink>
+      <CrossLink>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>from</Name>
+            <Value>M-009</Value>
+          </Attribute>
+          <Attribute>
+            <Name>to</Name>
+            <Value>M-005</Value>
+          </Attribute>
+          <Attribute>
+            <Name>relation</Name>
+            <Value>reads-recent-files-from</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </CrossLink>
+      <CrossLink>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>from</Name>
+            <Value>M-009</Value>
+          </Attribute>
+          <Attribute>
+            <Name>to</Name>
+            <Value>M-007</Value>
+          </Attribute>
+          <Attribute>
+            <Name>relation</Name>
+            <Value>queries-spell-from</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </CrossLink>
+      <CrossLink>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>from</Name>
+            <Value>M-011</Value>
+          </Attribute>
+          <Attribute>
+            <Name>to</Name>
+            <Value>M-012</Value>
+          </Attribute>
+          <Attribute>
+            <Name>relation</Name>
+            <Value>hosts</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </CrossLink>
+      <CrossLink>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>from</Name>
+            <Value>M-011</Value>
+          </Attribute>
+          <Attribute>
+            <Name>to</Name>
+            <Value>M-013</Value>
+          </Attribute>
+          <Attribute>
+            <Name>relation</Name>
+            <Value>uses-ipc-from</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </CrossLink>
+      <CrossLink>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>from</Name>
+            <Value>M-011</Value>
+          </Attribute>
+          <Attribute>
+            <Name>to</Name>
+            <Value>M-013-A</Value>
+          </Attribute>
+          <Attribute>
+            <Name>relation</Name>
+            <Value>uses-ipc-contract-from</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </CrossLink>
+      <CrossLink>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>from</Name>
+            <Value>M-011</Value>
+          </Attribute>
+          <Attribute>
+            <Name>to</Name>
+            <Value>M-013-B</Value>
+          </Attribute>
+          <Attribute>
+            <Name>relation</Name>
+            <Value>uses-ipc-runtime-from</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </CrossLink>
+      <CrossLink>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>from</Name>
+            <Value>M-013</Value>
+          </Attribute>
+          <Attribute>
+            <Name>to</Name>
+            <Value>M-013-A</Value>
+          </Attribute>
+          <Attribute>
+            <Name>relation</Name>
+            <Value>split-contract-layer</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </CrossLink>
+      <CrossLink>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>from</Name>
+            <Value>M-013</Value>
+          </Attribute>
+          <Attribute>
+            <Name>to</Name>
+            <Value>M-013-B</Value>
+          </Attribute>
+          <Attribute>
+            <Name>relation</Name>
+            <Value>split-runtime-layer</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </CrossLink>
+      <CrossLink>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>from</Name>
+            <Value>M-013-B</Value>
+          </Attribute>
+          <Attribute>
+            <Name>to</Name>
+            <Value>M-013-A</Value>
+          </Attribute>
+          <Attribute>
+            <Name>relation</Name>
+            <Value>implements-contract-from</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </CrossLink>
+      <CrossLink>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>from</Name>
+            <Value>M-013</Value>
+          </Attribute>
+          <Attribute>
+            <Name>to</Name>
+            <Value>M-002</Value>
+          </Attribute>
+          <Attribute>
+            <Name>relation</Name>
+            <Value>invokes-commands-on</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </CrossLink>
+      <CrossLink>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>from</Name>
+            <Value>M-013</Value>
+          </Attribute>
+          <Attribute>
+            <Name>to</Name>
+            <Value>M-003</Value>
+          </Attribute>
+          <Attribute>
+            <Name>relation</Name>
+            <Value>listens-events-from</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </CrossLink>
+      <CrossLink>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>from</Name>
+            <Value>M-013</Value>
+          </Attribute>
+          <Attribute>
+            <Name>to</Name>
+            <Value>M-004</Value>
+          </Attribute>
+          <Attribute>
+            <Name>relation</Name>
+            <Value>invokes-commands-on</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </CrossLink>
+      <CrossLink>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>from</Name>
+            <Value>M-013</Value>
+          </Attribute>
+          <Attribute>
+            <Name>to</Name>
+            <Value>M-005</Value>
+          </Attribute>
+          <Attribute>
+            <Name>relation</Name>
+            <Value>invokes-commands-on</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </CrossLink>
+      <CrossLink>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>from</Name>
+            <Value>M-013</Value>
+          </Attribute>
+          <Attribute>
+            <Name>to</Name>
+            <Value>M-006</Value>
+          </Attribute>
+          <Attribute>
+            <Name>relation</Name>
+            <Value>invokes-commands-on</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </CrossLink>
+      <CrossLink>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>from</Name>
+            <Value>M-013</Value>
+          </Attribute>
+          <Attribute>
+            <Name>to</Name>
+            <Value>M-007</Value>
+          </Attribute>
+          <Attribute>
+            <Name>relation</Name>
+            <Value>invokes-commands-on</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </CrossLink>
+      <CrossLink>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>from</Name>
+            <Value>M-013</Value>
+          </Attribute>
+          <Attribute>
+            <Name>to</Name>
+            <Value>M-008</Value>
+          </Attribute>
+          <Attribute>
+            <Name>relation</Name>
+            <Value>invokes-commands-on</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </CrossLink>
+      <CrossLink>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>from</Name>
+            <Value>M-013</Value>
+          </Attribute>
+          <Attribute>
+            <Name>to</Name>
+            <Value>M-014</Value>
+          </Attribute>
+          <Attribute>
+            <Name>relation</Name>
+            <Value>invokes-commands-on</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </CrossLink>
+      <CrossLink>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>from</Name>
+            <Value>M-013</Value>
+          </Attribute>
+          <Attribute>
+            <Name>to</Name>
+            <Value>M-015</Value>
+          </Attribute>
+          <Attribute>
+            <Name>relation</Name>
+            <Value>invokes-commands-on</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </CrossLink>
+      <CrossLink>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>from</Name>
+            <Value>M-013</Value>
+          </Attribute>
+          <Attribute>
+            <Name>to</Name>
+            <Value>M-016</Value>
+          </Attribute>
+          <Attribute>
+            <Name>relation</Name>
+            <Value>listens-events-from</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </CrossLink>
+      <CrossLink>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>from</Name>
+            <Value>M-013</Value>
+          </Attribute>
+          <Attribute>
+            <Name>to</Name>
+            <Value>M-017</Value>
+          </Attribute>
+          <Attribute>
+            <Name>relation</Name>
+            <Value>invokes-commands-on</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </CrossLink>
+      <CrossLink>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>from</Name>
+            <Value>M-013</Value>
+          </Attribute>
+          <Attribute>
+            <Name>to</Name>
+            <Value>M-018</Value>
+          </Attribute>
+          <Attribute>
+            <Name>relation</Name>
+            <Value>invokes-commands-on</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </CrossLink>
+      <CrossLink>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>from</Name>
+            <Value>M-013</Value>
+          </Attribute>
+          <Attribute>
+            <Name>to</Name>
+            <Value>M-019</Value>
+          </Attribute>
+          <Attribute>
+            <Name>relation</Name>
+            <Value>invokes-commands-on</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </CrossLink>
+      <CrossLink>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>from</Name>
+            <Value>M-013-B</Value>
+          </Attribute>
+          <Attribute>
+            <Name>to</Name>
+            <Value>M-002</Value>
+          </Attribute>
+          <Attribute>
+            <Name>relation</Name>
+            <Value>invokes-commands-on</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </CrossLink>
+      <CrossLink>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>from</Name>
+            <Value>M-013-B</Value>
+          </Attribute>
+          <Attribute>
+            <Name>to</Name>
+            <Value>M-003</Value>
+          </Attribute>
+          <Attribute>
+            <Name>relation</Name>
+            <Value>listens-events-from</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </CrossLink>
+      <CrossLink>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>from</Name>
+            <Value>M-013-B</Value>
+          </Attribute>
+          <Attribute>
+            <Name>to</Name>
+            <Value>M-004</Value>
+          </Attribute>
+          <Attribute>
+            <Name>relation</Name>
+            <Value>invokes-commands-on</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </CrossLink>
+      <CrossLink>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>from</Name>
+            <Value>M-013-B</Value>
+          </Attribute>
+          <Attribute>
+            <Name>to</Name>
+            <Value>M-005</Value>
+          </Attribute>
+          <Attribute>
+            <Name>relation</Name>
+            <Value>invokes-commands-on</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </CrossLink>
+      <CrossLink>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>from</Name>
+            <Value>M-013-B</Value>
+          </Attribute>
+          <Attribute>
+            <Name>to</Name>
+            <Value>M-006</Value>
+          </Attribute>
+          <Attribute>
+            <Name>relation</Name>
+            <Value>invokes-commands-on</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </CrossLink>
+      <CrossLink>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>from</Name>
+            <Value>M-013-B</Value>
+          </Attribute>
+          <Attribute>
+            <Name>to</Name>
+            <Value>M-007</Value>
+          </Attribute>
+          <Attribute>
+            <Name>relation</Name>
+            <Value>invokes-commands-on</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </CrossLink>
+      <CrossLink>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>from</Name>
+            <Value>M-013-B</Value>
+          </Attribute>
+          <Attribute>
+            <Name>to</Name>
+            <Value>M-008</Value>
+          </Attribute>
+          <Attribute>
+            <Name>relation</Name>
+            <Value>invokes-commands-on</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </CrossLink>
+      <CrossLink>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>from</Name>
+            <Value>M-013-B</Value>
+          </Attribute>
+          <Attribute>
+            <Name>to</Name>
+            <Value>M-009</Value>
+          </Attribute>
+          <Attribute>
+            <Name>relation</Name>
+            <Value>invokes-commands-on</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </CrossLink>
+      <CrossLink>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>from</Name>
+            <Value>M-013-B</Value>
+          </Attribute>
+          <Attribute>
+            <Name>to</Name>
+            <Value>M-010</Value>
+          </Attribute>
+          <Attribute>
+            <Name>relation</Name>
+            <Value>validates-through</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </CrossLink>
+      <CrossLink>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>from</Name>
+            <Value>M-013-B</Value>
+          </Attribute>
+          <Attribute>
+            <Name>to</Name>
+            <Value>M-014</Value>
+          </Attribute>
+          <Attribute>
+            <Name>relation</Name>
+            <Value>invokes-commands-on</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </CrossLink>
+      <CrossLink>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>from</Name>
+            <Value>M-013-B</Value>
+          </Attribute>
+          <Attribute>
+            <Name>to</Name>
+            <Value>M-015</Value>
+          </Attribute>
+          <Attribute>
+            <Name>relation</Name>
+            <Value>invokes-commands-on</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </CrossLink>
+      <CrossLink>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>from</Name>
+            <Value>M-013-B</Value>
+          </Attribute>
+          <Attribute>
+            <Name>to</Name>
+            <Value>M-016</Value>
+          </Attribute>
+          <Attribute>
+            <Name>relation</Name>
+            <Value>listens-events-from</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </CrossLink>
+      <CrossLink>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>from</Name>
+            <Value>M-013-B</Value>
+          </Attribute>
+          <Attribute>
+            <Name>to</Name>
+            <Value>M-017</Value>
+          </Attribute>
+          <Attribute>
+            <Name>relation</Name>
+            <Value>invokes-commands-on</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </CrossLink>
+      <CrossLink>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>from</Name>
+            <Value>M-013-B</Value>
+          </Attribute>
+          <Attribute>
+            <Name>to</Name>
+            <Value>M-018</Value>
+          </Attribute>
+          <Attribute>
+            <Name>relation</Name>
+            <Value>invokes-commands-on</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </CrossLink>
+      <CrossLink>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>from</Name>
+            <Value>M-013-B</Value>
+          </Attribute>
+          <Attribute>
+            <Name>to</Name>
+            <Value>M-019</Value>
+          </Attribute>
+          <Attribute>
+            <Name>relation</Name>
+            <Value>invokes-commands-on</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </CrossLink>
+      <CrossLink>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>from</Name>
+            <Value>M-001</Value>
+          </Attribute>
+          <Attribute>
+            <Name>to</Name>
+            <Value>M-014</Value>
+          </Attribute>
+          <Attribute>
+            <Name>relation</Name>
+            <Value>decodes-files-via</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </CrossLink>
+      <CrossLink>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>from</Name>
+            <Value>M-001</Value>
+          </Attribute>
+          <Attribute>
+            <Name>to</Name>
+            <Value>M-015</Value>
+          </Attribute>
+          <Attribute>
+            <Name>relation</Name>
+            <Value>imports-via</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </CrossLink>
+      <CrossLink>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>from</Name>
+            <Value>M-001</Value>
+          </Attribute>
+          <Attribute>
+            <Name>to</Name>
+            <Value>M-016</Value>
+          </Attribute>
+          <Attribute>
+            <Name>relation</Name>
+            <Value>updates-via</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </CrossLink>
+      <CrossLink>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>from</Name>
+            <Value>M-001</Value>
+          </Attribute>
+          <Attribute>
+            <Name>to</Name>
+            <Value>M-017</Value>
+          </Attribute>
+          <Attribute>
+            <Name>relation</Name>
+            <Value>tracks-recent-via</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </CrossLink>
+      <CrossLink>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>from</Name>
+            <Value>M-001</Value>
+          </Attribute>
+          <Attribute>
+            <Name>to</Name>
+            <Value>M-018</Value>
+          </Attribute>
+          <Attribute>
+            <Name>relation</Name>
+            <Value>screenshots-via</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </CrossLink>
+      <CrossLink>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>from</Name>
+            <Value>M-001</Value>
+          </Attribute>
+          <Attribute>
+            <Name>to</Name>
+            <Value>M-019</Value>
+          </Attribute>
+          <Attribute>
+            <Name>relation</Name>
+            <Value>reads-data-from</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </CrossLink>
+      <CrossLink>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>from</Name>
+            <Value>M-001</Value>
+          </Attribute>
+          <Attribute>
+            <Name>to</Name>
+            <Value>M-020</Value>
+          </Attribute>
+          <Attribute>
+            <Name>relation</Name>
+            <Value>parses-cli-at-startup</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </CrossLink>
+      <CrossLink>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>from</Name>
+            <Value>M-002</Value>
+          </Attribute>
+          <Attribute>
+            <Name>to</Name>
+            <Value>M-021</Value>
+          </Attribute>
+          <Attribute>
+            <Name>relation</Name>
+            <Value>wraps-fs-core</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </CrossLink>
+      <CrossLink>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>from</Name>
+            <Value>M-021</Value>
+          </Attribute>
+          <Attribute>
+            <Name>to</Name>
+            <Value>M-010</Value>
+          </Attribute>
+          <Attribute>
+            <Name>relation</Name>
+            <Value>validates-paths-via</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </CrossLink>
+      <CrossLink>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>from</Name>
+            <Value>M-021</Value>
+          </Attribute>
+          <Attribute>
+            <Name>to</Name>
+            <Value>M-014</Value>
+          </Attribute>
+          <Attribute>
+            <Name>relation</Name>
+            <Value>decodes-through</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </CrossLink>
+      <CrossLink>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>from</Name>
+            <Value>M-002</Value>
+          </Attribute>
+          <Attribute>
+            <Name>to</Name>
+            <Value>M-014</Value>
+          </Attribute>
+          <Attribute>
+            <Name>relation</Name>
+            <Value>legacy-direct-decode-replaced-by-M-021</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </CrossLink>
+      <CrossLink>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>from</Name>
+            <Value>M-015</Value>
+          </Attribute>
+          <Attribute>
+            <Name>to</Name>
+            <Value>M-010</Value>
+          </Attribute>
+          <Attribute>
+            <Name>relation</Name>
+            <Value>validates-paths-via</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </CrossLink>
+      <CrossLink>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>from</Name>
+            <Value>M-017</Value>
+          </Attribute>
+          <Attribute>
+            <Name>to</Name>
+            <Value>M-010</Value>
+          </Attribute>
+          <Attribute>
+            <Name>relation</Name>
+            <Value>validates-paths-via</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </CrossLink>
+      <CrossLink>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>from</Name>
+            <Value>M-017</Value>
+          </Attribute>
+          <Attribute>
+            <Name>to</Name>
+            <Value>M-021</Value>
+          </Attribute>
+          <Attribute>
+            <Name>relation</Name>
+            <Value>writes-through</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </CrossLink>
+      <CrossLink>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>from</Name>
+            <Value>M-019</Value>
+          </Attribute>
+          <Attribute>
+            <Name>to</Name>
+            <Value>M-005</Value>
+          </Attribute>
+          <Attribute>
+            <Name>relation</Name>
+            <Value>extends-storage-of</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </CrossLink>
+      <CrossLink>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>from</Name>
+            <Value>M-019</Value>
+          </Attribute>
+          <Attribute>
+            <Name>to</Name>
+            <Value>M-021</Value>
+          </Attribute>
+          <Attribute>
+            <Name>relation</Name>
+            <Value>writes-through</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </CrossLink>
+      <CrossLink>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>from</Name>
+            <Value>M-018</Value>
+          </Attribute>
+          <Attribute>
+            <Name>to</Name>
+            <Value>M-021</Value>
+          </Attribute>
+          <Attribute>
+            <Name>relation</Name>
+            <Value>writes-file-via</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </CrossLink>
+      <CrossLink>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>from</Name>
+            <Value>M-001</Value>
+          </Attribute>
+          <Attribute>
+            <Name>to</Name>
+            <Value>M-022</Value>
+          </Attribute>
+          <Attribute>
+            <Name>relation</Name>
+            <Value>resolves-system-paths-via</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </CrossLink>
+      <CrossLink>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>from</Name>
+            <Value>M-005</Value>
+          </Attribute>
+          <Attribute>
+            <Name>to</Name>
+            <Value>M-022</Value>
+          </Attribute>
+          <Attribute>
+            <Name>relation</Name>
+            <Value>resolves-cache-and-data-paths-via</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </CrossLink>
+      <CrossLink>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>from</Name>
+            <Value>M-019</Value>
+          </Attribute>
+          <Attribute>
+            <Name>to</Name>
+            <Value>M-022</Value>
+          </Attribute>
+          <Attribute>
+            <Name>relation</Name>
+            <Value>resolves-secret-and-log-paths-via</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </CrossLink>
+      <CrossLink>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>from</Name>
+            <Value>M-901</Value>
+          </Attribute>
+          <Attribute>
+            <Name>to</Name>
+            <Value>M-902</Value>
+          </Attribute>
+          <Attribute>
+            <Name>relation</Name>
+            <Value>packet-schema-extends</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </CrossLink>
+      <CrossLink>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>from</Name>
+            <Value>M-901</Value>
+          </Attribute>
+          <Attribute>
+            <Name>to</Name>
+            <Value>M-903</Value>
+          </Attribute>
+          <Attribute>
+            <Name>relation</Name>
+            <Value>handoff-policy-governs</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </CrossLink>
+      <CrossLink>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>from</Name>
+            <Value>M-901</Value>
+          </Attribute>
+          <Attribute>
+            <Name>to</Name>
+            <Value>M-904</Value>
+          </Attribute>
+          <Attribute>
+            <Name>relation</Name>
+            <Value>skill-scope-governs</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </CrossLink>
+      <CrossLink>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>from</Name>
+            <Value>M-901</Value>
+          </Attribute>
+          <Attribute>
+            <Name>to</Name>
+            <Value>M-905</Value>
+          </Attribute>
+          <Attribute>
+            <Name>relation</Name>
+            <Value>verification-governs</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </CrossLink>
+      <CrossLink>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>from</Name>
+            <Value>M-906</Value>
+          </Attribute>
+          <Attribute>
+            <Name>to</Name>
+            <Value>M-901</Value>
+          </Attribute>
+          <Attribute>
+            <Name>relation</Name>
+            <Value>graph-represents</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </CrossLink>
+      <CrossLink>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>from</Name>
+            <Value>M-906</Value>
+          </Attribute>
+          <Attribute>
+            <Name>to</Name>
+            <Value>M-902</Value>
+          </Attribute>
+          <Attribute>
+            <Name>relation</Name>
+            <Value>graph-represents</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </CrossLink>
+      <CrossLink>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>from</Name>
+            <Value>M-906</Value>
+          </Attribute>
+          <Attribute>
+            <Name>to</Name>
+            <Value>M-903</Value>
+          </Attribute>
+          <Attribute>
+            <Name>relation</Name>
+            <Value>graph-represents</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </CrossLink>
+      <CrossLink>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>from</Name>
+            <Value>M-906</Value>
+          </Attribute>
+          <Attribute>
+            <Name>to</Name>
+            <Value>M-904</Value>
+          </Attribute>
+          <Attribute>
+            <Name>relation</Name>
+            <Value>graph-represents</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </CrossLink>
+      <CrossLink>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>from</Name>
+            <Value>M-906</Value>
+          </Attribute>
+          <Attribute>
+            <Name>to</Name>
+            <Value>M-905</Value>
+          </Attribute>
+          <Attribute>
+            <Name>relation</Name>
+            <Value>graph-represents</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </CrossLink>
+      <CrossLink>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>from</Name>
+            <Value>M-901</Value>
+          </Attribute>
+          <Attribute>
+            <Name>to</Name>
+            <Value>M-001</Value>
+          </Attribute>
+          <Attribute>
+            <Name>relation</Name>
+            <Value>runtime-scope-boundary</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </CrossLink>
+      <CrossLink>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>from</Name>
+            <Value>M-901</Value>
+          </Attribute>
+          <Attribute>
+            <Name>to</Name>
+            <Value>M-013-A</Value>
+          </Attribute>
+          <Attribute>
+            <Name>relation</Name>
+            <Value>runtime-scope-boundary</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </CrossLink>
+      <CrossLink>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>from</Name>
+            <Value>M-901</Value>
+          </Attribute>
+          <Attribute>
+            <Name>to</Name>
+            <Value>M-013-B</Value>
+          </Attribute>
+          <Attribute>
+            <Name>relation</Name>
+            <Value>runtime-scope-boundary</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </CrossLink>
+      <CrossLink>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>from</Name>
+            <Value>M-901</Value>
+          </Attribute>
+          <Attribute>
+            <Name>to</Name>
+            <Value>M-021</Value>
+          </Attribute>
+          <Attribute>
+            <Name>relation</Name>
+            <Value>runtime-scope-boundary</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </CrossLink>
+      <CrossLink>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>from</Name>
+            <Value>M-901</Value>
+          </Attribute>
+          <Attribute>
+            <Name>to</Name>
+            <Value>M-022</Value>
+          </Attribute>
+          <Attribute>
+            <Name>relation</Name>
+            <Value>runtime-scope-boundary</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </CrossLink>
+      <CrossLink>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>from</Name>
+            <Value>M-024</Value>
+          </Attribute>
+          <Attribute>
+            <Name>to</Name>
+            <Value>M-001</Value>
+          </Attribute>
+          <Attribute>
+            <Name>relation</Name>
+            <Value>dismounts-after-vue-mount</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </CrossLink>
+      <CrossLink>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>from</Name>
+            <Value>M-025</Value>
+          </Attribute>
+          <Attribute>
+            <Name>to</Name>
+            <Value>M-024</Value>
+          </Attribute>
+          <Attribute>
+            <Name>relation</Name>
+            <Value>consumes-BOOT_T0-anchor-for-elapsed_ms</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </CrossLink>
+      <CrossLink>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>from</Name>
+            <Value>M-025</Value>
+          </Attribute>
+          <Attribute>
+            <Name>to</Name>
+            <Value>M-021</Value>
+          </Attribute>
+          <Attribute>
+            <Name>relation</Name>
+            <Value>ready-signal-via-drained-AtomicBool</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </CrossLink>
+      <CrossLink>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>from</Name>
+            <Value>M-026</Value>
+          </Attribute>
+          <Attribute>
+            <Name>to</Name>
+            <Value>M-012</Value>
+          </Attribute>
+          <Attribute>
+            <Name>relation</Name>
+            <Value>lazy-loads-renderers-from</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </CrossLink>
+      <CrossLink>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>from</Name>
+            <Value>M-027</Value>
+          </Attribute>
+          <Attribute>
+            <Name>to</Name>
+            <Value>M-011</Value>
+          </Attribute>
+          <Attribute>
+            <Name>relation</Name>
+            <Value>treeshakes-imports-in</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </CrossLink>
+      <CrossLink>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>from</Name>
+            <Value>M-028</Value>
+          </Attribute>
+          <Attribute>
+            <Name>to</Name>
+            <Value>M-012</Value>
+          </Attribute>
+          <Attribute>
+            <Name>relation</Name>
+            <Value>defers-init-of</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </CrossLink>
+      <CrossLink>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>from</Name>
+            <Value>M-028</Value>
+          </Attribute>
+          <Attribute>
+            <Name>to</Name>
+            <Value>M-011</Value>
+          </Attribute>
+          <Attribute>
+            <Name>relation</Name>
+            <Value>renders-placeholder-in</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </CrossLink>
+      <CrossLink>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>from</Name>
+            <Value>M-029</Value>
+          </Attribute>
+          <Attribute>
+            <Name>to</Name>
+            <Value>M-001</Value>
+          </Attribute>
+          <Attribute>
+            <Name>relation</Name>
+            <Value>restores-geometry-before-mount</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </CrossLink>
+      <CrossLink>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>from</Name>
+            <Value>M-030</Value>
+          </Attribute>
+          <Attribute>
+            <Name>to</Name>
+            <Value>M-024</Value>
+          </Attribute>
+          <Attribute>
+            <Name>relation</Name>
+            <Value>reads-window-BOOT_T0-via-bootMark</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </CrossLink>
+      <CrossLink>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>from</Name>
+            <Value>M-030</Value>
+          </Attribute>
+          <Attribute>
+            <Name>to</Name>
+            <Value>M-025</Value>
+          </Attribute>
+          <Attribute>
+            <Name>relation</Name>
+            <Value>consumes-pending-opens-elapsed_ms-markers</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </CrossLink>
+      <CrossLink>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>from</Name>
+            <Value>M-031</Value>
+          </Attribute>
+          <Attribute>
+            <Name>to</Name>
+            <Value>M-011</Value>
+          </Attribute>
+          <Attribute>
+            <Name>relation</Name>
+            <Value>renders-diff-in-editor-container</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </CrossLink>
+      <CrossLink>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>from</Name>
+            <Value>M-031</Value>
+          </Attribute>
+          <Attribute>
+            <Name>to</Name>
+            <Value>M-012</Value>
+          </Attribute>
+          <Attribute>
+            <Name>relation</Name>
+            <Value>reads-current-markdown-from</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </CrossLink>
+      <CrossLink>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>from</Name>
+            <Value>M-031</Value>
+          </Attribute>
+          <Attribute>
+            <Name>to</Name>
+            <Value>M-010</Value>
+          </Attribute>
+          <Attribute>
+            <Name>relation</Name>
+            <Value>validates-baseline-path-via</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </CrossLink>
+      <CrossLink>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>from</Name>
+            <Value>M-032</Value>
+          </Attribute>
+          <Attribute>
+            <Name>to</Name>
+            <Value>M-003</Value>
+          </Attribute>
+          <Attribute>
+            <Name>relation</Name>
+            <Value>consumes-file-changed-events-from</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </CrossLink>
+      <CrossLink>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>from</Name>
+            <Value>M-032</Value>
+          </Attribute>
+          <Attribute>
+            <Name>to</Name>
+            <Value>M-012</Value>
+          </Attribute>
+          <Attribute>
+            <Name>relation</Name>
+            <Value>updates-muya-content-on-reload</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </CrossLink>
+      <CrossLink>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>from</Name>
+            <Value>M-032</Value>
+          </Attribute>
+          <Attribute>
+            <Name>to</Name>
+            <Value>M-011</Value>
+          </Attribute>
+          <Attribute>
+            <Name>relation</Name>
+            <Value>resolves-active-tab-in</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </CrossLink>
+      <CrossLink>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>from</Name>
+            <Value>M-033</Value>
+          </Attribute>
+          <Attribute>
+            <Name>to</Name>
+            <Value>M-032</Value>
+          </Attribute>
+          <Attribute>
+            <Name>relation</Name>
+            <Value>requires-live-reload-for-preview-and-watch</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </CrossLink>
+      <CrossLink>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>from</Name>
+            <Value>M-033</Value>
+          </Attribute>
+          <Attribute>
+            <Name>to</Name>
+            <Value>M-031</Value>
+          </Attribute>
+          <Attribute>
+            <Name>relation</Name>
+            <Value>opens-diff-view-via-cli-flag</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </CrossLink>
+      <CrossLink>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>from</Name>
+            <Value>M-033</Value>
+          </Attribute>
+          <Attribute>
+            <Name>to</Name>
+            <Value>M-020</Value>
+          </Attribute>
+          <Attribute>
+            <Name>relation</Name>
+            <Value>extends-cli-flags</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </CrossLink>
+      <CrossLink>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>from</Name>
+            <Value>M-033</Value>
+          </Attribute>
+          <Attribute>
+            <Name>to</Name>
+            <Value>M-001</Value>
+          </Attribute>
+          <Attribute>
+            <Name>relation</Name>
+            <Value>threads-flags-through-PendingOpens</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </CrossLink>
+      <CrossLink>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>from</Name>
+            <Value>M-034</Value>
+          </Attribute>
+          <Attribute>
+            <Name>to</Name>
+            <Value>M-001</Value>
+          </Attribute>
+          <Attribute>
+            <Name>relation</Name>
+            <Value>shell-lifecycle-bound-to-window</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </CrossLink>
+      <CrossLink>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>from</Name>
+            <Value>M-035</Value>
+          </Attribute>
+          <Attribute>
+            <Name>to</Name>
+            <Value>M-034</Value>
+          </Attribute>
+          <Attribute>
+            <Name>relation</Name>
+            <Value>reads-terminal-output-from</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </CrossLink>
+      <CrossLink>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>from</Name>
+            <Value>M-036</Value>
+          </Attribute>
+          <Attribute>
+            <Name>to</Name>
+            <Value>M-002</Value>
+          </Attribute>
+          <Attribute>
+            <Name>relation</Name>
+            <Value>reads-directory-tree-via</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </CrossLink>
+      <CrossLink>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>from</Name>
+            <Value>M-036</Value>
+          </Attribute>
+          <Attribute>
+            <Name>to</Name>
+            <Value>M-010</Value>
+          </Attribute>
+          <Attribute>
+            <Name>relation</Name>
+            <Value>validates-project-root-via</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </CrossLink>
+      <CrossLink>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>from</Name>
+            <Value>M-037</Value>
+          </Attribute>
+          <Attribute>
+            <Name>to</Name>
+            <Value>M-036</Value>
+          </Attribute>
+          <Attribute>
+            <Name>relation</Name>
+            <Value>resolves-wikilinks-within-project</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </CrossLink>
+      <CrossLink>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>from</Name>
+            <Value>M-037</Value>
+          </Attribute>
+          <Attribute>
+            <Name>to</Name>
+            <Value>M-012</Value>
+          </Attribute>
+          <Attribute>
+            <Name>relation</Name>
+            <Value>extends-muya-inline-parser</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </CrossLink>
+      <CrossLink>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>from</Name>
+            <Value>M-038</Value>
+          </Attribute>
+          <Attribute>
+            <Name>to</Name>
+            <Value>M-011</Value>
+          </Attribute>
+          <Attribute>
+            <Name>relation</Name>
+            <Value>intercepts-clipboard-events-in</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </CrossLink>
+      <CrossLink>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>from</Name>
+            <Value>M-038</Value>
+          </Attribute>
+          <Attribute>
+            <Name>to</Name>
+            <Value>M-012</Value>
+          </Attribute>
+          <Attribute>
+            <Name>relation</Name>
+            <Value>imports-content-into</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </CrossLink>
+      <CrossLink>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>from</Name>
+            <Value>M-038</Value>
+          </Attribute>
+          <Attribute>
+            <Name>to</Name>
+            <Value>M-010</Value>
+          </Attribute>
+          <Attribute>
+            <Name>relation</Name>
+            <Value>validates-rich-html-through</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </CrossLink>
+      <CrossLink>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>from</Name>
+            <Value>M-038</Value>
+          </Attribute>
+          <Attribute>
+            <Name>to</Name>
+            <Value>M-039</Value>
+          </Attribute>
+          <Attribute>
+            <Name>relation</Name>
+            <Value>reads-payload-via</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </CrossLink>
+      <CrossLink>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>from</Name>
+            <Value>M-038</Value>
+          </Attribute>
+          <Attribute>
+            <Name>to</Name>
+            <Value>M-040</Value>
+          </Attribute>
+          <Attribute>
+            <Name>relation</Name>
+            <Value>detects-source-via</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </CrossLink>
+      <CrossLink>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>from</Name>
+            <Value>M-038</Value>
+          </Attribute>
+          <Attribute>
+            <Name>to</Name>
+            <Value>M-042</Value>
+          </Attribute>
+          <Attribute>
+            <Name>relation</Name>
+            <Value>normalizes-html-via</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </CrossLink>
+      <CrossLink>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>from</Name>
+            <Value>M-038</Value>
+          </Attribute>
+          <Attribute>
+            <Name>to</Name>
+            <Value>M-043</Value>
+          </Attribute>
+          <Attribute>
+            <Name>relation</Name>
+            <Value>bridges-rich-paste-via</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </CrossLink>
+      <CrossLink>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>from</Name>
+            <Value>M-040</Value>
+          </Attribute>
+          <Attribute>
+            <Name>to</Name>
+            <Value>M-039</Value>
+          </Attribute>
+          <Attribute>
+            <Name>relation</Name>
+            <Value>classifies-payload-from</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </CrossLink>
+      <CrossLink>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>from</Name>
+            <Value>M-041</Value>
+          </Attribute>
+          <Attribute>
+            <Name>to</Name>
+            <Value>M-040</Value>
+          </Attribute>
+          <Attribute>
+            <Name>relation</Name>
+            <Value>selects-adapter-from</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </CrossLink>
+      <CrossLink>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>from</Name>
+            <Value>M-042</Value>
+          </Attribute>
+          <Attribute>
+            <Name>to</Name>
+            <Value>M-041</Value>
+          </Attribute>
+          <Attribute>
+            <Name>relation</Name>
+            <Value>applies-source-adapters-from</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </CrossLink>
+      <CrossLink>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>from</Name>
+            <Value>M-042</Value>
+          </Attribute>
+          <Attribute>
+            <Name>to</Name>
+            <Value>M-010</Value>
+          </Attribute>
+          <Attribute>
+            <Name>relation</Name>
+            <Value>sanitizes-rich-html-through</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </CrossLink>
+      <CrossLink>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>from</Name>
+            <Value>M-043</Value>
+          </Attribute>
+          <Attribute>
+            <Name>to</Name>
+            <Value>M-042</Value>
+          </Attribute>
+          <Attribute>
+            <Name>relation</Name>
+            <Value>consumes-normalized-html-from</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </CrossLink>
+      <CrossLink>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>from</Name>
+            <Value>M-043</Value>
+          </Attribute>
+          <Attribute>
+            <Name>to</Name>
+            <Value>M-012</Value>
+          </Attribute>
+          <Attribute>
+            <Name>relation</Name>
+            <Value>reuses-import-pipeline-of</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </CrossLink>
+      <CrossLink>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>from</Name>
+            <Value>M-043</Value>
+          </Attribute>
+          <Attribute>
+            <Name>to</Name>
+            <Value>M-011</Value>
+          </Attribute>
+          <Attribute>
+            <Name>relation</Name>
+            <Value>preserves-image-transform-contract-for</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </CrossLink>
+      <CrossLink>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>from</Name>
+            <Value>M-044</Value>
+          </Attribute>
+          <Attribute>
+            <Name>to</Name>
+            <Value>M-039</Value>
+          </Attribute>
+          <Attribute>
+            <Name>relation</Name>
+            <Value>supplies-payload-fixtures-for</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </CrossLink>
+      <CrossLink>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>from</Name>
+            <Value>M-044</Value>
+          </Attribute>
+          <Attribute>
+            <Name>to</Name>
+            <Value>M-040</Value>
+          </Attribute>
+          <Attribute>
+            <Name>relation</Name>
+            <Value>captures-source-signatures-for</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </CrossLink>
+      <CrossLink>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>from</Name>
+            <Value>M-044</Value>
+          </Attribute>
+          <Attribute>
+            <Name>to</Name>
+            <Value>M-042</Value>
+          </Attribute>
+          <Attribute>
+            <Name>relation</Name>
+            <Value>provides-hostile-and-rich-input-fixtures-for</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </CrossLink>
+      <CrossLink>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>from</Name>
+            <Value>M-045</Value>
+          </Attribute>
+          <Attribute>
+            <Name>to</Name>
+            <Value>M-001</Value>
+          </Attribute>
+          <Attribute>
+            <Name>relation</Name>
+            <Value>registered-in-main-invoke-handler</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </CrossLink>
+      <CrossLink>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>from</Name>
+            <Value>M-045</Value>
+          </Attribute>
+          <Attribute>
+            <Name>to</Name>
+            <Value>M-005</Value>
+          </Attribute>
+          <Attribute>
+            <Name>relation</Name>
+            <Value>persists-extension-state-via</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </CrossLink>
+      <CrossLink>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>from</Name>
+            <Value>M-045</Value>
+          </Attribute>
+          <Attribute>
+            <Name>to</Name>
+            <Value>M-019</Value>
+          </Attribute>
+          <Attribute>
+            <Name>relation</Name>
+            <Value>stores-extension-secrets-via</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </CrossLink>
+      <CrossLink>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>from</Name>
+            <Value>M-001</Value>
+          </Attribute>
+          <Attribute>
+            <Name>to</Name>
+            <Value>M-045</Value>
+          </Attribute>
+          <Attribute>
+            <Name>relation</Name>
+            <Value>registers-ext-commands</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </CrossLink>
+      <CrossLink>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>from</Name>
+            <Value>M-046</Value>
+          </Attribute>
+          <Attribute>
+            <Name>to</Name>
+            <Value>M-001</Value>
+          </Attribute>
+          <Attribute>
+            <Name>relation</Name>
+            <Value>verifies-packaged-shell-release-of</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </CrossLink>
+      <CrossLink>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>from</Name>
+            <Value>M-046</Value>
+          </Attribute>
+          <Attribute>
+            <Name>to</Name>
+            <Value>M-016</Value>
+          </Attribute>
+          <Attribute>
+            <Name>relation</Name>
+            <Value>verifies-updater-version-metadata-for</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </CrossLink>
+    </Relationships>
+    <ExternalReferences/>
+  </GD-FLOWS>
+</GraceGraphDocument>

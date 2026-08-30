@@ -1,0 +1,2399 @@
+<GraceVerificationDocument graceVersion='4.0'>
+  <VD-FEATURES>
+    <V-M-031>
+      <Priority>high</Priority>
+      <Commands/>
+      <Scenarios/>
+      <Markers/>
+      <TraceAssertions/>
+      <LegacyMatrixEvidence>
+        <Module>M-031</Module>
+        <VM>V-M-031</VM>
+        <Priority>high</Priority>
+        <Scenarios>10</Scenarios>
+        <Ec>14</Ec>
+        <Alm>12</Alm>
+        <Na>7</Na>
+        <Rta>6</Rta>
+        <Phf>1</Phf>
+        <Waf>1</Waf>
+        <Gate>Gate-Phase-B6-agent-pipeline</Gate>
+      </LegacyMatrixEvidence>
+      <LegacyBase>
+        <Source>docs/verification-plan.xml</Source>
+        <followup-ref>F-DIFF-VIEW</followup-ref>
+        <prereq>
+          V-M-010 (SecurityCtx sandbox for .before path resolution), V-M-011
+          (editorWithTabs mode switching contract), V-M-012 (muya state
+          preservation across mode transitions), V-M-002 (fs commands for
+          .before file reading), V-M-003 (watcher integration for live diff
+          refresh on external changes)
+        </prereq>
+        <module-surface>
+           Renderer: src/renderer/src/components/editorWithTabs/diffView.vue —
+          new Vue SFC wrapping CodeMirror 5 MergeView addon. Pattern follows
+          existing src/renderer/src/components/editorWithTabs/sourceCode.vue
+          (shared editor chrome, lifecycle hooks, theme wiring). MergeView
+          instantiated with `origLeft` (baseline) and `value` (current content),
+          using diff-match-patch as the diff algorithm provider. Supports inline
+          (combined pane, default) and side-by-side (two-pane, toggle via
+          toolbar button) modes with synchronized scrolling. Renderer:
+          src/renderer/src/components/editorWithTabs/index.vue — extended with
+          third editor mode &apos;diff&apos; alongside &apos;wysiwyg&apos; and
+          &apos;sourceCode&apos;. Cmd+D keyboard shortcut toggles diff mode
+          on/off. When entering diff mode, current content captured and baseline
+          fetched via Tauri invoke `mt_diff_baseline`. When exiting, previous
+          mode (wysiwyg or sourceCode) restored. diffView component
+          conditionally mounted via v-if alongside existing editor components.
+          Renderer: src/renderer/src/store/editor.js — per-tab state extended
+          with `diffMode: boolean`, `diffBaseline: string|null`,
+          `diffBaselineSource: &apos;file&apos;|&apos;git&apos;|null` fields.
+          Tab state persisted across tab switches. Backend:
+          src-tauri/src/m031_diff.rs — new Tauri command `mt_diff_baseline`
+          accepting file path, returning `{ baseline: String, source:
+          &quot;file&quot;|&quot;git&quot; }`. Resolution order: (1) check for
+          `{path}.before` sibling file, (2) if in git repo, attempt `git show
+          HEAD:{relative_path}`, (3) return error with reason. All paths
+          validated through SecurityCtx sandbox. Git invocation uses
+          `std::process::Command` with timeout. Backend: src-tauri/src/main.rs —
+          register `mt_diff_baseline` in Builder invoke_handler chain.
+          Dependencies: `diff-match-patch` npm package (new, ~8KB gzip);
+          `codemirror/addon/merge/merge.js` (already installed, ~38KB);
+          `codemirror/addon/merge/merge.css` (already installed). Auto-detect:
+          when a file is opened and a `.before` sibling exists, diff mode is
+          automatically suggested/activated (configurable via preference
+          `autoDiffOnBeforeFile`, default true). 
+        </module-surface>
+        <high-level-scenarios>
+          <S1>
+            inline-diff-additions — open file with .before baseline containing 3
+            new paragraphs added; MergeView renders green-highlighted additions
+            inline with gutter markers; BLOCK_DIFF_RENDERED mode=inline
+            lines_added=N.
+          </S1>
+          <S2>
+            inline-diff-deletions — baseline contains paragraphs removed in
+            current file; MergeView renders red-highlighted deletions inline
+            with strikethrough; deleted line count matches expected.
+          </S2>
+          <S3>
+            inline-diff-modifications — mixed additions and deletions (paragraph
+            reworded); both red and green highlights present; character-level
+            diff within modified lines via diff-match-patch charDiff.
+          </S3>
+          <S4>
+            side-by-side-mode — toolbar toggle switches to two-pane view; left
+            pane shows baseline (read-only), right pane shows current content
+            (editable); synchronized vertical scroll; pane widths equal.
+          </S4>
+          <S5>
+            baseline-from-before-file — file `/path/to/doc.md` opened;
+            `/path/to/doc.md.before` exists and is readable; baseline loaded
+            from .before file; BLOCK_BASELINE_LOADED source=file path=...before.
+          </S5>
+          <S6>
+            baseline-from-git — file opened, no .before sibling, file is in git
+            repo with committed version; baseline loaded from `git show
+            HEAD:{path}`; BLOCK_BASELINE_LOADED source=git path=...
+            revision=HEAD.
+          </S6>
+          <S7>
+            toggle-cmd-d-enter-exit — in wysiwyg mode, press Cmd+D; diff view
+            appears with baseline fetched async; press Cmd+D again; returns to
+            wysiwyg mode with muya state intact; cursor position preserved. Same
+            flow starting from sourceCode mode restores to sourceCode.
+          </S7>
+          <S8>
+            theme-switching-in-diff — railscasts theme active; diff view renders
+            with railscasts CodeMirror theme; switch to one-dark via
+            preferences; diff view re-themes without remount; gutter and
+            highlight colors match theme palette.
+          </S8>
+          <S9>
+            tab-switch-preserves-diff-state — tab A in diff mode, tab B in
+            wysiwyg; switch to B then back to A; diff view restored with same
+            baseline and scroll position; no re-fetch of baseline.
+          </S9>
+          <S10>
+            auto-detect-before-file — open doc.md where doc.md.before exists;
+            diff mode activated automatically; BLOCK_AUTO_DIFF_TRIGGERED; user
+            can dismiss via Cmd+D or toolbar close button.
+          </S10>
+        </high-level-scenarios>
+        <failure-scenarios>
+          <F1>
+            no-baseline-available — no .before file, not in git repo (or file
+            never committed); Cmd+D shows informative inline banner &quot;No
+            baseline available: file has no .before neighbor and is not tracked
+            by git&quot;; BLOCK_BASELINE_FAILED reason=no_source; diff mode NOT
+            entered; previous mode remains.
+          </F1>
+          <F2>
+            before-file-outside-sandbox — .before file exists but resolves to
+            path outside SecurityCtx sandbox (e.g., symlink escape); SecurityCtx
+            rejects; BLOCK_BASELINE_FAILED reason=sandbox_violation path=...;
+            error surfaced as inline banner; diff mode NOT entered.
+          </F2>
+          <F3>
+            git-not-available — git binary not installed or not in PATH;
+            `std::process::Command` returns io::Error NotFound; fallback to
+            .before-file-only resolution; if .before also missing, F1 path;
+            BLOCK_GIT_UNAVAILABLE reason=binary_not_found.
+          </F3>
+          <F4>
+            empty-file-diff — current file empty, baseline has content (or vice
+            versa, or both empty); MergeView renders correctly (all-green,
+            all-red, or &quot;no differences&quot; message); no crash;
+            BLOCK_DIFF_RENDERED with lines_added/lines_deleted reflecting actual
+            counts including zero.
+          </F4>
+          <F5>
+            binary-file-opened — file detected as binary (null bytes in first
+            8KB); diff mode disabled; Cmd+D shows banner &quot;Diff view
+            unavailable for binary files&quot;; BLOCK_DIFF_REJECTED
+            reason=binary_file.
+          </F5>
+          <F6>
+            large-file-performance-guard — file exceeds 100K lines; diff
+            computation deferred with warning banner &quot;Large file — diff may
+            be slow (N lines). Continue?&quot;; user confirms or cancels; if
+            confirmed, diff computed with progress indicator;
+            BLOCK_LARGE_FILE_WARNING lines=N; if cancelled, BLOCK_DIFF_CANCELLED
+            reason=user_declined_large_file.
+          </F6>
+          <F7>
+            corrupt-before-file — .before file exists but contains invalid
+            UTF-8; Rust read returns Err; BLOCK_BASELINE_FAILED
+            reason=invalid_utf8 path=...; fallback to git source; if git also
+            fails, F1 path.
+          </F7>
+        </failure-scenarios>
+        <race-conditions>
+          <R1>
+            edit-during-baseline-fetch — user types in editor while async
+            `mt_diff_baseline` invoke is in-flight; baseline fetch completes,
+            but current content has changed since Cmd+D press; diff view uses
+            CURRENT content at render time (not stale snapshot); small timing
+            window acceptable as diff-match-patch re-diffs on mount;
+            BLOCK_BASELINE_FETCH_ELAPSED_MS logged.
+          </R1>
+          <R2>
+            external-change-while-diff-open — notify-debouncer (V-M-003) fires
+            file-changed event while diff view is active; current content
+            updated from disk; diff view re-diffs against same baseline;
+            MergeView.setValue() triggers incremental re-render;
+            BLOCK_DIFF_REFRESHED trigger=external_change.
+          </R2>
+          <R3>
+            tab-switch-during-baseline-fetch — user presses Cmd+D on tab A, then
+            immediately switches to tab B before baseline returns; invoke
+            response arrives for tab A while tab B is active; response stored in
+            tab A&apos;s editor store state; when user switches back to tab A,
+            diff view renders from stored baseline; no orphan render on wrong
+            tab; BLOCK_BASELINE_STORED_DEFERRED tab=A.
+          </R3>
+          <R4>
+            rapid-toggle-cmd-d: user double-presses Cmd+D within 100ms; first
+            press initiates baseline fetch, second press should cancel/toggle
+            back; debounce guard: ignore second Cmd+D if baseline fetch
+            in-flight (BLOCK_TOGGLE_DEBOUNCED); OR let second press cancel fetch
+            and return to previous mode (BLOCK_DIFF_CANCELLED
+            reason=rapid_toggle); chosen approach: debounce, 200ms cooldown on
+            Cmd+D.
+          </R4>
+          <R5>
+            before-file-deleted-while-diff-open — .before file existed at
+            diff-enter time but is deleted externally while diff view is open;
+            watcher fires; diff view shows stale baseline (acceptable — baseline
+            is a snapshot); banner appears &quot;Baseline file removed — diff
+            shows last loaded baseline&quot;; BLOCK_BASELINE_SOURCE_REMOVED.
+          </R5>
+          <R6>
+            concurrent-baseline-requests — multiple tabs opened simultaneously
+            with .before files (e.g., session restore); each invokes
+            mt_diff_baseline independently; Rust handler is stateless per-call;
+            no shared mutable state; concurrent execution safe;
+            BLOCK_BASELINE_LOADED carries tab_id for correlation.
+          </R6>
+        </race-conditions>
+        <numeric-thresholds>
+          <T1>
+            Diff render time (MergeView mount + diff-match-patch compute) ≤200ms
+            for 10K-line file on M2 MacBook; BLOCK_DIFF_RENDERED.elapsed_ms
+            measured from baseline-received to first-paint of diff gutter.
+          </T1>
+          <T2>
+            Bundle impact: diff-match-patch ≤15KB gzipped; verified by
+            tests/build/bundle-size.test.mjs entry for vendor-diff-match-patch
+            chunk.
+          </T2>
+          <T3>
+            MergeView addon: 0 additional network cost (already loaded as part
+            of CodeMirror bundle used by sourceCode.vue); verified by grep of
+            dist/assets/ for merge.js chunk — should be in existing codemirror
+            vendor chunk.
+          </T3>
+          <T4>
+            Memory: diff view for 10K-line file ≤50MB additional heap over base
+            editor; measured via `performance.measureUserAgentSpecificMemory()`
+            before/after diff mount; BLOCK_DIFF_MEMORY_DELTA_MB logged in dev
+            mode.
+          </T4>
+          <T5>
+            Baseline fetch latency: .before file ≤50ms for ≤1MB file; git show
+            ≤200ms for ≤1MB file in repo with ≤10K commits;
+            BLOCK_BASELINE_FETCH_ELAPSED_MS.
+          </T5>
+          <T6>
+            Cmd+D toggle responsiveness: ≤100ms from keypress to diff-view
+            visible (excluding baseline fetch, which shows spinner); ≤50ms from
+            keypress to previous-mode-restored on exit.
+          </T6>
+          <T7>
+            Side-by-side scroll sync latency: ≤1 frame (16ms) between panes;
+            visual jank = 0 during synchronized scroll.
+          </T7>
+          <T8>
+            Cold-launch impact: 0ms regression on cold-launch first-paint when
+            diff mode NOT active (lazy-loaded); verified against V-M-024/V-M-030
+            baselines.
+          </T8>
+        </numeric-thresholds>
+        <edge-cases>
+          <E1>
+            no-newline-at-eof — file ends without trailing newline; .before has
+            trailing newline (or vice versa); diff correctly shows the newline
+            difference; MergeView &quot;No newline at end of file&quot;
+            indicator present if applicable.
+          </E1>
+          <E2>
+            unicode-content-cjk — file contains CJK characters, emoji
+            (multi-codepoint sequences), RTL (Arabic/Hebrew) text;
+            diff-match-patch handles Unicode correctly (operates on UTF-16 code
+            units); MergeView renders bidirectional text; character-level diff
+            within CJK lines accurate.
+          </E2>
+          <E3>
+            very-long-lines — lines exceeding 10K characters; horizontal scroll
+            in both inline and side-by-side modes; no layout overflow or
+            clipping; synchronized horizontal scroll in side-by-side mode.
+          </E3>
+          <E4>
+            markdown-with-diff-syntax — file contains fenced code block with
+            ````diff` language tag containing +/- lines; these are NOT
+            interpreted as actual diffs; MergeView diffs the raw markdown
+            source, not rendered output; diff-like content inside code blocks
+            treated as plain text.
+          </E4>
+          <E5>
+            before-file-newer-than-current — .before file has mtime newer than
+            current file (unusual but possible if agent wrote .before after user
+            already started editing); diff still computed correctly (baseline =
+            .before content regardless of mtime); BLOCK_BASELINE_MTIME_NEWER
+            logged as info for debugging.
+          </E5>
+          <E6>
+            symlinked-before-file — .before is a symlink; resolved path MUST
+            pass SecurityCtx sandbox check (symlink target, not symlink itself);
+            if target outside sandbox, F2 path; if target inside sandbox, normal
+            operation.
+          </E6>
+          <E7>
+            identical-files — current content exactly equals baseline; MergeView
+            renders with &quot;No differences&quot; state; all-white gutter (no
+            red/green); BLOCK_DIFF_RENDERED lines_added=0 lines_deleted=0
+            identical=true.
+          </E7>
+          <E8>
+            file-with-windows-line-endings — file uses CRLF, .before uses LF (or
+            mixed); diff-match-patch treats line endings as significant; option
+            to normalize line endings before diff (configurable); default:
+            normalize to LF for diff comparison.
+          </E8>
+          <E9>
+            very-large-baseline-from-git — git show returns very large file
+            (&gt;10MB); same 100K-line guard as F6 applied to baseline content;
+            streaming not required (baseline loaded fully into memory for
+            MergeView).
+          </E9>
+          <E10>
+            concurrent-before-file-write — external process (Claude agent)
+            writes to .before file while Mark is reading it; Rust fs::read uses
+            single read syscall for small files; for large files, potential
+            partial read; mitigation: retry once on unexpected EOF;
+            BLOCK_BASELINE_READ_RETRY.
+          </E10>
+          <E11>
+            diff-mode-with-unsaved-changes — user has unsaved edits in editor;
+            enters diff mode; diff compares baseline against CURRENT BUFFER
+            content (not last-saved disk content); &quot;unsaved changes&quot;
+            indicator still visible; save while in diff mode persists current
+            buffer; diff re-renders if baseline differs from new saved content.
+          </E11>
+          <E12>
+            multiple-before-files — both doc.md.before and .before exist in same
+            directory; resolution priority: exact-match `{filename}.before`
+            first; ignore generic `.before`; BLOCK_BASELINE_RESOLUTION
+            strategy=exact_sibling.
+          </E12>
+          <E13>
+            readonly-file-diff — file opened as read-only (permissions or
+            preference); diff view left pane read-only (always); right pane also
+            read-only; no edit capability; visual indicator
+            &quot;Read-only&quot; present.
+          </E13>
+          <E14>
+            whitespace-only-changes — baseline and current differ only in
+            whitespace (trailing spaces, tab vs spaces, blank lines); diff
+            highlights whitespace changes; option to toggle &quot;ignore
+            whitespace&quot; in diff toolbar; BLOCK_DIFF_RENDERED
+            whitespace_only=true when applicable.
+          </E14>
+        </edge-cases>
+        <log-markers>
+          <LegacyAttributes>
+            <Attribute>
+              <Name>namespace</Name>
+              <Value>[m031][diff]</Value>
+            </Attribute>
+            <Attribute>
+              <Name>count</Name>
+              <Value>12</Value>
+            </Attribute>
+          </LegacyAttributes>
+           BLOCK_BASELINE_LOADED (source=file|git, path=..., size_bytes=N,
+          elapsed_ms=N, tab_id=...), BLOCK_BASELINE_FAILED
+          (reason=no_source|sandbox_violation|invalid_utf8|git_error|file_not_found, path=..., tab_id=...), BLOCK_DIFF_RENDERED (mode=inline|side-by-side, lines_total=N, lines_added=N, lines_deleted=N, elapsed_ms=N, identical=bool, tab_id=...), BLOCK_DIFF_TOGGLED (state=on|off, previous_mode=wysiwyg|sourceCode, tab_id=...), BLOCK_DIFF_REFRESHED (trigger=external_change|user_edit, elapsed_ms=N, tab_id=...), BLOCK_AUTO_DIFF_TRIGGERED (path=..., before_path=..., tab_id=...), BLOCK_TOGGLE_DEBOUNCED (tab_id=..., cooldown_ms=200), BLOCK_DIFF_CANCELLED (reason=rapid_toggle|user_declined_large_file|no_baseline, tab_id=...), BLOCK_GIT_UNAVAILABLE (reason=binary_not_found|not_a_repo|timeout), BLOCK_LARGE_FILE_WARNING (lines=N, path=..., tab_id=...), BLOCK_BASELINE_SOURCE_REMOVED (source=file, path=..., tab_id=...), BLOCK_DIFF_REJECTED (reason=binary_file, path=..., tab_id=...). 
+        </log-markers>
+        <negative-assertions>
+          <NA1>
+            diff-match-patch MUST NOT be loaded on cold launch when diff mode is
+            not active — verify vendor-diff-match-patch chunk NOT in initial
+            network waterfall for plain file open; dynamic import() only.
+          </NA1>
+          <NA2>
+            MergeView MUST NOT instantiate until baseline is successfully
+            fetched — no empty/null-baseline diff render; BLOCK_DIFF_RENDERED
+            never precedes BLOCK_BASELINE_LOADED in same tab_id trace.
+          </NA2>
+          <NA3>
+            .before path MUST NOT bypass SecurityCtx — every mt_diff_baseline
+            call validates resolved path through same sandbox check as
+            mt_read_file; no separate &quot;trusted&quot; path.
+          </NA3>
+          <NA4>
+            Diff mode MUST NOT destroy muya instance — entering diff mode hides
+            muya container (display:none or v-show), does NOT unmount; exiting
+            diff mode restores muya visibility; muya selection/cursor state
+            preserved.
+          </NA4>
+          <NA5>
+            Diff mode MUST NOT affect file save behavior — Cmd+S in diff mode
+            saves current buffer (right pane content in side-by-side, or current
+            content in inline); baseline (left pane) is NEVER written to disk by
+            save action.
+          </NA5>
+          <NA6>
+            git show MUST NOT be invoked with unsanitized path — path argument
+            shell-escaped or passed via stdin/--; no command injection via
+            crafted filenames containing backticks, $(), semicolons, etc.
+          </NA6>
+          <NA7>
+            Diff view MUST NOT introduce a Content-Security-Policy violation —
+            diff-match-patch and MergeView operate on string data, no eval();
+            CSP sha256 hashes unchanged from V-M-024 baseline; no new inline
+            scripts.
+          </NA7>
+        </negative-assertions>
+        <ordering-invariants>
+           (1) BLOCK_DIFF_TOGGLED state=on precedes
+          BLOCK_BASELINE_LOADED|BLOCK_BASELINE_FAILED for same tab_id
+          interaction. (2) BLOCK_BASELINE_LOADED precedes BLOCK_DIFF_RENDERED
+          for same tab_id (no render without baseline). (3) BLOCK_DIFF_TOGGLED
+          state=off precedes next BLOCK_DIFF_TOGGLED state=on for same tab_id
+          (no double-enter). (4) BLOCK_AUTO_DIFF_TRIGGERED precedes
+          BLOCK_BASELINE_LOADED for auto-detected .before files. (5)
+          BLOCK_BASELINE_FAILED with reason=sandbox_violation includes path
+          field matching SecurityCtx rejection log from V-M-010. (6) When diff
+          mode is NOT active for any tab, zero BLOCK_DIFF_REFRESHED markers
+          emitted (no background diffing). 
+        </ordering-invariants>
+        <cross-module-integration>
+          <dep>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>module</Name>
+                <Value>V-M-010</Value>
+              </Attribute>
+              <Attribute>
+                <Name>type</Name>
+                <Value>security</Value>
+              </Attribute>
+            </LegacyAttributes>
+            .before file path and symlink-resolved path MUST pass SecurityCtx
+            sandbox validation. mt_diff_baseline invokes same
+            `security::validate_path()` used by mt_read_file. Test: craft
+            .before symlink pointing outside sandbox → BLOCK_BASELINE_FAILED
+            reason=sandbox_violation.
+          </dep>
+          <dep>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>module</Name>
+                <Value>V-M-011</Value>
+              </Attribute>
+              <Attribute>
+                <Name>type</Name>
+                <Value>mode-switching</Value>
+              </Attribute>
+            </LegacyAttributes>
+            index.vue mode state extended from {wysiwyg, sourceCode} to
+            {wysiwyg, sourceCode, diff}. Cmd+D toggle MUST NOT interfere with
+            existing Cmd+/ (source toggle) or toolbar mode buttons. Mode
+            transition matrix: wysiwyg→diff→wysiwyg, sourceCode→diff→sourceCode
+            (returns to origin mode). Test: Cmd+/ then Cmd+D then Cmd+D → back
+            in sourceCode, NOT wysiwyg.
+          </dep>
+          <dep>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>module</Name>
+                <Value>V-M-012</Value>
+              </Attribute>
+              <Attribute>
+                <Name>type</Name>
+                <Value>state-preservation</Value>
+              </Attribute>
+            </LegacyAttributes>
+            muya instance stays alive (hidden) during diff mode. Entering diff:
+            muya container gets `display:none`; exiting diff: muya container
+            restored to `display:block`. muya.getContent() === buffer content at
+            all times. Test: type in wysiwyg → Cmd+D → Cmd+D → verify typed text
+            present and cursor position restored.
+          </dep>
+          <dep>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>module</Name>
+                <Value>V-M-024</Value>
+              </Attribute>
+              <Attribute>
+                <Name>type</Name>
+                <Value>launch-performance</Value>
+              </Attribute>
+            </LegacyAttributes>
+            diffView.vue and diff-match-patch are lazy-loaded (dynamic import).
+            Splash screen timing unaffected. Test: cold launch plain.md →
+            V-M-024 BLOCK_REPLACED timing within ±20ms of baseline; no
+            vendor-diff-match-patch in initial network waterfall.
+          </dep>
+          <dep>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>module</Name>
+                <Value>V-M-025</Value>
+              </Attribute>
+              <Attribute>
+                <Name>type</Name>
+                <Value>open-flow</Value>
+              </Attribute>
+            </LegacyAttributes>
+            File open with .before neighbor: after BLOCK_NEW_TAB_RECEIVED
+            (V-M-025), auto-diff detection checks for .before file.
+            BLOCK_AUTO_DIFF_TRIGGERED fires AFTER tab is fully loaded and
+            rendered. Test: Finder-open doc.md where doc.md.before exists → tab
+            opens, content renders, THEN diff mode activates.
+          </dep>
+          <dep>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>module</Name>
+                <Value>V-M-003</Value>
+              </Attribute>
+              <Attribute>
+                <Name>type</Name>
+                <Value>watcher</Value>
+              </Attribute>
+            </LegacyAttributes>
+            fs watcher event for opened file while diff view active triggers
+            re-diff. Watcher event for .before file deletion triggers
+            BLOCK_BASELINE_SOURCE_REMOVED. Test: externally modify opened file →
+            diff view updates; delete .before → banner appears.
+          </dep>
+          <dep>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>module</Name>
+                <Value>V-M-005</Value>
+              </Attribute>
+              <Attribute>
+                <Name>type</Name>
+                <Value>preferences</Value>
+              </Attribute>
+            </LegacyAttributes>
+            New preference `autoDiffOnBeforeFile` (boolean, default true) stored
+            via prefs module. Preference `diffViewDefaultMode` (enum:
+            inline|side-by-side, default inline). Test: set
+            autoDiffOnBeforeFile=false → open file with .before → no auto-diff.
+          </dep>
+        </cross-module-integration>
+        <test-files>
+          <vitest>
+            src/renderer/__tests__/diffView.test.js (component mount with mock
+            baseline, inline/side-by-side mode toggle, theme application, empty
+            diff, identical files, unicode content), diffView-toggle.test.js
+            (Cmd+D enter/exit, mode restoration, debounce guard, rapid toggle),
+            diffView-store.test.js (per-tab diff state in editor store, tab
+            switch preservation, baseline caching)
+          </vitest>
+          <cargo>
+            src-tauri/tests/m031_diff.rs (unit: .before file resolution with
+            tempdir, git show baseline via test repo init, sandbox validation
+            rejection, invalid UTF-8 handling, binary file detection,
+            git-not-available fallback, concurrent baseline requests, symlink
+            resolution, path sanitization for git command)
+          </cargo>
+          <playwright>
+            tests/e2e/diff-view.spec.ts (open file with .before → diff renders,
+            Cmd+D toggle on/off, side-by-side switch, theme change in diff mode,
+            tab switch preserves diff, auto-detect .before),
+            diff-view-failure.spec.ts (no baseline → error banner, sandbox
+            violation → error, large file warning), diff-view-race.spec.ts
+            (external file change during diff, rapid Cmd+D toggle, tab switch
+            during baseline fetch)
+          </playwright>
+          <build>
+            tests/build/bundle-size.test.mjs (extended: vendor-diff-match-patch
+            chunk ≤15KB gzip; not in initial waterfall),
+            tests/build/diff-lazy-load.test.mjs (dynamic import verification:
+            diff-match-patch and merge.js not in entry chunks)
+          </build>
+          <fixtures>
+            tests/fixtures/diff/{simple-add.md,simple-add.md.before,simple-delete.md,simple-delete.md.before,mixed-change.md,mixed-change.md.before,unicode-cjk.md,unicode-cjk.md.before,long-lines.md,long-lines.md.before,identical.md,identical.md.before,empty.md,empty.md.before,binary.dat,crlf.md,crlf.md.before,large-10k.md,large-10k.md.before,invalid-utf8.md.before,whitespace-only.md,whitespace-only.md.before}
+          </fixtures>
+        </test-files>
+        <module-local-commands>
+           npm test -- diffView diffView-toggle diffView-store; cd src-tauri
+          &amp;&amp; cargo test m031_diff; npm run build &amp;&amp; node
+          tests/build/bundle-size.test.mjs &amp;&amp; node
+          tests/build/diff-lazy-load.test.mjs; npx playwright test
+          diff-view.spec.ts diff-view-failure.spec.ts diff-view-race.spec.ts
+          --reporter=list; manual: create /tmp/test-diff.md and
+          /tmp/test-diff.md.before with known differences, open in Mark, verify
+          diff renders, toggle with Cmd+D, switch themes; manual: `echo
+          &quot;original&quot; &gt; /tmp/d.md.before &amp;&amp; echo
+          &quot;modified&quot; &gt; /tmp/d.md &amp;&amp; open -a Mark.app
+          /tmp/d.md` (auto-diff detection end-to-end). 
+        </module-local-commands>
+        <ai-friendliness>
+          <LegacyAttributes>
+            <Attribute>
+              <Name>assessment</Name>
+              <Value>strong</Value>
+            </Attribute>
+          </LegacyAttributes>
+           Autonomy trust 0.85/1.0. ~65% deterministic: bundle-size assertions
+          (exact bytes), lazy-load verification (grep dist/), Rust unit tests
+          (.before resolution, sandbox, git show mock), store state assertions,
+          marker ordering invariants. ~25% trace-based: render timing thresholds
+          p95-gated, baseline fetch latency, memory delta measurements. ~10%
+          visual/interactive: diff gutter colors match theme (pixel-diff at 0.1%
+          tolerance for VR snapshots), side-by-side scroll sync (requires
+          frame-level inspection), MergeView layout correctness. Forbidden
+          patterns: setTimeout-based &quot;wait for diff&quot; (use
+          BLOCK_DIFF_RENDERED marker); innerHTML parsing for diff content (use
+          CodeMirror API); headless Chromium for E2E (use tauri-driver
+          WKWebView). Limitation: visual regression baselines for diff color
+          themes require initial human sign-off; git show tests require real git
+          repo initialization in tempdir (deterministic but slow). Agent
+          pipeline end-to-end (Claude writes → Mark shows diff → user edits →
+          Claude reads) requires coordinated multi-process smoke — manual or CI
+          orchestration script. 
+        </ai-friendliness>
+        <verification-level>
+          module-local: vitest + cargo test on every commit (diff component +
+          Rust baseline resolver). Wave-level: Playwright diff-view E2E +
+          bundle-size gate on PRs touching
+          src/renderer/src/components/editorWithTabs/ or
+          src-tauri/src/m031_diff.rs. Phase-level: full agent-pipeline smoke
+          (Claude writes .before → opens in Mark → user reviews diff → saves →
+          Claude detects changes) at alpha.8 sign-off. Visual regression:
+          nightly + diff-labeled PRs.
+        </verification-level>
+      </LegacyBase>
+      <LegacySource>docs/verification-plan.xml: V-M-031</LegacySource>
+    </V-M-031>
+    <V-M-032>
+      <Priority>high</Priority>
+      <Commands/>
+      <Scenarios/>
+      <Markers/>
+      <TraceAssertions/>
+      <LegacyBase>
+        <Source>docs/verification-plan.xml</Source>
+        <followup-ref>F-LIVE-RELOAD</followup-ref>
+        <prereq>
+          V-M-003 (watcher infrastructure), V-M-012 (muya API), V-M-011
+          (editorWithTabs tabs)
+        </prereq>
+        <texture-audit>
+          <LegacyAttributes>
+            <Attribute>
+              <Name>date</Name>
+              <Value>2026-05-20</Value>
+            </Attribute>
+          </LegacyAttributes>
+           CRITICAL FINDING: loadChange(change) at editor.js:116 expects
+          change.data with { markdown, filename, encoding, lineEnding, ... } but
+          APPLY_FILE_CHANGE at editor.js:1339 is called from project.js:232 with
+          only { pathname } — change.data is undefined. This is a LATENT BUG:
+          the reload-on-external-change path crashes on destructuring undefined.
+          Never triggered because autoSave defaults to false and the
+          notification action path (line 1381) hits the same crash. Existing
+          infrastructure: - Watcher: m013b/watch.rs emits on
+          &quot;mt::watch::event&quot; channel (not
+          &quot;mt::file-changed&quot;). WatchEvent shape: { subscriptionId,
+          kind, paths[] }. Debounce: 200ms (DEBOUNCE_TICK). - Project store:
+          project.js:192 _handleWatchEvent receives kind=&quot;modify&quot; →
+          calls editorStore.APPLY_FILE_CHANGE(&apos;change&apos;, { pathname }).
+          - File read: ipcFs.read(path) → invoke(&apos;mt::fs::read&apos;, {
+          path }) returns UTF-8 string. Available for frontend file reading. -
+          Muya API: setMarkdown(markdown, cursor, isRenderCursor,
+          muyaIndexCursor, blocks) at muya/lib/index.js:190. getCursor() at
+          :186. NO getScrollTop/setScrollTop — scroll managed by editor.vue via
+          DOM. - Tab state: isSaved flag (false = dirty). cursor, scrollTop,
+          history preserved in tab object. - autoSave default: false
+          (preferences.js:9). - loadChange at editor.js:116 creates fresh
+          FileState via getSingleFileState, overwrites tab via Object.assign —
+          cursor/scrollTop from NEW state (not preserved from old). Scope
+          revision: M-032 is NOT &quot;add watcher + reload from scratch.&quot;
+          It is: 1. FIX the broken loadChange path (add ipcFs.read before
+          calling loadChange) 2. PRESERVE cursor/scrollTop across reload (save
+          before Object.assign, restore after) 3. ADD auto-reload for non-dirty
+          files regardless of autoSave preference (new &quot;liveReload&quot;
+          pref, default true) 4. ADD same-content skip (hash compare before
+          muya.setMarkdown) 5. ADD 100ms settle delay after debounced event to
+          avoid reading mid-write 
+        </texture-audit>
+        <module-surface>
+           Renderer: src/renderer/src/store/editor.js — (a) Fix
+          APPLY_FILE_CHANGE &apos;change&apos; branch: async read file via
+          ipcFs.read(pathname) + construct data object with { markdown,
+          filename, encoding, lineEnding, ... } BEFORE calling loadChange. This
+          fixes the latent bug. (b) In loadChange: save old cursor + scrollTop
+          BEFORE Object.assign(tab, newFileState). Restore after. (c) New
+          preference &quot;liveReload&quot; (default: true). When
+          liveReload=true AND isSaved=true: auto-reload without notification.
+          When liveReload=false: fall back to existing notification behavior.
+          (d) Same-content optimization: compare old markdown hash vs new before
+          calling bus.emit(&apos;file-changed&apos;). Skip if identical. (e)
+          100ms setTimeout after watcher event before reading file (settle delay
+          for agent burst writes). Renderer:
+          src/renderer/src/store/preferences.js — add liveReload: true default.
+          Backend: NO changes needed. Watcher infrastructure (m013b/watch.rs)
+          and ipcFs.read (m002_fs.rs) already exist. 
+        </module-surface>
+        <mental-walkthroughs>
+          <walkthrough-1>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>name</Name>
+                <Value>happy-path-agent-write</Value>
+              </Attribute>
+            </LegacyAttributes>
+             1. User opens file.md in Mark, edits some text, saves
+            (isSaved=true) 2. Claude Code writes file.md via tool_use (file
+            write) 3. notify-debouncer fires after 200ms quiet: WatchEvent {
+            kind: &quot;modify&quot;, paths: [&quot;/path/file.md&quot;] } 4.
+            project.js._handleWatchEvent →
+            editorStore.APPLY_FILE_CHANGE(&apos;change&apos;, { pathname }) 5.
+            NEW: APPLY_FILE_CHANGE checks liveReload pref + isSaved flag 6. NEW:
+            setTimeout(100ms) settle delay 7. NEW: await ipcFs.read(pathname) →
+            markdown string 8. NEW: construct data = { markdown, filename:
+            path.basename(pathname), encoding: tab.encoding, lineEnding:
+            tab.lineEnding, ... } 9. NEW: hash compare: if markdown ===
+            tab.markdown → BLOCK_RELOAD_SKIPPED reason=no_diff, return 10. Save
+            old cursor/scrollTop: const { cursor: oldCursor, scrollTop:
+            oldScrollTop } = tab 11. loadChange({ pathname, data }) →
+            Object.assign(tab, newFileState) 12. Restore: tab.cursor =
+            oldCursor; tab.scrollTop = oldScrollTop 13.
+            bus.emit(&apos;file-changed&apos;, { markdown, cursor: oldCursor,
+            scrollTop: oldScrollTop, ... }) 14. editor.vue handleFileChange →
+            muya.setMarkdown(markdown, oldCursor, ...) 15. editor.vue
+            scrollToCords(oldScrollTop) RESULT: Editor shows new content, cursor
+            stays at same position, scroll doesn&apos;t jump 
+          </walkthrough-1>
+          <walkthrough-2>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>name</Name>
+                <Value>dirty-conflict</Value>
+              </Attribute>
+            </LegacyAttributes>
+             1. User types unsaved text (isSaved=false) 2. Claude Code writes
+            file.md 3. Watcher fires → APPLY_FILE_CHANGE 4. Check: isSaved=false
+            → dirty conflict 5. Show notification: &quot;File changed on disk.
+            Reload / Keep mine&quot; 6a. User clicks &quot;Reload&quot;: await
+            ipcFs.read → loadChange → content replaced, unsaved edits lost (user
+            chose this) 6b. User clicks &quot;Keep mine&quot;: dismiss
+            notification, mark tab.isSaved=false, keep current content RESULT:
+            No silent data loss 
+          </walkthrough-2>
+          <walkthrough-3>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>name</Name>
+                <Value>rapid-burst-5-writes</Value>
+              </Attribute>
+            </LegacyAttributes>
+             1. Claude Code writes file.md 5 times in 200ms (common with
+            tool_use edit chains) 2. notify-debouncer coalesces all 5 events
+            into ONE after 200ms quiet period 3. ONE WatchEvent { kind:
+            &quot;modify&quot; } fires 4. 100ms settle delay 5. Read file → gets
+            final content (5th write) 6. ONE reload in editor RESULT: No
+            flicker, no 5x reload, correct final content 
+          </walkthrough-3>
+          <walkthrough-4>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>name</Name>
+                <Value>save-then-watcher-echo</Value>
+              </Attribute>
+            </LegacyAttributes>
+             1. User presses Cmd+S → file written to disk 2. Watcher detects OUR
+            OWN write → fires WatchEvent modify 3. APPLY_FILE_CHANGE: settle
+            delay 100ms → read file → content hash matches current tab.markdown
+            4. BLOCK_RELOAD_SKIPPED reason=no_diff RESULT: No unnecessary reload
+            after save 
+          </walkthrough-4>
+          <walkthrough-5>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>name</Name>
+                <Value>no-project-no-watcher</Value>
+              </Attribute>
+            </LegacyAttributes>
+             1. User opens file via Cmd+O (no project root, file opened
+            standalone) 2. No watcher subscribed for this file (watcher is
+            per-project-root in project.js) 3. External change → no event fires
+            → no reload GAP: Live-reload only works for files inside an open
+            project. Standalone files have no watcher. FUTURE: M-032 could add
+            per-tab watcher subscription for standalone files. Scope decision
+            for user. 
+          </walkthrough-5>
+        </mental-walkthroughs>
+        <high-level-scenarios>
+          <S1>
+            single-file-external-edit — file open in project tab, external tool
+            writes; Mark auto-reloads within 500ms (200ms debounce + 100ms
+            settle + read time); BLOCK_LIVE_RELOAD trigger=watcher path=...
+            elapsed_ms=N.
+          </S1>
+          <S2>
+            rapid-burst-writes — agent writes file 5 times in 200ms; debouncer
+            coalesces to ONE event; ONE reload fires; content matches final
+            write; no flicker.
+          </S2>
+          <S3>
+            cursor-preservation — file has 100 lines, cursor at line 50;
+            external edit appends 3 lines at end; after reload, cursor restored
+            to line 50 (saved before Object.assign, restored after).
+          </S3>
+          <S4>
+            scroll-preservation — editor scrolled to middle; external edit
+            changes first paragraph; scrollTop value preserved across reload;
+            viewport doesn&apos;t jump.
+          </S4>
+          <S5>
+            dirty-conflict — user has unsaved edits (isSaved=false); external
+            write fires; notification shown with &quot;Reload / Keep mine&quot;;
+            user choice respected. BLOCK_RELOAD_CONFLICT action=user_choice.
+          </S5>
+          <S6>
+            save-echo-suppression — user saves file; watcher detects our write;
+            hash compare finds no diff; reload skipped. BLOCK_RELOAD_SKIPPED
+            reason=no_diff.
+          </S6>
+          <S7>
+            file-deleted-externally — watcher fires kind=&quot;remove&quot;;
+            APPLY_FILE_CHANGE(&apos;unlink&apos;, ...) shows &quot;File
+            removed&quot; banner; content kept in memory. (Already works.)
+          </S7>
+          <S8>
+            liveReload-pref-off — user sets liveReload=false in preferences;
+            external change triggers notification (old behavior) instead of
+            auto-reload.
+          </S8>
+        </high-level-scenarios>
+        <failure-scenarios>
+          <F1>
+            file-read-error — external write replaces file with unreadable
+            permissions; ipcFs.read rejects; catch error; show toast &quot;Could
+            not reload: permission denied&quot;; editor keeps old content;
+            BLOCK_RELOAD_FAILED reason=io_error.
+          </F1>
+          <F2>
+            invalid-utf8 — external tool writes binary/Latin-1 content; Rust
+            mt::fs::read returns error (read_to_string fails on non-UTF8);
+            catch; keep old content; toast error.
+          </F2>
+          <F3>
+            watcher-stopped — notify-debouncer thread crashes or OS FSEvents
+            limit reached; no events fire; user must manually re-open file;
+            BLOCK_WATCHER_LOST logged when detected via watchdog (future
+            enhancement).
+          </F3>
+          <F4>
+            tab-closed-during-read — user closes tab while async ipcFs.read is
+            in-flight; read completes; tab no longer in tabs array; loadChange
+            returns early at line 132-143. No crash.
+          </F4>
+        </failure-scenarios>
+        <race-conditions>
+          <R1>
+            user-types-during-read — user starts typing while async read is
+            pending (100ms settle + read time); isSaved transitions to false
+            during this window; read completes → re-check isSaved: if now false,
+            show conflict notification instead of auto-replacing. GUARD:
+            re-check dirty flag after read.
+          </R1>
+          <R2>
+            tab-switch-during-read — user switches tab while read for tab A is
+            pending; read completes; store updates tab A state (not visible); on
+            switch back to A, handleFileChange fires from bus. No wrong-tab
+            contamination.
+          </R2>
+          <R3>
+            save-races-reload — user Cmd+S at same instant watcher fires; save
+            writes file (updates mtime), then reload reads file; content from
+            reload matches save content → hash skip → no duplicate work.
+          </R3>
+          <R4>
+            two-files-changed-simultaneously — two watcher events for different
+            files; two parallel async reads; each targets correct tab by
+            pathname match. No cross-contamination.
+          </R4>
+        </race-conditions>
+        <numeric-thresholds>
+          <T1>
+            Reload latency (watcher event → editor updated): ≤500ms for files
+            under 100KB on M2 Mac. Breakdown: 200ms debounce + 100ms settle +
+            ~50ms read + ~50ms muya parse. BLOCK_LIVE_RELOAD.elapsed_ms measured
+            from watcher event timestamp.
+          </T1>
+          <T2>
+            Debounce: existing 200ms in m013b/watch.rs. Settle delay: 100ms
+            added in APPLY_FILE_CHANGE. Total: 300ms from last write to read
+            attempt.
+          </T2>
+          <T3>
+            Memory: reload of 1MB file adds ≤5MB transient heap (two copies of
+            markdown string + muya block tree rebuild). Old blocks GC&apos;d
+            after render.
+          </T3>
+          <T4>
+            No main-thread block &gt;50ms: ipcFs.read is async (IPC round-trip);
+            muya.setMarkdown is synchronous but sub-50ms for &lt;100KB files.
+          </T4>
+        </numeric-thresholds>
+        <edge-cases>
+          <E1>
+            Empty file — external tool truncates to 0 bytes; read returns
+            &quot;&quot;; muya.setMarkdown(&quot;&quot;) → empty editor; no
+            crash.
+          </E1>
+          <E2>
+            Same content (touch) — content hash matches; skip reload. Hash:
+            simple string equality (markdown strings are typically &lt;1MB,
+            equality is fast).
+          </E2>
+          <E3>
+            Standalone file (no project) — file opened via Cmd+O without project
+            root; no watcher subscription exists; external changes NOT detected.
+            Known limitation. Future: per-tab watcher for standalone files.
+          </E3>
+          <E4>
+            Very large file (&gt;1MB) — read + muya.setMarkdown may take
+            &gt;50ms; consider requestIdleCallback for non-active tabs. Active
+            tab: accept the jank for large files.
+          </E4>
+          <E5>
+            File renamed externally — watcher fires &quot;remove&quot; +
+            &quot;create&quot;; handled as unlink (banner) + potential re-open
+            if new name matches. Complex edge case; defer to future.
+          </E5>
+        </edge-cases>
+        <log-markers>
+          <M1>
+            [editor][reload][BLOCK_LIVE_RELOAD trigger=watcher path=...
+            elapsed_ms=N] — successful auto-reload
+          </M1>
+          <M2>
+            [editor][reload][BLOCK_RELOAD_SKIPPED reason=no_diff|dirty|pref_off
+            path=...] — reload suppressed
+          </M2>
+          <M3>
+            [editor][reload][BLOCK_RELOAD_CONFLICT action=reload|keep path=...]
+            — user resolved conflict
+          </M3>
+          <M4>
+            [editor][reload][BLOCK_RELOAD_FAILED reason=io_error|parse_error
+            path=... err=...] — read or parse failed
+          </M4>
+        </log-markers>
+        <negative-assertions>
+          <N1>
+            Reload NEVER silently discards unsaved user edits (isSaved=false
+            MUST trigger conflict flow).
+          </N1>
+          <N2>Reload NEVER fires for same-content writes (hash compare gate).</N2>
+          <N3>
+            loadChange NEVER called with undefined change.data (the latent bug
+            MUST be fixed).
+          </N3>
+          <N4>
+            Reload NEVER runs for files outside open project roots (watcher
+            scope is per-project).
+          </N4>
+        </negative-assertions>
+        <latent-bugs-to-fix>
+          <BUG-1>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>severity</Name>
+                <Value>critical</Value>
+              </Attribute>
+              <Attribute>
+                <Name>file</Name>
+                <Value>editor.js</Value>
+              </Attribute>
+              <Attribute>
+                <Name>lines</Name>
+                <Value>1339-1389</Value>
+              </Attribute>
+            </LegacyAttributes>
+             APPLY_FILE_CHANGE calls loadChange({ pathname }) but loadChange
+            expects change.data with file content. FIX: Make APPLY_FILE_CHANGE
+            async. Before loadChange call: await ipcFs.read(pathname) to fetch
+            content, construct data object from content + tab&apos;s existing
+            encoding/lineEnding metadata. 
+          </BUG-1>
+          <BUG-2>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>severity</Name>
+                <Value>medium</Value>
+              </Attribute>
+              <Attribute>
+                <Name>file</Name>
+                <Value>editor.js</Value>
+              </Attribute>
+              <Attribute>
+                <Name>lines</Name>
+                <Value>116-198</Value>
+              </Attribute>
+            </LegacyAttributes>
+             loadChange overwrites cursor/scrollTop via Object.assign(tab,
+            newFileState). Cursor and scroll position lost on reload. FIX: Save
+            cursor + scrollTop before Object.assign, restore after. Pass old
+            cursor/scrollTop to bus.emit(&apos;file-changed&apos;). 
+          </BUG-2>
+        </latent-bugs-to-fix>
+        <test-targets>
+          <test>
+            src/renderer/test/liveReload.test.js — vitest unit tests: -
+            APPLY_FILE_CHANGE_reads_file_before_loadChange: mock ipcFs.read,
+            verify loadChange receives populated data -
+            cursor_preserved_across_reload: set cursor at line 50, trigger
+            reload, verify cursor still at line 50 -
+            scrollTop_preserved_across_reload: set scrollTop=500, trigger
+            reload, verify scrollTop=500 in bus event -
+            same_content_skips_reload: trigger with identical markdown, verify
+            BLOCK_RELOAD_SKIPPED - dirty_file_shows_conflict: set isSaved=false,
+            trigger change, verify notification pushed (not auto-reload) -
+            liveReload_pref_off_shows_notification: set liveReload=false,
+            trigger change on clean tab, verify notification -
+            settle_delay_applied: verify 100ms timeout before ipcFs.read call -
+            tab_closed_during_read_no_crash: close tab while read pending,
+            verify no error 
+          </test>
+          <test>
+            tests/e2e/live-reload.spec.js — Playwright e2e: -
+            external_write_updates_editor: open file, write externally, verify
+            content updated - rapid_writes_single_reload: write 5x in 200ms,
+            verify only one content update 
+          </test>
+        </test-targets>
+        <commands>
+          <module-local>cd reborn-mark &amp;&amp; npx vitest run src/renderer/test/liveReload.test.js</module-local>
+          <e2e>cd reborn-mark &amp;&amp; npx playwright test tests/e2e/live-reload.spec.js</e2e>
+        </commands>
+      </LegacyBase>
+      <LegacySource>docs/verification-plan.xml: V-M-032</LegacySource>
+    </V-M-032>
+    <V-M-033>
+      <Priority>high</Priority>
+      <Commands/>
+      <Scenarios/>
+      <Markers/>
+      <TraceAssertions/>
+      <LegacyBase>
+        <Source>docs/verification-plan.xml</Source>
+        <followup-ref>F-CLI-PREVIEW</followup-ref>
+        <prereq>V-M-032 (live-reload), V-M-020 (cli-flags), V-M-001 (lifecycle)</prereq>
+        <texture-audit>
+          <LegacyAttributes>
+            <Attribute>
+              <Name>date</Name>
+              <Value>2026-05-20</Value>
+            </Attribute>
+          </LegacyAttributes>
+           FINDING: previewMode per-tab flag ALREADY EXISTS and WORKS: -
+          editor.vue:215: isPreviewMode = computed(() =&gt;
+          !!currentFile.value?.previewMode) - editor.vue:20:
+          :contenteditable=&quot;isPreviewMode ? &apos;false&apos; :
+          undefined&quot; - editor.vue:224-231: handlePreviewMousedown exits
+          preview on left-click - bootstrap-ipc.js:251-266: previewMode flag
+          from mt::open-new-tab payload → APPLY_PREVIEW_MODE -
+          m_v1_compat.rs:376-406: build_open_new_tab_payload(pathname,
+          preview_mode: bool) passes flag in payload - preferences.js:
+          previewModeOnFinderOpen preference controls auto-preview for
+          Finder-launched files FINDING: CLI flags in m020_cli.rs:29-53: CliArgs
+          { files, directory, new_window, verbose, print_version }. NO --preview
+          or --watch flag. FINDING: PendingOpens flow: main.rs queues CLI args →
+          mt_drain_pending_opens → for each file, emit_open_new_tab(pathname,
+          preview_mode). preview_mode is currently always false for CLI opens.
+          Just needs to be threaded from CliArgs. FINDING: muya has NO readOnly
+          property. Preview mode is implemented at Vue template level
+          (contenteditable=false). Muya still allocates undo/redo stack. The N4
+          negative assertion about &quot;undo/redo stack NEVER allocates&quot;
+          is INCORRECT — muya doesn&apos;t have that optimization. FINDING:
+          --watch for folder sidebar is M-036 scope (Phase-B9). Decouple from
+          M-033 to reduce scope. M-033 = --preview flag only. Scope revision:
+          M-033 is small: 1. Add --preview flag to CliArgs in m020_cli.rs 2.
+          Thread preview flag through PendingOpens →
+          emit_open_new_tab(preview_mode=true) 3. When --preview: set
+          liveReload=true by default (force-enable from M-032) 4. Test: cargo
+          test for flag parsing + vitest for preview behavior --watch deferred
+          to M-036 (project sidebar). 
+        </texture-audit>
+        <module-surface>
+           Backend: src-tauri/src/m020_cli.rs — add `preview: bool` to CliArgs
+          struct (#[arg(long)]). Default false. Backend: src-tauri/src/main.rs —
+          in setup hook where PendingOpens are queued from CLI args, pass
+          cli_args.preview as preview_mode to emit_open_new_tab. Renderer: NO
+          changes needed — previewMode per-tab flag already works via existing
+          bootstrap-ipc.js + editor.vue + APPLY_PREVIEW_MODE infrastructure.
+          Frontend store: When previewMode=true on a tab, M-032 live-reload
+          ALWAYS auto-reloads (skip dirty check — preview tabs can&apos;t be
+          dirty since they&apos;re read-only). 
+        </module-surface>
+        <mental-walkthroughs>
+          <walkthrough-1>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>name</Name>
+                <Value>cli-preview-happy-path</Value>
+              </Attribute>
+            </LegacyAttributes>
+             1. User runs `mark --preview README.md` 2. m020_cli.rs parses
+            CliArgs { files: [&quot;README.md&quot;], preview: true, ... } 3.
+            main.rs setup: queues PendingOpen { pathname:
+            &quot;/abs/path/README.md&quot;, preview_mode: true } 4. Renderer
+            drains pending opens via mt_drain_pending_opens 5. For each pending
+            open: emit_open_new_tab(pathname, preview_mode=true) 6.
+            build_open_new_tab_payload reads file, returns { markdown, ...,
+            previewMode: true } 7. bootstrap-ipc.js receives mt::open-new-tab →
+            NEW_TAB_WITH_CONTENT 8. editor.vue detects isPreviewMode=true →
+            contenteditable=&quot;false&quot; 9. User sees rendered markdown,
+            can&apos;t edit, Cmd+S does nothing RESULT: Works with zero renderer
+            changes 
+          </walkthrough-1>
+          <walkthrough-2>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>name</Name>
+                <Value>preview-plus-live-reload</Value>
+              </Attribute>
+            </LegacyAttributes>
+             1. File open in preview mode (isSaved=true always because
+            read-only) 2. Claude Code writes file 3. Watcher fires →
+            APPLY_FILE_CHANGE → M-032 live-reload 4. Since previewMode=true:
+            skip dirty check entirely, always auto-reload 5. Content updates
+            instantly RESULT: Perfect companion for AI agent workflows 
+          </walkthrough-2>
+          <walkthrough-3>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>name</Name>
+                <Value>preview-exit-no-dialog</Value>
+              </Attribute>
+            </LegacyAttributes>
+             1. User closes preview window (Cmd+W or close button) 2. Close
+            handler checks tab.isSaved → always true (preview is read-only) 3.
+            No &quot;unsaved changes&quot; dialog appears 4. Window closes
+            immediately RESULT: Clean exit 
+          </walkthrough-3>
+        </mental-walkthroughs>
+        <high-level-scenarios>
+          <S1>
+            basic-preview — `mark --preview README.md` opens file in read-only
+            WYSIWYG; contenteditable=false; Cmd+S no-op; content renders
+            correctly including Mermaid/KaTeX.
+          </S1>
+          <S2>
+            preview-live-reload — `mark --preview file.md`; external tool writes
+            file; editor auto-reloads (M-032); no conflict banner since preview
+            can&apos;t be dirty.
+          </S2>
+          <S3>
+            preview-exit-clean — close preview window; no &quot;unsaved
+            changes&quot; dialog; window closes immediately.
+          </S3>
+          <S4>
+            preview-click-exits — user left-clicks in preview content;
+            handlePreviewMousedown fires; exits preview mode → enters edit mode
+            (existing behavior from M-022).
+          </S4>
+          <S5>
+            multiple-files-preview — `mark --preview a.md b.md c.md`; three tabs
+            opened, all in preview mode.
+          </S5>
+          <S6>
+            preview-with-diagrams — `mark --preview diagram.md` with Mermaid +
+            KaTeX; diagrams render; live-reload on external change preserves
+            rendered diagrams.
+          </S6>
+        </high-level-scenarios>
+        <failure-scenarios>
+          <F1>
+            file-not-found — `mark --preview nonexistent.md`; emit_open_new_tab
+            returns error; error logged; app opens with blank tab or error
+            message.
+          </F1>
+          <F2>
+            binary-file — `mark --preview image.png`; read_to_string fails on
+            binary content; error surfaced; no crash.
+          </F2>
+          <F3>
+            no-file-arg — `mark --preview` with no file; app opens normally
+            without preview tab (same as `mark`).
+          </F3>
+        </failure-scenarios>
+        <race-conditions>
+          <R1>
+            file-deleted-during-preview — file deleted while preview open;
+            watcher fires &quot;remove&quot;; banner &quot;File removed&quot;;
+            content stays in memory; preview remains read-only.
+          </R1>
+        </race-conditions>
+        <numeric-thresholds>
+          <T1>
+            Preview opens in same time as normal file open — no additional
+            overhead (previewMode is just a flag, no extra init).
+          </T1>
+          <T2>
+            Live-reload in preview: ≤500ms latency (same as M-032 since preview
+            reuses exact same reload path).
+          </T2>
+        </numeric-thresholds>
+        <edge-cases>
+          <E1>
+            Preview + edit same file — `mark --preview file.md` in one window,
+            `mark file.md` in another; both windows receive watcher events;
+            preview auto-reloads, editor shows conflict if dirty. No state
+            collision (separate Tauri windows).
+          </E1>
+          <E2>
+            Preview click-to-edit then save — user clicks in preview → exits
+            preview → edits → Cmd+S saves; file is now in edit mode; watcher
+            reload follows M-032 normal (dirty-check) flow.
+          </E2>
+        </edge-cases>
+        <log-markers>
+          <M1>[boot][cli][BLOCK_PREVIEW_MODE path=...] — CLI --preview flag detected</M1>
+          <M2>
+            [v1_compat][open_new_tab][BLOCK_OPENED path=... preview=true] —
+            already exists in m_v1_compat.rs:431
+          </M2>
+        </log-markers>
+        <negative-assertions>
+          <N1>
+            Cmd+S NEVER triggers save flow in preview mode (existing behavior,
+            no code change needed).
+          </N1>
+          <N2>
+            Unsaved-changes dialog NEVER appears on preview window close
+            (isSaved always true).
+          </N2>
+          <N3>
+            Preview tab dirty flag is NEVER set to false by user edits
+            (contenteditable=false prevents typing).
+          </N3>
+        </negative-assertions>
+        <test-targets>
+          <test>
+            src-tauri/tests/m020_cli_preview.rs — cargo test: -
+            parse_preview_flag: CliArgs::parse_from([&quot;mark&quot;,
+            &quot;--preview&quot;, &quot;file.md&quot;]) → preview=true,
+            files=[&quot;file.md&quot;] - parse_no_preview:
+            CliArgs::parse_from([&quot;mark&quot;, &quot;file.md&quot;]) →
+            preview=false - parse_preview_no_file:
+            CliArgs::parse_from([&quot;mark&quot;, &quot;--preview&quot;]) →
+            preview=true, files=[] - parse_preview_multiple_files:
+            CliArgs::parse_from([&quot;mark&quot;, &quot;--preview&quot;,
+            &quot;a.md&quot;, &quot;b.md&quot;]) → preview=true,
+            files=[&quot;a.md&quot;, &quot;b.md&quot;] 
+          </test>
+          <test>
+            src/renderer/test/previewMode.test.js — vitest (existing tests,
+            verify no regression): - preview_tab_is_readonly: tab with
+            previewMode=true → isPreviewMode computed returns true -
+            preview_tab_isSaved_always_true: verify isSaved stays true on
+            preview tab 
+          </test>
+        </test-targets>
+        <commands>
+          <module-local>
+            cd reborn-mark &amp;&amp; cargo test -p mark --test m020_cli_preview
+            &amp;&amp; npx vitest run src/renderer/test/previewMode.test.js
+          </module-local>
+        </commands>
+      </LegacyBase>
+      <LegacySource>docs/verification-plan.xml: V-M-033</LegacySource>
+    </V-M-033>
+    <V-M-034>
+      <Priority>medium</Priority>
+      <Commands/>
+      <Scenarios/>
+      <Markers/>
+      <TraceAssertions/>
+      <LegacyBase>
+        <Source>docs/verification-plan.xml</Source>
+        <followup-ref>F-TERMINAL-PANEL</followup-ref>
+        <prereq>V-M-001 (lifecycle), V-M-011 (layout)</prereq>
+        <stub-note>
+          Terminal panel with xterm.js + tauri-plugin-shell. Detailed
+          verification deferred until Phase-B8 becomes active.
+        </stub-note>
+      </LegacyBase>
+      <LegacySource>docs/verification-plan.xml: V-M-034</LegacySource>
+    </V-M-034>
+    <V-M-035>
+      <Priority>medium</Priority>
+      <Commands/>
+      <Scenarios/>
+      <Markers/>
+      <TraceAssertions/>
+      <LegacyBase>
+        <Source>docs/verification-plan.xml</Source>
+        <followup-ref>F-AGENT-STATUS</followup-ref>
+        <prereq>V-M-034</prereq>
+        <stub-note>
+          Agent status indicator. Pattern detection for CLI agent prompts.
+          Detailed verification deferred until Phase-B8.
+        </stub-note>
+      </LegacyBase>
+      <LegacySource>docs/verification-plan.xml: V-M-035</LegacySource>
+    </V-M-035>
+    <V-M-036>
+      <Priority>low</Priority>
+      <Commands/>
+      <Scenarios/>
+      <Markers/>
+      <TraceAssertions/>
+      <LegacyBase>
+        <Source>docs/verification-plan.xml</Source>
+        <followup-ref>F-PROJECT-SIDEBAR</followup-ref>
+        <prereq>V-M-002, V-M-020, V-M-010</prereq>
+        <stub-note>
+          Folder workspace sidebar with file tree. Detailed verification
+          deferred until Phase-B9.
+        </stub-note>
+      </LegacyBase>
+      <LegacySource>docs/verification-plan.xml: V-M-036</LegacySource>
+    </V-M-036>
+    <V-M-037>
+      <Priority>low</Priority>
+      <Commands/>
+      <Scenarios/>
+      <Markers/>
+      <TraceAssertions/>
+      <LegacyBase>
+        <Source>docs/verification-plan.xml</Source>
+        <followup-ref>F-WIKILINKS</followup-ref>
+        <prereq>V-M-036, V-M-012</prereq>
+        <stub-note>
+          Wikilink [[ ]] syntax + backlinks panel. Detailed verification
+          deferred until Phase-B9.
+        </stub-note>
+      </LegacyBase>
+      <LegacySource>docs/verification-plan.xml: V-M-037</LegacySource>
+    </V-M-037>
+    <V-M-038>
+      <Priority>high</Priority>
+      <Commands/>
+      <Scenarios>
+        <Scenario>
+          scenario-1: Clipboard contains both markdown MIME and rendered HTML:
+          markdown fast path wins, inline code and list structure preserved.
+        </Scenario>
+        <Scenario>
+          scenario-2: Clipboard contains rich HTML from
+          Claude/ChatGPT/GitHub/Notion: source-aware pipeline imports semantic
+          markdown blocks into Muya without manual cleanup by the user.
+        </Scenario>
+        <Scenario>
+          scenario-3: Existing image-bearing HTML paste still localizes image
+          paths through the `PR-4150` path; BLOCK_TRANSFORM_IMAGE_PATHS still
+          fires.
+        </Scenario>
+      </Scenarios>
+      <Markers/>
+      <TraceAssertions>
+        <TraceAssertion>
+          Negative assertion: Entry integration MUST NOT bypass current
+          pasteImage/imageAction flow for bitmap clipboard payloads.
+        </TraceAssertion>
+        <TraceAssertion>
+          Negative assertion: Entry integration MUST NOT regress table-cell
+          special-case paste or languageInput/codeContent special cases in
+          pasteCtrl.js.
+        </TraceAssertion>
+      </TraceAssertions>
+      <LegacyMatrixEvidence>
+        <Module>M-038</Module>
+        <VM>V-M-038</VM>
+        <Priority>high</Priority>
+        <Scenarios>3</Scenarios>
+        <Ec>7</Ec>
+        <Alm>3</Alm>
+        <Na>2</Na>
+        <Rta>2</Rta>
+        <Phf>1</Phf>
+        <Waf>1</Waf>
+        <Gate>Gate-Phase-B10-smart-paste</Gate>
+      </LegacyMatrixEvidence>
+      <LegacyBase>
+        <Source>docs/verification-plan.xml</Source>
+        <prereq>V-M-011, V-M-012, V-M-010, VF-017</prereq>
+        <intent>
+          Paste orchestration must prefer markdown MIME when present, otherwise
+          route rich HTML through source-aware normalization, while preserving
+          current plain-text paste, code-block paste, table-cell paste, and
+          image paste behavior.
+        </intent>
+        <scenarios>
+          <scenario-1>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>kind</Name>
+                <Value>success</Value>
+              </Attribute>
+            </LegacyAttributes>
+            Clipboard contains both markdown MIME and rendered HTML: markdown
+            fast path wins, inline code and list structure preserved.
+          </scenario-1>
+          <scenario-2>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>kind</Name>
+                <Value>success</Value>
+              </Attribute>
+            </LegacyAttributes>
+            Clipboard contains rich HTML from Claude/ChatGPT/GitHub/Notion:
+            source-aware pipeline imports semantic markdown blocks into Muya
+            without manual cleanup by the user.
+          </scenario-2>
+          <scenario-3>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>kind</Name>
+                <Value>regression</Value>
+              </Attribute>
+            </LegacyAttributes>
+            Existing image-bearing HTML paste still localizes image paths
+            through the `PR-4150` path; BLOCK_TRANSFORM_IMAGE_PATHS still fires.
+          </scenario-3>
+        </scenarios>
+        <negative-assertions>
+          <no>
+            Entry integration MUST NOT bypass current pasteImage/imageAction
+            flow for bitmap clipboard payloads.
+          </no>
+          <no>
+            Entry integration MUST NOT regress table-cell special-case paste or
+            languageInput/codeContent special cases in pasteCtrl.js.
+          </no>
+        </negative-assertions>
+        <test-targets>
+          <test>
+            tests/renderer/muya/smartPaste-entry.test.js — path selection,
+            regression cases, metadata-only logging
+          </test>
+          <test>tests/e2e/smart-paste.spec.ts — top-source paste smoke</test>
+          <test>
+            tests/e2e/html-paste-images.spec.ts — existing PR-4150 regression
+            remains mandatory
+          </test>
+        </test-targets>
+        <commands>
+          <module-local>
+            cd /Users/myevdokimov/prj/mark &amp;&amp; npx vitest run
+            tests/renderer/muya/clipboardPayload.test.js
+            tests/renderer/muya/pasteSourceDetector.test.js
+            tests/renderer/muya/pasteSourceAdapters.test.js
+            tests/renderer/muya/pasteHtmlNormalizer.test.js
+            tests/renderer/muya/smartPasteImport.test.js
+            tests/renderer/muya/smartPaste-entry.test.js
+            tests/renderer/util/dompurify-deep.test.js
+          </module-local>
+          <e2e>
+            cd /Users/myevdokimov/prj/mark &amp;&amp; npx playwright test
+            tests/e2e/smart-paste.spec.ts tests/e2e/html-paste-images.spec.ts
+          </e2e>
+        </commands>
+        <wave-follow-up>
+          Run the frozen fixture corpus on a macOS dev session and capture one
+          success trace plus one hostile-payload trace to prove trajectory
+          correctness, not just final markdown equality.
+        </wave-follow-up>
+        <phase-follow-up>
+          Manual clipboard smoke with real rendered answers from Claude in VS
+          Code and ChatGPT; verify inline code, nested lists, fenced code, and
+          tables visually.
+        </phase-follow-up>
+      </LegacyBase>
+      <LegacySource>docs/verification-plan.xml: V-M-038</LegacySource>
+    </V-M-038>
+    <V-M-039>
+      <Priority>high</Priority>
+      <Commands/>
+      <Scenarios/>
+      <Markers/>
+      <TraceAssertions/>
+      <LegacyMatrixEvidence>
+        <Module>M-039</Module>
+        <VM>V-M-039</VM>
+        <Priority>high</Priority>
+        <Scenarios>3</Scenarios>
+        <Ec>3</Ec>
+        <Alm>1</Alm>
+        <Na>1</Na>
+        <Rta>0</Rta>
+        <Phf>1</Phf>
+        <Waf>1</Waf>
+        <Gate>Gate-Phase-B10-smart-paste</Gate>
+      </LegacyMatrixEvidence>
+      <LegacyBase>
+        <Source>docs/verification-plan.xml</Source>
+        <prereq>V-M-011, VF-017</prereq>
+        <intent>
+          Typed payload extraction must normalize MIME priority and CRLF
+          handling without ever logging clipboard body content.
+        </intent>
+        <high-level-scenarios>
+          <S1>
+            `text/markdown` present → `has_markdown=true`, markdown payload
+            retained verbatim.
+          </S1>
+          <S2>
+            Only `text/html` + `text/plain` present → both payloads retained;
+            HTML is not parsed here.
+          </S2>
+          <S3>
+            Empty HTML plus image/file hints → payload shape remains valid for
+            downstream image path logic.
+          </S3>
+        </high-level-scenarios>
+        <negative-assertions>
+          <N1>No raw clipboard HTML, markdown, or plain text appears in logs.</N1>
+        </negative-assertions>
+        <test-targets>
+          <test>tests/renderer/muya/clipboardPayload.test.js</test>
+        </test-targets>
+        <commands>
+          <module-local>
+            cd /Users/myevdokimov/prj/mark &amp;&amp; npx vitest run
+            tests/renderer/muya/clipboardPayload.test.js
+          </module-local>
+        </commands>
+        <wave-follow-up>
+          Replay payload fixtures under macOS and Windows clipboard mocks to
+          ensure MIME priority and CRLF normalization stay platform-stable.
+        </wave-follow-up>
+      </LegacyBase>
+      <LegacySource>docs/verification-plan.xml: V-M-039</LegacySource>
+    </V-M-039>
+    <V-M-040>
+      <Priority>high</Priority>
+      <Commands/>
+      <Scenarios/>
+      <Markers/>
+      <TraceAssertions/>
+      <LegacyMatrixEvidence>
+        <Module>M-040</Module>
+        <VM>V-M-040</VM>
+        <Priority>high</Priority>
+        <Scenarios>3</Scenarios>
+        <Ec>3</Ec>
+        <Alm>1</Alm>
+        <Na>1</Na>
+        <Rta>0</Rta>
+        <Phf>1</Phf>
+        <Waf>1</Waf>
+        <Gate>Gate-Phase-B10-smart-paste</Gate>
+      </LegacyMatrixEvidence>
+      <LegacyBase>
+        <Source>docs/verification-plan.xml</Source>
+        <prereq>V-M-039</prereq>
+        <intent>
+          Source detection must be deterministic on frozen fixtures and degrade
+          safely to `generic` when signatures drift.
+        </intent>
+        <high-level-scenarios>
+          <S1>Claude-in-VS-Code fixture classified as `claude_vscode`.</S1>
+          <S2>ChatGPT/GitHub/Notion fixtures classified correctly.</S2>
+          <S3>Unknown source classified as `generic`, not mis-identified.</S3>
+        </high-level-scenarios>
+        <negative-assertions>
+          <N1>
+            Detector MUST NOT rely on post-sanitize DOM that has already lost
+            source-specific signatures.
+          </N1>
+        </negative-assertions>
+        <test-targets>
+          <test>tests/renderer/muya/pasteSourceDetector.test.js</test>
+        </test-targets>
+        <commands>
+          <module-local>
+            cd /Users/myevdokimov/prj/mark &amp;&amp; npx vitest run
+            tests/renderer/muya/pasteSourceDetector.test.js
+          </module-local>
+        </commands>
+        <wave-follow-up>
+          Any detector loosenings must be justified by a committed raw fixture
+          update first; do not patch heuristics against screenshots or prose
+          descriptions alone.
+        </wave-follow-up>
+      </LegacyBase>
+      <LegacySource>docs/verification-plan.xml: V-M-040</LegacySource>
+    </V-M-040>
+    <V-M-041>
+      <Priority>high</Priority>
+      <Commands/>
+      <Scenarios/>
+      <Markers/>
+      <TraceAssertions/>
+      <LegacyMatrixEvidence>
+        <Module>M-041</Module>
+        <VM>V-M-041</VM>
+        <Priority>high</Priority>
+        <Scenarios>3</Scenarios>
+        <Ec>4</Ec>
+        <Alm>1</Alm>
+        <Na>1</Na>
+        <Rta>0</Rta>
+        <Phf>1</Phf>
+        <Waf>1</Waf>
+        <Gate>Gate-Phase-B10-smart-paste</Gate>
+      </LegacyMatrixEvidence>
+      <LegacyBase>
+        <Source>docs/verification-plan.xml</Source>
+        <prereq>V-M-040, V-M-010</prereq>
+        <intent>
+          Adapters must recover semantic structures from source-specific chat
+          HTML: inline code from monospace spans, fenced code from highlighted
+          blocks, nested lists/task lists/tables from wrapper-heavy markup, and
+          removal of chat-only chrome.
+        </intent>
+        <high-level-scenarios>
+          <S1>
+            List item with monospace span becomes markdown inline code inside
+            the list item.
+          </S1>
+          <S2>
+            Highlighted multi-line code block with line numbers becomes fenced
+            code without line-number residue.
+          </S2>
+          <S3>Copy buttons, citation chips, and hover wrappers are removed.</S3>
+        </high-level-scenarios>
+        <negative-assertions>
+          <N1>
+            Adapter MUST NOT convert every monospace span to code if fixture
+            evidence shows it is plain UI text.
+          </N1>
+        </negative-assertions>
+        <test-targets>
+          <test>tests/renderer/muya/pasteSourceAdapters.test.js</test>
+        </test-targets>
+        <commands>
+          <module-local>
+            cd /Users/myevdokimov/prj/mark &amp;&amp; npx vitest run
+            tests/renderer/muya/pasteSourceAdapters.test.js
+          </module-local>
+        </commands>
+        <wave-follow-up>
+          Review adapter diff output against frozen fixtures side by side before
+          merge; source-specific heuristics are intentionally narrow and easy to
+          overfit.
+        </wave-follow-up>
+      </LegacyBase>
+      <LegacySource>docs/verification-plan.xml: V-M-041</LegacySource>
+    </V-M-041>
+    <V-M-042>
+      <Priority>critical</Priority>
+      <Commands/>
+      <Scenarios>
+        <Scenario>
+          scenario-1: Safe rich HTML from supported chat sources normalizes into
+          semantic HTML with code/list/table structure preserved.
+        </Scenario>
+        <Scenario>
+          scenario-2: `javascript:`, handler attributes, `data:text/html`, and
+          clipboard `file://` payloads are stripped or rejected before import.
+        </Scenario>
+        <Scenario>
+          scenario-3: Image-bearing HTML still reaches the existing local-path
+          transform contract used by PR-4150.
+        </Scenario>
+      </Scenarios>
+      <Markers/>
+      <TraceAssertions>
+        <TraceAssertion>
+          Negative assertion: Normalization MUST NOT emit clipboard body content
+          to logs or error payloads.
+        </TraceAssertion>
+        <TraceAssertion>
+          Negative assertion: Normalization MUST NOT skip final sanitize after
+          source-specific DOM rewrites.
+        </TraceAssertion>
+      </TraceAssertions>
+      <LegacyMatrixEvidence>
+        <Module>M-042</Module>
+        <VM>V-M-042</VM>
+        <Priority>critical</Priority>
+        <Scenarios>3</Scenarios>
+        <Ec>6</Ec>
+        <Alm>2</Alm>
+        <Na>2</Na>
+        <Rta>1</Rta>
+        <Phf>1</Phf>
+        <Waf>1</Waf>
+        <Gate>Gate-Phase-B10-smart-paste</Gate>
+      </LegacyMatrixEvidence>
+      <LegacyBase>
+        <Source>docs/verification-plan.xml</Source>
+        <prereq>V-M-041, V-M-010, VF-003, VF-017</prereq>
+        <intent>
+          Normalization is the security boundary for smart paste: sanitize
+          ordering, unsafe scheme rejection, and final DOM shape must be
+          explicit and regression-tested.
+        </intent>
+        <scenarios>
+          <scenario-1>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>kind</Name>
+                <Value>success</Value>
+              </Attribute>
+            </LegacyAttributes>
+            Safe rich HTML from supported chat sources normalizes into semantic
+            HTML with code/list/table structure preserved.
+          </scenario-1>
+          <scenario-2>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>kind</Name>
+                <Value>adversarial</Value>
+              </Attribute>
+            </LegacyAttributes>
+            `javascript:`, handler attributes, `data:text/html`, and clipboard
+            `file://` payloads are stripped or rejected before import.
+          </scenario-2>
+          <scenario-3>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>kind</Name>
+                <Value>regression</Value>
+              </Attribute>
+            </LegacyAttributes>
+            Image-bearing HTML still reaches the existing local-path transform
+            contract used by PR-4150.
+          </scenario-3>
+        </scenarios>
+        <negative-assertions>
+          <no>Normalization MUST NOT emit clipboard body content to logs or error payloads.</no>
+          <no>Normalization MUST NOT skip final sanitize after source-specific DOM rewrites.</no>
+        </negative-assertions>
+        <test-targets>
+          <test>tests/renderer/muya/pasteHtmlNormalizer.test.js</test>
+          <test>tests/e2e/html-paste-images.spec.ts</test>
+          <test>
+            tests/renderer/util/dompurify-deep.test.js — existing sanitizer
+            invariants stay green
+          </test>
+        </test-targets>
+        <commands>
+          <module-local>
+            cd /Users/myevdokimov/prj/mark &amp;&amp; npx vitest run
+            tests/renderer/muya/pasteHtmlNormalizer.test.js
+            tests/renderer/util/dompurify-deep.test.js
+          </module-local>
+          <e2e>
+            cd /Users/myevdokimov/prj/mark &amp;&amp; npx playwright test
+            tests/e2e/html-paste-images.spec.ts
+          </e2e>
+        </commands>
+        <wave-follow-up>
+          Security review checkpoint: inspect sanitize ordering and assert every
+          unsafe-scheme regression is backed by deterministic fixtures before
+          autonomous execution is allowed.
+        </wave-follow-up>
+        <phase-follow-up>
+          Run the broader XSS suite around clipboard `file://` and rich-HTML
+          paste payloads to confirm smart paste did not weaken M-010 guarantees.
+        </phase-follow-up>
+      </LegacyBase>
+      <LegacySource>docs/verification-plan.xml: V-M-042</LegacySource>
+    </V-M-042>
+    <V-M-043>
+      <Priority>high</Priority>
+      <Commands/>
+      <Scenarios/>
+      <Markers/>
+      <TraceAssertions/>
+      <LegacyMatrixEvidence>
+        <Module>M-043</Module>
+        <VM>V-M-043</VM>
+        <Priority>high</Priority>
+        <Scenarios>3</Scenarios>
+        <Ec>4</Ec>
+        <Alm>1</Alm>
+        <Na>1</Na>
+        <Rta>1</Rta>
+        <Phf>1</Phf>
+        <Waf>1</Waf>
+        <Gate>Gate-Phase-B10-smart-paste</Gate>
+      </LegacyMatrixEvidence>
+      <LegacyBase>
+        <Source>docs/verification-plan.xml</Source>
+        <prereq>V-M-042, V-M-012, V-M-011</prereq>
+        <intent>
+          Bridge layer must reuse the existing import path where it already
+          works, centralize fallback behavior, and prove that `HTML -&gt;
+          Markdown -&gt; Muya state` remains deterministic on frozen fixtures.
+        </intent>
+        <high-level-scenarios>
+          <S1>Normalized HTML fixture produces expected golden markdown output.</S1>
+          <S2>
+            Same fixture imported to Muya state preserves list nesting, inline
+            code, code fences, and table structure.
+          </S2>
+          <S3>
+            Unsafe or structurally ambiguous HTML falls back to markdown/plain
+            text with explicit marker, not silent corruption.
+          </S3>
+        </high-level-scenarios>
+        <negative-assertions>
+          <N1>
+            Bridge MUST NOT fork a second HTML serializer when the existing
+            Turndown path already satisfies the fixture.
+          </N1>
+        </negative-assertions>
+        <test-targets>
+          <test>tests/renderer/muya/smartPasteImport.test.js</test>
+        </test-targets>
+        <commands>
+          <module-local>
+            cd /Users/myevdokimov/prj/mark &amp;&amp; npx vitest run
+            tests/renderer/muya/smartPasteImport.test.js
+          </module-local>
+        </commands>
+        <wave-follow-up>
+          On every Turndown/import rule change, rerun frozen markdown snapshots
+          and inspect diff noise before widening serializer behavior.
+        </wave-follow-up>
+      </LegacyBase>
+      <LegacySource>docs/verification-plan.xml: V-M-043</LegacySource>
+    </V-M-043>
+    <V-M-044>
+      <Priority>medium</Priority>
+      <Commands/>
+      <Scenarios/>
+      <Markers/>
+      <TraceAssertions/>
+      <LegacyMatrixEvidence>
+        <Module>M-044</Module>
+        <VM>V-M-044</VM>
+        <Priority>medium</Priority>
+        <Scenarios>3</Scenarios>
+        <Ec>4</Ec>
+        <Alm>0</Alm>
+        <Na>1</Na>
+        <Rta>0</Rta>
+        <Phf>1</Phf>
+        <Waf>0</Waf>
+        <Gate>Gate-Phase-B10-smart-paste</Gate>
+      </LegacyMatrixEvidence>
+      <LegacyBase>
+        <Source>docs/verification-plan.xml</Source>
+        <prereq>VF-017</prereq>
+        <intent>
+          The fixture acquisition tool must be usable without a local Mark
+          build, preserve browser-visible clipboard bodies exactly except for
+          line-ending normalization, export deterministic JSON records that can
+          be committed directly as test fixtures, and hand off captures into
+          GitHub issues without depending on oversized query strings.
+        </intent>
+        <high-level-scenarios>
+          <S1>
+            HTML/plain/markdown payloads captured from a DataTransfer-like input
+            preserve MIME ordering, body text, and line counts.
+          </S1>
+          <S2>
+            Advertised empty `text/html` payloads and file/image clipboard items
+            are preserved as metadata-only descriptors, not silently dropped.
+          </S2>
+          <S3>
+            Export filenames are filesystem-safe and stable enough for fixture
+            harvesting workflows on macOS and Windows, and GitHub issue URLs
+            stay compact while the full fixture packet is copied separately.
+          </S3>
+        </high-level-scenarios>
+        <negative-assertions>
+          <N1>
+            The tool MUST NOT claim to capture raw OS-native formats such as
+            Windows `CF_HTML` envelopes; only browser-visible payloads are in
+            scope.
+          </N1>
+          <N2>
+            The core record builder MUST NOT mutate clipboard bodies beyond
+            CRLF-to-LF normalization.
+          </N2>
+        </negative-assertions>
+        <test-targets>
+          <test>tests/renderer/util/clipboard-fixture-capture.test.js</test>
+          <test>
+            tools/clipboard-capture/index.html manual smoke in Chrome or Edge on
+            at least one non-macOS host
+          </test>
+        </test-targets>
+        <commands>
+          <module-local>
+            cd /Users/myevdokimov/prj/mark &amp;&amp; npx vitest run
+            tests/renderer/util/clipboard-fixture-capture.test.js
+          </module-local>
+        </commands>
+        <wave-follow-up>
+          When a new source family is added to Smart Paste scope, capture at
+          least one real fixture with M-044 before detector or adapter
+          heuristics are widened.
+        </wave-follow-up>
+        <phase-follow-up>
+          Before beta.3 tagging, confirm one Windows browser run can open the
+          page directly from disk and export JSON without a local dev server.
+        </phase-follow-up>
+      </LegacyBase>
+      <LegacySource>docs/verification-plan.xml: V-M-044</LegacySource>
+    </V-M-044>
+    <V-M-045>
+      <Priority>critical</Priority>
+      <Commands/>
+      <Scenarios/>
+      <Markers/>
+      <TraceAssertions/>
+      <LegacyMatrixEvidence>
+        <Module>M-045</Module>
+        <VM>V-M-045</VM>
+        <Priority>critical</Priority>
+        <Scenarios>10</Scenarios>
+        <Ec>13</Ec>
+        <Alm>10</Alm>
+        <Na>6</Na>
+        <Rta>3</Rta>
+        <Phf>1</Phf>
+        <Waf>1</Waf>
+        <Gate>Gate-Phase-B11-ext-host</Gate>
+      </LegacyMatrixEvidence>
+      <LegacyBase>
+        <Source>docs/verification-plan.xml</Source>
+        <prereq>
+          V-M-001 (lifecycle + command registration), V-M-005 (prefs for state
+          persistence), V-M-019 (datacenter keychain for auth secrets)
+        </prereq>
+        <module-surface>
+           Backend: src-tauri/src/m045_ext/mod.rs — module root with re-exports
+          and ExtensionHost AppState struct. Backend:
+          src-tauri/src/m045_ext/manifest.rs — YAML manifest parser with
+          ExtensionManifest type; validates required fields (id, name, version,
+          capabilities, port, endpoints), capability allowlist, size guards
+          (manifest &lt;64KB, id &lt;128 chars), depth guards (no nested
+          capabilities). Backend: src-tauri/src/m045_ext/discovery.rs — scans
+          ~/Library/Application Support/com.xronocode.mark/extensions/
+          subdirectories for manifest.yaml files; returns Vec with per-extension
+          validation status. Backend: src-tauri/src/m045_ext/registry.rs —
+          in-memory HashMap&lt;ExtensionId, ExtensionState&gt;; enable/disable
+          with state persistence via M-005 prefs store; emits
+          mt::ext-state-changed Tauri event on transitions. Backend:
+          src-tauri/src/m045_ext/auth.rs — per-extension shared secret
+          generation (32-byte random via ring/rand); store/retrieve/revoke via
+          M-019 datacenter keychain (service: com.xronocode.mark.ext.{id});
+          Authorization: Bearer header validation. Backend:
+          src-tauri/src/m045_ext/invoke.rs — reqwest HTTP POST to
+          127.0.0.1:{port}/{endpoint}; Authorization header from auth module;
+          configurable timeout (default 30s); JSON request/response;
+          ExtInvokeRequest/ExtInvokeResponse types. Backend:
+          src-tauri/src/m045_ext/live_server.rs — axum HTTP server on
+          127.0.0.1:{configured_port}; /stream/open + /stream/patch +
+          /stream/close + /stream/heartbeat endpoints (live-doc wire contract
+          v2: ordered sections array at open, op: append|replace on patch,
+          default replace, replace_section legacy synonym, unknown op/section
+          rejected 400); auth middleware validates Bearer token against
+          registered secrets; deterministic document rebuild (declared order,
+          empty sections skipped, no synthetic headers) via pure fns
+          apply_section_patch/rebuild_document_md/build_sections_from_init;
+          forwards document content to renderer via Tauri emit
+          mt::ext-live-document; graceful shutdown on app exit via
+          tokio::sync::watch channel. Backend:
+          src-tauri/src/m045_ext/live_endpoint.rs — writes/cleans up
+          LiveEndpointDiscovery JSON file so TokMo can discover Mark&apos;s HTTP
+          server port; stale file detection via pid check. Backend:
+          src-tauri/src/m045_ext/live_bridge.rs — Tauri event bridge:
+          emit_live_update / emit_doc_open / emit_doc_patch / emit_doc_close
+          forwarding live server content to renderer via Tauri emit. Backend:
+          src-tauri/src/main.rs — register mt_ext_discover, mt_ext_enable,
+          mt_ext_disable, mt_ext_invoke, mt_ext_list in generate_handler!; start
+          live server in setup hook; shutdown in exit handler. Backend:
+          src-tauri/src/m001_validate.rs — REGISTERED_COMMANDS extended with
+          mt_ext_discover, mt_ext_enable, mt_ext_disable, mt_ext_invoke,
+          mt_ext_list. Fixture: tests/tauri.v2.json — add mt_ext_* command
+          entries for m001_validate parity check. 
+        </module-surface>
+        <high-level-scenarios>
+          <S1>
+            manifest-parse-valid — valid YAML manifest with all required fields
+            parses into ExtensionManifest; capabilities matched against
+            allowlist; BLOCK_EXT_MANIFEST_PARSED id=test-ext status=valid.
+          </S1>
+          <S2>
+            discovery-scan — extension directory contains two subdirs (one valid
+            manifest, one invalid); mt_ext_discover returns list with valid
+            entry status=ok and invalid entry status=manifest_error with reason;
+            BLOCK_EXT_DISCOVER count=2 valid=1 invalid=1.
+          </S2>
+          <S3>
+            enable-disable-cycle — mt_ext_enable generates auth secret via M-019
+            keychain, persists enabled=true via M-005, emits
+            mt::ext-state-changed; mt_ext_disable revokes secret, persists
+            enabled=false, emits event; mt_ext_list reflects transitions;
+            BLOCK_EXT_ENABLE id=..., BLOCK_EXT_DISABLE id=...
+          </S3>
+          <S4>
+            invoke-success — enabled extension with mock HTTP server on
+            127.0.0.1; mt_ext_invoke sends POST with auth header; mock returns
+            JSON response; ExtInvokeResponse.status=200, body matches expected;
+            BLOCK_EXT_INVOKE id=... endpoint=text.transform status=200
+            elapsed_ms=N.
+          </S4>
+          <S5>
+            invoke-timeout — enabled extension with slow/unresponsive mock
+            server; mt_ext_invoke enforces timeout; returns
+            MT_EXT_INVOKE_TIMEOUT error; BLOCK_EXT_INVOKE id=... endpoint=...
+            status=timeout elapsed_ms=N.
+          </S5>
+          <S6>
+            live-server-document-stream — axum server running; extension POSTs
+            to /stream/document with valid auth; server validates token,
+            forwards content via Tauri emit mt::ext-live-document; renderer
+            receives event with document payload; BLOCK_EXT_LIVE_SERVER_DOCUMENT
+            id=... size_bytes=N.
+          </S6>
+          <S7>
+            live-endpoint-discovery-lifecycle — LiveEndpointDiscovery file
+            written on server start with pid, port, protocol_version; cleaned up
+            on exit; stale file with dead pid detected and overwritten on next
+            start; BLOCK_EXT_ENDPOINT_WRITE port=N, BLOCK_EXT_ENDPOINT_CLEANUP.
+          </S7>
+          <S8>
+            live-bridge-event-forwarding —
+            emit_doc_open/emit_doc_patch/emit_doc_close called from live_server
+            handlers; Tauri events emitted to renderer with correct payloads
+            (session_id, title, content, revision); renderer receives and
+            renders live document updates.
+          </S8>
+          <S9>
+            live-doc-patch-op-semantics (v2) — apply_section_patch:
+            &quot;append&quot; concatenates onto existing section body
+            (transcript accumulates across patches); &quot;replace&quot;
+            replaces wholesale; missing op defaults to replace;
+            &quot;replace_section&quot; accepted as legacy synonym;
+            rebuild_document_md concatenates non-empty sections in declared
+            order with &quot;\n\n&quot; separator and adds no synthetic headers;
+            first patch after open with real section content preserves open
+            content. Tests: m045_ext/tests.rs START_BLOCK_LIVE_DOC_V2_TESTS +
+            rewritten test_b5b_load_smoke_30min_synthetic now exercising the
+            real patch core (regression: smoke test used to accumulate in the
+            test body and never call handler logic, hiding the append-as-replace
+            bug).
+          </S9>
+          <S10>
+            live-doc-resync-recovery (v2) — decide_open: /stream/open with the
+            SAME session_id on an active session replaces state wholesale
+            (OpenDecision::ReplaceSameSession, BLOCK_DOC_OPEN_RESYNC) — recovery
+            for a client stuck on needs_resync (stale base_revision) which
+            re-sends the full document; a DIFFERENT active session_id still
+            conflicts (409). doc_open emits the authoritative document_md (join
+            of sections), not the raw client initial_md. On /stream/open the
+            Bearer token is validated BEFORE any session-state disclosure (401
+            precedes 409 — no unauthenticated existing_session_id leak on open;
+            the other /stream/* endpoints still answer &quot;no active
+            session&quot; before token validation because their requests carry
+            no extension_id — known, accepted scope). Duplicate and needs_resync
+            patch responses refresh last_heartbeat so an actively-retrying
+            client is not timed out mid-recovery.
+          </S10>
+        </high-level-scenarios>
+        <edge-cases>
+          <E1>
+            manifest-missing-required-field — manifest.yaml lacks
+            &quot;port&quot; field; parse succeeds but validation fails with
+            specific missing-field error; BLOCK_EXT_MANIFEST_PARSED
+            status=invalid reason=missing_field:port.
+          </E1>
+          <E2>
+            manifest-unknown-capability — manifest declares capability
+            &quot;system.shutdown&quot; not in allowlist; validation rejects
+            with unknown_capability error; extension not discoverable as valid.
+          </E2>
+          <E3>
+            manifest-oversized — manifest.yaml exceeds 64KB; rejected before
+            parse with size_exceeded error.
+          </E3>
+          <E4>
+            discovery-empty-directory — extension directory exists but contains
+            no subdirectories; mt_ext_discover returns empty list;
+            BLOCK_EXT_DISCOVER count=0.
+          </E4>
+          <E5>
+            discovery-directory-missing — extension directory does not exist;
+            mt_ext_discover creates it and returns empty list;
+            BLOCK_EXT_DISCOVER count=0 created_dir=true.
+          </E5>
+          <E6>
+            enable-already-enabled — mt_ext_enable called for already-enabled
+            extension; idempotent no-op, secret not rotated; returns current
+            state.
+          </E6>
+          <E7>
+            invoke-disabled-extension — mt_ext_invoke called with disabled
+            extension ID; returns MT_EXT_DISABLED error without making HTTP
+            request.
+          </E7>
+          <E8>
+            invoke-unknown-extension — mt_ext_invoke called with non-existent
+            extension ID; returns MT_EXT_NOT_FOUND error.
+          </E8>
+          <E9>
+            live-server-invalid-auth — POST to /stream/document with wrong or
+            missing Authorization header; server returns 401; document not
+            forwarded; BLOCK_EXT_AUTH_REJECTED reason=invalid_token.
+          </E9>
+          <E10>
+            live-server-bind-conflict — configured port already in use; axum
+            server returns bind error; BLOCK_EXT_LIVE_SERVER_BIND status=error
+            reason=address_in_use; app continues without live server (degraded
+            mode).
+          </E10>
+          <E11>
+            live-doc-unknown-op (v2) — /stream/patch with op not in {append,
+            replace, replace_section} (e.g. &quot;delete&quot;);
+            apply_section_patch returns SectionPatchError::UnknownOp; handler
+            responds 400; BLOCK_DOC_PATCH_UNKNOWN_OP op=... section=... seq=N.
+          </E11>
+          <E12>
+            live-doc-unknown-section (v2) — /stream/patch targeting a section
+            not declared at /stream/open; apply_section_patch returns
+            SectionPatchError::UnknownSection; handler responds 400 (no silent
+            section creation); BLOCK_DOC_PATCH_UNKNOWN_SECTION section=...
+            seq=N.
+          </E12>
+          <E13>
+            live-doc-append-to-empty-section (v2) — append op against a section
+            that is empty since open (e.g. summary before first summarizer
+            pass); content becomes the section body; empty sections are skipped
+            by rebuild_document_md so no stray separators appear.
+          </E13>
+        </edge-cases>
+        <log-markers>
+          <LegacyAttributes>
+            <Attribute>
+              <Name>namespace</Name>
+              <Value>[m045_ext]</Value>
+            </Attribute>
+            <Attribute>
+              <Name>count</Name>
+              <Value>13</Value>
+            </Attribute>
+          </LegacyAttributes>
+           BLOCK_EXT_DISCOVER (count=N, valid=N, invalid=N, elapsed_ms=N),
+          BLOCK_EXT_MANIFEST_PARSED (id=..., status=valid|invalid, reason=...),
+          BLOCK_EXT_ENABLE (id=..., secret_stored=bool), BLOCK_EXT_DISABLE
+          (id=..., secret_revoked=bool), BLOCK_EXT_INVOKE (id=..., endpoint=...,
+          status=N|timeout, elapsed_ms=N), BLOCK_EXT_LIVE_SERVER_START (port=N,
+          status=ok|error), BLOCK_EXT_AUTH_GENERATED (id=...,
+          service=com.xronocode.mark.ext.{id}), BLOCK_EXT_ENDPOINT_WRITE
+          (port=N, pid=N, path=...), BLOCK_EXT_ENDPOINT_CLEANUP (path=...),
+          BLOCK_DOC_PATCH_OK (session_id=..., seq=N, rev=N, op=append|replace,
+          section=...), BLOCK_DOC_PATCH_UNKNOWN_OP (op=..., section=..., seq=N),
+          BLOCK_DOC_PATCH_UNKNOWN_SECTION (section=..., seq=N),
+          BLOCK_DOC_OPEN_RESYNC (session_id=...) 
+        </log-markers>
+        <negative-assertions>
+          <N1>
+            Extension auth secrets MUST NOT appear in logs — only service name
+            and success/failure status logged; secret value never serialized.
+          </N1>
+          <N2>
+            mt_ext_invoke MUST NOT connect to any address other than 127.0.0.1 —
+            reject manifests with non-loopback host; no DNS resolution.
+          </N2>
+          <N3>
+            Live server MUST NOT bind to 0.0.0.0 — always 127.0.0.1; no external
+            network exposure.
+          </N3>
+          <N4>
+            Extension IPC MUST NOT weaken frontend CSP — all extension
+            communication is backend Rust only (m001_security gate).
+          </N4>
+          <N5>
+            mt_ext_invoke MUST NOT proceed without valid auth secret for the
+            target extension — missing secret = MT_EXT_AUTH_FAILED, not a
+            request without Authorization header.
+          </N5>
+          <N6>
+            /stream/open MUST validate the Bearer token before consulting or
+            disclosing session state — an unauthenticated caller never learns
+            whether a session is active or its session_id (401 precedes 409).
+          </N6>
+        </negative-assertions>
+        <ordering-invariants>
+           (1) BLOCK_EXT_DISCOVER precedes BLOCK_EXT_ENABLE for any extension ID
+          (cannot enable undiscovered extension). (2) BLOCK_EXT_ENABLE precedes
+          BLOCK_EXT_INVOKE for same extension ID (cannot invoke disabled
+          extension). (3) BLOCK_EXT_AUTH_GENERATED precedes BLOCK_EXT_INVOKE for
+          same extension ID (auth secret must exist before invocation). 
+        </ordering-invariants>
+        <cross-module-integration>
+          <dep>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>module</Name>
+                <Value>V-M-001</Value>
+              </Attribute>
+              <Attribute>
+                <Name>type</Name>
+                <Value>registration</Value>
+              </Attribute>
+            </LegacyAttributes>
+            mt_ext_discover, mt_ext_enable, mt_ext_disable, mt_ext_invoke,
+            mt_ext_list MUST be registered in generate_handler! and present in
+            m001_validate::REGISTERED_COMMANDS + tauri.v2.json fixture. Miss any
+            = app crashes at startup (BLOCK_VALIDATE_AGAINST_FIXTURE_FAIL).
+          </dep>
+          <dep>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>module</Name>
+                <Value>V-M-005</Value>
+              </Attribute>
+              <Attribute>
+                <Name>type</Name>
+                <Value>state-persistence</Value>
+              </Attribute>
+            </LegacyAttributes>
+            Extension enabled/disabled state persisted via M-005 prefs store. On
+            app restart, registry restores last-known state from prefs. Test:
+            enable extension, restart app, mt_ext_list shows extension still
+            enabled.
+          </dep>
+          <dep>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>module</Name>
+                <Value>V-M-019</Value>
+              </Attribute>
+              <Attribute>
+                <Name>type</Name>
+                <Value>keychain-secrets</Value>
+              </Attribute>
+            </LegacyAttributes>
+            Auth secrets stored via M-019 datacenter keychain with service name
+            com.xronocode.mark.ext.{id}. On disable, secret revoked from
+            keychain. Test: enable extension, verify keychain entry exists;
+            disable, verify keychain entry removed.
+          </dep>
+          <dep>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>module</Name>
+                <Value>V-M-010</Value>
+              </Attribute>
+              <Attribute>
+                <Name>type</Name>
+                <Value>security</Value>
+              </Attribute>
+            </LegacyAttributes>
+            Extension directory paths validated through M-010 sandbox checks. No
+            symlink escape from extension directory. Manifest file paths
+            canonicalized before read.
+          </dep>
+        </cross-module-integration>
+        <test-targets>
+          <test>src-tauri/src/m045_ext/tests.rs</test>
+        </test-targets>
+        <commands>
+          <module-local>cd /Users/myevdokimov/prj/mark &amp;&amp; cargo test --bin mark m045_ext</module-local>
+        </commands>
+        <wave-follow-up>
+          When a second extension type is added beyond TokMo, verify that no
+          M-045 code changes are required (extensibility test).
+        </wave-follow-up>
+        <phase-follow-up>
+          Before beta.4 tagging, run full integration test: mock extension
+          discovered, enabled, responds to text.transform via mt_ext_invoke,
+          streams document via live server. m001_validate must pass with all 5
+          new commands registered.
+        </phase-follow-up>
+      </LegacyBase>
+      <LegacySource>docs/verification-plan.xml: V-M-045</LegacySource>
+    </V-M-045>
+    <V-M-046>
+      <Priority>critical</Priority>
+      <Commands/>
+      <Scenarios/>
+      <Markers>
+        <Marker>[ReleasePreflight][validateVersions][BLOCK_RELEASE_VERSION_CONSISTENT]</Marker>
+        <Marker>[ReleasePreflight][validateVersions][BLOCK_RELEASE_VERSION_MISMATCH]</Marker>
+        <Marker>[ReleasePreflight][validateVersions][BLOCK_RELEASE_TAG_MISMATCH]</Marker>
+      </Markers>
+      <TraceAssertions/>
+      <LegacyBase>
+        <Source>docs/verification-plan.xml</Source>
+        <module-surface>
+           Tool: tools/release-preflight.mjs reads package.json,
+          package-lock.json, Cargo.toml, Cargo.lock, and
+          src-tauri/tauri.conf.json; validates one exact version and optional
+          v&lt;version&gt; tag. Workflow: .github/workflows/release.yml invokes
+          the metadata preflight before build, runs renderer unit/E2E/typecheck
+          and Rust tests, then requires strict codesign + Gatekeeper evidence
+          before smoke and publication. 
+        </module-surface>
+        <high-level-scenarios>
+          <S1>
+            All six metadata values across five files contain 2.1.8-beta and tag
+            v2.1.8-beta: preflight passes and emits
+            BLOCK_RELEASE_VERSION_CONSISTENT.
+          </S1>
+          <S2>
+            Any metadata source differs: preflight fails with
+            MT_RELEASE_VERSION_MISMATCH and names sources/versions without
+            secrets.
+          </S2>
+          <S3>
+            Metadata agrees but tag differs: preflight fails with
+            MT_RELEASE_TAG_MISMATCH before packaging.
+          </S3>
+          <S4>
+            Release workflow contains renderer unit/typecheck, a clean-checkout
+            Vite build before bounded Playwright E2E, and Rust test gates before
+            tauri packaging.
+          </S4>
+          <S5>
+            Release workflow verifies strict codesign and Gatekeeper acceptance
+            before its installed-app smoke launch and publish job.
+          </S5>
+          <S6>
+            Isolated local v2.1.7-beta bundle is ad-hoc re-signed, passes strict
+            codesign, launches separately from the installed Mark instance, and
+            renders a Markdown document without first-input reveal.
+          </S6>
+          <S7>
+            The updater feed uses strict SemVer `2.1.7-beta` while release asset
+            URLs retain the canonical Git tag `v2.1.7-beta`.
+          </S7>
+          <S8>
+            GitHub publication keeps signed beta tags as normal releases so
+            `/releases/latest/download/latest.json` advances to the newest
+            shipped feed.
+          </S8>
+          <S9>
+            Cross-repo cask publication rejects any URL template that does not
+            resolve to the staged `Mark_&lt;version&gt;_aarch64.dmg` release
+            asset.
+          </S9>
+        </high-level-scenarios>
+        <test-targets>
+          <test>tests/renderer/release-preflight.test.js</test>
+          <test>tests/renderer/components/titleBar-deep.test.js</test>
+          <test>tests/renderer/components/editor-coverage.test.js</test>
+        </test-targets>
+        <commands>
+          <module-local>npm run release:preflight -- --tag v2.1.7-beta</module-local>
+          <module-local>
+            npx vitest run tests/renderer/release-preflight.test.js
+            tests/renderer/components/titleBar-deep.test.js
+            tests/renderer/components/editor-coverage.test.js
+          </module-local>
+          <local-bundle>
+            npm run tauri:build -- --config
+            &apos;{&quot;bundle&quot;:{&quot;createUpdaterArtifacts&quot;:false}}&apos; (local artifact build without access to the production updater private key)
+          </local-bundle>
+          <phase-gate>
+            npm test &amp;&amp; npm run test:e2e &amp;&amp; npm run
+            typecheck:ipc &amp;&amp; cargo test --bin mark &amp;&amp; npm run
+            build &amp;&amp; npm run tauri:build
+          </phase-gate>
+          <signature-gate>
+            codesign --verify --deep --strict --verbose=4 Mark.app; spctl
+            --assess --type execute --verbose=4 Mark.app
+          </signature-gate>
+        </commands>
+        <required-log-markers>
+          <marker>[ReleasePreflight][validateVersions][BLOCK_RELEASE_VERSION_CONSISTENT]</marker>
+          <marker>[ReleasePreflight][validateVersions][BLOCK_RELEASE_VERSION_MISMATCH]</marker>
+          <marker>[ReleasePreflight][validateVersions][BLOCK_RELEASE_TAG_MISMATCH]</marker>
+        </required-log-markers>
+        <negative-assertions>
+          <N1>
+            No release filename or updater feed version may be derived from a
+            tag that differs from embedded app metadata; updater `version` must
+            strip the tag&apos;s leading `v`.
+          </N1>
+          <N2>
+            No publish job may run when renderer, Rust, signature, Gatekeeper,
+            or smoke gates fail.
+          </N2>
+          <N3>
+            No signing private key, certificate content, updater key, or
+            password may appear in preflight output.
+          </N3>
+          <N4>
+            No shipped beta release may be classified as a GitHub prerelease
+            while the application consumes the `/releases/latest/` updater
+            endpoint.
+          </N4>
+          <N5>
+            No Homebrew PR may be opened with a legacy Electron DMG filename or
+            another URL that differs from the published Tauri artifact.
+          </N5>
+        </negative-assertions>
+        <phase-follow-up>
+          Tag and push remain explicit maintainer actions after the clean
+          release commit and green remote CI.
+        </phase-follow-up>
+      </LegacyBase>
+      <LegacySource>docs/verification-plan.xml: V-M-046</LegacySource>
+    </V-M-046>
+  </VD-FEATURES>
+</GraceVerificationDocument>

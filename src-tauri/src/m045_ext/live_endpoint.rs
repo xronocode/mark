@@ -1,4 +1,5 @@
-// MODULE_CONTRACT
+// FILE: src-tauri/src/m045_ext/live_endpoint.rs
+// START_MODULE_CONTRACT
 //   PURPOSE: M-045 live endpoint discovery. Writes and cleans up a
 //            JSON file at a well-known path so external apps (e.g.
 //            TokMo) can discover Mark's live-viewer HTTP server port.
@@ -13,6 +14,13 @@
 //
 // CHANGE_SUMMARY:
 //   - 2026-06-08 B5a: initial live_endpoint module creation.
+//   ROLE: RUNTIME
+//   MAP_MODE: EXPORTS
+// END_MODULE_CONTRACT
+//
+// START_MODULE_MAP
+//   Coverage: GRACE 4 synchronized surface for M-045.
+// END_MODULE_MAP
 
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;

@@ -1,4 +1,5 @@
-// MODULE_CONTRACT
+// FILE: src-tauri/src/m045_ext/live_bridge.rs
+// START_MODULE_CONTRACT
 //   PURPOSE: M-045 live-viewer bridge. Connects the live-viewer HTTP
 //            server (live_server.rs) to the Tauri webview frontend by
 //            emitting typed events over the Tauri event system. The
@@ -16,6 +17,13 @@
 // CHANGE_SUMMARY:
 //   - 2026-06-09 E1a: add emit_context_request helper for /ext/context.
 //   - 2026-06-08 B5b: initial live_bridge module creation.
+//   ROLE: RUNTIME
+//   MAP_MODE: EXPORTS
+// END_MODULE_CONTRACT
+//
+// START_MODULE_MAP
+//   Coverage: GRACE 4 synchronized surface for M-045.
+// END_MODULE_MAP
 
 use serde::Serialize;
 use tauri::{AppHandle, Emitter};

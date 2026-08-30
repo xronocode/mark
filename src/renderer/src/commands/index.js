@@ -6,13 +6,19 @@
 //   DEPENDS: renderer bus/stores, Tauri core, M-016 updater plugin, notification service.
 //   LINKS: docs/knowledge-graph.xml M-009,M-013-A,M-016; docs/verification-plan.xml V-M-016.
 //   ROLE: RUNTIME
-//   MAP_MODE: LOCALS
+//   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
 //   RootCommand - Command-palette root and subcommand coordinator.
-//   commands - Static and platform-gated renderer command registry.
 //   file.check-update - Checks the signed feed and applies an available update entirely in app.
+//   FileEncodingCommand - GRACE 4 synchronized symbol
+//   LineEndingCommand - GRACE 4 synchronized symbol
+//   QuickOpenCommand - GRACE 4 synchronized symbol
+//   SpellcheckerLanguageCommand - GRACE 4 synchronized symbol
+//   TrailingNewlineCommand - GRACE 4 synchronized symbol
+//   default - GRACE 4 synchronized symbol
+//   getCommandsWithDescriptions - GRACE 4 synchronized symbol
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY

@@ -1,0 +1,174 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<GraceMigrationReport graceVersion="4.0" status="validated">
+  <Project>
+    <Name>Mark</Name>
+    <Root>/Users/myevdokimov/prj/mark</Root>
+    <Branch>main</Branch>
+    <SourceHead>90eaa1c4f7cabff514f58a9fe79cee45cbff7cf4</SourceHead>
+    <Remote>fork https://github.com/xronocode/mark.git</Remote>
+    <MigrationToolchain>grace 4.0.7</MigrationToolchain>
+    <Policy>Copy and validate. Legacy XML remains byte-for-byte; no cleanup or retroactive C-* bundles.</Policy>
+  </Project>
+
+  <SourceInventory complete="true">
+    <Source path="AGENTS.md" disposition="Update routing and protocol language to GRACE 4 while preserving Mark-specific release and local-AI rules." />
+    <Source path="docs/requirements.xml" disposition=".grace/context/requirements.xml and .grace/context/ux-guidelines.xml" />
+    <Source path="docs/technology.xml" disposition=".grace/context/technology.xml and .grace/context/deployment.xml" />
+    <Source path="docs/development-plan.xml" disposition="Module contracts merged into routed .grace/graph documents; 28 data flows routed through .grace/graph/flows.xml; historical phase provenance retained without retroactive changes." />
+    <Source path="docs/knowledge-graph.xml" disposition="53 modules merged into routed .grace/graph documents; relationships retained in attribute-free GRACE 4 form." />
+    <Source path="docs/verification-plan.xml" disposition="Graph-aligned verification contracts routed through .grace/verification; duplicate and orphan anchors handled only by the proposed conflict policy below." />
+    <Source path="docs/operational-packets.xml" disposition="Preserved as GRACE 3 provenance. Not converted into retroactive C-* bundles; future work uses .grace/changes." />
+  </SourceInventory>
+
+  <SourceProfile wellFormed="true">
+    <LegacyDocuments count="6" />
+    <GraphModules knowledgeGraph="53" developmentPlan="53" exactSetMatch="true" />
+    <DataFlows count="28" />
+    <Verification uniqueAnchors="54" elements="56" graphAlignedAnchors="53" duplicateAnchors="2" orphanAnchors="1" />
+  </SourceProfile>
+
+  <Backup restorable="true">
+    <Path>/Users/myevdokimov/.codex/backups/grace-migrations/mark-20260830T110931Z</Path>
+    <CreatedAt>2026-08-30T11:09:31Z</CreatedAt>
+    <Verification>Seven exact diff checks passed; backup SHA-256 values match the source inventory.</Verification>
+    <Hashes algorithm="SHA-256">
+      <File path="AGENTS.md">b8863550eb14f1787b54524e95b317391ff713c5b061c05006f1c53db167a093</File>
+      <File path="docs/requirements.xml">9b624edc2a618f5d76d4d9fe3868ffb5cae75bc488e5d984779b8ca986cda95d</File>
+      <File path="docs/technology.xml">49446c7f86e09a2dd107929e44d02b240d63674d650394c795c7df4320f5e4a3</File>
+      <File path="docs/development-plan.xml">fd3f20acec1b8945db58fb885680bf18e1219f6add80aab68383c332ac4ad890</File>
+      <File path="docs/knowledge-graph.xml">93501891039740070988bf3bc8a9ca9ca1c7b418a774371e0681f234174eb8a2</File>
+      <File path="docs/verification-plan.xml">55ae219004c28fb946c9e1be6bd177d9f21db9182bc6bb8e421e52f6d9df27d2</File>
+      <File path="docs/operational-packets.xml">f3356d8f1983b538ada7583c7466f843ea467cdaa36cf6c87f077c3abf986cea</File>
+    </Hashes>
+  </Backup>
+
+  <WriteApproval approved="true">
+    <RequestedScope>Create and validate Mark GRACE 4 current-state artifacts; apply the conflict policy below; update AGENTS.md; retain all legacy XML byte-for-byte; exclude every pre-existing untracked file.</RequestedScope>
+    <ConfirmedBy>repository owner via chat: "апрув"</ConfirmedBy>
+    <ConfirmedAt>2026-08-30T11:49:48Z</ConfirmedAt>
+  </WriteApproval>
+
+  <GeneratedGrace4Layout coverageVerified="true">
+    <Context>.grace/context: requirements, technology, principles, deployment, UX guidelines</Context>
+    <Graph>.grace/graph: index plus runtime, performance, features, governance, and flows documents</Graph>
+    <Verification>.grace/verification: index plus graph-aligned runtime, performance, features, and governance documents</Verification>
+    <Changes>.grace/changes/active and .grace/changes/archive skeleton; no retroactive C-* bundles</Changes>
+  </GeneratedGrace4Layout>
+
+  <Ambiguities>
+    <Ambiguity severity="major">V-M-021 occurs twice with incompatible meanings: mt-default-handler in the earlier verification section and the current graph-owned M-021 mt-fs-core in the later section.</Ambiguity>
+    <Ambiguity severity="major">V-M-022 occurs twice with incompatible meanings: mt-preview-mode in the earlier verification section and the current graph-owned M-022 mt-paths in the later section.</Ambiguity>
+    <Ambiguity severity="major">V-M-023 mt-quicklook-ext has verification evidence but no M-023 module in either current legacy graph source. A pre-existing untracked mark-quicklook/ tree may be related, but it is explicitly outside migration reads and ownership.</Ambiguity>
+    <Ambiguity severity="minor">Legacy semantic anchors use identity and metadata attributes. GRACE 4 generation must keep unique ID tags while converting semantic metadata to child elements.</Ambiguity>
+    <Ambiguity severity="minor">Historical phases and shipped/partial/planned status evidence predate GRACE 4 changes and cannot be reconstructed as trustworthy C-* histories.</Ambiguity>
+  </Ambiguities>
+
+  <ProposedConflictPolicy requiresApproval="false" approved="true">
+    <Approval>Included in the repository owner's explicit write approval.</Approval>
+    <Rule anchor="V-M-021">Use graph/development-plan M-021 mt-fs-core as the canonical active owner. Preserve the earlier mt-default-handler body under non-anchor LegacyConflictingEvidence with source provenance; do not activate its commands or assertions.</Rule>
+    <Rule anchor="V-M-022">Use graph/development-plan M-022 mt-paths as the canonical active owner. Preserve the earlier mt-preview-mode body under non-anchor LegacyConflictingEvidence with source provenance; do not activate its commands or assertions.</Rule>
+    <Rule anchor="V-M-023">Preserve the orphan mt-quicklook-ext body under non-anchor LegacyOrphanEvidence with source provenance. Do not fabricate M-023 or index V-M-023 until a future approved change reconciles the module and the user-owned untracked implementation.</Rule>
+  </ProposedConflictPolicy>
+
+  <UnsupportedStructures>
+    <Unsupported source="docs/operational-packets.xml">GRACE 3 execution, delta, failure, and handoff templates remain provenance and are not converted into historical changes.</Unsupported>
+    <Unsupported source="docs/development-plan.xml">Completed and in-progress legacy phases are not reconstructed as C-* bundles.</Unsupported>
+    <Unsupported source="pre-existing untracked worktree files">Untracked QA, screenshots, Homebrew, QuickLook, tests, and clipboard-capture files are user-owned and excluded from migration interpretation, writes, GRACE lint ownership, and staging. Broad project test discovery may execute an existing test file without making it part of the migration.</Unsupported>
+  </UnsupportedStructures>
+
+  <Validation successful="true">
+    <Check command="grace lint --path /Users/myevdokimov/prj/mark --assertions current" exitCode="0" filesChecked="572" governedFiles="24" xmlArtifacts="16" errors="0" warnings="0">No issues found.</Check>
+    <Check command="grace status --path /Users/myevdokimov/prj/mark --json" exitCode="0" projectKind="grace4" integrityErrors="0" integrityWarnings="0">Five context artifacts, 53 graph modules, 53 verification entries, and no active or archived changes.</Check>
+    <Check command="ruby /private/tmp/mark_review_coverage.rb" exitCode="0">All eleven exact-coverage and preservation assertions passed.</Check>
+    <Check command="npm run typecheck:ipc" exitCode="0">TypeScript IPC typecheck passed.</Check>
+    <Check command="npm test" exitCode="0">219 test files passed; 2965 tests passed, 2 skipped, 3 todo.</Check>
+    <Check command="cargo test -p mark" exitCode="0">493 tests passed, 1 ignored.</Check>
+    <Check command="git diff -- src src-tauri tests tools/release-preflight.mjs | check_comment_only_diff.rb" exitCode="0">All governed source edits are comment-only; non-comment lines are byte-identical.</Check>
+    <Check command="git diff --check" exitCode="0">No whitespace errors.</Check>
+    <BaselineAdvisory command="cargo fmt -- --check">The pre-existing repository is not globally rustfmt-clean, including untouched Rust files. No broad formatting rewrite was applied; the migration preserves the stronger comment-only invariant.</BaselineAdvisory>
+  </Validation>
+
+  <CoverageReview status="pass">
+    <Expected graphModules="53" dataFlows="28" activeVerificationEntries="53" contextArtifacts="5" />
+    <PreservedNonActiveEvidence duplicateVerificationBodies="2" orphanVerificationBodies="1" />
+    <ExactChecks moduleSetMatch="true" dataFlowSetMatch="true" relationshipSetMatch="true" activeVerificationGraphAligned="true" requiredContractSections="true" retroactiveChanges="0" />
+    <FirstReview critical="0" major="5" minor="0">
+      <Finding id="F-1" resolution="fixed">Two duplicate verification anchors and one graph-orphan verification body required the approved canonical-active/non-active-evidence split.</Finding>
+      <Finding id="F-2" resolution="fixed">Eleven pseudo MODULE_CONTRACT headers were converted to exact GRACE 4 file-local markup.</Finding>
+      <Finding id="F-3" resolution="fixed">Four governed files had incorrect role or MAP_MODE declarations; the declarations now match runtime, export, or script semantics.</Finding>
+      <Finding id="F-4" resolution="fixed">Ten file-local MODULE_MAP blocks were stale; they were synchronized without changing executable lines.</Finding>
+      <Finding id="F-5" resolution="fixed">Pre-existing user-owned untracked tool trees entered the default lint walk; supported .grace-lint.json ignoredDirs now enforce the approved exclusion boundary.</Finding>
+    </FirstReview>
+    <FixPass status="complete">All five findings fixed; legacy XML and excluded untracked paths remain untouched.</FixPass>
+    <SecondReview status="pass" critical="0" major="0" minor="0">Exact coverage, conflict preservation, XML well-formedness, file-local maps, GRACE lint, and proportional project tests all pass.</SecondReview>
+  </CoverageReview>
+
+  <HealthBaseline readyModules="0" attentionModules="0" blockedModules="53">
+    <Interpretation>GRACE integrity is clean. Blocked is the truthful inherited implementation and verification-evidence baseline, not a migration integrity failure.</Interpretation>
+    <Blocker kind="missing implementation files" count="51" />
+    <Blocker kind="required log marker blocks not found" count="98" />
+    <Blocker kind="required log markers not found" count="186" />
+    <Blocker kind="verification entries missing commands" count="23" />
+    <Blocker kind="verification entries missing scenarios" count="21" />
+    <Blocker kind="verification test files missing on disk" count="2" />
+    <Advisory kind="verification entries missing evidence" count="20" />
+  </HealthBaseline>
+
+  <GitPreflight available="true" inWorktree="true" dirty="true">
+    <WorktreeRoot>/Users/myevdokimov/prj/mark</WorktreeRoot>
+    <Branch>main</Branch>
+    <Head>90eaa1c4f7cabff514f58a9fe79cee45cbff7cf4</Head>
+    <PorcelainCommand>git status --porcelain --untracked-files=all</PorcelainCommand>
+    <PorcelainOutput><![CDATA[?? .playwright-mcp/page-2026-05-24T15-40-08-287Z.yml
+?? .playwright-mcp/page-2026-05-24T15-40-15-117Z.yml
+?? .playwright-mcp/page-2026-05-24T15-40-22-602Z.yml
+?? .playwright-mcp/page-2026-05-24T15-57-36-801Z.yml
+?? .playwright-mcp/page-2026-05-24T16-00-57-980Z.yml
+?? .playwright-mcp/page-2026-05-24T16-01-23-384Z.yml
+?? .playwright-mcp/page-2026-05-24T16-02-47-918Z.yml
+?? .playwright-mcp/page-2026-05-24T16-04-14-208Z.yml
+?? Mark-v2.1.2-beta-QA.md
+?? clipboard-capture-live-after-paste.png
+?? clipboard-capture-live.png
+?? homebrew-mark/
+?? mark-quicklook/MarkQuickLook.xcodeproj/project.pbxproj
+?? mark-quicklook/MarkQuickLook.xcodeproj/project.xcworkspace/contents.xcworkspacedata
+?? mark-quicklook/Sources/HostApp/AppDelegate.swift
+?? mark-quicklook/Sources/HostApp/HostApp.entitlements
+?? mark-quicklook/Sources/HostApp/Info.plist
+?? mark-quicklook/Sources/HostApp/MainWindow.swift
+?? mark-quicklook/Sources/PreviewExtension/Info.plist
+?? mark-quicklook/Sources/PreviewExtension/MarkPreview.entitlements
+?? mark-quicklook/Sources/PreviewExtension/PreviewProvider.swift
+?? mark-quicklook/Sources/PreviewExtension/Resources/github-dark.css
+?? mark-quicklook/Sources/PreviewExtension/Resources/highlight.min.js
+?? mark-quicklook/Sources/PreviewExtension/Resources/markdown-it.min.js
+?? mark-quicklook/Sources/PreviewExtension/Resources/style.css
+?? mark-quicklook/Sources/Shared/MarkdownRenderer.swift
+?? mark-quicklook/project.yml
+?? tests/e2e/sidebar-click.spec.ts
+?? tests/renderer/util/clipboard-fixture-capture.test.js
+?? tools/clipboard-capture/README.md
+?? tools/clipboard-capture/app.js
+?? tools/clipboard-capture/capture-core.browser.js
+?? tools/clipboard-capture/capture-core.js
+?? tools/clipboard-capture/index.html
+?? tools/clipboard-capture/styles.css]]></PorcelainOutput>
+    <ScopeGuard>Every pre-existing untracked path is excluded from migration writes, semantic ownership, and staging. The migration report itself was the only Mark repository write before approval.</ScopeGuard>
+  </GitPreflight>
+
+  <CleanupProposal approved="false">
+    <Policy>No cleanup proposed. All six legacy XML files remain byte-for-byte.</Policy>
+    <ConfirmedBy>not applicable</ConfirmedBy>
+    <ConfirmedAt>not applicable</ConfirmedAt>
+  </CleanupProposal>
+  <DirtyOrNonGitRiskAcknowledgement required="false" approved="false">
+    <Risk>No cleanup is proposed; the dirty-worktree acknowledgement gate does not apply to deletion. Dirty state is still isolated by the scope guard above.</Risk>
+    <ConfirmedBy>not applicable</ConfirmedBy>
+    <ConfirmedAt>not applicable</ConfirmedAt>
+  </DirtyOrNonGitRiskAcknowledgement>
+  <CleanupResults performed="false">
+    <Result>Legacy GRACE 3 artifacts remain untouched.</Result>
+    <FailurePreservationStatement>Legacy GRACE 3 artifacts remain untouched unless the failure output explicitly lists a completed move.</FailurePreservationStatement>
+  </CleanupResults>
+</GraceMigrationReport>

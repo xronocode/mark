@@ -7,7 +7,7 @@
 //   DEPENDS: Node.js fs, path, and url standard-library modules; package.json; package-lock.json; Cargo.toml; Cargo.lock; src-tauri/tauri.conf.json.
 //   LINKS: docs/knowledge-graph.xml M-046; docs/verification-plan.xml V-M-046; docs/requirements.xml UC-032.
 //   ROLE: SCRIPT
-//   MAP_MODE: EXPORTS
+//   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
@@ -15,6 +15,12 @@
 //   readVersionEvidence - Reads all authoritative release-version sources.
 //   validateVersionEvidence - Enforces one exact version and optional v<version> tag.
 //   runReleasePreflight - Runs the gate and emits the stable success marker.
+//   VERSION_SOURCE_COUNT - GRACE 4 synchronized symbol
+//   invokedPath - GRACE 4 synchronized symbol
+//   main - GRACE 4 synchronized symbol
+//   matchVersion - GRACE 4 synchronized symbol
+//   parseExpectedTag - GRACE 4 synchronized symbol
+//   readJson - GRACE 4 synchronized symbol
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY

@@ -1,0 +1,51 @@
+<GraceUXGuidelines graceVersion='4.0'>
+  <Applicability>applicable</Applicability>
+  <Rationale>
+    Mark is a document editor with WYSIWYG, source, project, diff, terminal,
+    import/export, update, and extension-host surfaces.
+  </Rationale>
+  <MigrationProvenance>
+    <LegacySource>AGENTS.md</LegacySource>
+    <LegacySource>docs/requirements.xml</LegacySource>
+    <LegacySource>docs/development-plan.xml</LegacySource>
+    <MigratedAt>2026-08-30T11:49:48Z</MigratedAt>
+    <Policy>
+      Semantic copy into GRACE 4 current state; legacy sources remain
+      byte-for-byte as migration provenance.
+    </Policy>
+  </MigrationProvenance>
+  <Guidelines>
+    <ContentFirst>
+      Editor mode, view, sidebar, live reload, clipboard, and extension
+      operations never silently lose or rewrite document content.
+    </ContentFirst>
+    <ExplicitRisk>
+      External links, shell paths, rich clipboard content, imports, and
+      security-sensitive actions expose confirmation or a clear blocked state.
+    </ExplicitRisk>
+    <LocalTruth>
+      File, watcher, save, diff, recent-document, and project states reflect
+      persisted or observed local truth rather than optimistic UI assumptions.
+    </LocalTruth>
+    <AccessibleControls>
+      Core editing, navigation, command palette, menu, update, and recovery
+      controls remain keyboard-usable and visibly stateful.
+    </AccessibleControls>
+    <PerformanceVisible>
+      Startup, large-document, search, pending-open, and lazy-renderer behavior
+      uses deterministic budgets and observable degradation.
+    </PerformanceVisible>
+    <CrossPlatformHonesty>
+      macOS, Windows, and Linux capability differences are explicit; unsupported
+      platform behavior fails closed without false success.
+    </CrossPlatformHonesty>
+    <ExtensionIsolation>
+      Extension-host or TokMo integration failure never corrupts the active
+      document or bypasses the typed IPC and permission boundary.
+    </ExtensionIsolation>
+    <ReleaseContinuity>
+      Installed version, updater state, release metadata, and Homebrew
+      availability remain understandable and consistent to the user.
+    </ReleaseContinuity>
+  </Guidelines>
+</GraceUXGuidelines>
