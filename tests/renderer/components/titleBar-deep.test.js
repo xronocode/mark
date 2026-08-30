@@ -10,9 +10,8 @@
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
-//   mountComponent - Mounts the titlebar with stable default props and mocked services.
-//   titlePathContextMenuAssertions - Verify native menu position, untitled no-op, and exact clipboard dispatch.
-//   navigationAssertions - Verify sidebar/view decision branches and dialog deduplication.
+//   i18n - GRACE 4 synchronized symbol
+//   writeClipboardTextMock - GRACE 4 synchronized symbol
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY

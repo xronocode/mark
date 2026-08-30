@@ -1,4 +1,5 @@
-// MODULE_CONTRACT
+// FILE: src-tauri/src/m045_ext/mod.rs
+// START_MODULE_CONTRACT
 //   PURPOSE: M-045 extension host. Discovers, registers, authenticates,
 //            and invokes local HTTP-based extensions. Extensions are
 //            standalone processes that expose capabilities over
@@ -26,6 +27,13 @@
 //   - 2026-06-08 B5a: live_server (axum HTTP server) + live_endpoint
 //     (discovery file write/cleanup) modules added.
 //   - 2026-06-08 B2b: initial m045_ext module creation.
+//   ROLE: BARREL
+//   MAP_MODE: SUMMARY
+// END_MODULE_CONTRACT
+//
+// START_MODULE_MAP
+//   Coverage: GRACE 4 synchronized surface for M-045.
+// END_MODULE_MAP
 
 pub mod manifest;
 pub mod discovery;

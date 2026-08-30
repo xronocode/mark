@@ -1,4 +1,5 @@
-// MODULE_CONTRACT
+// FILE: src-tauri/src/m045_ext/registry.rs
+// START_MODULE_CONTRACT
 //   PURPOSE: M-045 extension registry. Thread-safe in-memory store of
 //            registered extensions with enable/disable/query operations.
 //   SCOPE:   State management only. No I/O, no HTTP. Enable/disable
@@ -7,6 +8,13 @@
 //   LINKS:   docs/knowledge-graph.xml M-045;
 //            docs/development-plan.xml Phase-B2b.
 //   STATUS:  Phase-B2b initial.
+//   ROLE: RUNTIME
+//   MAP_MODE: EXPORTS
+// END_MODULE_CONTRACT
+//
+// START_MODULE_MAP
+//   Coverage: GRACE 4 synchronized surface for M-045.
+// END_MODULE_MAP
 
 use crate::m045_ext::manifest::ExtensionManifest;
 use serde::{Deserialize, Serialize};

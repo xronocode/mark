@@ -1,0 +1,749 @@
+<GraceGraphDocument graceVersion='4.0'>
+  <GD-PERFORMANCE>
+    <ProjectMetadata>
+      <Name>Mark</Name>
+      <LegacyDevelopmentPlanVersion>0.2.0</LegacyDevelopmentPlanVersion>
+      <LegacySources>docs/knowledge-graph.xml; docs/development-plan.xml</LegacySources>
+    </ProjectMetadata>
+    <M-024>
+      <Name>perf-splash</Name>
+      <DisplayName>perf-splash</DisplayName>
+      <Type>UI_COMPONENT</Type>
+      <Status>implemented</Status>
+      <PhaseRef>B5-perf-wave1</PhaseRef>
+      <Summary>
+        Static HTML+CSS splash screen visible before any JS parses; dismounted
+        by app.vue onMounted via util/splash.js dismountSplash(). Provides
+        BOOT_T0 anchor for V-M-030 instrumentation.
+      </Summary>
+      <PlannedPath>
+        src/renderer/index.html, src/renderer/static/splash.css,
+        src/renderer/src/util/splash.js, src/renderer/src/pages/app.vue
+      </PlannedPath>
+      <Dependencies>
+        <M-001/>
+      </Dependencies>
+      <VerificationRef>V-M-024</VerificationRef>
+      <Contract>
+        <Purpose>
+          No explicit legacy module contract; use Summary and
+          LegacyKnowledgeDetail until the module is next changed.
+        </Purpose>
+        <Inputs/>
+        <Outputs/>
+        <Errors/>
+      </Contract>
+      <Interface/>
+      <Sources>
+        <KnowledgeGraphPath>
+          src/renderer/index.html, src/renderer/static/splash.css,
+          src/renderer/src/util/splash.js, src/renderer/src/pages/app.vue
+        </KnowledgeGraphPath>
+      </Sources>
+      <Observability/>
+      <LegacyKnowledgeDetail>
+        <annotations>
+          <fn-dismountSplash>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>PURPOSE</Name>
+                <Value>
+                  Idempotent splash removal called from app.vue onMounted;
+                  import.meta.hot guard returns false in dev HMR; orphan cleanup
+                  via BLOCK_ORPHAN_DETECTED; removes both #splash-root and
+                  #splash-style; aria-hidden flip BEFORE .remove(); returns
+                  boolean
+                </Value>
+              </Attribute>
+              <Attribute>
+                <Name>LOCATION</Name>
+                <Value>src/renderer/src/util/splash.js</Value>
+              </Attribute>
+            </LegacyAttributes>
+          </fn-dismountSplash>
+          <global-window-BOOT_T0>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>PURPOSE</Name>
+                <Value>
+                  performance.now() at first inline-script execution; never
+                  reassigned; consumed by V-M-030 bootMark()
+                </Value>
+              </Attribute>
+            </LegacyAttributes>
+          </global-window-BOOT_T0>
+          <global-window-SPLASH_REPLACED>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>PURPOSE</Name>
+                <Value>Idempotency flag; prevents double-dismount and enables orphan detection</Value>
+              </Attribute>
+            </LegacyAttributes>
+          </global-window-SPLASH_REPLACED>
+        </annotations>
+      </LegacyKnowledgeDetail>
+      <LegacyDevelopmentDetail>
+        <purpose>
+          Static HTML+CSS splash screen visible before any JS parses; dismounted
+          by app.vue onMounted via util/splash.js dismountSplash(). Provides
+          BOOT_T0 anchor for V-M-030 instrumentation.
+        </purpose>
+        <path>
+          src/renderer/index.html, src/renderer/static/splash.css,
+          src/renderer/src/util/splash.js, src/renderer/src/pages/app.vue
+        </path>
+      </LegacyDevelopmentDetail>
+      <LegacyAttributes>
+        <Attribute>
+          <Source>knowledge-graph</Source>
+          <Name>NAME</Name>
+          <Value>perf-splash</Value>
+        </Attribute>
+        <Attribute>
+          <Source>knowledge-graph</Source>
+          <Name>TYPE</Name>
+          <Value>UI_COMPONENT</Value>
+        </Attribute>
+        <Attribute>
+          <Source>knowledge-graph</Source>
+          <Name>STATUS</Name>
+          <Value>implemented</Value>
+        </Attribute>
+        <Attribute>
+          <Source>knowledge-graph</Source>
+          <Name>implemented-at</Name>
+          <Value>reborn-mark@7e8afce2</Value>
+        </Attribute>
+        <Attribute>
+          <Source>development-plan</Source>
+          <Name>NAME</Name>
+          <Value>perf-splash</Value>
+        </Attribute>
+        <Attribute>
+          <Source>development-plan</Source>
+          <Name>TYPE</Name>
+          <Value>UI_COMPONENT</Value>
+        </Attribute>
+        <Attribute>
+          <Source>development-plan</Source>
+          <Name>STATUS</Name>
+          <Value>implemented</Value>
+        </Attribute>
+        <Attribute>
+          <Source>development-plan</Source>
+          <Name>PHASE-REF</Name>
+          <Value>B5-perf-wave1</Value>
+        </Attribute>
+      </LegacyAttributes>
+      <LegacySource>docs/knowledge-graph.xml: M-024; docs/development-plan.xml: M-024</LegacySource>
+    </M-024>
+    <M-025>
+      <Name>perf-pending-opens-parallel</Name>
+      <DisplayName>perf-pending-opens-parallel</DisplayName>
+      <Type>INTEGRATION</Type>
+      <Status>implemented</Status>
+      <PhaseRef>B5-perf-wave1</PhaseRef>
+      <Summary>
+        Reorder mt_drain_pending_opens invocation from sequential (inside
+        mt::bootstrap-editor handler) to parallel (top-level setupIpcListeners).
+        Backend gains drained:bool flag in PendingOpens AppState for M-021
+        ready-signal contract; RunEvent::Opened direct-emits when drained=true.
+      </Summary>
+      <PlannedPath>src/renderer/src/bootstrap-ipc.js, src-tauri/src/main.rs</PlannedPath>
+      <Dependencies>
+        <M-021/>
+        <M-024/>
+      </Dependencies>
+      <VerificationRef>V-M-025</VerificationRef>
+      <Contract>
+        <Purpose>
+          No explicit legacy module contract; use Summary and
+          LegacyKnowledgeDetail until the module is next changed.
+        </Purpose>
+        <Inputs/>
+        <Outputs/>
+        <Errors/>
+      </Contract>
+      <Interface/>
+      <Sources>
+        <KnowledgeGraphPath>src/renderer/src/bootstrap-ipc.js, src-tauri/src/main.rs</KnowledgeGraphPath>
+      </Sources>
+      <Observability/>
+      <LegacyKnowledgeDetail>
+        <annotations>
+          <type-PendingOpens>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>PURPOSE</Name>
+                <Value>
+                  AppState struct: { queue: Mutex&lt;Vec&lt;String&gt;&gt;,
+                  drained: AtomicBool, had_initial_opens: AtomicBool,
+                  quit_approved: AtomicBool }; SeqCst ordering. quit_approved:
+                  two-phase exit flag set by mt_app_quit before app.exit(0) so
+                  ExitRequested handler can let the confirmed exit proceed.
+                </Value>
+              </Attribute>
+            </LegacyAttributes>
+          </type-PendingOpens>
+          <fn-mt_drain_pending_opens>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>PURPOSE</Name>
+                <Value>Drain queue snapshot; flip drained=true; return Vec&lt;String&gt; to renderer</Value>
+              </Attribute>
+            </LegacyAttributes>
+          </fn-mt_drain_pending_opens>
+          <fn-setupIpcListeners>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>PURPOSE</Name>
+                <Value>
+                  Register all 9 listen() calls via Promise.all; emit
+                  BLOCK_LISTENERS_READY; invoke drain at top-level (parallel
+                  with Vue mount); preserve V-M-022 previewMode flow
+                </Value>
+              </Attribute>
+            </LegacyAttributes>
+          </fn-setupIpcListeners>
+        </annotations>
+      </LegacyKnowledgeDetail>
+      <LegacyDevelopmentDetail>
+        <purpose>
+          Reorder mt_drain_pending_opens invocation from sequential to parallel
+          (top-level setupIpcListeners). Backend gains drained:bool flag in
+          PendingOpens AppState.
+        </purpose>
+        <path>src/renderer/src/bootstrap-ipc.js, src-tauri/src/main.rs</path>
+      </LegacyDevelopmentDetail>
+      <LegacyAttributes>
+        <Attribute>
+          <Source>knowledge-graph</Source>
+          <Name>NAME</Name>
+          <Value>perf-pending-opens-parallel</Value>
+        </Attribute>
+        <Attribute>
+          <Source>knowledge-graph</Source>
+          <Name>TYPE</Name>
+          <Value>INTEGRATION</Value>
+        </Attribute>
+        <Attribute>
+          <Source>knowledge-graph</Source>
+          <Name>STATUS</Name>
+          <Value>implemented</Value>
+        </Attribute>
+        <Attribute>
+          <Source>knowledge-graph</Source>
+          <Name>implemented-at</Name>
+          <Value>reborn-mark@4af0b52</Value>
+        </Attribute>
+        <Attribute>
+          <Source>development-plan</Source>
+          <Name>NAME</Name>
+          <Value>perf-pending-opens-parallel</Value>
+        </Attribute>
+        <Attribute>
+          <Source>development-plan</Source>
+          <Name>TYPE</Name>
+          <Value>INTEGRATION</Value>
+        </Attribute>
+        <Attribute>
+          <Source>development-plan</Source>
+          <Name>STATUS</Name>
+          <Value>implemented</Value>
+        </Attribute>
+        <Attribute>
+          <Source>development-plan</Source>
+          <Name>PHASE-REF</Name>
+          <Value>B5-perf-wave1</Value>
+        </Attribute>
+      </LegacyAttributes>
+      <LegacySource>docs/knowledge-graph.xml: M-025; docs/development-plan.xml: M-025</LegacySource>
+    </M-025>
+    <M-026>
+      <Name>perf-lazy-renderers</Name>
+      <DisplayName>perf-lazy-renderers</DisplayName>
+      <Type>CORE_LOGIC</Type>
+      <Status>done</Status>
+      <PhaseRef>B5-perf-wave2</PhaseRef>
+      <Summary>
+        Convert eager imports of KaTeX to lazy-katex.js singleton loader;
+        mermaid/flowchart/sequence/plantuml/vega-lite already dynamic via
+        loadRenderer(). Cytoscape removed (unused). ~1.1MB excluded from initial
+        bundle.
+      </Summary>
+      <PlannedPath>
+        src/muya/lib/utils/lazy-katex.js, src/muya/lib/renderers/index.js,
+        src/muya/lib/parser/render/
+      </PlannedPath>
+      <Dependencies>
+        <M-012/>
+      </Dependencies>
+      <VerificationRef>V-M-026</VerificationRef>
+      <Contract>
+        <Purpose>
+          No explicit legacy module contract; use Summary and
+          LegacyKnowledgeDetail until the module is next changed.
+        </Purpose>
+        <Inputs/>
+        <Outputs/>
+        <Errors/>
+      </Contract>
+      <Interface/>
+      <Sources>
+        <KnowledgeGraphPath>
+          src/muya/lib/utils/lazy-katex.js, src/muya/lib/renderers/index.js,
+          src/muya/lib/parser/render/
+        </KnowledgeGraphPath>
+      </Sources>
+      <Observability/>
+      <LegacyKnowledgeDetail>
+        <annotations>
+          <fn-loadKatex>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>PURPOSE</Name>
+                <Value>
+                  Singleton loader with promise caching. Loads KaTeX core +
+                  mhchem + CSS via dynamic import().
+                </Value>
+              </Attribute>
+            </LegacyAttributes>
+          </fn-loadKatex>
+          <fn-scheduleRerender>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>PURPOSE</Name>
+                <Value>
+                  One-shot rerender guard. After KaTeX loads, triggers muya
+                  contentState.render() exactly once.
+                </Value>
+              </Attribute>
+            </LegacyAttributes>
+          </fn-scheduleRerender>
+          <fn-loadRenderer>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>PURPOSE</Name>
+                <Value>
+                  renderers/index.js: async dispatch for
+                  mermaid/flowchart/sequence/plantuml/vega-lite. Renderer cache
+                  Map prevents double-fetch.
+                </Value>
+              </Attribute>
+            </LegacyAttributes>
+          </fn-loadRenderer>
+        </annotations>
+      </LegacyKnowledgeDetail>
+      <LegacyDevelopmentDetail>
+        <purpose>
+          Convert eager imports of
+          Mermaid/Vega/Cytoscape/KaTeX/plantuml/flowchart/sequence in muya
+          parser/render to dynamic import() triggered by first occurrence.
+          ~1.1MB initial bundle savings (KaTeX 572KB + diagrams already
+          dynamic).
+        </purpose>
+        <path>
+          src/muya/lib/utils/lazy-katex.js, src/muya/lib/renderers/index.js,
+          src/muya/lib/parser/render/
+        </path>
+      </LegacyDevelopmentDetail>
+      <LegacyAttributes>
+        <Attribute>
+          <Source>knowledge-graph</Source>
+          <Name>NAME</Name>
+          <Value>perf-lazy-renderers</Value>
+        </Attribute>
+        <Attribute>
+          <Source>knowledge-graph</Source>
+          <Name>TYPE</Name>
+          <Value>CORE_LOGIC</Value>
+        </Attribute>
+        <Attribute>
+          <Source>knowledge-graph</Source>
+          <Name>STATUS</Name>
+          <Value>done</Value>
+        </Attribute>
+        <Attribute>
+          <Source>knowledge-graph</Source>
+          <Name>PHASE-REF</Name>
+          <Value>B5-perf-wave2</Value>
+        </Attribute>
+        <Attribute>
+          <Source>development-plan</Source>
+          <Name>NAME</Name>
+          <Value>perf-lazy-renderers</Value>
+        </Attribute>
+        <Attribute>
+          <Source>development-plan</Source>
+          <Name>TYPE</Name>
+          <Value>CORE_LOGIC</Value>
+        </Attribute>
+        <Attribute>
+          <Source>development-plan</Source>
+          <Name>STATUS</Name>
+          <Value>done</Value>
+        </Attribute>
+        <Attribute>
+          <Source>development-plan</Source>
+          <Name>PHASE-REF</Name>
+          <Value>B5-perf-wave2</Value>
+        </Attribute>
+      </LegacyAttributes>
+      <LegacySource>docs/knowledge-graph.xml: M-026; docs/development-plan.xml: M-026</LegacySource>
+    </M-026>
+    <M-027>
+      <Name>perf-element-plus-treeshake</Name>
+      <DisplayName>perf-element-plus-treeshake</DisplayName>
+      <Type>UI_COMPONENT</Type>
+      <Status>done</Status>
+      <PhaseRef>B5-perf-wave2</PhaseRef>
+      <Summary>
+        Replace app.use(ElementPlus) with makeInstaller() + 22 deep
+        per-component imports. vendor-element-plus 383KB (was 880KB, 57%
+        reduction).
+      </Summary>
+      <Path>src/renderer/src/main.js</Path>
+      <Dependencies>
+        <M-011/>
+      </Dependencies>
+      <VerificationRef>V-M-027</VerificationRef>
+      <Contract>
+        <Purpose>
+          No explicit legacy module contract; use Summary and
+          LegacyKnowledgeDetail until the module is next changed.
+        </Purpose>
+        <Inputs/>
+        <Outputs/>
+        <Errors/>
+      </Contract>
+      <Interface/>
+      <Sources>
+        <KnowledgeGraphPath>src/renderer/src/main.js</KnowledgeGraphPath>
+      </Sources>
+      <Observability/>
+      <LegacyKnowledgeDetail>
+        <annotations>
+          <fn-makeInstaller>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>PURPOSE</Name>
+                <Value>
+                  Creates ElementPlusPartial with 22 deep per-component imports
+                  from element-plus/es/components/*/index.mjs
+                </Value>
+              </Attribute>
+            </LegacyAttributes>
+          </fn-makeInstaller>
+          <fn-ElMessageBox-deep>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>PURPOSE</Name>
+                <Value>editor.js: imperative ElMessageBox from deep path for unsaved-changes confirm</Value>
+              </Attribute>
+            </LegacyAttributes>
+          </fn-ElMessageBox-deep>
+        </annotations>
+      </LegacyKnowledgeDetail>
+      <LegacyDevelopmentDetail>
+        <purpose>
+          Replace app.use(ElementPlus) with per-component imports via
+          makeInstaller(). 22 components registered. vendor-element-plus 383KB
+          (was 880KB, ~497KB saved).
+        </purpose>
+        <path>src/renderer/src/main.js</path>
+      </LegacyDevelopmentDetail>
+      <LegacyAttributes>
+        <Attribute>
+          <Source>knowledge-graph</Source>
+          <Name>NAME</Name>
+          <Value>perf-element-plus-treeshake</Value>
+        </Attribute>
+        <Attribute>
+          <Source>knowledge-graph</Source>
+          <Name>TYPE</Name>
+          <Value>UI_COMPONENT</Value>
+        </Attribute>
+        <Attribute>
+          <Source>knowledge-graph</Source>
+          <Name>STATUS</Name>
+          <Value>done</Value>
+        </Attribute>
+        <Attribute>
+          <Source>knowledge-graph</Source>
+          <Name>PHASE-REF</Name>
+          <Value>B5-perf-wave2</Value>
+        </Attribute>
+        <Attribute>
+          <Source>development-plan</Source>
+          <Name>NAME</Name>
+          <Value>perf-element-plus-treeshake</Value>
+        </Attribute>
+        <Attribute>
+          <Source>development-plan</Source>
+          <Name>TYPE</Name>
+          <Value>UI_COMPONENT</Value>
+        </Attribute>
+        <Attribute>
+          <Source>development-plan</Source>
+          <Name>STATUS</Name>
+          <Value>done</Value>
+        </Attribute>
+        <Attribute>
+          <Source>development-plan</Source>
+          <Name>PHASE-REF</Name>
+          <Value>B5-perf-wave2</Value>
+        </Attribute>
+      </LegacyAttributes>
+      <LegacySource>docs/knowledge-graph.xml: M-027; docs/development-plan.xml: M-027</LegacySource>
+    </M-027>
+    <M-028>
+      <Name>perf-muya-defer</Name>
+      <DisplayName>perf-muya-defer</DisplayName>
+      <Type>UI_COMPONENT</Type>
+      <Status>planned</Status>
+      <PhaseRef>B5-perf-wave3</PhaseRef>
+      <Summary>
+        Defer muya init for non-active tabs via requestIdleCallback. Active tab:
+        synchronous. Background tab: placeholder first, muya inits on idle
+        within 2s timeout.
+      </Summary>
+      <Path>src/renderer/src/components/editorWithTabs/editor.vue</Path>
+      <Dependencies>
+        <M-011/>
+        <M-012/>
+      </Dependencies>
+      <VerificationRef>V-M-028</VerificationRef>
+      <Contract>
+        <Purpose>
+          No explicit legacy module contract; use Summary and
+          LegacyKnowledgeDetail until the module is next changed.
+        </Purpose>
+        <Inputs/>
+        <Outputs/>
+        <Errors/>
+      </Contract>
+      <Interface/>
+      <Sources>
+        <KnowledgeGraphPath>src/renderer/src/components/editorWithTabs/editor.vue</KnowledgeGraphPath>
+      </Sources>
+      <Observability/>
+      <LegacyKnowledgeDetail/>
+      <LegacyDevelopmentDetail>
+        <purpose>
+          Defer muya init for non-active tabs via requestIdleCallback. Active
+          tab: synchronous. Background tab: placeholder first, muya inits on
+          idle within 2s timeout.
+        </purpose>
+        <path>src/renderer/src/components/editorWithTabs/editor.vue</path>
+      </LegacyDevelopmentDetail>
+      <LegacyAttributes>
+        <Attribute>
+          <Source>knowledge-graph</Source>
+          <Name>NAME</Name>
+          <Value>perf-muya-defer</Value>
+        </Attribute>
+        <Attribute>
+          <Source>knowledge-graph</Source>
+          <Name>TYPE</Name>
+          <Value>UI_COMPONENT</Value>
+        </Attribute>
+        <Attribute>
+          <Source>knowledge-graph</Source>
+          <Name>STATUS</Name>
+          <Value>planned</Value>
+        </Attribute>
+        <Attribute>
+          <Source>knowledge-graph</Source>
+          <Name>PHASE-REF</Name>
+          <Value>B5-perf-wave3</Value>
+        </Attribute>
+        <Attribute>
+          <Source>development-plan</Source>
+          <Name>NAME</Name>
+          <Value>perf-muya-defer</Value>
+        </Attribute>
+        <Attribute>
+          <Source>development-plan</Source>
+          <Name>TYPE</Name>
+          <Value>UI_COMPONENT</Value>
+        </Attribute>
+        <Attribute>
+          <Source>development-plan</Source>
+          <Name>STATUS</Name>
+          <Value>planned</Value>
+        </Attribute>
+        <Attribute>
+          <Source>development-plan</Source>
+          <Name>PHASE-REF</Name>
+          <Value>B5-perf-wave3</Value>
+        </Attribute>
+      </LegacyAttributes>
+      <LegacySource>docs/knowledge-graph.xml: M-028; docs/development-plan.xml: M-028</LegacySource>
+    </M-028>
+    <M-029>
+      <Name>perf-window-state</Name>
+      <DisplayName>perf-window-state</DisplayName>
+      <Type>INTEGRATION</Type>
+      <Status>planned</Status>
+      <PhaseRef>B5-perf-wave3</PhaseRef>
+      <Summary>
+        Add tauri-plugin-window-state to persist/restore window geometry across
+        launches. Eliminates resize jank on second launch.
+      </Summary>
+      <PlannedPath>src-tauri/Cargo.toml, src-tauri/src/main.rs</PlannedPath>
+      <Dependencies>
+        <M-001/>
+      </Dependencies>
+      <VerificationRef>V-M-029</VerificationRef>
+      <Contract>
+        <Purpose>
+          No explicit legacy module contract; use Summary and
+          LegacyKnowledgeDetail until the module is next changed.
+        </Purpose>
+        <Inputs/>
+        <Outputs/>
+        <Errors/>
+      </Contract>
+      <Interface/>
+      <Sources>
+        <KnowledgeGraphPath>src-tauri/Cargo.toml, src-tauri/src/main.rs</KnowledgeGraphPath>
+      </Sources>
+      <Observability/>
+      <LegacyKnowledgeDetail/>
+      <LegacyDevelopmentDetail>
+        <purpose>
+          Add tauri-plugin-window-state to persist/restore window geometry
+          across launches. Eliminates resize jank on second launch.
+        </purpose>
+        <path>src-tauri/Cargo.toml, src-tauri/src/main.rs</path>
+      </LegacyDevelopmentDetail>
+      <LegacyAttributes>
+        <Attribute>
+          <Source>knowledge-graph</Source>
+          <Name>NAME</Name>
+          <Value>perf-window-state</Value>
+        </Attribute>
+        <Attribute>
+          <Source>knowledge-graph</Source>
+          <Name>TYPE</Name>
+          <Value>INTEGRATION</Value>
+        </Attribute>
+        <Attribute>
+          <Source>knowledge-graph</Source>
+          <Name>STATUS</Name>
+          <Value>planned</Value>
+        </Attribute>
+        <Attribute>
+          <Source>knowledge-graph</Source>
+          <Name>PHASE-REF</Name>
+          <Value>B5-perf-wave3</Value>
+        </Attribute>
+        <Attribute>
+          <Source>development-plan</Source>
+          <Name>NAME</Name>
+          <Value>perf-window-state</Value>
+        </Attribute>
+        <Attribute>
+          <Source>development-plan</Source>
+          <Name>TYPE</Name>
+          <Value>INTEGRATION</Value>
+        </Attribute>
+        <Attribute>
+          <Source>development-plan</Source>
+          <Name>STATUS</Name>
+          <Value>planned</Value>
+        </Attribute>
+        <Attribute>
+          <Source>development-plan</Source>
+          <Name>PHASE-REF</Name>
+          <Value>B5-perf-wave3</Value>
+        </Attribute>
+      </LegacyAttributes>
+      <LegacySource>docs/knowledge-graph.xml: M-029; docs/development-plan.xml: M-029</LegacySource>
+    </M-029>
+    <M-030>
+      <Name>perf-bench-harness</Name>
+      <DisplayName>perf-bench-harness</DisplayName>
+      <Type>UTILITY</Type>
+      <Status>planned</Status>
+      <PhaseRef>B5-perf-wave3</PhaseRef>
+      <Summary>
+        Instrument BLOCK_* markers with elapsed_ms since BOOT_T0.
+        tools/bench-launch.mjs parses markers and produces waterfall report. CI
+        regression gate at 10% threshold.
+      </Summary>
+      <PlannedPath>tools/bench-launch.mjs, src-tauri/src/m001_panic.rs</PlannedPath>
+      <Dependencies>
+        <M-024/>
+        <M-025/>
+      </Dependencies>
+      <VerificationRef>V-M-030</VerificationRef>
+      <Contract>
+        <Purpose>
+          No explicit legacy module contract; use Summary and
+          LegacyKnowledgeDetail until the module is next changed.
+        </Purpose>
+        <Inputs/>
+        <Outputs/>
+        <Errors/>
+      </Contract>
+      <Interface/>
+      <Sources>
+        <KnowledgeGraphPath>tools/bench-launch.mjs, src-tauri/src/m001_panic.rs</KnowledgeGraphPath>
+      </Sources>
+      <Observability/>
+      <LegacyKnowledgeDetail/>
+      <LegacyDevelopmentDetail>
+        <purpose>
+          Instrument BLOCK_* markers with elapsed_ms since BOOT_T0.
+          tools/bench-launch.mjs parses markers and produces waterfall report.
+          CI regression gate at 10% threshold.
+        </purpose>
+        <path>tools/bench-launch.mjs, src-tauri/src/m001_panic.rs</path>
+      </LegacyDevelopmentDetail>
+      <LegacyAttributes>
+        <Attribute>
+          <Source>knowledge-graph</Source>
+          <Name>NAME</Name>
+          <Value>perf-bench-harness</Value>
+        </Attribute>
+        <Attribute>
+          <Source>knowledge-graph</Source>
+          <Name>TYPE</Name>
+          <Value>UTILITY</Value>
+        </Attribute>
+        <Attribute>
+          <Source>knowledge-graph</Source>
+          <Name>STATUS</Name>
+          <Value>planned</Value>
+        </Attribute>
+        <Attribute>
+          <Source>knowledge-graph</Source>
+          <Name>PHASE-REF</Name>
+          <Value>B5-perf-wave3</Value>
+        </Attribute>
+        <Attribute>
+          <Source>development-plan</Source>
+          <Name>NAME</Name>
+          <Value>perf-bench-harness</Value>
+        </Attribute>
+        <Attribute>
+          <Source>development-plan</Source>
+          <Name>TYPE</Name>
+          <Value>UTILITY</Value>
+        </Attribute>
+        <Attribute>
+          <Source>development-plan</Source>
+          <Name>STATUS</Name>
+          <Value>planned</Value>
+        </Attribute>
+        <Attribute>
+          <Source>development-plan</Source>
+          <Name>PHASE-REF</Name>
+          <Value>B5-perf-wave3</Value>
+        </Attribute>
+      </LegacyAttributes>
+      <LegacySource>docs/knowledge-graph.xml: M-030; docs/development-plan.xml: M-030</LegacySource>
+    </M-030>
+  </GD-PERFORMANCE>
+</GraceGraphDocument>

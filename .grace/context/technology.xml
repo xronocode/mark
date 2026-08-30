@@ -1,0 +1,966 @@
+<GraceTechnology graceVersion='4.0'>
+  <MigrationProvenance>
+    <LegacySource>docs/technology.xml</LegacySource>
+    <LegacyVersion>0.2.0</LegacyVersion>
+    <MigratedAt>2026-08-30T11:49:48Z</MigratedAt>
+    <Policy>
+      Semantic copy into GRACE 4 current state; legacy sources remain
+      byte-for-byte as migration provenance.
+    </Policy>
+  </MigrationProvenance>
+  <Architecture>
+    Tauri 2 desktop application with a Rust backend, Vue 3 renderer, preserved
+    Muya WYSIWYG engine, local-first filesystem services, and tag-triggered
+    distribution.
+  </Architecture>
+  <Runtime>
+    <phase-A>Node.js 20 LTS (electron-vite build), Electron 30 LTS (app runtime)</phase-A>
+    <phase-B>
+      Rust 1.75+ (Tauri backend), system WKWebView on macOS / WebView2 on
+      Windows / webkit2gtk on Linux
+    </phase-B>
+  </Runtime>
+  <Language>
+    <phase-A>JavaScript (existing) + TypeScript (incremental, new modules only)</phase-A>
+    <phase-B>
+      Rust (backend) + TypeScript (frontend), JavaScript legacy retained only in
+      src/muya/
+    </phase-B>
+  </Language>
+  <Framework>
+    <phase-A>Vue 3.x (migrated from Vue 2 via PR #4001) + electron-vite</phase-A>
+    <phase-B>Vue 3.x (unchanged) + Tauri v2</phase-B>
+  </Framework>
+  <Dependencies>
+    <phase-A>
+      <dep>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>name</Name>
+            <Value>electron</Value>
+          </Attribute>
+          <Attribute>
+            <Name>version</Name>
+            <Value>^30.0.0</Value>
+          </Attribute>
+          <Attribute>
+            <Name>purpose</Name>
+            <Value>Desktop shell runtime</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </dep>
+      <dep>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>name</Name>
+            <Value>vue</Value>
+          </Attribute>
+          <Attribute>
+            <Name>version</Name>
+            <Value>^3.4</Value>
+          </Attribute>
+          <Attribute>
+            <Name>purpose</Name>
+            <Value>Renderer framework (from PR #4001)</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </dep>
+      <dep>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>name</Name>
+            <Value>pinia</Value>
+          </Attribute>
+          <Attribute>
+            <Name>version</Name>
+            <Value>^2.1</Value>
+          </Attribute>
+          <Attribute>
+            <Name>purpose</Name>
+            <Value>State management (replaces Vuex from PR #4001)</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </dep>
+      <dep>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>name</Name>
+            <Value>vue-router</Value>
+          </Attribute>
+          <Attribute>
+            <Name>version</Name>
+            <Value>^4.3</Value>
+          </Attribute>
+          <Attribute>
+            <Name>purpose</Name>
+            <Value>Routing</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </dep>
+      <dep>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>name</Name>
+            <Value>electron-vite</Value>
+          </Attribute>
+          <Attribute>
+            <Name>version</Name>
+            <Value>^2.x</Value>
+          </Attribute>
+          <Attribute>
+            <Name>purpose</Name>
+            <Value>Build orchestrator (from PR #4001)</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </dep>
+      <dep>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>name</Name>
+            <Value>vite</Value>
+          </Attribute>
+          <Attribute>
+            <Name>version</Name>
+            <Value>^5.x</Value>
+          </Attribute>
+          <Attribute>
+            <Name>purpose</Name>
+            <Value>Bundler</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </dep>
+      <dep>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>name</Name>
+            <Value>electron-builder</Value>
+          </Attribute>
+          <Attribute>
+            <Name>version</Name>
+            <Value>^24.x</Value>
+          </Attribute>
+          <Attribute>
+            <Name>purpose</Name>
+            <Value>Packaging and ad-hoc macOS signing</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </dep>
+      <dep>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>name</Name>
+            <Value>keytar</Value>
+          </Attribute>
+          <Attribute>
+            <Name>version</Name>
+            <Value>^7.9</Value>
+          </Attribute>
+          <Attribute>
+            <Name>purpose</Name>
+            <Value>Keychain credentials (native)</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </dep>
+      <dep>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>name</Name>
+            <Value>chokidar</Value>
+          </Attribute>
+          <Attribute>
+            <Name>version</Name>
+            <Value>^3.6</Value>
+          </Attribute>
+          <Attribute>
+            <Name>purpose</Name>
+            <Value>File watcher (native)</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </dep>
+      <dep>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>name</Name>
+            <Value>fontmanager-redux</Value>
+          </Attribute>
+          <Attribute>
+            <Name>version</Name>
+            <Value>latest</Value>
+          </Attribute>
+          <Attribute>
+            <Name>purpose</Name>
+            <Value>System font enumeration (native)</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </dep>
+      <dep>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>name</Name>
+            <Value>native-keymap</Value>
+          </Attribute>
+          <Attribute>
+            <Name>version</Name>
+            <Value>latest</Value>
+          </Attribute>
+          <Attribute>
+            <Name>purpose</Name>
+            <Value>Keyboard layout detection (native)</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </dep>
+      <dep>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>name</Name>
+            <Value>vscode-ripgrep</Value>
+          </Attribute>
+          <Attribute>
+            <Name>version</Name>
+            <Value>latest</Value>
+          </Attribute>
+          <Attribute>
+            <Name>purpose</Name>
+            <Value>Fast code search</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </dep>
+      <dep>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>name</Name>
+            <Value>@hfelix/electron-localshortcut</Value>
+          </Attribute>
+          <Attribute>
+            <Name>version</Name>
+            <Value>^4.0</Value>
+          </Attribute>
+          <Attribute>
+            <Name>purpose</Name>
+            <Value>Local shortcuts</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </dep>
+      <dep>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>name</Name>
+            <Value>mermaid</Value>
+          </Attribute>
+          <Attribute>
+            <Name>version</Name>
+            <Value>^11.x</Value>
+          </Attribute>
+          <Attribute>
+            <Name>purpose</Name>
+            <Value>Diagram rendering (upgraded via #4025)</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </dep>
+      <dep>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>name</Name>
+            <Value>vega</Value>
+          </Attribute>
+          <Attribute>
+            <Name>version</Name>
+            <Value>existing</Value>
+          </Attribute>
+          <Attribute>
+            <Name>purpose</Name>
+            <Value>Chart rendering</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </dep>
+      <dep>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>name</Name>
+            <Value>flowchart.js</Value>
+          </Attribute>
+          <Attribute>
+            <Name>version</Name>
+            <Value>existing</Value>
+          </Attribute>
+          <Attribute>
+            <Name>purpose</Name>
+            <Value>Flowchart rendering</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </dep>
+      <dep>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>name</Name>
+            <Value>katex</Value>
+          </Attribute>
+          <Attribute>
+            <Name>version</Name>
+            <Value>existing</Value>
+          </Attribute>
+          <Attribute>
+            <Name>purpose</Name>
+            <Value>Math rendering</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </dep>
+    </phase-A>
+    <phase-B>
+      <dep>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>name</Name>
+            <Value>tauri</Value>
+          </Attribute>
+          <Attribute>
+            <Name>version</Name>
+            <Value>^2.0</Value>
+          </Attribute>
+          <Attribute>
+            <Name>purpose</Name>
+            <Value>Desktop shell runtime</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </dep>
+      <dep>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>name</Name>
+            <Value>tauri-plugin-store</Value>
+          </Attribute>
+          <Attribute>
+            <Name>version</Name>
+            <Value>^2.0</Value>
+          </Attribute>
+          <Attribute>
+            <Name>purpose</Name>
+            <Value>Persistent preferences (replaces electron-store)</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </dep>
+      <dep>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>name</Name>
+            <Value>tauri-plugin-fs</Value>
+          </Attribute>
+          <Attribute>
+            <Name>version</Name>
+            <Value>^2.0</Value>
+          </Attribute>
+          <Attribute>
+            <Name>purpose</Name>
+            <Value>Filesystem commands + watch</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </dep>
+      <dep>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>name</Name>
+            <Value>tauri-plugin-shell</Value>
+          </Attribute>
+          <Attribute>
+            <Name>version</Name>
+            <Value>^2.0</Value>
+          </Attribute>
+          <Attribute>
+            <Name>purpose</Name>
+            <Value>External shell invocations (guarded)</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </dep>
+      <dep>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>name</Name>
+            <Value>tauri-plugin-dialog</Value>
+          </Attribute>
+          <Attribute>
+            <Name>version</Name>
+            <Value>^2.0</Value>
+          </Attribute>
+          <Attribute>
+            <Name>purpose</Name>
+            <Value>Native open/save dialogs</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </dep>
+      <dep>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>name</Name>
+            <Value>tauri-plugin-global-shortcut</Value>
+          </Attribute>
+          <Attribute>
+            <Name>version</Name>
+            <Value>^2.0</Value>
+          </Attribute>
+          <Attribute>
+            <Name>purpose</Name>
+            <Value>Global hotkeys</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </dep>
+      <dep>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>name</Name>
+            <Value>tauri-plugin-os</Value>
+          </Attribute>
+          <Attribute>
+            <Name>version</Name>
+            <Value>^2.0</Value>
+          </Attribute>
+          <Attribute>
+            <Name>purpose</Name>
+            <Value>OS info and theme detection</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </dep>
+      <dep>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>name</Name>
+            <Value>tauri-plugin-updater</Value>
+          </Attribute>
+          <Attribute>
+            <Name>version</Name>
+            <Value>^2.0</Value>
+          </Attribute>
+          <Attribute>
+            <Name>purpose</Name>
+            <Value>In-app updates (fallback to brew)</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </dep>
+      <dep>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>name</Name>
+            <Value>notify</Value>
+          </Attribute>
+          <Attribute>
+            <Name>version</Name>
+            <Value>^6.x</Value>
+          </Attribute>
+          <Attribute>
+            <Name>purpose</Name>
+            <Value>File watcher (replaces chokidar)</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </dep>
+      <dep>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>name</Name>
+            <Value>grep-searcher</Value>
+          </Attribute>
+          <Attribute>
+            <Name>version</Name>
+            <Value>^0.1</Value>
+          </Attribute>
+          <Attribute>
+            <Name>purpose</Name>
+            <Value>ripgrep library (replaces vscode-ripgrep binary)</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </dep>
+      <dep>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>name</Name>
+            <Value>ignore</Value>
+          </Attribute>
+          <Attribute>
+            <Name>version</Name>
+            <Value>^0.4</Value>
+          </Attribute>
+          <Attribute>
+            <Name>purpose</Name>
+            <Value>gitignore filtering for search</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </dep>
+      <dep>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>name</Name>
+            <Value>font-kit</Value>
+          </Attribute>
+          <Attribute>
+            <Name>version</Name>
+            <Value>^0.14</Value>
+          </Attribute>
+          <Attribute>
+            <Name>purpose</Name>
+            <Value>System fonts (replaces fontmanager-redux)</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </dep>
+      <dep>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>name</Name>
+            <Value>objc2</Value>
+          </Attribute>
+          <Attribute>
+            <Name>version</Name>
+            <Value>^0.5</Value>
+          </Attribute>
+          <Attribute>
+            <Name>purpose</Name>
+            <Value>FFI bridge to NSSpellChecker on macOS</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </dep>
+      <dep>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>name</Name>
+            <Value>serde</Value>
+          </Attribute>
+          <Attribute>
+            <Name>version</Name>
+            <Value>^1.0</Value>
+          </Attribute>
+          <Attribute>
+            <Name>purpose</Name>
+            <Value>Serialization</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </dep>
+      <dep>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>name</Name>
+            <Value>tracing</Value>
+          </Attribute>
+          <Attribute>
+            <Name>version</Name>
+            <Value>^0.1</Value>
+          </Attribute>
+          <Attribute>
+            <Name>purpose</Name>
+            <Value>Structured logging</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </dep>
+      <dep>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>name</Name>
+            <Value>tracing-subscriber</Value>
+          </Attribute>
+          <Attribute>
+            <Name>version</Name>
+            <Value>^0.3</Value>
+          </Attribute>
+          <Attribute>
+            <Name>purpose</Name>
+            <Value>Log formatting</Value>
+          </Attribute>
+        </LegacyAttributes>
+      </dep>
+    </phase-B>
+  </Dependencies>
+  <VersionConstraints>
+    <constraint>
+      <LegacyAttributes>
+        <Attribute>
+          <Name>lib</Name>
+          <Value>electron</Value>
+        </Attribute>
+        <Attribute>
+          <Name>min</Name>
+          <Value>30.0.0</Value>
+        </Attribute>
+        <Attribute>
+          <Name>max</Name>
+          <Value>30.x</Value>
+        </Attribute>
+        <Attribute>
+          <Name>reason</Name>
+          <Value>LTS on 2026-04; balances modernity with native-module ABI compatibility</Value>
+        </Attribute>
+      </LegacyAttributes>
+    </constraint>
+    <constraint>
+      <LegacyAttributes>
+        <Attribute>
+          <Name>lib</Name>
+          <Value>vue</Value>
+        </Attribute>
+        <Attribute>
+          <Name>min</Name>
+          <Value>3.4.0</Value>
+        </Attribute>
+        <Attribute>
+          <Name>max</Name>
+          <Value>3.x</Value>
+        </Attribute>
+        <Attribute>
+          <Name>reason</Name>
+          <Value>Composition API used by PR #4001; avoid Vue 2 patterns</Value>
+        </Attribute>
+      </LegacyAttributes>
+    </constraint>
+    <constraint>
+      <LegacyAttributes>
+        <Attribute>
+          <Name>lib</Name>
+          <Value>node</Value>
+        </Attribute>
+        <Attribute>
+          <Name>min</Name>
+          <Value>20.0.0</Value>
+        </Attribute>
+        <Attribute>
+          <Name>max</Name>
+          <Value>20.x</Value>
+        </Attribute>
+        <Attribute>
+          <Name>reason</Name>
+          <Value>LTS on 2026-04; required by electron-vite and electron-rebuild</Value>
+        </Attribute>
+      </LegacyAttributes>
+    </constraint>
+    <constraint>
+      <LegacyAttributes>
+        <Attribute>
+          <Name>lib</Name>
+          <Value>tauri</Value>
+        </Attribute>
+        <Attribute>
+          <Name>min</Name>
+          <Value>2.0.0</Value>
+        </Attribute>
+        <Attribute>
+          <Name>max</Name>
+          <Value>2.x</Value>
+        </Attribute>
+        <Attribute>
+          <Name>reason</Name>
+          <Value>v2 stable plugin ecosystem; v1 lacks several needed plugins</Value>
+        </Attribute>
+      </LegacyAttributes>
+    </constraint>
+    <constraint>
+      <LegacyAttributes>
+        <Attribute>
+          <Name>lib</Name>
+          <Value>rust</Value>
+        </Attribute>
+        <Attribute>
+          <Name>min</Name>
+          <Value>1.75.0</Value>
+        </Attribute>
+        <Attribute>
+          <Name>reason</Name>
+          <Value>Required by tauri v2 and notify 6.x</Value>
+        </Attribute>
+      </LegacyAttributes>
+    </constraint>
+    <constraint>
+      <LegacyAttributes>
+        <Attribute>
+          <Name>lib</Name>
+          <Value>mermaid</Value>
+        </Attribute>
+        <Attribute>
+          <Name>min</Name>
+          <Value>11.0.0</Value>
+        </Attribute>
+        <Attribute>
+          <Name>reason</Name>
+          <Value>Per PR #4025; v10 documents still parseable</Value>
+        </Attribute>
+      </LegacyAttributes>
+    </constraint>
+  </VersionConstraints>
+  <Tooling>
+    <tool>
+      <LegacyAttributes>
+        <Attribute>
+          <Name>name</Name>
+          <Value>workspace</Value>
+        </Attribute>
+        <Attribute>
+          <Name>value</Name>
+          <Value>yarn classic (1.x)</Value>
+        </Attribute>
+        <Attribute>
+          <Name>version</Name>
+          <Value>1.22</Value>
+        </Attribute>
+        <Attribute>
+          <Name>note</Name>
+          <Value>Upstream uses yarn; do not migrate to pnpm in Phase A to minimize diff</Value>
+        </Attribute>
+      </LegacyAttributes>
+    </tool>
+    <tool>
+      <LegacyAttributes>
+        <Attribute>
+          <Name>name</Name>
+          <Value>bundler-phase-a</Value>
+        </Attribute>
+        <Attribute>
+          <Name>value</Name>
+          <Value>electron-vite + vite</Value>
+        </Attribute>
+        <Attribute>
+          <Name>version</Name>
+          <Value>2.x / 5.x</Value>
+        </Attribute>
+      </LegacyAttributes>
+    </tool>
+    <tool>
+      <LegacyAttributes>
+        <Attribute>
+          <Name>name</Name>
+          <Value>bundler-phase-b</Value>
+        </Attribute>
+        <Attribute>
+          <Name>value</Name>
+          <Value>tauri-cli + vite</Value>
+        </Attribute>
+        <Attribute>
+          <Name>version</Name>
+          <Value>2.x / 5.x</Value>
+        </Attribute>
+      </LegacyAttributes>
+    </tool>
+    <tool>
+      <LegacyAttributes>
+        <Attribute>
+          <Name>name</Name>
+          <Value>linter</Value>
+        </Attribute>
+        <Attribute>
+          <Name>value</Name>
+          <Value>eslint</Value>
+        </Attribute>
+        <Attribute>
+          <Name>version</Name>
+          <Value>8.x</Value>
+        </Attribute>
+        <Attribute>
+          <Name>note</Name>
+          <Value>Retain from upstream; migrate to 9.x only if flat config needed</Value>
+        </Attribute>
+      </LegacyAttributes>
+    </tool>
+    <tool>
+      <LegacyAttributes>
+        <Attribute>
+          <Name>name</Name>
+          <Value>formatter</Value>
+        </Attribute>
+        <Attribute>
+          <Name>value</Name>
+          <Value>prettier</Value>
+        </Attribute>
+        <Attribute>
+          <Name>version</Name>
+          <Value>3.x</Value>
+        </Attribute>
+      </LegacyAttributes>
+    </tool>
+    <tool>
+      <LegacyAttributes>
+        <Attribute>
+          <Name>name</Name>
+          <Value>test-runner-renderer</Value>
+        </Attribute>
+        <Attribute>
+          <Name>value</Name>
+          <Value>karma (unit) + Playwright (e2e)</Value>
+        </Attribute>
+        <Attribute>
+          <Name>version</Name>
+          <Value>existing</Value>
+        </Attribute>
+        <Attribute>
+          <Name>note</Name>
+          <Value>
+            Phase A keeps existing; Phase B adds cargo test for Rust modules and
+            Playwright over Tauri WebDriver
+          </Value>
+        </Attribute>
+      </LegacyAttributes>
+    </tool>
+    <tool>
+      <LegacyAttributes>
+        <Attribute>
+          <Name>name</Name>
+          <Value>test-runner-rust</Value>
+        </Attribute>
+        <Attribute>
+          <Name>value</Name>
+          <Value>cargo test</Value>
+        </Attribute>
+        <Attribute>
+          <Name>version</Name>
+          <Value>1.75+</Value>
+        </Attribute>
+        <Attribute>
+          <Name>note</Name>
+          <Value>Phase B only</Value>
+        </Attribute>
+      </LegacyAttributes>
+    </tool>
+    <tool>
+      <LegacyAttributes>
+        <Attribute>
+          <Name>name</Name>
+          <Value>packager-phase-a</Value>
+        </Attribute>
+        <Attribute>
+          <Name>value</Name>
+          <Value>electron-builder</Value>
+        </Attribute>
+        <Attribute>
+          <Name>version</Name>
+          <Value>24.x</Value>
+        </Attribute>
+      </LegacyAttributes>
+    </tool>
+    <tool>
+      <LegacyAttributes>
+        <Attribute>
+          <Name>name</Name>
+          <Value>packager-phase-b</Value>
+        </Attribute>
+        <Attribute>
+          <Name>value</Name>
+          <Value>tauri-cli</Value>
+        </Attribute>
+        <Attribute>
+          <Name>version</Name>
+          <Value>2.x</Value>
+        </Attribute>
+      </LegacyAttributes>
+    </tool>
+    <tool>
+      <LegacyAttributes>
+        <Attribute>
+          <Name>name</Name>
+          <Value>signing</Value>
+        </Attribute>
+        <Attribute>
+          <Name>value</Name>
+          <Value>codesign ad-hoc</Value>
+        </Attribute>
+        <Attribute>
+          <Name>version</Name>
+          <Value>macOS builtin</Value>
+        </Attribute>
+        <Attribute>
+          <Name>note</Name>
+          <Value>codesign --force --deep --sign - &lt;app&gt;</Value>
+        </Attribute>
+      </LegacyAttributes>
+    </tool>
+    <tool>
+      <LegacyAttributes>
+        <Attribute>
+          <Name>name</Name>
+          <Value>ci</Value>
+        </Attribute>
+        <Attribute>
+          <Name>value</Name>
+          <Value>GitHub Actions</Value>
+        </Attribute>
+        <Attribute>
+          <Name>version</Name>
+          <Value>current</Value>
+        </Attribute>
+      </LegacyAttributes>
+    </tool>
+  </Tooling>
+  <Testing>
+    <module-level>
+      <command-renderer>yarn unit -- --specs src/renderer/path/to/module.test.js</command-renderer>
+      <command-rust>cargo test --manifest-path src-tauri/Cargo.toml -p mt-module</command-rust>
+      <focus>Fast deterministic unit and contract checks close to the module</focus>
+    </module-level>
+    <wave-level>
+      <command-renderer>yarn unit</command-renderer>
+      <command-rust>cargo test --manifest-path src-tauri/Cargo.toml</command-rust>
+      <focus>Checks merged surfaces touched by the wave; no full e2e</focus>
+    </wave-level>
+    <phase-level>
+      <command-spec>yarn test:specs</command-spec>
+      <command-unit>yarn unit</command-unit>
+      <command-e2e>yarn e2e</command-e2e>
+      <command-rust-full>cargo test --manifest-path src-tauri/Cargo.toml --all-features</command-rust-full>
+      <command-smoke-install>
+        brew install --cask marktext &amp;&amp; open -a MarkText &amp;&amp;
+        sleep 2 &amp;&amp; pgrep -f MarkText
+      </command-smoke-install>
+      <focus>
+        Full regression: CommonMark/GFM specs, unit, e2e, plus fresh-macOS
+        install smoke test
+      </focus>
+    </phase-level>
+    <mocking-policy>
+      Prefer fakes over mocks. Filesystem operations use tempdirs (node:fs temp
+      / tempfile crate). No network in unit tests. Tauri commands tested via
+      tauri::test harness.
+    </mocking-policy>
+    <regression-policy>
+      Every PR merge must keep test/specs/commonMark and test/specs/gfm fully
+      green; a red spec blocks the merge commit in Phase-A1.
+    </regression-policy>
+  </Testing>
+  <Observability>
+    <logger-phase-a>electron-log 4.x (existing), with structured JSON backend enabled</logger-phase-a>
+    <logger-phase-b>tracing + tracing-subscriber (JSON format in release, pretty in dev)</logger-phase-b>
+    <log-format>[Module][function][BLOCK_NAME] message { correlationId, stableField }</log-format>
+    <required-fields>
+      correlationId (uuid per user action), actorId (user session id), module,
+      event, duration_ms where relevant
+    </required-fields>
+    <redaction>
+      Never log: file contents, clipboard contents, absolute home-relative paths
+      in shareable artifacts, keychain values. Log file paths only relative to
+      workspace root or redacted to basename when outside.
+    </redaction>
+    <log-storage>macOS: ~/Library/Logs/marktext/main.log with 10 MB rotation, 5-file retention.</log-storage>
+    <no-telemetry>No outbound network logging. All logs are local-only.</no-telemetry>
+  </Observability>
+  <DeliveryShape>
+    <shape-phase-a>
+      Electron 30 app, single main process + renderer(s), installed via Homebrew
+      cask to /Applications/Mark.app. Ad-hoc signed. Footprint target: &lt; 120
+      MB.
+    </shape-phase-a>
+    <shape-phase-b>
+      Tauri v2 app, Rust backend + Vue 3 WebView. Same distribution channel
+      (Homebrew cask, same tap, same cask name `mark` — version bump triggers
+      upgrade). Footprint target: &lt; 30 MB.
+    </shape-phase-b>
+    <release-cadence>
+      v1.0 after Phase-A4. v1.x patch releases as stabilization follows. v2.0
+      after Phase-B4.
+    </release-cadence>
+    <fork-repo>
+      https://github.com/xronocode/mark (fork of marktext/marktext; default
+      branch `main` mirrors upstream `develop` at time of fork; working branch
+      `modernize`)
+    </fork-repo>
+    <tap-repo>https://github.com/xronocode/homebrew-mark (single Casks/mark.rb)</tap-repo>
+    <product-name>Mark</product-name>
+    <bundle-id>com.xronocode.mark</bundle-id>
+    <ci-os-matrix>
+      macos-14 (arm64) and macos-13 (x86_64) are blocking; ubuntu-latest and
+      windows-latest run with `continue-on-error: true`.
+    </ci-os-matrix>
+    <signing-strategy>
+      ad-hoc only (`codesign --force --deep --sign - Mark.app`); cask postflight
+      `xattr -cr /Applications/Mark.app` strips quarantine.
+    </signing-strategy>
+  </DeliveryShape>
+</GraceTechnology>

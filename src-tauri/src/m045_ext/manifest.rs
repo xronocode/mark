@@ -1,4 +1,5 @@
-// MODULE_CONTRACT
+// FILE: src-tauri/src/m045_ext/manifest.rs
+// START_MODULE_CONTRACT
 //   PURPOSE: M-045 extension manifest parsing and validation.
 //            Deserialises extension.json files into ExtensionManifest,
 //            enforces schema = "mark.extension/v1", non-empty id,
@@ -9,6 +10,13 @@
 //   LINKS:   docs/knowledge-graph.xml M-045;
 //            docs/development-plan.xml Phase-B2b.
 //   STATUS:  Phase-B2b initial.
+//   ROLE: RUNTIME
+//   MAP_MODE: EXPORTS
+// END_MODULE_CONTRACT
+//
+// START_MODULE_MAP
+//   Coverage: GRACE 4 synchronized surface for M-045.
+// END_MODULE_MAP
 
 use serde::{Deserialize, Serialize};
 

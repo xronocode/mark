@@ -35,7 +35,7 @@
 //             boot-orchestration layer. Real impls of M-013-B commands
 //             ship in Phase-B2.
 //   ROLE: RUNTIME
-//   MAP_MODE: LOCALS
+//   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP

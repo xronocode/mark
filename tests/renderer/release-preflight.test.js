@@ -11,7 +11,7 @@
 //
 // START_MODULE_MAP
 //   consistentEvidence - Complete v2.1.9-beta version fixture.
-//   commandIndex - Locates a required release command for ordering assertions.
+//   workspaceRoot - GRACE 4 synchronized symbol
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY

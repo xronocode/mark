@@ -11,7 +11,9 @@
 //
 // START_MODULE_MAP
 //   findCmd - Resolves the command under test from the production registry.
-//   updater cases - Assert one signed in-app path regardless of original install method.
+//   checkMock - GRACE 4 synchronized symbol
+//   notifyMock - GRACE 4 synchronized symbol
+//   relaunchMock - GRACE 4 synchronized symbol
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY

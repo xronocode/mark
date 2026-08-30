@@ -1,4 +1,5 @@
-// MODULE_CONTRACT
+// FILE: src-tauri/src/m045_ext/invoke.rs
+// START_MODULE_CONTRACT
 //   PURPOSE: M-045 extension invocation. HTTP POST client for calling
 //            extension capabilities over localhost. IPC is HTTP POST,
 //            not WebSocket (Decision D1).
@@ -9,6 +10,13 @@
 //            docs/development-plan.xml Phase-B2b;
 //            ROADMAP.md Decision D1 (IPC is HTTP POST).
 //   STATUS:  Phase-B2b initial.
+//   ROLE: RUNTIME
+//   MAP_MODE: EXPORTS
+// END_MODULE_CONTRACT
+//
+// START_MODULE_MAP
+//   Coverage: GRACE 4 synchronized surface for M-045.
+// END_MODULE_MAP
 
 use crate::m045_ext::manifest::ExtensionManifest;
 use serde::{Deserialize, Serialize};

@@ -1,4 +1,5 @@
-// MODULE_CONTRACT
+// FILE: src-tauri/src/m045_ext/live_server.rs
+// START_MODULE_CONTRACT
 //   PURPOSE: M-045 live-viewer HTTP server. Accepts incoming
 //            stream.document messages from external apps (e.g. TokMo
 //            meeting mode) over HTTP POST on 127.0.0.1. Validates
@@ -26,6 +27,13 @@
 //   - 2026-06-08 B5b: add live_bridge emit calls in doc_open, doc_patch,
 //     doc_close handlers + heartbeat timeout auto-close.
 //   - 2026-06-08 B5a: initial live_server module creation.
+//   ROLE: RUNTIME
+//   MAP_MODE: EXPORTS
+// END_MODULE_CONTRACT
+//
+// START_MODULE_MAP
+//   Coverage: GRACE 4 synchronized surface for M-045.
+// END_MODULE_MAP
 
 use axum::extract::State;
 use axum::http::{HeaderMap, StatusCode};

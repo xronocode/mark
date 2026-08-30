@@ -12,6 +12,7 @@
 // START_MODULE_MAP
 //   createKeyboardHarness - Creates a minimal Muya/event-center harness and captures history calls.
 //   dispatchShortcut - Dispatches a cancelable keydown into the Muya container.
+//   cleanups - GRACE 4 synchronized symbol
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY

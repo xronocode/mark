@@ -1,4 +1,5 @@
-// MODULE_CONTRACT
+// FILE: src-tauri/src/m045_ext/tests.rs
+// START_MODULE_CONTRACT
 //   PURPOSE: M-045 unit tests for manifest parsing, registry operations,
 //            and auth helpers.
 //   SCOPE:   In-process tests only. No real keychain or HTTP (those
@@ -7,6 +8,13 @@
 //   DEPENDS: super::*.
 //   LINKS:   docs/verification-plan.xml V-M-045.
 //   STATUS:  Phase-B2b initial.
+//   ROLE: TEST
+//   MAP_MODE: LOCALS
+// END_MODULE_CONTRACT
+//
+// START_MODULE_MAP
+//   Coverage: GRACE 4 synchronized surface for M-045.
+// END_MODULE_MAP
 
 use super::manifest::*;
 use super::registry::*;
