@@ -1,0 +1,60 @@
+<GraceChangePlan graceVersion='4.0' status='approved'>
+<C-7>
+  <ChangeRef>C-7</ChangeRef>
+  <Created>2026-09-16</Created>
+  <IntentSummary>ResizeObserver on the tab strip re-reveals the active tab after container resize.</IntentSummary>
+  <BaselineAssertions>
+    <MustContain>
+      <File>src/renderer/src/components/editorWithTabs/tabs.vue</File>
+      <Text>scrollActiveTabIntoView</Text>
+    </MustContain>
+  </BaselineAssertions>
+  <TargetAssertions>
+    <MustContain>
+      <File>src/renderer/src/components/editorWithTabs/tabs.vue</File>
+      <Text>ResizeObserver</Text>
+    </MustContain>
+    <MustContain>
+      <File>tests/renderer/components/tabs-scroll.test.js</File>
+      <Text>resize</Text>
+    </MustContain>
+  </TargetAssertions>
+  <DurableScope>
+    <M-011/>
+  </DurableScope>
+  <ObservedWriteScope>
+    <File>src/renderer/src/components/editorWithTabs/tabs.vue</File>
+    <File>tests/renderer/components/tabs-scroll.test.js</File>
+  </ObservedWriteScope>
+  <ImplementationPlan>
+    <T-001>
+      <Title>ResizeObserver wiring + tests</Title>
+      <DependsOn></DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>Observe tabContainer on mount; width-change entries with clientWidth&gt;0 scroll via nextTick; disconnect on unmount; jsdom-safe feature detection.</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>npx vitest run tests/renderer/components/tabs-scroll.test.js</Command>
+      </Verification>
+    </T-001>
+  </ImplementationPlan>
+  <ReviewLog>
+    <Review number="1" date="2026-09-16" verdict="green">
+      <Findings>
+        Batch review pass 1 (C-7/C-8/C-9): C-7 verified clean — correct
+        element observed, zero-width guard matches the v-show hide path,
+        no feedback loop, disconnect on unmount, all three behaviors
+        pinned by tests.
+      </Findings>
+    </Review>
+    <Review number="2" date="2026-09-16" verdict="green">
+      <Findings>
+        Final gate: VERDICT green — C-7 re-confirmed clean ("observer
+        targets .scrollable-tabs, zero-width guard delegates display:none
+        to the showTabBar watcher, lifecycle reasoning holds, behaviors
+        pinned in tabs-scroll.test.js").
+      </Findings>
+    </Review>
+  </ReviewLog>
+</C-7>
+</GraceChangePlan>
