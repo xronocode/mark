@@ -788,18 +788,27 @@
           cd src-tauri &amp;&amp; cargo test --manifest-path
           src-tauri/Cargo.toml fs::watcher
         </Command>
+        <Command>
+          cargo test --bin mark --manifest-path src-tauri/Cargo.toml
+          m013b::watch
+        </Command>
       </Commands>
       <Scenarios>
         <Scenario>scenario-1: create/modify/delete/rename all fire within 500ms on tempdir.</Scenario>
         <Scenario>scenario-2: Rapid 100 writes debounce to fewer events (burst handling).</Scenario>
         <Scenario>scenario-3: Invalid path returns error without leaking a background task.</Scenario>
+        <Scenario>scenario-4 (C-2): remove_by_path drops every watcher for the path (both raw + canonical index keys), leaves other paths' watchers alive, idempotent on unknown paths.</Scenario>
+        <Scenario>scenario-5 (C-2): mt_close_project_root unwinds the registry entries for a root and logs BLOCK_UNREGISTERED; zero watchers removed for an unknown root (idempotent core, m_v1_compat.rs test).</Scenario>
       </Scenarios>
       <Markers>
         <Marker>[FsWatcher][start][BLOCK_REGISTER_NOTIFY]</Marker>
         <Marker>[FsWatcher][onEvent][BLOCK_EMIT_CHANGE]</Marker>
         <Marker>[FsWatcher][onEvent][BLOCK_DEBOUNCE_COALESCE] { in, out, window_ms }</Marker>
         <Marker>[FsWatcher][onEvent][BLOCK_RESYNC_REQUIRED] { reason }</Marker>
-        <Marker>[FsWatcher][stop][BLOCK_UNREGISTER_NOTIFY] { watch_id }</Marker>
+        <Marker>[FsWatcher][stop][BLOCK_UNREGISTER_NOTIFY]</Marker>
+        <Marker>[FsWatcher][stop_path][BLOCK_UNREGISTER_NOTIFY] { path, removed }</Marker>
+        <Marker>[m_fs_ops][close_project_root][BLOCK_RECEIVED] { path }</Marker>
+        <Marker>[m_fs_ops][close_project_root][BLOCK_UNREGISTERED] { path, watchers }</Marker>
         <Marker>[FsWatcher][onEvent][BLOCK_ROOT_GONE]</Marker>
         <Marker>[FsWatcher][onEvent][BLOCK_ROOT_RENAMED]</Marker>
       </Markers>
@@ -6347,6 +6356,13 @@
         <Scenario>
           scenario-4: HMR and component unmount leave listener refcount stable
           after 50 attach/detach cycles.
+        </Scenario>
+        <Scenario>
+          scenario-5 (C-2): Fan-out delivery — every subscriber on a channel
+          receives every event regardless of subscription order; disposing
+          one subscriber leaves the rest receiving; re-subscribe after full
+          teardown re-establishes delivery; concurrent first subscribes share
+          exactly one listen() registration (tests/renderer/ipc/contract-listener.test.ts).
         </Scenario>
       </Scenarios>
       <Markers>

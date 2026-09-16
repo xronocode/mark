@@ -11,9 +11,14 @@
 //   DEPENDS: M-013-A contract (ipcInvoke, useIpcListener, IpcError).
 //   LINKS:   docs/development-plan.xml Phase-B2 step-5;
 //            src-tauri/src/m013b/watch.rs WATCH_EVENT_CHANNEL constant.
-//   STATUS:  Phase-B2 step-5 shipped.
+//   STATUS:  Phase-B2 step-5 shipped. C-2: listener registration failure
+//            after a successful subscribe now unwinds the backend watcher
+//            (no leaked notify registration when the channel dies).
 //
 // CHANGE_SUMMARY:
+//   - 2026-09-16 C-2: on useIpcListener failure, best-effort
+//     mt::watch::unsubscribe before rethrowing — previously the Rust
+//     watcher stayed registered forever with no renderer receiver.
 //   - 2026-04-28 B2-step-5: initial facade.
 
 import { ipcInvoke, useIpcListener, type ListenerOptions } from '../contract'
@@ -63,13 +68,23 @@ async function subscribe(
 
   // Filter events by subscriptionId so multiple subscriptions on the
   // same channel don't cross-feed.
-  const disposeListener = await useIpcListener<WatchEvent>(
-    WATCH_EVENT_CHANNEL,
-    (event) => {
-      if (event.subscriptionId === subscriptionId) handler(event)
-    },
-    options.listener
-  )
+  let disposeListener: () => void
+  try {
+    disposeListener = await useIpcListener<WatchEvent>(
+      WATCH_EVENT_CHANNEL,
+      (event) => {
+        if (event.subscriptionId === subscriptionId) handler(event)
+      },
+      options.listener
+    )
+  } catch (e) {
+    // The backend watcher is live but nothing can receive its events —
+    // unwind it so the notify registration doesn't leak.
+    ipcInvoke('mt::watch::unsubscribe', { subscriptionId }).catch(() => {
+      // best-effort: server may have already cleaned up
+    })
+    throw e
+  }
 
   let disposed = false
   return () => {

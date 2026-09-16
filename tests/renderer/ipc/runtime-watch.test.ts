@@ -186,5 +186,41 @@ describe('ipcWatch', () => {
 
       expect(() => dispose()).not.toThrow()
     })
+
+    // ---- C-2: no Rust-watcher leak when listener registration fails ----
+
+    it('listener registration failure unwinds the backend watcher and rethrows', async () => {
+      ipcInvokeMock
+        .mockResolvedValueOnce('sub-leak')
+        .mockResolvedValue(undefined)
+      useIpcListenerMock.mockRejectedValueOnce(new Error('channel dead'))
+
+      const original = new Error('channel dead')
+      await expect(
+        ipcWatch.subscribe('/docs', vi.fn(), { listener: { manual: true } })
+      ).rejects.toThrow(original)
+
+      // Backend watcher subscribed, then unwound via unsubscribe.
+      const calls = ipcInvokeMock.mock.calls.map((c: any[]) => c[0])
+      expect(calls[0]).toBe('mt::watch::subscribe')
+      expect(calls).toContain('mt::watch::unsubscribe')
+      const unsub = ipcInvokeMock.mock.calls.find(
+        (c: any[]) => c[0] === 'mt::watch::unsubscribe'
+      )
+      expect(unsub![1]).toEqual({ subscriptionId: 'sub-leak' })
+    })
+
+    it('listener failure tolerates unsubscribe itself failing', async () => {
+      ipcInvokeMock
+        .mockResolvedValueOnce('sub-leak2')
+        .mockRejectedValue(new Error('backend gone too'))
+      useIpcListenerMock.mockRejectedValueOnce(new Error('channel dead'))
+
+      // The unsubscribe rejection is swallowed; the ORIGINAL listener
+      // error is what the caller sees.
+      await expect(
+        ipcWatch.subscribe('/docs', vi.fn(), { listener: { manual: true } })
+      ).rejects.toThrow('channel dead')
+    })
   })
 })

@@ -76,7 +76,8 @@ const ipcWatchSubscribeMock = vi.fn()
 const ipcFsStatMock = vi.fn()
 vi.mock('@/ipc/runtime', () => ({
   ipcWatch: {
-    subscribe: (path: string, handler: unknown) => ipcWatchSubscribeMock(path, handler)
+    subscribe: (path: string, handler: unknown, options?: unknown) =>
+      ipcWatchSubscribeMock(path, handler, options)
   },
   ipcFs: {
     stat: (path: string) => ipcFsStatMock(path)
@@ -284,6 +285,11 @@ describe('store/project', () => {
       expect(ipcWatchSubscribeMock).toHaveBeenCalledTimes(1)
       expect(ipcWatchSubscribeMock.mock.calls[0][0]).toBe('/foo')
       expect(typeof ipcWatchSubscribeMock.mock.calls[0][1]).toBe('function')
+      // C-2: store-scope subscription must opt out of onUnmounted
+      // auto-cleanup — disposal is owned by CLOSE_PROJECT.
+      expect(ipcWatchSubscribeMock.mock.calls[0][2]).toEqual({
+        listener: { manual: true }
+      })
 
       // Wait a microtask for the .then() to run.
       await new Promise((r) => setTimeout(r, 0))

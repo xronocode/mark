@@ -3,22 +3,29 @@
 //            unsubscribe drive a notify-debouncer-full watcher; events
 //            are emitted on the 'mt::watch::event' channel that the
 //            M-013-A useIpcListener consumes.
-//   SCOPE:   subscribe (returns subscription_id) + unsubscribe by id.
-//            Streaming events flow through tauri::AppHandle::emit;
-//            the registry below holds the active debouncers so
-//            unsubscribe can drop them.
+//   SCOPE:   subscribe (returns subscription_id) + unsubscribe by id +
+//            remove_by_path (all watchers for one path — backs
+//            mt_close_project_root since C-2). Streaming events flow
+//            through tauri::AppHandle::emit; the registry below holds
+//            the active debouncers so unsubscribe can drop them.
 //   DEPENDS: notify v7 (FS event source),
 //            notify-debouncer-full v0.5 (debouncing wrapper),
 //            m010_security::check_path (path validation),
 //            m013b::error::IpcError (typed error envelope),
 //            m013b::state::SecurityCtx (active sandbox).
 //   LINKS:   docs/development-plan.xml Phase-B2 step-3;
-//            docs/verification-plan.xml V-M-003 (3 scenarios + 11 ec).
+//            docs/verification-plan.xml V-M-003 (3 scenarios + 11 ec);
+//            .grace/changes/active/C-2 (path index + close-project).
 //   STATUS:  Phase-B2 step-3 real-impl shipped. Debouncer tick = 200ms;
 //            V-M-003 scenario-1 ("create/modify/delete/rename within
 //            500ms") + scenario-2 (rapid-100-writes debounce) covered.
+//            C-2: registry keeps a canonical-path → sub_ids index.
 //
 // CHANGE_SUMMARY:
+//   - 2026-09-16 C-2: RegistryInner{entries, paths} under one Mutex;
+//     remove() maintains the path index; remove_by_path() drops every
+//     watcher for a path (canonical-first, raw-path fallback) —
+//     mt_close_project_root is now a real unwatch, not a stub.
 //   - 2026-04-28 B2-step-3: replace B1 stubs with real notify watcher +
 //     debouncer + per-subscription registry + EventSink trait for test
 //     mockability.
@@ -31,7 +38,7 @@ use notify_debouncer_full::notify::{self, EventKind, RecursiveMode};
 use notify_debouncer_full::{new_debouncer, Debouncer, RecommendedCache};
 use serde::Serialize;
 use std::collections::HashMap;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
@@ -89,20 +96,39 @@ impl EventSink for TauriEventSink {
 /// Type-alias for the concrete debouncer we construct.
 type ActiveDebouncer = Debouncer<notify::RecommendedWatcher, RecommendedCache>;
 
+/// Inner state guarded by one Mutex so entries and the path index stay
+/// consistent under concurrent subscribe/unsubscribe.
+#[derive(Default)]
+struct RegistryInner {
+    /// subscription_id → (debouncer, every index key it is registered under).
+    entries: HashMap<String, (ActiveDebouncer, Vec<PathBuf>)>,
+    /// watched path key (raw AND canonical forms both map here) →
+    /// subscription_ids registered for it. Multiple subscriptions may
+    /// target the same path (e.g. a project root re-opened before the
+    /// old dispose landed).
+    paths: HashMap<PathBuf, Vec<String>>,
+}
+
 /// Process-global registry of active watchers. Tauri-managed state.
-/// HashMap<subscription_id, debouncer> + counter for id generation.
 pub struct WatchRegistry {
-    entries: Mutex<HashMap<String, ActiveDebouncer>>,
+    inner: Mutex<RegistryInner>,
     counter: AtomicU64,
 }
 
 impl Default for WatchRegistry {
     fn default() -> Self {
         Self {
-            entries: Mutex::new(HashMap::new()),
+            inner: Mutex::new(RegistryInner::default()),
             counter: AtomicU64::new(1),
         }
     }
+}
+
+/// Best-effort canonicalization: on failure (path already gone, exotic
+/// FS) fall back to the path as given so lookups still agree with what
+/// `add` recorded.
+fn canon(path: &Path) -> PathBuf {
+    std::fs::canonicalize(path).unwrap_or_else(|_| path.to_path_buf())
 }
 
 impl WatchRegistry {
@@ -177,26 +203,91 @@ impl WatchRegistry {
             recursive
         );
 
-        let mut guard = self.entries.lock().expect("WatchRegistry poisoned");
-        guard.insert(sub_id.clone(), debouncer);
+        // Index the subscription under BOTH the raw and canonical forms
+        // of the path. Callers may arrive with either alias (macOS /var
+        // vs /private/var); if one form later stops canonicalizing
+        // (path deleted), the other still resolves.
+        let canonical = canon(path);
+        let mut keys = vec![path.to_path_buf()];
+        if canonical != *path {
+            keys.push(canonical);
+        }
+        let mut guard = self.inner.lock().expect("WatchRegistry poisoned");
+        guard.entries.insert(sub_id.clone(), (debouncer, keys.clone()));
+        for key in keys {
+            guard.paths.entry(key).or_default().push(sub_id.clone());
+        }
         Ok(sub_id)
     }
 
     /// Drop a watcher by subscription_id. Idempotent — calling on a
     /// non-existent id is OK (mirrors v1 chokidar.close() semantics).
     fn remove(&self, sub_id: &str) {
-        let mut guard = self.entries.lock().expect("WatchRegistry poisoned");
-        let removed = guard.remove(sub_id).is_some();
+        let mut guard = self.inner.lock().expect("WatchRegistry poisoned");
+        let removed = if let Some((_debouncer, keys)) = guard.entries.remove(sub_id) {
+            for key in keys {
+                if let Some(ids) = guard.paths.get_mut(&key) {
+                    ids.retain(|id| id != sub_id);
+                    if ids.is_empty() {
+                        guard.paths.remove(&key);
+                    }
+                }
+            }
+            true
+        } else {
+            false
+        };
         safe_eprintln!(
             "[FsWatcher][stop][BLOCK_UNREGISTER_NOTIFY sub_id={} found={}]",
             sub_id, removed
         );
     }
 
+    /// Drop every watcher registered for `path` (C-2: backs the real
+    /// mt_close_project_root). Idempotent on unknown paths. Tries the
+    /// canonical form first, then the raw form; `add` indexes under both.
+    pub fn remove_by_path(&self, path: &Path) -> usize {
+        // Canonicalize BEFORE taking the lock — it's a syscall and must
+        // not stall concurrent subscribe/unsubscribe on a slow FS.
+        let canonical = canon(path);
+        let mut candidates = {
+            let guard = self.inner.lock().expect("WatchRegistry poisoned");
+            let mut ids = guard.paths.get(&canonical).cloned().unwrap_or_default();
+            if ids.is_empty() {
+                if let Some(raw_ids) = guard.paths.get(path) {
+                    ids = raw_ids.clone();
+                }
+            }
+            ids
+        };
+        // Dedup: the same sub_id can appear under both key forms only if
+        // both lookups hit, which the is_empty guard above prevents — but
+        // cheap insurance against future key-set changes.
+        candidates.sort();
+        candidates.dedup();
+        let count = candidates.len();
+        for id in candidates {
+            self.remove(&id);
+        }
+        safe_eprintln!(
+            "[FsWatcher][stop_path][BLOCK_UNREGISTER_NOTIFY path={} removed={}]",
+            path.display(),
+            count
+        );
+        count
+    }
+
     /// Active subscription count — exposed for tests.
     #[cfg(test)]
     pub fn len(&self) -> usize {
-        self.entries.lock().expect("WatchRegistry poisoned").len()
+        self.inner.lock().expect("WatchRegistry poisoned").entries.len()
+    }
+
+    /// Active subscription count for a path — exposed for tests.
+    #[cfg(test)]
+    pub fn len_for_path(&self, path: &Path) -> usize {
+        let guard = self.inner.lock().expect("WatchRegistry poisoned");
+        guard.paths.get(&canon(path)).map(|v| v.len()).unwrap_or(0)
     }
 }
 
@@ -424,5 +515,72 @@ mod tests {
         assert_ne!(a, b);
         assert_ne!(b, c);
         assert!(a.starts_with("w-"));
+    }
+
+    // ---- C-2: path index + remove_by_path ----
+
+    #[test]
+    fn remove_by_path_drops_all_watchers_for_path_only() {
+        let dir_a = TempDir::new().unwrap();
+        let dir_b = TempDir::new().unwrap();
+        let registry = WatchRegistry::default();
+        let (tx, _rx) = mpsc::channel();
+        let sink: Arc<dyn EventSink> = Arc::new(ChannelSink { tx });
+
+        let _id1 = registry.add(dir_a.path(), true, Arc::clone(&sink)).unwrap();
+        let _id2 = registry.add(dir_a.path(), true, Arc::clone(&sink)).unwrap();
+        let _id3 = registry.add(dir_b.path(), true, sink).unwrap();
+        assert_eq!(registry.len(), 3);
+        assert_eq!(registry.len_for_path(dir_a.path()), 2);
+
+        let removed = registry.remove_by_path(dir_a.path());
+        assert_eq!(removed, 2, "both watchers for dir_a must be dropped");
+        assert_eq!(registry.len(), 1, "dir_b watcher must survive");
+        assert_eq!(registry.len_for_path(dir_a.path()), 0);
+        assert_eq!(registry.len_for_path(dir_b.path()), 1);
+    }
+
+    #[test]
+    fn remove_by_path_idempotent_on_unknown_path() {
+        let registry = WatchRegistry::default();
+        let bogus = Path::new("/nonexistent-path-1234567890");
+        assert_eq!(registry.remove_by_path(bogus), 0);
+        assert_eq!(registry.len(), 0);
+    }
+
+    #[test]
+    fn remove_by_id_cleans_path_index() {
+        let dir = TempDir::new().unwrap();
+        let registry = WatchRegistry::default();
+        let (tx, _rx) = mpsc::channel();
+        let sink: Arc<dyn EventSink> = Arc::new(ChannelSink { tx });
+
+        let id = registry.add(dir.path(), false, sink).unwrap();
+        assert_eq!(registry.len_for_path(dir.path()), 1);
+        registry.remove(&id);
+        assert_eq!(registry.len(), 0);
+        assert_eq!(registry.len_for_path(dir.path()), 0, "path index entry must be dropped with the last sub");
+        // And the path index is gone, so a later remove_by_path no-ops.
+        assert_eq!(registry.remove_by_path(dir.path()), 0);
+    }
+
+    #[test]
+    fn remove_by_path_falls_back_to_raw_path_lookup() {
+        // A path that cannot be canonicalized (already deleted) must still
+        // be removable through whatever form `add` recorded.
+        let dir = TempDir::new().unwrap();
+        let raw = dir.path().to_path_buf();
+        let registry = WatchRegistry::default();
+        let (tx, _rx) = mpsc::channel();
+        let sink: Arc<dyn EventSink> = Arc::new(ChannelSink { tx });
+
+        let _id = registry.add(&raw, false, sink).unwrap();
+        // Delete the directory AFTER subscribing: canonicalize in
+        // remove_by_path now fails, forcing the raw-path fallback.
+        drop(dir);
+        std::fs::remove_dir_all(&raw).ok();
+        let removed = registry.remove_by_path(&raw);
+        assert_eq!(removed, 1, "raw-path fallback must find the watcher");
+        assert_eq!(registry.len(), 0);
     }
 }

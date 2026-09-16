@@ -1,19 +1,24 @@
 // MODULE_CONTRACT
-//   PURPOSE: Tauri-side stubs for v1.2.3 IPC channels that the renderer
-//            (ported as-is per variant-(a)) calls but that we haven't
-//            ported to dedicated modules yet. Each stub returns a
-//            sensible default so the renderer's `.then(...)` chains
-//            resolve instead of throwing unhandled rejections.
-//   SCOPE:   thin compatibility shims only. Every command here has a
-//            corresponding F-* followup pointing at the proper module
-//            that should own it long-term.
-//   DEPENDS: tauri (WebviewWindow for window-state queries).
+//   PURPOSE: Tauri-side shims for v1.2.3 IPC channels that the renderer
+//            (ported as-is per variant-(a)) calls. Mostly stubs returning
+//            sensible defaults; mt_close_project_root is a real
+//            implementation since C-2 (WatchRegistry unwatch).
+//   SCOPE:   thin compatibility shims plus the C-2 close-project unwatch.
+//            Every remaining stub has a corresponding F-* followup
+//            pointing at the proper module that should own it long-term.
+//   DEPENDS: tauri (WebviewWindow for window-state queries, State),
+//            m013b::WatchRegistry (mt_close_project_root unwatch).
 //   LINKS:   docs/development-plan.xml F-V1-IPC-COMPAT-STUBS;
+//            .grace/changes/active/C-2 (close_project_root);
 //            install-window-globals.js electron.ipcRenderer.invoke
 //            translates 'mt::xxx-yyy' → 'mt_xxx_yyy' before dispatch.
 //   STATUS:  shipped 2026-04-29 with F-MAIN-ENTRY-DISABLED runtime close.
 //
 // CHANGE_SUMMARY:
+//   - 2026-09-16 C-2: mt_close_project_root is now a real unwatch —
+//     drops every WatchRegistry subscription for the pathname (raw +
+//     canonical index keys) instead of being a marker-only stub; closed
+//     the F-WATCH-WIRE-PROJECT TODO.
 //   - 2026-04-29 F-MAIN-ENTRY-DISABLED runtime: mt_window_state stub.
 //   - 2026-04-29 F-EDITOR-BOOTSTRAP-EVENT: mt_request_keybindings doubles
 //     as the renderer-ready signal — emits mt::bootstrap-editor with
@@ -189,20 +194,30 @@ pub async fn mt_app_quit(app: tauri::AppHandle) -> Result<(), String> {
     Ok(())
 }
 
-/// W3 stub for `mt::close-project-root`. Currently a no-op:
-/// open_folder doesn't yet subscribe a notify-rs watcher, so there's
-/// nothing to unsubscribe. When file-watch-on-open lands (future
-/// wave; F-WATCH-WIRE-PROJECT), this command will call into
-/// WatchRegistry to remove the watcher attached to `pathname`.
-/// Logging the close lets the renderer-side smoke verify the IPC
-/// reached backend.
+/// Real unwatch for `mt::close-project-root` (C-2 closed the
+/// F-WATCH-WIRE-PROJECT TODO): drops every WatchRegistry subscription
+/// registered for `pathname` (raw + canonical key forms). This is
+/// defense-in-depth — the renderer already unsubscribes via
+/// mt::watch::unsubscribe on CLOSE_PROJECT — so a lost renderer-side
+/// dispose (crash, missed promise) cannot leak a live notify watcher
+/// for the rest of the session.
 #[tauri::command]
-pub async fn mt_close_project_root(pathname: String) -> Result<(), String> {
+pub async fn mt_close_project_root(
+    pathname: String,
+    registry: tauri::State<'_, crate::m013b::WatchRegistry>,
+) -> Result<(), String> {
     safe_eprintln!("[m_fs_ops][close_project_root][BLOCK_RECEIVED path={pathname}]");
-    // TODO F-WATCH-WIRE-PROJECT: lookup subscription_id by pathname,
-    // call WatchRegistry::remove(sub_id). Currently no watcher per
-    // root, so this command is just a marker for V-Phase-Bclean-W3.
+    let removed = close_project_root(&pathname, &registry);
+    safe_eprintln!(
+        "[m_fs_ops][close_project_root][BLOCK_UNREGISTERED path={pathname} watchers={removed}]"
+    );
     Ok(())
+}
+
+/// Testable core of mt_close_project_root: drop every watcher registered
+/// for `pathname`. Returns how many were removed (0 = nothing watched).
+fn close_project_root(pathname: &str, registry: &crate::m013b::WatchRegistry) -> usize {
+    registry.remove_by_path(std::path::Path::new(pathname))
 }
 
 /// Legacy v1 channels — kept as thin shims around mt_pick_folder for
@@ -1004,11 +1019,11 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn mt_close_project_root_is_a_no_op_stub() {
-        // No watchers are registered yet, so the command is a marker-
-        // only IPC sink. Just verify it returns Ok without panicking.
-        mt_close_project_root("/some/path".to_string()).await.unwrap();
-        mt_close_project_root("".to_string()).await.unwrap();
+    async fn mt_close_project_root_unwatches_nothing_when_registry_empty() {
+        // C-2: the command is a real unwatch now. With no watchers
+        // registered it must stay Ok + remove nothing (idempotent core).
+        assert_eq!(close_project_root("/some/path", &crate::m013b::WatchRegistry::default()), 0);
+        assert_eq!(close_project_root("", &crate::m013b::WatchRegistry::default()), 0);
     }
 
     #[tokio::test]

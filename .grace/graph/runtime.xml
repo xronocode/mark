@@ -837,12 +837,17 @@
       <Name>mt-fs-watcher</Name>
       <DisplayName>mt-fs-watcher</DisplayName>
       <Type>CORE_LOGIC</Type>
-      <Status>planned</Status>
+      <Status>partial</Status>
       <Layer>0</Layer>
       <Summary>
         Filesystem watcher via `notify` crate with 200ms debounce; emits change
-        events to renderer.
+        events to renderer. Shipped: subscribe/unsubscribe/remove_by_path with
+        per-path index (C-2) in src-tauri/src/m013b/watch.rs. Deferred from
+        the original spec: usePolling pref, cloud-drive mtime suppression,
+        ENOSPC notify-once (Linux-only concerns; macOS-only product at this
+        phase).
       </Summary>
+      <ActualPath>src-tauri/src/m013b/watch.rs</ActualPath>
       <PlannedPath>src-tauri/src/fs/watcher.rs</PlannedPath>
       <Dependencies/>
       <VerificationRef>V-M-003</VerificationRef>
@@ -909,11 +914,23 @@
             </Attribute>
           </LegacyAttributes>
         </fn-watcher_set_ignore_until>
+        <fn-watcher_remove_by_path>
+          <LegacyAttributes>
+            <Attribute>
+              <Name>PURPOSE</Name>
+              <Value>
+                C-2: WatchRegistry::remove_by_path drops every watcher
+                registered under a path (raw + canonical index keys); backs
+                the real mt_close_project_root in m_v1_compat.rs.
+              </Value>
+            </Attribute>
+          </LegacyAttributes>
+        </fn-watcher_remove_by_path>
       </Interface>
       <Sources>
-        <Source>src-tauri/src/fs/watcher.rs</Source>
+        <Source>src-tauri/src/m013b/watch.rs</Source>
         <KnowledgeGraphPath>src-tauri/src/fs/watcher.rs</KnowledgeGraphPath>
-        <Tests>src-tauri/src/fs/watcher.rs (#[cfg(test)])</Tests>
+        <Tests>src-tauri/src/m013b/watch.rs (#[cfg(test)])</Tests>
       </Sources>
       <Observability>
         <LogPrefix>[FsWatcher]</LogPrefix>
@@ -2615,6 +2632,19 @@
             </Attribute>
           </LegacyAttributes>
         </fn-handleTitleContextMenu>
+        <fn-handleCopyAsHtml>
+          <LegacyAttributes>
+            <Attribute>
+              <Name>PURPOSE</Name>
+              <Value>
+                Copy the selection (or whole document when nothing is
+                selected) to the system clipboard as rich text/html via the
+                native clipboard-manager writeHtml command, falling back to
+                Muya&apos;s execCommand copyAsRich when the native write fails
+              </Value>
+            </Attribute>
+          </LegacyAttributes>
+        </fn-handleCopyAsHtml>
         <fn-scrollToCords>
           <LegacyAttributes>
             <Attribute>
@@ -2880,7 +2910,7 @@
         <Purpose>
           WYSIWYG Markdown engine: parses, renders, and edits Markdown in-place
           in DOM. Zero Electron coupling confirmed via triple-check grep. Ports
-          to WebView as-is. 47 public methods + 26 events + 13 state invariants
+          to WebView as-is. 48 public methods + 26 events + 13 state invariants
           + 5 diagram renderers (Mermaid/Vega-Lite/Flowchart/Sequence/PlantUML)
           + 11 parser option flags + 19 inline + 16 block token types.
         </Purpose>
@@ -3414,7 +3444,7 @@
           <LegacyAttributes>
             <Attribute>
               <Name>PURPOSE</Name>
-              <Value>Vue composable with auto-unsubscribe on onUnmounted; disposeOnHotUpdate for HMR</Value>
+              <Value>Vue composable with auto-unsubscribe on onUnmounted; disposeOnHotUpdate for HMR. C-2: one Tauri listen() per channel fans every event out to ALL registered handlers (per-channel handler Set + single-creation promise); previously only the first subscriber's handler was live, silently dead-calling every later file-watcher subscription.</Value>
             </Attribute>
           </LegacyAttributes>
         </fn-useIpcListener>
@@ -3606,7 +3636,9 @@
         Rust #[tauri::command] handlers (signatures stable, real impls in B2/B3)
         AND frontend ipc/runtime/ namespace exporting Electron-era command
         parity (clipboard, window, menu, dialog) on top of M-013-A&apos;s typed
-        invoke wrapper.
+        invoke wrapper. C-2: ipcWatch.subscribe (watch.ts) gained a leak guard
+        — a failed listener registration after a successful backend subscribe
+        unwinds the watcher instead of leaking it.
       </Summary>
       <Path>src/renderer/src/ipc/runtime/</Path>
       <Dependencies>

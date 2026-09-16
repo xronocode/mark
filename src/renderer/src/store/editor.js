@@ -1611,8 +1611,37 @@ export const useEditorStore = defineStore('editor', {
             msg: i18n.global.t('store.editor.fileChangedOnDisk', { name: filename }),
             showConfirm: true,
             exclusiveType: 'file_changed',
+            // C-2: the watcher path sends only {pathname} — loadChange
+            // requires data, so the confirm action reads the file from
+            // disk first (mirroring the auto-reload branch, including
+            // the generation guard against a newer change landing while
+            // the dialog was open). Previously this crashed with a
+            // TypeError destructure of `data` on every confirm click.
             action: (status) => {
-              if (status) this.loadChange(change)
+              if (!status) return
+              if (change.data) {
+                if (liveReloadGenerations.get(pathname) !== generation) return
+                this.loadChange(change)
+                return
+              }
+              setTimeout(async () => {
+                try {
+                  const markdown = await ipcFs.read(pathname)
+                  if (liveReloadGenerations.get(pathname) !== generation) return
+                  const data = {
+                    markdown,
+                    filename: tab.filename,
+                    encoding: tab.encoding,
+                    lineEnding: tab.lineEnding,
+                    adjustLineEndingOnSave: tab.adjustLineEndingOnSave,
+                    trimTrailingNewline: tab.trimTrailingNewline,
+                    isMixedLineEndings: false
+                  }
+                  this.loadChange({ ...change, data })
+                } catch (e) {
+                  console.error(`[editor][live_reload][BLOCK_READ_FAILED path=${pathname}]`, e)
+                }
+              }, 100)
             }
           })
           break
@@ -1638,6 +1667,11 @@ export const useEditorStore = defineStore('editor', {
       if (!window.path || typeof ipcWatch?.subscribe !== 'function') return
       const dir = window.path.dirname(pathname)
       const basename = window.path.basename(pathname)
+      // C-2: synchronous pending marker — guards double-subscribe for one
+      // pathname (the .has() check above races the async set below) and
+      // records close-while-pending so the resolve path can unwind.
+      const pending = { closed: false, dispose: null }
+      fileWatchDisposers.set(pathname, pending)
       ipcWatch
         .subscribe(dir, (event) => {
           const { kind, paths } = event || {}
@@ -1652,22 +1686,41 @@ export const useEditorStore = defineStore('editor', {
           }
         }, { recursive: false, listener: { manual: true } })
         .then((dispose) => {
-          fileWatchDisposers.set(pathname, dispose)
+          if (pending.closed) {
+            // Tab closed while the subscription was being established —
+            // unwind immediately instead of leaking a live watcher.
+            dispose()
+            return
+          }
+          pending.dispose = dispose
         })
         .catch((e) => {
+          // Drop the marker so a later re-open of the same file can retry.
+          if (fileWatchDisposers.get(pathname) === pending) {
+            fileWatchDisposers.delete(pathname)
+          }
           console.error(`[editor][file-watch][SUBSCRIBE_FAILED] path=${pathname}`, e)
         })
     },
 
     _unsubscribeFileWatch(pathname) {
-      const dispose = fileWatchDisposers.get(pathname)
-      if (!dispose) return
       const otherTabsWithSamePath = this.tabs.some(
         (t) => t.pathname === pathname
       )
       if (otherTabsWithSamePath) return
-      dispose()
+      // C-2: last tab for this pathname is gone — its reload generation
+      // is unreachable now, drop it to keep the map bounded. This must
+      // NOT depend on a watcher entry existing: files inside project
+      // trees have no per-file watch (the root watcher covers them).
+      liveReloadGenerations.delete(pathname)
+      const entry = fileWatchDisposers.get(pathname)
+      if (!entry) return
       fileWatchDisposers.delete(pathname)
+      // Entry is always the pending marker object; when the subscription
+      // already resolved it carries the real dispose, otherwise the flag
+      // makes the resolve path unwind instead of storing a dead watcher.
+      entry.closed = true
+      if (typeof entry.dispose === 'function') entry.dispose()
     },
 
     ASK_FOR_IMAGE_PATH() {
@@ -1773,6 +1826,11 @@ export const useEditorStore = defineStore('editor', {
 // END_MODULE_CONTRACT
 //
 // CHANGE_SUMMARY:
+//   - 2026-09-16 C-2: _subscribeFileWatch pending-marker protocol (no double
+//     subscribe, close-while-pending unwinds); _unsubscribeFileWatch drops
+//     liveReloadGenerations for the last tab of a pathname (independent of
+//     watcher entry); conflict-prompt confirm reads from disk with the
+//     generation guard instead of crashing on missing change.data.
 //   - 2026-05-20 B7-M-032: fix APPLY_FILE_CHANGE async read path (latent bug:
 //     project.js sends {pathname} without data); fix loadChange cursor/scrollTop
 //     preservation; add liveReload preference integration + hash-skip.

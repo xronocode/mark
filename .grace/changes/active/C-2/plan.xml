@@ -1,0 +1,354 @@
+<GraceChangePlan graceVersion='4.0' status='approved'>
+<C-2>
+  <ChangeRef>C-2</ChangeRef>
+  <Created>2026-09-16</Created>
+
+  <IntentSummary>
+    Restore hot file-watch delivery: make useIpcListener fan events out to
+    ALL subscribers, close the watcher-leak/race corners around it, turn the
+    mt_close_project_root stub into a real unwatch, and prove everything
+    with scoped 100% coverage plus two sequential clean reviews.
+  </IntentSummary>
+
+  <BaselineAssertions>
+    <MustContain>
+      <File>src/renderer/src/store/editor.js</File>
+      <Text>APPLY_FILE_CHANGE</Text>
+    </MustContain>
+    <MustContain>
+      <File>src-tauri/src/m013b/watch.rs</File>
+      <Text>mt_watch_subscribe</Text>
+    </MustContain>
+    <MustContain>
+      <File>src/renderer/src/store/project.js</File>
+      <Text>ADD_PROJECT</Text>
+    </MustContain>
+    <MustContain>
+      <File>tests/renderer/store/live-reload.test.js</File>
+      <Text>APPLY_FILE_CHANGE — dirty tab behavior</Text>
+    </MustContain>
+  </BaselineAssertions>
+
+  <TargetAssertions>
+    <MustContain>
+      <File>src/renderer/src/ipc/contract/listener.ts</File>
+      <Text>Set&lt;{ handler: IpcEventHandler }</Text>
+    </MustContain>
+    <MustContain>
+      <File>src/renderer/src/ipc/runtime/watch.ts</File>
+      <Text>unwind it so the notify registration doesn't leak</Text>
+    </MustContain>
+    <MustContain>
+      <File>src/renderer/src/store/project.js</File>
+      <Text>listener: { manual: true }</Text>
+    </MustContain>
+    <MustNotContain>
+      <File>src-tauri/src/m_v1_compat.rs</File>
+      <Text>TODO F-WATCH-WIRE-PROJECT</Text>
+    </MustNotContain>
+    <MustContain>
+      <File>src-tauri/src/m013b/watch.rs</File>
+      <Text>remove_by_path</Text>
+    </MustContain>
+    <MustContain>
+      <File>src/renderer/src/store/editor.js</File>
+      <Text>BLOCK_READ_FAILED</Text>
+    </MustContain>
+    <MustContain>
+      <File>tests/renderer/ipc/contract-listener.test.ts</File>
+      <Text>gets two delivery slots</Text>
+    </MustContain>
+    <MustContain>
+      <File>tests/renderer/store/live-reload.test.js</File>
+      <Text>confirm after the last tab closed</Text>
+    </MustContain>
+  </TargetAssertions>
+
+  <DurableScope>
+    <M-013-A/>
+    <M-013-B/>
+    <M-003/>
+    <M-032/>
+    <M-036/>
+  </DurableScope>
+
+  <ObservedWriteScope>
+    <File>src/renderer/src/ipc/contract/listener.ts</File>
+    <File>src/renderer/src/ipc/runtime/watch.ts</File>
+    <File>src/renderer/src/store/editor.js</File>
+    <File>src/renderer/src/store/project.js</File>
+    <File>src-tauri/src/m013b/watch.rs</File>
+    <File>src-tauri/src/m_v1_compat.rs</File>
+    <File>src-tauri/src/main.rs</File>
+    <File>.grace/graph/runtime.xml</File>
+    <File>.grace/verification/runtime.xml</File>
+    <File>tests/renderer/ipc/contract-listener.test.ts</File>
+    <File>tests/renderer/ipc/runtime-watch.test.ts</File>
+    <File>tests/renderer/store/editor-deep2.test.js</File>
+    <File>tests/renderer/store/live-reload.test.js</File>
+    <File>tests/renderer/store/project.test.ts</File>
+  </ObservedWriteScope>
+
+  <ImplementationPlan>
+    <T-001>
+      <Title>W1: rewrite listener.ts to token-based fan-out</Title>
+      <DependsOn></DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>Per-channel Set of per-subscription token objects; single-creation
+        promise guards concurrent first subscribes; per-handler try/catch;
+        BLOCK_LISTENER_REFCOUNT logs subscriber count; dispose invariant
+        holds even for duplicate handler references.</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>npx vitest run tests/renderer/ipc/contract-listener.test.ts</Command>
+      </Verification>
+    </T-001>
+
+    <T-002>
+      <Title>W1: fan-out regression tests</Title>
+      <DependsOn>T-001</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>Tests pin: second subscriber receives events; first-dispose keeps
+        second receiving; re-subscribe after teardown; throwing handler does
+        not starve siblings; concurrent first subscribes share one listen();
+        failed listen() frees the channel for retry; same handler reference
+        twice gets two slots.</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>Scoped coverage run: listener.ts at 100/100/100/100.</Command>
+      </Verification>
+    </T-002>
+
+    <T-003>
+      <Title>W2: watch.ts leak guard</Title>
+      <DependsOn>T-001</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>useIpcListener failure after successful subscribe unwinds the Rust
+        watcher via mt::watch::unsubscribe (best-effort) and rethrows the
+        original error.</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>npx vitest run tests/renderer/ipc/runtime-watch.test.ts</Command>
+      </Verification>
+    </T-003>
+
+    <T-004>
+      <Title>W2: leak-guard tests</Title>
+      <DependsOn>T-003</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>Listener failure → unsubscribe invoked with the sub id + original
+        error rethrown; unsubscribe-also-failing tolerated.</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>Scoped coverage run: watch.ts at 100/100/100/100.</Command>
+      </Verification>
+    </T-004>
+
+    <T-005>
+      <Title>W3: editor store race fixes</Title>
+      <DependsOn>T-001</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>Synchronous pending marker prevents double subscribe; close-while-
+        pending defers dispose to the resolve path; subscribe failure drops
+        the marker so re-open can retry.</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>npx vitest run tests/renderer/store/editor-deep2.test.js</Command>
+      </Verification>
+    </T-005>
+
+    <T-006>
+      <Title>W3: generations cleanup + conflict-prompt confirm fix</Title>
+      <DependsOn>T-005</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>liveReloadGenerations entry dropped for the last tab of a pathname
+        independent of watcher-entry existence; conflict-prompt confirm
+        reads from disk with the generation guard (both watcher and legacy
+        data paths) instead of crashing on missing change.data.</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>npx vitest run tests/renderer/store/live-reload.test.js — reload-matrix expectations unchanged; new confirm-action tests additive only.</Command>
+      </Verification>
+    </T-006>
+
+    <T-007>
+      <Title>W3: editor race/confirm tests</Title>
+      <DependsOn>T-005, T-006</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>All four subscribe/close orderings pinned; event-router closure
+        branches pinned; changed editor.js functions at 100% statements and
+        branches in combined-store coverage run.</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>Combined store coverage run with per-range uncovered-line check.</Command>
+      </Verification>
+    </T-007>
+
+    <T-008>
+      <Title>W4: project store manual listener flag</Title>
+      <DependsOn>T-001</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>ADD_PROJECT subscribes with listener:{manual:true} (store scope;
+        CLOSE_PROJECT owns disposal).</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>npx vitest run tests/renderer/store/project.test.ts</Command>
+      </Verification>
+    </T-008>
+
+    <T-009>
+      <Title>W4: project store test update</Title>
+      <DependsOn>T-008</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>Test asserts the manual option is passed through to ipcWatch.subscribe.</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>npx vitest run tests/renderer/store/project.test.ts</Command>
+      </Verification>
+    </T-009>
+
+    <T-010>
+      <Title>W5: WatchRegistry path index</Title>
+      <DependsOn></DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>RegistryInner{entries, paths} under one Mutex; add indexes under raw
+        AND canonical keys; remove-by-id cleans every key; remove_by_path
+        (pub) drops all watchers for a path, canonical-first with raw
+        fallback, canon() computed outside the lock.</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>cargo test --bin mark --manifest-path src-tauri/Cargo.toml m013b::watch</Command>
+      </Verification>
+    </T-010>
+
+    <T-011>
+      <Title>W5: real mt_close_project_root</Title>
+      <DependsOn>T-010</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>Command calls WatchRegistry::remove_by_path with BLOCK_UNREGISTERED
+        evidence logging; F-WATCH-WIRE-PROJECT TODO deleted; file-level
+        MODULE_CONTRACT and CHANGE_SUMMARY updated.</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>cargo test --bin mark --manifest-path src-tauri/Cargo.toml unwatches</Command>
+      </Verification>
+    </T-011>
+
+    <T-012>
+      <Title>W5: Rust registry tests</Title>
+      <DependsOn>T-010, T-011</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>remove_by_path drops only matching entries; idempotent on unknown
+        paths; remove-by-id cleans the path index; raw-path fallback after
+        deletion.</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>cargo test --bin mark --manifest-path src-tauri/Cargo.toml m013b::watch</Command>
+      </Verification>
+    </T-012>
+
+    <T-013>
+      <Title>W6: graph deltas</Title>
+      <DependsOn>T-001, T-003, T-010</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>M-003 status planned→partial with ActualPath + fn-watcher_remove_by_path;
+        fn-useIpcListener PURPOSE describes fan-out; M-013-B notes the
+        leak-guard status.</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>grace lint --path . --assertions current</Command>
+      </Verification>
+    </T-013>
+
+    <T-014>
+      <Title>W6: verification deltas</Title>
+      <DependsOn>T-002, T-012</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>V-M-013-A scenario-5 (fan-out); V-M-003 scenario-4 + m013b::watch
+        command + stop_path and close_project_root markers.</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>grace lint --path . --assertions current</Command>
+      </Verification>
+    </T-014>
+
+    <T-015>
+      <Title>W6: gates + runtime verification</Title>
+      <DependsOn>T-002, T-004, T-007, T-009, T-012, T-013, T-014</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>npm test green; typecheck:ipc clean; cargo test green; CI-mode
+        coverage gate green with baseline thresholds; live app: second
+        subscription externally modified → BLOCK_LIVE_RELOAD source=disk in
+        stderr for both files.</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>dev-smoke launch + external edit + stderr marker grep.</Command>
+      </Verification>
+    </T-015>
+
+    <T-016>
+      <Title>W6: two sequential clean reviews</Title>
+      <DependsOn>T-015</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>Review-1 (correctness/races/edge) and review-2 (security/contracts/
+        regressions) both return VERDICT: CLEAN; findings from any round
+        fixed and re-reviewed before proceeding.</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>Review verdicts recorded in Evidence below.</Command>
+      </Verification>
+    </T-016>
+  </ImplementationPlan>
+
+  <ReviewProtocol>
+    <Review-1>
+      <Angle>correctness, concurrency/races, edge cases, test adequacy</Angle>
+      <PassCriteria>zero findings on changed code; fan-out behavior proven by tests</PassCriteria>
+    </Review-1>
+    <Review-2>
+      <Angle>security (path handling, IPC surface), GRACE contract/graph/verification consistency, regression risk to reload matrix and unrelated listeners</Angle>
+      <PassCriteria>zero findings; no contract drift; markers/log contract intact</PassCriteria>
+    </Review-2>
+    <Rule>
+      Reviews run sequentially; each must be clean before the next; fixes
+      found by either review re-trigger the current review only.
+    </Rule>
+  </ReviewProtocol>
+
+  <Evidence>
+    <Gates>
+      npm test: 219 files / 2989 tests passed (multiple runs; one intermittent
+      single-test flake in an unrelated pinch-zoom timing test observed once
+      under heavy machine load, never reproducing on retry).
+      typecheck:ipc: clean. cargo test: 497→503 passed (C-2 adds 6).
+      CI=1 npm run test:coverage: exit 0, no threshold errors, baseline
+      thresholds 91.8/85.0/84.1/92.74 preserved.
+    </Gates>
+    <Coverage>
+      Scoped runs: listener.ts 100/100/100/100; watch.ts 100/100/100/100;
+      editor.js changed range (1615-1712) zero uncovered statements/branches;
+      Rust: all new registry branches exercised by deterministic tests.
+    </Coverage>
+    <Runtime>
+      Live app (dev-smoke debug build, two files opened): BLOCK_REGISTER_NOTIFY
+      ×2; external edit of the SECOND file → BLOCK_DEBOUNCE_COALESCE ×2 +
+      [editor][live_reload][BLOCK_LIVE_RELOAD path=b.md source=disk]; first
+      file also verified (path=a.md source=disk); zero handler errors.
+    </Runtime>
+    <Reviews>
+      Review-1 (agent_86affa96, correctness/races/edge): round-1 FINDINGS
+      (1 MAJOR duplicate-handler Set-dedup crash, 2 MINOR, 2 NIT) → fixed →
+      round-2 FINDINGS (1 CRITICAL vitest.config.ts thresholds rewritten by
+      scoped autoUpdate coverage run — reverted; 1 NIT CHANGE_SUMMARY) →
+      fixed → VERDICT: CLEAN (2026-09-16).
+      Review-2 (agent_7e14bfdd, security/contracts/regressions): round-1
+      FINDINGS (security clean, regressions clean; 1 MAJOR non-canonical
+      change artifacts failing grace lint, 4 MINOR, 3 NIT governance) →
+      fixed (canonical spec/plan schema; m_v1_compat + editor.js contracts;
+      V-M-003 markers + scenario-5; M-013-B note; HMR claim removed) →
+      VERDICT: CLEAN (2026-09-16). Both gates satisfied per the spec's
+      ReviewProtocol.
+    </Reviews>
+  </Evidence>
+</C-2>
+</GraceChangePlan>

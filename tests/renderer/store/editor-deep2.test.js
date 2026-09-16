@@ -786,6 +786,160 @@ describe('store/editor — deep coverage (wave 2)', () => {
       editor._subscribeFileWatch('/tmp/other/file.md')
       expect(__ipcWatchMock.subscribe).toHaveBeenCalled()
     })
+
+    // ─── C-2: races ──────────────────────────────────────────────
+
+    it('double subscribe for one pathname issues a single watch', () => {
+      __projectStub.projectTrees = []
+      // Subscribe resolves synchronously here; the pending marker must
+      // still be in place DURING the second (synchronous) call.
+      editor._subscribeFileWatch('/tmp/race-a/file.md')
+      editor._subscribeFileWatch('/tmp/race-a/file.md')
+      const calls = __ipcWatchMock.subscribe.mock.calls.filter(
+        (c) => c[0] === '/tmp/race-a'
+      )
+      expect(calls).toHaveLength(1)
+    })
+
+    it('double subscribe across await points issues a single watch', async () => {
+      __projectStub.projectTrees = []
+      let release
+      const gate = new Promise((resolve) => { release = resolve })
+      __ipcWatchMock.subscribe.mockImplementationOnce(async () => {
+        await gate
+        return vi.fn()
+      })
+      editor._subscribeFileWatch('/tmp/race-b/file.md')
+      editor._subscribeFileWatch('/tmp/race-b/file.md')
+      release()
+      await Promise.resolve()
+      await Promise.resolve()
+      const calls = __ipcWatchMock.subscribe.mock.calls.filter(
+        (c) => c[0] === '/tmp/race-b'
+      )
+      expect(calls).toHaveLength(1)
+    })
+
+    it('tab closed while subscribe pending → dispose unwinds on resolve', async () => {
+      __projectStub.projectTrees = []
+      const dispose = vi.fn()
+      let release
+      const gate = new Promise((resolve) => { release = resolve })
+      __ipcWatchMock.subscribe.mockImplementationOnce(async () => {
+        await gate
+        return dispose
+      })
+
+      editor._subscribeFileWatch('/tmp/pending-close/file.md')
+      // Simulate the last tab for this pathname closing before resolve.
+      editor.tabs = []
+      editor._unsubscribeFileWatch('/tmp/pending-close/file.md')
+      release()
+      await Promise.resolve()
+      await Promise.resolve()
+
+      expect(dispose).toHaveBeenCalled()
+    })
+
+    it('subscribe failure drops the pending marker so re-open can retry', async () => {
+      __projectStub.projectTrees = []
+      __ipcWatchMock.subscribe.mockRejectedValueOnce(new Error('boom'))
+      const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+      editor._subscribeFileWatch('/tmp/retry-me/file.md')
+      await Promise.resolve()
+      await Promise.resolve()
+
+      // Marker is gone → a new subscribe goes through.
+      __ipcWatchMock.subscribe.mockResolvedValueOnce(vi.fn())
+      editor._subscribeFileWatch('/tmp/retry-me/file.md')
+      await Promise.resolve()
+      const calls = __ipcWatchMock.subscribe.mock.calls.filter(
+        (c) => c[0] === '/tmp/retry-me'
+      )
+      expect(calls).toHaveLength(2)
+      errSpy.mockRestore()
+    })
+
+    it('routes watcher events: modify→change, remove→unlink, others filtered', async () => {
+      __projectStub.projectTrees = []
+      __ipcWatchMock.subscribe.mockResolvedValueOnce(vi.fn())
+      const tab = makeTab({ id: 'ev1', pathname: '/tmp/events/file.md', filename: 'file.md' })
+      editor.tabs = [tab]
+      editor.currentFile = tab
+      const applySpy = vi.spyOn(editor, 'APPLY_FILE_CHANGE').mockImplementation(() => {})
+
+      editor._subscribeFileWatch('/tmp/events/file.md')
+      await Promise.resolve()
+      await Promise.resolve()
+
+      const handler = __ipcWatchMock.subscribe.mock.calls.find(
+        (c) => c[0] === '/tmp/events'
+      )[1]
+
+      // Not an array → ignored.
+      handler({ kind: 'modify', paths: 'nope' })
+      // Different basename → filtered out.
+      handler({ kind: 'modify', paths: ['/tmp/events/other.md'] })
+      expect(applySpy).not.toHaveBeenCalled()
+
+      // Matching basename + modify.
+      handler({ kind: 'modify', paths: ['/tmp/events/file.md'] })
+      expect(applySpy).toHaveBeenCalledWith('change', { pathname: '/tmp/events/file.md' })
+
+      // Matching basename + remove.
+      applySpy.mockClear()
+      handler({ kind: 'remove', paths: ['/tmp/events/file.md'] })
+      expect(applySpy).toHaveBeenCalledWith('unlink', { pathname: '/tmp/events/file.md' })
+
+      // create/other kinds → no dispatch.
+      applySpy.mockClear()
+      handler({ kind: 'create', paths: ['/tmp/events/file.md'] })
+      expect(applySpy).not.toHaveBeenCalled()
+
+      // Defensive: missing event object.
+      expect(() => handler(undefined)).not.toThrow()
+
+      applySpy.mockRestore()
+    })
+  })
+
+  // ─── _unsubscribeFileWatch — C-2 pending + generations ──────────
+
+  describe('_unsubscribeFileWatch', () => {
+    it('unwinds an established watch for the last tab of a pathname', async () => {
+      __projectStub.projectTrees = []
+      const dispose = vi.fn()
+      __ipcWatchMock.subscribe.mockResolvedValueOnce(dispose)
+      const tab = makeTab({ id: 'g1', pathname: '/tmp/gen/file.md', filename: 'file.md' })
+      editor.tabs = [tab]
+      editor.currentFile = tab
+
+      editor._subscribeFileWatch('/tmp/gen/file.md')
+      await Promise.resolve()
+      await Promise.resolve()
+
+      editor.tabs = []
+      editor._unsubscribeFileWatch('/tmp/gen/file.md')
+      expect(dispose).toHaveBeenCalled()
+    })
+
+    it('keeps the watch while another tab shares the pathname', async () => {
+      __projectStub.projectTrees = []
+      const dispose = vi.fn()
+      __ipcWatchMock.subscribe.mockResolvedValueOnce(dispose)
+      const t1 = makeTab({ id: 's1', pathname: '/tmp/shared/file.md', filename: 'file.md' })
+      const t2 = makeTab({ id: 's2', pathname: '/tmp/shared/file.md', filename: 'file.md' })
+      editor.tabs = [t1, t2]
+
+      editor._subscribeFileWatch('/tmp/shared/file.md')
+      await Promise.resolve()
+      await Promise.resolve()
+
+      editor.tabs = [t2]
+      editor._unsubscribeFileWatch('/tmp/shared/file.md')
+      expect(dispose).not.toHaveBeenCalled()
+    })
   })
 
   // ─── APPLY_FILE_CHANGE — auto-reload ───────────────────────────
