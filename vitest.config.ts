@@ -91,7 +91,12 @@ export default defineConfig({
         branches: 85.0,
         functions: 84.1,
         lines: 92.74,
-        autoUpdate: !process.env.CI
+        // C-2 lesson: autoUpdate rewrites these committed thresholds from
+        // whatever coverage a LOCAL run measured — including scoped runs
+        // (single test file), which once silently raised the gate to a
+        // scoped 100% and broke CI. The gate is now static; raise these
+        // values manually from a deliberate full-suite coverage run.
+        autoUpdate: false
       }
     }
   }
