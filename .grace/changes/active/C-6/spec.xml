@@ -1,0 +1,138 @@
+<GraceChangeSpec graceVersion='4.0' status='approved'>
+<C-6>
+  <Name>Fix active-tab visibility: auto-scroll the tab strip to the active tab</Name>
+  <Created>2026-09-16</Created>
+  <Priority>high</Priority>
+  <Status>implemented</Status>
+
+  <Summary>
+    editorWithTabs/tabs.vue highlights the active tab (li.active) but never
+    scrolls the tab strip. The strip scrolls only manually (wheel/trackpad
+    handleTabScroll, drag autoscroll), so whenever activation changes without
+    a direct click — Ctrl+Tab / Ctrl+Shift+Tab cycling (tabs.cycleForward /
+    tabs.cycleBackward), sidebar tree / search / opened-files selection,
+    close-to-neighbor activation, session restore — the active tab can remain
+    outside the visible window of .scrollable-tabs. With overflow hidden and
+    no scrollbar the visible strip then gives zero indication which tab is
+    active. Fix: watch currentFile.id plus the tab id order and apply the
+    minimal scrollLeft adjustment that fully reveals the active tab; also run
+    once after mount so a restored session starts with the active tab visible.
+  </Summary>
+
+  <Problem>
+    <Description>
+      The active tab is not brought into view when activation changes
+      programmatically; the user cannot tell which tab is active when it sits
+      off-screen.
+    </Description>
+    <RootCause>
+      tabs.vue has no logic tying currentFile changes to tabContainer
+      scrollLeft; handleTabScroll (wheel) is the only scroll path and the
+      drag autoscroll only runs mid-drag.
+    </RootCause>
+    <Evidence>
+      grep scrollIntoView across src/renderer/src/components → only
+      commandPalette/index.vue; no write to tabContainer.scrollLeft outside
+      handleTabScroll. Activation call sites that bypass the strip:
+      commands/index.js tabs.cycleForward/Backward (bus mt::tabs-cycle-*),
+      sideBar/treeFile.vue, sideBar/treeOpenedTab.vue,
+      sideBar/searchResultItem.vue, store/project.js session restore, and
+      CLOSE_TAB neighbor activation.
+    </Evidence>
+  </Problem>
+
+  <Goals>
+    <R-1>
+      Pure geometry helper computeActiveTabScroll({ activeLeft, activeWidth,
+      scrollLeft, viewportWidth }) in src/renderer/src/util/tabsScroll.js:
+      returns the minimal scrollLeft that fully reveals the tab (clamped at
+      0), or null when the tab is already fully visible. No DOM access, so it
+      is unit-testable in jsdom.
+    </R-1>
+    <R-2>
+      tabs.vue scrollActiveTabIntoView(): read
+      li[data-id=&lt;currentFile.id&gt;]:not(.gu-mirror) offsetLeft/offsetWidth
+      against tabContainer scrollLeft/clientWidth, apply the helper result.
+      Triggered by (a) a watcher whose source is the primitive join of
+      currentFile.id + the tabs id order (Object.is dedup: an array-returning
+      getter would fire on every tracked re-run), (b) once after mount, and
+      (c) a watcher on layout showTabBar flipping true (display:none discards
+      scrollLeft, so re-showing the hidden bar must re-reveal the active
+      tab). The id-order source covers dragula reorder and add/remove that
+      move the active tab while its id stays the same.
+    </R-2>
+    <R-3>
+      Manual wheel scrolling is untouched; when the active tab is already
+      fully visible no scroll happens (helper returns null).
+    </R-3>
+    <R-4>
+      Unit tests in tests/renderer/components/tabs-scroll.test.js: all helper
+      branches (left clip, right clip, already visible, clamp at 0,
+      wider-than-viewport left-align + idempotence) plus component
+      integration (switch to right-side tab scrolls, switch to left-side tab
+      scrolls back, visible switch is a no-op, array-replacement reorder and
+      real in-place EXCHANGE_TABS_BY_ID splice reorder with unchanged active
+      id scroll, same-id clone replacement of currentFile does not re-scroll,
+      ghost active id is a silent no-op, initial mount scrolls, re-showing
+      the hidden tab bar scrolls).
+    </R-4>
+  </Goals>
+
+  <Constraints>
+    <Constraint>
+      Do not use Element.scrollIntoView: it can scroll ancestor containers
+      and is uncontrollable in jsdom; compute scrollLeft manually against
+      .scrollable-tabs only.
+    </Constraint>
+    <Constraint>
+      jsdom has no layout: offsetLeft/offsetWidth/clientWidth are stubbed in
+      tests via Object.defineProperty; the production code path stays
+      layout-read only, never triggering reflow writes beyond scrollLeft.
+    </Constraint>
+    <Constraint>
+      No dragula interference: select the tab by data-id, not by the .active
+      class, so a gu-mirror clone during an active drag can never be the
+      scroll target.
+    </Constraint>
+  </Constraints>
+
+  <NonGoals>
+    <NonGoal>
+      Edge fade / overflow indicators or a visible scrollbar for the strip
+      (separate UX decision); smooth scroll animation.
+    </NonGoal>
+  </NonGoals>
+
+  <AcceptanceCriteria>
+    <Criterion>
+      After any activation change (cycle, sidebar, close-neighbor, reorder,
+      restore) the active tab ends fully inside the visible window of the
+      strip, clamped to [0, scrollWidth - clientWidth].
+    </Criterion>
+    <Criterion>
+      Clicking a visible tab or re-activating the current tab causes no
+      scroll jump.
+    </Criterion>
+    <Criterion>
+      Renderer suites green; new tests cover every R-4 scenario.
+    </Criterion>
+  </AcceptanceCriteria>
+
+  <AffectedAreas>
+    <M-011>tabs.vue scrollActiveTabIntoView + watcher; new util/tabsScroll.js (C-6)</M-011>
+  </AffectedAreas>
+
+  <VerificationIntent>
+    Deterministic gates: tests/renderer/components/tabs-scroll.test.js (pure
+    helper branches + component integration with stubbed geometry) plus the
+    full renderer suite. Manual QA scenario C-6 in the QA document: cycle
+    Ctrl+Tab past the visible edge and confirm the strip follows the active
+    tab.
+  </VerificationIntent>
+
+  <Approval>
+    <ApprovedBy>user (session 2026-09-16): "план верификация ревью экзекющен 2 зеленых ревью тесты 100%, тестовый билд по всем последним багам"</ApprovedBy>
+    <ApprovalScope>Full cycle: plan, implement, test, 2 green reviews, test build, QA scenarios.</ApprovalScope>
+  </Approval>
+</C-6>
+</GraceChangeSpec>

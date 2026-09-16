@@ -1,0 +1,194 @@
+<GraceChangePlan graceVersion='4.0' status='approved'>
+<C-6>
+  <ChangeRef>C-6</ChangeRef>
+  <Created>2026-09-16</Created>
+
+  <IntentSummary>
+    Make the active editor tab always visible in the tab strip: pure
+    computeActiveTabScroll helper + tabs.vue watcher/mount hook that applies
+    the minimal scrollLeft, with jsdom-stubbed geometry tests, graph and
+    verification updates, two green review passes, a full green suite, a test
+    build, and a QA scenario document covering C-2..C-6.
+  </IntentSummary>
+
+  <BaselineAssertions>
+    <MustContain>
+      <File>src/renderer/src/components/editorWithTabs/tabs.vue</File>
+      <Text>handleTabScroll</Text>
+    </MustContain>
+    <MustContain>
+      <File>tests/renderer/components/tabs-coverage.test.js</File>
+      <Text>dragula drop handler calls EXCHANGE_TABS_BY_ID</Text>
+    </MustContain>
+  </BaselineAssertions>
+
+  <TargetAssertions>
+    <MustContain>
+      <File>src/renderer/src/util/tabsScroll.js</File>
+      <Text>computeActiveTabScroll</Text>
+    </MustContain>
+    <MustContain>
+      <File>src/renderer/src/components/editorWithTabs/tabs.vue</File>
+      <Text>scrollActiveTabIntoView</Text>
+    </MustContain>
+    <MustContain>
+      <File>tests/renderer/components/tabs-scroll.test.js</File>
+      <Text>computeActiveTabScroll</Text>
+    </MustContain>
+    <MustContain>
+      <File>.grace/verification/runtime.xml</File>
+      <Text>scenario-24</Text>
+    </MustContain>
+  </TargetAssertions>
+
+  <DurableScope>
+    <M-011/>
+  </DurableScope>
+
+  <ObservedWriteScope>
+    <File>src/renderer/src/util/tabsScroll.js</File>
+    <File>src/renderer/src/components/editorWithTabs/tabs.vue</File>
+    <File>tests/renderer/components/tabs-scroll.test.js</File>
+    <File>.grace/graph/runtime.xml</File>
+    <File>.grace/verification/runtime.xml</File>
+    <File>.grace/changes/active/C-6/spec.xml</File>
+    <File>.grace/changes/active/C-6/plan.xml</File>
+    <File>Mark-qa-C2-C6.md</File>
+  </ObservedWriteScope>
+
+  <ImplementationPlan>
+    <T-001>
+      <Title>Pure helper computeActiveTabScroll + unit tests</Title>
+      <DependsOn></DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>
+          Helper covers left clip, right clip, already-visible null, clamp
+          at 0, and wider-than-viewport left alignment; all pinned by tests.
+        </Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>npx vitest run tests/renderer/components/tabs-scroll.test.js</Command>
+      </Verification>
+    </T-001>
+
+    <T-002>
+      <Title>tabs.vue scrollActiveTabIntoView + watcher + mount hook</Title>
+      <DependsOn>T-001</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>
+          Watcher on [currentFile.id, tabs id order] and a post-mount
+          nextTick call apply the helper result to tabContainer.scrollLeft;
+          selection by data-id; no scrollIntoView.
+        </Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>npx vitest run tests/renderer/components/tabs.test.js tests/renderer/components/tabs-coverage.test.js</Command>
+      </Verification>
+    </T-002>
+
+    <T-003>
+      <Title>Component integration tests with stubbed geometry</Title>
+      <DependsOn>T-002</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>
+          Right-clip scroll, left-clip scroll back, visible no-op, reorder
+          scroll with unchanged active id, ghost-id silent no-op, and
+          initial-mount scroll all asserted via stubbed
+          offsetLeft/offsetWidth/clientWidth/scrollLeft.
+        </Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>npx vitest run tests/renderer/components/tabs-scroll.test.js</Command>
+      </Verification>
+    </T-003>
+
+    <T-004>
+      <Title>Graph + verification artifacts</Title>
+      <DependsOn>T-002</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>
+          graph/runtime.xml M-011 Interface gains fn-scrollActiveTabIntoView;
+          verification/runtime.xml V-M-011 gains scenario-24 (C-6) and the
+          tabs-scroll test command.
+        </Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>grace lint --path . --assertions current</Command>
+      </Verification>
+    </T-004>
+
+    <T-005>
+      <Title>Two green review passes</Title>
+      <DependsOn>T-003, T-004</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>
+          Review pass 1 findings fixed; review pass 2 returns green with no
+          blocking findings; both recorded in this plan's ReviewLog.
+        </Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>npx vitest run</Command>
+      </Verification>
+    </T-005>
+
+    <T-006>
+      <Title>Full suite green + test build + QA scenarios C-2..C-6</Title>
+      <DependsOn>T-005</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>
+          npm test 100% pass; npm run build succeeds; QA document lists
+          step-by-step manual scenarios for C-2 file-watch, C-3 copy-as-HTML,
+          C-4 sidebar rename, C-5 pinch-zoom, C-6 active-tab scroll.
+        </Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>npm test &amp;&amp; npm run build</Command>
+      </Verification>
+    </T-006>
+
+    <ReviewLog>
+      <Review number="1" date="2026-09-16" verdict="green">
+        <Findings>
+          Independent agent review: VERDICT green — 0 BLOCKER, 0 MAJOR,
+          5 MINOR, 3 NIT. Fixed: (1) wider-than-viewport tab oscillated
+          0↔150 between the clip branches and contradicted plan T-1
+          left-alignment — explicit oversized branch now left-aligns,
+          idempotent, test updated; (2) watcher getter returned a fresh
+          array so Object.is dedup was dead — source is now a primitive
+          join string, same-id clone replacement no-scroll test added;
+          (3) mirror-safety comment claimed dragula's gu-mirror can never
+          match li[data-id] (false — cloneNode(true) copies data-id into
+          the same ul) — selector hardened with :not(.gu-mirror) and
+          comment states the real document-order mechanism; (4) re-showing
+          the hidden tab bar (display:none discards scrollLeft) re-opened
+          the bug — added a layoutStore.showTabBar watcher + test;
+          (5) reorder test only covered array replacement — added a real
+          in-place EXCHANGE_TABS_BY_ID splice test; (NIT-7/8) documented
+          the browser clamp of the scrollLeft write and the offsetParent
+          geometry assumption. Accepted as-is: NIT-6 wheel-handler clamp
+          overshoot (pre-existing, adjacent, saved by browser clamping —
+          out of C-6 scope). All three tabs suites green (51/51) after
+          fixes.
+        </Findings>
+      </Review>
+      <Review number="2" date="2026-09-16" verdict="green">
+        <Findings>
+          Independent agent review (final gate): VERDICT green — 0 BLOCKER,
+          0 MAJOR, 1 MINOR, 2 NIT. All five pass-1 fixes confirmed, the
+          clone-no-scroll test proven discriminating by mutation (reverting
+          the primitive getter makes it fail), the oversized branch proven
+          oscillation-free by branch-dynamics analysis, and the
+          EXCHANGE_TABS_BY_ID splice test proven side-effect-safe. Residual
+          findings fixed in this session: (1) doc drift — graph
+          fn-scrollActiveTabIntoView and verification scenario-24 now
+          mention the showTabBar re-show trigger; (2) ReviewLog #2 filled
+          (this entry); (3) initial-mount test de-duplicated onto
+          seedAndMount. Suites after final edits: tabs-scroll 14 +
+          tabs 3 + tabs-coverage 34 = 51/51 green; full renderer suite
+          221 files / 3016 passed / 0 failed; grace lint 0 errors.
+        </Findings>
+      </Review>
+    </ReviewLog>
+  </ImplementationPlan>
+</C-6>
+</GraceChangePlan>

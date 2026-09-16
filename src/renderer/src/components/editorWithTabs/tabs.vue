@@ -29,13 +29,20 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount } from 'vue'
+// FILE: src/renderer/src/components/editorWithTabs/tabs.vue
+// VERSION: 1.2.0
+// START_CHANGE_SUMMARY
+//   - 2026-09-16 v1.1.0: auto-scroll the strip so the active tab is always visible (C-6) — activation via cycling, sidebar, close-to-neighbor, restore, or reorder no longer leaves the active tab off-screen.
+//   - 2026-09-16 v1.2.0: ResizeObserver on the strip re-reveals the active tab after container resize (C-7).
+// END_CHANGE_SUMMARY
+import { ref, watch, nextTick, onMounted, onBeforeUnmount } from 'vue'
 import { useEditorStore } from '@/store/editor'
 import { useLayoutStore } from '@/store/layout'
 import { storeToRefs } from 'pinia'
 import autoScroll from 'dom-autoscroller'
 import dragula from 'dragula'
 import { showContextMenu } from '../../contextMenu/tabs'
+import { computeActiveTabScroll } from '@/util/tabsScroll'
 import bus from '../../bus'
 
 const editorStore = useEditorStore()
@@ -70,6 +77,61 @@ const removeFileInTab = (file) => {
 const newFile = () => {
   editorStore.NEW_UNTITLED_TAB({})
 }
+
+// START_BLOCK_SCROLL_ACTIVE_TAB_INTO_VIEW
+// C-6: activation can change without a click on the strip (Ctrl+Tab cycling,
+// sidebar selection, close-to-neighbor, session restore, drag reorder), so
+// the active tab may sit outside the visible window. The :not(.gu-mirror)
+// guard matters because dragula clones the dragged li — data-id included —
+// into this same ul; today the original precedes the mirror in document
+// order, and the guard keeps that invariant from silently mattering.
+const scrollActiveTabIntoView = () => {
+  const container = tabContainer.value
+  const activeId = currentFile.value && currentFile.value.id
+  if (!container || !activeId) return
+  const activeTab = container.querySelector(`li[data-id="${activeId}"]:not(.gu-mirror)`)
+  if (!activeTab) return
+  // offsetLeft is relative to the offsetParent (the position:relative ul),
+  // which coincides with the scroll-content origin while the ul and
+  // .scrollable-tabs keep zero padding/border/margin.
+  const target = computeActiveTabScroll({
+    activeLeft: activeTab.offsetLeft,
+    activeWidth: activeTab.offsetWidth,
+    scrollLeft: container.scrollLeft,
+    viewportWidth: container.clientWidth
+  })
+  if (target !== null) {
+    // The strip element clamps the write to [0, scrollWidth - clientWidth].
+    container.scrollLeft = target
+  }
+}
+// END_BLOCK_SCROLL_ACTIVE_TAB_INTO_VIEW
+
+// Watch the active id plus the tab order as ONE primitive: Vue dedups
+// watcher sources with Object.is, so an array-returning getter would fire on
+// every tracked re-run even when id and order are unchanged (e.g. LOAD_CHANGE
+// restoring the same id). Reorder/add/remove can move the active tab
+// off-screen while its id stays the same — hence the order in the source.
+watch(
+  () => {
+    const activeId = (currentFile.value && currentFile.value.id) || ''
+    return `${activeId}\u0000${tabs.value.map((t) => t.id).join('\u0000')}`
+  },
+  () => nextTick(scrollActiveTabIntoView)
+)
+
+// Re-showing the hidden tab bar (view toggle) restarts from scrollLeft 0 —
+// display:none discards it — with the active tab possibly off-screen.
+watch(
+  () => layoutStore.showTabBar,
+  (visible) => {
+    if (visible) nextTick(scrollActiveTabIntoView)
+  }
+)
+
+// A container resize (window resize) can clip the active tab without any
+// store change (C-7); feature-detected because jsdom has no ResizeObserver.
+let resizeObserver = null
 
 const handleTabScroll = (event) => {
   // Use mouse wheel value first but prioritize X value more (e.g. touchpad input).
@@ -184,6 +246,21 @@ onMounted(() => {
       return autoScroller.down && drake.dragging
     }
   })
+
+  // A restored session can start with the active tab beyond the fold.
+  nextTick(scrollActiveTabIntoView)
+
+  if (typeof ResizeObserver !== 'undefined') {
+    resizeObserver = new ResizeObserver((entries) => {
+      const entry = entries[entries.length - 1]
+      // display:none reports zero width; the showTabBar watcher owns that
+      // transition instead.
+      if (entry && entry.contentRect.width > 0) {
+        nextTick(scrollActiveTabIntoView)
+      }
+    })
+    resizeObserver.observe(tabs)
+  }
 })
 
 onBeforeUnmount(() => {
@@ -195,6 +272,9 @@ onBeforeUnmount(() => {
   if (autoScroller) {
     // Force destroy
     autoScroller.destroy(true)
+  }
+  if (resizeObserver) {
+    resizeObserver.disconnect()
   }
   if (drake) {
     drake.destroy()
