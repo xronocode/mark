@@ -1,5 +1,5 @@
 // FILE: tests/renderer/commands/menu-consistency.test.js
-// VERSION: 1.1.0
+// VERSION: 1.3.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Keep native application-menu IDs and renderer command IDs synchronized.
 //   SCOPE: Source-level native-menu extraction, renderer command/shortcut extraction, and intentional renderer-only exceptions.
@@ -19,7 +19,9 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.1.0 - Require edit.undo/edit.redo to be native menu IDs routed to Muya history.
+//   LAST_CHANGE: v1.3.0 - Pin tabs.cycleForward/Backward menu ids + Ctrl+Tab/Ctrl+Shift+Tab accelerators; ids leave the RENDERER_ONLY_ALLOWLIST (C-8).
+//   v1.2.0 - Pin edit.copy-as-html menu id + Cmd+Shift+C accelerator (C-3).
+//   v1.1.0 - Require edit.undo/edit.redo to be native menu IDs routed to Muya history.
 // END_CHANGE_SUMMARY
 
 import { readFileSync } from 'node:fs'
@@ -137,9 +139,6 @@ const RENDERER_ONLY_ALLOWLIST = new Set([
   'window.change-theme',
   // Window management — command-palette accessible
   'window.toggle-always-on-top',
-  // Tab cycling — no standard shortcut
-  'tabs.cycleForward',
-  'tabs.cycleBackward',
   // Niche — command-palette only
   'edit.screenshot',
   'view.text-direction',
@@ -203,6 +202,32 @@ describe('menu ↔ commands consistency', () => {
     expect(buildFn).toMatch(
       /with_id\("edit\.redo", "Redo"\)[\s\S]*?accelerator\("CmdOrCtrl\+Shift\+Z"\)/
     )
+  })
+
+  it('pins Copy as HTML menu item id and Cmd+Shift+C accelerator (C-3)', () => {
+    const rust = readSource('src-tauri/src/m009_menu.rs')
+    const buildFn = rust.slice(rust.indexOf('pub fn build_native_menu'))
+
+    expect(buildFn).toMatch(
+      /with_id\("edit\.copy-as-html", "Copy as HTML"\)[\s\S]*?accelerator\("CmdOrCtrl\+Shift\+C"\)/
+    )
+    // The accelerator must stay unique across the whole menu.
+    expect(buildFn.match(/CmdOrCtrl\+Shift\+C/g)).toHaveLength(1)
+  })
+
+  it('pins tab-cycling menu item ids and Ctrl+Tab accelerators (C-8)', () => {
+    const rust = readSource('src-tauri/src/m009_menu.rs')
+    const buildFn = rust.slice(rust.indexOf('pub fn build_native_menu'))
+
+    expect(buildFn).toMatch(
+      /with_id\("tabs\.cycleForward", "Select Next Tab"\)[\s\S]*?accelerator\("Ctrl\+Tab"\)/
+    )
+    expect(buildFn).toMatch(
+      /with_id\("tabs\.cycleBackward", "Select Previous Tab"\)[\s\S]*?accelerator\("Ctrl\+Shift\+Tab"\)/
+    )
+    // Both accelerators stay unique across the whole menu.
+    expect(buildFn.match(/Ctrl\+Tab"/g)).toHaveLength(1)
+    expect(buildFn.match(/Ctrl\+Shift\+Tab"/g)).toHaveLength(1)
   })
 
   it('allowlist entries actually exist in renderer commands', () => {

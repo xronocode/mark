@@ -1,0 +1,73 @@
+<GraceChangeSpec graceVersion='4.0' status='approved'>
+<C-8>
+  <Name>Bind tab cycling to Ctrl+Tab / Ctrl+Shift+Tab via native Window menu</Name>
+  <Created>2026-09-16</Created>
+  <Priority>high</Priority>
+  <Status>implemented</Status>
+
+  <Summary>
+    The commands tabs.cycleForward / tabs.cycleBackward exist in the
+    renderer registry but have no accelerator and no menu entry (they sit in
+    the menu-consistency RENDERER_ONLY_ALLOWLIST with the reason "Tab
+    cycling — no standard shortcut"), so the user cannot cycle tabs from
+    the keyboard at all — the primary repro path of the original C-6 bug
+    report. Add "Select Next Tab" (Ctrl+Tab) and "Select Previous Tab"
+    (Ctrl+Shift+Tab) items to the native Window submenu; the existing
+    menu→command bridge dispatches the ids to the already-registered
+    commands (bus mt::tabs-cycle-right/left → editor store).
+  </Summary>
+
+  <Problem>
+    <Description>No keyboard way to switch tabs; cycling exists only via command palette.</Description>
+    <RootCause>The port never wired v1's cycling accelerators; menu-consistency allowlisted the ids as renderer-only.</RootCause>
+    <Evidence>
+      grep tabs.cycleForward across src/renderer/src → only
+      commands/index.js definition, descriptions.js, constants.js; no
+      keymap reference. CUA QA 2026-09-16 marked Ctrl+Tab scenarios N/A
+      for exactly this reason.
+    </Evidence>
+  </Problem>
+
+  <Goals>
+    <R-1>
+      m009_menu.rs Window submenu gains tabs.cycleForward ("Select Next
+      Tab", Ctrl+Tab) and tabs.cycleBackward ("Select Previous Tab",
+      Ctrl+Shift+Tab).
+    </R-1>
+    <R-2>
+      menu-consistency test: remove both ids from RENDERER_ONLY_ALLOWLIST
+      and pin the new ids + accelerators against the Rust source.
+    </R-2>
+  </Goals>
+
+  <Constraints>
+    <Constraint>Reuse the existing menu-id → renderer-command bridge; no new IPC.</Constraint>
+    <Constraint>Accelerators use Ctrl (⌃), not Cmd — ⌘Tab is reserved by macOS.</Constraint>
+  </Constraints>
+
+  <NonGoals>
+    <NonGoal>Cmd+1..9 switch-to-Nth bindings (separate consideration).</NonGoal>
+  </NonGoals>
+
+  <AcceptanceCriteria>
+    <Criterion>Ctrl+Tab / Ctrl+Shift+Tab cycle tabs in the live app, including past the visible strip edge (strip auto-scrolls per C-6).</Criterion>
+    <Criterion>menu-consistency suite green with the pins updated.</Criterion>
+  </AcceptanceCriteria>
+
+  <AffectedAreas>
+    <M-009>Window submenu items + accelerators (C-8)</M-009>
+    <M-013>menu-consistency pins (C-8)</M-013>
+  </AffectedAreas>
+
+  <VerificationIntent>
+    tests/renderer/commands/menu-consistency.test.js pins; CUA live check:
+    cycle with Ctrl+Tab past the strip edge and watch the active tab stay
+    visible.
+  </VerificationIntent>
+
+  <Approval>
+    <ApprovedBy>user (session 2026-09-16): "ну то есть гоу?"</ApprovedBy>
+    <ApprovalScope>Implement with the C-7/C-9 batch; same review + CUA gates.</ApprovalScope>
+  </Approval>
+</C-8>
+</GraceChangeSpec>

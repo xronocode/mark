@@ -2645,6 +2645,27 @@
             </Attribute>
           </LegacyAttributes>
         </fn-handleCopyAsHtml>
+        <fn-scrollActiveTabIntoView>
+          <LegacyAttributes>
+            <Attribute>
+              <Name>PURPOSE</Name>
+              <Value>
+                Scroll the tab strip (.scrollable-tabs) by the minimal
+                scrollLeft that fully reveals the active tab, selected by
+                data-id; driven by a watcher on [currentFile.id, tab id order],
+                by a post-mount nextTick call, re-run when layout showTabBar
+                flips true (display:none discards scrollLeft), and by a
+                ResizeObserver on the strip (window resize can clip the
+                active tab without any store change, C-7), so cycling,
+                sidebar selection, close-to-neighbor activation, session
+                restore, drag reorder, re-showing the hidden tab bar, and
+                container resize can never leave the active tab off-screen
+                (C-6/C-7; geometry from util/tabsScroll.js
+                computeActiveTabScroll)
+              </Value>
+            </Attribute>
+          </LegacyAttributes>
+        </fn-scrollActiveTabIntoView>
         <fn-scrollToCords>
           <LegacyAttributes>
             <Attribute>
@@ -2949,6 +2970,18 @@
             </Attribute>
           </LegacyAttributes>
         </fn-getMarkdown>
+        <fn-getCopyData>
+          <LegacyAttributes>
+            <Attribute>
+              <Name>PURPOSE</Name>
+              <Value>
+                Return { text } — the markdown of the current selection
+                (DOM range, table cells, or image) without writing to the
+                system clipboard (C-3)
+              </Value>
+            </Attribute>
+          </LegacyAttributes>
+        </fn-getCopyData>
         <fn-setOptions>
           <LegacyAttributes>
             <Attribute>
