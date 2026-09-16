@@ -1,0 +1,105 @@
+<GraceChangePlan graceVersion='4.0' status='approved'>
+<C-4>
+  <ChangeRef>C-4</ChangeRef>
+  <Created>2026-09-16</Created>
+
+  <IntentSummary>
+    Plan (not yet implement) the missing RENAME_IF_NEEDED editor-store
+    action so sidebar rename of open files stops rejecting with a TypeError
+    and the tab + its file-watcher follow the new path.
+  </IntentSummary>
+
+  <BaselineAssertions>
+    <MustContain>
+      <File>src/renderer/src/store/project.js</File>
+      <Text>RENAME_IF_NEEDED</Text>
+    </MustContain>
+    <MustNotContain>
+      <File>src/renderer/src/store/editor.js</File>
+      <Text>RENAME_IF_NEEDED ({ src, dest })</Text>
+    </MustNotContain>
+  </BaselineAssertions>
+
+  <TargetAssertions>
+    <MustContain>
+      <File>src/renderer/src/store/editor.js</File>
+      <Text>RENAME_IF_NEEDED</Text>
+    </MustContain>
+    <MustContain>
+      <File>tests/renderer/store/editor-deep2.test.js</File>
+      <Text>RENAME_IF_NEEDED</Text>
+    </MustContain>
+  </TargetAssertions>
+
+  <DurableScope>
+    <M-032/>
+    <M-036/>
+  </DurableScope>
+
+  <ObservedWriteScope>
+    <File>src/renderer/src/store/editor.js</File>
+    <File>src/renderer/src/store/project.js</File>
+    <File>tests/renderer/store/editor-deep2.test.js</File>
+    <File>tests/renderer/store/project.test.ts</File>
+  </ObservedWriteScope>
+
+  <ImplementationPlan>
+    <T-001>
+      <Title>Implement RENAME_IF_NEEDED in the editor store</Title>
+      <DependsOn></DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>
+          Action finds tabs by isSamePathSync(src), updates pathname +
+          filename to dest, emits bus 'rename' for the editor surface.
+        </Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>npx vitest run tests/renderer/store/editor-deep2.test.js</Command>
+      </Verification>
+    </T-001>
+
+    <T-002>
+      <Title>Move the per-file watcher to the new path</Title>
+      <DependsOn>T-001</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>
+          For each affected tab: unsubscribe old path, subscribe new path
+          via the C-2 pending-marker protocol, drop the src generation.
+        </Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>npx vitest run tests/renderer/store/editor-deep2.test.js</Command>
+      </Verification>
+    </T-002>
+
+    <T-003>
+      <Title>Harden RENAME_IN_SIDEBAR error handling + tests</Title>
+      <DependsOn>T-001</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>
+          Store-action failure surfaces via notice.notify; four scenarios
+          (one tab, no tab, two tabs, watcher resubscribe) pinned by tests.
+        </Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>npx vitest run tests/renderer/store/project.test.ts</Command>
+      </Verification>
+    </T-003>
+
+    <T-004>
+      <Title>Runtime smoke on the live app</Title>
+      <DependsOn>T-002, T-003</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>
+          Sidebar rename of an open file, then external edit of the renamed
+          file → BLOCK_LIVE_RELOAD for the new path in stderr; old path
+          inert.
+        </Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>bash tools/dev-smoke.sh</Command>
+      </Verification>
+    </T-004>
+  </ImplementationPlan>
+</C-4>
+</GraceChangePlan>

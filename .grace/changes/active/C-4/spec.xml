@@ -1,0 +1,108 @@
+<GraceChangeSpec graceVersion='4.0' status='approved'>
+<C-4>
+  <Name>Fix sidebar rename of open files: missing RENAME_IF_NEEDED action</Name>
+  <Created>2026-09-16</Created>
+  <Priority>high</Priority>
+  <Status>planned-only</Status>
+
+  <Summary>
+    store/project.js RENAME_IN_SIDEBAR calls editorStore.RENAME_IF_NEEDED({src,
+    dest}) — an action that does not exist in the editor store. Renaming a
+    file with an open tab from the sidebar rejects with a TypeError inside
+    the rename(...).then callback (unhandled rejection), the tab keeps the
+    old pathname/filename, and its per-file watcher stays keyed to the old
+    path (external changes to the renamed file stop live-reloading).
+    Discovered during C-2 recon; planned here so it is not forgotten.
+    NOT IMPLEMENTED YET — this is a planning artifact only.
+  </Summary>
+
+  <Problem>
+    <Description>
+      Sidebar rename of an open file breaks the open tab: TypeError
+      (RENAME_IF_NEEDED is not a function), stale tab pathname, stale
+      watcher subscription.
+    </Description>
+    <RootCause>
+      project.js:529 references a v1-era action name that was never ported
+      into the Pinia editor store.
+    </RootCause>
+    <Evidence>
+      grep RENAME_IF_NEEDED across src/renderer/src → single call site in
+      store/project.js RENAME_IN_SIDEBAR; no definition anywhere.
+    </Evidence>
+  </Problem>
+
+  <Goals>
+    <R-1>
+      Implement editor-store action RENAME_IF_NEEDED({src, dest}): find tabs
+      whose pathname matches src (window.fileUtils.isSamePathSync), update
+      pathname + filename to dest, and notify the editor surface via the
+      existing bus channel used by RENAME_FILE (bus.emit('rename')) so the
+      tab title and source-code path follow.
+    </R-1>
+    <R-2>
+      Move the per-file watcher subscription: _unsubscribeFileWatch(src) +
+      _subscribeFileWatch(dest) for each affected tab (C-2 pending-marker
+      protocol makes this race-safe). Drop liveReloadGenerations for src.
+    </R-2>
+    <R-3>
+      No unhandled rejection remains in RENAME_IN_SIDEBAR; failure of the
+      store action must surface via notice.notify like other sidebar errors.
+    </R-3>
+    <R-4>
+      Unit tests: rename with one open tab (title/path/watcher follow),
+      rename with no open tab (no-op), rename with two tabs on the same
+      file, watcher resubscription asserted via the ipcWatch mock.
+    </R-4>
+  </Goals>
+
+  <Constraints>
+    <Constraint>
+      Reuse the C-2 watch-subscribe protocol; do not introduce a second
+      subscription mechanism.
+    </Constraint>
+    <Constraint>
+      Match v1 semantics: only tabs of the renamed file move; other tabs
+      untouched.
+    </Constraint>
+  </Constraints>
+
+  <NonGoals>
+    <NonGoal>
+      Bulk rename, undo of rename, or directory rename propagation to open
+      tabs (separate concerns if ever needed).
+    </NonGoal>
+  </NonGoals>
+
+  <AcceptanceCriteria>
+    <Criterion>
+      Sidebar rename of an open file updates the tab (pathname, filename,
+      tab title) with zero console errors.
+    </Criterion>
+    <Criterion>
+      After rename, an external edit of the NEW path live-reloads the tab
+      and an external edit of the OLD path does nothing.
+    </Criterion>
+    <Criterion>
+      Renderer suites green; new tests cover all four R-4 scenarios.
+    </Criterion>
+  </AcceptanceCriteria>
+
+  <AffectedAreas>
+    <M-032>editor store: new RENAME_IF_NEEDED action + watcher move (store/editor.js)</M-032>
+    <M-036>project store: RENAME_IN_SIDEBAR error handling (store/project.js)</M-036>
+  </AffectedAreas>
+
+  <VerificationIntent>
+    Unit tests in tests/renderer/store/editor-deep*.test.js + project.test.ts
+    pinning the four scenarios; runtime smoke: rename an open file in the
+    sidebar of the live app, externally edit the renamed file, confirm
+    BLOCK_LIVE_RELOAD for the new path in stderr.
+  </VerificationIntent>
+
+  <Approval>
+    <ApprovedBy>user (session 2026-09-16): "запланируй чтобы не забыли"</ApprovedBy>
+    <ApprovalScope>Planning only; implementation is a future session.</ApprovalScope>
+  </Approval>
+</C-4>
+</GraceChangeSpec>
