@@ -1,5 +1,5 @@
 // FILE: src-tauri/src/m009_menu.rs
-// VERSION: 2.1.3-beta
+// VERSION: 2.1.10-beta
 // START_MODULE_CONTRACT
 //   PURPOSE: M-009 mt-menu. Native macOS application menu + command-id
 //            taxonomy for the renderer's command palette / sidebar /
@@ -11,7 +11,9 @@
 //            returns it for main.rs to wire into Builder.setup +
 //            on_menu_event. Undo/redo use explicit renderer command IDs
 //            because Muya owns history; cut/copy/paste remain Tauri
-//            predefined responder-chain items; Find / Replace /
+//            predefined responder-chain items; Copy as HTML (Cmd+Shift+C,
+//            C-3) dispatches edit.copy-as-html for a rich text/html
+//            clipboard write; Find / Replace /
 //            Find-in-Folder are custom dispatched; (c) dynamic
 //            renderer-requested native context menus return the selected
 //            renderer item id without leaking their events onto the global
@@ -52,6 +54,13 @@
 //                context menus and return the selected item id.
 //   - 2026-08-07 v2.1.3-beta: route native Cmd+Z/Cmd+Shift+Z through
 //                edit.undo/edit.redo so Muya history receives them.
+//   - 2026-09-16 v2.1.10-beta: add Edit-menu "Copy as HTML"
+//                (edit.copy-as-html, Cmd+Shift+C) for rich text/html
+//                clipboard writes (C-3).
+//   - 2026-09-16 v2.1.10-beta: add Window-menu "Select Next/Previous
+//                Tab" (tabs.cycleForward/Backward, Ctrl+Tab /
+//                Ctrl+Shift+Tab) — first keyboard binding for tab
+//                cycling (C-8).
 // END_CHANGE_SUMMARY
 
 use serde::{Deserialize, Serialize};
@@ -487,6 +496,20 @@ pub fn standard_menu() -> Vec<MenuItem> {
             accelerator: None,
             items: Some(vec![
                 MenuItem {
+                    id: "tabs.cycleForward".to_string(),
+                    label: "Select Next Tab".to_string(),
+                    command: None,
+                    accelerator: Some("Ctrl+Tab".to_string()),
+                    items: None,
+                },
+                MenuItem {
+                    id: "tabs.cycleBackward".to_string(),
+                    label: "Select Previous Tab".to_string(),
+                    command: None,
+                    accelerator: Some("Ctrl+Shift+Tab".to_string()),
+                    items: None,
+                },
+                MenuItem {
                     id: "window.minimize".to_string(),
                     label: "Minimize".to_string(),
                     command: Some("minimize".to_string()),
@@ -660,6 +683,11 @@ pub fn build_native_menu<R: tauri::Runtime>(
         .copy()
         .paste()
         .item(
+            &MenuItemBuilder::with_id("edit.copy-as-html", "Copy as HTML")
+                .accelerator("CmdOrCtrl+Shift+C")
+                .build(handle)?,
+        )
+        .item(
             &MenuItemBuilder::with_id("edit.select-all", "Select All")
                 .accelerator("CmdOrCtrl+A")
                 .build(handle)?,
@@ -771,6 +799,17 @@ pub fn build_native_menu<R: tauri::Runtime>(
 
     // ── Window menu ──────────────────────────────────────────────────
     let window_submenu = SubmenuBuilder::new(handle, "Window")
+        .item(
+            &MenuItemBuilder::with_id("tabs.cycleForward", "Select Next Tab")
+                .accelerator("Ctrl+Tab")
+                .build(handle)?,
+        )
+        .item(
+            &MenuItemBuilder::with_id("tabs.cycleBackward", "Select Previous Tab")
+                .accelerator("Ctrl+Shift+Tab")
+                .build(handle)?,
+        )
+        .separator()
         .item(
             &MenuItemBuilder::with_id("window.minimize", "Minimize")
                 .accelerator("CmdOrCtrl+M")
@@ -1005,7 +1044,14 @@ mod tests {
                 item.id.as_str(),
                 "file.open-recent" | "view.theme"
             );
-            if !has_static_children && !dynamic_submenu {
+            // C-8: tab-cycling leaves are id-dispatched only — they have
+            // no legacy v1 command name (the menu-bridge looks them up by
+            // id in the renderer command registry).
+            let id_dispatched_only = matches!(
+                item.id.as_str(),
+                "tabs.cycleForward" | "tabs.cycleBackward"
+            );
+            if !has_static_children && !dynamic_submenu && !id_dispatched_only {
                 assert!(
                     item.command.is_some(),
                     "leaf {} should have a command",
@@ -1042,6 +1088,16 @@ mod tests {
         let flat = flatten(&menu);
         for item in &flat {
             if !item.id.contains('.') {
+                continue;
+            }
+            // C-8: tabs.cycleForward/Backward predate this convention in
+            // the renderer command registry; they stay camelCase to match
+            // src/renderer/src/commands/index.js verbatim for menu-bridge
+            // dispatch.
+            if matches!(
+                item.id.as_str(),
+                "tabs.cycleForward" | "tabs.cycleBackward"
+            ) {
                 continue;
             }
             // Reject camelCase: any uppercase letter after the first

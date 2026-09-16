@@ -1,0 +1,88 @@
+<GraceChangePlan graceVersion='4.0' status='approved'>
+<C-8>
+  <ChangeRef>C-8</ChangeRef>
+  <Created>2026-09-16</Created>
+  <IntentSummary>Native Window-menu items bind tab cycling to Ctrl+Tab / Ctrl+Shift+Tab.</IntentSummary>
+  <BaselineAssertions>
+    <MustContain>
+      <File>src-tauri/src/m009_menu.rs</File>
+      <Text>window.toggle-full-screen</Text>
+    </MustContain>
+    <MustContain>
+      <File>tests/renderer/commands/menu-consistency.test.js</File>
+      <Text>RENDERER_ONLY_ALLOWLIST</Text>
+    </MustContain>
+  </BaselineAssertions>
+  <TargetAssertions>
+    <MustContain>
+      <File>src-tauri/src/m009_menu.rs</File>
+      <Text>tabs.cycleForward</Text>
+    </MustContain>
+    <MustContain>
+      <File>src-tauri/src/m009_menu.rs</File>
+      <Text>Ctrl+Tab</Text>
+    </MustContain>
+  </TargetAssertions>
+  <DurableScope>
+    <M-009/>
+    <M-013/>
+  </DurableScope>
+  <ObservedWriteScope>
+    <File>src-tauri/src/m009_menu.rs</File>
+    <File>tests/renderer/commands/menu-consistency.test.js</File>
+  </ObservedWriteScope>
+  <ImplementationPlan>
+    <T-001>
+      <Title>Window submenu items + menu-consistency pins</Title>
+      <DependsOn></DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>tabs.cycleForward/Backward menu ids with Ctrl+Tab / Ctrl+Shift+Tab accelerators; ids removed from RENDERER_ONLY_ALLOWLIST; accelerator pins added.</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>npx vitest run tests/renderer/commands/menu-consistency.test.js</Command>
+      </Verification>
+    </T-001>
+    <T-002>
+      <Title>Cargo gates for the Rust change</Title>
+      <DependsOn>T-001</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>cargo check AND cargo test --bin mark -- m009_menu pass (review pass 1 caught two menu unit tests failing under cargo check-only gating: camelCase ids and command-less leaves needed explicit exceptions).</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>cargo check -q &amp;&amp; cargo test --bin mark -- m009_menu</Command>
+      </Verification>
+    </T-002>
+  </ImplementationPlan>
+  <ReviewLog>
+    <Review number="1" date="2026-09-16" verdict="changes-requested">
+      <Findings>
+        Independent agent review: 1 BLOCKER + 2 MINOR + 0 NIT for C-8.
+        Fixed: (1) BLOCKER — two Rust unit tests in m009_menu.rs failed
+        (every_leaf_has_command_or_is_dynamic_submenu: command-less
+        leaves; ids_use_dashed_renderer_convention: camelCase ids);
+        extended both with explicit tabs.cycleForward/Backward exceptions
+        (ids must stay camelCase to match the renderer registry
+        verbatim); gate upgraded from cargo check to cargo test
+        (T-002); 10/10 green. Known gap accepted: (2) boot race — a
+        Ctrl+Tab during webview boot fires the bus event before the
+        editor store registers mt::tabs-cycle-right/left listeners
+        (pre-existing systemic pattern for every bus-based command, not
+        a C-8 regression; closing it belongs to a bootstrap-ipc change).
+        (3) CHANGE_SUMMARY entry added (v1.3.0).
+      </Findings>
+    </Review>
+    <Review number="2" date="2026-09-16" verdict="green">
+      <Findings>
+        Final gate: VERDICT green. End-to-end dispatch chain verified
+        (native menu ids → main.rs on_menu_event → mt::menu-invoked →
+        menu-bridge id lookup → commands/index.js bus emissions →
+        editor store listeners); taxonomy and native menu both carry the
+        items; accelerator uniqueness pins have no substring false-match.
+        One actionable MINOR fixed post-pass-2: menu-consistency VERSION
+        header bumped to 1.3.0 (parity with LAST_CHANGE). Rust 10/10
+        stands (no Rust change after pass-2 run).
+      </Findings>
+    </Review>
+  </ReviewLog>
+</C-8>
+</GraceChangePlan>

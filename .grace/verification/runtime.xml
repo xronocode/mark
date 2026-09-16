@@ -3299,6 +3299,19 @@
           renderer commands; the macOS responder chain is never the sole Muya
           history route.
         </Scenario>
+        <Scenario>
+          scenario-13: Edit menu exposes "Copy as HTML" (id
+          `edit.copy-as-html`, accelerator Cmd+Shift+C, C-3); the id has a
+          matching renderer command and the accelerator is pinned by
+          tests/renderer/commands/menu-consistency.test.js.
+        </Scenario>
+        <Scenario>
+          scenario-14: Window menu exposes "Select Next Tab" /
+          "Select Previous Tab" (ids `tabs.cycleForward` /
+          `tabs.cycleBackward`, accelerators Ctrl+Tab / Ctrl+Shift+Tab, C-8);
+          ids removed from the RENDERER_ONLY_ALLOWLIST and pinned against
+          the Rust menu source by tests/renderer/commands/menu-consistency.test.js.
+        </Scenario>
       </Scenarios>
       <Markers>
         <Marker>[Menu][onInvoke][BLOCK_DISPATCH] { menu_id }</Marker>
@@ -4101,6 +4114,12 @@
           npx vitest run tests/renderer/components/titleBar-deep.test.js
           tests/renderer/components/editor-coverage.test.js
         </Command>
+        <Command>
+          npx vitest run tests/renderer/components/tabs-scroll.test.js
+          tests/renderer/components/tabs.test.js
+          tests/renderer/components/tabs-coverage.test.js
+          tests/renderer/components/titleBar-resize.test.js
+        </Command>
         <Command>npm run typecheck:ipc</Command>
         <Command>npm run build</Command>
         <Command>npm run tauri:build</Command>
@@ -4204,8 +4223,45 @@
           document with identical Markdown preserve the user&apos;s live text
           selection.
         </Scenario>
+        <Scenario>
+          scenario-23: `copyAsHtmlRich` bus handler (C-3) writes the selection
+          payload via native clipboard-manager `writeHtml` (text/html +
+          text/plain), falls back to the whole document (getMarkdown + muya
+          marked) when nothing is selected, no-ops on an empty document, and
+          falls back to Muya `copyAsRich` when the native write rejects;
+          unregistered on unmount.
+        </Scenario>
+        <Scenario>
+          scenario-24: the tab strip auto-scrolls to keep the active tab
+          visible (C-6): switching activation via cycling, sidebar selection,
+          close-to-neighbor, session restore, drag reorder, or re-showing the
+          hidden tab bar (display:none discards scrollLeft) applies the
+          minimal scrollLeft that fully reveals the tab (pure geometry
+          computeActiveTabScroll pinned with stubbed jsdom geometry in
+          tests/renderer/components/tabs-scroll.test.js); a fully visible tab
+          never causes a scroll jump, and a transient active id with no
+          matching tab is a silent no-op.
+        </Scenario>
+        <Scenario>
+          scenario-25: a tab-strip container resize re-reveals the active tab
+          (C-7): a feature-detected ResizeObserver on .scrollable-tabs runs
+          the same scroll for width changes (zero-width display:none entries
+          are ignored; observer disconnects on unmount) — pinned in
+          tests/renderer/components/tabs-scroll.test.js resize cases.
+        </Scenario>
+        <Scenario>
+          scenario-26: the title-bar breadcrumb never collides with the nav
+          cluster or the word count (C-9): .title is constrained between real
+          clearances (macOS left 250px, right 150px) and .title-path shrinks
+          with flex-end clipping so only the OLDEST path segments clip while
+          the filename stays fully visible; structure and CSS pinned in
+          tests/renderer/components/titleBar-resize.test.js (the unreliable
+          GH#339 `div.title > span` rtl-clip rule is gone; below the 600px
+          window minimum the title box collapses instead of overlapping).
+        </Scenario>
       </Scenarios>
       <Markers>
+        <Marker>[Editor][handleCopyAsHtml][BLOCK_COPY_AS_HTML] native writeHtml failed → execCommand fallback</Marker>
         <Marker>[Renderer][mount][BLOCK_INSTANTIATE_MUYA]</Marker>
         <Marker>[Renderer][mount][BLOCK_HOST_HOOKS_WIRED] { hooks: 7 }</Marker>
         <Marker>[TitleBar][handleTitleContextMenu][BLOCK_COPY_PATH]</Marker>
@@ -4774,6 +4830,7 @@
         <Command>yarn unit -- test/unit/muya/api-snapshot.spec.js</Command>
         <Command>
           npx vitest run tests/renderer/muya/keyboard-undo.test.js
+          tests/renderer/muya/copy-data.test.js
           tests/renderer/commands/menu-consistency.test.js
           tests/renderer/menu-bridge.test.js
         </Command>
@@ -4842,6 +4899,14 @@
           correctly but dark theme colors (background/text) blend with editor
           dark background. Needs smart auto-inversion or light background
           substrate under diagram containers. Non-blocking.
+        </Scenario>
+        <Scenario>
+          scenario-14: `getCopyData()` (C-3) returns `{ text }` — the markdown of
+          whatever is selected (DOM range via contentState
+          getClipBoardData, selected table cells via the
+          docCopyHandler-style export, selected image via token.raw) —
+          without invoking the clipboard transport
+          (tests/renderer/muya/copy-data.test.js).
         </Scenario>
       </Scenarios>
       <Markers>
