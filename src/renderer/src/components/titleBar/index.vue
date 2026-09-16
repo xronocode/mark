@@ -10,20 +10,22 @@
         { frameless: titleBarStyle === 'custom' },
         { isOsx: isOsx }
       ]"
+      @dblclick.stop="handleTitleBarDblclick"
     >
       <div
         class="title"
         data-tauri-drag-region
-        @dblclick.stop="toggleMaxmizeOnMacOS"
         @contextmenu.stop.prevent="handleTitleContextMenu"
       >
         <span v-if="!filename">Mark</span>
-        <span v-else>
-          <span v-for="(path, index) of paths" :key="index">
-            {{ path }}
-            <svg class="icon" aria-hidden="true">
-              <use xlink:href="#icon-arrow-right"></use>
-            </svg>
+        <span v-else class="title-breadcrumb">
+          <span class="title-path">
+            <span v-for="(path, index) of paths" :key="index" class="title-path-segment">
+              {{ path }}
+              <svg class="icon" aria-hidden="true">
+                <use xlink:href="#icon-arrow-right"></use>
+              </svg>
+            </span>
           </span>
           <span class="filename title-no-drag" :class="{ isOsx: platform === 'darwin' }" @click="rename">
             {{ filename }}
@@ -198,7 +200,7 @@
 
 <script setup>
 // FILE: src/renderer/src/components/titleBar/index.vue
-// VERSION: 1.2.0
+// VERSION: 1.3.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Render the main window title bar and expose its navigation, native file-path actions, window controls, and drag affordances.
 //   SCOPE: Renderer-side titlebar behavior, including sidebar/view navigation, title updates, native title context menus, direct window controls, and WKWebView/macOS drag fallbacks.
@@ -225,6 +227,7 @@
 //     fallback for transparent WKWebView windows.
 //   - 2026-08-07 v1.1.0: add the native title-path Copy Path menu for UC-029.
 //   - 2026-08-07 v1.2.0: write Copy Path through the native Tauri clipboard plugin because WKWebView user activation expires while the native menu is open.
+//   - 2026-09-16 v1.3.0: C-9 — constrain the breadcrumb inside real title clearances and clip the oldest path segments (flex-end shrink) so path/filename never collide with the nav cluster or word count at narrow widths; removes the dead GH#339 `div.title > span` rule.
 // END_CHANGE_SUMMARY
 
 // step-8g: @electron/remote.Menu also gone. Application-menu popup
@@ -527,6 +530,18 @@ const toggleMaxmizeOnMacOS = () => {
   }
 }
 
+// C-9: the title box shrank to the area between the nav cluster and the
+// right toolbar, so the dblclick-to-zoom gesture moved to the whole bar;
+// interactive zones opt out.
+const handleTitleBarDblclick = (event) => {
+  if (
+    event.target.closest('.title-no-drag, .titlebar-nav, .right-toolbar, .left-toolbar')
+  ) {
+    return
+  }
+  toggleMaxmizeOnMacOS()
+}
+
 const handleMinimizeClick = async () => {
   const { getCurrentWindow } = await import('@tauri-apps/api/window')
   await getCurrentWindow().minimize()
@@ -630,8 +645,20 @@ img {
   vertical-align: top;
 }
 .title {
-  padding: 0 142px;
+  /* C-9: absolutely position the title between real clearances so its
+     width is genuinely constrained. The old fixed `padding: 0 142px`
+     predated the v1.1.0 nav cluster (~240px on macOS), and the GH#339
+     rtl-clip on the direct-child span never produced a reliable
+     left-side-only clip under the inherited centered text layout. */
+  position: absolute;
+  top: 0;
   height: 100%;
+  left: 180px;
+  right: 150px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
   line-height: var(--titleBarHeight);
   font-size: 14px;
   text-align: center;
@@ -640,13 +667,37 @@ img {
     transition: all 0.25s ease-in-out;
   }
 }
-div.title > span {
-  /* Workaround for GH#339 */
-  display: block;
-  direction: rtl;
-  overflow: hidden;
-  text-overflow: clip;
+.title-bar.isOsx .title {
+  /* traffic lights (78px) + titlebar-nav (5 × 28px + divider) */
+  left: 250px;
+}
+.title-breadcrumb {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  min-width: 0;
   white-space: nowrap;
+}
+.title-path {
+  /* Shrinks first: overflow clips the OLDEST path segments on the left
+     (flex-end packing) so the nearest folder + filename stay visible. */
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+  flex: 0 1 auto;
+  overflow: hidden;
+  justify-content: flex-end;
+}
+.title-path-segment {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+.title-breadcrumb .filename {
+  flex-shrink: 0;
+}
+.title-breadcrumb .save-dot {
+  flex-shrink: 0;
 }
 
 .title-bar .title .filename.isOsx:hover {
@@ -667,7 +718,7 @@ div.title > span {
   visibility: visible;
 }
 .title:hover {
-  color: var(sideBarTitleColor);
+  color: var(--sideBarTitleColor);
 }
 
 .left-toolbar {
