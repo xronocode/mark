@@ -194,8 +194,12 @@ export const useProjectStore = defineStore('project', {
       // emits debounced WatchEvents on mt::watch::event; the handler
       // translates them into tree-update events and open-tab change
       // notifications. Dispose on CLOSE_PROJECT.
+      // C-2: manual listener — this is a store-scope subscription (no
+      // component to unmount); disposal is owned by CLOSE_PROJECT.
       ipcWatch
-        .subscribe(canonical, (event) => this._handleWatchEvent(canonical, event))
+        .subscribe(canonical, (event) => this._handleWatchEvent(canonical, event), {
+          listener: { manual: true }
+        })
         .then((dispose) => {
           watchDisposers.set(canonical, dispose)
           // eslint-disable-next-line no-console
@@ -398,9 +402,10 @@ export const useProjectStore = defineStore('project', {
     },
 
     /**
-     * Synchronously remove a root + tell main to unwatch (no-op stub
-     * until F-WATCH-WIRE-PROJECT) + drop pending bucket. Idempotent:
-     * closing an unknown path is a no-op with a NOOP_NOT_FOUND marker.
+     * Synchronously remove a root + tell main to unwatch (real unwatch
+     * since C-2: mt_close_project_root drops the WatchRegistry entries)
+     * + drop pending bucket. Idempotent: closing an unknown path is a
+     * no-op with a NOOP_NOT_FOUND marker.
      */
     async CLOSE_PROJECT(rootPathname) {
       const canonical = canonicalizePath(rootPathname)

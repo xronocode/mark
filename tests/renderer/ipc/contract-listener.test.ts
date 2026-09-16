@@ -181,4 +181,148 @@ describe('useIpcListener', () => {
     // Should not throw
     expect(() => dispose()).not.toThrow()
   })
+
+  // ---- C-2: fan-out delivery (previously only the FIRST subscriber's
+  // handler was wired into listen(); later subscribers got nothing —
+  // the bug that killed every file-watcher subscription after the
+  // first). ----
+
+  it('delivers events to a second subscriber on the same channel', async () => {
+    const handler1 = vi.fn()
+    const handler2 = vi.fn()
+    await useIpcListener('ch-fanout', handler1, { manual: true })
+    await useIpcListener('ch-fanout', handler2, { manual: true })
+
+    capturedHandler!({ payload: { n: 1 }, event: 'ch-fanout' })
+
+    expect(handler1).toHaveBeenCalledWith({ n: 1 }, 'ch-fanout')
+    expect(handler2).toHaveBeenCalledWith({ n: 1 }, 'ch-fanout')
+  })
+
+  it('second subscriber keeps receiving after the first disposes', async () => {
+    const handler1 = vi.fn()
+    const handler2 = vi.fn()
+    const dispose1 = await useIpcListener('ch-survive', handler1, { manual: true })
+    await useIpcListener('ch-survive', handler2, { manual: true })
+
+    dispose1()
+    capturedHandler!({ payload: 'x', event: 'ch-survive' })
+
+    expect(handler1).not.toHaveBeenCalled()
+    expect(handler2).toHaveBeenCalledWith('x', 'ch-survive')
+    expect(unlistenSpy).not.toHaveBeenCalled()
+  })
+
+  it('re-subscribe after full teardown re-establishes delivery', async () => {
+    const dispose1 = await useIpcListener('ch-resub', vi.fn(), { manual: true })
+    dispose1()
+    expect(unlistenSpy).toHaveBeenCalledTimes(1)
+
+    const handler = vi.fn()
+    const dispose2 = await useIpcListener('ch-resub', handler, { manual: true })
+    // listen() called again for the fresh registration…
+    expect(listen).toHaveBeenCalledTimes(2)
+    // …and the new handler receives events.
+    capturedHandler!({ payload: 7, event: 'ch-resub' })
+    expect(handler).toHaveBeenCalledWith(7, 'ch-resub')
+    dispose2()
+  })
+
+  it('a throwing handler does not starve sibling handlers', async () => {
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const good = vi.fn()
+    const bad = vi.fn(() => {
+      throw new Error('boom')
+    })
+    await useIpcListener('ch-sibling', bad, { manual: true })
+    await useIpcListener('ch-sibling', good, { manual: true })
+
+    capturedHandler!({ payload: 'v', event: 'ch-sibling' })
+
+    expect(bad).toHaveBeenCalled()
+    expect(good).toHaveBeenCalledWith('v', 'ch-sibling')
+    expect(errorSpy).toHaveBeenCalledWith(
+      expect.stringContaining('handler threw'),
+      expect.any(Error)
+    )
+    errorSpy.mockRestore()
+  })
+
+  it('concurrent first subscribes share one listen() registration', async () => {
+    // Defer listen() resolution so both subscribes race the creation.
+    let release!: (fn: () => void) => void
+    const gate = new Promise<void>((resolve) => {
+      release = resolve
+    })
+    ;(listen as any).mockImplementationOnce(async (_c: string, _h: any) => {
+      await gate
+      return vi.fn()
+    })
+
+    const p1 = useIpcListener('ch-race', vi.fn(), { manual: true })
+    const p2 = useIpcListener('ch-race', vi.fn(), { manual: true })
+    release()
+    const [d1, d2] = await Promise.all([p1, p2])
+
+    expect(listen).toHaveBeenCalledTimes(1)
+    expect(_refcountSnapshot('ch-race')).toBe(2)
+    d1()
+    expect(_refcountSnapshot('ch-race')).toBe(1)
+    d2()
+    expect(_refcountSnapshot('ch-race')).toBe(0)
+  })
+
+  // Review-1 finding: the SAME handler reference subscribed twice must
+  // behave as two independent subscriptions — not deduped by Set
+  // semantics (previously the second dispose crashed and the second
+  // subscription silently received nothing).
+  it('the same handler function subscribed twice gets two delivery slots', async () => {
+    const shared = vi.fn()
+    const dispose1 = await useIpcListener('ch-dup', shared, { manual: true })
+    const dispose2 = await useIpcListener('ch-dup', shared, { manual: true })
+
+    expect(_refcountSnapshot('ch-dup')).toBe(2)
+
+    capturedHandler!({ payload: 'x', event: 'ch-dup' })
+    expect(shared).toHaveBeenCalledTimes(2)
+
+    // First dispose leaves the second alive; second dispose tears down
+    // cleanly — no throw, unlisten exactly once.
+    expect(() => dispose1()).not.toThrow()
+    capturedHandler!({ payload: 'y', event: 'ch-dup' })
+    expect(shared).toHaveBeenCalledTimes(3)
+    expect(() => dispose2()).not.toThrow()
+    expect(unlistenSpy).toHaveBeenCalledTimes(1)
+    expect(_refcountSnapshot('ch-dup')).toBe(0)
+  })
+
+  it('a failed listen() creation frees the channel for a later retry', async () => {
+    ;(listen as any).mockRejectedValueOnce(new Error('transient'))
+    await expect(
+      useIpcListener('ch-retry', vi.fn(), { manual: true })
+    ).rejects.toThrow(IpcError)
+
+    // Second attempt must actually call listen() again (no stuck pending
+    // entry from the first failure) and succeed.
+    const handler = vi.fn()
+    const dispose = await useIpcListener('ch-retry', handler, { manual: true })
+    expect(listen).toHaveBeenCalledWith('ch-retry', expect.any(Function))
+    capturedHandler!({ payload: true, event: 'ch-retry' })
+    expect(handler).toHaveBeenCalledWith(true, 'ch-retry')
+    dispose()
+  })
+
+  it('BLOCK_LISTENER_REFCOUNT logs the subscriber (handler-set) count', async () => {
+    const debugSpy = vi.spyOn(console, 'debug').mockImplementation(() => {})
+    const d1 = await useIpcListener('ch-count', vi.fn(), { manual: true })
+    await useIpcListener('ch-count', vi.fn(), { manual: true })
+    expect(debugSpy).toHaveBeenCalledWith(
+      expect.stringMatching(/ch-count.*op=subscribe.*refs=2/)
+    )
+    d1()
+    expect(debugSpy).toHaveBeenCalledWith(
+      expect.stringMatching(/ch-count.*op=unsubscribe.*refs=1/)
+    )
+    debugSpy.mockRestore()
+  })
 })

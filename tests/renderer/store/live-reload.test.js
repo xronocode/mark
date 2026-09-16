@@ -407,6 +407,163 @@ describe('store/editor — M-032 live-reload', () => {
       expect(editor.tabs[0].notifications).toHaveLength(1)
       expect(editor.tabs[0].notifications[0].showConfirm).toBe(true)
     })
+
+    // C-2: the watcher path sends {pathname} only — the confirm action
+    // must read the file from disk (previously it crashed destructuring
+    // change.data inside loadChange).
+    it('conflict prompt confirm=true reloads from disk; decline keeps local content', async () => {
+      __preferencesStub.liveReload = false
+      __preferencesStub.autoSave = false
+      seedTab({ isSaved: false, markdown: '# dirty edits' })
+      __ipcFsMock.read.mockResolvedValue('# external truth')
+
+      editor.APPLY_FILE_CHANGE('change', { pathname: '/tmp/test.md' })
+      expect(editor.tabs[0].notifications).toHaveLength(1)
+
+      const action = editor.tabs[0].notifications[0].action
+      expect(typeof action).toBe('function')
+      action(true)
+      await vi.advanceTimersByTimeAsync(150)
+
+      expect(editor.tabs[0].markdown).toBe('# external truth')
+      expect(__ipcFsMock.read).toHaveBeenCalledWith('/tmp/test.md')
+    })
+
+    it('conflict prompt decline (status=false) does not touch the tab', async () => {
+      __preferencesStub.liveReload = false
+      __preferencesStub.autoSave = false
+      seedTab({ isSaved: false, markdown: '# keep me' })
+      __ipcFsMock.read.mockClear()
+
+      editor.APPLY_FILE_CHANGE('change', { pathname: '/tmp/test.md' })
+      editor.tabs[0].notifications[0].action(false)
+      await vi.advanceTimersByTimeAsync(150)
+
+      expect(editor.tabs[0].markdown).toBe('# keep me')
+      expect(__ipcFsMock.read).not.toHaveBeenCalled()
+    })
+
+    it('conflict confirm with stale generation is skipped', async () => {
+      __preferencesStub.liveReload = false
+      __preferencesStub.autoSave = false
+      seedTab({ isSaved: false, markdown: '# v1' })
+      __ipcFsMock.read.mockResolvedValue('# v2')
+
+      editor.APPLY_FILE_CHANGE('change', { pathname: '/tmp/test.md' })
+      const action = editor.tabs[0].notifications[0].action
+
+      // A newer change lands before the user clicks confirm → this
+      // dialog's read is stale and must not clobber the newer state.
+      editor.APPLY_FILE_CHANGE('change', { pathname: '/tmp/test.md' })
+      action(true)
+      await vi.advanceTimersByTimeAsync(150)
+
+      expect(editor.tabs[0].markdown).toBe('# v1')
+    })
+
+    it('conflict confirm uses embedded data when present (legacy path)', async () => {
+      __preferencesStub.liveReload = false
+      __preferencesStub.autoSave = false
+      seedTab({ isSaved: false, markdown: '# old' })
+      __ipcFsMock.read.mockClear()
+
+      editor.APPLY_FILE_CHANGE('change', {
+        pathname: '/tmp/test.md',
+        data: {
+          markdown: '# embedded',
+          filename: 'test.md',
+          encoding: { encoding: 'utf8', isBom: false },
+          lineEnding: 'lf',
+          adjustLineEndingOnSave: false,
+          trimTrailingNewline: 3,
+          isMixedLineEndings: false
+        }
+      })
+      editor.tabs[0].notifications[0].action(true)
+      await vi.advanceTimersByTimeAsync(150)
+
+      expect(editor.tabs[0].markdown).toBe('# embedded')
+      expect(__ipcFsMock.read).not.toHaveBeenCalled()
+    })
+
+    it('conflict confirm tolerates a disk read failure', async () => {
+      __preferencesStub.liveReload = false
+      __preferencesStub.autoSave = false
+      seedTab({ isSaved: false, markdown: '# stable' })
+      __ipcFsMock.read.mockRejectedValue(new Error('io boom'))
+      const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+      editor.APPLY_FILE_CHANGE('change', { pathname: '/tmp/test.md' })
+      editor.tabs[0].notifications[0].action(true)
+      await vi.advanceTimersByTimeAsync(150)
+
+      expect(editor.tabs[0].markdown).toBe('# stable')
+      expect(errSpy).toHaveBeenCalledWith(
+        expect.stringContaining('BLOCK_READ_FAILED'),
+        expect.any(Error)
+      )
+      errSpy.mockRestore()
+    })
+
+    // Review-1 finding: pin the liveReloadGenerations cleanup behavior.
+    // When the last tab for a pathname closes, the generation entry is
+    // dropped, so clicking confirm on the stale dialog must not reach
+    // loadChange — no "cannot find tab" error toast. (The disk read
+    // itself happens before the guard, mirroring the auto-reload path.)
+    it('confirm after the last tab closed is a no-op (generation dropped)', async () => {
+      __preferencesStub.liveReload = false
+      __preferencesStub.autoSave = false
+      seedTab({ isSaved: false, markdown: '# gone soon' })
+      const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+      editor.APPLY_FILE_CHANGE('change', { pathname: '/tmp/test.md' })
+      const action = editor.tabs[0].notifications[0].action
+
+      // Last tab for the pathname closes → _unsubscribeFileWatch drops
+      // the generation entry.
+      editor.tabs = []
+      editor.currentFile = {}
+      editor._unsubscribeFileWatch('/tmp/test.md')
+
+      action(true)
+      await vi.advanceTimersByTimeAsync(150)
+
+      // Stale generation → the guard returns before loadChange; without
+      // the cleanup this would log "Cannot find tab in tab list".
+      expect(errSpy).not.toHaveBeenCalledWith(
+        expect.stringContaining('Cannot find tab'),
+      )
+      expect(editor.tabs).toHaveLength(0)
+      errSpy.mockRestore()
+    })
+
+    it('confirm with legacy embedded data also respects the generation guard', async () => {
+      __preferencesStub.liveReload = false
+      __preferencesStub.autoSave = false
+      seedTab({ isSaved: false, markdown: '# v1' })
+
+      const change = {
+        pathname: '/tmp/test.md',
+        data: {
+          markdown: '# embedded stale',
+          filename: 'test.md',
+          encoding: { encoding: 'utf8', isBom: false },
+          lineEnding: 'lf',
+          adjustLineEndingOnSave: false,
+          trimTrailingNewline: 3,
+          isMixedLineEndings: false
+        }
+      }
+      editor.APPLY_FILE_CHANGE('change', change)
+      const action = editor.tabs[0].notifications[0].action
+
+      // A newer change supersedes the dialog before confirm.
+      editor.APPLY_FILE_CHANGE('change', { pathname: '/tmp/test.md' })
+      action(true)
+      await vi.advanceTimersByTimeAsync(150)
+
+      expect(editor.tabs[0].markdown).toBe('# v1')
+    })
   })
 
   // ─── previewMode tabs always auto-reload (M-033 integration) ────

@@ -1,0 +1,190 @@
+<GraceChangeSpec graceVersion='4.0' status='approved'>
+<C-2>
+  <Name>Fix live file-watch delivery: multi-subscriber fan-out in useIpcListener</Name>
+  <Created>2026-09-16</Created>
+  <Priority>critical</Priority>
+  <Status>approved-for-implementation</Status>
+
+  <Summary>
+    External file changes were not reflected in open Mark tabs (user report:
+    "файл поменялся, а в марке вижу что нет"). The watcher chain (M-003 notify
+    backend → mt::watch::event → M-013-A listener → project.js/editor.js
+    handlers → APPLY_FILE_CHANGE) was fully wired, but useIpcListener
+    registered only the FIRST subscriber's handler per channel — every later
+    watch subscription silently received nothing. C-2 fixes the fan-out and
+    five secondary defects on the same path (leaks, races, a confirm-action
+    crash, a stale stub command), with two sequential clean reviews and 100%
+    coverage of the changed renderer contract files.
+  </Summary>
+
+  <Problem>
+    <Description>
+      External file changes do not reflect in open Mark tabs. The chain is
+      unit-tested per link but silently drops events in real sessions with
+      more than one watch subscription.
+    </Description>
+    <RootCause>
+      src/renderer/src/ipc/contract/listener.ts kept ONE Tauri listen() per
+      channel and baked the FIRST subscriber's handler closure into it.
+      Subsequent useIpcListener calls on the same channel only incremented a
+      ref-count; their handlers were never registered. Every ipcWatch.subscribe
+      after the first (second open file, second project root, per-file watch
+      after a project root watch) was a dead subscription. Existing tests only
+      asserted ref-count behavior, never event delivery to a second
+      subscriber, so the defect survived.
+    </RootCause>
+    <Evidence>
+      listener.ts pre-C-2 (single handler captured at first listen());
+      contract-listener.test.ts "ref-count increments with multiple
+      subscribers" asserted counts only. Runtime symptom: first watched path
+      live-reloads, all later ones do nothing — no reload, no prompt.
+    </Evidence>
+  </Problem>
+
+  <Goals>
+    <R-1>
+      Every active useIpcListener subscriber on a channel receives every
+      event payload delivered on that channel (fan-out), regardless of
+      subscription order, while the underlying Tauri listen() stays
+      per-channel single.
+    </R-1>
+    <R-2>
+      Disposing one subscriber must not affect delivery to remaining
+      subscribers; disposing the last subscriber tears down the underlying
+      listen(); a later re-subscribe re-establishes delivery. All disposals
+      stay idempotent, including duplicate registration of the same handler
+      reference.
+    </R-2>
+    <R-3>
+      ipcWatch.subscribe must not leak a Rust watcher when the listener
+      registration fails after mt::watch::subscribe succeeded
+      (best-effort mt::watch::unsubscribe + rethrow).
+    </R-3>
+    <R-4>
+      editor.js _subscribeFileWatch must be race-free: no double subscribe
+      for one pathname (sync pending marker), and a tab closed before the
+      async subscribe resolves must still unsubscribe (deferred dispose).
+    </R-4>
+    <R-5>
+      project.js ADD_PROJECT must pass listener:{manual:true} (store-scope
+      subscription; disposal owned by CLOSE_PROJECT as today).
+    </R-5>
+    <R-6>
+      Backend mt_close_project_root stops being a no-op stub: it removes the
+      WatchRegistry subscription(s) created for that root path
+      (defense-in-depth; closes the F-WATCH-WIRE-PROJECT TODO in
+      m_v1_compat.rs).
+    </R-6>
+    <R-7>
+      liveReloadGenerations entries are removed when the last tab for a
+      pathname closes — independent of whether a per-file watcher entry
+      exists (files inside project trees have none).
+    </R-7>
+    <R-8>
+      No behavior change to the documented reload matrix (saved→reload,
+      dirty+liveReload→reload, dirty+no-liveReload→conflict prompt,
+      preview/watch tabs always reload). The conflict prompt's confirm
+      action must work from the watcher path (previously crashed with a
+      TypeError destructuring missing change.data) — pinned by
+      tests/renderer/store/live-reload.test.js.
+    </R-8>
+  </Goals>
+
+  <Constraints>
+    <Constraint>
+      BLOCK_LISTENER_REFCOUNT marker semantics preserved: one log line per
+      subscribe/unsubscribe with the subscriber count.
+    </Constraint>
+    <Constraint>
+      Tauri command arg naming (camelCase JS ↔ snake_case Rust) unchanged.
+    </Constraint>
+    <Constraint>
+      WatchRegistry stays process-global Tauri-managed state; unsubscribe
+      remains idempotent by sub id and by path.
+    </Constraint>
+    <Constraint>
+      100% line+branch coverage required for the changed renderer contract
+      files (listener.ts, watch.ts) and for every changed function in store
+      files; all new/changed Rust code paths covered by deterministic
+      tests. Coverage is enforced by scoped runs, NOT by raising the global
+      vitest thresholds (repo-wide values stay at the measured baseline).
+    </Constraint>
+    <Constraint>
+      Two sequential independent reviews (different angles) must both return
+      clean before the change ships: review-1 correctness/races/edge-cases,
+      review-2 security/contracts/regressions.
+    </Constraint>
+  </Constraints>
+
+  <NonGoals>
+    <NonGoal>
+      Symlink canonicalization (/tmp vs /private/tmp) between notify-reported
+      paths and store pathnames — documented known limitation, separate
+      change if it ever bites in practice.
+    </NonGoal>
+    <NonGoal>
+      Redesigning the reload matrix, watcher ignore-self-echo on save
+      (already handled via hash-skip), or project-tree refresh semantics.
+    </NonGoal>
+    <NonGoal>
+      Linux/Windows watcher coverage (macOS-only product at this phase).
+    </NonGoal>
+  </NonGoals>
+
+  <AcceptanceCriteria>
+    <Criterion>
+      Two subscriptions on mt::watch::event each receive their own events
+      (subscriptionId-filtered) regardless of order; pinned by
+      contract-listener.test.ts fan-out tests.
+    </Criterion>
+    <Criterion>
+      listener.ts and watch.ts report 100% statements/branches/functions/lines
+      in scoped coverage runs.
+    </Criterion>
+    <Criterion>
+      Full renderer suite green (npm test), typecheck:ipc clean, cargo test
+      green; CI coverage gate (npm run test:coverage with baseline
+      thresholds) passes.
+    </Criterion>
+    <Criterion>
+      Runtime proof on the real app: two files opened, the SECOND externally
+      modified live-reloads ([editor][live_reload][BLOCK_LIVE_RELOAD
+      source=disk] for both paths; [FsWatcher] register/coalesce markers in
+      stderr).
+    </Criterion>
+    <Criterion>
+      grace lint --assertions current reports zero C-2-attributable errors.
+    </Criterion>
+    <Criterion>
+      Review-1 and review-2 both return VERDICT: CLEAN.
+    </Criterion>
+  </AcceptanceCriteria>
+
+  <AffectedAreas>
+    <M-013-A>fn-useIpcListener fan-out fix (listener.ts)</M-013-A>
+    <M-013-B>ipcWatch.subscribe leak guard (watch.ts)</M-013-B>
+    <M-003>WatchRegistry path index + real close_project_root unwatch (watch.rs, m_v1_compat.rs)</M-003>
+    <M-032>editor store: watch-subscribe races, generations cleanup, conflict-prompt confirm fix (editor.js)</M-032>
+    <M-036>project store: manual listener flag for the root watcher (project.js)</M-036>
+  </AffectedAreas>
+
+  <VerificationIntent>
+    Renderer: fan-out delivery, race orderings, leak guards, and the reload
+    matrix are pinned by tests/renderer/ipc/contract-listener.test.ts,
+    runtime-watch.test.ts, store/editor-deep2.test.js, store/live-reload.test.js,
+    store/project.test.ts. Rust: registry index/remove_by_path/close-project
+    behavior in src-tauri/src/m013b/watch.rs #[cfg(test)] and m_v1_compat.rs
+    tests. Governance: V-M-013-A scenario-5 (fan-out) and V-M-003 scenario-4 +
+    stop_path markers in .grace/verification/runtime.xml. Runtime: live-app
+    verification via dev-smoke + external edits with stderr marker evidence.
+  </VerificationIntent>
+
+  <Approval>
+    <ApprovedBy>user (session 2026-09-16): "делай по грейс с ревью, корнерами и верификациями"</ApprovedBy>
+    <ApprovalScope>
+      Fix delivery of external file changes into open tabs; two sequential
+      clean reviews; 100% test coverage of changed code.
+    </ApprovalScope>
+  </Approval>
+</C-2>
+</GraceChangeSpec>
