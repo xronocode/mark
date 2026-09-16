@@ -1,0 +1,102 @@
+<GraceChangeSpec graceVersion='4.0' status='approved'>
+<C-9>
+  <Name>Fix title-bar overflow: path/filename collide with nav cluster and word count at narrow widths</Name>
+  <Created>2026-09-16</Created>
+  <Priority>high</Priority>
+  <Status>implemented</Status>
+
+  <Summary>
+    User report: "при сильном уменьшении путь и имя не вмещаются в тайтлбар
+    и некрасиво всё наезжает одно на другое". Reproduced live via CUA at
+    300px window width: the breadcrumb renders unclipped from the nav
+    cluster to the word-count widget, jamming into both. Root cause: the
+    GH#339 clip rule `div.title > span` (display:block + direction:rtl +
+    overflow:hidden) DOES match its scoped direct-child span, but its
+    rtl-clip never produced a reliable left-side-only clip under the
+    inherited centered text layout, and `.title { padding: 0 142px }`
+    was sized for the pre-v1.1.0 left column while the v1.1.0
+    titlebar-nav cluster occupies ~240px on macOS starting at left:78px.
+    Fix: absolutely position `.title` between explicit left/right
+    clearances, and clip inside a flex breadcrumb whose path part
+    shrinks (clipping oldest segments from the left, flex-end packing)
+    while the filename never shrinks. Below the app's 600px window
+    minimum the constrained title box collapses toward zero width — the
+    breadcrumb degrades to hidden, never overlapping its neighbors.
+  </Summary>
+
+  <Problem>
+    <Description>Breadcrumb path + filename overlap the nav buttons and the right-side word count at narrow window widths.</Description>
+    <RootCause>
+      The GH#339 rtl-clip on the direct-child span does not reliably clip
+      the path side under the inherited centered layout, and the fixed
+      paddings are smaller than the v1.1.0 nav cluster extent.
+    </RootCause>
+    <Evidence>
+      CUA 2026-09-16, /tmp/mark-qa-shots/t2-crop.png (300px): "private ›
+      tmp › mark-qa-c6 › rich.md" starts at the theme-toggle icon and ends
+      under "292 words". titleBar/index.vue CSS `.title { padding: 0
+      142px }` vs `.titlebar-nav--osx { left: 78px }` + 5×28px buttons +
+      divider ≈ 240px.
+    </Evidence>
+  </Problem>
+
+  <Goals>
+    <R-1>
+      Template: wrap the breadcrumb content in a `.title-breadcrumb` flex
+      container with a `.title-path` part (path spans + arrows) and the
+      existing `.filename` + `.save-dot` as non-shrinking tail items.
+    </R-1>
+    <R-2>
+      CSS: `.title` becomes an absolutely positioned box with real left/right
+      clearances (macOS: left 250px past the nav cluster; other platforms
+      left 180px; right 150px past the right toolbar) so its width is
+      genuinely constrained; `.title-breadcrumb` centers when it fits;
+      `.title-path` is `flex: 0 1 auto; overflow: hidden;
+      justify-content: flex-end` so overflow clips the OLDEST path
+      segments on the left while the nearest folder + filename stay
+      visible; `.filename { flex-shrink: 0 }`.
+    </R-2>
+    <R-3>
+      Remove the unreliable GH#339 `div.title > span` rtl-clip rule; keep
+      the no-Mark fallback span unaffected.
+    </R-3>
+    <R-4>
+      Tests: titleBar component test pins the new structure
+      (.title-breadcrumb present, path segments inside .title-path,
+      filename outside it) and a source-pin test asserts the clearance
+      rule and the removed dead selector.
+    </R-4>
+  </Goals>
+
+  <Constraints>
+    <Constraint>No behavior change at comfortable widths: full path stays visible when it fits.</Constraint>
+    <Constraint>Keep the drag-region attributes and context-menu/rename handlers untouched.</Constraint>
+    <Constraint>CSS-only clipping (no JS width measurement).</Constraint>
+  </Constraints>
+
+  <NonGoals>
+    <NonGoal>Responsive hiding of nav buttons or word count; middle-ellipsis rendering.</NonGoal>
+  </NonGoals>
+
+  <AcceptanceCriteria>
+    <Criterion>Nothing overlaps at any width: at the app's 600px window minimum the nearest folder + filename stay fully visible with the path clipped from the left; below-minimum widths (reachable only programmatically) collapse the title box toward zero instead of rendering over the nav cluster or word count.</Criterion>
+    <Criterion>At wide widths the full breadcrumb renders centered exactly as before.</Criterion>
+    <Criterion>Renderer suites green.</Criterion>
+  </AcceptanceCriteria>
+
+  <AffectedAreas>
+    <M-011>titleBar/index.vue breadcrumb layout (C-9)</M-011>
+  </AffectedAreas>
+
+  <VerificationIntent>
+    Component/source-pin tests; CUA live check at 600px (app minimum)
+    and 1200px with a 3-segment path; below-minimum width must degrade
+    to a collapsed title, never overlap.
+  </VerificationIntent>
+
+  <Approval>
+    <ApprovedBy>user (session 2026-09-16): bug report "при сильном уменьшении путь и имя не вмещаются в тайтлбар"</ApprovedBy>
+    <ApprovalScope>Implement with the C-7/C-8 batch; same review + CUA gates.</ApprovalScope>
+  </Approval>
+</C-9>
+</GraceChangeSpec>

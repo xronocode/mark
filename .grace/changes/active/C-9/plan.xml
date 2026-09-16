@@ -1,0 +1,97 @@
+<GraceChangePlan graceVersion='4.0' status='approved'>
+<C-9>
+  <ChangeRef>C-9</ChangeRef>
+  <Created>2026-09-16</Created>
+  <IntentSummary>Responsive breadcrumb: real title-box clearances + flex path clipping keep the filename visible at any width.</IntentSummary>
+  <BaselineAssertions>
+    <MustContain>
+      <File>src/renderer/src/components/titleBar/index.vue</File>
+      <Text>padding: 0 142px</Text>
+    </MustContain>
+    <MustContain>
+      <File>src/renderer/src/components/titleBar/index.vue</File>
+      <Text>div.title &gt; span</Text>
+    </MustContain>
+  </BaselineAssertions>
+  <TargetAssertions>
+    <MustContain>
+      <File>src/renderer/src/components/titleBar/index.vue</File>
+      <Text>title-breadcrumb</Text>
+    </MustContain>
+    <MustContain>
+      <File>src/renderer/src/components/titleBar/index.vue</File>
+      <Text>title-path</Text>
+    </MustContain>
+    <MustContain>
+      <File>tests/renderer/components/titleBar-resize.test.js</File>
+      <Text>title-breadcrumb</Text>
+    </MustContain>
+  </TargetAssertions>
+  <DurableScope>
+    <M-011/>
+  </DurableScope>
+  <ObservedWriteScope>
+    <File>src/renderer/src/components/titleBar/index.vue</File>
+    <File>tests/renderer/components/titleBar-resize.test.js</File>
+  </ObservedWriteScope>
+  <ImplementationPlan>
+    <T-001>
+      <Title>Breadcrumb restructure + CSS clearances</Title>
+      <DependsOn></DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>.title absolute box with platform left/right clearances; .title-path flex-end overflow clip; filename flex-shrink:0; dead GH#339 rule removed.</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>npx vitest run tests/renderer/components/titleBar.test.js tests/renderer/components/titleBar-deep.test.js</Command>
+      </Verification>
+    </T-001>
+    <T-002>
+      <Title>Structure + source-pin tests</Title>
+      <DependsOn>T-001</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>New test pins .title-breadcrumb/.title-path structure, filename outside the path clip zone, clearance rule present, dead selector absent.</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>npx vitest run tests/renderer/components/titleBar-resize.test.js</Command>
+      </Verification>
+    </T-002>
+  </ImplementationPlan>
+  <ReviewLog>
+    <Review number="1" date="2026-09-16" verdict="changes-requested">
+      <Findings>
+        Independent agent review: 0 BLOCKER, 5 MINOR, 2 NIT for C-9.
+        Fixed: (4) misdiagnosis corrected — the scoped GH#339 selector
+        DID match its direct-child span (reviewer proved data-v
+        attribution empirically); spec RootCause/Summary, the CSS
+        comment, and the test name now say the rtl-clip was unreliable
+        under the inherited centered layout, not dead. (5) VERSION
+        header bumped to 1.3.0. (6) acceptance criterion reconciled
+        with the app's 600px window minimum (below it the title box
+        collapses rather than overlaps; CUA checks 600/1200px).
+        (7) dblclick-to-zoom moved from .title to .title-bar with a
+        .title-no-drag/.titlebar-nav/.right-toolbar/.left-toolbar guard
+        so the gesture keeps full-bar coverage. (8) pre-existing inert
+        `var(sideBarTitleColor)` fixed to `var(--sideBarTitleColor)`.
+        (9) .save-dot got flex-shrink: 0. Flex-end clipping semantics
+        confirmed correct by the reviewer.
+      </Findings>
+    </Review>
+    <Review number="2" date="2026-09-16" verdict="green">
+      <Findings>
+        Final gate: VERDICT green. All pass-1 C-9 fixes confirmed (spec
+        diagnosis corrected, VERSION parity, 600px acceptance criterion,
+        dblclick guard with full-bar coverage, var(--) fix, save-dot
+        shrink guard). One actionable MINOR (menu-consistency VERSION
+        header — an C-8 file) and two NITs fixed post-pass-2: stale
+        comment from an abandoned interaction-test attempt removed,
+        inert isOsx mock flip reverted; the dblclick interaction test
+        was replaced by a source-pin test because the component's
+        static @tauri-apps/api/window import is not interceptable in
+        jsdom (setup.ts stub does not reach it — the same root cause as
+        the pre-existing onResized stderr noise). Gates: 83/83 vitest
+        across the six suites, grace lint 0 errors.
+      </Findings>
+    </Review>
+  </ReviewLog>
+</C-9>
+</GraceChangePlan>
