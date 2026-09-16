@@ -1,0 +1,92 @@
+<GraceChangeSpec graceVersion='4.0' status='approved'>
+<C-5>
+  <Name>Investigate and stabilize the intermittent pinch-zoom timing test</Name>
+  <Created>2026-09-16</Created>
+  <Priority>medium</Priority>
+  <Status>planned-only</Status>
+
+  <Summary>
+    During C-2 verification the full renderer suite intermittently failed a
+    single timing-sensitive test: tests/renderer/pages/app-deep.test.js,
+    "pinch-to-zoom handler &gt; accumulates delta below threshold without
+    emitting" — observed twice across six full-suite runs under heavy
+    machine load (concurrent builds/tests), never reproducing on retry,
+    always in that same suite. Marked for additional verification so the
+    flake is either fixed or explicitly quarantined. NOT IMPLEMENTED YET —
+    planning artifact only.
+  </Summary>
+
+  <Problem>
+    <Description>
+      One timing-sensitive test fails rarely under load; CI stability is
+      at risk on slow runners.
+    </Description>
+    <RootCause>
+      Suspected real-timer dependence in the pinch-zoom accumulation test
+      (delta threshold accumulation vs emitted zoom events); not yet
+      reproduced in isolation.
+    </RootCause>
+    <Evidence>
+      Session log 2026-09-16: two single-test failures in app-deep.test.js
+      across six npm-test runs; both during parallel cargo/vitest load;
+      zero reproductions on immediate retry; unrelated to C-2 files.
+    </Evidence>
+  </Problem>
+
+  <Goals>
+    <R-1>
+      Reproduce deterministically: loop the suite (≥20 runs, with parallel
+      load) and capture the failure output; confirm it is timing and not
+      state leakage between tests.
+    </R-1>
+    <R-2>
+      Stabilize: switch the accumulation assertions to fake timers
+      (vi.useFakeTimers + advanceTimersByTime) or make the threshold
+      assertion load-tolerant — whichever matches the handler's actual
+      debounce semantics.
+    </R-2>
+    <R-3>
+      If the handler itself (not the test) is racy under load, document the
+      race and open a followup; do not mask a real bug with a looser test.
+    </R-3>
+  </Goals>
+
+  <Constraints>
+    <Constraint>
+      Do not relax the pinch-zoom behavior contract; only the test's
+      timing sensitivity is in scope.
+    </Constraint>
+  </Constraints>
+
+  <NonGoals>
+    <NonGoal>
+      Any change to zoom behavior or thresholds.
+    </NonGoal>
+  </NonGoals>
+
+  <AcceptanceCriteria>
+    <Criterion>
+      20 consecutive full-suite runs (or targeted suite loop under
+      artificial load) with zero failures of this test.
+    </Criterion>
+    <Criterion>
+      Root cause noted in the test file comment: fake timers vs
+      load-tolerance vs handler race.
+    </Criterion>
+  </AcceptanceCriteria>
+
+  <AffectedAreas>
+    <Area>tests/renderer/pages/app-deep.test.js — pinch-to-zoom handler suite only</Area>
+  </AffectedAreas>
+
+  <VerificationIntent>
+    Repeated-run stability evidence (command with run count in the plan)
+    plus the standard renderer suite gate.
+  </VerificationIntent>
+
+  <Approval>
+    <ApprovedBy>user (session 2026-09-16): "отметь потом дополнительно проверить"</ApprovedBy>
+    <ApprovalScope>Planning only; investigation is a future session.</ApprovalScope>
+  </Approval>
+</C-5>
+</GraceChangeSpec>
