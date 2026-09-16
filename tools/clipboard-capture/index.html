@@ -1,0 +1,108 @@
+<!-- FILE: tools/clipboard-capture/index.html -->
+<!-- VERSION: 1.0.0 -->
+<!-- START_MODULE_CONTRACT -->
+<!--   PURPOSE: Provide a zero-build, cross-platform browser UI for capturing clipboard payload fixtures from rendered chat and web content. -->
+<!--   SCOPE: Layout, form controls, capture zone, and readonly result containers for the standalone clipboard capture tool. -->
+<!--   DEPENDS: tools/clipboard-capture/styles.css, tools/clipboard-capture/app.js -->
+<!--   LINKS: M-044, V-M-044 -->
+<!-- END_MODULE_CONTRACT -->
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Clipboard Fixture Capture</title>
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect x='10' y='8' width='44' height='48' rx='8' fill='%2316605d'/%3E%3Cpath d='M22 20h20M22 30h20M22 40h14' stroke='%23fff9ee' stroke-width='4' stroke-linecap='round'/%3E%3C/svg%3E"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <section class="hero">
+        <p class="eyebrow">Mark Smart Paste Fixture Tool</p>
+        <h1>Clipboard Fixture Capture</h1>
+        <p class="lede">
+          Copy rendered content from Claude, ChatGPT, GitHub, Notion, or any browser surface,
+          then paste here to export the browser-visible clipboard payloads as JSON.
+        </p>
+        <p class="warning">
+          Best results: Chrome or Edge. This tool captures browser-exposed clipboard formats, not
+          raw OS-native formats like Windows <code>CF_HTML</code> envelopes.
+        </p>
+      </section>
+
+      <section class="panel controls">
+        <div class="field-row">
+          <label class="field">
+            <span>Source label</span>
+            <input id="sourceLabel" type="text" placeholder="claude-vscode, chatgpt, github-readme" />
+          </label>
+          <label class="field">
+            <span>GitHub repo</span>
+            <input id="githubRepo" type="text" placeholder="owner/repo" value="xronocode/mark" />
+          </label>
+        </div>
+
+        <div
+          id="pasteZone"
+          class="paste-zone"
+          contenteditable="true"
+          spellcheck="false"
+          aria-label="Clipboard capture zone"
+        >
+          Press Ctrl/Cmd+V anywhere on this page. The tool will intercept the paste and store the
+          clipboard payload instead of inserting it. A new paste replaces the current capture.
+        </div>
+
+        <div class="toolbar">
+          <button id="copyPacket" type="button">Copy fixture packet</button>
+          <button id="downloadCapture" type="button">Download JSON</button>
+          <button id="createIssue" type="button">Open GitHub issue</button>
+        </div>
+
+        <p id="status" class="status" aria-live="polite"></p>
+      </section>
+
+      <section class="panel">
+        <h2>Summary</h2>
+        <p id="summary" class="summary-copy"></p>
+      </section>
+
+      <section class="results-grid">
+        <section class="panel">
+          <div class="result-head">
+            <h2>Rendered preview</h2>
+            <p id="renderedMeta" class="result-meta"></p>
+          </div>
+          <iframe
+            id="htmlPreview"
+            class="render-frame is-hidden"
+            title="Rendered clipboard preview"
+            sandbox=""
+            referrerpolicy="no-referrer"
+          ></iframe>
+          <pre id="renderFallback" class="render-fallback"></pre>
+        </section>
+
+        <section class="panel">
+          <div class="result-head">
+            <h2>Preferred text payload</h2>
+            <p id="textMeta" class="result-meta"></p>
+          </div>
+          <textarea
+            id="textPayload"
+            class="payload-area"
+            readonly
+            spellcheck="false"
+            placeholder="Clipboard text payload will appear here after paste."
+          ></textarea>
+        </section>
+      </section>
+    </main>
+
+    <script src="./capture-core.browser.js"></script>
+    <script src="./app.js"></script>
+  </body>
+  </html>

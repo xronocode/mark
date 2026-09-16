@@ -1,5 +1,5 @@
 // FILE: tests/renderer/components/editor-coverage.test.js
-// VERSION: 1.3.0
+// VERSION: 1.4.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Verify editorWithTabs/editor.vue methods, watchers, computed state, event handlers, and lifecycle behavior beyond the base editor test.
 //   SCOPE: Deterministic Vue/jsdom tests with mocked Muya, stores, bus, services, and browser scheduling.
@@ -28,12 +28,16 @@
 //   setEditorWidthMock - GRACE 4 synchronized symbol
 //   setWrapCodeBlocksMock - GRACE 4 synchronized symbol
 //   uploadImageMock - GRACE 4 synchronized symbol
+//   writeHtmlMock - GRACE 4 synchronized symbol
+//   markedMock - GRACE 4 synchronized symbol
+//   sanitizeMock - GRACE 4 synchronized symbol
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
 //   - 2026-08-07 v1.1.0: add UC-030 first-paint and UC-031 preview-caret regression coverage.
 //   - 2026-08-10 v1.2.0: cover boot hydration when an agent/Finder open selects a tab before editor bus listeners are ready.
 //   - 2026-08-10 v1.3.0: cover stale file-changed events not overwriting unsaved active-tab content.
+//   - 2026-09-16 v1.4.0: cover copyAsHtmlRich handler — native writeHtml selection write, whole-document fallback, empty no-op, execCommand fallback (C-3).
 // END_CHANGE_SUMMARY
 
 import { shallowMount } from '@vue/test-utils'
@@ -59,6 +63,9 @@ const moveToRelativeFolderMock = vi.hoisted(() => vi.fn())
 const uploadImageMock = vi.hoisted(() => vi.fn())
 const getCssForOptionsMock = vi.hoisted(() => vi.fn(async () => ''))
 const getHtmlTocMock = vi.hoisted(() => vi.fn(() => ''))
+const writeHtmlMock = vi.hoisted(() => vi.fn(async () => undefined))
+const markedMock = vi.hoisted(() => vi.fn((text) => `<p>${text}</p>`))
+const sanitizeMock = vi.hoisted(() => vi.fn((html) => `clean:${html}`))
 
 const mockEditorInstance = vi.hoisted(() => ({
   container: null,
@@ -97,6 +104,8 @@ const mockEditorInstance = vi.hoisted(() => ({
   _replaceCurrentWordInlineUnsafe: vi.fn(),
   exportStyledHTML: vi.fn(async () => '<html></html>'),
   getTOC: vi.fn(() => []),
+  getMarkdown: vi.fn(() => ''),
+  getCopyData: vi.fn(() => ({ html: '', text: '' })),
   copyAsRich: vi.fn(),
   copyAsHtml: vi.fn(),
   pasteAsPlainText: vi.fn()
@@ -111,6 +120,7 @@ const MockMuya = vi.hoisted(() => {
       // Copy all mock methods
       Object.assign(this, mockEditorInstance)
       this.container = el
+      this.options = opts || {}
       mockEditorInstance.container = el
       // Store options for test inspection
       lastMuyaOptions.current = opts
@@ -173,6 +183,12 @@ vi.mock('@/util/fileSystem', () => ({
   uploadImage: uploadImageMock
 }))
 vi.mock('@/util/clipboard', () => ({ guessClipboardFilePath: vi.fn() }))
+vi.mock('@tauri-apps/plugin-clipboard-manager', () => ({ writeHtml: writeHtmlMock }))
+vi.mock('muya/lib/parser/marked', () => ({ default: markedMock }))
+vi.mock('muya/lib/utils', () => ({ sanitize: sanitizeMock }))
+vi.mock('muya/lib/config', () => ({
+  EXPORT_DOMPURIFY_CONFIG: { FORBID_ATTR: ['contenteditable'] }
+}))
 vi.mock('@/util/pdf', () => ({
   getCssForOptions: getCssForOptionsMock,
   getHtmlToc: getHtmlTocMock
@@ -303,9 +319,14 @@ describe('editor.vue — coverage', () => {
     mockEditorInstance._replaceCurrentWordInlineUnsafe.mockReset()
     mockEditorInstance.exportStyledHTML.mockResolvedValue('<html></html>')
     mockEditorInstance.getTOC.mockReturnValue([])
+    mockEditorInstance.getMarkdown.mockReset().mockReturnValue('')
+    mockEditorInstance.getCopyData.mockReset().mockReturnValue({ html: '', text: '' })
     mockEditorInstance.copyAsRich.mockReset()
     mockEditorInstance.copyAsHtml.mockReset()
     mockEditorInstance.pasteAsPlainText.mockReset()
+    writeHtmlMock.mockReset().mockResolvedValue(undefined)
+    markedMock.mockClear().mockImplementation((text) => `<p>${text}</p>`)
+    sanitizeMock.mockClear().mockImplementation((html) => `clean:${html}`)
 
     busMock.on.mockReset()
     busMock.off.mockReset()
@@ -930,6 +951,92 @@ describe('editor.vue — coverage', () => {
     expect(mockEditorInstance.copyAsRich).toHaveBeenCalled()
   })
 
+  it('handleCopyAsHtml sanitizes and writes the selection payload via native writeHtml', async () => {
+    await mountEditor()
+    mockEditorInstance.getCopyData.mockReturnValueOnce({ text: '# Title' })
+    await getBusHandler('copyAsHtmlRich')()
+    expect(markedMock).toHaveBeenCalledWith('# Title', expect.anything())
+    expect(sanitizeMock).toHaveBeenCalledWith(
+      '<p># Title</p>',
+      expect.objectContaining({ FORBID_ATTR: ['contenteditable'] }),
+      false
+    )
+    expect(writeHtmlMock).toHaveBeenCalledWith('clean:<p># Title</p>', '# Title')
+    expect(mockEditorInstance.getMarkdown).not.toHaveBeenCalled()
+    expect(mockEditorInstance.copyAsRich).not.toHaveBeenCalled()
+  })
+
+  it('handleCopyAsHtml sanitizes the whole-document fallback output', async () => {
+    await mountEditor()
+    mockEditorInstance.getCopyData.mockReturnValueOnce({ text: '' })
+    mockEditorInstance.getMarkdown.mockReturnValueOnce('# Whole doc')
+    await getBusHandler('copyAsHtmlRich')()
+    expect(markedMock).toHaveBeenCalledWith('# Whole doc', expect.anything())
+    expect(sanitizeMock).toHaveBeenCalledWith('<p># Whole doc</p>', expect.anything(), false)
+    expect(writeHtmlMock).toHaveBeenCalledWith('clean:<p># Whole doc</p>', '# Whole doc')
+  })
+
+  it('handleCopyAsHtml copies table-cell selections instead of the whole document', async () => {
+    await mountEditor()
+    mockEditorInstance.getCopyData.mockReturnValueOnce({ text: '| a | b |' })
+    await getBusHandler('copyAsHtmlRich')()
+    expect(mockEditorInstance.getMarkdown).not.toHaveBeenCalled()
+    expect(writeHtmlMock).toHaveBeenCalledWith('clean:<p>| a | b |</p>', '| a | b |')
+  })
+
+  it('handleCopyAsHtml no-ops for an empty document with no selection', async () => {
+    await mountEditor()
+    await getBusHandler('copyAsHtmlRich')()
+    expect(sanitizeMock).not.toHaveBeenCalled()
+    expect(writeHtmlMock).not.toHaveBeenCalled()
+    expect(mockEditorInstance.copyAsRich).not.toHaveBeenCalled()
+  })
+
+  it('handleCopyAsHtml notifies and retries via copyAsRich when the native write fails', async () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    try {
+      await mountEditor()
+      mockEditorInstance.getCopyData.mockReturnValueOnce({ text: 'x' })
+      writeHtmlMock.mockRejectedValueOnce(new Error('capability denied'))
+      await getBusHandler('copyAsHtmlRich')()
+      expect(mockEditorInstance.copyAsRich).toHaveBeenCalled()
+      expect(noticeMock.notify).toHaveBeenCalledWith(
+        expect.objectContaining({ type: 'warning' })
+      )
+      expect(warnSpy).toHaveBeenCalledWith(
+        expect.stringContaining('[Editor][handleCopyAsHtml][BLOCK_COPY_AS_HTML]')
+      )
+    } finally {
+      warnSpy.mockRestore()
+    }
+  })
+
+  it('handleCopyAsHtml survives unmount while the native write is in flight', async () => {
+    const wrapper = await mountEditor()
+    mockEditorInstance.getCopyData.mockReturnValueOnce({ text: 'x' })
+    let rejectWrite
+    writeHtmlMock.mockReturnValueOnce(
+      new Promise((_resolve, reject) => {
+        rejectWrite = reject
+      })
+    )
+    const pending = getBusHandler('copyAsHtmlRich')()
+    wrapper.unmount()
+    rejectWrite(new Error('window closed'))
+    await expect(pending).resolves.toBeUndefined()
+    expect(mockEditorInstance.copyAsRich).not.toHaveBeenCalled()
+  })
+
+  it('handleCopyAsHtml no-ops after unmount when the editor instance is gone', async () => {
+    const wrapper = await mountEditor()
+    const handler = getBusHandler('copyAsHtmlRich')
+    wrapper.unmount()
+    await handler()
+    expect(sanitizeMock).not.toHaveBeenCalled()
+    expect(writeHtmlMock).not.toHaveBeenCalled()
+    expect(mockEditorInstance.copyAsRich).not.toHaveBeenCalled()
+  })
+
   it('handleInvalidateImageCache calls invalidateImageCache', async () => {
     await mountEditor()
     getBusHandler('invalidate-image-cache')()
@@ -1519,6 +1626,7 @@ describe('editor.vue — coverage', () => {
     expect(offEvents).toContain('copyAsRich')
     expect(offEvents).toContain('copyAsHtml')
     expect(offEvents).toContain('pasteAsPlainText')
+    expect(offEvents).toContain('copyAsHtmlRich')
     expect(offEvents).toContain('duplicate')
     expect(offEvents).toContain('createParagraph')
     expect(offEvents).toContain('deleteParagraph')
