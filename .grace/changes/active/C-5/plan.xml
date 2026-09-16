@@ -1,0 +1,78 @@
+<GraceChangePlan graceVersion='4.0' status='approved'>
+<C-5>
+  <ChangeRef>C-5</ChangeRef>
+  <Created>2026-09-16</Created>
+
+  <IntentSummary>
+    Verify and stabilize the rarely-failing pinch-zoom timing test in
+    app-deep.test.js so the renderer suite is deterministic on loaded
+    machines and slow CI runners.
+  </IntentSummary>
+
+  <BaselineAssertions>
+    <MustContain>
+      <File>tests/renderer/pages/app-deep.test.js</File>
+      <Text>accumulates delta below threshold without emitting</Text>
+    </MustContain>
+  </BaselineAssertions>
+
+  <TargetAssertions>
+    <MustContain>
+      <File>tests/renderer/pages/app-deep.test.js</File>
+      <Text>fake timers</Text>
+    </MustContain>
+  </TargetAssertions>
+
+  <DurableScope>
+    <None/>
+  </DurableScope>
+
+  <ObservedWriteScope>
+    <File>tests/renderer/pages/app-deep.test.js</File>
+  </ObservedWriteScope>
+
+  <ImplementationPlan>
+    <T-001>
+      <Title>Reproduce the flake under load</Title>
+      <DependsOn></DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>
+          ≥20 looped runs of the suite (with parallel load) either
+          reproduce the failure with captured output or demonstrate
+          stability; conclusion recorded in the test file comment.
+        </Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>for i in $(seq 1 20); do npx vitest run tests/renderer/pages/app-deep.test.js || break; done</Command>
+      </Verification>
+    </T-001>
+
+    <T-002>
+      <Title>Stabilize the timing assertions</Title>
+      <DependsOn>T-001</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>
+          Accumulation assertions driven by fake timers (or documented
+          load-tolerant bound if fake timers do not model the handler);
+        </Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>npx vitest run tests/renderer/pages/app-deep.test.js</Command>
+      </Verification>
+    </T-002>
+
+    <T-003>
+      <Title>Full-suite stability gate</Title>
+      <DependsOn>T-002</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>
+          Three consecutive full npm-test runs green.
+        </Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>npm test</Command>
+      </Verification>
+    </T-003>
+  </ImplementationPlan>
+</C-5>
+</GraceChangePlan>
