@@ -75,11 +75,11 @@
 
 <script setup>
 // FILE: src/renderer/src/components/editorWithTabs/editor.vue
-// VERSION: 1.6.0
+// VERSION: 1.7.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Host the Muya WYSIWYG surface and coordinate document rendering, selection, scroll, preview, editor tools, and store/bus integration.
 //   SCOPE: Renderer-side Muya lifecycle and UI orchestration; does not own Markdown parsing rules or backend file persistence.
-//   DEPENDS: Muya, Pinia preferences/editor/project/layout stores, bus, renderer services/utilities, window.electron compatibility facade.
+//   DEPENDS: Muya, Pinia preferences/editor/project/layout stores, bus, renderer services/utilities, window.electron compatibility facade, @tauri-apps/plugin-clipboard-manager (writeHtml).
 //   LINKS: docs/knowledge-graph.xml M-011 and M-012; docs/verification-plan.xml V-M-011 scenarios 15-16 and V-M-012.
 //   ROLE: RUNTIME
 //   MAP_MODE: LOCALS
@@ -92,6 +92,7 @@
 //   syncPreviewSurface - Mirrors previewMode onto Muya's real replacement container and restores caret focus on exit.
 //   imageAction - Applies configured local/upload image insertion behavior.
 //   handleExport - Routes supported export formats to renderer services.
+//   handleCopyAsHtml - Copies selection (or whole document) to the clipboard as rich text/html (C-3).
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
@@ -101,6 +102,7 @@
 //   - 2026-08-10 v1.4.0: ignore stale file-changed payloads that would replace unsaved Muya edits when focus moves inside the document.
 //   - 2026-08-10 v1.5.0: ignore stale file-loaded payloads from a different active tab and avoid reloading identical content over a live selection.
 //   - 2026-08-14 v1.6.0: reset scrollTop synchronously for tabs with no saved scroll position so an agent-opened tab cannot inherit a stale scrollTop from the previously active tab and read as blank until manual scroll.
+//   - 2026-09-16 v1.7.0: add copyAsHtmlRich bus handler — native clipboard-manager writeHtml puts text/html + text/plain on the clipboard for email paste, with execCommand copyAsRich fallback (C-3).
 // END_CHANGE_SUMMARY
 
 import { ref, reactive, watch, onMounted, onBeforeUnmount, nextTick, computed } from 'vue'
@@ -796,6 +798,53 @@ const handleCopyPaste = (type) => {
   }
 }
 
+// START_CONTRACT: handleCopyAsHtml
+//   PURPOSE: Put the selection (or whole document when nothing is selected) on the clipboard as rich HTML for email paste.
+//   INPUTS: { none - reads Muya selection state (range / table cells / image) }
+//   OUTPUTS: { Promise<void> - resolves after the clipboard write attempt }
+//   SIDE_EFFECTS: Regenerates HTML from the markdown via muya's marked (editor options), sanitizes with DOMPurify EXPORT config, writes text/html + text/plain via the native clipboard-manager plugin; on plugin failure warns, notifies, and retries through Muya's execCommand copy event if the editor is still alive.
+//   LINKS: C-3; .grace/graph/runtime.xml M-011 fn-handleCopyAsHtml; commands/index.js edit.copy-as-html
+// END_CONTRACT: handleCopyAsHtml
+// START_BLOCK_COPY_AS_HTML
+const handleCopyAsHtml = async () => {
+  const ed = editor.value
+  if (!ed) return
+  // Markdown text of whatever is selected — DOM range, table cells,
+  // or image (muya getCopyData mirrors the copy handlers' special
+  // cases). Falls back to the whole document when nothing is selected.
+  const selectionData = ed.getCopyData()
+  const hasSelection = !!(selectionData && selectionData.text)
+  const text = hasSelection ? selectionData.text : ed.getMarkdown()
+  if (!text) return
+  const [{ default: marked }, { sanitize }, { EXPORT_DOMPURIFY_CONFIG }] =
+    await Promise.all([
+      import('muya/lib/parser/marked'),
+      import('muya/lib/utils'),
+      import('muya/lib/config')
+    ])
+  // One pipeline for every path: marked with the editor's muya options
+  // (superSubScript/footnote/... respected), then DOMPurify — Markdown
+  // may contain raw HTML blocks, so never write unsanitized markup.
+  const html = sanitize(marked(text, ed.options), EXPORT_DOMPURIFY_CONFIG, false)
+  try {
+    // Native write works from menu events where no webview user
+    // gesture exists (execCommand would be denied there).
+    const { writeHtml } = await import('@tauri-apps/plugin-clipboard-manager')
+    await writeHtml(html, text)
+  } catch (e) {
+    console.warn(
+      `[Editor][handleCopyAsHtml][BLOCK_COPY_AS_HTML] native writeHtml failed, falling back to execCommand copy: ${e}`
+    )
+    // execCommand only works under a webview gesture (command palette);
+    // from the menu it will silently no-op, so always tell the user.
+    notice.notify({ title: t('error.copyError'), type: 'warning' })
+    if (editor.value) {
+      editor.value.copyAsRich()
+    }
+  }
+}
+// END_BLOCK_COPY_AS_HTML
+
 const insertImage = (src) => {
   if (!sourceCode.value) {
     editor.value && editor.value.insertImage({ src })
@@ -1423,6 +1472,7 @@ onMounted(() => {
   bus.on('copyAsRich', handleCopyPaste)
   bus.on('copyAsHtml', handleCopyPaste)
   bus.on('pasteAsPlainText', handleCopyPaste)
+  bus.on('copyAsHtmlRich', handleCopyAsHtml)
   bus.on('duplicate', handleParagraph)
   bus.on('createParagraph', handleParagraph)
   bus.on('deleteParagraph', handleParagraph)
@@ -1548,6 +1598,7 @@ onBeforeUnmount(() => {
   bus.off('copyAsRich', handleCopyPaste)
   bus.off('copyAsHtml', handleCopyPaste)
   bus.off('pasteAsPlainText', handleCopyPaste)
+  bus.off('copyAsHtmlRich', handleCopyAsHtml)
   bus.off('duplicate', handleParagraph)
   bus.off('createParagraph', handleParagraph)
   bus.off('deleteParagraph', handleParagraph)
