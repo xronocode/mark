@@ -1,0 +1,80 @@
+<GraceChangeSpec graceVersion='4.0' status='approved'>
+<C-7>
+  <Name>Re-reveal the active tab after tab-strip container resize (ResizeObserver)</Name>
+  <Created>2026-09-16</Created>
+  <Priority>medium</Priority>
+  <Status>implemented</Status>
+
+  <Summary>
+    C-6 scrolls the active tab into view on activation change, reorder, and
+    tab-bar re-show, but a container RESIZE is not a trigger: shrinking the
+    window can clip the active tab off-screen until the next activation
+    (observed live during the CUA QA run: 720→480px resize left the active
+    watch.md tab outside the visible window). Add a ResizeObserver on
+    .scrollable-tabs that runs scrollActiveTabIntoView after width changes,
+    with a zero-width guard for the display:none state.
+  </Summary>
+
+  <Problem>
+    <Description>
+      After narrowing the window, the active tab can sit off-screen with no
+      indication which tab is active — the exact UX C-6 set out to fix —
+      until the user switches tabs.
+    </Description>
+    <RootCause>
+      No watcher source observes the strip container's geometry; Vue
+      reactivity covers store state, not element size.
+    </RootCause>
+    <Evidence>
+      CUA QA run 2026-09-16: set_window_frame 720→480px; AX frames showed
+      watch.md at x=906..962 while the visible window ended at 780; the
+      strip corrected only after the next activation event.
+    </Evidence>
+  </Problem>
+
+  <Goals>
+    <R-1>
+      tabs.vue observes tabContainer with ResizeObserver (guarded for
+      environments without it, e.g. jsdom); on entry width change with
+      clientWidth &gt; 0, run scrollActiveTabIntoView via nextTick;
+      disconnect in onBeforeUnmount.
+    </R-1>
+    <R-2>
+      Unit tests with a stubbed ResizeObserver class capture the observer
+      callback and the observed element, simulate width-change entries, and
+      pin: scroll on resize, no scroll on zero-width (display:none), and
+      disconnect on unmount.
+    </R-2>
+  </Goals>
+
+  <Constraints>
+    <Constraint>Reuse scrollActiveTabIntoView; no second scroll path.</Constraint>
+    <Constraint>ResizeObserver is feature-detected, never imported polyfilled.</Constraint>
+  </Constraints>
+
+  <NonGoals>
+    <NonGoal>Observing window resize globally or other elements.</NonGoal>
+  </NonGoals>
+
+  <AcceptanceCriteria>
+    <Criterion>After any strip resize with a non-zero width, the active tab ends fully visible.</Criterion>
+    <Criterion>display:none (zero width) never triggers a scroll write.</Criterion>
+    <Criterion>Renderer suites green; observer disconnected on unmount (no leak).</Criterion>
+  </AcceptanceCriteria>
+
+  <AffectedAreas>
+    <M-011>tabs.vue resize trigger (C-7)</M-011>
+  </AffectedAreas>
+
+  <VerificationIntent>
+    tests/renderer/components/tabs-scroll.test.js resize cases; CUA live
+    check: shrink the window with an off-edge active tab and confirm the
+    strip re-reveals it without any activation.
+  </VerificationIntent>
+
+  <Approval>
+    <ApprovedBy>user (session 2026-09-16): "ну то есть гоу?"</ApprovedBy>
+    <ApprovalScope>Implement with the C-8/C-9 batch; same review + CUA gates.</ApprovalScope>
+  </Approval>
+</C-7>
+</GraceChangeSpec>
