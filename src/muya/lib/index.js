@@ -1,3 +1,22 @@
+// FILE: src/muya/lib/index.js
+// VERSION: 1.1.0
+// START_MODULE_CONTRACT
+//   PURPOSE: Muya editor entry class — construction, options, and the public API surface other modules call.
+//   SCOPE: Class construction/init, markdown IO (get/set), export helpers, clipboard accessors, and public editing commands.
+//   DEPENDS: contentState, event handlers (clipboard/keyboard/mouse/click/dragDrop/resize), utils (ExportMarkdown/ExportHtml), ui plugins.
+//   LINKS: .grace/graph/runtime.xml M-012 fn-getCopyData; .grace/verification/runtime.xml V-M-012 scenario-14; C-3.
+//   ROLE: RUNTIME
+//   MAP_MODE: EXPORTS
+// END_MODULE_CONTRACT
+//
+// START_MODULE_MAP
+//   default - GRACE 4 synchronized symbol (Muya class).
+// END_MODULE_MAP
+//
+// START_CHANGE_SUMMARY
+//   LAST_CHANGE: v1.1.0 - Add getCopyData: markdown text of whatever is selected (DOM range, table cells, image) for the Copy as HTML clipboard path; mirrors docCopyHandler/copyHandler special cases (C-3).
+// END_CHANGE_SUMMARY
+
 import ContentState from './contentState'
 import EventCenter from './eventHandler/event'
 import MouseEvent from './eventHandler/mouseEvent'
@@ -406,6 +425,59 @@ class Muya {
 
   copyAsRich() {
     this.clipboard.copyAsRich()
+  }
+
+  /**
+   * Get the markdown text of whatever is currently selected — a DOM
+   * range, selected table cells, or a selected image — without writing
+   * to the system clipboard. Returns { text } where text is '' when
+   * nothing is selected. Mirrors the special cases of muya's copy
+   * handlers (docCopyHandler for table cells, copyHandler for images).
+   * NOTE: not a pure query — the range branch delegates to
+   * getClipBoardData(), which may repair the DOM selection or blur the
+   * editor when the cursor state is invalid.
+   */
+  getCopyData() {
+    const contentState = this.contentState
+    if (contentState.selectedTableCells) {
+      const { row, column, cells } = contentState.selectedTableCells
+      if (row === 1 && column === 1) {
+        return { text: cells[0].text }
+      }
+      // Copy cells as a markdown table (same as docCopyHandler).
+      const tableContents = []
+      for (let i = 0; i < row; i++) {
+        const rowWrapper = []
+        for (let j = 0; j < column; j++) {
+          const cell = cells[i * column + j]
+          rowWrapper.push({ text: cell.text, align: cell.align })
+        }
+        tableContents.push(rowWrapper)
+      }
+      const figureBlock = contentState.createBlock('figure', {
+        functionType: 'table'
+      })
+      const table = contentState.createTableInFigure(
+        { rows: row, columns: column },
+        tableContents
+      )
+      contentState.appendChild(figureBlock, table)
+      const { isGitlabCompatibilityEnabled, listIndentation } = contentState
+      const markdown = new ExportMarkdown(
+        [figureBlock],
+        listIndentation,
+        isGitlabCompatibilityEnabled
+      ).generate()
+      return { text: markdown }
+    }
+    if (contentState.selectedImage) {
+      const { token } = contentState.selectedImage
+      if (token && token.raw.length > 0) {
+        return { text: token.raw }
+      }
+      return { text: '' }
+    }
+    return { text: contentState.getClipBoardData().text }
   }
 
   copyAsHtml() {

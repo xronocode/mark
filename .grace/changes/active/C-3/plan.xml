@@ -1,0 +1,170 @@
+<GraceChangePlan graceVersion='4.0' status='approved'>
+  <C-3>
+    <Name>Copy as HTML — implementation plan</Name>
+    <Created>2026-09-16</Created>
+    <SpecRef>.grace/changes/active/C-3/spec.xml</SpecRef>
+
+    <IntentSummary>
+      Ship the C-3 spec: muya getCopyData accessor, edit.copy-as-html
+      command + copyAsHtmlRich handler with native writeHtml primary and
+      execCommand fallback, native Edit-menu item with Cmd+Shift+C,
+      capability grant, tests, and GRACE graph/verification deltas.
+    </IntentSummary>
+
+    <BaselineAssertions>
+      <MustExist>
+        <Value>src/muya/lib/contentState/copyCutCtrl.js</Value>
+      </MustExist>
+      <MustExist>
+        <Value>M-011</Value>
+      </MustExist>
+      <MustExist>
+        <Value>M-012</Value>
+      </MustExist>
+      <MustPassCommand>
+        <Command>npx vitest run tests/renderer/commands/menu-consistency.test.js</Command>
+      </MustPassCommand>
+    </BaselineAssertions>
+
+    <TargetAssertions>
+      <MustContain>
+        <File>src-tauri/src/m009_menu.rs</File>
+        <Text>edit.copy-as-html</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/commands/index.js</File>
+        <Text>copyAsHtmlRich</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/capabilities/default.json</File>
+        <Text>clipboard-manager:allow-write-html</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/capabilities/mas.json</File>
+        <Text>clipboard-manager:allow-write-html</Text>
+      </MustContain>
+      <MustVerify>
+        <Module>V-M-009</Module>
+      </MustVerify>
+      <MustVerify>
+        <Module>V-M-011</Module>
+      </MustVerify>
+      <MustVerify>
+        <Module>V-M-012</Module>
+      </MustVerify>
+      <MustPassCommand>
+        <Command>npx vitest run tests/renderer/components/editor-coverage.test.js tests/renderer/commands/index-deep.test.js tests/renderer/muya/copy-data.test.js</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>cargo test --manifest-path src-tauri/Cargo.toml --bin mark m009_menu</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+
+    <DurableScope>
+      <GraphAnchors>
+        <M-009/>
+        <M-011/>
+        <M-012/>
+        <M-013/>
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-009/>
+        <V-M-011/>
+        <V-M-012/>
+      </VerificationAnchors>
+    </DurableScope>
+
+    <ObservedWriteScope>
+      <File>src/muya/lib/index.js</File>
+      <File>src/renderer/src/commands/index.js</File>
+      <File>src/renderer/src/components/editorWithTabs/editor.vue</File>
+      <File>src-tauri/src/m009_menu.rs</File>
+      <File>src-tauri/capabilities/default.json</File>
+      <File>src-tauri/capabilities/mas.json</File>
+      <File>tests/renderer/components/editor-coverage.test.js</File>
+      <File>tests/renderer/commands/menu-consistency.test.js</File>
+      <File>tests/renderer/commands/index-deep.test.js</File>
+      <File>tests/renderer/muya/copy-data.test.js</File>
+      <File>.grace/graph/runtime.xml</File>
+      <File>.grace/verification/runtime.xml</File>
+      <File>.grace/changes/active/C-3/spec.xml</File>
+      <File>.grace/changes/active/C-3/plan.xml</File>
+    </ObservedWriteScope>
+
+    <ImplementationPlan>
+      <T-001>
+        <Title>muya getCopyData accessor</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            Muya.prototype.getCopyData returns { text } — the markdown of
+            whatever is selected (DOM range via contentState
+            getClipBoardData, table cells via the docCopyHandler-style
+            export, image via token.raw) — and never touches the
+            clipboard transport. (Widened after review-1 finding 1;
+            see the spec GoalAddendum.)
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>
+            npx vitest run tests/renderer/muya/copy-data.test.js
+          </Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>Renderer command + editor handler</Title>
+        <DependsOn>T-001</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            edit.copy-as-html emits bus copyAsHtmlRich after focus; the
+            handler writes the selection payload via writeHtml, falls
+            back to the whole document when nothing is selected, no-ops
+            on an empty document, and falls back to muya copyAsRich on
+            native write rejection.
+          </Criterion>
+          <Criterion>
+            Handler registered on mount and unregistered on unmount.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>
+            npx vitest run tests/renderer/commands/index-deep.test.js tests/renderer/components/editor-coverage.test.js
+          </Command>
+        </Verification>
+      </T-002>
+      <T-003>
+        <Title>Native menu item + capability grant</Title>
+        <DependsOn>T-002</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            Edit menu has "Copy as HTML" (edit.copy-as-html,
+            CmdOrCtrl+Shift+C); both capability files grant
+            clipboard-manager:allow-write-html.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>
+            cargo test --manifest-path src-tauri/Cargo.toml --bin mark m009_menu
+          </Command>
+          <Command>
+            npx vitest run tests/renderer/commands/menu-consistency.test.js
+          </Command>
+        </Verification>
+      </T-003>
+      <T-004>
+        <Title>GRACE deltas and evidence</Title>
+        <DependsOn>T-003</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            graph M-011/M-012 fn anchors added; verification V-M-009/11/12
+            scenarios + command updated; grace lint clean for C-3.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>grace lint --path . --assertions current</Command>
+          <Command>grace status --path . --with modules --json</Command>
+        </Verification>
+      </T-004>
+    </ImplementationPlan>
+  </C-3>
+</GraceChangePlan>

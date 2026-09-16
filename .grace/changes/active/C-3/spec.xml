@@ -1,0 +1,232 @@
+<GraceChangeSpec graceVersion='4.0' status='approved'>
+  <C-3>
+    <Name>Add "Copy as HTML": rich text/html clipboard for email paste</Name>
+    <Created>2026-09-16</Created>
+    <Priority>high</Priority>
+    <Status>approved</Status>
+
+    <Summary>
+      A native Edit-menu item "Copy as HTML" (id edit.copy-as-html,
+      Cmd+Shift+C) copies the current selection — or the whole document
+      when nothing is selected — to the system clipboard as rich
+      text/html plus Markdown text/plain, so pasting into email clients
+      (Apple Mail, Gmail, Outlook) keeps formatting instead of degrading
+      to raw Markdown.
+    </Summary>
+
+    <Problem>
+      <Description>
+        Pasting copied content from Mark into email clients loses all
+        formatting. Reason: muya's normal copy (Cmd+C / native predefined
+        Copy) deliberately writes an EMPTY text/html flavor and puts the
+        Markdown source into text/plain (src/muya/lib/contentState/
+        copyCutCtrl.js copyHandler case 'normal'). Email clients honor
+        text/html first and fall back to text/plain, so the message body
+        ends up with raw Markdown or mangled formatting. The existing
+        muya method copyAsRich produces exactly the needed payload
+        (text/html = rendered HTML regenerated from the selection via
+        marked, text/plain = Markdown), but nothing in the Mark UI
+        exposes it: no menu item, no command id, and its
+        execCommand('copy') transport cannot be triggered from the
+        native menu because WKWebView requires a webview user gesture
+        for execCommand clipboard writes, which a Tauri menu event does
+        not carry.
+      </Description>
+      <Evidence>
+        src/muya/lib/contentState/copyCutCtrl.js copy flavors per
+        _copyType; src/muya/lib/eventHandler/clipboard.js execCommand
+        transport; src/renderer/src/commands/descriptions.js +
+        static/locales/en.json commands.edit.copyAsHtml — palette
+        strings present but no command registered;
+        src-tauri/src/m009_menu.rs Edit submenu had no copy-as item.
+      </Evidence>
+    </Problem>
+
+    <Goals>
+      <Goal>
+        R-1: Edit-menu item "Copy as HTML" (edit.copy-as-html,
+        Cmd+Shift+C) writes the selection as rich text/html (the same
+        payload muya copyAsRich computes) + Markdown text/plain.
+      </Goal>
+      <Goal>
+        R-2: With no selection, copies the whole document (getMarkdown +
+        muya marked with the editor's muya options) instead of no-op.
+      </Goal>
+      <Goal>
+        R-3: Primary write via native tauri-plugin-clipboard-manager
+        writeHtml (works without webview user gesture); on rejection fall
+        back to muya copyAsRich() execCommand path.
+      </Goal>
+      <Goal>
+        R-4: Command palette discovers the command via existing
+        description key commands.edit.copyAsHtml.
+      </Goal>
+      <Goal>
+        R-5: muya gains one pure public accessor getCopyData() returning
+        contentState.getClipBoardData() with no clipboard side effects;
+        all other muya copy/cut/paste behavior byte-identical.
+      </Goal>
+      <Goal>
+        R-6: Menu ↔ command consistency gates stay green and the
+        accelerator is pinned by a source assertion.
+      </Goal>
+    </Goals>
+
+    <GoalAddendum>
+      <Created>2026-09-16</Created>
+      <Reviews>review-1, review-2</Reviews>
+      <Description>
+        R-5 as originally written described the pre-review accessor.
+        After review-1 (finding 1: table-cell and image selections fell
+        through to the whole-document copy), getCopyData() returns
+        { text } — the markdown of whatever is selected: DOM ranges
+        delegate to contentState.getClipBoardData().text; selected
+        table cells reuse the docCopyHandler export (1x1 → cell text,
+        multi-cell → createTableInFigure + ExportMarkdown); a selected
+        image returns token.raw. The method is a read-mostly accessor,
+        not a pure query (the range branch may repair the DOM selection
+        or blur the editor when cursor state is invalid — documented in
+        the JSDoc). R-1's "same payload muya copyAsRich computes"
+        applies to DOM ranges; for cells/image the new path produces
+        real rendered HTML (muya's docCopyHandler writes empty text/html
+        there — intentionally better). A single empty selected cell
+        counts as "nothing selected" and falls back to the whole
+        document (R-2).
+      </Description>
+    </GoalAddendum>
+
+    <Constraints>
+      <Constraint>
+        No changes to C-2-touched files (ipc/contract/listener.ts,
+        ipc/runtime/watch.ts, store/editor.js, store/project.js,
+        m013b/watch.rs, m_v1_compat.rs) — independent change.
+      </Constraint>
+      <Constraint>
+        Tauri capability files default.json and mas.json both gain
+        clipboard-manager:allow-write-html (MAS build parity).
+      </Constraint>
+      <Constraint>
+        muya modification limited to one pure prototype method in
+        src/muya/lib/index.js; vendored muya style preserved.
+      </Constraint>
+      <Constraint>
+        GRACE anchors updated: graph M-011/M-012 fn entries, verification
+        V-M-009/V-M-011/V-M-012 scenarios/commands, module contracts +
+        CHANGE_SUMMARY in every edited source file.
+      </Constraint>
+      <Constraint>
+        Release protocol (user mandate, same as C-2): two sequential
+        independent reviews from different angles — review-1
+        correctness/races/edge-cases, review-2
+        security/contracts/regressions — must BOTH return clean before
+        the change ships; 100% line+branch coverage required for every
+        changed renderer/muya function; changed Rust code paths pinned
+        by deterministic tests.
+      </Constraint>
+    </Constraints>
+
+    <NonGoals>
+      <NonGoal>
+        Changing normal Cmd+C copy semantics (still
+        Markdown-as-plain-text by muya design).
+      </NonGoal>
+      <NonGoal>
+        Exposing muya copyAsHtml (HTML source code as plain text) in the
+        UI; it stays internal.
+      </NonGoal>
+      <NonGoal>
+        Inline CSS styling of the copied HTML; the semantic fragment
+        (h1-h6, strong, ul, pre, table) is what email clients style
+        themselves.
+      </NonGoal>
+      <NonGoal>
+        Embedding images into the copied HTML; local file paths stay
+        local.
+      </NonGoal>
+      <NonGoal>
+        Success toast/notification (silent success, consistent with
+        platform copy UX).
+      </NonGoal>
+    </NonGoals>
+
+    <AcceptanceCriteria>
+      <Criterion>
+        Native Edit menu contains "Copy as HTML" with id
+        edit.copy-as-html and accelerator CmdOrCtrl+Shift+C, and the id
+        resolves to a renderer command.
+      </Criterion>
+      <Criterion>
+        With a selection, the clipboard text/html flavor holds the
+        rendered HTML fragment and text/plain holds the Markdown
+        (written via clipboard-manager writeHtml).
+      </Criterion>
+      <Criterion>
+        With no selection over a non-empty document, the whole document
+        is copied (Markdown + muya-marked HTML); with an empty document
+        the command is a no-op.
+      </Criterion>
+      <Criterion>
+        If the native writeHtml invoke rejects, muya copyAsRich() runs as
+        the execCommand fallback and the failure is logged with the
+        BLOCK_COPY_AS_HTML marker.
+      </Criterion>
+      <Criterion>
+        All affected vitest suites and cargo menu tests pass; grace lint
+        reports no C-3 issues.
+      </Criterion>
+    </AcceptanceCriteria>
+
+    <AffectedAreas>
+      <M-009>Edit menu item edit.copy-as-html + accelerator</M-009>
+      <M-011>editor.vue handleCopyAsHtml + bus event copyAsHtmlRich</M-011>
+      <M-012>muya public accessor getCopyData()</M-012>
+      <M-013>command registry entry edit.copy-as-html (commands/index.js)</M-013>
+    </AffectedAreas>
+
+    <VerificationIntent>
+      Deterministic unit gates pin every layer: menu-consistency pins the
+      menu id + accelerator against the Rust source and the id ↔ command
+      contract; editor-coverage pins the handler's four paths (selection
+      write, whole-document fallback, empty no-op, native-failure →
+      execCommand fallback) and unmount unregistration; commands
+      index-deep pins the bus emission; muya copy-data pins the pure
+      delegation; cargo m009_menu tests pin Rust menu invariants. The
+      end-user email-paste behavior (mail client prefers text/html) is
+      covered by the R-1 payload contract asserted in editor-coverage.
+    </VerificationIntent>
+
+    <Approval>
+      <ApprovedBy>user (session 2026-09-16): "Нужен в меню пункт типа скопировать как ХТМЛ, иначе сейчас в почту не возможно взять и вставить — просто получается ломанный форматинг от МД"</ApprovedBy>
+      <ApprovalScope>
+        Copy-as-HTML menu item that puts rich text/html on the clipboard
+        so email paste keeps formatting; whole-document fallback; tests
+        and GRACE evidence.
+      </ApprovalScope>
+    </Approval>
+
+    <ReviewLog>
+      <Review sequence="1" angle="correctness/races/edge-cases" date="2026-09-16" verdict="findings-fixed-then-clean">
+        MAJOR: table-cell/image selections silently copied the whole
+        document — fixed by extending getCopyData to mirror muya's
+        docCopyHandler/copyHandler special cases. MINOR: null-deref in
+        the catch after mid-flight unmount — fixed with an editor.value
+        re-guard; execCommand fallback is dead from the menu — now
+        supplemented with a user notification (error.copyError).
+        NIT: selection HTML used marked without editor options — fixed
+        by unifying the pipeline (marked(text, options) + DOMPurify on
+        every path). Test gaps (cells-vs-whole-doc, mid-flight unmount,
+        accelerator uniqueness) closed.
+      </Review>
+      <Review sequence="2" angle="security/contracts/regressions" date="2026-09-16" verdict="findings-fixed-then-clean">
+        Zero CRITICAL/MAJOR. Security: DOMPurify EXPORT config strips
+        script/on*/javascript:/data: — verified; capability grant adds
+        write_html only, no read. Regression: throwaway table export
+        blocks cannot leak into live state (detached objects, same
+        sequence as docCopyHandler). Four MINOR contract gaps fixed:
+        BLOCK_COPY_AS_HTML marker registered in V-M-011; R-5 addendum;
+        V-M-012 scenario-14 + graph fn-getCopyData PURPOSE reworded to
+        the { text } contract; MODULE header added to muya/lib/index.js.
+      </Review>
+    </ReviewLog>
+  </C-3>
+</GraceChangeSpec>

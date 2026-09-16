@@ -1,5 +1,5 @@
 // FILE: src/renderer/src/commands/index.js
-// VERSION: 2.1.2-beta
+// VERSION: 2.1.10-beta
 // START_MODULE_CONTRACT
 //   PURPOSE: Register renderer commands and route each command to its typed store, event-bus, or Tauri integration.
 //   SCOPE: Static command definitions, platform-gated commands, and user-visible command outcomes; backend implementation is out of scope.
@@ -12,6 +12,7 @@
 // START_MODULE_MAP
 //   RootCommand - Command-palette root and subcommand coordinator.
 //   file.check-update - Checks the signed feed and applies an available update entirely in app.
+//   edit.copy-as-html - Copies selection (or whole document) as rich text/html for email paste (C-3).
 //   FileEncodingCommand - GRACE 4 synchronized symbol
 //   LineEndingCommand - GRACE 4 synchronized symbol
 //   QuickOpenCommand - GRACE 4 synchronized symbol
@@ -22,6 +23,7 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-09-16 v2.1.10-beta: add edit.copy-as-html (C-3) — rich text/html clipboard via editor.vue copyAsHtmlRich handler.
 //   - 2026-08-07 v2.1.2-beta: remove the Terminal/Homebrew update branch and use the signed Tauri updater for every non-App-Store install.
 // END_CHANGE_SUMMARY
 //
@@ -278,6 +280,15 @@ const commands = [
     shortcut: [isOsx ? 'Cmd' : 'Ctrl', 'Shift', 'F'],
     execute: async () => {
       bus.emit('projectSearch')
+    }
+  },
+  {
+    // Rich clipboard write (text/html + text/plain) handled by
+    // editor.vue handleCopyAsHtml — see C-3. Native write path needs
+    // no webview user gesture, unlike muya's execCommand transport.
+    id: 'edit.copy-as-html',
+    execute: async () => {
+      focusEditorAndExecute(() => bus.emit('copyAsHtmlRich'))
     }
   },
 

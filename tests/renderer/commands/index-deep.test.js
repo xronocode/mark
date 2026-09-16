@@ -8,7 +8,7 @@
  *   - file.move-file, file.rename-file, file.import-file
  *   - file.export-file subcommands (html, pdf)
  *   - edit.redo, edit.duplicate, edit.create-paragraph, edit.delete-paragraph
- *   - edit.find, edit.replace, edit.find-in-folder
+ *   - edit.find, edit.replace, edit.find-in-folder, edit.copy-as-html (C-3)
  *   - all paragraph.* commands
  *   - all format.* commands
  *   - all window.* commands (minimize, toggle-always-on-top, toggle-full-screen)
@@ -233,6 +233,12 @@ describe('commands/index — deep coverage', () => {
     it('edit.find-in-folder emits projectSearch', async () => {
       await findCmd('edit.find-in-folder').execute()
       expect(bus.emit).toHaveBeenCalledWith('projectSearch')
+    })
+
+    it('edit.copy-as-html emits copyAsHtmlRich after delay (C-3)', () => {
+      findCmd('edit.copy-as-html').execute()
+      vi.advanceTimersByTime(200)
+      expect(bus.emit).toHaveBeenCalledWith('copyAsHtmlRich')
     })
 
     it('edit.select-all emits selectAll', async () => {
