@@ -247,9 +247,11 @@
       "showInFolder": "Show in folder"
     },
     "editor": {
-      "copy": "Copy",
+      "undo": "Undo",
+      "redo": "Redo",
       "copyAsHtml": "Copy as HTML",
-      "selectAll": "Select All"
+      "selectAll": "Select All",
+      "share": "Share"
     }
   },
   "search": {

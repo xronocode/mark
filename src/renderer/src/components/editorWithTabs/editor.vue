@@ -75,7 +75,7 @@
 
 <script setup>
 // FILE: src/renderer/src/components/editorWithTabs/editor.vue
-// VERSION: 1.8.0
+// VERSION: 1.9.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Host the Muya WYSIWYG surface and coordinate document rendering, selection, scroll, preview, editor tools, and store/bus integration.
 //   SCOPE: Renderer-side Muya lifecycle and UI orchestration; does not own Markdown parsing rules or backend file persistence.
@@ -93,7 +93,7 @@
 //   imageAction - Applies configured local/upload image insertion behavior.
 //   handleExport - Routes supported export formats to renderer services.
 //   handleCopyAsHtml - Copies selection (or whole document) to the clipboard as rich text/html (C-3).
-//   handleEditorContextMenu - Native right-click menu: Copy / Copy as HTML / Select All, replacing the WKWebView default (C-10).
+//   handleEditorContextMenu - Native right-click menu: undo/redo, cut/copy/paste/select-all roles, Copy as HTML, Share (C-10/C-11).
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
@@ -105,6 +105,7 @@
 //   - 2026-08-14 v1.6.0: reset scrollTop synchronously for tabs with no saved scroll position so an agent-opened tab cannot inherit a stale scrollTop from the previously active tab and read as blank until manual scroll.
 //   - 2026-09-16 v1.7.0: add copyAsHtmlRich bus handler — native clipboard-manager writeHtml puts text/html + text/plain on the clipboard for email paste, with execCommand copyAsRich fallback (C-3).
 //   - 2026-09-17 v1.8.0: handleEditorContextMenu — native right-click menu (Copy / Copy as HTML / Select All) replaces the WKWebView default on the WYSIWYG surface (C-10).
+//   - 2026-09-17 v1.9.0: full context menu — native cut/copy/paste/select-all roles, Muya undo/redo, Share via mt_share_file (C-11).
 // END_CHANGE_SUMMARY
 
 import { ref, reactive, watch, onMounted, onBeforeUnmount, nextTick, computed } from 'vue'
@@ -848,11 +849,11 @@ const handleCopyAsHtml = async () => {
 // END_BLOCK_COPY_AS_HTML
 
 // START_CONTRACT: handleEditorContextMenu
-//   PURPOSE: Replace WKWebView's default right-click menu with the app's native context menu carrying Copy / Copy as HTML / Select All.
+//   PURPOSE: Replace WKWebView's default right-click menu with a full native menu: undo/redo (Muya history), cut/copy/paste/select-all roles, Copy as HTML, and Share.
 //   INPUTS: { event: Event - the DOM contextmenu event Muya re-dispatches }
 //   OUTPUTS: { Promise<void> - resolves after the native popup resolves and the clicked id is dispatched }
-//   SIDE_EFFECTS: Suppresses the webview default menu; may write the clipboard (copy / copyAsHtml) or select the document.
-//   LINKS: C-10; muya eventHandler/clickEvent.js 'contextmenu' dispatch; mt::window-popup-context-menu (m009); C-3 handleCopyAsHtml
+//   SIDE_EFFECTS: Suppresses the webview default menu; roles act via the responder chain; copyAsHtml writes the clipboard; share opens the native share sheet.
+//   LINKS: C-10/C-11; muya eventHandler/clickEvent.js 'contextmenu' dispatch; mt::window-popup-context-menu (m009 roles); C-3 handleCopyAsHtml; mt_share_file
 // END_CONTRACT: handleEditorContextMenu
 // START_BLOCK_EDITOR_CONTEXT_MENU
 const handleEditorContextMenu = async (event) => {
@@ -860,18 +861,31 @@ const handleEditorContextMenu = async (event) => {
   event.preventDefault()
   const ed = editor.value
   if (!ed) return
-  // Muya already committed the cursor at the click point; getCopyData
-  // mirrors the copy handlers' selection special cases (range / table
-  // cells / image), so Copy is enabled exactly when a real selection
-  // exists.
-  const copyData = ed.getCopyData()
+  const pathname = currentFile.value && currentFile.value.pathname
+  // C-11: cut/copy/paste are native roles — OS-localized labels, auto
+  // enablement, and responder-chain behavior identical to the Edit
+  // menu's native items. Undo/redo/selectAll stay custom: Muya owns
+  // history (the app deliberately routes Cmd+Z away from the webview
+  // undo), and Muya's selectAll is context-aware (a table selects the
+  // table, a code block its content) unlike the native role, which
+  // would always grab the whole document. Undo/redo are always enabled
+  // — Muya no-ops an empty history. Share reuses the title-bar
+  // mt_share_file path and only exists for saved files.
   const items = [
-    { label: t('contextMenu.editor.copy'), id: 'copy', enabled: !!(copyData && copyData.text) },
+    { label: t('contextMenu.editor.undo'), id: 'undo' },
+    { label: t('contextMenu.editor.redo'), id: 'redo' },
+    { type: 'separator' },
+    { role: 'cut' },
+    { role: 'copy' },
     // Whole-document fallback lives inside handleCopyAsHtml (C-3).
     { label: t('contextMenu.editor.copyAsHtml'), id: 'copyAsHtml' },
+    { role: 'paste' },
     { type: 'separator' },
     { label: t('contextMenu.editor.selectAll'), id: 'selectAll' }
   ]
+  if (pathname) {
+    items.push({ type: 'separator' }, { label: t('contextMenu.editor.share'), id: 'shareFile' })
+  }
   let clickedId
   try {
     clickedId = await window.electron.ipcRenderer.invoke(
@@ -884,20 +898,23 @@ const handleEditorContextMenu = async (event) => {
     )
     return
   }
-  if (clickedId === 'copy') {
-    try {
-      const { writeText } = await import('@tauri-apps/plugin-clipboard-manager')
-      await writeText(copyData.text)
-    } catch (e) {
-      console.warn(
-        `[Editor][handleEditorContextMenu][BLOCK_EDITOR_CONTEXT_MENU] native writeText failed: ${e}`
-      )
-      notice.notify({ title: t('error.copyError'), type: 'warning' })
-    }
-  } else if (clickedId === 'copyAsHtml') {
-    await handleCopyAsHtml()
+  if (clickedId === 'undo') {
+    ed.undo()
+  } else if (clickedId === 'redo') {
+    ed.redo()
   } else if (clickedId === 'selectAll') {
     ed.selectAll()
+  } else if (clickedId === 'copyAsHtml') {
+    await handleCopyAsHtml()
+  } else if (clickedId === 'shareFile') {
+    try {
+      const { invoke } = await import('@tauri-apps/api/core')
+      await invoke('mt_share_file', { path: pathname })
+    } catch (e) {
+      console.warn(
+        `[Editor][handleEditorContextMenu][BLOCK_EDITOR_CONTEXT_MENU] share failed: ${e}`
+      )
+    }
   }
 }
 // END_BLOCK_EDITOR_CONTEXT_MENU

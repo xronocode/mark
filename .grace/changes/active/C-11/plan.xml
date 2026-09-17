@@ -1,0 +1,107 @@
+<GraceChangePlan graceVersion='4.0' status='approved'>
+<C-11>
+  <ChangeRef>C-11</ChangeRef>
+  <Created>2026-09-17</Created>
+  <IntentSummary>MacOS-hygiene editor context menu: native edit roles + Muya undo/redo + Share.</IntentSummary>
+  <BaselineAssertions>
+    <MustContain>
+      <File>src-tauri/src/m009_menu.rs</File>
+      <Text>ValidatedContextMenuItem</Text>
+    </MustContain>
+    <MustContain>
+      <File>src/renderer/src/components/editorWithTabs/editor.vue</File>
+      <Text>handleEditorContextMenu</Text>
+    </MustContain>
+  </BaselineAssertions>
+  <TargetAssertions>
+    <MustContain>
+      <File>src-tauri/src/m009_menu.rs</File>
+      <Text>Role</Text>
+    </MustContain>
+    <MustContain>
+      <File>src/renderer/src/components/editorWithTabs/editor.vue</File>
+      <Text>shareFile</Text>
+    </MustContain>
+    <MustContain>
+      <File>tests/renderer/components/editor-coverage.test.js</File>
+      <Text>shareFile</Text>
+    </MustContain>
+  </TargetAssertions>
+  <DurableScope>
+    <M-009/>
+    <M-011/>
+  </DurableScope>
+  <ObservedWriteScope>
+    <File>src-tauri/src/m009_menu.rs</File>
+    <File>src/renderer/src/components/editorWithTabs/editor.vue</File>
+    <File>static/locales/*.json and *.min.json (ten locale pairs)</File>
+    <File>tests/renderer/components/editor-coverage.test.js</File>
+    <File>.grace/graph/runtime.xml</File>
+    <File>.grace/verification/runtime.xml</File>
+  </ObservedWriteScope>
+  <ImplementationPlan>
+    <T-001>
+      <Title>Rust role support + unit tests</Title>
+      <DependsOn></DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>role whitelist validation; popup builds PredefinedMenuItem; roles count as actionable; cargo test green.</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>cargo test --bin mark -- m009_menu</Command>
+      </Verification>
+    </T-001>
+    <T-002>
+      <Title>editor.vue menu + locales + renderer tests</Title>
+      <DependsOn>T-001</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>Full menu spec with roles; undo/redo/copyAsHtml/shareFile dispatch; locale pairs updated; editor-coverage green.</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>npx vitest run tests/renderer/components/editor-coverage.test.js</Command>
+      </Verification>
+    </T-002>
+    <T-003>
+      <Title>Reviews + CUA + commit</Title>
+      <DependsOn>T-002</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>Two green reviews; CUA confirms the full menu, working Paste and Undo; commit pushed.</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>npm test &amp;&amp; cargo test --bin mark -- m009_menu</Command>
+      </Verification>
+    </T-003>
+  </ImplementationPlan>
+  <ReviewLog>
+    <Review number="1" date="2026-09-17" verdict="changes-requested">
+      <Findings>
+        Independent agent review: 1 MAJOR, 1 MINOR, 3 NIT — all fixed.
+        (1) MAJOR: the select_all role diverged from Cmd+A — the menu-bar
+        Select All is the custom edit.select-all routed to Muya's
+        context-aware selection (table → table, code block → code
+        content) while the native role always grabs the whole document;
+        restored the custom selectAll item + locale key, spec R-2 and
+        acceptance now state the divergence explicitly. Rust role
+        support stays (verified against muda 0.19.2: predefined items
+        use native selectors and never reach the menu-event handler, so
+        the pending map stays clean). (2) m009 CHANGE_SUMMARY entry
+        added. (3) exact interleaved menu layout pinned in the test.
+        (4) role rows asserted id/label-free. (5) always-enabled
+        undo/redo documented in the code comment. Gates after fixes:
+        editor-coverage 150 passed | 2 skipped; cargo m009_menu 13/13;
+        grace lint 0 errors; full suite 222 files / 3036 passed / 0
+        failed.
+      </Findings>
+    </Review>
+    <Review number="2" date="2026-09-17" verdict="green">
+      <Findings>
+        Final gate: VERDICT green (after two text-only propagation fixes
+        re-verified by the same reviewer). All pass-1 fixes confirmed
+        programmatically; Rust diff clean (muda 0.19.2 semantics: role
+        clicks never reach the menu-event handler); locale diffs exactly
+        +6/-2 json / +2/-2 min.json per pair; gates 13/13 Rust, 150
+        passed | 2 skipped renderer, lint 0 errors.
+      </Findings>
+    </Review>
+  </ReviewLog>
+</C-11>
+</GraceChangePlan>
