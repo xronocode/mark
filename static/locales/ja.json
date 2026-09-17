@@ -249,6 +249,7 @@
       "undo": "取り消す",
       "redo": "やり直す",
       "copyAsHtml": "HTMLとしてコピー",
+      "copyAsPlainText": "プレーンテキストとしてコピー",
       "selectAll": "すべて選択",
       "share": "共有"
     }
@@ -974,6 +975,7 @@
       "paste": "貼り付け",
       "copyAsRich": "リッチテキストとしてコピー",
       "copyAsHtml": "HTMLとしてコピー",
+      "copyAsPlainText": "プレーンテキストとしてコピー",
       "pasteAsPlaintext": "プレーンテキストとして貼り付け",
       "selectAll": "すべて選択",
       "duplicate": "複製",

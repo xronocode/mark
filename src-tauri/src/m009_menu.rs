@@ -65,6 +65,9 @@
 //                → PredefinedMenuItem rows with OS-localized labels and
 //                responder-chain actions; role clicks are not reported
 //                to JS (no pending public id).
+//   - 2026-09-17 C-12: add Edit-menu "Copy as Plain Text"
+//                (edit.copy-as-plain-text, CmdOrCtrl+Alt+Shift+C) for
+//                markup-free plain-text clipboard writes.
 // END_CHANGE_SUMMARY
 
 use serde::{Deserialize, Serialize};
@@ -721,6 +724,11 @@ pub fn build_native_menu<R: tauri::Runtime>(
         .item(
             &MenuItemBuilder::with_id("edit.copy-as-html", "Copy as HTML")
                 .accelerator("CmdOrCtrl+Shift+C")
+                .build(handle)?,
+        )
+        .item(
+            &MenuItemBuilder::with_id("edit.copy-as-plain-text", "Copy as Plain Text")
+                .accelerator("CmdOrCtrl+Alt+Shift+C")
                 .build(handle)?,
         )
         .item(

@@ -1,5 +1,5 @@
 // FILE: tests/renderer/components/editor-coverage.test.js
-// VERSION: 1.6.0
+// VERSION: 1.7.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Verify editorWithTabs/editor.vue methods, watchers, computed state, event handlers, and lifecycle behavior beyond the base editor test.
 //   SCOPE: Deterministic Vue/jsdom tests with mocked Muya, stores, bus, services, and browser scheduling.
@@ -41,6 +41,7 @@
 //   - 2026-09-16 v1.4.0: cover copyAsHtmlRich handler — native writeHtml selection write, whole-document fallback, empty no-op, execCommand fallback (C-3).
 //   - 2026-09-17 v1.5.0: cover handleEditorContextMenu — menu spec with selection-gated Copy, copy/copyAsHtml/selectAll dispatch (C-10).
 //   - 2026-09-17 v1.6.0: C-11 — role-based hygiene menu (cut/copy/paste/select_all), Muya undo/redo dispatch, pathname-gated Share, popup rejection containment.
+//   - 2026-09-17 v1.7.0: C-12 — copyAsPlainText dispatch, <br>-newline pin, whole-document fallback, empty no-op, writeText failure branch, bus-path forwarding.
 // END_CHANGE_SUMMARY
 
 import { shallowMount } from '@vue/test-utils'
@@ -1068,7 +1069,7 @@ describe('editor.vue — coverage', () => {
     expect(payload.y).toBe(22)
     // Exact interleaved layout per the C-11 spec.
     expect(payload.items.map((i) => i.role || i.id || i.type)).toEqual([
-      'undo', 'redo', 'separator', 'cut', 'copy', 'copyAsHtml', 'paste',
+      'undo', 'redo', 'separator', 'cut', 'copy', 'copyAsHtml', 'copyAsPlainText', 'paste',
       'separator', 'selectAll', 'separator', 'shareFile'
     ])
     // Role rows must be id/label-free — Rust validation silently drops
@@ -1111,6 +1112,73 @@ describe('editor.vue — coverage', () => {
     window.electron.ipcRenderer.invoke.mockResolvedValueOnce('copyAsHtml')
     await getContextMenuHandler()(makeContextMenuEvent())
     expect(writeHtmlMock).toHaveBeenCalledWith('clean:<p># Title</p>', '# Title')
+  })
+
+  it('context menu: copyAsPlainText strips markup and writes a single plain flavor (C-12)', async () => {
+    await mountEditor()
+    mockEditorInstance.getCopyData.mockReturnValueOnce({ text: '# Title\n\n**bold** text' })
+    window.electron.ipcRenderer.invoke.mockResolvedValueOnce('copyAsPlainText')
+    await getContextMenuHandler()(makeContextMenuEvent())
+    // In the mocked pipeline marked wraps raw text and sanitize prefixes
+    // "clean:" — asserting the exact textContent of that output proves the
+    // handler writes DOM-extracted text (prefix + no tags), not raw
+    // markdown passthrough.
+    expect(writeTextMock).toHaveBeenCalledWith('clean:# Title\n\n**bold** text')
+    expect(writeHtmlMock).not.toHaveBeenCalled()
+  })
+
+  it('handleCopyAsPlainText falls back to the whole document when nothing is selected (C-12)', async () => {
+    await mountEditor()
+    mockEditorInstance.getCopyData.mockReturnValueOnce({ text: '' })
+    mockEditorInstance.getMarkdown.mockReturnValueOnce('- item one')
+    window.electron.ipcRenderer.invoke.mockResolvedValueOnce('copyAsPlainText')
+    await getContextMenuHandler()(makeContextMenuEvent())
+    expect(writeTextMock).toHaveBeenCalledWith('clean:- item one')
+  })
+
+  it('copyAsPlainText turns hard breaks into newlines instead of gluing words (C-12)', async () => {
+    await mountEditor()
+    // markedMock wraps raw text; sanitizeMock prefixes "clean:" — feed a
+    // literal <br> through the pipeline to pin the pre-parse replacement.
+    mockEditorInstance.getCopyData.mockReturnValueOnce({ text: 'a<br/>b and<br class="x">c' })
+    window.electron.ipcRenderer.invoke.mockResolvedValueOnce('copyAsPlainText')
+    await getContextMenuHandler()(makeContextMenuEvent())
+    expect(writeTextMock).toHaveBeenCalledWith('clean:a\nb and\nc')
+  })
+
+  it('copyAsPlainText no-ops for an empty document with no selection (C-12)', async () => {
+    await mountEditor()
+    mockEditorInstance.getCopyData.mockReturnValueOnce({ text: '' })
+    mockEditorInstance.getMarkdown.mockReturnValueOnce('')
+    window.electron.ipcRenderer.invoke.mockResolvedValueOnce('copyAsPlainText')
+    await getContextMenuHandler()(makeContextMenuEvent())
+    expect(writeTextMock).not.toHaveBeenCalled()
+  })
+
+  it('copyAsPlainText warns and notifies when the native write fails (C-12)', async () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    try {
+      await mountEditor()
+      mockEditorInstance.getCopyData.mockReturnValueOnce({ text: 'x' })
+      writeTextMock.mockRejectedValueOnce(new Error('capability denied'))
+      window.electron.ipcRenderer.invoke.mockResolvedValueOnce('copyAsPlainText')
+      await getContextMenuHandler()(makeContextMenuEvent())
+      expect(noticeMock.notify).toHaveBeenCalledWith(
+        expect.objectContaining({ type: 'warning' })
+      )
+      expect(warnSpy).toHaveBeenCalledWith(
+        expect.stringContaining('[Editor][handleCopyAsPlainText][BLOCK_COPY_AS_PLAIN_TEXT]')
+      )
+    } finally {
+      warnSpy.mockRestore()
+    }
+  })
+
+  it('copyAsPlainText bus handler forwards to the same pipeline (C-12)', async () => {
+    await mountEditor()
+    mockEditorInstance.getCopyData.mockReturnValueOnce({ text: 'via bus' })
+    await getBusHandler('copyAsPlainText')()
+    expect(writeTextMock).toHaveBeenCalledWith('clean:via bus')
   })
 
   it('context menu: shareFile invokes mt_share_file with the tab pathname', async () => {

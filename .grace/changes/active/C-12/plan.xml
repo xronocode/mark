@@ -1,0 +1,95 @@
+<GraceChangePlan graceVersion='4.0' status='approved'>
+<C-12>
+  <ChangeRef>C-12</ChangeRef>
+  <Created>2026-09-17</Created>
+  <IntentSummary>Copy as Plain Text: marked+sanitize+textContent pipeline, context/Edit menu, palette.</IntentSummary>
+  <BaselineAssertions>
+    <MustContain>
+      <File>src/renderer/src/components/editorWithTabs/editor.vue</File>
+      <Text>handleCopyAsHtml</Text>
+    </MustContain>
+  </BaselineAssertions>
+  <TargetAssertions>
+    <MustContain>
+      <File>src/renderer/src/components/editorWithTabs/editor.vue</File>
+      <Text>handleCopyAsPlainText</Text>
+    </MustContain>
+    <MustContain>
+      <File>src-tauri/src/m009_menu.rs</File>
+      <Text>edit.copy-as-plain-text</Text>
+    </MustContain>
+    <MustContain>
+      <File>tests/renderer/components/editor-coverage.test.js</File>
+      <Text>copyAsPlainText</Text>
+    </MustContain>
+  </TargetAssertions>
+  <DurableScope>
+    <M-009/>
+    <M-011/>
+    <M-013/>
+  </DurableScope>
+  <ObservedWriteScope>
+    <File>src/renderer/src/components/editorWithTabs/editor.vue</File>
+    <File>src/renderer/src/commands/index.js</File>
+    <File>src/renderer/src/commands/descriptions.js</File>
+    <File>src-tauri/src/m009_menu.rs</File>
+    <File>static/locales/*.json and *.min.json (ten locale pairs)</File>
+    <File>tests/renderer/components/editor-coverage.test.js</File>
+    <File>tests/renderer/commands/menu-consistency.test.js</File>
+    <File>.grace/graph/runtime.xml</File>
+    <File>.grace/verification/runtime.xml</File>
+  </ObservedWriteScope>
+  <ImplementationPlan>
+    <T-001>
+      <Title>Plain-text pipeline + menus + command + locales</Title>
+      <DependsOn></DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>handler writes single-flavor stripped text; context + Edit menu + palette entries; locale pairs updated.</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>npx vitest run tests/renderer/components/editor-coverage.test.js tests/renderer/commands/menu-consistency.test.js</Command>
+      </Verification>
+    </T-001>
+    <T-002>
+      <Title>Gates + reviews + CUA + commit</Title>
+      <DependsOn>T-001</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>Full suite + cargo + lint green; two green reviews; CUA clipboard check; commit pushed.</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>npm test &amp;&amp; cargo test --bin mark -- m009_menu</Command>
+      </Verification>
+    </T-002>
+  </ImplementationPlan>
+  <ReviewLog>
+    <Review number="1" date="2026-09-17" verdict="changes-requested">
+      <Findings>
+        Independent agent review: 1 MAJOR, 2 MINOR, 3 NIT — all fixed.
+        (1) MAJOR: hard breaks (marked br tags, incl. the literal br-tag
+        muya stores in table cells via Shift+Enter) were dropped by
+        textContent, gluing adjacent words; fixed with a pre-parse
+        replace(/&lt;br\s*\/ ?&gt;/gi, '\n') (escaped here; source form uses the br-tag pattern) + pin test. (2) writeText failure
+        branch now pinned (marker + notify). (3) commands/index.js and
+        editor-coverage gained their MODULE_MAP/CHANGE_SUMMARY/VERSION
+        maintenance. (4) empty no-op branch pinned. (5) bus-path
+        forwarding pinned via getBusHandler('copyAsPlainText'). (6) spec
+        R-2 now states the standard_menu taxonomy omission explicitly
+        (matches the edit.copy-as-html precedent). Gates after fixes:
+        editor-coverage 156 passed | 2 skipped; menu-consistency 9;
+        cargo m009_menu 13/13; grace lint 0 errors.
+      </Findings>
+    </Review>
+    <Review number="2" date="2026-09-17" verdict="green">
+      <Findings>
+        Final gate: VERDICT green. All pass-1 fixes confirmed (incl.
+        code-block safety: marked entity-escapes code content so the
+        pre-parse br replacement cannot double-process it); no new
+        defects; all gates at expected counts. Post-verdict polish
+        applied: the br regex broadened to attribute-carrying raw-HTML
+        br tags per the reviewer's optional NIT, pin test extended
+        accordingly.
+      </Findings>
+    </Review>
+  </ReviewLog>
+</C-12>
+</GraceChangePlan>

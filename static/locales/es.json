@@ -249,6 +249,7 @@
       "undo": "Deshacer",
       "redo": "Rehacer",
       "copyAsHtml": "Copiar como HTML",
+      "copyAsPlainText": "Copiar como texto sin formato",
       "selectAll": "Seleccionar todo",
       "share": "Compartir"
     }
@@ -972,6 +973,7 @@
       "paste": "Pegar",
       "copyAsRich": "Copiar como Texto Enriquecido",
       "copyAsHtml": "Copiar como HTML",
+      "copyAsPlainText": "Copiar como texto sin formato",
       "pasteAsPlaintext": "Pegar como Texto Plano",
       "selectAll": "Seleccionar",
       "duplicate": "Duplicar",

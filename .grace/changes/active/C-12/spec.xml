@@ -1,0 +1,95 @@
+<GraceChangeSpec graceVersion='4.0' status='approved'>
+<C-12>
+  <Name>Copy as Plain Text: selection without HTML or Markdown markup</Name>
+  <Created>2026-09-17</Created>
+  <Priority>high</Priority>
+  <Status>implemented</Status>
+
+  <Summary>
+    User request after C-11: "добавил бы еще копировать как плейн текст
+    (без рич и мд форматинга)". Add Copy as Plain Text next to Copy as
+    HTML: renders the selection (or whole document) through the same
+    marked+DOMPurify pipeline as C-3, then extracts textContent — plain
+    text with no HTML tags and no Markdown syntax (headings keep their
+    words, bold loses its asterisks) — and writes a single text/plain
+    flavor via the native clipboard plugin. Exposed in the editor
+    context menu (after Copy as HTML), the Edit menu
+    (CmdOrCtrl+Alt+Shift+C), and the command palette.
+  </Summary>
+
+  <Problem>
+    <Description>Normal copy yields Markdown source; Copy as HTML yields rich formatting — neither gives clean plain text for chat/notes.</Description>
+    <RootCause>No plain-text export path existed.</RootCause>
+    <Evidence>
+      muya copyHandler writes Markdown as text/plain; C-3 handleCopyAsHtml
+      writes html + Markdown text/plain; no textContent-based flavor.
+    </Evidence>
+  </Problem>
+
+  <Goals>
+    <R-1>
+      editor.vue handleCopyAsPlainText: muya getCopyData (whole-document
+      fallback) → marked with editor options → DOMPurify EXPORT config →
+      DOMParser textContent (inter-block newlines preserved by marked's
+      output) → collapse 3+ newlines → native writeText; failure warns
+      with the anchored marker + notify (no execCommand fallback — muya
+      has no plain-copy transport). Bus event 'copyAsPlainText',
+      subscribed/unsubscribed alongside the other copy buses.
+    </R-1>
+    <R-2>
+      Context menu gains Copy as Plain Text (id copyAsPlainText) right
+      after Copy as HTML; Edit menu gains "Copy as Plain Text"
+      (edit.copy-as-plain-text, CmdOrCtrl+Alt+Shift+C) in m009's native
+      build_native_menu (standard_menu() taxonomy intentionally omits
+      it, matching the pre-existing edit.copy-as-html pattern — the
+      taxonomy has no renderer consumers); command registry +
+      descriptions entry for the palette. Hard breaks (markdown
+      two-space/backslash, and the literal <br/> muya stores in table
+      cells) become newlines before textContent extraction so words
+      never glue together.
+    </R-2>
+    <R-3>
+      Locales: contextMenu.editor.copyAsPlainText and
+      commands.edit.copyAsPlainText in all ten locale PAIRS (json +
+      min.json).
+    </R-3>
+    <R-4>
+      Tests: editor-coverage pins the strip pipeline ('# T\\n\\n**b**' →
+      'T\\nb'), context-menu dispatch, and the updated interleaved menu
+      layout; menu-consistency pins the menu id + accelerator with a
+      uniqueness check.
+    </R-4>
+  </Goals>
+
+  <Constraints>
+    <Constraint>Reuse the C-3 marked/sanitize pipeline; single text/plain write only.</Constraint>
+    <Constraint>Accelerator must not collide with existing ones.</Constraint>
+  </Constraints>
+
+  <NonGoals>
+    <NonGoal>Paste-as-plain-text menu item (separate transport problem).</NonGoal>
+  </NonGoals>
+
+  <AcceptanceCriteria>
+    <Criterion>Copy as Plain Text puts markup-free text on the clipboard as the sole flavor; Markdown-only source stays on normal copy.</Criterion>
+    <Criterion>Context menu order: Copy as HTML, Copy as Plain Text; Edit menu carries the item with the pinned accelerator.</Criterion>
+    <Criterion>Suites green; CUA live check passes.</Criterion>
+  </AcceptanceCriteria>
+
+  <AffectedAreas>
+    <M-009>Edit-menu item + accelerator (C-12)</M-009>
+    <M-011>editor.vue handleCopyAsPlainText + menu (C-12)</M-011>
+    <M-013>command registry entry (C-12)</M-013>
+  </AffectedAreas>
+
+  <VerificationIntent>
+    editor-coverage + menu-consistency pins; CUA: copy from a formatted
+    doc, clipboard_read shows the stripped text.
+  </VerificationIntent>
+
+  <Approval>
+    <ApprovedBy>user (session 2026-09-17): "я бы добавил еще копировать как плейн текст (без рич и мд форматинга)"</ApprovedBy>
+    <ApprovalScope>Full gates: tests, 2 reviews, CUA live check, commit.</ApprovalScope>
+  </Approval>
+</C-12>
+</GraceChangeSpec>

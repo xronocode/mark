@@ -2645,6 +2645,24 @@
             </Attribute>
           </LegacyAttributes>
         </fn-handleCopyAsHtml>
+        <fn-handleCopyAsPlainText>
+          <LegacyAttributes>
+            <Attribute>
+              <Name>PURPOSE</Name>
+              <Value>
+                Put the selection (or whole document when nothing is
+                selected) on the clipboard as markup-free plain text:
+                the C-3 marked+DOMPurify pipeline followed by DOMParser
+                textContent (block newlines preserved, tags and Markdown
+                markers gone), written as a single text/plain flavor via
+                the native clipboard-manager writeText; failure warns
+                with BLOCK_COPY_AS_PLAIN_TEXT and notifies (C-12;
+                context menu + Edit menu edit.copy-as-plain-text,
+                CmdOrCtrl+Alt+Shift+C + palette)
+              </Value>
+            </Attribute>
+          </LegacyAttributes>
+        </fn-handleCopyAsPlainText>
         <fn-handleEditorContextMenu>
           <LegacyAttributes>
             <Attribute>
