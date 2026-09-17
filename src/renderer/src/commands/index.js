@@ -13,6 +13,7 @@
 //   RootCommand - Command-palette root and subcommand coordinator.
 //   file.check-update - Checks the signed feed and applies an available update entirely in app.
 //   edit.copy-as-html - Copies selection (or whole document) as rich text/html for email paste (C-3).
+//   edit.copy-as-plain-text - Copies selection (or whole document) as markup-free plain text (C-12).
 //   FileEncodingCommand - GRACE 4 synchronized symbol
 //   LineEndingCommand - GRACE 4 synchronized symbol
 //   QuickOpenCommand - GRACE 4 synchronized symbol
@@ -24,6 +25,7 @@
 //
 // START_CHANGE_SUMMARY
 //   - 2026-09-16 v2.1.10-beta: add edit.copy-as-html (C-3) — rich text/html clipboard via editor.vue copyAsHtmlRich handler.
+//   - 2026-09-17 v2.1.11-beta: add edit.copy-as-plain-text (C-12) — markup-free plain-text clipboard via editor.vue copyAsPlainText handler.
 //   - 2026-08-07 v2.1.2-beta: remove the Terminal/Homebrew update branch and use the signed Tauri updater for every non-App-Store install.
 // END_CHANGE_SUMMARY
 //
@@ -289,6 +291,16 @@ const commands = [
     id: 'edit.copy-as-html',
     execute: async () => {
       focusEditorAndExecute(() => bus.emit('copyAsHtmlRich'))
+    }
+  },
+
+  {
+    // editor.vue handleCopyAsPlainText — see C-12. Renders through the
+    // same marked+DOMPurify pipeline as C-3 and writes markup-free
+    // plain text.
+    id: 'edit.copy-as-plain-text',
+    execute: async () => {
+      focusEditorAndExecute(() => bus.emit('copyAsPlainText'))
     }
   },
 

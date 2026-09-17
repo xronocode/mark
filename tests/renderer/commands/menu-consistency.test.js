@@ -1,5 +1,5 @@
 // FILE: tests/renderer/commands/menu-consistency.test.js
-// VERSION: 1.3.0
+// VERSION: 1.4.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Keep native application-menu IDs and renderer command IDs synchronized.
 //   SCOPE: Source-level native-menu extraction, renderer command/shortcut extraction, and intentional renderer-only exceptions.
@@ -20,6 +20,7 @@
 //
 // START_CHANGE_SUMMARY
 //   LAST_CHANGE: v1.3.0 - Pin tabs.cycleForward/Backward menu ids + Ctrl+Tab/Ctrl+Shift+Tab accelerators; ids leave the RENDERER_ONLY_ALLOWLIST (C-8).
+//   v1.4.0 - Pin edit.copy-as-plain-text menu id + CmdOrCtrl+Alt+Shift+C accelerator (C-12).
 //   v1.2.0 - Pin edit.copy-as-html menu id + Cmd+Shift+C accelerator (C-3).
 //   v1.1.0 - Require edit.undo/edit.redo to be native menu IDs routed to Muya history.
 // END_CHANGE_SUMMARY
@@ -213,6 +214,16 @@ describe('menu ↔ commands consistency', () => {
     )
     // The accelerator must stay unique across the whole menu.
     expect(buildFn.match(/CmdOrCtrl\+Shift\+C/g)).toHaveLength(1)
+  })
+
+  it('pins Copy as Plain Text menu item id and accelerator (C-12)', () => {
+    const rust = readSource('src-tauri/src/m009_menu.rs')
+    const buildFn = rust.slice(rust.indexOf('pub fn build_native_menu'))
+
+    expect(buildFn).toMatch(
+      /with_id\("edit\.copy-as-plain-text", "Copy as Plain Text"\)[\s\S]*?accelerator\("CmdOrCtrl\+Alt\+Shift\+C"\)/
+    )
+    expect(buildFn.match(/CmdOrCtrl\+Alt\+Shift\+C/g)).toHaveLength(1)
   })
 
   it('pins tab-cycling menu item ids and Ctrl+Tab accelerators (C-8)', () => {

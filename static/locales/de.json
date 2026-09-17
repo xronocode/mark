@@ -249,6 +249,7 @@
       "undo": "Widerrufen",
       "redo": "Wiederholen",
       "copyAsHtml": "Als HTML kopieren",
+      "copyAsPlainText": "Als reinen Text kopieren",
       "selectAll": "Alles auswählen",
       "share": "Teilen"
     }
@@ -972,6 +973,7 @@
       "paste": "Einfügen",
       "copyAsRich": "Als Rich Text kopieren",
       "copyAsHtml": "Als HTML kopieren",
+      "copyAsPlainText": "Als reinen Text kopieren",
       "pasteAsPlaintext": "Als reinen Text einfügen",
       "selectAll": "Alles auswählen",
       "duplicate": "Duplizieren",

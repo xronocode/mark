@@ -4282,10 +4282,21 @@
           selection is anchored outside span.ag-paragraph (e.g. inside an
           ag-html-preview block); there the WKWebView default menu remains.
         </Scenario>
+        <Scenario>
+          scenario-28: Copy as Plain Text (C-12) puts markup-free text on
+          the clipboard as the sole flavor: the selection (or whole
+          document) goes through the C-3 marked+DOMPurify pipeline and
+          DOMParser textContent — no HTML tags, no Markdown markers, block
+          newlines preserved — pinned in
+          tests/renderer/components/editor-coverage.test.js; the Edit-menu
+          item id + CmdOrCtrl+Alt+Shift+C accelerator pinned in
+          tests/renderer/commands/menu-consistency.test.js.
+        </Scenario>
       </Scenarios>
       <Markers>
         <Marker>[Editor][handleCopyAsHtml][BLOCK_COPY_AS_HTML] native writeHtml failed → execCommand fallback</Marker>
         <Marker>[Editor][handleEditorContextMenu][BLOCK_EDITOR_CONTEXT_MENU] native writeText failed</Marker>
+        <Marker>[Editor][handleCopyAsPlainText][BLOCK_COPY_AS_PLAIN_TEXT] native writeText failed</Marker>
         <Marker>[Renderer][mount][BLOCK_INSTANTIATE_MUYA]</Marker>
         <Marker>[Renderer][mount][BLOCK_HOST_HOOKS_WIRED] { hooks: 7 }</Marker>
         <Marker>[TitleBar][handleTitleContextMenu][BLOCK_COPY_PATH]</Marker>

@@ -249,6 +249,7 @@
       "undo": "撤销",
       "redo": "重做",
       "copyAsHtml": "复制为 HTML",
+      "copyAsPlainText": "复制为纯文本",
       "selectAll": "全选",
       "share": "分享"
     }
@@ -981,6 +982,7 @@
       "paste": "粘贴",
       "copyAsRich": "复制为富文本",
       "copyAsHtml": "复制为 HTML",
+      "copyAsPlainText": "复制为纯文本",
       "pasteAsPlaintext": "粘贴为纯文本",
       "selectAll": "全选",
       "duplicate": "创建副本",
