@@ -246,9 +246,11 @@
       "showInFolder": "Afficher dans le dossier"
     },
     "editor": {
-      "copy": "Copier",
+      "undo": "Annuler",
+      "redo": "Rétablir",
       "copyAsHtml": "Copier en HTML",
-      "selectAll": "Tout sélectionner"
+      "selectAll": "Tout sélectionner",
+      "share": "Partager"
     }
   },
   "search": {

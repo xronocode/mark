@@ -61,6 +61,10 @@
 //                Tab" (tabs.cycleForward/Backward, Ctrl+Tab /
 //                Ctrl+Shift+Tab) — first keyboard binding for tab
 //                cycling (C-8).
+//   - 2026-09-17 C-11: context-menu roles (cut/copy/paste/select_all)
+//                → PredefinedMenuItem rows with OS-localized labels and
+//                responder-chain actions; role clicks are not reported
+//                to JS (no pending public id).
 // END_CHANGE_SUMMARY
 
 use serde::{Deserialize, Serialize};
@@ -83,6 +87,18 @@ pub struct ContextMenuItemSpec {
     #[serde(rename = "type")]
     pub item_type: Option<String>,
     pub enabled: Option<bool>,
+    /// C-11: predefined native role ("cut" | "copy" | "paste" |
+    /// "select_all") — OS-localized label, native enablement, and
+    /// responder-chain action; the click is not reported to JS.
+    pub role: Option<String>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum ContextMenuRole {
+    Cut,
+    Copy,
+    Paste,
+    SelectAll,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -92,6 +108,7 @@ enum ValidatedContextMenuItem {
         label: String,
         enabled: bool,
     },
+    Role(ContextMenuRole),
     Separator,
 }
 
@@ -129,6 +146,25 @@ fn validate_context_menu_items(
             return Err(format!(
                 "{MT_CONTEXT_MENU_INVALID}: unsupported context-menu item type"
             ));
+        }
+
+        // C-11: predefined roles — id/label/enabled are ignored; the OS
+        // supplies the localized label and enablement.
+        if let Some(role) = item.role.as_deref() {
+            let role = match role {
+                "cut" => ContextMenuRole::Cut,
+                "copy" => ContextMenuRole::Copy,
+                "paste" => ContextMenuRole::Paste,
+                "select_all" => ContextMenuRole::SelectAll,
+                other => {
+                    return Err(format!(
+                        "{MT_CONTEXT_MENU_INVALID}: unsupported context-menu role `{other}`"
+                    ))
+                }
+            };
+            actionable_count += 1;
+            validated.push(ValidatedContextMenuItem::Role(role));
+            continue;
         }
 
         let id = item.id.unwrap_or_default().trim().to_string();
@@ -930,6 +966,20 @@ pub async fn mt_window_popup_context_menu(
                 menu.append(&separator)
                     .map_err(|error| format!("{MT_CONTEXT_MENU_POPUP_FAILED}: {error}"))?;
             }
+            // C-11: roles act through the responder chain (identical to
+            // the Edit menu's native items) and never map to a pending
+            // public id — dismissal still resolves Ok(None).
+            ValidatedContextMenuItem::Role(role) => {
+                let native_item = match role {
+                    ContextMenuRole::Cut => PredefinedMenuItem::cut(&app, None),
+                    ContextMenuRole::Copy => PredefinedMenuItem::copy(&app, None),
+                    ContextMenuRole::Paste => PredefinedMenuItem::paste(&app, None),
+                    ContextMenuRole::SelectAll => PredefinedMenuItem::select_all(&app, None),
+                }
+                .map_err(|error| format!("{MT_CONTEXT_MENU_POPUP_FAILED}: {error}"))?;
+                menu.append(&native_item)
+                    .map_err(|error| format!("{MT_CONTEXT_MENU_POPUP_FAILED}: {error}"))?;
+            }
             ValidatedContextMenuItem::Item { id, label, enabled } => {
                 let native_id = context_menu_native_id(token, public_ids.len());
                 let native_item = MenuItemBuilder::with_id(native_id, label)
@@ -989,6 +1039,26 @@ pub async fn mt_update_line_ending_menu(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn ctx_item(id: &str, label: &str) -> ContextMenuItemSpec {
+        ContextMenuItemSpec {
+            id: Some(id.to_string()),
+            label: Some(label.to_string()),
+            item_type: None,
+            enabled: None,
+            role: None,
+        }
+    }
+
+    fn ctx_role(role: &str) -> ContextMenuItemSpec {
+        ContextMenuItemSpec {
+            id: None,
+            label: None,
+            item_type: None,
+            enabled: None,
+            role: Some(role.to_string()),
+        }
+    }
 
     fn flatten(items: &[MenuItem]) -> Vec<&MenuItem> {
         let mut out = Vec::new();
@@ -1145,12 +1215,14 @@ mod tests {
                 id: Some("copyPath".into()),
                 label: Some("Copy Path".into()),
                 item_type: None,
+                role: None,
                 enabled: Some(false),
             },
             ContextMenuItemSpec {
                 id: None,
                 label: None,
                 item_type: Some("separator".into()),
+                role: None,
                 enabled: None,
             },
         ];
@@ -1174,6 +1246,7 @@ mod tests {
             id: Some("copyPath".into()),
             label: Some("Copy Path".into()),
             item_type: None,
+            role: None,
             enabled: None,
         };
         let duplicate_error = validate_context_menu_items(vec![duplicate.clone(), duplicate])
@@ -1185,6 +1258,7 @@ mod tests {
             id: None,
             label: None,
             item_type: Some("separator".into()),
+            role: None,
             enabled: None,
         }])
         .unwrap_err();
@@ -1202,5 +1276,60 @@ mod tests {
         assert_eq!(take_pending_context_menu(token).as_deref(), Some("copyPath"));
         assert!(!capture_context_menu_selection("file.save"));
         assert!(!capture_context_menu_selection(&native_id));
+    }
+
+    #[test]
+    fn context_menu_roles_validate_and_count_as_actionable() {
+        // C-11: every whitelisted role validates without id/label and
+        // alone satisfies the at-least-one-actionable rule.
+        let validated = validate_context_menu_items(vec![
+            ctx_role("cut"),
+            ctx_role("copy"),
+            ctx_role("paste"),
+            ctx_role("select_all"),
+        ])
+        .expect("roles must validate");
+        assert_eq!(
+            validated,
+            vec![
+                ValidatedContextMenuItem::Role(ContextMenuRole::Cut),
+                ValidatedContextMenuItem::Role(ContextMenuRole::Copy),
+                ValidatedContextMenuItem::Role(ContextMenuRole::Paste),
+                ValidatedContextMenuItem::Role(ContextMenuRole::SelectAll),
+            ]
+        );
+    }
+
+    #[test]
+    fn context_menu_unknown_role_rejected() {
+        let err = validate_context_menu_items(vec![ctx_role("undo")])
+            .expect_err("undo is deliberately not a role (Muya history owns it)");
+        assert!(err.contains(MT_CONTEXT_MENU_INVALID));
+        assert!(err.contains("unsupported context-menu role"));
+    }
+
+    #[test]
+    fn context_menu_roles_mix_with_id_items() {
+        let validated = validate_context_menu_items(vec![
+            ctx_role("copy"),
+            ContextMenuItemSpec {
+                id: Some("copyAsHtml".to_string()),
+                label: Some("Copy as HTML".to_string()),
+                item_type: None,
+                enabled: None,
+                role: None,
+            },
+            ContextMenuItemSpec {
+                id: None,
+                label: None,
+                item_type: Some("separator".to_string()),
+                enabled: None,
+                role: None,
+            },
+        ])
+        .expect("mixed spec must validate");
+        assert_eq!(validated.len(), 3);
+        assert!(matches!(validated[0], ValidatedContextMenuItem::Role(_)));
+        assert!(matches!(validated[2], ValidatedContextMenuItem::Separator));
     }
 }

@@ -3312,6 +3312,15 @@
           ids removed from the RENDERER_ONLY_ALLOWLIST and pinned against
           the Rust menu source by tests/renderer/commands/menu-consistency.test.js.
         </Scenario>
+        <Scenario>
+          scenario-15: the renderer context-menu popup accepts predefined
+          roles (C-11): items with role cut/copy/paste/select_all validate
+          without id/label, count as actionable, and build
+          PredefinedMenuItem rows (OS-localized labels, native
+          enablement, responder-chain actions; clicks are not reported to
+          JS); unknown roles are rejected with MT_CONTEXT_MENU_INVALID —
+          pinned by m009_menu unit tests (cargo test).
+        </Scenario>
       </Scenarios>
       <Markers>
         <Marker>[Menu][onInvoke][BLOCK_DISPATCH] { menu_id }</Marker>
@@ -4260,12 +4269,15 @@
           window minimum the title box collapses instead of overlapping).
         </Scenario>
         <Scenario>
-          scenario-27: right-click in the WYSIWYG editor opens the native
-          context menu (C-10) with Copy (enabled only when muya getCopyData
-          has text), Copy as HTML (the C-3 path incl. whole-document
-          fallback), and Select All; the WKWebView default menu is
-          suppressed; copy writes the selection markdown via native
-          writeText — pinned in tests/renderer/components/editor-coverage.test.js.
+          scenario-27: right-click in the WYSIWYG editor opens the full
+          native context menu (C-10/C-11): Undo/Redo drive Muya history,
+          Cut/Copy/Paste are predefined roles with OS-localized labels,
+          auto-enablement, and responder-chain behavior, Select All is
+          the custom context-aware Muya selection (Cmd+A parity), Copy as
+          HTML uses the C-3 whole-document-fallback path, and Share opens
+          the native share sheet via mt_share_file only for saved files;
+          the WKWebView default menu is suppressed — pinned in
+          tests/renderer/components/editor-coverage.test.js.
           Carve-out: muya does not dispatch contextmenu when the DOM
           selection is anchored outside span.ag-paragraph (e.g. inside an
           ag-html-preview block); there the WKWebView default menu remains.

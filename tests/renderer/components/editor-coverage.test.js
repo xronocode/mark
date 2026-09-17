@@ -1,5 +1,5 @@
 // FILE: tests/renderer/components/editor-coverage.test.js
-// VERSION: 1.5.0
+// VERSION: 1.6.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Verify editorWithTabs/editor.vue methods, watchers, computed state, event handlers, and lifecycle behavior beyond the base editor test.
 //   SCOPE: Deterministic Vue/jsdom tests with mocked Muya, stores, bus, services, and browser scheduling.
@@ -40,6 +40,7 @@
 //   - 2026-08-10 v1.3.0: cover stale file-changed events not overwriting unsaved active-tab content.
 //   - 2026-09-16 v1.4.0: cover copyAsHtmlRich handler — native writeHtml selection write, whole-document fallback, empty no-op, execCommand fallback (C-3).
 //   - 2026-09-17 v1.5.0: cover handleEditorContextMenu — menu spec with selection-gated Copy, copy/copyAsHtml/selectAll dispatch (C-10).
+//   - 2026-09-17 v1.6.0: C-11 — role-based hygiene menu (cut/copy/paste/select_all), Muya undo/redo dispatch, pathname-gated Share, popup rejection containment.
 // END_CHANGE_SUMMARY
 
 import { shallowMount } from '@vue/test-utils'
@@ -1033,7 +1034,7 @@ describe('editor.vue — coverage', () => {
     expect(mockEditorInstance.copyAsRich).not.toHaveBeenCalled()
   })
 
-  /* ── handleEditorContextMenu (C-10) ─────────────────────────── */
+  /* ── handleEditorContextMenu (C-10/C-11) ────────────────────── */
 
   const getContextMenuHandler = () => {
     const call = mockEditorInstance.on.mock.calls.find((c) => c[0] === 'contextmenu')
@@ -1046,74 +1047,90 @@ describe('editor.vue — coverage', () => {
     clientY: 22
   })
 
+  const getPopupPayload = () =>
+    window.electron.ipcRenderer.invoke.mock.calls.find(
+      (c) => c[0] === 'mt::window-popup-context-menu'
+    )[1]
+
   it('subscribes handleEditorContextMenu to muya contextmenu', async () => {
     await mountEditor()
     expect(getContextMenuHandler()).toBeTypeOf('function')
   })
 
-  it('context menu: Copy enabled with a selection; copy dispatch writes selection text natively', async () => {
+  it('context menu: full hygiene spec with native roles and pathname-gated Share', async () => {
     await mountEditor()
-    mockEditorInstance.getCopyData.mockReturnValueOnce({ text: '# Selected' })
-    window.electron.ipcRenderer.invoke.mockResolvedValueOnce('copy')
+    window.electron.ipcRenderer.invoke.mockResolvedValueOnce(null)
     const event = makeContextMenuEvent()
     await getContextMenuHandler()(event)
     expect(event.preventDefault).toHaveBeenCalled()
-    const [cmd, payload] = window.electron.ipcRenderer.invoke.mock.calls.find(
-      (c) => c[0] === 'mt::window-popup-context-menu'
-    )
-    expect(cmd).toBe('mt::window-popup-context-menu')
+    const payload = getPopupPayload()
     expect(payload.x).toBe(11)
     expect(payload.y).toBe(22)
-    const copyItem = payload.items.find((i) => i.id === 'copy')
-    const htmlItem = payload.items.find((i) => i.id === 'copyAsHtml')
-    const selectItem = payload.items.find((i) => i.id === 'selectAll')
-    expect(copyItem.enabled).toBe(true)
-    expect(htmlItem).toBeTruthy()
-    expect(selectItem).toBeTruthy()
-    expect(payload.items.some((i) => i.type === 'separator')).toBe(true)
-    expect(writeTextMock).toHaveBeenCalledWith('# Selected')
+    // Exact interleaved layout per the C-11 spec.
+    expect(payload.items.map((i) => i.role || i.id || i.type)).toEqual([
+      'undo', 'redo', 'separator', 'cut', 'copy', 'copyAsHtml', 'paste',
+      'separator', 'selectAll', 'separator', 'shareFile'
+    ])
+    // Role rows must be id/label-free — Rust validation silently drops
+    // those fields, so a payload mistake would never report a click.
+    expect(
+      payload.items.filter((i) => i.role).every((i) => i.id === undefined && i.label === undefined)
+    ).toBe(true)
   })
 
-  it('context menu: Copy disabled without a selection; selectAll dispatch selects the document', async () => {
+  it('context menu: Share omitted for untitled tabs', async () => {
     await mountEditor()
-    mockEditorInstance.getCopyData.mockReturnValueOnce({ text: '' })
+    const { useEditorStore } = await import('@/store/editor')
+    useEditorStore().currentFile = { id: 't', filename: 'Untitled-1', pathname: '', isSaved: false }
+    window.electron.ipcRenderer.invoke.mockResolvedValueOnce(null)
+    await getContextMenuHandler()(makeContextMenuEvent())
+    const ids = getPopupPayload().items.filter((i) => i.id).map((i) => i.id)
+    expect(ids).not.toContain('shareFile')
+  })
+
+  it('context menu: undo/redo dispatch to Muya history', async () => {
+    await mountEditor()
+    window.electron.ipcRenderer.invoke.mockResolvedValueOnce('undo')
+    await getContextMenuHandler()(makeContextMenuEvent())
+    expect(mockEditorInstance.undo).toHaveBeenCalled()
+    expect(mockEditorInstance.redo).not.toHaveBeenCalled()
+
+    window.electron.ipcRenderer.invoke.mockResolvedValueOnce('redo')
+    await getContextMenuHandler()(makeContextMenuEvent())
+    expect(mockEditorInstance.redo).toHaveBeenCalled()
+
+    // Select All stays custom and context-aware (Cmd+A parity), not a role.
     window.electron.ipcRenderer.invoke.mockResolvedValueOnce('selectAll')
     await getContextMenuHandler()(makeContextMenuEvent())
-    const payload = window.electron.ipcRenderer.invoke.mock.calls.find(
-      (c) => c[0] === 'mt::window-popup-context-menu'
-    )[1]
-    expect(payload.items.find((i) => i.id === 'copy').enabled).toBe(false)
     expect(mockEditorInstance.selectAll).toHaveBeenCalled()
-    expect(writeTextMock).not.toHaveBeenCalled()
   })
 
   it('context menu: copyAsHtml dispatch reaches the C-3 clipboard path', async () => {
     await mountEditor()
-    // getCopyData is consulted twice: once to build the menu spec and
-    // once inside handleCopyAsHtml.
-    mockEditorInstance.getCopyData
-      .mockReturnValueOnce({ text: '# Title' })
-      .mockReturnValueOnce({ text: '# Title' })
+    mockEditorInstance.getCopyData.mockReturnValueOnce({ text: '# Title' })
     window.electron.ipcRenderer.invoke.mockResolvedValueOnce('copyAsHtml')
     await getContextMenuHandler()(makeContextMenuEvent())
     expect(writeHtmlMock).toHaveBeenCalledWith('clean:<p># Title</p>', '# Title')
-    expect(writeTextMock).not.toHaveBeenCalled()
   })
 
-  it('context menu: writeText failure warns and notifies without rejecting', async () => {
+  it('context menu: shareFile invokes mt_share_file with the tab pathname', async () => {
+    await mountEditor()
+    window.electron.ipcRenderer.invoke.mockResolvedValueOnce('shareFile')
+    await getContextMenuHandler()(makeContextMenuEvent())
+    const { invoke } = await import('@tauri-apps/api/core')
+    expect(invoke).toHaveBeenCalledWith('mt_share_file', expect.objectContaining({ path: '/tmp/test.md' }))
+  })
+
+  it('context menu: popup rejection is contained', async () => {
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
     try {
       await mountEditor()
-      mockEditorInstance.getCopyData.mockReturnValueOnce({ text: 'x' })
-      writeTextMock.mockRejectedValueOnce(new Error('capability denied'))
-      window.electron.ipcRenderer.invoke.mockResolvedValueOnce('copy')
+      window.electron.ipcRenderer.invoke.mockRejectedValueOnce(new Error('MT_CONTEXT_MENU_POPUP_FAILED'))
       await expect(getContextMenuHandler()(makeContextMenuEvent())).resolves.toBeUndefined()
-      expect(noticeMock.notify).toHaveBeenCalledWith(
-        expect.objectContaining({ type: 'warning' })
-      )
       expect(warnSpy).toHaveBeenCalledWith(
         expect.stringContaining('[Editor][handleEditorContextMenu][BLOCK_EDITOR_CONTEXT_MENU]')
       )
+      expect(mockEditorInstance.undo).not.toHaveBeenCalled()
     } finally {
       warnSpy.mockRestore()
     }

@@ -246,9 +246,11 @@
       "showInFolder": "在資料夾中顯示"
     },
     "editor": {
-      "copy": "複製",
+      "undo": "撤銷",
+      "redo": "重做",
       "copyAsHtml": "複製為 HTML",
-      "selectAll": "全選"
+      "selectAll": "全選",
+      "share": "分享"
     }
   },
   "search": {

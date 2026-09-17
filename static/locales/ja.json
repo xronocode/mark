@@ -246,9 +246,11 @@
       "showInFolder": "フォルダで表示"
     },
     "editor": {
-      "copy": "コピー",
+      "undo": "取り消す",
+      "redo": "やり直す",
       "copyAsHtml": "HTMLとしてコピー",
-      "selectAll": "すべて選択"
+      "selectAll": "すべて選択",
+      "share": "共有"
     }
   },
   "search": {

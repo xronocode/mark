@@ -246,9 +246,11 @@
       "showInFolder": "폴더에서 보기"
     },
     "editor": {
-      "copy": "복사",
+      "undo": "실행 취소",
+      "redo": "다시 실행",
       "copyAsHtml": "HTML로 복사",
-      "selectAll": "모두 선택"
+      "selectAll": "모두 선택",
+      "share": "공유"
     }
   },
   "search": {
