@@ -2645,6 +2645,22 @@
             </Attribute>
           </LegacyAttributes>
         </fn-handleCopyAsHtml>
+        <fn-handleEditorContextMenu>
+          <LegacyAttributes>
+            <Attribute>
+              <Name>PURPOSE</Name>
+              <Value>
+                Replace WKWebView's default right-click menu on the WYSIWYG
+                surface with the app's native context menu (Copy — enabled
+                only with a selection via muya getCopyData, Copy as HTML —
+                the C-3 whole-document-fallback path, Select All — muya
+                selectAll), dispatched through mt::window-popup-context-menu;
+                Paste is omitted because WKWebView cannot synthesize a
+                paste event carrying clipboardData (C-10)
+              </Value>
+            </Attribute>
+          </LegacyAttributes>
+        </fn-handleEditorContextMenu>
         <fn-scrollActiveTabIntoView>
           <LegacyAttributes>
             <Attribute>

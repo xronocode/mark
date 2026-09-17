@@ -244,6 +244,11 @@
       "rename": "이름 바꾸기",
       "copyPath": "경로 복사",
       "showInFolder": "폴더에서 보기"
+    },
+    "editor": {
+      "copy": "복사",
+      "copyAsHtml": "HTML로 복사",
+      "selectAll": "모두 선택"
     }
   },
   "search": {
