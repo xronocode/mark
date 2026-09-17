@@ -249,6 +249,7 @@
       "undo": "실행 취소",
       "redo": "다시 실행",
       "copyAsHtml": "HTML로 복사",
+      "copyAsPlainText": "일반 텍스트로 복사",
       "selectAll": "모두 선택",
       "share": "공유"
     }
@@ -974,6 +975,7 @@
       "paste": "붙여넣기",
       "copyAsRich": "서식 있는 텍스트로 복사",
       "copyAsHtml": "HTML로 복사",
+      "copyAsPlainText": "일반 텍스트로 복사",
       "pasteAsPlaintext": "일반 텍스트로 붙여넣기",
       "selectAll": "모두 선택",
       "duplicate": "복제",

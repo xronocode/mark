@@ -250,6 +250,7 @@
       "undo": "Undo",
       "redo": "Redo",
       "copyAsHtml": "Copy as HTML",
+      "copyAsPlainText": "Copy as Plain Text",
       "selectAll": "Select All",
       "share": "Share"
     }
@@ -991,6 +992,7 @@
       "paste": "Paste",
       "copyAsRich": "Copy As Rich Text",
       "copyAsHtml": "Copy as HTML",
+      "copyAsPlainText": "Copy As Plain Text",
       "pasteAsPlaintext": "Paste as Plain Text",
       "selectAll": "Select All",
       "duplicate": "Duplicate",

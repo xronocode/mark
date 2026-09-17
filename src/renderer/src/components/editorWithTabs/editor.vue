@@ -75,7 +75,7 @@
 
 <script setup>
 // FILE: src/renderer/src/components/editorWithTabs/editor.vue
-// VERSION: 1.9.0
+// VERSION: 1.10.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Host the Muya WYSIWYG surface and coordinate document rendering, selection, scroll, preview, editor tools, and store/bus integration.
 //   SCOPE: Renderer-side Muya lifecycle and UI orchestration; does not own Markdown parsing rules or backend file persistence.
@@ -93,7 +93,8 @@
 //   imageAction - Applies configured local/upload image insertion behavior.
 //   handleExport - Routes supported export formats to renderer services.
 //   handleCopyAsHtml - Copies selection (or whole document) to the clipboard as rich text/html (C-3).
-//   handleEditorContextMenu - Native right-click menu: undo/redo, cut/copy/paste/select-all roles, Copy as HTML, Share (C-10/C-11).
+//   handleCopyAsPlainText - Copies selection (or whole document) as markup-free plain text (C-12).
+//   handleEditorContextMenu - Native right-click menu: undo/redo, cut/copy/paste/select-all roles, Copy as HTML / Plain Text, Share (C-10/C-11/C-12).
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
@@ -106,6 +107,7 @@
 //   - 2026-09-16 v1.7.0: add copyAsHtmlRich bus handler — native clipboard-manager writeHtml puts text/html + text/plain on the clipboard for email paste, with execCommand copyAsRich fallback (C-3).
 //   - 2026-09-17 v1.8.0: handleEditorContextMenu — native right-click menu (Copy / Copy as HTML / Select All) replaces the WKWebView default on the WYSIWYG surface (C-10).
 //   - 2026-09-17 v1.9.0: full context menu — native cut/copy/paste/select-all roles, Muya undo/redo, Share via mt_share_file (C-11).
+//   - 2026-09-17 v1.10.0: handleCopyAsPlainText — marked+sanitize+textContent pipeline writes a single plain-text flavor; context menu, Edit menu, palette (C-12).
 // END_CHANGE_SUMMARY
 
 import { ref, reactive, watch, onMounted, onBeforeUnmount, nextTick, computed } from 'vue'
@@ -848,6 +850,50 @@ const handleCopyAsHtml = async () => {
 }
 // END_BLOCK_COPY_AS_HTML
 
+// START_CONTRACT: handleCopyAsPlainText
+//   PURPOSE: Put the selection (or whole document) on the clipboard as markup-free plain text — no HTML tags, no Markdown syntax.
+//   INPUTS: { none - reads Muya selection state via getCopyData }
+//   OUTPUTS: { Promise<void> - resolves after the clipboard write attempt }
+//   SIDE_EFFECTS: Renders through the C-3 marked+DOMPurify pipeline, extracts textContent, and writes a single text/plain flavor via the native clipboard-manager plugin; failure warns with the anchored marker and notifies.
+//   LINKS: C-12; C-3 handleCopyAsHtml (shared pipeline); commands/index.js edit.copy-as-plain-text
+// END_CONTRACT: handleCopyAsPlainText
+// START_BLOCK_COPY_AS_PLAIN_TEXT
+const handleCopyAsPlainText = async () => {
+  const ed = editor.value
+  if (!ed) return
+  const selectionData = ed.getCopyData()
+  const hasSelection = !!(selectionData && selectionData.text)
+  const text = hasSelection ? selectionData.text : ed.getMarkdown()
+  if (!text) return
+  const [{ default: marked }, { sanitize }, { EXPORT_DOMPURIFY_CONFIG }] =
+    await Promise.all([
+      import('muya/lib/parser/marked'),
+      import('muya/lib/utils'),
+      import('muya/lib/config')
+    ])
+  // Same render pipeline as Copy as HTML, then textContent: marked emits
+  // newlines between block elements, so the extracted text keeps block
+  // separation while every tag and Markdown marker disappears. Hard
+  // breaks (<br>, incl. the literal <br/> muya stores in table cells)
+  // must become newlines BEFORE parsing — textContent drops <br> and
+  // would glue the surrounding words together.
+  const html = sanitize(marked(text, ed.options), EXPORT_DOMPURIFY_CONFIG, false)
+    .replace(/<br\b[^>]*>/gi, '\n')
+  const doc = new DOMParser().parseFromString(html, 'text/html')
+  const plain = doc.body.textContent.replace(/\n{3,}/g, '\n\n').trim()
+  if (!plain) return
+  try {
+    const { writeText } = await import('@tauri-apps/plugin-clipboard-manager')
+    await writeText(plain)
+  } catch (e) {
+    console.warn(
+      `[Editor][handleCopyAsPlainText][BLOCK_COPY_AS_PLAIN_TEXT] native writeText failed: ${e}`
+    )
+    notice.notify({ title: t('error.copyError'), type: 'warning' })
+  }
+}
+// END_BLOCK_COPY_AS_PLAIN_TEXT
+
 // START_CONTRACT: handleEditorContextMenu
 //   PURPOSE: Replace WKWebView's default right-click menu with a full native menu: undo/redo (Muya history), cut/copy/paste/select-all roles, Copy as HTML, and Share.
 //   INPUTS: { event: Event - the DOM contextmenu event Muya re-dispatches }
@@ -879,6 +925,7 @@ const handleEditorContextMenu = async (event) => {
     { role: 'copy' },
     // Whole-document fallback lives inside handleCopyAsHtml (C-3).
     { label: t('contextMenu.editor.copyAsHtml'), id: 'copyAsHtml' },
+    { label: t('contextMenu.editor.copyAsPlainText'), id: 'copyAsPlainText' },
     { role: 'paste' },
     { type: 'separator' },
     { label: t('contextMenu.editor.selectAll'), id: 'selectAll' }
@@ -906,6 +953,8 @@ const handleEditorContextMenu = async (event) => {
     ed.selectAll()
   } else if (clickedId === 'copyAsHtml') {
     await handleCopyAsHtml()
+  } else if (clickedId === 'copyAsPlainText') {
+    await handleCopyAsPlainText()
   } else if (clickedId === 'shareFile') {
     try {
       const { invoke } = await import('@tauri-apps/api/core')
@@ -1547,6 +1596,7 @@ onMounted(() => {
   bus.on('copyAsHtml', handleCopyPaste)
   bus.on('pasteAsPlainText', handleCopyPaste)
   bus.on('copyAsHtmlRich', handleCopyAsHtml)
+  bus.on('copyAsPlainText', handleCopyAsPlainText)
   bus.on('duplicate', handleParagraph)
   bus.on('createParagraph', handleParagraph)
   bus.on('deleteParagraph', handleParagraph)
@@ -1678,6 +1728,7 @@ onBeforeUnmount(() => {
   bus.off('copyAsHtml', handleCopyPaste)
   bus.off('pasteAsPlainText', handleCopyPaste)
   bus.off('copyAsHtmlRich', handleCopyAsHtml)
+  bus.off('copyAsPlainText', handleCopyAsPlainText)
   bus.off('duplicate', handleParagraph)
   bus.off('createParagraph', handleParagraph)
   bus.off('deleteParagraph', handleParagraph)
