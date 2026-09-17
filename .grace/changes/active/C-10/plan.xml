@@ -1,0 +1,103 @@
+<GraceChangePlan graceVersion='4.0' status='approved'>
+<C-10>
+  <ChangeRef>C-10</ChangeRef>
+  <Created>2026-09-17</Created>
+  <IntentSummary>Native editor right-click menu (Copy / Copy as HTML / Select All) replacing the WKWebView default.</IntentSummary>
+  <BaselineAssertions>
+    <MustContain>
+      <File>src/renderer/src/components/editorWithTabs/editor.vue</File>
+      <Text>handleCopyAsHtml</Text>
+    </MustContain>
+    <MustContain>
+      <File>static/locales/en.json</File>
+      <Text>copyPath</Text>
+    </MustContain>
+  </BaselineAssertions>
+  <TargetAssertions>
+    <MustContain>
+      <File>src/renderer/src/components/editorWithTabs/editor.vue</File>
+      <Text>handleEditorContextMenu</Text>
+    </MustContain>
+    <MustContain>
+      <File>static/locales/en.json</File>
+      <Text>copyAsHtml</Text>
+    </MustContain>
+    <MustContain>
+      <File>tests/renderer/components/editor-coverage.test.js</File>
+      <Text>handleEditorContextMenu</Text>
+    </MustContain>
+  </TargetAssertions>
+  <DurableScope>
+    <M-011/>
+  </DurableScope>
+  <ObservedWriteScope>
+    <File>src/renderer/src/components/editorWithTabs/editor.vue</File>
+    <File>static/locales/*.json and *.min.json (ten locale pairs)</File>
+    <File>tests/renderer/components/editor-coverage.test.js</File>
+    <File>.grace/graph/runtime.xml</File>
+    <File>.grace/verification/runtime.xml</File>
+  </ObservedWriteScope>
+  <ImplementationPlan>
+    <T-001>
+      <Title>editor.vue handler + subscription + locales</Title>
+      <DependsOn></DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>Handler preventDefaults, builds the item spec (copy enabled by selection), dispatches by id to writeText / handleCopyAsHtml / selectAll; subscribed via muya .on('contextmenu').</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>npx vitest run tests/renderer/components/editor-coverage.test.js</Command>
+      </Verification>
+    </T-001>
+    <T-002>
+      <Title>Tests + graph/verification artifacts</Title>
+      <DependsOn>T-001</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>Menu spec + three dispatch paths pinned; V-M-011 scenario-27 + fn-handleEditorContextMenu recorded.</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>grace lint --path . --assertions current</Command>
+      </Verification>
+    </T-002>
+    <T-003>
+      <Title>Reviews + CUA live check</Title>
+      <DependsOn>T-002</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>Two green review passes; fresh-build CUA right-click → Copy as HTML → clipboard flavors.</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>npm test &amp;&amp; npm run build</Command>
+      </Verification>
+    </T-003>
+  </ImplementationPlan>
+  <ReviewLog>
+    <Review number="1" date="2026-09-17" verdict="changes-requested">
+      <Findings>
+        Independent agent review: 1 MAJOR, 3 MINOR, 2 NIT — all fixed.
+        (1) MAJOR: non-en locales load from .min.json which lacked
+        contextMenu.editor — block added to all ten .min.json (verified
+        structurally additive); spec R-3 + plan scope updated to locale
+        PAIRS. (2) BLOCK_EDITOR_CONTEXT_MENU marker registered in V-M-011
+        Markers. (3) fifth test added: writeText rejection → warn + notify,
+        handler resolves. (4) null-cursor carve-out (ag-html-preview
+        blocks keep the WKWebView default) documented in spec acceptance
+        and scenario-27. (5) CHANGE_SUMMARY v1.8.0 moved after v1.7.0.
+        (6) popup invoke wrapped in try/catch with the anchored warn.
+        Gates after fixes: editor-coverage 148 passed | 2 skipped; full
+        suite 222 files / 3034 passed / 0 failed; grace lint 0 errors.
+      </Findings>
+    </Review>
+    <Review number="2" date="2026-09-17" verdict="green">
+      <Findings>
+        Final gate: VERDICT green. All pass-1 fixes confirmed
+        programmatically (min.json additive-only deep-diff, marker
+        registration, fifth test, carve-out in spec + scenario-27,
+        changelog order, try/catch); no new defects. Muya dispatch
+        contract, payload shape vs m009 ContextMenuItemSpec, listener
+        teardown via destroy(), and locale-pair key hygiene verified.
+        Gates: editor-coverage 148 passed | 2 skipped; grace lint 0
+        errors.
+      </Findings>
+    </Review>
+  </ReviewLog>
+</C-10>
+</GraceChangePlan>

@@ -244,6 +244,11 @@
       "rename": "Переименовать",
       "copyPath": "Копировать путь",
       "showInFolder": "Показать в папке"
+    },
+    "editor": {
+      "copy": "Копировать",
+      "copyAsHtml": "Копировать как HTML",
+      "selectAll": "Выделить всё"
     }
   },
   "search": {

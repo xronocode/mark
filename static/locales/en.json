@@ -245,6 +245,11 @@
       "rename": "Rename",
       "copyPath": "Copy path",
       "showInFolder": "Show in folder"
+    },
+    "editor": {
+      "copy": "Copy",
+      "copyAsHtml": "Copy as HTML",
+      "selectAll": "Select All"
     }
   },
   "search": {

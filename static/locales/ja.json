@@ -244,6 +244,11 @@
       "rename": "名前を変更",
       "copyPath": "パスをコピー",
       "showInFolder": "フォルダで表示"
+    },
+    "editor": {
+      "copy": "コピー",
+      "copyAsHtml": "HTMLとしてコピー",
+      "selectAll": "すべて選択"
     }
   },
   "search": {

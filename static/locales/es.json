@@ -244,6 +244,11 @@
       "rename": "Renombrar",
       "copyPath": "Copiar ruta",
       "showInFolder": "Mostrar en carpeta"
+    },
+    "editor": {
+      "copy": "Copiar",
+      "copyAsHtml": "Copiar como HTML",
+      "selectAll": "Seleccionar todo"
     }
   },
   "search": {
