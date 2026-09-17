@@ -1,11 +1,10 @@
 // MODULE_CONTRACT
-//   PURPOSE: M-005 mt-prefs lite. Real persistent key/value store +
-//            workspace-set command that flips SecurityCtx sandbox. The
-//            full 4-store legacy migration (preferences.json +
-//            dataCenter.json + keybindings.json + recently-used-
-//            documents.json + keychain rename) is deferred to
-//            F-PREFS-MIGRATE-V1 — it needs v1 fixtures + per-file
-//            field-mapping work that is its own substantial project.
+//   PURPOSE: M-005 mt-prefs. Persistent key/value store + workspace-set
+//            command that flips SecurityCtx sandbox. The legacy v1.x
+//            import once deferred here shipped as the m005_migrate
+//            module and was retired by C-13; the mt_migration namespace
+//            below stays live for alpha-install detection and store
+//            versioning.
 //   SCOPE:   single JSON store at mt_paths::cache_root()/preferences.json.
 //            Atomic write (temp+rename) so disk-full mid-write doesn't
 //            corrupt the existing file. Corrupt file → empty defaults +
@@ -14,8 +13,7 @@
 //            (sandbox setter), mt_paths (cache_root resolution).
 //   LINKS:   docs/development-plan.xml Phase-B3 step-1;
 //            docs/verification-plan.xml V-M-005;
-//            src-tauri/src/prefs.rs (Phase-B-pre2 gate; coexists until
-//            F-PREFS-MIGRATE-V1 replaces it with migrate_from_legacy()).
+//            .grace/changes/active/C-13 (migration retirement).
 //   STATUS:  Phase-B3 step-1 lite shipped.
 //
 // CHANGE_SUMMARY:

@@ -190,7 +190,7 @@ jobs:
           hdiutil attach "$DMG" -nobrowse -mountpoint "$MOUNT" -readonly
           cp -R "$MOUNT/Mark.app" /Applications/
           hdiutil detach "$MOUNT"
-          MARK_SKIP_MIGRATION=1 open -a /Applications/Mark.app
+          open -a /Applications/Mark.app
           for i in $(seq 1 10); do
             if pgrep -f 'Mark.app/Contents/MacOS/mark' > /dev/null; then
               echo "alive after ${i}s"

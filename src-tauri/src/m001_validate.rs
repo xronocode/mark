@@ -205,7 +205,7 @@ pub fn validate_or_exit() {
             );
             let msg = report.fail_message();
             safe_eprintln!("{msg}");
-            // Native dialog — does not panic, returns DialogChoice ignored;
+            // Native dialog — does not panic, returns unit; caller exits.
             // we exit regardless. Title kept short to fit NSAlert.
             crate::dialog::ask_native_error("Mark — IPC contract drift", &msg);
             std::process::exit(1);

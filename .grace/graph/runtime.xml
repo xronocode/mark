@@ -1256,17 +1256,19 @@
       <Layer>0</Layer>
       <PhaseRef>B3-step-1</PhaseRef>
       <Summary>
-        Persistent preferences via tauri-plugin-store with legacy electron-store
-        migration.
+        Persistent preferences via tauri-plugin-store. The legacy
+        electron-store migration pipeline (m005_migrate) was retired by
+        C-13; the mt_migration namespace remains live for alpha-install
+        detection and store versioning.
       </Summary>
       <PlannedPath>src-tauri/src/prefs/mod.rs</PlannedPath>
       <Dependencies/>
       <VerificationRef>V-M-005</VerificationRef>
       <Contract>
         <Purpose>
-          Persistent preferences store via tauri-plugin-store; migrate 4-file
-          legacy layout (preferences.json + dataCenter.json + keybindings.json +
-          recently-used-documents.json) plus keytar secrets.
+          Persistent preferences store via tauri-plugin-store (set/get,
+          validation, corrupt-file fallback). The v1.x import pipeline
+          was retired by C-13.
         </Purpose>
         <Inputs>
           <Input>
@@ -1331,19 +1333,20 @@
         </fn-prefs_validate>
       </Interface>
       <Sources>
-        <Source>src-tauri/src/prefs/mod.rs</Source>
-        <KnowledgeGraphPath>src-tauri/src/prefs/mod.rs</KnowledgeGraphPath>
-        <Tests>src-tauri/src/prefs/mod.rs (#[cfg(test)])</Tests>
+        <Source>src-tauri/src/m005_prefs.rs</Source>
+        <KnowledgeGraphPath>src-tauri/src/m005_prefs.rs</KnowledgeGraphPath>
+        <Tests>src-tauri/src/m005_prefs.rs (#[cfg(test)])</Tests>
       </Sources>
       <Observability>
         <LogPrefix>[Prefs]</LogPrefix>
-        <CriticalBlock>BLOCK_DETECT_LEGACY</CriticalBlock>
-        <CriticalBlock>BLOCK_MIGRATE_PREFERENCES</CriticalBlock>
-        <CriticalBlock>BLOCK_MIGRATE_DATACENTER</CriticalBlock>
-        <CriticalBlock>BLOCK_MIGRATE_KEYBINDINGS</CriticalBlock>
-        <CriticalBlock>BLOCK_MIGRATE_RECENT_DOCS</CriticalBlock>
-        <CriticalBlock>BLOCK_MIGRATE_KEYCHAIN</CriticalBlock>
-        <CriticalBlock>BLOCK_VALIDATE_SCHEMA</CriticalBlock>
+        <CriticalBlock>BLOCK_PREFS_CORRUPT</CriticalBlock>
+        <CriticalBlock>BLOCK_PERSISTED</CriticalBlock>
+        <CriticalBlock>BLOCK_MARKER_STAMPED</CriticalBlock>
+        <RetiredByC-13>
+          BLOCK_DETECT_LEGACY / BLOCK_MIGRATE_* / BLOCK_VALIDATE_SCHEMA were
+          the retired migration pipeline's blocks (never all emitted);
+          replaced by the live markers above.
+        </RetiredByC-13>
       </Observability>
       <LegacyKnowledgeDetail>
         <annotations>

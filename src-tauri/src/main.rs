@@ -1,32 +1,25 @@
 // FILE: src-tauri/src/main.rs
-// VERSION: 2.1.3-beta
+// VERSION: 2.2.0
 // START_MODULE_CONTRACT
 //   PURPOSE: M-001 entry point. Strict boot order:
 //              (1) m001_panic::install_panic_hook  — first, so any later
 //                  step's panic produces a crash log + dialog instead of
 //                  a zombie process.
-//              (2) legacy::detect_layouts          — read-only scan for
-//                  pre-existing electron-store data (marktext + mark
-//                  namespaces under ~/Library/Application Support/).
-//              (3) MARK_SKIP_MIGRATION env check   — optional escape
-//                  hatch documented in migration_strings on 10 locales;
-//                  bypasses the dialog and the prefs::init stub gate.
-//              (4) migration dialog (if needed)    — native rfd dialog
-//                  with rate-limit hint after 3+ cancels in 7 days.
-//              (5) m001_security::audit_or_exit    — tauri.conf.json
+//              (2) m001_security::audit_or_exit    — tauri.conf.json
 //                  posture check (CSP, freezePrototype, assetProtocol,
 //                  dangerousDisableAssetCspModification).
-//              (6) m001_validate::validate_or_exit — embedded
+//              (3) m001_validate::validate_or_exit — embedded
 //                  tauri.v2.json fixture vs REGISTERED_COMMANDS parity
 //                  check. Drift → native dialog + exit(1).
-//              (7) tauri::Builder::default with M-013-B + m001_pdf
+//              (4) tauri::Builder::default with M-013-B + m001_pdf
 //                  invoke handlers, then run.
 //   SCOPE:    process bootstrap orchestration only. NO command logic,
-//             NO file I/O beyond what legacy::detect_layouts and
-//             cancel_log do, NO Tauri runtime work — that's after run().
-//   DEPENDS:  cancel_log, dialog, legacy, m001_panic, m001_pdf,
-//             m001_security, m001_validate, m013b, migration_strings,
-//             mt_paths, prefs, snapshot.
+//             NO file I/O, NO Tauri runtime work — that's after run().
+//             The Mark Text v1.x migration pipeline (legacy detection,
+//             MARK_SKIP_MIGRATION, snapshot, runner, dialogs) was
+//             retired by C-13; the live m005_prefs store stays.
+//   DEPENDS:  dialog, m001_panic, m001_pdf, m001_security,
+//             m001_validate, m013b, mt_paths.
 //   LINKS:    docs/development-plan.xml Phase-B1 step-7..11 + step-B-pre2;
 //             docs/knowledge-graph.xml M-001;
 //             docs/verification-plan.xml V-M-001;
@@ -46,6 +39,7 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-09-17 v2.2.0 C-13: retire the Mark Text v1.x migration pipeline — delete m005_migrate/, legacy/snapshot/prefs-stub/migration_strings/cancel_log and the bootstrap block; BLOCK_MIGRATION_RETIRED logs at boot; live prefs store and themes untouched.
 //   - 2026-08-07 v2.1.3-beta: initialize the native clipboard-manager
 //     plugin for title-path Copy Path after WKWebView user activation expires.
 //   - 2026-08-07 v2.1.2-beta: remove the obsolete Terminal/Homebrew
@@ -91,10 +85,7 @@ use raw_window_handle::HasWindowHandle;
 #[macro_use]
 mod safe_log;
 
-#[allow(dead_code)] // dialog flow auto-migrates 2026-05-09; kept for future re-enable
-mod cancel_log;
 mod dialog;
-mod legacy;
 mod m001_lifecycle;
 mod m001_panic;
 mod m001_pdf;
@@ -120,15 +111,8 @@ mod m032_share;
 mod m013b;
 mod m045_ext;
 mod m_v1_compat;
-mod m005_migrate;
-#[allow(dead_code)] // dialog flow auto-migrates 2026-05-09; locale strings kept for future re-enable
-mod migration_strings;
 mod mt_paths;
-mod prefs;
-mod snapshot;
 
-#[allow(unused_imports)]
-use dialog::DialogChoice;
 
 /// F-FILE-OPEN-PENDING (alpha.5): macOS Apple Event handling for
 /// "Open With" + Finder double-click. Per Tauri 2 docs, RunEvent::Opened
@@ -266,187 +250,12 @@ fn main() {
             cli.files.len(), cli.directory, cli.new_window);
     }
 
-    // Phase-B-pre2 step-1: detect pre-existing electron-store layouts BEFORE
-    // tauri::Builder takes ownership of the runtime. Read-only at this stage —
-    // migration decisions and writes are deferred to M-005 mt-prefs.
-    let layouts = legacy::detect_layouts();
-    legacy::log_detection(&layouts);
-
-    // Phase-B-pre2-followup-FIX (2026-04-28): MARK_SKIP_MIGRATION=1 env-var
-    // bypass. Migration dialog texts on 10 locales already promised this
-    // escape hatch ("To stop seeing this dialog, set MARK_SKIP_MIGRATION=1
-    // in your environment.") but the actual code path was never wired up
-    // in pre2 step-4 — it shipped only the rate-limit hint text. Without
-    // this branch the dialog could not be skipped at all, regardless of
-    // env state. Now the env-var fully bypasses both the dialog and the
-    // prefs::init() stub gate, so Tauri::Builder runs and a window opens.
-    let skip_migration = std::env::var_os("MARK_SKIP_MIGRATION")
-        .map(|v| v != "0" && !v.is_empty())
-        .unwrap_or(false);
-    if skip_migration {
-        safe_eprintln!("[main][bootstrap][BLOCK_MIGRATION_SKIPPED_BY_ENV]");
-    }
-
-    // F-MIGRATE-DIALOG-SUPPRESS-AFTER-DONE (2026-05-07): if every
-    // F-PREFS-MIGRATE-V1 idempotency marker is already set in
-    // cache_root/preferences.json, skip the dialog entirely so users
-    // who completed migration once don't see it on every boot. We
-    // peek at the file directly (no PrefsState — that's not booted
-    // yet at this point in main()).
-    let migration_already_done = mt_paths::cache_root()
-        .and_then(|cr| {
-            let prefs_path = cr.join("preferences.json");
-            std::fs::read_to_string(&prefs_path).ok()
-        })
-        .and_then(|content| serde_json::from_str::<serde_json::Value>(&content).ok())
-        .and_then(|json| {
-            let ns = json.get("mt_migration")?;
-            let all_done = [
-                "preferences_v1",
-                "data_center_v1",
-                "keybindings_v1",
-                "recent_docs_v1",
-                "keychain_v1",
-            ]
-            .iter()
-            .all(|k| ns.get(*k).and_then(|v| v.as_str()) == Some("done"));
-            Some(all_done)
-        })
-        .unwrap_or(false);
-    if migration_already_done {
-        safe_eprintln!("[main][bootstrap][BLOCK_MIGRATION_ALREADY_COMPLETE] all 5 markers present; skipping dialog");
-    }
-
-    // Auto-migrate when legacy data is detected. Earlier builds asked via a
-    // native dialog with Cancel / Continue buttons + rate-limit hint after
-    // 3+ cancels. Per user feedback 2026-05-09, that dialog is friction
-    // without value — if there's something to migrate, just migrate it.
-    // The original v1.x data in ~/Library/Application Support is read-only
-    // for the migrator, so this is a non-destructive auto-import. Set
-    // MARK_SKIP_MIGRATION=1 if you really don't want it (e.g. for tests).
-    if layouts.any_detected() && !skip_migration && !migration_already_done {
-        safe_eprintln!("[main][bootstrap][BLOCK_MIGRATION_AUTO_CONTINUE]");
-        {
-            {
-                safe_eprintln!("[main][bootstrap][BLOCK_MIGRATION_CONTINUE]");
-
-                // Phase-B-pre2 step-5: snapshot legacy data into
-                // cache_root/snapshot/ts-<unix>/ BEFORE the stub gate
-                // runs. The snapshot is the stable read-only source
-                // M-005 (Phase-B3) will consume; original data in
-                // ~/Library/Application Support is NEVER touched here.
-                match mt_paths::cache_root() {
-                    Some(cache_root) => match snapshot::snapshot_legacy(&layouts, &cache_root) {
-                        Ok(r) => {
-                            safe_eprintln!(
-                                "[snapshot][run][BLOCK_SNAPSHOT_LEGACY dest={} files={} bytes={}]",
-                                r.dest.display(), r.files, r.bytes
-                            );
-                            safe_eprintln!("[main][bootstrap][BLOCK_MIGRATION_PREFLIGHT_DONE]");
-                        }
-                        Err(e) => {
-                            safe_eprintln!("[snapshot][run][BLOCK_SNAPSHOT_FAILED reason={e}]");
-                            safe_eprintln!("[main][bootstrap][BLOCK_MIGRATION_PREFLIGHT_FAILED]");
-                            std::process::exit(2);
-                        }
-                    },
-                    None => {
-                        safe_eprintln!("[snapshot][run][BLOCK_SNAPSHOT_NO_CACHE_ROOT]");
-                        safe_eprintln!("[main][bootstrap][BLOCK_MIGRATION_PREFLIGHT_FAILED]");
-                        std::process::exit(3);
-                    }
-                }
-
-                // F-PREFS-MIGRATE-V1 step-8 (was Phase-B-pre2 step-6 stub gate
-                // until 2026-04-29). The B-pre2 stub aborted with
-                // MT_PREFS_V1_RUNNING; now we run the real 6-step migration
-                // pipeline (snapshot loader → preferences → dataCenter →
-                // keybindings → recent_docs → keychain rename) under a
-                // process-level lockfile. Steps are idempotent — partial
-                // completion is recoverable on next boot.
-                let cache_root = match mt_paths::cache_root() {
-                    Some(c) => c,
-                    None => {
-                        safe_eprintln!("[main][bootstrap][BLOCK_MIGRATION_NO_CACHE_ROOT]");
-                        dialog::ask_native_error(
-                            "Mark — migration aborted",
-                            "Could not resolve the cache directory required for migration. \
-                             Please ensure ~/Library/Caches is writable and try again.",
-                        );
-                        std::process::exit(2);
-                    }
-                };
-                let mut migrate_store = m005_prefs::PrefsStore::load_from(
-                    cache_root.join("preferences.json"),
-                );
-                let backend = m005_migrate::keychain::RealKeychain;
-                match m005_migrate::runner::run(&cache_root, &backend, &mut migrate_store) {
-                    Ok(summary) => {
-                        if let Some(failure) = summary.first_failure.as_ref() {
-                            safe_eprintln!(
-                                "[main][bootstrap][BLOCK_MIGRATION_PARTIAL failure={failure:?}]"
-                            );
-                            // Persist whatever progress was made (each
-                            // successful step already wrote its idempotency
-                            // marker; saving locks them in for the next
-                            // boot to skip via AlreadyDone).
-                            let _ = migrate_store.save();
-                            dialog::ask_native_error(
-                                "Mark — migration partially completed",
-                                &format!(
-                                    "A step in the migration pipeline failed:\n\n{failure:?}\n\n\
-                                     Successful steps were saved and will be skipped on the next launch. \
-                                     The original Mark Text v1.x data in ~/Library/Application Support/marktext \
-                                     was not modified. Please report this on the project tracker so the failure can be diagnosed.",
-                                ),
-                            );
-                            std::process::exit(1);
-                        }
-                        if let Err(e) = migrate_store.save() {
-                            safe_eprintln!(
-                                "[main][bootstrap][BLOCK_MIGRATION_PERSIST_FAILED err={e}]"
-                            );
-                            dialog::ask_native_error(
-                                "Mark — migration save failed",
-                                &format!(
-                                    "Migration completed in memory but could not be persisted to disk: {e}\n\n\
-                                     This is usually a permission or disk-space problem. Original v1.x data is intact.",
-                                ),
-                            );
-                            std::process::exit(1);
-                        }
-                        safe_eprintln!(
-                            "[main][bootstrap][BLOCK_MIGRATION_COMPLETED prefs={:?} dc={:?} kb={:?} recent={:?} keychain={:?}]",
-                            summary.preferences,
-                            summary.data_center,
-                            summary.keybindings,
-                            summary.recent_docs,
-                            summary.keychain,
-                        );
-                        // Earlier builds surfaced a one-shot native info
-                        // dialog summarizing migrated key counts. Per user
-                        // feedback 2026-05-09, dialogs in the boot path are
-                        // friction; the migration summary already prints to
-                        // stderr (BLOCK_MIGRATION_COMPLETED above) and users
-                        // can verify imported state via Settings. No banner.
-                    }
-                    Err(failure) => {
-                        safe_eprintln!("[main][bootstrap][BLOCK_MIGRATION_RUNNER_FAILED failure={failure:?}]");
-                        dialog::ask_native_error(
-                            "Mark — migration could not start",
-                            &format!(
-                                "The migration runner could not begin:\n\n{failure:?}\n\n\
-                                 The original Mark Text v1.x data has not been modified.",
-                            ),
-                        );
-                        std::process::exit(1);
-                    }
-                }
-            }
-        }
-    } else {
-        safe_eprintln!("[main][bootstrap][BLOCK_NO_MIGRATION_NEEDED]");
-    }
+    // C-13: the Mark Text v1.x migration pipeline is retired. Existing
+    // installs completed it long ago and fresh installs never had v1
+    // data; the live m005_prefs store (and its mt_migration namespace
+    // used for alpha-install detection and store versioning) is
+    // untouched. Leftover snapshots under the cache root are inert.
+    safe_eprintln!("[main][bootstrap][BLOCK_MIGRATION_RETIRED]");
 
     // Phase-B1 step-9: WebView shell security posture audit. Reads the
     // embedded tauri.conf.json + asserts the security block carries
