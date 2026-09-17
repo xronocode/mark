@@ -199,6 +199,13 @@ Releases are tag-triggered via `.github/workflows/release.yml` — **do NOT buil
    - `npx vitest run tests/renderer/release-preflight.test.js` → 11 passed
 4. Commit `chore(release): v2.X.Y-beta`, push `fork main`, then `git tag v2.X.Y-beta && git push fork v2.X.Y-beta` (tag pattern `v*.*.*` / `v*.*.*-*`).
 5. Watch the run: `gh run list -R xronocode/mark`. If a tag was pushed on a bad commit, delete the remote tag, retag on the fix, push again — the release re-runs.
+6. **Write the release notes** — the workflow only publishes the automated verification block (attestation/cosign), never a human changelog. Once the release is live, prepend a user-facing «Что нового» section (grouped: Вкладки / Титлбар / Редактор / …; one bullet per user-visible change, referencing the C-* change ids is optional but keep the wording user-facing) while KEEPING the automated block below a `---` separator:
+   ```bash
+   gh release view v2.X.Y-beta -R xronocode/mark --json body --jq '.body' > /tmp/rel-body.md
+   # prepend the changelog section, then:
+   gh release edit v2.X.Y-beta -R xronocode/mark --notes-file /tmp/rel-combined.md
+   ```
+   Derive the content from the change specs shipped in the release (`git log vPREV..vNEW --oneline` + `.grace/changes/active/C-*/spec.xml` Name/Summary fields).
 
 **Semantics that matter:** beta tags are published as **normal releases** (`PRERELEASE=false` in the workflow, asserted by tests) so the `/releases/latest` feed advances — the in-app updater reads `https://github.com/xronocode/mark/releases/latest/download/latest.json`. A release is live iff that `latest.json` serves the new version.
 
