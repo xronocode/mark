@@ -246,9 +246,11 @@
       "showInFolder": "Показать в папке"
     },
     "editor": {
-      "copy": "Копировать",
+      "undo": "Отменить",
+      "redo": "Повторить",
       "copyAsHtml": "Копировать как HTML",
-      "selectAll": "Выделить всё"
+      "selectAll": "Выделить всё",
+      "share": "Поделиться"
     }
   },
   "search": {

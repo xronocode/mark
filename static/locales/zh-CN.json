@@ -246,9 +246,11 @@
       "showInFolder": "在文件夹中显示"
     },
     "editor": {
-      "copy": "复制",
+      "undo": "撤销",
+      "redo": "重做",
       "copyAsHtml": "复制为 HTML",
-      "selectAll": "全选"
+      "selectAll": "全选",
+      "share": "分享"
     }
   },
   "search": {

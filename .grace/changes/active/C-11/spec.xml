@@ -1,0 +1,104 @@
+<GraceChangeSpec graceVersion='4.0' status='approved'>
+<C-11>
+  <Name>Full editor context menu: native edit roles, undo/redo, share</Name>
+  <Created>2026-09-17</Created>
+  <Priority>high</Priority>
+  <Status>implemented</Status>
+
+  <Summary>
+    User feedback after C-10: "теперь там в меню только 2 пункта… давай
+    расширяй до уровня гигиены: вставить, отправить (поделиться) и так
+    далее". Extend the native editor context menu to macOS-hygiene level:
+    Undo, Redo, ---, Cut, Copy, Copy as HTML, Paste, ---, Select All,
+    ---, Share. Cut/Copy/Paste/Select All become PredefinedMenuItem roles
+    in the context-menu popup — identical behavior and OS-localized
+    labels and auto-enablement to the Edit menu's native items, and real
+    webview paste/copy fidelity (including rich clipboard data) with no
+    clipboard permissions. Undo/Redo are custom items dispatched to
+    muya.undo()/redo() because the app deliberately routes history
+    through Muya (v2.1.3-beta remapped Cmd+Z away from the webview
+    undo); a role would bypass Muya history. Share reuses mt_share_file
+    (the title-bar share path) and appears only when the tab has a
+    pathname.
+  </Summary>
+
+  <Problem>
+    <Description>The C-10 menu (Copy / Copy as HTML / Select All) is too sparse for daily right-click hygiene.</Description>
+    <RootCause>C-10 scoped to the reported gap only; paste/cut were believed impossible via the id-dispatched route.</RootCause>
+    <Evidence>
+    User session 2026-09-17; m009 build_native_menu already uses
+    .cut()/.copy()/.paste() predefined items (Edit submenu) proving the
+    role route; mt_window_popup_context_menu builds from
+    ValidatedContextMenuItem::{Item,Separator} only.
+    </Evidence>
+  </Problem>
+
+  <Goals>
+    <R-1>
+      Rust: ContextMenuItemSpec gains optional role ("cut" | "copy" |
+      "paste" | "select_all"); validation whitelists roles, counts them
+      as actionable, and ignores id/label for them; the popup builds
+      PredefinedMenuItem variants (OS-localized labels, native
+      enablement, responder-chain actions). Role clicks are not reported
+      to JS (no pending id), dismissal semantics unchanged.
+    </R-1>
+    <R-2>
+      editor.vue menu: undo, redo (custom, muya.undo/redo), separator,
+      cut, copy (roles), Copy as HTML (custom, C-3 path), paste (role),
+      separator, Select All (CUSTOM — muya's context-aware selectAll: a
+      table selects the table, a code block its content; the native
+      role would always grab the whole document, diverging from Cmd+A),
+      separator + Share (custom, shown only with a pathname; the native
+      share sheet shows the file). The C-10 custom Copy item is replaced
+      by the copy role; Select All stays custom (review pass 1).
+    </R-2>
+    <R-3>
+      Locales: contextMenu.editor gains undo/redo/share keys; the now
+      unused copy key is removed (its role label comes OS-localized)
+      while selectAll stays for the custom context-aware item. All ten
+      locale PAIRS (json + min.json).
+    </R-3>
+    <R-4>
+      Tests: Rust validation units (each role accepted, unknown role
+      rejected, roles satisfy the actionable-item rule); renderer menu
+      spec + dispatch (undo/redo → muya methods, copyAsHtml → C-3,
+      share → mt_share_file with the tab pathname, share absent for
+      untitled tabs).
+    </R-4>
+  </Goals>
+
+  <Constraints>
+    <Constraint>Undo/Redo must go through Muya history, never the webview undo role.</Constraint>
+    <Constraint>No new clipboard permissions; roles act via the responder chain.</Constraint>
+    <Constraint>Existing consumers (tabs/sidebar menus) unchanged — no role in their specs.</Constraint>
+  </Constraints>
+
+  <NonGoals>
+    <NonGoal>Paste as plain text (needs clipboard-read permission; separate consideration).</NonGoal>
+    <NonGoal>Services submenu / Look Up (no Tauri API).</NonGoal>
+  </NonGoals>
+
+  <AcceptanceCriteria>
+    <Criterion>Right-click shows the full menu; Cut/Copy/Paste behave exactly like the Edit-menu native items incl. auto-enablement; Paste pastes real clipboard content; Select All matches Cmd+A's context-aware Muya behavior.</Criterion>
+    <Criterion>Undo/Redo drive Muya history (same as Cmd+Z).</Criterion>
+    <Criterion>Share opens the native share sheet for the file; hidden for untitled tabs.</Criterion>
+    <Criterion>Rust + renderer suites green; CUA live check passes.</Criterion>
+  </AcceptanceCriteria>
+
+  <AffectedAreas>
+    <M-009>context-menu popup role support (C-11)</M-009>
+    <M-011>editor.vue menu spec + dispatch (C-11)</M-011>
+  </AffectedAreas>
+
+  <VerificationIntent>
+    cargo test m009_menu (role validation); editor-coverage context-menu
+    tests; CUA: right-click → verify item list, Paste inserts clipboard
+    text, Undo reverts.
+  </VerificationIntent>
+
+  <Approval>
+    <ApprovedBy>user (session 2026-09-17): "давай расширяй до уровня гигиены другими пунктами, вставить, отправить (поделиться) и так далее"</ApprovedBy>
+    <ApprovalScope>Full gates: tests, 2 reviews, CUA live check, commit.</ApprovalScope>
+  </Approval>
+</C-11>
+</GraceChangeSpec>
