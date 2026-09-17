@@ -1,0 +1,91 @@
+<GraceChangeSpec graceVersion='4.0' status='approved'>
+<C-13>
+  <Name>Retire the Mark Text v1.x settings/data migration pipeline</Name>
+  <Created>2026-09-17</Created>
+  <Priority>high</Priority>
+  <Status>implemented</Status>
+
+  <Summary>
+    User decision: "выпилить функционал миграции настроек из старого
+    марка, аккуратно — темы и угловые случаи не задеть". Remove the
+    one-time v1.x import pipeline: the m005_migrate module (snapshot
+    loader, preferences/dataCenter/keybindings/recent-docs/keychain
+    steps, fixture e2e), legacy-layout detection, the snapshot copier,
+    the dead prefs stub gate, the migration dialog strings, the
+    cancel-rate log, the migration dialogs, and the main.rs bootstrap
+    block that drives them. KEEP everything that is live state, not
+    import: the m005_prefs store with its mt_migration namespace (alpha
+    install detection + store versioning), m_v1_compat IPC shims, the
+    renderer v1-format persistence (window state, tabs, layout), and
+    themes (served as-is from preferences.json).
+  </Summary>
+
+  <Problem>
+    <Description>~4700 lines of one-time import code ship in every build and complicate every prefs change.</Description>
+    <RootCause>The port carried a full v1.x migration pipeline from Phase B3; the existing user base has completed it and fresh installs never had v1 data.</RootCause>
+    <Evidence>
+      src-tauri/src/m005_migrate/ (10 files, 3666 lines incl. fixture_e2e), legacy.rs (211), snapshot.rs (276), prefs.rs stub (101), migration_strings.rs (327), cancel_log.rs (236), main.rs bootstrap block ~lines 269-451, dialog.rs ask_migration/map_result/DialogChoice; no renderer or vitest references (grep); m005_prefs mt_migration namespace is LIVE (alpha-install detection, store versioning) and stays.
+    </Evidence>
+  </Problem>
+
+  <Goals>
+    <R-1>
+      Delete m005_migrate/, legacy.rs, snapshot.rs, prefs.rs,
+      migration_strings.rs, cancel_log.rs; strip the main.rs bootstrap
+      block (detection, MARK_SKIP_MIGRATION, 5-marker check, snapshot,
+      runner, dialogs) down to a single BLOCK_MIGRATION_RETIRED boot
+      log; drop the now-dead mod decls, the dialog::DialogChoice import,
+      and the ask_migration/map_result/MigrationStrings surface from
+      dialog.rs (ask_native_error stays — m001_security/validate/panic
+      call it; the dead ask_native_info went too, pass-1 finding).
+    </R-1>
+    <R-2>
+      Preserve live behavior bit-for-bit: m005_prefs PrefsStore and its
+      mt_migration namespace untouched (comment-only contract refresh —
+      the header still pointed at the deleted prefs.rs stub); m_v1_compat
+      untouched; renderer untouched; existing preferences.json / window
+      state / tabs restore unaffected; themes served as-is.
+    </R-2>
+    <R-3>
+      Governance: M-005 graph summary/contract reworded (migration
+      retired, store remains); V-M-005 migration scenarios retired with
+      an explicit note; main.rs MODULE_CONTRACT/CHANGE_SUMMARY updated.
+    </R-3>
+    <R-4>
+      Gates: full cargo test, npm test, grace lint; CUA live check —
+      theme change survives an app restart, tabs/window state restore,
+      clean boot log carries BLOCK_MIGRATION_RETIRED.
+    </R-4>
+  </Goals>
+
+  <Constraints>
+    <Constraint>Do not touch m005_prefs mt_migration namespace semantics (alpha detection depends on it).</Constraint>
+    <Constraint>No renderer changes.</Constraint>
+    <Constraint>Failed-removal safety: if anything outside the listed surface references a removed symbol, cargo must fail the build (no allow(unused) masking).</Constraint>
+  </Constraints>
+
+  <NonGoals>
+    <NonGoal>Cleaning cached migration snapshots on disk (harmless leftovers in the cache root).</NonGoal>
+  </NonGoals>
+
+  <AcceptanceCriteria>
+    <Criterion>cargo test + npm test green; binary boots to the editor with BLOCK_MIGRATION_RETIRED in stderr and no dialogs.</Criterion>
+    <Criterion>Theme switch persists across restart; tabs and window geometry restore as before.</Criterion>
+    <Criterion>No dead_code allowances left behind for the removed surface.</Criterion>
+  </AcceptanceCriteria>
+
+  <AffectedAreas>
+    <M-005>migration pipeline retired; store stays (C-13)</M-005>
+  </AffectedAreas>
+
+  <VerificationIntent>
+    cargo test (fixture_e2e goes with the module); full renderer suite;
+    CUA restart-persistence of theme + session.
+  </VerificationIntent>
+
+  <Approval>
+    <ApprovedBy>user (session 2026-09-17): "предлагаю выпилить функционал миграции настроек из старого марка. только внимательно аккуратно с темами и корнерами ничего не задеть"</ApprovedBy>
+    <ApprovalScope>Full gates: tests, 2 reviews, CUA live check, commit.</ApprovalScope>
+  </Approval>
+</C-13>
+</GraceChangeSpec>

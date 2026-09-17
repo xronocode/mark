@@ -9,7 +9,7 @@
 //   DEPENDS: dialog::ask_native_error, mt_paths::cache_root, std::panic.
 //   LINKS:   docs/development-plan.xml Phase-B1 step-10;
 //            verification-plan.xml V-M-001 (crash-log + zombie-window
-//            scenarios); mt_paths shared with Phase-B-pre2 cancel_log.
+//            scenarios); mt_paths shared across cache-root consumers.
 //   STATUS:  Phase-B1 step-10. session_chain_id is a UUIDv4 stamped
 //            once per process lifetime (no Tauri runtime needed —
 //            installed before Builder).

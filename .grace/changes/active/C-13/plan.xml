@@ -1,0 +1,95 @@
+<GraceChangePlan graceVersion='4.0' status='approved'>
+<C-13>
+  <ChangeRef>C-13</ChangeRef>
+  <Created>2026-09-17</Created>
+  <IntentSummary>Remove the v1.x migration pipeline; keep the live prefs store, v1-compat IPC, renderer persistence, themes.</IntentSummary>
+  <BaselineAssertions>
+    <MustContain>
+      <File>src-tauri/src/main.rs</File>
+      <Text>m001_security::audit_or_exit</Text>
+    </MustContain>
+    <MustContain>
+      <File>src-tauri/src/m005_prefs.rs</File>
+      <Text>mt_migration</Text>
+    </MustContain>
+  </BaselineAssertions>
+  <TargetAssertions>
+    <MustContain>
+      <File>src-tauri/src/main.rs</File>
+      <Text>BLOCK_MIGRATION_RETIRED</Text>
+    </MustContain>
+    <MustContain>
+      <File>src-tauri/src/m005_prefs.rs</File>
+      <Text>mt_migration</Text>
+    </MustContain>
+  </TargetAssertions>
+  <DurableScope>
+    <M-005/>
+  </DurableScope>
+  <ObservedWriteScope>
+    <File>src-tauri/src/main.rs</File>
+    <File>src-tauri/src/dialog.rs</File>
+    <File>.grace/graph/runtime.xml</File>
+    <File>.grace/verification/runtime.xml</File>
+    <File>deleted: src-tauri/src/m005_migrate/**, legacy.rs, snapshot.rs, prefs.rs, migration_strings.rs, cancel_log.rs</File>
+  </ObservedWriteScope>
+  <ImplementationPlan>
+    <T-001>
+      <Title>Delete the migration surface + main.rs/dialog.rs surgery</Title>
+      <DependsOn></DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>Files deleted; bootstrap block reduced; mod decls and dead imports gone; dialog.rs keeps ask_native_error/info only.</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>cargo check -q &amp;&amp; cargo test -q</Command>
+      </Verification>
+    </T-001>
+    <T-002>
+      <Title>Governance + full gates + CUA persistence check</Title>
+      <DependsOn>T-001</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>M-005/V-M-005 reworded; cargo+npm+lint green; CUA: theme survives restart, session restores, BLOCK_MIGRATION_RETIRED logged.</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>npm test &amp;&amp; grace lint --path . --assertions current</Command>
+      </Verification>
+    </T-002>
+  </ImplementationPlan>
+  <ReviewLog>
+    <Review number="1" date="2026-09-17" verdict="changes-requested">
+      <Findings>
+        Independent agent review (worktree-baselined): 0 BLOCKER/MAJOR,
+        5 MINOR, 3 NIT — all fixed. Removal completeness confirmed (zero
+        code references; unused warnings 15→9, none added); live surface
+        intact (m005_prefs byte-identical, boot order otherwise
+        unchanged, theme guard still called); corner cases verified
+        (mt_migration namespace self-sufficient, no boot reads of
+        snapshot leftovers, no orphaned deps). Fixed: dangling
+        allow(unused_imports) in main.rs; dead ask_native_info removed
+        from dialog.rs (+ contract markers); phantom BLOCK_COERCE/
+        BLOCK_PATH_FALLBACK markers dropped from V-M-005 (never emitted
+        by code) with a trace note; m005_prefs/mt_paths/m001_panic/
+        m001_validate contract comments refreshed to name live
+        consumers; visual-regression doc no longer sets the retired
+        MARK_SKIP_MIGRATION; V-M-005 command path de-nested. Gates:
+        cargo 374/0/1-ignored, npm 222 files 3043 passed, lint 0.
+      </Findings>
+    </Review>
+    <Review number="2" date="2026-09-17" verdict="green">
+      <Findings>
+        Pass 2 confirmed all pass-1 fixes correct and regression-free;
+        flagged 3 MINOR + 1 NIT residual gaps in the removal surface
+        itself, all fixed: (1) release.yml smoke step no longer sets the
+        retired MARK_SKIP_MIGRATION env; (2) orphaned sys-locale
+        dependency removed from src-tauri/Cargo.toml (sole consumer was
+        migration_strings) and pruned from Cargo.lock; (3) graph M-005
+        bare fields now point at m005_prefs.rs with live CriticalBlocks
+        (BLOCK_PREFS_CORRUPT / BLOCK_PERSISTED / BLOCK_MARKER_STAMPED)
+        and the dead migration blocks retired-with-note; (4) spec R-1
+        parenthetical corrected (ask_native_info went too). Gates after
+        fixes: cargo 374/0/1-ignored, lock pruned, lint 0 errors.
+      </Findings>
+    </Review>
+  </ReviewLog>
+</C-13>
+</GraceChangePlan>

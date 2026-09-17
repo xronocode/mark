@@ -21,7 +21,7 @@ cargo build --manifest-path src-tauri/Cargo.toml --bin mark
 rm -f ~/Library/Application\ Support/com.xronocode.mark/.window-state.json
 
 # 5. Запуск с проверкой
-MARK_SKIP_MIGRATION=1 ./target/debug/mark 2>/tmp/mark-stderr.log &
+./target/debug/mark 2>/tmp/mark-stderr.log &
 sleep 4
 grep 'BLOCK_TITLEBAR_TRANSPARENT_OVERLAY_OK' /tmp/mark-stderr.log || echo "FAIL: titlebar"
 grep 'BLOCK_INVOKE_OK' /tmp/mark-stderr.log || echo "FAIL: renderer boot"
