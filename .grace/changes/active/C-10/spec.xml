@@ -1,0 +1,89 @@
+<GraceChangeSpec graceVersion='4.0' status='approved'>
+<C-10>
+  <Name>Editor right-click context menu with Copy as HTML (replace WKWebView default)</Name>
+  <Created>2026-09-17</Created>
+  <Priority>high</Priority>
+  <Status>implemented</Status>
+
+  <Summary>
+    User report: "не вижу в контекстном меню при ПКМ пункта с хтмл копи" —
+    the Edit menu has Copy as HTML (C-3) but right-click in the WYSIWYG
+    editor shows WKWebView's default menu, which cannot be extended from
+    JS. Suppress the default menu (Muya already dispatches a 'contextmenu'
+    eventCenter event that nothing subscribes to) and show the app's native
+    context menu (same mt::window-popup-context-menu path as tabs/sidebar)
+    with Copy, Copy as HTML, and Select All. Paste is deliberately omitted:
+    WKWebView cannot synthesize a paste event carrying clipboardData, so
+    the native-menu route cannot drive it; Cmd+V is unaffected.
+  </Summary>
+
+  <Problem>
+    <Description>Copy as HTML is unreachable from the editor's right-click menu.</Description>
+    <RootCause>WKWebView owns the default context menu and offers no extension API; the renderer never subscribed to Muya's contextmenu dispatch.</RootCause>
+    <Evidence>
+      src/muya/lib/eventHandler/clickEvent.js dispatches eventCenter
+      'contextmenu'; grep for subscribers across src/renderer/src → none.
+      src-tauri m009 already implements the native popup used by
+      contextMenu/tabs (validate + capture selection by id).
+    </Evidence>
+  </Problem>
+
+  <Goals>
+    <R-1>
+      editor.vue subscribes to muya 'contextmenu' (WYSIWYG surface only;
+      source mode keeps its existing full suppression) and preventDefaults
+      the DOM event, then invokes mt::window-popup-context-menu with:
+      Copy (id copy, enabled only when muya getCopyData().text is
+      non-empty), Copy as HTML (id copyAsHtml, always enabled — the C-3
+      whole-document fallback applies), separator, Select All (id
+      selectAll).
+    </R-1>
+    <R-2>
+      Dispatch: copy → native clipboard-manager writeText of the selection
+      markdown; copyAsHtml → existing handleCopyAsHtml (bus copyAsHtmlRich
+      path, C-3); selectAll → muya.selectAll().
+    </R-2>
+    <R-3>
+      Locales: contextMenu.editor.{copy,copyAsHtml,selectAll} added to all
+      ten locale PAIRS — both the full json and the .min.json that the
+      renderer actually loads at runtime for non-en locales.
+    </R-3>
+    <R-4>
+      Tests pin: menu spec (items, order, copy enabled only with a
+      selection), copy dispatch (writeText with the selection text),
+      selectAll dispatch, copyAsHtml dispatch reaching the C-3 path.
+    </R-4>
+  </Goals>
+
+  <Constraints>
+    <Constraint>Reuse the C-3 clipboard path and muya getCopyData/selectAll; no new IPC.</Constraint>
+    <Constraint>Source-code mode (CodeMirror) keeps suppressing the menu entirely.</Constraint>
+    <Constraint>Paste is out of scope (documented limitation, not a regression of Cmd+V).</Constraint>
+  </Constraints>
+
+  <NonGoals>
+    <NonGoal>Full v1 context menu (cut/paste-as-plain-text/paragraph tools).</NonGoal>
+  </NonGoals>
+
+  <AcceptanceCriteria>
+    <Criterion>Right-click in the WYSIWYG editor shows the native menu; Copy as HTML copies the same payload as the Edit-menu item. Carve-out: where muya does not dispatch contextmenu (DOM selection outside span.ag-paragraph, e.g. ag-html-preview blocks) the WKWebView default menu remains.</Criterion>
+    <Criterion>Copy is disabled with no selection; Select All selects the document.</Criterion>
+    <Criterion>Renderer suites green; CUA live check on a fresh build passes.</Criterion>
+  </AcceptanceCriteria>
+
+  <AffectedAreas>
+    <M-011>editor.vue context-menu handler (C-10)</M-011>
+  </AffectedAreas>
+
+  <VerificationIntent>
+    tests/renderer/components/editor-coverage.test.js context-menu cases;
+    CUA: right-click in the editor of a fresh build, click Copy as HTML,
+    confirm public.html flavors on the clipboard.
+  </VerificationIntent>
+
+  <Approval>
+    <ApprovedBy>user (session 2026-09-17): "не вижу в контекстном меню при ПКМ пункта с хтмл копи"</ApprovedBy>
+    <ApprovalScope>Implement with the established gates: tests, 2 green reviews, CUA live check.</ApprovalScope>
+  </Approval>
+</C-10>
+</GraceChangeSpec>

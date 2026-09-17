@@ -1,5 +1,5 @@
 // FILE: tests/renderer/components/editor-coverage.test.js
-// VERSION: 1.4.0
+// VERSION: 1.5.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Verify editorWithTabs/editor.vue methods, watchers, computed state, event handlers, and lifecycle behavior beyond the base editor test.
 //   SCOPE: Deterministic Vue/jsdom tests with mocked Muya, stores, bus, services, and browser scheduling.
@@ -29,6 +29,7 @@
 //   setWrapCodeBlocksMock - GRACE 4 synchronized symbol
 //   uploadImageMock - GRACE 4 synchronized symbol
 //   writeHtmlMock - GRACE 4 synchronized symbol
+//   writeTextMock - GRACE 4 synchronized symbol (C-10 context-menu copy)
 //   markedMock - GRACE 4 synchronized symbol
 //   sanitizeMock - GRACE 4 synchronized symbol
 // END_MODULE_MAP
@@ -38,6 +39,7 @@
 //   - 2026-08-10 v1.2.0: cover boot hydration when an agent/Finder open selects a tab before editor bus listeners are ready.
 //   - 2026-08-10 v1.3.0: cover stale file-changed events not overwriting unsaved active-tab content.
 //   - 2026-09-16 v1.4.0: cover copyAsHtmlRich handler — native writeHtml selection write, whole-document fallback, empty no-op, execCommand fallback (C-3).
+//   - 2026-09-17 v1.5.0: cover handleEditorContextMenu — menu spec with selection-gated Copy, copy/copyAsHtml/selectAll dispatch (C-10).
 // END_CHANGE_SUMMARY
 
 import { shallowMount } from '@vue/test-utils'
@@ -64,6 +66,7 @@ const uploadImageMock = vi.hoisted(() => vi.fn())
 const getCssForOptionsMock = vi.hoisted(() => vi.fn(async () => ''))
 const getHtmlTocMock = vi.hoisted(() => vi.fn(() => ''))
 const writeHtmlMock = vi.hoisted(() => vi.fn(async () => undefined))
+const writeTextMock = vi.hoisted(() => vi.fn(async () => undefined))
 const markedMock = vi.hoisted(() => vi.fn((text) => `<p>${text}</p>`))
 const sanitizeMock = vi.hoisted(() => vi.fn((html) => `clean:${html}`))
 
@@ -183,7 +186,10 @@ vi.mock('@/util/fileSystem', () => ({
   uploadImage: uploadImageMock
 }))
 vi.mock('@/util/clipboard', () => ({ guessClipboardFilePath: vi.fn() }))
-vi.mock('@tauri-apps/plugin-clipboard-manager', () => ({ writeHtml: writeHtmlMock }))
+vi.mock('@tauri-apps/plugin-clipboard-manager', () => ({
+  writeHtml: writeHtmlMock,
+  writeText: writeTextMock
+}))
 vi.mock('muya/lib/parser/marked', () => ({ default: markedMock }))
 vi.mock('muya/lib/utils', () => ({ sanitize: sanitizeMock }))
 vi.mock('muya/lib/config', () => ({
@@ -1025,6 +1031,92 @@ describe('editor.vue — coverage', () => {
     rejectWrite(new Error('window closed'))
     await expect(pending).resolves.toBeUndefined()
     expect(mockEditorInstance.copyAsRich).not.toHaveBeenCalled()
+  })
+
+  /* ── handleEditorContextMenu (C-10) ─────────────────────────── */
+
+  const getContextMenuHandler = () => {
+    const call = mockEditorInstance.on.mock.calls.find((c) => c[0] === 'contextmenu')
+    return call ? call[1] : null
+  }
+
+  const makeContextMenuEvent = () => ({
+    preventDefault: vi.fn(),
+    clientX: 11,
+    clientY: 22
+  })
+
+  it('subscribes handleEditorContextMenu to muya contextmenu', async () => {
+    await mountEditor()
+    expect(getContextMenuHandler()).toBeTypeOf('function')
+  })
+
+  it('context menu: Copy enabled with a selection; copy dispatch writes selection text natively', async () => {
+    await mountEditor()
+    mockEditorInstance.getCopyData.mockReturnValueOnce({ text: '# Selected' })
+    window.electron.ipcRenderer.invoke.mockResolvedValueOnce('copy')
+    const event = makeContextMenuEvent()
+    await getContextMenuHandler()(event)
+    expect(event.preventDefault).toHaveBeenCalled()
+    const [cmd, payload] = window.electron.ipcRenderer.invoke.mock.calls.find(
+      (c) => c[0] === 'mt::window-popup-context-menu'
+    )
+    expect(cmd).toBe('mt::window-popup-context-menu')
+    expect(payload.x).toBe(11)
+    expect(payload.y).toBe(22)
+    const copyItem = payload.items.find((i) => i.id === 'copy')
+    const htmlItem = payload.items.find((i) => i.id === 'copyAsHtml')
+    const selectItem = payload.items.find((i) => i.id === 'selectAll')
+    expect(copyItem.enabled).toBe(true)
+    expect(htmlItem).toBeTruthy()
+    expect(selectItem).toBeTruthy()
+    expect(payload.items.some((i) => i.type === 'separator')).toBe(true)
+    expect(writeTextMock).toHaveBeenCalledWith('# Selected')
+  })
+
+  it('context menu: Copy disabled without a selection; selectAll dispatch selects the document', async () => {
+    await mountEditor()
+    mockEditorInstance.getCopyData.mockReturnValueOnce({ text: '' })
+    window.electron.ipcRenderer.invoke.mockResolvedValueOnce('selectAll')
+    await getContextMenuHandler()(makeContextMenuEvent())
+    const payload = window.electron.ipcRenderer.invoke.mock.calls.find(
+      (c) => c[0] === 'mt::window-popup-context-menu'
+    )[1]
+    expect(payload.items.find((i) => i.id === 'copy').enabled).toBe(false)
+    expect(mockEditorInstance.selectAll).toHaveBeenCalled()
+    expect(writeTextMock).not.toHaveBeenCalled()
+  })
+
+  it('context menu: copyAsHtml dispatch reaches the C-3 clipboard path', async () => {
+    await mountEditor()
+    // getCopyData is consulted twice: once to build the menu spec and
+    // once inside handleCopyAsHtml.
+    mockEditorInstance.getCopyData
+      .mockReturnValueOnce({ text: '# Title' })
+      .mockReturnValueOnce({ text: '# Title' })
+    window.electron.ipcRenderer.invoke.mockResolvedValueOnce('copyAsHtml')
+    await getContextMenuHandler()(makeContextMenuEvent())
+    expect(writeHtmlMock).toHaveBeenCalledWith('clean:<p># Title</p>', '# Title')
+    expect(writeTextMock).not.toHaveBeenCalled()
+  })
+
+  it('context menu: writeText failure warns and notifies without rejecting', async () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    try {
+      await mountEditor()
+      mockEditorInstance.getCopyData.mockReturnValueOnce({ text: 'x' })
+      writeTextMock.mockRejectedValueOnce(new Error('capability denied'))
+      window.electron.ipcRenderer.invoke.mockResolvedValueOnce('copy')
+      await expect(getContextMenuHandler()(makeContextMenuEvent())).resolves.toBeUndefined()
+      expect(noticeMock.notify).toHaveBeenCalledWith(
+        expect.objectContaining({ type: 'warning' })
+      )
+      expect(warnSpy).toHaveBeenCalledWith(
+        expect.stringContaining('[Editor][handleEditorContextMenu][BLOCK_EDITOR_CONTEXT_MENU]')
+      )
+    } finally {
+      warnSpy.mockRestore()
+    }
   })
 
   it('handleCopyAsHtml no-ops after unmount when the editor instance is gone', async () => {

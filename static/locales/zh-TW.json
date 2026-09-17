@@ -244,6 +244,11 @@
       "rename": "重新命名",
       "copyPath": "複製路徑",
       "showInFolder": "在資料夾中顯示"
+    },
+    "editor": {
+      "copy": "複製",
+      "copyAsHtml": "複製為 HTML",
+      "selectAll": "全選"
     }
   },
   "search": {

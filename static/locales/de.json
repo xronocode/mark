@@ -244,6 +244,11 @@
       "rename": "Umbenennen",
       "copyPath": "Pfad kopieren",
       "showInFolder": "Im Ordner anzeigen"
+    },
+    "editor": {
+      "copy": "Kopieren",
+      "copyAsHtml": "Als HTML kopieren",
+      "selectAll": "Alles auswählen"
     }
   },
   "search": {

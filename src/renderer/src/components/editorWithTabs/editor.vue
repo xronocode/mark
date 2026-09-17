@@ -75,7 +75,7 @@
 
 <script setup>
 // FILE: src/renderer/src/components/editorWithTabs/editor.vue
-// VERSION: 1.7.0
+// VERSION: 1.8.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Host the Muya WYSIWYG surface and coordinate document rendering, selection, scroll, preview, editor tools, and store/bus integration.
 //   SCOPE: Renderer-side Muya lifecycle and UI orchestration; does not own Markdown parsing rules or backend file persistence.
@@ -93,6 +93,7 @@
 //   imageAction - Applies configured local/upload image insertion behavior.
 //   handleExport - Routes supported export formats to renderer services.
 //   handleCopyAsHtml - Copies selection (or whole document) to the clipboard as rich text/html (C-3).
+//   handleEditorContextMenu - Native right-click menu: Copy / Copy as HTML / Select All, replacing the WKWebView default (C-10).
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
@@ -103,6 +104,7 @@
 //   - 2026-08-10 v1.5.0: ignore stale file-loaded payloads from a different active tab and avoid reloading identical content over a live selection.
 //   - 2026-08-14 v1.6.0: reset scrollTop synchronously for tabs with no saved scroll position so an agent-opened tab cannot inherit a stale scrollTop from the previously active tab and read as blank until manual scroll.
 //   - 2026-09-16 v1.7.0: add copyAsHtmlRich bus handler — native clipboard-manager writeHtml puts text/html + text/plain on the clipboard for email paste, with execCommand copyAsRich fallback (C-3).
+//   - 2026-09-17 v1.8.0: handleEditorContextMenu — native right-click menu (Copy / Copy as HTML / Select All) replaces the WKWebView default on the WYSIWYG surface (C-10).
 // END_CHANGE_SUMMARY
 
 import { ref, reactive, watch, onMounted, onBeforeUnmount, nextTick, computed } from 'vue'
@@ -845,6 +847,61 @@ const handleCopyAsHtml = async () => {
 }
 // END_BLOCK_COPY_AS_HTML
 
+// START_CONTRACT: handleEditorContextMenu
+//   PURPOSE: Replace WKWebView's default right-click menu with the app's native context menu carrying Copy / Copy as HTML / Select All.
+//   INPUTS: { event: Event - the DOM contextmenu event Muya re-dispatches }
+//   OUTPUTS: { Promise<void> - resolves after the native popup resolves and the clicked id is dispatched }
+//   SIDE_EFFECTS: Suppresses the webview default menu; may write the clipboard (copy / copyAsHtml) or select the document.
+//   LINKS: C-10; muya eventHandler/clickEvent.js 'contextmenu' dispatch; mt::window-popup-context-menu (m009); C-3 handleCopyAsHtml
+// END_CONTRACT: handleEditorContextMenu
+// START_BLOCK_EDITOR_CONTEXT_MENU
+const handleEditorContextMenu = async (event) => {
+  if (!event || typeof event.preventDefault !== 'function') return
+  event.preventDefault()
+  const ed = editor.value
+  if (!ed) return
+  // Muya already committed the cursor at the click point; getCopyData
+  // mirrors the copy handlers' selection special cases (range / table
+  // cells / image), so Copy is enabled exactly when a real selection
+  // exists.
+  const copyData = ed.getCopyData()
+  const items = [
+    { label: t('contextMenu.editor.copy'), id: 'copy', enabled: !!(copyData && copyData.text) },
+    // Whole-document fallback lives inside handleCopyAsHtml (C-3).
+    { label: t('contextMenu.editor.copyAsHtml'), id: 'copyAsHtml' },
+    { type: 'separator' },
+    { label: t('contextMenu.editor.selectAll'), id: 'selectAll' }
+  ]
+  let clickedId
+  try {
+    clickedId = await window.electron.ipcRenderer.invoke(
+      'mt::window-popup-context-menu',
+      { items, x: event.clientX, y: event.clientY }
+    )
+  } catch (e) {
+    console.warn(
+      `[Editor][handleEditorContextMenu][BLOCK_EDITOR_CONTEXT_MENU] popup failed: ${e}`
+    )
+    return
+  }
+  if (clickedId === 'copy') {
+    try {
+      const { writeText } = await import('@tauri-apps/plugin-clipboard-manager')
+      await writeText(copyData.text)
+    } catch (e) {
+      console.warn(
+        `[Editor][handleEditorContextMenu][BLOCK_EDITOR_CONTEXT_MENU] native writeText failed: ${e}`
+      )
+      notice.notify({ title: t('error.copyError'), type: 'warning' })
+    }
+  } else if (clickedId === 'copyAsHtml') {
+    await handleCopyAsHtml()
+  } else if (clickedId === 'selectAll') {
+    ed.selectAll()
+  }
+}
+// END_BLOCK_EDITOR_CONTEXT_MENU
+
 const insertImage = (src) => {
   if (!sourceCode.value) {
     editor.value && editor.value.insertImage({ src })
@@ -1570,6 +1627,11 @@ onMounted(() => {
   editor.value.on('selectionFormats', (formats) => {
     editorStore.SELECTION_FORMATS(formats)
   })
+
+  // C-10: Muya re-dispatches the DOM contextmenu event; subscribing here
+  // lets us preventDefault (suppressing WKWebView's default menu) and show
+  // the app's native context menu instead.
+  editor.value.on('contextmenu', handleEditorContextMenu)
 
   document.addEventListener('keyup', keyup)
 
