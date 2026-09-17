@@ -1,13 +1,14 @@
 // MODULE_CONTRACT
 //   PURPOSE: Cross-platform helpers for the directories Mark uses outside
-//            its electron-store-compatible userData root. Exists so
-//            cancel_log, telemetry, and snapshot code can write to the
-//            correct OS location without coupling to specific paths.
+//            its electron-store-compatible userData root. Active
+//            consumers: m005_prefs (preferences.json + mt_migration),
+//            m001_panic (crash logs), m017 (recent docs), m019 (data
+//            center) — resolved here so none couples to specific paths.
 //   SCOPE: Pure path resolution from environment variables — no filesystem
 //          probing, no I/O, no Tauri runtime.
 //   DEPENDS: stdlib only.
-//   LINKS: M-022 mt-paths; Phase-B-pre2 step-3 (cache_root); future
-//          telemetry / snapshot modules will reuse cache_root + data_root.
+//   LINKS: M-022 mt-paths; Phase-B-pre2 step-3 (cache_root); consumers
+//          listed under PURPOSE (cancel_log/snapshot retired by C-13).
 //
 
 use std::path::PathBuf;
