@@ -1,6 +1,6 @@
 # NOTICES — Rust dependencies (Tauri backend)
 
-Generated from `cargo-bundle-licenses --format json` over **616 crates**.
+Generated from `cargo-bundle-licenses --format json` over **615 crates**.
 
 Each entry lists the crate name, version, license SPDX identifier, and upstream repository when available. Re-generate with:
 
@@ -13,7 +13,7 @@ node tools/build-notices-rust.mjs /tmp/rust-licenses.json > NOTICES-rust.md
 
 | License | Crate count |
 |---|---:|
-| MIT OR Apache-2.0 | 276 |
+| MIT OR Apache-2.0 | 275 |
 | MIT | 135 |
 | Apache-2.0 OR MIT | 53 |
 | MIT/Apache-2.0 | 32 |
@@ -52,7 +52,7 @@ node tools/build-notices-rust.mjs /tmp/rust-licenses.json > NOTICES-rust.md
 | MIT AND BSD-3-Clause | 1 |
 | MIT OR Zlib OR Apache-2.0 | 1 |
 
-## MIT OR Apache-2.0 (276)
+## MIT OR Apache-2.0 (275)
 
 | Crate | Version | Repository |
 |---|---|---|
@@ -242,7 +242,6 @@ node tools/build-notices-rust.mjs /tmp/rust-licenses.json > NOTICES-rust.md
 | swift-rs | 1.0.7 | https://github.com/Brendonovich/swift-rs |
 | syn | 1.0.109 | https://github.com/dtolnay/syn |
 | syn | 2.0.117 | https://github.com/dtolnay/syn |
-| sys-locale | 0.3.2 | https://github.com/1Password/sys-locale |
 | system-configuration | 0.7.0 | https://github.com/mullvad/system-configuration-rs |
 | system-configuration-sys | 0.6.0 | https://github.com/mullvad/system-configuration-rs |
 | tao-macros | 0.1.3 | https://github.com/tauri-apps/tao |
