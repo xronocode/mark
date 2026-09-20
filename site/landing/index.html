@@ -450,16 +450,20 @@
             // 1. Fetch Version Badge
             const badge = document.getElementById('version-badge');
             
-            fetch('https://github.com/xronocode/mark/releases/latest/download/latest.json')
+            fetch('https://api.github.com/repos/xronocode/mark/releases/latest')
                 .then(res => res.json())
-                .then(data => {
-                    if (data && data.version) {
-                        badge.textContent = "v" + data.version;
+                .then(rel => {
+                    const ver = rel && rel.tag_name ? rel.tag_name.replace(/^v/, "") : null;
+                    if (ver) {
+                        badge.textContent = "v" + ver;
                         badge.style.animation = 'none';
                         badge.offsetHeight; /* trigger reflow */
                         badge.style.animation = 'fadeUp 0.5s ease-out';
-                        // Point the DMG CTAs at the exact current artifact.
-                        const dmg = "https://github.com/xronocode/mark/releases/download/v" + data.version + "/Mark_" + data.version + "_aarch64.dmg";
+                        // Point the DMG CTAs at the exact current artifact
+                        // (fall back to the release page if not found).
+                        const asset = (rel.assets || []).find(a => /Mark_.*_aarch64\.dmg$/.test(a.name));
+                        const dmg = asset ? asset.browser_download_url
+                            : "https://github.com/xronocode/mark/releases/latest";
                         for (const id of ["cta-download", "dmg-download"]) {
                             const el = document.getElementById(id);
                             if (el) el.href = dmg;
