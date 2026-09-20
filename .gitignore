@@ -38,3 +38,8 @@ site/.vitepress/cache/
 # Transient agent state
 .claude/
 sbom/
+
+# Nested repos / session artifacts
+.playwright-mcp/
+homebrew-mark/
+.DS_Store

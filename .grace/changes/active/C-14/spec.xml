@@ -1,0 +1,56 @@
+<GraceChangeSpec graceVersion='4.0' status='approved'>
+<C-14>
+  <Name>Marketing site for Mark built with opendesign.ai</Name>
+  <Created>2026-09-18</Created>
+  <Priority>medium</Priority>
+  <Status>planned-only</Status>
+
+  <Summary>
+    User idea (session 2026-09-18): "было бы неплохо с помощью
+    opendesign.ai сделать сайт для марка". Build a product landing site
+    (features, screenshots, download links per channel: in-app updater
+    feed, GitHub Releases DMG, Homebrew cask) using opendesign.ai as the
+    design/tooling baseline. Hosting and domain TBD (GitHub Pages is the
+    default candidate). NOT IMPLEMENTED — planning artifact so the idea
+    is not lost.
+  </Summary>
+
+  <Problem>
+    <Description>Mark has no product site; discovery is GitHub-only.</Description>
+    <RootCause>Port focused on the app; marketing surface never existed.</RootCause>
+    <Evidence>User session 2026-09-18.</Evidence>
+  </Problem>
+
+  <Goals>
+    <R-1>Landing page: hero, feature list (WYSIWYG markdown, tabs, themes, copy-as-HTML/plain-text, live reload), screenshots, changelog feed.</R-1>
+    <R-2>Download section wired to the three live channels (Releases latest.json feed, DMG, brew cask) so it never shows a stale version.</R-2>
+    <R-3>Design produced via opendesign.ai; static output committed to this repo and served from GitHub Pages.</R-3>
+  </Goals>
+
+  <Constraints>
+    <Constraint>Download links must be derived from the live release feed, never hardcoded versions.</Constraint>
+  </Constraints>
+
+  <NonGoals>
+    <NonGoal>Docs site replacement (VitePress already lives in /site).</NonGoal>
+  </NonGoals>
+
+  <AcceptanceCriteria>
+    <Criterion>Static site deploys on every release tag with the correct current version surfaced.</Criterion>
+  </AcceptanceCriteria>
+
+  <AffectedAreas>
+    <M-046>release feed drives the site download section (planned)</M-046>
+  </AffectedAreas>
+
+  <VerificationIntent>
+    Static build CI check + feed-driven version assertions in a smoke
+    test; manual visual QA.
+  </VerificationIntent>
+
+  <Approval>
+    <ApprovedBy>user (session 2026-09-18)</ApprovedBy>
+    <ApprovalScope>Planning only.</ApprovalScope>
+  </Approval>
+</C-14>
+</GraceChangeSpec>

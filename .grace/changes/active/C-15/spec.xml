@@ -1,0 +1,58 @@
+<GraceChangeSpec graceVersion='4.0' status='approved'>
+<C-15>
+  <Name>Platform distribution hardening incl. Apple App Store</Name>
+  <Created>2026-09-18</Created>
+  <Priority>medium</Priority>
+  <Status>planned-only</Status>
+
+  <Summary>
+    User idea (session 2026-09-18): "настроить дистрибуцию под платформы
+    включая апстор". Extend distribution beyond the current channels
+    (in-app updater, GitHub Releases DMG, Homebrew cask): Apple App
+    Store submission (needs Apple Developer Program membership,
+    proper signing identity + provisioning, hardened runtime review
+    compliance, sandbox entitlements audit — Tauri WKWebView + fs
+    access patterns will need a sandbox-compatibility pass), and
+    optionally Windows/Linux artifacts if demand appears. NOT
+    IMPLEMENTED — planning artifact.
+  </Summary>
+
+  <Problem>
+    <Description>Distribution is GitHub-centric; App Store unreachable without signing/sandbox work.</Description>
+    <RootCause>The port ships ad-hoc-signed DMGs; App Store requires a paid team identity, hardened runtime, and sandbox-compatible entitlements.</RootCause>
+    <Evidence>User session 2026-09-18; current release.yml signs ad-hoc locally and CI-attests artifacts.</Evidence>
+  </Problem>
+
+  <Goals>
+    <R-1>Inventory the sandbox gaps (fs watcher paths, arbitrary file open, Deep Links/CLI) against App Store sandbox requirements.</R-1>
+    <R-2>CI signing path with a real Developer ID for notarization (outside the store) as the prerequisite step.</R-2>
+    <R-3>App Store variant: separate bundle id, entitlements set, screenshot/metadata pipeline, TestFlight-first rollout.</R-3>
+  </Goals>
+
+  <Constraints>
+    <Constraint>App Store work starts only after Developer Program membership exists; no ad-hoc identities in CI secrets.</Constraint>
+  </Constraints>
+
+  <NonGoals>
+    <NonGoal>Windows/Linux builds in this change (separate consideration).</NonGoal>
+  </NonGoals>
+
+  <AcceptanceCriteria>
+    <Criterion>Notarized Developer ID build in CI is the prerequisite gate; App Store variant passes Transporter validation.</Criterion>
+  </AcceptanceCriteria>
+
+  <AffectedAreas>
+    <M-046>release pipeline gains signing/notarization/store lanes (planned)</M-046>
+  </AffectedAreas>
+
+  <VerificationIntent>
+    Notarization gate in CI; App Store validation via Transporter;
+    TestFlight smoke.
+  </VerificationIntent>
+
+  <Approval>
+    <ApprovedBy>user (session 2026-09-18)</ApprovedBy>
+    <ApprovalScope>Planning only.</ApprovalScope>
+  </Approval>
+</C-15>
+</GraceChangeSpec>

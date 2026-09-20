@@ -1,0 +1,478 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		23E4257987103E15D29254D0 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0E3528F204F54E75FB3E802 /* AppDelegate.swift */; };
+		54FAAB482FC95C911F47C581 /* highlight.min.js in Resources */ = {isa = PBXBuildFile; fileRef = 90439D9DE9FBC7F1811C5049 /* highlight.min.js */; };
+		93C069114A8A8CE61762F7DC /* PreviewProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 61433030D8053ED745A406FE /* PreviewProvider.swift */; };
+		B790BE037F2D9132476D48DF /* MainWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = D071584B6A615E2089901DDF /* MainWindow.swift */; };
+		D8D6F4A1F223F3731785E5A8 /* MarkPreview.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = D9C39CA23E3C35B98D0968F0 /* MarkPreview.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		E19E6A3FC1E77FDE446805CE /* markdown-it.min.js in Resources */ = {isa = PBXBuildFile; fileRef = 282695B7A2A318BEC041306A /* markdown-it.min.js */; };
+		E8C1D69A4CE93E2739081CAB /* style.css in Resources */ = {isa = PBXBuildFile; fileRef = CAEB5127B6B77B89DCD5413F /* style.css */; };
+		EE12FC1FAC121DB4CDE35CEC /* MarkdownRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9262A848E32E4163AD7D1A3 /* MarkdownRenderer.swift */; };
+		FE012D15A862F4D69953342D /* github-dark.css in Resources */ = {isa = PBXBuildFile; fileRef = 30C820D90A0C2CEE5C30DE15 /* github-dark.css */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		D025064A02BFB6D03E91C0C3 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = C0820245E946F7260EF17904 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 6388AC91E5F57195C31FC912;
+			remoteInfo = MarkPreview;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		2341C766CCD5F5EA53BBC9A2 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				D8D6F4A1F223F3731785E5A8 /* MarkPreview.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		23691138821D1AC8633E60BA /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		282695B7A2A318BEC041306A /* markdown-it.min.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = "markdown-it.min.js"; sourceTree = "<group>"; };
+		30C820D90A0C2CEE5C30DE15 /* github-dark.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = "github-dark.css"; sourceTree = "<group>"; };
+		61433030D8053ED745A406FE /* PreviewProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreviewProvider.swift; sourceTree = "<group>"; };
+		90439D9DE9FBC7F1811C5049 /* highlight.min.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = highlight.min.js; sourceTree = "<group>"; };
+		A9262A848E32E4163AD7D1A3 /* MarkdownRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkdownRenderer.swift; sourceTree = "<group>"; };
+		BFD5F6CF4F610BFB2C6CFB83 /* MarkQuickLook.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MarkQuickLook.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		CAEB5127B6B77B89DCD5413F /* style.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = style.css; sourceTree = "<group>"; };
+		D071584B6A615E2089901DDF /* MainWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainWindow.swift; sourceTree = "<group>"; };
+		D0E3528F204F54E75FB3E802 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		D9C39CA23E3C35B98D0968F0 /* MarkPreview.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = MarkPreview.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		E150804265D8F3FD7096E85B /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		EF9D501694BBF036E472B99C /* HostApp.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = HostApp.entitlements; sourceTree = "<group>"; };
+		F9ABB38800A85F37BF6D0F06 /* MarkPreview.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = MarkPreview.entitlements; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXGroup section */
+		04CF3037254669FBA8586D9A /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				30C820D90A0C2CEE5C30DE15 /* github-dark.css */,
+				90439D9DE9FBC7F1811C5049 /* highlight.min.js */,
+				282695B7A2A318BEC041306A /* markdown-it.min.js */,
+				CAEB5127B6B77B89DCD5413F /* style.css */,
+			);
+			name = Resources;
+			path = Sources/PreviewExtension/Resources;
+			sourceTree = "<group>";
+		};
+		2764836028E25AAF709738A2 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				D9C39CA23E3C35B98D0968F0 /* MarkPreview.appex */,
+				BFD5F6CF4F610BFB2C6CFB83 /* MarkQuickLook.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		532B16827B56DD0BEDA6E884 = {
+			isa = PBXGroup;
+			children = (
+				F17515CE1871E977991607C6 /* HostApp */,
+				7CF48AE9B8575FC483B434EB /* PreviewExtension */,
+				04CF3037254669FBA8586D9A /* Resources */,
+				A23D70E1F8F7DA751927B577 /* Shared */,
+				2764836028E25AAF709738A2 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		7CF48AE9B8575FC483B434EB /* PreviewExtension */ = {
+			isa = PBXGroup;
+			children = (
+				23691138821D1AC8633E60BA /* Info.plist */,
+				F9ABB38800A85F37BF6D0F06 /* MarkPreview.entitlements */,
+				61433030D8053ED745A406FE /* PreviewProvider.swift */,
+			);
+			name = PreviewExtension;
+			path = Sources/PreviewExtension;
+			sourceTree = "<group>";
+		};
+		A23D70E1F8F7DA751927B577 /* Shared */ = {
+			isa = PBXGroup;
+			children = (
+				A9262A848E32E4163AD7D1A3 /* MarkdownRenderer.swift */,
+			);
+			name = Shared;
+			path = Sources/Shared;
+			sourceTree = "<group>";
+		};
+		F17515CE1871E977991607C6 /* HostApp */ = {
+			isa = PBXGroup;
+			children = (
+				D0E3528F204F54E75FB3E802 /* AppDelegate.swift */,
+				EF9D501694BBF036E472B99C /* HostApp.entitlements */,
+				E150804265D8F3FD7096E85B /* Info.plist */,
+				D071584B6A615E2089901DDF /* MainWindow.swift */,
+			);
+			name = HostApp;
+			path = Sources/HostApp;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		2BDF1332FE37FA9E837F54C0 /* MarkQuickLook */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 58FFCECA53262227004E2A3E /* Build configuration list for PBXNativeTarget "MarkQuickLook" */;
+			buildPhases = (
+				7926EF453C8577FD65477E31 /* Sources */,
+				2341C766CCD5F5EA53BBC9A2 /* Embed Foundation Extensions */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				64D20B27083E59B38A68DFBA /* PBXTargetDependency */,
+			);
+			name = MarkQuickLook;
+			packageProductDependencies = (
+			);
+			productName = MarkQuickLook;
+			productReference = BFD5F6CF4F610BFB2C6CFB83 /* MarkQuickLook.app */;
+			productType = "com.apple.product-type.application";
+		};
+		6388AC91E5F57195C31FC912 /* MarkPreview */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 3AAE7911FCE3BABEE782F6AC /* Build configuration list for PBXNativeTarget "MarkPreview" */;
+			buildPhases = (
+				BD3B99A8C4E4C07559D7EF24 /* Sources */,
+				C8C7BFB32983DCAA9CC5B54C /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = MarkPreview;
+			packageProductDependencies = (
+			);
+			productName = MarkPreview;
+			productReference = D9C39CA23E3C35B98D0968F0 /* MarkPreview.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		C0820245E946F7260EF17904 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1500;
+				TargetAttributes = {
+					2BDF1332FE37FA9E837F54C0 = {
+						DevelopmentTeam = NY72L3P5TN;
+						ProvisioningStyle = Manual;
+					};
+					6388AC91E5F57195C31FC912 = {
+						DevelopmentTeam = NY72L3P5TN;
+						ProvisioningStyle = Manual;
+					};
+				};
+			};
+			buildConfigurationList = BD69F2426F87F92C730C5B06 /* Build configuration list for PBXProject "MarkQuickLook" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = 532B16827B56DD0BEDA6E884;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 2764836028E25AAF709738A2 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				6388AC91E5F57195C31FC912 /* MarkPreview */,
+				2BDF1332FE37FA9E837F54C0 /* MarkQuickLook */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		C8C7BFB32983DCAA9CC5B54C /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				FE012D15A862F4D69953342D /* github-dark.css in Resources */,
+				54FAAB482FC95C911F47C581 /* highlight.min.js in Resources */,
+				E19E6A3FC1E77FDE446805CE /* markdown-it.min.js in Resources */,
+				E8C1D69A4CE93E2739081CAB /* style.css in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		7926EF453C8577FD65477E31 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				23E4257987103E15D29254D0 /* AppDelegate.swift in Sources */,
+				B790BE037F2D9132476D48DF /* MainWindow.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		BD3B99A8C4E4C07559D7EF24 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				EE12FC1FAC121DB4CDE35CEC /* MarkdownRenderer.swift in Sources */,
+				93C069114A8A8CE61762F7DC /* PreviewProvider.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		64D20B27083E59B38A68DFBA /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 6388AC91E5F57195C31FC912 /* MarkPreview */;
+			targetProxy = D025064A02BFB6D03E91C0C3 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		4D3650F150E978E870951CB7 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = Sources/PreviewExtension/MarkPreview.entitlements;
+				COMBINE_HIDPI_IMAGES = YES;
+				INFOPLIST_FILE = Sources/PreviewExtension/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "com.xronocode.mark-quicklook.preview";
+				PRODUCT_NAME = MarkPreview;
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+		4F65B9F65FF744069FC050C6 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_IDENTITY = "Developer ID Application: Mikhail Yevdokimov (NY72L3P5TN)";
+				CODE_SIGN_STYLE = Manual;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = NY72L3P5TN;
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 12.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.9;
+			};
+			name = Release;
+		};
+		7DD0E8BABDA838CC7AECEF0A /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = Sources/PreviewExtension/MarkPreview.entitlements;
+				COMBINE_HIDPI_IMAGES = YES;
+				INFOPLIST_FILE = Sources/PreviewExtension/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "com.xronocode.mark-quicklook.preview";
+				PRODUCT_NAME = MarkPreview;
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		C1286EBD71CE1D3BACBF6BD7 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_IDENTITY = "Developer ID Application: Mikhail Yevdokimov (NY72L3P5TN)";
+				CODE_SIGN_STYLE = Manual;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = NY72L3P5TN;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 12.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.9;
+			};
+			name = Debug;
+		};
+		E46627355370822C1D34B50E /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = Sources/HostApp/HostApp.entitlements;
+				COMBINE_HIDPI_IMAGES = YES;
+				INFOPLIST_FILE = Sources/HostApp/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "com.xronocode.mark-quicklook";
+				PRODUCT_NAME = "Mark QuickLook";
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+		F17AFB1337A0435598938641 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = Sources/HostApp/HostApp.entitlements;
+				COMBINE_HIDPI_IMAGES = YES;
+				INFOPLIST_FILE = Sources/HostApp/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "com.xronocode.mark-quicklook";
+				PRODUCT_NAME = "Mark QuickLook";
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		3AAE7911FCE3BABEE782F6AC /* Build configuration list for PBXNativeTarget "MarkPreview" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				7DD0E8BABDA838CC7AECEF0A /* Debug */,
+				4D3650F150E978E870951CB7 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		58FFCECA53262227004E2A3E /* Build configuration list for PBXNativeTarget "MarkQuickLook" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F17AFB1337A0435598938641 /* Debug */,
+				E46627355370822C1D34B50E /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		BD69F2426F87F92C730C5B06 /* Build configuration list for PBXProject "MarkQuickLook" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				C1286EBD71CE1D3BACBF6BD7 /* Debug */,
+				4F65B9F65FF744069FC050C6 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = C0820245E946F7260EF17904 /* Project object */;
+}
