@@ -54,3 +54,17 @@ Dark-first developer-tool aesthetic with a light mode; markdown/monospace motif 
 - Zero external runtime dependencies: no Google Fonts, no CDN scripts, no analytics. Must load offline.
 - Version numbers and download URLs must come from the live release feed at runtime — never hardcoded in the HTML.
 - Output: static HTML/CSS (JS only for the version badge fetch). It will be ported into the VitePress theme, so keep the DOM semantic and the CSS scoped to the landing layout.
+
+## Addendum 2026-09-20 — size-first positioning (user direction)
+
+User feedback after first deploy: size/memory footprint is Mark's single
+biggest advantage and must lead the page. Angle: heavy AI users already run
+agents + browsers + many terminal sessions; a heavyweight editor taxes the
+machine the models run on; Electron-based competitors (never named — category
+references only) ship a whole Chromium and hold hundreds of MB. Mark is
+open source and positioned as the base/core to build on.
+
+Landed: hero stat strip (11 MB / ~61 MB RAM / <1 s), dedicated #footprint
+section with category comparison bars (11 MB vs 200–350 MB disk; ~61 MB vs
+300–600 MB RAM), sharpened "Native Speed" card, agent-workflow copy reframed
+around the many-windows pain.
