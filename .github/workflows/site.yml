@@ -1,0 +1,72 @@
+# FILE: .github/workflows/site.yml
+# VERSION: 1.0.0
+# START_MODULE_CONTRACT
+#   PURPOSE: C-14 site pipeline — build the VitePress docs site, overlay the
+#            static marketing landing at the root, and deploy to GitHub Pages.
+#   SCOPE: build + deploy only; no release artifacts, no app code.
+#   DEPENDS: Node 22, vitepress, site/ sources, site/landing/index.html.
+#   LINKS: .grace/changes/active/C-14/plan.xml T-003; site/.vitepress/config.js.
+#   ROLE: CONFIG
+#   MAP_MODE: SUMMARY
+# END_MODULE_CONTRACT
+#
+# START_MODULE_MAP
+#   build-and-deploy - vitepress build, landing overlay, Pages deploy.
+# END_MODULE_MAP
+
+name: site
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'site/**'
+      - '.github/workflows/site.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: build vitepress
+        run: |
+          cd site
+          if [ -f package.json ]; then npm ci && npx vitepress build; else npx --yes vitepress build; fi
+
+      - name: overlay marketing landing
+        run: |
+          # The landing is a fully self-contained index.html from the C-14
+          # OpenDesign pipeline; it wins over the VitePress home at the root.
+          if [ -f site/landing/index.html ]; then
+            cp site/landing/index.html site/.vitepress/dist/index.html
+          fi
+          ls -la site/.vitepress/dist | head -20
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site/.vitepress/dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
