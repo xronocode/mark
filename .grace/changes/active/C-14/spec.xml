@@ -3,7 +3,7 @@
   <Name>Marketing site for Mark built with opendesign.ai</Name>
   <Created>2026-09-18</Created>
   <Priority>medium</Priority>
-  <Status>planned-only</Status>
+  <Status>in-progress</Status>
 
   <Summary>
     User idea (session 2026-09-18): "было бы неплохо с помощью
@@ -51,6 +51,8 @@
   <Approval>
     <ApprovedBy>user (session 2026-09-18)</ApprovedBy>
     <ApprovalScope>Planning only.</ApprovalScope>
+    <ApprovedBy>user (session 2026-09-20): "с помощью opendesign.ai сделать сайт для марка" — execution approved; local Ollama engine chosen (cloud key optional for later polish).</ApprovedBy>
+    <ApprovalScope>Implement: OpenDesign v0.22.2 installed, generation via local Ollama, output integrated into /site (VitePress home), GitHub Pages deploy.</ApprovalScope>
   </Approval>
 </C-14>
 </GraceChangeSpec>

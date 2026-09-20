@@ -12,6 +12,8 @@ export default defineConfig({
     nav: [
       { text: 'Guide', link: '/guide/' },
       { text: 'Reference', link: '/reference/' },
+      { text: 'Changelog', link: '/changelog' },
+      { text: 'Privacy', link: '/privacy' },
       { text: 'GitHub', link: 'https://github.com/xronocode/mark' }
     ],
     sidebar: {

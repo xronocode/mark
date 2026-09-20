@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mark — The Markdown Editor for AI Agents</title>
+    <style>
+        :root {
+            /* Color Tokens */
+            --bg: #07090c;
+            --surface-1: #101215;
+            --surface-2: #16191d;
+            --border: rgba(255, 255, 255, 0.08);
+            --border-strong: rgba(255, 255, 255, 0.14);
+            --text-1: #f5f7f9;
+            --text-2: #c3c9cf;
+            --text-3: #8b939c;
+            --accent: #3fb6f0;
+            --accent-soft: rgba(63, 182, 240, 0.14);
+            --accent-deep: #29abe2;
+            --accent-bright: #7fd4f5;
+            --ok: #5fc992;
+            --warn: #ffbc33;
+
+            /* Typography */
+            --font-display: -apple-system, "SF Pro Display", "Inter", "Segoe UI", Roboto, sans-serif;
+            --font-mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, monospace;
+
+            /* Layout & Spacing */
+            --max-width: 1120px;
+            --pad-x-std: 24px;
+            --section-rhythm: 96px;
+            --radius-md: 8px;
+            --radius-lg: 12px;
+
+            /* Components */
+            --shadow-inset: inset 0 1px 0 rgba(255,255,255,0.04);
+            --shadow-drop: 0 8px 24px rgba(0,0,0,0.35);
+        }
+
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text-1);
+            font-family: var(--font-display);
+            line-height: 1.65;
+            letter-spacing: 0.2px; /* Airy dark mode */
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        h1, h2, h3 { margin: 0; line-height: 1.15; letter-spacing: -0.02em; color: var(--text-1); }
+        p { margin-bottom: 0.75rem; }
+        a { text-decoration: none; color: inherit; transition: opacity 0.2s ease; }
+        a:hover, button:hover { opacity: 0.9; }
+
+        /* Layout Utilities */
+        .container { max-width: var(--max-width); margin: 0 auto; padding: 0 var(--pad-x-std); width: 100%; }
+        section { padding-top: var(--section-rhythm); padding-bottom: var(--section-rhythm); opacity: 0; animation: fadeUp 0.6s ease-out forwards; }
+
+        /* 1. Sticky Nav */
+        .nav {
+            position: sticky; top: 0; z-index: 100;
+            backdrop-filter: blur(12px);
+            background-color: rgba(7, 9, 12, 0.75);
+            border-bottom: 1px solid var(--border);
+            height: 64px; display: flex; align-items: center;
+        }
+        .nav-inner { width: 100%; display: flex; justify-content: space-between; align-items: center; }
+        .logo-mark { width: 96px; height: auto; object-fit: contain; margin-right: 8px; }
+        .wordmark { font-weight: 700; letter-spacing: -0.03em; color: var(--text-1); }
+        .nav-links { display: flex; gap: 24px; align-items: center; }
+        .nav-link { font-size: 14px; color: var(--text-2); }
+        .nav-link.active, .nav-link:hover { color: var(--accent); }
+
+        /* 2. Hero Section */
+        .hero { min-height: 85vh; display: flex; align-items: center; position: relative; overflow: hidden; }
+        .hero-content { max-width: 600px; z-index: 2; }
+        
+        h1.hero-title { font-size: clamp(40px, 6vw, 64px); line-height: 1.05; margin-bottom: 16px; }
+        .gradient-text { background: linear-gradient(to right, var(--accent-deep), var(--accent-bright)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; display: inline-block; }
+
+        .hero-subhead { font-size: 20px; color: var(--text-2); margin-bottom: 32px; max-width: 480px; }
+        
+        /* Buttons */
+        .btn-primary {
+            background-color: var(--accent); color: #04121c; font-weight: 600; padding: 12px 24px; border-radius: var(--radius-md); display: inline-flex; align-items: center; gap: 8px; }
+        .btn-secondary { background-color: var(--surface-2); color: var(--text-1); border: 1px solid var(--border-strong); padding: 10px 20px; font-family: var(--font-mono); display: inline-flex; align-items: center; gap: 8px; }
+        .btn-secondary:hover { background-color: var(--surface-1); border-color: var(--accent); }
+
+        /* Version Badge */
+        #version-badge {
+            background: var(--surface-2); color: var(--text-3); font-family: var(--font-mono); padding: 4px 8px; border-radius: 999px; font-size: 12px; border: 1px solid var(--border-strong); display: inline-block; }
+
+        /* 3. Feature Grid */
+        .feature-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+        .card { background-color: var(--surface-1); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 24px; transition: transform 0.3s ease, box-shadow 0.3s ease; position: relative; overflow: hidden; }
+        .card:hover { transform: translateY(-4px); box-shadow: var(--shadow-drop), var(--shadow-inset); border-color: var(--accent-soft); }
+        
+        .icon-box { width: 24px; height: 24px; stroke-width: 1.5; margin-bottom: 16px; color: var(--accent); display: block; }
+        .card h3 { font-size: 18px; margin-bottom: 8px; }
+        .card p { font-size: 14px; color: var(--text-2); line-height: 1.5; }
+
+        /* 4. Screenshot Gallery */
+        .gallery-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 32px; align-items: start; }
+        
+        /* Window Chrome Frame */
+        .window-frame { border-radius: 10px; overflow: hidden; background-color: var(--surface-1); border: 1px solid var(--border); box-shadow: var(--shadow-drop), var(--shadow-inset); position: relative; transition: all 0.3s ease; }
+        .window-frame:hover { transform: translateY(-4px) scale(1.02); z-index: 10; border-color: var(--accent-soft); }
+        
+        /* The little dots for window chrome */
+        .window-dots { position: absolute; top: 12px; left: 12px; display: flex; gap: 6px; }
+        .dot { width: 8px; height: 8px; border-radius: 50%; background-color: var(--surface-1); border: 1px solid var(--border-strong); cursor: pointer; transition: all 0.2s; }
+        .window-frame:hover .dot:nth-child(1) { background-color: var(--accent); transform: scale(1.2); }
+        
+        .shot-img { width: 100%; height: auto; display: block; opacity: 0.95; transition: opacity 0.3s; }
+        .window-frame:hover .shot-img { opacity: 1; }
+
+        /* 5. AI Workflow */
+        .ai-flow { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; align-items: center; }
+        .mono-fence { font-family: var(--font-mono); background-color: rgba(0,0,0,0.2); padding: 32px; border-radius: var(--radius-lg); border-left: 2px solid var(--accent); color: var(--text-2); }
+        .mono-fence code { font-size: 14px; line-height: 1.6; }
+
+        /* 6. Download Section */
+        .download-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+        .channel-card { text-align: center; padding: 32px 16px; background-color: transparent; border-radius: var(--radius-md); transition: all 0.3s ease; }
+        .channel-card:hover { background-color: rgba(255,255,255,0.02); }
+        
+        /* Coming Soon Styling */
+        .coming-soon { border: 1px dashed var(--border-strong); padding: 24px; height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+
+        /* 7. Footer */
+        footer { background-color: rgba(0,0,0,0.3); border-top: 1px solid var(--border-strong); padding: 64px 0; margin-top: auto; }
+        .footer-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 48px; }
+        .footer-col h4 { color: var(--text-1); font-size: 14px; margin-bottom: 16px; text-transform: uppercase; letter-spacing: 0.05em; }
+        .footer-col a { display: block; color: var(--text-2); font-size: 14px; margin-bottom: 8px; }
+
+        /* Animations */
+        @keyframes fadeUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+        
+        /* Responsive Breakpoints */
+        @media (max-width: 900px) {
+            .feature-grid, .gallery-grid, .download-grid, .ai-flow { grid-template-columns: 1fr; gap: 48px; }
+            .window-frame:nth-child(2n) { margin-top: 32px; } /* Stagger gallery */
+        }
+        
+        @media (max-width: 600px) {
+            .nav-links { gap: 16px; font-size: 13px; }
+            h1.hero-title { font-size: 38px; }
+            .hero-subhead { font-size: 18px; }
+            .window-frame:hover { transform: scale(1.05); }
+        }
+
+        /* Utility for the copy button */
+        .copy-icon { width: 16px; height: 16px; fill: currentColor; opacity: 0.7; }
+    </style>
+</head>
+<body>
+
+    <!-- 1. Sticky Nav -->
+    <header class="nav">
+        <div class="container nav-inner">
+            <a href="/mark/" aria-label="Mark Home" data-od-id="logo-link">
+                <img src="/mark/logo-96px.png" alt="" class="logo-mark">
+                <span class="wordmark">Mark</span>
+            </a>
+            
+            <nav class="nav-links">
+                <a href="#features" class="nav-link" data-od-id="link-features">Features</a>
+                <a href="#screenshot" class="nav-link" data-od-id="link-screenshots">Screenshots</a>
+                <a href="#download" class="nav-link" data-od-id="link-download">Download</a>
+                <!-- GitHub link relative as per brief -->
+                <a href="https://github.com/xronocode/mark" target="_blank" rel="noopener noreferrer" class="nav-link" style="font-size: 18px;" aria-label="Open on GitHub" data-od-id="link-github">
+                    <!-- Simple SVG for GitHub icon -->
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 3.117 8.169 7.22 9.464-.628 1.59-2.096 2.533-3.56 2.533-.28 0-.54-.05-.79-.137a9.323 9.323 0 0 0 4.83 1.455c4.678 0 8.44-3.838 8.44-8.622C22.02 8.484 17.543 4 12 4z"></path></svg>
+                </a>
+            </nav>
+        </div>
+    </header>
+
+    <main>
+        <!-- 2. Hero Section -->
+        <section class="hero" data-od-id="section-hero">
+            <div class="container hero-content">
+                <h1 class="hero-title">
+                    Your AI agents write Markdown.<br>
+                    Finally, an editor that does it justice.
+                </h1>
+                
+                <p class="hero-subhead">
+                    A native macOS app built for precision and speed. WYSIWYG rich mode, 
+                    live-reloaded by your external tools, and 21 themes to match your flow.
+                </p>
+
+                <!-- Version Badge -->
+                <div style="margin-bottom: 32px;">
+                    <span id="version-badge">2.1.x beta</span>
+                </div>
+
+                <div class="hero-actions" style="display: flex; gap: 16px; flex-wrap: wrap;">
+                    <!-- Primary CTA -->
+                    <a href="#download" class="btn-primary" data-od-id="cta-download">
+                        Download for Mac
+                    </a>
+
+                    <!-- Secondary KBD Chip -->
+                    <div class="btn-secondary" id="brew-chip" onclick="copyToClipboard(this)" data-od-id="chip-brew">
+                        <svg class="copy-icon" viewBox="0 0 24 24"><path d="M16 1H4v7h3v11h8V8h3V1z"></path></svg>
+                        brew install --cask mark
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 3. Feature Grid -->
+        <section id="features" data-od-id="section-features">
+            <div class="container">
+                <h2 style="font-size: 32px; margin-bottom: 48px;">Core Capabilities</h2>
+                
+                <div class="feature-grid">
+                    <!-- Card 1 -->
+                    <article class="card" data-od-id="feat-speed">
+                        <svg class="icon-box" viewBox="0 0 24 24"><path d="M13 2L3 14h9v8l10-12h-9z"></path></svg>
+                        <h3>Native Speed</h3>
+                        <p>Opens under a second with only ~61 MB RAM. A Tauri-built experience that feels lighter than air.</p>
+                    </article>
+
+                    <!-- Card 2 -->
+                    <article class="card" data-od-id="feat-wysiwyg">
+                        <svg class="icon-box" viewBox="0 0 24 24"><path d="M3.5 18.49l6-6.03 5.75 5.74L21.5 12l-5.75-5.74L21.5 2.25l-5.75 5.74z"></path></svg>
+                        <h3>WYSIWYG + Source</h3>
+                        <p>Toggle between rich editing and raw source code instantly without losing your formatting context.</p>
+                    </article>
+
+                    <!-- Card 3 -->
+                    <article class="card" data-od-id="feat-live">
+                        <svg class="icon-box" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14c2.33 0 4.31 1.46 5.11 3.5-.64 1.83-2.31 3.1-4.11 3.5C9.73 21.94 8 19.35 8 16s1.73-5.94 4-5.94z"></path></svg>
+                        <h3>Agent Live Reload</h3>
+                        <p>Your AI agent edits the file on disk? Mark re-renders instantly while keeping your cursor exactly where it was.</p>
+                    </article>
+
+                    <!-- Card 4 -->
+                    <article class="card" data-od-id="feat-themes">
+                        <svg class="icon-box" viewBox="0 0 24 24"><path d="M12 3c.132 0 .263 0 .398 0C17.5 3 21 6.5 21 11s-3.5 8-8 8c-.132 0-.264 0-.398 0S12 20.5 12 20.5s-.398.5-.53.5C7.5 21 4 17.5 4 13s3.5-8 8-8zm0 2c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4z"></path></svg>
+                        <h3>21 Themes</h3>
+                        <p>From Cadmium Light to Synthwave '84. Match your environment or let the colors do the work.</p>
+                    </article>
+
+                    <!-- Card 5 -->
+                    <article class="card" data-od-id="feat-sidebar">
+                        <svg class="icon-box" viewBox="0 0 24 24"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8v-6h-8v6zM13 3v6h8V3h-8z"></path></svg>
+                        <h3>Sidebar & Search</h3>
+                        <p>Browse your file tree, search instantly with fuzzy matching, and view diffs side-by-side.</p>
+                    </article>
+
+                    <!-- Card 6 -->
+                    <article class="card" data-od-id="feat-copy">
+                        <svg class="icon-box" viewBox="0 0 24 24"><path d="M15.8 3.9c-.7-.7-1.8-.7-2.5 0L7 10.2V16h5.8l6.5-6.5c.7-.7.7-1.8 0-2.5s-1.8-.7-2.5 0z"></path></svg>
+                        <h3>Clean Copy</h3>
+                        <p>Right-click to copy as HTML or Plain Text directly from the native menu, perfect for pasting into email.</p>
+                    </article>
+                </div>
+            </div>
+        </section>
+
+        <!-- 4. Screenshot Gallery -->
+        <section id="screenshot" data-od-id="section-gallery">
+            <div class="container">
+                <h2 style="font-size: 32px; margin-bottom: 16px;">Visual Showcase</h2>
+                
+                <div class="gallery-grid">
+                    <!-- Shot 00 -->
+                    <figure class="window-frame" data-od-id="shot-rich">
+                        <div class="window-dots">
+                            <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+                        </div>
+                        <img src="/mark/showcase-00-rich-markdown.png" alt="Rich WYSIWYG editing in Mark" class="shot-img">
+                        <figcaption style="padding: 12px; font-size: 13px; color: var(--text-3); text-align: center;">Rich WYSIWYG Editing</figcaption>
+                    </figure>
+
+                    <!-- Shot 01 -->
+                    <figure class="window-frame" data-od-id="shot-code">
+                        <div class="window-dots">
+                            <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+                        </div>
+                        <img src="/mark/showcase-01-code-highlighting.png" alt="Code blocks with syntax highlighting" class="shot-img">
+                        <figcaption style="padding: 12px; font-size: 13px; color: var(--text-3); text-align: center;">Code Highlighting</figcaption>
+                    </figure>
+
+                    <!-- Shot 02 -->
+                    <figure class="window-frame" data-od-id="shot-mermaid">
+                        <div class="window-dots">
+                            <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+                        </div>
+                        <img src="/mark/showcase-02-mermaid-flowchart.png" alt="Mermaid diagrams rendered live" class="shot-img">
+                        <figcaption style="padding: 12px; font-size: 13px; color: var(--text-3); text-align: center;">Mermaid Flowcharts</figcaption>
+                    </figure>
+
+                    <!-- Shot 03 -->
+                    <figure class="window-frame" data-od-id="shot-math">
+                        <div class="window-dots">
+                            <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+                        </div>
+                        <img src="/mark/showcase-03-math-katex.png" alt="KaTeX math equations" class="shot-img">
+                        <figcaption style="padding: 12px; font-size: 13px; color: var(--text-3); text-align: center;">KaTeX Math</figcaption>
+                    </figure>
+
+                    <!-- Shot 04 -->
+                    <figure class="window-frame" data-od-id="shot-tables">
+                        <div class="window-dots">
+                            <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+                        </div>
+                        <img src="/mark/showcase-04-data-tables.png" alt="Live rendered data tables" class="shot-img">
+                        <figcaption style="padding: 12px; font-size: 13px; color: var(--text-3); text-align: center;">Live Data Tables</figcaption>
+                    </figure>
+
+                    <!-- Shot 05 -->
+                    <figure class="window-frame" data-od-id="shot-sequence">
+                        <div class="window-dots">
+                            <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+                        </div>
+                        <img src="/mark/showcase-05-mermaid-sequence.png" alt="Sequence diagrams for flow" class="shot-img">
+                        <figcaption style="padding: 12px; font-size: 13px; color: var(--text-3); text-align: center;">Sequence Diagrams</figcaption>
+                    </figure>
+
+                    <!-- Shot 06 -->
+                    <figure class="window-frame" data-od-id="shot-tasks">
+                        <div class="window-dots">
+                            <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+                        </div>
+                        <img src="/mark/showcase-06-task-management.png" alt="Task lists and checkboxes" class="shot-img">
+                        <figcaption style="padding: 12px; font-size: 13px; color: var(--text-3); text-align: center;">Task Management</figcaption>
+                    </figure>
+
+                    <!-- Shot 07 -->
+                    <figure class="window-frame" data-od-id="shot-mixed">
+                        <div class="window-dots">
+                            <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+                        </div>
+                        <img src="/mark/showcase-07-mixed-showcase.png" alt="Everything together in one file" class="shot-img">
+                        <figcaption style="padding: 12px; font-size: 13px; color: var(--text-3); text-align: center;">The Mixed Showcase</figcaption>
+                    </figure>
+                </div>
+            </div>
+        </section>
+
+        <!-- 5. AI Workflow Section -->
+        <section id="ai-workflow" data-od-id="section-ai">
+            <div class="container ai-flow">
+                <div class="ai-text">
+                    <h2 style="font-size: 32px; margin-bottom: 16px;">The Agent Workflow</h2>
+                    <p style="color: var(--text-2); font-size: 18px;">
+                        Stop fighting the editor. Let your external tools write to disk, and watch Mark render it live. 
+                        The cursor remembers its place, so you can jump back in immediately after an agent finishes a pass.
+                    </p>
+                </div>
+
+                <div class="ai-visual">
+                    <div class="mono-fence" data-od-id="code-flow">
+                        <span style="color: var(--accent-deep);"># Watch mode active</span><br>
+                        <span style="opacity: 0.6;">$ mark file.md —watch</span><br><br>
+                        
+                        <span style="color: var(--text-3);">1.</span> Agent edits `index.md`<br>
+                        <span style="color: var(--accent-deep);">2.</span> Mark detects change<br>
+                        <span style="opacity: 0.6;">3.</span> Re-renders DOM<br><br>
+
+                        <span style="color: var(--text-3);">// While you type...</span><br>
+                        <span style="font-weight: bold; color: var(--ok);">cursor: preserved</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 6. Download Section -->
+        <section id="download" data-od-id="section-download">
+            <div class="container">
+                <h2 style="font-size: 32px; margin-bottom: 16px;">Get Mark</h2>
+                
+                <div class="download-grid">
+                    <!-- Homebrew -->
+                    <article class="channel-card" data-od-id="chan-homebrew">
+                        <svg class="icon-box" viewBox="0 0 24 24"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.17 4 6.68 5.35 5.59 7.7l-3.04-.94c-.49-.15-.71.46-.4.78L9.04 15.2c.3.29.8.23.98-.18l1.9-5.5c.23-.66.98-.91 1.47-.58l3.96 2.8z"></path></svg>
+                        <h3 style="margin-bottom: 8px;">Homebrew</h3>
+                        <p style="font-size: 14px; color: var(--text-2); margin-bottom: 16px;">The easiest way to install and update.</p>
+                        <a href="#download" class="btn-secondary" onclick="copyToClipboard(event, 'brew tap xronocode/mark && brew install --cask mark')">Tap & Install</a>
+                    </article>
+
+                    <!-- Direct DMG -->
+                    <article class="channel-card" data-od-id="chan-dmg">
+                        <svg class="icon-box" viewBox="0 0 24 24"><path d="M18.5 3L6 9V20h12.5c.55 0 1-.45 1-1V4c0-.55-.45-1-1-1zM7 11l-2 3v2l2 3v-8z"></path></svg>
+                        <h3 style="margin-bottom: 8px;">Direct DMG</h3>
+                        <p style="font-size: 14px; color: var(--text-2); margin-bottom: 16px;">Drag and drop. No dependencies.</p>
+                        <!-- Link to latest release asset -->
+                        <a href="#download" class="btn-primary">Download .dmg</a>
+                    </article>
+
+                    <!-- Coming Soon -->
+                    <article class="channel-card coming-soon" data-od-id="chan-appstore">
+                        <svg class="icon-box" viewBox="0 0 24 24"><path d="M18.75 2H5.25C3.6 2 2.25 3.35 2.25 5v14c0 1.65 1.35 3 3 3h13.5c1.65 0 3-1.35 3-3V5c0-1.65-1.35-3-3-3zM9.25 17H5.25v-8h4zm0-10h-4V5h4zm10.5 12h-4v-8h4z"></path></svg>
+                        <h3 style="margin-bottom: 8px;">App Store</h3>
+                        <p style="font-size: 14px; color: var(--text-2); margin-bottom: 0;">Coming soon to macOS.</p>
+                    </article>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- 7. Footer -->
+    <footer data-od-id="footer">
+        <div class="container footer-grid">
+            <div class="footer-col">
+                <h4>Mark</h4>
+                <p style="color: var(--text-3); font-size: 14px;">The native Markdown editor designed for the age of AI agents.</p>
+            </div>
+
+            <div class="footer-col">
+                <h4>Product</h4>
+                <a href="#features" data-od-id="foot-feat">Features</a>
+                <a href="#screenshot" data-od-id="foot-shot">Screenshots</a>
+                <a href="#download" data-od-id="foot-dl">Downloads</a>
+            </div>
+
+            <div class="footer-col">
+                <h4>Resources</h4>
+                <a href="/mark/guide/" data-od-id="foot-docs">Docs & Guide</a>
+                <a href="/mark/changelog.html" data-od-id="foot-changelog">Changelog</a>
+                <a href="/mark/privacy.html" data-od-id="foot-priv">Privacy Policy</a>
+            </div>
+
+            <div class="footer-col" style="text-align: right;">
+                <h4>Social</h4>
+                <a href="https://github.com/xronocode/mark" target="_blank" data-od-id="foot-github">GitHub</a>
+            </div>
+        </div>
+
+        <div class="container" style="margin-top: 32px; display: flex; justify-content: space-between; align-items: center;">
+            <span style="font-size: 13px; color: var(--text-3);">© <script>document.write(new Date().getFullYear())</script> xronocode.</span>
+            
+            <!-- Footer CTA Band -->
+            <a href="#download" class="btn-primary" style="padding: 8px 16px; font-size: 13px;">Get Mark</a>
+        </div>
+    </footer>
+
+    <!-- Script for Version Badge & Copy Logic -->
+    <script>
+        (function() {
+            // 1. Fetch Version Badge
+            const badge = document.getElementById('version-badge');
+            
+            fetch('https://github.com/xronocode/mark/releases/latest/download/latest.json')
+                .then(res => res.json())
+                .then(data => {
+                    if (data.name) {
+                        badge.textContent = data.name;
+                        // Optional: Add a subtle pulse animation on update
+                        badge.style.animation = 'none';
+                        badge.offsetHeight; /* trigger reflow */
+                        badge.style.animation = 'fadeUp 0.5s ease-out'; 
+                    }
+                })
+                .catch(() => {
+                    // Fallback if fetch fails (e.g., offline or network hiccup)
+                    badge.textContent = "2.1.x beta";
+                });
+
+            // 2. Copy to Clipboard Logic for the KBD Chip
+            function copyToClipboard(event, text) {
+                event.preventDefault(); // Stop anchor jump
+                
+                navigator.clipboard.writeText(text).then(() => {
+                    const chip = event.currentTarget;
+                    
+                    // Visual feedback: swap icon or change border
+                    if(chip.classList.contains('btn-secondary')) {
+                        chip.style.borderColor = 'var(--accent)';
+                        
+                        setTimeout(() => {
+                            chip.style.borderColor = 'var(--border-strong)';
+                        }, 1000);
+                    }
+                }).catch(err => {
+                    console.error("Failed to copy", err);
+                });
+            }
+
+            // Initialize badge text if JS runs before fetch completes (race condition guard)
+            if(badge.textContent === "") badge.textContent = "2.1.x beta";
+        })();
+    </script>
+</body>
+</html>
