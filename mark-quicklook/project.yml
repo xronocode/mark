@@ -1,0 +1,67 @@
+name: MarkQuickLook
+options:
+  bundleIdPrefix: com.xronocode
+  deploymentTarget:
+    macOS: "12.0"
+  xcodeVersion: "15.0"
+  generateEmptyDirectories: true
+
+settings:
+  base:
+    SWIFT_VERSION: "5.9"
+    MACOSX_DEPLOYMENT_TARGET: "12.0"
+    CODE_SIGN_STYLE: Manual
+    CODE_SIGN_IDENTITY: "Developer ID Application: Mikhail Yevdokimov (NY72L3P5TN)"
+    DEVELOPMENT_TEAM: NY72L3P5TN
+
+targets:
+  MarkQuickLook:
+    type: application
+    platform: macOS
+    sources:
+      - path: Sources/HostApp
+    info:
+      path: Sources/HostApp/Info.plist
+      properties:
+        CFBundlePackageType: APPL
+        LSUIElement: true
+        NSPrincipalClass: NSApplication
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.xronocode.mark-quicklook
+        PRODUCT_NAME: Mark QuickLook
+        ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES: true
+        CODE_SIGN_ENTITLEMENTS: Sources/HostApp/HostApp.entitlements
+    dependencies:
+      - target: MarkPreview
+
+  MarkPreview:
+    type: app-extension
+    platform: macOS
+    sources:
+      - path: Sources/PreviewExtension
+        excludes:
+          - Resources
+      - path: Sources/Shared
+      - path: Sources/PreviewExtension/Resources
+        buildPhase: resources
+    info:
+      path: Sources/PreviewExtension/Info.plist
+      properties:
+        CFBundlePackageType: "XPC!"
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.quicklook.preview
+          NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).PreviewProvider
+          NSExtensionAttributes:
+            QLSupportedContentTypes:
+              - net.daringfireball.markdown
+            QLSupportsSearchableItems: true
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.xronocode.mark-quicklook.preview
+        PRODUCT_NAME: MarkPreview
+        CODE_SIGN_ENTITLEMENTS: Sources/PreviewExtension/MarkPreview.entitlements
+        LD_RUNPATH_SEARCH_PATHS:
+          - $(inherited)
+          - "@executable_path/../Frameworks"
+          - "@executable_path/../../../../Frameworks"
