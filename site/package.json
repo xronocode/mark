@@ -1,0 +1,11 @@
+{
+  "name": "mark-site",
+  "private": true,
+  "scripts": {
+    "build": "vitepress build",
+    "preview": "vitepress preview"
+  },
+  "devDependencies": {
+    "vitepress": "^1.6.3"
+  }
+}
