@@ -73,6 +73,32 @@
     </T-003>
   </ImplementationPlan>
   <ReviewLog>
+    <Review number="1" date="2026-09-20" verdict="green">
+      <Findings>
+        T-001: design generated through OpenDesign assets (raycast-derived
+        system re-accented to Mark cyan) with local Ollama qwen3.5-9b
+        (gpu_check exit 0 before inference, single engine). The app's
+        Electron shell and bundled daemon could not run on this machine
+        (bun-ABI native prebuilds, better-sqlite3 GC-assertion under
+        Node), so generation went through the daemon's direct Ollama API
+        path with the skill+DESIGN+BRIEF combined context; the agent-loop
+        variant was abandoned after it re-read itself past the 32k
+        window twice. T-002: landing integrated at site/landing with
+        /mark/-prefixed URLs; privacy.md claims cross-checked (only
+        updater feed + opt-in localhost live server touch the network);
+        changelog seeded v2.1.2→v2.1.11. Hand fixes over the generated
+        file: footer changelog link, DMG CTAs pointed at the live release
+        (script builds the per-version artifact URL from latest.json;
+        data.name→data.version badge bug). T-003: site.yml deploys
+        vitepress + landing overlay; Pages enabled via API
+        (build_type=workflow); live at https://xronocode.github.io/mark/
+        with /, /guide/, /privacy, /changelog and all 9 assets serving
+        200. Known minor: local vitepress preview 404s on extensionless
+        sub-page URLs (python server lacks GH Pages' .html resolution);
+        badge/CTA fetch depends on GitHub release-asset CORS and
+        degrades to the static fallback when blocked.
+      </Findings>
+    </Review>
   </ReviewLog>
 </C-14>
 </GraceChangePlan>
