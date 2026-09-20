@@ -201,7 +201,7 @@
 
                 <div class="hero-actions" style="display: flex; gap: 16px; flex-wrap: wrap;">
                     <!-- Primary CTA -->
-                    <a href="#download" class="btn-primary" data-od-id="cta-download">
+                    <a href="https://github.com/xronocode/mark/releases/latest" class="btn-primary" data-od-id="cta-download" id="cta-download">
                         Download for Mac
                     </a>
 
@@ -393,7 +393,7 @@
                         <h3 style="margin-bottom: 8px;">Direct DMG</h3>
                         <p style="font-size: 14px; color: var(--text-2); margin-bottom: 16px;">Drag and drop. No dependencies.</p>
                         <!-- Link to latest release asset -->
-                        <a href="#download" class="btn-primary">Download .dmg</a>
+                        <a href="https://github.com/xronocode/mark/releases/latest" class="btn-primary" id="dmg-download">Download .dmg</a>
                     </article>
 
                     <!-- Coming Soon -->
@@ -440,7 +440,7 @@
             <span style="font-size: 13px; color: var(--text-3);">© <script>document.write(new Date().getFullYear())</script> xronocode.</span>
             
             <!-- Footer CTA Band -->
-            <a href="#download" class="btn-primary" style="padding: 8px 16px; font-size: 13px;">Get Mark</a>
+            <a href="https://github.com/xronocode/mark/releases/latest" class="btn-primary" style="padding: 8px 16px; font-size: 13px;">Get Mark</a>
         </div>
     </footer>
 
@@ -453,12 +453,17 @@
             fetch('https://github.com/xronocode/mark/releases/latest/download/latest.json')
                 .then(res => res.json())
                 .then(data => {
-                    if (data.name) {
-                        badge.textContent = data.name;
-                        // Optional: Add a subtle pulse animation on update
+                    if (data && data.version) {
+                        badge.textContent = "v" + data.version;
                         badge.style.animation = 'none';
                         badge.offsetHeight; /* trigger reflow */
-                        badge.style.animation = 'fadeUp 0.5s ease-out'; 
+                        badge.style.animation = 'fadeUp 0.5s ease-out';
+                        // Point the DMG CTAs at the exact current artifact.
+                        const dmg = "https://github.com/xronocode/mark/releases/download/v" + data.version + "/Mark_" + data.version + "_aarch64.dmg";
+                        for (const id of ["cta-download", "dmg-download"]) {
+                            const el = document.getElementById(id);
+                            if (el) el.href = dmg;
+                        }
                     }
                 })
                 .catch(() => {
