@@ -170,7 +170,7 @@
             <nav class="nav-links">
                 <a href="#features" class="nav-link" data-od-id="link-features">Features</a>
                 <a href="#screenshot" class="nav-link" data-od-id="link-screenshots">Screenshots</a>
-                <a href="#download" class="nav-link" data-od-id="link-download">Download</a>
+                <a href="#download" class="btn-primary" style="padding: 8px 18px; font-size: 14px;" data-od-id="nav-download">Download</a>
                 <!-- GitHub link relative as per brief -->
                 <a href="https://github.com/xronocode/mark" target="_blank" rel="noopener noreferrer" class="nav-link" style="font-size: 18px;" aria-label="Open on GitHub" data-od-id="link-github">
                     <!-- Simple SVG for GitHub icon -->
@@ -184,19 +184,36 @@
         <!-- 2. Hero Section -->
         <section class="hero" data-od-id="section-hero">
             <div class="container hero-content">
+                <!-- Version badge as eyebrow -->
+                <div style="margin-bottom: 20px;">
+                    <span id="version-badge">2.1.x beta</span>
+                </div>
+
                 <h1 class="hero-title">
                     Your AI agents write Markdown.<br>
                     Finally, an editor built for it.
                 </h1>
                 
                 <p class="hero-subhead">
-                    Your agents, browsers, and six terminal sessions already eat your RAM.
-                    Mark is the Markdown editor that doesn't: no embedded browser, no
-                    Electron — just a native app that stays out of the way.
+                    The whole app is 11 MB and opens in under a second — a real
+                    native Mac app, not an Electron browser in disguise.
                 </p>
 
-                <!-- Size stat strip — the core advantage, front and center -->
-                <div data-od-id="hero-stats" style="display:flex; gap:40px; flex-wrap:wrap; margin:32px 0 8px;">
+                <div class="hero-actions" style="display: flex; gap: 16px; flex-wrap: wrap; margin: 28px 0 8px;">
+                    <!-- Primary CTA -->
+                    <a href="https://github.com/xronocode/mark/releases/latest" class="btn-primary" data-od-id="cta-download" id="cta-download">
+                        Download for Mac
+                    </a>
+
+                    <!-- Secondary KBD Chip -->
+                    <div class="btn-secondary" id="brew-chip" onclick="copyToClipboard(this)" data-od-id="chip-brew">
+                        <svg class="copy-icon" viewBox="0 0 24 24"><path d="M16 1H4v7h3v11h8V8h3V1z"></path></svg>
+                        brew install --cask mark
+                    </div>
+                </div>
+
+                <!-- Size stat strip — proof, right under the buttons -->
+                <div data-od-id="hero-stats" style="display:flex; gap:40px; flex-wrap:wrap; margin:24px 0 8px;">
                     <div>
                         <div style="font-size:40px; font-weight:700; letter-spacing:-0.02em; color:var(--text-1);">11 <span style="font-size:20px; color:var(--accent);">MB</span></div>
                         <div style="font-size:13px; color:var(--text-3);">on disk — the whole app</div>
@@ -208,24 +225,6 @@
                     <div>
                         <div style="font-size:40px; font-weight:700; letter-spacing:-0.02em; color:var(--text-1);">&lt;1 <span style="font-size:20px; color:var(--accent);">sec</span></div>
                         <div style="font-size:13px; color:var(--text-3);">cold start</div>
-                    </div>
-                </div>
-
-                <!-- Version Badge -->
-                <div style="margin-bottom: 32px;">
-                    <span id="version-badge">2.1.x beta</span>
-                </div>
-
-                <div class="hero-actions" style="display: flex; gap: 16px; flex-wrap: wrap;">
-                    <!-- Primary CTA -->
-                    <a href="https://github.com/xronocode/mark/releases/latest" class="btn-primary" data-od-id="cta-download" id="cta-download">
-                        Download for Mac
-                    </a>
-
-                    <!-- Secondary KBD Chip -->
-                    <div class="btn-secondary" id="brew-chip" onclick="copyToClipboard(this)" data-od-id="chip-brew">
-                        <svg class="copy-icon" viewBox="0 0 24 24"><path d="M16 1H4v7h3v11h8V8h3V1z"></path></svg>
-                        brew install --cask mark
                     </div>
                 </div>
             </div>
