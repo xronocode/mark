@@ -44,3 +44,4 @@ sbom/
 homebrew-mark/
 .DS_Store
 .opendesign-work/
+site/node_modules/
