@@ -1,0 +1,78 @@
+<GraceChangePlan graceVersion='4.0' status='approved'>
+<C-14>
+  <ChangeRef>C-14</ChangeRef>
+  <Created>2026-09-20</Created>
+  <IntentSummary>Design the Mark landing via OpenDesign (local Ollama, GPU-safety gated), integrate as the VitePress home in /site, add privacy + changelog pages, deploy /site to GitHub Pages with a feed-driven download section.</IntentSummary>
+  <BaselineAssertions>
+    <MustContain>
+      <File>site/index.md</File>
+      <Text>layout: home</Text>
+    </MustContain>
+    <MustContain>
+      <File>site/.vitepress/config.mts</File>
+      <Text>base: '/mark/'</Text>
+    </MustContain>
+  </BaselineAssertions>
+  <TargetAssertions>
+    <MustContain>
+      <File>site/index.md</File>
+      <Text>screenshots/showcase</Text>
+    </MustContain>
+    <MustContain>
+      <File>.github/workflows/site.yml</File>
+      <Text>actions/deploy-pages</Text>
+    </MustContain>
+    <MustContain>
+      <File>site/privacy.md</File>
+      <Text>Privacy</Text>
+    </MustContain>
+  </TargetAssertions>
+  <DurableScope>
+    <Website>site/ VitePress area becomes the marketing + docs surface</Website>
+  </DurableScope>
+  <ObservedWriteScope>
+    <File>site/index.md</File>
+    <File>site/.vitepress/config.mts</File>
+    <File>site/.vitepress/theme/** (custom home layout if needed)</File>
+    <File>site/privacy.md</File>
+    <File>site/changelog.md</File>
+    <File>site/public/** (screenshots, logos copied in)</File>
+    <File>.github/workflows/site.yml</File>
+    <File>.grace/changes/active/C-14/brief.md</File>
+  </ObservedWriteScope>
+  <ImplementationPlan>
+    <T-001>
+      <Title>Brief + OpenDesign design generation (local AI, gated)</Title>
+      <DependsOn></DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>brief.md captures structure/copy/assets/channels; gpu_check.sh run immediately before inference (abort on exit 3, caution on 2); single engine — only Ollama loads a model; OpenDesign output (HTML/CSS) lands in .opendesign-work/ scratch, not the repo tree.</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>bash ~/prj/_skills/local-ai-safety/gpu_check.sh; ls .opendesign-work/</Command>
+      </Verification>
+    </T-001>
+    <T-002>
+      <Title>Integrate: VitePress home + privacy + changelog + feed-driven downloads</Title>
+      <DependsOn>T-001</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>Home page renders the generated design direction with real screenshots; download section resolves version/links from the live latest.json feed at runtime (no hardcoded versions); privacy.md claims cross-checked against code (updater endpoint, localhost live server, spell dictionaries); changelog.md seeded from release history; local `npm run docs:build` (or vitepress build) green.</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>cd site &amp;&amp; npx vitepress build</Command>
+      </Verification>
+    </T-002>
+    <T-003>
+      <Title>GitHub Pages deploy + acceptance gates</Title>
+      <DependsOn>T-002</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>site.yml workflow builds and deploys on main pushes + release tags; Pages live at https://xronocode.github.io/mark/; all three pages render, links resolve, no external runtime dependencies (offline-load check); grace lint green.</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>grace lint --path . --assertions current &amp;&amp; gh run watch</Command>
+      </Verification>
+    </T-003>
+  </ImplementationPlan>
+  <ReviewLog>
+  </ReviewLog>
+</C-14>
+</GraceChangePlan>
