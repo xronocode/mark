@@ -1,0 +1,181 @@
+<GraceChangePlan graceVersion='4.0' status='approved'>
+<C-15>
+  <ChangeRef>C-15</ChangeRef>
+  <Created>2026-09-21</Created>
+  <IntentSummary>Two tracks: (W) Windows-first distribution — icon set, titlebar/menu platform pass, cfg audit, CI build lane with NSIS + multi-platform updater feed; (M) Mac App Store — tauri/app-store wiring, sandbox entitlements, ad-hoc sandbox dry-run, security-scoped bookmarks, in-process search, renderer build-mode gating, App Store Connect submission prep.</IntentSummary>
+  <BaselineAssertions>
+    <MustContain>
+      <File>src-tauri/Cargo.toml</File>
+      <Text>app-store = []</Text>
+    </MustContain>
+    <MustContain>
+      <File>src-tauri/tauri.conf.json</File>
+      <Text>"targets": ["app", "dmg"]</Text>
+    </MustContain>
+    <MustContain>
+      <File>.github/workflows/release.yml</File>
+      <Text>macos-arm64</Text>
+    </MustContain>
+    <MustContain>
+      <File>src-tauri/capabilities/mas.json</File>
+      <Text>Mac App Store capability</Text>
+    </MustContain>
+  </BaselineAssertions>
+  <TargetAssertions>
+    <MustContain>
+      <File>src-tauri/Cargo.toml</File>
+      <Text>app-store = ["tauri/app-store"]</Text>
+    </MustContain>
+    <MustContain>
+      <File>src-tauri/Entitlements.plist</File>
+      <Text>com.apple.security.app-sandbox</Text>
+    </MustContain>
+    <MustContain>
+      <File>src-tauri/mas.conf.json</File>
+      <Text>Entitlements.plist</Text>
+    </MustContain>
+    <MustContain>
+      <File>.github/workflows/release.yml</File>
+      <Text>windows-latest</Text>
+    </MustContain>
+    <MustNotContain>
+      <File>.github/workflows/release.yml</File>
+      <Text>Mark_.*_aarch64\.exe</Text>
+    </MustNotContain>
+  </TargetAssertions>
+  <DurableScope>
+    <M-046/>
+  </DurableScope>
+  <ObservedWriteScope>
+    <File>src-tauri/icons/** (regenerated full set)</File>
+    <File>src-tauri/tauri.conf.json</File>
+    <File>src-tauri/Cargo.toml</File>
+    <File>src-tauri/Entitlements.plist (new)</File>
+    <File>src-tauri/mas.conf.json (new)</File>
+    <File>src-tauri/src/m009_menu.rs, main.rs, m045_ext/live_endpoint.rs (cfg audit)</File>
+    <File>src-tauri/src/m013b/search.rs (in-process search branch)</File>
+    <File>src-tauri/src/* bookmarks module (new)</File>
+    <File>src/renderer/** (build-mode gating, windows titlebar CSS)</File>
+    <File>.github/workflows/release.yml</File>
+    <File>.grace/graph/**, .grace/verification/**</File>
+  </ObservedWriteScope>
+  <ImplementationPlan>
+    <P-000>
+      <Title>Phase 0 — icon master + full icon set (shared)</Title>
+      <Tasks>
+        <T-001>
+          <Title>Produce a 1024×1024 master and regenerate src-tauri/icons</Title>
+          <AcceptanceCriteria>
+            <Criterion>Upscale static/icon.png (256) to 1024 via Lanczos + light unsharp (no vector source exists — bundled .icns is also 256-only); run `npx tauri icon`; commit icon.ico/icon.icns/full png set; tauri.conf.json bundle.icon lists ico+icns+png; macOS DMG unchanged visually.</Criterion>
+          </AcceptanceCriteria>
+          <Verification>
+            <Command>ls src-tauri/icons/ &amp;&amp; cargo check --manifest-path src-tauri/Cargo.toml</Command>
+          </Verification>
+        </T-001>
+      </Tasks>
+    </P-000>
+    <P-W>
+      <Title>Phase W — Windows track</Title>
+      <Tasks>
+        <T-W1>
+          <Title>Titlebar + menu platform pass</Title>
+          <DependsOn>T-001</DependsOn>
+          <AcceptanceCriteria>
+            <Criterion>m009_menu.rs non-macOS branches complete (no dead menus on Windows); renderer titleBar component renders a standard Windows titlebar layout (existing titlebar-nav--osx class gains a windows variant); accelerators display Ctrl (not Cmd); tab strip + drag region verified under decorations:true.</Criterion>
+          </AcceptanceCriteria>
+          <Verification>
+            <Command>npm test &amp;&amp; cargo test -q --manifest-path src-tauri/Cargo.toml</Command>
+          </Verification>
+        </T-W1>
+        <T-W2>
+          <Title>Platform cfg audit</Title>
+          <DependsOn></DependsOn>
+          <AcceptanceCriteria>
+            <Criterion>m045_ext/live_endpoint unix-socket path gains a TCP loopback fallback on windows (or feature-gated disable with clear status); signal-hook/zombie-reaper guarded (main.rs:753 already cfg(unix)); mt_paths windows branch reviewed against real SHOME paths; cargo check passes for x86_64-pc-windows-msvc target.</Criterion>
+          </AcceptanceCriteria>
+          <Verification>
+            <Command>rustup target add x86_64-pc-windows-msvc &amp;&amp; cargo check --target x86_64-pc-windows-msvc --manifest-path src-tauri/Cargo.toml</Command>
+          </Verification>
+        </T-W2>
+        <T-W3>
+          <Title>CI: windows-latest build lane + multi-platform updater feed</Title>
+          <DependsOn>T-W1, T-W2</DependsOn>
+          <AcceptanceCriteria>
+            <Criterion>release.yml matrix gains windows-latest/x86_64-pc-windows-msvc building NSIS (.exe) with updater artifacts, build-only (no publish) until smoke-proven; publish job merges per-platform platforms{} fragments into latest.json (darwin-aarch64 + windows-x86_64); smoke-launch/windows-specific steps skipped or conditionally run.</Criterion>
+          </AcceptanceCriteria>
+          <Verification>
+            <Command>gh run watch &amp;&amp; curl -s …/latest.json | jq .platforms</Command>
+          </Verification>
+        </T-W3>
+      </Tasks>
+    </P-W>
+    <P-M>
+      <Title>Phase M — Mac App Store track</Title>
+      <Tasks>
+        <T-M1>
+          <Title>app-store feature wiring + entitlements + mas.conf.json</Title>
+          <DependsOn></DependsOn>
+          <AcceptanceCriteria>
+            <Criterion>Cargo app-store = ["tauri/app-store"]; Entitlements.plist: app-sandbox + files.user-selected.read-write + network.client + network.server (axum live viewer listens on loopback); mas.conf.json overlay selects capabilities ["mas"] (mas.json already exists) and entitlements; local build --no-default-features --features app-store succeeds.</Criterion>
+          </AcceptanceCriteria>
+          <Verification>
+            <Command>cargo build --no-default-features --features app-store --manifest-path src-tauri/Cargo.toml</Command>
+          </Verification>
+        </T-M1>
+        <T-M2>
+          <Title>Sandbox dry-run: ad-hoc signed + entitlements, log breakages</Title>
+          <DependsOn>T-M1</DependsOn>
+          <AcceptanceCriteria>
+            <Criterion>codesign ad-hoc with Entitlements.plist; app launches via CUA; documented pass/fail per surface: open-file via dialog, recent-files persistence after restart, folder watch, live viewer, spell, themes; failures feed T-M3/T-M4.</Criterion>
+          </AcceptanceCriteria>
+          <Verification>
+            <Command>codesign -d --entitlements - target/release/bundle/macos/Mark.app</Command>
+          </Verification>
+        </T-M2>
+        <T-M3>
+          <Title>Security-scoped bookmarks for recent files + watched folders</Title>
+          <DependsOn>T-M2</DependsOn>
+          <AcceptanceCriteria>
+            <Criterion>New module wraps bookmark create/resolve (raw NSData from sandbox-ext; no extra deps beyond core-foundation already in tree via cocoa); recent docs and watcher roots persist across relaunch inside sandbox; unit tests with round-trip in tmp dirs; non-MAS build unaffected.</Criterion>
+          </AcceptanceCriteria>
+          <Verification>
+            <Command>cargo test bookmarks --manifest-path src-tauri/Cargo.toml</Command>
+          </Verification>
+        </T-M3>
+        <T-M4>
+          <Title>In-process project search for MAS (replace ripgrep spawn)</Title>
+          <DependsOn>T-M1</DependsOn>
+          <AcceptanceCriteria>
+            <Criterion>app-store branch of search spawns no binaries: ignore-walk + regex crate reuse; result shape identical to ripgrep path (same IPC contract); non-MAS builds keep ripgrep; unit tests cover a fixture tree.</Criterion>
+          </AcceptanceCriteria>
+          <Verification>
+            <Command>cargo test search --manifest-path src-tauri/Cargo.toml</Command>
+          </Verification>
+        </T-M4>
+        <T-M5>
+          <Title>Renderer build-mode gating</Title>
+          <DependsOn>T-M1</DependsOn>
+          <AcceptanceCriteria>
+            <Criterion>mt_build_mode command (mas|normal); settings/menu hides Export PDF/DOCX (pandoc), Screenshot, "Make default .md handler", project-wide search entry when mas; no dead buttons showing raw backend errors.</Criterion>
+          </AcceptanceCriteria>
+          <Verification>
+            <Command>npm test</Command>
+          </Verification>
+        </T-M5>
+        <T-M6>
+          <Title>App Store Connect prep + submission pipeline</Title>
+          <DependsOn>T-M2, T-M3, T-M4, T-M5</DependsOn>
+          <AcceptanceCriteria>
+            <Criterion>Checklist doc: bundle id com.xronocode.mark registered for macOS, Apple Distribution cert + Mac Installer cert in keychain, productbuild .pkg script (tools/release/mas-pkg.sh), ITSAppUsesNonExemptEncryption=false, privacy answers aligned with site privacy page, support URL (site /guide/), screenshots from showcase set; TestFlight upload validated.</Criterion>
+          </AcceptanceCriteria>
+          <Verification>
+            <Command>xcrun altool/Transporter validate + TestFlight build appears</Command>
+          </Verification>
+        </T-M6>
+      </Tasks>
+    </P-M>
+  </ImplementationPlan>
+  <ReviewLog>
+  </ReviewLog>
+</C-15>
+</GraceChangePlan>

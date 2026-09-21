@@ -3,7 +3,7 @@
   <Name>Platform distribution hardening incl. Apple App Store</Name>
   <Created>2026-09-18</Created>
   <Priority>medium</Priority>
-  <Status>planned-only</Status>
+  <Status>approved</Status>
 
   <Summary>
     User idea (session 2026-09-18): "настроить дистрибуцию под платформы
@@ -37,6 +37,18 @@
     <NonGoal>Windows/Linux builds in this change (separate consideration).</NonGoal>
   </NonGoals>
 
+  <Amendments>
+    <Amendment date="2026-09-21">
+      User: "двигаемся по винде и апстору, дай план" — Windows moves INTO
+      scope (was a NonGoal). Correction to the 2026-09-18 evidence: CI
+      release.yml ALREADY signs with a real Developer ID and notarizes
+      (APPLE_* secrets, codesign+spctl gate), so R-2 is satisfied; the
+      Apple Developer Program membership exists. Remaining for MAS:
+      Distribution certificate, provisioning, sandbox entitlements work,
+      App Store Connect record.
+    </Amendment>
+  </Amendments>
+
   <AcceptanceCriteria>
     <Criterion>Notarized Developer ID build in CI is the prerequisite gate; App Store variant passes Transporter validation.</Criterion>
   </AcceptanceCriteria>
@@ -53,6 +65,8 @@
   <Approval>
     <ApprovedBy>user (session 2026-09-18)</ApprovedBy>
     <ApprovalScope>Planning only.</ApprovalScope>
+    <ApprovedBy>user (session 2026-09-21): "двигаемся по винде и апстору" — execution approved incl. Windows track.</ApprovedBy>
+    <ApprovalScope>Implement both tracks: Windows (icons, titlebar/menu, cfg audit, CI build lane) and MAS (feature wiring, entitlements, sandbox pass, bookmarks, in-process search, UI gating, ASC submission prep).</ApprovalScope>
   </Approval>
 </C-15>
 </GraceChangeSpec>
