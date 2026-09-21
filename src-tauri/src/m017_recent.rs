@@ -61,6 +61,9 @@ pub(crate) fn recent_add_inner(prefs: &PrefsState, path: &str) -> Result<(), Str
 /// most-recent moves to head; cap enforced.
 #[tauri::command]
 pub async fn mt_recent_add(path: String, prefs: State<'_, PrefsState>) -> Result<(), String> {
+    // C-15 T-M3: every recents entry is a grant moment — persist a
+    // security-scoped bookmark so sandboxed builds can reopen it later.
+    crate::m047_bookmarks::remember(&path);
     recent_add_inner(prefs.inner(), &path)
 }
 

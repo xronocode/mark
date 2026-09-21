@@ -5751,5 +5751,57 @@
       </LegacyAttributes>
       <LegacySource>docs/knowledge-graph.xml: M-022; docs/development-plan.xml: M-022</LegacySource>
     </M-022>
+
+    <M-047>
+      <Name>SecurityBookmarks</Name>
+      <DisplayName>security-scoped bookmarks</DisplayName>
+      <Type>DATA_LAYER</Type>
+      <Status>shipped</Status>
+      <Layer>1</Layer>
+      <PhaseRef>C-15-T-M3</PhaseRef>
+      <Summary>
+        macOS security-scoped bookmarks: persist sandbox access grants
+        (recent files, picked folders, CLI/LaunchServices opens) to
+        data_root()/security-bookmarks.json and regain access before fs
+        read/readdir via ensure_access. Non-macOS: no-ops.
+      </Summary>
+      <PlannedPath>src-tauri/src/m047_bookmarks.rs</PlannedPath>
+      <Dependencies>
+        <M-022/>
+      </Dependencies>
+      <VerificationRef>V-M-047</VerificationRef>
+      <Contract>
+        <Purpose>
+          Keep sandboxed (App Store) builds able to reopen previously granted
+          files/folders after LaunchServices document grants expire.
+        </Purpose>
+        <Inputs>
+          <Input>
+            <Name>path</Name>
+            <Type>String</Type>
+          </Input>
+        </Inputs>
+        <Outputs>
+          <Output>
+            <Name>path (possibly bookmark-resolved)</Name>
+            <Type>String</Type>
+          </Output>
+        </Outputs>
+        <Errors>
+          <Error>bookmark create/resolve failure → silent passthrough (non-sandbox runs unaffected)</Error>
+        </Errors>
+      </Contract>
+      <Interface>
+        <fn-remember>
+          create + persist a security-scoped bookmark for a granted path
+        </fn-remember>
+        <fn-ensure_access>
+          resolve stored bookmark, start security scope, return path
+        </fn-ensure_access>
+      </Interface>
+      <ChangeRefs>
+        <C-15/>
+      </ChangeRefs>
+    </M-047>
   </GD-RUNTIME>
 </GraceGraphDocument>

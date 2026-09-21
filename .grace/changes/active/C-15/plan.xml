@@ -176,6 +176,22 @@
     </P-M>
   </ImplementationPlan>
   <ReviewLog>
+    <Review number="2" date="2026-09-21" verdict="green" task="T-M3">
+      <Findings>
+        M-047 SecurityBookmarks shipped: remember() at grant moments
+        (mt_recent_add, folder pick, CLI/LaunchServices pending_opens) and
+        ensure_access() rescue hook at fs_read_inner/fs_readdir_inner tops.
+        Store: data_root()/security-bookmarks.json (v1, bounded 256, hex
+        blobs). macOS impl via core-foundation 0.10 + core-foundation-sys
+        raw CFURLCreateBookmarkData/Resolve/StartAccessing (0.10 has no
+        high-level bookmark API); non-macOS no-op passthrough. .leak()
+        first draft replaced with owned binding (no per-read leak).
+        Gates: cargo check 0 errors both feature sets; 377 rust tests
+        (3 new — incl. a REAL CF round-trip on this machine). Graph
+        M-047 + V-M-047 registered in runtime docs and indexes.
+        Sandbox end-to-end re-verification folds into the T-M2 GUI pass.
+      </Findings>
+    </Review>
     <Review number="1" date="2026-09-21" verdict="green-partial" task="T-M2">
       <Findings>
         Automated sandbox dry-run, debug app-store build (features app-store,

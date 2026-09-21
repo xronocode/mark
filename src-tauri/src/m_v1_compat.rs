@@ -153,7 +153,12 @@ pub async fn mt_pick_folder(app: tauri::AppHandle) -> Result<Option<String>, Str
         });
     let chosen = rx.await.map_err(|e| e.to_string())?;
     let path = match chosen.and_then(|p| p.into_path().ok()) {
-        Some(p) => p.to_string_lossy().to_string(),
+        Some(p) => {
+            let s = p.to_string_lossy().to_string();
+            // C-15 T-M3: folder grant moment — bookmark for sandbox re-access.
+            crate::m047_bookmarks::remember(&s);
+            s
+        }
         None => {
             safe_eprintln!("[m_fs_ops][open_folder][BLOCK_USER_CANCELLED]");
             return Ok(None);
