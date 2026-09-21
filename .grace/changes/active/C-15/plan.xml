@@ -2,7 +2,7 @@
 <C-15>
   <ChangeRef>C-15</ChangeRef>
   <Created>2026-09-21</Created>
-  <IntentSummary>Two tracks: (W) Windows-first distribution — icon set, titlebar/menu platform pass, cfg audit, CI build lane with NSIS + multi-platform updater feed; (M) Mac App Store — tauri/app-store wiring, sandbox entitlements, ad-hoc sandbox dry-run, security-scoped bookmarks, in-process search, renderer build-mode gating, App Store Connect submission prep.</IntentSummary>
+  <IntentSummary>Execution order per user 2026-09-21: Phase 0, then Phase M (MAS) BEFORE Phase W — MAS carries external lead times (certificates, Apple review), Windows is purely technical and waits. Two tracks: (W) Windows distribution — icon set, titlebar/menu platform pass, cfg audit, CI build lane with NSIS + multi-platform updater feed; (M) Mac App Store — tauri/app-store wiring, sandbox entitlements, ad-hoc sandbox dry-run, security-scoped bookmarks, in-process search, renderer build-mode gating, App Store Connect submission prep.</IntentSummary>
   <BaselineAssertions>
     <MustContain>
       <File>src-tauri/Cargo.toml</File>
