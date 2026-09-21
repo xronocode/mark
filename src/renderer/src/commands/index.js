@@ -68,6 +68,31 @@ const focusEditorAndExecute = (fn) => {
   setTimeout(() => fn(), 150)
 }
 
+// C-15 T-M5: capability gate. applyCapabilityGate() removes commands whose
+// backends are absent in app-store builds; it is invoked from
+// bootstrap-ipc right after FETCH_BUILD_MODE and mutates the module-level
+// `commands` array in place, so palette, menus and keybinding lookups all
+// see the pruned set. Fail-open: without the call (shims/tests) everything
+// stays registered.
+export function applyCapabilityGate(caps) {
+  const denied = []
+  if (caps && caps.exportPandoc === false) denied.push('file.export-file-pdf')
+  if (caps && caps.screenshot === false) denied.push('edit.screenshot')
+  if (caps && caps.setDefaultHandler === false) denied.push('file.default-handler')
+  if (!denied.length) return
+  const drop = (list) => {
+    for (let i = list.length - 1; i >= 0; i--) {
+      const item = list[i]
+      if (denied.includes(item.id)) {
+        list.splice(i, 1)
+        continue
+      }
+      if (Array.isArray(item.subcommands)) drop(item.subcommands)
+    }
+  }
+  drop(commands)
+}
+
 const commands = [
   // --------------------------------------------------------------------------
   // File

@@ -123,6 +123,24 @@ const setupIpcListenersImpl = async () => {
   const projectStore = useProjectStore()
   const editorStore = useEditorStore()
 
+  // C-15 T-M5: fetch build capabilities once at boot — MAS builds hide
+  // sandbox-hostile surfaces (command registry + settings UI). The store
+  // keeps fail-open desktop defaults, so the gate only prunes when the
+  // backend explicitly reports app-store. Optional-chain: test doubles
+  // of the store predate this action and must not break listener setup.
+  Promise.resolve(prefs.FETCH_BUILD_MODE?.())
+    .then(() => {
+      if (typeof prefs.buildCapabilities === 'object' && prefs.buildCapabilities) {
+        return import('./commands').then(({ applyCapabilityGate }) => {
+          applyCapabilityGate(prefs.buildCapabilities)
+        })
+      }
+      return undefined
+    })
+    .catch(() => {
+      // capability fetch is best-effort; boot must not depend on it
+    })
+
   // Register every listener in parallel. Promise.all guarantees we have
   // ALL handlers wired before BLOCK_LISTENERS_READY fires; the V-M-025
   // ordering invariant requires this to precede BLOCK_DRAIN_INVOKED.

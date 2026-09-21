@@ -176,6 +176,29 @@
     </P-M>
   </ImplementationPlan>
   <ReviewLog>
+    <Review number="3" date="2026-09-21" verdict="green" task="T-M4+T-M5">
+      <Findings>
+        T-M4: mt_search_spawn dispatches to the pre-existing, unit-tested
+        run_search walker when compiled with app-store (rg shellout kept
+        for desktop). An initially written duplicate in-process searcher
+        was removed in favor of run_search (same ignore/regex deps, same
+        SearchEvent contract, richer cancel semantics with batch drain).
+        mas.conf.json sets createUpdaterArtifacts=false (updater signing
+        key absent locally; artifacts are meaningless in sandbox builds).
+        MAS debug bundle smoke: launch with document OK.
+        T-M5: M-048 mt_build_mode command (compile-time flags, both
+        feature sets compile; app-store cannot advertise hostile caps —
+        pinned by rust test). Renderer: preferences store buildCapabilities
+        + FETCH_BUILD_MODE at boot (fail-open), applyCapabilityGate prunes
+        file.export-file-pdf + edit.screenshot from the command registry
+        (palette/menus/keys all read it), settings macOS-integration
+        section hidden when setDefaultHandler=false. Boot guard: stores
+        without FETCH_BUILD_MODE (test doubles) skip the gate — suite
+        regression caught and fixed. Gates: cargo 377 green; renderer
+        3049 green (223 files); new capability-gate.test.js pins the
+        prune semantics.
+      </Findings>
+    </Review>
     <Review number="2" date="2026-09-21" verdict="green" task="T-M3">
       <Findings>
         M-047 SecurityBookmarks shipped: remember() at grant moments
