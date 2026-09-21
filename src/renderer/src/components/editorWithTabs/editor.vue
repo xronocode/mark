@@ -75,7 +75,7 @@
 
 <script setup>
 // FILE: src/renderer/src/components/editorWithTabs/editor.vue
-// VERSION: 1.10.0
+// VERSION: 1.11.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Host the Muya WYSIWYG surface and coordinate document rendering, selection, scroll, preview, editor tools, and store/bus integration.
 //   SCOPE: Renderer-side Muya lifecycle and UI orchestration; does not own Markdown parsing rules or backend file persistence.
@@ -89,6 +89,7 @@
 //   setMarkdownToEditor - Loads a newly opened document into Muya.
 //   handleFileChange - Restores a switched/reloaded tab's document, cursor, history, and scroll state.
 //   scrollToCords - Restores saved scrollTop without leaving the editor hidden behind a delayed animation frame.
+//   scrollToCordsAfterReload - Clamps the pre-edit scrollTop into a reloaded document's real scrollable range (no phantom padding, no blank viewport).
 //   syncPreviewSurface - Mirrors previewMode onto Muya's real replacement container and restores caret focus on exit.
 //   imageAction - Applies configured local/upload image insertion behavior.
 //   handleExport - Routes supported export formats to renderer services.
@@ -108,6 +109,7 @@
 //   - 2026-09-17 v1.8.0: handleEditorContextMenu — native right-click menu (Copy / Copy as HTML / Select All) replaces the WKWebView default on the WYSIWYG surface (C-10).
 //   - 2026-09-17 v1.9.0: full context menu — native cut/copy/paste/select-all roles, Muya undo/redo, Share via mt_share_file (C-11).
 //   - 2026-09-17 v1.10.0: handleCopyAsPlainText — marked+sanitize+textContent pipeline writes a single plain-text flavor; context menu, Edit menu, palette (C-12).
+//   - 2026-09-21 v1.11.0: scrollToCordsAfterReload — file-changed payloads with contentReloaded (loadChange live-reload, incl. background-tab activation via UPDATE_CURRENT_FILE/CLOSE fallbacks) clamp the pre-edit scrollTop into the reloaded document's range, drop leftover first-paint padding, and sync the tab's saved offset immediately; handleResetPaddingBottom now clears the padding on #ag-editor-id where it was actually set (upstream cleared the container — phantom padding stuck forever).
 // END_CHANGE_SUMMARY
 
 import { ref, reactive, watch, onMounted, onBeforeUnmount, nextTick, computed } from 'vue'
@@ -1044,6 +1046,54 @@ const scrollToCords = (y) => {
 }
 // END_BLOCK_FIRST_PAINT_SCROLL_RESTORE
 
+// START_CONTRACT: scrollToCordsAfterReload
+//   PURPOSE: Restore scroll after a disk content reload by clamping the pre-edit scrollTop into the reloaded document's real scrollable range.
+//   INPUTS: { y: Number - scrollTop saved before the external content change, tabId?: string - optional emitting tab id for immediate store sync }
+//   OUTPUTS: { void }
+//   SIDE_EFFECTS: Clears leftover first-paint padding, updates scrollTop, visibility, pointer-events, and the tab's saved scrollTop in the store, schedules one defensive re-clamp on the next animation frame.
+//   LINKS: .grace/verification/runtime.xml V-M-011 scenario-29; .grace/graph/runtime.xml M-011 Interface fn-scrollToCordsAfterReload
+// END_CONTRACT: scrollToCordsAfterReload
+// START_BLOCK_RELOAD_SCROLL_CLAMPED
+const scrollToCordsAfterReload = (y, tabId) => {
+  const { container } = editor.value
+  // The pre-edit scrollTop belongs to the OLD document. The reloaded document
+  // can be shorter, so restoring it unclamped parks the viewport past the end
+  // of the new content and reads as blank until the user scrolls. Leftover
+  // first-paint padding from a previous same-document restore would inflate
+  // scrollHeight and defeat the clamp, so drop it before measuring.
+  const editorId = container.firstElementChild
+  if (editorId && editorId.style.paddingBottom) {
+    editorId.style.paddingBottom = ''
+    resizeObserverForEditor.unobserve(editorId)
+  }
+  const maxScrollHeight = container.scrollHeight - container.clientHeight
+  const clamped = Math.max(0, Math.min(y, maxScrollHeight))
+  container.scrollTop = clamped
+  container.style.visibility = 'visible'
+  container.style.pointerEvents = 'auto'
+  // Sync the tab's saved offset immediately: muya's scroll listener is
+  // debounced (100ms) and never fires when the clamp equals the current
+  // offset, so the store would keep the stale pre-edit value and hand it back
+  // to a later same-document restore (tab switch away and back).
+  if (tabId) editorStore.updateScrollPosition(tabId, clamped)
+  console.debug(
+    `[Editor][scrollToCordsAfterReload][BLOCK_RELOAD_SCROLL_CLAMPED] requested=${y} applied=${clamped}`
+  )
+  // The post-reload layout can still settle shorter (font metrics, collapsed
+  // widgets). Keep the restored offset inside the valid range; never scroll
+  // further down than the real content allows, and keep the store in step so
+  // a later same-document restore cannot re-apply the pre-adjustment value.
+  requestAnimationFrame(() => {
+    const max = container.scrollHeight - container.clientHeight
+    if (container.scrollTop > max) {
+      const adjusted = Math.max(0, max)
+      container.scrollTop = adjusted
+      if (tabId) editorStore.updateScrollPosition(tabId, adjusted)
+    }
+  })
+}
+// END_BLOCK_RELOAD_SCROLL_CLAMPED
+
 const scrollToHighlight = () => {
   return scrollToElement('.ag-highlight')
 }
@@ -1250,6 +1300,7 @@ const handleFileChange = ({
   history,
   scrollTop,
   muyaIndexCursor,
+  contentReloaded = false,
   blocks = undefined
 }) => {
   if (editor.value) {
@@ -1287,7 +1338,14 @@ const handleFileChange = ({
     }
 
     if (typeof scrollTop === 'number') {
-      scrollToCords(scrollTop)
+      // A disk content reload renders a NEW document: the pre-edit scrollTop
+      // must be clamped into the new scrollable range. Same-document restores
+      // (boot, tab switch back) keep the padding-preserving scrollToCords.
+      if (contentReloaded) {
+        scrollToCordsAfterReload(scrollTop, id || activeFile?.id)
+      } else {
+        scrollToCords(scrollTop)
+      }
     } else {
       container.style.visibility = 'visible'
       container.style.pointerEvents = 'auto'
@@ -1461,14 +1519,19 @@ const handleScreenShot = () => {
 
 const handleResetPaddingBottom = () => {
   const { container } = editor.value
+  const editorId = container.firstElementChild
   const newScollableHeightWithoutPadding =
     container.scrollHeight -
     container.clientHeight -
-    parseFloat(container.firstElementChild.style.paddingBottom)
+    parseFloat(editorId.style.paddingBottom)
 
   if (newScollableHeightWithoutPadding > currentFile.value.scrollTop) {
-    container.style.paddingBottom = ''
-    resizeObserverForEditor.unobserve(container.firstElementChild) // unobserve #ag-editor-id since we have removed the padding
+    // The padding lives on #ag-editor-id (set by scrollToCords), not on the
+    // scroll container — clearing the container's own style (the upstream
+    // Mark Text bug) left the phantom padding in place forever, inflating
+    // every later scrollHeight measurement.
+    editorId.style.paddingBottom = ''
+    resizeObserverForEditor.unobserve(editorId) // unobserve #ag-editor-id since we have removed the padding
   }
 }
 const resizeObserverForEditor = new ResizeObserver(handleResetPaddingBottom)

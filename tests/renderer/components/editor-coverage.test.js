@@ -1,5 +1,5 @@
 // FILE: tests/renderer/components/editor-coverage.test.js
-// VERSION: 1.7.0
+// VERSION: 1.8.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Verify editorWithTabs/editor.vue methods, watchers, computed state, event handlers, and lifecycle behavior beyond the base editor test.
 //   SCOPE: Deterministic Vue/jsdom tests with mocked Muya, stores, bus, services, and browser scheduling.
@@ -42,6 +42,7 @@
 //   - 2026-09-17 v1.5.0: cover handleEditorContextMenu — menu spec with selection-gated Copy, copy/copyAsHtml/selectAll dispatch (C-10).
 //   - 2026-09-17 v1.6.0: C-11 — role-based hygiene menu (cut/copy/paste/select_all), Muya undo/redo dispatch, pathname-gated Share, popup rejection containment.
 //   - 2026-09-17 v1.7.0: C-12 — copyAsPlainText dispatch, <br>-newline pin, whole-document fallback, empty no-op, writeText failure branch, bus-path forwarding.
+//   - 2026-09-21 v1.8.0: contentReloaded scroll clamp — stale pre-edit scrollTop clamps into the reloaded document's range, leftover first-paint padding is dropped, sub-viewport documents land at 0 (C-2 follow-up).
 // END_CHANGE_SUMMARY
 
 import { shallowMount } from '@vue/test-utils'
@@ -1390,6 +1391,126 @@ describe('editor.vue — coverage', () => {
     }
   })
   // END_BLOCK_FIRST_PAINT_TESTS
+
+  // START_BLOCK_RELOAD_SCROLL_CLAMP_TESTS
+  it('handleFileChange with contentReloaded clamps a stale scrollTop into the new document range', async () => {
+    const wrapper = await mountEditor()
+    const editorComponent = wrapper.find('.editor-component').element
+    const child = document.createElement('div')
+    child.id = 'ag-editor-id'
+    editorComponent.appendChild(child)
+    // New external content is shorter than the pre-edit scroll offset.
+    Object.defineProperty(editorComponent, 'scrollHeight', { configurable: true, value: 2000 })
+    Object.defineProperty(editorComponent, 'clientHeight', { configurable: true, value: 800 })
+    const animationFrameSpy = vi
+      .spyOn(window, 'requestAnimationFrame')
+      .mockImplementation(() => 1)
+
+    try {
+      getBusHandler('file-changed')({
+        id: 'tab-1',
+        markdown: '# Shorter reload',
+        cursor: null,
+        renderCursor: false,
+        history: null,
+        scrollTop: 5000,
+        muyaIndexCursor: null,
+        contentReloaded: true
+      })
+
+      // max scroll = 2000 - 800 = 1200; the stale 5000 must be clamped.
+      expect(editorComponent.scrollTop).toBe(1200)
+      expect(editorComponent.style.visibility).toBe('visible')
+      expect(editorComponent.style.pointerEvents).toBe('auto')
+      expect(child.style.paddingBottom).toBe('')
+      // The store's saved offset is synced immediately (no 100ms debounce
+      // dependency), so a later tab-switch restore cannot re-apply 5000.
+      expect(editorStore.updateScrollPosition).toHaveBeenCalledWith('tab-1', 1200)
+
+      // The defensive post-frame re-clamp keeps the offset inside the real
+      // range when the layout settles even shorter.
+      Object.defineProperty(editorComponent, 'scrollHeight', { configurable: true, value: 1000 })
+      animationFrameSpy.mock.calls[0][0]()
+      expect(editorComponent.scrollTop).toBe(200)
+    } finally {
+      animationFrameSpy.mockRestore()
+    }
+  })
+
+  it('handleFileChange with contentReloaded drops leftover first-paint padding and keeps an in-range offset', async () => {
+    const wrapper = await mountEditor()
+    const editorComponent = wrapper.find('.editor-component').element
+    const child = document.createElement('div')
+    child.id = 'ag-editor-id'
+    // Leftover padding from a previous same-document restore would inflate
+    // the measured scrollHeight and defeat the clamp.
+    child.style.paddingBottom = '3000px'
+    editorComponent.appendChild(child)
+    // Pin the ordering behaviorally: record the padding state at the moment
+    // the clamp measures scrollHeight — it must already be reset.
+    let paddingAtMeasure = null
+    Object.defineProperty(editorComponent, 'scrollHeight', {
+      configurable: true,
+      get() {
+        paddingAtMeasure = child.style.paddingBottom
+        return 4000
+      }
+    })
+    Object.defineProperty(editorComponent, 'clientHeight', { configurable: true, value: 600 })
+    const animationFrameSpy = vi
+      .spyOn(window, 'requestAnimationFrame')
+      .mockImplementation(() => 1)
+
+    try {
+      getBusHandler('file-changed')({
+        markdown: '# Reloaded',
+        cursor: null,
+        renderCursor: false,
+        history: null,
+        scrollTop: 500,
+        muyaIndexCursor: null,
+        contentReloaded: true
+      })
+
+      expect(child.style.paddingBottom).toBe('')
+      expect(paddingAtMeasure).toBe('')
+      expect(editorComponent.scrollTop).toBe(500)
+      // Post-frame re-clamp is a no-op when the offset is already in range.
+      animationFrameSpy.mock.calls[0][0]()
+      expect(editorComponent.scrollTop).toBe(500)
+    } finally {
+      animationFrameSpy.mockRestore()
+    }
+  })
+
+  it('handleFileChange with contentReloaded lands at the top when the reloaded document is shorter than the viewport', async () => {
+    const wrapper = await mountEditor()
+    const editorComponent = wrapper.find('.editor-component').element
+    // No child element at all — the padding reset must tolerate that.
+    Object.defineProperty(editorComponent, 'scrollHeight', { configurable: true, value: 500 })
+    Object.defineProperty(editorComponent, 'clientHeight', { configurable: true, value: 800 })
+    const animationFrameSpy = vi
+      .spyOn(window, 'requestAnimationFrame')
+      .mockImplementation(() => 1)
+
+    try {
+      getBusHandler('file-changed')({
+        markdown: '# Tiny reload',
+        cursor: null,
+        renderCursor: false,
+        history: null,
+        scrollTop: 4000,
+        muyaIndexCursor: null,
+        contentReloaded: true
+      })
+
+      expect(editorComponent.scrollTop).toBe(0)
+      expect(editorComponent.style.visibility).toBe('visible')
+    } finally {
+      animationFrameSpy.mockRestore()
+    }
+  })
+  // END_BLOCK_RELOAD_SCROLL_CLAMP_TESTS
 
   it('hydrates the selected boot-open document after the editor subscribes', async () => {
     editorStore.currentFile.markdown = '# Agent opened'
