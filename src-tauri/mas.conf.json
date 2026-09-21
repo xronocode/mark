@@ -8,6 +8,7 @@
   },
   "bundle": {
     "targets": ["app"],
+    "createUpdaterArtifacts": false,
     "macOS": {
       "entitlements": "Entitlements.plist"
     }
