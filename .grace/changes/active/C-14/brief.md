@@ -68,3 +68,14 @@ Landed: hero stat strip (11 MB / ~61 MB RAM / <1 s), dedicated #footprint
 section with category comparison bars (11 MB vs 200–350 MB disk; ~61 MB vs
 300–600 MB RAM), sharpened "Native Speed" card, agent-workflow copy reframed
 around the many-windows pain.
+
+## Addendum 2026-09-21 — measured Benchmarks section
+
+User request: benchmark section vs. Antigravity, VSCode (many md files open)
+and other popular editors, competitor names/logos masked. Measured live on
+the dev machine (M5/32GB/macOS 26.6) with a uniform 25-doc corpus and
+isolated profiles: Mark 113 MB / 28 MB installed; anonymized Electron
+editers 803–2313 MB / 481–1160 MB. Repro script committed at
+tools/benchmark/editors-bench.sh; methodology footnote on the page.
+Honesty fix rolled in: 11 MB is the DOWNLOAD size, 28 MB installed —
+hero/footprint wording corrected accordingly.
