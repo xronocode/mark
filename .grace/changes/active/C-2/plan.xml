@@ -309,14 +309,18 @@
         scrollTop into [0, scrollHeight - clientHeight], drops leftover
         first-paint padding before measuring, reveals synchronously, syncs
         tab state immediately, re-clamps post-frame; handleResetPaddingBottom
-        clears #ag-editor-id padding (upstream cleared the wrong element).
-        Pinned by editor-coverage.test.js + live-reload.test.js; V-M-011
-        scenario-29 + BLOCK_RELOAD_SCROLL_CLAMPED marker; scoped coverage
-        100% lines on changed ranges; grace lint zero new findings; full
-        suite green.</Criterion>
+        clears #ag-editor-id padding (upstream cleared the wrong element);
+        loadChange drops the tab's stale muya blocks so activation renders
+        the reloaded markdown (pre-edit document resurrection, found by the
+        visual e2e). Pinned by editor-coverage.test.js + live-reload.test.js
+        + tests/e2e/live-reload-scroll.spec.ts (Playwright visual gate);
+        V-M-011 scenario-29 + BLOCK_RELOAD_SCROLL_CLAMPED marker; scoped
+        coverage 100% lines on changed ranges; grace lint zero new findings;
+        full suite green.</Criterion>
       </AcceptanceCriteria>
       <Verification>
         <Command>npx vitest run tests/renderer/components/editor-coverage.test.js tests/renderer/store/live-reload.test.js</Command>
+        <Command>npx playwright test tests/e2e/live-reload-scroll.spec.ts</Command>
         <Command>npm run test:coverage (CI mode, baseline thresholds)</Command>
         <Command>grace lint --path . --assertions current</Command>
       </Verification>

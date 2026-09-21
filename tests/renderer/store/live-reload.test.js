@@ -245,7 +245,7 @@ describe('store/editor — M-032 live-reload', () => {
     })
 
     it('marks the file-changed reload as contentReloaded so the editor clamps the scroll restore', () => {
-      seedTab({ scrollTop: 5000 })
+      const tab = seedTab({ scrollTop: 5000, blocks: [{ key: 'stale-block' }] })
 
       editor.loadChange({
         pathname: '/tmp/test.md',
@@ -263,6 +263,10 @@ describe('store/editor — M-032 live-reload', () => {
       // The raw offset is still preserved in tab state; the flag tells
       // editor.vue to clamp it into the reloaded document's range.
       expect(editor.tabs[0].scrollTop).toBe(5000)
+      // Stale muya blocks of the pre-edit document must NOT survive: tab
+      // activation renders tab.blocks when present, which would resurrect
+      // the old document over the reloaded markdown.
+      expect(editor.tabs[0].blocks).toBeUndefined()
       expect(bus.emit).toHaveBeenCalledWith(
         'file-changed',
         expect.objectContaining({
@@ -274,7 +278,7 @@ describe('store/editor — M-032 live-reload', () => {
 
     it('stamps a background tab and forwards the stamp on later activation (no double restore)', () => {
       // Current tab is a different file; the reloaded tab is in background.
-      const background = seedTab({ id: 'tab-2', pathname: '/tmp/test.md', scrollTop: 3000 })
+      const background = seedTab({ id: 'tab-2', pathname: '/tmp/test.md', scrollTop: 3000, blocks: [{ key: 'stale-block' }] })
       const current = makeTab({ id: 'tab-1', pathname: '/tmp/other.md' })
       editor.tabs = [current, background]
       editor.currentFile = current
@@ -295,9 +299,12 @@ describe('store/editor — M-032 live-reload', () => {
       })
 
       // Background reload: no immediate file-changed emit, but the tab is
-      // stamped so activation routes through the reload clamp.
+      // stamped so activation routes through the reload clamp, and the
+      // stale muya blocks are dropped so activation renders the reloaded
+      // markdown instead of the pre-edit document.
       expect(bus.emit).not.toHaveBeenCalled()
       expect(background.contentReloaded).toBe(true)
+      expect(background.blocks).toBeUndefined()
 
       editor.UPDATE_CURRENT_FILE(background)
 

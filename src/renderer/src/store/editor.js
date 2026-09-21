@@ -179,6 +179,13 @@ export const useEditorStore = defineStore('editor', {
       tab.cursor = savedCursor
       tab.scrollTop = savedScrollTop
       tab.muyaIndexCursor = savedMuyaIndexCursor
+      // defaultFileState carries no `blocks` key, so Object.assign above kept
+      // the STALE muya blocks of the pre-edit document. Tab activation
+      // (UPDATE_CURRENT_FILE / CLOSE fallbacks) forwards tab.blocks, and
+      // muya's setMarkdown renders `blocks` verbatim when present — the old
+      // document would resurrect over the reloaded content. The reloaded
+      // markdown is the source of truth; the next render repopulates blocks.
+      tab.blocks = undefined
 
       if (oldHistory) {
         tab.history = oldHistory
@@ -1852,8 +1859,11 @@ export const useEditorStore = defineStore('editor', {
 //     scrollTop into the reloaded document's range (blank-until-scroll on
 //     externally shortened files); UPDATE_CURRENT_FILE and the CLOSE-tab
 //     fallbacks forward the stamp for background-reloaded tabs and consume
-//     it after the emit; the store emits the raw offset unchanged — the
-//     editor clamps and syncs the tab's saved value back.
+//     it after the emit; loadChange also drops the stale muya `blocks` the
+//     Object.assign kept — tab activation renders tab.blocks when present
+//     (muya setMarkdown blocks-branch), which resurrected the pre-edit
+//     document over the reloaded content; the store emits the raw offset
+//     unchanged — the editor clamps and syncs the tab's saved value back.
 //   - 2026-09-16 C-2: _subscribeFileWatch pending-marker protocol (no double
 //     subscribe, close-while-pending unwinds); _unsubscribeFileWatch drops
 //     liveReloadGenerations for the last tab of a pathname (independent of

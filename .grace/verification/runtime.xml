@@ -3216,6 +3216,9 @@
           tests/renderer/store/live-reload.test.js
         </Command>
         <Command>
+          npx playwright test tests/e2e/live-reload-scroll.spec.ts
+        </Command>
+        <Command>
           npx vitest run tests/renderer/components/tabs-scroll.test.js
           tests/renderer/components/tabs.test.js
           tests/renderer/components/tabs-coverage.test.js
@@ -3399,10 +3402,18 @@
           immediately (updateScrollPosition — no scroll-event/debounce
           dependency, including the post-frame re-adjust), so a later
           same-document restore cannot re-apply the stale pre-edit offset —
-          the viewport can never sit past the end of the new content reading
-          as blank until manual scroll (C-2 follow-up R-9; pinned in
-          tests/renderer/components/editor-coverage.test.js +
-          tests/renderer/store/live-reload.test.js).
+          and loadChange drops the tab&apos;s stale muya blocks, so tab
+          activation renders the reloaded markdown instead of resurrecting
+          the pre-edit document (muya setMarkdown renders tab.blocks
+          verbatim when present). The viewport can never sit past the end
+          of the new content reading as blank until manual scroll. Pinned
+          in tests/renderer/components/editor-coverage.test.js +
+          tests/renderer/store/live-reload.test.js, and visually by
+          tests/e2e/live-reload-scroll.spec.ts (Playwright + tauri-shim:
+          a watcher event and disk read deliver shorter content to an open
+          scrolled tab and to a background tab; new-document text must be
+          inside the viewport with no user scroll and no phantom bottom
+          padding) (C-2 follow-up R-9).
         </Scenario>
       </Scenarios>
       <Markers>
