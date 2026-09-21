@@ -3213,6 +3213,7 @@
         <Command>
           npx vitest run tests/renderer/components/titleBar-deep.test.js
           tests/renderer/components/editor-coverage.test.js
+          tests/renderer/store/live-reload.test.js
         </Command>
         <Command>
           npx vitest run tests/renderer/components/tabs-scroll.test.js
@@ -3383,6 +3384,26 @@
           item id + CmdOrCtrl+Alt+Shift+C accelerator pinned in
           tests/renderer/commands/menu-consistency.test.js.
         </Scenario>
+        <Scenario>
+          scenario-29: A file-changed payload with contentReloaded (the
+          loadChange live-reload of an externally edited tab — direct or via
+          later activation of a background-reloaded tab through
+          UPDATE_CURRENT_FILE / the CLOSE-tab fallbacks, which forward the
+          tab stamp and consume it) clamps the preserved pre-edit scrollTop
+          into the reloaded document&apos;s real scrollable range: stale
+          offsets beyond the new content land at the last valid position
+          (or 0 for sub-viewport documents), leftover first-paint bottom
+          padding is dropped before measuring so it cannot defeat the
+          clamp, the surface is revealed synchronously, the clamped offset
+          is written back into the tab&apos;s saved scroll position
+          immediately (updateScrollPosition — no scroll-event/debounce
+          dependency, including the post-frame re-adjust), so a later
+          same-document restore cannot re-apply the stale pre-edit offset —
+          the viewport can never sit past the end of the new content reading
+          as blank until manual scroll (C-2 follow-up R-9; pinned in
+          tests/renderer/components/editor-coverage.test.js +
+          tests/renderer/store/live-reload.test.js).
+        </Scenario>
       </Scenarios>
       <Markers>
         <Marker>[Editor][handleCopyAsHtml][BLOCK_COPY_AS_HTML] native writeHtml failed → execCommand fallback</Marker>
@@ -3392,6 +3413,7 @@
         <Marker>[Renderer][mount][BLOCK_HOST_HOOKS_WIRED] { hooks: 7 }</Marker>
         <Marker>[TitleBar][handleTitleContextMenu][BLOCK_COPY_PATH]</Marker>
         <Marker>[Editor][scrollToCords][BLOCK_SCROLL_RESTORED]</Marker>
+        <Marker>[Editor][scrollToCordsAfterReload][BLOCK_RELOAD_SCROLL_CLAMPED] requested=&lt;y&gt; applied=&lt;clamped&gt;</Marker>
         <Marker>[Editor][syncPreviewSurface][BLOCK_PREVIEW_SURFACE_SYNC]</Marker>
         <Marker>[Editor][hydrateMountedDocument][BLOCK_BOOT_DOCUMENT_HYDRATED]</Marker>
         <Marker>[Editor][handleFileChange][BLOCK_STALE_CHANGE_IGNORED]</Marker>

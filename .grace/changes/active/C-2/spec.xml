@@ -14,7 +14,11 @@
     watch subscription silently received nothing. C-2 fixes the fan-out and
     five secondary defects on the same path (leaks, races, a confirm-action
     crash, a stale stub command), with two sequential clean reviews and 100%
-    coverage of the changed renderer contract files.
+    coverage of the changed renderer contract files. Amendment 2026-09-21
+    (follow-up): the now-working live reload exposed a scroll-restore defect
+    — the pre-edit scrollTop was restored unclamped over the reloaded
+    document, parking the viewport past its end (blank until manual scroll);
+    R-9 covers the clamp.
   </Summary>
 
   <Problem>
@@ -88,6 +92,23 @@
       TypeError destructuring missing change.data) — pinned by
       tests/renderer/store/live-reload.test.js.
     </R-8>
+    <R-9>
+      Amendment 2026-09-21 (user-approved follow-up): a live-reload render
+      is a NEW document, so the preserved pre-edit scrollTop must be clamped
+      into the reloaded document's real scrollable range. loadChange stamps
+      the tab (contentReloaded) and the flag rides every file-changed emit
+      that can activate reloaded content (loadChange, UPDATE_CURRENT_FILE,
+      both CLOSE-tab fallbacks, consumed after use); editor.vue clamps,
+      drops leftover first-paint padding before measuring, reveals
+      synchronously, syncs the clamped offset into tab state immediately
+      (no scroll-event debounce dependency), and re-clamps once after the
+      frame. The same-document restore paths (boot, tab switch back) keep
+      the padding-preserving scrollToCords. Includes the upstream cleanup
+      fix: handleResetPaddingBottom now clears the padding on the element
+      it was set on (#ag-editor-id), not the scroll container. Pinned by
+      tests/renderer/components/editor-coverage.test.js and
+      tests/renderer/store/live-reload.test.js (V-M-011 scenario-29).
+    </R-9>
   </Goals>
 
   <Constraints>
@@ -166,17 +187,22 @@
     <M-003>WatchRegistry path index + real close_project_root unwatch (watch.rs, m_v1_compat.rs)</M-003>
     <M-032>editor store: watch-subscribe races, generations cleanup, conflict-prompt confirm fix (editor.js)</M-032>
     <M-036>project store: manual listener flag for the root watcher (project.js)</M-036>
+    <M-011>editor surface: scrollToCordsAfterReload reload clamp + handleResetPaddingBottom element fix (editor.vue) — R-9 amendment</M-011>
   </AffectedAreas>
 
   <VerificationIntent>
     Renderer: fan-out delivery, race orderings, leak guards, and the reload
     matrix are pinned by tests/renderer/ipc/contract-listener.test.ts,
-    runtime-watch.test.ts, store/editor-deep2.test.js, store/live-reload.test.js,
-    store/project.test.ts. Rust: registry index/remove_by_path/close-project
+    runtime-watch.test.js, store/editor-deep2.test.js, store/live-reload.test.js,
+    store/project.test.js. Rust: registry index/remove_by_path/close-project
     behavior in src-tauri/src/m013b/watch.rs #[cfg(test)] and m_v1_compat.rs
     tests. Governance: V-M-013-A scenario-5 (fan-out) and V-M-003 scenario-4 +
     stop_path markers in .grace/verification/runtime.xml. Runtime: live-app
     verification via dev-smoke + external edits with stderr marker evidence.
+    R-9 amendment: reload scroll clamp + background-tab stamp forwarding +
+    padding-cleanup element fix pinned in tests/renderer/components/
+    editor-coverage.test.js and tests/renderer/store/live-reload.test.js;
+    V-M-011 scenario-29 + BLOCK_RELOAD_SCROLL_CLAMPED marker.
   </VerificationIntent>
 
   <Approval>

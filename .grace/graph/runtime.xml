@@ -2718,6 +2718,27 @@
             </Attribute>
           </LegacyAttributes>
         </fn-scrollToCords>
+        <fn-scrollToCordsAfterReload>
+          <LegacyAttributes>
+            <Attribute>
+              <Name>PURPOSE</Name>
+              <Value>
+                editorWithTabs/editor.vue clamps the pre-edit scrollTop into
+                the reloaded document&apos;s real scrollable range when the
+                store emits file-changed with contentReloaded (loadChange
+                live-reload or activation of a background-reloaded tab):
+                drops leftover first-paint padding, clamps to
+                [0, scrollHeight - clientHeight], reveals synchronously,
+                syncs the clamped offset into the tab&apos;s saved scroll
+                position immediately (updateScrollPosition, incl. the
+                post-frame re-adjust), and re-clamps once after the frame so
+                an externally shortened file cannot park the viewport past
+                its end and read as blank until manual scroll (C-2 follow-up
+                R-9, 2026-09-21)
+              </Value>
+            </Attribute>
+          </LegacyAttributes>
+        </fn-scrollToCordsAfterReload>
         <fn-syncPreviewSurface>
           <LegacyAttributes>
             <Attribute>

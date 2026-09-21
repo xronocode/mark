@@ -10,6 +10,8 @@
  *   4. liveReload preference off skips reload for clean tabs
  *   5. Dirty tabs are not auto-reloaded (unless previewMode)
  *   6. previewMode tabs always auto-reload (M-033 integration)
+ *   7. C-2 follow-up: the file-changed reload carries contentReloaded: true
+ *      so editor.vue clamps the preserved scrollTop into the new range
  *
  * Pitfall mitigations (Phase-4 wave 1 conventions):
  *   #1 — sibling stores stubbed as plain objects
@@ -240,6 +242,76 @@ describe('store/editor — M-032 live-reload', () => {
           scrollTop: 99
         })
       )
+    })
+
+    it('marks the file-changed reload as contentReloaded so the editor clamps the scroll restore', () => {
+      seedTab({ scrollTop: 5000 })
+
+      editor.loadChange({
+        pathname: '/tmp/test.md',
+        data: {
+          markdown: 'shorter on disk',
+          filename: 'test.md',
+          encoding: { encoding: 'utf8', isBom: false },
+          lineEnding: 'lf',
+          adjustLineEndingOnSave: false,
+          trimTrailingNewline: 3,
+          isMixedLineEndings: false
+        }
+      })
+
+      // The raw offset is still preserved in tab state; the flag tells
+      // editor.vue to clamp it into the reloaded document's range.
+      expect(editor.tabs[0].scrollTop).toBe(5000)
+      expect(bus.emit).toHaveBeenCalledWith(
+        'file-changed',
+        expect.objectContaining({
+          scrollTop: 5000,
+          contentReloaded: true
+        })
+      )
+    })
+
+    it('stamps a background tab and forwards the stamp on later activation (no double restore)', () => {
+      // Current tab is a different file; the reloaded tab is in background.
+      const background = seedTab({ id: 'tab-2', pathname: '/tmp/test.md', scrollTop: 3000 })
+      const current = makeTab({ id: 'tab-1', pathname: '/tmp/other.md' })
+      editor.tabs = [current, background]
+      editor.currentFile = current
+      editor.updateTabIdToIndex()
+      bus.emit.mockClear()
+
+      editor.loadChange({
+        pathname: '/tmp/test.md',
+        data: {
+          markdown: 'shorter on disk',
+          filename: 'test.md',
+          encoding: { encoding: 'utf8', isBom: false },
+          lineEnding: 'lf',
+          adjustLineEndingOnSave: false,
+          trimTrailingNewline: 3,
+          isMixedLineEndings: false
+        }
+      })
+
+      // Background reload: no immediate file-changed emit, but the tab is
+      // stamped so activation routes through the reload clamp.
+      expect(bus.emit).not.toHaveBeenCalled()
+      expect(background.contentReloaded).toBe(true)
+
+      editor.UPDATE_CURRENT_FILE(background)
+
+      expect(bus.emit).toHaveBeenCalledWith(
+        'file-changed',
+        expect.objectContaining({
+          id: 'tab-2',
+          scrollTop: 3000,
+          contentReloaded: true
+        })
+      )
+      // The stamp is consumed — a later same-document restore keeps the
+      // padding-preserving path.
+      expect(background.contentReloaded).toBe(false)
     })
 
     it('preserves muyaIndexCursor across reload', () => {
