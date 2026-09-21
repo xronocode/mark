@@ -26,4 +26,31 @@ test.describe('source code mode', () => {
 
     await expect(page.locator('.source-code')).toBeVisible({ timeout: 5_000 })
   })
+
+  test('source-mode round trip preserves document content in both directions', async ({ page }) => {
+    await bootEditor(page)
+
+    await openFileTab(page, '/tmp/src-roundtrip.md', '# Round Trip\n\nBody kept across the toggle.\n')
+
+    await expect(page.locator('.editor-with-tabs h1').first())
+      .toContainText('Round Trip', { timeout: 5_000 })
+
+    // Into source mode: CodeMirror carries the same markdown text.
+    await page.evaluate(() => {
+      ;(window as any).__bus.emit('view:toggle-view-entry', 'sourceCode')
+    })
+    await expect(page.locator('.source-code')).toBeVisible({ timeout: 5_000 })
+    await expect(page.locator('.source-code .CodeMirror-line').first())
+      .toContainText('# Round Trip', { timeout: 5_000 })
+
+    // And back: the WYSIWYG surface renders the same heading again.
+    await page.evaluate(() => {
+      ;(window as any).__bus.emit('view:toggle-view-entry', 'sourceCode')
+    })
+    await expect(page.locator('.source-code')).not.toBeVisible({ timeout: 5_000 })
+    await expect(page.locator('.editor-with-tabs h1').first())
+      .toContainText('Round Trip', { timeout: 5_000 })
+    await expect(page.locator('.editor-with-tabs p').first())
+      .toContainText('Body kept across the toggle.')
+  })
 })
