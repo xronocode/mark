@@ -674,7 +674,10 @@
             // 2. Copy-to-clipboard for command chips/buttons.
             // Element opts in via data-copy="..."; optional data-copied="Copied ✓"
             // swaps the visible label for ~1.6 s so the click has obvious feedback.
-            function copyToClipboard(el) {
+            // NOTE: exposed on window — inline onclick= handlers resolve through
+            // the global scope and cannot see IIFE-local functions (that was the
+            // original "click does nothing" bug).
+            window.copyToClipboard = function (el) {
                 const text = el.getAttribute('data-copy');
                 if (!text) return;
                 const ok = () => {
