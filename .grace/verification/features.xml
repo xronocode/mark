@@ -2332,6 +2332,16 @@
             resolve to the staged `Mark_&lt;version&gt;_aarch64.dmg` release
             asset.
           </S9>
+          <S10>
+            C-15 MAS variant: `cargo check --no-default-features --features
+            app-store` is a standing gate (V-M-016 command);
+            src-tauri/Entitlements.plist carries app-sandbox +
+            user-selected.read-write + network client/server; mas.conf.json
+            overlay selects the `mas` capability and macOS entitlements and is
+            validated as JSON by CI-side lint; no signing material
+            (certificates, profiles, private keys) is ever committed —
+            .gitignore blocks *.p12/*.p8/*.mobileprovision/*.cer/*.pem/*.key.
+          </S10>
         </high-level-scenarios>
         <test-targets>
           <test>tests/renderer/release-preflight.test.js</test>

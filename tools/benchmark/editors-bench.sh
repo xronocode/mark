@@ -10,8 +10,15 @@
 #   DEPENDS: bash, python3, ps, du, pgrep; editors at /Applications paths.
 #   LINKS: .grace/changes/active/C-14/ (benchmarks addendum); site/landing.
 #   ROLE: SCRIPT
-#   MAP_MODE: SUMMARY
+#   MAP_MODE: LOCALS
 # END_MODULE_CONTRACT
+#
+# START_MODULE_MAP
+#   gen_corpus - write the uniform 25-doc Markdown corpus to /tmp/md-bench
+#   rss_of_marker - sum RSS (MB) of all processes carrying an isolated user-data-dir marker
+#   bench_mark - launch the release Mark binary with the corpus, sample main-process RSS
+#   bench_electron - launch an Electron editor in a throwaway profile, sample total RSS
+# END_MODULE_MAP
 #
 # Methodology (kept identical to the numbers published on the site):
 #   - corpus: 25 Markdown files (~54 KB total) with code blocks, math,
