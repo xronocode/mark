@@ -298,6 +298,29 @@
         <Command>Review verdicts recorded in Evidence below.</Command>
       </Verification>
     </T-016>
+
+    <T-017>
+      <Title>Follow-up 2026-09-21: live-reload scroll clamp (R-9)</Title>
+      <DependsOn>T-015, T-016</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>file-changed reloads carry contentReloaded (loadChange emit,
+        UPDATE_CURRENT_FILE + CLOSE-tab fallback forwarding with stamp
+        consumption); editor.vue scrollToCordsAfterReload clamps the pre-edit
+        scrollTop into [0, scrollHeight - clientHeight], drops leftover
+        first-paint padding before measuring, reveals synchronously, syncs
+        tab state immediately, re-clamps post-frame; handleResetPaddingBottom
+        clears #ag-editor-id padding (upstream cleared the wrong element).
+        Pinned by editor-coverage.test.js + live-reload.test.js; V-M-011
+        scenario-29 + BLOCK_RELOAD_SCROLL_CLAMPED marker; scoped coverage
+        100% lines on changed ranges; grace lint zero new findings; full
+        suite green.</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>npx vitest run tests/renderer/components/editor-coverage.test.js tests/renderer/store/live-reload.test.js</Command>
+        <Command>npm run test:coverage (CI mode, baseline thresholds)</Command>
+        <Command>grace lint --path . --assertions current</Command>
+      </Verification>
+    </T-017>
   </ImplementationPlan>
 
   <ReviewProtocol>
@@ -348,6 +371,17 @@
       V-M-003 markers + scenario-5; M-013-B note; HMR claim removed) →
       VERDICT: CLEAN (2026-09-16). Both gates satisfied per the spec's
       ReviewProtocol.
+      Follow-up 2026-09-21 (T-017, R-9): review-1 (correctness/races)
+      FINDINGS (2 MAJOR — background-tab activation still unclamped;
+      handleResetPaddingBottom clearing the wrong element — 2 MINOR, 2 NIT)
+      and review-2 (contracts/security) FINDINGS (1 MAJOR missing spec
+      coverage, 2 MINOR doc-sync, 4 NIT) → all MAJOR + doc-sync fixed in the
+      same session (tab stamping + forwarding with consumption; element fix;
+      rAF store re-sync; C-2 spec R-9 + this T-017 amendment; scenario-29 +
+      graph PURPOSE text sync; V-M-011 command wiring; getter-pinned
+      ordering test). Deferred NITs: reload settle-window edit race (noted),
+      ===-vs-isSamePathSync emit gate (noted), log-marker spy (style-consistent
+      omission).
     </Reviews>
   </Evidence>
 </C-2>

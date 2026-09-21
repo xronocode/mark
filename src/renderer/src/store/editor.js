@@ -197,6 +197,11 @@ export const useEditorStore = defineStore('editor', {
         })
       }
 
+      // Stamp the tab so a later activation (the user switches to a
+      // background tab after an external edit) also routes its scroll
+      // restore through the reload clamp instead of the padding trick.
+      tab.contentReloaded = true
+
       // Reload the editor if the tab is currently opened.
       if (pathname === currentFile.pathname) {
         // save current state first
@@ -209,7 +214,11 @@ export const useEditorStore = defineStore('editor', {
           cursor,
           renderCursor: true,
           history,
-          scrollTop
+          scrollTop,
+          // The scrollTop above belongs to the pre-edit document; the editor
+          // must clamp it into the reloaded document's scrollable range
+          // instead of restoring it over different-height content.
+          contentReloaded: true
         })
       }
     },
@@ -713,7 +722,7 @@ export const useEditorStore = defineStore('editor', {
     UPDATE_CURRENT_FILE(currentFile) {
       const oldCurrentFile = this.currentFile
       if (!oldCurrentFile.id || oldCurrentFile.id !== currentFile.id) {
-        const { id, markdown, cursor, history, pathname, scrollTop, blocks, muyaIndexCursor } =
+        const { id, markdown, cursor, history, pathname, scrollTop, blocks, muyaIndexCursor, contentReloaded } =
           currentFile
         window.DIRNAME = pathname ? window.path.dirname(pathname) : ''
         this.currentFile = currentFile
@@ -732,8 +741,12 @@ export const useEditorStore = defineStore('editor', {
             renderCursor: true,
             history,
             scrollTop,
+            // Forward a live-reload stamp so activating a background-reloaded
+            // tab clamps the stale offset (C-2 follow-up), then consume it.
+            contentReloaded: !!contentReloaded,
             blocks
           })
+          if (contentReloaded) currentFile.contentReloaded = false
         }
       }
 
@@ -894,7 +907,7 @@ export const useEditorStore = defineStore('editor', {
         const fileState = this.tabs[index] || this.tabs[index - 1] || this.tabs[0] || {}
         this.currentFile = fileState
         if (typeof fileState.markdown === 'string') {
-          const { id, markdown, cursor, history, pathname, scrollTop, blocks, muyaIndexCursor } =
+          const { id, markdown, cursor, history, pathname, scrollTop, blocks, muyaIndexCursor, contentReloaded } =
             fileState
           window.DIRNAME = pathname ? window.path.dirname(pathname) : ''
           bus.emit('file-changed', {
@@ -905,8 +918,12 @@ export const useEditorStore = defineStore('editor', {
             renderCursor: true,
             history,
             scrollTop,
+            // Forward a live-reload stamp so the fallback activation clamps
+            // the stale offset (C-2 follow-up), then consume it.
+            contentReloaded: !!contentReloaded,
             blocks
           })
+          if (contentReloaded) fileState.contentReloaded = false
         } else {
           window.DIRNAME = ''
         }
@@ -1013,7 +1030,7 @@ export const useEditorStore = defineStore('editor', {
       if (!this.currentFile.id && this.tabs.length > 0) {
         this.currentFile = this.tabs[tabIndex] || this.tabs[tabIndex - 1] || this.tabs[0] || {}
         if (typeof this.currentFile.markdown === 'string') {
-          const { id, markdown, cursor, history, pathname, scrollTop, blocks, muyaIndexCursor } =
+          const { id, markdown, cursor, history, pathname, scrollTop, blocks, muyaIndexCursor, contentReloaded } =
             this.currentFile
           window.DIRNAME = pathname ? window.path.dirname(pathname) : ''
           bus.emit('file-changed', {
@@ -1024,8 +1041,12 @@ export const useEditorStore = defineStore('editor', {
             renderCursor: true,
             history,
             scrollTop,
+            // Forward a live-reload stamp so the fallback activation clamps
+            // the stale offset (C-2 follow-up), then consume it.
+            contentReloaded: !!contentReloaded,
             blocks
           })
+          if (contentReloaded) this.currentFile.contentReloaded = false
         }
       }
 
@@ -1826,6 +1847,13 @@ export const useEditorStore = defineStore('editor', {
 // END_MODULE_CONTRACT
 //
 // CHANGE_SUMMARY:
+//   - 2026-09-21 C-2 follow-up: loadChange stamps tab.contentReloaded and
+//     emits it with file-changed so the editor clamps the preserved pre-edit
+//     scrollTop into the reloaded document's range (blank-until-scroll on
+//     externally shortened files); UPDATE_CURRENT_FILE and the CLOSE-tab
+//     fallbacks forward the stamp for background-reloaded tabs and consume
+//     it after the emit; the store emits the raw offset unchanged — the
+//     editor clamps and syncs the tab's saved value back.
 //   - 2026-09-16 C-2: _subscribeFileWatch pending-marker protocol (no double
 //     subscribe, close-while-pending unwinds); _unsubscribeFileWatch drops
 //     liveReloadGenerations for the last tab of a pathname (independent of
