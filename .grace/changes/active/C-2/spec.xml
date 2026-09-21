@@ -102,12 +102,19 @@
       drops leftover first-paint padding before measuring, reveals
       synchronously, syncs the clamped offset into tab state immediately
       (no scroll-event debounce dependency), and re-clamps once after the
-      frame. The same-document restore paths (boot, tab switch back) keep
-      the padding-preserving scrollToCords. Includes the upstream cleanup
-      fix: handleResetPaddingBottom now clears the padding on the element
-      it was set on (#ag-editor-id), not the scroll container. Pinned by
-      tests/renderer/components/editor-coverage.test.js and
-      tests/renderer/store/live-reload.test.js (V-M-011 scenario-29).
+      frame. loadChange also drops the tab's stale muya blocks — activation
+      renders tab.blocks verbatim when present (muya setMarkdown
+      blocks-branch), which resurrected the pre-edit document over the
+      reloaded content (defect found by the visual e2e). The same-document
+      restore paths (boot, tab switch back) keep the padding-preserving
+      scrollToCords. Includes the upstream cleanup fix:
+      handleResetPaddingBottom now clears the padding on the element it was
+      set on (#ag-editor-id), not the scroll container. Pinned by
+      tests/renderer/components/editor-coverage.test.js,
+      tests/renderer/store/live-reload.test.js, and
+      tests/e2e/live-reload-scroll.spec.ts (visual gate: new-document text
+      inside the viewport with no user scroll, no phantom padding) —
+      V-M-011 scenario-29.
     </R-9>
   </Goals>
 
