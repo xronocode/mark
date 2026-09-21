@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- App Store requires the sandbox. All file access then flows through
+         user-selected read-write grants + security-scoped bookmarks. -->
+    <key>com.apple.security.app-sandbox</key>
+    <true/>
+    <key>com.apple.security.files.user-selected.read-write</key>
+    <true/>
+    <!-- Updater is compiled out in app-store builds; network client covers
+         the live-viewer invoke/reqwest calls and localhost connections. -->
+    <key>com.apple.security.network.client</key>
+    <true/>
+    <!-- M-045 live viewer listens on 127.0.0.1 (opt-in). -->
+    <key>com.apple.security.network.server</key>
+    <true/>
+</dict>
+</plist>
