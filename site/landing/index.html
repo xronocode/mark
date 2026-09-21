@@ -592,17 +592,22 @@
                     badge.textContent = "2.1.x beta";
                 });
 
-            // 1b. Live GitHub stars in the nav (same API, separate cheap call)
+            // 1b. Live GitHub stars in the nav — shown only once the count
+            // is socially meaningful; below the threshold the pill hides.
             const stars = document.getElementById('gh-stars');
             if (stars) {
                 fetch('https://api.github.com/repos/xronocode/mark')
                     .then(res => res.json())
                     .then(repo => {
                         if (repo && typeof repo.stargazers_count === 'number') {
-                            stars.textContent = "★ " + repo.stargazers_count.toLocaleString('en-US');
+                            if (repo.stargazers_count >= 50) {
+                                stars.textContent = "★ " + repo.stargazers_count.toLocaleString('en-US');
+                            } else {
+                                stars.style.display = 'none';
+                            }
                         }
                     })
-                    .catch(() => { /* keep the placeholder dot */ });
+                    .catch(() => { stars.style.display = 'none'; });
             }
 
             // 2. Copy to Clipboard Logic for the KBD Chip
