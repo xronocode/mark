@@ -9546,5 +9546,38 @@
         </TraceAssertion>
       </TraceAssertions>
     </V-M-047>
+
+    <V-M-048>
+      <Priority>high</Priority>
+      <Commands>
+        <Command>
+          cd src-tauri &amp;&amp; cargo test --bin mark --manifest-path
+          src-tauri/Cargo.toml m048
+        </Command>
+        <Command>npx vitest run tests/renderer/commands/capability-gate.test.js</Command>
+      </Commands>
+      <Scenarios>
+        <Scenario>
+          scenario-1: desktop build reports mode=desktop with every flag
+          true; app-store build reports mode=app-store with every
+          sandbox-hostile flag false (compile-time guarantee).
+        </Scenario>
+        <Scenario>
+          scenario-2: applyCapabilityGate(app-store caps) removes
+          file.export-file-pdf and edit.screenshot from the registry while
+          ordinary commands (file.new-tab, edit.copy-as-html) survive.
+        </Scenario>
+        <Scenario>
+          scenario-3: store doubles lacking FETCH_BUILD_MODE must not break
+          boot listener setup (optional-call guard).
+        </Scenario>
+      </Scenarios>
+      <TraceAssertions>
+        <TraceAssertion>
+          Negative assertion: an app-store build never advertises
+          exportPandoc/screenshot/setDefaultHandler as available.
+        </TraceAssertion>
+      </TraceAssertions>
+    </V-M-048>
   </VD-RUNTIME>
 </GraceVerificationDocument>

@@ -5824,5 +5824,44 @@
         <C-15/>
       </ChangeRefs>
     </M-047>
+
+    <M-048>
+      <Name>BuildMode</Name>
+      <DisplayName>build-mode descriptor</DisplayName>
+      <Type>UTILITY</Type>
+      <Status>shipped</Status>
+      <Layer>1</Layer>
+      <PhaseRef>C-15-T-M5</PhaseRef>
+      <Summary>
+        Compile-time build descriptor: mt_build_mode returns
+        { mode, exportPandoc, screenshot, setDefaultHandler,
+        projectSearchRipgrep, updater }. Renderer preferences store flips
+        UI off via FETCH_BUILD_MODE at boot; applyCapabilityGate prunes
+        sandbox-hostile commands from the registry.
+      </Summary>
+      <PlannedPath>src-tauri/src/m048_build_mode.rs</PlannedPath>
+      <Dependencies/>
+      <VerificationRef>V-M-048</VerificationRef>
+      <Contract>
+        <Purpose>
+          Let the renderer hide sandbox-hostile surfaces in App Store builds
+          instead of surfacing backend errors.
+        </Purpose>
+        <Inputs/>
+        <Outputs>
+          <Output>
+            <Name>build mode descriptor</Name>
+            <Type>BuildMode (camelCase JSON)</Type>
+          </Output>
+        </Outputs>
+        <Errors/>
+      </Contract>
+      <Interface>
+        <fn-mt_build_mode>query the build capability flags</fn-mt_build_mode>
+      </Interface>
+      <ChangeRefs>
+        <C-15/>
+      </ChangeRefs>
+    </M-048>
   </GD-RUNTIME>
 </GraceGraphDocument>

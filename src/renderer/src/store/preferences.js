@@ -6,6 +6,17 @@ import { setLanguage } from '../i18n'
 
 export const usePreferencesStore = defineStore('preferences', {
   state: () => ({
+    // C-15 T-M5: capability flags from mt_build_mode. Desktop defaults
+    // so shims/old backends render the full UI; app-store builds flip
+    // them off at boot (FETCH_BUILD_MODE).
+    buildCapabilities: {
+      mode: 'desktop',
+      exportPandoc: true,
+      screenshot: true,
+      setDefaultHandler: true,
+      projectSearchRipgrep: true,
+      updater: true
+    },
     autoSave: false,
     autoSaveDelay: 5000,
     liveReload: true,
@@ -138,6 +149,16 @@ export const usePreferencesStore = defineStore('preferences', {
   },
 
   actions: {
+    // C-15 T-M5: query the backend once at boot; failures keep the
+    // fail-open desktop defaults (dev shims, older binaries).
+    async FETCH_BUILD_MODE() {
+      try {
+        const { invoke } = await import('@tauri-apps/api/core')
+        this.buildCapabilities = await invoke('mt_build_mode')
+      } catch {
+        // keep defaults
+      }
+    },
     SET_USER_PREFERENCE(preference) {
       const oldLanguage = this.language
 
