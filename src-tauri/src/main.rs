@@ -111,6 +111,7 @@ mod m032_share;
 mod m013b;
 mod m045_ext;
 mod m047_bookmarks;
+mod m048_build_mode;
 mod m_v1_compat;
 mod mt_paths;
 
@@ -681,6 +682,7 @@ fn main() {
             m009_menu::mt_window_popup_context_menu,
             m009_menu::mt_update_line_ending_menu,
             m015_pandoc::mt_pandoc_status,
+            m048_build_mode::mt_build_mode,
             m015_pandoc::mt_pandoc_export,
             m016_updater::mt_updater_check,
             m018_screenshot::mt_screenshot_capture,
