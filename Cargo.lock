@@ -2691,6 +2691,8 @@ dependencies = [
  "chardet",
  "clap",
  "cocoa",
+ "core-foundation 0.10.1",
+ "core-foundation-sys",
  "encoding_rs",
  "font-kit",
  "ignore",

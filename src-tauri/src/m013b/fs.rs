@@ -51,6 +51,10 @@ pub const MAX_READ_BYTES: u64 = 10 * 1024 * 1024;
 /// full code path without booting an app.
 pub(crate) fn fs_read_inner(path: &str, sandbox: &Path) -> Result<String, IpcError> {
     let cmd = "mt::fs::read";
+    // C-15 T-M3: regain sandbox access from a stored security-scoped
+    // bookmark before validation — no bookmark → path passes through.
+    let path_resolved = crate::m047_bookmarks::ensure_access(path);
+    let path: &str = path_resolved.as_str();
     let requested = Path::new(path);
 
     safe_eprintln!("[FsCmd][read][BLOCK_VALIDATE_PATH path={}]", redact(path));
@@ -204,6 +208,9 @@ pub async fn mt_fs_stat(
 /// Inner pure-logic readdir — see `fs_read_inner` for rationale.
 pub(crate) fn fs_readdir_inner(path: &str, sandbox: &Path) -> Result<Vec<String>, IpcError> {
     let cmd = "mt::fs::readdir";
+    // C-15 T-M3: folder bookmark rescue (sidebar trees, watcher roots).
+    let path_resolved = crate::m047_bookmarks::ensure_access(path);
+    let path: &str = path_resolved.as_str();
     let requested = Path::new(path);
 
     let validated = m010_security::check_path(sandbox, requested)

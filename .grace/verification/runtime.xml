@@ -9480,5 +9480,49 @@
         <LegacySource>docs/verification-plan.xml: V-M-023</LegacySource>
       </Record>
     </LegacyOrphanEvidence>
+
+    <V-M-047>
+      <Priority>high</Priority>
+      <Commands>
+        <Command>
+          cd src-tauri &amp;&amp; cargo test --bin mark --manifest-path
+          src-tauri/Cargo.toml m047
+        </Command>
+      </Commands>
+      <Scenarios>
+        <Scenario>
+          scenario-1: hex store codec round-trips blobs; odd-length and
+          non-hex inputs are rejected.
+        </Scenario>
+        <Scenario>
+          scenario-2: default store carries version 1 and empty map;
+          version mismatches are ignored on load.
+        </Scenario>
+        <Scenario>
+          scenario-3 (macOS, real CF): remember(tmp file) persists a
+          bookmark blob; ensure_access resolves it back to the same file
+          path and starts the security scope exactly once per process.
+        </Scenario>
+        <Scenario>
+          scenario-4: no bookmark stored → ensure_access returns the input
+          path unchanged (non-sandbox behavior identical to pre-C-15).
+        </Scenario>
+      </Scenarios>
+      <Markers>
+        <Marker>[SecurityBookmarks] passthrough when no bookmark</Marker>
+      </Markers>
+      <TraceAssertions>
+        <TraceAssertion>
+          Negative assertion: no plaintext user paths in the store beyond
+          the bookmark map itself; no bookmark data leaves the app data
+          directory.
+        </TraceAssertion>
+        <TraceAssertion>
+          Negative assertion: fs read/readdir paths without a stored
+          bookmark take the identical code path as before C-15 (no extra
+          syscall on the hot path beyond one map lookup).
+        </TraceAssertion>
+      </TraceAssertions>
+    </V-M-047>
   </VD-RUNTIME>
 </GraceVerificationDocument>
