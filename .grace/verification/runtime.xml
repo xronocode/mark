@@ -3219,6 +3219,11 @@
           npx playwright test tests/e2e/live-reload-scroll.spec.ts
         </Command>
         <Command>
+          npx playwright test tests/e2e/toc-sidebar-navigation.spec.ts
+          tests/e2e/tab-switch-scroll.spec.ts
+          tests/e2e/source-code-mode.spec.ts
+        </Command>
+        <Command>
           npx vitest run tests/renderer/components/tabs-scroll.test.js
           tests/renderer/components/tabs.test.js
           tests/renderer/components/tabs-coverage.test.js
