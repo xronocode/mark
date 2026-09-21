@@ -198,8 +198,8 @@
                 </h1>
                 
                 <p class="hero-subhead">
-                    The whole app is 11 MB and opens in under a second — a real
-                    native Mac app, not an Electron browser in disguise.
+                    The whole app downloads in 11 MB, installs in 28, and opens in under a
+                    second — a real native Mac app, not an Electron browser in disguise.
                 </p>
 
                 <div class="hero-actions" style="display: flex; gap: 16px; flex-wrap: wrap; margin: 28px 0 8px;">
@@ -226,7 +226,7 @@
                 <div data-od-id="hero-stats" style="display:flex; gap:40px; flex-wrap:wrap; margin:24px 0 8px;">
                     <div>
                         <div style="font-size:40px; font-weight:700; letter-spacing:-0.02em; color:var(--text-1);">11 <span style="font-size:20px; color:var(--accent);">MB</span></div>
-                        <div style="font-size:13px; color:var(--text-3);">on disk — the whole app</div>
+                        <div style="font-size:13px; color:var(--text-3);">download — 28 MB installed</div>
                     </div>
                     <div>
                         <div style="font-size:40px; font-weight:700; letter-spacing:-0.02em; color:var(--text-1);">~61 <span style="font-size:20px; color:var(--accent);">MB</span></div>
@@ -259,13 +259,13 @@
                             <span>Installed size</span><span>lower is better</span>
                         </div>
                         <div style="margin-bottom:10px;">
-                            <div style="font-size:13px; color:var(--text-2); margin-bottom:4px;">Mark <span style="color:var(--accent); font-family:var(--font-mono);">11 MB</span></div>
+                            <div style="font-size:13px; color:var(--text-2); margin-bottom:4px;">Mark <span style="color:var(--accent); font-family:var(--font-mono);">28 MB installed</span></div>
                             <div style="height:12px; border-radius:6px; background:var(--surface-2); overflow:hidden;">
-                                <div style="height:100%; width:5%; border-radius:6px; background:linear-gradient(90deg, var(--accent-deep), var(--accent-bright));"></div>
+                                <div style="height:100%; width:3%; border-radius:6px; background:linear-gradient(90deg, var(--accent-deep), var(--accent-bright));"></div>
                             </div>
                         </div>
                         <div>
-                            <div style="font-size:13px; color:var(--text-3); margin-bottom:4px;">Typical Electron-based editor <span style="font-family:var(--font-mono);">200–350 MB</span></div>
+                            <div style="font-size:13px; color:var(--text-3); margin-bottom:4px;">Typical Electron-based editor <span style="font-family:var(--font-mono);">400–1200 MB installed</span></div>
                             <div style="height:12px; border-radius:6px; background:var(--surface-2); overflow:hidden;">
                                 <div style="height:100%; width:100%; border-radius:6px; background:var(--border-strong);"></div>
                             </div>
@@ -299,6 +299,64 @@
             </div>
         </section>
 
+        <!-- 2c. Benchmarks — measured, anonymized competitors, reproducible -->
+        <section id="benchmarks" data-od-id="section-benchmarks">
+            <div class="container">
+                <h2 style="font-size: 32px; margin-bottom: 16px;">Benchmarks — <span style="color: var(--accent);">measured</span>, not marketed</h2>
+                <p style="color: var(--text-2); max-width: 760px; margin-bottom: 40px;">
+                    We opened the same 25 Markdown documents in Mark and in three popular
+                    Electron-based editors, then added up every process each app owns.
+                    Editor identities are anonymized on purpose — the pattern, not the
+                    brand, is the point.
+                </p>
+
+                <div style="max-width: 900px; border: 1px solid var(--border); border-radius: 12px; overflow: hidden;">
+                    <!-- header row -->
+                    <div style="display:grid; grid-template-columns: 2.2fr 1.4fr 2fr 1.1fr; padding: 12px 20px; background: var(--surface-1); font-size: 12px; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.06em;">
+                        <div>Editor</div><div>Engine</div><div>RAM — 25 docs open</div><div>Installed</div>
+                    </div>
+
+                    <div style="display:grid; grid-template-columns: 2.2fr 1.4fr 2fr 1.1fr; padding: 14px 20px; border-top: 1px solid var(--border); font-size: 14px; align-items: center;">
+                        <div style="color: var(--text-2);">Agentic AI IDE</div>
+                        <div style="font-size: 13px; color: var(--text-3);">Electron</div>
+                        <div><div style="font-family: var(--font-mono); color: var(--text-2); margin-bottom: 4px;">2 313 MB</div><div style="height:8px; border-radius:4px; background:var(--surface-2);"><div style="height:100%; width:100%; border-radius:4px; background:var(--border-strong);"></div></div></div>
+                        <div style="font-family: var(--font-mono); color: var(--text-3);">676 MB</div>
+                    </div>
+
+                    <div style="display:grid; grid-template-columns: 2.2fr 1.4fr 2fr 1.1fr; padding: 14px 20px; border-top: 1px solid var(--border); font-size: 14px; align-items: center;">
+                        <div style="color: var(--text-2);">General code editor</div>
+                        <div style="font-size: 13px; color: var(--text-3);">Electron</div>
+                        <div><div style="font-family: var(--font-mono); color: var(--text-2); margin-bottom: 4px;">1 517 MB</div><div style="height:8px; border-radius:4px; background:var(--surface-2);"><div style="height:100%; width:66%; border-radius:4px; background:var(--border-strong);"></div></div></div>
+                        <div style="font-family: var(--font-mono); color: var(--text-3);">1 160 MB</div>
+                    </div>
+
+                    <div style="display:grid; grid-template-columns: 2.2fr 1.4fr 2fr 1.1fr; padding: 14px 20px; border-top: 1px solid var(--border); font-size: 14px; align-items: center;">
+                        <div style="color: var(--text-2);">Note-taking MD editor</div>
+                        <div style="font-size: 13px; color: var(--text-3);">Electron</div>
+                        <div><div style="font-family: var(--font-mono); color: var(--text-2); margin-bottom: 4px;">803 MB</div><div style="height:8px; border-radius:4px; background:var(--surface-2);"><div style="height:100%; width:35%; border-radius:4px; background:var(--border-strong);"></div></div></div>
+                        <div style="font-family: var(--font-mono); color: var(--text-3);">481 MB</div>
+                    </div>
+
+                    <div style="display:grid; grid-template-columns: 2.2fr 1.4fr 2fr 1.1fr; padding: 16px 20px; border-top: 1px solid var(--border-strong); font-size: 14px; align-items: center; background: var(--accent-soft);">
+                        <div style="color: var(--text-1); font-weight: 700;">Mark</div>
+                        <div style="font-size: 13px; color: var(--accent);">Native</div>
+                        <div><div style="font-family: var(--font-mono); color: var(--accent); font-weight: 700; margin-bottom: 4px;">113 MB</div><div style="height:8px; border-radius:4px; background:var(--surface-2);"><div style="height:100%; width:5%; border-radius:4px; background:linear-gradient(90deg, var(--accent-deep), var(--accent-bright));"></div></div></div>
+                        <div style="font-family: var(--font-mono); color: var(--text-2);">28 MB <span style="color:var(--text-3);">(11.7 dl)</span></div>
+                    </div>
+                </div>
+
+                <p style="font-size: 12px; color: var(--text-3); margin-top: 24px; max-width: 860px;">
+                    Method: Apple M5 · 32 GB · macOS 26.6, 2026-09-21. The same 25 Markdown
+                    documents (~54 KB) opened in every editor; Electron apps ran in fresh
+                    isolated profiles and RAM is the sum of all app-owned processes after a
+                    25 s settle. Mark renders through the system WebKit view — it owns no
+                    engine processes, which is precisely the point. Competitor names and
+                    logos are deliberately omitted. Reproduce it yourself:
+                    <span style="font-family: var(--font-mono);">tools/benchmark/editors-bench.sh</span> in the repo.
+                </p>
+            </div>
+        </section>
+
         <!-- 3. Feature Grid -->
         <section id="features" data-od-id="section-features">
             <div class="container">
@@ -309,7 +367,7 @@
                     <article class="card" data-od-id="feat-speed">
                         <svg class="icon-box" viewBox="0 0 24 24"><path d="M13 2L3 14h9v8l10-12h-9z"></path></svg>
                         <h3>Native Speed</h3>
-                        <p>11 MB on disk, ~61 MB RAM at idle, open in under a second. A whole editor smaller than a single browser tab.</p>
+                        <p>11 MB download, ~61 MB RAM at idle, open in under a second. A whole editor smaller than a single browser tab.</p>
                     </article>
 
                     <!-- Card 2 -->
