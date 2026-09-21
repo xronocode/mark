@@ -45,3 +45,11 @@ homebrew-mark/
 .DS_Store
 .opendesign-work/
 site/node_modules/
+
+# C-15 MAS signing material — must never be committed
+*.p12
+*.p8
+*.mobileprovision
+*.cer
+*.pem
+*.key

@@ -6762,6 +6762,10 @@
           src-tauri/Cargo.toml m016_updater
         </Command>
         <Command>npx vitest run tests/renderer/commands/updater.test.js</Command>
+        <Command>
+          cd src-tauri &amp;&amp; cargo check -q --no-default-features
+          --features app-store
+        </Command>
       </Commands>
       <Scenarios>
         <Scenario>scenario-1: Feed fetch: mock GitHub Releases response → emits Available(v).</Scenario>
@@ -6775,6 +6779,14 @@
         <Scenario>
           scenario-6: Default renderer capability grants `updater:default`; App
           Store capability does not.
+        </Scenario>
+        <Scenario>
+          scenario-7 (C-15): app-store feature set compiles with the updater
+          plugin compiled-in but unregistered; mt_updater_check returns the
+          disabled status rather than erroring. The plugin dependency MUST stay
+          non-optional — capabilities/default.json references `updater:default`
+          and tauri-build fails the whole build without the plugin in the tree
+          (2026-09-21 regression, fixed in 578f7fdb).
         </Scenario>
       </Scenarios>
       <Markers>
