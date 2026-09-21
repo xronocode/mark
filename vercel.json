@@ -1,0 +1,10 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "cd site && npm ci && npx vitepress build && cp landing/index.html .vitepress/dist/index.html",
+  "outputDirectory": "site/.vitepress/dist",
+  "installCommand": "true",
+  "cleanUrls": true,
+  "rewrites": [
+    { "source": "/mark/:path*", "destination": "/:path*" }
+  ]
+}
