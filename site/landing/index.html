@@ -208,10 +208,10 @@
                         Download for Mac
                     </a>
 
-                    <!-- Secondary KBD Chip -->
-                    <div class="btn-secondary" id="brew-chip" onclick="copyToClipboard(this)" data-od-id="chip-brew">
+                    <!-- Secondary KBD Chip — copies the full tap+install command -->
+                    <div class="btn-secondary" id="brew-chip" onclick="copyToClipboard(this)" data-copy="brew tap xronocode/mark && brew install --cask mark" data-copied="Copied ✓ — paste into Terminal" data-od-id="chip-brew" title="Copy to clipboard" style="cursor:pointer;">
                         <svg class="copy-icon" viewBox="0 0 24 24"><path d="M16 1H4v7h3v11h8V8h3V1z"></path></svg>
-                        brew install --cask mark
+                        brew tap xronocode/mark &amp;&amp; brew install --cask mark
                     </div>
                 </div>
 
@@ -531,7 +531,7 @@
                 <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:24px; max-width:960px;" class="qs-grid">
                     <div class="card" data-od-id="qs-1">
                         <div style="font-family:var(--font-mono); font-size:13px; color:var(--accent); margin-bottom:8px;">step 1 — install</div>
-                        <div style="font-family:var(--font-mono); font-size:14px; background:var(--surface-2); border:1px solid var(--border); border-radius:8px; padding:10px 12px; margin-bottom:8px;">brew install --cask mark</div>
+                        <div style="font-family:var(--font-mono); font-size:14px; background:var(--surface-2); border:1px solid var(--border); border-radius:8px; padding:10px 12px; margin-bottom:8px;">brew tap xronocode/mark &amp;&amp;<br>brew install --cask mark</div>
                         <p style="font-size:13px; color:var(--text-3); margin:0;">Or grab the DMG below — 11&nbsp;MB.</p>
                     </div>
                     <div class="card" data-od-id="qs-2">
@@ -559,7 +559,9 @@
                         <svg class="icon-box" viewBox="0 0 24 24"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.17 4 6.68 5.35 5.59 7.7l-3.04-.94c-.49-.15-.71.46-.4.78L9.04 15.2c.3.29.8.23.98-.18l1.9-5.5c.23-.66.98-.91 1.47-.58l3.96 2.8z"></path></svg>
                         <h3 style="margin-bottom: 8px;">Homebrew</h3>
                         <p style="font-size: 14px; color: var(--text-2); margin-bottom: 16px;">The easiest way to install and update.</p>
-                        <a href="#download" class="btn-secondary" onclick="copyToClipboard(event, 'brew tap xronocode/mark && brew install --cask mark')">Tap & Install</a>
+                        <div style="font-family:var(--font-mono); font-size:13px; background:var(--surface-2); border:1px solid var(--border); border-radius:8px; padding:10px 12px; margin-bottom:12px; word-break:break-all;">brew tap xronocode/mark &amp;&amp; brew install --cask mark</div>
+                        <a href="#download" class="btn-secondary" onclick="copyToClipboard(this); return false;" data-copy="brew tap xronocode/mark && brew install --cask mark" data-copied="Copied ✓" style="cursor:pointer;">Copy command</a>
+                        <p style="font-size: 12px; color: var(--text-3); margin-top: 10px; margin-bottom: 0;">Paste into Terminal and press Enter.</p>
                     </article>
 
                     <!-- Direct DMG -->
@@ -669,24 +671,22 @@
                     .catch(() => { stars.style.display = 'none'; });
             }
 
-            // 2. Copy to Clipboard Logic for the KBD Chip
-            function copyToClipboard(event, text) {
-                event.preventDefault(); // Stop anchor jump
-                
+            // 2. Copy-to-clipboard for command chips/buttons.
+            // Element opts in via data-copy="..."; optional data-copied="Copied ✓"
+            // swaps the visible label for ~1.6 s so the click has obvious feedback.
+            function copyToClipboard(el) {
+                const text = el.getAttribute('data-copy');
+                if (!text) return;
                 navigator.clipboard.writeText(text).then(() => {
-                    const chip = event.currentTarget;
-                    
-                    // Visual feedback: swap icon or change border
-                    if(chip.classList.contains('btn-secondary')) {
-                        chip.style.borderColor = 'var(--accent)';
-                        
-                        setTimeout(() => {
-                            chip.style.borderColor = 'var(--border-strong)';
-                        }, 1000);
+                    el.style.borderColor = 'var(--accent)';
+                    if (el.dataset.copied) {
+                        const orig = el.innerHTML;
+                        el.innerHTML = el.dataset.copied;
+                        setTimeout(() => { el.innerHTML = orig; el.style.borderColor = ''; }, 1600);
+                    } else {
+                        setTimeout(() => { el.style.borderColor = ''; }, 1200);
                     }
-                }).catch(err => {
-                    console.error("Failed to copy", err);
-                });
+                }).catch(err => console.error("Failed to copy", err));
             }
 
             // Initialize badge text if JS runs before fetch completes (race condition guard)
