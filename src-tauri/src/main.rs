@@ -110,6 +110,7 @@ mod m031_diff;
 mod m032_share;
 mod m013b;
 mod m045_ext;
+mod m047_bookmarks;
 mod m_v1_compat;
 mod mt_paths;
 
@@ -193,6 +194,8 @@ fn mt_drain_pending_opens(
     let watch = state.watch_mode.load(std::sync::atomic::Ordering::SeqCst);
     let diff = state.diff_mode.load(std::sync::atomic::Ordering::SeqCst);
     for path in &drained {
+        // C-15 T-M3: CLI/LaunchServices grant moment — bookmark it.
+        m047_bookmarks::remember(path);
         if let Err(e) = m_v1_compat::emit_open_new_tab_ext(&window, path, preview, watch, diff) {
             safe_eprintln!("[main][pending_opens][BLOCK_EMIT_FAILED path={path} err={e}]");
         } else {

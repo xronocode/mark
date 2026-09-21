@@ -56,6 +56,41 @@ where
     }
 }
 
+/// Durable data root for Mark (survives cache purges; security bookmarks
+/// live here per C-15 T-M3). Mirrors cache_root's env-resolution contract.
+///
+/// - macOS:   `$HOME/Library/Application Support/com.xronocode.mark`
+/// - Linux:   `$XDG_DATA_HOME/com.xronocode.mark` (fallback `$HOME/.local/share`)
+/// - Windows: `%APPDATA%\com.xronocode.mark\Data`
+pub fn data_root() -> Option<PathBuf> {
+    data_root_from_env(|k| std::env::var_os(k))
+}
+
+pub(crate) fn data_root_from_env<F>(env: F) -> Option<PathBuf>
+where
+    F: Fn(&str) -> Option<std::ffi::OsString>,
+{
+    #[cfg(target_os = "macos")]
+    {
+        env("HOME").map(|h| {
+            PathBuf::from(h)
+                .join("Library")
+                .join("Application Support")
+                .join(APP_BUNDLE_ID)
+        })
+    }
+    #[cfg(target_os = "linux")]
+    {
+        let xdg = env("XDG_DATA_HOME").map(PathBuf::from);
+        let fallback = env("HOME").map(|h| PathBuf::from(h).join(".local").join("share"));
+        xdg.or(fallback).map(|d| d.join(APP_BUNDLE_ID))
+    }
+    #[cfg(target_os = "windows")]
+    {
+        env("APPDATA").map(|d| PathBuf::from(d).join(APP_BUNDLE_ID).join("Data"))
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
