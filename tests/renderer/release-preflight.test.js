@@ -1,5 +1,5 @@
 // FILE: tests/renderer/release-preflight.test.js
-// VERSION: 2.3.0
+// VERSION: 2.4.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Verify exact release metadata/tag consistency, production workflow gates, updater-feed release classification, and Homebrew artifact routing for M-046.
 //   SCOPE: Pure mismatch tests, current-workspace integration, CLI marker evidence, and static release-workflow assertions.
@@ -10,12 +10,13 @@
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
-//   consistentEvidence - Complete v2.1.11-beta version fixture.
+//   consistentEvidence - Complete v2.1.12-beta version fixture.
 //   workspaceRoot - GRACE 4 synchronized symbol
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: 2026-09-17 v2.3.0 - advance the release fixture to the context-menu/plain-copy/migration-retirement release v2.1.11-beta (C-10, C-11, C-12, C-13).
+//   LAST_CHANGE: 2026-09-21 v2.4.0 - advance the release fixture to the live-reload-scroll/mas/e2e-gates release v2.1.12-beta (C-2 R-9, C-15 T-M1..T-M5, P0 proposals).
+//   PREVIOUS_LATEST: 2026-09-17 v2.3.0 - advance the release fixture to the context-menu/plain-copy/migration-retirement release v2.1.11-beta (C-10, C-11, C-12, C-13).
 //   PREVIOUS_LATEST: 2026-09-16 v2.2.0 - advance the release fixture to the tabs/titlebar/clipboard batch v2.1.10-beta (C-3, C-6, C-7, C-8, C-9).
 //   PREVIOUS_LATEST: 2026-08-18 v2.1.0 - advance the release fixture to live-doc v2 fix v2.1.9-beta.
 //   PREVIOUS_OLDER: 2026-08-10 v2.0.0 - advance the release fixture to the async-race hotfix v2.1.7-beta.
@@ -38,22 +39,22 @@ import {
 
 const workspaceRoot = resolve(import.meta.dirname, '../..')
 const consistentEvidence = {
-  packageJson: '2.1.11-beta',
-  packageLock: '2.1.11-beta',
-  packageLockRoot: '2.1.11-beta',
-  cargoWorkspace: '2.1.11-beta',
-  cargoLockMark: '2.1.11-beta',
-  tauriConfig: '2.1.11-beta'
+  packageJson: '2.1.12-beta',
+  packageLock: '2.1.12-beta',
+  packageLockRoot: '2.1.12-beta',
+  cargoWorkspace: '2.1.12-beta',
+  cargoLockMark: '2.1.12-beta',
+  tauriConfig: '2.1.12-beta'
 }
 
 // START_BLOCK_RELEASE_VERSION_TESTS
 describe('M-046 release version preflight', () => {
   it('accepts one exact metadata version and matching release tag', () => {
     expect(
-      validateVersionEvidence(consistentEvidence, 'v2.1.11-beta')
+      validateVersionEvidence(consistentEvidence, 'v2.1.12-beta')
     ).toEqual({
-      version: '2.1.11-beta',
-      tag: 'v2.1.11-beta',
+      version: '2.1.12-beta',
+      tag: 'v2.1.12-beta',
       sourceCount: 6
     })
   })
@@ -62,7 +63,7 @@ describe('M-046 release version preflight', () => {
     expect(() =>
       validateVersionEvidence(
         { ...consistentEvidence, packageLockRoot: '2.0.6-alpha' },
-        'v2.1.11-beta'
+        'v2.1.12-beta'
       )
     ).toThrowError(
       expect.objectContaining({
@@ -89,7 +90,7 @@ describe('M-046 release version preflight', () => {
   it('CLI emits the stable success marker for the target tag', () => {
     const result = spawnSync(
       process.execPath,
-      ['tools/release-preflight.mjs', '--tag', 'v2.1.11-beta'],
+      ['tools/release-preflight.mjs', '--tag', 'v2.1.12-beta'],
       { cwd: workspaceRoot, encoding: 'utf8' }
     )
 
