@@ -143,6 +143,7 @@
         /* Responsive Breakpoints */
         @media (max-width: 900px) {
             .feature-grid, .gallery-grid, .download-grid, .ai-flow { grid-template-columns: 1fr; gap: 48px; }
+            .qs-grid { grid-template-columns: 1fr !important; }
             .window-frame:nth-child(2n) { margin-top: 32px; } /* Stagger gallery */
         }
         
@@ -171,6 +172,8 @@
                 <a href="#features" class="nav-link" data-od-id="link-features">Features</a>
                 <a href="#screenshot" class="nav-link" data-od-id="link-screenshots">Screenshots</a>
                 <a href="#download" class="btn-primary" style="padding: 8px 18px; font-size: 14px;" data-od-id="nav-download">Download</a>
+                <!-- Live GitHub stars (filled from the repo API by the page script) -->
+                <a href="https://github.com/xronocode/mark/stargazers" target="_blank" rel="noopener noreferrer" id="gh-stars" data-od-id="nav-stars" style="font-size:13px; font-family:var(--font-mono); color:var(--text-2); border:1px solid var(--border-strong); border-radius:999px; padding:4px 12px;">★ …</a>
                 <!-- GitHub link relative as per brief -->
                 <a href="https://github.com/xronocode/mark" target="_blank" rel="noopener noreferrer" class="nav-link" style="font-size: 18px;" aria-label="Open on GitHub" data-od-id="link-github">
                     <!-- Simple SVG for GitHub icon -->
@@ -211,6 +214,13 @@
                         brew install --cask mark
                     </div>
                 </div>
+
+                <!-- Trust + platform microcopy right at the decision point -->
+                <p style="font-size:13px; color:var(--text-3); margin:10px 0 0;" data-od-id="hero-micro">
+                    <span style="color:var(--text-2); font-weight:600;">Free &amp; open source · MIT</span>
+                    — no account, no telemetry.<br>
+                    Builds for Apple Silicon; Intel Macs — <a href="https://github.com/xronocode/mark#readme" style="color:var(--accent); text-decoration:underline;">build from source</a>.
+                </p>
 
                 <!-- Size stat strip — proof, right under the buttons -->
                 <div data-od-id="hero-stats" style="display:flex; gap:40px; flex-wrap:wrap; margin:24px 0 8px;">
@@ -452,6 +462,33 @@
             </div>
         </section>
 
+        <!-- 5b. Quick Start — 60 seconds to first render -->
+        <section id="quickstart" data-od-id="section-quickstart">
+            <div class="container">
+                <h2 style="font-size: 32px; margin-bottom: 16px;">60 seconds to first render</h2>
+                <p style="color: var(--text-2); max-width: 720px; margin-bottom: 40px;">
+                    No account, no wizard, no import. If you live in the terminal, Mark starts there too.
+                </p>
+                <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:24px; max-width:960px;" class="qs-grid">
+                    <div class="card" data-od-id="qs-1">
+                        <div style="font-family:var(--font-mono); font-size:13px; color:var(--accent); margin-bottom:8px;">step 1 — install</div>
+                        <div style="font-family:var(--font-mono); font-size:14px; background:var(--surface-2); border:1px solid var(--border); border-radius:8px; padding:10px 12px; margin-bottom:8px;">brew install --cask mark</div>
+                        <p style="font-size:13px; color:var(--text-3); margin:0;">Or grab the DMG below — 11&nbsp;MB.</p>
+                    </div>
+                    <div class="card" data-od-id="qs-2">
+                        <div style="font-family:var(--font-mono); font-size:13px; color:var(--accent); margin-bottom:8px;">step 2 — open</div>
+                        <div style="font-family:var(--font-mono); font-size:14px; background:var(--surface-2); border:1px solid var(--border); border-radius:8px; padding:10px 12px; margin-bottom:8px;">mark notes.md</div>
+                        <p style="font-size:13px; color:var(--text-3); margin:0;">From Finder or the terminal. Add <span style="font-family:var(--font-mono);">--watch</span> to live-reload on external edits.</p>
+                    </div>
+                    <div class="card" data-od-id="qs-3">
+                        <div style="font-family:var(--font-mono); font-size:13px; color:var(--accent); margin-bottom:8px;">step 3 — done</div>
+                        <div style="font-size:14px; color:var(--text-2); margin-bottom:8px;">Rich Markdown, rendered. Themes, sidebar and search are one menu away.</div>
+                        <p style="font-size:13px; color:var(--text-3); margin:0;">Full tour in the <a href="/mark/guide/quickstart.html" style="color:var(--accent); text-decoration:underline;">Quick Start guide</a>.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
         <!-- 6. Download Section -->
         <section id="download" data-od-id="section-download">
             <div class="container">
@@ -473,6 +510,7 @@
                         <p style="font-size: 14px; color: var(--text-2); margin-bottom: 16px;">Drag and drop. No dependencies.</p>
                         <!-- Link to latest release asset -->
                         <a href="https://github.com/xronocode/mark/releases/latest" class="btn-primary" id="dmg-download">Download .dmg</a>
+                        <p style="font-size: 12px; color: var(--text-3); margin-top: 10px; margin-bottom: 0;">Apple Silicon build · Intel — <a href="https://github.com/xronocode/mark#readme" style="color:var(--accent);">from source</a></p>
                     </article>
 
                     <!-- Coming Soon -->
@@ -553,6 +591,19 @@
                     // Fallback if fetch fails (e.g., offline or network hiccup)
                     badge.textContent = "2.1.x beta";
                 });
+
+            // 1b. Live GitHub stars in the nav (same API, separate cheap call)
+            const stars = document.getElementById('gh-stars');
+            if (stars) {
+                fetch('https://api.github.com/repos/xronocode/mark')
+                    .then(res => res.json())
+                    .then(repo => {
+                        if (repo && typeof repo.stargazers_count === 'number') {
+                            stars.textContent = "★ " + repo.stargazers_count.toLocaleString('en-US');
+                        }
+                    })
+                    .catch(() => { /* keep the placeholder dot */ });
+            }
 
             // 2. Copy to Clipboard Logic for the KBD Chip
             function copyToClipboard(event, text) {
