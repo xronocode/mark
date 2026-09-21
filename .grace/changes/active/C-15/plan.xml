@@ -176,6 +176,28 @@
     </P-M>
   </ImplementationPlan>
   <ReviewLog>
+    <Review number="1" date="2026-09-21" verdict="green-partial" task="T-M2">
+      <Findings>
+        Automated sandbox dry-run, debug app-store build (features app-store,
+        mas.conf.json overlay), ad-hoc re-signed with Entitlements.plist
+        (codesign -d verified: app-sandbox, user-selected RW, network
+        client+server embedded). Scenarios on macOS 26.6 / M5:
+        (1) LaunchServices open with document — process alive (122 MB),
+        ZERO sandbox denies; (2) bare relaunch — ZERO denies; container
+        ~/Library/Containers/com.xronocode.mark holds persisted prefs
+        (recentDocuments[0]=sandbox-test.md) and .window-state.json;
+        (3) external edit of the open document — app alive, watcher silent,
+        ZERO denies. Residual risk NOT covered by this run: macOS
+        LaunchServices recent-document grants expire (~days) — long-term
+        re-access needs T-M3 security-scoped bookmarks; live-server and
+        renderer-level QA (re-render with cursor, themes) need a GUI
+        session (CUA accessibility currently denied) — fold into T-M3
+        verification. Hygiene: leak scan of tracked files clean (one
+        doc-format false positive); .gitignore now blocks signing
+        material (*.p12/*.p8/*.mobileprovision/*.cer/*.pem/*.key);
+        grace lint 0 errors (bench script map-mode fixed).
+      </Findings>
+    </Review>
   </ReviewLog>
 </C-15>
 </GraceChangePlan>
