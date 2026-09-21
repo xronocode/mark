@@ -677,7 +677,7 @@
             function copyToClipboard(el) {
                 const text = el.getAttribute('data-copy');
                 if (!text) return;
-                navigator.clipboard.writeText(text).then(() => {
+                const ok = () => {
                     el.style.borderColor = 'var(--accent)';
                     if (el.dataset.copied) {
                         const orig = el.innerHTML;
@@ -686,7 +686,22 @@
                     } else {
                         setTimeout(() => { el.style.borderColor = ''; }, 1200);
                     }
-                }).catch(err => console.error("Failed to copy", err));
+                };
+                const fallback = () => {
+                    // Older/stricter contexts: hidden textarea + execCommand
+                    const ta = document.createElement('textarea');
+                    ta.value = text;
+                    ta.style.cssText = 'position:fixed;opacity:0;pointer-events:none';
+                    document.body.appendChild(ta);
+                    ta.select();
+                    try { document.execCommand('copy'); ok(); } catch (e) { console.error("Failed to copy", e); }
+                    ta.remove();
+                };
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(text).then(ok, fallback);
+                } else {
+                    fallback();
+                }
             }
 
             // Initialize badge text if JS runs before fetch completes (race condition guard)
