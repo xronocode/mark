@@ -366,12 +366,6 @@ pub async fn mt_search_spawn(
 ) -> Result<(), IpcError> {
     let cmd = "mt::search::spawn";
 
-    #[cfg(feature = "app-store")]
-    {
-        let _ = (&search_id, &mode, &directories, &pattern, &options, &sec, &registry, &app);
-        return Err(IpcError::not_implemented(cmd, "app-store: ripgrep unavailable"));
-    }
-
     let _ = mode;
     let opts = options.unwrap_or_default();
     let sandbox = sec.sandbox();
@@ -384,6 +378,13 @@ pub async fn mt_search_spawn(
             .map_err(|e| IpcError::from_security_path(cmd, e))?;
         validated_roots.push(v);
     }
+
+    // C-15 T-M4: App Store builds spawn no binaries — the same wire
+    // contract streams from an in-process ignore+regex walker instead.
+    #[cfg(feature = "app-store")]
+    let in_process = true;
+    #[cfg(not(feature = "app-store"))]
+    let in_process = false;
 
     let cancel = registry.insert(&search_id);
     let sink: Arc<dyn SearchSink> = Arc::new(TauriSearchSink { app: app.clone() });
@@ -406,15 +407,35 @@ pub async fn mt_search_spawn(
             if cancel.load(Ordering::SeqCst) {
                 break;
             }
-            match run_ripgrep(
-                &search_id_for_thread,
-                root,
-                &pattern,
-                &opts,
-                cancel.clone(),
-                sink.clone(),
-                seq,
-            ) {
+            // C-15 T-M4: app-store builds use the in-process run_search
+            // walker (no spawned binaries); desktop keeps the rg shellout.
+            // run_search emits its own terminal "cancelled"/"complete"
+            // event, so the thread-level completion below is desktop-only
+            // and guarded to keep the wire contract identical.
+            let result: Result<(u32, u32), String> = if in_process {
+                match run_search(
+                    &search_id_for_thread,
+                    root,
+                    &pattern,
+                    &opts,
+                    cancel.clone(),
+                    sink.clone(),
+                ) {
+                    Ok(hits) => Ok((hits, seq)),
+                    Err(e) => Err(e.message),
+                }
+            } else {
+                run_ripgrep(
+                    &search_id_for_thread,
+                    root,
+                    &pattern,
+                    &opts,
+                    cancel.clone(),
+                    sink.clone(),
+                    seq,
+                )
+            };
+            match result {
                 Ok((hits, last_seq)) => {
                     total_hits += hits;
                     seq = last_seq;
@@ -455,6 +476,13 @@ pub async fn mt_search_spawn(
     Ok(())
 }
 
+// START_CONTRACT: run_ripgrep
+//   PURPOSE: Execute the production rg binary and stream normalized match batches.
+//   INPUTS: { search_id: &str, root: &Path, pattern: &str, opts: &SearchOptions, cancel: Arc<AtomicBool>, sink: Arc<dyn SearchSink>, starting_seq: u32 }
+//   OUTPUTS: { Result<(u32, u32), String> - total hits and last sequence, or a stable spawn/stream error }
+//   SIDE_EFFECTS: Spawns and waits for an rg child process; emits match events through sink.
+//   LINKS: M-004, V-M-004
+// END_CONTRACT: run_ripgrep
 // START_CONTRACT: run_ripgrep
 //   PURPOSE: Execute the production rg binary and stream normalized match batches.
 //   INPUTS: { search_id: &str, root: &Path, pattern: &str, opts: &SearchOptions, cancel: Arc<AtomicBool>, sink: Arc<dyn SearchSink>, starting_seq: u32 }
@@ -630,6 +658,7 @@ fn run_ripgrep_with_program(
     let _ = pattern_len; // reserved for future range-end calc
     Ok((total, seq))
 }
+
 
 /// Cancel an in-flight search by id. Idempotent — calling on a non-
 /// existent id is OK.
