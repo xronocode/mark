@@ -1,0 +1,223 @@
+<GraceChangePlan graceVersion='4.0' status='approved'>
+<C-17>
+  <Name>Markdown hygiene: markdownlint-subset validation + Format document (matrix P0-A/P0-B)</Name>
+  <Created>2026-09-22</Created>
+
+  <IntentSummary>
+    Flag and fix agent-grade markdown: a pure line-oriented validator
+    (MD001/003/009/025/032/040) feeds a bus-toggled problems panel with
+    click-to-jump; a pure idempotent formatter (whitespace, blank-line
+    structure, setext→atx, heading-cascade demotion) runs as one undoable
+    Format-document command (Shift+Alt+F); code contents, links, and text
+    semantics are never touched; no new dependencies.
+  </IntentSummary>
+
+  <BaselineAssertions>
+    <MustContain>
+      <File>src/renderer/src/components/projectSearch/index.vue</File>
+      <Text>bus.on('projectSearch', toggle)</Text>
+    </MustContain>
+    <MustContain>
+      <File>src/renderer/src/commands/index.js</File>
+      <Text>edit.find-in-folder</Text>
+    </MustContain>
+  </BaselineAssertions>
+
+  <TargetAssertions>
+    <MustContain>
+      <File>src/renderer/src/util/markdownLint.js</File>
+      <Text>START_BLOCK_LINT_RULES</Text>
+    </MustContain>
+    <MustContain>
+      <File>src/renderer/src/util/markdownFormat.js</File>
+      <Text>START_BLOCK_FORMAT_DOCUMENT</Text>
+    </MustContain>
+    <MustContain>
+      <File>tests/renderer/util/markdown-hygiene.test.js</File>
+      <Text>markdownLint</Text>
+    </MustContain>
+  </TargetAssertions>
+
+  <DurableScope>
+    <M-011/>
+  </DurableScope>
+
+  <ObservedWriteScope>
+    <File>src/renderer/src/util/markdownLint.js</File>
+    <File>src/renderer/src/util/markdownFormat.js</File>
+    <File>src/renderer/src/components/problems/index.vue</File>
+    <File>src/renderer/src/components/editorWithTabs/editor.vue</File>
+    <File>src/renderer/src/commands/index.js</File>
+    <File>src/renderer/src/commands/descriptions.js</File>
+    <File>src/renderer/src/store/preferences.js</File>
+    <File>src/renderer/src/pages/app.vue</File>
+    <File>static/locales/en.json</File>
+    <File>static/locales/en.min.json</File>
+    <File>src-tauri/src/m009_menu.rs</File>
+    <File>tests/renderer/util/markdown-hygiene.test.js</File>
+    <File>tests/renderer/components/problems.test.js</File>
+    <File>tests/renderer/components/editor-coverage.test.js</File>
+    <File>tests/renderer/commands/index-deep.test.js</File>
+    <File>tests/renderer/commands/menu-consistency.test.js</File>
+    <File>tests/e2e/markdown-hygiene.spec.ts</File>
+  </ObservedWriteScope>
+
+  <ImplementationPlan>
+    <T-001>
+      <Title>W1: markdownLint.js — pure rule subset over text lines</Title>
+      <DependsOn></DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>MD001 heading jumps, MD003 setext/atx mix, MD009
+        trailing whitespace (outside code), MD025 multiple H1, MD032
+        missing blank lines around headings/lists, MD040 fenced code
+        without language. Table-driven per-rule fixtures: fires and
+        non-fires; fenced-code contents ignored by every rule.</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>npx vitest run tests/renderer/util/markdown-hygiene.test.js</Command>
+      </Verification>
+    </T-001>
+
+    <T-002>
+      <Title>W1: markdownFormat.js — pure idempotent formatter</Title>
+      <DependsOn>T-001</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>Fixes MD009/MD032/MD003/MD001 (demote jumps to
+        parent+1); code-block contents verbatim; idempotence fixture
+        (format∘format = format); semantics fixtures (links, inline code,
+        text) unchanged; no-op returns null so the command skips history
+        churn.</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>npx vitest run tests/renderer/util/markdown-hygiene.test.js</Command>
+      </Verification>
+    </T-002>
+
+    <T-003>
+      <Title>W2: problems panel + editor wiring + preference</Title>
+      <DependsOn>T-001</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>components/problems/index.vue (projectSearch overlay
+        pattern): bus 'problems' toggles; lists {rule, line, excerpt};
+        click jumps via bus scroll-to-header slug when the line is in/near
+        a heading, else no-op; preference markdownLint (default true)
+        gates recomputation; editor.vue change handler emits debounced
+        'doc-markdown-changed'; 'view.problems' + 'view.toggle-markdown-lint'
+        palette commands.</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>npx vitest run tests/renderer/components/problems.test.js</Command>
+      </Verification>
+    </T-003>
+
+    <T-004>
+      <Title>W2: Format document command + one-step undo</Title>
+      <DependsOn>T-002</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>'edit.format-document' (Shift+Alt+F, native Edit-menu
+        entry) → bus 'formatDocument' → editor.vue handler: no-op when the
+        formatter returns null; otherwise setMarkdown(formatted, null,
+        false) — muya's own cursor-setter history push leaves ONE native
+        undo step back to the original (real-muya undo pin in
+        markdown-hygiene.test.js); component tests pin the call args and
+        the no-op path.</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>npx vitest run tests/renderer/components/editor-coverage.test.js</Command>
+      </Verification>
+    </T-004>
+
+    <T-005>
+      <Title>W3: verification + graph deltas</Title>
+      <DependsOn>T-003, T-004</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>V-M-011 scenario (problems panel + format command) with
+        commands incl. the new e2e; graph entries for the new util modules
+        and problems component; grace lint zero findings on changed files.</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>grace lint --path . --assertions current</Command>
+      </Verification>
+    </T-005>
+
+    <T-006>
+      <Title>W3: e2e visual gate</Title>
+      <DependsOn>T-005</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>Playwright: a fixture with a heading jump + trailing
+        spaces shows the problems panel with MD001/MD009 entries (toggle
+        via bus); the format command re-renders the document with the
+        issues gone and the panel empty; idempotent second format is a
+        no-op.</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>npx playwright test tests/e2e/markdown-hygiene.spec.ts</Command>
+      </Verification>
+    </T-006>
+
+    <T-007>
+      <Title>W4: gates + two sequential reviews</Title>
+      <DependsOn>T-006</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>Full vitest green, CI-mode coverage thresholds green,
+        full e2e green; review-1 (correctness/edge cases — formatter
+        idempotence, code-block preservation, history composition) and
+        review-2 (security/contracts — no untrusted-input surface, GRACE
+        consistency) both CLEAN.</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>npm run test:coverage; review verdicts in Evidence.</Command>
+      </Verification>
+    </T-007>
+  </ImplementationPlan>
+
+  <ReviewProtocol>
+    <Review-1>
+      <Angle>correctness, edge cases (formatter idempotence, fenced-code preservation, history-stack composition, cursor handling)</Angle>
+      <PassCriteria>zero findings on changed code</PassCriteria>
+    </Review-1>
+    <Review-2>
+      <Angle>security (no untrusted input paths), GRACE contract/graph/verification consistency, regression risk</Angle>
+      <PassCriteria>zero findings; contracts match shipped behavior</PassCriteria>
+    </Review-2>
+  </ReviewProtocol>
+
+  <Evidence>
+    <Gates>
+      Scoped: 5 files / 284 tests green (hygiene incl. real-muya one-step
+      undo, problems panel, editor-coverage format cases, commands deep +
+      menu-consistency with the native Edit-menu pin). Full e2e 64 passed /
+      1 skipped (markdown-hygiene gate incl. store-markdown-equality
+      idempotence pin). Full vitest isolation run: see Reviews line for the
+      final verdict context. cargo check green after the m009_menu addition.
+    </Gates>
+    <Coverage>
+      Scoped zero uncovered lines on markdownLint.js / markdownFormat.js /
+      problems wiring in CI-mode runs; global thresholds at baseline.
+    </Coverage>
+    <Reviews>
+      Review-1 (correctness/edge-cases): NEEDS-FIXES round-1 — 1 BLOCKER
+      (front matter destroyed by format), 4 MAJOR (setext lookalikes,
+      fence closer desync, MD032 lint/format divergence, lazy-continuation
+      splitting; palette raw keys; toggle staleness; missing graph module
+      entries), 6 MINOR/NIT. ALL FIXED in-session: front matter opaque in
+      both modules; setext excludes blockquotes/thematic breaks; closesFence
+      (char+length+no-info); MD032 fence exemption; after-list blanks only
+      before headings/fences; nested palette i18n keys; watch(lintEnabled)
+      clears/re-lints; M-049/050/051 + V-M-049/050/051 + graph/index
+      entries; headingSlugForLine includes the issue's own heading;
+      common.close key; lint snapshot {id, markdown} captured at event
+      time; en.min.json regenerated; ESC-to-close; e2e no-op pinned on
+      store markdown equality.
+      Review-2 (security/contracts): NEEDS-FIXES round-1 — 2 MAJOR
+      governance (missing markdown-hygiene e2e command in V-M-011;
+      M-014/V-M-014 misrouting), 5 MINOR/NIT — ALL FIXED (command added +
+      scenario-30 reordered; M-011-only AffectedAreas/DurableScope; T-004
+      rewritten to the native-history reality; ObservedWriteScope
+      completed; squiggle-wording purged). Security surface verified clean
+      by the reviewer (no eval/HTML injection; slug-only jump; standard
+      preference persistence).
+    </Reviews>
+  </Evidence>
+</C-17>
+</GraceChangePlan>

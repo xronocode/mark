@@ -21,6 +21,7 @@
 //   TrailingNewlineCommand - GRACE 4 synchronized symbol
 //   default - GRACE 4 synchronized symbol
 //   getCommandsWithDescriptions - GRACE 4 synchronized symbol
+//   applyCapabilityGate - T-M5 build-mode gate: prunes disabled commands from the registry at boot.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
@@ -307,6 +308,16 @@ const commands = [
     shortcut: [isOsx ? 'Cmd' : 'Ctrl', 'Shift', 'F'],
     execute: async () => {
       bus.emit('projectSearch')
+    }
+  },
+  {
+    // C-17: canonicalize the document (whitespace, blank lines, setext→ATX,
+    // heading cascade); one undo restores the original. Cmd/Ctrl+Shift+F is
+    // taken by find-in-folder, so this mirrors the VS Code Shift+Alt+F.
+    id: 'edit.format-document',
+    shortcut: ['Shift', 'Alt', 'F'],
+    execute: async () => {
+      focusEditorAndExecute(() => bus.emit('formatDocument'))
     }
   },
   {
@@ -728,6 +739,24 @@ const commands = [
     id: 'view.toggle-tabbar',
     execute: async () => {
       bus.emit('view:toggle-layout-entry', 'showTabBar')
+    }
+  },
+  {
+    // C-17: markdownlint-subset problems overlay (click-to-jump list).
+    id: 'view.problems',
+    execute: async () => {
+      bus.emit('problems')
+    }
+  },
+  {
+    // C-17: enable/disable validation; off clears the recomputation gate.
+    id: 'view.toggle-markdown-lint',
+    execute: async () => {
+      const preferencesStore = usePreferencesStore()
+      await preferencesStore.SET_SINGLE_PREFERENCE({
+        type: 'markdownLint',
+        value: !preferencesStore.markdownLint
+      })
     }
   },
 

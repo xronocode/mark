@@ -1,3 +1,26 @@
+// FILE: tests/renderer/commands/index-deep.test.js
+// VERSION: 1.1.0
+// START_MODULE_CONTRACT
+//   PURPOSE: Deep-coverage tests for the commands registry (execute paths, subcommands, accelerators).
+//   SCOPE: Mocked bus/stores/i18n; registry introspection via findCmd.
+//   DEPENDS: Vitest, @/commands/index, mocked stores/bus/i18n.
+//   LINKS: .grace/verification/runtime.xml V-M-014; C-3, C-12, C-17.
+//   ROLE: TEST
+//   MAP_MODE: LOCALS
+// END_MODULE_CONTRACT
+//
+// START_MODULE_MAP
+//   deepNotifyMock - Hoisted notification mock.
+//   editorStoreMock - Editor store stub used by command executes.
+//   setSinglePreferenceMock - Preferences setter capture.
+//   preferencesStoreMock - Preferences store stub (incl. markdownLint for C-17).
+//   findCmd - Registry lookup by command id.
+// END_MODULE_MAP
+//
+// START_CHANGE_SUMMARY
+//   LAST_CHANGE: 2026-09-22 v1.1.0 - C-17: edit.format-document (Shift+Alt+F), view.problems, view.toggle-markdown-lint registry cases.
+// END_CHANGE_SUMMARY
+
 /**
  * Deep coverage tests for src/renderer/src/commands/index.js
  *
@@ -48,10 +71,12 @@ vi.mock('@/util', () => ({
 }))
 
 const setSinglePreferenceMock = vi.fn()
+const preferencesStoreMock = {
+  markdownLint: true,
+  SET_SINGLE_PREFERENCE: setSinglePreferenceMock
+}
 vi.mock('@/store/preferences', () => ({
-  usePreferencesStore: () => ({
-    SET_SINGLE_PREFERENCE: setSinglePreferenceMock
-  })
+  usePreferencesStore: () => preferencesStoreMock
 }))
 
 vi.mock('@/commands/utils', () => ({
@@ -234,6 +259,27 @@ describe('commands/index — deep coverage', () => {
       await findCmd('edit.find-in-folder').execute()
       expect(bus.emit).toHaveBeenCalledWith('projectSearch')
     })
+
+    // START_BLOCK_C17_COMMAND_TESTS
+    it('edit.format-document emits formatDocument with the Shift+Alt+F accelerator (C-17)', () => {
+      const cmd = findCmd('edit.format-document')
+      expect(cmd.shortcut).toEqual(['Shift', 'Alt', 'F'])
+      cmd.execute()
+      vi.advanceTimersByTime(200)
+      expect(bus.emit).toHaveBeenCalledWith('formatDocument')
+    })
+
+    it('view.problems emits problems (C-17)', async () => {
+      await findCmd('view.problems').execute()
+      expect(bus.emit).toHaveBeenCalledWith('problems')
+    })
+
+    it('view.toggle-markdown-lint flips the preference (C-17)', async () => {
+      preferencesStoreMock.markdownLint = true
+      await findCmd('view.toggle-markdown-lint').execute()
+      expect(setSinglePreferenceMock).toHaveBeenCalledWith({ type: 'markdownLint', value: false })
+    })
+    // END_BLOCK_C17_COMMAND_TESTS
 
     it('edit.copy-as-html emits copyAsHtmlRich after delay (C-3)', () => {
       findCmd('edit.copy-as-html').execute()
