@@ -1,0 +1,136 @@
+<GraceChangeSpec graceVersion='4.0' status='approved'>
+<C-16>
+  <Name>Agent-output paste hygiene: smart paste + clipboard image paste (matrix P0-C/P0-D)</Name>
+  <Created>2026-09-21</Created>
+  <Priority>high</Priority>
+  <Status>approved-for-implementation</Status>
+
+  <Summary>
+    Two small paste-pipeline gaps from docs/research/markdown-feature-matrix.md
+    P0 list. P0-D smart paste: pasting a URL over a selection wraps it as
+    [text](url); pasting rich HTML converts it to markdown via the already
+    bundled turndown + joplin-turndown-plugin-gfm (deps verified in
+    package.json). P0-C clipboard image paste: restoring the v1 ability to
+    paste a screenshot bitmap from the clipboard into the document as a
+    local file + relative link — today only file-path clipboard entries
+    work (guessClipboardFilePath reads NSFilenamesPboardType/FileNameW);
+    bitmap data needs a backend NSPasteboard image reader via
+    core-foundation (same raw-sys lane as C-15 bookmarks).
+  </Summary>
+
+  <Problem>
+    <Description>
+      Agents and users paste URLs, rich HTML, and screenshots into Mark.
+      Today: a URL paste over a selection discards the selection; rich HTML
+      pastes as flattened text or noisy markup; a screenshot bitmap pastes
+      as nothing (only Finder-copied file paths are handled by muya's
+      clipboardFilePath option).
+    </Description>
+    <RootCause>
+      src/muya/lib/contentState/pasteCtrl.js handles plain text, markdown
+      text, and clipboardFilePath images, but has no URL-on-selection
+      branch and no HTML branch; the Tauri port has no clipboard image
+      bitmap reader at all (v1 Electron read NSPasteboard image data in the
+      main process; that code was not ported).
+    </RootCause>
+    <Evidence>
+      pasteCtrl.js:137-175 (imagePath branch only);
+      src/renderer/src/util/clipboard.js guessClipboardFilePath
+      (NSFilenamesPboardType/FileNameW — file paths, not bitmaps);
+      package.json deps turndown@^7.2.2 + joplin-turndown-plugin-gfm
+      present; editor.vue imageAction pipeline (line 615, 1594) already
+      accepts a file path and applies move-to-folder/upload behavior.
+    </Evidence>
+  </Problem>
+
+  <Goals>
+    <R-1>
+      P0-D URL smart paste: when the clipboard holds a bare http(s) URL —
+      including the bare-host form ("https://github.com") that URL_REG's
+      mandatory /path rejects — and the editor has a non-empty single-block
+      selection, paste replaces the selection with [selected text](url);
+      brackets in the selection are escaped so they cannot break the link
+      syntax. mailto: stays out of scope (SMART_PASTE_URL_REG is http(s)
+      only). Cursor lands after the link. With an empty selection,
+      behavior is unchanged (plain URL text).
+    </R-1>
+    <R-2>
+      P0-D HTML paste (amended): pin and harden the EXISTING html2State
+      paste path — adversarial fixtures prove script/style/on* attributes
+      never survive standardizeHTML's DOMPurify pass, and rich fixtures
+      (headings/bold/links/lists/tables) convert to the expected markdown
+      blocks. The working path is not replaced — its existing internal html2State→turndown conversion keeps doing the work; no NEW turndown step is added.
+    </R-2>
+    <R-3>
+      P0-C bitmap paste (amended): pin the EXISTING pipeline — pasteImage's
+      clipboardData.items branch (File → base64 preview → imageAction →
+      move-to-folder/relative src) — with unit + Chromium e2e coverage
+      (synthetic clipboard File), plus one live-app smoke proving a real
+      screenshot paste lands as a local file + link in WKWebView. The Rust
+      NSPasteboard reader is a deferred non-goal unless the smoke fails.
+    </R-3>
+    <R-4>
+      No regression to the three existing paste behaviors: plain text,
+      markdown source paste (multi-line block handling), and Finder
+      file-path image paste — pinned by new unit tests plus existing
+      coverage.
+    </R-4>
+  </Goals>
+
+  <Constraints>
+    <Constraint>
+      No new npm runtime dependencies (turndown/dompurify already bundled).
+      Rust side may use core-foundation only (already a dependency for
+      C-15).
+    </Constraint>
+    <Constraint>
+      All clipboard reads happen on explicit user paste (Cmd+V / context
+      menu Paste) — no background clipboard polling.
+    </Constraint>
+    <Constraint>
+      Sanitization before turndown (DOMPurify) — clipboard HTML is
+      untrusted input; no script/style/event-handler survival.
+    </Constraint>
+    <Constraint>
+      Scoped 100% line+branch coverage of changed pasteCtrl/clipboard code
+      paths; e2e visual gates for URL-paste and image-paste happy paths via
+      the tauri-shim (clipboard mocked); grace lint zero findings.
+    </Constraint>
+  </Constraints>
+
+  <NonGoals>
+    <NonGoal>Clipboard history UI, paste-preview popups, or paste-and-match-style menu plumbing beyond reusing existing entries.</NonGoal>
+    <NonGoal>Linux/Windows clipboard image backends (macOS-only product phase).</NonGoal>
+    <NonGoal>Image editing/compression of pasted bitmaps (existing imageAction behavior applies as-is).</NonGoal>
+  </NonGoals>
+
+  <AcceptanceCriteria>
+    <Criterion>Unit: URL-on-selection → [text](url); URL with empty selection → plain text; HTML → sanitized markdown via turndown; plain/markdown paste paths unchanged.</Criterion>
+    <Criterion>Unit + e2e: pasteImage items branch converts a synthetic clipboard File into an image block with a local relative src (imageAction path exercised); WKWebView smoke evidence recorded in the plan Evidence section.</Criterion>
+    <Criterion>E2e (Playwright + tauri-shim): pasting HTML produces the markdown equivalent and hostile HTML yields no live markup; URL-over-selection and image paste are unit-pinned (muya cursor model is not synthetic-event-drivable) plus WKWebView live-app smoke checklist entries.</Criterion>
+    <Criterion>Full suite green; two sequential reviews (correctness/races, security/contracts — clipboard HTML is untrusted input) both clean.</Criterion>
+  </AcceptanceCriteria>
+
+  <AffectedAreas>
+    <M-012>muya pasteCtrl: URL/HTML smart-paste branches (pasteCtrl.js)</M-012>
+    <M-011>editor.vue clipboard option wiring for image bytes path</M-011>
+  </AffectedAreas>
+
+  <VerificationIntent>
+    Unit: muya pasteCtrl table-driven tests (URL/plain/image branches,
+    adversarial sanitization fixtures) in
+    tests/renderer/muya/paste-smart.test.js. Visual:
+    tests/e2e/smart-paste.spec.ts (HTML conversion + hostile markup).
+    WKWebView live-app smoke checklist: real Cmd+V URL-over-selection and
+    screenshot bitmap paste. Governance: V-M-012 scenario-15 + command
+    wiring at implementation time.
+  </VerificationIntent>
+
+  <Approval>
+    <ApprovedBy>user (session 2026-09-21): "кати релиз потом 2" — approve C-16 (smart paste + clipboard image paste) for implementation</ApprovedBy>
+    <ApprovalScope>
+      Paste-pipeline additions only; no editor architecture changes.
+    </ApprovalScope>
+  </Approval>
+</C-16>
+</GraceChangeSpec>

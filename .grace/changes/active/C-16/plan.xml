@@ -1,0 +1,165 @@
+<GraceChangePlan graceVersion='4.0' status='approved'>
+<C-16>
+  <Name>Agent-output paste hygiene: smart paste + clipboard image paste (matrix P0-C/P0-D)</Name>
+  <Created>2026-09-21</Created>
+
+  <IntentSummary>
+    Make pasting agent-grade content first-class: URLs (incl. bare hosts)
+    over a selection become markdown links with escaped labels, rich HTML
+    keeps converting through the existing sanitized html2State path
+    (adversarially pinned), and the existing clipboard-bitmap pipeline is
+    pinned and smoke-verified in WKWebView — with the Rust NSPasteboard
+    reader deferred unless that smoke fails, and no regression to the
+    three existing paste behaviors.
+  </IntentSummary>
+
+  <BaselineAssertions>
+    <MustContain>
+      <File>src/muya/lib/contentState/pasteCtrl.js</File>
+      <Text>clipboardFilePath</Text>
+    </MustContain>
+    <MustContain>
+      <File>src/renderer/src/util/clipboard.js</File>
+      <Text>guessClipboardFilePath</Text>
+    </MustContain>
+    <MustContain>
+      <File>package.json</File>
+      <Text>turndown</Text>
+    </MustContain>
+  </BaselineAssertions>
+
+  <TargetAssertions>
+    <MustContain>
+      <File>src/muya/lib/contentState/pasteCtrl.js</File>
+      <Text>START_BLOCK_SMART_PASTE_URL</Text>
+    </MustContain>
+    <MustContain>
+      <File>src/muya/lib/contentState/pasteCtrl.js</File>
+      <Text>SMART_PASTE_URL_REG</Text>
+    </MustContain>
+    <MustContain>
+      <File>tests/renderer/muya/paste-smart.test.js</File>
+      <Text>START_BLOCK_SMART_PASTE_URL</Text>
+    </MustContain>
+  </TargetAssertions>
+
+  <DurableScope>
+    <M-012/>
+    <M-011/>
+  </DurableScope>
+
+  <ObservedWriteScope>
+    <File>src/muya/lib/contentState/pasteCtrl.js</File>
+    <File>tests/renderer/muya/paste-smart.test.js</File>
+    <File>tests/e2e/smart-paste.spec.ts</File>
+  </ObservedWriteScope>
+
+  <ImplementationPlan>
+    <T-001>
+      <Title>W1: muya pasteCtrl URL smart-paste branch (R-1)</Title>
+      <DependsOn></DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>Clipboard bare http(s)/mailto URL + non-empty selection →
+        [selected text](url), cursor after the link; empty selection keeps
+        plain-URL paste. Table-driven unit tests for both branches and the
+        not-a-URL guard (e.g. "see https://…" mid-text stays plain).</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>npx vitest run tests/renderer/muya/paste-smart.test.js</Command>
+      </Verification>
+    </T-001>
+
+    <T-002>
+      <Title>W1: muya pasteCtrl HTML→markdown branch (R-2)</Title>
+      <DependsOn>T-001</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>text/html clipboard payload → DOMPurify sanitize →
+        existing html2State path is pinned (adversarial sanitization fixtures: script/style/on* never
+        survive (adversarial fixtures); markdown/code selection paste
+        behavior unchanged.</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>npx vitest run tests/renderer/muya/paste-smart.test.js</Command>
+      </Verification>
+    </T-002>
+
+    <T-003>
+      <Title>W2: pin existing HTML + bitmap paste paths (R-2, R-3)</Title>
+      <DependsOn>T-001, T-002</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>Adversarial sanitization fixtures (script/style/on*
+        attributes) against standardizeHTML; rich-HTML fixtures through
+        html2State; pasteImage items-branch unit test (synthetic File →
+        image block via imageAction stub). Rust NSPasteboard reader
+        deferred (non-goal) pending WKWebView smoke evidence.</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>npx vitest run tests/renderer/muya/paste-smart.test.js</Command>
+      </Verification>
+    </T-003>
+
+    <T-005>
+      <Title>W3: verification deltas + graph</Title>
+      <DependsOn>T-001, T-002, T-003</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>V-M-012 scenario-15 (URL/HTML/image paste pins) +
+        command wiring; pasteCtrl.js MODULE_CONTRACT added (previously
+        ungoverned); markers follow the [Module][fn][BLOCK_*] convention.</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>grace lint --path . --assertions current</Command>
+      </Verification>
+    </T-005>
+
+    <T-006>
+      <Title>W3: e2e visual gate (HTML paste) + WKWebView smoke checklist</Title>
+      <DependsOn>T-005</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>Playwright spec (tests/e2e/smart-paste.spec.ts): rich
+        HTML → markdown equivalent renders; hostile HTML yields no live
+        script/handler markup. URL-over-selection and clipboard image are
+        pinned in tests/renderer/muya/paste-smart.test.js (muya's cursor
+        model cannot be committed by synthetic Chromium events) and added
+        to the live-app WKWebView smoke checklist: real Cmd+V of a URL
+        over a selection → [text](url); real screenshot paste → local
+        image file + relative link.</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>npx playwright test tests/e2e/smart-paste.spec.ts (new)</Command>
+      </Verification>
+    </T-006>
+
+    <T-007>
+      <Title>W4: gates + two sequential reviews</Title>
+      <DependsOn>T-006</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>npm test green; scoped 100% coverage on the changed
+        pasteCtrl branch; CI-mode coverage thresholds green; review-1
+        (correctness/races — clipboard read timing, guard ordering) and
+        review-2 (security/contracts — URL/label markdown injection,
+        sanitization adversarial cases) both CLEAN.</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>npm run test:coverage; review verdicts in Evidence.</Command>
+      </Verification>
+    </T-007>
+  </ImplementationPlan>
+
+  <ReviewProtocol>
+    <Review-1>
+      <Angle>correctness, races (clipboard read vs typing, async image write), edge cases</Angle>
+      <PassCriteria>zero findings on changed code</PassCriteria>
+    </Review-1>
+    <Review-2>
+      <Angle>security (untrusted HTML sanitization, image filename/path handling), GRACE contract consistency, regression risk to existing paste paths</Angle>
+      <PassCriteria>zero findings; sanitization adversarial cases pinned</PassCriteria>
+    </Review-2>
+  </ReviewProtocol>
+
+  <Evidence>
+    <Gates>pending</Gates>
+    <Coverage>pending</Coverage>
+    <Reviews>pending</Reviews>
+  </Evidence>
+</C-16>
+</GraceChangePlan>
