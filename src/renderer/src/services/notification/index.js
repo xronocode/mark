@@ -111,6 +111,10 @@ const notification = {
     }
 
     const rePositionNotices = () => {
+      // A notification timer can outlive its jsdom environment in tests
+      // (teardown clears `document` before the settle timeout fires) —
+      // treat a missing document as "nothing to reposition".
+      if (typeof document === 'undefined') return
       const notices = document.querySelectorAll('.mt-notification')
       let i
       let hx = 0
