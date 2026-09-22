@@ -1,6 +1,9 @@
 import { t } from '../i18n'
 
 const COMMAND_KEY_MAP = {
+  'edit.format-document': 'commands.edit.formatDocument',
+  'view.problems': 'commands.view.problems',
+  'view.toggle-markdown-lint': 'commands.view.toggleMarkdownLint',
   // ============================================
   // # 应用程序级别命令 (Application Level Commands)
   // ============================================

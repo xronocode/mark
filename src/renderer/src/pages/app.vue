@@ -30,6 +30,7 @@
       ></editor-with-tabs>
       <command-palette></command-palette>
       <project-search></project-search>
+      <problems-panel></problems-panel>
       <about-dialog></about-dialog>
       <export-setting-dialog></export-setting-dialog>
       <rename></rename>
@@ -67,6 +68,7 @@ import SideBar from '@/components/sideBar'
 import AboutDialog from '@/components/about'
 import CommandPalette from '@/components/commandPalette'
 import ProjectSearch from '@/components/projectSearch'
+import ProblemsPanel from '@/components/problems'
 import ExportSettingDialog from '@/components/exportSettings'
 import Rename from '@/components/rename'
 import Tweet from '@/components/tweet'

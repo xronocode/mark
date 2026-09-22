@@ -68,6 +68,9 @@
 //   - 2026-09-17 C-12: add Edit-menu "Copy as Plain Text"
 //                (edit.copy-as-plain-text, CmdOrCtrl+Alt+Shift+C) for
 //                markup-free plain-text clipboard writes.
+//   - 2026-09-22 C-17: add Edit-menu "Format Document"
+//                (edit.format-document, Shift+Alt+F) — canonicalize the
+//                active markdown document (one undo step).
 // END_CHANGE_SUMMARY
 
 use serde::{Deserialize, Serialize};
@@ -750,6 +753,11 @@ pub fn build_native_menu<R: tauri::Runtime>(
         .item(
             &MenuItemBuilder::with_id("edit.find-previous", "Find Previous")
                 .accelerator("CmdOrCtrl+Shift+G")
+                .build(handle)?,
+        )
+        .item(
+            &MenuItemBuilder::with_id("edit.format-document", "Format Document")
+                .accelerator("Shift+Alt+F")
                 .build(handle)?,
         )
         .item(

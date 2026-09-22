@@ -1,5 +1,5 @@
 // FILE: tests/renderer/components/editor-coverage.test.js
-// VERSION: 1.8.0
+// VERSION: 1.9.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Verify editorWithTabs/editor.vue methods, watchers, computed state, event handlers, and lifecycle behavior beyond the base editor test.
 //   SCOPE: Deterministic Vue/jsdom tests with mocked Muya, stores, bus, services, and browser scheduling.
@@ -42,6 +42,7 @@
 //   - 2026-09-17 v1.5.0: cover handleEditorContextMenu — menu spec with selection-gated Copy, copy/copyAsHtml/selectAll dispatch (C-10).
 //   - 2026-09-17 v1.6.0: C-11 — role-based hygiene menu (cut/copy/paste/select_all), Muya undo/redo dispatch, pathname-gated Share, popup rejection containment.
 //   - 2026-09-17 v1.7.0: C-12 — copyAsPlainText dispatch, <br>-newline pin, whole-document fallback, empty no-op, writeText failure branch, bus-path forwarding.
+//   - 2026-09-22 v1.9.0: C-17 — formatDocument handler cases (applies formatted markdown via setMarkdown; no-op on canonical input).
 //   - 2026-09-21 v1.8.0: contentReloaded scroll clamp — stale pre-edit scrollTop clamps into the reloaded document's range, leftover first-paint padding is dropped, sub-viewport documents land at 0 (C-2 follow-up).
 // END_CHANGE_SUMMARY
 
@@ -1664,6 +1665,32 @@ describe('editor.vue — coverage', () => {
 
     expect(editorComponent.scrollTop).toBe(0)
   })
+
+  // START_BLOCK_FORMAT_DOCUMENT_TESTS
+  it('formatDocument applies the formatted markdown through setMarkdown (C-17)', async () => {
+    await mountEditor()
+    mockEditorInstance.getMarkdown.mockReturnValueOnce('# A\n\n### jump  \n')
+    mockEditorInstance.setMarkdown.mockClear()
+
+    getBusHandler('formatDocument')()
+
+    expect(mockEditorInstance.setMarkdown).toHaveBeenCalledTimes(1)
+    const [formatted, cursor, renderCursor] = mockEditorInstance.setMarkdown.mock.calls[0]
+    expect(formatted).toBe('# A\n\n## jump\n') // cascade demoted + trailing WS stripped
+    expect(cursor).toBeNull()
+    expect(renderCursor).toBe(false)
+  })
+
+  it('formatDocument is a no-op for an already-canonical document (C-17)', async () => {
+    await mountEditor()
+    mockEditorInstance.getMarkdown.mockReturnValueOnce('# A\n\nbody\n')
+    mockEditorInstance.setMarkdown.mockClear()
+
+    getBusHandler('formatDocument')()
+
+    expect(mockEditorInstance.setMarkdown).not.toHaveBeenCalled()
+  })
+  // END_BLOCK_FORMAT_DOCUMENT_TESTS
 
   it('handleFileChange without scrollTop skips animating to an invalid cursor position', async () => {
     await mountEditor()

@@ -1004,7 +1004,8 @@
       "replace": "Replace",
       "findInFolder": "Find in Folder",
       "screenshot": "Screenshot",
-      "mathBlock": "Math Block"
+      "mathBlock": "Math Block",
+      "formatDocument": "Format the active document (whitespace, blank lines, headings)"
     },
     "paragraph": {
       "heading1": "Heading 1",
@@ -1073,7 +1074,9 @@
       "actualSize": "Actual Size",
       "zoomIn": "Zoom In",
       "zoomOut": "Zoom Out",
-      "devToggleDeveloperTools": "Toggle Developer Tools"
+      "devToggleDeveloperTools": "Toggle Developer Tools",
+      "problems": "Show markdown problems panel",
+      "toggleMarkdownLint": "Toggle markdown validation"
     },
     "tabs": {
       "cycleForward": "Cycle Forward",
@@ -1105,7 +1108,8 @@
   },
   "common": {
     "cancel": "Cancel",
-    "ok": "OK"
+    "ok": "OK",
+    "close": "Close"
   },
   "dialog": {
     "cancel": "Cancel",
@@ -1457,5 +1461,10 @@
     "switchToLight": "Switch to light theme",
     "switchToDark": "Switch to dark theme",
     "share": "Share"
+  },
+  "problems": {
+    "title": "Problems",
+    "noIssues": "No problems found",
+    "jumpToIssue": "Jump to the nearest heading"
   }
 }

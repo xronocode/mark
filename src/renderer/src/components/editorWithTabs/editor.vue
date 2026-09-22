@@ -75,7 +75,7 @@
 
 <script setup>
 // FILE: src/renderer/src/components/editorWithTabs/editor.vue
-// VERSION: 1.11.0
+// VERSION: 1.12.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Host the Muya WYSIWYG surface and coordinate document rendering, selection, scroll, preview, editor tools, and store/bus integration.
 //   SCOPE: Renderer-side Muya lifecycle and UI orchestration; does not own Markdown parsing rules or backend file persistence.
@@ -110,12 +110,14 @@
 //   - 2026-09-17 v1.9.0: full context menu — native cut/copy/paste/select-all roles, Muya undo/redo, Share via mt_share_file (C-11).
 //   - 2026-09-17 v1.10.0: handleCopyAsPlainText — marked+sanitize+textContent pipeline writes a single plain-text flavor; context menu, Edit menu, palette (C-12).
 //   - 2026-09-21 v1.11.0: scrollToCordsAfterReload — file-changed payloads with contentReloaded (loadChange live-reload, incl. background-tab activation via UPDATE_CURRENT_FILE/CLOSE fallbacks) clamp the pre-edit scrollTop into the reloaded document's range, drop leftover first-paint padding, and sync the tab's saved offset immediately; handleResetPaddingBottom now clears the padding on #ag-editor-id where it was actually set (upstream cleared the container — phantom padding stuck forever).
+//   - 2026-09-22 v1.12.0: C-17 — debounced doc-markdown-changed feeds the problems panel; formatDocument bus handler applies formatMarkdown via setMarkdown (one-step undo via the cursor-setter history push).
 // END_CHANGE_SUMMARY
 
 import { ref, reactive, watch, onMounted, onBeforeUnmount, nextTick, computed } from 'vue'
 import log from 'electron-log'
 // import ViewImage from 'view-image'
 import Muya from 'muya/lib'
+import { formatMarkdown } from '@/util/markdownFormat'
 import TablePicker from 'muya/lib/ui/tablePicker'
 import QuickInsert from 'muya/lib/ui/quickInsert'
 import CodePicker from 'muya/lib/ui/codePicker'
@@ -1466,6 +1468,32 @@ const handleExtUndo = ({ extensionId }) => {
   }
 }
 
+let docLintTimer = null
+
+// START_CONTRACT: handleFormatDocument
+//   PURPOSE: Canonicalize the active document (C-17 Format document) — trailing whitespace, blank-line structure, setext→ATX, heading-cascade demotion.
+//   INPUTS: { none - reads the active Muya document }
+//   OUTPUTS: { void }
+//   SIDE_EFFECTS: Replaces the document via setMarkdown when the formatter produced changes; one muya undo step restores the original (the cursor-setter history push).
+//   LINKS: .grace/verification/runtime.xml V-M-011 scenario-30; .grace/graph/runtime.xml M-011 Interface fn-handleFormatDocument
+// END_CONTRACT: handleFormatDocument
+// START_BLOCK_FORMAT_DOCUMENT_COMMAND
+const handleFormatDocument = () => {
+  if (!editor.value) return
+  const markdown = editor.value.getMarkdown()
+  const formatted = formatMarkdown(markdown)
+  if (formatted === null) {
+    // Already canonical — no history churn, no re-render.
+    console.debug('[Editor][handleFormatDocument][BLOCK_FORMAT_DOCUMENT_NOOP]')
+    return
+  }
+  // setMarkdown lands a fresh history entry (cursor-setter push), so a
+  // single undo restores the pre-format document.
+  editor.value.setMarkdown(formatted, null, false)
+  console.debug('[Editor][handleFormatDocument][BLOCK_FORMAT_DOCUMENT_APPLIED]')
+}
+// END_BLOCK_FORMAT_DOCUMENT_COMMAND
+
 /**
  * Handle context request from the backend.
  * E1a: the TokMo EditAgent asked for the current editor state via
@@ -1673,6 +1701,7 @@ onMounted(() => {
   bus.on('ext-text-transform', handleExtTextTransform)
   bus.on('ext-undo', handleExtUndo)
   bus.on('ext-context-request', handleExtContextRequest)
+  bus.on('formatDocument', handleFormatDocument)
 
   // The pending-open drain runs in parallel with Vue mount. If an agent or
   // Finder event selected a tab before this component subscribed, replay the
@@ -1687,6 +1716,14 @@ onMounted(() => {
       editorStore.LISTEN_FOR_CONTENT_CHANGE(
         Object.assign(changes, { id, blocks: editor.value.contentState.getBlocks() })
       )
+      // C-17: feed the problems panel (debounced — typing must not lint
+      // on every keystroke). Snapshot {id, markdown} at event time so the
+      // timer can never emit another tab's document.
+      const lintSnapshot = { id, markdown: changes.markdown }
+      if (docLintTimer) clearTimeout(docLintTimer)
+      docLintTimer = setTimeout(() => {
+        bus.emit('doc-markdown-changed', lintSnapshot)
+      }, 500)
     }
   })
 
@@ -1805,6 +1842,8 @@ onBeforeUnmount(() => {
   bus.off('ext-text-transform', handleExtTextTransform)
   bus.off('ext-undo', handleExtUndo)
   bus.off('ext-context-request', handleExtContextRequest)
+  bus.off('formatDocument', handleFormatDocument)
+  if (docLintTimer) clearTimeout(docLintTimer)
 
   document.removeEventListener('keyup', keyup)
   editor.value.off('change')
