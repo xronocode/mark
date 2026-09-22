@@ -3995,9 +3995,11 @@
         <Command>
           npx vitest run tests/renderer/muya/keyboard-undo.test.js
           tests/renderer/muya/copy-data.test.js
+          tests/renderer/muya/paste-smart.test.js
           tests/renderer/commands/menu-consistency.test.js
           tests/renderer/menu-bridge.test.js
         </Command>
+        <Command>npx playwright test tests/e2e/smart-paste.spec.ts</Command>
       </Commands>
       <Scenarios>
         <Scenario>
@@ -4072,6 +4074,27 @@
           without invoking the clipboard transport
           (tests/renderer/muya/copy-data.test.js).
         </Scenario>
+        <Scenario>
+          scenario-15: Paste hygiene (C-16): pasting a bare http(s) URL —
+          including the bare-host form SMART_PASTE_URL_REG accepts and
+          URL_REG's mandatory /path rejects — over a non-empty single-block
+          selection wraps it as `[selected](url)`; link labels escape
+          backslashes/brackets and flatten soft breaks, and URLs containing
+          parentheses are declined so the CommonMark destination cannot be
+          truncated; empty selections, multi-word/non-URL/mailto text,
+          pasteAsPlainText, and code/language/table-cell surfaces (incl.
+          selectedTableCells) keep their existing handling; rich HTML still
+          converts through html2State with standardizeHTML's DOMPurify pass
+          neutralizing script/style/on* markup (incl. svg-onload and
+          javascript: href vectors); the clipboard image items branch still
+          routes File → base64 preview → imageAction. Unit-pinned in
+          tests/renderer/muya/paste-smart.test.js (muya's cursor model
+          cannot be committed by synthetic Chromium events, so
+          URL-over-selection and image delivery are additionally on the
+          WKWebView live-app smoke checklist); HTML conversion and
+          hostile-markup neutralization visually pinned in
+          tests/e2e/smart-paste.spec.ts.
+        </Scenario>
       </Scenarios>
       <Markers>
         <Marker>[Muya][parse][BLOCK_TOKENIZE]</Marker>
@@ -4084,10 +4107,12 @@
           data=&lt;redacted-len&gt;
         </Marker>
         <Marker>[Muya] BLOCK_PARTIAL_RENDER blocks_touched=&lt;n&gt; ms=&lt;t&gt;</Marker>
-        <Marker>
-          [Muya] BLOCK_PASTE_SANITIZE source=&lt;word|gdocs|notion|unknown&gt;
-          stripped_tags=&lt;n&gt;
-        </Marker>
+        <!-- C-16 review-2: BLOCK_PASTE_SANITIZE removed — declared but never
+             emitted anywhere in src/ or tests/ (dead contract). The paste
+             sanitize path is instead pinned behaviorally: adversarial
+             fixtures in tests/renderer/muya/paste-smart.test.js and
+             tests/e2e/smart-paste.spec.ts assert hostile markup never
+             survives standardizeHTML/rendering. -->
         <Marker>
           [Muya] BLOCK_DIAGRAM_ERROR
           renderer=&lt;katex|mermaid|vega|flowchart|plantuml&gt; err=&lt;msg&gt;
@@ -5228,10 +5253,8 @@
             data=&lt;redacted-len&gt;
           </marker>
           <marker>[Muya] BLOCK_PARTIAL_RENDER blocks_touched=&lt;n&gt; ms=&lt;t&gt;</marker>
-          <marker>
-            [Muya] BLOCK_PASTE_SANITIZE source=&lt;word|gdocs|notion|unknown&gt;
-            stripped_tags=&lt;n&gt;
-          </marker>
+          <!-- C-16 review-2: BLOCK_PASTE_SANITIZE removed (dead contract —
+               never emitted; see the active Markers list above). -->
           <marker>
             [Muya] BLOCK_DIAGRAM_ERROR
             renderer=&lt;katex|mermaid|vega|flowchart|plantuml&gt;
