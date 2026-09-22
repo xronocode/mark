@@ -3044,6 +3044,24 @@
             </Attribute>
           </LegacyAttributes>
         </fn-getCopyData>
+        <fn-pasteHandler>
+          <LegacyAttributes>
+            <Attribute>
+              <Name>PURPOSE</Name>
+              <Value>
+                contentState/pasteCtrl.js paste pipeline — C-16: pasting a
+                bare http(s) URL (incl. the bare-host form via
+                SMART_PASTE_URL_REG; parenthesis URLs declined) over a
+                non-empty single-block selection wraps it as
+                [selected](url) with backslash/bracket-escaped,
+                soft-break-flattened labels; code/language/table-cell
+                surfaces and pasteAsPlainText keep their existing handling;
+                rich HTML keeps converting through the sanitized
+                html2State path
+              </Value>
+            </Attribute>
+          </LegacyAttributes>
+        </fn-pasteHandler>
         <fn-setOptions>
           <LegacyAttributes>
             <Attribute>

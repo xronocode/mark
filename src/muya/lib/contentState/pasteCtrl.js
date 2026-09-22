@@ -1,3 +1,23 @@
+// FILE: src/muya/lib/contentState/pasteCtrl.js
+// VERSION: 1.1.0
+// START_MODULE_CONTRACT
+//   PURPOSE: ContentState paste behavior — plain/markdown/HTML clipboard import, clipboard image insertion, and the URL-over-selection smart paste.
+//   SCOPE: Prototype methods installed on ContentState (checkPasteType, checkCopyType, standardizeHTML, pasteImage, docPasteHandler, pasteHandler); no DOM rendering of its own.
+//   DEPENDS: muya config regexes, muya utils (sanitize/getUniqueId/getImageInfo/getPageTitle), DOMPurify via utils.
+//   LINKS: .grace/graph/runtime.xml M-012; .grace/verification/runtime.xml V-M-012; .grace/changes/active/C-16.
+//   ROLE: RUNTIME
+//   MAP_MODE: EXPORTS
+// END_MODULE_CONTRACT
+//
+// START_MODULE_MAP
+//   default - pasteCtrl modifier: installs the paste prototype methods on ContentState.
+// END_MODULE_MAP
+//
+// START_CHANGE_SUMMARY
+//   - (v1.0.0 implied: upstream pasteCtrl baseline, previously ungoverned.)
+//   - 2026-09-21 v1.1.0: C-16 R-1 — START_BLOCK_SMART_PASTE_URL wraps a non-empty single-block selection as [text](url) before the Firefox URL→anchor special case; SMART_PASTE_URL_REG accepts bare hosts (URL_REG's mandatory /path rejected the most common clipboard form); link labels escape brackets/backslashes and flatten soft breaks, and URLs containing parentheses are declined so the CommonMark destination cannot be truncated; special surfaces (code/language/table cells) and pasteAsPlainText keep their own handling.
+// END_CHANGE_SUMMARY
+
 import {
   PARAGRAPH_TYPES,
   PREVIEW_DOMPURIFY_CONFIG,
@@ -10,6 +30,8 @@ import { getImageInfo } from '../utils/getImageInfo'
 
 const LIST_REG = /ul|ol/
 const LINE_BREAKS_REG = /\n/
+// C-16 R-1: looser than URL_REG on purpose — bare hosts must wrap too.
+const SMART_PASTE_URL_REG = /^https?:\/\/\S+$/i
 
 const pasteCtrl = (ContentState) => {
   // check paste type: `MERGE` or `NEWLINE`
@@ -282,6 +304,54 @@ const pasteCtrl = (ContentState) => {
     // Normalise /r/n to /n to avoid errors with Muya's parsing
     const text = (rawText || event.clipboardData.getData('text/plain')).replace(/\r/g, '')
     let html = (rawHtml || event.clipboardData.getData('text/html')).replace(/\r/g, '')
+
+    // START_BLOCK_SMART_PASTE_URL
+    // Pasting a bare URL over a non-empty selection wraps the selection as
+    // a markdown link instead of discarding it (C-16 R-1). SMART_PASTE_URL_REG
+    // is deliberately looser than URL_REG: the most common clipboard form is a
+    // bare host ("https://github.com"), which URL_REG's mandatory /path rejects.
+    // URLs containing parentheses are declined: a ')' could truncate the
+    // CommonMark destination and splice attacker markdown after the link
+    // (plain-markdown paste already allows arbitrary markdown by design, but
+    // this branch must not widen that surface). Runs before the Firefox
+    // URL→anchor special case below, which still covers empty selections and
+    // pasteAsPlainText. Special surfaces (code content, language input, table
+    // cells) keep their own paste handling.
+    if (type === 'normal' && !html && SMART_PASTE_URL_REG.test(text) && !/\s/.test(text) && !/[()]/.test(text)) {
+      const { start, end } = this.cursor
+      const selBlock = start.key ? this.getBlock(start.key) : null
+      if (
+        selBlock &&
+        start.key === end.key &&
+        end.offset > start.offset &&
+        !selBlock.functionType &&
+        !this.selectedTableCells &&
+        typeof selBlock.text === 'string'
+      ) {
+        const selected = selBlock.text.substring(start.offset, end.offset)
+        // Escape brackets/backslashes in the label (a trailing "\" would
+        // swallow the closing bracket) and flatten soft line breaks so the
+        // selection cannot break out of — or invalidate — the link syntax.
+        const label = selected
+          .replace(/([\\\[\]])/g, '\\$1')
+          .replace(/\n/g, ' ')
+        const link = `[${label}](${text})`
+        selBlock.text =
+          selBlock.text.substring(0, start.offset) + link + selBlock.text.substring(end.offset)
+        const offset = start.offset + link.length
+        this.cursor = {
+          start: { key: selBlock.key, offset },
+          end: { key: selBlock.key, offset },
+          isEdit: true
+        }
+        this.checkInlineUpdate(selBlock)
+        this.partialRender()
+        this.muya.dispatchSelectionChange()
+        this.muya.dispatchSelectionFormats()
+        return this.muya.dispatchChange()
+      }
+    }
+    // END_BLOCK_SMART_PASTE_URL
 
     // Support pasted URLs from Firefox.
     if (URL_REG.test(text) && !/\s/.test(text) && !html) {
