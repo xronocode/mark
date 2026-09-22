@@ -20,6 +20,8 @@ export const usePreferencesStore = defineStore('preferences', {
     autoSave: false,
     autoSaveDelay: 5000,
     liveReload: true,
+    // C-17: markdownlint-subset validation (problems panel recomputation gate).
+    markdownLint: true,
     titleBarStyle: 'custom',
     openFilesInNewWindow: false,
     openFolderInNewWindow: false,

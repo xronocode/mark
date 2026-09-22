@@ -2739,6 +2739,25 @@
             </Attribute>
           </LegacyAttributes>
         </fn-scrollToCordsAfterReload>
+        <fn-handleFormatDocument>
+          <LegacyAttributes>
+            <Attribute>
+              <Name>PURPOSE</Name>
+              <Value>
+                editorWithTabs/editor.vue Format document command (C-17):
+                canonicalizes the active document via the pure
+                util/markdownFormat.js normalizer (trailing whitespace,
+                blank-line structure, setext→ATX, heading-cascade demotion;
+                fenced-code contents verbatim; no-op on canonical input)
+                through setMarkdown, leaving one native undo step back to
+                the original; paired with util/markdownLint.js (rule subset
+                MD001/003/009/025/032/040) feeding the problems overlay
+                panel (components/problems, bus problems /
+                doc-markdown-changed, markdownLint preference gate)
+              </Value>
+            </Attribute>
+          </LegacyAttributes>
+        </fn-handleFormatDocument>
         <fn-syncPreviewSurface>
           <LegacyAttributes>
             <Attribute>
@@ -5881,5 +5900,87 @@
         <C-15/>
       </ChangeRefs>
     </M-048>
+
+    <M-049>
+      <Name>MarkdownLint</Name>
+      <DisplayName>markdownlint-subset validator</DisplayName>
+      <Type>RENDERER_UTIL</Type>
+      <Status>shipped</Status>
+      <Layer>2</Layer>
+      <PhaseRef>C-17-T-001</PhaseRef>
+      <Summary>
+        Pure line-oriented rule subset (MD001/003/009/025/032/040) over
+        document text; front matter and fenced-code contents are opaque to
+        every rule; exports the shared line classifiers consumed by
+        markdownFormat and the problems panel.
+      </Summary>
+      <PlannedPath>src/renderer/src/util/markdownLint.js</PlannedPath>
+      <Dependencies></Dependencies>
+      <VerificationRef>V-M-011</VerificationRef>
+      <Interface>
+        <fn-lintMarkdown>run the rule subset, return issues sorted by line</fn-lintMarkdown>
+        <fn-classifyHeadingLine>ATX/setext heading classifier (front-matter, blockquote, thematic-break, list, fence aware)</fn-classifyHeadingLine>
+        <fn-isListLine>list-item classifier excluding thematic breaks</fn-isListLine>
+        <fn-isFenceLine>fence classifier returning marker char, raw length, info string</fn-isFenceLine>
+        <fn-closesFence>valid-closer check (char match, length ≥ opener, no info)</fn-closesFence>
+        <fn-frontMatterEnd>index of the closing front-matter delimiter, or -1</fn-frontMatterEnd>
+      </Interface>
+      <ChangeRefs>
+        <C-17/>
+      </ChangeRefs>
+    </M-049>
+
+    <M-050>
+      <Name>MarkdownFormat</Name>
+      <DisplayName>Format-document normalizer</DisplayName>
+      <Type>RENDERER_UTIL</Type>
+      <Status>shipped</Status>
+      <Layer>2</Layer>
+      <PhaseRef>C-17-T-002</PhaseRef>
+      <Summary>
+        Pure idempotent canonicalizer (trailing whitespace, blank-line
+        structure that never splits lazy continuations, setext→ATX,
+        heading-cascade demotion); front matter and fenced-code contents
+        verbatim; null on already-canonical input.
+      </Summary>
+      <PlannedPath>src/renderer/src/util/markdownFormat.js</PlannedPath>
+      <Dependencies>
+        <M-049/>
+      </Dependencies>
+      <VerificationRef>V-M-011</VerificationRef>
+      <Interface>
+        <fn-formatMarkdown>canonicalize; idempotent; null when unchanged</fn-formatMarkdown>
+      </Interface>
+      <ChangeRefs>
+        <C-17/>
+      </ChangeRefs>
+    </M-050>
+
+    <M-051>
+      <Name>ProblemsPanel</Name>
+      <DisplayName>markdown problems overlay</DisplayName>
+      <Type>RENDERER_UI</Type>
+      <Status>shipped</Status>
+      <Layer>3</Layer>
+      <PhaseRef>C-17-T-003</PhaseRef>
+      <Summary>
+        Bus-toggled overlay (projectSearch pattern) listing markdownLint
+        issues; recomputes on debounced doc-markdown-changed payloads;
+        markdownLint preference gates (and clears on disable); click jumps
+        to the issue's nearest heading via editorStore listToc slugs.
+      </Summary>
+      <PlannedPath>src/renderer/src/components/problems/index.vue</PlannedPath>
+      <Dependencies>
+        <M-049/>
+        <M-011/>
+      </Dependencies>
+      <VerificationRef>V-M-011</VerificationRef>
+      <Interface>
+        <fn-jump>scroll to the nearest heading via its listToc slug</fn-jump>
+      </Interface>
+      <ChangeRefs>
+        <C-17/>
+      </ChangeRefs>
+    </M-051>
   </GD-RUNTIME>
 </GraceGraphDocument>

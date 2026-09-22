@@ -3213,7 +3213,10 @@
         <Command>
           npx vitest run tests/renderer/components/titleBar-deep.test.js
           tests/renderer/components/editor-coverage.test.js
+          tests/renderer/components/problems.test.js
           tests/renderer/store/live-reload.test.js
+          tests/renderer/util/markdown-hygiene.test.js
+          tests/renderer/commands/index-deep.test.js
         </Command>
         <Command>
           npx playwright test tests/e2e/live-reload-scroll.spec.ts
@@ -3222,6 +3225,9 @@
           npx playwright test tests/e2e/toc-sidebar-navigation.spec.ts
           tests/e2e/tab-switch-scroll.spec.ts
           tests/e2e/source-code-mode.spec.ts
+        </Command>
+        <Command>
+          npx playwright test tests/e2e/markdown-hygiene.spec.ts
         </Command>
         <Command>
           npx vitest run tests/renderer/components/tabs-scroll.test.js
@@ -3419,6 +3425,28 @@
           scrolled tab and to a background tab; new-document text must be
           inside the viewport with no user scroll and no phantom bottom
           padding) (C-2 follow-up R-9).
+        </Scenario>
+        <Scenario>
+          scenario-30: Markdown hygiene (C-17): the problems overlay panel
+          (bus 'problems', projectSearch pattern) recomputes the
+          markdownlint-subset rule list on debounced doc-markdown-changed
+          events (markdownLint preference gates recomputation; issues list
+          rule/line/excerpt; click jumps to the nearest preceding heading
+          via its editorStore listToc slug); Format document (bus
+          'formatDocument', palette 'edit.format-document' with the
+          Shift+Alt+F accelerator) canonicalizes the active document —
+          trailing whitespace, blank-line structure, setext→ATX, heading
+          cascade demotion — as one undoable step (real-muya undo pin),
+          no-ops on already-canonical documents, and never touches
+          fenced-code contents, links, or text semantics. Unit-pinned in
+          tests/renderer/util/markdown-hygiene.test.js (rules table,
+          formatter idempotence/semantics, real-muya one-step undo) +
+          tests/renderer/components/problems.test.js (panel visibility,
+          gate, jump mapping) + tests/renderer/commands/index-deep.test.js
+          (registry/accelerator) + editor-coverage format handler cases;
+          visually pinned in tests/e2e/markdown-hygiene.spec.ts (MD001
+          listed then gone after format; validate-only MD040 persists;
+          second format is a no-op).
         </Scenario>
       </Scenarios>
       <Markers>
@@ -9618,5 +9646,56 @@
         </TraceAssertion>
       </TraceAssertions>
     </V-M-048>
+    <V-M-049>
+      <Priority>high</Priority>
+      <Commands>
+        <Command>npx vitest run tests/renderer/util/markdown-hygiene.test.js</Command>
+      </Commands>
+      <Scenarios>
+        <Scenario>
+          scenario-1: MD001/003/009/025/032/040 fire and non-fire table
+          fixtures (tests/renderer/util/markdown-hygiene.test.js); front
+          matter, blockquote/thematic-break setext lookalikes, spaced
+          thematic breaks, nested fences, fence-adjacent lists, and lazy
+          list continuations produce no false positives (review-1
+          regressions).
+        </Scenario>
+      </Scenarios>
+    </V-M-049>
+
+    <V-M-050>
+      <Priority>high</Priority>
+      <Commands>
+        <Command>npx vitest run tests/renderer/util/markdown-hygiene.test.js</Command>
+      </Commands>
+      <Scenarios>
+        <Scenario>
+          scenario-1: formatMarkdown is idempotent (format∘format = null),
+          semantics-preserving (links, inline code, tables, lazy
+          continuations, front matter, fenced-code contents untouched),
+          demotes heading jumps, converts setext→ATX, and returns null on
+          canonical input; real-muya integration pins the one-step undo
+          through setMarkdown's cursor-setter history push.
+        </Scenario>
+      </Scenarios>
+    </V-M-050>
+
+    <V-M-051>
+      <Priority>high</Priority>
+      <Commands>
+        <Command>npx vitest run tests/renderer/components/problems.test.js</Command>
+        <Command>npx playwright test tests/e2e/markdown-hygiene.spec.ts</Command>
+      </Commands>
+      <Scenarios>
+        <Scenario>
+          scenario-1: problems overlay toggles via bus 'problems',
+          recomputes on doc-markdown-changed, gates on the markdownLint
+          preference (disable clears immediately, enable re-lints),
+          click-to-jump maps the issue's nearest heading to its listToc
+          slug; e2e pins the MD001-listed → formatted-gone → MD040-persists
+          → second-format store-markdown-equal flow.
+        </Scenario>
+      </Scenarios>
+    </V-M-051>
   </VD-RUNTIME>
 </GraceVerificationDocument>
