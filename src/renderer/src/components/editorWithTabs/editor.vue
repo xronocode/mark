@@ -75,7 +75,7 @@
 
 <script setup>
 // FILE: src/renderer/src/components/editorWithTabs/editor.vue
-// VERSION: 1.12.0
+// VERSION: 1.13.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Host the Muya WYSIWYG surface and coordinate document rendering, selection, scroll, preview, editor tools, and store/bus integration.
 //   SCOPE: Renderer-side Muya lifecycle and UI orchestration; does not own Markdown parsing rules or backend file persistence.
@@ -111,6 +111,7 @@
 //   - 2026-09-17 v1.10.0: handleCopyAsPlainText — marked+sanitize+textContent pipeline writes a single plain-text flavor; context menu, Edit menu, palette (C-12).
 //   - 2026-09-21 v1.11.0: scrollToCordsAfterReload — file-changed payloads with contentReloaded (loadChange live-reload, incl. background-tab activation via UPDATE_CURRENT_FILE/CLOSE fallbacks) clamp the pre-edit scrollTop into the reloaded document's range, drop leftover first-paint padding, and sync the tab's saved offset immediately; handleResetPaddingBottom now clears the padding on #ag-editor-id where it was actually set (upstream cleared the container — phantom padding stuck forever).
 //   - 2026-09-22 v1.12.0: C-17 — debounced doc-markdown-changed feeds the problems panel; formatDocument bus handler applies formatMarkdown via setMarkdown (one-step undo via the cursor-setter history push).
+//   - 2026-09-23 v1.13.0: C-18 — Print drives the native WKWebView print panel via mt_print_webview (window.print is ignored by WKWebView); no eager print-container clearup (the modal can outlive the call).
 // END_CHANGE_SUMMARY
 
 import { ref, reactive, watch, onMounted, onBeforeUnmount, nextTick, computed } from 'vue'
@@ -1159,7 +1160,8 @@ const handleExport = async (options) => {
       break
     }
     case 'pdf': {
-      // NOTE: We need to set page size via Electron.
+      // C-18: page setup (size/orientation) is owned by the native print
+      // panel; the export-settings margins still apply via @page CSS.
       try {
         const { pageSize, pageSizeWidth, pageSizeHeight, isLandscape } = options
         const pageOptions = {
@@ -1204,8 +1206,13 @@ const handleExport = async (options) => {
           headerFooterStyled
         })
         printer.renderMarkdown(html, true)
-        window.print()
-        handlePrintServiceClearup()
+        // C-18: window.print() is silently ignored by WKWebView on macOS —
+        // drive the native print panel from the backend instead. The print
+        // container stays in the DOM (screen-invisible, print-only CSS)
+        // until the next export replaces it; the modal can outlive this
+        // function's return, so there is no eager clearup here.
+        const { invoke } = await import('@tauri-apps/api/core')
+        await invoke('mt_print_webview')
       } catch (err) {
         log.error('Failed to export document:', err)
         notice.notify({
@@ -1672,7 +1679,6 @@ onMounted(() => {
   bus.on('redo', handleRedo)
   bus.on('selectAll', handleSelectAll)
   bus.on('export', handleExport)
-  bus.on('print-service-clearup', handlePrintServiceClearup)
   bus.on('paragraph', handleEditParagraph)
   bus.on('format', handleInlineFormat)
   bus.on('searchValue', handleSearch)
@@ -1813,7 +1819,6 @@ onBeforeUnmount(() => {
   bus.off('redo', handleRedo)
   bus.off('selectAll', handleSelectAll)
   bus.off('export', handleExport)
-  bus.off('print-service-clearup', handlePrintServiceClearup)
   bus.off('paragraph', handleEditParagraph)
   bus.off('format', handleInlineFormat)
   bus.off('searchValue', handleSearch)

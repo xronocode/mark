@@ -25,35 +25,11 @@
 
           <!-- PDF/Print -->
           <div v-if="isPrintable">
-            <div v-if="exportType === 'pdf'">
-              <cur-select
-                class="page-size-select"
-                :description="t('exportSettings.page.pageSize')"
-                :value="pageSize"
-                :options="pageSizeList"
-                :on-change="(value) => onSelectChange('pageSize', value)"
-              ></cur-select>
-              <div v-if="pageSize === 'custom'" class="row">
-                <div>{{ t('exportSettings.page.widthHeight') }}</div>
-                <el-input-number
-                  v-model="pageSizeWidth"
-                  size="mini"
-                  controls-position="right"
-                  :min="100"
-                ></el-input-number>
-                <el-input-number
-                  v-model="pageSizeHeight"
-                  size="mini"
-                  controls-position="right"
-                  :min="100"
-                ></el-input-number>
-              </div>
-
-              <bool
-                :description="t('exportSettings.page.landscapeOrientation')"
-                :bool="isLandscape"
-                :on-change="(value) => onSelectChange('isLandscape', value)"
-              ></bool>
+            <!-- C-18: page size/orientation are owned by the native print
+                 panel now (the old controls were dead weight); page MARGINS
+                 below still apply via @page CSS. -->
+            <div v-if="exportType === 'pdf'" class="row">
+              <div class="description">{{ t('exportSettings.page.printPanelHint') }}</div>
             </div>
 
             <div class="row">

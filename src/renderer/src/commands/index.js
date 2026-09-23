@@ -27,6 +27,7 @@
 // START_CHANGE_SUMMARY
 //   - 2026-09-16 v2.1.10-beta: add edit.copy-as-html (C-3) — rich text/html clipboard via editor.vue copyAsHtmlRich handler.
 //   - 2026-09-17 v2.1.11-beta: add edit.copy-as-plain-text (C-12) — markup-free plain-text clipboard via editor.vue copyAsPlainText handler.
+//   - 2026-09-23 C-18: applyCapabilityGate no longer prunes file.export-file-pdf — PDF export is native (WKWebView print panel); exportPandoc stays informational.
 //   - 2026-08-07 v2.1.2-beta: remove the Terminal/Homebrew update branch and use the signed Tauri updater for every non-App-Store install.
 // END_CHANGE_SUMMARY
 //
@@ -77,7 +78,6 @@ const focusEditorAndExecute = (fn) => {
 // stays registered.
 export function applyCapabilityGate(caps) {
   const denied = []
-  if (caps && caps.exportPandoc === false) denied.push('file.export-file-pdf')
   if (caps && caps.screenshot === false) denied.push('edit.screenshot')
   if (caps && caps.setDefaultHandler === false) denied.push('file.default-handler')
   if (!denied.length) return

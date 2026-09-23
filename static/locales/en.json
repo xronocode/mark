@@ -326,7 +326,8 @@
       "pageMargin": "Page margin in mm:",
       "topBottom": "Top/Bottom:",
       "leftRight": "Left/Right:",
-      "widthHeight": "Width/Height in mm:"
+      "widthHeight": "Width/Height in mm:",
+      "printPanelHint": "Page size and orientation are set in the system print dialog. Margins below still apply."
     },
     "showFrontMatter": "Show front matter",
     "style": {

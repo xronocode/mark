@@ -591,7 +591,7 @@ describe('store/editor — deep coverage (wave 2)', () => {
     })
   })
 
-  // ─── PRINT_RESPONSE — removed (print now uses window.print() directly) ───
+  // ─── PRINT_RESPONSE — removed (print uses the native panel via mt_print_webview, C-18) ───
 
   // ─── Bus listener registrations ─────────────────────────────────
 

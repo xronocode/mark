@@ -313,7 +313,7 @@ const setupIpcListenersImpl = async () => {
 
     // Live cross-window listener kept after audit-M-1. Other channels
     // (file-save{,-as}, move/rename-file, set-line-ending, window-zoom,
-    // image-cache, export-success, print-service-clearup, context-menu,
+    // image-cache, export-success, context-menu,
     // spelling) were deleted: they are menu-driven and now flow through
     // mt::menu-invoked → install-menu-bridge.js, or have no backend
     // emitter at all.

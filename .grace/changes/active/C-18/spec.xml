@@ -1,0 +1,126 @@
+<GraceChangeSpec graceVersion='4.0' status='approved'>
+<C-18>
+  <Name>Native print &amp; PDF export via WKWebView print panel (matrix P1; un-gates MAS PDF)</Name>
+  <Created>2026-09-23</Created>
+  <Priority>high</Priority>
+  <Status>approved-for-implementation</Status>
+
+  <Summary>
+    window.print() is silently ignored by WKWebView on macOS, so Mark's
+    Print action is dead in the shipped app; PDF export shells out to
+    pandoc (raw markdown — styling lost) and is capability-pruned out of
+    App Store builds entirely (C-15 T-M5). tauri 2.11 / wry 0.55 already
+    ship Webview::print() — the native WKWebView print panel (macOS 11+)
+    with real pagination and a built-in "Save as PDF". C-18 routes Print
+    and Export-PDF through one new backend command that calls it, replacing
+    the pandoc PDF path (pandoc stays for DOCX on desktop) and un-gating
+    PDF on MAS.
+  </Summary>
+
+  <Problem>
+    <Description>
+      File → Print does nothing on macOS (window.print ignored by
+      WKWebView). File → Export → PDF requires pandoc, exports unstyled
+      markdown-rendered PDF, and is hidden in App Store builds (pandoc is
+      not sandbox-compatible).
+    </Description>
+    <RootCause>
+      The Electron-era print path (window.print + hidden print container)
+      was ported verbatim; WKWebView has no window.print support. The PDF
+      path predates the port and depends on an external binary the sandbox
+      cannot spawn.
+    </RootCause>
+    <Evidence>
+      src/renderer/src/components/editorWithTabs/editor.vue 'print' case
+      calls window.print() after printer.renderMarkdown;
+      src/renderer/src/store/editor.js _EXPORT_PDF gates on
+      mt_pandoc_status and invokes mt_pandoc_export(markdown, 'pdf');
+      src/renderer/src/commands/index.js applyCapabilityGate prunes
+      file.export-file-pdf when caps.exportPandoc === false;
+      wry 0.55.1 src/wkwebview/mod.rs print_with_options drives
+      printOperationWithPrintInfo + runOperationModal (macOS 11+);
+      tauri 2.11.2 Webview::print() exposes it (Cargo.lock pins both).
+      Community confirmation of the WKWebView window.print gap:
+      tauri-apps/tauri#13451 and Apple developer forums.
+    </Evidence>
+  </Problem>
+
+  <Goals>
+    <R-1>
+      New backend command mt_print_webview(window label or focused window):
+      runs the webview print panel via tauri Webview::print() on the main
+      thread. No new dependencies. Desktop + MAS builds alike (no binaries,
+      no sandbox surface).
+    </R-1>
+    <R-2>
+      Print action: the existing styled print container flow stays; the
+      final window.print() call is replaced by invoke('mt_print_webview').
+      AMENDED at review: there is no eager cleanup — the print container
+      survives into the panel and is replaced by the next export (the
+      dead 'print-service-clearup' bus wiring was removed; cleanup happens
+      in renderMarkdown and on export error paths).
+    </R-2>
+    <R-3>
+      Export PDF: _EXPORT_PDF renders the print-optimized styled HTML into
+      the print container and opens the same native panel (user chooses
+      "Save as PDF" with system pagination and styling). The pandoc PDF
+      branch and its mt_pandoc_status gate are removed; pandoc remains for
+      DOCX export where available.
+    </R-3>
+    <R-4>
+      MAS un-gating: applyCapabilityGate no longer prunes
+      file.export-file-pdf (PDF is native now); the exportPandoc capability flag stays
+      reported (informational) but gates nothing until a DOCX command
+      lands. T-M5 capability-gate test updated accordingly.
+    </R-4>
+    <R-5>
+      Non-macOS note (AMENDED at review): wry's print is macOS-only and
+      silently no-ops elsewhere, so the command fails fast with an
+      explicit "print panel is macOS-only" error on non-macOS builds; no
+      window.print fallback (it is broken in WKWebView anyway). The
+      product is macOS-first this phase.
+    </R-5>
+  </Goals>
+
+  <Constraints>
+    <Constraint>No new crates; uses tauri/wry APIs already pinned in Cargo.lock.</Constraint>
+    <Constraint>The print panel is the system UI — no custom dialogs; page setup, headers/footers, and "Save as PDF" come from AppKit.</Constraint>
+    <Constraint>Behavior tests must not require the native dialog: unit pins assert the invoke call and the pruning change; the live dialog is verified by a WKWebView smoke checklist entry (Print opens the panel; Save-as-PDF produces a styled multi-page PDF).</Constraint>
+  </Constraints>
+
+  <NonGoals>
+    <NonGoal>Silent headless print-to-PDF (createPDF) — follow-up if the dialog flow proves insufficient.</NonGoal>
+    <NonGoal>Windows/Linux print wiring.</NonGoal>
+    <NonGoal>DOCX/pandoc changes beyond removing the PDF branch.</NonGoal>
+  </NonGoals>
+
+  <AcceptanceCriteria>
+    <Criterion>Unit: handleExport 'print' and _EXPORT_PDF invoke mt_print_webview (mocked invoke) with the print container rendered; pandoc PDF path gone; capability gate keeps file.export-file-pdf on MAS-shaped caps (exportPandoc stays an informational flag until a DOCX command lands). The export-settings dialog no longer shows dead page-size/orientation controls for PDF (margins stay).</Criterion>
+    <Criterion>Rust: mt_print_webview registered, compiles, returns Ok on macOS build; smoke checklist entry recorded (dialog opens from Print and Export-PDF; Save-as-PDF output styled and paginated).</Criterion>
+    <Criterion>Full suite green; grace lint zero findings on changed files; two sequential reviews clean.</Criterion>
+  </AcceptanceCriteria>
+
+  <AffectedAreas>
+    <M-009>new mt_print_webview command (menu/backend lane)</M-009>
+    <M-011>editor.vue print case + editor store _EXPORT_PDF</M-011>
+    <M-048>capability gate: PDF no longer pandoc-gated</M-048>
+  </AffectedAreas>
+
+  <VerificationIntent>
+    Unit: renderer invoke pins (editor store + export handler), capability
+    gate matrix update (tests/renderer/commands/capability-gate.test.js).
+    Rust: command registration + compile gate (cargo check/test). Live:
+    WKWebView smoke checklist (Print panel + Save-as-PDF styling/
+    pagination). Governance: verification deltas for the owning V-M-*
+    anchors at implementation time.
+  </VerificationIntent>
+
+  <Approval>
+    <ApprovedBy>user (session 2026-09-23): "давай что дальше и почему?" — proceed with the recommended next stream after the P0 matrix</ApprovedBy>
+    <ApprovalScope>
+      Print/PDF pipeline switch to the native WKWebView panel; MAS PDF
+      un-gating.
+    </ApprovalScope>
+  </Approval>
+</C-18>
+</GraceChangeSpec>

@@ -9631,8 +9631,12 @@
         </Scenario>
         <Scenario>
           scenario-2: applyCapabilityGate(app-store caps) removes
-          file.export-file-pdf and edit.screenshot from the registry while
-          ordinary commands (file.new-tab, edit.copy-as-html) survive.
+          edit.screenshot from the registry while ordinary commands
+          (file.new-tab, edit.copy-as-html) survive. AMENDED by C-18:
+          file.export-file-pdf SURVIVES the gate — PDF export is native
+          (WKWebView print panel) and sandbox-safe; exportPandoc remains a
+          reported capability flag but gates nothing until a DOCX command
+          lands.
         </Scenario>
         <Scenario>
           scenario-3: store doubles lacking FETCH_BUILD_MODE must not break
@@ -9643,6 +9647,7 @@
         <TraceAssertion>
           Negative assertion: an app-store build never advertises
           exportPandoc/screenshot/setDefaultHandler as available.
+          (C-18: exportPandoc=false no longer implies PDF removal.)
         </TraceAssertion>
       </TraceAssertions>
     </V-M-048>
@@ -9680,6 +9685,7 @@
       </Scenarios>
     </V-M-050>
 
+
     <V-M-051>
       <Priority>high</Priority>
       <Commands>
@@ -9697,5 +9703,30 @@
         </Scenario>
       </Scenarios>
     </V-M-051>
+    <V-M-052>
+      <Priority>high</Priority>
+      <Commands>
+        <Command>cd src-tauri &amp;&amp; cargo check</Command>
+        <Command>
+          npx vitest run tests/renderer/components/editor-coverage.test.js
+          tests/renderer/store/editor.test.ts
+          tests/renderer/store/editor-coverage.test.js
+          tests/renderer/store/editor-deep.test.js
+          tests/renderer/commands/capability-gate.test.js
+        </Command>
+      </Commands>
+      <Scenarios>
+        <Scenario>
+          scenario-1: mt_print_webview opens the native WKWebView print
+          panel for the caller window (wry printOperationWithPrintInfo,
+          macOS 11+) — pinned by renderer invoke tests (print case + PDF
+          export path) and the compile/registration gate; no eager
+          print-container clearup so the styled content survives into the
+          panel. Live WKWebView smoke checklist: Print and Export-PDF both
+          open the panel; "Save as PDF" produces a styled, paginated PDF;
+          works in app-store builds.
+        </Scenario>
+      </Scenarios>
+    </V-M-052>
   </VD-RUNTIME>
 </GraceVerificationDocument>

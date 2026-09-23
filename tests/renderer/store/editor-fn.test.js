@@ -378,7 +378,7 @@ describe('store/editor.js — fn coverage', () => {
     expect(notice.notify).toHaveBeenCalled()
   })
 
-  it('PRINT_RESPONSE removed — print now uses window.print()', () => {
+  it('PRINT_RESPONSE removed — print uses the native panel via mt_print_webview (C-18)', () => {
     expect(editorStore.PRINT_RESPONSE).toBeUndefined()
   })
 
