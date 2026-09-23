@@ -1088,17 +1088,28 @@ describe('store/editor', () => {
       expect(save).not.toHaveBeenCalled()
     })
 
-    it('PDF type shows warning notification', async () => {
+    it('PDF type opens the native print panel via mt_print_webview (C-18)', async () => {
+      const { invoke } = await import('@tauri-apps/api/core')
+      invoke.mockClear()
+      editor.currentFile = makeTab({ id: 't1', pathname: '/tmp/a.md', filename: 'a.md' })
+      editor.tabs = [editor.currentFile]
+      await editor.EXPORT({ type: 'pdf', content: '<p/>' })
+      expect(invoke).toHaveBeenCalledWith('mt_print_webview')
+    })
+
+    it('PDF type surfaces a notification when the native panel is unavailable', async () => {
+      const { invoke } = await import('@tauri-apps/api/core')
       const notice = (await import('@/services/notification')).default
+      invoke.mockRejectedValueOnce(new Error('native print unavailable'))
       editor.currentFile = makeTab({ id: 't1', pathname: '/tmp/a.md', filename: 'a.md' })
       editor.tabs = [editor.currentFile]
       await editor.EXPORT({ type: 'pdf', content: '<p/>' })
       expect(notice.notify).toHaveBeenCalledWith(
-        expect.objectContaining({ type: 'warning' })
+        expect.objectContaining({ type: 'error' })
       )
     })
 
-    it('PRINT_RESPONSE removed — print now uses window.print()', () => {
+    it('PRINT_RESPONSE removed — print uses the native panel via mt_print_webview (C-18)', () => {
       expect(editor.PRINT_RESPONSE).toBeUndefined()
     })
   })

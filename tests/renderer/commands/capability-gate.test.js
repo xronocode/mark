@@ -1,7 +1,8 @@
 /**
  * C-15 T-M5 — applyCapabilityGate prunes sandbox-hostile commands from the
- * registry in app-store builds. Pins: PDF export and screenshot removal;
- * ordinary commands survive. (Mock pattern mirrors index.test.js — the
+ * registry in app-store builds. Pins: screenshot removal; ordinary
+ * commands survive. C-18: PDF export is native (WKWebView print panel)
+ * and is no longer pruned. (Mock pattern mirrors index.test.js — the
  * commands module pulls window.electron-dependent utils at import time.)
  */
 vi.mock('@/i18n', () => ({
@@ -49,7 +50,9 @@ describe('capability gate', () => {
     })
 
     const after = walk(commands)
-    expect(after).not.toContain('file.export-file-pdf')
+    // C-18: PDF export is native (WKWebView print panel) — it SURVIVES the
+    // app-store gate now; only the screenshot role is still pruned.
+    expect(after).toContain('file.export-file-pdf')
     expect(after).not.toContain('edit.screenshot')
     expect(after).toContain('file.new-tab')
     expect(after).toContain('edit.copy-as-html')

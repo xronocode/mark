@@ -1419,7 +1419,8 @@ export const useEditorStore = defineStore('editor', {
       if (!hasKeys(this.currentFile)) return
 
       if (type === 'pdf') {
-        bus.emit('print-service-clearup')
+        // C-18: the print container rendered by handleExport must SURVIVE
+        // into the native panel — no clearup before the dialog.
         await this._EXPORT_PDF()
         return
       }
@@ -1464,41 +1465,14 @@ export const useEditorStore = defineStore('editor', {
       }
     },
 
+    // C-18: PDF export goes through the native WKWebView print panel
+    // (system pagination, styled output, built-in "Save as PDF") — no
+    // pandoc, no custom save dialog, works in sandboxed MAS builds. The
+    // styled print container is already in the DOM (handleExport).
     async _EXPORT_PDF() {
       const { invoke } = await import('@tauri-apps/api/core')
-      let status
       try {
-        status = await invoke('mt_pandoc_status')
-      } catch {
-        // ignored
-      }
-      if (!status || !status.available) {
-        notice.notify({
-          title: i18n.global.t('editor.export.failed', { type: 'PDF' }),
-          type: 'warning',
-          message: 'PDF export requires pandoc. Install it with: brew install pandoc'
-        })
-        return
-      }
-
-      const { markdown, filename } = this.currentFile
-      const defaultName = filename
-        ? filename.replace(/\.md$/i, '.pdf')
-        : 'export.pdf'
-
-      const { save } = await import('@tauri-apps/plugin-dialog')
-      const filePath = await save({
-        title: 'Export PDF',
-        defaultPath: defaultName,
-        filters: [{ name: 'PDF', extensions: ['pdf'] }]
-      })
-      if (!filePath) return
-
-      try {
-        const raw = await invoke('mt_pandoc_export', { input: markdown, format: 'pdf' })
-        const bytes = new Uint8Array(raw)
-        await ipcFs.writeBinary(filePath, bytes)
-        this.APPLY_EXPORT_SUCCESS(filePath)
+        await invoke('mt_print_webview')
       } catch (e) {
         notice.notify({
           title: i18n.global.t('editor.export.failed', { type: 'PDF' }),

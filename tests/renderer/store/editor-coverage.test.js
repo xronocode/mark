@@ -656,13 +656,13 @@ describe('store/editor — coverage gaps', () => {
       expect(save).toHaveBeenCalled()
     })
 
-    it('PDF type shows warning notification', async () => {
+    it('PDF type opens the native print panel (C-18)', async () => {
+      const { invoke } = await import('@tauri-apps/api/core')
+      invoke.mockClear()
       editor.currentFile = makeTab({ id: 't1', pathname: '/tmp/a.md', filename: 'a.md' })
       editor.tabs = [editor.currentFile]
       await editor.EXPORT({ type: 'pdf', content: '<p/>' })
-      expect(notice.notify).toHaveBeenCalledWith(
-        expect.objectContaining({ type: 'warning' })
-      )
+      expect(invoke).toHaveBeenCalledWith('mt_print_webview')
     })
   })
 

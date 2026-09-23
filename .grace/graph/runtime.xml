@@ -5982,5 +5982,29 @@
         <C-17/>
       </ChangeRefs>
     </M-051>
+
+    <M-052>
+      <Name>NativePrint</Name>
+      <DisplayName>WKWebView print panel</DisplayName>
+      <Type>UTILITY</Type>
+      <Status>shipped</Status>
+      <Layer>1</Layer>
+      <PhaseRef>C-18-T-001</PhaseRef>
+      <Summary>
+        mt_print_webview opens the system print panel (pagination,
+        built-in Save as PDF) for the calling window's webview via
+        tauri/wry Webview::print — replaces the dead window.print() call
+        and the pandoc PDF export path; sandbox/MAS-safe.
+      </Summary>
+      <PlannedPath>src-tauri/src/m052_print.rs</PlannedPath>
+      <Dependencies></Dependencies>
+      <VerificationRef>V-M-052</VerificationRef>
+      <Interface>
+        <fn-mt_print_webview>open the native print panel for the caller window</fn-mt_print_webview>
+      </Interface>
+      <ChangeRefs>
+        <C-18/>
+      </ChangeRefs>
+    </M-052>
   </GD-RUNTIME>
 </GraceGraphDocument>
