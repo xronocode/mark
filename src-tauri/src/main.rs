@@ -112,6 +112,7 @@ mod m013b;
 mod m045_ext;
 mod m047_bookmarks;
 mod m048_build_mode;
+mod m052_print;
 mod m_v1_compat;
 mod mt_paths;
 
@@ -684,6 +685,7 @@ fn main() {
             m015_pandoc::mt_pandoc_status,
             m048_build_mode::mt_build_mode,
             m015_pandoc::mt_pandoc_export,
+            m052_print::mt_print_webview,
             m016_updater::mt_updater_check,
             m018_screenshot::mt_screenshot_capture,
             m019_datacenter::mt_secret_set,

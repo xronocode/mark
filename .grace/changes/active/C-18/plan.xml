@@ -1,0 +1,173 @@
+<GraceChangePlan graceVersion='4.0' status='approved'>
+<C-18>
+  <Name>Native print &amp; PDF export via WKWebView print panel (matrix P1; un-gates MAS PDF)</Name>
+  <Created>2026-09-23</Created>
+
+  <IntentSummary>
+    Make Print actually print and PDF export work everywhere (incl. the
+    App Store build): route both through one new backend command that
+    opens the native WKWebView print panel via tauri/wry
+    Webview::print() — styled, paginated, with the system "Save as PDF" —
+    replacing the dead window.print() call and the pandoc PDF branch; no
+    new dependencies, no eager print-container clearup.
+  </IntentSummary>
+
+  <BaselineAssertions>
+    <!-- Baseline anchors reference PRE-change strings; the ones the change
+         itself deletes (window.print() call, pandoc invoke, PDF deny line)
+         are gone from the tree after T-002/T-003, so the verifiable
+         baseline here pins the SURVIVING pipeline entry points. -->
+    <MustContain>
+      <File>src/renderer/src/components/editorWithTabs/editor.vue</File>
+      <Text>printer.renderMarkdown</Text>
+    </MustContain>
+    <MustContain>
+      <File>src/renderer/src/store/editor.js</File>
+      <Text>_EXPORT_PDF</Text>
+    </MustContain>
+    <MustContain>
+      <File>src/renderer/src/commands/index.js</File>
+      <Text>file.export-file-pdf</Text>
+    </MustContain>
+  </BaselineAssertions>
+
+  <TargetAssertions>
+    <MustContain>
+      <File>src-tauri/src/m052_print.rs</File>
+      <Text>mt_print_webview</Text>
+    </MustContain>
+    <MustContain>
+      <File>src/renderer/src/components/editorWithTabs/editor.vue</File>
+      <Text>invoke('mt_print_webview')</Text>
+    </MustContain>
+    <MustContain>
+      <File>tests/renderer/commands/capability-gate.test.js</File>
+      <Text>file.export-file-pdf</Text>
+    </MustContain>
+  </TargetAssertions>
+
+  <DurableScope>
+    <M-009/>
+    <M-011/>
+    <M-048/>
+    <M-052/>
+  </DurableScope>
+
+  <ObservedWriteScope>
+    <File>src-tauri/src/m052_print.rs</File>
+    <File>src-tauri/src/main.rs</File>
+    <File>src/renderer/src/components/editorWithTabs/editor.vue</File>
+    <File>src/renderer/src/store/editor.js</File>
+    <File>src/renderer/src/commands/index.js</File>
+    <File>src/renderer/src/components/exportSettings/index.vue</File>
+    <File>static/locales/en.json</File>
+    <File>static/locales/en.min.json</File>
+    <File>tests/renderer/components/editor-coverage.test.js</File>
+    <File>tests/renderer/store/editor.test.ts</File>
+    <File>tests/renderer/store/editor-fn.test.js</File>
+    <File>tests/renderer/commands/capability-gate.test.js</File>
+  </ObservedWriteScope>
+
+  <ImplementationPlan>
+    <T-001>
+      <Title>W1: mt_print_webview backend command</Title>
+      <DependsOn></DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>m052_print.rs with contract; command registered in
+        main.rs; cargo check/test green; no new crates (tauri/wry pinned
+        APIs only).</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>cd src-tauri &amp;&amp; cargo check</Command>
+      </Verification>
+    </T-001>
+
+    <T-002>
+      <Title>W1: renderer Print + Export-PDF on the native panel</Title>
+      <DependsOn>T-001</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>handleExport 'print' invokes mt_print_webview after
+        rendering the print container (no eager clearup); store
+        _EXPORT_PDF drops pandoc/status/save-dialog and invokes the
+        command (error → notification); unit pins for all three.</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>npx vitest run tests/renderer/components/editor-coverage.test.js tests/renderer/store/editor.test.ts</Command>
+      </Verification>
+    </T-002>
+
+    <T-003>
+      <Title>W2: capability gate un-prunes PDF</Title>
+      <DependsOn>T-002</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>applyCapabilityGate no longer denies
+        file.export-file-pdf; exportPandoc stays informational;
+        capability-gate test updated (PDF survives, screenshot pruned);
+        V-M-048 scenario-2 amended.</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>npx vitest run tests/renderer/commands/capability-gate.test.js</Command>
+      </Verification>
+    </T-003>
+
+    <T-004>
+      <Title>W3: governance + gates + reviews</Title>
+      <DependsOn>T-003</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>M-052/V-M-052 registered (graph + verification
+        indexes); full vitest green; CI-mode thresholds green; grace lint
+        zero findings on changed files; review-1 (correctness — modal/
+        clearup lifecycle, non-macOS fallback, command thread-safety) and
+        review-2 (contracts — GRACE consistency, T-M5 amendment coherence)
+        both CLEAN; WKWebView smoke checklist entry recorded.</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>npm run test:coverage; grace lint --path . --assertions current</Command>
+      </Verification>
+    </T-004>
+  </ImplementationPlan>
+
+  <ReviewProtocol>
+    <Review-1>
+      <Angle>correctness (modal lifecycle vs clearup, command thread-safety, non-macOS error path, stale print-container behavior)</Angle>
+      <PassCriteria>zero findings on changed code</PassCriteria>
+    </Review-1>
+    <Review-2>
+      <Angle>security (no new attack surface), GRACE contract/graph/verification consistency incl. the C-15 T-M5 amendment</Angle>
+      <PassCriteria>zero findings</PassCriteria>
+    </Review-2>
+  </ReviewProtocol>
+
+  <Evidence>
+    <Gates>
+      cargo check green after m052 registration; scoped vitest green
+      (editor-coverage 162 incl. native-print pin, capability-gate 10 incl.
+      PDF-survives, editor store 107 incl. invoke + error paths).
+    </Gates>
+    <Coverage>
+      Renderer invoke paths pinned; Rust command is a thin wry delegation
+      (compile gate + smoke).
+    </Coverage>
+    <Reviews>
+      Review-1 (correctness/lifecycle): NEEDS-FIXES round-1 — 2 MINOR
+      (false non-macOS error contract — wry print silently no-ops off-
+      macOS; dead page-size/orientation controls in the export dialog),
+      2 NIT (dead print-service-clearup bus wiring; acceptance wording).
+      Review-2 (security/contracts): NEEDS-FIXES round-1 — 1 BLOCKER
+      (mid-review listener removal left two stale test pins), 4 MINOR
+      (spec R-2/R-5 contradictions, missing commands/index CHANGE_SUMMARY
+      entry, M-052 Type vocabulary), 6 NIT (V-M-052 ordering/commands,
+      PhaseRef, mod-list order, editor.vue summary order, deep2 comment,
+      C-15/V-M-015 annotations). ALL FIXED in-session: honest
+      #[cfg(not(macos))] error; export dialog shows a print-panel hint
+      instead of dead controls (margins stay, en/min.json keys); bus
+      wiring + stale pins removed; spec R-2/R-5/acceptance rewritten to
+      shipped reality; M-052 Type→UTILITY, PhaseRef C-18-T-001; V-M-052
+      ordered after V-M-051 with the full five-file command; main.rs mod
+      order; summaries annotated (commands/index C-18 entry; C-15 T-M5
+      supersession note; V-M-015 parenthetical). Security verified clean
+      (no injection surface, no document content to backend, no ACL gap).
+    </Reviews>
+  </Evidence>
+</C-18>
+</GraceChangePlan>

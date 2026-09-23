@@ -1776,8 +1776,9 @@ describe('editor.vue — coverage', () => {
     expect(mockPrinter.clearup).toHaveBeenCalled()
   })
 
-  it('handleExport print calls window.print', async () => {
-    window.print = vi.fn()
+  it('handleExport print opens the native print panel via mt_print_webview (C-18)', async () => {
+    const { invoke } = await import('@tauri-apps/api/core')
+    invoke.mockClear()
     await mountEditor()
     await getBusHandler('export')({
       type: 'print',
@@ -1787,8 +1788,9 @@ describe('editor.vue — coverage', () => {
       htmlTitle: ''
     })
     expect(mockPrinter.renderMarkdown).toHaveBeenCalled()
-    expect(window.print).toHaveBeenCalled()
-    expect(mockPrinter.clearup).toHaveBeenCalled()
+    expect(invoke).toHaveBeenCalledWith('mt_print_webview')
+    // No eager clearup — the print container must survive into the panel.
+    expect(mockPrinter.clearup).not.toHaveBeenCalled()
   })
 
   it('handleExport print handles error', async () => {
@@ -1821,11 +1823,6 @@ describe('editor.vue — coverage', () => {
   })
 
   /* ── handlePrintServiceClearup ─────────────────────────────── */
-  it('print-service-clearup calls printer.clearup', async () => {
-    await mountEditor()
-    getBusHandler('print-service-clearup')()
-    expect(mockPrinter.clearup).toHaveBeenCalled()
-  })
 
   /* ── handleDialogTableConfirm ──────────────────────────────── */
   it.skip('handleDialogTableConfirm creates table', async () => {
@@ -1961,7 +1958,6 @@ describe('editor.vue — coverage', () => {
     expect(offEvents).toContain('switch-spellchecker-language')
     expect(offEvents).toContain('open-command-spellchecker-switch-language')
     expect(offEvents).toContain('replace-misspelling')
-    expect(offEvents).toContain('print-service-clearup')
     expect(offEvents).toContain('invalidate-image-cache')
 
     expect(mockEditorInstance.off).toHaveBeenCalledWith('change')
