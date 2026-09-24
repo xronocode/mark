@@ -1,0 +1,120 @@
+<GraceChangePlan graceVersion='4.0' status='approved'>
+<C-20>
+  <Name>Relative-path autocomplete for markdown links (matrix P1, small)</Name>
+  <Created>2026-09-24</Created>
+
+  <IntentSummary>
+    Complete relative link destinations by suggestion: a muya
+    LinkPathPicker float (QuickInsert pattern) triggers while typing
+    inside `](…`, fed by a generalized ASK_FOR_FILE_PATH store action
+    (readdir + dir-part/prefix, .md+dirs flavor; image flavor delegates
+    unchanged), inserting the chosen path inline and closing on files
+    while directories continue browsing.
+  </IntentSummary>
+
+  <BaselineAssertions>
+    <MustContain>
+      <File>src/muya/lib/ui/imageSelector/index.js</File>
+      <Text>imagePathAutoComplete</Text>
+    </MustContain>
+    <MustContain>
+      <File>src/renderer/src/store/editor.js</File>
+      <Text>ASK_FOR_IMAGE_AUTO_PATH</Text>
+    </MustContain>
+  </BaselineAssertions>
+
+  <TargetAssertions>
+    <MustContain>
+      <File>src/muya/lib/ui/linkPathPicker/index.js</File>
+      <Text>muya-link-picker</Text>
+    </MustContain>
+    <MustContain>
+      <File>src/renderer/src/store/editor.js</File>
+      <Text>ASK_FOR_FILE_PATH</Text>
+    </MustContain>
+    <MustContain>
+      <File>src/renderer/src/components/editorWithTabs/editor.vue</File>
+      <Text>filePathAutoComplete</Text>
+    </MustContain>
+  </TargetAssertions>
+
+  <DurableScope>
+    <M-012/>
+    <M-011/>
+  </DurableScope>
+
+  <ObservedWriteScope>
+    <File>src/muya/lib/ui/linkPathPicker/index.js</File>
+    <File>src/muya/lib/ui/linkPathPicker/index.css</File>
+    <File>src/muya/lib/index.js</File>
+    <File>src/renderer/src/store/editor.js</File>
+    <File>src/renderer/src/components/editorWithTabs/editor.vue</File>
+    <File>tests/renderer/store/file-path-autocomplete.test.js</File>
+    <File>tests/e2e/link-autocomplete.spec.ts</File>
+  </ObservedWriteScope>
+
+  <ImplementationPlan>
+    <T-001>
+      <Title>W1: generalize the store action</Title>
+      <DependsOn></DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>ASK_FOR_FILE_PATH(src, { exts, includeDirs }) with the
+        existing dir-part/prefix/50-cap logic; ASK_FOR_IMAGE_AUTO_PATH
+        becomes a thin delegate (image exts) — image behavior
+        byte-identical; unit tables for both flavors.</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>npx vitest run tests/renderer/store/file-path-autocomplete.test.js tests/renderer/store/editor.test.ts</Command>
+      </Verification>
+    </T-001>
+
+    <T-002>
+      <Title>W2: LinkPathPicker muya plugin</Title>
+      <DependsOn>T-001</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>QuickInsert-pattern input listener detects a cursor
+        inside an inline link destination (trigger on the raw text up to
+        the cursor matching /\]\([^)]*$/); dispatches muya-link-picker with
+        { reference, list, cb }; BaseScrollFloat rendering mirroring
+        ImagePathPicker; keyboard nav (Up/Down/Enter/Tab/Esc) does not
+        leak into the document; directories continue, files close.</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>npx vitest run tests/renderer/muya/link-path-picker.test.js</Command>
+      </Verification>
+    </T-002>
+
+    <T-003>
+      <Title>W3: wiring + gates + reviews</Title>
+      <DependsOn>T-002</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>editor.vue wires filePathAutoComplete (.md+dirs);
+        Muya.use(LinkPathPicker) in the editor mount; e2e visual gate
+        (fixture dir with a couple of .md files; type ](./ → float; Enter
+        completes; image popover unchanged); full vitest + e2e green;
+        grace lint zero; two sequential reviews clean.</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>npm run test:coverage; npx playwright test tests/e2e/link-autocomplete.spec.ts</Command>
+      </Verification>
+    </T-003>
+  </ImplementationPlan>
+
+  <ReviewProtocol>
+    <Review-1>
+      <Angle>correctness (trigger regex false positives inside code spans/images, keyboard event leakage, cursor/DOM reference stability across renders)</Angle>
+      <PassCriteria>zero findings on changed code</PassCriteria>
+    </Review-1>
+    <Review-2>
+      <Angle>security (readdir surface stays local+read-only, no path escape beyond typed subpaths), GRACE consistency, image-autocomplete parity</Angle>
+      <PassCriteria>zero findings</PassCriteria>
+    </Review-2>
+  </ReviewProtocol>
+
+  <Evidence>
+    <Gates>recon complete 2026-09-24: existing machinery mapped (imageSelector → muya-image-picker → ImagePathPicker → ASK_FOR_IMAGE_AUTO_PATH); implementation pending.</Gates>
+    <Coverage>pending</Coverage>
+    <Reviews>pending</Reviews>
+  </Evidence>
+</C-20>
+</GraceChangePlan>
