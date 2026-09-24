@@ -308,7 +308,8 @@
     "placeholders": {
       "selectOption": "Select an option",
       "searchFileToOpen": "Search file to open",
-      "selectLanguage": "Select a language to switch to"
+      "selectLanguage": "Select a language to switch to",
+      "searchHeading": "Type a heading name"
     }
   },
   "exportSettings": {
@@ -1006,7 +1007,8 @@
       "findInFolder": "Find in Folder",
       "screenshot": "Screenshot",
       "mathBlock": "Math Block",
-      "formatDocument": "Format the active document (whitespace, blank lines, headings)"
+      "formatDocument": "Format the active document (whitespace, blank lines, headings)",
+      "goToHeading": "Go to heading in this document"
     },
     "paragraph": {
       "heading1": "Heading 1",
