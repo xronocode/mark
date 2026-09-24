@@ -75,7 +75,7 @@
 
 <script setup>
 // FILE: src/renderer/src/components/editorWithTabs/editor.vue
-// VERSION: 1.14.0
+// VERSION: 1.15.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Host the Muya WYSIWYG surface and coordinate document rendering, selection, scroll, preview, editor tools, and store/bus integration.
 //   SCOPE: Renderer-side Muya lifecycle and UI orchestration; does not own Markdown parsing rules or backend file persistence.
@@ -113,6 +113,7 @@
 //   - 2026-09-22 v1.12.0: C-17 — debounced doc-markdown-changed feeds the problems panel; formatDocument bus handler applies formatMarkdown via setMarkdown (one-step undo via the cursor-setter history push).
 //   - 2026-09-23 v1.13.0: C-18 — Print drives the native WKWebView print panel via mt_print_webview (window.print is ignored by WKWebView); no eager print-container clearup (the modal can outlive the call).
 //   - 2026-09-23 v1.14.0: C-19 — debounced toc-active-heading scrollspy (fixed 80px band; doc-end pins the final heading; above-first-heading clears; re-armed on content change); Go-to-Heading palette command (static registry twin with dynamic-import execute).
+//   - 2026-09-24 v1.15.0: C-20 — LinkPathPicker plugin registered; filePathAutoComplete option wired (md+dirs); imagePathAutoComplete wrapper fixed to a passthrough (the old f.type/f.file mapping produced "undefined" items).
 // END_CHANGE_SUMMARY
 
 import { ref, reactive, watch, onMounted, onBeforeUnmount, nextTick, computed } from 'vue'
@@ -125,6 +126,7 @@ import QuickInsert from 'muya/lib/ui/quickInsert'
 import CodePicker from 'muya/lib/ui/codePicker'
 import EmojiPicker from 'muya/lib/ui/emojiPicker'
 import ImagePathPicker from 'muya/lib/ui/imagePicker'
+import LinkPathPicker from 'muya/lib/ui/linkPathPicker'
 import ImageSelector from 'muya/lib/ui/imageSelector'
 import ImageToolbar from 'muya/lib/ui/imageToolbar'
 import Transformer from 'muya/lib/ui/transformer'
@@ -609,11 +611,15 @@ const jumpClick = (linkInfo) => {
 }
 
 const imagePathAutoComplete = async (src) => {
-  const files = await editorStore.ASK_FOR_IMAGE_AUTO_PATH(src)
-  return files.map((f) => {
-    const iconClass = f.type === 'directory' ? 'icon-folder' : 'icon-image'
-    return Object.assign(f, { iconClass, text: f.file + (f.type === 'directory' ? '/' : '') })
-  })
+  // The store returns display-ready items ({text, iconClass}); the old
+  // f.type/f.file mapping produced "undefined" entries (latent breakage
+  // from the Tauri store rewrite) — pass them through.
+  return editorStore.ASK_FOR_IMAGE_AUTO_PATH(src)
+}
+
+// C-20: link-destination autocomplete (markdown files + directories).
+const filePathAutoComplete = async (src) => {
+  return editorStore.ASK_FOR_FILE_PATH(src, { exts: ['md', 'markdown'] })
 }
 
 const imageAction = async (image, id, alt = '') => {
@@ -1614,6 +1620,7 @@ onMounted(() => {
   Muya.use(CodePicker)
   Muya.use(EmojiPicker)
   Muya.use(ImagePathPicker)
+  Muya.use(LinkPathPicker)
   Muya.use(ImageSelector, {
     // step-8c: process.env.UNSPLASH_ACCESS_KEY → import.meta.env.VITE_UNSPLASH_ACCESS_KEY.
     // Vite requires VITE_-prefixed names to expose env vars to client code at
@@ -1663,6 +1670,7 @@ onMounted(() => {
     imagePathPicker,
     clipboardFilePath: guessClipboardFilePath,
     imagePathAutoComplete,
+    filePathAutoComplete,
     t // 添加翻译函数
   }
 

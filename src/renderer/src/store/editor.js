@@ -253,15 +253,30 @@ export const useEditorStore = defineStore('editor', {
     },
 
     async ASK_FOR_IMAGE_AUTO_PATH(src) {
+      const results = await this.ASK_FOR_FILE_PATH(src, {
+        exts: [
+          'png', 'jpg', 'jpeg', 'gif', 'svg', 'webp', 'bmp', 'ico', 'tiff', 'tif', 'avif'
+        ]
+      })
+      // Byte-identical image flavor: files carry the image icon.
+      return results.map((r) =>
+        r.iconClass === 'icon-file' ? { ...r, iconClass: 'icon-image' } : r
+      )
+    },
+
+    // C-20: generalized relative-path autocomplete (the image flavor above
+    // delegates here). Reads the directory implied by the typed dir-part
+    // (relative to the current document), filters by prefix and extension
+    // set; directories are always offered (for browsing into subpaths).
+    async ASK_FOR_FILE_PATH(src, { exts = [], includeDirs = true } = {}) {
       const { pathname } = this.currentFile
       if (!pathname || !src) return []
 
-      const IMAGE_EXTS = new Set([
-        'png', 'jpg', 'jpeg', 'gif', 'svg', 'webp', 'bmp', 'ico', 'tiff', 'tif', 'avif'
-      ])
+      const extSet = new Set(exts.map((e) => e.toLowerCase()))
 
       try {
         const fileDir = window.path.dirname(pathname)
+        const pathSep = window.path.sep || '/'
         const lastSep = Math.max(src.lastIndexOf('/'), src.lastIndexOf('\\'))
         const dirPart = lastSep >= 0 ? src.substring(0, lastSep + 1) : ''
         const prefix = lastSep >= 0
@@ -269,6 +284,12 @@ export const useEditorStore = defineStore('editor', {
           : src.toLowerCase()
 
         const resolvedDir = window.path.resolve(fileDir, dirPart || '.')
+        // C-20 security review: the typed dir-part resolves anywhere the
+        // user types (absolute paths, ..-escapes). Restrict the browse to
+        // the current document's subtree — the spec constraint.
+        if (resolvedDir !== fileDir && !resolvedDir.startsWith(fileDir + pathSep)) {
+          return []
+        }
         const names = await window.fileUtils.readdir(resolvedDir)
         const filtered = names
           .filter((n) => n.toLowerCase().startsWith(prefix))
@@ -279,9 +300,13 @@ export const useEditorStore = defineStore('editor', {
             try {
               const full = window.path.join(resolvedDir, name)
               const s = await window.fileUtils.stat(full)
-              if (s.is_directory) return { text: name + '/', iconClass: 'icon-folder' }
+              if (s.isDirectory || s.is_directory) {
+                return includeDirs ? { text: name + '/', iconClass: 'icon-folder' } : null
+              }
               const ext = (name.split('.').pop() || '').toLowerCase()
-              if (IMAGE_EXTS.has(ext)) return { text: name, iconClass: 'icon-image' }
+              if (extSet.size === 0 || extSet.has(ext)) {
+                return { text: name, iconClass: 'icon-file' }
+              }
               return null
             } catch {
               return null
@@ -1828,6 +1853,11 @@ export const useEditorStore = defineStore('editor', {
 // END_MODULE_CONTRACT
 //
 // CHANGE_SUMMARY:
+//   - 2026-09-24 C-20: ASK_FOR_FILE_PATH generalizes the autocomplete
+//     (dir-part/prefix/50-cap, extension set, directories always);
+//     ASK_FOR_IMAGE_AUTO_PATH delegates byte-identically. The editor.vue
+//     imagePathAutoComplete wrapper that produced "undefined" items is
+//     fixed to a passthrough in the same change.
 //   - 2026-09-21 C-2 follow-up: loadChange stamps tab.contentReloaded and
 //     emits it with file-changed so the editor clamps the preserved pre-edit
 //     scrollTop into the reloaded document's range (blank-until-scroll on

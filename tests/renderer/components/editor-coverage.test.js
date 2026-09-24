@@ -1966,21 +1966,22 @@ describe('editor.vue — coverage', () => {
   })
 
   /* ── imagePathAutoComplete ─────────────────────────────────── */
-  it('imagePathAutoComplete maps files with correct iconClass and text', async () => {
+  it('imagePathAutoComplete is a passthrough of the store items (C-20 fix)', async () => {
     editorStore.ASK_FOR_IMAGE_AUTO_PATH.mockResolvedValue([
-      { file: 'img.png', type: 'file' },
-      { file: 'assets', type: 'directory' }
+      { text: 'img.png', iconClass: 'icon-image' },
+      { text: 'assets/', iconClass: 'icon-folder' }
     ])
     await mountEditor()
     // The imagePathAutoComplete function is captured in Muya constructor options
     const fn = lastMuyaOptions.current.imagePathAutoComplete
     expect(fn).toBeDefined()
     const result = await fn('test')
-    expect(result).toHaveLength(2)
-    expect(result[0].iconClass).toBe('icon-image')
-    expect(result[0].text).toBe('img.png')
-    expect(result[1].iconClass).toBe('icon-folder')
-    expect(result[1].text).toBe('assets/')
+    // The old wrapper mapped f.type/f.file fields the store never produced
+    // ("undefined" items); the fix passes display-ready items through.
+    expect(result).toEqual([
+      { text: 'img.png', iconClass: 'icon-image' },
+      { text: 'assets/', iconClass: 'icon-folder' }
+    ])
   })
 
   /* ── imageAction — upload path ─────────────────────────────── */
