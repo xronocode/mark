@@ -2,6 +2,7 @@ import { t } from '../i18n'
 
 const COMMAND_KEY_MAP = {
   'edit.format-document': 'commands.edit.formatDocument',
+  'edit.go-to-heading': 'commands.edit.goToHeading',
   'view.problems': 'commands.view.problems',
   'view.toggle-markdown-lint': 'commands.view.toggleMarkdownLint',
   // ============================================

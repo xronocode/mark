@@ -2739,6 +2739,20 @@
             </Attribute>
           </LegacyAttributes>
         </fn-scrollToCordsAfterReload>
+        <fn-emitActiveHeading>
+          <LegacyAttributes>
+            <Attribute>
+              <Name>PURPOSE</Name>
+              <Value>
+                editorWithTabs/editor.vue scrollspy (C-19): debounced off
+                muya scroll, publishes toc-active-heading with the slug of
+                the last heading above a fixed 80px band from the viewport top
+                (document-end edge pins the final heading); consumed by
+                sideBar/toc.vue's scoped-slot highlight
+              </Value>
+            </Attribute>
+          </LegacyAttributes>
+        </fn-emitActiveHeading>
         <fn-handleFormatDocument>
           <LegacyAttributes>
             <Attribute>

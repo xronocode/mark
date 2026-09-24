@@ -17,6 +17,7 @@
 //   FileEncodingCommand - GRACE 4 synchronized symbol
 //   LineEndingCommand - GRACE 4 synchronized symbol
 //   QuickOpenCommand - GRACE 4 synchronized symbol
+//   HeadingSearchCommand - C-19 barrel export (runtime palette command)
 //   SpellcheckerLanguageCommand - GRACE 4 synchronized symbol
 //   TrailingNewlineCommand - GRACE 4 synchronized symbol
 //   default - GRACE 4 synchronized symbol
@@ -28,6 +29,7 @@
 //   - 2026-09-16 v2.1.10-beta: add edit.copy-as-html (C-3) — rich text/html clipboard via editor.vue copyAsHtmlRich handler.
 //   - 2026-09-17 v2.1.11-beta: add edit.copy-as-plain-text (C-12) — markup-free plain-text clipboard via editor.vue copyAsPlainText handler.
 //   - 2026-09-23 C-18: applyCapabilityGate no longer prunes file.export-file-pdf — PDF export is native (WKWebView print panel); exportPandoc stays informational.
+//   - 2026-09-23 C-19: barrel-export HeadingSearchCommand (edit.go-to-heading, Cmd+T palette symbol search over the active document).
 //   - 2026-08-07 v2.1.2-beta: remove the Terminal/Homebrew update branch and use the signed Tauri updater for every non-App-Store install.
 // END_CHANGE_SUMMARY
 //
@@ -45,6 +47,7 @@ import { usePreferencesStore } from '../store/preferences'
 export { default as FileEncodingCommand } from './fileEncoding'
 export { default as LineEndingCommand } from './lineEnding'
 export { default as QuickOpenCommand } from './quickOpen'
+export { default as HeadingSearchCommand } from './headingSearch'
 export { default as SpellcheckerLanguageCommand } from './spellcheckerLanguage'
 export { default as TrailingNewlineCommand } from './trailingNewline'
 
@@ -308,6 +311,19 @@ const commands = [
     shortcut: [isOsx ? 'Cmd' : 'Ctrl', 'Shift', 'F'],
     execute: async () => {
       bus.emit('projectSearch')
+    }
+  },
+  {
+    // C-19: heading symbol search over the active document (VS Code's
+    // Cmd+T workspace-symbol binding). The palette command object is
+    // constructed on demand — importing the editor store statically here
+    // would create a require cycle (store/editor imports this registry).
+    id: 'edit.go-to-heading',
+    shortcut: [isOsx ? 'Cmd' : 'Ctrl', 'T'],
+    execute: async () => {
+      const { useEditorStore } = await import('../store/editor')
+      const { default: HeadingSearchCommand } = await import('./headingSearch')
+      bus.emit('show-command-palette', new HeadingSearchCommand({ editor: useEditorStore() }))
     }
   },
   {

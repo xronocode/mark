@@ -1,0 +1,103 @@
+<GraceChangeSpec graceVersion='4.0' status='approved'>
+<C-19>
+  <Name>Heading navigation: Go-to-Heading palette (Cmd+T) + active-heading highlight in the TOC (matrix P1)</Name>
+  <Created>2026-09-23</Created>
+  <Priority>high</Priority>
+  <Status>approved-for-implementation</Status>
+
+  <Summary>
+    Long agent-generated documents need heading navigation parity with VS
+    Code. C-19 v1 ships two pieces over the existing listToc/slug
+    infrastructure: (1) a Go-to-Heading command palette (Cmd+T — the VS
+    Code workspace-symbol binding, free in both the native menu and the
+    registry) fuzzy-searching the active document's headings and jumping
+    via the established scroll-to-header slugs; (2) the sidebar TOC
+    highlights the heading the viewport is currently in (the "where am I"
+    half of the breadcrumb idea). Title-bar heading breadcrumbs are an
+    explicit follow-up (the C-9 title-clearance geometry deserves its own
+    change), not v1.
+  </Summary>
+
+  <Problem>
+    <Description>
+      Navigating a 2000-line agent-written strategy doc requires scrolling
+      or eyeballing the TOC; there is no keyboard symbol-search and the
+      TOC does not show which section the viewport is in.
+    </Description>
+    <RootCause>
+      The quick-open command searches files only; the TOC renders a flat
+      tree with no active-node tracking; no heading search existed
+      upstream (matrix: "Go-to-header / workspace symbol search ❌").
+    </RootCause>
+    <Evidence>
+      docs/research/markdown-feature-matrix.md Editing &amp; structure row
+      (P1, small effort); commands/quickOpen.js is the palette-command
+      pattern (search/executeSubcommand); sideBar/toc.vue renders listToc
+      via el-tree with no active state; editor.vue already owns
+      scroll-to-header → scrollToElement('#slug'); Cmd+T is bound nowhere
+      (menu + registry grep clean).
+    </Evidence>
+  </Problem>
+
+  <Goals>
+    <R-1>
+      Go-to-Heading palette command 'edit.go-to-heading' (Cmd+T, native
+      menu entry in the Find/navigation neighborhood): fuzzy-filters the
+      ACTIVE document's listToc headings (level shown as indentation),
+      Enter jumps via bus scroll-to-header slug; empty list when the
+      document has no headings; untitled tabs behave the same (TOC is
+      content-based).
+    </R-1>
+    <R-2>
+      Active-heading highlight in the sidebar TOC: the heading containing
+      the current viewport top (recomputed on muya scroll events,
+      debounced, fixed 80px activation band) gets a distinct style; the highlight follows both reading
+      and editing; clicking nodes keeps the existing jump behavior.
+    </R-2>
+    <R-3>
+      No regressions to the palette (file quick-open untouched), the TOC
+      click-to-jump, or the C-9 title-bar geometry (untouched — breadcrumbs
+      are a follow-up change).
+    </R-3>
+  </Goals>
+
+  <Constraints>
+    <Constraint>No new dependencies; reuses listToc, slugs, command-palette and el-tree.</Constraint>
+    <Constraint>menu-consistency: Cmd+T shortcut ⇒ native menu entry (or allowlist — menu entry preferred for discoverability).</Constraint>
+    <Constraint>Active-heading recomputation is passive (scroll listener only, debounced) — no muya core changes.</Constraint>
+    <Constraint>Scoped 100% coverage of new command/TOC logic; e2e visual gate (palette lists headings, jump scrolls; TOC highlight follows scroll); grace lint zero findings; two sequential reviews.</Constraint>
+  </Constraints>
+
+  <NonGoals>
+    <NonGoal>Workspace-wide (all-files) heading search — active document v1.</NonGoal>
+    <NonGoal>Title-bar heading breadcrumbs (C-9 clearance geometry — separate change).</NonGoal>
+    <NonGoal>Folding, split view, relative-path autocomplete (other P1 items).</NonGoal>
+  </NonGoals>
+
+  <AcceptanceCriteria>
+    <Criterion>Unit: HeadingSearchCommand search filters listToc (fuzzy + level indent in the label), executeSubcommand emits scroll-to-header with the slug, empty-TOC documents return []; command registered with the Cmd+T accelerator + native menu id pinned.</Criterion>
+    <Criterion>Unit + e2e: TOC active node recomputes on scroll (debounced listener), only one node highlighted at a time, click-to-jump unchanged.</Criterion>
+    <Criterion>Full suite green; grace lint zero findings on changed files; two sequential reviews clean.</Criterion>
+  </AcceptanceCriteria>
+
+  <AffectedAreas>
+    <M-011>palette command + editor wiring (heading search, active-heading tracking)</M-011>
+    <M-009>native menu entry for edit.go-to-heading</M-009>
+  </AffectedAreas>
+
+  <VerificationIntent>
+    Unit: heading-search command table tests; TOC active-node component
+    tests. Visual e2e: palette → heading → scroll lands the heading in the
+    viewport; TOC highlight moves with scrolling. Governance: V-M-011
+    scenario + commands at implementation time; menu-consistency pin.
+  </VerificationIntent>
+
+  <Approval>
+    <ApprovedBy>user (session 2026-09-23): "дальше по плану что было" — proceed with the queued P1 stream</ApprovedBy>
+    <ApprovalScope>
+      Heading navigation (palette + TOC highlight); no title-bar geometry
+      changes.
+    </ApprovalScope>
+  </Approval>
+</C-19>
+</GraceChangeSpec>

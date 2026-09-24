@@ -75,7 +75,7 @@
 
 <script setup>
 // FILE: src/renderer/src/components/editorWithTabs/editor.vue
-// VERSION: 1.13.0
+// VERSION: 1.14.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Host the Muya WYSIWYG surface and coordinate document rendering, selection, scroll, preview, editor tools, and store/bus integration.
 //   SCOPE: Renderer-side Muya lifecycle and UI orchestration; does not own Markdown parsing rules or backend file persistence.
@@ -112,6 +112,7 @@
 //   - 2026-09-21 v1.11.0: scrollToCordsAfterReload — file-changed payloads with contentReloaded (loadChange live-reload, incl. background-tab activation via UPDATE_CURRENT_FILE/CLOSE fallbacks) clamp the pre-edit scrollTop into the reloaded document's range, drop leftover first-paint padding, and sync the tab's saved offset immediately; handleResetPaddingBottom now clears the padding on #ag-editor-id where it was actually set (upstream cleared the container — phantom padding stuck forever).
 //   - 2026-09-22 v1.12.0: C-17 — debounced doc-markdown-changed feeds the problems panel; formatDocument bus handler applies formatMarkdown via setMarkdown (one-step undo via the cursor-setter history push).
 //   - 2026-09-23 v1.13.0: C-18 — Print drives the native WKWebView print panel via mt_print_webview (window.print is ignored by WKWebView); no eager print-container clearup (the modal can outlive the call).
+//   - 2026-09-23 v1.14.0: C-19 — debounced toc-active-heading scrollspy (fixed 80px band; doc-end pins the final heading; above-first-heading clears; re-armed on content change); Go-to-Heading palette command (static registry twin with dynamic-import execute).
 // END_CHANGE_SUMMARY
 
 import { ref, reactive, watch, onMounted, onBeforeUnmount, nextTick, computed } from 'vue'
@@ -1476,6 +1477,38 @@ const handleExtUndo = ({ extensionId }) => {
 }
 
 let docLintTimer = null
+let tocActiveTimer = null
+
+// START_BLOCK_TOC_ACTIVE_HEADING
+// Find the last heading whose top is at/above the viewport's upper
+// quarter and publish its slug for the TOC highlight (C-19).
+const emitActiveHeading = () => {
+  const container = editor.value?.container
+  if (!container) return
+  const headingEls = container.querySelectorAll('[data-head]')
+  if (headingEls.length === 0) return
+  const threshold = container.getBoundingClientRect().top + 80
+  let active = null
+  for (const el of headingEls) {
+    if (el.getBoundingClientRect().top <= threshold) active = el
+    else break
+  }
+  // Scrollspy edge: at the very bottom of the document the last section's
+  // heading may never cross the threshold (short trailing content) —
+  // pin the last heading instead so the highlight reaches the final
+  // section.
+  if (!active) {
+    // Above the first heading (front matter / preamble): no highlight —
+    // NOT the last heading.
+    bus.emit('toc-active-heading', null)
+    return
+  }
+  if (container.scrollTop + container.clientHeight >= container.scrollHeight - 2) {
+    active = headingEls[headingEls.length - 1]
+  }
+  bus.emit('toc-active-heading', active.id)
+}
+// END_BLOCK_TOC_ACTIVE_HEADING
 
 // START_CONTRACT: handleFormatDocument
 //   PURPOSE: Canonicalize the active document (C-17 Format document) — trailing whitespace, blank-line structure, setext→ATX, heading-cascade demotion.
@@ -1727,6 +1760,8 @@ onMounted(() => {
       // timer can never emit another tab's document.
       const lintSnapshot = { id, markdown: changes.markdown }
       if (docLintTimer) clearTimeout(docLintTimer)
+  if (tocActiveTimer) clearTimeout(tocActiveTimer)
+  if (tocActiveTimer) clearTimeout(tocActiveTimer)
       docLintTimer = setTimeout(() => {
         bus.emit('doc-markdown-changed', lintSnapshot)
       }, 500)
@@ -1735,6 +1770,10 @@ onMounted(() => {
 
   editor.value.on('scroll', (scrollEvent) => {
     editorStore.updateScrollPosition(currentFile.value.id, scrollEvent.scrollTop)
+    // C-19: track the heading the viewport is in (debounced — scroll
+    // events fire at frame rate) and tell the TOC to highlight it.
+    if (tocActiveTimer) clearTimeout(tocActiveTimer)
+    tocActiveTimer = setTimeout(emitActiveHeading, 200)
   })
 
   editor.value.on('heading-copy-link', ({ key }) => {
@@ -1849,6 +1888,7 @@ onBeforeUnmount(() => {
   bus.off('ext-context-request', handleExtContextRequest)
   bus.off('formatDocument', handleFormatDocument)
   if (docLintTimer) clearTimeout(docLintTimer)
+  if (tocActiveTimer) clearTimeout(tocActiveTimer)
 
   document.removeEventListener('keyup', keyup)
   editor.value.off('change')
