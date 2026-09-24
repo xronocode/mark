@@ -2753,6 +2753,21 @@
             </Attribute>
           </LegacyAttributes>
         </fn-emitActiveHeading>
+        <fn-ASK_FOR_FILE_PATH>
+          <LegacyAttributes>
+            <Attribute>
+              <Name>PURPOSE</Name>
+              <Value>
+                store/editor.js generalized relative-path autocomplete
+                (C-20): readdir of the dir-part resolved against the
+                current document, prefix filter, extension set, 50-cap,
+                directories always; ASK_FOR_IMAGE_AUTO_PATH delegates
+                (image extensions + icon mapping) — byte-identical image
+                flavor
+              </Value>
+            </Attribute>
+          </LegacyAttributes>
+        </fn-ASK_FOR_FILE_PATH>
         <fn-handleFormatDocument>
           <LegacyAttributes>
             <Attribute>
@@ -3095,6 +3110,23 @@
             </Attribute>
           </LegacyAttributes>
         </fn-pasteHandler>
+        <fn-linkPathPicker>
+          <LegacyAttributes>
+            <Attribute>
+              <Name>PURPOSE</Name>
+              <Value>
+                muya ui/linkPathPicker plugin (C-20): keyup-triggered
+                inline autocomplete for markdown link destinations —
+                cursor-text trigger /\]\([^()\s]*$/, 150ms debounce,
+                muya-link-picker float (BaseScrollFloat), keyboard nav via
+                the shownFloat gate (ag-link-path-picker added to the
+                keydown allowlist), block-text splice insertion
+                (directories continue, files close + suppress the
+                immediate re-trigger), Esc dismiss
+              </Value>
+            </Attribute>
+          </LegacyAttributes>
+        </fn-linkPathPicker>
         <fn-setOptions>
           <LegacyAttributes>
             <Attribute>

@@ -3219,6 +3219,7 @@
           tests/renderer/commands/index-deep.test.js
           tests/renderer/commands/heading-search.test.js
           tests/renderer/commands/menu-consistency.test.js
+          tests/renderer/store/file-path-autocomplete.test.js
         </Command>
         <Command>
           npx playwright test tests/e2e/live-reload-scroll.spec.ts
@@ -3231,6 +3232,7 @@
         <Command>
           npx playwright test tests/e2e/markdown-hygiene.spec.ts
           tests/e2e/heading-navigation.spec.ts
+          tests/e2e/link-autocomplete.spec.ts
         </Command>
         <Command>
           npx vitest run tests/renderer/components/tabs-scroll.test.js
@@ -3466,6 +3468,24 @@
           in tests/renderer/commands/heading-search.test.js; visually
           pinned in tests/e2e/heading-navigation.spec.ts (highlight follows
           Alpha → Beta → Top; jump lands the heading in view).
+        </Scenario>
+        <Scenario>
+          scenario-32: Link-path autocomplete (C-20): typing inside a
+          markdown link destination `](…` (150ms debounce, cursor-text
+          trigger) offers real files from the document's directory —
+          .md/.markdown files plus directories (browsing continues into
+          them after selection); prefix-filtered, capped at 50, readdir
+          failures empty; Enter/Tab/click completes the path inline
+          (directories keep the float open, files close it and suppress
+          the immediate re-trigger until the next keystroke); Esc
+          dismisses; special editing surfaces (code/language/table
+          cells) never trigger. The image popover autocomplete is
+          byte-identical (delegated store action; the editor.vue wrapper
+          that produced "undefined" items is fixed to a passthrough).
+          Unit-pinned in tests/renderer/store/file-path-autocomplete.test.js;
+          visually pinned in tests/e2e/link-autocomplete.spec.ts (float
+          lists notes.md under the 'n' prefix, non-md/wrong-prefix hidden;
+          Enter inserts the path, popper hides, ')' completes the link).
         </Scenario>
       </Scenarios>
       <Markers>

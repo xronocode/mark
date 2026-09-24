@@ -1,0 +1,36 @@
+.ag-link-path-picker-wrapper {
+  width: 400px;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.ag-link-path-picker-wrapper .ag-link-path-item {
+  display: flex;
+  align-items: center;
+  padding: 4px 8px;
+  cursor: pointer;
+}
+
+.ag-link-path-picker-wrapper .ag-link-path-item .icon-wrapper {
+  width: 16px;
+  height: 16px;
+  margin-right: 6px;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.ag-link-path-picker-wrapper .ag-link-path-item .icon-wrapper svg {
+  width: 14px;
+  height: 14px;
+}
+
+.ag-link-path-picker-wrapper .ag-link-path-item .item-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ag-link-path-picker-wrapper .ag-link-path-item.active {
+  background: var(--floatHoverColor, rgba(0, 0, 0, 0.05));
+}

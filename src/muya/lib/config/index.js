@@ -435,6 +435,7 @@ export const MUYA_DEFAULT_OPTION = Object.freeze({
   clipboardFilePath: () => {},
   // image path auto completed when you input in image selector.
   imagePathAutoComplete: () => [],
+  filePathAutoComplete: () => [],
 
   // Markdown extensions
   superSubScript: false,

@@ -1,5 +1,5 @@
 // FILE: src/muya/lib/eventHandler/keyboard.js
-// VERSION: 1.1.0
+// VERSION: 1.2.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Route Muya keyboard events to editing commands, including layout-independent undo and redo.
 //   SCOPE: Composition tracking, editor state dispatch, keydown/keyup/input routing, floating-tool keyboard handling, and direct Muya history shortcuts.
@@ -14,7 +14,8 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.1.0 - Match undo/redo by physical KeyZ so Cmd+Я on a Russian layout reaches Muya history.
+//   LAST_CHANGE: v1.2.0 - C-20: add ag-link-path-picker to the shownFloat keydown gate so Enter/Tab/arrows feed the link-path autocomplete float instead of the document.
+//   v1.1.0 - Match undo/redo by physical KeyZ so Cmd+Я on a Russian layout reaches Muya history.
 // END_CHANGE_SUMMARY
 
 import { EVENT_KEYS, KEYS_TO_IGNORE } from '../config'
@@ -189,6 +190,7 @@ class Keyboard {
             tool === 'ag-emoji-picker' ||
             tool === 'ag-front-menu' ||
             tool === 'ag-list-picker' ||
+            tool === 'ag-link-path-picker' ||
             tool === 'ag-image-selector'
           ) {
             needPreventDefault = true

@@ -46,7 +46,6 @@
   <ObservedWriteScope>
     <File>src/muya/lib/ui/linkPathPicker/index.js</File>
     <File>src/muya/lib/ui/linkPathPicker/index.css</File>
-    <File>src/muya/lib/index.js</File>
     <File>src/renderer/src/store/editor.js</File>
     <File>src/renderer/src/components/editorWithTabs/editor.vue</File>
     <File>tests/renderer/store/file-path-autocomplete.test.js</File>
@@ -112,9 +111,43 @@
   </ReviewProtocol>
 
   <Evidence>
-    <Gates>recon complete 2026-09-24: existing machinery mapped (imageSelector → muya-image-picker → ImagePathPicker → ASK_FOR_IMAGE_AUTO_PATH); implementation pending.</Gates>
-    <Coverage>pending</Coverage>
-    <Reviews>pending</Reviews>
+    <Gates>
+      Unit: file-path-autocomplete 6/6 (incl. camelCase stat shape — review
+      blocker — and the subtree clamp); scoped 273 green; full e2e 68
+      passed (link-autocomplete 2/2: prefix filter + Enter insert + ')'
+      completion; directory continuation into sub/ + deep.md + Esc close +
+      image-destination rejection); isolated HEAD+patch full vitest 228
+      files / 3105 tests green (thresholds pass); cargo untouched; grace
+      lint zero findings on changed files.
+    </Gates>
+    <Coverage>
+      Store action fully table-driven (both flavors + clamp + cap);
+      plugin trigger/insert paths covered by the e2e gates (real typing,
+      real muya).
+    </Coverage>
+    <Reviews>
+      Review-1 (correctness/edge-cases): NEEDS-FIXES round-1 — 1 BLOCKER
+      (stat reads is_directory but the backend serializes camelCase —
+      directories never appeared; fixtures masked it), 2 MAJOR (mid-token
+      completion duplicated the remainder; image destinations triggered
+      the link float), MINORs (stale in-flight fetch re-show; promised
+      plugin test file missing; folder icon rendered blank — svg-loader
+      exports components; getItemElement substring mis-targeting), NITs
+      (destroy parity, dead generality). Review-2 (security/contracts):
+      NEEDS-FIXES round-1 — 2 MAJOR (readdir surface allowed absolute/
+      ..-escapes contradicting the spec constraint; untracked index.css
+      would break the build), 1 MAJOR (scenario-32 overclaim), MINORs
+      (store CHANGE_SUMMARY, plugin LINKS anchor, plan scope/regex
+      drift), NITs (front-matter surface, image flavor). ALL FIXED
+      in-session: camelCase stat (+fixtures pinned to contract shape);
+      token-end splice; nearest-unpaired-bracket image detection (+e2e
+      pin); subtree clamp in ASK_FOR_FILE_PATH (+unit pin); _seq bump on
+      insert; glyph icons (emoji fallback — svg branch dropped);
+      data-label keying; muya destroy parity + plugin destroy timer
+      clear; front-matter surface; index.css staged; store summary;
+      LINKS→V-M-011 scenario-32; plan scope/regex synced; e2e extended
+      with directory-continuation/Esc/image-reject gates.
+    </Reviews>
   </Evidence>
 </C-20>
 </GraceChangePlan>

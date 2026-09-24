@@ -576,6 +576,9 @@ class Muya {
     this.tablePicker.destroy()
     this.emojiPicker.destroy()
     this.imagePathPicker.destroy()
+    if (this.linkPathPicker) {
+      this.linkPathPicker.destroy()
+    }
     this.eventCenter.detachAllDomEvents()
   }
 }
