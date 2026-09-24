@@ -1,0 +1,107 @@
+<GraceChangeSpec graceVersion='4.0' status='approved'>
+<C-20>
+  <Name>Relative-path autocomplete for markdown links (matrix P1, small)</Name>
+  <Created>2026-09-24</Created>
+  <Priority>high</Priority>
+  <Status>approved-for-implementation</Status>
+
+  <Summary>
+    Typing a link destination — `](./doc…` — should suggest real files the
+    way VS Code md-link autocomplete does. RECON COMPLETE (2026-09-24):
+    image-src autocomplete already exists end-to-end (muya imageSelector
+    popover → muya-image-picker event → ImagePathPicker float → renderer
+    ASK_FOR_IMAGE_AUTO_PATH readdir+prefix filter, image extensions only);
+    the missing piece is the INLINE LINK surface, which has no popover and
+    no input hook upstream. Implementation therefore needs a muya UI
+    plugin (LinkPathPicker, QuickInsert-pattern: input listener detects a
+    cursor inside a link destination's parens, dispatches a
+    muya-link-picker float) plus a generalized renderer autocomplete that
+    accepts an extension filter (.md first; images already covered).
+  </Summary>
+
+  <Problem>
+    <Description>
+      Agent documents cross-link sibling notes; today authors must know
+      and type exact relative paths, and typos surface only as dead links.
+    </Description>
+    <RootCause>
+      Upstream Mark Text never shipped link-path completion; the image
+      popover autocomplete is image-extension-scoped and attached to the
+      image-selector UI only.
+    </RootCause>
+    <Evidence>
+      docs/research/markdown-feature-matrix.md Media/Editing rows
+      (Relative path autocomplete ❌ — P1, small). Existing machinery:
+      src/muya/lib/ui/imageSelector/index.js:172 (calls muya option
+      imagePathAutoComplete), ui/imagePicker (generic list+cb float via
+      muya-image-picker event), src/renderer/src/store/editor.js
+      ASK_FOR_IMAGE_AUTO_PATH (readdir + dir-part/prefix resolution,
+      50-cap, image-extension filter), editor.vue imagePathAutoComplete
+      (icon mapping). No link-side equivalent anywhere in muya.
+    </Evidence>
+  </Problem>
+
+  <Goals>
+    <R-1>
+      muya LinkPathPicker UI plugin (QuickInsert pattern): while the cursor
+      types inside an inline-link destination `](…`, a float offers
+      directory entries; arrow keys/Enter/Tab select, Esc hides; typing
+      continues filtering. Dispatched via a muya-link-picker event carrying
+      { reference, list, cb } like the image picker it mirrors.
+    </R-1>
+    <R-2>
+      Generalized renderer autocomplete: ASK_FOR_FILE_PATH(src, { exts })
+      refactors ASK_FOR_IMAGE_AUTO_PATH (same dir-part/prefix logic and
+      50-cap); the link flavor defaults to .md + directories; muya options
+      gain filePathAutoComplete wired in editor.vue; the image option
+      delegates to the same store action with image extensions (no image
+      behavior change).
+    </R-2>
+    <R-3>
+      Insert semantics: completing a directory appends the separator and
+      keeps the float open; completing a file closes it; the resulting
+      path is inserted verbatim into the destination parens (cursor after
+      the closing paren is NOT auto-added — muya owns the inline syntax).
+    </R-3>
+  </Goals>
+
+  <Constraints>
+    <Constraint>No new dependencies; reuses BaseScrollFloat, snabbdom, and the store readdir path.</Constraint>
+    <Constraint>The image popover autocomplete must remain byte-identical in behavior (regression-gated by its existing coverage if any, plus new pins).</Constraint>
+    <Constraint>Directory traversal is READ-ONLY readdir of the current document's directory subtree — no writes, no project-wide scans (v1: current dir + typed subpaths only).</Constraint>
+    <Constraint>Scoped 100% coverage of the new plugin's show/filter/select logic and the generalized store action; e2e visual gate (type `](./` → float lists .md files → Enter completes); grace lint zero findings; two sequential reviews.</Constraint>
+  </Constraints>
+
+  <NonGoals>
+    <NonGoal>Workspace-wide fuzzy file search for links (quick-open already covers navigation).</NonGoal>
+    <NonGoal>Dead-link validation (separate matrix P1).</NonGoal>
+    <NonGoal>Autocomplete in source-code (CodeMirror) mode — WYSIWYG first.</NonGoal>
+  </NonGoals>
+
+  <AcceptanceCriteria>
+    <Criterion>Unit: ASK_FOR_FILE_PATH resolves dir-part/prefix, filters by extension set, caps at 50, returns directories always; image path delegates unchanged (same fixtures pass for the image option).</Criterion>
+    <Criterion>Unit + e2e: LinkPathPicker shows on typing inside link parens, filters as the path grows, directory completion keeps it open, file completion closes it and lands the path inline; Esc dismisses; no float for image srcs (image popover unchanged) or outside link destinations.</Criterion>
+    <Criterion>Full suite green; grace lint zero findings on changed files; two sequential reviews clean.</Criterion>
+  </AcceptanceCriteria>
+
+  <AffectedAreas>
+    <M-012>muya LinkPathPicker plugin + input detection lane</M-012>
+    <M-011>editor.vue option wiring (filePathAutoComplete); editor store generalized action</M-011>
+  </AffectedAreas>
+
+  <VerificationIntent>
+    Unit: store action table tests (image parity + link flavor); plugin
+    logic tests (trigger regex over typed text, filter, select callback).
+    Visual e2e: drive real typing into a link destination against a
+    temp fixture directory. Governance: V-M-011/V-M-012 deltas at
+    implementation time.
+  </VerificationIntent>
+
+  <Approval>
+    <ApprovedBy>user (session 2026-09-24): "действуй" — proceed with the queued P1 stream; implementation begins next session window</ApprovedBy>
+    <ApprovalScope>
+      Link-path autocomplete only; image autocomplete parity preserved.
+    </ApprovalScope>
+  </Approval>
+</C-20>
+</GraceChangeSpec>
