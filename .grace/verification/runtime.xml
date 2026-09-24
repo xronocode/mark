@@ -3217,6 +3217,8 @@
           tests/renderer/store/live-reload.test.js
           tests/renderer/util/markdown-hygiene.test.js
           tests/renderer/commands/index-deep.test.js
+          tests/renderer/commands/heading-search.test.js
+          tests/renderer/commands/menu-consistency.test.js
         </Command>
         <Command>
           npx playwright test tests/e2e/live-reload-scroll.spec.ts
@@ -3228,6 +3230,7 @@
         </Command>
         <Command>
           npx playwright test tests/e2e/markdown-hygiene.spec.ts
+          tests/e2e/heading-navigation.spec.ts
         </Command>
         <Command>
           npx vitest run tests/renderer/components/tabs-scroll.test.js
@@ -3447,6 +3450,22 @@
           visually pinned in tests/e2e/markdown-hygiene.spec.ts (MD001
           listed then gone after format; validate-only MD040 persists;
           second format is a no-op).
+        </Scenario>
+        <Scenario>
+          scenario-31: Heading navigation (C-19): the Go-to-Heading palette
+          command (edit.go-to-heading, native Edit-menu "Go to Heading…" +
+          Cmd/Ctrl+T) fuzzy-searches the active document's listToc
+          (subsequence match, level-indented labels) and jumps via the
+          established scroll-to-header slugs; the sidebar TOC highlights
+          the section the viewport is in — recomputed debounced off muya
+          scroll (last heading above a fixed 80px band from the viewport
+          top; document-end edge pinning the final section so short
+          trailing sections are reachable; null clear above the first
+          heading), rendered through the tree's scoped slot
+          (.toc-node-label--active; exactly one node at a time). Unit-pinned
+          in tests/renderer/commands/heading-search.test.js; visually
+          pinned in tests/e2e/heading-navigation.spec.ts (highlight follows
+          Alpha → Beta → Top; jump lands the heading in view).
         </Scenario>
       </Scenarios>
       <Markers>

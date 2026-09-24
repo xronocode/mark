@@ -71,6 +71,9 @@
 //   - 2026-09-22 C-17: add Edit-menu "Format Document"
 //                (edit.format-document, Shift+Alt+F) — canonicalize the
 //                active markdown document (one undo step).
+//   - 2026-09-23 C-19: add Edit-menu "Go to Heading…"
+//                (edit.go-to-heading, CmdOrCtrl+T) — heading symbol search
+//                palette over the active document.
 // END_CHANGE_SUMMARY
 
 use serde::{Deserialize, Serialize};
@@ -753,6 +756,11 @@ pub fn build_native_menu<R: tauri::Runtime>(
         .item(
             &MenuItemBuilder::with_id("edit.find-previous", "Find Previous")
                 .accelerator("CmdOrCtrl+Shift+G")
+                .build(handle)?,
+        )
+        .item(
+            &MenuItemBuilder::with_id("edit.go-to-heading", "Go to Heading…")
+                .accelerator("CmdOrCtrl+T")
                 .build(handle)?,
         )
         .item(

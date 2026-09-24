@@ -1,0 +1,158 @@
+<GraceChangePlan graceVersion='4.0' status='approved'>
+<C-19>
+  <Name>Heading navigation: Go-to-Heading palette (Cmd+T) + active-heading highlight in the TOC (matrix P1)</Name>
+  <Created>2026-09-23</Created>
+
+  <IntentSummary>
+    Give long agent documents VS Code-grade heading navigation: a
+    Go-to-Heading palette command (Cmd+T, native Edit-menu entry) fuzzy over
+    the active document's listToc jumping via the established slugs, and a
+    sidebar TOC that highlights the section the viewport is in (debounced
+    scrollspy with a document-end edge so the final section is reachable);
+    no title-bar geometry changes (breadcrumbs are a separate follow-up).
+  </IntentSummary>
+
+  <BaselineAssertions>
+    <MustContain>
+      <File>src/renderer/src/components/sideBar/toc.vue</File>
+      <Text>@node-click="handleClick"</Text>
+    </MustContain>
+    <MustContain>
+      <File>src/renderer/src/commands/quickOpen.js</File>
+      <Text>show-command-palette</Text>
+    </MustContain>
+  </BaselineAssertions>
+
+  <TargetAssertions>
+    <MustContain>
+      <File>src/renderer/src/commands/headingSearch.js</File>
+      <Text>edit.go-to-heading</Text>
+    </MustContain>
+    <MustContain>
+      <File>src/renderer/src/components/editorWithTabs/editor.vue</File>
+      <Text>START_BLOCK_TOC_ACTIVE_HEADING</Text>
+    </MustContain>
+    <MustContain>
+      <File>src/renderer/src/components/sideBar/toc.vue</File>
+      <Text>toc-node-label--active</Text>
+    </MustContain>
+  </TargetAssertions>
+
+  <DurableScope>
+    <M-011/>
+    <M-009/>
+  </DurableScope>
+
+  <ObservedWriteScope>
+    <File>src/renderer/src/commands/headingSearch.js</File>
+    <File>src/renderer/src/commands/index.js</File>
+    <File>src/renderer/src/commands/descriptions.js</File>
+    <File>src/renderer/src/components/editorWithTabs/editor.vue</File>
+    <File>src/renderer/src/components/sideBar/toc.vue</File>
+    <File>static/locales/en.json</File>
+    <File>static/locales/en.min.json</File>
+    <File>src-tauri/src/m009_menu.rs</File>
+    <File>tests/renderer/commands/heading-search.test.js</File>
+    <File>tests/renderer/commands/menu-consistency.test.js</File>
+    <File>tests/e2e/heading-navigation.spec.ts</File>
+  </ObservedWriteScope>
+
+  <ImplementationPlan>
+    <T-001>
+      <Title>W1: HeadingSearchCommand + registration + menu</Title>
+      <DependsOn></DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>commands/headingSearch.js (fuzzy subsequence over
+        listToc, level-indented labels, slug jump via scroll-to-header);
+        static registry twin (dynamic-import execute avoids the store↔registry cycle); barrel export; descriptions map +
+        nested i18n keys; native Edit-menu "Go to Heading…" with
+        CmdOrCtrl+T pinned by menu-consistency.</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>npx vitest run tests/renderer/commands/heading-search.test.js tests/renderer/commands/menu-consistency.test.js</Command>
+      </Verification>
+    </T-001>
+
+    <T-002>
+      <Title>W2: active-heading scrollspy + TOC highlight</Title>
+      <DependsOn>T-001</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>editor.vue emits toc-active-heading (200ms debounce off
+        muya scroll; last heading above a fixed 80px band from the viewport top; document-end
+        edge pins the final heading); toc.vue renders the highlight through
+        its scoped slot (.toc-node-label--active — el-tree's is-current
+        paths leave stale nodes in this Element Plus version) and clears on
+        null.</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>npx playwright test tests/e2e/heading-navigation.spec.ts</Command>
+      </Verification>
+    </T-002>
+
+    <T-003>
+      <Title>W3: governance + gates + reviews</Title>
+      <DependsOn>T-002</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>V-M-011 scenario-31 + commands (incl. the new unit and
+        e2e files); grace lint zero findings on changed files; full vitest
+        green (isolated worktree) incl. CI-mode thresholds; full e2e green;
+        two sequential reviews clean.</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>npm run test:coverage; npx playwright test; grace lint --path . --assertions current</Command>
+      </Verification>
+    </T-003>
+  </ImplementationPlan>
+
+  <ReviewProtocol>
+    <Review-1>
+      <Angle>correctness (scrollspy edge cases, debounce lifecycle, fuzzy matcher false positives, palette interplay with quick-open)</Angle>
+      <PassCriteria>zero findings on changed code</PassCriteria>
+    </Review-1>
+    <Review-2>
+      <Angle>security (no new surface), GRACE contract/graph/verification consistency, regression risk to the palette/TOC</Angle>
+      <PassCriteria>zero findings</PassCriteria>
+    </Review-2>
+  </ReviewProtocol>
+
+  <Evidence>
+    <Gates>
+      Unit: heading-search 6/6 (re-pinned for the run/execute contract),
+      menu-consistency 12/12 incl. the C-19 id/accelerator/uniqueness
+      pin; cargo check green after the menu entry. E2e:
+      heading-navigation 2/2 — palette gate drives the REAL cmd::execute
+      route (twin constructs the command, palette lists every heading,
+      typing+Enter lands Beta in view) and the TOC scrollspy gate follows
+      Alpha → Beta → Top with exactly one active node (paragraph
+      fillers; document-end edge exercised at Beta).
+    </Gates>
+    <Coverage>
+      headingSearch fully table-driven; scrollspy edge covered by the e2e
+      waypoints (mid-doc, doc-end, top).
+    </Coverage>
+    <Reviews>
+      Review-1 (correctness/edge-cases): NEEDS-FIXES round-1 — 1 BLOCKER
+      (run() emitted show-command-palette → synchronous recursion through
+      the palette's handleShow; also opened with an empty list), 1 MAJOR
+      (scrollspy pinned the LAST heading when no heading is above the band
+      — front-matter/preamble docs), 1 MAJOR (palette e2e missing), 2
+      MINOR (change-handler cleared the scrollspy timer without re-arming;
+      unmount asymmetry), NITs (dead SPECIAL_CHARS/treeRef, undefined
+      theme var, pin uniqueness, summary order). Review-2 (security/
+      contracts): same BLOCKER + MAJOR (governance claimed the missing
+      e2e), MINORs (indent invisible — HTML space collapsing; scope/
+      wording drift; toc.vue summary overstatement). ALL FIXED
+      in-session: run() populates subcommands / execute() emits after
+      delay(100) (sibling contract — unit test re-pinned); scrollspy
+      emits null above the first heading and pins the last only at the
+      document end; real-path palette e2e added (cmd::execute → twin →
+      palette lists headings → typing+Enter lands the target in view);
+      timer re-armed on content change and cleared on unmount; nbsp
+      level-indent; scoped-slot cleanup + defined theme var; pin
+      uniqueness assertion; summaries/order/scope synced; 80px-band
+      wording everywhere. Security verified clean (interpolation-escaped
+      labels, muya-key slugs only, no new surface).
+    </Reviews>
+  </Evidence>
+</C-19>
+</GraceChangePlan>
