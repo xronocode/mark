@@ -1,0 +1,101 @@
+<GraceChangeSpec graceVersion='4.0' status='approved'>
+<C-21>
+  <Name>Dead-link validation: missing files and unresolvable anchors in the problems panel (matrix P1)</Name>
+  <Created>2026-09-24</Created>
+  <Priority>high</Priority>
+  <Status>approved-for-implementation</Status>
+
+  <Summary>
+    Agent documents cross-link sibling files and headings; typos surface
+    only as silently dead links. C-21 extends the C-17 problems panel with
+    a second, async issue family: relative file/image destinations that do
+    not exist on disk and anchor destinations (#slug) that match no
+    heading (github-slug comparison against the document's own headings).
+    Reuses the markdownLint line classifiers (code/front-matter immunity)
+    and muya's generateGithubSlug; surfaced through the same
+    doc-markdown-changed debounce as a doc-deadlinks bus payload the
+    panel merges under the lint issues.
+  </Summary>
+
+  <Problem>
+    <Description>
+      Markdown links rot: files move, headings get renamed, agents
+      hallucinate paths. Nothing in Mark flags a broken destination.
+    </Description>
+    <RootCause>
+      The C-17 lint rules are pure-text (no filesystem knowledge), and no
+      link-existence check existed upstream (matrix: "Link validation ❌
+      — P1").
+    </RootCause>
+    <Evidence>
+      docs/research/markdown-feature-matrix.md Quality &amp; formatting row.
+      Existing machinery: util/markdownLint.js classifiers (front matter
+      + fences + headings), muya/lib/utils/url.js generateGithubSlug,
+      window.fileUtils.stat, the problems panel's issue-list contract and
+      the 500ms doc-markdown-changed debounce in editor.vue.
+    </Evidence>
+  </Problem>
+
+  <Goals>
+    <R-1>
+      Pure checker module util/linkCheck.js: checkMarkdownLinks(markdown,
+      { statFn, pathname }) → issues [{ rule: 'deadlink-file' |
+      'deadlink-image' | 'deadlink-anchor', line, excerpt, message }].
+      Relative destinations only (http/https/mailto/data/#-only/absolute
+      URLs skipped); anchor destinations validated against github-slugs
+      computed from the document's own headings; file destinations
+      resolved against the document's directory (subtree clamp like
+      ASK_FOR_FILE_PATH); fenced-code and front-matter contents immune;
+      per-run stat cache (one stat per unique path).
+    </R-1>
+    <R-2>
+      Async surfacing: the same 500ms debounce that emits
+      doc-markdown-changed also runs the checker (only for tabs with a
+      pathname) and emits doc-deadlinks { issues }; the problems panel
+      merges them under the lint issues (sorted by line); preference gate
+      markdownLint covers both families (off clears everything).
+    </R-2>
+    <R-3>
+      Untitled tabs (no pathname): only anchor checks run — file checks
+      are skipped, not fabricated.
+    </R-3>
+  </Goals>
+
+  <Constraints>
+    <Constraint>No new dependencies; reuses markdownLint classifiers, muya slug util, the problems panel.</Constraint>
+    <Constraint>Read-only surface: stat only, subtree-clamped to the document directory.</Constraint>
+    <Constraint>Checker is dependency-injected (statFn) for deterministic unit tests; e2e gates the live path via shim stat mocks.</Constraint>
+    <Constraint>Scoped 100% coverage of the checker module; e2e visual gate; grace lint zero findings; two sequential reviews.</Constraint>
+  </Constraints>
+
+  <NonGoals>
+    <NonGoal>Remote (http) link liveness checks — offline-first, no network.</NonGoal>
+    <NonGoal>Inline squiggle decoration (same follow-up as C-17).</NonGoal>
+    <NonGoal>Cross-file heading anchors (file.md#slug) — v1 validates in-document anchors only.</NonGoal>
+  </NonGoals>
+
+  <AcceptanceCriteria>
+    <Criterion>Unit: dead file/image/anchor detection, URL/anchor-only skips, code+front-matter immunity, subtree clamp, stat cache (one call per unique path), untitled-tab behavior (anchor-only when statFn null).</Criterion>
+    <Criterion>Component: the panel merges doc-deadlinks under lint issues; markdownLint off clears both families.</Criterion>
+    <Criterion>E2e: a fixture with a live link, a dead file link, and a dead anchor shows exactly the two dead issues; a live anchor shows none. Full suite green; grace lint zero; two reviews clean.</Criterion>
+  </AcceptanceCriteria>
+
+  <AffectedAreas>
+    <M-011>linkCheck util + editor.vue async emission + problems panel merge</M-011>
+  </AffectedAreas>
+
+  <VerificationIntent>
+    Unit: checker table tests (injected statFn). Component: panel merge.
+    Visual e2e: shim stat returns exists/missing; fixture mixes live and
+    dead destinations. Governance: V-M-011 scenario-33 + commands at
+    implementation time.
+  </VerificationIntent>
+
+  <Approval>
+    <ApprovedBy>user (session 2026-09-24): "б" — proceed with dead-link validation, then release v2.1.15-beta with C-20 + C-21</ApprovedBy>
+    <ApprovalScope>
+      Problems-panel link validation only; no network checks.
+    </ApprovalScope>
+  </Approval>
+</C-21>
+</GraceChangeSpec>
