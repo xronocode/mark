@@ -28,16 +28,18 @@
 // FILE: src/renderer/src/components/problems/index.vue
 // VERSION: 1.0.0
 // START_MODULE_CONTRACT
-//   PURPOSE: Overlay panel listing markdownlint-subset document problems with click-to-jump (C-17 P0-A surface).
+//   PURPOSE: Overlay panel listing markdownlint-subset problems merged with async dead-link issues, with click-to-jump (C-17 P0-A + C-21).
 //   SCOPE: Bus-driven visibility and issue list; reads the lint preference; jumps via the editor-store TOC slug for the nearest preceding heading.
 //   DEPENDS: Vue, i18n, bus, editor store (listToc), markdownLint util.
-//   LINKS: .grace/changes/active/C-17; .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011 scenario-30.
+//   LINKS: .grace/changes/active/C-17 + C-21; .grace/graph/runtime.xml M-051; .grace/verification/runtime.xml V-M-011 scenarios 30/33.
 //   ROLE: RUNTIME
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
 //   jump - Scrolls the editor to the nearest heading above the issue via its TOC slug.
+//   mergeDeadLinks - Merges async dead-link issues (C-21) under the lint list.
+//   mergeIssues - Recomputes the merged issue list (lint + dead links).
 //   toggle - Bus 'problems' visibility flip.
 //   recompute - Recomputes the issue list from a doc-markdown-changed payload.
 //   headingSlugForLine - Maps an issue line to the nearest preceding heading's listToc slug.
@@ -47,7 +49,7 @@
 //   - 2026-09-22 v1.0.0: C-17 — problems overlay (projectSearch pattern); issues recomputed on doc-markdown-changed; preference-gated; jump maps the issue's preceding-heading count to editorStore.listToc.
 // END_CHANGE_SUMMARY
 
-import { ref, watch } from 'vue'
+import { ref, watch, onBeforeUnmount } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { storeToRefs } from 'pinia'
 import bus from '../../bus'
@@ -94,10 +96,27 @@ const jump = (issue) => {
 }
 
 const lastMarkdown = ref('')
+const linkIssues = ref([])
 
 const recompute = ({ markdown } = {}) => {
   lastMarkdown.value = typeof markdown === 'string' ? markdown : ''
-  issues.value = lintEnabled.value ? lintMarkdown(lastMarkdown.value) : []
+  linkIssues.value = []
+  mergeIssues()
+}
+
+// C-21: async dead-link issues merge under the lint issues.
+const mergeDeadLinks = ({ issues: deadLinks } = {}) => {
+  linkIssues.value = Array.isArray(deadLinks) ? deadLinks : []
+  mergeIssues()
+}
+
+const mergedIssues = () =>
+  [...lintMarkdown(lastMarkdown.value), ...linkIssues.value]
+    .filter(() => lintEnabled.value)
+    .sort((a, b) => a.line - b.line || a.rule.localeCompare(b.rule))
+
+const mergeIssues = () => {
+  issues.value = mergedIssues()
 }
 
 // Turning validation off clears the open panel immediately (not on the
@@ -106,12 +125,19 @@ watch(lintEnabled, (enabled) => {
   if (!enabled) {
     issues.value = []
   } else if (lastMarkdown.value) {
-    issues.value = lintMarkdown(lastMarkdown.value)
+    mergeIssues()
   }
 })
 
 bus.on('problems', toggle)
 bus.on('doc-markdown-changed', recompute)
+bus.on('doc-deadlinks', mergeDeadLinks)
+
+onBeforeUnmount(() => {
+  bus.off('problems', toggle)
+  bus.off('doc-markdown-changed', recompute)
+  bus.off('doc-deadlinks', mergeDeadLinks)
+})
 </script>
 
 <style>

@@ -75,7 +75,7 @@
 
 <script setup>
 // FILE: src/renderer/src/components/editorWithTabs/editor.vue
-// VERSION: 1.15.0
+// VERSION: 1.16.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Host the Muya WYSIWYG surface and coordinate document rendering, selection, scroll, preview, editor tools, and store/bus integration.
 //   SCOPE: Renderer-side Muya lifecycle and UI orchestration; does not own Markdown parsing rules or backend file persistence.
@@ -114,6 +114,7 @@
 //   - 2026-09-23 v1.13.0: C-18 — Print drives the native WKWebView print panel via mt_print_webview (window.print is ignored by WKWebView); no eager print-container clearup (the modal can outlive the call).
 //   - 2026-09-23 v1.14.0: C-19 — debounced toc-active-heading scrollspy (fixed 80px band; doc-end pins the final heading; above-first-heading clears; re-armed on content change); Go-to-Heading palette command (static registry twin with dynamic-import execute).
 //   - 2026-09-24 v1.15.0: C-20 — LinkPathPicker plugin registered; filePathAutoComplete option wired (md+dirs); imagePathAutoComplete wrapper fixed to a passthrough (the old f.type/f.file mapping produced "undefined" items).
+//   - 2026-09-24 v1.16.0: C-21 — async dead-link validation rides the doc-markdown-changed debounce and emits doc-deadlinks for the problems panel; the same edit restores the C-19 edit-driven scrollspy re-arm that was lost in the 11e350dd handler edit (two bare clearTimeouts replaced the setTimeout re-arm), and the lint snapshot now carries the tab pathname so a tab switch inside the debounce window cannot resolve links against the wrong directory.
 // END_CHANGE_SUMMARY
 
 import { ref, reactive, watch, onMounted, onBeforeUnmount, nextTick, computed } from 'vue'
@@ -121,6 +122,7 @@ import log from 'electron-log'
 // import ViewImage from 'view-image'
 import Muya from 'muya/lib'
 import { formatMarkdown } from '@/util/markdownFormat'
+import { checkMarkdownLinks } from '@/util/linkCheck'
 import TablePicker from 'muya/lib/ui/tablePicker'
 import QuickInsert from 'muya/lib/ui/quickInsert'
 import CodePicker from 'muya/lib/ui/codePicker'
@@ -1516,6 +1518,29 @@ const emitActiveHeading = () => {
 }
 // END_BLOCK_TOC_ACTIVE_HEADING
 
+// START_BLOCK_DEADLINK_EMIT
+// C-21: validate the snapshot's link destinations off the same debounce
+// as the lint emit; a newer snapshot always wins.
+let linkCheckSeq = 0
+const runLinkCheck = async ({ markdown, pathname }) => {
+  const seq = ++linkCheckSeq
+  const statFn = pathname
+    ? async (p) => {
+        try {
+          const s = await window.fileUtils.stat(p)
+          return !!(s.isFile ?? s.is_file)
+        } catch {
+          return false
+        }
+      }
+    : null
+  const fileDir = pathname ? window.path.dirname(pathname) : ''
+  const issues = await checkMarkdownLinks(markdown, { statFn, fileDir })
+  if (seq !== linkCheckSeq) return
+  bus.emit('doc-deadlinks', { issues })
+}
+// END_BLOCK_DEADLINK_EMIT
+
 // START_CONTRACT: handleFormatDocument
 //   PURPOSE: Canonicalize the active document (C-17 Format document) — trailing whitespace, blank-line structure, setext→ATX, heading-cascade demotion.
 //   INPUTS: { none - reads the active Muya document }
@@ -1766,12 +1791,17 @@ onMounted(() => {
       // C-17: feed the problems panel (debounced — typing must not lint
       // on every keystroke). Snapshot {id, markdown} at event time so the
       // timer can never emit another tab's document.
-      const lintSnapshot = { id, markdown: changes.markdown }
+      const lintSnapshot = { id, markdown: changes.markdown, pathname: currentFile.value.pathname }
       if (docLintTimer) clearTimeout(docLintTimer)
-  if (tocActiveTimer) clearTimeout(tocActiveTimer)
-  if (tocActiveTimer) clearTimeout(tocActiveTimer)
+      // C-19: edits can move headings without scrolling — re-arm the
+      // scrollspy so the TOC highlight follows editing too.
+      if (tocActiveTimer) clearTimeout(tocActiveTimer)
+      tocActiveTimer = setTimeout(emitActiveHeading, 200)
       docLintTimer = setTimeout(() => {
         bus.emit('doc-markdown-changed', lintSnapshot)
+        // C-21: async dead-link check rides the same debounce; only the
+        // active tab's snapshot is checked (stale results dropped by seq).
+        runLinkCheck(lintSnapshot)
       }, 500)
     }
   })

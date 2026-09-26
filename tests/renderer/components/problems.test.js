@@ -1,5 +1,5 @@
 // FILE: tests/renderer/components/problems.test.js
-// VERSION: 1.1.0
+// VERSION: 1.2.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Verify the C-17 problems panel (visibility, issue list, preference gate, click-to-jump slug mapping).
 //   SCOPE: jsdom mount of components/problems with mocked bus/electron-log and seeded Pinia stores.
@@ -18,6 +18,7 @@
 //
 // START_CHANGE_SUMMARY
 //   LAST_CHANGE: v1.1.0 - commandPalette-style harness (electron-log mock, i18n plugin, in-test imports) — bus registration, recompute, preference gate, empty state, jump mapping.
+//   v1.2.0 - C-21: doc-deadlinks merge + dual-family markdownLint gate + clear-on-new-snapshot.
 // END_CHANGE_SUMMARY
 
 import { mount } from '@vue/test-utils'
@@ -120,6 +121,42 @@ describe('problems panel — C-17', () => {
     const md009 = wrapper.findAll('.issue').find((i) => i.text().includes('trailing'))
     await md009.trigger('click')
     expect(busMock.default.emit).toHaveBeenCalledWith('scroll-to-header', 'ag-2')
+  })
+
+  it('merges async dead-link issues under the lint issues (C-21)', async () => {
+    const { wrapper } = await mountPanel()
+    getBusHandler('problems')()
+    getBusHandler('doc-markdown-changed')({ markdown: '# A\n\n### jump\n' })
+    await wrapper.vm.$nextTick()
+    expect(wrapper.findAll('.rule').map((r) => r.text().toLowerCase())).toContain('md001')
+
+    getBusHandler('doc-deadlinks')({
+      issues: [{ rule: 'deadlink-file', line: 3, excerpt: '[x](gone.md)', message: 'Linked file does not exist' }]
+    })
+    await wrapper.vm.$nextTick()
+    const rules = wrapper.findAll('.rule').map((r) => r.text().toLowerCase())
+    expect(rules).toContain('md001')
+    expect(rules).toContain('deadlink-file')
+
+    // A new document snapshot clears stale dead links until the next
+    // async result arrives.
+    getBusHandler('doc-markdown-changed')({ markdown: '# A\n\nbody\n' })
+    await wrapper.vm.$nextTick()
+    expect(wrapper.findAll('.rule').some((r) => r.text().toLowerCase().includes('deadlink'))).toBe(false)
+  })
+
+  it('markdownLint off clears BOTH issue families (C-21)', async () => {
+    const { wrapper, preferencesStore } = await mountPanel()
+    getBusHandler('problems')()
+    getBusHandler('doc-markdown-changed')({ markdown: '# A\n\n### jump\n' })
+    getBusHandler('doc-deadlinks')({ issues: [{ rule: 'deadlink-file', line: 3, excerpt: 'x', message: 'm' }] })
+    await wrapper.vm.$nextTick()
+    expect(wrapper.findAll('.rule').some((r) => r.text().toLowerCase().includes('deadlink'))).toBe(true)
+
+    preferencesStore.markdownLint = false
+    await wrapper.vm.$nextTick()
+    await wrapper.vm.$nextTick()
+    expect(wrapper.findAll('.issue')).toHaveLength(0)
   })
 
   it('does not jump when the issue precedes every heading', async () => {

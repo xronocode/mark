@@ -1,0 +1,136 @@
+<GraceChangePlan graceVersion='4.0' status='approved'>
+<C-21>
+  <Name>Dead-link validation: missing files and unresolvable anchors in the problems panel (matrix P1)</Name>
+  <Created>2026-09-24</Created>
+
+  <IntentSummary>
+    Flag rotting links: a pure checker (deadlink-file/image via injected
+    subtree-clamped stat with per-run cache; deadlink-anchor via github
+    slugs of the document's own headings) rides the C-17 debounce as a
+    doc-deadlinks bus payload that the problems panel merges under the
+    lint issues, gated by the same markdownLint preference.
+  </IntentSummary>
+
+  <BaselineAssertions>
+    <MustContain>
+      <File>src/renderer/src/util/markdownLint.js</File>
+      <Text>export const frontMatterEnd</Text>
+    </MustContain>
+    <MustContain>
+      <File>src/renderer/src/components/problems/index.vue</File>
+      <Text>doc-markdown-changed</Text>
+    </MustContain>
+  </BaselineAssertions>
+
+  <TargetAssertions>
+    <MustContain>
+      <File>src/renderer/src/util/linkCheck.js</File>
+      <Text>START_BLOCK_DEADLINK_CHECK</Text>
+    </MustContain>
+    <MustContain>
+      <File>src/renderer/src/components/editorWithTabs/editor.vue</File>
+      <Text>doc-deadlinks</Text>
+    </MustContain>
+    <MustContain>
+      <File>tests/renderer/util/link-check.test.js</File>
+      <Text>checkMarkdownLinks</Text>
+    </MustContain>
+  </TargetAssertions>
+
+  <DurableScope>
+    <M-011/>
+  </DurableScope>
+
+  <ObservedWriteScope>
+    <File>src/renderer/src/util/linkCheck.js</File>
+    <File>src/renderer/src/components/editorWithTabs/editor.vue</File>
+    <File>src/renderer/src/components/problems/index.vue</File>
+    <File>tests/renderer/util/link-check.test.js</File>
+    <File>tests/renderer/components/problems.test.js</File>
+    <File>tests/e2e/dead-link-validation.spec.ts</File>
+  </ObservedWriteScope>
+
+  <ImplementationPlan>
+    <T-001>
+      <Title>W1: pure checker</Title>
+      <DependsOn></DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>linkCheck.js with unit tables (dead file/image/anchor,
+        skips, immunity, clamp, cache, no-statFn anchor-only).</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>npx vitest run tests/renderer/util/link-check.test.js</Command>
+      </Verification>
+    </T-001>
+
+    <T-002>
+      <Title>W2: emission + panel merge</Title>
+      <DependsOn>T-001</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>editor.vue runLinkCheck (seq-guarded) off the shared
+        debounce; panel merges doc-deadlinks, clears on new snapshot,
+        preference gates both families; component tests.</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>npx vitest run tests/renderer/components/problems.test.js</Command>
+      </Verification>
+    </T-002>
+
+    <T-003>
+      <Title>W3: e2e + governance + gates + reviews</Title>
+      <DependsOn>T-002</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>E2e dead-link gate; V-M-011 scenario-33 + commands;
+        graph fn-checkMarkdownLinks; full vitest + e2e green; grace lint zero
+        NEW findings attributable to C-21; two sequential reviews clean.</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>npx playwright test tests/e2e/dead-link-validation.spec.ts; npm run test:coverage</Command>
+      </Verification>
+    </T-003>
+  </ImplementationPlan>
+
+  <ReviewProtocol>
+    <Review-1>
+      <Angle>correctness (destination regex false positives/negatives, anchor slug edge cases, race between snapshots, cache staleness)</Angle>
+      <PassCriteria>zero findings on changed code</PassCriteria>
+    </Review-1>
+    <Review-2>
+      <Angle>security (read-only stat surface, subtree clamp), GRACE consistency, C-17 problems-panel regressions</Angle>
+      <PassCriteria>zero findings</PassCriteria>
+    </Review-2>
+  </ReviewProtocol>
+
+  <Evidence>
+    <Gates>
+      Unit: link-check 9/9, problems panel 8/8 (merge + dual-family gate);
+      e2e dead-link-validation 1/1; full suite pending final run.
+    </Gates>
+    <Coverage>checker fully table-driven; panel merge component-tested; live path e2e-gated.</Coverage>
+    <Reviews>
+      Review-1 (correctness/edge-cases): NEEDS-FIXES round-1 — 1 MAJOR
+      (muya generateGithubSlug is ASCII-only → EVERY Cyrillic/CJK heading
+      anchor falsely flagged dead — this project's primary language), 4
+      MINOR (heading collection ignored front matter/fences; %20 decoded
+      before the traversal guard — my own fix created a traversal path;
+      runLinkCheck read pathname at fire time; duplicate-heading -n
+      slugs unmodeled), NITs (linked-image inner dest unchecked; angle/
+      single-quote destinations; version ordering; M-051 graph). Review-2
+      (security/contracts): NEEDS-FIXES round-1 — MAJOR (problems panel
+      contract half-updated), MINORs (renderer-only clamp vs '/' sandbox
+      noted; silent C-19 re-arm restoration disclosed; test header/title;
+      scenario untitled claim scoped; lint wording), plus confirmation
+      the %2e%2e probe fails SAFE server-side. ALL FIXED in-session:
+      unicode-aware githubSlugUnicode (+muya slug also registered for
+      self-consistency); heading collection shares the destination
+      immunity walk; decoding moved AFTER the traversal guards (%20
+      only; raw-encoded probe pinned); duplicate slugs register GitHub
+      -1/-n suffixes; linked-image inner destinations rescanned; lint
+      snapshot carries the tab pathname; clamp comment notes the
+      renderer-only enforcement until M-005 B3; panel/test contracts
+      updated; v1.16.0 entry discloses the restored C-19 re-arm;
+      scenario-33 wording scoped; fail-safe no-decode pin added.
+    </Reviews>
+  </Evidence>
+</C-21>
+</GraceChangePlan>

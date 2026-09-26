@@ -2768,6 +2768,21 @@
             </Attribute>
           </LegacyAttributes>
         </fn-ASK_FOR_FILE_PATH>
+        <fn-checkMarkdownLinks>
+          <LegacyAttributes>
+            <Attribute>
+              <Name>PURPOSE</Name>
+              <Value>
+                util/linkCheck.js (C-21): pure dead-link checker —
+                missing relative file/image destinations (injected statFn,
+                subtree clamp, per-run cache) and anchors matching no
+                heading (github slugs); code/front-matter immune; surfaced
+                via the doc-deadlinks bus payload merged into the problems
+                panel
+              </Value>
+            </Attribute>
+          </LegacyAttributes>
+        </fn-checkMarkdownLinks>
         <fn-handleFormatDocument>
           <LegacyAttributes>
             <Attribute>
@@ -6011,9 +6026,10 @@
       <PhaseRef>C-17-T-003</PhaseRef>
       <Summary>
         Bus-toggled overlay (projectSearch pattern) listing markdownLint
-        issues; recomputes on debounced doc-markdown-changed payloads;
-        markdownLint preference gates (and clears on disable); click jumps
-        to the issue's nearest heading via editorStore listToc slugs.
+        issues merged with async dead-link issues (C-21 doc-deadlinks);
+        recomputes on debounced doc-markdown-changed payloads; markdownLint
+        preference gates (and clears on disable); click jumps to the
+        issue's nearest heading via editorStore listToc slugs.
       </Summary>
       <PlannedPath>src/renderer/src/components/problems/index.vue</PlannedPath>
       <Dependencies>
@@ -6026,6 +6042,7 @@
       </Interface>
       <ChangeRefs>
         <C-17/>
+        <C-21/>
       </ChangeRefs>
     </M-051>
 

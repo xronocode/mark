@@ -3220,6 +3220,7 @@
           tests/renderer/commands/heading-search.test.js
           tests/renderer/commands/menu-consistency.test.js
           tests/renderer/store/file-path-autocomplete.test.js
+          tests/renderer/util/link-check.test.js
         </Command>
         <Command>
           npx playwright test tests/e2e/live-reload-scroll.spec.ts
@@ -3233,6 +3234,7 @@
           npx playwright test tests/e2e/markdown-hygiene.spec.ts
           tests/e2e/heading-navigation.spec.ts
           tests/e2e/link-autocomplete.spec.ts
+          tests/e2e/dead-link-validation.spec.ts
         </Command>
         <Command>
           npx vitest run tests/renderer/components/tabs-scroll.test.js
@@ -3486,6 +3488,23 @@
           visually pinned in tests/e2e/link-autocomplete.spec.ts (float
           lists notes.md under the 'n' prefix, non-md/wrong-prefix hidden;
           Enter inserts the path, popper hides, ')' completes the link).
+        </Scenario>
+        <Scenario>
+          scenario-33: Dead-link validation (C-21): the async checker —
+          riding the same doc-markdown-changed debounce — flags relative
+          file/image destinations that do not exist on disk
+          (deadlink-file/deadlink-image, subtree-clamped stat with a
+          per-run cache; the checker is anchor-only without a statFn, and
+          the editor wires statFn only for saved tabs — unit-pinned) and anchor
+          destinations matching no document heading via github-slugs
+          (deadlink-anchor); external/data/mailto/absolute destinations
+          and fenced-code/front-matter contents are skipped; the problems
+          panel merges the results under the lint issues and the
+          markdownLint preference gates both families. Unit-pinned in
+          tests/renderer/util/link-check.test.js + component merge tests
+          in tests/renderer/components/problems.test.js; visually pinned
+          in tests/e2e/dead-link-validation.spec.ts (live link silent,
+          dead file + dead anchor listed, exactly two dead issues).
         </Scenario>
       </Scenarios>
       <Markers>
