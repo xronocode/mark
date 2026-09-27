@@ -33,8 +33,26 @@ say() { printf '%s\n' "$*" >&2; }
   say "  npx tauri build --config src-tauri/mas.conf.json --features app-store"; exit 1; }
 
 say "== 1/3 signing app =="
+
+# ASC requirement 90869: arm64-only builds must declare macOS >= 12.0.
+/usr/libexec/PlistBuddy -c "Delete :LSMinimumSystemVersion" "$APP/Contents/Info.plist" >/dev/null 2>&1 || true
+/usr/libexec/PlistBuddy -c "Add :LSMinimumSystemVersion string 12.0" "$APP/Contents/Info.plist"
+
+# ASC requirement 90242: LSApplicationCategoryType must be present.
+/usr/libexec/PlistBuddy -c "Delete :LSApplicationCategoryType" "$APP/Contents/Info.plist" >/dev/null 2>&1 || true
+/usr/libexec/PlistBuddy -c "Add :LSApplicationCategoryType string public.app-category.productivity" "$APP/Contents/Info.plist"
+
+# ASC requirement 90889: TestFlight builds embed a provisioning profile.
+PROFILE="$HOME/Downloads/Mark_MAS.provisionprofile"
+if [ -f "$PROFILE" ]; then
+  cp "$PROFILE" "$APP/Contents/embedded.provisionprofile"
+  say "embedded.provisionprofile installed"
+else
+  say "WARNING: $PROFILE not found — TestFlight upload will be rejected (90889)"
+fi
+
 codesign --force --deep --sign "$APP_IDENTITY" \
-  --entitlements src-tauri/Entitlements.plist --options runtime "$APP"
+  --entitlements src-tauri/Entitlements-mas.plist --options runtime "$APP"
 codesign --verify --deep --strict "$APP"
 say "app signature OK"
 
