@@ -23,7 +23,7 @@ set -euo pipefail
 cd "$(dirname "$0")/../.."
 
 APP_IDENTITY="Apple Distribution: Mikhail Yevdokimov (NY72L3P5TN)"
-PKG_IDENTITY="Mac Installer Distribution: Mikhail Yevdokimov (NY72L3P5TN)"
+PKG_IDENTITY="3rd Party Mac Developer Installer: Mikhail Yevdokimov (NY72L3P5TN)"
 APP="target/release/bundle/macos/Mark.app"
 PKG="target/release/bundle/macos/Mark-mas.pkg"
 
