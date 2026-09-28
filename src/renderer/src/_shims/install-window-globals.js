@@ -396,9 +396,14 @@ const electron = {
     }
   },
 
-  // process — v1 reads version + platform fields from preload.
+  // process — v1 reads version + platform fields from preload. Tauri has
+  // no preload; the vite `process.platform` define (vite.config.js)
+  // substitutes the BUILD HOST platform string here, so Windows builds
+  // correctly report 'win32'. Unit tests never load this shim —
+  // tests/renderer/setup.ts installs its own deterministic double pinned
+  // to 'darwin' (platform-specific tests override per-case).
   process: {
-    platform: 'darwin', // Vite define replaces process.platform at build time; this is fallback
+    platform: process.platform,
     versions: {
       node: '0.0.0',
       electron: '0.0.0',
@@ -445,6 +450,11 @@ const electron = {
 // ─── window.path ────────────────────────────────────────────────────
 // path-browserify already imported above; re-export the whole module.
 const _path = { ...path, default: path }
+// path-browserify is POSIX-only; expose the build platform's separators
+// (vite define substitutes process.platform) so display-level path
+// splitting — config.PATH_SEPARATOR breadcrumbs — is correct on Windows.
+_path.sep = process.platform === 'win32' ? '\\' : '/'
+_path.delimiter = process.platform === 'win32' ? ';' : ':'
 
 // ─── window.commandExists ───────────────────────────────────────────
 // v1 used command-exists to detect picgo / pandoc binaries on PATH.

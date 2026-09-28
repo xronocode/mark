@@ -1,0 +1,23 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "Mark",
+        "width": 1024,
+        "height": 768,
+        "minWidth": 600,
+        "minHeight": 400,
+        "resizable": true,
+        "fullscreen": false,
+        "url": "index.html",
+        "dragDropEnabled": true,
+        "decorations": false
+      }
+    ]
+  },
+  "bundle": {
+    "targets": ["nsis"]
+  }
+}

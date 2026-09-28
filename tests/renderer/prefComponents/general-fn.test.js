@@ -21,7 +21,7 @@ vi.mock('element-plus', () => ({
   ElMessageBox: { confirm: vi.fn() }
 }))
 vi.mock('@/util', () => ({
-  isOsx: false, delay: vi.fn(), serialize: vi.fn(), merge: vi.fn()
+  isOsx: false, isWindows: false, isLinux: true, delay: vi.fn(), serialize: vi.fn(), merge: vi.fn()
 }))
 vi.mock('@/bus', () => ({ default: { on: vi.fn(), emit: vi.fn(), off: vi.fn() } }))
 vi.mock('@/services/notification', () => ({ default: { notify: vi.fn() } }))
