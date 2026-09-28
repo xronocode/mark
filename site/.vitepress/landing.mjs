@@ -1,9 +1,10 @@
 // FILE: site/.vitepress/landing.mjs
-// VERSION: 1.1.0
+// VERSION: 1.2.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Single source of site settings and the landing renderer shared by
 //            the VitePress config (dev middleware + buildEnd) and unit tests.
-//   SCOPE: resolve SITE_URL/SITE_BASE/UMAMI_*/GA_MEASUREMENT_ID env into settings; render the
+//   SCOPE: resolve SITE_URL/SITE_BASE and analytics env (GA_MEASUREMENT_ID,
+//          CF_BEACON_TOKEN, UMAMI_*) into settings; render the
 //          landing template (base token + shared head); emit robots.txt and
 //          CNAME content.
 //   DEPENDS: none (pure functions over strings/env)
@@ -14,9 +15,10 @@
 //
 // START_MODULE_MAP
 //   SITE_META - product name/description/og image used by landing and docs
-//   resolveSiteSettings - env -> { siteUrl, base, analytics }
-//   GA_ID_RE - accepted GA4 measurement id shape (G-XXXXXXXX)
-//   analyticsScript - Umami or GA4 <script> tags, or '' when analytics is off
+//   resolveSiteSettings - env -> { siteUrl, base, analytics[] }
+//   GA_ID_RE / CF_TOKEN_RE - accepted id shapes, checked before inlining
+//   analyticsTags - analytics[] -> [{ attrs, body }] script tags (landing + docs)
+//   analyticsScript - analyticsTags serialized to HTML, '' when analytics is off
 //   renderSharedHead - meta/OG/twitter/favicon/analytics HTML for the landing
 //   renderLanding - template -> final landing HTML
 //   robotsTxt - robots.txt body pointing at the sitemap
@@ -24,7 +26,8 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: [v1.1.0 - GA4 provider via GA_MEASUREMENT_ID (wins over Umami when both set)]
+//   LAST_CHANGE: [v1.2.0 - analytics is a list; GA4, Cloudflare Web Analytics and Umami can run together]
+//   PREV: [v1.1.0 - GA4 provider via GA_MEASUREMENT_ID]
 //   PREV: [v1.0.0 - C-22: replaces the CI `cp` overlay and hard-coded /mark/ paths]
 // END_CHANGE_SUMMARY
 
@@ -42,13 +45,15 @@ const DEFAULT_UMAMI_SRC = 'https://cloud.umami.is/script.js'
 const BASE_TOKEN = /%BASE%/g
 const HEAD_PLACEHOLDER = '<!--SITE_HEAD-->'
 export const GA_ID_RE = /^G-[A-Z0-9]{4,16}$/
+export const CF_TOKEN_RE = /^[a-f0-9]{32}$/
 
 // START_CONTRACT: resolveSiteSettings
 //   PURPOSE: Normalize deployment settings from the environment.
 //   INPUTS: { env: Record<string,string|undefined> - usually process.env }
 //   OUTPUTS: { {siteUrl, base, analytics} - siteUrl has no trailing slash and
-//              already includes the base path; base starts and ends with '/' }
-//   SIDE_EFFECTS: none
+//              already includes the base path; base starts and ends with '/';
+//              analytics is a list of enabled providers, [] when none }
+//   SIDE_EFFECTS: throws on a malformed GA / Cloudflare id (never inlined)
 // END_CONTRACT: resolveSiteSettings
 export function resolveSiteSettings (env = {}) {
   // START_BLOCK_RESOLVE_BASE
@@ -59,14 +64,21 @@ export function resolveSiteSettings (env = {}) {
   // END_BLOCK_RESOLVE_BASE
 
   // START_BLOCK_RESOLVE_ANALYTICS
-  const measurementId = (env.GA_MEASUREMENT_ID || '').trim()
-  const websiteId = (env.UMAMI_WEBSITE_ID || '').trim()
-  if (measurementId && !GA_ID_RE.test(measurementId)) {
-    throw new Error(`[SiteBuild][resolveSiteSettings][BLOCK_RESOLVE_ANALYTICS] GA_MEASUREMENT_ID must look like G-XXXXXXXX, got "${measurementId}"`)
+  const read = (key) => (env[key] || '').trim()
+  const checked = (key, re, shape) => {
+    const value = read(key)
+    if (value && !re.test(value)) {
+      throw new Error(`[SiteBuild][resolveSiteSettings][BLOCK_RESOLVE_ANALYTICS] ${key} must look like ${shape}, got "${value}"`)
+    }
+    return value
   }
-  let analytics = null
-  if (measurementId) analytics = { provider: 'ga4', measurementId }
-  else if (websiteId) analytics = { provider: 'umami', websiteId, src: (env.UMAMI_SRC || DEFAULT_UMAMI_SRC).trim() }
+  const measurementId = checked('GA_MEASUREMENT_ID', GA_ID_RE, 'G-XXXXXXXX')
+  const token = checked('CF_BEACON_TOKEN', CF_TOKEN_RE, '32 lowercase hex chars')
+  const websiteId = read('UMAMI_WEBSITE_ID')
+  const analytics = []
+  if (measurementId) analytics.push({ provider: 'ga4', measurementId })
+  if (token) analytics.push({ provider: 'cloudflare', token })
+  if (websiteId) analytics.push({ provider: 'umami', websiteId, src: read('UMAMI_SRC') || DEFAULT_UMAMI_SRC })
   // END_BLOCK_RESOLVE_ANALYTICS
 
   return { siteUrl, base, analytics }
@@ -80,15 +92,34 @@ function escapeAttr (value) {
     .replace(/>/g, '&gt;')
 }
 
+// START_CONTRACT: analyticsTags
+//   PURPOSE: One description of every analytics <script>, shared by the
+//            landing (serialized) and the VitePress docs head (HeadConfig).
+//   INPUTS: { analytics: resolveSiteSettings().analytics }
+//   OUTPUTS: { Array<{ attrs: Record<string,string>, body: string }> }
+//   SIDE_EFFECTS: none. GA ids passed GA_ID_RE, so inlining them is safe.
+// END_CONTRACT: analyticsTags
+export function analyticsTags (analytics = []) {
+  return analytics.flatMap((a) => {
+    if (a.provider === 'ga4') {
+      return [
+        { attrs: { async: '', src: `https://www.googletagmanager.com/gtag/js?id=${a.measurementId}` }, body: '' },
+        { attrs: {}, body: `window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date());gtag('config','${a.measurementId}');` }
+      ]
+    }
+    if (a.provider === 'cloudflare') {
+      // Cookieless; SPA route changes are tracked by the beacon itself.
+      return [{ attrs: { defer: '', src: 'https://static.cloudflareinsights.com/beacon.min.js', 'data-cf-beacon': JSON.stringify({ token: a.token }) }, body: '' }]
+    }
+    return [{ attrs: { defer: '', src: a.src, 'data-website-id': a.websiteId }, body: '' }]
+  })
+}
+
 export function analyticsScript (analytics) {
-  if (!analytics) return ''
-  if (analytics.provider === 'ga4') {
-    // The id already passed GA_ID_RE, so inlining it is safe.
-    const id = analytics.measurementId
-    return `<script async src="https://www.googletagmanager.com/gtag/js?id=${id}"></script>\n    ` +
-      `<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date());gtag('config','${id}');</script>`
-  }
-  return `<script defer src="${escapeAttr(analytics.src)}" data-website-id="${escapeAttr(analytics.websiteId)}"></script>`
+  return analyticsTags(analytics).map(({ attrs, body }) => {
+    const a = Object.entries(attrs).map(([k, v]) => (v === '' ? ` ${k}` : ` ${k}="${escapeAttr(v)}"`)).join('')
+    return `<script${a}>${body}</script>`
+  }).join('\n    ')
 }
 
 export function renderSharedHead (settings) {
