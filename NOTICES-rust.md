@@ -1,6 +1,6 @@
 # NOTICES — Rust dependencies (Tauri backend)
 
-Generated from `cargo-bundle-licenses --format json` over **615 crates**.
+Generated from `cargo-bundle-licenses --format json` over **616 crates**.
 
 Each entry lists the crate name, version, license SPDX identifier, and upstream repository when available. Re-generate with:
 
@@ -15,7 +15,7 @@ node tools/build-notices-rust.mjs /tmp/rust-licenses.json > NOTICES-rust.md
 |---|---:|
 | MIT OR Apache-2.0 | 275 |
 | MIT | 135 |
-| Apache-2.0 OR MIT | 53 |
+| Apache-2.0 OR MIT | 54 |
 | MIT/Apache-2.0 | 32 |
 | Unicode-3.0 | 18 |
 | Zlib OR Apache-2.0 OR MIT | 18 |
@@ -472,7 +472,7 @@ node tools/build-notices-rust.mjs /tmp/rust-licenses.json > NOTICES-rust.md
 | zvariant_derive | 5.12.0 | https://github.com/z-galaxy/zbus/ |
 | zvariant_utils | 3.4.0 | https://github.com/z-galaxy/zbus/ |
 
-## Apache-2.0 OR MIT (53)
+## Apache-2.0 OR MIT (54)
 
 | Crate | Version | Repository |
 |---|---|---|
@@ -518,6 +518,7 @@ node tools/build-notices-rust.mjs /tmp/rust-licenses.json > NOTICES-rust.md
 | tauri-plugin-global-shortcut | 2.3.2 | https://github.com/tauri-apps/plugins-workspace |
 | tauri-plugin-opener | 2.5.4 | https://github.com/tauri-apps/plugins-workspace |
 | tauri-plugin-process | 2.3.1 | https://github.com/tauri-apps/plugins-workspace |
+| tauri-plugin-single-instance | 2.4.5 | https://github.com/tauri-apps/plugins-workspace |
 | tauri-plugin-updater | 2.10.1 | https://github.com/tauri-apps/plugins-workspace |
 | tauri-plugin-window-state | 2.4.1 | https://github.com/tauri-apps/plugins-workspace |
 | tauri-runtime | 2.11.2 | https://github.com/tauri-apps/tauri |
