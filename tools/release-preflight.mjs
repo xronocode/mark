@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 // FILE: tools/release-preflight.mjs
 // VERSION: 1.0.0
 // START_MODULE_CONTRACT
