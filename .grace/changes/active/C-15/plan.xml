@@ -209,6 +209,40 @@
     </P-M>
   </ImplementationPlan>
   <ReviewLog>
+    <Review number="5" date="2026-09-28" verdict="green-partial" task="phase-w-qa-round-1">
+      <Findings>
+        Nurik's manual QA round on the dry-run artifact (15 screenshots in
+        TG, 9 findings). All root-caused and fixed same day:
+        (1) «накладка и мешанина» — the frameless titlebar stacked the
+        share/word-count cluster (absolute left:0) on top of titlebar-nav;
+        hamburger moved into the nav row (button #0), cluster re-homed as
+        .titlebar-aux--custom at right:150px (titleBar v1.5.0; regression
+        pinned in titleBar-windows v1.1.0 + a win32-pinned Playwright probe
+        asserting disjoint nav/aux boxes and zero document overflow).
+        (2) dark theme — window-control icons were fill:#000 (invisible on
+        dark); now currentColor + theme hover vars. (3) boot theme-stomp —
+        ASK_FOR_USER_PREFERENCE hydration dropped keys already mutated
+        during boot (bootDirtyKeys). (4) language switch — setLanguage
+        indexed availableLocales with [locale] (function-indexing bug) and
+        returned an un-awaited promise; now awaits + validates payload.
+        (5) folder tree empty — renderer path shim used POSIX
+        path-browserify on win32; now path-win32 (package.json dep).
+        (6) literal &lt;br&gt; in the editor — muya htmlTag br branch never
+        applied the ag-hide wrapper; raw text now hides on inactive lines
+        with the real &lt;br&gt; outside it (htmlTagBr.test.js).
+        (7) «ctrl+zoom зумит внутренний фрейм» + stray h-scrollbar —
+        Ctrl+wheel/= /-/0 now drive the fontSize preference (12–36,
+        debounced persist) instead of --content-zoom; wheel listener is
+        capture-phase so muya stopPropagation can no longer leak WebView2
+        native browser zoom; body overflow:hidden guards document-level
+        scrollbars. Renderer suite 3146 green / 233 files. Maximize/
+        minimize button behavior itself is handler-correct (3-state
+        toggle); the visible failure modes were the overlap + invisible
+        dark-theme icons — retest requested in QA round 2. CI smoke
+        screenshot delay 3s→10s (cold WebView2 painted blank at 3s).
+        Pending: dry-run 5 artifact → QA round 2 → WINDOWS_RELEASE flip.
+      </Findings>
+    </Review>
     <Review number="4" date="2026-09-28" verdict="green-partial" task="phase-w">
       <Findings>
         T-101: shim platform now comes from the vite process.platform define

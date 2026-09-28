@@ -52,16 +52,21 @@ export const t = (key, ...args) => {
 }
 
 // 导出语言设置函数
-export const setLanguage = (locale) => {
+// C-15 QA fix (Nurik's Windows pass): the old guard indexed the FUNCTION
+// (`availableLocales.includes[locale]`) instead of calling it, so the
+// guard was ALWAYS truthy — the async loadTranslations PROMISE was passed
+// to setLocaleMessage as if it were the translation table and every
+// locale silently fell back to EN. Await the load, validate the payload.
+export const setLanguage = async (locale) => {
   if (!locale) return
-  if (!i18n.global.availableLocales.includes[locale]) {
-    // Locale not yet available, need to get it from the main process
-    const translation = window.i18nUtils.loadTranslations(locale)
-    if (!translation) return // Failed to load locale file, error msg should be in the loadTranslations function
-
-    // Add the loaded locale to i18n instance
+  if (!i18n.global.availableLocales.includes(locale)) {
+    const translation = await window.i18nUtils.loadTranslations(locale)
+    if (!translation || typeof translation !== 'object' || Object.keys(translation).length === 0) {
+      // Locale file missing/empty — loadTranslations already logged; keep
+      // the current locale instead of installing a non-table payload.
+      return
+    }
     i18n.global.setLocaleMessage(locale, translation)
-    console.log(`🌐 Loaded and set new locale: ${locale}`)
   }
   i18n.global.locale.value = locale
 }

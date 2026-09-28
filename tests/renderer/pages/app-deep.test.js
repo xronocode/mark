@@ -247,115 +247,112 @@ describe('App.vue page — deep coverage', () => {
     })
   })
 
-  describe('pinch-to-zoom handler', () => {
+  describe('ctrl+wheel font-size handler (C-15 Phase W QA)', () => {
     const flush = () => new Promise(r => setTimeout(r, 0))
+    const settleDebounce = () => new Promise(r => setTimeout(r, 220))
 
     const fireWheel = (deltaY, ctrlKey = true) => {
       const evt = new WheelEvent('wheel', { deltaY, ctrlKey, bubbles: true, cancelable: true })
       document.dispatchEvent(evt)
+      return evt.defaultPrevented
     }
 
-    it('zooms in on negative deltaY with ctrlKey', async () => {
+    it('increases fontSize on negative deltaY (zoom-in gesture)', async () => {
       const { usePreferencesStore } = await import('@/store/preferences')
       const prefStore = usePreferencesStore()
-      prefStore.zoom = 1.0
+      prefStore.fontSize = 16
 
       mountComponent()
       await flush()
-      bus.emit.mockClear()
 
-      fireWheel(-20)
-
-      expect(bus.emit).toHaveBeenCalledWith('mt::window-zoom', 1.125)
+      expect(fireWheel(-20)).toBe(true)
+      expect(prefStore.fontSize).toBe(17)
     })
 
-    it('zooms out on positive deltaY with ctrlKey', async () => {
+    it('decreases fontSize on positive deltaY (zoom-out gesture)', async () => {
       const { usePreferencesStore } = await import('@/store/preferences')
       const prefStore = usePreferencesStore()
-      prefStore.zoom = 1.0
+      prefStore.fontSize = 16
 
       mountComponent()
       await flush()
-      bus.emit.mockClear()
 
       fireWheel(20)
-
-      expect(bus.emit).toHaveBeenCalledWith('mt::window-zoom', 0.875)
+      expect(prefStore.fontSize).toBe(15)
     })
 
     it('ignores wheel events without ctrlKey', async () => {
       const { usePreferencesStore } = await import('@/store/preferences')
       const prefStore = usePreferencesStore()
-      prefStore.zoom = 1.0
+      prefStore.fontSize = 16
 
       mountComponent()
       await flush()
-      bus.emit.mockClear()
 
-      fireWheel(-20, false)
-
-      expect(bus.emit).not.toHaveBeenCalled()
+      expect(fireWheel(-20, false)).toBe(false)
+      expect(prefStore.fontSize).toBe(16)
     })
 
-    it('does not zoom past max level', async () => {
+    it('does not grow past FONT_SIZE_MAX (36)', async () => {
       const { usePreferencesStore } = await import('@/store/preferences')
       const prefStore = usePreferencesStore()
-      prefStore.zoom = 2.0
+      prefStore.fontSize = 36
 
       mountComponent()
       await flush()
-      bus.emit.mockClear()
 
       fireWheel(-20)
-
-      expect(bus.emit).not.toHaveBeenCalledWith('mt::window-zoom', expect.anything())
+      expect(prefStore.fontSize).toBe(36)
     })
 
-    it('does not zoom past min level', async () => {
+    it('does not shrink past FONT_SIZE_MIN (12)', async () => {
       const { usePreferencesStore } = await import('@/store/preferences')
       const prefStore = usePreferencesStore()
-      prefStore.zoom = 0.5
+      prefStore.fontSize = 12
 
       mountComponent()
       await flush()
-      bus.emit.mockClear()
 
       fireWheel(20)
-
-      expect(bus.emit).not.toHaveBeenCalledWith('mt::window-zoom', expect.anything())
+      expect(prefStore.fontSize).toBe(12)
     })
 
-    it('handles zoom value above max by clamping to last level', async () => {
+    it('accumulates delta below threshold without changing fontSize', async () => {
       const { usePreferencesStore } = await import('@/store/preferences')
       const prefStore = usePreferencesStore()
-      prefStore.zoom = 3.0
+      prefStore.fontSize = 16
 
       mountComponent()
       await flush()
-      bus.emit.mockClear()
-
-      fireWheel(20)
-
-      expect(bus.emit).toHaveBeenCalledWith('mt::window-zoom', 1.875)
-    })
-
-    it('accumulates delta below threshold without emitting', async () => {
-      const { usePreferencesStore } = await import('@/store/preferences')
-      const prefStore = usePreferencesStore()
-      prefStore.zoom = 1.0
-
-      mountComponent()
-      await flush()
-      bus.emit.mockClear()
 
       fireWheel(-5)
+      expect(prefStore.fontSize).toBe(16)
+    })
 
-      expect(bus.emit).not.toHaveBeenCalled()
+    it('persists the final fontSize once, after the debounce', async () => {
+      const { usePreferencesStore } = await import('@/store/preferences')
+      const prefStore = usePreferencesStore()
+      prefStore.fontSize = 16
+      const persistSpy = vi.spyOn(prefStore, 'SET_SINGLE_PREFERENCE')
+
+      mountComponent()
+      await flush()
+
+      fireWheel(-20)
+      fireWheel(-20)
+      fireWheel(-20)
+      expect(prefStore.fontSize).toBe(19)
+      expect(persistSpy).not.toHaveBeenCalled()
+
+      await settleDebounce()
+      expect(persistSpy).toHaveBeenCalledTimes(1)
+      expect(persistSpy).toHaveBeenCalledWith({ type: 'fontSize', value: 19 })
     })
   })
 
-  describe('blockNativeZoom handler', () => {
+  describe('zoom-keys font-size handler (C-15 Phase W QA)', () => {
     const flush = () => new Promise(r => setTimeout(r, 0))
+    const settleDebounce = () => new Promise(r => setTimeout(r, 220))
 
     const fireKeydown = (key, { metaKey = false, ctrlKey = false } = {}) => {
       const evt = new KeyboardEvent('keydown', {
@@ -374,60 +371,85 @@ describe('App.vue page — deep coverage', () => {
       return prevented.value
     }
 
-    it('prevents Cmd+= (zoom in)', async () => {
+    it('increases fontSize on Cmd+= and prevents default', async () => {
+      const { usePreferencesStore } = await import('@/store/preferences')
+      const prefStore = usePreferencesStore()
+      prefStore.fontSize = 16
+
       mountComponent()
       await flush()
+
       expect(fireKeydown('=', { metaKey: true })).toBe(true)
+      expect(prefStore.fontSize).toBe(17)
     })
 
-    it('prevents Cmd+- (zoom out)', async () => {
+    it('decreases fontSize on Cmd+-', async () => {
+      const { usePreferencesStore } = await import('@/store/preferences')
+      const prefStore = usePreferencesStore()
+      prefStore.fontSize = 16
+
       mountComponent()
       await flush()
+
       expect(fireKeydown('-', { metaKey: true })).toBe(true)
+      expect(prefStore.fontSize).toBe(15)
     })
 
-    it('prevents Cmd+0 (reset zoom)', async () => {
+    it('resets fontSize to 16 on Cmd+0', async () => {
+      const { usePreferencesStore } = await import('@/store/preferences')
+      const prefStore = usePreferencesStore()
+      prefStore.fontSize = 22
+
       mountComponent()
       await flush()
+
       expect(fireKeydown('0', { metaKey: true })).toBe(true)
+      expect(prefStore.fontSize).toBe(16)
     })
 
-    it('prevents Cmd++ (plus key)', async () => {
-      mountComponent()
-      await flush()
-      expect(fireKeydown('+', { metaKey: true })).toBe(true)
-    })
+    it('also handles the plus key and Ctrl variants', async () => {
+      const { usePreferencesStore } = await import('@/store/preferences')
+      const prefStore = usePreferencesStore()
+      prefStore.fontSize = 16
 
-    it('does NOT prevent regular keys without modifier', async () => {
       mountComponent()
       await flush()
-      expect(fireKeydown('=', {})).toBe(false)
-      expect(fireKeydown('-', {})).toBe(false)
-      expect(fireKeydown('0', {})).toBe(false)
-    })
 
-    it('prevents Ctrl+= on non-Mac (ctrlKey)', async () => {
-      mountComponent()
-      await flush()
-      expect(fireKeydown('=', { ctrlKey: true })).toBe(true)
-    })
-
-    it('prevents Ctrl+- on non-Mac (ctrlKey)', async () => {
-      mountComponent()
-      await flush()
+      expect(fireKeydown('+', { ctrlKey: true })).toBe(true)
+      expect(prefStore.fontSize).toBe(17)
       expect(fireKeydown('-', { ctrlKey: true })).toBe(true)
-    })
-
-    it('prevents Ctrl+0 on non-Mac (ctrlKey)', async () => {
-      mountComponent()
-      await flush()
+      expect(prefStore.fontSize).toBe(16)
       expect(fireKeydown('0', { ctrlKey: true })).toBe(true)
+      expect(prefStore.fontSize).toBe(16)
     })
 
-    it('does NOT prevent Cmd+other keys (e.g. Cmd+a)', async () => {
+    it('does NOT prevent or change anything for regular keys', async () => {
+      const { usePreferencesStore } = await import('@/store/preferences')
+      const prefStore = usePreferencesStore()
+      prefStore.fontSize = 16
+
       mountComponent()
       await flush()
+
+      expect(fireKeydown('=', {})).toBe(false)
       expect(fireKeydown('a', { metaKey: true })).toBe(false)
+      expect(prefStore.fontSize).toBe(16)
+    })
+
+    it('persists key-driven changes after the debounce', async () => {
+      const { usePreferencesStore } = await import('@/store/preferences')
+      const prefStore = usePreferencesStore()
+      prefStore.fontSize = 16
+      const persistSpy = vi.spyOn(prefStore, 'SET_SINGLE_PREFERENCE')
+
+      mountComponent()
+      await flush()
+
+      fireKeydown('=', { ctrlKey: true })
+      fireKeydown('=', { ctrlKey: true })
+      expect(prefStore.fontSize).toBe(18)
+      await settleDebounce()
+      expect(persistSpy).toHaveBeenCalledWith({ type: 'fontSize', value: 18 })
     })
   })
 

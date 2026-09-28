@@ -40,6 +40,17 @@
         :class="{ 'titlebar-nav--osx': isOsx }"
       >
         <div
+          v-if="showCustomTitleBar"
+          class="titlebar-nav-btn titlebar-nav-menu"
+          @click.stop="handleMenuClick"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="4" y1="6" x2="20" y2="6"/>
+            <line x1="4" y1="12" x2="16" y2="12"/>
+            <line x1="4" y1="18" x2="20" y2="18"/>
+          </svg>
+        </div>
+        <div
           class="titlebar-nav-btn"
           :class="{ active: showSideBar }"
           :title="t('menu.view.toggleSidebar')"
@@ -108,17 +119,15 @@
         </div>
       </div>
       <span v-if="isDev" class="version-badge" data-tauri-drag-region>v{{ appVersion }} DEV</span>
-      <div :class="showCustomTitleBar ? 'left-toolbar title-no-drag' : 'right-toolbar'">
-        <div
-          v-if="showCustomTitleBar"
-          class="frameless-titlebar-menu title-no-drag"
-          @click.stop="handleMenuClick"
-        >
-          <span class="text-center-vertical">&#9776;</span>
-        </div>
+      <!-- C-15 Phase W QA: share/word-count cluster. On macOS it hugs the
+           right edge (no window controls there); on frameless Win/Linux it
+           sits LEFT of the min/max/close cluster — previously it was
+           absolute-positioned at left:0 and stacked on top of titlebar-nav
+           (the "мешанина" overlap). -->
+      <div class="titlebar-aux title-no-drag" :class="{ 'titlebar-aux--custom': showCustomTitleBar }">
         <div
           v-if="pathname"
-          class="titlebar-share-btn title-no-drag"
+          class="titlebar-share-btn"
           :title="t('titleBar.share')"
           @click.stop="handleShareClick"
         >
@@ -200,7 +209,7 @@
 
 <script setup>
 // FILE: src/renderer/src/components/titleBar/index.vue
-// VERSION: 1.4.0
+// VERSION: 1.5.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Render the main window title bar and expose its navigation, native file-path actions, window controls, and drag affordances.
 //   SCOPE: Renderer-side titlebar behavior, including sidebar/view navigation, title updates, native title context menus, direct window controls, and WKWebView/macOS drag fallbacks.
@@ -229,6 +238,7 @@
 //   - 2026-08-07 v1.2.0: write Copy Path through the native Tauri clipboard plugin because WKWebView user activation expires while the native menu is open.
 //   - 2026-09-16 v1.3.0: C-9 — constrain the breadcrumb inside real title clearances and clip the oldest path segments (flex-end shrink) so path/filename never collide with the nav cluster or word count at narrow widths; removes the dead GH#339 `div.title > span` rule.
 //   - 2026-09-28 v1.4.0: C-15 T-W1 — Windows titlebar pass: effectiveTitleBarStyle forces 'custom' on win32 (decorations are unconditionally off there via tauri.windows.conf.json), and titlebar dblclick toggles maximize on every platform (was macOS-only).
+//   - 2026-09-28 v1.5.0: C-15 Phase W QA — fix the Win/Linux "мешанина": the share/word-count cluster was absolute-positioned at left:0 and stacked on top of titlebar-nav; it is now .titlebar-aux at right:150px (left of the window controls), the app-menu hamburger moved into titlebar-nav, and window-control icons use currentColor so dark themes keep them visible.
 // END_CHANGE_SUMMARY
 
 // step-8g: @electron/remote.Menu also gone. Application-menu popup
@@ -537,7 +547,7 @@ const handleMaximizeClick = async () => {
 // and handleMaximizeClick already no-ops gracefully for every state.
 const handleTitleBarDblclick = (event) => {
   if (
-    event.target.closest('.title-no-drag, .titlebar-nav, .right-toolbar, .left-toolbar')
+    event.target.closest('.title-no-drag, .titlebar-nav, .right-toolbar, .titlebar-aux')
   ) {
     return
   }
@@ -671,6 +681,13 @@ img {
   /* traffic lights (78px) + titlebar-nav (5 × 28px + divider) */
   left: 250px;
 }
+/* C-15 Phase W QA: frameless Win/Linux — titlebar-nav grew by the app-menu
+   button (6 × 28px) and the aux cluster now sits left of the window
+   controls, so the centered title needs bigger clearances. */
+.title-bar.frameless:not(.isOsx) .title {
+  left: 196px;
+  right: 290px;
+}
 .title-breadcrumb {
   display: inline-flex;
   align-items: center;
@@ -721,15 +738,27 @@ img {
   color: var(--sideBarTitleColor);
 }
 
-.left-toolbar {
-  padding: 0 10px;
+/* C-15 Phase W QA: share + word-count cluster. macOS: hugs the right edge
+   (legacy right-toolbar geometry). Frameless Win/Linux: shifted left of the
+   min/max/close cluster (right:150px) so nothing stacks on titlebar-nav. */
+.titlebar-aux {
   height: 100%;
   position: absolute;
   top: 0;
-  left: 0;
-  width: 118px; /* + 2*10px padding*/
+  right: 0;
   display: flex;
+  align-items: center;
+  flex-direction: row-reverse;
+  & .item {
+    margin-right: 10px;
+  }
+}
+.titlebar-aux--custom {
+  right: 150px;
   flex-direction: row;
+  & .item {
+    margin-right: 10px;
+  }
 }
 .right-toolbar {
   height: 100%;
@@ -849,6 +878,8 @@ img {
   display: block;
   width: 46px;
   height: var(--titleBarHeight);
+  /* theme-aware so the icons stay visible on dark backgrounds */
+  color: var(--editorColor, #000000);
 }
 .frameless-titlebar-button > div {
   position: absolute;
@@ -857,18 +888,15 @@ img {
   left: 50%;
   transform: translateX(-50%) translateY(-50%);
 }
-.frameless-titlebar-menu {
-  color: var(--sideBarColor);
-}
 .frameless-titlebar-close:hover {
   background-color: rgb(228, 79, 79);
 }
 .frameless-titlebar-minimize:hover,
 .frameless-titlebar-toggle:hover {
-  background-color: rgba(0, 0, 0, 0.1);
+  background-color: var(--floatHoverColor, rgba(0, 0, 0, 0.1));
 }
 .frameless-titlebar-button svg {
-  fill: #000000;
+  fill: currentColor;
 }
 .frameless-titlebar-close:hover svg {
   fill: #ffffff;

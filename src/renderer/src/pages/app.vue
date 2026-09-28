@@ -166,19 +166,39 @@ const setupDragDropHandler = () => {
   )
 }
 
-const ZOOM_LEVELS = [0.5, 0.625, 0.75, 0.875, 1.0, 1.125, 1.25, 1.375, 1.5, 1.625, 1.75, 1.875, 2.0]
+// C-15 Phase W QA (Nurik): "ctrl+zoom должен изменять размер шрифта, а не
+// зумить внутренний фрейм". Ctrl+wheel and Ctrl+=/-/0 now drive the editor
+// fontSize preference (live via editor.vue watcher, debounced persistence)
+// instead of --content-zoom, which scaled the whole editor surface and
+// produced a stray horizontal scrollbar at zoom > 1. The View-menu app zoom
+// (ZOOM_LEVELS / EDIT_ZOOM) is untouched.
+const FONT_SIZE_MIN = 12
+const FONT_SIZE_MAX = 36
+const FONT_SIZE_DEFAULT = 16
+const FONT_PERSIST_DEBOUNCE_MS = 150
 
-const blockNativeZoom = () => {
-  const handler = (e) => {
-    if ((e.metaKey || e.ctrlKey) && (e.key === '=' || e.key === '+' || e.key === '-' || e.key === '0')) {
-      e.preventDefault()
-    }
+let fontSizePersistTimer = null
+
+const persistFontSize = (value) => {
+  if (fontSizePersistTimer) {
+    clearTimeout(fontSizePersistTimer)
   }
-  document.addEventListener('keydown', handler)
-  return () => document.removeEventListener('keydown', handler)
+  fontSizePersistTimer = setTimeout(() => {
+    preferencesStore.SET_SINGLE_PREFERENCE({ type: 'fontSize', value })
+    fontSizePersistTimer = null
+  }, FONT_PERSIST_DEBOUNCE_MS)
 }
 
-const setupPinchZoomHandler = () => {
+const applyFontSize = (value) => {
+  const next = Math.max(FONT_SIZE_MIN, Math.min(FONT_SIZE_MAX, Math.round(value)))
+  if (next === preferencesStore.fontSize) return
+  // Direct state write applies instantly (editor.vue watch → muya setFont);
+  // the debounced SET_SINGLE_PREFERENCE persists and cross-broadcasts.
+  preferencesStore.fontSize = next
+  persistFontSize(next)
+}
+
+const setupCtrlWheelFontSize = () => {
   let accumulatedDelta = 0
   const STEP_THRESHOLD = 15
 
@@ -189,21 +209,34 @@ const setupPinchZoomHandler = () => {
     accumulatedDelta += e.deltaY
     if (Math.abs(accumulatedDelta) < STEP_THRESHOLD) return
 
-    const currentZoom = preferencesStore.zoom
-    let idx = ZOOM_LEVELS.findIndex(z => z >= currentZoom)
-    if (idx === -1) idx = ZOOM_LEVELS.length - 1
-
     const step = accumulatedDelta > 0 ? -1 : 1
     accumulatedDelta = 0
-
-    const nextIdx = Math.max(0, Math.min(ZOOM_LEVELS.length - 1, idx + step))
-    if (ZOOM_LEVELS[nextIdx] !== currentZoom) {
-      bus.emit('mt::window-zoom', ZOOM_LEVELS[nextIdx])
-    }
+    applyFontSize(preferencesStore.fontSize + step)
   }
 
-  document.addEventListener('wheel', handler, { passive: false })
-  return () => document.removeEventListener('wheel', handler)
+  // Capture phase: muya stops wheel propagation inside the editor, so the
+  // old document-bubble listener never saw those events and WebView2's
+  // native ctrl+wheel browser zoom leaked through.
+  window.addEventListener('wheel', handler, { passive: false, capture: true })
+  return () => window.removeEventListener('wheel', handler, { capture: true })
+}
+
+const setupZoomKeysFontSize = () => {
+  const handler = (e) => {
+    if (!(e.metaKey || e.ctrlKey)) return
+    if (e.key === '=' || e.key === '+') {
+      e.preventDefault()
+      applyFontSize(preferencesStore.fontSize + 1)
+    } else if (e.key === '-') {
+      e.preventDefault()
+      applyFontSize(preferencesStore.fontSize - 1)
+    } else if (e.key === '0') {
+      e.preventDefault()
+      applyFontSize(FONT_SIZE_DEFAULT)
+    }
+  }
+  window.addEventListener('keydown', handler, true)
+  return () => window.removeEventListener('keydown', handler, true)
 }
 
 onMounted(async () => {
@@ -235,8 +268,8 @@ onMounted(async () => {
   editorStore.LISTEN_WINDOW_ZOOM()
 
   setupDragDropHandler()
-  cleanupPinchZoom = setupPinchZoomHandler()
-  cleanupNativeZoom = blockNativeZoom()
+  cleanupPinchZoom = setupCtrlWheelFontSize()
+  cleanupNativeZoom = setupZoomKeysFontSize()
 
   nextTick(() => {
     const style = {

@@ -143,6 +143,27 @@ describe('store/preferences', () => {
       expect(s.tabSize).toBe(8)
     })
 
+    it('never stomps a preference the user changed during the load (boot-race regression)', async () => {
+      // Nurik's Windows pass: a theme toggle clicked while the first
+      // prefs read was in flight got reverted by the hydration payload.
+      let resolvePrefs: (v: any) => void = () => {}
+      ;(invoke as any).mockImplementationOnce(
+        () => new Promise((res) => { resolvePrefs = res })
+      )
+      const { usePreferencesStore } = await import('@/store/preferences')
+      const s = usePreferencesStore()
+      const pending = s.ASK_FOR_USER_PREFERENCE()
+      // User toggles theme BEFORE the prefs read resolves.
+      await s.SET_SINGLE_PREFERENCE({ type: 'theme', value: 'dark' })
+      resolvePrefs({ theme: 'light', tabSize: 8 })
+      await pending
+      expect(s.theme).toBe('dark') // user edit survives the hydration
+      expect(s.tabSize).toBe(8) // untouched keys still hydrate
+      // After hydration the guard is off — broadcasts apply again.
+      s.SET_USER_PREFERENCE({ theme: 'light' })
+      expect(s.theme).toBe('light')
+    })
+
     it('on reject logs and does not throw', async () => {
       ;(invoke as any).mockRejectedValueOnce(new Error('boom'))
       const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {})

@@ -424,7 +424,9 @@ jobs:
 
           # C-15 QA evidence: capture what the window actually looks like
           # (manual-QA feedback triage — layout overlap / maximize issues).
-          Start-Sleep -Seconds 3
+          # 10s: cold WebView2 on a fresh runner needs several seconds before
+          # the renderer paints (3s captured a blank white window).
+          Start-Sleep -Seconds 10
           try {
             New-Item -ItemType Directory -Force -Path "$env:RUNNER_TEMP\release" | Out-Null
             Add-Type -AssemblyName System.Windows.Forms

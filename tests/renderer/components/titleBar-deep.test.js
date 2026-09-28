@@ -549,8 +549,12 @@ describe('titleBar/index.vue — deep coverage', () => {
     it('sidebar toggle click emits bus event', async () => {
       const wrapper = mountComponent()
       const navBtns = wrapper.findAll('.titlebar-nav-btn')
-      // First nav-btn is the sidebar toggle
-      await navBtns[0].trigger('click')
+      // On custom (frameless) styles the app-menu hamburger is nav-btn #0
+      // (C-15 Phase W QA); the sidebar toggle follows it.
+      const sidebarBtn = navBtns[0].classes().includes('titlebar-nav-menu')
+        ? navBtns[1]
+        : navBtns[0]
+      await sidebarBtn.trigger('click')
       expect(bus.emit).toHaveBeenCalledWith('view:toggle-layout-entry', 'showSideBar')
     })
   })

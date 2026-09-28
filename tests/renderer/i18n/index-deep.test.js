@@ -73,36 +73,36 @@ describe('i18n/index — deep coverage', () => {
       expect(getCurrentLanguage()).toBe(before)
     })
 
-    it('loads and sets a new locale when not yet available', () => {
-      window.i18nUtils.loadTranslations.mockReturnValue({
+    it('loads and sets a new locale when not yet available', async () => {
+      window.i18nUtils.loadTranslations.mockResolvedValue({
         'app.title': 'Marke'
       })
 
-      setLanguage('de')
+      await setLanguage('de')
       expect(window.i18nUtils.loadTranslations).toHaveBeenCalledWith('de')
       expect(getCurrentLanguage()).toBe('de')
 
       // Reset to en
-      setLanguage('en')
+      await setLanguage('en')
     })
 
-    it('handles failed locale load gracefully', () => {
-      window.i18nUtils.loadTranslations.mockReturnValue(null)
+    it('handles failed locale load gracefully', async () => {
+      window.i18nUtils.loadTranslations.mockResolvedValue(null)
       const before = getCurrentLanguage()
-      setLanguage('xx')
+      await setLanguage('xx')
       expect(getCurrentLanguage()).toBe(before)
     })
 
-    it('sets locale when translation is loaded successfully', () => {
-      window.i18nUtils.loadTranslations.mockReturnValue({
+    it('sets locale when translation is loaded successfully', async () => {
+      window.i18nUtils.loadTranslations.mockResolvedValue({
         'app.title': 'Marca'
       })
 
-      setLanguage('es')
+      await setLanguage('es')
       expect(getCurrentLanguage()).toBe('es')
 
       // Reset
-      setLanguage('en')
+      await setLanguage('en')
     })
   })
 

@@ -67,14 +67,19 @@ describe('renderer platform truth (C-15 T-W0)', () => {
     expect(src).not.toContain("platform: 'darwin'")
   })
 
-  it('the shim exposes Windows path separators for win32 builds', () => {
+  it('the shim selects the platform-correct path implementation', () => {
     const src = readFileSync(
       resolve(workspaceRoot, 'src/renderer/src/_shims/install-window-globals.js'),
       'utf8'
     )
-    // path-browserify is POSIX-only; the shim overrides sep/delimiter so
-    // breadcrumb splitting (config.PATH_SEPARATOR) is correct on Windows.
-    expect(src).toContain("_path.sep = process.platform === 'win32' ? '\\\\' : '/'")
-    expect(src).toContain("_path.delimiter = process.platform === 'win32' ? ';' : ':'")
+    // path-browserify is POSIX-only and rejected drive-letter paths
+    // (Nurik's "folder files not picked up" report); the win32 sibling
+    // port is selected at build time via the folded process.platform
+    // ternary, so sep/dirname/relative/isAbsolute all speak win32.
+    expect(src).toContain("import win32Path from 'path-win32'")
+    expect(src).toContain(
+      "const path = process.platform === 'win32' ? win32Path : posixPath"
+    )
+    expect(src).not.toContain('_path.sep = process.platform')
   })
 })

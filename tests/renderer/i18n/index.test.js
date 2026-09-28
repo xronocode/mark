@@ -64,22 +64,39 @@ describe('i18n/index', () => {
       expect(getCurrentLanguage()).toBe(before)
     })
 
-    it('should load and set a new locale', () => {
-      window.i18nUtils.loadTranslations.mockReturnValue({
+    it('should load and set a new locale', async () => {
+      window.i18nUtils.loadTranslations.mockResolvedValue({
         'app.title': 'Марк'
       })
 
-      setLanguage('ru')
+      await setLanguage('ru')
       expect(window.i18nUtils.loadTranslations).toHaveBeenCalledWith('ru')
       expect(getCurrentLanguage()).toBe('ru')
     })
 
-    it('should handle failed locale load', () => {
-      window.i18nUtils.loadTranslations.mockReturnValue(null)
+    it('awaits the async locale payload instead of installing the promise (Nurik regression)', async () => {
+      // The bug: the old guard never called includes(), so the PROMISE
+      // from loadTranslations was passed to setLocaleMessage as the
+      // translation table and every locale fell back to EN.
+      window.i18nUtils.loadTranslations.mockResolvedValue({ 'app.title': 'Марк' })
+      await setLanguage('ru')
+      expect(i18n.global.getLocaleMessage('ru')).toEqual({ 'app.title': 'Марк' })
+      expect(t('app.title')).toBe('Марк')
+    })
+
+    it('should handle failed locale load', async () => {
+      window.i18nUtils.loadTranslations.mockResolvedValue(null)
 
       const before = getCurrentLanguage()
-      setLanguage('invalid')
+      await setLanguage('invalid')
       // Should not change locale if loading failed
+      expect(getCurrentLanguage()).toBe(before)
+    })
+
+    it('rejects an empty translation table without switching', async () => {
+      window.i18nUtils.loadTranslations.mockResolvedValue({})
+      const before = getCurrentLanguage()
+      await setLanguage('de')
       expect(getCurrentLanguage()).toBe(before)
     })
   })

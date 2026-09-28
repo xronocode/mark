@@ -3,6 +3,12 @@
   <ChangeRef>C-5</ChangeRef>
   <Created>2026-09-16</Created>
 
+  <!-- 2026-09-28: superseded-in-flight by C-15 Phase W QA round 1 —
+       ctrl+wheel now steps the fontSize preference (no zoom-level
+       emission, no timing race); the rewritten app-deep tests are
+       deterministic, which satisfies this change's intent. Baseline
+       pin text updated to the rewritten test name. -->
+
   <IntentSummary>
     Verify and stabilize the rarely-failing pinch-zoom timing test in
     app-deep.test.js so the renderer suite is deterministic on loaded
@@ -12,7 +18,7 @@
   <BaselineAssertions>
     <MustContain>
       <File>tests/renderer/pages/app-deep.test.js</File>
-      <Text>accumulates delta below threshold without emitting</Text>
+      <Text>accumulates delta below threshold without changing fontSize</Text>
     </MustContain>
   </BaselineAssertions>
 

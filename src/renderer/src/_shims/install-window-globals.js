@@ -20,7 +20,8 @@
 //   - 2026-04-29 close F-MAIN-ENTRY-DISABLED: install window.* shim.
 
 import { ipc } from '@/ipc/runtime'
-import * as path from 'path-browserify'
+import * as posixPath from 'path-browserify'
+import win32Path from 'path-win32' // CJS port — named exports live on .default
 import { appLocalDataDir } from '@tauri-apps/api/path'
 // Pre-import the event/core modules statically so ipcRenderer.on /
 // .invoke / .send paths don't have to await dynamic imports — that
@@ -448,13 +449,14 @@ const electron = {
 }
 
 // ─── window.path ────────────────────────────────────────────────────
-// path-browserify already imported above; re-export the whole module.
+// path-browserify is the POSIX port and CANNOT parse drive-letter paths
+// ("C:\a\b".isAbsolute() === false) — on Windows the project tree Ctrl
+// rejected every file as out-of-tree (Nurik's "files not picked up"
+// report). path-win32 is the win32 sibling port. The vite
+// process.platform define folds this ternary at build time, so only the
+// matching implementation ships.
+const path = process.platform === 'win32' ? win32Path : posixPath
 const _path = { ...path, default: path }
-// path-browserify is POSIX-only; expose the build platform's separators
-// (vite define substitutes process.platform) so display-level path
-// splitting — config.PATH_SEPARATOR breadcrumbs — is correct on Windows.
-_path.sep = process.platform === 'win32' ? '\\' : '/'
-_path.delimiter = process.platform === 'win32' ? ';' : ':'
 
 // ─── window.commandExists ───────────────────────────────────────────
 // v1 used command-exists to detect picgo / pandoc binaries on PATH.
