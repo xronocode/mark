@@ -1,5 +1,5 @@
 # FILE: .github/workflows/release.yml
-# VERSION: 1.6.0
+# VERSION: 1.7.0
 # START_MODULE_CONTRACT
 #   PURPOSE: Build, verify, sign, notarize, smoke-test, attest, publish to the GitHub latest feed used by the app, and route a verified artifact URL into the Homebrew update.
 #   SCOPE: Tag-triggered production release orchestration; does not own application runtime behavior or signing credentials.
@@ -16,6 +16,7 @@
 # END_MODULE_MAP
 #
 # START_CHANGE_SUMMARY
+#   - 2026-09-28 v1.7.0: C-15 T-W3 — windows-x64 (NSIS, x86_64-pc-windows-msvc) build lane: CI silent-install smoke, per-platform updater-feed fragments merged in publish, Windows assets staged behind vars.WINDOWS_RELEASE (build-only until manual QA passes); literal macos-14 gates refactored to runner.os.
 #   - 2026-08-07 v1.6.0: publish signed beta tags as GitHub latest releases so the configured /releases/latest updater endpoint advances.
 #   - 2026-08-07 v1.5.0: fail cask publication unless its URL template resolves to the staged Tauri DMG filename.
 #   - 2026-08-07 v1.4.0: classify hyphenated SemVer tags as GitHub prereleases during create and idempotent update paths.
@@ -49,6 +50,11 @@ on:
         description: 'Tag name to release (e.g. v2.0.0). Leave empty for current ref.'
         required: false
         default: ''
+      publish:
+        description: 'Also run the publish job. Default false = build-only run for manual QA (artifacts stay on the run page).'
+        type: boolean
+        required: false
+        default: false
 
 concurrency:
   group: release-${{ github.ref }}
@@ -69,16 +75,43 @@ jobs:
           - name: macos-arm64
             os: macos-14
             target: aarch64-apple-darwin
+          # C-15 T-W3: Windows lane — NSIS x64 installer + updater
+          # artifacts. Windows release assets are staged behind the
+          # WINDOWS_RELEASE repo variable (see the publish job): until it
+          # is set, the exe is a workflow artifact for manual QA only.
+          - name: windows-x64
+            os: windows-latest
+            target: x86_64-pc-windows-msvc
     runs-on: ${{ matrix.platform.os }}
     timeout-minutes: 60
+    # bash on both OSes: the runner scripts below are POSIX; Windows
+    # runners resolve bash via Git for Windows. PowerShell is opted into
+    # per-step via `shell: pwsh` where native tooling demands it.
+    defaults:
+      run:
+        shell: bash
 
     outputs:
       tag: ${{ steps.resolve_tag.outputs.tag }}
+      # C-15 T-W3: tag pushes publish; manual dispatches are build-only
+      # (QA artifacts) unless inputs.publish is explicitly true. Prevents
+      # an accidental clobber of live release assets during manual QA.
+      publish: ${{ steps.publish_mode.outputs.publish }}
 
     steps:
       # ── checkout + tooling ────────────────────────────────────────
       - name: checkout
         uses: actions/checkout@v4
+
+      - name: resolve publish mode
+        id: publish_mode
+        run: |
+          if [ "${{ github.event_name }}" = "push" ] || [ "${{ inputs.publish }}" = "true" ]; then
+            echo "publish=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "publish=false (workflow_dispatch build-only run; set inputs.publish=true to publish)"
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: resolve tag
         id: resolve_tag
@@ -135,9 +168,13 @@ jobs:
         run: npm run build
 
       - name: install Playwright Chromium
+        if: runner.os == 'macOS'
         run: npx playwright install chromium
 
+      # C-15 T-W3: renderer E2E stays macOS-gated until observed green on
+      # a Windows runner; renderer-unit + Rust tests run on both lanes.
       - name: renderer E2E tests
+        if: runner.os == 'macOS'
         timeout-minutes: 15
         run: npm run test:e2e
 
@@ -164,7 +201,7 @@ jobs:
           args: --target ${{ matrix.platform.target }}
 
       - name: verify signed and notarized app
-        if: matrix.platform.os == 'macos-14'
+        if: runner.os == 'macOS'
         run: |
           set -euo pipefail
           APP_PATH=$(find target -path '*/release/bundle/macos/Mark.app' -type d | head -1)
@@ -177,7 +214,7 @@ jobs:
 
       # ── smoke launch ─────────────────────────────────────────────
       - name: smoke launch
-        if: matrix.platform.os == 'macos-14'
+        if: runner.os == 'macOS'
         run: |
           set -euo pipefail
           DMG=$(find target -name '*.dmg' | head -1)
@@ -206,7 +243,7 @@ jobs:
 
       # ── bundle size budget ───────────────────────────────────────
       - name: bundle size
-        if: matrix.platform.os == 'macos-14'
+        if: runner.os == 'macOS'
         id: size
         run: |
           set -euo pipefail
@@ -227,7 +264,7 @@ jobs:
 
       # ── warnings allowlist ───────────────────────────────────────
       - name: warnings allowlist check
-        if: matrix.platform.os == 'macos-14'
+        if: runner.os == 'macOS'
         run: |
           set -uo pipefail  # NOT -e so we can show JSON before failing
           cd src-tauri
@@ -245,11 +282,11 @@ jobs:
       # committed NOTICES-{node,rust}.md. New deps without an attribution
       # line fail the build.
       - name: install cargo-bundle-licenses
-        if: matrix.platform.os == 'macos-14'
+        if: runner.os == 'macOS'
         run: cargo install cargo-bundle-licenses
 
       - name: verify attributions
-        if: matrix.platform.os == 'macos-14'
+        if: runner.os == 'macOS'
         run: ./tools/verify-attributions.sh
 
       # ── SBOM generation (B4 step-9) ──────────────────────────────
@@ -257,11 +294,11 @@ jobs:
       # renderer dependency closure. Published alongside the DMG so
       # downstream auditors can verify the supply chain.
       - name: install cargo-cyclonedx
-        if: matrix.platform.os == 'macos-14'
+        if: runner.os == 'macOS'
         run: cargo install cargo-cyclonedx
 
       - name: generate SBOM
-        if: matrix.platform.os == 'macos-14'
+        if: runner.os == 'macOS'
         run: |
           set -euo pipefail
           mkdir -p sbom
@@ -277,15 +314,14 @@ jobs:
           mv src-tauri/mark.cdx.json sbom/sbom-rust.cdx.json
           ls -la sbom/
 
-      # ── updater latest.json feed (B4 step-5) ─────────────────────
-      # tauri-plugin-updater fetches this file from the URL configured
-      # in tauri.conf.json plugins.updater.endpoints[]. It contains the
-      # ed25519 signature of the .app.tar.gz updater bundle that
-      # tauri-action produced; the plugin verifies before downloading.
-      # If signing keys aren't provisioned, the .sig file is missing
-      # and we skip the feed (graceful degradation).
-      - name: build updater feed (latest.json)
-        if: matrix.platform.os == 'macos-14'
+      # ── updater feed fragment (B4 step-5, C-15 T-W3) ────────────
+      # Each build lane emits a per-platform fragment; the publish job
+      # merges every staged fragment into one latest.json (darwin-aarch64
+      # required, windows-x86_64 optional). If signing keys aren't
+      # provisioned, the .sig file is missing and the lane skips its
+      # fragment (graceful degradation).
+      - name: build updater feed fragment (macos)
+        if: runner.os == 'macOS'
         id: feed
         run: |
           set -euo pipefail
@@ -299,15 +335,11 @@ jobs:
             exit 0
           fi
           SIG=$(cat "$SIG_FILE")
-          PUB_DATE=$(date -u '+%Y-%m-%dT%H:%M:%SZ')
           mkdir -p /tmp/release
           # Copy the .app.tar.gz so it gets uploaded as a release asset.
           cp "$TGZ_FILE" "/tmp/release/Mark_${VER}_aarch64.app.tar.gz"
-          cat > /tmp/release/latest.json <<JSON
+          cat > /tmp/release/latest-platform.json <<JSON
           {
-            "version": "${VER}",
-            "notes": "See release notes at https://github.com/xronocode/mark/releases/tag/${TAG}",
-            "pub_date": "${PUB_DATE}",
             "platforms": {
               "darwin-aarch64": {
                 "signature": "${SIG}",
@@ -317,14 +349,14 @@ jobs:
           }
           JSON
           echo "skipped=0" >> "$GITHUB_OUTPUT"
-          cat /tmp/release/latest.json
+          cat /tmp/release/latest-platform.json
 
       # ── stage release artifacts ──────────────────────────────────
       # Per B2CR-3: the cask sources sha256 from a .sha256 sidecar that
       # ships with the DMG, NOT a recomputed value. CI emits the sidecar
       # so the cask formula and the release artifact agree.
       - name: stage release artifacts
-        if: matrix.platform.os == 'macos-14'
+        if: runner.os == 'macOS'
         id: stage
         run: |
           set -euo pipefail
@@ -352,6 +384,122 @@ jobs:
           echo "dmg=$DMG_DST" >> "$GITHUB_OUTPUT"
           echo "sha256=$DMG_DST.sha256" >> "$GITHUB_OUTPUT"
 
+      # ── Windows: smoke + size + feed fragment + stage (C-15 T-W3) ─
+      # Smoke = silent NSIS install (/S), launch installed Mark.exe,
+      # poll Get-Process, screenshot for the run log, then kill. The
+      # GitHub windows runner session supports GUI app launches.
+      - name: windows smoke (silent install + launch)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $setup = Get-ChildItem -Recurse -Filter '*-setup.exe' -Path target |
+            Where-Object { $_.Name -notlike '*.sig' } |
+            Select-Object -First 1
+          if (-not $setup) { throw '::error::no NSIS setup exe produced' }
+          Write-Host "installer: $($setup.FullName)"
+
+          # currentUser install mode → %LOCALAPPDATA%\Mark (fall back to
+          # Program Files probe just in case the mode ever changes).
+          Start-Process -FilePath $setup.FullName -ArgumentList '/S' -Wait
+          $exe = @(
+            Join-Path $env:LOCALAPPDATA 'Mark\Mark.exe',
+            Join-Path $env:ProgramFiles 'Mark\Mark.exe',
+            Join-Path ${env:ProgramFiles(x86)} 'Mark\Mark.exe'
+          ) | Where-Object { Test-Path $_ } | Select-Object -First 1
+          if (-not $exe) { throw '::error::Mark.exe not found after silent install' }
+          Write-Host "installed: $exe"
+
+          Start-Process -FilePath $exe
+          $alive = $false
+          foreach ($i in 1..20) {
+            Start-Sleep -Seconds 1
+            if (Get-Process -Name 'Mark' -ErrorAction SilentlyContinue) {
+              $alive = $true
+              Write-Host "alive after ${i}s"
+              break
+            }
+          }
+          if (-not $alive) { throw '::error::Mark process did not appear within 20s of launch' }
+          Stop-Process -Name 'Mark' -Force -ErrorAction SilentlyContinue
+
+      - name: windows bundle size
+        if: runner.os == 'Windows'
+        run: |
+          set -euo pipefail
+          EXE=$(find target -name '*-setup.exe' ! -name '*.sig' | head -1)
+          if [ -z "$EXE" ]; then
+            echo "::error::no NSIS setup exe produced"
+            exit 1
+          fi
+          BYTES=$(wc -c < "$EXE" | tr -d ' ')
+          HUMAN=$(( BYTES / 1024 / 1024 ))MB
+          # Footprint positioning gate: the installer must stay small.
+          if [ "$BYTES" -gt 20000000 ]; then
+            echo "::error::windows installer exceeds the 20 MB footprint budget ($HUMAN, $BYTES bytes)"
+            exit 1
+          fi
+          {
+            echo "## Bundle size — ${{ matrix.platform.name }}"
+            echo
+            echo "- installer: **$HUMAN** ($BYTES bytes)"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: build updater feed fragment (windows)
+        if: runner.os == 'Windows'
+        id: feed_win
+        run: |
+          set -euo pipefail
+          TAG=${{ steps.resolve_tag.outputs.tag }}
+          VER="${TAG#v}"
+          SIG_FILE=$(find target -name '*-setup.exe.sig' | head -1)
+          EXE_FILE=$(find target -name '*-setup.exe' ! -name '*.sig' | head -1)
+          STAGE_DIR="$RUNNER_TEMP/release"
+          mkdir -p "$STAGE_DIR"
+          if [ -z "$SIG_FILE" ] || [ -z "$EXE_FILE" ]; then
+            echo "::warning::windows updater artifacts missing; fragment not generated."
+            echo "skipped=1" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          SIG=$(cat "$SIG_FILE")
+          cp "$EXE_FILE" "$STAGE_DIR/Mark_${VER}_x64-setup.exe"
+          cat > "$STAGE_DIR/latest-platform.json" <<JSON
+          {
+            "platforms": {
+              "windows-x86_64": {
+                "signature": "${SIG}",
+                "url": "https://github.com/xronocode/mark/releases/download/${TAG}/Mark_${VER}_x64-setup.exe"
+              }
+            }
+          }
+          JSON
+          echo "skipped=0" >> "$GITHUB_OUTPUT"
+          cat "$STAGE_DIR/latest-platform.json"
+
+      - name: stage release artifacts (windows)
+        if: runner.os == 'Windows'
+        id: stage_win
+        run: |
+          set -euo pipefail
+          TAG=${{ steps.resolve_tag.outputs.tag }}
+          VER="${TAG#v}"
+          STAGE_DIR="$RUNNER_TEMP/release"
+          mkdir -p "$STAGE_DIR"
+          EXE_DST="$STAGE_DIR/Mark_${VER}_x64-setup.exe"
+          if [ ! -f "$EXE_DST" ]; then
+            EXE_SRC=$(find target -name '*-setup.exe' ! -name '*.sig' | head -1)
+            if [ -z "$EXE_SRC" ]; then
+              echo "::error::no NSIS setup exe produced"
+              exit 1
+            fi
+            cp "$EXE_SRC" "$EXE_DST"
+          fi
+          # node-based sha256 (shasum/perl availability differs on the
+          # Windows image; node is guaranteed).
+          HASH=$(node -e "const c=require('crypto'),f=require('fs');process.stdout.write(c.createHash('sha256').update(f.readFileSync(process.argv[1])).digest('hex'))" "$EXE_DST")
+          echo "$HASH" > "$EXE_DST.sha256"
+          ls -la "$STAGE_DIR"
+
       # ── upload as workflow artifact for downstream jobs ──────────
       # ── SLSA-3 build provenance (B4 step-11) ─────────────────────
       # actions/attest-build-provenance@v2 issues a Sigstore-anchored
@@ -361,10 +509,16 @@ jobs:
       # DMG. Verification command goes in release notes:
       #   gh attestation verify Mark_v2.0.0_aarch64.dmg --owner xronocode
       - name: SLSA build provenance
-        if: matrix.platform.os == 'macos-14'
+        if: runner.os == 'macOS'
         uses: actions/attest-build-provenance@v2
         with:
           subject-path: '/tmp/release/Mark_*.dmg'
+
+      - name: SLSA build provenance (windows)
+        if: runner.os == 'Windows'
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: '${{ runner.temp }}\release\Mark_*_x64-setup.exe'
 
       # ── Cosign keyless sign-blob (B4 step-12) ────────────────────
       # Belt-and-braces over the SLSA attestation: a keyless cosign
@@ -376,13 +530,13 @@ jobs:
       #     --certificate-oidc-issuer https://token.actions.githubusercontent.com \
       #     Mark_v2.0.0_aarch64.dmg
       - name: install cosign
-        if: matrix.platform.os == 'macos-14'
+        if: runner.os == 'macOS'
         uses: sigstore/cosign-installer@v3
         with:
           cosign-release: 'v2.4.1'
 
       - name: cosign sign-blob
-        if: matrix.platform.os == 'macos-14'
+        if: runner.os == 'macOS'
         env:
           COSIGN_EXPERIMENTAL: '1'
         run: |
@@ -392,8 +546,26 @@ jobs:
             ls -la "$DMG.bundle"
           done
 
+      - name: install cosign (windows)
+        if: runner.os == 'Windows'
+        uses: sigstore/cosign-installer@v3
+        with:
+          cosign-release: 'v2.4.1'
+
+      - name: cosign sign-blob (windows)
+        if: runner.os == 'Windows'
+        env:
+          COSIGN_EXPERIMENTAL: '1'
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          for EXE in "$RUNNER_TEMP"/release/Mark_*_x64-setup.exe; do
+            cosign sign-blob --yes --bundle "$EXE.bundle" "$EXE"
+            ls -la "$EXE.bundle"
+          done
+
       - name: upload release artifacts
-        if: matrix.platform.os == 'macos-14'
+        if: runner.os == 'macOS'
         uses: actions/upload-artifact@v4
         with:
           name: mark-${{ matrix.platform.name }}-release
@@ -404,13 +576,25 @@ jobs:
             /tmp/release/Mark_*_sbom-*.cdx.json
             /tmp/release/NOTICES-*.md
             /tmp/release/Mark_*.app.tar.gz
-            /tmp/release/latest.json
+            /tmp/release/latest-platform.json
+          if-no-files-found: error
+          retention-days: 30
+
+      # Always uploaded (also while WINDOWS_RELEASE is off) so the exe is
+      # downloadable from the run page for manual QA on a real machine.
+      - name: upload release artifacts (windows)
+        if: runner.os == 'Windows'
+        uses: actions/upload-artifact@v4
+        with:
+          name: mark-${{ matrix.platform.name }}-release
+          path: ${{ runner.temp }}\release\*
           if-no-files-found: error
           retention-days: 30
 
   publish:
     name: publish github release
     needs: build
+    if: needs.build.outputs.publish == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -427,6 +611,53 @@ jobs:
       - name: list staged
         run: |
           find /tmp/release-stage -type f -exec ls -la {} \;
+
+      # ── C-15 T-W3: Windows staging gate ─────────────────────────
+      # Until the WINDOWS_RELEASE repo variable is set to "true", the
+      # Windows lane is build-only: its workflow artifact stays on the
+      # run page for manual QA, but its assets are dropped here so the
+      # GitHub release (and the updater feed below) stay macOS-only.
+      - name: apply WINDOWS_RELEASE staging gate
+        run: |
+          if [ "${{ vars.WINDOWS_RELEASE }}" != "true" ]; then
+            rm -rf /tmp/release-stage/mark-windows-x64-release
+            echo "windows assets: BUILD-ONLY (vars.WINDOWS_RELEASE != true)"
+          else
+            echo "windows assets: PUBLISHING (vars.WINDOWS_RELEASE == true)"
+          fi
+
+      # ── compose latest.json from per-platform fragments ─────────
+      # Each build lane staged a latest-platform.json fragment; merge
+      # every surviving fragment into one feed with a single pub_date.
+      # Missing fragments (lane skipped / gated off) simply don't
+      # contribute; no fragments at all → warning, no feed asset.
+      - name: compose latest.json
+        run: |
+          set -euo pipefail
+          TAG=${{ needs.build.outputs.tag }}
+          VER="${TAG#v}"
+          PUB_DATE=$(date -u '+%Y-%m-%dT%H:%M:%SZ')
+          MAPFILE -t FRAGS < <(find /tmp/release-stage -name latest-platform.json | sort)
+          if [ "${#FRAGS[@]}" -eq 0 ]; then
+            echo "::warning::no updater feed fragments staged; latest.json not composed."
+            exit 0
+          fi
+          jq -s \
+            --arg ver "$VER" \
+            --arg tag "$TAG" \
+            --arg date "$PUB_DATE" \
+            '{version:$ver, notes:("See release notes at https://github.com/xronocode/mark/releases/tag/"+$tag), pub_date:$date, platforms:(map(.platforms) | add)}' \
+            "${FRAGS[@]}" > /tmp/release-stage/latest.json
+          # Fragments are build-internal; only the merged feed ships.
+          rm -f "${FRAGS[@]}"
+          # Place the feed into the mac artifact dir so the asset glob below picks it up.
+          MAC_DIR=/tmp/release-stage/mark-macos-arm64-release
+          if [ -d "$MAC_DIR" ]; then
+            mv /tmp/release-stage/latest.json "$MAC_DIR/latest.json"
+          else
+            echo "::warning::mac artifact dir missing; latest.json not published."
+          fi
+          cat "$MAC_DIR/latest.json"
 
       # ── create GitHub release + upload assets ────────────────────
       # B4 step-15 will replace this with cross-repo cask PR via the
@@ -480,6 +711,14 @@ jobs:
           \`\`\`
           NOTES_EOF
           )
+
+          # C-15 T-W3: append the Windows section only when windows assets
+          # survived the WINDOWS_RELEASE gate above.
+          if find /tmp/release-stage -name '*_x64-setup.exe' | grep -q .; then
+            NOTES="$NOTES
+
+          **Windows (x64):** NSIS installer \`Mark_${VER}_x64-setup.exe\` — unsigned; SmartScreen shows \"Windows protected your PC\" → *More info* → *Run anyway*. Included in the \`latest.json\` updater feed as \`windows-x86_64\`."
+          fi
 
           if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             echo "release $TAG already exists; uploading assets idempotently"

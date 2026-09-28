@@ -44,7 +44,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-14]
+        # C-15 T-W3: windows-latest joined as a blocking lane — the
+        # renderer platform shim is build-host-dependent now.
+        os: [ubuntu-latest, macos-14, windows-latest]
     runs-on: ${{ matrix.os }}
     timeout-minutes: 15
 
@@ -69,7 +71,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-14]
+        # C-15 T-W3: windows-latest is the Windows-cfg compile gate
+        # (cross-check from macOS is blocked by ring's MSVC toolchain
+        # needs — see C-15 plan T-W2 verification note).
+        os: [ubuntu-latest, macos-14, windows-latest]
     runs-on: ${{ matrix.os }}
     timeout-minutes: 30
 
