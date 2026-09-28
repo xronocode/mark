@@ -1,9 +1,9 @@
-<GraceChangeSpec graceVersion='4.0' status='approved'>
+<GraceChangeSpec graceVersion='4.0' status='applied'>
 <C-22>
   <Name>Site engine + publish pipeline rework (mark.xronocode.com)</Name>
   <Created>2026-09-26</Created>
   <Priority>medium</Priority>
-  <Status>in-progress</Status>
+  <Status>completed</Status>
 
   <Summary>
     Review of the C-14 site (session 2026-09-26) found the build engine
@@ -68,5 +68,16 @@
     <ApprovedBy>user (session 2026-09-26): "для начала переработай локально движок и пайплайн публикации сайта"</ApprovedBy>
     <ApprovalScope>Implement locally; no push, no DNS changes.</ApprovalScope>
   </Approval>
+  <Completion>
+    <Date>2026-09-28</Date>
+    <Commits>4adc56e8 (engine + landing redesign), GA4 opt-in follow-up</Commits>
+    <Evidence>
+      <Item>tests/renderer/site/landing.test.js: 12 passed; site build + npm run check OK (pages=18 links=402 base=/).</Item>
+      <Item>site.yml run 36392861647 green (build + deploy) with default SITE_URL/SITE_BASE.</Item>
+      <Item>Live 2026-09-28: https://mark.xronocode.com/ 200, http 301 to https, canonical https://mark.xronocode.com/, Pages cert approved, HTTPS enforced.</Item>
+    </Evidence>
+    <Rollout>Done as planned: Cloudflare CNAME mark -&gt; xronocode.github.io (DNS only), Pages custom domain set, temporary SITE_URL/SITE_BASE repo vars removed.</Rollout>
+    <FollowUps>Landing visual rework shipped in the same commit (was a NonGoal here). Analytics: GA4 via GA_MEASUREMENT_ID enabled; privacy page updated.</FollowUps>
+  </Completion>
 </C-22>
 </GraceChangeSpec>
