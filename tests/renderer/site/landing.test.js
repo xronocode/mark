@@ -45,6 +45,15 @@ describe('resolveSiteSettings', () => {
     const s = resolveSiteSettings({ UMAMI_WEBSITE_ID: 'abc' })
     expect(s.analytics).toEqual({ provider: 'umami', websiteId: 'abc', src: 'https://cloud.umami.is/script.js' })
   })
+
+  it('enables GA4 from a measurement id and prefers it over umami', () => {
+    const s = resolveSiteSettings({ GA_MEASUREMENT_ID: ' G-KW57Y3CRPY ', UMAMI_WEBSITE_ID: 'abc' })
+    expect(s.analytics).toEqual({ provider: 'ga4', measurementId: 'G-KW57Y3CRPY' })
+  })
+
+  it('rejects a malformed GA4 id instead of inlining it', () => {
+    expect(() => resolveSiteSettings({ GA_MEASUREMENT_ID: "G-1');alert(1)//" })).toThrow(/BLOCK_RESOLVE_ANALYTICS/)
+  })
 })
 
 describe('renderLanding', () => {
@@ -61,6 +70,10 @@ describe('renderLanding', () => {
     expect(renderLanding(TEMPLATE, resolveSiteSettings({}))).not.toContain('umami')
     const on = renderLanding(TEMPLATE, resolveSiteSettings({ UMAMI_WEBSITE_ID: 'a"b' }))
     expect(on).toContain('data-website-id="a&quot;b"')
+    const ga = renderLanding(TEMPLATE, resolveSiteSettings({ GA_MEASUREMENT_ID: 'G-KW57Y3CRPY' }))
+    expect(ga).toContain('googletagmanager.com/gtag/js?id=G-KW57Y3CRPY')
+    expect(ga).toContain("gtag('config','G-KW57Y3CRPY')")
+    expect(renderLanding(TEMPLATE, resolveSiteSettings({}))).not.toContain('gtag')
   })
 
   it('refuses a template without the head placeholder', () => {

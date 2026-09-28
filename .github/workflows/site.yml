@@ -1,5 +1,5 @@
 # FILE: .github/workflows/site.yml
-# VERSION: 2.0.0
+# VERSION: 2.1.0
 # START_MODULE_CONTRACT
 #   PURPOSE: Site publish pipeline — build the VitePress site (landing is
 #            emitted by the config's buildEnd hook), gate it with the dist
@@ -25,7 +25,8 @@
 # Deployment settings come from repository variables (Settings → Variables):
 #   SITE_URL          public root, incl. base path  (default https://mark.xronocode.com)
 #   SITE_BASE         URL base path                  (default /)
-#   UMAMI_WEBSITE_ID  enables cookieless analytics   (unset = no analytics)
+#   UMAMI_WEBSITE_ID  enables cookieless Umami        (unset = no analytics)
+#   GA_MEASUREMENT_ID enables Google Analytics 4      (G-XXXX; wins over Umami)
 # Until the custom domain is live on Pages, set SITE_URL=https://xronocode.github.io/mark
 # and SITE_BASE=/mark/ to keep the github.io address working.
 
@@ -57,6 +58,7 @@ jobs:
       SITE_URL: ${{ vars.SITE_URL }}
       SITE_BASE: ${{ vars.SITE_BASE }}
       UMAMI_WEBSITE_ID: ${{ vars.UMAMI_WEBSITE_ID }}
+      GA_MEASUREMENT_ID: ${{ vars.GA_MEASUREMENT_ID }}
     defaults:
       run:
         working-directory: site
