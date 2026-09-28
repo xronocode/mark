@@ -1,6 +1,6 @@
 # NOTICES — Node.js production dependencies
 
-Generated from `license-checker --production` over **723 packages**.
+Generated from `license-checker --production` over **724 packages**.
 
 Each entry lists the package name, version, license SPDX identifier, and upstream repository when available. Re-generate with:
 
@@ -14,7 +14,7 @@ npx --package license-checker -- license-checker --production --json | \
 | License | Package count |
 |---|---:|
 | MIT | 529 |
-| ISC | 62 |
+| ISC | 63 |
 | BSD-3-Clause | 61 |
 | Apache-2.0 | 43 |
 | BSD-2-Clause | 7 |
@@ -567,7 +567,7 @@ npx --package license-checker -- license-checker --production --json | \
 | zod-error | 1.5.0 | https://github.com/andrewvo89/zod-error |
 | zod-validation-error | 1.5.0 | https://github.com/causaly/zod-validation-error |
 
-## ISC (62)
+## ISC (63)
 
 | Package | Version | Repository |
 |---|---|---|
@@ -618,6 +618,7 @@ npx --package license-checker -- license-checker --production --json | \
 | lru-cache | 10.4.3 | https://github.com/isaacs/node-lru-cache |
 | lru-cache | 5.1.1 | https://github.com/isaacs/node-lru-cache |
 | mapped-disposable | 1.0.3 | https://github.com/file-icons/mapped-disposable |
+| path-win32 | 1.0.1 | https://github.com/stefanpenner/node-path-posix |
 | picocolors | 1.1.1 | https://github.com/alexeyraspopov/picocolors |
 | saxes | 6.0.0 | https://github.com/lddubeau/saxes |
 | semver | 5.7.2 | https://github.com/npm/node-semver |
