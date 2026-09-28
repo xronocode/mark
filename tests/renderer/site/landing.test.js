@@ -24,11 +24,12 @@ import {
   robotsTxt
 } from '../../../site/.vitepress/landing.mjs'
 
+const CF = '0123456789abcdef0123456789abcdef'
 const TEMPLATE = '<head><title>t</title><!--SITE_HEAD--></head><a href="%BASE%guide/"><img src="%BASE%logo-96px.png">'
 
 describe('resolveSiteSettings', () => {
   it('defaults to the custom domain at the root with analytics off', () => {
-    expect(resolveSiteSettings({})).toEqual({ siteUrl: 'https://mark.xronocode.com', base: '/', analytics: null })
+    expect(resolveSiteSettings({})).toEqual({ siteUrl: 'https://mark.xronocode.com', base: '/', analytics: [] })
   })
 
   it('normalizes base slashes and trims the url', () => {
@@ -38,17 +39,21 @@ describe('resolveSiteSettings', () => {
   })
 
   it('treats empty CI variables as unset', () => {
-    expect(resolveSiteSettings({ SITE_URL: '', SITE_BASE: '', UMAMI_WEBSITE_ID: '' }).analytics).toBeNull()
+    expect(resolveSiteSettings({ SITE_URL: '', SITE_BASE: '', UMAMI_WEBSITE_ID: '', GA_MEASUREMENT_ID: '', CF_BEACON_TOKEN: '' }).analytics).toEqual([])
   })
 
   it('enables umami only when a website id is given', () => {
     const s = resolveSiteSettings({ UMAMI_WEBSITE_ID: 'abc' })
-    expect(s.analytics).toEqual({ provider: 'umami', websiteId: 'abc', src: 'https://cloud.umami.is/script.js' })
+    expect(s.analytics).toEqual([{ provider: 'umami', websiteId: 'abc', src: 'https://cloud.umami.is/script.js' }])
   })
 
-  it('enables GA4 from a measurement id and prefers it over umami', () => {
-    const s = resolveSiteSettings({ GA_MEASUREMENT_ID: ' G-KW57Y3CRPY ', UMAMI_WEBSITE_ID: 'abc' })
-    expect(s.analytics).toEqual({ provider: 'ga4', measurementId: 'G-KW57Y3CRPY' })
+  it('runs GA4 and Cloudflare side by side', () => {
+    const s = resolveSiteSettings({ GA_MEASUREMENT_ID: ' G-KW57Y3CRPY ', CF_BEACON_TOKEN: CF })
+    expect(s.analytics).toEqual([{ provider: 'ga4', measurementId: 'G-KW57Y3CRPY' }, { provider: 'cloudflare', token: CF }])
+  })
+
+  it('rejects a malformed Cloudflare token', () => {
+    expect(() => resolveSiteSettings({ CF_BEACON_TOKEN: 'nope' })).toThrow(/CF_BEACON_TOKEN/)
   })
 
   it('rejects a malformed GA4 id instead of inlining it', () => {
@@ -74,6 +79,10 @@ describe('renderLanding', () => {
     expect(ga).toContain('googletagmanager.com/gtag/js?id=G-KW57Y3CRPY')
     expect(ga).toContain("gtag('config','G-KW57Y3CRPY')")
     expect(renderLanding(TEMPLATE, resolveSiteSettings({}))).not.toContain('gtag')
+    const cf = renderLanding(TEMPLATE, resolveSiteSettings({ CF_BEACON_TOKEN: CF }))
+    expect(cf).toContain('src="https://static.cloudflareinsights.com/beacon.min.js"')
+    expect(cf).toContain(`data-cf-beacon="{&quot;token&quot;:&quot;${CF}&quot;}"`)
+    expect(renderLanding(TEMPLATE, resolveSiteSettings({}))).not.toContain('cloudflareinsights')
   })
 
   it('refuses a template without the head placeholder', () => {
