@@ -24,9 +24,9 @@
     "dev:smoke": "bash tools/dev-smoke.sh",
     "dev:check": "bash tools/dev-smoke.sh --check",
     "dev:quick": "bash tools/dev-smoke.sh --quick",
-    "docs:dev": "vitepress dev site",
-    "docs:build": "vitepress build site",
-    "docs:preview": "vitepress preview site"
+    "docs:dev": "npm --prefix site run dev",
+    "docs:build": "npm --prefix site run build && npm --prefix site run check",
+    "docs:preview": "npm --prefix site run preview"
   },
   "dependencies": {
     "@element-plus/icons-vue": "^2.3.2",
