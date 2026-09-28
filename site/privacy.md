@@ -44,8 +44,11 @@ The app and the website are separate. This website (mark.xronocode.com)
 uses Google Analytics 4 to count visits: pages viewed, referrer, rough
 location, device and browser type. Google Analytics sets first-party
 cookies to tell returning visitors apart, and Google processes that data
-under its own [privacy policy](https://policies.google.com/privacy). We use
-it only to see which pages people read and where they come from. Blocking
+under its own [privacy policy](https://policies.google.com/privacy). It also
+uses Cloudflare Web Analytics, which counts page views without cookies or
+any identifier stored in your browser
+([Cloudflare's privacy policy](https://www.cloudflare.com/privacypolicy/)).
+We use both only to see which pages people read and where they come from. Blocking
 the script or its cookies in your browser has no effect on the site or the
 app.
 
