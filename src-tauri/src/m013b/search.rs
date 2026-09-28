@@ -24,7 +24,8 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: 2.1.1-beta - Defined injectable rg execution so spawn-failure tests remain deterministic under parallel cargo test.
+//   LAST_CHANGE: 2.2.0-beta - C-15 T-W2: ripgrep_available probe — desktop builds without a system rg (typical Windows) degrade to the in-process walker with BLOCK_RIPGREP_FALLBACK marker.
+//   PREVIOUS: 2.1.1-beta - Defined injectable rg execution so spawn-failure tests remain deterministic under parallel cargo test.
 //   PREVIOUS: 2026-04-28 B2-step-4 - Replaced stubs with ignore/regex fallback, streaming batches, cancellation, and SearchRegistry.
 // END_CHANGE_SUMMARY
 
@@ -381,10 +382,19 @@ pub async fn mt_search_spawn(
 
     // C-15 T-M4: App Store builds spawn no binaries — the same wire
     // contract streams from an in-process ignore+regex walker instead.
+    // C-15 T-W2: desktop builds without a system rg (typical Windows
+    // install) fall back to the same walker so project search works
+    // without ripgrep; the fallback logs a marker once per search.
     #[cfg(feature = "app-store")]
     let in_process = true;
     #[cfg(not(feature = "app-store"))]
-    let in_process = false;
+    let in_process = {
+        let have_rg = ripgrep_available();
+        if !have_rg {
+            safe_eprintln!("[m013b][search][spawn][BLOCK_RIPGREP_FALLBACK reason=rg-missing]");
+        }
+        !have_rg
+    };
 
     let cancel = registry.insert(&search_id);
     let sink: Arc<dyn SearchSink> = Arc::new(TauriSearchSink { app: app.clone() });
@@ -476,13 +486,27 @@ pub async fn mt_search_spawn(
     Ok(())
 }
 
-// START_CONTRACT: run_ripgrep
-//   PURPOSE: Execute the production rg binary and stream normalized match batches.
-//   INPUTS: { search_id: &str, root: &Path, pattern: &str, opts: &SearchOptions, cancel: Arc<AtomicBool>, sink: Arc<dyn SearchSink>, starting_seq: u32 }
-//   OUTPUTS: { Result<(u32, u32), String> - total hits and last sequence, or a stable spawn/stream error }
-//   SIDE_EFFECTS: Spawns and waits for an rg child process; emits match events through sink.
-//   LINKS: M-004, V-M-004
-// END_CONTRACT: run_ripgrep
+// START_CONTRACT: ripgrep_available
+//   PURPOSE: Probe for a usable rg binary (C-15 T-W2). Windows machines rarely have ripgrep on PATH; search degrades to the in-process walker instead of failing.
+//   INPUTS: { program: &OsStr - injectable executable for tests }
+//   OUTPUTS: { bool - true iff the binary spawns and exits 0 for --version }
+//   SIDE_EFFECTS: Spawns a short-lived child process.
+//   LINKS: mt_search_spawn in_process decision; V-M-004.
+// END_CONTRACT: ripgrep_available
+fn ripgrep_available() -> bool {
+    ripgrep_available_with_program(std::ffi::OsStr::new("rg"))
+}
+
+fn ripgrep_available_with_program(program: &std::ffi::OsStr) -> bool {
+    std::process::Command::new(program)
+        .arg("--version")
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null())
+        .output()
+        .map(|o| o.status.success())
+        .unwrap_or(false)
+}
+
 // START_CONTRACT: run_ripgrep
 //   PURPOSE: Execute the production rg binary and stream normalized match batches.
 //   INPUTS: { search_id: &str, root: &Path, pattern: &str, opts: &SearchOptions, cancel: Arc<AtomicBool>, sink: Arc<dyn SearchSink>, starting_seq: u32 }
@@ -1259,5 +1283,27 @@ mod tests {
             match_batches.len()
         );
         assert!(events.iter().any(|e| e.kind == "complete"));
+    }
+
+    // C-15 T-W2: desktop builds without a system rg must degrade to the
+    // in-process walker — the probe drives that decision.
+    #[test]
+    fn ripgrep_probe_reports_missing_binary() {
+        assert!(!ripgrep_available_with_program(std::ffi::OsStr::new(
+            "mark-no-such-rg-binary-xyz"
+        )));
+    }
+
+    #[test]
+    fn ripgrep_probe_rejects_nonzero_exit() {
+        // `false` exists on unix and exits 1; on Windows fall back to a
+        // missing-binary name so the assertion still holds cross-host.
+        if cfg!(unix) {
+            assert!(!ripgrep_available_with_program(std::ffi::OsStr::new("false")));
+        } else {
+            assert!(!ripgrep_available_with_program(std::ffi::OsStr::new(
+                "mark-no-such-rg-binary-xyz"
+            )));
+        }
     }
 }

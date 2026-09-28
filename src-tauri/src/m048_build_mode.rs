@@ -15,6 +15,10 @@
 //
 // START_CHANGE_SUMMARY
 //   - 2026-09-21 C-15 T-M5: initial module.
+//   - 2026-09-28 C-15 T-W2: desktop builds advertise screenshot /
+//     setDefaultHandler only on macOS (m018 / m021 shell macOS-only
+//     binaries); Windows/Linux desktop hides those surfaces via the
+//     same renderer capability gate.
 // END_CHANGE_SUMMARY
 
 use serde::Serialize;
@@ -52,8 +56,11 @@ pub async fn mt_build_mode() -> Result<BuildMode, String> {
         Ok(BuildMode {
             mode: "desktop",
             export_pandoc: true,
-            screenshot: true,
-            set_default_handler: true,
+            // C-15 T-W2: screencapture (m018) and LaunchServices
+            // defaults/lsregister (m021) are macOS-only binaries; the
+            // desktop build must not advertise them on Windows/Linux.
+            screenshot: cfg!(target_os = "macos"),
+            set_default_handler: cfg!(target_os = "macos"),
             project_search_ripgrep: true,
             updater: true,
         })
@@ -80,8 +87,8 @@ mod tests {
         let m = BuildMode {
             mode: "desktop",
             export_pandoc: true,
-            screenshot: true,
-            set_default_handler: true,
+            screenshot: cfg!(target_os = "macos"),
+            set_default_handler: cfg!(target_os = "macos"),
             project_search_ripgrep: true,
             updater: true,
         };
@@ -89,6 +96,11 @@ mod tests {
         // app-store must never advertise a sandbox-hostile capability.
         if m.mode == "app-store" {
             assert!(!m.export_pandoc && !m.screenshot && !m.set_default_handler);
+        }
+        // C-15 T-W2: desktop builds off macOS never advertise the
+        // macOS-only binaries (screencapture, defaults/lsregister).
+        if m.mode == "desktop" && cfg!(not(target_os = "macos")) {
+            assert!(!m.screenshot && !m.set_default_handler);
         }
     }
 }

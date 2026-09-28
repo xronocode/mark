@@ -41,6 +41,13 @@ fn extension_dirs() -> Vec<PathBuf> {
         );
     }
 
+    // Windows (C-15 T-W2): %APPDATA%\com.xronocode.mark\extensions\
+    // (Roaming — matches mt_paths data_root conventions).
+    #[cfg(target_os = "windows")]
+    if let Some(appdata) = std::env::var_os("APPDATA").map(PathBuf::from) {
+        dirs.push(appdata.join("com.xronocode.mark").join("extensions"));
+    }
+
     dirs
 }
 // END_BLOCK_EXTENSION_DIRS

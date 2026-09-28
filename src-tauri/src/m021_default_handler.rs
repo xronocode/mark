@@ -22,7 +22,11 @@
 //            S-05, F-01, F-03, I-01, RC-01.
 //
 // CHANGE_SUMMARY:
-//   - 2026-05-09 B4-pre-alpha-add: initial module. CommandRunner trait
+//   - 2026-05-09 B4-pre-alpha-add: initial module.
+//   - 2026-09-28 C-15 T-W2: commands are macOS-only — non-macOS desktop
+//     returns MT_DEFAULT_HANDLER_MACOS_ONLY / neutral get instead of
+//     ToolingMissing noise; m048 advertises setDefaultHandler=false off
+//     macOS so the renderer hides the section. CommandRunner trait
 //     + RealRunner + 3 Tauri commands. NEVER touches system or local
 //     domains — only `-domain user` in lsregister and only the user
 //     pref domain in defaults. NEVER panics — every error path returns
@@ -538,7 +542,11 @@ pub(crate) fn unset_default_md_handler_inner(
 pub async fn mt_set_default_md_handler() -> Result<(), String> {
     #[cfg(feature = "app-store")]
     return Err("Default handler registration not available in App Store build".to_string());
-    #[cfg(not(feature = "app-store"))]
+    // C-15 T-W2: `defaults` / `lsregister` are macOS-only binaries; the
+    // command degrades to a typed error instead of ToolingMissing noise.
+    #[cfg(all(not(feature = "app-store"), not(target_os = "macos")))]
+    return Err("MT_DEFAULT_HANDLER_MACOS_ONLY".to_string());
+    #[cfg(all(not(feature = "app-store"), target_os = "macos"))]
     set_default_md_handler_inner(&RealRunner)
 }
 
@@ -549,7 +557,12 @@ pub async fn mt_get_default_md_handler() -> Result<DefaultHandlerInfo, String> {
         is_default: false,
         current_handler: None,
     });
-    #[cfg(not(feature = "app-store"))]
+    #[cfg(all(not(feature = "app-store"), not(target_os = "macos")))]
+    return Ok(DefaultHandlerInfo {
+        is_default: false,
+        current_handler: None,
+    });
+    #[cfg(all(not(feature = "app-store"), target_os = "macos"))]
     get_default_md_handler_inner(&RealRunner)
 }
 
@@ -557,7 +570,9 @@ pub async fn mt_get_default_md_handler() -> Result<DefaultHandlerInfo, String> {
 pub async fn mt_unset_default_md_handler() -> Result<(), String> {
     #[cfg(feature = "app-store")]
     return Err("Default handler registration not available in App Store build".to_string());
-    #[cfg(not(feature = "app-store"))]
+    #[cfg(all(not(feature = "app-store"), not(target_os = "macos")))]
+    return Err("MT_DEFAULT_HANDLER_MACOS_ONLY".to_string());
+    #[cfg(all(not(feature = "app-store"), target_os = "macos"))]
     unset_default_md_handler_inner(&RealRunner)
 }
 

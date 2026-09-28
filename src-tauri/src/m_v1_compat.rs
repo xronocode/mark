@@ -15,6 +15,9 @@
 //   STATUS:  shipped 2026-04-29 with F-MAIN-ENTRY-DISABLED runtime close.
 //
 // CHANGE_SUMMARY:
+//   - 2026-09-28 C-15 T-W2/T-W1: mt_format_link_click routes through
+//     the opener plugin (cross-platform, was macOS `open` shellout);
+//     mt_open_setting_window hides the menu bar on Windows/Linux.
 //   - 2026-09-16 C-2: mt_close_project_root is now a real unwatch —
 //     drops every WatchRegistry subscription for the pathname (raw +
 //     canonical index keys) instead of being a marker-only stub; closed
@@ -692,6 +695,11 @@ pub async fn mt_open_setting_window(app: tauri::AppHandle) -> Result<(), String>
         safe_eprintln!("[v1_compat][settings][BLOCK_BUILD_FAILED err={e}]");
         e.to_string()
     })?;
+    // C-15 T-W1: on Windows/Linux the app menu attaches a menu bar to
+    // every new window; the settings window uses native chrome, so hide
+    // the redundant bar. No-op on macOS.
+    #[cfg(not(target_os = "macos"))]
+    let _ = _win.hide_menu();
     #[cfg(debug_assertions)]
     {
         let _ = _win.eval(
@@ -745,7 +753,11 @@ pub async fn mt_open_setting_window(app: tauri::AppHandle) -> Result<(), String>
 /// Opens a clicked link in the system browser.
 /// Renderer calls this via `ipcRenderer.send('mt::format-link-click', { data, dirname })`.
 #[tauri::command]
-pub async fn mt_format_link_click(data: Value, dirname: Value) -> Result<(), String> {
+pub async fn mt_format_link_click(
+    app: tauri::AppHandle,
+    data: Value,
+    dirname: Value,
+) -> Result<(), String> {
     let href = data
         .get("href")
         .and_then(|v| v.as_str())
@@ -763,11 +775,18 @@ pub async fn mt_format_link_click(data: Value, dirname: Value) -> Result<(), Str
         href.to_string()
     };
     safe_eprintln!("[v1_compat][link][BLOCK_OPEN_URL url={url}]");
-    // `open` delegates to NSWorkspace.shared.open() which is sandbox-safe
-    std::process::Command::new("open")
-        .arg(&url)
-        .spawn()
-        .map_err(|e| format!("Failed to open URL: {e}"))?;
+    // C-15 T-W2: the opener plugin routes through the OS default handler
+    // on every desktop platform — replaces the macOS-only `open` shellout.
+    use tauri_plugin_opener::OpenerExt;
+    if url.starts_with("http://") || url.starts_with("https://") {
+        app.opener()
+            .open_url(url, None::<&str>)
+            .map_err(|e| format!("Failed to open URL: {e}"))?;
+    } else {
+        app.opener()
+            .open_path(url, None::<&str>)
+            .map_err(|e| format!("Failed to open path: {e}"))?;
+    }
     Ok(())
 }
 
