@@ -1,5 +1,5 @@
 // FILE: tests/renderer/components/titleBar-deep.test.js
-// VERSION: 1.2.0
+// VERSION: 1.3.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Verify titleBar/index.vue computed state, native actions, navigation decisions, window controls, and lifecycle behavior.
 //   SCOPE: Deterministic Vue/jsdom component tests with mocked Tauri and compatibility facades.
@@ -12,11 +12,13 @@
 // START_MODULE_MAP
 //   i18n - GRACE 4 synchronized symbol
 //   writeClipboardTextMock - GRACE 4 synchronized symbol
+//   windowStub - shared @tauri-apps/api/window double for window-control handlers
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
 //   - 2026-08-07 v1.2.0: require native clipboard dispatch and production plugin/capability wiring for Copy Path.
 //   - 2026-08-07 v1.1.0: add UC-029 title-path context-menu coverage.
+//   - 2026-09-28 v1.3.0: C-15 T-W1 — toggleMaxmizeOnMacOS removed; dblclick-maximize is cross-platform now (both directions pinned).
 // END_CHANGE_SUMMARY
 
 import { shallowMount } from '@vue/test-utils'
@@ -28,6 +30,30 @@ import { nextTick } from 'vue'
 
 const { writeClipboardTextMock } = vi.hoisted(() => ({
   writeClipboardTextMock: vi.fn()
+}))
+
+// Local window-API mock: the global setup double does not reliably cover
+// the component's DYNAMIC `await import('@tauri-apps/api/window')` calls
+// (real module would throw in jsdom — no __TAURI_INTERNALS__).
+const { windowStub } = vi.hoisted(() => ({
+  windowStub: {
+    label: 'main',
+    minimize: vi.fn(async () => {}),
+    maximize: vi.fn(async () => {}),
+    unmaximize: vi.fn(async () => {}),
+    setFullscreen: vi.fn(async () => {}),
+    isFullscreen: vi.fn(async () => false),
+    isMaximized: vi.fn(async () => false),
+    close: vi.fn(async () => {}),
+    startDragging: vi.fn(() => {}),
+    onResized: vi.fn(async () => () => {}),
+    setTitle: vi.fn(async () => {})
+  }
+}))
+
+vi.mock('@tauri-apps/api/window', () => ({
+  getCurrentWindow: vi.fn(() => windowStub),
+  getCurrent: vi.fn(() => windowStub)
 }))
 
 vi.mock('@tauri-apps/plugin-clipboard-manager', () => ({
@@ -319,13 +345,22 @@ describe('titleBar/index.vue — deep coverage', () => {
       try { await wrapper.vm.handleMinimizeClick() } catch (e) { /* expected in test env */ }
     })
 
-    it('toggleMaxmizeOnMacOS calls handleMaximizeClick only on macOS', () => {
-      // isOsx is false in our mock
+    it('handleTitleBarDblclick toggles maximize when dblclick is on a drag zone', async () => {
       const wrapper = mountComponent()
-      const spy = vi.spyOn(wrapper.vm, 'handleMaximizeClick').mockImplementation(() => {})
-      wrapper.vm.toggleMaxmizeOnMacOS()
-      // Since isOsx is false, handleMaximizeClick should NOT be called
-      expect(spy).not.toHaveBeenCalled()
+      // setup's refreshWindowState also queries isFullscreen — count only
+      // calls after the gesture. C-15 T-W1: dblclick-maximize is
+      // cross-platform now (was macOS-only via toggleMaxmizeOnMacOS).
+      windowStub.isFullscreen.mockClear()
+      wrapper.vm.handleTitleBarDblclick({ target: { closest: () => null } })
+      await vi.waitFor(() => expect(windowStub.isFullscreen).toHaveBeenCalled())
+    })
+
+    it('handleTitleBarDblclick ignores interactive zones', async () => {
+      const wrapper = mountComponent()
+      windowStub.isFullscreen.mockClear()
+      wrapper.vm.handleTitleBarDblclick({ target: { closest: () => true } })
+      await new Promise((r) => setTimeout(r, 0))
+      expect(windowStub.isFullscreen).not.toHaveBeenCalled()
     })
   })
 

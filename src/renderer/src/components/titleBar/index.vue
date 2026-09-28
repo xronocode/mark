@@ -7,7 +7,7 @@
       :class="[
         { active: active },
         { 'tabs-visible': showTabBar },
-        { frameless: titleBarStyle === 'custom' },
+        { frameless: effectiveTitleBarStyle === 'custom' },
         { isOsx: isOsx }
       ]"
       @dblclick.stop="handleTitleBarDblclick"
@@ -158,9 +158,9 @@
         </el-tooltip>
       </div>
       <div
-        v-if="titleBarStyle === 'custom' && !isFullScreen && !isOsx"
+        v-if="effectiveTitleBarStyle === 'custom' && !isFullScreen && !isOsx"
         class="right-toolbar"
-        :class="[{ 'title-no-drag': titleBarStyle === 'custom' }]"
+        :class="[{ 'title-no-drag': effectiveTitleBarStyle === 'custom' }]"
       >
         <div
           class="frameless-titlebar-button frameless-titlebar-close"
@@ -200,7 +200,7 @@
 
 <script setup>
 // FILE: src/renderer/src/components/titleBar/index.vue
-// VERSION: 1.3.0
+// VERSION: 1.4.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Render the main window title bar and expose its navigation, native file-path actions, window controls, and drag affordances.
 //   SCOPE: Renderer-side titlebar behavior, including sidebar/view navigation, title updates, native title context menus, direct window controls, and WKWebView/macOS drag fallbacks.
@@ -228,6 +228,7 @@
 //   - 2026-08-07 v1.1.0: add the native title-path Copy Path menu for UC-029.
 //   - 2026-08-07 v1.2.0: write Copy Path through the native Tauri clipboard plugin because WKWebView user activation expires while the native menu is open.
 //   - 2026-09-16 v1.3.0: C-9 — constrain the breadcrumb inside real title clearances and clip the oldest path segments (flex-end shrink) so path/filename never collide with the nav cluster or word count at narrow widths; removes the dead GH#339 `div.title > span` rule.
+//   - 2026-09-28 v1.4.0: C-15 T-W1 — Windows titlebar pass: effectiveTitleBarStyle forces 'custom' on win32 (decorations are unconditionally off there via tauri.windows.conf.json), and titlebar dblclick toggles maximize on every platform (was macOS-only).
 // END_CHANGE_SUMMARY
 
 // step-8g: @electron/remote.Menu also gone. Application-menu popup
@@ -243,7 +244,7 @@ import { storeToRefs } from 'pinia'
 import bus from '@/bus'
 import { minimizePath, restorePath, maximizePath, closePath } from '../../assets/window-controls.js'
 import { PATH_SEPARATOR, themePairs, isDarkTheme } from '../../config'
-import { isOsx as isOsxPlatform } from '@/util'
+import { isOsx as isOsxPlatform, isWindows } from '@/util'
 import { useEditorStore } from '@/store/editor'
 import { useI18n } from 'vue-i18n'
 import { writeText as writeClipboardText } from '@tauri-apps/plugin-clipboard-manager'
@@ -299,7 +300,6 @@ const isFullScreen = ref(false)
 const isMaximized = ref(false)
 const refreshWindowState = async () => {
   try {
-    const { getCurrentWindow } = await import('@tauri-apps/api/window')
     const win = getCurrentWindow()
     isFullScreen.value = await win.isFullscreen()
     isMaximized.value = await win.isMaximized()
@@ -354,7 +354,15 @@ const handleTitleContextMenu = async (event) => {
 // END_BLOCK_TITLE_PATH_CONTEXT_MENU
 
 const showCustomTitleBar = computed(() => {
-  return titleBarStyle.value === 'custom' && !isOsx
+  return effectiveTitleBarStyle.value === 'custom' && !isOsx
+})
+
+// C-15 T-W1: Windows ships with decorations:false (tauri.windows.conf.json
+// overlay) unconditionally — native chrome is not an option there, so the
+// effective style is always 'custom' regardless of the stored preference.
+// macOS and Linux honor the user preference.
+const effectiveTitleBarStyle = computed(() => {
+  return isWindows ? 'custom' : titleBarStyle.value
 })
 
 const handleWindowDragMouseDown = (event) => {
@@ -508,12 +516,10 @@ const handleCloseClick = async () => {
   // Lifecycle hook in m001_save_close.wire_close_handler will
   // intercept WindowEvent::CloseRequested and run the dirty-tab
   // dialog before destroy.
-  const { getCurrentWindow } = await import('@tauri-apps/api/window')
   await getCurrentWindow().close()
 }
 
 const handleMaximizeClick = async () => {
-  const { getCurrentWindow } = await import('@tauri-apps/api/window')
   const win = getCurrentWindow()
   if (await win.isFullscreen()) {
     await win.setFullscreen(false)
@@ -524,26 +530,21 @@ const handleMaximizeClick = async () => {
   }
 }
 
-const toggleMaxmizeOnMacOS = () => {
-  if (isOsx) {
-    handleMaximizeClick()
-  }
-}
-
 // C-9: the title box shrank to the area between the nav cluster and the
 // right toolbar, so the dblclick-to-zoom gesture moved to the whole bar;
-// interactive zones opt out.
+// interactive zones opt out. C-15 T-W1: frameless Windows/Linux windows
+// get the same gesture (native Windows maximizes on titlebar dblclick),
+// and handleMaximizeClick already no-ops gracefully for every state.
 const handleTitleBarDblclick = (event) => {
   if (
     event.target.closest('.title-no-drag, .titlebar-nav, .right-toolbar, .left-toolbar')
   ) {
     return
   }
-  toggleMaxmizeOnMacOS()
+  handleMaximizeClick()
 }
 
 const handleMinimizeClick = async () => {
-  const { getCurrentWindow } = await import('@tauri-apps/api/window')
   await getCurrentWindow().minimize()
 }
 
@@ -574,7 +575,6 @@ const rename = () => {
 let resizeUnlisten = null
 ;(async () => {
   try {
-    const { getCurrentWindow } = await import('@tauri-apps/api/window')
     resizeUnlisten = await getCurrentWindow().onResized(() => {
       refreshWindowState()
     })
