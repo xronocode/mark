@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 // M-030: BLOCK_* marker bench-launch harness.
 //
 // Launches the Mark binary (or `cargo run`), captures stderr BLOCK_*

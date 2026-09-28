@@ -360,6 +360,9 @@ mod tests {
         assert_eq!(ok, PathBuf::from("/workspace/notes/today.md"));
     }
 
+    // C-15 T-W2: std::os::unix::fs::symlink does not exist on Windows —
+    // the symlink-escape semantics are unix-FS tests.
+    #[cfg(unix)]
     #[test]
     fn symlink_escape_rejected_post_canonicalize() {
         // Real FS test: create a symlink inside sandbox pointing outside.
@@ -378,6 +381,7 @@ mod tests {
         );
     }
 
+    #[cfg(unix)]
     #[test]
     fn symlink_inside_sandbox_allowed() {
         let sandbox_dir = TempDir::new().unwrap();

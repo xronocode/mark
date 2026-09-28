@@ -895,6 +895,7 @@ pub fn build_native_menu<R: tauri::Runtime>(
         .build()?;
 
     // ── Top-level builder; macOS prepends app menu ───────────────────
+    #[cfg_attr(not(target_os = "macos"), allow(unused_mut))]
     let mut top = MenuBuilder::new(handle);
 
     #[cfg(target_os = "macos")]
