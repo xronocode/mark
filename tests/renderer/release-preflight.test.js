@@ -1,5 +1,5 @@
 // FILE: tests/renderer/release-preflight.test.js
-// VERSION: 2.7.0
+// VERSION: 2.8.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Verify exact release metadata/tag consistency, production workflow gates, updater-feed release classification, and Homebrew artifact routing for M-046.
 //   SCOPE: Pure mismatch tests, current-workspace integration, CLI marker evidence, and static release-workflow assertions.
@@ -15,7 +15,8 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: 2026-09-24 v2.7.0 - advance the release fixture to the link-autocomplete + dead-link-validation release v2.1.15-beta (C-20, C-21).
+//   LAST_CHANGE: 2026-09-28 v2.8.0 - C-15 T-W3: strict-SemVer feed assertion follows the fragment-merge compose step (jq --arg ver) instead of the removed inline heredoc; pin the WINDOWS_RELEASE staging gate and the windows-x64 matrix lane.
+//   PREVIOUS_LATEST: 2026-09-24 v2.7.0 - advance the release fixture to the link-autocomplete + dead-link-validation release v2.1.15-beta (C-20, C-21).
 //   PREVIOUS_LATEST: 2026-09-24 v2.6.0 - advance the release fixture to the native-print + heading-navigation release v2.1.15-beta (C-18, C-19).
 //   PREVIOUS_LATEST: 2026-09-22 v2.5.0 - advance the release fixture to the smart-paste + markdown-hygiene release v2.1.15-beta (C-16, C-17).
 //   PREVIOUS_LATEST: 2026-09-21 v2.4.0 - advance the release fixture to the live-reload-scroll/mas/e2e-gates release v2.1.15-beta (C-2 R-9, C-15 T-M1..T-M5, P0 proposals).
@@ -153,8 +154,13 @@ describe('production release workflow', () => {
 
   it('writes strict SemVer to the updater feed while keeping v-prefixed release tags', () => {
     expect(workflow).toContain('VER="${TAG#v}"')
-    expect(workflow).toContain('"version": "${VER}"')
+    // C-15 T-W3: the feed is composed in the publish job by merging
+    // per-platform latest-platform.json fragments — strict SemVer enters
+    // via jq --arg ver "$VER" (never the raw v-tag).
+    expect(workflow).toContain('--arg ver "$VER"')
+    expect(workflow).toContain('{version:$ver,')
     expect(workflow).not.toContain('"version": "${TAG}"')
+    expect(workflow).not.toContain('{version:$tag,')
   })
 
   it('publishes beta tags as normal releases so the /latest updater feed advances', () => {
@@ -174,6 +180,15 @@ describe('production release workflow', () => {
     expect(workflow).toContain(
       'grep -Fq "$EXPECTED_DMG_TEMPLATE" "$CASK"'
     )
+  })
+
+  it('stages Windows assets behind the WINDOWS_RELEASE repo variable (C-15 T-W3)', () => {
+    expect(workflow).toContain('name: windows-x64')
+    expect(workflow).toContain('x86_64-pc-windows-msvc')
+    expect(workflow).toContain('vars.WINDOWS_RELEASE')
+    // Manual dispatch defaults to build-only so QA runs never clobber
+    // live release assets; tag pushes publish.
+    expect(workflow).toContain("if: needs.build.outputs.publish == 'true'")
   })
 })
 // END_BLOCK_RELEASE_WORKFLOW_TESTS
