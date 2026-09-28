@@ -421,6 +421,24 @@ jobs:
             }
           }
           if (-not $alive) { throw '::error::Mark process did not appear within 20s of launch' }
+
+          # C-15 QA evidence: capture what the window actually looks like
+          # (manual-QA feedback triage — layout overlap / maximize issues).
+          Start-Sleep -Seconds 3
+          try {
+            New-Item -ItemType Directory -Force -Path "$env:RUNNER_TEMP\release" | Out-Null
+            Add-Type -AssemblyName System.Windows.Forms
+            Add-Type -AssemblyName System.Drawing
+            $ws = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
+            $bmp = New-Object System.Drawing.Bitmap $ws.Width, $ws.Height
+            $g = [System.Drawing.Graphics]::FromImage($bmp)
+            $g.CopyFromScreen($ws.Location, [System.Drawing.Point]::Empty, $ws.Size)
+            $bmp.Save("$env:RUNNER_TEMP\release\app-screenshot.png")
+            Write-Host "screenshot saved"
+          } catch {
+            Write-Host "screenshot failed: $_"
+          }
+
           Stop-Process -Name 'Mark' -Force -ErrorAction SilentlyContinue
 
       - name: windows bundle size
