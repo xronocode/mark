@@ -14,6 +14,9 @@
 //
 // CHANGE_SUMMARY:
 //   - 2026-06-08 B5a: initial live_endpoint module creation.
+//   - 2026-09-28 C-15 T-W2: is_pid_alive gains a tasklist-based Windows
+//     arm (was assume-stale); make_endpoint labels windows-x86_64/aarch64
+//     instead of "unknown".
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT
@@ -207,8 +210,10 @@ pub fn check_stale() -> bool {
 }
 
 /// Check if a process with the given PID is still running.
-/// Uses `kill -0 <pid>` via std::process::Command to avoid a libc
-/// dependency. Returns true if the process exists, false otherwise.
+/// Unix: `kill -0 <pid>` via std::process::Command (no libc dep).
+/// Windows (C-15 T-W2): `tasklist /FI "PID eq <pid>"` CSV parse —
+/// tasklist exits 0 even on no-match, so the stdout must be scanned.
+/// Returns true if the process exists, false otherwise.
 fn is_pid_alive(pid: u32) -> bool {
     #[cfg(unix)]
     {
@@ -220,10 +225,27 @@ fn is_pid_alive(pid: u32) -> bool {
             .map(|s| s.success())
             .unwrap_or(false)
     }
-    #[cfg(not(unix))]
+    #[cfg(windows)]
+    {
+        let output = std::process::Command::new("tasklist")
+            .args(["/FI", &format!("PID eq {pid}"), "/FO", "CSV", "/NH"])
+            .stdout(std::process::Stdio::piped())
+            .stderr(std::process::Stdio::null())
+            .output();
+        match output {
+            Ok(o) if o.status.success() => {
+                let stdout = String::from_utf8_lossy(&o.stdout);
+                // Matched row: "mark.exe","1234","Console",... — a
+                // no-match run prints an INFO: line with no quoted pid.
+                stdout.contains(&format!("\"{pid}\""))
+            }
+            _ => false,
+        }
+    }
+    #[cfg(not(any(unix, windows)))]
     {
         let _ = pid;
-        // On non-Unix platforms, assume stale to be safe.
+        // On unknown platforms, assume stale to be safe.
         false
     }
 }
@@ -242,6 +264,14 @@ pub fn make_endpoint(port: u16) -> LiveEndpoint {
         }
     } else if cfg!(target_os = "linux") {
         "linux-x86_64"
+    } else if cfg!(target_os = "windows") {
+        // C-15 T-W2: Windows builds report their arch instead of
+        // "unknown" so extension-host telemetry is attributable.
+        if cfg!(target_arch = "aarch64") {
+            "windows-aarch64"
+        } else {
+            "windows-x86_64"
+        }
     } else {
         "unknown"
     };

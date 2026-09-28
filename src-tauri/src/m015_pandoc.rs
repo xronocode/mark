@@ -15,6 +15,9 @@
 //
 // CHANGE_SUMMARY:
 //   - 2026-04-29 B3-step-9: initial detection + export.
+//   - 2026-09-28 C-15 T-W2: PATH augmentation + pandoc resolution are
+//     cross-platform (Windows Pandoc install dirs, ';' separator, no
+//     `which` shellout).
 
 use serde::Serialize;
 
@@ -50,19 +53,69 @@ pub async fn mt_pandoc_export(
 }
 
 #[cfg(not(feature = "app-store"))]
+fn path_sep() -> &'static str {
+    if cfg!(target_os = "windows") { ";" } else { ":" }
+}
+
+/// Extra binary dirs probed beyond $PATH. Unix: Homebrew / TeX locations;
+/// Windows: Pandoc's installer defaults (machine-wide + per-user).
+#[cfg(not(feature = "app-store"))]
+fn extra_bin_dirs() -> Vec<String> {
+    if cfg!(target_os = "windows") {
+        let mut v = Vec::new();
+        if let Ok(pf) = std::env::var("PROGRAMFILES") {
+            v.push(format!("{pf}\\Pandoc"));
+        }
+        if let Ok(lad) = std::env::var("LOCALAPPDATA") {
+            v.push(format!("{lad}\\Pandoc"));
+        }
+        v
+    } else {
+        ["/usr/local/bin", "/opt/homebrew/bin", "/Library/TeX/texbin"]
+            .iter()
+            .map(|s| s.to_string())
+            .collect()
+    }
+}
+
+#[cfg(not(feature = "app-store"))]
 fn augmented_path() -> String {
+    let sep = path_sep();
     let mut paths: Vec<String> = std::env::var("PATH")
         .unwrap_or_default()
-        .split(':')
+        .split(sep)
+        .filter(|s| !s.is_empty())
         .map(String::from)
         .collect();
-    let extras = ["/usr/local/bin", "/opt/homebrew/bin", "/Library/TeX/texbin"];
-    for p in &extras {
-        if !paths.iter().any(|x| x == p) {
-            paths.push(p.to_string());
+    for p in extra_bin_dirs() {
+        if !paths.iter().any(|x| x == &p) {
+            paths.push(p);
         }
     }
-    paths.join(":")
+    paths.join(sep)
+}
+
+/// Best-effort absolute pandoc location for the status payload. Probes
+/// PATH + extra dirs directly (C-15 T-W2) — the old implementation
+/// shelled out to POSIX `which`, which does not exist on Windows.
+#[cfg(not(feature = "app-store"))]
+fn resolve_pandoc_path() -> Option<String> {
+    let sep = path_sep();
+    let mut dirs: Vec<String> = std::env::var("PATH")
+        .unwrap_or_default()
+        .split(sep)
+        .filter(|s| !s.is_empty())
+        .map(String::from)
+        .collect();
+    dirs.extend(extra_bin_dirs());
+    let exe_name = if cfg!(target_os = "windows") { "pandoc.exe" } else { "pandoc" };
+    for d in dirs {
+        let cand = std::path::Path::new(&d).join(exe_name);
+        if cand.is_file() {
+            return Some(cand.to_string_lossy().into_owned());
+        }
+    }
+    None
 }
 
 #[cfg(not(feature = "app-store"))]
@@ -77,18 +130,7 @@ async fn _pandoc_status_impl() -> Result<PandocStatus, String> {
         Ok(o) if o.status.success() => {
             let stdout = String::from_utf8_lossy(&o.stdout);
             let version = stdout.lines().next().map(|l| l.trim().to_string());
-            let which = Command::new("which")
-                .arg("pandoc")
-                .env("PATH", &path)
-                .output()
-                .ok()
-                .and_then(|w| {
-                    if w.status.success() {
-                        Some(String::from_utf8_lossy(&w.stdout).trim().to_string())
-                    } else {
-                        None
-                    }
-                });
+            let which = resolve_pandoc_path();
             safe_eprintln!("[Pandoc][status][BLOCK_PANDOC_AVAILABLE version={version:?}]");
             Ok(PandocStatus { available: true, version, path: which })
         }
@@ -138,8 +180,20 @@ mod tests {
     #[test]
     fn augmented_path_contains_extras() {
         let p = augmented_path();
-        assert!(p.contains("/Library/TeX/texbin"));
-        assert!(p.contains("/usr/local/bin") || p.contains("/opt/homebrew/bin"));
+        if cfg!(target_os = "windows") {
+            // Windows extras derive from PROGRAMFILES/LOCALAPPDATA env —
+            // at minimum the separator must stay the Windows one.
+            assert!(p.is_empty() || p.contains(';'));
+            assert!(!p.contains("/Library/TeX/texbin"));
+        } else {
+            assert!(p.contains("/Library/TeX/texbin"));
+            assert!(p.contains("/usr/local/bin") || p.contains("/opt/homebrew/bin"));
+        }
+    }
+
+    #[test]
+    fn path_sep_matches_platform() {
+        assert_eq!(path_sep(), if cfg!(target_os = "windows") { ";" } else { ":" });
     }
 
     // Live pandoc invocations skipped in unit tests — depend on

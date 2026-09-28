@@ -39,6 +39,10 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-09-28 C-15 T-W4/T-W1: register tauri-plugin-single-instance first
+//     (second launch forwards argv into PendingOpens / direct-emits to the
+//     live renderer, then focuses the window); hide the native menu bar on
+//     Windows/Linux (hamburger popup keeps working via app.menu()).
 //   - 2026-09-17 v2.2.0 C-13: retire the Mark Text v1.x migration pipeline — delete m005_migrate/, legacy/snapshot/prefs-stub/migration_strings/cancel_log and the bootstrap block; BLOCK_MIGRATION_RETIRED logs at boot; live prefs store and themes untouched.
 //   - 2026-08-07 v2.1.3-beta: initialize the native clipboard-manager
 //     plugin for title-path Copy Path after WKWebView user activation expires.
@@ -342,6 +346,77 @@ fn main() {
 
     let mut builder = tauri::Builder::default();
 
+    // C-15 T-W4: single-instance forward. A second launch (Windows
+    // "Open With" / file associations / bare `mark file.md` while
+    // running) must focus the running app and hand its files over —
+    // never spawn a second process. Registered FIRST per plugin docs.
+    // Skipped in app-store builds (sandbox; Apple Events own the path).
+    #[cfg(not(feature = "app-store"))]
+    {
+        builder = builder.plugin(tauri_plugin_single_instance::init(
+            |app, args, _cwd| {
+                use tauri::Manager;
+                safe_eprintln!(
+                    "[main][single_instance][BLOCK_FORWARDED argc={}]",
+                    args.len()
+                );
+                // Reuse the clap parser so forwarded argv honors
+                // --preview/--watch/-d exactly like a cold launch.
+                let cli = m020_cli::parse_from(
+                    std::iter::once("mark".to_string()).chain(args.iter().cloned()),
+                )
+                .unwrap_or_default();
+                let state = app.state::<PendingOpens>();
+                let already_drained =
+                    state.drained.load(std::sync::atomic::Ordering::SeqCst);
+                for p in &cli.files {
+                    let abs = std::fs::canonicalize(p)
+                        .ok()
+                        .and_then(|a| a.to_str().map(|s| s.to_string()))
+                        .or_else(|| p.to_str().map(|s| s.to_string()));
+                    let Some(path_str) = abs else { continue };
+                    state
+                        .had_initial_opens
+                        .store(true, std::sync::atomic::Ordering::SeqCst);
+                    if already_drained {
+                        // Renderer listeners are live — direct emit, same
+                        // as the warm Apple-Events path.
+                        if let Some(window) = app.get_webview_window("main") {
+                            match m_v1_compat::emit_open_new_tab_ext(
+                                &window,
+                                &path_str,
+                                cli.preview,
+                                cli.watch,
+                                cli.diff,
+                            ) {
+                                Ok(()) => safe_eprintln!(
+                                    "[main][single_instance][BLOCK_DIRECT_EMIT path={path_str}]"
+                                ),
+                                Err(e) => safe_eprintln!(
+                                    "[main][single_instance][BLOCK_DIRECT_EMIT_FAILED path={path_str} err={e}]"
+                                ),
+                            }
+                        }
+                    } else {
+                        safe_eprintln!(
+                            "[main][single_instance][BLOCK_QUEUED path={path_str}]"
+                        );
+                        let mut q = state
+                            .queue
+                            .lock()
+                            .unwrap_or_else(|e| e.into_inner());
+                        q.push(path_str);
+                    }
+                }
+                if let Some(window) = app.get_webview_window("main") {
+                    let _ = window.unminimize();
+                    let _ = window.show();
+                    let _ = window.set_focus();
+                }
+            },
+        ));
+    }
+
     #[cfg(not(feature = "app-store"))]
     {
         builder = builder.plugin(tauri_plugin_updater::Builder::new().build());
@@ -379,6 +454,18 @@ fn main() {
             })?;
             app.set_menu(menu)?;
             safe_eprintln!("[menu][build][BLOCK_BUILD_NATIVE_MENU] installed");
+            // Windows/Linux (C-15 T-W1): the native menu BAR would render
+            // under the custom titlebar (double chrome). Keep the menu
+            // registered on the app — the hamburger popup
+            // (mt_window_popup_app_menu reads app.menu()) still works —
+            // but hide the bar itself. No-op API on macOS.
+            #[cfg(not(target_os = "macos"))]
+            {
+                use tauri::Manager;
+                for w in app.webview_windows().values() {
+                    let _ = w.hide_menu();
+                }
+            }
             // F-SHORTCUT-PLATFORM-BIND: register builtin global shortcuts
             // (Cmd+Shift+M show-window) AFTER set_menu so any conflicts
             // with menu accelerators are visible in the log.
