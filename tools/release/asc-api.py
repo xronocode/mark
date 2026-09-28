@@ -37,10 +37,9 @@ def make_jwt(key_path: str, key_id: str, issuer: str) -> str:
         "aud": "appstoreconnect-v1"
     }).encode())
     signing = f"{header}.{payload}".encode()
+    from cryptography.hazmat.primitives.asymmetric.utils import decode_dss_signature
     der = key.sign(signing, ec.ECDSA(hashes.SHA256()))
-    r = int.from_bytes(der[4:4 + der[3]], "big")
-    slen = der[4 + der[3]]
-    s_int = int.from_bytes(der[6 + der[3]:6 + der[3] + slen], "big")
+    r, s_int = decode_dss_signature(der)
     raw = r.to_bytes(32, "big") + s_int.to_bytes(32, "big")
     return f"{header}.{payload}.{b64u(raw)}"
 
