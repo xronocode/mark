@@ -403,9 +403,9 @@ jobs:
           # Program Files probe just in case the mode ever changes).
           Start-Process -FilePath $setup.FullName -ArgumentList '/S' -Wait
           $exe = @(
-            Join-Path $env:LOCALAPPDATA 'Mark\Mark.exe',
-            Join-Path $env:ProgramFiles 'Mark\Mark.exe',
-            Join-Path ${env:ProgramFiles(x86)} 'Mark\Mark.exe'
+            (Join-Path $env:LOCALAPPDATA 'Mark\Mark.exe')
+            (Join-Path $env:ProgramFiles 'Mark\Mark.exe')
+            (Join-Path ${env:ProgramFiles(x86)} 'Mark\Mark.exe')
           ) | Where-Object { Test-Path $_ } | Select-Object -First 1
           if (-not $exe) { throw '::error::Mark.exe not found after silent install' }
           Write-Host "installed: $exe"
