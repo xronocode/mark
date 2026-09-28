@@ -209,6 +209,56 @@
     </P-M>
   </ImplementationPlan>
   <ReviewLog>
+    <Review number="4" date="2026-09-28" verdict="green-partial" task="phase-w">
+      <Findings>
+        T-101: shim platform now comes from the vite process.platform define
+        (tests/renderer/platform-truth.test.js pins the flags matrix and
+        source-level no-hardcode invariant); window.path exposes win32
+        sep/delimiter. Renderer suite 3141 green locally, 232 files.
+        T-W1: titleBar forces the custom style on win32 via
+        effectiveTitleBarStyle; controls cluster + hamburger pinned by
+        titleBar-windows.test.js; dblclick-maximize is cross-platform;
+        settings window keeps native chrome; native menu BAR hidden on
+        Windows/Linux in main.rs + m_v1_compat (popup keeps working —
+        mt_window_popup_app_menu reads app.menu()).
+        T-W2: m048 desktop flags platform-gated (screenshot/
+        setDefaultHandler macOS-only); m021 non-mac returns
+        MT_DEFAULT_HANDLER_MACOS_ONLY; pandoc PATH/resolution cross-platform
+        (no `which`); mt_format_link_click via opener plugin; search falls
+        back to in-process walker when rg is absent (ripgrep_available +
+        BLOCK_RIPGREP_FALLBACK); live_endpoint tasklist pid-check +
+        windows-* platform labels; discovery %APPDATA%. First windows-latest
+        CI run caught two residual unix-isms (m010 symlink tests → cfg(unix);
+        m009 unused_mut) — fixed same day. Cross-target msvc check from
+        macOS is blocked by ring (tauri-plugin-updater rustls) — the
+        windows-latest backend lane IS the compile gate (verification note
+        in T-W2).
+        T-W3: release.yml v1.7.0 — windows-x64 matrix lane (NSIS +
+        updater sig), silent-install smoke (/S + Get-Process alive),
+        20 MB footprint budget, SLSA+cosign twins, per-platform feed
+        fragments merged at publish (jq), WINDOWS_RELEASE staging gate,
+        manual dispatch defaults build-only (inputs.publish=false) so QA
+        runs never clobber live assets. test.yml renderer+backend lanes
+        on windows-latest are blocking (run 36402285196: all 7 lanes
+        green, incl. both windows). Renderer e2e stays macOS-gated until
+        observed green on Windows. Known windows-only vitest pitfall
+        fixed: tools/*.mjs imported by tests must not carry shebangs
+        (vite-node Windows path throws SyntaxError).
+        T-104: single-instance plugin registered first; forwarded argv
+        re-parses via m020_cli::parse_from and direct-emits through
+        emit_open_new_tab_ext (preview/watch/diff honored) or requeues
+        pre-drain; window shown/unminimized/focused. No automated
+        second-process test (needs a real GUI session) — covered by the
+        manual QA checklist (.grace/changes/active/C-15/windows-qa-checklist.md).
+        Gates at review time: renderer 3141 + rust 381 green locally;
+        test.yml all-green on 3 OS; grace lint 26 errors vs 27 at HEAD
+        (net -1; remaining debt pre-exists: C-14 shape errors, C-15
+        letter-style task anchors, prism/asc-api/landing legacy items).
+        Pending: manual QA on the user's Windows machine against the
+        dry-run artifact → WINDOWS_RELEASE=true → v2.2.0-beta release
+        (T-W3 flip + T-105 site card / winget fast-follow).
+      </Findings>
+    </Review>
     <Review number="3" date="2026-09-21" verdict="green" task="T-M4+T-M5">
       <Findings>
         T-M4: mt_search_spawn dispatches to the pre-existing, unit-tested
