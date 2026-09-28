@@ -5,8 +5,9 @@ title: Privacy Policy
 # Privacy Policy
 
 Mark is a local-first application. This page describes, completely and
-honestly, every kind of network activity the app can perform. There is no
-analytics, no telemetry, no advertising, and no account system.
+honestly, every kind of network activity the app can perform. The app has
+no analytics, no telemetry, no advertising, and no account system. The
+website's visit statistics are covered separately under "This website".
 
 ## What stays on your machine
 
@@ -36,6 +37,17 @@ That is the complete list.
 Nothing. The project has no servers that receive data from the app. The
 developers have no access to your documents, settings, or usage patterns,
 because none of that ever leaves your computer.
+
+## This website
+
+The app and the website are separate. This website (mark.xronocode.com)
+uses Google Analytics 4 to count visits: pages viewed, referrer, rough
+location, device and browser type. Google Analytics sets first-party
+cookies to tell returning visitors apart, and Google processes that data
+under its own [privacy policy](https://policies.google.com/privacy). We use
+it only to see which pages people read and where they come from. Blocking
+the script or its cookies in your browser has no effect on the site or the
+app.
 
 ## Homebrew / GitHub downloads
 

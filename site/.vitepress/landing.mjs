@@ -1,9 +1,9 @@
 // FILE: site/.vitepress/landing.mjs
-// VERSION: 1.0.0
+// VERSION: 1.1.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Single source of site settings and the landing renderer shared by
 //            the VitePress config (dev middleware + buildEnd) and unit tests.
-//   SCOPE: resolve SITE_URL/SITE_BASE/UMAMI_* env into settings; render the
+//   SCOPE: resolve SITE_URL/SITE_BASE/UMAMI_*/GA_MEASUREMENT_ID env into settings; render the
 //          landing template (base token + shared head); emit robots.txt and
 //          CNAME content.
 //   DEPENDS: none (pure functions over strings/env)
@@ -15,7 +15,8 @@
 // START_MODULE_MAP
 //   SITE_META - product name/description/og image used by landing and docs
 //   resolveSiteSettings - env -> { siteUrl, base, analytics }
-//   analyticsScript - Umami <script> tag or '' when analytics is off
+//   GA_ID_RE - accepted GA4 measurement id shape (G-XXXXXXXX)
+//   analyticsScript - Umami or GA4 <script> tags, or '' when analytics is off
 //   renderSharedHead - meta/OG/twitter/favicon/analytics HTML for the landing
 //   renderLanding - template -> final landing HTML
 //   robotsTxt - robots.txt body pointing at the sitemap
@@ -23,7 +24,8 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: [v1.0.0 - C-22: replaces the CI `cp` overlay and hard-coded /mark/ paths]
+//   LAST_CHANGE: [v1.1.0 - GA4 provider via GA_MEASUREMENT_ID (wins over Umami when both set)]
+//   PREV: [v1.0.0 - C-22: replaces the CI `cp` overlay and hard-coded /mark/ paths]
 // END_CHANGE_SUMMARY
 
 export const SITE_META = {
@@ -39,6 +41,7 @@ const DEFAULT_SITE_URL = 'https://mark.xronocode.com'
 const DEFAULT_UMAMI_SRC = 'https://cloud.umami.is/script.js'
 const BASE_TOKEN = /%BASE%/g
 const HEAD_PLACEHOLDER = '<!--SITE_HEAD-->'
+export const GA_ID_RE = /^G-[A-Z0-9]{4,16}$/
 
 // START_CONTRACT: resolveSiteSettings
 //   PURPOSE: Normalize deployment settings from the environment.
@@ -56,10 +59,14 @@ export function resolveSiteSettings (env = {}) {
   // END_BLOCK_RESOLVE_BASE
 
   // START_BLOCK_RESOLVE_ANALYTICS
+  const measurementId = (env.GA_MEASUREMENT_ID || '').trim()
   const websiteId = (env.UMAMI_WEBSITE_ID || '').trim()
-  const analytics = websiteId
-    ? { provider: 'umami', websiteId, src: (env.UMAMI_SRC || DEFAULT_UMAMI_SRC).trim() }
-    : null
+  if (measurementId && !GA_ID_RE.test(measurementId)) {
+    throw new Error(`[SiteBuild][resolveSiteSettings][BLOCK_RESOLVE_ANALYTICS] GA_MEASUREMENT_ID must look like G-XXXXXXXX, got "${measurementId}"`)
+  }
+  let analytics = null
+  if (measurementId) analytics = { provider: 'ga4', measurementId }
+  else if (websiteId) analytics = { provider: 'umami', websiteId, src: (env.UMAMI_SRC || DEFAULT_UMAMI_SRC).trim() }
   // END_BLOCK_RESOLVE_ANALYTICS
 
   return { siteUrl, base, analytics }
@@ -75,6 +82,12 @@ function escapeAttr (value) {
 
 export function analyticsScript (analytics) {
   if (!analytics) return ''
+  if (analytics.provider === 'ga4') {
+    // The id already passed GA_ID_RE, so inlining it is safe.
+    const id = analytics.measurementId
+    return `<script async src="https://www.googletagmanager.com/gtag/js?id=${id}"></script>\n    ` +
+      `<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date());gtag('config','${id}');</script>`
+  }
   return `<script defer src="${escapeAttr(analytics.src)}" data-website-id="${escapeAttr(analytics.websiteId)}"></script>`
 }
 

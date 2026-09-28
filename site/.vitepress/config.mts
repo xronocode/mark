@@ -1,5 +1,5 @@
 // FILE: site/.vitepress/config.mts
-// VERSION: 2.0.0
+// VERSION: 2.1.0
 // START_MODULE_CONTRACT
 //   PURPOSE: VitePress config for the Mark site — docs, shared head, and the
 //            landing served at the site root in both dev and build.
@@ -13,7 +13,8 @@
 // END_MODULE_CONTRACT
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: [v2.0.0 - C-22: env-driven base/URL, landing via buildEnd + dev
+//   LAST_CHANGE: [v2.1.0 - GA4 analytics provider in the docs head]
+//   PREV: [v2.0.0 - C-22: env-driven base/URL, landing via buildEnd + dev
 //                 middleware (replaces CI cp), SEO head, sitemap, opt-in analytics]
 // END_CHANGE_SUMMARY
 
@@ -42,7 +43,13 @@ const head: HeadConfig[] = [
   ['meta', { property: 'og:image', content: `${siteUrl}/${SITE_META.ogImage}` }],
   ['meta', { name: 'twitter:card', content: 'summary_large_image' }]
 ]
-if (analytics) {
+if (analytics?.provider === 'ga4') {
+  // Page views on client-side navigation come from GA4 enhanced measurement
+  // (browser history events), so the docs SPA needs no router hook.
+  const id = analytics.measurementId
+  head.push(['script', { async: '', src: `https://www.googletagmanager.com/gtag/js?id=${id}` }])
+  head.push(['script', {}, `window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date());gtag('config','${id}');`])
+} else if (analytics) {
   head.push(['script', { defer: '', src: analytics.src, 'data-website-id': analytics.websiteId }])
 }
 // END_BLOCK_DOCS_HEAD
