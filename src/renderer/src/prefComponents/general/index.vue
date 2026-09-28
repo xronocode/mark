@@ -71,7 +71,7 @@
       </template>
       <template #children>
         <cur-select
-          v-if="!isOsx"
+          v-if="isLinux"
           :description="t('preferences.general.window.titleBarStyle.title')"
           :notes="t('preferences.general.window.requiresRestart')"
           :value="titleBarStyle"
@@ -190,7 +190,7 @@ import Range from '../common/range/index.vue'
 import CurSelect from '../common/select/index.vue'
 import Bool from '../common/bool/index.vue'
 import textBox from '../common/textBox/index.vue'
-import { isOsx } from '@/util'
+import { isOsx, isLinux } from '@/util'
 
 import {
   getTitleBarStyleOptions,

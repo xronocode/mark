@@ -17,7 +17,7 @@ import TitleBar from '@/prefComponents/common/titlebar'
 import SideBar from '@/prefComponents/sideBar'
 import { addThemeStyle } from '@/util/theme'
 import { DEFAULT_STYLE } from '@/config'
-import { isOsx } from '@/util'
+import { isOsx, isWindows } from '@/util'
 
 // Store
 const preferencesStore = usePreferencesStore()
@@ -29,9 +29,11 @@ const showCustomTitleBar = computed(() => {
   // macOS now uses titleBarStyle:'hiddenInset' (set in main/config.js
   // preferencesWinOptions) which surfaces the native traffic-light buttons
   // top-left, so the custom right-side close button is no longer needed.
-  // Windows/Linux still need the custom titlebar when the user picked
-  // titleBarStyle === 'custom'.
-  if (isOsx) {
+  // C-15 T-W1: the settings window keeps NATIVE chrome on Windows (it is
+  // built with default decorations in m_v1_compat), so the custom close
+  // button is not needed there either — only Linux may still pick the
+  // custom style.
+  if (isOsx || isWindows) {
     return false
   }
   return titleBarStyle.value === 'custom'
