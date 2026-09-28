@@ -126,8 +126,9 @@ describe('titleBar/index.vue', () => {
     })
     expect(wrapper.find('.titlebar-nav').exists()).toBe(true)
     const navBtns = wrapper.findAll('.titlebar-nav-btn')
-    // sidebar toggle, files, toc, settings, theme toggle = 5
-    expect(navBtns.length).toBe(5)
+    // app menu (frameless Linux/custom), sidebar toggle, files, toc,
+    // settings, theme toggle = 6 (C-15 Phase W QA moved the hamburger here)
+    expect(navBtns.length).toBe(6)
   })
 
   it('shows share button when pathname is set', async () => {

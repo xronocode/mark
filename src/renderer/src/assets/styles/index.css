@@ -151,6 +151,10 @@ body {
   left: 0;
   right: 0;
   bottom: 0;
+  /* C-15 Phase W QA: the window is an app surface, not a document — a stray
+     wide child (long line, zoomed content) must never produce a document
+     level scrollbar at the window edge. */
+  overflow: hidden;
 }
 
 .icon {

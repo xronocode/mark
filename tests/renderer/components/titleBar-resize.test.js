@@ -135,7 +135,7 @@ describe('titleBar CSS clearance pins (C-9)', () => {
     // itself is not jsdom-drivable here: the setup.ts window stub does not
     // intercept the component's static import in this environment.)
     expect(css).toMatch(
-      /handleTitleBarDblclick[\s\S]*?closest\('\.title-no-drag, \.titlebar-nav, \.right-toolbar, \.left-toolbar'\)/
+      /handleTitleBarDblclick[\s\S]*?closest\('\.title-no-drag, \.titlebar-nav, \.right-toolbar, \.titlebar-aux'\)/
     )
   })
 })

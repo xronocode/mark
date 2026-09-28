@@ -1,5 +1,5 @@
 // FILE: tests/renderer/components/titleBar-windows.test.js
-// VERSION: 1.0.0
+// VERSION: 1.1.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Verify the Windows titlebar layout — forced custom style, window-controls cluster, unshifted nav.
 //   SCOPE: Vue/jsdom component tests with @/util mocked to win32 (C-15 T-W1).
@@ -18,6 +18,9 @@
 //     unconditionally off (tauri.windows.conf.json), so effectiveTitleBarStyle
 //     is always 'custom' and the min/max/close cluster renders even when the
 //     stored preference says 'native'.
+//   - 2026-09-28 v1.1.0: C-15 Phase W QA — hamburger moved into titlebar-nav
+//     (first button), share/word-count cluster is .titlebar-aux--custom;
+//     regression-pins that no .left-toolbar cluster stacks over the nav.
 // END_CHANGE_SUMMARY
 
 import { shallowMount } from '@vue/test-utils'
@@ -106,7 +109,25 @@ describe('titleBar/index.vue — Windows variant (C-15 T-W1)', () => {
     const wrapper = mountWindows()
     // isFullScreen starts false → cluster must be present.
     expect(wrapper.findAll('.frameless-titlebar-button').length).toBe(3)
-    expect(wrapper.find('.frameless-titlebar-menu').exists()).toBe(true)
+    // C-15 Phase W QA: the hamburger now lives INSIDE titlebar-nav (first
+    // button) — it must not spawn a separate left:0 cluster that stacks on
+    // the nav row (the reported "мешанина" overlap).
+    const nav = wrapper.find('.titlebar-nav')
+    expect(nav.exists()).toBe(true)
+    const navButtons = nav.findAll('.titlebar-nav-btn')
+    expect(navButtons.length).toBe(6)
+    expect(navButtons[0].classes()).toContain('titlebar-nav-menu')
+    expect(wrapper.find('.left-toolbar').exists()).toBe(false)
+  })
+
+  it('places the share/word-count cluster left of the window controls, not over the nav', async () => {
+    const wrapper = mountWindows()
+    const aux = wrapper.find('.titlebar-aux')
+    expect(aux.exists()).toBe(true)
+    expect(aux.classes()).toContain('titlebar-aux--custom')
+    // share button renders inside the aux cluster (word-count is wrapped
+    // in the ElTooltip stub, so it is not asserted here)
+    expect(aux.find('.titlebar-share-btn').exists()).toBe(true)
   })
 
   it('does not apply the macOS traffic-light shift to the nav cluster', () => {
