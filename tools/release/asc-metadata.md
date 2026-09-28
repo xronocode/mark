@@ -66,9 +66,16 @@ open panel; sandbox entitlements: user-selected read-write only.
 
 1. [x] App ID registered: com.xronocode.mark (explicit, no capabilities)
 2. [x] ASC app record created, name accepted
-3. [ ] Trader status (Business section) — EU DSA; for a free non-commercial
-       app select the non-trader declaration
-4. [ ] Apple Distribution certificate (.p12 in keychain) — user
-5. [ ] CI secrets: APPLE_DISTRIBUTION_CERT_P12 + password, MAS profile
-6. [ ] Build → sign → productbuild .pkg → Transporter upload → TestFlight
-7. [ ] Review submission with the notes above
+3. [x] Trader status — user (2026-09-28)
+4. [x] Apple Distribution certificate — user (valid to 2027-09-27)
+4b. [x] 3rd Party Mac Developer Installer certificate — user
+5. [x] Build 2.1.15 uploaded (Delivery 7310d278), state=VALID,
+        export-compliance answered false via API
+6. [x] Internal group "Mark Test" + Account Holder tester (user)
+7. [x] Listing filled via API: subtitle/privacy URL (appInfo);
+        description 1123 chars / keywords / support / marketing
+        (version localization); version 2.1.15 renamed; build linked;
+        8 APP_DESKTOP screenshots uploaded; whatsNew N/A on first release
+8. [ ] App Privacy label — user, UI only: App Privacy → Get Started →
+        "Data Not Collected" (API path not exposed)
+9. [ ] Submit for review (API submissions endpoint or UI Add for Review)
