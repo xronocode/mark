@@ -1,0 +1,82 @@
+<GraceChangePlan graceVersion='4.0' status='approved'>
+<C-22>
+  <ChangeRef>C-22</ChangeRef>
+  <Created>2026-09-26</Created>
+  <IntentSummary>Move landing rendering into VitePress (buildEnd + dev middleware), parametrize base/URL, add shared SEO head + sitemap/robots/CNAME + opt-in analytics, add a dist checker, and collapse deployment to one GitHub Pages workflow.</IntentSummary>
+  <BaselineAssertions>
+    <MustContain>
+      <File>site/package.json</File>
+      <Text>vitepress</Text>
+    </MustContain>
+    <MustContain>
+      <File>site/landing/index.html</File>
+      <Text>api.github.com/repos/xronocode/mark/releases/latest</Text>
+    </MustContain>
+  </BaselineAssertions>
+  <TargetAssertions>
+    <MustContain>
+      <File>site/.vitepress/config.mts</File>
+      <Text>buildEnd</Text>
+    </MustContain>
+    <MustContain>
+      <File>site/.vitepress/landing.mjs</File>
+      <Text>renderLanding</Text>
+    </MustContain>
+    <MustContain>
+      <File>site/landing/index.html</File>
+      <Text>%BASE%</Text>
+    </MustContain>
+    <MustContain>
+      <File>.github/workflows/site.yml</File>
+      <Text>npm run check</Text>
+    </MustContain>
+  </TargetAssertions>
+  <DurableScope>
+    <M-053/>
+  </DurableScope>
+  <ObservedWriteScope>
+    <File>site/.vitepress/config.mts</File>
+    <File>site/.vitepress/landing.mjs</File>
+    <File>site/scripts/check-dist.mjs</File>
+    <File>site/landing/index.html (paths + head placeholder only)</File>
+    <File>site/package.json</File>
+    <File>package.json (docs:* scripts)</File>
+    <File>.github/workflows/site.yml</File>
+    <File>vercel.json (delete)</File>
+    <File>tests/renderer/site/landing.test.js</File>
+    <File>.grace/graph/index.xml, .grace/graph/features.xml, .grace/verification/index.xml, .grace/verification/features.xml</File>
+  </ObservedWriteScope>
+  <ImplementationPlan>
+    <T-001>
+      <Title>Landing renderer + config (base, head, sitemap, dev middleware, buildEnd, analytics hook)</Title>
+      <DependsOn></DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>renderLanding(template, opts) substitutes %BASE% and injects the shared head; config.mts uses it in dev (middleware at base root) and in buildEnd (writes dist/index.html, robots.txt, CNAME).</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>npx vitest run tests/renderer/site/landing.test.js</Command>
+      </Verification>
+    </T-001>
+    <T-002>
+      <Title>Dist checker</Title>
+      <DependsOn>T-001</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>check-dist.mjs walks every dist HTML, resolves internal href/src against dist (cleanUrls aware), fails on misses, leftover %BASE%, missing sitemap/robots.</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>cd site &amp;&amp; npm run build &amp;&amp; npm run check &amp;&amp; SITE_BASE=/mark/ npm run build &amp;&amp; SITE_BASE=/mark/ npm run check</Command>
+      </Verification>
+    </T-002>
+    <T-003>
+      <Title>Pipeline: single GitHub Pages workflow, PR build-only, vercel.json removed</Title>
+      <DependsOn>T-002</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>site.yml: build+check on PR and main; deploy only on main/dispatch; SITE_URL/SITE_BASE/UMAMI_WEBSITE_ID from repo vars with domain defaults.</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>grace lint --path . --assertions current</Command>
+      </Verification>
+    </T-003>
+  </ImplementationPlan>
+</C-22>
+</GraceChangePlan>

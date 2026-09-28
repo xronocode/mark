@@ -1,0 +1,72 @@
+<GraceChangeSpec graceVersion='4.0' status='approved'>
+<C-22>
+  <Name>Site engine + publish pipeline rework (mark.xronocode.com)</Name>
+  <Created>2026-09-26</Created>
+  <Priority>medium</Priority>
+  <Status>in-progress</Status>
+
+  <Summary>
+    Review of the C-14 site (session 2026-09-26) found the build engine
+    held together by a post-build `cp` of the landing over the VitePress
+    home, a hard-coded `/mark/` base in ~20 places, two competing deploy
+    targets (GitHub Pages workflow + Vercel config with a /mark rewrite),
+    no SEO/share metadata, 404 logo/favicon in the docs, and no local way
+    to see the real landing under `vitepress dev`. Rework the engine and
+    the publish pipeline so the site can move to its own domain
+    mark.xronocode.com and later gain analytics without further plumbing.
+  </Summary>
+
+  <Problem>
+    <Description>Site build is fragile, path-bound to /mark/, double-deployed, and has no share/SEO head.</Description>
+    <RootCause>Landing was generated outside VitePress (C-14 OpenDesign) and bolted on with a cp in CI.</RootCause>
+    <Evidence>Live check 2026-09-26: /logo.png, /favicon.ico, /robots.txt, /sitemap.xml 404; landing head has only charset+viewport; vercel.json + site.yml both build.</Evidence>
+  </Problem>
+
+  <Goals>
+    <R-1>One build command (`npm run build` in site/) produces the complete site: VitePress docs + landing at the root, rendered by a VitePress buildEnd hook, not a CI cp.</R-1>
+    <R-2>Base path and canonical URL come from config (SITE_URL, SITE_BASE; default https://mark.xronocode.com and `/`); landing uses a base token, never a literal /mark/.</R-2>
+    <R-3>Shared head for landing and docs: description, canonical, Open Graph, Twitter card, favicon; sitemap.xml, robots.txt and CNAME emitted into dist.</R-3>
+    <R-4>`vitepress dev` serves the real landing at the base root, so local preview matches production.</R-4>
+    <R-5>Opt-in analytics hook: when UMAMI_WEBSITE_ID is set, the cookieless Umami script is injected into landing and docs; unset means no third-party script at all (default).</R-5>
+    <R-6>Single deploy target: GitHub Pages via site.yml. vercel.json removed. PRs build + check without deploying; pushes to main build, check, deploy.</R-6>
+    <R-7>A dist checker fails the build on any unresolved internal link/asset, leftover base token, or missing sitemap/robots.</R-7>
+  </Goals>
+
+  <Constraints>
+    <Constraint>Download links stay derived from the live GitHub release API (C-14 constraint).</Constraint>
+    <Constraint>No analytics script ships unless explicitly configured.</Constraint>
+    <Constraint>Local only in this change: nothing is pushed; DNS and Pages custom-domain switch are user actions.</Constraint>
+  </Constraints>
+
+  <NonGoals>
+    <NonGoal>Landing copy/visual fixes (header logo overflow, GitHub icon, changelog refresh) — follow-up.</NonGoal>
+    <NonGoal>Choosing/creating the analytics account and updating privacy copy for it — follow-up once enabled.</NonGoal>
+  </NonGoals>
+
+  <AcceptanceCriteria>
+    <Criterion>`cd site &amp;&amp; npm run build &amp;&amp; npm run check` green locally; dist has index.html (landing), CNAME, robots.txt, sitemap.xml, no `/mark/` asset paths.</Criterion>
+    <Criterion>With SITE_BASE=/mark/ the same build still resolves every link (fallback for github.io).</Criterion>
+    <Criterion>Unit tests for landing rendering pass in the renderer vitest suite.</Criterion>
+  </AcceptanceCriteria>
+
+  <Rollout>
+    Order to go live: (1) Cloudflare CNAME mark -> xronocode.github.io (DNS only);
+    (2) Pages custom domain = mark.xronocode.com, enforce HTTPS; (3) push main.
+    Until (2), set repo variable SITE_BASE=/mark/ and SITE_URL=https://xronocode.github.io/mark to keep github.io working.
+  </Rollout>
+
+  <AffectedAreas>
+    <M-053>SiteBuild (new): site/.vitepress/config.mts, site/.vitepress/landing.mjs, site/scripts/check-dist.mjs, .github/workflows/site.yml</M-053>
+  </AffectedAreas>
+
+  <VerificationIntent>
+    Unit tests for the landing renderer (base substitution, head injection,
+    analytics on/off); dist checker as a CI gate; manual local preview.
+  </VerificationIntent>
+
+  <Approval>
+    <ApprovedBy>user (session 2026-09-26): "для начала переработай локально движок и пайплайн публикации сайта"</ApprovedBy>
+    <ApprovalScope>Implement locally; no push, no DNS changes.</ApprovalScope>
+  </Approval>
+</C-22>
+</GraceChangeSpec>

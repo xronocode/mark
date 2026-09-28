@@ -1,715 +1,1080 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mark — The Markdown Editor for AI Agents</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Mark · The Markdown editor for what your agents write</title>
+    <!-- Shared head (meta, Open Graph, favicon, optional analytics) is
+         injected here by site/.vitepress/landing.mjs; %BASE% below is the
+         site base path substituted at build/dev time. -->
+    <!--SITE_HEAD-->
+    <link rel="preload" href="%BASE%fonts/schibsted-grotesk.woff2" as="font" type="font/woff2" crossorigin>
     <style>
+        /* ---------------------------------------------------------------
+           Landing design system
+           Type: Schibsted Grotesk (display + body), JetBrains Mono only for
+           real code: commands, file names, markdown source.
+           Colour: brand cyan from the app icon, neutrals tinted toward it.
+           Shape rule: controls 8px, panels 12px, status chips full pill.
+           Motion: strong ease-out for entrances, ease-in-out for things
+           that move on screen; every animation has a reduced-motion path.
+           --------------------------------------------------------------- */
+        @font-face {
+            font-family: "Schibsted Grotesk";
+            src: url("%BASE%fonts/schibsted-grotesk.woff2") format("woff2");
+            font-weight: 400 900; font-style: normal; font-display: swap;
+        }
+        @font-face {
+            font-family: "Schibsted Grotesk";
+            src: url("%BASE%fonts/schibsted-grotesk-italic.woff2") format("woff2");
+            font-weight: 400 900; font-style: italic; font-display: swap;
+        }
+        @font-face {
+            font-family: "JetBrains Mono";
+            src: url("%BASE%fonts/jetbrains-mono.woff2") format("woff2");
+            font-weight: 400 700; font-style: normal; font-display: swap;
+        }
+
         :root {
-            /* Color Tokens */
-            --bg: #07090c;
-            --surface-1: #101215;
-            --surface-2: #16191d;
-            --border: rgba(255, 255, 255, 0.08);
-            --border-strong: rgba(255, 255, 255, 0.14);
-            --text-1: #f5f7f9;
-            --text-2: #c3c9cf;
-            --text-3: #8b939c;
-            --accent: #3fb6f0;
-            --accent-soft: rgba(63, 182, 240, 0.14);
-            --accent-deep: #29abe2;
-            --accent-bright: #7fd4f5;
-            --ok: #5fc992;
-            --warn: #ffbc33;
+            --bg: oklch(0.985 0.003 225);
+            --bg-2: oklch(0.955 0.007 225);
+            --line: oklch(0.89 0.01 225);
+            --ink: oklch(0.21 0.02 238);
+            --ink-2: oklch(0.42 0.02 238);
+            --ink-3: oklch(0.5 0.018 238);
+            --brand: oklch(0.74 0.13 222);
+            --on-brand: oklch(0.18 0.03 238);
+            --link: oklch(0.5 0.12 232);
+            --bar: oklch(0.72 0.012 238);
 
-            /* Typography */
-            --font-display: -apple-system, "SF Pro Display", "Inter", "Segoe UI", Roboto, sans-serif;
-            --font-mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, monospace;
+            /* The "night" surface: app window, terminal, install block.
+               It stays dark in both themes, like Mark's own dark themes. */
+            --night: oklch(0.2 0.018 242);
+            --night-2: oklch(0.245 0.02 242);
+            --night-line: oklch(0.33 0.02 242);
+            --night-ink: oklch(0.94 0.008 230);
+            --night-ink-2: oklch(0.78 0.015 235);
+            --night-ink-3: oklch(0.66 0.015 235);
 
-            /* Layout & Spacing */
-            --max-width: 1120px;
-            --pad-x-std: 24px;
-            --section-rhythm: 96px;
-            --radius-md: 8px;
-            --radius-lg: 12px;
+            --font: "Schibsted Grotesk", ui-sans-serif, system-ui, sans-serif;
+            --mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
 
-            /* Components */
-            --shadow-inset: inset 0 1px 0 rgba(255,255,255,0.04);
-            --shadow-drop: 0 8px 24px rgba(0,0,0,0.35);
+            --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+            --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+
+            --r-control: 8px;
+            --r-panel: 12px;
+
+            --wrap: 1200px;
+            --gutter: clamp(16px, 4vw, 40px);
+            --section: clamp(88px, 11vw, 152px);
+
+            --z-sticky: 10;
+            --z-toast: 30;
+
+            color-scheme: light;
+        }
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg: oklch(0.165 0.014 242);
+                --bg-2: oklch(0.2 0.016 242);
+                --line: oklch(0.3 0.018 242);
+                --ink: oklch(0.95 0.006 230);
+                --ink-2: oklch(0.79 0.014 235);
+                --ink-3: oklch(0.7 0.014 235);
+                --link: oklch(0.8 0.12 222);
+                --bar: oklch(0.45 0.015 240);
+                --night: oklch(0.125 0.014 242);
+                --night-2: oklch(0.175 0.016 242);
+                --night-line: oklch(0.28 0.018 242);
+                color-scheme: dark;
+            }
         }
 
-        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
+        *, *::before, *::after { box-sizing: border-box; }
+        html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
         body {
-            background-color: var(--bg);
-            color: var(--text-1);
-            font-family: var(--font-display);
-            line-height: 1.65;
-            letter-spacing: 0.2px; /* Airy dark mode */
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
+            margin: 0;
+            background: var(--bg);
+            color: var(--ink);
+            font-family: var(--font);
+            font-size: 17px;
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+            text-rendering: optimizeLegibility;
         }
+        img { max-width: 100%; display: block; }
+        a { color: inherit; }
+        code, kbd, pre { font-family: var(--mono); }
+        h1, h2, h3 { margin: 0; text-wrap: balance; }
+        p { margin: 0; text-wrap: pretty; }
+        :focus-visible { outline: 2px solid var(--brand); outline-offset: 3px; border-radius: 4px; }
 
-        h1, h2, h3 { margin: 0; line-height: 1.15; letter-spacing: -0.02em; color: var(--text-1); }
-        p { margin-bottom: 0.75rem; }
-        a { text-decoration: none; color: inherit; transition: opacity 0.2s ease; }
-        a:hover, button:hover { opacity: 0.9; }
+        .wrap { max-width: var(--wrap); margin: 0 auto; padding: 0 var(--gutter); }
+        .skip { position: absolute; left: -9999px; }
+        .skip:focus { left: 16px; top: 12px; z-index: var(--z-toast); background: var(--ink); color: var(--bg); padding: 8px 12px; border-radius: var(--r-control); }
 
-        /* Layout Utilities */
-        .container { max-width: var(--max-width); margin: 0 auto; padding: 0 var(--pad-x-std); width: 100%; }
-        section { padding-top: var(--section-rhythm); padding-bottom: var(--section-rhythm); opacity: 0; animation: fadeUp 0.6s ease-out forwards; }
+        /* ---------- Buttons ---------- */
+        .btn {
+            display: inline-flex; align-items: center; gap: 10px;
+            height: 48px; padding: 0 20px;
+            border-radius: var(--r-control);
+            font: 600 16px/1 var(--font);
+            text-decoration: none; white-space: nowrap;
+            border: 0; cursor: pointer;
+            transition: transform 160ms var(--ease-out), background-color 200ms ease;
+        }
+        .btn:active { transform: scale(0.97); }
+        .btn-primary { background: var(--brand); color: var(--on-brand); }
+        @media (hover: hover) and (pointer: fine) {
+            .btn-primary:hover { background: oklch(0.8 0.13 222); }
+        }
+        .btn svg { width: 18px; height: 18px; flex: none; }
 
-        /* 1. Sticky Nav */
+        .copy {
+            display: inline-flex; align-items: center; gap: 12px;
+            height: 48px; padding: 0 8px 0 16px;
+            border-radius: var(--r-control);
+            border: 1px solid var(--line);
+            background: var(--bg-2);
+            color: var(--ink);
+            font: 500 14px/1 var(--mono);
+            cursor: pointer; max-width: 100%;
+            transition: transform 160ms var(--ease-out), border-color 200ms ease;
+        }
+        .copy:active { transform: scale(0.98); }
+        @media (hover: hover) and (pointer: fine) { .copy:hover { border-color: var(--ink-3); } }
+        .copy .cmd { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .copy .cmd::before { content: "$ "; color: var(--ink-3); }
+        .copy .state {
+            display: inline-grid; place-items: center;
+            min-width: 68px; height: 32px; padding: 0 10px;
+            border-radius: 6px;
+            background: var(--bg); color: var(--ink-2);
+            font: 600 13px/1 var(--font);
+        }
+        .copy .state span { grid-area: 1 / 1; transition: opacity 180ms ease, filter 180ms ease, transform 180ms var(--ease-out); }
+        .copy .state .done { opacity: 0; filter: blur(3px); transform: translateY(4px); color: var(--link); }
+        .copy.is-copied .state .idle { opacity: 0; filter: blur(3px); transform: translateY(-4px); }
+        .copy.is-copied .state .done { opacity: 1; filter: none; transform: none; }
+
+        /* ---------- Nav ---------- */
         .nav {
-            position: sticky; top: 0; z-index: 100;
-            backdrop-filter: blur(12px);
-            background-color: rgba(7, 9, 12, 0.75);
-            border-bottom: 1px solid var(--border);
-            height: 64px; display: flex; align-items: center;
+            position: sticky; top: 0; z-index: var(--z-sticky);
+            background: color-mix(in oklch, var(--bg) 86%, transparent);
+            backdrop-filter: saturate(1.4) blur(12px);
+            -webkit-backdrop-filter: saturate(1.4) blur(12px);
+            border-bottom: 1px solid transparent;
+            transition: border-color 200ms ease;
         }
-        .nav-inner { width: 100%; display: flex; justify-content: space-between; align-items: center; }
-        .logo-mark { width: 96px; height: auto; object-fit: contain; margin-right: 8px; }
-        .wordmark { font-weight: 700; letter-spacing: -0.03em; color: var(--text-1); }
-        .nav-links { display: flex; gap: 24px; align-items: center; }
-        .nav-link { font-size: 14px; color: var(--text-2); }
-        .nav-link.active, .nav-link:hover { color: var(--accent); }
-
-        /* 2. Hero Section */
-        .hero { min-height: 85vh; display: flex; align-items: center; position: relative; overflow: hidden; }
-        .hero-content { max-width: 600px; z-index: 2; }
-        
-        h1.hero-title { font-size: clamp(40px, 6vw, 64px); line-height: 1.05; margin-bottom: 16px; }
-        .gradient-text { background: linear-gradient(to right, var(--accent-deep), var(--accent-bright)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; display: inline-block; }
-
-        .hero-subhead { font-size: 20px; color: var(--text-2); margin-bottom: 32px; max-width: 480px; }
-        
-        /* Buttons */
-        .btn-primary {
-            background-color: var(--accent); color: #04121c; font-weight: 600; padding: 12px 24px; border-radius: var(--radius-md); display: inline-flex; align-items: center; gap: 8px; }
-        .btn-secondary { background-color: var(--surface-2); color: var(--text-1); border: 1px solid var(--border-strong); padding: 10px 20px; font-family: var(--font-mono); display: inline-flex; align-items: center; gap: 8px; }
-        .btn-secondary:hover { background-color: var(--surface-1); border-color: var(--accent); }
-
-        /* Version Badge */
-        #version-badge {
-            background: var(--surface-2); color: var(--text-3); font-family: var(--font-mono); padding: 4px 8px; border-radius: 999px; font-size: 12px; border: 1px solid var(--border-strong); display: inline-block; }
-
-        /* 3. Feature Grid */
-        .feature-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
-        .card { background-color: var(--surface-1); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 24px; transition: transform 0.3s ease, box-shadow 0.3s ease; position: relative; overflow: hidden; }
-        .card:hover { transform: translateY(-4px); box-shadow: var(--shadow-drop), var(--shadow-inset); border-color: var(--accent-soft); }
-        
-        .icon-box { width: 24px; height: 24px; stroke-width: 1.5; margin-bottom: 16px; color: var(--accent); display: block; }
-        .card h3 { font-size: 18px; margin-bottom: 8px; }
-        .card p { font-size: 14px; color: var(--text-2); line-height: 1.5; }
-
-        /* 4. Screenshot Gallery */
-        .gallery-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 32px; align-items: start; }
-        
-        /* Window Chrome Frame */
-        .window-frame { border-radius: 10px; overflow: hidden; background-color: var(--surface-1); border: 1px solid var(--border); box-shadow: var(--shadow-drop), var(--shadow-inset); position: relative; transition: all 0.3s ease; }
-        .window-frame:hover { transform: translateY(-4px) scale(1.02); z-index: 10; border-color: var(--accent-soft); }
-        
-        /* The little dots for window chrome */
-        .window-dots { position: absolute; top: 12px; left: 12px; display: flex; gap: 6px; }
-        .dot { width: 8px; height: 8px; border-radius: 50%; background-color: var(--surface-1); border: 1px solid var(--border-strong); cursor: pointer; transition: all 0.2s; }
-        .window-frame:hover .dot:nth-child(1) { background-color: var(--accent); transform: scale(1.2); }
-        
-        .shot-img { width: 100%; height: auto; display: block; opacity: 0.95; transition: opacity 0.3s; }
-        .window-frame:hover .shot-img { opacity: 1; }
-
-        /* 5. AI Workflow */
-        .ai-flow { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; align-items: center; }
-        .mono-fence { font-family: var(--font-mono); background-color: rgba(0,0,0,0.2); padding: 32px; border-radius: var(--radius-lg); border-left: 2px solid var(--accent); color: var(--text-2); }
-        .mono-fence code { font-size: 14px; line-height: 1.6; }
-
-        /* 6. Download Section */
-        .download-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
-        .channel-card { text-align: center; padding: 32px 16px; background-color: transparent; border-radius: var(--radius-md); transition: all 0.3s ease; }
-        .channel-card:hover { background-color: rgba(255,255,255,0.02); }
-        
-        /* Coming Soon Styling */
-        .coming-soon { border: 1px dashed var(--border-strong); padding: 24px; height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; }
-
-        /* 7. Footer */
-        footer { background-color: rgba(0,0,0,0.3); border-top: 1px solid var(--border-strong); padding: 64px 0; margin-top: auto; }
-        .footer-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 48px; }
-        .footer-col h4 { color: var(--text-1); font-size: 14px; margin-bottom: 16px; text-transform: uppercase; letter-spacing: 0.05em; }
-        .footer-col a { display: block; color: var(--text-2); font-size: 14px; margin-bottom: 8px; }
-
-        /* Animations */
-        @keyframes fadeUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
-        
-        /* Responsive Breakpoints */
-        @media (max-width: 900px) {
-            .feature-grid, .gallery-grid, .download-grid, .ai-flow { grid-template-columns: 1fr; gap: 48px; }
-            .qs-grid { grid-template-columns: 1fr !important; }
-            .window-frame:nth-child(2n) { margin-top: 32px; } /* Stagger gallery */
+        .nav.is-scrolled { border-bottom-color: var(--line); }
+        .nav .wrap { display: flex; align-items: center; gap: 24px; height: 64px; }
+        .brand { display: inline-flex; align-items: center; gap: 10px; text-decoration: none; font-weight: 700; font-size: 19px; letter-spacing: -0.01em; }
+        .brand img { width: 30px; height: 30px; border-radius: 7px; }
+        .nav-links { display: flex; align-items: center; gap: 4px; margin-left: auto; }
+        .nav-links a {
+            text-decoration: none; color: var(--ink-2); font-size: 15px; font-weight: 500;
+            padding: 8px 12px; border-radius: var(--r-control);
+            transition: color 150ms ease, background-color 150ms ease;
         }
-        
-        @media (max-width: 600px) {
-            .nav-links { gap: 16px; font-size: 13px; }
-            h1.hero-title { font-size: 38px; }
-            .hero-subhead { font-size: 18px; }
-            .window-frame:hover { transform: scale(1.05); }
+        @media (hover: hover) and (pointer: fine) { .nav-links a:hover { color: var(--ink); background: var(--bg-2); } }
+        .nav-links .stars { font-family: var(--mono); font-size: 13px; color: var(--ink-3); margin-left: 6px; }
+        .nav .btn { height: 38px; padding: 0 14px; font-size: 15px; }
+        @media (max-width: 640px) {
+            .nav-links .hide-sm { display: none; }
+            .nav .wrap { gap: 8px; }
         }
 
-        /* Utility for the copy button */
-        .copy-icon { width: 16px; height: 16px; fill: currentColor; opacity: 0.7; }
+        /* ---------- Hero ---------- */
+        .hero { padding: clamp(48px, 7vw, 88px) 0 var(--section); overflow: clip; }
+        .hero h1 {
+            font-size: clamp(2.4rem, 1.2rem + 4.4vw, 5rem);
+            line-height: 1.03;
+            letter-spacing: -0.035em;
+            font-weight: 750;
+        }
+        .hero h1 .l { display: block; }
+        .hero h1 .l2 { color: var(--ink-3); }
+        .hero-grid {
+            display: grid;
+            grid-template-columns: minmax(0, 4fr) minmax(0, 8fr);
+            gap: clamp(32px, 5vw, 72px);
+            margin-top: clamp(32px, 4vw, 56px);
+            align-items: start;
+        }
+        .hero-copy { display: flex; flex-direction: column; gap: 28px; padding-top: 8px; }
+        .lede { font-size: 19px; line-height: 1.55; color: var(--ink-2); max-width: 34ch; }
+        .ctas { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; }
+        .release { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; color: var(--ink-3); }
+        .release .pill {
+            font: 500 12.5px/1 var(--mono); color: var(--ink-2);
+            padding: 5px 9px; border-radius: 999px; border: 1px solid var(--line);
+        }
+        @media (max-width: 960px) {
+            .hero-grid { grid-template-columns: 1fr; }
+            .lede { max-width: 46ch; }
+        }
+
+        /* Entrance: runs once on load; content is visible without it. */
+        @keyframes rise { from { opacity: 0; transform: translateY(14px); filter: blur(4px); } }
+        .hero .l, .hero-copy > *, .stage { animation: rise 820ms var(--ease-out) both; }
+        .hero .l2 { animation-delay: 70ms; }
+        .hero-copy > :nth-child(1) { animation-delay: 160ms; }
+        .hero-copy > :nth-child(2) { animation-delay: 220ms; }
+        .hero-copy > :nth-child(3) { animation-delay: 280ms; }
+        .stage { animation-delay: 240ms; animation-duration: 1000ms; }
+
+        /* ---------- The live demo (agent writes, Mark renders) ---------- */
+        .stage { position: relative; padding-bottom: 72px; }
+        .win {
+            background: var(--night);
+            color: var(--night-ink);
+            border-radius: var(--r-panel);
+            box-shadow:
+                0 0 0 1px oklch(0.1 0.02 242 / 0.5),
+                0 30px 60px -30px oklch(0.2 0.05 242 / 0.55),
+                0 12px 24px -12px oklch(0.2 0.05 242 / 0.3);
+            overflow: hidden;
+        }
+        .win-bar {
+            display: grid; grid-template-columns: 1fr auto 1fr; align-items: center;
+            height: 40px; padding: 0 14px;
+            border-bottom: 1px solid var(--night-line);
+            font-size: 13px; color: var(--night-ink-2);
+        }
+        .lights { display: flex; gap: 8px; }
+        .lights i { width: 12px; height: 12px; border-radius: 50%; }
+        .lights i:nth-child(1) { background: oklch(0.68 0.19 25); }
+        .lights i:nth-child(2) { background: oklch(0.82 0.16 85); }
+        .lights i:nth-child(3) { background: oklch(0.72 0.18 145); }
+        .win-title { font-weight: 600; }
+        .status {
+            justify-self: end;
+            display: inline-flex; align-items: center; gap: 6px;
+            font: 500 12px/1 var(--font);
+            padding: 5px 9px; border-radius: 999px;
+            background: var(--night-2); color: var(--night-ink-3);
+            transition: background-color 240ms ease, color 240ms ease;
+        }
+        .status::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+        .status[data-tone="live"] { background: oklch(0.74 0.13 222 / 0.18); color: var(--brand); }
+        .status[data-tone="edit"] { background: oklch(0.82 0.16 85 / 0.16); color: oklch(0.86 0.13 85); }
+
+        .doc {
+            padding: 28px clamp(20px, 4vw, 44px) 36px;
+            min-height: 470px;
+            font-size: 15px; line-height: 1.6;
+        }
+        .doc > * { margin: 0 0 12px; border-radius: 6px; }
+        .doc h3 { font-size: 26px; line-height: 1.2; letter-spacing: -0.02em; font-weight: 700; color: oklch(0.8 0.13 222); margin-bottom: 8px; }
+        .doc h4 { font-size: 17px; font-weight: 700; margin-top: 20px; margin-bottom: 8px; }
+        .doc p { color: var(--night-ink-2); }
+        .doc code { font-size: 0.86em; background: var(--night-2); padding: 2px 6px; border-radius: 4px; color: var(--night-ink); }
+        .doc ol { padding-left: 22px; }
+        .doc li { padding: 2px 6px; margin-left: -6px; border-radius: 5px; color: var(--night-ink); }
+        .doc li::marker { color: var(--night-ink-3); font-variant-numeric: tabular-nums; }
+        .doc .sel { background: oklch(0.74 0.13 222 / 0.35); border-radius: 2px; }
+        .doc .caret { display: inline-block; width: 2px; height: 1.1em; margin-left: 1px; vertical-align: -0.18em; background: var(--brand); animation: blink 1s steps(1) infinite; }
+        @keyframes blink { 50% { opacity: 0; } }
+        .doc figure { margin: 8px 0 0; padding: 16px; background: var(--night-2); }
+        .doc figure svg { width: 100%; height: auto; display: block; }
+        .doc .flash { animation: flash 1400ms var(--ease-out); }
+        @keyframes flash {
+            0% { background-color: oklch(0.74 0.13 222 / 0.28); }
+            100% { background-color: transparent; }
+        }
+        .doc .enter { animation: enter 420ms var(--ease-out) both, flash 1400ms var(--ease-out); }
+        @keyframes enter { from { opacity: 0; transform: translateY(6px); } }
+
+        .term {
+            position: absolute; left: clamp(-40px, -3vw, -16px); bottom: 0;
+            width: min(430px, 78%);
+            background: oklch(0.14 0.012 242);
+            color: var(--night-ink-2);
+            border-radius: var(--r-panel);
+            box-shadow:
+                0 0 0 1px oklch(0.32 0.02 242),
+                0 24px 48px -20px oklch(0.1 0.04 242 / 0.6);
+            font: 400 12.5px/1.7 var(--mono);
+            padding: 12px 16px 14px;
+            min-height: 150px;
+        }
+        .term-head { display: flex; justify-content: space-between; color: var(--night-ink-3); font-size: 11.5px; margin-bottom: 6px; }
+        .term p { white-space: pre-wrap; word-break: break-word; }
+        .term .you { color: var(--night-ink); }
+        .term .you::before { content: "› "; color: var(--brand); }
+        .term .dim { color: var(--night-ink-3); }
+        .term .ok { color: oklch(0.8 0.14 150); }
+        .term .hl { color: var(--brand); }
+        .term .line-in { animation: enter 300ms var(--ease-out) both; }
+
+        @media (max-width: 960px) {
+            .stage { padding-bottom: 0; }
+            .term { position: relative; left: auto; width: auto; margin: -24px 16px 0; }
+            .doc { min-height: 430px; }
+        }
+        @media (max-width: 520px) {
+            .doc { min-height: 480px; }
+            .doc h3 { font-size: 22px; }
+        }
+
+        /* ---------- Sections ---------- */
+        section { padding: var(--section) 0; }
+        .sec-head { max-width: 760px; }
+        .sec-head h2 {
+            font-size: clamp(2rem, 1.2rem + 2.6vw, 3.4rem);
+            line-height: 1.05; letter-spacing: -0.03em; font-weight: 750;
+        }
+        .sec-head p { margin-top: 20px; font-size: 19px; color: var(--ink-2); max-width: 58ch; }
+
+        /* ---------- The loop (a real three-step sequence) ---------- */
+        .loop { border-top: 1px solid var(--line); }
+        .steps {
+            list-style: none; margin: 56px 0 0; padding: 0;
+            display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
+            counter-reset: step;
+            border-top: 1px solid var(--line);
+        }
+        .steps li { padding: 28px 28px 0 0; counter-increment: step; }
+        .steps li + li { padding-left: 28px; border-left: 1px solid var(--line); }
+        .steps li::before {
+            content: counter(step);
+            display: block; margin-bottom: 20px;
+            font: 700 15px/1 var(--mono); color: var(--link);
+        }
+        .steps h3 { font-size: 22px; letter-spacing: -0.015em; font-weight: 700; margin-bottom: 8px; }
+        .steps p { color: var(--ink-2); max-width: 32ch; }
+        .steps code, .snippet .note code { font-size: 0.86em; background: var(--bg-2); padding: 2px 6px; border-radius: 4px; }
+        @media (max-width: 820px) {
+            .steps { grid-template-columns: 1fr; }
+            .steps li, .steps li + li { padding: 24px 0; border-left: 0; border-bottom: 1px solid var(--line); }
+        }
+
+        .snippet { margin-top: 72px; display: grid; grid-template-columns: minmax(0, 4fr) minmax(0, 8fr); gap: clamp(24px, 4vw, 64px); align-items: start; }
+        .snippet h3 { font-size: 22px; letter-spacing: -0.015em; }
+        .snippet .note { margin-top: 10px; color: var(--ink-2); max-width: 34ch; }
+        .code {
+            position: relative;
+            background: var(--night); color: var(--night-ink-2);
+            border-radius: var(--r-panel);
+            padding: 22px 24px;
+            font: 400 13.5px/1.75 var(--mono);
+            overflow-x: auto;
+        }
+        .code pre { margin: 0; white-space: pre-wrap; }
+        .code .hl { color: var(--night-ink); }
+        .code .copy-sm {
+            position: absolute; top: 12px; right: 12px;
+            height: 30px; padding: 0 12px; border-radius: 6px; border: 0;
+            background: var(--night-2); color: var(--night-ink-2);
+            font: 600 12.5px/1 var(--font); cursor: pointer;
+            transition: transform 160ms var(--ease-out), color 150ms ease;
+        }
+        .code .copy-sm:active { transform: scale(0.96); }
+        .code .copy-sm.is-copied { color: var(--brand); }
+        @media (max-width: 820px) { .snippet { grid-template-columns: 1fr; } .code { padding-top: 52px; } }
+
+        /* ---------- Footprint chart ---------- */
+        .footprint { background: var(--bg-2); }
+        .chart-top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px 24px; margin-top: 56px; }
+        .seg {
+            position: relative; display: inline-grid; grid-auto-flow: column; grid-auto-columns: 1fr;
+            padding: 4px; border-radius: 10px; background: var(--bg); border: 1px solid var(--line);
+        }
+        .seg button {
+            position: relative; z-index: 1;
+            height: 36px; padding: 0 18px; border: 0; background: none; cursor: pointer;
+            font: 600 14px/1 var(--font); color: var(--ink-2);
+            border-radius: 7px; transition: color 200ms ease;
+        }
+        .seg button[aria-pressed="true"] { color: var(--on-brand); }
+        .seg .thumb {
+            position: absolute; top: 4px; bottom: 4px; left: 4px;
+            width: calc((100% - 8px) / 2);
+            border-radius: 7px; background: var(--brand);
+            transition: transform 360ms var(--ease-in-out);
+        }
+        .seg[data-metric="disk"] .thumb { transform: translateX(100%); }
+        .chart-caption { font-size: 15px; color: var(--ink-3); }
+
+        .bars { list-style: none; margin: 32px 0 0; padding: 0; display: grid; gap: 22px; }
+        .bars li { display: grid; grid-template-columns: minmax(0, 15rem) minmax(0, 1fr) 6.5rem; align-items: center; gap: 20px; }
+        .bars .who { font-weight: 600; font-size: 16px; line-height: 1.3; }
+        .bars .who small { display: block; font: 400 12.5px/1.4 var(--mono); color: var(--ink-3); margin-top: 3px; }
+        .bars .track { height: 30px; }
+        .bars .fill {
+            height: 100%; border-radius: 4px; background: var(--bar);
+            transform-origin: left center;
+            transform: scaleX(var(--v, 1));
+            transition: transform 620ms var(--ease-in-out);
+        }
+        .bars .val { text-align: right; font: 600 16px/1 var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; color: var(--ink-2); }
+        .bars .val span { transition: opacity 160ms ease; }
+        .bars .mark .fill { background: var(--brand); }
+        .bars .mark .val { color: var(--ink); }
+        .bars .mark .who { font-size: 18px; }
+        @media (max-width: 720px) {
+            .bars li { grid-template-columns: minmax(0, 1fr) auto; gap: 8px 16px; }
+            .bars .track { grid-column: 1 / -1; grid-row: 2; height: 22px; }
+        }
+        .method { margin-top: 40px; font-size: 14px; line-height: 1.6; color: var(--ink-3); max-width: 80ch; }
+        .method a { color: var(--link); }
+
+        /* ---------- Showcase (tabbed, real screenshots) ---------- */
+        .tabs {
+            position: relative; display: flex; gap: 4px; margin-top: 48px;
+            overflow-x: auto; scrollbar-width: none;
+        }
+        .tabs::-webkit-scrollbar { display: none; }
+        .tabs button {
+            position: relative; z-index: 1; flex: none;
+            height: 40px; padding: 0 16px; border: 0; border-radius: var(--r-control);
+            background: none; cursor: pointer; white-space: nowrap;
+            font: 600 15px/1 var(--font); color: var(--ink-3);
+            transition: color 200ms ease;
+        }
+        .tabs button[aria-selected="true"] { color: var(--ink); }
+        @media (hover: hover) and (pointer: fine) { .tabs button:hover { color: var(--ink); } }
+        .tabs .ind {
+            position: absolute; left: 0; top: 0; height: 40px; width: 0;
+            border-radius: var(--r-control); background: var(--bg-2);
+            transition: transform 320ms var(--ease-in-out), width 320ms var(--ease-in-out);
+        }
+        .viewer { margin-top: 20px; display: grid; grid-template-columns: minmax(0, 1fr); }
+        .shot { margin: 0 0 48px; }
+        .shot img {
+            width: 100%; height: auto; aspect-ratio: 16 / 10; object-fit: cover; object-position: top;
+            border-radius: var(--r-panel);
+            box-shadow: 0 0 0 1px var(--line), 0 24px 48px -28px oklch(0.2 0.05 242 / 0.45);
+            background: var(--night);
+        }
+        .shot figcaption { margin-top: 18px; color: var(--ink-2); max-width: 60ch; }
+        /* With JS the panels stack in one cell and crossfade. */
+        .js .shot {
+            grid-area: 1 / 1; margin: 0;
+            opacity: 0; filter: blur(6px); transform: scale(0.992);
+            transition: opacity 320ms ease, filter 320ms ease, transform 420ms var(--ease-out);
+            pointer-events: none;
+        }
+        .js .shot.is-on { opacity: 1; filter: none; transform: none; pointer-events: auto; }
+        .no-js .tabs { display: none; }
+
+        /* ---------- Details ---------- */
+        .details { padding-top: 0; }
+        .details-grid {
+            margin-top: 64px;
+            display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 56px clamp(32px, 6vw, 96px);
+        }
+        .group h3 { font-size: 22px; letter-spacing: -0.015em; padding-bottom: 14px; border-bottom: 2px solid var(--ink); }
+        .group dl { margin: 0; }
+        .group dt { font-weight: 650; margin-top: 18px; }
+        .group dd { margin: 4px 0 0; color: var(--ink-2); }
+        .group code, .group kbd { font-size: 0.85em; background: var(--bg-2); padding: 2px 6px; border-radius: 4px; color: var(--ink); }
+        .group a { color: var(--link); }
+        @media (max-width: 760px) { .details-grid { grid-template-columns: 1fr; } }
+
+        /* ---------- Install (the one dark block) ---------- */
+        .install { background: var(--night); color: var(--night-ink); }
+        .install .sec-head p { color: var(--night-ink-2); }
+        .install .copy { margin-top: 44px; height: 64px; width: min(100%, 720px); justify-content: space-between; font-size: clamp(12px, 1.4vw, 17px); background: var(--night-2); border-color: var(--night-line); color: var(--night-ink); padding-left: 22px; }
+        .install .copy .cmd::before { color: var(--night-ink-3); }
+        .install .copy .state { background: var(--night); color: var(--night-ink-2); }
+        .install .copy .state .done { color: var(--brand); }
+        @media (hover: hover) and (pointer: fine) { .install .copy:hover { border-color: var(--night-ink-3); } }
+        .alt { margin-top: 28px; display: flex; flex-wrap: wrap; gap: 12px 32px; font-size: 16px; color: var(--night-ink-2); }
+        .alt a { color: var(--night-ink); text-decoration-color: var(--night-ink-3); text-underline-offset: 3px; transition: text-decoration-color 150ms ease; }
+        @media (hover: hover) and (pointer: fine) { .alt a:hover { text-decoration-color: var(--brand); } }
+        .facts { margin-top: 64px; padding-top: 24px; border-top: 1px solid var(--night-line); display: flex; flex-wrap: wrap; gap: 10px 28px; font-size: 14px; color: var(--night-ink-3); }
+
+        /* ---------- Footer ---------- */
+        footer { padding: 48px 0 56px; font-size: 15px; color: var(--ink-3); }
+        footer .wrap { display: flex; flex-wrap: wrap; align-items: center; gap: 16px 28px; }
+        footer nav { display: flex; flex-wrap: wrap; gap: 8px 24px; margin-left: auto; }
+        footer a { color: var(--ink-2); text-decoration: none; }
+        @media (hover: hover) and (pointer: fine) { footer a:hover { color: var(--ink); } }
+
+        /* ---------- Reduced motion ---------- */
+        @media (prefers-reduced-motion: reduce) {
+            html { scroll-behavior: auto; }
+            @keyframes fade { from { opacity: 0; } }
+            .hero .l, .hero-copy > *, .stage { animation: fade 300ms ease both; animation-delay: 0ms; }
+            .doc .enter, .doc .flash, .term .line-in, .doc .caret { animation: none; }
+            .bars .fill, .seg .thumb, .tabs .ind { transition: none; }
+            .js .shot { transform: none; filter: none; transition: opacity 200ms ease; }
+        }
     </style>
 </head>
-<body>
+<body class="no-js">
+    <script>document.body.className = 'js'</script>
+    <a class="skip" href="#main">Skip to content</a>
 
-    <!-- 1. Sticky Nav -->
-    <header class="nav">
-        <div class="container nav-inner">
-            <a href="/mark/" aria-label="Mark Home" data-od-id="logo-link">
-                <img src="/mark/logo-96px.png" alt="" class="logo-mark">
-                <span class="wordmark">Mark</span>
+    <header class="nav" id="nav">
+        <div class="wrap">
+            <a class="brand" href="%BASE%" aria-label="Mark home">
+                <img src="%BASE%logo-96px.png" alt="" width="30" height="30">
+                Mark
             </a>
-            
-            <nav class="nav-links">
-                <a href="#features" class="nav-link" data-od-id="link-features">Features</a>
-                <a href="#screenshot" class="nav-link" data-od-id="link-screenshots">Screenshots</a>
-                <a href="#download" class="btn-primary" style="padding: 8px 18px; font-size: 14px;" data-od-id="nav-download">Download</a>
-                <!-- Live GitHub stars (filled from the repo API by the page script) -->
-                <a href="https://github.com/xronocode/mark/stargazers" target="_blank" rel="noopener noreferrer" id="gh-stars" data-od-id="nav-stars" style="font-size:13px; font-family:var(--font-mono); color:var(--text-2); border:1px solid var(--border-strong); border-radius:999px; padding:4px 12px;">★ …</a>
-                <!-- GitHub link relative as per brief -->
-                <a href="https://github.com/xronocode/mark" target="_blank" rel="noopener noreferrer" class="nav-link" style="font-size: 18px;" aria-label="Open on GitHub" data-od-id="link-github">
-                    <!-- Simple SVG for GitHub icon -->
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 3.117 8.169 7.22 9.464-.628 1.59-2.096 2.533-3.56 2.533-.28 0-.54-.05-.79-.137a9.323 9.323 0 0 0 4.83 1.455c4.678 0 8.44-3.838 8.44-8.622C22.02 8.484 17.543 4 12 4z"></path></svg>
-                </a>
+            <nav class="nav-links" aria-label="Primary">
+                <a href="%BASE%guide/">Docs</a>
+                <a class="hide-sm" href="%BASE%changelog">Changelog</a>
+                <a class="hide-sm" href="https://github.com/xronocode/mark">GitHub<span class="stars" id="gh-stars" hidden></span></a>
             </nav>
+            <a class="btn btn-primary" href="#install">Download</a>
         </div>
     </header>
 
-    <main>
-        <!-- 2. Hero Section -->
-        <section class="hero" data-od-id="section-hero">
-            <div class="container hero-content">
-                <!-- Version badge as eyebrow -->
-                <div style="margin-bottom: 20px;">
-                    <span id="version-badge">2.1.x beta</span>
-                </div>
-
-                <h1 class="hero-title">
-                    Your AI agents write Markdown.<br>
-                    Finally, an editor built for it.
+    <main id="main">
+        <!-- Hero ---------------------------------------------------- -->
+        <div class="hero">
+            <div class="wrap">
+                <h1>
+                    <span class="l">Your agents write Markdown.</span>
+                    <span class="l l2">You read it in Mark.</span>
                 </h1>
-                
-                <p class="hero-subhead">
-                    The whole app downloads in 11 MB, installs in 28, and opens in under a
-                    second — a real native Mac app, not an Electron browser in disguise.
-                </p>
-
-                <div class="hero-actions" style="display: flex; gap: 16px; flex-wrap: wrap; margin: 28px 0 8px;">
-                    <!-- Primary CTA -->
-                    <a href="https://github.com/xronocode/mark/releases/latest" class="btn-primary" data-od-id="cta-download" id="cta-download">
-                        Download for Mac
-                    </a>
-
-                    <!-- Secondary KBD Chip — copies the full tap+install command -->
-                    <div class="btn-secondary" id="brew-chip" onclick="copyToClipboard(this)" data-copy="brew tap xronocode/mark && brew install --cask mark" data-copied="Copied ✓ — paste into Terminal" data-od-id="chip-brew" title="Copy to clipboard" style="cursor:pointer;">
-                        <svg class="copy-icon" viewBox="0 0 24 24"><path d="M16 1H4v7h3v11h8V8h3V1z"></path></svg>
-                        brew tap xronocode/mark &amp;&amp; brew install --cask mark
-                    </div>
-                </div>
-
-                <!-- Trust + platform microcopy right at the decision point -->
-                <p style="font-size:13px; color:var(--text-3); margin:10px 0 0;" data-od-id="hero-micro">
-                    <span style="color:var(--text-2); font-weight:600;">Free &amp; open source · MIT</span>
-                    — no account, no telemetry.<br>
-                    Builds for Apple Silicon; Intel Macs — <a href="https://github.com/xronocode/mark#readme" style="color:var(--accent); text-decoration:underline;">build from source</a>.
-                </p>
-
-                <!-- Size stat strip — proof, right under the buttons -->
-                <div data-od-id="hero-stats" style="display:flex; gap:40px; flex-wrap:wrap; margin:24px 0 8px;">
-                    <div>
-                        <div style="font-size:40px; font-weight:700; letter-spacing:-0.02em; color:var(--text-1);">11 <span style="font-size:20px; color:var(--accent);">MB</span></div>
-                        <div style="font-size:13px; color:var(--text-3);">download — 28 MB installed</div>
-                    </div>
-                    <div>
-                        <div style="font-size:40px; font-weight:700; letter-spacing:-0.02em; color:var(--text-1);">~61 <span style="font-size:20px; color:var(--accent);">MB</span></div>
-                        <div style="font-size:13px; color:var(--text-3);">RAM at idle</div>
-                    </div>
-                    <div>
-                        <div style="font-size:40px; font-weight:700; letter-spacing:-0.02em; color:var(--text-1);">&lt;1 <span style="font-size:20px; color:var(--accent);">sec</span></div>
-                        <div style="font-size:13px; color:var(--text-3);">cold start</div>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- 2b. Footprint Section — size IS the feature -->
-        <section id="footprint" data-od-id="section-footprint">
-            <div class="container">
-                <h2 style="font-size: 32px; margin-bottom: 16px;">The footprint <span style="color: var(--accent);">is</span> the feature</h2>
-                <p style="color: var(--text-2); max-width: 720px; margin-bottom: 40px;">
-                    Most Markdown editors are Electron apps — they ship an entire Chromium
-                    browser and hold hundreds of megabytes of memory just to show text.
-                    If you work with AI, your machine already runs the model, the IDE, the
-                    browser and a pile of terminals. The editor should be the cheapest
-                    window you have open.
-                </p>
-
-                <div style="display:grid; gap:36px; max-width:860px;">
-                    <!-- Disk -->
-                    <div data-od-id="fp-disk">
-                        <div style="display:flex; justify-content:space-between; font-size:13px; color:var(--text-3); margin-bottom:8px;">
-                            <span>Installed size</span><span>lower is better</span>
+                <div class="hero-grid">
+                    <div class="hero-copy">
+                        <p class="lede">A native Mac editor for plans, specs and reports. Diagrams and tables render inline; agent edits reload live.</p>
+                        <div class="ctas">
+                            <a class="btn btn-primary" id="cta-download" href="https://github.com/xronocode/mark/releases/latest">
+                                <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M10 3v10m0 0 4-4m-4 4-4-4M4 16h12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                Download for Mac
+                            </a>
+                            <button class="copy" type="button" data-copy="brew tap xronocode/mark && brew install --cask mark" aria-label="Copy the Homebrew install command">
+                                <span class="cmd">brew install --cask mark</span>
+                                <span class="state" aria-live="polite"><span class="idle">Copy</span><span class="done">Copied</span></span>
+                            </button>
                         </div>
-                        <div style="margin-bottom:10px;">
-                            <div style="font-size:13px; color:var(--text-2); margin-bottom:4px;">Mark <span style="color:var(--accent); font-family:var(--font-mono);">28 MB installed</span></div>
-                            <div style="height:12px; border-radius:6px; background:var(--surface-2); overflow:hidden;">
-                                <div style="height:100%; width:3%; border-radius:6px; background:linear-gradient(90deg, var(--accent-deep), var(--accent-bright));"></div>
+                        <p class="release"><span class="pill" id="version">v2.1 beta</span> Apple Silicon, 11 MB</p>
+                    </div>
+
+                    <!-- Live demo. The markup below is the finished state, so
+                         the scene reads correctly without JavaScript or with
+                         reduced motion; the script replays it as a loop. -->
+                    <div class="stage" role="img" aria-label="Demo: an agent writes plan.md, Mark renders it, you rewrite step 3, and the agent picks up the change">
+                        <div class="win">
+                            <div class="win-bar">
+                                <div class="lights" aria-hidden="true"><i></i><i></i><i></i></div>
+                                <div class="win-title">plan.md</div>
+                                <div class="status" id="status" data-tone="">Saved</div>
+                            </div>
+                            <div class="doc" id="doc">
+                                <h3>Auth module plan</h3>
+                                <p>Replace cookie sessions before the 3.0 release. Owner: API team.</p>
+                                <h4>Steps</h4>
+                                <ol>
+                                    <li>Add a <code>POST /auth/token</code> endpoint</li>
+                                    <li>Hash passwords with argon2id</li>
+                                    <li id="step3">Issue short-lived JWTs, no server sessions</li>
+                                    <li>Migrate existing users on next login</li>
+                                </ol>
+                                <figure>
+                                    <svg viewBox="0 0 520 96" aria-hidden="true" font-family="Schibsted Grotesk, sans-serif" font-size="13">
+                                        <g stroke="oklch(0.6 0.02 240)" stroke-width="1.4" fill="none">
+                                            <path d="M86 48h40M226 48h40M352 38l58-16M352 58l58 16"/>
+                                        </g>
+                                        <g fill="oklch(0.6 0.02 240)">
+                                            <path d="M130 48l-8-4.5v9zM270 48l-8-4.5v9zM414 21l-9-2.4 2.6 8.6zM414 75l-6.4-6.2-2.4 8.7z"/>
+                                        </g>
+                                        <rect x="8" y="30" width="78" height="36" rx="6" fill="oklch(0.66 0.12 222)"/>
+                                        <text x="47" y="52.5" text-anchor="middle" fill="oklch(0.16 0.02 240)" font-weight="600">Client</text>
+                                        <rect x="130" y="30" width="96" height="36" rx="6" fill="oklch(0.66 0.12 222)"/>
+                                        <text x="178" y="52.5" text-anchor="middle" fill="oklch(0.16 0.02 240)" font-weight="600">/auth/token</text>
+                                        <path d="M312 20l42 28-42 28-42-28z" fill="oklch(0.8 0.13 85)"/>
+                                        <text x="312" y="52.5" text-anchor="middle" fill="oklch(0.16 0.02 240)" font-weight="600">valid?</text>
+                                        <rect x="414" y="6" width="98" height="32" rx="6" fill="oklch(0.7 0.13 150)"/>
+                                        <text x="463" y="26.5" text-anchor="middle" fill="oklch(0.16 0.02 240)" font-weight="600">JWT, 15 min</text>
+                                        <rect x="414" y="58" width="98" height="32" rx="6" fill="oklch(0.68 0.15 25)"/>
+                                        <text x="463" y="78.5" text-anchor="middle" fill="oklch(0.16 0.02 240)" font-weight="600">401</text>
+                                    </svg>
+                                </figure>
                             </div>
                         </div>
-                        <div>
-                            <div style="font-size:13px; color:var(--text-3); margin-bottom:4px;">Typical Electron-based editor <span style="font-family:var(--font-mono);">400–1200 MB installed</span></div>
-                            <div style="height:12px; border-radius:6px; background:var(--surface-2); overflow:hidden;">
-                                <div style="height:100%; width:100%; border-radius:6px; background:var(--border-strong);"></div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- RAM -->
-                    <div data-od-id="fp-ram">
-                        <div style="display:flex; justify-content:space-between; font-size:13px; color:var(--text-3); margin-bottom:8px;">
-                            <span>Memory at idle</span><span>lower is better</span>
-                        </div>
-                        <div style="margin-bottom:10px;">
-                            <div style="font-size:13px; color:var(--text-2); margin-bottom:4px;">Mark <span style="color:var(--accent); font-family:var(--font-mono);">~61 MB</span></div>
-                            <div style="height:12px; border-radius:6px; background:var(--surface-2); overflow:hidden;">
-                                <div style="height:100%; width:12%; border-radius:6px; background:linear-gradient(90deg, var(--accent-deep), var(--accent-bright));"></div>
-                            </div>
-                        </div>
-                        <div>
-                            <div style="font-size:13px; color:var(--text-3); margin-bottom:4px;">Typical Electron-based editor <span style="font-family:var(--font-mono);">300–600 MB</span></div>
-                            <div style="height:12px; border-radius:6px; background:var(--surface-2); overflow:hidden;">
-                                <div style="height:100%; width:100%; border-radius:6px; background:var(--border-strong);"></div>
-                            </div>
+                        <div class="term" id="term">
+                            <div class="term-head"><span>~/api</span><span>agent</span></div>
+                            <p class="you">plan the auth module rewrite</p>
+                            <p class="dim">wrote plan.md (4 steps, 1 diagram)</p>
+                            <p><span class="hl">plan.md changed:</span> step 3 now uses JWTs</p>
+                            <p class="ok">updating the implementation to match</p>
                         </div>
                     </div>
                 </div>
-
-                <p style="font-size:12px; color:var(--text-3); margin-top:28px;">
-                    Mark: v2.1.11-beta, Apple Silicon. Electron figures are typical ranges for
-                    editors in that category — an entire Chromium instance per app.
-                </p>
-            </div>
-        </section>
-
-        <!-- 2c. Benchmarks — measured, anonymized competitors, reproducible -->
-        <section id="benchmarks" data-od-id="section-benchmarks">
-            <div class="container">
-                <h2 style="font-size: 32px; margin-bottom: 16px;">Benchmarks — <span style="color: var(--accent);">measured</span>, not marketed</h2>
-                <p style="color: var(--text-2); max-width: 760px; margin-bottom: 40px;">
-                    We opened the same 25 Markdown documents in Mark and in three popular
-                    Electron-based editors, then added up every process each app owns.
-                    Editor identities are anonymized on purpose — the pattern, not the
-                    brand, is the point. Names are letter-masked as a courtesy — the
-                    measurements are factual and independently reproducible.
-                </p>
-
-                <div style="max-width: 900px; border: 1px solid var(--border); border-radius: 12px; overflow: hidden;">
-                    <!-- header row -->
-                    <div style="display:grid; grid-template-columns: 2.2fr 1.4fr 2fr 1.1fr; padding: 12px 20px; background: var(--surface-1); font-size: 12px; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.06em;">
-                        <div>Editor</div><div>Engine</div><div>RAM — 25 docs open</div><div>Installed</div>
-                    </div>
-
-                    <div style="display:grid; grid-template-columns: 2.2fr 1.4fr 2fr 1.1fr; padding: 14px 20px; border-top: 1px solid var(--border); font-size: 14px; align-items: center;">
-                        <div style="color: var(--text-2);">Agentic AI IDE <span style="font-family:var(--font-mono); color:var(--text-3); font-size:12px;">(A**********)</span></div>
-                        <div style="font-size: 13px; color: var(--text-3);">Electron</div>
-                        <div><div style="font-family: var(--font-mono); color: var(--text-2); margin-bottom: 4px;">2 313 MB</div><div style="height:8px; border-radius:4px; background:var(--surface-2);"><div style="height:100%; width:100%; border-radius:4px; background:var(--border-strong);"></div></div></div>
-                        <div style="font-family: var(--font-mono); color: var(--text-3);">676 MB</div>
-                    </div>
-
-                    <div style="display:grid; grid-template-columns: 2.2fr 1.4fr 2fr 1.1fr; padding: 14px 20px; border-top: 1px solid var(--border); font-size: 14px; align-items: center;">
-                        <div style="color: var(--text-2);">General code editor <span style="font-family:var(--font-mono); color:var(--text-3); font-size:12px;">(V* C***)</span></div>
-                        <div style="font-size: 13px; color: var(--text-3);">Electron</div>
-                        <div><div style="font-family: var(--font-mono); color: var(--text-2); margin-bottom: 4px;">1 517 MB</div><div style="height:8px; border-radius:4px; background:var(--surface-2);"><div style="height:100%; width:66%; border-radius:4px; background:var(--border-strong);"></div></div></div>
-                        <div style="font-family: var(--font-mono); color: var(--text-3);">1 160 MB</div>
-                    </div>
-
-                    <div style="display:grid; grid-template-columns: 2.2fr 1.4fr 2fr 1.1fr; padding: 14px 20px; border-top: 1px solid var(--border); font-size: 14px; align-items: center;">
-                        <div style="color: var(--text-2);">Note-taking MD editor <span style="font-family:var(--font-mono); color:var(--text-3); font-size:12px;">(O*******)</span></div>
-                        <div style="font-size: 13px; color: var(--text-3);">Electron</div>
-                        <div><div style="font-family: var(--font-mono); color: var(--text-2); margin-bottom: 4px;">803 MB</div><div style="height:8px; border-radius:4px; background:var(--surface-2);"><div style="height:100%; width:35%; border-radius:4px; background:var(--border-strong);"></div></div></div>
-                        <div style="font-family: var(--font-mono); color: var(--text-3);">481 MB</div>
-                    </div>
-
-                    <div style="display:grid; grid-template-columns: 2.2fr 1.4fr 2fr 1.1fr; padding: 16px 20px; border-top: 1px solid var(--border-strong); font-size: 14px; align-items: center; background: var(--accent-soft);">
-                        <div style="color: var(--text-1); font-weight: 700;">Mark</div>
-                        <div style="font-size: 13px; color: var(--accent);">Native</div>
-                        <div><div style="font-family: var(--font-mono); color: var(--accent); font-weight: 700; margin-bottom: 4px;">113 MB</div><div style="height:8px; border-radius:4px; background:var(--surface-2);"><div style="height:100%; width:5%; border-radius:4px; background:linear-gradient(90deg, var(--accent-deep), var(--accent-bright));"></div></div></div>
-                        <div style="font-family: var(--font-mono); color: var(--text-2);">28 MB <span style="color:var(--text-3);">(11.7 dl)</span></div>
-                    </div>
-                </div>
-
-                <p style="font-size: 12px; color: var(--text-3); margin-top: 24px; max-width: 860px;">
-                    Method: Apple M5 · 32 GB · macOS 26.6, 2026-09-21. The same 25 Markdown
-                    documents (~54 KB) opened in every editor; Electron apps ran in fresh
-                    isolated profiles and RAM is the sum of all app-owned processes after a
-                    25 s settle. Mark renders through the system WebKit view — it owns no
-                    engine processes, which is precisely the point. Competitor names and
-                    logos are deliberately omitted. Reproduce it yourself:
-                    <span style="font-family: var(--font-mono);">tools/benchmark/editors-bench.sh</span> in the repo.
-                </p>
-            </div>
-        </section>
-
-        <!-- 3. Feature Grid -->
-        <section id="features" data-od-id="section-features">
-            <div class="container">
-                <h2 style="font-size: 32px; margin-bottom: 48px;">Core Capabilities</h2>
-                
-                <div class="feature-grid">
-                    <!-- Card 1 -->
-                    <article class="card" data-od-id="feat-speed">
-                        <svg class="icon-box" viewBox="0 0 24 24"><path d="M13 2L3 14h9v8l10-12h-9z"></path></svg>
-                        <h3>Native Speed</h3>
-                        <p>11 MB download, ~61 MB RAM at idle, open in under a second. A whole editor smaller than a single browser tab.</p>
-                    </article>
-
-                    <!-- Card 2 -->
-                    <article class="card" data-od-id="feat-wysiwyg">
-                        <svg class="icon-box" viewBox="0 0 24 24"><path d="M3.5 18.49l6-6.03 5.75 5.74L21.5 12l-5.75-5.74L21.5 2.25l-5.75 5.74z"></path></svg>
-                        <h3>WYSIWYG + Source</h3>
-                        <p>Toggle between rich editing and raw source code instantly without losing your formatting context.</p>
-                    </article>
-
-                    <!-- Card 3 -->
-                    <article class="card" data-od-id="feat-live">
-                        <svg class="icon-box" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14c2.33 0 4.31 1.46 5.11 3.5-.64 1.83-2.31 3.1-4.11 3.5C9.73 21.94 8 19.35 8 16s1.73-5.94 4-5.94z"></path></svg>
-                        <h3>Agent Live Reload</h3>
-                        <p>Your AI agent edits the file on disk? Mark re-renders instantly while keeping your cursor exactly where it was.</p>
-                    </article>
-
-                    <!-- Card 4 -->
-                    <article class="card" data-od-id="feat-themes">
-                        <svg class="icon-box" viewBox="0 0 24 24"><path d="M12 3c.132 0 .263 0 .398 0C17.5 3 21 6.5 21 11s-3.5 8-8 8c-.132 0-.264 0-.398 0S12 20.5 12 20.5s-.398.5-.53.5C7.5 21 4 17.5 4 13s3.5-8 8-8zm0 2c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4z"></path></svg>
-                        <h3>21 Themes</h3>
-                        <p>From Cadmium Light to Synthwave '84. Match your environment or let the colors do the work.</p>
-                    </article>
-
-                    <!-- Card 5 -->
-                    <article class="card" data-od-id="feat-sidebar">
-                        <svg class="icon-box" viewBox="0 0 24 24"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8v-6h-8v6zM13 3v6h8V3h-8z"></path></svg>
-                        <h3>Sidebar & Search</h3>
-                        <p>Browse your file tree, search instantly with fuzzy matching, and view diffs side-by-side.</p>
-                    </article>
-
-                    <!-- Card 6 -->
-                    <article class="card" data-od-id="feat-copy">
-                        <svg class="icon-box" viewBox="0 0 24 24"><path d="M15.8 3.9c-.7-.7-1.8-.7-2.5 0L7 10.2V16h5.8l6.5-6.5c.7-.7.7-1.8 0-2.5s-1.8-.7-2.5 0z"></path></svg>
-                        <h3>Clean Copy</h3>
-                        <p>Right-click to copy as HTML or Plain Text directly from the native menu, perfect for pasting into email.</p>
-                    </article>
-                </div>
-            </div>
-        </section>
-
-        <!-- 4. Screenshot Gallery -->
-        <section id="screenshot" data-od-id="section-gallery">
-            <div class="container">
-                <h2 style="font-size: 32px; margin-bottom: 16px;">Visual Showcase</h2>
-                
-                <div class="gallery-grid">
-                    <!-- Shot 00 -->
-                    <figure class="window-frame" data-od-id="shot-rich">
-                        <div class="window-dots">
-                            <span class="dot"></span><span class="dot"></span><span class="dot"></span>
-                        </div>
-                        <img src="/mark/showcase-00-rich-markdown.png" alt="Rich WYSIWYG editing in Mark" class="shot-img">
-                        <figcaption style="padding: 12px; font-size: 13px; color: var(--text-3); text-align: center;">Rich WYSIWYG Editing</figcaption>
-                    </figure>
-
-                    <!-- Shot 01 -->
-                    <figure class="window-frame" data-od-id="shot-code">
-                        <div class="window-dots">
-                            <span class="dot"></span><span class="dot"></span><span class="dot"></span>
-                        </div>
-                        <img src="/mark/showcase-01-code-highlighting.png" alt="Code blocks with syntax highlighting" class="shot-img">
-                        <figcaption style="padding: 12px; font-size: 13px; color: var(--text-3); text-align: center;">Code Highlighting</figcaption>
-                    </figure>
-
-                    <!-- Shot 02 -->
-                    <figure class="window-frame" data-od-id="shot-mermaid">
-                        <div class="window-dots">
-                            <span class="dot"></span><span class="dot"></span><span class="dot"></span>
-                        </div>
-                        <img src="/mark/showcase-02-mermaid-flowchart.png" alt="Mermaid diagrams rendered live" class="shot-img">
-                        <figcaption style="padding: 12px; font-size: 13px; color: var(--text-3); text-align: center;">Mermaid Flowcharts</figcaption>
-                    </figure>
-
-                    <!-- Shot 03 -->
-                    <figure class="window-frame" data-od-id="shot-math">
-                        <div class="window-dots">
-                            <span class="dot"></span><span class="dot"></span><span class="dot"></span>
-                        </div>
-                        <img src="/mark/showcase-03-math-katex.png" alt="KaTeX math equations" class="shot-img">
-                        <figcaption style="padding: 12px; font-size: 13px; color: var(--text-3); text-align: center;">KaTeX Math</figcaption>
-                    </figure>
-
-                    <!-- Shot 04 -->
-                    <figure class="window-frame" data-od-id="shot-tables">
-                        <div class="window-dots">
-                            <span class="dot"></span><span class="dot"></span><span class="dot"></span>
-                        </div>
-                        <img src="/mark/showcase-04-data-tables.png" alt="Live rendered data tables" class="shot-img">
-                        <figcaption style="padding: 12px; font-size: 13px; color: var(--text-3); text-align: center;">Live Data Tables</figcaption>
-                    </figure>
-
-                    <!-- Shot 05 -->
-                    <figure class="window-frame" data-od-id="shot-sequence">
-                        <div class="window-dots">
-                            <span class="dot"></span><span class="dot"></span><span class="dot"></span>
-                        </div>
-                        <img src="/mark/showcase-05-mermaid-sequence.png" alt="Sequence diagrams for flow" class="shot-img">
-                        <figcaption style="padding: 12px; font-size: 13px; color: var(--text-3); text-align: center;">Sequence Diagrams</figcaption>
-                    </figure>
-
-                    <!-- Shot 06 -->
-                    <figure class="window-frame" data-od-id="shot-tasks">
-                        <div class="window-dots">
-                            <span class="dot"></span><span class="dot"></span><span class="dot"></span>
-                        </div>
-                        <img src="/mark/showcase-06-task-management.png" alt="Task lists and checkboxes" class="shot-img">
-                        <figcaption style="padding: 12px; font-size: 13px; color: var(--text-3); text-align: center;">Task Management</figcaption>
-                    </figure>
-
-                    <!-- Shot 07 -->
-                    <figure class="window-frame" data-od-id="shot-mixed">
-                        <div class="window-dots">
-                            <span class="dot"></span><span class="dot"></span><span class="dot"></span>
-                        </div>
-                        <img src="/mark/showcase-07-mixed-showcase.png" alt="Everything together in one file" class="shot-img">
-                        <figcaption style="padding: 12px; font-size: 13px; color: var(--text-3); text-align: center;">The Mixed Showcase</figcaption>
-                    </figure>
-                </div>
-            </div>
-        </section>
-
-        <!-- 5. AI Workflow Section -->
-        <section id="ai-workflow" data-od-id="section-ai">
-            <div class="container ai-flow">
-                <div class="ai-text">
-                    <h2 style="font-size: 32px; margin-bottom: 16px;">The Agent Workflow</h2>
-                    <p style="color: var(--text-2); font-size: 18px;">
-                        If you actively use AI, you don't have one window — you have a dozen:
-                        the agent, the logs, the browser, the terminals. Pasting Markdown into
-                        a browser-based converter every time is pain, and heavyweight editors
-                        tax the very machine your models run on. Mark just watches the files
-                        and renders them live; the cursor remembers its place, ready the
-                        moment the agent finishes its pass.
-                    </p>
-                </div>
-
-                <div class="ai-visual">
-                    <div class="mono-fence" data-od-id="code-flow">
-                        <span style="color: var(--accent-deep);"># Watch mode active</span><br>
-                        <span style="opacity: 0.6;">$ mark file.md —watch</span><br><br>
-                        
-                        <span style="color: var(--text-3);">1.</span> Agent edits `index.md`<br>
-                        <span style="color: var(--accent-deep);">2.</span> Mark detects change<br>
-                        <span style="opacity: 0.6;">3.</span> Re-renders DOM<br><br>
-
-                        <span style="color: var(--text-3);">// While you type...</span><br>
-                        <span style="font-weight: bold; color: var(--ok);">cursor: preserved</span>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- 5b. Quick Start — 60 seconds to first render -->
-        <section id="quickstart" data-od-id="section-quickstart">
-            <div class="container">
-                <h2 style="font-size: 32px; margin-bottom: 16px;">60 seconds to first render</h2>
-                <p style="color: var(--text-2); max-width: 720px; margin-bottom: 40px;">
-                    No account, no wizard, no import. If you live in the terminal, Mark starts there too.
-                </p>
-                <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:24px; max-width:960px;" class="qs-grid">
-                    <div class="card" data-od-id="qs-1">
-                        <div style="font-family:var(--font-mono); font-size:13px; color:var(--accent); margin-bottom:8px;">step 1 — install</div>
-                        <div style="font-family:var(--font-mono); font-size:14px; background:var(--surface-2); border:1px solid var(--border); border-radius:8px; padding:10px 12px; margin-bottom:8px;">brew tap xronocode/mark &amp;&amp;<br>brew install --cask mark</div>
-                        <p style="font-size:13px; color:var(--text-3); margin:0;">Or grab the DMG below — 11&nbsp;MB.</p>
-                    </div>
-                    <div class="card" data-od-id="qs-2">
-                        <div style="font-family:var(--font-mono); font-size:13px; color:var(--accent); margin-bottom:8px;">step 2 — open</div>
-                        <div style="font-family:var(--font-mono); font-size:14px; background:var(--surface-2); border:1px solid var(--border); border-radius:8px; padding:10px 12px; margin-bottom:8px;">mark notes.md</div>
-                        <p style="font-size:13px; color:var(--text-3); margin:0;">From Finder or the terminal. Add <span style="font-family:var(--font-mono);">--watch</span> to live-reload on external edits.</p>
-                    </div>
-                    <div class="card" data-od-id="qs-3">
-                        <div style="font-family:var(--font-mono); font-size:13px; color:var(--accent); margin-bottom:8px;">step 3 — done</div>
-                        <div style="font-size:14px; color:var(--text-2); margin-bottom:8px;">Rich Markdown, rendered. Themes, sidebar and search are one menu away.</div>
-                        <p style="font-size:13px; color:var(--text-3); margin:0;">Full tour in the <a href="/mark/guide/quickstart.html" style="color:var(--accent); text-decoration:underline;">Quick Start guide</a>.</p>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- 6. Download Section -->
-        <section id="download" data-od-id="section-download">
-            <div class="container">
-                <h2 style="font-size: 32px; margin-bottom: 16px;">Get Mark</h2>
-                
-                <div class="download-grid">
-                    <!-- Homebrew -->
-                    <article class="channel-card" data-od-id="chan-homebrew">
-                        <svg class="icon-box" viewBox="0 0 24 24"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.17 4 6.68 5.35 5.59 7.7l-3.04-.94c-.49-.15-.71.46-.4.78L9.04 15.2c.3.29.8.23.98-.18l1.9-5.5c.23-.66.98-.91 1.47-.58l3.96 2.8z"></path></svg>
-                        <h3 style="margin-bottom: 8px;">Homebrew</h3>
-                        <p style="font-size: 14px; color: var(--text-2); margin-bottom: 16px;">The easiest way to install and update.</p>
-                        <div style="font-family:var(--font-mono); font-size:13px; background:var(--surface-2); border:1px solid var(--border); border-radius:8px; padding:10px 12px; margin-bottom:12px; word-break:break-all;">brew tap xronocode/mark &amp;&amp; brew install --cask mark</div>
-                        <a href="#download" class="btn-secondary" onclick="copyToClipboard(this); return false;" data-copy="brew tap xronocode/mark && brew install --cask mark" data-copied="Copied ✓" style="cursor:pointer;">Copy command</a>
-                        <p style="font-size: 12px; color: var(--text-3); margin-top: 10px; margin-bottom: 0;">Paste into Terminal and press Enter.</p>
-                    </article>
-
-                    <!-- Direct DMG -->
-                    <article class="channel-card" data-od-id="chan-dmg">
-                        <svg class="icon-box" viewBox="0 0 24 24"><path d="M18.5 3L6 9V20h12.5c.55 0 1-.45 1-1V4c0-.55-.45-1-1-1zM7 11l-2 3v2l2 3v-8z"></path></svg>
-                        <h3 style="margin-bottom: 8px;">Direct DMG</h3>
-                        <p style="font-size: 14px; color: var(--text-2); margin-bottom: 16px;">Drag and drop. No dependencies.</p>
-                        <!-- Link to latest release asset -->
-                        <a href="https://github.com/xronocode/mark/releases/latest" class="btn-primary" id="dmg-download">Download .dmg</a>
-                        <p style="font-size: 12px; color: var(--text-3); margin-top: 10px; margin-bottom: 0;">Apple Silicon build · Intel — <a href="https://github.com/xronocode/mark#readme" style="color:var(--accent);">from source</a></p>
-                    </article>
-
-                    <!-- Coming Soon -->
-                    <article class="channel-card coming-soon" data-od-id="chan-appstore">
-                        <svg class="icon-box" viewBox="0 0 24 24"><path d="M18.75 2H5.25C3.6 2 2.25 3.35 2.25 5v14c0 1.65 1.35 3 3 3h13.5c1.65 0 3-1.35 3-3V5c0-1.65-1.35-3-3-3zM9.25 17H5.25v-8h4zm0-10h-4V5h4zm10.5 12h-4v-8h4z"></path></svg>
-                        <h3 style="margin-bottom: 8px;">App Store</h3>
-                        <p style="font-size: 14px; color: var(--text-2); margin-bottom: 0;">Coming soon to macOS.</p>
-                    </article>
-                </div>
-            </div>
-        </section>
-
-    </main>
-
-    <!-- 7. Footer -->
-    <footer data-od-id="footer">
-        <div class="container footer-grid">
-            <div class="footer-col">
-                <h4>Mark</h4>
-                <p style="color: var(--text-3); font-size: 14px;">The native Markdown editor designed for the age of AI agents.</p>
-            </div>
-
-            <div class="footer-col">
-                <h4>Product</h4>
-                <a href="#features" data-od-id="foot-feat">Features</a>
-                <a href="#screenshot" data-od-id="foot-shot">Screenshots</a>
-                <a href="#download" data-od-id="foot-dl">Downloads</a>
-            </div>
-
-            <div class="footer-col">
-                <h4>Resources</h4>
-                <a href="/mark/guide/" data-od-id="foot-docs">Docs & Guide</a>
-                <a href="/mark/changelog.html" data-od-id="foot-changelog">Changelog</a>
-                <a href="/mark/privacy.html" data-od-id="foot-priv">Privacy Policy</a>
-            </div>
-
-            <div class="footer-col" style="text-align: right;">
-                <h4>Social</h4>
-                <a href="https://github.com/xronocode/mark" target="_blank" data-od-id="foot-github">GitHub</a>
             </div>
         </div>
 
-        <div class="container" style="margin-top: 32px; display: flex; justify-content: space-between; align-items: center;">
-            <span style="font-size: 13px; color: var(--text-3);">© <script>document.write(new Date().getFullYear())</script> xronocode.</span>
-            
-            <!-- Footer CTA Band -->
-            <a href="https://github.com/xronocode/mark/releases/latest" class="btn-primary" style="padding: 8px 16px; font-size: 13px;">Get Mark</a>
+        <!-- The loop -------------------------------------------------- -->
+        <section class="loop" aria-labelledby="loop-h">
+            <div class="wrap">
+                <div class="sec-head">
+                    <h2 id="loop-h">One file, two authors.</h2>
+                    <p>Your agent drafts, you correct, and the file on disk carries the conversation. Nothing to paste back into a chat.</p>
+                </div>
+                <ol class="steps">
+                    <li>
+                        <h3>The agent writes</h3>
+                        <p>It saves <code>plan.md</code> and opens it with <code>open&nbsp;-a&nbsp;Mark</code>.</p>
+                    </li>
+                    <li>
+                        <h3>You edit in place</h3>
+                        <p>Delete a step, rewrite a paragraph, leave a note under a table. Save.</p>
+                    </li>
+                    <li>
+                        <h3>The agent reads the diff</h3>
+                        <p>Its next write reloads in Mark without moving your cursor.</p>
+                    </li>
+                </ol>
+
+                <div class="snippet">
+                    <div>
+                        <h3>Teach your agent once</h3>
+                        <p class="note">Paste into <code>CLAUDE.md</code>, <code>AGENTS.md</code> or any system prompt your agent reads.</p>
+                    </div>
+                    <div class="code">
+                        <button class="copy-sm" type="button" data-copy-target="agent-snippet">Copy</button>
+<pre id="agent-snippet"><span class="hl">When you produce a plan, spec, report, or any document longer
+than ~50 lines, write it to a .md file and open it for the user:</span>
+
+    open -a Mark &lt;file&gt;.md
+
+The user reads and edits it in Mark, which reloads the file when
+it changes on disk. When the file changes, read the new version:
+the user left corrections inline. Treat the diff as your next
+instruction.</pre>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Footprint --------------------------------------------------- -->
+        <section class="footprint" aria-labelledby="fp-h">
+            <div class="wrap">
+                <div class="sec-head">
+                    <h2 id="fp-h">113 MB with 25 documents open.</h2>
+                    <p>We opened the same 25 files in four editors and counted every process each one owns. Mark renders with the WebKit already on your Mac instead of shipping its own browser engine.</p>
+                </div>
+
+                <div class="chart-top">
+                    <div class="seg" id="seg" data-metric="ram" role="group" aria-label="Metric">
+                        <span class="thumb" aria-hidden="true"></span>
+                        <button type="button" data-metric="ram" aria-pressed="true">Memory</button>
+                        <button type="button" data-metric="disk" aria-pressed="false">Disk</button>
+                    </div>
+                    <p class="chart-caption" id="chart-caption">RAM with 25 documents open, all app processes</p>
+                </div>
+
+                <ul class="bars" id="bars">
+                    <li data-ram="2313" data-disk="676">
+                        <div class="who">Agentic AI IDE <small>A********** · Electron</small></div>
+                        <div class="track"><div class="fill"></div></div>
+                        <div class="val"><span>2,313 MB</span></div>
+                    </li>
+                    <li data-ram="1517" data-disk="1160">
+                        <div class="who">General code editor <small>V* C*** · Electron</small></div>
+                        <div class="track"><div class="fill"></div></div>
+                        <div class="val"><span>1,517 MB</span></div>
+                    </li>
+                    <li data-ram="803" data-disk="481">
+                        <div class="who">Note-taking editor <small>O******* · Electron</small></div>
+                        <div class="track"><div class="fill"></div></div>
+                        <div class="val"><span>803 MB</span></div>
+                    </li>
+                    <li class="mark" data-ram="113" data-disk="28">
+                        <div class="who">Mark <small>Native · system WebKit</small></div>
+                        <div class="track"><div class="fill"></div></div>
+                        <div class="val"><span>113 MB</span></div>
+                    </li>
+                </ul>
+
+                <p class="method">
+                    Method: Apple M5, 32 GB, macOS 26.6, 21 September 2026. The same 25 Markdown files (about 54 KB) in every editor; Electron apps ran in fresh profiles, and RAM is the sum of all app-owned processes after a 25-second settle. Mark v2.1.11 downloads at 11.7 MB and idles near 61 MB with one file open. Competitor names are masked on purpose; the pattern is the point. Reproduce it with <a href="https://github.com/xronocode/mark/blob/main/tools/benchmark/editors-bench.sh">tools/benchmark/editors-bench.sh</a>.
+                </p>
+            </div>
+        </section>
+
+        <!-- Showcase ---------------------------------------------------- -->
+        <section aria-labelledby="sc-h">
+            <div class="wrap">
+                <div class="sec-head">
+                    <h2 id="sc-h">Everything an agent puts in a .md file.</h2>
+                    <p>Rendered in place, in one pane. No split preview, no export step.</p>
+                </div>
+
+                <div class="tabs" role="tablist" aria-label="Showcase" id="tabs">
+                    <span class="ind" aria-hidden="true"></span>
+                    <button type="button" role="tab" id="t-0" aria-controls="p-0" aria-selected="true">Text</button>
+                    <button type="button" role="tab" id="t-1" aria-controls="p-1" aria-selected="false" tabindex="-1">Code</button>
+                    <button type="button" role="tab" id="t-2" aria-controls="p-2" aria-selected="false" tabindex="-1">Diagrams</button>
+                    <button type="button" role="tab" id="t-3" aria-controls="p-3" aria-selected="false" tabindex="-1">Math</button>
+                    <button type="button" role="tab" id="t-4" aria-controls="p-4" aria-selected="false" tabindex="-1">Tables</button>
+                    <button type="button" role="tab" id="t-5" aria-controls="p-5" aria-selected="false" tabindex="-1">Tasks</button>
+                </div>
+                <div class="viewer">
+                    <figure class="shot is-on" role="tabpanel" id="p-0" aria-labelledby="t-0">
+                        <img src="%BASE%showcase-00-rich-markdown.png" alt="Mark showing a formatted document with headings, emphasis, lists and a quote" width="1280" height="800">
+                        <figcaption>Headings, lists, quotes and inline code, edited where they are rendered. Switch to source mode when you want the raw text.</figcaption>
+                    </figure>
+                    <figure class="shot" role="tabpanel" id="p-1" aria-labelledby="t-1">
+                        <img src="%BASE%showcase-01-code-highlighting.png" alt="Fenced code blocks with syntax highlighting in Mark" width="1280" height="800" loading="lazy">
+                        <figcaption>Fenced code with highlighting for more than 60 languages.</figcaption>
+                    </figure>
+                    <figure class="shot" role="tabpanel" id="p-2" aria-labelledby="t-2">
+                        <img src="%BASE%showcase-02-mermaid-flowchart.png" alt="A Mermaid architecture flowchart and a pie chart rendered inline" width="1280" height="800" loading="lazy">
+                        <figcaption>Mermaid v11 flowcharts, sequence diagrams and Vega charts render inline and follow the theme.</figcaption>
+                    </figure>
+                    <figure class="shot" role="tabpanel" id="p-3" aria-labelledby="t-3">
+                        <img src="%BASE%showcase-03-math-katex.png" alt="KaTeX equations rendered inline in a document" width="1280" height="800" loading="lazy">
+                        <figcaption>KaTeX for inline and display equations.</figcaption>
+                    </figure>
+                    <figure class="shot" role="tabpanel" id="p-4" aria-labelledby="t-4">
+                        <img src="%BASE%showcase-04-data-tables.png" alt="A project dashboard built from Markdown tables" width="1280" height="800" loading="lazy">
+                        <figcaption>Tables render as tables and edit cell by cell.</figcaption>
+                    </figure>
+                    <figure class="shot" role="tabpanel" id="p-5" aria-labelledby="t-5">
+                        <img src="%BASE%showcase-06-task-management.png" alt="A roadmap with checked and unchecked task lists" width="1280" height="800" loading="lazy">
+                        <figcaption>Task lists you can tick off while the agent works through them.</figcaption>
+                    </figure>
+                </div>
+            </div>
+        </section>
+
+        <!-- Details ----------------------------------------------------- -->
+        <section class="details" aria-labelledby="dt-h">
+            <div class="wrap">
+                <div class="sec-head">
+                    <h2 id="dt-h">A small app with the right parts.</h2>
+                </div>
+                <div class="details-grid">
+                    <div class="group">
+                        <h3>For the agent loop</h3>
+                        <dl>
+                            <dt>Live reload</dt>
+                            <dd>External edits appear as they land. Run <code>mark --watch plan.md</code> from any script.</dd>
+                            <dt>Inline diff</dt>
+                            <dd><kbd>⌘D</kbd> compares against git HEAD or a <code>.before</code> file, so you see exactly what the agent changed.</dd>
+                            <dt>Unsaved work stays safe</dt>
+                            <dd>A reload never overwrites a tab you are still editing; you choose to save, discard or keep it.</dd>
+                        </dl>
+                    </div>
+                    <div class="group">
+                        <h3>For reading</h3>
+                        <dl>
+                            <dt>33 themes and custom CSS</dt>
+                            <dd>Light, dark and everything between, synced across windows.</dd>
+                            <dt>Preview mode</dt>
+                            <dd>Double-click a .md file in Finder and it opens read-only. Make Mark the default handler if you like.</dd>
+                            <dt>Folders and search</dt>
+                            <dd>A sidebar file tree, tabs, and find across a whole folder.</dd>
+                        </dl>
+                    </div>
+                    <div class="group">
+                        <h3>For your Mac</h3>
+                        <dl>
+                            <dt>Native, not Electron</dt>
+                            <dd>Tauri and the system WebKit view, a real menu bar, system spell-check, proper shortcuts.</dd>
+                            <dt>Signed and notarized</dt>
+                            <dd>Developer ID signed, notarized by Apple, updated through Homebrew.</dd>
+                        </dl>
+                    </div>
+                    <div class="group">
+                        <h3>For your files</h3>
+                        <dl>
+                            <dt>No account, no telemetry</dt>
+                            <dd>Nothing leaves your machine. Files stay plain Markdown on disk.</dd>
+                            <dt>Open source</dt>
+                            <dd>MIT licensed, built on the Muya engine from Mark Text. <a href="https://github.com/xronocode/mark">Read the code on GitHub</a>.</dd>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Install ----------------------------------------------------- -->
+        <section class="install" id="install" aria-labelledby="in-h">
+            <div class="wrap">
+                <div class="sec-head">
+                    <h2 id="in-h">Install in one line.</h2>
+                    <p>Homebrew keeps Mark updated. Paste this into Terminal.</p>
+                </div>
+                <button class="copy" type="button" data-copy="brew tap xronocode/mark && brew install --cask mark" aria-label="Copy the Homebrew install command">
+                    <span class="cmd">brew tap xronocode/mark &amp;&amp; brew install --cask mark</span>
+                    <span class="state" aria-live="polite"><span class="idle">Copy</span><span class="done">Copied</span></span>
+                </button>
+                <div class="alt">
+                    <a id="dmg-download" href="https://github.com/xronocode/mark/releases/latest">Download the .dmg (11 MB)</a>
+                    <a href="%BASE%guide/quickstart">Read the quick start</a>
+                    <a href="https://github.com/xronocode/mark#install">Build from source</a>
+                </div>
+                <div class="facts">
+                    <span>Apple Silicon</span>
+                    <span>macOS 12 or later</span>
+                    <span>Intel Macs: build from source</span>
+                    <span>Mac App Store version on the way</span>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <div class="wrap">
+            <a class="brand" href="%BASE%" aria-label="Mark home"><img src="%BASE%logo-96px.png" alt="" width="30" height="30">Mark</a>
+            <span>© <span id="year">2026</span> xronocode · MIT</span>
+            <nav aria-label="Footer">
+                <a href="%BASE%guide/">Docs</a>
+                <a href="%BASE%changelog">Changelog</a>
+                <a href="%BASE%privacy">Privacy</a>
+                <a href="https://github.com/xronocode/mark">GitHub</a>
+            </nav>
         </div>
     </footer>
 
-    <!-- Script for Version Badge & Copy Logic -->
     <script>
-        (function() {
-            // 1. Fetch Version Badge
-            const badge = document.getElementById('version-badge');
-            
-            fetch('https://api.github.com/repos/xronocode/mark/releases/latest')
-                .then(res => res.json())
-                .then(rel => {
-                    const ver = rel && rel.tag_name ? rel.tag_name.replace(/^v/, "") : null;
-                    if (ver) {
-                        badge.textContent = "v" + ver;
-                        badge.style.animation = 'none';
-                        badge.offsetHeight; /* trigger reflow */
-                        badge.style.animation = 'fadeUp 0.5s ease-out';
-                        // Point the DMG CTAs at the exact current artifact
-                        // (fall back to the release page if not found).
-                        const asset = (rel.assets || []).find(a => /Mark_.*_aarch64\.dmg$/.test(a.name));
-                        const dmg = asset ? asset.browser_download_url
-                            : "https://github.com/xronocode/mark/releases/latest";
-                        for (const id of ["cta-download", "dmg-download"]) {
-                            const el = document.getElementById(id);
-                            if (el) el.href = dmg;
-                        }
-                    }
-                })
-                .catch(() => {
-                    // Fallback if fetch fails (e.g., offline or network hiccup)
-                    badge.textContent = "2.1.x beta";
+    (function () {
+        'use strict';
+        var reduce = window.matchMedia('(prefers-reduced-motion: reduce)');
+        var $ = function (s, r) { return (r || document).querySelector(s); };
+        var $$ = function (s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
+        $('#year').textContent = new Date().getFullYear();
+
+        /* ---------- Release + stars (live from GitHub) ---------- */
+        fetch('https://api.github.com/repos/xronocode/mark/releases/latest')
+            .then(function (r) { return r.json(); })
+            .then(function (rel) {
+                if (!rel || !rel.tag_name) return;
+                $('#version').textContent = rel.tag_name;
+                // Point the DMG links at the exact current artifact.
+                var asset = (rel.assets || []).find(function (a) { return /Mark_.*_aarch64\.dmg$/.test(a.name); });
+                if (!asset) return;
+                ['cta-download', 'dmg-download'].forEach(function (id) {
+                    var el = document.getElementById(id);
+                    if (el) el.href = asset.browser_download_url;
                 });
-
-            // 1b. Live GitHub stars in the nav — shown only once the count
-            // is socially meaningful; below the threshold the pill hides.
-            const stars = document.getElementById('gh-stars');
-            if (stars) {
-                fetch('https://api.github.com/repos/xronocode/mark')
-                    .then(res => res.json())
-                    .then(repo => {
-                        if (repo && typeof repo.stargazers_count === 'number') {
-                            if (repo.stargazers_count >= 50) {
-                                stars.textContent = "★ " + repo.stargazers_count.toLocaleString('en-US');
-                            } else {
-                                stars.style.display = 'none';
-                            }
-                        }
-                    })
-                    .catch(() => { stars.style.display = 'none'; });
-            }
-
-            // 2. Copy-to-clipboard for command chips/buttons.
-            // Element opts in via data-copy="..."; optional data-copied="Copied ✓"
-            // swaps the visible label for ~1.6 s so the click has obvious feedback.
-            // NOTE: exposed on window — inline onclick= handlers resolve through
-            // the global scope and cannot see IIFE-local functions (that was the
-            // original "click does nothing" bug).
-            window.copyToClipboard = function (el) {
-                const text = el.getAttribute('data-copy');
-                if (!text) return;
-                const ok = () => {
-                    el.style.borderColor = 'var(--accent)';
-                    if (el.dataset.copied) {
-                        const orig = el.innerHTML;
-                        el.innerHTML = el.dataset.copied;
-                        setTimeout(() => { el.innerHTML = orig; el.style.borderColor = ''; }, 1600);
-                    } else {
-                        setTimeout(() => { el.style.borderColor = ''; }, 1200);
-                    }
-                };
-                const fallback = () => {
-                    // Older/stricter contexts: hidden textarea + execCommand
-                    const ta = document.createElement('textarea');
-                    ta.value = text;
-                    ta.style.cssText = 'position:fixed;opacity:0;pointer-events:none';
-                    document.body.appendChild(ta);
-                    ta.select();
-                    try { document.execCommand('copy'); ok(); } catch (e) { console.error("Failed to copy", e); }
-                    ta.remove();
-                };
-                if (navigator.clipboard && navigator.clipboard.writeText) {
-                    navigator.clipboard.writeText(text).then(ok, fallback);
-                } else {
-                    fallback();
+            })
+            .catch(function () {});
+        fetch('https://api.github.com/repos/xronocode/mark')
+            .then(function (r) { return r.json(); })
+            .then(function (repo) {
+                // Shown only once the count is socially meaningful.
+                if (repo && repo.stargazers_count >= 50) {
+                    var s = $('#gh-stars');
+                    s.textContent = '★ ' + repo.stargazers_count.toLocaleString('en-US');
+                    s.hidden = false;
                 }
-            }
+            })
+            .catch(function () {});
 
-            // Initialize badge text if JS runs before fetch completes (race condition guard)
-            if(badge.textContent === "") badge.textContent = "2.1.x beta";
-        })();
+        /* ---------- Nav border once scrolled ---------- */
+        var nav = $('#nav');
+        var onScroll = function () { nav.classList.toggle('is-scrolled', window.scrollY > 8); };
+        window.addEventListener('scroll', onScroll, { passive: true });
+        onScroll();
+
+        /* ---------- Copy to clipboard ---------- */
+        function copyText(text) {
+            if (navigator.clipboard && navigator.clipboard.writeText) return navigator.clipboard.writeText(text);
+            return new Promise(function (ok, fail) {
+                var ta = document.createElement('textarea');
+                ta.value = text;
+                ta.style.cssText = 'position:fixed;opacity:0;pointer-events:none';
+                document.body.appendChild(ta);
+                ta.select();
+                try { document.execCommand('copy') ? ok() : fail(); } catch (e) { fail(e); }
+                ta.remove();
+            });
+        }
+        $$('[data-copy]').forEach(function (el) {
+            var t;
+            el.addEventListener('click', function () {
+                copyText(el.getAttribute('data-copy')).then(function () {
+                    el.classList.add('is-copied');
+                    clearTimeout(t);
+                    t = setTimeout(function () { el.classList.remove('is-copied'); }, 1800);
+                }, function () {});
+            });
+        });
+        $$('[data-copy-target]').forEach(function (el) {
+            var t;
+            el.addEventListener('click', function () {
+                copyText(document.getElementById(el.getAttribute('data-copy-target')).textContent).then(function () {
+                    el.classList.add('is-copied');
+                    el.textContent = 'Copied';
+                    clearTimeout(t);
+                    t = setTimeout(function () { el.classList.remove('is-copied'); el.textContent = 'Copy'; }, 1800);
+                }, function () {});
+            });
+        });
+
+        /* ---------- Footprint chart ---------- */
+        var seg = $('#seg'), bars = $$('#bars li');
+        var captions = { ram: 'RAM with 25 documents open, all app processes', disk: 'Size on disk after install' };
+        function setMetric(m, animate) {
+            var max = Math.max.apply(null, bars.map(function (li) { return +li.dataset[m]; }));
+            seg.dataset.metric = m;
+            $$('button', seg).forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.metric === m)); });
+            $('#chart-caption').textContent = captions[m];
+            bars.forEach(function (li) {
+                var v = +li.dataset[m];
+                li.querySelector('.fill').style.setProperty('--v', Math.max(v / max, 0.012).toFixed(4));
+                var span = li.querySelector('.val span');
+                var text = v.toLocaleString('en-US') + ' MB';
+                if (!animate || reduce.matches) { span.textContent = text; return; }
+                span.style.opacity = 0;
+                setTimeout(function () { span.textContent = text; span.style.opacity = 1; }, 160);
+            });
+        }
+        setMetric('ram', false);
+        $$('button', seg).forEach(function (b) {
+            b.addEventListener('click', function () { setMetric(b.dataset.metric, true); });
+        });
+        // Bars are drawn at full length by default; the first time the chart
+        // scrolls into view they grow from zero (WAAPI, so nothing is gated).
+        if ('IntersectionObserver' in window && !reduce.matches) {
+            var io = new IntersectionObserver(function (entries) {
+                if (!entries[0].isIntersecting) return;
+                io.disconnect();
+                bars.forEach(function (li, i) {
+                    var fill = li.querySelector('.fill');
+                    fill.animate(
+                        [{ transform: 'scaleX(0)' }, { transform: 'scaleX(' + fill.style.getPropertyValue('--v') + ')' }],
+                        { duration: 900, delay: 80 * i, easing: 'cubic-bezier(0.23, 1, 0.32, 1)', fill: 'backwards' }
+                    );
+                });
+            }, { threshold: 0.4 });
+            io.observe($('#bars'));
+        }
+
+        /* ---------- Showcase tabs ---------- */
+        var tabs = $$('#tabs [role="tab"]'), ind = $('#tabs .ind');
+        var current = function () { return tabs.filter(function (t) { return t.getAttribute('aria-selected') === 'true'; })[0]; };
+        function placeIndicator(tab) {
+            ind.style.width = tab.offsetWidth + 'px';
+            ind.style.transform = 'translateX(' + tab.offsetLeft + 'px)';
+        }
+        function select(i, focus) {
+            tabs.forEach(function (t, j) {
+                var on = i === j, panel = document.getElementById(t.getAttribute('aria-controls'));
+                t.setAttribute('aria-selected', String(on));
+                t.tabIndex = on ? 0 : -1;
+                panel.classList.toggle('is-on', on);
+                panel.inert = !on;
+                panel.setAttribute('aria-hidden', String(!on));
+            });
+            placeIndicator(tabs[i]);
+            if (focus) tabs[i].focus();
+        }
+        tabs.forEach(function (t, i) {
+            t.addEventListener('click', function () { select(i); });
+            t.addEventListener('keydown', function (e) {
+                var k = { ArrowRight: 1, ArrowLeft: -1 }[e.key];
+                if (k) { e.preventDefault(); select((i + k + tabs.length) % tabs.length, true); }
+                if (e.key === 'Home') { e.preventDefault(); select(0, true); }
+                if (e.key === 'End') { e.preventDefault(); select(tabs.length - 1, true); }
+            });
+        });
+        ind.style.transition = 'none';
+        select(0);
+        void ind.offsetWidth;
+        ind.style.transition = '';
+        window.addEventListener('resize', function () { placeIndicator(current()); });
+        if (document.fonts) document.fonts.ready.then(function () { placeIndicator(current()); });
+
+        /* ---------- Hero demo: agent writes, Mark renders, you edit ---------- */
+        var doc = $('#doc'), term = $('#term'), status = $('#status');
+        if (!doc || reduce.matches) return;
+
+        var blocks = $$(':scope > *', doc);          // h3, p, h4, ol, figure
+        var ol = $('ol', doc), items = $$('li', doc);
+        var step3 = $('#step3'), finalStep3 = step3.textContent;
+        var termLines = $$('p', term);
+        var visible = true, runId = 0;
+
+        // A pausable sleep: time only advances while the demo is on screen
+        // and the tab is visible, so nobody returns to a half-played scene.
+        function wait(ms, id) {
+            return new Promise(function (ok, stop) {
+                var left = ms, last = performance.now();
+                (function tick(now) {
+                    if (id !== runId) return stop('cancelled');
+                    if (visible && !document.hidden) left -= now - last;
+                    last = now;
+                    if (left <= 0) return ok();
+                    requestAnimationFrame(tick);
+                })(last);
+            });
+        }
+        function setStatus(text, tone) { status.textContent = text; status.dataset.tone = tone || ''; }
+        function replay(el, cls) { el.classList.remove('enter', 'flash', 'line-in'); void el.offsetWidth; el.classList.add(cls); }
+        function show(el, cls) { el.hidden = false; replay(el, cls); }
+
+        function reset() {
+            blocks.concat(items, termLines).forEach(function (el) { el.hidden = true; el.classList.remove('enter', 'flash', 'line-in'); });
+            step3.textContent = 'Store sessions in Redis';
+            setStatus('Waiting', '');
+        }
+        function finish() {
+            blocks.concat(items, termLines).forEach(function (el) { el.hidden = false; el.classList.remove('enter', 'flash', 'line-in'); });
+            termLines[0].textContent = 'plan the auth module rewrite';
+            step3.textContent = finalStep3;
+            setStatus('Saved', '');
+        }
+        async function type(el, text, id, speed) {
+            for (var i = 1; i <= text.length; i++) {
+                el.textContent = text.slice(0, i);
+                await wait(speed, id);
+            }
+        }
+
+        async function play(id) {
+            reset();
+            await wait(500, id);
+            // 1. You ask the agent for a plan.
+            termLines[0].textContent = '';
+            termLines[0].hidden = false;
+            await type(termLines[0], 'plan the auth module rewrite', id, 34);
+            await wait(700, id);
+            // 2. The agent writes plan.md in bursts; Mark reloads on each write.
+            var order = [blocks[0], blocks[1], blocks[2], items[0], items[1], items[2], items[3], blocks[4]];
+            ol.hidden = false;
+            for (var i = 0; i < order.length; i++) {
+                show(order[i], 'enter');
+                setStatus('Reloaded', 'live');
+                await wait(order[i] === blocks[4] ? 700 : 380, id);
+            }
+            show(termLines[1], 'line-in');
+            setStatus('Saved', '');
+            await wait(1600, id);
+            // 3. You rewrite step 3 right in the rendered document.
+            step3.innerHTML = '<span class="sel">Store sessions in Redis</span>';
+            await wait(700, id);
+            step3.innerHTML = '<span></span><span class="caret"></span>';
+            setStatus('Edited', 'edit');
+            await wait(250, id);
+            await type(step3.firstChild, finalStep3, id, 38);
+            await wait(500, id);
+            step3.textContent = finalStep3;
+            setStatus('Saved', '');
+            await wait(700, id);
+            // 4. The agent sees the file change on disk and follows it.
+            show(termLines[2], 'line-in');
+            await wait(900, id);
+            show(termLines[3], 'line-in');
+            await wait(1200, id);
+            await wait(4200, id);
+        }
+
+        async function loop() {
+            var id = ++runId;
+            try { while (id === runId) await play(id); } catch (e) { /* cancelled */ }
+        }
+
+        if ('IntersectionObserver' in window) {
+            new IntersectionObserver(function (entries) { visible = entries[0].isIntersecting; }, { threshold: 0.1 }).observe(doc);
+        }
+        if (reduce.addEventListener) {
+            reduce.addEventListener('change', function (e) { if (e.matches) { runId++; finish(); } });
+        }
+        // Let the hero entrance settle before the scene starts over.
+        setTimeout(loop, 900);
+    })();
     </script>
 </body>
 </html>

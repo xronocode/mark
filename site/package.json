@@ -2,7 +2,9 @@
   "name": "mark-site",
   "private": true,
   "scripts": {
+    "dev": "vitepress dev",
     "build": "vitepress build",
+    "check": "node scripts/check-dist.mjs",
     "preview": "vitepress preview"
   },
   "devDependencies": {

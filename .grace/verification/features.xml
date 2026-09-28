@@ -2405,5 +2405,24 @@
       </LegacyBase>
       <LegacySource>docs/verification-plan.xml: V-M-046</LegacySource>
     </V-M-046>
+    <V-M-053>
+      <Priority>medium</Priority>
+      <Commands>
+        <Command>npx vitest run tests/renderer/site/landing.test.js</Command>
+        <Command>cd site &amp;&amp; npm run build &amp;&amp; npm run check</Command>
+        <Command>cd site &amp;&amp; SITE_BASE=/mark/ SITE_URL=https://xronocode.github.io/mark npm run build &amp;&amp; SITE_BASE=/mark/ npm run check</Command>
+      </Commands>
+      <Scenarios>
+        <Scenario>scenario-1: default build targets https://mark.xronocode.com at / — dist has landing index.html, CNAME, robots.txt, sitemap.xml; checker resolves every internal link.</Scenario>
+        <Scenario>scenario-2: SITE_BASE=/mark/ build (github.io fallback) — no CNAME, all links under /mark/, checker green.</Scenario>
+        <Scenario>scenario-3: analytics off by default (no third-party script); UMAMI_WEBSITE_ID injects the Umami script into landing and docs.</Scenario>
+        <Scenario>scenario-4: a broken internal link or leftover %BASE% token fails npm run check (and the CI job) before deploy.</Scenario>
+      </Scenarios>
+      <Markers>
+        <Marker>[SiteBuild][buildEnd][BLOCK_BUILD_END]</Marker>
+        <Marker>[SiteBuild][checkDist][BLOCK_CHECK_LINKS]</Marker>
+        <Marker>[SiteBuild][renderLanding][BLOCK_RENDER_LANDING]</Marker>
+      </Markers>
+    </V-M-053>
   </VD-FEATURES>
 </GraceVerificationDocument>
