@@ -24,7 +24,7 @@ pub struct DiscoveredExtension {
 
 // START_BLOCK_EXTENSION_DIRS
 /// Returns the list of directories to scan for extension.json files.
-fn extension_dirs() -> Vec<PathBuf> {
+pub(super) fn extension_dirs() -> Vec<PathBuf> {
     let mut dirs = Vec::new();
 
     if let Some(home) = std::env::var_os("HOME").map(PathBuf::from) {

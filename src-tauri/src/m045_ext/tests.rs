@@ -887,15 +887,20 @@ fn v2_duplicate_section_names_keep_first_position_last_content() {
 // START_BLOCK_DISCOVERY_PATH_TESTS
 #[test]
 fn extension_dirs_include_config() {
-    // This test verifies the directory patterns are reasonable.
-    // Actual directory existence is not checked (may not exist in CI).
+    // C-15 T-W2: compare real PathBufs instead of a forward-slash string
+    // match (which broke on Windows where join uses '\') — and assert
+    // against the ACTUAL discovery::extension_dirs() output rather than
+    // re-deriving the path in the test.
     if let Some(home) = std::env::var_os("HOME") {
-        let config_dir = std::path::PathBuf::from(&home)
+        let expected = std::path::Path::new(&home)
             .join(".config")
             .join("mark")
             .join("extensions");
-        // Just verify the path construction is correct.
-        assert!(config_dir.to_str().unwrap().contains(".config/mark/extensions"));
+        let dirs = super::discovery::extension_dirs();
+        assert!(
+            dirs.iter().any(|d| d == &expected),
+            "expected {expected:?} among {dirs:?}"
+        );
     }
 }
 // END_BLOCK_DISCOVERY_PATH_TESTS
