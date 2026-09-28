@@ -2580,5 +2580,36 @@
       </LegacyAttributes>
       <LegacySource>docs/knowledge-graph.xml: M-046; docs/development-plan.xml: M-046</LegacySource>
     </M-046>
+    <M-053>
+      <Name>SiteBuild</Name>
+      <DisplayName>Site engine + publish pipeline</DisplayName>
+      <Type>UTILITY</Type>
+      <Status>implemented</Status>
+      <Layer>TOOLING</Layer>
+      <PhaseRef>C-22-T-001</PhaseRef>
+      <Summary>
+        VitePress site with the marketing landing emitted at the root by a
+        buildEnd hook (and served by a dev middleware), env-driven
+        SITE_URL/SITE_BASE, shared SEO/OG head, sitemap/robots/CNAME,
+        opt-in cookieless Umami analytics, a dist link checker, and a single
+        GitHub Pages workflow (PR build+check, main deploy).
+      </Summary>
+      <PlannedPath>
+        site/.vitepress/config.mts, site/.vitepress/landing.mjs,
+        site/scripts/check-dist.mjs, site/landing/index.html,
+        .github/workflows/site.yml
+      </PlannedPath>
+      <Dependencies></Dependencies>
+      <VerificationRef>V-M-053</VerificationRef>
+      <Interface>
+        <fn-resolveSiteSettings>env -> siteUrl/base/analytics</fn-resolveSiteSettings>
+        <fn-renderLanding>landing template -> served root page</fn-renderLanding>
+        <fn-checkDist>fail the build on unresolved internal links or leftover tokens</fn-checkDist>
+      </Interface>
+      <ChangeRefs>
+        <C-14/>
+        <C-22/>
+      </ChangeRefs>
+    </M-053>
   </GD-FEATURES>
 </GraceGraphDocument>
