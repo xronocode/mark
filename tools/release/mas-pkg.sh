@@ -51,6 +51,10 @@ else
   say "WARNING: $PROFILE not found — TestFlight upload will be rejected (90889)"
 fi
 
+# ITMS-91109: downloaded files (provisionprofile!) carry com.apple.quarantine
+# — ASC rejects the whole package. Strip xattrs from the bundle before signing.
+xattr -cr "$APP"
+
 codesign --force --deep --sign "$APP_IDENTITY" \
   --entitlements src-tauri/Entitlements-mas.plist --options runtime "$APP"
 codesign --verify --deep --strict "$APP"
