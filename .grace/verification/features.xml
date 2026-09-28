@@ -2442,6 +2442,7 @@
       <Priority>high</Priority>
       <Commands>
         <Command>npx vitest run tests/renderer/platform-truth.test.js tests/renderer/components/titleBar-windows.test.js tests/renderer/components/titleBar-deep.test.js</Command>
+        <Command>npx vitest run tests/renderer/muya/htmlTagBr.test.js tests/renderer/pages/app-deep.test.js tests/renderer/i18n/index.test.js tests/renderer/i18n/index-deep.test.js tests/renderer/store/preferences.test.ts</Command>
         <Command>cargo test -q --manifest-path src-tauri/Cargo.toml m048</Command>
         <Command>cargo test -q --manifest-path src-tauri/Cargo.toml search</Command>
       </Commands>
@@ -2452,6 +2453,10 @@
         <Scenario>scenario-4 (T-W2): search without a system rg degrades to the in-process walker (ripgrep_available probe; BLOCK_RIPGREP_FALLBACK marker) — pinned by the missing-binary probe tests.</Scenario>
         <Scenario>scenario-5 (T-104): a second launch forwards argv files into the running instance (single-instance plugin; BLOCK_FORWARDED/BLOCK_QUEUED/BLOCK_DIRECT_EMIT markers) and focuses the main window.</Scenario>
         <Scenario>scenario-6 (T-W3): windows-latest lanes in test.yml are blocking renderer+backend unit gates (the Windows-cfg compile gate — cross-target check from macOS is blocked by ring/MSVC tooling).</Scenario>
+        <Scenario>scenario-7 (Phase W QA, 2026-09-28 Nurik round): the frameless titlebar never stacks clusters — the app-menu hamburger is titlebar-nav button #0 and the share/word-count cluster (.titlebar-aux--custom) sits left of the window controls (regression-pinned by titleBar-windows v1.1.0; win32-pinned Playwright probe asserted disjoint nav/aux boxes and zero document overflow before the dry-run).</Scenario>
+        <Scenario>scenario-8 (Phase W QA): inline raw &lt;br&gt; text hides on inactive lines (ag-hide wrapper outside the real br element) while the line break itself always renders — htmlTagBr.test.js.</Scenario>
+        <Scenario>scenario-9 (Phase W QA): Ctrl+wheel and Ctrl/Cmd+=/-/0 adjust the editor fontSize preference (12–36, debounced persistence) instead of the --content-zoom surface; the wheel listener is capture-phase so muya's wheel stopPropagation cannot leak WebView2 native browser zoom — app-deep.test.js.</Scenario>
+        <Scenario>scenario-10 (Phase W QA): theme survives the boot hydration race (boot-dirty keys are dropped from the mt_prefs_get_all payload), locale loads await dynamic translation fetch (Nurik promise payload), and win32 builds use the path-win32 shim implementation — preferences/i18n/platform-truth tests.</Scenario>
       </Scenarios>
       <Markers>
         <Marker>[main][single_instance][BLOCK_FORWARDED]</Marker>

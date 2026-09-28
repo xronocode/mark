@@ -4,6 +4,11 @@ import bus from '../bus'
 import notice from '../services/notification'
 import { setLanguage } from '../i18n'
 
+// Boot-stomp guard (see ASK_FOR_USER_PREFERENCE): preference keys the
+// user has changed since store creation. Module-scoped so Pinia never
+// proxies it; cleared after the one boot hydration.
+const bootDirtyKeys = new Set()
+
 export const usePreferencesStore = defineStore('preferences', {
   state: () => ({
     // C-15 T-M5: capability flags from mt_build_mode. Desktop defaults
@@ -186,13 +191,27 @@ export const usePreferencesStore = defineStore('preferences', {
      * listener for mt::user-preference is registered ONCE at boot in
      * bootstrap-ipc.js — it stays warm for the app's lifetime and
      * catches all SET_* from other windows, avoiding a listener race.
+     *
+     * Boot-stomp guard (Nurik's Windows pass): a preference the user
+     * already changed since mount (e.g. the theme toggle clicked while
+     * the first prefs read was still in flight — slow on a cold Windows
+     * profile) is NEVER overwritten by the hydration payload, and the
+     * SET_SINGLE_PREFERENCE call has already persisted the new value.
      */
     async ASK_FOR_USER_PREFERENCE() {
       try {
         const prefs = await invoke('mt_prefs_get_all')
         if (prefs && typeof prefs === 'object') {
-          this.SET_USER_PREFERENCE(prefs)
+          const hydrated = { ...prefs }
+          for (const key of bootDirtyKeys) {
+            delete hydrated[key]
+          }
+          this.SET_USER_PREFERENCE(hydrated)
         }
+        // Protection covers the boot hydration only — afterwards,
+        // cross-window broadcasts (SET_USER_PREFERENCE) must keep
+        // applying every key unconditionally.
+        bootDirtyKeys.clear()
         console.log('[ipc][prefs_get_all][BLOCK_INVOKE_OK]')
       } catch (e) {
         console.error('[ipc][prefs_get_all][BLOCK_INVOKE_FAILED]', e)
@@ -207,6 +226,7 @@ export const usePreferencesStore = defineStore('preferences', {
         return
       }
       this[type] = value
+      bootDirtyKeys.add(type)
 
       if (type === 'language') {
         setLanguage(value)

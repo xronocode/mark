@@ -25,7 +25,18 @@ export default function htmlTag (h, cursor, block, token, outerClass) {
       return this.image(h, cursor, block, token, outerClass)
     }
     case 'br': {
-      return [h(`span.${CLASS_OR_ID.AG_HTML_TAG}`, [...openContent, h(tag)])]
+      // Raw `<br>` text must follow the same active-line visibility rule as
+      // other inline syntax: hidden (ag-hide, width 0) unless the cursor is
+      // on this line. The real <br> element stays outside the hidden span so
+      // the line break itself never disappears.
+      const brClass = this.getClassName(outerClass, block, token, cursor)
+      const brTagClass = brClass === CLASS_OR_ID.AG_HIDE ? brClass : CLASS_OR_ID.AG_HTML_TAG
+      return [
+        h(`span.${brTagClass}.${CLASS_OR_ID.AG_OUTPUT_REMOVE}`, {
+          attrs: { spellcheck: 'false' }
+        }, openContent),
+        h(tag)
+      ]
     }
     default:
       // handle void html tag
