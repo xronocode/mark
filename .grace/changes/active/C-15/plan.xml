@@ -49,15 +49,17 @@
   <ObservedWriteScope>
     <File>src-tauri/icons/** (regenerated full set)</File>
     <File>src-tauri/tauri.conf.json</File>
+    <File>src-tauri/tauri.windows.conf.json (new — Phase W)</File>
     <File>src-tauri/Cargo.toml</File>
     <File>src-tauri/Entitlements.plist (new)</File>
     <File>src-tauri/mas.conf.json (new)</File>
     <File>src-tauri/src/m009_menu.rs, main.rs, m045_ext/live_endpoint.rs (cfg audit)</File>
-    <File>src-tauri/src/m013b/search.rs (in-process search branch)</File>
+    <File>src-tauri/src/m021_default_handler.rs, m015_pandoc.rs, m_v1_compat.rs, m013b/search.rs (Phase W cfg branches)</File>
     <File>src-tauri/src/* bookmarks module (new)</File>
-    <File>src/renderer/** (build-mode gating, windows titlebar CSS)</File>
-    <File>.github/workflows/release.yml</File>
-    <File>.grace/graph/**, .grace/verification/**</File>
+    <File>src/renderer/** (build-mode gating, platform shim, windows titlebar CSS)</File>
+    <File>.github/workflows/release.yml, .github/workflows/test.yml</File>
+    <File>site/landing/index.html (Windows download card — T-W5)</File>
+    <File>.grace/graph/**, .grace/verification/**, .grace/context/deployment.xml</File>
   </ObservedWriteScope>
   <ImplementationPlan>
     <P-000>
@@ -77,11 +79,21 @@
     <P-W>
       <Title>Phase W — Windows track</Title>
       <Tasks>
+        <T-101>
+          <Title>Renderer platform truth (shim)</Title>
+          <DependsOn></DependsOn>
+          <AcceptanceCriteria>
+            <Criterion>install-window-globals.js exposes the real build platform instead of hardcoded 'darwin' (build-time Vite define, navigator fallback); vitest setup injects the platform deterministically on every host; isOsx/isWindows consumers behave per-platform (titleBar variant, Ctrl/Cmd labels, ctrlOrMeta, spellchecker prefs, macOS-integration prefs section) and are pinned by unit tests.</Criterion>
+          </AcceptanceCriteria>
+          <Verification>
+            <Command>npm test</Command>
+          </Verification>
+        </T-101>
         <T-W1>
           <Title>Titlebar + menu platform pass</Title>
-          <DependsOn>T-001</DependsOn>
+          <DependsOn>T-W0</DependsOn>
           <AcceptanceCriteria>
-            <Criterion>m009_menu.rs non-macOS branches complete (no dead menus on Windows); renderer titleBar component renders a standard Windows titlebar layout (existing titlebar-nav--osx class gains a windows variant); accelerators display Ctrl (not Cmd); tab strip + drag region verified under decorations:true.</Criterion>
+            <Criterion>m009_menu.rs non-macOS branches complete (no dead menus on Windows; no menu bar installed on Windows — hamburger popup only); renderer titleBar component renders a standard Windows titlebar layout (existing titlebar-nav--osx class gains a windows variant); accelerators display Ctrl (not Cmd); tab strip + drag region verified under decorations:false via tauri.windows.conf.json overlay; settings window keeps native chrome on Windows.</Criterion>
           </AcceptanceCriteria>
           <Verification>
             <Command>npm test &amp;&amp; cargo test -q --manifest-path src-tauri/Cargo.toml</Command>
@@ -91,22 +103,43 @@
           <Title>Platform cfg audit</Title>
           <DependsOn></DependsOn>
           <AcceptanceCriteria>
-            <Criterion>m045_ext/live_endpoint unix-socket path gains a TCP loopback fallback on windows (or feature-gated disable with clear status); signal-hook/zombie-reaper guarded (main.rs:753 already cfg(unix)); mt_paths windows branch reviewed against real SHOME paths; cargo check passes for x86_64-pc-windows-msvc target.</Criterion>
+            <Criterion>m045_ext/live_endpoint unix-socket path gains a TCP loopback fallback on windows (or feature-gated disable with clear status); signal-hook/zombie-reaper guarded (main.rs:753 already cfg(unix)); mt_paths windows branch reviewed against real SHOME paths; m021_default_handler macOS-gated with capability-off on Windows (UI hidden via M-048 buildCapabilities); m015_pandoc PATH augmentation cfg(unix) with %PROGRAMFILES%/%LOCALAPPDATA% Pandoc candidates on Windows and no `which` shellout; mt_format_link_click uses the opener plugin instead of macOS `open`; project search falls back to in-process run_search when rg is absent; cargo check passes for x86_64-pc-windows-msvc target.</Criterion>
           </AcceptanceCriteria>
           <Verification>
             <Command>rustup target add x86_64-pc-windows-msvc &amp;&amp; cargo check --target x86_64-pc-windows-msvc --manifest-path src-tauri/Cargo.toml</Command>
+            <Command>NOTE (2026-09-28): the cross-target check from macOS is blocked by ring (tauri-plugin-updater's rustls stack needs an MSVC C toolchain to cross-build). The Windows-cfg compile gate is the windows-latest backend-unit lane added to test.yml in T-W3; local gates are cargo check (default) + cargo check --no-default-features --features app-store.</Command>
           </Verification>
         </T-W2>
         <T-W3>
           <Title>CI: windows-latest build lane + multi-platform updater feed</Title>
           <DependsOn>T-W1, T-W2</DependsOn>
           <AcceptanceCriteria>
-            <Criterion>release.yml matrix gains windows-latest/x86_64-pc-windows-msvc building NSIS (.exe) with updater artifacts, build-only (no publish) until smoke-proven; publish job merges per-platform platforms{} fragments into latest.json (darwin-aarch64 + windows-x86_64); smoke-launch/windows-specific steps skipped or conditionally run.</Criterion>
+            <Criterion>release.yml matrix gains windows-latest/x86_64-pc-windows-msvc building NSIS (.exe) with updater artifacts, build-only until smoke-proven: Windows release assets are staged behind repo variable WINDOWS_RELEASE (default absent/false — CI smoke only: silent install /S, launch, process-alive, size allowlist, workflow artifact 30d) so the user can run manual QA on a Windows machine before the flip; publish job merges per-platform platforms{} fragments into latest.json (darwin-aarch64 required, windows-x86_64 optional); smoke-launch/windows-specific steps conditionally run; literal 'macos-14' gates refactored to runner.os checks.</Criterion>
           </AcceptanceCriteria>
           <Verification>
             <Command>gh run watch &amp;&amp; curl -s …/latest.json | jq .platforms</Command>
           </Verification>
         </T-W3>
+        <T-104>
+          <Title>Single instance + "Open With" forwarding</Title>
+          <DependsOn>T-W2</DependsOn>
+          <AcceptanceCriteria>
+            <Criterion>tauri-plugin-single-instance registered; a second launch (Windows "Open With", file associations) forwards argv file arguments into the running instance's PendingOpens instead of spawning a new process; macOS RunEvent::Opened path unchanged; argv parsing reuses the existing CLI-files parser with a unit test.</Criterion>
+          </AcceptanceCriteria>
+          <Verification>
+            <Command>cargo test -q --manifest-path src-tauri/Cargo.toml</Command>
+          </Verification>
+        </T-104>
+        <T-105>
+          <Title>Distribution surface: site card + winget fast-follow</Title>
+          <DependsOn>T-W3</DependsOn>
+          <AcceptanceCriteria>
+            <Criterion>After the first live Windows release: site landing gains a Windows download card resolving the x64-setup.exe asset with its size; winget manifest submitted to microsoft/winget-pkgs; release notes document the SmartScreen click-through and the macOS-only feature list (spellcheck, print/screenshot, default handler).</Criterion>
+          </AcceptanceCriteria>
+          <Verification>
+            <Command>site build + winget manifest validation</Command>
+          </Verification>
+        </T-105>
       </Tasks>
     </P-W>
     <P-M>

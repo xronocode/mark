@@ -1713,6 +1713,9 @@
         auth (keychain-based shared secret via M-019), invocation (HTTP POST to
         127.0.0.1 per D1), and live document server (axum HTTP endpoint for
         stream.document). First consumer: TokMo meeting intelligence extension.
+        C-15 T-W2: live_endpoint is_pid_alive has a Windows tasklist arm
+        (was assume-stale) and platform labels windows-x86_64/aarch64;
+        discovery scans %APPDATA% on Windows.
       </Summary>
       <Path>src-tauri/src/m045_ext/mod.rs</Path>
       <Dependencies>
@@ -2339,12 +2342,17 @@
       <Summary>
         Provide a deterministic pre-publication gate for exact version/tag
         consistency, complete automated verification, and signed/notarized macOS
-        artifact evidence.
+        artifact evidence. C-15 T-W3: the release workflow gained a
+        windows-x64 NSIS lane (silent-install smoke, size budget, per-platform
+        updater-feed fragments merged at publish) staged behind the
+        WINDOWS_RELEASE repo variable until manual QA passes; test.yml runs
+        renderer+backend units on windows-latest as the Windows-cfg compile
+        gate.
       </Summary>
       <PlannedPath>
         tools/release-preflight.mjs, package.json, package-lock.json,
         Cargo.toml, Cargo.lock, src-tauri/tauri.conf.json,
-        .github/workflows/release.yml
+        .github/workflows/release.yml, .github/workflows/test.yml
       </PlannedPath>
       <Dependencies>
         <M-001/>
@@ -2611,5 +2619,30 @@
         <C-22/>
       </ChangeRefs>
     </M-053>
+    <M-054>
+      <Name>WindowsReleaseLane</Name>
+      <DisplayName>Windows release lane</DisplayName>
+      <Type>UTILITY</Type>
+      <Status>shipped</Status>
+      <Layer>TOOLING</Layer>
+      <PhaseRef>C-15-T-W3</PhaseRef>
+      <Summary>
+        C-15 Phase W Windows enablement surface: windows-latest test lanes
+        (renderer+backend units — the Windows-cfg compile gate), the
+        windows-x64 NSIS release matrix entry (silent-install smoke, 20 MB
+        footprint budget, SLSA+cosign, updater-feed fragment), and the
+        tauri.windows.conf.json overlay (decorations:false, NSIS target).
+        Release assets are staged behind the WINDOWS_RELEASE repo variable
+        until manual QA passes.
+      </Summary>
+      <PlannedPath>
+        .github/workflows/release.yml, .github/workflows/test.yml,
+        src-tauri/tauri.windows.conf.json
+      </PlannedPath>
+      <Dependencies>
+        <M-046/>
+      </Dependencies>
+      <VerificationRef>V-M-054</VerificationRef>
+    </M-054>
   </GD-FEATURES>
 </GraceGraphDocument>

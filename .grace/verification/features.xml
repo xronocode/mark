@@ -2271,7 +2271,21 @@
     <V-M-046>
       <Priority>critical</Priority>
       <Commands/>
-      <Scenarios/>
+      <Scenarios>
+        <Scenario>
+          scenario-11 (C-15 T-W3): the publish job drops every staged Windows
+          asset unless the WINDOWS_RELEASE repo variable equals "true" — while
+          unset, the GitHub release and the composed latest.json stay
+          macOS-only while the windows-x64 workflow artifact remains
+          downloadable from the run for manual QA.
+        </Scenario>
+        <Scenario>
+          scenario-12 (C-15 T-W3): the publish job composes latest.json by
+          merging every surviving per-platform latest-platform.json fragment
+          (darwin-aarch64 required, windows-x86_64 optional) under one
+          pub_date; fragments themselves are never published as assets.
+        </Scenario>
+      </Scenarios>
       <Markers>
         <Marker>[ReleasePreflight][validateVersions][BLOCK_RELEASE_VERSION_CONSISTENT]</Marker>
         <Marker>[ReleasePreflight][validateVersions][BLOCK_RELEASE_VERSION_MISMATCH]</Marker>
@@ -2424,5 +2438,27 @@
         <Marker>[SiteBuild][renderLanding][BLOCK_RENDER_LANDING]</Marker>
       </Markers>
     </V-M-053>
+    <V-M-054>
+      <Priority>high</Priority>
+      <Commands>
+        <Command>npx vitest run tests/renderer/platform-truth.test.js tests/renderer/components/titleBar-windows.test.js tests/renderer/components/titleBar-deep.test.js</Command>
+        <Command>cargo test -q --manifest-path src-tauri/Cargo.toml m048</Command>
+        <Command>cargo test -q --manifest-path src-tauri/Cargo.toml search</Command>
+      </Commands>
+      <Scenarios>
+        <Scenario>scenario-1 (T-101): the renderer platform shim derives platform from the build-time Vite define — no 'darwin' hardcode; isOsx/isWindows/isLinux follow window.electron.process.platform; Windows path separators are exposed on win32 builds.</Scenario>
+        <Scenario>scenario-2 (T-W1, T-101): on win32 the titlebar forces the custom style (window-controls cluster + hamburger render even when the stored preference is native), the nav cluster is not macOS-shifted, and titlebar dblclick toggles maximize on every platform.</Scenario>
+        <Scenario>scenario-3 (T-W2): m048 desktop builds never advertise screenshot/setDefaultHandler off macOS; m021 commands return MT_DEFAULT_HANDLER_MACOS_ONLY on non-macOS; pandoc resolution probes Windows install dirs without `which`.</Scenario>
+        <Scenario>scenario-4 (T-W2): search without a system rg degrades to the in-process walker (ripgrep_available probe; BLOCK_RIPGREP_FALLBACK marker) — pinned by the missing-binary probe tests.</Scenario>
+        <Scenario>scenario-5 (T-104): a second launch forwards argv files into the running instance (single-instance plugin; BLOCK_FORWARDED/BLOCK_QUEUED/BLOCK_DIRECT_EMIT markers) and focuses the main window.</Scenario>
+        <Scenario>scenario-6 (T-W3): windows-latest lanes in test.yml are blocking renderer+backend unit gates (the Windows-cfg compile gate — cross-target check from macOS is blocked by ring/MSVC tooling).</Scenario>
+      </Scenarios>
+      <Markers>
+        <Marker>[main][single_instance][BLOCK_FORWARDED]</Marker>
+        <Marker>[main][single_instance][BLOCK_QUEUED]</Marker>
+        <Marker>[main][single_instance][BLOCK_DIRECT_EMIT]</Marker>
+        <Marker>[m013b][search][spawn][BLOCK_RIPGREP_FALLBACK]</Marker>
+      </Markers>
+    </V-M-054>
   </VD-FEATURES>
 </GraceVerificationDocument>

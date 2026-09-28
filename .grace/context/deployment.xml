@@ -27,6 +27,17 @@
       The xronocode/homebrew-mark tap installs the macOS application and follows
       the released version contract.
     </Homebrew>
+    <Windows>
+      NSIS x64 installer (.exe) built by the same tag-triggered workflow
+      (C-15 Phase W), published unsigned — SmartScreen click-through is
+      documented; code signing and a winget manifest are fast-follow work.
+      Windows release assets are staged behind the WINDOWS_RELEASE repo
+      variable until manual QA passes.
+    </Windows>
+    <MacAppStore>
+      C-15 Phase M: sandboxed app-store variant (mas capability overlay)
+      uploaded to App Store Connect; TestFlight-first rollout.
+    </MacAppStore>
   </Targets>
   <DeliveryShape>
     <shape-phase-a>
@@ -52,12 +63,17 @@
     <product-name>Mark</product-name>
     <bundle-id>com.xronocode.mark</bundle-id>
     <ci-os-matrix>
-      macos-14 (arm64) and macos-13 (x86_64) are blocking; ubuntu-latest and
-      windows-latest run with `continue-on-error: true`.
+      Blocking test lanes: ubuntu-latest and macos-14 (renderer + backend
+      unit), macos-14 renderer E2E; windows-latest joins renderer + backend
+      unit as blocking with C-15 Phase W. The release workflow builds
+      macos-14 (aarch64) and windows-latest (x86_64-pc-windows-msvc).
     </ci-os-matrix>
     <signing-strategy>
-      ad-hoc only (`codesign --force --deep --sign - Mark.app`); cask postflight
-      `xattr -cr /Applications/Mark.app` strips quarantine.
+      macOS: CI Developer ID signing + notarization (APPLE_* secrets,
+      codesign/spctl gates); MAS variant uses Apple Distribution identity.
+      Windows: unsigned NSIS builds (C-15 Phase W decision — 2026-09-28);
+      Authenticode signing is a separate future change. Updater artifacts
+      are minisign-signed on both platforms (TAURI_SIGNING_PRIVATE_KEY).
     </signing-strategy>
   </DeliveryShape>
   <RoadmapGovernance>

@@ -47,6 +47,29 @@
       Distribution certificate, provisioning, sandbox entitlements work,
       App Store Connect record.
     </Amendment>
+    <Amendment date="2026-09-28">
+      User: "походу время пришло для виндовс версии" — Phase W execution
+      starts (Phase M is code-complete; ASC privacy label + submit remain
+      user UI actions and do not block Windows). Execution decisions:
+      (1) Windows builds ship UNSIGNED — SmartScreen click-through is
+      documented in release notes and on the site; code signing is a
+      separate future change. (2) winget packaging is a fast-follow AFTER
+      the first live Windows release. (3) The user has a Windows machine
+      for manual QA — Windows release assets are staged behind repo
+      variable WINDOWS_RELEASE (default absent/false = build-only +
+      workflow artifact) until manual smoke passes. Scope additions from
+      the 2026-09-28 platform audit, tracked as new plan tasks
+      T-101 (platform truth) / T-104 (single-instance) / T-105 (site + winget): the renderer platform shim hardcodes 'darwin'
+      (install-window-globals.js) so isOsx/isWindows are wrong on every
+      non-mac build; m021_default_handler shells defaults/lsregister
+      (macOS-only binaries); m015_pandoc augments PATH POSIX-only and
+      shells `which`; m_v1_compat mt_format_link_click spawns macOS
+      `open`; m045_ext is_pid_alive assumes unix and labels Windows
+      "unknown"; project search requires a system rg binary (Windows
+      fallback: the in-process run_search walker from T-M4); no
+      single-instance plugin — a second "Open With" launch spawns a new
+      process instead of forwarding.
+    </Amendment>
   </Amendments>
 
   <AcceptanceCriteria>
