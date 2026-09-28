@@ -1047,7 +1047,10 @@
       <Layer>0</Layer>
       <Summary>
         Streaming text search through an `rg` child process with an embedded
-        ignore/regex fallback; honors .gitignore and cancellation.
+        ignore/regex fallback; honors .gitignore and cancellation. C-15 T-W2:
+        ripgrep_available probes for a system rg at spawn time — desktop
+        builds without one (typical Windows) degrade to the in-process walker
+        with BLOCK_RIPGREP_FALLBACK, keeping the wire contract identical.
       </Summary>
       <Path>src-tauri/src/m013b/search.rs</Path>
       <Dependencies>
@@ -1972,7 +1975,7 @@
       <Status>shipped</Status>
       <Layer>2</Layer>
       <PhaseRef>Release-Readiness-2026-08-07</PhaseRef>
-      <Summary>Native menu bar and context menus; dispatches command IDs to renderer.</Summary>
+      <Summary>Native menu bar and context menus; dispatches command IDs to renderer. C-15 T-W1: on Windows/Linux the menu stays registered on the app (hamburger popup via mt_window_popup_app_menu) but the native menu BAR is hidden to avoid double chrome under the custom titlebar.</Summary>
       <Path>src-tauri/src/m009_menu.rs</Path>
       <Dependencies>
         <M-005/>
@@ -4403,8 +4406,10 @@
       <Layer>1</Layer>
       <PhaseRef>B3-step-9</PhaseRef>
       <Summary>
-        Import docx/odt/latex/rst/etc. → Markdown via pandoc subprocess with
-        macOS /Library/TeX/texbin PATH patching.
+        Import docx/odt/latex/rst/etc. → Markdown via pandoc subprocess.
+        C-15 T-W2: PATH augmentation and pandoc resolution are cross-platform
+        (macOS Homebrew/TeX dirs; Windows %PROGRAMFILES%/%LOCALAPPDATA%
+        Pandoc install dirs; no `which` shellout).
       </Summary>
       <Path>src-tauri/src/m015_pandoc.rs</Path>
       <Dependencies>
@@ -5935,7 +5940,10 @@
         { mode, exportPandoc, screenshot, setDefaultHandler,
         projectSearchRipgrep, updater }. Renderer preferences store flips
         UI off via FETCH_BUILD_MODE at boot; applyCapabilityGate prunes
-        sandbox-hostile commands from the registry.
+        sandbox-hostile commands from the registry. C-15 T-W2: desktop
+        builds advertise screenshot/setDefaultHandler only on macOS
+        (m018 screencapture and m021 defaults/lsregister are macOS-only
+        binaries).
       </Summary>
       <PlannedPath>src-tauri/src/m048_build_mode.rs</PlannedPath>
       <Dependencies/>
