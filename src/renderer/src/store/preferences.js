@@ -11,16 +11,18 @@ const bootDirtyKeys = new Set()
 
 export const usePreferencesStore = defineStore('preferences', {
   state: () => ({
-    // C-15 T-M5: capability flags from mt_build_mode. Desktop defaults
+    // C-15 T-115: capability flags from mt_build_mode. Desktop defaults
     // so shims/old backends render the full UI; app-store builds flip
-    // them off at boot (FETCH_BUILD_MODE).
+    // them off at boot (FETCH_BUILD_MODE). `share` is macOS-only
+    // (m032 NSSharingServicePicker) — flipped off on Windows/Linux.
     buildCapabilities: {
       mode: 'desktop',
       exportPandoc: true,
       screenshot: true,
       setDefaultHandler: true,
       projectSearchRipgrep: true,
-      updater: true
+      updater: true,
+      share: true
     },
     autoSave: false,
     autoSaveDelay: 5000,
