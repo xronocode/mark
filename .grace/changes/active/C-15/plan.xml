@@ -58,155 +58,144 @@
     <File>src-tauri/src/* bookmarks module (new)</File>
     <File>src/renderer/** (build-mode gating, platform shim, windows titlebar CSS)</File>
     <File>.github/workflows/release.yml, .github/workflows/test.yml</File>
-    <File>site/landing/index.html (Windows download card — T-W5)</File>
+    <File>site/landing/index.html (Windows download card — T-105)</File>
     <File>.grace/graph/**, .grace/verification/**, .grace/context/deployment.xml</File>
   </ObservedWriteScope>
   <ImplementationPlan>
-    <P-000>
-      <Title>Phase 0 — icon master + full icon set (shared)</Title>
-      <Tasks>
-        <T-001>
-          <Title>Produce a 1024×1024 master and regenerate src-tauri/icons</Title>
-          <AcceptanceCriteria>
-            <Criterion>Upscale static/icon.png (256) to 1024 via Lanczos + light unsharp (no vector source exists — bundled .icns is also 256-only); run `npx tauri icon`; commit icon.ico/icon.icns/full png set; tauri.conf.json bundle.icon lists ico+icns+png; macOS DMG unchanged visually.</Criterion>
-          </AcceptanceCriteria>
-          <Verification>
-            <Command>ls src-tauri/icons/ &amp;&amp; cargo check --manifest-path src-tauri/Cargo.toml</Command>
-          </Verification>
-        </T-001>
-      </Tasks>
-    </P-000>
-    <P-W>
-      <Title>Phase W — Windows track</Title>
-      <Tasks>
-        <T-101>
-          <Title>Renderer platform truth (shim)</Title>
-          <DependsOn></DependsOn>
-          <AcceptanceCriteria>
-            <Criterion>install-window-globals.js exposes the real build platform instead of hardcoded 'darwin' (build-time Vite define, navigator fallback); vitest setup injects the platform deterministically on every host; isOsx/isWindows consumers behave per-platform (titleBar variant, Ctrl/Cmd labels, ctrlOrMeta, spellchecker prefs, macOS-integration prefs section) and are pinned by unit tests.</Criterion>
-          </AcceptanceCriteria>
-          <Verification>
-            <Command>npm test</Command>
-          </Verification>
-        </T-101>
-        <T-W1>
-          <Title>Titlebar + menu platform pass</Title>
-          <DependsOn>T-W0</DependsOn>
-          <AcceptanceCriteria>
-            <Criterion>m009_menu.rs non-macOS branches complete (no dead menus on Windows; no menu bar installed on Windows — hamburger popup only); renderer titleBar component renders a standard Windows titlebar layout (existing titlebar-nav--osx class gains a windows variant); accelerators display Ctrl (not Cmd); tab strip + drag region verified under decorations:false via tauri.windows.conf.json overlay; settings window keeps native chrome on Windows.</Criterion>
-          </AcceptanceCriteria>
-          <Verification>
-            <Command>npm test &amp;&amp; cargo test -q --manifest-path src-tauri/Cargo.toml</Command>
-          </Verification>
-        </T-W1>
-        <T-W2>
-          <Title>Platform cfg audit</Title>
-          <DependsOn></DependsOn>
-          <AcceptanceCriteria>
-            <Criterion>m045_ext/live_endpoint unix-socket path gains a TCP loopback fallback on windows (or feature-gated disable with clear status); signal-hook/zombie-reaper guarded (main.rs:753 already cfg(unix)); mt_paths windows branch reviewed against real SHOME paths; m021_default_handler macOS-gated with capability-off on Windows (UI hidden via M-048 buildCapabilities); m015_pandoc PATH augmentation cfg(unix) with %PROGRAMFILES%/%LOCALAPPDATA% Pandoc candidates on Windows and no `which` shellout; mt_format_link_click uses the opener plugin instead of macOS `open`; project search falls back to in-process run_search when rg is absent; cargo check passes for x86_64-pc-windows-msvc target.</Criterion>
-          </AcceptanceCriteria>
-          <Verification>
-            <Command>rustup target add x86_64-pc-windows-msvc &amp;&amp; cargo check --target x86_64-pc-windows-msvc --manifest-path src-tauri/Cargo.toml</Command>
-            <Command>NOTE (2026-09-28): the cross-target check from macOS is blocked by ring (tauri-plugin-updater's rustls stack needs an MSVC C toolchain to cross-build). The Windows-cfg compile gate is the windows-latest backend-unit lane added to test.yml in T-W3; local gates are cargo check (default) + cargo check --no-default-features --features app-store.</Command>
-          </Verification>
-        </T-W2>
-        <T-W3>
-          <Title>CI: windows-latest build lane + multi-platform updater feed</Title>
-          <DependsOn>T-W1, T-W2</DependsOn>
-          <AcceptanceCriteria>
-            <Criterion>release.yml matrix gains windows-latest/x86_64-pc-windows-msvc building NSIS (.exe) with updater artifacts, build-only until smoke-proven: Windows release assets are staged behind repo variable WINDOWS_RELEASE (default absent/false — CI smoke only: silent install /S, launch, process-alive, size allowlist, workflow artifact 30d) so the user can run manual QA on a Windows machine before the flip; publish job merges per-platform platforms{} fragments into latest.json (darwin-aarch64 required, windows-x86_64 optional); smoke-launch/windows-specific steps conditionally run; literal 'macos-14' gates refactored to runner.os checks.</Criterion>
-          </AcceptanceCriteria>
-          <Verification>
-            <Command>gh run watch &amp;&amp; curl -s …/latest.json | jq .platforms</Command>
-          </Verification>
-        </T-W3>
-        <T-104>
-          <Title>Single instance + "Open With" forwarding</Title>
-          <DependsOn>T-W2</DependsOn>
-          <AcceptanceCriteria>
-            <Criterion>tauri-plugin-single-instance registered; a second launch (Windows "Open With", file associations) forwards argv file arguments into the running instance's PendingOpens instead of spawning a new process; macOS RunEvent::Opened path unchanged; argv parsing reuses the existing CLI-files parser with a unit test.</Criterion>
-          </AcceptanceCriteria>
-          <Verification>
-            <Command>cargo test -q --manifest-path src-tauri/Cargo.toml</Command>
-          </Verification>
-        </T-104>
-        <T-105>
-          <Title>Distribution surface: site card + winget fast-follow</Title>
-          <DependsOn>T-W3</DependsOn>
-          <AcceptanceCriteria>
-            <Criterion>After the first live Windows release: site landing gains a Windows download card resolving the x64-setup.exe asset with its size; winget manifest submitted to microsoft/winget-pkgs; release notes document the SmartScreen click-through and the macOS-only feature list (spellcheck, print/screenshot, default handler).</Criterion>
-          </AcceptanceCriteria>
-          <Verification>
-            <Command>site build + winget manifest validation</Command>
-          </Verification>
-        </T-105>
-      </Tasks>
-    </P-W>
-    <P-M>
-      <Title>Phase M — Mac App Store track</Title>
-      <Tasks>
-        <T-M1>
-          <Title>app-store feature wiring + entitlements + mas.conf.json</Title>
-          <DependsOn></DependsOn>
-          <AcceptanceCriteria>
-            <Criterion>Cargo app-store = ["tauri/app-store"]; Entitlements.plist: app-sandbox + files.user-selected.read-write + network.client + network.server (axum live viewer listens on loopback); mas.conf.json overlay selects capabilities ["mas"] (mas.json already exists) and entitlements; local build --no-default-features --features app-store succeeds.</Criterion>
-          </AcceptanceCriteria>
-          <Verification>
-            <Command>cargo build --no-default-features --features app-store --manifest-path src-tauri/Cargo.toml</Command>
-          </Verification>
-        </T-M1>
-        <T-M2>
-          <Title>Sandbox dry-run: ad-hoc signed + entitlements, log breakages</Title>
-          <DependsOn>T-M1</DependsOn>
-          <AcceptanceCriteria>
-            <Criterion>codesign ad-hoc with Entitlements.plist; app launches via CUA; documented pass/fail per surface: open-file via dialog, recent-files persistence after restart, folder watch, live viewer, spell, themes; failures feed T-M3/T-M4.</Criterion>
-          </AcceptanceCriteria>
-          <Verification>
-            <Command>codesign -d --entitlements - target/release/bundle/macos/Mark.app</Command>
-          </Verification>
-        </T-M2>
-        <T-M3>
-          <Title>Security-scoped bookmarks for recent files + watched folders</Title>
-          <DependsOn>T-M2</DependsOn>
-          <AcceptanceCriteria>
-            <Criterion>New module wraps bookmark create/resolve (raw NSData from sandbox-ext; no extra deps beyond core-foundation already in tree via cocoa); recent docs and watcher roots persist across relaunch inside sandbox; unit tests with round-trip in tmp dirs; non-MAS build unaffected.</Criterion>
-          </AcceptanceCriteria>
-          <Verification>
-            <Command>cargo test bookmarks --manifest-path src-tauri/Cargo.toml</Command>
-          </Verification>
-        </T-M3>
-        <T-M4>
-          <Title>In-process project search for MAS (replace ripgrep spawn)</Title>
-          <DependsOn>T-M1</DependsOn>
-          <AcceptanceCriteria>
-            <Criterion>app-store branch of search spawns no binaries: ignore-walk + regex crate reuse; result shape identical to ripgrep path (same IPC contract); non-MAS builds keep ripgrep; unit tests cover a fixture tree.</Criterion>
-          </AcceptanceCriteria>
-          <Verification>
-            <Command>cargo test search --manifest-path src-tauri/Cargo.toml</Command>
-          </Verification>
-        </T-M4>
-        <T-M5>
-          <Title>Renderer build-mode gating</Title>
-          <DependsOn>T-M1</DependsOn>
-          <AcceptanceCriteria>
-            <Criterion>mt_build_mode command (mas|normal); settings/menu hides Export PDF/DOCX (pandoc), Screenshot, "Make default .md handler", project-wide search entry when mas; no dead buttons showing raw backend errors.</Criterion>
-          </AcceptanceCriteria>
-          <Verification>
-            <Command>npm test</Command>
-          </Verification>
-        </T-M5>
-        <T-M6>
-          <Title>App Store Connect prep + submission pipeline</Title>
-          <DependsOn>T-M2, T-M3, T-M4, T-M5</DependsOn>
-          <AcceptanceCriteria>
-            <Criterion>Checklist doc: bundle id com.xronocode.mark registered for macOS, Apple Distribution cert + Mac Installer cert in keychain, productbuild .pkg script (tools/release/mas-pkg.sh), ITSAppUsesNonExemptEncryption=false, privacy answers aligned with site privacy page, support URL (site /guide/), screenshots from showcase set; TestFlight upload validated.</Criterion>
-          </AcceptanceCriteria>
-          <Verification>
-            <Command>xcrun altool/Transporter validate + TestFlight build appears</Command>
-          </Verification>
-        </T-M6>
-      </Tasks>
-    </P-M>
+    <!-- Phase 0 — icon master + full icon set (shared) -->
+      <T-001>
+        <Title>Produce a 1024×1024 master and regenerate src-tauri/icons</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>Upscale static/icon.png (256) to 1024 via Lanczos + light unsharp (no vector source exists — bundled .icns is also 256-only); run `npx tauri icon`; commit icon.ico/icon.icns/full png set; tauri.conf.json bundle.icon lists ico+icns+png; macOS DMG unchanged visually.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>ls src-tauri/icons/ &amp;&amp; cargo check --manifest-path src-tauri/Cargo.toml</Command>
+        </Verification>
+      </T-001>
+    <!-- Phase W — Windows track -->
+      <T-101>
+        <Title>Renderer platform truth (shim)</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>install-window-globals.js exposes the real build platform instead of hardcoded 'darwin' (build-time Vite define, navigator fallback); vitest setup injects the platform deterministically on every host; isOsx/isWindows consumers behave per-platform (titleBar variant, Ctrl/Cmd labels, ctrlOrMeta, spellchecker prefs, macOS-integration prefs section) and are pinned by unit tests.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>npm test</Command>
+        </Verification>
+      </T-101>
+      <T-102>
+        <Title>Titlebar + menu platform pass</Title>
+        <DependsOn>T-101</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>m009_menu.rs non-macOS branches complete (no dead menus on Windows; no menu bar installed on Windows — hamburger popup only); renderer titleBar component renders a standard Windows titlebar layout (existing titlebar-nav--osx class gains a windows variant); accelerators display Ctrl (not Cmd); tab strip + drag region verified under decorations:false via tauri.windows.conf.json overlay; settings window keeps native chrome on Windows.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>npm test &amp;&amp; cargo test -q --manifest-path src-tauri/Cargo.toml</Command>
+        </Verification>
+      </T-102>
+      <T-103>
+        <Title>Platform cfg audit</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>m045_ext/live_endpoint unix-socket path gains a TCP loopback fallback on windows (or feature-gated disable with clear status); signal-hook/zombie-reaper guarded (main.rs:753 already cfg(unix)); mt_paths windows branch reviewed against real SHOME paths; m021_default_handler macOS-gated with capability-off on Windows (UI hidden via M-048 buildCapabilities); m015_pandoc PATH augmentation cfg(unix) with %PROGRAMFILES%/%LOCALAPPDATA% Pandoc candidates on Windows and no `which` shellout; mt_format_link_click uses the opener plugin instead of macOS `open`; project search falls back to in-process run_search when rg is absent; cargo check passes for x86_64-pc-windows-msvc target.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>rustup target add x86_64-pc-windows-msvc &amp;&amp; cargo check --target x86_64-pc-windows-msvc --manifest-path src-tauri/Cargo.toml</Command>
+          <Command>NOTE (2026-09-28): the cross-target check from macOS is blocked by ring (tauri-plugin-updater's rustls stack needs an MSVC C toolchain to cross-build). The Windows-cfg compile gate is the windows-latest backend-unit lane added to test.yml in T-106; local gates are cargo check (default) + cargo check --no-default-features --features app-store.</Command>
+        </Verification>
+      </T-103>
+      <T-106>
+        <Title>CI: windows-latest build lane + multi-platform updater feed</Title>
+        <DependsOn>T-102, T-103</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>release.yml matrix gains windows-latest/x86_64-pc-windows-msvc building NSIS (.exe) with updater artifacts, build-only until smoke-proven: Windows release assets are staged behind repo variable WINDOWS_RELEASE (default absent/false — CI smoke only: silent install /S, launch, process-alive, size allowlist, workflow artifact 30d) so the user can run manual QA on a Windows machine before the flip; publish job merges per-platform platforms{} fragments into latest.json (darwin-aarch64 required, windows-x86_64 optional); smoke-launch/windows-specific steps conditionally run; literal 'macos-14' gates refactored to runner.os checks.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>gh run watch &amp;&amp; curl -s …/latest.json | jq .platforms</Command>
+        </Verification>
+      </T-106>
+      <T-104>
+        <Title>Single instance + "Open With" forwarding</Title>
+        <DependsOn>T-103</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>tauri-plugin-single-instance registered; a second launch (Windows "Open With", file associations) forwards argv file arguments into the running instance's PendingOpens instead of spawning a new process; macOS RunEvent::Opened path unchanged; argv parsing reuses the existing CLI-files parser with a unit test.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>cargo test -q --manifest-path src-tauri/Cargo.toml</Command>
+        </Verification>
+      </T-104>
+      <T-105>
+        <Title>Distribution surface: site card + winget fast-follow</Title>
+        <DependsOn>T-106</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>After the first live Windows release: site landing gains a Windows download card resolving the x64-setup.exe asset with its size; winget manifest submitted to microsoft/winget-pkgs; release notes document the SmartScreen click-through and the macOS-only feature list (spellcheck, print/screenshot, default handler).</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>site build + winget manifest validation</Command>
+        </Verification>
+      </T-105>
+    <!-- Phase M — Mac App Store track -->
+      <T-111>
+        <Title>app-store feature wiring + entitlements + mas.conf.json</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>Cargo app-store = ["tauri/app-store"]; Entitlements.plist: app-sandbox + files.user-selected.read-write + network.client + network.server (axum live viewer listens on loopback); mas.conf.json overlay selects capabilities ["mas"] (mas.json already exists) and entitlements; local build --no-default-features --features app-store succeeds.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>cargo build --no-default-features --features app-store --manifest-path src-tauri/Cargo.toml</Command>
+        </Verification>
+      </T-111>
+      <T-112>
+        <Title>Sandbox dry-run: ad-hoc signed + entitlements, log breakages</Title>
+        <DependsOn>T-111</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>codesign ad-hoc with Entitlements.plist; app launches via CUA; documented pass/fail per surface: open-file via dialog, recent-files persistence after restart, folder watch, live viewer, spell, themes; failures feed T-113/T-114.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>codesign -d --entitlements - target/release/bundle/macos/Mark.app</Command>
+        </Verification>
+      </T-112>
+      <T-113>
+        <Title>Security-scoped bookmarks for recent files + watched folders</Title>
+        <DependsOn>T-112</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>New module wraps bookmark create/resolve (raw NSData from sandbox-ext; no extra deps beyond core-foundation already in tree via cocoa); recent docs and watcher roots persist across relaunch inside sandbox; unit tests with round-trip in tmp dirs; non-MAS build unaffected.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>cargo test bookmarks --manifest-path src-tauri/Cargo.toml</Command>
+        </Verification>
+      </T-113>
+      <T-114>
+        <Title>In-process project search for MAS (replace ripgrep spawn)</Title>
+        <DependsOn>T-111</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>app-store branch of search spawns no binaries: ignore-walk + regex crate reuse; result shape identical to ripgrep path (same IPC contract); non-MAS builds keep ripgrep; unit tests cover a fixture tree.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>cargo test search --manifest-path src-tauri/Cargo.toml</Command>
+        </Verification>
+      </T-114>
+      <T-115>
+        <Title>Renderer build-mode gating</Title>
+        <DependsOn>T-111</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>mt_build_mode command (mas|normal); settings/menu hides Export PDF/DOCX (pandoc), Screenshot, "Make default .md handler", project-wide search entry when mas; no dead buttons showing raw backend errors.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>npm test</Command>
+        </Verification>
+      </T-115>
+      <T-116>
+        <Title>App Store Connect prep + submission pipeline</Title>
+        <DependsOn>T-112, T-113, T-114, T-115</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>Checklist doc: bundle id com.xronocode.mark registered for macOS, Apple Distribution cert + Mac Installer cert in keychain, productbuild .pkg script (tools/release/mas-pkg.sh), ITSAppUsesNonExemptEncryption=false, privacy answers aligned with site privacy page, support URL (site /guide/), screenshots from showcase set; TestFlight upload validated.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>xcrun altool/Transporter validate + TestFlight build appears</Command>
+        </Verification>
+      </T-116>
   </ImplementationPlan>
   <ReviewLog>
     <Review number="5" date="2026-09-28" verdict="green-partial" task="phase-w-qa-round-1">
@@ -249,13 +238,13 @@
         (tests/renderer/platform-truth.test.js pins the flags matrix and
         source-level no-hardcode invariant); window.path exposes win32
         sep/delimiter. Renderer suite 3141 green locally, 232 files.
-        T-W1: titleBar forces the custom style on win32 via
+        T-102: titleBar forces the custom style on win32 via
         effectiveTitleBarStyle; controls cluster + hamburger pinned by
         titleBar-windows.test.js; dblclick-maximize is cross-platform;
         settings window keeps native chrome; native menu BAR hidden on
         Windows/Linux in main.rs + m_v1_compat (popup keeps working —
         mt_window_popup_app_menu reads app.menu()).
-        T-W2: m048 desktop flags platform-gated (screenshot/
+        T-103: m048 desktop flags platform-gated (screenshot/
         setDefaultHandler macOS-only); m021 non-mac returns
         MT_DEFAULT_HANDLER_MACOS_ONLY; pandoc PATH/resolution cross-platform
         (no `which`); mt_format_link_click via opener plugin; search falls
@@ -266,8 +255,8 @@
         m009 unused_mut) — fixed same day. Cross-target msvc check from
         macOS is blocked by ring (tauri-plugin-updater rustls) — the
         windows-latest backend lane IS the compile gate (verification note
-        in T-W2).
-        T-W3: release.yml v1.7.0 — windows-x64 matrix lane (NSIS +
+        in T-103).
+        T-106: release.yml v1.7.0 — windows-x64 matrix lane (NSIS +
         updater sig), silent-install smoke (/S + Get-Process alive),
         20 MB footprint budget, SLSA+cosign twins, per-platform feed
         fragments merged at publish (jq), WINDOWS_RELEASE staging gate,
@@ -290,12 +279,12 @@
         letter-style task anchors, prism/asc-api/landing legacy items).
         Pending: manual QA on the user's Windows machine against the
         dry-run artifact → WINDOWS_RELEASE=true → v2.2.0-beta release
-        (T-W3 flip + T-105 site card / winget fast-follow).
+        (T-106 flip + T-105 site card / winget fast-follow).
       </Findings>
     </Review>
-    <Review number="3" date="2026-09-21" verdict="green" task="T-M4+T-M5">
+    <Review number="3" date="2026-09-21" verdict="green" task="capability-gate-and-search">
       <Findings>
-        T-M4: mt_search_spawn dispatches to the pre-existing, unit-tested
+        T-114: mt_search_spawn dispatches to the pre-existing, unit-tested
         run_search walker when compiled with app-store (rg shellout kept
         for desktop). An initially written duplicate in-process searcher
         was removed in favor of run_search (same ignore/regex deps, same
@@ -303,7 +292,7 @@
         mas.conf.json sets createUpdaterArtifacts=false (updater signing
         key absent locally; artifacts are meaningless in sandbox builds).
         MAS debug bundle smoke: launch with document OK.
-        T-M5: M-048 mt_build_mode command (compile-time flags, both
+        T-115: M-048 mt_build_mode command (compile-time flags, both
         feature sets compile; app-store cannot advertise hostile caps —
         pinned by rust test). Renderer: preferences store buildCapabilities
         + FETCH_BUILD_MODE at boot (fail-open), applyCapabilityGate prunes
@@ -316,7 +305,7 @@
         prune semantics.
       </Findings>
     </Review>
-    <Review number="2" date="2026-09-21" verdict="green" task="T-M3">
+    <Review number="2" date="2026-09-21" verdict="green" task="security-bookmarks">
       <Findings>
         M-047 SecurityBookmarks shipped: remember() at grant moments
         (mt_recent_add, folder pick, CLI/LaunchServices pending_opens) and
@@ -329,10 +318,10 @@
         Gates: cargo check 0 errors both feature sets; 377 rust tests
         (3 new — incl. a REAL CF round-trip on this machine). Graph
         M-047 + V-M-047 registered in runtime docs and indexes.
-        Sandbox end-to-end re-verification folds into the T-M2 GUI pass.
+        Sandbox end-to-end re-verification folds into the T-112 GUI pass.
       </Findings>
     </Review>
-    <Review number="1" date="2026-09-21" verdict="green-partial" task="T-M2">
+    <Review number="1" date="2026-09-21" verdict="green-partial" task="sandbox-dry-run">
       <Findings>
         Automated sandbox dry-run, debug app-store build (features app-store,
         mas.conf.json overlay), ad-hoc re-signed with Entitlements.plist
@@ -345,9 +334,9 @@
         (3) external edit of the open document — app alive, watcher silent,
         ZERO denies. Residual risk NOT covered by this run: macOS
         LaunchServices recent-document grants expire (~days) — long-term
-        re-access needs T-M3 security-scoped bookmarks; live-server and
+        re-access needs T-113 security-scoped bookmarks; live-server and
         renderer-level QA (re-render with cursor, themes) need a GUI
-        session (CUA accessibility currently denied) — fold into T-M3
+        session (CUA accessibility currently denied) — fold into T-113
         verification. Hygiene: leak scan of tracked files clean (one
         doc-format false positive); .gitignore now blocks signing
         material (*.p12/*.p8/*.mobileprovision/*.cer/*.pem/*.key);
