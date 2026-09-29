@@ -1,0 +1,168 @@
+<GraceChangePlan graceVersion='4.0' status='approved'>
+<C-22>
+  <ChangeRef>C-22</ChangeRef>
+  <Created>2026-09-29</Created>
+  <IntentSummary>Split View container: mirror one mode beside the other, read-only sync, divider ratio persisted, Cmd+\ per-tab toggle. Four-corner review protocol; corner matrix drives both tests and review scope.</IntentSummary>
+  <BaselineAssertions>
+    <MustContain>
+      <File>src/renderer/src/components/editorWithTabs/index.vue</File>
+      <Text>sourceCodeModeEnabled</Text>
+    </MustContain>
+    <MustContain>
+      <File>src/renderer/src/store/preferences.js</File>
+      <Text>sourceCodeModeEnabled</Text>
+    </MustContain>
+  </BaselineAssertions>
+  <TargetAssertions>
+    <MustContain>
+      <File>src/renderer/src/components/editorWithTabs/splitView.vue</File>
+      <Text>mirror</Text>
+    </MustContain>
+    <MustContain>
+      <File>src/renderer/src/commands/index.js</File>
+      <Text>view.split-view</Text>
+    </MustContain>
+    <MustContain>
+      <File>tests/renderer/components/split-view.test.js</File>
+      <Text>mirror</Text>
+    </MustContain>
+    <MustContain>
+      <File>tests/e2e/split-view.spec.ts</File>
+      <Text>split</Text>
+    </MustContain>
+  </TargetAssertions>
+  <DurableScope>
+    <New>splitView.vue container (no kernel changes)</New>
+  </DurableScope>
+  <ObservedWriteScope>
+    <File>src/renderer/src/components/editorWithTabs/splitView.vue (new)</File>
+    <File>src/renderer/src/components/editorWithTabs/index.vue (mount split)</File>
+    <File>src/renderer/src/store/preferences.js (splitEnabled, splitRatio persistence)</File>
+    <File>src/renderer/src/commands/index.js + descriptions.js (view.split-view, Cmd+\)</File>
+    <File>src/renderer/src/i18n/locales/* (split strings)</File>
+    <File>tests/renderer/components/split-view.test.js (new)</File>
+    <File>tests/e2e/split-view.spec.ts (new)</File>
+    <File>.grace/graph/features.xml + index (module entry)</File>
+    <File>.grace/verification/features.xml + index (V-M-0xx)</File>
+  </ObservedWriteScope>
+  <ImplementationPlan>
+    <T-221>
+      <Title>Container + state (per-tab split, ratio persistence)</Title>
+      <DependsOn></DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>splitView.vue renders both mode components; editable side follows current mode; mirror is a second instance flagged read-only via existing component props/patching the minimum; divider drag updates ratio; ratio + enabled saved to prefs (per-window file as today's window-state).</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>npx vitest run tests/renderer/components/split-view.test.js</Command>
+      </Verification>
+    </T-221>
+    <T-222>
+      <Title>Sync engine: debounced mirror update</Title>
+      <DependsOn>T-221</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>Single source of truth: the active pane's markdown string; mirror re-renders on change with 150ms debounce; mirror NEVER writes to store; typing latency in editable pane unchanged (no sync work on keystroke path beyond a dirty flag).</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>npx vitest run tests/renderer/components/split-view.test.js -t sync</Command>
+      </Verification>
+    </T-222>
+    <T-223>
+      <Title>Menu command + accelerator + i18n</Title>
+      <DependsOn>T-221</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>view.split-view command toggles for CURRENT tab; Cmd+\ bound via existing keybinding registry; description strings en/ru/…; command palette picks it up automatically (registry).</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>npx vitest run tests/renderer/commands/menu-consistency.test.js</Command>
+      </Verification>
+    </T-223>
+    <T-224>
+      <Title>E2E + visual probes + governance</Title>
+      <DependsOn>T-222, T-223</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>Playwright: boot → toggle split → assert two panes → edit source → mirror content changes within 300ms → reload → split+ratio restored. Probes: light/dark screenshots into plan ReviewLog. grace lint 0; graph/verification entries registered.</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>npx playwright test tests/e2e/split-view.spec.ts &amp;&amp; grace lint --path . --assertions current</Command>
+      </Verification>
+    </T-224>
+  </ImplementationPlan>
+  <CornerMatrix>
+    <!-- Corners drive tests AND the four reviewers' checklists. -->
+    <Corner id="C-1">
+      <Situation>Toggle split while a document has unsaved changes / dirty dot</Situation>
+      <Expected>content preserved bit-identical; dirty state untouched; no autosave trigger</Expected>
+    </Corner>
+    <Corner id="C-2">
+      <Situation>Split ON, then mode toggle (Cmd+Alt+S) in editable pane</Situation>
+      <Expected>panes swap editability; editable cursor position preserved per its own surface; no focus theft</Expected>
+    </Corner>
+    <Corner id="C-3">
+      <Situation>Tab switch: tab A split-on ratio 30%, tab B split-off</Situation>
+      <Expected>each tab restores its own state on return; no cross-tab leakage</Expected>
+    </Corner>
+    <Corner id="C-4">
+      <Situation>10k-line document, rapid typing (30 chars burst)</Situation>
+      <Expected>mirror updates coalesce (≤2 re-renders per burst); editable pane keystroke latency unchanged (no main-thread stall &gt; 16ms)</Expected>
+    </Corner>
+    <Corner id="C-5">
+      <Situation>Live-reload external edit while split (watcher fires)</Situation>
+      <Expected>both panes update per existing reload semantics; cursor-preservation logic applies to the EDITABLE pane only</Expected>
+    </Corner>
+    <Corner id="C-6">
+      <Situation>Window resized below 800px width</Situation>
+      <Expected>split collapses to single-pane (mode toggle remains); re-expanding restores ratio; no clipped half-panes</Expected>
+    </Corner>
+    <Corner id="C-7">
+      <Situation>App restart with split-on</Situation>
+      <Expected>split+ratio restored via prefs; failure to read prefs defaults split-off (fail-open)</Expected>
+    </Corner>
+    <Corner id="C-8">
+      <Situation>Print/export/screenshot commands while split</Situation>
+      <Expected>operate on the document as today (single-model); no pane duplication in output</Expected>
+    </Corner>
+    <Corner id="C-9">
+      <Situation>Split + WYSIWYG math/mermaid heavy doc</Situation>
+      <Expected>mirror defers heavy renders (existing lazy semantics); no double network/local resource fetch</Expected>
+    </Corner>
+    <Corner id="C-10">
+      <Situation>Divider dragged to 0%/100% extremes</Situation>
+      <Expected>clamped at 10/90; no zero-width pane or divider loss</Expected>
+    </Corner>
+  </CornerMatrix>
+  <FourCornerReview>
+    <!-- "Как всегда": four independent review passes, each with its own
+         checklist derived from the corners; verdicts land in ReviewLog. -->
+    <ReviewPass number="1" name="Correctness &amp; Contracts">
+      <Checks>
+        <Check>MODULE_CONTRACT/MAP present and true for splitView.vue</Check>
+        <Check>Corners C-1..C-3, C-7 behaviour matches Expected verbatim</Check>
+        <Check>no writes from mirror; single document model (assert store usage)</Check>
+      </Checks>
+    </ReviewPass>
+    <ReviewPass number="2" name="Security &amp; Privacy">
+      <Checks>
+        <Check>no new IPC, no new permissions/capabilities, no network</Check>
+        <Check>mirror renders through the same sanitization paths (no raw-html bypass)</Check>
+        <Check>public-repo hygiene: no secrets, no signing material near the change</Check>
+      </Checks>
+    </ReviewPass>
+    <ReviewPass number="3" name="UX &amp; Docs">
+      <Checks>
+        <Check>Corners C-2, C-6, C-10 feel right (no focus theft, no lost divider)</Check>
+        <Check>guide page updated (site/docs) with Cmd+\ and corner behaviors</Check>
+        <Check>i18n strings complete; menu/palette consistency test updated</Check>
+      </Checks>
+    </ReviewPass>
+    <ReviewPass number="4" name="Performance &amp; Footprint">
+      <Checks>
+        <Check>Corners C-4, C-9: burst coalescing proven; keystroke path unchanged</Check>
+        <Check>RAM delta with split-on idle &lt; 25MB on the 10k-line fixture</Check>
+        <Check>no new dependencies; bundle delta ≤ 3KB gz</Check>
+      </Checks>
+    </ReviewPass>
+  </FourCornerReview>
+  <ReviewLog>
+  </ReviewLog>
+</C-22>
+</GraceChangePlan>

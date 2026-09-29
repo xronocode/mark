@@ -1,0 +1,71 @@
+<GraceChangeSpec graceVersion='4.0' status='approved'>
+<C-22>
+  <Name>Split View: WYSIWYG and source side-by-side (matrix P1, last open P1)</Name>
+  <Created>2026-09-29</Created>
+  <Priority>medium</Priority>
+  <Status>approved-for-implementation</Status>
+
+  <Summary>
+    The feature matrix (docs/research/markdown-feature-matrix.md) lists
+    "Split view (edit + rendered side-by-side)" as the last open P1 gap:
+    VS Code and Antigravity show preview beside source; Mark today is an
+    either-mode toggle. Deliver a split layout: active editor mode on one
+    pane, the other mode mirrored read-only on the second pane, live
+    synced on changes (debounced), with pane focus deciding which surface
+    is editable. Menu item View > Split View (Cmd+\), layout state
+    persisted per window, split only rendered for the current tab (not
+    global).
+  </Summary>
+
+  <Problem>
+    <Description>Users switching modes lose the "how it renders" or "how it reads as source" context; parity gap vs code editors.</Description>
+    <RootCause>editorWithTabs renders exactly one of editor.vue|sourceCode.vue per mode flag.</RootCause>
+    <Evidence>Feature matrix P1 row; VS Code docs (source+preview side-by-side).</Evidence>
+  </Problem>
+
+  <Goals>
+    <R-1>Split layout component hosting both existing mode components; no new editor internals.</R-1>
+    <R-2>Read-only mirror pane syncs from the editable pane content (debounce 150ms), never writes back.</R-2>
+    <R-3>View menu item + Cmd+\ toggle; persistence of split state and ratio (draggable divider) per window.</R-4>
+    <R-4>Both themes; both directions (source-left and rich-left) via double-click divider swap.</R-4>
+  </Goals>
+
+  <Constraints>
+    <Constraint>Zero new runtime dependencies.</Constraint>
+    <Constraint>Editor internals (muya, CodeMirror) stay untouched; split is a container concern.</Constraint>
+    <Constraint>Per-tab: switching tabs keeps each tab's own split state; split off by default.</Constraint>
+    <Constraint>Footprint: split must not double memory-holding — mirror pane renders from the same markdown string, no second document model beyond what each surface already builds.</Constraint>
+  </Constraints>
+
+  <NonGoals>
+    <NonGoal>Simultaneous editing in both panes (mirror is read-only).</NonGoal>
+    <NonGoal>Vertical (stacked) split; horizontal only for v1.</NonGoal>
+    <NonGoal>Split in diff view or settings windows.</NonGoal>
+  </NonGoals>
+
+  <AcceptanceCriteria>
+    <Criterion>Cmd+\ toggles split for the current tab; both panes render the same document; typing in the editable pane updates the mirror within 300ms on a 10k-line doc.</Criterion>
+    <Criterion>Mode toggle while split swaps which pane is editable without losing content or cursor in the editable pane.</Criterion>
+    <Criterion>Split state + divider ratio survive app restart per window; fresh tabs default to split-off.</Criterion>
+    <Criterion>Existing renderer suites green; new split tests green; visual probe screenshots (light+dark) attached to the plan ReviewLog.</Criterion>
+  </AcceptanceCriteria>
+
+  <AffectedAreas>
+    <M-011>titleBar untouched; editorWithTabs container</M-011>
+    <New>components/editorWithTabs/splitView.vue</New>
+  </AffectedAreas>
+
+  <VerificationIntent>
+    Unit: container logic (state per tab, ratio persistence). E2E:
+    tauri-shim boot, split toggle, mirror-sync assertions on content
+    change, divider persistence across reload. Corner matrix below in
+    plan. Review: four-corner protocol (Correctness, Security/Privacy,
+    UX/Docs, Performance) as in C-13/C-15.
+  </VerificationIntent>
+
+  <Approval>
+    <ApprovedBy>user (session 2026-09-29): "давай детальный грейс план с верификацией корнерами и ревью по 4 углам как всегда"</ApprovedBy>
+    <ApprovalScope>Spec + detailed plan now; implementation after C-16/C-17 land (queue order per user).</ApprovalScope>
+  </Approval>
+</C-22>
+</GraceChangeSpec>
