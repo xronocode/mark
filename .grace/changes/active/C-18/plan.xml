@@ -118,7 +118,7 @@
         indexes); full vitest green; CI-mode thresholds green; grace lint
         zero findings on changed files; review-1 (correctness — modal/
         clearup lifecycle, non-macOS fallback, command thread-safety) and
-        review-2 (contracts — GRACE consistency, T-M5 amendment coherence)
+        review-2 (contracts — GRACE consistency, T-115 amendment coherence)
         both CLEAN; WKWebView smoke checklist entry recorded.</Criterion>
       </AcceptanceCriteria>
       <Verification>
@@ -133,7 +133,7 @@
       <PassCriteria>zero findings on changed code</PassCriteria>
     </Review-1>
     <Review-2>
-      <Angle>security (no new attack surface), GRACE contract/graph/verification consistency incl. the C-15 T-M5 amendment</Angle>
+      <Angle>security (no new attack surface), GRACE contract/graph/verification consistency incl. the C-15 T-115 amendment</Angle>
       <PassCriteria>zero findings</PassCriteria>
     </Review-2>
   </ReviewProtocol>
@@ -164,7 +164,7 @@
       wiring + stale pins removed; spec R-2/R-5/acceptance rewritten to
       shipped reality; M-052 Type→UTILITY, PhaseRef C-18-T-001; V-M-052
       ordered after V-M-051 with the full five-file command; main.rs mod
-      order; summaries annotated (commands/index C-18 entry; C-15 T-M5
+      order; summaries annotated (commands/index C-18 entry; C-15 T-115
       supersession note; V-M-015 parenthetical). Security verified clean
       (no injection surface, no document content to backend, no ACL gap).
     </Reviews>

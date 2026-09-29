@@ -16,7 +16,8 @@
 // START_MODULE_MAP
 //   SITE_META - product name/description/og image used by landing and docs
 //   resolveSiteSettings - env -> { siteUrl, base, analytics[] }
-//   GA_ID_RE / CF_TOKEN_RE - accepted id shapes, checked before inlining
+//   GA_ID_RE - accepted GA4 measurement id shape, checked before inlining
+//   CF_TOKEN_RE - accepted Cloudflare beacon token shape, checked before inlining
 //   analyticsTags - analytics[] -> [{ attrs, body }] script tags (landing + docs)
 //   analyticsScript - analyticsTags serialized to HTML, '' when analytics is off
 //   renderSharedHead - meta/OG/twitter/favicon/analytics HTML for the landing

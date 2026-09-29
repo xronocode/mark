@@ -66,7 +66,7 @@
       shells `which`; m_v1_compat mt_format_link_click spawns macOS
       `open`; m045_ext is_pid_alive assumes unix and labels Windows
       "unknown"; project search requires a system rg binary (Windows
-      fallback: the in-process run_search walker from T-M4); no
+      fallback: the in-process run_search walker from T-114); no
       single-instance plugin — a second "Open With" launch spawns a new
       process instead of forwarding.
     </Amendment>

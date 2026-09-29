@@ -1047,7 +1047,7 @@
       <Layer>0</Layer>
       <Summary>
         Streaming text search through an `rg` child process with an embedded
-        ignore/regex fallback; honors .gitignore and cancellation. C-15 T-W2:
+        ignore/regex fallback; honors .gitignore and cancellation. C-15 T-103:
         ripgrep_available probes for a system rg at spawn time — desktop
         builds without one (typical Windows) degrade to the in-process walker
         with BLOCK_RIPGREP_FALLBACK, keeping the wire contract identical.
@@ -1975,7 +1975,7 @@
       <Status>shipped</Status>
       <Layer>2</Layer>
       <PhaseRef>Release-Readiness-2026-08-07</PhaseRef>
-      <Summary>Native menu bar and context menus; dispatches command IDs to renderer. C-15 T-W1: on Windows/Linux the menu stays registered on the app (hamburger popup via mt_window_popup_app_menu) but the native menu BAR is hidden to avoid double chrome under the custom titlebar.</Summary>
+      <Summary>Native menu bar and context menus; dispatches command IDs to renderer. C-15 T-102: on Windows/Linux the menu stays registered on the app (hamburger popup via mt_window_popup_app_menu) but the native menu BAR is hidden to avoid double chrome under the custom titlebar.</Summary>
       <Path>src-tauri/src/m009_menu.rs</Path>
       <Dependencies>
         <M-005/>
@@ -4407,7 +4407,7 @@
       <PhaseRef>B3-step-9</PhaseRef>
       <Summary>
         Import docx/odt/latex/rst/etc. → Markdown via pandoc subprocess.
-        C-15 T-W2: PATH augmentation and pandoc resolution are cross-platform
+        C-15 T-103: PATH augmentation and pandoc resolution are cross-platform
         (macOS Homebrew/TeX dirs; Windows %PROGRAMFILES%/%LOCALAPPDATA%
         Pandoc install dirs; no `which` shellout).
       </Summary>
@@ -5882,7 +5882,7 @@
       <Type>DATA_LAYER</Type>
       <Status>shipped</Status>
       <Layer>1</Layer>
-      <PhaseRef>C-15-T-M3</PhaseRef>
+      <PhaseRef>C-15-T-113</PhaseRef>
       <Summary>
         macOS security-scoped bookmarks: persist sandbox access grants
         (recent files, picked folders, CLI/LaunchServices opens) to
@@ -5934,13 +5934,13 @@
       <Type>UTILITY</Type>
       <Status>shipped</Status>
       <Layer>1</Layer>
-      <PhaseRef>C-15-T-M5</PhaseRef>
+      <PhaseRef>C-15-T-115</PhaseRef>
       <Summary>
         Compile-time build descriptor: mt_build_mode returns
         { mode, exportPandoc, screenshot, setDefaultHandler,
         projectSearchRipgrep, updater }. Renderer preferences store flips
         UI off via FETCH_BUILD_MODE at boot; applyCapabilityGate prunes
-        sandbox-hostile commands from the registry. C-15 T-W2: desktop
+        sandbox-hostile commands from the registry. C-15 T-103: desktop
         builds advertise screenshot/setDefaultHandler only on macOS
         (m018 screencapture and m021 defaults/lsregister are macOS-only
         binaries).
