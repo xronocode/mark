@@ -130,6 +130,15 @@ describe('titleBar/index.vue — Windows variant (C-15 T-W1)', () => {
     expect(aux.find('.titlebar-share-btn').exists()).toBe(true)
   })
 
+  it('hides the Share button when the m048 share capability is off (macOS-only feature)', async () => {
+    const { usePreferencesStore } = await import('@/store/preferences.js')
+    const prefStore = usePreferencesStore()
+    prefStore.buildCapabilities = { ...prefStore.buildCapabilities, share: false }
+
+    const wrapper = mountWindows()
+    expect(wrapper.find('.titlebar-share-btn').exists()).toBe(false)
+  })
+
   it('does not apply the macOS traffic-light shift to the nav cluster', () => {
     const wrapper = mountWindows()
     expect(wrapper.find('.titlebar-nav').classes()).not.toContain('titlebar-nav--osx')

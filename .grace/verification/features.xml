@@ -2457,6 +2457,7 @@
         <Scenario>scenario-8 (Phase W QA): inline raw &lt;br&gt; text hides on inactive lines (ag-hide wrapper outside the real br element) while the line break itself always renders — htmlTagBr.test.js.</Scenario>
         <Scenario>scenario-9 (Phase W QA): Ctrl+wheel and Ctrl/Cmd+=/-/0 adjust the editor fontSize preference (12–36, debounced persistence) instead of the --content-zoom surface; the wheel listener is capture-phase so muya's wheel stopPropagation cannot leak WebView2 native browser zoom — app-deep.test.js.</Scenario>
         <Scenario>scenario-10 (Phase W QA): theme survives the boot hydration race (boot-dirty keys are dropped from the mt_prefs_get_all payload), locale loads await dynamic translation fetch (Nurik promise payload), and win32 builds use the path-win32 shim implementation — preferences/i18n/platform-truth tests.</Scenario>
+        <Scenario>scenario-11 (Phase W QA round 2): core:window:default is read-only in Tauri 2.11 — every mutating window call the renderer makes (maximize/unmaximize/minimize/unminimize/close/setFullscreen/setSize/setAlwaysOnTop + setZoom) is explicitly granted in capabilities/default.json and pinned by tauri-capabilities.test.js (root cause of "main-window min/max buttons dead while native-chrome Preferences buttons work"); the titlebar Share button hides behind the m048 `share` capability (m032 NSSharingServicePicker is macOS-only).</Scenario>
       </Scenarios>
       <Markers>
         <Marker>[main][single_instance][BLOCK_FORWARDED]</Marker>

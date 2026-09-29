@@ -198,6 +198,33 @@
       </T-116>
   </ImplementationPlan>
   <ReviewLog>
+    <Review number="6" date="2026-09-29" verdict="green-partial" task="phase-w-qa-round-2">
+      <Findings>
+        Nurik tested the round-1 build the same evening; four new
+        findings (21:01–21:14). (1) main-window min/max STILL dead while
+        the native-chrome Preferences window works — root cause proven
+        against tauri 2.11.2 source: core:window:default grants only
+        read-only queries, so every mutating window call (maximize,
+        minimize, close, setFullscreen, setSize, setAlwaysOnTop) was
+        silently ACL-denied with only a webview-console error; mac never
+        hit it (native traffic lights + mocked shims). Fixed: explicit
+        allow-* permissions in capabilities/default.json; pinned by
+        tests/renderer/tauri-capabilities.test.js so the class of bug
+        cannot silently return. (2) Share button dead on Windows — m032
+        is an NSSharingServicePicker shim returning Err off-macOS; the
+        button now hides behind the new m048 `share` capability flag
+        (same gate as screenshot/default-handler). (3) «паддинг слева в
+        рабочей области» — by design: centered reading column, width is
+        the editorLineWidth preference (Preferences → Editor); explain
+        to tester, no code change. (4) «кнопка Exit не работает» —
+        menu-bridge/quit chain (hamburger → on_menu_event →
+        mt::menu-invoked → file.quit → mt_app_quit) reviewed and sound;
+        not reproducible without Windows hardware — retest in round 3
+        with a diagnostic ask (does hamburger → File → New Tab work?).
+        Winget prep (T-105, Amendment #3) landed this round:
+        tools/winget/sync-manifest.sh + reference manifests.
+      </Findings>
+    </Review>
     <Review number="5" date="2026-09-28" verdict="green-partial" task="phase-w-qa-round-1">
       <Findings>
         Nurik's manual QA round on the dry-run artifact (15 screenshots in

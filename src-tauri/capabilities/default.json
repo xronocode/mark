@@ -8,7 +8,16 @@
     "core:event:default",
     "core:window:default",
     "core:window:allow-start-dragging",
+    "core:window:allow-maximize",
+    "core:window:allow-unmaximize",
+    "core:window:allow-minimize",
+    "core:window:allow-unminimize",
+    "core:window:allow-close",
+    "core:window:allow-set-fullscreen",
+    "core:window:allow-set-size",
+    "core:window:allow-set-always-on-top",
     "core:webview:default",
+    "core:webview:allow-set-webview-zoom",
     "core:path:default",
     "core:app:default",
     "global-shortcut:default",
@@ -18,7 +27,6 @@
     "clipboard-manager:allow-write-text",
     "clipboard-manager:allow-write-html",
     "updater:default",
-    "process:default",
-    "core:webview:allow-set-webview-zoom"
+    "process:default"
   ]
 }

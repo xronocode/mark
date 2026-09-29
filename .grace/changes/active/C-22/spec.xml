@@ -26,7 +26,7 @@
   <Goals>
     <R-1>Split layout component hosting both existing mode components; no new editor internals.</R-1>
     <R-2>Read-only mirror pane syncs from the editable pane content (debounce 150ms), never writes back.</R-2>
-    <R-3>View menu item + Cmd+\ toggle; persistence of split state and ratio (draggable divider) per window.</R-4>
+    <R-3>View menu item + Cmd+\ toggle; persistence of split state and ratio (draggable divider) per window.</R-3>
     <R-4>Both themes; both directions (source-left and rich-left) via double-click divider swap.</R-4>
   </Goals>
 

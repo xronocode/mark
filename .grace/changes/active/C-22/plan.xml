@@ -6,7 +6,7 @@
   <BaselineAssertions>
     <MustContain>
       <File>src/renderer/src/components/editorWithTabs/index.vue</File>
-      <Text>sourceCodeModeEnabled</Text>
+      <Text>SourceCode</Text>
     </MustContain>
     <MustContain>
       <File>src/renderer/src/store/preferences.js</File>
@@ -32,7 +32,7 @@
     </MustContain>
   </TargetAssertions>
   <DurableScope>
-    <New>splitView.vue container (no kernel changes)</New>
+    <M-012/>
   </DurableScope>
   <ObservedWriteScope>
     <File>src/renderer/src/components/editorWithTabs/splitView.vue (new)</File>
@@ -89,43 +89,43 @@
   </ImplementationPlan>
   <CornerMatrix>
     <!-- Corners drive tests AND the four reviewers' checklists. -->
-    <Corner id="C-1">
+    <Corner id="corner-1">
       <Situation>Toggle split while a document has unsaved changes / dirty dot</Situation>
       <Expected>content preserved bit-identical; dirty state untouched; no autosave trigger</Expected>
     </Corner>
-    <Corner id="C-2">
+    <Corner id="corner-2">
       <Situation>Split ON, then mode toggle (Cmd+Alt+S) in editable pane</Situation>
       <Expected>panes swap editability; editable cursor position preserved per its own surface; no focus theft</Expected>
     </Corner>
-    <Corner id="C-3">
+    <Corner id="corner-3">
       <Situation>Tab switch: tab A split-on ratio 30%, tab B split-off</Situation>
       <Expected>each tab restores its own state on return; no cross-tab leakage</Expected>
     </Corner>
-    <Corner id="C-4">
+    <Corner id="corner-4">
       <Situation>10k-line document, rapid typing (30 chars burst)</Situation>
       <Expected>mirror updates coalesce (≤2 re-renders per burst); editable pane keystroke latency unchanged (no main-thread stall &gt; 16ms)</Expected>
     </Corner>
-    <Corner id="C-5">
+    <Corner id="corner-5">
       <Situation>Live-reload external edit while split (watcher fires)</Situation>
       <Expected>both panes update per existing reload semantics; cursor-preservation logic applies to the EDITABLE pane only</Expected>
     </Corner>
-    <Corner id="C-6">
+    <Corner id="corner-6">
       <Situation>Window resized below 800px width</Situation>
       <Expected>split collapses to single-pane (mode toggle remains); re-expanding restores ratio; no clipped half-panes</Expected>
     </Corner>
-    <Corner id="C-7">
+    <Corner id="corner-7">
       <Situation>App restart with split-on</Situation>
       <Expected>split+ratio restored via prefs; failure to read prefs defaults split-off (fail-open)</Expected>
     </Corner>
-    <Corner id="C-8">
+    <Corner id="corner-8">
       <Situation>Print/export/screenshot commands while split</Situation>
       <Expected>operate on the document as today (single-model); no pane duplication in output</Expected>
     </Corner>
-    <Corner id="C-9">
+    <Corner id="corner-9">
       <Situation>Split + WYSIWYG math/mermaid heavy doc</Situation>
       <Expected>mirror defers heavy renders (existing lazy semantics); no double network/local resource fetch</Expected>
     </Corner>
-    <Corner id="C-10">
+    <Corner id="corner-10">
       <Situation>Divider dragged to 0%/100% extremes</Situation>
       <Expected>clamped at 10/90; no zero-width pane or divider loss</Expected>
     </Corner>
