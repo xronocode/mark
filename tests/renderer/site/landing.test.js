@@ -12,6 +12,7 @@
 //
 // START_MODULE_MAP
 //   TEMPLATE - minimal landing template fixture
+//   CF - Cloudflare beacon token fixture used by analytics assertions
 // END_MODULE_MAP
 
 import { readFileSync } from 'node:fs'

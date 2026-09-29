@@ -1,24 +1,31 @@
-// MODULE_CONTRACT
-//   PURPOSE: M-048 build-mode descriptor (C-15 T-M5). Exposes which
+// FILE: src-tauri/src/m048_build_mode.rs
+// VERSION: 1.1.0
+// START_MODULE_CONTRACT
+//   PURPOSE: M-048 build-mode descriptor (C-15 T-115). Exposes which
 //            distribution the renderer is running in so it can hide
 //            sandbox-hostile surfaces instead of surfacing backend
 //            errors: { mode: "app-store" | "desktop", features map }.
-//   SCOPE:   One query command, compile-time constant. No state, no I/O.
-//   DEPENDS: stdlib (cfg).
-//   LINKS: .grace/changes/active/C-15/plan.xml T-M5; renderer
-//          preferences store gating; m015 (pandoc), m018 (screenshot),
-//          m021 (default handler), m013b search.
+//   SCOPE: One query command, compile-time constant. No state, no I/O.
+//   DEPENDS: stdlib (cfg), serde.
+//   LINKS: .grace/changes/active/C-15/plan.xml T-115; renderer preferences
+//          store capability gating; m015 (pandoc), m018 (screenshot),
+//          m021 (default handler), m013b (search).
+//   ROLE: RUNTIME
+//   MAP_MODE: EXPORTS
+// END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
 //   mt_build_mode - command returning the build descriptor
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   - 2026-09-21 C-15 T-M5: initial module.
-//   - 2026-09-28 C-15 T-W2: desktop builds advertise screenshot /
+//   - 2026-09-21 C-15 T-115: initial module.
+//   - 2026-09-28 C-15 T-103: desktop builds advertise screenshot /
 //     setDefaultHandler only on macOS (m018 / m021 shell macOS-only
 //     binaries); Windows/Linux desktop hides those surfaces via the
 //     same renderer capability gate.
+//   - 2026-09-29: header normalized to canonical START/END contract
+//     form (grace lint closure).
 // END_CHANGE_SUMMARY
 
 use serde::Serialize;

@@ -9,7 +9,7 @@
     window.print() is silently ignored by WKWebView on macOS, so Mark's
     Print action is dead in the shipped app; PDF export shells out to
     pandoc (raw markdown — styling lost) and is capability-pruned out of
-    App Store builds entirely (C-15 T-M5). tauri 2.11 / wry 0.55 already
+    App Store builds entirely (C-15 T-115). tauri 2.11 / wry 0.55 already
     ship Webview::print() — the native WKWebView print panel (macOS 11+)
     with real pagination and a built-in "Save as PDF". C-18 routes Print
     and Export-PDF through one new backend command that calls it, replacing
@@ -71,7 +71,7 @@
       MAS un-gating: applyCapabilityGate no longer prunes
       file.export-file-pdf (PDF is native now); the exportPandoc capability flag stays
       reported (informational) but gates nothing until a DOCX command
-      lands. T-M5 capability-gate test updated accordingly.
+      lands. T-115 capability-gate test updated accordingly.
     </R-4>
     <R-5>
       Non-macOS note (AMENDED at review): wry's print is macOS-only and

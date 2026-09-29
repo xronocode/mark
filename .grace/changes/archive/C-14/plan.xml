@@ -1,4 +1,4 @@
-<GraceChangePlan graceVersion='4.0' status='approved'>
+<GraceChangePlan graceVersion='4.0' status='applied'>
 <C-14>
   <ChangeRef>C-14</ChangeRef>
   <Created>2026-09-20</Created>
@@ -28,7 +28,7 @@
     </MustContain>
   </TargetAssertions>
   <DurableScope>
-    <Website>site/ VitePress area becomes the marketing + docs surface</Website>
+    <M-053/>
   </DurableScope>
   <ObservedWriteScope>
     <File>site/index.md</File>

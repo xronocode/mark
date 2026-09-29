@@ -1713,7 +1713,7 @@
         auth (keychain-based shared secret via M-019), invocation (HTTP POST to
         127.0.0.1 per D1), and live document server (axum HTTP endpoint for
         stream.document). First consumer: TokMo meeting intelligence extension.
-        C-15 T-W2: live_endpoint is_pid_alive has a Windows tasklist arm
+        C-15 T-103: live_endpoint is_pid_alive has a Windows tasklist arm
         (was assume-stale) and platform labels windows-x86_64/aarch64;
         discovery scans %APPDATA% on Windows.
       </Summary>
@@ -2342,7 +2342,7 @@
       <Summary>
         Provide a deterministic pre-publication gate for exact version/tag
         consistency, complete automated verification, and signed/notarized macOS
-        artifact evidence. C-15 T-W3: the release workflow gained a
+        artifact evidence. C-15 T-106: the release workflow gained a
         windows-x64 NSIS lane (silent-install smoke, size budget, per-platform
         updater-feed fragments merged at publish) staged behind the
         WINDOWS_RELEASE repo variable until manual QA passes; test.yml runs
@@ -2625,7 +2625,7 @@
       <Type>UTILITY</Type>
       <Status>shipped</Status>
       <Layer>TOOLING</Layer>
-      <PhaseRef>C-15-T-W3</PhaseRef>
+      <PhaseRef>C-15-T-106</PhaseRef>
       <Summary>
         C-15 Phase W Windows enablement surface: windows-latest test lanes
         (renderer+backend units — the Windows-cfg compile gate), the

@@ -1,27 +1,32 @@
-// MODULE_CONTRACT
-//   PURPOSE: M-047 security-scoped bookmarks (C-15 T-M3). Persists macOS
+// FILE: src-tauri/src/m047_bookmarks.rs
+// VERSION: 1.1.0
+// START_MODULE_CONTRACT
+//   PURPOSE: M-047 security-scoped bookmarks (C-15 T-113). Persists macOS
 //            sandbox access grants so recent files / folders reopen across
 //            relaunches after LaunchServices document grants expire.
-//   SCOPE:   remember(path) at grant moments (recent-add, folder pick,
-//            CLI boot); ensure_access(path) as a pre-read rescue hook in
-//            m013b fs read/readdir. JSON store at data_root()/security-
-//            bookmarks.json. Non-macOS: both calls are no-ops.
+//   SCOPE: remember(path) at grant moments (recent-add, folder pick, CLI
+//          boot); ensure_access(path) as a pre-read rescue hook in m013b
+//          fs read/readdir. JSON store at data_root()/security-bookmarks.json.
+//          Non-macOS: both calls are no-ops.
 //   DEPENDS: mt_paths::data_root; serde/serde_json; core-foundation
 //            (macOS only — already in the tree via cocoa).
-//   LINKS: .grace/changes/active/C-15/plan.xml T-M3; M-013-B fs hooks;
+//   LINKS: .grace/changes/active/C-15/plan.xml T-113; M-013-B fs hooks;
 //          M-017 recent docs; M-022 mt-paths data_root.
+//   ROLE: RUNTIME
+//   MAP_MODE: EXPORTS
+// END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
 //   remember - create + persist a security-scoped bookmark for a granted path
 //   ensure_access - resolve/refresh a stored bookmark, start accessing, return the path
-//   store_load/store_save - JSON persistence (v1: {version, bookmarks{path: base64}})
-//   active_set - process-global set of already-started accesses
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   - 2026-09-21 C-15 T-M3: initial module — sandbox persistence for
+//   - 2026-09-21 C-15 T-113: initial module — sandbox persistence for
 //     App Store builds; zero behavior change for non-MAS (no bookmark →
 //     path passes through unchanged).
+//   - 2026-09-29: header normalized to canonical START/END contract
+//     form (grace lint closure).
 // END_CHANGE_SUMMARY
 
 use std::collections::{HashMap, HashSet};

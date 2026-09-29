@@ -7,6 +7,8 @@
 #   SCOPE: build list/detail for our app; extensible GETs.
 #   DEPENDS: python3 stdlib + openssl; AuthKey_*.p8 in Downloads or
 #            MARK_ASC_KEY path; MARK_ASC_ISSUER env; Key ID from filename.
+#   LINKS: .grace/changes/active/C-15/plan.xml T-116 (ASC Phase M);
+#          tools/release/asc_checklist.md; M-046 release lane.
 #   ROLE: SCRIPT
 #   MAP_MODE: LOCALS
 # END_MODULE_CONTRACT

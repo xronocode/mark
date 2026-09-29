@@ -1,3 +1,22 @@
+// FILE: src/muya/lib/prism/index.js
+// VERSION: 1.1.0
+// START_MODULE_CONTRACT
+//   PURPOSE: Muya's Prism language registry — searchable language list plus lazy grammar loading with alias resolution (vendored muya, edited in-tree).
+//   SCOPE: builds the langs metadata list from prismjs components, exposes fuzzy search over it, and lazy-loads grammars via loadLanguage; in-tree grammar patches (prism-r function/builtin rules) live here.
+//   DEPENDS: prismjs, fuzzaldrin, ./loadLanguage.
+//   LINKS: muya code-block renderer (src/muya); tests/e2e/r-highlight.spec.ts; M-012 editor stack.
+//   ROLE: RUNTIME
+//   MAP_MODE: EXPORTS
+// END_MODULE_CONTRACT
+//
+// START_MODULE_MAP
+//   default - the shared Prism instance (window.Prism)
+//   search - fuzzy language search over the prismjs registry
+//   loadLanguage - lazy grammar loader (with in-tree extensions)
+//   loadedLanguages - set of already-loaded grammars
+//   transformAliasToOrigin - alias -> canonical language name
+// END_MODULE_MAP
+//
 import Prism from 'prismjs'
 import { filter } from 'fuzzaldrin'
 import initLoadLanguage, { loadedLanguages, transformAliasToOrigin } from './loadLanguage'
