@@ -126,7 +126,7 @@
            (the "мешанина" overlap). -->
       <div class="titlebar-aux title-no-drag" :class="{ 'titlebar-aux--custom': showCustomTitleBar }">
         <div
-          v-if="pathname"
+          v-if="pathname && shareCapable"
           class="titlebar-share-btn"
           :title="t('titleBar.share')"
           @click.stop="handleShareClick"
@@ -209,7 +209,7 @@
 
 <script setup>
 // FILE: src/renderer/src/components/titleBar/index.vue
-// VERSION: 1.5.0
+// VERSION: 1.6.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Render the main window title bar and expose its navigation, native file-path actions, window controls, and drag affordances.
 //   SCOPE: Renderer-side titlebar behavior, including sidebar/view navigation, title updates, native title context menus, direct window controls, and WKWebView/macOS drag fallbacks.
@@ -239,6 +239,7 @@
 //   - 2026-09-16 v1.3.0: C-9 — constrain the breadcrumb inside real title clearances and clip the oldest path segments (flex-end shrink) so path/filename never collide with the nav cluster or word count at narrow widths; removes the dead GH#339 `div.title > span` rule.
 //   - 2026-09-28 v1.4.0: C-15 T-W1 — Windows titlebar pass: effectiveTitleBarStyle forces 'custom' on win32 (decorations are unconditionally off there via tauri.windows.conf.json), and titlebar dblclick toggles maximize on every platform (was macOS-only).
 //   - 2026-09-28 v1.5.0: C-15 Phase W QA — fix the Win/Linux "мешанина": the share/word-count cluster was absolute-positioned at left:0 and stacked on top of titlebar-nav; it is now .titlebar-aux at right:150px (left of the window controls), the app-menu hamburger moved into titlebar-nav, and window-control icons use currentColor so dark themes keep them visible.
+//   - 2026-09-29 v1.6.0: C-15 Phase W QA round 2 — the Share button hides behind the m048 `share` capability (mt_share_file is an NSSharingServicePicker shim, macOS-only).
 // END_CHANGE_SUMMARY
 
 // step-8g: @electron/remote.Menu also gone. Application-menu popup
@@ -324,6 +325,10 @@ const { titleBarStyle, theme } = storeToRefs(preferencesStore)
 const { showTabBar, showSideBar, rightColumn } = storeToRefs(layoutStore)
 
 const currentIsDark = computed(() => isDarkTheme(theme.value))
+
+// C-15 Phase W QA round 2: mt_share_file is an NSSharingServicePicker
+// shim — macOS-only (m048 capability). Hide, don't fail silently.
+const shareCapable = computed(() => preferencesStore.buildCapabilities.share === true)
 
 const paths = computed(() => {
   if (!props.pathname) return []

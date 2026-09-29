@@ -26,6 +26,9 @@
 //     same renderer capability gate.
 //   - 2026-09-29: header normalized to canonical START/END contract
 //     form (grace lint closure).
+//   - 2026-09-29 Phase W QA round 2: `share` flag — mt_share_file is
+//     macOS-only (m032 NSSharingServicePicker); the titlebar Share
+//     button must hide on Windows/Linux instead of failing silently.
 // END_CHANGE_SUMMARY
 
 use serde::Serialize;
@@ -43,6 +46,9 @@ pub struct BuildMode {
     pub set_default_handler: bool,
     pub project_search_ripgrep: bool,
     pub updater: bool,
+    /// C-15 Phase W QA round 2: mt_share_file is an NSSharingServicePicker
+    /// shim (m032) — macOS-only. The titlebar Share button hides off-mac.
+    pub share: bool,
 }
 
 #[tauri::command]
@@ -56,6 +62,7 @@ pub async fn mt_build_mode() -> Result<BuildMode, String> {
             set_default_handler: false,
             project_search_ripgrep: false,
             updater: false,
+            share: false,
         })
     }
     #[cfg(not(feature = "app-store"))]
@@ -70,6 +77,7 @@ pub async fn mt_build_mode() -> Result<BuildMode, String> {
             set_default_handler: cfg!(target_os = "macos"),
             project_search_ripgrep: true,
             updater: true,
+            share: cfg!(target_os = "macos"),
         })
     }
 }
@@ -89,6 +97,7 @@ mod tests {
             set_default_handler: false,
             project_search_ripgrep: false,
             updater: false,
+            share: false,
         };
         #[cfg(not(feature = "app-store"))]
         let m = BuildMode {
@@ -98,6 +107,7 @@ mod tests {
             set_default_handler: cfg!(target_os = "macos"),
             project_search_ripgrep: true,
             updater: true,
+            share: cfg!(target_os = "macos"),
         };
         assert!(matches!(m.mode, "app-store" | "desktop"));
         // app-store must never advertise a sandbox-hostile capability.
