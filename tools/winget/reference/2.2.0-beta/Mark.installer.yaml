@@ -1,0 +1,21 @@
+# Reference copy — sync-manifest.sh regenerates this with the real
+# sha256/release date at submit time (this file is NOT submitted verbatim).
+PackageIdentifier: xronocode.Mark
+PackageVersion: 2.2.0-beta
+InstallerType: nullsoft
+Installers:
+- Architecture: x64
+  InstallerType: nullsoft
+  Scope: user
+  InstallerUrl: https://github.com/xronocode/mark/releases/download/v2.2.0-beta/Mark_2.2.0-beta_x64-setup.exe
+  InstallerSha256: __PENDING_SHA256__
+  InstallModes:
+  - silent
+  - silentWithProgress
+  AppsAndFeaturesEntries:
+  - DisplayName: Mark
+    DisplayVersion: 2.2.0-beta
+    Publisher: xronocode
+  ReleaseDate: __RELEASE_DATE__
+ManifestType: installer
+ManifestVersion: 1.9.0

@@ -70,6 +70,17 @@
       single-instance plugin — a second "Open With" launch spawns a new
       process instead of forwarding.
     </Amendment>
+    <Amendment date="2026-09-29">
+      User: "если уже дело дошло до ретеста, то хорошо бы внедрить вингет,
+      чтобы Нурику было проще обновляться" — winget PREPARATION moves
+      ahead of the release (was decision (2): fast-follow after the first
+      live release). tools/winget/sync-manifest.sh + reference manifests
+      land now; the winget-pkgs PR is submitted immediately after the
+      first live Windows release goes public (the installer URL must
+      resolve — winget cannot serve dry-run QA artifacts). Tester update
+      ergonomics in the QA window come from the in-app updater
+      (/releases/latest/download/latest.json) after the first install.
+    </Amendment>
   </Amendments>
 
   <AcceptanceCriteria>

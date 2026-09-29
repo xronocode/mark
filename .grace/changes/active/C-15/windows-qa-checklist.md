@@ -27,3 +27,6 @@ spellcheck (hunspell-embedding F-SPELL-HUNSPELL-EMBED), print/screenshot/share, 
 ## После успешного QA
 
 `gh variable set WINDOWS_RELEASE --body true -R xronocode/mark` → следующий тег публикует Windows-ассеты + `windows-x86_64` в latest.json (план: v2.2.0-beta, бамп 6 мест + preflight-fixture).
+
+Сразу после публикации релиза — winget (C-15 T-105, Amendment #3):
+`tools/winget/sync-manifest.sh v2.2.0-beta` → PR в microsoft/winget-pkgs → после мержа `winget install xronocode.Mark`. Обновления тестеру: первая установка — exe с релиза, дальше in-app updater сам находит новые беты; winget — для чистых установок/`winget upgrade`.
