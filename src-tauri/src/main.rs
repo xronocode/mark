@@ -688,6 +688,10 @@ fn main() {
                         pending_context: std::sync::Mutex::new(std::collections::HashMap::new()),
                     },
                 );
+                // ASC review (2026-09-30): the App Store build carries no
+                // com.apple.security.network.server entitlement — the live
+                // viewer stays a desktop-build feature (MAS: no listener).
+                #[cfg(not(feature = "app-store"))]
                 tauri::async_runtime::spawn(async move {
                     match m045_ext::start_live_server(live_state).await {
                         Ok(port) => {
