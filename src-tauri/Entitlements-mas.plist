@@ -8,8 +8,6 @@
     <true/>
     <key>com.apple.security.network.client</key>
     <true/>
-    <key>com.apple.security.network.server</key>
-    <true/>
     <!-- ASC 90886: the signed bundle must carry the application identifier
          matching the provisioning profile (Xcode injects this
          automatically; manual signing must state it). -->
