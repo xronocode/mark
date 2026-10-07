@@ -16,6 +16,10 @@
 # END_MODULE_MAP
 #
 # START_CHANGE_SUMMARY
+#   - 2026-10-07 v1.7.1: fix compose-latest.json — the bash builtin is
+#     lowercase `mapfile`; `MAPFILE` was command-not-found (exit 127) the
+#     first time the merge path ran with WINDOWS_RELEASE=true (v2.2.0-beta
+#     run 37575470738; both build lanes were green).
 #   - 2026-09-28 v1.7.0: C-15 T-W3 — windows-x64 (NSIS, x86_64-pc-windows-msvc) build lane: CI silent-install smoke, per-platform updater-feed fragments merged in publish, Windows assets staged behind vars.WINDOWS_RELEASE (build-only until manual QA passes); literal macos-14 gates refactored to runner.os.
 #   - 2026-08-07 v1.6.0: publish signed beta tags as GitHub latest releases so the configured /releases/latest updater endpoint advances.
 #   - 2026-08-07 v1.5.0: fail cask publication unless its URL template resolves to the staged Tauri DMG filename.
@@ -657,7 +661,7 @@ jobs:
           TAG=${{ needs.build.outputs.tag }}
           VER="${TAG#v}"
           PUB_DATE=$(date -u '+%Y-%m-%dT%H:%M:%SZ')
-          MAPFILE -t FRAGS < <(find /tmp/release-stage -name latest-platform.json | sort)
+          mapfile -t FRAGS < <(find /tmp/release-stage -name latest-platform.json | sort)
           if [ "${#FRAGS[@]}" -eq 0 ]; then
             echo "::warning::no updater feed fragments staged; latest.json not composed."
             exit 0
