@@ -583,6 +583,7 @@ pub fn standard_menu() -> Vec<MenuItem> {
                     accelerator: None,
                     items: None,
                 },
+                #[cfg(not(feature = "app-store"))]
                 MenuItem {
                     id: "file.check-update".to_string(),
                     label: "Check for Updates…".to_string(),
@@ -882,15 +883,42 @@ pub fn build_native_menu<R: tauri::Runtime>(
         )
         .build()?;
 
+    // ASC 2.4.5(vii): App Store builds hide the update item entirely.
+    #[cfg(feature = "app-store")]
+    fn cfg_helper_check_update<R: tauri::Runtime>(
+        handle: &tauri::AppHandle<R>,
+    ) -> tauri::Result<tauri::menu::MenuItem<R>> {
+        MenuItemBuilder::with_id("help.update-hidden", "").build(handle)
+    }
+    #[cfg(not(feature = "app-store"))]
+    fn cfg_helper_check_update<R: tauri::Runtime>(
+        handle: &tauri::AppHandle<R>,
+    ) -> tauri::Result<tauri::menu::MenuItem<R>> {
+        MenuItemBuilder::with_id("file.check-update", "Check for Updates…").build(handle)
+    }
+
     // ── Help menu ────────────────────────────────────────────────────
-    let version_label = format!("Version {}", env!("CARGO_PKG_VERSION"));
+    // ASC 2.2: the App Store build must not surface "-beta" — take the
+    // version from the tauri package info (mas.conf overlay carries the
+    // clean numeric version); desktop keeps the full Cargo string.
+    let version_label = {
+        #[cfg(feature = "app-store")]
+        {
+            format!("Version {}", handle.package_info().version)
+        }
+        #[cfg(not(feature = "app-store"))]
+        {
+            format!("Version {}", env!("CARGO_PKG_VERSION"))
+        }
+    };
     let help_submenu = SubmenuBuilder::new(handle, "Help")
         .text("help.version", &version_label)
         .separator()
         .item(&MenuItemBuilder::with_id("docs.user-guide", "Documentation").build(handle)?)
+        // ASC 2.4.5(vii): no update checks in the App Store build —
+        // the store owns updates. Desktop keeps the in-app updater.
         .item(
-            &MenuItemBuilder::with_id("file.check-update", "Check for Updates…")
-                .build(handle)?,
+            &cfg_helper_check_update(handle)?,
         )
         .build()?;
 
