@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # FILE: tools/winget/sync-manifest.sh
-# VERSION: 1.1.0
+# VERSION: 1.2.0
 # START_MODULE_CONTRACT
 #   PURPOSE: Generate winget-pkgs manifests for a published Mark Windows release and open the submission PR.
 #   SCOPE: download the x64 NSIS installer from a live GitHub release, hash it, render installer/locale/version YAML, sparse-clone microsoft/winget-pkgs, push a branch to the xronocode fork, open the PR.
@@ -10,6 +10,10 @@
 #   MAP_MODE: LOCALS
 # END_MODULE_CONTRACT
 #
+# CHANGE_SUMMARY:
+#   - 2026-10-07 v1.2.0: catalog enforces ManifestVersion 1.12.0 and filenames
+#     MUST carry the full PackageIdentifier prefix (xronocode.Mark.*.yaml, not
+#     Mark.*.yaml) — both learned from PR #448088 validation failures.
 # START_MODULE_MAP
 #   main - tag -> rendered manifests -> fork branch -> PR to microsoft/winget-pkgs
 #   render_manifests - write the three YAML files from tag/sha/date into a staging dir
@@ -44,7 +48,8 @@ echo "[winget-sync] sha256=${HASH} date=${RELEASE_DATE}"
 DEST="${STAGE}/${MANIFEST_DIR}"
 mkdir -p "${DEST}"
 
-cat > "${DEST}/Mark.installer.yaml" <<YAML
+cat > "${DEST}/xronocode.Mark.installer.yaml" <<YAML
+# yaml-language-server: \$schema=https://aka.ms/winget-manifest.installer.1.12.0.schema.json
 PackageIdentifier: ${PKG_ID}
 PackageVersion: ${VER}
 InstallerType: nullsoft
@@ -63,10 +68,11 @@ Installers:
     Publisher: xronocode
   ReleaseDate: ${RELEASE_DATE}
 ManifestType: installer
-ManifestVersion: 1.9.0
+ManifestVersion: 1.12.0
 YAML
 
-cat > "${DEST}/Mark.locale.en-US.yaml" <<YAML
+cat > "${DEST}/xronocode.Mark.locale.en-US.yaml" <<YAML
+# yaml-language-server: \$schema=https://aka.ms/winget-manifest.defaultLocale.1.12.0.schema.json
 PackageIdentifier: ${PKG_ID}
 PackageVersion: ${VER}
 PackageLocale: en-US
@@ -85,15 +91,16 @@ Tags:
 - notes
 ReleaseNotesUrl: https://github.com/${REPO}/releases/tag/${TAG}
 ManifestType: defaultLocale
-ManifestVersion: 1.9.0
+ManifestVersion: 1.12.0
 YAML
 
-cat > "${DEST}/Mark.yaml" <<YAML
+cat > "${DEST}/xronocode.Mark.yaml" <<YAML
+# yaml-language-server: \$schema=https://aka.ms/winget-manifest.version.1.12.0.schema.json
 PackageIdentifier: ${PKG_ID}
 PackageVersion: ${VER}
 DefaultLocale: en-US
 ManifestType: version
-ManifestVersion: 1.9.0
+ManifestVersion: 1.12.0
 YAML
 # END_BLOCK_RENDER_MANIFESTS
 
