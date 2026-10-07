@@ -166,6 +166,10 @@ describe('menu ↔ commands consistency', () => {
 
   const DISPLAY_ONLY_MENU_IDS = new Set([
     'help.version',
+    // ASC 2.4.5(vii) (0764ebe0): app-store builds replace the update item
+    // with a label-less placeholder so the menu geometry is unchanged —
+    // it is never user-visible and maps to no renderer command.
+    'help.update-hidden',
   ])
 
   it('every native menu ID has a renderer command', () => {
