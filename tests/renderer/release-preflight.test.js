@@ -10,16 +10,16 @@
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
-//   consistentEvidence - Complete v2.1.15-beta version fixture.
+//   consistentEvidence - Complete v2.2.0-beta version fixture.
 //   workspaceRoot - GRACE 4 synchronized symbol
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
 //   LAST_CHANGE: 2026-09-28 v2.8.0 - C-15 T-W3: strict-SemVer feed assertion follows the fragment-merge compose step (jq --arg ver) instead of the removed inline heredoc; pin the WINDOWS_RELEASE staging gate and the windows-x64 matrix lane.
-//   PREVIOUS_LATEST: 2026-09-24 v2.7.0 - advance the release fixture to the link-autocomplete + dead-link-validation release v2.1.15-beta (C-20, C-21).
-//   PREVIOUS_LATEST: 2026-09-24 v2.6.0 - advance the release fixture to the native-print + heading-navigation release v2.1.15-beta (C-18, C-19).
-//   PREVIOUS_LATEST: 2026-09-22 v2.5.0 - advance the release fixture to the smart-paste + markdown-hygiene release v2.1.15-beta (C-16, C-17).
-//   PREVIOUS_LATEST: 2026-09-21 v2.4.0 - advance the release fixture to the live-reload-scroll/mas/e2e-gates release v2.1.15-beta (C-2 R-9, C-15 T-M1..T-M5, P0 proposals).
+//   PREVIOUS_LATEST: 2026-09-24 v2.7.0 - advance the release fixture to the link-autocomplete + dead-link-validation release v2.2.0-beta (C-20, C-21).
+//   PREVIOUS_LATEST: 2026-09-24 v2.6.0 - advance the release fixture to the native-print + heading-navigation release v2.2.0-beta (C-18, C-19).
+//   PREVIOUS_LATEST: 2026-09-22 v2.5.0 - advance the release fixture to the smart-paste + markdown-hygiene release v2.2.0-beta (C-16, C-17).
+//   PREVIOUS_LATEST: 2026-09-21 v2.4.0 - advance the release fixture to the live-reload-scroll/mas/e2e-gates release v2.2.0-beta (C-2 R-9, C-15 T-M1..T-M5, P0 proposals).
 //   PREVIOUS_LATEST: 2026-09-17 v2.3.0 - advance the release fixture to the context-menu/plain-copy/migration-retirement release v2.1.11-beta (C-10, C-11, C-12, C-13).
 //   PREVIOUS_LATEST: 2026-09-16 v2.2.0 - advance the release fixture to the tabs/titlebar/clipboard batch v2.1.10-beta (C-3, C-6, C-7, C-8, C-9).
 //   PREVIOUS_LATEST: 2026-08-18 v2.1.0 - advance the release fixture to live-doc v2 fix v2.1.9-beta.
@@ -43,22 +43,22 @@ import {
 
 const workspaceRoot = resolve(import.meta.dirname, '../..')
 const consistentEvidence = {
-  packageJson: '2.1.15-beta',
-  packageLock: '2.1.15-beta',
-  packageLockRoot: '2.1.15-beta',
-  cargoWorkspace: '2.1.15-beta',
-  cargoLockMark: '2.1.15-beta',
-  tauriConfig: '2.1.15-beta'
+  packageJson: '2.2.0-beta',
+  packageLock: '2.2.0-beta',
+  packageLockRoot: '2.2.0-beta',
+  cargoWorkspace: '2.2.0-beta',
+  cargoLockMark: '2.2.0-beta',
+  tauriConfig: '2.2.0-beta'
 }
 
 // START_BLOCK_RELEASE_VERSION_TESTS
 describe('M-046 release version preflight', () => {
   it('accepts one exact metadata version and matching release tag', () => {
     expect(
-      validateVersionEvidence(consistentEvidence, 'v2.1.15-beta')
+      validateVersionEvidence(consistentEvidence, 'v2.2.0-beta')
     ).toEqual({
-      version: '2.1.15-beta',
-      tag: 'v2.1.15-beta',
+      version: '2.2.0-beta',
+      tag: 'v2.2.0-beta',
       sourceCount: 6
     })
   })
@@ -67,7 +67,7 @@ describe('M-046 release version preflight', () => {
     expect(() =>
       validateVersionEvidence(
         { ...consistentEvidence, packageLockRoot: '2.0.6-alpha' },
-        'v2.1.15-beta'
+        'v2.2.0-beta'
       )
     ).toThrowError(
       expect.objectContaining({
@@ -94,7 +94,7 @@ describe('M-046 release version preflight', () => {
   it('CLI emits the stable success marker for the target tag', () => {
     const result = spawnSync(
       process.execPath,
-      ['tools/release-preflight.mjs', '--tag', 'v2.1.15-beta'],
+      ['tools/release-preflight.mjs', '--tag', 'v2.2.0-beta'],
       { cwd: workspaceRoot, encoding: 'utf8' }
     )
 
