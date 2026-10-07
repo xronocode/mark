@@ -83,6 +83,8 @@ export function applyCapabilityGate(caps) {
   const denied = []
   if (caps && caps.screenshot === false) denied.push('edit.screenshot')
   if (caps && caps.setDefaultHandler === false) denied.push('file.default-handler')
+  // ASC 2.4.5(vii): store builds must not offer update checks anywhere.
+  if (caps && caps.updater === false) denied.push('file.check-update')
   if (!denied.length) return
   const drop = (list) => {
     for (let i = list.length - 1; i >= 0; i--) {
