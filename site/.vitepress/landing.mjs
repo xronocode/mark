@@ -1,5 +1,5 @@
 // FILE: site/.vitepress/landing.mjs
-// VERSION: 1.2.0
+// VERSION: 1.3.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Single source of site settings and the landing renderer shared by
 //            the VitePress config (dev middleware + buildEnd) and unit tests.
@@ -18,7 +18,8 @@
 //   resolveSiteSettings - env -> { siteUrl, base, analytics[] }
 //   GA_ID_RE - accepted GA4 measurement id shape, checked before inlining
 //   CF_TOKEN_RE - accepted Cloudflare beacon token shape, checked before inlining
-//   analyticsTags - analytics[] -> [{ attrs, body }] script tags (landing + docs)
+//   CONSENT_GEO_URL - shared country lookup that decides whether the cookie banner is needed
+//   analyticsTags - analytics[], base -> [{ attrs, body }] script tags (landing + docs)
 //   analyticsScript - analyticsTags serialized to HTML, '' when analytics is off
 //   renderSharedHead - meta/OG/twitter/favicon/analytics HTML for the landing
 //   renderLanding - template -> final landing HTML
@@ -27,7 +28,8 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: [v1.2.0 - analytics is a list; GA4, Cloudflare Web Analytics and Umami can run together]
+//   LAST_CHANGE: [v1.3.0 - GA4 loads through public/consent.js: Consent Mode v2 + cookie banner only for EEA/UK/CH visitors]
+//   PREV: [v1.2.0 - analytics is a list; GA4, Cloudflare Web Analytics and Umami can run together]
 //   PREV: [v1.1.0 - GA4 provider via GA_MEASUREMENT_ID]
 //   PREV: [v1.0.0 - C-22: replaces the CI `cp` overlay and hard-coded /mark/ paths]
 // END_CHANGE_SUMMARY
@@ -93,20 +95,23 @@ function escapeAttr (value) {
     .replace(/>/g, '&gt;')
 }
 
+export const CONSENT_GEO_URL = 'https://avenex.xronocode.com/api/geo'
+
 // START_CONTRACT: analyticsTags
 //   PURPOSE: One description of every analytics <script>, shared by the
 //            landing (serialized) and the VitePress docs head (HeadConfig).
-//   INPUTS: { analytics: resolveSiteSettings().analytics }
+//   INPUTS: { analytics: resolveSiteSettings().analytics, base: site base path ('/' by default) }
 //   OUTPUTS: { Array<{ attrs: Record<string,string>, body: string }> }
-//   SIDE_EFFECTS: none. GA ids passed GA_ID_RE, so inlining them is safe.
+//   SIDE_EFFECTS: none. GA ids passed GA_ID_RE, so they are safe in attributes.
+//            GA4 is loaded by public/consent.js (Consent Mode v2; banner only where opt-in is required).
 // END_CONTRACT: analyticsTags
-export function analyticsTags (analytics = []) {
+export function analyticsTags (analytics = [], base = '/') {
   return analytics.flatMap((a) => {
     if (a.provider === 'ga4') {
-      return [
-        { attrs: { async: '', src: `https://www.googletagmanager.com/gtag/js?id=${a.measurementId}` }, body: '' },
-        { attrs: {}, body: `window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date());gtag('config','${a.measurementId}');` }
-      ]
+      return [{
+        attrs: { src: `${base}consent.js`, 'data-ga': a.measurementId, 'data-geo': CONSENT_GEO_URL, 'data-privacy': `${base}privacy` },
+        body: ''
+      }]
     }
     if (a.provider === 'cloudflare') {
       // Cookieless; SPA route changes are tracked by the beacon itself.
@@ -116,8 +121,8 @@ export function analyticsTags (analytics = []) {
   })
 }
 
-export function analyticsScript (analytics) {
-  return analyticsTags(analytics).map(({ attrs, body }) => {
+export function analyticsScript (analytics, base = '/') {
+  return analyticsTags(analytics, base).map(({ attrs, body }) => {
     const a = Object.entries(attrs).map(([k, v]) => (v === '' ? ` ${k}` : ` ${k}="${escapeAttr(v)}"`)).join('')
     return `<script${a}>${body}</script>`
   }).join('\n    ')
@@ -141,7 +146,7 @@ export function renderSharedHead (settings) {
     `<meta property="og:image" content="${escapeAttr(image)}">`,
     '<meta name="twitter:card" content="summary_large_image">',
     `<meta name="twitter:image" content="${escapeAttr(image)}">`,
-    analyticsScript(settings.analytics)
+    analyticsScript(settings.analytics, settings.base)
   ].filter(Boolean)
   return tags.join('\n    ')
 }

@@ -47,7 +47,7 @@ const head: HeadConfig[] = [
 ]
 // Page views on client-side navigation come from GA4 enhanced measurement
 // and the Cloudflare beacon (both watch history events): no router hook.
-for (const { attrs, body } of analyticsTags(analytics)) {
+for (const { attrs, body } of analyticsTags(analytics, base)) {
   head.push(body ? ['script', attrs, body] : ['script', attrs])
 }
 // END_BLOCK_DOCS_HEAD
