@@ -1,3 +1,7 @@
+---
+description: "Review document changes and compare Markdown versions in Mark."
+---
+
 # Diff View
 
 Diff view compares the current file content against a baseline, showing changes inline.

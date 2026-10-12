@@ -1,3 +1,7 @@
+---
+description: "Open your first Markdown file in Mark, edit it visually and preview code, tables and diagrams."
+---
+
 # Quick Start
 
 ## Open a file

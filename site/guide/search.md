@@ -1,3 +1,7 @@
+---
+description: "Find text and navigate your Markdown documents using search in Mark."
+---
+
 # Search
 
 Mark has two search modes: in-document search and project-wide search.

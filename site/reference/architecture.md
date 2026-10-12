@@ -1,3 +1,7 @@
+---
+description: "The architecture of Mark: Tauri, Rust and the Markdown editing frontend."
+---
+
 # Architecture
 
 ## Overview

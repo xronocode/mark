@@ -13,7 +13,8 @@
 // END_MODULE_CONTRACT
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: [v2.2.0 - docs head analytics from the shared analyticsTags list]
+//   LAST_CHANGE: [2026-10-12 - Readable documentation code-language labels.]
+//   PREV: [v2.2.0 - docs head analytics from the shared analyticsTags list]
 //   PREV: [v2.1.0 - GA4 analytics provider in the docs head]
 //   PREV: [v2.0.0 - C-22: env-driven base/URL, landing via buildEnd + dev
 //                 middleware (replaces CI cp), SEO head, sitemap, opt-in analytics]
@@ -38,6 +39,7 @@ const loadLanding = () => renderLanding(readFileSync(landingTemplate, 'utf8'), s
 
 // START_BLOCK_DOCS_HEAD
 const head: HeadConfig[] = [
+  ['style', {}, '.vp-doc div[class*=language-] > span.lang{color:var(--vp-c-text-2)}'],
   ['link', { rel: 'icon', type: 'image/png', href: `${base}${SITE_META.favicon}` }],
   ['meta', { name: 'theme-color', content: '#07090c' }],
   ['meta', { property: 'og:type', content: 'website' }],

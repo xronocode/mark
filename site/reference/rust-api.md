@@ -1,3 +1,7 @@
+---
+description: "Rust API reference and development entry points for Mark."
+---
+
 # Rust API
 
 The Rust backend is documented with inline `///` doc comments. Generate and browse the full API docs locally:

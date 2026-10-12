@@ -1,3 +1,7 @@
+---
+description: "Install Mark on macOS with Homebrew or a release download and keep the app up to date."
+---
+
 # Installation
 
 ## Homebrew (recommended)

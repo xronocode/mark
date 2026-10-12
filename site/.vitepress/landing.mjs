@@ -28,7 +28,8 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: [v1.3.0 - GA4 loads through public/consent.js: Consent Mode v2 + cookie banner only for EEA/UK/CH visitors]
+//   LAST_CHANGE: [2026-10-12 - Defer the self-contained analytics loader to keep first paint unblocked.]
+//   PREV: [v1.3.0 - GA4 loads through public/consent.js: Consent Mode v2 + cookie banner only for EEA/UK/CH visitors]
 //   PREV: [v1.2.0 - analytics is a list; GA4, Cloudflare Web Analytics and Umami can run together]
 //   PREV: [v1.1.0 - GA4 provider via GA_MEASUREMENT_ID]
 //   PREV: [v1.0.0 - C-22: replaces the CI `cp` overlay and hard-coded /mark/ paths]
@@ -109,7 +110,7 @@ export function analyticsTags (analytics = [], base = '/') {
   return analytics.flatMap((a) => {
     if (a.provider === 'ga4') {
       return [{
-        attrs: { src: `${base}consent.js`, 'data-ga': a.measurementId, 'data-geo': CONSENT_GEO_URL, 'data-privacy': `${base}privacy` },
+        attrs: { defer: '', src: `${base}consent.js`, 'data-ga': a.measurementId, 'data-geo': CONSENT_GEO_URL, 'data-privacy': `${base}privacy` },
         body: ''
       }]
     }
