@@ -1,3 +1,7 @@
+---
+description: "Browse project folders and open Markdown documents from the Mark sidebar."
+---
+
 # Project Sidebar
 
 The project sidebar shows a file tree for the currently opened folder.

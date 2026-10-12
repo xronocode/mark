@@ -1,3 +1,7 @@
+---
+description: "Choose light and dark themes and adjust the appearance of documents in Mark."
+---
+
 # Themes
 
 Mark ships with 21 built-in themes, switchable from **View > Theme** in the menu bar.

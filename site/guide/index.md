@@ -1,3 +1,7 @@
+---
+description: "Learn how to install Mark, open Markdown files and review documents written by your AI agents."
+---
+
 # Introduction
 
 Mark is a modern WYSIWYG Markdown editor built with [Tauri v2](https://tauri.app) and Vue 3. It renders tables, Mermaid diagrams, KaTeX math, and code blocks inline while you write.

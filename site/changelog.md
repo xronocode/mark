@@ -1,5 +1,6 @@
 ---
 title: Changelog
+description: "Release history, features and fixes in the Mark Markdown editor."
 ---
 
 # Changelog

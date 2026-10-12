@@ -154,9 +154,9 @@
             font: 600 13px/1 var(--font);
         }
         .copy .state span { grid-area: 1 / 1; transition: opacity 180ms ease, filter 180ms ease, transform 180ms var(--ease-out); }
-        .copy .state .done { opacity: 0; filter: blur(3px); transform: translateY(4px); color: var(--link); }
-        .copy.is-copied .state .idle { opacity: 0; filter: blur(3px); transform: translateY(-4px); }
-        .copy.is-copied .state .done { opacity: 1; filter: none; transform: none; }
+        .copy .state .done { visibility: hidden; opacity: 0; filter: blur(3px); transform: translateY(4px); color: var(--link); }
+        .copy.is-copied .state .idle { visibility: hidden; opacity: 0; filter: blur(3px); transform: translateY(-4px); }
+        .copy.is-copied .state .done { visibility: visible; opacity: 1; filter: none; transform: none; }
 
         /* ---------- Nav ---------- */
         .nav {
@@ -217,7 +217,7 @@
 
         /* Entrance: runs once on load; content is visible without it. */
         @keyframes rise { from { opacity: 0; transform: translateY(14px); filter: blur(4px); } }
-        .hero .l, .hero-copy > *, .stage { animation: rise 820ms var(--ease-out) both; }
+        .hero .l, .hero-copy > *, .stage { animation: none; }
         .hero .l2 { animation-delay: 70ms; }
         .hero-copy > :nth-child(1) { animation-delay: 160ms; }
         .hero-copy > :nth-child(2) { animation-delay: 220ms; }
@@ -266,8 +266,8 @@
             font-size: 15px; line-height: 1.6;
         }
         .doc > * { margin: 0 0 12px; border-radius: 6px; }
-        .doc h3 { font-size: 26px; line-height: 1.2; letter-spacing: -0.02em; font-weight: 700; color: oklch(0.8 0.13 222); margin-bottom: 8px; }
-        .doc h4 { font-size: 17px; font-weight: 700; margin-top: 20px; margin-bottom: 8px; }
+        .doc h2 { font-size: 26px; line-height: 1.2; letter-spacing: -0.02em; font-weight: 700; color: oklch(0.8 0.13 222); margin-bottom: 8px; }
+        .doc h3 { font-size: 17px; font-weight: 700; margin-top: 20px; margin-bottom: 8px; }
         .doc p { color: var(--night-ink-2); }
         .doc code { font-size: 0.86em; background: var(--night-2); padding: 2px 6px; border-radius: 4px; color: var(--night-ink); }
         .doc ol { padding-left: 22px; }
@@ -315,7 +315,7 @@
         }
         @media (max-width: 520px) {
             .doc { min-height: 480px; }
-            .doc h3 { font-size: 22px; }
+            .doc h2 { font-size: 22px; }
         }
 
         /* ---------- Sections ---------- */
@@ -448,7 +448,7 @@
             box-shadow: 0 0 0 1px var(--line), 0 24px 48px -28px oklch(0.2 0.05 242 / 0.45);
             background: var(--night);
         }
-        .shot figcaption { margin-top: 18px; color: var(--ink-2); max-width: 60ch; }
+        .shot > p { margin-top: 18px; color: var(--ink-2); max-width: 60ch; }
         /* With JS the panels stack in one cell and crossfade. */
         .js .shot {
             grid-area: 1 / 1; margin: 0;
@@ -498,7 +498,7 @@
         @media (prefers-reduced-motion: reduce) {
             html { scroll-behavior: auto; }
             @keyframes fade { from { opacity: 0; } }
-            .hero .l, .hero-copy > *, .stage { animation: fade 300ms ease both; animation-delay: 0ms; }
+            .hero .l, .hero-copy > *, .stage { animation: none; }
             .doc .enter, .doc .flash, .term .line-in, .doc .caret { animation: none; }
             .bars .fill, .seg .thumb, .tabs .ind { transition: none; }
             .js .shot { transform: none; filter: none; transition: opacity 200ms ease; }
@@ -540,7 +540,7 @@
                                 <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M10 3v10m0 0 4-4m-4 4-4-4M4 16h12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
                                 Download for Mac
                             </a>
-                            <button class="copy" type="button" data-copy="brew tap xronocode/mark && brew install --cask mark" aria-label="Copy the Homebrew install command">
+                            <button class="copy" type="button" data-copy="brew tap xronocode/mark && brew install --cask mark">
                                 <span class="cmd">brew install --cask mark</span>
                                 <span class="state" aria-live="polite"><span class="idle">Copy</span><span class="done">Copied</span></span>
                             </button>
@@ -559,9 +559,9 @@
                                 <div class="status" id="status" data-tone="">Saved</div>
                             </div>
                             <div class="doc" id="doc">
-                                <h3>Auth module plan</h3>
+                                <h2>Auth module plan</h2>
                                 <p>Replace cookie sessions before the 3.0 release. Owner: API team.</p>
-                                <h4>Steps</h4>
+                                <h3>Steps</h3>
                                 <ol>
                                     <li>Add a <code>POST /auth/token</code> endpoint</li>
                                     <li>Hash passwords with argon2id</li>
@@ -709,30 +709,30 @@ instruction.</pre>
                     <button type="button" role="tab" id="t-5" aria-controls="p-5" aria-selected="false" tabindex="-1">Tasks</button>
                 </div>
                 <div class="viewer">
-                    <figure class="shot is-on" role="tabpanel" id="p-0" aria-labelledby="t-0">
+                    <div class="shot is-on" role="tabpanel" id="p-0" aria-labelledby="t-0">
                         <img src="%BASE%showcase-00-rich-markdown.png" alt="Mark showing a formatted document with headings, emphasis, lists and a quote" width="1280" height="800">
-                        <figcaption>Headings, lists, quotes and inline code, edited where they are rendered. Switch to source mode when you want the raw text.</figcaption>
-                    </figure>
-                    <figure class="shot" role="tabpanel" id="p-1" aria-labelledby="t-1">
+                        <p>Headings, lists, quotes and inline code, edited where they are rendered. Switch to source mode when you want the raw text.</p>
+                    </div>
+                    <div class="shot" role="tabpanel" id="p-1" aria-labelledby="t-1">
                         <img src="%BASE%showcase-01-code-highlighting.png" alt="Fenced code blocks with syntax highlighting in Mark" width="1280" height="800" loading="lazy">
-                        <figcaption>Fenced code with highlighting for more than 60 languages.</figcaption>
-                    </figure>
-                    <figure class="shot" role="tabpanel" id="p-2" aria-labelledby="t-2">
+                        <p>Fenced code with highlighting for more than 60 languages.</p>
+                    </div>
+                    <div class="shot" role="tabpanel" id="p-2" aria-labelledby="t-2">
                         <img src="%BASE%showcase-02-mermaid-flowchart.png" alt="A Mermaid architecture flowchart and a pie chart rendered inline" width="1280" height="800" loading="lazy">
-                        <figcaption>Mermaid v11 flowcharts, sequence diagrams and Vega charts render inline and follow the theme.</figcaption>
-                    </figure>
-                    <figure class="shot" role="tabpanel" id="p-3" aria-labelledby="t-3">
+                        <p>Mermaid v11 flowcharts, sequence diagrams and Vega charts render inline and follow the theme.</p>
+                    </div>
+                    <div class="shot" role="tabpanel" id="p-3" aria-labelledby="t-3">
                         <img src="%BASE%showcase-03-math-katex.png" alt="KaTeX equations rendered inline in a document" width="1280" height="800" loading="lazy">
-                        <figcaption>KaTeX for inline and display equations.</figcaption>
-                    </figure>
-                    <figure class="shot" role="tabpanel" id="p-4" aria-labelledby="t-4">
+                        <p>KaTeX for inline and display equations.</p>
+                    </div>
+                    <div class="shot" role="tabpanel" id="p-4" aria-labelledby="t-4">
                         <img src="%BASE%showcase-04-data-tables.png" alt="A project dashboard built from Markdown tables" width="1280" height="800" loading="lazy">
-                        <figcaption>Tables render as tables and edit cell by cell.</figcaption>
-                    </figure>
-                    <figure class="shot" role="tabpanel" id="p-5" aria-labelledby="t-5">
+                        <p>Tables render as tables and edit cell by cell.</p>
+                    </div>
+                    <div class="shot" role="tabpanel" id="p-5" aria-labelledby="t-5">
                         <img src="%BASE%showcase-06-task-management.png" alt="A roadmap with checked and unchecked task lists" width="1280" height="800" loading="lazy">
-                        <figcaption>Task lists you can tick off while the agent works through them.</figcaption>
-                    </figure>
+                        <p>Task lists you can tick off while the agent works through them.</p>
+                    </div>
                 </div>
             </div>
         </section>
@@ -795,7 +795,7 @@ instruction.</pre>
                     <h2 id="in-h">Install in one line.</h2>
                     <p>Homebrew keeps Mark updated. Paste this into Terminal.</p>
                 </div>
-                <button class="copy" type="button" data-copy="brew tap xronocode/mark && brew install --cask mark" aria-label="Copy the Homebrew install command">
+                <button class="copy" type="button" data-copy="brew tap xronocode/mark && brew install --cask mark">
                     <span class="cmd">brew tap xronocode/mark &amp;&amp; brew install --cask mark</span>
                     <span class="state" aria-live="polite"><span class="idle">Copy</span><span class="done">Copied</span></span>
                 </button>

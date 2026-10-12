@@ -1,3 +1,7 @@
+---
+description: "Technical reference for the Mark editor, architecture and integrations."
+---
+
 # Reference
 
 Technical documentation for Mark's internals.

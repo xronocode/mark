@@ -1,3 +1,7 @@
+---
+description: "Keyboard shortcuts for editing, navigating and reviewing Markdown documents in Mark."
+---
+
 # Keyboard Shortcuts
 
 ## File

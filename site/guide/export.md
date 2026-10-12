@@ -1,3 +1,7 @@
+---
+description: "Export and share documents from Mark."
+---
+
 # Export
 
 Mark can export documents to PDF and HTML formats.

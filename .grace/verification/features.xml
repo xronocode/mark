@@ -2431,6 +2431,8 @@
         <Scenario>scenario-2: SITE_BASE=/mark/ build (github.io fallback) — no CNAME, all links under /mark/, checker green.</Scenario>
         <Scenario>scenario-3: analytics off by default (no third-party script); UMAMI_WEBSITE_ID injects the Umami script into landing and docs.</Scenario>
         <Scenario>scenario-4: a broken internal link or leftover %BASE% token fails npm run check (and the CI job) before deploy.</Scenario>
+        <Scenario>scenario-5: landing tabs use valid tabpanel elements, copy buttons expose their visible command and state, and code language labels meet contrast requirements.</Scenario>
+        <Scenario>scenario-6: documentation and privacy descriptions describe each page; GA consent loader is deferred and analytics grants never grant advertising consent.</Scenario>
       </Scenarios>
       <Markers>
         <Marker>[SiteBuild][buildEnd][BLOCK_BUILD_END]</Marker>

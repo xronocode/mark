@@ -1,3 +1,7 @@
+---
+description: "Open files and folders in Mark from your terminal and AI-agent workflows."
+---
+
 # CLI Usage
 
 Mark can be invoked from the command line to open files and folders.

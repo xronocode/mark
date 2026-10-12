@@ -1,3 +1,7 @@
+---
+description: "Edit Markdown in Mark with headings, lists, links, tables, code blocks and inline formatting."
+---
+
 # Editor Basics
 
 ## WYSIWYG editing

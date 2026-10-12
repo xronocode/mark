@@ -1,5 +1,6 @@
 ---
 title: Privacy Policy
+description: "How the Mark application and this website handle documents, analytics and your privacy."
 ---
 
 # Privacy Policy
