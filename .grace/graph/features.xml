@@ -2602,11 +2602,11 @@
         opt-in cookieless Umami analytics, a dist link checker, and a single
         GitHub Pages workflow (PR build+check, main deploy).
       </Summary>
-      <PlannedPath>
-        site/.vitepress/config.mts, site/.vitepress/landing.mjs,
-        site/scripts/check-dist.mjs, site/landing/index.html,
-        .github/workflows/site.yml
-      </PlannedPath>
+        <Path>site/.vitepress/config.mts</Path>
+        <Path>site/.vitepress/landing.mjs</Path>
+        <Path>site/scripts/check-dist.mjs</Path>
+        <Path>site/landing/index.html</Path>
+        <Path>site/public/consent.js</Path>
       <Dependencies></Dependencies>
       <VerificationRef>V-M-053</VerificationRef>
       <Interface>
