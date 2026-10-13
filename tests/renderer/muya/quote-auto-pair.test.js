@@ -27,4 +27,11 @@ describe('canOpenQuote', () => {
   for (const ch of CLOSERS) {
     it(`does not open after ${JSON.stringify(ch)}`, () => expect(canOpenQuote(ch)).toBe(false))
   }
+
+  it('nests the other quote kind but not the same one', () => {
+    expect(canOpenQuote('"', "'")).toBe(true)
+    expect(canOpenQuote("'", '"')).toBe(true)
+    expect(canOpenQuote('"', '"')).toBe(false)
+    expect(canOpenQuote("'", "'")).toBe(false)
+  })
 })

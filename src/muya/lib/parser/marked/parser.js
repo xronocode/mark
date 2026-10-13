@@ -169,7 +169,8 @@ Parser.prototype.tok = function () {
       // C-24: `> [!type] title` exports as a GitHub-style alert (fold ->
       // <details>). The marker line is dropped from the first paragraph.
       const first = this.peek()
-      const callout = first && first.type === 'paragraph' ? parseCalloutMarker(first.text) : null
+      // Inside list items the lexer emits `text` instead of `paragraph`.
+      const callout = first && (first.type === 'paragraph' || first.type === 'text') ? parseCalloutMarker(first.text) : null
       if (callout) {
         const rest = first.text.slice(callout.markerLength).replace(/^\n/, '')
         if (rest) first.text = rest

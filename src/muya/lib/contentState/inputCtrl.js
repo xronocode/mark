@@ -38,11 +38,15 @@ const BRACKET_HASH = {
 }
 
 // START_BLOCK_QUOTE_AUTO_PAIR
-// A typed quote opens a pair only at line start, after whitespace or after an
-// opening bracket. After a letter, digit or punctuation it is a closing quote
-// or an apostrophe (`word"`, `слово'`, `ok."`) and must stay a single char.
-const QUOTE_OPENER_PRE_REG = /^$|[\s([{<«„]/u
-export const canOpenQuote = (preInputChar) => QUOTE_OPENER_PRE_REG.test(preInputChar)
+// A typed quote opens a pair only at line start, after whitespace, an opening
+// bracket or `=`, or (for nesting) right after the other quote kind. After a
+// letter, digit or other punctuation it is a closing quote or an apostrophe
+// (`word"`, `слово'`, `ok."`) and must stay a single char.
+const QUOTE_OPENER_PRE_REG = /^$|[\s([{<«„=]/u
+export const canOpenQuote = (preInputChar, inputChar) =>
+  QUOTE_OPENER_PRE_REG.test(preInputChar) ||
+  (inputChar === "'" && preInputChar === '"') ||
+  (inputChar === '"' && preInputChar === "'")
 // END_BLOCK_QUOTE_AUTO_PAIR
 
 const BACK_HASH = {
@@ -273,7 +277,7 @@ const inputCtrl = (ContentState) => {
             ((autoPairQuote &&
               /['"]{1}/.test(inputChar) &&
               !/[\S]{1}/.test(postInputChar) &&
-              canOpenQuote(preInputChar)) ||
+              canOpenQuote(preInputChar, inputChar)) ||
               (autoPairBracket &&
                 /[\{\[\(]{1}/.test(inputChar) &&
                 !/[\S]{1}/.test(postInputChar)) ||

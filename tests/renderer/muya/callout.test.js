@@ -105,4 +105,18 @@ describe('callout HTML export', () => {
   it('a plain blockquote still exports as a blockquote', () => {
     expect(html('> Plain quote with [!NOTE] inside.\n')).toContain('<blockquote>')
   })
+
+  it('a callout inside a list item exports as a callout (review-1: text tokens)', () => {
+    for (const md of ['- item\n  > [!warning] T\n  > body\n', '- item\n\n  > [!warning] T\n  > body\n']) {
+      const out = html(md)
+      expect(out).toContain('markdown-alert-warning')
+      expect(out).not.toContain('[!warning]')
+    }
+  })
+
+  it('an empty footnote definition followed by another exports (review-1: used to throw)', () => {
+    const out = marked('x[^1] y[^2]\n\n[^1]:\n[^2]: b\n', { footnote: true })
+    expect(out).toContain('b')
+    expect(out).not.toContain('[^2]:')
+  })
 })
