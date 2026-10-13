@@ -4,7 +4,7 @@
 //   PURPOSE: Pure markdownlint-subset validator over document text lines (C-17 P0-A) plus the line classifiers shared with the formatter.
 //   SCOPE: Stateless rule evaluation (MD001/003/009/025/032/040) and line classification helpers; no DOM, no store, no side effects.
 //   DEPENDS: none (pure).
-//   LINKS: .grace/changes/active/C-17; .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011 scenario-30.
+//   LINKS: .grace/changes/archive/C-17; .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011 scenario-30.
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT

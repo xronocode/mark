@@ -4,7 +4,7 @@
 //   PURPOSE: Verify the C-19 HeadingSearchCommand (fuzzy filtering, level indent labels, slug jump, empty TOC).
 //   SCOPE: Direct command-object tests with a stubbed rootState and mocked bus/i18n.
 //   DEPENDS: @/commands/headingSearch, Vitest.
-//   LINKS: .grace/changes/active/C-19; .grace/verification/runtime.xml V-M-011 scenario-31.
+//   LINKS: .grace/changes/archive/C-19; .grace/verification/runtime.xml V-M-011 scenario-31.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

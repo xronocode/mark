@@ -4,7 +4,7 @@
 //   PURPOSE: Go-to-Heading palette command (C-19) — fuzzy-search the active document's headings and jump via scroll-to-header slugs.
 //   SCOPE: Palette command object only (search/execute/executeSubcommand/unload); no UI of its own.
 //   DEPENDS: bus, i18n, descriptions map; rootState.editor.listToc.
-//   LINKS: .grace/changes/active/C-19; .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011 scenario-31.
+//   LINKS: .grace/changes/archive/C-19; .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011 scenario-31.
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT

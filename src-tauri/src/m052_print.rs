@@ -4,7 +4,7 @@
 //   PURPOSE: Open the native WKWebView print panel for the caller window (C-18: Print + Export-PDF without pandoc; sandbox/MAS-safe).
 //   SCOPE: One Tauri command mt_print_webview; no state, no files, no dialogs of its own.
 //   DEPENDS: tauri 2 Webview::print (wry printOperationWithPrintInfo, macOS 11+).
-//   LINKS: .grace/changes/active/C-18; .grace/graph/runtime.xml M-052; .grace/verification/runtime.xml V-M-052.
+//   LINKS: .grace/changes/archive/C-18; .grace/graph/runtime.xml M-052; .grace/verification/runtime.xml V-M-052.
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT

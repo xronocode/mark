@@ -4,7 +4,7 @@
 //   PURPOSE: Verify the C-30 sticky conversion of ^-anchored block rules: which rules convert, that exec/test/replace always attempt index 0 only, and that g/m/unanchored/non-RegExp rules are left alone.
 //   SCOPE: toStickyAnchored helper and the converted normal/gfm/pedantic grammars exported by blockRules.js.
 //   DEPENDS: src/muya/lib/parser/marked/blockRules.js, Vitest.
-//   LINKS: .grace/changes/active/C-30; .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011 — pins START_BLOCK_STICKY_ANCHORED_RULES.
+//   LINKS: .grace/changes/archive/C-30; .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011 — pins START_BLOCK_STICKY_ANCHORED_RULES.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

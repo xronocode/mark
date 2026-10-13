@@ -1,9 +1,9 @@
-<GraceChangeSpec graceVersion='4.0' status='approved'>
+<GraceChangeSpec graceVersion='4.0' status='applied'>
 <C-30>
   <Name>Large-document open on WebKit: stop O(n²) block-lexer regex scans (sticky block rules)</Name>
   <Created>2026-10-13</Created>
   <Priority>high</Priority>
-  <Status>approved-for-implementation</Status>
+  <Status>completed</Status>
 
   <Summary>
     Opening a 4,100-line / 565 KB markdown file keeps WKWebView at 100% CPU
@@ -110,5 +110,17 @@
     <ApprovedBy>user (session 2026-10-13): "да" — in reply to the C-30 root-cause summary that said plan and implementation follow approval</ApprovedBy>
     <ApprovalScope>Sticky block-rule conversion in blockRules.js, token-parity and rule unit tests, WebKit perf e2e gate, real-app re-measure. No lexer restructuring; no push or tag.</ApprovalScope>
   </Approval>
+  <Completion>
+    <Date>2026-10-13</Date>
+    <Commits>7ca6d08d (sticky anchored block rules), 0478369e (V-M-011 scenario-34, M-011 invariant), 5f218da0 (review-2 test/perf hygiene); CI wiring follows in C-31 (b92f2942)</Commits>
+    <Evidence>
+      <Item>Real app, local release build vs /Applications 2.2.0-beta (settle bench, 3 runs): big.md 24.3–24.7 s → 3.5–4.5 s settle, WebContent CPU 23.2 s → 2.2–2.7 s; rich.md 2.2 s → 1.9–2.2 s (no regression).</Item>
+      <Item>WebKit harness, real user prefs, 1024×768: main-thread busy ≈0.48 s total, worst frame ≈0.5 s (Chromium 0.29 s). The remaining settle time is mostly off-main-thread WebContent work.</Item>
+      <Item>Token parity: goldens captured on the pre-change lexer (cafa8f1a) across 4 option variants plus 2 generated large documents — byte-identical after the change.</Item>
+      <Item>Gates: vitest 236 files / 3170 tests with coverage; chromium e2e 69 passed; webkit-perf 0.4–0.6 s against a 3 s budget; grace lint --change C-30 --assertions final --run-commands: 0 errors, 2/2 commands.</Item>
+      <Item>Reviews: Review-1 (correctness) zero findings; Review-2 (tests/CI) 3 important findings fixed in 5f218da0.</Item>
+    </Evidence>
+    <Note>Acceptance criterion "≤ 3 s main-thread busy" met (≈0.5 s). Wall-clock settle on the real app is 3.5–4.5 s. Follow-ups, not in this change: the inline HTML-entity regex (≈0.5 s CPU) and full-document word count (≈70 ms).</Note>
+  </Completion>
 </C-30>
 </GraceChangeSpec>

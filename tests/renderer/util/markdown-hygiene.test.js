@@ -4,7 +4,7 @@
 //   PURPOSE: Verify the C-17 markdownLint rule subset and the markdownFormat normalizer (fires/non-fires, idempotence, semantics preservation).
 //   SCOPE: Pure-function table tests over fixture documents; no DOM/store.
 //   DEPENDS: src/renderer/src/util/markdownLint.js, markdownFormat.js, Vitest.
-//   LINKS: .grace/changes/active/C-17; .grace/verification/runtime.xml V-M-011 scenario-30 — pins markdownLint/formatMarkdown used by START_BLOCK_LINT_RULES and START_BLOCK_FORMAT_DOCUMENT.
+//   LINKS: .grace/changes/archive/C-17; .grace/verification/runtime.xml V-M-011 scenario-30 — pins markdownLint/formatMarkdown used by START_BLOCK_LINT_RULES and START_BLOCK_FORMAT_DOCUMENT.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

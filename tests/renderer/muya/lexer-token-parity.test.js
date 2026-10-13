@@ -4,7 +4,7 @@
 //   PURPOSE: Pin the muya block lexer's token output byte-for-byte across option variants, so rule-level performance work (C-30 sticky anchored rules) cannot change what gets parsed.
 //   SCOPE: Lexer.lex over the lexer-corpus fixtures and two deterministic generated large documents, compared against goldens captured on the pre-C-30 lexer.
 //   DEPENDS: src/muya/lib/parser/marked (Lexer), Vitest, node:fs, node:crypto.
-//   LINKS: .grace/changes/active/C-30; .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011 — guards START_BLOCK_STICKY_ANCHORED_RULES in src/muya/lib/parser/marked/blockRules.js.
+//   LINKS: .grace/changes/archive/C-30; .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011 — guards START_BLOCK_STICKY_ANCHORED_RULES in src/muya/lib/parser/marked/blockRules.js.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

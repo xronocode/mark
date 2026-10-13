@@ -1,4 +1,4 @@
-<GraceChangePlan graceVersion='4.0' status='approved'>
+<GraceChangePlan graceVersion='4.0' status='applied'>
 <C-30>
   <Name>Large-document open on WebKit: stop O(n²) block-lexer regex scans (sticky block rules)</Name>
   <Created>2026-10-13</Created>
