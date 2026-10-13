@@ -1,4 +1,25 @@
+// FILE: src/muya/lib/parser/marked/parser.js
+// VERSION: 1.1.0
+// START_MODULE_CONTRACT
+//   PURPOSE: Marked-derived HTML parser used by export, print and Copy as HTML.
+//   SCOPE: Parser class walking block tokens into renderer calls.
+//   DEPENDS: ./renderer, ./inlineLexer, ./slugger, ./textRenderer, ./options, ../../utils/callout.
+//   LINKS: .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011; .grace/changes/active/C-24.
+//   ROLE: RUNTIME
+//   MAP_MODE: EXPORTS
+// END_MODULE_CONTRACT
+//
+// START_MODULE_MAP
+//   default - Parser constructor (parse, tok, next, peek).
+// END_MODULE_MAP
+//
+// START_CHANGE_SUMMARY
+//   - (v1.0.0 implied: upstream muya, previously ungoverned.)
+//   - 2026-10-13 v1.1.0: C-24 START_BLOCK_CALLOUT_EXPORT: `> [!type]` blockquotes render through renderer.callout (GitHub alert markup; folds as details).
+// END_CHANGE_SUMMARY
+
 import Renderer from './renderer'
+import { parseCalloutMarker } from '../../utils/callout'
 import InlineLexer from './inlineLexer'
 import Slugger from './slugger'
 import TextRenderer from './textRenderer'
@@ -144,12 +165,23 @@ Parser.prototype.tok = function () {
     }
     case 'blockquote_start': {
       let body = ''
+      // START_BLOCK_CALLOUT_EXPORT
+      // C-24: `> [!type] title` exports as a GitHub-style alert (fold ->
+      // <details>). The marker line is dropped from the first paragraph.
+      const first = this.peek()
+      const callout = first && first.type === 'paragraph' ? parseCalloutMarker(first.text) : null
+      if (callout) {
+        const rest = first.text.slice(callout.markerLength).replace(/^\n/, '')
+        if (rest) first.text = rest
+        else first.type = 'space'
+      }
+      // END_BLOCK_CALLOUT_EXPORT
 
       while (this.next().type !== 'blockquote_end') {
         body += this.tok()
       }
 
-      return this.renderer.blockquote(body)
+      return callout ? this.renderer.callout(body, callout) : this.renderer.blockquote(body)
     }
     // All the tokens will be footnotes if it after a footnote_start token. Because we put all footnote token at the end.
     case 'footnote_start': {

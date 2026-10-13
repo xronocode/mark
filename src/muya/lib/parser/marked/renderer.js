@@ -90,6 +90,17 @@ Renderer.prototype.blockquote = function (quote) {
   return '<blockquote>\n' + quote + '</blockquote>\n'
 }
 
+// C-24: GitHub alert markup (github-markdown-css styles the five GitHub types;
+// exportStyle.css adds the Obsidian styles). A fold becomes <details>.
+Renderer.prototype.callout = function (body, { type, style, title, fold }) {
+  const cls = `markdown-alert markdown-alert-${style}`
+  const head = escape(title)
+  if (fold) {
+    return `<details class="${cls}" data-callout="${escape(type)}"${fold === 'expanded' ? ' open' : ''}>\n<summary class="markdown-alert-title">${head}</summary>\n${body}</details>\n`
+  }
+  return `<div class="${cls}" data-callout="${escape(type)}">\n<p class="markdown-alert-title">${head}</p>\n${body}</div>\n`
+}
+
 Renderer.prototype.html = function (html) {
   return html
 }

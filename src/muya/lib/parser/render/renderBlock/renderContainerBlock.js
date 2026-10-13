@@ -1,3 +1,23 @@
+// FILE: src/muya/lib/parser/render/renderBlock/renderContainerBlock.js
+// VERSION: 1.1.0
+// START_MODULE_CONTRACT
+//   PURPOSE: Render a muya container block (blockquote, list, table, figure, pre) to a snabbdom vnode.
+//   SCOPE: Selectors, data attributes and auxiliary children (tools, icons, copy buttons) per container type.
+//   DEPENDS: muya config, render helpers, snabbdom, ../../../utils/callout.
+//   LINKS: .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011; .grace/changes/active/C-24.
+//   ROLE: RUNTIME
+//   MAP_MODE: EXPORTS
+// END_MODULE_CONTRACT
+//
+// START_MODULE_MAP
+//   default - renderContainerBlock(parent, block, activeBlocks, matches, useCache, t).
+// END_MODULE_MAP
+//
+// START_CHANGE_SUMMARY
+//   - (v1.0.0 implied: upstream muya, previously ungoverned.)
+//   - 2026-10-13 v1.1.0: C-24 START_BLOCK_CALLOUT_RENDER: a `[!type]` blockquote gets ag-callout classes, a non-editable title row and view-only fold state.
+// END_CHANGE_SUMMARY
+
 import { CLASS_OR_ID } from '../../../config'
 import { renderTableTools } from './renderToolBar'
 import { footnoteJumpIcon } from './renderFootnoteJump'
@@ -6,6 +26,7 @@ import { renderEditIcon } from './renderContainerEditIcon'
 import renderCopyButton from './renderCopyButton'
 import { renderLeftBar, renderBottomBar } from './renderTableDargBar'
 import { h } from '../snabbdom'
+import { parseCalloutMarker } from '../../../utils/callout'
 
 const PRE_BLOCK_HASH = {
   fencecode: `.${CLASS_OR_ID.AG_FENCE_CODE}`,
@@ -169,6 +190,34 @@ export default function renderContainerBlock (parent, block, activeBlocks, match
     selector += `.${CLASS_OR_ID.AG_LIST_ITEM}`
     selector += `.ag-${listItemType}-list-item`
     selector += isLooseListItem ? `.${CLASS_OR_ID.AG_LOOSE_LIST_ITEM}` : `.${CLASS_OR_ID.AG_TIGHT_LIST_ITEM}`
+  } else if (type === 'blockquote') {
+    // START_BLOCK_CALLOUT_RENDER
+    // C-24: a blockquote whose first line is `[!type]` renders as a callout:
+    // per-style class, a non-editable title row, optional fold. Fold state is
+    // view-only (contentState.calloutFolds); the markdown is never rewritten.
+    const firstP = block.children[0]
+    const firstSpan = firstP && firstP.type === 'p' ? firstP.children[0] : null
+    const callout = firstSpan && firstSpan.functionType === 'paragraphContent'
+      ? parseCalloutMarker(firstSpan.text)
+      : null
+    if (callout) {
+      selector += `.ag-callout.ag-callout-${callout.style}`
+      Object.assign(data.dataset, { calloutType: callout.type })
+      if (callout.fold) {
+        const folds = this.muya.contentState.calloutFolds
+        const collapsed = folds && folds.has(key) ? folds.get(key) : callout.fold === 'collapsed'
+        selector += collapsed ? '.ag-callout-foldable.ag-callout-collapsed' : '.ag-callout-foldable'
+      }
+      children.unshift(h('div.ag-callout-title', {
+        attrs: { contenteditable: 'false' },
+        dataset: { calloutKey: key }
+      }, [
+        h('span.ag-callout-icon'),
+        h('span.ag-callout-title-text', callout.title),
+        ...(callout.fold ? [h('span.ag-callout-fold')] : [])
+      ]))
+    }
+    // END_BLOCK_CALLOUT_RENDER
   } else if (type === 'pre') {
     Object.assign(data.attrs, { spellcheck: 'false' })
     Object.assign(data.dataset, { role: functionType })

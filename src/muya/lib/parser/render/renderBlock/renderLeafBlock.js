@@ -4,6 +4,7 @@ import { CLASS_OR_ID, DEVICE_MEMORY, PREVIEW_DOMPURIFY_CONFIG, HAS_TEXT_BLOCK_RE
 import { tokenizer } from '../../'
 import { snakeToCamel, sanitize, escapeHTML, getLongUniqueId, getImageInfo } from '../../../utils'
 import { h, htmlToVNode } from '../snabbdom'
+import { parseCalloutMarker } from '../../../utils/callout'
 
 // todo@jocs any better solutions?
 const MARKER_HASK = {
@@ -66,6 +67,15 @@ const hasReferenceToken = tokens => {
   return result
 }
 
+// C-24: true for the paragraphContent span of the first paragraph of a
+// blockquote whose first line is a `[!type]` callout marker.
+const isCalloutFirstLine = (contentState, parent, block, text) => {
+  if (block.functionType !== 'paragraphContent' || !parent || parent.type !== 'p' || parent.preSibling) return false
+  if (block.preSibling) return false
+  const quote = parent.parent ? contentState.getBlock(parent.parent) : null
+  return !!quote && quote.type === 'blockquote' && !!parseCalloutMarker(text)
+}
+
 export default function renderLeafBlock (parent, block, activeBlocks, matches, useCache = false, t) {
   const { loadMathMap } = this
   const { cursor } = this.muya.contentState
@@ -93,7 +103,11 @@ export default function renderLeafBlock (parent, block, activeBlocks, matches, u
 
   if (text) {
     let tokens = []
-    if (highlights.length === 0 && this.tokenCache.has(text)) {
+    // C-24: the first line of a callout's first paragraph tokenizes as a
+    // callout_marker. Same text elsewhere must not, so such lines bypass the
+    // text-keyed token cache in both directions.
+    const isCalloutLine = isCalloutFirstLine(this.muya.contentState, parent, block, text)
+    if (!isCalloutLine && highlights.length === 0 && this.tokenCache.has(text)) {
       tokens = this.tokenCache.get(text)
     } else if (
       HAS_TEXT_BLOCK_REG.test(type) &&
@@ -106,10 +120,10 @@ export default function renderLeafBlock (parent, block, activeBlocks, matches, u
         highlights,
         hasBeginRules,
         labels: this.labels,
-        options: this.muya.options
+        options: isCalloutLine ? { ...this.muya.options, calloutMarker: true } : this.muya.options
       })
       const hasReferenceTokens = hasReferenceToken(tokens)
-      if (highlights.length === 0 && useCache && DEVICE_MEMORY >= 4 && !hasReferenceTokens) {
+      if (!isCalloutLine && highlights.length === 0 && useCache && DEVICE_MEMORY >= 4 && !hasReferenceTokens) {
         this.tokenCache.set(text, tokens)
       }
     }
