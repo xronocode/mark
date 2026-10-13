@@ -1,4 +1,4 @@
-<GraceChangePlan graceVersion='4.0' status='approved'>
+<GraceChangePlan graceVersion='4.0' status='applied'>
 <C-17>
   <Name>Markdown hygiene: markdownlint-subset validation + Format document (matrix P0-A/P0-B)</Name>
   <Created>2026-09-22</Created>

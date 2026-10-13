@@ -1,4 +1,4 @@
-<GraceChangePlan graceVersion='4.0' status='approved'>
+<GraceChangePlan graceVersion='4.0' status='applied'>
 <C-21>
   <Name>Dead-link validation: missing files and unresolvable anchors in the problems panel (matrix P1)</Name>
   <Created>2026-09-24</Created>
