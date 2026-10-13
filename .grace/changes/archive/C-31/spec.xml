@@ -1,9 +1,9 @@
-<GraceChangeSpec graceVersion='4.0' status='approved'>
+<GraceChangeSpec graceVersion='4.0' status='applied'>
 <C-31>
   <Name>Run the C-30 WebKit large-document perf gate in CI</Name>
   <Created>2026-10-13</Created>
   <Priority>medium</Priority>
-  <Status>approved-for-implementation</Status>
+  <Status>completed</Status>
 
   <Summary>
     C-30 added tests/e2e/perf/large-doc-webkit.spec.ts (webkit-perf
@@ -52,5 +52,15 @@
     <ApprovedBy>user (session 2026-10-13): "добавляй сиай" — add the WebKit perf gate to CI; push/tag only after everything is polished</ApprovedBy>
     <ApprovalScope>test.yml renderer-e2e WebKit install + webkit-perf step; header comment; V-M-011 note. No push, no tag.</ApprovalScope>
   </Approval>
+  <Completion>
+    <Date>2026-10-13</Date>
+    <Commits>b92f2942 (test.yml renderer-e2e WebKit install + webkit-perf step)</Commits>
+    <Evidence>
+      <Item>Local replay of the CI sequence (build, install webkit, npx playwright test --project webkit-perf): passed, main-thread busy 453 ms.</Item>
+      <Item>First CI run on push, test workflow run 38395003600 on d68fde27: steps "install playwright webkit" and "webkit large-document perf gate" succeeded; main-thread busy 1639 ms against a 3000 ms budget, passed on the first attempt with no retry. CI workflow run 38395003498 also green.</Item>
+      <Item>grace lint --change C-31 --assertions final --run-commands: 0 errors.</Item>
+    </Evidence>
+    <Note>The CI runner measures about 3.6x the local busy time, leaving about 1.8x headroom under the budget. Keep the 3 s budget and do not tighten it based on local numbers.</Note>
+  </Completion>
 </C-31>
 </GraceChangeSpec>
