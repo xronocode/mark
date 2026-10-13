@@ -4,7 +4,7 @@
 //   PURPOSE: Pin muya's inline tokenizer output byte for byte so the sticky conversion of inline rules (C-24, after C-30 did the block rules) cannot change what gets parsed.
 //   SCOPE: tokenizer() over every non-empty paragraph of the lexer-corpus fixtures plus an inline stress corpus, under three option sets; goldens captured on the pre-change tokenizer.
 //   DEPENDS: src/muya/lib/parser (tokenizer), Vitest, node:fs, node:crypto.
-//   LINKS: .grace/changes/active/C-24; .grace/changes/archive/C-30; src/muya/lib/parser/rules.js START_BLOCK_STICKY_INLINE_RULES.
+//   LINKS: .grace/changes/archive/C-24; .grace/changes/archive/C-30; src/muya/lib/parser/rules.js START_BLOCK_STICKY_INLINE_RULES.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

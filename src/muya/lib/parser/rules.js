@@ -4,7 +4,7 @@
 //   PURPOSE: Inline and begin-of-line grammar for muya's inline tokenizer.
 //   SCOPE: beginRules, inlineRules, inlineExtensionRules; post-build sticky conversion of ^-anchored rules (same as C-30 did for block rules).
 //   DEPENDS: ./escapeCharacter, ./marked/blockRules (toStickyAnchored).
-//   LINKS: .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011; .grace/changes/active/C-24; .grace/changes/archive/C-30.
+//   LINKS: .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011; .grace/changes/archive/C-24; .grace/changes/archive/C-30.
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT

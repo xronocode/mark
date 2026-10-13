@@ -4,7 +4,7 @@
 //   PURPOSE: Pin the App Store sandbox decision path for images saved beside a document (C-24 T-006): ask once for folder access, retry on a covering grant, otherwise save globally with a notice; never swallow unrelated errors.
 //   SCOPE: saveImageWithFolderAccess / isPermissionError in src/renderer/src/util/fileSystem.js (START_BLOCK_IMAGE_FOLDER_ACCESS).
 //   DEPENDS: src/renderer/src/util/fileSystem.js, Vitest.
-//   LINKS: .grace/changes/active/C-24; M-047 mt_grant_folder_access.
+//   LINKS: .grace/changes/archive/C-24; M-047 mt_grant_folder_access.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

@@ -4,7 +4,7 @@
 //   PURPOSE: Render a muya container block (blockquote, list, table, figure, pre) to a snabbdom vnode.
 //   SCOPE: Selectors, data attributes and auxiliary children (tools, icons, copy buttons) per container type.
 //   DEPENDS: muya config, render helpers, snabbdom, ../../../utils/callout.
-//   LINKS: .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011; .grace/changes/active/C-24.
+//   LINKS: .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011; .grace/changes/archive/C-24.
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT

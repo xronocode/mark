@@ -4,7 +4,7 @@
 //   PURPOSE: Pin insertImageFromPath (C-24 R-4), the shared local-image insert used by Finder-path paste and the Tauri file drop.
 //   SCOPE: ContentState.prototype.insertImageFromPath and its use by pasteImage, on a prototype-level stub.
 //   DEPENDS: src/muya/lib/contentState (prototype methods), Vitest, jsdom.
-//   LINKS: .grace/changes/active/C-24; .grace/verification/runtime.xml V-M-012; START_BLOCK_INSERT_IMAGE_FROM_PATH in src/muya/lib/contentState/pasteCtrl.js.
+//   LINKS: .grace/changes/archive/C-24; .grace/verification/runtime.xml V-M-012; START_BLOCK_INSERT_IMAGE_FROM_PATH in src/muya/lib/contentState/pasteCtrl.js.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

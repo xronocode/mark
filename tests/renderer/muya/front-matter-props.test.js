@@ -4,7 +4,7 @@
 //   PURPOSE: Pin the flat-YAML reader behind the front matter properties view (C-24 R-8): what renders as a table and what falls back to the YAML block.
 //   SCOPE: parseFrontMatterProps in src/muya/lib/utils/frontMatterProps.js (START_BLOCK_FRONT_MATTER_PROPS).
 //   DEPENDS: src/muya/lib/utils/frontMatterProps.js, Vitest.
-//   LINKS: .grace/changes/active/C-24; .grace/verification/runtime.xml V-M-011.
+//   LINKS: .grace/changes/archive/C-24; .grace/verification/runtime.xml V-M-011.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

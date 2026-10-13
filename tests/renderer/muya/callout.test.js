@@ -4,7 +4,7 @@
 //   PURPOSE: Pin callout recognition (C-24 R-5/R-7): GitHub alerts, Obsidian aliases, custom titles, folds, and what must stay a plain blockquote.
 //   SCOPE: parseCalloutMarker / CALLOUT_ALIASES / CALLOUT_STYLES in src/muya/lib/utils/callout.js.
 //   DEPENDS: src/muya/lib/utils/callout.js, Vitest.
-//   LINKS: .grace/changes/active/C-24; START_BLOCK_CALLOUT_DETECT.
+//   LINKS: .grace/changes/archive/C-24; START_BLOCK_CALLOUT_DETECT.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

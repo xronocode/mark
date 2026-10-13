@@ -4,7 +4,7 @@
 //   PURPOSE: Pin that opening and saving an agent-style markdown file without edits leaves its bytes unchanged (C-24 round-trip constraint).
 //   SCOPE: Muya setMarkdown -> getMarkdown in jsdom over the C-24 corpus fixtures, with footnotes on and off.
 //   DEPENDS: src/muya/lib (Muya), Vitest jsdom, node:fs.
-//   LINKS: .grace/changes/active/C-24; .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011.
+//   LINKS: .grace/changes/archive/C-24; .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT
