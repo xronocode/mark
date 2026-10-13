@@ -593,9 +593,10 @@ describe('editor.vue — coverage', () => {
   it('watcher: footnote calls setOptions', async () => {
     await mountEditor()
     mockEditorInstance.setOptions.mockClear()
-    preferencesStore.footnote = true
+    // C-24: footnotes default to on, so the watcher fires on switching them off.
+    preferencesStore.footnote = false
     await nextTick()
-    expect(mockEditorInstance.setOptions).toHaveBeenCalledWith({ footnote: true }, true)
+    expect(mockEditorInstance.setOptions).toHaveBeenCalledWith({ footnote: false }, true)
   })
 
   it('watcher: isHtmlEnabled calls setOptions (inverted)', async () => {
@@ -2012,6 +2013,7 @@ describe('editor.vue — coverage', () => {
   /* ── imageAction — folder path ─────────────────────────────── */
   it('imageAction folder calls moveImageToFolder', async () => {
     preferencesStore.imageInsertAction = 'folder'
+    preferencesStore.imagePreferRelativeDirectory = false // C-24 default is true
     moveImageToFolderMock.mockResolvedValue('/folder/img.png')
     await mountEditor()
     const fn = lastMuyaOptions.current.imageAction
@@ -2044,6 +2046,7 @@ describe('editor.vue — coverage', () => {
   /* ── imageAction — path (binary input) ─────────────────────── */
   it('imageAction path with binary input saves to folder', async () => {
     preferencesStore.imageInsertAction = 'path'
+    preferencesStore.imagePreferRelativeDirectory = false // C-24 default is true
     moveImageToFolderMock.mockResolvedValue('/saved/img.png')
     await mountEditor()
     const fn = lastMuyaOptions.current.imageAction

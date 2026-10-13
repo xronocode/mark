@@ -1,3 +1,23 @@
+// FILE: src/muya/lib/parser/marked/lexer.js
+// VERSION: 1.1.0
+// START_MODULE_CONTRACT
+//   PURPOSE: Muya block lexer — turns markdown into the block token stream consumed by markdownToState and export.
+//   SCOPE: Lexer class (lex, token) over the normal/gfm/pedantic grammars, including front matter, math, footnotes and GitLab extensions.
+//   DEPENDS: ./blockRules, ./options, ./utils, muya config cursor DNA.
+//   LINKS: .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011; .grace/changes/active/C-24.
+//   ROLE: RUNTIME
+//   MAP_MODE: EXPORTS
+// END_MODULE_CONTRACT
+//
+// START_MODULE_MAP
+//   default - Lexer constructor (prototype: lex, token).
+// END_MODULE_MAP
+//
+// START_CHANGE_SUMMARY
+//   - (v1.0.0 implied: upstream marked-derived lexer, previously ungoverned.)
+//   - 2026-10-13 v1.1.0: C-24 — a footnote definition strips only its own `[^id]:` prefix (was /gm over the whole body, which erased the marker of an adjacent definition).
+// END_CHANGE_SUMMARY
+
 import { normal, gfm, pedantic } from './blockRules'
 import options from './options'
 import { splitCells, rtrim, getUniqueId } from './utils'
@@ -210,8 +230,10 @@ Lexer.prototype.token = function (
         }
 
         /* eslint-disable no-useless-escape */
-        // Remove the footnote identifer prefix. eg: `[^identifier]: `.
-        cap = cap[0].replace(/^\[\^[^\^\[\]\s]+?(?<!\\)\]:\s*/gm, '')
+        // Remove the footnote identifier prefix of this definition only, eg `[^identifier]: `.
+        // C-24: the rule now stops before the next `[^id]:`, so a global strip would only ever
+        // erase text that merely looks like a marker inside the body.
+        cap = cap[0].replace(/^\[\^[^\^\[\]\s]+?(?<!\\)\]:\s*/, '')
         // Remove the four whitespace before each block of footnote.
         cap = cap.replace(/\n {4}(?=[^\s])/g, '\n')
         /* eslint-enable no-useless-escape */
