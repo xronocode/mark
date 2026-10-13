@@ -3524,9 +3524,11 @@
           tests/renderer/muya/block-rules-sticky.test.js; the WebKit cost is
           gated by tests/e2e/perf/large-doc-webkit.spec.ts (webkit-perf
           project, 500-section document, main-thread busy &lt; 3 s; pre-fix
-          8.5 s, post-fix ~0.6 s). The perf project is opt-in
-          (npm run test:e2e:perf) and needs a fresh renderer build, because
-          vite preview serves src/renderer/dist.
+          8.5 s, post-fix ~0.6 s). Runs on every push in
+          .github/workflows/test.yml renderer-e2e (C-31: webkit install +
+          `npx playwright test --project webkit-perf` on the job's build);
+          locally `npm run test:e2e:perf` builds first, because vite
+          preview serves src/renderer/dist.
         </Scenario>
       </Scenarios>
       <Markers>
