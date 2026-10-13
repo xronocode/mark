@@ -260,8 +260,39 @@ export const useProjectStore = defineStore('project', {
             break
           }
           case 'modify': {
-            // Tree shape doesn't change on content modify; only open-tab
-            // notification matters here (matches v1.2.3 chokidar 'change').
+            // macOS reports both halves of a rename (sidebar rename, `mv`)
+            // as Modify(Name) → 'modify', never create/remove: the gone
+            // path leaves the tree and the new one joins it. A plain
+            // content modify only notifies the open tab (v1.2.3 'change').
+            let stat = null
+            try {
+              stat = await ipcFs.stat(path)
+            } catch (e) {
+              // IpcError keeps the backend's structured error as `cause`.
+              if (e?.cause?.code === 'MT_FS_NOT_FOUND') {
+                console.debug(`[ProjectStore][Watcher][BLOCK_RENAME_SOURCE_GONE] path=${path}`)
+                this._processTreeEvent('unlink', { pathname: path })
+                this._processTreeEvent('unlinkDir', { pathname: path })
+                if (this._tabExists(editorStore, path)) {
+                  editorStore.APPLY_FILE_CHANGE('unlink', { pathname: path })
+                }
+                break
+              }
+              console.debug(`[ProjectStore][Watcher][STAT_FAILED] path=${path}`, e)
+            }
+            if (stat?.isDirectory) {
+              this._processTreeEvent('addDir', { pathname: path })
+            } else if (stat?.isFile && window.fileUtils?.hasMarkdownExtension(path)) {
+              // addFile dedupes by name, so a content modify is a no-op here.
+              this._processTreeEvent('add', {
+                pathname: path,
+                name: window.path.basename(path),
+                isFile: true,
+                isDirectory: false,
+                isMarkdown: true,
+                birthTime: stat.mtimeMs
+              })
+            }
             if (this._tabExists(editorStore, path)) {
               editorStore.APPLY_FILE_CHANGE('change', { pathname: path })
             }
