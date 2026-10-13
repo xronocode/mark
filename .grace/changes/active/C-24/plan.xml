@@ -1,0 +1,205 @@
+<GraceChangePlan graceVersion='4.0' status='approved'>
+<C-24>
+  <Name>Baseline Markdown for agent output: footnotes on, relative image paste/drop, GitHub + Obsidian callouts, front matter properties view, documented</Name>
+  <Created>2026-10-13</Created>
+
+  <IntentSummary>
+    Turn on footnotes and relative `assets/` image storage by default, make
+    pasted and dropped images land as standard `![](assets/…)` markdown
+    (fixing the unwired Tauri image drop), render GitHub alerts and Obsidian
+    callouts (with folding) as callouts in the editor and in export, show
+    YAML front matter as a read-only properties table that opens the YAML
+    source on click, and document all of it. Byte-identical round-trip is
+    pinned by fixtures captured before any render change.
+  </IntentSummary>
+
+  <BaselineAssertions>
+    <MustContain>
+      <File>src/renderer/src/store/preferences.js</File>
+      <Text>footnote: false,</Text>
+    </MustContain>
+    <MustContain>
+      <File>src/renderer/src/_shims/install-window-globals.js</File>
+      <Text>mt::drop-image</Text>
+    </MustContain>
+  </BaselineAssertions>
+
+  <TargetAssertions>
+    <MustContain>
+      <File>src/renderer/src/store/preferences.js</File>
+      <Text>footnote: true,</Text>
+    </MustContain>
+    <MustContain>
+      <File>static/preference.json</File>
+      <Text>"imagePreferRelativeDirectory": true</Text>
+    </MustContain>
+    <MustContain>
+      <File>src/muya/lib/utils/callout.js</File>
+      <Text>START_BLOCK_CALLOUT_DETECT</Text>
+    </MustContain>
+    <MustContain>
+      <File>src/muya/lib/utils/frontMatterProps.js</File>
+      <Text>START_BLOCK_FRONT_MATTER_PROPS</Text>
+    </MustContain>
+    <MustContain>
+      <File>README.md</File>
+      <Text>[!NOTE]</Text>
+    </MustContain>
+    <MustPassCommand>
+      <Command>npx vitest run tests/renderer/muya/callout.test.js tests/renderer/muya/front-matter-props.test.js tests/renderer/muya/markdown-round-trip.test.js tests/renderer/muya/lexer-token-parity.test.js tests/renderer/store/preference-defaults.test.js</Command>
+    </MustPassCommand>
+  </TargetAssertions>
+
+  <DurableScope>
+    <M-011/>
+    <M-012/>
+    <M-047/>
+  </DurableScope>
+
+  <ObservedWriteScope>
+    <File>src/renderer/src/store/preferences.js</File>
+    <File>static/preference.json</File>
+    <File>src/renderer/src/components/editorWithTabs/editor.vue</File>
+    <File>src/renderer/src/util/fileSystem.js</File>
+    <File>src/renderer/src/_shims/install-window-globals.js</File>
+    <File>src/renderer/src/prefComponents/markdown/index.vue</File>
+    <Glob>src/muya/lib/contentState/*</Glob>
+    <Glob>src/muya/lib/parser/**</Glob>
+    <Glob>src/muya/lib/utils/*</Glob>
+    <Glob>src/muya/lib/assets/styles/*</Glob>
+    <Glob>src/muya/lib/config/*</Glob>
+    <Glob>src/muya/themes/*</Glob>
+    <Glob>src/renderer/src/assets/styles/*</Glob>
+    <Glob>src/renderer/src/assets/themes/*</Glob>
+    <Glob>static/locales/*</Glob>
+    <Glob>src-tauri/src/m047_bookmarks.rs</Glob>
+    <Glob>tests/renderer/**</Glob>
+    <Glob>tests/e2e/*</Glob>
+    <Glob>tests/e2e/fixtures/*</Glob>
+    <File>README.md</File>
+    <Glob>site/guide/**</Glob>
+    <File>.grace/graph/runtime.xml</File>
+    <File>.grace/verification/runtime.xml</File>
+  </ObservedWriteScope>
+
+  <ImplementationPlan>
+    <T-001>
+      <Title>W0: baseline fixtures and diagnosis before any behaviour change</Title>
+      <DependsOn></DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>Lexer corpus gains footnotes, front-matter (comments, quoted values, lists), task-lists, github-alerts, obsidian-callouts (aliases, custom titles, -/+ folds, nested), image-links; their goldens are captured on the unmodified lexer.</Criterion>
+        <Criterion>markdown-round-trip.test.js: for every new fixture, markdownToState then exportMarkdown reproduces the input byte for byte on the unmodified code (if a fixture does not round-trip at baseline, record it as a pre-existing limitation instead of hiding it).</Criterion>
+        <Criterion>Root cause of the pasted-bitmap `&lt;img … width&gt;` form identified and recorded in this plan's evidence; current Finder image drop behaviour recorded (code reading: mt::drop-image has no listener).</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>npx vitest run tests/renderer/muya/lexer-token-parity.test.js tests/renderer/muya/markdown-round-trip.test.js</Command>
+      </Verification>
+    </T-001>
+
+    <T-002>
+      <Title>W1: defaults — footnotes on, relative assets/ directory (R-1, R-2)</Title>
+      <DependsOn>T-001</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>preferences.js and static/preference.json: footnote=true, imagePreferRelativeDirectory=true, imageRelativeDirectoryName='assets'; stored preferences are not migrated.</Criterion>
+        <Criterion>preference-defaults.test.js pins the three defaults in both sources and that the two sources agree.</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>npx vitest run tests/renderer/store/preference-defaults.test.js</Command>
+      </Verification>
+    </T-002>
+
+    <T-003>
+      <Title>W2: image paste text form and Finder drop (R-3, R-4)</Title>
+      <DependsOn>T-001, T-002</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>Pasted bitmap is written as `![alt](assets/…)`; explicit resize still writes `&lt;img width&gt;`. Unit-pinned at the root-cause site.</Criterion>
+        <Criterion>mt::drop-image is handled: an image dropped onto a saved document goes through imageAction (copied into assets/, relative link inserted at the drop position or cursor); dropping onto an unsaved document uses the existing global-folder fallback. Unit-pinned with a stubbed imageAction.</Criterion>
+        <Criterion>Chromium e2e: synthetic clipboard PNG paste into a saved document produces a file under assets/ and the relative markdown link.</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>npx vitest run tests/renderer/muya/paste-smart.test.js tests/renderer/muya/image-drop.test.js</Command>
+        <Command>npx playwright test tests/e2e/image-paste-assets.spec.ts --project=chromium</Command>
+      </Verification>
+    </T-003>
+
+    <T-004>
+      <Title>W3: callouts — GitHub alerts and Obsidian callouts with folding (R-5, R-7)</Title>
+      <DependsOn>T-001</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>src/muya/lib/utils/callout.js (START_BLOCK_CALLOUT_DETECT): pure detection of type, alias-resolved style, title and fold from a blockquote's first line, per GitHub and Obsidian rules.</Criterion>
+        <Criterion>Muya renders a detected blockquote as a callout container (icon, title, per-type colour) in light and dark themes; the marker line stays editable when the cursor is in it; fold state is view-only.</Criterion>
+        <Criterion>Export HTML renders callouts (fold → details/summary).</Criterion>
+        <Criterion>Token parity goldens for all pre-existing corpus files unchanged; round-trip byte-identical for the callout fixtures including after fold toggles; webkit-perf gate green.</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>npx vitest run tests/renderer/muya/callout.test.js tests/renderer/muya/lexer-token-parity.test.js tests/renderer/muya/markdown-round-trip.test.js</Command>
+        <Command>npx playwright test tests/e2e/callouts.spec.ts --project=chromium</Command>
+      </Verification>
+    </T-004>
+
+    <T-005>
+      <Title>W4: front matter properties view (R-8)</Title>
+      <DependsOn>T-001</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>src/muya/lib/utils/frontMatterProps.js (START_BLOCK_FRONT_MATTER_PROPS): a dependency-free parser for flat YAML (scalars, quoted scalars, inline lists, block lists, comments) that returns null for anything else (nested maps, anchors, multi-line scalars, invalid input).</Criterion>
+        <Criterion>Muya renders a parseable YAML front matter block as a read-only key/value table (lists as chips); click or Enter switches to the existing YAML source; leaving the block switches back; non-parseable, TOML and JSON front matter keep the current block. A preference restores the plain YAML block.</Criterion>
+        <Criterion>Round-trip byte-identical for the front matter fixture after entering and leaving source view.</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>npx vitest run tests/renderer/muya/front-matter-props.test.js tests/renderer/muya/markdown-round-trip.test.js</Command>
+        <Command>npx playwright test tests/e2e/front-matter-props.spec.ts --project=chromium</Command>
+      </Verification>
+    </T-005>
+
+    <T-006>
+      <Title>W5: MAS folder access for assets/ writes</Title>
+      <DependsOn>T-003</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>In the app-store build, an image write into a document folder without a security-scoped grant asks once for folder access (M-047 bookmark persisted); on decline the image goes to the container image folder with an absolute link and a user notice. No silent failure.</Criterion>
+        <Criterion>Unit-pinned on the renderer decision path with stubbed IPC; Rust side covered by existing M-047 tests plus any new command test.</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>npx vitest run tests/renderer/util/image-folder-access.test.js</Command>
+        <Command>cargo test --manifest-path src-tauri/Cargo.toml m047</Command>
+      </Verification>
+    </T-006>
+
+    <T-007>
+      <Title>W6: documentation (R-6)</Title>
+      <DependsOn>T-002, T-003, T-004, T-005</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>README Features: one line each for footnotes, front matter (properties view), task lists, callouts (GitHub `[!NOTE]` and Obsidian), image paste/drop into assets/. site/guide mirrors it.</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>npm --prefix site run build</Command>
+      </Verification>
+    </T-007>
+
+    <T-008>
+      <Title>W7: full gates, live-app smoke, governance, reviews</Title>
+      <DependsOn>T-002, T-003, T-004, T-005, T-006, T-007</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>Full vitest with coverage thresholds; chromium e2e; webkit-perf gate; grace lint 0 errors.</Criterion>
+        <Criterion>Live app, local release build: screenshot Cmd+V and Finder drop into a saved document → assets/ + relative `![](…)`; callouts and the properties table in light and dark; fold toggles; footnote jump. Evidence recorded in the spec Completion.</Criterion>
+        <Criterion>V-M-011 / V-M-012 scenarios and commands; M-011 / M-012 graph notes; CHANGE_SUMMARY entries.</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>npm run test:coverage</Command>
+        <Command>npx playwright test --project=chromium</Command>
+        <Command>npx playwright test --project=webkit-perf</Command>
+      </Verification>
+    </T-008>
+  </ImplementationPlan>
+
+  <ReviewProtocol>
+    <Review-1>
+      <Angle>correctness and round-trip: callout detection vs GitHub/Obsidian rules, byte-identical save across view toggles, lexer parity and the C-30 sticky invariant, image text form</Angle>
+      <PassCriteria>zero findings on changed code</PassCriteria>
+    </Review-1>
+    <Review-2>
+      <Angle>file-write safety and MAS sandbox: assets/ path resolution, overwrite/collision, drop of non-image or huge files, folder-access prompt and fallback, no silent failures</Angle>
+      <PassCriteria>zero findings</PassCriteria>
+    </Review-2>
+  </ReviewProtocol>
+</C-24>
+</GraceChangePlan>
