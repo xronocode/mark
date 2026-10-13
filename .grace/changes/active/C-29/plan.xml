@@ -1,6 +1,7 @@
 <GraceChangePlan graceVersion='4.0' status='approved'>
-<C-22>
-  <ChangeRef>C-22</ChangeRef>
+<!-- Renumbered from C-22 on 2026-10-13: the ID collided with archive/C-22 (site engine, completed). Content unchanged. -->
+<C-29>
+  <ChangeRef>C-29</ChangeRef>
   <Created>2026-09-29</Created>
   <IntentSummary>Split View container: mirror one mode beside the other, read-only sync, divider ratio persisted, Cmd+\ per-tab toggle. Four-corner review protocol; corner matrix drives both tests and review scope.</IntentSummary>
   <BaselineAssertions>
@@ -164,5 +165,5 @@
   </FourCornerReview>
   <ReviewLog>
   </ReviewLog>
-</C-22>
+</C-29>
 </GraceChangePlan>

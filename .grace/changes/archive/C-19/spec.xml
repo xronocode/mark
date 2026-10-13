@@ -1,9 +1,9 @@
-<GraceChangeSpec graceVersion='4.0' status='approved'>
+<GraceChangeSpec graceVersion='4.0' status='applied'>
 <C-19>
   <Name>Heading navigation: Go-to-Heading palette (Cmd+T) + active-heading highlight in the TOC (matrix P1)</Name>
   <Created>2026-09-23</Created>
   <Priority>high</Priority>
-  <Status>approved-for-implementation</Status>
+  <Status>completed</Status>
 
   <Summary>
     Long agent-generated documents need heading navigation parity with VS
@@ -99,5 +99,14 @@
       changes.
     </ApprovalScope>
   </Approval>
+  <Completion>
+    <Date>2026-10-13</Date>
+    <Commits>11e350dd (feat(navigation): Go-to-Heading palette + active-heading TOC highlight)</Commits>
+    <Evidence>
+      <Item>Commit verification note: menu-consistency 12/12; full e2e 66 passed; full vitest 227 files / 3099 tests green (thresholds pass).</Item>
+      <Item>Shipped in release v2.1.14-beta and every later release through v2.2.0-beta.</Item>
+    </Evidence>
+    <Note>Archived retroactively during the 2026-10-13 GRACE status cleanup: the change shipped, but its spec and plan were never moved out of active/.</Note>
+  </Completion>
 </C-19>
 </GraceChangeSpec>

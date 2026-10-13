@@ -1,9 +1,9 @@
-<GraceChangeSpec graceVersion='4.0' status='approved'>
+<GraceChangeSpec graceVersion='4.0' status='applied'>
 <C-17>
   <Name>Markdown hygiene: markdownlint-subset validation + Format document (matrix P0-A/P0-B)</Name>
   <Created>2026-09-21</Created>
   <Priority>high</Priority>
-  <Status>approved-for-implementation</Status>
+  <Status>completed</Status>
 
   <Summary>
     The two medium-effort P0 gaps from docs/research/markdown-feature-matrix.md,
@@ -116,5 +116,14 @@
       Renderer-side validation + formatting; no backend changes.
     </ApprovalScope>
   </Approval>
+  <Completion>
+    <Date>2026-10-13</Date>
+    <Commits>c0115876 (feat(hygiene): markdownlint-subset problems panel + Format document)</Commits>
+    <Evidence>
+      <Item>Commit verification note: scoped 284 tests green; full vitest 226 files / 3092 tests green in an isolated HEAD+patch worktree (thresholds pass).</Item>
+      <Item>Shipped in release v2.1.13-beta and every later release through v2.2.0-beta.</Item>
+    </Evidence>
+    <Note>Archived retroactively during the 2026-10-13 GRACE status cleanup: the change shipped, but its spec and plan were never moved out of active/.</Note>
+  </Completion>
 </C-17>
 </GraceChangeSpec>

@@ -1,5 +1,6 @@
 <GraceChangeSpec graceVersion='4.0' status='approved'>
-<C-22>
+<!-- Renumbered from C-22 on 2026-10-13: the ID collided with archive/C-22 (site engine, completed). Content unchanged. -->
+<C-29>
   <Name>Split View: WYSIWYG and source side-by-side (matrix P1, last open P1)</Name>
   <Created>2026-09-29</Created>
   <Priority>medium</Priority>
@@ -67,5 +68,5 @@
     <ApprovedBy>user (session 2026-09-29): "давай детальный грейс план с верификацией корнерами и ревью по 4 углам как всегда"</ApprovedBy>
     <ApprovalScope>Spec + detailed plan now; implementation after C-16/C-17 land (queue order per user).</ApprovalScope>
   </Approval>
-</C-22>
+</C-29>
 </GraceChangeSpec>
