@@ -87,10 +87,28 @@ describe('saveImageWithFolderAccess', () => {
   })
 })
 
+describe('saveImageWithFolderAccess review-2 cases', () => {
+  it('a failing picker counts as a decline and still falls back', async () => {
+    const { opts } = setup({ saves: [denied()] })
+    opts.requestAccess = vi.fn(async () => { throw new Error('dialog plugin missing') })
+    const err = vi.spyOn(console, 'error').mockImplementation(() => {})
+    expect(await saveImageWithFolderAccess(opts)).toBe('/data/images/x.png')
+    expect(opts.notify).toHaveBeenCalled()
+    err.mockRestore()
+  })
+
+  it('a grant of the target assets folder itself counts', async () => {
+    const { opts } = setup({ saves: [denied(), 'assets/x.png'], granted: '/notes/assets' })
+    opts.target = '/notes/assets'
+    expect(await saveImageWithFolderAccess(opts)).toBe('assets/x.png')
+  })
+})
+
 describe('isPermissionError', () => {
   it('recognises sandbox and permission failures only', () => {
     expect(isPermissionError(denied())).toBe(true)
     expect(isPermissionError({ code: 'EACCES' })).toBe(true)
+    expect(isPermissionError({ code: 'MT_FS_PERM_DENIED', message: 'x' })).toBe(true)
     expect(isPermissionError('Permission denied (os error 13)')).toBe(true)
     expect(isPermissionError(new Error('No space left on device'))).toBe(false)
     expect(isPermissionError(null)).toBe(false)
