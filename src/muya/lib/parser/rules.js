@@ -1,4 +1,27 @@
+// FILE: src/muya/lib/parser/rules.js
+// VERSION: 1.1.0
+// START_MODULE_CONTRACT
+//   PURPOSE: Inline and begin-of-line grammar for muya's inline tokenizer.
+//   SCOPE: beginRules, inlineRules, inlineExtensionRules; post-build sticky conversion of ^-anchored rules (same as C-30 did for block rules).
+//   DEPENDS: ./escapeCharacter, ./marked/blockRules (toStickyAnchored).
+//   LINKS: .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011; .grace/changes/active/C-24; .grace/changes/archive/C-30.
+//   ROLE: RUNTIME
+//   MAP_MODE: EXPORTS
+// END_MODULE_CONTRACT
+//
+// START_MODULE_MAP
+//   beginRules - rules tried only at offset 0 of a block's text (hr, fence, header, reference definition, math).
+//   inlineRules - inline GFM/CommonMark rules tried at each position.
+//   inlineExtensionRules - superscript, subscript, footnote identifier.
+// END_MODULE_MAP
+//
+// START_CHANGE_SUMMARY
+//   - (v1.0.0 implied: upstream muya, previously ungoverned.)
+//   - 2026-10-13 v1.1.0: C-24 — ^-anchored rules become sticky with a lastIndex-resetting exec. JavaScriptCore did not fail fast at ^ for rules with a lookbehind: footnote_identifier cost 688 ms on a 565 KB document once footnotes became the default (x2 main-thread busy in the WebKit gate). Match set unchanged.
+// END_CHANGE_SUMMARY
+
 import { escapeCharacters } from './escapeCharacter'
+import { toStickyAnchored } from './marked/blockRules'
 
 /* eslint-disable no-useless-escape */
 export const beginRules = {
@@ -45,3 +68,14 @@ export const inlineExtensionRules = {
   footnote_identifier: /^(\[\^)([^\^\[\]\s]+?)(?<!\\)\]/
 }
 /* eslint-enable no-useless-escape */
+
+// START_BLOCK_STICKY_INLINE_RULES
+// C-24: the inline tokenizer calls rule.exec(src) at every position; a
+// ^-anchored, non-g/m rule can only match at index 0, which is the only index
+// a sticky rule (lastIndex reset to 0 by toStickyAnchored) attempts.
+for (const table of [beginRules, inlineRules, inlineExtensionRules]) {
+  for (const key of Object.keys(table)) {
+    table[key] = toStickyAnchored(table[key])
+  }
+}
+// END_BLOCK_STICKY_INLINE_RULES
