@@ -2338,6 +2338,48 @@ describe('editor.vue — coverage', () => {
       }
     })
 
+    it('mirror scroll and selection never reach the store', async () => {
+      await mountEditor({ mirror: true })
+      const handler = (name) => mockEditorInstance.on.mock.calls.find((c) => c[0] === name)[1]
+      handler('scroll')({ scrollTop: 900 })
+      handler('selectionChange')({ cursorCoords: { y: 10 } })
+      handler('selectionFormats')([])
+      expect(editorStore.updateScrollPosition).not.toHaveBeenCalled()
+      expect(editorStore.SELECTION_CHANGE).not.toHaveBeenCalled()
+      expect(editorStore.SELECTION_FORMATS).not.toHaveBeenCalled()
+    })
+
+    it('a tab switch onto the mirror renders once, not again 150 ms later', async () => {
+      vi.useFakeTimers()
+      const wrapper = await mountEditor({ mirror: true, markdown: '# A' })
+      mockEditorInstance.setMarkdown.mockClear()
+      editorStore.currentFile = { ...editorStore.currentFile, id: 'tab-2', markdown: '# B', isSaved: true }
+      getBusHandler('file-changed')({ id: 'tab-2', markdown: '# B' })
+      await wrapper.setProps({ markdown: '# B' })
+      vi.advanceTimersByTime(500)
+      expect(mockEditorInstance.setMarkdown).toHaveBeenCalledTimes(1)
+    })
+
+    it('Cmd/Ctrl+Alt+\\ (Split View) does not toggle the sidebar; plain Cmd+\\ still does', async () => {
+      const wrapper = await mountEditor()
+      const root = wrapper.find('.editor-wrapper')
+      await root.trigger('keydown', { key: '\\', metaKey: true, altKey: true })
+      expect(layoutStore.TOGGLE_LAYOUT_ENTRY).not.toHaveBeenCalled()
+      await root.trigger('keydown', { key: '\\', metaKey: true })
+      expect(layoutStore.TOGGLE_LAYOUT_ENTRY).toHaveBeenCalledWith('showSideBar')
+    })
+
+    it('format, paragraph and focus commands are inert on the mirror', async () => {
+      await mountEditor({ mirror: true })
+      mockEditorInstance.focus.mockClear()
+      getBusHandler('format')?.('strong')
+      getBusHandler('paragraph')?.('heading 1')
+      getBusHandler('editor-focus')?.()
+      expect(mockEditorInstance.format).not.toHaveBeenCalled()
+      expect(mockEditorInstance.updateParagraph).not.toHaveBeenCalled()
+      expect(mockEditorInstance.focus).not.toHaveBeenCalled()
+    })
+
     it('undo and redo are inert on the mirror', async () => {
       await mountEditor({ mirror: true })
       getBusHandler('undo')()

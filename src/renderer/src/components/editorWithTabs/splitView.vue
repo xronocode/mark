@@ -1,6 +1,6 @@
 <!-- MODULE_CONTRACT
   PURPOSE: C-29 Split View container: lays the rich (muya) and source (CodeMirror) panes side by side with a draggable divider.
-  SCOPE: Pane layout, divider drag (ratio clamped 0.1–0.9) and double-click side swap persisted to preferences, collapse below 800px container width. Owns no document state: which pane is the read-only mirror is decided by the parent from the `active` slot prop.
+  SCOPE: Pane layout, divider drag and arrow keys (ratio clamped 0.1–0.9) and double-click/Enter side swap persisted to preferences, collapse below 800px container width. Owns no document state: which pane is the read-only mirror is decided by the parent from the `active` slot prop.
   DEPENDS: preferences store (splitViewRatio, splitViewSwapped).
   LINKS: .grace/changes/active/C-29; M-011 editorWithTabs.
   ROLE: RUNTIME
@@ -31,6 +31,8 @@ CHANGE_SUMMARY: 2026-10-13 C-29 initial split container.
       :aria-valuenow="Math.round(ratio * 100)"
       aria-valuemin="10"
       aria-valuemax="90"
+      tabindex="0"
+      @keydown="handleDividerKey"
       @pointerdown="startDrag"
       @dblclick="swapSides"
     ></div>
@@ -87,17 +89,22 @@ const onDragMove = (event) => {
   dragRatio.value = ratioFromEvent(event)
 }
 
+const persistRatio = (raw) => {
+  const value = Math.round(raw * 1000) / 1000
+  if (value !== splitViewRatio.value) {
+    preferencesStore.SET_SINGLE_PREFERENCE({ type: 'splitViewRatio', value })
+  }
+}
+
 const endDrag = () => {
   window.removeEventListener('pointermove', onDragMove)
   window.removeEventListener('pointerup', endDrag)
   window.removeEventListener('pointercancel', endDrag)
   dragging.value = false
   if (dragRatio.value === null) return
-  const value = Math.round(dragRatio.value * 1000) / 1000
+  const raw = dragRatio.value
   dragRatio.value = null
-  if (value !== splitViewRatio.value) {
-    preferencesStore.SET_SINGLE_PREFERENCE({ type: 'splitViewRatio', value })
-  }
+  persistRatio(raw)
 }
 
 const startDrag = (event) => {
@@ -108,6 +115,19 @@ const startDrag = (event) => {
   window.addEventListener('pointermove', onDragMove)
   window.addEventListener('pointerup', endDrag)
   window.addEventListener('pointercancel', endDrag)
+}
+
+// Keyboard: arrows move the divider by 5%, Enter swaps sides.
+const KEY_STEP = 0.05
+const handleDividerKey = (event) => {
+  if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+    event.preventDefault()
+    const delta = event.key === 'ArrowLeft' ? -KEY_STEP : KEY_STEP
+    persistRatio(clampRatio(ratio.value + delta))
+  } else if (event.key === 'Enter') {
+    event.preventDefault()
+    swapSides()
+  }
 }
 
 const swapSides = () => {
@@ -189,6 +209,10 @@ defineExpose({ active, ratio, swapped })
   border-left: 1px solid var(--floatBorderColor, rgba(128, 128, 128, 0.25));
   box-sizing: border-box;
   touch-action: none;
+}
+.split-divider:focus-visible {
+  outline: 2px solid var(--themeColor, #4a90d9);
+  outline-offset: -2px;
 }
 .split-divider:hover,
 .split-view.is-dragging > .split-divider {

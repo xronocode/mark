@@ -164,6 +164,27 @@
     </ReviewPass>
   </FourCornerReview>
   <ReviewLog>
+    <Review number="1" date="2026-10-13" verdict="green-after-fixes" task="four-corner-review">
+      <Findings>
+        smart-review full (excellence → simplify) over 383a753e^..8e4f9c29.
+        Correctness: no path where either mirror commits to the store was
+        found. Fixed: muya-mirror scroll/selectionChange/selectionFormats
+        wrote the wrong pane's offset and selection into the tab (now
+        guarded); a tab switch rendered the mirror twice (mirroredMarkdown
+        set in setMarkdownToEditor/handleFileChange); format/paragraph/focus
+        bus commands acted on the mirror (guarded); handlePreviewKeydown
+        treated Cmd/Ctrl+Alt+Backslash as the sidebar chord (now requires
+        !altKey). Security: no new IPC or permissions; the mirror renders
+        through the same muya pipeline. UX: divider is keyboard-operable
+        (tabindex, arrows ±5%, Enter swaps, focus ring); guide text matches.
+        Performance: coalescing 2 renders per 30-char burst on a 10k-line
+        document; adaptive debounce. Simplify: one CodeMirror config builder
+        for both panes, one persistRatio helper. Probes: e2e
+        test-results/c29-split-light.png and c29-split-dark.png. Also fixed in
+        C-4 the same round: the tree watcher's 'add' echo after a sidebar
+        rename re-read the disk over a dirty tab with liveReload on.
+      </Findings>
+    </Review>
   </ReviewLog>
 </C-29>
 </GraceChangePlan>
