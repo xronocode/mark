@@ -35,7 +35,7 @@ describe('editorWithTabs/index.vue', () => {
     })
     expect(wrapper.exists()).toBe(true)
     expect(wrapper.find('.editor-with-tabs').exists()).toBe(true)
-  })
+  }, 15_000) // first mount pays the cold transform of the whole editor tree; 5 s flaked under the parallel coverage run
 
   it('hides tabs when showTabBar is false', async () => {
     const EditorWithTabs = (await import('@/components/editorWithTabs/index.vue')).default
