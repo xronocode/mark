@@ -28,8 +28,10 @@ const autoSaveTimers = new Map()
 const fileWatchDisposers = new Map()
 const liveReloadGenerations = new Map()
 // C-4: pathname → expiry (ms) of the watcher echo of our own sidebar rename.
-// The tree watcher reports 'create' for the new path after the tabs moved;
-// with liveReload on that would re-read the disk over unsaved edits.
+// After the tabs moved the watcher reports the new path — as 'create' or, on
+// macOS (FSEvents rename = notify Modify(Name)), as 'modify' → 'change', and
+// possibly more than once. With liveReload on any of them would re-read the
+// disk over unsaved edits, so every add/change inside the window is the echo.
 const renameEchoUntil = new Map()
 const RENAME_ECHO_WINDOW_MS = 2000
 
@@ -1599,13 +1601,13 @@ export const useEditorStore = defineStore('editor', {
         return
       }
       const { id, isSaved, filename } = tab
-      const until = type === 'add' ? renameEchoUntil.get(tab.pathname) : undefined
+      const until = type === 'unlink' ? undefined : renameEchoUntil.get(tab.pathname)
       if (until !== undefined) {
-        renameEchoUntil.delete(tab.pathname)
         if (Date.now() <= until) {
-          console.debug(`[editor][rename][BLOCK_RENAME_ECHO_IGNORED path=${filename}]`)
+          console.debug(`[editor][rename][BLOCK_RENAME_ECHO_IGNORED path=${filename} type=${type}]`)
           return
         }
+        renameEchoUntil.delete(tab.pathname)
       }
       const generation = (liveReloadGenerations.get(pathname) || 0) + 1
       liveReloadGenerations.set(pathname, generation)
@@ -1894,6 +1896,10 @@ export const useEditorStore = defineStore('editor', {
 //     moves with them; the call site in project.js no longer throws. The
 //     watcher's 'add' echo for the new path is ignored for 2 s, so a renamed
 //     dirty tab is not reloaded from disk over its unsaved edits.
+//   - 2026-10-13 C-4 live smoke: on macOS the rename echo arrives as
+//     'modify' → 'change', not 'add', and the guard let it through — a dirty
+//     renamed tab lost its edits with liveReload on. Every add/change echo
+//     inside the 2 s window is now ignored (not only the first).
 //   - 2026-09-24 C-20: ASK_FOR_FILE_PATH generalizes the autocomplete
 //     (dir-part/prefix/50-cap, extension set, directories always);
 //     ASK_FOR_IMAGE_AUTO_PATH delegates byte-identically. The editor.vue
