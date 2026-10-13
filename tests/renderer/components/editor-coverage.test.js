@@ -26,6 +26,7 @@
 //   moveToRelativeFolderMock - GRACE 4 synchronized symbol
 //   saveImageToRelativeFolderMock - C-24 relative-folder image save mock
 //   resolveImageFolderMock - C-24 global image folder resolver mock (userData fallback)
+//   saveImageWithFolderAccessMock - C-24 sandbox folder-access wrapper mock (pass-through to save)
 //   noticeMock - GRACE 4 synchronized symbol
 //   setEditorWidthMock - GRACE 4 synchronized symbol
 //   setWrapCodeBlocksMock - GRACE 4 synchronized symbol
@@ -70,6 +71,7 @@ const moveImageToFolderMock = vi.hoisted(() => vi.fn())
 const moveToRelativeFolderMock = vi.hoisted(() => vi.fn())
 const saveImageToRelativeFolderMock = vi.hoisted(() => vi.fn())
 const resolveImageFolderMock = vi.hoisted(() => vi.fn())
+const saveImageWithFolderAccessMock = vi.hoisted(() => vi.fn())
 const uploadImageMock = vi.hoisted(() => vi.fn())
 const getCssForOptionsMock = vi.hoisted(() => vi.fn(async () => ''))
 const getHtmlTocMock = vi.hoisted(() => vi.fn(() => ''))
@@ -193,6 +195,7 @@ vi.mock('@/util/fileSystem', () => ({
   moveToRelativeFolder: moveToRelativeFolderMock,
   saveImageToRelativeFolder: saveImageToRelativeFolderMock,
   resolveImageFolder: resolveImageFolderMock,
+  saveImageWithFolderAccess: saveImageWithFolderAccessMock,
   uploadImage: uploadImageMock
 }))
 vi.mock('@/util/clipboard', () => ({ guessClipboardFilePath: vi.fn() }))
@@ -359,6 +362,8 @@ describe('editor.vue — coverage', () => {
     resolveImageFolderMock.mockReset()
     // C-24: pass-through like the real helper, with the userData fallback.
     resolveImageFolderMock.mockImplementation((p) => p || '/userdata/images')
+    saveImageWithFolderAccessMock.mockReset()
+    saveImageWithFolderAccessMock.mockImplementation((opts) => opts.save())
     uploadImageMock.mockReset()
     mockPrinter.renderMarkdown.mockReset()
     mockPrinter.clearup.mockReset()
@@ -2043,6 +2048,25 @@ describe('editor.vue — coverage', () => {
     expect(saveImageToRelativeFolderMock).toHaveBeenCalledWith('/tmp', 'assets', '/tmp/test.md', 'binary-data')
     expect(moveImageToFolderMock).not.toHaveBeenCalled()
     expect(result).toBe('assets/img.png')
+  })
+
+  it('imageAction passes the App Store build mode and folder to the folder-access wrapper (C-24)', async () => {
+    preferencesStore.imageInsertAction = 'folder'
+    preferencesStore.imagePreferRelativeDirectory = true
+    preferencesStore.buildCapabilities = { ...preferencesStore.buildCapabilities, mode: 'app-store' }
+    saveImageToRelativeFolderMock.mockResolvedValue('assets/img.png')
+    moveImageToFolderMock.mockResolvedValue('/userdata/images/img.png')
+    await mountEditor()
+    await lastMuyaOptions.current.imageAction('binary-data', null)
+    const opts = saveImageWithFolderAccessMock.mock.calls[0][0]
+    expect(opts).toMatchObject({ dir: '/tmp', isAppStore: true })
+    expect(await opts.fallback()).toBe('/userdata/images/img.png')
+    expect(moveImageToFolderMock).toHaveBeenCalledWith('/tmp/test.md', 'binary-data', '/userdata/images')
+    opts.notify('x')
+    expect(noticeMock.notify).toHaveBeenCalledWith(expect.objectContaining({ type: 'warning', message: 'x' }))
+    const { invoke } = await import('@tauri-apps/api/core')
+    await opts.requestAccess('/tmp')
+    expect(invoke).toHaveBeenCalledWith('mt_grant_folder_access', { dir: '/tmp' })
   })
 
   /* ── imageAction — path (string input) ─────────────────────── */

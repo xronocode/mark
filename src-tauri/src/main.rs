@@ -803,6 +803,7 @@ fn main() {
             // Path B-clean W3 — pick_folder returns Option<String>;
             // close_project_root unwatches via WatchRegistry (C-2).
             m_v1_compat::mt_pick_folder,
+            m_v1_compat::mt_grant_folder_access,
             m_v1_compat::mt_walk_project,
             m_v1_compat::mt_close_project_root,
             m_v1_compat::mt_app_quit,

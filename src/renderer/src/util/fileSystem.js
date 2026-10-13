@@ -18,6 +18,9 @@
 //   moveToRelativeFolder - legacy: move an already-saved image into a relative folder.
 //   saveImageToRelativeFolder - C-24: save an image straight into the document's relative folder; returns a document-relative path.
 //   resolveImageFolder - C-24: global image folder, falling back to <userData>/images (never empty).
+//   isPermissionError - C-24: true for sandbox/permission write failures.
+//   saveImageWithFolderAccess - C-24: App Store sandbox — ask once for folder access, else save globally with a notice.
+//   __resetDeclinedFolders - test hook: forget folders the user declined this session.
 //   moveImageToFolder - copy a path image (hash name) or write a bitmap (<timestamp>-<hash8>-<name>) into a folder.
 //   uploadImage - uploads an image through the configured image bed.
 //   isFileExecutable - checks the executable bit of a path.
@@ -25,7 +28,7 @@
 //
 // START_CHANGE_SUMMARY
 //   - (v1.0.0 implied: upstream helpers ported in step-8a/8h/8j, previously ungoverned.)
-//   - 2026-10-13 v1.1.0: C-24 — START_BLOCK_IMAGE_RELATIVE_SAVE (saveImageToRelativeFolder, resolveImageFolder); bitmap file names gain a content-hash suffix so two pastes in one second cannot overwrite each other.
+//   - 2026-10-13 v1.1.0: C-24 — START_BLOCK_IMAGE_RELATIVE_SAVE (saveImageToRelativeFolder, resolveImageFolder); bitmap file names gain a content-hash suffix so two pastes in one second cannot overwrite each other; START_BLOCK_IMAGE_FOLDER_ACCESS asks for folder access in the App Store sandbox.
 // END_CHANGE_SUMMARY
 //
 // step-8a: removed `import { statSync, constants } from 'fs'`.
@@ -150,6 +153,54 @@ export const resolveImageFolder = (imageFolderPath, userDataPath) => {
   return window.path.join(userDataPath, 'images')
 }
 // END_BLOCK_IMAGE_RELATIVE_SAVE
+
+// START_BLOCK_IMAGE_FOLDER_ACCESS
+// C-24: in the App Store sandbox a document opened on its own grants only
+// that file, so writing `assets/` beside it fails with a permission error.
+// Ask once per folder for access (the backend bookmarks the grant); if the
+// user declines, or the grant does not cover the folder, save to the global
+// image folder instead and say so. Other errors propagate unchanged.
+const declinedFolders = new Set()
+
+// OS-level denials only (the App Store sandbox surfaces as EPERM/EACCES,
+// "Operation not permitted" / "Permission denied"). Mark's own path policy
+// (MT_FS_PATH_DENIED) is not something a folder grant can fix.
+export const isPermissionError = (err) => {
+  const code = String((err && err.code) || '')
+  const message = String((err && err.message) || err || '')
+  if (/MT_FS_PATH_DENIED/.test(code)) return false
+  return /^(EPERM|EACCES)$/.test(code) || /operation not permitted|permission denied|os error (1|13)\b/i.test(message)
+}
+
+const covers = (granted, dir) => {
+  const g = String(granted).replace(/\/+$/, '')
+  return dir === g || dir.startsWith(`${g}/`)
+}
+
+export const saveImageWithFolderAccess = async ({ save, fallback, dir, isAppStore, requestAccess, notify }) => {
+  try {
+    return await save()
+  } catch (err) {
+    if (!isAppStore || !isPermissionError(err)) throw err
+  }
+  if (!declinedFolders.has(dir)) {
+    const granted = await requestAccess(dir)
+    if (granted && covers(granted, dir)) {
+      try {
+        return await save()
+      } catch (err) {
+        if (!isPermissionError(err)) throw err
+      }
+    } else {
+      declinedFolders.add(dir)
+    }
+  }
+  notify(`No access to ${dir}: the image was saved to Mark's image folder instead.`)
+  return fallback()
+}
+
+export const __resetDeclinedFolders = () => declinedFolders.clear()
+// END_BLOCK_IMAGE_FOLDER_ACCESS
 
 export const moveImageToFolder = async (pathname, image, outputDir) => {
   await window.fileUtils.ensureDir(outputDir)
