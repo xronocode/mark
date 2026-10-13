@@ -513,6 +513,36 @@ describe('store/editor — deep coverage (wave 2)', () => {
       expect(__ipcWatchMock.subscribe).toHaveBeenCalledTimes(1)
     })
 
+    it('ignores the watcher echo of the rename so unsaved edits survive', async () => {
+      const tab = makeTab({ id: 'r5', pathname: '/tmp/w/old.md', filename: 'old.md', isSaved: false, markdown: 'unsaved edit' })
+      editor.tabs = [tab]
+      editor.currentFile = tab
+      editor.updateTabIdToIndex()
+      __ipcFsMock.read.mockResolvedValue('saved on disk')
+
+      editor.RENAME_IF_NEEDED({ src: '/tmp/w/old.md', dest: '/tmp/w/new.md' })
+      editor.APPLY_FILE_CHANGE('add', { pathname: '/tmp/w/new.md' })
+      await new Promise((r) => setTimeout(r, 150))
+
+      expect(__ipcFsMock.read).not.toHaveBeenCalled()
+      expect(editor.tabs[0].markdown).toBe('unsaved edit')
+      expect(editor.tabs[0].isSaved).toBe(false)
+    })
+
+    it('a later add for the renamed path is handled normally once the echo is consumed', async () => {
+      const tab = makeTab({ id: 'r6', pathname: '/tmp/v/old.md', filename: 'old.md', isSaved: true, markdown: 'same' })
+      editor.tabs = [tab]
+      editor.currentFile = tab
+      editor.updateTabIdToIndex()
+      __ipcFsMock.read.mockResolvedValue('external edit')
+
+      editor.RENAME_IF_NEEDED({ src: '/tmp/v/old.md', dest: '/tmp/v/new.md' })
+      editor.APPLY_FILE_CHANGE('add', { pathname: '/tmp/v/new.md' })
+      editor.APPLY_FILE_CHANGE('add', { pathname: '/tmp/v/new.md' })
+      await new Promise((r) => setTimeout(r, 150))
+      expect(__ipcFsMock.read).toHaveBeenCalledTimes(1)
+    })
+
     it('live-reloads changes to the new path after the move', async () => {
       const tab = makeTab({ id: 'r4', pathname: '/tmp/z/old.md', filename: 'old.md' })
       editor.tabs = [tab]

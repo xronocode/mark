@@ -166,6 +166,21 @@ describe('C-29 Split View', () => {
       expect(wrapper.attributes('style')).toContain('--split-left: 50%')
     })
 
+    it('keyboard: arrows move the divider 5% within the clamp, Enter swaps', async () => {
+      preferences.splitViewRatio = 0.5
+      const wrapper = await mountSplit(true)
+      const divider = wrapper.find('.split-divider')
+      expect(divider.attributes('tabindex')).toBe('0')
+      await divider.trigger('keydown', { key: 'ArrowLeft' })
+      expect(preferences.SET_SINGLE_PREFERENCE).toHaveBeenLastCalledWith({ type: 'splitViewRatio', value: 0.45 })
+      preferences.splitViewRatio = 0.9
+      preferences.SET_SINGLE_PREFERENCE.mockClear()
+      await divider.trigger('keydown', { key: 'ArrowRight' })
+      expect(preferences.SET_SINGLE_PREFERENCE).not.toHaveBeenCalled()
+      await divider.trigger('keydown', { key: 'Enter' })
+      expect(preferences.SET_SINGLE_PREFERENCE).toHaveBeenCalledWith({ type: 'splitViewSwapped', value: true })
+    })
+
     it('R-4: double-click on the divider swaps sides and persists it', async () => {
       const wrapper = await mountSplit(true)
       await wrapper.find('.split-divider').trigger('dblclick')
