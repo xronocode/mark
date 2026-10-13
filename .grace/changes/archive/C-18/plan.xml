@@ -1,4 +1,4 @@
-<GraceChangePlan graceVersion='4.0' status='approved'>
+<GraceChangePlan graceVersion='4.0' status='applied'>
 <C-18>
   <Name>Native print &amp; PDF export via WKWebView print panel (matrix P1; un-gates MAS PDF)</Name>
   <Created>2026-09-23</Created>

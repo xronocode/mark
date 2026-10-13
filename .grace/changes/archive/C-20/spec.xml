@@ -1,9 +1,9 @@
-<GraceChangeSpec graceVersion='4.0' status='approved'>
+<GraceChangeSpec graceVersion='4.0' status='applied'>
 <C-20>
   <Name>Relative-path autocomplete for markdown links (matrix P1, small)</Name>
   <Created>2026-09-24</Created>
   <Priority>high</Priority>
-  <Status>approved-for-implementation</Status>
+  <Status>completed</Status>
 
   <Summary>
     Typing a link destination — `](./doc…` — should suggest real files the
@@ -103,5 +103,14 @@
       Link-path autocomplete only; image autocomplete parity preserved.
     </ApprovalScope>
   </Approval>
+  <Completion>
+    <Date>2026-10-13</Date>
+    <Commits>dd661f74 (feat(links): relative-path autocomplete for markdown link destinations)</Commits>
+    <Evidence>
+      <Item>Commit verification note: e2e link-autocomplete 2/2; full e2e 68 passed; full vitest 228 files / 3105 tests green; grace lint zero findings.</Item>
+      <Item>Shipped in release v2.1.15-beta and every later release through v2.2.0-beta.</Item>
+    </Evidence>
+    <Note>Archived retroactively during the 2026-10-13 GRACE status cleanup: the change shipped, but its spec and plan were never moved out of active/.</Note>
+  </Completion>
 </C-20>
 </GraceChangeSpec>

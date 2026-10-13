@@ -1,9 +1,9 @@
-<GraceChangeSpec graceVersion='4.0' status='approved'>
+<GraceChangeSpec graceVersion='4.0' status='applied'>
 <C-21>
   <Name>Dead-link validation: missing files and unresolvable anchors in the problems panel (matrix P1)</Name>
   <Created>2026-09-24</Created>
   <Priority>high</Priority>
-  <Status>approved-for-implementation</Status>
+  <Status>completed</Status>
 
   <Summary>
     Agent documents cross-link sibling files and headings; typos surface
@@ -97,5 +97,14 @@
       Problems-panel link validation only; no network checks.
     </ApprovalScope>
   </Approval>
+  <Completion>
+    <Date>2026-10-13</Date>
+    <Commits>2121d014 (feat(validation): dead-link validation in the problems panel)</Commits>
+    <Evidence>
+      <Item>Commit verification note: problems panel 8/8; e2e dead-link-validation 1/1; full e2e 69 passed; full vitest 229 files / 3118 tests green.</Item>
+      <Item>Shipped in release v2.1.15-beta and every later release through v2.2.0-beta.</Item>
+    </Evidence>
+    <Note>Archived retroactively during the 2026-10-13 GRACE status cleanup: the change shipped, but its spec and plan were never moved out of active/.</Note>
+  </Completion>
 </C-21>
 </GraceChangeSpec>
