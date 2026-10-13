@@ -110,6 +110,7 @@ const mockEditorInstance = vi.hoisted(() => ({
   insertParagraph: vi.fn(),
   deleteParagraph: vi.fn(),
   insertImage: vi.fn(),
+  insertImageFromPath: vi.fn(async (p) => p),
   search: vi.fn(() => ({ index: 0, matches: 1 })),
   replace: vi.fn(() => ({ index: 0, matches: 1 })),
   find: vi.fn(() => ({ index: 0, matches: 1 })),
@@ -2067,6 +2068,25 @@ describe('editor.vue — coverage', () => {
     const { invoke } = await import('@tauri-apps/api/core')
     await opts.requestAccess('/tmp')
     expect(invoke).toHaveBeenCalledWith('mt_grant_folder_access', { dir: '/tmp' })
+  })
+
+  it('mt::drop-image inserts at the cursor and reports unsupported or failed drops (C-24)', async () => {
+    await mountEditor()
+    const reg = window.electron.ipcRenderer.on.mock.calls.find(([ch]) => ch === 'mt::drop-image')
+    expect(reg).toBeTruthy()
+    const handler = reg[1]
+    noticeMock.notify.mockClear()
+    await handler(null, { path: '/Users/me/Desktop/a [1].png' })
+    expect(mockEditorInstance.insertImageFromPath).toHaveBeenCalledWith('/Users/me/Desktop/a [1].png', 'a \\[1\\]')
+    expect(noticeMock.notify).not.toHaveBeenCalled()
+    mockEditorInstance.insertImageFromPath.mockResolvedValueOnce(null)
+    await handler(null, { path: '/x/scan.tiff' })
+    expect(noticeMock.notify).toHaveBeenLastCalledWith(expect.objectContaining({ message: expect.stringContaining('cannot be inserted') }))
+    mockEditorInstance.insertImageFromPath.mockResolvedValueOnce('')
+    await handler(null, { path: '/x/b.png' })
+    expect(noticeMock.notify).toHaveBeenLastCalledWith(expect.objectContaining({ message: expect.stringContaining('Could not insert b.png') }))
+    await handler(null, {})
+    expect(mockEditorInstance.insertImageFromPath).toHaveBeenCalledTimes(3)
   })
 
   /* ── imageAction — path (string input) ─────────────────────── */

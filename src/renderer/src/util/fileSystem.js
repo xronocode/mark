@@ -169,7 +169,7 @@ export const isPermissionError = (err) => {
   const code = String((err && err.code) || '')
   const message = String((err && err.message) || err || '')
   if (/MT_FS_PATH_DENIED/.test(code)) return false
-  return /^(EPERM|EACCES)$/.test(code) || /operation not permitted|permission denied|os error (1|13)\b/i.test(message)
+  return /^(EPERM|EACCES|MT_FS_PERM_DENIED)$/.test(code) || /operation not permitted|permission denied|os error (1|13)\b/i.test(message)
 }
 
 const covers = (granted, dir) => {
@@ -177,15 +177,23 @@ const covers = (granted, dir) => {
   return dir === g || dir.startsWith(`${g}/`)
 }
 
-export const saveImageWithFolderAccess = async ({ save, fallback, dir, isAppStore, requestAccess, notify }) => {
+// `dir` is offered in the picker; `target` (default `dir`) is where the image
+// goes, so a grant of `<dir>/assets` itself also counts.
+export const saveImageWithFolderAccess = async ({ save, fallback, dir, target = dir, isAppStore, requestAccess, notify }) => {
   try {
     return await save()
   } catch (err) {
     if (!isAppStore || !isPermissionError(err)) throw err
   }
   if (!declinedFolders.has(dir)) {
-    const granted = await requestAccess(dir)
-    if (granted && covers(granted, dir)) {
+    let granted = null
+    try {
+      granted = await requestAccess(dir)
+    } catch (err) {
+      // A failing picker counts as a decline; the fallback still runs.
+      console.error('[fileSystem][saveImageWithFolderAccess][BLOCK_REQUEST_ACCESS_FAILED]', err)
+    }
+    if (granted && covers(granted, target)) {
       try {
         return await save()
       } catch (err) {
@@ -206,7 +214,8 @@ export const moveImageToFolder = async (pathname, image, outputDir) => {
   await window.fileUtils.ensureDir(outputDir)
   const isPath = typeof image === 'string'
   if (isPath) {
-    const dir = window.path.dirname(pathname)
+    // An unsaved tab has no pathname; dropped paths are absolute anyway.
+    const dir = pathname ? window.path.dirname(pathname) : ''
     const imagePath = window.path.resolve(dir, image)
     const isImage = window.fileUtils.isImageFile(imagePath)
     if (isImage) {
@@ -312,7 +321,8 @@ export const uploadImage = async (pathname, image, preferences) => {
   }
 
   if (isPath) {
-    const dir = window.path.dirname(pathname)
+    // An unsaved tab has no pathname; dropped paths are absolute anyway.
+    const dir = pathname ? window.path.dirname(pathname) : ''
     const imagePath = window.path.resolve(dir, image)
     const isImg = window.fileUtils.isImageFile(imagePath)
     if (isImg) {

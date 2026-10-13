@@ -155,7 +155,11 @@ pub fn ensure_access_for_write(path: &str) {
             covering_ancestor(path, st.bookmarks.keys())
         };
         if let Some(anc) = anc {
-            ensure_access(&anc);
+            // Already started this session: no re-resolve, no store write.
+            let started = active_set().lock().unwrap().contains(&anc);
+            if !started {
+                ensure_access(&anc);
+            }
         }
     }
     #[cfg(not(target_os = "macos"))]
