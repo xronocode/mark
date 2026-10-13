@@ -288,6 +288,9 @@ describe('sourceCode.vue — coverage', () => {
 
     expect(cmMockInstance.setValue).toHaveBeenCalledWith('## New content')
     expect(cmMockInstance.setSelection).toHaveBeenCalled()
+    // C-29 live smoke: a reactive Proxy as `this` corrupts CodeMirror's line
+    // measurement (info.map) — the instance must stay raw.
+    expect(cmMockInstance.setValue.mock.contexts[0]).toBe(cmMockInstance)
   })
 
   it('handleFileChange calls setCursorAtFirstLine when no cursor', async () => {
@@ -624,6 +627,8 @@ describe('sourceCode.vue — coverage', () => {
       expect(rafQueue).toHaveLength(1)
       rafQueue.shift()()
       expect(cmMockInstance.refresh).toHaveBeenCalledTimes(1)
+      // CodeMirror must see the raw instance, never a Vue reactive Proxy.
+      expect(cmMockInstance.refresh.mock.contexts[0]).toBe(cmMockInstance)
 
       wrapper.unmount()
       expect(observers[0].disconnect).toHaveBeenCalled()
