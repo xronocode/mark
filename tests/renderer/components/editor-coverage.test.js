@@ -24,6 +24,8 @@
 //   mockSpellchecker - GRACE 4 synchronized symbol
 //   moveImageToFolderMock - GRACE 4 synchronized symbol
 //   moveToRelativeFolderMock - GRACE 4 synchronized symbol
+//   saveImageToRelativeFolderMock - C-24 relative-folder image save mock
+//   resolveImageFolderMock - C-24 global image folder resolver mock (userData fallback)
 //   noticeMock - GRACE 4 synchronized symbol
 //   setEditorWidthMock - GRACE 4 synchronized symbol
 //   setWrapCodeBlocksMock - GRACE 4 synchronized symbol
@@ -66,6 +68,8 @@ const setWrapCodeBlocksMock = vi.hoisted(() => vi.fn())
 const addCommonStyleMock = vi.hoisted(() => vi.fn())
 const moveImageToFolderMock = vi.hoisted(() => vi.fn())
 const moveToRelativeFolderMock = vi.hoisted(() => vi.fn())
+const saveImageToRelativeFolderMock = vi.hoisted(() => vi.fn())
+const resolveImageFolderMock = vi.hoisted(() => vi.fn())
 const uploadImageMock = vi.hoisted(() => vi.fn())
 const getCssForOptionsMock = vi.hoisted(() => vi.fn(async () => ''))
 const getHtmlTocMock = vi.hoisted(() => vi.fn(() => ''))
@@ -187,6 +191,8 @@ vi.mock('@/util', () => ({
 vi.mock('@/util/fileSystem', () => ({
   moveImageToFolder: moveImageToFolderMock,
   moveToRelativeFolder: moveToRelativeFolderMock,
+  saveImageToRelativeFolder: saveImageToRelativeFolderMock,
+  resolveImageFolder: resolveImageFolderMock,
   uploadImage: uploadImageMock
 }))
 vi.mock('@/util/clipboard', () => ({ guessClipboardFilePath: vi.fn() }))
@@ -349,6 +355,10 @@ describe('editor.vue — coverage', () => {
     addCommonStyleMock.mockReset()
     moveImageToFolderMock.mockReset()
     moveToRelativeFolderMock.mockReset()
+    saveImageToRelativeFolderMock.mockReset()
+    resolveImageFolderMock.mockReset()
+    // C-24: pass-through like the real helper, with the userData fallback.
+    resolveImageFolderMock.mockImplementation((p) => p || '/userdata/images')
     uploadImageMock.mockReset()
     mockPrinter.renderMarkdown.mockReset()
     mockPrinter.clearup.mockReset()
@@ -2025,13 +2035,14 @@ describe('editor.vue — coverage', () => {
   it('imageAction folder with relative dir preference', async () => {
     preferencesStore.imageInsertAction = 'folder'
     preferencesStore.imagePreferRelativeDirectory = true
-    moveImageToFolderMock.mockResolvedValue('/folder/img.png')
-    moveToRelativeFolderMock.mockResolvedValue('./assets/img.png')
+    saveImageToRelativeFolderMock.mockResolvedValue('assets/img.png')
     await mountEditor()
     const fn = lastMuyaOptions.current.imageAction
     const result = await fn('binary-data', null)
-    expect(moveToRelativeFolderMock).toHaveBeenCalled()
-    expect(result).toBe('./assets/img.png')
+    // C-24: written straight into the relative folder, no global staging copy.
+    expect(saveImageToRelativeFolderMock).toHaveBeenCalledWith('/tmp', 'assets', '/tmp/test.md', 'binary-data')
+    expect(moveImageToFolderMock).not.toHaveBeenCalled()
+    expect(result).toBe('assets/img.png')
   })
 
   /* ── imageAction — path (string input) ─────────────────────── */
@@ -2060,14 +2071,14 @@ describe('editor.vue — coverage', () => {
   it('imageAction path with binary + relative dir', async () => {
     preferencesStore.imageInsertAction = 'path'
     preferencesStore.imagePreferRelativeDirectory = true
-    moveImageToFolderMock.mockResolvedValue('/saved/img.png')
-    moveToRelativeFolderMock.mockResolvedValue('./rel/img.png')
+    saveImageToRelativeFolderMock.mockResolvedValue('assets/img.png')
     await mountEditor()
     const fn = lastMuyaOptions.current.imageAction
     const blob = new Blob(['data'])
     const result = await fn(blob, null)
-    expect(moveToRelativeFolderMock).toHaveBeenCalled()
-    expect(result).toBe('./rel/img.png')
+    expect(saveImageToRelativeFolderMock).toHaveBeenCalledWith('/tmp', 'assets', '/tmp/test.md', blob)
+    expect(moveImageToFolderMock).not.toHaveBeenCalled()
+    expect(result).toBe('assets/img.png')
   })
 
   /* ── imageAction — emits bus event when id + sourceCode ────── */
@@ -2088,6 +2099,7 @@ describe('editor.vue — coverage', () => {
   /* ── imageAction — ${filename} variable in relative dir ────── */
   it('imageAction resolves ${filename} variable in image paths', async () => {
     preferencesStore.imageInsertAction = 'folder'
+    preferencesStore.imagePreferRelativeDirectory = false // C-24 default is true
     preferencesStore.imageRelativeDirectoryName = '${filename}-assets'
     preferencesStore.imageFolderPath = '/global/${filename}'
     moveImageToFolderMock.mockResolvedValue('/global/test/img.png')
@@ -2107,17 +2119,11 @@ describe('editor.vue — coverage', () => {
     preferencesStore.imageInsertAction = 'folder'
     preferencesStore.imagePreferRelativeDirectory = true
     preferencesStore.imageRelativeDirectoryName = '${filename}-assets'
-    moveImageToFolderMock.mockResolvedValue('/folder/img.png')
-    moveToRelativeFolderMock.mockResolvedValue('./test-assets/img.png')
+    saveImageToRelativeFolderMock.mockResolvedValue('test-assets/img.png')
     await mountEditor()
     const fn = lastMuyaOptions.current.imageAction
     await fn('binary-data', null)
-    expect(moveToRelativeFolderMock).toHaveBeenCalledWith(
-      '/tmp',
-      'test-assets',
-      '/tmp/test.md',
-      '/folder/img.png'
-    )
+    expect(saveImageToRelativeFolderMock).toHaveBeenCalledWith('/tmp', 'test-assets', '/tmp/test.md', 'binary-data')
   })
 
   /* ── imagePathPicker ───────────────────────────────────────── */
@@ -2179,6 +2185,9 @@ describe('editor.vue — coverage', () => {
     await mountEditor()
     const fn = lastMuyaOptions.current.imageAction
     const result = await fn('binary-data', null)
+    // Unsaved tab: no document folder, so the global folder is used even with
+    // the relative preference on; an empty imageFolderPath resolves to userData.
+    expect(moveImageToFolderMock).toHaveBeenCalledWith('', 'binary-data', '/userdata/images')
     expect(result).toBe('/folder/img.png')
   })
 
@@ -2190,17 +2199,16 @@ describe('editor.vue — coverage', () => {
     preferencesStore.imageInsertAction = 'folder'
     preferencesStore.imagePreferRelativeDirectory = true
     preferencesStore.imageRelativeDirectoryName = 'assets'
-    moveImageToFolderMock.mockResolvedValue('/folder/img.png')
-    moveToRelativeFolderMock.mockResolvedValue('./assets/img.png')
+    saveImageToRelativeFolderMock.mockResolvedValue('assets/img.png')
     await mountEditor()
     const fn = lastMuyaOptions.current.imageAction
     await fn('binary-data', null)
     // With projectTree root and no ${filename}, relativeBasePath should be root
-    expect(moveToRelativeFolderMock).toHaveBeenCalledWith(
+    expect(saveImageToRelativeFolderMock).toHaveBeenCalledWith(
       '/tmp',
       'assets',
       '/tmp/test.md',
-      '/folder/img.png'
+      'binary-data'
     )
   })
 

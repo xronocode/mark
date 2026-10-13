@@ -1,5 +1,5 @@
 // FILE: src/muya/lib/index.js
-// VERSION: 1.1.0
+// VERSION: 1.2.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Muya editor entry class — construction, options, and the public API surface other modules call.
 //   SCOPE: Class construction/init, markdown IO (get/set), export helpers, clipboard accessors, and public editing commands.
@@ -14,7 +14,8 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.1.0 - Add getCopyData: markdown text of whatever is selected (DOM range, table cells, image) for the Copy as HTML clipboard path; mirrors docCopyHandler/copyHandler special cases (C-3).
+//   LAST_CHANGE: v1.2.0 - C-24 R-4: insertImageFromPath — public entry for the Tauri file drop (inserts a local image at the cursor via imageAction).
+//   v1.1.0 - Add getCopyData: markdown text of whatever is selected (DOM range, table cells, image) for the Copy as HTML clipboard path; mirrors docCopyHandler/copyHandler special cases (C-3).
 // END_CHANGE_SUMMARY
 
 import ContentState from './contentState'
@@ -354,6 +355,11 @@ class Muya {
 
   insertImage(imageInfo) {
     this.contentState.insertImage(imageInfo)
+  }
+
+  // C-24 R-4: insert a local image file at the cursor through imageAction.
+  insertImageFromPath(imagePath, alt) {
+    return this.contentState.insertImageFromPath(imagePath, alt)
   }
 
   search(value, opt) {

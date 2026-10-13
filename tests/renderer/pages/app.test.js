@@ -59,7 +59,7 @@ describe('App.vue page', () => {
     })
     expect(wrapper.exists()).toBe(true)
     expect(wrapper.find('.editor-container').exists()).toBe(true)
-  })
+  }, 15_000) // first mount pays the cold transform of the whole editor tree; 5 s flaked under the parallel coverage run
 
   it('renders placeholder when init is false', async () => {
     const { useMainStore } = await import('@/store')
