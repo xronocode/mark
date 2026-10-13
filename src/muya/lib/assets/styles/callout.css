@@ -1,0 +1,114 @@
+/* C-24: GitHub alerts and Obsidian callouts (START_BLOCK_CALLOUT_RENDER).
+   Mid-tone colours read on light and dark themes; the background is a 10%
+   tint of the callout colour over whatever the theme paints. */
+
+blockquote.ag-callout {
+  --callout-color: #2f81f7;
+  --callout-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M8 1.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13ZM0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8Zm6.5-.25A.75.75 0 0 1 7.25 7h1a.75.75 0 0 1 .75.75v2.75h.25a.75.75 0 0 1 0 1.5h-2a.75.75 0 0 1 0-1.5h.25v-2h-.25a.75.75 0 0 1-.75-.75ZM8 6a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z'/%3E%3C/svg%3E");
+  color: inherit;
+  padding: 6px 16px 6px 18px;
+  margin: 12px 0;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--callout-color) 10%, transparent);
+}
+
+blockquote.ag-callout::before {
+  left: 0;
+  width: 4px;
+  border-radius: 6px 0 0 6px;
+  background: var(--callout-color);
+}
+
+blockquote.ag-callout > .ag-callout-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 4px 0 2px;
+  font-weight: 600;
+  color: var(--callout-color);
+  /* [contenteditable] paints --editorBgColor; the title sits on the tint. */
+  background: transparent;
+  user-select: none;
+}
+
+blockquote.ag-callout .ag-callout-icon {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  background: var(--callout-color);
+  -webkit-mask: var(--callout-icon) center / contain no-repeat;
+  mask: var(--callout-icon) center / contain no-repeat;
+}
+
+blockquote.ag-callout-foldable > .ag-callout-title {
+  cursor: pointer;
+}
+
+blockquote.ag-callout .ag-callout-fold {
+  width: 0;
+  height: 0;
+  margin-left: 2px;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-top: 6px solid var(--callout-color);
+  transition: transform 0.15s;
+}
+
+blockquote.ag-callout-collapsed .ag-callout-fold {
+  transform: rotate(-90deg);
+}
+
+/* Collapsed: only the title, unless the cursor is inside the callout. */
+blockquote.ag-callout-collapsed:not(.ag-active) > :not(.ag-callout-title) {
+  display: none;
+}
+
+blockquote.ag-callout-note,
+blockquote.ag-callout-info,
+blockquote.ag-callout-todo {
+  --callout-color: #2f81f7;
+}
+
+blockquote.ag-callout-abstract {
+  --callout-color: #1b9aaa;
+  --callout-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M2 3.75A.75.75 0 0 1 2.75 3h10.5a.75.75 0 0 1 0 1.5H2.75A.75.75 0 0 1 2 3.75Zm0 4A.75.75 0 0 1 2.75 7h10.5a.75.75 0 0 1 0 1.5H2.75A.75.75 0 0 1 2 7.75Zm0 4a.75.75 0 0 1 .75-.75h6.5a.75.75 0 0 1 0 1.5h-6.5a.75.75 0 0 1-.75-.75Z'/%3E%3C/svg%3E");
+}
+
+blockquote.ag-callout-tip {
+  --callout-color: #2da44e;
+  --callout-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M8 1.5c-2.36 0-4 1.73-4 3.9 0 1.06.4 1.84.94 2.53.27.35.56.67.84.99l.03.04c.28.32.57.65.8 1.01.13.2.21.45.25.78h2.28c.04-.33.12-.58.25-.78.23-.36.52-.69.8-1.01l.03-.04c.28-.32.57-.64.84-.99.54-.69.94-1.47.94-2.53 0-2.17-1.64-3.9-4-3.9ZM6 12.25a.75.75 0 0 1 .75-.75h2.5a.75.75 0 0 1 0 1.5h-2.5a.75.75 0 0 1-.75-.75ZM6.75 14a.75.75 0 0 0 0 1.5h2.5a.75.75 0 0 0 0-1.5h-2.5ZM2.5 5.4C2.5 2.35 4.9 0 8 0s5.5 2.35 5.5 5.4c0 1.5-.58 2.62-1.26 3.48-.32.41-.66.79-.94 1.11-.29.33-.52.6-.68.85-.16.25-.24.62-.25 1.16H5.63c-.01-.54-.09-.91-.25-1.16a8.3 8.3 0 0 0-.68-.85c-.28-.32-.62-.7-.94-1.11C3.08 8.02 2.5 6.9 2.5 5.4Z'/%3E%3C/svg%3E");
+}
+
+blockquote.ag-callout-success {
+  --callout-color: #2da44e;
+  --callout-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M13.78 4.22a.75.75 0 0 1 0 1.06l-7.25 7.25a.75.75 0 0 1-1.06 0L2.22 9.28a.75.75 0 0 1 1.06-1.06L6 10.94l6.72-6.72a.75.75 0 0 1 1.06 0Z'/%3E%3C/svg%3E");
+}
+
+blockquote.ag-callout-important,
+blockquote.ag-callout-example {
+  --callout-color: #8957e5;
+  --callout-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M0 1.75C0 .78.78 0 1.75 0h12.5C15.22 0 16 .78 16 1.75v9.5A1.75 1.75 0 0 1 14.25 13H8.06l-2.57 2.57A1.46 1.46 0 0 1 3 14.54V13H1.75A1.75 1.75 0 0 1 0 11.25Zm1.75-.25a.25.25 0 0 0-.25.25v9.5c0 .14.11.25.25.25h2a.75.75 0 0 1 .75.75v2.19l2.72-2.72a.75.75 0 0 1 .53-.22h6.5a.25.25 0 0 0 .25-.25v-9.5a.25.25 0 0 0-.25-.25Zm7 2.25v2.5a.75.75 0 0 1-1.5 0v-2.5a.75.75 0 0 1 1.5 0ZM9 9a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z'/%3E%3C/svg%3E");
+}
+
+blockquote.ag-callout-question {
+  --callout-color: #d4760a;
+  --callout-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8Zm8-6.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13ZM6.92 6.08c.13-.27.32-.48.56-.62.24-.15.54-.21.89-.21.47 0 .82.12 1.06.34.24.22.36.5.36.86 0 .3-.08.53-.23.71-.15.18-.39.38-.7.58-.36.23-.62.47-.77.73-.16.26-.23.6-.23 1.03h1.4c0-.24.05-.43.15-.57.1-.15.3-.32.6-.52.43-.28.75-.58.96-.89.21-.31.32-.69.32-1.13 0-.7-.25-1.26-.75-1.67-.5-.42-1.17-.62-2.01-.62-.68 0-1.27.16-1.75.48-.48.32-.8.76-.95 1.31ZM8 12.5a.9.9 0 1 0 0-1.8.9.9 0 0 0 0 1.8Z'/%3E%3C/svg%3E");
+}
+
+blockquote.ag-callout-warning {
+  --callout-color: #bf8700;
+  --callout-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M6.46 1.38a1.75 1.75 0 0 1 3.08 0l6.25 11.25A1.75 1.75 0 0 1 14.25 15H1.75a1.75 1.75 0 0 1-1.54-2.37Zm1.76.73a.25.25 0 0 0-.44 0L1.53 13.37a.25.25 0 0 0 .22.38h12.5a.25.25 0 0 0 .22-.38ZM9 11a1 1 0 1 1-2 0 1 1 0 0 1 2 0Zm-.25-5.25v2.5a.75.75 0 0 1-1.5 0v-2.5a.75.75 0 0 1 1.5 0Z'/%3E%3C/svg%3E");
+}
+
+blockquote.ag-callout-caution,
+blockquote.ag-callout-failure,
+blockquote.ag-callout-danger,
+blockquote.ag-callout-bug {
+  --callout-color: #e5534b;
+  --callout-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4.47.22A.75.75 0 0 1 5 0h6c.2 0 .39.08.53.22l4.25 4.25c.14.14.22.33.22.53v6c0 .2-.08.39-.22.53l-4.25 4.25A.75.75 0 0 1 11 16H5a.75.75 0 0 1-.53-.22L.22 11.53A.75.75 0 0 1 0 11V5c0-.2.08-.39.22-.53Zm.84 1.28L1.5 5.31v5.38l3.81 3.81h5.38l3.81-3.81V5.31L10.69 1.5ZM8 4a.75.75 0 0 1 .75.75v3.5a.75.75 0 0 1-1.5 0v-3.5A.75.75 0 0 1 8 4Zm0 8a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z'/%3E%3C/svg%3E");
+}
+
+blockquote.ag-callout-quote {
+  --callout-color: #8c959f;
+  --callout-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M1.75 2.5h10.5a.75.75 0 0 1 0 1.5H1.75a.75.75 0 0 1 0-1.5Zm4 5h8.5a.75.75 0 0 1 0 1.5h-8.5a.75.75 0 0 1 0-1.5Zm0 5h8.5a.75.75 0 0 1 0 1.5h-8.5a.75.75 0 0 1 0-1.5ZM2.5 7.75v6a.75.75 0 0 1-1.5 0v-6a.75.75 0 0 1 1.5 0Z'/%3E%3C/svg%3E");
+}
