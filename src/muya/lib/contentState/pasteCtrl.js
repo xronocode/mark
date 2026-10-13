@@ -1,10 +1,10 @@
 // FILE: src/muya/lib/contentState/pasteCtrl.js
-// VERSION: 1.1.0
+// VERSION: 1.2.0
 // START_MODULE_CONTRACT
 //   PURPOSE: ContentState paste behavior — plain/markdown/HTML clipboard import, clipboard image insertion, and the URL-over-selection smart paste.
-//   SCOPE: Prototype methods installed on ContentState (checkPasteType, checkCopyType, standardizeHTML, pasteImage, docPasteHandler, pasteHandler); no DOM rendering of its own.
+//   SCOPE: Prototype methods installed on ContentState (checkPasteType, checkCopyType, standardizeHTML, insertImageFromPath, pasteImage, docPasteHandler, pasteHandler); no DOM rendering of its own.
 //   DEPENDS: muya config regexes, muya utils (sanitize/getUniqueId/getImageInfo/getPageTitle), DOMPurify via utils.
-//   LINKS: .grace/graph/runtime.xml M-012; .grace/verification/runtime.xml V-M-012; .grace/changes/archive/C-16.
+//   LINKS: .grace/graph/runtime.xml M-012; .grace/verification/runtime.xml V-M-012; .grace/changes/archive/C-16; .grace/changes/active/C-24.
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT
@@ -15,6 +15,7 @@
 //
 // START_CHANGE_SUMMARY
 //   - (v1.0.0 implied: upstream pasteCtrl baseline, previously ungoverned.)
+//   - 2026-10-13 v1.2.0: C-24 R-4 — the local-path image branch of pasteImage became START_BLOCK_INSERT_IMAGE_FROM_PATH (insertImageFromPath), reused by the Tauri file drop; an image-action failure still ends the paste.
 //   - 2026-09-21 v1.1.0: C-16 R-1 — START_BLOCK_SMART_PASTE_URL wraps a non-empty single-block selection as [text](url) before the Firefox URL→anchor special case; SMART_PASTE_URL_REG accepts bare hosts (URL_REG's mandatory /path rejected the most common clipboard form); link labels escape brackets/backslashes and flatten soft breaks, and URLs containing parentheses are declined so the CommonMark destination cannot be truncated; special surfaces (code/language/table cells) and pasteAsPlainText keep their own handling.
 // END_CHANGE_SUMMARY
 
@@ -154,48 +155,58 @@ const pasteCtrl = (ContentState) => {
     return tempWrapper.innerHTML
   }
 
+  // START_BLOCK_INSERT_IMAGE_FROM_PATH
+  // Insert a local image file at the cursor and run it through imageAction
+  // (copy into assets/, relative link). Shared by Finder-path paste and the
+  // Tauri file drop (mt::drop-image, C-24 R-4). Returns the path when
+  // inserted, '' when the image action failed (handled, nothing more to try) and
+  // null when the input is not a local image path.
+  ContentState.prototype.insertImageFromPath = async function (imagePath, alt = '') {
+    if (!imagePath || typeof imagePath !== 'string' || !IMAGE_EXT_REG.test(imagePath)) {
+      return null
+    }
+    const id = `loading-${getUniqueId()}`
+    if (this.selectedImage) {
+      this.replaceImage(this.selectedImage, {
+        alt: id,
+        src: imagePath
+      })
+    } else {
+      this.insertImage({
+        alt: id,
+        src: imagePath
+      })
+    }
+
+    let newSrc = null
+    try {
+      newSrc = await this.muya.options.imageAction(imagePath, id)
+    } catch (error) {
+      // TODO: Notify user about an error.
+      console.error('Unexpected error on image action:', error)
+      return ''
+    }
+
+    const { src } = getImageSrc(imagePath)
+    if (src) {
+      this.stateRender.urlMap.set(newSrc, src)
+    }
+
+    const imageWrapper = this.muya.container.querySelector(`span[data-id=${id}]`)
+
+    if (imageWrapper) {
+      const imageInfo = getImageInfo(imageWrapper)
+      this.replaceImage(imageInfo, alt ? { alt, src: newSrc } : { src: newSrc })
+    }
+    return imagePath
+  }
+  // END_BLOCK_INSERT_IMAGE_FROM_PATH
+
   ContentState.prototype.pasteImage = async function (event) {
     // Try to guess the clipboard file path.
     const imagePath = this.muya.options.clipboardFilePath()
-
-    if (imagePath && typeof imagePath === 'string' && IMAGE_EXT_REG.test(imagePath)) {
-      const id = `loading-${getUniqueId()}`
-      if (this.selectedImage) {
-        this.replaceImage(this.selectedImage, {
-          alt: id,
-          src: imagePath
-        })
-      } else {
-        this.insertImage({
-          alt: id,
-          src: imagePath
-        })
-      }
-
-      let newSrc = null
-      try {
-        newSrc = await this.muya.options.imageAction(imagePath, id)
-      } catch (error) {
-        // TODO: Notify user about an error.
-        console.error('Unexpected error on image action:', error)
-        return null
-      }
-
-      const { src } = getImageSrc(imagePath)
-      if (src) {
-        this.stateRender.urlMap.set(newSrc, src)
-      }
-
-      const imageWrapper = this.muya.container.querySelector(`span[data-id=${id}]`)
-
-      if (imageWrapper) {
-        const imageInfo = getImageInfo(imageWrapper)
-        this.replaceImage(imageInfo, {
-          src: newSrc
-        })
-      }
-      return imagePath
-    }
+    const inserted = await this.insertImageFromPath(imagePath)
+    if (inserted !== null) return inserted || null
 
     const items = event.clipboardData && event.clipboardData.items
     let file = null

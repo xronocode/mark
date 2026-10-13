@@ -1,3 +1,33 @@
+// FILE: src/renderer/src/util/fileSystem.js
+// VERSION: 1.1.0
+// START_MODULE_CONTRACT
+//   PURPOSE: Renderer file helpers for the sidebar (create/paste/rename), content hashing and image placement (local folders or upload).
+//   SCOPE: Thin wrappers over window.fileUtils / window.path (M-013-B IPC) plus the image save, relative-folder and uploader flows used by editor.vue imageAction.
+//   DEPENDS: window.fileUtils, window.path, Web Crypto, dayjs, @octokit/rest, ./index (isWindows).
+//   LINKS: .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011; .grace/changes/active/C-24.
+//   ROLE: RUNTIME
+//   MAP_MODE: EXPORTS
+// END_MODULE_CONTRACT
+//
+// START_MODULE_MAP
+//   create - creates an empty file or a directory.
+//   paste - copies or moves a sidebar item.
+//   rename - moves a path to a new name.
+//   getHash - hex digest of string/bytes content.
+//   getContentHash - sha1 of content (image de-duplication names).
+//   moveToRelativeFolder - legacy: move an already-saved image into a relative folder.
+//   saveImageToRelativeFolder - C-24: save an image straight into the document's relative folder; returns a document-relative path.
+//   resolveImageFolder - C-24: global image folder, falling back to <userData>/images (never empty).
+//   moveImageToFolder - copy a path image (hash name) or write a bitmap (<timestamp>-<hash8>-<name>) into a folder.
+//   uploadImage - uploads an image through the configured image bed.
+//   isFileExecutable - checks the executable bit of a path.
+// END_MODULE_MAP
+//
+// START_CHANGE_SUMMARY
+//   - (v1.0.0 implied: upstream helpers ported in step-8a/8h/8j, previously ungoverned.)
+//   - 2026-10-13 v1.1.0: C-24 — START_BLOCK_IMAGE_RELATIVE_SAVE (saveImageToRelativeFolder, resolveImageFolder); bitmap file names gain a content-hash suffix so two pastes in one second cannot overwrite each other.
+// END_CHANGE_SUMMARY
+//
 // step-8a: removed `import { statSync, constants } from 'fs'`.
 // step-8h: removed `import { exec, execFile } from 'child_process'`.
 // step-8j: removed `import crypto from 'crypto'` and
@@ -95,6 +125,32 @@ export const moveToRelativeFolder = async (cwd, relativeName, filePath, imagePat
   return dstRelPath
 }
 
+// START_BLOCK_IMAGE_RELATIVE_SAVE
+// C-24: save an image straight into `<cwd>/<relativeName>/` and return the
+// path relative to the document. The old flow staged the file in the global
+// image folder first; with the default empty imageFolderPath that staging
+// write went to a relative path (the process cwd) and failed on a fresh install.
+export const saveImageToRelativeFolder = async (cwd, relativeName, filePath, image) => {
+  const name = relativeName || 'assets'
+  if (window.path.isAbsolute(name)) {
+    throw new Error('Invalid relative directory name.')
+  }
+  const absDir = window.path.resolve(cwd, name)
+  const saved = await moveImageToFolder(filePath, image, absDir)
+  if (!window.path.isAbsolute(saved)) return saved
+  const rel = window.path.relative(window.path.dirname(filePath), saved)
+  return isWindows ? rel.replace(/\\/g, '/') : rel
+}
+
+// The global image folder: the user's choice, else `<userData>/images`.
+// Never an empty string (a relative write lands in the process cwd).
+export const resolveImageFolder = (imageFolderPath, userDataPath) => {
+  if (imageFolderPath) return imageFolderPath
+  if (!userDataPath) throw new Error('No image folder configured and no user data path available.')
+  return window.path.join(userDataPath, 'images')
+}
+// END_BLOCK_IMAGE_RELATIVE_SAVE
+
 export const moveImageToFolder = async (pathname, image, outputDir) => {
   await window.fileUtils.ensureDir(outputDir)
   const isPath = typeof image === 'string'
@@ -118,14 +174,17 @@ export const moveImageToFolder = async (pathname, image, outputDir) => {
       return image
     }
   } else {
-    const imagePath = window.path.join(
-      outputDir,
-      `${dayjs().format('YYYY-MM-DD-HH-mm-ss')}-${image.name}`
-    )
-
     // step-8j: Buffer.from(arrayBuffer) → Uint8Array. fs-extra's writeFile
     // (called via preload) accepts a Uint8Array as the data argument.
     const buffer = new Uint8Array(await image.arrayBuffer())
+    // C-24: a content-hash suffix keeps two pastes within the same second
+    // (clipboard files are all named `image.png`) from overwriting each other.
+    const digest = new Uint8Array(await crypto.subtle.digest('SHA-1', buffer))
+    const hash8 = Array.from(digest.slice(0, 4), (b) => b.toString(16).padStart(2, '0')).join('')
+    const imagePath = window.path.join(
+      outputDir,
+      `${dayjs().format('YYYY-MM-DD-HH-mm-ss')}-${hash8}-${image.name}`
+    )
     await window.fileUtils.writeFile(imagePath, buffer, 'binary')
     return imagePath
   }

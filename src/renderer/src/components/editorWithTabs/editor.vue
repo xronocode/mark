@@ -91,7 +91,8 @@
 //   scrollToCords - Restores saved scrollTop without leaving the editor hidden behind a delayed animation frame.
 //   scrollToCordsAfterReload - Clamps the pre-edit scrollTop into a reloaded document's real scrollable range (no phantom padding, no blank viewport).
 //   syncPreviewSurface - Mirrors previewMode onto Muya's real replacement container and restores caret focus on exit.
-//   imageAction - Applies configured local/upload image insertion behavior.
+//   imageAction - Applies configured local/upload image insertion behavior; with the relative preference on a saved document it writes straight into the relative folder (C-24).
+//   handleDropImage - Inserts an image dropped from Finder (mt::drop-image) at the cursor through imageAction (C-24 R-4).
 //   handleExport - Routes supported export formats to renderer services.
 //   handleCopyAsHtml - Copies selection (or whole document) to the clipboard as rich text/html (C-3).
 //   handleCopyAsPlainText - Copies selection (or whole document) as markup-free plain text (C-12).
@@ -115,6 +116,7 @@
 //   - 2026-09-23 v1.14.0: C-19 — debounced toc-active-heading scrollspy (fixed 80px band; doc-end pins the final heading; above-first-heading clears; re-armed on content change); Go-to-Heading palette command (static registry twin with dynamic-import execute).
 //   - 2026-09-24 v1.15.0: C-20 — LinkPathPicker plugin registered; filePathAutoComplete option wired (md+dirs); imagePathAutoComplete wrapper fixed to a passthrough (the old f.type/f.file mapping produced "undefined" items).
 //   - 2026-09-24 v1.16.0: C-21 — async dead-link validation rides the doc-markdown-changed debounce and emits doc-deadlinks for the problems panel; the same edit restores the C-19 edit-driven scrollspy re-arm that was lost in the 11e350dd handler edit (two bare clearTimeouts replaced the setTimeout re-arm), and the lint snapshot now carries the tab pathname so a tab switch inside the debounce window cannot resolve links against the wrong directory.
+//   - 2026-10-13 v1.17.0: C-24 — imageAction writes pasted/dropped images straight into the relative assets/ folder (the old global staging copy wrote to a cwd-relative path when imageFolderPath was empty, so paste failed on a fresh install); the global folder falls back to <userData>/images; mt::drop-image now has a listener (dropped images used to vanish).
 // END_CHANGE_SUMMARY
 
 import { ref, reactive, watch, onMounted, onBeforeUnmount, nextTick, computed } from 'vue'
@@ -145,7 +147,12 @@ import Printer from '@/services/printService'
 import { SpellcheckerLanguageCommand } from '@/commands'
 import { SpellChecker } from '@/spellchecker'
 import { isOsx, animatedScrollTo } from '@/util'
-import { moveImageToFolder, moveToRelativeFolder, uploadImage } from '@/util/fileSystem'
+import {
+  moveImageToFolder,
+  resolveImageFolder,
+  saveImageToRelativeFolder,
+  uploadImage
+} from '@/util/fileSystem'
 import { guessClipboardFilePath } from '@/util/clipboard'
 import { getCssForOptions, getHtmlToc } from '@/util/pdf'
 import { addCommonStyle, setEditorWidth, setWrapCodeBlocks } from '@/util/theme'
@@ -653,8 +660,17 @@ const imageAction = async (image, id, alt = '') => {
     return imagePath.replace(/\${filename}/g, replacement)
   }
 
-  const resolvedImageFolderPath = getResolvedImagePath(imageFolderPath.value)
+  // Resolved only when used: the relative-folder path never needs it.
+  const globalImageFolder = () =>
+    resolveImageFolder(getResolvedImagePath(imageFolderPath.value), window.marktext?.paths?.userDataPath)
   const resolvedImageRelativeDirectoryName = getResolvedImagePath(imageRelativeDirectoryName.value)
+  const useRelativeFolder = isTabSavedOnDisk && imagePreferRelativeDirectory.value
+  // C-24: write straight into the document's relative folder (no staging copy
+  // in the global folder) and return a document-relative path.
+  const saveImage = (input) =>
+    useRelativeFolder
+      ? saveImageToRelativeFolder(relativeBasePath, resolvedImageRelativeDirectoryName, currentPathname, input)
+      : moveImageToFolder(currentPathname, input, globalImageFolder())
   let destImagePath = ''
   switch (imageInsertAction.value) {
     case 'upload': {
@@ -667,20 +683,12 @@ const imageAction = async (image, id, alt = '') => {
           type: 'warning',
           message: err
         })
-        destImagePath = await moveImageToFolder(currentPathname, image, resolvedImageFolderPath)
+        destImagePath = await moveImageToFolder(currentPathname, image, globalImageFolder())
       }
       break
     }
     case 'folder': {
-      destImagePath = await moveImageToFolder(currentPathname, image, resolvedImageFolderPath)
-      if (isTabSavedOnDisk && imagePreferRelativeDirectory.value) {
-        destImagePath = await moveToRelativeFolder(
-          relativeBasePath,
-          resolvedImageRelativeDirectoryName,
-          currentPathname,
-          destImagePath
-        )
-      }
+      destImagePath = await saveImage(image)
       break
     }
     case 'path': {
@@ -688,18 +696,8 @@ const imageAction = async (image, id, alt = '') => {
         // Input is a local path.
         destImagePath = image
       } else {
-        // Save and move image to image folder if input is binary.
-        destImagePath = await moveImageToFolder(currentPathname, image, resolvedImageFolderPath)
-
-        // Respect user preferences if tab exists on disk.
-        if (isTabSavedOnDisk && imagePreferRelativeDirectory.value) {
-          destImagePath = await moveToRelativeFolder(
-            relativeBasePath,
-            resolvedImageRelativeDirectoryName,
-            currentPathname,
-            destImagePath
-          )
-        }
+        // Binary input (pasted bitmap) has no path of its own: save it.
+        destImagePath = await saveImage(image)
       }
       break
     }
@@ -987,6 +985,23 @@ const insertImage = (src) => {
     editor.value && editor.value.insertImage({ src })
   }
 }
+
+// START_BLOCK_DROP_IMAGE
+// C-24 R-4: Tauri intercepts OS file drops and the window shim emits
+// mt::drop-image for image files; nothing listened before, so a dropped image
+// silently vanished. Insert it at the cursor through the same imageAction
+// pipeline as paste (copy into assets/, relative link).
+let offDropImage = null
+const handleDropImage = async (_event, payload) => {
+  const imagePath = payload && payload.path
+  if (!imagePath || sourceCode.value || !editor.value) return
+  const alt = window.path.basename(imagePath).replace(/\.[^/.]+$/, '')
+  const result = await editor.value.insertImageFromPath(imagePath, alt)
+  if (result === '') {
+    notice.notify({ title: 'Image', type: 'warning', message: `Could not insert ${window.path.basename(imagePath)}` })
+  }
+}
+// END_BLOCK_DROP_IMAGE
 
 const handleSearch = ({ value, opt }) => {
   const searchMatches = editor.value.search(value, opt)
@@ -1751,6 +1766,7 @@ onMounted(() => {
   bus.on('replaceValue', handReplace)
   bus.on('find-action', handleFindAction)
   bus.on('insert-image', insertImage)
+  offDropImage = window.electron?.ipcRenderer?.on?.('mt::drop-image', handleDropImage) || null
   bus.on('image-uploaded', handleUploadedImage)
   bus.on('file-changed', handleFileChange)
   bus.on('editor-blur', blurEditor)
@@ -1902,6 +1918,8 @@ onBeforeUnmount(() => {
   bus.off('replaceValue', handReplace)
   bus.off('find-action', handleFindAction)
   bus.off('insert-image', insertImage)
+  if (typeof offDropImage === 'function') offDropImage()
+  offDropImage = null
   bus.off('image-uploaded', handleUploadedImage)
   bus.off('file-changed', handleFileChange)
   bus.off('editor-blur', blurEditor)
