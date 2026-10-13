@@ -1,0 +1,125 @@
+<GraceChangePlan graceVersion='4.0' status='approved'>
+<C-30>
+  <Name>Large-document open on WebKit: stop O(n²) block-lexer regex scans (sticky block rules)</Name>
+  <Created>2026-10-13</Created>
+
+  <IntentSummary>
+    Make every non-global, non-multiline `^`-anchored muya block rule a
+    sticky regex whose exec resets lastIndex to 0, so JavaScriptCore tries
+    a match only at position 0 instead of scanning the remaining document
+    after every block. Pin byte-identical lexer output with a golden token
+    corpus captured before the edit, and gate the WebKit cost with a
+    Playwright WebKit perf spec.
+  </IntentSummary>
+
+  <BaselineAssertions>
+    <MustContain>
+      <File>src/muya/lib/parser/marked/blockRules.js</File>
+      <Text>export const pedantic = Object.assign({}, normal, {</Text>
+    </MustContain>
+    <MustContain>
+      <File>src/muya/lib/parser/marked/lexer.js</File>
+      <Text>cap = this.rules.hr.exec(src)</Text>
+    </MustContain>
+  </BaselineAssertions>
+
+  <TargetAssertions>
+    <MustContain>
+      <File>src/muya/lib/parser/marked/blockRules.js</File>
+      <Text>START_BLOCK_STICKY_ANCHORED_RULES</Text>
+    </MustContain>
+    <MustContain>
+      <File>tests/renderer/muya/lexer-token-parity.test.js</File>
+      <Text>lexer-corpus</Text>
+    </MustContain>
+    <MustContain>
+      <File>tests/e2e/perf/large-doc-webkit.spec.ts</File>
+      <Text>main-thread busy</Text>
+    </MustContain>
+    <MustPassCommand>
+      <Command>npx vitest run tests/renderer/muya/lexer-token-parity.test.js tests/renderer/muya/block-rules-sticky.test.js</Command>
+    </MustPassCommand>
+  </TargetAssertions>
+
+  <DurableScope>
+    <M-011/>
+  </DurableScope>
+
+  <ObservedWriteScope>
+    <File>src/muya/lib/parser/marked/blockRules.js</File>
+    <File>tests/renderer/muya/lexer-token-parity.test.js</File>
+    <File>tests/renderer/muya/block-rules-sticky.test.js</File>
+    <Glob>tests/renderer/muya/fixtures/lexer-corpus/*</Glob>
+    <File>tests/e2e/perf/large-doc-webkit.spec.ts</File>
+    <File>playwright.config.ts</File>
+    <File>package.json</File>
+    <File>.grace/verification/runtime.xml</File>
+    <File>.grace/graph/runtime.xml</File>
+  </ObservedWriteScope>
+
+  <ImplementationPlan>
+    <T-001>
+      <Title>W1: golden token corpus captured on the unmodified lexer</Title>
+      <DependsOn></DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>tests/renderer/muya/fixtures/lexer-corpus/ holds markdown inputs covering GFM tables (pipe and no-leading-pipe), nested and ordered lists, task lists, blockquotes (nested, lazy), every hr variant, setext and ATX headings, fences, indented code, front matter, footnotes, math blocks, html blocks, def links, plus a generated large document; each input has a golden JSON of Lexer.lex output produced BEFORE blockRules.js is touched.</Criterion>
+        <Criterion>lexer-token-parity.test.js compares Lexer.lex output to the goldens for both gfm and pedantic options and passes on the baseline code.</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>npx vitest run tests/renderer/muya/lexer-token-parity.test.js</Command>
+      </Verification>
+    </T-001>
+
+    <T-002>
+      <Title>W2: sticky anchored block rules</Title>
+      <DependsOn>T-001</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>blockRules.js converts, after normal/gfm/pedantic are built, every RegExp rule whose source starts with `^` and whose flags have none of g/m/y into a sticky copy with an own exec that resets lastIndex to 0; non-RegExp, g/m and unanchored rules are untouched. File gains MODULE_CONTRACT, MODULE_MAP, START/END_BLOCK_STICKY_ANCHORED_RULES and CHANGE_SUMMARY.</Criterion>
+        <Criterion>block-rules-sticky.test.js: converted rules are sticky; two consecutive exec calls on different strings both match at index 0; String.prototype.replace through a converted rule (checkbox) behaves as before; `item` (gm) and other unconverted rules keep their flags.</Criterion>
+        <Criterion>Token parity test still green (byte-identical goldens).</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>npx vitest run tests/renderer/muya/lexer-token-parity.test.js tests/renderer/muya/block-rules-sticky.test.js</Command>
+      </Verification>
+    </T-002>
+
+    <T-003>
+      <Title>W3: WebKit perf gate</Title>
+      <DependsOn>T-002</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>tests/e2e/perf/large-doc-webkit.spec.ts opens a generated large document through the tauri shim in the WebKit engine, measures main-thread busy time with an in-page lag meter, asserts all headings rendered and busy time under the budget (6 s initial).</Criterion>
+        <Criterion>playwright.config.ts adds a `webkit-perf` project limited to tests/e2e/perf/**; the chromium project ignores tests/e2e/perf/** so the existing suite and CI chromium job are unchanged; package.json gains `test:e2e:perf`.</Criterion>
+        <Criterion>The spec fails on the pre-fix code (verified once by temporarily reverting W2 locally) and passes after it.</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>npx playwright test --project webkit-perf</Command>
+      </Verification>
+    </T-003>
+
+    <T-004>
+      <Title>W4: full gates, real-app measurement, governance</Title>
+      <DependsOn>T-002, T-003</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>Full vitest (coverage thresholds) and Chromium e2e green.</Criterion>
+        <Criterion>Real app re-measured on a local release build with the diagnosis bench (big.md, rich.md, 3 runs each); before/after recorded in the spec Completion evidence.</Criterion>
+        <Criterion>V-M-011 gains a scenario and commands for the parity test and the WebKit perf spec; graph M-011 notes the sticky block-rule invariant; CHANGE_SUMMARY entries present.</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>npm run test:coverage</Command>
+        <Command>npx playwright test --project chromium</Command>
+      </Verification>
+    </T-004>
+  </ImplementationPlan>
+
+  <ReviewProtocol>
+    <Review-1>
+      <Angle>correctness: sticky/anchor equivalence for every converted rule, lastIndex state leaks across exec/replace/match/split callers, corpus coverage of the five hot rules</Angle>
+      <PassCriteria>zero findings on changed code</PassCriteria>
+    </Review-1>
+    <Review-2>
+      <Angle>test and CI hygiene: perf budget flakiness, project isolation in playwright.config.ts, GRACE consistency</Angle>
+      <PassCriteria>zero findings</PassCriteria>
+    </Review-2>
+  </ReviewProtocol>
+</C-30>
+</GraceChangePlan>

@@ -35,5 +35,9 @@ export default defineConfig({
     timeout: 120_000,
     reuseExistingServer: !process.env.CI
   },
-  projects: [{ name: 'chromium', use: { browserName: 'chromium' } }]
+  projects: [
+    { name: 'chromium', use: { browserName: 'chromium' }, testIgnore: ['**/fixtures/**', '**/perf/**'] },
+    // C-30: perf gates run in WebKit, the engine WKWebView ships; opt-in via `npm run test:e2e:perf`.
+    { name: 'webkit-perf', use: { browserName: 'webkit' }, testMatch: 'perf/**/*.spec.ts' }
+  ]
 })

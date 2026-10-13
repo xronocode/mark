@@ -1,3 +1,26 @@
+// FILE: src/muya/lib/parser/marked/blockRules.js
+// VERSION: 1.1.0
+// START_MODULE_CONTRACT
+//   PURPOSE: Block-level grammar (normal, GFM, pedantic) for the muya marked-derived block lexer.
+//   SCOPE: Rule regexes composed with edit(); post-build conversion of position-0-anchored rules to sticky regexes so JavaScriptCore never scans the document tail on a failed match.
+//   DEPENDS: ./utils (edit, noop).
+//   LINKS: .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011; .grace/changes/active/C-30; consumed by ./lexer.js (Lexer.token exec sites).
+//   ROLE: RUNTIME
+//   MAP_MODE: EXPORTS
+// END_MODULE_CONTRACT
+//
+// START_MODULE_MAP
+//   block - base rule table shared by the grammars and by inline rule composition (never converted).
+//   normal - default block grammar; anchored rules are sticky.
+//   gfm - GitHub-flavoured grammar (adds nptable/table); anchored rules are sticky.
+//   pedantic - original-Markdown grammar; anchored rules are sticky.
+//   toStickyAnchored - converts one ^-anchored, non-g/m/y RegExp into a sticky copy whose exec resets lastIndex to 0.
+// END_MODULE_MAP
+//
+// START_CHANGE_SUMMARY
+//   LAST_CHANGE: v1.1.0 - C-30: ^-anchored block rules become sticky with a lastIndex-resetting exec. JSC (WKWebView) did not stop at ^ for rules like hr/table/list/blockquote and rescanned the remaining document after every block (O(blocks x length): 23-42 s on a 565 KB file vs 1.4 s in V8). Match set is unchanged: such a rule can only match at index 0, which is the only index sticky-at-0 attempts.
+// END_CHANGE_SUMMARY
+
 import { edit, noop } from './utils'
 
 /* eslint-disable no-useless-escape */
@@ -159,5 +182,32 @@ export const pedantic = Object.assign({}, normal, {
     .replace('|html', '')
     .getRegex()
 })
+
+// START_BLOCK_STICKY_ANCHORED_RULES
+// Lexer.token() runs `rule.exec(src)` on the whole remaining document after
+// every block. A `^`-anchored, non-multiline rule can only match at index 0,
+// but JavaScriptCore does not treat `^` as a hard anchor for some patterns
+// (e.g. `^ {0,3}((?:- *){3,}|...)`) and walks the full tail on each failed
+// attempt. The sticky flag limits the attempt to lastIndex; the own exec
+// pins lastIndex to 0 for every caller (exec, test, replace, match), so the
+// match set is identical. Rules with g/m/y flags keep their semantics.
+export const toStickyAnchored = (rule) => {
+  if (!(rule instanceof RegExp) || !rule.source.startsWith('^') || /[gmy]/.test(rule.flags)) {
+    return rule
+  }
+  const sticky = new RegExp(rule.source, rule.flags + 'y')
+  sticky.exec = function exec (str) {
+    this.lastIndex = 0
+    return RegExp.prototype.exec.call(this, str)
+  }
+  return sticky
+}
+
+for (const grammar of [normal, gfm, pedantic]) {
+  for (const key of Object.keys(grammar)) {
+    grammar[key] = toStickyAnchored(grammar[key])
+  }
+}
+// END_BLOCK_STICKY_ANCHORED_RULES
 
 /* eslint-ensable no-useless-escape */
