@@ -464,6 +464,72 @@ describe('store/editor — deep coverage (wave 2)', () => {
     })
   })
 
+  // ─── RENAME_IF_NEEDED (C-4) ─────────────────────────────────────
+
+  describe('RENAME_IF_NEEDED', () => {
+    it('moves the one open tab of the file, its title and its watcher', async () => {
+      const tab = makeTab({ id: 'r1', pathname: '/tmp/x/old.md', filename: 'old.md' })
+      editor.tabs = [tab]
+      editor.currentFile = tab
+      editor.updateTabIdToIndex()
+      editor._subscribeFileWatch('/tmp/x/old.md')
+      await Promise.resolve()
+      const oldDispose = await __ipcWatchMock.subscribe.mock.results[0].value
+
+      editor.RENAME_IF_NEEDED({ src: '/tmp/x/old.md', dest: '/tmp/x/new.md' })
+
+      expect(editor.tabs[0].pathname).toBe('/tmp/x/new.md')
+      expect(editor.tabs[0].filename).toBe('new.md')
+      expect(window.DIRNAME).toBe('/tmp/x')
+      expect(oldDispose).toHaveBeenCalledTimes(1)
+      expect(__ipcWatchMock.subscribe).toHaveBeenCalledTimes(2)
+      expect(__ipcWatchMock.subscribe.mock.calls[1][0]).toBe('/tmp/x')
+      expect(bus.emit).not.toHaveBeenCalledWith('rename')
+    })
+
+    it('is a no-op when no tab has the renamed file open', () => {
+      const tab = makeTab({ id: 'r2', pathname: '/tmp/x/other.md', filename: 'other.md' })
+      editor.tabs = [tab]
+      editor.updateTabIdToIndex()
+
+      editor.RENAME_IF_NEEDED({ src: '/tmp/x/old.md', dest: '/tmp/x/new.md' })
+
+      expect(editor.tabs[0].pathname).toBe('/tmp/x/other.md')
+      expect(__ipcWatchMock.subscribe).not.toHaveBeenCalled()
+    })
+
+    it('moves every tab of the same file and leaves other tabs alone', () => {
+      const a = makeTab({ id: 'a', pathname: '/tmp/y/old.md', filename: 'old.md' })
+      const b = makeTab({ id: 'b', pathname: '/tmp/y/old.md', filename: 'old.md' })
+      const c = makeTab({ id: 'c', pathname: '/tmp/y/keep.md', filename: 'keep.md' })
+      editor.tabs = [a, b, c]
+      editor.currentFile = c
+      editor.updateTabIdToIndex()
+
+      editor.RENAME_IF_NEEDED({ src: '/tmp/y/old.md', dest: '/tmp/y/new.md' })
+
+      expect(editor.tabs.map((t) => t.pathname)).toEqual(['/tmp/y/new.md', '/tmp/y/new.md', '/tmp/y/keep.md'])
+      expect(editor.tabs.map((t) => t.filename)).toEqual(['new.md', 'new.md', 'keep.md'])
+      expect(__ipcWatchMock.subscribe).toHaveBeenCalledTimes(1)
+    })
+
+    it('live-reloads changes to the new path after the move', async () => {
+      const tab = makeTab({ id: 'r4', pathname: '/tmp/z/old.md', filename: 'old.md' })
+      editor.tabs = [tab]
+      editor.currentFile = tab
+      editor.updateTabIdToIndex()
+      editor._subscribeFileWatch('/tmp/z/old.md')
+
+      editor.RENAME_IF_NEEDED({ src: '/tmp/z/old.md', dest: '/tmp/z/new.md' })
+      const spy = vi.spyOn(editor, 'APPLY_FILE_CHANGE').mockImplementation(() => {})
+      const newCallback = __ipcWatchMock.subscribe.mock.calls[1][1]
+      newCallback({ kind: 'modify', paths: ['/tmp/z/old.md'] })
+      expect(spy).not.toHaveBeenCalled()
+      newCallback({ kind: 'modify', paths: ['/tmp/z/new.md'] })
+      expect(spy).toHaveBeenCalledWith('change', { pathname: '/tmp/z/new.md' })
+    })
+  })
+
   // ─── SWITCH_TAB_BY_FILEPATH ─────────────────────────────────────
 
   describe('SWITCH_TAB_BY_FILEPATH', () => {

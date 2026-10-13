@@ -3,7 +3,7 @@
   <Name>Fix sidebar rename of open files: missing RENAME_IF_NEEDED action</Name>
   <Created>2026-09-16</Created>
   <Priority>high</Priority>
-  <Status>planned-only</Status>
+  <Status>implemented-pending-live-smoke</Status>
 
   <Summary>
     store/project.js RENAME_IN_SIDEBAR calls editorStore.RENAME_IF_NEEDED({src,
