@@ -1,4 +1,4 @@
-<GraceChangePlan graceVersion='4.0' status='approved'>
+<GraceChangePlan graceVersion='4.0' status='applied'>
 <C-31>
   <Name>Run the C-30 WebKit large-document perf gate in CI</Name>
   <Created>2026-10-13</Created>
