@@ -138,7 +138,8 @@
       "toggleTableOfContents": "目次の切り替え",
       "reloadImages": "画像を再読み込み",
       "showDeveloperTools": "開発者ツールを表示",
-      "reloadWindow": "ウィンドウを再読み込み"
+      "reloadWindow": "ウィンドウを再読み込み",
+      "splitView": "分割ビュー"
     },
     "format": {
       "format": "フォーマット",
@@ -1056,7 +1057,8 @@
       "actualSize": "実際のサイズ",
       "zoomIn": "拡大",
       "zoomOut": "縮小",
-      "devToggleDeveloperTools": "開発者ツールの切り替え"
+      "devToggleDeveloperTools": "開発者ツールの切り替え",
+      "splitView": "分割ビュー"
     },
     "tabs": {
       "cycleForward": "前方に循環",

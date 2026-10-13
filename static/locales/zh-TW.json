@@ -138,7 +138,8 @@
       "toggleTableOfContents": "切換目錄",
       "reloadImages": "重新載入圖片",
       "showDeveloperTools": "顯示開發者工具",
-      "reloadWindow": "重新載入視窗"
+      "reloadWindow": "重新載入視窗",
+      "splitView": "分欄檢視"
     },
     "format": {
       "format": "格式",
@@ -1056,7 +1057,8 @@
       "actualSize": "實際大小",
       "zoomIn": "放大",
       "zoomOut": "縮小",
-      "devToggleDeveloperTools": "切換開發者工具"
+      "devToggleDeveloperTools": "切換開發者工具",
+      "splitView": "分欄檢視"
     },
     "tabs": {
       "cycleForward": "向前循環",

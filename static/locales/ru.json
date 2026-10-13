@@ -138,7 +138,8 @@
       "toggleTableOfContents": "Оглавление",
       "reloadImages": "Обновить изображения",
       "showDeveloperTools": "Инструменты разработчика",
-      "reloadWindow": "Перезагрузить окно"
+      "reloadWindow": "Перезагрузить окно",
+      "splitView": "Разделённый вид"
     },
     "format": {
       "format": "Формат",
@@ -1070,7 +1071,8 @@
       "actualSize": "Реальный размер",
       "zoomIn": "Увеличить",
       "zoomOut": "Уменьшить",
-      "devToggleDeveloperTools": "Переключить инструменты разработчика"
+      "devToggleDeveloperTools": "Переключить инструменты разработчика",
+      "splitView": "Разделённый вид"
     },
     "tabs": {
       "cycleForward": "Следующая вкладка",

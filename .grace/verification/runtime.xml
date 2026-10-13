@@ -3257,6 +3257,13 @@
           tests/renderer/muya/image-drop.test.js
         </Command>
         <Command>npx playwright test tests/e2e/callouts.spec.ts tests/e2e/front-matter-props.spec.ts tests/e2e/image-paste-assets.spec.ts --project=chromium</Command>
+        <Command>
+          npx vitest run tests/renderer/components/split-view.test.js
+          tests/renderer/components/editor-coverage.test.js
+          tests/renderer/components/editorWithTabs.test.js
+          tests/renderer/commands/menu-consistency.test.js
+        </Command>
+        <Command>npm run build &amp;&amp; npx playwright test tests/e2e/split-view.spec.ts --project=chromium</Command>
         <Command>npm run build &amp;&amp; npm run test:e2e:perf</Command>
         <Command>npm run typecheck:ipc</Command>
         <Command>npm run build</Command>
@@ -3564,9 +3571,27 @@
           paragraphs x 3 option sets); the webkit-perf gate stays at the
           pre-C-24 level.
         </Scenario>
+        <Scenario>
+          scenario-36: Split View (C-29). View > Split View
+          (CmdOrCtrl+Alt+Backslash; Cmd+Backslash stays the in-editor sidebar
+          toggle) shows source and rendered panes for the current tab only.
+          WYSIWYG mode: muya editable, CodeMirror a read-only mirror; source
+          mode: CodeMirror editable, muya a read-only mirror. Mirrors render
+          from the tab markdown after 150 ms (twice the last render, up to
+          2 s, on heavy documents), never take focus and never write to the
+          store, so muya normalizations (`* item` → `- item`) cannot reach the
+          file; undo/redo, checkbox clicks, paste and drop are inert on the
+          muya mirror. Toggling keeps content and dirty state. The divider
+          clamps to 10–90% and persists splitViewRatio on release; double-click
+          swaps sides (splitViewSwapped); below 800 px the split folds to one
+          pane; diff mode hides it (split-view.test.js, editor-coverage.test.js
+          "C-29 split mirror", e2e split-view.spec.ts with light/dark probes).
+        </Scenario>
       </Scenarios>
       <Markers>
         <Marker>[Editor][handleCopyAsHtml][BLOCK_COPY_AS_HTML] native writeHtml failed → execCommand fallback</Marker>
+        <Marker>[Editor][syncMirrorFromSource][BLOCK_SPLIT_MIRROR_SYNC] chars=N ms=N — muya mirror re-rendered from the source pane (C-29)</Marker>
+        <Marker>[editor][split][BLOCK_SPLIT_TOGGLED state=on|off] — view.split-view toggled for the current tab (C-29)</Marker>
         <Marker>[Editor][handleEditorContextMenu][BLOCK_EDITOR_CONTEXT_MENU] native writeText failed</Marker>
         <Marker>[Editor][handleCopyAsPlainText][BLOCK_COPY_AS_PLAIN_TEXT] native writeText failed</Marker>
         <Marker>[Renderer][mount][BLOCK_INSTANTIATE_MUYA]</Marker>

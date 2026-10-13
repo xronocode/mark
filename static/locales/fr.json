@@ -138,7 +138,8 @@
       "toggleTableOfContents": "Basculer la table des matières",
       "reloadImages": "Recharger les images",
       "showDeveloperTools": "Afficher les outils de développement",
-      "reloadWindow": "Recharger la fenêtre"
+      "reloadWindow": "Recharger la fenêtre",
+      "splitView": "Vue partagée"
     },
     "format": {
       "format": "Format",
@@ -1056,7 +1057,8 @@
       "actualSize": "Taille réelle",
       "zoomIn": "Agrandir",
       "zoomOut": "Réduire",
-      "devToggleDeveloperTools": "Basculer les outils de développement"
+      "devToggleDeveloperTools": "Basculer les outils de développement",
+      "splitView": "Vue partagée"
     },
     "tabs": {
       "cycleForward": "Cycle vers l'avant",

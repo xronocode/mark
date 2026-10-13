@@ -111,6 +111,9 @@ export const usePreferencesStore = defineStore('preferences', {
     tabBarVisibility: false,
     sourceCodeModeEnabled: false,
     diffMode: false,
+    // C-29 Split View: left pane share (0.1–0.9) and whether rich is on the left.
+    splitViewRatio: 0.5,
+    splitViewSwapped: false,
 
     searchExclusions: [],
     searchMaxFileSize: '',

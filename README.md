@@ -252,7 +252,7 @@ One person. AI agents. A native desktop app that rivals what teams of five ship.
 
 </div>
 
-**The essentials** — true inline WYSIWYG (muya engine), multi-tab editing, folder sidebar, find in file & folder
+**The essentials** — true inline WYSIWYG (muya engine), Split View with the Markdown source beside the rendered page (⌥⌘\\), multi-tab editing, folder sidebar, find in file & folder
 
 **The rendering** — Mermaid v11 diagrams, KaTeX math, Vega charts — all inline, no preview pane
 

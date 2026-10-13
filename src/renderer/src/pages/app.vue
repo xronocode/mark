@@ -23,6 +23,7 @@
         :muyaIndexCursor="muyaIndexCursor"
         :source-code="sourceCode"
         :diff-mode="diffMode"
+        :split-view="splitView"
         :pathname="pathname"
         :show-tab-bar="showTabBar"
         :text-direction="textDirection"
@@ -112,6 +113,7 @@ const cursor = computed(() => currentFile.value?.cursor)
 const wordCount = computed(() => currentFile.value?.wordCount)
 const muyaIndexCursor = computed(() => currentFile.value?.muyaIndexCursor)
 const diffMode = computed(() => !!currentFile.value?.diffMode)
+const splitView = computed(() => !!currentFile.value?.splitView)
 
 const hasCurrentFile = computed(() => {
   return markdown.value !== undefined

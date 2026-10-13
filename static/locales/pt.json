@@ -138,7 +138,8 @@
       "toggleTableOfContents": "Alternar Índice",
       "reloadImages": "Recarregar Imagens",
       "showDeveloperTools": "Mostrar Ferramentas de Desenvolvedor",
-      "reloadWindow": "Recarregar Janela"
+      "reloadWindow": "Recarregar Janela",
+      "splitView": "Visualização dividida"
     },
     "format": {
       "format": "Formato",
@@ -1056,7 +1057,8 @@
       "actualSize": "Tamanho real",
       "zoomIn": "Ampliar",
       "zoomOut": "Reduzir",
-      "devToggleDeveloperTools": "Alternar ferramentas de desenvolvedor"
+      "devToggleDeveloperTools": "Alternar ferramentas de desenvolvedor",
+      "splitView": "Visualização dividida"
     },
     "tabs": {
       "cycleForward": "Ciclar para Frente",
