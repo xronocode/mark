@@ -803,5 +803,22 @@ describe('store/project', () => {
         dest: '/root/new.md'
       })
     })
+
+    it('C-4: a failed rename surfaces a notice instead of an unhandled rejection', async () => {
+      const fs = await import('@/util/fileSystem')
+      const notice = (await import('@/services/notification')).default
+      ;(fs.rename as unknown as ReturnType<typeof vi.fn>).mockClear()
+      ;(fs.rename as unknown as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('EEXIST'))
+      editorStubRef.RENAME_IF_NEEDED.mockClear()
+
+      const store = await loadStore()
+      store.renameCache = '/root/old.md'
+      await store.RENAME_IN_SIDEBAR('new.md')
+
+      expect(editorStubRef.RENAME_IF_NEEDED).not.toHaveBeenCalled()
+      expect(notice.notify).toHaveBeenCalledWith(
+        expect.objectContaining({ type: 'error', message: 'EEXIST' })
+      )
+    })
   })
 })

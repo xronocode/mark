@@ -1120,6 +1120,28 @@ export const useEditorStore = defineStore('editor', {
       bus.emit('rename')
     },
 
+    // C-4: the file at `src` was renamed on disk (sidebar rename). Every
+    // tab of that file follows to `dest` and its per-file watcher moves
+    // with it. No bus 'rename' here — that channel opens the rename dialog.
+    RENAME_IF_NEEDED({ src, dest }) {
+      const moved = this.tabs.filter((t) => window.fileUtils.isSamePathSync(t.pathname, src))
+      if (moved.length === 0) return
+      const oldPathname = moved[0].pathname
+      const filename = window.path.basename(dest)
+      for (const tab of moved) {
+        tab.pathname = dest
+        tab.filename = filename
+      }
+      if (moved.some((t) => t.id === this.currentFile.id)) {
+        window.DIRNAME = window.path.dirname(dest)
+      }
+      // No tab is left on the old path, so this drops its watcher and its
+      // live-reload generation; the new path gets a fresh subscription.
+      this._unsubscribeFileWatch(oldPathname)
+      this._subscribeFileWatch(dest)
+      console.debug(`[editor][rename][BLOCK_TABS_FOLLOWED tabs=${moved.length}]`)
+    },
+
     // Direction is a boolean where false is left and true right.
     CYCLE_TABS(direction) {
       const { tabs, currentFile } = this
@@ -1853,6 +1875,9 @@ export const useEditorStore = defineStore('editor', {
 // END_MODULE_CONTRACT
 //
 // CHANGE_SUMMARY:
+//   - 2026-10-13 C-4: RENAME_IF_NEEDED — tabs of a sidebar-renamed file follow
+//     to the new path (pathname, filename, DIRNAME) and the per-file watcher
+//     moves with them; the call site in project.js no longer throws.
 //   - 2026-09-24 C-20: ASK_FOR_FILE_PATH generalizes the autocomplete
 //     (dir-part/prefix/50-cap, extension set, directories always);
 //     ASK_FOR_IMAGE_AUTO_PATH delegates byte-identically. The editor.vue

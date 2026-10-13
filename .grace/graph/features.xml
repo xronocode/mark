@@ -162,7 +162,8 @@
         path (latent bug: project.js sends {pathname} without data); fixed
         loadChange cursor/scrollTop preservation; added liveReload preference +
         hash-skip + 100ms settle delay. Uses existing watcher (m013b/watch.rs) +
-        ipcFs.read.
+        ipcFs.read. C-4: RENAME_IF_NEEDED moves the tabs and
+        per-file watcher of a sidebar-renamed file to its new path.
       </Summary>
       <PlannedPath>src/renderer/src/store/editor.js, src/renderer/src/store/preferences.js</PlannedPath>
       <Dependencies>
@@ -694,7 +695,8 @@
       <Summary>
         Folder workspace sidebar. `mark folder/` opens project tree. Lazy-loaded
         file tree, click-to-open, context menu (new/rename/delete/reveal).
-        Persisted per-project.
+        Persisted per-project. C-4: sidebar rename of an open file
+        calls editor RENAME_IF_NEEDED; rename failures show a notice.
       </Summary>
       <PlannedPath>
         src/renderer/src/components/sidebar/ProjectTree.vue,

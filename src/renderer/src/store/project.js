@@ -530,9 +530,17 @@ export const useProjectStore = defineStore('project', {
       const src = this.renameCache
       const dirname = window.path.dirname(src)
       const dest = dirname + PATH_SEPARATOR + name
-      rename(src, dest).then(() => {
-        editorStore.RENAME_IF_NEEDED({ src, dest })
-      })
+      return rename(src, dest)
+        .then(() => {
+          editorStore.RENAME_IF_NEEDED({ src, dest })
+        })
+        .catch((err) => {
+          notice.notify({
+            title: 'Error in Side Bar',
+            type: 'error',
+            message: err.message
+          })
+        })
     },
 
     async OPEN_SETTING_WINDOW() {
