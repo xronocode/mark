@@ -4,7 +4,7 @@
 //   PURPOSE: Renderer file helpers for the sidebar (create/paste/rename), content hashing and image placement (local folders or upload).
 //   SCOPE: Thin wrappers over window.fileUtils / window.path (M-013-B IPC) plus the image save, relative-folder and uploader flows used by editor.vue imageAction.
 //   DEPENDS: window.fileUtils, window.path, Web Crypto, dayjs, @octokit/rest, ./index (isWindows).
-//   LINKS: .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011; .grace/changes/active/C-24.
+//   LINKS: .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011; .grace/changes/archive/C-24.
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT

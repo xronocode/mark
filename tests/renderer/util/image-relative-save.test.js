@@ -4,7 +4,7 @@
 //   PURPOSE: Pin the C-24 image save path: bitmaps go straight into the document's relative folder with a collision-safe name, and the global folder is never an empty (cwd-relative) path.
 //   SCOPE: saveImageToRelativeFolder, resolveImageFolder and the binary branch of moveImageToFolder in src/renderer/src/util/fileSystem.js (START_BLOCK_IMAGE_RELATIVE_SAVE).
 //   DEPENDS: src/renderer/src/util/fileSystem.js, node:path (posix) as window.path, Web Crypto, Vitest.
-//   LINKS: .grace/changes/active/C-24 R-2/R-3; .grace/verification/runtime.xml V-M-011.
+//   LINKS: .grace/changes/archive/C-24 R-2/R-3; .grace/verification/runtime.xml V-M-011.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

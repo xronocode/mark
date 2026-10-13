@@ -4,7 +4,7 @@
 //   PURPOSE: Muya inline tokenizer: turns a block's text into inline tokens for rendering.
 //   SCOPE: Begin-of-line rules, inline rules, highlight merging; generator for markdown re-serialisation.
 //   DEPENDS: ./rules, ../utils, ./marked/utils, ./utils.
-//   LINKS: .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011; .grace/changes/active/C-24.
+//   LINKS: .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011; .grace/changes/archive/C-24.
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT
