@@ -1,5 +1,5 @@
 // FILE: tests/renderer/commands/menu-consistency.test.js
-// VERSION: 1.4.2
+// VERSION: 1.4.3
 // START_MODULE_CONTRACT
 //   PURPOSE: Keep native application-menu IDs and renderer command IDs synchronized.
 //   SCOPE: Source-level native-menu extraction, renderer command/shortcut extraction, and intentional renderer-only exceptions.
@@ -20,6 +20,7 @@
 //
 // START_CHANGE_SUMMARY
 //   LAST_CHANGE: v1.3.0 - Pin tabs.cycleForward/Backward menu ids + Ctrl+Tab/Ctrl+Shift+Tab accelerators; ids leave the RENDERER_ONLY_ALLOWLIST (C-8).
+//   v1.4.3 - C-29: pin view.split-view menu id + CmdOrCtrl+Alt+Backslash accelerator; plain CmdOrCtrl+Backslash stays unclaimed.
 //   v1.4.2 - C-19: pin edit.go-to-heading menu id + CmdOrCtrl+T accelerator.
 //   v1.4.1 - C-17: pin edit.format-document menu id + Shift+Alt+F accelerator; view.problems / view.toggle-markdown-lint enter the RENDERER_ONLY_ALLOWLIST (palette-only).
 //   v1.4.0 - Pin edit.copy-as-plain-text menu id + CmdOrCtrl+Alt+Shift+C accelerator (C-12).
@@ -233,6 +234,17 @@ describe('menu ↔ commands consistency', () => {
       /with_id\("edit\.go-to-heading", "Go to Heading…"[\s\S]*?accelerator\("CmdOrCtrl\+T"\)/
     )
     expect(buildFn.match(/CmdOrCtrl\+T/g)).toHaveLength(1)
+  })
+
+  it('pins Split View menu item id and accelerator (C-29)', () => {
+    const rust = readSource('src-tauri/src/m009_menu.rs')
+    const buildFn = rust.slice(rust.indexOf('pub fn build_native_menu'))
+
+    expect(buildFn).toMatch(
+      /with_id\("view\.split-view", "Split View"\)[\s\S]*?accelerator\("CmdOrCtrl\+Alt\+\\\\"\)/
+    )
+    // Cmd+Backslash without Alt stays the in-editor sidebar toggle: no native item may claim it.
+    expect(buildFn.match(/"CmdOrCtrl\+\\\\"/g)).toBeNull()
   })
 
   it('pins Format Document menu item id and accelerator (C-17)', () => {

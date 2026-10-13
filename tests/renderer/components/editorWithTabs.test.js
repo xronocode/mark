@@ -29,6 +29,7 @@ describe('editorWithTabs/index.vue', () => {
           Tabs: true,
           Editor: true,
           SourceCode: true,
+          SplitView: false,
           TabNotifications: true
         }
       }
@@ -54,6 +55,7 @@ describe('editorWithTabs/index.vue', () => {
           Tabs: true,
           Editor: true,
           SourceCode: true,
+          SplitView: false,
           TabNotifications: true
         }
       }
@@ -81,6 +83,7 @@ describe('editorWithTabs/index.vue', () => {
           Tabs: true,
           Editor: true,
           SourceCode: true,
+          SplitView: false,
           TabNotifications: true
         }
       }

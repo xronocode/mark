@@ -47,6 +47,8 @@ export const defaultFileState = {
   },
   // Per-tab diff mode (M-031)
   diffMode: false,
+  // C-29: per-tab Split View (session only; ratio and side are preferences)
+  splitView: false,
   // Per tab notifications
   notifications: []
 }

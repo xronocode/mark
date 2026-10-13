@@ -40,6 +40,7 @@ Mark is a WYSIWYG editor. Just start typing:
 |------|----------|-------------|
 | WYSIWYG | Default | Rich editing with live rendering |
 | Source Code | Cmd+Alt+S | Raw Markdown source |
+| Split View | Cmd+Alt+\\ | Source and rendered page side by side, per tab |
 | Diff View | Cmd+D | Compare against git HEAD or `.before` file |
 
 ## Search

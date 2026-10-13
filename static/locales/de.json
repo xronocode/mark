@@ -138,7 +138,8 @@
       "toggleTableOfContents": "Inhaltsverzeichnis umschalten",
       "reloadImages": "Bilder neu laden",
       "showDeveloperTools": "Entwicklertools anzeigen",
-      "reloadWindow": "Fenster neu laden"
+      "reloadWindow": "Fenster neu laden",
+      "splitView": "Geteilte Ansicht"
     },
     "format": {
       "format": "Format",
@@ -1054,7 +1055,8 @@
       "actualSize": "Tatsächliche Größe",
       "zoomIn": "Vergrößern",
       "zoomOut": "Verkleinern",
-      "devToggleDeveloperTools": "Entwicklertools umschalten"
+      "devToggleDeveloperTools": "Entwicklertools umschalten",
+      "splitView": "Geteilte Ansicht"
     },
     "tabs": {
       "cycleForward": "Vorwärts wechseln",

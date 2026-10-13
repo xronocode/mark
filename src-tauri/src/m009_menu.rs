@@ -505,6 +505,13 @@ pub fn standard_menu() -> Vec<MenuItem> {
                     items: None,
                 },
                 MenuItem {
+                    id: "view.split-view".to_string(),
+                    label: "Split View".to_string(),
+                    command: Some("toggleSplitView".to_string()),
+                    accelerator: Some("CmdOrCtrl+Alt+\\".to_string()),
+                    items: None,
+                },
+                MenuItem {
                     id: "view.typewriter-mode".to_string(),
                     label: "Typewriter Mode".to_string(),
                     command: Some("toggleTypewriter".to_string()),
@@ -839,6 +846,13 @@ pub fn build_native_menu<R: tauri::Runtime>(
         .item(
             &MenuItemBuilder::with_id("view.source-code-mode", "Source Code Mode")
                 .accelerator("CmdOrCtrl+Alt+S")
+                .build(handle)?,
+        )
+        .item(
+            // C-29: Split View (source + rendered side by side) for the
+            // current tab. Cmd+Backslash stays the in-editor sidebar toggle.
+            &MenuItemBuilder::with_id("view.split-view", "Split View")
+                .accelerator("CmdOrCtrl+Alt+\\")
                 .build(handle)?,
         )
         .item(
