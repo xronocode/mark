@@ -4,7 +4,7 @@
 //   PURPOSE: Pin the Tauri v2 ACL permission set so renderer window-API calls can never be silently denied again.
 //   SCOPE: Reads src-tauri/capabilities/default.json and asserts every mutating window/webview permission the renderer actually invokes (C-15 Phase W QA round 2 root cause: core:window:default is read-only, so maximize/minimize/close were dropped by the ACL with only a webview-console error).
 //   DEPENDS: node:fs, node:path, Vitest.
-//   LINKS: .grace/verification/features.xml V-M-054 scenario-11; .grace/changes/active/C-15 Phase W QA round 2; M-046 release lane (capability JSON is validated as JSON by CI lint too).
+//   LINKS: .grace/verification/features.xml V-M-054 scenario-11; .grace/changes/archive/C-15 Phase W QA round 2; M-046 release lane (capability JSON is validated as JSON by CI lint too).
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

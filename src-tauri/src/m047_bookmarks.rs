@@ -10,7 +10,7 @@
 //          Non-macOS: both calls are no-ops.
 //   DEPENDS: mt_paths::data_root; serde/serde_json; core-foundation
 //            (macOS only — already in the tree via cocoa).
-//   LINKS: .grace/changes/active/C-15/plan.xml T-113; M-013-B fs hooks;
+//   LINKS: .grace/changes/archive/C-15/plan.xml T-113; M-013-B fs hooks;
 //          M-017 recent docs; M-022 mt-paths data_root.
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS

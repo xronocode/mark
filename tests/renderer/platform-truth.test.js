@@ -4,7 +4,7 @@
 //   PURPOSE: Pin renderer platform truth — util flags follow the injected platform, and the shim no longer hardcodes 'darwin'.
 //   SCOPE: Dynamic-import platform matrix for @/util plus source-level regression pins on the shim (C-15 T-W0).
 //   DEPENDS: Vitest, @/util, tests/renderer/setup.ts (installs window.electron double).
-//   LINKS: .grace/verification/features.xml V-M-011/V-M-046 (C-15 T-W0); .grace/changes/active/C-15.
+//   LINKS: .grace/verification/features.xml V-M-011/V-M-046 (C-15 T-W0); .grace/changes/archive/C-15.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

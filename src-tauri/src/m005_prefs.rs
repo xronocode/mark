@@ -13,7 +13,7 @@
 //            (sandbox setter), mt_paths (cache_root resolution).
 //   LINKS:   docs/development-plan.xml Phase-B3 step-1;
 //            docs/verification-plan.xml V-M-005;
-//            .grace/changes/active/C-13 (migration retirement).
+//            .grace/changes/archive/C-13 (migration retirement).
 //   STATUS:  Phase-B3 step-1 lite shipped.
 //
 // CHANGE_SUMMARY:

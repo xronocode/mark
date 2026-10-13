@@ -4,7 +4,7 @@
 //   PURPOSE: Pure geometry helpers that keep the active editor tab inside the visible window of the scrolling tab strip.
 //   SCOPE: computing the minimal scrollLeft that reveals a tab; no DOM access, no state.
 //   DEPENDS: none
-//   LINKS: M-011 (mt-renderer), V-M-011 scenario-24, .grace/changes/active/C-6
+//   LINKS: M-011 (mt-renderer), V-M-011 scenario-24, .grace/changes/archive/C-6
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT

@@ -4,7 +4,7 @@
 //   PURPOSE: Verify the Windows titlebar layout — forced custom style, window-controls cluster, unshifted nav.
 //   SCOPE: Vue/jsdom component tests with @/util mocked to win32 (C-15 T-W1).
 //   DEPENDS: Vue Test Utils, Vitest, Pinia test setup, i18n, titleBar/index.vue.
-//   LINKS: .grace/verification/features.xml V-M-011 (scenario: windows titlebar variant); .grace/changes/active/C-15 T-W1.
+//   LINKS: .grace/verification/features.xml V-M-011 (scenario: windows titlebar variant); .grace/changes/archive/C-15 T-W1.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

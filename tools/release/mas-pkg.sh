@@ -10,7 +10,7 @@
 #   DEPENDS: release MAS bundle (tauri build --config mas.conf.json
 #            --features app-store), both distribution identities in the
 #          login keychain.
-#   LINKS: tools/release/asc-metadata.md; .grace/changes/active/C-15 T-M6.
+#   LINKS: tools/release/asc-metadata.md; .grace/changes/archive/C-15 T-M6.
 #   ROLE: SCRIPT
 #   MAP_MODE: LOCALS
 # END_MODULE_CONTRACT
