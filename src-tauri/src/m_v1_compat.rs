@@ -9,7 +9,7 @@
 //   DEPENDS: tauri (WebviewWindow for window-state queries, State),
 //            m013b::WatchRegistry (mt_close_project_root unwatch).
 //   LINKS:   docs/development-plan.xml F-V1-IPC-COMPAT-STUBS;
-//            .grace/changes/active/C-2 (close_project_root);
+//            .grace/changes/archive/C-2 (close_project_root);
 //            install-window-globals.js electron.ipcRenderer.invoke
 //            translates 'mt::xxx-yyy' → 'mt_xxx_yyy' before dispatch.
 //   STATUS:  shipped 2026-04-29 with F-MAIN-ENTRY-DISABLED runtime close.

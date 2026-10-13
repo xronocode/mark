@@ -15,7 +15,7 @@
 //            m013b::state::SecurityCtx (active sandbox).
 //   LINKS:   docs/development-plan.xml Phase-B2 step-3;
 //            docs/verification-plan.xml V-M-003 (3 scenarios + 11 ec);
-//            .grace/changes/active/C-2 (path index + close-project).
+//            .grace/changes/archive/C-2 (path index + close-project).
 //   STATUS:  Phase-B2 step-3 real-impl shipped. Debouncer tick = 200ms;
 //            V-M-003 scenario-1 ("create/modify/delete/rename within
 //            500ms") + scenario-2 (rapid-100-writes debounce) covered.
