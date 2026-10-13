@@ -625,9 +625,17 @@
     </V-M-031>
     <V-M-032>
       <Priority>high</Priority>
-      <Commands/>
-      <Scenarios/>
-      <Markers/>
+      <Commands>
+        <Command>npx vitest run tests/renderer/store/editor-deep2.test.js</Command>
+      </Commands>
+      <Scenarios>
+        <Scenario>
+          scenario-c4-rename-follow: Sidebar rename of an open file (C-4). RENAME_IF_NEEDED moves every tab of the renamed file to the new path (pathname, filename, DIRNAME for the current tab), leaves other tabs alone, is a no-op when no tab has the file open, drops the old per-file watcher and subscribes the new path; a modify event for the new path live-reloads, one for the old path does not (editor-deep2.test.js RENAME_IF_NEEDED). It never emits bus 'rename', which opens the rename dialog.
+        </Scenario>
+      </Scenarios>
+      <Markers>
+        <Marker>[editor][rename][BLOCK_TABS_FOLLOWED tabs=N] tabs of a sidebar-renamed file moved to the new path</Marker>
+      </Markers>
       <TraceAssertions/>
       <LegacyBase>
         <Source>docs/verification-plan.xml</Source>
@@ -1298,8 +1306,14 @@
     </V-M-035>
     <V-M-036>
       <Priority>low</Priority>
-      <Commands/>
-      <Scenarios/>
+      <Commands>
+        <Command>npx vitest run tests/renderer/store/project.test.ts</Command>
+      </Commands>
+      <Scenarios>
+        <Scenario>
+          scenario-c4-sidebar-rename: RENAME_IN_SIDEBAR builds dest from the source directory, calls editorStore.RENAME_IF_NEEDED after a successful rename, and a failed rename shows an 'Error in Side Bar' notice instead of an unhandled rejection (project.test.ts RENAME_IN_SIDEBAR).
+        </Scenario>
+      </Scenarios>
       <Markers/>
       <TraceAssertions/>
       <LegacyBase>
