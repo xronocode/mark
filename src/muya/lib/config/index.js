@@ -418,6 +418,7 @@ export const MUYA_DEFAULT_OPTION = Object.freeze({
   // bullet/list marker width + listIndentation, tab or Daring Fireball Markdown (4 spaces) --> list indentation
   listIndentation: 1,
   frontmatterType: '-',
+  frontmatterProperties: true,
   sequenceTheme: 'hand', // hand or simple
   mermaidTheme: 'default', // dark / forest / default
   vegaTheme: 'latimes', // excel / ggplot2 / quartz / vox / fivethirtyeight / dark / latimes

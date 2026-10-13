@@ -23,7 +23,7 @@ import { setupTestPinia } from '../pinia'
 vi.mock('@/i18n', () => ({ t: (key) => key, setLanguage: vi.fn() }))
 vi.mock('@/bus', () => ({ default: { on: vi.fn(), emit: vi.fn(), off: vi.fn() } }))
 
-const C24_DEFAULTS = { footnote: true, imagePreferRelativeDirectory: true, imageRelativeDirectoryName: 'assets' }
+const C24_DEFAULTS = { footnote: true, imagePreferRelativeDirectory: true, imageRelativeDirectoryName: 'assets', frontmatterProperties: true }
 // static/preference.json is upstream legacy (no runtime reader) and already disagrees on imageInsertAction ('path'); only the store governs it.
 const STORE_ONLY_DEFAULTS = { imageInsertAction: 'folder' }
 const STATIC_DEFAULTS = JSON.parse(readFileSync(resolve(__dirname, '../../../static/preference.json'), 'utf8'))

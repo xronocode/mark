@@ -796,7 +796,8 @@
           "jsonBrace": "JSON括弧",
           "jsonSemicolon": "JSONセミコロン",
           "title": "フロントマタータイプ"
-        }
+        },
+        "frontmatterProperties": "YAML フロントマターをプロパティ表として表示（クリックで YAML を編集）"
       },
       "diagrams": {
         "title": "図表",

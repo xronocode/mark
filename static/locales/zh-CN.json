@@ -795,7 +795,8 @@
           "jsonBrace": "带大括号的 JSON",
           "jsonSemicolon": "带分号的 JSON",
           "title": "前置元数据类型"
-        }
+        },
+        "frontmatterProperties": "将 YAML 前置元数据显示为属性表（点击编辑 YAML）"
       },
       "diagrams": {
         "title": "图表",

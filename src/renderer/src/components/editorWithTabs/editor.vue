@@ -200,6 +200,7 @@ const {
   tabSize,
   listIndentation,
   frontmatterType,
+  frontmatterProperties,
   superSubScript,
   footnote,
   isHtmlEnabled,
@@ -429,6 +430,12 @@ watch(listIndentation, (value, oldValue) => {
 watch(frontmatterType, (value, oldValue) => {
   if (value !== oldValue && editor.value) {
     editor.value.setOptions({ frontmatterType: value })
+  }
+})
+
+watch(frontmatterProperties, (value, oldValue) => {
+  if (value !== oldValue && editor.value) {
+    editor.value.setOptions({ frontmatterProperties: value }, true)
   }
 })
 
@@ -1696,6 +1703,7 @@ onMounted(() => {
     codeBlockLineNumbers: codeBlockLineNumbers.value,
     listIndentation: listIndentation.value,
     frontmatterType: frontmatterType.value,
+    frontmatterProperties: frontmatterProperties.value,
     superSubScript: superSubScript.value,
     footnote: footnote.value,
     math: mathEnabled.value,

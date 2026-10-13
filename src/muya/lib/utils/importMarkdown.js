@@ -675,7 +675,14 @@ const importRegister = (ContentState) => {
 
     if (!cursor) {
       cursor = {}
-      const firstBlock = this.getFirstBlock()
+      let firstBlock = this.getFirstBlock()
+      // C-24 R-8: with the front matter properties view on, start after the
+      // front matter so it opens as a table rather than as active YAML.
+      const top = this.blocks[0]
+      if (this.muya.options.frontmatterProperties !== false && top && top.functionType === 'frontmatter' && top.nextSibling) {
+        const next = this.firstInDescendant(this.getBlock(top.nextSibling))
+        if (next) firstBlock = next
+      }
       const key = firstBlock.key
       const offset = firstBlock.text.length
       cursor.anchor = { key, offset }

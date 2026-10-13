@@ -794,7 +794,8 @@
           "jsonBrace": "JSON-Klammer",
           "jsonSemicolon": "JSON-Semikolon",
           "title": "Front Matter Typ"
-        }
+        },
+        "frontmatterProperties": "YAML-Front-Matter als Eigenschaftstabelle anzeigen (Klick bearbeitet das YAML)"
       },
       "diagrams": {
         "title": "Diagramme",

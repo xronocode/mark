@@ -138,6 +138,24 @@ class ClickEvent {
         return contentState.deleteImage(imageInfo)
       }
 
+      // START_BLOCK_FRONT_MATTER_EDIT
+      // C-24 R-8: clicking the properties table moves the cursor into the
+      // YAML, which makes the block active and shows the editable source.
+      const fmTable = target.closest('.ag-front-matter-table')
+      if (fmTable) {
+        event.preventDefault()
+        event.stopPropagation()
+        const pre = contentState.getBlock(fmTable.dataset.frontMatterKey)
+        const line = pre && pre.children[0] && pre.children[0].children[0]
+        if (line) {
+          const offset = line.text.length
+          contentState.cursor = { start: { key: line.key, offset }, end: { key: line.key, offset } }
+          return contentState.render(true)
+        }
+        return
+      }
+      // END_BLOCK_FRONT_MATTER_EDIT
+
       // START_BLOCK_CALLOUT_FOLD_TOGGLE
       // C-24: clicking a foldable callout's title toggles it. View state only.
       const calloutTitle = target.closest('.ag-callout-title')

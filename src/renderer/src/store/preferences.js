@@ -77,6 +77,7 @@ export const usePreferencesStore = defineStore('preferences', {
     tabSize: 4,
     listIndentation: 1,
     frontmatterType: '-',
+    frontmatterProperties: true,
     superSubScript: false,
     footnote: true,
     mathEnabled: true,

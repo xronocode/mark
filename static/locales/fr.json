@@ -796,7 +796,8 @@
           "jsonBrace": "Accolade JSON",
           "jsonSemicolon": "Point-virgule JSON",
           "title": "Type de métadonnées"
-        }
+        },
+        "frontmatterProperties": "Afficher le front matter YAML sous forme de tableau de propriétés (clic pour modifier le YAML)"
       },
       "diagrams": {
         "title": "Diagrammes",
