@@ -29,7 +29,8 @@ const FALLBACKS = {
   'indented first line': '  title: x',
   'not a mapping': 'just some text',
   empty: '   \n\n',
-  'list of maps': 'items:\n  - name: a'
+  'list of maps': 'items:\n  - name: a',
+  'uneven list indent': 'tags:\n  - a\n    - b'
 }
 
 describe('parseFrontMatterProps', () => {
@@ -73,6 +74,15 @@ describe('parseFrontMatterProps', () => {
     expect(parseFrontMatterProps('a:\nb: []')).toEqual([
       { key: 'a', value: '' },
       { key: 'b', value: [] }
+    ])
+  })
+
+  it('review-1 misreads: comment-only value, escaped backslash-n, trailing comma', () => {
+    expect(parseFrontMatterProps('a: #comment\nb: "x\\\\nb"\nc: "l1\\nl2"\nd: [a, b, ]')).toEqual([
+      { key: 'a', value: '' },
+      { key: 'b', value: 'x\\nb' },
+      { key: 'c', value: 'l1\nl2' },
+      { key: 'd', value: ['a', 'b'] }
     ])
   })
 
