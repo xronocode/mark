@@ -12,7 +12,7 @@
 // START_MODULE_MAP
 //   BUDGET_MS - main-thread busy budget for the open (measured 2026-10-13 on this harness: pre-fix 8.5 s, post-fix 0.57-0.66 s).
 //   generateSections - deterministic document matching the C-30 diagnosis bench shape.
-//   installLagMeter - setTimeout(50) chain that accumulates event-loop lag as main-thread busy time.
+//   SECTIONS - heading count of the generated document; also the render-complete condition.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
@@ -52,6 +52,7 @@ test.describe('large document open (WebKit)', () => {
     const markdown = generateSections(SECTIONS)
 
     const busyMs = await page.evaluate(async ({ md, sections }) => {
+      // in-page lag meter: setTimeout(50) chain accumulates event-loop lag as busy time
       const w = window as any
       let busy = 0
       let last = performance.now()

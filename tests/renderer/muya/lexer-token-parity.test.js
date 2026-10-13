@@ -10,10 +10,13 @@
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
+//   CORPUS - fixtures/lexer-corpus directory of markdown inputs.
+//   GOLDEN - fixtures/lexer-corpus/golden directory of captured outputs.
 //   VARIANTS - lexer option sets: gfm default, importMarkdown-style (footnote/gitlab/superSub, disableInline), pedantic, gfm off.
 //   lexTokens - runs a fresh Lexer and serialises tokens + links + footnotes with footnoteIds renumbered by appearance.
 //   generateSections - deterministic large document in the shape of the C-30 bench (headings, prose, a fence every 25 sections).
 //   generateBlockMix - deterministic large document repeating tables, lists, quotes and hrs (the five hot rules).
+//   sha - sha256 hex of a serialised token stream (used for the large generated documents).
 //   UPDATE - set UPDATE_LEXER_GOLDENS=1 to rewrite goldens (only on the pre-change lexer or after an intended parse change).
 // END_MODULE_MAP
 //

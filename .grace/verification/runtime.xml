@@ -3242,6 +3242,11 @@
           tests/renderer/components/tabs-coverage.test.js
           tests/renderer/components/titleBar-resize.test.js
         </Command>
+        <Command>
+          npx vitest run tests/renderer/muya/lexer-token-parity.test.js
+          tests/renderer/muya/block-rules-sticky.test.js
+        </Command>
+        <Command>npm run build &amp;&amp; npm run test:e2e:perf</Command>
         <Command>npm run typecheck:ipc</Command>
         <Command>npm run build</Command>
         <Command>npm run tauri:build</Command>
@@ -3505,6 +3510,23 @@
           in tests/renderer/components/problems.test.js; visually pinned
           in tests/e2e/dead-link-validation.spec.ts (live link silent,
           dead file + dead anchor listed, exactly two dead issues).
+        </Scenario>
+        <Scenario>
+          scenario-34: Large-document open on WebKit (C-30): every
+          ^-anchored, non-g/m/y muya block rule (normal/gfm/pedantic) is a
+          sticky regex whose exec resets lastIndex to 0, so JavaScriptCore
+          attempts block rules only at index 0 instead of rescanning the
+          document tail after every block. Lexer output is pinned
+          byte-for-byte by goldens captured on the pre-change lexer
+          (tests/renderer/muya/lexer-token-parity.test.js: 9 corpus files +
+          2 generated large documents x 4 option variants); the conversion
+          and its exec/test/replace semantics are unit-pinned in
+          tests/renderer/muya/block-rules-sticky.test.js; the WebKit cost is
+          gated by tests/e2e/perf/large-doc-webkit.spec.ts (webkit-perf
+          project, 500-section document, main-thread busy &lt; 3 s; pre-fix
+          8.5 s, post-fix ~0.6 s). The perf project is opt-in
+          (npm run test:e2e:perf) and needs a fresh renderer build, because
+          vite preview serves src/renderer/dist.
         </Scenario>
       </Scenarios>
       <Markers>
