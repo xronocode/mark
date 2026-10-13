@@ -1,0 +1,67 @@
+<GraceChangePlan graceVersion='4.0' status='approved'>
+<C-31>
+  <Name>Run the C-30 WebKit large-document perf gate in CI</Name>
+  <Created>2026-10-13</Created>
+
+  <IntentSummary>
+    Add Playwright WebKit provisioning and a webkit-perf run to the
+    renderer-e2e job of the per-push test workflow, reusing the job's
+    renderer build, so the WKWebView large-document cost is gated on
+    every push.
+  </IntentSummary>
+
+  <BaselineAssertions>
+    <MustContain>
+      <File>.github/workflows/test.yml</File>
+      <Text>npx playwright install chromium --with-deps</Text>
+    </MustContain>
+    <MustContain>
+      <File>playwright.config.ts</File>
+      <Text>name: 'webkit-perf'</Text>
+    </MustContain>
+  </BaselineAssertions>
+
+  <TargetAssertions>
+    <MustContain>
+      <File>.github/workflows/test.yml</File>
+      <Text>npx playwright test --project webkit-perf</Text>
+    </MustContain>
+    <MustContain>
+      <File>.github/workflows/test.yml</File>
+      <Text>npx playwright install webkit</Text>
+    </MustContain>
+  </TargetAssertions>
+
+  <DurableScope>
+    <M-011/>
+  </DurableScope>
+
+  <ObservedWriteScope>
+    <File>.github/workflows/test.yml</File>
+    <File>.grace/verification/runtime.xml</File>
+  </ObservedWriteScope>
+
+  <ImplementationPlan>
+    <T-001>
+      <Title>W1: WebKit perf step in renderer-e2e</Title>
+      <DependsOn></DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>renderer-e2e installs webkit and runs `npx playwright test --project webkit-perf` after the chromium suite; report upload covers both; header comment updated; YAML loads.</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>node -e "require('yaml')" 2>/dev/null; python3 -c "import yaml,sys; yaml.safe_load(open('.github/workflows/test.yml'))"</Command>
+      </Verification>
+    </T-001>
+    <T-002>
+      <Title>W2: local replay + V-M-011 note</Title>
+      <DependsOn>T-001</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>The CI step sequence replayed locally passes; V-M-011 scenario-34 states the gate runs in CI.</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>npm run build &amp;&amp; npx playwright install webkit &amp;&amp; npx playwright test --project webkit-perf</Command>
+      </Verification>
+    </T-002>
+  </ImplementationPlan>
+</C-31>
+</GraceChangePlan>

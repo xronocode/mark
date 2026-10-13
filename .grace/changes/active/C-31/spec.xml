@@ -1,0 +1,56 @@
+<GraceChangeSpec graceVersion='4.0' status='approved'>
+<C-31>
+  <Name>Run the C-30 WebKit large-document perf gate in CI</Name>
+  <Created>2026-10-13</Created>
+  <Priority>medium</Priority>
+  <Status>approved-for-implementation</Status>
+
+  <Summary>
+    C-30 added tests/e2e/perf/large-doc-webkit.spec.ts (webkit-perf
+    project) but CI installs Chromium only and runs the chromium project,
+    so a regression of the WebKit O(n²) lexer cost would only be caught
+    by someone running `npm run test:e2e:perf` locally. Wire the gate into
+    the renderer-e2e job of .github/workflows/test.yml.
+  </Summary>
+
+  <Problem>
+    <Description>The only engine Mark ships on macOS (WKWebView) is not exercised by any CI job; the perf gate is opt-in.</Description>
+    <RootCause>C-30 scope deliberately excluded workflow changes; CI provisions Chromium only.</RootCause>
+    <Evidence>.github/workflows/test.yml renderer-e2e: `npx playwright install chromium --with-deps`, `npm run test:e2e` (= --project chromium).</Evidence>
+  </Problem>
+
+  <Goals>
+    <R-1>renderer-e2e installs Playwright WebKit next to Chromium (same browser cache) and runs `npx playwright test --project webkit-perf` against the build the job already produces, as a separate step after the chromium suite.</R-1>
+    <R-2>Failure artifacts (playwright-report) cover the perf step too.</R-2>
+    <R-3>Stale header comment of test.yml (counts, e2e scope) reflects the WebKit perf gate.</R-3>
+  </Goals>
+
+  <Constraints>
+    <Constraint>No change to release.yml (release gating stays chromium-only; the perf gate belongs to the per-push test workflow).</Constraint>
+    <Constraint>Reuse the job's `npm run build` output; do not call `npm run test:e2e:perf` (it rebuilds).</Constraint>
+    <Constraint>Budget and retry policy stay as defined in the spec (3 s, one retry).</Constraint>
+  </Constraints>
+
+  <NonGoals>
+    <NonGoal>Running the full e2e suite in WebKit.</NonGoal>
+    <NonGoal>Linux/Windows perf lanes.</NonGoal>
+  </NonGoals>
+
+  <AcceptanceCriteria>
+    <Criterion>test.yml parses (actionlint or yaml load) and the renderer-e2e job contains the WebKit install and webkit-perf steps after the chromium suite.</Criterion>
+    <Criterion>Locally, the exact CI command sequence (build, install webkit, `npx playwright test --project webkit-perf`) passes.</Criterion>
+    <Criterion>First CI run on push is observed green before any tag (no push/tag without explicit user approval).</Criterion>
+  </AcceptanceCriteria>
+
+  <AffectedAreas>
+    <M-011>V-M-011 command note: perf gate now runs in CI test.yml renderer-e2e</M-011>
+  </AffectedAreas>
+
+  <VerificationIntent>YAML validation + local replay of the CI step sequence; CI observation after the user-approved push.</VerificationIntent>
+
+  <Approval>
+    <ApprovedBy>user (session 2026-10-13): "добавляй сиай" — add the WebKit perf gate to CI; push/tag only after everything is polished</ApprovedBy>
+    <ApprovalScope>test.yml renderer-e2e WebKit install + webkit-perf step; header comment; V-M-011 note. No push, no tag.</ApprovalScope>
+  </Approval>
+</C-31>
+</GraceChangeSpec>

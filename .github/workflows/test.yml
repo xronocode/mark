@@ -3,7 +3,9 @@
 # Runs the full validation surface produced by polish phases 3–6:
 #   - renderer-unit:        vitest (310 tests)        — Phase 4
 #   - backend-unit:         cargo test --bin mark     — Phase 5 (392 tests)
-#   - renderer-e2e:         playwright chromium       — Phase 6 (5 specs)
+#   - renderer-e2e:         playwright chromium       — full renderer e2e suite
+#                           + playwright webkit-perf  — C-30 large-document gate in
+#                             WebKit, the engine WKWebView ships (C-31)
 #
 # Triggers: push to main, PR targeting main, manual dispatch. Existing
 # release.yml + release-tauri.yml are tag/branch-scoped respectively
@@ -146,6 +148,15 @@ jobs:
 
       - name: playwright test
         run: npm run test:e2e
+
+      # C-31: the C-30 WebKit perf gate (500-section document, main-thread
+      # busy < 3 s). Reuses the vite build above; `npm run test:e2e:perf`
+      # would rebuild, so the project is invoked directly.
+      - name: install playwright webkit
+        run: npx playwright install webkit --with-deps
+
+      - name: webkit large-document perf gate
+        run: npx playwright test --project webkit-perf
 
       - name: upload playwright report
         if: failure()
