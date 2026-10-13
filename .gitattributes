@@ -1,0 +1,4 @@
+# Byte-exact markdown corpus for the muya round-trip and tokenizer-parity
+# goldens (C-24). Windows runners check out with core.autocrlf=true, which
+# turned these into CRLF and failed 13 tests; pin LF in every checkout.
+tests/renderer/muya/fixtures/** text eol=lf
