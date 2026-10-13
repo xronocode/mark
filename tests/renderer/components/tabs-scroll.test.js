@@ -12,7 +12,7 @@
 //   PURPOSE: Verify the C-6 active-tab auto-scroll behavior end to end at the component level.
 //   SCOPE: computeActiveTabScroll pure branches; tabs.vue watcher, mount hook, guards.
 //   DEPENDS: @/util/tabsScroll, @/components/editorWithTabs/tabs.vue, test pinia
-//   LINKS: M-011, V-M-011 scenario-24, .grace/changes/active/C-6
+//   LINKS: M-011, V-M-011 scenario-24, .grace/changes/archive/C-6
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

@@ -1537,7 +1537,7 @@
         The v1.x migration surface (scenarios-2, the [Prefs][migrate]
         and [m005-migrate] marker families, the migration-dialog and
         MARK_SKIP_MIGRATION commands) was removed with the m005_migrate
-        module; see .grace/changes/active/C-13. The live preferences
+        module; see .grace/changes/archive/C-13. The live preferences
         store scenarios and markers above remain authoritative.
       </RetiredByC-13>
     </V-M-005>

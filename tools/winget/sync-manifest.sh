@@ -5,7 +5,7 @@
 #   PURPOSE: Generate winget-pkgs manifests for a published Mark Windows release and open the submission PR.
 #   SCOPE: download the x64 NSIS installer from a live GitHub release, hash it, render installer/locale/version YAML, sparse-clone microsoft/winget-pkgs, push a branch to the xronocode fork, open the PR.
 #   DEPENDS: gh (authenticated), git, curl, shasum; network access to github.com.
-#   LINKS: .grace/changes/active/C-15/plan.xml T-105; C-15 spec Amendment #3 (winget pulled ahead of the site card); M-046 release lane.
+#   LINKS: .grace/changes/archive/C-15/plan.xml T-105; C-15 spec Amendment #3 (winget pulled ahead of the site card); M-046 release lane.
 #   ROLE: SCRIPT
 #   MAP_MODE: LOCALS
 # END_MODULE_CONTRACT

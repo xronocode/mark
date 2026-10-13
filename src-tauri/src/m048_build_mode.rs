@@ -7,7 +7,7 @@
 //            errors: { mode: "app-store" | "desktop", features map }.
 //   SCOPE: One query command, compile-time constant. No state, no I/O.
 //   DEPENDS: stdlib (cfg), serde.
-//   LINKS: .grace/changes/active/C-15/plan.xml T-115; renderer preferences
+//   LINKS: .grace/changes/archive/C-15/plan.xml T-115; renderer preferences
 //          store capability gating; m015 (pandoc), m018 (screenshot),
 //          m021 (default handler), m013b (search).
 //   ROLE: RUNTIME

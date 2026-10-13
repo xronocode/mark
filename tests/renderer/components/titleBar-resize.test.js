@@ -11,7 +11,7 @@
 //   PURPOSE: Pin the C-9 responsive breadcrumb structure and clearance rules.
 //   SCOPE: component structure assertions + SFC source pins.
 //   DEPENDS: @/components/titleBar/index.vue, test pinia
-//   LINKS: M-011, V-M-011 scenario-25, .grace/changes/active/C-9
+//   LINKS: M-011, V-M-011 scenario-25, .grace/changes/archive/C-9
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT
