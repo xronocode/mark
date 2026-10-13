@@ -30,7 +30,7 @@
 //   PURPOSE: Sidebar table of contents — renders listToc as a tree, jumps on click, and highlights the heading the viewport is in (C-19).
 //   SCOPE: Read-only projection of the editor store TOC plus the toc-active-heading bus subscription.
 //   DEPENDS: editor/preferences stores, bus, element-plus el-tree.
-//   LINKS: .grace/changes/active/C-19; .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011 scenario-31.
+//   LINKS: .grace/changes/archive/C-19; .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011 scenario-31.
 //   ROLE: RUNTIME
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

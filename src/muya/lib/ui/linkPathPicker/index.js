@@ -4,7 +4,7 @@
 //   PURPOSE: Inline relative-path autocomplete for markdown link destinations (C-20) — a scrollable float fed by the renderer's filePathAutoComplete option.
 //   SCOPE: keyup-triggered detection of a cursor inside `](…`, debounced list fetch, BaseScrollFloat rendering with keyboard navigation, and inline insertion of the chosen path.
 //   DEPENDS: BaseScrollFloat, snabbdom, muya selection/eventCenter/contentState cursor APIs, renderer-provided muya.options.filePathAutoComplete.
-//   LINKS: .grace/changes/active/C-20; .grace/graph/runtime.xml M-012; .grace/verification/runtime.xml V-M-011 scenario-32.
+//   LINKS: .grace/changes/archive/C-20; .grace/graph/runtime.xml M-012; .grace/verification/runtime.xml V-M-011 scenario-32.
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT

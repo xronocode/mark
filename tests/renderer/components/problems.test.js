@@ -4,7 +4,7 @@
 //   PURPOSE: Verify the C-17 problems panel (visibility, issue list, preference gate, click-to-jump slug mapping).
 //   SCOPE: jsdom mount of components/problems with mocked bus/electron-log and seeded Pinia stores.
 //   DEPENDS: Vue Test Utils, Vitest, Pinia test setup, vue-i18n.
-//   LINKS: .grace/changes/active/C-17; .grace/verification/runtime.xml V-M-011 scenario-30.
+//   LINKS: .grace/changes/archive/C-17; .grace/verification/runtime.xml V-M-011 scenario-30.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

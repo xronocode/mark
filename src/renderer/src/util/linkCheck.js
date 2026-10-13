@@ -4,7 +4,7 @@
 //   PURPOSE: Pure dead-link checker for markdown documents (C-21) — missing relative file/image destinations and unresolvable in-document anchors.
 //   SCOPE: Line-oriented destination extraction with markdownLint classifiers (code/front-matter immunity), github-slug anchor validation, injected statFn for file existence; no DOM, no store.
 //   DEPENDS: markdownLint classifiers; muya generateGithubSlug.
-//   LINKS: .grace/changes/active/C-21; .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011 scenario-33.
+//   LINKS: .grace/changes/archive/C-21; .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011 scenario-33.
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT

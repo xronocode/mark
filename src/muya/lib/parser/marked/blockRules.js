@@ -4,7 +4,7 @@
 //   PURPOSE: Block-level grammar (normal, GFM, pedantic) for the muya marked-derived block lexer.
 //   SCOPE: Rule regexes composed with edit(); post-build conversion of position-0-anchored rules to sticky regexes so JavaScriptCore never scans the document tail on a failed match.
 //   DEPENDS: ./utils (edit, noop).
-//   LINKS: .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011; .grace/changes/active/C-30; consumed by ./lexer.js (Lexer.token exec sites).
+//   LINKS: .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011; .grace/changes/archive/C-30; consumed by ./lexer.js (Lexer.token exec sites).
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT

@@ -31,7 +31,7 @@
 //   PURPOSE: Overlay panel listing markdownlint-subset problems merged with async dead-link issues, with click-to-jump (C-17 P0-A + C-21).
 //   SCOPE: Bus-driven visibility and issue list; reads the lint preference; jumps via the editor-store TOC slug for the nearest preceding heading.
 //   DEPENDS: Vue, i18n, bus, editor store (listToc), markdownLint util.
-//   LINKS: .grace/changes/active/C-17 + C-21; .grace/graph/runtime.xml M-051; .grace/verification/runtime.xml V-M-011 scenarios 30/33.
+//   LINKS: .grace/changes/archive/C-17 + C-21; .grace/graph/runtime.xml M-051; .grace/verification/runtime.xml V-M-011 scenarios 30/33.
 //   ROLE: RUNTIME
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT
