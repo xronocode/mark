@@ -256,26 +256,37 @@ const listenChange = () => {
   })
 }
 
-const mountMirror = () => {
-  const { markdown, textDirection } = props
-  const codeMirrorConfig = {
-    value: markdown || '',
+// One config for both panes so theme and gutter never drift apart; the
+// read-only mirror differs only in focus, readOnly and the active line.
+const buildCodeMirrorConfig = ({ value, textDirection, readOnly }) => {
+  const config = {
+    value,
     lineNumbers: true,
-    autofocus: false,
-    readOnly: true,
+    autofocus: !readOnly,
     lineWrapping: true,
-    styleActiveLine: false,
+    styleActiveLine: !readOnly,
     direction: textDirection,
     viewportMargin: Infinity,
     lineNumberFormatter(line) {
-      return line % 10 === 0 || line === 1 ? line : ''
+      if (line % 10 === 0 || line === 1) {
+        return line
+      } else {
+        return ''
+      }
     }
   }
+  if (readOnly) config.readOnly = true
   if (railscastsThemes.includes(theme.value)) {
-    codeMirrorConfig.theme = 'railscasts'
+    config.theme = 'railscasts'
   } else if (oneDarkThemes.includes(theme.value)) {
-    codeMirrorConfig.theme = 'one-dark'
+    config.theme = 'one-dark'
   }
+  return config
+}
+
+const mountMirror = () => {
+  const { markdown, textDirection } = props
+  const codeMirrorConfig = buildCodeMirrorConfig({ value: markdown || '', textDirection, readOnly: true })
   const codeMirrorInstance = codeMirror(sourceCodeContainer.value, codeMirrorConfig)
   setMode(codeMirrorInstance, 'markdown')
   editor.value = codeMirrorInstance
@@ -297,28 +308,7 @@ onMounted(() => {
   const { markdown, muyaIndexCursor, textDirection } = props
   const container = sourceCodeContainer.value
   container.addEventListener('scroll', handleScroll)
-  const codeMirrorConfig = {
-    value: markdown,
-    lineNumbers: true,
-    autofocus: true,
-    lineWrapping: true,
-    styleActiveLine: true,
-    direction: textDirection,
-    viewportMargin: Infinity,
-    lineNumberFormatter(line) {
-      if (line % 10 === 0 || line === 1) {
-        return line
-      } else {
-        return ''
-      }
-    }
-  }
-
-  if (railscastsThemes.includes(theme.value)) {
-    codeMirrorConfig.theme = 'railscasts'
-  } else if (oneDarkThemes.includes(theme.value)) {
-    codeMirrorConfig.theme = 'one-dark'
-  }
+  const codeMirrorConfig = buildCodeMirrorConfig({ value: markdown, textDirection, readOnly: false })
 
   bus.on('file-loaded', handleFileChange)
   bus.on('invalidate-image-cache', handleInvalidateImageCache)

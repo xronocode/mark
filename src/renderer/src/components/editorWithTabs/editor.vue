@@ -350,8 +350,9 @@ const handlePreviewMousedown = (event) => {
 // per V-M-022 E-05.
 const handlePreviewKeydown = (event) => {
   if (!event) return
+  // C-29: Cmd/Ctrl+Alt+\ is Split View — only the plain chord is ours.
   const isCmdBackslash =
-    event.key === '\\' && (event.metaKey || event.ctrlKey)
+    event.key === '\\' && (event.metaKey || event.ctrlKey) && !event.altKey
   if (!isCmdBackslash) return
   if (isPreviewMode.value) {
     const tabId = currentFile.value && currentFile.value.id
@@ -1367,6 +1368,7 @@ const handlePrintServiceClearup = () => {
 }
 
 const handleEditParagraph = (type) => {
+  if (props.mirror) return
   if (type === 'table') {
     tableChecker.rows = 4
     tableChecker.columns = 3
@@ -1399,6 +1401,7 @@ const handleParagraph = (type) => {
 }
 
 const handleInlineFormat = (type) => {
+  if (props.mirror) return
   editor.value && editor.value.format(type)
 }
 
@@ -1429,6 +1432,8 @@ const setMarkdownToEditor = ({ id, markdown: newMarkdown, cursor: newCursor }) =
     } else {
       editor.value.setMarkdown(newMarkdown)
     }
+    // C-29: the mirror already shows this document; skip the debounced re-render.
+    if (props.mirror) mirroredMarkdown = newMarkdown
     if (!isReadOnlySurface.value) {
       nextTick(() => editor.value?.focus())
     }
@@ -1477,6 +1482,7 @@ const handleFileChange = ({
       } else {
         editor.value.setMarkdown(newMarkdown, newCursor, renderCursor, muyaIndexCursor, blocks)
       }
+      if (props.mirror) mirroredMarkdown = newMarkdown
     } else if (newCursor) {
       editor.value.setCursor(newCursor)
     }
@@ -1733,6 +1739,7 @@ const blurEditor = () => {
 }
 
 const focusEditor = () => {
+  if (props.mirror) return
   editor.value.focus()
 }
 
@@ -1938,6 +1945,8 @@ onMounted(() => {
   })
 
   editor.value.on('scroll', (scrollEvent) => {
+    // C-29: the source pane owns the tab's scroll offset while muya mirrors it.
+    if (props.mirror) return
     editorStore.updateScrollPosition(currentFile.value.id, scrollEvent.scrollTop)
     // C-19: track the heading the viewport is in (debounced — scroll
     // events fire at frame rate) and tell the TOC to highlight it.
@@ -1983,6 +1992,7 @@ onMounted(() => {
   // })
 
   editor.value.on('selectionChange', (changes) => {
+    if (props.mirror) return
     const { y } = changes.cursorCoords
     if (typewriter.value) {
       const startPosition = container.scrollTop
@@ -2006,6 +2016,7 @@ onMounted(() => {
   })
 
   editor.value.on('selectionFormats', (formats) => {
+    if (props.mirror) return
     editorStore.SELECTION_FORMATS(formats)
   })
 
