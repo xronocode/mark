@@ -806,7 +806,8 @@
           "jsonBrace": "JSON with Braces",
           "jsonSemicolon": "JSON with Semicolon",
           "title": "Frontmatter Type"
-        }
+        },
+        "frontmatterProperties": "Show YAML front matter as a properties table (click to edit the YAML)"
       },
       "diagrams": {
         "title": "Diagrams",

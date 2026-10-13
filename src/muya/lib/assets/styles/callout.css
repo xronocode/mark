@@ -112,3 +112,50 @@ blockquote.ag-callout-quote {
   --callout-color: #8c959f;
   --callout-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M1.75 2.5h10.5a.75.75 0 0 1 0 1.5H1.75a.75.75 0 0 1 0-1.5Zm4 5h8.5a.75.75 0 0 1 0 1.5h-8.5a.75.75 0 0 1 0-1.5Zm0 5h8.5a.75.75 0 0 1 0 1.5h-8.5a.75.75 0 0 1 0-1.5ZM2.5 7.75v6a.75.75 0 0 1-1.5 0v-6a.75.75 0 0 1 1.5 0Z'/%3E%3C/svg%3E");
 }
+
+/* C-24 R-8: front matter properties view (START_BLOCK_FRONT_MATTER_VIEW).
+   The YAML code stays in the DOM (cursor offsets), hidden while the table shows. */
+pre.ag-front-matter.ag-front-matter-props > code {
+  display: none;
+}
+
+pre.ag-front-matter.ag-front-matter-props {
+  padding: 8px 12px !important;
+  white-space: normal;
+  font-family: inherit;
+}
+
+pre.ag-front-matter .ag-front-matter-table {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  column-gap: 16px;
+  row-gap: 4px;
+  font-size: 14px;
+  line-height: 1.6;
+  cursor: text;
+  background: transparent;
+  user-select: none;
+}
+
+.ag-front-matter-table .ag-fm-row {
+  display: contents;
+}
+
+.ag-front-matter-table .ag-fm-key {
+  color: var(--editorColor50);
+}
+
+.ag-front-matter-table .ag-fm-value {
+  color: var(--editorColor);
+  word-break: break-word;
+}
+
+.ag-front-matter-table .ag-fm-chip {
+  display: inline-block;
+  margin: 0 4px 2px 0;
+  padding: 0 8px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--themeColor, #2f81f7) 14%, transparent);
+  font-size: 12px;
+  line-height: 20px;
+}

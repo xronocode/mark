@@ -796,7 +796,8 @@
           "jsonBrace": "중괄호가 있는 JSON",
           "jsonSemicolon": "세미콜론이 있는 JSON",
           "title": "프론트매터 유형"
-        }
+        },
+        "frontmatterProperties": "YAML 프런트 매터를 속성 표로 표시 (클릭하면 YAML 편집)"
       },
       "diagrams": {
         "title": "다이어그램",

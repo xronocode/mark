@@ -794,7 +794,8 @@
           "jsonBrace": "JSON con Llaves",
           "jsonSemicolon": "JSON con Punto y Coma",
           "title": "Tipo de Metadatos"
-        }
+        },
+        "frontmatterProperties": "Mostrar el front matter YAML como tabla de propiedades (clic para editar el YAML)"
       },
       "diagrams": {
         "title": "Diagramas",

@@ -796,7 +796,8 @@
           "jsonBrace": "JSON 大括號",
           "jsonSemicolon": "JSON 分號",
           "title": "前置資料類型"
-        }
+        },
+        "frontmatterProperties": "將 YAML 前置資料顯示為屬性表（點擊編輯 YAML）"
       },
       "diagrams": {
         "title": "圖表",

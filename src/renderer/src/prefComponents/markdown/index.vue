@@ -47,6 +47,11 @@
           :on-change="(value) => onSelectChange('frontmatterType', value)"
         ></cur-select>
         <bool
+          :description="t('preferences.markdown.extensions.frontmatterProperties')"
+          :bool="frontmatterProperties"
+          :on-change="(value) => onSelectChange('frontmatterProperties', value)"
+        ></bool>
+        <bool
           :description="t('preferences.markdown.extensions.superSubScript')"
           :bool="superSubScript"
           :on-change="(value) => onSelectChange('superSubScript', value)"
@@ -144,6 +149,7 @@ const {
   preferHeadingStyle,
   listIndentation,
   frontmatterType,
+  frontmatterProperties,
   superSubScript,
   footnote,
   mathEnabled,
