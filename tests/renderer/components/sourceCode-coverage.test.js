@@ -34,7 +34,8 @@ const cmMockInstance = vi.hoisted(() => ({
   setSelection: vi.fn(),
   hasFocus: vi.fn(() => true),
   execCommand: vi.fn(),
-  invalidateImageCache: vi.fn()
+  invalidateImageCache: vi.fn(),
+  refresh: vi.fn()
 }))
 
 const codeMirrorMock = vi.hoisted(() => vi.fn(() => cmMockInstance))
@@ -587,5 +588,54 @@ describe('sourceCode.vue — coverage', () => {
     selectAllCall[1]()
 
     document.body.removeChild(div)
+  })
+  /* ── C-29 live-smoke fix: re-measure on container width change ── */
+
+  describe('container resize refresh', () => {
+    let observers, rafQueue
+
+    beforeEach(() => {
+      observers = []
+      rafQueue = []
+      cmMockInstance.refresh.mockReset()
+      vi.stubGlobal('ResizeObserver', class {
+        constructor (cb) { this.cb = cb; this.disconnect = vi.fn(); observers.push(this) }
+        observe (el) { this.el = el }
+      })
+      vi.stubGlobal('requestAnimationFrame', (fn) => { rafQueue.push(fn); return rafQueue.length })
+      vi.stubGlobal('cancelAnimationFrame', vi.fn())
+    })
+
+    afterEach(() => vi.unstubAllGlobals())
+
+    const resizeTo = (width) => {
+      const ro = observers[0]
+      Object.defineProperty(ro.el, 'clientWidth', { configurable: true, value: width })
+      ro.cb([])
+    }
+
+    it.each([false, true])('refreshes CodeMirror once per width change (mirror=%s)', async (mirror) => {
+      preferencesStore.sourceCode = !mirror
+      const wrapper = await mountSourceCode(mirror ? { mirror: true } : {})
+      expect(observers).toHaveLength(1)
+
+      resizeTo(500)
+      resizeTo(500) // height-only change: no extra refresh
+      expect(rafQueue).toHaveLength(1)
+      rafQueue.shift()()
+      expect(cmMockInstance.refresh).toHaveBeenCalledTimes(1)
+
+      wrapper.unmount()
+      expect(observers[0].disconnect).toHaveBeenCalled()
+    })
+
+    it('does not refresh after unmount when a frame is still pending', async () => {
+      preferencesStore.sourceCode = true
+      const wrapper = await mountSourceCode()
+      resizeTo(420)
+      wrapper.unmount()
+      rafQueue.forEach((fn) => fn())
+      expect(cmMockInstance.refresh).not.toHaveBeenCalled()
+    })
   })
 })
