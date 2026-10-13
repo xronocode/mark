@@ -434,6 +434,40 @@ describe('store/project', () => {
       expect(addFileSpy).not.toHaveBeenCalled()
     })
 
+    it('modify for a vanished path (macOS rename source) → unlink tree events and tab unlink', async () => {
+      ipcFsStatMock.mockRejectedValueOnce(Object.assign(new Error('[object Object]'), { cause: { code: 'MT_FS_NOT_FOUND' } }))
+      const store = await loadStore()
+      store.ADD_PROJECT('/root')
+      editorStubRef.tabs = [{ pathname: '/root/old.md' }]
+      await store._handleWatchEvent('/root', { kind: 'modify', paths: ['/root/old.md'] })
+      expect(unlinkFileSpy).toHaveBeenCalledTimes(1)
+      expect(unlinkDirectorySpy).toHaveBeenCalledTimes(1)
+      expect(editorStubRef.APPLY_FILE_CHANGE).toHaveBeenCalledWith('unlink', { pathname: '/root/old.md' })
+      expect(addFileSpy).not.toHaveBeenCalled()
+    })
+
+    it('modify for an existing markdown file (macOS rename target) → added to the tree', async () => {
+      ipcFsStatMock.mockResolvedValueOnce({ isDirectory: false, isFile: true, mtimeMs: 1000 })
+      const store = await loadStore()
+      store.ADD_PROJECT('/root')
+      editorStubRef.tabs = []
+      await store._handleWatchEvent('/root', { kind: 'modify', paths: ['/root/new.md'] })
+      expect(addFileSpy).toHaveBeenCalledTimes(1)
+      expect(unlinkFileSpy).not.toHaveBeenCalled()
+      expect(editorStubRef.APPLY_FILE_CHANGE).not.toHaveBeenCalled()
+    })
+
+    it('modify with a non-NOT_FOUND stat error keeps the tree and still notifies the tab', async () => {
+      vi.spyOn(console, 'debug').mockImplementation(() => {})
+      ipcFsStatMock.mockRejectedValueOnce(new Error('perm'))
+      const store = await loadStore()
+      store.ADD_PROJECT('/root')
+      editorStubRef.tabs = [{ pathname: '/root/a.md' }]
+      await store._handleWatchEvent('/root', { kind: 'modify', paths: ['/root/a.md'] })
+      expect(unlinkFileSpy).not.toHaveBeenCalled()
+      expect(editorStubRef.APPLY_FILE_CHANGE).toHaveBeenCalledWith('change', { pathname: '/root/a.md' })
+    })
+
     it('modify + no matching tab → no calls', async () => {
       const store = await loadStore()
       store.ADD_PROJECT('/root')

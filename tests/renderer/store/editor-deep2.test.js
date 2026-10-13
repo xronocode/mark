@@ -529,16 +529,42 @@ describe('store/editor — deep coverage (wave 2)', () => {
       expect(editor.tabs[0].isSaved).toBe(false)
     })
 
-    it('a later add for the renamed path is handled normally once the echo is consumed', async () => {
+    it('ignores the macOS rename echo — repeated modify/change — for a dirty tab', async () => {
+      // Live smoke 2026-10-13: FSEvents reports the rename as Modify(Name),
+      // which the project watcher forwards as 'change', possibly twice.
+      const tab = makeTab({ id: 'r7', pathname: '/tmp/u/old.md', filename: 'old.md', isSaved: false, markdown: 'unsaved edit' })
+      editor.tabs = [tab]
+      editor.currentFile = tab
+      editor.updateTabIdToIndex()
+      __ipcFsMock.read.mockResolvedValue('saved on disk')
+      const prefs = __preferencesStub
+      prefs.liveReload = true
+
+      editor.RENAME_IF_NEEDED({ src: '/tmp/u/old.md', dest: '/tmp/u/new.md' })
+      editor.APPLY_FILE_CHANGE('change', { pathname: '/tmp/u/new.md' })
+      editor.APPLY_FILE_CHANGE('add', { pathname: '/tmp/u/new.md' })
+      editor.APPLY_FILE_CHANGE('change', { pathname: '/tmp/u/new.md' })
+      await new Promise((r) => setTimeout(r, 150))
+
+      expect(__ipcFsMock.read).not.toHaveBeenCalled()
+      expect(editor.tabs[0].markdown).toBe('unsaved edit')
+      prefs.liveReload = false
+    })
+
+    it('changes to the renamed path are handled normally once the echo window has passed', async () => {
       const tab = makeTab({ id: 'r6', pathname: '/tmp/v/old.md', filename: 'old.md', isSaved: true, markdown: 'same' })
       editor.tabs = [tab]
       editor.currentFile = tab
       editor.updateTabIdToIndex()
       __ipcFsMock.read.mockResolvedValue('external edit')
 
+      const t0 = Date.now()
+      const now = vi.spyOn(Date, 'now').mockReturnValue(t0)
       editor.RENAME_IF_NEEDED({ src: '/tmp/v/old.md', dest: '/tmp/v/new.md' })
-      editor.APPLY_FILE_CHANGE('add', { pathname: '/tmp/v/new.md' })
-      editor.APPLY_FILE_CHANGE('add', { pathname: '/tmp/v/new.md' })
+      editor.APPLY_FILE_CHANGE('change', { pathname: '/tmp/v/new.md' })
+      now.mockReturnValue(t0 + 2001)
+      editor.APPLY_FILE_CHANGE('change', { pathname: '/tmp/v/new.md' })
+      now.mockRestore()
       await new Promise((r) => setTimeout(r, 150))
       expect(__ipcFsMock.read).toHaveBeenCalledTimes(1)
     })
