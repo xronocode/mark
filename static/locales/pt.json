@@ -796,7 +796,8 @@
           "jsonBrace": "JSON com Chaves",
           "jsonSemicolon": "JSON com Ponto e Vírgula",
           "title": "Tipo de Frontmatter"
-        }
+        },
+        "frontmatterProperties": "Mostrar o front matter YAML como tabela de propriedades (clique para editar o YAML)"
       },
       "diagrams": {
         "title": "Diagramas",

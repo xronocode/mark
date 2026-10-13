@@ -801,7 +801,8 @@
           "jsonBrace": "JSON со скобками",
           "jsonSemicolon": "JSON с точкой с запятой",
           "title": "Тип front matter"
-        }
+        },
+        "frontmatterProperties": "Показывать YAML front matter таблицей свойств (клик — редактировать YAML)"
       },
       "diagrams": {
         "title": "Диаграммы",

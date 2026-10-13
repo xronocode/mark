@@ -27,6 +27,7 @@ import renderCopyButton from './renderCopyButton'
 import { renderLeftBar, renderBottomBar } from './renderTableDargBar'
 import { h } from '../snabbdom'
 import { parseCalloutMarker } from '../../../utils/callout'
+import { parseFrontMatterProps } from '../../../utils/frontMatterProps'
 
 const PRE_BLOCK_HASH = {
   fencecode: `.${CLASS_OR_ID.AG_FENCE_CODE}`,
@@ -228,6 +229,30 @@ export default function renderContainerBlock (parent, block, activeBlocks, match
       const code = codeBlock.children.map(line => line.text).join('\n')
       this.codeCache.set(block.key, code)
     }
+
+    // START_BLOCK_FRONT_MATTER_VIEW
+    // C-24 R-8: YAML front matter shows as a read-only properties table until
+    // the cursor enters it; then the editable YAML returns. View only: the
+    // table is never written back.
+    if (functionType === 'frontmatter' && this.muya.options.frontmatterProperties !== false &&
+      block.lang === 'yaml' && !activeBlocks.some(b => b.key === key)) {
+      const codeBlock = block.children[0]
+      const yaml = codeBlock ? codeBlock.children.map(line => line.text).join('\n') : ''
+      const rows = parseFrontMatterProps(yaml)
+      if (rows) {
+        selector += '.ag-front-matter-props'
+        children.push(h('div.ag-front-matter-table', {
+          attrs: { contenteditable: 'false' },
+          dataset: { frontMatterKey: key }
+        }, rows.map(({ key: name, value }) => h('div.ag-fm-row', [
+          h('span.ag-fm-key', name),
+          h('span.ag-fm-value', Array.isArray(value)
+            ? value.map(item => h('span.ag-fm-chip', item))
+            : value)
+        ]))))
+      }
+    }
+    // END_BLOCK_FRONT_MATTER_VIEW
   }
 
   if (!block.parent) {
