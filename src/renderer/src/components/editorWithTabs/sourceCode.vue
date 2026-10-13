@@ -6,6 +6,7 @@
 END_MODULE_CONTRACT
 CHANGE_SUMMARY: 2026-08-10 v2.1.7 rebinds tab identity after file-loaded events and guards null unmount commits.
   2026-10-13 C-29: `mirror` prop — read-only Split View pane; renders from props.markdown 150 ms after changes and never commits, emits or resets tab state.
+  2026-10-13 C-29 live-smoke fix: CodeMirror instance held in shallowRef. Method calls through the deep ref's Proxy (setValue on file-changed, refresh) left proxied line handles in the display, so the next click or arrow key threw `info.map` in WKWebView and the caret jumped or ignored the click.
   2026-10-13 C-29 live-smoke fix: container ResizeObserver calls cm.refresh(). With lineWrapping CodeMirror re-measures only on window resize, so dragging the split divider left the caret drawn at the pre-wrap line position.
 -->
 <template>
@@ -13,7 +14,7 @@ CHANGE_SUMMARY: 2026-08-10 v2.1.7 rebinds tab identity after file-loaded events 
 </template>
 
 <script setup>
-import { ref, watch, onMounted, onBeforeUnmount } from 'vue'
+import { ref, shallowRef, watch, onMounted, onBeforeUnmount } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useEditorStore } from '@/store/editor'
 import { usePreferencesStore } from '@/store/preferences'
@@ -42,7 +43,10 @@ const preferencesStore = usePreferencesStore()
 
 const sourceCodeContainer = ref(null)
 
-const editor = ref(null)
+// shallowRef: a deep ref would hand CodeMirror a reactive Proxy as `this`, so
+// the display caches proxied line handles that never === the raw ones and
+// measurement throws `info.map` (codemirror5#6886).
+const editor = shallowRef(null)
 const commitTimer = ref(null)
 const viewDestroyed = ref(false)
 const tabId = ref(null)
