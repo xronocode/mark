@@ -4,7 +4,7 @@
 //   PURPOSE: ContentState paste behavior — plain/markdown/HTML clipboard import, clipboard image insertion, and the URL-over-selection smart paste.
 //   SCOPE: Prototype methods installed on ContentState (checkPasteType, checkCopyType, standardizeHTML, pasteImage, docPasteHandler, pasteHandler); no DOM rendering of its own.
 //   DEPENDS: muya config regexes, muya utils (sanitize/getUniqueId/getImageInfo/getPageTitle), DOMPurify via utils.
-//   LINKS: .grace/graph/runtime.xml M-012; .grace/verification/runtime.xml V-M-012; .grace/changes/active/C-16.
+//   LINKS: .grace/graph/runtime.xml M-012; .grace/verification/runtime.xml V-M-012; .grace/changes/archive/C-16.
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT
