@@ -4106,10 +4106,12 @@
           npx vitest run tests/renderer/muya/keyboard-undo.test.js
           tests/renderer/muya/copy-data.test.js
           tests/renderer/muya/paste-smart.test.js
+          tests/renderer/muya/quote-auto-pair.test.js
           tests/renderer/commands/menu-consistency.test.js
           tests/renderer/menu-bridge.test.js
         </Command>
         <Command>npx playwright test tests/e2e/smart-paste.spec.ts</Command>
+        <Command>npx playwright test tests/e2e/auto-pair-quotes.spec.ts --project=chromium</Command>
       </Commands>
       <Scenarios>
         <Scenario>
@@ -4204,6 +4206,17 @@
           WKWebView live-app smoke checklist); HTML conversion and
           hostile-markup neutralization visually pinned in
           tests/e2e/smart-paste.spec.ts.
+        </Scenario>
+        <Scenario>
+          scenario-16: Quote auto-pair (bugfix 2026-10-13): a typed `"` or `'`
+          opens a pair only at line start, after whitespace or after an
+          opening bracket (canOpenQuote, START_BLOCK_QUOTE_AUTO_PAIR in
+          inputCtrl.js). After a letter of any script, a digit or punctuation
+          it is a closing quote or apostrophe and inserts one character
+          (`word"`, `слово"`, `слово'`, `it's`). Typing over an auto-inserted
+          closing quote still steps over it. Unit-pinned in
+          tests/renderer/muya/quote-auto-pair.test.js; typed end-to-end in
+          tests/e2e/auto-pair-quotes.spec.ts (failed 3/7 before the fix).
         </Scenario>
       </Scenarios>
       <Markers>
