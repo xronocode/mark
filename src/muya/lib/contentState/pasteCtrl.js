@@ -165,6 +165,12 @@ const pasteCtrl = (ContentState) => {
     if (!imagePath || typeof imagePath !== 'string' || !IMAGE_EXT_REG.test(imagePath)) {
       return null
     }
+    // insertImage refuses code, language-input and thematic-break blocks; do
+    // not copy a file into assets/ for an image that will not be inserted.
+    const startBlock = !this.selectedImage && this.cursor ? this.getBlock(this.cursor.start.key) : null
+    if (startBlock && startBlock.type === 'span' && /^(?:codeContent|languageInput|thematicBreakLine)$/.test(startBlock.functionType)) {
+      return ''
+    }
     const id = `loading-${getUniqueId()}`
     if (this.selectedImage) {
       this.replaceImage(this.selectedImage, {

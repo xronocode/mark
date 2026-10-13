@@ -682,6 +682,7 @@ const imageAction = async (image, id, alt = '') => {
         save: () => saveImageToRelativeFolder(relativeBasePath, resolvedImageRelativeDirectoryName, currentPathname, input),
         fallback: () => saveGlobally(input),
         dir: relativeBasePath,
+        target: window.path.resolve(relativeBasePath, resolvedImageRelativeDirectoryName || 'assets'),
         isAppStore: preferencesStore.buildCapabilities?.mode === 'app-store',
         requestAccess: async (dir) => {
           const { invoke } = await import('@tauri-apps/api/core')
@@ -1014,10 +1015,14 @@ let offDropImage = null
 const handleDropImage = async (_event, payload) => {
   const imagePath = payload && payload.path
   if (!imagePath || sourceCode.value || !editor.value) return
-  const alt = window.path.basename(imagePath).replace(/\.[^/.]+$/, '')
+  const name = window.path.basename(imagePath)
+  // Brackets in a file name would end the alt text early.
+  const alt = name.replace(/\.[^/.]+$/, '').replace(/[[\]\\]/g, '\\$&')
   const result = await editor.value.insertImageFromPath(imagePath, alt)
-  if (result === '') {
-    notice.notify({ title: 'Image', type: 'warning', message: `Could not insert ${window.path.basename(imagePath)}` })
+  if (result === null) {
+    notice.notify({ title: 'Image', type: 'warning', message: `${name}: this image type cannot be inserted (use PNG, JPEG, GIF, SVG or WebP)` })
+  } else if (result === '') {
+    notice.notify({ title: 'Image', type: 'warning', message: `Could not insert ${name} here` })
   }
 }
 // END_BLOCK_DROP_IMAGE

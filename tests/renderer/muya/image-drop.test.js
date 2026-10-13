@@ -41,6 +41,8 @@ function createStub ({ imageAction = vi.fn(async () => 'assets/shot.png'), clipb
       options: { imageAction, clipboardFilePath },
       container: { querySelector: (sel) => (sel.includes(wrapper.getAttribute('data-id')) ? wrapper : null) }
     },
+    cursor: { start: { key: 'b1', offset: 0 }, end: { key: 'b1', offset: 0 } },
+    getBlock: () => ({ type: 'span', functionType: 'paragraphContent' }),
     insertImageFromPath: ContentState.prototype.insertImageFromPath
   }
 }
@@ -73,5 +75,14 @@ describe('insertImageFromPath', () => {
     expect(res).toBeNull()
     expect(items[0].getAsFile).not.toHaveBeenCalled()
     err.mockRestore()
+  })
+
+  it("returns '' without copying anything when the cursor is in a code block (review-2)", async () => {
+    const imageAction = vi.fn(async () => 'assets/shot.png')
+    const stub = createStub({ imageAction })
+    stub.getBlock = () => ({ type: 'span', functionType: 'codeContent' })
+    expect(await ContentState.prototype.insertImageFromPath.call(stub, '/x/shot.png')).toBe('')
+    expect(imageAction).not.toHaveBeenCalled()
+    expect(stub.calls.insertImage).toHaveLength(0)
   })
 })
