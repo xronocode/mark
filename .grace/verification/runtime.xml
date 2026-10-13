@@ -3245,7 +3245,18 @@
         <Command>
           npx vitest run tests/renderer/muya/lexer-token-parity.test.js
           tests/renderer/muya/block-rules-sticky.test.js
+          tests/renderer/muya/inline-token-parity.test.js
         </Command>
+        <Command>
+          npx vitest run tests/renderer/muya/callout.test.js
+          tests/renderer/muya/front-matter-props.test.js
+          tests/renderer/muya/markdown-round-trip.test.js
+          tests/renderer/store/preference-defaults.test.js
+          tests/renderer/util/image-relative-save.test.js
+          tests/renderer/util/image-folder-access.test.js
+          tests/renderer/muya/image-drop.test.js
+        </Command>
+        <Command>npx playwright test tests/e2e/callouts.spec.ts tests/e2e/front-matter-props.spec.ts tests/e2e/image-paste-assets.spec.ts --project=chromium</Command>
         <Command>npm run build &amp;&amp; npm run test:e2e:perf</Command>
         <Command>npm run typecheck:ipc</Command>
         <Command>npm run build</Command>
@@ -3529,6 +3540,29 @@
           `npx playwright test --project webkit-perf` on the job's build);
           locally `npm run test:e2e:perf` builds first, because vite
           preview serves src/renderer/dist.
+        </Scenario>
+        <Scenario>
+          scenario-35: Baseline Markdown for agent output (C-24). New installs
+          default to footnotes on and images in a relative `assets/` folder
+          (preference-defaults.test.js; stored preferences untouched).
+          Adjacent footnote definitions stay separate (lexer fix; goldens
+          updated only for the footnote-enabled variant). Open/save is
+          byte-identical for six agent-style fixtures except three pinned,
+          meaning-preserving muya normalizations (markdown-round-trip.test.js).
+          GitHub alerts and Obsidian callouts (aliases, custom titles, -/+
+          folds) render as callouts and export as GitHub alert markup; fold
+          toggles never change the markdown (callout.test.js,
+          e2e callouts.spec.ts). Flat YAML front matter shows as a read-only
+          properties table, click shows the YAML, nested YAML stays a block
+          (front-matter-props.test.js, e2e front-matter-props.spec.ts).
+          Pasted bitmaps and Finder-dropped images land in assets/ as
+          `![](assets/…)` with a content-hash name; the global folder falls
+          back to userData/images; the App Store build asks once for folder
+          access (image-relative-save, image-folder-access, image-drop tests,
+          e2e image-paste-assets.spec.ts). Inline tokenizer rules are sticky
+          like the C-30 block rules (inline-token-parity.test.js pins 112
+          paragraphs x 3 option sets); the webkit-perf gate stays at the
+          pre-C-24 level.
         </Scenario>
       </Scenarios>
       <Markers>
@@ -4107,6 +4141,8 @@
           tests/renderer/muya/copy-data.test.js
           tests/renderer/muya/paste-smart.test.js
           tests/renderer/muya/quote-auto-pair.test.js
+          tests/renderer/muya/image-drop.test.js
+          tests/renderer/muya/callout.test.js
           tests/renderer/commands/menu-consistency.test.js
           tests/renderer/menu-bridge.test.js
         </Command>
