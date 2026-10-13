@@ -167,7 +167,8 @@ class ClickEvent {
           const key = calloutTitle.dataset.calloutKey
           const folds = contentState.calloutFolds || (contentState.calloutFolds = new Map())
           folds.set(key, !quote.classList.contains('ag-callout-collapsed'))
-          return contentState.render(false)
+          // render(true) restores the cursor; render(false) would blur the editor.
+          return contentState.render(true)
         }
         return
       }

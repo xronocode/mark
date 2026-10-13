@@ -18,7 +18,7 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.2.0 - C-24: the footnote rule also ends before the next `[^id]:` line, so adjacent footnote definitions are separate (the second one used to be swallowed and lose its marker on save).
+//   LAST_CHANGE: v1.2.0 - C-24: the footnote rule also ends before the next `[^id]:` line, so adjacent footnote definitions are separate (the second one used to be swallowed and lose its marker on save); the body may be empty, so `[^1]:` directly followed by `[^2]:` also splits (review-1: it nested and crashed export).
 //   v1.1.0 - C-30: ^-anchored block rules become sticky with a lastIndex-resetting exec. JSC (WKWebView) did not stop at ^ for rules like hr/table/list/blockquote and rescanned the remaining document after every block (O(blocks x length): 23-42 s on a 565 KB file vs 1.4 s in V8). Match set is unchanged: such a rule can only match at index 0, which is the only index sticky-at-0 attempts.
 // END_CHANGE_SUMMARY
 
@@ -61,7 +61,7 @@ export const block = {
   frontmatter: /^(?:(?:---\n([\s\S]+?)---)|(?:\+\+\+\n([\s\S]+?)\+\+\+)|(?:;;;\n([\s\S]+?);;;)|(?:\{\n([\s\S]+?)\}))(?:\n{2,}|\n{1,2}$)/,
   multiplemath: /^\$\$\n([\s\S]+?)\n\$\$(?:\n+|$)/,
   multiplemathGitlab: /^ {0,3}(`{3,})math\n(?:(|[\s\S]*?)\n)(?: {0,3}\1`* *(?:\n+|$)|$)/, // Math inside a code block (GitLab display math)
-  footnote: /^\[\^([^\^\[\]\s]+?)(?<!\\)\]:[\s\S]+?(?=\n *\n {0,3}[^ ]+|\n {0,3}\[\^[^\^\[\]\s]+?(?<!\\)\]:|$)/
+  footnote: /^\[\^([^\^\[\]\s]+?)(?<!\\)\]:[\s\S]*?(?=\n *\n {0,3}[^ ]+|\n {0,3}\[\^[^\^\[\]\s]+?(?<!\\)\]:|$)/
 }
 
 block._label = /(?!\s*\])(?:\\[\[\]]|[^\[\]])+/
