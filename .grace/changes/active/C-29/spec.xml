@@ -66,6 +66,14 @@
       <Item>Default layout is source on the left, rendered on the right (as in VS Code); double-click on the divider swaps.</Item>
       <Item>Touched outside the plan's ObservedWriteScope: editor.vue and sourceCode.vue gain a `mirror` prop (the mirror must not commit, emit or reset tab state); pages/app.vue passes tab.splitView; store/help.js adds the tab field; m009_menu.rs adds the View menu item. Muya and CodeMirror internals stay untouched.</Item>
     </Amendment>
+    <Amendment>
+      <Date>2026-10-13</Date>
+      <Reason>Live WKWebView smoke (debug build, dev server) findings.</Reason>
+      <Item>Passed live: toggle via native menu and Opt+Cmd+Backslash; split collapses at 720 px window and opens at 1140 px; WYSIWYG input reaches the source mirror; Source Code mode swaps roles (CodeMirror editable, muya read-only mirror) and `* item` stays `*`; divider drag and double-click swap persist and survive restart; split hidden while Diff Mode is on.</Item>
+      <Item>Fixed: with lineWrapping CodeMirror re-measures only on window resize, so dragging the divider left the caret drawn at the pre-wrap line position. sourceCode.vue now refreshes CodeMirror on container width change (ResizeObserver, one rAF per width change).</Item>
+      <Item>Open, WKWebView-only: after toggling the split (and, pre-existing, Diff Mode) while in Source Code mode, the first arrow keys in CodeMirror threw `info.map` from prepareMeasureForLine (display view out of sync with the doc). Not reproducible in Chromium e2e; plain Source Code mode is clean. Needs a dedicated live repro before archive.</Item>
+      <Item>Observed, pre-existing and out of scope: muya normalizes the store markdown when a file is first opened in WYSIWYG (`* a\n* b\n\n- [ ] t` becomes `* a\n\n* b\n- [ ] t`) without marking the tab dirty; Split View makes it visible in the source pane.</Item>
+    </Amendment>
   </Amendments>
 
   <VerificationIntent>
