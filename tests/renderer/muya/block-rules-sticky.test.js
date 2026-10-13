@@ -1,5 +1,5 @@
 // FILE: tests/renderer/muya/block-rules-sticky.test.js
-// VERSION: 1.0.0
+// VERSION: 1.1.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Verify the C-30 sticky conversion of ^-anchored block rules: which rules convert, that exec/test/replace always attempt index 0 only, and that g/m/unanchored/non-RegExp rules are left alone.
 //   SCOPE: toStickyAnchored helper and the converted normal/gfm/pedantic grammars exported by blockRules.js.
@@ -15,7 +15,8 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.0.0 - C-30: conversion, lastIndex-reset, replace-path and leave-alone cases.
+//   LAST_CHANGE: v1.1.0 - C-30 review-2: hot rules must be RegExps (no silent skip); minimum sticky count per grammar.
+//   v1.0.0 - C-30: conversion, lastIndex-reset, replace-path and leave-alone cases.
 // END_CHANGE_SUMMARY
 
 import { describe, expect, it } from 'vitest'
@@ -75,14 +76,26 @@ describe('converted grammars', () => {
     })
   }
 
-  it('the five hot rules are converted wherever they are RegExps', () => {
-    for (const [name, grammar] of Object.entries(GRAMMARS)) {
-      for (const key of HOT_RULES) {
-        if (grammar[key] instanceof RegExp) expect(grammar[key].sticky, `${name}.${key}`).toBe(true)
-      }
+  it('the five hot rules are sticky RegExps in gfm; normal/pedantic tables stay noop', () => {
+    for (const key of HOT_RULES) {
+      expect(gfm[key], `gfm.${key}`).toBeInstanceOf(RegExp)
+      expect(gfm[key].sticky, `gfm.${key}`).toBe(true)
     }
-    expect(gfm.table.sticky).toBe(true)
-    expect(gfm.nptable.sticky).toBe(true)
+    for (const grammar of [normal, pedantic]) {
+      for (const key of ['list', 'hr', 'blockquote']) {
+        expect(grammar[key]).toBeInstanceOf(RegExp)
+        expect(grammar[key].sticky).toBe(true)
+      }
+      expect(grammar.table).not.toBeInstanceOf(RegExp)
+      expect(grammar.nptable).not.toBeInstanceOf(RegExp)
+    }
+  })
+
+  it('converts a substantial share of each grammar (guards against a no-op loop)', () => {
+    for (const [name, grammar] of Object.entries(GRAMMARS)) {
+      const sticky = Object.values(grammar).filter(r => r instanceof RegExp && r.sticky).length
+      expect(sticky, name).toBeGreaterThanOrEqual(12)
+    }
   })
 
   it('keeps the gm `item` rule and the shared base table unconverted', () => {

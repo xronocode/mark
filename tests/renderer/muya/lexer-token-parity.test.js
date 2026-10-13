@@ -1,5 +1,5 @@
 // FILE: tests/renderer/muya/lexer-token-parity.test.js
-// VERSION: 1.0.0
+// VERSION: 1.1.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Pin the muya block lexer's token output byte-for-byte across option variants, so rule-level performance work (C-30 sticky anchored rules) cannot change what gets parsed.
 //   SCOPE: Lexer.lex over the lexer-corpus fixtures and two deterministic generated large documents, compared against goldens captured on the pre-C-30 lexer.
@@ -17,11 +17,12 @@
 //   generateSections - deterministic large document in the shape of the C-30 bench (headings, prose, a fence every 25 sections).
 //   generateBlockMix - deterministic large document repeating tables, lists, quotes and hrs (the five hot rules).
 //   sha - sha256 hex of a serialised token stream (used for the large generated documents).
-//   UPDATE - set UPDATE_LEXER_GOLDENS=1 to rewrite goldens (only on the pre-change lexer or after an intended parse change).
+//   UPDATE - UPDATE_LEXER_GOLDENS=1 rewrites goldens and then fails on purpose, so an update can never report green; only run it on the pre-change lexer or after an intended parse change.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.0.0 - C-30: goldens captured on the unmodified lexer (commit cafa8f1a) before the sticky block-rule conversion.
+//   LAST_CHANGE: v1.1.0 - C-30 review-2: UPDATE runs write then throw (cannot mask a regression); corpus gains nptable cases.
+//   v1.0.0 - C-30: goldens captured on the unmodified lexer (commit cafa8f1a) before the sticky block-rule conversion.
 // END_CHANGE_SUMMARY
 
 import { describe, expect, it } from 'vitest'
@@ -103,6 +104,7 @@ describe('lexer token parity (C-30)', () => {
       if (UPDATE) {
         mkdirSync(GOLDEN, { recursive: true })
         writeFileSync(goldenPath, JSON.stringify(actual, null, 1) + '\n')
+        throw new Error(`golden written: ${goldenPath}. UPDATE runs never pass; rerun without UPDATE_LEXER_GOLDENS and review the diff`)
       }
       expect(existsSync(goldenPath), `missing golden ${goldenPath}; run with UPDATE_LEXER_GOLDENS=1 on the pre-change lexer`).toBe(true)
       const expected = JSON.parse(readFileSync(goldenPath, 'utf8'))
@@ -120,6 +122,7 @@ describe('lexer token parity (C-30)', () => {
     if (UPDATE) {
       mkdirSync(GOLDEN, { recursive: true })
       writeFileSync(goldenPath, JSON.stringify(actual, null, 1) + '\n')
+      throw new Error(`golden written: ${goldenPath}. UPDATE runs never pass; rerun without UPDATE_LEXER_GOLDENS and review the diff`)
     }
     expect(existsSync(goldenPath), 'missing generated golden').toBe(true)
     expect(actual).toEqual(JSON.parse(readFileSync(goldenPath, 'utf8')))

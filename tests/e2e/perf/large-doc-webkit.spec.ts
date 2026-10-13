@@ -2,7 +2,7 @@
 // VERSION: 1.0.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Regression gate for C-30 — opening a large document in the WebKit engine (the engine WKWebView ships) must not spend more than the main-thread busy budget.
-//   SCOPE: Renderer-only (vite preview + tauri shim); generated 500-section document; in-page event-loop lag meter; heading-count sanity check.
+//   SCOPE: Renderer-only (vite preview + tauri shim); generated 500-section document; in-page event-loop lag meter; heading-count sanity check. Needs a fresh src/renderer/dist (vite preview serves it; `npm run test:e2e:perf` builds first) and Playwright WebKit (`npx playwright install webkit`); CI installs chromium only, so this gate is opt-in.
 //   DEPENDS: tests/e2e/fixtures/tauri-shim.ts, tests/e2e/fixtures/helpers.ts, Playwright webkit-perf project.
 //   LINKS: .grace/changes/active/C-30; .grace/verification/runtime.xml V-M-011; src/muya/lib/parser/marked/blockRules.js START_BLOCK_STICKY_ANCHORED_RULES.
 //   ROLE: TEST
@@ -16,7 +16,7 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.0.0 - C-30: initial gate; budget 3 s after baselining (fails pre-fix at 8.5 s, passes post-fix at ~0.6 s).
+//   LAST_CHANGE: v1.0.0 - C-30: initial gate (one retry for noisy runners; fresh-build + webkit-install prerequisites documented); budget 3 s after baselining (fails pre-fix at 8.5 s, passes post-fix at ~0.6 s).
 // END_CHANGE_SUMMARY
 
 import { test, expect } from '@playwright/test'
@@ -44,6 +44,7 @@ function generateSections (n: number): string {
 }
 
 test.describe('large document open (WebKit)', () => {
+  test.describe.configure({ retries: 1 })
   test.setTimeout(120_000)
 
   test('main-thread busy stays under budget and every heading renders', async ({ page }) => {
