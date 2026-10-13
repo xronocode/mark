@@ -4,7 +4,7 @@
 //   PURPOSE: Verify C-29 Split View: the split container (layout, divider drag, swap, narrow collapse), which pane is the read-only mirror in editorWithTabs, and the CodeMirror mirror mode of sourceCode.vue.
 //   SCOPE: Deterministic Vue/jsdom tests with a controllable ResizeObserver, mocked CodeMirror and bus.
 //   DEPENDS: Vue Test Utils, Vitest, Pinia test setup, splitView.vue, editorWithTabs/index.vue, sourceCode.vue.
-//   LINKS: .grace/changes/active/C-29 (T-221..T-223, corners 1, 3, 6, 7, 10); V-M-011.
+//   LINKS: .grace/changes/archive/C-29 (T-221..T-223, corners 1, 3, 6, 7, 10); V-M-011.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

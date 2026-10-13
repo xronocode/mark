@@ -373,7 +373,7 @@ const handlePreviewKeydown = (event) => {
 //   INPUTS: { props.mirror: Boolean, props.markdown: String }
 //   OUTPUTS: { void }
 //   SIDE_EFFECTS: muya setMarkdown (render-only; the change event it dispatches is dropped by the mirror guard in the change listener).
-//   LINKS: .grace/changes/active/C-29 T-222; splitView.vue.
+//   LINKS: .grace/changes/archive/C-29 T-222; splitView.vue.
 // END_CONTRACT: syncMirrorFromSource
 // START_BLOCK_SPLIT_MIRROR_SYNC
 const MIRROR_SYNC_DELAY_MS = 150

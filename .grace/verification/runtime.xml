@@ -2382,7 +2382,10 @@
           scenario-11: Renderer-requested context menus render native
           item/separator/enabled states, resolve the selected public id, resolve
           null on dismissal, and never emit the internal item id on
-          `mt::menu-invoked`.
+          `mt::menu-invoked`. A selection whose MenuEvent arrives after
+          popup_at returned is still resolved (250 ms grace; m009 tests
+          context_menu_selection_arriving_after_popup_close_is_kept and
+          dismissed_context_menu_resolves_none_and_releases_entry).
         </Scenario>
         <Scenario>
           scenario-12: Native Cmd+Z/Cmd+Shift+Z items use explicit
