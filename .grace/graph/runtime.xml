@@ -2567,7 +2567,12 @@
         that are ^-anchored without g/m/y flags are sticky with a
         lastIndex-resetting exec (blockRules.js
         START_BLOCK_STICKY_ANCHORED_RULES) so WKWebView never rescans the
-        document tail per block.
+        document tail per block; C-24 extends it to muya's inline tokenizer
+        rules (parser/rules.js START_BLOCK_STICKY_INLINE_RULES). C-24: images
+        pasted or dropped into a saved document are written straight into the
+        relative assets folder (fileSystem.js START_BLOCK_IMAGE_RELATIVE_SAVE;
+        App Store sandbox: START_BLOCK_IMAGE_FOLDER_ACCESS with
+        mt_grant_folder_access); editor.vue handles mt::drop-image.
       </Summary>
       <Path>src/renderer/</Path>
       <Dependencies>
@@ -3054,7 +3059,13 @@
       <Layer>0</Layer>
       <Summary>
         WYSIWYG Markdown engine (existing, zero Electron coupling, ports to
-        WebView as is).
+        WebView as is). C-24: blockquotes whose first line is `[!type]` render
+        as GitHub/Obsidian callouts (utils/callout.js; render-only, view-only
+        fold state) and export as GitHub alert markup; flat YAML front matter
+        renders as a read-only properties table (utils/frontMatterProps.js)
+        until the cursor enters it; insertImageFromPath is the shared local
+        image insert for path paste and file drop. None of these rewrite the
+        markdown.
       </Summary>
       <Path>src/muya/</Path>
       <Dependencies/>
