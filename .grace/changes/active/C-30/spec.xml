@@ -1,0 +1,114 @@
+<GraceChangeSpec graceVersion='4.0' status='approved'>
+<C-30>
+  <Name>Large-document open on WebKit: stop O(n²) block-lexer regex scans (sticky block rules)</Name>
+  <Created>2026-10-13</Created>
+  <Priority>high</Priority>
+  <Status>approved-for-implementation</Status>
+
+  <Summary>
+    Opening a 4,100-line / 565 KB markdown file keeps WKWebView at 100% CPU
+    for 23–42 s (Chromium: 1.4 s on the same build). Root cause: five
+    `^`-anchored muya block rules (nptable, table, list, hr, blockquote)
+    are re-run by Lexer.token() on the whole remaining document tail after
+    every block; JavaScriptCore does not treat `^` as a hard anchor for
+    these patterns and scans the full tail on each failed exec, so the
+    lexer degrades to O(blocks × length). Fix: compile every
+    non-global, non-multiline `^`-anchored block rule as a sticky regex
+    whose exec resets lastIndex to 0 — the same match set, attempted only
+    at position 0.
+  </Summary>
+
+  <Problem>
+    <Description>
+      Any long README, changelog, or agent log opens with a 20–40 s frozen
+      window on macOS (the only shipping engine is WKWebView). Measured
+      2026-10-13: /Applications/Mark.app 2.2.0-beta, bench/big.md (500
+      sections, 1,501 blocks): render settles at 23.15 / 36.97 / 41.58 s.
+      MarkView settles the same file in ~2.5 s.
+    </Description>
+    <RootCause>
+      src/muya/lib/parser/marked/lexer.js runs `this.rules.X.exec(src)` per
+      block, then `src = src.substring(...)`. In JSC (YARR), the rules
+      whose `^` is followed by an alternation of quantified groups (hr:
+      `^ {0,3}((?:- *){3,}|(?:_ *){3,}|(?:\* *){3,})…`, and the
+      table/nptable/list/blockquote rules that embed it) fail slowly,
+      proportionally to the remaining string, instead of failing at
+      position 0. 1,501 blocks × 5 rules × ~4 ms ≈ 26 s. V8 fails these in
+      microseconds, which is why the Playwright/Chromium e2e suite never
+      saw it.
+    </RootCause>
+    <Evidence>
+      <Item>Renderer-only harness (vite preview + tauri-shim, unminified build of cafa8f1a): Chromium settle 1.4 s, Playwright WebKit settle 37.1 s / main-thread busy 29.8 s on big.md; rich 75-line doc 0.5 s / 1.1 s.</Item>
+      <Item>Layout/DOM instrumentation in WebKit: getBoundingClientRect/innerText/computed-style total less than 0.5 s; all DOM mutations land at t≈26–28 s, so the time is pure JS before the first patch.</Item>
+      <Item>RegExp.prototype.exec timing per source (WebKit): nptable 6.2 s, list 6.2 s, table 6.2 s, hr 3.9 s, blockquote 3.9 s, each n=1,501, called from setMarkdown → Lexer.token; total regex 27.9 s of 41.1 s. Chromium: none of the five in the top 12.</Item>
+      <Item>Micro-benchmark on the 565 KB string, per exec: hr as written — Chromium 0.022 ms, WebKit 6.08 ms; same pattern with the sticky flag — 0.001 ms / 0 ms.</Item>
+      <Item>Prototype (scratch build only, repo untouched): sticky + lastIndex-reset block rules → WebKit settle 3.5–7.7 s, main-thread busy 2.5 s (3 runs); total regex 1.5 s; Chromium and rich.md unchanged.</Item>
+    </Evidence>
+  </Problem>
+
+  <Goals>
+    <R-1>
+      In blockRules.js, after normal / gfm / pedantic are built, replace
+      every rule that is a RegExp, whose source starts with `^`, and whose
+      flags contain none of g / m / y with an equivalent sticky RegExp
+      whose `exec` sets lastIndex = 0 before delegating. Rules with g or m
+      (e.g. `item` with 'gm') stay untouched. One helper, one call site; no
+      edits to the 40 exec sites in lexer.js.
+    </R-1>
+    <R-2>
+      Token parity: for a corpus of fixtures (the existing markdown
+      fixtures plus big.md-style generated input, GFM tables, nested lists,
+      blockquotes, hr variants, front matter, footnotes, math, html), the
+      lexer token stream is byte-identical before and after the change.
+    </R-2>
+    <R-3>
+      Regression gate in the engine where the bug lives: a Playwright
+      WebKit perf spec opens a generated large document and asserts
+      main-thread busy time stays under a budget (initially 6 s on CI
+      hardware; tighten after a baseline), so a future rule edit cannot
+      silently reintroduce the scan. Chromium e2e suite unchanged.
+    </R-3>
+    <R-4>
+      Re-measure in the real app (WKWebView via the release build) with
+      the bench scripts used for the diagnosis; record before/after in the
+      change completion evidence.
+    </R-4>
+  </Goals>
+
+  <Constraints>
+    <Constraint>Semantics-preserving only: a `^`-anchored, non-multiline pattern can only match at index 0, which is exactly what sticky-at-0 attempts. No pattern text changes.</Constraint>
+    <Constraint>No new dependencies; no lexer restructuring (position-based lexing is a NonGoal).</Constraint>
+    <Constraint>The custom exec must also hold for String.prototype.replace/match callers of block rules (e.g. checkbox replace), since RegExpExec dispatches to an own exec.</Constraint>
+    <Constraint>Full vitest + Chromium e2e green; WebKit perf spec green; grace lint zero errors.</Constraint>
+  </Constraints>
+
+  <NonGoals>
+    <NonGoal>Rewriting the lexer to index-based scanning (removes the per-block substring too); revisit only if R-3 budget cannot be met.</NonGoal>
+    <NonGoal>Inline-rule tuning (entity regex ~0.5 s in WebKit) and the scattered post-render async work (settle vs busy gap); tracked as follow-ups if the R-4 real-app numbers still miss the 3 s target.</NonGoal>
+    <NonGoal>Virtualised / lazy rendering of off-screen blocks.</NonGoal>
+  </NonGoals>
+
+  <AcceptanceCriteria>
+    <Criterion>Unit: every converted rule is sticky, has lastIndex reset semantics (two consecutive exec calls on different strings both match at 0), and non-anchored / g / m rules are unchanged.</Criterion>
+    <Criterion>Unit: token parity on the fixture corpus (snapshot of Lexer.lex output before vs after).</Criterion>
+    <Criterion>E2E (WebKit project): large generated document opens with main-thread busy under budget; all 500 headings rendered.</Criterion>
+    <Criterion>Real app: bench/big.md render settles in ≤ 3 s main-thread busy on the release build; rich.md no slower than before (±10%).</Criterion>
+  </AcceptanceCriteria>
+
+  <AffectedAreas>
+    <M-011>muya parser block rules (src/muya/lib/parser/marked/blockRules.js) + new WebKit perf e2e spec + playwright webkit project</M-011>
+  </AffectedAreas>
+
+  <VerificationIntent>
+    Unit: rule-conversion and token-parity tests next to the parser.
+    E2E: a WebKit-only perf spec with a generated document and a busy-time
+    budget (the in-page lag meter used in the diagnosis). Governance:
+    V-M-011 scenario + commands at implementation time.
+  </VerificationIntent>
+
+  <Approval>
+    <ApprovedBy>user (session 2026-10-13): "да" — in reply to the C-30 root-cause summary that said plan and implementation follow approval</ApprovedBy>
+    <ApprovalScope>Sticky block-rule conversion in blockRules.js, token-parity and rule unit tests, WebKit perf e2e gate, real-app re-measure. No lexer restructuring; no push or tag.</ApprovalScope>
+  </Approval>
+</C-30>
+</GraceChangeSpec>
