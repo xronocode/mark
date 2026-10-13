@@ -2563,7 +2563,11 @@
       <Summary>
         Vue 3 renderer app (migrated in Phase A via PR #4001); hosts muya, theme
         controller, command dispatcher, native title-path actions, and editor
-        visibility/focus lifecycle.
+        visibility/focus lifecycle. Invariant (C-30): muya block-lexer rules
+        that are ^-anchored without g/m/y flags are sticky with a
+        lastIndex-resetting exec (blockRules.js
+        START_BLOCK_STICKY_ANCHORED_RULES) so WKWebView never rescans the
+        document tail per block.
       </Summary>
       <Path>src/renderer/</Path>
       <Dependencies>
