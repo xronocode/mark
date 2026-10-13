@@ -1,10 +1,10 @@
 // FILE: src/muya/lib/parser/marked/blockRules.js
-// VERSION: 1.1.0
+// VERSION: 1.2.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Block-level grammar (normal, GFM, pedantic) for the muya marked-derived block lexer.
 //   SCOPE: Rule regexes composed with edit(); post-build conversion of position-0-anchored rules to sticky regexes so JavaScriptCore never scans the document tail on a failed match.
 //   DEPENDS: ./utils (edit, noop).
-//   LINKS: .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011; .grace/changes/archive/C-30; consumed by ./lexer.js (Lexer.token exec sites).
+//   LINKS: .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011; .grace/changes/archive/C-30; .grace/changes/active/C-24; consumed by ./lexer.js (Lexer.token exec sites).
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT
@@ -18,7 +18,8 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.1.0 - C-30: ^-anchored block rules become sticky with a lastIndex-resetting exec. JSC (WKWebView) did not stop at ^ for rules like hr/table/list/blockquote and rescanned the remaining document after every block (O(blocks x length): 23-42 s on a 565 KB file vs 1.4 s in V8). Match set is unchanged: such a rule can only match at index 0, which is the only index sticky-at-0 attempts.
+//   LAST_CHANGE: v1.2.0 - C-24: the footnote rule also ends before the next `[^id]:` line, so adjacent footnote definitions are separate (the second one used to be swallowed and lose its marker on save).
+//   v1.1.0 - C-30: ^-anchored block rules become sticky with a lastIndex-resetting exec. JSC (WKWebView) did not stop at ^ for rules like hr/table/list/blockquote and rescanned the remaining document after every block (O(blocks x length): 23-42 s on a 565 KB file vs 1.4 s in V8). Match set is unchanged: such a rule can only match at index 0, which is the only index sticky-at-0 attempts.
 // END_CHANGE_SUMMARY
 
 import { edit, noop } from './utils'
@@ -60,7 +61,7 @@ export const block = {
   frontmatter: /^(?:(?:---\n([\s\S]+?)---)|(?:\+\+\+\n([\s\S]+?)\+\+\+)|(?:;;;\n([\s\S]+?);;;)|(?:\{\n([\s\S]+?)\}))(?:\n{2,}|\n{1,2}$)/,
   multiplemath: /^\$\$\n([\s\S]+?)\n\$\$(?:\n+|$)/,
   multiplemathGitlab: /^ {0,3}(`{3,})math\n(?:(|[\s\S]*?)\n)(?: {0,3}\1`* *(?:\n+|$)|$)/, // Math inside a code block (GitLab display math)
-  footnote: /^\[\^([^\^\[\]\s]+?)(?<!\\)\]:[\s\S]+?(?=\n *\n {0,3}[^ ]+|$)/
+  footnote: /^\[\^([^\^\[\]\s]+?)(?<!\\)\]:[\s\S]+?(?=\n *\n {0,3}[^ ]+|\n {0,3}\[\^[^\^\[\]\s]+?(?<!\\)\]:|$)/
 }
 
 block._label = /(?!\s*\])(?:\\[\[\]]|[^\[\]])+/
