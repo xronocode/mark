@@ -15,6 +15,9 @@
 //   STATUS:  shipped 2026-04-29 with F-MAIN-ENTRY-DISABLED runtime close.
 //
 // CHANGE_SUMMARY:
+//   - 2026-10-13 C-24: mt_grant_folder_access — folder picker opened at the
+//     document folder; the grant is bookmarked (M-047) so images can be
+//     written into assets/ from the App Store sandbox.
 //   - 2026-09-28 C-15 T-W2/T-W1: mt_format_link_click routes through
 //     the opener plugin (cross-platform, was macOS `open` shellout);
 //     mt_open_setting_window hides the menu bar on Windows/Linux.
@@ -170,6 +173,36 @@ pub async fn mt_pick_folder(app: tauri::AppHandle) -> Result<Option<String>, Str
     safe_eprintln!("[m_fs_ops][open_folder][BLOCK_PICKED path={path}]");
 
     Ok(Some(path))
+}
+
+/// C-24: ask the user to grant a folder (opened at `dir`) so images can be
+/// written into `<dir>/assets/` from the App Store sandbox. On a pick the
+/// grant is bookmarked (M-047) and the chosen path returned; cancel → None.
+#[tauri::command]
+pub async fn mt_grant_folder_access(app: tauri::AppHandle, dir: String) -> Result<Option<String>, String> {
+    use tauri_plugin_dialog::DialogExt;
+    let (tx, rx) = tokio::sync::oneshot::channel::<Option<tauri_plugin_dialog::FilePath>>();
+    app.dialog()
+        .file()
+        .set_title("Allow Mark to save images in this folder")
+        .set_directory(&dir)
+        .pick_folder(move |result| {
+            let _ = tx.send(result);
+        });
+    let chosen = rx.await.map_err(|e| e.to_string())?;
+    match chosen.and_then(|p| p.into_path().ok()) {
+        Some(p) => {
+            let s = p.to_string_lossy().to_string();
+            crate::m047_bookmarks::remember(&s);
+            crate::m047_bookmarks::ensure_access(&s);
+            safe_eprintln!("[m_fs_ops][grant_folder][BLOCK_GRANTED path={s}]");
+            Ok(Some(s))
+        }
+        None => {
+            safe_eprintln!("[m_fs_ops][grant_folder][BLOCK_USER_CANCELLED]");
+            Ok(None)
+        }
+    }
 }
 
 /// Walk a project root and stream `mt::update-object-tree` events.
