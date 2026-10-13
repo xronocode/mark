@@ -630,7 +630,7 @@
       </Commands>
       <Scenarios>
         <Scenario>
-          scenario-c4-rename-follow: Sidebar rename of an open file (C-4). RENAME_IF_NEEDED moves every tab of the renamed file to the new path (pathname, filename, DIRNAME for the current tab), leaves other tabs alone, is a no-op when no tab has the file open, drops the old per-file watcher and subscribes the new path; a modify event for the new path live-reloads, one for the old path does not (editor-deep2.test.js RENAME_IF_NEEDED). It never emits bus 'rename', which opens the rename dialog.
+          scenario-c4-rename-follow: Sidebar rename of an open file (C-4). RENAME_IF_NEEDED moves every tab of the renamed file to the new path (pathname, filename, DIRNAME for the current tab), leaves other tabs alone, is a no-op when no tab has the file open, drops the old per-file watcher and subscribes the new path; a modify event for the new path live-reloads, one for the old path does not (editor-deep2.test.js RENAME_IF_NEEDED). It never emits bus 'rename', which opens the rename dialog. Every add/change echo for the new path inside the 2 s rename window is ignored — on macOS the echo is a repeated modify → 'change' — so a dirty renamed tab keeps its edits with liveReload on; after the window changes reload normally (live smoke 2026-10-13).
         </Scenario>
       </Scenarios>
       <Markers>
@@ -1312,6 +1312,9 @@
       <Scenarios>
         <Scenario>
           scenario-c4-sidebar-rename: RENAME_IN_SIDEBAR builds dest from the source directory, calls editorStore.RENAME_IF_NEEDED after a successful rename, and a failed rename shows an 'Error in Side Bar' notice instead of an unhandled rejection (project.test.ts RENAME_IN_SIDEBAR).
+        </Scenario>
+        <Scenario>
+          scenario-c4-tree-follows-rename: macOS reports both halves of a rename as 'modify'. The project watcher stats the path: MT_FS_NOT_FOUND removes it from the tree (unlink + unlinkDir, tab 'unlink'); an existing markdown file is added (addFile dedupes, so plain content modifies are no-ops); any other stat error leaves the tree alone and still notifies the tab (project.test.ts modify cases).
         </Scenario>
       </Scenarios>
       <Markers/>
