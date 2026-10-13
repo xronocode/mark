@@ -6,6 +6,7 @@
 END_MODULE_CONTRACT
 CHANGE_SUMMARY: 2026-08-10 v2.1.7 rebinds tab identity after file-loaded events and guards null unmount commits.
   2026-10-13 C-29: `mirror` prop — read-only Split View pane; renders from props.markdown 150 ms after changes and never commits, emits or resets tab state.
+  2026-10-13 C-29 live-smoke fix: container ResizeObserver calls cm.refresh(). With lineWrapping CodeMirror re-measures only on window resize, so dragging the split divider left the caret drawn at the pre-wrap line position.
 -->
 <template>
   <div ref="sourceCodeContainer" class="source-code"></div>
@@ -234,6 +235,37 @@ watch(
 )
 // END_BLOCK_SOURCE_MIRROR_SYNC
 
+// START_BLOCK_SOURCE_RESIZE_REFRESH
+// CodeMirror re-measures wrapped lines only on window resize; the Split View
+// divider and the split toggle change the pane width without one.
+let resizeObserver = null
+let refreshFrame = 0
+
+const observeContainerWidth = () => {
+  const container = sourceCodeContainer.value
+  if (!container || typeof ResizeObserver !== 'function') return
+  let lastWidth = container.clientWidth
+  resizeObserver = new ResizeObserver(() => {
+    const width = container.clientWidth
+    if (width === lastWidth) return
+    lastWidth = width
+    if (refreshFrame) cancelAnimationFrame(refreshFrame)
+    refreshFrame = requestAnimationFrame(() => {
+      refreshFrame = 0
+      if (editor.value && !viewDestroyed.value) editor.value.refresh()
+    })
+  })
+  resizeObserver.observe(container)
+}
+
+const stopObservingContainer = () => {
+  if (resizeObserver) resizeObserver.disconnect()
+  resizeObserver = null
+  if (refreshFrame) cancelAnimationFrame(refreshFrame)
+  refreshFrame = 0
+}
+// END_BLOCK_SOURCE_RESIZE_REFRESH
+
 const listenChange = () => {
   editor.value.on('cursorActivity', (cm) => {
     const { cursor, markdown: newMarkdown } = getMarkdownAndCursor(cm)
@@ -295,6 +327,7 @@ const mountMirror = () => {
 onMounted(() => {
   if (props.mirror) {
     mountMirror()
+    observeContainerWidth()
     return
   }
   const { id } = currentTab.value
@@ -338,6 +371,7 @@ onMounted(() => {
   tabId.value = id
 
   listenChange()
+  observeContainerWidth()
 })
 
 onBeforeUnmount(() => {
@@ -345,6 +379,7 @@ onBeforeUnmount(() => {
   if (commitTimer.value) clearTimeout(commitTimer.value)
   if (mirrorSyncTimer) clearTimeout(mirrorSyncTimer)
   mirrorSyncTimer = null
+  stopObservingContainer()
   if (props.mirror) return
 
   bus.off('file-loaded', handleFileChange)
