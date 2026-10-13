@@ -256,6 +256,8 @@ One person. AI agents. A native desktop app that rivals what teams of five ship.
 
 **The rendering** — Mermaid v11 diagrams, KaTeX math, Vega charts — all inline, no preview pane
 
+**The Markdown agents write** — footnotes (`[^1]`); GitHub alerts (`> [!NOTE]`) and Obsidian callouts with folding (`> [!faq]-`); YAML front matter shown as a properties table (click to edit the YAML); clickable task lists; screenshots pasted with Cmd+V or dropped from Finder land in `assets/` next to the file as `![](assets/…)`
+
 **The native feel** — system WKWebView, macOS menu bar, NSSpellChecker, real Cmd+shortcuts, Developer ID signed + notarized
 
 **The agent workflow** — file-watcher live reload, dirty-tab protection (Save/Discard/Cancel), preview mode on Finder open, welcome screen with recent files & session restore

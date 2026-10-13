@@ -23,6 +23,21 @@ Mark renders Markdown inline as you type. Headings, bold, italic, links, images,
 | Math | `$...$` or `$$...$$` | KaTeX-rendered formula |
 | Mermaid | ` ```mermaid ` | Rendered diagram |
 | Checkbox | `- [x]` | Interactive checkbox |
+| Footnote | `text[^1]` and `[^1]: note` | Linked footnote |
+| Callout | `> [!NOTE]`, `> [!WARNING]`, `> [!tip] Title`, `> [!faq]-` | Coloured callout; `-`/`+` make it foldable |
+| Front matter | `---` YAML block at the top | Properties table; click it to edit the YAML |
+
+## Callouts
+
+GitHub's five alerts (`NOTE`, `TIP`, `IMPORTANT`, `WARNING`, `CAUTION`) and Obsidian callouts render as callouts. Obsidian aliases such as `info`, `tldr`, `faq`, `bug` or `example` get their own colour, and an unknown type uses the note style with its name as the title. Add a title after the marker (`> [!tip] Before you start`). Add `-` (collapsed) or `+` (expanded) after the marker to make it foldable; folding never changes the file. HTML and PDF export keep the callouts.
+
+## Front matter
+
+A flat YAML front matter block (keys with text, numbers, lists) is shown as a properties table. Click the table to edit the YAML; click anywhere else to see the table again. Nested YAML stays a plain YAML block. Turn the table off in **Preferences → Markdown → Show YAML front matter as a properties table**.
+
+## Images
+
+Paste a screenshot with **Cmd+V** or drop an image file from Finder into a saved document: Mark copies it into an `assets/` folder next to the file and inserts `![](assets/…)`. The folder name is set in **Preferences → Image**. In the App Store version, Mark asks once for access to the document's folder; if you decline, the image is saved to Mark's own image folder instead.
 
 ## Tabs
 
