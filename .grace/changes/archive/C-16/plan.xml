@@ -1,4 +1,4 @@
-<GraceChangePlan graceVersion='4.0' status='approved'>
+<GraceChangePlan graceVersion='4.0' status='applied'>
 <C-16>
   <Name>Agent-output paste hygiene: smart paste + clipboard image paste (matrix P0-C/P0-D)</Name>
   <Created>2026-09-21</Created>

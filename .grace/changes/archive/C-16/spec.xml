@@ -1,9 +1,9 @@
-<GraceChangeSpec graceVersion='4.0' status='approved'>
+<GraceChangeSpec graceVersion='4.0' status='applied'>
 <C-16>
   <Name>Agent-output paste hygiene: smart paste + clipboard image paste (matrix P0-C/P0-D)</Name>
   <Created>2026-09-21</Created>
   <Priority>high</Priority>
-  <Status>approved-for-implementation</Status>
+  <Status>completed</Status>
 
   <Summary>
     Two small paste-pipeline gaps from docs/research/markdown-feature-matrix.md
@@ -132,5 +132,14 @@
       Paste-pipeline additions only; no editor architecture changes.
     </ApprovalScope>
   </Approval>
+  <Completion>
+    <Date>2026-10-13</Date>
+    <Commits>4ca36d74 (URL smart paste; HTML and bitmap paste paths pinned), dfc57788 (e2e visual gates)</Commits>
+    <Evidence>
+      <Item>grace lint --change C-16 --assertions target: 0 errors on 2026-10-13. Shipped in v2.1.13-beta and every later release through v2.2.0-beta.</Item>
+      <Item>R-3 live WKWebView smoke, 2026-10-13, local release build of d68fde27: Cmd+V of a PNG from the system clipboard into a saved document wrote img/2026-10-13-17-42-38-image.png beside it (owner prefs: relative directory "img") and the image rendered. The Rust NSPasteboard reader stays unnecessary.</Item>
+    </Evidence>
+    <Note>Follow-ups found during the smoke are tracked in C-24: the pasted image is saved as an &lt;img width&gt; tag; on a fresh install it goes to a global folder with an absolute path.</Note>
+  </Completion>
 </C-16>
 </GraceChangeSpec>
