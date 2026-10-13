@@ -1,10 +1,10 @@
-<GraceChangeSpec graceVersion='4.0' status='approved'>
+<GraceChangeSpec graceVersion='4.0' status='applied'>
 <!-- Renumbered from C-22 on 2026-10-13: the ID collided with archive/C-22 (site engine, completed). Content unchanged. -->
 <C-29>
   <Name>Split View: WYSIWYG and source side-by-side (matrix P1, last open P1)</Name>
   <Created>2026-09-29</Created>
   <Priority>medium</Priority>
-  <Status>implemented-pending-review</Status>
+  <Status>completed</Status>
 
   <Summary>
     The feature matrix (docs/research/markdown-feature-matrix.md) lists
@@ -71,10 +71,21 @@
       <Reason>Live WKWebView smoke (debug build, dev server) findings.</Reason>
       <Item>Passed live: toggle via native menu and Opt+Cmd+Backslash; split collapses at 720 px window and opens at 1140 px; WYSIWYG input reaches the source mirror; Source Code mode swaps roles (CodeMirror editable, muya read-only mirror) and `* item` stays `*`; divider drag and double-click swap persist and survive restart; split hidden while Diff Mode is on.</Item>
       <Item>Fixed: with lineWrapping CodeMirror re-measures only on window resize, so dragging the divider left the caret drawn at the pre-wrap line position. sourceCode.vue now refreshes CodeMirror on container width change (ResizeObserver, one rAF per width change).</Item>
-      <Item>Open, WKWebView-only: after toggling the split (and, pre-existing, Diff Mode) while in Source Code mode, the first arrow keys in CodeMirror threw `info.map` from prepareMeasureForLine (display view out of sync with the doc). Not reproducible in Chromium e2e; plain Source Code mode is clean. Needs a dedicated live repro before archive.</Item>
+      <Item>Fixed (08bc2eb9): after toggling the split (and, pre-existing, Diff Mode) in Source Code mode, clicks and arrow keys in CodeMirror threw `info.map` in WKWebView and the caret jumped or ignored the click. Root cause found with live diagnostics: sourceCode.vue held the CodeMirror instance in a deep ref, so calls through the reactive Proxy (refresh, setValue) cached proxied line handles in the display that never === the raw ones. The instance is now a shallowRef; unit tests pin that CodeMirror methods see the raw instance. Live re-check: 0 errors across split, clicks, arrows, divider drag and Diff Mode.</Item>
       <Item>Observed, pre-existing and out of scope: muya normalizes the store markdown when a file is first opened in WYSIWYG (`* a\n* b\n\n- [ ] t` becomes `* a\n\n* b\n- [ ] t`) without marking the tab dirty; Split View makes it visible in the source pane.</Item>
     </Amendment>
   </Amendments>
+
+  <Completion>
+    <Date>2026-10-13</Date>
+    <Commits>8e4f9c29 (feature), f908fc25 (review-1 fixes), 107cf019 (live smoke: resize refresh), 08bc2eb9 (live smoke: shallowRef)</Commits>
+    <Evidence>
+      <Item>Renderer suite 3315 passed; e2e tests/e2e/split-view.spec.ts 5 passed (Chromium); grace lint 0 errors.</Item>
+      <Item>Live WKWebView smoke on the debug build passed (see the second amendment).</Item>
+      <Item>Archived as applied on user instruction 2026-10-13 ("закрывай 1-3").</Item>
+    </Evidence>
+    <Note>Pre-existing, out of scope: muya normalizes list spacing in the store on first WYSIWYG load without dirtying the tab; Split View makes it visible.</Note>
+  </Completion>
 
   <VerificationIntent>
     Unit: container logic (state per tab, ratio persistence). E2E:
