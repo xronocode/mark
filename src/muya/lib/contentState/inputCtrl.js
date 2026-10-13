@@ -1,3 +1,24 @@
+// FILE: src/muya/lib/contentState/inputCtrl.js
+// VERSION: 1.1.0
+// START_MODULE_CONTRACT
+//   PURPOSE: ContentState text input handling — per-keystroke block text update, auto-pairing of brackets/quotes/markdown syntax, and inline re-render decisions.
+//   SCOPE: Prototype methods installed on ContentState (inputHandler and helpers) plus the pure canOpenQuote predicate.
+//   DEPENDS: muya selection, parser rules/tokenizer, muya config.
+//   LINKS: .grace/graph/runtime.xml M-012; .grace/verification/runtime.xml V-M-012 scenario-16.
+//   ROLE: RUNTIME
+//   MAP_MODE: EXPORTS
+// END_MODULE_CONTRACT
+//
+// START_MODULE_MAP
+//   default - inputCtrl modifier: installs the input prototype methods on ContentState.
+//   canOpenQuote - true when a quote typed after the given character may open an auto-pair.
+// END_MODULE_MAP
+//
+// START_CHANGE_SUMMARY
+//   - (v1.0.0 implied: upstream inputCtrl baseline, previously ungoverned.)
+//   - 2026-10-13 v1.1.0: bugfix — typing `"` after a word doubled it (`word""`); `'` after Cyrillic did too (the guard was [a-zA-Z\d]). Both quotes now open a pair only at line start, after whitespace or after an opening bracket (START_BLOCK_QUOTE_AUTO_PAIR).
+// END_CHANGE_SUMMARY
+
 import selection from '../selection'
 import { getTextContent } from '../selection/dom'
 import { beginRules } from '../parser/rules'
@@ -15,6 +36,14 @@ const BRACKET_HASH = {
   $: '$',
   '~': '~'
 }
+
+// START_BLOCK_QUOTE_AUTO_PAIR
+// A typed quote opens a pair only at line start, after whitespace or after an
+// opening bracket. After a letter, digit or punctuation it is a closing quote
+// or an apostrophe (`word"`, `слово'`, `ok."`) and must stay a single char.
+const QUOTE_OPENER_PRE_REG = /^$|[\s([{<«„]/u
+export const canOpenQuote = (preInputChar) => QUOTE_OPENER_PRE_REG.test(preInputChar)
+// END_BLOCK_QUOTE_AUTO_PAIR
 
 const BACK_HASH = {
   '}': '{',
@@ -242,10 +271,9 @@ const inputCtrl = (ContentState) => {
             // alphanumeric.
             !/\\/.test(preInputChar) &&
             ((autoPairQuote &&
-              /[']{1}/.test(inputChar) &&
+              /['"]{1}/.test(inputChar) &&
               !/[\S]{1}/.test(postInputChar) &&
-              !/[a-zA-Z\d]{1}/.test(preInputChar)) ||
-              (autoPairQuote && /["]{1}/.test(inputChar) && !/[\S]{1}/.test(postInputChar)) ||
+              canOpenQuote(preInputChar)) ||
               (autoPairBracket &&
                 /[\{\[\(]{1}/.test(inputChar) &&
                 !/[\S]{1}/.test(postInputChar)) ||
