@@ -1,9 +1,9 @@
-<GraceChangeSpec graceVersion='4.0' status='approved'>
+<GraceChangeSpec graceVersion='4.0' status='applied'>
 <C-5>
   <Name>Investigate and stabilize the intermittent pinch-zoom timing test</Name>
   <Created>2026-09-16</Created>
   <Priority>medium</Priority>
-  <Status>planned-only</Status>
+  <Status>completed</Status>
 
   <Summary>
     During C-2 verification the full renderer suite intermittently failed a
@@ -88,5 +88,15 @@
     <ApprovedBy>user (session 2026-09-16): "отметь потом дополнительно проверить"</ApprovedBy>
     <ApprovalScope>Planning only; investigation is a future session.</ApprovalScope>
   </Approval>
+  <Completion>
+    <Date>2026-10-13</Date>
+    <Evidence>
+      <Item>The flaky test named in the Summary no longer exists: C-15 Phase W replaced the pinch-zoom handler with a synchronous ctrl+wheel accumulator (app.vue setupCtrlWheelFontSize), so the accumulation assertion has no timer in its path.</Item>
+      <Item>R-1: 20 consecutive runs of tests/renderer/pages/app-deep.test.js while two full renderer suites ran in parallel: 0 failures.</Item>
+      <Item>R-2: the one remaining wall-clock assertion in the suite (persist debounce, real 220 ms wait vs 150 ms debounce) now uses fake timers and pins both edges (149 ms no write, 150 ms one write).</Item>
+      <Item>R-3: no handler race found. Full renderer suite: 242 files, 3279 tests passed.</Item>
+    </Evidence>
+    <Note>The zoom-keys suite in the same file still waits 220 ms of real time for the same debounce. It is outside this change's scope and is safe by timer ordering, but could take the same fake-timer treatment.</Note>
+  </Completion>
 </C-5>
 </GraceChangeSpec>

@@ -249,7 +249,6 @@ describe('App.vue page — deep coverage', () => {
 
   describe('ctrl+wheel font-size handler (C-15 Phase W QA)', () => {
     const flush = () => new Promise(r => setTimeout(r, 0))
-    const settleDebounce = () => new Promise(r => setTimeout(r, 220))
 
     const fireWheel = (deltaY, ctrlKey = true) => {
       const evt = new WheelEvent('wheel', { deltaY, ctrlKey, bubbles: true, cancelable: true })
@@ -338,15 +337,27 @@ describe('App.vue page — deep coverage', () => {
       mountComponent()
       await flush()
 
-      fireWheel(-20)
-      fireWheel(-20)
-      fireWheel(-20)
-      expect(prefStore.fontSize).toBe(19)
-      expect(persistSpy).not.toHaveBeenCalled()
+      // C-5: fake timers so the 150 ms persist debounce never races wall
+      // time on a loaded runner. The C-2-era flake ("pinch-to-zoom handler >
+      // accumulates delta below threshold without emitting") targeted the
+      // pre-C-15 handler; accumulation is synchronous now and did not fail
+      // in 20 runs under parallel suite load (2026-10-13).
+      vi.useFakeTimers()
+      try {
+        fireWheel(-20)
+        fireWheel(-20)
+        fireWheel(-20)
+        expect(prefStore.fontSize).toBe(19)
+        expect(persistSpy).not.toHaveBeenCalled()
 
-      await settleDebounce()
-      expect(persistSpy).toHaveBeenCalledTimes(1)
-      expect(persistSpy).toHaveBeenCalledWith({ type: 'fontSize', value: 19 })
+        vi.advanceTimersByTime(149)
+        expect(persistSpy).not.toHaveBeenCalled()
+        vi.advanceTimersByTime(1)
+        expect(persistSpy).toHaveBeenCalledTimes(1)
+        expect(persistSpy).toHaveBeenCalledWith({ type: 'fontSize', value: 19 })
+      } finally {
+        vi.useRealTimers()
+      }
     })
   })
 
