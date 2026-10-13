@@ -1,0 +1,93 @@
+<GraceChangeSpec graceVersion='4.0' status='approved'>
+<C-24>
+  <Name>Baseline Markdown for agent output: footnotes on, relative image paste/drop, GitHub + Obsidian callouts, front matter properties view, documented</Name>
+  <Created>2026-10-13</Created>
+  <Priority>high</Priority>
+  <Status>approved-for-implementation</Status>
+
+  <Summary>
+    Agents routinely emit footnotes, GitHub alerts (`> [!NOTE]`), task
+    lists, front matter and screenshots. Mark renders task lists and front
+    matter, but footnotes are off by default, GitHub alerts render as a
+    flat blockquote with the literal `[!NOTE]` marker, and a pasted
+    screenshot on a fresh install lands in a global image folder under an
+    absolute path instead of `assets/` next to the document. None of this
+    is in the README. Source: Yura's backlog item C-24, extended by the
+    MarkView audit (alerts) and a live-app check on 2026-10-13.
+  </Summary>
+
+  <Problem>
+    <Description>
+      A user opens an agent-written report and sees `^1` links that go
+      nowhere, `[!WARNING]` as plain grey text, and a pasted screenshot
+      that breaks as soon as the folder is committed or moved. Typora,
+      MarkEdit and GitHub itself render all of these.
+    </Description>
+    <Evidence>
+      <Item>Live app (local release build of d68fde27, 2026-10-13), fixture with front matter, two alerts, a footnote and task lists: front matter shows as a labelled YAML block (readable, not collapsed into one line; the audit note about that was wrong); task lists render as clickable checkboxes; `> [!NOTE]` / `> [!WARNING]` render as plain blockquotes with the marker text and the lazy continuation merged into one line; the footnote shows as a `^1` link and a raw `[^1]:` definition paragraph.</Item>
+      <Item>src/renderer/src/store/preferences.js:81 and static/preference.json: `footnote: false`.</Item>
+      <Item>Live screenshot paste (Cmd+V of a PNG from the system clipboard into WKWebView) works with the owner's preferences (imagePreferRelativeDirectory=true, imageRelativeDirectoryName=img): the file was written to `img/2026-10-13-17-42-38-image.png` and the image rendered. That smoke closes the evidence gap left open in C-16 R-3.</Item>
+      <Item>The same paste was saved as `&lt;img title="" src="img/…png" alt="" width="275"&gt;` HTML rather than `![](img/…png)`. Root cause not yet identified.</Item>
+      <Item>Shipped defaults (preferences.js:67–69, 137): imageInsertAction=folder, imagePreferRelativeDirectory=false, imageFolderPath=''. A fresh install therefore copies pasted images to a global folder and links them by absolute path.</Item>
+      <Item>README.md mentions none of footnotes, front matter, task lists, alerts or image paste.</Item>
+    </Evidence>
+  </Problem>
+
+  <Goals>
+    <R-1>Footnotes on by default: `footnote: true` in both default sources (preferences.js, static/preference.json). Stored user preferences are not migrated.</R-1>
+    <R-2>Relative image storage by default for new installs: imagePreferRelativeDirectory=true, imageRelativeDirectoryName=`assets`. A pasted bitmap in a saved document goes to `&lt;doc dir&gt;/assets/` and is linked by a relative path. Unsaved documents keep the current fallback (global image folder). Stored user preferences are not migrated.</R-2>
+    <R-3>A pasted or dropped image is written as standard `![alt](assets/…)` markdown unless the user resized it. Diagnose where the `width` HTML form comes from on paste and fix it there; the explicit resize UI keeps writing `&lt;img width&gt;`.</R-3>
+    <R-4>Drag-and-drop of an image file from Finder into a saved document goes through the same imageAction pipeline as paste (copy into `assets/`, relative link). Verify the current behaviour first; change code only if it diverges.</R-4>
+    <R-5>GitHub alerts: a blockquote whose first line is exactly `[!NOTE]`, `[!TIP]`, `[!IMPORTANT]`, `[!WARNING]` or `[!CAUTION]` (case-insensitive, GitHub rules) renders in WYSIWYG and in HTML/PDF export as a callout with icon, title and colour per type, in light and dark themes. The marker line stays editable in source form. Saved markdown is byte-identical to the input. Anything that is not an exact marker stays an ordinary blockquote.</R-5>
+    <R-6>README Features section and site/guide: one line each for footnotes, front matter, task lists, callouts, and image paste/drop into `assets/`.</R-6>
+    <R-7>Obsidian callouts on the same mechanism as R-5: any `[!type]` marker with an optional title (`> [!tip] Custom title`). Obsidian aliases map to the base styles (summary/tldr/abstract, info/todo, hint/tip, check/done/success, help/faq/question, attention/caution/warning, fail/failure/missing, error/danger, bug, example, quote/cite). Unknown types fall back to the NOTE style and keep their written name as the title. A fold marker (`[!note]-` collapsed, `[!note]+` expanded) renders a collapsible callout; toggling the fold is view state only and never rewrites the file. In HTML export a fold becomes `&lt;details&gt;`.</R-7>
+    <R-8>Front matter properties view: a YAML front matter block renders by default as a read-only two-column key/value table. Scalars render as text; lists render as chips; nested maps and anything that fails to parse render as the existing YAML block. Click (or Enter on the focused table) switches the block into the existing editable YAML source; leaving the block switches back. The file text is never regenerated from the table, so comments, quoting and key order survive byte-for-byte. A preference toggles back to the plain YAML block. TOML (`+++`) and JSON front matter keep the current block.</R-8>
+  </Goals>
+
+  <Constraints>
+    <Constraint>No network calls; no new runtime npm dependencies (icons as inline SVG).</Constraint>
+    <Constraint>Round-trip safety: open → save without edits leaves bytes unchanged for every new fixture (footnotes, front matter, task lists, alerts, image links), checked with the C-30 lexer token-parity harness plus a save round-trip test.</Constraint>
+    <Constraint>Mac App Store build: writing `assets/` beside the document needs folder access. Use the existing security-scoped bookmark path (M-047). If the folder is not granted, ask once for folder access; if the user declines, fall back to the container image folder with an absolute link and a notice. Never fail silently.</Constraint>
+    <Constraint>Lexer change for R-5 must keep the C-30 sticky-rule invariant (any new block rule is `^`-anchored, non-g/m, so it is converted automatically) and must not move the webkit-perf gate.</Constraint>
+  </Constraints>
+
+  <NonGoals>
+    <NonGoal>Editing front matter through the table (add/rename/delete keys in the UI); edits stay in YAML source.</NonGoal>
+    <NonGoal>New image upload services, image library management, format conversion or compression. The existing `imageInsertAction: 'upload'` path is untouched.</NonGoal>
+    <NonGoal>Migrating existing users' stored preferences.</NonGoal>
+  </NonGoals>
+
+  <AcceptanceCriteria>
+    <Criterion>Unit: preference defaults pinned (footnote, imagePreferRelativeDirectory, imageRelativeDirectoryName) in both default sources.</Criterion>
+    <Criterion>Unit: callout detection table (5 GitHub types, Obsidian aliases, unknown type fallback, custom title, fold markers -/+, case, non-marker first lines, nested quotes, empty callout) and HTML export output (fold → details); lexer token parity for all pre-existing corpus files unchanged; new corpus fixture for alerts.</Criterion>
+    <Criterion>Unit: save round-trip byte-identical for six fixtures (footnotes, front-matter with comments and quoted values, task-lists, GitHub alerts, Obsidian callouts with folds, image-links), including after toggling folds and entering/leaving the front matter source view.</Criterion>
+    <Criterion>Unit: front matter properties model — scalars, lists, nested map fallback, invalid YAML fallback, TOML/JSON untouched.</Criterion>
+    <Criterion>E2E (Chromium, tauri-shim): synthetic clipboard PNG paste into a saved document → file under `assets/`, markdown `![…](assets/…)`; callout fixture shows GitHub and Obsidian callouts and a fold toggles; front matter shows the table and switches to YAML on click and back; webkit-perf gate still green.</Criterion>
+    <Criterion>Live app (release build): screenshot Cmd+V and Finder drag-and-drop into a saved document → `assets/` + relative `![](…)`; callouts and the properties table visible in light and dark; footnote jump works. MAS build: first paste in a non-granted folder asks for access.</Criterion>
+    <Criterion>Full vitest with coverage thresholds, chromium e2e, grace lint 0 errors; two sequential reviews (correctness and round-trip; MAS sandbox and file-write safety) clean.</Criterion>
+  </AcceptanceCriteria>
+
+  <AffectedAreas>
+    <M-011>preferences defaults (+ front matter view toggle); editor.vue imageAction; muya blockquote callout render + styles; muya front matter properties view; export HTML</M-011>
+    <M-012>muya pasteCtrl / dragDropCtrl / imageCtrl image text form</M-012>
+    <M-047>security-scoped folder access for `assets/` writes in the MAS build</M-047>
+  </AffectedAreas>
+
+  <Relations>
+    <C-16>Its remaining open item, the WKWebView bitmap-paste smoke for R-3, is satisfied by the 2026-10-13 live paste recorded above. C-16 was archived as completed on 2026-10-13 with that evidence.</C-16>
+  </Relations>
+
+  <Approval>
+    <ApprovedBy>user (session 2026-10-13): "в остальном да" for the draft, then "включаем" for adding Obsidian callouts with folding (R-7) and the read-only front matter properties view (R-8)</ApprovedBy>
+    <ApprovalScope>R-1..R-8 as written. Estimate 4–6 days. No push or tag without explicit approval.</ApprovalScope>
+  </Approval>
+
+  <VerificationIntent>
+    Unit tests beside muya (alerts, image text form) and the store
+    (defaults); corpus and round-trip fixtures under tests/renderer;
+    Chromium e2e for paste and alerts; live-app smoke checklist for
+    WKWebView paste/drop and the MAS folder-access prompt. Governance:
+    V-M-011 / V-M-012 scenarios at implementation time.
+  </VerificationIntent>
+</C-24>
+</GraceChangeSpec>
