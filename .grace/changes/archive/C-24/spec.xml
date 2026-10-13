@@ -1,9 +1,9 @@
-<GraceChangeSpec graceVersion='4.0' status='approved'>
+<GraceChangeSpec graceVersion='4.0' status='applied'>
 <C-24>
   <Name>Baseline Markdown for agent output: footnotes on, relative image paste/drop, GitHub + Obsidian callouts, front matter properties view, documented</Name>
   <Created>2026-10-13</Created>
   <Priority>high</Priority>
-  <Status>approved-for-implementation</Status>
+  <Status>completed</Status>
 
   <Summary>
     Agents routinely emit footnotes, GitHub alerts (`> [!NOTE]`), task
@@ -89,5 +89,14 @@
     WKWebView paste/drop and the MAS folder-access prompt. Governance:
     V-M-011 / V-M-012 scenarios at implementation time.
   </VerificationIntent>
+  <Completion>
+    <Date>2026-10-13</Date>
+    <Commits>8546e35e (spec + plan), d46ccde4 (T-001/T-002), 8e010d3b (T-003), e0e91976 (T-004), 8405518d (T-005), c56206d5 (T-006), 31b487de (T-007), 23eb054c (perf), 1e91c0e6 (governance), b9bec671 (review-1), eb0e4e8f (review-2)</Commits>
+    <Evidence>
+      <Item>All gates green at eb0e4e8f; two smart-review rounds fixed. Pushed to fork/main on 2026-10-13; not yet in a tagged release.</Item>
+      <Item>Archived as applied on user instruction 2026-10-13 ("делаем все").</Item>
+    </Evidence>
+    <Note>Not live-verified: Finder drag-drop into a WKWebView window, and the MAS sandbox folder-access prompt. Check both in the next release smoke.</Note>
+  </Completion>
 </C-24>
 </GraceChangeSpec>

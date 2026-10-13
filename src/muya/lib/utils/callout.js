@@ -4,7 +4,7 @@
 //   PURPOSE: Recognise GitHub alerts and Obsidian callouts from the first line of a blockquote.
 //   SCOPE: Pure parsing of the `[!type]` marker line (type, alias-resolved style, title, fold) plus the style table shared by the editor and HTML export. No DOM, no state.
 //   DEPENDS: none.
-//   LINKS: .grace/changes/active/C-24 R-5/R-7; .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011.
+//   LINKS: .grace/changes/archive/C-24 R-5/R-7; .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011.
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT

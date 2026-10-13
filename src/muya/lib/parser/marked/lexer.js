@@ -4,7 +4,7 @@
 //   PURPOSE: Muya block lexer — turns markdown into the block token stream consumed by markdownToState and export.
 //   SCOPE: Lexer class (lex, token) over the normal/gfm/pedantic grammars, including front matter, math, footnotes and GitLab extensions.
 //   DEPENDS: ./blockRules, ./options, ./utils, muya config cursor DNA.
-//   LINKS: .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011; .grace/changes/active/C-24.
+//   LINKS: .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011; .grace/changes/archive/C-24.
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT

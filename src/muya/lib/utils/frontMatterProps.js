@@ -4,7 +4,7 @@
 //   PURPOSE: Read flat YAML front matter into display rows for the read-only properties view.
 //   SCOPE: Dependency-free parse of the subset agents write: `key: scalar`, quoted scalars, inline lists, block lists, comments. Anything outside that subset returns null so the caller keeps the plain YAML block. Never serialises: the file text is the only source of truth.
 //   DEPENDS: none.
-//   LINKS: .grace/changes/active/C-24 R-8; .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011.
+//   LINKS: .grace/changes/archive/C-24 R-8; .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011.
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT

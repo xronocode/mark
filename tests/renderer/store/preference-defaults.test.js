@@ -4,7 +4,7 @@
 //   PURPOSE: Pin the C-24 out-of-the-box defaults (footnotes on, images stored in a relative assets/ folder) and keep the two default sources in agreement.
 //   SCOPE: usePreferencesStore initial state and static/preference.json.
 //   DEPENDS: src/renderer/src/store/preferences.js, static/preference.json, Pinia, Vitest.
-//   LINKS: .grace/changes/active/C-24 R-1/R-2; .grace/verification/runtime.xml V-M-011.
+//   LINKS: .grace/changes/archive/C-24 R-1/R-2; .grace/verification/runtime.xml V-M-011.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

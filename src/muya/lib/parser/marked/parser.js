@@ -4,7 +4,7 @@
 //   PURPOSE: Marked-derived HTML parser used by export, print and Copy as HTML.
 //   SCOPE: Parser class walking block tokens into renderer calls.
 //   DEPENDS: ./renderer, ./inlineLexer, ./slugger, ./textRenderer, ./options, ../../utils/callout.
-//   LINKS: .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011; .grace/changes/active/C-24.
+//   LINKS: .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011; .grace/changes/archive/C-24.
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT
