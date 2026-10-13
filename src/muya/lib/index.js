@@ -33,6 +33,7 @@ import ExportHtml from './utils/exportHtml'
 import ToolTip from './ui/tooltip'
 import I18nCSS from './utils/i18nCSS'
 import './assets/styles/index.css'
+import './assets/styles/callout.css'
 
 class Muya {
   static plugins = []

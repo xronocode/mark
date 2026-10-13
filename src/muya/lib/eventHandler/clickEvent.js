@@ -138,6 +138,23 @@ class ClickEvent {
         return contentState.deleteImage(imageInfo)
       }
 
+      // START_BLOCK_CALLOUT_FOLD_TOGGLE
+      // C-24: clicking a foldable callout's title toggles it. View state only.
+      const calloutTitle = target.closest('.ag-callout-title')
+      if (calloutTitle) {
+        const quote = calloutTitle.closest('.ag-callout')
+        if (quote && quote.classList.contains('ag-callout-foldable')) {
+          event.preventDefault()
+          event.stopPropagation()
+          const key = calloutTitle.dataset.calloutKey
+          const folds = contentState.calloutFolds || (contentState.calloutFolds = new Map())
+          folds.set(key, !quote.classList.contains('ag-callout-collapsed'))
+          return contentState.render(false)
+        }
+        return
+      }
+      // END_BLOCK_CALLOUT_FOLD_TOGGLE
+
       if (footnoteBackLink) {
         event.preventDefault()
         event.stopPropagation()

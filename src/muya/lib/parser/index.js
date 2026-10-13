@@ -1,4 +1,27 @@
+// FILE: src/muya/lib/parser/index.js
+// VERSION: 1.1.0
+// START_MODULE_CONTRACT
+//   PURPOSE: Muya inline tokenizer: turns a block's text into inline tokens for rendering.
+//   SCOPE: Begin-of-line rules, inline rules, highlight merging; generator for markdown re-serialisation.
+//   DEPENDS: ./rules, ../utils, ./marked/utils, ./utils.
+//   LINKS: .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011; .grace/changes/active/C-24.
+//   ROLE: RUNTIME
+//   MAP_MODE: EXPORTS
+// END_MODULE_CONTRACT
+//
+// START_MODULE_MAP
+//   tokenizer - text -> inline tokens (begin rules, inline rules, highlights).
+//   generator - inline tokens -> markdown text.
+// END_MODULE_MAP
+//
+// START_CHANGE_SUMMARY
+//   - (v1.0.0 implied: upstream muya, previously ungoverned.)
+//   - 2026-10-13 v1.1.0: C-24 START_BLOCK_CALLOUT_MARKER_TOKEN: with options.calloutMarker the `[!type] title` first line (newline included) becomes one callout_marker token.
+// END_CHANGE_SUMMARY
+
 import { beginRules, inlineRules, inlineExtensionRules } from './rules'
+
+const CALLOUT_MARKER_LINE_REG = /^\[![A-Za-z][\w-]*\][+-]?(?:[ \t]+[^\n]*)?\n?/
 import { isLengthEven, union } from '../utils'
 import { findClosingBracket } from './marked/utils'
 import { getAttributes, parseSrcAndTitle, validateEmphasize, lowerPriority } from './utils'
@@ -69,7 +92,29 @@ const tokenizerFac = (src, beginRules, inlineRules, pos = 0, top, labels, option
     pending = ''
   }
 
-  if (beginRules && pos === 0) {
+  // START_BLOCK_CALLOUT_MARKER_TOKEN
+  // C-24: the first line of a callout's first paragraph (`[!type][+-] title`,
+  // with its newline) becomes one callout_marker token, hidden unless the
+  // cursor is on it. The caller sets options.calloutMarker only for that line.
+  let calloutMarkerMatched = false
+  if (beginRules && pos === 0 && options.calloutMarker) {
+    const cm = CALLOUT_MARKER_LINE_REG.exec(src)
+    if (cm) {
+      tokens.push({
+        type: 'callout_marker',
+        raw: cm[0],
+        parent: tokens,
+        range: { start: pos, end: pos + cm[0].length }
+      })
+      src = src.substring(cm[0].length)
+      pos = pos + cm[0].length
+      pendingStartPos = pos
+      calloutMarkerMatched = true
+    }
+  }
+  // END_BLOCK_CALLOUT_MARKER_TOKEN
+
+  if (beginRules && pos === 0 && !calloutMarkerMatched) {
     const beginRuleList = math !== false
       ? ['header', 'hr', 'code_fense', 'multiple_math']
       : ['header', 'hr', 'code_fense']

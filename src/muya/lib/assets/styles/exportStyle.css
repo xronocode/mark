@@ -63,3 +63,30 @@
   margin: 0 10px;
   border-bottom: 2px dotted black;
 }
+
+/* C-24: callouts. github-markdown-css styles note/tip/important/warning/caution;
+   these add the Obsidian styles and the foldable <details> form. */
+.markdown-body .markdown-alert-abstract { border-left-color: #1b9aaa; }
+.markdown-body .markdown-alert-abstract .markdown-alert-title { color: #1b9aaa; }
+.markdown-body .markdown-alert-info,
+.markdown-body .markdown-alert-todo { border-left-color: #2f81f7; }
+.markdown-body .markdown-alert-info .markdown-alert-title,
+.markdown-body .markdown-alert-todo .markdown-alert-title { color: #2f81f7; }
+.markdown-body .markdown-alert-success { border-left-color: #2da44e; }
+.markdown-body .markdown-alert-success .markdown-alert-title { color: #2da44e; }
+.markdown-body .markdown-alert-question { border-left-color: #d4760a; }
+.markdown-body .markdown-alert-question .markdown-alert-title { color: #d4760a; }
+.markdown-body .markdown-alert-failure,
+.markdown-body .markdown-alert-danger,
+.markdown-body .markdown-alert-bug { border-left-color: #e5534b; }
+.markdown-body .markdown-alert-failure .markdown-alert-title,
+.markdown-body .markdown-alert-danger .markdown-alert-title,
+.markdown-body .markdown-alert-bug .markdown-alert-title { color: #e5534b; }
+.markdown-body .markdown-alert-example { border-left-color: #8957e5; }
+.markdown-body .markdown-alert-example .markdown-alert-title { color: #8957e5; }
+.markdown-body .markdown-alert-quote { border-left-color: #8c959f; }
+.markdown-body .markdown-alert-quote .markdown-alert-title { color: #8c959f; }
+.markdown-body details.markdown-alert > summary.markdown-alert-title {
+  cursor: pointer;
+  display: list-item;
+}
