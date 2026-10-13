@@ -4,7 +4,7 @@
 //   PURPOSE: Verify the pasteHandler URL smart-paste branch (C-16 R-1) and pin the existing HTML sanitization + bitmap paste paths (R-2/R-3) without booting the full editor.
 //   SCOPE: Prototype-level stub instances driving pasteHandler/standardizeHTML/pasteImage with synthetic clipboard payloads.
 //   DEPENDS: src/muya/lib (prototype methods), DOMPurify via muya utils, Vitest, jsdom.
-//   LINKS: .grace/changes/active/C-16; .grace/graph/runtime.xml M-012; .grace/verification/runtime.xml V-M-012 — pins START_BLOCK_SMART_PASTE_URL in src/muya/lib/contentState/pasteCtrl.js.
+//   LINKS: .grace/changes/archive/C-16; .grace/graph/runtime.xml M-012; .grace/verification/runtime.xml V-M-012 — pins START_BLOCK_SMART_PASTE_URL in src/muya/lib/contentState/pasteCtrl.js.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT
