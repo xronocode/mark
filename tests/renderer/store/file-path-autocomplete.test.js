@@ -4,7 +4,7 @@
 //   PURPOSE: Verify the C-20 generalized ASK_FOR_FILE_PATH (dir-part/prefix resolution, extension filter, directory inclusion, 50-cap) and the byte-identical image delegate ASK_FOR_IMAGE_AUTO_PATH.
 //   SCOPE: Store-action table tests with stubbed window.path/fileUtils and a seeded current file.
 //   DEPENDS: Vitest, Pinia test setup, store/editor.
-//   LINKS: .grace/changes/active/C-20; .grace/verification/runtime.xml V-M-011 scenario-32.
+//   LINKS: .grace/changes/archive/C-20; .grace/verification/runtime.xml V-M-011 scenario-32.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

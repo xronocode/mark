@@ -4,7 +4,7 @@
 //   PURPOSE: Verify the C-21 dead-link checker (dead files/images/anchors, skips, immunity, clamp, cache).
 //   SCOPE: Pure-function table tests with an injected statFn.
 //   DEPENDS: src/renderer/src/util/linkCheck.js, Vitest.
-//   LINKS: .grace/changes/active/C-21; .grace/verification/runtime.xml V-M-011 scenario-33.
+//   LINKS: .grace/changes/archive/C-21; .grace/verification/runtime.xml V-M-011 scenario-33.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

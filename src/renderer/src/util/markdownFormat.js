@@ -4,7 +4,7 @@
 //   PURPOSE: Pure idempotent Format-document normalizer over markdown text (C-17 P0-B), reusing the shared line classifiers.
 //   SCOPE: Trailing-whitespace stripping, blank-line structure around headings/lists, setext→ATX conversion, heading-cascade demotion — all outside fenced code and front matter; returns null when nothing changes.
 //   DEPENDS: markdownLint.js classifiers (classifyHeadingLine, isListLine, isFenceLine, closesFence, frontMatterEnd, isThematicBreak).
-//   LINKS: .grace/changes/active/C-17; .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011 scenario-30.
+//   LINKS: .grace/changes/archive/C-17; .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011 scenario-30.
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT
