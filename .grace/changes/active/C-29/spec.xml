@@ -4,7 +4,7 @@
   <Name>Split View: WYSIWYG and source side-by-side (matrix P1, last open P1)</Name>
   <Created>2026-09-29</Created>
   <Priority>medium</Priority>
-  <Status>approved-for-implementation</Status>
+  <Status>implemented-pending-review</Status>
 
   <Summary>
     The feature matrix (docs/research/markdown-feature-matrix.md) lists
@@ -55,6 +55,18 @@
     <M-011>titleBar untouched; editorWithTabs container</M-011>
     <New>components/editorWithTabs/splitView.vue</New>
   </AffectedAreas>
+
+  <Amendments>
+    <Amendment>
+      <Date>2026-10-13</Date>
+      <Reason>Implementation findings; approved scope "делаем все" (user, 2026-10-13).</Reason>
+      <Item>Shortcut is CmdOrCtrl+Alt+Backslash, not Cmd+Backslash: Cmd+Backslash is already the in-editor sidebar toggle and preview exit (editor.vue handlePreviewKeydown, V-M-022 E-05). menu-consistency pins that no native item claims plain CmdOrCtrl+Backslash.</Item>
+      <Item>Persistence: tabs are not restored across restarts, so the per-tab split flag is session state (tab.splitView, off for new tabs). Ratio and side are global preferences (splitViewRatio, splitViewSwapped) and survive restarts; a corrupt ratio falls back to 50%.</Item>
+      <Item>Mirror debounce is 150 ms, or twice the last mirror render time up to 2 s: a 10k-line document (145k chars) re-renders in ~400 ms in Chromium, so a fixed 150 ms would land typing pauses in render stalls. Coalescing measured at 2 renders per 30-character burst.</Item>
+      <Item>Default layout is source on the left, rendered on the right (as in VS Code); double-click on the divider swaps.</Item>
+      <Item>Touched outside the plan's ObservedWriteScope: editor.vue and sourceCode.vue gain a `mirror` prop (the mirror must not commit, emit or reset tab state); pages/app.vue passes tab.splitView; store/help.js adds the tab field; m009_menu.rs adds the View menu item. Muya and CodeMirror internals stay untouched.</Item>
+    </Amendment>
+  </Amendments>
 
   <VerificationIntent>
     Unit: container logic (state per tab, ratio persistence). E2E:

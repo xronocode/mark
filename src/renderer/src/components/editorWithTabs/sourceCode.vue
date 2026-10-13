@@ -1,10 +1,11 @@
 <!-- MODULE_CONTRACT
-  PURPOSE: Host CodeMirror Source Code mode and commit edits to the active tab.
-  SCOPE: CodeMirror lifecycle, cursor/scroll synchronization, and file event handling.
+  PURPOSE: Host CodeMirror Source Code mode and commit edits to the active tab; with `mirror` (C-29 Split View) host a read-only CodeMirror copy of the tab instead.
+  SCOPE: CodeMirror lifecycle, cursor/scroll synchronization, and file event handling. Mirror mode: readOnly, no store writes, no bus listeners, no tab-state resets, debounced re-render from the markdown prop.
   DEPENDS: editor/preferences stores, bus, CodeMirror adapter.
   ROLE: RUNTIME
 END_MODULE_CONTRACT
 CHANGE_SUMMARY: 2026-08-10 v2.1.7 rebinds tab identity after file-loaded events and guards null unmount commits.
+  2026-10-13 C-29: `mirror` prop — read-only Split View pane; renders from props.markdown 150 ms after changes and never commits, emits or resets tab state.
 -->
 <template>
   <div ref="sourceCodeContainer" class="source-code"></div>
@@ -28,6 +29,10 @@ const props = defineProps({
   textDirection: {
     type: String,
     required: true
+  },
+  mirror: {
+    type: Boolean,
+    default: false
   }
 })
 
@@ -203,6 +208,32 @@ const handleImageAction = ({ id, result, alt }) => {
   }
 }
 
+// START_BLOCK_SOURCE_MIRROR_SYNC
+// C-29: the read-only Split View copy follows the tab markdown with the same
+// 150 ms debounce as the muya mirror; scroll position is kept across updates.
+const MIRROR_SYNC_DELAY_MS = 150
+let mirrorSyncTimer = null
+
+const renderMirror = () => {
+  mirrorSyncTimer = null
+  const cm = editor.value
+  const markdown = props.markdown
+  if (!cm || typeof markdown !== 'string' || cm.getValue() === markdown) return
+  const scrollTop = sourceCodeContainer.value ? sourceCodeContainer.value.scrollTop : 0
+  cm.setValue(markdown)
+  if (sourceCodeContainer.value) sourceCodeContainer.value.scrollTop = scrollTop
+}
+
+watch(
+  () => props.markdown,
+  () => {
+    if (!props.mirror) return
+    if (mirrorSyncTimer) clearTimeout(mirrorSyncTimer)
+    mirrorSyncTimer = setTimeout(renderMirror, MIRROR_SYNC_DELAY_MS)
+  }
+)
+// END_BLOCK_SOURCE_MIRROR_SYNC
+
 const listenChange = () => {
   editor.value.on('cursorActivity', (cm) => {
     const { cursor, markdown: newMarkdown } = getMarkdownAndCursor(cm)
@@ -225,7 +256,36 @@ const listenChange = () => {
   })
 }
 
+const mountMirror = () => {
+  const { markdown, textDirection } = props
+  const codeMirrorConfig = {
+    value: markdown || '',
+    lineNumbers: true,
+    autofocus: false,
+    readOnly: true,
+    lineWrapping: true,
+    styleActiveLine: false,
+    direction: textDirection,
+    viewportMargin: Infinity,
+    lineNumberFormatter(line) {
+      return line % 10 === 0 || line === 1 ? line : ''
+    }
+  }
+  if (railscastsThemes.includes(theme.value)) {
+    codeMirrorConfig.theme = 'railscasts'
+  } else if (oneDarkThemes.includes(theme.value)) {
+    codeMirrorConfig.theme = 'one-dark'
+  }
+  const codeMirrorInstance = codeMirror(sourceCodeContainer.value, codeMirrorConfig)
+  setMode(codeMirrorInstance, 'markdown')
+  editor.value = codeMirrorInstance
+}
+
 onMounted(() => {
+  if (props.mirror) {
+    mountMirror()
+    return
+  }
   const { id } = currentTab.value
   // reset currentTab scrollTop position because the codeMirror scroll position is completely different from the muya scroll position
   // reset blocks as well because the blocks are only valid in muya
@@ -293,6 +353,9 @@ onMounted(() => {
 onBeforeUnmount(() => {
   viewDestroyed.value = true
   if (commitTimer.value) clearTimeout(commitTimer.value)
+  if (mirrorSyncTimer) clearTimeout(mirrorSyncTimer)
+  mirrorSyncTimer = null
+  if (props.mirror) return
 
   bus.off('file-loaded', handleFileChange)
   bus.off('invalidate-image-cache', handleInvalidateImageCache)

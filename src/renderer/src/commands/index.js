@@ -31,6 +31,7 @@
 //   - 2026-09-23 C-18: applyCapabilityGate no longer prunes file.export-file-pdf — PDF export is native (WKWebView print panel); exportPandoc stays informational.
 //   - 2026-09-23 C-19: barrel-export HeadingSearchCommand (edit.go-to-heading, Cmd+T palette symbol search over the active document).
 //   - 2026-08-07 v2.1.2-beta: remove the Terminal/Homebrew update branch and use the signed Tauri updater for every non-App-Store install.
+//   - 2026-10-13 C-29: view.split-view (CmdOrCtrl+Alt+Backslash) toggles Split View for the current tab.
 // END_CHANGE_SUMMARY
 //
 // List of all static commands that are loaded into command center.
@@ -732,6 +733,20 @@ const commands = [
       if (tab && tab.id) {
         tab.diffMode = !tab.diffMode
         console.error(`[editor][diff][BLOCK_DIFF_TOGGLED state=${tab.diffMode ? 'on' : 'off'}]`)
+      }
+    }
+  },
+  {
+    // C-29: Split View for the current tab only (state lives on the tab).
+    id: 'view.split-view',
+    shortcut: [isOsx ? 'Cmd' : 'Ctrl', 'Alt', '\\'],
+    execute: async () => {
+      const { useEditorStore } = await import('@/store/editor')
+      const editor = useEditorStore()
+      const tab = editor.currentFile
+      if (tab && tab.id) {
+        tab.splitView = !tab.splitView
+        console.debug(`[editor][split][BLOCK_SPLIT_TOGGLED state=${tab.splitView ? 'on' : 'off'}]`)
       }
     }
   },

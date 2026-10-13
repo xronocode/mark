@@ -139,7 +139,8 @@
       "toggleTableOfContents": "Toggle Table of Contents",
       "reloadImages": "Reload Images",
       "showDeveloperTools": "Show Developer Tools",
-      "reloadWindow": "Reload Window"
+      "reloadWindow": "Reload Window",
+      "splitView": "Split View"
     },
     "format": {
       "format": "Format",
@@ -1080,7 +1081,8 @@
       "zoomOut": "Zoom Out",
       "devToggleDeveloperTools": "Toggle Developer Tools",
       "problems": "Show markdown problems panel",
-      "toggleMarkdownLint": "Toggle markdown validation"
+      "toggleMarkdownLint": "Toggle markdown validation",
+      "splitView": "Split View"
     },
     "tabs": {
       "cycleForward": "Cycle Forward",

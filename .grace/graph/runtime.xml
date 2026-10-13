@@ -2572,7 +2572,13 @@
         pasted or dropped into a saved document are written straight into the
         relative assets folder (fileSystem.js START_BLOCK_IMAGE_RELATIVE_SAVE;
         App Store sandbox: START_BLOCK_IMAGE_FOLDER_ACCESS with
-        mt_grant_folder_access); editor.vue handles mt::drop-image.
+        mt_grant_folder_access); editor.vue handles mt::drop-image. C-29:
+        editorWithTabs/splitView.vue lays muya and CodeMirror side by side for
+        the current tab (tab.splitView; view.split-view, CmdOrCtrl+Alt+Backslash;
+        ratio/side in preferences splitViewRatio/splitViewSwapped; collapses
+        below 800 px). The non-editable pane is a read-only mirror
+        (editor.vue / sourceCode.vue `mirror` prop) that renders from the tab
+        markdown and never writes to the store.
       </Summary>
       <Path>src/renderer/</Path>
       <Dependencies>

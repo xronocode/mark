@@ -1,5 +1,5 @@
 // FILE: tests/renderer/components/editor-coverage.test.js
-// VERSION: 1.9.0
+// VERSION: 1.10.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Verify editorWithTabs/editor.vue methods, watchers, computed state, event handlers, and lifecycle behavior beyond the base editor test.
 //   SCOPE: Deterministic Vue/jsdom tests with mocked Muya, stores, bus, services, and browser scheduling.
@@ -47,6 +47,7 @@
 //   - 2026-09-17 v1.7.0: C-12 — copyAsPlainText dispatch, <br>-newline pin, whole-document fallback, empty no-op, writeText failure branch, bus-path forwarding.
 //   - 2026-09-22 v1.9.0: C-17 — formatDocument handler cases (applies formatted markdown via setMarkdown; no-op on canonical input).
 //   - 2026-09-21 v1.8.0: contentReloaded scroll clamp — stale pre-edit scrollTop clamps into the reloaded document's range, leftover first-paint padding is dropped, sub-viewport documents land at 0 (C-2 follow-up).
+//   - 2026-10-13 v1.10.0: C-29 — split mirror: no store writes from change events, read-only surface, 150 ms debounced setMarkdown(md, null, false) without focus, inert undo/redo, checkbox/paste/drop blocked.
 // END_CHANGE_SUMMARY
 
 import { shallowMount } from '@vue/test-utils'
@@ -2266,5 +2267,109 @@ describe('editor.vue — coverage', () => {
     expect(mockEditorInstance.setOptions).toHaveBeenCalledWith(
       expect.objectContaining({ t: expect.any(Function) })
     )
+  })
+  /* ══════════════════════════════════════════════════════════════
+   *  C-29 SPLIT VIEW MIRROR
+   * ══════════════════════════════════════════════════════════════ */
+
+  describe('C-29 split mirror', () => {
+    afterEach(() => {
+      vi.useRealTimers()
+    })
+
+    it('mirror muya never writes its change events to the store', async () => {
+      await mountEditor({ mirror: true })
+      const changeCall = mockEditorInstance.on.mock.calls.find((c) => c[0] === 'change')
+      changeCall[1]({ markdown: '* normalized', wordCount: {} })
+      expect(editorStore.LISTEN_FOR_CONTENT_CHANGE).not.toHaveBeenCalled()
+    })
+
+    it('renders the mirror read-only and re-renders 150 ms after the markdown changes, without cursor or focus', async () => {
+      vi.useFakeTimers()
+      const wrapper = await mountEditor({ mirror: false, markdown: '# A' })
+      mockEditorInstance.setMarkdown.mockClear()
+      mockEditorInstance.focus.mockClear()
+
+      await wrapper.setProps({ mirror: true })
+      expect(mockEditorInstance.setMarkdown).toHaveBeenCalledWith('# A', null, false)
+      expect(wrapper.find('.editor-wrapper').classes()).toContain('is-mirror')
+      expect(wrapper.find('.editor-wrapper').classes()).not.toContain('source')
+      expect(mockEditorInstance.container.getAttribute('contenteditable')).toBe('false')
+
+      mockEditorInstance.setMarkdown.mockClear()
+      await wrapper.setProps({ markdown: '# AB' })
+      await wrapper.setProps({ markdown: '# ABC' })
+      vi.advanceTimersByTime(149)
+      expect(mockEditorInstance.setMarkdown).not.toHaveBeenCalled()
+      vi.advanceTimersByTime(1)
+      expect(mockEditorInstance.setMarkdown).toHaveBeenCalledTimes(1)
+      expect(mockEditorInstance.setMarkdown).toHaveBeenCalledWith('# ABC', null, false)
+      expect(mockEditorInstance.focus).not.toHaveBeenCalled()
+    })
+
+    it('does not sync while not mirroring and becomes editable again when the mirror ends', async () => {
+      vi.useFakeTimers()
+      const wrapper = await mountEditor({ mirror: true, markdown: '# A' })
+      await wrapper.setProps({ mirror: false })
+      mockEditorInstance.setMarkdown.mockClear()
+      await wrapper.setProps({ markdown: '# B' })
+      vi.advanceTimersByTime(500)
+      expect(mockEditorInstance.setMarkdown).not.toHaveBeenCalled()
+      expect(mockEditorInstance.container.getAttribute('contenteditable')).toBe('true')
+    })
+
+    it('backs off to twice the last render time on heavy documents', async () => {
+      vi.useFakeTimers()
+      let now = 0
+      const perf = vi.spyOn(performance, 'now').mockImplementation(() => now)
+      mockEditorInstance.setMarkdown.mockImplementation(() => { now += 400 })
+      try {
+        const wrapper = await mountEditor({ mirror: false, markdown: '# A' })
+        await wrapper.setProps({ mirror: true })
+        mockEditorInstance.setMarkdown.mockClear()
+        await wrapper.setProps({ markdown: '# AB' })
+        vi.advanceTimersByTime(799)
+        expect(mockEditorInstance.setMarkdown).not.toHaveBeenCalled()
+        vi.advanceTimersByTime(1)
+        expect(mockEditorInstance.setMarkdown).toHaveBeenCalledTimes(1)
+      } finally {
+        perf.mockRestore()
+        mockEditorInstance.setMarkdown.mockImplementation(() => {})
+      }
+    })
+
+    it('undo and redo are inert on the mirror', async () => {
+      await mountEditor({ mirror: true })
+      getBusHandler('undo')()
+      getBusHandler('redo')()
+      expect(mockEditorInstance.undo).not.toHaveBeenCalled()
+      expect(mockEditorInstance.redo).not.toHaveBeenCalled()
+    })
+
+    it('blocks checkbox clicks, paste and drop on the mirror but lets plain clicks through', async () => {
+      const wrapper = await mountEditor({ mirror: true })
+      const root = wrapper.find('.editor-wrapper').element
+      const checkbox = document.createElement('input')
+      checkbox.type = 'checkbox'
+      root.appendChild(checkbox)
+      const onCheckboxClick = vi.fn()
+      checkbox.addEventListener('click', onCheckboxClick)
+      checkbox.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+      expect(onCheckboxClick).not.toHaveBeenCalled()
+
+      const span = document.createElement('span')
+      root.appendChild(span)
+      const onSpanClick = vi.fn()
+      span.addEventListener('click', onSpanClick)
+      span.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+      expect(onSpanClick).toHaveBeenCalledTimes(1)
+
+      const paste = new Event('paste', { bubbles: true, cancelable: true })
+      span.dispatchEvent(paste)
+      expect(paste.defaultPrevented).toBe(true)
+      const drop = new Event('drop', { bubbles: true, cancelable: true })
+      span.dispatchEvent(drop)
+      expect(drop.defaultPrevented).toBe(true)
+    })
   })
 })

@@ -51,6 +51,16 @@ Mark supports multiple tabs. Each tab is an independent document with its own un
 
 Press **Cmd+Alt+S** to switch to raw Markdown source editing. The source mode uses CodeMirror with syntax highlighting. Press again to return to WYSIWYG mode.
 
+## Split View
+
+Press **Cmd+Alt+\\** or use **View > Split View** to show the Markdown source and the rendered page side by side for the current tab.
+
+- One pane is editable, the other is a read-only mirror that follows your edits. In WYSIWYG mode you type in the rendered pane; after **Cmd+Alt+S** you type in the source pane and the rendered pane follows.
+- The mirror never changes your file: what you type in the source pane is saved exactly as written.
+- Drag the divider to resize the panes (10–90%). Double-click it to swap sides. Both settings are remembered.
+- Split View is per tab and off for new tabs. In a window narrower than 800 px it folds back to one pane and comes back when you widen the window. Diff mode hides it.
+- **Cmd+\\** keeps its old job: it toggles the sidebar.
+
 ## Live reload
 
 When an external process (your AI agent, another editor, a script) modifies the file on disk, Mark automatically reloads the content. The cursor position and scroll state are preserved.

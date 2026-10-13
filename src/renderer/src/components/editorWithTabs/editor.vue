@@ -2,8 +2,8 @@
   <div
     class="editor-wrapper"
     :class="[
-      { typewriter: typewriter, focus: focus, source: sourceCode },
-      { 'is-preview': isPreviewMode }
+      { typewriter: typewriter, focus: focus, source: sourceCode && !mirror },
+      { 'is-preview': isPreviewMode, 'is-mirror': mirror }
     ]"
       :style="{
       lineHeight: lineHeight,
@@ -15,11 +15,14 @@
       :dir="textDirection"
       @mousedown.capture="handlePreviewMousedown"
       @keydown.capture="handlePreviewKeydown"
+      @click.capture="handleMirrorGuard"
+      @paste.capture="handleMirrorGuard"
+      @drop.capture="handleMirrorGuard"
   >
     <div
       ref="editorRef"
       class="editor-component"
-      :contenteditable="isPreviewMode ? 'false' : 'true'"
+      :contenteditable="isReadOnlySurface ? 'false' : 'true'"
     ></div>
     <div v-show="imageViewerVisible" class="image-viewer">
       <span class="icon-close" @click="setImageViewerVisible(false)">
@@ -75,7 +78,7 @@
 
 <script setup>
 // FILE: src/renderer/src/components/editorWithTabs/editor.vue
-// VERSION: 1.16.0
+// VERSION: 1.18.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Host the Muya WYSIWYG surface and coordinate document rendering, selection, scroll, preview, editor tools, and store/bus integration.
 //   SCOPE: Renderer-side Muya lifecycle and UI orchestration; does not own Markdown parsing rules or backend file persistence.
@@ -96,6 +99,8 @@
 //   handleExport - Routes supported export formats to renderer services.
 //   handleCopyAsHtml - Copies selection (or whole document) to the clipboard as rich text/html (C-3).
 //   handleCopyAsPlainText - Copies selection (or whole document) as markup-free plain text (C-12).
+//   syncMirrorFromSource - C-29 Split View: debounced read-only re-render of the muya pane from the source pane; never writes to the store.
+//   handleMirrorGuard - C-29: blocks checkbox clicks, paste and drop on the read-only mirror pane.
 //   handleEditorContextMenu - Native right-click menu: undo/redo, cut/copy/paste/select-all roles, Copy as HTML / Plain Text, Share (C-10/C-11/C-12).
 // END_MODULE_MAP
 //
@@ -117,6 +122,7 @@
 //   - 2026-09-24 v1.15.0: C-20 — LinkPathPicker plugin registered; filePathAutoComplete option wired (md+dirs); imagePathAutoComplete wrapper fixed to a passthrough (the old f.type/f.file mapping produced "undefined" items).
 //   - 2026-09-24 v1.16.0: C-21 — async dead-link validation rides the doc-markdown-changed debounce and emits doc-deadlinks for the problems panel; the same edit restores the C-19 edit-driven scrollspy re-arm that was lost in the 11e350dd handler edit (two bare clearTimeouts replaced the setTimeout re-arm), and the lint snapshot now carries the tab pathname so a tab switch inside the debounce window cannot resolve links against the wrong directory.
 //   - 2026-10-13 v1.17.0: C-24 — imageAction writes pasted/dropped images straight into the relative assets/ folder (the old global staging copy wrote to a cwd-relative path when imageFolderPath was empty, so paste failed on a fresh install); the global folder falls back to <userData>/images; mt::drop-image now has a listener (dropped images used to vanish); in the App Store sandbox a denied assets/ write asks once for folder access (mt_grant_folder_access) and otherwise saves globally with a notice.
+//   - 2026-10-13 v1.18.0: C-29 — `mirror` prop: in Split View with source mode on, the muya pane is visible, read-only (contenteditable=false), re-rendered from the tab markdown 150 ms after edits without focus or cursor, and its change events never reach the store; undo/redo, checkbox clicks, paste and drop are inert on it.
 // END_CHANGE_SUMMARY
 
 import { ref, reactive, watch, onMounted, onBeforeUnmount, nextTick, computed } from 'vue'
@@ -179,7 +185,13 @@ const props = defineProps({
     type: String,
     required: true
   },
-  platform: String
+  platform: String,
+  // C-29: Split View with source mode on — this muya pane is the read-only
+  // mirror of the CodeMirror pane and must never write to the store.
+  mirror: {
+    type: Boolean,
+    default: false
+  }
 })
 
 // Get stores
@@ -269,6 +281,7 @@ let imageViewer = null
 // the .is-preview class flips reactively when APPLY_PREVIEW_MODE /
 // EXIT_PREVIEW_MODE mutate currentFile.previewMode.
 const isPreviewMode = computed(() => !!currentFile.value?.previewMode)
+const isReadOnlySurface = computed(() => isPreviewMode.value || props.mirror)
 
 // START_CONTRACT: syncPreviewSurface
 //   PURPOSE: Keep previewMode synchronized with Muya's actual replacement container and restore an editable caret immediately on preview exit.
@@ -304,7 +317,7 @@ const syncPreviewSurface = (preview, restoreCaret = false) => {
 }
 
 watch(
-  isPreviewMode,
+  isReadOnlySurface,
   (preview, previousPreview) => {
     syncPreviewSurface(preview, previousPreview === true && preview === false)
   },
@@ -353,6 +366,78 @@ const handlePreviewKeydown = (event) => {
   layoutStore.TOGGLE_LAYOUT_ENTRY('showSideBar')
   event.preventDefault()
 }
+
+// START_CONTRACT: syncMirrorFromSource
+//   PURPOSE: C-29 — while this muya pane mirrors the CodeMirror pane, re-render it from the tab markdown (debounced: 150 ms, or twice the last render time up to 2 s on heavy documents) without taking focus.
+//   INPUTS: { props.mirror: Boolean, props.markdown: String }
+//   OUTPUTS: { void }
+//   SIDE_EFFECTS: muya setMarkdown (render-only; the change event it dispatches is dropped by the mirror guard in the change listener).
+//   LINKS: .grace/changes/active/C-29 T-222; splitView.vue.
+// END_CONTRACT: syncMirrorFromSource
+// START_BLOCK_SPLIT_MIRROR_SYNC
+const MIRROR_SYNC_DELAY_MS = 150
+const MIRROR_SYNC_MAX_DELAY_MS = 2000
+let mirrorSyncTimer = null
+let mirroredMarkdown = null
+// Heavy documents: wait at least twice the last render so a typing pause
+// shorter than one render never lands in the middle of a stall.
+let lastMirrorRenderMs = 0
+const mirrorSyncDelay = () =>
+  Math.min(MIRROR_SYNC_MAX_DELAY_MS, Math.max(MIRROR_SYNC_DELAY_MS, lastMirrorRenderMs * 2))
+
+const renderMirror = () => {
+  mirrorSyncTimer = null
+  if (!props.mirror || !editor.value) return
+  const markdown = props.markdown
+  if (typeof markdown !== 'string' || markdown === mirroredMarkdown) return
+  const surface = editor.value.container
+  const scrollTop = surface ? surface.scrollTop : 0
+  const started = performance.now()
+  editor.value.setMarkdown(markdown, null, false)
+  mirroredMarkdown = markdown
+  if (surface) surface.scrollTop = scrollTop
+  lastMirrorRenderMs = performance.now() - started
+  console.debug(
+    `[Editor][syncMirrorFromSource][BLOCK_SPLIT_MIRROR_SYNC] chars=${markdown.length} ms=${Math.round(lastMirrorRenderMs)}`
+  )
+}
+
+const scheduleMirrorSync = (immediate = false) => {
+  if (mirrorSyncTimer) clearTimeout(mirrorSyncTimer)
+  mirrorSyncTimer = null
+  if (!props.mirror) return
+  if (immediate) {
+    renderMirror()
+  } else {
+    mirrorSyncTimer = setTimeout(renderMirror, mirrorSyncDelay())
+  }
+}
+
+watch(
+  () => props.mirror,
+  (value) => {
+    mirroredMarkdown = null
+    lastMirrorRenderMs = 0
+    scheduleMirrorSync(value)
+  }
+)
+
+watch(
+  () => props.markdown,
+  () => scheduleMirrorSync(false)
+)
+
+// The mirror is read-only: checkbox toggles, pastes and drops must not
+// edit the muya copy (it would drift from the source pane).
+const handleMirrorGuard = (event) => {
+  if (!props.mirror) return
+  const target = event.target
+  const isCheckbox = target && target.tagName === 'INPUT'
+  if (event.type === 'click' && !isCheckbox) return
+  event.preventDefault()
+  event.stopPropagation()
+}
+// END_BLOCK_SPLIT_MIRROR_SYNC
 
 // Watchers
 watch(typewriter, (value) => {
@@ -798,12 +883,14 @@ const replaceMisspelling = ({ word, replacement }) => {
 }
 
 const handleUndo = () => {
+  if (props.mirror) return
   if (editor.value) {
     editor.value.undo()
   }
 }
 
 const handleRedo = () => {
+  if (props.mirror) return
   if (editor.value) {
     editor.value.redo()
   }
@@ -1342,7 +1429,7 @@ const setMarkdownToEditor = ({ id, markdown: newMarkdown, cursor: newCursor }) =
     } else {
       editor.value.setMarkdown(newMarkdown)
     }
-    if (!isPreviewMode.value) {
+    if (!isReadOnlySurface.value) {
       nextTick(() => editor.value?.focus())
     }
   }
@@ -1756,7 +1843,7 @@ onMounted(() => {
   // Muya replaces the Vue ref node, so apply preview/editable state to the
   // actual replacement surface after construction. Normal editing also gets
   // an initial focused selection, making the caret visible on first paint.
-  syncPreviewSurface(isPreviewMode.value, !isPreviewMode.value)
+  syncPreviewSurface(isReadOnlySurface.value, !isReadOnlySurface.value)
 
   const { container } = editor.value
 
@@ -1822,6 +1909,9 @@ onMounted(() => {
   hydrateMountedDocument()
 
   editor.value.on('change', (changes) => {
+    // C-29: the split mirror renders from the store; never write it back
+    // (muya normalizes markdown and would rewrite the source).
+    if (props.mirror) return
     // There is a chance that this event is fired AFTER the tab is switched. If we purely rely on this.currentFile later on
     // it can cause invalid updates. Hence, we need the id to identify changes as part of each tab
     const { id } = currentFile.value
@@ -1931,6 +2021,8 @@ onMounted(() => {
 })
 
 onBeforeUnmount(() => {
+  if (mirrorSyncTimer) clearTimeout(mirrorSyncTimer)
+  mirrorSyncTimer = null
   bus.off('file-loaded', setMarkdownToEditor)
   bus.off('invalidate-image-cache', handleInvalidateImageCache)
   bus.off('undo', handleUndo)

@@ -39,6 +39,7 @@ description: "Keyboard shortcuts for editing, navigating and reviewing Markdown 
 |----------|--------|
 | Cmd+B | Toggle sidebar |
 | Cmd+Alt+S | Toggle source code mode |
+| Cmd+Alt+\\ | Toggle Split View (source beside the rendered page) |
 | Cmd+D | Toggle diff view |
 
 ## Editor
