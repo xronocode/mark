@@ -143,6 +143,8 @@ pub async fn mt_fs_write(
     content: String,
     sec: State<'_, SecurityCtx>,
 ) -> Result<(), IpcError> {
+    // C-24: folder grants cover writes beside a document (assets/).
+    crate::m047_bookmarks::ensure_access_for_write(&path);
     fs_write_inner(&path, &content, &sec.sandbox())
 }
 
@@ -256,6 +258,8 @@ pub async fn mt_fs_mkdir(
     path: String,
     sec: State<'_, SecurityCtx>,
 ) -> Result<(), IpcError> {
+    // C-24: folder grants cover writes beside a document (assets/).
+    crate::m047_bookmarks::ensure_access_for_write(&path);
     fs_mkdir_inner(&path, &sec.sandbox())
 }
 
@@ -368,6 +372,8 @@ pub async fn mt_fs_write_binary(
     data: Vec<u8>,
     sec: State<'_, SecurityCtx>,
 ) -> Result<(), IpcError> {
+    // C-24: folder grants cover writes beside a document (assets/).
+    crate::m047_bookmarks::ensure_access_for_write(&path);
     fs_write_binary_inner(&path, &data, &sec.sandbox())
 }
 
@@ -408,6 +414,8 @@ pub async fn mt_fs_copy(
     dest: String,
     sec: State<'_, SecurityCtx>,
 ) -> Result<(), IpcError> {
+    // C-24: folder grants cover writes beside a document (assets/).
+    crate::m047_bookmarks::ensure_access_for_write(&dest);
     fs_copy_inner(&src, &dest, &sec.sandbox())
 }
 
@@ -457,6 +465,8 @@ pub async fn mt_fs_move(
     dest: String,
     sec: State<'_, SecurityCtx>,
 ) -> Result<(), IpcError> {
+    // C-24: folder grants cover writes beside a document (assets/).
+    crate::m047_bookmarks::ensure_access_for_write(&dest);
     fs_move_inner(&src, &dest, &sec.sandbox())
 }
 

@@ -116,7 +116,7 @@
 //   - 2026-09-23 v1.14.0: C-19 — debounced toc-active-heading scrollspy (fixed 80px band; doc-end pins the final heading; above-first-heading clears; re-armed on content change); Go-to-Heading palette command (static registry twin with dynamic-import execute).
 //   - 2026-09-24 v1.15.0: C-20 — LinkPathPicker plugin registered; filePathAutoComplete option wired (md+dirs); imagePathAutoComplete wrapper fixed to a passthrough (the old f.type/f.file mapping produced "undefined" items).
 //   - 2026-09-24 v1.16.0: C-21 — async dead-link validation rides the doc-markdown-changed debounce and emits doc-deadlinks for the problems panel; the same edit restores the C-19 edit-driven scrollspy re-arm that was lost in the 11e350dd handler edit (two bare clearTimeouts replaced the setTimeout re-arm), and the lint snapshot now carries the tab pathname so a tab switch inside the debounce window cannot resolve links against the wrong directory.
-//   - 2026-10-13 v1.17.0: C-24 — imageAction writes pasted/dropped images straight into the relative assets/ folder (the old global staging copy wrote to a cwd-relative path when imageFolderPath was empty, so paste failed on a fresh install); the global folder falls back to <userData>/images; mt::drop-image now has a listener (dropped images used to vanish).
+//   - 2026-10-13 v1.17.0: C-24 — imageAction writes pasted/dropped images straight into the relative assets/ folder (the old global staging copy wrote to a cwd-relative path when imageFolderPath was empty, so paste failed on a fresh install); the global folder falls back to <userData>/images; mt::drop-image now has a listener (dropped images used to vanish); in the App Store sandbox a denied assets/ write asks once for folder access (mt_grant_folder_access) and otherwise saves globally with a notice.
 // END_CHANGE_SUMMARY
 
 import { ref, reactive, watch, onMounted, onBeforeUnmount, nextTick, computed } from 'vue'
@@ -151,6 +151,7 @@ import {
   moveImageToFolder,
   resolveImageFolder,
   saveImageToRelativeFolder,
+  saveImageWithFolderAccess,
   uploadImage
 } from '@/util/fileSystem'
 import { guessClipboardFilePath } from '@/util/clipboard'
@@ -674,10 +675,21 @@ const imageAction = async (image, id, alt = '') => {
   const useRelativeFolder = isTabSavedOnDisk && imagePreferRelativeDirectory.value
   // C-24: write straight into the document's relative folder (no staging copy
   // in the global folder) and return a document-relative path.
+  const saveGlobally = (input) => moveImageToFolder(currentPathname, input, globalImageFolder())
   const saveImage = (input) =>
     useRelativeFolder
-      ? saveImageToRelativeFolder(relativeBasePath, resolvedImageRelativeDirectoryName, currentPathname, input)
-      : moveImageToFolder(currentPathname, input, globalImageFolder())
+      ? saveImageWithFolderAccess({
+        save: () => saveImageToRelativeFolder(relativeBasePath, resolvedImageRelativeDirectoryName, currentPathname, input),
+        fallback: () => saveGlobally(input),
+        dir: relativeBasePath,
+        isAppStore: preferencesStore.buildCapabilities?.mode === 'app-store',
+        requestAccess: async (dir) => {
+          const { invoke } = await import('@tauri-apps/api/core')
+          return invoke('mt_grant_folder_access', { dir })
+        },
+        notify: (message) => notice.notify({ title: 'Image', type: 'warning', message })
+      })
+      : saveGlobally(input)
   let destImagePath = ''
   switch (imageInsertAction.value) {
     case 'upload': {

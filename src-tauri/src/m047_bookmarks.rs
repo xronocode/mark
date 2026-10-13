@@ -1,5 +1,5 @@
 // FILE: src-tauri/src/m047_bookmarks.rs
-// VERSION: 1.1.0
+// VERSION: 1.2.0
 // START_MODULE_CONTRACT
 //   PURPOSE: M-047 security-scoped bookmarks (C-15 T-113). Persists macOS
 //            sandbox access grants so recent files / folders reopen across
@@ -19,12 +19,15 @@
 // START_MODULE_MAP
 //   remember - create + persist a security-scoped bookmark for a granted path
 //   ensure_access - resolve/refresh a stored bookmark, start accessing, return the path
+//   ensure_access_for_write - C-24: start the scope of the nearest bookmarked ancestor before a write
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
 //   - 2026-09-21 C-15 T-113: initial module — sandbox persistence for
 //     App Store builds; zero behavior change for non-MAS (no bookmark →
 //     path passes through unchanged).
+//   - 2026-10-13 C-24: ensure_access_for_write + covering_ancestor (folder
+//     grants cover assets/ writes beside a document).
 //   - 2026-09-29: header normalized to canonical START/END contract
 //     form (grace lint closure).
 // END_CHANGE_SUMMARY
@@ -138,6 +141,44 @@ pub fn ensure_access(path: &str) -> String {
     path.to_string()
 }
 
+// START_BLOCK_WRITE_ACCESS_COVERING
+/// C-24: before a write (assets/ image, mkdir, copy), regain access through
+/// the bookmark of the nearest granted ancestor folder. A file grant alone
+/// does not cover its siblings in the sandbox; a folder grant covers the
+/// whole subtree. No covering bookmark → nothing to do (non-MAS writes and
+/// already-active scopes pass through).
+pub fn ensure_access_for_write(path: &str) {
+    #[cfg(target_os = "macos")]
+    {
+        let anc = {
+            let st = state().lock().unwrap();
+            covering_ancestor(path, st.bookmarks.keys())
+        };
+        if let Some(anc) = anc {
+            ensure_access(&anc);
+        }
+    }
+    #[cfg(not(target_os = "macos"))]
+    {
+        let _ = path;
+    }
+}
+
+/// The longest stored key that is `path` itself or a parent folder of it.
+pub(crate) fn covering_ancestor<'a, I>(path: &str, keys: I) -> Option<String>
+where
+    I: IntoIterator<Item = &'a String>,
+{
+    keys.into_iter()
+        .filter(|k| {
+            let k = k.trim_end_matches('/');
+            !k.is_empty() && (path == k || path.starts_with(&format!("{k}/")))
+        })
+        .max_by_key(|k| k.len())
+        .cloned()
+}
+// END_BLOCK_WRITE_ACCESS_COVERING
+
 // -- pure helpers (tested on all platforms) --
 
 fn b64_encode(data: &[u8]) -> String {
@@ -245,6 +286,29 @@ mod tests {
         assert_eq!(b64_decode(&enc).unwrap(), blob);
         assert!(b64_decode("abc").is_none()); // odd length
         assert!(b64_decode("zz").is_none()); // non-hex
+    }
+
+    #[test]
+    fn covering_ancestor_picks_the_nearest_granted_folder() {
+        let keys: Vec<String> = vec![
+            "/Users/me".into(),
+            "/Users/me/notes".into(),
+            "/Users/me/notes/doc.md".into(),
+            "/Users/me/notes-old".into(),
+        ];
+        assert_eq!(
+            covering_ancestor("/Users/me/notes/assets/x.png", &keys).as_deref(),
+            Some("/Users/me/notes")
+        );
+        assert_eq!(covering_ancestor("/Users/me/notes", &keys).as_deref(), Some("/Users/me/notes"));
+        // a sibling with a shared prefix is not an ancestor
+        assert_eq!(covering_ancestor("/Users/me/notes-older/a", &keys).as_deref(), Some("/Users/me"));
+        assert_eq!(covering_ancestor("/tmp/a.png", &keys), None);
+        let trailing: Vec<String> = vec!["/Users/me/notes/".into()];
+        assert_eq!(
+            covering_ancestor("/Users/me/notes/assets", &trailing).as_deref(),
+            Some("/Users/me/notes/")
+        );
     }
 
     #[test]
