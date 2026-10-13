@@ -74,6 +74,14 @@
 //   - 2026-09-23 C-19: add Edit-menu "Go to Heading…"
 //                (edit.go-to-heading, CmdOrCtrl+T) — heading symbol search
 //                palette over the active document.
+//   - 2026-10-13 fix: dynamic context-menu clicks were sometimes lost.
+//                popup_at returns when the menu closes, but the item's
+//                MenuEvent reaches capture_context_menu_selection through
+//                the event loop afterwards; the pending entry was already
+//                taken, so the click fell through as an unknown
+//                `__mt_context__:*` command (sidebar Rename/Copy did
+//                nothing). The command now waits up to
+//                CONTEXT_MENU_SELECTION_GRACE for the late event.
 // END_CHANGE_SUMMARY
 
 use serde::{Deserialize, Serialize};
@@ -223,6 +231,31 @@ fn register_pending_context_menu(token: u64, public_ids: Vec<String>) {
         },
     );
 }
+
+// START_BLOCK_AWAIT_CONTEXT_SELECTION
+// The selected item's MenuEvent is delivered through the event loop after
+// popup_at returns, so the pending entry must outlive the popup briefly.
+// A dismissed menu never gets an event and resolves after the grace period.
+const CONTEXT_MENU_SELECTION_GRACE: std::time::Duration = std::time::Duration::from_millis(250);
+const CONTEXT_MENU_SELECTION_POLL: std::time::Duration = std::time::Duration::from_millis(5);
+
+fn pending_context_menu_has_selection(token: u64) -> bool {
+    let pending = pending_context_menus()
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner());
+    pending
+        .get(&token)
+        .is_some_and(|entry| entry.selected.is_some())
+}
+
+async fn await_pending_context_menu(token: u64, grace: std::time::Duration) -> Option<String> {
+    let deadline = tokio::time::Instant::now() + grace;
+    while !pending_context_menu_has_selection(token) && tokio::time::Instant::now() < deadline {
+        tokio::time::sleep(CONTEXT_MENU_SELECTION_POLL).await;
+    }
+    take_pending_context_menu(token)
+}
+// END_BLOCK_AWAIT_CONTEXT_SELECTION
 
 fn take_pending_context_menu(token: u64) -> Option<String> {
     let mut pending = pending_context_menus()
@@ -1063,7 +1096,11 @@ pub async fn mt_window_popup_context_menu(
     register_pending_context_menu(token, public_ids);
     let position = Position::Logical(LogicalPosition::new(x.max(0.0), y.max(0.0)));
     let popup_result = menu.popup_at(window, position);
-    let selected = take_pending_context_menu(token);
+    let selected = if popup_result.is_ok() {
+        await_pending_context_menu(token, CONTEXT_MENU_SELECTION_GRACE).await
+    } else {
+        take_pending_context_menu(token)
+    };
     popup_result.map_err(|error| format!("{MT_CONTEXT_MENU_POPUP_FAILED}: {error}"))?;
 
     safe_eprintln!(
@@ -1343,6 +1380,33 @@ mod tests {
         assert_eq!(take_pending_context_menu(token).as_deref(), Some("copyPath"));
         assert!(!capture_context_menu_selection("file.save"));
         assert!(!capture_context_menu_selection(&native_id));
+    }
+
+    #[tokio::test]
+    async fn context_menu_selection_arriving_after_popup_close_is_kept() {
+        let token = NEXT_CONTEXT_MENU_TOKEN.fetch_add(1, Ordering::Relaxed);
+        register_pending_context_menu(token, vec!["rename".into()]);
+        let native_id = context_menu_native_id(token, 0);
+        // The MenuEvent lands after popup_at has already returned.
+        let late = tokio::spawn(async move {
+            tokio::time::sleep(std::time::Duration::from_millis(30)).await;
+            capture_context_menu_selection(&native_id)
+        });
+        let selected = await_pending_context_menu(token, CONTEXT_MENU_SELECTION_GRACE).await;
+        assert!(late.await.unwrap());
+        assert_eq!(selected.as_deref(), Some("rename"));
+    }
+
+    #[tokio::test]
+    async fn dismissed_context_menu_resolves_none_and_releases_entry() {
+        let token = NEXT_CONTEXT_MENU_TOKEN.fetch_add(1, Ordering::Relaxed);
+        register_pending_context_menu(token, vec!["rename".into()]);
+        let started = std::time::Instant::now();
+        let selected = await_pending_context_menu(token, std::time::Duration::from_millis(40)).await;
+        assert_eq!(selected, None);
+        assert!(started.elapsed() >= std::time::Duration::from_millis(40));
+        // A click event arriving after the grace window is no longer captured.
+        assert!(!capture_context_menu_selection(&context_menu_native_id(token, 0)));
     }
 
     #[test]
