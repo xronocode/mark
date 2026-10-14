@@ -3106,7 +3106,15 @@
         per-block ~250 ms trailing debounce while typing (first render and
         theme switches immediate), counter-unique render ids, and
         useMaxWidth:false natural size with horizontal scroll scoped by the
-        ag-mermaid-preview hook class (styles index.css).
+        ag-mermaid-preview hook class (styles index.css). C-34 R2.2 +
+        C-39 T2: ui/blockViewer/ is the shared fullscreen block viewer for
+        Mermaid diagrams (clone of the live preview incl. the hoisted
+        &lt;style&gt;) and read-only table clones (editing affordances
+        stripped, sticky thead) with @panzoom/panzoom pan/zoom
+        (pinch/Cmd+wheel, drag, +/−/0/1 keys), Esc close with focus trap
+        and restore, a hover/caret ⤢ toolbar above the block, and
+        Cmd/Ctrl+click on a diagram routed via clickEvent.js
+        (muya-block-viewer event).
       </Summary>
       <Path>src/muya/</Path>
       <Dependencies/>

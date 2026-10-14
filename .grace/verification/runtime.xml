@@ -4229,6 +4229,11 @@
           npm run build &amp;&amp; npx playwright test --project=chromium
           tests/e2e/mermaid-render.spec.ts
         </Command>
+        <Command>npx vitest run tests/renderer/muya/block-viewer.test.js</Command>
+        <Command>
+          npm run build &amp;&amp; npx playwright test --project=chromium
+          tests/e2e/block-viewer.spec.ts
+        </Command>
       </Commands>
       <Scenarios>
         <Scenario>
@@ -4361,6 +4366,32 @@
           implementation); wide-flowchart scroll and keep-last-good typed
           end-to-end in tests/e2e/mermaid-render.spec.ts.
         </Scenario>
+        <Scenario>
+          scenario-18: Shared fullscreen block viewer (C-34 R2.2 + C-39 T2,
+          ui/blockViewer/index.js START_BLOCK_VIEWER_*): one overlay serves
+          Mermaid diagrams (clone of the current preview incl. the hoisted
+          &lt;style&gt;, no re-render) and read-only clones of rendered
+          tables (contenteditable, drag handlers, tool bars and duplicate
+          ids stripped; sticky thead); pan/zoom via @panzoom/panzoom 4.6.2 —
+          pinch / Cmd+Ctrl+wheel zoom (zoomWithWheel), drag pan, plain wheel
+          pans diagrams and natively scrolls capped tables so the sticky
+          header works, keys + = − _ 0 (fit) 1 (100%) zoom, Esc closes,
+          close button and backdrop click close; focus is trapped inside
+          while open (Tab cycling) and restored to the editor on close;
+          the hover/caret toolbar (⤢ expand) appears over mermaid previews
+          and tables on pointer hover, when the caret is inside a table, or
+          while the caret edits a mermaid source block,
+          sits in the strip above the block so cell clicks and table tools
+          are never covered, and hides after a 200 ms grace once both hover
+          and focus leave; Cmd/Ctrl+click on a diagram preview opens the
+          viewer (clickEvent.js START_BLOCK_CONTAINER_VIEWER_CLICK) while a
+          plain click still opens the source; the panzoom instance is
+          destroyed and listeners removed on close and plugin destroy;
+          strings in all 20 locale files (10 × .json + .min.json).
+          Unit-pinned in tests/renderer/muya/block-viewer.test.js (jsdom,
+          @panzoom/panzoom mocked); open/zoom/Esc and Cmd+click vs plain
+          click end-to-end in tests/e2e/block-viewer.spec.ts.
+        </Scenario>
       </Scenarios>
       <Markers>
         <Marker>[Muya][parse][BLOCK_TOKENIZE]</Marker>
@@ -4390,6 +4421,10 @@
         <Marker>[Muya][renderMermaid][BLOCK_MERMAID_CACHE_HIT]</Marker>
         <Marker>[Muya][renderMermaid][BLOCK_MERMAID_RENDER]</Marker>
         <Marker>[Muya][renderMermaid][BLOCK_MERMAID_ERROR]</Marker>
+        <!-- C-34 R2.2 + C-39 T2 shared fullscreen block viewer. -->
+        <Marker>[Muya][blockViewer][BLOCK_VIEWER_OPEN]</Marker>
+        <Marker>[Muya][blockViewer][BLOCK_VIEWER_FIT]</Marker>
+        <Marker>[Muya][blockViewer][BLOCK_VIEWER_CLOSE]</Marker>
       </Markers>
       <TraceAssertions>
         <TraceAssertion>

@@ -398,6 +398,16 @@
     "alignRight": "По правому краю",
     "deleteTable": "Удалить таблицу"
   },
+  "blockViewer": {
+    "expand": "Развернуть",
+    "close": "Закрыть",
+    "zoomIn": "Увеличить",
+    "zoomOut": "Уменьшить",
+    "fit": "По размеру экрана",
+    "actualSize": "100%",
+    "diagram": "Диаграмма",
+    "table": "Таблица"
+  },
   "recent": {
     "noTabsOpen": "Нет открытых вкладок.",
     "newFile": "Новый файл",

@@ -398,6 +398,16 @@
     "alignRight": "Alinhar à Direita",
     "deleteTable": "Excluir Tabela"
   },
+  "blockViewer": {
+    "expand": "Expandir",
+    "close": "Fechar",
+    "zoomIn": "Ampliar",
+    "zoomOut": "Reduzir",
+    "fit": "Ajustar à tela",
+    "actualSize": "100%",
+    "diagram": "Diagrama",
+    "table": "Tabela"
+  },
   "recent": {
     "noTabsOpen": "Você não tem abas abertas.",
     "newFile": "Novo Arquivo"
