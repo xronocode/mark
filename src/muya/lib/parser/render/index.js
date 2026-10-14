@@ -5,6 +5,7 @@ import { patch, toVNode, toHTML, h } from './snabbdom'
 import { beginRules } from '../rules'
 import renderInlines from './renderInlines'
 import renderBlock from './renderBlock'
+import { createMermaidPipeline } from './mermaidPipeline'
 
 class StateRender {
   constructor(muya) {
@@ -14,6 +15,7 @@ class StateRender {
     this.loadImageMap = new Map()
     this.loadMathMap = new Map()
     this.mermaidCache = new Map()
+    this.mermaidPipeline = createMermaidPipeline()
     this.diagramCache = new Map()
     this.tokenCache = new Map()
     this.labels = new Map()
@@ -100,44 +102,20 @@ class StateRender {
     return selector
   }
 
+  // START_BLOCK_MERMAID_DISPATCH
+  // Drains the mermaidCache queued by renderLeafBlock into the resilient
+  // pipeline (C-34 R2.1): code+theme LRU cache, keep-last-good + escaped
+  // error text, per-block ~250 ms debounce while typing. Log markers
+  // [Muya][renderMermaid][BLOCK_MERMAID_CACHE_HIT|RENDER|ERROR] live in
+  // mermaidPipeline.js.
   async renderMermaid() {
     if (this.mermaidCache.size) {
       const entries = [...this.mermaidCache.entries()]
       this.mermaidCache.clear()
-      const mermaid = await loadRenderer('mermaid')
-      const isDark = document.body.classList.contains('dark')
-      mermaid.initialize({
-        securityLevel: 'strict',
-        theme: isDark ? 'dark' : 'default'
-      })
-      for (const [key, value] of entries) {
-        const { code } = value
-        const target = document.querySelector(key)
-        if (!target) {
-          continue
-        }
-        try {
-          const id = 'mermaid-' + key.replace(/^#/, '') + '-' + Date.now()
-          const { svg, bindFunctions } = await mermaid.render(id, code)
-          target.innerHTML = svg
-          // Hoist <style> out of the SVG for WKWebView CSP compatibility.
-          // WKWebView blocks <style> inside dynamically-inserted SVGs even
-          // with 'unsafe-inline'. Mermaid scopes rules by SVG ID so they
-          // still apply from the parent container.
-          const svgStyle = target.querySelector('svg > style')
-          if (svgStyle) {
-            target.insertBefore(svgStyle, target.firstChild)
-          }
-          if (bindFunctions) {
-            bindFunctions(target)
-          }
-        } catch (err) {
-          target.innerHTML = '< Invalid Mermaid Codes >'
-          target.classList.add(CLASS_OR_ID.AG_MATH_ERROR)
-        }
-      }
+      await this.mermaidPipeline.render(entries)
     }
   }
+  // END_BLOCK_MERMAID_DISPATCH
 
   async renderDiagram() {
     const cache = this.diagramCache
