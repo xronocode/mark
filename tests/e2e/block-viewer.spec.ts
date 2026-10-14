@@ -1,5 +1,5 @@
 // FILE: tests/e2e/block-viewer.spec.ts
-// VERSION: 1.0.1
+// VERSION: 1.1.0
 // START_MODULE_CONTRACT
 //   PURPOSE: End-to-end pin of the shared fullscreen block viewer (C-34 R2.2 + C-39 T2) — hover toolbar, overlay open, zoom keys, read-only table clone with sticky header, Cmd+click, Esc close with focus restore.
 //   SCOPE: block-viewer.spec.ts only; diagram and table flows against the built renderer.
@@ -18,7 +18,8 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.0.1 - 2026-10-15 review: the Cmd+click case checks that the mermaid figure stays inactive (an inactive figure still shows its collapsed source line, so toBeHidden on the pre was wrong).
+//   LAST_CHANGE: v1.1.0 - 2026-10-15: a wide diagram fits the column in the page and opens non-empty, fitted and centred in the viewer (failed off-centre in Chromium before the deferred fit).
+//   v1.0.1 - 2026-10-15 review: the Cmd+click case checks that the mermaid figure stays inactive (an inactive figure still shows its collapsed source line, so toBeHidden on the pre was wrong).
 //   v1.0.0 - 2026-10-15 C-34 R2.2/C-39 T2: first e2e spec for the block viewer (diagram + table: hover toolbar, open, zoom key, Esc focus restore; Cmd+click vs plain click routing).
 // END_CHANGE_SUMMARY
 
@@ -183,6 +184,45 @@ test.describe('block viewer (C-34 R2.2 + C-39 T2)', () => {
     await page.keyboard.press('Escape')
     await expect(viewer).not.toHaveClass(/ag-block-viewer-open/)
     expect(await focusIsEditor(page)).toBe(true)
+  })
+
+  test('a wide diagram fits the column in the page and opens centred and non-empty in the viewer', async ({ page }) => {
+    const nodes = Array.from({ length: 14 }, (_, i) => `N${i}[Service number ${i}]`).join(' --> ')
+    await bootstrapWithMarkdown(page, `# Wide\n\n\`\`\`mermaid\ngraph LR\n    ${nodes}\n\`\`\`\n`)
+    await page.locator('.editor-component, .editor-wrapper').first()
+      .waitFor({ state: 'visible', timeout: 15_000 })
+    const preview = page.locator('div.ag-container-preview.ag-mermaid-preview').first()
+    await preview.waitFor({ state: 'visible', timeout: 20_000 })
+    await page.locator('div.ag-mermaid-preview svg').first().waitFor({ state: 'visible', timeout: 20_000 })
+
+    // In the page the wide diagram fits the column (no sideways scroll).
+    const inPage = await page.evaluate(() => {
+      const c = document.querySelector('div.ag-container-preview.ag-mermaid-preview') as HTMLElement
+      return { client: c.clientWidth, scroll: c.scrollWidth, svg: (c.querySelector('svg') as SVGSVGElement).getBoundingClientRect().width }
+    })
+    expect(inPage.svg).toBeLessThanOrEqual(inPage.client + 1)
+    expect(inPage.scroll).toBeLessThanOrEqual(inPage.client + 1)
+
+    await preview.hover()
+    await page.locator('.ag-block-viewer-toolbar .ag-block-viewer-expand').click()
+    await expect(page.locator('.ag-block-viewer')).toHaveClass(/ag-block-viewer-open/)
+    await page.waitForTimeout(250) // fit runs again after layout (rAF)
+
+    const inViewer = await page.evaluate(() => {
+      const stage = (document.querySelector('.ag-block-viewer-canvas') as HTMLElement).parentElement as HTMLElement
+      const svg = document.querySelector('.ag-block-viewer-canvas svg') as SVGSVGElement
+      const s = stage.getBoundingClientRect()
+      const r = svg.getBoundingClientRect()
+      return { stageL: s.left, stageR: s.right, l: r.left, r: r.right, w: r.width, h: r.height, natural: svg.viewBox.baseVal.width }
+    })
+    // Not blank: the clone has its natural size from the viewBox.
+    expect(inViewer.w).toBeGreaterThan(50)
+    expect(inViewer.h).toBeGreaterThan(10)
+    expect(inViewer.natural).toBeGreaterThan(inPage.client)
+    // Fitted and centred: inside the stage, equal margins (±4px).
+    expect(inViewer.l).toBeGreaterThanOrEqual(inViewer.stageL - 1)
+    expect(inViewer.r).toBeLessThanOrEqual(inViewer.stageR + 1)
+    expect(Math.abs((inViewer.l - inViewer.stageL) - (inViewer.stageR - inViewer.r))).toBeLessThanOrEqual(4)
   })
 
   test('table: hover toolbar opens a read-only clone with a sticky header; zoom and Esc work', async ({ page }) => {
