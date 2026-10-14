@@ -4,7 +4,7 @@
 //   PURPOSE: Turn rendered Markdown HTML into plain text that keeps the document structure (C-32 Copy as Structured Text).
 //   SCOPE: Pure DOM walk over sanitized marked output: blank-line block separation (front matter skipped), "- "/"N. " list markers with nested indentation, task boxes, "text (url)" links, image alt/src, "> " quotes, " | " table cells, verbatim code, hr. No clipboard or editor access.
 //   DEPENDS: DOMParser (browser/jsdom); muya ui/emojis validEmoji (marked emoji hook).
-//   LINKS: .grace/changes/active/C-32; editor.vue handleCopyAsStructuredText; C-12 handleCopyAsPlainText (same render pipeline).
+//   LINKS: .grace/changes/archive/C-32; editor.vue handleCopyAsStructuredText; C-12 handleCopyAsPlainText (same render pipeline).
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT
@@ -234,10 +234,16 @@ const isHeadingTag = (tag) => /^H[1-6]$/.test(tag || '')
 
 // One blank line between blocks; two before a heading that is not the
 // first block, so sections stand apart without any heading markers.
+// Adjacent lists continue on the next line: marked splits one Markdown
+// list into several when a task item follows plain ones.
+const separatorBefore = (prev, part) => {
+  if (isHeadingTag(part.tag)) return '\n\n\n'
+  if (isListTag(prev.tag) && isListTag(part.tag)) return '\n'
+  return '\n\n'
+}
+
 const joinBlocks = (parts) =>
-  parts
-    .map((p, i) => (i === 0 ? '' : isHeadingTag(p.tag) ? '\n\n\n' : '\n\n') + p.text)
-    .join('')
+  parts.map((p, i) => (i === 0 ? '' : separatorBefore(parts[i - 1], p)) + p.text).join('')
 // END_BLOCK_STRUCTURED_TEXT_BLOCKS
 
 // START_CONTRACT: htmlToStructuredText
