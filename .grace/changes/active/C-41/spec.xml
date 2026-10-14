@@ -1,0 +1,55 @@
+<GraceChangeSpec graceVersion='4.0' status='approved'>
+<C-41>
+  <Name>Brand themes Paper and Ink, Auto/Light/Dark switch, and a theme set of light/dark pairs</Name>
+  <Created>2026-10-15</Created>
+  <Priority>high</Priority>
+  <Status>approved</Status>
+  <RoadmapPhase>N</RoadmapPhase>
+  <Complexity>M</Complexity>
+
+  <Summary>
+    Today the default themes are a green Light and a blue Dark from MarkText, and the 33 themes are 10 light and 23 dark, with several near-duplicates (Rosé Pine Moon, Tokyo Night Storm, Ayu Mirage). Replace the defaults with brand themes Paper and Ink (icon colours: paper, ink, marker yellow), add an Auto/Light/Dark button in the title bar like the Avenex site, and reorganise the set into families that each have a light and a dark member, so Auto can switch within the chosen family.
+  </Summary>
+
+  <Problem>
+    <Description>User 2026-10-15: «пересмотреть дефолтные темы (особенно эту зеленую или синюю) … ближе к фирменному стилю»; «тему как на сайте авенекс (те же иконки в тулбаре, авто, день, ночь) — режима авто не хватает»; «остальные тоже проверил переработал, может что-то подсократил (в том числе до чётного кол-ва светлых и тёмных инверсионных)».</Description>
+  </Problem>
+
+  <Goals>
+    <R-1>Paper (light) and Ink (dark) themes from the 2026-10-15 preview (https://claude.ai/artifact/42rx58VdD82sax7ub3KHGK): ochre accent on Paper, marker accent on Ink, links in text colour with a marker underline, marker selection and highlight, semantic callout colours kept. They become the defaults for new installs.</R-1>
+    <R-2>Title-bar theme button cycles Auto → Light → Dark with the Avenex icons (half disc, sun, moon) and a tooltip; Auto follows macOS appearance. Backed by the existing followSystemTheme / lightModeTheme / darkModeTheme preferences (found in the C-38 N2 audit).</R-2>
+    <R-3>Theme set as families with a light and a dark member; the picker shows families, the button picks the member. Proposed 12 families (24 themes): Paper/Ink (new), Rosé Pine Dawn/Rosé Pine, Catppuccin Latte/Mocha, Solarized Light/Dark, Gruvbox Light/Dark, Everforest Light/Dark, Tokyo Night Light/Tokyo Night, Ayu Light/Ayu Dark, One Light (new)/One Dark, Alucard (new, official Dracula light)/Dracula, Nord Light (new)/Nord, Kanagawa Lotus (new)/Kanagawa. Every theme reviewed for contrast (WCAG AA body text) and for the same structure as Paper/Ink.</R-3>
+    <R-4>Dropped themes migrate: light → Paper, dark → Ink, rose-pine-moon → rose-pine, tokyo-night-storm → tokyo-night, ayu-mirage → ayu-dark, others to the nearest family (open question for graphite, ulysses, monokai-pro, nightfox, material-dark, palenight, horizon-dark, synthwave-84, cyberdream, oxocarbon-dark). A stored value that no longer exists never leaves the app unthemed.</R-4>
+  </Goals>
+
+  <Phases>
+    <T1><Title>Paper + Ink themes as defaults; Auto/Light/Dark title-bar button</Title><Complexity>S</Complexity></T1>
+    <T2><Title>Family model, picker by family, migrations</Title><Complexity>M</Complexity></T2>
+    <T3><Title>New light/dark members (One Light, Alucard, Nord Light, Kanagawa Lotus) and a contrast pass over all 24</Title><Complexity>M</Complexity></T3>
+  </Phases>
+
+  <Dependencies>C-38 N3 (Settings redesign shows the theme picker by family); store screenshots and the app preview use only shipped themes.</Dependencies>
+
+  <Constraints>
+    <Constraint>Theme variables are applied inline on documentElement (util/theme.js addThemeStyle) — new themes use the same mechanism.</Constraint>
+    <Constraint>No user loses their choice silently: migrations are explicit and tested.</Constraint>
+  </Constraints>
+
+  <NonGoals><NonGoal>User-editable theme builder.</NonGoal></NonGoals>
+
+  <AcceptanceCriteria>
+    <Criterion>New install opens in Paper (or Ink when macOS is dark, Auto); the button cycles Auto/Light/Dark and Auto follows a live macOS appearance change; every family has both members; every removed theme id migrates.</Criterion>
+  </AcceptanceCriteria>
+
+  <AffectedAreas>
+    <M-011>themes, util/theme.js, titleBar theme button, preferences defaults and migration, theme picker</M-011>
+  </AffectedAreas>
+
+  <VerificationIntent>Unit tests for the button cycle, Auto resolution and migrations; WebKit screenshot matrix of every theme on one document; contrast check script.</VerificationIntent>
+
+  <Approval>
+    <ApprovedBy>user (2026-10-15): «по двум темам тоже нра» (Paper/Ink) and the Avenex-style Auto/Light/Dark button; asked to review and trim the rest into light/dark pairs</ApprovedBy>
+    <ApprovalScope>T1 approved. T2/T3 approved in direction (pairs, trimming); the exact family list and the fate of graphite/ulysses wait for the user's confirmation.</ApprovalScope>
+  </Approval>
+</C-41>
+</GraceChangeSpec>
