@@ -133,6 +133,7 @@
             v-for="folder in recentFolders"
             :key="folder"
             class="recent-folder-item"
+            :title="folder"
             @click="openRecentFolder(folder)"
           >
             <span class="recent-folder-name">{{ folderName(folder) }}</span>
@@ -154,6 +155,7 @@ import File from './treeFile.vue'
 import OpenedFile from './treeOpenedTab.vue'
 import bus from '../../bus'
 import { useI18n } from 'vue-i18n'
+import { shortenMiddle } from '../../util/pathDisplay'
 
 const { t } = useI18n()
 
@@ -228,8 +230,8 @@ const shortenPath = (p) => {
   const idx = p.lastIndexOf('/')
   if (idx <= 0) return '/'
   const dir = p.substring(0, idx)
-  if (_homeDir && dir.startsWith(_homeDir)) return '~' + dir.substring(_homeDir.length)
-  return dir
+  const shown = _homeDir && dir.startsWith(_homeDir) ? '~' + dir.substring(_homeDir.length) : dir
+  return shortenMiddle(shown)
 }
 
 const saveAll = (isClose) => {
@@ -469,6 +471,11 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   align-items: center;
+  /* The group is a centred flex child: without a width it grows to the
+     longest recent-folder path and runs past the sidebar edge. */
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 .open-folder-btn {
@@ -491,6 +498,7 @@ onMounted(() => {
 .recent-folders-section {
   margin-top: 20px;
   width: 100%;
+  box-sizing: border-box;
   padding: 0 10px;
 }
 .recent-folders-title {
@@ -506,10 +514,13 @@ onMounted(() => {
   margin: 16px 0 0;
   padding: 0;
   width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
 }
 .recent-folder-item {
   display: flex;
   flex-direction: column;
+  min-width: 0;
   padding: 5px 10px;
   border-radius: 4px;
   cursor: pointer;
