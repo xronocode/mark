@@ -1,5 +1,5 @@
 // FILE: tests/renderer/components/titleBar-deep.test.js
-// VERSION: 1.3.0
+// VERSION: 1.4.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Verify titleBar/index.vue computed state, native actions, navigation decisions, window controls, and lifecycle behavior.
 //   SCOPE: Deterministic Vue/jsdom component tests with mocked Tauri and compatibility facades.
@@ -19,6 +19,9 @@
 //   - 2026-08-07 v1.2.0: require native clipboard dispatch and production plugin/capability wiring for Copy Path.
 //   - 2026-08-07 v1.1.0: add UC-029 title-path context-menu coverage.
 //   - 2026-09-28 v1.3.0: C-15 T-W1 — toggleMaxmizeOnMacOS removed; dblclick-maximize is cross-platform now (both directions pinned).
+//   - 2026-10-15 v1.4.0: C-41 T-001 — currentIsDark pin replaced by the
+//     three-state themeMode pin (auto/light/dark); i18n fixture carries
+//     titleBar.themeMode instead of the retired switchTo* keys.
 // END_CHANGE_SUMMARY
 
 import { shallowMount } from '@vue/test-utils'
@@ -99,8 +102,8 @@ const i18n = createI18n({
         icons: { files: 'Files', toc: 'TOC', settings: 'Settings' }
       },
       titleBar: {
-        switchToLight: 'Switch to Light',
-        switchToDark: 'Switch to Dark'
+        share: 'Share',
+        themeMode: { auto: 'Theme: Auto', light: 'Theme: Light', dark: 'Theme: Dark' }
       },
       contextMenu: {
         tabs: { copyPath: 'Copy Path' }
@@ -179,12 +182,23 @@ describe('titleBar/index.vue — deep coverage', () => {
     })
   })
 
-  // --- currentIsDark computed ---
-  describe('currentIsDark', () => {
-    it('currentIsDark is a computed boolean', async () => {
+  // --- themeMode computed (C-41 T-001) ---
+  describe('themeMode', () => {
+    it('is auto while followSystemTheme is on, else light/dark by the theme', async () => {
+      const { usePreferencesStore } = await import('@/store/preferences.js')
+      const prefStore = usePreferencesStore()
+      // Fresh-profile default: Auto.
       const wrapper = mountComponent()
-      // Just verify it's a boolean (value depends on isDarkTheme implementation)
-      expect(typeof wrapper.vm.currentIsDark).toBe('boolean')
+      expect(wrapper.vm.themeMode).toBe('auto')
+
+      // Manual light member (paper reads light under the mocked isDarkTheme).
+      prefStore.followSystemTheme = false
+      prefStore.theme = 'paper'
+      expect(wrapper.vm.themeMode).toBe('light')
+
+      // Manual dark member.
+      prefStore.theme = 'dark'
+      expect(wrapper.vm.themeMode).toBe('dark')
     })
   })
 

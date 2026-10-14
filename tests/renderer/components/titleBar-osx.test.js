@@ -60,7 +60,7 @@ const i18n = createI18n({
     en: {
       menu: { view: { toggleSidebar: 'Toggle Sidebar' }, counter: { words: 'Words' } },
       sideBar: { icons: { files: 'Files', toc: 'TOC', settings: 'Settings' } },
-      titleBar: { switchToLight: 'Switch to Light', switchToDark: 'Switch to Dark', share: 'Share' }
+      titleBar: { share: 'Share', themeMode: { auto: 'Theme: Auto', light: 'Theme: Light', dark: 'Theme: Dark' } }
     }
   }
 })

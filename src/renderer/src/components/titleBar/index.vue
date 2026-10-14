@@ -100,24 +100,25 @@
         <div class="titlebar-nav-divider"></div>
         <div
           class="titlebar-nav-btn"
-          :title="currentIsDark ? t('titleBar.switchToLight') : t('titleBar.switchToDark')"
+          role="button"
+          tabindex="0"
+          :aria-label="themeTooltip"
+          :title="themeTooltip"
           @click.stop="handleThemeToggle"
+          @keydown.enter.prevent="handleThemeToggle"
         >
-          <!-- Sun icon when dark (click → go light) -->
-          <svg v-if="currentIsDark" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="5"/>
-            <line x1="12" y1="1" x2="12" y2="3"/>
-            <line x1="12" y1="21" x2="12" y2="23"/>
-            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
-            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
-            <line x1="1" y1="12" x2="3" y2="12"/>
-            <line x1="21" y1="12" x2="23" y2="12"/>
-            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
-            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+          <!-- C-41 T-001: three-state cycle Auto → Light → Dark (Avenex
+               icons, 16×16 fill paths). Auto = half disc, Light = sun,
+               Dark = moon. -->
+          <svg v-if="themeMode === 'auto'" width="18" height="18" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+            <path d="M8 1a7 7 0 1 0 0 14A7 7 0 0 0 8 1zm0 1.5v11a5.5 5.5 0 0 1 0-11z"/>
           </svg>
-          <!-- Moon icon when light (click → go dark) -->
-          <svg v-else width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+          <svg v-else-if="themeMode === 'light'" width="18" height="18" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+            <circle cx="8" cy="8" r="3.2"/>
+            <path d="M7.3 0h1.4v2.4H7.3zM7.3 13.6h1.4V16H7.3zM0 7.3h2.4v1.4H0zM13.6 7.3H16v1.4h-2.4zM2.1 3.1l1-1 1.7 1.7-1 1zM11.2 12.2l1-1 1.7 1.7-1 1zM2.1 12.9l1.7-1.7 1 1-1.7 1.7zM11.2 3.8l1.7-1.7 1 1-1.7 1.7z"/>
+          </svg>
+          <svg v-else width="18" height="18" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+            <path d="M6.2 1.2A7 7 0 1 0 14.8 9.8 5.6 5.6 0 0 1 6.2 1.2z"/>
           </svg>
         </div>
       </div>
@@ -212,7 +213,7 @@
 
 <script setup>
 // FILE: src/renderer/src/components/titleBar/index.vue
-// VERSION: 1.7.0
+// VERSION: 1.8.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Render the main window title bar and expose its navigation, native file-path actions, window controls, and drag affordances.
 //   SCOPE: Renderer-side titlebar behavior, including sidebar/view navigation, title updates, native title context menus, direct window controls, and WKWebView/macOS drag fallbacks.
@@ -231,6 +232,9 @@
 //   handleMaximizeClick - Toggles native maximize/fullscreen state.
 //   handleMinimizeClick - Requests native window minimize.
 //   handleMenuClick - Opens the native application menu at the pointer.
+//   themeMode - Title-bar theme button state: auto | light | dark (C-41 T-001).
+//   themeTooltip - Localized tooltip/aria-label for the theme button (C-41 T-001).
+//   handleThemeToggle - Cycles Auto → Light → Dark → Auto and persists followSystemTheme/theme (C-41 T-001).
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
@@ -246,6 +250,12 @@
 //   - 2026-10-15 v1.7.0: C-38 N1 — the Settings gear is macOS-hidden (the app
 //     menu already provides Mark › Settings… ⌘,); Windows/Linux keep the gear.
 //     The macOS title clearance shrinks 250px → 222px for the 4-button nav.
+//   - 2026-10-15 v1.8.0: C-41 T-001 — the two-state moon/sun toggle becomes a
+//     three-state Auto → Light → Dark button (Avenex half-disc/sun/moon icons,
+//     localized tooltip+aria). Auto sets followSystemTheme=true (app.vue
+//     resolves paper/ink from prefers-color-scheme, live); Light/Dark pin
+//     lightModeTheme/darkModeTheme with followSystemTheme=false. Button
+//     placement/gating is unchanged on every OS.
 // END_CHANGE_SUMMARY
 
 // step-8g: @electron/remote.Menu also gone. Application-menu popup
@@ -260,7 +270,7 @@ import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import { storeToRefs } from 'pinia'
 import bus from '@/bus'
 import { minimizePath, restorePath, maximizePath, closePath } from '../../assets/window-controls.js'
-import { PATH_SEPARATOR, themePairs, isDarkTheme } from '../../config'
+import { PATH_SEPARATOR, isDarkTheme } from '../../config'
 import { isOsx as isOsxPlatform, isWindows } from '@/util'
 import { useEditorStore } from '@/store/editor'
 import { useI18n } from 'vue-i18n'
@@ -327,10 +337,37 @@ const refreshWindowState = async () => {
 refreshWindowState()
 const show = ref('word')
 
-const { titleBarStyle, theme } = storeToRefs(preferencesStore)
+const { titleBarStyle, theme, followSystemTheme, lightModeTheme, darkModeTheme } = storeToRefs(preferencesStore)
 const { showTabBar, showSideBar, rightColumn } = storeToRefs(layoutStore)
 
-const currentIsDark = computed(() => isDarkTheme(theme.value))
+// START_BLOCK_THEME_CYCLE
+// C-41 T-001: three-state theme button (Avenex order Auto → Light → Dark).
+// Auto = followSystemTheme with the effective theme resolved from
+// prefers-color-scheme by app.vue's START_BLOCK_APPLY_AUTO_THEME; Light and
+// Dark pin the manual lightModeTheme/darkModeTheme member.
+const THEME_CYCLE = Object.freeze({ auto: 'light', light: 'dark', dark: 'auto' })
+
+const themeMode = computed(() => {
+  if (followSystemTheme.value) return 'auto'
+  return isDarkTheme(theme.value) ? 'dark' : 'light'
+})
+
+const themeTooltip = computed(() => t(`titleBar.themeMode.${themeMode.value}`))
+
+const handleThemeToggle = () => {
+  const next = THEME_CYCLE[themeMode.value]
+  if (next === 'auto') {
+    // app.vue's followSystemTheme watcher resolves and applies immediately.
+    preferencesStore.SET_SINGLE_PREFERENCE({ type: 'followSystemTheme', value: true })
+    return
+  }
+  if (followSystemTheme.value) {
+    preferencesStore.SET_SINGLE_PREFERENCE({ type: 'followSystemTheme', value: false })
+  }
+  const member = next === 'light' ? lightModeTheme.value : darkModeTheme.value
+  preferencesStore.SET_SINGLE_PREFERENCE({ type: 'theme', value: member })
+}
+// END_BLOCK_THEME_CYCLE
 
 // C-15 Phase W QA round 2: mt_share_file is an NSSharingServicePicker
 // shim — macOS-only (m048 capability). Hide, don't fail silently.
@@ -511,13 +548,6 @@ const handleShareClick = async () => {
     await invoke('mt_share_file', { path: props.pathname })
   } catch (e) {
     console.warn('[titleBar] share failed:', e)
-  }
-}
-
-const handleThemeToggle = () => {
-  const paired = themePairs[theme.value]
-  if (paired) {
-    preferencesStore.SET_SINGLE_PREFERENCE({ type: 'theme', value: paired })
   }
 }
 
