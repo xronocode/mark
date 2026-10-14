@@ -943,7 +943,8 @@
       "uiLanguage": {
         "title": "인터페이스 언어",
         "description": "애플리케이션 UI 언어"
-      }
+      },
+      "system": "시스템 설정에 따름"
     }
   },
   "about": {

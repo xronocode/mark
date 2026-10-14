@@ -1,5 +1,28 @@
+// FILE: src/renderer/src/i18n/index.js
+// VERSION: 1.1.0
+// START_MODULE_CONTRACT
+//   PURPOSE: Own the vue-i18n instance and apply the UI language (concrete locale or the 'system' sentinel resolved via navigator.languages).
+//   SCOPE: t(), setLanguage (loads tables through window.i18nUtils), getCurrentLanguage.
+//   DEPENDS: vue-i18n, static/locales/en.json (static import), i18n/systemLocale.js, window.i18nUtils.loadTranslations.
+//   LINKS: src/renderer/src/i18n/localeLoader.js; src/renderer/src/store/preferences.js; src/renderer/src/bootstrap-ipc.js mt::current-language.
+//   ROLE: RUNTIME
+//   MAP_MODE: EXPORTS
+// END_MODULE_CONTRACT
+//
+// START_MODULE_MAP
+//   t - translate a key via the global i18n instance (key passthrough on error).
+//   setLanguage - apply a locale; 'system' (C-45) is resolved to a shipped locale first.
+//   getCurrentLanguage - the effective locale code (never 'system').
+//   i18n - the vue-i18n instance (named + default export).
+// END_MODULE_MAP
+//
+// START_CHANGE_SUMMARY
+//   LAST_CHANGE: v1.1.0 - C-45 T-001: setLanguage('system') resolves via systemLocale.resolveSystemLocale and applies the effective locale; getCurrentLanguage never returns 'system'.
+// END_CHANGE_SUMMARY
+
 import { createI18n } from 'vue-i18n'
 import bus from '../bus'
+import { SYSTEM_LANGUAGE, resolveSystemLocale } from './systemLocale'
 
 // 直接导入翻译文件
 import enTranslations from '../../../../static/locales/en.json'
@@ -59,16 +82,20 @@ export const t = (key, ...args) => {
 // locale silently fell back to EN. Await the load, validate the payload.
 export const setLanguage = async (locale) => {
   if (!locale) return
-  if (!i18n.global.availableLocales.includes(locale)) {
-    const translation = await window.i18nUtils.loadTranslations(locale)
+  // C-45: 'system' is a preference sentinel, never a vue-i18n locale —
+  // resolve it to the effective shipped locale from navigator.languages
+  // so getCurrentLanguage() always reports a concrete code.
+  const effective = locale === SYSTEM_LANGUAGE ? resolveSystemLocale() : locale
+  if (!i18n.global.availableLocales.includes(effective)) {
+    const translation = await window.i18nUtils.loadTranslations(effective)
     if (!translation || typeof translation !== 'object' || Object.keys(translation).length === 0) {
       // Locale file missing/empty — loadTranslations already logged; keep
       // the current locale instead of installing a non-table payload.
       return
     }
-    i18n.global.setLocaleMessage(locale, translation)
+    i18n.global.setLocaleMessage(effective, translation)
   }
-  i18n.global.locale.value = locale
+  i18n.global.locale.value = effective
 }
 
 // 导出获取当前语言函数

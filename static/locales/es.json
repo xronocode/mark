@@ -941,7 +941,8 @@
       "uiLanguage": {
         "title": "Idioma de la interfaz",
         "description": "Idioma de la interfaz de la aplicación"
-      }
+      },
+      "system": "Como en el sistema"
     }
   },
   "about": {

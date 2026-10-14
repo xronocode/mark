@@ -943,7 +943,8 @@
       "uiLanguage": {
         "title": "介面語言",
         "description": "應用介面的顯示語言"
-      }
+      },
+      "system": "跟隨系統"
     }
   },
   "about": {
