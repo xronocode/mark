@@ -1,456 +1,212 @@
 <div align="center">
 
-<br>
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme/cover-dark.png">
+  <img src="docs/assets/readme/cover.png" alt="Mark: Watch your agent write. A native Markdown editor for macOS and Windows." width="800">
+</picture>
 
-# Mark
+<br><br>
 
-## Your AI agents write Markdown. Finally, an editor that does it justice.
-
-<br>
-
-[![Tests](https://github.com/xronocode/mark/actions/workflows/test.yml/badge.svg)](https://github.com/xronocode/mark/actions/workflows/test.yml)
-&ensp;![Status](https://img.shields.io/badge/beta-blue?style=flat-square)
-&ensp;![Platform](https://img.shields.io/badge/macOS%20arm64-black?style=flat-square)
-&ensp;![Size](https://img.shields.io/badge/11%20MB-brightgreen?style=flat-square)
-&ensp;![RAM](https://img.shields.io/badge/61%20MB%20RAM-brightgreen?style=flat-square)
-&ensp;![License](https://img.shields.io/badge/MIT-blue?style=flat-square)
+**Mark is a WYSIWYG Markdown editor for reading and editing the files your AI agents write, while they write them.**
 
 <br>
 
-<img src="screenshots/mark-showcase.webp" alt="Mark — themes, code highlighting, Mermaid diagrams, KaTeX math, tables" width="820">
+[![Latest release](https://img.shields.io/github/v/release/xronocode/mark?style=flat-square)](https://github.com/xronocode/mark/releases/latest)
+&ensp;[![Tests](https://github.com/xronocode/mark/actions/workflows/test.yml/badge.svg)](https://github.com/xronocode/mark/actions/workflows/test.yml)
+&ensp;[![License: MIT](https://img.shields.io/badge/license-MIT-blue?style=flat-square)](LICENSE)
+&ensp;![Platform: macOS · Windows](https://img.shields.io/badge/platform-macOS%20%C2%B7%20Windows-lightgrey?style=flat-square)
 
-<br>
+</div>
 
-### Install (macOS Apple Silicon)
+## Install
+
+**Mac App Store**
+
+[Get Mark on the Mac App Store](https://apps.apple.com/app/id6814590464). Installs and updates through the App Store.
+
+**Homebrew (macOS, Apple silicon)**
 
 ```sh
 brew tap xronocode/mark && brew install --cask mark
 ```
 
-Developer ID signed + Apple notarized. No Gatekeeper prompts. [Build from source →](#install)
+Developer ID signed and notarized by Apple. Updates through the in-app updater or `brew upgrade --cask mark`.
 
-> **Beta** — daily-driver quality for writing on Apple Silicon; known gaps remain tracked openly.<br>
-> What works has 2900+ tests and CI. What doesn't is [tracked openly](#status--v212-beta).
+**Windows (x64)**
 
-<br>
+Download `Mark_<version>_x64-setup.exe` from [the latest release](https://github.com/xronocode/mark/releases/latest). The installer is not code-signed yet, so SmartScreen shows "Windows protected your PC": choose *More info*, then *Run anyway*.
 
-</div>
+The App Store build and the Homebrew/download build are the same editor with a few differences. See [Two editions, same editor](#two-editions-same-editor).
 
-You run Claude Code. Or Aider. Or Codex. Or your own agents.
+## What's new in 2.3
 
-They generate *beautiful* Markdown — plans, specs, reports, Mermaid diagrams, LaTeX math, comparison tables. Then you try to **actually read it**:
+- The first stable release.
+- **Split View**: the Markdown source beside the rendered page for the current tab, toggled with ⌥⌘\ (Ctrl+Alt+\ on Windows).
+- **Callouts**: GitHub alerts (`> [!TIP]`) and Obsidian callouts render as blocks, in the editor and in exports.
+- **Front matter** opens as a properties table. **Footnotes** are on by default.
+- **Images** you paste or drop are saved to `assets/` next to the document.
+- **Large documents** open about 10 times faster: a 4,100-line file takes about 3 s instead of 37.
+- **Mermaid** keeps the last diagram that rendered while you fix a typo, and shows the error below it. Wide diagrams keep their size and scroll.
+- **Copy as Structured Text**: for email and chat. No asterisks or brackets, but paragraphs, lists, links and tables survive the paste.
+- The interface language setting works again in all 10 languages. New app icon. On macOS, Settings moved to Mark › Settings… (⌘,).
+- Fixes: Diff mode shows changes again and closes with ⌘D; context-menu items work on the first click; renaming an open file in the sidebar moves its tab to the new path.
 
-> **Terminal** — tables collapse, diagrams vanish, colors don't exist.<br>
-> **VS Code / Obsidian** — 300 MB of RAM before you open a single file. You already have LLMs eating 8–16 GB.<br>
-> **Export to HTML** — burns tokens, triples prompt size, needs a browser tab per file.<br>
+Full history in [CHANGELOG.md](CHANGELOG.md).
 
-Sound familiar? That's **Markdown fatigue**. Everyone building with AI agents in 2026 feels it.
+## Why Mark
 
-Mark fixes it. **11 megabytes.** Opens in under a second. Renders everything. Gets out of your way.
+Agents write plans, specs and reports as Markdown. In a terminal the tables collapse and the diagrams are code. Mark shows the finished page and lets you edit it in place.
 
----
+**Watch your agent write.** Keep the file open while an agent works on it. Every save on disk reloads the tab in place and keeps your scroll position, so you can follow a long pass and step in when it finishes.
 
-<div align="center">
+<img src="docs/assets/readme/01-agents.png" alt="Mark reloading a plan while an agent edits it" width="800">
 
-### How it feels
+**Write in the finished page.** Headings, tables, task lists, footnotes, callouts and front matter look done while you type. When you need the raw Markdown, Split View puts it beside the page.
 
-</div>
+<img src="docs/assets/readme/06-split.png" alt="Split View with Markdown source on the left and the rendered page on the right" width="800">
 
-```
-  You                          Mark                        Your agent
-   │                            │                             │
-   │   "open plan.md"           │                             │
-   │ ──────────────────────────▶│                             │
-   │                            │  tables, mermaid, math      │
-   │                            │  rendered live, inline       │
-   │   read ← ── ── ── ── ── ──│                             │
-   │                            │                             │
-   │   edit directly in Mark    │                             │
-   │ ──────────────────────────▶│                             │
-   │                            │──── file saved ────────────▶│
-   │                            │                             │
-   │                            │◀─── agent updates file ─────│
-   │                            │  live reload, no refresh    │
-   │   see changes instantly ◀──│                             │
-   │                            │                             │
-```
+**Diagrams and math inline.** Mermaid diagrams, KaTeX formulas and highlighted code render in the document, not in a preview pane.
 
-One window. No browser. No context switch. The human-in-the-loop just works.
+<img src="docs/assets/readme/03-diagrams.png" alt="A Mermaid flowchart and KaTeX formulas rendered inline" width="800">
 
----
+**Copy it clean.** Copy as Markdown, as HTML for email, as plain text, or as structured text that keeps paragraphs, bullets, links and tables readable wherever you paste.
 
-<div align="center">
+<img src="docs/assets/readme/04-copy.png" alt="Copy as Structured Text pasted into a chat" width="800">
 
-### Set up your agent in 30 seconds
+Also: more than 30 light and dark themes, a folder sidebar, find in file and in folder, a diff view against a `.before` file, print and PDF export, and no account, analytics or telemetry.
 
-</div>
+## Numbers
 
-Add this to your agent's system prompt, `CLAUDE.md`, `.aider.conf.yml`, or whatever config your agent reads:
+Measured on 2026-10-15 on one Apple silicon Mac, Mark 2.3.0. Your numbers will differ.
+
+| | Mark |
+|:---|:---|
+| First window | ≈ 0.4 s |
+| On disk | ≈ 30 MB |
+| Memory, plain document | ≈ 150 MB (Mark process 33 MB plus its WebKit page renderer) |
+| Memory, rich document (Mermaid, KaTeX, a table) | ≈ 310 MB |
+| Same rich document in an Electron notes app | ≈ 400 MB |
+| Same rich document in an Electron code editor | ≈ 1 GB |
+| Opening a 4,100-line file | ≈ 3 s |
+
+Mark uses the system WebView (WebKit on macOS, WebView2 on Windows) instead of shipping its own browser engine.
+
+## Two editions, same editor
+
+Mark ships in two editions built from the same code. The editor, rendering, themes, live reload, Split View, copy formats, print and PDF export, Share, and diffs against a `.before` file are the same in both.
+
+| | Homebrew / direct download | Mac App Store |
+|:---|:---:|:---:|
+| The editor and everything not listed below | Yes | Yes |
+| Share button (macOS share sheet) | Yes | Yes |
+| Diff against a `.before` file | Yes | Yes |
+| Pandoc export (DOCX, ODT, EPUB… when pandoc is installed) | Yes | No |
+| Insert screenshot | Yes (macOS) | No |
+| Set Mark as the default Markdown app | Yes (macOS) | No |
+| Diff against the last git commit | Yes | No |
+| Local live server for agents (localhost HTTP endpoint) | Yes | No |
+| In-app updater | Yes | No, updates come from the App Store |
+| Reviewed by Apple and sandboxed | No (notarized on macOS) | Yes |
+| Windows builds | Yes | No |
+
+**Why the difference?** The App Store sandbox does not let an app run other programs (git, pandoc, screencapture) or open a local server, so those features are left out of the App Store build.
+
+## Set up your agent
+
+Add this to your agent's instructions (`CLAUDE.md`, `AGENTS.md`, a system prompt, or whatever your agent reads):
 
 ```markdown
 When you produce a plan, spec, report, or any document longer than ~50 lines,
-write it to a .md file and open it in the user's editor:
+write it to a .md file and open it for the user:
 
     open -a Mark <file>.md        # macOS
 
-The user will read and edit directly in Mark (a lightweight WYSIWYG Markdown
-editor with live file-watcher reload). When you see the file has changed on
-disk, read the updated version — the user left feedback or corrections inline.
-Treat the diff as your next instruction.
+The user reads and edits it in Mark, which reloads the file whenever it changes
+on disk. When the file changes after you wrote it, read it again: the user left
+corrections or comments inline. Treat those edits as your next instruction.
 ```
 
-That's it. Your agent writes → Mark renders → you edit → the agent picks up the diff.
+Your agent writes, Mark renders, you edit, the agent reads your changes.
 
 <details>
-<summary><b>Use case: review a plan before the agent executes</b></summary>
+<summary><b>Example: review a plan before the agent runs it</b></summary>
 
 ```
 You: "Write an implementation plan for the new auth module."
 
-Agent writes plan.md, runs `open -a Mark plan.md`.
+The agent writes plan.md and runs `open -a Mark plan.md`.
 
-You see a beautifully rendered doc with Mermaid diagrams and tables.
-You delete step 3, rewrite step 5, add a note: "— use JWT, not sessions".
+You read it with the tables and Mermaid diagrams rendered.
+You delete step 3, rewrite step 5 and add a note: "use JWT, not sessions".
 Save.
 
-Agent detects the change:
-"I see you removed step 3 and updated step 5 to use JWT. Proceeding with
-the revised plan."
+The agent reads the file again:
+"Step 3 removed, step 5 now uses JWT. Proceeding with the revised plan."
 ```
 
 </details>
 
 <details>
-<summary><b>Use case: structured feedback on a report</b></summary>
+<summary><b>Example: a knowledge base two authors keep</b></summary>
 
 ```
-You: "Analyze our API latency data and give me a report."
+Add to your agent's instructions:
 
-Agent writes report.md with tables, charts, and recommendations.
-Opens in Mark — you see everything rendered inline.
-
-You add a line at the bottom:
-"— Good analysis. But ignore the /health endpoint, it skews the p99.
-   Re-run without it."
-
-Agent reads the update, re-runs the analysis, appends the new results
-to the same file. Mark live-reloads. You see the diff without switching
-windows.
-```
-
-</details>
-
-<details>
-<summary><b>Use case: knowledge base your agent maintains</b></summary>
-
-```
-Add to your agent config:
-
-    Maintain a living knowledge base in docs/kb.md.
+    Maintain a knowledge base in docs/kb.md.
     After each significant decision, append a dated entry.
-    The user may reorganize or annotate entries in Mark —
-    respect their edits as authoritative.
+    The user may reorganise or annotate entries in Mark;
+    treat their edits as authoritative.
 
-Open docs/kb.md in Mark once. Leave it open.
-Every time the agent appends, Mark live-reloads.
-You curate, the agent accumulates. One file, two authors.
+Open docs/kb.md in Mark once and leave it open.
+Every time the agent appends, the tab reloads.
 ```
 
 </details>
 
 <details>
-<summary><b>Use case: spec review with Mermaid diagrams</b></summary>
+<summary><b>Command-line flags</b></summary>
 
-```
-You: "Design the data flow for the new ingestion pipeline."
+The Mark binary accepts these flags. On macOS, `open -a Mark --args --watch notes.md` passes them when Mark starts.
 
-Agent writes spec.md:
+| Flag | Effect |
+|:---|:---|
+| `--preview` | Open the file read-only; click to start editing |
+| `--watch` | Reload the file whenever it changes on disk, even if live reload is off in Settings |
+| `--diff` | Open the file in diff view |
+| `-d`, `--dir <DIR>` | Open a folder as the sidebar root |
 
-    ## Data Flow
-    ```mermaid
-    graph LR
-      A[S3 Upload] --> B[Lambda Trigger]
-      B --> C{Validate}
-      C -->|pass| D[Transform]
-      C -->|fail| E[Dead Letter Queue]
-      D --> F[Write to Postgres]
-    ```
-
-In the terminal this is raw text. In Mark it's a rendered diagram.
-You drag the DLQ branch, add a retry step, save.
-The agent sees your edit and adjusts the implementation.
-```
+If `notes.md.before` sits next to `notes.md`, diff view compares against it. Have your agent copy the file to `.before` before it edits, and you see exactly what changed.
 
 </details>
 
----
+## Build from source
 
-<div align="center">
-
-### 11 MB. Not 200 MB.
-
-</div>
-
-|  | **Mark** | Mark Text | Typora | Obsidian | iA Writer |
-|:---|:---:|:---:|:---:|:---:|:---:|
-| **App size** | **11 MB** | 200 MB | 100 MB | 300 MB | 30 MB |
-| **RAM at idle** | **61 MB** | 400 MB | 200 MB | 250 MB | 50 MB |
-| **True inline WYSIWYG** | **Yes** | Yes | Yes | No | Partial |
-| **Mermaid + KaTeX + Vega** | **All three** | Yes | Partial | Plugins | No |
-| **Live file-watcher reload** | **Yes** | No | No | Yes | No |
-| **Themes** | **33** | 6 | CSS | CSS | 3 |
-| **Open source** | **MIT** | MIT | No | No | No |
-| **Price** | **Free** | Free | $15 | $50/yr | $50 |
-| **Native macOS** | **WKWebView** | Chromium | Chromium | Chromium | AppKit |
-
-No Chromium. No Node.js. No Electron. Just your system WebView doing what it was designed to do.
-
----
-
-<div align="center">
-
-### But what about the AI-native tools?
-
-</div>
-
-The 2025–2026 wave brought a crop of tools built specifically for AI-agent workflows. Here's how Mark compares:
-
-| Tool | What it is | Where Mark differs |
-|:---|:---|:---|
-| **glow / mdcat** | Terminal-based MD renderers | No images, no Mermaid, no editing. Great for quick glances — not for 200-line specs with diagrams. |
-| **leaf** | Rust TUI viewer with watch mode | Still a terminal. No inline WYSIWYG, no rich rendering. |
-| **Ferrite** | Rust + egui editor | Split-view, not inline WYSIWYG. Different UX paradigm. |
-| **Marky** | Tauri CLI viewer (`marky plan.md`) | Viewer only, no editing. Mark does both. |
-| **Ritemark** | MD editor + built-in terminal | Electron-based, heavier footprint. |
-| **Obsidian** | Knowledge base with plugins | 300 MB, plugin ecosystem needed for basics. Overkill for reading agent output. |
-
-Mark sits in a specific gap: **native + lightweight + full WYSIWYG + file-watcher + edit-in-place**. If you need a vault or a second brain, use Obsidian. If you need to read and edit what your agents write without burning RAM — that's Mark.
-
----
-
-<div align="center">
-
-### Built by AI agents. For AI agents.
-
-</div>
-
-This project is its own proof of concept.
-
-The entire Tauri rewrite — **30+ Rust modules, 2700+ tests**, typed IPC, native menu, spellchecker, auto-updater — was architected and shipped by one developer with AI agents using the **GRACE methodology** (Graph-RAG Anchored Code Engineering).
-
-Structured plans. Module contracts. Knowledge graphs. Agents executing against verifiable specs.
-
-One person. AI agents. A native desktop app that rivals what teams of five ship.
-
-> *Mark is the tool that was missing from the workflow that built it.*
-
----
-
-<div align="center">
-
-### What's inside
-
-</div>
-
-**The essentials** — true inline WYSIWYG (muya engine), Split View with the Markdown source beside the rendered page (⌥⌘\\), multi-tab editing, folder sidebar, find in file & folder
-
-**The rendering** — Mermaid v11 diagrams, KaTeX math, Vega charts — all inline, no preview pane
-
-**The Markdown agents write** — footnotes (`[^1]`); GitHub alerts (`> [!NOTE]`) and Obsidian callouts with folding (`> [!faq]-`); YAML front matter shown as a properties table (click to edit the YAML); clickable task lists; screenshots pasted with Cmd+V or dropped from Finder land in `assets/` next to the file as `![](assets/…)`
-
-**The native feel** — system WKWebView, macOS menu bar, NSSpellChecker, real Cmd+shortcuts, Developer ID signed + notarized
-
-**The agent workflow** — file-watcher live reload, dirty-tab protection (Save/Discard/Cancel), preview mode on Finder open, welcome screen with recent files & session restore
-
-**The trust** — no telemetry, no cloud, no account, no plugin marketplace. Files are files. 2620 tests. MIT licensed.
-
----
-
-<div align="center">
-
-### Status — v2.1.8-beta
-
-</div>
-
-Daily-driver quality for routine Markdown on Apple Silicon.
-
-**Editing**
-
-| Feature | Status |
-|:---|:---:|
-| True inline WYSIWYG (muya engine) | ✅ |
-| Multi-tab editing | ✅ |
-| Open Folder + sidebar file tree | ✅ |
-| Mermaid v11 / KaTeX / Vega inline rendering | ✅ |
-| Inline diff view (CodeMirror MergeView) | ✅ |
-| Find in file (Cmd+F) | 🔶 Beta |
-| Find in folder (in-process ripgrep) | 🔶 Beta |
-| Search context lines + include/exclude globs | Planned |
-
-**File handling**
-
-| Feature | Status |
-|:---|:---:|
-| Save / Save As / Open | ✅ |
-| Dirty-tab close prompt (Save / Discard / Cancel) | ✅ |
-| External-edit live reload (file-watcher) | ✅ |
-| Auto-detect file encoding (UTF-8, windows-1251, Shift_JIS, …) | ✅ |
-| v1 preferences migration (5-store, idempotent) | ✅ |
-| Recent documents | ✅ |
-| Preserve source encoding on save | Planned |
-| Manual encoding picker | Planned |
-| File move / rename commands | ✅ |
-| Print (Cmd+P → system dialog) | ✅ |
-| Export as HTML | ✅ |
-| Line ending control (LF / CRLF) | ✅ |
-
-**Appearance & UX**
-
-| Feature | Status |
-|:---|:---:|
-| 33 themes + custom CSS | ✅ |
-| Live theme sync across windows | ✅ |
-| Preview mode on Finder double-click | ✅ |
-| Set as default `.md` handler | ✅ |
-| System font enumeration | ✅ |
-| Welcome screen with recent files + session restore | ✅ |
-| Trackpad pinch-to-zoom | ✅ |
-| Window geometry persistence | ✅ |
-| Monospace font filter for code editor | Planned |
-
-**Native macOS**
-
-| Feature | Status |
-|:---|:---:|
-| System WKWebView (no Chromium) | ✅ |
-| Native menu bar + Cmd+shortcuts | ✅ |
-| Spell-check via NSSpellChecker | ✅ |
-| Screenshot capture (macOS screencapture) | ✅ |
-| Developer ID signed + Apple notarized | ✅ |
-| Global shortcuts (Cmd+Shift+M show window) | 🔶 In progress |
-| Auto-update via Homebrew cask (ed25519 signed) | ✅ |
-
-**CLI & integration**
-
-| Feature | Status |
-|:---|:---:|
-| CLI flags (--preview, --watch, --diff, --new-window) | ✅ |
-| `open -a Mark file.md` from terminal / agents | ✅ |
-| `mark --watch file.md` live-reload for agents | ✅ |
-| `mark --diff file.md` auto-open diff view | ✅ |
-| Auto-detect `.before` sidecar → diff view | ✅ |
-| Save All (menu + command palette) | ✅ |
-| Pandoc export (HTML, PDF) | ✅ Requires Pandoc |
-| Image upload (PicGo, smms, aliyun) | Planned |
-
-**Platform**
-
-| Feature | Status |
-|:---|:---:|
-| macOS Apple Silicon | ✅ |
-| macOS Intel | Untested |
-| Linux | Planned |
-| Windows | Planned |
-| Multi-window support | Planned |
-
-> Beta builds pass the same signed release gates as production artifacts. Remaining gaps are tracked openly with target milestones.
-
----
-
-<div align="center">
-
-### Install
-
-</div>
-
-**One command:**
+Requirements: Node.js 22, stable Rust, and on macOS the Xcode command line tools.
 
 ```sh
-brew tap xronocode/mark && brew install --cask mark
-```
-
-Developer ID signed + Apple notarized. No Gatekeeper warnings.
-
-<details>
-<summary><b>Legacy alpha migration</b></summary>
-
-```sh
-brew trust xronocode/mark
-brew uninstall --cask mark@alpha
-brew install --cask mark
-```
-
-The uninstall step does not use `--zap`, so Mark preferences and documents are preserved.
-
-</details>
-
-<details>
-<summary><b>Build from source</b></summary>
-
-Rust 1.79+ · Node 20 LTS · Xcode CLI Tools
-
-```sh
-git clone https://github.com/xronocode/mark.git && cd mark/reborn-mark
+git clone https://github.com/xronocode/mark.git && cd mark
 npm ci
-npm run tauri dev       # hot-reload
-npm run tauri build     # release
+npm run tauri dev       # development build with hot reload
+npm run tauri build     # release bundle in target/release/bundle
 ```
 
-```sh
-npm test                                    # 2758 renderer tests
-cd src-tauri && cargo test --bin mark       # 445 Rust tests
-npm run test:e2e                            # Playwright
-```
+See [CONTRIBUTING.md](CONTRIBUTING.md) for tests and pull requests.
 
-</details>
+## Acknowledgements
 
----
+Mark began as a port of [MarkText](https://github.com/marktext/marktext) and would not exist without it:
 
-<div align="center">
+- **[@Jocs](https://github.com/Jocs)** created MarkText: the muya WYSIWYG engine, the theme system, and the inline editing model Mark still builds on.
+- **[@Tkaixiang](https://github.com/Tkaixiang)** maintained the [community fork](https://github.com/Tkaixiang/marktext) that kept MarkText alive with security fixes (CVE-2023-2318), crash fixes and the Mermaid v11 upgrade. Mark's early Electron phase was based on that fork.
+- **The MarkText community**: years of issues and pull requests about what a good Markdown editor should do.
+- **The Tauri team**, for a framework that runs on the system WebView.
 
-### Acknowledgements
+## Contributing
 
-</div>
+Bug reports, ideas and pull requests are welcome. Start with [CONTRIBUTING.md](CONTRIBUTING.md). To report a security problem, see [SECURITY.md](SECURITY.md).
 
-Mark wouldn't exist without the people who built the foundation:
+Documentation: [mark.xronocode.com](https://mark.xronocode.com). If Mark is useful to you, you can [support it on Ko-fi](https://ko-fi.com/xronocode).
 
-- **[@Jocs](https://github.com/Jocs)** — creator of [Mark Text](https://github.com/marktext/marktext) (54k+ ⭐). The muya WYSIWYG engine, the theme system, and the entire UX paradigm that makes inline Markdown editing feel right. Everything Mark does starts with his work.
-- **[@Tkaixiang](https://github.com/Tkaixiang)** — maintainer of the [community fork](https://github.com/Tkaixiang/marktext) that kept Mark Text alive with critical security fixes (CVE-2023-2318), crash fixes, and the Mermaid v11 upgrade. Mark's original Electron phase was downstream of his fork.
-- **The Mark Text community** — 54,000+ stargazers, hundreds of contributors, and years of issues and PRs that shaped what a good Markdown editor should be.
-- **The Tauri team** — for building a framework that makes 11 MB native apps possible without Chromium.
+## License
 
-Mark is what Mark Text looks like **without Electron, without the bloat, and with an AI-agent workflow in mind**. We stand on the shoulders of giants — and we say thank you.
-
----
-
-<div align="center">
-
-### Contributing
-
-</div>
-
-PRs welcome. Fork → branch from `main` → run tests → open a PR. CI gates merge on macOS + Linux. For larger changes, open an issue first.
-
----
-
-<div align="center">
-
-Mark is built on personal time.
-
-If it saves you from reading agent specs in raw terminal — or from yet another 400 MB Electron install:
-
-<br>
-
-<a href="https://ko-fi.com/xronocode" target="_blank">
-  <img src="https://ko-fi.com/img/githubbutton_sm.svg" alt="Buy Me a Coffee at ko-fi.com" />
-</a>
-
-<br><br>
-
-⭐ **Star the repo** · File issues · Send a PR
-
-<br>
-
-[MIT](reborn-mark/LICENSE) · **[@xronocode](https://github.com/xronocode)**
-
-</div>
+[MIT](LICENSE). Maintained by [@xronocode](https://github.com/xronocode).
