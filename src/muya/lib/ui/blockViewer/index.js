@@ -1,5 +1,5 @@
 // FILE: src/muya/lib/ui/blockViewer/index.js
-// VERSION: 1.0.0
+// VERSION: 1.0.1
 // START_MODULE_CONTRACT
 //   PURPOSE: Shared fullscreen block viewer (C-34 R2.2 + C-39 T2) that shows a Mermaid diagram (clone of the current preview, no re-render) or a read-only clone of a rendered table with pan/zoom via @panzoom/panzoom.
 //   SCOPE: hover/caret toolbar with the expand (⤢) button, viewer open/close lifecycle, diagram-preview and table-clone sanitization, wheel/pinch/key zoom, drag pan, focus trap and focus restore, panzoom cleanup.
@@ -14,7 +14,8 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.0.0 - 2026-10-15 C-34 R2.2 + C-39 T2: new shared fullscreen block viewer — Mermaid preview clone (carries the hoisted <style>), sanitized read-only table clone with a sticky header, @panzoom/panzoom pan/zoom (pinch/Cmd+wheel zoom, drag pan, +/−/0/1 keys), Esc close with focus restore, hover/caret toolbar with the ⤢ expand button, Cmd/Ctrl+click on a diagram opens the viewer.
+//   LAST_CHANGE: v1.0.1 - 2026-10-15 C-39: tables are centred and the centred table tools bar owns the strip above them, so the expand button sits beside the table top-right corner (falls back to the strip when there is no room).
+//   v1.0.0 - 2026-10-15 C-34 R2.2 + C-39 T2: new shared fullscreen block viewer — Mermaid preview clone (carries the hoisted <style>), sanitized read-only table clone with a sticky header, @panzoom/panzoom pan/zoom (pinch/Cmd+wheel zoom, drag pan, +/−/0/1 keys), Esc close with focus restore, hover/caret toolbar with the ⤢ expand button, Cmd/Ctrl+click on a diagram opens the viewer.
 // END_CHANGE_SUMMARY
 
 import Panzoom from '@panzoom/panzoom'
@@ -608,6 +609,17 @@ class BlockViewer {
     const th = this.toolbarEl.offsetHeight || 28
     // Prefer the strip just above the block (right-aligned) so cell clicks
     // and drag bars are never covered; clamp into the viewport.
+    // Tables: the centred table tools bar owns the strip above the table
+    // (C-39 centring), so the expand button sits beside the table's
+    // top-right corner instead; fall back to the strip when there is no
+    // room on the right.
+    const isTable = !!(this.toolbarAnchor.closest && this.toolbarAnchor.closest("figure[data-role='TABLE']"))
+    if (isTable && rect.right + 8 + tw <= window.innerWidth - 4) {
+      const sideTop = Math.max(4, Math.min(rect.top, window.innerHeight - th - 4))
+      this.toolbarEl.style.top = `${Math.round(sideTop)}px`
+      this.toolbarEl.style.left = `${Math.round(rect.right + 8)}px`
+      return
+    }
     let top = rect.top - th - 6
     if (top < 4) {
       top = Math.max(4, Math.min(rect.top + 4, window.innerHeight - th - 4))

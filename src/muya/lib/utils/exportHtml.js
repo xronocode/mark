@@ -288,6 +288,8 @@ class ExportHtml {
     .markdown-body table {
       display: table;
       max-width: 100%;
+      margin-left: auto;
+      margin-right: auto;
     }
     .markdown-body table th,
     .markdown-body table td {
