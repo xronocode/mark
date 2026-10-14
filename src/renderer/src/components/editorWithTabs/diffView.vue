@@ -1,6 +1,11 @@
 <template>
-  <div ref="diffContainer" class="diff-view">
-    <div v-if="error" class="diff-error">{{ error }}</div>
+  <div class="diff-view">
+    <div class="diff-header">
+      <span class="diff-side">{{ t('diffView.current') }}</span>
+      <span class="diff-side">{{ t('diffView.baseline') }}</span>
+      <button type="button" class="diff-exit" @click="exitDiff">{{ t('diffView.exit') }} <kbd>{{ exitShortcut }}</kbd></button>
+    </div>
+    <div ref="diffContainer" class="diff-body"></div>
   </div>
 </template>
 
@@ -11,6 +16,10 @@ import { usePreferencesStore } from '@/store/preferences'
 import { storeToRefs } from 'pinia'
 import { oneDarkThemes, railscastsThemes } from '@/config'
 import DiffMatchPatch from 'diff-match-patch'
+import { useEditorStore } from '@/store/editor'
+import { t } from '@/i18n'
+import { isOsx } from '@/util'
+import notice from '@/services/notification'
 
 import 'codemirror/lib/codemirror.css'
 import 'codemirror/addon/merge/merge.css'
@@ -24,9 +33,25 @@ const props = defineProps({
 const preferencesStore = usePreferencesStore()
 const { theme } = storeToRefs(preferencesStore)
 
+const editorStore = useEditorStore()
 const diffContainer = ref(null)
-const error = ref(null)
 let mergeView = null
+const exitShortcut = isOsx ? '⌘D' : 'Ctrl+D'
+
+// The diff view replaces the editing surface (index.vue v-show), so it must
+// always offer a way back: a header button, and an automatic exit when the
+// baseline cannot be shown (untitled tab, missing/unreadable .before or git
+// baseline) — the error becomes a notification instead of a dead end.
+const exitDiff = () => {
+  const tab = editorStore.currentFile
+  if (tab && tab.diffMode) tab.diffMode = false
+}
+
+const failAndExit = (message) => {
+  console.warn(`[editor][diff][BLOCK_DIFF_UNAVAILABLE] ${message}`)
+  notice.notify({ title: t('diffView.unavailable'), message, type: 'warning' })
+  exitDiff()
+}
 
 const getTheme = () => {
   if (railscastsThemes.includes(theme.value)) return 'railscasts'
@@ -46,10 +71,9 @@ const destroyMergeView = () => {
 
 const createMergeView = async () => {
   destroyMergeView()
-  error.value = null
 
   if (!props.pathname) {
-    error.value = 'No file path — save the file first to enable diff view.'
+    failAndExit(t('diffView.noPath'))
     return
   }
 
@@ -57,7 +81,7 @@ const createMergeView = async () => {
   try {
     baseline = await invoke('mt_diff_baseline', { path: props.pathname })
   } catch (e) {
-    error.value = typeof e === 'string' ? e : (e?.message || 'Failed to load baseline')
+    failAndExit(typeof e === 'string' ? e : (e?.message || t('diffView.noBaseline')))
     return
   }
 
@@ -73,7 +97,7 @@ const createMergeView = async () => {
   await import('codemirror/addon/merge/merge')
   const CodeMirror = window.CodeMirror
   if (!CodeMirror || !CodeMirror.MergeView) {
-    error.value = 'CodeMirror MergeView not available'
+    failAndExit('CodeMirror MergeView not available')
     return
   }
 
@@ -117,9 +141,46 @@ onBeforeUnmount(() => {
 .diff-view {
   height: calc(100vh - var(--titleBarHeight));
   box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+}
+.diff-header {
+  flex: 0 0 auto;
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--floatBorderColor, rgba(128, 128, 128, 0.25));
+  color: var(--editorColor);
+  font-size: 12px;
+}
+.diff-side {
+  opacity: 0.7;
+}
+.diff-exit {
+  font: inherit;
+  color: inherit;
+  background: transparent;
+  border: 1px solid var(--floatBorderColor, rgba(128, 128, 128, 0.35));
+  border-radius: 6px;
+  padding: 3px 10px;
+  cursor: pointer;
+}
+.diff-exit:hover {
+  background: var(--floatHoverColor, rgba(128, 128, 128, 0.15));
+}
+.diff-exit kbd {
+  font-family: inherit;
+  opacity: 0.6;
+  margin-left: 6px;
+}
+.diff-body {
+  flex: 1 1 auto;
+  min-height: 0;
   overflow: auto;
 }
-.diff-view .CodeMirror-merge {
+.diff-body .CodeMirror-merge {
   height: 100%;
 }
 .diff-view .CodeMirror {
@@ -128,11 +189,5 @@ onBeforeUnmount(() => {
 .diff-view .CodeMirror-gutters {
   border-right: none;
   background-color: transparent;
-}
-.diff-error {
-  padding: 24px;
-  color: var(--editorColor);
-  font-size: 14px;
-  opacity: 0.7;
 }
 </style>

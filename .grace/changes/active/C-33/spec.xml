@@ -62,6 +62,10 @@
       <Item>Round 4 shape change to break that silhouette, confirmed by an independent critique: chisel-tip highlighter bowl (slanted left edge), nib-cut stem feet, right stem ~9% shorter; a hand-placed 16 px master and an enlarged-glyph rendition for 32/64 px. Yellow / ink / paper palette kept (unique among the look-alikes). SF Symbols are never traced; all paths are drawn in assets/icon/gen.py.</Item>
       <Item>Icon Composer: layer fills recolour every shape, so the bowl outline is an evenodd ring rather than a stroke; tinted appearance pins ink to white and the bowl to mid grey. ictool previews of default/dark/tinted/clear all read as ¶.</Item>
     </Amendment>
+    <Amendment date="2026-10-14">
+      <Item>Review follow-up: paper is a #FAF6EE → #EFE7D8 gradient in the classic art (solid #F5EFE4 in the Icon Composer fill); Assets.car is ~1.8 MB (≈12% of the 15 MB footprint target, accepted); icon.ico now stores PNG frames (305 KB → 14 KB); build.sh records Assets.car.sources.sha256 and icon-assets.test.js fails on .icon edits without a rebuild; R-4 is partial — logo-96px replaced, the landing page itself moves to C-35.</Item>
+      <Item>Pre-release gate (owned by C-23): validate the MAS .pkg with Transporter / altool (CFBundleIconName makes App Store Connect require AppIcon in Assets.car incl. 512/1024 renditions — present per assetutil).</Item>
+    </Amendment>
   </Amendments>
 
   <Approval>

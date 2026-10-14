@@ -15,7 +15,7 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.0.0 - replaces fetch(`/locales/<l>.min.json`), which 404'd in every Tauri build (vite publicDir does not exist), so non-English UI languages never loaded.
+//   LAST_CHANGE: v1.0.0 - block anchors for both log markers; error object logged with its stack. Replaces fetch(`/locales/<l>.min.json`), which 404'd in every Tauri build (vite publicDir does not exist), so non-English UI languages never loaded.
 // END_CHANGE_SUMMARY
 
 const LOADERS = import.meta.glob('../../../../static/locales/*.min.json', { import: 'default' })
@@ -32,16 +32,20 @@ export const BUNDLED_LOCALES = Object.keys(LOADERS).map(codeOf).sort()
 //   LINKS: window.i18nUtils.loadTranslations
 // END_CONTRACT: loadLocaleTable
 export async function loadLocaleTable(locale) {
+  // START_BLOCK_LOCALE_MISSING
   const load = LOADERS[`../../../../static/locales/${locale}.min.json`]
   if (!load) {
     console.warn(`[i18n][loadLocaleTable][BLOCK_LOCALE_MISSING] no bundled locale ${locale}`)
     return {}
   }
+  // END_BLOCK_LOCALE_MISSING
+  // START_BLOCK_LOCALE_LOAD_FAILED
   try {
     const table = await load()
     return table && typeof table === 'object' ? table : {}
   } catch (e) {
-    console.warn(`[i18n][loadLocaleTable][BLOCK_LOCALE_LOAD_FAILED] ${locale}: ${e}`)
+    console.warn(`[i18n][loadLocaleTable][BLOCK_LOCALE_LOAD_FAILED] ${locale}:`, e)
     return {}
   }
+  // END_BLOCK_LOCALE_LOAD_FAILED
 }

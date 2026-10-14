@@ -29,7 +29,7 @@ describe('M-031 diff-mode integration', () => {
     const { useEditorStore } = await import('@/store/editor')
     const editor = useEditorStore()
     // Set up a current file with an id so the command can toggle its diffMode.
-    editor.currentFile = { id: 'test-tab-1', diffMode: false }
+    editor.currentFile = { id: 'test-tab-1', pathname: '/tmp/a.md', diffMode: false }
 
     const commands = (await import('@/commands/index.js')).default
     const diffCmd = commands.find(c => c.id === 'view.diff-mode')
@@ -39,6 +39,15 @@ describe('M-031 diff-mode integration', () => {
     expect(editor.currentFile.diffMode).toBe(true)
 
     await diffCmd.execute()
+    expect(editor.currentFile.diffMode).toBe(false)
+  })
+
+  it('view.diff-mode refuses an untitled tab instead of hiding the editor', async () => {
+    const { useEditorStore } = await import('@/store/editor')
+    const editor = useEditorStore()
+    editor.currentFile = { id: 'untitled-1', pathname: '', diffMode: false }
+    const commands = (await import('@/commands/index.js')).default
+    await commands.find(c => c.id === 'view.diff-mode').execute()
     expect(editor.currentFile.diffMode).toBe(false)
   })
 

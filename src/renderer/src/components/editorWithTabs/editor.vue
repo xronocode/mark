@@ -78,7 +78,7 @@
 
 <script setup>
 // FILE: src/renderer/src/components/editorWithTabs/editor.vue
-// VERSION: 1.19.0
+// VERSION: 1.19.1
 // START_MODULE_CONTRACT
 //   PURPOSE: Host the Muya WYSIWYG surface and coordinate document rendering, selection, scroll, preview, editor tools, and store/bus integration.
 //   SCOPE: Renderer-side Muya lifecycle and UI orchestration; does not own Markdown parsing rules or backend file persistence.
@@ -99,6 +99,7 @@
 //   handleExport - Routes supported export formats to renderer services.
 //   handleCopyAsHtml - Copies selection (or whole document) to the clipboard as rich text/html (C-3).
 //   copyRenderedAsPlainText - Shared C-12/C-32 render → convert → single text/plain write pipeline.
+//   diffGuarded - M-031: document-mutating bus handlers become no-ops while the diff view replaces the editing surface.
 //   handleCopyAsPlainText - Copies selection (or whole document) as markup-free plain text (C-12).
 //   handleCopyAsStructuredText - Copies selection (or whole document) as plain text that keeps paragraphs, bullets, link targets and table rows (C-32).
 //   syncMirrorFromSource - C-29 Split View: debounced read-only re-render of the muya pane from the source pane; never writes to the store.
@@ -126,6 +127,7 @@
 //   - 2026-10-13 v1.17.0: C-24 — imageAction writes pasted/dropped images straight into the relative assets/ folder (the old global staging copy wrote to a cwd-relative path when imageFolderPath was empty, so paste failed on a fresh install); the global folder falls back to <userData>/images; mt::drop-image now has a listener (dropped images used to vanish); in the App Store sandbox a denied assets/ write asks once for folder access (mt_grant_folder_access) and otherwise saves globally with a notice.
 //   - 2026-10-13 v1.18.0: C-29 — `mirror` prop: in Split View with source mode on, the muya pane is visible, read-only (contenteditable=false), re-rendered from the tab markdown 150 ms after edits without focus or cursor, and its change events never reach the store; undo/redo, checkbox clicks, paste and drop are inert on it.
 //   - 2026-10-14 v1.19.0: C-32 — handleCopyAsStructuredText: C-12 render pipeline + htmlToStructuredText (bullets, "text (url)" links, quotes, " | " table rows) as one text/plain flavor; context menu, Edit menu, palette, bus. C-12 and C-32 share copyRenderedAsPlainText, which now also catches render failures (previously an unhandled rejection).
+//   - 2026-10-14 v1.19.1: review follow-up — diffGuarded drops document-mutating bus commands (undo/redo, format, paragraph, replace, image insert, extension edits, Format Document) while the diff view hides the editor (BLOCK_DIFF_EDIT_BLOCKED).
 // END_CHANGE_SUMMARY
 
 import { ref, reactive, watch, onMounted, onBeforeUnmount, nextTick, computed } from 'vue'
@@ -1797,6 +1799,32 @@ const handleResetPaddingBottom = () => {
 }
 const resizeObserverForEditor = new ResizeObserver(handleResetPaddingBottom)
 
+// START_CONTRACT: diffGuarded
+//   PURPOSE: M-031 — while the diff view replaces the editing surface, bus commands that would mutate the hidden Muya document are dropped.
+//   INPUTS: { handler: Function - a document-mutating bus handler }
+//   OUTPUTS: { Function - the same handler, no-op while currentFile.diffMode is on }
+//   SIDE_EFFECTS: console.warn with BLOCK_DIFF_EDIT_BLOCKED when a command is dropped
+//   LINKS: index.vue split-view v-show; diffView.vue
+// END_CONTRACT: diffGuarded
+// START_BLOCK_DIFF_EDIT_GUARD
+const isDiffMode = computed(() => !!currentFile.value?.diffMode)
+const guardDiff = (name, handler) => (...args) => {
+  if (isDiffMode.value) {
+    console.warn(`[Editor][diffGuarded][BLOCK_DIFF_EDIT_BLOCKED] ${name} ignored while the diff view is open`)
+    return
+  }
+  return handler(...args)
+}
+const diffGuarded = Object.fromEntries(
+  Object.entries({
+    handleUndo, handleRedo, handleEditParagraph, handleInlineFormat, handReplace, insertImage,
+    handleUploadedImage, handleCopyPaste, handleParagraph, handleInsertParagraph, handleScreenShot,
+    replaceMisspelling, handleExtTextInsert, handleExtTextTransform, handleExtUndo, handleFormatDocument
+  }).map(([name, handler]) => [name, guardDiff(name, handler)])
+)
+
+// END_BLOCK_DIFF_EDIT_GUARD
+
 onMounted(() => {
   printer = new Printer()
   const ele = editorRef.value
@@ -1904,41 +1932,41 @@ onMounted(() => {
   // listen for bus events.
   bus.on('file-loaded', setMarkdownToEditor)
   bus.on('invalidate-image-cache', handleInvalidateImageCache)
-  bus.on('undo', handleUndo)
-  bus.on('redo', handleRedo)
+  bus.on('undo', diffGuarded.handleUndo)
+  bus.on('redo', diffGuarded.handleRedo)
   bus.on('selectAll', handleSelectAll)
   bus.on('export', handleExport)
-  bus.on('paragraph', handleEditParagraph)
-  bus.on('format', handleInlineFormat)
+  bus.on('paragraph', diffGuarded.handleEditParagraph)
+  bus.on('format', diffGuarded.handleInlineFormat)
   bus.on('searchValue', handleSearch)
-  bus.on('replaceValue', handReplace)
+  bus.on('replaceValue', diffGuarded.handReplace)
   bus.on('find-action', handleFindAction)
-  bus.on('insert-image', insertImage)
+  bus.on('insert-image', diffGuarded.insertImage)
   offDropImage = window.electron?.ipcRenderer?.on?.('mt::drop-image', handleDropImage) || null
-  bus.on('image-uploaded', handleUploadedImage)
+  bus.on('image-uploaded', diffGuarded.handleUploadedImage)
   bus.on('file-changed', handleFileChange)
   bus.on('editor-blur', blurEditor)
   bus.on('editor-focus', focusEditor)
   bus.on('copyAsRich', handleCopyPaste)
   bus.on('copyAsHtml', handleCopyPaste)
-  bus.on('pasteAsPlainText', handleCopyPaste)
+  bus.on('pasteAsPlainText', diffGuarded.handleCopyPaste)
   bus.on('copyAsHtmlRich', handleCopyAsHtml)
   bus.on('copyAsPlainText', handleCopyAsPlainText)
   bus.on('copyAsStructuredText', handleCopyAsStructuredText)
-  bus.on('duplicate', handleParagraph)
-  bus.on('createParagraph', handleParagraph)
-  bus.on('deleteParagraph', handleParagraph)
-  bus.on('insertParagraph', handleInsertParagraph)
+  bus.on('duplicate', diffGuarded.handleParagraph)
+  bus.on('createParagraph', diffGuarded.handleParagraph)
+  bus.on('deleteParagraph', diffGuarded.handleParagraph)
+  bus.on('insertParagraph', diffGuarded.handleInsertParagraph)
   bus.on('scroll-to-header', scrollToHeader)
-  bus.on('screenshot-captured', handleScreenShot)
+  bus.on('screenshot-captured', diffGuarded.handleScreenShot)
   bus.on('switch-spellchecker-language', switchSpellcheckLanguage)
   bus.on('open-command-spellchecker-switch-language', openSpellcheckerLanguageCommand)
-  bus.on('replace-misspelling', replaceMisspelling)
-  bus.on('ext-text-insert', handleExtTextInsert)
-  bus.on('ext-text-transform', handleExtTextTransform)
-  bus.on('ext-undo', handleExtUndo)
+  bus.on('replace-misspelling', diffGuarded.replaceMisspelling)
+  bus.on('ext-text-insert', diffGuarded.handleExtTextInsert)
+  bus.on('ext-text-transform', diffGuarded.handleExtTextTransform)
+  bus.on('ext-undo', diffGuarded.handleExtUndo)
   bus.on('ext-context-request', handleExtContextRequest)
-  bus.on('formatDocument', handleFormatDocument)
+  bus.on('formatDocument', diffGuarded.handleFormatDocument)
 
   // The pending-open drain runs in parallel with Vue mount. If an agent or
   // Finder event selected a tab before this component subscribed, replay the
@@ -2066,42 +2094,42 @@ onBeforeUnmount(() => {
   mirrorSyncTimer = null
   bus.off('file-loaded', setMarkdownToEditor)
   bus.off('invalidate-image-cache', handleInvalidateImageCache)
-  bus.off('undo', handleUndo)
-  bus.off('redo', handleRedo)
+  bus.off('undo', diffGuarded.handleUndo)
+  bus.off('redo', diffGuarded.handleRedo)
   bus.off('selectAll', handleSelectAll)
   bus.off('export', handleExport)
-  bus.off('paragraph', handleEditParagraph)
-  bus.off('format', handleInlineFormat)
+  bus.off('paragraph', diffGuarded.handleEditParagraph)
+  bus.off('format', diffGuarded.handleInlineFormat)
   bus.off('searchValue', handleSearch)
-  bus.off('replaceValue', handReplace)
+  bus.off('replaceValue', diffGuarded.handReplace)
   bus.off('find-action', handleFindAction)
-  bus.off('insert-image', insertImage)
+  bus.off('insert-image', diffGuarded.insertImage)
   if (typeof offDropImage === 'function') offDropImage()
   offDropImage = null
-  bus.off('image-uploaded', handleUploadedImage)
+  bus.off('image-uploaded', diffGuarded.handleUploadedImage)
   bus.off('file-changed', handleFileChange)
   bus.off('editor-blur', blurEditor)
   bus.off('editor-focus', focusEditor)
   bus.off('copyAsRich', handleCopyPaste)
   bus.off('copyAsHtml', handleCopyPaste)
-  bus.off('pasteAsPlainText', handleCopyPaste)
+  bus.off('pasteAsPlainText', diffGuarded.handleCopyPaste)
   bus.off('copyAsHtmlRich', handleCopyAsHtml)
   bus.off('copyAsPlainText', handleCopyAsPlainText)
   bus.off('copyAsStructuredText', handleCopyAsStructuredText)
-  bus.off('duplicate', handleParagraph)
-  bus.off('createParagraph', handleParagraph)
-  bus.off('deleteParagraph', handleParagraph)
-  bus.off('insertParagraph', handleInsertParagraph)
+  bus.off('duplicate', diffGuarded.handleParagraph)
+  bus.off('createParagraph', diffGuarded.handleParagraph)
+  bus.off('deleteParagraph', diffGuarded.handleParagraph)
+  bus.off('insertParagraph', diffGuarded.handleInsertParagraph)
   bus.off('scroll-to-header', scrollToHeader)
-  bus.off('screenshot-captured', handleScreenShot)
+  bus.off('screenshot-captured', diffGuarded.handleScreenShot)
   bus.off('switch-spellchecker-language', switchSpellcheckLanguage)
   bus.off('open-command-spellchecker-switch-language', openSpellcheckerLanguageCommand)
-  bus.off('replace-misspelling', replaceMisspelling)
-  bus.off('ext-text-insert', handleExtTextInsert)
-  bus.off('ext-text-transform', handleExtTextTransform)
-  bus.off('ext-undo', handleExtUndo)
+  bus.off('replace-misspelling', diffGuarded.replaceMisspelling)
+  bus.off('ext-text-insert', diffGuarded.handleExtTextInsert)
+  bus.off('ext-text-transform', diffGuarded.handleExtTextTransform)
+  bus.off('ext-undo', diffGuarded.handleExtUndo)
   bus.off('ext-context-request', handleExtContextRequest)
-  bus.off('formatDocument', handleFormatDocument)
+  bus.off('formatDocument', diffGuarded.handleFormatDocument)
   if (docLintTimer) clearTimeout(docLintTimer)
   if (tocActiveTimer) clearTimeout(tocActiveTimer)
 

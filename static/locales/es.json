@@ -1444,5 +1444,13 @@
     "copy": "Copiar",
     "paste": "Pegar",
     "selectAll": "Seleccionar"
+  },
+  "diffView": {
+    "current": "Actual",
+    "baseline": "Versión base",
+    "exit": "Salir del diff",
+    "unavailable": "Comparación no disponible",
+    "noPath": "Guarda primero el archivo: una pestaña sin título no tiene versión base con la que comparar.",
+    "noBaseline": "No se encontró una versión base para este archivo."
   }
 }

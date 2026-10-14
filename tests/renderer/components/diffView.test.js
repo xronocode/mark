@@ -28,6 +28,13 @@ vi.mock('@/store/preferences', () => ({
   })
 }))
 
+const tab = { diffMode: true }
+const notifyMock = vi.fn()
+vi.mock('@/store/editor', () => ({ useEditorStore: () => ({ currentFile: tab }) }))
+vi.mock('@/i18n', () => ({ t: (key) => key }))
+vi.mock('@/util', () => ({ isOsx: true }))
+vi.mock('@/services/notification', () => ({ default: { notify: notifyMock } }))
+
 vi.mock('pinia', () => ({
   storeToRefs: (store) => {
     const { ref } = require('vue')
@@ -39,6 +46,7 @@ describe('diffView.vue', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     window.CodeMirror = null
+    tab.diffMode = true
   })
 
   const mountComponent = async (props = {}) => {
@@ -52,28 +60,44 @@ describe('diffView.vue', () => {
     return wrapper
   }
 
-  it('shows error when no pathname provided', async () => {
-    const wrapper = await mountComponent({ pathname: '' })
-    expect(wrapper.find('.diff-error').text()).toContain('No file path')
+  // A failing diff never leaves the user without an editor: it exits diff
+  // mode and reports the reason as a notification.
+  const expectExitWith = (text) => {
+    expect(tab.diffMode).toBe(false)
+    expect(notifyMock).toHaveBeenCalledWith(expect.objectContaining({ type: 'warning', message: expect.stringContaining(text) }))
+  }
+
+  it('exits with a notice when no pathname is provided', async () => {
+    await mountComponent({ pathname: '' })
+    expectExitWith('diffView.noPath')
   })
 
-  it('shows error when invoke fails with Error object', async () => {
+  it('exits with a notice when invoke fails with an Error object', async () => {
     invokeMock.mockRejectedValueOnce(new Error('file not found'))
-    const wrapper = await mountComponent()
-    expect(wrapper.find('.diff-error').text()).toContain('file not found')
+    await mountComponent()
+    expectExitWith('file not found')
   })
 
-  it('shows error when invoke fails with string', async () => {
+  it('exits with a notice when invoke fails with a string', async () => {
     invokeMock.mockRejectedValueOnce('custom error string')
-    const wrapper = await mountComponent()
-    expect(wrapper.find('.diff-error').text()).toContain('custom error string')
+    await mountComponent()
+    expectExitWith('custom error string')
   })
 
-  it('shows error when CodeMirror.MergeView not available', async () => {
+  it('exits with a notice when CodeMirror.MergeView is not available', async () => {
     invokeMock.mockResolvedValueOnce('baseline content')
     window.CodeMirror = {}
+    await mountComponent()
+    expectExitWith('MergeView not available')
+  })
+
+  it('the header exit button leaves diff mode', async () => {
+    invokeMock.mockResolvedValueOnce('baseline')
+    window.CodeMirror = { MergeView: vi.fn(() => ({ editor: () => ({ setValue: vi.fn() }), wrap: document.createElement('div') })) }
     const wrapper = await mountComponent()
-    expect(wrapper.find('.diff-error').text()).toContain('MergeView not available')
+    expect(wrapper.find('.diff-exit').text()).toContain('⌘D')
+    await wrapper.find('.diff-exit').trigger('click')
+    expect(tab.diffMode).toBe(false)
   })
 
   it('creates MergeView when CodeMirror is available', async () => {
@@ -85,7 +109,8 @@ describe('diffView.vue', () => {
     window.CodeMirror = { MergeView: mergeViewMock }
     const wrapper = await mountComponent()
     expect(mergeViewMock).toHaveBeenCalled()
-    expect(wrapper.find('.diff-error').exists()).toBe(false)
+    expect(tab.diffMode).toBe(true)
+    expect(notifyMock).not.toHaveBeenCalled()
   })
 
   it('destroys merge view on unmount', async () => {
