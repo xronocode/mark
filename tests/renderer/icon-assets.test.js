@@ -16,7 +16,7 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.0.0 - C-33: initial pins (incl. Assets.car source-hash drift check).
+//   LAST_CHANGE: v1.0.0 - C-33: initial pins (incl. Assets.car source-hash drift check); 30 s timeout for the python3 spawn on Windows CI.
 // END_CHANGE_SUMMARY
 
 import { describe, it, expect } from 'vitest'
@@ -82,5 +82,5 @@ describe('C-33 icon assets', () => {
     } finally {
       rmSync(tmp, { recursive: true, force: true })
     }
-  })
+  }, 30_000) // spawning python3 takes >5 s on loaded Windows runners
 })
