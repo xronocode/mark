@@ -1,5 +1,5 @@
 // FILE: src/muya/lib/parser/render/mermaidPipeline.js
-// VERSION: 1.0.0
+// VERSION: 1.1.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Resilient Mermaid render pipeline (C-34 R2.1) — LRU SVG cache keyed by code+theme hash, keep-last-good rendering with escaped error text, per-block ~250 ms debounce while typing, unique render ids from a module counter, and WKWebView CSP style hoisting.
 //   SCOPE: createMermaidPipeline factory plus cache/LRU, hash, debounce, insert, error, and orphan-cleanup helpers; targets are resolved by selector at each flush so re-patched DOM is always current.
@@ -16,7 +16,8 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.0.0 - 2026-10-15 C-34 R2.1: extracted from StateRender.renderMermaid; added LRU code+theme SVG cache, keep-last-good + escaped mermaid error text, orphan error-element cleanup, per-block trailing debounce, counter-based unique render ids, and useMaxWidth:false initialization for natural-size diagrams.
+//   LAST_CHANGE: v1.1.0 - 2026-10-15 C-34: wide diagrams fit the text column by default (useMaxWidth:true, user decision); natural size lives in the fullscreen viewer.
+//   v1.0.0 - 2026-10-15 C-34 R2.1: extracted from StateRender.renderMermaid; added LRU code+theme SVG cache, keep-last-good + escaped mermaid error text, orphan error-element cleanup, per-block trailing debounce, counter-based unique render ids, and useMaxWidth:false initialization for natural-size diagrams.
 // END_CHANGE_SUMMARY
 
 import loadRenderer from '../../renderers'
@@ -25,25 +26,28 @@ import { CLASS_OR_ID } from '../../config'
 export const MERMAID_PREVIEW_CLASS = 'ag-mermaid-preview'
 export const MERMAID_ERROR_CLASS = 'ag-mermaid-error'
 
-// START_BLOCK_MERMAID_NATURAL_SIZE_CONFIG
-// Mermaid 11 defaults every diagram to useMaxWidth:true which squeezes wide
-// diagrams into width:100%. All diagram configs extend BaseDiagramConfig
-// (useMaxWidth), so natural size is one flat config per diagram type.
-const NATURAL_SIZE_KEYS = [
+// START_BLOCK_MERMAID_FIT_COLUMN_CONFIG
+// User decision 2026-10-15 (replaces the R2.1 natural-size default): wide
+// diagrams fit the text column — useMaxWidth:true renders the SVG at
+// width:100% with max-width = its natural width, so narrow diagrams keep
+// their size and wide ones scale down; the fullscreen block viewer shows
+// the natural size. Every diagram config extends BaseDiagramConfig
+// (useMaxWidth), so this is one flat config per diagram type.
+const FIT_COLUMN_KEYS = [
   'flowchart', 'sequence', 'gantt', 'journey', 'timeline', 'class', 'state',
   'er', 'pie', 'quadrantChart', 'xyChart', 'requirement', 'architecture',
   'mindmap', 'ishikawa', 'kanban', 'gitGraph', 'c4', 'sankey', 'packet',
   'block', 'treeView', 'radar', 'venn'
 ]
 
-const buildNaturalSizeConfig = () => {
+const buildFitColumnConfig = () => {
   const config = {}
-  for (const key of NATURAL_SIZE_KEYS) {
-    config[key] = { useMaxWidth: false }
+  for (const key of FIT_COLUMN_KEYS) {
+    config[key] = { useMaxWidth: true }
   }
   return config
 }
-// END_BLOCK_MERMAID_NATURAL_SIZE_CONFIG
+// END_BLOCK_MERMAID_FIT_COLUMN_CONFIG
 
 // START_BLOCK_MERMAID_CACHE_KEY
 // djb2 hash: fast, synchronous, collision-safe for a ~50-entry cache when
@@ -268,7 +272,7 @@ export const createMermaidPipeline = ({
     mermaid.initialize({
       securityLevel: 'strict',
       theme: todo[0].theme,
-      ...buildNaturalSizeConfig()
+      ...buildFitColumnConfig()
     })
     for (const entry of todo) {
       await renderOne(mermaid, entry)
