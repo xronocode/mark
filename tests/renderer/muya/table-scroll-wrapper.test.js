@@ -10,6 +10,7 @@
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
+//   StateRender - real StateRender class imported after the renderer-loader mock.
 //   makeBlocks - the figure→table→thead/tbody→tr→th/td→span block tree fixture.
 //   createStateRender - real StateRender with a fake muya and a stubbed renderLeafBlock.
 //   renderFigure - renders the whole figure block with the given activeBlocks chain.
