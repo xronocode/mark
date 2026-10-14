@@ -1,0 +1,27 @@
+<GraceChangeSpec graceVersion='4.0' status='draft'>
+<C-47>
+  <Name>Advanced agent setup: Claude Code hooks that open agent-written Markdown in Mark and feed the user's edits back</Name>
+  <Created>2026-10-15</Created>
+  <Priority>medium</Priority>
+  <Status>draft</Status>
+  <RoadmapPhase>R2</RoadmapPhase>
+  <Complexity>M</Complexity>
+  <Summary>Next to the universal prompt (C-40 R-1a) the Guide and the welcome screen offer "Advanced agent setup" (user 2026-10-15). It installs two Claude Code hooks so nothing depends on the agent remembering instructions: PostToolUse on Write/Edit/MultiEdit opens a written .md in Mark in the background (open -g -a Mark); UserPromptSubmit compares the .md files the agent wrote with the hash recorded at its last write and, when the user changed them in Mark, adds a short "the user edited plan.md" diff to Claude's context.</Summary>
+  <Problem><Description>The prompt-only setup relies on the agent following instructions; hooks make the loop automatic. User: «про хуки я бы добавил вариант типа адвенсед агент сетап».</Description></Problem>
+  <Goals>
+    <R-1>A small hook script shipped with Mark (shell or node-free binary call to the Mark CLI) handling both events; state (path → hash at the agent's last write) in a per-project file under .claude/.</R-1>
+    <R-2>"Advanced agent setup" panel: shows exactly what will be added to which settings file (project .claude/settings.json or ~/.claude/settings.json), asks for confirmation, merges without clobbering existing hooks, and can remove them again.</R-2>
+    <R-3>Desktop edition writes the settings after confirmation; the App Store edition (sandbox, no access to ~/.claude) shows copy-paste steps instead.</R-3>
+    <R-4>Other agents with hook systems (e.g. Cursor) as a later phase; agents without hooks keep the universal prompt.</R-4>
+    <R-5>All UI text in the 10 languages; the diff injected into the agent stays short (changed lines only, capped).</R-5>
+  </Goals>
+  <Phases><A1><Title>Prototype hooks for the Mark repo only (.claude/settings.local.json), dogfood</Title><Complexity>S</Complexity></A1><A2><Title>Advanced setup panel + install/uninstall in the desktop edition; copy-paste in the App Store edition</Title><Complexity>M</Complexity></A2></Phases>
+  <Dependencies>C-40 (Guide), C-46 (welcome screen), m020 CLI.</Dependencies>
+  <Constraints><Constraint>Never edit a user's Claude settings without an explicit confirmation showing the exact change; uninstall restores the previous state.</Constraint></Constraints>
+  <NonGoals><NonGoal>MCP server (C-25).</NonGoal></NonGoals>
+  <AcceptanceCriteria><Criterion>With the hooks installed, Claude Code writes plan.md → Mark opens it without focus steal; the user edits it in Mark; on the next prompt Claude receives the user's change without being told.</Criterion></AcceptanceCriteria>
+  <AffectedAreas><Bundle>hook script, Guide/welcome panel, settings merge</Bundle></AffectedAreas>
+  <VerificationIntent>Unit tests for the settings merge and the edit detection; a scripted end-to-end run with a fake agent writing files.</VerificationIntent>
+  <Approval><ApprovedBy>pending</ApprovedBy><ApprovalScope>None yet.</ApprovalScope></Approval>
+</C-47>
+</GraceChangeSpec>
