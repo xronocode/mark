@@ -13,7 +13,8 @@
 // END_MODULE_CONTRACT
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: [2026-10-12 - Readable documentation code-language labels.]
+//   LAST_CHANGE: [2026-10-15 - C-42: guide sidebar links the Editions page.]
+//   PREV: [2026-10-12 - Readable documentation code-language labels.]
 //   PREV: [v2.2.0 - docs head analytics from the shared analyticsTags list]
 //   PREV: [v2.1.0 - GA4 analytics provider in the docs head]
 //   PREV: [v2.0.0 - C-22: env-driven base/URL, landing via buildEnd + dev
@@ -120,6 +121,7 @@ export default defineConfig({
           items: [
             { text: 'Introduction', link: '/guide/' },
             { text: 'Installation', link: '/guide/installation' },
+            { text: 'Editions', link: '/guide/editions' },
             { text: 'Quick Start', link: '/guide/quickstart' }
           ]
         },
