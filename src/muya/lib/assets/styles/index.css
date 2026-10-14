@@ -780,6 +780,35 @@ figure.ag-container-block div.ag-container-preview > svg {
   box-sizing: border-box;
 }
 
+/*
+ * Mermaid previews (C-34 R2.1): diagrams render at natural size
+ * (mermaid useMaxWidth:false) inside a horizontally scrollable container
+ * instead of being squeezed to the text column by the width:100% rule
+ * above. The ag-mermaid-preview hook class is added by the render
+ * pipeline, so plantuml, vega-lite, flowchart.js and math previews are
+ * unaffected. Narrow diagrams stay centred via block-level auto margins.
+ */
+figure.ag-container-block div.ag-container-preview.ag-mermaid-preview {
+  overflow-x: auto;
+}
+
+figure.ag-container-block div.ag-container-preview.ag-mermaid-preview > svg {
+  width: auto;
+  max-width: none;
+  display: block;
+  margin: 0 auto;
+}
+
+/* Mermaid error text shown below a kept-last-good diagram (C-34 R2.1). */
+figure.ag-container-block div.ag-container-preview div.ag-mermaid-error {
+  color: var(--deleteColor);
+  font-size: 12px;
+  font-family: monospace;
+  white-space: pre-wrap;
+  text-align: center;
+  padding: 2px 8px 6px;
+}
+
 figure.ag-active.ag-container-block > div.ag-container-preview {
   position: absolute;
   top: calc(100% + 20px);
