@@ -1,0 +1,59 @@
+<GraceChangePlan graceVersion='4.0' status='approved'>
+<C-39>
+  <ChangeRef>C-39</ChangeRef>
+  <Created>2026-10-15</Created>
+  <IntentSummary>Tables: default rendering that never overflows the text column (scroll wrapper + edge shadows, content width, long-token wrap, PDF/HTML export rules), session-only column resize, and the fullscreen viewer shared with C-34 R2.2 (tracked as C-34 T-002). Implemented by ZCode agents without shell; the orchestrator runs gates, proofs and commits.</IntentSummary>
+  <BaselineAssertions>
+    <MustContain>
+      <File>src/muya/lib/parser/render/renderBlock/renderContainerBlock.js</File>
+      <Text>renderingTable</Text>
+    </MustContain>
+  </BaselineAssertions>
+  <TargetAssertions>
+    <MustContain>
+      <File>src/muya/lib/assets/styles/index.css</File>
+      <Text>C-39</Text>
+    </MustContain>
+  </TargetAssertions>
+  <DurableScope>
+    <M-011/>
+  </DurableScope>
+  <ObservedWriteScope>
+    <File>src/muya/lib/parser/render/renderBlock/renderContainerBlock.js</File>
+    <File>src/muya/lib/assets/styles/index.css</File>
+    <File>src/muya/themes/default.css</File>
+    <File>src/muya/lib/utils/exportHtml.js</File>
+    <File>src/renderer/src/assets/styles/printService.css</File>
+    <File>tests/renderer/muya/*table*.test.js</File>
+    <File>tests/e2e/table-*.spec.ts</File>
+    <File>.grace/verification/runtime.xml</File>
+  </ObservedWriteScope>
+  <ImplementationPlan>
+    <T-001>
+      <Title>T1 default table rendering: scroll wrapper + edge shadows, content width, long-token wrap, export/PDF rules</Title>
+      <DependsOn></DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>A 15-column table stays inside the text column and scrolls horizontally; an edge shadow marks the side with hidden columns (start/end), updated on scroll and resize.</Criterion>
+        <Criterion>A 2×2 table keeps content width.</Criterion>
+        <Criterion>Body cells wrap unbreakable tokens (max ≈ 40ch, overflow-wrap: anywhere); header cells do not break mid-word.</Criterion>
+        <Criterion>Table editing inside the wrapper still works: cell focus/caret, drag bars (left/bottom handlers), table tools toolbar, cell selection, row/column insert.</Criterion>
+        <Criterion>HTML export and print/PDF: no scroll container; wide tables wrap so every column is visible.</Criterion>
+        <Criterion>Unit/e2e pins (Chromium + WebKit): wrapper scrollWidth &gt; clientWidth for the wide table, table width == content for the narrow table, URL cell does not exceed the cap.</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>npx vitest run tests/renderer/muya</Command>
+        <Command>npm test</Command>
+        <Command>npm run build &amp;&amp; npx playwright test tests/e2e/table-layout.spec.ts</Command>
+      </Verification>
+    </T-001>
+    <T-002>
+      <Title>T3 session-only column resize</Title>
+      <DependsOn>T-001</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>Dragging a column border resizes live; the saved markdown is byte-identical; reload restores auto layout; double-click resets.</Criterion>
+      </AcceptanceCriteria>
+      <Verification><Command>npx playwright test tests/e2e/table-layout.spec.ts</Command></Verification>
+    </T-002>
+  </ImplementationPlan>
+</C-39>
+</GraceChangePlan>
