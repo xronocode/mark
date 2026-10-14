@@ -36,5 +36,14 @@
       </Verification>
     </T-001>
   </ImplementationPlan>
+
+  <Evidence>
+    <T-001>
+      <Status>done</Status>
+      <Commits>agent/c43 (ZCode agent without shell) merged 2026-10-15; orchestrator resolved the runtime.xml scenario collision (C-43 → V-M-011 scenario-39), regenerated *.min.json locales, fixed MODULE_MAP parity.</Commits>
+      <Gates>Old-code proof: with main's editor.js and diffView.vue the live-reload-snapshot and diff-view-snapshot tests fail 11/16; with the change 25/25 unit. e2e diff-snapshot + live-reload-scroll 8/8 in Chromium and WebKit. npm test 3473 passed; grace lint Errors: 0.</Gates>
+      <Pending>Live check in the real app; S2 (step back through older snapshots, persistence) needs a decision.</Pending>
+    </T-001>
+  </Evidence>
 </C-43>
 </GraceChangePlan>
