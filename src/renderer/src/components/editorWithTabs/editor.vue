@@ -151,6 +151,7 @@ import LinkTools from 'muya/lib/ui/linkTools'
 import FootnoteTool from 'muya/lib/ui/footnoteTool'
 import TableBarTools from 'muya/lib/ui/tableTools'
 import FrontMenu from 'muya/lib/ui/frontMenu'
+import BlockViewer from 'muya/lib/ui/blockViewer'
 import EditorSearch from '../search'
 import bus from '@/bus'
 import { DEFAULT_EDITOR_FONT_FAMILY } from '@/config'
@@ -1854,6 +1855,7 @@ onMounted(() => {
   })
   Muya.use(FootnoteTool)
   Muya.use(TableBarTools)
+  Muya.use(BlockViewer)
 
   const options = {
     focusMode: focus.value,

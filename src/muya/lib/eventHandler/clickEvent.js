@@ -1,3 +1,24 @@
+// FILE: src/muya/lib/eventHandler/clickEvent.js
+// VERSION: 1.1.0
+// START_MODULE_CONTRACT
+//   PURPOSE: Route clicks inside the muya container — tools, drag bars, images, math, container previews, callouts, footnotes, checkboxes — to contentState actions or eventCenter events.
+//   SCOPE: clickBinding and contextClickBinding only.
+//   DEPENDS: muya/lib/utils (domManipulate, getImageInfo), muya/lib/config, muya/lib/selection, contentState handlers.
+//   LINKS: .grace/graph/runtime.xml M-012; .grace/verification/runtime.xml V-M-012; .grace/changes/active/C-34 T-002 (BLOCK_CONTAINER_VIEWER_CLICK).
+//   ROLE: RUNTIME
+//   MAP_MODE: LOCALS
+// END_MODULE_CONTRACT
+//
+// START_MODULE_MAP
+//   default - ClickEvent class (container click + contextmenu routing).
+//   getToolItem - resolves the closest [data-label] tool item under a click target.
+//   selectionText - moves the DOM selection to the end of a marked-text node.
+// END_MODULE_MAP
+//
+// START_CHANGE_SUMMARY
+//   LAST_CHANGE: v1.1.0 - 2026-10-15 C-34 R2.2/C-39 T2: Cmd/Ctrl+click on a mermaid preview dispatches 'muya-block-viewer' (fullscreen viewer) instead of opening the source; a plain click keeps opening the source.
+// END_CHANGE_SUMMARY
+
 import { operateClassName } from '../utils/domManipulate'
 import { getImageInfo } from '../utils/getImageInfo'
 import { CLASS_OR_ID } from '../config'
@@ -249,6 +270,18 @@ class ClickEvent {
         event.stopPropagation()
         if (target.closest('div.ag-container-preview')) {
           event.preventDefault()
+          // START_BLOCK_CONTAINER_VIEWER_CLICK
+          // C-34 R2.2 / C-39 T2: Cmd/Ctrl+click on a rendered container
+          // preview opens the shared fullscreen block viewer (the plugin
+          // ignores previews without an SVG). A plain click still opens
+          // the source for editing.
+          if (event.metaKey || event.ctrlKey) {
+            eventCenter.dispatch('muya-block-viewer', {
+              element: target.closest('div.ag-container-preview')
+            })
+            return
+          }
+          // END_BLOCK_CONTAINER_VIEWER_CLICK
           const figureEle = target.closest('figure')
           contentState.handleContainerBlockClick(figureEle)
         }

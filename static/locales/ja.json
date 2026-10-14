@@ -398,6 +398,16 @@
     "alignRight": "右揃え",
     "deleteTable": "テーブル削除"
   },
+  "blockViewer": {
+    "expand": "拡大表示",
+    "close": "閉じる",
+    "zoomIn": "拡大",
+    "zoomOut": "縮小",
+    "fit": "画面に合わせる",
+    "actualSize": "100%",
+    "diagram": "図",
+    "table": "表"
+  },
   "recent": {
     "noTabsOpen": "開いているタブがありません。",
     "newFile": "新しいファイル"

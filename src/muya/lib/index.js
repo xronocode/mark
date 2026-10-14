@@ -1,5 +1,5 @@
 // FILE: src/muya/lib/index.js
-// VERSION: 1.2.0
+// VERSION: 1.3.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Muya editor entry class — construction, options, and the public API surface other modules call.
 //   SCOPE: Class construction/init, markdown IO (get/set), export helpers, clipboard accessors, and public editing commands.
@@ -14,7 +14,8 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.2.0 - C-24 R-4: insertImageFromPath — public entry for the Tauri file drop (inserts a local image at the cursor via imageAction).
+//   LAST_CHANGE: v1.3.0 - 2026-10-15 C-34 R2.2/C-39 T2: destroy the blockViewer UI plugin (shared fullscreen block viewer) on editor teardown.
+//   v1.2.0 - C-24 R-4: insertImageFromPath — public entry for the Tauri file drop (inserts a local image at the cursor via imageAction).
 //   v1.1.0 - Add getCopyData: markdown text of whatever is selected (DOM range, table cells, image) for the Copy as HTML clipboard path; mirrors docCopyHandler/copyHandler special cases (C-3).
 // END_CHANGE_SUMMARY
 
@@ -585,6 +586,9 @@ class Muya {
     this.imagePathPicker.destroy()
     if (this.linkPathPicker) {
       this.linkPathPicker.destroy()
+    }
+    if (this.blockViewer) {
+      this.blockViewer.destroy()
     }
     this.eventCenter.detachAllDomEvents()
   }

@@ -398,6 +398,16 @@
     "alignRight": "右对齐",
     "deleteTable": "删除表格"
   },
+  "blockViewer": {
+    "expand": "全屏查看",
+    "close": "关闭",
+    "zoomIn": "放大",
+    "zoomOut": "缩小",
+    "fit": "适应屏幕",
+    "actualSize": "100%",
+    "diagram": "图表",
+    "table": "表格"
+  },
   "recent": {
     "noTabsOpen": "您没有打开的标签页。",
     "newFile": "新建文件"

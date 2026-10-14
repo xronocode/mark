@@ -397,6 +397,16 @@
     "alignRight": "Rechts ausrichten",
     "deleteTable": "Tabelle löschen"
   },
+  "blockViewer": {
+    "expand": "Vollbild",
+    "close": "Schließen",
+    "zoomIn": "Vergrößern",
+    "zoomOut": "Verkleinern",
+    "fit": "Auf Bildschirmgröße anpassen",
+    "actualSize": "100%",
+    "diagram": "Diagramm",
+    "table": "Tabelle"
+  },
   "recent": {
     "noTabsOpen": "Sie haben keine Tabs geöffnet.",
     "newFile": "Neue Datei"

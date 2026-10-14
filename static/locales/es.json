@@ -397,6 +397,16 @@
     "alignRight": "Alinear a la Derecha",
     "deleteTable": "Eliminar Tabla"
   },
+  "blockViewer": {
+    "expand": "Ampliar",
+    "close": "Cerrar",
+    "zoomIn": "Acercar",
+    "zoomOut": "Alejar",
+    "fit": "Ajustar a la pantalla",
+    "actualSize": "100%",
+    "diagram": "Diagrama",
+    "table": "Tabla"
+  },
   "recent": {
     "noTabsOpen": "No tienes pestañas abiertas.",
     "newFile": "Nuevo Archivo"
