@@ -7,7 +7,7 @@
 //   DEPENDS: marked, Prism, katex, renderer loaders, inline CSS assets,
 //            sanitize helpers.
 //   LINKS:   docs/knowledge-graph.xml M-012; docs/verification-plan.xml
-//            V-M-012 export scenarios.
+//            V-M-012 export scenarios; .grace/changes/active/C-39 T-001.
 //   STATUS:  Screen layout CSS no longer uses `@media not print`; print
 //            behavior stays isolated in the dedicated `@media print` block.
 //
@@ -15,6 +15,10 @@
 //   - 2026-05-21 drag-theme-refactor: remove `@media not print` from the
 //     export HTML stylesheet so bundle-level grep stays clean without
 //     changing the dedicated print rules below.
+//   - 2026-10-15 C-39 T-001: exported tables wrap instead of scrolling —
+//     no scroll container exists in export HTML, so cells use
+//     overflow-wrap: anywhere and the table is capped at the article width
+//     to keep every column visible in PDF.
 
 import marked from '../parser/marked'
 import Prism from 'prismjs'
@@ -278,8 +282,16 @@ class ExportHtml {
     .markdown-body pre {
       white-space: pre-wrap;
     }
+    /* C-39 T-001: export has no scroll container (the editor wrapper
+     * div.ag-table-scroll never exists here), so a wide table must wrap
+     * to the article width — every column stays visible in PDF. */
     .markdown-body table {
       display: table;
+      max-width: 100%;
+    }
+    .markdown-body table th,
+    .markdown-body table td {
+      overflow-wrap: anywhere;
     }
     .markdown-body img[data-align="center"] {
       display: block;
