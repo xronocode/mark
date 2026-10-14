@@ -1,0 +1,45 @@
+<GraceChangePlan graceVersion='4.0' status='approved'>
+<C-41>
+  <ChangeRef>C-41</ChangeRef>
+  <Created>2026-10-15</Created>
+  <IntentSummary>T1: ship Paper and Ink as new themes and the defaults for new installs, and replace the title-bar light/dark toggle with an Auto → Light → Dark button (Avenex icons). Family model and set trimming (T2/T3) come after the user confirms the family list.</IntentSummary>
+  <BaselineAssertions>
+    <MustContain><File>src/renderer/src/util/theme.js</File><Text>addThemeStyle</Text></MustContain>
+  </BaselineAssertions>
+  <TargetAssertions>
+    <MustContain><File>src/renderer/src/assets/themes/paper.theme.css</File><Text>Paper theme</Text></MustContain>
+    <MustContain><File>src/renderer/src/assets/themes/ink.theme.css</File><Text>Ink theme</Text></MustContain>
+  </TargetAssertions>
+  <DurableScope><M-011/></DurableScope>
+  <ObservedWriteScope>
+    <File>src/renderer/src/assets/themes/paper.theme.css</File>
+    <File>src/renderer/src/assets/themes/ink.theme.css</File>
+    <File>src/renderer/src/util/theme.js</File>
+    <File>src/renderer/src/config.js</File>
+    <File>src/renderer/src/components/titleBar/index.vue</File>
+    <File>src/renderer/src/store/preferences.js</File>
+    <File>src/renderer/src/_shims/preferences/schema.json</File>
+    <File>src/renderer/src/prefComponents/theme/*</File>
+    <File>static/locales/*.json</File>
+    <File>tests/renderer/**/*theme*.test.js</File>
+    <File>tests/renderer/components/titleBar*.test.js</File>
+    <File>.grace/verification/runtime.xml</File>
+  </ObservedWriteScope>
+  <ImplementationPlan>
+    <T-001>
+      <Title>Paper + Ink themes as defaults; Auto/Light/Dark title-bar button</Title>
+      <DependsOn></DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>paper.theme.css and ink.theme.css added (from the reviewed drafts), registered like every other theme (themeMap, theme lists, dark-theme classification for ink), selectable in Settings, with names in every locale.</Criterion>
+        <Criterion>New installs default to followSystemTheme=true, lightModeTheme=paper, darkModeTheme=ink; existing users keep their stored theme.</Criterion>
+        <Criterion>Title-bar theme button cycles Auto → Light → Dark with the Avenex icons and a localized tooltip; Auto sets followSystemTheme and follows prefers-color-scheme changes live; Light/Dark pick lightModeTheme/darkModeTheme.</Criterion>
+        <Criterion>Unit tests: cycle order, Auto resolution for both OS appearances, live appearance change, defaults for a fresh profile, stored theme preserved.</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>npm test</Command>
+        <Command>grace lint --path . --assertions current</Command>
+      </Verification>
+    </T-001>
+  </ImplementationPlan>
+</C-41>
+</GraceChangePlan>

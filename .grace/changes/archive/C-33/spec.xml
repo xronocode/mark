@@ -1,9 +1,9 @@
-<GraceChangeSpec graceVersion='4.0' status='approved'>
+<GraceChangeSpec graceVersion='4.0' status='applied'>
 <C-33>
   <Name>New app icon: highlighted pilcrow ¶ with macOS 26 dark and tinted appearances</Name>
   <Created>2026-10-14</Created>
   <Priority>high</Priority>
-  <Status>in-progress</Status>
+  <Status>completed</Status>
 
   <Summary>
     G2 of the MarkView gap plan. Replace the circle-with-cyan-M icon with the
@@ -71,6 +71,7 @@
   <Approval>
     <ApprovedBy>user (session 2026-10-14): «1 го плюс более глубокий антиплагиат ресерч»</ApprovedBy>
     <ApprovalScope>Production of the icon family, repo integration, research; no release.</ApprovalScope>
+    <FinalSignOff>user (2026-10-15): «одобряю иконку» — round-4 chisel-tip ¶ (canvas artboard 7) accepted; ships with C-23 release 2.3.0.</FinalSignOff>
   </Approval>
 </C-33>
 </GraceChangeSpec>

@@ -1,0 +1,57 @@
+<GraceChangeSpec graceVersion='4.0' status='draft'>
+<C-40>
+  <Name>In-app Guide, titlebar document tools (split, lock, copy) and a new home for document statistics</Name>
+  <Created>2026-10-15</Created>
+  <Priority>medium</Priority>
+  <Status>draft</Status>
+  <RoadmapPhase>N</RoadmapPhase>
+  <Complexity>M (sub-phases)</Complexity>
+
+  <Summary>
+    Backlog from the user's MarkView observations (2026-10-15): MarkView has a "Guide" button, split-view tools and lock / copy-document actions in the titlebar. Do the same, better: a guide that is a living, editable Mark document instead of a static help page; compact document tools in the titlebar; move word/character statistics out of the titlebar into a calmer place.
+  </Summary>
+
+  <Problem>
+    <Description>New users do not discover Mark's features (WYSIWYG blocks, split view, structured copy, diff, live reload for agents). Document-level actions are buried in menus. The titlebar word count competes with the title and breadcrumbs.</Description>
+  </Problem>
+
+  <Goals>
+    <R-1>Guide, better than a static help page: a "Guide" entry (titlebar ? button on Win/Linux, Help › Mark Guide and the command palette on all OS) opens a localized, editable sample document in a temporary tab: each section demonstrates a feature in place (try-it blocks: type a table, a callout, a mermaid diagram), shows the shortcut, and links to the command. A "Set up your agent" section gives a copyable prompt for Claude Code / Codex / Cursor (live reload, later MCP from C-25). Edits never touch a real file unless the user saves. Content versioned with releases so What's New (G10) can deep-link to the new section.</R-1>
+    <R-2>Titlebar document tools (right side, per-OS gated like C-38 N1): split view toggle with a small menu (side by side / source only / preview only, sync scroll), lock (read-only toggle per tab, prevents accidental edits while an agent writes; shows a lock badge on the tab), copy document (one click → structured text by default, menu for Markdown / HTML / structured text, reusing C-3/C-32).</R-2>
+    <R-3>Statistics: remove the word count from the titlebar; show it in an optional slim status bar (lines · words · characters · reading time, selection-aware) — off by default on macOS, toggle in View and Settings — and in a popover from the document title (also file path, size, modified time).</R-3>
+  </Goals>
+
+  <Phases>
+    <G-1><Title>Design on canvas: titlebar tools, status bar / title popover, guide entry points (macOS light/dark, Windows)</Title><Complexity>S</Complexity></G-1>
+    <G-2><Title>Titlebar tools + lock + statistics move</Title><Complexity>M</Complexity></G-2>
+    <G-3><Title>Guide document (EN, then 10 UI languages) + entry points</Title><Complexity>M</Complexity></G-3>
+  </Phases>
+
+  <Dependencies>C-38 N3/N4 (titlebar and chrome visuals) — design together; C-25 for the MCP part of the agent section; G10 What's New deep links.</Dependencies>
+
+  <Constraints>
+    <Constraint>Lock is a view state (not file permissions); live reload still applies while locked.</Constraint>
+    <Constraint>Guide content must never be written to the user's files unless they choose Save As.</Constraint>
+  </Constraints>
+
+  <NonGoals>
+    <NonGoal>A web help centre (the site docs stay as they are, C-35 restyles them).</NonGoal>
+  </NonGoals>
+
+  <AcceptanceCriteria>
+    <Criterion>A new user reaches every headline feature from the Guide in under a minute; lock prevents edits and is visible on the tab; copy document puts structured text on the clipboard in one click; statistics are visible on demand and gone from the titlebar.</Criterion>
+  </AcceptanceCriteria>
+
+  <AffectedAreas>
+    <M-011>titleBar, tabs, status bar, guide document, command palette</M-011>
+    <M-009>Help › Mark Guide, View › Status Bar menu items</M-009>
+  </AffectedAreas>
+
+  <VerificationIntent>Per-OS titlebar tests, e2e for lock/copy/guide, WebKit screenshot matrix, live check.</VerificationIntent>
+
+  <Approval>
+    <ApprovedBy>pending — backlog item recorded on the user's request (2026-10-15): «не критично на сейчас, как бэклог зафиксировать»</ApprovedBy>
+    <ApprovalScope>None yet.</ApprovalScope>
+  </Approval>
+</C-40>
+</GraceChangeSpec>

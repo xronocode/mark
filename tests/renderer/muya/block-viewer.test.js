@@ -4,7 +4,7 @@
 //   PURPOSE: Pin the shared fullscreen block viewer (C-34 R2.2 + C-39 T2): open/close lifecycle, Esc close with focus restore, panzoom destruction, read-only table clones, hover/caret toolbar visibility, wheel/keyboard zoom routing, and the focus trap.
 //   SCOPE: BlockViewer in src/muya/lib/ui/blockViewer/index.js with @panzoom/panzoom mocked.
 //   DEPENDS: src/muya/lib/ui/blockViewer, src/muya/lib/eventHandler/event (real EventCenter), Vitest + jsdom.
-//   LINKS: .grace/changes/active/C-34 T-002; .grace/changes/active/C-39 T2; .grace/verification/runtime.xml V-M-012 scenario-18; START_BLOCK_VIEWER_*.
+//   LINKS: .grace/changes/active/C-34 T-002; .grace/changes/active/C-39 T2; .grace/verification/runtime.xml V-M-012 scenario-19; START_BLOCK_VIEWER_*.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT
