@@ -401,6 +401,16 @@
     "alignRight": "Align Right",
     "deleteTable": "Delete Table"
   },
+  "blockViewer": {
+    "expand": "Expand",
+    "close": "Close",
+    "zoomIn": "Zoom In",
+    "zoomOut": "Zoom Out",
+    "fit": "Fit to Screen",
+    "actualSize": "100%",
+    "diagram": "Diagram",
+    "table": "Table"
+  },
   "recent": {
     "noTabsOpen": "You have no tabs open.",
     "newFile": "New File",

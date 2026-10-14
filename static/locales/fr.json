@@ -398,6 +398,16 @@
     "alignRight": "Aligner à Droite",
     "deleteTable": "Supprimer le Tableau"
   },
+  "blockViewer": {
+    "expand": "Agrandir",
+    "close": "Fermer",
+    "zoomIn": "Zoom avant",
+    "zoomOut": "Zoom arrière",
+    "fit": "Ajuster à l'écran",
+    "actualSize": "100%",
+    "diagram": "Diagramme",
+    "table": "Tableau"
+  },
   "recent": {
     "noTabsOpen": "Vous n'avez aucun onglet ouvert.",
     "newFile": "Nouveau fichier"

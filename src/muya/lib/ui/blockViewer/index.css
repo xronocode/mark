@@ -1,0 +1,197 @@
+/*
+ * Shared fullscreen block viewer (C-34 R2.2 + C-39 T2): Mermaid diagrams
+ * and tables. All viewer CSS lives here on purpose — the parallel C-39 T1
+ * task edits the table section of assets/styles/index.css, so this file
+ * must not be merged with it. Light/dark parity comes from the existing
+ * CSS variables.
+ */
+
+/* START_BLOCK_CSS_OVERLAY */
+.ag-block-viewer {
+  display: none;
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 100001;
+  flex-direction: column;
+}
+
+.ag-block-viewer.ag-block-viewer-open {
+  display: flex;
+}
+
+.ag-block-viewer-backdrop {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  background: var(--maskColor, rgba(0, 0, 0, 0.55));
+}
+
+.ag-block-viewer-header {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 16px;
+  color: var(--editorColor);
+  background: var(--floatBgColor);
+  border-bottom: 1px solid var(--floatBorderColor, var(--editorColor10));
+}
+
+.ag-block-viewer-title {
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ag-block-viewer-controls {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.ag-block-viewer-btn {
+  min-width: 30px;
+  height: 28px;
+  padding: 0 8px;
+  box-sizing: border-box;
+  border: 1px solid var(--editorColor10);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--editorColor);
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.ag-block-viewer-btn:hover {
+  background: var(--floatHoverColor);
+  color: var(--themeColor);
+  border-color: var(--themeColor);
+}
+
+.ag-block-viewer-close-btn:hover {
+  color: var(--deleteColor);
+  border-color: var(--deleteColor);
+}
+
+.ag-block-viewer-stage {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  outline: none;
+}
+
+.ag-block-viewer-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: max-content;
+  transform-origin: 50% 50%;
+}
+/* END_BLOCK_CSS_OVERLAY */
+
+/* START_BLOCK_CSS_DIAGRAM */
+/* The clone keeps .ag-container-preview, but the editor rules for it are
+ * scoped under figure.ag-container-block, so the viewer re-declares the
+ * same look (natural size, code-block substrate) for the overlay context. */
+.ag-block-viewer-canvas div.ag-container-preview {
+  width: auto;
+  max-width: none;
+  overflow: visible;
+  text-align: center;
+}
+
+.ag-block-viewer-canvas div.ag-container-preview > svg {
+  width: auto;
+  max-width: none;
+  display: block;
+  margin: 0 auto;
+  background: var(--codeBlockBgColor, #f8f8f8);
+  border-radius: 6px;
+  padding: 8px;
+  box-sizing: border-box;
+}
+
+.ag-block-viewer-canvas div.ag-mermaid-error {
+  color: var(--deleteColor);
+  font-size: 12px;
+  font-family: monospace;
+  white-space: pre-wrap;
+  text-align: center;
+  padding: 2px 8px 6px;
+}
+/* END_BLOCK_CSS_DIAGRAM */
+
+/* START_BLOCK_CSS_TABLE */
+.ag-block-viewer-canvas.ag-block-viewer-scrollable {
+  overflow: auto;
+  background: var(--editorBgColor, transparent);
+  border-radius: 6px;
+}
+
+/* Sticky header row inside the capped table scrollport. */
+.ag-block-viewer-canvas table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--floatBgColor, var(--editorBgColor, #fff));
+}
+
+.ag-block-viewer-canvas table {
+  border-collapse: collapse;
+}
+/* END_BLOCK_CSS_TABLE */
+
+/* START_BLOCK_CSS_TOOLBAR */
+/* One hover/caret toolbar that follows the hovered block. It sits in the
+ * strip above the block (right-aligned) so table cells, drag bars and the
+ * table tools row keep their clicks. */
+.ag-block-viewer-toolbar {
+  display: none;
+  position: fixed;
+  z-index: 100000;
+  padding: 2px;
+  background: var(--floatBgColor);
+  border: 1px solid var(--editorColor10);
+  border-radius: 4px;
+  box-shadow: var(--floatShadow);
+}
+
+.ag-block-viewer-toolbar.ag-block-viewer-toolbar-visible {
+  display: flex;
+}
+
+.ag-block-viewer-toolbar button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 26px;
+  padding: 0;
+  box-sizing: border-box;
+  border: none;
+  border-radius: 3px;
+  background: transparent;
+  color: var(--editorColor);
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.ag-block-viewer-toolbar button:hover,
+.ag-block-viewer-toolbar button:focus-visible {
+  background: var(--floatHoverColor);
+  color: var(--themeColor);
+  outline: none;
+}
+/* END_BLOCK_CSS_TOOLBAR */
