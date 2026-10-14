@@ -1,0 +1,46 @@
+<GraceChangePlan graceVersion='4.0' status='approved'>
+<C-38>
+  <ChangeRef>C-38</ChangeRef>
+  <Created>2026-10-15</Created>
+  <IntentSummary>N1: on macOS the titlebar Settings gear disappears (the app menu has Mark › Settings… ⌘,); Windows/Linux keep a settings entry; the macOS app-menu item reads «Settings…» per current HIG. Delegated to a ZCode agent in an isolated worktree; reviewed and merged here.</IntentSummary>
+  <BaselineAssertions>
+    <MustContain>
+      <File>src/renderer/src/components/titleBar/index.vue</File>
+      <Text>handleSettingsClick</Text>
+    </MustContain>
+  </BaselineAssertions>
+  <TargetAssertions>
+    <MustContain>
+      <File>src-tauri/src/m009_menu.rs</File>
+      <Text>Settings…</Text>
+    </MustContain>
+  </TargetAssertions>
+  <DurableScope>
+    <M-009/>
+    <M-011/>
+  </DurableScope>
+  <ObservedWriteScope>
+    <File>src/renderer/src/components/titleBar/index.vue</File>
+    <File>src-tauri/src/m009_menu.rs</File>
+    <File>tests/renderer/components/titleBar*.test.js</File>
+    <File>tests/renderer/commands/menu-consistency.test.js</File>
+    <File>.grace/verification/runtime.xml</File>
+  </ObservedWriteScope>
+  <ImplementationPlan>
+    <T-001>
+      <Title>Per-OS settings entry: hide the titlebar gear on macOS, keep it on Windows/Linux; rename the macOS app-menu item to «Settings…» (id file.preferences unchanged, ⌘, unchanged)</Title>
+      <DependsOn></DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>macOS (isOsx): no settings button in the titlebar nav; ⌘, and Mark › Settings… still open Settings.</Criterion>
+        <Criterion>Windows/Linux: the settings button stays reachable in the custom titlebar.</Criterion>
+        <Criterion>Unit tests cover both platforms (isOsx true/false); menu-consistency pins the label and the Cmd+, accelerator; existing suites green.</Criterion>
+        <Criterion>GRACE markup updated: CHANGE_SUMMARY in touched files, verification scenario added.</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>npx vitest run tests/renderer/components tests/renderer/commands</Command>
+        <Command>cargo test --manifest-path src-tauri/Cargo.toml --bin mark m009</Command>
+      </Verification>
+    </T-001>
+  </ImplementationPlan>
+</C-38>
+</GraceChangePlan>
