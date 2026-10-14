@@ -1,5 +1,5 @@
 // FILE: src/muya/lib/parser/render/index.js
-// VERSION: 1.1.0
+// VERSION: 1.2.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Render muya ContentState blocks to the DOM via snabbdom and drive the asynchronous previews (math, mermaid, diagrams, images).
 //   SCOPE: StateRender — full/partial/single-block render, selector building, mermaid dispatch into the resilient pipeline, diagram rendering, render caches.
@@ -14,7 +14,8 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.1.0 - 2026-10-15 C-34 R2.1: renderMermaid delegates to createMermaidPipeline (code+theme LRU cache, keep-last-good + escaped error text, 250 ms debounce, natural size); module contract added.
+//   LAST_CHANGE: v1.2.0 - 2026-10-15 C-39 T-001: keep the horizontal scroll of table wrappers across renders (START_BLOCK_TABLE_SCROLL_KEEP).
+//   v1.1.0 - 2026-10-15 C-34 R2.1: renderMermaid delegates to createMermaidPipeline (code+theme LRU cache, keep-last-good + escaped error text, 250 ms debounce, natural size); module contract added.
 // END_CHANGE_SUMMARY
 
 import loadRenderer from '../../renderers'
@@ -185,6 +186,33 @@ class StateRender {
     }
   }
 
+  // START_BLOCK_TABLE_SCROLL_KEEP
+  // C-39 T-001: every render replaces the table's DOM, which resets the
+  // horizontal scroll of its div.ag-table-scroll wrapper — typing in a
+  // scrolled wide table jumped back to the first column on each key.
+  // Remember scrollLeft per table id before the DOM swap, restore after.
+  saveTableScroll() {
+    const positions = new Map()
+    for (const wrapper of document.querySelectorAll('div.ag-table-scroll')) {
+      const table = wrapper.firstElementChild
+      if (table && table.id && wrapper.scrollLeft) {
+        positions.set(table.id, wrapper.scrollLeft)
+      }
+    }
+    return positions
+  }
+
+  restoreTableScroll(positions) {
+    for (const [id, left] of positions) {
+      const table = document.getElementById(id)
+      const wrapper = table && table.parentElement
+      if (wrapper && wrapper.classList.contains('ag-table-scroll')) {
+        wrapper.scrollLeft = left
+      }
+    }
+  }
+  // END_BLOCK_TABLE_SCROLL_KEEP
+
   render(blocks, activeBlocks, matches) {
     const selector = `div#${CLASS_OR_ID.AG_EDITOR_ID}`
     const t = this.muya.options.t || ((key) => key) // 获取翻译函数，如果没有则返回原始键值
@@ -195,7 +223,9 @@ class StateRender {
     const rootDom = document.querySelector(selector) || this.container
     const oldVdom = toVNode(rootDom)
 
+    const tableScroll = this.saveTableScroll()
     patch(oldVdom, newVdom)
+    this.restoreTableScroll(tableScroll)
     this.renderMermaid()
     this.renderDiagram()
     this.codeCache.clear()
@@ -221,6 +251,7 @@ class StateRender {
       // TODO@Jocs Just for fix #541, Because I'll rewrite block and render method, it will nolonger have this issue.
       return
     }
+    const tableScroll = this.saveTableScroll()
     needToRemoved.push(firstOldDom)
     let nextSibling = firstOldDom.nextElementSibling
     while (nextSibling && nextSibling.id !== endKey) {
@@ -250,6 +281,7 @@ class StateRender {
         patch(oldCursorVnode, newCursorVnode)
       }
     }
+    this.restoreTableScroll(tableScroll)
 
     this.renderMermaid()
     this.renderDiagram()
@@ -269,7 +301,9 @@ class StateRender {
     const newVdom = this.renderBlock(null, block, activeBlocks, matches, true, t)
     const rootDom = document.querySelector(selector)
     const oldVdom = toVNode(rootDom)
+    const tableScroll = this.saveTableScroll()
     patch(oldVdom, newVdom)
+    this.restoreTableScroll(tableScroll)
     this.renderMermaid()
     this.renderDiagram()
     this.codeCache.clear()

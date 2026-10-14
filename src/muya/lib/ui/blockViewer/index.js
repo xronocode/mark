@@ -4,7 +4,7 @@
 //   PURPOSE: Shared fullscreen block viewer (C-34 R2.2 + C-39 T2) that shows a Mermaid diagram (clone of the current preview, no re-render) or a read-only clone of a rendered table with pan/zoom via @panzoom/panzoom.
 //   SCOPE: hover/caret toolbar with the expand (⤢) button, viewer open/close lifecycle, diagram-preview and table-clone sanitization, wheel/pinch/key zoom, drag pan, focus trap and focus restore, panzoom cleanup.
 //   DEPENDS: @panzoom/panzoom, muya/lib/parser/render/mermaidPipeline (MERMAID_PREVIEW_CLASS), muya/lib/config (CLASS_OR_ID, EVENT_KEYS), muya/lib/eventHandler/event (via muya.eventCenter).
-//   LINKS: .grace/changes/active/C-34 T-002; .grace/changes/active/C-39 T2; .grace/graph/runtime.xml M-012; .grace/verification/runtime.xml V-M-012 scenario-18.
+//   LINKS: .grace/changes/active/C-34 T-002; .grace/changes/active/C-39 T2; .grace/graph/runtime.xml M-012; .grace/verification/runtime.xml V-M-012 scenario-19.
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT

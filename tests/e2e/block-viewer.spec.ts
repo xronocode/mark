@@ -4,7 +4,7 @@
 //   PURPOSE: End-to-end pin of the shared fullscreen block viewer (C-34 R2.2 + C-39 T2) — hover toolbar, overlay open, zoom keys, read-only table clone with sticky header, Cmd+click, Esc close with focus restore.
 //   SCOPE: block-viewer.spec.ts only; diagram and table flows against the built renderer.
 //   DEPENDS: @playwright/test, tests/e2e/fixtures/tauri-shim (same bootstrap as mermaid-render.spec.ts).
-//   LINKS: .grace/changes/active/C-34 T-002; .grace/changes/active/C-39 T2; .grace/verification/runtime.xml V-M-012 scenario-18.
+//   LINKS: .grace/changes/active/C-34 T-002; .grace/changes/active/C-39 T2; .grace/verification/runtime.xml V-M-012 scenario-19.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT
