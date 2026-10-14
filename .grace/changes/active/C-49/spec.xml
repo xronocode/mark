@@ -1,0 +1,28 @@
+<GraceChangeSpec graceVersion='4.0' status='approved'>
+<C-49>
+  <Name>One clear zoom: ⌘+ / ⌘− / ⌘0 and pinch scale text, tables, code, math and diagrams; View menu items</Name>
+  <Created>2026-10-15</Created>
+  <Priority>high</Priority>
+  <Status>approved</Status>
+  <RoadmapPhase>R1</RoadmapPhase>
+  <Complexity>S–M</Complexity>
+  <Summary>Today Mark has two unrelated zooms: (1) ⌘+/⌘−/⌘0 and Ctrl+wheel/pinch change the editor fontSize 12–36 (pages/app.vue setupZoomKeysFontSize / setupCtrlWheelFontSize; ⌘0 resets to a hard 16) — text, tables, code and KaTeX scale, Mermaid diagrams do not (measured 2026-10-15: 247 px, 16 px labels before and after); (2) a palette-only percentage zoom (commands file.zoom-*, preference `zoom`, app.vue watch → mt::window-zoom). Nothing is in the native View menu.</Summary>
+  <Problem><Description>User 2026-10-15: «зум текста и элементов всех это прям нужная вещь, нужно проверить как реализовано и в скринах про это сказать»; approved C-49 («да»).</Description></Problem>
+  <Goals>
+    <R-1>One zoom: ⌘+ / ⌘− / ⌘0, Ctrl+wheel and pinch change the content scale via fontSize (12–36). Mermaid diagrams scale with it: their max width and labels grow proportionally to fontSize / 16 while they still fit the column (useMaxWidth keeps them inside the column).</R-1>
+    <R-2>⌘0 "Actual Size" returns to the size set in Settings (the persisted base font size), not a hard 16. Introduce a separate base preference if needed so ⌘+ / ⌘− do not overwrite the user's Settings choice — or document that they do and ⌘0 restores the default; pick the simpler behaviour that never loses the user's Settings value.</R-2>
+    <R-3>Native View menu (macOS and Windows/Linux menus): Zoom In (CmdOrCtrl+=), Zoom Out (CmdOrCtrl+-), Actual Size (CmdOrCtrl+0), wired to the same commands; menu-consistency test updated.</R-3>
+    <R-4>Retire the palette percentage zoom (file.zoom-*): remove the commands; a stored `zoom` ≠ 1 is migrated once into an equivalent fontSize (round(16 × zoom), clamped) and reset to 1.</R-4>
+    <R-5>A small transient indicator ("120 %") appears for ~1 s when the zoom changes.</R-5>
+    <R-6>The fullscreen block viewer keeps its own zoom and never changes the editor size (already fixed in 0f6b4df9; keep the e2e).</R-6>
+  </Goals>
+  <Phases><Z1><Title>Unified zoom + diagram scaling + menu + migration + indicator</Title><Complexity>S–M</Complexity></Z1></Phases>
+  <Dependencies>M-011 editor, M-009 menu, C-34 mermaid pipeline (useMaxWidth).</Dependencies>
+  <Constraints><Constraint>No user loses their font-size setting; images keep their own size.</Constraint></Constraints>
+  <NonGoals><NonGoal>Per-document zoom.</NonGoal></NonGoals>
+  <AcceptanceCriteria><Criterion>⌘+ ×6 grows text, tables, code, math and diagram labels proportionally (diagram still inside the column); ⌘0 returns to the Settings size; View menu shows the three items with shortcuts; a stored zoom 1.25 opens as fontSize 20.</Criterion></AcceptanceCriteria>
+  <AffectedAreas><M-011>pages/app.vue zoom handlers, mermaid pipeline scaling, commands, preferences migration</M-011><M-009>View menu items</M-009></AffectedAreas>
+  <VerificationIntent>Unit tests for migration and clamping; e2e (Chromium + WebKit) measuring each element type before/after ⌘+, ⌘0, the indicator; menu-consistency pin; cargo test m009.</VerificationIntent>
+  <Approval><ApprovedBy>user (2026-10-15): «2 да»</ApprovedBy><ApprovalScope>Z1.</ApprovalScope></Approval>
+</C-49>
+</GraceChangeSpec>
