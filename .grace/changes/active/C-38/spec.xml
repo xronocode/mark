@@ -65,7 +65,7 @@
 
   <Approval>
     <ApprovedBy>user (2026-10-15): «согласен» to running C-38 N1 as the first task delegated to a ZCode agent via the CLI</ApprovedBy>
-    <ApprovalScope>N1 only (per-OS settings entry points + menu rename). N2–N4 stay pending a separate go; the Settings redesign starts from canvas mockups.</ApprovalScope>
+    <ApprovalScope>N1 (per-OS settings entry points + menu rename) and N2 (IA audit document, no code; approved 2026-10-15 «да»). N3–N4 pending; the Settings redesign starts from canvas mockups.</ApprovalScope>
   </Approval>
 </C-38>
 </GraceChangeSpec>

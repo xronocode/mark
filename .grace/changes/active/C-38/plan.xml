@@ -25,6 +25,7 @@
     <File>tests/renderer/components/titleBar*.test.js</File>
     <File>tests/renderer/commands/menu-consistency.test.js</File>
     <File>.grace/verification/runtime.xml</File>
+    <File>docs/design/settings-ia-2026-10-15.md</File>
   </ObservedWriteScope>
   <ImplementationPlan>
     <T-001>
@@ -41,6 +42,18 @@
         <Command>cargo test --manifest-path src-tauri/Cargo.toml --bin mark m009</Command>
       </Verification>
     </T-001>
+    <T-002>
+      <Title>N2 Settings information-architecture audit (document only)</Title>
+      <DependsOn></DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>docs/design/settings-ia-2026-10-15.md inventories every preference (key, current section, current label, type, default, where it is read in code) and assigns each to one of 5 new sections (General, Appearance, Editor, Markdown, Advanced) with keep / merge / move-to-Advanced / drop and a reason.</Criterion>
+        <Criterion>Plain-language EN and RU label rewrites (no trailing colons), help text where needed, list of preference-key migrations, and the bugs found ("14px px", empty Max width default, …).</Criterion>
+        <Criterion>No source code changes.</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>review by the orchestrator against src/renderer/src/prefComponents/*/config.js and src/renderer/src/_shims/preferences/schema.json</Command>
+      </Verification>
+    </T-002>
   </ImplementationPlan>
 </C-38>
 </GraceChangePlan>
