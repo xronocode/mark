@@ -109,7 +109,8 @@ describe('titleBar CSS clearance pins (C-9)', () => {
   it('.title is absolutely positioned between real left/right clearances', () => {
     const css = readSfc()
     expect(css).toMatch(/\.title \{[\s\S]*?position: absolute/)
-    expect(css).toMatch(/\.title-bar\.isOsx \.title \{[\s\S]*?left: 250px/)
+    // C-38 N1: macOS nav lost the Settings gear (4 buttons) → 222px.
+    expect(css).toMatch(/\.title-bar\.isOsx \.title \{[\s\S]*?left: 222px/)
     expect(css).toMatch(/\.title \{[\s\S]*?right: 150px/)
   })
 

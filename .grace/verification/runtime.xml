@@ -3401,7 +3401,8 @@
         <Scenario>
           scenario-26: the title-bar breadcrumb never collides with the nav
           cluster or the word count (C-9): .title is constrained between real
-          clearances (macOS left 250px, right 150px) and .title-path shrinks
+          clearances (macOS left 222px after C-38 N1 dropped the gear from
+          the macOS nav, right 150px) and .title-path shrinks
           with flex-end clipping so only the OLDEST path segments clip while
           the filename stays fully visible; structure and CSS pinned in
           tests/renderer/components/titleBar-resize.test.js (the unreliable
@@ -3603,6 +3604,21 @@
           swaps sides (splitViewSwapped); below 800 px the split folds to one
           pane; diff mode hides it (split-view.test.js, editor-coverage.test.js
           "C-29 split mirror", e2e split-view.spec.ts with light/dark probes).
+        </Scenario>
+        <Scenario>
+          scenario-37: per-OS Settings entry (C-38 N1): the titlebar Settings
+          gear is hidden on macOS (isOsx gate in titleBar/index.vue — the
+          native app menu owns the entry: Mark › Settings… with the Cmd+,
+          accelerator, renamed from "Preferences…"; id file.preferences and
+          the openPreferences command unchanged) and stays reachable in the
+          frameless Win/Linux titlebar; the macOS nav is 4 buttons and the
+          macOS title clearance shrank 250px → 222px. Pinned in
+          tests/renderer/components/titleBar-osx.test.js (gear absent, 4
+          buttons, SFC v-if gate) +
+          tests/renderer/components/titleBar-windows.test.js (gear present) +
+          tests/renderer/components/titleBar-resize.test.js (222px clearance
+          pin) + tests/renderer/commands/menu-consistency.test.js
+          (Settings… label + Cmd+, accelerator, "Preferences…" gone).
         </Scenario>
       </Scenarios>
       <Markers>
