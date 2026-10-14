@@ -28,7 +28,9 @@
   right: 0;
   bottom: 0;
   left: 0;
-  background: var(--maskColor, rgba(0, 0, 0, 0.55));
+  /* Opaque: a translucent mask let the page show through around and under
+     the zoomed clone (the original table read as part of the viewer). */
+  background: var(--editorBgColor, #fff);
 }
 
 .ag-block-viewer-header {
