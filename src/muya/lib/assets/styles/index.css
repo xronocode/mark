@@ -1409,6 +1409,17 @@ figure div.ag-table-scroll > table {
   max-width: none;
 }
 
+/* Thin horizontal scrollbar, same as wide mermaid diagrams (C-34 R2.1
+   smoke): the global ::-webkit-scrollbar rule sets no height, so WebKit
+   would draw a thick 15px classic bar under every wide table. */
+figure div.ag-table-scroll::-webkit-scrollbar {
+  height: 6px;
+  background: transparent;
+}
+figure div.ag-table-scroll::-webkit-scrollbar-thumb {
+  border-radius: 3px;
+}
+
 /* R-3: header cells never break normal words mid-word. */
 figure div.ag-table-scroll table th {
   max-width: 40ch;
