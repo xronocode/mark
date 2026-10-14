@@ -12,7 +12,6 @@
 // START_MODULE_MAP
 //   i18n - shared vue-i18n instance for component mounts
 //   ROOT - repo root resolver for the SFC source pin
-//   mountOsx - mount titleBar with the darwin platform fixture
 //   readSfc - read the titleBar SFC source for the v-if gate pin
 // END_MODULE_MAP
 //
