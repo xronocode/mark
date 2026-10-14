@@ -1,9 +1,9 @@
-<GraceChangeSpec graceVersion='4.0' status='draft'>
+<GraceChangeSpec graceVersion='4.0' status='approved'>
 <C-34>
   <Name>Mermaid diagram viewer: fullscreen pan/zoom, hover toolbar, copy/export, resilient rendering</Name>
   <Created>2026-10-14</Created>
   <Priority>high</Priority>
-  <Status>draft</Status>
+  <Status>in-progress</Status>
   <RoadmapPhase>R2</RoadmapPhase>
   <Complexity>M (≈1–1.5 weeks)</Complexity>
 
@@ -51,8 +51,8 @@
   <VerificationIntent>vitest units, Playwright e2e (open, zoom, Esc), live WKWebView pinch check.</VerificationIntent>
 
   <Approval>
-    <ApprovedBy>pending — recorded as a draft on the user's request (2026-10-14): «с учетом сложности зафиксируем это фазами в грейс»</ApprovedBy>
-    <ApprovalScope>None yet; a plan.xml is written only after approval.</ApprovalScope>
+    <ApprovedBy>user (2026-10-15): «да» to running C-34 R2.1 in parallel via a ZCode agent</ApprovedBy>
+    <ApprovalScope>R2.1 only (render pipeline: cache, keep-last-good + error text, debounce, natural size). R2.2–R2.4 pending.</ApprovalScope>
   </Approval>
 </C-34>
 </GraceChangeSpec>
