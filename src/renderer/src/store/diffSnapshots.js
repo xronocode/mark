@@ -4,7 +4,7 @@
 //   PURPOSE: In-memory per-tab ring of pre-reload markdown snapshots so the diff view can show what an external save changed without a .before sidecar or git (C-43).
 //   SCOPE: recordSnapshot (dedupe + 5-per-tab cap), latestSnapshot, snapshotCount, clearSnapshots, and a test-only reset. No disk writes, no IPC.
 //   DEPENDS: none (plain module state).
-//   LINKS: .grace/changes/active/C-43/spec.xml R-1/R-4; .grace/verification/runtime.xml V-M-011 scenario-38; consumed by store/editor.js APPLY_FILE_CHANGE paths and editorWithTabs/diffView.vue.
+//   LINKS: .grace/changes/active/C-43/spec.xml R-1/R-4; .grace/verification/runtime.xml V-M-011 scenario-39; consumed by store/editor.js APPLY_FILE_CHANGE paths and editorWithTabs/diffView.vue.
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT
