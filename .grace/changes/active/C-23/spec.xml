@@ -8,7 +8,7 @@
   <Complexity>S (1–2 days)</Complexity>
 
   <Summary>
-    Cut the first non-beta release from main (41+ commits since v2.2.0-beta): C-24, C-29, C-30/31, C-32, C-33 icon, the i18n bundling fix, the context-menu click race, the M-031 diff fix, the selection paint fix. Upload the 10-locale App Store screenshots and listing texts prepared on 2026-10-14 together with the build.
+    Cut the first non-beta release from main (56 commits since v2.2.0-beta as of 2026-10-15): C-24, C-29, C-30/31, C-32, C-33 icon, the i18n bundling fix, the context-menu click race, the M-031 diff fix and its review follow-up, the selection paint fix, C-38 N1 (macOS: no titlebar gear, Mark › Settings…). C-34 R2.1 (resilient Mermaid rendering) ships only if it is merged and smoke-checked before the tag. Upload the 10-locale App Store screenshots and listing texts prepared on 2026-10-14 together with the build.
   </Summary>
 
   <Problem>
@@ -30,6 +30,18 @@
   </Phases>
 
   <Dependencies>C-33 approval.</Dependencies>
+
+  <OpenQuestions>
+    <Q-1>Include C-34 R2.1 in 2.3.0, or freeze the scope at the current main and ship R2.1 in 2.3.1?</Q-1>
+    <Q-2>Store screenshots show the titlebar gear on macOS (taken before C-38 N1): retake frames f1/f2/f6, or accept the mismatch for 2.3.0?</Q-2>
+    <Q-3>ja/ko/zh listing texts still need a native proofread before submission — who proofreads, or ship them with the machine-reviewed text?</Q-3>
+  </OpenQuestions>
+
+  <ReleaseSmoke>
+    <Check>Fresh install of the tagged build on macOS: Russian UI loads, ⌘, opens Settings, no titlebar gear, context menu works on the first click, Diff Mode shows a diff and exits with ⌘D, new icon in Dock/Finder in light/dark/tinted.</Check>
+    <Check>Windows lane: gear present in the frameless titlebar, settings open.</Check>
+    <Check>Updater: an installed 2.2.0-beta sees 2.3.0 through latest.json.</Check>
+  </ReleaseSmoke>
 
   <Constraints>
     <Constraint>No tag or release without an explicit user command; six synchronized version places + preflight fixture.</Constraint>
