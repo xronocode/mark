@@ -32,5 +32,14 @@
       <Verification><Command>npm test</Command><Command>grace lint --path . --assertions current</Command></Verification>
     </T-001>
   </ImplementationPlan>
+
+  <Evidence>
+    <T-001>
+      <Status>done</Status>
+      <Commits>agent/c45 (ZCode agent without shell) merged 2026-10-15; orchestrator fixed a wrong relative import in the test, the i18n MODULE_MAP default export, regenerated *.min.json.</Commits>
+      <Gates>npm test 263 files green after the fix (system-language 39/39; the module did not exist before the change); grace lint Errors: 0.</Gates>
+      <Pending>Live check: an English macOS with a fresh profile shows English; switching the system language re-resolves on focus.</Pending>
+    </T-001>
+  </Evidence>
 </C-45>
 </GraceChangePlan>

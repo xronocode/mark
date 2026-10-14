@@ -24,7 +24,7 @@ import { SYSTEM_LANGUAGE, SHIPPED_LOCALES, resolveSystemLocale } from '@/i18n/sy
 import { setLanguage, getCurrentLanguage } from '@/i18n'
 import { BUNDLED_LOCALES, loadLocaleTable } from '@/i18n/localeLoader'
 import { getLanguageOptions } from '@/prefComponents/general/config'
-import enSource from '../../../../static/locales/en.json'
+import enSource from '../../../static/locales/en.json'
 
 const stubLanguages = (langs) => {
   Object.defineProperty(window.navigator, 'languages', { value: langs, configurable: true })
