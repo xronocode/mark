@@ -79,6 +79,7 @@ async fn _screenshot_impl(_options: Option<ScreenshotOptions>) -> Result<Vec<u8>
 mod tests {
     use super::*;
 
+    #[cfg(not(feature = "app-store"))] // desktop-only path
     #[tokio::test]
     async fn invalid_mode_rejected() {
         let opts = ScreenshotOptions {
