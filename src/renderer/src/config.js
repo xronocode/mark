@@ -11,10 +11,15 @@ export const DEFAULT_STYLE = Object.freeze({
   codeFontFamily: DEFAULT_CODE_FONT_FAMILY,
   codeFontSize: '14px',
   hideScrollbar: false,
-  theme: 'light'
+  // C-41 T-001: Paper is the light default for new profiles (the effective
+  // theme under followSystemTheme=true resolves via util/autoTheme.js).
+  theme: 'paper'
 })
 
 export const railscastsThemes = Object.freeze([
+  // C-41 T-001: Ink is the dark brand default — dark classification gives
+  // it the dark CodeMirror theme, body.dark, and color-scheme: dark.
+  'ink',
   'dark',
   'material-dark',
   // New gogh dark themes
@@ -42,6 +47,10 @@ export const railscastsThemes = Object.freeze([
 export const oneDarkThemes = Object.freeze(['one-dark'])
 
 export const themePairs = Object.freeze({
+  // C-41 T-001: the brand pair — the title-bar Auto/Light/Dark button and
+  // legacy pair consumers switch between Paper and Ink.
+  'paper': 'ink',
+  'ink': 'paper',
   'catppuccin-mocha': 'catppuccin-latte',
   'catppuccin-latte': 'catppuccin-mocha',
   'gruvbox-dark': 'gruvbox-light',

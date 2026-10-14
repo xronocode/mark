@@ -20,9 +20,13 @@ vi.mock('@/util', () => ({
   isLinux: false
 }))
 
-const { cmdSetPrefMock } = vi.hoisted(() => ({ cmdSetPrefMock: vi.fn() }))
+const { cmdSetPrefMock, cmdStoreState } = vi.hoisted(() => ({
+  cmdSetPrefMock: vi.fn(),
+  cmdStoreState: { followSystemTheme: false }
+}))
 vi.mock('@/store/preferences', () => ({
   usePreferencesStore: () => ({
+    followSystemTheme: cmdStoreState.followSystemTheme,
     SET_SINGLE_PREFERENCE: cmdSetPrefMock
   })
 }))
@@ -215,8 +219,8 @@ describe('command execute actions', () => {
 describe('window.change-theme subcommands', () => {
   const themeCmd = commands.find((c) => c.id === 'window.change-theme')
 
-  it('has 33 theme subcommands', () => {
-    expect(themeCmd.subcommands).toHaveLength(33)
+  it('has 35 theme subcommands (33 + Paper/Ink, C-41 T-001)', () => {
+    expect(themeCmd.subcommands).toHaveLength(35)
   })
 
   it('all subcommands have id, description, and value', () => {
@@ -235,7 +239,7 @@ describe('window.change-theme subcommands', () => {
 
   it('includes all light themes', () => {
     const values = themeCmd.subcommands.map((s) => s.value)
-    for (const t of ['light', 'graphite', 'ulysses', 'ayu-light', 'catppuccin-latte',
+    for (const t of ['paper', 'light', 'graphite', 'ulysses', 'ayu-light', 'catppuccin-latte',
       'everforest-light', 'gruvbox-light', 'rose-pine-dawn', 'solarized-light', 'tokyo-night-light']) {
       expect(values).toContain(t)
     }
@@ -243,10 +247,19 @@ describe('window.change-theme subcommands', () => {
 
   it('includes all dark themes', () => {
     const values = themeCmd.subcommands.map((s) => s.value)
-    for (const t of ['dark', 'material-dark', 'one-dark', 'dracula', 'nord',
+    for (const t of ['ink', 'dark', 'material-dark', 'one-dark', 'dracula', 'nord',
       'catppuccin-mocha', 'tokyo-night', 'synthwave-84']) {
       expect(values).toContain(t)
     }
+  })
+
+  it('leads the list with the brand pair Paper/Ink (C-41 T-001)', () => {
+    expect(themeCmd.subcommands[0]).toEqual({
+      id: 'window.change-theme-paper', description: 'Paper', value: 'paper'
+    })
+    expect(themeCmd.subcommands[1]).toEqual({
+      id: 'window.change-theme-ink', description: 'Ink', value: 'ink'
+    })
   })
 
   it('executeSubcommand sets theme preference', async () => {
@@ -256,6 +269,20 @@ describe('window.change-theme subcommands', () => {
       type: 'theme',
       value: 'dracula'
     })
+  })
+
+  it('executeSubcommand leaves Auto mode first when followSystemTheme is on (C-41 T-001)', async () => {
+    cmdSetPrefMock.mockClear()
+    cmdStoreState.followSystemTheme = true
+    try {
+      await themeCmd.executeSubcommand(null, 'paper')
+      expect(cmdSetPrefMock.mock.calls).toEqual([
+        [{ type: 'followSystemTheme', value: false }],
+        [{ type: 'theme', value: 'paper' }]
+      ])
+    } finally {
+      cmdStoreState.followSystemTheme = false
+    }
   })
 
   it('no duplicate subcommand values', () => {

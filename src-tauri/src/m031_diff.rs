@@ -86,6 +86,7 @@ mod tests {
         assert!(result.unwrap_err().contains("does not exist"));
     }
 
+    #[cfg(not(feature = "app-store"))] // desktop-only path
     #[test]
     fn baseline_assembles_git_show_command() {
         // This test verifies the function runs without panicking on a

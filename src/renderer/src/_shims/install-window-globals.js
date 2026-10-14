@@ -21,6 +21,10 @@
 //   - 2026-10-14 i18nUtils.loadTranslations bundles static/locales/*.min.json
 //     via import.meta.glob; the fetch path 404'd in every Tauri build, so
 //     non-English UI languages never loaded.
+//   - 2026-10-15 C-41 T-001: the boot theme URL param resolves
+//     followSystemTheme users to the lightModeTheme/darkModeTheme member for
+//     the current prefers-color-scheme, so Auto users on a dark OS open on
+//     ink instead of flashing the stale persisted light theme.
 
 import { ipc } from '@/ipc/runtime'
 import * as posixPath from 'path-browserify'
@@ -73,7 +77,14 @@ import { listen as _tauriListen, once as _tauriOnce, emit as _tauriEmit } from '
   if (!search.has('theme')) {
     try {
       const allPrefs = await _tauriInvoke('mt_prefs_get_all')
-      const persistedTheme = allPrefs?.theme
+      let persistedTheme = allPrefs?.theme
+      // C-41 T-001: Auto users open on the member the CURRENT OS appearance
+      // picks, not the stale persisted `theme` (a dark-OS Auto user would
+      // otherwise flash paper before hydration re-resolves to ink).
+      if (allPrefs?.followSystemTheme === true && typeof window.matchMedia === 'function') {
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
+        persistedTheme = prefersDark ? allPrefs?.darkModeTheme : allPrefs?.lightModeTheme
+      }
       if (typeof persistedTheme === 'string' && persistedTheme.length) {
         search.set('theme', persistedTheme)
         mutated = true
