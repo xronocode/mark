@@ -1,5 +1,5 @@
 // FILE: tests/e2e/block-viewer.spec.ts
-// VERSION: 1.0.0
+// VERSION: 1.0.1
 // START_MODULE_CONTRACT
 //   PURPOSE: End-to-end pin of the shared fullscreen block viewer (C-34 R2.2 + C-39 T2) — hover toolbar, overlay open, zoom keys, read-only table clone with sticky header, Cmd+click, Esc close with focus restore.
 //   SCOPE: block-viewer.spec.ts only; diagram and table flows against the built renderer.
@@ -18,7 +18,8 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.0.0 - 2026-10-15 C-34 R2.2/C-39 T2: first e2e spec for the block viewer (diagram + table: hover toolbar, open, zoom key, Esc focus restore; Cmd+click vs plain click routing).
+//   LAST_CHANGE: v1.0.1 - 2026-10-15 review: the Cmd+click case checks that the mermaid figure stays inactive (an inactive figure still shows its collapsed source line, so toBeHidden on the pre was wrong).
+//   v1.0.0 - 2026-10-15 C-34 R2.2/C-39 T2: first e2e spec for the block viewer (diagram + table: hover toolbar, open, zoom key, Esc focus restore; Cmd+click vs plain click routing).
 // END_CHANGE_SUMMARY
 
 import { test, expect, Page } from '@playwright/test'
@@ -246,8 +247,9 @@ test.describe('block viewer (C-34 R2.2 + C-39 T2)', () => {
     await preview.click({ modifiers: ['Meta'] })
     const viewer = page.locator('.ag-block-viewer')
     await expect(viewer).toHaveClass(/ag-block-viewer-open/)
-    // The source block never activates (hidden whether or not it is in the DOM).
-    await expect(page.locator('pre[data-role="mermaid"]')).toBeHidden()
+    // The source block never activates: an inactive mermaid figure still
+    // shows its collapsed source line, so check the figure's active state.
+    await expect(page.locator('figure[data-role="MERMAID"]').first()).not.toHaveClass(/ag-active/)
     await page.keyboard.press('Escape')
     await expect(viewer).not.toHaveClass(/ag-block-viewer-open/)
 
