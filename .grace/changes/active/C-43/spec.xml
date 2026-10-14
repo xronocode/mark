@@ -1,0 +1,52 @@
+<GraceChangeSpec graceVersion='4.0' status='approved'>
+<C-43>
+  <Name>Diff against Mark's own snapshots: ⌘D shows what the agent changed with its last save</Name>
+  <Created>2026-10-15</Created>
+  <Priority>high</Priority>
+  <Status>approved</Status>
+  <RoadmapPhase>R2</RoadmapPhase>
+  <Complexity>S–M</Complexity>
+
+  <Summary>
+    ⌘D (M-031 diff view) needs a baseline: a `<file>.before` sidecar that nothing creates, or git HEAD, which the App Store build cannot run. So for most users ⌘D says the diff is unavailable. Mark already sees every external save (live reload, store/editor.js APPLY_FILE_CHANGE → loadChange); keep the content the tab had just before each external reload as an in-memory snapshot and diff against it.
+  </Summary>
+
+  <Problem>
+    <Description>User 2026-10-15 asked whether the storyboard's ⌘D scene works; it only works with a .before file or git (desktop build). User approved C-43, simple variant: «да, делаем C-43, начни с простого варианта».</Description>
+  </Problem>
+
+  <Goals>
+    <R-1>On every external change that live reload applies to a tab (data path and disk-read path, and the confirm path of a dirty-tab conflict), store the tab's markdown from before the reload as a snapshot { markdown, takenAt } in an in-memory ring per tab (last 5), only when the content actually differs.</R-1>
+    <R-2>Baseline priority for ⌘D: the latest Mark snapshot of this tab → `<file>.before` → git HEAD (desktop build only), via the existing mt_diff_baseline for the last two.</R-2>
+    <R-3>Diff header names the source in plain words: "Before the last external save · 10:42:07" / ".before file" / "Last commit"; strings in all locales.</R-3>
+    <R-4>Snapshots live only while the tab is open (dropped on close; follow the tab through a sidebar rename; untitled tabs never get snapshots). No disk writes, no new IPC permissions — works in the App Store sandbox.</R-4>
+  </Goals>
+
+  <Phases>
+    <S1><Title>Snapshot ring + baseline priority + header label</Title><Complexity>S</Complexity></S1>
+    <S2><Title>Later: step back through older snapshots; persist across launches (needs a decision)</Title><Complexity>M</Complexity></S2>
+  </Phases>
+
+  <Dependencies>M-031 diff view; live reload (C-2). Base for C-26 (comments / accept-revert on agent edits).</Dependencies>
+
+  <Constraints>
+    <Constraint>No disk writes and no new IPC permissions; memory bounded (5 snapshots per tab).</Constraint>
+    <Constraint>The user's own edits never create snapshots; only external changes applied by live reload do.</Constraint>
+  </Constraints>
+
+  <NonGoals><NonGoal>Inline diff on the rendered page; accept/revert per hunk (C-26).</NonGoal></NonGoals>
+
+  <AcceptanceCriteria>
+    <Criterion>Open a file, an external process rewrites it, Mark reloads; ⌘D shows the change with the header "Before the last external save · time" — in a build without git and without a .before file.</Criterion>
+  </AcceptanceCriteria>
+
+  <AffectedAreas><M-011>store/editor.js live reload, diffView.vue, editorWithTabs diff entry, locales</M-011></AffectedAreas>
+
+  <VerificationIntent>Unit tests for the ring (capture on external change only, dedupe, cap 5, drop on close, follow rename) and the baseline priority; e2e: external change via the shim → ⌘D shows the diff with the snapshot header.</VerificationIntent>
+
+  <Approval>
+    <ApprovedBy>user (2026-10-15): «да, делаем C-43, начни с простого варианта»</ApprovedBy>
+    <ApprovalScope>S1 only.</ApprovalScope>
+  </Approval>
+</C-43>
+</GraceChangeSpec>
