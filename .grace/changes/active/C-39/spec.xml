@@ -63,7 +63,7 @@
 
   <Approval>
     <ApprovedBy>user (2026-10-15): «тут согласен, стоит добавить зум (на весь экран как для мермайд …)» — agreed to rules 1–6 (content width for narrow tables, session-only column width) and added the fullscreen viewer</ApprovedBy>
-    <ApprovalScope>T1 and T3 approved for implementation; T2 approved in scope, implemented together with C-34 R2.2 (whose approval is still pending); T4 pending.</ApprovalScope>
+    <ApprovalScope>T1 and T3 approved for implementation; T2 approved (2026-10-15 «одобряю» the shared viewer), implemented in one task with C-34 R2.2; T4 pending.</ApprovalScope>
   </Approval>
 </C-39>
 </GraceChangeSpec>
