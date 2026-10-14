@@ -1,5 +1,5 @@
 // FILE: tests/e2e/table-layout.spec.ts
-// VERSION: 1.0.0
+// VERSION: 1.1.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Pin C-39 T-001 default table rendering in the built renderer: wide tables scroll inside the text column with edge-shadow backgrounds, narrow tables keep content width, long URLs are capped at ~40ch, and editing works after horizontal scrolling.
 //   SCOPE: The div.ag-table-scroll wrapper (renderContainerBlock START_BLOCK_TABLE_SCROLL_WRAPPER) and the C-39 CSS section in src/muya/lib/assets/styles/index.css.
@@ -10,14 +10,18 @@
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
-//   bootstrapWithMarkdown - boots the editor with a markdown document (mermaid-render.spec.ts setup).
-//   WIDE_15COL_MD / NARROW_2X2_MD / LONG_URL_MD / EDIT_AFTER_SCROLL_MD - table fixtures.
-//   measureTable - editor/wrapper/table geometry + computed wrap/shadow styles from the live DOM.
-//   waitForTable - waits for the ag-table-scroll wrapper to mount.
+//   wideHeader - builds the header row of the 15-column fixture.
+//   wideRow - builds one body row of the 15-column fixture.
+//   WIDE_15COL_MD - 15-column table fixture.
+//   NARROW_2X2_MD - 2x2 table fixture.
+//   LONG_URL - a 200-character URL.
+//   LONG_URL_MD - table fixture with LONG_URL in a body cell.
+//   EDIT_AFTER_SCROLL_MD - wide table used for the editing-after-scroll cases.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.0.0 - 2026-10-15 C-39 T-001: scroll-vs-overflow, column containment, no page-level horizontal scroll, narrow content width, 40ch URL cap, caret lands in a scrolled-to cell; all except the narrow-table case fail without the wrapper + C-39 CSS.
+//   LAST_CHANGE: v1.1.0 - 2026-10-15 C-39 review: typing in a scrolled table keeps the horizontal scroll (fails at 559px without render/index.js START_BLOCK_TABLE_SCROLL_KEEP); the scrollbar under a wide table stays thin (fails at 17px in WebKit without the ::-webkit-scrollbar rule).
+//   v1.0.0 - 2026-10-15 C-39 T-001: scroll-vs-overflow, column containment, no page-level horizontal scroll, narrow content width, 40ch URL cap, caret lands in a scrolled-to cell; all except the narrow-table case fail without the wrapper + C-39 CSS.
 // END_CHANGE_SUMMARY
 
 import { test, expect, Page } from '@playwright/test'
