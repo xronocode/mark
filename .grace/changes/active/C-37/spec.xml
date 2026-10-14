@@ -1,0 +1,53 @@
+<GraceChangeSpec graceVersion='4.0' status='draft'>
+<C-37>
+  <Name>Portfolio case study: Mark product, storefront and website as a reference</Name>
+  <Created>2026-10-14</Created>
+  <Priority>low</Priority>
+  <Status>draft</Status>
+  <RoadmapPhase>P</RoadmapPhase>
+  <Complexity>S–M (3–5 days)</Complexity>
+
+  <Summary>
+    Write the Mark case (and site/assistant once shipped) in the Avenex article format: task, real tools, pipeline, pitfalls, what to check in your case, soft CTA. Material: MarkView gap audit, 4 icon rounds with independent reviews and the Prosely look-alike search, 10-locale storefront with Codex + local Gemma translation review, bugs found on the way (diff view, UI languages, context-menu race).
+  </Summary>
+
+  <Problem>
+    <Description>The user wants this case, the site and the product shown as a reference in the future.</Description>
+  </Problem>
+
+  <Goals>
+    <R-1>Case article in all Avenex/Mark site languages in one revision, real facts only, fact-checked.</R-1>
+    <R-2>Assets: before/after, canvas excerpts, store frames, metrics with sources.</R-2>
+  </Goals>
+
+  <Phases>
+    <P1><Title>Draft + fact-check</Title><Complexity>S</Complexity></P1>
+    <P2><Title>Translate + publish</Title><Complexity>S</Complexity></P2>
+  </Phases>
+
+  <Dependencies>C-23, C-35 (and C-36 if included).</Dependencies>
+
+  <Constraints>
+    <Constraint>Avenex article format; real facts only; translate into every site language in the same revision.</Constraint>
+  </Constraints>
+
+  <NonGoals>
+    <NonGoal>Paid promotion.</NonGoal>
+  </NonGoals>
+
+  <AcceptanceCriteria>
+    <Criterion>Every claim traced to a source; leak grep clean; published in all languages.</Criterion>
+  </AcceptanceCriteria>
+
+  <AffectedAreas>
+    <Content>case article and assets on the Avenex/Mark sites</Content>
+  </AffectedAreas>
+
+  <VerificationIntent>Fact-check log, leak grep.</VerificationIntent>
+
+  <Approval>
+    <ApprovedBy>pending — recorded as a draft on the user's request (2026-10-14): «с учетом сложности зафиксируем это фазами в грейс»</ApprovedBy>
+    <ApprovalScope>None yet; a plan.xml is written only after approval.</ApprovalScope>
+  </Approval>
+</C-37>
+</GraceChangeSpec>

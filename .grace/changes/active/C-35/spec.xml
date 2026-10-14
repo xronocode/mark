@@ -1,0 +1,59 @@
+<GraceChangeSpec graceVersion='4.0' status='draft'>
+<C-35>
+  <Name>Website refresh in the ¶ paper/ink/marker style, mobile-first, with Mac install bar and Avenex-grade SEO/consent/security</Name>
+  <Created>2026-10-14</Created>
+  <Priority>high</Priority>
+  <Status>draft</Status>
+  <RoadmapPhase>S</RoadmapPhase>
+  <Complexity>L (≈2–3 weeks)</Complexity>
+
+  <Summary>
+    Rebuild mark.xronocode.com (VitePress docs + 58 KB hand-built landing on GitHub Pages) in the new brand system from the icon and store screenshots. Mobile first: the current page is ≈10 iPhone screens long and the cookie banner covers the hero. Carry over the Avenex outreach site practices (numbered sections, single accent, no-flash theme, self-hosted Plex subsets, 980/520 breakpoints with dvh/safe-area, browser screenshot matrix, per-language SEO and OG images, JSON-LD SoftwareApplication, llms.txt, hashed CSP headers, geo-gated Consent Mode v2, GA4 download_click).
+  </Summary>
+
+  <Problem>
+    <Description>The site still shows the old cyan-M brand and outdated facts (11 MB, 21 themes); mobile UX is weak; no install path on iPhone for a Mac-only app.</Description>
+  </Problem>
+
+  <Goals>
+    <R-1>S1 design system + mobile prototype on the canvas (paper/ink/marker tokens, type scale, components) approved before code.</R-1>
+    <R-2>S2 landing rebuild: hero with live product demo (agent writes → Mark reloads), sections mirroring the 6 store frames, honest verified numbers; Mac install CTA; iPhone/iPad sticky «Mark for Mac» bar with Web Share «send to Mac» (AirDrop/Messages/Notes) + copy link; apple-itunes-app meta for Safari on macOS; cookie banner never over the hero.</R-2>
+    <R-3>S3 SEO/analytics/security: per-language canonical + hreflang, OG images per language, JSON-LD SoftwareApplication, sitemap with alternates, llms.txt, security.txt, hashed-CSP + security headers, consent.js re-synced with Avenex, download_click event.</R-3>
+    <R-4>S4 all 10 languages in one release, docs pages restyled; browser screenshot matrix 320/390/574/1440 + landscape as a CI gate.</R-4>
+    <R-5>S5 hosting decision: stay on GitHub Pages or move to Cloudflare (needed if C-36 assistant ships on the site).</R-5>
+  </Goals>
+
+  <Phases>
+    <S1><Title>Design system + mobile prototype (canvas)</Title><Complexity>M</Complexity></S1>
+    <S2><Title>Landing rebuild + install bar</Title><Complexity>L</Complexity></S2>
+    <S3><Title>SEO / analytics / security headers</Title><Complexity>M</Complexity></S3>
+    <S4><Title>10 languages + docs restyle + browser matrix</Title><Complexity>M</Complexity></S4>
+    <S5><Title>Hosting decision / migration</Title><Complexity>S</Complexity></S5>
+  </Phases>
+
+  <Dependencies>C-23 (site shows 2.3.0 features); C-36 for the assistant widget slot.</Dependencies>
+
+  <Constraints>
+    <Constraint>Every number fact-checked against a source; no employer/client names (leak grep); all languages ship together; no third-party trademarks in imagery.</Constraint>
+  </Constraints>
+
+  <NonGoals>
+    <NonGoal>Assistant implementation (C-36).</NonGoal>
+  </NonGoals>
+
+  <AcceptanceCriteria>
+    <Criterion>Lighthouse mobile ≥ 95 performance/accessibility/SEO; screenshot matrix passes; every number fact-checked; leak grep clean.</Criterion>
+  </AcceptanceCriteria>
+
+  <AffectedAreas>
+    <Site>site/ (VitePress config, landing, public assets, consent.js, headers), .github/workflows/site</Site>
+  </AffectedAreas>
+
+  <VerificationIntent>Browser screenshot matrix, Lighthouse CI, link checker (site/scripts/check-dist.mjs), fact-check log.</VerificationIntent>
+
+  <Approval>
+    <ApprovedBy>pending — recorded as a draft on the user's request (2026-10-14): «с учетом сложности зафиксируем это фазами в грейс»</ApprovedBy>
+    <ApprovalScope>None yet; a plan.xml is written only after approval.</ApprovalScope>
+  </Approval>
+</C-35>
+</GraceChangeSpec>
