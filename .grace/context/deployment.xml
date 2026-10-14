@@ -87,6 +87,40 @@
       verification are updated as work applies.
     </ExecutionState>
     <HistoricalRule>Legacy phases and completed steps are provenance, not retroactive C-* bundles.</HistoricalRule>
+    <ForwardRoadmap>
+      <Recorded>2026-10-14</Recorded>
+      <Rule>Each phase is a draft C-* spec in .grace/changes/active until the user approves it; a plan.xml is written only after approval. Sizes: S = days, M = 1–1.5 weeks, L = 2–3 weeks.</Rule>
+      <Phase-R1>
+        <Title>Release 2.3.0 without beta + localized storefront</Title>
+        <Changes>C-33 (icon, in progress, awaiting the user's sign-off) → C-23</Changes>
+        <Complexity>S</Complexity>
+        <DependsOn>none</DependsOn>
+      </Phase-R1>
+      <Phase-R2>
+        <Title>Mermaid diagram viewer (pan/zoom, fullscreen, copy/export)</Title>
+        <Changes>C-34</Changes>
+        <Complexity>M</Complexity>
+        <DependsOn>none; may run in parallel with Phase-S</DependsOn>
+      </Phase-R2>
+      <Phase-S>
+        <Title>Website refresh in the ¶ brand, mobile-first, Mac install bar, Avenex-grade SEO/consent/security</Title>
+        <Changes>C-35 (S1 design system + mobile prototype → S2 landing → S3 SEO/analytics/security → S4 10 languages + browser matrix → S5 hosting)</Changes>
+        <Complexity>L</Complexity>
+        <DependsOn>Phase-R1</DependsOn>
+      </Phase-S>
+      <Phase-A>
+        <Title>Portable site AI assistant as a reusable (possibly open-source) module</Title>
+        <Changes>C-36 (A1 extract from Avenex → A2 Mark KB + widget → A3 open-source hardening)</Changes>
+        <Complexity>L</Complexity>
+        <DependsOn>Phase-S S5 hosting decision</DependsOn>
+      </Phase-A>
+      <Phase-P>
+        <Title>Portfolio case study (product, storefront, site)</Title>
+        <Changes>C-37</Changes>
+        <Complexity>S–M</Complexity>
+        <DependsOn>Phase-R1, Phase-S (Phase-A optional)</DependsOn>
+      </Phase-P>
+    </ForwardRoadmap>
   </RoadmapGovernance>
   <ImplementationOrder>
     <Phase-H>

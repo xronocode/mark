@@ -1,0 +1,57 @@
+<GraceChangeSpec graceVersion='4.0' status='draft'>
+<C-23>
+  <Name>Release 2.3.0 without beta: ship the accumulated fixes, new icon and localized storefront</Name>
+  <Created>2026-10-14</Created>
+  <Priority>high</Priority>
+  <Status>draft</Status>
+  <RoadmapPhase>R1</RoadmapPhase>
+  <Complexity>S (1–2 days)</Complexity>
+
+  <Summary>
+    Cut the first non-beta release from main (41+ commits since v2.2.0-beta): C-24, C-29, C-30/31, C-32, C-33 icon, the i18n bundling fix, the context-menu click race, the M-031 diff fix, the selection paint fix. Upload the 10-locale App Store screenshots and listing texts prepared on 2026-10-14 together with the build.
+  </Summary>
+
+  <Problem>
+    <Description>Users run v2.2.0-beta: non-English UI never loads, context-menu items are lost on the first click, Diff Mode shows no diff, and the store shows a circle icon, bare screenshots and one listing locale.</Description>
+  </Problem>
+
+  <Goals>
+    <R-1>Version bump in all six synchronized places + release-preflight fixture (AGENTS.md Release steps); beta suffix dropped; PRERELEASE semantics unchanged.</R-1>
+    <R-2>Release notes «Что нового» grouped by area, user-facing wording; derived from the shipped C-* specs.</R-2>
+    <R-3>App Store Connect: new build, 10-locale screenshots and listing (name, subtitle, promo, keywords, description) from ~/Downloads/Mark-AppStore-2.3.0; Homebrew cask + winget follow the release workflow.</R-3>
+    <R-4>C-33 closed (icon approved by the user) before the tag.</R-4>
+  </Goals>
+
+  <Phases>
+    <R1.1><Title>Approve C-33 icon; archive C-24-era leftovers</Title><Complexity>S</Complexity></R1.1>
+    <R1.2><Title>Version bump, preflight, tag (explicit user command only)</Title><Complexity>S</Complexity></R1.2>
+    <R1.3><Title>Store submission with localized assets; release notes</Title><Complexity>S</Complexity></R1.3>
+  </Phases>
+
+  <Dependencies>C-33 approval.</Dependencies>
+
+  <Constraints>
+    <Constraint>No tag or release without an explicit user command; six synchronized version places + preflight fixture.</Constraint>
+  </Constraints>
+
+  <NonGoals>
+    <NonGoal>New features.</NonGoal>
+  </NonGoals>
+
+  <AcceptanceCriteria>
+    <Criterion>latest.json serves 2.3.0; App Store build approved with 10 listing locales; CI green on the tag.</Criterion>
+  </AcceptanceCriteria>
+
+  <AffectedAreas>
+    <M-046>release preflight version pins</M-046>
+    <Bundle>version files, release notes, App Store assets</Bundle>
+  </AffectedAreas>
+
+  <VerificationIntent>release:preflight, CI on tag, latest.json check, App Store review result.</VerificationIntent>
+
+  <Approval>
+    <ApprovedBy>pending — recorded as a draft on the user's request (2026-10-14): «с учетом сложности зафиксируем это фазами в грейс»</ApprovedBy>
+    <ApprovalScope>None yet; a plan.xml is written only after approval.</ApprovalScope>
+  </Approval>
+</C-23>
+</GraceChangeSpec>
