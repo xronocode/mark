@@ -59,8 +59,16 @@ body article.print-container {
     margin: 0 auto;
     padding: 0;
   }
+  /* C-39 T-001: print/PDF has no horizontal scroll — cap the table at
+     the article width and let cells wrap anywhere so no column is
+     clipped on the page. */
   body article.markdown-body table {
     display: table;
+    max-width: 100%;
+  }
+  body article.markdown-body table th,
+  body article.markdown-body table td {
+    overflow-wrap: anywhere;
   }
   body article.markdown-body input[type='checkbox'] ~ p {
     margin-top: 0;
