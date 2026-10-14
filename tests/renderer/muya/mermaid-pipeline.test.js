@@ -10,7 +10,10 @@
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
-//   GOOD_CODE / BAD_CODE - fixture diagram sources; BAD_CODE makes the fake renderer throw.
+//   GOOD_CODE - fixture diagram source that renders.
+//   BAD_CODE - fixture diagram source that makes the fake renderer throw.
+//   fakeMermaid - the mocked mermaid module used by the StateRender-level tests.
+//   StateRender - real StateRender class imported after the renderer-loader mock.
 //   XSS_MESSAGE - error text whose HTML must never become an element.
 //   createFakeMermaid - mermaid module double counting initialize/render calls; appends mermaid-style orphans (div#d<id>) on failure.
 //   createTarget - a div.ag-container-preview block target appended to body.

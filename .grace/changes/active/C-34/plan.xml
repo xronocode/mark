@@ -44,5 +44,14 @@
       </Verification>
     </T-001>
   </ImplementationPlan>
+
+  <Evidence>
+    <T-001>
+      <Status>done</Status>
+      <Commits>91fef46d (ZCode agent code + tests; no shell in headless edit mode — orchestrator fixed two wrong assertions: SVG-namespace style localName), 4672b088 merge, follow-up module contract for render/index.js</Commits>
+      <Gates>Old-code proof: with the pre-R2.1 render/index.js the StateRender cache test and keep-last-good test fail (2 of 15), all 15 pass with the change. On main: tests/renderer/muya 172 passed; npm test 3395 passed (one split-view timeout under machine load, 16/16 when re-run alone); grace lint Errors: 0; e2e mermaid-render 4/4 in Chromium and 4/4 in WebKit (wide diagram scrolls, syntax error keeps the SVG + error element).</Gates>
+      <Pending>Live check in the real app (typing in a diagram, theme switch) — part of the C-23 release smoke. Known nit: a diagram that never rendered successfully re-renders on every keystroke (no debounce until the first success).</Pending>
+    </T-001>
+  </Evidence>
 </C-34>
 </GraceChangePlan>
