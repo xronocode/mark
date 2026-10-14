@@ -1,8 +1,20 @@
+<!-- MODULE_CONTRACT
+  PURPOSE: M-031 read-only side-by-side diff of the current tab against its baseline; C-43 prefers Mark's own snapshot of the pre-reload content over the .before/git baseline.
+  SCOPE: Baseline resolution (latest per-tab snapshot → mt_diff_baseline), CodeMirror MergeView rendering, header source label, auto-exit on unavailable baseline.
+  DEPENDS: editor store (currentFile.id), store/diffSnapshots (latestSnapshot), preferences store (theme), mt_diff_baseline IPC.
+  LINKS: .grace/changes/active/C-43; .grace/verification/runtime.xml V-M-011 scenario-38; src-tauri/src/m031_diff.rs.
+  ROLE: RUNTIME
+  MAP_MODE: EXPORTS
+MODULE_MAP:
+  default - DiffView component; props { markdown, pathname }; header labels the baseline source (snapshot + time, or neutral "Previous version" for the stored baseline).
+CHANGE_SUMMARY:
+  2026-10-15 C-43 S1: snapshot baseline priority + header source label.
+-->
 <template>
   <div class="diff-view">
     <div class="diff-header">
       <span class="diff-side">{{ t('diffView.current') }}</span>
-      <span class="diff-side">{{ t('diffView.baseline') }}</span>
+      <span class="diff-side">{{ baselineSideLabel }}</span>
       <button type="button" class="diff-exit" @click="exitDiff">{{ t('diffView.exit') }} <kbd>{{ exitShortcut }}</kbd></button>
     </div>
     <div ref="diffContainer" class="diff-body"></div>
@@ -10,13 +22,14 @@
 </template>
 
 <script setup>
-import { ref, watch, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import { invoke } from '@tauri-apps/api/core'
 import { usePreferencesStore } from '@/store/preferences'
 import { storeToRefs } from 'pinia'
 import { oneDarkThemes, railscastsThemes } from '@/config'
 import DiffMatchPatch from 'diff-match-patch'
 import { useEditorStore } from '@/store/editor'
+import { latestSnapshot } from '@/store/diffSnapshots'
 import { t } from '@/i18n'
 import { isOsx } from '@/util'
 import notice from '@/services/notification'
@@ -37,6 +50,33 @@ const editorStore = useEditorStore()
 const diffContainer = ref(null)
 let mergeView = null
 const exitShortcut = isOsx ? '⌘D' : 'Ctrl+D'
+
+// C-43: which baseline createMergeView resolved — '' (not yet resolved),
+// 'snapshot' (Mark's own pre-reload snapshot of this tab), or 'stored'
+// (.before sidecar or git HEAD via mt_diff_baseline; the command returns
+// only the content, so the two cannot be told apart).
+const baselineSource = ref('')
+const snapshotTakenAt = ref(null)
+
+// The header names the baseline source in plain words so the user knows
+// what they are comparing against ("Before the last external save · time"
+// vs the neutral stored label).
+const baselineSideLabel = computed(() => {
+  const base = t('diffView.baseline')
+  if (baselineSource.value === 'snapshot' && snapshotTakenAt.value != null) {
+    const time = new Date(snapshotTakenAt.value).toLocaleTimeString(undefined, {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false
+    })
+    return `${base} · ${t('diffView.sourceSnapshot', { time })}`
+  }
+  if (baselineSource.value === 'stored') {
+    return `${base} · ${t('diffView.sourcePrevious')}`
+  }
+  return base
+})
 
 // The diff view replaces the editing surface (index.vue v-show), so it must
 // always offer a way back: a header button, and an automatic exit when the
@@ -71,19 +111,39 @@ const destroyMergeView = () => {
 
 const createMergeView = async () => {
   destroyMergeView()
+  baselineSource.value = ''
+  snapshotTakenAt.value = null
 
   if (!props.pathname) {
     failAndExit(t('diffView.noPath'))
     return
   }
 
+  // START_BLOCK_RESOLVE_BASELINE
+  // C-43 baseline priority: Mark's own snapshot of what the tab held just
+  // before the last external save wins over the stored baseline — it exists
+  // exactly when an external change was applied, including in the App Store
+  // sandbox where neither a .before sidecar nor git is reachable.
+  const tabId = editorStore.currentFile?.id
+  const snapshot = tabId ? latestSnapshot(tabId) : null
+
   let baseline
-  try {
-    baseline = await invoke('mt_diff_baseline', { path: props.pathname })
-  } catch (e) {
-    failAndExit(typeof e === 'string' ? e : (e?.message || t('diffView.noBaseline')))
-    return
+  if (snapshot) {
+    baseline = snapshot.markdown
+    baselineSource.value = 'snapshot'
+    snapshotTakenAt.value = snapshot.takenAt
+    console.debug('[editor][diff][BLOCK_DIFF_BASELINE_SOURCE source=snapshot]')
+  } else {
+    try {
+      baseline = await invoke('mt_diff_baseline', { path: props.pathname })
+      baselineSource.value = 'stored'
+      console.debug('[editor][diff][BLOCK_DIFF_BASELINE_SOURCE source=stored]')
+    } catch (e) {
+      failAndExit(typeof e === 'string' ? e : (e?.message || t('diffView.noBaseline')))
+      return
+    }
   }
+  // END_BLOCK_RESOLVE_BASELINE
 
   if (!diffContainer.value) return
 

@@ -3230,6 +3230,14 @@
           npx playwright test tests/e2e/live-reload-scroll.spec.ts
         </Command>
         <Command>
+          npx vitest run tests/renderer/store/diff-snapshots.test.js
+          tests/renderer/store/live-reload-snapshots.test.js
+          tests/renderer/components/diff-view-snapshot.test.js
+        </Command>
+        <Command>
+          npx playwright test tests/e2e/diff-snapshot.spec.ts
+        </Command>
+        <Command>
           npx playwright test tests/e2e/toc-sidebar-navigation.spec.ts
           tests/e2e/tab-switch-scroll.spec.ts
           tests/e2e/source-code-mode.spec.ts
@@ -3620,6 +3628,32 @@
           pin) + tests/renderer/commands/menu-consistency.test.js
           (Settings… label + Cmd+, accelerator, "Preferences…" gone).
         </Scenario>
+        <Scenario>
+          scenario-38: Diff against Mark's own snapshots (C-43 S1): every
+          APPLY_FILE_CHANGE apply path (legacy change.data, the watcher
+          disk-read, and both confirm branches of the dirty-tab conflict
+          prompt) records the tab's pre-reload markdown into an in-memory
+          per-tab ring (store/diffSnapshots.js — 5 newest snapshots, deduped
+          against an unchanged newest, keyed by tab id so a C-4 sidebar
+          rename keeps them, cleared by FORCE_CLOSE_TAB; untitled tabs and
+          identical-content changes never record; the user's own edits and
+          saves never record) — and ⌘D (diffView) prefers the latest
+          snapshot over mt_diff_baseline (.before/git), naming the source in
+          the header ("Before the last external save · HH:MM:SS" local 24h,
+          or the neutral "Previous version" for the stored baseline — the
+          Rust command returns only content, so .before and git cannot be
+          told apart). Unit-pinned in
+          tests/renderer/store/diff-snapshots.test.js (ring semantics) +
+          tests/renderer/store/live-reload-snapshots.test.js (wiring of all
+          apply paths, hash-skip, close-clears, rename-follows) +
+          tests/renderer/components/diff-view-snapshot.test.js (baseline
+          priority + header labels); visually pinned in
+          tests/e2e/diff-snapshot.spec.ts (tauri-shim: watcher event +
+          mt_fs_read deliver an external rewrite of an open saved tab;
+          view.diff-mode shows both versions with the snapshot header and
+          mt_diff_baseline never runs; without a snapshot the stored
+          baseline is used and labelled).
+        </Scenario>
       </Scenarios>
       <Markers>
         <Marker>[Editor][handleCopyAsHtml][BLOCK_COPY_AS_HTML] native writeHtml failed → execCommand fallback</Marker>
@@ -3637,6 +3671,8 @@
         <Marker>[Editor][hydrateMountedDocument][BLOCK_BOOT_DOCUMENT_HYDRATED]</Marker>
         <Marker>[Editor][handleFileChange][BLOCK_STALE_CHANGE_IGNORED]</Marker>
         <Marker>[editor][save][BLOCK_STALE_SAVE_OUTCOME_IGNORED]</Marker>
+        <Marker>[DiffSnapshots][record][BLOCK_SNAPSHOT_RECORDED tab=&lt;id&gt; size=&lt;n&gt;] — C-43 pre-reload snapshot appended to the tab ring</Marker>
+        <Marker>[editor][diff][BLOCK_DIFF_BASELINE_SOURCE source=snapshot|stored] — C-43 baseline priority in diffView</Marker>
         <Marker>
           [Renderer] BLOCK_THEME_SWAP_BEGIN theme=&lt;id&gt; /
           BLOCK_THEME_SWAP_END duration_ms=&lt;n&gt;
