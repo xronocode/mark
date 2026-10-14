@@ -19,7 +19,7 @@
 # END_MODULE_MAP
 #
 # START_CHANGE_SUMMARY
-#   LAST_CHANGE: v1.0.0 - C-33: round-4 glyph (chisel-tip bowl, nib-cut feet, shorter right stem) after the Prosely look-alike finding; outline drawn as an evenodd ring so Icon Composer layer fills keep the bowl open.
+#   LAST_CHANGE: v1.0.0 - C-33: files written with LF on every OS (hash + byte comparisons); round-4 glyph (chisel-tip bowl, nib-cut feet, shorter right stem) after the Prosely look-alike finding; outline drawn as an evenodd ring so Icon Composer layer fills keep the bowl open.
 # END_CHANGE_SUMMARY
 
 import json
@@ -107,6 +107,12 @@ def layer(ink, bowl, parts):
     return svg(f'<g transform="{FULL}">{glyph(ink, bowl, parts)}</g>')
 
 
+def write(path, text):
+    # LF on every OS: the committed files are hashed and compared byte for byte.
+    with open(path, 'w', encoding='utf-8', newline='\n') as fh:
+        fh.write(text)
+
+
 def srgb(hex_colour):
     r, g, b = (int(hex_colour[i:i + 2], 16) / 255 for i in (1, 3, 5))
     return f'extended-srgb:{r:.5f},{g:.5f},{b:.5f},1.00000'
@@ -115,8 +121,8 @@ def srgb(hex_colour):
 def icon_composer():
     root = HERE / 'AppIcon.icon'
     (root / 'Assets').mkdir(parents=True, exist_ok=True)
-    (root / 'Assets' / 'ink.svg').write_text(layer(INK, MARKER, ('outline', 'stems')))
-    (root / 'Assets' / 'bowl.svg').write_text(layer(INK, MARKER, ('bowl',)))
+    write(root / 'Assets' / 'ink.svg', layer(INK, MARKER, ('outline', 'stems')))
+    write(root / 'Assets' / 'bowl.svg', layer(INK, MARKER, ('bowl',)))
     doc = {
         'fill-specializations': [
             {'value': {'solid': srgb('#F5EFE4')}},
@@ -150,16 +156,16 @@ def icon_composer():
         ],
         'supported-platforms': {'squares': ['macOS']},
     }
-    (root / 'icon.json').write_text(json.dumps(doc, indent=2) + '\n')
+    write(root / 'icon.json', json.dumps(doc, indent=2) + '\n')
 
 
 def main():
-    (HERE / 'mark-icon.svg').write_text(macos_art(PAPER_TOP, PAPER_BOTTOM, INK, MARKER))
-    (HERE / 'mark-icon-small.svg').write_text(macos_art(PAPER_TOP, PAPER_BOTTOM, INK, MARKER, glyph_scale=1.1))
-    (HERE / 'mark-icon-dark.svg').write_text(
+    write(HERE / 'mark-icon.svg', macos_art(PAPER_TOP, PAPER_BOTTOM, INK, MARKER))
+    write(HERE / 'mark-icon-small.svg', macos_art(PAPER_TOP, PAPER_BOTTOM, INK, MARKER, glyph_scale=1.1))
+    write(HERE / 'mark-icon-dark.svg', 
         macos_art(DARK_TOP, DARK_BOTTOM, CREAM, 'url(#bw)', gradient('bw', MARKER_DARK_TOP, MARKER_DARK_BOTTOM)))
-    (HERE / 'mark-icon-tinted.svg').write_text(macos_art(TINT_TOP, TINT_BOTTOM, '#FFFFFF', TINT_BOWL))
-    (HERE / 'mark-icon-full-bleed.svg').write_text(full_bleed())
+    write(HERE / 'mark-icon-tinted.svg', macos_art(TINT_TOP, TINT_BOTTOM, '#FFFFFF', TINT_BOWL))
+    write(HERE / 'mark-icon-full-bleed.svg', full_bleed())
     icon_composer()
 
 
