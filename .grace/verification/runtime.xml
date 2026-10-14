@@ -3916,6 +3916,19 @@
             with identical Markdown preserve the user&apos;s live text
             selection.
           </scenario-22>
+          <scenario-23>
+            <LegacyAttributes>
+              <Attribute>
+                <Name>kind</Name>
+                <Value>regression</Value>
+              </Attribute>
+            </LegacyAttributes>
+            The text column (#ag-editor-id) is a flex item of
+            .editor-component, so WKWebView stops the selection paint of
+            fully selected blocks at the column edge instead of the window
+            margins; width stays 750px and centered
+            (tests/e2e/editor-content.spec.ts).
+          </scenario-23>
         </scenarios>
         <required-log-markers>
           <marker-1>[Renderer][mount][BLOCK_INSTANTIATE_MUYA]</marker-1>
