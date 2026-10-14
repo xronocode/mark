@@ -6,13 +6,11 @@
 //   DEPENDS: muya/lib/utils (domManipulate, getImageInfo), muya/lib/config, muya/lib/selection, contentState handlers.
 //   LINKS: .grace/graph/runtime.xml M-012; .grace/verification/runtime.xml V-M-012; .grace/changes/active/C-34 T-002 (BLOCK_CONTAINER_VIEWER_CLICK).
 //   ROLE: RUNTIME
-//   MAP_MODE: LOCALS
+//   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
 //   default - ClickEvent class (container click + contextmenu routing).
-//   getToolItem - resolves the closest [data-label] tool item under a click target.
-//   selectionText - moves the DOM selection to the end of a marked-text node.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
