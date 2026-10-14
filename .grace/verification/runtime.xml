@@ -3224,6 +3224,7 @@
           tests/renderer/commands/menu-consistency.test.js
           tests/renderer/store/file-path-autocomplete.test.js
           tests/renderer/util/link-check.test.js
+          tests/renderer/util/structured-text.test.js
         </Command>
         <Command>
           npx playwright test tests/e2e/live-reload-scroll.spec.ts
@@ -3533,6 +3534,19 @@
           dead file + dead anchor listed, exactly two dead issues).
         </Scenario>
         <Scenario>
+          C-32 Copy as Structured Text: context menu (after Copy as Plain
+          Text), Edit menu edit.copy-as-structured-text (no accelerator)
+          and the palette write the selection (or whole document) as one
+          text/plain flavor that keeps the structure — blocks separated by
+          a blank line, "- " / "N. " list markers with nested indentation,
+          [ ]/[x] task boxes, links as "text (url)", images as
+          "alt (src)", "> " quotes, " | " table rows, verbatim code, hr as
+          "———", footnote refs as [n]. Unit-pinned over the real marked +
+          DOMPurify pipeline in tests/renderer/util/structured-text.test.js;
+          dispatch, fallback, failure branch and bus path in
+          editor-coverage.test.js; menu id in menu-consistency.test.js.
+        </Scenario>
+        <Scenario>
           scenario-34: Large-document open on WebKit (C-30): every
           ^-anchored, non-g/m/y muya block rule (normal/gfm/pedantic) is a
           sticky regex whose exec resets lastIndex to 0, so JavaScriptCore
@@ -3596,7 +3610,8 @@
         <Marker>[Editor][syncMirrorFromSource][BLOCK_SPLIT_MIRROR_SYNC] chars=N ms=N — muya mirror re-rendered from the source pane (C-29)</Marker>
         <Marker>[editor][split][BLOCK_SPLIT_TOGGLED state=on|off] — view.split-view toggled for the current tab (C-29)</Marker>
         <Marker>[Editor][handleEditorContextMenu][BLOCK_EDITOR_CONTEXT_MENU] native writeText failed</Marker>
-        <Marker>[Editor][handleCopyAsPlainText][BLOCK_COPY_AS_PLAIN_TEXT] native writeText failed</Marker>
+        <Marker>[Editor][handleCopyAsPlainText][BLOCK_COPY_AS_PLAIN_TEXT] copy failed</Marker>
+        <Marker>[Editor][handleCopyAsStructuredText][BLOCK_COPY_AS_STRUCTURED_TEXT] copy failed (C-32)</Marker>
         <Marker>[Renderer][mount][BLOCK_INSTANTIATE_MUYA]</Marker>
         <Marker>[Renderer][mount][BLOCK_HOST_HOOKS_WIRED] { hooks: 7 }</Marker>
         <Marker>[TitleBar][handleTitleContextMenu][BLOCK_COPY_PATH]</Marker>

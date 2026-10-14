@@ -65,6 +65,7 @@ const COMMAND_KEY_MAP = {
   'edit.copy-as-rich': 'commands.edit.copyAsRich',
   'edit.copy-as-html': 'commands.edit.copyAsHtml',
   'edit.copy-as-plain-text': 'commands.edit.copyAsPlainText',
+  'edit.copy-as-structured-text': 'commands.edit.copyAsStructuredText',
   'edit.paste-as-plaintext': 'commands.edit.pasteAsPlaintext',
 
   // 选择和复制

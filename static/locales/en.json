@@ -252,6 +252,7 @@
       "redo": "Redo",
       "copyAsHtml": "Copy as HTML",
       "copyAsPlainText": "Copy as Plain Text",
+      "copyAsStructuredText": "Copy as Structured Text",
       "selectAll": "Select All",
       "share": "Share"
     }
@@ -997,6 +998,7 @@
       "copyAsRich": "Copy As Rich Text",
       "copyAsHtml": "Copy as HTML",
       "copyAsPlainText": "Copy As Plain Text",
+      "copyAsStructuredText": "Copy As Structured Text",
       "pasteAsPlaintext": "Paste as Plain Text",
       "selectAll": "Select All",
       "duplicate": "Duplicate",
