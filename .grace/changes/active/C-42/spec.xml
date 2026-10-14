@@ -1,0 +1,55 @@
+<GraceChangeSpec graceVersion='4.0' status='draft'>
+<C-42>
+  <Name>GitHub presence refresh and an honest "two editions" comparison (App Store vs Homebrew/direct download)</Name>
+  <Created>2026-10-15</Created>
+  <Priority>high</Priority>
+  <Status>draft</Status>
+  <RoadmapPhase>S</RoadmapPhase>
+  <Complexity>M</Complexity>
+
+  <Summary>
+    The GitHub repo still says "11 MB, 61 MB RAM", "beta" and "Status v2.1.8-beta", has no social preview, no What's New, no contributor files, and its homepage points to GitHub itself. Bring it to the new brand and to verified numbers, and explain — on our own channels only — what the Homebrew/direct-download edition adds over the App Store edition without breaking App Store rules.
+  </Summary>
+
+  <Problem>
+    <Description>User 2026-10-15: «ревижн материалов на гите … чтобы там тоже всё красиво было»; «напрашивается отдельный раздел, чем ДМГ версия богаче апсторовской (только так, чтобы не нарушить там ничего)».</Description>
+  </Problem>
+
+  <Goals>
+    <R-1>README in the brand: cover image, "What's new in 2.3", verified numbers (window ≈0.4 s, ≈30 MB on disk, ≈310 MB with WebKit; measured 2026-10-15), install (App Store / Homebrew / Windows), agent setup, comparison matrix as on the site, store frames as screenshots, badges fixed (no beta, no 11 MB / 61 MB).</R-1>
+    <R-2>Repo About: new description and topics, homepage = https://mark.xronocode.com; a 1280×640 social-preview image (uploaded by the owner in Settings — the API cannot set it).</R-2>
+    <R-3>Contributor files: CONTRIBUTING.md, SECURITY.md, CHANGELOG.md (from release notes), issue templates (bug / feature) and a PR template; Discussions on if the owner agrees.</R-3>
+    <R-4>Release notes: a user-facing "What's new" section on v2.3.0 above the automated block (AGENTS.md release step 6).</R-4>
+    <R-5>"Two editions, same editor" section on the site (C-35 install section + FAQ), in README ("Editions") and in the docs (guide/editions): a neutral, factual table. Desktop edition only, verified in code on 2026-10-15 (m048 build mode and app-store cfg gates): Pandoc export (DOCX, ODT, EPUB… when pandoc is installed), insert screenshot (screencapture), set Mark as the default Markdown app, Diff against the last git commit (both editions read a .before file), the local live server for agents (m045 HTTP endpoint; the base for MCP C-25), the macOS share button, the in-app updater, Windows builds. App Store edition: Apple-reviewed, sandboxed, updates and installs through the App Store. Everything else is the same editor. FAQ explains why: the App Store sandbox does not allow running other programs (git, pandoc, screencapture) or the local server.</R-5>
+    <R-6>App Store compliance: the App Store build, its listing, screenshots and app preview never mention or link the other edition and show only features present in the App Store build; unavailable features stay hidden in the App Store build (as today), never greyed out with a "get the other version" prompt.</R-6>
+  </Goals>
+
+  <Phases>
+    <G1><Title>About + social preview + release notes 2.3.0</Title><Complexity>S</Complexity></G1>
+    <G2><Title>README rewrite + editions section + docs page</Title><Complexity>M</Complexity></G2>
+    <G3><Title>Contributor files, templates, CHANGELOG</Title><Complexity>S</Complexity></G3>
+  </Phases>
+
+  <Dependencies>C-35 (site uses the same editions table); C-43 and the App Store gap items below reduce the table over time.</Dependencies>
+
+  <NonGoals><NonGoal>Changing what the App Store build can do (tracked separately).</NonGoal></NonGoals>
+
+  <OpenQuestions>
+    <Q-1>Close App Store gaps where the sandbox allows it: the share sheet (NSSharingServicePicker is sandbox-safe), the agent live server (com.apple.security.network.server is allowed in the Mac App Store), Diff baseline from Mark's own snapshots (C-43). Each would move a row out of the "desktop only" table.</Q-1>
+    <Q-2>Enable GitHub Discussions?</Q-2>
+  </OpenQuestions>
+
+  <AcceptanceCriteria>
+    <Criterion>No outdated number or "beta" anywhere on the repo page; the editions table matches the m048 build-mode flags; nothing in the App Store build or listing references the other edition.</Criterion>
+  </AcceptanceCriteria>
+
+  <AffectedAreas><Bundle>README.md, .github/*, CONTRIBUTING.md, SECURITY.md, CHANGELOG.md, site/guide/editions.md, repo settings</Bundle></AffectedAreas>
+
+  <VerificationIntent>Link check, fact check of every number against the 2026-10-15 measurements, a test that the editions table lists exactly the m048 desktop-only flags.</VerificationIntent>
+
+  <Approval>
+    <ApprovedBy>pending — user asked for the GitHub revision and the editions section on 2026-10-15; scope to be confirmed</ApprovedBy>
+    <ApprovalScope>None yet.</ApprovalScope>
+  </Approval>
+</C-42>
+</GraceChangeSpec>
