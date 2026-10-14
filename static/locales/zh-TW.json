@@ -176,6 +176,8 @@
       "light": "淺色",
       "dark": "深色",
       "auto": "自動",
+      "paper": "Paper",
+      "ink": "Ink",
       "followThemDisabled": "跟隨系統主題時無法選擇主題",
       "lightThemes": "— 淺色主題 —",
       "darkThemes": "— 深色主題 —",
@@ -1446,6 +1448,13 @@
     "vega-lite-start": "vega-lite 開始",
     "click-to-add-image": "點擊新增圖片",
     "load-image-failed": "圖片載入失敗"
+  },
+  "titleBar": {
+    "themeMode": {
+      "auto": "主題：自動",
+      "light": "主題：淺色",
+      "dark": "主題：深色"
+    }
   },
   "edit": {
     "undo": "復原",

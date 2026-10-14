@@ -35,6 +35,9 @@
 //   - 2026-10-13 C-29: view.split-view (CmdOrCtrl+Alt+Backslash) toggles Split View for the current tab.
 //   - 2026-10-14 M-031: view.diff-mode refuses untitled tabs with a notice instead of hiding the editor.
 //   - 2026-10-14 C-32: edit.copy-as-structured-text emits copyAsStructuredText (plain text keeping bullets, link targets, table rows).
+//   - 2026-10-15 C-41 T-001: window.change-theme gains Paper and Ink subcommands
+//     (brand defaults); a manual theme pick now clears followSystemTheme so the
+//     Auto resolution cannot override the explicit choice.
 // END_CHANGE_SUMMARY
 //
 // List of all static commands that are loaded into command center.
@@ -687,6 +690,11 @@ const commands = [
   {
     id: 'window.change-theme',
     subcommands: [
+      // C-41 T-001: brand themes lead the list (Paper/Ink are the new-profile
+      // defaults). Selecting any theme manually leaves Auto mode so the
+      // followSystemTheme resolution cannot override the explicit pick.
+      { id: 'window.change-theme-paper', description: 'Paper', value: 'paper' },
+      { id: 'window.change-theme-ink', description: 'Ink', value: 'ink' },
       { id: 'window.change-theme-light', description: 'Cadmium Light', value: 'light' },
       { id: 'window.change-theme-graphite', description: 'Graphite', value: 'graphite' },
       { id: 'window.change-theme-ulysses', description: 'Ulysses', value: 'ulysses' },
@@ -722,7 +730,12 @@ const commands = [
       { id: 'window.change-theme-tokyo-night-storm', description: 'Tokyo Night Storm', value: 'tokyo-night-storm' }
     ],
     executeSubcommand: async (_, theme) => {
-      usePreferencesStore().SET_SINGLE_PREFERENCE({ type: 'theme', value: theme })
+      const store = usePreferencesStore()
+      // C-41 T-001: a manual theme pick is a manual mode — leave Auto.
+      if (store.followSystemTheme) {
+        store.SET_SINGLE_PREFERENCE({ type: 'followSystemTheme', value: false })
+      }
+      store.SET_SINGLE_PREFERENCE({ type: 'theme', value: theme })
     }
   },
 
