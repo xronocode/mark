@@ -4224,6 +4224,11 @@
         </Command>
         <Command>npx playwright test tests/e2e/smart-paste.spec.ts</Command>
         <Command>npx playwright test tests/e2e/auto-pair-quotes.spec.ts --project=chromium</Command>
+        <Command>npx vitest run tests/renderer/muya/mermaid-pipeline.test.js</Command>
+        <Command>
+          npm run build &amp;&amp; npx playwright test --project=chromium
+          tests/e2e/mermaid-render.spec.ts
+        </Command>
       </Commands>
       <Scenarios>
         <Scenario>
@@ -4261,10 +4266,11 @@
         <Scenario>
           scenario-9: Mermaid render: mermaid code block renders visible SVG
           with non-empty &lt;g&gt; element using mermaid.render() API (v11+);
-          re-render of same block produces unique render IDs (Date.now()
-          suffix); async race-safe cache clearing (cache entry removed before
-          await); full ESM build (mermaid.esm.mjs) includes all diagram type
-          renderers.
+          render ids are unique per mermaid.render call via a module counter
+          (C-34 R2.1 replaced the Date.now() suffix — two diagrams can render
+          in the same millisecond); async race-safe cache clearing (cache
+          entry removed before await); full ESM build (mermaid.esm.mjs)
+          includes all diagram type renderers.
         </Scenario>
         <Scenario>
           scenario-10: Keyboard undo/redo: Cmd/Ctrl+Z in Muya undoes via
@@ -4330,6 +4336,31 @@
           tests/renderer/muya/quote-auto-pair.test.js; typed end-to-end in
           tests/e2e/auto-pair-quotes.spec.ts (failed 3/7 before the fix).
         </Scenario>
+        <Scenario>
+          scenario-17: Mermaid resilient render pipeline (C-34 R2.1,
+          mermaidPipeline.js START_BLOCK_MERMAID_*): re-rendering an
+          unchanged diagram is a code+theme-hash LRU cache hit (bounded at
+          50 entries) that re-inserts the cached SVG with the hoisted
+          &lt;style&gt; and never calls mermaid.render; a theme switch
+          changes the cache key and re-renders; a syntax error after a good
+          render keeps the last good SVG visible with mermaid's own error
+          text in a small element below it (textContent only — an error
+          message containing `&lt;img src=x onerror=alert(1)&gt;` creates no
+          element), while a diagram that never rendered shows the error text
+          alone with the ag-math-error class; mermaid's orphan error
+          elements (div#d&lt;id&gt; / svg#&lt;id&gt; in body) are removed
+          after a failed render; typing collapses re-renders into one
+          mermaid.render per ~250 ms quiet window (first render and theme
+          switches stay immediate, delay injectable); mermaid initializes
+          with useMaxWidth:false so wide diagrams render at natural size in
+          a horizontally scrollable ag-mermaid-preview container while
+          narrow diagrams stay centred (other container previews keep
+          width:100%). Unit-pinned in
+          tests/renderer/muya/mermaid-pipeline.test.js (the StateRender-level
+          cache and keep-last-good cases fail against the pre-R2.1
+          implementation); wide-flowchart scroll and keep-last-good typed
+          end-to-end in tests/e2e/mermaid-render.spec.ts.
+        </Scenario>
       </Scenarios>
       <Markers>
         <Marker>[Muya][parse][BLOCK_TOKENIZE]</Marker>
@@ -4354,6 +4385,11 @@
         </Marker>
         <Marker>[Muya] BLOCK_INVARIANT_CHECK id=&lt;a..m&gt; pass=&lt;bool&gt;</Marker>
         <Marker>[Muya] BLOCK_UNDO_COALESCE ops=&lt;n&gt;</Marker>
+        <!-- C-34 R2.1 mermaid pipeline (console.debug/warn until muya grows
+             a structured logger). -->
+        <Marker>[Muya][renderMermaid][BLOCK_MERMAID_CACHE_HIT]</Marker>
+        <Marker>[Muya][renderMermaid][BLOCK_MERMAID_RENDER]</Marker>
+        <Marker>[Muya][renderMermaid][BLOCK_MERMAID_ERROR]</Marker>
       </Markers>
       <TraceAssertions>
         <TraceAssertion>

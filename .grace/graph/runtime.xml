@@ -3099,7 +3099,14 @@
         renders as a read-only properties table (utils/frontMatterProps.js)
         until the cursor enters it; insertImageFromPath is the shared local
         image insert for path paste and file drop. None of these rewrite the
-        markdown.
+        markdown. C-34 R2.1: mermaid previews render through
+        parser/render/mermaidPipeline.js — code+theme-hash LRU SVG cache
+        (50), keep-last-good with escaped mermaid error text below the
+        diagram, orphan div#d&lt;id&gt; cleanup after failed renders,
+        per-block ~250 ms trailing debounce while typing (first render and
+        theme switches immediate), counter-unique render ids, and
+        useMaxWidth:false natural size with horizontal scroll scoped by the
+        ag-mermaid-preview hook class (styles index.css).
       </Summary>
       <Path>src/muya/</Path>
       <Dependencies/>
