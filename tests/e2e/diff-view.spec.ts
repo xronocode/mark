@@ -69,6 +69,17 @@ test.describe('M-031 diff-view', () => {
     await setDiffMode(page, true)
 
     await expect(page.locator('.diff-view')).toBeVisible({ timeout: 5_000 })
+    // toBeVisible ignores clipping: the diff must actually sit inside the
+    // viewport and the editing surface must be hidden (it used to push the
+    // diff below the fold of the overflow-hidden container).
+    await expect(page.locator('.editor-wrapper').first()).toBeHidden()
+    const box = await page.locator('.diff-view').boundingBox()
+    const viewport = page.viewportSize()
+    expect(box!.y).toBeLessThan(viewport!.height / 2)
+
+    await setDiffMode(page, false)
+    await expect(page.locator('.diff-view')).toHaveCount(0)
+    await expect(page.locator('.editor-wrapper').first()).toBeVisible()
   })
 
   test('diff-view shows error when no pathname (untitled tab)', async ({ page }) => {

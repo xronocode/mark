@@ -5,7 +5,10 @@
   >
     <tabs v-show="showTabBar"></tabs>
     <div class="container">
-      <split-view :enabled="splitView && !diffMode">
+      <!-- M-031: the diff view replaces the editing surface. Without the
+           v-show it rendered below the full-height editor and was clipped by
+           .container (overflow: hidden), so `mark --diff` showed no diff. -->
+      <split-view v-show="!diffMode" :enabled="splitView && !diffMode">
         <template #rich="{ active }">
           <editor
             :markdown="markdown"

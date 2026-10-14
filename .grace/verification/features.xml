@@ -119,6 +119,16 @@
             diff mode activated automatically; BLOCK_AUTO_DIFF_TRIGGERED; user
             can dismiss via Cmd+D or toolbar close button.
           </S10>
+          <S11>
+            diff-replaces-editing-surface (regression 2026-10-14) — with
+            diffMode on, the editing surface (split-view root) is hidden and the
+            merge view sits inside the viewport; before the fix it rendered
+            below the full-height editor and the overflow-hidden container
+            clipped it, so `mark --diff` logged BLOCK_DIFF_RENDERED yet showed
+            the plain WYSIWYG page. Pinned in tests/e2e/diff-view.spec.ts
+            (editor hidden + diff box in the upper half; toggling off restores
+            the editor).
+          </S11>
         </high-level-scenarios>
         <failure-scenarios>
           <F1>
