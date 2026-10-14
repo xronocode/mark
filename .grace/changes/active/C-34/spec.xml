@@ -18,7 +18,7 @@
   <Goals>
     <R-1>P0: fullscreen overlay (hover ⤢, Cmd+click, Space): pinch, Cmd+wheel, +/−/0/1, drag pan, Esc; focus trap.</R-1>
     <R-2>P0: hover toolbar per diagram (expand, fit/100%, copy SVG, copy PNG, edit); a plain click still edits.</R-2>
-    <R-3>P0: keep the last good render and show the mermaid error under it; natural-size option with horizontal scroll.</R-3>
+    <R-3>P0: keep the last good render and show the mermaid error under it. Size decision (user 2026-10-15, replaces the R2.1 natural-size default): wide diagrams fit the text column (useMaxWidth:true); natural size lives in the fullscreen block viewer, which opens fitted and centred.</R-3>
     <R-4>P1: inline Cmd+wheel/pinch zoom with per-diagram state; export via save dialog; base theme fed from Mark CSS variables. (The SVG cache keyed by code+theme hash and the 250 ms debounce moved into R2.1 on 2026-10-15.)</R-4>
     <R-5>P2: open in own window, drag-resize inline height, live split edit in fullscreen, idle/off-thread render for large diagrams, accTitle/accDescr a11y, dark diagrams in HTML/PDF export.</R-5>
   </Goals>

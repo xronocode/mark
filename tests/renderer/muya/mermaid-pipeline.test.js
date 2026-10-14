@@ -146,7 +146,7 @@ describe('mermaid pipeline (C-34 R2.1)', () => {
     expect(target.querySelector('svg')).not.toBeNull()
   })
 
-  it('initializes mermaid with useMaxWidth:false (natural size)', async () => {
+  it('initializes mermaid with useMaxWidth:true (wide diagrams fit the column)', async () => {
     createTarget('b1')
     const pipeline = makePipeline()
     await pipeline.render([['#b1', { code: GOOD_CODE, functionType: 'mermaid' }]])
@@ -154,9 +154,9 @@ describe('mermaid pipeline (C-34 R2.1)', () => {
       expect.objectContaining({
         securityLevel: 'strict',
         theme: 'default',
-        flowchart: { useMaxWidth: false },
-        sequence: { useMaxWidth: false },
-        gantt: { useMaxWidth: false }
+        flowchart: { useMaxWidth: true },
+        sequence: { useMaxWidth: true },
+        gantt: { useMaxWidth: true }
       })
     )
   })

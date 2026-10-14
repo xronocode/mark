@@ -175,7 +175,7 @@ test.describe('mermaid diagram rendering', () => {
   })
 
   // C-34 R2.1: natural size + horizontal scroll for wide diagrams.
-  test('wide flowchart renders at natural size in a horizontally scrollable container', async ({ page }) => {
+  test('wide flowchart fits the text column (natural size lives in the viewer)', async ({ page }) => {
     await bootstrapWithMarkdown(page, WIDE_FLOWCHART_MD)
 
     await page.locator('.editor-component, .editor-wrapper').first()
@@ -201,10 +201,11 @@ test.describe('mermaid diagram rendering', () => {
     })
 
     expect(sizing.overflowX).toBe('auto')
-    // Smoke 2.3.0: the scrollbar under a wide diagram must stay thin.
+    // Smoke 2.3.0: if anything ever scrolls, the scrollbar stays thin.
     expect(sizing.scrollbarHeight, 'horizontal scrollbar must be thin').toBeLessThanOrEqual(8)
-    expect(sizing.svgWidth, 'wide diagram must keep its natural width').toBeGreaterThan(sizing.clientWidth)
-    expect(sizing.scrollWidth, 'preview container must scroll horizontally').toBeGreaterThan(sizing.clientWidth)
+    // User decision 2026-10-15: wide diagrams fit the column, no sideways scroll.
+    expect(sizing.svgWidth, 'wide diagram must fit the column').toBeLessThanOrEqual(sizing.clientWidth + 1)
+    expect(sizing.scrollWidth, 'no horizontal scroll').toBeLessThanOrEqual(sizing.clientWidth + 1)
   })
 
   // C-34 R2.1: keep-last-good — a syntax error typed after a successful

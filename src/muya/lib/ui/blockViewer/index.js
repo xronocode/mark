@@ -1,5 +1,5 @@
 // FILE: src/muya/lib/ui/blockViewer/index.js
-// VERSION: 1.0.1
+// VERSION: 1.1.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Shared fullscreen block viewer (C-34 R2.2 + C-39 T2) that shows a Mermaid diagram (clone of the current preview, no re-render) or a read-only clone of a rendered table with pan/zoom via @panzoom/panzoom.
 //   SCOPE: hover/caret toolbar with the expand (⤢) button, viewer open/close lifecycle, diagram-preview and table-clone sanitization, wheel/pinch/key zoom, drag pan, focus trap and focus restore, panzoom cleanup.
@@ -14,7 +14,8 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.0.1 - 2026-10-15 C-39: tables are centred and the centred table tools bar owns the strip above them, so the expand button sits beside the table top-right corner (falls back to the strip when there is no room).
+//   LAST_CHANGE: v1.1.0 - 2026-10-15 C-34: the diagram clone gets its natural size from the SVG viewBox (diagrams now fit the column with width 100%, which collapsed to 0 in the viewer — blank viewer, off-centre fit); fit runs again after layout.
+//   v1.0.1 - 2026-10-15 C-39: tables are centred and the centred table tools bar owns the strip above them, so the expand button sits beside the table top-right corner (falls back to the strip when there is no room).
 //   v1.0.0 - 2026-10-15 C-34 R2.2 + C-39 T2: new shared fullscreen block viewer — Mermaid preview clone (carries the hoisted <style>), sanitized read-only table clone with a sticky header, @panzoom/panzoom pan/zoom (pinch/Cmd+wheel zoom, drag pan, +/−/0/1 keys), Esc close with focus restore, hover/caret toolbar with the ⤢ expand button, Cmd/Ctrl+click on a diagram opens the viewer.
 // END_CHANGE_SUMMARY
 
@@ -67,6 +68,21 @@ const sanitizeTableClone = (table) => {
 const cloneDiagramPreview = (preview) => {
   const clone = preview.cloneNode(true)
   clone.classList.add('ag-block-viewer-diagram-clone')
+  // In the editor wide diagrams fit the column (mermaid useMaxWidth:true:
+  // width 100% + an inline max-width). The viewer canvas has no width of
+  // its own, so a percentage width collapsed to 0 (blank viewer) and the
+  // fit maths measured the wrong size (off-centre open). Give the clone
+  // the diagram's natural size from its viewBox.
+  const svg = clone.querySelector('svg')
+  const vb = svg && svg.viewBox && svg.viewBox.baseVal
+  if (svg && vb && vb.width > 0 && vb.height > 0) {
+    svg.style.width = `${vb.width}px`
+    svg.style.height = `${vb.height}px`
+    svg.style.maxWidth = 'none'
+    svg.removeAttribute('width')
+    clone.style.width = 'max-content'
+    clone.style.overflow = 'visible'
+  }
   return clone
 }
 // END_BLOCK_VIEWER_DIAGRAM_CLONE
@@ -230,6 +246,14 @@ class BlockViewer {
     // the editor keyboard handler stops receiving input while open.
     this.stage.focus()
     this.fitToScreen()
+    // Fit again once the overlay has laid out and panzoom has applied its
+    // deferred initial transform (it resets the translation on a timer
+    // after init, which left a wide diagram off-centre in Chromium/WebKit).
+    setTimeout(() => {
+      requestAnimationFrame(() => {
+        if (this.isOpen) this.fitToScreen()
+      })
+    }, 0)
     console.debug('[Muya][blockViewer][BLOCK_VIEWER_OPEN] viewer opened', { kind })
     this.muya.eventCenter.dispatch('muya-block-viewer-open', { kind })
     return true
