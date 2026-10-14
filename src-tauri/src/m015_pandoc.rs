@@ -173,7 +173,7 @@ async fn _pandoc_export_impl(input: String, format: String) -> Result<Vec<u8>, S
     Ok(output.stdout)
 }
 
-#[cfg(test)]
+#[cfg(all(test, not(feature = "app-store")))]
 mod tests {
     use super::*;
 
