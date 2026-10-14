@@ -176,6 +176,8 @@
       "light": "Hell",
       "dark": "Dunkel",
       "auto": "Automatisch",
+      "paper": "Paper",
+      "ink": "Ink",
       "followThemDisabled": "Themenauswahl deaktiviert, wenn dem Systemdesign gefolgt wird",
       "lightThemes": "— Helle Designs —",
       "darkThemes": "— Dunkle Designs —",
@@ -1436,6 +1438,13 @@
     "vega-lite-start": "Vega-Lite Start",
     "click-to-add-image": "Klicken Sie, um ein Bild hinzuzufügen",
     "load-image-failed": "Bild laden fehlgeschlagen"
+  },
+  "titleBar": {
+    "themeMode": {
+      "auto": "Design: Automatisch",
+      "light": "Design: Hell",
+      "dark": "Design: Dunkel"
+    }
   },
   "edit": {
     "undo": "Rückgängig",

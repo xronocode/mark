@@ -1,7 +1,9 @@
 import { t } from '../../i18n'
 
 export const themes = [
+  // C-41 T-001: brand defaults — Paper (light) and Ink (dark) lead each group.
   // Light Themes (alphabetical)
+  { name: 'paper' },
   { name: 'ayu-light' },
   { name: 'light' },
   { name: 'catppuccin-latte' },
@@ -13,6 +15,7 @@ export const themes = [
   { name: 'tokyo-night-light' },
   { name: 'ulysses' },
   // Dark Themes (alphabetical)
+  { name: 'ink' },
   { name: 'ayu-dark' },
   { name: 'ayu-mirage' },
   { name: 'dark' },

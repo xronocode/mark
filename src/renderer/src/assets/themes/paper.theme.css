@@ -1,0 +1,170 @@
+:root {
+  /*editor - Paper theme*/
+  --themeColor: #9A6F00;
+  --themeColor90: rgba(154, 111, 0, 0.9);
+  --themeColor80: rgba(154, 111, 0, 0.8);
+  --themeColor70: rgba(154, 111, 0, 0.7);
+  --themeColor60: rgba(154, 111, 0, 0.6);
+  --themeColor50: rgba(154, 111, 0, 0.5);
+  --themeColor40: rgba(154, 111, 0, 0.4);
+  --themeColor30: rgba(154, 111, 0, 0.3);
+  --themeColor20: rgba(154, 111, 0, 0.2);
+  --themeColor10: rgba(154, 111, 0, 0.1);
+
+  --highlightColor: rgba(255, 207, 26, 0.45);
+  --selectionColor: rgba(255, 207, 26, 0.3);
+  --editorColor: #22252B;
+  --editorColor80: rgba(34, 37, 43, 0.8);
+  --editorColor60: rgba(34, 37, 43, 0.6);
+  --editorColor50: rgba(34, 37, 43, 0.5);
+  --editorColor40: rgba(34, 37, 43, 0.4);
+  --editorColor30: rgba(34, 37, 43, 0.3);
+  --editorColor10: rgba(34, 37, 43, 0.1);
+  --editorColor04: rgba(34, 37, 43, 0.04);
+  --editorBgColor: #FBF8F2;
+  --deleteColor: #B3261E;
+  --iconColor: rgba(34, 37, 43, 0.56);
+  --codeBgColor: #F2ECE1;
+  --codeBlockBgColor: #F2ECE1;
+  --footnoteBgColor: rgba(242, 236, 225, 0.6);
+  --inputBgColor: #F3EDE2;
+
+  --focusColor: var(--themeColor);
+
+  --buttonFontColor: rgba(34, 37, 43, 0.75);
+  --buttonBgColor: #F3EDE2;
+  --buttonBorder: 1px solid rgba(0, 0, 0, 0.08);
+  --buttonShadow: none;
+  --buttonFontColorHover: var(--buttonFontColor);
+  --buttonBgColorHover: #EAE2D3;
+  --buttonBorderHover: 1px solid rgba(0, 0, 0, 0.12);
+  --buttonFontColorActive: var(--buttonFontColor);
+  --buttonBgColorActive: #E4DBCB;
+  --buttonBorderActive: var(--buttonBorder);
+
+  --buttonPrimaryFontColor: #FFFFFF;
+  --buttonPrimaryBgColor: var(--themeColor);
+  --buttonPrimaryBorder: none;
+  --buttonPrimaryShadow: none;
+  --buttonPrimaryFontColorHover: var(--buttonPrimaryFontColor);
+  --buttonPrimaryBgColorHover: #7E5B00;
+  --buttonPrimaryBorderHover: var(--buttonPrimaryBorder);
+  --buttonPrimaryFontColorActive: var(--buttonPrimaryFontColor);
+  --buttonPrimaryBgColorActive: #7E5B00;
+  --buttonPrimaryBorderActive: var(--buttonPrimaryBorder);
+  --buttonPrimaryFocusBorder: none;
+  --buttonPrimaryFocusShadow: inset 0 0 0 1px rgba(255, 255, 255, 0.5), 0 0 0 1px var(--themeColor);
+  --tableBorderColor: #E4DBCB;
+
+  /* Markdown element colors */
+  --headingColor: #22252B;
+  --h1Color: #22252B;
+  --h2Color: #22252B;
+  --h3Color: #22252B;
+  --h4Color: #22252B;
+  --h5Color: #22252B;
+  --h6Color: rgba(34, 37, 43, 0.7);
+  --blockquoteTextColor: rgba(34, 37, 43, 0.68);
+  --blockquoteBorderColor: #FFCF1A;
+  --hrColor: #E4DBCB;
+  --linkColor: #22252B;
+  --strongColor: #22252B;
+  --emColor: #22252B;
+  --listMarkerColor: #9A6F00;
+
+  /*marktext*/
+  --sideBarColor: rgba(34, 37, 43, 0.72);
+  --sideBarIconColor: var(--iconColor);
+  --sideBarTitleColor: rgba(34, 37, 43, 0.9);
+  --sideBarTextColor: rgba(34, 37, 43, 0.55);
+  --sideBarBgColor: #F3EDE2;
+  --sideBarItemHoverBgColor: rgba(34, 37, 43, 0.05);
+  --itemBgColor: #EAE2D3;
+
+  --floatFontColor: rgba(34, 37, 43, 0.82);
+  --floatBgColor: #FFFDF8;
+  --floatHoverColor: rgba(34, 37, 43, 0.06);
+  --floatBorderColor: rgba(34, 37, 43, 0.1);
+  --floatShadow: rgba(0, 0, 0, 0.12);
+  --maskColor: rgba(0, 0, 0, .3);
+  --editorAreaWidth: 750px;
+}
+
+::-webkit-scrollbar {
+  background: var(--editorBgColor);
+}
+
+.ag-front-menu .submenu,
+.ag-float-wrapper {
+  box-shadow: 0 4px 8px 0 var(--floatShadow) !important;
+}
+
+.title-bar .frameless-titlebar-button > div > svg {
+  fill: #22252B;
+}
+.title-bar .frameless-titlebar-minimize:hover,
+.title-bar .frameless-titlebar-toggle:hover {
+  background-color: rgba(34, 37, 43, 0.08);
+}
+
+.side-bar {
+  border-right: 1px solid #E4DBCB !important;
+}
+
+.recent-files-projects a,
+.open-project a {
+  box-shadow: none !important;
+}
+
+.editor-tabs {
+  box-shadow: none !important;
+}
+.editor-tabs:after {
+  position: absolute;
+  content: '';
+  border-bottom: 1px solid #E4DBCB;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 1;
+}
+.editor-tabs ul.tabs-container:after {
+  position: absolute;
+  content: '';
+  border-bottom: 1px solid #E4DBCB;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 2;
+}
+
+.tabs-container > li,
+.tabs-container > li.active {
+  background: var(--editorBgColor) !important;
+}
+
+.open-project button,
+.recent-files-projects button {
+  box-shadow: none !important;
+}
+
+/* ------------------------------------ */
+
+:not(pre) > code[class*="language-"],
+pre:not(.CodeMirror-line),
+pre[class*="language-"],
+pre.ag-paragraph {
+  background: var(--codeBlockBgColor) !important;
+  border: none !important;
+}
+p:not(.ag-active)[data-role="hr"]::before {
+  border-top: 2px dashed var(--editorColor10) !important;
+  background: none !important;
+}
+figure.ag-active.ag-container-block > div.ag-container-preview {
+  box-shadow: 0 3px 8px 0 var(--floatShadow) !important;
+}
+
+/* Paper: brand touches */
+mark, .ag-highlight { background: rgba(255, 207, 26, 0.55) !important; color: inherit !important; border-radius: 2px; }
+#ag-editor-id a, #ag-editor-id .ag-link { text-decoration: underline; text-decoration-color: #FFCF1A; text-decoration-thickness: 2px; text-underline-offset: 3px; }

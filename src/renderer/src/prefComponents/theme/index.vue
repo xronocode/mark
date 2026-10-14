@@ -3,20 +3,19 @@
     <h4>{{ t('preferences.theme.title') }}</h4>
     <section class="offcial-themes">
       <!--
-        M-025.4 (alpha.6.3, smoke 2026-05-11): drop the `!followSystemTheme &&`
-        click-guard and the `.disabled` class. The follow-system feature is
-        not wired in the Tauri port — its `nativeTheme.shouldUseDarkColors`
-        listener was never carried over from v1.2.x. Until F-THEME-FOLLOW-
-        SYSTEM lands, every theme-card click should unconditionally update
-        the active theme. Backend M-025.3 also force-overrides the persisted
-        `followSystemTheme=false` at boot for the same reason.
+        C-41 T-001: the follow-system flow is real now (util/autoTheme.js +
+        app.vue matchMedia listener), so theme cards are clickable in every
+        mode. Picking a card is an explicit manual choice: onSelectTheme
+        first turns followSystemTheme off, then persists the theme — the
+        Auto resolution would otherwise override the pick on the next OS
+        appearance change.
       -->
       <div
         v-for="t of themes"
         :key="t.name"
         class="theme"
         :class="[t.name, { active: t.name === theme }]"
-        @click="onSelectChange('theme', t.name)"
+        @click="onSelectTheme(t.name)"
       >
         <div v-html="t.html"></div>
       </div>
@@ -24,20 +23,18 @@
     <separator></separator>
 
     <!--
-      M-025.4: hide the followSystemTheme + lightModeTheme/darkModeTheme
-      controls until F-THEME-FOLLOW-SYSTEM is properly ported (needs a
-      `matchMedia('(prefers-color-scheme: dark)')` listener that drives
-      addThemeStyle). Showing a non-functional toggle is anti-UX and
-      previously bricked the manual picker via the click guard above.
+      C-41 T-001: followSystemTheme and the light/dark member choices are
+      visible again (they mirror the title-bar Auto/Light/Dark button
+      state; the alpha.6.3 hiding was for the then-unimplemented
+      follow-system flow). Full redesign lands with C-38 N3.
     -->
     <Bool
-      v-if="false"
       :description="t('preferences.theme.followSystemTheme')"
       :bool="followSystemTheme"
       :on-change="(value) => onSelectChange('followSystemTheme', value)"
     />
 
-    <compound v-if="false && followSystemTheme">
+    <compound v-if="followSystemTheme">
       <template #head>
         <h6 class="title">{{ t('preferences.theme.modeThemes') }}</h6>
       </template>
@@ -130,6 +127,18 @@ onMounted(async () => {
 const onSelectChange = (type, value) => {
   preferenceStore.SET_SINGLE_PREFERENCE({ type, value })
 }
+
+// START_BLOCK_SELECT_THEME_CARD
+// C-41 T-001: a manual card pick leaves Auto mode — persist
+// followSystemTheme=false before the theme so the Auto resolution never
+// overrides the explicit choice on the next OS appearance change.
+const onSelectTheme = (name) => {
+  if (followSystemTheme.value) {
+    onSelectChange('followSystemTheme', false)
+  }
+  onSelectChange('theme', name)
+}
+// END_BLOCK_SELECT_THEME_CARD
 </script>
 
 <style>
@@ -191,6 +200,23 @@ const onSelectChange = (type, value) => {
       background: #f3f3f3;
       & a {
         color: rgb(12, 139, 186);
+      }
+    }
+
+    /* C-41 T-001: brand themes — Paper (light default) and Ink (dark
+       default) preview cards use the same swatch values as the themes. */
+    &.paper {
+      color: rgba(34, 37, 43, 0.7);
+      background: #FBF8F2;
+      & a {
+        color: #9A6F00;
+      }
+    }
+    &.ink {
+      color: rgba(236, 230, 218, 0.7);
+      background: #17191E;
+      & a {
+        color: #FFCF1A;
       }
     }
 
