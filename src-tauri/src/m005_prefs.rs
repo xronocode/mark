@@ -18,6 +18,11 @@
 //
 // CHANGE_SUMMARY:
 //   - 2026-04-29 B3-step-1: lite store + workspace-set + corrupt-fallback.
+//   - 2026-10-15 C-41 T-001: remove the M-025.3
+//     override_unimplemented_follow_system_theme boot override — the
+//     renderer now implements followSystemTheme (util/autoTheme.js), so a
+//     persisted Auto must survive restarts; replaced by the
+//     follow_system_theme_true_survives_reload test pin.
 
 use crate::m013b::SecurityCtx;
 use crate::mt_paths;
@@ -344,55 +349,14 @@ pub fn restore_workspace(prefs: &PrefsState, sec: &SecurityCtx) {
     }
 }
 
-/// M-025.3 followSystemTheme override (smoke 2026-05-11 alpha.6.1+):
-///
-/// The v1.2.3 Electron port implemented `followSystemTheme` in the main
-/// process via `nativeTheme.shouldUseDarkColors` + the 'updated' event.
-/// The Tauri port (B1-step-1 `5d5c239f`) imported the renderer UI for
-/// the toggle verbatim but never reimplemented the apply-side logic — no
-/// `matchMedia('(prefers-color-scheme: dark)')` listener exists in
-/// renderer or backend, and no code reads `lightModeTheme`/`darkModeTheme`
-/// to drive `addThemeStyle`.
-///
-/// Side effect: with the legacy default `followSystemTheme: true` (still
-/// present in any pre-existing preferences.json that was migrated from
-/// v1.2.x OR initialized by a build before commit `2074b387`), the theme
-/// picker's click handler in `prefComponents/theme/index.vue:16` —
-/// `@click="!followSystemTheme && onSelectChange(...)"` — short-circuits
-/// EVERY click. Theme cards render with `.disabled` class (opacity 0.4
-/// — still visible) but clicks are silent no-ops. User smoke:
-/// "Карточки видны, но клик не применяет тему".
-///
-/// Hard fix until F-THEME-FOLLOW-SYSTEM lands: force the flag to `false`
-/// on every boot, regardless of the persisted value. Runs idempotently:
-/// the first boot under this patch writes `false` to disk and from then
-/// on the no-op is cheap (read + compare). Users who toggle the switch
-/// back ON in the Settings UI will see it reset on next launch — that's
-/// the intended UX while the feature is unimplemented. When the Tauri
-/// port grows real `prefers-color-scheme` wiring, delete this fn from
-/// main.rs's boot sequence.
-pub fn override_unimplemented_follow_system_theme(prefs: &PrefsState) {
-    let current = prefs
-        .get("followSystemTheme")
-        .and_then(|v| v.as_bool())
-        .unwrap_or(false);
-    if current {
-        if let Err(e) = prefs.set(
-            "followSystemTheme".to_string(),
-            Value::Bool(false),
-        ) {
-            safe_eprintln!(
-                "[Prefs][followSystemTheme][BLOCK_OVERRIDE_FAILED err={e}]"
-            );
-        } else {
-            safe_eprintln!(
-                "[Prefs][followSystemTheme][BLOCK_OVERRIDDEN_TO_FALSE] one-shot until F-THEME-FOLLOW-SYSTEM lands"
-            );
-        }
-    } else {
-        safe_eprintln!("[Prefs][followSystemTheme][BLOCK_ALREADY_FALSE]");
-    }
-}
+// C-41 T-001: the M-025.3 `override_unimplemented_follow_system_theme`
+// boot override was REMOVED. It force-flipped any persisted
+// followSystemTheme=true back to false on every launch because the
+// renderer had no prefers-color-scheme wiring; C-41 T-001 ships that
+// wiring (util/autoTheme.js + app.vue matchMedia listener + the
+// Auto/Light/Dark title-bar button), so Auto now works AND survives
+// restarts. No migration rewrites stored prefs: users who explicitly
+// chose a theme keep followSystemTheme=false exactly as stored.
 
 #[cfg(test)]
 mod tests {
@@ -407,55 +371,6 @@ mod tests {
         let state = PrefsState::from_path(path);
         assert!(state.all().is_empty());
         assert!(state.get("anything").is_none());
-    }
-
-    #[test]
-    fn override_follow_system_theme_flips_true_to_false() {
-        // M-025.3: pre-existing prefs with followSystemTheme=true (legacy
-        // default from v1.2.x migration OR fresh installs before commit
-        // 2074b387) get forcibly overridden to false. The override runs
-        // on every boot until F-THEME-FOLLOW-SYSTEM lands; persistence
-        // means the second invocation is a cheap no-op.
-        let dir = TempDir::new().unwrap();
-        let path = dir.path().join("preferences.json");
-        let state = PrefsState::from_path(path);
-        state
-            .set("followSystemTheme".to_string(), Value::Bool(true))
-            .unwrap();
-        assert_eq!(
-            state
-                .get("followSystemTheme")
-                .and_then(|v| v.as_bool()),
-            Some(true)
-        );
-        override_unimplemented_follow_system_theme(&state);
-        assert_eq!(
-            state
-                .get("followSystemTheme")
-                .and_then(|v| v.as_bool()),
-            Some(false)
-        );
-        // Second call is idempotent — already false, no write.
-        override_unimplemented_follow_system_theme(&state);
-        assert_eq!(
-            state
-                .get("followSystemTheme")
-                .and_then(|v| v.as_bool()),
-            Some(false)
-        );
-    }
-
-    #[test]
-    fn override_follow_system_theme_noop_when_absent() {
-        // Fresh install with no preferences.json: get() returns None,
-        // unwrap_or(false), nothing to do. We do NOT proactively write
-        // false — only override when the persisted value is explicitly
-        // true.
-        let dir = TempDir::new().unwrap();
-        let path = dir.path().join("preferences.json");
-        let state = PrefsState::from_path(path);
-        override_unimplemented_follow_system_theme(&state);
-        assert!(state.get("followSystemTheme").is_none());
     }
 
     #[test]
@@ -535,6 +450,27 @@ mod tests {
             .unwrap();
         assert!(path.exists(), "final file must exist");
         assert!(!tmp.exists(), ".tmp must be renamed away");
+    }
+
+    #[test]
+    fn follow_system_theme_true_survives_reload() {
+        // C-41 T-001: the M-025.3 boot override that force-flipped a
+        // persisted followSystemTheme=true back to false is gone — Auto
+        // mode must survive a restart now that the renderer implements
+        // the prefers-color-scheme flow. Pin the store-level persistence
+        // (no boot-time rewrite of this key anywhere).
+        let dir = TempDir::new().unwrap();
+        let path = dir.path().join("preferences.json");
+        let state = PrefsState::from_path(path.clone());
+        state
+            .set("followSystemTheme".to_string(), Value::Bool(true))
+            .unwrap();
+        drop(state);
+        let reloaded = PrefsState::from_path(path);
+        assert_eq!(
+            reloaded.get("followSystemTheme").and_then(|v| v.as_bool()),
+            Some(true)
+        );
     }
 
     #[test]

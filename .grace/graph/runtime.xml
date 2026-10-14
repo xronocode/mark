@@ -2578,7 +2578,18 @@
         ratio/side in preferences splitViewRatio/splitViewSwapped; collapses
         below 800 px). The non-editable pane is a read-only mirror
         (editor.vue / sourceCode.vue `mirror` prop) that renders from the tab
-        markdown and never writes to the store.
+        markdown and never writes to the store. C-41 T-001: brand themes
+        Paper (light, assets/themes/paper.theme.css + prismjs companion) and
+        Ink (dark, ink.theme.css, railscasts classification) registered in
+        themeMap and every theme list; new profiles default to Auto
+        (followSystemTheme=true, lightModeTheme=paper, darkModeTheme=ink) —
+        util/autoTheme.js resolves prefers-color-scheme and the app.vue /
+        preference.vue START_BLOCK_APPLY_AUTO_THEME watchers plus matchMedia
+        listeners apply it live; the titleBar theme button cycles
+        Auto → Light → Dark (titleBar/index.vue START_BLOCK_THEME_CYCLE);
+        the M-025.3 backend boot override on followSystemTheme was removed
+        (src-tauri m005_prefs.rs / main.rs) so a persisted Auto survives
+        restarts.
       </Summary>
       <Path>src/renderer/</Path>
       <Dependencies>

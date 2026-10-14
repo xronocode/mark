@@ -1,3 +1,8 @@
+// C-41 T-001 brand themes — Paper (light) and Ink (dark) are the defaults
+// for new profiles; every other theme below stays unchanged.
+import paperTheme from '../assets/themes/paper.theme.css?inline'
+import inkTheme from '../assets/themes/ink.theme.css?inline'
+
 import darkTheme from '../assets/themes/dark.theme.css?inline'
 import graphiteTheme from '../assets/themes/graphite.theme.css?inline'
 import materialDarkTheme from '../assets/themes/material-dark.theme.css?inline'
@@ -36,6 +41,9 @@ import everforestLightTheme from '../assets/themes/everforest-light.theme.css?in
 import rosePineDawnTheme from '../assets/themes/rose-pine-dawn.theme.css?inline'
 
 // Prism.js syntax highlighting themes
+// C-41 T-001: brand Prism companions for Paper/Ink.
+import paperPrismTheme from '../assets/themes/prismjs/paper.theme.css?inline'
+import inkPrismTheme from '../assets/themes/prismjs/ink.theme.css?inline'
 import darkPrismTheme from '../assets/themes/prismjs/dark.theme.css?inline'
 import oneDarkPrismTheme from '../assets/themes/prismjs/one-dark.theme.css?inline'
 import draculaPrismTheme from '../assets/themes/prismjs/dracula.theme.css?inline'
@@ -67,6 +75,15 @@ import nightfoxPrismTheme from '../assets/themes/prismjs/nightfox.theme.css?inli
 import cyberdreamPrismTheme from '../assets/themes/prismjs/cyberdream.theme.css?inline'
 import graphitePrismTheme from '../assets/themes/prismjs/graphite.theme.css?inline'
 import ulyssesPrismTheme from '../assets/themes/prismjs/ulysses.theme.css?inline'
+
+// C-41 T-001 brand themes - with matching Prism themes
+export const paper = () => {
+  return paperTheme + '\n' + paperPrismTheme
+}
+
+export const ink = () => {
+  return inkTheme + '\n' + inkPrismTheme
+}
 
 // Original themes
 export const dark = () => {

@@ -177,6 +177,8 @@
       "light": "Light",
       "dark": "Dark",
       "auto": "Auto",
+      "paper": "Paper",
+      "ink": "Ink",
       "followThemDisabled": "Theme selection disabled when following system theme",
       "lightThemes": "— Light Themes —",
       "darkThemes": "— Dark Themes —",
@@ -1476,9 +1478,12 @@
     "load-image-failed": "Load image failed"
   },
   "titleBar": {
-    "switchToLight": "Switch to light theme",
-    "switchToDark": "Switch to dark theme",
-    "share": "Share"
+    "share": "Share",
+    "themeMode": {
+      "auto": "Theme: Auto",
+      "light": "Theme: Light",
+      "dark": "Theme: Dark"
+    }
   },
   "problems": {
     "title": "Problems",

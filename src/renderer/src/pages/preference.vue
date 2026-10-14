@@ -10,12 +10,13 @@
 </template>
 
 <script setup>
-import { computed, watch, onMounted, nextTick } from 'vue'
+import { computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { usePreferencesStore } from '@/store/preferences'
 import { storeToRefs } from 'pinia'
 import TitleBar from '@/prefComponents/common/titlebar'
 import SideBar from '@/prefComponents/sideBar'
 import { addThemeStyle } from '@/util/theme'
+import { resolveAutoTheme, watchSystemColorScheme } from '@/util/autoTheme'
 import { DEFAULT_STYLE } from '@/config'
 import { isOsx, isWindows } from '@/util'
 
@@ -48,17 +49,52 @@ watch(theme, (value) => {
   }
 })
 
+// START_BLOCK_APPLY_AUTO_THEME
+// C-41 T-001 Auto mode (settings window): mirror app.vue — keep `theme` in
+// sync with prefers-color-scheme while followSystemTheme is on, including
+// live OS appearance flips and cross-window preference broadcasts, without
+// ever persisting the resolved value.
+const applyAutoTheme = () => {
+  if (!preferencesStore.followSystemTheme) return
+  const resolved = resolveAutoTheme(preferencesStore)
+  if (resolved !== preferencesStore.theme) {
+    preferencesStore.theme = resolved
+  } else {
+    addThemeStyle(resolved)
+  }
+}
+
+watch(
+  () => [preferencesStore.followSystemTheme, preferencesStore.lightModeTheme, preferencesStore.darkModeTheme],
+  () => {
+    applyAutoTheme()
+  }
+)
+
+const stopColorSchemeWatch = watchSystemColorScheme(() => {
+  applyAutoTheme()
+})
+// END_BLOCK_APPLY_AUTO_THEME
+
 // Lifecycle
 onMounted(() => {
-  nextTick(() => {
+  nextTick(async () => {
     const state = window.marktext.initialState || DEFAULT_STYLE
     try {
       addThemeStyle(state.theme)
     } catch (e) {
       console.error('[preference][addThemeStyle] failed:', state.theme, e)
     }
-    preferencesStore.ASK_FOR_USER_PREFERENCE()
+    await preferencesStore.ASK_FOR_USER_PREFERENCE()
+    // C-41 T-001: resolve Auto after hydration so this window matches the
+    // editor window's effective theme.
+    applyAutoTheme()
   })
+})
+
+onUnmounted(() => {
+  // C-41 T-001: drop the prefers-color-scheme listener with the window.
+  stopColorSchemeWatch()
 })
 </script>
 
