@@ -39,7 +39,7 @@
     </R2.4>
   </Phases>
 
-  <Dependencies>None (can run in parallel with C-35).</Dependencies>
+  <Dependencies>None (can run in parallel with C-35). R2.2 builds the fullscreen overlay as a shared block viewer that C-39 T2 reuses for tables.</Dependencies>
 
   <Constraints>
     <Constraint>No new IPC permissions; works under the WKWebView CSP (styles moved out of the SVG); a plain click keeps opening the source.</Constraint>
