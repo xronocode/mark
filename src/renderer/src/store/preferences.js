@@ -1,13 +1,38 @@
+// FILE: src/renderer/src/store/preferences.js
+// VERSION: 1.1.0
+// START_MODULE_CONTRACT
+//   PURPOSE: Pinia store for persistent user preferences, their hydration, persistence, and the UI-language application paths (concrete or 'system').
+//   SCOPE: default state, SET_USER_PREFERENCE / SET_SINGLE_PREFERENCE, ASK_FOR_USER_PREFERENCE boot hydration, buildCapabilities + default-handler queries, LISTEN_SYSTEM_LANGUAGE re-resolution (C-45).
+//   DEPENDS: pinia, @tauri-apps/api/core, bus, services/notification, i18n/index.js, i18n/systemLocale.js.
+//   LINKS: _shims/preferences/schema.json defaults; pages/app.vue boot; bootstrap-ipc.js broadcasts; prefComponents language select.
+//   ROLE: RUNTIME
+//   MAP_MODE: EXPORTS
+// END_MODULE_CONTRACT
+//
+// START_MODULE_MAP
+//   usePreferencesStore - Pinia store factory (state defaults, hydration, persistence, LISTEN_* wiring incl. LISTEN_SYSTEM_LANGUAGE).
+// END_MODULE_MAP
+//
+// START_CHANGE_SUMMARY
+//   LAST_CHANGE: v1.1.0 - C-45 T-001: default language 'system' for new profiles (stored values untouched); LISTEN_SYSTEM_LANGUAGE re-resolves on window languagechange/focus and applies only when the effective locale changed.
+// END_CHANGE_SUMMARY
+
 import { defineStore } from 'pinia'
 import { invoke } from '@tauri-apps/api/core'
 import bus from '../bus'
 import notice from '../services/notification'
-import { setLanguage } from '../i18n'
+import { setLanguage, getCurrentLanguage } from '../i18n'
+import { SYSTEM_LANGUAGE, resolveSystemLocale } from '../i18n/systemLocale'
 
 // Boot-stomp guard (see ASK_FOR_USER_PREFERENCE): preference keys the
 // user has changed since store creation. Module-scoped so Pinia never
 // proxies it; cleared after the one boot hydration.
 const bootDirtyKeys = new Set()
+
+// C-45: window languagechange/focus listeners bind once per renderer
+// (module scope — not Pinia state — so repeated LISTEN_SYSTEM_LANGUAGE
+// calls from remounts never stack duplicate listeners).
+let systemLanguageListenersBound = false
 
 export const usePreferencesStore = defineStore('preferences', {
   state: () => ({
@@ -41,7 +66,12 @@ export const usePreferencesStore = defineStore('preferences', {
     defaultDirectoryToOpen: '',
     lastOpenedFolder: '',
     treePathExcludePatterns: [],
-    language: 'en',
+    // C-45 T-001: brand default for NEW profiles — 'system' follows the
+    // OS preferred languages (i18n/systemLocale.js resolver). Stored
+    // values are never migrated: a profile that pinned 'en' or 'ru'
+    // keeps its choice; only a profile with no stored language gets
+    // 'system'.
+    language: SYSTEM_LANGUAGE,
 
     editorFontFamily: 'Open Sans',
     fontSize: 16,
@@ -278,6 +308,32 @@ export const usePreferencesStore = defineStore('preferences', {
         this.TOGGLE_VIEW_MODE(entryName)
         this.DISPATCH_EDITOR_VIEW_STATE({ [entryName]: this[entryName] })
       })
+    },
+
+    // C-45 T-001: while the language preference is 'system', re-resolve
+    // the effective UI locale when the webview reports 'languagechange'
+    // or the window regains focus, so a system language change applies
+    // without a restart. Applies only when the effective locale actually
+    // changed, and never persists — the stored preference stays
+    // 'system'. The immediate reResolve at bind time also covers a fresh
+    // profile whose prefs.json has no language key at all (boot
+    // hydration delivers nothing, so setLanguage never ran and the
+    // store default 'system' rules).
+    LISTEN_SYSTEM_LANGUAGE() {
+      // START_BLOCK_SYSTEM_LANGUAGE_BIND
+      if (systemLanguageListenersBound) return
+      systemLanguageListenersBound = true
+      const reResolve = () => {
+        if (this.language !== SYSTEM_LANGUAGE) return
+        const target = resolveSystemLocale()
+        if (target !== getCurrentLanguage()) {
+          setLanguage(target)
+        }
+      }
+      window.addEventListener('languagechange', reResolve)
+      window.addEventListener('focus', reResolve)
+      reResolve()
+      // END_BLOCK_SYSTEM_LANGUAGE_BIND
     },
 
     DISPATCH_EDITOR_VIEW_STATE(viewState) {

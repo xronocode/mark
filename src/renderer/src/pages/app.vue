@@ -297,6 +297,9 @@ onMounted(async () => {
   }
   addThemeStyle(preferencesStore.theme)
   preferencesStore.LISTEN_TOGGLE_VIEW()
+  // C-45 T-001: follow the OS preferred languages while the language
+  // preference is 'system' (re-resolves on languagechange / focus).
+  preferencesStore.LISTEN_SYSTEM_LANGUAGE()
   editorStore.LISTEN_FOR_CLOSE()
   editorStore.LISTEN_FOR_SAVE_AS()
   editorStore.LISTEN_FOR_MOVE_TO()

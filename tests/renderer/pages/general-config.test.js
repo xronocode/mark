@@ -46,14 +46,20 @@ describe('general/config.js', () => {
   })
 
   describe('getLanguageOptions', () => {
-    it('returns 10 language options', () => {
+    it('returns 11 language options', () => {
       const options = getLanguageOptions()
-      expect(options).toHaveLength(10)
+      expect(options).toHaveLength(11)
     })
 
-    it('includes English as first entry', () => {
+    it("includes 'system' (As in system) as first entry (C-45)", () => {
       const options = getLanguageOptions()
-      expect(options[0].value).toBe('en')
+      expect(options[0].value).toBe('system')
+      expect(options[0].label).toBe('preferences.language.system')
+    })
+
+    it('includes English as the first concrete language', () => {
+      const options = getLanguageOptions()
+      expect(options[1].value).toBe('en')
     })
 
     it('includes expected language codes', () => {

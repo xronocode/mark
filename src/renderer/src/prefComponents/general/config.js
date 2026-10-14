@@ -1,4 +1,5 @@
 import { t } from '../../i18n'
+import { SYSTEM_LANGUAGE } from '../../i18n/systemLocale'
 
 export const getTitleBarStyleOptions = () => [{
   label: t('preferences.general.window.titleBarStyle.custom'),
@@ -60,7 +61,12 @@ export const getFileSortByOptions = () => [{
   value: 'title'
 }]
 
+// C-45 T-001: 'system' (As in system) leads the list — it is the
+// new-profile default and follows the OS preferred languages.
 export const getLanguageOptions = () => [{
+  label: t('preferences.language.system'),
+  value: SYSTEM_LANGUAGE
+}, {
   label: t('preferences.general.misc.language.english'),
   value: 'en'
 }, {

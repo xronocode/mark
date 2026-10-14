@@ -953,7 +953,8 @@
       "uiLanguage": {
         "title": "Interface language",
         "description": "Application UI language"
-      }
+      },
+      "system": "As in system"
     }
   },
   "edit": {

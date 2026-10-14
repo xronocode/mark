@@ -942,7 +942,8 @@
       "uiLanguage": {
         "title": "界面语言",
         "description": "应用界面的显示语言"
-      }
+      },
+      "system": "跟随系统"
     }
   },
   "edit": {
