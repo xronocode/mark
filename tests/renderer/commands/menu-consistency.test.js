@@ -1,5 +1,5 @@
 // FILE: tests/renderer/commands/menu-consistency.test.js
-// VERSION: 1.4.3
+// VERSION: 1.4.5
 // START_MODULE_CONTRACT
 //   PURPOSE: Keep native application-menu IDs and renderer command IDs synchronized.
 //   SCOPE: Source-level native-menu extraction, renderer command/shortcut extraction, and intentional renderer-only exceptions.
@@ -21,6 +21,8 @@
 // START_CHANGE_SUMMARY
 //   LAST_CHANGE: v1.3.0 - Pin tabs.cycleForward/Backward menu ids + Ctrl+Tab/Ctrl+Shift+Tab accelerators; ids leave the RENDERER_ONLY_ALLOWLIST (C-8).
 //   v1.4.4 - C-32: pin edit.copy-as-structured-text menu id (no accelerator).
+//   v1.4.5 - C-38 N1: pin file.preferences label "Settings…" + Cmd+, accelerator;
+//   the "Preferences…" label is gone from both the native menu and the taxonomy.
 //   v1.4.3 - C-29: pin view.split-view menu id + CmdOrCtrl+Alt+Backslash accelerator; plain CmdOrCtrl+Backslash stays unclaimed.
 //   v1.4.2 - C-19: pin edit.go-to-heading menu id + CmdOrCtrl+T accelerator.
 //   v1.4.1 - C-17: pin edit.format-document menu id + Shift+Alt+F accelerator; view.problems / view.toggle-markdown-lint enter the RENDERER_ONLY_ALLOWLIST (palette-only).
@@ -275,6 +277,23 @@ describe('menu ↔ commands consistency', () => {
     )
     expect(item).not.toBeNull()
     expect(item[1]).not.toContain('accelerator')
+  })
+
+  it('pins the macOS Settings item: file.preferences id, "Settings…" label, Cmd+, accelerator (C-38 N1)', () => {
+    const rust = readSource('src-tauri/src/m009_menu.rs')
+    const buildFn = rust.slice(rust.indexOf('pub fn build_native_menu'))
+    const taxonomy = rust.slice(0, rust.indexOf('pub fn build_native_menu'))
+
+    expect(buildFn).toMatch(
+      /with_id\("file\.preferences", "Settings…"\)[\s\S]*?accelerator\("Cmd\+,"\)/
+    )
+    // The taxonomy entry (standard_menu) must stay consistent with the
+    // built menu, and the pre-C-38 label must not come back in menu CODE
+    // (CHANGE_SUMMARY comments may mention the rename — assert the label
+    // literal forms, not the bare word).
+    expect(taxonomy).toContain('label: "Settings…".to_string()')
+    expect(buildFn).not.toContain('with_id("file.preferences", "Preferences…")')
+    expect(taxonomy).not.toContain('label: "Preferences…"')
   })
 
   it('pins tab-cycling menu item ids and Ctrl+Tab accelerators (C-8)', () => {

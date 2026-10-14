@@ -84,6 +84,11 @@
 //                CONTEXT_MENU_SELECTION_GRACE for the late event.
 //   - 2026-10-14 C-32: add Edit-menu "Copy as Structured Text"
 //                (edit.copy-as-structured-text, no accelerator).
+//   - 2026-10-15 C-38 N1: rename the macOS app-menu item "Preferences…"
+//                → "Settings…" (id file.preferences, Cmd+, accelerator and
+//                the openPreferences command unchanged — current HIG
+//                naming). The macOS titlebar gear is hidden renderer-side,
+//                so Mark › Settings… ⌘, is the sole macOS Settings entry.
 // END_CHANGE_SUMMARY
 
 use serde::{Deserialize, Serialize};
@@ -316,7 +321,8 @@ pub struct MenuItem {
 
 /// Standard top-level menus for v2.0. Order matches v1.2.3 templates
 /// (file → edit → view → help). On macOS a "Mark" application menu
-/// prepends with About / Preferences / Quit per HIG.
+/// prepends with About / Settings / Quit per HIG (C-38 N1: "Settings…",
+/// current macOS naming; id file.preferences unchanged).
 ///
 /// IDs use dashed convention so they map 1:1 to renderer command ids
 /// (file.new-tab, file.open-folder, file.save-as, view.toggle-sidebar,
@@ -341,7 +347,7 @@ pub fn standard_menu() -> Vec<MenuItem> {
                 },
                 MenuItem {
                     id: "file.preferences".to_string(),
-                    label: "Preferences…".to_string(),
+                    label: "Settings…".to_string(),
                     command: Some("openPreferences".to_string()),
                     accelerator: Some("Cmd+,".to_string()),
                     items: None,
@@ -990,7 +996,7 @@ pub fn build_native_menu<R: tauri::Runtime>(
             .item(&MenuItemBuilder::with_id("about", "About Mark").build(handle)?)
             .separator()
             .item(
-                &MenuItemBuilder::with_id("file.preferences", "Preferences…")
+                &MenuItemBuilder::with_id("file.preferences", "Settings…")
                     .accelerator("Cmd+,")
                     .build(handle)?,
             )
