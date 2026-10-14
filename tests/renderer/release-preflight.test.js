@@ -1,5 +1,5 @@
 // FILE: tests/renderer/release-preflight.test.js
-// VERSION: 2.8.0
+// VERSION: 2.9.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Verify exact release metadata/tag consistency, production workflow gates, updater-feed release classification, and Homebrew artifact routing for M-046.
 //   SCOPE: Pure mismatch tests, current-workspace integration, CLI marker evidence, and static release-workflow assertions.
@@ -10,12 +10,13 @@
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
-//   consistentEvidence - Complete v2.2.0-beta version fixture.
+//   consistentEvidence - Complete v2.3.0 version fixture.
 //   workspaceRoot - GRACE 4 synchronized symbol
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: 2026-09-28 v2.8.0 - C-15 T-W3: strict-SemVer feed assertion follows the fragment-merge compose step (jq --arg ver) instead of the removed inline heredoc; pin the WINDOWS_RELEASE staging gate and the windows-x64 matrix lane.
+//   LAST_CHANGE: 2026-10-15 v2.9.0 - C-23: advance the release fixture to the first non-beta release v2.3.0.
+//   PREVIOUS_LATEST: 2026-09-28 v2.8.0 - C-15 T-W3: strict-SemVer feed assertion follows the fragment-merge compose step (jq --arg ver) instead of the removed inline heredoc; pin the WINDOWS_RELEASE staging gate and the windows-x64 matrix lane.
 //   PREVIOUS_LATEST: 2026-09-24 v2.7.0 - advance the release fixture to the link-autocomplete + dead-link-validation release v2.2.0-beta (C-20, C-21).
 //   PREVIOUS_LATEST: 2026-09-24 v2.6.0 - advance the release fixture to the native-print + heading-navigation release v2.2.0-beta (C-18, C-19).
 //   PREVIOUS_LATEST: 2026-09-22 v2.5.0 - advance the release fixture to the smart-paste + markdown-hygiene release v2.2.0-beta (C-16, C-17).
@@ -43,22 +44,22 @@ import {
 
 const workspaceRoot = resolve(import.meta.dirname, '../..')
 const consistentEvidence = {
-  packageJson: '2.2.0-beta',
-  packageLock: '2.2.0-beta',
-  packageLockRoot: '2.2.0-beta',
-  cargoWorkspace: '2.2.0-beta',
-  cargoLockMark: '2.2.0-beta',
-  tauriConfig: '2.2.0-beta'
+  packageJson: '2.3.0',
+  packageLock: '2.3.0',
+  packageLockRoot: '2.3.0',
+  cargoWorkspace: '2.3.0',
+  cargoLockMark: '2.3.0',
+  tauriConfig: '2.3.0'
 }
 
 // START_BLOCK_RELEASE_VERSION_TESTS
 describe('M-046 release version preflight', () => {
   it('accepts one exact metadata version and matching release tag', () => {
     expect(
-      validateVersionEvidence(consistentEvidence, 'v2.2.0-beta')
+      validateVersionEvidence(consistentEvidence, 'v2.3.0')
     ).toEqual({
-      version: '2.2.0-beta',
-      tag: 'v2.2.0-beta',
+      version: '2.3.0',
+      tag: 'v2.3.0',
       sourceCount: 6
     })
   })
@@ -67,7 +68,7 @@ describe('M-046 release version preflight', () => {
     expect(() =>
       validateVersionEvidence(
         { ...consistentEvidence, packageLockRoot: '2.0.6-alpha' },
-        'v2.2.0-beta'
+        'v2.3.0'
       )
     ).toThrowError(
       expect.objectContaining({
@@ -94,7 +95,7 @@ describe('M-046 release version preflight', () => {
   it('CLI emits the stable success marker for the target tag', () => {
     const result = spawnSync(
       process.execPath,
-      ['tools/release-preflight.mjs', '--tag', 'v2.2.0-beta'],
+      ['tools/release-preflight.mjs', '--tag', 'v2.3.0'],
       { cwd: workspaceRoot, encoding: 'utf8' }
     )
 
