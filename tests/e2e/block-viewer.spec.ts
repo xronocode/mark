@@ -13,6 +13,7 @@
 //   DIAGRAM_MD - markdown fixture with one mermaid flowchart.
 //   TABLE_MD - markdown fixture with one GFM table.
 //   bootstrapWithMarkdown - tauri-shim + preferences + mt::bootstrap-editor document load (mirrors mermaid-render.spec.ts).
+//   focusIsEditor - true when document.activeElement is inside the editor (focus-restore check).
 //   canvasScale - parses the panzoom `scale(s) translate(x,y)` transform of the viewer canvas.
 // END_MODULE_MAP
 //
