@@ -1,4 +1,4 @@
-<GraceChangePlan graceVersion='4.0' status='approved'>
+<GraceChangePlan graceVersion='4.0' status='applied'>
 <C-33>
   <ChangeRef>C-33</ChangeRef>
   <Created>2026-10-14</Created>
@@ -53,5 +53,9 @@
       <Verification><Command>npm test</Command></Verification>
     </T-003>
   </ImplementationPlan>
+
+  <Evidence>
+    <Gates>T-001 prior-art research (Prosely skeleton look-alike → round-4 silhouette). T-002 gen.py + build.sh, AppIcon.icon → Assets.car with dark/tinted, Info.plist CFBundleIconName, tauri.conf bundle.macOS.files; tests/renderer/icon-assets.test.js (source-hash drift, LF pin). T-003 CI green on main (Windows python timeout fixed in 0017b0fa). Final look approved by the user 2026-10-15.</Gates>
+  </Evidence>
 </C-33>
 </GraceChangePlan>
