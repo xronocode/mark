@@ -1,0 +1,48 @@
+<GraceChangePlan graceVersion='4.0' status='approved'>
+<C-34>
+  <ChangeRef>C-34</ChangeRef>
+  <Created>2026-10-15</Created>
+  <IntentSummary>R2.1 resilient Mermaid render pipeline in muya: SVG cache keyed by code+theme hash (no re-render of unchanged diagrams), keep the last good diagram on a syntax error and show mermaid's error message under it, debounce re-renders while typing (~250 ms), and render at natural size with horizontal scroll instead of squeezing wide diagrams into the text column. Delegated to a ZCode agent; reviewed and merged by the orchestrator.</IntentSummary>
+  <BaselineAssertions>
+    <MustContain>
+      <File>src/muya/lib/parser/render/index.js</File>
+      <Text>renderMermaid</Text>
+    </MustContain>
+  </BaselineAssertions>
+  <TargetAssertions>
+    <MustContain>
+      <File>src/muya/lib/parser/render/index.js</File>
+      <Text>BLOCK_MERMAID</Text>
+    </MustContain>
+  </TargetAssertions>
+  <DurableScope>
+    <M-011/>
+  </DurableScope>
+  <ObservedWriteScope>
+    <File>src/muya/lib/parser/render/index.js</File>
+    <File>src/muya/lib/assets/styles/index.css</File>
+    <File>tests/renderer/muya/*mermaid*.test.js</File>
+    <File>tests/e2e/mermaid-render.spec.ts</File>
+    <File>.grace/verification/*.xml</File>
+  </ObservedWriteScope>
+  <ImplementationPlan>
+    <T-001>
+      <Title>R2.1 render pipeline: cache, keep-last-good + error text, debounce, natural size</Title>
+      <DependsOn></DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>Unchanged diagrams are not re-rendered on unrelated edits (cache hit by hash of code + theme); a theme switch re-renders.</Criterion>
+        <Criterion>A syntax error keeps the previous SVG visible and shows mermaid's own error text beneath it (escaped, no HTML injection); a diagram that never rendered shows the error text alone.</Criterion>
+        <Criterion>Typing in a diagram re-renders at most once per ~250 ms of quiet.</Criterion>
+        <Criterion>Wide diagrams keep their natural size inside a horizontally scrollable container (mermaid useMaxWidth disabled for flowcharts/sequence etc.); narrow diagrams look as before.</Criterion>
+        <Criterion>The WKWebView CSP style-hoisting behaviour is preserved; log markers [Muya][renderMermaid][BLOCK_MERMAID_…] on cache hit / render / error.</Criterion>
+        <Criterion>Unit tests for cache, keep-last-good, error escaping and debounce; e2e mermaid-render.spec.ts extended (wide diagram scrolls, syntax error keeps the last diagram).</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>npx vitest run tests/renderer/muya</Command>
+        <Command>npm test</Command>
+        <Command>npm run build &amp;&amp; npx playwright test --project=chromium tests/e2e/mermaid-render.spec.ts</Command>
+      </Verification>
+    </T-001>
+  </ImplementationPlan>
+</C-34>
+</GraceChangePlan>
