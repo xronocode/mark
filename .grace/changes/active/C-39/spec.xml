@@ -1,0 +1,69 @@
+<GraceChangeSpec graceVersion='4.0' status='approved'>
+<C-39>
+  <Name>Tables: width, overflow and a fullscreen viewer</Name>
+  <Created>2026-10-15</Created>
+  <Priority>medium</Priority>
+  <Status>approved</Status>
+  <RoadmapPhase>R2</RoadmapPhase>
+  <Complexity>M (≈1 week in sub-phases)</Complexity>
+
+  <Summary>
+    GFM has no notation for table or column width (the delimiter row only carries alignment; dash counts are a Pandoc-only convention, kramdown attributes and HTML colgroup are not portable). Mark renders tables with the browser's auto layout and no overflow handling (src/muya/themes/default.css:426-470, src/muya/lib/assets/styles/index.css:519), so a wide table or a long URL runs past the text column. This change defines good default rendering, a session-only manual column width, and a fullscreen viewer shared with the Mermaid viewer (C-34 R2.2).
+  </Summary>
+
+  <Problem>
+    <Description>User question 2026-10-15: how is table and column width controlled, is there a notation, what should the default rendering be. Wide tables overflow the text column; one long URL inflates its column; there is no way to study a large table as a separate object.</Description>
+  </Problem>
+
+  <Goals>
+    <R-1>Wide tables never overflow the text column: the table sits in a horizontally scrollable wrapper with an edge shadow on the side that has hidden columns.</R-1>
+    <R-2>Narrow tables keep content width (GitHub behaviour), not stretched to the column.</R-2>
+    <R-3>Long unbreakable tokens (URLs, paths, hashes) wrap inside body cells (max cell width ≈ 40ch, overflow-wrap: anywhere); header cells and short words are not broken mid-word.</R-3>
+    <R-4>Fullscreen viewer for a table as a separate object (hover ⤢ button, same shortcut as diagrams): pan/zoom, sticky header, Esc closes, read-only. Built as ONE shared block-viewer overlay together with C-34 R2.2 (Mermaid), so both get the same controls and shortcuts.</R-4>
+    <R-5>Manual column width by dragging a column border; lives only for the session (not written to the .md, reset on reload); double-click the border resets to auto.</R-5>
+    <R-6>HTML/PDF export follows the same rules; in print/PDF wide tables wrap text instead of scrolling (no clipped columns).</R-6>
+    <R-7>P2: sticky header row for long tables in the editor.</R-7>
+  </Goals>
+
+  <Phases>
+    <T1><Title>Default rendering: overflow wrapper + edge shadows, content width, long-token wrap, export/PDF rules</Title><Complexity>S</Complexity>
+      <Acceptance>WebKit screenshots before/after on wide (15 columns), narrow (2×2) and long-URL tables, light and dark; the wrapper does not break table editing (cell focus, drag bars, table tools, selection across cells); PDF export of a wide table shows every column. Unit/e2e pins for the wrapper and the wrap rules.</Acceptance>
+    </T1>
+    <T2><Title>Shared fullscreen block viewer (tables + Mermaid, with C-34 R2.2)</Title><Complexity>M</Complexity>
+      <Acceptance>One overlay component serves both block types; table view is read-only with pan/zoom and a sticky header; Esc returns focus to the block; e2e in Chromium and WebKit.</Acceptance>
+    </T2>
+    <T3><Title>Session-only column resize</Title><Complexity>S</Complexity>
+      <Acceptance>Dragging a border changes the width live; the saved file is byte-identical; reload restores auto layout; double-click resets.</Acceptance>
+    </T3>
+    <T4><Title>Sticky header in the editor (P2)</Title><Complexity>S</Complexity></T4>
+  </Phases>
+
+  <Dependencies>T2 is built together with C-34 R2.2. T1 starts after C-34 R2.1 is merged (both touch src/muya/lib/assets/styles/index.css).</Dependencies>
+
+  <Constraints>
+    <Constraint>No width notation is written into Markdown; files stay portable GFM.</Constraint>
+    <Constraint>Table editing (cell navigation, drag bars, table tools) keeps working inside the wrapper.</Constraint>
+    <Constraint>Works under the WKWebView CSP; no new IPC permissions.</Constraint>
+  </Constraints>
+
+  <NonGoals>
+    <NonGoal>Persisting column widths in the file (HTML colgroup, Pandoc dash widths, attribute syntax).</NonGoal>
+    <NonGoal>Spreadsheet features (sorting, formulas).</NonGoal>
+  </NonGoals>
+
+  <AcceptanceCriteria>
+    <Criterion>A 15-column table and a cell with a 200-character URL stay inside the text column in the editor and in PDF export; a 2×2 table keeps content width; a large table opens fullscreen and zooms like a Mermaid diagram.</Criterion>
+  </AcceptanceCriteria>
+
+  <AffectedAreas>
+    <M-011>muya table rendering (renderContainerBlock), table CSS in themes, export HTML/PDF styles, shared block viewer</M-011>
+  </AffectedAreas>
+
+  <VerificationIntent>WebKit screenshot matrix (wide/narrow/URL × light/dark), Playwright e2e for scroll/wrap/viewer, PDF export check, live check in the real app.</VerificationIntent>
+
+  <Approval>
+    <ApprovedBy>user (2026-10-15): «тут согласен, стоит добавить зум (на весь экран как для мермайд …)» — agreed to rules 1–6 (content width for narrow tables, session-only column width) and added the fullscreen viewer</ApprovedBy>
+    <ApprovalScope>T1 and T3 approved for implementation; T2 approved in scope, implemented together with C-34 R2.2 (whose approval is still pending); T4 pending.</ApprovalScope>
+  </Approval>
+</C-39>
+</GraceChangeSpec>
