@@ -43,6 +43,23 @@
         <Command>npm run build &amp;&amp; npx playwright test --project=chromium tests/e2e/mermaid-render.spec.ts</Command>
       </Verification>
     </T-001>
+    <T-002>
+      <Title>R2.2 + C-39 T2: shared fullscreen block viewer (Mermaid diagrams and tables) with hover toolbar</Title>
+      <DependsOn>T-001</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>One viewer module (e.g. src/muya/lib/ui/blockViewer/) opens a Mermaid SVG (from the R2.1 cache / current preview, no re-render) or a read-only clone of a rendered table in a fullscreen overlay.</Criterion>
+        <Criterion>Pan/zoom via @panzoom/panzoom 4.6.2 (already installed): pinch, Cmd/Ctrl+wheel, drag pan, keys + − 0 (fit) 1 (100%), Esc closes; close button; focus trapped while open and restored to the block on close; tables show a sticky header row in the viewer.</Criterion>
+        <Criterion>Hover toolbar on Mermaid previews and tables: expand (⤢) and, for Mermaid, fit/100% placeholder-free; appears on hover and keyboard focus; a plain click on a diagram still opens the source; table editing is unaffected.</Criterion>
+        <Criterion>Shortcut: Cmd/Ctrl+click on a diagram or Space on a focused block opens the viewer.</Criterion>
+        <Criterion>Light/dark parity, works under the WKWebView CSP (no inline style tags created at runtime beyond what muya already does), no new IPC permissions; strings in all locale files.</Criterion>
+        <Criterion>Unit tests for the viewer lifecycle; e2e (Chromium + WebKit): open from toolbar, zoom in, pan, Esc restores focus — for both a diagram and a table.</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>npx vitest run tests/renderer/muya</Command>
+        <Command>npm test</Command>
+        <Command>npm run build &amp;&amp; npx playwright test tests/e2e/block-viewer.spec.ts</Command>
+      </Verification>
+    </T-002>
   </ImplementationPlan>
 
   <Evidence>

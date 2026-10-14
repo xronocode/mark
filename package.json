@@ -33,6 +33,7 @@
     "@element-plus/icons-vue": "^2.3.2",
     "@marktext/file-icons": "^1.0.6",
     "@octokit/rest": "^22.0.1",
+    "@panzoom/panzoom": "4.6.2",
     "@popperjs/core": "^2.11.8",
     "@tauri-apps/api": "^2.11.0",
     "@tauri-apps/plugin-clipboard-manager": "^2.3.2",
