@@ -194,6 +194,13 @@ test.describe('table layout (C-39 T-001)', () => {
     // Edge shadows: two covers track the content (local), two shadows are
     // pinned to the scrollport — pure CSS, no listeners.
     expect(m!.backgroundAttachment).toBe('local, local, scroll, scroll')
+    // The horizontal scrollbar stays thin (WebKit draws a 15px classic bar
+    // without the ::-webkit-scrollbar height rule).
+    const scrollbar = await page.evaluate(() => {
+      const w = document.querySelector("figure[data-role='TABLE'] div.ag-table-scroll") as HTMLElement
+      return w.offsetHeight - w.clientHeight
+    })
+    expect(scrollbar, 'horizontal scrollbar must be thin').toBeLessThanOrEqual(8)
   })
 
   test('a 2x2 table keeps content width and does not scroll', async ({ page }) => {
