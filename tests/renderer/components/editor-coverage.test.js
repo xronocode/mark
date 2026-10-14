@@ -1,5 +1,5 @@
 // FILE: tests/renderer/components/editor-coverage.test.js
-// VERSION: 1.10.0
+// VERSION: 1.11.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Verify editorWithTabs/editor.vue methods, watchers, computed state, event handlers, and lifecycle behavior beyond the base editor test.
 //   SCOPE: Deterministic Vue/jsdom tests with mocked Muya, stores, bus, services, and browser scheduling.
@@ -48,6 +48,7 @@
 //   - 2026-09-22 v1.9.0: C-17 — formatDocument handler cases (applies formatted markdown via setMarkdown; no-op on canonical input).
 //   - 2026-09-21 v1.8.0: contentReloaded scroll clamp — stale pre-edit scrollTop clamps into the reloaded document's range, leftover first-paint padding is dropped, sub-viewport documents land at 0 (C-2 follow-up).
 //   - 2026-10-13 v1.10.0: C-29 — split mirror: no store writes from change events, read-only surface, 150 ms debounced setMarkdown(md, null, false) without focus, inert undo/redo, checkbox/paste/drop blocked.
+//   - 2026-10-14 v1.11.0: C-32 — copyAsStructuredText dispatch (bullets survive), whole-document fallback, empty no-op, writeText and render failure branches, bus path; menu layout gains the item after Copy as Plain Text.
 // END_CHANGE_SUMMARY
 
 import { shallowMount } from '@vue/test-utils'
@@ -1089,7 +1090,7 @@ describe('editor.vue — coverage', () => {
     expect(payload.y).toBe(22)
     // Exact interleaved layout per the C-11 spec.
     expect(payload.items.map((i) => i.role || i.id || i.type)).toEqual([
-      'undo', 'redo', 'separator', 'cut', 'copy', 'copyAsHtml', 'copyAsPlainText', 'paste',
+      'undo', 'redo', 'separator', 'cut', 'copy', 'copyAsHtml', 'copyAsPlainText', 'copyAsStructuredText', 'paste',
       'separator', 'selectAll', 'separator', 'shareFile'
     ])
     // Role rows must be id/label-free — Rust validation silently drops
@@ -1199,6 +1200,81 @@ describe('editor.vue — coverage', () => {
     mockEditorInstance.getCopyData.mockReturnValueOnce({ text: 'via bus' })
     await getBusHandler('copyAsPlainText')()
     expect(writeTextMock).toHaveBeenCalledWith('clean:via bus')
+  })
+
+  it('context menu: copyAsStructuredText writes structure-preserving plain text (C-32)', async () => {
+    await mountEditor()
+    mockEditorInstance.getCopyData.mockReturnValueOnce({ text: 'x' })
+    // marked is mocked to wrap raw text; return a real list so the
+    // structured-text conversion (not a passthrough) is what gets written.
+    markedMock.mockReturnValueOnce('<ul><li>a <a href="https://x.y">l</a></li><li><strong>b</strong></li></ul>')
+    sanitizeMock.mockImplementationOnce((html) => html)
+    window.electron.ipcRenderer.invoke.mockResolvedValueOnce('copyAsStructuredText')
+    await getContextMenuHandler()(makeContextMenuEvent())
+    expect(writeTextMock).toHaveBeenCalledWith('- a l (https://x.y)\n- b')
+    expect(writeHtmlMock).not.toHaveBeenCalled()
+  })
+
+  it('handleCopyAsStructuredText falls back to the whole document when nothing is selected (C-32)', async () => {
+    await mountEditor()
+    mockEditorInstance.getCopyData.mockReturnValueOnce({ text: '' })
+    mockEditorInstance.getMarkdown.mockReturnValueOnce('whole doc')
+    window.electron.ipcRenderer.invoke.mockResolvedValueOnce('copyAsStructuredText')
+    await getContextMenuHandler()(makeContextMenuEvent())
+    // mocked sanitize prefixes "clean:" outside the <p>, so it is its own block
+    expect(writeTextMock).toHaveBeenCalledWith('clean:\n\nwhole doc')
+  })
+
+  it('copyAsStructuredText no-ops for an empty document with no selection (C-32)', async () => {
+    await mountEditor()
+    mockEditorInstance.getCopyData.mockReturnValueOnce({ text: '' })
+    mockEditorInstance.getMarkdown.mockReturnValueOnce('')
+    window.electron.ipcRenderer.invoke.mockResolvedValueOnce('copyAsStructuredText')
+    await getContextMenuHandler()(makeContextMenuEvent())
+    expect(writeTextMock).not.toHaveBeenCalled()
+  })
+
+  it('copyAsStructuredText warns and notifies when the native write fails (C-32)', async () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    try {
+      await mountEditor()
+      mockEditorInstance.getCopyData.mockReturnValueOnce({ text: 'x' })
+      writeTextMock.mockRejectedValueOnce(new Error('capability denied'))
+      window.electron.ipcRenderer.invoke.mockResolvedValueOnce('copyAsStructuredText')
+      await getContextMenuHandler()(makeContextMenuEvent())
+      expect(noticeMock.notify).toHaveBeenCalledWith(expect.objectContaining({ type: 'warning' }))
+      expect(warnSpy).toHaveBeenCalledWith(
+        expect.stringContaining('[Editor][handleCopyAsStructuredText][BLOCK_COPY_AS_STRUCTURED_TEXT]')
+      )
+    } finally {
+      warnSpy.mockRestore()
+    }
+  })
+
+  it('copyAsStructuredText catches a render failure instead of rejecting (C-32)', async () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    try {
+      await mountEditor()
+      mockEditorInstance.getCopyData.mockReturnValueOnce({ text: 'x' })
+      markedMock.mockImplementationOnce(() => {
+        throw new Error('parse boom')
+      })
+      window.electron.ipcRenderer.invoke.mockResolvedValueOnce('copyAsStructuredText')
+      await getContextMenuHandler()(makeContextMenuEvent())
+      expect(writeTextMock).not.toHaveBeenCalled()
+      expect(noticeMock.notify).toHaveBeenCalledWith(expect.objectContaining({ type: 'warning' }))
+      expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('copy failed: Error: parse boom'))
+    } finally {
+      warnSpy.mockRestore()
+    }
+  })
+
+  it('copyAsStructuredText bus handler forwards to the same pipeline (C-32)', async () => {
+    await mountEditor()
+    mockEditorInstance.getCopyData.mockReturnValueOnce({ text: 'via bus' })
+    // "clean:" (mocked sanitize) sits outside the mocked <p>: two blocks
+    await getBusHandler('copyAsStructuredText')()
+    expect(writeTextMock).toHaveBeenCalledWith('clean:\n\nvia bus')
   })
 
   it('context menu: shareFile invokes mt_share_file with the tab pathname', async () => {

@@ -1,0 +1,95 @@
+<GraceChangePlan graceVersion='4.0' status='approved'>
+<C-32>
+  <ChangeRef>C-32</ChangeRef>
+  <Created>2026-10-14</Created>
+  <IntentSummary>Copy as Structured Text: structure-preserving plain text (bullets, link targets, quotes, table separators) via a DOM walker over the C-12 render pipeline.</IntentSummary>
+  <BaselineAssertions>
+    <MustContain>
+      <File>src/renderer/src/components/editorWithTabs/editor.vue</File>
+      <Text>handleCopyAsPlainText</Text>
+    </MustContain>
+  </BaselineAssertions>
+  <TargetAssertions>
+    <MustContain>
+      <File>src/renderer/src/util/structuredText.js</File>
+      <Text>htmlToStructuredText</Text>
+    </MustContain>
+    <MustContain>
+      <File>src/renderer/src/components/editorWithTabs/editor.vue</File>
+      <Text>handleCopyAsStructuredText</Text>
+    </MustContain>
+    <MustContain>
+      <File>src-tauri/src/m009_menu.rs</File>
+      <Text>edit.copy-as-structured-text</Text>
+    </MustContain>
+    <MustContain>
+      <File>tests/renderer/util/structured-text.test.js</File>
+      <Text>htmlToStructuredText</Text>
+    </MustContain>
+  </TargetAssertions>
+  <DurableScope>
+    <M-009/>
+    <M-011/>
+    <M-013/>
+  </DurableScope>
+  <ObservedWriteScope>
+    <File>src/renderer/src/util/structuredText.js</File>
+    <File>src/renderer/src/components/editorWithTabs/editor.vue</File>
+    <File>src/renderer/src/commands/index.js</File>
+    <File>src/renderer/src/commands/descriptions.js</File>
+    <File>src-tauri/src/m009_menu.rs</File>
+    <File>static/locales/*.json and *.min.json (ten locale pairs)</File>
+    <File>tests/renderer/util/structured-text.test.js</File>
+    <File>tests/renderer/components/editor-coverage.test.js</File>
+    <File>tests/renderer/commands/menu-consistency.test.js</File>
+    <File>.grace/graph/runtime.xml</File>
+    <File>.grace/verification/runtime.xml</File>
+  </ObservedWriteScope>
+  <ImplementationPlan>
+    <T-001>
+      <Title>Structured-text util + unit suite</Title>
+      <DependsOn></DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>htmlToStructuredText covers R-1 shapes; unit suite green.</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>npx vitest run tests/renderer/util/structured-text.test.js</Command>
+      </Verification>
+    </T-001>
+    <T-002>
+      <Title>Handler, menus, command, locales</Title>
+      <DependsOn>T-001</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>Context menu + Edit menu + palette dispatch the handler; locale pairs updated.</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>npx vitest run tests/renderer/components/editor-coverage.test.js tests/renderer/commands</Command>
+      </Verification>
+    </T-002>
+    <T-003>
+      <Title>Gates, review, live check, commit</Title>
+      <DependsOn>T-002</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>npm test, cargo m009 tests, grace lint green; smart-review findings resolved; live clipboard check; pushed with CI green.</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>npm test &amp;&amp; cargo test --bin mark -- m009_menu</Command>
+      </Verification>
+    </T-003>
+  </ImplementationPlan>
+  <ReviewLog>
+    <Review number="1" date="2026-10-14" verdict="changes-requested">
+      <Findings>
+        smart-review full (excellence then simplify), all addressed: code
+        blocks kept their first-line indentation only after a trim fix;
+        raw-HTML source whitespace is normalized per paragraph line; www
+        autolinks and linked images are no longer doubled; loose list
+        items keep blank lines between their blocks; front matter is
+        skipped; C-12 and C-32 share copyRenderedAsPlainText, which now
+        also catches render failures; static util import; switch-based
+        inline walk. Regression cases added for each.
+      </Findings>
+    </Review>
+  </ReviewLog>
+</C-32>
+</GraceChangePlan>

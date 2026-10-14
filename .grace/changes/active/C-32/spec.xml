@@ -1,0 +1,98 @@
+<GraceChangeSpec graceVersion='4.0' status='approved'>
+<C-32>
+  <Name>Copy as Structured Text: plain text that keeps the document structure</Name>
+  <Created>2026-10-14</Created>
+  <Priority>medium</Priority>
+  <Status>in-progress</Status>
+
+  <Summary>
+    User request 2026-10-14: «еще хочется формат "Скопировать как текст с
+    адаптированным форматированием" ну то есть остаются абзацы (ссылки
+    включаются в скобках как текст, буллиты превращаются в минусики и тому
+    подобное)». A third copy flavor next to Copy as HTML (C-3) and Copy as
+    Plain Text (C-12): plain text with no Markdown syntax that still reads
+    like the document — paragraphs separated by blank lines, list items as
+    "- " / "1. " with nested indentation, links as "text (url)", task items
+    as "[ ]"/"[x]", block quotes with "> ", table rows with " | " between
+    cells, code blocks verbatim.
+  </Summary>
+
+  <Problem>
+    <Description>Copy as Plain Text (C-12) flattens structure: list items lose their bullets, link targets disappear, table cells run together. Normal copy yields Markdown source with ** and []() noise.</Description>
+    <RootCause>C-12 extracts textContent from the rendered HTML, which carries no bullet, link-target or cell-separator text.</RootCause>
+    <Evidence>editor.vue handleCopyAsPlainText: doc.body.textContent over marked output.</Evidence>
+  </Problem>
+
+  <Goals>
+    <R-1>
+      New pure util src/renderer/src/util/structuredText.js —
+      htmlToStructuredText(html): walks the sanitized marked HTML and emits
+      structured plain text. Blocks (p, h1-h6, pre, blockquote, ul/ol,
+      table, hr, figure/div wrappers) are separated by one blank line;
+      ul items "- ", ol items "N. " honouring start; nested lists indent by
+      two spaces per level (continuation lines aligned under the item text);
+      task items "[ ] " / "[x] " after the marker; links "text (href)",
+      just the href when text equals href or href is a #fragment/empty;
+      images "alt (src)" (alt only for data: URIs); br → newline; inline
+      code/strong/em/del lose their markers; blockquote lines prefixed
+      "> "; table rows cells joined by " | " (header row followed by
+      nothing extra); hr → "———"; footnote refs keep their visible label.
+    </R-1>
+    <R-2>
+      editor.vue handleCopyAsStructuredText: same getCopyData (whole-document
+      fallback) + marked + DOMPurify EXPORT pipeline as C-12, then
+      htmlToStructuredText, single text/plain native writeText; failure
+      warns with [Editor][handleCopyAsStructuredText][BLOCK_COPY_AS_STRUCTURED_TEXT]
+      and notifies. Bus event 'copyAsStructuredText'.
+    </R-2>
+    <R-3>
+      Exposure: editor context menu item (id copyAsStructuredText) after
+      Copy as Plain Text; Edit menu item edit.copy-as-structured-text
+      (no accelerator — the Shift/Alt C slots are taken); command
+      registry + palette description; locales
+      contextMenu.editor.copyAsStructuredText and
+      commands.edit.copyAsStructuredText in all ten locale pairs.
+    </R-3>
+    <R-4>
+      Tests: structured-text util unit suite (lists incl. nested and
+      ordered start, tasks, links, images, quotes, tables, code, hr,
+      br); editor-coverage pins dispatch, whole-document fallback, failure
+      branch, bus path, and the menu layout; menu-consistency pins the
+      Edit-menu id.
+    </R-4>
+  </Goals>
+
+  <Constraints>
+    <Constraint>Reuse the C-3/C-12 marked + sanitize pipeline; one text/plain flavor.</Constraint>
+    <Constraint>Util is DOM-only (DOMParser) and side-effect free.</Constraint>
+  </Constraints>
+
+  <NonGoals>
+    <NonGoal>Changing C-12 Copy as Plain Text behaviour.</NonGoal>
+    <NonGoal>Accelerator for the new item.</NonGoal>
+    <NonGoal>Column-aligned (padded) table output.</NonGoal>
+  </NonGoals>
+
+  <AcceptanceCriteria>
+    <Criterion>Copying "# T\n\n- a [l](https://x.y)\n- **b**" yields "T\n\n- a l (https://x.y)\n- b".</Criterion>
+    <Criterion>Context menu order: Copy as HTML, Copy as Plain Text, Copy as Structured Text; Edit menu carries edit.copy-as-structured-text.</Criterion>
+    <Criterion>Suites green; live check in the debug build puts the expected text on the clipboard.</Criterion>
+  </AcceptanceCriteria>
+
+  <AffectedAreas>
+    <M-009>Edit-menu item (C-32)</M-009>
+    <M-011>editor.vue handleCopyAsStructuredText + context menu (C-32)</M-011>
+    <M-013>command registry entry (C-32)</M-013>
+  </AffectedAreas>
+
+  <VerificationIntent>
+    Util unit suite + editor-coverage + menu-consistency pins; live
+    clipboard check in the debug build.
+  </VerificationIntent>
+
+  <Approval>
+    <ApprovedBy>user (session 2026-10-14): «еще хочется формат "Скопировать как текст с адаптированным форматированием"»; name chosen by the user: «Copy as Structured Text»</ApprovedBy>
+    <ApprovalScope>Implement, test, review, live check, commit and push. No tag/release.</ApprovalScope>
+  </Approval>
+</C-32>
+</GraceChangeSpec>

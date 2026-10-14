@@ -251,6 +251,7 @@
       "redo": "Rehacer",
       "copyAsHtml": "Copiar como HTML",
       "copyAsPlainText": "Copiar como texto sin formato",
+      "copyAsStructuredText": "Copiar como texto estructurado",
       "selectAll": "Seleccionar todo",
       "share": "Compartir"
     }
@@ -976,6 +977,7 @@
       "copyAsRich": "Copiar como Texto Enriquecido",
       "copyAsHtml": "Copiar como HTML",
       "copyAsPlainText": "Copiar como texto sin formato",
+      "copyAsStructuredText": "Copiar como texto estructurado",
       "pasteAsPlaintext": "Pegar como Texto Plano",
       "selectAll": "Seleccionar",
       "duplicate": "Duplicar",

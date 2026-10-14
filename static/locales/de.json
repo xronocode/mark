@@ -251,6 +251,7 @@
       "redo": "Wiederholen",
       "copyAsHtml": "Als HTML kopieren",
       "copyAsPlainText": "Als reinen Text kopieren",
+      "copyAsStructuredText": "Als strukturierten Text kopieren",
       "selectAll": "Alles auswählen",
       "share": "Teilen"
     }
@@ -976,6 +977,7 @@
       "copyAsRich": "Als Rich Text kopieren",
       "copyAsHtml": "Als HTML kopieren",
       "copyAsPlainText": "Als reinen Text kopieren",
+      "copyAsStructuredText": "Als strukturierten Text kopieren",
       "pasteAsPlaintext": "Als reinen Text einfügen",
       "selectAll": "Alles auswählen",
       "duplicate": "Duplizieren",

@@ -82,6 +82,8 @@
 //                `__mt_context__:*` command (sidebar Rename/Copy did
 //                nothing). The command now waits up to
 //                CONTEXT_MENU_SELECTION_GRACE for the late event.
+//   - 2026-10-14 C-32: add Edit-menu "Copy as Structured Text"
+//                (edit.copy-as-structured-text, no accelerator).
 // END_CHANGE_SUMMARY
 
 use serde::{Deserialize, Serialize};
@@ -776,6 +778,10 @@ pub fn build_native_menu<R: tauri::Runtime>(
         .item(
             &MenuItemBuilder::with_id("edit.copy-as-plain-text", "Copy as Plain Text")
                 .accelerator("CmdOrCtrl+Alt+Shift+C")
+                .build(handle)?,
+        )
+        .item(
+            &MenuItemBuilder::with_id("edit.copy-as-structured-text", "Copy as Structured Text")
                 .build(handle)?,
         )
         .item(
