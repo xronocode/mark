@@ -15,7 +15,7 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.0.0 - C-32: initial structured-text renderer (callouts as titled quotes, emoji characters and $-delimited math via structuredMarkedOptions; review: code keeps its first-line indent, raw-HTML source whitespace normalized, www autolinks and linked images not doubled, loose list items keep blank lines, front matter skipped).
+//   LAST_CHANGE: v1.0.0 - C-32: initial structured-text renderer (two blank lines before a non-first heading, one after it and between paragraphs; callouts as titled quotes, emoji characters and $-delimited math via structuredMarkedOptions; review: code keeps its first-line indent, raw-HTML source whitespace normalized, www autolinks and linked images not doubled, loose list items keep blank lines, front matter skipped).
 // END_CHANGE_SUMMARY
 
 import { validEmoji } from 'muya/lib/ui/emojis'
@@ -179,17 +179,17 @@ function renderBlock(el) {
       if (el.classList.contains('front-matter')) return ''
       return el.textContent.replace(/\s+$/, '')
     case 'BLOCKQUOTE':
-      return quoteLines(renderBlocks(el).join('\n\n'))
+      return quoteLines(joinBlocks(renderBlockParts(el)))
     case 'DIV':
       // GitHub-style callouts ("> [!NOTE]") render as div.markdown-alert;
       // keep them a quote with the title on its own first line.
       if (el.classList.contains('markdown-alert')) {
         const parts = renderBlockParts(el)
         const title = el.querySelector(':scope > .markdown-alert-title') ? parts.shift() : null
-        const body = parts.map((p) => p.text).join('\n\n')
+        const body = joinBlocks(parts)
         return quoteLines(title ? `${title.text}\n${body}` : body)
       }
-      return renderBlocks(el).join('\n\n')
+      return joinBlocks(renderBlockParts(el))
     case 'UL':
     case 'OL':
       return renderList(el)
@@ -198,7 +198,7 @@ function renderBlock(el) {
     case 'HR':
       return HR_TEXT
     default:
-      return renderBlocks(el).join('\n\n')
+      return joinBlocks(renderBlockParts(el))
   }
 }
 
@@ -229,20 +229,28 @@ function renderBlockParts(container) {
 }
 
 const renderBlocks = (container) => renderBlockParts(container).map((b) => b.text)
+
+const isHeadingTag = (tag) => /^H[1-6]$/.test(tag || '')
+
+// One blank line between blocks; two before a heading that is not the
+// first block, so sections stand apart without any heading markers.
+const joinBlocks = (parts) =>
+  parts
+    .map((p, i) => (i === 0 ? '' : isHeadingTag(p.tag) ? '\n\n\n' : '\n\n') + p.text)
+    .join('')
 // END_BLOCK_STRUCTURED_TEXT_BLOCKS
 
 // START_CONTRACT: htmlToStructuredText
 //   PURPOSE: Render sanitized Markdown HTML as plain text that keeps paragraphs, list markers, link targets, quotes and table rows.
 //   INPUTS: { html: string - sanitized marked output }
-//   OUTPUTS: { string - structured plain text, blocks separated by one blank line; leading code indentation kept }
+//   OUTPUTS: { string - structured plain text: one blank line between blocks, two before a non-first heading; leading code indentation kept }
 //   SIDE_EFFECTS: none
 //   LINKS: C-32
 // END_CONTRACT: htmlToStructuredText
 export function htmlToStructuredText(html) {
   if (!html) return ''
   const doc = new DOMParser().parseFromString(html, 'text/html')
-  return renderBlocks(doc.body)
-    .join('\n\n')
+  return joinBlocks(renderBlockParts(doc.body))
     .replace(/[ \t]+$/gm, '')
     .replace(/^\n+/, '')
     .replace(/\s+$/, '')
