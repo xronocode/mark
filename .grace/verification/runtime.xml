@@ -4225,9 +4225,14 @@
         <Command>npx playwright test tests/e2e/smart-paste.spec.ts</Command>
         <Command>npx playwright test tests/e2e/auto-pair-quotes.spec.ts --project=chromium</Command>
         <Command>npx vitest run tests/renderer/muya/mermaid-pipeline.test.js</Command>
+        <Command>npx vitest run tests/renderer/muya/table-scroll-wrapper.test.js</Command>
         <Command>
           npm run build &amp;&amp; npx playwright test --project=chromium
           tests/e2e/mermaid-render.spec.ts
+        </Command>
+        <Command>
+          npm run build &amp;&amp; npx playwright test --project=chromium
+          tests/e2e/table-layout.spec.ts
         </Command>
       </Commands>
       <Scenarios>
@@ -4343,11 +4348,11 @@
           50 entries) that re-inserts the cached SVG with the hoisted
           &lt;style&gt; and never calls mermaid.render; a theme switch
           changes the cache key and re-renders; a syntax error after a good
-          render keeps the last good SVG visible with mermaid's own error
+          render keeps the last good SVG visible with mermaid&apos;s own error
           text in a small element below it (textContent only — an error
           message containing `&lt;img src=x onerror=alert(1)&gt;` creates no
           element), while a diagram that never rendered shows the error text
-          alone with the ag-math-error class; mermaid's orphan error
+          alone with the ag-math-error class; mermaid&apos;s orphan error
           elements (div#d&lt;id&gt; / svg#&lt;id&gt; in body) are removed
           after a failed render; typing collapses re-renders into one
           mermaid.render per ~250 ms quiet window (first render and theme
@@ -4360,6 +4365,36 @@
           cache and keep-last-good cases fail against the pre-R2.1
           implementation); wide-flowchart scroll and keep-last-good typed
           end-to-end in tests/e2e/mermaid-render.spec.ts.
+        </Scenario>
+        <Scenario>
+          scenario-18: Default table rendering (C-39 T-001,
+          renderContainerBlock.js START_BLOCK_TABLE_SCROLL_WRAPPER + the
+          C-39 CSS section in muya lib/assets/styles/index.css): the table
+          element renders inside div.ag-table-scroll between the table
+          figure and the table, so the tools bar (top:-22px) and front icon
+          (left:-35px) stay unclipped children of the figure while the
+          wrapper (border-box, max-width:100%, padding 0 0 30px 11px /
+          margin 0 0 -30px -11px to keep the left:-11px row bar and
+          bottom:-15px column bar inside the clip rect) scrolls a
+          width:max-content table that is never stretched or squeezed; pure
+          CSS edge shadows (two local-attached cover gradients in
+          --editorBgColor + two scroll-attached shadow gradients) mark the
+          side(s) with hidden columns and follow scroll/resize with no
+          listeners; th cells cap at 40ch with overflow-wrap:break-word,
+          td cells at 40ch with overflow-wrap:anywhere; exportHtml.js and
+          printService.css cap tables at 100% with overflow-wrap:anywhere
+          so every column is visible in PDF (no scroll container in
+          export). All table mouse handlers resolve targets with
+          closest(&apos;th&apos;|&apos;td&apos;|&apos;tr&apos;|&apos;table&apos;) from inside the table, so
+          drag bars, cell selection, table tools and caret placement keep
+          working. Unit-pinned in
+          tests/renderer/muya/table-scroll-wrapper.test.js (wrapper
+          structure, toolbar/icon siblings, bars inside cells — fails
+          against the pre-C-39 render); laid out end-to-end in
+          tests/e2e/table-layout.spec.ts (15-column scroll + column
+          containment + no page-level horizontal scroll, 2x2 content
+          width, 200-char URL capped near 40ch and wrapped, caret lands in
+          a scrolled-to cell and accepts typing).
         </Scenario>
       </Scenarios>
       <Markers>

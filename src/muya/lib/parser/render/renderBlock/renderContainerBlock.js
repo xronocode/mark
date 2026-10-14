@@ -1,21 +1,22 @@
 // FILE: src/muya/lib/parser/render/renderBlock/renderContainerBlock.js
-// VERSION: 1.1.0
+// VERSION: 1.2.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Render a muya container block (blockquote, list, table, figure, pre) to a snabbdom vnode.
-//   SCOPE: Selectors, data attributes and auxiliary children (tools, icons, copy buttons) per container type.
+//   SCOPE: Selectors, data attributes and auxiliary children (tools, icons, copy buttons) per container type; the table element is returned inside its C-39 horizontal scroll wrapper.
 //   DEPENDS: muya config, render helpers, snabbdom, ../../../utils/callout.
-//   LINKS: .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011; .grace/changes/archive/C-24.
+//   LINKS: .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-012 scenario-18; .grace/changes/active/C-39 T-001.
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
-//   default - renderContainerBlock(parent, block, activeBlocks, matches, useCache, t).
+//   default - renderContainerBlock(parent, block, activeBlocks, matches, useCache, t); a `table` block returns div.ag-table-scroll > table.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
 //   - (v1.0.0 implied: upstream muya, previously ungoverned.)
 //   - 2026-10-13 v1.1.0: C-24 START_BLOCK_CALLOUT_RENDER: a `[!type]` blockquote gets ag-callout classes, a non-editable title row and view-only fold state.
+//   - 2026-10-15 v1.2.0: C-39 T-001 START_BLOCK_TABLE_SCROLL_WRAPPER: the table element renders inside div.ag-table-scroll so wide tables scroll horizontally instead of overflowing the text column.
 // END_CHANGE_SUMMARY
 
 import { CLASS_OR_ID } from '../../../config'
@@ -258,6 +259,23 @@ export default function renderContainerBlock (parent, block, activeBlocks, match
   if (!block.parent) {
     children.unshift(this.renderIcon(block, t))
   }
+
+  // START_BLOCK_TABLE_SCROLL_WRAPPER
+  // C-39 T-001: a table wider than the text column must scroll inside it.
+  // The scroll container is a wrapper between the figure and the table
+  // (not the figure itself) because the table tools bar sits at
+  // top:-22px and the front icon at left:-35px relative to the figure —
+  // overflow on the figure would clip both. Every table mouse handler
+  // (drag bars, cell selection, click→caret) resolves its targets with
+  // closest('th'|'td'|'tr'|'table') from inside the table, so the extra
+  // ancestor is transparent to them; the drag bars stay children of their
+  // cells. Export/print renders its own HTML from markdown and never sees
+  // this wrapper. Sizing/shadow rules live in the C-39 section of
+  // lib/assets/styles/index.css.
+  if (type === 'table') {
+    return h('div.ag-table-scroll', {}, [h(selector, data, children)])
+  }
+  // END_BLOCK_TABLE_SCROLL_WRAPPER
 
   return h(selector, data, children)
 }
