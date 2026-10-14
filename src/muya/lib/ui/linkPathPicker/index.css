@@ -1,4 +1,9 @@
-.ag-link-path-picker-wrapper {
+/* The size lives on the inner container, like every other muya float
+   (.ag-quick-insert, .ag-list-picker): baseFloat sizes the wrapper from the
+   container's offsetWidth, so a width set only on the wrapper fed back into
+   itself — in WebKit the first measurement was 0 and the picker stayed
+   0px wide. */
+.ag-link-path-picker {
   width: 400px;
   max-height: 300px;
   overflow-y: auto;
