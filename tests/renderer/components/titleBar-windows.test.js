@@ -1,5 +1,5 @@
 // FILE: tests/renderer/components/titleBar-windows.test.js
-// VERSION: 1.1.0
+// VERSION: 1.2.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Verify the Windows titlebar layout — forced custom style, window-controls cluster, unshifted nav.
 //   SCOPE: Vue/jsdom component tests with @/util mocked to win32 (C-15 T-W1).
@@ -21,6 +21,8 @@
 //   - 2026-09-28 v1.1.0: C-15 Phase W QA — hamburger moved into titlebar-nav
 //     (first button), share/word-count cluster is .titlebar-aux--custom;
 //     regression-pins that no .left-toolbar cluster stacks over the nav.
+//   - 2026-10-15 v1.2.0: C-38 N1 — pin that the Settings gear STAYS in the
+//     Win/Linux frameless titlebar (macOS hides it; titleBar-osx.test.js).
 // END_CHANGE_SUMMARY
 
 import { shallowMount } from '@vue/test-utils'
@@ -142,6 +144,13 @@ describe('titleBar/index.vue — Windows variant (C-15 T-W1)', () => {
   it('does not apply the macOS traffic-light shift to the nav cluster', () => {
     const wrapper = mountWindows()
     expect(wrapper.find('.titlebar-nav').classes()).not.toContain('titlebar-nav--osx')
+  })
+
+  it('keeps the Settings gear reachable in the frameless titlebar (C-38 N1)', () => {
+    const wrapper = mountWindows()
+    // macOS hides the gear (app menu owns Settings there); Win/Linux must
+    // keep a titlebar entry — pinned here so the gate never over-reach.
+    expect(wrapper.find('.titlebar-nav-btn[title="Settings"]').exists()).toBe(true)
   })
 
   it('splits breadcrumbs with the Windows path separator', () => {
