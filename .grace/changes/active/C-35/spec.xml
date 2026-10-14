@@ -20,6 +20,7 @@
     <R-2>S2 landing rebuild: hero with live product demo (agent writes → Mark reloads), sections mirroring the 6 store frames, honest verified numbers; Mac install CTA; iPhone/iPad sticky «Mark for Mac» bar with Web Share «send to Mac» (AirDrop/Messages/Notes) + copy link; apple-itunes-app meta for Safari on macOS; cookie banner never over the hero.</R-2>
     <R-3>S3 SEO/analytics/security: per-language canonical + hreflang, OG images per language, JSON-LD SoftwareApplication, sitemap with alternates, llms.txt, security.txt, hashed-CSP + security headers, consent.js re-synced with Avenex, download_click event.</R-3>
     <R-4>S4 all 10 languages in one release, docs pages restyled; browser screenshot matrix 320/390/574/1440 + landscape as a CI gate.</R-4>
+    <R-6>Install section and FAQ: "Two editions, same editor" — App Store vs Homebrew/direct download, the same factual table as C-42 R-5; never shown inside the App Store build or listing.</R-6>
     <R-5>S5 hosting decision: stay on GitHub Pages or move to Cloudflare (needed if C-36 assistant ships on the site).</R-5>
   </Goals>
 
