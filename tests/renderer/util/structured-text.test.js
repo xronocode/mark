@@ -4,7 +4,7 @@
 //   PURPOSE: Pin the C-32 structured-text rendering over the real marked + DOMPurify export pipeline.
 //   SCOPE: Paragraphs, headings, inline marks, links/autolinks/fragments, images, nested/ordered/task lists, quotes, tables, code, hr, hard breaks, footnotes.
 //   DEPENDS: src/renderer/src/util/structuredText.js; muya marked, sanitize, EXPORT_DOMPURIFY_CONFIG.
-//   LINKS: .grace/changes/active/C-32; .grace/verification/runtime.xml V-M-011.
+//   LINKS: .grace/changes/archive/C-32; .grace/verification/runtime.xml V-M-011.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT
@@ -138,6 +138,12 @@ describe('htmlToStructuredText (C-32)', () => {
   it('puts two blank lines before a non-first heading, one after it and between paragraphs', () => {
     expect(render('# A\n\np1\n\np2\n\n## B\n\np3\n\n- x\n\n### C')).toBe(
       'A\n\np1\n\np2\n\n\nB\n\np3\n\n- x\n\n\nC'
+    )
+  })
+
+  it('keeps a list that marked split at a task item on consecutive lines', () => {
+    expect(render('- first\n  - nested\n- [ ] todo\n\nafter')).toBe(
+      '- first\n  - nested\n- [ ] todo\n\nafter'
     )
   })
 
