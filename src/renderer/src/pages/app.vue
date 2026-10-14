@@ -243,6 +243,9 @@ const setupCtrlWheelFontSize = () => {
 
   const handler = (e) => {
     if (!e.ctrlKey) return
+    // The fullscreen block viewer owns pinch / Ctrl+wheel for its own zoom;
+    // it must not also change the editor font size underneath.
+    if (e.target && e.target.closest && e.target.closest('.ag-block-viewer')) return
     e.preventDefault()
 
     accumulatedDelta += e.deltaY

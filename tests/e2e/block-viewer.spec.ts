@@ -1,5 +1,5 @@
 // FILE: tests/e2e/block-viewer.spec.ts
-// VERSION: 1.1.0
+// VERSION: 1.2.0
 // START_MODULE_CONTRACT
 //   PURPOSE: End-to-end pin of the shared fullscreen block viewer (C-34 R2.2 + C-39 T2) — hover toolbar, overlay open, zoom keys, read-only table clone with sticky header, Cmd+click, Esc close with focus restore.
 //   SCOPE: block-viewer.spec.ts only; diagram and table flows against the built renderer.
@@ -18,7 +18,8 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.1.0 - 2026-10-15: a wide diagram fits the column in the page and opens non-empty, fitted and centred in the viewer (failed off-centre in Chromium before the deferred fit).
+//   LAST_CHANGE: v1.2.0 - 2026-10-15 video review: Ctrl+wheel in the viewer zooms the diagram and no longer changes the editor font size (app.vue font-size handler skips the viewer); the backdrop is opaque so the page does not show through. Both fail without the fix.
+//   v1.1.0 - 2026-10-15: a wide diagram fits the column in the page and opens non-empty, fitted and centred in the viewer (failed off-centre in Chromium before the deferred fit).
 //   v1.0.1 - 2026-10-15 review: the Cmd+click case checks that the mermaid figure stays inactive (an inactive figure still shows its collapsed source line, so toBeHidden on the pre was wrong).
 //   v1.0.0 - 2026-10-15 C-34 R2.2/C-39 T2: first e2e spec for the block viewer (diagram + table: hover toolbar, open, zoom key, Esc focus restore; Cmd+click vs plain click routing).
 // END_CHANGE_SUMMARY
@@ -184,6 +185,49 @@ test.describe('block viewer (C-34 R2.2 + C-39 T2)', () => {
     await page.keyboard.press('Escape')
     await expect(viewer).not.toHaveClass(/ag-block-viewer-open/)
     expect(await focusIsEditor(page)).toBe(true)
+  })
+
+  test('Ctrl+wheel inside the viewer zooms the diagram and leaves the editor font size alone', async ({ page }) => {
+    await bootstrapWithMarkdown(page, DIAGRAM_MD)
+    await page.locator('.editor-component, .editor-wrapper').first()
+      .waitFor({ state: 'visible', timeout: 15_000 })
+    const preview = page.locator('div.ag-container-preview.ag-mermaid-preview').first()
+    await preview.waitFor({ state: 'visible', timeout: 20_000 })
+    const fontBefore = await page.evaluate(() => getComputedStyle(document.querySelector('#ag-editor-id') as HTMLElement).fontSize)
+
+    await preview.hover()
+    await page.locator('.ag-block-viewer-toolbar .ag-block-viewer-expand').click()
+    await expect(page.locator('.ag-block-viewer')).toHaveClass(/ag-block-viewer-open/)
+    await page.waitForTimeout(250)
+    const box = await page.locator('.ag-block-viewer-canvas').boundingBox()
+    await page.mouse.move(box!.x + box!.width / 2, box!.y + box!.height / 2)
+    const before = await canvasScale(page)
+    await page.keyboard.down('Control')
+    for (let i = 0; i < 6; i++) await page.mouse.wheel(0, -60)
+    await page.keyboard.up('Control')
+    await page.waitForTimeout(150)
+    expect(await canvasScale(page)).toBeGreaterThan(before)
+
+    await page.keyboard.press('Escape')
+    await expect(page.locator('.ag-block-viewer')).not.toHaveClass(/ag-block-viewer-open/)
+    const fontAfter = await page.evaluate(() => getComputedStyle(document.querySelector('#ag-editor-id') as HTMLElement).fontSize)
+    expect(fontAfter, 'viewer zoom must not change the editor font size').toBe(fontBefore)
+  })
+
+  test('the viewer backdrop is opaque: nothing of the page shows through', async ({ page }) => {
+    await bootstrapWithMarkdown(page, DIAGRAM_MD)
+    const preview = page.locator('div.ag-container-preview.ag-mermaid-preview').first()
+    await preview.waitFor({ state: 'visible', timeout: 20_000 })
+    await preview.hover()
+    await page.locator('.ag-block-viewer-toolbar .ag-block-viewer-expand').click()
+    await expect(page.locator('.ag-block-viewer')).toHaveClass(/ag-block-viewer-open/)
+    const alpha = await page.evaluate(() => {
+      const bg = getComputedStyle(document.querySelector('.ag-block-viewer-backdrop') as HTMLElement).backgroundColor
+      const m = bg.match(/rgba?\(([^)]+)\)/)
+      const parts = m ? m[1].split(',').map(s => s.trim()) : []
+      return parts.length === 4 ? Number(parts[3]) : 1
+    })
+    expect(alpha).toBe(1)
   })
 
   test('a wide diagram fits the column in the page and opens centred and non-empty in the viewer', async ({ page }) => {
