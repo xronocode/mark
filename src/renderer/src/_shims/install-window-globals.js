@@ -18,11 +18,15 @@
 //
 // CHANGE_SUMMARY:
 //   - 2026-04-29 close F-MAIN-ENTRY-DISABLED: install window.* shim.
+//   - 2026-10-14 i18nUtils.loadTranslations bundles static/locales/*.min.json
+//     via import.meta.glob; the fetch path 404'd in every Tauri build, so
+//     non-English UI languages never loaded.
 
 import { ipc } from '@/ipc/runtime'
 import * as posixPath from 'path-browserify'
 import win32Path from 'path-win32' // CJS port — named exports live on .default
 import { appLocalDataDir } from '@tauri-apps/api/path'
+import { loadLocaleTable } from '@/i18n/localeLoader'
 // Pre-import the event/core modules statically so ipcRenderer.on /
 // .invoke / .send paths don't have to await dynamic imports — that
 // async boundary races with backend emit-on-spawn (renderer subscribes
@@ -478,26 +482,12 @@ const commandExists = {
 
 // ─── window.i18nUtils ───────────────────────────────────────────────
 // v1 exposed loadTranslations(locale) returning the JSON map. Renderer
-// reads it once at boot to populate vue-i18n. The JSON files live in
-// static/locales/; renderer reaches them via fetch in the Tauri build.
+// reads it once at boot to populate vue-i18n. Tables come from the
+// bundle via i18n/localeLoader (import.meta.glob over static/locales):
+// the old fetch(`/locales/${locale}.min.json`) never resolved in the
+// Tauri build, so every non-English UI language fell back to English.
 const i18nUtils = {
-  loadTranslations: async (locale) => {
-    try {
-      const response = await fetch(`/locales/${locale}.min.json`)
-      if (!response.ok) throw new Error(`HTTP ${response.status}`)
-      // Guard against vite dev's catch-all serving index.html for
-      // missing static paths — content-type check catches HTML before
-      // `.json()` throws an unhandled rejection.
-      const ct = response.headers.get('content-type') || ''
-      if (!ct.includes('json')) throw new Error(`non-JSON content-type: ${ct}`)
-      return await response.json()
-    } catch (e) {
-      // Graceful fallback — empty map; vue-i18n falls back to keys.
-      // eslint-disable-next-line no-console
-      console.warn(`[i18nUtils] failed to load ${locale}:`, e)
-      return {}
-    }
-  }
+  loadTranslations: (locale) => loadLocaleTable(locale)
 }
 
 // ─── window.rgPath ──────────────────────────────────────────────────
