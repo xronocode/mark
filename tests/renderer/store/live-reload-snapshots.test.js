@@ -25,15 +25,17 @@
 //   PURPOSE: Prove APPLY_FILE_CHANGE records the pre-reload markdown into the C-43 snapshot ring on every apply path, skips identical content, and FORCE_CLOSE_TAB clears the ring.
 //   SCOPE: editor.js APPLY_FILE_CHANGE (data, disk-read, conflict-confirm branches) + FORCE_CLOSE_TAB against the real store/diffSnapshots ring.
 //   DEPENDS: src/renderer/src/store/editor.js, src/renderer/src/store/diffSnapshots.js, tests/renderer/pinia
-//   LINKS: .grace/changes/active/C-43 R-1/R-4; .grace/verification/runtime.xml V-M-011 scenario-38
+//   LINKS: .grace/changes/active/C-43 R-1/R-4; .grace/verification/runtime.xml V-M-011 scenario-39
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
-//   makeTab - minimal tab state for one pathname/id.
-//   seedTab - install one tab as tabs[0] + currentFile.
-//   dataChange - change payload with embedded data (legacy path).
+//   __ipcFsMock - hoisted ipcFs mock (read) shared with the vi.mock factory.
+//   __layoutStub - hoisted layout store stub.
+//   __mainStub - hoisted main store stub.
+//   __preferencesStub - hoisted preferences store stub (liveReload on).
+//   __projectStub - hoisted project store stub.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY

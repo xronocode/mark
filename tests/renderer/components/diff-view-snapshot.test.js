@@ -14,7 +14,7 @@
 //   PURPOSE: Pin the C-43 baseline priority in diffView.vue — latest per-tab snapshot wins over mt_diff_baseline — and the header source label for both paths.
 //   SCOPE: createMergeView baseline resolution + baselineSideLabel; MergeView receives the snapshot as orig when present.
 //   DEPENDS: src/renderer/src/components/editorWithTabs/diffView.vue, src/renderer/src/store/diffSnapshots.js (real module)
-//   LINKS: .grace/changes/active/C-43 R-2/R-3; .grace/verification/runtime.xml V-M-011 scenario-38
+//   LINKS: .grace/changes/active/C-43 R-2/R-3; .grace/verification/runtime.xml V-M-011 scenario-39
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT
