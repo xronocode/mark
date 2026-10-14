@@ -2646,5 +2646,44 @@
       </Dependencies>
       <VerificationRef>V-M-054</VerificationRef>
     </M-054>
+    <M-055>
+      <Name>RendererI18n</Name>
+      <DisplayName>Renderer UI localization loader</DisplayName>
+      <Type>UTILITY</Type>
+      <Status>shipped</Status>
+      <Layer>RENDERER</Layer>
+      <PhaseRef>bugfix-2026-10-14</PhaseRef>
+      <Summary>
+        Bundles the ten UI translation tables (static/locales/*.min.json) as
+        lazy chunks via import.meta.glob and serves them to vue-i18n through
+        window.i18nUtils.loadTranslations; English is imported statically.
+      </Summary>
+      <PlannedPath>
+        src/renderer/src/i18n/localeLoader.js, src/renderer/src/i18n/index.js,
+        src/renderer/src/_shims/install-window-globals.js
+      </PlannedPath>
+      <Dependencies/>
+      <VerificationRef>V-M-055</VerificationRef>
+    </M-055>
+    <M-056>
+      <Name>AppIconAssets</Name>
+      <DisplayName>App icon sources and bundle wiring</DisplayName>
+      <Type>UTILITY</Type>
+      <Status>in-progress</Status>
+      <Layer>TOOLING</Layer>
+      <PhaseRef>C-33</PhaseRef>
+      <Summary>
+        Pilcrow icon family generated from one geometry (assets/icon/gen.py):
+        classic icns/ico/png sets and an Icon Composer AppIcon.icon compiled by
+        actool into Assets.car (default/dark/tinted/clear) shipped via
+        Info.plist CFBundleIconName; build.sh rebuilds every artefact.
+      </Summary>
+      <PlannedPath>
+        assets/icon/*, src-tauri/icons/*, src-tauri/Info.plist,
+        src-tauri/tauri.conf.json, site/public/logo-96px.png
+      </PlannedPath>
+      <Dependencies/>
+      <VerificationRef>V-M-056</VerificationRef>
+    </M-056>
   </GD-FEATURES>
 </GraceGraphDocument>

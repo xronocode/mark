@@ -1445,5 +1445,13 @@
     "vega-lite-start": "vega-lite 开始",
     "click-to-add-image": "点击添加图片",
     "load-image-failed": "图片加载失败"
+  },
+  "diffView": {
+    "current": "当前",
+    "baseline": "基准版本",
+    "exit": "退出对比",
+    "unavailable": "无法对比",
+    "noPath": "请先保存文件——未命名的标签页没有可对比的基准版本。",
+    "noBaseline": "未找到此文件的基准版本。"
   }
 }

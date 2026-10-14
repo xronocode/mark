@@ -3942,7 +3942,11 @@
             .editor-component, so WKWebView stops the selection paint of
             fully selected blocks at the column edge instead of the window
             margins; width stays 750px and centered
-            (tests/e2e/editor-content.spec.ts).
+            (tests/e2e/editor-content.spec.ts). Corner cases pinned in
+            tests/e2e/editor-surface.spec.ts (chromium in CI, also run under
+            WebKit): margin and below-last-block clicks keep the caret in the
+            column, select-all + typing leaves no stray node outside
+            #ag-editor-id, and the RTL column stays inside a narrow window.
           </scenario-23>
         </scenarios>
         <required-log-markers>

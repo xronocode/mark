@@ -33,6 +33,7 @@
 //   - 2026-09-23 C-19: barrel-export HeadingSearchCommand (edit.go-to-heading, Cmd+T palette symbol search over the active document).
 //   - 2026-08-07 v2.1.2-beta: remove the Terminal/Homebrew update branch and use the signed Tauri updater for every non-App-Store install.
 //   - 2026-10-13 C-29: view.split-view (CmdOrCtrl+Alt+Backslash) toggles Split View for the current tab.
+//   - 2026-10-14 M-031: view.diff-mode refuses untitled tabs with a notice instead of hiding the editor.
 //   - 2026-10-14 C-32: edit.copy-as-structured-text emits copyAsStructuredText (plain text keeping bullets, link targets, table rows).
 // END_CHANGE_SUMMARY
 //
@@ -741,6 +742,16 @@ const commands = [
       const { useEditorStore } = await import('@/store/editor')
       const editor = useEditorStore()
       const tab = editor.currentFile
+      if (tab && tab.id && !tab.diffMode && !tab.pathname) {
+        // M-031: an untitled tab has no baseline; entering diff mode would
+        // only hide the editor. Explain instead of toggling.
+        const [{ default: notice }, { t }] = await Promise.all([
+          import('@/services/notification'),
+          import('@/i18n')
+        ])
+        notice.notify({ title: t('diffView.unavailable'), message: t('diffView.noPath'), type: 'warning' })
+        return
+      }
       if (tab && tab.id) {
         tab.diffMode = !tab.diffMode
         console.error(`[editor][diff][BLOCK_DIFF_TOGGLED state=${tab.diffMode ? 'on' : 'off'}]`)

@@ -447,7 +447,7 @@ describe('commands/index — deep coverage', () => {
     })
 
     it('view.diff-mode toggles diffMode on current tab', async () => {
-      editorStoreMock.currentFile = { id: 'tab-1', diffMode: false }
+      editorStoreMock.currentFile = { id: 'tab-1', pathname: '/tmp/a.md', diffMode: false }
       await findCmd('view.diff-mode').execute()
       expect(editorStoreMock.currentFile.diffMode).toBe(true)
     })

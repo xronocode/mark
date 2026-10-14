@@ -1446,5 +1446,13 @@
     "copy": "복사",
     "paste": "붙여넣기",
     "selectAll": "모두 선택"
+  },
+  "diffView": {
+    "current": "현재",
+    "baseline": "기준 버전",
+    "exit": "비교 닫기",
+    "unavailable": "비교를 표시할 수 없음",
+    "noPath": "먼저 파일을 저장하세요. 제목 없는 탭에는 비교할 기준 버전이 없습니다.",
+    "noBaseline": "이 파일의 기준 버전을 찾을 수 없습니다."
   }
 }

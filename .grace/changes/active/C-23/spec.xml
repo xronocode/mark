@@ -20,6 +20,7 @@
     <R-2>Release notes «Что нового» grouped by area, user-facing wording; derived from the shipped C-* specs.</R-2>
     <R-3>App Store Connect: new build, 10-locale screenshots and listing (name, subtitle, promo, keywords, description) from ~/Downloads/Mark-AppStore-2.3.0; Homebrew cask + winget follow the release workflow.</R-3>
     <R-4>C-33 closed (icon approved by the user) before the tag.</R-4>
+    <R-5>MAS .pkg validated with Transporter / altool before submission (Assets.car icon, CFBundleIconName).</R-5>
   </Goals>
 
   <Phases>

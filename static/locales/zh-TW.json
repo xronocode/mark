@@ -1454,5 +1454,13 @@
     "copy": "複製",
     "paste": "貼上",
     "selectAll": "全選"
+  },
+  "diffView": {
+    "current": "目前",
+    "baseline": "基準版本",
+    "exit": "結束比對",
+    "unavailable": "無法比對",
+    "noPath": "請先儲存檔案——未命名的分頁沒有可比對的基準版本。",
+    "noBaseline": "找不到此檔案的基準版本。"
   }
 }

@@ -4,7 +4,7 @@
 # START_MODULE_CONTRACT
 #   PURPOSE: Rebuild every shipped Mark icon artefact from the generated SVG sources (C-33).
 #   SCOPE: gen.py → icns (hand-assembled iconset: pixel 16 px master, enlarged-glyph 32/64), ico, Linux/Windows PNG sets, Assets.car via actool.
-#   DEPENDS: python3, rsvg-convert, ImageMagick (magick), iconutil, xcrun actool (Xcode 26+).
+#   DEPENDS: python3 (+ Pillow for the ico), rsvg-convert, ImageMagick (magick), iconutil, xcrun actool (Xcode 26+).
 #   LINKS: .grace/changes/active/C-33; assets/icon/gen.py; src-tauri/tauri.conf.json bundle.icon / bundle.macOS.files
 #   ROLE: SCRIPT
 #   MAP_MODE: LOCALS
@@ -15,7 +15,7 @@
 # END_MODULE_MAP
 #
 # START_CHANGE_SUMMARY
-#   LAST_CHANGE: v1.0.0 - C-33: initial build pipeline.
+#   LAST_CHANGE: v1.0.0 - C-33: initial build pipeline; records Assets.car.sources.sha256 for drift detection; ico frames stored as PNG.
 # END_CHANGE_SUMMARY
 set -euo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
@@ -49,7 +49,13 @@ render "$FB" 512 "$OUT/icon.png"
 for s in 30 44 71 89 107 142 150 284 310; do render "$FB" "$s" "$OUT/Square${s}x${s}Logo.png"; done
 render "$FB" 50 "$OUT/StoreLogo.png"
 for s in 16 24 32 48 64 256; do render "$FB" "$s" "$TMP/ico-$s.png"; done
-magick "$TMP"/ico-16.png "$TMP"/ico-24.png "$TMP"/ico-32.png "$TMP"/ico-48.png "$TMP"/ico-64.png "$TMP"/ico-256.png "$OUT/icon.ico"
+python3 - "$TMP" "$OUT/icon.ico" <<'PY'
+import sys
+from PIL import Image
+tmp, out = sys.argv[1], sys.argv[2]
+big = Image.open(f'{tmp}/ico-256.png')
+big.save(out, format='ICO', sizes=[(s, s) for s in (16, 24, 32, 48, 64, 256)])
+PY
 render "$FB" 96 "$SITE/logo-96px.png"
 # END_BLOCK_RASTER_SETS
 
@@ -60,6 +66,9 @@ xcrun actool "$HERE/AppIcon.icon" --compile "$TMP/car" --platform macosx \
   --output-partial-info-plist "$TMP/partial.plist" --output-format human-readable-text \
   --notices --warnings --errors > "$TMP/actool.log" 2>&1 || { cat "$TMP/actool.log"; exit 1; }
 cp "$TMP/car/Assets.car" "$OUT/Assets.car"
+# Record which .icon sources this Assets.car was compiled from; the
+# icon-assets test fails when the sources change without a rebuild.
+( cd "$HERE/AppIcon.icon" && for f in icon.json $(cd "$HERE/AppIcon.icon" && ls Assets | sort | sed 's|^|Assets/|'); do printf '%s\n' "$f"; cat "$f"; done ) | shasum -a 256 | cut -d' ' -f1 > "$OUT/Assets.car.sources.sha256"
 grep -i -E "warning|error" "$TMP/actool.log" || true
 # END_BLOCK_ASSETS_CAR
 

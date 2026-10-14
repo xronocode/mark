@@ -1474,5 +1474,13 @@
     "title": "Problems",
     "noIssues": "No problems found",
     "jumpToIssue": "Jump to the nearest heading"
+  },
+  "diffView": {
+    "current": "Current",
+    "baseline": "Baseline",
+    "exit": "Exit diff",
+    "unavailable": "Diff unavailable",
+    "noPath": "Save the file first — an untitled tab has no baseline to compare with.",
+    "noBaseline": "No baseline found for this file."
   }
 }
