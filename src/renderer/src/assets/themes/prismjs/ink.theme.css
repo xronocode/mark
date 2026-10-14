@@ -1,0 +1,177 @@
+/*
+ * Prism.js Ink Theme (Dark)
+ * C-41 T-001 brand companion to ink.theme.css — marker-yellow control flow,
+ * dimmed marker keywords on ink code backgrounds (#21242B).
+ */
+
+code[class*="language-"],
+pre.ag-paragraph {
+  color: #ECE6DA;
+  text-align: left;
+  white-space: pre;
+  word-spacing: normal;
+  word-break: normal;
+  word-wrap: normal;
+  -moz-tab-size: 4;
+  -o-tab-size: 4;
+  tab-size: 4;
+  -webkit-hyphens: none;
+  -moz-hyphens: none;
+  -ms-hyphens: none;
+  hyphens: none;
+  overflow: visible;
+}
+
+pre.ag-paragraph {
+  padding: 1em;
+  margin: 1em 0;
+  border-radius: 0.3em;
+}
+
+:not(pre) > code[class*="language-"],
+pre.ag-paragraph {
+  background: var(--codeBlockBgColor, #21242B);
+}
+
+:not(pre) > code[class*="language-"] {
+  padding: .1em;
+  border-radius: .3em;
+  white-space: normal;
+}
+
+/* Comments — warm gray */
+.token.comment,
+.token.prolog,
+.token.doctype,
+.token.cdata {
+  color: #98927F;
+  font-style: italic;
+}
+
+/* Punctuation — muted paper */
+.token.punctuation {
+  color: #A39C8D;
+}
+
+/* Namespace — soft teal */
+.namespace {
+  color: #7FC7B2;
+  opacity: .85;
+}
+
+/* Keywords — dimmed marker yellow */
+.token.keyword {
+  color: #D9B84A;
+}
+
+/* Control-flow keywords — full marker yellow (brand accent) */
+.token.keyword.control-flow {
+  color: #FFCF1A;
+}
+
+/* Types / class names — soft teal */
+.token.class-name {
+  color: #7FC7B2;
+}
+
+/* Functions — soft blue */
+.token.function,
+.token.function-definition {
+  color: #8FB7E8;
+}
+
+/* Strings — warm sand */
+.token.selector,
+.token.attr-name,
+.token.string,
+.token.char,
+.token.template-string {
+  color: #C9A96E;
+}
+
+/* Numbers, booleans — pale sage */
+.token.boolean,
+.token.number {
+  color: #AEC89B;
+}
+
+/* Properties, tags, constants — soft blue */
+.token.property,
+.token.tag,
+.token.constant,
+.token.symbol {
+  color: #8FB7E8;
+}
+
+/* Built-in types/functions — soft teal */
+.token.builtin {
+  color: #7FC7B2;
+}
+
+/* Macros — soft teal like types */
+.token.macro {
+  color: #7FC7B2;
+}
+
+/* Parameters — pale paper */
+.token.parameter {
+  color: #C8C2B4;
+}
+
+/* Variables — pale paper */
+.token.variable {
+  color: #C8C2B4;
+}
+
+/* Operators — paper */
+.token.operator,
+.token.entity,
+.token.url,
+.language-css .token.string,
+.style .token.string {
+  color: #ECE6DA;
+}
+
+/* Arrow — dimmed marker */
+.token.arrow {
+  color: #D9B84A;
+}
+
+/* Attribute values, at-rules — warm sand */
+.token.atrule,
+.token.attr-value {
+  color: #C9A96E;
+}
+
+/* Regex — soft red */
+.token.regex {
+  color: #F28B82;
+}
+
+/* Important */
+.token.important {
+  color: #D9B84A;
+  font-weight: bold;
+}
+
+/* Inserted — pale sage (diffs) */
+.token.inserted {
+  color: #AEC89B;
+}
+
+/* Deleted — soft red (diffs) */
+.token.deleted {
+  color: #F28B82;
+}
+
+.token.bold {
+  font-weight: bold;
+}
+
+.token.italic {
+  font-style: italic;
+}
+
+.token.entity {
+  cursor: help;
+}

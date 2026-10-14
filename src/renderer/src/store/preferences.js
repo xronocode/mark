@@ -85,21 +85,19 @@ export const usePreferencesStore = defineStore('preferences', {
     isGitlabCompatibilityEnabled: false,
     sequenceTheme: 'hand',
 
-    theme: 'light',
-    // Default flipped to false in alpha.6.2: the v1 Electron port wired
-    // followSystemTheme through main-process nativeTheme, but the Tauri
-    // port has not implemented that flow yet (no matchMedia listener +
-    // no apply-on-toggle hook). With the legacy default of `true`, the
-    // theme picker cards rendered as disabled (opacity 0.4) and the
-    // click handler was guarded by `!followSystemTheme && …` — so
-    // clicking a card was a silent no-op, matching the user smoke
-    // 2026-05-11 alpha.6.1 report "Карточки видны, но клик не применяет
-    // тему". Flipping the default unblocks the manual theme switcher;
-    // the follow-system path is tracked separately as
-    // F-THEME-FOLLOW-SYSTEM (Tauri port).
-    followSystemTheme: false,
-    lightModeTheme: 'light',
-    darkModeTheme: 'dark',
+    // C-41 T-001: brand defaults for NEW profiles — Auto follows
+    // prefers-color-scheme (paper for light, ink for dark) via
+    // util/autoTheme.js + the app.vue matchMedia listener. Stored
+    // preferences always win: SET_USER_PREFERENCE only overwrites keys
+    // present in the hydrated payload, so an existing user's theme /
+    // followSystemTheme=false never changes on upgrade. (The alpha.6.2
+    // flip of followSystemTheme to false was for the unimplemented
+    // follow-system flow; C-41 T-001 ships that flow, so Auto returns
+    // as the out-of-the-box default.)
+    theme: 'paper',
+    followSystemTheme: true,
+    lightModeTheme: 'paper',
+    darkModeTheme: 'ink',
     customCss: '',
 
     spellcheckerEnabled: false,

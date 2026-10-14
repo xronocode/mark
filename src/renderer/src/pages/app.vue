@@ -55,6 +55,13 @@
 //            is injected once while common styles still initialize on boot.
 //
 // CHANGE_SUMMARY:
+//   - 2026-10-15 C-41 T-001: Auto theme — after hydration, resolve
+//     followSystemTheme via util/autoTheme before the first addThemeStyle,
+//     re-resolve on mode/member preference changes (incl. cross-window
+//     broadcasts), and follow LIVE prefers-color-scheme flips through a
+//     matchMedia change listener (START_BLOCK_APPLY_AUTO_THEME). While in
+//     Auto the resolved theme is a local state write; the persisted
+//     `theme` preference is untouched.
 //   - 2026-05-21 drag-theme-refactor: dedupe initial addThemeStyle() calls
 //     by separating common-style bootstrap from theme-style bootstrap.
 
@@ -62,6 +69,7 @@ import { computed, watch, nextTick, onMounted, onUnmounted, ref } from 'vue'
 import { useMainStore } from '@/store'
 import { storeToRefs } from 'pinia'
 import { addCommonStyle, addThemeStyle, addCustomStyle } from '@/util/theme'
+import { resolveAutoTheme, watchSystemColorScheme } from '@/util/autoTheme'
 import Recent from '@/components/recent'
 import EditorWithTabs from '@/components/editorWithTabs'
 import TitleBar from '@/components/titleBar'
@@ -127,6 +135,35 @@ watch(theme, (value) => {
     console.error('[app][theme-watcher] failed:', value, e)
   }
 })
+
+// START_BLOCK_APPLY_AUTO_THEME
+// C-41 T-001 Auto mode: keep `theme` in sync with prefers-color-scheme while
+// followSystemTheme is on. Local state write only — the persisted theme
+// preference is never rewritten by following the system; the watch(theme)
+// above applies the CSS the moment the state flips. Re-resolves when the
+// mode flag or either mode member (lightModeTheme/darkModeTheme) changes,
+// including cross-window SET_USER_PREFERENCE broadcasts.
+const applyAutoTheme = () => {
+  if (!preferencesStore.followSystemTheme) return
+  const resolved = resolveAutoTheme(preferencesStore)
+  if (resolved !== preferencesStore.theme) {
+    preferencesStore.theme = resolved
+  } else {
+    addThemeStyle(resolved)
+  }
+}
+
+watch(
+  () => [preferencesStore.followSystemTheme, preferencesStore.lightModeTheme, preferencesStore.darkModeTheme],
+  () => {
+    applyAutoTheme()
+  }
+)
+
+const stopColorSchemeWatch = watchSystemColorScheme(() => {
+  applyAutoTheme()
+})
+// END_BLOCK_APPLY_AUTO_THEME
 
 watch(customCss, (value) => {
   addCustomStyle({ customCss: value })
@@ -252,6 +289,12 @@ onMounted(async () => {
   listenForMainStore.LISTEN_FOR_EDIT()
   projectStore.LISTEN_FOR_SIDEBAR_CONTEXT_MENU()
   await preferencesStore.ASK_FOR_USER_PREFERENCE()
+  // C-41 T-001: resolve Auto (followSystemTheme) before the first style
+  // application so the editor window opens on lightModeTheme/darkModeTheme
+  // instead of whatever `theme` was last persisted while following the OS.
+  if (preferencesStore.followSystemTheme) {
+    preferencesStore.theme = resolveAutoTheme(preferencesStore)
+  }
   addThemeStyle(preferencesStore.theme)
   preferencesStore.LISTEN_TOGGLE_VIEW()
   editorStore.LISTEN_FOR_CLOSE()
@@ -291,6 +334,8 @@ onMounted(async () => {
 onUnmounted(() => {
   if (cleanupPinchZoom) cleanupPinchZoom()
   if (cleanupNativeZoom) cleanupNativeZoom()
+  // C-41 T-001: drop the prefers-color-scheme listener with the window.
+  stopColorSchemeWatch()
 })
 </script>
 

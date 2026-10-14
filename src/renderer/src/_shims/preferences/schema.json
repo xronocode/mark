@@ -279,17 +279,17 @@
   "theme": {
     "description": "Theme--Select the theme used in Mark",
     "type": "string",
-    "default": "light"
+    "default": "paper"
   },
   "followSystemTheme": {
     "description": "Theme--Use separate theme in dark mode.",
     "type": "boolean",
-    "default": false
+    "default": true
   },
   "lightModeTheme": {
     "description": "Theme--Theme to use when system is in light mode.",
     "type": "string",
-    "default": "light"
+    "default": "paper"
   },
   "restoreLayoutState": {
     "description": "General--Restore previous editor state on startup.",
@@ -299,7 +299,7 @@
   "darkModeTheme": {
     "description": "Theme--Theme to use when system is in dark mode.",
     "type": "string",
-    "default": "dark"
+    "default": "ink"
   },
   "customCss": {
     "description": "Custom CSS--Custom CSS to apply to the current theme.--internal",
