@@ -1,6 +1,6 @@
 # NOTICES — Node.js production dependencies
 
-Generated from `license-checker --production` over **724 packages**.
+Generated from `license-checker --production` over **725 packages**.
 
 Each entry lists the package name, version, license SPDX identifier, and upstream repository when available. Re-generate with:
 
@@ -13,7 +13,7 @@ npx --package license-checker -- license-checker --production --json | \
 
 | License | Package count |
 |---|---:|
-| MIT | 529 |
+| MIT | 530 |
 | ISC | 63 |
 | BSD-3-Clause | 61 |
 | Apache-2.0 | 43 |
@@ -33,7 +33,7 @@ npx --package license-checker -- license-checker --production --json | \
 | UNLICENSED | 1 |
 | WTFPL | 1 |
 
-## MIT (529)
+## MIT (530)
 
 | Package | Version | Repository |
 |---|---|---|
@@ -119,6 +119,7 @@ npx --package license-checker -- license-checker --production --json | \
 | @octokit/request-error | 7.1.0 | https://github.com/octokit/request-error.js |
 | @octokit/rest | 22.0.1 | https://github.com/octokit/rest.js |
 | @octokit/types | 16.0.0 | https://github.com/octokit/types.ts |
+| @panzoom/panzoom | 4.6.2 | https://github.com/timmywil/panzoom |
 | @popperjs/core | 2.11.8 | https://github.com/popperjs/popper-core |
 | @rollup/rollup-darwin-arm64 | 4.60.2 | https://github.com/rollup/rollup |
 | @simple-git/args-pathspec | 1.0.3 | https://github.com/steveukx/git-js |
