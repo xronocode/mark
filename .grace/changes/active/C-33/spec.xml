@@ -1,0 +1,72 @@
+<GraceChangeSpec graceVersion='4.0' status='approved'>
+<C-33>
+  <Name>New app icon: highlighted pilcrow ¶ with macOS 26 dark and tinted appearances</Name>
+  <Created>2026-10-14</Created>
+  <Priority>high</Priority>
+  <Status>in-progress</Status>
+
+  <Summary>
+    G2 of the MarkView gap plan. Replace the circle-with-cyan-M icon with the
+    pilcrow family chosen on 2026-10-14 after three design rounds and
+    independent 5-angle reviews (canvas
+    https://claude.ai/artifact/4A5sHFVmv4ano8MTxZeaY2): a custom-drawn ¶ whose
+    D-shaped bowl is filled highlighter yellow (#FFCF1A) and outlined in ink
+    (#17191E) on warm paper (#F5EFE4). The icon ships as a classic icns
+    (macOS 12–25, Windows/Linux sets) and as an Icon Composer .icon compiled
+    by actool into Assets.car with CFBundleIconName, so macOS 26 renders the
+    Liquid Glass default, dark and tinted appearances. A prior-art /
+    trademark similarity search runs before the artwork is frozen.
+  </Summary>
+
+  <Problem>
+    <Description>The current icon is a circle (not the macOS squircle) with a cyan "M" that sits in the competitor M-letter cluster (MWeb, MD Editor Pro, One Markdown, Marked); it has no dark/tinted variants.</Description>
+    <RootCause>Legacy icon from the alpha period; no icon system.</RootCause>
+    <Evidence>src-tauri/icons/icon.icns; competitor wall and reviews on the canvas.</Evidence>
+  </Problem>
+
+  <Goals>
+    <R-1>Master artwork as SVG sources in assets/icon/ (light, dark, tinted reference, 16 px master, layer SVGs for Icon Composer), drawn as paths — no font glyphs.</R-1>
+    <R-2>src-tauri/icons/* regenerated: icon.icns from a hand-assembled iconset (16 px uses the 16 px master), icon.ico, 32x32/128x128/128x128@2x PNGs and the Windows Square*/StoreLogo PNGs from a full-bleed variant.</R-2>
+    <R-3>assets/icon/AppIcon.icon (Icon Composer format: background fill with dark specialization, bowl and ink layers) compiled by actool into src-tauri/icons/Assets.car; tauri.conf bundle.macOS.files ships it as Contents/Resources/Assets.car and src-tauri/Info.plist sets CFBundleIconName=AppIcon. MAS packaging keeps working.</R-3>
+    <R-4>Site favicon/logo (site/public) and README/landing references switch to the new mark.</R-4>
+    <R-5>Prior-art similarity research recorded in this change (Amendments) before release; artwork adjusted if a medium-or-higher risk is found.</R-5>
+  </Goals>
+
+  <Constraints>
+    <Constraint>No tag or release without an explicit command; the icon ships with 2.3.0 together with the new store screenshots.</Constraint>
+    <Constraint>Drawn paths only; no third-party glyphs or assets.</Constraint>
+  </Constraints>
+
+  <NonGoals>
+    <NonGoal>Landing-page colour system rework beyond swapping the logo (follow-up).</NonGoal>
+    <NonGoal>Quick Look extension icon (separate Xcode target).</NonGoal>
+  </NonGoals>
+
+  <AcceptanceCriteria>
+    <Criterion>Built .app shows the new icon in Finder/Dock; on macOS 26 Assets.car contains AppIcon with dark and tinted renditions (assetutil --info).</Criterion>
+    <Criterion>cargo/renderer suites and CI green; release preflight unaffected.</Criterion>
+    <Criterion>Prior-art report attached; no medium+ risk left unaddressed.</Criterion>
+  </AcceptanceCriteria>
+
+  <AffectedAreas>
+    <Bundle>src-tauri/icons, src-tauri/Info.plist, src-tauri/tauri.conf.json, assets/icon, site/public</Bundle>
+  </AffectedAreas>
+
+  <VerificationIntent>
+    actool compile log + assetutil dump of Assets.car; local debug .app bundle inspection (Info.plist CFBundleIconName, Resources/Assets.car); visual check of icns sizes; CI green.
+  </VerificationIntent>
+
+  <Amendments>
+    <Amendment date="2026-10-14">
+      <Item>Prior-art search (≈1,550 App Store icons across 29 terms, web, trademark sources): no registered pilcrow figurative mark for software; the bare ¶ skeleton is generic (SF Symbols paragraphsign, Material format_paragraph, Lucide/Tabler pilcrow). Closest look-alike: Prosely: Markdown Editor (Mac App Store, released 2026-09-15, id6805104509) — same D-bowl + two equal square stems; risk medium for the round-3 shape.</Item>
+      <Item>Round 4 shape change to break that silhouette, confirmed by an independent critique: chisel-tip highlighter bowl (slanted left edge), nib-cut stem feet, right stem ~9% shorter; a hand-placed 16 px master and an enlarged-glyph rendition for 32/64 px. Yellow / ink / paper palette kept (unique among the look-alikes). SF Symbols are never traced; all paths are drawn in assets/icon/gen.py.</Item>
+      <Item>Icon Composer: layer fills recolour every shape, so the bowl outline is an evenodd ring rather than a stroke; tinted appearance pins ink to white and the bowl to mid grey. ictool previews of default/dark/tinted/clear all read as ¶.</Item>
+    </Amendment>
+  </Amendments>
+
+  <Approval>
+    <ApprovedBy>user (session 2026-10-14): «1 го плюс более глубокий антиплагиат ресерч»</ApprovedBy>
+    <ApprovalScope>Production of the icon family, repo integration, research; no release.</ApprovalScope>
+  </Approval>
+</C-33>
+</GraceChangeSpec>
