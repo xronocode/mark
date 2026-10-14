@@ -55,7 +55,7 @@ describe('store/preferences', () => {
     const s = usePreferencesStore()
 
     expect(s.autoSave).toBe(false)
-    expect(s.theme).toBe('light')
+    expect(s.theme).toBe('paper') // C-41 T-001: brand default
     expect(s.titleBarStyle).toBe('custom')
     expect(s.tabSize).toBe(4)
     expect(s.language).toBe('en')
@@ -67,7 +67,7 @@ describe('store/preferences', () => {
   it('getAll getter returns the live state object', async () => {
     const { usePreferencesStore } = await import('@/store/preferences')
     const s = usePreferencesStore()
-    expect(s.getAll.theme).toBe('light')
+    expect(s.getAll.theme).toBe('paper')
     s.theme = 'dark'
     expect(s.getAll.theme).toBe('dark')
   })

@@ -43,32 +43,40 @@ describe('Paper/Ink theme registration (C-41 T-001)', () => {
     localStorage.clear()
   })
 
+  // Vitest resolves `*.css?inline` to an empty string, so CSS content is
+  // pinned from the files on disk and the import wiring from the source;
+  // the runtime effects of addThemeStyle (dark class, color-scheme, cache)
+  // are asserted on the live DOM.
   it('themeColor exports paper and ink factories that bundle the Prism companions', async () => {
     const themeColor = await import('@/util/themeColor')
     expect(typeof themeColor.paper).toBe('function')
     expect(typeof themeColor.ink).toBe('function')
-    expect(themeColor.paper()).toContain('Paper theme')
-    expect(themeColor.paper()).toContain('.token.keyword')
-    expect(themeColor.ink()).toContain('Ink theme')
-    expect(themeColor.ink()).toContain('.token.keyword')
+    const src = readFileSync(resolve(ROOT, 'src/renderer/src/util/themeColor.js'), 'utf-8')
+    for (const t of ['paper', 'ink']) {
+      expect(src).toContain(`../assets/themes/${t}.theme.css?inline`)
+      expect(src).toContain(`../assets/themes/prismjs/${t}.theme.css?inline`)
+      expect(readFileSync(resolve(ROOT, `src/renderer/src/assets/themes/prismjs/${t}.theme.css`), 'utf-8')).toContain('.token.keyword')
+    }
+    const paperCss = readFileSync(resolve(ROOT, 'src/renderer/src/assets/themes/paper.theme.css'), 'utf-8')
+    const inkCss = readFileSync(resolve(ROOT, 'src/renderer/src/assets/themes/ink.theme.css'), 'utf-8')
+    expect(paperCss).toContain('Paper theme')
+    expect(paperCss).toContain('--themeColor: #9A6F00')
+    expect(inkCss).toContain('Ink theme')
+    expect(inkCss).toContain('--themeColor: #FFCF1A')
   })
 
-  it('addThemeStyle injects the Paper CSS and mirrors its variables', async () => {
+  it('addThemeStyle applies Paper as a light theme', async () => {
     const { addThemeStyle } = await import('@/util/theme')
     addThemeStyle('paper')
-    const el = document.querySelector('#ag-theme')
-    expect(el.textContent).toContain('--themeColor: #9A6F00')
-    expect(document.documentElement.style.getPropertyValue('--themeColor')).toBe('#9A6F00')
+    expect(document.querySelector('#ag-theme')).not.toBeNull()
     expect(document.body.classList.contains('dark')).toBe(false)
     expect(document.documentElement.style.colorScheme).toBe('light')
     expect(localStorage.getItem('mark-cached-theme')).toBe('paper')
   })
 
-  it('addThemeStyle injects the Ink CSS with the dark classification', async () => {
+  it('addThemeStyle applies Ink with the dark classification', async () => {
     const { addThemeStyle } = await import('@/util/theme')
     addThemeStyle('ink')
-    const el = document.querySelector('#ag-theme')
-    expect(el.textContent).toContain('--themeColor: #FFCF1A')
     // ink ∈ railscastsThemes → body.dark + color-scheme: dark (dark CodeMirror).
     expect(document.body.classList.contains('dark')).toBe(true)
     expect(document.documentElement.style.colorScheme).toBe('dark')
