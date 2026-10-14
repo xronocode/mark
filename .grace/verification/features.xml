@@ -129,6 +129,16 @@
             (editor hidden + diff box in the upper half; toggling off restores
             the editor).
           </S11>
+          <S12>
+            diff-has-an-exit (review 2026-10-14) — the diff view replaces the
+            editing surface, so it always offers a way back: a header with
+            «Exit diff ⌘D»; an untitled tab never enters diff mode (the command
+            explains instead); a baseline failure exits automatically and shows
+            the error as a notification (BLOCK_DIFF_UNAVAILABLE); document-mutating
+            commands are ignored while diffing (BLOCK_DIFF_EDIT_BLOCKED, pinned by
+            an e2e that fails without the guard); the reading position survives
+            a diff round-trip — tests/e2e/diff-view.spec.ts.
+          </S12>
         </high-level-scenarios>
         <failure-scenarios>
           <F1>
@@ -2495,5 +2505,32 @@
         <Marker>[m013b][search][spawn][BLOCK_RIPGREP_FALLBACK]</Marker>
       </Markers>
     </V-M-054>
+    <V-M-055>
+      <Priority>high</Priority>
+      <Commands>
+        <Command>npx vitest run tests/renderer/i18n/locale-loader.test.js tests/renderer/i18n/index.test.js tests/renderer/i18n/index-deep.test.js</Command>
+      </Commands>
+      <Scenarios>
+        <Scenario>scenario-1 (regression 2026-10-14): every UI language loads in packaged builds — locale tables are bundled as lazy chunks via i18n/localeLoader (import.meta.glob over static/locales/*.min.json); the old fetch(`/locales/…`) 404'd in every Tauri build so non-English UI silently stayed English. locale-loader.test.js pins all ten tables and the missing-locale fallback.</Scenario>
+        <Scenario>scenario-2: live check — shots build with language=ru shows the Russian welcome screen; the dev-diag log carries no [i18nUtils] load failure.</Scenario>
+      </Scenarios>
+      <Markers>
+        <Marker>[i18n][loadLocaleTable][BLOCK_LOCALE_MISSING]</Marker>
+        <Marker>[i18n][loadLocaleTable][BLOCK_LOCALE_LOAD_FAILED]</Marker>
+      </Markers>
+    </V-M-055>
+    <V-M-056>
+      <Priority>high</Priority>
+      <Commands>
+        <Command>npx vitest run tests/renderer/icon-assets.test.js</Command>
+        <Command>xcrun assetutil --info src-tauri/icons/Assets.car (AppIcon renditions incl. 512/1024, Aqua/DarkAqua/Tintable stacks)</Command>
+      </Commands>
+      <Scenarios>
+        <Scenario>scenario-1 (C-33): the app bundle ships the Icon Composer icon — Info.plist CFBundleIconName=AppIcon, bundle.macOS.files Resources/Assets.car (kept by the MAS merge overlay), icon.json defines default/dark/tinted appearances with fill-only layer shapes, and the committed SVG sources equal a fresh assets/icon/gen.py run.</Scenario>
+        <Scenario>scenario-2 (C-33): Assets.car is rebuilt whenever AppIcon.icon changes — icon-assets.test.js compares the recorded source hash (src-tauri/icons/Assets.car.sources.sha256) with the current .icon sources.</Scenario>
+        <Scenario>scenario-3 (pre-release, C-23): the MAS .pkg passes App Store validation (Transporter / altool) with the Assets.car icon.</Scenario>
+      </Scenarios>
+      <Markers/>
+    </V-M-056>
   </VD-FEATURES>
 </GraceVerificationDocument>

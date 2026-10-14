@@ -63,6 +63,7 @@ test.describe('M-031 diff-view', () => {
 
   test('toggling diffMode shows diff-view container', async ({ page }) => {
     await bootEditor(page)
+    await openFileTab(page)
 
     await expect(page.locator('.diff-view')).not.toBeVisible()
 
@@ -82,14 +83,19 @@ test.describe('M-031 diff-view', () => {
     await expect(page.locator('.editor-wrapper').first()).toBeVisible()
   })
 
-  test('diff-view shows error when no pathname (untitled tab)', async ({ page }) => {
+  test('untitled tab: diff mode refuses to hide the editor and explains why', async ({ page }) => {
     await bootEditor(page)
 
-    await setDiffMode(page, true)
+    // Via the command (Cmd+D path): not entered at all.
+    await page.evaluate(() => (window as any).__emitFakeEvent('mt::menu-invoked', 'view.diff-mode'))
+    await expect(page.locator('.mt-notification')).toBeVisible({ timeout: 5_000 })
+    await expect(page.locator('.diff-view')).toHaveCount(0)
+    await expect(page.locator('.editor-wrapper').first()).toBeVisible()
 
-    const errorEl = page.locator('.diff-view .diff-error')
-    await expect(errorEl).toBeVisible({ timeout: 5_000 })
-    await expect(errorEl).toContainText('save the file first')
+    // Forced state (e.g. a stale flag): the view exits on its own.
+    await setDiffMode(page, true)
+    await expect(page.locator('.diff-view')).toHaveCount(0, { timeout: 5_000 })
+    await expect(page.locator('.editor-wrapper').first()).toBeVisible()
   })
 
   test('diff-view invokes mt_diff_baseline with pathname', async ({ page }) => {
@@ -132,18 +138,67 @@ test.describe('M-031 diff-view', () => {
 
     await setDiffMode(page, true)
 
-    const errorEl = page.locator('.diff-view .diff-error')
-    await expect(errorEl).toBeVisible({ timeout: 5_000 })
-    await expect(errorEl).toContainText('not_a_git_repo')
+    // No dead end: the error becomes a notification and the editor returns.
+    const notice = page.locator('.mt-notification')
+    await expect(notice).toBeVisible({ timeout: 5_000 })
+    await expect(notice).toContainText('not_a_git_repo')
+    await expect(page.locator('.diff-view')).toHaveCount(0)
+    await expect(page.locator('.editor-wrapper').first()).toBeVisible()
   })
 
   test('toggling diffMode off hides diff-view', async ({ page }) => {
     await bootEditor(page)
+    await openFileTab(page)
 
     await setDiffMode(page, true)
     await expect(page.locator('.diff-view')).toBeVisible({ timeout: 5_000 })
 
     await setDiffMode(page, false)
     await expect(page.locator('.diff-view')).not.toBeVisible()
+  })
+
+  test('the header exit button leaves diff mode', async ({ page }) => {
+    await bootEditor(page)
+    await openFileTab(page)
+    await setDiffMode(page, true)
+    await page.locator('.diff-view .diff-exit').click()
+    await expect(page.locator('.diff-view')).toHaveCount(0)
+    await expect(page.locator('.editor-wrapper').first()).toBeVisible()
+  })
+
+  test('editing commands do not change the hidden document while diffing', async ({ page }) => {
+    await bootEditor(page)
+    await openFileTab(page)
+    await page.locator('.editor-with-tabs p').first().click()
+    await page.keyboard.press('End')
+    const before = await page.evaluate(() => (document.querySelector('#app') as any).__vue_app__.config.globalProperties.$pinia.state.value.editor.currentFile.markdown)
+    await setDiffMode(page, true)
+    await page.evaluate(() => (window as any).__emitFakeEvent('mt::menu-invoked', 'edit.duplicate'))
+    await page.waitForTimeout(400)
+    await setDiffMode(page, false)
+    await page.waitForTimeout(400)
+    const after = await page.evaluate(() => (document.querySelector('#app') as any).__vue_app__.config.globalProperties.$pinia.state.value.editor.currentFile.markdown)
+    expect(after).toBe(before)
+  })
+
+  test('the reading position survives a diff round-trip', async ({ page }) => {
+    await bootEditor(page)
+    await page.evaluate(() => {
+      const md = '# Long\n\n' + Array.from({ length: 200 }, (_, i) => `Paragraph ${i}.`).join('\n\n')
+      ;(window as any).__emitFakeEvent('mt::open-new-tab', {
+        pathname: '/tmp/mark-e2e/long.md', markdown: md, isUtf8BomEncoded: false, lineEnding: 'lf', adjustLineEndingOnSave: false
+      })
+    })
+    await page.waitForTimeout(800)
+    const scroller = () => page.evaluate(() => (document.querySelector('#ag-editor-id')!.parentElement as HTMLElement).scrollTop)
+    await page.evaluate(() => { (document.querySelector('#ag-editor-id')!.parentElement as HTMLElement).scrollTop = 1500 })
+    await page.waitForTimeout(200)
+    const before = await scroller()
+    expect(before).toBeGreaterThan(1000)
+    await setDiffMode(page, true)
+    await page.waitForTimeout(300)
+    await setDiffMode(page, false)
+    await page.waitForTimeout(300)
+    expect(Math.abs((await scroller()) - before)).toBeLessThan(5)
   })
 })

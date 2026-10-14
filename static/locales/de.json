@@ -1444,5 +1444,13 @@
     "copy": "Kopieren",
     "paste": "Einfügen",
     "selectAll": "Alles auswählen"
+  },
+  "diffView": {
+    "current": "Aktuell",
+    "baseline": "Ausgangsversion",
+    "exit": "Diff beenden",
+    "unavailable": "Vergleich nicht verfügbar",
+    "noPath": "Speichere die Datei zuerst – ein unbenannter Tab hat keine Ausgangsversion zum Vergleichen.",
+    "noBaseline": "Für diese Datei wurde keine Ausgangsversion gefunden."
   }
 }
