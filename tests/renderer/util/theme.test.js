@@ -49,6 +49,8 @@ vi.mock('@/util/themeColor', () => {
     solarizedLight: factory('solarizedLight'),
     ayuLight: factory('ayuLight'),
     everforestLight: factory('everforestLight'),
+    paper: factory('paper'),
+    ink: factory('ink'),
     rosePineDawn: factory('rosePineDawn')
   }
 })

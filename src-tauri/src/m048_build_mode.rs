@@ -1,5 +1,5 @@
 // FILE: src-tauri/src/m048_build_mode.rs
-// VERSION: 1.1.0
+// VERSION: 1.2.0
 // START_MODULE_CONTRACT
 //   PURPOSE: M-048 build-mode descriptor (C-15 T-115). Exposes which
 //            distribution the renderer is running in so it can hide
@@ -29,6 +29,8 @@
 //   - 2026-09-29 Phase W QA round 2: `share` flag — mt_share_file is
 //     macOS-only (m032 NSSharingServicePicker); the titlebar Share
 //     button must hide on Windows/Linux instead of failing silently.
+//   - 2026-10-15 C-44: the app-store variant advertises share on macOS
+//     (NSSharingServicePicker is sandbox-safe); the live server stays off.
 // END_CHANGE_SUMMARY
 
 use serde::Serialize;
@@ -62,7 +64,9 @@ pub async fn mt_build_mode() -> Result<BuildMode, String> {
             set_default_handler: false,
             project_search_ripgrep: false,
             updater: false,
-            share: false,
+            // C-44: NSSharingServicePicker on a user-opened file is
+            // sandbox-safe — the App Store build shows Share on macOS too.
+            share: cfg!(target_os = "macos"),
         })
     }
     #[cfg(not(feature = "app-store"))]
@@ -97,7 +101,7 @@ mod tests {
             set_default_handler: false,
             project_search_ripgrep: false,
             updater: false,
-            share: false,
+            share: cfg!(target_os = "macos"),
         };
         #[cfg(not(feature = "app-store"))]
         let m = BuildMode {
@@ -113,6 +117,8 @@ mod tests {
         // app-store must never advertise a sandbox-hostile capability.
         if m.mode == "app-store" {
             assert!(!m.export_pandoc && !m.screenshot && !m.set_default_handler);
+            // C-44: the share sheet is sandbox-safe and enabled on macOS.
+            assert_eq!(m.share, cfg!(target_os = "macos"));
         }
         // C-15 T-W2: desktop builds off macOS never advertise the
         // macOS-only binaries (screencapture, defaults/lsregister).

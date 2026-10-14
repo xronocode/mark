@@ -295,14 +295,11 @@ fn main() {
     let prefs = m005_prefs::PrefsState::boot();
     let sec_ctx = m013b::SecurityCtx::default();
     m005_prefs::restore_workspace(&prefs, &sec_ctx);
-    // M-025.3 (smoke 2026-05-11 alpha.6.1+): force followSystemTheme=false
-    // on every boot until F-THEME-FOLLOW-SYSTEM is properly ported. The
-    // legacy default and any pre-existing v1 prefs file ship the flag as
-    // true, which short-circuits every theme-card click in Settings (the
-    // click guard `!followSystemTheme && ...` in prefComponents/theme/
-    // index.vue:16 reads as no-op). See m005_prefs::override_unimplemented_
-    // follow_system_theme for the full rationale.
-    m005_prefs::override_unimplemented_follow_system_theme(&prefs);
+    // C-41 T-001: the M-025.3 followSystemTheme boot override was removed —
+    // the renderer ships the real prefers-color-scheme flow (util/autoTheme.js
+    // + app.vue matchMedia listener + the Auto/Light/Dark title-bar button),
+    // so a persisted Auto mode must survive restarts. Stored prefs are never
+    // rewritten at boot for theming anymore.
 
     // CLI -d / --dir overrides the prefs-restored workspace for this
     // session. Persistence semantics: explicit CLI flag does NOT update

@@ -176,6 +176,8 @@
       "light": "Clair",
       "dark": "Sombre",
       "auto": "Automatique",
+      "paper": "Paper",
+      "ink": "Ink",
       "followThemDisabled": "Sélection du thème désactivée lorsque le thème du système est suivi",
       "lightThemes": "— Thèmes Clairs —",
       "darkThemes": "— Thèmes Sombres —",
@@ -1448,6 +1450,13 @@
     "vega-lite-start": "début vega-lite",
     "click-to-add-image": "Cliquez pour ajouter une image",
     "load-image-failed": "Échec du chargement de l'image"
+  },
+  "titleBar": {
+    "themeMode": {
+      "auto": "Thème : Automatique",
+      "light": "Thème : Clair",
+      "dark": "Thème : Sombre"
+    }
   },
   "edit": {
     "undo": "Annuler",

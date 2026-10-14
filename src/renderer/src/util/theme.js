@@ -11,6 +11,9 @@
 //            removed to reduce WKWebView stylesheet parsing fragility.
 //
 // CHANGE_SUMMARY:
+//   - 2026-10-15 C-41 T-001: register the Paper (light) and Ink (dark)
+//     brand themes in themeMap; Ink rides the railscasts dark
+//     classification (dark CodeMirror theme + color-scheme: dark).
 //   - 2026-05-21 drag-theme-refactor: stop wrapping theme CSS in
 //     `@media not print` so Prism/scrollbar/sidebar rules are emitted as
 //     direct stylesheet text while keeping the variable mirror unchanged.
@@ -23,6 +26,8 @@ import {
   railscastsThemes
 } from '../config'
 import {
+  paper,
+  ink,
   dark,
   graphite,
   materialDark,
@@ -59,6 +64,9 @@ import {
 import { isLinux } from './index'
 
 const themeMap = {
+  // C-41 T-001: Paper/Ink brand themes (defaults for new profiles).
+  'paper': paper,
+  'ink': ink,
   'dark': dark,
   'material-dark': materialDark,
   'ulysses': ulysses,

@@ -89,6 +89,9 @@
 //                the openPreferences command unchanged — current HIG
 //                naming). The macOS titlebar gear is hidden renderer-side,
 //                so Mark › Settings… ⌘, is the sole macOS Settings entry.
+//   - 2026-10-15 C-41 T-001: add View-menu Theme entries "Paper" and
+//                "Ink" (window.change-theme-paper/-ink) — the brand
+//                defaults; ids mirror the renderer command registry.
 // END_CHANGE_SUMMARY
 
 use serde::{Deserialize, Serialize};
@@ -834,8 +837,13 @@ pub fn build_native_menu<R: tauri::Runtime>(
         .build()?;
 
     // ── View menu ────────────────────────────────────────────────────
+    // C-41 T-001: Paper and Ink (brand defaults for new profiles) lead the
+    // theme submenu; ids match the renderer command registry
+    // (window.change-theme-*) enforced by menu-consistency tests.
     let theme_submenu = SubmenuBuilder::new(handle, "Theme")
         .items(&[
+            &MenuItemBuilder::with_id("window.change-theme-paper", "Paper").build(handle)?,
+            &MenuItemBuilder::with_id("window.change-theme-ink", "Ink").build(handle)?,
             &MenuItemBuilder::with_id("window.change-theme-light", "Cadmium Light").build(handle)?,
             &MenuItemBuilder::with_id("window.change-theme-graphite", "Graphite").build(handle)?,
             &MenuItemBuilder::with_id("window.change-theme-ulysses", "Ulysses").build(handle)?,
