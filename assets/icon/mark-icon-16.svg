@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" shape-rendering="crispEdges">
+  <!-- C-33 hand-placed 16 px master: whole-pixel stems (2 px, 1 px gap),
+       one-pixel chisel step on the bowl, ink edge on the left and bottom only,
+       right stem one pixel shorter. -->
+  <rect x="1" y="1" width="14" height="14" rx="3.5" fill="#F5EFE4" shape-rendering="geometricPrecision"/>
+  <rect x="1.25" y="1.25" width="13.5" height="13.5" rx="3.3" fill="none" stroke="#000" stroke-opacity="0.18" stroke-width="0.5" shape-rendering="geometricPrecision"/>
+  <g fill="#17191E">
+    <rect x="3" y="3" width="10" height="1"/>
+    <rect x="7" y="3" width="2" height="10"/>
+    <rect x="10" y="3" width="2" height="9"/>
+    <rect x="2" y="4" width="1" height="2"/>
+    <rect x="3" y="6" width="1" height="3"/>
+    <rect x="4" y="8" width="3" height="1"/>
+  </g>
+  <g fill="#FFCF1A">
+    <rect x="3" y="4" width="4" height="2"/>
+    <rect x="4" y="6" width="3" height="2"/>
+  </g>
+</svg>
