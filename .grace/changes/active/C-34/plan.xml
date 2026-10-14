@@ -69,6 +69,12 @@
       <Gates>Old-code proof: with the pre-R2.1 render/index.js the StateRender cache test and keep-last-good test fail (2 of 15), all 15 pass with the change. On main: tests/renderer/muya 172 passed; npm test 3395 passed (one split-view timeout under machine load, 16/16 when re-run alone); grace lint Errors: 0; e2e mermaid-render 4/4 in Chromium and 4/4 in WebKit (wide diagram scrolls, syntax error keeps the SVG + error element).</Gates>
       <Pending>Live check in the real app (typing in a diagram, theme switch) — part of the C-23 release smoke. Known nit: a diagram that never rendered successfully re-renders on every keystroke (no debounce until the first success).</Pending>
     </T-001>
+    <T-002>
+      <Status>done</Status>
+      <Commits>agent/c34-viewer (ZCode agent, no shell) merged into main 2026-10-15; orchestrator resolved the runtime.xml scenario-18 collision (viewer → scenario-19), fixed MODULE_MAP parity, and corrected one wrong e2e assertion.</Commits>
+      <Gates>Old-code proof: with Muya.use(BlockViewer) removed all 3 e2e cases fail; unit block-viewer 12/12; e2e block-viewer + mermaid-render + table-layout 24/24 in Chromium and WebKit on a separate preview port; grace lint Errors: 0.</Gates>
+      <Pending>Live trackpad pinch check in the real WKWebView app; R2.3 copy/export SVG/PNG.</Pending>
+    </T-002>
   </Evidence>
 </C-34>
 </GraceChangePlan>
