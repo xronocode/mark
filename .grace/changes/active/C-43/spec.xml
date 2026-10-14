@@ -8,7 +8,7 @@
   <Complexity>S–M</Complexity>
 
   <Summary>
-    ⌘D (M-031 diff view) needs a baseline: a `<file>.before` sidecar that nothing creates, or git HEAD, which the App Store build cannot run. So for most users ⌘D says the diff is unavailable. Mark already sees every external save (live reload, store/editor.js APPLY_FILE_CHANGE → loadChange); keep the content the tab had just before each external reload as an in-memory snapshot and diff against it.
+    ⌘D (M-031 diff view) needs a baseline: a `&lt;file&gt;.before` sidecar that nothing creates, or git HEAD, which the App Store build cannot run. So for most users ⌘D says the diff is unavailable. Mark already sees every external save (live reload, store/editor.js APPLY_FILE_CHANGE → loadChange); keep the content the tab had just before each external reload as an in-memory snapshot and diff against it.
   </Summary>
 
   <Problem>
@@ -17,7 +17,7 @@
 
   <Goals>
     <R-1>On every external change that live reload applies to a tab (data path and disk-read path, and the confirm path of a dirty-tab conflict), store the tab's markdown from before the reload as a snapshot { markdown, takenAt } in an in-memory ring per tab (last 5), only when the content actually differs.</R-1>
-    <R-2>Baseline priority for ⌘D: the latest Mark snapshot of this tab → `<file>.before` → git HEAD (desktop build only), via the existing mt_diff_baseline for the last two.</R-2>
+    <R-2>Baseline priority for ⌘D: the latest Mark snapshot of this tab → `&lt;file&gt;.before` → git HEAD (desktop build only), via the existing mt_diff_baseline for the last two.</R-2>
     <R-3>Diff header names the source in plain words: "Before the last external save · 10:42:07" / ".before file" / "Last commit"; strings in all locales.</R-3>
     <R-4>Snapshots live only while the tab is open (dropped on close; follow the tab through a sidebar rename; untitled tabs never get snapshots). No disk writes, no new IPC permissions — works in the App Store sandbox.</R-4>
   </Goals>
