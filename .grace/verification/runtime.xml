@@ -10013,6 +10013,7 @@
           src-tauri/Cargo.toml m048
         </Command>
         <Command>npx vitest run tests/renderer/commands/capability-gate.test.js</Command>
+        <Command>npx vitest run tests/renderer/editions-doc.test.js</Command>
       </Commands>
       <Scenarios>
         <Scenario>
@@ -10032,6 +10033,15 @@
         <Scenario>
           scenario-3: store doubles lacking FETCH_BUILD_MODE must not break
           boot listener setup (optional-call guard).
+        </Scenario>
+        <Scenario>
+          scenario-4 (C-42 R-5): the "Two editions, same editor" tables in
+          README.md and site/guide/editions.md list exactly the flags that
+          are false in the app-store variant and true on macOS desktop
+          (export_pandoc, screenshot, set_default_handler, updater;
+          project_search_ripgrep is implementation-only) as desktop-only,
+          and list share as available in both editions.
+          Test: tests/renderer/editions-doc.test.js.
         </Scenario>
       </Scenarios>
       <TraceAssertions>

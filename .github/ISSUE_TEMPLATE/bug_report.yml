@@ -1,0 +1,59 @@
+name: Bug report
+description: Something in Mark does not work as expected.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting. Please check [open issues](https://github.com/xronocode/mark/issues) first.
+        Security problems go to a [private advisory](https://github.com/xronocode/mark/security/advisories/new), not here.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you saw, and what you expected instead.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Numbered steps. Attach or paste a small Markdown file if the problem depends on the document.
+      placeholder: |
+        1. Open a file with ...
+        2. Click ...
+        3. See ...
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Mark version
+      description: Help › Version, or the About window.
+      placeholder: "2.3.0"
+    validations:
+      required: true
+  - type: dropdown
+    id: edition
+    attributes:
+      label: Where did you install Mark?
+      options:
+        - Mac App Store
+        - Homebrew
+        - Downloaded from GitHub Releases (macOS)
+        - Downloaded from GitHub Releases (Windows)
+        - Built from source
+    validations:
+      required: true
+  - type: input
+    id: os
+    attributes:
+      label: Operating system
+      placeholder: "macOS 26.0 (Apple silicon) / Windows 11"
+    validations:
+      required: true
+  - type: textarea
+    id: extra
+    attributes:
+      label: Screenshots or logs
+      description: Optional. Screenshots, a screen recording, or log output.
