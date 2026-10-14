@@ -10,21 +10,26 @@
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
-//   OPTIONS - marked options matching the editor defaults (footnotes on).
+//   OPTIONS - marked options matching the editor defaults (footnotes on) plus the C-32 render hooks.
 //   render - Markdown → sanitized HTML → htmlToStructuredText (same pipeline as editor.vue).
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.0.0 - C-32: initial suite (+ review regressions: leading code indent, raw-HTML whitespace, www/linked-image links, loose items, front matter).
+//   LAST_CHANGE: v1.0.0 - C-32: initial suite (+ callouts, emoji, math delimiters, trailing-slash links; review regressions: leading code indent, raw-HTML whitespace, www/linked-image links, loose items, front matter).
 // END_CHANGE_SUMMARY
 
 import { describe, it, expect } from 'vitest'
 import marked from 'muya/lib/parser/marked'
 import { sanitize } from 'muya/lib/utils'
 import { EXPORT_DOMPURIFY_CONFIG } from 'muya/lib/config'
-import { htmlToStructuredText } from '@/util/structuredText'
+import { htmlToStructuredText, structuredMarkedOptions } from '@/util/structuredText'
 
-const OPTIONS = { footnote: true, superSubScript: true, isGitlabCompatibilityEnabled: true }
+const OPTIONS = {
+  footnote: true,
+  superSubScript: true,
+  isGitlabCompatibilityEnabled: true,
+  ...structuredMarkedOptions
+}
 const render = (md) =>
   htmlToStructuredText(
     sanitize(marked(md, OPTIONS), EXPORT_DOMPURIFY_CONFIG, false)
@@ -112,6 +117,22 @@ describe('htmlToStructuredText (C-32)', () => {
 
   it('breaks raw-HTML containers into separate blocks', () => {
     expect(htmlToStructuredText('<section><p>a</p></section><aside>b</aside>c')).toBe('a\n\nb\n\nc')
+  })
+
+  it('keeps callouts as quotes with their title on the first line', () => {
+    expect(render('> [!NOTE]\n> Callout body\n\n> [!WARNING] Custom title\n> warn')).toBe(
+      '> Note\n> Callout body\n\n> Custom title\n> warn'
+    )
+  })
+
+  it('writes emoji codes as characters and keeps math delimiters', () => {
+    expect(render('hi :smile: :nope:')).toBe('hi 😄 :nope:')
+    expect(render('inline $\\frac{1}{2}$ and $a<b$')).toBe('inline $\\frac{1}{2}$ and $a<b$')
+    expect(render('$$\n\\sum_i i\n$$')).toBe('$$\n\\sum_i i\n$$')
+  })
+
+  it('treats a trailing slash as the same link target', () => {
+    expect(render('[example.com](https://example.com/)')).toBe('example.com')
   })
 
   it('returns an empty string for empty input', () => {

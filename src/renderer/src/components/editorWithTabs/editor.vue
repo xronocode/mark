@@ -134,7 +134,7 @@ import log from 'electron-log'
 import Muya from 'muya/lib'
 import { formatMarkdown } from '@/util/markdownFormat'
 import { checkMarkdownLinks } from '@/util/linkCheck'
-import { htmlToStructuredText } from '@/util/structuredText'
+import { htmlToStructuredText, structuredMarkedOptions } from '@/util/structuredText'
 import TablePicker from 'muya/lib/ui/tablePicker'
 import QuickInsert from 'muya/lib/ui/quickInsert'
 import CodePicker from 'muya/lib/ui/codePicker'
@@ -976,12 +976,12 @@ const handleCopyAsHtml = async () => {
 
 // START_CONTRACT: copyRenderedAsPlainText
 //   PURPOSE: Shared C-12/C-32 pipeline — render the selection (or whole document) through marked + DOMPurify EXPORT and write convert(html) as the single text/plain flavor.
-//   INPUTS: { convert: (html: string) => string - HTML → plain text; marker: string - log anchor of the calling handler }
+//   INPUTS: { convert: (html: string) => string - HTML → plain text; marker: string - log anchor of the calling handler; markedOptions: object - extra marked render hooks over the editor options }
 //   OUTPUTS: { Promise<void> - resolves after the clipboard write attempt }
 //   SIDE_EFFECTS: Native clipboard-manager writeText; any render or write failure warns with `${marker} copy failed` and notifies.
 //   LINKS: C-12 handleCopyAsPlainText; C-32 handleCopyAsStructuredText; C-3 handleCopyAsHtml (same render pipeline)
 // END_CONTRACT: copyRenderedAsPlainText
-const copyRenderedAsPlainText = async (convert, marker) => {
+const copyRenderedAsPlainText = async (convert, marker, markedOptions = null) => {
   const ed = editor.value
   if (!ed) return
   const selectionData = ed.getCopyData()
@@ -993,7 +993,8 @@ const copyRenderedAsPlainText = async (convert, marker) => {
       import('muya/lib/utils'),
       import('muya/lib/config')
     ])
-    const plain = convert(sanitize(marked(text, ed.options), EXPORT_DOMPURIFY_CONFIG, false))
+    const options = markedOptions ? { ...ed.options, ...markedOptions } : ed.options
+    const plain = convert(sanitize(marked(text, options), EXPORT_DOMPURIFY_CONFIG, false))
     if (!plain) return
     const { writeText } = await import('@tauri-apps/plugin-clipboard-manager')
     await writeText(plain)
@@ -1034,7 +1035,8 @@ const handleCopyAsPlainText = () =>
 const handleCopyAsStructuredText = () =>
   copyRenderedAsPlainText(
     htmlToStructuredText,
-    '[Editor][handleCopyAsStructuredText][BLOCK_COPY_AS_STRUCTURED_TEXT]'
+    '[Editor][handleCopyAsStructuredText][BLOCK_COPY_AS_STRUCTURED_TEXT]',
+    structuredMarkedOptions
   )
 // END_BLOCK_COPY_AS_STRUCTURED_TEXT
 
