@@ -1,0 +1,40 @@
+<GraceChangePlan graceVersion='4.0' status='approved'>
+<C-43>
+  <ChangeRef>C-43</ChangeRef>
+  <Created>2026-10-15</Created>
+  <IntentSummary>S1: in-memory per-tab snapshot ring filled by live reload; ⌘D prefers the latest snapshot over .before and git; the diff header names the source. Delegated to a ZCode agent without shell; the orchestrator runs gates and commits.</IntentSummary>
+  <BaselineAssertions>
+    <MustContain><File>src/renderer/src/components/editorWithTabs/diffView.vue</File><Text>mt_diff_baseline</Text></MustContain>
+  </BaselineAssertions>
+  <TargetAssertions>
+    <MustContain><File>src/renderer/src/store/editor.js</File><Text>BLOCK_SNAPSHOT</Text></MustContain>
+  </TargetAssertions>
+  <DurableScope><M-011/></DurableScope>
+  <ObservedWriteScope>
+    <File>src/renderer/src/store/editor.js</File>
+    <File>src/renderer/src/store/diffSnapshots.js</File>
+    <File>src/renderer/src/components/editorWithTabs/diffView.vue</File>
+    <File>static/locales/*.json</File>
+    <File>tests/renderer/**/*snapshot*.test.js</File>
+    <File>tests/renderer/**/*diff*.test.js</File>
+    <File>tests/e2e/diff-snapshot.spec.ts</File>
+    <File>.grace/verification/runtime.xml</File>
+  </ObservedWriteScope>
+  <ImplementationPlan>
+    <T-001>
+      <Title>Snapshot ring + baseline priority + header label</Title>
+      <DependsOn></DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>Live reload (all three apply paths in APPLY_FILE_CHANGE) records the pre-reload markdown when it differs; ring of 5 per tab; cleared on tab close; follows rename; none for untitled tabs or the user's own edits.</Criterion>
+        <Criterion>diffView uses the latest snapshot when present, otherwise mt_diff_baseline; header shows the source and time; strings in all locale files (.json and .min.json).</Criterion>
+        <Criterion>Unit tests for the ring and the priority; e2e: emit an external change through the tauri shim, then view.diff-mode shows the snapshot diff.</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>npm test</Command>
+        <Command>npm run build &amp;&amp; npx playwright test tests/e2e/diff-snapshot.spec.ts</Command>
+        <Command>grace lint --path . --assertions current</Command>
+      </Verification>
+    </T-001>
+  </ImplementationPlan>
+</C-43>
+</GraceChangePlan>
