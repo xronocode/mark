@@ -1463,6 +1463,8 @@
     "exit": "Quitter le diff",
     "unavailable": "Comparaison indisponible",
     "noPath": "Enregistrez d’abord le fichier : un onglet sans titre n’a pas de version de base à comparer.",
-    "noBaseline": "Aucune version de base trouvée pour ce fichier."
+    "noBaseline": "Aucune version de base trouvée pour ce fichier.",
+    "sourceSnapshot": "Avant le dernier enregistrement externe · {time}",
+    "sourcePrevious": "Version précédente"
   }
 }
