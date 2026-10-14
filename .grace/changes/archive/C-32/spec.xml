@@ -1,9 +1,9 @@
-<GraceChangeSpec graceVersion='4.0' status='approved'>
+<GraceChangeSpec graceVersion='4.0' status='applied'>
 <C-32>
   <Name>Copy as Structured Text: plain text that keeps the document structure</Name>
   <Created>2026-10-14</Created>
   <Priority>medium</Priority>
-  <Status>in-progress</Status>
+  <Status>completed</Status>
 
   <Summary>
     User request 2026-10-14: «еще хочется формат "Скопировать как текст с
@@ -89,6 +89,23 @@
     Util unit suite + editor-coverage + menu-consistency pins; live
     clipboard check in the debug build.
   </VerificationIntent>
+
+  <Amendments>
+    <Amendment date="2026-10-14">
+      <Item>User follow-ups: name «Copy as Structured Text»; headings carry no markers, two blank lines before a non-first heading, one after it and between paragraphs.</Item>
+      <Item>Coverage pass over the muya syntax surface added: callouts as titled quotes, emoji codes as characters, $ / $$ math delimiters kept (marked emojiRenderer/mathRenderer hooks), trailing-slash links not doubled, adjacent lists (marked splits a list at a task item) joined on consecutive lines, front matter skipped.</Item>
+      <Item>Parser limits, out of scope (the editor shows the same): a list nested under an ordered item becomes a paragraph; an unescaped | inside a table code span splits the cell; ==highlight== and [[wikilinks]] are not muya syntax.</Item>
+    </Amendment>
+  </Amendments>
+
+  <Completion>
+    <Date>2026-10-14</Date>
+    <Commits>764d2049 (feature + review fixes), f8c061f4 (callouts, emoji, math), c74bb0cb (heading spacing), this commit (list join + archive)</Commits>
+    <Evidence>
+      <Item>Renderer suite green (3365+); structured-text unit suite 22 on the real marked + DOMPurify pipeline; cargo m009_menu 15/15; grace lint 0 errors; CI test + CI green on every push.</Item>
+      <Item>Live check on the debug build (WKWebView, native menus): context-menu item with a selection and with none (whole document), Edit-menu item — the system clipboard held the expected structured text, incl. heading spacing, callout, emoji, $x^2$, table rows.</Item>
+    </Evidence>
+  </Completion>
 
   <Approval>
     <ApprovedBy>user (session 2026-10-14): «еще хочется формат "Скопировать как текст с адаптированным форматированием"»; name chosen by the user: «Copy as Structured Text»</ApprovedBy>
