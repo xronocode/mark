@@ -1351,3 +1351,79 @@ i.ag-footnote-backlink {
   cursor: pointer;
   z-index: 100;
 }
+
+/* ================================================================
+ * C-39 T-001 — default table rendering (2026-10-15)
+ *
+ * R-1 wide tables scroll inside the text column; R-2 narrow tables
+ * keep content width; R-3 long tokens wrap inside cells; the edge
+ * shadow marks the side(s) with hidden columns. The scroll container
+ * is the div.ag-table-scroll that renderContainerBlock puts between
+ * the table figure and the table element (START_BLOCK_TABLE_SCROLL_WRAPPER).
+ * The table tools bar (top: -22px) and the front icon (left: -35px)
+ * hang outside the FIGURE, so overflow must live on this inner wrapper,
+ * never on the figure itself.
+ * ================================================================ */
+
+/*
+ * box-sizing: border-box is required: max-width: 100% must cap the
+ * padding box, otherwise the left padding would push the wrapper past
+ * the column edge.
+ *
+ * The row-drag bar of the first column hangs at left: -11px and the
+ * column-drag bar of the last row at bottom: -15px outside the table
+ * box (themes/default.css); the wrapper's padding keeps both inside
+ * the clip rect, the matching negative margins keep the table aligned
+ * with the text column and the net vertical spacing unchanged. The
+ * extra bottom room also keeps the last-row bar clear of a classic
+ * (non-overlay) horizontal scrollbar.
+ */
+figure div.ag-table-scroll {
+  box-sizing: border-box;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 0 0 30px 11px;
+  margin: 0 0 -30px -11px;
+}
+
+/*
+ * Natural width, never stretched (R-2) and never squeezed (R-1):
+ * wider than the column means the wrapper scrolls, narrower means the
+ * table keeps its content width like GitHub. Cell max-width bounds the
+ * max-content contribution, so the scroll range stays finite.
+ */
+figure div.ag-table-scroll > table {
+  width: max-content;
+  max-width: none;
+}
+
+/* R-3: header cells never break normal words mid-word. */
+figure div.ag-table-scroll table th {
+  max-width: 40ch;
+  overflow-wrap: break-word;
+}
+
+/* R-3: body cells wrap long unbreakable tokens (URLs, paths, hashes). */
+figure div.ag-table-scroll table td {
+  max-width: 40ch;
+  overflow-wrap: anywhere;
+}
+
+/*
+ * R-1 edge shadows, pure CSS — they follow scroll and resize with no
+ * listeners. The two local-attached cover gradients are pinned to the
+ * scrollable content and painted in the editor background color, so
+ * each one hides its shadow while that side is at rest (or, for the
+ * right one, once it reaches the far end); the two scroll-attached
+ * shadows stay pinned to the scrollport edges. All four layers paint
+ * below the table content itself. --editorBgColor tracks the theme,
+ * so the covers stay invisible in light and dark alike.
+ */
+figure div.ag-table-scroll {
+  background:
+    linear-gradient(to right, var(--editorBgColor) 30%, transparent) left center / 40px 100% no-repeat local,
+    linear-gradient(to left, var(--editorBgColor) 30%, transparent) right center / 40px 100% no-repeat local,
+    linear-gradient(to right, rgba(0, 0, 0, 0.28), transparent 70%) left center / 14px 100% no-repeat,
+    linear-gradient(to left, rgba(0, 0, 0, 0.28), transparent 70%) right center / 14px 100% no-repeat;
+}
