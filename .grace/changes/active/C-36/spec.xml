@@ -1,0 +1,55 @@
+<GraceChangeSpec graceVersion='4.0' status='draft'>
+<C-36>
+  <Name>Portable site AI assistant as a reusable open-source module (extracted from Avenex outreach)</Name>
+  <Created>2026-10-14</Created>
+  <Priority>medium</Priority>
+  <Status>draft</Status>
+  <RoadmapPhase>A</RoadmapPhase>
+  <Complexity>L (≈2 weeks)</Complexity>
+
+  <Summary>
+    Extract the Avenex outreach chat (Cloudflare Worker: answer model + separate topic gate, KB grounding with whole-KB or top-k retrieval, HMAC-signed history, link catalog validation, D1 neuron budget, per-visitor limits, hashed IPs, 90-day log, localStorage client) into a standalone repository used by both Avenex and Mark with per-site knowledge bases and budgets; evaluate publishing it as open source.
+  </Summary>
+
+  <Problem>
+    <Description>The user wants an AI assistant on the Mark site and a reusable, portable module, possibly an open repo.</Description>
+  </Problem>
+
+  <Goals>
+    <R-1>A1 extraction: package repo (worker, widget, KB indexer, D1 migrations, config schema, tests with stubbed AI); Avenex switched to it without behaviour change.</R-1>
+    <R-2>A2 Mark integration: Mark KB (docs, FAQ, release notes), prompts, off-topic texts in 10 languages, own budget, widget themed to the ¶ brand.</R-2>
+    <R-3>A3 open-source hardening: scrub prompts/KB of client and employer names, licence, README, threat model, CI, example deployment; publish only on the user's go.</R-3>
+  </Goals>
+
+  <Phases>
+    <A1><Title>Extract into a package; Avenex on the package</Title><Complexity>M</Complexity></A1>
+    <A2><Title>Mark KB + site integration</Title><Complexity>M</Complexity></A2>
+    <A3><Title>Open-source hardening and publication</Title><Complexity>M</Complexity></A3>
+  </Phases>
+
+  <Dependencies>C-35 S5 (Cloudflare hosting or a separate Worker route).</Dependencies>
+
+  <Constraints>
+    <Constraint>Secrets only via the hosting secret store; budgets split per site; nothing published without the user's go; no client data in prompts or KB.</Constraint>
+  </Constraints>
+
+  <NonGoals>
+    <NonGoal>General-purpose chatbot features outside site guidance.</NonGoal>
+  </NonGoals>
+
+  <AcceptanceCriteria>
+    <Criterion>Avenex unchanged after switching; Mark assistant answers only from its KB, refuses off-topic, respects budgets; leak grep clean before publishing.</Criterion>
+  </AcceptanceCriteria>
+
+  <AffectedAreas>
+    <External>new assistant repository; avenex-outreach site worker; mark site widget slot</External>
+  </AffectedAreas>
+
+  <VerificationIntent>Stubbed-AI unit tests, live smoke within quota, injection test set, leak grep.</VerificationIntent>
+
+  <Approval>
+    <ApprovedBy>pending — recorded as a draft on the user's request (2026-10-14): «с учетом сложности зафиксируем это фазами в грейс»</ApprovedBy>
+    <ApprovalScope>None yet; a plan.xml is written only after approval.</ApprovalScope>
+  </Approval>
+</C-36>
+</GraceChangeSpec>
