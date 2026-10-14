@@ -13,7 +13,8 @@
 //   t - translate a key via the global i18n instance (key passthrough on error).
 //   setLanguage - apply a locale; 'system' (C-45) is resolved to a shipped locale first.
 //   getCurrentLanguage - the effective locale code (never 'system').
-//   i18n - the vue-i18n instance (named + default export).
+//   i18n - the vue-i18n instance (named export).
+//   default - the same vue-i18n instance.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
