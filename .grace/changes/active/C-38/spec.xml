@@ -34,8 +34,14 @@
   <Phases>
     <N1><Title>Per-OS settings entry points + menu rename</Title><Complexity>S</Complexity></N1>
     <N2><Title>Settings IA audit and new section map</Title><Complexity>S</Complexity></N2>
-    <N3><Title>Settings window redesign (mockups → implementation)</Title><Complexity>M</Complexity></N3>
-    <N4><Title>Native chrome pass (fonts, vibrancy, icons, accent) per OS</Title><Complexity>M</Complexity></N4>
+    <N3>
+      <Title>Settings window redesign (mockups → implementation)</Title><Complexity>M</Complexity>
+      <Acceptance>Step 1: canvas artboards (macOS light/dark, Windows, RU long labels) built from the N2 IA document and approved by the user. Step 2: implementation behind no flag; preference keys unchanged except the migrations listed in N2; route/e2e settings tests updated to 5 tabs; WebKit screenshot matrix light/dark × 10 locales without clipped labels.</Acceptance>
+    </N3>
+    <N4>
+      <Title>Native chrome pass (fonts, vibrancy, icons, accent) per OS</Title><Complexity>M</Complexity>
+      <Acceptance>Split into small approvals: (a) system UI font for chrome, (b) system accent colour, (c) macOS sidebar vibrancy, (d) icon redraw, (e) Windows Mica. Each item gated per OS with a test per platform and a before/after screenshot on the canvas.</Acceptance>
+    </N4>
   </Phases>
 
   <Dependencies>None; best before C-35 so the site shows the new chrome.</Dependencies>

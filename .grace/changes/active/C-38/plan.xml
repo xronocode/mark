@@ -55,5 +55,14 @@
       </Verification>
     </T-002>
   </ImplementationPlan>
+
+  <Evidence>
+    <T-001>
+      <Status>done</Status>
+      <Commits>069d57e1 (agent/c38-n1, ZCode agent edits; orchestrator ran the gates and committed), cb817b8a merge, follow-up MODULE_MAP fix</Commits>
+      <Gates>Old-code proof: titleBar-osx (3), menu-consistency Settings pin, titleBar-resize 222px pin fail on the pre-change sources. On main after merge: npm test 250 files / 3381 passed; cargo test m009 15 passed; grace lint Errors: 0; GitHub CI + test green (runs 38627637034 / 38627636941).</Gates>
+      <Pending>Live check in the real macOS build (no gear, ⌘, opens Settings, menu reads "Settings…") and a Windows lane look — folded into the C-23 release smoke.</Pending>
+    </T-001>
+  </Evidence>
 </C-38>
 </GraceChangePlan>
