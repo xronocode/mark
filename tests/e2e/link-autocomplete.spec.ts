@@ -28,6 +28,9 @@ test.describe('link path autocomplete (C-20)', () => {
       }
       ;(window as any).__mockInvoke['mt_fs_stat'] = (args: any) => {
         const p = String(args?.path || '')
+        // No .before sidecar: a stat hit would auto-enable diff mode
+        // (M-031), which hides the editing surface this test types into.
+        if (p.endsWith('.before')) throw new Error('not found')
         if (p.endsWith('/sub')) return { isFile: false, isDirectory: true, is_directory: true }
         return { isFile: true, isDirectory: false, is_directory: false }
       }
