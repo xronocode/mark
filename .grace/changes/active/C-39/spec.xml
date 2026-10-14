@@ -17,7 +17,7 @@
 
   <Goals>
     <R-1>Wide tables never overflow the text column: the table sits in a horizontally scrollable wrapper with an edge shadow on the side that has hidden columns.</R-1>
-    <R-2>Narrow tables keep content width (GitHub behaviour), not stretched to the column.</R-2>
+    <R-2>Narrow tables keep content width (not stretched to the column) and sit centred in the text column like diagrams (user 2026-10-15, like MarkView); the table tools bar is centred over the table and the viewer's expand button sits beside the table's top-right corner; export/PDF centres tables too. Cell text alignment stays as the GFM delimiter row says.</R-2>
     <R-3>Long unbreakable tokens (URLs, paths, hashes) wrap inside body cells (max cell width ≈ 40ch, overflow-wrap: anywhere); header cells and short words are not broken mid-word.</R-3>
     <R-4>Fullscreen viewer for a table as a separate object (hover ⤢ button, same shortcut as diagrams): pan/zoom, sticky header, Esc closes, read-only. Built as ONE shared block-viewer overlay together with C-34 R2.2 (Mermaid), so both get the same controls and shortcuts.</R-4>
     <R-5>Manual column width by dragging a column border; lives only for the session (not written to the .md, reset on reload); double-click the border resets to auto.</R-5>

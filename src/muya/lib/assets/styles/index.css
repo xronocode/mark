@@ -1407,6 +1407,11 @@ figure div.ag-table-scroll {
 figure div.ag-table-scroll > table {
   width: max-content;
   max-width: none;
+  /* Narrow tables sit centred in the text column like diagrams (user
+     2026-10-15); a table wider than the column gets 0 auto margins and
+     scrolls from its first column. Cell text alignment stays as the
+     GFM delimiter row says. */
+  margin-inline: auto;
 }
 
 /* Thin horizontal scrollbar, same as wide mermaid diagrams (C-34 R2.1
@@ -1418,6 +1423,12 @@ figure div.ag-table-scroll::-webkit-scrollbar {
 }
 figure div.ag-table-scroll::-webkit-scrollbar-thumb {
   border-radius: 3px;
+}
+
+/* The table tools bar (insert / align / delete) follows the centred
+   table instead of hugging the left edge of the text column. */
+figure[data-role='TABLE'] > .ag-tool-bar ul {
+  justify-content: center;
 }
 
 /* R-3: header cells never break normal words mid-word. */
