@@ -1,0 +1,71 @@
+<GraceChangeSpec graceVersion='4.0' status='draft'>
+<C-38>
+  <Name>Native-feeling chrome and a redesigned Settings window, gated per OS</Name>
+  <Created>2026-10-15</Created>
+  <Priority>high</Priority>
+  <Status>draft</Status>
+  <RoadmapPhase>N</RoadmapPhase>
+  <Complexity>M–L (≈2 weeks, in sub-phases)</Complexity>
+
+  <Summary>
+    User request 2026-10-15: drop the Settings gear from the titlebar where the
+    system menu already has Settings (make that part OS-specific and gate it per
+    platform), rethink the Settings window as a designer and product owner —
+    MarkView's settings are laconic and good-looking, aim for that — and bring
+    the whole UI visually closer to native macOS chrome.
+    Today the Settings window is MarkText's web-style page: 9 left-rail sections
+    with a green accent, "Label:" colons and info icons, large Lorem-ipsum theme
+    cards, Open Sans everywhere, and visible bugs ("14px px", an empty "Max
+    width" field).
+  </Summary>
+
+  <Problem>
+    <Description>Duplicated entry points (titlebar gear + Mark › Preferences ⌘,), a non-native Settings window and chrome that reads as a web page next to native competitors (MarkView: SwiftUI grouped forms, SF Symbols, native tabs).</Description>
+  </Problem>
+
+  <Goals>
+    <R-1>N1 entry points per OS: macOS hides the titlebar gear (Mark › Settings… ⌘, — renamed from "Preferences…" per current HIG); Windows/Linux keep a settings entry in the frameless titlebar / app-menu hamburger. Gated through the existing per-platform capability layer (m048 / isOsx), with tests per platform.</R-1>
+    <R-2>N2 information architecture: 9 sections → 5 — General (startup, language, files and autosave, updates), Appearance (theme, follow system, fonts, size, line width), Editor (typing behaviour, lists, tabs, spelling), Markdown (footnotes, math, callouts, front matter, GitLab compatibility), Advanced (images and assets, keybindings, extensions, reset). Every option audited: keep, merge, move to Advanced, or drop; plain-language labels, no colons, help as secondary text instead of info icons.</R-2>
+    <R-3>N3 Settings window visuals: macOS-style toolbar tabs with icons, fixed width (~640 px), grouped inset sections with hairline separators, switches / pop-up buttons / steppers, right-aligned values, compact theme swatches (light/dark pairs + follow-system segmented control) instead of Lorem cards; system font; system accent colour (CSS AccentColor) instead of the green; dark mode parity; remembers the last tab. Fix "14px px" and empty-field defaults.</R-3>
+    <R-4>N4 native chrome across the app: system UI font for titlebar, tabs, sidebar and dialogs; macOS sidebar vibrancy (Tauri window effects) and hairline separators; icon set aligned with SF Symbols metrics (drawn icons, no SF Symbols assets); accent follows the system; Windows gets Mica / Fluent-sized controls, Linux stays neutral — each behind the per-OS gate.</R-4>
+    <R-5>Design first: canvas mockups of the Settings window (macOS light/dark, Windows) and chrome changes approved before code; MarkView settings studied as the reference (laconic grouped forms).</R-5>
+  </Goals>
+
+  <Phases>
+    <N1><Title>Per-OS settings entry points + menu rename</Title><Complexity>S</Complexity></N1>
+    <N2><Title>Settings IA audit and new section map</Title><Complexity>S</Complexity></N2>
+    <N3><Title>Settings window redesign (mockups → implementation)</Title><Complexity>M</Complexity></N3>
+    <N4><Title>Native chrome pass (fonts, vibrancy, icons, accent) per OS</Title><Complexity>M</Complexity></N4>
+  </Phases>
+
+  <Dependencies>None; best before C-35 so the site shows the new chrome.</Dependencies>
+
+  <Constraints>
+    <Constraint>No SF Symbols assets or Apple trademarks shipped; drawn icons only.</Constraint>
+    <Constraint>Every preference keeps its key and behaviour unless the IA audit explicitly drops it; migration for moved keys.</Constraint>
+    <Constraint>Per-OS behaviour pinned by tests for each platform (CI already runs macOS, Ubuntu and Windows lanes).</Constraint>
+  </Constraints>
+
+  <NonGoals>
+    <NonGoal>Rewriting the Settings window natively (stays in the webview).</NonGoal>
+  </NonGoals>
+
+  <AcceptanceCriteria>
+    <Criterion>macOS: no titlebar gear; ⌘, opens Settings; Windows/Linux keep a reachable entry.</Criterion>
+    <Criterion>Settings fits 5 tabs without scrolling on the common screens; all 10 UI languages fit; light/dark parity.</Criterion>
+    <Criterion>Side-by-side with MarkView the window reads as native (design review on the canvas).</Criterion>
+  </AcceptanceCriteria>
+
+  <AffectedAreas>
+    <M-011>titleBar, preference page and prefComponents, sidebar/tabs chrome</M-011>
+    <M-009>Mark › Settings… menu label</M-009>
+  </AffectedAreas>
+
+  <VerificationIntent>Per-OS unit tests for the entry points; e2e settings-route updated for the new tabs; WebKit screenshot matrix of the Settings window (light/dark, 10 languages); live check in the real app.</VerificationIntent>
+
+  <Approval>
+    <ApprovedBy>pending — recorded as a draft on the user's request (2026-10-15)</ApprovedBy>
+    <ApprovalScope>None yet; a plan.xml is written only after approval.</ApprovalScope>
+  </Approval>
+</C-38>
+</GraceChangeSpec>
