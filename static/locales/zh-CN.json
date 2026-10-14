@@ -176,6 +176,8 @@
       "light": "浅色",
       "dark": "深色",
       "auto": "自动",
+      "paper": "Paper",
+      "ink": "Ink",
       "followThemDisabled": "跟随系统主题时无法选择主题",
       "lightThemes": "— 浅色主题 —",
       "darkThemes": "— 深色主题 —",
@@ -1445,6 +1447,13 @@
     "vega-lite-start": "vega-lite 开始",
     "click-to-add-image": "点击添加图片",
     "load-image-failed": "图片加载失败"
+  },
+  "titleBar": {
+    "themeMode": {
+      "auto": "主题：自动",
+      "light": "主题：浅色",
+      "dark": "主题：深色"
+    }
   },
   "diffView": {
     "current": "当前",

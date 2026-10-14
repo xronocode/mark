@@ -14,17 +14,44 @@
   <ObservedWriteScope>
     <File>src/renderer/src/assets/themes/paper.theme.css</File>
     <File>src/renderer/src/assets/themes/ink.theme.css</File>
+    <File>src/renderer/src/assets/themes/prismjs/paper.theme.css</File>
+    <File>src/renderer/src/assets/themes/prismjs/ink.theme.css</File>
     <File>src/renderer/src/util/theme.js</File>
+    <File>src/renderer/src/util/themeColor.js</File>
+    <File>src/renderer/src/util/autoTheme.js</File>
     <File>src/renderer/src/config.js</File>
+    <File>src/renderer/src/pages/app.vue</File>
+    <File>src/renderer/src/pages/preference.vue</File>
     <File>src/renderer/src/components/titleBar/index.vue</File>
     <File>src/renderer/src/store/preferences.js</File>
     <File>src/renderer/src/_shims/preferences/schema.json</File>
+    <File>src/renderer/src/_shims/install-window-globals.js</File>
     <File>src/renderer/src/prefComponents/theme/*</File>
+    <File>src/renderer/src/commands/index.js</File>
     <File>static/locales/*.json</File>
+    <File>static/locales/*.min.json</File>
+    <File>src-tauri/src/m005_prefs.rs</File>
+    <File>src-tauri/src/m009_menu.rs</File>
+    <File>src-tauri/src/main.rs</File>
     <File>tests/renderer/**/*theme*.test.js</File>
+    <File>tests/renderer/util/autoTheme.test.js</File>
     <File>tests/renderer/components/titleBar*.test.js</File>
     <File>.grace/verification/runtime.xml</File>
+    <File>.grace/graph/runtime.xml</File>
   </ObservedWriteScope>
+  <!-- T-001 implementation note (2026-10-15): three src-tauri files joined
+       the scope beyond the original plan list — (1) m005_prefs.rs + main.rs:
+       the M-025.3 boot override force-flipped every persisted
+       followSystemTheme=true back to false, which would reset the user's
+       Auto choice on each restart (its own doc comment prescribed deletion
+       once real prefers-color-scheme wiring landed, which is this change);
+       (2) m009_menu.rs: menu-consistency.test.js requires every renderer
+       command id to exist in the native View > Theme menu, so the
+       Paper/Ink palette entries need matching native menu items. The
+       command palette (commands/index.js), the shared auto-theme util
+       (util/autoTheme.js), and the app.vue/preference.vue wiring are the
+       natural homes for registration/live-follow; none rewrite stored
+       preferences for existing users. -->
   <ImplementationPlan>
     <T-001>
       <Title>Paper + Ink themes as defaults; Auto/Light/Dark title-bar button</Title>

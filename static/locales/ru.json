@@ -176,6 +176,8 @@
       "light": "Светлая",
       "dark": "Тёмная",
       "auto": "Авто",
+      "paper": "Paper",
+      "ink": "Ink",
       "followThemDisabled": "Выбор темы отключён, когда включено следование системной теме",
       "lightThemes": "— Светлые темы —",
       "darkThemes": "— Тёмные темы —",
@@ -1454,6 +1456,13 @@
     "vega-lite-start": "начало vega-lite",
     "click-to-add-image": "Нажмите, чтобы добавить изображение",
     "load-image-failed": "Не удалось загрузить изображение"
+  },
+  "titleBar": {
+    "themeMode": {
+      "auto": "Тема: Авто",
+      "light": "Тема: Светлая",
+      "dark": "Тема: Тёмная"
+    }
   },
   "diffView": {
     "current": "Текущая",

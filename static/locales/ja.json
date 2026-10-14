@@ -176,6 +176,8 @@
       "light": "ライト",
       "dark": "ダーク",
       "auto": "自動",
+      "paper": "Paper",
+      "ink": "Ink",
       "followThemDisabled": "システムテーマに従う場合、テーマ選択は無効です",
       "lightThemes": "— ライトテーマ —",
       "darkThemes": "— ダークテーマ —",
@@ -1438,6 +1440,13 @@
     "vega-lite-start": "vega-lite開始",
     "click-to-add-image": "クリックして画像を追加",
     "load-image-failed": "画像の読み込みに失敗しました"
+  },
+  "titleBar": {
+    "themeMode": {
+      "auto": "テーマ: 自動",
+      "light": "テーマ: ライト",
+      "dark": "テーマ: ダーク"
+    }
   },
   "edit": {
     "undo": "元に戻す",
