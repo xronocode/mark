@@ -47,7 +47,7 @@ describe('config.js', () => {
       codeFontFamily: config.DEFAULT_CODE_FONT_FAMILY,
       codeFontSize: '14px',
       hideScrollbar: false,
-      theme: 'light'
+      theme: 'paper' // C-41 T-001: brand default
     })
   })
 

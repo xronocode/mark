@@ -9,6 +9,8 @@ import * as themeColor from '@/util/themeColor'
 
 describe('util/themeColor', () => {
   const exports = [
+    // C-41 T-001 brand themes
+    'paper', 'ink',
     'dark', 'graphite', 'materialDark', 'oneDark', 'ulysses',
     'dracula', 'nord', 'catppuccinMocha', 'gruvboxDark', 'tokyoNight',
     'tokyoNightStorm', 'solarizedDark', 'ayuDark', 'ayuMirage',
@@ -19,8 +21,8 @@ describe('util/themeColor', () => {
     'solarizedLight', 'ayuLight', 'everforestLight', 'rosePineDawn'
   ]
 
-  it('should export all 32 theme factories as functions', () => {
-    expect(exports.length).toBe(32)
+  it('should export all 34 theme factories as functions', () => {
+    expect(exports.length).toBe(34)
     for (const name of exports) {
       expect(typeof themeColor[name], `${name} should be a function`).toBe('function')
     }
@@ -31,6 +33,13 @@ describe('util/themeColor', () => {
       const result = themeColor[name]()
       expect(typeof result, `${name}() should return string`).toBe('string')
     }
+  })
+
+  it('paper and ink are registered factories (C-41 T-001)', () => {
+    // CSS ?inline imports resolve to '' under vitest; content is pinned in
+    // tests/renderer/pages/theme-paper-ink.test.js from the files on disk.
+    expect(typeof themeColor.paper).toBe('function')
+    expect(typeof themeColor.ink).toBe('function')
   })
 
   it('dark returns a string containing CSS', () => {

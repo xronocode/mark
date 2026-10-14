@@ -1,0 +1,177 @@
+/*
+ * Prism.js Paper Theme (Light)
+ * C-41 T-001 brand companion to paper.theme.css — ochre keywords on warm
+ * paper code backgrounds (#F2ECE1), ink-blue identifiers, WCAG-AA body tokens.
+ */
+
+code[class*="language-"],
+pre.ag-paragraph {
+  color: #22252B;
+  text-align: left;
+  white-space: pre;
+  word-spacing: normal;
+  word-break: normal;
+  word-wrap: normal;
+  -moz-tab-size: 4;
+  -o-tab-size: 4;
+  tab-size: 4;
+  -webkit-hyphens: none;
+  -moz-hyphens: none;
+  -ms-hyphens: none;
+  hyphens: none;
+  overflow: visible;
+}
+
+pre.ag-paragraph {
+  padding: 1em;
+  margin: 1em 0;
+  border-radius: 0.3em;
+}
+
+:not(pre) > code[class*="language-"],
+pre.ag-paragraph {
+  background: var(--codeBlockBgColor, #F2ECE1);
+}
+
+:not(pre) > code[class*="language-"] {
+  padding: .1em;
+  border-radius: .3em;
+  white-space: normal;
+}
+
+/* Comments — warm gray-brown */
+.token.comment,
+.token.prolog,
+.token.doctype,
+.token.cdata {
+  color: #6E675B;
+  font-style: italic;
+}
+
+/* Punctuation — muted ink */
+.token.punctuation {
+  color: #6B6455;
+}
+
+/* Namespace — muted violet */
+.namespace {
+  color: #5B4A86;
+  opacity: .85;
+}
+
+/* Keywords — dark ochre (brand accent, AA on paper) */
+.token.keyword {
+  color: #7E5B00;
+}
+
+/* Control-flow keywords — full ochre */
+.token.keyword.control-flow {
+  color: #9A6F00;
+}
+
+/* Types / class names — muted violet */
+.token.class-name {
+  color: #5B4A86;
+}
+
+/* Functions — ink blue */
+.token.function,
+.token.function-definition {
+  color: #2F5AA8;
+}
+
+/* Strings — muted green */
+.token.selector,
+.token.attr-name,
+.token.string,
+.token.char,
+.token.template-string {
+  color: #4E6E58;
+}
+
+/* Numbers, booleans — amber-brown */
+.token.boolean,
+.token.number {
+  color: #944F00;
+}
+
+/* Properties, tags, constants — ink blue */
+.token.property,
+.token.tag,
+.token.constant,
+.token.symbol {
+  color: #2F5AA8;
+}
+
+/* Built-in types/functions — violet */
+.token.builtin {
+  color: #5B4A86;
+}
+
+/* Macros — violet like types */
+.token.macro {
+  color: #5B4A86;
+}
+
+/* Parameters — warm ink */
+.token.parameter {
+  color: #55503F;
+}
+
+/* Variables — warm ink */
+.token.variable {
+  color: #55503F;
+}
+
+/* Operators — ink */
+.token.operator,
+.token.entity,
+.token.url,
+.language-css .token.string,
+.style .token.string {
+  color: #444A52;
+}
+
+/* Arrow — ochre */
+.token.arrow {
+  color: #7E5B00;
+}
+
+/* Attribute values, at-rules — muted green */
+.token.atrule,
+.token.attr-value {
+  color: #4E6E58;
+}
+
+/* Regex — brand red */
+.token.regex {
+  color: #B3261E;
+}
+
+/* Important */
+.token.important {
+  color: #7E5B00;
+  font-weight: bold;
+}
+
+/* Inserted — green (diffs) */
+.token.inserted {
+  color: #4E6E58;
+}
+
+/* Deleted — red (diffs) */
+.token.deleted {
+  color: #B3261E;
+}
+
+.token.bold {
+  font-weight: bold;
+}
+
+.token.italic {
+  font-style: italic;
+}
+
+.token.entity {
+  cursor: help;
+}

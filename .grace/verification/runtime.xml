@@ -3280,6 +3280,14 @@
         <Command>npm run typecheck:ipc</Command>
         <Command>npm run build</Command>
         <Command>npm run tauri:build</Command>
+        <Command>
+          npx vitest run tests/renderer/components/titleBar-theme.test.js
+          tests/renderer/components/titleBar-deep.test.js
+          tests/renderer/util/autoTheme.test.js
+          tests/renderer/pages/theme-paper-ink.test.js
+          tests/renderer/util/themeColor.test.js
+        </Command>
+        <Command>cargo test follow_system_theme_true_survives_reload</Command>
       </Commands>
       <Scenarios>
         <Scenario>
@@ -3629,7 +3637,41 @@
           (Settings… label + Cmd+, accelerator, "Preferences…" gone).
         </Scenario>
         <Scenario>
-          scenario-38: Diff against Mark's own snapshots (C-43 S1): every
+          scenario-38: brand themes + Auto/Light/Dark title-bar button (C-41
+          T-001): Paper (light) and Ink (dark) ship as the new-profile
+          defaults (followSystemTheme=true, lightModeTheme=paper,
+          darkModeTheme=ink, theme=paper); ink rides the railscasts dark
+          classification (dark CodeMirror theme, body.dark,
+          color-scheme: dark). The title-bar theme button cycles
+          Auto → Light → Dark (Avenex half-disc/sun/moon icons, localized
+          tooltip/aria-label titleBar.themeMode.* in all ten locales);
+          Auto sets followSystemTheme=true and the effective theme follows
+          prefers-color-scheme via util/autoTheme.js plus the app.vue /
+          preference.vue matchMedia change listeners (live OS appearance
+          flips; while in Auto the resolved theme is a local state write —
+          the persisted `theme` preference is never rewritten); Light/Dark
+          pin lightModeTheme/darkModeTheme with followSystemTheme=false.
+          Stored preferences never change on upgrade (a stored
+          theme=nord + followSystemTheme=false hydrates untouched); the
+          M-025.3 backend boot override that force-flipped persisted Auto
+          back to false is removed so Auto survives restarts. The Settings
+          theme page shows the followSystemTheme toggle and the light/dark
+          member selects again (a manual card pick leaves Auto). Pinned in
+          tests/renderer/components/titleBar-theme.test.js (cycle order,
+          icons, tooltips, persisted writes) +
+          tests/renderer/components/titleBar-deep.test.js (themeMode
+          states) + tests/renderer/util/autoTheme.test.js (paper/ink
+          resolution for both appearances, live change event, manual
+          passthrough) + tests/renderer/pages/theme-paper-ink.test.js
+          (themeMap injection + dark classification, fresh-profile
+          defaults, stored-theme preservation, Settings un-hide source pin,
+          palette + native-menu registration) +
+          tests/renderer/util/themeColor.test.js (34 factories incl.
+          paper/ink with Prism companions) + cargo test
+          follow_system_theme_true_survives_reload (src-tauri/src/m005_prefs.rs).
+        </Scenario>
+        <Scenario>
+          scenario-39: Diff against Mark's own snapshots (C-43 S1): every
           APPLY_FILE_CHANGE apply path (legacy change.data, the watcher
           disk-read, and both confirm branches of the dirty-tab conflict
           prompt) records the tab's pre-reload markdown into an in-memory

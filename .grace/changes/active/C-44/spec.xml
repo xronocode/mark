@@ -1,0 +1,24 @@
+<GraceChangeSpec graceVersion='4.0' status='approved'>
+<C-44>
+  <Name>App Store build: enable the macOS Share button</Name>
+  <Created>2026-10-15</Created>
+  <Priority>medium</Priority>
+  <Status>approved</Status>
+  <RoadmapPhase>R1</RoadmapPhase>
+  <Complexity>S</Complexity>
+  <Summary>The App Store build hides the title-bar Share button only because m048 reports share=false there; mt_share_file (m032, NSSharingServicePicker on a file the user opened) is sandbox-safe. Report share=true on macOS in the app-store build too. The m045 live server stays OFF in the app-store build (App Review comment; user decision 2026-10-15).</Summary>
+  <Problem><Description>User 2026-10-15: «поделиться включаем»; «лайв выключаем … он должен оставаться по гейту выключенным».</Description></Problem>
+  <Goals>
+    <R-1>m048 mt_build_mode: share = cfg!(target_os = "macos") in the app-store variant as in desktop.</R-1>
+    <R-2>Unit guard: the app-store variant advertises share on macOS and still never advertises pandoc, screenshot or the default-handler; the live server stays compiled out.</R-2>
+  </Goals>
+  <Phases><S1><Title>Flag + guard test</Title><Complexity>S</Complexity></S1></Phases>
+  <Dependencies>None.</Dependencies>
+  <Constraints><Constraint>No new entitlements; the live server gate in main.rs is untouched.</Constraint></Constraints>
+  <NonGoals><NonGoal>Enabling the live server in the app-store build.</NonGoal></NonGoals>
+  <AcceptanceCriteria><Criterion>The App Store build shows the Share button on macOS and the share sheet opens for the current file.</Criterion></AcceptanceCriteria>
+  <AffectedAreas><M-048>build-mode capability flags</M-048></AffectedAreas>
+  <VerificationIntent>cargo test with and without --features app-store; live check in the next MAS build.</VerificationIntent>
+  <Approval><ApprovedBy>user (2026-10-15): «поделиться включаем»</ApprovedBy><ApprovalScope>S1.</ApprovalScope></Approval>
+</C-44>
+</GraceChangeSpec>
