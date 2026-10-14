@@ -1,0 +1,36 @@
+<GraceChangePlan graceVersion='4.0' status='approved'>
+<C-45>
+  <ChangeRef>C-45</ChangeRef>
+  <Created>2026-10-15</Created>
+  <IntentSummary>Add language='system' resolved from navigator.languages, make it the new-profile default, keep stored values. ZCode agent without shell; orchestrator verifies.</IntentSummary>
+  <BaselineAssertions><MustContain><File>src/renderer/src/i18n/index.js</File><Text>setLanguage</Text></MustContain></BaselineAssertions>
+  <TargetAssertions><MustContain><File>src/renderer/src/i18n/index.js</File><Text>system</Text></MustContain></TargetAssertions>
+  <DurableScope><M-055/><M-011/></DurableScope>
+  <ObservedWriteScope>
+    <File>src/renderer/src/i18n/*.js</File>
+    <File>src/renderer/src/store/preferences.js</File>
+    <File>src/renderer/src/_shims/preferences/schema.json</File>
+    <File>src/renderer/src/prefComponents/general/config.js</File>
+    <File>src/renderer/src/prefComponents/language/index.vue</File>
+    <File>src/renderer/src/pages/app.vue</File>
+    <File>static/locales/*.json</File>
+    <File>tests/renderer/**/*language*.test.js</File>
+    <File>tests/renderer/**/*i18n*.test.js</File>
+    <File>tests/renderer/store/*.test.*</File>
+    <File>.grace/verification/runtime.xml</File>
+  </ObservedWriteScope>
+  <ImplementationPlan>
+    <T-001>
+      <Title>System option + resolution + default</Title>
+      <DependsOn></DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>resolveSystemLocale(languages) maps navigator.languages to a shipped locale per spec R-1; setLanguage('system') applies the resolved locale; getCurrentLanguage returns the effective locale.</Criterion>
+        <Criterion>'system' first in the language select with a localized "As in system" label (all locale files, .json and .min.json); default 'system' in store and schema; stored values untouched.</Criterion>
+        <Criterion>Re-resolution on languagechange / window focus when the preference is 'system'.</Criterion>
+        <Criterion>Unit tests: mapping table incl. en-KG, ru-RU, pt-BR, zh-Hans, zh-HK, de-AT, unknown → en; default for a fresh profile; stored 'ru' preserved.</Criterion>
+      </AcceptanceCriteria>
+      <Verification><Command>npm test</Command><Command>grace lint --path . --assertions current</Command></Verification>
+    </T-001>
+  </ImplementationPlan>
+</C-45>
+</GraceChangePlan>

@@ -1,0 +1,25 @@
+<GraceChangeSpec graceVersion='4.0' status='approved'>
+<C-45>
+  <Name>Interface language "As in system" (default for new profiles)</Name>
+  <Created>2026-10-15</Created>
+  <Priority>medium</Priority>
+  <Status>approved</Status>
+  <RoadmapPhase>R1</RoadmapPhase>
+  <Complexity>S</Complexity>
+  <Summary>The UI language is a fixed code (default 'en') with no system option. Since 2.3.0 fixed locale loading, a language stored long ago (e.g. 'ru') suddenly takes effect. Add a "System" choice that follows the macOS/Windows preferred languages and make it the default for new profiles.</Summary>
+  <Problem><Description>User 2026-10-15: after updating to 2.3.0 the UI turned Russian on an English system (stored language 'ru'); «как в системе да».</Description></Problem>
+  <Goals>
+    <R-1>New preference value language = 'system' with a label "As in system" (localized) first in the language select; the effective locale is resolved from navigator.languages: first entry whose language matches a shipped locale (en, de, es, fr, ja, ko, pt, ru, zh-CN, zh-TW); zh-Hans/zh-CN/zh-SG → zh-CN, zh-Hant/zh-TW/zh-HK/zh-MO → zh-TW, pt-* → pt; fallback en.</R-1>
+    <R-2>Default for new profiles is 'system'; existing stored values stay as they are (no migration).</R-2>
+    <R-3>Re-resolve when the window regains focus or on the languagechange event, so a system language change applies without a restart.</R-3>
+  </Goals>
+  <Phases><S1><Title>System option + resolution + default</Title><Complexity>S</Complexity></S1></Phases>
+  <Dependencies>M-055 RendererI18n (localeLoader).</Dependencies>
+  <Constraints><Constraint>No change to stored user choices; the native menu labels are out of scope.</Constraint></Constraints>
+  <NonGoals><NonGoal>Translating the native menu bar.</NonGoal></NonGoals>
+  <AcceptanceCriteria><Criterion>Fresh profile on an English system shows English; switching the system to Russian and focusing Mark shows Russian; a stored 'ru' stays Russian until the user picks "As in system".</Criterion></AcceptanceCriteria>
+  <AffectedAreas><M-055>i18n setLanguage + resolution</M-055><M-011>language select, preferences default</M-011></AffectedAreas>
+  <VerificationIntent>Unit tests for resolution and the default; settings select shows the option.</VerificationIntent>
+  <Approval><ApprovedBy>user (2026-10-15): «как в системе да»</ApprovedBy><ApprovalScope>S1.</ApprovalScope></Approval>
+</C-45>
+</GraceChangeSpec>
