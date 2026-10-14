@@ -4,14 +4,13 @@
 //   PURPOSE: Unit tests for the C-43 per-tab pre-reload snapshot ring (store/diffSnapshots.js): record/latest/clear, dedupe of an unchanged newest snapshot, the 5-per-tab cap with oldest dropped, independent tabs, and the returned copy contract.
 //   SCOPE: The ring module only — editor.js wiring is covered by tests/renderer/store/live-reload-snapshots.test.js.
 //   DEPENDS: src/renderer/src/store/diffSnapshots.js
-//   LINKS: .grace/changes/active/C-43 R-1/R-4; .grace/verification/runtime.xml V-M-011 scenario-38
+//   LINKS: .grace/changes/active/C-43 R-1/R-4; .grace/verification/runtime.xml V-M-011 scenario-39
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
-//   ring - record N distinct snapshots for a tab id (oldest first).
-//   fixedTakenAt - deterministic timestamp for {time} formatting assertions.
+//   TAB_A - id of the first fixture tab.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
@@ -26,6 +25,8 @@ import {
   __resetDiffSnapshots,
   SNAPSHOT_LIMIT
 } from '@/store/diffSnapshots'
+
+const TAB_A = 'tab-a'
 
 describe('store/diffSnapshots — C-43 snapshot ring', () => {
   beforeEach(() => {

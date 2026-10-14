@@ -4,7 +4,7 @@
 //   PURPOSE: Visual gate for C-43 S1 — after an external process rewrites an open file and live reload applies it, view.diff-mode shows the change against Mark's own pre-reload snapshot (header names the source with a timestamp) instead of failing on a missing .before/git baseline.
 //   SCOPE: Real renderer via vite preview + tauri-shim: per-file watcher event (mt::watch::event) + disk read (mt_fs_read) deliver the external change; the diff view's baseline priority and header label are asserted, and mt_diff_baseline must not run while a snapshot exists.
 //   DEPENDS: tests/e2e/fixtures/tauri-shim.ts, tests/e2e/fixtures/helpers.ts
-//   LINKS: .grace/changes/active/C-43 acceptance criterion; .grace/verification/runtime.xml V-M-011 scenario-38
+//   LINKS: .grace/changes/active/C-43 acceptance criterion; .grace/verification/runtime.xml V-M-011 scenario-39
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT
@@ -13,6 +13,7 @@
 //   ORIGINAL - pre-reload document (what the snapshot must keep).
 //   EXTERNAL - post-reload document (what the current side must show).
 //   emitExternalEdit - override mt_fs_read and fire the watcher modify event (shim subscriptionId filter passes on undefined === undefined).
+//   PATHNAME - absolute path of the open saved tab the shim serves.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY

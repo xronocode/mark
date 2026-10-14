@@ -2,7 +2,7 @@
   PURPOSE: M-031 read-only side-by-side diff of the current tab against its baseline; C-43 prefers Mark's own snapshot of the pre-reload content over the .before/git baseline.
   SCOPE: Baseline resolution (latest per-tab snapshot → mt_diff_baseline), CodeMirror MergeView rendering, header source label, auto-exit on unavailable baseline.
   DEPENDS: editor store (currentFile.id), store/diffSnapshots (latestSnapshot), preferences store (theme), mt_diff_baseline IPC.
-  LINKS: .grace/changes/active/C-43; .grace/verification/runtime.xml V-M-011 scenario-38; src-tauri/src/m031_diff.rs.
+  LINKS: .grace/changes/active/C-43; .grace/verification/runtime.xml V-M-011 scenario-39; src-tauri/src/m031_diff.rs.
   ROLE: RUNTIME
   MAP_MODE: EXPORTS
 MODULE_MAP:
