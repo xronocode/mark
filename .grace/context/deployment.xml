@@ -114,6 +114,12 @@
         <Complexity>L</Complexity>
         <DependsOn>Phase-S S5 hosting decision</DependsOn>
       </Phase-A>
+      <Phase-N>
+        <Title>Native-feeling chrome + redesigned Settings, gated per OS</Title>
+        <Changes>C-38 (N1 per-OS settings entry → N2 IA audit → N3 Settings window redesign → N4 native chrome pass)</Changes>
+        <Complexity>M–L</Complexity>
+        <DependsOn>none; best before Phase-S</DependsOn>
+      </Phase-N>
       <Phase-P>
         <Title>Portfolio case study (product, storefront, site)</Title>
         <Changes>C-37</Changes>
