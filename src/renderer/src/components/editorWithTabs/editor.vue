@@ -78,7 +78,7 @@
 
 <script setup>
 // FILE: src/renderer/src/components/editorWithTabs/editor.vue
-// VERSION: 1.18.0
+// VERSION: 1.18.1
 // START_MODULE_CONTRACT
 //   PURPOSE: Host the Muya WYSIWYG surface and coordinate document rendering, selection, scroll, preview, editor tools, and store/bus integration.
 //   SCOPE: Renderer-side Muya lifecycle and UI orchestration; does not own Markdown parsing rules or backend file persistence.
@@ -2118,6 +2118,17 @@ onBeforeUnmount(() => {
   overflow-anchor: none !important;
   background: var(--editorBgColor);
   color: var(--editorColor);
+  /* The text column must be a WebKit selection root, otherwise fully
+   * selected blocks paint their selection gaps across the whole window
+   * instead of stopping at the column edge. A flex item is a selection
+   * root without clipping (wide tables still overflow visibly). */
+  display: flex;
+  flex-direction: column;
+}
+
+.editor-component > #ag-editor-id {
+  width: 100%;
+  flex-shrink: 0;
 }
 
 /* M-022 mt-preview-mode: read-only visual treatment.

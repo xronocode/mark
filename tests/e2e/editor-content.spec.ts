@@ -60,4 +60,28 @@ test.describe('editor content', () => {
     const rows = table.first().locator('tr')
     await expect(rows).toHaveCount(3, { timeout: 5_000 })
   })
+
+  test('text column is a flex item so WebKit stops selection paint at the column edge', async ({ page }) => {
+    await bootEditor(page)
+    await openFileTab(page, '/tmp/column-test.md', '# Column\n\nShort.\n')
+    await expect(page.locator('#ag-editor-id h1')).toBeVisible({ timeout: 5_000 })
+
+    // A non-flex parent makes WKWebView fill fully selected blocks across
+    // the whole window instead of the 750px column.
+    const geo = await page.evaluate(() => {
+      const editor = document.querySelector('#ag-editor-id') as HTMLElement
+      const parent = editor.parentElement as HTMLElement
+      const e = editor.getBoundingClientRect()
+      const p = parent.getBoundingClientRect()
+      return {
+        display: getComputedStyle(parent).display,
+        width: Math.round(e.width),
+        leftGap: Math.round(e.left - p.left),
+        rightGap: Math.round(p.right - e.right - (parent.offsetWidth - parent.clientWidth))
+      }
+    })
+    expect(geo.display).toBe('flex')
+    expect(geo.width).toBe(750)
+    expect(Math.abs(geo.leftGap - geo.rightGap)).toBeLessThanOrEqual(1)
+  })
 })
