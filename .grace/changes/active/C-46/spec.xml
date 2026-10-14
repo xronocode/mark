@@ -1,0 +1,25 @@
+<GraceChangeSpec graceVersion='4.0' status='draft'>
+<C-46>
+  <Name>Welcome screen: open file / folder / new, recent files and folders, "Connect your agent"</Name>
+  <Created>2026-10-15</Created>
+  <Priority>medium</Priority>
+  <Status>draft</Status>
+  <RoadmapPhase>N</RoadmapPhase>
+  <Complexity>M</Complexity>
+  <Summary>An empty Mark window today is a sidebar with an Open Folder button and a recent-folders list. Replace it with a centred welcome screen inspired by MarkView's start screen (user 2026-10-15 liked it) and better: brand header with the tagline "Agents write. You shape it.", primary Open File, secondary Open Folder, New Document with shortcuts, Guide and What's New links, drop anywhere, recent files and folders (name, middle-ellipsis path, modified time, a "changed outside Mark" hint, remove on hover), and the one-line "Connect your agent" block with Copy (C-40 R-1a).</Summary>
+  <Problem><Description>User 2026-10-15 shared MarkView's start screen: «нравится как оформлена главная, хочется взять отсюда лучшее».</Description></Problem>
+  <Goals>
+    <R-1>Design on the canvas first (Paper, Ink, Windows) and approved before code.</R-1>
+    <R-2>Recent files are a new list (today only recent folders exist); stored like recentFolders; missing paths drop off quietly.</R-2>
+    <R-3>All strings in the 10 UI languages; keyboard reachable; works in both editions (no sandbox-only gaps).</R-3>
+  </Goals>
+  <Phases><W1><Title>Canvas mockups</Title><Complexity>S</Complexity></W1><W2><Title>Implementation</Title><Complexity>M</Complexity></W2></Phases>
+  <Dependencies>C-40 (Guide, connect-your-agent block), C-41 (Paper/Ink), C-38 N3/N4 visual language.</Dependencies>
+  <Constraints><Constraint>No account, no network calls; App Store build parity.</Constraint></Constraints>
+  <NonGoals><NonGoal>Templates gallery.</NonGoal></NonGoals>
+  <AcceptanceCriteria><Criterion>A fresh window shows the welcome screen; every action works by mouse and keyboard; recent lists survive restarts; looks right in Paper and Ink and on Windows.</Criterion></AcceptanceCriteria>
+  <AffectedAreas><M-011>sideBar/tree empty state → new welcome view, project store recent files</M-011></AffectedAreas>
+  <VerificationIntent>Unit tests for recent-files store; e2e: open from recent, copy prompt, drop file; WebKit screenshot matrix.</VerificationIntent>
+  <Approval><ApprovedBy>pending</ApprovedBy><ApprovalScope>None yet.</ApprovalScope></Approval>
+</C-46>
+</GraceChangeSpec>

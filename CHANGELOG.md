@@ -1,0 +1,209 @@
+# Changelog
+
+All notable changes to Mark. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versions before 2.3.0 were published as alpha and beta releases. Downloads and signatures for every version are on [GitHub Releases](https://github.com/xronocode/mark/releases).
+
+## [Unreleased]
+
+### Added
+- Paper and Ink themes, the defaults for new profiles, and an Auto / Light / Dark button in the title bar that can follow the system appearance.
+- A fullscreen viewer for Mermaid diagrams and other rendered blocks.
+- The Mac App Store edition shows the Share button.
+
+### Changed
+- Wide tables scroll inside the text column with a thin scrollbar; narrow tables are centred.
+
+### Known gaps
+Carried over from the old status table in the README:
+- Saving does not yet preserve a non-UTF-8 source encoding, and there is no manual encoding picker.
+- Multiple windows: `--new-window` is accepted but has no effect yet.
+- Intel Macs are not supported by the Homebrew cask; Linux builds are not published.
+- Image upload services (PicGo and similar) are not supported.
+
+## [2.3.0] - 2026-10-14
+
+The first release without the beta label.
+
+### Added
+- Split View: the Markdown source beside the rendered page for the current tab, toggled with one shortcut.
+- GitHub alerts (`> [!TIP]`) and Obsidian callouts render as blocks, in the editor and in exports.
+- Front matter opens as a properties table.
+- Copy as Structured Text: for email and chat, without Markdown markers but with paragraphs, lists, links and tables.
+- New app icon, with dark and tinted variants for macOS 26.
+
+### Changed
+- Footnotes are on by default.
+- Pasted and dropped images are saved to `assets/` next to the document.
+- Large documents open about 10 times faster: a 4,100-line file takes about 3 s instead of 37.
+- Mermaid keeps the last diagram that rendered while the source has an error, and shows the error below it. Wide diagrams keep their size and scroll; unchanged diagrams are not redrawn while you type.
+- On macOS, Settings moved to Mark › Settings… (⌘,); the gear button left the title bar.
+
+### Fixed
+- The interface language setting works again in all 10 languages (release builds before 2.3 stayed in English).
+- Diff mode shows changes again and closes with ⌘D.
+- Context-menu items work on the first click.
+- Renaming an open file in the sidebar moves its tab to the new path.
+- Selection no longer highlights the area outside the text column.
+
+## [2.2.0-beta] - 2026-10-07
+
+### Added
+- The first Windows release (x64 installer). The in-app updater works on macOS and Windows.
+- Link path completion: typing `](` suggests files and folders next to the document.
+- The Problems panel flags links to missing files and missing `#heading` anchors.
+- Print through the system print dialog, and PDF export without pandoc.
+- Go to Heading (`Cmd/Ctrl+T`), current-section highlight in the outline, Format Document (`Shift+Alt+F`), and a markdownlint Problems panel.
+
+## [2.1.15-beta] - 2026-09-26
+
+### Added
+- Link path completion and broken-link checks in the Problems panel.
+
+### Fixed
+- Image path completion returned empty items.
+- The outline highlights the current section again while you edit without scrolling.
+
+## [2.1.14-beta] - 2026-09-24
+
+### Added
+- Go to Heading (`Cmd+T`) and current-section highlight in the outline.
+
+### Fixed
+- File › Print opens the macOS print dialog with pagination and Save as PDF. PDF export uses the same path and keeps the document's styling, without pandoc.
+
+## [2.1.13-beta] - 2026-09-23
+
+### Added
+- Pasting a URL over selected text turns it into a Markdown link.
+- A Problems panel with Markdown checks (heading level jumps, several H1s, trailing spaces, missing blank lines, code blocks without a language), with click-to-jump.
+- Format Document (`Shift+Alt+F`), undone with a single ⌘Z.
+
+## [2.1.12-beta] - 2026-09-21
+
+### Fixed
+- A tab rewritten by an agent no longer shows empty space until you scroll: the reading position is clamped to the new document length.
+- Returning to a tab changed in the background shows the current file, not an older version.
+- Scroll position is kept when you switch between tabs.
+
+### Added
+- Richer syntax highlighting for R.
+- Groundwork for the Mac App Store build: sandboxed folder access with security-scoped bookmarks and project search without external processes.
+
+## [2.1.11-beta] - 2026-09-18
+
+### Added
+- A native editor context menu: Undo, Redo, Cut, Copy, Paste, Select All and Share.
+- Copy as Plain Text (`Cmd+Alt+Shift+C`), alongside Copy as HTML.
+
+### Removed
+- Settings migration code from MarkText (about 6,000 lines). Existing settings, themes and sessions are unaffected.
+
+## [2.1.10-beta] - 2026-09-16
+
+### Added
+- Copy as HTML (`Cmd+Shift+C`) for pasting formatted text into email.
+- Tab switching with `Ctrl+Tab` / `Ctrl+Shift+Tab`.
+
+### Fixed
+- The tab strip scrolls to keep the active tab visible.
+- The title-bar path no longer overlaps the buttons in narrow windows.
+- External file changes reload in every open tab, not only the first.
+
+## [2.1.9-beta] - 2026-08-18
+
+### Fixed
+- Agent-opened tabs without a saved position start at the top.
+- Live document streaming: patch semantics, resync within a session, and authentication order.
+
+## [2.1.1-beta to 2.1.8-beta] - 2026-08-07 to 2026-08-10
+
+Stabilisation releases.
+
+### Fixed
+- Signed in-app updates restored (2.1.2).
+- Native clipboard and undo restored (2.1.3); Finder preview input restored (2.1.4).
+- Documents opened by agents load reliably on first mount (2.1.5 to 2.1.7).
+- Active selections are preserved (2.1.8).
+- `$150 $300` is no longer treated as inline math (2.1.1).
+
+## [2.1.0-beta] - 2026-06-14
+
+### Added
+- A local live server and live viewer that external tools can stream documents into.
+- Extension host groundwork: an extension gallery in Settings and text insert / transform capabilities.
+
+## [2.0.7-alpha] - 2026-06-07
+
+### Added
+- Update paths for Homebrew, the DMG and the App Store.
+
+### Fixed
+- Check for Updates and Screenshot menu items.
+
+## [2.0.6-alpha] - 2026-06-06
+
+### Added
+- macOS Share sheet in the toolbar and File menu.
+- Version shown in the Help menu.
+- A Mac App Store build profile.
+
+## [2.0.5-alpha] - 2026-06-03
+
+### Fixed
+- Selection visibility and the cursor in both editor modes.
+
+## [2.0.4-alpha] - 2026-06-01
+
+### Fixed
+- Missing native menu items.
+
+## [2.0.3-alpha] - 2026-06-01
+
+### Changed
+- Releases are signed with a Developer ID and notarized by Apple.
+
+## [2.0.2-alpha] - 2026-06-01
+
+### Added
+- `--watch` and `--diff` command-line flags, and automatic diff against a `.before` file.
+- Save All, line-ending control and PDF export.
+
+## [2.0.1-alpha.1] - 2026-05-31
+
+### Added
+- A welcome screen with recent files and session restore.
+
+## [2.0.0-alpha.9] - 2026-05-28
+
+### Added
+- Print, Export as HTML, file rename and move.
+- Trackpad pinch to zoom and window size and position memory.
+- Inline diff view.
+- All themes in View › Theme.
+
+## [2.0.0-alpha.8] - 2026-05-22
+
+### Changed
+- No splash screen on launch; a stricter content security policy.
+- Files opened on their own reload when they change on disk.
+
+[Unreleased]: https://github.com/xronocode/mark/compare/v2.3.0...HEAD
+[2.3.0]: https://github.com/xronocode/mark/releases/tag/v2.3.0
+[2.2.0-beta]: https://github.com/xronocode/mark/releases/tag/v2.2.0-beta
+[2.1.15-beta]: https://github.com/xronocode/mark/releases/tag/v2.1.15-beta
+[2.1.14-beta]: https://github.com/xronocode/mark/releases/tag/v2.1.14-beta
+[2.1.13-beta]: https://github.com/xronocode/mark/releases/tag/v2.1.13-beta
+[2.1.12-beta]: https://github.com/xronocode/mark/releases/tag/v2.1.12-beta
+[2.1.11-beta]: https://github.com/xronocode/mark/releases/tag/v2.1.11-beta
+[2.1.10-beta]: https://github.com/xronocode/mark/releases/tag/v2.1.10-beta
+[2.1.9-beta]: https://github.com/xronocode/mark/releases/tag/v2.1.9-beta
+[2.1.1-beta to 2.1.8-beta]: https://github.com/xronocode/mark/compare/v2.1.0-beta...v2.1.8-beta
+[2.1.0-beta]: https://github.com/xronocode/mark/releases/tag/v2.1.0-beta
+[2.0.7-alpha]: https://github.com/xronocode/mark/releases/tag/v2.0.7-alpha
+[2.0.6-alpha]: https://github.com/xronocode/mark/releases/tag/v2.0.6-alpha
+[2.0.5-alpha]: https://github.com/xronocode/mark/releases/tag/v2.0.5-alpha
+[2.0.4-alpha]: https://github.com/xronocode/mark/releases/tag/v2.0.4-alpha
+[2.0.3-alpha]: https://github.com/xronocode/mark/releases/tag/v2.0.3-alpha
+[2.0.2-alpha]: https://github.com/xronocode/mark/releases/tag/v2.0.2-alpha
+[2.0.1-alpha.1]: https://github.com/xronocode/mark/releases/tag/v2.0.1-alpha.1
+[2.0.0-alpha.9]: https://github.com/xronocode/mark/releases/tag/v2.0.0-alpha.9
+[2.0.0-alpha.8]: https://github.com/xronocode/mark/releases/tag/v2.0.0-alpha.8
