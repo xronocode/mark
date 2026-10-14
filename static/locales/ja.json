@@ -943,7 +943,8 @@
       "uiLanguage": {
         "title": "インターフェース言語",
         "description": "アプリケーションUIの言語"
-      }
+      },
+      "system": "システムと同じ"
     }
   },
   "about": {

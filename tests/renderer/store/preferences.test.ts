@@ -58,7 +58,7 @@ describe('store/preferences', () => {
     expect(s.theme).toBe('paper') // C-41 T-001: brand default
     expect(s.titleBarStyle).toBe('custom')
     expect(s.tabSize).toBe(4)
-    expect(s.language).toBe('en')
+    expect(s.language).toBe('system') // C-45 T-001: new-profile default
     expect(s.fontSize).toBe(16)
     expect(s.zoom).toBe(1.0)
     expect(s.preferHeadingStyle).toBe('atx')
@@ -101,7 +101,7 @@ describe('store/preferences', () => {
     it('does NOT call setLanguage when language matches current', async () => {
       const { usePreferencesStore } = await import('@/store/preferences')
       const s = usePreferencesStore()
-      s.SET_USER_PREFERENCE({ language: 'en' })
+      s.SET_USER_PREFERENCE({ language: 'system' }) // store default (C-45)
       expect(setLanguageMock).not.toHaveBeenCalled()
     })
 

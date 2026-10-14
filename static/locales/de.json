@@ -941,7 +941,8 @@
       "uiLanguage": {
         "title": "Oberflächensprache",
         "description": "Sprache der Anwendungsoberfläche"
-      }
+      },
+      "system": "Wie im System"
     }
   },
   "about": {

@@ -2657,9 +2657,14 @@
         Bundles the ten UI translation tables (static/locales/*.min.json) as
         lazy chunks via import.meta.glob and serves them to vue-i18n through
         window.i18nUtils.loadTranslations; English is imported statically.
+        C-45 adds i18n/systemLocale.js: resolveSystemLocale maps
+        navigator.languages onto a shipped locale (exact, zh script/region,
+        primary subtag, 'en' fallback) behind the language='system'
+        sentinel, which setLanguage resolves before applying.
       </Summary>
       <PlannedPath>
         src/renderer/src/i18n/localeLoader.js, src/renderer/src/i18n/index.js,
+        src/renderer/src/i18n/systemLocale.js,
         src/renderer/src/_shims/install-window-globals.js
       </PlannedPath>
       <Dependencies/>

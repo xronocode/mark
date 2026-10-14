@@ -943,7 +943,8 @@
       "uiLanguage": {
         "title": "Idioma da interface",
         "description": "Idioma da interface do aplicativo"
-      }
+      },
+      "system": "Como no sistema"
     }
   },
   "about": {

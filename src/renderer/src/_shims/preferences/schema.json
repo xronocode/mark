@@ -61,9 +61,9 @@
     "type": "string"
   },
   "language": {
-    "description": "General--The language Mark use.",
+    "description": "General--The language Mark use. 'system' follows the OS preferred languages (C-45).",
     "type": "string",
-    "default": "en"
+    "default": "system"
   },
   "editorFontFamily": {
     "description": "Editor--editor font family",

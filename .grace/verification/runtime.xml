@@ -3288,6 +3288,10 @@
           tests/renderer/util/themeColor.test.js
         </Command>
         <Command>cargo test follow_system_theme_true_survives_reload</Command>
+        <Command>
+          npx vitest run tests/renderer/i18n/system-language.test.js
+          tests/renderer/store/preferences-language.test.js
+        </Command>
       </Commands>
       <Scenarios>
         <Scenario>
@@ -3695,6 +3699,30 @@
           view.diff-mode shows both versions with the snapshot header and
           mt_diff_baseline never runs; without a snapshot the stored
           baseline is used and labelled).
+        </Scenario>
+        <Scenario>
+          scenario-40: Interface language "As in system" (C-45 S1): the
+          language select offers 'system' first (localized label
+          preferences.language.system present in all ten shipped tables),
+          new profiles default to language='system' (store state +
+          _shims/preferences/schema.json; stored concrete values are
+          never migrated — a stored 'ru' stays 'ru'), setLanguage
+          ('system') resolves navigator.languages to a shipped locale
+          (exact match first; zh-Hans/zh-CN/zh-SG map to zh-CN and
+          zh-Hant/zh-TW/zh-HK/zh-MO to zh-TW; primary-subtag fallback
+          en-KG → en, pt-BR → pt, de-AT → de; 'en' when nothing
+          matches) so getCurrentLanguage never reports 'system', and
+          while the preference is 'system' the store re-resolves on
+          window languagechange/focus (bound once per renderer by
+          LISTEN_SYSTEM_LANGUAGE from app.vue) applying only a changed
+          effective locale without persisting. Unit-pinned in
+          tests/renderer/i18n/system-language.test.js (resolution
+          table, setLanguage('system'), option label in every locale) +
+          tests/renderer/store/preferences-language.test.js (default,
+          stored 'ru' preserved, re-resolution guards) +
+          tests/renderer/store/preferences.test.ts (spot-check default
+          'system') + tests/renderer/pages/general-config.test.js
+          (options list starts with 'system').
         </Scenario>
       </Scenarios>
       <Markers>
