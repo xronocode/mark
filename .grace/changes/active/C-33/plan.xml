@@ -1,0 +1,57 @@
+<GraceChangePlan graceVersion='4.0' status='approved'>
+<C-33>
+  <ChangeRef>C-33</ChangeRef>
+  <Created>2026-10-14</Created>
+  <IntentSummary>Pilcrow icon family: SVG masters, icns/ico/png sets, Icon Composer .icon → Assets.car with CFBundleIconName, site logo; prior-art research first.</IntentSummary>
+  <BaselineAssertions>
+    <MustContain>
+      <File>src-tauri/tauri.conf.json</File>
+      <Text>icons/icon.icns</Text>
+    </MustContain>
+  </BaselineAssertions>
+  <TargetAssertions>
+    <MustContain>
+      <File>src-tauri/Info.plist</File>
+      <Text>CFBundleIconName</Text>
+    </MustContain>
+    <MustContain>
+      <File>src-tauri/tauri.conf.json</File>
+      <Text>Assets.car</Text>
+    </MustContain>
+    <MustContain>
+      <File>assets/icon/AppIcon.icon/icon.json</File>
+      <Text>fill-specializations</Text>
+    </MustContain>
+  </TargetAssertions>
+  <DurableScope>
+    <None />
+  </DurableScope>
+  <ObservedWriteScope>
+    <File>assets/icon/*</File>
+    <File>src-tauri/icons/*</File>
+    <File>src-tauri/Info.plist</File>
+    <File>src-tauri/tauri.conf.json</File>
+    <File>site/public/logo-96px.png</File>
+  </ObservedWriteScope>
+  <ImplementationPlan>
+    <T-001>
+      <Title>Prior-art similarity research</Title>
+      <DependsOn></DependsOn>
+      <AcceptanceCriteria><Criterion>Ranked look-alike report; verdict recorded as an amendment.</Criterion></AcceptanceCriteria>
+      <Verification><Command>review report</Command></Verification>
+    </T-001>
+    <T-002>
+      <Title>Masters, raster sets, Icon Composer bundle, Assets.car, bundle wiring</Title>
+      <DependsOn>T-001</DependsOn>
+      <AcceptanceCriteria><Criterion>icns/ico/png regenerated; Assets.car compiled with dark/tinted; debug bundle carries CFBundleIconName and Resources/Assets.car.</Criterion></AcceptanceCriteria>
+      <Verification><Command>xcrun assetutil --info src-tauri/icons/Assets.car; cargo tauri build --debug --bundles app</Command></Verification>
+    </T-002>
+    <T-003>
+      <Title>Site logo, gates, commit, CI</Title>
+      <DependsOn>T-002</DependsOn>
+      <AcceptanceCriteria><Criterion>npm test + cargo tests + grace lint green; CI green.</Criterion></AcceptanceCriteria>
+      <Verification><Command>npm test</Command></Verification>
+    </T-003>
+  </ImplementationPlan>
+</C-33>
+</GraceChangePlan>
