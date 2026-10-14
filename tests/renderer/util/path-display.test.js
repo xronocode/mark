@@ -10,6 +10,7 @@
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
+//   LONG_HOME_PATH - a home-relative project path longer than the sidebar can show.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
@@ -18,6 +19,8 @@
 
 import { shortenMiddle } from '@/util/pathDisplay'
 
+const LONG_HOME_PATH = '~/prj/clients/acme/very-long-project-name/docs/specs'
+
 describe('shortenMiddle', () => {
   it('keeps short paths unchanged', () => {
     expect(shortenMiddle('~/prj/mark')).toBe('~/prj/mark')
@@ -25,7 +28,7 @@ describe('shortenMiddle', () => {
   })
 
   it('keeps the first and the last two segments of a long home path', () => {
-    expect(shortenMiddle('~/prj/clients/acme/very-long-project-name/docs/specs')).toBe('~/…/docs/specs')
+    expect(shortenMiddle(LONG_HOME_PATH)).toBe('~/…/docs/specs')
   })
 
   it('keeps the root segment of an absolute path', () => {
