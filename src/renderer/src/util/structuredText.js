@@ -3,7 +3,7 @@
 // START_MODULE_CONTRACT
 //   PURPOSE: Turn rendered Markdown HTML into plain text that keeps the document structure (C-32 Copy as Structured Text).
 //   SCOPE: Pure DOM walk over sanitized marked output: blank-line block separation (front matter skipped), "- "/"N. " list markers with nested indentation, task boxes, "text (url)" links, image alt/src, "> " quotes, " | " table cells, verbatim code, hr. No clipboard or editor access.
-//   DEPENDS: DOMParser (browser/jsdom).
+//   DEPENDS: DOMParser (browser/jsdom); muya ui/emojis validEmoji (marked emoji hook).
 //   LINKS: .grace/changes/active/C-32; editor.vue handleCopyAsStructuredText; C-12 handleCopyAsPlainText (same render pipeline).
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
@@ -11,13 +11,32 @@
 //
 // START_MODULE_MAP
 //   htmlToStructuredText - sanitized HTML string → structure-preserving plain text.
+//   structuredMarkedOptions - marked render hooks for this format: emoji as characters, math with $ / $$ delimiters kept.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.0.0 - C-32: initial structured-text renderer (review: code keeps its first-line indent, raw-HTML source whitespace normalized, www autolinks and linked images not doubled, loose list items keep blank lines, front matter skipped).
+//   LAST_CHANGE: v1.0.0 - C-32: initial structured-text renderer (callouts as titled quotes, emoji characters and $-delimited math via structuredMarkedOptions; review: code keeps its first-line indent, raw-HTML source whitespace normalized, www autolinks and linked images not doubled, loose list items keep blank lines, front matter skipped).
 // END_CHANGE_SUMMARY
 
+import { validEmoji } from 'muya/lib/ui/emojis'
+
 const HR_TEXT = '———'
+
+const escapeHtml = (text) =>
+  text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+
+// Without hooks marked leaves ":smile:" codes and strips the $ around
+// inline math, which turns "$\frac{1}{2}$" into a bare "\frac{1}{2}".
+export const structuredMarkedOptions = {
+  emojiRenderer: (name) => {
+    const found = validEmoji(name)
+    return found ? found.emoji : `:${name}:`
+  },
+  mathRenderer: (tex, displayMode) =>
+    displayMode
+      ? `<pre class="multiple-math">$$\n${escapeHtml(tex)}\n$$</pre>\n`
+      : `$${escapeHtml(tex)}$`
+}
 
 // marked emits the first row; the rest only come from raw HTML blocks and
 // are kept so those containers still break into separate blocks.
@@ -41,7 +60,7 @@ const normalizeInline = (text) =>
     .filter(Boolean)
     .join('\n')
 
-const stripScheme = (href) => href.replace(/^(?:https?:\/\/|mailto:)/i, '')
+const stripScheme = (href) => href.replace(/^(?:https?:\/\/|mailto:)/i, '').replace(/\/$/, '')
 
 const linkText = (el) => {
   const label = inlineText(el, true).trim()
@@ -161,6 +180,16 @@ function renderBlock(el) {
       return el.textContent.replace(/\s+$/, '')
     case 'BLOCKQUOTE':
       return quoteLines(renderBlocks(el).join('\n\n'))
+    case 'DIV':
+      // GitHub-style callouts ("> [!NOTE]") render as div.markdown-alert;
+      // keep them a quote with the title on its own first line.
+      if (el.classList.contains('markdown-alert')) {
+        const parts = renderBlockParts(el)
+        const title = el.querySelector(':scope > .markdown-alert-title') ? parts.shift() : null
+        const body = parts.map((p) => p.text).join('\n\n')
+        return quoteLines(title ? `${title.text}\n${body}` : body)
+      }
+      return renderBlocks(el).join('\n\n')
     case 'UL':
     case 'OL':
       return renderList(el)
