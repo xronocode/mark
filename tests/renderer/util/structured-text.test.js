@@ -15,7 +15,7 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.0.0 - C-32: initial suite (+ callouts, emoji, math delimiters, trailing-slash links; review regressions: leading code indent, raw-HTML whitespace, www/linked-image links, loose items, front matter).
+//   LAST_CHANGE: v1.0.0 - C-32: initial suite (+ heading spacing, callouts, emoji, math delimiters, trailing-slash links; review regressions: leading code indent, raw-HTML whitespace, www/linked-image links, loose items, front matter).
 // END_CHANGE_SUMMARY
 
 import { describe, it, expect } from 'vitest'
@@ -133,6 +133,12 @@ describe('htmlToStructuredText (C-32)', () => {
 
   it('treats a trailing slash as the same link target', () => {
     expect(render('[example.com](https://example.com/)')).toBe('example.com')
+  })
+
+  it('puts two blank lines before a non-first heading, one after it and between paragraphs', () => {
+    expect(render('# A\n\np1\n\np2\n\n## B\n\np3\n\n- x\n\n### C')).toBe(
+      'A\n\np1\n\np2\n\n\nB\n\np3\n\n- x\n\n\nC'
+    )
   })
 
   it('returns an empty string for empty input', () => {
