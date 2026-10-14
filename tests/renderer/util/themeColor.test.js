@@ -35,12 +35,11 @@ describe('util/themeColor', () => {
     }
   })
 
-  it('paper and ink bundle their Prism companions (C-41 T-001)', () => {
-    // Brand themes concatenate the editor CSS with a prismjs token sheet.
-    expect(themeColor.paper()).toContain('Paper theme')
-    expect(themeColor.paper()).toContain('.token.keyword')
-    expect(themeColor.ink()).toContain('Ink theme')
-    expect(themeColor.ink()).toContain('.token.keyword')
+  it('paper and ink are registered factories (C-41 T-001)', () => {
+    // CSS ?inline imports resolve to '' under vitest; content is pinned in
+    // tests/renderer/pages/theme-paper-ink.test.js from the files on disk.
+    expect(typeof themeColor.paper).toBe('function')
+    expect(typeof themeColor.ink).toBe('function')
   })
 
   it('dark returns a string containing CSS', () => {
