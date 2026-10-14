@@ -32,6 +32,10 @@
 
   <Dependencies>C-35 (site uses the same editions table); C-43 and the App Store gap items below reduce the table over time.</Dependencies>
 
+  <Constraints>
+    <Constraint>Every number fact-checked against a dated measurement; App Store build, listing and preview never reference the other edition.</Constraint>
+  </Constraints>
+
   <NonGoals><NonGoal>Changing what the App Store build can do (tracked separately).</NonGoal></NonGoals>
 
   <OpenQuestions>
