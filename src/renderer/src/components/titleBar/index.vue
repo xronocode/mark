@@ -33,8 +33,10 @@
           <span class="save-dot" :class="{ show: !isSaved }"></span>
         </span>
       </div>
-      <!-- v1.1.0: navigation cluster — sidebar-toggle + Files + TOC + Settings, all left,
-           no gap between them. Replaces the per-icon left column inside sidebar. -->
+      <!-- v1.1.0: navigation cluster — sidebar-toggle + Files + TOC, all left,
+           no gap between them. Replaces the per-icon left column inside sidebar.
+           C-38 N1: the Settings gear is Win/Linux-only — macOS reaches Settings
+           through the app menu (Mark › Settings… ⌘,). -->
       <div
         class="titlebar-nav title-no-drag"
         :class="{ 'titlebar-nav--osx': isOsx }"
@@ -85,6 +87,7 @@
           </svg>
         </div>
         <div
+          v-if="!isOsx"
           class="titlebar-nav-btn"
           :title="t('sideBar.icons.settings')"
           @click.stop="handleSettingsClick"
@@ -209,7 +212,7 @@
 
 <script setup>
 // FILE: src/renderer/src/components/titleBar/index.vue
-// VERSION: 1.6.0
+// VERSION: 1.7.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Render the main window title bar and expose its navigation, native file-path actions, window controls, and drag affordances.
 //   SCOPE: Renderer-side titlebar behavior, including sidebar/view navigation, title updates, native title context menus, direct window controls, and WKWebView/macOS drag fallbacks.
@@ -240,6 +243,9 @@
 //   - 2026-09-28 v1.4.0: C-15 T-W1 — Windows titlebar pass: effectiveTitleBarStyle forces 'custom' on win32 (decorations are unconditionally off there via tauri.windows.conf.json), and titlebar dblclick toggles maximize on every platform (was macOS-only).
 //   - 2026-09-28 v1.5.0: C-15 Phase W QA — fix the Win/Linux "мешанина": the share/word-count cluster was absolute-positioned at left:0 and stacked on top of titlebar-nav; it is now .titlebar-aux at right:150px (left of the window controls), the app-menu hamburger moved into titlebar-nav, and window-control icons use currentColor so dark themes keep them visible.
 //   - 2026-09-29 v1.6.0: C-15 Phase W QA round 2 — the Share button hides behind the m048 `share` capability (mt_share_file is an NSSharingServicePicker shim, macOS-only).
+//   - 2026-10-15 v1.7.0: C-38 N1 — the Settings gear is macOS-hidden (the app
+//     menu already provides Mark › Settings… ⌘,); Windows/Linux keep the gear.
+//     The macOS title clearance shrinks 250px → 222px for the 4-button nav.
 // END_CHANGE_SUMMARY
 
 // step-8g: @electron/remote.Menu also gone. Application-menu popup
@@ -419,7 +425,8 @@ const handleSidebarToggleClick = () => {
 let dialogPending = false
 const DIALOG_DEDUP_MS = 600
 
-// Files / TOC / Settings titlebar nav with multi-root-aware Files semantics.
+// Files / TOC titlebar nav with multi-root-aware Files semantics. (The
+// Settings gear is Win/Linux-only — C-38 N1; macOS uses Mark › Settings… ⌘,.)
 //
 // Click 📂 (Files):
 //   • sidebar closed     → open + switch to Files; no dialog
@@ -683,8 +690,9 @@ img {
   }
 }
 .title-bar.isOsx .title {
-  /* traffic lights (78px) + titlebar-nav (5 × 28px + divider) */
-  left: 250px;
+  /* traffic lights (78px) + titlebar-nav (4 × 28px + divider) — C-38 N1:
+     the Settings gear is macOS-hidden, one button fewer than Win/Linux */
+  left: 222px;
 }
 /* C-15 Phase W QA: frameless Win/Linux — titlebar-nav grew by the app-menu
    button (6 × 28px) and the aux cluster now sits left of the window
@@ -819,9 +827,10 @@ img {
   -webkit-app-region: no-drag;
 }
 
-/* v1.1.0: titlebar nav cluster — sidebar-toggle + Files + TOC + Settings,
-   slammed together on the left, no gap. On macOS we shift past the three
-   traffic-lights (~70px reserved), on Win/Linux we sit at left:8px. */
+/* v1.1.0: titlebar nav cluster — sidebar-toggle + Files + TOC (+ Settings
+   on Win/Linux only, C-38 N1), slammed together on the left, no gap. On
+   macOS we shift past the three traffic-lights (~70px reserved), on
+   Win/Linux we sit at left:8px. */
 .titlebar-nav {
   position: absolute;
   top: 50%;
