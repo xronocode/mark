@@ -1,5 +1,5 @@
 // FILE: tests/e2e/table-layout.spec.ts
-// VERSION: 1.1.0
+// VERSION: 1.2.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Pin C-39 T-001 default table rendering in the built renderer: wide tables scroll inside the text column with edge-shadow backgrounds, narrow tables keep content width, long URLs are capped at ~40ch, and editing works after horizontal scrolling.
 //   SCOPE: The div.ag-table-scroll wrapper (renderContainerBlock START_BLOCK_TABLE_SCROLL_WRAPPER) and the C-39 CSS section in src/muya/lib/assets/styles/index.css.
@@ -20,7 +20,8 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.1.0 - 2026-10-15 C-39 review: typing in a scrolled table keeps the horizontal scroll (fails at 559px without render/index.js START_BLOCK_TABLE_SCROLL_KEEP); the scrollbar under a wide table stays thin (fails at 17px in WebKit without the ::-webkit-scrollbar rule).
+//   LAST_CHANGE: v1.2.0 - 2026-10-15 C-39: narrow tables are centred in the text column (equal side gaps; fails with 0px left gap without margin-inline:auto).
+//   v1.1.0 - 2026-10-15 C-39 review: typing in a scrolled table keeps the horizontal scroll (fails at 559px without render/index.js START_BLOCK_TABLE_SCROLL_KEEP); the scrollbar under a wide table stays thin (fails at 17px in WebKit without the ::-webkit-scrollbar rule).
 //   v1.0.0 - 2026-10-15 C-39 T-001: scroll-vs-overflow, column containment, no page-level horizontal scroll, narrow content width, 40ch URL cap, caret lands in a scrolled-to cell; all except the narrow-table case fail without the wrapper + C-39 CSS.
 // END_CHANGE_SUMMARY
 
@@ -216,6 +217,16 @@ test.describe('table layout (C-39 T-001)', () => {
 
     expect(m!.tableWidth, 'narrow table must keep its content width').toBeLessThan(m!.columnWidth - 200)
     expect(Math.abs(m!.scrollWidth - m!.clientWidth)).toBeLessThanOrEqual(1)
+    // Narrow tables are centred in the text column, like diagrams.
+    const gaps = await page.evaluate(() => {
+      const wrapper = document.querySelector("figure[data-role='TABLE'] div.ag-table-scroll") as HTMLElement
+      const table = wrapper.querySelector('table') as HTMLElement
+      const w = wrapper.getBoundingClientRect()
+      const t = table.getBoundingClientRect()
+      return { left: t.left - w.left - parseFloat(getComputedStyle(wrapper).paddingLeft), right: w.right - t.right }
+    })
+    expect(gaps.left, 'narrow table must not hug the left edge').toBeGreaterThan(50)
+    expect(Math.abs(gaps.left - gaps.right), 'narrow table must be centred').toBeLessThanOrEqual(2)
   })
 
   test('a 200-character URL cell is capped at ~40ch and wraps', async ({ page }) => {

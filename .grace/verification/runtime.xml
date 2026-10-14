@@ -4398,7 +4398,7 @@
           against the pre-C-39 render); laid out end-to-end in
           tests/e2e/table-layout.spec.ts (15-column scroll + column
           containment + no page-level horizontal scroll, 2x2 content
-          width, 200-char URL capped near 40ch and wrapped, caret lands in
+          width and centred in the column (equal side gaps), 200-char URL capped near 40ch and wrapped, caret lands in
           a scrolled-to cell and accepts typing).
         </Scenario>
         <Scenario>
