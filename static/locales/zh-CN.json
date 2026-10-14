@@ -1462,6 +1462,8 @@
     "exit": "退出对比",
     "unavailable": "无法对比",
     "noPath": "请先保存文件——未命名的标签页没有可对比的基准版本。",
-    "noBaseline": "未找到此文件的基准版本。"
+    "noBaseline": "未找到此文件的基准版本。",
+    "sourceSnapshot": "上次外部保存之前 · {time}",
+    "sourcePrevious": "先前版本"
   }
 }

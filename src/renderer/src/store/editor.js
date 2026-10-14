@@ -23,6 +23,7 @@ import { useProjectStore } from './project'
 import { useLayoutStore } from './layout'
 import { useMainStore } from '.'
 import { i18n } from '../i18n'
+import { recordSnapshot, clearSnapshots } from './diffSnapshots'
 
 const autoSaveTimers = new Map()
 const fileWatchDisposers = new Map()
@@ -936,6 +937,12 @@ export const useEditorStore = defineStore('editor', {
         autoSaveTimers.delete(file.id)
       }
 
+      // C-43: the snapshot ring is tab-scoped — it dies with the tab
+      // (re-opening the file starts a fresh history).
+      if (file.id) {
+        clearSnapshots(file.id)
+      }
+
       if (file.pathname) {
         this._unsubscribeFileWatch(file.pathname)
       }
@@ -1638,6 +1645,14 @@ export const useEditorStore = defineStore('editor', {
               if (change.data) {
                 if (liveReloadGenerations.get(pathname) !== generation) return
                 console.log(`[editor][live_reload][BLOCK_LIVE_RELOAD path=${filename} source=data]`)
+                // START_BLOCK_SNAPSHOT_BEFORE_RELOAD_DATA
+                // C-43: keep what the tab had just before the external
+                // content lands — the diff view's preferred baseline.
+                // Untitled tabs have no pathname and never snapshot.
+                if (tab.pathname && tab.markdown !== change.data.markdown) {
+                  recordSnapshot(id, tab.markdown)
+                }
+                // END_BLOCK_SNAPSHOT_BEFORE_RELOAD_DATA
                 this.loadChange(change)
               } else {
                 // Settle delay: let the disk write finish flushing
@@ -1660,6 +1675,14 @@ export const useEditorStore = defineStore('editor', {
                       trimTrailingNewline: tab.trimTrailingNewline,
                       isMixedLineEndings: false
                     }
+                    // START_BLOCK_SNAPSHOT_BEFORE_RELOAD_DISK
+                    // C-43: the hash-skip above already returned on equal
+                    // content; keep the guard so the invariant (snapshots
+                    // only record real change) stays local to the site.
+                    if (tab.pathname && tab.markdown !== markdown) {
+                      recordSnapshot(id, tab.markdown)
+                    }
+                    // END_BLOCK_SNAPSHOT_BEFORE_RELOAD_DISK
                     this.loadChange({ ...change, data })
                   } catch (e) {
                     console.error(`[editor][live_reload][BLOCK_READ_FAILED path=${pathname}]`, e)
@@ -1686,6 +1709,11 @@ export const useEditorStore = defineStore('editor', {
               if (!status) return
               if (change.data) {
                 if (liveReloadGenerations.get(pathname) !== generation) return
+                // START_BLOCK_SNAPSHOT_BEFORE_RELOAD_CONFIRM_DATA
+                if (tab.pathname && tab.markdown !== change.data.markdown) {
+                  recordSnapshot(id, tab.markdown)
+                }
+                // END_BLOCK_SNAPSHOT_BEFORE_RELOAD_CONFIRM_DATA
                 this.loadChange(change)
                 return
               }
@@ -1702,6 +1730,14 @@ export const useEditorStore = defineStore('editor', {
                     trimTrailingNewline: tab.trimTrailingNewline,
                     isMixedLineEndings: false
                   }
+                  // START_BLOCK_SNAPSHOT_BEFORE_RELOAD_CONFIRM_DISK
+                  // The dialog may have stayed open through further
+                  // local edits — tab.markdown is a live reference, so
+                  // this captures the newest pre-reload content.
+                  if (tab.pathname && tab.markdown !== markdown) {
+                    recordSnapshot(id, tab.markdown)
+                  }
+                  // END_BLOCK_SNAPSHOT_BEFORE_RELOAD_CONFIRM_DISK
                   this.loadChange({ ...change, data })
                 } catch (e) {
                   console.error(`[editor][live_reload][BLOCK_READ_FAILED path=${pathname}]`, e)
@@ -1891,6 +1927,14 @@ export const useEditorStore = defineStore('editor', {
 // END_MODULE_CONTRACT
 //
 // CHANGE_SUMMARY:
+//   - 2026-10-15 C-43 S1: every APPLY_FILE_CHANGE apply path (legacy data,
+//     watcher disk-read, and both confirm branches of the dirty-tab
+//     conflict prompt) records the tab's pre-reload markdown into the
+//     per-tab snapshot ring (store/diffSnapshots.js) before loadChange —
+//     only for saved-path tabs and only when the content actually differs;
+//     FORCE_CLOSE_TAB clears the ring. The user's own edits and saves never
+//     record. Snapshots are keyed by tab id, so a C-4 sidebar rename keeps
+//     them; diffView prefers the latest snapshot over .before/git.
 //   - 2026-10-13 C-4: RENAME_IF_NEEDED — tabs of a sidebar-renamed file follow
 //     to the new path (pathname, filename, DIRNAME) and the per-file watcher
 //     moves with them; the call site in project.js no longer throws. The

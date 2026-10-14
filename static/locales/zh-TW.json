@@ -1471,6 +1471,8 @@
     "exit": "結束比對",
     "unavailable": "無法比對",
     "noPath": "請先儲存檔案——未命名的分頁沒有可比對的基準版本。",
-    "noBaseline": "找不到此檔案的基準版本。"
+    "noBaseline": "找不到此檔案的基準版本。",
+    "sourceSnapshot": "上次外部儲存之前 · {time}",
+    "sourcePrevious": "先前版本"
   }
 }
