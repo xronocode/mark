@@ -251,6 +251,7 @@
       "redo": "やり直す",
       "copyAsHtml": "HTMLとしてコピー",
       "copyAsPlainText": "プレーンテキストとしてコピー",
+      "copyAsStructuredText": "構造化テキストとしてコピー",
       "selectAll": "すべて選択",
       "share": "共有"
     }
@@ -978,6 +979,7 @@
       "copyAsRich": "リッチテキストとしてコピー",
       "copyAsHtml": "HTMLとしてコピー",
       "copyAsPlainText": "プレーンテキストとしてコピー",
+      "copyAsStructuredText": "構造化テキストとしてコピー",
       "pasteAsPlaintext": "プレーンテキストとして貼り付け",
       "selectAll": "すべて選択",
       "duplicate": "複製",

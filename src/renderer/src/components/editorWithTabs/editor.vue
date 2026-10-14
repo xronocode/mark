@@ -78,7 +78,7 @@
 
 <script setup>
 // FILE: src/renderer/src/components/editorWithTabs/editor.vue
-// VERSION: 1.18.1
+// VERSION: 1.19.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Host the Muya WYSIWYG surface and coordinate document rendering, selection, scroll, preview, editor tools, and store/bus integration.
 //   SCOPE: Renderer-side Muya lifecycle and UI orchestration; does not own Markdown parsing rules or backend file persistence.
@@ -98,10 +98,12 @@
 //   handleDropImage - Inserts an image dropped from Finder (mt::drop-image) at the cursor through imageAction (C-24 R-4).
 //   handleExport - Routes supported export formats to renderer services.
 //   handleCopyAsHtml - Copies selection (or whole document) to the clipboard as rich text/html (C-3).
+//   copyRenderedAsPlainText - Shared C-12/C-32 render → convert → single text/plain write pipeline.
 //   handleCopyAsPlainText - Copies selection (or whole document) as markup-free plain text (C-12).
+//   handleCopyAsStructuredText - Copies selection (or whole document) as plain text that keeps paragraphs, bullets, link targets and table rows (C-32).
 //   syncMirrorFromSource - C-29 Split View: debounced read-only re-render of the muya pane from the source pane; never writes to the store.
 //   handleMirrorGuard - C-29: blocks checkbox clicks, paste and drop on the read-only mirror pane.
-//   handleEditorContextMenu - Native right-click menu: undo/redo, cut/copy/paste/select-all roles, Copy as HTML / Plain Text, Share (C-10/C-11/C-12).
+//   handleEditorContextMenu - Native right-click menu: undo/redo, cut/copy/paste/select-all roles, Copy as HTML / Plain Text / Structured Text, Share (C-10/C-11/C-12/C-32).
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
@@ -123,6 +125,7 @@
 //   - 2026-09-24 v1.16.0: C-21 — async dead-link validation rides the doc-markdown-changed debounce and emits doc-deadlinks for the problems panel; the same edit restores the C-19 edit-driven scrollspy re-arm that was lost in the 11e350dd handler edit (two bare clearTimeouts replaced the setTimeout re-arm), and the lint snapshot now carries the tab pathname so a tab switch inside the debounce window cannot resolve links against the wrong directory.
 //   - 2026-10-13 v1.17.0: C-24 — imageAction writes pasted/dropped images straight into the relative assets/ folder (the old global staging copy wrote to a cwd-relative path when imageFolderPath was empty, so paste failed on a fresh install); the global folder falls back to <userData>/images; mt::drop-image now has a listener (dropped images used to vanish); in the App Store sandbox a denied assets/ write asks once for folder access (mt_grant_folder_access) and otherwise saves globally with a notice.
 //   - 2026-10-13 v1.18.0: C-29 — `mirror` prop: in Split View with source mode on, the muya pane is visible, read-only (contenteditable=false), re-rendered from the tab markdown 150 ms after edits without focus or cursor, and its change events never reach the store; undo/redo, checkbox clicks, paste and drop are inert on it.
+//   - 2026-10-14 v1.19.0: C-32 — handleCopyAsStructuredText: C-12 render pipeline + htmlToStructuredText (bullets, "text (url)" links, quotes, " | " table rows) as one text/plain flavor; context menu, Edit menu, palette, bus. C-12 and C-32 share copyRenderedAsPlainText, which now also catches render failures (previously an unhandled rejection).
 // END_CHANGE_SUMMARY
 
 import { ref, reactive, watch, onMounted, onBeforeUnmount, nextTick, computed } from 'vue'
@@ -131,6 +134,7 @@ import log from 'electron-log'
 import Muya from 'muya/lib'
 import { formatMarkdown } from '@/util/markdownFormat'
 import { checkMarkdownLinks } from '@/util/linkCheck'
+import { htmlToStructuredText } from '@/util/structuredText'
 import TablePicker from 'muya/lib/ui/tablePicker'
 import QuickInsert from 'muya/lib/ui/quickInsert'
 import CodePicker from 'muya/lib/ui/codePicker'
@@ -970,49 +974,69 @@ const handleCopyAsHtml = async () => {
 }
 // END_BLOCK_COPY_AS_HTML
 
-// START_CONTRACT: handleCopyAsPlainText
-//   PURPOSE: Put the selection (or whole document) on the clipboard as markup-free plain text — no HTML tags, no Markdown syntax.
-//   INPUTS: { none - reads Muya selection state via getCopyData }
+// START_CONTRACT: copyRenderedAsPlainText
+//   PURPOSE: Shared C-12/C-32 pipeline — render the selection (or whole document) through marked + DOMPurify EXPORT and write convert(html) as the single text/plain flavor.
+//   INPUTS: { convert: (html: string) => string - HTML → plain text; marker: string - log anchor of the calling handler }
 //   OUTPUTS: { Promise<void> - resolves after the clipboard write attempt }
-//   SIDE_EFFECTS: Renders through the C-3 marked+DOMPurify pipeline, extracts textContent, and writes a single text/plain flavor via the native clipboard-manager plugin; failure warns with the anchored marker and notifies.
-//   LINKS: C-12; C-3 handleCopyAsHtml (shared pipeline); commands/index.js edit.copy-as-plain-text
-// END_CONTRACT: handleCopyAsPlainText
-// START_BLOCK_COPY_AS_PLAIN_TEXT
-const handleCopyAsPlainText = async () => {
+//   SIDE_EFFECTS: Native clipboard-manager writeText; any render or write failure warns with `${marker} copy failed` and notifies.
+//   LINKS: C-12 handleCopyAsPlainText; C-32 handleCopyAsStructuredText; C-3 handleCopyAsHtml (same render pipeline)
+// END_CONTRACT: copyRenderedAsPlainText
+const copyRenderedAsPlainText = async (convert, marker) => {
   const ed = editor.value
   if (!ed) return
   const selectionData = ed.getCopyData()
-  const hasSelection = !!(selectionData && selectionData.text)
-  const text = hasSelection ? selectionData.text : ed.getMarkdown()
+  const text = selectionData && selectionData.text ? selectionData.text : ed.getMarkdown()
   if (!text) return
-  const [{ default: marked }, { sanitize }, { EXPORT_DOMPURIFY_CONFIG }] =
-    await Promise.all([
+  try {
+    const [{ default: marked }, { sanitize }, { EXPORT_DOMPURIFY_CONFIG }] = await Promise.all([
       import('muya/lib/parser/marked'),
       import('muya/lib/utils'),
       import('muya/lib/config')
     ])
-  // Same render pipeline as Copy as HTML, then textContent: marked emits
-  // newlines between block elements, so the extracted text keeps block
-  // separation while every tag and Markdown marker disappears. Hard
-  // breaks (<br>, incl. the literal <br/> muya stores in table cells)
-  // must become newlines BEFORE parsing — textContent drops <br> and
-  // would glue the surrounding words together.
-  const html = sanitize(marked(text, ed.options), EXPORT_DOMPURIFY_CONFIG, false)
-    .replace(/<br\b[^>]*>/gi, '\n')
-  const doc = new DOMParser().parseFromString(html, 'text/html')
-  const plain = doc.body.textContent.replace(/\n{3,}/g, '\n\n').trim()
-  if (!plain) return
-  try {
+    const plain = convert(sanitize(marked(text, ed.options), EXPORT_DOMPURIFY_CONFIG, false))
+    if (!plain) return
     const { writeText } = await import('@tauri-apps/plugin-clipboard-manager')
     await writeText(plain)
   } catch (e) {
-    console.warn(
-      `[Editor][handleCopyAsPlainText][BLOCK_COPY_AS_PLAIN_TEXT] native writeText failed: ${e}`
-    )
+    console.warn(`${marker} copy failed: ${e}`)
     notice.notify({ title: t('error.copyError'), type: 'warning' })
   }
 }
+
+// START_CONTRACT: handleCopyAsPlainText
+//   PURPOSE: Put the selection (or whole document) on the clipboard as markup-free plain text — no HTML tags, no Markdown syntax.
+//   INPUTS: { none - reads Muya selection state via getCopyData }
+//   OUTPUTS: { Promise<void> - resolves after the clipboard write attempt }
+//   SIDE_EFFECTS: copyRenderedAsPlainText with a textContent extraction; failure warns with the anchored marker and notifies.
+//   LINKS: C-12; C-3 handleCopyAsHtml (shared pipeline); commands/index.js edit.copy-as-plain-text
+// END_CONTRACT: handleCopyAsPlainText
+// START_BLOCK_COPY_AS_PLAIN_TEXT
+const handleCopyAsPlainText = () =>
+  copyRenderedAsPlainText((html) => {
+    // marked emits newlines between block elements, so textContent keeps
+    // block separation while every tag and Markdown marker disappears.
+    // Hard breaks (<br>, incl. the literal <br/> muya stores in table
+    // cells) must become newlines BEFORE parsing — textContent drops <br>
+    // and would glue the surrounding words together.
+    const doc = new DOMParser().parseFromString(html.replace(/<br\b[^>]*>/gi, '\n'), 'text/html')
+    return doc.body.textContent.replace(/\n{3,}/g, '\n\n').trim()
+  }, '[Editor][handleCopyAsPlainText][BLOCK_COPY_AS_PLAIN_TEXT]')
 // END_BLOCK_COPY_AS_PLAIN_TEXT
+
+// START_CONTRACT: handleCopyAsStructuredText
+//   PURPOSE: Put the selection (or whole document) on the clipboard as plain text that keeps the document structure.
+//   INPUTS: { none - reads Muya selection state via getCopyData }
+//   OUTPUTS: { Promise<void> - resolves after the clipboard write attempt }
+//   SIDE_EFFECTS: copyRenderedAsPlainText with util/structuredText.js htmlToStructuredText; failure warns with the anchored marker and notifies.
+//   LINKS: C-32; util/structuredText.js; C-12 handleCopyAsPlainText; commands/index.js edit.copy-as-structured-text
+// END_CONTRACT: handleCopyAsStructuredText
+// START_BLOCK_COPY_AS_STRUCTURED_TEXT
+const handleCopyAsStructuredText = () =>
+  copyRenderedAsPlainText(
+    htmlToStructuredText,
+    '[Editor][handleCopyAsStructuredText][BLOCK_COPY_AS_STRUCTURED_TEXT]'
+  )
+// END_BLOCK_COPY_AS_STRUCTURED_TEXT
 
 // START_CONTRACT: handleEditorContextMenu
 //   PURPOSE: Replace WKWebView's default right-click menu with a full native menu: undo/redo (Muya history), cut/copy/paste/select-all roles, Copy as HTML, and Share.
@@ -1046,6 +1070,7 @@ const handleEditorContextMenu = async (event) => {
     // Whole-document fallback lives inside handleCopyAsHtml (C-3).
     { label: t('contextMenu.editor.copyAsHtml'), id: 'copyAsHtml' },
     { label: t('contextMenu.editor.copyAsPlainText'), id: 'copyAsPlainText' },
+    { label: t('contextMenu.editor.copyAsStructuredText'), id: 'copyAsStructuredText' },
     { role: 'paste' },
     { type: 'separator' },
     { label: t('contextMenu.editor.selectAll'), id: 'selectAll' }
@@ -1075,6 +1100,8 @@ const handleEditorContextMenu = async (event) => {
     await handleCopyAsHtml()
   } else if (clickedId === 'copyAsPlainText') {
     await handleCopyAsPlainText()
+  } else if (clickedId === 'copyAsStructuredText') {
+    await handleCopyAsStructuredText()
   } else if (clickedId === 'shareFile') {
     try {
       const { invoke } = await import('@tauri-apps/api/core')
@@ -1895,6 +1922,7 @@ onMounted(() => {
   bus.on('pasteAsPlainText', handleCopyPaste)
   bus.on('copyAsHtmlRich', handleCopyAsHtml)
   bus.on('copyAsPlainText', handleCopyAsPlainText)
+  bus.on('copyAsStructuredText', handleCopyAsStructuredText)
   bus.on('duplicate', handleParagraph)
   bus.on('createParagraph', handleParagraph)
   bus.on('deleteParagraph', handleParagraph)
@@ -2057,6 +2085,7 @@ onBeforeUnmount(() => {
   bus.off('pasteAsPlainText', handleCopyPaste)
   bus.off('copyAsHtmlRich', handleCopyAsHtml)
   bus.off('copyAsPlainText', handleCopyAsPlainText)
+  bus.off('copyAsStructuredText', handleCopyAsStructuredText)
   bus.off('duplicate', handleParagraph)
   bus.off('createParagraph', handleParagraph)
   bus.off('deleteParagraph', handleParagraph)

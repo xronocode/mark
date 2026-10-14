@@ -2684,6 +2684,34 @@
             </Attribute>
           </LegacyAttributes>
         </fn-handleCopyAsPlainText>
+        <fn-handleCopyAsStructuredText>
+          <LegacyAttributes>
+            <Attribute>
+              <Name>PURPOSE</Name>
+              <Value>
+                Put the selection (or whole document) on the clipboard as
+                plain text that keeps the document structure: the C-12
+                marked+DOMPurify pipeline followed by util/structuredText.js
+                htmlToStructuredText (bullets, "text (url)" links, quotes,
+                " | " table rows, verbatim code), one text/plain flavor via
+                native writeText; failure warns with
+                BLOCK_COPY_AS_STRUCTURED_TEXT and notifies (C-32; context
+                menu + Edit menu edit.copy-as-structured-text + palette)
+              </Value>
+            </Attribute>
+          </LegacyAttributes>
+        </fn-handleCopyAsStructuredText>
+        <fn-htmlToStructuredText>
+          <LegacyAttributes>
+            <Attribute>
+              <Name>PURPOSE</Name>
+              <Value>
+                util/structuredText.js (C-32): pure DOM walk turning
+                sanitized marked HTML into structure-preserving plain text
+              </Value>
+            </Attribute>
+          </LegacyAttributes>
+        </fn-htmlToStructuredText>
         <fn-handleEditorContextMenu>
           <LegacyAttributes>
             <Attribute>

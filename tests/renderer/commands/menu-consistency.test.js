@@ -20,6 +20,7 @@
 //
 // START_CHANGE_SUMMARY
 //   LAST_CHANGE: v1.3.0 - Pin tabs.cycleForward/Backward menu ids + Ctrl+Tab/Ctrl+Shift+Tab accelerators; ids leave the RENDERER_ONLY_ALLOWLIST (C-8).
+//   v1.4.4 - C-32: pin edit.copy-as-structured-text menu id (no accelerator).
 //   v1.4.3 - C-29: pin view.split-view menu id + CmdOrCtrl+Alt+Backslash accelerator; plain CmdOrCtrl+Backslash stays unclaimed.
 //   v1.4.2 - C-19: pin edit.go-to-heading menu id + CmdOrCtrl+T accelerator.
 //   v1.4.1 - C-17: pin edit.format-document menu id + Shift+Alt+F accelerator; view.problems / view.toggle-markdown-lint enter the RENDERER_ONLY_ALLOWLIST (palette-only).
@@ -264,6 +265,16 @@ describe('menu ↔ commands consistency', () => {
       /with_id\("edit\.copy-as-plain-text", "Copy as Plain Text"\)[\s\S]*?accelerator\("CmdOrCtrl\+Alt\+Shift\+C"\)/
     )
     expect(buildFn.match(/CmdOrCtrl\+Alt\+Shift\+C/g)).toHaveLength(1)
+  })
+
+  it('pins Copy as Structured Text menu item id without an accelerator (C-32)', () => {
+    const rust = readSource('src-tauri/src/m009_menu.rs')
+    const buildFn = rust.slice(rust.indexOf('pub fn build_native_menu'))
+    const item = buildFn.match(
+      /with_id\(\s*"edit\.copy-as-structured-text",\s*"Copy as Structured Text",?\s*\)([\s\S]*?)\.build\(handle\)/
+    )
+    expect(item).not.toBeNull()
+    expect(item[1]).not.toContain('accelerator')
   })
 
   it('pins tab-cycling menu item ids and Ctrl+Tab accelerators (C-8)', () => {

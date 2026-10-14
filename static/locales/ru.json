@@ -251,6 +251,7 @@
       "redo": "Повторить",
       "copyAsHtml": "Копировать как HTML",
       "copyAsPlainText": "Копировать как простой текст",
+      "copyAsStructuredText": "Копировать как структурированный текст",
       "selectAll": "Выделить всё",
       "share": "Поделиться"
     }
@@ -992,6 +993,7 @@
       "copyAsRich": "Копировать как форматированный текст",
       "copyAsHtml": "Копировать как HTML",
       "copyAsPlainText": "Копировать как простой текст",
+      "copyAsStructuredText": "Копировать как структурированный текст",
       "pasteAsPlaintext": "Вставить как обычный текст",
       "selectAll": "Выделить всё",
       "duplicate": "Дублировать",

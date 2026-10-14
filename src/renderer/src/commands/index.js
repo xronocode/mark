@@ -14,6 +14,7 @@
 //   file.check-update - Checks the signed feed and applies an available update entirely in app.
 //   edit.copy-as-html - Copies selection (or whole document) as rich text/html for email paste (C-3).
 //   edit.copy-as-plain-text - Copies selection (or whole document) as markup-free plain text (C-12).
+//   edit.copy-as-structured-text - Copies selection (or whole document) as structure-preserving plain text (C-32).
 //   FileEncodingCommand - GRACE 4 synchronized symbol
 //   LineEndingCommand - GRACE 4 synchronized symbol
 //   QuickOpenCommand - GRACE 4 synchronized symbol
@@ -32,6 +33,7 @@
 //   - 2026-09-23 C-19: barrel-export HeadingSearchCommand (edit.go-to-heading, Cmd+T palette symbol search over the active document).
 //   - 2026-08-07 v2.1.2-beta: remove the Terminal/Homebrew update branch and use the signed Tauri updater for every non-App-Store install.
 //   - 2026-10-13 C-29: view.split-view (CmdOrCtrl+Alt+Backslash) toggles Split View for the current tab.
+//   - 2026-10-14 C-32: edit.copy-as-structured-text emits copyAsStructuredText (plain text keeping bullets, link targets, table rows).
 // END_CHANGE_SUMMARY
 //
 // List of all static commands that are loaded into command center.
@@ -356,6 +358,15 @@ const commands = [
     id: 'edit.copy-as-plain-text',
     execute: async () => {
       focusEditorAndExecute(() => bus.emit('copyAsPlainText'))
+    }
+  },
+
+  {
+    // editor.vue handleCopyAsStructuredText — see C-32. Same pipeline as
+    // C-12, but keeps paragraphs, bullets, link targets and table rows.
+    id: 'edit.copy-as-structured-text',
+    execute: async () => {
+      focusEditorAndExecute(() => bus.emit('copyAsStructuredText'))
     }
   },
 
