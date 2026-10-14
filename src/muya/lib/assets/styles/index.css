@@ -799,6 +799,17 @@ figure.ag-container-block div.ag-container-preview.ag-mermaid-preview > svg {
   margin: 0 auto;
 }
 
+/* Thin horizontal scrollbar for wide diagrams (C-34 R2.1 smoke): the
+   global ::-webkit-scrollbar rule sets no height, so WebKit fell back to
+   a thick 15px classic bar under every wide diagram. */
+figure.ag-container-block div.ag-container-preview.ag-mermaid-preview::-webkit-scrollbar {
+  height: 6px;
+  background: transparent;
+}
+figure.ag-container-block div.ag-container-preview.ag-mermaid-preview::-webkit-scrollbar-thumb {
+  border-radius: 3px;
+}
+
 /* Mermaid error text shown below a kept-last-good diagram (C-34 R2.1). */
 figure.ag-container-block div.ag-container-preview div.ag-mermaid-error {
   color: var(--deleteColor);

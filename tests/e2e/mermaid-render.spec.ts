@@ -195,11 +195,14 @@ test.describe('mermaid diagram rendering', () => {
         overflowX: window.getComputedStyle(container).overflowX,
         clientWidth: container.clientWidth,
         scrollWidth: container.scrollWidth,
-        svgWidth: Math.round(svg.getBoundingClientRect().width)
+        svgWidth: Math.round(svg.getBoundingClientRect().width),
+        scrollbarHeight: container.offsetHeight - container.clientHeight
       }
     })
 
     expect(sizing.overflowX).toBe('auto')
+    // Smoke 2.3.0: the scrollbar under a wide diagram must stay thin.
+    expect(sizing.scrollbarHeight, 'horizontal scrollbar must be thin').toBeLessThanOrEqual(8)
     expect(sizing.svgWidth, 'wide diagram must keep its natural width').toBeGreaterThan(sizing.clientWidth)
     expect(sizing.scrollWidth, 'preview container must scroll horizontally').toBeGreaterThan(sizing.clientWidth)
   })
