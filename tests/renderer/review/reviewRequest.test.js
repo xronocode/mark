@@ -8,7 +8,7 @@
 //   SCOPE: createReviewRequestController / initReviewRequest with
 //          injected fake ipc, invoke and clock; mocked bus.
 //   DEPENDS: src/renderer/src/review/reviewRequest.js, vitest, @/bus mock.
-//   LINKS: .grace/changes/active/C-48/spec.xml R-2; V-M-011 scenario-45.
+//   LINKS: .grace/changes/active/C-48/spec.xml R-2; V-M-011 scenario-46.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

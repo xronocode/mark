@@ -9,7 +9,7 @@
 //   SCOPE: evaluateWhatsNewGate pure decision + initWhatsNew persistence
 //          writes through an injected fake ipcPrefs.
 //   DEPENDS: src/renderer/src/whatsNew/gate.js, src/renderer/src/whatsNew/data.js.
-//   LINKS: .grace/changes/active/C-48/spec.xml R-1; V-M-011 scenario-45.
+//   LINKS: .grace/changes/active/C-48/spec.xml R-1; V-M-011 scenario-46.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT
