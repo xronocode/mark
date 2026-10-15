@@ -10,6 +10,10 @@
  * Range at each logical line start (collapsed caret rect for the empty line
  * after a trailing newline) — its first rect's top is that line's first
  * visual row.
+ *
+ * CHANGE: 2026-10-15 — alignment after an edit is polled (settledAlignment)
+ * instead of sampled after a fixed 300 ms: CI (macos-14, 80a8d9c2) sampled a
+ * 38 px delta mid re-measure; the same run passes 8/8 locally.
  */
 
 import { test, expect, type Page } from '@playwright/test'
@@ -184,6 +188,20 @@ function expectAligned (alignment: Alignment, expectedRows: number): void {
   }
 }
 
+// The gutter is re-measured after muya's render pass (and again on a
+// container resize); under CI load that can land after a fixed pause. Poll
+// until the alignment settles, then assert it — a real misalignment still
+// fails, just after the deadline instead of on the first sample.
+async function settledAlignment (page: Page, expectedRows: number): Promise<Alignment> {
+  let last = await gutterAlignment(page)
+  await expect.poll(async () => {
+    last = await gutterAlignment(page)
+    const worst = Math.max(...(last.deltas || [Infinity]))
+    return last.rowCount === expectedRows && last.lineCount === expectedRows && worst <= 1.5
+  }, { timeout: 5000 }).toBe(true).catch(() => {})
+  return last
+}
+
 test.describe('code block line numbers (C-38 T-005, #1648)', () => {
   test.beforeEach(async ({ page }) => {
     await installTauriShim(page)
@@ -212,14 +230,12 @@ test.describe('code block line numbers (C-38 T-005, #1648)', () => {
     await page.locator('pre.ag-fence-code .ag-code-content').click({ position: { x: 12, y: 10 } })
     await page.keyboard.press('ArrowDown')
     await page.keyboard.press('Enter')
-    await page.waitForTimeout(300)
-    alignment = await gutterAlignment(page)
+    alignment = await settledAlignment(page, 4)
     expectAligned(alignment, 4)
 
     // Type a lot on the current line — it re-wraps, numbers must follow.
     await page.keyboard.type('y'.repeat(160), { delay: 0 })
-    await page.waitForTimeout(300)
-    alignment = await gutterAlignment(page)
+    alignment = await settledAlignment(page, 4)
     expectAligned(alignment, 4)
 
     // Undo back to the original three lines (history groups may differ).
@@ -229,7 +245,7 @@ test.describe('code block line numbers (C-38 T-005, #1648)', () => {
       await page.keyboard.press('ControlOrMeta+z')
       await page.waitForTimeout(250)
     }
-    alignment = await gutterAlignment(page)
+    alignment = await settledAlignment(page, 3)
     expectAligned(alignment, 3)
 
     // The numbers never leak into the markdown.
