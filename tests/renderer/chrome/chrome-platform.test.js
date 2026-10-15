@@ -31,11 +31,13 @@ import {
   resolveChromePlatform
 } from '@/util/chromePlatform'
 
+// CRLF-normalised: the Windows CI checkout has \r\n line endings and the
+// selector-list assertions match on \n.
 const readIndexCss = () =>
   readFileSync(
     resolve(__dirname, '../../../src/renderer/src/assets/styles/index.css'),
     'utf8'
-  )
+  ).replace(/\r\n/g, '\n')
 
 // Getter-backed platform override: the module reads
 // window.electron.process.platform lazily, so a live getter keeps the
