@@ -1,9 +1,26 @@
-// MODULE_CONTRACT:
+// START_MODULE_CONTRACT
 //   PURPOSE: Define canonical per-document state and state-construction helpers.
 //   SCOPE: Defaults and cloning/option extraction for editor tabs.
 //   DEPENDS: renderer util and i18n helpers.
-//   ROLE: UTILITY
+//   LINKS: src/renderer/src/store/editor.js (tab lifecycle); tests/renderer/store/help.test.ts
+//   ROLE: RUNTIME
+//   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT
+//
+// START_MODULE_MAP
+//   defaultFileState - default per-document state object
+//   createDocumentState - build a document state from defaults + overrides
+//   getOptionsFromState - extract editor options from a document state
+//   getFileStateFromData - document state from a loaded markdown document
+//   getBlankFileState - untitled tab state with the next Untitled-N name
+//   getSingleFileState - state for a single opened file
+// END_MODULE_MAP
+//
+// START_CHANGE_SUMMARY
+//   LAST_CHANGE: 2026-10-15 C-40 - getBlankFileState counts only real
+//   "Untitled-N" names; a titled pathless tab (the Mark Guide) produced
+//   "Untitled-NaN" for the next new tab.
+// END_CHANGE_SUMMARY
 
 import { getUniqueId, deepClone } from '../util'
 import { i18n } from '../i18n'
@@ -90,13 +107,17 @@ export const getBlankFileState = (
   markdown = ''
 ) => {
   const fileState = deepClone(defaultFileState)
+  // C-40: untitled tabs are no longer all named "Untitled-N" (the Mark
+  // Guide tab carries a real title), so only filenames that actually match
+  // the pattern contribute a counter — anything else used to produce
+  // "Untitled-NaN" via +undefined.
   let untitleId = Math.max(
     ...tabs.map((f) => {
       if (f.pathname === '') {
-        return +f.filename.split('-')[1]
-      } else {
-        return 0
+        const m = /^Untitled-(\d+)/.exec(f.filename || '')
+        return m ? +m[1] : 0
       }
+      return 0
     }),
     0
   )

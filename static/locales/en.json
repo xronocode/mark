@@ -414,14 +414,42 @@
     "table": "Table"
   },
   "recent": {
-    "noTabsOpen": "You have no tabs open.",
-    "newFile": "New File",
-    "welcome": "Welcome to Mark",
-    "recentFiles": "Recent Files",
-    "restoreSession": "Restore Session",
-    "openFile": "Open File",
-    "openFolder": "Open Folder",
-    "noRecentFiles": "No recent files"
+    "taglineLead": "Agents write. You",
+    "taglineHighlight": "shape",
+    "taglineTail": "it.",
+    "openFile": "Open File…",
+    "openFolder": "Open Folder…",
+    "newButton": "New",
+    "recentFiles": "Recent files",
+    "recentFolders": "Recent folders",
+    "noRecentFiles": "No recent files",
+    "lastSession": "Last session",
+    "filesCount": {
+      "one": "{count} file",
+      "other": "{count} files"
+    },
+    "remove": "Remove from list",
+    "removeTooltip": "Removes it from this list. The file stays on disk.",
+    "removedToast": "Removed “{name}” from Recent",
+    "undo": "Undo",
+    "open": "Open",
+    "copyPath": "Copy path",
+    "showInFinder": "Show in Finder",
+    "showInExplorer": "Show in Explorer",
+    "showInFolder": "Show in folder",
+    "guide": "Guide",
+    "whatsNewIn": "What's new in {version}",
+    "connectTitle": "Connect your agent.",
+    "connectText": "One prompt makes it open its plans here and read your edits.",
+    "copyPrompt": "Copy prompt",
+    "howItWorks": "How it works",
+    "time": {
+      "justNow": "just now",
+      "minutesAgo": "{count} min ago",
+      "todayAt": "today {time}",
+      "yesterday": "yesterday",
+      "daysAgo": "{count} days ago"
+    }
   },
   "import": {
     "title": "Import or Open",
@@ -1119,12 +1147,24 @@
       "userGuide": "User Guide",
       "markdownSyntax": "Markdown Syntax"
     },
+    "help": {
+      "guide": "Mark Guide",
+      "whatsNew": "What's New",
+      "rateMark": "Rate Mark…"
+    },
     "utils": {
       "noUpdateResourceFile": "No update resource file",
       "todoUpdateCheck": "Check for updates"
     },
     "spellchecker": {
       "switchLanguage": "Switch Language"
+    }
+  },
+  "guide": {
+    "tabTitle": "Mark Guide",
+    "agentPrompt": {
+      "mac": "When you produce a plan, spec or report longer than ~50 lines, write it to a .md file and open it for the user: open -a Mark <file>.md. When the file changed after you wrote it, re-read it: the user's edits are your next instruction.",
+      "generic": "When you produce a plan, spec or report longer than ~50 lines, write it to a .md file and open it for the user in Mark. When the file changed after you wrote it, re-read it: the user's edits are your next instruction."
     }
   },
   "common": {
@@ -1500,5 +1540,29 @@
     "noBaseline": "No baseline found for this file.",
     "sourceSnapshot": "Before the last external save · {time}",
     "sourcePrevious": "Previous version"
+  },
+  "whatsNew": {
+    "eyebrow": "Mark {version}",
+    "title": "What's new",
+    "seeGuide": "See the guide",
+    "continue": "Continue",
+    "v2_3_1": {
+      "zoom": {
+        "title": "Zoom into diagrams and tables",
+        "text": "Hover and press ⤢ for a fullscreen view with zoom and pan."
+      },
+      "agentDiff": {
+        "title": "See what the agent changed",
+        "text": "⌘D compares with the version before its last save."
+      },
+      "themes": {
+        "title": "Paper and Ink",
+        "text": "New default themes, and Auto follows macOS."
+      },
+      "tables": {
+        "title": "Tables that fit",
+        "text": "Wide tables scroll inside the column; long links wrap."
+      }
+    }
   }
 }

@@ -3300,6 +3300,15 @@
         <Command>
           npx playwright test tests/e2e/zoom.spec.ts --project=chromium
         </Command>
+        <Command>
+          npx vitest run tests/renderer/components/recent.test.js
+          tests/renderer/util/relativeTime.test.js
+          tests/renderer/util/agentPrompt.test.js
+        </Command>
+        <Command>
+          npx playwright test tests/e2e/welcome.spec.ts --project=chromium
+        </Command>
+        <Command>cargo test --manifest-path src-tauri/Cargo.toml recent_remove recent_insert</Command>
       </Commands>
       <Scenarios>
         <Scenario>
@@ -3772,9 +3781,182 @@
           the mermaid SVG width/labels with the SVG still ≤ column width;
           ⌘0 returns to base; pill appears and hides; Ctrl+wheel inside
           the block viewer leaves the editor font size alone).
+          scenario-45: Mark Guide + universal agent prompt (C-40 G-3/R-1a,
+          2.3.1): Help › Mark Guide (m009 id help.guide, no accelerator,
+          id-dispatched like tabs.cycleForward/Backward), the help.guide
+          palette command and the 'mt::open-guide' bus event (optional
+          { section }) open the localized guide (static/guide/&lt;locale&gt;.md,
+          bundled per locale via import.meta.glob like the locale tables)
+          as a temporary untitled tab titled guide.tabTitle — pathname-less
+          (nothing is written to disk unless the user chooses Save As),
+          flagged isGuide so reopening focuses the existing tab and never
+          overwrites the user's edits; { section: 'connect-agent' } scrolls
+          to the first ## heading by matching its text in listToc and
+          emitting scroll-to-header with the muya block key (WYSIWYG
+          heading ids are block keys, not github slugs). The
+          universal prompt lives in ONE module (util/agentPrompt.js
+          getAgentPrompt(t, platform)): macOS ships `open -a Mark
+          &lt;file&gt;.md` in the fenced block (muya code fences already render
+          a copy button), Windows/other platforms get the prose variant
+          "open it for the user in Mark" because the NSIS build registers
+          file associations only (no PATH/CLI launcher). Unit-pinned in
+          tests/renderer/util/agentPrompt.test.js (per-OS variants) +
+          tests/renderer/util/guideDoc.test.js (ten bundled guides,
+          prompt interpolation, en fallback, per-locale section heading
+          text) + tests/renderer/store/guide-tab.test.js (create/reuse/
+          never-saved/deep link with the muya key + Untitled-N counter
+          robustness); menu id pinned in
+          tests/renderer/commands/menu-consistency.test.js; visually
+          pinned in tests/e2e/guide.spec.ts (one tab via cmd::execute,
+          second call focuses, heading + prompt block visible, bus
+          deep-link emits scroll-to-header with a muya block key).
+          scenario-46: What's New once per update + App Store review
+          request (C-48 T-001). The boot gate (whatsNew/gate.js, pure
+          evaluateWhatsNewGate with fake-clock tests) compares the
+          persisted prefs key lastSeenVersion with the running
+          __APP_VERSION__ after normalizing prerelease decorations
+          ("2.3.1-beta" equals "2.3.1"): no recorded version = fresh
+          install = record silently and never show, UNLESS the boot
+          prefs snapshot (snapshotBootPrefs, taken first thing in
+          onMounted before any boot write) carries legacy signals —
+          m005 mt_migration.marker_written_at older than 1 h, or
+          non-empty lastSessionTabs / recentFolders — in which case the
+          pre-C-48 (2.3.0) profile is an upgrade and the sheet shows
+          once (detectLegacyInstall); recorded differs
+          downward (downgrade) = record silently, no sheet; recorded
+          equals running = nothing; recorded lower = upgrade = show the
+          sheet once (components/whatsNew — board 3 mockup: eyebrow
+          "Mark X.Y.Z", ≤ 4 items with icon + one-line title + one-line
+          text from whatsNew/data.js keyed by normalized version, "See
+          the guide" emits mt::open-guide {} (guide opens at the top),
+          dialog aria-label = localized whatsNew.title,
+          Continue / Esc / scrim close, Tab focus trap with focus
+          return; an upgrade to a version with no content records
+          silently instead of an empty sheet) and stamps the ISO
+          lastUpdateAt prefs key for the C-46 welcome footer 7-day
+          window. Help › What's New (menu id help.whats-new, every
+          build, no accelerator) reopens the sheet any time through the
+          same whatsNewDialog bus event, falling back to the newest
+          version with content (resolveWhatsNewVersion); the strings ship in all ten
+          locales (whatsNew.* incl. v2_3_1 items, commands.help.*).
+          The App Store review request runs only when the m048 review
+          capability is true (app-store build on macOS; desktop
+          m048_build_mode.rs pins review=false and m053_review.rs
+          mt_request_review resolves Ok(false) outside the store
+          build — SKStoreReviewController via objc msg_send on the
+          main thread like m032; StoreKit.framework is linked
+          explicitly via #[link] in the app-store macOS build; Ok(true)
+          only when the request was dispatched, Ok(false) when
+          Class::get finds no StoreKit — the renderer persists
+          lastAskedAt / lastAskedVersion only on true):
+          review/reviewRules.js counts successful sessions
+          (a document opened AND saved — bus file-loaded + the
+          APPLY_SAVE_OUTCOME file-saved emit — or a live reload
+          applied, file-changed with contentReloaded) across distinct
+          local days, asks exactly once at ≥ 5 sessions across ≥ 3
+          days, never on first launch, never in a session whose
+          version changed (it consumes the gate outcome from
+          pages/app.vue), never after a window error /
+          unhandledrejection, never while .ag-whats-new-sheet or the
+          fullscreen .ag-block-viewer is in the DOM, and never again
+          within 120 days or the same major.minor (patch bumps do not
+          re-open the gate); Help › Rate Mark… (help.rate, cfg-gated
+          like file.check-update; applyCapabilityGate prunes it when
+          caps.review is off) opens
+          https://apps.apple.com/app/id6814590464?action=write-review
+          (https stays inside the MAS opener:default scope; an opener
+          rejection is caught with BLOCK_OPEN_REVIEW_PAGE_FAILED). The
+          pages/app.vue START_BLOCK_C48_STARTUP runs detached so
+          addCommonStyle never waits on it.
+          Unit-pinned in tests/renderer/whatsNew/gate.test.js (fresh /
+          upgrade / same / downgrade / beta corners / persistence
+          writes, legacy-profile detection) + tests/renderer/review/reviewRules.test.js (every
+          never-rule, 120-day and major.minor gates, sanitize,
+          day/session counting) + tests/renderer/review/reviewRequest.test.js
+          (controller wiring, one ask per eligibility, ask recorded only
+          on a true dispatch, capability gate)
+          + tests/renderer/commands/c48-help-commands.test.js (https rate
+          URL + rejection catch, What's New fallback)
+          + tests/renderer/components/whatsNew.test.js (render, Esc,
+          focus trap + return, open-guide link) + cargo tests in
+          src-tauri/src/m053_review.rs and m048_build_mode.rs (both
+          build flavors) + m009_menu.rs (help.whats-new every build,
+          help.rate only app-store macOS) + menu-consistency pins +
+          e2e tests/e2e/whats-new.spec.ts (previous version in the
+          shim prefs → sheet appears once, Esc closes, reload does not
+          re-show; fresh install never shows; a 2.3.0 profile with an
+          old migration marker + recentFolders and no lastSeenVersion
+          shows the sheet once).
+          scenario-47: Welcome screen redesign (C-46, mockups boards
+          1-2): components/recent/index.vue shows the brand header
+          (renderer logo asset + Mark), the tagline "Agents write. You
+          shape it." with the highlighted word as its own i18n key
+          (recent.taglineLead/Highlight/Tail in all ten locales, .json
+          + .min.json), one action row (Open File… primary with ⌘O /
+          Ctrl+O, Open Folder… secondary with ⇧⌘O / Ctrl+Shift+O, New
+          dashed with ⌘N / Ctrl+N via util isOsx/isWindows), the last
+          session as the first Recent row ("Last session · N files",
+          first three basenames, click → RESTORE_SESSION, only when
+          GET_SESSION_PATHS returns paths), up to 5 recent files from
+          M-017 (name, middle-shortened ~-for-home folder via
+          util/pathDisplay, relative mtime via mt_fs_stat +
+          util/relativeTime — "3 min ago", "today HH:MM", "yesterday",
+          "N days ago", older-or-unknown omitted; stat MT_FS_NOT_FOUND
+          drops the row silently, other stat failures keep it without
+          a time so degraded IPC never wipes the list), up to 3 recent
+          folders (project store recentFolders, same rows), hover
+          "Remove from list" (tooltip: the file stays on disk),
+          right-click / menu-key context menu via
+          mt::window-popup-context-menu (Open, Show in Finder|Explorer
+          by isWindows, Copy path, Remove from list), and a 5-second
+          Undo toast: removal persists through the new
+          mt_recent_remove (returns the old persisted index) and Undo
+          calls mt_recent_insert(path, index) so the exact previous
+          order returns (folders undo via project-store
+          SET_RECENT_FOLDERS with the pre-remove snapshot). The
+          "Connect your agent" row copies the ONE universal prompt
+          defined in util/agentPrompt.js (i18n key agentPrompt.prompt
+          with the platform openCommand: open -a Mark / start mark /
+          mark) and "How it works" emits bus mt::open-guide with
+          section connect-agent (C-40 contract, no handler yet). The
+          footer shows Guide (mt::open-guide) and the What's-new link
+          only within 7 days of a lastUpdateAt preference (nothing
+          writes it yet — C-48 — so the link stays hidden). While a
+          file drag is over the window the screen shows a text-free
+          drop-zone highlight driven by the native drag bridge
+          ('mt::native-drag' from _shims/install-window-globals.js;
+          drops open through the bridge; app.vue skips the import
+          dialog while no file is open). Review fixes: remove/undo of a
+          folder persists the full stored list (up to 5) minus the
+          removed path; missing files/folders drop off by
+          cause.code MT_FS_NOT_FOUND; Windows paths via
+          util/pathDisplay pathBasename/pathDirname; "N files" uses
+          Intl.PluralRules forms (recent.filesCount.one/few/many/other);
+          the footer What's-new link reads C-48's ISO lastUpdateAt and
+          opens the C-48 sheet (whatsNewDialog). The "agent edited" badge is NOT
+          implemented: M-017 stores paths only, no per-file
+          last-opened/saved timestamp to compare the mtime against.
+          Unit-pinned in tests/renderer/components/recent.test.js +
+          tests/renderer/util/relativeTime.test.js +
+          tests/renderer/util/agentPrompt.test.js; Rust list
+          invariants (remove returns old index, insert-at restores
+          exact order, dedupe + cap) in src-tauri/src/m017_recent.rs
+          cargo tests; e2e layout + remove/undo in
+          tests/e2e/welcome.spec.ts (tauri-shim boots with no file
+          open).
         </Scenario>
       </Scenarios>
       <Markers>
+        <Marker>[whatsNew][init][BLOCK_SHEET_QUEUED version=&lt;v&gt;] — C-48 upgrade detected, the What's New sheet opens once</Marker>
+        <Marker>[whatsNew][init][BLOCK_PERSIST_FAILED] — C-48 lastSeenVersion / lastUpdateAt write failed</Marker>
+        <Marker>[review][ask][BLOCK_EVALUATED ask=false reason=&lt;firstLaunch|versionChanged|errorLogged|modalOpen|sessions|days|cooldown&gt;] — C-48 review decision trace</Marker>
+        <Marker>[review][ask][BLOCK_REQUEST_REVIEW asked=true dispatched=&lt;bool&gt;] — C-48 mt_request_review called from the renderer; the ask is persisted only when dispatched=true</Marker>
+        <Marker>[whatsNew][init][BLOCK_LEGACY_CHECK legacy=&lt;bool&gt; signals=&lt;list|none&gt;] — C-48 no lastSeenVersion: pre-C-48 profile detection from the boot prefs snapshot</Marker>
+        <Marker>[app][onMounted][BLOCK_C48_STARTUP_FAILED] — C-48 detached startup (gate + review init) failed</Marker>
+        <Marker>[commands][help.rate][BLOCK_OPEN_REVIEW_PAGE_FAILED] — C-48 opener rejected the App Store review URL</Marker>
+        <Marker>[Review][request][BLOCK_REQUEST_REVIEW_NO_STOREKIT] — C-48 m053 SKStoreReviewController class missing; resolves Ok(false)</Marker>
+        <Marker>[Review][request][BLOCK_REQUEST_REVIEW_DISPATCHED] — C-48 m053 SKStoreReviewController msg_send on the main thread</Marker>
+        <Marker>[Review][request][BLOCK_REQUEST_REVIEW_NOOP] — C-48 desktop build stub</Marker>
         <Marker>[Editor][handleCopyAsHtml][BLOCK_COPY_AS_HTML] native writeHtml failed → execCommand fallback</Marker>
         <Marker>[Editor][syncMirrorFromSource][BLOCK_SPLIT_MIRROR_SYNC] chars=N ms=N — muya mirror re-rendered from the source pane (C-29)</Marker>
         <Marker>[editor][split][BLOCK_SPLIT_TOGGLED state=on|off] — view.split-view toggled for the current tab (C-29)</Marker>
@@ -3792,6 +3974,15 @@
         <Marker>[editor][save][BLOCK_STALE_SAVE_OUTCOME_IGNORED]</Marker>
         <Marker>[DiffSnapshots][record][BLOCK_SNAPSHOT_RECORDED tab=&lt;id&gt; size=&lt;n&gt;] — C-43 pre-reload snapshot appended to the tab ring</Marker>
         <Marker>[editor][diff][BLOCK_DIFF_BASELINE_SOURCE source=snapshot|stored] — C-43 baseline priority in diffView</Marker>
+        <Marker>[editor][guide][BLOCK_GUIDE_REQUESTED section=&lt;key|top&gt;] — mt::open-guide received (C-40 G-3)</Marker>
+        <Marker>[editor][guide][BLOCK_GUIDE_TAB_OPENED id=&lt;id&gt; locale=&lt;code&gt;] — guide tab created as a temporary untitled document (C-40 G-3)</Marker>
+        <Marker>[editor][guide][BLOCK_GUIDE_SCROLL_TO_SECTION heading=&lt;text&gt; slug=&lt;muya-key&gt;] — deep link scrolled the guide to a section heading (C-40 G-3)</Marker>
+        <Marker>[guide][loadGuideMarkdown][BLOCK_GUIDE_LOCALE_MISSING] no bundled guide &lt;locale&gt; — en fallback used (C-40 G-3)</Marker>
+        <Marker>[Recent][removeRecentFile|removeRecentFolder][BLOCK_RECENT_REMOVED] persisted=false — C-46 list removal IPC failed</Marker>
+        <Marker>[Recent][undoRemove][BLOCK_RECENT_UNDONE] persisted=false — C-46 undo insert failed</Marker>
+        <Marker>[Recent][openRowContextMenu][BLOCK_ROW_CONTEXT_MENU] failed — C-46 native popup IPC failed</Marker>
+        <Marker>[Recent][copyAgentPrompt][BLOCK_AGENT_PROMPT_COPIED] — C-40/C-46 universal prompt copy outcome</Marker>
+        <Marker>[Recent][remove|insert][BLOCK_RECENT_UPDATED ...] — M-017 Rust-side list mutation (C-46 remove/undo pair)</Marker>
         <Marker>
           [Renderer] BLOCK_THEME_SWAP_BEGIN theme=&lt;id&gt; /
           BLOCK_THEME_SWAP_END duration_ms=&lt;n&gt;
