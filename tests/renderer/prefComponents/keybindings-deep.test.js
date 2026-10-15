@@ -394,4 +394,44 @@ describe('KeybindingsSettings.vue – deep tests', () => {
     wrapper.vm.keybindingConfigurator = null
     expect(() => wrapper.vm.rebuildKeybindingList()).not.toThrow()
   })
+
+  // ── sheet search field (C-38 T-004) ─────────────────────────────────
+
+  it('the search input renders with the placeholder', () => {
+    expect(wrapper.find('input.pref-keybindings-search').exists()).toBe(true)
+    expect(wrapper.find('input.pref-keybindings-search').attributes('placeholder')).toBe(
+      'preferences.keybindings.searchPlaceholder'
+    )
+  })
+
+  it('filtering matches the description case-insensitively', async () => {
+    wrapper.vm.keybindingList = [
+      { id: 'file.new', description: 'New file', accelerator: 'Ctrl+N' },
+      { id: 'file.save', description: 'Save', accelerator: 'Ctrl+S' },
+      { id: 'view.zen', description: 'Zen mode', accelerator: 'Ctrl+Shift+Z' }
+    ]
+    wrapper.vm.filterText = 'new'
+    await nextTick()
+    expect(wrapper.vm.filteredKeybindings.map((k) => k.id)).toEqual(['file.new'])
+  })
+
+  it('filtering also matches the accelerator', async () => {
+    wrapper.vm.keybindingList = [
+      { id: 'file.new', description: 'New file', accelerator: 'Ctrl+N' },
+      { id: 'file.save', description: 'Save', accelerator: 'Ctrl+S' }
+    ]
+    wrapper.vm.filterText = 'ctrl+s'
+    await nextTick()
+    expect(wrapper.vm.filteredKeybindings.map((k) => k.id)).toEqual(['file.save'])
+  })
+
+  it('an empty query shows everything', async () => {
+    wrapper.vm.keybindingList = [
+      { id: 'file.new', description: 'New file', accelerator: 'Ctrl+N' },
+      { id: 'file.save', description: 'Save', accelerator: 'Ctrl+S' }
+    ]
+    wrapper.vm.filterText = '   '
+    await nextTick()
+    expect(wrapper.vm.filteredKeybindings).toHaveLength(2)
+  })
 })

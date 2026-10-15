@@ -56,8 +56,8 @@
   </AcceptanceCriteria>
 
   <AffectedAreas>
-    <M-011>prefComponents/theme (Appearance tab), title-bar theme button cycle</M-011>
-    <Theme>util/theme.js (apply, sanitise, derived ramps), prefComponents/theme/config.js (families incl. user and gallery themes), store/preferences.js (themeTweaks, themeGalleryAutoUpdate; customCss migration)</Theme>
+    <M-011>prefComponents/tabs/appearance (Appearance tab; C-38 T-004 replaced prefComponents/theme), the Advanced › Custom CSS sheet, title-bar theme button cycle</M-011>
+    <Theme>util/theme.js (apply, sanitise, derived ramps), util/themeFamilies.js (families incl. user and gallery themes), store/preferences.js (themeTweaks, themeGalleryAutoUpdate; customCss migration)</Theme>
     <Backend>src-tauri: themes folder in app data, read/write/watch, download from GitHub with size limits</Backend>
     <External>New repository xronocode/mark-themes (manifest schema, CI validator, preview renderer, index.json)</External>
   </AffectedAreas>

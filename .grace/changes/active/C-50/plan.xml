@@ -3,7 +3,7 @@
   <ChangeRef>C-50</ChangeRef>
   <Created>2026-10-15</Created>
   <IntentSummary>Replace the bare Custom CSS textarea with Tune, My themes and a GitHub gallery. First version is editing only (user 2026-10-15): T-002 and T-003. T-004/T-005 (gallery, import, updates) are deferred to the backlog and not scheduled.</IntentSummary>
-  <BaselineAssertions><MustContain><File>src/renderer/src/prefComponents/theme/index.vue</File><Text>customCss</Text></MustContain></BaselineAssertions>
+  <BaselineAssertions><MustContain><File>src/renderer/src/prefComponents/tabs/advanced/sheets/customCssSheet.vue</File><Text>customCss</Text></MustContain></BaselineAssertions>
   <TargetAssertions><MustContain><File>.grace/changes/active/C-50/spec.xml</File><Text>approved</Text></MustContain></TargetAssertions>
   <DurableScope><M-011/></DurableScope>
   <ObservedWriteScope><File>src/renderer/src/**</File><File>src-tauri/src/**</File><File>static/locales/*.json</File><File>tests/**</File><File>.grace/graph/*.xml</File><File>.grace/verification/*.xml</File></ObservedWriteScope>

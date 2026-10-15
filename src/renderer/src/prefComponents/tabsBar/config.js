@@ -22,7 +22,11 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   - 2026-10-15 v1.0.0: C-38 T-003 — new Settings shell tab catalog replacing the 9-entry sideBar rail (getCategory); legacy routes redirect, search categories route to the 5 tabs, last tab persists to localStorage.
+//   LAST_CHANGE: v1.1.0 - 2026-10-15 C-38 T-004: CATEGORY_TO_TAB gains the
+//   appearance/advanced categories the rewritten schema.json now uses
+//   (search hits route to the IA §3 home of their row); legacy spellings
+//   keep their mappings.
+//   v1.0.0 - 2026-10-15 C-38 T-003 — new Settings shell tab catalog replacing the 9-entry sideBar rail (getCategory); legacy routes redirect, search categories route to the 5 tabs, last tab persists to localStorage.
 // END_CHANGE_SUMMARY
 
 // The 5 tabs of the redesigned Settings window (C-38 N2 IA). Labels come
@@ -54,12 +58,16 @@ export const LEGACY_ROUTE_REDIRECTS = {
 
 // START_BLOCK_CATEGORY_TO_TAB
 // schema.json categories (the part before '--' in a description) → tab.
-// Everything without an explicit home falls back to general, matching the
-// old rail's fallback behaviour for View/Searcher/Watcher.
+// C-38 T-004: the schema categories follow the new IA (General /
+// Appearance / Editor / Markdown / Advanced); the legacy spellings
+// (spelling/theme/image/custom css) stay mapped for older schema copies
+// and everything without an explicit home falls back to general.
 export const CATEGORY_TO_TAB = {
   general: 'general',
+  appearance: 'appearance',
   editor: 'editor',
   markdown: 'markdown',
+  advanced: 'advanced',
   spelling: 'editor',
   theme: 'appearance',
   image: 'advanced',

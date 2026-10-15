@@ -461,463 +461,285 @@
     "search": {
       "placeholder": "搜索偏好设置…",
       "empty": "没有匹配的设置",
-      "optionalValues": "可选值",
       "categories": {
         "general": "通用",
+        "appearance": "外观",
         "editor": "编辑器",
         "markdown": "Markdown",
-        "theme": "主题",
-        "image": "图片",
+        "advanced": "高级",
         "view": "视图",
         "searcher": "搜索器",
-        "watcher": "监听器",
-        "spelling": "拼写",
-        "custom css": "自定义 CSS"
+        "watcher": "监听器"
       },
       "items": {
-        "autoSave": "自动保存正在编辑的内容",
-        "autoSaveDelay": "文件保存前的延迟时间（毫秒）",
-        "autoNormalizeLineEndings": "打开时自动将行尾规范化为 LF，可选择处理末尾换行符",
-        "titleBarStyle": "标题栏样式（仅限 Windows 和 Linux 系统）",
-        "openFilesInNewWindow": "在新窗口中打开文件",
-        "openFolderInNewWindow": "通过菜单在新窗口中打开文件夹",
-        "zoom": "缩放级别。介于 0.5 和 2.0 之间",
-        "hideScrollbar": "是否隐藏滚动条",
-        "wordWrapInToc": "是否在目录中启用自动换行",
-        "fileSortBy": "按创建时间、修改时间和标题对打开文件夹中的文件进行排序",
-        "startUpAction": "Mark 启动后的操作，打开最后编辑的内容、打开指定文件夹或空白页",
-        "restoreLayoutState": "启动时恢复上次编辑器状态",
-        "defaultDirectoryToOpen": "当 startUp=folder 时启动时应打开的默认目录",
-        "language": "Mark 使用的语言",
-        "editorFontFamily": "编辑器字体系列",
-        "fontSize": "字体大小（像素）",
-        "lineHeight": "行高",
-        "wrapCodeBlocks": "在代码块内自动换行",
-        "editorLineWidth": "定义编辑器区域的最大宽度。允许空字符串或 ch（字符）、px（像素）或 %（百分比）后缀",
-        "codeFontSize": "代码块中的字体大小，范围是 12 ~ 18",
-        "codeFontFamily": "代码块中使用的字体系列",
-        "codeBlockLineNumbers": "是否显示行号",
-        "trimUnnecessaryCodeBlockEmptyLines": "修剪代码块开头和结尾的空行",
-        "autoPairBracket": "编辑时自动配对括号",
-        "autoPairMarkdownSyntax": "自动完成 Markdown 语法",
-        "autoPairQuote": "自动完成引号",
-        "endOfLine": "每行末尾使用的换行符。默认值为 default，会选择您操作系统的默认换行符",
-        "defaultEncoding": "默认文件编码",
-        "autoGuessEncoding": "打开文件时尝试自动猜测文件编码",
-        "trimTrailingNewline": "修剪尾随换行符选项",
-        "textDirection": "文本书写方向",
-        "hideQuickInsertHint": "隐藏快速创建段落的提示",
-        "hideLinkPopup": "当光标悬停在链接上时隐藏链接弹出窗口",
-        "autoCheck": "是否自动检查相关任务",
-        "preferLooseListItem": "首选列表类型",
-        "bulletListMarker": "项目符号列表中使用的标记",
-        "orderListDelimiter": "有序列表中使用的分隔符",
-        "preferHeadingStyle": "Mark 中的首选标题样式",
-        "tabSize": "用 x 个空格替换制表符",
-        "listIndentation": "选择列表的缩进",
-        "frontmatterType": "前言类型",
-        "superSubScript": "启用 Pandoc 的 Markdown 扩展上标和下标",
-        "footnote": "启用 Pandoc 的 Markdown 扩展脚注",
-        "isHtmlEnabled": "启用 HTML 渲染",
-        "isGitlabCompatibilityEnabled": "启用 GitLab 兼容模式",
-        "sequenceTheme": "序列图主题",
-        "theme": "选择 Mark 中使用的主题",
-        "followSystemTheme": "跟随系统主题",
-        "lightModeTheme": "系统处于浅色模式时使用的主题",
-        "darkModeTheme": "系统处于深色模式时使用的主题",
-        "customCss": "应用到当前主题的自定义 CSS",
-        "spellcheckerEnabled": "是否启用拼写检查",
-        "spellcheckerNoUnderline": "不要为拼写错误添加下划线",
-        "spellcheckerLanguage": "拼写检查器语言",
-        "imageInsertAction": "从本地文件夹插入图片后的默认行为",
-        "imagePreferRelativeDirectory": "是否首选相对图片目录",
-        "imageRelativeDirectoryName": "相对图片文件夹名称",
-        "sideBarVisibility": "侧边栏是否可见",
-        "tabBarVisibility": "是否显示标签页",
-        "sourceCodeModeEnabled": "是否默认启用源代码模式",
-        "searchExclusions": "要从搜索中排除的 glob 模式列表",
-        "searchMaxFileSize": "最大文件大小（<maxFileSize><suffix>）。如果没有后缀，允许使用 K、M 或 G 后缀，数字会被视为字节",
-        "searchIncludeHidden": "是否在隐藏文件和目录中搜索",
-        "searchNoIgnore": "是否忽略像 .gitignore 这样的忽略文件",
-        "searchFollowSymlinks": "是否应该跟随符号链接",
-        "watcherUsePolling": "是否使用轮询。轮询可能导致高 CPU 使用率，但对于监视网络上的文件是必要的"
+        "autoSave": "停止输入后不久自动保存更改",
+        "autoSaveDelay": "最后一次按键后等待多久再保存",
+        "previewModeOnFinderOpen": "在 Finder 中打开的文档以阅读视图显示",
+        "language": "应用语言",
+        "defaultEncoding": "新文件的文件编码",
+        "endOfLine": "新文件及保存时使用的行尾符",
+        "titleBarStyle": "窗口标题栏：自定义或系统（需要重启）",
+        "hideScrollbar": "隐藏滚动条",
+        "wordWrapInToc": "在目录中换行长标题",
+        "editorFontFamily": "正文字体",
+        "fontSize": "正文大小",
+        "lineHeight": "行间距",
+        "editorLineWidth": "书写区域宽度",
+        "theme": "主题",
+        "followSystemTheme": "自动模式：跟随系统外观",
+        "lightModeTheme": "浅色外观主题",
+        "darkModeTheme": "深色外观主题",
+        "autoPairBracket": "自动闭合括号",
+        "autoPairMarkdownSyntax": "自动闭合 Markdown 标记",
+        "autoPairQuote": "自动闭合引号",
+        "autoCheck": "点击即可勾选任务项",
+        "hideQuickInsertHint": "在空行上隐藏插入提示",
+        "hideLinkPopup": "隐藏链接预览",
+        "textDirection": "文本方向",
+        "tabSize": "Tab 键插入的空格数",
+        "spellcheckerEnabled": "检查拼写",
+        "spellcheckerNoUnderline": "为拼写错误的单词添加下划线",
+        "spellcheckerLanguage": "拼写检查语言",
+        "codeFontFamily": "代码字体",
+        "codeFontSize": "代码文字大小",
+        "codeBlockLineNumbers": "在代码块中显示行号",
+        "wrapCodeBlocks": "在代码块中换行长行",
+        "trimUnnecessaryCodeBlockEmptyLines": "修剪代码前后的空行",
+        "preferLooseListItem": "列表项间距",
+        "bulletListMarker": "项目符号字符",
+        "orderListDelimiter": "有序列表格式",
+        "listIndentation": "列表缩进",
+        "footnote": "脚注",
+        "mathEnabled": "数学公式",
+        "superSubScript": "上标和下标",
+        "frontmatterType": "前置元数据格式",
+        "frontmatterProperties": "将前置元数据显示为属性表",
+        "isHtmlEnabled": "允许在文档中使用 HTML",
+        "isGitlabCompatibilityEnabled": "GitLab 风格的 Markdown",
+        "sequenceTheme": "序列图样式",
+        "imageInsertAction": "添加图片时",
+        "imagePreferRelativeDirectory": "将图片保存到文档旁边",
+        "imageRelativeDirectoryName": "图片文件夹名称",
+        "customCss": "自定义 CSS"
       }
-    },
-    "categories": {
-      "general": "通用",
-      "editor": "编辑器",
-      "markdown": "Markdown",
-      "spelling": "拼写",
-      "theme": "主题",
-      "image": "图片",
-      "keybindings": "快捷键",
-      "language": "语言"
     },
     "general": {
       "title": "通用",
-      "autoSave": {
-        "title": "自动保存",
-        "description": "自动保存",
-        "delayDescription": "自动保存延迟"
-      },
-      "window": {
-        "title": "窗口",
-        "titleBarStyle": {
-          "title": "标题栏样式",
-          "custom": "自定义",
-          "native": "原生",
-          "titleBarStyle": "标题栏样式"
-        },
-        "requiresRestart": "需要重启",
-        "hideScrollbars": "隐藏滚动条",
-        "openFilesInNewWindow": "在新窗口中打开文件",
-        "openFoldersInNewWindow": "在新窗口中打开文件夹",
-        "zoom": "缩放"
+      "macosIntegration": {
+        "title": "macOS 集成",
+        "defaultForMd": ".md 文件的默认应用",
+        "statusIsDefault": "Mark 是 .md 文件的默认应用。",
+        "statusCurrent": ".md 文件的默认应用：{name}。",
+        "statusNone": "尚未为 .md 文件设置默认应用。",
+        "setDefault": "设为默认",
+        "removeDefault": "取消默认"
       },
       "startup": {
         "title": "启动",
-        "layoutOptions": "布局选项",
-        "startupFilesFolders": "启动文件/文件夹",
-        "restorePreviousState": "恢复上次编辑器状态",
-        "openBlankState": "打开空白状态",
-        "openDefaultDirectory": "打开默认目录",
-        "openLastFolder": "恢复打开的文件夹",
-        "selectFolder": "选择文件夹",
-        "openBlankPage": "打开空白页"
+        "previewModeOnFinderOpen": "在 Finder 中打开的文档以阅读视图显示",
+        "previewModeOnFinderOpenHelp": "通过 Finder 或 Dock 双击打开的文件以只读方式启动；点击即可编辑。"
       },
-      "sidebar": {
-        "title": "侧边栏",
-        "wrapTextInToc": "在目录中换行文本",
-        "excludePatterns": "排除模式",
-        "excludePatternsNotes": "排除模式（注释）",
-        "fileSortBy": {
-          "title": "文件排序方式",
-          "creationTime": "创建时间",
-          "modificationTime": "修改时间"
-        }
+      "language": {
+        "title": "语言",
+        "appLanguage": "应用语言",
+        "system": "跟随系统",
+        "english": "English",
+        "chinese": "简体中文",
+        "traditionalChinese": "繁體中文",
+        "spanish": "Español",
+        "french": "Français",
+        "german": "Deutsch",
+        "japanese": "日本語",
+        "korean": "한국어",
+        "portuguese": "Português",
+        "russian": "Русский"
       },
-      "misc": {
-        "title": "杂项",
-        "language": {
-          "title": "语言",
-          "english": "English",
-          "chinese": "简体中文",
-          "traditionalChinese": "繁體中文",
-          "spanish": "Español",
-          "french": "Français",
-          "german": "Deutsch",
-          "japanese": "日本語",
-          "korean": "한국어",
-          "portuguese": "Português"
-        }
+      "filesAndSaving": {
+        "title": "文件与保存",
+        "autoSave": "自动保存更改",
+        "autoSaveHelp": "停止输入后不久即保存当前文件。",
+        "autoSaveDelay": "保存前等待",
+        "autoSaveDelayHelp": "最后一次按键后等待多久再保存。",
+        "defaultEncoding": "新文件的文件编码",
+        "defaultEncodingHelp": "自带编码声明的文件不受此设置影响，始终能正确打开。",
+        "endOfLine": "行尾符",
+        "endOfLineHelp": "用于新文件及保存时。",
+        "endOfLineSystem": "与我的操作系统一致",
+        "endOfLineLf": "LF (Unix, macOS)",
+        "endOfLineCrlf": "CRLF (Windows)",
+        "secondsUnit": "秒"
+      },
+      "updates": {
+        "title": "更新",
+        "help": "在线检查并安装新版本。",
+        "check": "检查更新"
+      }
+    },
+    "appearance": {
+      "title": "外观",
+      "theme": {
+        "title": "主题",
+        "mode": "外观",
+        "modeHelp": "自动模式跟随您的电脑设置。每个主题都有浅色和深色两种外观。",
+        "modeAuto": "自动",
+        "modeLight": "浅色",
+        "modeDark": "深色"
+      },
+      "text": {
+        "title": "文本",
+        "font": "正文字体",
+        "fontSize": "正文大小",
+        "lineHeight": "行间距",
+        "lineWidth": "书写区域宽度",
+        "lineWidthHelp": "留空表示全宽，或输入带 px、% 或 ch 单位的数值——例如 720px。",
+        "unlimited": "不限"
+      },
+      "window": {
+        "title": "窗口与面板",
+        "hideScrollbar": "隐藏滚动条",
+        "wordWrapInToc": "在目录中换行长标题",
+        "titleBarStyle": "窗口标题栏",
+        "titleBarStyleHelp": "自定义会绘制带标签页的 Mark 专属标题栏。需要重启。",
+        "titleBarStyleCustom": "自定义",
+        "titleBarStyleNative": "系统"
       }
     },
     "editor": {
       "title": "编辑器",
-      "textEditor": {
-        "title": "文本编辑器",
-        "fontSize": "字体大小",
-        "lineHeight": "行高",
-        "fontFamily": "字体系列",
-        "maxWidth": "最大宽度",
-        "maxWidthNotes": "编辑器内容的最大宽度"
+      "typing": {
+        "title": "输入",
+        "autoPairBracket": "自动闭合括号",
+        "autoPairQuote": "自动闭合引号",
+        "autoPairMarkdownSyntax": "自动闭合 Markdown 标记",
+        "autoPairMarkdownSyntaxHelp": "输入 ** 或 __ 时自动插入闭合标记。",
+        "autoCheck": "点击即可勾选任务项",
+        "autoCheckHelp": "可在文档中切换任务列表复选框。",
+        "hideQuickInsertHint": "在空行上隐藏插入提示",
+        "hideQuickInsertHintHelp": "开始新段落时显示的小 '+' 提示。",
+        "hideLinkPopup": "隐藏链接预览",
+        "hideLinkPopupHelp": "光标位于链接上时显示的提示。",
+        "textDirection": "文本方向",
+        "textDirectionLtr": "从左到右",
+        "textDirectionRtl": "从右到左"
       },
-      "codeBlock": {
-        "title": "代码块",
-        "fontSize": "字体大小",
-        "fontFamily": "字体系列",
-        "showLineNumbers": "显示行号",
-        "removeEmptyLines": "删除空行"
+      "tabs": {
+        "title": "制表符与缩进",
+        "tabSize": "Tab 键插入的空格数",
+        "tabSizeHelp": "Tab 键插入空格而不是制表符。"
       },
-      "writingBehavior": {
-        "title": "写作行为",
-        "autoCloseBrackets": "自动关闭括号",
-        "autoCompleteMarkdown": "自动完成 Markdown",
-        "autoCloseQuotes": "自动关闭引号"
-      },
-      "fileRepresentation": {
-        "title": "文件表示",
-        "tabWidth": "制表符宽度",
-        "lineSeparator": "行分隔符",
-        "defaultEncoding": "默认文件编码",
-        "autoDetectEncoding": "自动检测编码",
-        "trailingNewlines": {
-          "title": "尾随换行符",
-          "doNothing": "不做任何操作",
-          "ensureOne": "确保有一个",
-          "preserve": "保留",
-          "trimAll": "删除所有尾随换行符"
-        },
-        "endOfLine": {
-          "default": "默认",
-          "crlf": "CRLF (Windows)",
-          "lf": "LF (Unix/macOS)"
+      "spelling": {
+        "title": "拼写",
+        "enabled": "检查拼写",
+        "underline": "为拼写错误的单词添加下划线",
+        "macAutoDetectHelp": "macOS 会自动检测文档语言。",
+        "language": "拼写检查语言",
+        "customDictionary": {
+          "title": "自定义词典",
+          "noWordsAvailable": "无可用单词",
+          "delete": "删除"
         }
       },
-      "misc": {
-        "title": "杂项",
-        "textDirection": {
-          "title": "文本方向",
-          "ltr": "从左到右",
-          "rtl": "从右到左"
-        },
-        "hideQuickInsertHint": "隐藏快速插入提示",
-        "hideLinkPopup": "隐藏链接弹出窗口",
-        "autoCheck": "自动检查",
-        "autoNormalizeLineEndings": "打开时自动将行尾规范化为 LF",
-        "wrapCodeBlocks": "换行代码块"
-      }
-    },
-    "image": {
-      "title": "图片",
-      "defaultAction": "插入图片时的默认操作",
-      "clipboardTooltip": "粘贴或拖拽图片到 Mark 后的默认行为",
-      "actions": {
-        "upload": "上传到云端",
-        "folder": "复制到文件夹",
-        "path": "使用绝对路径"
-      },
-      "folderSetting": {
-        "title": "文件夹设置",
-        "globalFolder": "全局图片文件夹",
-        "open": "打开",
-        "showInFolder": "在文件夹中显示",
-        "preferRelative": "首选相对目录",
-        "relativeFolderName": "相对文件夹名称",
-        "filenameNote": "文件名将自动生成。"
-      },
-      "imageInsertAction": {
-        "title": "图片插入操作",
-        "folder": "上传到文件夹",
-        "path": "复制到路径",
-        "upload": "上传到云端",
-        "copyToFolder": "复制到文件夹",
-        "uploadToServer": "上传到服务器"
-      },
-      "imageFolderPath": {
-        "title": "图片文件夹路径",
-        "description": "图片文件夹路径",
-        "selectFolder": "选择文件夹",
-        "relativePath": "相对路径",
-        "absolutePath": "绝对路径"
-      },
-      "cloudPictureBed": {
-        "title": "云图床",
-        "github": "GitHub",
-        "smms": "SM.MS",
-        "qiniu": "七牛",
-        "upyun": "又拍云",
-        "tcyun": "腾讯云",
-        "aliyun": "阿里云",
-        "imgur": "Imgur",
-        "picgo": "PicGo"
-      },
-      "preferRelativeDirectory": {
-        "title": "首选相对目录",
-        "description": "图片首选相对目录"
-      },
-      "uploader": {
-        "title": "图片上传器",
-        "currentUploader": "当前上传器",
-        "picgoNotInstalled": "PicGo 未安装",
-        "picgoDetectionStatus": "PicGo 检测状态",
-        "picgoInstalled": "PicGo 已安装",
-        "picgoDetectionFailed": "PicGo 检测失败",
-        "debugInfo": "调试信息",
-        "installCommand": "安装命令",
-        "npmInstallCommand": "npm install picgo -g",
-        "yarnInstallCommand": "yarn global add picgo",
-        "pnpmInstallCommand": "pnpm add -g picgo",
-        "chooseInstallMethod": "选择安装方式：",
-        "retestPicgo": "重新检测",
-        "detecting": "检测中…",
-        "lastDetectionTime": "上次检测时间",
-        "detectionStatus": "检测状态",
-        "picgoDetection": "PicGo 检测",
-        "usageGuide": {
-          "title": "PicGo 基本使用说明",
-          "step1": "配置上传器",
-          "step1Description": "使用以下命令配置 PicGo 上传器：",
-          "step2": "上传图片",
-          "step2Description": "使用以下命令上传图片：",
-          "step3": "查看配置",
-          "step3Description": "使用以下命令查看当前配置：",
-          "documentation": "查看完整文档"
-        },
-        "autoDetection": "自动检测中",
-        "lastSuccessTime": "上次成功时间",
-        "neverDetected": "从未检测",
-        "neverSuccessful": "从未成功",
-        "configureUploader": "配置上传器",
-        "configureDescription": "使用以下命令配置 PicGo 上传器：",
-        "uploadImage": "上传图片",
-        "uploadDescription": "使用以下命令上传图片：",
-        "viewConfig": "查看配置",
-        "viewConfigDescription": "使用以下命令查看当前配置：",
-        "viewDocumentation": "查看完整文档",
-        "githubDeprecated": "GitHub 上传器已弃用",
-        "githubToken": "GitHub 令牌",
-        "ownerName": "所有者名称",
-        "repoName": "仓库名称",
-        "branchName": "分支名称",
-        "scriptDescription": "脚本描述",
-        "scriptLocation": "脚本位置",
-        "save": "保存",
-        "saveConfig": "保存配置",
-        "githubConfigSaved": "GitHub 配置已保存",
-        "scriptConfigSaved": "脚本配置已保存",
-        "legalNotices": {
-          "title": "法律声明",
-          "description": "我已阅读并同意相关服务条款",
-          "and": "和",
-          "byUsing": "使用此服务即表示您同意",
-          "gdprWarning": "GDPR 隐私警告",
-          "privacyStatement": "隐私声明",
-          "termsOfService": "服务条款"
-        },
-        "services": {
-          "github": "GitHub",
-          "smms": "SM.MS",
-          "qiniu": "七牛",
-          "upyun": "又拍云",
-          "tcyun": "腾讯云",
-          "aliyun": "阿里云",
-          "imgur": "Imgur",
-          "picgo": "PicGo",
-          "script": "自定义脚本",
-          "cliScript": "CLI 脚本",
-          "none": "无"
-        },
-        "branch": "分支",
-        "inputToken": "输入令牌",
-        "noUploaderSelected": "未选择上传器",
-        "owner": "所有者",
-        "pleaseInstall": "请安装",
-        "repo": "仓库",
-        "scriptPath": "脚本路径",
-        "tokenTooltip": "用于身份验证的访问令牌"
+      "codeBlocks": {
+        "title": "代码块",
+        "fontFamily": "代码字体",
+        "fontSize": "代码文字大小",
+        "lineNumbers": "显示行号",
+        "wrapLongLines": "在代码块中换行长行",
+        "trimBlankLines": "修剪代码前后的空行",
+        "trimBlankLinesHelp": "移除代码块最顶部和最底部的空行。"
       }
     },
     "markdown": {
       "title": "Markdown",
-      "listItem": {
-        "title": "列表项",
-        "preferLooseListItem": "首选宽松列表项",
-        "bulletListMarker": "无序列表标记",
-        "orderListDelimiter": "有序列表分隔符",
-        "listIndentation": {
-          "title": "列表缩进",
-          "dfm": "默认格式模式",
-          "tab": "制表符",
-          "oneSpace": "一个空格",
-          "twoSpaces": "两个空格",
-          "threeSpaces": "三个空格",
-          "fourSpaces": "四个空格"
-        }
-      },
-      "heading": {
-        "title": "标题",
-        "preferHeadingStyle": "首选标题样式"
-      },
-      "frontmatter": {
-        "title": "前置元数据",
-        "frontmatterType": "前置元数据类型"
+      "lists": {
+        "title": "列表",
+        "spacing": "列表项间距",
+        "spacingCompact": "紧凑",
+        "spacingSpaced": "宽松",
+        "spacingHelp": "宽松会在列表项之间加入空行，某些渲染器需要这种格式。",
+        "bulletCharacter": "项目符号字符",
+        "orderedListFormat": "有序列表格式",
+        "orderedListDot": "1. 列表项",
+        "orderedListParen": "1) 列表项",
+        "indentation": "列表缩进",
+        "indentationHelp": "嵌套列表行写入文件时的缩进方式。",
+        "indentAlignWithText": "与文本对齐",
+        "indentTab": "使用制表符",
+        "indentOneSpace": "1 个空格",
+        "indentTwoSpaces": "2 个空格",
+        "indentThreeSpaces": "3 个空格",
+        "indentFourSpaces": "4 个空格"
       },
       "extensions": {
         "title": "扩展",
-        "superSubScript": "上标/下标",
         "footnote": "脚注",
-        "isHtmlEnabled": "启用 HTML",
-        "isGitlabCompatibilityEnabled": "GitLab 兼容性",
-        "sequenceTheme": "序列主题",
-        "superscript": "上标",
-        "subscript": "下标",
-        "frontMatter": "前置元数据",
-        "math": "数学",
-        "diagram": "图表",
-        "footnoteNotes": "脚注注释",
-        "frontmatterType": {
-          "frontmatterType": "前置元数据类型",
-          "jsonBrace": "带大括号的 JSON",
-          "jsonSemicolon": "带分号的 JSON",
-          "title": "前置元数据类型"
-        },
-        "frontmatterProperties": "将 YAML 前置元数据显示为属性表（点击编辑 YAML）"
-      },
-      "diagrams": {
-        "title": "图表",
-        "plantuml": "PlantUML",
-        "mermaid": "Mermaid",
-        "vega": "Vega",
-        "flowchart": "流程图",
-        "sequence": "序列图",
-        "gantt": "甘特图",
-        "sequenceTheme": {
-          "title": "序列图主题",
-          "handDrawn": "手绘",
-          "simple": "简单"
-        }
-      },
-      "math": {
-        "title": "数学",
-        "katex": "KaTeX",
-        "mathJax": "MathJax"
-      },
-      "misc": {
-        "preferHeadingStyle": {
-          "title": "首选标题样式",
-          "atx": "ATX 样式",
-          "setext": "Setext 样式"
-        },
-        "title": "杂项"
+        "footnoteHelp": "启用 [^1] 脚注语法（Pandoc 扩展）。",
+        "math": "数学公式",
+        "mathHelp": "使用 KaTeX 渲染 $…$ 和 $$…$$。",
+        "superSubScript": "上标和下标",
+        "superSubScriptHelp": "启用 ^文本^ 和 ~文本~（Pandoc 扩展）。",
+        "frontmatterFormat": "前置元数据格式",
+        "frontmatterFormatHelp": "文档顶部元数据块的定界符。",
+        "frontmatterJsonSemicolon": "带分号的 JSON",
+        "frontmatterJsonBrace": "带大括号的 JSON",
+        "frontmatterProperties": "将前置元数据显示为属性表",
+        "frontmatterPropertiesHelp": "点击表格可编辑原始 YAML。"
       },
       "compatibility": {
-        "enableGitlab": "启用 GitLab 兼容性",
-        "enableHtml": "启用 HTML 支持",
-        "title": "兼容性"
-      },
-      "lists": {
-        "bulletListMarker": "无序列表标记",
-        "listIndentation": {
-          "dfm": "DFM 样式",
-          "fourSpaces": "四个空格",
-          "oneSpace": "一个空格",
-          "tab": "制表符",
-          "threeSpaces": "三个空格",
-          "twoSpaces": "两个空格",
-          "title": "列表缩进"
-        },
-        "orderListDelimiter": "有序列表分隔符",
-        "preferLooseListItem": "首选宽松列表项",
-        "title": "列表"
+        "title": "兼容性",
+        "allowHtml": "允许在文档中使用 HTML",
+        "allowHtmlHelp": "关闭时会将 HTML 标签显示为文本。",
+        "gitlabFlavored": "GitLab 风格的 Markdown",
+        "gitlabFlavoredHelp": "启用 GitLab 扩展功能，例如其图表和引用语法。",
+        "sequenceDiagramStyle": "序列图样式",
+        "sequenceHandDrawn": "手绘",
+        "sequenceSimple": "简单"
       }
     },
-    "spelling": {
-      "title": "拼写",
-      "enabled": "启用拼写检查器",
-      "autoDetectLanguage": "自动检测语言",
-      "language": "语言",
-      "noSuggestions": "无建议",
-      "spellcheckerEnabled": "启用拼写检查器",
-      "spellcheckerNoUnderline": "拼写错误不显示下划线",
-      "spellcheckerLanguage": "拼写检查器语言"
-    },
-    "theme": {
-      "title": "主题",
-      "theme": "主题",
-      "followSystemTheme": "跟随系统主题",
-      "modeThemes": "主题选择",
-      "lightModeTheme": "浅色模式主题",
-      "darkModeTheme": "深色模式主题",
-      "customCss": "自定义 CSS",
-      "codeBlockTheme": {
-        "title": "代码块主题",
-        "description": "代码块的主题"
+    "advanced": {
+      "title": "高级",
+      "images": {
+        "title": "图片",
+        "insertAction": "添加图片时",
+        "insertActionFolder": "复制到文件夹",
+        "insertActionPath": "保留原始位置",
+        "folder": "图片文件夹",
+        "folderHelp": "不保存在文档旁边时，粘贴和拖入的图片的存放位置。",
+        "folderPlaceholder": "选择文件夹…",
+        "chooseFolder": "选择…",
+        "openFolder": "打开",
+        "saveNextToDocument": "将图片保存到文档旁边",
+        "saveNextToDocumentHelp": "在文档所在文件夹内使用下方设置的文件夹，并写入相对链接。",
+        "folderName": "图片文件夹名称",
+        "folderNameHelp": "${'{'}filename{'}'} 会插入文档名称。"
       },
-      "importCustomThemes": "导入自定义主题",
-      "importTheme": "导入主题",
-      "openFolder": "打开文件夹",
-      "openThemesFolder": "打开主题文件夹"
+      "customise": {
+        "title": "自定义",
+        "keyboardShortcuts": "键盘快捷键",
+        "extensions": "扩展",
+        "customCss": "自定义 CSS",
+        "customCssHelp": "在所选主题之上应用。",
+        "edit": "编辑…",
+        "browse": "浏览…"
+      },
+      "reset": {
+        "title": "重置",
+        "restore": "恢复全部默认设置",
+        "restoreHelp": "不会影响您的文档。",
+        "restoreButton": "恢复…",
+        "confirmTitle": "恢复全部默认设置？",
+        "confirmMessage": "所有设置都会恢复为默认值。您的文档和图片文件夹不会受影响。",
+        "cancel": "取消",
+        "confirm": "恢复"
+      },
+      "sheets": {
+        "close": "关闭",
+        "shortcutsTitle": "键盘快捷键",
+        "extensionsTitle": "扩展",
+        "customCssTitle": "自定义 CSS",
+        "customCssSave": "保存",
+        "customCssPlaceholder": "/* 在主题之上应用的自定义 CSS */"
+      }
     },
     "keybindings": {
       "title": "快捷键",
@@ -952,31 +774,7 @@
         "unbind": "解绑"
       }
     },
-    "selectFont": "选择字体",
-    "spellchecker": {
-      "autoDetectDescription": "自动检测文档语言",
-      "autoDetectLanguage": "自动检测语言",
-      "customDictionary": {
-        "delete": "删除",
-        "description": "将自定义单词添加到您的个人词典",
-        "noWordsAvailable": "无可用单词",
-        "options": "选项",
-        "title": "自定义词典",
-        "word": "单词"
-      },
-      "defaultLanguage": "默认语言",
-      "enableSpellChecking": "启用拼写检查",
-      "hideMarksForErrors": "隐藏拼写错误标记",
-      "title": "拼写检查器"
-    },
-    "language": {
-      "title": "语言",
-      "uiLanguage": {
-        "title": "界面语言",
-        "description": "应用界面的显示语言"
-      },
-      "system": "跟随系统"
-    }
+    "selectFont": "选择字体"
   },
   "edit": {
     "undo": "撤销",

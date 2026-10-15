@@ -1,18 +1,22 @@
-// F-MAIN-ENTRY-DISABLED close: schema.json copied into renderer-local
-// _shims/preferences/ since src/main/ doesn't exist in the Tauri port
-// (M-005 prefs is the runtime equivalent). Schema bytes preserved
-// verbatim from mark-electron@v1.2.3 for renderer-side prefs UI.
+// C-38 T-004: schema.json is the Settings search index and follows the
+// new IA — categories are the 5 tab names (General/Appearance/Editor/
+// Markdown/Advanced), the 14 dead keys are gone (IA §4.1), defaults were
+// reconciled with the store, and mathEnabled/frontmatterProperties/
+// previewModeOnFinderOpen joined so every visible row is searchable.
+// The file lives in renderer-local _shims/preferences/ because src/main/
+// does not exist in the Tauri port (M-005 prefs is the runtime
+// equivalent).
 import preferences from '@/_shims/preferences/schema.json'
 import { t } from '../../i18n'
 import { CATEGORY_TO_TAB, TAB_IDS } from '../tabsBar/config'
 
 // FILE: src/renderer/src/prefComponents/sideBar/config.js
-// VERSION: 2.0.0
+// VERSION: 2.1.0
 // START_MODULE_CONTRACT
-//   PURPOSE: Settings search index (C-38 T-003) — builds the searchable preference list from schema.json and resolves each hit's routeCategory against the 5 new tabs; owns the locale-refresh plumbing and the i18n debug popup.
+//   PURPOSE: Settings search index (C-38 T-003/T-004) — builds the searchable preference list from schema.json and resolves each hit's routeCategory against the 5 new tabs; owns the locale-refresh plumbing and the i18n debug popup.
 //   SCOPE: Index building, category translation with fallbacks, languageChanged refresh helpers, debugLanguageState; no rendering.
 //   DEPENDS: _shims/preferences/schema.json, i18n (t), prefComponents/tabsBar/config (CATEGORY_TO_TAB/TAB_IDS).
-//   LINKS: .grace/changes/active/C-38 T-003; .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011.
+//   LINKS: .grace/changes/active/C-38 T-003/T-004; .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011.
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT
@@ -25,7 +29,12 @@ import { CATEGORY_TO_TAB, TAB_IDS } from '../tabsBar/config'
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   - 2026-10-15 v2.0.0: C-38 T-003 — search hits route to the 5 new tabs via CATEGORY_TO_TAB (Theme → appearance, Spelling → editor, Image/Custom CSS → advanced, unknown → general); getCategory (9-entry rail catalog + svg imports) removed with the rail.
+//   LAST_CHANGE: v2.1.0 - 2026-10-15 C-38 T-004: the schema is no longer a
+//   preserved v1.2.3 artifact — it mirrors the new IA (5-tab categories,
+//   14 dead keys dropped, store-default reconciliation, mathEnabled +
+//   frontmatterProperties + previewModeOnFinderOpen added), so every
+//   visible Settings row is findable and routes to its owning tab.
+//   v2.0.0 - 2026-10-15 C-38 T-003 — search hits route to the 5 new tabs via CATEGORY_TO_TAB (Theme → appearance, Spelling → editor, Image/Custom CSS → advanced, unknown → general); getCategory (9-entry rail catalog + svg imports) removed with the rail.
 //   - (v1.x: 9-route routeCategory validation — retired.)
 // END_CHANGE_SUMMARY
 

@@ -4071,10 +4071,42 @@
           Playwright gates chromium + webkit with no horizontal overflow
           at 640 px on all five tabs.
         </Scenario>
+        <Scenario>
+          scenario-51: Settings content per the N2 IA (C-38 T-004): every
+          IA §3 row renders in its tab and group order (per-tab vitest
+          suites pin the label-key sequences), the Appearance tab shows
+          the Auto/Light/Dark segmented control bound to
+          followSystemTheme + theme exactly like the title-bar cycle and
+          14 compact family tiles whose colours come from the theme CSS
+          variables (util/themeSwatchColors; vitest sees ?inline CSS as
+          empty and asserts the fallback path), Editor › Spelling inverts
+          spellcheckerNoUnderline and shows the auto-detect help on
+          macOS instead of the fake switch, Advanced › Images offers
+          none/PicGo/CLI-script (never GitHub; a stored 'github'
+          currentUploader falls back to 'none' in the store) and the
+          shortcuts/extensions/custom-CSS sheets open from Customise
+          (common/sheet: Close + Esc; the shortcuts sheet carries its own
+          search field), «Restore all defaults» asks in an in-app dialog
+          (cancel keeps values; confirm runs RESET_PREFERENCES_TO_DEFAULTS
+          which never touches user data, window state or the line-numbers
+          migration marker), the 14 dead keys are absent from UI and
+          schema.json while the schema gains mathEnabled,
+          frontmatterProperties and previewModeOnFinderOpen with
+          reconciled defaults, and the ⌘F search finds every visible row
+          and routes it to its new tab (mathEnabled → markdown);
+          Playwright gates chromium + webkit at 640×620 in EN and RU for
+          no horizontal overflow and no clipped .pref-row-label.
+        </Scenario>
       </Scenarios>
       <Markers>
         <Marker>[prefs][theme-migration][BLOCK_RETIRED_THEMES_MIGRATED key:from-&gt;to …] — C-41 T-002 retired theme ids migrated at the hydration load point and persisted once per changed key</Marker>
         <Marker>[prefs][theme-migration][BLOCK_RETIRED_THEMES_MIGRATE_FAILED] — C-41 T-002 migration persisted in memory; mt_prefs_set write failed (retries next boot)</Marker>
+        <Marker>[prefs][reset][BLOCK_PREFERENCES_RESET keys=&lt;n&gt; failed=&lt;m&gt;] — C-38 T-004 «Restore all defaults» applied the code-level defaults and persisted each resettable preference</Marker>
+        <Marker>[prefs][reset][BLOCK_RESET_LANGUAGE_FAILED] — C-38 T-004 reset could not re-apply the default UI language</Marker>
+        <Marker>[preferences][advanced][BLOCK_RESET_FAILED] — C-38 T-004 the reset action threw; the confirmation dialog still closes</Marker>
+        <Marker>[preferences][general][BLOCK_CHECK_UPDATE_DISPATCH_FAILED] — C-38 T-004 the Updates row could not run the file.check-update command</Marker>
+        <Marker>[uploaderForm][detectPicgo][BLOCK_PICGO_DETECT_FAILED] — C-38 T-004 PicGo binary detection threw; the panel shows the failure state</Marker>
+        <Marker>[dictionaryList][removeWord][BLOCK_REMOVE_WORD_FAILED] — C-38 T-004 custom-dictionary word removal IPC failed</Marker>
         <Marker>[whatsNew][init][BLOCK_SHEET_QUEUED version=&lt;v&gt;] — C-48 upgrade detected, the What's New sheet opens once</Marker>
         <Marker>[whatsNew][init][BLOCK_PERSIST_FAILED] — C-48 lastSeenVersion / lastUpdateAt write failed</Marker>
         <Marker>[review][ask][BLOCK_EVALUATED ask=false reason=&lt;firstLaunch|versionChanged|errorLogged|modalOpen|sessions|days|cooldown&gt;] — C-48 review decision trace</Marker>

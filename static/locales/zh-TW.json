@@ -461,464 +461,285 @@
     "search": {
       "placeholder": "搜尋偏好設定…",
       "empty": "沒有相符的設定",
-      "optionalValues": "可選值",
       "categories": {
         "general": "一般",
+        "appearance": "外觀",
         "editor": "編輯器",
         "markdown": "Markdown",
-        "theme": "主題",
-        "image": "圖片",
+        "advanced": "進階",
         "view": "檢視",
         "searcher": "搜尋器",
-        "watcher": "監聽器",
-        "spelling": "拼字",
-        "custom css": "自訂 CSS"
+        "watcher": "監聽器"
       },
       "items": {
-        "autoSave": "自動儲存正在編輯的內容",
-        "autoSaveDelay": "檔案儲存前的延遲時間（毫秒）",
-        "autoNormalizeLineEndings": "開啟時自動將行尾標準化為 LF，可選擇處理結尾換行符",
-        "titleBarStyle": "標題欄樣式（僅限 Windows 和 Linux 系統）",
-        "openFilesInNewWindow": "在新視窗中開啟檔案",
-        "openFolderInNewWindow": "透過選單在新視窗中開啟資料夾",
-        "zoom": "縮放層級。介於 0.5 和 2.0 之間",
-        "hideScrollbar": "是否隱藏捲軸",
-        "wordWrapInToc": "是否在目錄中啟用自動換行",
-        "fileSortBy": "按建立時間、修改時間和標題對開啟資料夾中的檔案進行排序",
-        "startUpAction": "Mark 啟動後的操作，開啟最後編輯的內容、開啟指定資料夾或空白頁面",
-        "restoreLayoutState": "啟動時還原上次編輯器狀態",
-        "defaultDirectoryToOpen": "當 startUp=folder 時啟動時應開啟的預設目錄",
-        "language": "Mark 使用的語言",
-        "editorFontFamily": "編輯器字型系列",
-        "fontSize": "字型大小（像素）",
-        "lineHeight": "行高",
-        "wrapCodeBlocks": "在程式碼區塊內自動換行",
-        "editorLineWidth": "定義編輯器區域的最大寬度。允許空字串或 ch（字元）、px（像素）或 %（百分比）後綴",
-        "codeFontSize": "程式碼區塊中的字型大小，範圍是 12 ~ 18",
-        "codeFontFamily": "程式碼區塊中使用的字型系列",
-        "codeBlockLineNumbers": "是否顯示行號",
-        "trimUnnecessaryCodeBlockEmptyLines": "修剪程式碼區塊開頭和結尾的空行",
-        "autoPairBracket": "編輯時自動配對括號",
-        "autoPairMarkdownSyntax": "自動完成 Markdown 語法",
-        "autoPairQuote": "自動完成引號",
-        "endOfLine": "每行結尾使用的換行字元。預設值為 default，會選擇您作業系統的預設換行字元",
-        "defaultEncoding": "預設檔案編碼",
-        "autoGuessEncoding": "開啟檔案時嘗試自動猜測檔案編碼",
-        "trimTrailingNewline": "修剪尾隨換行選項",
-        "textDirection": "文本書寫方向",
-        "hideQuickInsertHint": "隱藏快速建立段落的提示",
-        "hideLinkPopup": "當游標懸停在連結上時隱藏連結彈出視窗",
-        "autoCheck": "是否自動檢查相關任務",
-        "preferLooseListItem": "首選清單類型",
-        "bulletListMarker": "項目符號清單中使用的標記",
-        "orderListDelimiter": "有序清單中使用的分隔符",
-        "preferHeadingStyle": "Mark 中的首選標題樣式",
-        "tabSize": "用 x 個空格替換製表符",
-        "listIndentation": "選擇清單的縮排",
-        "frontmatterType": "前言類型",
-        "superSubScript": "啟用 Pandoc 的 Markdown 擴充功能上標和下標",
-        "footnote": "啟用 Pandoc 的 Markdown 擴充功能腳註",
-        "isHtmlEnabled": "啟用 HTML 轉譯",
-        "isGitlabCompatibilityEnabled": "啟用 GitLab 相容模式",
-        "sequenceTheme": "序列圖主題",
-        "theme": "選擇 Mark 中使用的主題",
-        "followSystemTheme": "跟隨系統主題",
-        "lightModeTheme": "系統處於淺色模式時使用的主題",
-        "darkModeTheme": "系統處於深色模式時使用的主題",
-        "customCss": "套用到當前主題的自訂 CSS",
-        "spellcheckerEnabled": "是否啟用拼字檢查",
-        "spellcheckerNoUnderline": "不要為拼字錯誤加上底線",
-        "spellcheckerLanguage": "拼字檢查器語言",
-        "imageInsertAction": "從本地資料夾插入圖片後的預設行為",
-        "imagePreferRelativeDirectory": "是否首選相對圖片目錄",
-        "imageRelativeDirectoryName": "相對圖片資料夾名稱",
-        "sideBarVisibility": "側邊欄是否可見",
-        "tabBarVisibility": "是否顯示標籤頁",
-        "sourceCodeModeEnabled": "是否預設啟用原始碼模式",
-        "searchExclusions": "要從搜尋中排除的 glob 模式清單",
-        "searchMaxFileSize": "最大檔案大小（<maxFileSize><suffix>）。如果沒有後綴，允許使用 K、M 或 G 後綴，數字會被視為位元組",
-        "searchIncludeHidden": "是否在隱藏檔案和目錄中搜尋",
-        "searchNoIgnore": "是否忽略像 .gitignore 這樣的忽略檔案",
-        "searchFollowSymlinks": "是否應該跟隨符號連結",
-        "watcherUsePolling": "是否使用輪詢。輪詢可能導致高 CPU 使用率，但對於監視網路上的檔案是必要的"
+        "autoSave": "停止輸入後不久自動儲存變更",
+        "autoSaveDelay": "最後一次按鍵後等待多久再儲存",
+        "previewModeOnFinderOpen": "從 Finder 開啟的文件以閱讀檢視顯示",
+        "language": "應用程式語言",
+        "defaultEncoding": "新檔案的檔案編碼",
+        "endOfLine": "新檔案及儲存時使用的行尾符號",
+        "titleBarStyle": "視窗標題欄：自訂或系統（需要重新啟動）",
+        "hideScrollbar": "隱藏捲軸",
+        "wordWrapInToc": "在目錄中換行過長標題",
+        "editorFontFamily": "正文字型",
+        "fontSize": "文字大小",
+        "lineHeight": "行距",
+        "editorLineWidth": "書寫區域寬度",
+        "theme": "主題",
+        "followSystemTheme": "自動模式：跟隨系統外觀",
+        "lightModeTheme": "淺色外觀主題",
+        "darkModeTheme": "深色外觀主題",
+        "autoPairBracket": "自動閉合括號",
+        "autoPairMarkdownSyntax": "自動閉合 Markdown 標記",
+        "autoPairQuote": "自動閉合引號",
+        "autoCheck": "點擊即可勾選工作項目",
+        "hideQuickInsertHint": "在空行上隱藏插入提示",
+        "hideLinkPopup": "隱藏連結預覽",
+        "textDirection": "文字方向",
+        "tabSize": "Tab 鍵插入的空格數",
+        "spellcheckerEnabled": "檢查拼字",
+        "spellcheckerNoUnderline": "為拼錯的單字加上底線",
+        "spellcheckerLanguage": "拼字檢查語言",
+        "codeFontFamily": "程式碼字型",
+        "codeFontSize": "程式碼文字大小",
+        "codeBlockLineNumbers": "在程式碼區塊中顯示行號",
+        "wrapCodeBlocks": "在程式碼區塊中換行過長的行",
+        "trimUnnecessaryCodeBlockEmptyLines": "修剪程式碼前後的空行",
+        "preferLooseListItem": "清單項目間距",
+        "bulletListMarker": "項目符號字元",
+        "orderListDelimiter": "編號清單格式",
+        "listIndentation": "清單縮排",
+        "footnote": "腳註",
+        "mathEnabled": "數學公式",
+        "superSubScript": "上標和下標",
+        "frontmatterType": "前置資料格式",
+        "frontmatterProperties": "將前置資料顯示為屬性表",
+        "isHtmlEnabled": "允許在文件中使用 HTML",
+        "isGitlabCompatibilityEnabled": "GitLab 風格的 Markdown",
+        "sequenceTheme": "序列圖樣式",
+        "imageInsertAction": "新增圖片時",
+        "imagePreferRelativeDirectory": "將圖片儲存到文件旁",
+        "imageRelativeDirectoryName": "圖片資料夾名稱",
+        "customCss": "自訂 CSS"
       }
-    },
-    "categories": {
-      "general": "一般",
-      "editor": "編輯器",
-      "markdown": "Markdown",
-      "spelling": "拼字",
-      "theme": "主題",
-      "image": "圖片",
-      "keybindings": "按鍵綁定",
-      "language": "語言"
     },
     "general": {
       "title": "一般",
-      "autoSave": {
-        "title": "自動儲存",
-        "description": "自動儲存",
-        "delayDescription": "自動儲存延遲"
-      },
-      "window": {
-        "title": "視窗",
-        "titleBarStyle": {
-          "title": "標題欄樣式",
-          "custom": "自訂",
-          "titleBarStyle": "標題欄樣式",
-          "native": "原生"
-        },
-        "requiresRestart": "需要重新啟動",
-        "hideScrollbars": "隱藏捲軸",
-        "openFilesInNewWindow": "在新視窗中開啟檔案",
-        "openFoldersInNewWindow": "在新視窗中開啟資料夾",
-        "zoom": "縮放"
+      "macosIntegration": {
+        "title": "macOS 整合",
+        "defaultForMd": ".md 檔案的預設應用程式",
+        "statusIsDefault": "Mark 是 .md 檔案的預設應用程式。",
+        "statusCurrent": ".md 檔案的預設應用程式：{name}。",
+        "statusNone": "尚未為 .md 檔案設定預設應用程式。",
+        "setDefault": "設為預設",
+        "removeDefault": "取消預設"
       },
       "startup": {
         "title": "啟動",
-        "layoutOptions": "版面配置選項",
-        "startupFilesFolders": "啟動檔案/資料夾",
-        "restorePreviousState": "還原上次編輯器狀態",
-        "openBlankState": "開啟空白狀態",
-        "openDefaultDirectory": "開啟預設目錄",
-        "openLastFolder": "恢復開啟的資料夾",
-        "selectFolder": "選擇資料夾",
-        "openBlankPage": "開啟空白頁面"
+        "previewModeOnFinderOpen": "從 Finder 開啟的文件以閱讀檢視顯示",
+        "previewModeOnFinderOpenHelp": "在 Finder 或 Dock 中雙擊開啟的檔案以唯讀方式啟動；點擊即可編輯。"
       },
-      "sidebar": {
-        "title": "側邊欄",
-        "wrapTextInToc": "在目錄中換行文字",
-        "excludePatterns": "排除模式",
-        "excludePatternsNotes": "排除模式（備註）",
-        "fileSortBy": {
-          "title": "檔案排序方式",
-          "creationTime": "建立時間",
-          "modificationTime": "修改時間"
-        }
+      "language": {
+        "title": "語言",
+        "appLanguage": "應用程式語言",
+        "system": "跟隨系統",
+        "english": "English",
+        "chinese": "簡體中文",
+        "traditionalChinese": "繁體中文",
+        "spanish": "Español",
+        "french": "Français",
+        "german": "Deutsch",
+        "japanese": "日本語",
+        "korean": "한국어",
+        "portuguese": "Português",
+        "russian": "Русский"
       },
-      "misc": {
-        "title": "其他",
-        "language": {
-          "title": "語言",
-          "english": "English",
-          "chinese": "簡體中文",
-          "traditionalChinese": "繁體中文",
-          "spanish": "Español",
-          "french": "Français",
-          "german": "Deutsch",
-          "japanese": "日本語",
-          "korean": "한국어",
-          "portuguese": "Português"
-        }
+      "filesAndSaving": {
+        "title": "檔案與儲存",
+        "autoSave": "自動儲存變更",
+        "autoSaveHelp": "停止輸入後不久即儲存目前檔案。",
+        "autoSaveDelay": "儲存前等待",
+        "autoSaveDelayHelp": "最後一次按鍵後等待多久再儲存。",
+        "defaultEncoding": "新檔案的檔案編碼",
+        "defaultEncodingHelp": "自帶編碼宣告的檔案不受此設定影響，一律能正確開啟。",
+        "endOfLine": "行尾符號",
+        "endOfLineHelp": "用於新檔案及儲存時。",
+        "endOfLineSystem": "與我的作業系統一致",
+        "endOfLineLf": "LF (Unix, macOS)",
+        "endOfLineCrlf": "CRLF (Windows)",
+        "secondsUnit": "秒"
+      },
+      "updates": {
+        "title": "更新",
+        "help": "線上檢查並安裝新版本。",
+        "check": "檢查更新"
+      }
+    },
+    "appearance": {
+      "title": "外觀",
+      "theme": {
+        "title": "主題",
+        "mode": "外觀",
+        "modeHelp": "自動模式會跟隨您的電腦設定。每個主題都有淺色和深色兩種外觀。",
+        "modeAuto": "自動",
+        "modeLight": "淺色",
+        "modeDark": "深色"
+      },
+      "text": {
+        "title": "文字",
+        "font": "正文字型",
+        "fontSize": "文字大小",
+        "lineHeight": "行距",
+        "lineWidth": "書寫區域寬度",
+        "lineWidthHelp": "留空表示全寬，或輸入帶 px、% 或 ch 單位的數值——例如 720px。",
+        "unlimited": "不受限"
+      },
+      "window": {
+        "title": "視窗與面板",
+        "hideScrollbar": "隱藏捲軸",
+        "wordWrapInToc": "在目錄中換行過長標題",
+        "titleBarStyle": "視窗標題欄",
+        "titleBarStyleHelp": "自訂會繪製帶分頁的 Mark 專屬標題欄。需要重新啟動。",
+        "titleBarStyleCustom": "自訂",
+        "titleBarStyleNative": "系統"
       }
     },
     "editor": {
       "title": "編輯器",
-      "textEditor": {
-        "title": "文字編輯器",
-        "fontSize": "字型大小",
-        "lineHeight": "行高",
-        "fontFamily": "字型系列",
-        "maxWidth": "最大寬度",
-        "maxWidthNotes": "編輯器內容的最大寬度"
+      "typing": {
+        "title": "輸入",
+        "autoPairBracket": "自動閉合括號",
+        "autoPairQuote": "自動閉合引號",
+        "autoPairMarkdownSyntax": "自動閉合 Markdown 標記",
+        "autoPairMarkdownSyntaxHelp": "輸入 ** 或 __ 時自動插入閉合標記。",
+        "autoCheck": "點擊即可勾選工作項目",
+        "autoCheckHelp": "可在文件中切換工作清單核取方塊。",
+        "hideQuickInsertHint": "在空行上隱藏插入提示",
+        "hideQuickInsertHintHelp": "開始新段落時顯示的小 '+' 提示。",
+        "hideLinkPopup": "隱藏連結預覽",
+        "hideLinkPopupHelp": "游標位於連結上時顯示的提示。",
+        "textDirection": "文字方向",
+        "textDirectionLtr": "從左到右",
+        "textDirectionRtl": "從右到左"
       },
-      "codeBlock": {
-        "title": "程式碼區塊",
-        "fontSize": "字型大小",
-        "fontFamily": "字型系列",
-        "showLineNumbers": "顯示行號",
-        "removeEmptyLines": "移除空行"
+      "tabs": {
+        "title": "Tab 與縮排",
+        "tabSize": "Tab 鍵插入的空格數",
+        "tabSizeHelp": "Tab 鍵插入空格而非定位字元。"
       },
-      "writingBehavior": {
-        "title": "寫作行為",
-        "autoCloseBrackets": "自動關閉括號",
-        "autoCompleteMarkdown": "自動完成 Markdown",
-        "autoCloseQuotes": "自動關閉引號"
-      },
-      "fileRepresentation": {
-        "title": "檔案表示",
-        "tabWidth": "Tab 寬度",
-        "lineSeparator": "行分隔符",
-        "defaultEncoding": "預設編碼",
-        "autoDetectEncoding": "自動偵測編碼",
-        "trailingNewlines": {
-          "title": "結尾換行",
-          "doNothing": "不執行任何動作",
-          "ensureOne": "確保一個",
-          "preserve": "保留",
-          "trimAll": "全部修剪"
-        },
-        "endOfLine": {
-          "default": "預設",
-          "crlf": "CRLF（Windows）",
-          "lf": "LF（Linux/Mac）"
+      "spelling": {
+        "title": "拼字",
+        "enabled": "檢查拼字",
+        "underline": "為拼錯的單字加上底線",
+        "macAutoDetectHelp": "macOS 會自動偵測文件語言。",
+        "language": "拼字檢查語言",
+        "customDictionary": {
+          "title": "自訂字典",
+          "noWordsAvailable": "沒有可用的單字",
+          "delete": "刪除"
         }
       },
-      "misc": {
-        "title": "其他",
-        "textDirection": {
-          "title": "文字方向",
-          "ltr": "從左到右",
-          "rtl": "從右到左"
-        },
-        "hideQuickInsertHint": "隱藏快速插入提示",
-        "hideLinkPopup": "隱藏連結彈出視窗",
-        "autoCheck": "自動檢查",
-        "autoNormalizeLineEndings": "開啟時自動將行尾標準化為 LF",
-        "wrapCodeBlocks": "換行程式碼區塊"
-      }
-    },
-    "image": {
-      "title": "圖片",
-      "defaultAction": "插入圖片時的預設動作",
-      "clipboardTooltip": "貼上或拖曳圖片到 Mark 後的預設行為",
-      "actions": {
-        "upload": "上傳到雲端",
-        "folder": "複製到資料夾",
-        "path": "使用絕對路徑"
-      },
-      "folderSetting": {
-        "title": "資料夾設定",
-        "globalFolder": "全域圖片資料夾",
-        "open": "開啟",
-        "showInFolder": "在資料夾中顯示",
-        "preferRelative": "偏好相對目錄",
-        "relativeFolderName": "相對資料夾名稱",
-        "filenameNote": "檔案名稱將自動產生。"
-      },
-      "imageInsertAction": {
-        "title": "圖片插入動作",
-        "folder": "上傳到資料夾",
-        "path": "複製到路徑",
-        "upload": "上傳到雲端",
-        "copyToFolder": "複製到資料夾",
-        "uploadToServer": "上傳到伺服器"
-      },
-      "imageFolderPath": {
-        "title": "圖片資料夾路徑",
-        "description": "圖片資料夾路徑",
-        "selectFolder": "選擇資料夾",
-        "relativePath": "相對路徑",
-        "absolutePath": "絕對路徑"
-      },
-      "cloudPictureBed": {
-        "title": "雲端圖床",
-        "github": "GitHub",
-        "smms": "SM.MS",
-        "qiniu": "七牛",
-        "upyun": "又拍雲",
-        "tcyun": "騰訊雲",
-        "aliyun": "阿里雲",
-        "imgur": "Imgur",
-        "picgo": "PicGo"
-      },
-      "preferRelativeDirectory": {
-        "title": "偏好相對目錄",
-        "description": "圖片偏好相對目錄"
-      },
-      "uploader": {
-        "title": "圖片上傳器",
-        "currentUploader": "目前上傳器",
-        "picgoNotInstalled": "PicGo 未安裝",
-        "picgoDetectionStatus": "PicGo 偵測狀態",
-        "picgoInstalled": "PicGo 已安裝",
-        "picgoDetectionFailed": "PicGo 偵測失敗",
-        "debugInfo": "除錯資訊",
-        "installCommand": "安裝命令",
-        "npmInstallCommand": "npm install picgo",
-        "yarnInstallCommand": "yarn add picgo",
-        "pnpmInstallCommand": "pnpm add picgo",
-        "brewInstallCommand": "brew install picgo",
-        "chooseInstallMethod": "選擇安裝方法：",
-        "retestPicgo": "重新檢測",
-        "detecting": "檢測中…",
-        "lastDetectionTime": "上次檢測時間",
-        "detectionStatus": "檢測狀態",
-        "usageGuide": {
-          "title": "PicGo 基本使用說明",
-          "step1": "設定上傳器",
-          "step1Description": "使用以下命令設定 PicGo 上傳器：",
-          "step2": "上傳圖片",
-          "step2Description": "使用以下命令上傳圖片：",
-          "step3": "檢視設定",
-          "step3Description": "使用以下命令檢視目前設定：",
-          "documentation": "檢視完整文件"
-        },
-        "configureUploader": "設定上傳器",
-        "configureDescription": "使用以下命令設定 PicGo 上傳器：",
-        "uploadImage": "上傳圖片",
-        "uploadDescription": "使用以下命令上傳圖片：",
-        "viewConfig": "檢視設定",
-        "viewConfigDescription": "使用以下命令檢視目前設定：",
-        "viewDocumentation": "檢視完整文件",
-        "githubDeprecated": "GitHub 上傳器已棄用",
-        "githubToken": "GitHub Token",
-        "ownerName": "擁有者名稱",
-        "repoName": "儲存庫名稱",
-        "branchName": "分支名稱",
-        "scriptDescription": "腳本描述",
-        "scriptLocation": "腳本位置",
-        "save": "儲存",
-        "saveConfig": "儲存設定",
-        "githubConfigSaved": "GitHub 設定已儲存",
-        "scriptConfigSaved": "腳本設定已儲存",
-        "legalNotices": {
-          "title": "法律聲明",
-          "description": "我已閱讀並同意相關服務條款",
-          "and": "和",
-          "byUsing": "使用此服務即表示您同意",
-          "gdprWarning": "GDPR 警告",
-          "privacyStatement": "隱私權聲明",
-          "termsOfService": "服務條款"
-        },
-        "services": {
-          "github": "GitHub",
-          "smms": "SM.MS",
-          "qiniu": "七牛",
-          "upyun": "又拍雲",
-          "tcyun": "騰訊雲",
-          "aliyun": "阿里雲",
-          "imgur": "Imgur",
-          "picgo": "PicGo",
-          "script": "自訂腳本",
-          "cliScript": "CLI 腳本",
-          "none": "無"
-        },
-        "branch": "分支",
-        "inputToken": "輸入 token",
-        "noUploaderSelected": "未選擇上傳器",
-        "owner": "擁有者",
-        "pleaseInstall": "請安裝",
-        "repo": "儲存庫",
-        "scriptPath": "腳本路徑",
-        "tokenTooltip": "用於身份驗證的存取 token",
-        "picgoDetection": "PicGo 偵測",
-        "autoDetection": "自動偵測中",
-        "lastSuccessTime": "上次成功時間",
-        "neverDetected": "從未偵測",
-        "neverSuccessful": "從未成功"
+      "codeBlocks": {
+        "title": "程式碼區塊",
+        "fontFamily": "程式碼字型",
+        "fontSize": "程式碼文字大小",
+        "lineNumbers": "顯示行號",
+        "wrapLongLines": "在程式碼區塊中換行過長的行",
+        "trimBlankLines": "修剪程式碼前後的空行",
+        "trimBlankLinesHelp": "移除程式碼區塊最頂部和最底部的空行。"
       }
     },
     "markdown": {
-      "title": "PicGo 設定",
-      "listItem": {
-        "title": "清單項目",
-        "preferLooseListItem": "偏好鬆散清單項目",
-        "bulletListMarker": "項目符號清單標記",
-        "orderListDelimiter": "有序清單分隔符",
-        "listIndentation": {
-          "title": "清單縮排",
-          "dfm": "預設格式模式",
-          "tab": "製表符",
-          "oneSpace": "一個空格",
-          "twoSpaces": "兩個空格",
-          "threeSpaces": "三個空格",
-          "fourSpaces": "四個空格"
-        }
-      },
-      "heading": {
-        "title": "標題",
-        "preferHeadingStyle": "偏好標題樣式"
-      },
-      "frontmatter": {
-        "title": "前置資料",
-        "frontmatterType": "前置資料類型"
+      "title": "Markdown",
+      "lists": {
+        "title": "清單",
+        "spacing": "清單項目間距",
+        "spacingCompact": "緊湊",
+        "spacingSpaced": "寬鬆",
+        "spacingHelp": "寬鬆會在清單項目之間加入空行，某些轉譯器需要這種格式。",
+        "bulletCharacter": "項目符號字元",
+        "orderedListFormat": "編號清單格式",
+        "orderedListDot": "1. 項目",
+        "orderedListParen": "1) 項目",
+        "indentation": "清單縮排",
+        "indentationHelp": "巢狀清單行寫入檔案時的縮排方式。",
+        "indentAlignWithText": "與文字對齊",
+        "indentTab": "使用定位字元",
+        "indentOneSpace": "1 個空格",
+        "indentTwoSpaces": "2 個空格",
+        "indentThreeSpaces": "3 個空格",
+        "indentFourSpaces": "4 個空格"
       },
       "extensions": {
         "title": "擴充功能",
-        "superSubScript": "上標/下標",
         "footnote": "腳註",
-        "isHtmlEnabled": "HTML 已啟用",
-        "isGitlabCompatibilityEnabled": "GitLab 相容性",
-        "sequenceTheme": "序列主題",
-        "superscript": "上標",
-        "subscript": "下標",
-        "frontMatter": "前置資料",
-        "math": "數學",
-        "diagram": "圖表",
-        "footnoteNotes": "腳註備註",
-        "frontmatterType": {
-          "frontmatterType": "前置資料類型",
-          "jsonBrace": "JSON 大括號",
-          "jsonSemicolon": "JSON 分號",
-          "title": "前置資料類型"
-        },
-        "frontmatterProperties": "將 YAML 前置資料顯示為屬性表（點擊編輯 YAML）"
-      },
-      "diagrams": {
-        "title": "圖表",
-        "plantuml": "PlantUML",
-        "mermaid": "Mermaid",
-        "vega": "Vega",
-        "flowchart": "流程圖",
-        "sequence": "序列",
-        "gantt": "甘特圖",
-        "sequenceTheme": {
-          "title": "序列主題",
-          "handDrawn": "手繪",
-          "simple": "簡單"
-        }
-      },
-      "math": {
-        "title": "數學",
-        "katex": "KaTeX",
-        "mathJax": "MathJax"
-      },
-      "misc": {
-        "preferHeadingStyle": {
-          "title": "偏好標題樣式",
-          "atx": "ATX 樣式",
-          "setext": "Setext 樣式"
-        },
-        "title": "其他"
+        "footnoteHelp": "啟用 [^1] 腳註語法（Pandoc 擴充功能）。",
+        "math": "數學公式",
+        "mathHelp": "使用 KaTeX 轉譯 $…$ 和 $$…$$。",
+        "superSubScript": "上標和下標",
+        "superSubScriptHelp": "啟用 ^文字^ 和 ~文字~（Pandoc 擴充功能）。",
+        "frontmatterFormat": "前置資料格式",
+        "frontmatterFormatHelp": "文件頂端中繼資料區塊的分隔符。",
+        "frontmatterJsonSemicolon": "分號分隔的 JSON",
+        "frontmatterJsonBrace": "大括號分隔的 JSON",
+        "frontmatterProperties": "將前置資料顯示為屬性表",
+        "frontmatterPropertiesHelp": "點擊表格可編輯原始 YAML。"
       },
       "compatibility": {
-        "enableGitlab": "啟用 GitLab 相容性",
-        "enableHtml": "啟用 HTML 支援",
-        "title": "相容性"
-      },
-      "lists": {
-        "bulletListMarker": "項目符號清單標記",
-        "listIndentation": {
-          "title": "清單縮排",
-          "dfm": "DFM 樣式",
-          "fourSpaces": "四個空格",
-          "oneSpace": "一個空格",
-          "tab": "Tab",
-          "threeSpaces": "三個空格",
-          "twoSpaces": "兩個空格"
-        },
-        "orderListDelimiter": "有序清單分隔符",
-        "preferLooseListItem": "偏好鬆散清單項目",
-        "title": "清單"
+        "title": "相容性",
+        "allowHtml": "允許在文件中使用 HTML",
+        "allowHtmlHelp": "關閉時會將 HTML 標籤顯示為文字。",
+        "gitlabFlavored": "GitLab 風格的 Markdown",
+        "gitlabFlavoredHelp": "啟用 GitLab 擴充功能，例如其圖表和參照語法。",
+        "sequenceDiagramStyle": "序列圖樣式",
+        "sequenceHandDrawn": "手繪",
+        "sequenceSimple": "簡單"
       }
     },
-    "spelling": {
-      "title": "拼字",
-      "enabled": "啟用拼字檢查",
-      "autoDetectLanguage": "自動偵測語言",
-      "language": "語言",
-      "noSuggestions": "無建議",
-      "spellcheckerEnabled": "啟用拼字檢查",
-      "spellcheckerNoUnderline": "拼錯單字不加底線",
-      "spellcheckerLanguage": "拼字檢查語言"
-    },
-    "theme": {
-      "title": "主題",
-      "theme": "主題",
-      "followSystemTheme": "跟隨系統主題",
-      "modeThemes": "主題選擇",
-      "lightModeTheme": "淺色模式主題",
-      "darkModeTheme": "深色模式主題",
-      "customCss": "自訂 CSS",
-      "codeBlockTheme": {
-        "title": "程式碼區塊主題",
-        "description": "程式碼區塊的主題"
+    "advanced": {
+      "title": "進階",
+      "images": {
+        "title": "圖片",
+        "insertAction": "新增圖片時",
+        "insertActionFolder": "複製到資料夾",
+        "insertActionPath": "保留原始位置",
+        "folder": "圖片資料夾",
+        "folderHelp": "不儲存在文件旁時，貼上和拖入的圖片的存放位置。",
+        "folderPlaceholder": "選擇資料夾…",
+        "chooseFolder": "選擇…",
+        "openFolder": "開啟",
+        "saveNextToDocument": "將圖片儲存到文件旁",
+        "saveNextToDocumentHelp": "在文件所在資料夾內使用下方設定的資料夾，並寫入相對連結。",
+        "folderName": "圖片資料夾名稱",
+        "folderNameHelp": "${'{'}filename{'}'} 會插入文件名稱。"
       },
-      "importCustomThemes": "匯入自訂主題",
-      "importTheme": "匯入主題",
-      "openFolder": "開啟資料夾",
-      "openThemesFolder": "開啟主題資料夾"
+      "customise": {
+        "title": "自訂",
+        "keyboardShortcuts": "鍵盤快捷鍵",
+        "extensions": "擴充功能",
+        "customCss": "自訂 CSS",
+        "customCssHelp": "套用在所選主題之上。",
+        "edit": "編輯…",
+        "browse": "瀏覽…"
+      },
+      "reset": {
+        "title": "重設",
+        "restore": "還原所有預設值",
+        "restoreHelp": "不會影響您的文件。",
+        "restoreButton": "還原…",
+        "confirmTitle": "還原所有預設值？",
+        "confirmMessage": "所有設定都會還原為預設值。您的文件和圖片資料夾不會受影響。",
+        "cancel": "取消",
+        "confirm": "還原"
+      },
+      "sheets": {
+        "close": "關閉",
+        "shortcutsTitle": "鍵盤快捷鍵",
+        "extensionsTitle": "擴充功能",
+        "customCssTitle": "自訂 CSS",
+        "customCssSave": "儲存",
+        "customCssPlaceholder": "/* 套用在主題之上的自訂 CSS */"
+      }
     },
     "keybindings": {
       "title": "按鍵綁定",
@@ -953,31 +774,7 @@
         "unbind": "解除綁定"
       }
     },
-    "selectFont": "選擇字型",
-    "spellchecker": {
-      "autoDetectDescription": "自動偵測文件語言",
-      "autoDetectLanguage": "自動偵測語言",
-      "customDictionary": {
-        "delete": "刪除",
-        "description": "將自訂單字加入您的個人字典",
-        "noWordsAvailable": "沒有可用的單字",
-        "options": "選項",
-        "title": "自訂字典",
-        "word": "單字"
-      },
-      "defaultLanguage": "預設語言",
-      "enableSpellChecking": "啟用拼字檢查",
-      "hideMarksForErrors": "隱藏拼字錯誤標記",
-      "title": "拼字檢查"
-    },
-    "language": {
-      "title": "語言",
-      "uiLanguage": {
-        "title": "介面語言",
-        "description": "應用介面的顯示語言"
-      },
-      "system": "跟隨系統"
-    }
+    "selectFont": "選擇字型"
   },
   "about": {
     "copyright": "Copyright © Jocs 2017+, tkaixiang 2024+, xronocode 2026+",

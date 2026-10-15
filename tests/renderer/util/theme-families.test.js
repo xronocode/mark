@@ -189,9 +189,9 @@ describe('retired ids are gone from every surface (C-41 T-002)', () => {
     }
   })
 
-  it('the Settings picker lists no retired theme', async () => {
-    const { themes } = await import('@/prefComponents/theme/config')
-    const names = themes.map((t) => t.name)
+  it('the Settings picker (THEME_FAMILIES) lists no retired theme', async () => {
+    const { THEME_FAMILIES } = await import('@/util/themeFamilies')
+    const names = THEME_FAMILIES.flatMap((f) => [f.light, f.dark])
     for (const retired of RETIRED_IDS) {
       expect(names).not.toContain(retired)
     }
@@ -370,59 +370,4 @@ describe('family member per mode (C-41 T-002 picker)', () => {
     expect(familyMemberForMode(family, 'auto')).toBe('catppuccin-mocha')
   })
 
-  it('picking a family in manual Dark mode applies the dark member and stays manual', async () => {
-    const { shallowMount, flushPromises } = await import('@vue/test-utils')
-    const { default: ThemeSettings } = await import('@/prefComponents/theme/index.vue')
-    const { usePreferencesStore } = await import('@/store/preferences')
-    const store = usePreferencesStore()
-    store.SET_SINGLE_PREFERENCE = vi.fn()
-    store.followSystemTheme = false
-    store.theme = 'nord'
-    const wrapper = shallowMount(ThemeSettings, {
-      global: { stubs: { separator: true, Bool: true, 'cur-select': true, compound: true, 'el-button': true } }
-    })
-    await flushPromises()
-    await wrapper.findAll('.theme-family')[3].trigger('click') // solarized family
-    const calls = store.SET_SINGLE_PREFERENCE.mock.calls.map(([a]) => a)
-    expect(calls).toContainEqual({ type: 'theme', value: 'solarized-dark' })
-    expect(calls.find((c) => c.type === 'followSystemTheme')).toBeUndefined()
-    wrapper.unmount()
-  })
-
-  it('picking a family persists both members and the member for the current mode', async () => {
-    installMatchMediaStub(false) // light OS; the previous test left a dark stub
-    const { shallowMount, flushPromises } = await import('@vue/test-utils')
-    const { default: ThemeSettings } = await import('@/prefComponents/theme/index.vue')
-    const { usePreferencesStore } = await import('@/store/preferences')
-    const store = usePreferencesStore()
-    store.SET_SINGLE_PREFERENCE = vi.fn()
-    // Explicit Auto + light theme: earlier tests in this file mutate the shared store.
-    store.followSystemTheme = true
-    store.theme = 'paper'
-
-    const wrapper = shallowMount(ThemeSettings, {
-      global: {
-        stubs: {
-          separator: true,
-          Bool: true,
-          'cur-select': true,
-          compound: true,
-          'el-button': true
-        }
-      }
-    })
-    await flushPromises()
-
-    // Auto mode (store default followSystemTheme=true) on a light OS
-    // (jsdom reports light): picking a family applies the light member and
-    // never leaves Auto.
-    const tile = wrapper.findAll('.theme-family')[2] // catppuccin family
-    await tile.trigger('click')
-    const calls = store.SET_SINGLE_PREFERENCE.mock.calls.map(([a]) => a)
-    expect(calls).toContainEqual({ type: 'lightModeTheme', value: 'catppuccin-latte' })
-    expect(calls).toContainEqual({ type: 'darkModeTheme', value: 'catppuccin-mocha' })
-    expect(calls).toContainEqual({ type: 'theme', value: 'catppuccin-latte' })
-    expect(calls.find((c) => c.type === 'followSystemTheme')).toBeUndefined()
-    wrapper.unmount()
-  })
 })
