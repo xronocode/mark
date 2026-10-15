@@ -3,6 +3,15 @@ import { setupTestPinia } from '../pinia'
 import { createI18n } from 'vue-i18n'
 import { nextTick } from 'vue'
 
+// C-48: the What's New gate and the review request run detached IPC work
+// after mount; left real, a previous test's still-pending startup leaks
+// into the next test's fresh pinia (order-dependent failures).
+vi.mock('@/whatsNew/gate', () => ({
+  snapshotBootPrefs: vi.fn(async () => null),
+  initWhatsNew: vi.fn(async () => ({ show: false })),
+  getRunningVersion: vi.fn(() => '2.3.1')
+}))
+vi.mock('@/review/reviewRequest', () => ({ initReviewRequest: vi.fn(async () => {}) }))
 vi.mock('@/bus', () => ({
   default: { on: vi.fn(), off: vi.fn(), emit: vi.fn() }
 }))

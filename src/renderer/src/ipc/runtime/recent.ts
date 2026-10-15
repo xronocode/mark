@@ -6,7 +6,7 @@
 //   SCOPE:   thin wrappers; no per-platform OS integration.
 //   DEPENDS: M-013-A contract.
 //   LINKS:   docs/development-plan.xml Phase-B3 step-8;
-//            .grace/changes/active/C-46 (welcome screen remove + undo).
+//            .grace/changes/archive/C-46 (welcome screen remove + undo).
 //
 // CHANGE_SUMMARY:
 //   - 2026-10-15 C-46: remove(path) → old index (null when absent) and

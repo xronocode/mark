@@ -11,7 +11,7 @@
 //   DEPENDS: review/reviewRules.js; util/version.js; bus;
 //          ipc/runtime prefs facade; @tauri-apps/api/core invoke
 //          (lazy); preferences store buildCapabilities.review.
-//   LINKS: .grace/changes/active/C-48/spec.xml R-2; pages/app.vue calls
+//   LINKS: .grace/changes/archive/C-48/spec.xml R-2; pages/app.vue calls
 //          initReviewRequest with the whatsNew gate outcome; m053_review
 //          implements mt_request_review; m048 advertises the capability.
 //   ROLE: RUNTIME

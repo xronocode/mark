@@ -9,7 +9,7 @@
 //          whether the sheet actually shows and caps the frequency.
 //   DEPENDS: tauri (AppHandle, run_on_main_thread), objc (macOS
 //            app-store variant, mirroring m032_share).
-//   LINKS: .grace/changes/active/C-48/spec.xml R-2 (board 5); m048
+//   LINKS: .grace/changes/archive/C-48/spec.xml R-2 (board 5); m048
 //          advertises the `review` capability; the renderer decides
 //          WHEN to ask (review/reviewRequest.js); Help › Rate Mark…
 //          (m009) opens the store page directly.

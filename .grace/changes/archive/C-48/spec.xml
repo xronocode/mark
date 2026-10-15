@@ -1,9 +1,9 @@
-<GraceChangeSpec graceVersion='4.0' status='approved'>
+<GraceChangeSpec graceVersion='4.0' status='applied'>
 <C-48>
   <Name>What's New once after an update, and an App Store review request</Name>
   <Created>2026-10-15</Created>
   <Priority>medium</Priority>
-  <Status>approved</Status>
+  <Status>completed</Status>
   <RoadmapPhase>R1</RoadmapPhase>
   <Complexity>S</Complexity>
   <Summary>G10 of the MarkView gap plan. A What's New sheet opens once on the first launch of a new version (never on a fresh install), and the App Store build asks for a rating through the system sheet after enough successful use.</Summary>
@@ -20,5 +20,6 @@
   <AffectedAreas><M-011>whatsNew sheet, session counters, Help menu</M-011><M-048>build mode gate</M-048></AffectedAreas>
   <VerificationIntent>Unit tests for the version gate and the review rules (fake clock); e2e for the sheet; cargo test for the command stub on non-app-store builds.</VerificationIntent>
   <Approval><ApprovedBy>user (2026-10-15): «ок»</ApprovedBy><ApprovalScope>W1 for 2.3.1.</ApprovalScope></Approval>
+  <Closure>Closed 2026-10-15 on the user's request to finish the epic. What's New sheet once per update, never on a fresh install; Help › What's New; App Store-only review request (SKStoreReviewController) with conservative rules; Help › Rate Mark… (App Store, macOS). Review fixes: 2.3.0 profiles without lastSeenVersion count as an upgrade (migration marker / session / recent folders); StoreKit linked in the App Store build (otool verified), a missing class returns false and nothing is recorded; review state persisted only after a real dispatch; Rate opens the https App Store review URL with a caught failure; startup block detached from styles; guide link opens the guide top; What's New falls back to the latest content. Deferred: per-process session counting, counting documents opened at boot. npm test 3719 passed (274 files); cargo test 395/0; cargo check app-store OK; e2e 252 passed / 2 skipped Chromium+WebKit; grace lint 0 errors. Live check (MAS review prompt, upgrade sheet) folded into the 2.3.1 smoke.</Closure>
 </C-48>
 </GraceChangeSpec>

@@ -7,7 +7,7 @@
 //   SCOPE: Pure functions over version strings and ISO date strings. No
 //          I/O, no state, no clock access — callers pass `now` in.
 //   DEPENDS: none.
-//   LINKS: .grace/changes/active/C-48/spec.xml R-1/R-2; whatsNew/gate.js;
+//   LINKS: .grace/changes/archive/C-48/spec.xml R-1/R-2; whatsNew/gate.js;
 //          review/reviewRules.js.
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS

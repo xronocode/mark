@@ -71,6 +71,9 @@
 //   - 2026-10-15 C-40 G-3: register editorStore.LISTEN_FOR_OPEN_GUIDE so the
 //     'mt::open-guide' bus event (Help › Mark Guide, help.guide palette
 //     command) opens the guide as a temporary untitled tab.
+//   - 2026-10-15 2.3.1 review: setupDragDropHandler returns a cleanup and
+//     onUnmounted removes the window dragover listener (it leaked across
+//     remounts and reacted with a stale store).
 //   - 2026-10-15 C-48 review fix: START_BLOCK_C48_STARTUP is detached
 //     (void async IIFE, try/catch + BLOCK_C48_STARTUP_FAILED) so
 //     addCommonStyle never waits on the gate/review IPC; the boot prefs
@@ -139,6 +142,7 @@ const commandCenterStore = useCommandCenterStore()
 
 const timer = ref(null)
 let cleanupPinchZoom = null
+let cleanupDragDrop = null
 let cleanupNativeZoom = null
 
 // States from Pini
@@ -209,41 +213,41 @@ watch(zoom, (zoomValue) => {
 })
 
 const setupDragDropHandler = () => {
-  window.addEventListener(
-    'dragover',
-    (e) => {
-      if (!e.dataTransfer.types.length) return
+  const onDragOver = (e) => {
+    if (!e.dataTransfer.types.length) return
 
-      if (e.dataTransfer.types.indexOf('Files') >= 0) {
-        if (
-          e.dataTransfer.items.length === 1 &&
-          e.dataTransfer.items[0].type.indexOf('image') > -1
-        ) {
-          // Do nothing
-        } else {
-          e.preventDefault()
-          // C-46: while the welcome screen is up (no file open) it owns
-          // the drop affordance — its highlight follows the native drag
-          // bridge ('mt::native-drag') and drops open through that bridge,
-          // so the app-wide import dialog must not open on top of it.
-          if (hasCurrentFile.value) {
-            if (timer.value) {
-              clearTimeout(timer.value)
-            }
-            timer.value = setTimeout(() => {
-              bus.emit('importDialog', false)
-            }, 300)
-            bus.emit('importDialog', true)
-          }
-        }
-        e.dataTransfer.dropEffect = 'copy'
+    if (e.dataTransfer.types.indexOf('Files') >= 0) {
+      if (
+        e.dataTransfer.items.length === 1 &&
+        e.dataTransfer.items[0].type.indexOf('image') > -1
+      ) {
+        // Do nothing
       } else {
-        e.stopPropagation()
-        e.dataTransfer.dropEffect = 'none'
+        e.preventDefault()
+        // C-46: while the welcome screen is up (no file open) it owns
+        // the drop affordance — its highlight follows the native drag
+        // bridge ('mt::native-drag') and drops open through that bridge,
+        // so the app-wide import dialog must not open on top of it.
+        if (hasCurrentFile.value) {
+          if (timer.value) {
+            clearTimeout(timer.value)
+          }
+          timer.value = setTimeout(() => {
+            bus.emit('importDialog', false)
+          }, 300)
+          bus.emit('importDialog', true)
+        }
       }
-    },
-    false
-  )
+      e.dataTransfer.dropEffect = 'copy'
+    } else {
+      e.stopPropagation()
+      e.dataTransfer.dropEffect = 'none'
+    }
+  }
+  window.addEventListener('dragover', onDragOver, false)
+  // Removed on unmount: a remounted page must not leave the old handler
+  // reacting to drags with a stale store (2.3.1 review).
+  return () => window.removeEventListener('dragover', onDragOver, false)
 }
 
 // C-15 Phase W QA (Nurik): "ctrl+zoom должен изменять размер шрифта, а не
@@ -373,7 +377,7 @@ onMounted(async () => {
   editorStore.LISTEN_FOR_OPEN_GUIDE()
   editorStore.LISTEN_WINDOW_ZOOM()
 
-  setupDragDropHandler()
+  cleanupDragDrop = setupDragDropHandler()
   cleanupPinchZoom = setupCtrlWheelFontSize()
   cleanupNativeZoom = setupZoomKeysFontSize()
 
@@ -420,6 +424,7 @@ onMounted(async () => {
 })
 
 onUnmounted(() => {
+  if (cleanupDragDrop) cleanupDragDrop()
   if (cleanupPinchZoom) cleanupPinchZoom()
   if (cleanupNativeZoom) cleanupNativeZoom()
   // C-41 T-001: drop the prefers-color-scheme listener with the window.

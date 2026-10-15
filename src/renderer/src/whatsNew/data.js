@@ -7,7 +7,7 @@
 //   SCOPE: static content table + lookup; no logic beyond the lookup, the
 //          max-4 clamp and the latest-with-content fallback.
 //   DEPENDS: util/version.js (normalizeVersion, compareVersions).
-//   LINKS: .grace/changes/active/C-48/spec.xml R-1; components/whatsNew
+//   LINKS: .grace/changes/archive/C-48/spec.xml R-1; components/whatsNew
 //          renders the items; locales whatsNew.v2_3_1.* carry the text.
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS

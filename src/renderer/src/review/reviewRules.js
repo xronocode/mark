@@ -8,7 +8,7 @@
 //   SCOPE: sanitize, register, decide. No I/O, no listeners, no clock.
 //   DEPENDS: util/version.js (toIsoDay, daysBetweenIso, majorMinor,
 //            compareVersions).
-//   LINKS: .grace/changes/active/C-48/spec.xml R-2 (board 5 rules card);
+//   LINKS: .grace/changes/archive/C-48/spec.xml R-2 (board 5 rules card);
 //          review/reviewRequest.js wires these rules to bus events.
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS

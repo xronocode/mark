@@ -43,7 +43,7 @@
 //            gate both emit it); never reads or writes prefs itself.
 //   DEPENDS: bus, i18n t, whatsNew/data.js, whatsNew/gate.js
 //            (getRunningVersion).
-//   LINKS:   .grace/changes/active/C-48/spec.xml R-1; commands/index.js
+//   LINKS:   .grace/changes/archive/C-48/spec.xml R-1; commands/index.js
 //            help.whats-new; review/reviewRequest.js probes
 //            .ag-whats-new-sheet to block its ask.
 //
