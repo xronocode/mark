@@ -451,8 +451,16 @@
   },
   "preferences": {
     "title": "偏好设置",
+    "tabs": {
+      "general": "通用",
+      "appearance": "外观",
+      "editor": "编辑器",
+      "markdown": "Markdown",
+      "advanced": "高级"
+    },
     "search": {
       "placeholder": "搜索偏好设置…",
+      "empty": "没有匹配的设置",
       "optionalValues": "可选值",
       "categories": {
         "general": "通用",

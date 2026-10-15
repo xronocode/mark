@@ -1,22 +1,24 @@
 /**
  * Tests for src/renderer/src/router/index.js
  *
- * Covers: routes function, parseSettingsPage logic
+ * Covers: routes function, parseSettingsPage logic, the C-38 T-003 five
+ * tab routes, the remembered-tab '' redirect and every legacy-route
+ * redirect.
  */
 
 // Mock all page/component imports
 vi.mock('@/pages/app', () => ({ default: { name: 'App' } }))
 vi.mock('@/pages/preference', () => ({ default: { name: 'Preference' } }))
-vi.mock('@/prefComponents/general', () => ({ default: { name: 'General' } }))
-vi.mock('@/prefComponents/editor', () => ({ default: { name: 'Editor' } }))
-vi.mock('@/prefComponents/markdown', () => ({ default: { name: 'Markdown' } }))
-vi.mock('@/prefComponents/spellchecker', () => ({ default: { name: 'SpellChecker' } }))
-vi.mock('@/prefComponents/theme', () => ({ default: { name: 'Theme' } }))
-vi.mock('@/prefComponents/image', () => ({ default: { name: 'Image' } }))
-vi.mock('@/prefComponents/keybindings', () => ({ default: { name: 'Keybindings' } }))
-vi.mock('@/prefComponents/language', () => ({ default: { name: 'Language' } }))
+vi.mock('@/prefComponents/tabs/general', () => ({ default: { name: 'GeneralTab' } }))
+vi.mock('@/prefComponents/tabs/appearance', () => ({ default: { name: 'AppearanceTab' } }))
+vi.mock('@/prefComponents/tabs/editor', () => ({ default: { name: 'EditorTab' } }))
+vi.mock('@/prefComponents/tabs/markdown', () => ({ default: { name: 'MarkdownTab' } }))
+vi.mock('@/prefComponents/tabs/advanced', () => ({ default: { name: 'AdvancedTab' } }))
 
 import routes from '@/router'
+
+const preferenceRoute = (type = 'editor') =>
+  routes(type).find((r) => r.path === '/preference')
 
 describe('router/index', () => {
   describe('routes function', () => {
@@ -38,10 +40,10 @@ describe('router/index', () => {
       expect(rootRoute.redirect).toBe('/preference')
     })
 
-    it('should redirect to /preference/spelling for spelling type', () => {
+    it('should redirect legacy settings/spelling deep link to the editor tab', () => {
       const result = routes('settings/spelling')
       const rootRoute = result.find((r) => r.path === '/')
-      expect(rootRoute.redirect).toBe('/preference/spelling')
+      expect(rootRoute.redirect).toBe('/preference/editor')
     })
 
     it('should have /editor route', () => {
@@ -52,60 +54,78 @@ describe('router/index', () => {
     })
 
     it('should have /preference route with children', () => {
-      const result = routes('editor')
-      const prefRoute = result.find((r) => r.path === '/preference')
+      const prefRoute = preferenceRoute()
       expect(prefRoute).toBeDefined()
       expect(prefRoute.component.name).toBe('Preference')
       expect(Array.isArray(prefRoute.children)).toBe(true)
     })
+  })
 
-    it('should have all preference child routes', () => {
-      const result = routes('editor')
-      const prefRoute = result.find((r) => r.path === '/preference')
-      const childNames = prefRoute.children
-        .filter((c) => c.name)
-        .map((c) => c.name)
-
-      expect(childNames).toContain('general')
-      expect(childNames).toContain('editor')
-      expect(childNames).toContain('markdown')
-      expect(childNames).toContain('spelling')
-      expect(childNames).toContain('theme')
-      expect(childNames).toContain('image')
-      expect(childNames).toContain('keybindings')
-      expect(childNames).toContain('language')
+  describe('five tab routes', () => {
+    it('has exactly the 5 tab children with tab components', () => {
+      const children = preferenceRoute().children.filter((c) => c.name)
+      expect(children.map((c) => c.name)).toEqual([
+        'general',
+        'appearance',
+        'editor',
+        'markdown',
+        'advanced'
+      ])
+      expect(children.map((c) => c.path)).toEqual([
+        'general',
+        'appearance',
+        'editor',
+        'markdown',
+        'advanced'
+      ])
+      expect(children.map((c) => c.component.name)).toEqual([
+        'GeneralTab',
+        'AppearanceTab',
+        'EditorTab',
+        'MarkdownTab',
+        'AdvancedTab'
+      ])
     })
 
-    it('should have default preference child (empty path)', () => {
-      const result = routes('editor')
-      const prefRoute = result.find((r) => r.path === '/preference')
-      const defaultChild = prefRoute.children.find((c) => c.path === '')
-      expect(defaultChild).toBeDefined()
-      expect(defaultChild.component.name).toBe('General')
+    it("the '' child redirects to the remembered tab (general by default)", () => {
+      window.localStorage.removeItem('settings.lastTab')
+      const emptyChild = preferenceRoute().children.find((c) => c.path === '')
+      expect(typeof emptyChild.redirect).toBe('function')
+      expect(emptyChild.redirect()).toBe('/preference/general')
     })
 
-    it('general child should have correct component', () => {
-      const result = routes('editor')
-      const prefRoute = result.find((r) => r.path === '/preference')
-      const general = prefRoute.children.find((c) => c.name === 'general')
-      expect(general.path).toBe('general')
-      expect(general.component.name).toBe('General')
+    it("the '' child redirects to the persisted tab when one exists", () => {
+      window.localStorage.setItem('settings.lastTab', 'appearance')
+      const emptyChild = preferenceRoute().children.find((c) => c.path === '')
+      expect(emptyChild.redirect()).toBe('/preference/appearance')
+      window.localStorage.removeItem('settings.lastTab')
+    })
+  })
+
+  describe('legacy route redirects (old 9-route deep links)', () => {
+    const redirectChildren = () =>
+      preferenceRoute().children.filter((c) => c.redirect !== undefined && c.path !== '')
+
+    it('redirects every retired section to the tab that owns it', () => {
+      const map = Object.fromEntries(redirectChildren().map((c) => [c.path, c.redirect]))
+      expect(map).toEqual({
+        spelling: '/preference/editor',
+        theme: '/preference/appearance',
+        image: '/preference/advanced',
+        keybindings: '/preference/advanced',
+        language: '/preference/general',
+        extensions: '/preference/advanced'
+      })
     })
 
-    it('editor child should have correct component', () => {
-      const result = routes('editor')
-      const prefRoute = result.find((r) => r.path === '/preference')
-      const editor = prefRoute.children.find((c) => c.name === 'editor')
-      expect(editor.path).toBe('editor')
-      expect(editor.component.name).toBe('Editor')
-    })
-
-    it('theme child should have correct component', () => {
-      const result = routes('editor')
-      const prefRoute = result.find((r) => r.path === '/preference')
-      const theme = prefRoute.children.find((c) => c.name === 'theme')
-      expect(theme.path).toBe('theme')
-      expect(theme.component.name).toBe('Theme')
+    it('has no other legacy routes left (general/editor/markdown are tabs now)', () => {
+      const named = preferenceRoute().children.filter((c) => c.name).map((c) => c.name)
+      expect(named).not.toContain('spelling')
+      expect(named).not.toContain('theme')
+      expect(named).not.toContain('image')
+      expect(named).not.toContain('keybindings')
+      expect(named).not.toContain('language')
+      expect(named).not.toContain('extensions')
     })
   })
 })

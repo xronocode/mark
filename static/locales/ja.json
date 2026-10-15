@@ -451,8 +451,16 @@
   },
   "preferences": {
     "title": "環境設定",
+    "tabs": {
+      "general": "一般",
+      "appearance": "外観",
+      "editor": "エディタ",
+      "markdown": "Markdown",
+      "advanced": "詳細"
+    },
     "search": {
       "placeholder": "設定を検索...",
+      "empty": "一致する設定はありません",
       "optionalValues": "オプション値",
       "categories": {
         "general": "一般",

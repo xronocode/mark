@@ -1,75 +1,33 @@
-import GeneralIcon from '@/assets/icons/pref_general.svg'
-import EditorIcon from '@/assets/icons/pref_editor.svg'
-import MarkdownIcon from '@/assets/icons/pref_markdown.svg'
-import ThemeIcon from '@/assets/icons/pref_theme.svg'
-import ImageIcon from '@/assets/icons/pref_image.svg'
-import SpellIcon from '@/assets/icons/pref_spellcheck.svg'
-import KeyBindingIcon from '@/assets/icons/pref_key_binding.svg'
-import LanguageIcon from '@/assets/icons/pref_language.svg'
-
 // F-MAIN-ENTRY-DISABLED close: schema.json copied into renderer-local
 // _shims/preferences/ since src/main/ doesn't exist in the Tauri port
 // (M-005 prefs is the runtime equivalent). Schema bytes preserved
 // verbatim from mark-electron@v1.2.3 for renderer-side prefs UI.
 import preferences from '@/_shims/preferences/schema.json'
 import { t } from '../../i18n'
+import { CATEGORY_TO_TAB, TAB_IDS } from '../tabsBar/config'
 
-export const getCategory = () => [
-  {
-    name: t('preferences.categories.general'),
-    label: 'general',
-    icon: GeneralIcon,
-    path: '/preference/general'
-  },
-  {
-    name: t('preferences.categories.editor'),
-    label: 'editor',
-    icon: EditorIcon,
-    path: '/preference/editor'
-  },
-  {
-    name: t('preferences.categories.markdown'),
-    label: 'markdown',
-    icon: MarkdownIcon,
-    path: '/preference/markdown'
-  },
-  {
-    name: t('preferences.categories.spelling'),
-    label: 'spelling',
-    icon: SpellIcon,
-    path: '/preference/spelling'
-  },
-  {
-    name: t('preferences.categories.theme'),
-    label: 'theme',
-    icon: ThemeIcon,
-    path: '/preference/theme'
-  },
-  {
-    name: t('preferences.categories.image'),
-    label: 'image',
-    icon: ImageIcon,
-    path: '/preference/image'
-  },
-  {
-    name: t('preferences.categories.keybindings'),
-    label: 'keybindings',
-    icon: KeyBindingIcon,
-    path: '/preference/keybindings'
-  },
-  {
-    name: t('preferences.categories.language'),
-    label: 'language',
-    icon: LanguageIcon,
-    path: '/preference/language'
-  },
-  {
-    name: 'Extensions',
-    label: 'extensions',
-    icon: GeneralIcon,
-    path: '/preference/extensions'
-  }
-]
+// FILE: src/renderer/src/prefComponents/sideBar/config.js
+// VERSION: 2.0.0
+// START_MODULE_CONTRACT
+//   PURPOSE: Settings search index (C-38 T-003) — builds the searchable preference list from schema.json and resolves each hit's routeCategory against the 5 new tabs; owns the locale-refresh plumbing and the i18n debug popup.
+//   SCOPE: Index building, category translation with fallbacks, languageChanged refresh helpers, debugLanguageState; no rendering.
+//   DEPENDS: _shims/preferences/schema.json, i18n (t), prefComponents/tabsBar/config (CATEGORY_TO_TAB/TAB_IDS).
+//   LINKS: .grace/changes/active/C-38 T-003; .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011.
+//   ROLE: RUNTIME
+//   MAP_MODE: EXPORTS
+// END_MODULE_CONTRACT
+//
+// START_MODULE_MAP
+//   getTranslatedSearchContent - schema entries → search rows ({ key, category, categoryEn, preference, preferenceEn, routeCategory, description, enum }); routeCategory now resolves through CATEGORY_TO_TAB to one of the 5 tab ids.
+//   setupLanguageChangeListener - legacy polling bridge that dispatches the languageChanged window event when the i18n locale moves.
+//   refreshSearchContent - clears the locale cache and rebuilds the index.
+//   debugLanguageState - dev-only i18n diagnostics popup (pre-existing, retained).
+// END_MODULE_MAP
+//
+// START_CHANGE_SUMMARY
+//   - 2026-10-15 v2.0.0: C-38 T-003 — search hits route to the 5 new tabs via CATEGORY_TO_TAB (Theme → appearance, Spelling → editor, Image/Custom CSS → advanced, unknown → general); getCategory (9-entry rail catalog + svg imports) removed with the rail.
+//   - (v1.x: 9-route routeCategory validation — retired.)
+// END_CHANGE_SUMMARY
 
 // 创建响应式的翻译映射函数
 export const getTranslatedSearchContent = () => {
@@ -99,20 +57,12 @@ export const getTranslatedSearchContent = () => {
       mappedCategory = category.toLowerCase().replace(/\s+/g, '-')
     }
 
-    // 计算用于路由跳转的分类（仅允许已存在的路由，否则回退到 general）
-    let routeCategory = mappedCategory
-    const validRoutes = [
-      'general',
-      'editor',
-      'markdown',
-      'spelling',
-      'theme',
-      'image',
-      'keybindings',
-      'language',
-      'extensions'
-    ]
-    if (!validRoutes.includes(routeCategory)) routeCategory = 'general'
+    // START_BLOCK_ROUTE_CATEGORY
+    // 计算用于路由跳转的分类（C-38 T-003：解析到 5 个新标签页之一，
+    // 未知分类回退到 general——与旧侧栏的回退行为一致）
+    const mapped = CATEGORY_TO_TAB[mappedCategory]
+    let routeCategory = TAB_IDS.includes(mapped) ? mapped : 'general'
+    // END_BLOCK_ROUTE_CATEGORY
 
     // 尝试翻译分类和项目
     const categoryKey = `preferences.search.categories.${mappedCategory}`

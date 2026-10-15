@@ -2637,6 +2637,27 @@
         'mt::native-drag' bus event — app.vue skips the import dialog while
         no file is open; util/pathDisplay pathBasename/pathDirname handle
         Windows paths).
+        C-38 T-003: the Settings window is the redesigned 5-tab shell from
+        the approved mockup — prefComponents/tabsBar (toolbar: macOS-centred
+        icon tabs, Windows/Linux underline tabs, inline SVG icons) replaces
+        the 9-item sideBar rail (sideBar/index.vue retired;
+        sideBar/config.js stays as the schema.json search index, its
+        routeCategory resolving through tabsBar CATEGORY_TO_TAB);
+        router/index.js routes /preference/{general,appearance,editor,
+        markdown,advanced} with the remembered-tab '' redirect
+        (localStorage settings.lastTab, guarded) and legacy redirects
+        (spelling→editor, theme→appearance, image/keybindings/extensions→
+        advanced, language→general); prefComponents/tabs/* stack the old
+        pages per the N2 IA until T-004 rewrites them; the shared controls
+        (bool/select/range/textBox/fontTextBox + new segmented/buttonRow)
+        render the mockup row anatomy (label + optional 11px help left,
+        right-aligned control, no trailing colons, value+unit rendered
+        once — the "14px px" fix, per-OS metrics via the isOsx gate);
+        settings search opens with ⌘F/Ctrl+F (tabsBar/searchPanel.vue);
+        the native window title follows the active tab
+        (preference.vue APPLY_WINDOW_TITLE via getCurrentWindow().setTitle);
+        src-tauri mt_open_setting_window builds the fixed 640×620 window;
+        preferences.tabs labels ship in all ten locales (json + min.json).
       </Summary>
       <Path>src/renderer/</Path>
       <Dependencies>

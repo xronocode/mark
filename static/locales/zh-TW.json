@@ -451,8 +451,16 @@
   },
   "preferences": {
     "title": "偏好設定",
+    "tabs": {
+      "general": "一般",
+      "appearance": "外觀",
+      "editor": "編輯器",
+      "markdown": "Markdown",
+      "advanced": "進階"
+    },
     "search": {
       "placeholder": "搜尋偏好設定…",
+      "empty": "沒有相符的設定",
       "optionalValues": "可選值",
       "categories": {
         "general": "一般",

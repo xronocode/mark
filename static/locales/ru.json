@@ -454,8 +454,16 @@
   },
   "preferences": {
     "title": "Настройки",
+    "tabs": {
+      "general": "Основные",
+      "appearance": "Оформление",
+      "editor": "Редактор",
+      "markdown": "Markdown",
+      "advanced": "Дополнительно"
+    },
     "search": {
       "placeholder": "Поиск настроек...",
+      "empty": "Ничего не найдено",
       "optionalValues": "доступные значения",
       "categories": {
         "general": "Общие",

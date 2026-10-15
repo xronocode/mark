@@ -10,7 +10,7 @@ describe('prefComponents/common/compound/index.vue', () => {
       }
     })
     expect(wrapper.exists()).toBe(true)
-    expect(wrapper.find('.pref-compound-item').exists()).toBe(true)
+    expect(wrapper.find('.pref-group-item').exists()).toBe(true)
   })
 
   it('renders head slot', async () => {
@@ -21,7 +21,7 @@ describe('prefComponents/common/compound/index.vue', () => {
         children: '<span>stuff</span>'
       }
     })
-    expect(wrapper.find('.pref-compound-head h6').text()).toBe('My Group')
+    expect(wrapper.find('.pref-group-title h6').text()).toBe('My Group')
   })
 
   it('renders children slot', async () => {
@@ -32,7 +32,7 @@ describe('prefComponents/common/compound/index.vue', () => {
         children: '<div class="inner">Inner content</div>'
       }
     })
-    expect(wrapper.find('.pref-compound-body .inner').exists()).toBe(true)
+    expect(wrapper.find('.pref-group .inner').exists()).toBe(true)
   })
 
   it('renders notes when provided', async () => {
@@ -46,7 +46,7 @@ describe('prefComponents/common/compound/index.vue', () => {
         children: '<div>C</div>'
       }
     })
-    expect(wrapper.find('.notes').text()).toBe('Some important note')
+    expect(wrapper.find('.pref-group-notes').text()).toBe('Some important note')
   })
 
   it('does not render notes when not provided', async () => {
@@ -57,6 +57,6 @@ describe('prefComponents/common/compound/index.vue', () => {
         children: '<div>C</div>'
       }
     })
-    expect(wrapper.find('.notes').exists()).toBe(false)
+    expect(wrapper.find('.pref-group-notes').exists()).toBe(false)
   })
 })

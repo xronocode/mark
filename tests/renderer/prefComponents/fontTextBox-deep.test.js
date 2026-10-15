@@ -197,8 +197,10 @@ describe('fontTextBox/index.vue – deep tests', () => {
 
   // ── description rendering ────────────────────────────────────────────
 
-  it('renders description text', () => {
+  it('renders description text without a trailing colon', () => {
     wrapper = createWrapper({ description: 'Code Font' })
-    expect(wrapper.find('.description').text()).toContain('Code Font')
+    const text = wrapper.find('.pref-row-label').text()
+    expect(text).toContain('Code Font')
+    expect(text.endsWith(':')).toBe(false)
   })
 })
