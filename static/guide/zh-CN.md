@@ -6,14 +6,102 @@
 
 把下面这段话交给 Claude Code、Codex、Cursor 或任何智能体，只需一次。粘贴到它的指令文件（例如 `CLAUDE.md` 或 `AGENTS.md`），或直接贴进对话。代码块自带复制按钮。
 
-```text
+````text
 @@AGENT_PROMPT@@
-```
+````
 
 1. **它写文件** — 长计划和报告落进 `.md` 文件，并在 Mark 中打开。
 2. **Mark 跟得上** — 每次保存都会刷新页面，并保持你的位置。
 3. **你来塑造** — 在成稿上编辑：修正步骤、补充笔记、删掉错误。
 4. **它读回你** — 智能体重新读取文件；你的编辑就是它的下一条指令。
+
+## Mark 能渲染什么
+
+智能体能写进文档的所有内容，都会实时渲染。先看图表：
+
+```mermaid
+flowchart LR
+  A[想法] --> B[草稿]
+  B --> C{评审}
+  C --> B
+```
+
+```mermaid
+sequenceDiagram
+  Alice->>Bob: 草稿好了?
+  Bob-->>Alice: 一条意见
+```
+
+```mermaid
+pie title 内容类型
+  "图表" : 3
+  "文本" : 1
+```
+
+```mermaid
+gantt
+  dateFormat YYYY-MM-DD
+  section 撰写
+  草稿 :a1, 2026-01-01, 3d
+  润色 :after a1, 2d
+```
+
+```mermaid
+mindmap
+  root((Mark))
+    图表
+    表格
+    公式
+```
+
+数据图表与快速块：
+
+```vega-lite
+{"data":{"values":[{"kind":"A","count":3},{"kind":"B","count":5}]},"mark":"bar","encoding":{"x":{"field":"kind","type":"nominal"},"y":{"field":"count","type":"quantitative"}}}
+```
+
+```flowchart
+st=>start: 开始
+op=>operation: 撰写
+e=>end: 完成
+st->op->e
+```
+
+```sequence
+Title: 快速确认
+A->B: Ping?
+B-->A: Pong
+```
+
+提示框——一个带标题，一个可折叠：
+
+> [!NOTE] 标题放在哪里
+> 标签后写标题；引用的其余部分是正文。
+
+> [!TIP]- 可折叠
+> 点击标题即可折叠和展开这条备注。
+
+一份清单、两种形态的公式、脚注和表情符号：
+
+- [x] 写完草稿
+- [ ] 进行评审
+
+行内公式 $a^2 + b^2 = c^2$ 和块级公式：
+
+$$
+\int_0^1 x^2\,dx = \tfrac13
+$$
+
+一个脚注[^1]和表情符号 :tada:。
+
+[^1]: 脚注收纳出处和附注。
+
+再来一张带对齐的表格：
+
+| 左对齐 | 居中 | 右对齐 |
+| :--- | :----: | ----: |
+| 想法 | 备注 | 完成 |
+| 计划 | 步骤 | 发布 |
 
 ## 试一试：表格
 

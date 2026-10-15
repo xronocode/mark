@@ -6,14 +6,102 @@ Um passeio curto que você pode editar — esta página é um documento normal d
 
 Dê isto ao Claude Code, Codex, Cursor ou qualquer agente, uma única vez. Cole no arquivo de instruções dele (por exemplo `CLAUDE.md` ou `AGENTS.md`) ou direto no chat. O botão de copiar está no bloco.
 
-```text
+````text
 @@AGENT_PROMPT@@
-```
+````
 
 1. **Ele escreve um arquivo** — planos e relatórios longos viram um arquivo `.md` e abrem no Mark.
 2. **O Mark acompanha** — cada salvamento recarrega a página e mantém o seu lugar.
 3. **Você dá o formato** — edite a página pronta: corrija passos, acrescente notas, corte o que estiver errado.
 4. **Ele lê você de volta** — o agente relê o arquivo; as suas edições são a próxima instrução dele.
+
+## O que o Mark renderiza
+
+Tudo o que o seu agente pode pôr num documento, renderizado ao vivo. Primeiro os diagramas:
+
+```mermaid
+flowchart LR
+  A[Ideia] --> B[Rascunho]
+  B --> C{Revisão}
+  C --> B
+```
+
+```mermaid
+sequenceDiagram
+  Alice->>Bob: Rascunho pronto?
+  Bob-->>Alice: Uma observação
+```
+
+```mermaid
+pie title Tipos de conteúdo
+  "Diagramas" : 3
+  "Texto" : 1
+```
+
+```mermaid
+gantt
+  dateFormat YYYY-MM-DD
+  section Escrever
+  Rascunho :a1, 2026-01-01, 3d
+  Polimento :after a1, 2d
+```
+
+```mermaid
+mindmap
+  root((Mark))
+    Diagramas
+    Tabelas
+    Fórmulas
+```
+
+Gráficos a partir de dados e os blocos rápidos:
+
+```vega-lite
+{"data":{"values":[{"kind":"A","count":3},{"kind":"B","count":5}]},"mark":"bar","encoding":{"x":{"field":"kind","type":"nominal"},"y":{"field":"count","type":"quantitative"}}}
+```
+
+```flowchart
+st=>start: Início
+op=>operation: Escrever
+e=>end: Pronto
+st->op->e
+```
+
+```sequence
+Title: Verificação rápida
+A->B: Ping?
+B-->A: Pong
+```
+
+Avisos — um com título e outro dobrável:
+
+> [!NOTE] Onde entra o título
+> Um título após a tag; o restante da citação é o corpo.
+
+> [!TIP]- Dobrável
+> Clique no título para dobrar e expandir esta nota.
+
+Uma checklist, matemática nas duas formas, uma nota de rodapé e um emoji:
+
+- [x] Escrever o rascunho
+- [ ] Revisá-lo
+
+Matemática inline $a^2 + b^2 = c^2$ e um bloco:
+
+$$
+\int_0^1 x^2\,dx = \tfrac13
+$$
+
+Uma nota de rodapé[^1] e um emoji :tada:.
+
+[^1]: Notas de rodapé guardam fontes e apartes.
+
+E uma tabela com alinhamento:
+
+| Esquerda | Centro | Direita |
+| :--- | :----: | ----: |
+| ideia | notas | pronto |
+| plano | passos | entrega |
 
 ## Experimente: tabelas
 
