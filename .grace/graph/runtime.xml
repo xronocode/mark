@@ -1975,7 +1975,7 @@
       <Status>shipped</Status>
       <Layer>2</Layer>
       <PhaseRef>Release-Readiness-2026-08-07</PhaseRef>
-      <Summary>Native menu bar and context menus; dispatches command IDs to renderer. C-15 T-102: on Windows/Linux the menu stays registered on the app (hamburger popup via mt_window_popup_app_menu) but the native menu BAR is hidden to avoid double chrome under the custom titlebar. C-40 T-003: View › Outline check item (id view.outline, no accelerator — ⌘T stays Go to Heading) toggles the «On this page» outline rail through the id-dispatched view.outline renderer command.</Summary>
+      <Summary>Native menu bar and context menus; dispatches command IDs to renderer. C-15 T-102: on Windows/Linux the menu stays registered on the app (hamburger popup via mt_window_popup_app_menu) but the native menu BAR is hidden to avoid double chrome under the custom titlebar. C-40 T-003: View › Outline check item (id view.outline, no accelerator — ⌘T stays Go to Heading) toggles the «On this page» outline rail through the id-dispatched view.outline renderer command. C-40 T-005: mt_menu_set_checked re-syncs the four View CheckMenuItems (sidebar, tab bar, outline, status bar) from the renderer through a recursive allow-listed walker — tauri 2&apos;s Menu::get is top-level-only, which is why the old mt_update_sidebar_menu lookup never found the View-submenu item; the v1 shim reuses the same walker.</Summary>
       <Path>src-tauri/src/m009_menu.rs</Path>
       <Dependencies>
         <M-005/>
@@ -2046,6 +2046,31 @@
             </Attribute>
           </LegacyAttributes>
         </fn-window_popup_context_menu>
+        <fn-set_app_menu_check>
+          <LegacyAttributes>
+            <Attribute>
+              <Name>PURPOSE</Name>
+              <Value>
+                m009_menu.rs (C-40 T-005, F-MENU-WIRE-TAURI follow-up):
+                set_app_menu_check locates a CheckMenuItem by id
+                RECURSIVELY through submenus (find_check_item_recursive
+                walks MenuItemKind::Submenu children — tauri 2.11.2&apos;s
+                Menu::get only matches top-level items, so ids living in
+                the View submenu were unreachable, leaving the old
+                mt_update_sidebar_menu a silent no-op) and applies the
+                checked state. Restricted to the SYNCABLE_CHECK_IDS
+                allow-list (view.toggle-sidebar, view.toggle-tabbar,
+                view.outline, view.status-bar) so the renderer cannot
+                flip arbitrary native items (the LF/CRLF pair included);
+                benign misses resolve Ok(false) (no menu, id not
+                allow-listed, not a check item — e.g. the Windows/Linux
+                hidden bar), real menu failures Err. The
+                mt_menu_set_checked command exposes it to the renderer;
+                m_v1_compat::mt_update_sidebar_menu reuses the walker.
+              </Value>
+            </Attribute>
+          </LegacyAttributes>
+        </fn-set_app_menu_check>
       </Interface>
       <Sources>
         <Source>src-tauri/src/m009_menu.rs</Source>
@@ -3103,6 +3128,36 @@
             </Attribute>
           </LegacyAttributes>
         </fn-TOGGLE_LOCK_DOCUMENT>
+        <fn-menuChecks>
+          <LegacyAttributes>
+            <Attribute>
+              <Name>PURPOSE</Name>
+              <Value>
+                util/menuChecks.js (C-40 T-005): pushes the effective
+                renderer state of the four native View-menu
+                CheckMenuItems to the backend mt_menu_set_checked command
+                (M-009 fn-set_app_menu_check) so their checkmarks follow
+                the real state instead of the fixed build-time defaults —
+                the release-review bug: status bar on after restart, View ›
+                Status Bar unchecked. viewMenuCheckStates maps the ids to
+                their owning store fields (layout showSideBar/showTabBar,
+                preferences outlineRailVisible/statusBarVisibility with
+                the per-OS default and stored-value precedence);
+                syncViewMenuChecks pushes all four once at boot (editor
+                store APPLY_BOOTSTRAP_EDITOR, after preferences +
+                SET_LAYOUT hydration — load-bearing because a hydrated
+                value equalling the store default fires no watcher while
+                the native items are built with fixed defaults);
+                watchViewMenuChecks installs one watcher per item in the
+                editor page setup (app.vue — the Settings window never
+                mounts it) so every later change from any surface pushes
+                exactly one call. All pushes are best-effort: failures
+                warn (BLOCK_MENU_CHECK_PUSH_FAILED) and never break boot
+                or toggles.
+              </Value>
+            </Attribute>
+          </LegacyAttributes>
+        </fn-menuChecks>
       </Interface>
       <Sources>
         <Source>src/renderer/</Source>

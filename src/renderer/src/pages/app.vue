@@ -60,6 +60,11 @@
 //            is injected once while common styles still initialize on boot.
 //
 // CHANGE_SUMMARY:
+//   - 2026-10-16 C-40 T-005: install the View-menu checkmark watchers
+//     (util/menuChecks.watchViewMenuChecks) so the native sidebar /
+//     tab bar / outline / status-bar check items follow every later
+//     state change from any toggle surface (boot sync runs in
+//     APPLY_BOOTSTRAP_EDITOR).
 //   - 2026-10-16 C-38 T-007 N4 e: Windows 11 Mica — boot asks
 //     mt_window_effects_state (START_BLOCK_MICA_BOOT) and only a
 //     confirmed mica:true installs the mica-active root class; the
@@ -116,6 +121,7 @@ import { storeToRefs } from 'pinia'
 import { addCommonStyle, addThemeStyle, addCustomStyle } from '@/util/theme'
 import { resolveAutoTheme, watchSystemColorScheme } from '@/util/autoTheme'
 import { installMicaWindowEffect, syncMicaTheme } from '@/util/micaWindow'
+import { watchViewMenuChecks } from '@/util/menuChecks'
 import Recent from '@/components/recent'
 import EditorWithTabs from '@/components/editorWithTabs'
 import TitleBar from '@/components/titleBar'
@@ -226,6 +232,18 @@ watch(customCss, (value) => {
 watch(zoom, (zoomValue) => {
   bus.emit('mt::window-zoom', zoomValue)
 })
+
+// START_BLOCK_MENU_CHECK_SYNC
+// C-40 T-005: native View-menu checkmarks follow the real state. The
+// four CheckMenuItems (sidebar, tab bar, outline, status bar) are built
+// with fixed defaults, so every later change from any surface — palette,
+// title bar button, Settings, keyboard, the menu itself — pushes the new
+// state through mt_menu_set_checked. The boot-time full sync lives in
+// the editor store (APPLY_BOOTSTRAP_EDITOR, after layout hydration);
+// these watchers cover everything after that. Editor window only (the
+// Settings window mounts preference.vue, not this page).
+watchViewMenuChecks()
+// END_BLOCK_MENU_CHECK_SYNC
 
 const setupDragDropHandler = () => {
   const onDragOver = (e) => {
