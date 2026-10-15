@@ -1,5 +1,5 @@
 // FILE: tests/renderer/util/relativeTime.test.js
-// VERSION: 1.0.0
+// VERSION: 1.0.1
 // START_MODULE_CONTRACT
 //   PURPOSE: Pin the C-46 relative mtime labels used by the welcome screen rows.
 //   SCOPE: pure formatRelativeTime behaviour with a stubbed t().
@@ -11,10 +11,15 @@
 //
 // START_MODULE_MAP
 //   tStub - i18n double rendering the five time keys with their params.
+//   MIN - one minute in ms.
+//   HOUR - one hour in ms.
+//   DAY - one day in ms.
+//   NOW - fixed Wednesday-noon clock for deterministic calendar-day math.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.0.0 - 2026-10-15 C-46: initial pins.
+//   LAST_CHANGE: v1.0.1 - 2026-10-15 C-46 review: MODULE_MAP lists every top-level local (grace lint).
+//   v1.0.0 - 2026-10-15 C-46: initial pins.
 // END_CHANGE_SUMMARY
 
 import { describe, it, expect } from 'vitest'

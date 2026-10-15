@@ -43,7 +43,8 @@ describe('util/guideDoc', () => {
     // Try-it sections required by the spec.
     expect(md).toContain('```mermaid')
     expect(md).toContain('$$')
-    expect(md).toContain('Advanced agent setup')
+    // No placeholder copy ships (C-40 review): the advanced-setup line waits for C-47.
+    expect(md).not.toContain('coming soon')
   })
 
   it('interpolates the generic prose prompt on Windows', async () => {

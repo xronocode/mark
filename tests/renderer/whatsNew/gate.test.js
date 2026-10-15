@@ -1,5 +1,5 @@
 // FILE: tests/renderer/whatsNew/gate.test.js
-// VERSION: 1.0.0
+// VERSION: 1.1.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Pin the C-48 What's New startup gate — fresh install records
 //            silently, an upgrade shows the sheet once and stamps
@@ -15,25 +15,36 @@
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
-//   makeFakeIpc - in-memory prefs facade capturing set() calls.
-//   freshInstallOutcome / upgradeOutcome - shared expectations helpers.
+//   NOW - fixed fake-clock instant shared by every case.
+//   NOW_SECS - NOW as unix seconds (m005 mt_migration.marker_written_at unit).
+//   makeFakeIpc - in-memory prefs facade (get/set/getAll) capturing set() calls.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.0.0 - 2026-10-15 C-48 T-001: initial pins.
+//   LAST_CHANGE: v1.1.0 - 2026-10-15 C-48 review fix: legacy-install pins —
+//   a 2.3.0 profile (no lastSeenVersion, but an old mt_migration marker or
+//   session/recent-folder history) is an upgrade and shows the sheet once;
+//   a profile with only a fresh marker stays a silent fresh install;
+//   snapshotBootPrefs degrades to null; resolveWhatsNewVersion fallback.
+//   MODULE_MAP synced.
+//   PREV: v1.0.0 - 2026-10-15 C-48 T-001: initial pins.
 // END_CHANGE_SUMMARY
 
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import {
   evaluateWhatsNewGate,
+  detectLegacyInstall,
+  snapshotBootPrefs,
+  LEGACY_MARKER_MIN_AGE_MS,
   initWhatsNew,
   getRunningVersion,
   LAST_SEEN_VERSION_KEY,
   LAST_UPDATE_AT_KEY
 } from '@/whatsNew/gate'
-import { getWhatsNewItems, WHATS_NEW_MAX_ITEMS } from '@/whatsNew/data'
+import { getWhatsNewItems, resolveWhatsNewVersion, WHATS_NEW_MAX_ITEMS } from '@/whatsNew/data'
 
 const NOW = new Date('2026-10-15T10:30:00')
+const NOW_SECS = Math.floor(NOW.getTime() / 1000)
 
 // TOP-LEVEL fake prefs facade (TEST/LOCALS: top-level locals only).
 const makeFakeIpc = (initial = {}) => {
@@ -47,6 +58,9 @@ const makeFakeIpc = (initial = {}) => {
     async set(key, value) {
       store[key] = value
       calls.push({ key, value })
+    },
+    async getAll() {
+      return { ...store }
     }
   }
 }
@@ -65,6 +79,13 @@ describe('whatsNew/data', () => {
 
   it('returns [] for a version with no content (never an empty sheet)', () => {
     expect(getWhatsNewItems('9.9.9')).toEqual([])
+  })
+
+  it('resolveWhatsNewVersion keeps a version with content and falls back to the newest otherwise', () => {
+    expect(resolveWhatsNewVersion('2.3.1-beta')).toBe('2.3.1')
+    expect(resolveWhatsNewVersion('2.3.2')).toBe('2.3.1')
+    expect(resolveWhatsNewVersion('0.0.0')).toBe('2.3.1')
+    expect(getWhatsNewItems(resolveWhatsNewVersion('garbage')).length).toBeGreaterThan(0)
   })
 })
 
@@ -131,6 +152,118 @@ describe('whatsNew/gate — evaluateWhatsNewGate', () => {
     expect(out.recordVersion).toBe('9.9.9')
     expect(out.stampUpdateAt).toBe(false)
     expect(out.versionChanged).toBe(true)
+  })
+})
+
+describe('whatsNew/gate — detectLegacyInstall', () => {
+  it('a fresh profile (marker stamped seconds ago, nothing else) is not legacy', () => {
+    const prefs = { mt_migration: { app_version: 'alpha', schema_version: 1, marker_written_at: NOW_SECS - 5 } }
+    expect(detectLegacyInstall(prefs, NOW)).toEqual({ legacy: false, signals: [] })
+  })
+
+  it('an mt_migration marker older than the slack window proves an existing profile', () => {
+    const old = NOW_SECS - Math.ceil(LEGACY_MARKER_MIN_AGE_MS / 1000) - 1
+    const out = detectLegacyInstall({ mt_migration: { marker_written_at: old } }, NOW)
+    expect(out.legacy).toBe(true)
+    expect(out.signals).toEqual(['migrationMarker'])
+  })
+
+  it('non-empty lastSessionTabs / recentFolders prove earlier use', () => {
+    expect(detectLegacyInstall({ lastSessionTabs: ['/a.md'] }, NOW).signals).toEqual(['lastSessionTabs'])
+    expect(detectLegacyInstall({ recentFolders: ['/p'] }, NOW).signals).toEqual(['recentFolders'])
+    expect(detectLegacyInstall({ lastSessionTabs: [], recentFolders: [] }, NOW).legacy).toBe(false)
+  })
+
+  it('ordinary preference keys, recentDocuments and workspaceRoot are NOT signals (fresh-launch writable)', () => {
+    const prefs = {
+      theme: 'dark',
+      fontSize: 18,
+      recentDocuments: ['/opened-from-finder.md'],
+      workspaceRoot: '/cli-folder',
+      mt_migration: { marker_written_at: NOW_SECS }
+    }
+    expect(detectLegacyInstall(prefs, NOW).legacy).toBe(false)
+  })
+
+  it('null / garbage snapshots degrade to not-legacy', () => {
+    for (const prefs of [null, undefined, 'x', 42]) {
+      expect(detectLegacyInstall(prefs, NOW).legacy).toBe(false)
+    }
+    expect(detectLegacyInstall({ mt_migration: { marker_written_at: 'soon' } }, NOW).legacy).toBe(false)
+  })
+})
+
+describe('whatsNew/gate — legacy (pre-C-48) upgrade', () => {
+  it('no recorded version + legacy profile → upgrade: shows once, records, stamps', () => {
+    const out = evaluateWhatsNewGate({ recorded: '', running: '2.3.1', now: NOW, legacyInstall: true })
+    expect(out.show).toBe(true)
+    expect(out.recordVersion).toBe('2.3.1')
+    expect(out.stampUpdateAt).toBe(true)
+    expect(out.versionChanged).toBe(true)
+    expect(out.firstLaunch).toBe(false)
+    expect(out.legacyUpgrade).toBe(true)
+  })
+
+  it('initWhatsNew: a 2.3.0 profile (old marker + session tabs, no lastSeenVersion) shows the sheet', async () => {
+    const ipc = makeFakeIpc({
+      mt_migration: { marker_written_at: NOW_SECS - 30 * 86400 },
+      lastSessionTabs: ['/notes/a.md'],
+      theme: 'dark'
+    })
+    const out = await initWhatsNew({ ipc, running: '2.3.1', now: NOW })
+    expect(out.show).toBe(true)
+    expect(out.firstLaunch).toBe(false)
+    expect(ipc.calls).toEqual([
+      { key: LAST_SEEN_VERSION_KEY, value: '2.3.1' },
+      { key: LAST_UPDATE_AT_KEY, value: NOW.toISOString() }
+    ])
+    // Recorded now — the next boot is "same version" and never re-shows.
+    const again = await initWhatsNew({ ipc, running: '2.3.1', now: NOW })
+    expect(again.show).toBe(false)
+  })
+
+  it('initWhatsNew: a fresh profile (only a just-stamped marker) records silently', async () => {
+    const ipc = makeFakeIpc({ mt_migration: { marker_written_at: NOW_SECS - 2 } })
+    const out = await initWhatsNew({ ipc, running: '2.3.1', now: NOW })
+    expect(out.show).toBe(false)
+    expect(out.firstLaunch).toBe(true)
+    expect(ipc.calls).toEqual([{ key: LAST_SEEN_VERSION_KEY, value: '2.3.1' }])
+  })
+
+  it('initWhatsNew reads legacy signals from the injected boot snapshot, not the live store', async () => {
+    // The live store already has boot-time writes; the pre-boot snapshot
+    // is what decides.
+    const ipc = makeFakeIpc({ lastSessionTabs: ['/written-this-boot.md'] })
+    const fresh = await initWhatsNew({
+      ipc,
+      running: '2.3.1',
+      now: NOW,
+      bootPrefs: Promise.resolve({ mt_migration: { marker_written_at: NOW_SECS } })
+    })
+    expect(fresh.show).toBe(false)
+
+    const ipc2 = makeFakeIpc({})
+    const legacy = await initWhatsNew({
+      ipc: ipc2,
+      running: '2.3.1',
+      now: NOW,
+      bootPrefs: Promise.resolve({ recentFolders: ['/p'] })
+    })
+    expect(legacy.show).toBe(true)
+  })
+
+  it('snapshotBootPrefs degrades to null without getAll or on a failing read', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    expect(await snapshotBootPrefs({ get: async () => null })).toBeNull()
+    expect(
+      await snapshotBootPrefs({
+        getAll: async () => {
+          throw new Error('ipc down')
+        }
+      })
+    ).toBeNull()
+    expect(await snapshotBootPrefs(makeFakeIpc({ a: 1 }))).toEqual({ a: 1 })
+    warn.mockRestore()
   })
 })
 

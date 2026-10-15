@@ -1,5 +1,5 @@
 // FILE: tests/renderer/review/reviewRules.test.js
-// VERSION: 1.0.0
+// VERSION: 1.0.1
 // START_MODULE_CONTRACT
 //   PURPOSE: Pin every C-48 review-request rule — the 5-session /
 //            3-distinct-day thresholds, each "never" case, the
@@ -13,12 +13,15 @@
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
+//   at - ISO string → Date (fake clock values).
 //   baseState - 5 sessions across 3 days, never asked (the eligible baseline).
 //   cleanSession - a session with no blocking facts.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.0.0 - 2026-10-15 C-48 T-001: initial pins.
+//   LAST_CHANGE: v1.0.1 - 2026-10-15 C-48 review: MODULE_MAP lists the `at`
+//   clock helper (grace lint); pins unchanged.
+//   PREV: v1.0.0 - 2026-10-15 C-48 T-001: initial pins.
 // END_CHANGE_SUMMARY
 
 import { describe, it, expect } from 'vitest'

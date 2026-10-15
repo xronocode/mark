@@ -1,27 +1,49 @@
 // FILE: tests/renderer/components/recent.test.js
-// VERSION: 2.0.0
+// VERSION: 2.1.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Pin the C-46 welcome screen — brand header + tagline, action row with platform shortcut hints, Last session row, recent files/folders with mtime + missing-file drop-off, remove + 5s Undo toast restoring exact order, native context-menu actions, agent-prompt copy, Guide footer and What's-new gating.
 //   SCOPE: components/recent/index.vue unit behaviour over mocked stores/IPC; layout-only (no real muya, no real Tauri).
-//   DEPENDS: @vue/test-utils, vitest, pinia (unused when stores are mocked).
+//   DEPENDS: @vue/test-utils, vitest, pinia (unused when stores are mocked), ipc/contract/types IpcError (real rejection shape).
 //   LINKS: .grace/verification/runtime.xml V-M-011 scenario-47; .grace/changes/active/C-46.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
-//   tMock - deterministic i18n double with named-param interpolation for the keys the screen renders.
+//   __i18nState - mutable UI language returned by the mocked getCurrentLanguage.
+//   __utilMock - mutable platform flags (isOsx / isWindows / isLinux) for the mocked @/util.
+//   __ipcPrefsMock - ipcPrefs double (lastUpdateAt gate).
+//   __ipcRecentMock - ipcRecent double (M-017 remove/insert).
+//   __ipcFsMock - ipcFs double (stat for mtime + missing-path drop-off).
+//   __busMock - bus double; captures the 'mt::native-drag' subscription.
+//   __projectStoreMock - project store double (recent folders).
+//   __editorStoreMock - editor store double (recent files, session).
+//   NOW - pinned clock for relative-time assertions.
+//   flushAsync - microtask-only flush that works under fake timers.
+//   flushPromises - flushAsync with the default round count.
 //   mountRecent - mount the component with fresh mock state and flush the async hydration.
 //   hydrateWith - seed recent files/folders/session in one call.
+//   notFoundError - IpcError shaped exactly like ipcInvoke's mapping of an MT_FS_NOT_FOUND rejection.
+//   nativeDrag - deliver one bridge drag phase through the captured bus handler.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v2.0.0 - 2026-10-15 C-46 redesign: rewritten for the approved mockup layout (old pins: welcome-title / action-button order / restore-button / no-recent are gone).
+//   LAST_CHANGE: v2.1.0 - 2026-10-15 C-46 review round 2: folder remove/undo
+//     against 5 stored folders (full list persisted + restored); missing-file
+//     drop-off with the real IpcError rejection (cause.code); drop highlight
+//     via the bridge's 'mt::native-drag' bus event (dead mt::window::drop
+//     path removed); Windows path rows; "1 file" / Russian plural
+//     categories; keyboard context menu anchored at the row; Linux "Show in
+//     folder"; Undo after a null-index remove inserts nothing.
+//   v2.0.0 - 2026-10-15 C-46 redesign: rewritten for the approved mockup layout (old pins: welcome-title / action-button order / restore-button / no-recent are gone).
 // END_CHANGE_SUMMARY
 
 import { shallowMount } from '@vue/test-utils'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { setupTestPinia } from '../pinia'
+import { IpcError } from '@/ipc/contract/types'
+
+const __i18nState = { lang: 'en' }
 
 vi.mock('@/i18n', () => ({
   t: vi.fn((key, params) => {
@@ -36,8 +58,14 @@ vi.mock('@/i18n', () => ({
         return 'yesterday'
       case 'recent.time.daysAgo':
         return `${params?.count} days ago`
-      case 'recent.filesCount':
-        return `${params?.count} files`
+      case 'recent.filesCount.one':
+        return __i18nState.lang === 'ru' ? `${params?.count} файл` : `${params?.count} file`
+      case 'recent.filesCount.few':
+        return __i18nState.lang === 'ru' ? `${params?.count} файла` : key
+      case 'recent.filesCount.many':
+        return __i18nState.lang === 'ru' ? `${params?.count} файлов` : key
+      case 'recent.filesCount.other':
+        return __i18nState.lang === 'ru' ? `${params?.count} файла` : `${params?.count} files`
       case 'recent.removedToast':
         return `Removed "${params?.name}" from Recent`
       case 'guide.agentPrompt.mac':
@@ -47,7 +75,8 @@ vi.mock('@/i18n', () => ({
       default:
         return key
     }
-  })
+  }),
+  getCurrentLanguage: vi.fn(() => __i18nState.lang)
 }))
 
 vi.mock('@/whatsNew/gate', () => ({
@@ -55,7 +84,7 @@ vi.mock('@/whatsNew/gate', () => ({
   getRunningVersion: vi.fn(() => '2.3.1')
 }))
 
-vi.mock('@/util', () => ({
+const __utilMock = {
   hasKeys: vi.fn((o) => o && Object.keys(o).length > 0),
   getUniqueId: vi.fn(() => `uid-${Date.now()}`),
   deepClone: vi.fn((o) => JSON.parse(JSON.stringify(o))),
@@ -63,7 +92,8 @@ vi.mock('@/util', () => ({
   isWindows: false,
   isLinux: false,
   animatedScrollTo: vi.fn()
-}))
+}
+vi.mock('@/util', () => __utilMock)
 
 const __ipcPrefsMock = { get: vi.fn().mockResolvedValue(null), set: vi.fn().mockResolvedValue() }
 const __ipcRecentMock = {
@@ -154,6 +184,23 @@ const hydrateWith = async ({ files = [], session = [], folders = [], statByPath 
 }
 const flushPromises = () => flushAsync(40)
 
+// What ipcInvoke actually throws for a backend Err(MtFsError): an
+// IpcError whose message is String(raw) = "[object Object]" and whose
+// cause is the structured { code, message } (contract/invoke.ts
+// mapInvokeError). Matching e.message alone can never see the code.
+const notFoundError = () => {
+  const raw = { code: 'MT_FS_NOT_FOUND', message: 'not found' }
+  return new IpcError('UNKNOWN_COMMAND', String(raw), 'mt_fs_stat', raw)
+}
+
+// The welcome screen subscribes to the bridge's bus event at setup.
+const nativeDrag = async (wrapper, payload) => {
+  const call = [...__busMock.on.mock.calls].reverse().find(([name]) => name === 'mt::native-drag')
+  expect(call).toBeTruthy()
+  call[1](payload)
+  await wrapper.vm.$nextTick()
+}
+
 describe('recent/index.vue welcome screen (C-46)', () => {
   let pinia
 
@@ -180,6 +227,12 @@ describe('recent/index.vue welcome screen (C-46)', () => {
     __ipcPrefsMock.get.mockResolvedValue(null)
     __ipcFsMock.stat.mockResolvedValue(null)
     __busMock.emit.mockClear()
+    __busMock.on.mockClear()
+    __busMock.off.mockClear()
+    __i18nState.lang = 'en'
+    __utilMock.isOsx = true
+    __utilMock.isWindows = false
+    __utilMock.isLinux = false
 
     pinia = setupTestPinia()
     window.electron = {
@@ -272,6 +325,36 @@ describe('recent/index.vue welcome screen (C-46)', () => {
     expect(wrapper.find('.row-session .row-path').text()).toBe('a.md, b.md, c.md, …')
   })
 
+  it('renders "1 file" for a one-file session (plural category one)', async () => {
+    const wrapper = await hydrateWith({ session: ['/tmp/only.md'] })
+    expect(wrapper.find('.row-session .row-time').text()).toBe('1 file')
+  })
+
+  it('picks the Russian few/many plural forms by count', async () => {
+    __i18nState.lang = 'ru'
+    let wrapper = await hydrateWith({ session: ['/a.md', '/b.md', '/c.md'] })
+    expect(wrapper.find('.row-session .row-time').text()).toBe('3 файла')
+    wrapper.unmount()
+    wrapper = await hydrateWith({
+      session: ['/1.md', '/2.md', '/3.md', '/4.md', '/5.md']
+    })
+    expect(wrapper.find('.row-session .row-time').text()).toBe('5 файлов')
+  })
+
+  it('splits Windows paths on backslashes for the name and parent folder', async () => {
+    const wrapper = await hydrateWith({
+      files: ['C:\\Users\\x\\doc.md'],
+      folders: ['C:\\Users\\x\\notes'],
+      session: ['C:\\Users\\x\\a.md']
+    })
+    const fileRow = wrapper.findAll('.recent-list')[0].findAll('.recent-item')[1]
+    expect(fileRow.find('.row-name').text()).toBe('doc.md')
+    expect(fileRow.find('.row-path').text()).toBe('C:\\Users\\x')
+    const folderRow = wrapper.findAll('.recent-list')[1].find('.recent-item')
+    expect(folderRow.find('.row-name').text()).toBe('notes')
+    expect(wrapper.find('.row-session .row-path').text()).toBe('a.md')
+  })
+
   it('shows up to five recent files with folder path and relative time', async () => {
     const stat = { mtimeMs: NOW - 3 * 60 * 1000, size: 1, isFile: true }
     const wrapper = await hydrateWith({
@@ -291,9 +374,11 @@ describe('recent/index.vue welcome screen (C-46)', () => {
   it('drops files whose stat reports not-found, but keeps rows on other stat failures', async () => {
     const stat = { mtimeMs: NOW - 30 * 1000, size: 1 }
     const wrapper = await hydrateWith({
-      files: ['/keep/gone.md', '/keep/stays.md', '/keep/unknown.md'],
+      files: ['/keep/gone.md', '/keep/stays.md', '/keep/legacy.md', '/keep/unknown.md'],
       statByPath: {
-        '/keep/gone.md': new Error('MT_FS_NOT_FOUND: os error 2'),
+        '/keep/gone.md': notFoundError(),
+        // Plain string-message rejection still recognised (fallback).
+        '/keep/legacy.md': new Error('No such file or directory (os error 2)'),
         '/keep/stays.md': stat,
         // Degraded IPC (unknown command) must not wipe the list.
         '/keep/unknown.md': new Error('command mt_fs_stat not found')
@@ -301,6 +386,7 @@ describe('recent/index.vue welcome screen (C-46)', () => {
     })
     const names = wrapper.findAll('.row-name').map((n) => n.text())
     expect(names).toEqual(['stays.md', 'unknown.md'])
+    expect(names).not.toContain('legacy.md')
     // The degraded row stays but shows no time.
     const times = wrapper.findAll('.row-time')
     expect(times.length).toBe(1)
@@ -383,6 +469,45 @@ describe('recent/index.vue welcome screen (C-46)', () => {
     expect(wrapper.findAll('.row-name').map((n) => n.text())).toEqual(['one', 'two', 'three'])
   })
 
+  it('removes a folder from the FULL stored list (5 kept, 3 shown) and Undo restores all five', async () => {
+    const stored = ['/p/one', '/p/gone', '/p/two', '/p/three', '/p/four']
+    const wrapper = await hydrateWith({
+      folders: stored,
+      // '/p/gone' is missing on disk → hidden, but must stay stored.
+      statByPath: { '/p/gone': notFoundError() }
+    })
+    // Three live rows shown; the missing one and the 5th stay hidden.
+    const folderNames = () =>
+      wrapper.findAll('.recent-list')[1].findAll('.row-name').map((n) => n.text())
+    expect(folderNames()).toEqual(['one', 'two', 'three'])
+    __projectStoreMock.GET_RECENT_FOLDERS.mockResolvedValue([...stored])
+
+    await wrapper.findAll('.recent-list')[1].findAll('.row-remove')[1].trigger('click')
+    await flushPromises()
+    expect(__projectStoreMock.SET_RECENT_FOLDERS).toHaveBeenCalledTimes(1)
+    expect(__projectStoreMock.SET_RECENT_FOLDERS).toHaveBeenLastCalledWith([
+      '/p/one', '/p/gone', '/p/three', '/p/four'
+    ])
+    expect(folderNames()).toEqual(['one', 'three'])
+
+    await wrapper.find('.toast-undo').trigger('click')
+    await flushPromises()
+    expect(__projectStoreMock.SET_RECENT_FOLDERS).toHaveBeenLastCalledWith(stored)
+    expect(folderNames()).toEqual(['one', 'two', 'three'])
+  })
+
+  it('Undo after a remove that M-017 did not have (null index) inserts nothing', async () => {
+    const wrapper = await hydrateWith({ files: ['/p/a.md', '/p/b.md'] })
+    __ipcRecentMock.remove.mockResolvedValueOnce(null)
+    await wrapper.findAll('.row-remove')[1].trigger('click')
+    await flushPromises()
+    await wrapper.find('.toast-undo').trigger('click')
+    await flushPromises()
+    expect(__ipcRecentMock.insert).not.toHaveBeenCalled()
+    // The visible row comes back (it was on screen), storage untouched.
+    expect(wrapper.findAll('.row-name').map((n) => n.text())).toEqual(['a.md', 'b.md'])
+  })
+
   // ── context menu ────────────────────────────────────────────────
 
   it('opens the native context menu and acts on the clicked id', async () => {
@@ -413,6 +538,38 @@ describe('recent/index.vue welcome screen (C-46)', () => {
     await wrapper.find('.recent-item').trigger('contextmenu', { clientX: 0, clientY: 0 })
     await flushPromises()
     expect(wrapper.find('.no-recent').exists()).toBe(true)
+  })
+
+  it('anchors a keyboard-opened context menu (clientX/Y = 0) at the row', async () => {
+    const wrapper = await hydrateWith({ files: ['/p/doc.md'] })
+    const item = wrapper.find('.recent-item')
+    item.element.getBoundingClientRect = () => ({
+      left: 40, top: 100, right: 400, bottom: 136, width: 360, height: 36, x: 40, y: 100
+    })
+    await item.trigger('contextmenu', { clientX: 0, clientY: 0 })
+    await flushPromises()
+    expect(window.electron.ipcRenderer.invoke).toHaveBeenLastCalledWith(
+      'mt::window-popup-context-menu',
+      expect.objectContaining({ x: 52, y: 136 })
+    )
+  })
+
+  it('labels the reveal item per platform: Explorer on Windows, neutral folder on Linux', async () => {
+    __utilMock.isOsx = false
+    __utilMock.isWindows = true
+    let wrapper = await hydrateWith({ files: ['/p/doc.md'] })
+    const invoke = window.electron.ipcRenderer.invoke
+    await wrapper.find('.recent-item').trigger('contextmenu', { clientX: 5, clientY: 5 })
+    await flushPromises()
+    expect(invoke.mock.calls.at(-1)[1].items[1].label).toBe('recent.showInExplorer')
+    wrapper.unmount()
+
+    __utilMock.isWindows = false
+    __utilMock.isLinux = true
+    wrapper = await hydrateWith({ files: ['/p/doc.md'] })
+    await wrapper.find('.recent-item').trigger('contextmenu', { clientX: 5, clientY: 5 })
+    await flushPromises()
+    expect(invoke.mock.calls.at(-1)[1].items[1].label).toBe('recent.showInFolder')
   })
 
   it('opens a recent file via the context menu Open item', async () => {
@@ -477,28 +634,42 @@ describe('recent/index.vue welcome screen (C-46)', () => {
 
   // ── drop zone ───────────────────────────────────────────────────
 
-  it('shows a text-free drop highlight while dragging and forwards drops through mt::window::drop', async () => {
+  it('drives the text-free drop highlight from the native drag bridge (mt::native-drag)', async () => {
     const wrapper = await mountRecent()
     expect(wrapper.find('.drop-overlay').exists()).toBe(false)
 
-    await wrapper.find('.welcome-screen').trigger('dragenter', {
-      dataTransfer: { types: ['Files'] }
-    })
+    await nativeDrag(wrapper, { type: 'enter', paths: ['/x/note.md'] })
     expect(wrapper.find('.drop-overlay').exists()).toBe(true)
     expect(wrapper.classes()).toContain('drop-active')
 
-    await wrapper.find('.welcome-screen').trigger('dragleave')
+    // 'over' carries no paths and must not flicker the highlight.
+    await nativeDrag(wrapper, { type: 'over', paths: [] })
+    expect(wrapper.find('.drop-overlay').exists()).toBe(true)
+
+    await nativeDrag(wrapper, { type: 'leave', paths: [] })
     expect(wrapper.find('.drop-overlay').exists()).toBe(false)
 
+    await nativeDrag(wrapper, { type: 'enter', paths: ['/x/note.md'] })
+    await nativeDrag(wrapper, { type: 'drop', paths: ['/x/note.md'] })
+    expect(wrapper.find('.drop-overlay').exists()).toBe(false)
+    // Opening is the bridge's job — the screen sends nothing itself.
+    expect(window.electron.ipcRenderer.send).not.toHaveBeenCalledWith(
+      'mt::window::drop', expect.anything()
+    )
+
+    // An enter without paths (e.g. a text drag) does not light up.
+    await nativeDrag(wrapper, { type: 'enter', paths: [] })
+    expect(wrapper.find('.drop-overlay').exists()).toBe(false)
+  })
+
+  it('ignores HTML5 drag events (no OS path in a Tauri webview) and unsubscribes on unmount', async () => {
+    const wrapper = await mountRecent()
     await wrapper.find('.welcome-screen').trigger('dragenter', {
       dataTransfer: { types: ['Files'] }
     })
-    await wrapper.find('.welcome-screen').trigger('drop', {
-      dataTransfer: { files: [{ name: 'note.md' }] }
-    })
-    expect(window.electron.ipcRenderer.send).toHaveBeenCalledWith(
-      'mt::window::drop', ['/dropped/note.md']
-    )
     expect(wrapper.find('.drop-overlay').exists()).toBe(false)
+    const handler = __busMock.on.mock.calls.find(([n]) => n === 'mt::native-drag')[1]
+    wrapper.unmount()
+    expect(__busMock.off).toHaveBeenCalledWith('mt::native-drag', handler)
   })
 })

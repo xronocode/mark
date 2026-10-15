@@ -421,7 +421,11 @@
     "recentFolders": "Pastas recentes",
     "noRecentFiles": "Nenhum arquivo recente",
     "lastSession": "Última sessão",
-    "filesCount": "{count} arquivos",
+    "filesCount": {
+      "one": "{count} arquivo",
+      "many": "{count} arquivos",
+      "other": "{count} arquivos"
+    },
     "remove": "Remover da lista",
     "removeTooltip": "Remove apenas desta lista. O arquivo continua no disco.",
     "removedToast": "“{name}” removido dos recentes",
@@ -430,6 +434,7 @@
     "copyPath": "Copiar caminho",
     "showInFinder": "Mostrar no Finder",
     "showInExplorer": "Mostrar no Explorer",
+    "showInFolder": "Mostrar na pasta",
     "guide": "Guia",
     "whatsNewIn": "Novidades da {version}",
     "connectTitle": "Conecte seu agente.",

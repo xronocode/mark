@@ -1,28 +1,55 @@
 // FILE: tests/e2e/welcome.spec.ts
-// VERSION: 1.0.0
+// VERSION: 1.1.0
 // START_MODULE_CONTRACT
-//   PURPOSE: C-46 welcome screen e2e — boot with no file open and verify the layout elements plus remove/undo of a recent file.
+//   PURPOSE: C-46 welcome screen e2e — boot with no file open and verify the layout elements, remove/undo of a recent file, open-by-click, Copy prompt and the native-bridge drop highlight.
 //   SCOPE: renderer-only e2e against vite preview + tauri-shim (no real Tauri IPC).
-//   DEPENDS: @playwright/test, tests/e2e/fixtures/tauri-shim.
+//   DEPENDS: @playwright/test, tests/e2e/fixtures/tauri-shim, static/locales/en.json (expected prompt text).
 //   LINKS: .grace/verification/runtime.xml V-M-011 scenario-47; .grace/changes/active/C-46.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
+//   EN - the shipped English locale table (agent prompt expectations).
 //   bootWelcome - install the shim with recent-files/session overrides and fire the no-document bootstrap.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.0.0 - 2026-10-15 C-46: initial pins.
+//   LAST_CHANGE: v1.1.0 - 2026-10-15 C-46 review: open a recent file by
+//     click (mt_open_file), Copy prompt puts the OS prompt on the clipboard,
+//     drop highlight follows the native drag bridge (tauri://drag-*).
+//   v1.0.0 - 2026-10-15 C-46: initial pins.
 // END_CHANGE_SUMMARY
 
 import { test, expect, type Page } from '@playwright/test'
+import { readFileSync } from 'node:fs'
+import { dirname, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { installTauriShim } from './fixtures/tauri-shim'
+
+const EN = JSON.parse(
+  readFileSync(resolve(dirname(fileURLToPath(import.meta.url)), '../../static/locales/en.json'), 'utf8')
+)
 
 async function bootWelcome(page: Page): Promise<void> {
   await installTauriShim(page)
   await page.addInitScript(() => {
+    // Record clipboard writes (headless browsers deny the real clipboard).
+    ;(window as any).__clipboardWrites = []
+    try {
+      Object.defineProperty(navigator, 'clipboard', {
+        configurable: true,
+        value: {
+          writeText: async (text: string) => {
+            ;(window as any).__clipboardWrites.push(text)
+          },
+          readText: async () => '',
+          read: async () => []
+        }
+      })
+    } catch {
+      /* clipboard not redefinable — the copy test will report it */
+    }
     ;(window as any).__mockInvoke = {
       mt_recent_list: () => [
         '/Users/e2e/docs/launch-plan.md',
@@ -179,5 +206,68 @@ test.describe('welcome screen (C-46)', () => {
     await bootWelcome(page)
     // mt_prefs_get in the shim returns null for lastUpdateAt.
     await expect(page.locator('.welcome-footer .footer-link')).toHaveCount(1)
+  })
+
+  test('clicking a recent file opens it through mt_open_file', async ({ page }) => {
+    await bootWelcome(page)
+    const opened: unknown[] = []
+    await page.exposeFunction('__openFile', (args: unknown) => {
+      opened.push(args)
+      return null
+    })
+    await page.evaluate(() => {
+      ;(window as any).__mockInvoke.mt_open_file = (args: any) => (window as any).__openFile(args)
+    })
+
+    const fileRow = page.locator('.welcome-screen .welcome-section').first().locator('.recent-item').nth(1)
+    await expect(fileRow.locator('.row-name')).toHaveText('launch-plan.md')
+    await fileRow.locator('.row-button').click()
+
+    await expect.poll(() => opened.length).toBe(1)
+    expect(opened[0]).toEqual({ args: ['/Users/e2e/docs/launch-plan.md', {}] })
+  })
+
+  test('Copy prompt puts the macOS prompt on the clipboard', async ({ page }) => {
+    await bootWelcome(page)
+    // The vite define bakes the BUILD host platform into the shim; the
+    // macOS prompt (open -a Mark) ships on darwin builds, prose elsewhere.
+    const platform = await page.evaluate(() => (window as any).electron.process.platform)
+    const expected = platform === 'darwin' ? EN.guide.agentPrompt.mac : EN.guide.agentPrompt.generic
+
+    await page.locator('.welcome-screen .agent-row .chip-button.accent').click()
+    await expect
+      .poll(() => page.evaluate(() => (window as any).__clipboardWrites))
+      .toEqual([expected])
+    if (platform === 'darwin') expect(expected).toContain('open -a Mark <file>.md')
+  })
+
+  test('the drop highlight follows the native drag bridge and clears on leave/drop', async ({
+    page
+  }) => {
+    await bootWelcome(page)
+    const read: string[] = []
+    await page.exposeFunction('__fsRead', (path: string) => {
+      read.push(path)
+      return '# dropped'
+    })
+    await page.evaluate(() => {
+      ;(window as any).__mockInvoke.mt_fs_read = (args: any) => (window as any).__fsRead(args?.path)
+    })
+    const overlay = page.locator('.welcome-screen .drop-overlay')
+    const emit = (event: string, payload: unknown) =>
+      page.evaluate(([e, p]) => (window as any).__emitFakeEvent(e, p), [event, payload] as const)
+
+    await expect(overlay).toHaveCount(0)
+    expect(await emit('tauri://drag-enter', { paths: ['/tmp/dropped.md'], position: { x: 10, y: 10 } })).toBeGreaterThan(0)
+    await expect(overlay).toBeVisible()
+    await emit('tauri://drag-leave', null)
+    await expect(overlay).toHaveCount(0)
+
+    await emit('tauri://drag-enter', { paths: ['/tmp/dropped.md'], position: { x: 10, y: 10 } })
+    await expect(overlay).toBeVisible()
+    await emit('tauri://drag-drop', { paths: ['/tmp/dropped.md'], position: { x: 10, y: 10 } })
+    await expect(overlay).toHaveCount(0)
+    // The bridge (not the welcome screen) opens the drop: it reads the file.
+    await expect.poll(() => read).toEqual(['/tmp/dropped.md'])
   })
 })

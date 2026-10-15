@@ -15,8 +15,6 @@ Dale esto a Claude Code, Codex, Cursor o cualquier agente, una sola vez. Pégalo
 3. **Tú le das forma** — edita la página terminada: corrige pasos, añade notas, corta lo que esté mal.
 4. **Él te lee de vuelta** — el agente relee el archivo; tus ediciones son su siguiente instrucción.
 
-¿Lo quieres automático? Configuración avanzada del agente: próximamente.
-
 ## Pruébalo: tablas
 
 Las tablas son texto plano con estilo mientras escribes. Añade o quita filas desde la barra cuando el cursor está dentro.
@@ -70,4 +68,4 @@ Editar › Copiar como texto estructurado copia el documento como texto limpio q
 
 ## Pruébalo: el visor a pantalla completa
 
-⌘/Ctrl-clic en un diagrama o una tabla lo abre a pantalla completa ⤢; haz zoom dentro, Esc cierra.
+⌘/Ctrl-clic en un diagrama, o ⤢ en un diagrama o una tabla, lo abre a pantalla completa; haz zoom dentro, Esc cierra.

@@ -1,9 +1,26 @@
-// MODULE_CONTRACT:
+// START_MODULE_CONTRACT
 //   PURPOSE: Define canonical per-document state and state-construction helpers.
 //   SCOPE: Defaults and cloning/option extraction for editor tabs.
 //   DEPENDS: renderer util and i18n helpers.
-//   ROLE: UTILITY
+//   LINKS: src/renderer/src/store/editor.js (tab lifecycle); tests/renderer/store/help.test.ts
+//   ROLE: RUNTIME
+//   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT
+//
+// START_MODULE_MAP
+//   defaultFileState - default per-document state object
+//   createDocumentState - build a document state from defaults + overrides
+//   getOptionsFromState - extract editor options from a document state
+//   getFileStateFromData - document state from a loaded markdown document
+//   getBlankFileState - untitled tab state with the next Untitled-N name
+//   getSingleFileState - state for a single opened file
+// END_MODULE_MAP
+//
+// START_CHANGE_SUMMARY
+//   LAST_CHANGE: 2026-10-15 C-40 - getBlankFileState counts only real
+//   "Untitled-N" names; a titled pathless tab (the Mark Guide) produced
+//   "Untitled-NaN" for the next new tab.
+// END_CHANGE_SUMMARY
 
 import { getUniqueId, deepClone } from '../util'
 import { i18n } from '../i18n'

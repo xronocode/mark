@@ -1,11 +1,11 @@
 // FILE: tests/renderer/components/whatsNew.test.js
-// VERSION: 1.0.0
+// VERSION: 1.1.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Pin the C-48 What's New sheet component — opens on the
 //            whatsNewDialog bus event, renders the 2.3.1 items from the
 //            en table, Esc/Continue close it, focus is trapped and
-//            returned, and "See the guide" emits the mt::open-guide
-//            deep link.
+//            returned, "See the guide" opens the guide at the top
+//            (mt::open-guide with {}), and the dialog label is localized.
 //   SCOPE: src/renderer/src/components/whatsNew/index.vue behaviour.
 //   DEPENDS: @vue/test-utils, mocked @/bus, real i18n t (en table).
 //   LINKS: .grace/changes/active/C-48/spec.xml R-1; V-M-011 scenario-46.
@@ -18,7 +18,10 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.0.0 - 2026-10-15 C-48 T-001: initial pins.
+//   LAST_CHANGE: v1.1.0 - 2026-10-15 C-48 review fix: guide link payload is
+//   {} (C-40 has no 'whats-new' section); aria-label follows the active
+//   locale (ru pin) instead of a hard-coded English string.
+//   PREV: v1.0.0 - 2026-10-15 C-48 T-001: initial pins.
 // END_CHANGE_SUMMARY
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
@@ -47,6 +50,8 @@ vi.mock('@/bus', () => {
 })
 
 import bus from '@/bus'
+import { i18n } from '@/i18n'
+import ruTranslations from '../../../static/locales/ru.json'
 import WhatsNewSheet from '@/components/whatsNew/index.vue'
 
 // TOP-LEVEL helper (TEST/LOCALS).
@@ -153,16 +158,32 @@ describe('components/whatsNew — sheet', () => {
     wrapper.unmount()
   })
 
-  it('See the guide emits the mt::open-guide deep link and keeps the sheet open', async () => {
+  it('See the guide opens the guide at the top (no unknown section) and keeps the sheet open', async () => {
     const wrapper = mountSheet()
     bus.emit('whatsNewDialog', { version: '2.3.1' })
     await nextTick()
 
     await wrapper.find('.guide-link').trigger('click')
-    expect(bus.emit).toHaveBeenCalledWith('mt::open-guide', { section: 'whats-new' })
+    expect(bus.emit).toHaveBeenCalledWith('mt::open-guide', {})
     expect(wrapper.find('.ag-whats-new-sheet').exists()).toBe(true)
 
     wrapper.unmount()
+  })
+
+  it('the dialog aria-label is the localized whatsNew.title (not hard-coded English)', async () => {
+    i18n.global.setLocaleMessage('ru', ruTranslations)
+    i18n.global.locale.value = 'ru'
+    try {
+      const wrapper = mountSheet()
+      bus.emit('whatsNewDialog', { version: '2.3.1' })
+      await nextTick()
+      expect(wrapper.find('.ag-whats-new-sheet').attributes('aria-label')).toBe(
+        ruTranslations.whatsNew.title
+      )
+      wrapper.unmount()
+    } finally {
+      i18n.global.locale.value = 'en'
+    }
   })
 
   it('unmount removes the bus subscription', () => {

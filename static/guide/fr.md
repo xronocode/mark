@@ -15,8 +15,6 @@ Donnez ceci à Claude Code, Codex, Cursor ou n'importe quel agent, une seule foi
 3. **Vous le façonnez** — modifiez la page finie : corrigez les étapes, ajoutez des notes, coupez ce qui cloche.
 4. **Il vous relit** — l'agent relit le fichier ; vos modifications sont sa prochaine instruction.
 
-Vous le voulez automatique ? Configuration avancée de l'agent — bientôt.
-
 ## Essayez : les tableaux
 
 Les tableaux sont du texte simple, mis en forme pendant que vous tapez. Ajoutez ou supprimez des lignes depuis la barre quand le curseur est dedans.
@@ -70,4 +68,4 @@ $$
 
 ## Essayez : la visionneuse plein écran
 
-⌘/Ctrl-clic sur un diagramme ou un tableau l'ouvre en plein écran ⤢ — zoomez dedans, Échap ferme.
+⌘/Ctrl-clic sur un diagramme, ou ⤢ sur un diagramme ou un tableau, l'ouvre en plein écran — zoomez dedans, Échap ferme.

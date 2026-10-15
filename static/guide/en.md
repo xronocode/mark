@@ -15,8 +15,6 @@ Give this to Claude Code, Codex, Cursor or any agent once. Paste it into its ins
 3. **You shape it** — edit the finished page: fix steps, add notes, cut what's wrong.
 4. **It reads you back** — the agent re-reads the file; your edits are its next instruction.
 
-Want it automatic? Advanced agent setup — coming soon.
-
 ## Try it: tables
 
 Tables are plain text, styled as you type. Add or remove rows from the toolbar when the cursor is inside.
@@ -70,4 +68,4 @@ Edit › Copy as Structured Text copies the document as clean text that keeps bu
 
 ## Try it: the fullscreen viewer
 
-⌘/Ctrl-click a diagram or a table to open it fullscreen ⤢ — zoom inside, Esc closes.
+⌘/Ctrl-click a diagram, or press ⤢ on a diagram or a table, to open it fullscreen — zoom inside, Esc closes.

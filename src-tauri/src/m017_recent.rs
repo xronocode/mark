@@ -1,4 +1,6 @@
-// MODULE_CONTRACT
+// FILE: src-tauri/src/m017_recent.rs
+// VERSION: 1.1.1
+// START_MODULE_CONTRACT
 //   PURPOSE: M-017 mt-recent-docs. List of recently-opened files +
 //            folders, persisted to prefs[KEY_RECENT_DOCS]. Renderer
 //            "Open Recent" menu and the C-46 welcome screen read +
@@ -9,18 +11,38 @@
 //            (most-recent-first ordering). NO per-platform OS
 //            integration (macOS NSDocumentController / Windows
 //            JumpList) — those are F-RECENT-OS-INTEGRATION.
-//   DEPENDS: m005_prefs (PrefsState).
+//   DEPENDS: m005_prefs (PrefsState); m047_bookmarks (grant moments).
 //   LINKS:   docs/development-plan.xml Phase-B3 step-8;
 //            v1.2.3 src/main/menu/actions/recently-used-documents.js
 //            for the upstream behavior (10-item cap, dedupe);
 //            .grace/changes/active/C-46 (welcome screen remove/undo).
-//   STATUS:  Phase-B3 step-8 shipped.
+//   ROLE: RUNTIME
+//   MAP_MODE: EXPORTS
+// END_MODULE_CONTRACT
 //
-// CHANGE_SUMMARY:
+// START_MODULE_MAP
+//   KEY_RECENT_DOCS - prefs key holding the recent-docs array
+//   MAX_RECENT_DOCS - list cap (10, matching v1.2.3)
+//   recent_add_inner - pure-logic add (dedupe, promote to head, cap)
+//   recent_remove_inner - pure-logic remove returning the old index
+//   recent_insert_inner - pure-logic insert-at (Undo of remove)
+//   mt_recent_add - command: add a path (also records a security bookmark)
+//   mt_recent_list - command: snapshot the list, most-recent first
+//   mt_recent_clear - command: clear the list
+//   mt_recent_remove - command: remove a path, returns Some(old index)
+//   mt_recent_insert - command: insert a path at an index
+// END_MODULE_MAP
+//
+// START_CHANGE_SUMMARY
+//   LAST_CHANGE: 2026-10-15 C-46 review: header normalized to the
+//     canonical START/END contract + MODULE_MAP form (grace lint); the
+//     insert-dedupe test mixed &str and String in one vec! and did not
+//     compile (cargo test recent was red).
 //   - 2026-10-15 C-46: mt_recent_remove (+ mt_recent_insert for the
 //     Undo toast) — remove returns the old index so the renderer can
 //     restore the exact previous order.
 //   - 2026-04-29 B3-step-8: initial impl.
+// END_CHANGE_SUMMARY
 
 use crate::m005_prefs::PrefsState;
 use serde_json::Value;
@@ -311,7 +333,7 @@ mod tests {
         }
         let original = load(&prefs);
         let removed = recent_remove_inner(&prefs, "/b.md").unwrap().unwrap();
-        assert_eq!(load(&prefs), vec!["/d.md", "/c.md", "/a.md".to_string()]);
+        assert_eq!(load(&prefs), vec!["/d.md", "/c.md", "/a.md"]);
         recent_insert_inner(&prefs, "/b.md", removed).unwrap();
         assert_eq!(load(&prefs), original);
     }

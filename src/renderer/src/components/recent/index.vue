@@ -1,12 +1,5 @@
 <template>
-  <div
-    class="welcome-screen"
-    :class="{ 'drop-active': dragOver }"
-    @dragenter="onDragEnter"
-    @dragover.prevent="onDragOver"
-    @dragleave="onDragLeave"
-    @drop.prevent="onDrop"
-  >
+  <div class="welcome-screen" :class="{ 'drop-active': dragOver }">
     <div class="welcome-content">
       <div class="brand">
         <img class="brand-icon" :src="logoUrl" alt="" draggable="false" />
@@ -41,7 +34,7 @@
                 <span class="row-path">{{ sessionSummary }}</span>
               </span>
               <span class="row-time">{{
-                t('recent.filesCount', { count: sessionPaths.length })
+                filesCountLabel(sessionPaths.length)
               }}</span>
             </button>
           </li>
@@ -166,7 +159,8 @@
 //            folders reuses the existing IPC actions.
 //   DEPENDS: store/editor, store/project, ipc/runtime (ipcRecent,
 //            ipcFs, ipcPrefs), util/pathDisplay, util/relativeTime,
-//            util/agentPrompt, util (isOsx, isWindows), i18n, bus.
+//            util/agentPrompt, util (isOsx, isWindows), i18n, bus
+//            ('mt::native-drag' from _shims/install-window-globals.js).
 //   LINKS:   .grace/changes/active/C-46 (approved mockups boards 1-2);
 //            .grace/verification/runtime.xml V-M-011 scenario-47;
 //            C-40 R-1a (agent prompt + 'mt::open-guide' section).
@@ -176,10 +170,25 @@
 //
 // START_MODULE_MAP
 //   (component) - top-level locals: recentFiles, recentFolders, sessionPaths, toast, dragOver, whatsNew
+//   isMissingPathError - stat rejection → "path is gone" (IpcError cause.code, message fallback)
+//   filesCountLabel - plural-aware "N files" via Intl.PluralRules category keys
+//   onNativeDrag - welcome drop-zone highlight driven by the native drag-drop bridge
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v2.0.1 - 2026-10-15 C-46 review: removing a recent folder
+//   LAST_CHANGE: v2.0.2 - 2026-10-15 C-46 review round 2: folder
+//     remove/undo rewrote only the ≤3 visible rows and wiped stored folders
+//     4–5 and hidden missing ones — now edits and restores the full stored
+//     list; missing-file detection reads the IpcError cause.code
+//     MT_FS_NOT_FOUND (the mapped message is "[object Object]"); the drop
+//     highlight follows the native webview drag bridge ('mt::native-drag')
+//     and the dead HTML5 onDrop → 'mt::window::drop' path is gone (drops
+//     open through the bridge); Windows paths split on both separators;
+//     "N files" uses plural categories (recent.filesCount.one/few/many/
+//     other); keyboard-opened context menu anchors at the row; Linux shows
+//     "Show in folder"; Undo of a remove that M-017 did not have (null
+//     index) inserts nothing.
+//   v2.0.1 - 2026-10-15 C-46 review: removing a recent folder
 //     persisted the pre-remove snapshot (folder came back after restart);
 //     the What's-new footer reads C-48's ISO lastUpdateAt + running
 //     version and reopens the C-48 sheet (was Number(ISO) → NaN, and an
@@ -203,11 +212,11 @@ import { useEditorStore } from '@/store/editor'
 import { useProjectStore } from '@/store/project'
 import { ipcRecent, ipcFs, ipcPrefs } from '@/ipc/runtime'
 import { isOsx, isWindows } from '@/util'
-import { shortenMiddle } from '@/util/pathDisplay'
+import { shortenMiddle, pathBasename, pathDirname } from '@/util/pathDisplay'
 import { formatRelativeTime } from '@/util/relativeTime'
 import { getAgentPrompt } from '@/util/agentPrompt'
 import { getRunningVersion, LAST_UPDATE_AT_KEY } from '@/whatsNew/gate'
-import { t } from '../../i18n'
+import { t, getCurrentLanguage } from '../../i18n'
 import bus from '@/bus'
 import logoUrl from '@/assets/images/logo.png'
 
@@ -218,6 +227,7 @@ const WHATS_NEW_WINDOW_MS = 7 * 24 * 60 * 60 * 1000
 // Sent by the backend when a stat'd path no longer exists (m013b
 // error.rs MT_FS_NOT_FOUND / io NotFound message). Anything else
 // (degraded IPC, permissions) keeps the row without a timestamp.
+const MISSING_CODE = 'MT_FS_NOT_FOUND'
 const MISSING_RE = /MT_FS_NOT_FOUND|No such file/i
 
 const editorStore = useEditorStore()
@@ -231,25 +241,14 @@ const dragOver = ref(false)
 const whatsNew = ref(null)
 let _homeDir = ''
 let _toastTimer = null
-let _dragDepth = 0
 
 // Platform shortcut glyphs for the three header actions.
 const shortcutOpenFile = isOsx ? '⌘O' : 'Ctrl+O'
 const shortcutOpenFolder = isOsx ? '⇧⌘O' : 'Ctrl+Shift+O'
 const shortcutNew = isOsx ? '⌘N' : 'Ctrl+N'
 
-const basename = (p) => {
-  if (!p) return ''
-  const parts = p.split('/')
-  return parts[parts.length - 1] || p
-}
-
-const dirname = (p) => {
-  if (!p) return ''
-  const idx = p.lastIndexOf('/')
-  if (idx <= 0) return '/'
-  return p.substring(0, idx)
-}
+const basename = pathBasename
+const dirname = pathDirname
 
 const tilde = (dir) => {
   if (_homeDir && dir.startsWith(_homeDir)) return '~' + dir.substring(_homeDir.length)
@@ -268,42 +267,59 @@ const makeRow = (path, stat) => ({
 // END_BLOCK_MAKE_ROW
 
 // START_BLOCK_HYDRATE_LISTS
-// stat every candidate in parallel; rows whose stat fails with
-// MT_FS_NOT_FOUND / "No such file" drop off silently, other stat
-// failures keep the row without a timestamp (degraded environments
-// must not wipe the recent list).
-const hydrateFiles = async (paths) => {
+// ipcInvoke maps a Tauri rejection to an IpcError whose `cause` is the
+// backend's structured error ({ code, message }) and whose message is
+// "[object Object]" — so the code is the signal (same convention as
+// store/project.js); the message match stays as a fallback for plain
+// string rejections.
+const isMissingPathError = (e) => {
+  if (e?.cause?.code === MISSING_CODE || e?.code === MISSING_CODE) return true
+  const msg = String(e?.cause?.message || e?.message || e || '')
+  return MISSING_RE.test(msg)
+}
+
+// stat every candidate in parallel; rows whose stat reports the path
+// is gone drop off silently, other stat failures keep the row without a
+// timestamp (degraded environments must not wipe the recent list).
+const statRows = async (paths, max) => {
   const stats = await Promise.all(
-    paths.map((p) =>
-      ipcFs.stat(p).catch((e) => {
-        const msg = String((e && e.message) || e || '')
-        return MISSING_RE.test(msg) ? 'missing' : null
-      })
-    )
+    paths.map((p) => ipcFs.stat(p).catch((e) => (isMissingPathError(e) ? 'missing' : null)))
   )
-  recentFiles.value = paths
+  return paths
     .map((path, i) => ({ path, stat: stats[i] }))
     .filter((x) => x.stat !== 'missing')
-    .slice(0, MAX_RECENT_FILES_SHOWN)
+    .slice(0, max)
     .map((x) => makeRow(x.path, x.stat))
 }
 
+const hydrateFiles = async (paths) => {
+  recentFiles.value = await statRows(paths, MAX_RECENT_FILES_SHOWN)
+}
+
 const hydrateFolders = async (paths) => {
-  const stats = await Promise.all(
-    paths.map((p) =>
-      ipcFs.stat(p).catch((e) => {
-        const msg = String((e && e.message) || e || '')
-        return MISSING_RE.test(msg) ? 'missing' : null
-      })
-    )
-  )
-  recentFolders.value = paths
-    .map((path, i) => ({ path, stat: stats[i] }))
-    .filter((x) => x.stat !== 'missing')
-    .slice(0, MAX_RECENT_FOLDERS_SHOWN)
-    .map((x) => makeRow(x.path, x.stat))
+  recentFolders.value = await statRows(paths, MAX_RECENT_FOLDERS_SHOWN)
 }
 // END_BLOCK_HYDRATE_LISTS
+
+// START_BLOCK_FILES_COUNT_PLURAL
+// The app's vue-i18n instance disables "a | b" plural parsing (i18n/
+// index.js returns any message containing "|" verbatim), so the plural
+// forms live as CLDR-category sub-keys — recent.filesCount.one / few /
+// many / other — picked with Intl.PluralRules for the UI language and
+// falling back to .other when a locale has no form for that category.
+const filesCountLabel = (count) => {
+  let category = 'other'
+  try {
+    category = new Intl.PluralRules(getCurrentLanguage() || 'en').select(count)
+  } catch {
+    // unknown locale tag → 'other'
+  }
+  const key = `recent.filesCount.${category}`
+  const label = t(key, { count })
+  if (label && label !== key) return label
+  return t('recent.filesCount.other', { count })
+}
+// END_BLOCK_FILES_COUNT_PLURAL
 
 // START_BLOCK_WHATS_NEW_GATE
 // The What's-new footer link is visible only within 7 days after an
@@ -338,13 +354,18 @@ onMounted(async () => {
   sessionPaths.value = session || []
   await Promise.all([
     hydrateFiles((recent || []).slice(0, 10)),
-    hydrateFolders((folders || []).slice(0, MAX_RECENT_FOLDERS_SHOWN))
+    // The store keeps ≤5 folders; stat them all so a missing one does
+    // not hide a live 4th/5th folder from the three visible rows.
+    hydrateFolders(folders || [])
   ])
   checkWhatsNew()
 })
 
+bus.on('mt::native-drag', onNativeDrag)
+
 onBeforeUnmount(() => {
   if (_toastTimer) clearTimeout(_toastTimer)
+  bus.off('mt::native-drag', onNativeDrag)
 })
 
 // First three file names of the last session ("a.md, b.md, c.md, …").
@@ -396,14 +417,16 @@ const showToast = (payload) => {
 
 // START_BLOCK_REMOVE_RECENT
 // Removing only edits the recent list — the file/folder stays on disk.
-// The M-017 remove command returns the persisted old index; the undo
-// insert puts the entry back exactly there so the order is restored.
+// The M-017 remove command returns the persisted old index (null when
+// the path was not stored); the undo insert puts the entry back exactly
+// there so the order is restored, and skips the insert when nothing was
+// removed from storage.
 const removeRecentFile = async (entry) => {
   const index = recentFiles.value.findIndex((f) => f.path === entry.path)
   if (index < 0) return
   const snapshot = [...recentFiles.value]
   recentFiles.value.splice(index, 1)
-  let persistedIndex = index
+  let persistedIndex = null
   try {
     const removedAt = await ipcRecent.remove(entry.path)
     if (typeof removedAt === 'number') persistedIndex = removedAt
@@ -419,15 +442,19 @@ const removeRecentFile = async (entry) => {
   })
 }
 
+// Folders: the store keeps up to 5 while the screen shows ≤3 live ones,
+// so the edit works on the FULL stored list — dropping only this path —
+// and the full stored list is the Undo snapshot.
 const removeRecentFolder = async (entry) => {
   const index = recentFolders.value.findIndex((f) => f.path === entry.path)
   if (index < 0) return
   const snapshot = [...recentFolders.value]
   recentFolders.value.splice(index, 1)
+  let storedSnapshot = null
   try {
-    // Persist the list WITHOUT the removed folder; the snapshot is only
-    // for Undo.
-    await projectStore.SET_RECENT_FOLDERS(recentFolders.value.map((f) => f.path))
+    const stored = await projectStore.GET_RECENT_FOLDERS()
+    storedSnapshot = Array.isArray(stored) ? [...stored] : []
+    await projectStore.SET_RECENT_FOLDERS(storedSnapshot.filter((p) => p !== entry.path))
   } catch (e) {
     console.warn('[Recent][removeRecentFolder][BLOCK_RECENT_REMOVED] persisted=false', e)
   }
@@ -436,7 +463,8 @@ const removeRecentFolder = async (entry) => {
     name: entry.name,
     path: entry.path,
     index,
-    snapshot
+    snapshot,
+    storedSnapshot
   })
 }
 
@@ -447,6 +475,7 @@ const undoRemove = async () => {
   toast.value = null
   if (entry.kind === 'file') {
     recentFiles.value = entry.snapshot
+    if (typeof entry.index !== 'number') return
     try {
       await ipcRecent.insert(entry.path, entry.index)
     } catch (e) {
@@ -454,8 +483,9 @@ const undoRemove = async () => {
     }
   } else {
     recentFolders.value = entry.snapshot
+    if (!entry.storedSnapshot) return
     try {
-      await projectStore.SET_RECENT_FOLDERS(entry.snapshot.map((f) => f.path))
+      await projectStore.SET_RECENT_FOLDERS(entry.storedSnapshot)
     } catch (e) {
       console.warn('[Recent][undoRemove][BLOCK_RECENT_UNDONE] persisted=false', e)
     }
@@ -466,13 +496,27 @@ const undoRemove = async () => {
 // ── native right-click menu (menu key / Shift+F10 fire contextmenu) ──
 
 // START_BLOCK_ROW_CONTEXT_MENU
+// Shift+F10 / the Menu key fire contextmenu with clientX/Y = 0; anchor
+// the menu at the row's bottom-left instead of the window corner.
+const contextMenuPoint = (event) => {
+  const x = Number.isFinite(event?.clientX) ? event.clientX : 0
+  const y = Number.isFinite(event?.clientY) ? event.clientY : 0
+  if (x !== 0 || y !== 0) return { x, y }
+  const rect = event?.currentTarget?.getBoundingClientRect?.()
+  if (!rect) return { x, y }
+  return { x: Math.round(rect.left + 12), y: Math.round(rect.bottom) }
+}
+
+const showInFolderLabel = () => {
+  if (isOsx) return t('recent.showInFinder')
+  if (isWindows) return t('recent.showInExplorer')
+  return t('recent.showInFolder')
+}
+
 const openRowContextMenu = async (event, entry, kind) => {
   const items = [
     { label: t('recent.open'), id: 'open' },
-    {
-      label: isWindows ? t('recent.showInExplorer') : t('recent.showInFinder'),
-      id: 'showInFolder'
-    },
+    { label: showInFolderLabel(), id: 'showInFolder' },
     { label: t('recent.copyPath'), id: 'copyPath' },
     { type: 'separator' },
     { label: t('recent.remove'), id: 'removeFromList' }
@@ -481,11 +525,7 @@ const openRowContextMenu = async (event, entry, kind) => {
   try {
     clickedId = await window.electron.ipcRenderer.invoke(
       'mt::window-popup-context-menu',
-      {
-        items,
-        x: Number.isFinite(event?.clientX) ? event.clientX : 0,
-        y: Number.isFinite(event?.clientY) ? event.clientY : 0
-      }
+      { items, ...contextMenuPoint(event) }
     )
   } catch (e) {
     console.warn('[Recent][openRowContextMenu][BLOCK_ROW_CONTEXT_MENU] failed', e)
@@ -533,42 +573,18 @@ const openWhatsNew = () => {
 // ── drop zone: highlight only while dragging, no hint text ────────
 
 // START_BLOCK_DROP_ZONE
-// Reuses the app.vue drop pipeline: dropped files travel through the
-// same 'mt::window::drop' channel as the import dialog (app.vue skips
-// the dialog itself while the welcome screen is up).
-const onDragEnter = (event) => {
-  if (!event.dataTransfer?.types?.includes('Files')) return
-  _dragDepth += 1
-  dragOver.value = true
-}
-
-const onDragOver = (event) => {
-  if (event.dataTransfer) event.dataTransfer.dropEffect = 'copy'
-}
-
-const onDragLeave = () => {
-  _dragDepth = Math.max(0, _dragDepth - 1)
-  if (_dragDepth === 0) dragOver.value = false
-}
-
-const onDrop = (event) => {
-  _dragDepth = 0
-  dragOver.value = false
-  const fileList = []
-  const transfer = event.dataTransfer
-  if (!transfer) return
-  if (transfer.files && transfer.files.length > 0) {
-    for (const file of transfer.files) {
-      fileList.push(window.electron.webUtils.getPathForFile(file))
-    }
-  } else if (transfer.items) {
-    for (const file of transfer.items) {
-      if (file.kind === 'file') {
-        fileList.push(window.electron.webUtils.getPathForFile(file.getAsFile()))
-      }
-    }
+// A Tauri webview never hands the renderer an OS path for an HTML5 file
+// drag, so drops are opened by the native drag-drop bridge in
+// _shims/install-window-globals.js (fs.read → 'mt::open-new-tab'). The
+// bridge mirrors each phase on the bus as 'mt::native-drag'; this
+// screen only lights up its drop zone from it.
+function onNativeDrag(event) {
+  const type = event?.type
+  if (type === 'enter') {
+    dragOver.value = Array.isArray(event.paths) && event.paths.length > 0
+  } else if (type === 'leave' || type === 'drop') {
+    dragOver.value = false
   }
-  window.electron.ipcRenderer.send('mt::window::drop', fileList)
 }
 // END_BLOCK_DROP_ZONE
 </script>

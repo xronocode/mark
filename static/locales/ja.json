@@ -421,7 +421,9 @@
     "recentFolders": "最近のフォルダー",
     "noRecentFiles": "最近のファイルはありません",
     "lastSession": "前回のセッション",
-    "filesCount": "{count} 件のファイル",
+    "filesCount": {
+      "other": "{count} 件のファイル"
+    },
     "remove": "リストから削除",
     "removeTooltip": "このリストから削除するだけです。ファイルはディスクに残ります。",
     "removedToast": "「{name}」を最近の項目から削除しました",
@@ -430,6 +432,7 @@
     "copyPath": "パスをコピー",
     "showInFinder": "Finder で表示",
     "showInExplorer": "エクスプローラーで表示",
+    "showInFolder": "フォルダで表示",
     "guide": "ガイド",
     "whatsNewIn": "{version} の新機能",
     "connectTitle": "エージェントを接続。",

@@ -421,7 +421,12 @@
     "recentFolders": "Недавние папки",
     "noRecentFiles": "Нет недавних файлов",
     "lastSession": "Последняя сессия",
-    "filesCount": "файлов: {count}",
+    "filesCount": {
+      "one": "{count} файл",
+      "few": "{count} файла",
+      "many": "{count} файлов",
+      "other": "{count} файла"
+    },
     "remove": "Убрать из списка",
     "removeTooltip": "Убирает только из этого списка. Файл остаётся на диске.",
     "removedToast": "«{name}» убран из недавних",
@@ -430,6 +435,7 @@
     "copyPath": "Скопировать путь",
     "showInFinder": "Показать в Finder",
     "showInExplorer": "Показать в Проводнике",
+    "showInFolder": "Показать в папке",
     "guide": "Руководство",
     "whatsNewIn": "Что нового в {version}",
     "connectTitle": "Подключите своего агента.",

@@ -421,7 +421,9 @@
     "recentFolders": "最近的資料夾",
     "noRecentFiles": "沒有最近的檔案",
     "lastSession": "上次工作階段",
-    "filesCount": "{count} 個檔案",
+    "filesCount": {
+      "other": "{count} 個檔案"
+    },
     "remove": "從列表移除",
     "removeTooltip": "只會從此列表移除，檔案仍保留在磁碟上。",
     "removedToast": "已從「最近」移除「{name}」",
@@ -430,6 +432,7 @@
     "copyPath": "複製路徑",
     "showInFinder": "在 Finder 中顯示",
     "showInExplorer": "在檔案總管中顯示",
+    "showInFolder": "在資料夾中顯示",
     "guide": "使用指南",
     "whatsNewIn": "{version} 的新功能",
     "connectTitle": "連接你的代理程式。",
