@@ -1,4 +1,4 @@
-// FILE: tests/renderer/components/zoom-indicator.test.js
+// FILE: tests/renderer/components/zoom-indicator.test.ts
 // VERSION: 1.0.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Pin the C-49 transient zoom pill — shows round(fontSize / baseFontSize × 100) + ' %' on mt::zoom-level-changed, hides after ~1 s, restarts the timer on repeat events, is aria-live polite, and drops the transition under prefers-reduced-motion.

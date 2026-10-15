@@ -1,4 +1,4 @@
-// FILE: tests/renderer/store/preferences-zoom.test.js
+// FILE: tests/renderer/store/preferences-zoom.test.ts
 // VERSION: 1.0.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Pin the C-49 unified zoom in store/preferences.js — clamped ZOOM_STEP / ZOOM_ACTUAL_SIZE, debounced persistence, the mt::zoom-level-changed indicator event, the baseFontSize mirror in SET_USER_PREFERENCE, and the one-time legacy `zoom` migration.
@@ -10,6 +10,8 @@
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
+//   FONT_SIZE_MIN - smallest editor text size (mirrors the store export).
+//   FONT_SIZE_MAX - largest editor text size (mirrors the store export).
 //   setLanguageMock - hoisted i18n setLanguage double.
 //   busEmitMock - hoisted bus emit double.
 //   store - the shared store under test (re-created per test).
@@ -23,8 +25,10 @@
 
 import { setupTestPinia } from '../pinia'
 
-const setLanguageMock = vi.fn()
-const busEmitMock = vi.fn()
+const { setLanguageMock, busEmitMock } = vi.hoisted(() => ({
+  setLanguageMock: vi.fn(),
+  busEmitMock: vi.fn()
+}))
 
 vi.mock('@/i18n', () => ({
   t: (key: string) => key,
@@ -46,7 +50,10 @@ vi.mock('@/bus', () => ({
 }))
 
 import { invoke } from '@tauri-apps/api/core'
-import { FONT_SIZE_MIN, FONT_SIZE_MAX } from '@/store/preferences'
+// Mirrors store/preferences FONT_SIZE_MIN / FONT_SIZE_MAX; the store module is
+// imported lazily (after setupTestPinia) like tests/renderer/store/preferences.test.ts.
+const FONT_SIZE_MIN = 12
+const FONT_SIZE_MAX = 36
 
 // Shared store under test — re-created per test by importStore().
 let store
@@ -127,7 +134,7 @@ describe('store/preferences — C-49 unified zoom', () => {
       store = await importStore()
       store.baseFontSize = 16
       store.ZOOM_STEP(4)
-      expect(busEmitMock).toHaveBeenCalledWith({
+      expect(busEmitMock).toHaveBeenCalledWith('mt::zoom-level-changed', {
         fontSize: 20,
         baseFontSize: 16
       })

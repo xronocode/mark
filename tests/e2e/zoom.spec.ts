@@ -160,7 +160,7 @@ const measure = (page: Page): Promise<ZoomMetrics> =>
     ) as HTMLElement | null
     const svg = preview ? (preview.querySelector('svg') as SVGSVGElement | null) : null
     const label = svg
-      ? (svg.querySelector('.nodeLabel, foreignObject span, text') as HTMLElement | null)
+      ? (svg.querySelector('g.node rect, g.node polygon, g.node circle') as HTMLElement | null)
       : null
     return {
       p: px(editor.querySelector('p')),
@@ -219,7 +219,7 @@ test.describe('unified zoom (C-49)', () => {
     expect(after.svgWidth).toBeGreaterThanOrEqual(before.svgWidth)
     const expectedSvgWidth = Math.min(after.column, before.svgNatural * 1.25)
     expect(Math.abs(after.svgWidth - expectedSvgWidth)).toBeLessThanOrEqual(1)
-    // Labels scale with the viewBox — the whole SVG scales uniformly.
+    // Node shapes (and their labels) scale with the viewBox — the whole SVG scales uniformly.
     expect(after.labelWidth).toBeGreaterThan(before.labelWidth + 2)
     expect(after.labelWidth / before.labelWidth).toBeCloseTo(after.svgWidth / before.svgWidth, 1)
     // Wide or not, the diagram still fits the text column.
