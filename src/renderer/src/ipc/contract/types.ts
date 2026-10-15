@@ -81,6 +81,8 @@ export type CommandName =
   | 'mt::recent::add'
   | 'mt::recent::list'
   | 'mt::recent::clear'
+  | 'mt::recent::remove'
+  | 'mt::recent::insert'
   | 'mt::shortcut::register'
   | 'mt::shortcut::unregister'
   | 'mt::shortcut::list'
@@ -231,6 +233,14 @@ export interface CommandMap {
   }
   'mt::recent::clear': {
     args: Record<string, never>
+    result: void
+  }
+  'mt::recent::remove': {
+    args: { path: string }
+    result: number | null
+  }
+  'mt::recent::insert': {
+    args: { path: string; index: number }
     result: void
   }
   'mt::shortcut::register': {

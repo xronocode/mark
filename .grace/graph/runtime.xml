@@ -2589,7 +2589,16 @@
         Auto → Light → Dark (titleBar/index.vue START_BLOCK_THEME_CYCLE);
         the M-025.3 backend boot override on followSystemTheme was removed
         (src-tauri m005_prefs.rs / main.rs) so a persisted Auto survives
-        restarts.
+        restarts. C-46 T-001: components/recent/index.vue is the redesigned
+        welcome screen (brand header + split-key tagline, Open File/Folder/New
+        action row with platform shortcut glyphs, Last-session row, up to 5
+        recent files / 3 recent folders with util/relativeTime.js mtime labels
+        and util/pathDisplay.js middle-shortened paths, hover Remove + native
+        context menu + 5s Undo toast via M-017 mt_recent_remove/insert, the
+        util/agentPrompt.js C-40 universal prompt with Copy + mt::open-guide
+        events, footer What's-new gating on lastUpdateAt, and a text-free
+        drop-zone highlight whose drops ride the existing mt::window::drop
+        channel — app.vue skips the import dialog while no file is open).
       </Summary>
       <Path>src/renderer/</Path>
       <Dependencies>
@@ -4859,7 +4868,11 @@
       <PhaseRef>B3-step-8</PhaseRef>
       <Summary>
         Recently-used documents list (max 12) with OS integration (macOS Dock,
-        Windows Jump List, Linux JSON).
+        Windows Jump List, Linux JSON). C-46 adds mt_recent_remove (drops one
+        path, returns its old persisted index) and mt_recent_insert (Undo:
+        inserts at that index, dedupe + cap enforced) — the welcome screen's
+        "Remove from list" + 5-second Undo toast restore the exact previous
+        order.
       </Summary>
       <PlannedPath>src-tauri/src/recent/mod.rs</PlannedPath>
       <Dependencies>

@@ -410,9 +410,42 @@
     "diagram": "圖表",
     "table": "表格"
   },
+  "agentPrompt": {
+    "prompt": "當你產出超過約 50 行的計畫、規格或報告時，請寫入 .md 檔案並為使用者開啟：{openCommand}。寫入後若檔案有變更，請重新讀取：使用者的修改就是你的下一個指示。"
+  },
   "recent": {
-    "noTabsOpen": "您沒有開啟的標籤頁。",
-    "newFile": "新建檔案"
+    "taglineLead": "代理程式來寫，你來",
+    "taglineHighlight": "塑造它。",
+    "taglineTail": "",
+    "openFile": "開啟檔案…",
+    "openFolder": "開啟資料夾…",
+    "newButton": "新增",
+    "recentFiles": "最近的檔案",
+    "recentFolders": "最近的資料夾",
+    "noRecentFiles": "沒有最近的檔案",
+    "lastSession": "上次工作階段",
+    "filesCount": "{count} 個檔案",
+    "remove": "從列表移除",
+    "removeTooltip": "只會從此列表移除，檔案仍保留在磁碟上。",
+    "removedToast": "已從「最近」移除「{name}」",
+    "undo": "復原",
+    "open": "開啟",
+    "copyPath": "複製路徑",
+    "showInFinder": "在 Finder 中顯示",
+    "showInExplorer": "在檔案總管中顯示",
+    "guide": "使用指南",
+    "whatsNewIn": "{version} 的新功能",
+    "connectTitle": "連接你的代理程式。",
+    "connectText": "一個提示詞，讓它在這裡開啟計畫並讀取你的修改。",
+    "copyPrompt": "複製提示詞",
+    "howItWorks": "運作原理",
+    "time": {
+      "justNow": "剛剛",
+      "minutesAgo": "{count} 分鐘前",
+      "todayAt": "今天 {time}",
+      "yesterday": "昨天",
+      "daysAgo": "{count} 天前"
+    }
   },
   "import": {
     "title": "匯入或開啟",

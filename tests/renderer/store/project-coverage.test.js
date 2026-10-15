@@ -519,6 +519,32 @@ describe('store/project — coverage gaps', () => {
     })
   })
 
+  describe('SET_RECENT_FOLDERS (C-46 welcome screen)', () => {
+    it('sanitizes and persists the list, returning what it stored', async () => {
+      ipcPrefsSetMock.mockResolvedValue(undefined)
+      const store = await loadStore()
+      const result = await store.SET_RECENT_FOLDERS(['/a', 42, null, '/b'])
+      expect(ipcPrefsSetMock).toHaveBeenCalledWith('recentFolders', ['/a', '/b'])
+      expect(result).toEqual(['/a', '/b'])
+    })
+
+    it('caps the list at 5 entries', async () => {
+      ipcPrefsSetMock.mockResolvedValue(undefined)
+      const store = await loadStore()
+      await store.SET_RECENT_FOLDERS(['/1', '/2', '/3', '/4', '/5', '/6'])
+      expect(ipcPrefsSetMock).toHaveBeenCalledWith(
+        'recentFolders',
+        ['/1', '/2', '/3', '/4', '/5']
+      )
+    })
+
+    it('returns [] when the write fails', async () => {
+      ipcPrefsSetMock.mockRejectedValue(new Error('disk gone'))
+      const store = await loadStore()
+      await expect(store.SET_RECENT_FOLDERS(['/a'])).resolves.toEqual([])
+    })
+  })
+
   describe('OPEN_RECENT_FOLDER', () => {
     it('adds project and triggers walk', async () => {
       const invoke = vi.fn().mockResolvedValue(undefined)
