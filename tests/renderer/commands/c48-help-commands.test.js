@@ -8,7 +8,7 @@
 //   SCOPE: commands/index.js help.rate + help.whats-new execute paths with
 //          mocked bus/stores/i18n and the setup.ts window.electron double.
 //   DEPENDS: Vitest, @/commands/index, @/whatsNew/data.
-//   LINKS: .grace/changes/active/C-48/spec.xml R-1, R-2; V-M-011 scenario-46.
+//   LINKS: .grace/changes/archive/C-48/spec.xml R-1, R-2; V-M-011 scenario-46.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

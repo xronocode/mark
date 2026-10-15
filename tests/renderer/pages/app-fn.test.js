@@ -18,6 +18,15 @@ vi.mock('@/util/theme', () => ({
   setEditorWidth: vi.fn(),
   setWrapCodeBlocks: vi.fn()
 }))
+// C-48: the What's New gate and the review request run detached IPC work
+// after mount; left real, a previous test's still-pending startup leaks
+// into the next test's fresh pinia (order-dependent failures).
+vi.mock('@/whatsNew/gate', () => ({
+  snapshotBootPrefs: vi.fn(async () => null),
+  initWhatsNew: vi.fn(async () => ({ show: false })),
+  getRunningVersion: vi.fn(() => '2.3.1')
+}))
+vi.mock('@/review/reviewRequest', () => ({ initReviewRequest: vi.fn(async () => {}) }))
 vi.mock('@/config', () => ({
   DEFAULT_STYLE: {},
   DEFAULT_EDITOR_FONT_FAMILY: 'monospace'

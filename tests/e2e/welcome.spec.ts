@@ -4,7 +4,7 @@
 //   PURPOSE: C-46 welcome screen e2e — boot with no file open and verify the layout elements, remove/undo of a recent file, open-by-click, Copy prompt and the native-bridge drop highlight.
 //   SCOPE: renderer-only e2e against vite preview + tauri-shim (no real Tauri IPC).
 //   DEPENDS: @playwright/test, tests/e2e/fixtures/tauri-shim, static/locales/en.json (expected prompt text).
-//   LINKS: .grace/verification/runtime.xml V-M-011 scenario-47; .grace/changes/active/C-46.
+//   LINKS: .grace/verification/runtime.xml V-M-011 scenario-47; .grace/changes/archive/C-46.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

@@ -15,7 +15,7 @@
 //   LINKS:   docs/development-plan.xml Phase-B3 step-8;
 //            v1.2.3 src/main/menu/actions/recently-used-documents.js
 //            for the upstream behavior (10-item cap, dedupe);
-//            .grace/changes/active/C-46 (welcome screen remove/undo).
+//            .grace/changes/archive/C-46 (welcome screen remove/undo).
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT
