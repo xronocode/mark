@@ -15,6 +15,8 @@
 //   setSinglePreferenceMock - Preferences setter capture.
 //   preferencesStoreMock - Preferences store stub (incl. markdownLint for C-17).
 //   findCmd - Registry lookup by command id.
+//   zoomStepMock - mock of the preferences ZOOM_STEP action.
+//   zoomActualSizeMock - mock of the preferences ZOOM_ACTUAL_SIZE action.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY

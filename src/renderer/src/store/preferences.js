@@ -13,6 +13,8 @@
 //   usePreferencesStore - Pinia store factory (state defaults, hydration, persistence, C-49 zoom actions, LISTEN_* wiring incl. LISTEN_SYSTEM_LANGUAGE).
 //   FONT_SIZE_MIN / FONT_SIZE_MAX / FONT_SIZE_DEFAULT - unified-zoom clamp bounds and base unit (C-49).
 //   clampFontSize - round + clamp helper shared by the zoom actions and the legacy-zoom migration (C-49).
+//   FONT_SIZE_DEFAULT - default editor text size (16).
+//   FONT_SIZE_MAX - largest editor text size (36).
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY

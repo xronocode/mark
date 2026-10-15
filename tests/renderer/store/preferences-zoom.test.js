@@ -10,10 +10,9 @@
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
-//   setLanguageMock / busEmitMock - hoisted i18n + bus doubles.
-//   importStore - fresh usePreferencesStore against the test Pinia.
+//   setLanguageMock - hoisted i18n setLanguage double.
+//   busEmitMock - hoisted bus emit double.
 //   store - the shared store under test (re-created per test).
-//   setPrefSpy - per-test spyOn(store, 'SET_SINGLE_PREFERENCE') for debounce assertions.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
