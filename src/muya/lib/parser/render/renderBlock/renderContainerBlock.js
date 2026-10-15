@@ -1,16 +1,16 @@
 // FILE: src/muya/lib/parser/render/renderBlock/renderContainerBlock.js
-// VERSION: 1.3.0
+// VERSION: 1.4.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Render a muya container block (blockquote, list, table, figure, pre) to a snabbdom vnode.
-//   SCOPE: Selectors, data attributes and auxiliary children (tools, icons, copy buttons, code-block line-number gutter) per container type; the table element is returned inside its C-39 horizontal scroll wrapper.
-//   DEPENDS: muya config, render helpers, snabbdom, ../../../utils/callout.
-//   LINKS: .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-012 scenario-18 and scenario-20; .grace/changes/active/C-39 T-001, C-38 T-005.
+//   SCOPE: Selectors, data attributes and auxiliary children (tools, icons, copy buttons, code-block line-number gutter, table column-resize handle) per container type; the table element is returned inside its C-39 horizontal scroll wrapper, with its C-39 T-002 session colgroup when widths are stored.
+//   DEPENDS: muya config, render helpers, snabbdom, ../../../utils/callout, ../../../tableResize (width constants).
+//   LINKS: .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-012 scenario-18, scenario-20 and scenario-21; .grace/changes/active/C-39 T-001 and T-002, C-38 T-005.
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
-//   default - renderContainerBlock(parent, block, activeBlocks, matches, useCache, t); a `table` block returns div.ag-table-scroll > table; a fence/indent `code` block records its pre in stateRender.lineNumberPreKeys for post-render gutter measuring.
+//   default - renderContainerBlock(parent, block, activeBlocks, matches, useCache, t); a `table` block returns div.ag-table-scroll > table (plus the session colgroup when muya.tableResize has matching widths); a `th` block gets the span.ag-column-resizer handle; a fence/indent `code` block records its pre in stateRender.lineNumberPreKeys for post-render gutter measuring.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
@@ -18,6 +18,7 @@
 //   - 2026-10-13 v1.1.0: C-24 START_BLOCK_CALLOUT_RENDER: a `[!type]` blockquote gets ag-callout classes, a non-editable title row and view-only fold state.
 //   - 2026-10-15 v1.2.0: C-39 T-001 START_BLOCK_TABLE_SCROLL_WRAPPER: the table element renders inside div.ag-table-scroll so wide tables scroll horizontally instead of overflowing the text column.
 //   - 2026-10-15 v1.3.0: C-38 T-005 START_BLOCK_CODE_LINE_NUMBERS: fence/indent code blocks get the .line-numbers class and gutter rows when codeBlockLineNumbers is on (html/math/diagram/front-matter pre blocks stay gutter-free); every gutter rendered this pass is recorded for the post-render measurement instead of re-measuring the whole document.
+//   - 2026-10-15 v1.4.0: C-39 T-002 START_BLOCK_TABLE_COLUMN_WIDTHS + START_BLOCK_TABLE_COLUMN_RESIZER_HANDLE: session column widths render as a colgroup + table.ag-column-widths-fixed (auto layout kept when no widths are stored or the column count differs), and every th gains the invisible span.ag-column-resizer hit zone (skipped when disableTableColumnResize is on — the Split View mirror).
 // END_CHANGE_SUMMARY
 
 import { CLASS_OR_ID } from '../../../config'
@@ -27,6 +28,8 @@ import { renderEditIcon } from './renderContainerEditIcon'
 import renderLineNumberRows from './renderLineNumber'
 import renderCopyButton from './renderCopyButton'
 import { renderLeftBar, renderBottomBar } from './renderTableDargBar'
+import { renderColumnResizer } from './renderColumnResizer'
+import { TABLE_FIXED_CLASS, sumWidths } from '../../../tableResize'
 import { h } from '../snabbdom'
 import { parseCalloutMarker } from '../../../utils/callout'
 import { parseFrontMatterProps } from '../../../utils/frontMatterProps'
@@ -48,6 +51,14 @@ const PRE_BLOCK_HASH = {
 // visible while their figure is active and render one span per line, and the
 // YAML front matter is metadata, so none of them get a gutter.
 const CODE_LINE_NUMBER_FUNCTION_TYPES = /^(?:fencecode|indentcode)$/
+
+// C-39 T-002: current column count of a table block, read structurally
+// (thead > first tr > cells) so it can never drift from the rendered DOM.
+const tableColumnCount = tableBlock => {
+  const thead = tableBlock.children[0]
+  const row = thead && thead.children ? thead.children[0] : null
+  return row && row.children ? row.children.length : 0
+}
 
 export default function renderContainerBlock (parent, block, activeBlocks, matches, useCache = false, t) {
   let selector = this.getSelector(block, activeBlocks)
@@ -278,6 +289,20 @@ export default function renderContainerBlock (parent, block, activeBlocks, match
     children.unshift(this.renderIcon(block, t))
   }
 
+  // START_BLOCK_TABLE_COLUMN_RESIZER_HANDLE
+  // C-39 T-002: an invisible ~6px hit zone on every header cell's right
+  // border (th is position:relative in the themes). The gesture itself
+  // lives in muya.tableResize (capture-phase pointer listeners on the
+  // editor container); the vnode only supplies the target, and the column
+  // index is resolved at event time from the th's cellIndex. Header row
+  // only — body cells stay free of extra children so cell selection and
+  // copy never walk an unexpected node. Skipped entirely on surfaces that
+  // disable the affordance (the read-only Split View mirror).
+  if (type === 'th' && this.muya.tableResize && this.muya.tableResize.enabled()) {
+    children.push(renderColumnResizer())
+  }
+  // END_BLOCK_TABLE_COLUMN_RESIZER_HANDLE
+
   // START_BLOCK_TABLE_SCROLL_WRAPPER
   // C-39 T-001: a table wider than the text column must scroll inside it.
   // The scroll container is a wrapper between the figure and the table
@@ -291,6 +316,29 @@ export default function renderContainerBlock (parent, block, activeBlocks, match
   // this wrapper. Sizing/shadow rules live in the C-39 section of
   // lib/assets/styles/index.css.
   if (type === 'table') {
+    // START_BLOCK_TABLE_COLUMN_WIDTHS
+    // C-39 T-002: session column widths are part of the vnode, so EVERY
+    // muya re-render re-applies them by construction (the table DOM is
+    // rebuilt from this vnode on each keystroke; inline styles applied
+    // post-render would be dropped). A stored entry whose column count no
+    // longer matches renders auto here and is reconciled right after the
+    // patch by muya.tableResize.reconcileAfterRender (see render/index.js
+    // START_BLOCK_TABLE_WIDTHS_KEEP). Tables without widths keep the
+    // C-39 T-001 auto layout untouched.
+    const tableResize = this.muya.tableResize
+    const widthEntry = tableResize
+      ? tableResize.getRenderWidths(key, tableColumnCount(block))
+      : null
+    if (widthEntry) {
+      selector += `.${TABLE_FIXED_CLASS}`
+      data.style = Object.assign({}, data.style, {
+        width: `${sumWidths(widthEntry.widths)}px`
+      })
+      children.unshift(
+        h('colgroup', {}, widthEntry.widths.map(w => h('col', { style: { width: `${w}px` } })))
+      )
+    }
+    // END_BLOCK_TABLE_COLUMN_WIDTHS
     return h('div.ag-table-scroll', {}, [h(selector, data, children)])
   }
   // END_BLOCK_TABLE_SCROLL_WRAPPER

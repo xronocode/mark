@@ -78,7 +78,7 @@
 
 <script setup>
 // FILE: src/renderer/src/components/editorWithTabs/editor.vue
-// VERSION: 1.22.0
+// VERSION: 1.23.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Host the Muya WYSIWYG surface and coordinate document rendering, selection, scroll, preview, editor tools, and store/bus integration.
 //   SCOPE: Renderer-side Muya lifecycle and UI orchestration; does not own Markdown parsing rules or backend file persistence.
@@ -106,9 +106,15 @@
 //   syncMirrorFromSource - C-29 Split View: debounced read-only re-render of the muya pane from the source pane; never writes to the store.
 //   handleMirrorGuard - C-29: blocks checkbox clicks, paste and drop on the read-only mirror pane.
 //   handleEditorContextMenu - Native right-click menu: undo/redo, cut/copy/paste/select-all roles, Copy as HTML / Plain Text / Structured Text, Share (C-10/C-11/C-12/C-32).
+//   Muya options wiring - disableTableColumnResize is set from the mirror prop: the read-only Split View mirror pane gets no column-resize handles (C-39 T-002); reading/locked tabs keep them.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-10-15 v1.23.0: C-39 T-002 — the Muya options carry
+//     disableTableColumnResize: props.mirror, so the read-only Split View
+//     mirror pane renders no table column-resize handles. Reading/locked
+//     tabs keep the handles: resizing is view-only session state in
+//     muya.tableResize and never marks the document dirty.
 //   - 2026-10-15 v1.22.0: C-38 T-006 N4 d — the image-viewer close glyph
 //     renders from the drawn chromeIcons set (the assets/icons/close.svg
 //     import is gone); the viewer keeps its size and colour.
@@ -1945,6 +1951,11 @@ onMounted(() => {
     clipboardFilePath: guessClipboardFilePath,
     imagePathAutoComplete,
     filePathAutoComplete,
+    // C-39 T-002: the read-only Split View mirror pane gets no column
+    // resize handles (props.mirror is fixed per instance); every other
+    // surface — including reading/locked tabs — keeps them, because
+    // resizing is view-only and never dirties the document.
+    disableTableColumnResize: props.mirror,
     t // 添加翻译函数
   }
 

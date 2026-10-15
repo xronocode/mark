@@ -53,7 +53,40 @@
         <Criterion>Dragging a column border resizes live; the saved markdown is byte-identical; reload restores auto layout; double-click resets.</Criterion>
       </AcceptanceCriteria>
       <Verification><Command>npx playwright test tests/e2e/table-layout.spec.ts</Command></Verification>
-    </T-002>
+      <Status>done</Status>
+      <Notes>2026-10-15: implemented as muya.tableResize
+      (src/muya/lib/tableResize/). Identity = the table block key (the table
+      element&apos;s DOM id): stable across re-renders, survives tab switches
+      because tab activation restores the saved block tree (same keys), and
+      is minted fresh by every re-parse, so a disk reload / close+reopen can
+      never pick up stale widths. Widths ride in the table vnode (colgroup +
+      table.ag-column-widths-fixed + inline width), so every muya render
+      re-applies them by construction; render/partialRender/singleRender
+      additionally call reconcileAfterRender next to the T-001 scroll
+      restore for column-count changes (surviving widths keep their index,
+      new columns get their measured auto width) and for widths a hidden
+      render could not measure. First drag freezes the auto layout as the
+      baseline (fixed layout needs a width for every column); min 48px;
+      double-click resets that column (measured natural width, or the whole
+      table back to auto when no manual column remains); a click on the
+      handle without a move un-freezes again. Handles are invisible
+      span.ag-column-resizer zones on each th&apos;s right border (last column
+      inside the box so the wrapper scroll range is unchanged),
+      accent-coloured hairline on hover/drag, capture-phase pointer
+      interaction with pointer capture so muya&apos;s caret/cell-selection
+      handlers never see the gesture. Not available on the read-only Split
+      View mirror (options.disableTableColumnResize, set from the mirror
+      prop in editor.vue); reading/locked tabs keep it (view-only). The
+      fullscreen block viewer shows the session widths (clone keeps the
+      colgroup) without handles. Markdown/undo/isSaved/export/print are
+      untouched by construction (nothing in the path calls contentState).
+      Tests: tests/renderer/muya/table-column-resize.test.js (store, clamp,
+      reconcile, vnodes, real-Muya render + markdown/history identity) and
+      tests/e2e/table-column-resize.spec.ts in the chromium and
+      webkit-tables projects (new playwright project; also brings
+      table-layout.spec.ts into WebKit).</Notes>
+          <ReviewEvidence>Orchestrator review 2026-10-16: vitest 276 files / 3782 passed; grace lint 0 errors (MODULE_MAP parity in tableResize/index.js and both test files); Playwright chromium + webkit full matrix 358 passed after two review fixes — the close/reopen e2e assumed a leftover boot tab (closing the only tab leaves none; now counts down by one), and the header handles painted the editor background over the header's top border at every column boundary (now transparent, pinned in the first e2e). Red on main: table-column-resize.test.js fails to load; the e2e fails 6/8 (caret-near-border guard and one geometry check pass by design). WebKit screenshots: accent hairline while dragging, widths kept after release, header border intact. webkit-tables (and webkit-mica from T-007) added to the CI WebKit step.</ReviewEvidence>
+</T-002>
   </ImplementationPlan>
 </C-39>
 </GraceChangePlan>

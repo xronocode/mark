@@ -3408,6 +3408,15 @@
         #refreshCodeBlockLineNumbers on wrap/code-font CSS changes and by
         eventHandler/resize.js (throttled window resize + container
         ResizeObserver + document.fonts.ready, torn down on destroy).
+        C-39 T-002: lib/tableResize/ is the session-only table column
+        resize — in-memory widths per table block key re-applied as a
+        colgroup on table.ag-column-widths-fixed by every render (vnode
+        carries them; reconcileAfterRender next to the T-001 scroll
+        restore fixes column-count changes), an invisible
+        span.ag-column-resizer hit zone per th (capture-phase pointer
+        interaction, 48px minimum, double-click reset, accent hairline),
+        never written to markdown/history/dirty state, disabled on the
+        read-only Split View mirror (options.disableTableColumnResize).
       </Summary>
       <Path>src/muya/</Path>
       <Dependencies/>
@@ -3515,14 +3524,37 @@
             <Attribute>
               <Name>PURPOSE</Name>
               <Value>
-                Re-measure every code-block line-number gutter (C-38 T-005):
-                wrapCodeBlocks and codeFontSize are CSS-only renderer changes
-                that re-render nothing, so editor.vue watchers call this to
-                keep each number on the first visual row of its logical line
+                Re-measure every code-block line-number gutter for CSS-only
+                changes (wrapCodeBlocks, codeFontSize) that re-render
+                nothing, so each number stays on the first visual row of
+                its logical line
               </Value>
             </Attribute>
           </LegacyAttributes>
         </fn-refreshCodeBlockLineNumbers>
+        <fn-tableResize>
+          <LegacyAttributes>
+            <Attribute>
+              <Name>PURPOSE</Name>
+              <Value>
+                lib/tableResize/ (C-39 T-002): session-only table column
+                resize. muya.tableResize keeps in-memory column widths per
+                TABLE BLOCK KEY (stable across re-renders; tab switches
+                restore the saved block tree with the same keys; a reload
+                re-parses and mints fresh keys, so widths never survive a
+                reopen); renderContainerBlock renders them as a colgroup on
+                table.ag-column-widths-fixed so every re-render re-applies
+                them by construction, each th carries an invisible
+                span.ag-column-resizer hit zone, and the drag/double-click
+                interaction runs on capture-phase container listeners.
+                Markdown, undo history and isSaved are never touched; the
+                read-only Split View mirror disables the affordance
+                (options.disableTableColumnResize, set from the mirror prop
+                in editor.vue).
+              </Value>
+            </Attribute>
+          </LegacyAttributes>
+        </fn-tableResize>
       </Interface>
       <Sources>
         <Source>src/muya/</Source>
