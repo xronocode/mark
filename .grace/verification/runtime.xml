@@ -5052,10 +5052,18 @@
         <Command>npx playwright test tests/e2e/smart-paste.spec.ts</Command>
         <Command>npx playwright test tests/e2e/auto-pair-quotes.spec.ts --project=chromium</Command>
         <Command>npx vitest run tests/renderer/muya/mermaid-pipeline.test.js</Command>
+        <Command>
+          npx vitest run tests/renderer/muya/mermaid-theme.test.js
+          tests/renderer/muya/export-mermaid-theme.test.js
+        </Command>
         <Command>npx vitest run tests/renderer/muya/table-scroll-wrapper.test.js</Command>
         <Command>
           npm run build &amp;&amp; npx playwright test --project=chromium
           tests/e2e/mermaid-render.spec.ts
+        </Command>
+        <Command>
+          npm run build &amp;&amp; npx playwright test --project=chromium
+          --project=webkit-mermaid-theme tests/e2e/mermaid-theme.spec.ts
         </Command>
         <Command>npx vitest run tests/renderer/muya/block-viewer.test.js</Command>
         <Command>
@@ -5198,11 +5206,11 @@
           elements (div#d&lt;id&gt; / svg#&lt;id&gt; in body) are removed
           after a failed render; typing collapses re-renders into one
           mermaid.render per ~250 ms quiet window (first render and theme
-          switches stay immediate, delay injectable); mermaid initializes
-          with useMaxWidth:false so wide diagrams render at natural size in
-          a horizontally scrollable ag-mermaid-preview container while
-          narrow diagrams stay centred (other container previews keep
-          width:100%). Unit-pinned in
+          switches stay immediate, delay injectable); wide diagrams fit
+          the text column (useMaxWidth:true since the 2026-10-15 user
+          decision, natural size in the fullscreen viewer; gantt/journey/
+          packet/timeline are the C-51 exceptions — see scenario-22).
+          Unit-pinned in
           tests/renderer/muya/mermaid-pipeline.test.js (the StateRender-level
           cache and keep-last-good cases fail against the pre-R2.1
           implementation); wide-flowchart scroll and keep-last-good typed
@@ -5370,6 +5378,58 @@
           restores auto layout, widened table scrolls in the wrapper with
           no page overflow, caret next to a border).
         </Scenario>
+        <Scenario>
+          scenario-22: Mermaid follows the active app theme (C-51 T-003 +
+          T-004, parser/render/mermaidTheme.js START_BLOCK_MERMAID_* +
+          mermaidPipeline.js START_BLOCK_MERMAID_THEME_INIT +
+          utils/exportHtml.js renderMermaid): the accepted round-2/3 lab
+          ported into the product — theme tokens (accent/background/
+          surface/text/border/code + dark flag + --chromeFontFamily) are
+          read at render time from the document&apos;s CSS variables, so every
+          one of the 28 themes (and the future Docs/macOS families)
+          themes its diagrams; categorical palettes are generated in OKLCH
+          from the accent hue (8 hues at one perceived lightness, hue 0 =
+          the accent; tints for areas, series colours for lines/bars/
+          sectors; cScale0-11/pie1-12/git0-7/xyChart.plotColorPalette/
+          quadrant fills/journey fillType+actor); quadrant is one hue by
+          lightness (D-4); architecture built-in icon tiles are repainted
+          via attribute-selector themeCSS; C-4 colours ride the c4 config
+          keys (D-5); sankey keeps gradient links with the value-prefix
+          spacing and dark-only normal blending; look neo + theme base +
+          themeCSS polish. The pipeline calls mermaid.initialize per
+          detected diagram type (22 types; frontmatter and %%{init}%%
+          lines skipped during detection — user directives still override
+          the config, mermaid merges them) and keeps renders sequential;
+          the SVG cache key is the tokens+palette signature, so Paper →
+          Ink, Auto light/dark flips AND light→light accent changes
+          re-render every diagram; gantt/journey/packet/timeline render
+          at the lab sizes with useMaxWidth:false (natural width,
+          in-block horizontal scroll, ≥ 11 px labels) while every other
+          type keeps the C-34 useMaxWidth:true fit-column behaviour, and
+          keep-last-good/debounce/natural-size (C-34 R2.1/C-49) are
+          unchanged. Export HTML/PDF/print uses the same config for the
+          current theme. Unit-pinned in
+          tests/renderer/muya/mermaid-theme.test.js (palette properties,
+          token reading incl. fallbacks, all-22 detection incl.
+          directive/frontmatter skipping, per-type config assertions,
+          signature changes) and
+          tests/renderer/muya/export-mermaid-theme.test.js (per-type
+          initialize on the export path);
+          tests/renderer/muya/mermaid-pipeline.test.js pins the themed
+          initialize, the cache-key misses for dark and light→light
+          switches, and the two-size useMaxWidth policy. End-to-end in
+          tests/e2e/mermaid-theme.spec.ts (chromium + the
+          webkit-mermaid-theme project): all 22 types render in paper and
+          ink without the error marker, no #ECECFF/#9370DB purple and no
+          Trebuchet in any computed fill/stroke/font-family, flowchart
+          node fill = the theme surface and label = the theme text colour,
+          pie/xychart/radar use ≥ 3 distinct palette colours, gantt and
+          packet labels ≥ 11 px in rendered pixels, paper → ink re-renders
+          (node fill changes), a user %%{init}%% directive wins while the
+          theme still applies, and per-type screenshots for both themes
+          land in test-results/mermaid-themes/ (CI artifact
+          mermaid-theme-screenshots).
+        </Scenario>
       </Scenarios>
       <Markers>
         <Marker>[Muya][parse][BLOCK_TOKENIZE]</Marker>
@@ -5399,6 +5459,11 @@
         <Marker>[Muya][renderMermaid][BLOCK_MERMAID_CACHE_HIT]</Marker>
         <Marker>[Muya][renderMermaid][BLOCK_MERMAID_RENDER]</Marker>
         <Marker>[Muya][renderMermaid][BLOCK_MERMAID_ERROR]</Marker>
+        <!-- C-51 T-003/T-004 themed mermaid initialize (per diagram type). -->
+        <Marker>
+          [Muya][renderMermaid][BLOCK_MERMAID_THEME_INIT diagramType=&lt;type&gt;
+          themeSignature=&lt;sig&gt;]
+        </Marker>
         <!-- C-34 R2.2 + C-39 T2 shared fullscreen block viewer. -->
         <Marker>[Muya][blockViewer][BLOCK_VIEWER_OPEN]</Marker>
         <Marker>[Muya][blockViewer][BLOCK_VIEWER_FIT]</Marker>

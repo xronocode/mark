@@ -68,6 +68,11 @@ export default defineConfig({
     { name: 'webkit-chrome', use: { browserName: 'webkit' }, testMatch: 'chrome-native-theme.spec.ts' },
     // C-38 T-007: the Windows Mica title-bar strip (computed transparency
     // under .mica-active vs today's opaque colours) also gates in WebKit.
-    { name: 'webkit-mica', use: { browserName: 'webkit' }, testMatch: 'window-mica.spec.ts' }
+    { name: 'webkit-mica', use: { browserName: 'webkit' }, testMatch: 'window-mica.spec.ts' },
+    // C-51 T-003/T-004: the Mermaid theme matrix (22 diagram types × light
+    // and dark, computed colour/font assertions, theme-switch re-render)
+    // also gates in WebKit — the engine WKWebView ships and the one the
+    // accepted lab renders were verified in.
+    { name: 'webkit-mermaid-theme', use: { browserName: 'webkit' }, testMatch: 'mermaid-theme.spec.ts' }
   ]
 })
