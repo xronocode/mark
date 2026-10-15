@@ -1119,12 +1119,22 @@
       "userGuide": "User Guide",
       "markdownSyntax": "Markdown Syntax"
     },
+    "help": {
+      "guide": "Mark Guide"
+    },
     "utils": {
       "noUpdateResourceFile": "No update resource file",
       "todoUpdateCheck": "Check for updates"
     },
     "spellchecker": {
       "switchLanguage": "Switch Language"
+    }
+  },
+  "guide": {
+    "tabTitle": "Mark Guide",
+    "agentPrompt": {
+      "mac": "When you produce a plan, spec or report longer than ~50 lines, write it to a .md file and open it for the user: open -a Mark <file>.md. When the file changed after you wrote it, re-read it: the user's edits are your next instruction.",
+      "generic": "When you produce a plan, spec or report longer than ~50 lines, write it to a .md file and open it for the user in Mark. When the file changed after you wrote it, re-read it: the user's edits are your next instruction."
     }
   },
   "common": {

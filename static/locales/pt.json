@@ -1095,12 +1095,22 @@
       "userGuide": "Guia do Usuário",
       "markdownSyntax": "Sintaxe Markdown"
     },
+    "help": {
+      "guide": "Guia do Mark"
+    },
     "utils": {
       "noUpdateResourceFile": "Nenhum arquivo de recurso de atualização",
       "todoUpdateCheck": "Verificar atualizações"
     },
     "spellchecker": {
       "switchLanguage": "Alterar Idioma"
+    }
+  },
+  "guide": {
+    "tabTitle": "Guia do Mark",
+    "agentPrompt": {
+      "mac": "Quando você produzir um plano, uma especificação ou um relatório com mais de ~50 linhas, escreva-o num arquivo .md e abra-o para o usuário: open -a Mark <file>.md. Quando o arquivo mudar depois de você escrever, releia-o: as edições do usuário são a sua próxima instrução.",
+      "generic": "Quando você produzir um plano, uma especificação ou um relatório com mais de ~50 linhas, escreva-o num arquivo .md e abra-o para o usuário no Mark. Quando o arquivo mudar depois de você escrever, releia-o: as edições do usuário são a sua próxima instrução."
     }
   },
   "common": {
