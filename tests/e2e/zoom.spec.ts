@@ -15,6 +15,7 @@
 //   bootstrapWithMarkdown - tauri-shim + preferences (fontSize 16, baseFontSize 16) + mt::bootstrap-editor document load.
 //   measure - page.evaluate snapshot of computed font sizes, SVG width/label and column width.
 //   editorFontSizePx - computed fontSize of #ag-editor-id (viewer isolation check).
+//   ZoomMetrics - measured font sizes and Mermaid width shape.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
