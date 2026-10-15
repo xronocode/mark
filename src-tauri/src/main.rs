@@ -1,5 +1,5 @@
 // FILE: src-tauri/src/main.rs
-// VERSION: 2.2.0
+// VERSION: 2.3.0
 // START_MODULE_CONTRACT
 //   PURPOSE: M-001 entry point. Strict boot order:
 //              (1) m001_panic::install_panic_hook  — first, so any later
@@ -39,6 +39,11 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-10-16 C-38 T-007 N4 e: register m058_window_effects —
+//     Windows 11 Mica behind the custom title bar (managed
+//     WindowEffectsState, apply_mica_at_boot in setup, the
+//     mt_window_effects_state / mt_window_set_mica_theme commands).
+//     macOS/Linux boots log BLOCK_MICA_UNSUPPORTED and change nothing.
 //   - 2026-09-28 C-15 T-W4/T-W1: register tauri-plugin-single-instance first
 //     (second launch forwards argv into PendingOpens / direct-emits to the
 //     live renderer, then focuses the window); hide the native menu bar on
@@ -118,6 +123,7 @@ mod m047_bookmarks;
 mod m048_build_mode;
 mod m052_print;
 mod m053_review;
+mod m058_window_effects;
 mod m_v1_compat;
 mod mt_paths;
 
@@ -646,6 +652,14 @@ fn main() {
                 safe_eprintln!("[m001][lifecycle][BLOCK_CLOSE_HANDLER_SKIPPED reason=no-main-window]");
             }
 
+            // C-38 T-007 N4 e: Windows 11 Mica behind the custom title
+            // bar (m058). Applies the system-following effect when the
+            // OS build supports it; the renderer re-tints to the app
+            // theme via mt_window_set_mica_theme and only then turns the
+            // title-bar strip transparent (.mica-active). macOS/Linux:
+            // BLOCK_MICA_UNSUPPORTED log line, no window changes.
+            m058_window_effects::apply_mica_at_boot(&handle);
+
             // BUG-5: SIGTERM bypasses Tauri's RunEvent::Exit, so
             // tauri-plugin-window-state never flushes to disk.
             // Catch SIGTERM → trigger graceful exit → plugin saves state.
@@ -735,6 +749,9 @@ fn main() {
         .manage(m013b::SearchRegistry::default())
         .manage(PendingOpens::default())
         .manage(m045_ext::ExtRegistry::new())
+        // C-38 T-007: Mica outcome state for mt_window_effects_state /
+        // mt_window_set_mica_theme (false everywhere Mica is not live).
+        .manage(m058_window_effects::WindowEffectsState::default())
         .invoke_handler(tauri::generate_handler![
             mt_dev_diag,
             mt_drain_pending_opens,
@@ -775,6 +792,11 @@ fn main() {
             m009_menu::mt_update_line_ending_menu,
             m015_pandoc::mt_pandoc_status,
             m048_build_mode::mt_build_mode,
+            // C-38 T-007: window-effect surface (outside the M-013-A
+            // typed fixture, like the other m048/m053 capability
+            // commands).
+            m058_window_effects::mt_window_effects_state,
+            m058_window_effects::mt_window_set_mica_theme,
             m015_pandoc::mt_pandoc_export,
             m052_print::mt_print_webview,
             m016_updater::mt_updater_check,

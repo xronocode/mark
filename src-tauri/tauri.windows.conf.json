@@ -13,7 +13,8 @@
         "fullscreen": false,
         "url": "index.html",
         "dragDropEnabled": true,
-        "decorations": false
+        "decorations": false,
+        "transparent": true
       }
     ]
   },
