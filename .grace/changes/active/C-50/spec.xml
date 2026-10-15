@@ -1,0 +1,69 @@
+<GraceChangeSpec graceVersion='4.0' status='approved'>
+<C-50>
+  <Name>Your own themes: tune any theme, save it as a theme file, install and update themes from a GitHub gallery</Name>
+  <Created>2026-10-15</Created>
+  <Priority>medium</Priority>
+  <Status>approved</Status>
+  <RoadmapPhase>N</RoadmapPhase>
+  <Complexity>L</Complexity>
+
+  <Summary>
+    Today the only way to change how Mark looks beyond picking a theme is a bare "Custom CSS" textarea at the bottom of Settings › Theme (prefComponents/theme/index.vue, applied on blur by util/theme.js as a style element). It has no hint about selectors or variables and no preview, and the "Open themes folder" / "Import theme" rows have been hidden as under development since MarkText. Every shipped theme is the same set of 79 CSS variables on :root, so a user theme can be data (variable values) rather than code. Replace the textarea with three levels: Tune (about ten controls over the current theme with live preview), My themes (save as a commented .theme.css file the user can edit, hot reload on save), and a Gallery of community themes kept in a GitHub repository, installed in one click and updated independently of app releases.
+  </Summary>
+
+  <Problem>
+    <Description>User 2026-10-15: «что случилось с редактором тем (точнее добавить свой стиль) можем как-то реализуем классно эту кастомизацию, прошлую было не понятно как юзать … можно хранить наборы на гите и для дмг делать обновления даже».</Description>
+  </Problem>
+
+  <Goals>
+    <R-1>Tune: controls for accent, background, text, code background, selection/marker, links, quote bar and sidebar background, plus body font, heading font and writing width. Every change shows live in the editor; derived variables (the 10–90 % ramps of themeColor and editorColor, hover shades) are computed, never asked for. Tweaks are stored per theme member, so in Auto the light and the dark member keep separate tweaks. Reset returns to the theme.</R-1>
+    <R-2>My themes: "Save as theme…" writes a light/dark pair (or a single member) to the app data themes folder as .theme.css files with a manifest comment header and every variable commented by group. They appear as a family in the picker. "Edit file" opens the file in Mark; saving it (from Mark or any editor) reloads the theme within a second. "Duplicate" works on built-in themes too. Show in Finder, Export (.zip or single .css), Delete with undo.</R-2>
+    <R-3>Gallery: a public repository xronocode/mark-themes holds one folder per theme (light and/or dark .theme.css, manifest.json with id, name, author, license, version, mode, pair, min Mark version, preview images) and a generated index.json. Mark shows the gallery with previews, filters (pairs, light, dark, updated) and Install / Installed / Update. Installed themes are checked for updates at most once a day; updates apply automatically unless the user turned that off. Import from a file or an https link (gist, raw GitHub). Contributions are PRs to the repository; CI there validates the manifest, the variable set and WCAG AA contrast of body text and renders the previews.</R-3>
+    <R-4>Safety: themes from the gallery, a link or an imported file may only set the known theme variables on :root (values: colours, lengths, font stacks; no url(), no @import, no expressions). Anything else is dropped and the install dialog says what was dropped. Local files the user writes themselves may carry extra CSS (the "Advanced CSS" escape hatch), clearly labelled.</R-4>
+    <R-5>Migration: a non-empty customCss preference becomes the user file custom.css in the themes folder, still applied after the theme, reachable from "Advanced CSS → Edit file"; the textarea is removed. Nothing the user had stops working.</R-5>
+    <R-6>Both editions: Tune, My themes, import and the gallery work in the DMG and the App Store build (the App Store build already has network.client; the themes folder is inside the container). No account, no telemetry; the only network call is the gallery index and theme files from GitHub, made when the gallery is opened or for the daily update check.</R-6>
+    <R-7>All strings in the 10 UI languages; keyboard reachable; colour controls accept hex and show contrast against the background with an AA badge.</R-7>
+  </Goals>
+
+  <Phases>
+    <W1><Title>Mockups on the canvas (Tune, My themes, theme file, Gallery, install dialog; Paper and Ink)</Title><Complexity>S</Complexity></W1>
+    <W2><Title>Tune + My themes + customCss migration + import from file</Title><Complexity>M</Complexity></W2>
+    <W3><Title>mark-themes repository with CI, gallery UI, install/update, import from link</Title><Complexity>M</Complexity></W3>
+  </Phases>
+
+  <Dependencies>C-41 T2/T3 (family model and the 14 light/dark pairs: the manifest's mode/pair and the family picker come from there; built-in themes seed the gallery format). C-38 N3 (Settings redesign: Tune and the gallery live in the Appearance tab). C-49 (base font size stays the zoom base; Tune does not add a second size control).</Dependencies>
+
+  <Constraints>
+    <Constraint>Themes stay variables applied by util/theme.js on documentElement; a user or gallery theme goes through the same path as a built-in one.</Constraint>
+    <Constraint>No executable content from the network; the sanitiser runs in the renderer before a theme is stored and again before it is applied.</Constraint>
+    <Constraint>A broken or missing user theme falls back to Paper/Ink, never to an unthemed window.</Constraint>
+    <Constraint>Gallery updates never change the theme the user is looking at without a visible note ("Nord Frost updated to 1.2").</Constraint>
+  </Constraints>
+
+  <NonGoals>
+    <NonGoal>A full visual CSS editor or per-element styling beyond the theme variables.</NonGoal>
+    <NonGoal>Accounts, ratings, comments or uploading to the gallery from inside Mark (contributions are GitHub PRs).</NonGoal>
+    <NonGoal>Changing the built-in themes through the gallery; built-ins ship with the app.</NonGoal>
+  </NonGoals>
+
+  <AcceptanceCriteria>
+    <Criterion>A user changes the accent and background in Tune, sees it live, restarts Mark and still has it; Reset brings the theme back.</Criterion>
+    <Criterion>"Save as theme" creates files in the themes folder; editing and saving the file updates the open window within a second; the new family shows in the picker and in the title-bar Auto/Light/Dark cycle.</Criterion>
+    <Criterion>Installing a gallery theme works offline afterwards; a newer version in index.json updates it on the next daily check; turning automatic updates off shows "Update" instead.</Criterion>
+    <Criterion>A theme with @import, url() or unknown properties installs with those parts removed and the dialog lists them.</Criterion>
+    <Criterion>An existing customCss value survives the upgrade as custom.css and still applies.</Criterion>
+    <Criterion>Works in the DMG and the App Store build; Paper and Ink; 10 languages.</Criterion>
+  </AcceptanceCriteria>
+
+  <AffectedAreas>
+    <M-011>prefComponents/theme (Appearance tab), title-bar theme button cycle</M-011>
+    <Theme>util/theme.js (apply, sanitise, derived ramps), prefComponents/theme/config.js (families incl. user and gallery themes), store/preferences.js (themeTweaks, themeGalleryAutoUpdate; customCss migration)</Theme>
+    <Backend>src-tauri: themes folder in app data, read/write/watch, download from GitHub with size limits</Backend>
+    <External>New repository xronocode/mark-themes (manifest schema, CI validator, preview renderer, index.json)</External>
+  </AffectedAreas>
+
+  <VerificationIntent>Unit: sanitiser (allowed variables, dropped constructs, values), ramp derivation, tweak storage per member, manifest validation, migration of customCss, update decision (version compare, min Mark version). e2e (chromium + webkit): Tune live preview and reset; save as theme and reload on file change (shim); gallery install/update with a fixture index; import with dropped parts listed. Live smoke on both editions.</VerificationIntent>
+
+  <Approval><ApprovedBy>user (2026-10-15): «ок, утверждаю C-50» to the mockups https://claude.ai/artifact/59wz5cqSaPvjAPFvtrQeXb (v1)</ApprovedBy><ApprovalScope>W1 done; W2 after C-41 T2/T3 and C-38 N3; W3 after W2.</ApprovalScope></Approval>
+</C-50>
+</GraceChangeSpec>
