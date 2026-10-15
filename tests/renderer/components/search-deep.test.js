@@ -7,10 +7,6 @@ vi.mock('@/bus', () => ({
   default: { on: vi.fn(), off: vi.fn(), emit: vi.fn() }
 }))
 
-vi.mock('@/assets/icons/searchIcons/iconCase.svg', () => ({ default: { template: '<svg/>' } }))
-vi.mock('@/assets/icons/searchIcons/iconWord.svg', () => ({ default: { template: '<svg/>' } }))
-vi.mock('@/assets/icons/searchIcons/iconRegex.svg', () => ({ default: { template: '<svg/>' } }))
-
 vi.mock('underscore', () => ({
   debounce: (fn) => fn
 }))
@@ -37,9 +33,7 @@ const i18n = createI18n({
 
 const makeStubs = () => ({
   ElTooltip: true,
-  FindCaseIcon: true,
-  FindWordIcon: true,
-  FindRegexIcon: true
+  ChromeIcon: true
 })
 
 describe('search/index.vue — deep coverage', () => {

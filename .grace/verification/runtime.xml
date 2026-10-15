@@ -4273,6 +4273,74 @@
           survival + unlock restore, Finder-preview badge + sticky lock,
           copy-as-markdown clipboard write, split-view reachability).
         </Scenario>
+        <Scenario>
+          scenario-56: native chrome pass — system font, system accent,
+          one drawn icon set (C-38 T-006 N4 a/b/d, approved canvas):
+          (a) the chrome surfaces (title bar incl. the doc-info
+          popover, tab bar, sidebar, find/replace bar, dialogs,
+          notifications strip, status bar, outline rail, Settings
+          window) render with the --chromeFontFamily per-OS system UI
+          stack defined once in assets/styles/index.css (find-bar and
+          sidebar search inputs inherit it); the document keeps the
+          user's editor font through the .editor-wrapper inline style —
+          nothing under #ag-editor-id inherits the chrome stack.
+          (b) selected/active/focused chrome states resolve
+          --chromeAccent / --chromeAccentSoft: the CSS system colour
+          AccentColor behind @supports (color: AccentColor) with
+          color-mix-in-srgb for the ~14% soft accent (plain rgba
+          fallback otherwise), falling back per OS through the root
+          platform-darwin/win32/linux class main.js installs via
+          util/chromePlatform.js (macOS #007AFF/#0A84FF, Windows
+          #005FB8/#4CC2FF, Linux #3584E4; dark variants follow
+          body.dark). Consumers: sidebar current-file selection
+          (marker, text, soft row background), opened-tab active row,
+          active-tab underline, sidebar-toggle underline, outline-rail
+          current tick + focus ring, find-bar toggle active states and
+          :focus-within inputs, sidebar search-option toggles, chrome
+          primary buttons and focus rings, Element Plus
+          --el-color-primary, the tweet/import dialog actions and the
+          Settings --prefAccent/--prefAccentSoft aliases. Document
+          colours are untouched: theme palettes, links
+          (--linkColor), document selection and code highlighting keep
+          the theme greens/yellows. (d) every chrome icon renders from
+          the one drawn M-057 set on the shared 16 px grid (1.4
+          stroke, round caps, currentColor): the iconfont sprite
+          (assets/symbolIcon) is no longer imported, the
+          assets/icons/*.svg chrome imports and the ad-hoc inline
+          chrome svgs are gone (sideBar/help.js emptied — retired with
+          the C-40 sidebar trim; assets listed for deletion), and the
+          notification toast service builds its icons through
+          chromeIconMarkup. Unit-pinned in
+          tests/renderer/chrome/chrome-icons-static.test.js (no chrome
+          file imports the sprite/assets-icons or references #icon-
+          ids; the notification template builds chrome-icon markup),
+          tests/renderer/chrome/chrome-platform.test.js (platform
+          normalization, root class installer with getter-backed
+          platform mocks, per-OS accent fallbacks incl. the stylesheet
+          mirror, the font stack defined once and consumed by the
+          chrome only, the @supports/platform-class cascade),
+          tests/renderer/components/chrome-icons.test.js (full glyph
+          inventory on 0 0 16 16, 1.4 stroke, round caps on stroked
+          paths, no colour literals, chrome-icon class, fill/cap
+          rendering, chromeIconMarkup twin) and
+          tests/renderer/components/chrome-icon-swap.test.js (tree,
+          treeFolder, treeOpenedTab, tabs, find bar and notifications
+          render the right glyph with aria/click targets preserved);
+          tests/renderer/assets/symbolIcon.test.js repurposed as the
+          retirement guard (main.js neither imports the sprite nor
+          forgets installChromePlatformClass). E2E
+          tests/e2e/chrome-native-theme.spec.ts (chromium + webkit):
+          with the sidebar tree + opened tab + find bar + status bar
+          up, getComputedStyle proves the chrome elements equal the
+          resolved --chromeFontFamily probe while #ag-editor-id
+          paragraphs keep the editor font, the active-tab marker and
+          the selected tree row equal the resolved --chromeAccent /
+          --chromeAccentSoft probes, document links still equal
+          --linkColor and differ from the accent, no use[href^="#icon-"]
+          survives anywhere in the DOM, and every svg in .title-bar /
+          .editor-tabs / .side-bar / .search-bar is a chrome-icon at
+          stroke 1.4 with aria-hidden intact.
+        </Scenario>
       </Scenarios>
       <Markers>
         <Marker>[prefs][theme-migration][BLOCK_RETIRED_THEMES_MIGRATED key:from-&gt;to …] — C-41 T-002 retired theme ids migrated at the hydration load point and persisted once per changed key</Marker>
@@ -10803,10 +10871,12 @@
     <V-M-057>
       <Priority>medium</Priority>
       <Commands>
-        <Command>npx vitest run tests/renderer/components/chrome-icons.test.js tests/renderer/components/titleBar-popover.test.js</Command>
+        <Command>npx vitest run tests/renderer/components/chrome-icons.test.js tests/renderer/components/chrome-icon-swap.test.js tests/renderer/chrome/chrome-icons-static.test.js</Command>
+        <Command>npx playwright test tests/e2e/chrome-native-theme.spec.ts --project=chromium --project=webkit</Command>
       </Commands>
       <Scenarios>
-        <Scenario>scenario-1 (C-40 T-002): the drawn chrome icon set (16 px grid, 1.4 stroke, round caps) — every descriptor renders an svg with currentColor, the chevron keeps its 10-grid viewBox, unknown names render nothing; the title bar draws its icons from this module.</Scenario>
+        <Scenario>scenario-1 (C-40 T-002): the drawn chrome icon set (16 px grid, 1.4 stroke, round caps) — every descriptor renders an svg with currentColor and unknown names render nothing; the title bar draws its icons from this module.</Scenario>
+        <Scenario>scenario-2 (C-38 T-006 N4 d): the set covers the whole chrome on the single 0 0 16 16 grid — the full glyph inventory, the 1.4 stroke with round caps on every stroked path, no colour literals (currentColor only), the svg.chrome-icon class, the fill/cap rendering overrides and the chromeIconMarkup string twin for the notification service; the swapped components (tree, treeFolder, treeOpenedTab, tabs, find bar, notifications) render the right glyph with aria/click targets preserved; the static scan keeps every sprite / assets-icons / #icon- reference out of components, prefComponents and pages; e2e asserts every svg in the chrome containers is a chrome-icon at stroke 1.4.</Scenario>
       </Scenarios>
       <Markers/>
     </V-M-057>

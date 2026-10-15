@@ -121,7 +121,9 @@
         <Criterion>Per-OS tests (isOsx true/false), a unit test that no chrome component imports the old icon font/sprite, WebKit before/after screenshots light/dark attached to the evidence.</Criterion>
       </AcceptanceCriteria>
       <Verification><Command>npm test</Command><Command>playwright chromium + webkit</Command></Verification>
-    </T-006>
+          <ReviewNotes>Orchestrator review 2026-10-16: retired files deleted (symbolIcon sprite, assets/icons/*, window-controls.js, sideBar/help.js and their tests, stale vi.mock lines for the deleted svgs); Windows-light accent fallback set to #005FB8 to match the approved N3 Settings canvas (the brief's #0067C0 was a guess); find-bar option glyphs (case-sensitive, whole-word, regex) redrawn to fill the 16 grid and sized 16 — the first drawing read as noise in WebKit; the find bar reserves room for its close button (it overlapped find-next — pre-existing); the static scan regex limited to one line (it matched across a comment); services/notification/index.js stays ungoverned (a bare CHANGE_SUMMARY made it fail lint); MODULE_MAP parity in four test files; webkit-chrome added to the CI WebKit step.</ReviewNotes>
+      <ReviewEvidence>npx vitest run: 275 files, 3763 passed. grace lint --assertions current: 0 errors. Playwright chromium + webkit full matrix: 344 passed. Red on main: the five new/rewritten unit files fail 24/27. WebKit before/after screenshots light + dark (main window with sidebar, find bar and status bar): system accent on the selected tree row, active tab marker and focused find input; document link keeps the theme colour; dark resolves #0A84FF.</ReviewEvidence>
+</T-006>
     <T-007>
       <Title>N4 c, e — macOS sidebar vibrancy and Windows Mica (last, isolated)</Title>
       <DependsOn>T-006</DependsOn>
@@ -134,6 +136,28 @@
   </ImplementationPlan>
 
   <Evidence>
+    <T-006>
+      <Status>implemented (ZCode agent, no shell — orchestrator to run the gates)</Status>
+      <Files>
+        src/renderer/src/components/icons/chromeIcons.js (M-057 v2.0.0: full glyph inventory on the shared 16 grid, chrome-icon class, chromeIconMarkup),
+        src/renderer/src/util/chromePlatform.js (new: platform class installer, CHROME_FONT_FAMILY, CHROME_ACCENT_FALLBACKS),
+        src/renderer/src/assets/styles/index.css (--chromeFontFamily/--chromeAccent/--chromeAccentSoft + @supports AccentColor + platform-class fallbacks + chrome font/accent consumers + svg.chrome-icon guard),
+        src/renderer/src/main.js (sprite import removed; installChromePlatformClass),
+        src/renderer/src/pages/preference.vue (--prefAccent/--prefAccentSoft alias the chrome vars; font = --chromeFontFamily),
+        src/renderer/src/components/titleBar/index.vue (gear + caption buttons from M-057; active underline accent),
+        src/renderer/src/components/editorWithTabs/tabs.vue (close/dot/plus glyphs; accent marker),
+        src/renderer/src/components/editorWithTabs/notifications.vue,
+        src/renderer/src/components/editorWithTabs/editor.vue (image-viewer close),
+        src/renderer/src/components/editorWithTabs/outlineRail.vue (accent tick + focus ring),
+        src/renderer/src/components/sideBar/tree.vue, treeFolder.vue, treeOpenedTab.vue, treeFile.vue, searchResultItem.vue, searchToolbar.vue,
+        src/renderer/src/components/search/index.vue, rename/index.vue, tweet/index.vue, import/index.vue,
+        src/renderer/src/services/notification/index.html + index.js + index.css (chromeIconMarkup toasts),
+        src/renderer/src/components/sideBar/help.js (emptied — retired registry),
+        tests: renderer/chrome/chrome-icons-static.test.js, renderer/chrome/chrome-platform.test.js, renderer/components/chrome-icons.test.js (v2), renderer/components/chrome-icon-swap.test.js, renderer/assets/symbolIcon.test.js (retirement guard), renderer/components/sideBar/help.test.js (retirement), updated search*.test.js / tabs-coverage / titleBar* (sprite+window-controls mocks removed), e2e chrome-native-theme.spec.ts
+      </Files>
+      <Gates>Run: npm test; npx playwright test tests/e2e/chrome-native-theme.spec.ts (chromium + webkit); grace lint --path . --assertions current. Red on main: chrome-icons-static / chrome-platform / chrome-icon-swap / chrome-icons v2 (modules and vars absent), e2e chrome-native-theme (fonts resolve to the UA default, no accent vars, sprite use[] still in the DOM).</Gates>
+      <Pending>Delete-list for the orchestrator: src/renderer/src/assets/symbolIcon/index.js; src/renderer/src/assets/icons/{files,search,toc,setting,import_file,close,pref_theme,pref_spellcheck,pref_markdown,pref_lineheight,pref_language,pref_key_binding,pref_image,pref_general,pref_fontsize,pref_email,pref_editor,markdown}.svg; src/renderer/src/assets/icons/searchIcons/ (iconCase/iconWord/iconRegex + LICENSE); src/renderer/src/assets/window-controls.js; src/renderer/src/components/sideBar/help.js; tests/renderer/assets/window-controls.test.js. WebKit before/after screenshots light/dark to attach to the evidence; live macOS check.</Pending>
+    </T-006>
     <T-001>
       <Status>done</Status>
       <Commits>069d57e1 (agent/c38-n1, ZCode agent edits; orchestrator ran the gates and committed), cb817b8a merge, follow-up MODULE_MAP fix</Commits>

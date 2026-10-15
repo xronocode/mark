@@ -5,6 +5,63 @@
   --titleBarBorderColor: rgba(0, 0, 0, 0.08);
   --editorAreaWidth: 750px;
 
+  /* ── C-38 T-006 N4 a/b: chrome system identity ─────────────────────
+     One system UI stack for everything around the document (the stack
+     self-selects per OS); the document keeps the editor font set on
+     .editor-wrapper. The accent resolves to the CSS system colour
+     AccentColor where supported; otherwise the per-OS fallback is keyed
+     off the root platform class installed by util/chromePlatform.js
+     (main.js), with the dark variants following body.dark (theme.js).
+     --chromeAccentSoft is the accent at ~14% for selection backgrounds
+     (plain rgba fallback; color-mix upgrade only when both features
+     exist). Mirrored literals live in util/chromePlatform.js — the
+     chrome-platform unit test pins the two together. */
+  --chromeFontFamily: -apple-system, BlinkMacSystemFont, "Segoe UI Variable Text", "Segoe UI", system-ui, Ubuntu, Cantarell, "Noto Sans", sans-serif;
+  --chromeAccentLight: #3584e4;
+  --chromeAccentDark: #3584e4;
+  --chromeAccentSoftLight: rgba(53, 132, 228, 0.14);
+  --chromeAccentSoftDark: rgba(53, 132, 228, 0.14);
+  --chromeAccent: var(--chromeAccentLight);
+  --chromeAccentSoft: var(--chromeAccentSoftLight);
+}
+
+:root.platform-darwin {
+  --chromeAccentLight: #007aff;
+  --chromeAccentDark: #0a84ff;
+  --chromeAccentSoftLight: rgba(0, 122, 255, 0.14);
+  --chromeAccentSoftDark: rgba(10, 132, 255, 0.14);
+}
+
+:root.platform-win32 {
+  --chromeAccentLight: #005fb8;
+  --chromeAccentDark: #4cc2ff;
+  --chromeAccentSoftLight: rgba(0, 103, 192, 0.14);
+  --chromeAccentSoftDark: rgba(76, 194, 255, 0.14);
+}
+
+body.dark {
+  --chromeAccent: var(--chromeAccentDark);
+  --chromeAccentSoft: var(--chromeAccentSoftDark);
+}
+
+@supports (color: AccentColor) {
+  :root,
+  body.dark {
+    --chromeAccent: AccentColor;
+  }
+}
+
+@supports (color: AccentColor) and (color: color-mix(in srgb, red 10%, transparent)) {
+  :root,
+  body.dark {
+    --chromeAccentSoft: color-mix(in srgb, AccentColor 14%, transparent);
+  }
+}
+
+/* Theme colour cluster + shared palette (editor content and legacy
+   surfaces). The chrome identity vars above are separate on purpose:
+   the document keeps these theme colours untouched (C-38 T-006). */
+:root {
   /*editor*/
   /*Theme color cluster*/
   --themeColor: rgba(33, 181, 111, 1);
@@ -165,6 +222,13 @@ body {
   overflow: hidden;
 }
 
+/* C-38 T-006: chrome icons are drawn strokes (fill="none" on the svg
+   root, sized through the component). The legacy .icon helper above
+   was for the retired sprite and must never repaint or resize them. */
+svg.chrome-icon {
+  fill: none;
+}
+
 .text-overflow {
   text-overflow: ellipsis;
   overflow: hidden;
@@ -206,11 +270,11 @@ body {
 }
 
 .el-slider__button {
-  border-color: var(--themeColor);
+  border-color: var(--chromeAccent);
 }
 
 .el-slider__bar {
-  background-color: var(--themeColor);
+  background-color: var(--chromeAccent);
 }
 
 .el-dialog,
@@ -425,3 +489,64 @@ button.button-primary:not(.custom):focus,
 .el-tabs__active-bar {
   background-color: var(--themeColor);
 }
+
+/* ── C-38 T-006 N4 a: the chrome uses the system UI font ────────────
+   Everything around the document. The document itself is protected:
+   .editor-wrapper carries the editor font as an inline style, so muya
+   content never inherits this stack. Element Plus dialogs render in
+   the chrome (rename / import / tweet / export / about / what's new),
+   teleported or not, hence the .el-dialog rule. */
+.title-bar,
+.title-bar-editor-bg,
+.editor-tabs,
+.side-bar,
+.search-bar,
+.editor-notifications,
+.status-bar,
+.outline-rail,
+.command-palette,
+.problems-panel,
+.el-dialog,
+.ag-dialog-table {
+  font-family: var(--chromeFontFamily);
+}
+
+/* ── C-38 T-006 N4 b: selected / active / focused chrome uses the
+   system accent ─────────────────────────────────────────────────────
+   Element Plus reads --el-color-primary for switches, checkboxes,
+   radios, sliders, selects and focus rings — none of those render
+   inside the document content, so one override covers the chrome. */
+:root {
+  --el-color-primary: var(--chromeAccent);
+}
+
+.el-tabs__active-bar {
+  background-color: var(--chromeAccent);
+}
+
+/* Chrome primary buttons + focus rings follow the accent. The
+   .muya-button* twins (document-side muya tool UI) deliberately keep
+   the theme colour, so they are not part of these rules. */
+.button-primary,
+.el-button--primary {
+  background: var(--chromeAccent);
+}
+.button-primary:hover,
+.el-button--primary:hover,
+.button-primary:active,
+.el-button--primary:active,
+.button-primary.is-loading,
+.el-button--primary.is-loading {
+  background: var(--chromeAccent);
+}
+.button-primary:focus,
+.el-button--primary:focus {
+  outline: none;
+  border: none;
+  box-shadow: 0 0 0 1px var(--chromeAccent);
+}
+.button:focus,
+.el-button:focus {
+  border: 1px solid var(--chromeAccent);
+}
+

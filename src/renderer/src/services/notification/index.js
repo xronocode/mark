@@ -1,13 +1,15 @@
+// C-38 T-006 N4 d: toast icons come from the drawn chromeIcons set (chromeIconMarkup).
 import template from './index.html?raw'
 import { getUniqueId } from '../../util'
 import { sanitize, EXPORT_DOMPURIFY_CONFIG } from '../../util/dompurify'
+import { chromeIconMarkup } from '../../components/icons/chromeIcons.js'
 import './index.css'
 
 const INON_HASH = {
-  primary: 'icon-message',
-  error: 'icon-error',
-  warning: 'icon-warn',
-  info: 'icon-info'
+  primary: 'message',
+  error: 'error',
+  warning: 'warning',
+  info: 'info'
 }
 const TYPE_HASH = {
   primary: 'mt-primary',
@@ -18,7 +20,9 @@ const TYPE_HASH = {
 
 const fillTemplate = (type, title, message) => {
   return template
-    .replace(/\{\{icon\}\}/, INON_HASH[type])
+    .replace(/\{\{iconSvg\}\}/, chromeIconMarkup(INON_HASH[type], 14))
+    .replace(/\{\{closeSvg\}\}/, chromeIconMarkup('close', 14))
+    .replace(/\{\{confirmSvg\}\}/, chromeIconMarkup('check', 14))
     .replace(/\{\{title\}\}/, sanitize(title, EXPORT_DOMPURIFY_CONFIG))
     .replace(/\{\{message\}\}/, sanitize(message, EXPORT_DOMPURIFY_CONFIG))
 }

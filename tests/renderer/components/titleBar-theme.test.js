@@ -30,13 +30,6 @@ vi.mock('@/bus', () => ({
   default: { on: vi.fn(), off: vi.fn(), emit: vi.fn() }
 }))
 
-vi.mock('@/assets/window-controls.js', () => ({
-  minimizePath: 'M0,0',
-  restorePath: 'M0,0',
-  maximizePath: 'M0,0',
-  closePath: 'M0,0'
-}))
-
 // Real classification semantics for the modes under test: ink/dark are the
 // dark members, everything else (paper, nord-light-pick…) reads as light.
 vi.mock('@/config', () => ({

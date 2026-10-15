@@ -1,25 +1,36 @@
 // FILE: src/renderer/src/components/icons/chromeIcons.js
-// VERSION: 1.0.0
+// VERSION: 2.0.0
 // START_MODULE_CONTRACT
-//   PURPOSE: One drawn chrome-icon set (16 px grid, 1.4 px stroke, round caps/joins) shared by the title bar and later chrome work (C-38 N4 d).
-//   SCOPE: Icon path descriptors from the approved C-40 canvas Icons board plus the ChromeIcon render component; no theming, no IPC.
+//   PURPOSE: One drawn chrome-icon set (16 px grid, 1.4 px stroke, round caps/joins) for every icon around the document — title bar, tabs, sidebar, find bar, dialogs, notifications, status bar (C-40 T-002, C-38 T-006 N4 d).
+//   SCOPE: Icon path descriptors drawn on the approved canvas grid plus the ChromeIcon render component and a string renderer (chromeIconMarkup) for non-Vue surfaces (the notification service template); no theming, no IPC.
 //   DEPENDS: vue (h).
-//   LINKS: .canvas/Icons.dc.html; .canvas/Window.dc.html; .grace/graph/runtime.xml M-057; .grace/changes/active/C-40 T-002.
+//   LINKS: .canvas/Icons.dc.html; .canvas/Window.dc.html; .grace/graph/runtime.xml M-057; .grace/changes/active/C-40 T-002; .grace/changes/active/C-38 T-006.
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
-//   CHROME_ICONS - frozen descriptor table: name → { viewBox, parts: [{ tag, attrs, fill?, cap?, join? }] } (canvas Icons board "Redrawn" row).
+//   CHROME_ICONS - frozen descriptor table: name → [ { tag, attrs, fill?, cap?, join? } ] — every glyph on the 0 0 16 16 grid (canvas Icons board metrics).
 //   CHROME_ICON_STROKE - shared stroke width (1.4) for every stroke part.
-//   ChromeIcon - <chrome-icon :name :size> renders one descriptor as an inline SVG using currentColor.
+//   CHROME_ICON_NAMES - sorted glyph names (verification helper).
+//   ChromeIcon - <chrome-icon :name :size> renders one descriptor as an inline svg.chrome-icon using currentColor.
+//   chromeIconMarkup - same descriptor as an HTML string for template-based surfaces (notification service); class/aria mirror ChromeIcon.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.0.0 - 2026-10-15 C-40 T-002: initial set (sidebar,
-//   outline, auto, light, dark, share, guide, split, lock, copy, menu,
-//   chevron-down) transcribed from the approved Icons board so the title
-//   bar and N4 d share one source of truth.
+//   LAST_CHANGE: v2.0.0 - 2026-10-15 C-38 T-006 N4 d: the whole chrome
+//   draws from this one module — the iconfont sprite, the assets/icons
+//   svg imports and the ad-hoc inline svgs are gone. Added glyphs
+//   (chevron-right, close, dot, plus, search, case-sensitive,
+//   whole-word, regex, replace, replace-all, arrow-up, arrow-down,
+//   folder, folder-open, file-plus, file-markdown, save-all, close-all,
+//   settings, import, info, warning, error, message, check, smile, sad,
+//   github, twitter, window-minimize/maximize/restore/close) drawn on
+//   the same 16 px grid; chevron-down moved from the Window board's
+//   10×10 grid onto the shared grid so every glyph is 0 0 16 16;
+//   the rendered svg carries the chrome-icon class; github/twitter are
+//   monochrome fill transcriptions (Octicon mark / the historical bird
+//   scaled 1024→16) so no brand colour literals ship.
 // END_CHANGE_SUMMARY
 
 import { h } from 'vue'
@@ -30,81 +41,232 @@ export const CHROME_ICON_STROKE = 1.4
 // START_BLOCK_ICON_DESCRIPTORS
 // Every part inherits fill="none" stroke="currentColor" stroke-width=1.4
 // from the <svg>; a part flagged `fill` flips to fill="currentColor"
-// stroke="none" (half-disc wedge, guide dot). `cap`/`join` add the
-// board's round caps/joins where the drawing needs them. The chevron
-// lives on the Window board's 10×10 grid, hence its own viewBox.
+// stroke="none" (half-disc wedge, dots, brand marks). `cap`/`join` add
+// the board's round caps/joins where the drawing needs them; open path
+// strokes always declare round caps (verified by the icon contract
+// test). Every glyph is drawn on the single 0 0 16 16 grid.
+const part = (tag, attrs, flags = {}) => Object.freeze({ tag, attrs: Object.freeze(attrs), ...flags })
+
 export const CHROME_ICONS = Object.freeze({
+  // ── C-40 T-002 title-bar set (canvas Icons board "Redrawn" row) ──
   sidebar: Object.freeze([
-    Object.freeze({ tag: 'rect', attrs: Object.freeze({ x: 1.8, y: 2.6, width: 12.4, height: 10.8, rx: 2.2 }) }),
-    Object.freeze({ tag: 'path', attrs: Object.freeze({ d: 'M6 2.6v10.8' }) }),
-    Object.freeze({ tag: 'path', attrs: Object.freeze({ d: 'M3.4 5.2h1.2M3.4 7.2h1.2' }), cap: 'round' })
+    part('rect', { x: 1.8, y: 2.6, width: 12.4, height: 10.8, rx: 2.2 }),
+    part('path', { d: 'M6 2.6v10.8' }, { cap: 'round' }),
+    part('path', { d: 'M3.4 5.2h1.2M3.4 7.2h1.2' }, { cap: 'round' })
   ]),
   outline: Object.freeze([
-    Object.freeze({ tag: 'path', attrs: Object.freeze({ d: 'M2.5 4h11M5 8h8.5M5 12h8.5' }), cap: 'round' }),
-    Object.freeze({ tag: 'circle', attrs: Object.freeze({ cx: 2.6, cy: 8, r: 0.6 }), fill: true }),
-    Object.freeze({ tag: 'circle', attrs: Object.freeze({ cx: 2.6, cy: 12, r: 0.6 }), fill: true })
+    part('path', { d: 'M2.5 4h11M5 8h8.5M5 12h8.5' }, { cap: 'round' }),
+    part('circle', { cx: 2.6, cy: 8, r: 0.6 }, { fill: true }),
+    part('circle', { cx: 2.6, cy: 12, r: 0.6 }, { fill: true })
   ]),
   auto: Object.freeze([
-    Object.freeze({ tag: 'circle', attrs: Object.freeze({ cx: 8, cy: 8, r: 6 }) }),
-    Object.freeze({ tag: 'path', attrs: Object.freeze({ d: 'M8 2a6 6 0 0 1 0 12z' }), fill: true })
+    part('circle', { cx: 8, cy: 8, r: 6 }),
+    part('path', { d: 'M8 2a6 6 0 0 1 0 12z' }, { fill: true })
   ]),
   light: Object.freeze([
-    Object.freeze({ tag: 'circle', attrs: Object.freeze({ cx: 8, cy: 8, r: 2.8 }) }),
-    Object.freeze({
-      tag: 'path',
-      attrs: Object.freeze({
-        d: 'M8 1.6v1.4M8 13v1.4M1.6 8H3M13 8h1.4M3.5 3.5l1 1M11.5 11.5l1 1M3.5 12.5l1-1M11.5 4.5l1-1'
-      }),
-      cap: 'round'
-    })
+    part('circle', { cx: 8, cy: 8, r: 2.8 }),
+    part('path', { d: 'M8 1.6v1.4M8 13v1.4M1.6 8H3M13 8h1.4M3.5 3.5l1 1M11.5 11.5l1 1M3.5 12.5l1-1M11.5 4.5l1-1' }, { cap: 'round' })
   ]),
   dark: Object.freeze([
-    Object.freeze({ tag: 'path', attrs: Object.freeze({ d: 'M13.6 9.6A5.8 5.8 0 0 1 6.4 2.4a5.8 5.8 0 1 0 7.2 7.2z' }), join: 'round' })
+    part('path', { d: 'M13.6 9.6A5.8 5.8 0 0 1 6.4 2.4a5.8 5.8 0 1 0 7.2 7.2z' }, { cap: 'round', join: 'round' })
   ]),
   share: Object.freeze([
-    Object.freeze({ tag: 'path', attrs: Object.freeze({ d: 'M8 1.8v8.4M5.2 4.4 8 1.6l2.8 2.8' }), cap: 'round', join: 'round' }),
-    Object.freeze({
-      tag: 'path',
-      attrs: Object.freeze({
-        d: 'M5.4 6.6H4.2a1.4 1.4 0 0 0-1.4 1.4v4.8a1.4 1.4 0 0 0 1.4 1.4h7.6a1.4 1.4 0 0 0 1.4-1.4V8a1.4 1.4 0 0 0-1.4-1.4h-1.2'
-      }),
-      cap: 'round',
-      join: 'round'
-    })
+    part('path', { d: 'M8 1.8v8.4M5.2 4.4 8 1.6l2.8 2.8' }, { cap: 'round', join: 'round' }),
+    part('path', { d: 'M5.4 6.6H4.2a1.4 1.4 0 0 0-1.4 1.4v4.8a1.4 1.4 0 0 0 1.4 1.4h7.6a1.4 1.4 0 0 0 1.4-1.4V8a1.4 1.4 0 0 0-1.4-1.4h-1.2' }, { cap: 'round', join: 'round' })
   ]),
   guide: Object.freeze([
-    Object.freeze({ tag: 'circle', attrs: Object.freeze({ cx: 8, cy: 8, r: 6.2 }) }),
-    Object.freeze({ tag: 'path', attrs: Object.freeze({ d: 'M6.3 6.2a1.8 1.8 0 0 1 3.5.5c0 1.2-1.8 1.5-1.8 2.6' }), cap: 'round' }),
-    Object.freeze({ tag: 'circle', attrs: Object.freeze({ cx: 8, cy: 11.4, r: 0.55 }), fill: true })
+    part('circle', { cx: 8, cy: 8, r: 6.2 }),
+    part('path', { d: 'M6.3 6.2a1.8 1.8 0 0 1 3.5.5c0 1.2-1.8 1.5-1.8 2.6' }, { cap: 'round' }),
+    part('circle', { cx: 8, cy: 11.4, r: 0.55 }, { fill: true })
   ]),
   split: Object.freeze([
-    Object.freeze({ tag: 'rect', attrs: Object.freeze({ x: 1.8, y: 2.6, width: 12.4, height: 10.8, rx: 2.2 }) }),
-    Object.freeze({ tag: 'path', attrs: Object.freeze({ d: 'M8 2.6v10.8' }) })
+    part('rect', { x: 1.8, y: 2.6, width: 12.4, height: 10.8, rx: 2.2 }),
+    part('path', { d: 'M8 2.6v10.8' }, { cap: 'round' })
   ]),
   lock: Object.freeze([
-    Object.freeze({ tag: 'rect', attrs: Object.freeze({ x: 3.2, y: 7, width: 9.6, height: 6.8, rx: 1.8 }) }),
-    Object.freeze({ tag: 'path', attrs: Object.freeze({ d: 'M5.4 7V5.2a2.6 2.6 0 0 1 5.2 0V7' }), cap: 'round' })
+    part('rect', { x: 3.2, y: 7, width: 9.6, height: 6.8, rx: 1.8 }),
+    part('path', { d: 'M5.4 7V5.2a2.6 2.6 0 0 1 5.2 0V7' }, { cap: 'round' })
   ]),
   copy: Object.freeze([
-    Object.freeze({ tag: 'rect', attrs: Object.freeze({ x: 5, y: 5, width: 8.6, height: 8.6, rx: 1.8 }) }),
-    Object.freeze({
-      tag: 'path',
-      attrs: Object.freeze({ d: 'M11 5V3.8A1.6 1.6 0 0 0 9.4 2.2H3.8a1.6 1.6 0 0 0-1.6 1.6v5.6A1.6 1.6 0 0 0 3.8 11H5' }),
-      join: 'round'
-    })
+    part('rect', { x: 5, y: 5, width: 8.6, height: 8.6, rx: 1.8 }),
+    part('path', { d: 'M11 5V3.8A1.6 1.6 0 0 0 9.4 2.2H3.8a1.6 1.6 0 0 0-1.6 1.6v5.6A1.6 1.6 0 0 0 3.8 11H5' }, { cap: 'round', join: 'round' })
   ]),
   menu: Object.freeze([
-    Object.freeze({ tag: 'path', attrs: Object.freeze({ d: 'M2.5 4.5h11M2.5 8h11M2.5 11.5h11' }), cap: 'round' })
+    part('path', { d: 'M2.5 4.5h11M2.5 8h11M2.5 11.5h11' }, { cap: 'round' })
   ]),
   'chevron-down': Object.freeze([
-    Object.freeze({ tag: 'path', attrs: Object.freeze({ d: 'M2.5 4l2.5 2.5L7.5 4' }), cap: 'round' })
+    // Window board chevron re-gridded from 10×10 to the shared 16 grid.
+    part('path', { d: 'M4 6.2 8 10.2l4-4' }, { cap: 'round', join: 'round' })
+  ]),
+  settings: Object.freeze([
+    // Feather-style gear scaled from the 24 grid onto the 16 grid.
+    part('circle', { cx: 8, cy: 8, r: 2 }),
+    part('path', {
+      d: 'M12.93 10a1.1 1.1 0 0 0 .22 1.21l.04.04a1.33 1.33 0 1 1-1.89 1.89l-.04-.04a1.1 1.1 0 0 0-1.21-.22 1.1 1.1 0 0 0-.67 1.01V14a1.33 1.33 0 1 1-2.67 0v-.06A1.1 1.1 0 0 0 6 12.93a1.1 1.1 0 0 0-1.21.22l-.04.04a1.33 1.33 0 1 1-1.89-1.89l.04-.04a1.1 1.1 0 0 0 .22-1.21 1.1 1.1 0 0 0-1.01-.67H2a1.33 1.33 0 1 1 0-2.67h.06A1.1 1.1 0 0 0 3.07 6a1.1 1.1 0 0 0-.22-1.21l-.04-.04a1.33 1.33 0 1 1 1.89-1.89l.04.04a1.1 1.1 0 0 0 1.21.22H6a1.1 1.1 0 0 0 .67-1.01V2a1.33 1.33 0 1 1 2.67 0v.06a1.1 1.1 0 0 0 .67 1.01 1.1 1.1 0 0 0 1.21-.22l.04-.04a1.33 1.33 0 1 1 1.89 1.89l-.04.04a1.1 1.1 0 0 0-.22 1.21V6a1.1 1.1 0 0 0 1.01.67H14a1.33 1.33 0 1 1 0 2.67h-.06a1.1 1.1 0 0 0-1.01.67z'
+    }, { cap: 'round', join: 'round' })
+  ]),
+
+  // ── C-38 T-006 additions (sidebar, find bar, dialogs, notifications) ──
+  'chevron-right': Object.freeze([
+    part('path', { d: 'M6 4l3.4 4L6 12' }, { cap: 'round', join: 'round' })
+  ]),
+  close: Object.freeze([
+    part('path', { d: 'M4.2 4.2l7.6 7.6M11.8 4.2l-7.6 7.6' }, { cap: 'round' })
+  ]),
+  dot: Object.freeze([
+    part('circle', { cx: 8, cy: 8, r: 3 }, { fill: true })
+  ]),
+  plus: Object.freeze([
+    part('path', { d: 'M8 3.2v9.6M3.2 8h9.6' }, { cap: 'round' })
+  ]),
+  search: Object.freeze([
+    part('circle', { cx: 6.8, cy: 6.8, r: 4.2 }),
+    part('path', { d: 'M10 10l3.2 3.2' }, { cap: 'round' })
+  ]),
+  // Find-bar options, redrawn at review to fill the 16 grid (the first
+  // drawing sat in ~8 px and read as noise at 14–16 px in WebKit).
+  'case-sensitive': Object.freeze([
+    part('path', { d: 'M1.4 12.6 4.7 3.4 8 12.6' }, { cap: 'round', join: 'round' }),
+    part('path', { d: 'M2.6 9.4h4.2' }, { cap: 'round' }),
+    part('circle', { cx: 11.6, cy: 10.1, r: 2.5 }),
+    part('path', { d: 'M14.1 7.4v5.2' }, { cap: 'round' })
+  ]),
+  'whole-word': Object.freeze([
+    part('path', { d: 'M1.4 10.6v2.4h13.2v-2.4' }, { cap: 'round', join: 'round' }),
+    part('circle', { cx: 4.9, cy: 7.4, r: 2.1 }),
+    part('path', { d: 'M7 5.3v4.2' }, { cap: 'round' }),
+    part('path', { d: 'M9.2 2.6v6.9' }, { cap: 'round' }),
+    part('circle', { cx: 11.3, cy: 7.4, r: 2.1 })
+  ]),
+  regex: Object.freeze([
+    part('path', { d: 'M10.6 2v8M7.1 4l7 4M14.1 4l-7 4' }, { cap: 'round' }),
+    part('circle', { cx: 3.8, cy: 12.4, r: 1.7 }, { fill: true })
+  ]),
+  replace: Object.freeze([
+    part('path', { d: 'M2.6 5.4h8.2m0 0L8.6 3.2m2.2 2.2-2.2 2.2' }, { cap: 'round', join: 'round' }),
+    part('path', { d: 'M13.4 10.6H5.2m0 0 2.2 2.2m-2.2-2.2 2.2-2.2' }, { cap: 'round', join: 'round' })
+  ]),
+  'replace-all': Object.freeze([
+    part('path', {
+      d: 'M8 8C7 6.7 6.3 5.8 5.2 5.8a2.2 2.2 0 1 0 0 4.4C6.3 10.2 7 9.3 8 8c1-1.3 1.7-2.2 2.8-2.2a2.2 2.2 0 1 1 0 4.4C9.7 10.2 9 9.3 8 8z'
+    }, { cap: 'round', join: 'round' })
+  ]),
+  'arrow-up': Object.freeze([
+    part('path', { d: 'M8 13V3.2M4.4 6.8 8 3.2l3.6 3.6' }, { cap: 'round', join: 'round' })
+  ]),
+  'arrow-down': Object.freeze([
+    part('path', { d: 'M8 3v9.8M4.4 9.2 8 12.8l3.6-3.6' }, { cap: 'round', join: 'round' })
+  ]),
+  folder: Object.freeze([
+    part('path', {
+      d: 'M1.8 12.6V4.4c0-.77.63-1.4 1.4-1.4h3.1l1.6 1.8h4.9c.77 0 1.4.63 1.4 1.4v6.4c0 .77-.63 1.4-1.4 1.4H3.2a1.4 1.4 0 0 1-1.4-1.4z'
+    }, { cap: 'round', join: 'round' })
+  ]),
+  'folder-open': Object.freeze([
+    part('path', { d: 'M1.8 6.4V4.4c0-.77.63-1.4 1.4-1.4h3.1l1.6 1.8h4.9c.77 0 1.4.63 1.4 1.4v.6' }, { cap: 'round', join: 'round' }),
+    part('path', {
+      d: 'M1.8 6.4h11.9c.9 0 1.55.87 1.3 1.74l-1 3.5a1.4 1.4 0 0 1-1.34 1.02H3.2a1.4 1.4 0 0 1-1.4-1.4z'
+    }, { cap: 'round', join: 'round' })
+  ]),
+  'file-plus': Object.freeze([
+    part('path', { d: 'M3.4 2.2h5.2L12 5.6v8.2H3.4z' }, { cap: 'round', join: 'round' }),
+    part('path', { d: 'M8.6 2.2v3.4H12' }, { cap: 'round', join: 'round' }),
+    part('path', { d: 'M10.6 9.6h4.2M12.7 7.5v4.2' }, { cap: 'round' })
+  ]),
+  'file-markdown': Object.freeze([
+    part('rect', { x: 2.4, y: 3, width: 11.2, height: 10, rx: 1.4 }),
+    part('path', { d: 'M4.9 10.6V5.4l2 2.4 2-2.4v5.2' }, { cap: 'round', join: 'round' }),
+    part('path', { d: 'M11 5.8v3.6M9.7 8.1l1.3 1.3 1.3-1.3' }, { cap: 'round', join: 'round' })
+  ]),
+  'save-all': Object.freeze([
+    part('path', { d: 'M6.4 2.6h7v7' }, { cap: 'round', join: 'round' }),
+    part('rect', { x: 2.6, y: 6.4, width: 7, height: 7, rx: 1.2 }),
+    part('path', { d: 'M4.8 13.4v-3h2.8v3' }, { cap: 'round', join: 'round' })
+  ]),
+  'close-all': Object.freeze([
+    part('path', { d: 'M6.4 2.6h7v7' }, { cap: 'round', join: 'round' }),
+    part('rect', { x: 2.6, y: 6.4, width: 7, height: 7, rx: 1.2 }),
+    part('path', { d: 'M4.7 8.5l2.8 2.8M7.5 8.5l-2.8 2.8' }, { cap: 'round' })
+  ]),
+  import: Object.freeze([
+    part('path', { d: 'M2.6 10v2.2c0 .77.63 1.4 1.4 1.4h8c.77 0 1.4-.63 1.4-1.4V10' }, { cap: 'round', join: 'round' }),
+    part('path', { d: 'M8 2.6V10m0 0L5.8 7.8M8 10l2.2-2.2' }, { cap: 'round', join: 'round' })
+  ]),
+  info: Object.freeze([
+    part('circle', { cx: 8, cy: 8, r: 6 }),
+    part('circle', { cx: 8, cy: 5.3, r: 0.55 }, { fill: true }),
+    part('path', { d: 'M8 7.2v4' }, { cap: 'round' })
+  ]),
+  warning: Object.freeze([
+    part('path', { d: 'M8 2.6 14 13.2H2z' }, { join: 'round', cap: 'round' }),
+    part('path', { d: 'M8 6.6v2.8' }, { cap: 'round' }),
+    part('circle', { cx: 8, cy: 11.3, r: 0.55 }, { fill: true })
+  ]),
+  error: Object.freeze([
+    part('circle', { cx: 8, cy: 8, r: 6 }),
+    part('path', { d: 'M5.2 8h5.6' }, { cap: 'round' })
+  ]),
+  message: Object.freeze([
+    part('path', {
+      d: 'M2.4 4c0-.77.63-1.4 1.4-1.4h8.4c.77 0 1.4.63 1.4 1.4v5.6c0 .77-.63 1.4-1.4 1.4H8.8l-3 2.6v-2.6H3.8c-.77 0-1.4-.63-1.4-1.4z'
+    }, { join: 'round', cap: 'round' }),
+    part('circle', { cx: 5.4, cy: 6.8, r: 0.55 }, { fill: true }),
+    part('circle', { cx: 8, cy: 6.8, r: 0.55 }, { fill: true }),
+    part('circle', { cx: 10.6, cy: 6.8, r: 0.55 }, { fill: true })
+  ]),
+  check: Object.freeze([
+    part('path', { d: 'M3.2 8.6l3.4 3.4 6.2-7' }, { cap: 'round', join: 'round' })
+  ]),
+  smile: Object.freeze([
+    part('circle', { cx: 8, cy: 8, r: 6 }),
+    part('circle', { cx: 5.9, cy: 6.4, r: 0.55 }, { fill: true }),
+    part('circle', { cx: 10.1, cy: 6.4, r: 0.55 }, { fill: true }),
+    part('path', { d: 'M5.2 9.6a3.6 3.6 0 0 0 5.6 0' }, { cap: 'round' })
+  ]),
+  sad: Object.freeze([
+    part('circle', { cx: 8, cy: 8, r: 6 }),
+    part('circle', { cx: 5.9, cy: 6.4, r: 0.55 }, { fill: true }),
+    part('circle', { cx: 10.1, cy: 6.4, r: 0.55 }, { fill: true }),
+    part('path', { d: 'M5.2 11a3.6 3.6 0 0 1 5.6 0' }, { cap: 'round' })
+  ]),
+  // Brand marks are monochrome currentColor fills transcribed onto the
+  // 16 grid (Octicon mark-github; the historical bird scaled from the
+  // retired 1024-grid sprite) — no brand colour literals.
+  github: Object.freeze([
+    part('path', {
+      d: 'M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z'
+    }, { fill: true })
+  ]),
+  twitter: Object.freeze([
+    part('path', {
+      d: 'M15.04 3.64q-.6.88-1.45 1.49.01.12.01.37 0 1.16-.34 2.32t-1.03 2.22-1.65 1.88-2.3 1.3-2.88.49q-2.42 0-4.43-1.29.31.04.7.04 2.01 0 3.58-1.23-.94-.02-1.68-.58t-1.02-1.42q.29.04.55.04.38 0 .76-.1-1-.21-1.66-1t-.66-1.83v-.04q.61.34 1.3.37-.59-.39-.94-1.03t-.35-1.37q0-.79.39-1.45 1.08 1.33 2.63 2.13t3.32.89q-.07-.34-.07-.66 0-1.2.84-2.04t2.04-.84q1.25 0 2.11.91.97-.19 1.83-.7-.33 1.03-1.27 1.59.83-.09 1.66-.45z'
+    }, { fill: true })
+  ]),
+
+  // ── Win/Linux caption buttons (rendered at 10 px, same 16 grid) ──
+  'window-minimize': Object.freeze([
+    part('path', { d: 'M3.4 8h9.2' }, { cap: 'round' })
+  ]),
+  'window-maximize': Object.freeze([
+    part('rect', { x: 4, y: 4, width: 8, height: 8, rx: 0.6 })
+  ]),
+  'window-restore': Object.freeze([
+    part('path', { d: 'M6 3.4h6.6v6.6' }, { cap: 'round', join: 'round' }),
+    part('rect', { x: 3.4, y: 6, width: 6.6, height: 6.6, rx: 0.6 })
+  ]),
+  'window-close': Object.freeze([
+    part('path', { d: 'M4 4l8 8M12 4l-8 8' }, { cap: 'round' })
   ])
 })
 // END_BLOCK_ICON_DESCRIPTORS
 
-// The chevron is the only off-grid part (Window board, 10×10).
-const ICON_VIEW_BOXES = Object.freeze({
-  'chevron-down': '0 0 10 10'
+export const CHROME_ICON_NAMES = Object.freeze(Object.keys(CHROME_ICONS).sort())
+
+const partAttrs = (partDescriptor) => ({
+  ...partDescriptor.attrs,
+  ...(partDescriptor.fill ? { fill: 'currentColor', stroke: 'none' } : {}),
+  ...(partDescriptor.cap ? { 'stroke-linecap': partDescriptor.cap } : {}),
+  ...(partDescriptor.join ? { 'stroke-linejoin': partDescriptor.join } : {})
 })
 
 export const ChromeIcon = {
@@ -119,7 +281,8 @@ export const ChromeIcon = {
     return h(
       'svg',
       {
-        viewBox: ICON_VIEW_BOXES[this.name] || '0 0 16 16',
+        class: 'chrome-icon',
+        viewBox: '0 0 16 16',
         width: this.size,
         height: this.size,
         fill: 'none',
@@ -127,15 +290,28 @@ export const ChromeIcon = {
         'stroke-width': CHROME_ICON_STROKE,
         'aria-hidden': 'true'
       },
-      parts.map((part, index) =>
-        h(part.tag, {
-          key: index,
-          ...part.attrs,
-          ...(part.fill ? { fill: 'currentColor', stroke: 'none' } : {}),
-          ...(part.cap ? { 'stroke-linecap': part.cap } : {}),
-          ...(part.join ? { 'stroke-linejoin': part.join } : {})
-        })
-      )
+      parts.map((partDescriptor, index) => h(partDescriptor.tag, { key: index, ...partAttrs(partDescriptor) }))
     )
   }
 }
+
+// START_BLOCK_CHROME_ICON_MARKUP
+// String twin of ChromeIcon for template-rendered surfaces (the
+// notification service builds its DOM from an HTML template string, no
+// Vue). Same descriptors, same chrome-icon class/aria, so the e2e
+// "every chrome svg is a ChromeIcon" assertion holds there too.
+export const chromeIconMarkup = (name, size = 16, extraClass = '') => {
+  const parts = CHROME_ICONS[name]
+  if (!parts) return ''
+  const body = parts
+    .map((partDescriptor) => {
+      const attrs = Object.entries(partAttrs(partDescriptor))
+        .map(([key, value]) => ` ${key}="${value}"`)
+        .join('')
+      return `<${partDescriptor.tag}${attrs}></${partDescriptor.tag}>`
+    })
+    .join('')
+  const cls = extraClass ? ` ${extraClass}` : ''
+  return `<svg class="chrome-icon${cls}" viewBox="0 0 16 16" width="${size}" height="${size}" fill="none" stroke="currentColor" stroke-width="${CHROME_ICON_STROKE}" aria-hidden="true">${body}</svg>`
+}
+// END_BLOCK_CHROME_ICON_MARKUP

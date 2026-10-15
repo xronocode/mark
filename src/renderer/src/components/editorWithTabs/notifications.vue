@@ -18,9 +18,7 @@
           {{ t('common.ok') }}
         </span>
         <span class="inline-button" @click.stop="handleClick(false)">
-          <svg class="close-icon icon" aria-hidden="true">
-            <use id="default-close-icon" xlink:href="#icon-close-small"></use>
-          </svg>
+          <chrome-icon name="close" :size="12" class="close-icon" aria-hidden="true" />
         </span>
       </div>
     </div>
@@ -28,11 +26,16 @@
 </template>
 
 <script setup>
+// START_CHANGE_SUMMARY
+//   - 2026-10-15 C-38 T-006 N4 d: the dismiss glyph renders from the
+//     drawn chromeIcons set instead of the iconfont sprite.
+// END_CHANGE_SUMMARY
 import { computed } from 'vue'
 import { useEditorStore } from '@/store/editor'
 import { useLayoutStore } from '@/store/layout'
 import { storeToRefs } from 'pinia'
 import { t } from '../../i18n'
+import { ChromeIcon } from '../icons/chromeIcons.js'
 
 const editorStore = useEditorStore()
 const layoutStore = useLayoutStore()

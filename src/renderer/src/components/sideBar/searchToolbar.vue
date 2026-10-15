@@ -45,6 +45,11 @@
 </template>
 
 <script setup>
+// START_CHANGE_SUMMARY
+//   - 2026-10-15 C-38 T-006 N4 b: the active search-option toggles
+//     follow the system accent (text + border) with the ~14% soft
+//     accent as the background.
+// END_CHANGE_SUMMARY
 import { ref, computed } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useI18n } from 'vue-i18n'
@@ -78,6 +83,9 @@ const toggleOption = (name) => searchStore.TOGGLE_OPTION(name)
   background: var(--inputBgColor);
   padding: 0 8px;
 }
+.search-row:focus-within {
+  border-color: var(--chromeAccent);
+}
 .search-input {
   flex: 1;
   background: transparent;
@@ -85,6 +93,7 @@ const toggleOption = (name) => searchStore.TOGGLE_OPTION(name)
   outline: none;
   color: var(--sideBarColor);
   font-size: 13px;
+  font-family: inherit;
   height: 100%;
 }
 .search-options {
@@ -112,8 +121,8 @@ const toggleOption = (name) => searchStore.TOGGLE_OPTION(name)
   color: var(--sideBarTitleColor);
 }
 .opt.active {
-  background: var(--floatHoverColor, rgba(0, 0, 0, 0.08));
-  color: var(--highlightThemeColor);
-  border-color: var(--highlightThemeColor);
+  background: var(--chromeAccentSoft, rgba(0, 0, 0, 0.08));
+  color: var(--chromeAccent);
+  border-color: var(--chromeAccent);
 }
 </style>

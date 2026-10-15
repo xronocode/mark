@@ -55,7 +55,6 @@ vi.mock('muya/lib/ui/tableTools', () => ({ default: {} }))
 vi.mock('muya/lib/ui/frontMenu', () => ({ default: {} }))
 vi.mock('muya/themes/default.css', () => ({}))
 vi.mock('@/assets/themes/codemirror/one-dark.css', () => ({}))
-vi.mock('@/assets/icons/close.svg', () => ({ default: { template: '<svg/>' } }))
 
 vi.mock('@/services/notification', () => ({
   default: { notify: vi.fn() }

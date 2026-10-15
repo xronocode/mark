@@ -1,9 +1,12 @@
 <template>
   <div v-show="showSearch" class="search-bar">
     <div class="left-arrow" @click="toggleSearchType">
-      <svg class="icon" aria-hidden="true" :class="{ 'arrow-right': type === 'search' }">
-        <use xlink:href="#icon-arrowdown"></use>
-      </svg>
+      <chrome-icon
+        name="chevron-down"
+        :size="12"
+        aria-hidden="true"
+        :class="{ 'arrow-right': type === 'search' }"
+      ></chrome-icon>
     </div>
     <div class="right-controls">
       <section class="search">
@@ -26,7 +29,7 @@
               :class="{ active: isCaseSensitive }"
               @click.stop="toggleCtrl('isCaseSensitive')"
             >
-              <FindCaseIcon aria-hidden="true" />
+              <chrome-icon name="case-sensitive" :size="16" aria-hidden="true" />
             </span>
             <span
               :title="t('search.wholeWord')"
@@ -34,7 +37,7 @@
               :class="{ active: isWholeWord }"
               @click.stop="toggleCtrl('isWholeWord')"
             >
-              <FindWordIcon aria-hidden="true" />
+              <chrome-icon name="whole-word" :size="16" aria-hidden="true" />
             </span>
             <span
               :title="t('search.useRegex')"
@@ -42,7 +45,7 @@
               :class="{ active: isRegexp }"
               @click.stop="toggleCtrl('isRegexp')"
             >
-              <FindRegexIcon aria-hidden="true" />
+              <chrome-icon name="regex" :size="16" aria-hidden="true" />
             </span>
           </div>
           <div v-if="searchErrorMsg" class="error-msg">
@@ -51,14 +54,10 @@
         </div>
         <div class="button-group">
           <button class="button right" @click="find('prev')">
-            <svg class="icon" aria-hidden="true">
-              <use xlink:href="#icon-arrow-up"></use>
-            </svg>
+            <chrome-icon name="arrow-up" :size="16" aria-hidden="true" />
           </button>
           <button class="button" @click="find('next')">
-            <svg class="icon" aria-hidden="true">
-              <use xlink:href="#icon-arrowdown"></use>
-            </svg>
+            <chrome-icon name="arrow-down" :size="16" aria-hidden="true" />
           </button>
         </div>
       </section>
@@ -80,9 +79,7 @@
             :open-delay="1000"
           >
             <button class="button right" @click="replace(false)">
-              <svg class="icon" aria-hidden="true">
-                <use xlink:href="#icon-all-inclusive"></use>
-              </svg>
+              <chrome-icon name="replace-all" :size="16" aria-hidden="true" />
             </button>
           </el-tooltip>
           <el-tooltip
@@ -94,24 +91,30 @@
             :open-delay="1000"
           >
             <button class="button" @click="replace(true)">
-              <svg class="icon" aria-hidden="true">
-                <use xlink:href="#icon-replace"></use>
-              </svg>
+              <chrome-icon name="replace" :size="16" aria-hidden="true" />
             </button>
           </el-tooltip>
         </div>
       </section>
     </div>
-    <button class="search-close" @click="emptySearch(true)">&times;</button>
+    <button class="search-close" :title="t('common.close')" @click="emptySearch(true)">
+      <chrome-icon name="close" :size="12" aria-hidden="true" />
+    </button>
   </div>
 </template>
 
 <script setup>
+// START_CHANGE_SUMMARY
+//   - 2026-10-15 C-38 T-006 N4 b/d: every find/replace icon renders from
+//     the drawn chromeIcons set (chevron toggle, arrow-up/down,
+//     case-sensitive / whole-word / regex, replace / replace-all,
+//     close) — the iconfont sprite and the searchIcons svg imports are
+//     gone; the active toggle states and the focused input follow the
+//     system accent.
+// END_CHANGE_SUMMARY
 import { ref, watch, computed, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import bus from '../../bus'
-import FindCaseIcon from '@/assets/icons/searchIcons/iconCase.svg'
-import FindWordIcon from '@/assets/icons/searchIcons/iconWord.svg'
-import FindRegexIcon from '@/assets/icons/searchIcons/iconRegex.svg'
+import { ChromeIcon } from '../icons/chromeIcons.js'
 import { useEditorStore } from '@/store/editor'
 import { storeToRefs } from 'pinia'
 import { useI18n } from 'vue-i18n'
@@ -302,7 +305,10 @@ const replace = (isSingle = true) => {
 .search-bar {
   position: fixed;
   width: 420px;
-  padding: 0;
+  /* Room for the absolutely positioned close button — it overlapped the
+     find-next button (pre-existing, fixed during the C-38 T-006 review). */
+  padding: 0 26px 0 0;
+  box-sizing: border-box;
   top: var(--titleBarHeight);
   right: 24px;
   border-radius: 0 0 6px 6px;
@@ -361,7 +367,7 @@ const replace = (isSingle = true) => {
   }
 }
 .button.active {
-  color: var(--themeColor);
+  color: var(--chromeAccent);
 }
 .search-bar .button > svg {
   width: 16px;
@@ -378,6 +384,9 @@ const replace = (isSingle = true) => {
   background: var(--inputBgColor);
   border-radius: 3px;
   overflow: visible;
+}
+.input-wrapper:focus-within {
+  border-color: var(--chromeAccent);
 }
 .input-wrapper.error {
   border: 1px solid var(--notificationErrorBg);
@@ -406,13 +415,14 @@ const replace = (isSingle = true) => {
       color: var(--sideBarIconColor);
     }
     & > svg {
-      fill: var(--sideBarIconColor);
+      color: var(--sideBarIconColor);
+      vertical-align: middle;
       &:hover {
-        fill: var(--highlightThemeColor);
+        color: var(--chromeAccent);
       }
     }
     &.active svg {
-      fill: var(--highlightThemeColor);
+      color: var(--chromeAccent);
     }
   }
 }
@@ -442,6 +452,7 @@ const replace = (isSingle = true) => {
   border: none;
   box-sizing: border-box;
   font-size: 14px;
+  font-family: inherit;
   color: var(--editorColor);
   padding: 0 8px;
   background: transparent;

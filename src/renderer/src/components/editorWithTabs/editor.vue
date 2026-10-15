@@ -26,7 +26,7 @@
     ></div>
     <div v-show="imageViewerVisible" class="image-viewer">
       <span class="icon-close" @click="setImageViewerVisible(false)">
-        <CloseIcon />
+        <chrome-icon name="close" :size="16" aria-hidden="true" />
       </span>
       <div ref="imageViewerRef"></div>
     </div>
@@ -78,7 +78,7 @@
 
 <script setup>
 // FILE: src/renderer/src/components/editorWithTabs/editor.vue
-// VERSION: 1.21.0
+// VERSION: 1.22.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Host the Muya WYSIWYG surface and coordinate document rendering, selection, scroll, preview, editor tools, and store/bus integration.
 //   SCOPE: Renderer-side Muya lifecycle and UI orchestration; does not own Markdown parsing rules or backend file persistence.
@@ -109,6 +109,9 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-10-15 v1.22.0: C-38 T-006 N4 d — the image-viewer close glyph
+//     renders from the drawn chromeIcons set (the assets/icons/close.svg
+//     import is gone); the viewer keeps its size and colour.
 //   - 2026-10-15 v1.21.0: C-40 T-004 — the preview-exit gestures (mousedown
 //     on the document, plain Cmd/Ctrl+\) are suppressed while the active
 //     tab is locked, so a lock survives interaction and only View › Lock
@@ -188,7 +191,9 @@ import { useI18n } from 'vue-i18n'
 import 'muya/themes/default.css'
 import '@/assets/themes/codemirror/one-dark.css'
 // import 'view-image/lib/imgViewer.css'
-import CloseIcon from '@/assets/icons/close.svg'
+// C-38 T-006 N4 d: the image-viewer close glyph renders from the drawn
+// chromeIcons set (the assets/icons/close.svg import is gone).
+import { ChromeIcon } from '../icons/chromeIcons.js'
 
 const { t } = useI18n()
 const STANDAR_Y = 320
@@ -2281,7 +2286,7 @@ onBeforeUnmount(() => {
     left: 50px;
     display: block;
     & svg {
-      fill: #efefef;
+      color: #efefef;
       width: 100%;
       height: 100%;
     }
