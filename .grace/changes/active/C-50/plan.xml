@@ -16,13 +16,13 @@
     </T-001>
     <T-002>
       <Title>W2a: theme engine — variable registry, sanitiser, ramp derivation, tweaks per member, user themes folder (load, watch, reload), fallback</Title>
-      <DependsOn>T-001, C-41 T2</DependsOn>
+      <DependsOn>T-001</DependsOn><ExternalDependency>C-41 T2/T3 (family model)</ExternalDependency>
       <AcceptanceCriteria><Criterion>Unit tests for registry, sanitiser, ramps, tweaks and fallback; built-in themes unchanged pixel-wise (screenshot diff on Paper/Ink).</Criterion></AcceptanceCriteria>
       <Verification><Command>npm test</Command></Verification>
     </T-002>
     <T-003>
       <Title>W2b: Tune panel and My themes UI (save as, duplicate, edit file, show in Finder, export, delete with undo, import from file); customCss migration to custom.css</Title>
-      <DependsOn>T-002, C-38 N3</DependsOn>
+      <DependsOn>T-002</DependsOn><ExternalDependency>C-38 N3 (Settings redesign)</ExternalDependency>
       <AcceptanceCriteria><Criterion>Spec R-1, R-2, R-5 met; 10 locales; e2e in chromium and webkit.</Criterion></AcceptanceCriteria>
       <Verification><Command>npm test</Command><Command>npx playwright test</Command></Verification>
     </T-003>
