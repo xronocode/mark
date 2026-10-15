@@ -289,6 +289,14 @@ describe('util/theme', () => {
       expect(el.textContent).toContain('font-size: 16px;')
     })
 
+    it("parses a codeFontSize stored with a unit ('14px') instead of emitting NaNem / 14pxpx", () => {
+      addCommonStyle({ codeFontFamily: 'mono', codeFontSize: '14px', hideScrollbar: false })
+      const css = document.getElementById('ag-common-style').textContent
+      expect(css).toContain('font-size: 0.875em')
+      expect(css).toContain('font-size: 14px')
+      expect(css).not.toMatch(/NaN|pxpx/)
+    })
+
     it('emits the codeFontSize / 16 ratio for code blocks', () => {
       addCommonStyle({ codeFontFamily: 'mono', codeFontSize: 14, hideScrollbar: false })
       const el = document.querySelector('#ag-common-style')
