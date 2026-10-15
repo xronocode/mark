@@ -171,6 +171,24 @@ describe('Theme defaults and stored preferences (C-41 T-001)', () => {
     expect(effectiveTheme(store)).toBe('paper')
   })
 
+  it('Auto → Light → Dark → Auto lands on the light member despite the snapshot echo', async () => {
+    const { usePreferencesStore } = await import('@/store/preferences')
+    const store = usePreferencesStore()
+    // Title-bar cycle: Light, then Dark persist a manual theme...
+    store.SET_USER_PREFERENCE({ followSystemTheme: false, theme: 'paper' })
+    store.SET_USER_PREFERENCE({ followSystemTheme: false, theme: 'ink' })
+    // ...then Auto: the followSystemTheme write is echoed back as the FULL
+    // snapshot, whose persisted theme is still the last manual pick (ink).
+    store.SET_USER_PREFERENCE({
+      followSystemTheme: true,
+      theme: 'ink',
+      lightModeTheme: 'paper',
+      darkModeTheme: 'ink'
+    })
+    // jsdom reports a light OS appearance.
+    expect(store.theme).toBe('paper')
+  })
+
   it('hydration without theme keys (fresh preferences.json) keeps the defaults', async () => {
     const { usePreferencesStore } = await import('@/store/preferences')
     const store = usePreferencesStore()
