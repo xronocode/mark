@@ -1,5 +1,5 @@
 // FILE: tests/renderer/components/editor-coverage.test.js
-// VERSION: 1.12.0
+// VERSION: 1.13.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Verify editorWithTabs/editor.vue methods, watchers, computed state, event handlers, and lifecycle behavior beyond the base editor test.
 //   SCOPE: Deterministic Vue/jsdom tests with mocked Muya, stores, bus, services, and browser scheduling.
@@ -50,6 +50,7 @@
 //   - 2026-10-13 v1.10.0: C-29 — split mirror: no store writes from change events, read-only surface, 150 ms debounced setMarkdown(md, null, false) without focus, inert undo/redo, checkbox/paste/drop blocked.
 //   - 2026-10-14 v1.11.0: C-32 — copyAsStructuredText dispatch (bullets survive), whole-document fallback, empty no-op, writeText and render failure branches, bus path; menu layout gains the item after Copy as Plain Text.
 //   - 2026-10-15 v1.12.0: C-38 T-005 — mockEditorInstance gains refreshCodeBlockLineNumbers; the wrapCodeBlocks/codeFontSize watchers assert the gutter re-measure; the codeBlockLineNumbers watcher flips from the new false default to true.
+//   - 2026-10-15 v1.13.0: C-40 T-004 — the preview-exit gestures (mousedown, Cmd+backslash) are suppressed while the tab is locked (locked tabs stay read-only; the chord degrades to the sidebar toggle); copyAsMarkdown handler cases (raw selection write without rendering, whole-document fallback, empty no-op).
 // END_CHANGE_SUMMARY
 
 import { shallowMount } from '@vue/test-utils'
@@ -489,6 +490,29 @@ describe('editor.vue — coverage', () => {
     })
     expect(editorStore.EXIT_PREVIEW_MODE).toHaveBeenCalledWith('tab-1', 'cmd-toggle')
   })
+
+  // START_BLOCK_C40_T004_LOCK_GESTURE_TESTS
+  it('handlePreviewMousedown does NOT exit a locked tab (C-40 T-004)', async () => {
+    await seedStores({ previewMode: true, locked: true })
+    const wrapper = await mountEditor()
+    await wrapper.find('.editor-component').trigger('mousedown', { button: 0 })
+    expect(editorStore.EXIT_PREVIEW_MODE).not.toHaveBeenCalled()
+    // The read-only surface survives the click.
+    expect(wrapper.find('.editor-component').element.getAttribute('contenteditable')).toBe('false')
+  })
+
+  it('Cmd+backslash degrades to the sidebar toggle on a locked tab (C-40 T-004)', async () => {
+    await seedStores({ previewMode: true, locked: true })
+    const wrapper = await mountEditor()
+    await wrapper.find('.editor-component').trigger('keydown', {
+      key: '\\',
+      metaKey: true,
+      preventDefault: vi.fn()
+    })
+    expect(editorStore.EXIT_PREVIEW_MODE).not.toHaveBeenCalled()
+    expect(layoutStore.TOGGLE_LAYOUT_ENTRY).toHaveBeenCalledWith('showSideBar')
+  })
+  // END_BLOCK_C40_T004_LOCK_GESTURE_TESTS
 
   it('handlePreviewKeydown toggles sidebar when not in preview', async () => {
     const wrapper = await mountEditor()
@@ -1210,6 +1234,34 @@ describe('editor.vue — coverage', () => {
     await getBusHandler('copyAsPlainText')()
     expect(writeTextMock).toHaveBeenCalledWith('clean:via bus')
   })
+
+  // START_BLOCK_C40_T004_COPY_AS_MARKDOWN_TESTS
+  it('copyAsMarkdown writes the raw selection without rendering (C-40 T-004)', async () => {
+    await mountEditor()
+    mockEditorInstance.getCopyData.mockReturnValueOnce({ text: '**raw** selection' })
+    await getBusHandler('copyAsMarkdown')()
+    expect(writeTextMock).toHaveBeenCalledWith('**raw** selection')
+    // Raw Markdown — the marked/sanitize pipeline must not run.
+    expect(markedMock).not.toHaveBeenCalled()
+    expect(sanitizeMock).not.toHaveBeenCalled()
+  })
+
+  it('copyAsMarkdown falls back to the whole document (C-40 T-004)', async () => {
+    await mountEditor()
+    mockEditorInstance.getCopyData.mockReturnValueOnce({ text: '' })
+    mockEditorInstance.getMarkdown.mockReturnValueOnce('# whole doc')
+    await getBusHandler('copyAsMarkdown')()
+    expect(writeTextMock).toHaveBeenCalledWith('# whole doc')
+  })
+
+  it('copyAsMarkdown no-ops for an empty document with no selection (C-40 T-004)', async () => {
+    await mountEditor()
+    mockEditorInstance.getCopyData.mockReturnValueOnce({ text: '' })
+    mockEditorInstance.getMarkdown.mockReturnValueOnce('')
+    await getBusHandler('copyAsMarkdown')()
+    expect(writeTextMock).not.toHaveBeenCalled()
+  })
+  // END_BLOCK_C40_T004_COPY_AS_MARKDOWN_TESTS
 
   it('context menu: copyAsStructuredText writes structure-preserving plain text (C-32)', async () => {
     await mountEditor()

@@ -1,5 +1,5 @@
 // FILE: tests/renderer/commands/menu-consistency.test.js
-// VERSION: 1.5.2
+// VERSION: 1.6.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Keep native application-menu IDs and renderer command IDs synchronized.
 //   SCOPE: Source-level native-menu extraction, renderer command/shortcut extraction, and intentional renderer-only exceptions.
@@ -19,7 +19,11 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.5.2 - C-48: pin help.whats-new (every build, no
+//   LAST_CHANGE: v1.6.0 - C-40 T-004: pin view.status-bar (CheckMenuItem,
+//   no accelerator) and view.lock-document (plain item, no accelerator)
+//   View-menu items — both id-dispatched to renderer commands of the same
+//   ids — plus edit.copy-as-markdown (no accelerator).
+//   v1.5.2 - C-48: pin help.whats-new (every build, no
 //   accelerator) and help.rate (App Store macOS only) Help-menu items.
 //   v1.5.1 - C-40: pin help.guide menu id (no accelerator) — opens the
 //   in-app Mark Guide as a temporary untitled tab via the renderer command registry.
@@ -378,7 +382,49 @@ describe('menu ↔ commands consistency', () => {
     }
   })
 
+  // START_BLOCK_C40_T004_MENU_PINS
+  it('pins the View Status Bar and Lock Document menu items (C-40 T-004)', () => {
+    const rust = readSource('src-tauri/src/m009_menu.rs')
+    const buildFn = rust.slice(rust.indexOf('pub fn build_native_menu'))
+    const taxonomy = rust.slice(0, rust.indexOf('pub fn build_native_menu'))
+
+    // Status Bar is a CheckMenuItem (macOS default off) with no
+    // accelerator; Lock Document is a plain item (per-tab state shown by
+    // the tab badge) with no accelerator. Both id-dispatched only.
+    expect(buildFn).toMatch(
+      /CheckMenuItemBuilder::with_id\("view\.status-bar", "Status Bar"\)[\s\S]*?\.checked\(false\)[\s\S]*?\.build\(handle\)\?/
+    )
+    expect(buildFn).toMatch(/with_id\("view\.lock-document", "Lock Document"\)/)
+
+    for (const [id, label] of [
+      ['view.status-bar', 'Status Bar'],
+      ['view.lock-document', 'Lock Document']
+    ]) {
+      const item = buildFn.match(
+        new RegExp(`with_id\\(\\s*"${id.replace('.', '\\.')}",\\s*"${label}",?\\s*\\)([\\s\\S]*?)\\.build\\(handle\\)`)
+      )
+      expect(item, `${id} built item`).not.toBeNull()
+      expect(item[1]).not.toContain('accelerator')
+      expect(taxonomy).toContain(`"${id}".to_string()`)
+      expect(taxonomy).toContain(`label: "${label}".to_string()`)
+      expect(commandIds.has(id), `${id} renderer command`).toBe(true)
+    }
+  })
+
+  it('pins the Edit Copy as Markdown menu item without an accelerator (C-40 T-004)', () => {
+    const rust = readSource('src-tauri/src/m009_menu.rs')
+    const buildFn = rust.slice(rust.indexOf('pub fn build_native_menu'))
+
+    const item = buildFn.match(
+      /with_id\(\s*"edit\.copy-as-markdown",\s*"Copy as Markdown",?\s*\)([\s\S]*?)\.build\(handle\)/
+    )
+    expect(item).not.toBeNull()
+    expect(item[1]).not.toContain('accelerator')
+    expect(commandIds.has('edit.copy-as-markdown')).toBe(true)
+  })
+  // END_BLOCK_C40_T004_MENU_PINS
   // START_BLOCK_C48_MENU_PIN
+
   it('pins the Help What\'s New and Rate Mark menu items (C-48)', () => {
     const rust = readSource('src-tauri/src/m009_menu.rs')
     const buildFn = rust.slice(rust.indexOf('pub fn build_native_menu'))

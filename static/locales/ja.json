@@ -140,7 +140,9 @@
       "showDeveloperTools": "開発者ツールを表示",
       "reloadWindow": "ウィンドウを再読み込み",
       "splitView": "分割ビュー",
-      "outline": "アウトライン"
+      "outline": "アウトライン",
+      "statusBar": "ステータスバー",
+      "lockDocument": "ドキュメントをロック"
     },
     "format": {
       "format": "フォーマット",
@@ -238,7 +240,13 @@
       "closeAllTabs": "すべてのタブを閉じる",
       "rename": "名前を変更",
       "copyPath": "パスをコピー",
-      "showInFolder": "フォルダで表示"
+      "showInFolder": "フォルダで表示",
+      "lock": "ドキュメントをロック",
+      "unlock": "ドキュメントのロックを解除",
+      "splitView": "分割表示",
+      "copyAsMarkdown": "Markdown としてコピー",
+      "copyAsHtml": "HTML としてコピー",
+      "copyAsStructuredText": "構造化テキストとしてコピー"
     },
     "editor": {
       "undo": "取り消す",
@@ -269,6 +277,29 @@
   },
   "outlineRail": {
     "title": "このページの内容"
+  },
+  "statusBar": {
+    "title": "ドキュメント統計",
+    "documentType": "Markdown",
+    "readingTime": "約 {count} 分で読めます",
+    "lines": {
+      "other": "{count} 行"
+    },
+    "words": {
+      "other": "{count} 語"
+    },
+    "characters": {
+      "other": "{count} 文字"
+    },
+    "selectedWords": {
+      "other": "{count} 語を選択中"
+    },
+    "selectedCharacters": {
+      "other": "{count} 文字を選択中"
+    }
+  },
+  "tabs": {
+    "lockedTitle": "読み取り専用"
   },
   "sideBar": {
     "search": {
@@ -485,6 +516,7 @@
         "titleBarStyle": "ウィンドウのタイトルバー: カスタムまたはシステム（再起動が必要）",
         "hideScrollbar": "スクロールバーを非表示にする",
         "wordWrapInToc": "アウトラインで長い見出しを折り返す",
+        "statusBarVisibility": "ステータスバーを表示（行数・単語数・文字数・読了時間）",
         "editorFontFamily": "テキストのフォント",
         "fontSize": "テキストのサイズ",
         "lineHeight": "行間",
@@ -602,6 +634,8 @@
         "title": "ウィンドウとパネル",
         "hideScrollbar": "スクロールバーを非表示にする",
         "wordWrapInToc": "アウトラインで長い見出しを折り返す",
+        "statusBar": "ステータスバーを表示",
+        "statusBarHelp": "行数・単語数・文字数・読了時間をウィンドウの下部に表示します（「表示 › ステータスバー」でも切り替えられます）。",
         "titleBarStyle": "ウィンドウのタイトルバー",
         "titleBarStyleHelp": "カスタムはタブ付きの Mark 独自のタイトルバーを描画します。再起動が必要です。",
         "titleBarStyleCustom": "カスタム",
@@ -826,6 +860,7 @@
       "copyAsHtml": "HTMLとしてコピー",
       "copyAsPlainText": "プレーンテキストとしてコピー",
       "copyAsStructuredText": "構造化テキストとしてコピー",
+      "copyAsMarkdown": "Markdown としてコピー",
       "pasteAsPlaintext": "プレーンテキストとして貼り付け",
       "selectAll": "すべて選択",
       "duplicate": "複製",
@@ -907,7 +942,9 @@
       "zoomOut": "縮小",
       "devToggleDeveloperTools": "開発者ツールの切り替え",
       "splitView": "分割ビュー",
-      "outline": "「このページの内容」アウトラインの表示/非表示"
+      "outline": "「このページの内容」アウトラインの表示/非表示",
+      "statusBar": "ステータスバーの表示/非表示",
+      "lockDocument": "現在のドキュメントをロック（読み取り専用）"
     },
     "tabs": {
       "cycleForward": "前方に循環",

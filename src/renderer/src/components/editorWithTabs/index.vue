@@ -49,23 +49,30 @@
       ></outline-rail>
     </div>
     <tab-notifications></tab-notifications>
+    <!-- C-40 T-004: optional status bar pinned to the bottom of the
+         editor column (own statusBarVisibility preference gate). -->
+    <status-bar></status-bar>
   </div>
 </template>
 
 <script setup>
 // FILE: src/renderer/src/components/editorWithTabs/index.vue
-// VERSION: 1.1.0
+// VERSION: 1.2.0
 // START_MODULE_CONTRACT
-//   PURPOSE: Compose the editor column — tabs, split/source/diff surfaces, and the C-40 T-003 outline rail — inside the editorWithTabs container.
+//   PURPOSE: Compose the editor column — tabs, split/source/diff surfaces, the C-40 T-003 outline rail, and the C-40 T-004 status bar — inside the editorWithTabs container.
 //   SCOPE: Layout composition and prop pass-through only; mode state lives in the stores and the child components.
-//   DEPENDS: layout store, tabs/editor/sourceCode/diffView/splitView/notifications components, outlineRail.vue.
-//   LINKS: .grace/graph/runtime.xml M-011; .grace/changes/active/C-40 T-003.
+//   DEPENDS: layout store, tabs/editor/sourceCode/diffView/splitView/notifications components, outlineRail.vue, statusBar.vue.
+//   LINKS: .grace/graph/runtime.xml M-011; .grace/changes/active/C-40 T-003/T-004.
 //   ROLE: RUNTIME
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT
 //
 // START_CHANGE_SUMMARY
-//   - 2026-10-15 v1.1.0: C-40 T-003 — mount the «On this page» outline
+//   - 2026-10-15 v1.2.0: C-40 T-004 — mount the optional status bar as
+//     the last child of the editor column (bottom of the editor area,
+//     below tab notifications; statusBarVisibility preference gate,
+//     default off on macOS / on elsewhere).
+//   - 2026-10-15 v1.1.0: C-40 T-003 — mount the «On this page»
 //     rail inside .container (now position:relative, its positioning
 //     context) with the source/split/diff mode gates passed as props.
 // END_CHANGE_SUMMARY
@@ -77,6 +84,7 @@ import SourceCode from './sourceCode.vue'
 import DiffView from './diffView.vue'
 import SplitView from './splitView.vue'
 import OutlineRail from './outlineRail.vue'
+import StatusBar from './statusBar.vue'
 import TabNotifications from './notifications.vue'
 
 defineProps({

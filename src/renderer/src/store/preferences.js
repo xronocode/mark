@@ -1,9 +1,9 @@
 // FILE: src/renderer/src/store/preferences.js
-// VERSION: 1.5.0
+// VERSION: 1.6.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Pinia store for persistent user preferences, their hydration, persistence, the unified fontSize zoom actions (C-49), the UI-language application paths (concrete or 'system'), the retired-theme id migration (C-41 T-002), and the C-38 T-004 «Restore all defaults» reset.
 //   SCOPE: default state, SET_USER_PREFERENCE / SET_SINGLE_PREFERENCE, the C-49 zoom actions (APPLY_FONT_SIZE / ZOOM_STEP / ZOOM_ACTUAL_SIZE) and the one-time legacy `zoom` migration, the C-41 T-002 retired-theme migration in ASK_FOR_USER_PREFERENCE, ASK_FOR_USER_PREFERENCE boot hydration, buildCapabilities + default-handler queries, LISTEN_SYSTEM_LANGUAGE re-resolution (C-45), RESET_PREFERENCES_TO_DEFAULTS (C-38 T-004).
-//   DEPENDS: pinia, @tauri-apps/api/core, bus, services/notification, i18n/index.js, i18n/systemLocale.js, util/autoTheme.js, util/themeMigration.js.
+//   DEPENDS: pinia, @tauri-apps/api/core, bus, services/notification, i18n/index.js, i18n/systemLocale.js, util/autoTheme.js, util/themeMigration.js, util/docStats.js.
 //   LINKS: _shims/preferences/schema.json defaults; pages/app.vue boot + zoom keys/wheel; components/zoomIndicator; .grace/changes/active/C-49; .grace/changes/active/C-38 T-004.
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
@@ -20,7 +20,13 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.5.0 - 2026-10-15 C-40 T-003: new persisted
+//   LAST_CHANGE: v1.6.0 - 2026-10-15 C-40 T-004: new persisted
+//   statusBarVisibility preference backing the optional status bar —
+//   per-OS default (off on macOS, on elsewhere) resolved lazily through
+//   util/docStats.defaultStatusBarVisibility at store creation / reset
+//   time; a Settings › Appearance row, so it joins
+//   RESETTABLE_PREFERENCE_KEYS (unlike the view-state outlineRailVisible).
+//   v1.5.0 - 2026-10-15 C-40 T-003: new persisted
 //   outlineRailVisible preference (default true) backing the «On this
 //   page» outline rail and its View › Outline toggle; view state like
 //   sideBarVisibility, so it stays out of RESETTABLE_PREFERENCE_KEYS.
@@ -74,6 +80,7 @@ import { setLanguage, getCurrentLanguage } from '../i18n'
 import { SYSTEM_LANGUAGE, resolveSystemLocale } from '../i18n/systemLocale'
 import { resolveAutoTheme } from '../util/autoTheme'
 import { migrateThemePreferences } from '../util/themeMigration'
+import { defaultStatusBarVisibility } from '../util/docStats'
 
 // C-49: the unified zoom clamps the editor font size to 12–36 px. 16 px is
 // the base unit — --mark-zoom (fontSize / 16) scales mermaid diagrams with
@@ -225,6 +232,12 @@ export const preferenceDefaults = () => ({
     // (View › Outline toggles it; the rail self-hides below 1000 px of
     // editor width, in source/split/diff modes, and on short documents).
     outlineRailVisible: true,
+    // C-40 T-004: the status bar ships off on macOS and on on Windows/
+    // Linux (approved canvas, option A). The per-OS default is resolved
+    // lazily at store creation / reset time via util/docStats — never at
+    // module import, where tests have not installed window.electron yet.
+    // A user choice persists and always wins over the platform default.
+    statusBarVisibility: defaultStatusBarVisibility(),
     sourceCodeModeEnabled: false,
     diffMode: false,
     // C-29 Split View: left pane share (0.1–0.9) and whether rich is on the left.
@@ -299,6 +312,7 @@ export const RESETTABLE_PREFERENCE_KEYS = Object.freeze([
   'hideScrollbar',
   'wordWrapInToc',
   'titleBarStyle',
+  'statusBarVisibility',
   'autoPairBracket',
   'autoPairQuote',
   'autoPairMarkdownSyntax',

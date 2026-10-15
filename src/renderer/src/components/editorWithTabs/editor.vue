@@ -78,7 +78,7 @@
 
 <script setup>
 // FILE: src/renderer/src/components/editorWithTabs/editor.vue
-// VERSION: 1.20.0
+// VERSION: 1.21.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Host the Muya WYSIWYG surface and coordinate document rendering, selection, scroll, preview, editor tools, and store/bus integration.
 //   SCOPE: Renderer-side Muya lifecycle and UI orchestration; does not own Markdown parsing rules or backend file persistence.
@@ -102,12 +102,19 @@
 //   diffGuarded - M-031: document-mutating bus handlers become no-ops while the diff view replaces the editing surface.
 //   handleCopyAsPlainText - Copies selection (or whole document) as markup-free plain text (C-12).
 //   handleCopyAsStructuredText - Copies selection (or whole document) as plain text that keeps paragraphs, bullets, link targets and table rows (C-32).
+//   handleCopyAsMarkdown - Copies selection (or whole document) as raw Markdown text (C-40 T-004).
 //   syncMirrorFromSource - C-29 Split View: debounced read-only re-render of the muya pane from the source pane; never writes to the store.
 //   handleMirrorGuard - C-29: blocks checkbox clicks, paste and drop on the read-only mirror pane.
 //   handleEditorContextMenu - Native right-click menu: undo/redo, cut/copy/paste/select-all roles, Copy as HTML / Plain Text / Structured Text, Share (C-10/C-11/C-12/C-32).
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-10-15 v1.21.0: C-40 T-004 — the preview-exit gestures (mousedown
+//     on the document, plain Cmd/Ctrl+\) are suppressed while the active
+//     tab is locked, so a lock survives interaction and only View › Lock
+//     Document / the palette / the tab context menu unlock it; new
+//     copyAsMarkdown bus handler (edit.copy-as-markdown — raw Markdown
+//     selection-or-document clipboard write).
 //   - 2026-08-07 v1.1.0: fix first-paint blankness and synchronize preview/caret state on Muya's actual surface for UC-030 and UC-031.
 //   - 2026-08-10 v1.2.0: bind preview exit gestures to Muya's replacement surface; Finder-opened files no longer remain permanently read-only.
 //   - 2026-08-10 v1.3.0: hydrate the Muya surface from the already-selected tab on mount; agent/Finder opens cannot lose their first file-loaded event during boot.
@@ -342,6 +349,10 @@ watch(
 // gesture out of preview. DO NOT "fix" this to mouseup/click.
 const handlePreviewMousedown = (event) => {
   if (!isPreviewMode.value) return
+  // C-40 T-004: a locked tab stays read-only — a click inside the
+  // document must not silently unlock it (only View › Lock Document /
+  // the palette / the tab context menu unlock).
+  if (currentFile.value?.locked) return
   // E-02: right-click (contextmenu) shouldn't exit preview. mousedown
   // fires for button=2 too, so gate on left button.
   if (event && typeof event.button === 'number' && event.button !== 0) return
@@ -363,15 +374,19 @@ const handlePreviewKeydown = (event) => {
     event.key === '\\' && (event.metaKey || event.ctrlKey) && !event.altKey
   if (!isCmdBackslash) return
   if (isPreviewMode.value) {
-    const tabId = currentFile.value && currentFile.value.id
-    if (tabId) {
-      editorStore.EXIT_PREVIEW_MODE(tabId, 'cmd-toggle')
-      // EXIT already adjusted sidebar per pref; do not double-toggle.
-      event.preventDefault()
-      return
+    // C-40 T-004: a locked tab stays read-only — the chord degrades to
+    // the plain sidebar toggle instead of exiting the lock.
+    if (!currentFile.value?.locked) {
+      const tabId = currentFile.value && currentFile.value.id
+      if (tabId) {
+        editorStore.EXIT_PREVIEW_MODE(tabId, 'cmd-toggle')
+        // EXIT already adjusted sidebar per pref; do not double-toggle.
+        event.preventDefault()
+        return
+      }
     }
   }
-  // Not in preview → plain sidebar toggle.
+  // Not in preview (or locked) → plain sidebar toggle.
   layoutStore.TOGGLE_LAYOUT_ENTRY('showSideBar')
   event.preventDefault()
 }
@@ -1054,6 +1069,30 @@ const handleCopyAsStructuredText = () =>
     structuredMarkedOptions
   )
 // END_BLOCK_COPY_AS_STRUCTURED_TEXT
+
+// START_CONTRACT: handleCopyAsMarkdown
+//   PURPOSE: Put the selection (or whole document) on the clipboard as raw Markdown text — the document flavor of R-2's copy-document tools (C-40 T-004).
+//   INPUTS: { none - reads Muya selection state via getCopyData }
+//   OUTPUTS: { Promise<void> - resolves after the clipboard write attempt }
+//   SIDE_EFFECTS: Native clipboard-manager writeText; failure warns with the anchored marker and notifies.
+//   LINKS: C-40 T-004; commands/index.js edit.copy-as-markdown; contextMenu/tabs copyAsMarkdown (whole-document flavor over the tab markdown).
+// END_CONTRACT: handleCopyAsMarkdown
+// START_BLOCK_COPY_AS_MARKDOWN
+const handleCopyAsMarkdown = async () => {
+  const ed = editor.value
+  if (!ed) return
+  const selectionData = ed.getCopyData()
+  const text = selectionData && selectionData.text ? selectionData.text : ed.getMarkdown()
+  if (!text) return
+  try {
+    const { writeText } = await import('@tauri-apps/plugin-clipboard-manager')
+    await writeText(text)
+  } catch (e) {
+    console.warn(`[Editor][handleCopyAsMarkdown][BLOCK_COPY_AS_MARKDOWN] copy failed: ${e}`)
+    notice.notify({ title: t('error.copyError'), type: 'warning' })
+  }
+}
+// END_BLOCK_COPY_AS_MARKDOWN
 
 // START_CONTRACT: handleEditorContextMenu
 //   PURPOSE: Replace WKWebView's default right-click menu with a full native menu: undo/redo (Muya history), cut/copy/paste/select-all roles, Copy as HTML, and Share.
@@ -1967,6 +2006,7 @@ onMounted(() => {
   bus.on('copyAsHtmlRich', handleCopyAsHtml)
   bus.on('copyAsPlainText', handleCopyAsPlainText)
   bus.on('copyAsStructuredText', handleCopyAsStructuredText)
+  bus.on('copyAsMarkdown', handleCopyAsMarkdown)
   bus.on('duplicate', diffGuarded.handleParagraph)
   bus.on('createParagraph', diffGuarded.handleParagraph)
   bus.on('deleteParagraph', diffGuarded.handleParagraph)
@@ -2130,6 +2170,7 @@ onBeforeUnmount(() => {
   bus.off('copyAsHtmlRich', handleCopyAsHtml)
   bus.off('copyAsPlainText', handleCopyAsPlainText)
   bus.off('copyAsStructuredText', handleCopyAsStructuredText)
+  bus.off('copyAsMarkdown', handleCopyAsMarkdown)
   bus.off('duplicate', diffGuarded.handleParagraph)
   bus.off('createParagraph', diffGuarded.handleParagraph)
   bus.off('deleteParagraph', diffGuarded.handleParagraph)

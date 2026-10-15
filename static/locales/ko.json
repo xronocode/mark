@@ -140,7 +140,9 @@
       "showDeveloperTools": "개발자 도구 보기",
       "reloadWindow": "창 새로고침",
       "splitView": "분할 보기",
-      "outline": "개요"
+      "outline": "개요",
+      "statusBar": "상태 표시줄",
+      "lockDocument": "문서 잠금"
     },
     "format": {
       "format": "서식",
@@ -238,7 +240,13 @@
       "closeAllTabs": "모든 탭 닫기",
       "rename": "이름 바꾸기",
       "copyPath": "경로 복사",
-      "showInFolder": "폴더에서 보기"
+      "showInFolder": "폴더에서 보기",
+      "lock": "문서 잠금",
+      "unlock": "문서 잠금 해제",
+      "splitView": "분할 보기",
+      "copyAsMarkdown": "Markdown으로 복사",
+      "copyAsHtml": "HTML로 복사",
+      "copyAsStructuredText": "구조화된 텍스트로 복사"
     },
     "editor": {
       "undo": "실행 취소",
@@ -269,6 +277,29 @@
   },
   "outlineRail": {
     "title": "이 페이지에서"
+  },
+  "statusBar": {
+    "title": "문서 통계",
+    "documentType": "Markdown",
+    "readingTime": "{count}분 읽기",
+    "lines": {
+      "other": "{count}줄"
+    },
+    "words": {
+      "other": "{count}단어"
+    },
+    "characters": {
+      "other": "{count}자"
+    },
+    "selectedWords": {
+      "other": "{count}단어 선택됨"
+    },
+    "selectedCharacters": {
+      "other": "{count}자 선택됨"
+    }
+  },
+  "tabs": {
+    "lockedTitle": "읽기 전용"
   },
   "sideBar": {
     "search": {
@@ -485,6 +516,7 @@
         "titleBarStyle": "창 제목 표시줄: 사용자 정의 또는 시스템 (재시작 필요)",
         "hideScrollbar": "스크롤바 숨기기",
         "wordWrapInToc": "목차에서 긴 제목 줄바꿈",
+        "statusBarVisibility": "상태 표시줄 보기(줄, 단어, 글자 수, 읽기 시간)",
         "editorFontFamily": "텍스트 글꼴",
         "fontSize": "텍스트 크기",
         "lineHeight": "줄 간격",
@@ -602,6 +634,8 @@
         "title": "창 및 패널",
         "hideScrollbar": "스크롤바 숨기기",
         "wordWrapInToc": "목차에서 긴 제목 줄바꿈",
+        "statusBar": "상태 표시줄 보기",
+        "statusBarHelp": "창 하단에 줄, 단어, 글자 수와 읽기 시간을 표시합니다 (보기 › 상태 표시줄에서도 전환할 수 있습니다).",
         "titleBarStyle": "창 제목 표시줄",
         "titleBarStyleHelp": "사용자 정의는 탭이 있는 Mark 고유의 제목 표시줄을 그립니다. 재시작이 필요합니다.",
         "titleBarStyleCustom": "사용자 정의",
@@ -826,6 +860,7 @@
       "copyAsHtml": "HTML로 복사",
       "copyAsPlainText": "일반 텍스트로 복사",
       "copyAsStructuredText": "구조화된 텍스트로 복사",
+      "copyAsMarkdown": "Markdown으로 복사",
       "pasteAsPlaintext": "일반 텍스트로 붙여넣기",
       "selectAll": "모두 선택",
       "duplicate": "복제",
@@ -907,7 +942,9 @@
       "zoomOut": "축소",
       "devToggleDeveloperTools": "개발자 도구 전환",
       "splitView": "분할 보기",
-      "outline": "‘이 페이지에서’ 개요 보이기/숨기기"
+      "outline": "‘이 페이지에서’ 개요 보이기/숨기기",
+      "statusBar": "상태 표시줄 표시/숨기기",
+      "lockDocument": "현재 문서 잠금(읽기 전용)"
     },
     "tabs": {
       "cycleForward": "앞으로 순환",

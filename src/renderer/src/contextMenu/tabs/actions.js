@@ -27,3 +27,26 @@ export const copyPath = (tabId) => {
 export const showInFolder = (tabId) => {
   bus.emit('TABS::show-in-folder', tabId)
 }
+
+// C-40 T-004: per-tab read-only lock (View › Lock Document twin).
+export const toggleLock = (tabId) => {
+  bus.emit('TABS::toggle-lock', tabId)
+}
+
+// C-40 T-004: per-tab Split View (view.split-view twin for the tab the
+// menu was opened on).
+export const toggleSplitView = (tabId) => {
+  bus.emit('TABS::toggle-split-view', tabId)
+}
+
+// C-40 T-004: copy-document flavors from the tab context menu.
+export const copyAsMarkdown = (tabId) => {
+  bus.emit('TABS::copy-as-markdown', tabId)
+}
+
+// html | structuredText — the rendered flavors run through the live
+// editor pipeline (copyAsHtmlRich / copyAsStructuredText), so the tab is
+// activated first when the menu targeted a background tab.
+export const copyDocumentAs = (kind, tabId) => {
+  bus.emit('TABS::copy-document-as', { kind, tabId })
+}

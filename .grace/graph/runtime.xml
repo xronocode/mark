@@ -2713,6 +2713,37 @@
         toggle. The sidebar is Files-only now (sideBar/toc.vue retired;
         a stale rightColumn='toc' from the title-bar button — until
         C-40 T-002 removes it — falls back to the Files tree).
+        C-40 T-004: the optional status bar (editorWithTabs/statusBar.vue,
+        canvas option A) pins to the bottom of the editor column —
+        lines · words · characters · reading time left (tab wordCount +
+        the shared util/docStats.js lines/reading-minutes helpers first
+        extracted from the titleBar document-info popover; reading =
+        words/230 rounded up, min 1), the live DOM selection replacing
+        them with «N words selected · N characters selected» counts
+        (muya wordCount tokenizer, scoped to .editor-with-tabs via
+        document selectionchange), «Markdown» right. Gate: persisted
+        statusBarVisibility preference, per-OS default resolved lazily by
+        util/docStats.defaultStatusBarVisibility (off on macOS, on on
+        Windows/Linux — never at import time); toggles: View › Status Bar
+        check item (id view.status-bar, native m009) + renderer command +
+        Settings › Appearance › Window and panels (schema-searchable,
+        resettable). Lock Document: editorStore.TOGGLE_LOCK_DOCUMENT puts
+        the M-022 previewMode read-only surface under an explicit per-tab
+        tab.locked flag (View › Lock Document id view.lock-document +
+        palette + tab context menu; a lock badge drawn from the M-057
+        chromeIcons 'lock' on tabs.vue); the click-to-exit and plain-Cmd+\
+        preview gestures are suppressed while locked (editor.vue), the
+        source pane mirrors the lock (CodeMirror readOnly,
+        sourceCode.vue), live reload keeps applying, and unlocking
+        restores editing through the isReadOnlySurface watcher — the
+        Finder-open preview path (bootstrap-ipc + previewModeOnFinderOpen
+        gate) is unchanged. R-2 reachability with the title-bar tools
+        gone (option A): edit.copy-as-markdown (new command + Edit-menu
+        item + palette; raw-Markdown selection-or-document clipboard
+        write via the editor copyAsMarkdown handler) and the tab context
+        menu gains Split View + Copy as Markdown / HTML / Structured
+        text (Markdown exact over tab.markdown; the rendered flavors
+        activate the tab and reuse the live editor pipeline).
       </Summary>
       <Path>src/renderer/</Path>
       <Dependencies>
@@ -3035,6 +3066,43 @@
             </Attribute>
           </LegacyAttributes>
         </fn-syncPreviewSurface>
+        <fn-docStats>
+          <LegacyAttributes>
+            <Attribute>
+              <Name>PURPOSE</Name>
+              <Value>
+                util/docStats.js (C-40 T-004): shared document-statistics
+                helpers — countDocumentLines (markdown split, the T-002
+                popover formula), readingMinutes (words/230 rounded up, min
+                1), countSelectionStats ({word, character} of a selection
+                string through muya&apos;s wordCount tokenizer) and
+                defaultStatusBarVisibility (per-OS status-bar default read
+                lazily from window.electron, never at import time). One
+                source of truth for the titleBar document-info popover and
+                the editorWithTabs status bar.
+              </Value>
+            </Attribute>
+          </LegacyAttributes>
+        </fn-docStats>
+        <fn-TOGGLE_LOCK_DOCUMENT>
+          <LegacyAttributes>
+            <Attribute>
+              <Name>PURPOSE</Name>
+              <Value>
+                store/editor.js (C-40 T-004): per-tab read-only lock over
+                the M-022 previewMode surface. Lock sets tab.locked +
+                previewMode directly (bypasses the previewModeOnFinderOpen
+                gate and never collapses the sidebar — an explicit action,
+                not a Finder session); unlock clears the flag and leaves
+                preview through the isReadOnlySurface watcher (or
+                EXIT_PREVIEW_MODE sidebar semantics when the Finder preview
+                pre-existed the lock). editor.vue suppresses the
+                click/Cmd+\ exit gestures while tab.locked; live reload
+                keeps applying (previewMode tabs always reload).
+              </Value>
+            </Attribute>
+          </LegacyAttributes>
+        </fn-TOGGLE_LOCK_DOCUMENT>
       </Interface>
       <Sources>
         <Source>src/renderer/</Source>

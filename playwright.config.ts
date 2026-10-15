@@ -48,6 +48,9 @@ export default defineConfig({
     { name: 'webkit-titlebar', use: { browserName: 'webkit' }, testMatch: 'titlebar-*.spec.ts' },
     // C-40 T-003: the outline rail also gates in WebKit (the absolutely
     // positioned rail + ResizeObserver geometry are engine-sensitive).
-    { name: 'webkit-outline', use: { browserName: 'webkit' }, testMatch: 'outline-rail.spec.ts' }
+    { name: 'webkit-outline', use: { browserName: 'webkit' }, testMatch: 'outline-rail.spec.ts' },
+    // C-40 T-004: status bar selection counts and the document lock
+    // (contenteditable + DOM selection) also gate in WebKit.
+    { name: 'webkit-statusbar', use: { browserName: 'webkit' }, testMatch: /(status-bar|lock-document)\.spec\.ts/ }
   ]
 })
