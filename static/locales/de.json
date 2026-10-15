@@ -410,8 +410,38 @@
     "table": "Tabelle"
   },
   "recent": {
-    "noTabsOpen": "Sie haben keine Tabs geöffnet.",
-    "newFile": "Neue Datei"
+    "taglineLead": "Agenten schreiben. Du",
+    "taglineHighlight": "formst",
+    "taglineTail": "es.",
+    "openFile": "Datei öffnen…",
+    "openFolder": "Ordner öffnen…",
+    "newButton": "Neu",
+    "recentFiles": "Letzte Dateien",
+    "recentFolders": "Letzte Ordner",
+    "noRecentFiles": "Keine letzten Dateien",
+    "lastSession": "Letzte Sitzung",
+    "filesCount": "{count} Dateien",
+    "remove": "Aus der Liste entfernen",
+    "removeTooltip": "Entfernt den Eintrag nur aus dieser Liste. Die Datei bleibt auf der Festplatte.",
+    "removedToast": "„{name}“ aus „Zuletzt“ entfernt",
+    "undo": "Rückgängig",
+    "open": "Öffnen",
+    "copyPath": "Pfad kopieren",
+    "showInFinder": "Im Finder anzeigen",
+    "showInExplorer": "Im Explorer anzeigen",
+    "guide": "Handbuch",
+    "whatsNewIn": "Neu in {version}",
+    "connectTitle": "Verbinde deinen Agenten.",
+    "connectText": "Ein Prompt genügt, dann öffnet er seine Pläne hier und liest deine Änderungen.",
+    "copyPrompt": "Prompt kopieren",
+    "howItWorks": "So funktioniert es",
+    "time": {
+      "justNow": "gerade eben",
+      "minutesAgo": "vor {count} Min.",
+      "todayAt": "heute {time}",
+      "yesterday": "gestern",
+      "daysAgo": "vor {count} Tagen"
+    }
   },
   "import": {
     "title": "Importieren oder öffnen",

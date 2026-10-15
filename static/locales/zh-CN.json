@@ -411,8 +411,38 @@
     "table": "表格"
   },
   "recent": {
-    "noTabsOpen": "您没有打开的标签页。",
-    "newFile": "新建文件"
+    "taglineLead": "智能体来写，你来",
+    "taglineHighlight": "塑造它。",
+    "taglineTail": "",
+    "openFile": "打开文件…",
+    "openFolder": "打开文件夹…",
+    "newButton": "新建",
+    "recentFiles": "最近的文件",
+    "recentFolders": "最近的文件夹",
+    "noRecentFiles": "暂无最近文件",
+    "lastSession": "上次会话",
+    "filesCount": "{count} 个文件",
+    "remove": "从列表移除",
+    "removeTooltip": "只是从这个列表移除，文件仍保留在磁盘上。",
+    "removedToast": "已从“最近”中移除“{name}”",
+    "undo": "撤销",
+    "open": "打开",
+    "copyPath": "复制路径",
+    "showInFinder": "在 Finder 中显示",
+    "showInExplorer": "在资源管理器中显示",
+    "guide": "使用指南",
+    "whatsNewIn": "{version} 的新功能",
+    "connectTitle": "连接你的智能体。",
+    "connectText": "一条提示词，让智能体在这里打开它的计划，并读取你的修改。",
+    "copyPrompt": "复制提示词",
+    "howItWorks": "了解原理",
+    "time": {
+      "justNow": "刚刚",
+      "minutesAgo": "{count} 分钟前",
+      "todayAt": "今天 {time}",
+      "yesterday": "昨天",
+      "daysAgo": "{count} 天前"
+    }
   },
   "import": {
     "title": "导入或打开",

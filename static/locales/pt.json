@@ -411,8 +411,38 @@
     "table": "Tabela"
   },
   "recent": {
-    "noTabsOpen": "Você não tem abas abertas.",
-    "newFile": "Novo Arquivo"
+    "taglineLead": "Os agentes escrevem. Você",
+    "taglineHighlight": "dá forma",
+    "taglineTail": "ao resultado.",
+    "openFile": "Abrir arquivo…",
+    "openFolder": "Abrir pasta…",
+    "newButton": "Novo",
+    "recentFiles": "Arquivos recentes",
+    "recentFolders": "Pastas recentes",
+    "noRecentFiles": "Nenhum arquivo recente",
+    "lastSession": "Última sessão",
+    "filesCount": "{count} arquivos",
+    "remove": "Remover da lista",
+    "removeTooltip": "Remove apenas desta lista. O arquivo continua no disco.",
+    "removedToast": "“{name}” removido dos recentes",
+    "undo": "Desfazer",
+    "open": "Abrir",
+    "copyPath": "Copiar caminho",
+    "showInFinder": "Mostrar no Finder",
+    "showInExplorer": "Mostrar no Explorer",
+    "guide": "Guia",
+    "whatsNewIn": "Novidades da {version}",
+    "connectTitle": "Conecte seu agente.",
+    "connectText": "Um único prompt faz ele abrir os planos aqui e ler as suas edições.",
+    "copyPrompt": "Copiar prompt",
+    "howItWorks": "Como funciona",
+    "time": {
+      "justNow": "agora mesmo",
+      "minutesAgo": "há {count} min",
+      "todayAt": "hoje às {time}",
+      "yesterday": "ontem",
+      "daysAgo": "há {count} dias"
+    }
   },
   "import": {
     "title": "Importar ou Abrir",
