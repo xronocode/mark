@@ -265,6 +265,14 @@ export const usePreferencesStore = defineStore('preferences', {
       }
       // END_BLOCK_BASE_FONT_SIZE_MIRROR
 
+      // START_BLOCK_IMAGE_UPLOAD_RETIRED
+      // 2026-10-15 (user decision): image upload (PicGo / CLI script / GitHub)
+      // is removed from every edition for now. A stored 'upload' falls back
+      // to the default: copy the image next to the document.
+      if (this.imageInsertAction === 'upload') {
+        this.imageInsertAction = 'folder'
+      }
+      // END_BLOCK_IMAGE_UPLOAD_RETIRED
       // Update i18n language if language preference changed
       if (preference.language && preference.language !== oldLanguage) {
         setLanguage(preference.language)

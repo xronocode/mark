@@ -10,10 +10,10 @@ import { getImageActions } from '@/prefComponents/image/config'
 
 describe('image/config.js', () => {
   describe('getImageActions', () => {
-    it('returns upload, folder, and path options', () => {
+    it('returns folder and path options; upload is retired (2026-10-15)', () => {
       const actions = getImageActions()
-      expect(actions).toHaveLength(3)
-      expect(actions.map((a) => a.value)).toEqual(['upload', 'folder', 'path'])
+      expect(actions).toHaveLength(2)
+      expect(actions.map((a) => a.value)).toEqual(['folder', 'path'])
     })
 
     it('each entry has label and value', () => {
