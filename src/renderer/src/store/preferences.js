@@ -40,6 +40,9 @@ export const usePreferencesStore = defineStore('preferences', {
     // so shims/old backends render the full UI; app-store builds flip
     // them off at boot (FETCH_BUILD_MODE). `share` is macOS-only
     // (m032 NSSharingServicePicker) — flipped off on Windows/Linux.
+    // C-48: `review` (m053 SKStoreReviewController) exists only in the
+    // App Store build on macOS — desktop default is false and the
+    // review flow treats "not explicitly true" as absent.
     buildCapabilities: {
       mode: 'desktop',
       exportPandoc: true,
@@ -47,7 +50,8 @@ export const usePreferencesStore = defineStore('preferences', {
       setDefaultHandler: true,
       projectSearchRipgrep: true,
       updater: true,
-      share: true
+      share: true,
+      review: false
     },
     autoSave: false,
     autoSaveDelay: 5000,

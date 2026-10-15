@@ -92,6 +92,11 @@
 //   - 2026-10-15 C-41 T-001: add View-menu Theme entries "Paper" and
 //                "Ink" (window.change-theme-paper/-ink) — the brand
 //                defaults; ids mirror the renderer command registry.
+//   - 2026-10-15 C-48 T-001: add Help-menu "What's New" (help.whats-new,
+//                every build — reopens the sheet) and "Rate Mark…"
+//                (help.rate, App Store build on macOS only, mirroring
+//                the m048 review capability; opens the store review
+//                page through the renderer command).
 // END_CHANGE_SUMMARY
 
 use serde::{Deserialize, Serialize};
@@ -634,6 +639,24 @@ pub fn standard_menu() -> Vec<MenuItem> {
                     accelerator: None,
                     items: None,
                 },
+                // C-48: reopens the What's New sheet any time (all builds).
+                MenuItem {
+                    id: "help.whats-new".to_string(),
+                    label: "What's New".to_string(),
+                    command: Some("openWhatsNew".to_string()),
+                    accelerator: None,
+                    items: None,
+                },
+                // C-48: Rate Mark… — App Store build on macOS only (the
+                // m048 `review` capability gates the renderer side).
+                #[cfg(all(feature = "app-store", target_os = "macos"))]
+                MenuItem {
+                    id: "help.rate".to_string(),
+                    label: "Rate Mark…".to_string(),
+                    command: Some("rateMark".to_string()),
+                    accelerator: None,
+                    items: None,
+                },
                 #[cfg(not(feature = "app-store"))]
                 MenuItem {
                     id: "file.check-update".to_string(),
@@ -978,16 +1001,33 @@ pub fn build_native_menu<R: tauri::Runtime>(
             format!("Version {}", env!("CARGO_PKG_VERSION"))
         }
     };
-    let help_submenu = SubmenuBuilder::new(handle, "Help")
+    // C-48: What's New (reopen the sheet) ships in every build; Rate
+    // Mark… exists only where the system rating sheet exists (App Store
+    // build on macOS — mirrors the m048 `review` capability). The cfg
+    // reassignment pattern matches the macOS app-menu block below.
+    #[cfg_attr(
+        not(all(feature = "app-store", target_os = "macos")),
+        allow(unused_mut)
+    )]
+    let mut help_submenu = SubmenuBuilder::new(handle, "Help")
         .text("help.version", &version_label)
         .separator()
         .item(&MenuItemBuilder::with_id("docs.user-guide", "Documentation").build(handle)?)
+        .item(&MenuItemBuilder::with_id("help.whats-new", "What's New").build(handle)?)
         // ASC 2.4.5(vii): no update checks in the App Store build —
         // the store owns updates. Desktop keeps the in-app updater.
         .item(
             &cfg_helper_check_update(handle)?,
-        )
-        .build()?;
+        );
+
+    #[cfg(all(feature = "app-store", target_os = "macos"))]
+    {
+        help_submenu = help_submenu.item(
+            &MenuItemBuilder::with_id("help.rate", "Rate Mark…").build(handle)?,
+        );
+    }
+
+    let help_submenu = help_submenu.build()?;
 
     // ── Top-level builder; macOS prepends app menu ───────────────────
     #[cfg_attr(not(target_os = "macos"), allow(unused_mut))]
@@ -1331,6 +1371,46 @@ mod tests {
             );
         }
     }
+
+    // START_BLOCK_HELP_C48_TESTS
+    // C-48: What's New is a Help leaf in EVERY build with a dispatch
+    // command; Rate Mark… exists only in the App Store build on macOS
+    // (mirrors the m048 `review` capability — the non-eligible builds
+    // compile this test with the absence assertion).
+    #[test]
+    fn help_menu_has_whats_new_in_every_build() {
+        let menu = standard_menu();
+        let flat = flatten(&menu);
+        let whats_new = flat
+            .iter()
+            .find(|i| i.id == "help.whats-new")
+            .expect("help.whats-new must be in the taxonomy in every build");
+        assert_eq!(whats_new.label, "What's New");
+        assert!(whats_new.command.is_some());
+        assert!(whats_new.accelerator.is_none());
+    }
+
+    #[test]
+    fn help_menu_rate_mark_is_app_store_macos_only() {
+        let menu = standard_menu();
+        let flat = flatten(&menu);
+        let has_rate = flat.iter().any(|i| i.id == "help.rate");
+        #[cfg(all(feature = "app-store", target_os = "macos"))]
+        {
+            assert!(has_rate, "the MAS build on macOS ships Rate Mark…");
+            let rate = flat.iter().find(|i| i.id == "help.rate").unwrap();
+            assert_eq!(rate.label, "Rate Mark…");
+            assert!(rate.command.is_some());
+        }
+        #[cfg(not(all(feature = "app-store", target_os = "macos")))]
+        {
+            assert!(
+                !has_rate,
+                "desktop / non-mac builds must not show Rate Mark…"
+            );
+        }
+    }
+    // END_BLOCK_HELP_C48_TESTS
 
     #[test]
     fn context_menu_payload_preserves_item_separator_and_enabled_state() {

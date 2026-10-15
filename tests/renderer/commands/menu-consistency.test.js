@@ -19,7 +19,9 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.3.0 - Pin tabs.cycleForward/Backward menu ids + Ctrl+Tab/Ctrl+Shift+Tab accelerators; ids leave the RENDERER_ONLY_ALLOWLIST (C-8).
+//   LAST_CHANGE: v1.4.6 - C-48: pin help.whats-new (every build, no
+//   accelerator) and help.rate (App Store macOS only) Help-menu items.
+//   v1.3.0 - Pin tabs.cycleForward/Backward menu ids + Ctrl+Tab/Ctrl+Shift+Tab accelerators; ids leave the RENDERER_ONLY_ALLOWLIST (C-8).
 //   v1.4.4 - C-32: pin edit.copy-as-structured-text menu id (no accelerator).
 //   v1.4.5 - C-38 N1: pin file.preferences label "Settings…" + Cmd+, accelerator;
 //   the "Preferences…" label is gone from both the native menu and the taxonomy.
@@ -310,6 +312,28 @@ describe('menu ↔ commands consistency', () => {
     expect(buildFn.match(/Ctrl\+Tab"/g)).toHaveLength(1)
     expect(buildFn.match(/Ctrl\+Shift\+Tab"/g)).toHaveLength(1)
   })
+
+  // START_BLOCK_C48_MENU_PIN
+  it('pins the Help What\'s New and Rate Mark menu items (C-48)', () => {
+    const rust = readSource('src-tauri/src/m009_menu.rs')
+    const buildFn = rust.slice(rust.indexOf('pub fn build_native_menu'))
+    const taxonomy = rust.slice(0, rust.indexOf('pub fn build_native_menu'))
+
+    // What's New ships in every build, no accelerator, id matches the
+    // renderer command registry (help.whats-new → whatsNewDialog bus).
+    expect(buildFn).toMatch(/with_id\("help\.whats-new", "What's New"\)/)
+    expect(taxonomy).toContain('"help.whats-new".to_string()')
+    const whatsNew = buildFn.match(/with_id\(\s*"help\.whats-new",\s*"What's New",?\s*\)([\s\S]*?)\.build\(handle\)/)
+    expect(whatsNew).not.toBeNull()
+    expect(whatsNew[1]).not.toContain('accelerator')
+
+    // Rate Mark… exists only in the App Store build on macOS (cfg-gated
+    // like file.check-update) and opens the store review page via the
+    // renderer help.rate command.
+    expect(buildFn).toMatch(/with_id\("help\.rate", "Rate Mark…"\)/)
+    expect(taxonomy).toContain('"help.rate".to_string()')
+  })
+  // END_BLOCK_C48_MENU_PIN
 
   it('allowlist entries actually exist in renderer commands', () => {
     const stale = []

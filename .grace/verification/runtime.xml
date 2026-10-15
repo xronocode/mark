@@ -3724,8 +3724,72 @@
           'system') + tests/renderer/pages/general-config.test.js
           (options list starts with 'system').
         </Scenario>
+        <Scenario>
+          scenario-45: What's New once per update + App Store review
+          request (C-48 T-001). The boot gate (whatsNew/gate.js, pure
+          evaluateWhatsNewGate with fake-clock tests) compares the
+          persisted prefs key lastSeenVersion with the running
+          __APP_VERSION__ after normalizing prerelease decorations
+          ("2.3.1-beta" equals "2.3.1"): no recorded version = fresh
+          install = record silently and never show; recorded differs
+          downward (downgrade) = record silently, no sheet; recorded
+          equals running = nothing; recorded lower = upgrade = show the
+          sheet once (components/whatsNew — board 3 mockup: eyebrow
+          "Mark X.Y.Z", ≤ 4 items with icon + one-line title + one-line
+          text from whatsNew/data.js keyed by normalized version, "See
+          the guide" emits mt::open-guide {section: whats-new},
+          Continue / Esc / scrim close, Tab focus trap with focus
+          return; an upgrade to a version with no content records
+          silently instead of an empty sheet) and stamps the ISO
+          lastUpdateAt prefs key for the C-46 welcome footer 7-day
+          window. Help › What's New (menu id help.whats-new, every
+          build, no accelerator) reopens the sheet any time through the
+          same whatsNewDialog bus event; the strings ship in all ten
+          locales (whatsNew.* incl. v2_3_1 items, commands.help.*).
+          The App Store review request runs only when the m048 review
+          capability is true (app-store build on macOS; desktop
+          m048_build_mode.rs pins review=false and m053_review.rs
+          mt_request_review resolves Ok(false) outside the store
+          build — SKStoreReviewController via objc msg_send on the
+          main thread like m032, Class::get no-op when StoreKit is
+          absent): review/reviewRules.js counts successful sessions
+          (a document opened AND saved — bus file-loaded + the
+          APPLY_SAVE_OUTCOME file-saved emit — or a live reload
+          applied, file-changed with contentReloaded) across distinct
+          local days, asks exactly once at ≥ 5 sessions across ≥ 3
+          days, never on first launch, never in a session whose
+          version changed (it consumes the gate outcome from
+          pages/app.vue), never after a window error /
+          unhandledrejection, never while .ag-whats-new-sheet or the
+          fullscreen .ag-block-viewer is in the DOM, and never again
+          within 120 days or the same major.minor (patch bumps do not
+          re-open the gate); Help › Rate Mark… (help.rate, cfg-gated
+          like file.check-update; applyCapabilityGate prunes it when
+          caps.review is off) opens
+          macappstore://apps.apple.com/app/id6814590464?action=write-review.
+          Unit-pinned in tests/renderer/whatsNew/gate.test.js (fresh /
+          upgrade / same / downgrade / beta corners / persistence
+          writes) + tests/renderer/review/reviewRules.test.js (every
+          never-rule, 120-day and major.minor gates, sanitize,
+          day/session counting) + tests/renderer/review/reviewRequest.test.js
+          (controller wiring, one ask per eligibility, capability gate)
+          + tests/renderer/components/whatsNew.test.js (render, Esc,
+          focus trap + return, open-guide link) + cargo tests in
+          src-tauri/src/m053_review.rs and m048_build_mode.rs (both
+          build flavors) + m009_menu.rs (help.whats-new every build,
+          help.rate only app-store macOS) + menu-consistency pins +
+          e2e tests/e2e/whats-new.spec.ts (previous version in the
+          shim prefs → sheet appears once, Esc closes, reload does not
+          re-show; fresh install never shows).
+        </Scenario>
       </Scenarios>
       <Markers>
+        <Marker>[whatsNew][init][BLOCK_SHEET_QUEUED version=&lt;v&gt;] — C-48 upgrade detected, the What's New sheet opens once</Marker>
+        <Marker>[whatsNew][init][BLOCK_PERSIST_FAILED] — C-48 lastSeenVersion / lastUpdateAt write failed</Marker>
+        <Marker>[review][ask][BLOCK_EVALUATED ask=false reason=&lt;firstLaunch|versionChanged|errorLogged|modalOpen|sessions|days|cooldown&gt;] — C-48 review decision trace</Marker>
+        <Marker>[review][ask][BLOCK_REQUEST_REVIEW asked=true shown=&lt;bool&gt;] — C-48 mt_request_review dispatched from the renderer</Marker>
+        <Marker>[Review][request][BLOCK_REQUEST_REVIEW_DISPATCHED] — C-48 m053 SKStoreReviewController msg_send on the main thread</Marker>
+        <Marker>[Review][request][BLOCK_REQUEST_REVIEW_NOOP] — C-48 desktop build stub</Marker>
         <Marker>[Editor][handleCopyAsHtml][BLOCK_COPY_AS_HTML] native writeHtml failed → execCommand fallback</Marker>
         <Marker>[Editor][syncMirrorFromSource][BLOCK_SPLIT_MIRROR_SYNC] chars=N ms=N — muya mirror re-rendered from the source pane (C-29)</Marker>
         <Marker>[editor][split][BLOCK_SPLIT_TOGGLED state=on|off] — view.split-view toggled for the current tab (C-29)</Marker>

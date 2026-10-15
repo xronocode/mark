@@ -945,6 +945,30 @@
       "system": "Wie im System"
     }
   },
+  "whatsNew": {
+    "eyebrow": "Mark {version}",
+    "title": "Was ist neu",
+    "seeGuide": "Anleitung ansehen",
+    "continue": "Weiter",
+    "v2_3_1": {
+      "zoom": {
+        "title": "In Diagramme und Tabellen hineinzoomen",
+        "text": "Beim Überfahren ⤢ drücken für eine Vollbildansicht mit Zoom und Verschieben."
+      },
+      "agentDiff": {
+        "title": "Änderungen des Agenten sehen",
+        "text": "⌘D vergleicht mit der Version vor seiner letzten Speicherung."
+      },
+      "themes": {
+        "title": "Paper und Ink",
+        "text": "Neue Standard-Themes, und Auto folgt macOS."
+      },
+      "tables": {
+        "title": "Tabellen, die passen",
+        "text": "Breite Tabellen scrollen in der Spalte; lange Links brechen um."
+      }
+    }
+  },
   "about": {
     "copyright": "Copyright © Jocs 2017+, tkaixiang 2024+, xronocode 2026+",
     "copyrightContributors": "Made with <3 by the marktext community"
@@ -1092,6 +1116,10 @@
     "docs": {
       "userGuide": "Benutzerhandbuch",
       "markdownSyntax": "Markdown-Syntax"
+    },
+    "help": {
+      "whatsNew": "Was ist neu",
+      "rateMark": "Mark bewerten…"
     },
     "utils": {
       "noUpdateResourceFile": "Keine Update-Ressourcendatei",

@@ -947,6 +947,30 @@
       "system": "跟隨系統"
     }
   },
+  "whatsNew": {
+    "eyebrow": "Mark {version}",
+    "title": "新內容",
+    "seeGuide": "查看指南",
+    "continue": "繼續",
+    "v2_3_1": {
+      "zoom": {
+        "title": "放大圖表與表格",
+        "text": "懸停並按下 ⤢，進入可縮放、可平移的全螢幕檢視。"
+      },
+      "agentDiff": {
+        "title": "查看代理程式的變更",
+        "text": "⌘D 與其上次儲存之前的版本比較。"
+      },
+      "themes": {
+        "title": "Paper 與 Ink",
+        "text": "全新預設主題，Auto 跟隨 macOS。"
+      },
+      "tables": {
+        "title": "放得下的表格",
+        "text": "寬表格在欄內捲動，長連結自動換行。"
+      }
+    }
+  },
   "about": {
     "copyright": "Copyright © Jocs 2017+, tkaixiang 2024+, xronocode 2026+",
     "copyrightContributors": "Made with <3 by the marktext community"
@@ -1094,6 +1118,10 @@
     "docs": {
       "userGuide": "使用者指南",
       "markdownSyntax": "Markdown 語法"
+    },
+    "help": {
+      "whatsNew": "新內容",
+      "rateMark": "為 Mark 評分…"
     },
     "utils": {
       "noUpdateResourceFile": "沒有更新資源檔案",
