@@ -90,13 +90,17 @@ export const getBlankFileState = (
   markdown = ''
 ) => {
   const fileState = deepClone(defaultFileState)
+  // C-40: untitled tabs are no longer all named "Untitled-N" (the Mark
+  // Guide tab carries a real title), so only filenames that actually match
+  // the pattern contribute a counter — anything else used to produce
+  // "Untitled-NaN" via +undefined.
   let untitleId = Math.max(
     ...tabs.map((f) => {
       if (f.pathname === '') {
-        return +f.filename.split('-')[1]
-      } else {
-        return 0
+        const m = /^Untitled-(\d+)/.exec(f.filename || '')
+        return m ? +m[1] : 0
       }
+      return 0
     }),
     0
   )

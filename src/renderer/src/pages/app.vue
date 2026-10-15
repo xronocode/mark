@@ -55,6 +55,9 @@
 //            is injected once while common styles still initialize on boot.
 //
 // CHANGE_SUMMARY:
+//   - 2026-10-15 C-40 G-3: register editorStore.LISTEN_FOR_OPEN_GUIDE so the
+//     'mt::open-guide' bus event (Help › Mark Guide, help.guide palette
+//     command) opens the guide as a temporary untitled tab.
 //   - 2026-10-15 C-41 T-001: Auto theme — after hydration, resolve
 //     followSystemTheme via util/autoTheme before the first addThemeStyle,
 //     re-resolve on mode/member preference changes (incl. cross-window
@@ -316,6 +319,9 @@ onMounted(async () => {
   editorStore.LISTEN_FOR_NEW_TAB()
   editorStore.LISTEN_FOR_CLOSE_TAB()
   editorStore.LISTEN_FOR_TAB_CYCLE()
+  // C-40 G-3: 'mt::open-guide' (Help › Mark Guide / help.guide palette
+  // command) opens the localized guide document as a temporary tab.
+  editorStore.LISTEN_FOR_OPEN_GUIDE()
   editorStore.LISTEN_WINDOW_ZOOM()
 
   setupDragDropHandler()
