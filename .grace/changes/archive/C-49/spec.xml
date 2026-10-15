@@ -1,9 +1,9 @@
-<GraceChangeSpec graceVersion='4.0' status='approved'>
+<GraceChangeSpec graceVersion='4.0' status='applied'>
 <C-49>
   <Name>One clear zoom: ⌘+ / ⌘− / ⌘0 and pinch scale text, tables, code, math and diagrams; View menu items</Name>
   <Created>2026-10-15</Created>
   <Priority>high</Priority>
-  <Status>approved</Status>
+  <Status>completed</Status>
   <RoadmapPhase>R1</RoadmapPhase>
   <Complexity>S–M</Complexity>
   <Summary>Today Mark has two unrelated zooms: (1) ⌘+/⌘−/⌘0 and Ctrl+wheel/pinch change the editor fontSize 12–36 (pages/app.vue setupZoomKeysFontSize / setupCtrlWheelFontSize; ⌘0 resets to a hard 16) — text, tables, code and KaTeX scale, Mermaid diagrams do not (measured 2026-10-15: 247 px, 16 px labels before and after); (2) a palette-only percentage zoom (commands file.zoom-*, preference `zoom`, app.vue watch → mt::window-zoom). Nothing is in the native View menu.</Summary>
@@ -24,5 +24,6 @@
   <AffectedAreas><M-011>pages/app.vue zoom handlers, mermaid pipeline scaling, commands, preferences migration</M-011><M-009>View menu items</M-009></AffectedAreas>
   <VerificationIntent>Unit tests for migration and clamping; e2e (Chromium + WebKit) measuring each element type before/after ⌘+, ⌘0, the indicator; menu-consistency pin; cargo test m009.</VerificationIntent>
   <Approval><ApprovedBy>user (2026-10-15): «2 да»</ApprovedBy><ApprovalScope>Z1.</ApprovalScope></Approval>
+  <Closure>Closed 2026-10-15 on the user's request to finish epics. Unified zoom (fontSize 12–36, baseFontSize, View menu zoom trio, Mermaid --mark-zoom scaling, indicator, percentage zoom retired with migration); review fixes: codeFontSize '14px' parse (code zoom regression), TS test files, hoisted mocks; npm test 3576, cargo m009 16/16, e2e zoom 10/10 Chromium+WebKit. Live ⌘0-after-broadcast check folded into the 2.3.1 smoke.</Closure>
 </C-49>
 </GraceChangeSpec>

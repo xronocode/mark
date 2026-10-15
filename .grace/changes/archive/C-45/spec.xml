@@ -1,9 +1,9 @@
-<GraceChangeSpec graceVersion='4.0' status='approved'>
+<GraceChangeSpec graceVersion='4.0' status='applied'>
 <C-45>
   <Name>Interface language "As in system" (default for new profiles)</Name>
   <Created>2026-10-15</Created>
   <Priority>medium</Priority>
-  <Status>approved</Status>
+  <Status>completed</Status>
   <RoadmapPhase>R1</RoadmapPhase>
   <Complexity>S</Complexity>
   <Summary>The UI language is a fixed code (default 'en') with no system option. Since 2.3.0 fixed locale loading, a language stored long ago (e.g. 'ru') suddenly takes effect. Add a "System" choice that follows the macOS/Windows preferred languages and make it the default for new profiles.</Summary>
@@ -21,5 +21,6 @@
   <AffectedAreas><M-055>i18n setLanguage + resolution</M-055><M-011>language select, preferences default</M-011></AffectedAreas>
   <VerificationIntent>Unit tests for resolution and the default; settings select shows the option.</VerificationIntent>
   <Approval><ApprovedBy>user (2026-10-15): «как в системе да»</ApprovedBy><ApprovalScope>S1.</ApprovalScope></Approval>
+  <Closure>Closed 2026-10-15 on the user's request to finish epics. systemLocale.resolveSystemLocale + setLanguage('system'), default 'system' for new profiles, stored values untouched; system-language 39/39; npm test green; live check folded into the 2.3.1 smoke.</Closure>
 </C-45>
 </GraceChangeSpec>
