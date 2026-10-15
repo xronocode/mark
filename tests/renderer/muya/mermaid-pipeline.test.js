@@ -17,12 +17,20 @@
 //   XSS_MESSAGE - error text whose HTML must never become an element.
 //   createFakeMermaid - mermaid module double counting initialize/render calls; appends mermaid-style orphans (div#d<id>) on failure.
 //   createTarget - a div.ag-container-preview block target appended to body.
-//   makePipeline - pipeline with injected fake loader and theme.
+//   LIGHT_TOKENS / DARK_TOKENS - fixed theme tokens (the accepted lab paper/ink values) injected into the pipeline.
+//   makePipeline - pipeline with injected fake loader and theme tokens.
 //   createStateRender - real StateRender against the mocked renderer loader (fail-without-fix surface).
+//   DARK_TOKENS - Ink-like token set for the dark-theme cases.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.1.0 - 2026-10-15 C-49: data-natural-width + inline
+//   LAST_CHANGE: v1.2.0 - 2026-10-16 C-51 T-003/T-004: the pipeline injects
+//   theme tokens instead of a 'dark'/'default' flag; initialize is pinned to
+//   theme base + look neo + themeVariables with the C-34 fit-column policy
+//   (useMaxWidth:true) and the four lab-sized scrollable types
+//   (gantt/journey/packet/timeline) at useMaxWidth:false; cache-key misses
+//   are proven for dark flips AND light→light accent changes.
+//   v1.1.0 - 2026-10-15 C-49: data-natural-width + inline
 //   calc(var(--mark-zoom, 1) × natural px) pinned on every insert path
 //   (first render, inline-max-width and viewBox extraction, cache hit,
 //   keep-last-good) — all fail against the pre-C-49 pipeline.
@@ -76,10 +84,41 @@ const createTarget = (id) => {
 const makePipeline = (overrides = {}) =>
   createMermaidPipeline({
     loadRenderer: async () => fakeMermaid,
-    getTheme: () => 'default',
+    getThemeTokens: () => LIGHT_TOKENS,
     ...overrides
   })
 // END_BLOCK_PIPELINE_TEST_DOUBLES
+
+// START_BLOCK_PIPELINE_THEME_TOKENS
+// Fixed token sets (the accepted lab paper/ink values) — the product reads
+// these from the document's CSS variables; the pipeline only needs a stable
+// injectable source to prove cache-key and initialize behaviour.
+const LIGHT_TOKENS = {
+  dark: false,
+  accent: '#9A6F00',
+  bg: '#FBF8F2',
+  surface: '#FFFDF8',
+  text: '#22252B',
+  muted: '#6B655A',
+  border: '#D9D0BB',
+  line: '#8F8775',
+  code: '#F2ECE1',
+  font: '-apple-system, system-ui, sans-serif'
+}
+
+const DARK_TOKENS = {
+  dark: true,
+  accent: '#FFCF1A',
+  bg: '#17191E',
+  surface: '#1F2228',
+  text: '#ECE6DA',
+  muted: '#A39C8E',
+  border: '#3A3E48',
+  line: '#8A8F9C',
+  code: '#21242B',
+  font: '-apple-system, system-ui, sans-serif'
+}
+// END_BLOCK_PIPELINE_THEME_TOKENS
 
 // Real StateRender against the mocked renderer loader — this is the
 // surface the C-34 R2.1 fail-without-fix proof runs against.
@@ -134,35 +173,84 @@ describe('mermaid pipeline (C-34 R2.1)', () => {
 
   it('a theme switch misses the cache and re-renders in the new theme', async () => {
     const target = createTarget('b1')
-    let theme = 'default'
-    const pipeline = makePipeline({ getTheme: () => theme })
+    let tokens = LIGHT_TOKENS
+    const pipeline = makePipeline({ getThemeTokens: () => tokens })
     await pipeline.render([['#b1', { code: GOOD_CODE, functionType: 'mermaid' }]])
     expect(fakeMermaid.render).toHaveBeenCalledTimes(1)
 
-    theme = 'dark'
+    tokens = DARK_TOKENS
     target.textContent = 'loading...'
     await pipeline.render([['#b1', { code: GOOD_CODE, functionType: 'mermaid' }]])
 
     expect(fakeMermaid.render).toHaveBeenCalledTimes(2)
-    expect(fakeMermaid.initialize).toHaveBeenCalledWith(
-      expect.objectContaining({ theme: 'dark' })
+    expect(fakeMermaid.initialize).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        securityLevel: 'strict',
+        theme: 'base',
+        look: 'neo',
+        themeVariables: expect.objectContaining({ primaryColor: DARK_TOKENS.surface })
+      })
     )
     expect(target.querySelector('svg')).not.toBeNull()
   })
 
-  it('initializes mermaid with useMaxWidth:true (wide diagrams fit the column)', async () => {
+  it('a light→light theme change (same dark flag, new accent) also re-renders', async () => {
+    const target = createTarget('b1')
+    let tokens = LIGHT_TOKENS
+    const pipeline = makePipeline({ getThemeTokens: () => tokens })
+    await pipeline.render([['#b1', { code: GOOD_CODE, functionType: 'mermaid' }]])
+    expect(fakeMermaid.render).toHaveBeenCalledTimes(1)
+
+    // Paper → another light theme: the old 'default'/'dark' key would hit
+    // the cache; the signature includes the resolved palette, so it misses.
+    tokens = { ...LIGHT_TOKENS, accent: '#3584E4' }
+    target.textContent = 'loading...'
+    await pipeline.render([['#b1', { code: GOOD_CODE, functionType: 'mermaid' }]])
+
+    expect(fakeMermaid.render).toHaveBeenCalledTimes(2)
+    expect(target.querySelector('svg')).not.toBeNull()
+  })
+
+  it('initializes mermaid per diagram type: fit-column for most, lab sizes for the scrollable four', async () => {
     createTarget('b1')
     const pipeline = makePipeline()
     await pipeline.render([['#b1', { code: GOOD_CODE, functionType: 'mermaid' }]])
+    expect(fakeMermaid.initialize).toHaveBeenCalledTimes(1)
     expect(fakeMermaid.initialize).toHaveBeenCalledWith(
       expect.objectContaining({
         securityLevel: 'strict',
-        theme: 'default',
-        flowchart: { useMaxWidth: true },
-        sequence: { useMaxWidth: true },
-        gantt: { useMaxWidth: true }
+        theme: 'base',
+        look: 'neo',
+        fontFamily: LIGHT_TOKENS.font,
+        themeVariables: expect.objectContaining({
+          primaryColor: LIGHT_TOKENS.surface,
+          primaryTextColor: LIGHT_TOKENS.text
+        }),
+        flowchart: expect.objectContaining({ useMaxWidth: true, curve: 'basis' }),
+        sequence: expect.objectContaining({ useMaxWidth: true, mirrorActors: false }),
+        // C-51 T-004: readable sizes at natural width (in-block scroll).
+        gantt: expect.objectContaining({ useMaxWidth: false, useWidth: 720, fontSize: 13 }),
+        journey: expect.objectContaining({ useMaxWidth: false, taskFontSize: 14 }),
+        packet: expect.objectContaining({ useMaxWidth: false, bitWidth: 20 }),
+        timeline: expect.objectContaining({ useMaxWidth: false, padding: 8 })
       })
     )
+  })
+
+  it('a gantt block gets its own type initialize in the same flush', async () => {
+    createTarget('b1')
+    createTarget('b2')
+    const pipeline = makePipeline()
+    await pipeline.render([
+      ['#b1', { code: GOOD_CODE, functionType: 'mermaid' }],
+      ['#b2', { code: 'gantt\ndateFormat YYYY-MM-DD\ntitle T', functionType: 'mermaid' }]
+    ])
+
+    const inits = fakeMermaid.initialize.mock.calls
+    expect(inits).toHaveLength(2)
+    expect(inits[0][0].flowchart.useMaxWidth).toBe(true)
+    expect(inits[1][0].gantt).toMatchObject({ useMaxWidth: false, useWidth: 720 })
+    expect(fakeMermaid.render).toHaveBeenCalledTimes(2)
   })
 
   it('an error after a success keeps the old SVG and shows the error text', async () => {
@@ -281,15 +369,15 @@ describe('mermaid pipeline (C-34 R2.1)', () => {
   })
 
   it('render ids are unique per mermaid.render call', async () => {
-    let theme = 'default'
-    const pipeline = makePipeline({ getTheme: () => theme })
+    let tokens = LIGHT_TOKENS
+    const pipeline = makePipeline({ getThemeTokens: () => tokens })
     createTarget('b1')
     createTarget('b2')
     await pipeline.render([
       ['#b1', { code: GOOD_CODE, functionType: 'mermaid' }],
       ['#b2', { code: GOOD_CODE, functionType: 'mermaid' }]
     ])
-    theme = 'dark'
+    tokens = DARK_TOKENS
     await pipeline.render([['#b1', { code: GOOD_CODE, functionType: 'mermaid' }]])
 
     const ids = fakeMermaid.render.mock.calls.map((call) => call[0])

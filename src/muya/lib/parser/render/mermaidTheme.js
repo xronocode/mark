@@ -1,0 +1,570 @@
+// FILE: src/muya/lib/parser/render/mermaidTheme.js
+// VERSION: 1.0.0
+// START_MODULE_CONTRACT
+//   PURPOSE: Build the Mermaid render config (theme "base", look "neo", themeVariables, themeCSS polish, per-type layout and sizes) from the ACTIVE APP THEME — the accepted C-51 round-2/3 lab (.lab/palette.js) ported into the product.
+//   SCOPE: OKLCH colour math (oklch/hueOf/palette), active-theme token reading from the document's CSS variables plus the body "dark" flag, diagram type detection from the code's first meaningful line (22 types, frontmatter/%%{init}%% skipped), the per-type config builder, and the theme signature that keys the pipeline's SVG cache.
+//   DEPENDS: none — pure colour math plus lazy DOM reads (window/document are touched only inside functions so tests can import the module cold).
+//   LINKS: .grace/changes/active/C-51 T-003/T-004 (R-2/R-2a); .grace/graph/runtime.xml M-012; .grace/verification/runtime.xml V-M-012 scenario-17.
+//   ROLE: RUNTIME
+//   MAP_MODE: EXPORTS
+// END_MODULE_CONTRACT
+//
+// START_MODULE_MAP
+//   oklch - OKLCH (lightness 0-1, chroma, hue degrees) → "#rrggbb" hex.
+//   hueOf - hex colour → OKLCH hue in degrees (0-360).
+//   PALETTE_STEPS - the 8 hue offsets (accent first, then a fixed spread that keeps neighbours apart).
+//   palette - accent hex + target lightness/chroma → 8 categorical hex colours at equal perceived lightness.
+//   DEFAULT_MERMAID_FONT - UI font fallback when --chromeFontFamily is not resolvable (the accepted lab stack).
+//   MERMAID_THEME_TYPES - the 22 canonical diagram type keys detected by detectMermaidDiagramType.
+//   readActiveThemeTokens - lazily read the active theme's CSS variables + dark flag → { dark, accent, bg, surface, text, muted, border, line, code, font }.
+//   detectMermaidDiagramType - diagram code → canonical type key ("flowchart"…"c4"), skipping blank lines, %% directives/comments and YAML frontmatter; "unknown" when nothing matches.
+//   buildMermaidThemeConfig - theme tokens + type key → full mermaid.initialize config (themeVariables incl. cScale/pie/git/xyChart/quadrant/journey scales, themeCSS polish, per-type layout config with the C-34 fit-column useMaxWidth policy).
+//   mermaidThemeSignature - theme tokens → short stable signature (includes the resolved palette) for the pipeline's cache key.
+//   MARKER_SCALE - per-type arrowhead scale factors.
+//   postProcessMermaidSvg - rendered SVG + type → SVG with proportionate arrowheads.
+//   blendHex - text-over-background blend of two hex colours at a ratio (muted/line tokens).
+// END_MODULE_MAP
+//
+// START_CHANGE_SUMMARY
+//   LAST_CHANGE: v1.0.0 - 2026-10-16 C-51 T-003/T-004: first version — the
+//   accepted round-2/3 lab palette/config logic ported from .lab/palette.js
+//   with theme tokens read at render time from the document's CSS variables
+//   (--themeColor/--editorColor/--editorBgColor/--floatBgColor/
+//   --codeBlockBgColor/--tableBorderColor/--chromeFontFamily) instead of the
+//   lab's two hand-tuned themes; gantt/journey/packet/timeline keep the lab
+//   sizes with useMaxWidth:false (natural width + in-block horizontal
+//   scroll) while every other type keeps the C-34 fit-column
+//   useMaxWidth:true behaviour.
+// END_CHANGE_SUMMARY
+
+// START_BLOCK_MERMAID_OKLCH_MATH
+// OKLCH → sRGB (Björn Ottosson's Oklab math): categorical colours are
+// generated at one shared lightness/chroma so all 8 hues read equally
+// "loud" — distinct, but quiet and matched to the theme.
+const clamp01 = (x) => Math.min(1, Math.max(0, x))
+
+const toHex = (r, g, b) =>
+  '#' +
+  [r, g, b]
+    .map((v) => Math.round(clamp01(v) * 255).toString(16).padStart(2, '0'))
+    .join('')
+
+const lin2srgb = (x) => (x <= 0.0031308 ? 12.92 * x : 1.055 * Math.pow(x, 1 / 2.4) - 0.055)
+const srgb2lin = (x) => (x <= 0.04045 ? x / 12.92 : Math.pow((x + 0.055) / 1.055, 2.4))
+
+export const oklch = (L, C, hDeg) => {
+  const h = (hDeg * Math.PI) / 180
+  const a = C * Math.cos(h)
+  const b = C * Math.sin(h)
+  const l_ = L + 0.3963377774 * a + 0.2158037573 * b
+  const m_ = L - 0.1055613458 * a - 0.0638541728 * b
+  const s_ = L - 0.0894841775 * a - 1.291485548 * b
+  const l = l_ ** 3
+  const m = m_ ** 3
+  const s = s_ ** 3
+  const r = 4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s
+  const g = -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s
+  const bb = -0.0041960863 * l - 0.7034186147 * m + 1.707614701 * s
+  return toHex(lin2srgb(r), lin2srgb(g), lin2srgb(bb))
+}
+
+export const hueOf = (hex) => {
+  const n = parseInt(hex.slice(1), 16)
+  const r = srgb2lin(((n >> 16) & 255) / 255)
+  const g = srgb2lin(((n >> 8) & 255) / 255)
+  const b = srgb2lin((n & 255) / 255)
+  const l = Math.cbrt(0.4122214708 * r + 0.536301541 * g + 0.0514459929 * b)
+  const m = Math.cbrt(0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b)
+  const s = Math.cbrt(0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b)
+  const A = 1.9779984951 * l - 2.428592205 * m + 0.4505937099 * s
+  const B = 0.0259040371 * l + 0.7827717662 * m - 0.808675766 * s
+  return ((Math.atan2(B, A) * 180) / Math.PI + 360) % 360
+}
+// END_BLOCK_MERMAID_OKLCH_MATH
+
+// START_BLOCK_MERMAID_PALETTE
+// 8 hues: accent first, then a fixed order that keeps neighbours apart.
+export const PALETTE_STEPS = [0, 180, 90, 270, 45, 225, 135, 315]
+
+export const palette = (accentHex, L, C) =>
+  PALETTE_STEPS.map((d) => oklch(L, C, (hueOf(accentHex) + d) % 360))
+// END_BLOCK_MERMAID_PALETTE
+
+// The lab font stack — used when --chromeFontFamily cannot be resolved
+// (tests, bare documents). Same stack the lab renders were accepted with.
+export const DEFAULT_MERMAID_FONT =
+  '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", system-ui, sans-serif'
+
+// START_BLOCK_MERMAID_THEME_TOKENS
+// CSS-value parsing (#rgb/#rrggbb[#aa]/rgb()/rgba() → channels) and the
+// render-time read of the active theme. Muted/line are deterministic blends
+// of the theme's own text/bg pair, so every one of the 28 themes (incl. the
+// future Docs/macOS families) yields quiet greys matched to its paper.
+const parseColor = (value) => {
+  if (!value) return null
+  const s = String(value).trim()
+  let m = /^#([0-9a-f])([0-9a-f])([0-9a-f])$/i.exec(s)
+  if (m) {
+    return {
+      r: parseInt(m[1] + m[1], 16),
+      g: parseInt(m[2] + m[2], 16),
+      b: parseInt(m[3] + m[3], 16)
+    }
+  }
+  m = /^#([0-9a-f]{6})(?:[0-9a-f]{2})?$/i.exec(s)
+  if (m) {
+    return {
+      r: parseInt(m[1].slice(0, 2), 16),
+      g: parseInt(m[1].slice(2, 4), 16),
+      b: parseInt(m[1].slice(4, 6), 16)
+    }
+  }
+  m = /^rgba?\(\s*([\d.]+)[,\s]+([\d.]+)[,\s]+([\d.]+)/i.exec(s)
+  if (m) {
+    const r = Number.parseFloat(m[1])
+    const g = Number.parseFloat(m[2])
+    const b = Number.parseFloat(m[3])
+    if (Number.isFinite(r) && Number.isFinite(g) && Number.isFinite(b)) {
+      return { r, g, b }
+    }
+  }
+  return null
+}
+
+// parseColor yields 0..255 channels; toHex takes 0..1 (the OKLCH path).
+// Review 2026-10-16: passing 0..255 straight to toHex clamped every channel
+// to 1, so every theme colour read as #ffffff / #ffff00.
+const toHex255 = (r, g, b) => toHex(r / 255, g / 255, b / 255)
+
+const colorToHex = (value, fallbackHex) => {
+  const c = parseColor(value)
+  return c ? toHex255(c.r, c.g, c.b) : String(fallbackHex).toLowerCase()
+}
+
+// text composited over bg at ratio t (0 = bg, 1 = text).
+export const blendHex = (textHex, bgHex, t) => {
+  const a = parseColor(textHex)
+  const b = parseColor(bgHex)
+  if (!a || !b) return textHex
+  return toHex255(a.r * t + b.r * (1 - t), a.g * t + b.g * (1 - t), a.b * t + b.b * (1 - t))
+}
+
+/**
+ * Read the active app theme for Mermaid, at render time.
+ *
+ * The theme CSS (src/renderer/src/assets/themes/*.theme.css) is injected by
+ * util/theme.js with every variable mirrored onto the document element's
+ * inline style, so getComputedStyle(document.documentElement) resolves the
+ * live values — including after a theme switch (app.vue applies the CSS
+ * before muya's re-render watchers fire). The dark flag is the same
+ * body.dark classification the pipeline already used for 'dark'/'default'.
+ *
+ * @returns {{ dark: boolean, accent: string, bg: string, surface: string,
+ *             text: string, muted: string, border: string, line: string,
+ *             code: string, font: string }}
+ */
+export const readActiveThemeTokens = () => {
+  const hasDom = typeof document !== 'undefined' && typeof window !== 'undefined'
+  const rootStyle =
+    hasDom && document.documentElement
+      ? window.getComputedStyle(document.documentElement)
+      : null
+  const dark = hasDom && document.body
+    ? document.body.classList.contains('dark')
+    : false
+  const raw = (name) => {
+    if (!hasDom) return ''
+    // Computed style resolves both stylesheet vars (e.g. the chrome font
+    // in assets/styles/index.css) and util/theme.js's inline mirror; some
+    // non-browser DOMs (jsdom) skip custom properties in computed styles,
+    // so the inline mirror is the fallback.
+    // util/theme.js mirrors every theme variable onto the root's inline
+    // style, so the inline value is exact and read first; computed style
+    // is the fallback for stylesheet-only variables (the chrome font).
+    // (jsdom's computed custom properties are unreliable — a test caught
+    // '#9a6f00' coming back as '#ffff00'.)
+    const inline = document.documentElement.style.getPropertyValue(name)
+    if (inline && inline.trim()) return inline.trim()
+    const computed = rootStyle ? rootStyle.getPropertyValue(name) : ''
+    return computed ? computed.trim() : ''
+  }
+
+  // Fallbacks = the Paper/Ink brand values, so a bare document (tests,
+  // export shells) still renders the accepted look.
+  const bg = colorToHex(raw('--editorBgColor'), dark ? '#17191e' : '#fbf8f2')
+  const text = colorToHex(raw('--editorColor'), dark ? '#ece6da' : '#22252b')
+  return {
+    dark,
+    accent: colorToHex(raw('--themeColor'), dark ? '#ffcf1a' : '#9a6f00'),
+    bg,
+    surface: colorToHex(raw('--floatBgColor'), bg),
+    text,
+    muted: blendHex(text, bg, 0.65),
+    border: colorToHex(raw('--tableBorderColor'), blendHex(text, bg, 0.18)),
+    line: blendHex(text, bg, 0.5),
+    code: colorToHex(raw('--codeBlockBgColor'), bg),
+    font: raw('--chromeFontFamily') || DEFAULT_MERMAID_FONT,
+    // Optional theme-defined chart palette (comma-separated colours, ≥ 6),
+    // e.g. the macOS family's Apple system colours (C-51 T-007). Absent →
+    // the OKLCH palette generated from the accent.
+    series: (() => {
+      const list = raw('--chartPalette').split(',').map((c) => colorToHex(c.trim(), '')).filter(Boolean)
+      return list.length >= 6 ? list : null
+    })()
+  }
+}
+// END_BLOCK_MERMAID_THEME_TOKENS
+
+// START_BLOCK_MERMAID_MARKERS
+// Arrowheads (user 2026-10-16 «не конские стрелки»): Mermaid markers are
+// 10–12 units and scale with the stroke. Per-type factor; ER cardinality and
+// sequence heads stay as they are. A marker without a viewBox first gets one
+// with its original size, so the head scales instead of being clipped.
+export const MARKER_SCALE = Object.freeze({
+  flowchart: 0.7, block: 0.62, state: 0.8, class: 0.8, requirement: 0.8, architecture: 0.75, c4: 0.8
+})
+
+export const postProcessMermaidSvg = (svg, type) => {
+  const k = MARKER_SCALE[type]
+  if (!k || typeof svg !== 'string') return svg
+  return svg.replace(/<marker\b[^>]*>/g, (tag) => {
+    const w = /markerWidth="([\d.]+)"/.exec(tag)
+    const h = /markerHeight="([\d.]+)"/.exec(tag)
+    if (!w || !h) return tag
+    let out = tag
+    if (!/viewBox=/.test(out)) out = out.replace('<marker', `<marker viewBox="0 0 ${w[1]} ${h[1]}"`)
+    return out
+      .replace(/markerWidth="[\d.]+"/, `markerWidth="${(Number(w[1]) * k).toFixed(2)}"`)
+      .replace(/markerHeight="[\d.]+"/, `markerHeight="${(Number(h[1]) * k).toFixed(2)}"`)
+  })
+}
+// END_BLOCK_MERMAID_MARKERS
+
+// START_BLOCK_MERMAID_TYPE_DETECT
+// The 22 Mermaid diagram types this change themes (Mermaid 11.14). The key
+// is canonical ("git" for gitGraph, "c4" for the C4 family); the per-type
+// config below uses Mermaid's own config key names where they differ.
+export const MERMAID_THEME_TYPES = [
+  'flowchart', 'sequence', 'class', 'state', 'er', 'gantt', 'pie', 'journey',
+  'git', 'mindmap', 'timeline', 'quadrant', 'xychart', 'sankey', 'block',
+  'packet', 'kanban', 'architecture', 'radar', 'treemap', 'requirement', 'c4'
+]
+
+const TYPE_LINE_PATTERNS = [
+  [/^(?:flowchart|graph|flow)\b/i, 'flowchart'],
+  [/^sequenceDiagram\b/i, 'sequence'],
+  [/^classDiagram\b/i, 'class'],
+  [/^stateDiagram(?:-v2)?\b/i, 'state'],
+  [/^erDiagram\b/i, 'er'],
+  [/^gantt\b/i, 'gantt'],
+  [/^pie\b/i, 'pie'],
+  [/^journey\b/i, 'journey'],
+  [/^gitGraph\b/i, 'git'],
+  [/^mindmap\b/i, 'mindmap'],
+  [/^timeline\b/i, 'timeline'],
+  [/^quadrantChart\b/i, 'quadrant'],
+  [/^xychart(?:-beta)?\b/i, 'xychart'],
+  [/^sankey(?:-beta)?\b/i, 'sankey'],
+  [/^block(?:-beta)?\b/i, 'block'],
+  [/^packet(?:-beta)?\b/i, 'packet'],
+  [/^kanban\b/i, 'kanban'],
+  [/^architecture(?:-beta)?\b/i, 'architecture'],
+  [/^radar(?:-beta)?\b/i, 'radar'],
+  [/^treemap(?:-beta)?\b/i, 'treemap'],
+  [/^requirementDiagram\b/i, 'requirement'],
+  [/^C4(?:Context|Container|Component|Dynamic|Deployment)\b/i, 'c4']
+]
+
+/**
+ * Detect the diagram type from the first meaningful line of the code.
+ * Blank lines, `%%` lines (both `%%{init}%%` directives and comments) and a
+ * leading YAML frontmatter block are skipped, so a user directive before
+ * the diagram never breaks detection. Returns "unknown" when nothing
+ * matches (the config then still themes fonts/colours globally).
+ *
+ * @param {string} code the raw mermaid code block
+ * @returns {string} canonical type key from MERMAID_THEME_TYPES or "unknown"
+ */
+export const detectMermaidDiagramType = (code) => {
+  if (!code || typeof code !== 'string') return 'unknown'
+  const lines = code.split(/\r?\n/)
+  let inFrontmatter = false
+  let frontmatterStarted = false
+  for (const rawLine of lines) {
+    const line = rawLine.trim()
+    if (!line) continue
+    if (!frontmatterStarted && line === '---') {
+      // Leading YAML frontmatter (Mermaid supports `---\nconfig:\n...`).
+      inFrontmatter = true
+      frontmatterStarted = true
+      continue
+    }
+    if (inFrontmatter) {
+      if (line === '---' || line === '...') {
+        inFrontmatter = false
+      }
+      continue
+    }
+    if (line.startsWith('%%')) continue
+    for (const [pattern, type] of TYPE_LINE_PATTERNS) {
+      if (pattern.test(line)) return type
+    }
+    return 'unknown'
+  }
+  return 'unknown'
+}
+// END_BLOCK_MERMAID_TYPE_DETECT
+
+// START_BLOCK_MERMAID_FIT_COLUMN
+// C-34 fit-column policy (user decision 2026-10-15) meets the C-51 lab
+// sizes: every type except gantt/journey/packet/timeline keeps
+// useMaxWidth:true (wide diagrams fit the text column; natural size lives
+// in the fullscreen viewer). The four group-3 types render at the lab's
+// natural size with readable ≥ 11 px labels — anything wider than the
+// column scrolls inside the block (the ag-mermaid-preview CSS) and the
+// C-34 viewer expand stays available.
+const SCROLLABLE_TYPES = ['gantt', 'journey', 'packet', 'timeline']
+
+const buildTypeConfigs = () => {
+  const configs = {}
+  // Same key set (and Mermaid key names) the pre-C-51 pipeline configured
+  // with useMaxWidth:true — behaviour is unchanged for these types.
+  for (const key of [
+    'flowchart', 'sequence', 'gantt', 'journey', 'timeline', 'class', 'state',
+    'er', 'pie', 'quadrantChart', 'xyChart', 'requirement', 'architecture',
+    'mindmap', 'ishikawa', 'kanban', 'gitGraph', 'c4', 'sankey', 'packet',
+    'block', 'treeView', 'radar', 'venn'
+  ]) {
+    configs[key] = { useMaxWidth: true }
+  }
+  // Lab per-type layout config. The four scrollable types keep the lab's
+  // useMaxWidth:false; everything else merges the lab values with
+  // useMaxWidth:true.
+  const lab = {
+    flowchart: { curve: 'basis', nodeSpacing: 44, rankSpacing: 52, padding: 14 },
+    sequence: { mirrorActors: false, actorMargin: 60, boxMargin: 8 },
+    gantt: {
+      useWidth: 720, axisFormat: '%d %b', tickInterval: '2day', fontSize: 13,
+      sectionFontSize: 13, barHeight: 24, barGap: 6, topPadding: 44,
+      leftPadding: 110, gridLineStartPadding: 34
+    },
+    journey: { taskFontSize: 14, width: 120, height: 50, leftMargin: 120 },
+    timeline: { disableMulticolor: false, padding: 8 },
+    packet: { bitWidth: 20, rowHeight: 34, bitsPerRow: 32 },
+    sankey: { showValues: true, prefix: ' ', linkColor: 'gradient', nodeAlignment: 'justify' },
+    radar: { curveTension: 0.12 },
+    quadrantChart: { pointLabelFontSize: 13, quadrantLabelFontSize: 15 },
+    xyChart: { width: 640, height: 380 },
+    c4: (() => {
+      const c = { diagramMarginX: 30, diagramMarginY: 20, c4ShapeMargin: 40, width: 200, height: 70 }
+      const set = (k, bg, border) => {
+        c[k + '_bg_color'] = bg
+        c[k + '_border_color'] = border
+      }
+      return { c, set }
+    })()
+  }
+  const merge = (key, extra) => {
+    const fit = SCROLLABLE_TYPES.includes(key)
+    configs[key] = { ...extra, useMaxWidth: fit ? false : true }
+  }
+  merge('flowchart', lab.flowchart)
+  merge('sequence', lab.sequence)
+  merge('gantt', lab.gantt)
+  merge('journey', lab.journey)
+  merge('timeline', lab.timeline)
+  merge('packet', lab.packet)
+  merge('sankey', lab.sankey)
+  merge('radar', lab.radar)
+  merge('quadrantChart', lab.quadrantChart)
+  merge('xyChart', lab.xyChart)
+  // C-4 colours ride the c4 config keys (D-5): person/system/container/
+  // component each get their palette band; external shapes sit on the
+  // theme's own neutral; fonts follow the chrome stack.
+  const c4 = lab.c4.c
+  const set = lab.c4.set
+  return { configs, c4, set }
+}
+// END_BLOCK_MERMAID_FIT_COLUMN
+
+// START_BLOCK_MERMAID_CONFIG
+/**
+ * Build the mermaid.initialize config for the active theme and one diagram
+ * type — the accepted lab look: theme "base" + look "neo", categorical
+ * OKLCH scales (tints for areas, series colours for lines/bars/sectors),
+ * themeCSS polish, and the per-type layout/sizing config.
+ *
+ * @param {object} t theme tokens (readActiveThemeTokens shape)
+ * @param {string} type canonical diagram type key
+ * @returns {object} spread into mermaid.initialize (callers add securityLevel)
+ */
+export const buildMermaidThemeConfig = (t, type = 'unknown') => {
+  const series = (t.series && t.series.length >= 6) ? t.series : palette(t.accent, t.dark ? 0.74 : 0.6, t.dark ? 0.11 : 0.12)
+  const tint = palette(t.accent, t.dark ? 0.36 : 0.9, t.dark ? 0.05 : 0.05)
+  const tintBorder = palette(t.accent, t.dark ? 0.5 : 0.76, t.dark ? 0.07 : 0.08)
+  const v = {
+    background: t.bg, primaryColor: t.surface, primaryBorderColor: t.border,
+    primaryTextColor: t.text, textColor: t.text, lineColor: t.line,
+    // mainBkg / nodeBorder are left to Mermaid's derivation from
+    // primaryColor / primaryBorderColor so a user's %%{init}%% primaryColor
+    // still recolours the nodes (review 2026-10-16).
+    secondaryColor: tint[0], tertiaryColor: t.code, clusterBkg: t.code, clusterBorder: t.border,
+    edgeLabelBackground: t.bg, labelBackgroundColor: t.bg, titleColor: t.text,
+    noteBkgColor: tint[0], noteBorderColor: tintBorder[0], noteTextColor: t.text,
+    actorBkg: t.surface, actorBorder: t.border, actorTextColor: t.text, signalColor: t.line, signalTextColor: t.text,
+    fontFamily: t.font, fontSize: '15px', darkMode: t.dark,
+    useGradient: false, dropShadow: t.dark ? 'drop-shadow(0 1px 2px rgba(0,0,0,0.5))' : 'drop-shadow(0 1px 2px rgba(34,37,43,0.12))'
+  }
+  // Categorical scales: tinted areas with readable text, series-coloured peers.
+  for (let i = 0; i < 12; i++) {
+    v['cScale' + i] = tint[i % 8]
+    v['cScalePeer' + i] = tintBorder[i % 8]
+    v['cScaleLabel' + i] = t.text
+    v['cScaleInv' + i] = series[i % 8]
+  }
+  for (let i = 0; i < 12; i++) v['pie' + (i + 1)] = series[i % 8]
+  // Keynote-style pie (user 2026-10-16): thin background-coloured
+  // separators, no outer ring, white semibold percentages inside.
+  v.pieStrokeColor = t.bg; v.pieStrokeWidth = '2px'; v.pieOuterStrokeWidth = '0px'; v.pieOuterStrokeColor = t.bg
+  v.pieSectionTextColor = '#ffffff'; v.pieSectionTextSize = '15px'; v.pieOpacity = '1'; v.pieLegendTextSize = '14px'
+  v.pieTitleTextSize = '17px'; v.pieLegendTextColor = t.text; v.pieTitleTextColor = t.text
+  for (let i = 0; i < 8; i++) {
+    v['git' + i] = series[i]
+    v['gitBranchLabel' + i] = t.dark ? '#111' : '#fff'
+    v['gitInv' + i] = series[i]
+  }
+  v.commitLabelColor = t.text; v.commitLabelBackground = t.code
+  for (let i = 0; i < 8; i++) v['fillType' + i] = tint[i]
+  for (let i = 0; i < 6; i++) v['actor' + i] = series[i]
+  v.faceColor = t.surface
+  Object.assign(v, {
+    // D-4: quadrant in one hue of different lightness.
+    quadrant1Fill: oklch(t.dark ? 0.33 : 0.92, 0.04, hueOf(t.accent)),
+    quadrant2Fill: oklch(t.dark ? 0.39 : 0.87, 0.06, hueOf(t.accent)),
+    quadrant3Fill: t.surface,
+    quadrant4Fill: oklch(t.dark ? 0.28 : 0.95, 0.025, hueOf(t.accent)),
+    quadrant1TextFill: t.text, quadrant2TextFill: t.text, quadrant3TextFill: t.text, quadrant4TextFill: t.text,
+    quadrantPointFill: series[0], quadrantPointTextFill: t.text, quadrantTitleFill: t.text,
+    quadrantXAxisTextFill: t.muted, quadrantYAxisTextFill: t.muted,
+    quadrantInternalBorderStrokeFill: t.border, quadrantExternalBorderStrokeFill: t.border
+  })
+  v.xyChart = {
+    backgroundColor: t.bg, titleColor: t.text, xAxisLabelColor: t.muted, yAxisLabelColor: t.muted,
+    xAxisTitleColor: t.muted, yAxisTitleColor: t.muted, xAxisLineColor: t.border, yAxisLineColor: t.border,
+    xAxisTickColor: t.border, yAxisTickColor: t.border, plotColorPalette: series.join(', ')
+  }
+  v.radar = {
+    axisColor: t.border, axisStrokeWidth: 1, axisLabelFontSize: 13, curveOpacity: 0.28,
+    curveStrokeWidth: 2, graticuleColor: t.border, graticuleOpacity: 0.5,
+    graticuleStrokeWidth: 1, legendBoxSize: 12, legendFontSize: 13
+  }
+  v.packet = {
+    startByteColor: t.muted, endByteColor: t.muted, labelColor: t.text, titleColor: t.text,
+    blockStrokeColor: t.border, blockFillColor: t.surface, labelFontSize: '13px', byteFontSize: '10px'
+  }
+  // Gantt
+  Object.assign(v, {
+    taskBkgColor: tint[0], taskBorderColor: tintBorder[0], taskTextColor: t.text, taskTextDarkColor: t.text, taskTextOutsideColor: t.text,
+    activeTaskBkgColor: tint[2], activeTaskBorderColor: series[2], doneTaskBkgColor: t.code, doneTaskBorderColor: t.border,
+    critBkgColor: tint[4], critBorderColor: series[4], todayLineColor: series[1], gridColor: t.border,
+    sectionBkgColor: t.bg, altSectionBkgColor: t.code, sectionBkgColor2: t.bg, excludeBkgColor: t.code
+  })
+  // Architecture
+  Object.assign(v, { archEdgeColor: t.line, archEdgeArrowColor: t.line, archGroupBorderColor: t.border, archGroupBorderWidth: '1px' })
+
+  // Per-type overrides: series-coloured scales where the scale draws lines.
+  if (type === 'radar') {
+    for (let i = 0; i < 12; i++) v['cScale' + i] = series[i % 8]
+  }
+  const extraCss = []
+  if (type === 'architecture') {
+    // The built-in icons hard-code their tile and glyph colours in inline
+    // styles; attribute selectors + !important repaint them per theme.
+    extraCss.push(`rect[style*="#087ebf"] { fill: ${tint[0]} !important; stroke: ${tintBorder[0]} !important; stroke-width: 1px !important; rx: 14px; ry: 14px; }`)
+    extraCss.push(`[style*="stroke: #fff"] { stroke: ${series[0]} !important; }`)
+    extraCss.push(`[style*="fill: #fff"] { fill: ${series[0]} !important; }`)
+  }
+  if (type === 'pie') {
+    extraCss.push(`.slice { font-weight: 600; }`)
+    extraCss.push(`.pieTitleText { font-weight: 600; }`)
+    extraCss.push(`.legend rect { rx: 3px; ry: 3px; }`)
+  }
+  if (type === 'sankey') {
+    // Keep Mermaid's gradient links (they read best); only dark themes need
+    // normal blending — multiply over a dark background swallows the links.
+    if (t.dark) extraCss.push(`.link { mix-blend-mode: normal !important; stroke-opacity: 0.55 !important; }`)
+  }
+  const themeCSS = [
+    `.node rect, rect.actor, .statediagram-state rect, rect.task { rx: 9px; ry: 9px; }`,
+    `.node rect, .node polygon, .node circle, .node path, rect.actor, .classGroup rect, .er.entityBox, .mindmap-node path, .mindmap-node rect, .kanban-item rect, .section rect { filter: ${v.dropShadow}; }`,
+    `.nodeLabel, text.actor, .messageText, .taskText, .stateLabel { font-weight: 500; }`,
+    // journey and gitGraph hard-code Trebuchet on some labels.
+    `text, tspan { font-family: ${t.font}; }`,
+    `.edgeLabel, .edgeLabel p { color: ${t.muted}; font-size: 13px; }`,
+    `.flowchart-link, .messageLine0, .messageLine1, .transition, .relation { stroke-width: 1.4px; }`,
+    `.mindmap-edges path, .edge-depth-1, .edge-depth-2 { stroke-width: 2px !important; }`,
+    `.sankey-node rect, .node rect { rx: 3px; }`,
+    `.timeline-node text, .timeline-node tspan { font-size: 13px; }`,
+    ...extraCss
+  ].join('\n')
+
+  const { configs, c4, set } = buildTypeConfigs()
+  // C-4 palette bands (see START_BLOCK_MERMAID_FIT_COLUMN).
+  const strong = palette(t.accent, t.dark ? 0.5 : 0.5, 0.09)
+  const strongB = palette(t.accent, t.dark ? 0.62 : 0.42, 0.09)
+  set('person', strong[1], strongB[1])
+  set('external_person', t.dark ? '#4a4e58' : '#7c7f87', t.dark ? '#5b606b' : '#6b6e76')
+  for (const k of ['system', 'system_db', 'system_queue']) set(k, strong[0], strongB[0])
+  for (const k of ['external_system', 'external_system_db', 'external_system_queue']) {
+    set(k, t.dark ? '#4a4e58' : '#8a8d94', t.dark ? '#5b606b' : '#7a7d84')
+  }
+  for (const k of ['container', 'container_db', 'container_queue']) set(k, strong[2], strongB[2])
+  for (const k of ['component', 'component_db', 'component_queue']) set(k, strong[3], strongB[3])
+  for (const k of ['person', 'external_person', 'system', 'external_system', 'container', 'component', 'message', 'boundary']) {
+    c4[k + 'FontFamily'] = t.font
+    c4[k + 'FontSize'] = 14
+  }
+  configs.c4 = { ...c4, useMaxWidth: true }
+
+  return {
+    theme: 'base',
+    look: 'neo',
+    fontFamily: t.font,
+    themeVariables: v,
+    themeCSS,
+    ...configs
+  }
+}
+// END_BLOCK_MERMAID_CONFIG
+
+// START_BLOCK_MERMAID_SIGNATURE
+// djb2 — same hash family the pipeline uses for diagram code.
+const hashString = (str) => {
+  let hash = 5381
+  for (let i = 0; i < str.length; i++) {
+    hash = ((hash << 5) + hash + str.charCodeAt(i)) | 0
+  }
+  return hash >>> 0
+}
+
+/**
+ * Stable signature of the resolved theme — theme identity AND the resolved
+ * palette — for the pipeline's SVG cache key. Any switch that changes the
+ * colours a diagram would render with (Paper → Ink, Auto light/dark flip,
+ * a theme with a different accent) changes the signature, so every diagram
+ * re-renders; two themes that resolve to identical tokens keep their cache.
+ *
+ * @param {object} t theme tokens (readActiveThemeTokens shape)
+ * @returns {string} short signature safe for a cache-key prefix
+ */
+export const mermaidThemeSignature = (t) => {
+  if (!t) return 'no-theme'
+  const series = (t.series && t.series.length >= 6) ? t.series : palette(t.accent, t.dark ? 0.74 : 0.6, t.dark ? 0.11 : 0.12)
+  const digest = [
+    t.dark ? 1 : 0,
+    t.bg, t.surface, t.text, t.muted, t.border, t.line, t.accent, t.code, t.font,
+    series.join('')
+  ].join('|')
+  return `${hashString(digest).toString(36)}-${digest.length}`
+}
+// END_BLOCK_MERMAID_SIGNATURE

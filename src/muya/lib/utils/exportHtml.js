@@ -5,13 +5,18 @@
 //   SCOPE:   Export-only DOM/CSS generation. Does not mutate the live editor
 //            runtime beyond reusing shared renderers and CSS assets.
 //   DEPENDS: marked, Prism, katex, renderer loaders, inline CSS assets,
-//            sanitize helpers.
+//            sanitize helpers, parser/render/mermaidTheme (C-51 theme config).
 //   LINKS:   docs/knowledge-graph.xml M-012; docs/verification-plan.xml
-//            V-M-012 export scenarios; .grace/changes/active/C-39 T-001.
+//            V-M-012 export scenarios; .grace/changes/active/C-39 T-001;
+//            .grace/changes/active/C-51 T-003 (export uses the app theme).
 //   STATUS:  Screen layout CSS no longer uses `@media not print`; print
 //            behavior stays isolated in the dedicated `@media print` block.
 //
 // CHANGE_SUMMARY:
+//   - 2026-10-16 C-51 T-003: exported Mermaid diagrams use the same
+//     theme-driven config as the editor (mermaidTheme.js — tokens read from
+//     the live document's CSS variables at export time, per-diagram-type
+//     initialize), replacing the old default/dark flip.
 //   - 2026-05-21 drag-theme-refactor: remove `@media not print` from the
 //     export HTML stylesheet so bundle-level grep stays clean without
 //     changing the dedicated print rules below.
@@ -24,6 +29,12 @@ import marked from '../parser/marked'
 import Prism from 'prismjs'
 import { getKatex, loadKatex } from './lazy-katex'
 import loadRenderer from '../renderers'
+import {
+  readActiveThemeTokens,
+  detectMermaidDiagramType,
+  buildMermaidThemeConfig,
+  postProcessMermaidSvg
+} from '../parser/render/mermaidTheme'
 import githubMarkdownCss from 'github-markdown-css/github-markdown.css?inline'
 import exportStyle from '../assets/styles/exportStyle.css?inline'
 import highlightCss from 'prismjs/themes/prism.css?inline'
@@ -50,11 +61,12 @@ class ExportHtml {
   async renderMermaid() {
     const codes = this.exportContainer.querySelectorAll('code.language-mermaid')
     const mermaid = await loadRenderer('mermaid')
-    const isDark = document.body.classList.contains('dark')
-    mermaid.initialize({
-      securityLevel: 'strict',
-      theme: isDark ? 'dark' : 'default'
-    })
+    // C-51 T-003: the export renders with the same theme-driven config as
+    // the editor — tokens are read from the live document (the export
+    // container is attached to it) at export time, and each diagram type
+    // gets its own initialize. User %%{init}%% directives still win
+    // (mermaid merges them on top).
+    const tokens = readActiveThemeTokens()
     let index = 0
     for (const code of codes) {
       const preEle = code.parentNode
@@ -62,7 +74,13 @@ class ExportHtml {
       preEle.replaceWith(mermaidContainer)
       try {
         const rawCode = unescapeHTML(code.innerHTML)
-        const { svg, bindFunctions } = await mermaid.render('mermaid-export-' + index++, rawCode)
+        mermaid.initialize({
+          securityLevel: 'strict',
+          ...buildMermaidThemeConfig(tokens, detectMermaidDiagramType(rawCode))
+        })
+        const rendered = await mermaid.render('mermaid-export-' + index++, rawCode)
+        const bindFunctions = rendered.bindFunctions
+        const svg = postProcessMermaidSvg(rendered.svg, detectMermaidDiagramType(rawCode))
         mermaidContainer.innerHTML = svg
         if (bindFunctions) {
           bindFunctions(mermaidContainer)
