@@ -19,7 +19,9 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.3.0 - Pin tabs.cycleForward/Backward menu ids + Ctrl+Tab/Ctrl+Shift+Tab accelerators; ids leave the RENDERER_ONLY_ALLOWLIST (C-8).
+//   LAST_CHANGE: v1.4.6 - C-40: pin help.guide menu id (no accelerator) — opens the
+//   in-app Mark Guide as a temporary untitled tab via the renderer command registry.
+//   v1.3.0 - Pin tabs.cycleForward/Backward menu ids + Ctrl+Tab/Ctrl+Shift+Tab accelerators; ids leave the RENDERER_ONLY_ALLOWLIST (C-8).
 //   v1.4.4 - C-32: pin edit.copy-as-structured-text menu id (no accelerator).
 //   v1.4.5 - C-38 N1: pin file.preferences label "Settings…" + Cmd+, accelerator;
 //   the "Preferences…" label is gone from both the native menu and the taxonomy.
@@ -294,6 +296,23 @@ describe('menu ↔ commands consistency', () => {
     expect(taxonomy).toContain('label: "Settings…".to_string()')
     expect(buildFn).not.toContain('with_id("file.preferences", "Preferences…")')
     expect(taxonomy).not.toContain('label: "Preferences…"')
+  })
+
+  it('pins Mark Guide menu item id without an accelerator (C-40)', () => {
+    const rust = readSource('src-tauri/src/m009_menu.rs')
+    const buildFn = rust.slice(rust.indexOf('pub fn build_native_menu'))
+    const taxonomy = rust.slice(0, rust.indexOf('pub fn build_native_menu'))
+
+    const item = buildFn.match(
+      /with_id\(\s*"help\.guide",\s*"Mark Guide",?\s*\)([\s\S]*?)\.build\(handle\)/
+    )
+    expect(item).not.toBeNull()
+    expect(item[1]).not.toContain('accelerator')
+    // The taxonomy entry (standard_menu) stays id-dispatched only, like
+    // tabs.cycleForward/Backward — no legacy v1 command name.
+    expect(taxonomy).toContain('id: "help.guide".to_string()')
+    expect(taxonomy).toContain('label: "Mark Guide".to_string()')
+    expect(taxonomy).not.toContain('command: Some("openGuide"')
   })
 
   it('pins tab-cycling menu item ids and Ctrl+Tab accelerators (C-8)', () => {

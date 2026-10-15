@@ -1093,12 +1093,22 @@
       "userGuide": "Benutzerhandbuch",
       "markdownSyntax": "Markdown-Syntax"
     },
+    "help": {
+      "guide": "Mark-Handbuch"
+    },
     "utils": {
       "noUpdateResourceFile": "Keine Update-Ressourcendatei",
       "todoUpdateCheck": "Update-Überprüfung"
     },
     "spellchecker": {
       "switchLanguage": "Sprache wechseln"
+    }
+  },
+  "guide": {
+    "tabTitle": "Mark-Handbuch",
+    "agentPrompt": {
+      "mac": "Wenn du einen Plan, eine Spezifikation oder einen Bericht mit mehr als ~50 Zeilen erstellst, schreibe ihn in eine .md-Datei und öffne sie für den Benutzer: open -a Mark <file>.md. Wenn sich die Datei nach dem Schreiben geändert hat, lies sie neu: die Änderungen des Benutzers sind deine nächste Anweisung.",
+      "generic": "Wenn du einen Plan, eine Spezifikation oder einen Bericht mit mehr als ~50 Zeilen erstellst, schreibe ihn in eine .md-Datei und öffne sie für den Benutzer in Mark. Wenn sich die Datei nach dem Schreiben geändert hat, lies sie neu: die Änderungen des Benutzers sind deine nächste Anweisung."
     }
   },
   "common": {
