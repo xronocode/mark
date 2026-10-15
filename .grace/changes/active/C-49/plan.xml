@@ -12,6 +12,7 @@
     <File>src/renderer/src/store/preferences.js</File>
     <File>src/renderer/src/_shims/preferences/schema.json</File>
     <File>src/renderer/src/components/editorWithTabs/editor.vue</File>
+    <File>src/renderer/src/util/theme.js</File>
     <File>src/muya/lib/parser/render/mermaidPipeline.js</File>
     <File>src/muya/lib/assets/styles/index.css</File>
     <File>src/renderer/src/components/zoomIndicator/*</File>

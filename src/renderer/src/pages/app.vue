@@ -37,6 +37,7 @@
       <rename></rename>
       <tweet></tweet>
       <import-modal></import-modal>
+      <zoom-indicator></zoom-indicator>
     </div>
   </div>
 </template>
@@ -46,15 +47,26 @@
 //   PURPOSE: Mount the main renderer shell, hydrate preferences, and apply
 //            document-wide theme/common styles for the editor window.
 //   SCOPE:   App-level startup wiring only. Owns initial style injection,
-//            store listener registration, drag-drop bootstrap, and shell
-//            component composition.
+//            store listener registration, drag-drop bootstrap, the unified
+//            fontSize zoom key/wheel handlers (C-49), the --mark-zoom
+//            document property for diagram scaling, and shell component
+//            composition.
 //   DEPENDS: Pinia stores, bus, util/theme helpers, shell components.
 //   LINKS:   docs/knowledge-graph.xml M-011; docs/verification-plan.xml
-//            V-M-011 theme swap expectations.
+//            V-M-011 theme swap expectations; .grace/changes/active/C-49.
 //   STATUS:  Initial mount path dedupes theme application so raw theme CSS
 //            is injected once while common styles still initialize on boot.
 //
 // CHANGE_SUMMARY:
+//   - 2026-10-15 C-49 T-001: one clear zoom — ⌘+/⌘−/⌘0 and Ctrl+wheel now
+//     route through the preferences-store zoom actions (ZOOM_STEP /
+//     ZOOM_ACTUAL_SIZE: clamp 12–36, 150 ms debounced persist, transient
+//     mt::zoom-level-changed event for the new zoom-indicator pill); ⌘0
+//     restores the persisted baseFontSize (the Settings size) instead of a
+//     hard 16; both handlers skip the fullscreen block viewer (R-6);
+//     --mark-zoom = fontSize / 16 is kept on the document element so
+//     mermaid SVGs scale with the text; MIGRATE_LEGACY_ZOOM retires the
+//     palette percentage zoom after hydration.
 //   - 2026-10-15 C-41 T-001: Auto theme — after hydration, resolve
 //     followSystemTheme via util/autoTheme before the first addThemeStyle,
 //     re-resolve on mode/member preference changes (incl. cross-window
@@ -83,6 +95,7 @@ import Rename from '@/components/rename'
 import Tweet from '@/components/tweet'
 import ImportModal from '@/components/import'
 import LiveViewer from '@/components/liveViewer'
+import ZoomIndicator from '@/components/zoomIndicator'
 import bus from '@/bus'
 import { DEFAULT_STYLE } from '@/config'
 import { useTweetStore } from '@/store/tweet'
@@ -206,37 +219,19 @@ const setupDragDropHandler = () => {
 }
 
 // C-15 Phase W QA (Nurik): "ctrl+zoom должен изменять размер шрифта, а не
-// зумить внутренний фрейм". Ctrl+wheel and Ctrl+=/-/0 now drive the editor
+// зумить внутренний фрейм". Ctrl+wheel and Ctrl+=/-/0 drive the editor
 // fontSize preference (live via editor.vue watcher, debounced persistence)
 // instead of --content-zoom, which scaled the whole editor surface and
-// produced a stray horizontal scrollbar at zoom > 1. The View-menu app zoom
-// (ZOOM_LEVELS / EDIT_ZOOM) is untouched.
-const FONT_SIZE_MIN = 12
-const FONT_SIZE_MAX = 36
-const FONT_SIZE_DEFAULT = 16
-const FONT_PERSIST_DEBOUNCE_MS = 150
-
-let fontSizePersistTimer = null
-
-const persistFontSize = (value) => {
-  if (fontSizePersistTimer) {
-    clearTimeout(fontSizePersistTimer)
-  }
-  fontSizePersistTimer = setTimeout(() => {
-    preferencesStore.SET_SINGLE_PREFERENCE({ type: 'fontSize', value })
-    fontSizePersistTimer = null
-  }, FONT_PERSIST_DEBOUNCE_MS)
-}
-
-const applyFontSize = (value) => {
-  const next = Math.max(FONT_SIZE_MIN, Math.min(FONT_SIZE_MAX, Math.round(value)))
-  if (next === preferencesStore.fontSize) return
-  // Direct state write applies instantly (editor.vue watch → muya setFont);
-  // the debounced SET_SINGLE_PREFERENCE persists and cross-broadcasts.
-  preferencesStore.fontSize = next
-  persistFontSize(next)
-}
-
+// produced a stray horizontal scrollbar at zoom > 1.
+//
+// C-49 T-001: the clamping, baseFontSize tracking, debounced persistence
+// and the mt::zoom-level-changed indicator event live in the preferences
+// store (ZOOM_STEP / ZOOM_ACTUAL_SIZE) so the keyboard/wheel handlers here
+// and the View-menu commands (view.zoom-in/out/actual-size) run exactly
+// the same code. The native menu claims the accelerators on
+// macOS/Windows/Linux before the webview sees the keys; this keydown
+// handler covers the surfaces the menu does not (and e2e), mirroring how
+// view.split-view pairs a native accelerator with the registry shortcut.
 const setupCtrlWheelFontSize = () => {
   let accumulatedDelta = 0
   const STEP_THRESHOLD = 15
@@ -253,7 +248,7 @@ const setupCtrlWheelFontSize = () => {
 
     const step = accumulatedDelta > 0 ? -1 : 1
     accumulatedDelta = 0
-    applyFontSize(preferencesStore.fontSize + step)
+    preferencesStore.ZOOM_STEP(step)
   }
 
   // Capture phase: muya stops wheel propagation inside the editor, so the
@@ -263,23 +258,44 @@ const setupCtrlWheelFontSize = () => {
   return () => window.removeEventListener('wheel', handler, { capture: true })
 }
 
+// START_BLOCK_ZOOM_KEYS_FONT_SIZE
 const setupZoomKeysFontSize = () => {
   const handler = (e) => {
     if (!(e.metaKey || e.ctrlKey)) return
+    // R-6: the fullscreen block viewer owns its own +/−/0 keys; a
+    // Cmd-modified press inside it must not also zoom the editor beneath.
+    if (e.target && e.target.closest && e.target.closest('.ag-block-viewer')) return
     if (e.key === '=' || e.key === '+') {
       e.preventDefault()
-      applyFontSize(preferencesStore.fontSize + 1)
+      preferencesStore.ZOOM_STEP(1)
     } else if (e.key === '-') {
       e.preventDefault()
-      applyFontSize(preferencesStore.fontSize - 1)
+      preferencesStore.ZOOM_STEP(-1)
     } else if (e.key === '0') {
       e.preventDefault()
-      applyFontSize(FONT_SIZE_DEFAULT)
+      // "Actual Size" — the user's Settings size, not a hard 16.
+      preferencesStore.ZOOM_ACTUAL_SIZE()
     }
   }
   window.addEventListener('keydown', handler, true)
   return () => window.removeEventListener('keydown', handler, true)
 }
+// END_BLOCK_ZOOM_KEYS_FONT_SIZE
+
+// START_BLOCK_MARK_ZOOM
+// C-49 R-1: --mark-zoom = fontSize / 16 on the document element. The
+// mermaid pipeline stores each diagram's natural width and computes
+// max-width: calc(var(--mark-zoom, 1) * natural px), so diagrams and their
+// labels scale with the editor text while width:100% keeps them inside
+// the column. immediate: true covers the hydrated boot value.
+watch(
+  () => preferencesStore.fontSize,
+  (fontSize) => {
+    document.documentElement.style.setProperty('--mark-zoom', String(fontSize / 16))
+  },
+  { immediate: true }
+)
+// END_BLOCK_MARK_ZOOM
 
 onMounted(async () => {
   if (window.marktext.initialState) {
@@ -292,6 +308,9 @@ onMounted(async () => {
   listenForMainStore.LISTEN_FOR_EDIT()
   projectStore.LISTEN_FOR_SIDEBAR_CONTEXT_MENU()
   await preferencesStore.ASK_FOR_USER_PREFERENCE()
+  // C-49 R-4: retire the palette percentage zoom — a stored `zoom` ≠ 1
+  // becomes an equivalent fontSize (and baseFontSize) once, then zoom = 1.
+  await preferencesStore.MIGRATE_LEGACY_ZOOM()
   // C-41 T-001: resolve Auto (followSystemTheme) before the first style
   // application so the editor window opens on lightModeTheme/darkModeTheme
   // instead of whatever `theme` was last persisted while following the OS.
