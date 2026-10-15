@@ -38,6 +38,10 @@ export default defineConfig({
   projects: [
     { name: 'chromium', use: { browserName: 'chromium' }, testIgnore: ['**/fixtures/**', '**/perf/**'] },
     // C-30: perf gates run in WebKit, the engine WKWebView ships; opt-in via `npm run test:e2e:perf`.
-    { name: 'webkit-perf', use: { browserName: 'webkit' }, testMatch: 'perf/**/*.spec.ts' }
+    { name: 'webkit-perf', use: { browserName: 'webkit' }, testMatch: 'perf/**/*.spec.ts' },
+    // C-38 T-003: the Settings shell also gates in WebKit — WKWebView is
+    // the engine the macOS build ships; scoped to the settings specs so
+    // the rest of the chromium-only suite is unchanged.
+    { name: 'webkit-settings', use: { browserName: 'webkit' }, testMatch: 'settings-shell.spec.ts' }
   ]
 })

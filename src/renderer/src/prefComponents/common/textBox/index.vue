@@ -1,32 +1,63 @@
 <template>
-  <section class="pref-text-box-item" :class="{ 'ag-underdevelop': disable }">
-    <div class="description" style="display: flex; align-items: center">
-      <span>{{ description }}:</span>
-      <InfoFilled v-if="more" width="16" height="16" @click="handleMoreClick" />
+  <!-- START_BLOCK_FIELD_ROW -->
+  <section
+    class="pref-row pref-text-box-item"
+    :class="[osClass, { 'ag-underdevelop': disable }]"
+  >
+    <div class="pref-row-text">
+      <span class="pref-row-label">{{ description }}</span>
+      <InfoFilled v-if="more" width="16" height="16" class="pref-more-link" @click="handleMoreClick" />
+      <span v-if="helpLine" class="pref-row-help">{{ helpLine }}</span>
     </div>
-    <el-input
-      v-model="inputText"
-      class="input"
-      :class="{ error: invalidInput }"
-      :placeholder="defaultValue"
-      size="small"
-      clearable
-      @input="handleInput"
-    >
-    </el-input>
-    <div v-if="notes" class="notes">
-      {{ notes }}
+    <div class="pref-row-control">
+      <input
+        v-model="inputText"
+        type="text"
+        class="pref-field"
+        :class="{ error: invalidInput }"
+        :placeholder="defaultValue"
+        :aria-label="description"
+        :disabled="disable"
+        @input="handleInput"
+      />
     </div>
   </section>
+  <!-- END_BLOCK_FIELD_ROW -->
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
+// FILE: src/renderer/src/prefComponents/common/textBox/index.vue
+// VERSION: 2.0.0
+// START_MODULE_CONTRACT
+//   PURPOSE: Settings text-field row (C-38 T-003 anatomy) — label + optional help left, right-aligned mockup field (150px, placeholder) right, with the v1 debounce + regex validation contract unchanged.
+//   SCOPE: Row rendering, debounced onChange, invalid-input marking; same props/events as v1 plus help.
+//   DEPENDS: @element-plus/icons-vue (InfoFilled), prefComponents/common/osClass (prefOsClass).
+//   LINKS: .grace/changes/active/C-38 T-003; .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011.
+//   ROLE: RUNTIME
+//   MAP_MODE: LOCALS
+// END_MODULE_CONTRACT
+//
+// START_MODULE_MAP
+//   inputText - current text (mirrors the input prop through a watcher).
+//   invalidInput - regex failure marker (error styling).
+//   helpLine - secondary help text (help prop, else legacy notes).
+//   handleInput - validates, then debounced onChange (emitTime, 0 = immediate).
+//   handleMoreClick - opens the external `more` link.
+// END_MODULE_MAP
+//
+// START_CHANGE_SUMMARY
+//   - 2026-10-15 v2.0.0: C-38 T-003 — new row anatomy (no trailing colon, optional help); el-input replaced by the mockup right-aligned field with placeholder; debounce/regex contract preserved.
+//   - (v1.x: el-input under a 'Label:' caption — retired.)
+// END_CHANGE_SUMMARY
+
+import { ref, watch, computed } from 'vue'
 import { InfoFilled } from '@element-plus/icons-vue'
+import { prefOsClass } from '../osClass'
 
 const props = defineProps({
   description: String,
   notes: String,
+  help: String,
   input: String,
   onChange: Function,
   more: String,
@@ -51,6 +82,8 @@ const props = defineProps({
 let inputTimer = null
 const inputText = ref(props.input)
 const invalidInput = ref(false)
+const osClass = prefOsClass()
+const helpLine = computed(() => props.help || props.notes || '')
 
 watch(
   () => props.input,
@@ -67,8 +100,11 @@ const handleMoreClick = () => {
   }
 }
 
+// Accepts either the DOM input event (v-model state is already updated)
+// or an explicit value string (direct calls in tests).
 const handleInput = (value) => {
-  const result = props.regexValidator.test(value)
+  const text = value instanceof Event ? inputText.value : value
+  const result = props.regexValidator.test(text)
   invalidInput.value = !result
 
   if (result) {
@@ -77,69 +113,57 @@ const handleInput = (value) => {
     }
 
     if (props.emitTime === 0) {
-      props.onChange(value)
+      props.onChange(text)
       return
     }
 
     inputTimer = setTimeout(() => {
       inputTimer = null
-      props.onChange(value)
+      props.onChange(text)
     }, props.emitTime)
   }
 }
 </script>
 
 <style>
-.pref-text-box-item {
-  font-size: 14px;
-  user-select: none;
-  margin: 20px 0;
-  color: var(--editorColor);
-  width: 100%;
-  & div {
-    background: transparent;
-    color: var(--editorColor);
-    border-color: var(--editorColor10);
-  }
-  & input.el-input__inner {
-    height: 30px;
-    background: transparent;
-    border: none;
-    padding-right: 15px;
-    &::placeholder {
-      color: var(--editorColor30);
-    }
-  }
-  & .notes {
-    margin-top: 10px;
-    font-style: italic;
-    font-size: 12px;
-  }
-  & .input {
-    width: 100%;
-  }
-  & .el-input.is-active .el-input__inner,
-  & .el-input__inner:focus {
-    border-color: var(--themeColor);
-  }
-  & .el-input__icon,
-  & .el-input__inner {
-    line-height: 30px;
-  }
-  & .description {
-    margin-bottom: 10px;
-  }
-  & svg {
-    margin-left: 4px;
-    cursor: pointer;
-    opacity: 0.7;
-    color: var(--iconColor);
-  }
-  & svg:hover {
-    color: var(--themeColor);
-  }
+/* START_BLOCK_FIELD_METRICS */
+/* Mockup text field: 13px, 150px wide, right-aligned text, placeholder
+   carries the default; macOS radius 5, Windows radius 4. */
+.pref-text-box-item .pref-field {
+  font: inherit;
+  font-size: 13px;
+  width: 150px;
+  box-sizing: border-box;
+  padding: 3px 8px;
+  color: var(--prefText, #1d1d1f);
+  background: var(--prefCtrl, #ffffff);
+  border: 0.5px solid var(--prefCtrlBorder, rgba(0, 0, 0, 0.14));
+  text-align: right;
+  outline: none;
 }
-.pref-text-box-item .el-input.error input {
-  color: #f56c6c;
+
+.pref-text-box-item.pref-os-mac .pref-field {
+  border-radius: 5px;
 }
+
+.pref-text-box-item.pref-os-win .pref-field {
+  border-radius: 4px;
+}
+
+.pref-text-box-item .pref-field:focus {
+  border-color: var(--prefAccent, #007aff);
+}
+
+.pref-text-box-item .pref-field::placeholder {
+  color: var(--prefSub, #6b6b70);
+}
+
+.pref-text-box-item .pref-field.error {
+  color: #d9534f;
+}
+
+.pref-text-box-item .pref-field:disabled {
+  opacity: 0.45;
+}
+/* END_BLOCK_FIELD_METRICS */
 </style>

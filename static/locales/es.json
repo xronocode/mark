@@ -452,8 +452,16 @@
   },
   "preferences": {
     "title": "Preferencias",
+    "tabs": {
+      "general": "General",
+      "appearance": "Apariencia",
+      "editor": "Editor",
+      "markdown": "Markdown",
+      "advanced": "Avanzado"
+    },
     "search": {
       "placeholder": "Buscar preferencias...",
+      "empty": "No hay configuraciones coincidentes",
       "optionalValues": "valores opcionales",
       "categories": {
         "general": "General",

@@ -128,6 +128,12 @@
       <ReviewFixes>Agent code did not parse (missing comma after MIGRATE_CODE_BLOCK_LINE_NUMBERS — 821 tests failed); alignment was still broken in a real browser: line starts resolved to the end of the previous text node (number 3 sat on the last wrapped row of line 2), WebKit's leading empty client rect, and a half-leading offset on the gutter — fixed in utils/resizeCodeLineNumber.js and in the e2e metric (line-box top, first non-empty rect); app.vue attached window listeners after awaits even when already unmounted (the longer hydration made a C-46 test fail) — guarded; C-41 persist-once tests scoped to theme keys; duplicate .ts test stub deleted.</ReviewFixes>
       <Gates>Red on main: the feature is force-off (no gutter) — e2e wrap on/off fail; chromium wrap-on also failed on the agent's version before the line-start fix. Green: npm test 3781 passed; e2e 260 passed (chromium + webkit), code-block-line-numbers 6/6 twice; grace lint Errors 0. Screenshots checked in both engines (wrap on/off, after Enter).</Gates>
     </T-005>
+    <T-003>
+      <Status>done</Status>
+      <Commits>agent/c38-t3 (ZCode, no shell), rebased on main; orchestrator review fixes in the same squash.</Commits>
+      <ReviewFixes>17 unit failures + 5 unimportable files: controls imported util/index.js, which reads the window shim at import (new prefComponents/common/osClass.js resolves the OS class at mount); OS toggling tests captured isOsx once (getter mocks / platform per test); compound/title/search/route tests fixed. WebKit screenshots of all 5 tabs light/dark found: General tab blank (FETCH_BUILD_MODE stored a non-object answer, capabilities.setDefaultHandler threw — keep defaults, unit test added); theme-coloured scrollbar strip on the right (neutral Settings scrollbar); double frame on the font field (style el-input__wrapper); a stray "3" in theme previews (heading-level marker, a C-41 T-002 regression). CI never ran the new webkit-settings project — step added to test.yml. Dead files removed (old rail, Linux titlebar, its test); router/tabsBar GRACE roles.</ReviewFixes>
+      <Gates>Red on main: tabsBar tests (module absent). Green: npm test 3834 passed; e2e 264 passed (chromium + webkit); grace lint Errors 0; cargo check OK, cargo test 395 passed.</Gates>
+    </T-003>
   </Evidence>
 </C-38>
 </GraceChangePlan>

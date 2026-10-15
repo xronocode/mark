@@ -15,6 +15,9 @@
 //   STATUS:  shipped 2026-04-29 with F-MAIN-ENTRY-DISABLED runtime close.
 //
 // CHANGE_SUMMARY:
+//   - 2026-10-15 C-38 T-003: mt_open_setting_window builds the fixed
+//     640×620 shell (min=max, non-resizable — the body scrolls inside)
+//     titled "Settings"; the renderer retitles it per active tab.
 //   - 2026-10-13 C-24: mt_grant_folder_access — folder picker opened at the
 //     document folder; the grant is bookmarked (M-047) so images can be
 //     written into assets/ from the App Store sandbox.
@@ -704,6 +707,9 @@ pub async fn mt_request_window_content_size(args: Value) -> Result<(), String> {
 /// router (router/index.js) redirects '/' to '/preference' when
 /// `type !== 'editor'`. If a settings window already exists, focuses
 /// the existing one instead of opening a duplicate.
+/// C-38 T-003: the window is the fixed 640×620 shell from the approved
+/// mockup (content scrolls inside the body; the title follows the
+/// active tab, set from the renderer via set_title).
 #[tauri::command]
 pub async fn mt_open_setting_window(app: tauri::AppHandle) -> Result<(), String> {
     if let Some(existing) = app.get_webview_window("settings") {
@@ -720,9 +726,11 @@ pub async fn mt_open_setting_window(app: tauri::AppHandle) -> Result<(), String>
         "settings",
         tauri::WebviewUrl::App("index.html?type=settings&wid=1&debug=0".into()),
     )
-    .title("Mark — Preferences")
-    .inner_size(960.0, 720.0)
-    .resizable(true)
+    .title("Settings")
+    .inner_size(640.0, 620.0)
+    .min_inner_size(640.0, 620.0)
+    .max_inner_size(640.0, 620.0)
+    .resizable(false)
     .build()
     .map_err(|e| {
         safe_eprintln!("[v1_compat][settings][BLOCK_BUILD_FAILED err={e}]");

@@ -451,8 +451,16 @@
   },
   "preferences": {
     "title": "Einstellungen",
+    "tabs": {
+      "general": "Allgemein",
+      "appearance": "Erscheinungsbild",
+      "editor": "Editor",
+      "markdown": "Markdown",
+      "advanced": "Erweitert"
+    },
     "search": {
       "placeholder": "In Einstellungen suchen...",
+      "empty": "Keine passenden Einstellungen",
       "optionalValues": "optionale Werte",
       "categories": {
         "general": "Allgemein",

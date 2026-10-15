@@ -191,6 +191,12 @@ const onSelectFamily = (family) => {
   }
   /* C-41 T-002: swatch base — light half defaults; every kept theme
      overrides below. */
+  /* C-38 T-003 review: the editor's heading-level marker (h3::before
+     "h3") showed as a stray "3" once the swatches lost the old 30px
+     left padding — previews never show it. */
+  & .theme.swatch .atx::before {
+    display: none;
+  }
   & .theme.swatch {
     flex: 1 1 50%;
     height: 88px;

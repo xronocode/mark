@@ -3,6 +3,8 @@
  *
  * Targets uncovered branches in getTranslatedSearchContent, setupLanguageChangeListener,
  * refreshSearchContent, debugLanguageState, createDebugPopup, getI18nInstance.
+ * C-38 T-003: routeCategory now resolves through CATEGORY_TO_TAB to the
+ * 5 new tabs; getCategory (the retired rail catalog) is gone.
  */
 
 // Mutable delegate so tests can swap the t() implementation per-test.
@@ -15,16 +17,6 @@ const { tRef } = vi.hoisted(() => {
 vi.mock('@/i18n', () => ({
   t: (...args) => tRef.fn(...args)
 }))
-
-// Mock SVG icon imports
-vi.mock('@/assets/icons/pref_general.svg', () => ({ default: {} }))
-vi.mock('@/assets/icons/pref_editor.svg', () => ({ default: {} }))
-vi.mock('@/assets/icons/pref_markdown.svg', () => ({ default: {} }))
-vi.mock('@/assets/icons/pref_theme.svg', () => ({ default: {} }))
-vi.mock('@/assets/icons/pref_image.svg', () => ({ default: {} }))
-vi.mock('@/assets/icons/pref_spellcheck.svg', () => ({ default: {} }))
-vi.mock('@/assets/icons/pref_key_binding.svg', () => ({ default: {} }))
-vi.mock('@/assets/icons/pref_language.svg', () => ({ default: {} }))
 
 // Mock the preferences schema with various categories for branch coverage
 vi.mock('@/_shims/preferences/schema.json', () => ({
@@ -86,7 +78,6 @@ vi.mock('@/_shims/preferences/schema.json', () => ({
 }))
 
 import {
-  getCategory,
   getTranslatedSearchContent,
   refreshSearchContent,
   debugLanguageState,
@@ -100,34 +91,6 @@ describe('sideBar/config.js – deep tests', () => {
     if (popup) popup.remove()
     const buttonContainer = document.getElementById('debugButtonContainer')
     if (buttonContainer) buttonContainer.remove()
-  })
-
-  // ── getCategory ──────────────────────────────────────────────────────
-
-  describe('getCategory deep', () => {
-    it('returns exactly 9 categories with correct labels', () => {
-      const cats = getCategory()
-      expect(cats).toHaveLength(9)
-      const labels = cats.map((c) => c.label)
-      expect(labels).toEqual([
-        'general', 'editor', 'markdown', 'spelling',
-        'theme', 'image', 'keybindings', 'language', 'extensions'
-      ])
-    })
-
-    it('all paths start with /preference/', () => {
-      const cats = getCategory()
-      cats.forEach((c) => {
-        expect(c.path).toMatch(/^\/preference\//)
-      })
-    })
-
-    it('each category has a non-empty name', () => {
-      const cats = getCategory()
-      cats.forEach((c) => {
-        expect(c.name).toBeTruthy()
-      })
-    })
   })
 
   // ── getTranslatedSearchContent ───────────────────────────────────────
@@ -160,18 +123,18 @@ describe('sideBar/config.js – deep tests', () => {
       expect(bullet.routeCategory).toBe('markdown')
     })
 
-    it('maps Theme category correctly', () => {
+    it('maps Theme category to the appearance tab', () => {
       const content = getTranslatedSearchContent()
       const theme = content.find((c) => c.key === 'theme')
       expect(theme).toBeDefined()
-      expect(theme.routeCategory).toBe('theme')
+      expect(theme.routeCategory).toBe('appearance')
     })
 
-    it('maps Image category correctly', () => {
+    it('maps Image category to the advanced tab', () => {
       const content = getTranslatedSearchContent()
       const img = content.find((c) => c.key === 'imageAction')
       expect(img).toBeDefined()
-      expect(img.routeCategory).toBe('image')
+      expect(img.routeCategory).toBe('advanced')
     })
 
     it('maps View category to general (invalid route)', () => {
@@ -196,18 +159,18 @@ describe('sideBar/config.js – deep tests', () => {
       expect(watcher.routeCategory).toBe('general')
     })
 
-    it('maps Spelling category correctly', () => {
+    it('maps Spelling category to the editor tab', () => {
       const content = getTranslatedSearchContent()
       const spell = content.find((c) => c.key === 'spellOption')
       expect(spell).toBeDefined()
-      expect(spell.routeCategory).toBe('spelling')
+      expect(spell.routeCategory).toBe('editor')
     })
 
-    it('maps Custom CSS category to general (invalid route)', () => {
+    it('maps Custom CSS category to the advanced tab', () => {
       const content = getTranslatedSearchContent()
       const css = content.find((c) => c.key === 'customCss')
       expect(css).toBeDefined()
-      expect(css.routeCategory).toBe('general')
+      expect(css.routeCategory).toBe('advanced')
     })
 
     it('handles unknown category via else branch (lowercased with dashes)', () => {

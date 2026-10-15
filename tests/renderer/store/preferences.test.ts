@@ -50,6 +50,18 @@ describe('store/preferences', () => {
     busOffMock.mockReset()
   })
 
+  it('FETCH_BUILD_MODE keeps the default capabilities on a non-object answer (C-38 T-003 review)', async () => {
+    const { usePreferencesStore } = await import('@/store/preferences')
+    const s = usePreferencesStore()
+    const defaults = { ...s.buildCapabilities }
+    vi.mocked(invoke).mockResolvedValueOnce(undefined as never)
+    await s.FETCH_BUILD_MODE()
+    expect(s.buildCapabilities).toEqual(defaults)
+    vi.mocked(invoke).mockResolvedValueOnce({ setDefaultHandler: false } as never)
+    await s.FETCH_BUILD_MODE()
+    expect(s.buildCapabilities).toEqual({ setDefaultHandler: false })
+  })
+
   it('state defaults — spot-check critical fields', async () => {
     const { usePreferencesStore } = await import('@/store/preferences')
     const s = usePreferencesStore()

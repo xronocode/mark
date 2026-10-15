@@ -1,104 +1,77 @@
 /**
- * Tests for src/renderer/src/prefComponents/sideBar/index.vue
+ * Settings search panel basics — replaces the retired left-rail tests
+ * (src/renderer/src/prefComponents/sideBar/index.vue is dead since the
+ * C-38 T-003 toolbar replaced it; the search lives in
+ * prefComponents/tabsBar/searchPanel.vue now).
  */
 
-import { shallowMount } from '@vue/test-utils'
+import { mount } from '@vue/test-utils'
+import { nextTick } from 'vue'
 
-vi.mock('@/i18n', () => ({
-  t: (key) => key,
-  setLanguage: vi.fn()
-}))
-
+vi.mock('@/i18n', () => ({ t: (key) => key, setLanguage: vi.fn() }))
 vi.mock('vue-i18n', () => ({
   useI18n: () => ({ t: (key) => key }),
   createI18n: vi.fn(() => ({ global: { locale: { value: 'en' } } }))
 }))
 
-vi.mock('element-plus', () => ({
-  ElMessage: { success: vi.fn(), error: vi.fn() }
-}))
-
-vi.mock('@element-plus/icons-vue', () => ({
-  Search: { template: '<span />' }
-}))
-
-// Mock SVG icon imports
-vi.mock('@/assets/icons/pref_general.svg', () => ({ default: { template: '<span />' } }))
-vi.mock('@/assets/icons/pref_editor.svg', () => ({ default: { template: '<span />' } }))
-vi.mock('@/assets/icons/pref_markdown.svg', () => ({ default: { template: '<span />' } }))
-vi.mock('@/assets/icons/pref_theme.svg', () => ({ default: { template: '<span />' } }))
-vi.mock('@/assets/icons/pref_image.svg', () => ({ default: { template: '<span />' } }))
-vi.mock('@/assets/icons/pref_spellcheck.svg', () => ({ default: { template: '<span />' } }))
-vi.mock('@/assets/icons/pref_key_binding.svg', () => ({ default: { template: '<span />' } }))
-vi.mock('@/assets/icons/pref_language.svg', () => ({ default: { template: '<span />' } }))
-
-// Mock the preferences schema
 vi.mock('@/_shims/preferences/schema.json', () => ({
   default: {
-    fontSize: {
-      description: 'Editor--Font size',
-      type: 'number'
-    }
+    autoSave: { description: 'General--Auto save', type: 'boolean' },
+    theme: { description: 'Theme--Current theme', type: 'string' }
   }
 }))
 
-// Mock vue-router
-const pushMock = vi.fn()
-const routeMock = { name: 'general', path: '/preference/general' }
-
+const pushMock = vi.fn(() => Promise.resolve())
 vi.mock('vue-router', () => ({
-  useRouter: () => ({
-    push: pushMock,
-    getRoutes: () => [
-      { path: '/preference/general' },
-      { path: '/preference/editor' },
-      { path: '/preference/markdown' }
-    ]
-  }),
-  useRoute: () => routeMock
+  useRouter: () => ({ push: pushMock }),
+  useRoute: () => ({ name: 'general', path: '/preference/general' })
 }))
 
-import SideBar from '@/prefComponents/sideBar/index.vue'
+import SearchPanel from '@/prefComponents/tabsBar/searchPanel.vue'
 
-describe('SideBar.vue', () => {
+describe('Settings search panel (tabsBar/searchPanel.vue)', () => {
   let wrapper
 
   beforeEach(() => {
     pushMock.mockClear()
-    wrapper = shallowMount(SideBar, {
-      global: {
-        mocks: { $t: (key) => key },
-        stubs: {
-          'el-autocomplete': true,
-          Search: true
-        }
-      }
-    })
+    wrapper = mount(SearchPanel)
   })
 
   afterEach(() => {
     wrapper.unmount()
   })
 
-  it('renders without errors', () => {
-    expect(wrapper.exists()).toBe(true)
+  it('is hidden until openPanel is called', async () => {
+    expect(wrapper.find('.pref-search').exists()).toBe(false)
+    wrapper.vm.openPanel()
+    await nextTick()
+    expect(wrapper.find('.pref-search').exists()).toBe(true)
+    expect(wrapper.find('.pref-search-input').exists()).toBe(true)
   })
 
-  it('has pref-sidebar root class', () => {
-    expect(wrapper.find('.pref-sidebar').exists()).toBe(true)
+  it('Esc closes the panel and clears the query', async () => {
+    wrapper.vm.openPanel()
+    await nextTick()
+    const input = wrapper.find('.pref-search-input')
+    await input.setValue('theme')
+    await input.trigger('keydown', { key: 'Escape' })
+    expect(wrapper.find('.pref-search').exists()).toBe(false)
+    expect(wrapper.find('.pref-search-input').exists()).toBe(false)
   })
 
-  it('renders the title h3', () => {
-    const h3 = wrapper.find('h3.title')
-    expect(h3.exists()).toBe(true)
+  it('emits closed when it closes (the toolbar tracks open state through it)', async () => {
+    expect(wrapper.emitted('closed')).toBeUndefined()
+    wrapper.vm.openPanel()
+    await nextTick()
+    await wrapper.find('.pref-search-input').trigger('keydown', { key: 'Escape' })
+    expect(wrapper.emitted('closed')).toHaveLength(1)
   })
 
-  it('renders category items', () => {
-    const items = wrapper.findAll('.item')
-    expect(items.length).toBeGreaterThan(0)
-  })
-
-  it('has search wrapper', () => {
-    expect(wrapper.find('.search-wrapper').exists()).toBe(true)
+  it('shows the empty hint when nothing matches', async () => {
+    wrapper.vm.openPanel()
+    await nextTick()
+    await wrapper.find('.pref-search-input').setValue('zzz-no-match')
+    expect(wrapper.find('.pref-search-results').exists()).toBe(false)
+    expect(wrapper.find('.pref-search-empty').exists()).toBe(true)
   })
 })

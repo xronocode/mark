@@ -260,7 +260,12 @@ export const usePreferencesStore = defineStore('preferences', {
     async FETCH_BUILD_MODE() {
       try {
         const { invoke } = await import('@tauri-apps/api/core')
-        this.buildCapabilities = await invoke('mt_build_mode')
+        const capabilities = await invoke('mt_build_mode')
+        // C-38 T-003 review: a non-object answer (dev shim, older binary)
+        // keeps the defaults too — Settings reads capabilities.* directly.
+        if (capabilities && typeof capabilities === 'object') {
+          this.buildCapabilities = capabilities
+        }
       } catch {
         // keep defaults
       }

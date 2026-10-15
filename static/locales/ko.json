@@ -451,8 +451,16 @@
   },
   "preferences": {
     "title": "환경설정",
+    "tabs": {
+      "general": "일반",
+      "appearance": "화면 표시",
+      "editor": "편집기",
+      "markdown": "Markdown",
+      "advanced": "고급"
+    },
     "search": {
       "placeholder": "환경설정 검색...",
+      "empty": "일치하는 설정이 없습니다",
       "optionalValues": "선택적 값",
       "categories": {
         "general": "일반",
