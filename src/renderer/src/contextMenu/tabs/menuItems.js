@@ -48,6 +48,37 @@ export const getSHOW_IN_FOLDER = () => ({
   id: 'showInFolder'
 })
 
+// C-40 T-004: Lock Document / Unlock Document (per-tab read-only lock).
+// The label reflects the tab's lock state at popup time; one id — the
+// handler toggles.
+export const getLOCK = (locked) => ({
+  label: locked ? t('contextMenu.tabs.unlock') : t('contextMenu.tabs.lock'),
+  id: 'lockDocument'
+})
+
+// C-40 T-004: the R-2 document tools stay reachable from the tab context
+// menu (option A moved them out of the title bar): Split View per tab and
+// the copy-document flavors.
+export const getSPLIT_VIEW = () => ({
+  label: t('contextMenu.tabs.splitView'),
+  id: 'splitView'
+})
+
+export const getCOPY_AS_MARKDOWN = () => ({
+  label: t('contextMenu.tabs.copyAsMarkdown'),
+  id: 'copyAsMarkdown'
+})
+
+export const getCOPY_AS_HTML = () => ({
+  label: t('contextMenu.tabs.copyAsHtml'),
+  id: 'copyAsHtml'
+})
+
+export const getCOPY_AS_STRUCTURED = () => ({
+  label: t('contextMenu.tabs.copyAsStructuredText'),
+  id: 'copyAsStructuredText'
+})
+
 // id → handler. Each receives the active tab id at click dispatch time.
 // Items whose action ignores the tab id (close-saved / close-all)
 // simply discard the argument.
@@ -58,12 +89,17 @@ export const HANDLERS = {
   closeAllTabs: () => contextMenu.closeAll(),
   renameFile: (tabId) => contextMenu.rename(tabId),
   copyPath: (tabId) => contextMenu.copyPath(tabId),
-  showInFolder: (tabId) => contextMenu.showInFolder(tabId)
+  showInFolder: (tabId) => contextMenu.showInFolder(tabId),
+  lockDocument: (tabId) => contextMenu.toggleLock(tabId),
+  splitView: (tabId) => contextMenu.toggleSplitView(tabId),
+  copyAsMarkdown: (tabId) => contextMenu.copyAsMarkdown(tabId),
+  copyAsHtml: (tabId) => contextMenu.copyDocumentAs('html', tabId),
+  copyAsStructuredText: (tabId) => contextMenu.copyDocumentAs('structuredText', tabId)
 }
 
 // Backwards-compat shape kept for any external import sites; click is
-// no longer present, so direct RemoteMenuItem construction is no longer
-// supported (those import sites must migrate via showContextMenu).
+// no longer present, so direct RemoteMenuItem construction is no
+// longer supported (those import sites must migrate via showContextMenu).
 export const CLOSE_THIS = getCLOSE_THIS()
 export const CLOSE_OTHERS = getCLOSE_OTHERS()
 export const CLOSE_SAVED = getCLOSE_SAVED()
@@ -71,3 +107,4 @@ export const CLOSE_ALL = getCLOSE_ALL()
 export const RENAME = getRENAME()
 export const COPY_PATH = getCOPY_PATH()
 export const SHOW_IN_FOLDER = getSHOW_IN_FOLDER()
+export const LOCK = getLOCK(false)

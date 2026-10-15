@@ -140,7 +140,9 @@
       "showDeveloperTools": "Entwicklertools anzeigen",
       "reloadWindow": "Fenster neu laden",
       "splitView": "Geteilte Ansicht",
-      "outline": "Gliederung"
+      "outline": "Gliederung",
+      "statusBar": "Statusleiste",
+      "lockDocument": "Dokument sperren"
     },
     "format": {
       "format": "Format",
@@ -238,7 +240,13 @@
       "closeAllTabs": "Alle Tabs schließen",
       "rename": "Umbenennen",
       "copyPath": "Pfad kopieren",
-      "showInFolder": "Im Ordner anzeigen"
+      "showInFolder": "Im Ordner anzeigen",
+      "lock": "Dokument sperren",
+      "unlock": "Dokument entsperren",
+      "splitView": "Geteilte Ansicht",
+      "copyAsMarkdown": "Als Markdown kopieren",
+      "copyAsHtml": "Als HTML kopieren",
+      "copyAsStructuredText": "Als strukturierten Text kopieren"
     },
     "editor": {
       "undo": "Widerrufen",
@@ -268,6 +276,32 @@
   },
   "outlineRail": {
     "title": "Auf dieser Seite"
+  },
+  "statusBar": {
+    "title": "Dokumentstatistik",
+    "documentType": "Markdown",
+    "readingTime": "{count} Min. Lesezeit",
+    "lines": {
+      "one": "{count} Zeile",
+      "other": "{count} Zeilen"
+    },
+    "words": {
+      "one": "{count} Wort",
+      "other": "{count} Wörter"
+    },
+    "characters": {
+      "other": "{count} Zeichen"
+    },
+    "selectedWords": {
+      "one": "{count} Wort ausgewählt",
+      "other": "{count} Wörter ausgewählt"
+    },
+    "selectedCharacters": {
+      "other": "{count} Zeichen ausgewählt"
+    }
+  },
+  "tabs": {
+    "lockedTitle": "Schreibgeschützt"
   },
   "sideBar": {
     "search": {
@@ -485,6 +519,7 @@
         "titleBarStyle": "Fenstertitelleiste: eigenständig oder system (Neustart erforderlich)",
         "hideScrollbar": "Scrollbalken ausblenden",
         "wordWrapInToc": "Lange Überschriften in der Gliederung umbrechen",
+        "statusBarVisibility": "Statusleiste anzeigen (Zeilen, Wörter, Zeichen, Lesezeit)",
         "editorFontFamily": "Textschrift",
         "fontSize": "Textgröße",
         "lineHeight": "Zeilenabstand",
@@ -602,6 +637,8 @@
         "title": "Fenster und Leisten",
         "hideScrollbar": "Scrollbalken ausblenden",
         "wordWrapInToc": "Lange Überschriften in der Gliederung umbrechen",
+        "statusBar": "Statusleiste anzeigen",
+        "statusBarHelp": "Zeilen, Wörter, Zeichen und Lesezeit am unteren Fensterrand (auch über Ansicht › Statusleiste).",
         "titleBarStyle": "Fenstertitelleiste",
         "titleBarStyleHelp": "„Eigenständig“ zeichnet Marks eigene Titelleiste mit Tabs. Erfordert einen Neustart.",
         "titleBarStyleCustom": "Eigenständig",
@@ -826,6 +863,7 @@
       "copyAsHtml": "Als HTML kopieren",
       "copyAsPlainText": "Als reinen Text kopieren",
       "copyAsStructuredText": "Als strukturierten Text kopieren",
+      "copyAsMarkdown": "Als Markdown kopieren",
       "pasteAsPlaintext": "Als reinen Text einfügen",
       "selectAll": "Alles auswählen",
       "duplicate": "Duplizieren",
@@ -907,7 +945,9 @@
       "zoomOut": "Verkleinern",
       "devToggleDeveloperTools": "Entwicklertools umschalten",
       "splitView": "Geteilte Ansicht",
-      "outline": "Die Gliederung „Auf dieser Seite“ ein- oder ausblenden"
+      "outline": "Die Gliederung „Auf dieser Seite“ ein- oder ausblenden",
+      "statusBar": "Statusleiste ein- oder ausblenden",
+      "lockDocument": "Aktuelles Dokument sperren (schreibgeschützt)"
     },
     "tabs": {
       "cycleForward": "Vorwärts wechseln",

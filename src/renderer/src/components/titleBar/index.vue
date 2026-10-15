@@ -204,11 +204,11 @@
 
 <script setup>
 // FILE: src/renderer/src/components/titleBar/index.vue
-// VERSION: 2.0.0
+// VERSION: 2.0.1
 // START_MODULE_CONTRACT
 //   PURPOSE: Render the trimmed main-window title bar (sidebar toggle left, document title centre, theme/Share/guide right) with the document info popover and native file-path actions, window controls, and drag affordances.
 //   SCOPE: Renderer-side titlebar behavior: sidebar toggle, the C-40 T-002 document info popover (stats + folder/size/modified + Rename/Reveal/Copy path), the Win/Linux «?» Mark Guide entry, native title context menu, direct window controls, and WKWebView/macOS drag fallbacks.
-//   DEPENDS: preferences/layout/project/editor stores, bus, i18n, window.electron/fileUtils IPC facade, @tauri-apps/api/window, @tauri-apps/api/path, @tauri-apps/plugin-clipboard-manager, util/relativeTime, components/icons/chromeIcons.
+//   DEPENDS: preferences/layout/project/editor stores, bus, i18n, window.electron/fileUtils IPC facade, @tauri-apps/api/window, @tauri-apps/api/path, @tauri-apps/plugin-clipboard-manager, util/relativeTime, util/docStats, components/icons/chromeIcons.
 //   LINKS: .grace/graph/runtime.xml M-011 (renderer), M-057 (chromeIcons); .grace/verification/runtime.xml V-M-011 scenarios 14, 37, 38, 53.
 //   ROLE: RUNTIME
 //   MAP_MODE: LOCALS
@@ -228,7 +228,7 @@
 //   handleThemeToggle - Cycles Auto → Light → Dark → Auto and persists followSystemTheme/theme (C-41 T-001).
 //   togglePopover - Opens/closes the document info popover (C-40 T-002).
 //   refreshDocInfo - Reloads size/mtime via window.fileUtils.stat and the home-dir prefix for the ~-abbreviated folder (C-40 T-002).
-//   statWords/statCharacters/statLines/readingLabel - Popover statistics; reading time = words/230 rounded up, min 1 (C-40 T-002).
+//   statWords/statCharacters/statLines/readingLabel - Popover statistics; lines and reading minutes via the shared util/docStats (words/230 rounded up, min 1; C-40 T-002, shared since C-40 T-004).
 //   docInfoMeta - "folder · size · edited <relative>" meta line; untitled documents render none (C-40 T-002).
 //   handleRenameClick - Popover Rename… → editorStore.RESPONSE_FOR_RENAME (the old click-to-rename path).
 //   handleRevealClick - Popover reveal → window.electron.shell.showItemInFolder.
@@ -238,6 +238,10 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-10-15 v2.0.1: C-40 T-004 — line counting and reading minutes
+//     move to util/docStats.js so the popover and the new status bar
+//     share one computation; the popover's rendered numbers are
+//     unchanged.
 //   - 2026-10-15 v2.0.0: C-40 T-002 title-bar trim (approved canvas,
 //     option A): the Files and TOC buttons, the breadcrumb path and the
 //     word count leave the title bar; left = sidebar toggle (plus the
@@ -285,6 +289,7 @@ import { useI18n } from 'vue-i18n'
 import { writeText as writeClipboardText } from '@tauri-apps/plugin-clipboard-manager'
 import { ChromeIcon } from '../icons/chromeIcons.js'
 import { formatRelativeTime } from '@/util/relativeTime.js'
+import { countDocumentLines, readingMinutes } from '@/util/docStats.js'
 
 const props = defineProps({
   project: Object,
@@ -455,13 +460,11 @@ const docInfoMeta = computed(() => {
 
 const statWords = computed(() => props.wordCount?.word ?? 0)
 const statCharacters = computed(() => props.wordCount?.character ?? 0)
-const statLines = computed(() => {
-  const md = props.markdown
-  return md ? md.split('\n').length : 0
-})
-const READING_WORDS_PER_MINUTE = 230
+// C-40 T-004: lines and reading minutes come from the shared util/docStats
+// (the status bar computes the identical numbers through the same module).
+const statLines = computed(() => countDocumentLines(props.markdown))
 const readingLabel = computed(() => {
-  const minutes = Math.max(1, Math.ceil(statWords.value / READING_WORDS_PER_MINUTE))
+  const minutes = readingMinutes(statWords.value)
   return t('titleBar.popover.minutes', { count: minutes })
 })
 

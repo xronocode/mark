@@ -487,6 +487,21 @@ describe('store/editor — M-032 live-reload', () => {
       expect(editor.tabs[0].notifications[0].showConfirm).toBe(true)
     })
 
+    // C-40 T-004: a tab locked WITH unsaved edits is read-only but dirty —
+    // an external change must prompt, not silently replace the edits.
+    it('locked dirty tab takes the conflict path, not the preview bypass', () => {
+      __preferencesStub.liveReload = false
+      __preferencesStub.autoSave = false
+      seedTab({ isSaved: false, markdown: '# unsaved', previewMode: true })
+      editor.tabs[0].locked = true
+
+      editor.APPLY_FILE_CHANGE('change', { pathname: '/tmp/test.md' })
+
+      expect(editor.tabs[0].markdown).toBe('# unsaved')
+      expect(editor.tabs[0].notifications).toHaveLength(1)
+      expect(editor.tabs[0].notifications[0].showConfirm).toBe(true)
+    })
+
     // C-2: the watcher path sends {pathname} only — the confirm action
     // must read the file from disk (previously it crashed destructuring
     // change.data inside loadChange).

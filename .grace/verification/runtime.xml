@@ -3227,6 +3227,22 @@
           tests/renderer/util/structured-text.test.js
         </Command>
         <Command>
+          npx vitest run tests/renderer/util/doc-stats.test.js
+          tests/renderer/components/status-bar.test.js
+          tests/renderer/store/editor-lock.test.js
+          tests/renderer/store/preferences-status-bar.test.js
+          tests/renderer/commands/status-bar-lock.test.js
+          tests/renderer/components/tabs-lock.test.js
+          tests/renderer/components/editor-coverage.test.js
+          tests/renderer/prefComponents/tabs-appearance.test.js
+          tests/renderer/prefComponents/schema-t004.test.js
+        </Command>
+        <Command>cargo test m009</Command>
+        <Command>
+          npx playwright test tests/e2e/status-bar.spec.ts
+          tests/e2e/lock-document.spec.ts
+        </Command>
+        <Command>
           npx playwright test tests/e2e/live-reload-scroll.spec.ts
         </Command>
         <Command>
@@ -4189,6 +4205,74 @@
           (retirement: stale toc right-column shows Files, navigation
           through the rail).
         </Scenario>
+        <Scenario>
+          scenario-55: status bar + document tools in menus (C-40 T-004,
+          canvas option A): an optional 24 px status bar
+          (editorWithTabs/statusBar.vue, canvas statusBar style — 11.5 px
+          muted tabular numerals, 0.45-opacity dot separators, hairline
+          top rule) at the bottom of the editor column showing
+          lines · words · characters · reading time left (words/characters
+          from the tab wordCount, lines and reading = words/230 rounded up
+          min 1 through the shared util/docStats.js first extracted from
+          the T-002 popover — the popover renders the identical numbers
+          through the same helpers) and «Markdown» right; a non-collapsed
+          DOM selection inside the editor area replaces the counts with
+          «N words selected · N characters selected» (muya wordCount
+          tokenizer over document selectionchange; collapsed and
+          out-of-area selections ignored; cleared on tab switch). Gate:
+          persisted statusBarVisibility preference with the per-OS default
+          resolved lazily (off on macOS, on on Windows/Linux —
+          util/docStats.defaultStatusBarVisibility reads window.electron
+          only at store creation/reset); toggles: View › Status Bar check
+          item (id view.status-bar, no accelerator, native m009; renderer
+          command id-dispatched) + Settings › Appearance › Window and
+          panels bool (schema-searchable, in RESETTABLE_PREFERENCE_KEYS);
+          CLDR-category plural sub-keys in all ten locales (ru
+          one/few/many/other; ja/ko/zh other-only). Lock = the M-022
+          per-tab previewMode read-only surface under an explicit
+          tab.locked flag: View › Lock Document (id view.lock-document,
+          no accelerator; plain item — the per-tab state shows as the
+          tabs.vue lock badge drawn from chromeIcons 'lock'), the palette
+          and the tab context menu toggle
+          editorStore.TOGGLE_LOCK_DOCUMENT (lock never collapses the
+          sidebar nor honours the previewModeOnFinderOpen gate; the
+          reading-view click exit and plain Cmd+\ gestures are suppressed
+          while locked; the CodeMirror source pane mirrors the lock
+          readOnly; unlocking restores editing through the
+          isReadOnlySurface watcher — Finder-opened reading mode itself is
+          unchanged, and its badge appears too). Option-A reachability:
+          edit.copy-as-markdown (new renderer command + native Edit item,
+          no accelerator; raw-Markdown selection-or-document clipboard
+          write via the editor copyAsMarkdown handler) plus the tab
+          context menu gaining Split View and Copy as Markdown / HTML /
+          Structured text (Markdown exact over tab.markdown incl.
+          background tabs; the rendered flavors activate the tab and
+          reuse the live editor pipeline after a 150 ms settle).
+          Unit-pinned in tests/renderer/util/doc-stats.test.js (lines,
+          reading minutes, selection counts, per-OS default),
+          tests/renderer/components/status-bar.test.js (counts/plurals/
+          selection/gate), tests/renderer/store/editor-lock.test.js (lock
+          semantics incl. Finder interplay + background tabs),
+          tests/renderer/store/preferences-status-bar.test.js (per-OS
+          default, persistence, reset), tests/renderer/commands/
+          status-bar-lock.test.js (command dispatches), tests/renderer/
+          components/tabs-lock.test.js (badge + context-menu handlers +
+          menu spec), tests/renderer/components/editor-coverage.test.js
+          (locked-exit gesture suppression + copyAsMarkdown handler),
+          tests/renderer/prefComponents/tabs-appearance.test.js
+          (the Settings row), schema-t004.test.js (searchable Appearance
+          row) and menu-consistency.test.js (view.status-bar check item
+          unchecked by default, view.lock-document plain item,
+          edit.copy-as-markdown, all id-dispatched to same-id renderer
+          commands); cargo test m009 (view_menu_status_bar_item…,
+          view_menu_lock_document_item…, id-dispatch lists); e2e
+          tests/e2e/status-bar.spec.ts + lock-document.spec.ts (chromium +
+          webkit: per-OS default + toggle/persist via view.status-bar,
+          counts match the live tab state, selection-aware replacement,
+          live update while typing, lock badge + blocked typing + click
+          survival + unlock restore, Finder-preview badge + sticky lock,
+          copy-as-markdown clipboard write, split-view reachability).
+        </Scenario>
       </Scenarios>
       <Markers>
         <Marker>[prefs][theme-migration][BLOCK_RETIRED_THEMES_MIGRATED key:from-&gt;to …] — C-41 T-002 retired theme ids migrated at the hydration load point and persisted once per changed key</Marker>
@@ -4212,6 +4296,9 @@
         <Marker>[Editor][handleCopyAsHtml][BLOCK_COPY_AS_HTML] native writeHtml failed → execCommand fallback</Marker>
             <Marker>[Editor][syncMirrorFromSource][BLOCK_SPLIT_MIRROR_SYNC] chars=N ms=N — muya mirror re-rendered from the source pane (C-29)</Marker>
             <Marker>[OutlineRail][jumpTo][BLOCK_RAIL_JUMP slug=&lt;slug&gt;] — C-40 T-003 outline-rail item click dispatched to the shared scroll-to-header path</Marker>
+        <Marker>[editor][lock][BLOCK_LOCK_TOGGLED tab=&lt;id&gt; locked=true|false] — C-40 T-004 TOGGLE_LOCK_DOCUMENT flipped the per-tab read-only lock</Marker>
+        <Marker>[Tabs][copyAsMarkdown][BLOCK_COPY_AS_MARKDOWN tab=&lt;id&gt;] — C-40 T-004 tab context menu wrote the clicked tab&apos;s raw markdown to the clipboard</Marker>
+        <Marker>[Editor][handleCopyAsMarkdown][BLOCK_COPY_AS_MARKDOWN] — C-40 T-004 edit.copy-as-markdown clipboard write failed (selection-or-document raw markdown)</Marker>
         <Marker>[editor][split][BLOCK_SPLIT_TOGGLED state=on|off] — view.split-view toggled for the current tab (C-29)</Marker>
         <Marker>[Editor][handleEditorContextMenu][BLOCK_EDITOR_CONTEXT_MENU] native writeText failed</Marker>
         <Marker>[Editor][handleCopyAsPlainText][BLOCK_COPY_AS_PLAIN_TEXT] copy failed</Marker>

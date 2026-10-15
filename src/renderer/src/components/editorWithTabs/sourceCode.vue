@@ -5,6 +5,7 @@
   ROLE: RUNTIME
 END_MODULE_CONTRACT
 CHANGE_SUMMARY: 2026-08-10 v2.1.7 rebinds tab identity after file-loaded events and guards null unmount commits.
+  2026-10-15 C-40 T-004: a locked tab (View › Lock Document) is read-only in the source pane too (CodeMirror setOption readOnly on mount + on lock changes; selection/copy stay available). Finder previewMode is intentionally not applied here.
   2026-10-13 C-29: `mirror` prop — read-only Split View pane; renders from props.markdown 150 ms after changes and never commits, emits or resets tab state.
   2026-10-13 C-29 live-smoke fix: CodeMirror instance held in shallowRef. Method calls through the deep ref's Proxy (setValue on file-changed, refresh) left proxied line handles in the display, so the next click or arrow key threw `info.map` in WKWebView and the caret jumped or ignored the click.
   2026-10-13 C-29 live-smoke fix: container ResizeObserver calls cm.refresh(). With lineWrapping CodeMirror re-measures only on window resize, so dragging the split divider left the caret drawn at the pre-wrap line position.
@@ -53,6 +54,20 @@ const tabId = ref(null)
 
 const { theme, sourceCode } = storeToRefs(preferencesStore)
 const { currentFile: currentTab } = storeToRefs(editorStore)
+
+// START_BLOCK_LOCKED_READ_ONLY
+// C-40 T-004: while the active tab is locked (View › Lock Document) the
+// source pane is read-only too — the lock is a document state, not a
+// WYSIWYG-surface state (readOnly keeps selection/copy working).
+// Finder-opened reading mode (previewMode) is deliberately NOT applied
+// here; that path keeps its existing WYSIWYG-only semantics.
+const applyLockedReadOnly = () => {
+  if (props.mirror || !editor.value) return
+  editor.value.setOption('readOnly', currentTab.value?.locked ? true : false)
+}
+
+watch(() => !!currentTab.value?.locked, applyLockedReadOnly)
+// END_BLOCK_LOCKED_READ_ONLY
 
 watch(
   () => props.textDirection,
@@ -373,6 +388,11 @@ onMounted(() => {
 
   editor.value = codeMirrorInstance
   tabId.value = id
+
+  // C-40 T-004: a tab already locked when the source pane mounts (source
+  // mode toggled while locked) starts read-only. Unlocked mounts keep
+  // CodeMirror's default and never touch the option.
+  if (currentTab.value?.locked) applyLockedReadOnly()
 
   listenChange()
   observeContainerWidth()

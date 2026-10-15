@@ -65,6 +65,8 @@ const COMMAND_KEY_MAP = {
   'edit.copy-as-html': 'commands.edit.copyAsHtml',
   'edit.copy-as-plain-text': 'commands.edit.copyAsPlainText',
   'edit.copy-as-structured-text': 'commands.edit.copyAsStructuredText',
+  // C-40 T-004: raw-Markdown clipboard write (Edit › Copy as Markdown)
+  'edit.copy-as-markdown': 'commands.edit.copyAsMarkdown',
   'edit.paste-as-plaintext': 'commands.edit.pasteAsPlaintext',
 
   // 选择和复制
@@ -171,6 +173,10 @@ const COMMAND_KEY_MAP = {
   'view.toggle-toc': 'commands.view.toggleToc',
   // C-40 T-003: the «On this page» outline rail toggle (View › Outline)
   'view.outline': 'commands.view.outline',
+  // C-40 T-004: the optional status bar toggle (View › Status Bar)
+  'view.status-bar': 'commands.view.statusBar',
+  // C-40 T-004: per-tab read-only lock (View › Lock Document)
+  'view.lock-document': 'commands.view.lockDocument',
 
   // 编辑模式
   'view.toggle-source-code-mode': 'commands.view.toggleSourceCodeMode',

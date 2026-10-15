@@ -1,5 +1,5 @@
 // FILE: src/renderer/src/commands/index.js
-// VERSION: 2.1.11-beta
+// VERSION: 2.1.12-beta
 // START_MODULE_CONTRACT
 //   PURPOSE: Register renderer commands and route each command to its typed store, event-bus, or Tauri integration.
 //   SCOPE: Static command definitions, platform-gated commands, and user-visible command outcomes; backend implementation is out of scope.
@@ -15,9 +15,12 @@
 //   edit.copy-as-html - Copies selection (or whole document) as rich text/html for email paste (C-3).
 //   edit.copy-as-plain-text - Copies selection (or whole document) as markup-free plain text (C-12).
 //   edit.copy-as-structured-text - Copies selection (or whole document) as structure-preserving plain text (C-32).
+//   edit.copy-as-markdown - Copies selection (or whole document) as raw Markdown text (C-40 T-004).
 //   view.zoom-in / view.zoom-out / view.actual-size - Unified zoom via preferences ZOOM_STEP/ZOOM_ACTUAL_SIZE (C-49).
 //   help.guide - Opens the localized Mark Guide as a temporary untitled tab (C-40 G-3).
 //   view.outline - Toggles the «On this page» outline rail via the persisted outlineRailVisible preference (C-40 T-003).
+//   view.status-bar - Toggles the optional status bar via the persisted statusBarVisibility preference (C-40 T-004).
+//   view.lock-document - Toggles the per-tab read-only lock via editorStore.TOGGLE_LOCK_DOCUMENT (C-40 T-004).
 //   help.whats-new - Reopens the C-48 What's New sheet (whatsNewDialog bus event; falls back to the newest release with content).
 //   help.rate - Opens the App Store write-review page (C-48, review capability only).
 //   RATE_MARK_URL - https App Store write-review URL opened by help.rate (opener:default scope).
@@ -33,6 +36,18 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-10-15 C-40 T-004: add view.status-bar (View › Status Bar —
+//     persisted statusBarVisibility toggle for the optional status bar),
+//     view.lock-document (View › Lock Document / palette / tab context
+//     menu — editorStore.TOGGLE_LOCK_DOCUMENT over the previewMode
+//     read-only surface, sticky against click-to-exit), and
+//     edit.copy-as-markdown (Edit menu / palette / tab context menu —
+//     raw-Markdown clipboard write via the editor copyAsMarkdown
+//     handler).
+//     persisted statusBarVisibility toggle for the optional status bar)
+//     and view.lock-document (View › Lock Document / palette / tab
+//     context menu — editorStore.TOGGGLE_LOCK_DOCUMENT over the
+//     previewMode read-only surface, sticky against click-to-exit).
 //   - 2026-10-15 C-40 T-003: add view.outline — View › Outline toggles the
 //     «On this page» outline rail through the persisted outlineRailVisible
 //     preference (default on); the ⌘T/Ctrl+T heading jump list stays
@@ -417,6 +432,16 @@ const commands = [
     }
   },
 
+  {
+    // editor.vue handleCopyAsMarkdown (C-40 T-004) — the raw-Markdown
+    // flavor of R-2's copy-document tools: selection when text is
+    // selected, whole document otherwise.
+    id: 'edit.copy-as-markdown',
+    execute: async () => {
+      focusEditorAndExecute(() => bus.emit('copyAsMarkdown'))
+    }
+  },
+
   // --------------------------------------------------------------------------
   // Paragraph
 
@@ -795,6 +820,31 @@ const commands = [
         type: 'outlineRailVisible',
         value: !preferencesStore.outlineRailVisible
       })
+    }
+  },
+  {
+    // C-40 T-004: View › Status Bar toggles the optional status bar
+    // (persisted statusBarVisibility preference; default off on macOS,
+    // on elsewhere — Settings › Appearance › Window and panels mirrors
+    // the switch).
+    id: 'view.status-bar',
+    execute: async () => {
+      const preferencesStore = usePreferencesStore()
+      await preferencesStore.SET_SINGLE_PREFERENCE({
+        type: 'statusBarVisibility',
+        value: !preferencesStore.statusBarVisibility
+      })
+    }
+  },
+  {
+    // C-40 T-004: View › Lock Document toggles the per-tab read-only lock
+    // (editorStore.TOGGLE_LOCK_DOCUMENT — the same previewMode reading
+    // surface Finder-opened files use, made sticky against the
+    // click-to-exit gesture). Also the palette + tab context menu path.
+    id: 'view.lock-document',
+    execute: async () => {
+      const { useEditorStore } = await import('../store/editor')
+      useEditorStore().TOGGLE_LOCK_DOCUMENT()
     }
   },
   {
