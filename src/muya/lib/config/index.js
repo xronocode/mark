@@ -444,7 +444,12 @@ export const MUYA_DEFAULT_OPTION = Object.freeze({
   isGitlabCompatibilityEnabled: false,
 
   // Whether HTML rendering is disabled or not.
-  disableHtml: true
+  disableHtml: true,
+
+  // C-39 T-002: hide the session-only table column resize affordances.
+  // Set for the read-only Split View mirror pane; reading/locked tabs keep
+  // them (resizing is view-only — it never writes to the document).
+  disableTableColumnResize: false
 })
 
 // export const DIAGRAM_TEMPLATE = Object.freeze({

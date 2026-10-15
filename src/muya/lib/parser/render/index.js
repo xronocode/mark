@@ -1,10 +1,10 @@
 // FILE: src/muya/lib/parser/render/index.js
-// VERSION: 1.3.0
+// VERSION: 1.4.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Render muya ContentState blocks to the DOM via snabbdom and drive the asynchronous previews (math, mermaid, diagrams, images).
-//   SCOPE: StateRender — full/partial/single-block render, selector building, mermaid dispatch into the resilient pipeline, diagram rendering, render caches, and the C-38 line-number gutter measurement queue.
+//   SCOPE: StateRender — full/partial/single-block render, selector building, mermaid dispatch into the resilient pipeline, diagram rendering, render caches, the C-38 line-number gutter measurement queue, and keeping C-39 table scroll and C-39 T-002 session column widths across renders.
 //   DEPENDS: ./snabbdom, ./renderBlock, ./renderInlines, ./mermaidPipeline, ../../renderers, ../../config, ../../utils, ../rules
-//   LINKS: M-011 muya editor surface; C-34 R2.1; START_BLOCK_MERMAID_DISPATCH; C-38 T-005 lineNumberPreKeys
+//   LINKS: M-011 muya editor surface; C-34 R2.1; START_BLOCK_MERMAID_DISPATCH; C-38 T-005 lineNumberPreKeys; C-39 T-001 START_BLOCK_TABLE_SCROLL_KEEP; C-39 T-002 START_BLOCK_TABLE_WIDTHS_KEEP
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT
@@ -14,7 +14,13 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.3.0 - 2026-10-15 C-38 T-005: lineNumberPreKeys — renderContainerBlock
+//   LAST_CHANGE: v1.4.0 - 2026-10-15 C-39 T-002: every render path calls
+//   applyTableColumnWidths (START_BLOCK_TABLE_WIDTHS_KEEP) next to the
+//   T-001 scroll restore so muya.tableResize can reconcile stored column
+//   widths whose column count changed and re-apply widths a hidden render
+//   could not measure. The widths themselves ride in the table vnode
+//   (renderContainerBlock START_BLOCK_TABLE_COLUMN_WIDTHS).
+//   v1.3.0 - 2026-10-15 C-38 T-005: lineNumberPreKeys — renderContainerBlock
 //   records every fence/indent code block whose gutter it (re)rendered, so
 //   contentState.resizeLineNumber measures only those pres after each render
 //   pass (full render records all, partial render only the edited range).
@@ -220,6 +226,23 @@ class StateRender {
   }
   // END_BLOCK_TABLE_SCROLL_KEEP
 
+  // START_BLOCK_TABLE_WIDTHS_KEEP
+  // C-39 T-002: re-apply session table column widths after the DOM swap.
+  // The widths themselves are rendered into the table vnode (colgroup, see
+  // renderContainerBlock START_BLOCK_TABLE_COLUMN_WIDTHS), so this pass
+  // only reconciles tables whose column count changed since their widths
+  // were stored (added columns get their measured auto width, removed
+  // columns drop out — widths for surviving columns keep their index) and
+  // re-applies widths a hidden render could not measure. Runs right next
+  // to the T-001 scroll restore in every render path.
+  applyTableColumnWidths() {
+    const { tableResize } = this.muya
+    if (tableResize && typeof tableResize.reconcileAfterRender === 'function') {
+      tableResize.reconcileAfterRender()
+    }
+  }
+  // END_BLOCK_TABLE_WIDTHS_KEEP
+
   render(blocks, activeBlocks, matches) {
     const selector = `div#${CLASS_OR_ID.AG_EDITOR_ID}`
     const t = this.muya.options.t || ((key) => key) // 获取翻译函数，如果没有则返回原始键值
@@ -233,6 +256,7 @@ class StateRender {
     const tableScroll = this.saveTableScroll()
     patch(oldVdom, newVdom)
     this.restoreTableScroll(tableScroll)
+    this.applyTableColumnWidths()
     this.renderMermaid()
     this.renderDiagram()
     this.codeCache.clear()
@@ -289,6 +313,7 @@ class StateRender {
       }
     }
     this.restoreTableScroll(tableScroll)
+    this.applyTableColumnWidths()
 
     this.renderMermaid()
     this.renderDiagram()
@@ -311,6 +336,7 @@ class StateRender {
     const tableScroll = this.saveTableScroll()
     patch(oldVdom, newVdom)
     this.restoreTableScroll(tableScroll)
+    this.applyTableColumnWidths()
     this.renderMermaid()
     this.renderDiagram()
     this.codeCache.clear()

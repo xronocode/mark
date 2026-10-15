@@ -1466,3 +1466,87 @@ figure div.ag-table-scroll {
     linear-gradient(to right, rgba(0, 0, 0, 0.28), transparent 70%) left center / 14px 100% no-repeat,
     linear-gradient(to left, rgba(0, 0, 0, 0.28), transparent 70%) right center / 14px 100% no-repeat;
 }
+
+/* ================================================================
+ * C-39 T-002 — session-only column resize (2026-10-15)
+ *
+ * Widths live in muya.tableResize (in-memory, per table block key) and
+ * are applied as a colgroup on table.ag-column-widths-fixed by the
+ * renderer itself, so they survive every re-render and NEVER reach the
+ * markdown, the undo history or the dirty state. The handle is a thin
+ * hit zone on each header cell's right border (th is position:relative
+ * in the themes); the interaction (pointer capture, min-width clamp,
+ * double-click reset) lives in lib/tableResize/index.js.
+ * ================================================================ */
+
+/*
+ * ~6px hit zone straddling the column border (right: -3px centers it on
+ * the border). The last column's handle stays fully INSIDE the table
+ * box: an absolutely positioned child protruding past the table's right
+ * edge would widen the scroll wrapper's scrollable overflow by 3px and
+ * give narrow auto tables a phantom horizontal scroll.
+ */
+figure div.ag-table-scroll table th .ag-column-resizer {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: -3px;
+  width: 6px;
+  /* Transparent on purpose: a generic span rule paints the editor
+     background, which covered the header's top border at every column
+     boundary (review 2026-10-16). */
+  background: transparent;
+  cursor: col-resize;
+  z-index: 2;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+figure div.ag-table-scroll table th:last-child .ag-column-resizer {
+  right: 0;
+}
+
+/*
+ * Hairline guide: invisible at rest, chrome accent (system accent when
+ * the chrome layer resolved one, theme colour otherwise) while hovering
+ * the zone or dragging. 1px at the zone's centre = exactly on the border.
+ */
+figure div.ag-table-scroll table th .ag-column-resizer::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 2.5px;
+  width: 1px;
+  background: transparent;
+}
+
+figure div.ag-table-scroll table th .ag-column-resizer:hover::before,
+figure div.ag-table-scroll table th .ag-column-resizer.ag-resizing::before {
+  background: var(--chromeAccent, var(--themeColor));
+}
+
+/* No text selection fights the pointer while a drag is in progress. */
+figure div.ag-table-scroll table.ag-column-resizing,
+figure div.ag-table-scroll table.ag-column-resizing * {
+  user-select: none !important;
+  -webkit-user-select: none !important;
+}
+
+/*
+ * A resized table sizes its columns exclusively from the colgroup:
+ * table-layout fixed makes the <col> widths exact, and the 40ch wrap
+ * caps (R-3, written for AUTO layout) must not fight explicit column
+ * widths. overflow-wrap stays, so long URLs still wrap inside a narrow
+ * resized column. The explicit table width (set inline with the
+ * colgroup) keeps wide resized tables scrolling in the T-001 wrapper.
+ */
+figure div.ag-table-scroll > table.ag-column-widths-fixed {
+  table-layout: fixed;
+}
+
+figure div.ag-table-scroll > table.ag-column-widths-fixed th,
+figure div.ag-table-scroll > table.ag-column-widths-fixed td {
+  max-width: none;
+}
+

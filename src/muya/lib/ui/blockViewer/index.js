@@ -1,10 +1,10 @@
 // FILE: src/muya/lib/ui/blockViewer/index.js
-// VERSION: 1.1.0
+// VERSION: 1.2.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Shared fullscreen block viewer (C-34 R2.2 + C-39 T2) that shows a Mermaid diagram (clone of the current preview, no re-render) or a read-only clone of a rendered table with pan/zoom via @panzoom/panzoom.
 //   SCOPE: hover/caret toolbar with the expand (⤢) button, viewer open/close lifecycle, diagram-preview and table-clone sanitization, wheel/pinch/key zoom, drag pan, focus trap and focus restore, panzoom cleanup.
 //   DEPENDS: @panzoom/panzoom, muya/lib/parser/render/mermaidPipeline (MERMAID_PREVIEW_CLASS), muya/lib/config (CLASS_OR_ID, EVENT_KEYS), muya/lib/eventHandler/event (via muya.eventCenter).
-//   LINKS: .grace/changes/active/C-34 T-002; .grace/changes/active/C-39 T2; .grace/graph/runtime.xml M-012; .grace/verification/runtime.xml V-M-012 scenario-19.
+//   LINKS: .grace/changes/active/C-34 T-002; .grace/changes/active/C-39 T2 and T-002 (viewer shows the session column widths — the clone carries the live colgroup — but no resize handles); .grace/graph/runtime.xml M-012; .grace/verification/runtime.xml V-M-012 scenario-19.
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT
@@ -14,7 +14,13 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.1.0 - 2026-10-15 C-34: the diagram clone gets its natural size from the SVG viewBox (diagrams now fit the column with width 100%, which collapsed to 0 in the viewer — blank viewer, off-centre fit); fit runs again after layout.
+//   LAST_CHANGE: v1.2.0 - 2026-10-15 C-39 T-002: the table clone drops the
+//   span.ag-column-resizer handles along with the drag bars — the viewer is
+//   read-only, so a col-resize cursor on header borders would lie (the
+//   handles are inert outside the editor container by construction; this is
+//   affordance hygiene). The clone KEEPS the session colgroup: the viewer
+//   shows the table at the widths the user set for the session.
+//   v1.1.0 - 2026-10-15 C-34: the diagram clone gets its natural size from the SVG viewBox (diagrams now fit the column with width 100%, which collapsed to 0 in the viewer — blank viewer, off-centre fit); fit runs again after layout.
 //   v1.0.1 - 2026-10-15 C-39: tables are centred and the centred table tools bar owns the strip above them, so the expand button sits beside the table top-right corner (falls back to the strip when there is no room).
 //   v1.0.0 - 2026-10-15 C-34 R2.2 + C-39 T2: new shared fullscreen block viewer — Mermaid preview clone (carries the hoisted <style>), sanitized read-only table clone with a sticky header, @panzoom/panzoom pan/zoom (pinch/Cmd+wheel zoom, drag pan, +/−/0/1 keys), Esc close with focus restore, hover/caret toolbar with the ⤢ expand button, Cmd/Ctrl+click on a diagram opens the viewer.
 // END_CHANGE_SUMMARY
@@ -38,7 +44,10 @@ const TOOLBAR_HIDE_DELAY = 200
 // in the overlay can mutate the document or collide with live block ids.
 const sanitizeTableClone = (table) => {
   const clone = table.cloneNode(true)
-  for (const el of clone.querySelectorAll('.ag-drag-handler, .ag-tool-bar')) {
+  // C-39 T-002: the column-resizer handles go with the drag bars — the
+  // viewer is read-only (the session colgroup itself stays: the viewer
+  // shows the table at the user's session widths).
+  for (const el of clone.querySelectorAll('.ag-drag-handler, .ag-tool-bar, .ag-column-resizer')) {
     el.remove()
   }
   for (const el of clone.querySelectorAll('.ag-cell-selected, .ag-active')) {
