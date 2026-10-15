@@ -1292,6 +1292,16 @@ pre:not(.ag-active):hover .ag-code-copy {
   left: -16px;
 }
 
+/*
+ * Code-block line numbers (C-38 T-005, #1648).
+ * Structure: pre.line-numbers > code > [span.line-numbers-rows (the gutter,
+ * absolute, non-editable, aria-hidden), span.ag-code-content (the text)].
+ * The gutter inherits the code font/line-height, so with wrapping off every
+ * row is naturally exactly one line tall. With wrapping on,
+ * utils/resizeCodeLineNumber.js measures each logical line's rendered top
+ * (collapsed caret rects) and sets each row's height + the wrapper's top
+ * inline, so a wrapped line keeps one number on its first visual row.
+ */
 pre.ag-paragraph.line-numbers {
   position: relative;
   padding-left: 2.5em;
@@ -1301,10 +1311,6 @@ pre.ag-paragraph.line-numbers {
 pre.ag-paragraph.line-numbers > code {
   position: relative;
   white-space: inherit;
-}
-
-figure:not(.ag-active) pre.ag-paragraph.line-numbers {
-  display: none;
 }
 
 .line-numbers .line-numbers-rows {
@@ -1318,11 +1324,6 @@ figure:not(.ag-active) pre.ag-paragraph.line-numbers {
 
   -webkit-user-select: none;
   user-select: none;
-}
-
-.line-numbers-sizer {
-  white-space: pre-line;
-  word-break: break-all;
 }
 
 .line-numbers-rows > span {

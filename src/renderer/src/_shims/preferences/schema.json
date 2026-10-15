@@ -117,9 +117,14 @@
     "default": "DejaVu Sans Mono"
   },
   "codeBlockLineNumbers": {
-    "description": "Editor--Whether to show the line numbers",
+    "description": "Editor--Show line numbers in code blocks (opt-in since C-38 T-005; one number per logical line, aligned also with wrapped lines)",
     "type": "boolean",
-    "default": true
+    "default": false
+  },
+  "codeBlockLineNumbersMigrated": {
+    "description": "Editor--One-time marker that the C-38 T-005 codeBlockLineNumbers default migration ran (stored true -> false); once set the user's choice is kept",
+    "type": "boolean",
+    "default": false
   },
   "trimUnnecessaryCodeBlockEmptyLines": {
     "description": "Editor--Trim the beginning and ending empty lines in code block",

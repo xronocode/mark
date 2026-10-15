@@ -3181,7 +3181,19 @@
         (pinch/Cmd+wheel, drag, +/−/0/1 keys), Esc close with focus trap
         and restore, a hover/caret ⤢ toolbar above the block, and
         Cmd/Ctrl+click on a diagram routed via clickEvent.js
-        (muya-block-viewer event).
+        (muya-block-viewer event). C-38 T-005 (#1648): fence/indent code
+        blocks render an opt-in line-numbers gutter
+        (renderContainerBlock.js START_BLOCK_CODE_LINE_NUMBERS +
+        renderLineNumber.js — aria-hidden, contenteditable=false, CSS
+        counters only, so copy/export never see the numbers); alignment
+        comes from utils/resizeCodeLineNumber.js measuring collapsed caret
+        rects of the rendered text (wrapped lines keep one number on their
+        first visual row; wrap-off keeps natural one-line rows), re-measured
+        per render pass through stateRender.lineNumberPreKeys
+        (contentState.resizeLineNumber), forced via Muya
+        #refreshCodeBlockLineNumbers on wrap/code-font CSS changes and by
+        eventHandler/resize.js (throttled window resize + container
+        ResizeObserver + document.fonts.ready, torn down on destroy).
       </Summary>
       <Path>src/muya/</Path>
       <Dependencies/>
@@ -3190,7 +3202,7 @@
         <Purpose>
           WYSIWYG Markdown engine: parses, renders, and edits Markdown in-place
           in DOM. Zero Electron coupling confirmed via triple-check grep. Ports
-          to WebView as-is. 48 public methods + 26 events + 13 state invariants
+          to WebView as-is. 49 public methods + 26 events + 13 state invariants
           + 5 diagram renderers (Mermaid/Vega-Lite/Flowchart/Sequence/PlantUML)
           + 11 parser option flags + 19 inline + 16 block token types.
         </Purpose>
@@ -3284,6 +3296,19 @@
             </Attribute>
           </LegacyAttributes>
         </fn-setOptions>
+        <fn-refreshCodeBlockLineNumbers>
+          <LegacyAttributes>
+            <Attribute>
+              <Name>PURPOSE</Name>
+              <Value>
+                Re-measure every code-block line-number gutter (C-38 T-005):
+                wrapCodeBlocks and codeFontSize are CSS-only renderer changes
+                that re-render nothing, so editor.vue watchers call this to
+                keep each number on the first visual row of its logical line
+              </Value>
+            </Attribute>
+          </LegacyAttributes>
+        </fn-refreshCodeBlockLineNumbers>
       </Interface>
       <Sources>
         <Source>src/muya/</Source>
