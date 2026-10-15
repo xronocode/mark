@@ -85,6 +85,9 @@ describe('store/preferences', () => {
     it('copies known keys and ignores unknown keys', async () => {
       const { usePreferencesStore } = await import('@/store/preferences')
       const s = usePreferencesStore()
+      // Manual theme mode: in Auto (the C-41 default) the store resolves the
+      // light/dark member and a payload's `theme` does not win.
+      s.followSystemTheme = false
       s.SET_USER_PREFERENCE({ theme: 'dark', tabSize: 2, bogusKey: 'nope' })
       expect(s.theme).toBe('dark')
       expect(s.tabSize).toBe(2)
@@ -94,6 +97,9 @@ describe('store/preferences', () => {
     it('skips undefined values', async () => {
       const { usePreferencesStore } = await import('@/store/preferences')
       const s = usePreferencesStore()
+      // Manual theme mode: in Auto (the C-41 default) the store resolves the
+      // light/dark member and a payload's `theme` does not win.
+      s.followSystemTheme = false
       s.theme = 'dark'
       s.SET_USER_PREFERENCE({ theme: undefined, tabSize: 8 })
       expect(s.theme).toBe('dark')
@@ -146,6 +152,9 @@ describe('store/preferences', () => {
       ;(invoke as any).mockResolvedValueOnce({ theme: 'dark', tabSize: 8 })
       const { usePreferencesStore } = await import('@/store/preferences')
       const s = usePreferencesStore()
+      // Manual theme mode: in Auto (the C-41 default) the store resolves the
+      // light/dark member and a payload's `theme` does not win.
+      s.followSystemTheme = false
       await s.ASK_FOR_USER_PREFERENCE()
       expect(invoke).toHaveBeenCalledWith('mt_prefs_get_all')
       expect(s.theme).toBe('dark')
@@ -161,6 +170,9 @@ describe('store/preferences', () => {
       )
       const { usePreferencesStore } = await import('@/store/preferences')
       const s = usePreferencesStore()
+      // Manual theme mode: in Auto (the C-41 default) the store resolves the
+      // light/dark member and a payload's `theme` does not win.
+      s.followSystemTheme = false
       const pending = s.ASK_FOR_USER_PREFERENCE()
       // User toggles theme BEFORE the prefs read resolves.
       await s.SET_SINGLE_PREFERENCE({ type: 'theme', value: 'dark' })
