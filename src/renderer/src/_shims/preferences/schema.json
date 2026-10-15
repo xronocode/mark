@@ -68,6 +68,11 @@
     "enum": ["default", "lf", "crlf"],
     "default": "default"
   },
+  "treeShowAllFiles": {
+    "description": "General--Show all files in the folder tree (not only Markdown).",
+    "type": "boolean",
+    "default": false
+  },
   "zoom": {
     "description": "General--Retired percentage zoom (C-49). Kept only so a stored value can be migrated once into fontSize (clamp(round(16 × zoom))) and reset to 1; nothing reads it afterwards.--internal",
     "type": "number",

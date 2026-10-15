@@ -90,6 +90,15 @@
           :options="getEndOfLineOptions()"
           :on-change="(value) => onSelectChange('endOfLine', value)"
         ></cur-select>
+        <!-- C-51 T-001: Markdown-only folder tree by default; this switch
+             restores non-Markdown files (dimmed, not openable) and empty
+             folders in the sidebar. -->
+        <bool
+          :description="t('preferences.general.filesAndSaving.showAllFiles')"
+          :help="t('preferences.general.filesAndSaving.showAllFilesHelp')"
+          :bool="treeShowAllFiles"
+          :on-change="(value) => onSelectChange('treeShowAllFiles', value)"
+        ></bool>
       </template>
     </compound>
     <!-- END_BLOCK_GENERAL_FILES -->
@@ -114,12 +123,12 @@
 
 <script setup>
 // FILE: src/renderer/src/prefComponents/tabs/general/index.vue
-// VERSION: 2.0.0
+// VERSION: 2.1.0
 // START_MODULE_CONTRACT
-//   PURPOSE: General tab of the C-38 Settings window — macOS default-handler group, Startup (Finder preview mode), Language, Files and saving (autosave + delay in seconds, encoding, line endings) and Updates per the N2 IA §3.1.
-//   SCOPE: Row composition over the shared controls; seconds↔milliseconds conversion for autoSaveDelay; updater command dispatch; default-handler bindings.
+//   PURPOSE: General tab of the C-38 Settings window — macOS default-handler group, Startup (Finder preview mode), Language, Files and saving (autosave + delay in seconds, encoding, line endings, show-all-files tree switch) and Updates per the N2 IA §3.1.
+//   SCOPE: Row composition over the shared controls; seconds↔milliseconds conversion for autoSaveDelay; updater command dispatch; default-handler bindings; treeShowAllFiles switch binding (C-51 T-001).
 //   DEPENDS: prefComponents/common/{compound,bool,select,range,buttonRow}, tabs/general/config, store/preferences, util (isOsx), @tauri-apps/api/app (getVersion, lazy).
-//   LINKS: .grace/changes/active/C-38 T-004; docs/design/settings-ia-2026-10-15.md §3.1; .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011.
+//   LINKS: .grace/changes/active/C-38 T-004; .grace/changes/active/C-51 T-001; docs/design/settings-ia-2026-10-15.md §3.1; .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011.
 //   ROLE: RUNTIME
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT
@@ -130,9 +139,13 @@
 //   capabilities / isDefault / currentHandler / defaultHandlerStatus - M-021 default-handler bindings (status text doubles as the row help).
 //   setAsDefault / unsetDefault - store actions; REFRESH_DEFAULT_MD_HANDLER runs on mount (macOS only).
 //   appVersionLabel / checkForUpdates - the Updates row: `Mark <version>` from getVersion() (lazy) and the shared file.check-update command (lazy import — no commands-module side effects at page load).
+//   treeShowAllFiles - C-51 T-001 show-all-files switch state (store/preferences) bound to the last Files-and-saving row.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-10-16 v2.1.0: C-51 T-001 — «Show all files» bool row closes the
+//     Files-and-saving group: off by default (Markdown-only tree), on
+//     restores the pre-C-51 everything-visible tree via SET_SINGLE_PREFERENCE.
 //   - 2026-10-15 v2.0.0: C-38 T-004 — real General tab per the IA: the old General + Language pages are retired (dead startup/window/sidebar rows dropped per IA §4.1); the macOS default-handler card becomes a normal group; autoSaveDelay shows seconds; line endings and encoding move in; the new Updates group runs the shared check-update command.
 //   - (v1.x: C-38 T-003 interim wrapper stacking the old pages — retired.)
 // END_CHANGE_SUMMARY
@@ -158,7 +171,8 @@ const {
   autoSave,
   autoSaveDelay,
   defaultEncoding,
-  endOfLine
+  endOfLine,
+  treeShowAllFiles
 } = storeToRefs(preferenceStore)
 
 const onSelectChange = (type, value) => {

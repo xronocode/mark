@@ -3,7 +3,7 @@
     ref="fileEl"
     :title="file.pathname"
     class="side-bar-file"
-    :style="{ 'padding-left': `${depth * 20 + 20}px`, opacity: file.isMarkdown ? 1 : 0.75 }"
+    :style="{ opacity: file.isMarkdown ? 1 : 0.75 }"
     :class="[
       { current: currentFile.pathname === file.pathname, active: file.id === activeItem.id, dirty: isDirty }
     ]"
@@ -24,7 +24,25 @@
 </template>
 
 <script setup>
+// FILE: src/renderer/src/components/sideBar/treeFile.vue
+// VERSION: 2.0.0
+// START_MODULE_CONTRACT
+//   PURPOSE: One file row of the sidebar tree — extension-aware icon + name, the current file on a soft rounded pill (chromeAccentSoft), non-Markdown rows dimmed and not openable, and the context menu carrying Pin/Unpin (C-51 T-002).
+//   SCOPE: Row rendering (rename input, current/active/dirty state), open-or-select click behaviour, context menu wiring with pin state.
+//   DEPENDS: vue, pinia, store/project, store/editor, store/pinned, ./icon.vue, contextMenu/sideBar, bus.
+//   LINKS: .grace/changes/active/C-38 T-006 N4 b (accent selection); .grace/changes/active/C-51 T-001/T-002; .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011.
+//   ROLE: RUNTIME
+//   MAP_MODE: LOCALS
+// END_MODULE_CONTRACT
+//
 // START_CHANGE_SUMMARY
+//   - 2026-10-16 v2.0.0: C-51 T-001 — 32px rows, constant row padding
+//     (indentation moved to the nested .folder-contents guide lines in
+//     treeFolder.vue) and the current file renders on a rounded pill
+//     (chromeAccentSoft + 8px radius, per canvas Main; accent marker
+//     inset so it stays inside the rounded corners). C-51 T-002 — the
+//     context menu gains Pin/Unpin for Markdown files via the pinned
+//     store state.
 //   - 2026-10-15 C-38 T-006 N4 b: the current-file selection follows
 //     the system accent (marker + text + ~14% soft background) instead
 //     of the theme green. The file-type icon keeps the muya fileIcons
@@ -34,6 +52,7 @@ import { ref, computed, onMounted, nextTick } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useProjectStore } from '@/store/project'
 import { useEditorStore } from '@/store/editor'
+import { usePinnedStore } from '@/store/pinned'
 import FileIcon from './icon.vue'
 import { showContextMenu } from '../../contextMenu/sideBar'
 import bus from '../../bus'
@@ -51,6 +70,7 @@ const props = defineProps({
 
 const projectStore = useProjectStore()
 const editorStore = useEditorStore()
+const pinnedStore = usePinnedStore()
 
 const newName = ref('')
 const fileEl = ref(null)
@@ -103,7 +123,12 @@ onMounted(() => {
     fileEl.value.addEventListener('contextmenu', (event) => {
       event.preventDefault()
       projectStore.CHANGE_ACTIVE_ITEM(props.file)
-      showContextMenu(event, !!clipboard.value)
+      // C-51 T-002: Markdown file rows offer Pin/Unpin; the label keys
+      // on the pinned list at popup time.
+      showContextMenu(event, !!clipboard.value, {
+        isMarkdownFile: !!props.file.isMarkdown,
+        isPinned: pinnedStore.isPinned(props.file.pathname)
+      })
     })
   }
 
@@ -118,9 +143,10 @@ onMounted(() => {
   align-items: center;
   cursor: default;
   user-select: none;
-  height: 30px;
+  height: 32px;
   box-sizing: border-box;
-  padding-right: 15px;
+  padding-right: 10px;
+  padding-left: 10px;
   &:hover {
     background: var(--sideBarItemHoverBgColor);
   }
@@ -143,13 +169,26 @@ onMounted(() => {
   }
 }
 .side-bar-file.current {
+  /* C-51 T-001: the current file sits on a soft rounded pill (canvas
+     Main). Background stays the C-38 T-006 chromeAccentSoft — pinned by
+     the chrome-native-theme e2e — and the accent marker insets so it
+     stays inside the 8px corners. */
   background: var(--chromeAccentSoft);
+  border-radius: 8px;
+  /* Inset pill like the canvas (review 2026-10-16: it ran edge to edge);
+     the padding gives back the margin so the name stays aligned. */
+  margin: 0 6px;
+  padding-left: 4px;
+  padding-right: 4px;
 }
 .side-bar-file.current::before {
-  height: 100%;
+  /* The pill marks the current file (canvas); the accent bar would
+     overlap the inset icon. */
+  display: none;
 }
 .side-bar-file.current > span {
   color: var(--chromeAccent);
+  font-weight: 500;
 }
 .side-bar-file.active > span {
   color: var(--sideBarTitleColor);

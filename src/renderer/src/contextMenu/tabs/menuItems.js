@@ -64,6 +64,14 @@ export const getSPLIT_VIEW = () => ({
   id: 'splitView'
 })
 
+// C-51 T-002: Pin/Unpin the tab's file into the persisted Pinned sidebar
+// section. The label reflects the pinned state at popup time; one id —
+// the handler toggles through the tab pathname.
+export const getPIN = (pinned) => ({
+  label: pinned ? t('contextMenu.tabs.unpin') : t('contextMenu.tabs.pin'),
+  id: 'pinFile'
+})
+
 export const getCOPY_AS_MARKDOWN = () => ({
   label: t('contextMenu.tabs.copyAsMarkdown'),
   id: 'copyAsMarkdown'
@@ -92,6 +100,7 @@ export const HANDLERS = {
   showInFolder: (tabId) => contextMenu.showInFolder(tabId),
   lockDocument: (tabId) => contextMenu.toggleLock(tabId),
   splitView: (tabId) => contextMenu.toggleSplitView(tabId),
+  pinFile: (tabId) => contextMenu.pinFile(tabId),
   copyAsMarkdown: (tabId) => contextMenu.copyAsMarkdown(tabId),
   copyAsHtml: (tabId) => contextMenu.copyDocumentAs('html', tabId),
   copyAsStructuredText: (tabId) => contextMenu.copyDocumentAs('structuredText', tabId)

@@ -51,8 +51,12 @@
 
 <script setup>
 // FILE: src/renderer/src/components/editorWithTabs/tabs.vue
-// VERSION: 1.4.0
+// VERSION: 1.5.0
 // START_CHANGE_SUMMARY
+//   - 2026-10-16 v1.5.0: C-51 T-002 — the tab context menu gains
+//     Pin/Unpin: TABS::pin-file resolves the tab pathname and toggles
+//     the persisted Pinned sidebar list (store/pinned); untitled tabs
+//     are a no-op.
 //   - 2026-10-15 v1.4.0: C-38 T-006 N4 b/d — the close glyph, the
 //     unsaved marker dot and the new-tab plus render from the drawn
 //     chromeIcons set (the iconfont sprite is gone); the active-tab
@@ -70,6 +74,7 @@
 import { ref, watch, nextTick, onMounted, onBeforeUnmount } from 'vue'
 import { useEditorStore } from '@/store/editor'
 import { useLayoutStore } from '@/store/layout'
+import { usePinnedStore } from '@/store/pinned'
 import { storeToRefs } from 'pinia'
 import { useI18n } from 'vue-i18n'
 import autoScroll from 'dom-autoscroller'
@@ -280,6 +285,14 @@ const handleContextMenu = (event, tab) => {
   }
 }
 
+// C-51 T-002: Pin/Unpin the tab's file into the persisted Pinned sidebar
+// section (tab context menu). Untitled tabs have no pathname — no-op.
+const pinFile = (tabId) => {
+  const tab = tabs.value.find((f) => f.id === tabId)
+  if (!tab || !tab.pathname) return
+  usePinnedStore().TOGGLE_PIN(tab.pathname)
+}
+
 onMounted(() => {
   bus.on('TABS::close-this', closeTab)
   bus.on('TABS::close-others', closeOthers)
@@ -290,6 +303,7 @@ onMounted(() => {
   bus.on('TABS::show-in-folder', showInFolder)
   bus.on('TABS::toggle-lock', toggleLock)
   bus.on('TABS::toggle-split-view', toggleSplitView)
+  bus.on('TABS::pin-file', pinFile)
   bus.on('TABS::copy-as-markdown', copyAsMarkdown)
   bus.on('TABS::copy-document-as', copyDocumentAs)
   bus.on('EDITOR_TABS::change-max-width', changeMaxWidth)
@@ -376,6 +390,7 @@ onBeforeUnmount(() => {
   bus.off('TABS::show-in-folder', showInFolder)
   bus.off('TABS::toggle-lock', toggleLock)
   bus.off('TABS::toggle-split-view', toggleSplitView)
+  bus.off('TABS::pin-file', pinFile)
   bus.off('TABS::copy-as-markdown', copyAsMarkdown)
   bus.off('TABS::copy-document-as', copyDocumentAs)
   bus.off('EDITOR_TABS::change-max-width', changeMaxWidth)

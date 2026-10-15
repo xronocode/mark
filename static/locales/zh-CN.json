@@ -231,7 +231,9 @@
       "paste": "粘贴",
       "rename": "重命名",
       "moveToTrash": "移动到废纸篓",
-      "showInFolder": "在文件夹中显示"
+      "showInFolder": "在文件夹中显示",
+      "pin": "固定",
+      "unpin": "取消固定"
     },
     "tabs": {
       "close": "关闭",
@@ -243,6 +245,8 @@
       "showInFolder": "在文件夹中显示",
       "lock": "锁定文档",
       "unlock": "解锁文档",
+      "pin": "固定",
+      "unpin": "取消固定",
       "splitView": "分屏视图",
       "copyAsMarkdown": "复制为 Markdown",
       "copyAsHtml": "复制为 HTML",
@@ -320,7 +324,12 @@
       "createFile": "创建文件",
       "openFolder": "打开文件夹",
       "closeFolder": "关闭文件夹",
-      "newFile": "新建文件"
+      "newFile": "新建文件",
+      "recentFiles": "最近使用",
+      "pinnedFiles": "已固定",
+      "remove": "移除",
+      "unpin": "取消固定",
+      "openOrSwitchFolder": "打开或切换文件夹"
     },
     "toc": {
       "title": "目录"
@@ -513,6 +522,7 @@
         "language": "应用语言",
         "defaultEncoding": "新文件的文件编码",
         "endOfLine": "新文件及保存时使用的行尾符",
+        "treeShowAllFiles": "在文件夹树中显示所有文件（不仅限 Markdown）",
         "titleBarStyle": "窗口标题栏：自定义或系统（需要重启）",
         "hideScrollbar": "隐藏滚动条",
         "wordWrapInToc": "在目录中换行长标题",
@@ -603,7 +613,9 @@
         "endOfLineSystem": "与我的操作系统一致",
         "endOfLineLf": "LF (Unix, macOS)",
         "endOfLineCrlf": "CRLF (Windows)",
-        "secondsUnit": "秒"
+        "secondsUnit": "秒",
+        "showAllFiles": "显示所有文件",
+        "showAllFilesHelp": "在文件夹树中显示所有文件，而不仅是 Markdown。非 Markdown 文件保持置灰显示，且无法打开。"
       },
       "updates": {
         "title": "更新",

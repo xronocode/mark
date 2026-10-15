@@ -133,7 +133,7 @@ describe('store/project — coverage gaps', () => {
   // ─── LISTEN_FOR_SIDEBAR_CONTEXT_MENU ──────────────────────────────
 
   describe('LISTEN_FOR_SIDEBAR_CONTEXT_MENU', () => {
-    it('registers all 6 bus handlers', async () => {
+    it('registers all bus handlers', async () => {
       const bus = (await import('@/bus')).default
       const store = await loadStore()
       store.LISTEN_FOR_SIDEBAR_CONTEXT_MENU()
@@ -145,6 +145,8 @@ describe('store/project — coverage gaps', () => {
       expect(channels).toContain('SIDEBAR::copy-cut')
       expect(channels).toContain('SIDEBAR::paste')
       expect(channels).toContain('SIDEBAR::rename')
+      // C-51 T-002: the tree context-menu Pin/Unpin toggle.
+      expect(channels).toContain('SIDEBAR::pin-file')
     })
 
     it('show-in-folder handler calls shell.showItemInFolder', async () => {
@@ -333,7 +335,7 @@ describe('store/project — coverage gaps', () => {
   // ─── _handleWatchEvent — create + non-markdown with open tab ─────
 
   describe('_handleWatchEvent — additional branches', () => {
-    it('create + non-markdown file WITH open tab → APPLY_FILE_CHANGE only', async () => {
+    it('create + non-markdown file → joins the model with isMarkdown:false AND notifies an open tab (C-51 T-001 parity)', async () => {
       ipcFsStatMock.mockResolvedValueOnce({
         isDirectory: false,
         isFile: true,
@@ -348,8 +350,12 @@ describe('store/project — coverage gaps', () => {
         paths: ['/root/data.json']
       })
 
-      // Non-markdown → no addFile, but tab exists → APPLY_FILE_CHANGE
-      expect(addFileSpy).not.toHaveBeenCalled()
+      // C-51 T-001: every file joins the model (same shape as the initial
+      // walk); the tree view applies the Markdown-only rule at render time.
+      expect(addFileSpy).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({ pathname: '/root/data.json', isMarkdown: false })
+      )
       expect(editorStubRef.APPLY_FILE_CHANGE).toHaveBeenCalledWith('add', {
         pathname: '/root/data.json'
       })

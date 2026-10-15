@@ -231,7 +231,9 @@
       "paste": "Colar",
       "rename": "Renomear",
       "moveToTrash": "Mover para Lixeira",
-      "showInFolder": "Mostrar na Pasta"
+      "showInFolder": "Mostrar na Pasta",
+      "pin": "Fixar",
+      "unpin": "Desafixar"
     },
     "tabs": {
       "close": "Fechar",
@@ -243,6 +245,8 @@
       "showInFolder": "Mostrar na pasta",
       "lock": "Bloquear documento",
       "unlock": "Desbloquear documento",
+      "pin": "Fixar",
+      "unpin": "Desafixar",
       "splitView": "Visualização dividida",
       "copyAsMarkdown": "Copiar como Markdown",
       "copyAsHtml": "Copiar como HTML",
@@ -325,7 +329,12 @@
       "createFile": "Criar Arquivo",
       "openFolder": "Abrir Pasta",
       "closeFolder": "Fechar pasta",
-      "newFile": "Novo ficheiro"
+      "newFile": "Novo ficheiro",
+      "recentFiles": "Recentes",
+      "pinnedFiles": "Fixados",
+      "remove": "Remover",
+      "unpin": "Desafixar",
+      "openOrSwitchFolder": "Abrir ou trocar de pasta"
     },
     "toc": {
       "title": "Índice"
@@ -520,6 +529,7 @@
         "language": "Idioma do aplicativo",
         "defaultEncoding": "Codificação de arquivo para novos arquivos",
         "endOfLine": "Fins de linha usados para novos arquivos e ao salvar",
+        "treeShowAllFiles": "Mostrar todos os arquivos na árvore de pastas (não apenas Markdown)",
         "titleBarStyle": "Barra de título da janela: personalizada ou do sistema (requer reinicialização)",
         "hideScrollbar": "Ocultar barras de rolagem",
         "wordWrapInToc": "Quebrar títulos longos no índice",
@@ -610,7 +620,9 @@
         "endOfLineSystem": "Igual ao meu sistema operacional",
         "endOfLineLf": "LF (Unix, macOS)",
         "endOfLineCrlf": "CRLF (Windows)",
-        "secondsUnit": "s"
+        "secondsUnit": "s",
+        "showAllFiles": "Mostrar todos os arquivos",
+        "showAllFilesHelp": "Mostra todos os arquivos na árvore de pastas, não apenas os Markdown. Arquivos que não são Markdown ficam esmaecidos e não podem ser abertos."
       },
       "updates": {
         "title": "Atualizações",

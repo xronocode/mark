@@ -73,6 +73,11 @@ export default defineConfig({
     // and dark, computed colour/font assertions, theme-switch re-render)
     // also gates in WebKit — the engine WKWebView ships and the one the
     // accepted lab renders were verified in.
-    { name: 'webkit-mermaid-theme', use: { browserName: 'webkit' }, testMatch: 'mermaid-theme.spec.ts' }
+    { name: 'webkit-mermaid-theme', use: { browserName: 'webkit' }, testMatch: 'mermaid-theme.spec.ts' },
+    // C-51 T-001/T-002: the redesigned sidebar tree (Markdown-only filter,
+    // guide lines, pill, folder switcher) + Recent/Pinned sections also
+    // gate in WebKit — the engine the macOS build ships (HTML5 drag
+    // reorder and CSS nesting are engine-sensitive).
+    { name: 'webkit-tree', use: { browserName: 'webkit' }, testMatch: 'sidebar-tree-redesign.spec.ts' }
   ]
 })
