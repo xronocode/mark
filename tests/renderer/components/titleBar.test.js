@@ -80,7 +80,7 @@ describe('titleBar/index.vue', () => {
         }
       }
     })
-    expect(wrapper.find('.filename').text()).toBe('notes.md')
+    expect(wrapper.find('.titlebar-title-name').text()).toBe('notes.md')
   })
 
   it('shows Mark when no filename', async () => {
@@ -105,7 +105,7 @@ describe('titleBar/index.vue', () => {
     expect(wrapper.find('.title').text()).toContain('Mark')
   })
 
-  it('renders navigation buttons', async () => {
+  it('renders the trimmed navigation clusters (C-40 T-002)', async () => {
     const TitleBar = (await import('@/components/titleBar/index.vue')).default
     const wrapper = shallowMount(TitleBar, {
       props: {
@@ -125,10 +125,13 @@ describe('titleBar/index.vue', () => {
       }
     })
     expect(wrapper.find('.titlebar-nav').exists()).toBe(true)
-    const navBtns = wrapper.findAll('.titlebar-nav-btn')
-    // app menu (frameless Linux/custom), sidebar toggle, files, toc,
-    // settings, theme toggle = 6 (C-15 Phase W QA moved the hamburger here)
-    expect(navBtns.length).toBe(6)
+    // Linux frameless: left = menu + sidebar toggle + settings (C-38 N1);
+    // the Files and TOC buttons left the title bar with C-40 T-002.
+    const navBtns = wrapper.findAll('.titlebar-nav .titlebar-nav-btn')
+    expect(navBtns.length).toBe(3)
+    // right cluster: guide + theme + share
+    const rightBtns = wrapper.findAll('.titlebar-right .titlebar-nav-btn')
+    expect(rightBtns.length).toBe(3)
   })
 
   it('shows share button when pathname is set', async () => {

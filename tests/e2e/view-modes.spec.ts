@@ -68,7 +68,8 @@ test.describe('view modes', () => {
 
     await expect(page.locator('body')).not.toHaveClass(/dark/)
 
-    const themeBtn = page.locator('.titlebar-nav .titlebar-nav-btn').last()
+    // C-40 T-002: the theme button lives in the .titlebar-right cluster.
+    const themeBtn = page.locator('.titlebar-nav-btn[title*="Theme"]').first()
     await themeBtn.click()
 
     await expect(page.locator('body')).toHaveClass(/dark/, { timeout: 5_000 })

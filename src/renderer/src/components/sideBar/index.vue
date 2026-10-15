@@ -7,12 +7,15 @@
   >
     <div class="side-bar-content">
       <div class="side-bar-body">
+        <!-- C-40 T-003: the sidebar TOC panel is retired in favour of the
+             «On this page» outline rail (editorWithTabs/outlineRail.vue).
+             The sidebar is Files-only; a stale rightColumn='toc' value
+             (the title-bar TOC button until C-40 T-002 removes it) simply
+             shows Files. -->
         <tree
-          v-if="rightColumn === 'files'"
           :openedFiles="openedFiles"
           :tabs="tabs"
         ></tree>
-        <toc v-else-if="rightColumn === 'toc'"></toc>
       </div>
     </div>
     <div ref="dragBar" class="drag-bar"></div>
@@ -20,13 +23,29 @@
 </template>
 
 <script setup>
+// FILE: src/renderer/src/components/sideBar/index.vue
+// VERSION: 2.0.0
+// START_MODULE_CONTRACT
+//   PURPOSE: Sidebar shell (Files tree + width drag) — the sidebar is Files-only since the TOC panel moved to the outline rail (C-40 T-003).
+//   SCOPE: Sidebar visibility/width composition; no right-column switching anymore.
+//   DEPENDS: layout/editor/project stores, tree.vue.
+//   LINKS: .grace/changes/active/C-40 T-003; .grace/graph/runtime.xml M-011.
+//   ROLE: RUNTIME
+//   MAP_MODE: LOCALS
+// END_MODULE_CONTRACT
+//
+// START_CHANGE_SUMMARY
+//   - 2026-10-15 v2.0.0: C-40 T-003 — retire the sidebar TOC panel and the
+//     right-column 'toc' mode (outline lives in the editor-area rail now);
+//     the tree renders unconditionally, so a 'toc' rightColumn value
+//     (title-bar button until T-002 removes it) falls back to Files.
+// END_CHANGE_SUMMARY
 import { ref, computed, onMounted, nextTick } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useLayoutStore } from '@/store/layout'
 import { useProjectStore } from '@/store/project'
 import { useEditorStore } from '@/store/editor'
 import Tree from './tree.vue'
-import Toc from './toc.vue'
 
 const layoutStore = useLayoutStore()
 const projectStore = useProjectStore()
@@ -38,7 +57,7 @@ const dragBar = ref(null)
 const openedFiles = ref([])
 const sideBarViewWidth = ref(280)
 
-const { rightColumn, showSideBar, sideBarWidth } = storeToRefs(layoutStore)
+const { showSideBar, sideBarWidth } = storeToRefs(layoutStore)
 const { tabs } = storeToRefs(editorStore)
 
 const finalSideBarWidth = computed(() => {
@@ -74,6 +93,9 @@ onMounted(() => {
       document.addEventListener('mouseup', mouseUpHandler, false)
     }
 
+    // The drag bar is absent while the sidebar is hidden at mount (tests,
+    // a boot with the sidebar closed) — nothing to wire then.
+    if (!dragBarEl) return
     dragBarEl.addEventListener('mousedown', mouseDownHandler, false)
   })
 })

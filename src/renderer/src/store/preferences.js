@@ -1,5 +1,5 @@
 // FILE: src/renderer/src/store/preferences.js
-// VERSION: 1.4.0
+// VERSION: 1.5.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Pinia store for persistent user preferences, their hydration, persistence, the unified fontSize zoom actions (C-49), the UI-language application paths (concrete or 'system'), the retired-theme id migration (C-41 T-002), and the C-38 T-004 «Restore all defaults» reset.
 //   SCOPE: default state, SET_USER_PREFERENCE / SET_SINGLE_PREFERENCE, the C-49 zoom actions (APPLY_FONT_SIZE / ZOOM_STEP / ZOOM_ACTUAL_SIZE) and the one-time legacy `zoom` migration, the C-41 T-002 retired-theme migration in ASK_FOR_USER_PREFERENCE, ASK_FOR_USER_PREFERENCE boot hydration, buildCapabilities + default-handler queries, LISTEN_SYSTEM_LANGUAGE re-resolution (C-45), RESET_PREFERENCES_TO_DEFAULTS (C-38 T-004).
@@ -20,7 +20,11 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.4.0 - 2026-10-15 C-38 T-004: (1) SET_USER_PREFERENCE
+//   LAST_CHANGE: v1.5.0 - 2026-10-15 C-40 T-003: new persisted
+//   outlineRailVisible preference (default true) backing the «On this
+//   page» outline rail and its View › Outline toggle; view state like
+//   sideBarVisibility, so it stays out of RESETTABLE_PREFERENCE_KEYS.
+//   v1.4.0 - 2026-10-15 C-38 T-004: (1) SET_USER_PREFERENCE
 //   skips null values — bootstrap.js builds initialState with nulls for
 //   absent URL params and the old `!== 'undefined'` guard let them
 //   null-stomp codeFontSize/codeFontFamily/titleBarStyle before the first
@@ -217,6 +221,10 @@ export const preferenceDefaults = () => ({
     // Default values that are overwritten with the entries below.
     sideBarVisibility: false,
     tabBarVisibility: false,
+    // C-40 T-003: the «On this page» outline rail is on by default
+    // (View › Outline toggles it; the rail self-hides below 1000 px of
+    // editor width, in source/split/diff modes, and on short documents).
+    outlineRailVisible: true,
     sourceCodeModeEnabled: false,
     diffMode: false,
     // C-29 Split View: left pane share (0.1–0.9) and whether rich is on the left.

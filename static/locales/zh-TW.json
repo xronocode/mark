@@ -139,7 +139,8 @@
       "reloadImages": "重新載入圖片",
       "showDeveloperTools": "顯示開發者工具",
       "reloadWindow": "重新載入視窗",
-      "splitView": "分欄檢視"
+      "splitView": "分欄檢視",
+      "outline": "大綱"
     },
     "format": {
       "format": "格式",
@@ -265,6 +266,9 @@
     "caseSensitiveTip": "區分大小寫 (Aa) — \"Hello\" ≠ \"hello\"",
     "wholeWordTip": "全字匹配 (\\b) — \"fox\" 匹配 \"fox\" 但不匹配 \"foxglove\"",
     "useRegexTip": "正規表達式 (.*) — \"colou?r\" 同時匹配 \"color\" 和 \"colour\""
+  },
+  "outlineRail": {
+    "title": "本頁內容"
   },
   "sideBar": {
     "search": {
@@ -902,7 +906,8 @@
       "zoomIn": "放大",
       "zoomOut": "縮小",
       "devToggleDeveloperTools": "切換開發者工具",
-      "splitView": "分欄檢視"
+      "splitView": "分欄檢視",
+      "outline": "顯示或隱藏「本頁內容」大綱"
     },
     "tabs": {
       "cycleForward": "向前循環",
@@ -1302,10 +1307,21 @@
     "load-image-failed": "圖片載入失敗"
   },
   "titleBar": {
+    "guide": "Mark 指南",
+    "documentInfo": "文件資訊",
     "themeMode": {
       "auto": "主題：自動",
       "light": "主題：淺色",
       "dark": "主題：深色"
+    },
+    "popover": {
+      "words": "字數",
+      "characters": "字元",
+      "lines": "行數",
+      "reading": "閱讀",
+      "minutes": "{count} 分鐘",
+      "rename": "重新命名…",
+      "edited": "編輯於 {time}"
     }
   },
   "edit": {

@@ -160,8 +160,8 @@ jobs:
 
       # C-38 T-003: the Settings shell in WebKit (the engine the macOS build
       # ships) — tabs, per-OS layout, no overflow at 640 px.
-      - name: webkit settings shell
-        run: npx playwright test --project webkit-settings
+      - name: webkit settings, title bar and outline rail
+        run: npx playwright test --project webkit-settings --project webkit-titlebar --project webkit-outline
 
       - name: upload playwright report
         if: failure()

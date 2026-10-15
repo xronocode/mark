@@ -219,11 +219,14 @@ describe('C-29 Split View', () => {
   const sources = (wrapper) => wrapper.findAllComponents({ name: 'sourceCode' })
 
   describe('pane roles', () => {
+    // 20 s: this first pane-roles test pays the cold import of
+    // editorWithTabs/index.vue (muya, CodeMirror, the outline rail), which
+    // exceeds the 5 s default under a loaded full-suite run (C-40 review).
     it('split off: muya only, never a mirror', async () => {
       const wrapper = await mountTabs({ splitView: false })
       expect(sources(wrapper)).toHaveLength(0)
       expect(wrapper.findComponent({ name: 'editor' }).props('mirror')).toBe(false)
-    })
+    }, 20_000)
 
     it('split on in WYSIWYG mode: muya editable, CodeMirror is the read-only mirror', async () => {
       const wrapper = await mountTabs({ splitView: true })

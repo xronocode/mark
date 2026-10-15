@@ -1,10 +1,10 @@
 // FILE: tests/renderer/components/titleBar-deep.test.js
-// VERSION: 1.4.0
+// VERSION: 1.5.0
 // START_MODULE_CONTRACT
-//   PURPOSE: Verify titleBar/index.vue computed state, native actions, navigation decisions, window controls, and lifecycle behavior.
+//   PURPOSE: Verify titleBar/index.vue computed state, native actions, popover rename, window controls, and lifecycle behavior.
 //   SCOPE: Deterministic Vue/jsdom component tests with mocked Tauri and compatibility facades.
 //   DEPENDS: Vue Test Utils, Vitest, Pinia test setup, i18n, titleBar/index.vue, @tauri-apps/plugin-clipboard-manager.
-//   LINKS: docs/verification-plan.xml V-M-011 scenario 14; docs/knowledge-graph.xml M-011.
+//   LINKS: .grace/verification/runtime.xml V-M-011 scenario 14; .grace/graph/runtime.xml M-011.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT
@@ -18,10 +18,12 @@
 // START_CHANGE_SUMMARY
 //   - 2026-08-07 v1.2.0: require native clipboard dispatch and production plugin/capability wiring for Copy Path.
 //   - 2026-08-07 v1.1.0: add UC-029 title-path context-menu coverage.
-//   - 2026-09-28 v1.3.0: C-15 T-W1 — toggleMaxmizeOnMacOS removed; dblclick-maximize is cross-platform now (both directions pinned).
-//   - 2026-10-15 v1.4.0: C-41 T-001 — currentIsDark pin replaced by the
-//     three-state themeMode pin (auto/light/dark); i18n fixture carries
-//     titleBar.themeMode instead of the retired switchTo* keys.
+//   - 2026-09-28 v1.3.0: C-15 T-W1 — dblclick-maximize is cross-platform (both directions pinned).
+//   - 2026-10-15 v1.4.0: C-41 T-001 — three-state themeMode pin.
+//   - 2026-10-15 v1.5.0: C-40 T-002 — the paths/handleNavClick/handleWordClick
+//     pins retired with the breadcrumb, Files/TOC buttons and word-count
+//     counter; rename is now the popover Rename… (handleRenameClick →
+//     RESPONSE_FOR_RENAME on every platform).
 // END_CHANGE_SUMMARY
 
 import { shallowMount } from '@vue/test-utils'
@@ -103,7 +105,24 @@ const i18n = createI18n({
       },
       titleBar: {
         share: 'Share',
-        themeMode: { auto: 'Theme: Auto', light: 'Theme: Light', dark: 'Theme: Dark' }
+        guide: 'Mark Guide',
+        documentInfo: 'Document info',
+        themeMode: { auto: 'Theme: Auto', light: 'Theme: Light', dark: 'Theme: Dark' },
+        popover: {
+          words: 'words',
+          characters: 'characters',
+          lines: 'lines',
+          reading: 'reading',
+          minutes: '{count} min',
+          rename: 'Rename…',
+          edited: 'edited {time}'
+        }
+      },
+      recent: {
+        showInFinder: 'Show in Finder',
+        showInExplorer: 'Show in Explorer',
+        showInFolder: 'Show in folder',
+        copyPath: 'Copy path'
       },
       contextMenu: {
         tabs: { copyPath: 'Copy Path' }
@@ -139,27 +158,6 @@ describe('titleBar/index.vue — deep coverage', () => {
         stubs: { ElTooltip: true }
       }
     })
-
-  // --- paths computed ---
-  describe('paths computed', () => {
-    it('computes breadcrumb paths from pathname', () => {
-      const wrapper = mountComponent({ pathname: '/a/b/c/d/test.md' })
-      // filter empty, take all but last (filename part), then take last 3
-      // /a/b/c/d/test.md -> ['a','b','c','d','test.md'] -> ['a','b','c','d'] -> last 3 = ['b','c','d']
-      expect(wrapper.vm.paths).toEqual(['b', 'c', 'd'])
-    })
-
-    it('returns empty array when no pathname', () => {
-      const wrapper = mountComponent({ pathname: '' })
-      expect(wrapper.vm.paths).toEqual([])
-    })
-
-    it('handles short paths', () => {
-      const wrapper = mountComponent({ pathname: '/test.md' })
-      // ['test.md'] -> no items after removing last = []
-      expect(wrapper.vm.paths).toEqual([])
-    })
-  })
 
   // --- showCustomTitleBar computed ---
   describe('showCustomTitleBar computed', () => {
@@ -211,87 +209,6 @@ describe('titleBar/index.vue — deep coverage', () => {
     })
   })
 
-  // --- handleNavClick ---
-  describe('handleNavClick', () => {
-    it('opens sidebar and switches to files when sidebar is closed', async () => {
-      const { useLayoutStore } = await import('@/store/layout.js')
-      const layoutStore = useLayoutStore()
-      layoutStore.showSideBar = false
-      layoutStore.SET_LAYOUT = vi.fn()
-
-      const wrapper = mountComponent()
-      wrapper.vm.handleNavClick('files')
-
-      expect(layoutStore.SET_LAYOUT).toHaveBeenCalledWith({
-        rightColumn: 'files',
-        showSideBar: true
-      })
-    })
-
-    it('switches view when sidebar is open and different view', async () => {
-      const { useLayoutStore } = await import('@/store/layout.js')
-      const layoutStore = useLayoutStore()
-      layoutStore.showSideBar = true
-      layoutStore.rightColumn = 'toc'
-      layoutStore.SET_LAYOUT = vi.fn()
-
-      const wrapper = mountComponent()
-      wrapper.vm.handleNavClick('files')
-
-      expect(layoutStore.SET_LAYOUT).toHaveBeenCalledWith({ rightColumn: 'files' })
-    })
-
-    it('opens dialog when already on files with projects', async () => {
-      const { useLayoutStore } = await import('@/store/layout.js')
-      const layoutStore = useLayoutStore()
-      layoutStore.showSideBar = true
-      layoutStore.rightColumn = 'files'
-
-      const { useProjectStore } = await import('@/store/project')
-      const projectStore = useProjectStore()
-      projectStore.projectTrees = [{ pathname: '/p1' }]
-      projectStore.ASK_FOR_OPEN_PROJECT = vi.fn()
-
-      const wrapper = mountComponent()
-      wrapper.vm.handleNavClick('files')
-
-      expect(projectStore.ASK_FOR_OPEN_PROJECT).toHaveBeenCalled()
-    })
-
-    it('opens dialog when no projects loaded', async () => {
-      const { useLayoutStore } = await import('@/store/layout.js')
-      const layoutStore = useLayoutStore()
-      layoutStore.showSideBar = true
-      layoutStore.rightColumn = 'toc'
-
-      const { useProjectStore } = await import('@/store/project')
-      const projectStore = useProjectStore()
-      projectStore.projectTrees = []
-      projectStore.ASK_FOR_OPEN_PROJECT = vi.fn()
-
-      const wrapper = mountComponent()
-      wrapper.vm.handleNavClick('files')
-
-      expect(projectStore.ASK_FOR_OPEN_PROJECT).toHaveBeenCalled()
-    })
-
-    it('does not open dialog for toc view', async () => {
-      const { useLayoutStore } = await import('@/store/layout.js')
-      const layoutStore = useLayoutStore()
-      layoutStore.showSideBar = false
-      layoutStore.SET_LAYOUT = vi.fn()
-
-      const { useProjectStore } = await import('@/store/project')
-      const projectStore = useProjectStore()
-      projectStore.ASK_FOR_OPEN_PROJECT = vi.fn()
-
-      const wrapper = mountComponent()
-      wrapper.vm.handleNavClick('toc')
-
-      expect(projectStore.ASK_FOR_OPEN_PROJECT).not.toHaveBeenCalled()
-    })
-  })
-
   // --- handleSettingsClick ---
   describe('handleSettingsClick', () => {
     it('calls OPEN_SETTING_WINDOW', async () => {
@@ -313,23 +230,6 @@ describe('titleBar/index.vue — deep coverage', () => {
       // resolution scope. We just verify it's callable and doesn't crash.
       const wrapper = mountComponent()
       expect(() => wrapper.vm.handleThemeToggle()).not.toThrow()
-    })
-  })
-
-  // --- handleWordClick ---
-  describe('handleWordClick', () => {
-    it('cycles through word → paragraph → character → all → word', () => {
-      const wrapper = mountComponent()
-
-      expect(wrapper.vm.show).toBe('word')
-      wrapper.vm.handleWordClick()
-      expect(wrapper.vm.show).toBe('paragraph')
-      wrapper.vm.handleWordClick()
-      expect(wrapper.vm.show).toBe('character')
-      wrapper.vm.handleWordClick()
-      expect(wrapper.vm.show).toBe('all')
-      wrapper.vm.handleWordClick()
-      expect(wrapper.vm.show).toBe('word')
     })
   })
 
@@ -466,28 +366,28 @@ describe('titleBar/index.vue — deep coverage', () => {
   })
   // END_BLOCK_TITLE_PATH_CONTEXT_MENU_TESTS
 
-  // --- rename ---
-  describe('rename', () => {
-    it('calls RESPONSE_FOR_RENAME on darwin platform', async () => {
+  // --- popover rename (the old click-to-rename path, C-40 T-002) ---
+  describe('handleRenameClick', () => {
+    it('reuses RESPONSE_FOR_RENAME regardless of platform (darwin)', async () => {
       const { useEditorStore } = await import('@/store/editor')
       const editorStore = useEditorStore()
       editorStore.RESPONSE_FOR_RENAME = vi.fn()
 
       const wrapper = mountComponent({ platform: 'darwin' })
-      wrapper.vm.rename()
+      wrapper.vm.handleRenameClick()
 
       expect(editorStore.RESPONSE_FOR_RENAME).toHaveBeenCalled()
     })
 
-    it('does nothing on non-darwin platform', async () => {
+    it('reuses RESPONSE_FOR_RENAME on non-darwin platforms too (linux)', async () => {
       const { useEditorStore } = await import('@/store/editor')
       const editorStore = useEditorStore()
       editorStore.RESPONSE_FOR_RENAME = vi.fn()
 
       const wrapper = mountComponent({ platform: 'linux' })
-      wrapper.vm.rename()
+      wrapper.vm.handleRenameClick()
 
-      expect(editorStore.RESPONSE_FOR_RENAME).not.toHaveBeenCalled()
+      expect(editorStore.RESPONSE_FOR_RENAME).toHaveBeenCalled()
     })
   })
 
@@ -562,12 +462,7 @@ describe('titleBar/index.vue — deep coverage', () => {
   describe('nav button clicks', () => {
     it('sidebar toggle click emits bus event', async () => {
       const wrapper = mountComponent()
-      const navBtns = wrapper.findAll('.titlebar-nav-btn')
-      // On custom (frameless) styles the app-menu hamburger is nav-btn #0
-      // (C-15 Phase W QA); the sidebar toggle follows it.
-      const sidebarBtn = navBtns[0].classes().includes('titlebar-nav-menu')
-        ? navBtns[1]
-        : navBtns[0]
+      const sidebarBtn = wrapper.find('.titlebar-nav-btn[title="Toggle Sidebar"]')
       await sidebarBtn.trigger('click')
       expect(bus.emit).toHaveBeenCalledWith('view:toggle-layout-entry', 'showSideBar')
     })

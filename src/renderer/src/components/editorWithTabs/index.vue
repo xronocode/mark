@@ -40,12 +40,35 @@
         :markdown="markdown"
         :pathname="pathname"
       ></diff-view>
+      <!-- C-40 T-003: «On this page» outline rail — plain WYSIWYG surface
+           only (own gates hide it in source/split/diff modes). -->
+      <outline-rail
+        :source-code="sourceCode"
+        :split-view="splitView"
+        :diff-mode="diffMode"
+      ></outline-rail>
     </div>
     <tab-notifications></tab-notifications>
   </div>
 </template>
 
 <script setup>
+// FILE: src/renderer/src/components/editorWithTabs/index.vue
+// VERSION: 1.1.0
+// START_MODULE_CONTRACT
+//   PURPOSE: Compose the editor column — tabs, split/source/diff surfaces, and the C-40 T-003 outline rail — inside the editorWithTabs container.
+//   SCOPE: Layout composition and prop pass-through only; mode state lives in the stores and the child components.
+//   DEPENDS: layout store, tabs/editor/sourceCode/diffView/splitView/notifications components, outlineRail.vue.
+//   LINKS: .grace/graph/runtime.xml M-011; .grace/changes/active/C-40 T-003.
+//   ROLE: RUNTIME
+//   MAP_MODE: LOCALS
+// END_MODULE_CONTRACT
+//
+// START_CHANGE_SUMMARY
+//   - 2026-10-15 v1.1.0: C-40 T-003 — mount the «On this page» outline
+//     rail inside .container (now position:relative, its positioning
+//     context) with the source/split/diff mode gates passed as props.
+// END_CHANGE_SUMMARY
 import { useLayoutStore } from '@/store/layout'
 import { storeToRefs } from 'pinia'
 import Tabs from './tabs.vue'
@@ -53,6 +76,7 @@ import Editor from './editor.vue'
 import SourceCode from './sourceCode.vue'
 import DiffView from './diffView.vue'
 import SplitView from './splitView.vue'
+import OutlineRail from './outlineRail.vue'
 import TabNotifications from './notifications.vue'
 
 defineProps({
@@ -115,6 +139,10 @@ const { showSideBar, sideBarWidth } = storeToRefs(layoutStore)
   overflow: hidden;
   background: var(--editorBgColor);
   & > .container {
+    /* C-40 T-003: positioning context for the absolutely-positioned
+       outline rail (its canvas geometry: right 22px inside the editor
+       area below the tab bar). */
+    position: relative;
     flex: 1;
     overflow: hidden;
     zoom: var(--content-zoom, 1);

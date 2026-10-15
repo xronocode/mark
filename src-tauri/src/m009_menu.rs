@@ -112,6 +112,11 @@
 //                (help.rate, App Store build on macOS only, mirroring
 //                the m048 review capability; opens the store review
 //                page through the renderer command).
+//   - 2026-10-15 C-40 T-003: add View-menu "Outline" check item
+//                (view.outline, no accelerator) — toggles the «On this
+//                page» outline rail through the renderer command and the
+//                persisted outlineRailVisible preference (default on);
+//                ⌘T remains Go to Heading (edit.go-to-heading).
 // END_CHANGE_SUMMARY
 
 use serde::{Deserialize, Serialize};
@@ -561,6 +566,17 @@ pub fn standard_menu() -> Vec<MenuItem> {
                     accelerator: None,
                     items: None,
                 },
+                // C-40 T-003: View › Outline toggles the «On this page»
+                // outline rail — id-dispatched to the renderer view.outline
+                // command (persisted outlineRailVisible preference). No
+                // accelerator: ⌘T is Go to Heading (edit.go-to-heading).
+                MenuItem {
+                    id: "view.outline".to_string(),
+                    label: "Outline".to_string(),
+                    command: None,
+                    accelerator: None,
+                    items: None,
+                },
                 MenuItem {
                     id: "view.source-code-mode".to_string(),
                     label: "Source Code Mode".to_string(),
@@ -964,6 +980,16 @@ pub fn build_native_menu<R: tauri::Runtime>(
                 .checked(true)
                 .build(handle)?,
         )
+        .item(
+            // C-40 T-003: the «On this page» outline rail (default on —
+            // matches the renderer's outlineRailVisible default; checkmark
+            // re-sync from stored prefs rides the same F-MENU-WIRE-TAURI
+            // follow-up as the sidebar/tabbar items). Id-dispatched to the
+            // renderer view.outline command; ⌘T stays Go to Heading.
+            &tauri::menu::CheckMenuItemBuilder::with_id("view.outline", "Outline")
+                .checked(true)
+                .build(handle)?,
+        )
         .separator()
         .item(
             &MenuItemBuilder::with_id("view.source-code-mode", "Source Code Mode")
@@ -1353,6 +1379,8 @@ mod tests {
             // C-49: the zoom trio is id-dispatched the same way.
             // C-40: help.guide opens the in-app guide document via the
             // help.guide renderer command — also id-dispatched only.
+            // C-40 T-003: view.outline toggles the outline rail through
+            // the renderer view.outline command — id-dispatched only.
             let id_dispatched_only = matches!(
                 item.id.as_str(),
                 "tabs.cycleForward"
@@ -1361,6 +1389,7 @@ mod tests {
                     | "view.zoom-out"
                     | "view.actual-size"
                     | "help.guide"
+                    | "view.outline"
             );
             if !has_static_children && !dynamic_submenu && !id_dispatched_only {
                 assert!(
@@ -1379,6 +1408,23 @@ mod tests {
         let save = flat.iter().find(|i| i.id == "file.save").unwrap();
         assert_eq!(save.accelerator.as_deref(), Some("CmdOrCtrl+S"));
         assert_eq!(save.command.as_deref(), Some("save"));
+    }
+
+    #[test]
+    fn view_menu_outline_item_is_id_dispatched_check_item() {
+        // C-40 T-003: View › Outline toggles the «On this page» outline
+        // rail. No accelerator (⌘T is Go to Heading), no legacy v1 command
+        // name — the renderer menu-bridge dispatches by id to the
+        // view.outline command (persisted outlineRailVisible preference).
+        let menu = standard_menu();
+        let flat = flatten(&menu);
+        let item = flat
+            .iter()
+            .find(|i| i.id == "view.outline")
+            .unwrap_or_else(|| panic!("menu missing view.outline"));
+        assert_eq!(item.label, "Outline");
+        assert!(item.command.is_none(), "view.outline must be id-dispatched only");
+        assert!(item.accelerator.is_none(), "view.outline has no accelerator (⌘T is Go to Heading)");
     }
 
     #[test]

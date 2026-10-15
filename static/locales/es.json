@@ -139,7 +139,8 @@
       "reloadImages": "Recargar Imágenes",
       "showDeveloperTools": "Mostrar Herramientas de Desarrollador",
       "reloadWindow": "Recargar Ventana",
-      "splitView": "Vista dividida"
+      "splitView": "Vista dividida",
+      "outline": "Esquema"
     },
     "format": {
       "format": "Formato",
@@ -264,6 +265,9 @@
     "caseSensitiveTip": "Distinguir mayúsculas (Aa) — «Hello» ≠ «hello»",
     "wholeWordTip": "Palabra completa (\\b) — «fox» coincide con «fox» pero no con «foxglove»",
     "useRegexTip": "Expresión regular (.*) — «colou?r» coincide con «color» y «colour»"
+  },
+  "outlineRail": {
+    "title": "En esta página"
   },
   "sideBar": {
     "search": {
@@ -903,7 +907,8 @@
       "zoomIn": "Acercar",
       "zoomOut": "Alejar",
       "devToggleDeveloperTools": "Alternar herramientas de desarrollador",
-      "splitView": "Vista dividida"
+      "splitView": "Vista dividida",
+      "outline": "Mostrar u ocultar el esquema «En esta página»"
     },
     "tabs": {
       "cycleForward": "Ciclar Adelante",
@@ -1295,10 +1300,21 @@
     "load-image-failed": "Error al cargar imagen"
   },
   "titleBar": {
+    "guide": "Guía de Mark",
+    "documentInfo": "Información del documento",
     "themeMode": {
       "auto": "Tema: Automático",
       "light": "Tema: Claro",
       "dark": "Tema: Oscuro"
+    },
+    "popover": {
+      "words": "palabras",
+      "characters": "caracteres",
+      "lines": "líneas",
+      "reading": "lectura",
+      "minutes": "{count} min",
+      "rename": "Renombrar…",
+      "edited": "editado {time}"
     }
   },
   "edit": {
