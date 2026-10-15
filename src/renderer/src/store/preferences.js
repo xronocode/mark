@@ -18,7 +18,11 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.2.0 - 2026-10-15 C-49 T-001: one clear zoom — fontSize is
+//   LAST_CHANGE: v1.2.1 - 2026-10-15 C-41 fix: SET_USER_PREFERENCE re-resolves
+//   the Auto member after applying a payload, so the full-snapshot echo of a
+//   followSystemTheme write cannot leave the last manual theme (Auto → Light →
+//   Dark → Auto stayed dark on a light Mac).
+//   v1.2.0 - 2026-10-15 C-49 T-001: one clear zoom — fontSize is
 //   the only zoom (⌘+/⌘−/⌘0, pinch, View menu all route through
 //   APPLY_FONT_SIZE / ZOOM_STEP / ZOOM_ACTUAL_SIZE with a 12–36 clamp and the
 //   150 ms debounced persistence that used to live in pages/app.vue); new
@@ -37,6 +41,7 @@ import bus from '../bus'
 import notice from '../services/notification'
 import { setLanguage, getCurrentLanguage } from '../i18n'
 import { SYSTEM_LANGUAGE, resolveSystemLocale } from '../i18n/systemLocale'
+import { resolveAutoTheme } from '../util/autoTheme'
 
 // C-49: the unified zoom clamps the editor font size to 12–36 px. 16 px is
 // the base unit — --mark-zoom (fontSize / 16) scales mermaid diagrams with
@@ -248,6 +253,21 @@ export const usePreferencesStore = defineStore('preferences', {
           this[key] = preference[key]
         }
       })
+
+      // START_BLOCK_AUTO_THEME_ON_BROADCAST
+      // Every mt_prefs_set broadcasts the FULL snapshot, whose persisted
+      // `theme` is the last manual pick. In Auto that stale value must not
+      // win: Auto → Light → Dark → Auto stayed on the dark member because
+      // the echo of the followSystemTheme write put `theme` back to ink
+      // after app.vue had resolved paper (the follow flag did not change
+      // again, so its watcher never re-ran).
+      if (this.followSystemTheme) {
+        const resolved = resolveAutoTheme(this)
+        if (resolved && this.theme !== resolved) {
+          this.theme = resolved
+        }
+      }
+      // END_BLOCK_AUTO_THEME_ON_BROADCAST
 
       // START_BLOCK_BASE_FONT_SIZE_MIRROR
       // C-49: a fontSize arriving from boot hydration or a Settings-window
