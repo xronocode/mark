@@ -1,20 +1,26 @@
 // FILE: src/muya/lib/index.js
-// VERSION: 1.3.0
+// VERSION: 1.4.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Muya editor entry class — construction, options, and the public API surface other modules call.
-//   SCOPE: Class construction/init, markdown IO (get/set), export helpers, clipboard accessors, and public editing commands.
+//   SCOPE: Class construction/init, markdown IO (get/set), export helpers, clipboard accessors, public editing commands, and the C-38 code-block line-number refresh entry.
 //   DEPENDS: contentState, event handlers (clipboard/keyboard/mouse/click/dragDrop/resize), utils (ExportMarkdown/ExportHtml), ui plugins.
-//   LINKS: .grace/graph/runtime.xml M-012 fn-getCopyData; .grace/verification/runtime.xml V-M-012 scenario-14; C-3.
+//   LINKS: .grace/graph/runtime.xml M-012 fn-getCopyData; .grace/verification/runtime.xml V-M-012 scenario-14 and scenario-20; C-3; C-38 T-005.
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
 //   default - GRACE 4 synchronized symbol (Muya class).
+//   Muya#refreshCodeBlockLineNumbers - re-measure every code-block gutter (wrap or code-font change without a re-render).
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.3.0 - 2026-10-15 C-34 R2.2/C-39 T2: destroy the blockViewer UI plugin (shared fullscreen block viewer) on editor teardown.
+//   LAST_CHANGE: v1.4.0 - 2026-10-15 C-38 T-005 (#1648): setOptions no longer
+//   force-disables codeBlockLineNumbers (the option re-renders and the gutter
+//   is measured by postRender); new refreshCodeBlockLineNumbers() for CSS-only
+//   changes (wrapCodeBlocks / codeFontSize) that re-render nothing; destroy()
+//   now tears the Resize handler down so split-view instances stop observing.
+//   v1.3.0 - 2026-10-15 C-34 R2.2/C-39 T2: destroy the blockViewer UI plugin (shared fullscreen block viewer) on editor teardown.
 //   v1.2.0 - C-24 R-4: insertImageFromPath — public entry for the Tauri file drop (inserts a local image at the cursor via imageAction).
 //   v1.1.0 - Add getCopyData: markdown text of whatever is selected (DOM range, table cells, image) for the Copy as HTML clipboard path; mirrors docCopyHandler/copyHandler special cases (C-3).
 // END_CHANGE_SUMMARY
@@ -505,11 +511,6 @@ class Muya {
   }
 
   setOptions(options, needRender = false) {
-    // FIXME: Just to be sure, disabled due to #1648.
-    if (options.codeBlockLineNumbers) {
-      options.codeBlockLineNumbers = false
-    }
-
     Object.assign(this.options, options)
     if (needRender) {
       this.contentState.render(false, true)
@@ -540,6 +541,16 @@ class Muya {
     if (options.t && this.i18nCSS) {
       this.i18nCSS.setTranslationFunction(options.t)
     }
+  }
+
+  /**
+   * Re-measure every code-block line-number gutter (C-38 T-005). Wrapping
+   * (wrapCodeBlocks) and the code font size are applied as pure CSS by the
+   * renderer without a muya re-render, so their watchers must call this to
+   * keep each number on the first visual row of its logical line.
+   */
+  refreshCodeBlockLineNumbers() {
+    this.contentState.resizeLineNumber(true)
   }
 
   hideAllFloatTools() {
@@ -590,6 +601,9 @@ class Muya {
     if (this.blockViewer) {
       this.blockViewer.destroy()
     }
+    // C-38 T-005: the resize handler owns window/container listeners that
+    // outlive the editor DOM (split-view instances come and go).
+    this.resize.destroy()
     this.eventCenter.detachAllDomEvents()
   }
 }

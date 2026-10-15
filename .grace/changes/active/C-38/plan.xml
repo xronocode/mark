@@ -122,6 +122,12 @@
       <Gates>Old-code proof: titleBar-osx (3), menu-consistency Settings pin, titleBar-resize 222px pin fail on the pre-change sources. On main after merge: npm test 250 files / 3381 passed; cargo test m009 15 passed; grace lint Errors: 0; GitHub CI + test green (runs 38627637034 / 38627636941).</Gates>
       <Pending>Live check in the real macOS build (no gear, ⌘, opens Settings, menu reads "Settings…") and a Windows lane look — folded into the C-23 release smoke.</Pending>
     </T-001>
+    <T-005>
+      <Status>done</Status>
+      <Commits>agent/c38-t5 (ZCode, no shell), rebased on main after C-41; orchestrator fixes in the same squash.</Commits>
+      <ReviewFixes>Agent code did not parse (missing comma after MIGRATE_CODE_BLOCK_LINE_NUMBERS — 821 tests failed); alignment was still broken in a real browser: line starts resolved to the end of the previous text node (number 3 sat on the last wrapped row of line 2), WebKit's leading empty client rect, and a half-leading offset on the gutter — fixed in utils/resizeCodeLineNumber.js and in the e2e metric (line-box top, first non-empty rect); app.vue attached window listeners after awaits even when already unmounted (the longer hydration made a C-46 test fail) — guarded; C-41 persist-once tests scoped to theme keys; duplicate .ts test stub deleted.</ReviewFixes>
+      <Gates>Red on main: the feature is force-off (no gutter) — e2e wrap on/off fail; chromium wrap-on also failed on the agent's version before the line-start fix. Green: npm test 3781 passed; e2e 260 passed (chromium + webkit), code-block-line-numbers 6/6 twice; grace lint Errors 0. Screenshots checked in both engines (wrap on/off, after Enter).</Gates>
+    </T-005>
   </Evidence>
 </C-38>
 </GraceChangePlan>

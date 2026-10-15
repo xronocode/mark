@@ -1,16 +1,16 @@
 // FILE: src/renderer/src/store/preferences.js
-// VERSION: 1.2.0
+// VERSION: 1.3.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Pinia store for persistent user preferences, their hydration, persistence, the unified fontSize zoom actions (C-49), the UI-language application paths (concrete or 'system'), and the retired-theme id migration (C-41 T-002).
 //   SCOPE: default state, SET_USER_PREFERENCE / SET_SINGLE_PREFERENCE, the C-49 zoom actions (APPLY_FONT_SIZE / ZOOM_STEP / ZOOM_ACTUAL_SIZE) and the one-time legacy `zoom` migration, the C-41 T-002 retired-theme migration in ASK_FOR_USER_PREFERENCE, ASK_FOR_USER_PREFERENCE boot hydration, buildCapabilities + default-handler queries, LISTEN_SYSTEM_LANGUAGE re-resolution (C-45).
 //   DEPENDS: pinia, @tauri-apps/api/core, bus, services/notification, i18n/index.js, i18n/systemLocale.js, util/autoTheme.js, util/themeMigration.js.
-//   LINKS: _shims/preferences/schema.json defaults; pages/app.vue boot + zoom keys/wheel; components/zoomIndicator; .grace/changes/active/C-49.
+//   LINKS: _shims/preferences/schema.json defaults; pages/app.vue boot + zoom keys/wheel; components/zoomIndicator; .grace/changes/active/C-49; .grace/changes/active/C-38 T-005.
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
-//   usePreferencesStore - Pinia store factory (state defaults, hydration, persistence, C-49 zoom actions, LISTEN_* wiring incl. LISTEN_SYSTEM_LANGUAGE).
+//   usePreferencesStore - Pinia store factory (state defaults, hydration, persistence, C-49 zoom actions, LISTEN_* wiring incl. LISTEN_SYSTEM_LANGUAGE; MIGRATE_CODE_BLOCK_LINE_NUMBERS one-time default flip).
 //   FONT_SIZE_MIN / FONT_SIZE_MAX / FONT_SIZE_DEFAULT - unified-zoom clamp bounds and base unit (C-49).
 //   clampFontSize - round + clamp helper shared by the zoom actions and the legacy-zoom migration (C-49).
 //   FONT_SIZE_DEFAULT - default editor text size (16).
@@ -18,7 +18,15 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.2.2 - 2026-10-15 C-41 T-002: ASK_FOR_USER_PREFERENCE
+//   LAST_CHANGE: v1.3.0 - 2026-10-15 C-38 T-005 (#1648): the default for
+//   codeBlockLineNumbers is false for new profiles, and a one-time migration
+//   (MIGRATE_CODE_BLOCK_LINE_NUMBERS, run at the end of ASK_FOR_USER_PREFERENCE
+//   — the single place stored prefs load, after initialState and hydration)
+//   flips a stored true to false once and records codeBlockLineNumbersMigrated;
+//   the stored value was the never-user-settable old default (muya force-off
+//   made the old switch a no-op), and after the flag is stored the user's
+//   choice is kept.
+//   v1.2.2 - 2026-10-15 C-41 T-002: ASK_FOR_USER_PREFERENCE
 //   (the single load point where stored preferences enter the store — both
 //   the editor and the Settings window hydrate through it) rewrites the
 //   three persisted theme keys via util/themeMigration.js before hydration
@@ -129,7 +137,13 @@ export const usePreferencesStore = defineStore('preferences', {
     lineHeight: 1.6,
     codeFontSize: 14,
     codeFontFamily: 'DejaVu Sans Mono',
-    codeBlockLineNumbers: true,
+    // C-38 T-005 (#1648): line numbers are opt-in now. The old default was
+    // true, but muya force-disabled the feature, so no user ever saw it —
+    // MIGRATE_CODE_BLOCK_LINE_NUMBERS flips a stored true once.
+    codeBlockLineNumbers: false,
+    // C-38 T-005: one-time marker that the codeBlockLineNumbers default
+    // migration ran; once stored, the user's choice is kept verbatim.
+    codeBlockLineNumbersMigrated: false,
     trimUnnecessaryCodeBlockEmptyLines: true,
     wrapCodeBlocks: true,
     editorLineWidth: '',
@@ -370,6 +384,12 @@ export const usePreferencesStore = defineStore('preferences', {
         // cross-window broadcasts (SET_USER_PREFERENCE) must keep
         // applying every key unconditionally.
         bootDirtyKeys.clear()
+        // C-38 T-005: flip the never-user-settable line-numbers default
+        // once, after every boot hydration source has been applied. This is
+        // the single place stored preferences load, so the migration runs
+        // in every window that hydrates (editor and Settings alike) and is
+        // idempotent through the persisted flag.
+        await this.MIGRATE_CODE_BLOCK_LINE_NUMBERS()
         console.log('[ipc][prefs_get_all][BLOCK_INVOKE_OK]')
       } catch (e) {
         console.error('[ipc][prefs_get_all][BLOCK_INVOKE_FAILED]', e)
@@ -472,6 +492,43 @@ export const usePreferencesStore = defineStore('preferences', {
       return true
     },
     // END_BLOCK_MIGRATE_LEGACY_ZOOM
+
+    // START_BLOCK_MIGRATE_CODE_LINE_NUMBERS
+    // C-38 T-005 (#1648): code-block line numbers come back as an opt-in
+    // switch. The pre-C-38 default was true, but muya force-disabled the
+    // feature, so a stored true is the old default and was never a real user
+    // choice. Flip it to the new default false exactly once and persist the
+    // codeBlockLineNumbersMigrated marker; afterwards the stored value is
+    // the user's choice and is never touched again. Runs at the end of
+    // ASK_FOR_USER_PREFERENCE (the single place stored prefs load) in every
+    // hydrating window; the persisted flag makes repeat runs no-ops.
+    // Returns whether a stored true was flipped.
+    async MIGRATE_CODE_BLOCK_LINE_NUMBERS() {
+      if (this.codeBlockLineNumbersMigrated) {
+        return false
+      }
+      const flipped = this.codeBlockLineNumbers === true
+      this.codeBlockLineNumbersMigrated = true
+      if (flipped) {
+        this.codeBlockLineNumbers = false
+      }
+      try {
+        if (flipped) {
+          await invoke('mt_prefs_set', { key: 'codeBlockLineNumbers', value: false })
+        }
+        await invoke('mt_prefs_set', { key: 'codeBlockLineNumbersMigrated', value: true })
+        console.log(
+          `[prefs][code-line-numbers-migration][BLOCK_CODE_LINE_NUMBERS_MIGRATED flipped=${flipped}]`
+        )
+      } catch (e) {
+        // In-memory state is already migrated; persistence retries next boot
+        // (a later user choice persists through the same channel, so the
+        // retry can never clobber a durable user preference).
+        console.error('[prefs][code-line-numbers-migration][BLOCK_CODE_LINE_NUMBERS_MIGRATE_FAILED]', e)
+      }
+      return flipped
+    },
+    // END_BLOCK_MIGRATE_CODE_LINE_NUMBERS
 
     async SET_IMAGE_FOLDER_PATH(value) {
       if (value === undefined) {
