@@ -157,9 +157,9 @@ describe('GeneralSettings – function coverage', () => {
       }
     })
     // titleBarStyle (may not render if isOsx=false but v-if=!isOsx means it DOES render),
-    // zoom, fileSortBy
+    // fileSortBy. The percentage zoom select is retired (C-49).
     expect(spy).toHaveBeenCalledWith({ type: 'titleBarStyle', value: 'testVal' })
-    expect(spy).toHaveBeenCalledWith({ type: 'zoom', value: 'testVal' })
+    expect(spy).not.toHaveBeenCalledWith({ type: 'zoom', value: 'testVal' })
     expect(spy).toHaveBeenCalledWith({ type: 'fileSortBy', value: 'testVal' })
   })
 

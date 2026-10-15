@@ -3293,8 +3293,8 @@
           tests/renderer/store/preferences-language.test.js
         </Command>
         <Command>
-          npx vitest run tests/renderer/store/preferences-zoom.test.js
-          tests/renderer/components/zoom-indicator.test.js
+          npx vitest run tests/renderer/store/preferences-zoom.test.ts
+          tests/renderer/components/zoom-indicator.test.ts
           tests/renderer/util/theme.test.js
         </Command>
         <Command>
@@ -3758,10 +3758,10 @@
           never flashes it) shows round(fontSize/baseFontSize × 100) for
           ~1 s and drops its transition under prefers-reduced-motion; the
           ⌘-keys and Ctrl+wheel skip the fullscreen block viewer (R-6).
-          Unit-pinned in tests/renderer/store/preferences-zoom.test.js
+          Unit-pinned in tests/renderer/store/preferences-zoom.test.ts
           (migration incl. zoom 1.25 → 20, clamping, actual-size → base,
           mirror, debounce, indicator event) +
-          tests/renderer/components/zoom-indicator.test.js +
+          tests/renderer/components/zoom-indicator.test.ts +
           tests/renderer/util/theme.test.js (em-based code font) +
           tests/renderer/muya/mermaid-pipeline.test.js (C-49 cases) +
           tests/renderer/commands/{index,index-deep,descriptions}.test.js +

@@ -207,7 +207,11 @@ export const addCommonStyle = (options) => {
   // ratio equals the old fixed px value (14/16 → 0.875em = 14px). The
   // source-mode CodeMirror pane lives outside that wrapper, so it keeps the
   // absolute px size.
-  const codeFontRatio = `${codeFontSize / 16}em`
+  // codeFontSize may be stored as a number (14) or a string with a unit
+  // ('14px', the v1 default) — parse it, or the ratio becomes NaNem and the
+  // whole rule is dropped (code stops zooming; the audit's "14px px" bug).
+  const codePx = Number.parseFloat(codeFontSize) || 14
+  const codeFontRatio = `${codePx / 16}em`
   sheet.textContent = `${scrollbarStyle}
 span code,
 td code,
@@ -221,7 +225,7 @@ font-size: ${codeFontRatio};
 
 .CodeMirror {
 font-family: ${codeFontFamily}, ${DEFAULT_CODE_FONT_FAMILY};
-font-size: ${codeFontSize}px;
+font-size: ${codePx}px;
 }
 
 ${getEmojiPickerPatch()}

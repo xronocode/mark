@@ -318,10 +318,12 @@ describe('menu ↔ commands consistency', () => {
     expect(buildFn).toMatch(
       /with_id\("view\.actual-size", "Actual Size"\)[\s\S]*?accelerator\("CmdOrCtrl\+0"\)/
     )
-    // Each accelerator stays unique across the whole menu.
-    expect(buildFn.match(/CmdOrCtrl\+="/g)).toHaveLength(1)
-    expect(buildFn.match(/CmdOrCtrl\+-"/g)).toHaveLength(1)
-    expect(buildFn.match(/CmdOrCtrl\+0"/g)).toHaveLength(1)
+    // Each accelerator stays unique across the whole built menu (the
+    // Rust #[cfg(test)] module below build_native_menu is excluded).
+    const builtMenu = buildFn.slice(0, buildFn.indexOf('#[cfg(test)]') > 0 ? buildFn.indexOf('#[cfg(test)]') : undefined)
+    expect(builtMenu.match(/CmdOrCtrl\+="/g)).toHaveLength(1)
+    expect(builtMenu.match(/CmdOrCtrl\+-"/g)).toHaveLength(1)
+    expect(builtMenu.match(/CmdOrCtrl\+0"/g)).toHaveLength(1)
     // The taxonomy (standard_menu) stays consistent with the built menu.
     expect(taxonomy).toContain('id: "view.zoom-in".to_string()')
     expect(taxonomy).toContain('id: "view.zoom-out".to_string()')
