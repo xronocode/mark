@@ -1,10 +1,10 @@
 // FILE: src/muya/lib/index.js
-// VERSION: 1.4.0
+// VERSION: 1.5.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Muya editor entry class — construction, options, and the public API surface other modules call.
-//   SCOPE: Class construction/init, markdown IO (get/set), export helpers, clipboard accessors, public editing commands, and the C-38 code-block line-number refresh entry.
-//   DEPENDS: contentState, event handlers (clipboard/keyboard/mouse/click/dragDrop/resize), utils (ExportMarkdown/ExportHtml), ui plugins.
-//   LINKS: .grace/graph/runtime.xml M-012 fn-getCopyData; .grace/verification/runtime.xml V-M-012 scenario-14 and scenario-20; C-3; C-38 T-005.
+//   SCOPE: Class construction/init, markdown IO (get/set), export helpers, clipboard accessors, public editing commands, the C-38 code-block line-number refresh entry, and the C-39 T-002 session table column resize store (muya.tableResize).
+//   DEPENDS: contentState, event handlers (clipboard/keyboard/mouse/click/dragDrop/resize), tableResize, utils (ExportMarkdown/ExportHtml), ui plugins.
+//   LINKS: .grace/graph/runtime.xml M-012 fn-getCopyData and fn-tableResize; .grace/verification/runtime.xml V-M-012 scenario-14, scenario-20 and scenario-21; C-3; C-38 T-005; C-39 T-002.
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT
@@ -12,10 +12,18 @@
 // START_MODULE_MAP
 //   default - GRACE 4 synchronized symbol (Muya class).
 //   Muya#refreshCodeBlockLineNumbers - re-measure every code-block gutter (wrap or code-font change without a re-render).
+//   muya.tableResize - TableResize instance (C-39 T-002): in-memory session column widths per table block key; never touches markdown, history or isSaved.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.4.0 - 2026-10-15 C-38 T-005 (#1648): setOptions no longer
+//   LAST_CHANGE: v1.5.0 - 2026-10-15 C-39 T-002: the constructor creates
+//   muya.tableResize (TableResize) before the first render — session-only
+//   column widths keyed by table block key, with the drag/double-click
+//   interaction on header-border handles. No teardown method: its container
+//   listeners are registered through eventCenter and removed by
+//   detachAllDomEvents; a window pointermove/up pair from an interrupted
+//   drag is self-removing and inert afterwards.
+//   v1.4.0 - 2026-10-15 C-38 T-005 (#1648): setOptions no longer
 //   force-disables codeBlockLineNumbers (the option re-renders and the gutter
 //   is measured by postRender); new refreshCodeBlockLineNumbers() for CSS-only
 //   changes (wrapCodeBlocks / codeFontSize) that re-render nothing; destroy()
@@ -33,6 +41,7 @@ import Keyboard from './eventHandler/keyboard'
 import DragDrop from './eventHandler/dragDrop'
 import Resize from './eventHandler/resize'
 import ClickEvent from './eventHandler/clickEvent'
+import TableResize from './tableResize'
 import { CLASS_OR_ID, MUYA_DEFAULT_OPTION } from './config'
 import { wordCount, debounce } from './utils'
 import ExportMarkdown from './utils/exportMarkdown'
@@ -59,6 +68,11 @@ class Muya {
     this.container = getContainer(container, this.options)
     this.eventCenter = new EventCenter()
     this.tooltip = new ToolTip(this)
+    // C-39 T-002: session-only table column resize. Created before
+    // ContentState so the very first render (init → setMarkdown) can ask
+    // it for stored widths — irrelevant on a fresh instance, but it keeps
+    // the construction order render-independent.
+    this.tableResize = new TableResize(this)
     // UI plugins
     if (Muya.plugins.length) {
       for (const { plugin: Plugin, options: opts } of Muya.plugins) {

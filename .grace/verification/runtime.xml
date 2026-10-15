@@ -5001,6 +5001,11 @@
           npm run build &amp;&amp; npx playwright test --project=chromium
           tests/e2e/code-block-line-numbers.spec.ts
         </Command>
+        <Command>npx vitest run tests/renderer/muya/table-column-resize.test.js</Command>
+        <Command>
+          npm run build &amp;&amp; npx playwright test --project=chromium
+          --project=webkit-tables tests/e2e/table-column-resize.spec.ts
+        </Command>
       </Commands>
       <Scenarios>
         <Scenario>
@@ -5244,6 +5249,57 @@
           line top within 1.5 px, wrap on and off, through Enter, 160-char
           typing and undo, nothing rendered when off, markdown untouched).
         </Scenario>
+        <Scenario>
+          scenario-21: Session-only table column resize (C-39 T-002,
+          lib/tableResize/index.js + renderContainerBlock.js
+          START_BLOCK_TABLE_COLUMN_WIDTHS / START_BLOCK_TABLE_COLUMN_RESIZER_HANDLE
+          + render/index.js START_BLOCK_TABLE_WIDTHS_KEEP + the C-39 T-002
+          CSS section): every th of a resizable table carries an invisible
+          ~6px span.ag-column-resizer hit zone on its right border
+          (col-resize cursor; the last column&apos;s zone stays inside the table
+          so it never widens the T-001 wrapper&apos;s scroll overflow) with a
+          1px hairline guide in var(--chromeAccent, var(--themeColor)) while
+          hovered or dragged; dragging with pointer capture (mouse and
+          trackpad) resizes that column live with a 48px minimum, freezing
+          the auto layout as the baseline on the first drag (fixed layout
+          needs a width for every column). Session widths are stored
+          in-memory in muya.tableResize keyed by the TABLE BLOCK KEY —
+          stable across re-renders, surviving tab switches because tab
+          activation restores the saved block tree (same keys), and fresh
+          on any reload/reopen because a re-parse mints new keys — and are
+          re-applied after EVERY render by construction (the colgroup is
+          part of the table vnode; render/partialRender/singleRender also
+          call reconcileAfterRender next to the T-001 scroll restore for
+          column-count changes: surviving widths keep their index, new
+          columns get their measured auto width, hidden tables are
+          deferred). Widths NEVER reach the markdown, the undo history,
+          isSaved or export/print (nothing in the path calls contentState;
+          a plain click on a handle without a move un-freezes the table
+          again). Double-click on a border resets that column: back to its
+          measured natural width when other columns are still manual, or
+          the whole table back to auto layout when it was the only one.
+          Not available on the read-only Split View mirror pane
+          (disableTableColumnResize option, set from the mirror prop in
+          editor.vue); reading/locked tabs keep the handles (resizing is
+          view-only). The fullscreen block viewer shows the session widths
+          (clone carries the colgroup) but no handles
+          (sanitizeTableClone strips them). Capture-phase container
+          listeners own the gesture before muya&apos;s mousedown/click handlers,
+          so caret placement, cell selection, drag bars and the table tools
+          keep working; a click 10px left of a border still places the
+          caret in that cell. Unit-pinned in
+          tests/renderer/muya/table-column-resize.test.js (clamp/reconcile
+          maths, store isolation and cleanup, count-mismatch reconcile incl.
+          hidden-table skip, colgroup + handle vnodes, disabled surface,
+          full real-Muya render re-applies widths while markdown and
+          history stay identical); end-to-end in
+          tests/e2e/table-column-resize.spec.ts (chromium + the
+          webkit-tables project: drag delta lands on that column only,
+          markdown byte-identical + tab stays saved, typing re-applies
+          widths, double-click resets, tab switch and back, close + reopen
+          restores auto layout, widened table scrolls in the wrapper with
+          no page overflow, caret next to a border).
+        </Scenario>
       </Scenarios>
       <Markers>
         <Marker>[Muya][parse][BLOCK_TOKENIZE]</Marker>
@@ -5277,6 +5333,19 @@
         <Marker>[Muya][blockViewer][BLOCK_VIEWER_OPEN]</Marker>
         <Marker>[Muya][blockViewer][BLOCK_VIEWER_FIT]</Marker>
         <Marker>[Muya][blockViewer][BLOCK_VIEWER_CLOSE]</Marker>
+        <!-- C-39 T-002 session-only table column resize. -->
+        <Marker>
+          [Muya][tableResize][BLOCK_COLUMN_RESIZED table=&lt;key&gt; col=&lt;i&gt;
+          width=&lt;px&gt;]
+        </Marker>
+        <Marker>
+          [Muya][tableResize][BLOCK_COLUMN_RESET table=&lt;key&gt; col=&lt;i&gt;
+          mode=&lt;auto&gt;|width=&lt;px&gt;]
+        </Marker>
+        <Marker>
+          [Muya][tableResize][BLOCK_COLUMN_COUNT_RECONCILED table=&lt;key&gt;
+          columns=&lt;n&gt;]
+        </Marker>
       </Markers>
       <TraceAssertions>
         <TraceAssertion>

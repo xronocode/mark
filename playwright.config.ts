@@ -37,6 +37,11 @@ export default defineConfig({
   },
   projects: [
     { name: 'chromium', use: { browserName: 'chromium' }, testIgnore: ['**/fixtures/**', '**/perf/**'] },
+    // C-39 T-002: table rendering/interaction specs also gate in WebKit —
+    // the engine WKWebView ships (pointer capture, table-layout: fixed and
+    // column measuring are engine-sensitive). Covers table-layout.spec.ts
+    // (T-001) and table-column-resize.spec.ts (T-002).
+    { name: 'webkit-tables', use: { browserName: 'webkit' }, testMatch: 'table-*.spec.ts' },
     // C-30: perf gates run in WebKit, the engine WKWebView ships; opt-in via `npm run test:e2e:perf`.
     { name: 'webkit-perf', use: { browserName: 'webkit' }, testMatch: 'perf/**/*.spec.ts' },
     // C-38 T-003: the Settings shell also gates in WebKit — WKWebView is
