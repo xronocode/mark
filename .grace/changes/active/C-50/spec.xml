@@ -64,6 +64,7 @@
 
   <VerificationIntent>Unit: sanitiser (allowed variables, dropped constructs, values), ramp derivation, tweak storage per member, manifest validation, migration of customCss, update decision (version compare, min Mark version). e2e (chromium + webkit): Tune live preview and reset; save as theme and reload on file change (shim); gallery install/update with a fixture index; import with dropped parts listed. Live smoke on both editions.</VerificationIntent>
 
-  <Approval><ApprovedBy>user (2026-10-15): «ок, утверждаю C-50» to the mockups https://claude.ai/artifact/59wz5cqSaPvjAPFvtrQeXb (v1)</ApprovedBy><ApprovalScope>W1 done; W2 after C-41 T2/T3 and C-38 N3; W3 after W2.</ApprovalScope></Approval>
+  <ScopeDecision>User 2026-10-15: «в первом варианте делал только редактирование, фиг с ней с галереей». First version = W2 only: Tune (R-1), My themes (R-2) without import, customCss migration (R-5), R-7. Gallery, import from file or link, automatic updates and the sanitiser for foreign themes (R-3, R-4, W3) move to the backlog; R-6 applies to W2 only — no network calls at all in the first version.</ScopeDecision>
+  <Approval><ApprovedBy>user (2026-10-15): «ок, утверждаю C-50» to the mockups https://claude.ai/artifact/59wz5cqSaPvjAPFvtrQeXb (v1)</ApprovedBy><ApprovalScope>W1 done; W2 (editing only) after C-41 T2/T3 and C-38 N3. W3 gallery deferred to the backlog.</ApprovalScope></Approval>
 </C-50>
 </GraceChangeSpec>

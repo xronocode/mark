@@ -2,7 +2,7 @@
 <C-50>
   <ChangeRef>C-50</ChangeRef>
   <Created>2026-10-15</Created>
-  <IntentSummary>Replace the bare Custom CSS textarea with Tune, My themes and a GitHub gallery. Mockups first; W2 after C-41 T2/T3 lands the family model; W3 after W2.</IntentSummary>
+  <IntentSummary>Replace the bare Custom CSS textarea with Tune, My themes and a GitHub gallery. First version is editing only (user 2026-10-15): T-002 and T-003. T-004/T-005 (gallery, import, updates) are deferred to the backlog and not scheduled.</IntentSummary>
   <BaselineAssertions><MustContain><File>src/renderer/src/prefComponents/theme/index.vue</File><Text>customCss</Text></MustContain></BaselineAssertions>
   <TargetAssertions><MustContain><File>.grace/changes/active/C-50/spec.xml</File><Text>approved</Text></MustContain></TargetAssertions>
   <DurableScope><M-011/></DurableScope>
@@ -21,19 +21,19 @@
       <Verification><Command>npm test</Command></Verification>
     </T-002>
     <T-003>
-      <Title>W2b: Tune panel and My themes UI (save as, duplicate, edit file, show in Finder, export, delete with undo, import from file); customCss migration to custom.css</Title>
+      <Title>W2b: Tune panel and My themes UI (save as, duplicate, edit file, show in Finder, export, delete with undo; no import); customCss migration to custom.css</Title>
       <DependsOn>T-002</DependsOn><ExternalDependency>C-38 N3 (Settings redesign)</ExternalDependency>
-      <AcceptanceCriteria><Criterion>Spec R-1, R-2, R-5 met; 10 locales; e2e in chromium and webkit.</Criterion></AcceptanceCriteria>
+      <AcceptanceCriteria><Criterion>Spec R-1, R-2 (without import), R-5, R-7 met; no network calls; 10 locales; e2e in chromium and webkit.</Criterion></AcceptanceCriteria>
       <Verification><Command>npm test</Command><Command>npx playwright test</Command></Verification>
     </T-003>
     <T-004>
-      <Title>W3a: xronocode/mark-themes repository — manifest schema, CI validator (variables, contrast), preview renderer, index.json; seed with the 14 built-in families as examples and 3–5 community-style themes</Title>
+      <Title>DEFERRED (backlog) — W3a: xronocode/mark-themes repository — manifest schema, CI validator (variables, contrast), preview renderer, index.json; seed with the 14 built-in families as examples and 3–5 community-style themes</Title>
       <DependsOn>T-002</DependsOn>
       <AcceptanceCriteria><Criterion>A PR with a bad manifest or failing contrast is rejected by CI; index.json is regenerated on merge.</Criterion></AcceptanceCriteria>
       <Verification><Command>repository CI</Command></Verification>
     </T-004>
     <T-005>
-      <Title>W3b: Gallery UI, install, daily update check, auto-update setting, import from link; both editions</Title>
+      <Title>DEFERRED (backlog) — W3b: Gallery UI, install, daily update check, auto-update setting, import from link; both editions</Title>
       <DependsOn>T-003, T-004</DependsOn>
       <AcceptanceCriteria><Criterion>Spec R-3, R-4, R-6 met; e2e with a fixture index; live smoke on DMG and App Store builds.</Criterion></AcceptanceCriteria>
       <Verification><Command>npm test</Command><Command>npx playwright test</Command><Command>grace lint --path . --assertions current</Command></Verification>
