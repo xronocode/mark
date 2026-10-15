@@ -1,0 +1,61 @@
+<GraceChangeSpec graceVersion='4.0' status='approved'>
+<C-51>
+  <Name>Docs look: Obsidian-style folder tree with Recent and Pinned, Mermaid and content themed by the app theme, always-visible expand button, Docs and macOS theme families</Name>
+  <Created>2026-10-16</Created>
+  <Priority>high</Priority>
+  <Status>approved</Status>
+  <RoadmapPhase>N</RoadmapPhase>
+  <Complexity>L (sub-phases, one release)</Complexity>
+
+  <Summary>
+    User reference 2026-10-16 (assistant-ui docs screenshot, «вот так я хочу чтобы охуительно выглядело»): a calm docs-style window — folder tree on the left, clean diagrams that follow the theme, an expand button on each diagram. Canvas https://claude.ai/artifact/8NihjByXkFaQMJUNsEpVpA («выглядит охуенно», «очень нравится рисент, пиннд»). Mermaid audit on the same canvas: all 22 diagram types rendered with Mermaid 11.14 in WebKit, today vs neo + theme variables vs polished.
+  </Summary>
+
+  <Problem>
+    <Description>The sidebar tree shows every file of an opened folder (non-Markdown dimmed) plus folders with no Markdown at all, while files created later appear only when they are Markdown — inconsistent and noisy. Mermaid renders with its own default/dark themes (purple boxes, Trebuchet, sharp corners, grey label plates), ignoring Mark's 28 themes; gantt/journey/packet/timeline shrink to unreadable 5–6 px text in the column; charts (Vega-Lite, flowchart.js, sequence) and math keep their own colours too. The diagram toolbar with the expand button appears only on hover.</Description>
+  </Problem>
+
+  <Goals>
+    <R-1>Folder tree, Obsidian style (canvas Main/DocsDark): folder rows with line icon, name and chevron; nested levels with thin guide lines; the current file on a soft pill; a folder switcher at the top. Show only Markdown files by default and hide folders that contain no Markdown anywhere below; Settings › Files gains «Show all files» (off). The initial walk and the watcher apply the same rule.</R-1>
+    <R-1a>Sidebar sections above the tree (canvas MacOS, user «очень нравится рисент, пиннд»): Recent (the existing recent-files list, newest first, up to 10) and Pinned (files the user pins from the tree or tab context menu; persisted; reorder by drag; unpin from the context menu). Both collapse; missing files show greyed with a «Remove» action.</R-1a>
+    <R-2>Mermaid follows the app theme: look «neo», theme «base»/«neo» with themeVariables derived from the active theme's CSS variables (background, text, border, accent, a 6–12 colour palette for cScale/pie/git/xyChart/quadrant/journey), the theme's UI font; themeCSS polish (9 px corners, soft shadow, 500 label weight, 1.4 px lines, no grey label plates); layout config (curve basis, spacing; sequence without mirrored actors). Re-render on theme change. Export (HTML/PDF/print) uses the same look.</R-2>
+    <R-2a>Per-type pass for all 22 Mermaid types per the audit: group 1 (flowchart, sequence, class, state, ER, block, requirement, gitGraph, pie) — variables + polish; group 2 (mindmap, timeline, kanban, radar, xychart, treemap, quadrant, journey) — per-type palettes; group 3 — readable text for gantt, journey, packet, timeline (type sizing; otherwise horizontal scroll + expand), sankey node colours and value labels via themeCSS/SVG post-processing; C-4 last (not themeable by variables).</R-2a>
+    <R-3>Other rendered content follows the theme too: Vega-Lite charts (config from the theme palette and font), flowchart.js and js-sequence diagrams, KaTeX colour, callouts and tables consistent with the theme.</R-3>
+    <R-4>An expand button at the top-right of every diagram block (Mermaid, Vega-Lite, flowchart.js, sequence, PlantUML) and table, always visible (subtle at rest, solid on hover), opening the existing fullscreen block viewer (C-34 T-002).</R-4>
+    <R-5>Two new theme families in the C-41 family model: «Docs» (light/dark — neutral near-white/near-black, system font, hairline borders; canvas Main/DocsDark) and «macOS» (light/dark — SF Pro, Finder-like sidebar, system-blue selection; canvas MacOS). Each family passes the C-41 contrast checks; Mermaid and content theming (R-2/R-3) derive from them like from every other theme.</R-5>
+  </Goals>
+
+  <Decisions>
+    <D-1>2026-10-16 user: C-51 ships in this release; C-50 (custom themes, base16/VS Code import) stays parked.</D-1>
+    <D-2>2026-10-16 user: the tree shows only Markdown by default («при открытии папок важно показывать только мд файлы»).</D-2>
+    <D-3>2026-10-16 user accepted the round-2 Mermaid renders as the base («1 ок»): no gradients; per-theme OKLCH categorical palettes, per-type config and sizes.</D-3>
+    <D-4>2026-10-16 user: quadrant chart in one hue of different lightness («один разной яркости»).</D-4>
+    <D-5>2026-10-16: architecture icons and C-4 are themed in Mark (attribute-selector CSS for the built-in icon tiles; c4 config colour keys). Upstream Mermaid PRs (theme variables for the built-in architecture icons, C-4 defaults from the theme, sankey palette and dark-background blending) are proposed separately — opening them needs the user's go.</D-5>
+  </Decisions>
+
+  <AcceptanceCriteria>
+    <Criterion>R-1/R-1a: an opened folder shows only Markdown and no empty folders by default; «Show all files» restores everything; Recent and Pinned work and persist; canvas look in every theme.</Criterion>
+    <Criterion>R-2/R-2a: all 22 Mermaid types render in a light and a dark theme with the theme's colours and font, no default purple/Trebuchet; group-3 text readable (≥ 11 px) or scrollable; screenshots per type.</Criterion>
+    <Criterion>R-3: Vega-Lite, flowchart.js, sequence and KaTeX follow the theme. R-4: always-visible expand on every diagram and table. R-5: Docs and macOS families (light/dark) pass contrast checks.</Criterion>
+  </AcceptanceCriteria>
+
+  <AffectedAreas>
+    <Area>src-tauri/src/m_v1_compat.rs (folder walk), src/renderer/src/store/project.js, components/sideBar/*, store/preferences.js + Settings › Files</Area>
+    <Area>src/muya/lib/parser/render/mermaidPipeline.js, utils/exportHtml.js, renderBlock diagram blocks, ui/blockViewer, Vega/flowchart/sequence renderers, KaTeX styles</Area>
+    <Area>src/renderer/src/assets/themes/* + the C-41 family registry, static/locales/*</Area>
+  </AffectedAreas>
+
+  <VerificationIntent>Unit tests for the walk filter, tree model, pins, theme → Mermaid config mapping; e2e in chromium and webkit including a 22-type × light/dark Mermaid matrix with computed-colour assertions and screenshots; red-on-main proof per task; live macOS smoke build before the release.</VerificationIntent>
+
+  <Constraints>
+    <Constraint>Stay on Mermaid 11.x (no second diagram renderer in this release; beautiful-mermaid evaluated as a C-50 follow-up).</Constraint>
+    <Constraint>Diagram source and Markdown never change; theming is render-time only.</Constraint>
+    <Constraint>No new network access; fonts are system fonts.</Constraint>
+  </Constraints>
+
+  <NonGoals>
+    <NonGoal>Importing third-party themes (C-50).</NonGoal>
+    <NonGoal>Switching code highlighting from Prism to Shiki.</NonGoal>
+  </NonGoals>
+</C-51>
+</GraceChangeSpec>

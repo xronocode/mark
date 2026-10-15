@@ -1,0 +1,81 @@
+<GraceChangePlan graceVersion='4.0' status='approved'>
+<C-51>
+  <ChangeRef>C-51</ChangeRef>
+  <Created>2026-10-16</Created>
+  <IntentSummary>Docs look for this release: tree + Recent/Pinned, Mermaid and content themed by the app theme, always-visible expand, Docs and macOS families. Implemented by ZCode agents in worktrees; the orchestrator reviews against spec/plan/graph/tests, proves new tests red on main, runs full gates and merges.</IntentSummary>
+  <BaselineAssertions><MustContain><File>src/muya/lib/parser/render/mermaidPipeline.js</File><Text>mermaid.initialize</Text></MustContain></BaselineAssertions>
+  <TargetAssertions><MustContain><File>.grace/changes/active/C-51/spec.xml</File><Text>approved</Text></MustContain></TargetAssertions>
+  <DurableScope><M-011/><M-012/></DurableScope>
+  <ObservedWriteScope><File>src/renderer/src/**</File><File>src/muya/**</File><File>src-tauri/src/**</File><File>static/locales/*.json</File><File>tests/**</File><File>playwright.config.ts</File><File>.github/workflows/test.yml</File><File>.grace/**</File></ObservedWriteScope>
+  <ImplementationPlan>
+    <T-001>
+      <Title>Folder tree redesign + Markdown-only filter (R-1)</Title>
+      <DependsOn></DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>Tree matches canvas Main/DocsDark in every theme: line folder icon (open/closed), name, chevron right; nested guide lines; current file on a soft pill; folder switcher row at the top. Uses M-057 icons and the chrome font/accent tokens.</Criterion>
+        <Criterion>Markdown-only by default: the initial walk (Rust walk_and_emit_inner) and the watcher path apply the same rule; folders with no Markdown anywhere below are hidden and appear when a Markdown file is created inside. Settings › Files «Show all files» (off) restores everything (non-Markdown dimmed, not openable as today).</Criterion>
+        <Criterion>Tests: Rust walk filter (md-only, all, nested empty dirs); renderer tree model (hide/show folders as files come and go); e2e chromium + webkit: opened folder shows only .md, toggle shows all, creating an .md in an empty folder reveals it.</Criterion>
+      </AcceptanceCriteria>
+      <Verification><Command>npm test</Command><Command>playwright chromium + webkit</Command><Command>grace lint --path . --assertions current</Command></Verification>
+    </T-001>
+    <T-002>
+      <Title>Recent and Pinned sidebar sections (R-1a)</Title>
+      <DependsOn>T-001</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>Recent (existing recent list, up to 10, newest first) and Pinned (persisted list; pin/unpin from tree and tab context menus; drag to reorder) above the tree, each collapsible; missing files greyed with Remove; clicking opens the file. All strings in 10 locales.</Criterion>
+        <Criterion>Tests: store (pin/unpin/reorder/persist/missing), component, e2e both engines.</Criterion>
+      </AcceptanceCriteria>
+      <Verification><Command>npm test</Command><Command>playwright chromium + webkit</Command><Command>grace lint --path . --assertions current</Command></Verification>
+    </T-002>
+    <T-003>
+      <Title>Mermaid theme engine + groups 1–2 (R-2, R-2a)</Title>
+      <DependsOn></DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>Reference implementation: the accepted round-2/3 lab (scratch c51-mermaid-lab-palette.js — OKLCH 8-colour categorical palette per theme from the accent hue: tints for areas, series colours for lines/bars/sectors; per-diagram-type config; quadrant one hue by lightness; architecture icon tiles/glyphs repainted via attribute-selector CSS; C-4 colours via the c4 config keys; sankey keeps its gradient links, value labels spaced, normal blending on dark themes only). mermaidPipeline builds config from the active theme: look neo, theme base/neo, themeVariables from the theme CSS variables (incl. cScale0–11, pie1–12, git0–7, xyChart.plotColorPalette, quadrant fills, journey fillType/actor), UI font; themeCSS polish; layout config. Cache key includes the theme; theme switch re-renders; export uses the same config.</Criterion>
+        <Criterion>Per-type e2e matrix (chromium + webkit): every one of the 22 types renders without error in a light and a dark theme; computed node fill/stroke/text colours come from the theme (no #ECECFF / #9370DB purple, no Trebuchet); group-2 types use distinct palette colours; screenshots attached per type.</Criterion>
+      </AcceptanceCriteria>
+      <Verification><Command>npm test</Command><Command>playwright chromium + webkit</Command><Command>grace lint --path . --assertions current</Command></Verification>
+    </T-003>
+    <T-004>
+      <Title>Mermaid group 3: readable sizes and non-themeable types (R-2a)</Title>
+      <DependsOn>T-003</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>gantt, journey, packet, timeline render with text ≥ 11 px in the default column (type sizing; otherwise horizontal scroll inside the block + expand); sankey node colours from the palette and «Drafts 75» value spacing; C-4 best effort via themeCSS. Tests per type measure label font size and colours.</Criterion>
+      </AcceptanceCriteria>
+      <Verification><Command>npm test</Command><Command>playwright chromium + webkit</Command><Command>grace lint --path . --assertions current</Command></Verification>
+    </T-004>
+    <T-005>
+      <Title>Other content themed: Vega-Lite, flowchart.js, sequence, KaTeX (R-3)</Title>
+      <DependsOn>T-003</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>Vega-Lite gets a config from the theme palette/font; flowchart.js and js-sequence colours from the theme; KaTeX inherits text colour; e2e checks computed colours in a light and a dark theme.</Criterion>
+      </AcceptanceCriteria>
+      <Verification><Command>npm test</Command><Command>playwright chromium + webkit</Command><Command>grace lint --path . --assertions current</Command></Verification>
+    </T-005>
+    <T-006>
+      <Title>Always-visible expand button (R-4)</Title>
+      <DependsOn></DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>Top-right expand button on Mermaid, Vega-Lite, flowchart.js, sequence, PlantUML blocks and tables: visible at rest (subtle), solid on hover, keyboard-focusable with an aria-label in 10 locales, opens the C-34 viewer; does not cover content (reserved corner). e2e both engines.</Criterion>
+      </AcceptanceCriteria>
+      <Verification><Command>npm test</Command><Command>playwright chromium + webkit</Command><Command>grace lint --path . --assertions current</Command></Verification>
+    </T-006>
+    <T-007>
+      <Title>Docs and macOS theme families (R-5)</Title>
+      <DependsOn>T-003</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>Four themes (Docs light/dark, macOS light/dark) in the C-41 family model and picker, matching canvas Main/DocsDark/MacOS; contrast checks pass; Mermaid/content theming derives from them; 10 locales for names.</Criterion>
+      </AcceptanceCriteria>
+      <Verification><Command>npm test</Command><Command>playwright chromium + webkit</Command><Command>grace lint --path . --assertions current</Command></Verification>
+    </T-007>
+    <T-008>
+      <Title>Live macOS smoke of the release</Title>
+      <DependsOn>T-001 T-002 T-003 T-004 T-005 T-006 T-007</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>Isolated smoke build (own identifier, HOME, target dir): title bar, outline rail, status bar, lock, chrome font/accent/icons, Settings, View-menu checkmarks, column resize, tree + Recent/Pinned, Mermaid in 4 themes, expand; screenshots; no change to the user's Mark.app.</Criterion>
+      </AcceptanceCriteria>
+      <Verification><Command>npm test</Command><Command>playwright chromium + webkit</Command><Command>grace lint --path . --assertions current</Command></Verification>
+    </T-008>
+  </ImplementationPlan>
+</C-51>
+</GraceChangePlan>
