@@ -43,7 +43,9 @@
         <Criterion>gantt, journey, packet, timeline render with text ≥ 11 px in the default column (type sizing; otherwise horizontal scroll inside the block + expand); sankey node colours from the palette and «Drafts 75» value spacing; C-4 best effort via themeCSS. Tests per type measure label font size and colours.</Criterion>
       </AcceptanceCriteria>
       <Verification><Command>npm test</Command><Command>playwright chromium + webkit</Command><Command>grace lint --path . --assertions current</Command></Verification>
-    </T-004>
+          <Status>done</Status>
+      <ReviewEvidence>T-003 + T-004, orchestrator review 2026-10-16. Fixes: colour parsing fed 0..255 channels into the 0..1 hex writer (every theme colour came out #ffffff/#ffff00 — product bug; regression test added); theme variables read from the root's inline mirror first (jsdom computed custom properties unreliable); explicit mainBkg/nodeBorder dropped so Mermaid derives them from primaryColor; the %%{init}%% e2e now uses the form Mermaid 11.14 honours (themeVariables only together with an explicit theme — verified in the lab); journey/gitGraph Trebuchet labels forced to the theme font; the 22-diagram count ignores nested icon SVGs. Added after the user's renders feedback: per-type arrowhead scaling (postProcessMermaidSvg — «не конские стрелки»; markers without a viewBox get one first), Keynote-style pie (background-coloured separators, no outer ring, white semibold labels), theme-defined chart palette hook (--chartPalette, for the macOS family's Apple system colours) included in the cache signature. Gates: vitest 280 files / 3840 passed; grace lint 0; Playwright chromium + webkit 386 passed; mermaid-theme spec 16/16. Red on main: the two new unit files fail to load; mermaid-theme.spec 7/8 fail (the init-override guard passes on main by design). In-app WebKit screenshots Paper + Ink (flowchart, sequence, pie, mindmap, xychart, block, kanban, radar).</ReviewEvidence>
+</T-004>
     <T-005>
       <Title>Other content themed: Vega-Lite, flowchart.js, sequence, KaTeX (R-3)</Title>
       <DependsOn>T-003</DependsOn>

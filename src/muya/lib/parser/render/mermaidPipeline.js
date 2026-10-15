@@ -1,55 +1,59 @@
 // FILE: src/muya/lib/parser/render/mermaidPipeline.js
-// VERSION: 1.2.0
+// VERSION: 2.0.0
 // START_MODULE_CONTRACT
-//   PURPOSE: Resilient Mermaid render pipeline (C-34 R2.1) — LRU SVG cache keyed by code+theme hash, keep-last-good rendering with escaped error text, per-block ~250 ms debounce while typing, unique render ids from a module counter, WKWebView CSP style hoisting, and C-49 fontSize-proportional diagram scaling via the --mark-zoom custom property.
+//   PURPOSE: Resilient Mermaid render pipeline (C-34 R2.1) — LRU SVG cache keyed by code+theme-signature hash, keep-last-good rendering with escaped error text, per-block ~250 ms debounce while typing, unique render ids from a module counter, WKWebView CSP style hoisting, C-49 fontSize-proportional diagram scaling via the --mark-zoom custom property, and C-51 theming from the active app theme (per-diagram-type mermaid.initialize before each sequential render).
 //   SCOPE: createMermaidPipeline factory plus cache/LRU, hash, debounce, insert (incl. natural-width capture), error, and orphan-cleanup helpers; targets are resolved by selector at each flush so re-patched DOM is always current.
-//   DEPENDS: muya/lib/renderers (loadRenderer, injectable), muya/lib/config (CLASS_OR_ID).
-//   LINKS: .grace/changes/active/C-34 R2.1; .grace/changes/active/C-49 R-1; .grace/graph/runtime.xml M-012; .grace/verification/runtime.xml V-M-012 scenario-9.
+//   DEPENDS: muya/lib/renderers (loadRenderer, injectable), muya/lib/config (CLASS_OR_ID), ./mermaidTheme (readActiveThemeTokens, detectMermaidDiagramType, buildMermaidThemeConfig, mermaidThemeSignature).
+//   LINKS: .grace/changes/active/C-34 R2.1; .grace/changes/active/C-49 R-1; .grace/changes/active/C-51 T-003/T-004; .grace/graph/runtime.xml M-012; .grace/verification/runtime.xml V-M-012 scenario-9.
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
-//   createMermaidPipeline - builds a pipeline { render(entries), flushPending(), destroy() } with injectable loadRenderer/getTheme/debounceDelayMs for tests.
+//   createMermaidPipeline - builds a pipeline { render(entries), flushPending(), destroy() } with injectable loadRenderer/getThemeTokens/debounceDelayMs for tests.
 //   MERMAID_PREVIEW_CLASS - CSS hook class ("ag-mermaid-preview") added to a container that currently shows a mermaid SVG (scopes natural-size CSS).
 //   MERMAID_ERROR_CLASS - CSS class ("ag-mermaid-error") of the small error element rendered below a kept-last-good diagram.
 //   MERMAID_NATURAL_WIDTH_ATTR - SVG attribute ("data-natural-width") carrying the diagram's natural pixel width for C-49 zoom scaling.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.2.0 - 2026-10-15 C-49: diagrams scale with the editor font size — every inserted SVG records its natural width (data-natural-width, from mermaid's inline max-width / width attr / viewBox) and gets an inline max-width: calc(var(--mark-zoom, 1) × natural px); pages/app.vue maintains --mark-zoom = fontSize / 16 on the document element. All insert paths (first render, cache hit, keep-last-good) run through insertSvg, so each carries the attribute. The fullscreen viewer clone is unaffected (it overrides inline width/height/max-width from the viewBox).
+//   LAST_CHANGE: v2.0.0 - 2026-10-16 C-51 T-003/T-004: mermaid follows the
+//   active app theme. Theme tokens are read at render time from the
+//   document's CSS variables (mermaidTheme.js) and the cache key uses the
+//   tokens+palette signature instead of the coarse 'dark'/'default' pair,
+//   so any theme switch (Paper → Ink, Auto light/dark, different accent)
+//   re-renders every diagram. mermaid.initialize now runs per diagram with
+//   the detected type's config (look neo, theme base, themeVariables,
+//   themeCSS polish, lab sizes for gantt/journey/packet/timeline at
+//   useMaxWidth:false with in-block scroll; every other type keeps the
+//   C-34 useMaxWidth:true fit-column behaviour). Rendering stays strictly
+//   sequential; keep-last-good/debounce/natural-size behaviour unchanged.
+//   v1.2.0 - 2026-10-15 C-49: diagrams scale with the editor font size — every inserted SVG records its natural width (data-natural-width, from mermaid's inline max-width / width attr / viewBox) and gets an inline max-width: calc(var(--mark-zoom, 1) × natural px); pages/app.vue maintains --mark-zoom = fontSize / 16 on the document element. All insert paths (first render, cache hit, keep-last-good) run through insertSvg, so each carries the attribute. The fullscreen viewer clone is unaffected (it overrides inline width/height/max-width from the viewBox).
 //   v1.1.0 - 2026-10-15 C-34: wide diagrams fit the text column by default (useMaxWidth:true, user decision); natural size lives in the fullscreen viewer.
 //   v1.0.0 - 2026-10-15 C-34 R2.1: extracted from StateRender.renderMermaid; added LRU code+theme SVG cache, keep-last-good + escaped mermaid error text, orphan error-element cleanup, per-block trailing debounce, counter-based unique render ids, and useMaxWidth:false initialization for natural-size diagrams.
 // END_CHANGE_SUMMARY
 
 import loadRenderer from '../../renderers'
 import { CLASS_OR_ID } from '../../config'
+import {
+  readActiveThemeTokens,
+  detectMermaidDiagramType,
+  buildMermaidThemeConfig,
+  mermaidThemeSignature,
+  postProcessMermaidSvg
+} from './mermaidTheme'
 
 export const MERMAID_PREVIEW_CLASS = 'ag-mermaid-preview'
 export const MERMAID_ERROR_CLASS = 'ag-mermaid-error'
 export const MERMAID_NATURAL_WIDTH_ATTR = 'data-natural-width'
 
 // START_BLOCK_MERMAID_FIT_COLUMN_CONFIG
-// User decision 2026-10-15 (replaces the R2.1 natural-size default): wide
-// diagrams fit the text column — useMaxWidth:true renders the SVG at
-// width:100% with max-width = its natural width, so narrow diagrams keep
-// their size and wide ones scale down; the fullscreen block viewer shows
-// the natural size. Every diagram config extends BaseDiagramConfig
-// (useMaxWidth), so this is one flat config per diagram type.
-const FIT_COLUMN_KEYS = [
-  'flowchart', 'sequence', 'gantt', 'journey', 'timeline', 'class', 'state',
-  'er', 'pie', 'quadrantChart', 'xyChart', 'requirement', 'architecture',
-  'mindmap', 'ishikawa', 'kanban', 'gitGraph', 'c4', 'sankey', 'packet',
-  'block', 'treeView', 'radar', 'venn'
-]
-
-const buildFitColumnConfig = () => {
-  const config = {}
-  for (const key of FIT_COLUMN_KEYS) {
-    config[key] = { useMaxWidth: true }
-  }
-  return config
-}
+// C-51 T-003/T-004: the fit-column policy and the per-type layout config
+// (incl. the lab sizes for gantt/journey/packet/timeline) moved to
+// mermaidTheme.js buildMermaidThemeConfig — one initialize config per
+// detected diagram type. The C-34 user decision stands for every type
+// except those four: useMaxWidth:true fits wide diagrams to the text
+// column, natural size lives in the fullscreen block viewer.
 // END_BLOCK_MERMAID_FIT_COLUMN_CONFIG
 
 // START_BLOCK_MERMAID_CACHE_KEY
@@ -63,7 +67,11 @@ const hashMermaidCode = (str) => {
   return hash >>> 0
 }
 
-const makeCacheKey = (theme, code) => `${theme}:${hashMermaidCode(code)}:${code.length}`
+// The theme component of the key is the resolved theme signature (tokens
+// + palette, see mermaidTheme.js) — not a coarse dark/light flag — so a
+// switch between two light themes with different accents also misses.
+const makeCacheKey = (themeSignature, code) =>
+  `${themeSignature}:${hashMermaidCode(code)}:${code.length}`
 // END_BLOCK_MERMAID_CACHE_KEY
 
 // START_BLOCK_MERMAID_LRU
@@ -128,17 +136,14 @@ const removeOrphanErrorElements = (id) => {
  *
  * @param {object} [options]
  * @param {Function} [options.loadRenderer] async renderer loader (injectable for tests)
- * @param {Function} [options.getTheme] returns 'dark' | 'default' (injectable for tests)
+ * @param {Function} [options.getThemeTokens] returns the active theme tokens (readActiveThemeTokens shape; injectable for tests)
  * @param {number} [options.debounceDelayMs=250] quiet window while typing (overridable post-hoc via pipeline.debounceDelayMs)
  * @param {number} [options.maxCacheEntries=50] LRU bound of the code+theme SVG cache
  * @returns {{ render: Function, flushPending: Function, destroy: Function, debounceDelayMs: number }}
  */
 export const createMermaidPipeline = ({
   loadRenderer: load = loadRenderer,
-  getTheme = () =>
-    typeof document !== 'undefined' && document.body.classList.contains('dark')
-      ? 'dark'
-      : 'default',
+  getThemeTokens = readActiveThemeTokens,
   debounceDelayMs = 250,
   maxCacheEntries = 50
 } = {}) => {
@@ -248,7 +253,7 @@ export const createMermaidPipeline = ({
 
   // START_BLOCK_MERMAID_RENDER
   const renderOne = async (mermaid, entry) => {
-    const { selector, blockKey, code, theme, cacheKey } = entry
+    const { selector, blockKey, code, cacheKey } = entry
     // Re-resolve the target: snabbdom may have re-patched the preview div
     // while mermaid.render was awaited for another entry.
     const target = document.querySelector(selector)
@@ -257,7 +262,10 @@ export const createMermaidPipeline = ({
     }
     const id = `mermaid-${blockKey.replace(/[^a-zA-Z0-9_-]/g, '-')}-${++renderIdCounter}`
     try {
-      const { svg, bindFunctions } = await mermaid.render(id, code)
+      const rendered = await mermaid.render(id, code)
+      const bindFunctions = rendered.bindFunctions
+      // C-51: proportionate arrowheads per diagram type.
+      const svg = postProcessMermaidSvg(rendered.svg, detectMermaidDiagramType(code))
       const liveTarget = document.querySelector(selector) || target
       insertSvg(liveTarget, svg)
       clearError(liveTarget)
@@ -295,32 +303,49 @@ export const createMermaidPipeline = ({
   }
   // END_BLOCK_MERMAID_RENDER
 
+  // START_BLOCK_MERMAID_THEME_INIT
+  // C-51 T-003/T-004: initialize mermaid with the ACTIVE THEME + the
+  // detected diagram type's config right before each render. The batch
+  // renders sequentially, so a per-entry initialize can never race another
+  // diagram's render; user %%{init}%% / frontmatter directives inside a
+  // diagram are merged by mermaid on top of this config and keep winning.
+  const initializeForEntry = (mermaid, entry) => {
+    const diagramType = detectMermaidDiagramType(entry.code)
+    mermaid.initialize({
+      securityLevel: 'strict',
+      ...buildMermaidThemeConfig(entry.tokens, diagramType)
+    })
+    return diagramType
+  }
+  // END_BLOCK_MERMAID_THEME_INIT
+
   const renderBatch = async (entries) => {
+    const tokens = getThemeTokens()
+    const themeSignature = mermaidThemeSignature(tokens)
     const todo = []
     for (const entry of entries) {
       const target = document.querySelector(entry.selector)
       if (!target) {
         continue
       }
-      const theme = getTheme()
-      const cacheKey = makeCacheKey(theme, entry.code)
+      const cacheKey = makeCacheKey(themeSignature, entry.code)
       // Another block in the same flush may have populated the cache.
       if (svgCache.has(cacheKey)) {
         applyCacheHit(target, entry.blockKey, entry.code, cacheKey)
         continue
       }
-      todo.push({ ...entry, theme, cacheKey })
+      todo.push({ ...entry, tokens, cacheKey })
     }
     if (!todo.length) {
       return
     }
     const mermaid = await loadMermaid()
-    mermaid.initialize({
-      securityLevel: 'strict',
-      theme: todo[0].theme,
-      ...buildFitColumnConfig()
-    })
     for (const entry of todo) {
+      const diagramType = initializeForEntry(mermaid, entry)
+      console.debug('[Muya][renderMermaid][BLOCK_MERMAID_THEME_INIT] themed render', {
+        diagramType,
+        themeSignature
+      })
       await renderOne(mermaid, entry)
     }
   }
@@ -364,11 +389,12 @@ export const createMermaidPipeline = ({
      */
     async render(entries) {
       const immediate = []
+      const tokens = getThemeTokens()
+      const themeSignature = mermaidThemeSignature(tokens)
       for (const [selector, value] of entries) {
         const { code } = value
         const blockKey = selector.replace(/^#/, '')
-        const theme = getTheme()
-        const cacheKey = makeCacheKey(theme, code)
+        const cacheKey = makeCacheKey(themeSignature, code)
 
         if (svgCache.has(cacheKey)) {
           const target = document.querySelector(selector)
