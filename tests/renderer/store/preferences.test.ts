@@ -73,6 +73,15 @@ describe('store/preferences', () => {
   })
 
   describe('SET_USER_PREFERENCE', () => {
+    it('falls back from the retired image upload to copying next to the document', async () => {
+      const { usePreferencesStore } = await import('@/store/preferences')
+      const s = usePreferencesStore()
+      s.SET_USER_PREFERENCE({ imageInsertAction: 'upload' })
+      expect(s.imageInsertAction).toBe('folder')
+      s.SET_USER_PREFERENCE({ imageInsertAction: 'path' })
+      expect(s.imageInsertAction).toBe('path')
+    })
+
     it('copies known keys and ignores unknown keys', async () => {
       const { usePreferencesStore } = await import('@/store/preferences')
       const s = usePreferencesStore()

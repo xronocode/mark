@@ -1,9 +1,9 @@
-<GraceChangeSpec graceVersion='4.0' status='draft'>
+<GraceChangeSpec graceVersion='4.0' status='approved'>
 <C-40>
   <Name>In-app Guide, titlebar document tools (split, lock, copy) and a new home for document statistics</Name>
   <Created>2026-10-15</Created>
   <Priority>medium</Priority>
-  <Status>draft</Status>
+  <Status>approved</Status>
   <RoadmapPhase>N</RoadmapPhase>
   <Complexity>M (sub-phases)</Complexity>
 
@@ -19,6 +19,7 @@
     <R-1>Guide, better than a static help page: a "Guide" entry (titlebar ? button on Win/Linux, Help › Mark Guide and the command palette on all OS) opens a localized, editable sample document in a temporary tab: each section demonstrates a feature in place (try-it blocks: type a table, a callout, a mermaid diagram), shows the shortcut, and links to the command. Edits never touch a real file unless the user saves. Content versioned with releases so What's New (G10) can deep-link to the new section.</R-1>
     <R-1a>"Connect your agent" — ONE universal prompt for any agent (user 2026-10-15: no per-agent variants), shown in the Guide and on the welcome screen (C-46) with a Copy button and a plain explanation of what happens after you give it to your agent: (1) the agent writes long plans/specs/reports to a .md file and opens it in Mark; (2) Mark reloads on every save and keeps your place; (3) you edit the page; (4) the agent re-reads the file and treats your edits as the next instruction. Prompt and explanation in all 10 UI languages (the prompt text follows the UI language). Baseline prompt (EN): "When you produce a plan, spec or report longer than ~50 lines, write it to a .md file and open it for the user: open -a Mark &lt;file&gt;.md. When the file changed after you wrote it, re-read it: the user's edits are your next instruction." Below the prompt, an "Advanced agent setup" link opens the hooks-based setup (C-47). On Windows the open command is `start mark &lt;file&gt;.md` (verify the actual CLI/handler before shipping).</R-1a>
     <R-2>Titlebar document tools (right side, per-OS gated like C-38 N1): split view toggle with a small menu (side by side / source only / preview only, sync scroll), lock (read-only toggle per tab, prevents accidental edits while an agent writes; shows a lock badge on the tab), copy document (one click → structured text by default, menu for Markdown / HTML / structured text, reusing C-3/C-32).</R-2>
+    <R-2a>Title bar trimmed (user 2026-10-15): the folder (Files) and TOC buttons leave the title bar; left = sidebar toggle, centre = file name, right = theme (Auto/Light/Dark icon) and Share. Outline becomes a slim "On this page" rail to the right of the text column on long documents (mockup board 7, user: «огонь»), highlighting the current section and jumping on click; hidden when the window is too narrow; toggled from View › Outline and ⌘T jumps to a heading. Files stay in the sidebar.</R-2a>
     <R-3>Statistics: remove the word count from the titlebar; show it in an optional slim status bar (lines · words · characters · reading time, selection-aware) — off by default on macOS, toggle in View and Settings — and in a popover from the document title (also file path, size, modified time).</R-3>
   </Goals>
 
@@ -51,8 +52,8 @@
   <VerificationIntent>Per-OS titlebar tests, e2e for lock/copy/guide, WebKit screenshot matrix, live check.</VerificationIntent>
 
   <Approval>
-    <ApprovedBy>pending — backlog item recorded on the user's request (2026-10-15): «не критично на сейчас, как бэклог зафиксировать»</ApprovedBy>
-    <ApprovalScope>None yet.</ApprovalScope>
+    <ApprovedBy>user (2026-10-15): «ок» to the Guide / Connect-your-agent mockup</ApprovedBy>
+    <ApprovalScope>G-3 Guide + R-1a connect-your-agent for 2.3.1. Title-bar trim, outline rail, status bar (R-2, R-2a, R-3) move to 2.3.2.</ApprovalScope>
   </Approval>
 </C-40>
 </GraceChangeSpec>
