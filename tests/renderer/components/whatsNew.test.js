@@ -8,7 +8,7 @@
 //            deep link.
 //   SCOPE: src/renderer/src/components/whatsNew/index.vue behaviour.
 //   DEPENDS: @vue/test-utils, mocked @/bus, real i18n t (en table).
-//   LINKS: .grace/changes/active/C-48/spec.xml R-1; V-M-011 scenario-45.
+//   LINKS: .grace/changes/active/C-48/spec.xml R-1; V-M-011 scenario-46.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

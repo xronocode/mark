@@ -7,7 +7,7 @@
 //            sanitization — with a fake clock.
 //   SCOPE: pure functions in src/renderer/src/review/reviewRules.js.
 //   DEPENDS: vitest.
-//   LINKS: .grace/changes/active/C-48/spec.xml R-2 (board 5 rules); V-M-011 scenario-45.
+//   LINKS: .grace/changes/active/C-48/spec.xml R-2 (board 5 rules); V-M-011 scenario-46.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT
