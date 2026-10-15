@@ -10880,5 +10880,28 @@
       </Scenarios>
       <Markers/>
     </V-M-057>
+    <V-M-058>
+      <Priority>high</Priority>
+      <Commands>
+        <Command>cd src-tauri &amp;&amp; cargo test m058_window_effects</Command>
+        <Command>npx vitest run tests/renderer/chrome/mica-window.test.js</Command>
+        <Command>npx playwright test tests/e2e/window-mica.spec.ts --project=chromium --project=webkit-mica</Command>
+        <Command>macOS smoke: build + launch — BLOCK_MICA_UNSUPPORTED build=0 os=macos at boot, no visual change</Command>
+      </Commands>
+      <Scenarios>
+        <Scenario>scenario-1 (C-38 T-007 gate + mapping): mica_supported is false at build 21999, true at 22000 and 26100; mica_effect_for_theme maps dark→MicaDark and light→MicaLight; the default managed state reports mica:false (what mt_window_effects_state answers on every non-Windows OS and any Windows failure path); off Windows mt_window_set_mica_theme is a no-op returning mica:false (cfg-gated macOS/Linux lanes); the Windows lane resolves the running build through the same gate.</Scenario>
+        <Scenario>scenario-2 (renderer bridge): installMicaWindowEffect adds the mica-active root class only on a confirmed { mica:true } — false, rejecting and malformed answers leave it off and a re-run strips a stale class; syncMicaTheme invokes mt_window_set_mica_theme only while active, retires the class on a mica:false answer and keeps it through a transient rejection; pages/app.vue boots through the module and re-tints inside the theme watcher.</Scenario>
+        <Scenario>scenario-3 (CSS): every transparency rule in assets/styles/index.css is scoped under :root.mica-active (root, body, .editor-container, .editor-placeholder, .side-bar, .title-bar-editor-bg); the below-strip paint keeps --editorBgColor / --sideBarBgColor via the two bottom-anchored gradients sized calc(100% - var(--titleBarHeight)).</Scenario>
+        <Scenario>scenario-4 (e2e, chromium + webkit-mica): with the effect reported active the root has mica-active, the title-bar strip computes a fully transparent background while the editor area keeps the opaque editor colour (gradient paint), and a theme flip re-tints with dark:true; with the shim default { mica:false } and with the command throwing there is no class and the strip / container compute exactly today's opaque colours.</Scenario>
+      </Scenarios>
+      <Markers>
+        <Marker>[window_effects][apply][BLOCK_MICA_APPLIED theme=system|dark|light]</Marker>
+        <Marker>[window_effects][apply][BLOCK_MICA_UNSUPPORTED build=0|21999|…]</Marker>
+        <Marker>[window_effects][apply][BLOCK_MICA_FAILED reason=…]</Marker>
+        <Marker>[micaWindow][install][BLOCK_MICA_ACTIVE] active=true</Marker>
+        <Marker>[micaWindow][sync][BLOCK_MICA_THEME_SYNCED] dark=true|false</Marker>
+        <Marker>[micaWindow][sync][BLOCK_MICA_RETIRED] mica=false</Marker>
+      </Markers>
+    </V-M-058>
   </VD-RUNTIME>
 </GraceVerificationDocument>

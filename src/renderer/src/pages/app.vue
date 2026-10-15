@@ -60,6 +60,11 @@
 //            is injected once while common styles still initialize on boot.
 //
 // CHANGE_SUMMARY:
+//   - 2026-10-16 C-38 T-007 N4 e: Windows 11 Mica — boot asks
+//     mt_window_effects_state (START_BLOCK_MICA_BOOT) and only a
+//     confirmed mica:true installs the mica-active root class; the
+//     theme watcher re-tints the material via mt_window_set_mica_theme
+//     on every app theme change. No-op everywhere Mica is not live.
 //   - 2026-10-15 C-40 T-002: pass the current tab's markdown to the
 //     title bar so the document info popover can count lines.
 //   - 2026-10-15 C-38 T-005 review: onMounted stops before attaching the
@@ -110,6 +115,7 @@ import { useMainStore } from '@/store'
 import { storeToRefs } from 'pinia'
 import { addCommonStyle, addThemeStyle, addCustomStyle } from '@/util/theme'
 import { resolveAutoTheme, watchSystemColorScheme } from '@/util/autoTheme'
+import { installMicaWindowEffect, syncMicaTheme } from '@/util/micaWindow'
 import Recent from '@/components/recent'
 import EditorWithTabs from '@/components/editorWithTabs'
 import TitleBar from '@/components/titleBar'
@@ -126,7 +132,7 @@ import LiveViewer from '@/components/liveViewer'
 import ZoomIndicator from '@/components/zoomIndicator'
 import WhatsNewDialog from '@/components/whatsNew'
 import bus from '@/bus'
-import { DEFAULT_STYLE } from '@/config'
+import { DEFAULT_STYLE, isDarkTheme } from '@/config'
 import { initWhatsNew, getRunningVersion, snapshotBootPrefs } from '@/whatsNew/gate'
 import { initReviewRequest } from '@/review/reviewRequest'
 import { useTweetStore } from '@/store/tweet'
@@ -179,6 +185,9 @@ watch(theme, (value) => {
   } catch (e) {
     console.error('[app][theme-watcher] failed:', value, e)
   }
+  // C-38 T-007 N4 e: re-tint the Windows 11 Mica material to the new
+  // app theme (no-op unless the effect was confirmed at boot).
+  void syncMicaTheme(isDarkTheme(value))
 })
 
 // START_BLOCK_APPLY_AUTO_THEME
@@ -363,6 +372,20 @@ onMounted(async () => {
     preferencesStore.theme = resolveAutoTheme(preferencesStore)
   }
   addThemeStyle(preferencesStore.theme)
+
+  // START_BLOCK_MICA_BOOT
+  // C-38 T-007 N4 e: Windows 11 Mica behind the custom title bar. Ask
+  // the backend whether the effect is live; only a confirmed mica:true
+  // installs the mica-active root class that turns the title-bar strip
+  // transparent (assets/styles/index.css). Re-tint to the hydrated app
+  // theme right away — the backend applies the system-following
+  // material at boot, the app theme (Paper/Ink) wins from here on.
+  // Detached: boot must not depend on the IPC round-trip.
+  void installMicaWindowEffect().then(() =>
+    syncMicaTheme(isDarkTheme(preferencesStore.theme))
+  )
+  // END_BLOCK_MICA_BOOT
+
   preferencesStore.LISTEN_TOGGLE_VIEW()
   // C-45 T-001: follow the OS preferred languages while the language
   // preference is 'system' (re-resolves on languagechange / focus).

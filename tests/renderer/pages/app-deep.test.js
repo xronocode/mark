@@ -28,7 +28,10 @@ vi.mock('@/config', () => ({
     codeFontFamily: 'monospace',
     codeFontSize: '14px',
     hideScrollbar: false
-  }
+  },
+  // C-38 T-007: app.vue re-tints Mica through isDarkTheme in the theme
+  // watcher / boot block.
+  isDarkTheme: vi.fn(() => false)
 }))
 
 vi.mock('@/store/tweet', () => ({

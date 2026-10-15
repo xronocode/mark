@@ -29,7 +29,10 @@ vi.mock('@/whatsNew/gate', () => ({
 vi.mock('@/review/reviewRequest', () => ({ initReviewRequest: vi.fn(async () => {}) }))
 vi.mock('@/config', () => ({
   DEFAULT_STYLE: {},
-  DEFAULT_EDITOR_FONT_FAMILY: 'monospace'
+  DEFAULT_EDITOR_FONT_FAMILY: 'monospace',
+  // C-38 T-007: app.vue re-tints Mica through isDarkTheme in the theme
+  // watcher / boot block.
+  isDarkTheme: vi.fn(() => false)
 }))
 
 const i18n = createI18n({ legacy: false, locale: 'en', messages: { en: {} } })

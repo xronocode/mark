@@ -6500,5 +6500,74 @@
         <C-38/>
       </ChangeRefs>
     </M-057>
+
+    <M-058>
+      <Name>WindowEffects</Name>
+      <DisplayName>Windows 11 Mica title bar</DisplayName>
+      <Type>UTILITY</Type>
+      <Status>shipped</Status>
+      <Layer>1</Layer>
+      <PhaseRef>C-38-T-007</PhaseRef>
+      <Summary>
+        C-38 T-007 N4 e (user decision 2026-10-16 «Только Mica»: no macOS
+        vibrancy, no macOSPrivateApi, no transparent macOS window).
+        m058_window_effects applies the Mica material to the frameless
+        Windows window at setup (pure build gate MIN_MICA_BUILD 22000,
+        OS build read via the windows-version target dep), answers
+        mt_window_effects_state with { mica } (false on every non-Windows
+        OS, on Windows 10 and on any set_effects failure), and re-tints
+        the material to the app theme via mt_window_set_mica_theme
+        (pure mapping dark → MicaDark / light → MicaLight — Paper/Ink,
+        not just the OS appearance). tauri.windows.conf.json creates the
+        Windows window transparent (M-054 overlay; macOS/Linux/MAS
+        configs untouched); renderer util/micaWindow.js installs the
+        mica-active root class only after a confirmed mica:true and
+        pages/app.vue re-tints on every app theme change (boot + theme
+        watcher); assets/styles/index.css turns only the title-bar strip
+        transparent under :root.mica-active — body, .editor-container,
+        the placeholder and the sidebar keep painting their exact
+        colours from below the strip via bottom-anchored gradients, so
+        without the class (or without the effect) the chrome stays
+        byte-for-byte today's opaque look.
+      </Summary>
+      <PlannedPath>src-tauri/src/m058_window_effects.rs</PlannedPath>
+      <Dependencies>
+        <M-054/>
+      </Dependencies>
+      <VerificationRef>V-M-058</VerificationRef>
+      <Contract>
+        <Purpose>
+          Let the custom Windows title bar sit on the Windows 11 Mica
+          material, tinted to the app theme, without changing any other
+          platform and without exposing transparency anywhere the effect
+          is not confirmed live.
+        </Purpose>
+        <Inputs>
+          <Input>
+            <Name>dark</Name>
+            <Type>Boolean</Type>
+          </Input>
+        </Inputs>
+        <Outputs>
+          <Output>
+            <Name>window effects state</Name>
+            <Type>{ mica: boolean }</Type>
+          </Output>
+        </Outputs>
+        <Errors>
+          <Error>set_effects failure → managed state stays mica:false and the renderer keeps the opaque CSS</Error>
+        </Errors>
+      </Contract>
+      <Interface>
+        <fn-mica_supported>pure build gate: true from Windows 11 build 22000</fn-mica_supported>
+        <fn-mica_effect_for_theme>pure tint mapping: dark → MicaDark, light → MicaLight</fn-mica_effect_for_theme>
+        <fn-apply_mica_at_boot>setup hook: gate + system-following Mica + state record</fn-apply_mica_at_boot>
+        <fn-mt_window_effects_state>command: { mica } report, honest on every OS</fn-mt_window_effects_state>
+        <fn-mt_window_set_mica_theme>command: re-tint to the app theme; no-op returning mica:false off Windows or inactive</fn-mt_window_set_mica_theme>
+      </Interface>
+      <ChangeRefs>
+        <C-38/>
+      </ChangeRefs>
+    </M-058>
   </GD-RUNTIME>
 </GraceGraphDocument>

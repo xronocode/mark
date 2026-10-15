@@ -56,6 +56,9 @@ export default defineConfig({
     // color-mix resolution, drawn icon set) also gates in WebKit — the
     // engine the macOS build ships, where AccentColor + color-mix
     // serialization differs from Chromium.
-    { name: 'webkit-chrome', use: { browserName: 'webkit' }, testMatch: 'chrome-native-theme.spec.ts' }
+    { name: 'webkit-chrome', use: { browserName: 'webkit' }, testMatch: 'chrome-native-theme.spec.ts' },
+    // C-38 T-007: the Windows Mica title-bar strip (computed transparency
+    // under .mica-active vs today's opaque colours) also gates in WebKit.
+    { name: 'webkit-mica', use: { browserName: 'webkit' }, testMatch: 'window-mica.spec.ts' }
   ]
 })

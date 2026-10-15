@@ -133,12 +133,15 @@
         <Criterion>Rust unit tests for the build gate and the theme → effect mapping; renderer unit tests for the mica-active root class and its CSS; e2e (shim) for the title bar background with the effect reported active vs inactive; macOS smoke build shows no change.</Criterion>
       </AcceptanceCriteria>
       <Verification><Command>npm test</Command><Command>cargo test</Command><Command>playwright chromium + webkit</Command><Command>macOS smoke (no change)</Command></Verification>
-    </T-007>
+      <Status>done</Status>
+      <Notes>Backend: src-tauri/src/m058_window_effects.rs (M-058) — pure gate mica_supported (22000+), pure mapping mica_effect_for_theme (dark→Effect::MicaDark / light→Effect::MicaLight, tauri::window), boot application of the system-following Effect::Mica in main.rs setup with managed WindowEffectsState, commands mt_window_effects_state → {mica} and mt_window_set_mica_theme(dark) (no-op mica:false off Windows / inactive); registered in generate_handler! like the m048/m053 capability commands — outside the M-013-A tauri.v2.json fixture, no capability entry (app commands are not ACL-gated). Cargo.toml gains the windows-only target dep windows-version = "0.1" (0.1.7 already in the root Cargo.lock via tao — no lockfile change). tauri.windows.conf.json adds transparent:true ONLY there (macOS/Linux/MAS configs untouched per the Decision). Renderer: util/micaWindow.js (boot query → mica-active root class only on confirmed mica:true; syncMicaTheme retires the class if the backend answers mica:false), pages/app.vue (detached boot install + re-tint in the theme watcher — covers manual and Auto switches), assets/styles/index.css (:root.mica-active section: title-bar strip transparent; body/.editor-container/.placeholder/.side-bar keep painting their exact colours from below the strip via bottom-anchored gradients — text/icon colours untouched). Tests: Rust in-module (gate 21999/22000/26100, mapping, default state, no-op off Windows, Windows-lane live-build gate), tests/renderer/chrome/mica-window.test.js (boot class true/false/reject/malformed, re-tint only-when-active, retire-on-false, app.vue wiring, CSS gated under .mica-active), tests/e2e/window-mica.spec.ts (chromium + new webkit-mica Playwright project; tauri-shim defaults mt_window_effects_state/mt_window_set_mica_theme to {mica:false} so every other spec is unaffected). Red on main: all three test surfaces fail (module, commands and CSS absent).</Notes>
+      <ReviewEvidence>Orchestrator review 2026-10-16: cargo test 403 passed (5 new m058); vitest 276 files / 3775 passed; grace lint 0 errors (MODULE_MAP fix in mica-window.test.js); Playwright chromium + webkit 350 passed; Windows compile + backend tests green on windows-latest via workflow_dispatch on agent/c38-t7 (run 38798153251; its renderer-windows failure was the pre-fix CRLF test from main, fixed in 53dc121c). Red on main: mica-window.test.js fails to load; window-mica.spec.ts 3/3 fail. No live Windows 11 check available — the Mica look is unverified by eye.</ReviewEvidence>
+</T-007>
   </ImplementationPlan>
 
   <Evidence>
     <T-006>
-      <Status>implemented (ZCode agent, no shell — orchestrator to run the gates)</Status>
+      <Status>done</Status>
       <Files>
         src/renderer/src/components/icons/chromeIcons.js (M-057 v2.0.0: full glyph inventory on the shared 16 grid, chrome-icon class, chromeIconMarkup),
         src/renderer/src/util/chromePlatform.js (new: platform class installer, CHROME_FONT_FAMILY, CHROME_ACCENT_FALLBACKS),
