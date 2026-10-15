@@ -1,11 +1,13 @@
 // FILE: src/renderer/src/whatsNew/gate.js
-// VERSION: 1.0.0
+// VERSION: 1.1.0
 // START_MODULE_CONTRACT
 //   PURPOSE: C-48 What's New startup gate — decide, from the persisted
 //            lastSeenVersion and the running version, whether the sheet
 //            shows once on this launch, and what to persist.
-//   SCOPE: pure decision function + the boot-time init that reads/writes
-//          the prefs keys (lastSeenVersion, lastUpdateAt) via ipcPrefs.
+//   SCOPE: pure decision function + legacy-install detection (pre-C-48
+//          profiles without lastSeenVersion) + the boot-time init that
+//          reads/writes the prefs keys (lastSeenVersion, lastUpdateAt)
+//          via ipcPrefs.
 //   DEPENDS: util/version.js; whatsNew/data.js; ipc/runtime prefs;
 //          @tauri-apps/api/core is never imported here directly — the
 //          ipcPrefs facade is injectable for tests.
@@ -18,13 +20,24 @@
 // START_MODULE_MAP
 //   LAST_SEEN_VERSION_KEY - prefs key persisting the last seen version.
 //   LAST_UPDATE_AT_KEY - prefs key with the ISO timestamp of the last update (C-46 footer, 7-day window).
-//   evaluateWhatsNewGate - pure gate: fresh install records silently, upgrade shows once, downgrade records silently.
+//   LEGACY_MARKER_MIN_AGE_MS - minimum age of the m005 mt_migration marker that proves a pre-existing profile.
+//   detectLegacyInstall - pure: does a prefs snapshot belong to an already-used (pre-C-48) install?
+//   evaluateWhatsNewGate - pure gate: fresh install records silently, upgrade (incl. legacy profile) shows once, downgrade records silently.
+//   snapshotBootPrefs - start the boot prefs snapshot (getAll) before this boot writes anything; never rejects.
 //   getRunningVersion - __APP_VERSION__ (with an e2e override hook).
 //   initWhatsNew - boot init: read, evaluate, persist, return the outcome for the caller to open the sheet.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.0.0 - 2026-10-15 C-48 T-001: initial module.
+//   LAST_CHANGE: v1.1.0 - 2026-10-15 C-48 review fix: 2.3.0 profiles carry
+//   no lastSeenVersion, so the gate treated every existing user as a fresh
+//   install and the 2.3.1 sheet never showed. detectLegacyInstall reads a
+//   boot prefs snapshot (mt_migration.marker_written_at older than 1 h, or
+//   non-empty lastSessionTabs / recentFolders) and evaluateWhatsNewGate
+//   treats "no recorded version + legacy" as an upgrade. Fixed the
+//   downgrade-branch comment (an unparseable recorded string sorts below a
+//   parseable running version, so it takes the upgrade branch, not this one).
+//   PREV: v1.0.0 - 2026-10-15 C-48 T-001: initial module.
 // END_CHANGE_SUMMARY
 
 import { compareVersions, normalizeVersion } from '../util/version'
@@ -32,6 +45,62 @@ import { getWhatsNewItems } from './data'
 
 export const LAST_SEEN_VERSION_KEY = 'lastSeenVersion'
 export const LAST_UPDATE_AT_KEY = 'lastUpdateAt'
+
+// START_BLOCK_DETECT_LEGACY_INSTALL
+// Profiles written by 2.3.0 and earlier have no lastSeenVersion, so "no
+// recorded version" alone cannot tell a fresh install from an existing
+// user. Signals (read from a prefs snapshot taken before this boot
+// writes anything):
+//   - mt_migration.marker_written_at (unix seconds) — m005 stamps it on
+//     the very first Rust boot of a profile and never rewrites it. On a
+//     fresh install it is seconds old; on an existing profile it predates
+//     this launch. One hour of slack absorbs clock jitter.
+//   - non-empty lastSessionTabs / recentFolders — only written after the
+//     user opened files or folders in an earlier session.
+// Deliberately NOT signals: recentDocuments / workspaceRoot (a first
+// launch via Finder or the CLI can write them before the gate runs) and
+// ordinary preference keys (the e2e shim and future boot code may seed
+// them; a false "upgrade" would show the sheet on a fresh install).
+export const LEGACY_MARKER_MIN_AGE_MS = 60 * 60 * 1000
+
+export const detectLegacyInstall = (prefs, now = new Date()) => {
+  if (!prefs || typeof prefs !== 'object') return { legacy: false, signals: [] }
+  const signals = []
+  const marker = prefs.mt_migration
+  const writtenAt = marker && typeof marker === 'object' ? Number(marker.marker_written_at) : NaN
+  const nowMs = now instanceof Date ? now.getTime() : Number(now)
+  if (
+    Number.isFinite(writtenAt) &&
+    writtenAt > 0 &&
+    Number.isFinite(nowMs) &&
+    nowMs - writtenAt * 1000 >= LEGACY_MARKER_MIN_AGE_MS
+  ) {
+    signals.push('migrationMarker')
+  }
+  for (const key of ['lastSessionTabs', 'recentFolders']) {
+    if (Array.isArray(prefs[key]) && prefs[key].length > 0) signals.push(key)
+  }
+  return { legacy: signals.length > 0, signals }
+}
+// END_BLOCK_DETECT_LEGACY_INSTALL
+
+// START_BLOCK_SNAPSHOT_BOOT_PREFS
+// pages/app.vue calls this first thing in onMounted — before hydration,
+// the legacy zoom migration or session restore can write — and hands the
+// promise to initWhatsNew. Resolves null on any failure (no getAll on the
+// facade, IPC error) so the gate degrades to "no legacy signals".
+export const snapshotBootPrefs = async (ipc = null) => {
+  try {
+    const facade = ipc || (await import('../ipc/runtime')).ipcPrefs
+    if (!facade || typeof facade.getAll !== 'function') return null
+    const all = await facade.getAll()
+    return all && typeof all === 'object' ? all : null
+  } catch (e) {
+    console.warn('[whatsNew][snapshotBootPrefs][BLOCK_SNAPSHOT_FAILED]', e)
+    return null
+  }
+}
+// END_BLOCK_SNAPSHOT_BOOT_PREFS
 
 // START_BLOCK_GET_RUNNING_VERSION
 // __APP_VERSION__ is a vite define (package.json version). e2e drives the
@@ -51,6 +120,8 @@ export const getRunningVersion = () => {
 // Pure gate, fake-clock friendly (all time flows in via `now`).
 //
 //   no recorded version  → fresh install: record silently, never show
+//     … + legacyInstall   → a pre-C-48 profile (2.3.0 never recorded the
+//                          version): treated as an upgrade below
 //   recorded === running → nothing to do (no write, no sheet)
 //   running < recorded   → downgrade: record silently, no sheet, no stamp
 //   running > recorded   → upgrade: show once (only when the running
@@ -62,11 +133,16 @@ export const getRunningVersion = () => {
 //   { show, version, recordVersion, stampUpdateAt, versionChanged, firstLaunch }
 //   recordVersion null → no prefs write needed; stampUpdateAt true → the
 //   caller/init also writes lastUpdateAt (ISO) for this boot's `now`.
-export const evaluateWhatsNewGate = ({ recorded, running, now = new Date() }) => {
+export const evaluateWhatsNewGate = ({
+  recorded,
+  running,
+  now = new Date(),
+  legacyInstall = false
+}) => {
   const runningVersion = normalizeVersion(running)
   const recordedVersion = normalizeVersion(recorded)
 
-  if (!recordedVersion) {
+  if (!recordedVersion && !legacyInstall) {
     return {
       show: false,
       version: runningVersion,
@@ -77,7 +153,9 @@ export const evaluateWhatsNewGate = ({ recorded, running, now = new Date() }) =>
     }
   }
 
-  const cmp = compareVersions(runningVersion, recordedVersion)
+  // A legacy profile has no recorded version to compare — it is by
+  // definition older than the running build (C-48 introduced the key).
+  const cmp = recordedVersion ? compareVersions(runningVersion, recordedVersion) : 1
   if (cmp === 0) {
     return {
       show: false,
@@ -90,8 +168,10 @@ export const evaluateWhatsNewGate = ({ recorded, running, now = new Date() }) =>
   }
 
   if (cmp < 0) {
-    // Downgrade (or an unparseable recorded string that sorts higher):
-    // record what actually runs, but never celebrate it.
+    // Downgrade: record what actually runs, but never celebrate it.
+    // (An unparseable recorded string never lands here against a real
+    // running version: compareVersions sorts the parseable side higher,
+    // so a corrupt record is treated as an upgrade below.)
     return {
       show: false,
       version: runningVersion,
@@ -113,6 +193,7 @@ export const evaluateWhatsNewGate = ({ recorded, running, now = new Date() }) =>
     stampUpdateAt: hasContent,
     versionChanged: true,
     firstLaunch: false,
+    legacyUpgrade: !recordedVersion,
     stampedAt: now instanceof Date ? now.toISOString() : String(now)
   }
 }
@@ -124,10 +205,15 @@ export const evaluateWhatsNewGate = ({ recorded, running, now = new Date() }) =>
 // returns the outcome — the caller decides how to open the sheet
 // (pages/app.vue emits whatsNewDialog so the sheet component owns its
 // own visibility, focus trap, and Help-menu reopen path).
+//
+// `bootPrefs` is the snapshotBootPrefs() promise (or object) started
+// before this boot wrote anything; without one, init takes its own
+// snapshot (unit tests, or a caller that does not care about ordering).
 export const initWhatsNew = async ({
   ipc = null,
   running = getRunningVersion(),
-  now = new Date()
+  now = new Date(),
+  bootPrefs = undefined
 } = {}) => {
   let recorded = ''
   try {
@@ -137,7 +223,17 @@ export const initWhatsNew = async ({
     recorded = ''
   }
 
-  const outcome = evaluateWhatsNewGate({ recorded, running, now })
+  let legacyInstall = false
+  if (!normalizeVersion(recorded)) {
+    const snapshot = bootPrefs === undefined ? await snapshotBootPrefs(ipc) : await bootPrefs
+    const { legacy, signals } = detectLegacyInstall(snapshot, now)
+    legacyInstall = legacy
+    console.log(
+      `[whatsNew][init][BLOCK_LEGACY_CHECK legacy=${legacy} signals=${signals.join(',') || 'none'}]`
+    )
+  }
+
+  const outcome = evaluateWhatsNewGate({ recorded, running, now, legacyInstall })
 
   if (outcome.recordVersion !== null || outcome.stampUpdateAt) {
     try {

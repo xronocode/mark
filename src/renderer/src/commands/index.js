@@ -17,8 +17,9 @@
 //   edit.copy-as-structured-text - Copies selection (or whole document) as structure-preserving plain text (C-32).
 //   view.zoom-in / view.zoom-out / view.actual-size - Unified zoom via preferences ZOOM_STEP/ZOOM_ACTUAL_SIZE (C-49).
 //   help.guide - Opens the localized Mark Guide as a temporary untitled tab (C-40 G-3).
-//   help.whats-new - Reopens the C-48 What's New sheet (whatsNewDialog bus event).
+//   help.whats-new - Reopens the C-48 What's New sheet (whatsNewDialog bus event; falls back to the newest release with content).
 //   help.rate - Opens the App Store write-review page (C-48, review capability only).
+//   RATE_MARK_URL - https App Store write-review URL opened by help.rate (opener:default scope).
 //   FileEncodingCommand - GRACE 4 synchronized symbol
 //   LineEndingCommand - GRACE 4 synchronized symbol
 //   QuickOpenCommand - GRACE 4 synchronized symbol
@@ -53,6 +54,12 @@
 //     sheet via the whatsNewDialog bus event) and help.rate (App Store
 //     write-review URL; applyCapabilityGate prunes it when the m048
 //     `review` capability is off).
+//   - 2026-10-15 C-48 review fix: help.rate opens the https App Store URL
+//     (RATE_MARK_URL, ?action=write-review) — macappstore:// is outside the
+//     MAS opener:default scope and was rejected — and catches the opener
+//     rejection (BLOCK_OPEN_REVIEW_PAGE_FAILED); help.whats-new emits the
+//     running version resolved through resolveWhatsNewVersion so a version
+//     without content still opens the newest release notes.
 // END_CHANGE_SUMMARY
 //
 // List of all static commands that are loaded into command center.
@@ -65,6 +72,8 @@ import { isUpdatable } from './utils'
 import getCommandDescriptionById from './descriptions'
 import { t } from '../i18n'
 import { usePreferencesStore } from '../store/preferences'
+import { getRunningVersion } from '../whatsNew/gate'
+import { resolveWhatsNewVersion } from '../whatsNew/data'
 
 export { default as FileEncodingCommand } from './fileEncoding'
 export { default as LineEndingCommand } from './lineEnding'
@@ -123,6 +132,10 @@ export function applyCapabilityGate(caps) {
   }
   drop(commands)
 }
+
+// C-48 help.rate target — https so the MAS opener:default scope allows
+// it; macOS routes apps.apple.com links to the App Store app.
+export const RATE_MARK_URL = 'https://apps.apple.com/app/id6814590464?action=write-review'
 
 const commands = [
   // --------------------------------------------------------------------------
@@ -882,17 +895,22 @@ const commands = [
     // component the startup gate shows once after an update).
     id: 'help.whats-new',
     execute: async () => {
-      bus.emit('whatsNewDialog')
+      // A build without its own entry (patch with no notes, dev build)
+      // falls back to the newest release that has content.
+      bus.emit('whatsNewDialog', { version: resolveWhatsNewVersion(getRunningVersion()) })
     }
   },
   {
     // C-48: App Store build only (capability-gated below + cfg-gated in
     // m009) — opens the App Store write-a-review page via the opener.
+    // https (not macappstore://): capabilities/mas.json grants only
+    // opener:default (http/https/mailto/tel); macOS hands the
+    // apps.apple.com link to the App Store app.
     id: 'help.rate',
     execute: async () => {
-      window.electron.shell.openExternal(
-        'macappstore://apps.apple.com/app/id6814590464?action=write-review'
-      )
+      await Promise.resolve(window.electron.shell.openExternal(RATE_MARK_URL)).catch((e) => {
+        console.error('[commands][help.rate][BLOCK_OPEN_REVIEW_PAGE_FAILED]', e)
+      })
     }
   },
 

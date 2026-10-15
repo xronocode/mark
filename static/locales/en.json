@@ -424,7 +424,10 @@
     "recentFolders": "Recent folders",
     "noRecentFiles": "No recent files",
     "lastSession": "Last session",
-    "filesCount": "{count} files",
+    "filesCount": {
+      "one": "{count} file",
+      "other": "{count} files"
+    },
     "remove": "Remove from list",
     "removeTooltip": "Removes it from this list. The file stays on disk.",
     "removedToast": "Removed “{name}” from Recent",
@@ -433,6 +436,7 @@
     "copyPath": "Copy path",
     "showInFinder": "Show in Finder",
     "showInExplorer": "Show in Explorer",
+    "showInFolder": "Show in folder",
     "guide": "Guide",
     "whatsNewIn": "What's new in {version}",
     "connectTitle": "Connect your agent.",

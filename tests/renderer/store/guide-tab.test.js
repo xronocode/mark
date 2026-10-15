@@ -1,5 +1,5 @@
 // FILE: tests/renderer/store/guide-tab.test.js
-// VERSION: 1.0.0
+// VERSION: 1.1.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Pin the C-40 G-3 guide tab lifecycle — temporary untitled tab, single-instance reuse, never written to disk, optional section deep link.
 //   SCOPE: OPEN_GUIDE_TAB (create/reuse/section), LISTEN_FOR_OPEN_GUIDE ('mt::open-guide' bus event).
@@ -12,10 +12,17 @@
 // START_MODULE_MAP
 //   I18N_TABLE - t() translation table so guide.tabTitle resolves to a real title.
 //   getOpenGuideHandler - extract the handler bus.on registered for 'mt::open-guide'.
+//   GUIDE_MD - minimal guide document with the connect-agent and tables sections.
+//   __ipcFsMock - ipcFs stub (no disk writes).
+//   __preferencesStub - preferences store stub.
+//   __layoutStub - layout store stub.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.0.0 - initial pins (C-40 2.3.1).
+//   LAST_CHANGE: v1.1.0 - C-40 review: real "heading deleted by the user"
+//   deep-link case (replaces a test that never passed a section), Save As
+//   guide is not reused, an opened file does not auto-close the guide.
+//   v1.0.0 - initial pins (C-40 2.3.1).
 // END_CHANGE_SUMMARY
 
 import { setupTestPinia } from '../pinia'
@@ -154,7 +161,6 @@ describe('store/editor — C-40 guide tab', () => {
     // Untitled + not dirty-tracked as a file: saving can only go through Save As.
     expect(guide.pathname).toBe('')
     expect(guide.markdown).toContain('## Connect your agent')
-    expect(guide.markdown).not.toContain('@@AGENT_PROMPT@@')
     // The editor surface learns about the content through file-loaded.
     expect(bus.emit).toHaveBeenCalledWith('file-loaded', {
       id: guide.id,
@@ -239,17 +245,54 @@ describe('store/editor — C-40 guide tab', () => {
     }
   })
 
-  it('skips the section scroll when the heading was removed by the user', async () => {
+  it('skips the section scroll when the user deleted the connect-agent heading', async () => {
+    // C-40 review: the old code took the first "## " of the EDITED copy,
+    // so a deleted "Connect your agent" heading made the deep link jump to
+    // "Try it: tables" instead of skipping.
+    await editor.OPEN_GUIDE_TAB({ markdown: GUIDE_MD })
+    editor.currentFile.markdown = GUIDE_MD.replace('## Connect your agent\n\nPrompt body.\n\n', '')
+    editor.listToc = [{ content: 'Try it: tables', lvl: 2, slug: 'muya-key-tables' }]
     vi.useFakeTimers()
     try {
       bus.emit.mockClear()
-      await editor.OPEN_GUIDE_TAB({ markdown: '# No sections' })
+      await editor.OPEN_GUIDE_TAB({ markdown: GUIDE_MD, section: 'connect-agent' })
       vi.advanceTimersByTime(300)
       const scrolled = bus.emit.mock.calls.some((c) => c[0] === 'scroll-to-header')
       expect(scrolled).toBe(false)
     } finally {
       vi.useRealTimers()
     }
+  })
+
+  it('a guide the user saved under a real path is not reused as the guide', async () => {
+    await editor.OPEN_GUIDE_TAB({ markdown: GUIDE_MD })
+    const savedId = editor.currentFile.id
+    // Save As gave the tab a real path: it is the user's document now.
+    editor.currentFile.pathname = '/Users/me/notes.md'
+
+    await editor.OPEN_GUIDE_TAB({ markdown: GUIDE_MD })
+    expect(editor.tabs).toHaveLength(2)
+    expect(editor.currentFile.id).not.toBe(savedId)
+    expect(editor.currentFile.pathname).toBe('')
+  })
+
+  it('opening a file while the unedited guide is current keeps the guide open', async () => {
+    await editor.OPEN_GUIDE_TAB({ markdown: GUIDE_MD })
+    const guideId = editor.currentFile.id
+    editor.NEW_TAB_WITH_CONTENT({
+      markdownDocument: {
+        markdown: '# plan',
+        filename: 'plan.md',
+        pathname: '/tmp/plan.md',
+        encoding: 'utf-8',
+        lineEnding: 'lf',
+        adjustLineEndingOnSave: false,
+        trimTrailingNewline: false
+      },
+      selected: true
+    })
+    expect(editor.tabs.some((t) => t.id === guideId)).toBe(true)
+    expect(editor.currentFile.pathname).toBe('/tmp/plan.md')
   })
 
   it('skips the section scroll when the TOC has not been built yet', async () => {

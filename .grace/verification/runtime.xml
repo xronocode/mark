@@ -3816,28 +3816,40 @@
           persisted prefs key lastSeenVersion with the running
           __APP_VERSION__ after normalizing prerelease decorations
           ("2.3.1-beta" equals "2.3.1"): no recorded version = fresh
-          install = record silently and never show; recorded differs
+          install = record silently and never show, UNLESS the boot
+          prefs snapshot (snapshotBootPrefs, taken first thing in
+          onMounted before any boot write) carries legacy signals —
+          m005 mt_migration.marker_written_at older than 1 h, or
+          non-empty lastSessionTabs / recentFolders — in which case the
+          pre-C-48 (2.3.0) profile is an upgrade and the sheet shows
+          once (detectLegacyInstall); recorded differs
           downward (downgrade) = record silently, no sheet; recorded
           equals running = nothing; recorded lower = upgrade = show the
           sheet once (components/whatsNew — board 3 mockup: eyebrow
           "Mark X.Y.Z", ≤ 4 items with icon + one-line title + one-line
           text from whatsNew/data.js keyed by normalized version, "See
-          the guide" emits mt::open-guide {section: whats-new},
+          the guide" emits mt::open-guide {} (guide opens at the top),
+          dialog aria-label = localized whatsNew.title,
           Continue / Esc / scrim close, Tab focus trap with focus
           return; an upgrade to a version with no content records
           silently instead of an empty sheet) and stamps the ISO
           lastUpdateAt prefs key for the C-46 welcome footer 7-day
           window. Help › What's New (menu id help.whats-new, every
           build, no accelerator) reopens the sheet any time through the
-          same whatsNewDialog bus event; the strings ship in all ten
+          same whatsNewDialog bus event, falling back to the newest
+          version with content (resolveWhatsNewVersion); the strings ship in all ten
           locales (whatsNew.* incl. v2_3_1 items, commands.help.*).
           The App Store review request runs only when the m048 review
           capability is true (app-store build on macOS; desktop
           m048_build_mode.rs pins review=false and m053_review.rs
           mt_request_review resolves Ok(false) outside the store
           build — SKStoreReviewController via objc msg_send on the
-          main thread like m032, Class::get no-op when StoreKit is
-          absent): review/reviewRules.js counts successful sessions
+          main thread like m032; StoreKit.framework is linked
+          explicitly via #[link] in the app-store macOS build; Ok(true)
+          only when the request was dispatched, Ok(false) when
+          Class::get finds no StoreKit — the renderer persists
+          lastAskedAt / lastAskedVersion only on true):
+          review/reviewRules.js counts successful sessions
           (a document opened AND saved — bus file-loaded + the
           APPLY_SAVE_OUTCOME file-saved emit — or a live reload
           applied, file-changed with contentReloaded) across distinct
@@ -3851,13 +3863,20 @@
           re-open the gate); Help › Rate Mark… (help.rate, cfg-gated
           like file.check-update; applyCapabilityGate prunes it when
           caps.review is off) opens
-          macappstore://apps.apple.com/app/id6814590464?action=write-review.
+          https://apps.apple.com/app/id6814590464?action=write-review
+          (https stays inside the MAS opener:default scope; an opener
+          rejection is caught with BLOCK_OPEN_REVIEW_PAGE_FAILED). The
+          pages/app.vue START_BLOCK_C48_STARTUP runs detached so
+          addCommonStyle never waits on it.
           Unit-pinned in tests/renderer/whatsNew/gate.test.js (fresh /
           upgrade / same / downgrade / beta corners / persistence
-          writes) + tests/renderer/review/reviewRules.test.js (every
+          writes, legacy-profile detection) + tests/renderer/review/reviewRules.test.js (every
           never-rule, 120-day and major.minor gates, sanitize,
           day/session counting) + tests/renderer/review/reviewRequest.test.js
-          (controller wiring, one ask per eligibility, capability gate)
+          (controller wiring, one ask per eligibility, ask recorded only
+          on a true dispatch, capability gate)
+          + tests/renderer/commands/c48-help-commands.test.js (https rate
+          URL + rejection catch, What's New fallback)
           + tests/renderer/components/whatsNew.test.js (render, Esc,
           focus trap + return, open-guide link) + cargo tests in
           src-tauri/src/m053_review.rs and m048_build_mode.rs (both
@@ -3865,7 +3884,9 @@
           help.rate only app-store macOS) + menu-consistency pins +
           e2e tests/e2e/whats-new.spec.ts (previous version in the
           shim prefs → sheet appears once, Esc closes, reload does not
-          re-show; fresh install never shows).
+          re-show; fresh install never shows; a 2.3.0 profile with an
+          old migration marker + recentFolders and no lastSeenVersion
+          shows the sheet once).
           scenario-47: Welcome screen redesign (C-46, mockups boards
           1-2): components/recent/index.vue shows the brand header
           (renderer logo asset + Mark), the tagline "Agents write. You
@@ -3902,9 +3923,17 @@
           only within 7 days of a lastUpdateAt preference (nothing
           writes it yet — C-48 — so the link stays hidden). While a
           file drag is over the window the screen shows a text-free
-          drop-zone highlight and forwards drops through the same
-          mt::window::drop channel (app.vue skips the import dialog
-          while no file is open). The "agent edited" badge is NOT
+          drop-zone highlight driven by the native drag bridge
+          ('mt::native-drag' from _shims/install-window-globals.js;
+          drops open through the bridge; app.vue skips the import
+          dialog while no file is open). Review fixes: remove/undo of a
+          folder persists the full stored list (up to 5) minus the
+          removed path; missing files/folders drop off by
+          cause.code MT_FS_NOT_FOUND; Windows paths via
+          util/pathDisplay pathBasename/pathDirname; "N files" uses
+          Intl.PluralRules forms (recent.filesCount.one/few/many/other);
+          the footer What's-new link reads C-48's ISO lastUpdateAt and
+          opens the C-48 sheet (whatsNewDialog). The "agent edited" badge is NOT
           implemented: M-017 stores paths only, no per-file
           last-opened/saved timestamp to compare the mtime against.
           Unit-pinned in tests/renderer/components/recent.test.js +
@@ -3921,7 +3950,11 @@
         <Marker>[whatsNew][init][BLOCK_SHEET_QUEUED version=&lt;v&gt;] — C-48 upgrade detected, the What's New sheet opens once</Marker>
         <Marker>[whatsNew][init][BLOCK_PERSIST_FAILED] — C-48 lastSeenVersion / lastUpdateAt write failed</Marker>
         <Marker>[review][ask][BLOCK_EVALUATED ask=false reason=&lt;firstLaunch|versionChanged|errorLogged|modalOpen|sessions|days|cooldown&gt;] — C-48 review decision trace</Marker>
-        <Marker>[review][ask][BLOCK_REQUEST_REVIEW asked=true shown=&lt;bool&gt;] — C-48 mt_request_review dispatched from the renderer</Marker>
+        <Marker>[review][ask][BLOCK_REQUEST_REVIEW asked=true dispatched=&lt;bool&gt;] — C-48 mt_request_review called from the renderer; the ask is persisted only when dispatched=true</Marker>
+        <Marker>[whatsNew][init][BLOCK_LEGACY_CHECK legacy=&lt;bool&gt; signals=&lt;list|none&gt;] — C-48 no lastSeenVersion: pre-C-48 profile detection from the boot prefs snapshot</Marker>
+        <Marker>[app][onMounted][BLOCK_C48_STARTUP_FAILED] — C-48 detached startup (gate + review init) failed</Marker>
+        <Marker>[commands][help.rate][BLOCK_OPEN_REVIEW_PAGE_FAILED] — C-48 opener rejected the App Store review URL</Marker>
+        <Marker>[Review][request][BLOCK_REQUEST_REVIEW_NO_STOREKIT] — C-48 m053 SKStoreReviewController class missing; resolves Ok(false)</Marker>
         <Marker>[Review][request][BLOCK_REQUEST_REVIEW_DISPATCHED] — C-48 m053 SKStoreReviewController msg_send on the main thread</Marker>
         <Marker>[Review][request][BLOCK_REQUEST_REVIEW_NOOP] — C-48 desktop build stub</Marker>
         <Marker>[Editor][handleCopyAsHtml][BLOCK_COPY_AS_HTML] native writeHtml failed → execCommand fallback</Marker>

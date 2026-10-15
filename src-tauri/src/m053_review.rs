@@ -1,5 +1,5 @@
 // FILE: src-tauri/src/m053_review.rs
-// VERSION: 1.0.0
+// VERSION: 1.1.0
 // START_MODULE_CONTRACT
 //   PURPOSE: M-053 C-48 review request. mt_request_review asks the
 //            system rating sheet (SKStoreReviewController) in the App
@@ -18,43 +18,62 @@
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
-//   mt_request_review - dispatch SKStoreReviewController requestReview on the main thread; Ok(false) everywhere else.
+//   mt_request_review - dispatch SKStoreReviewController requestReview on the main thread (Ok(true)); Ok(false) when StoreKit is missing and in every other build.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-10-15 C-48 review fix: link StoreKit.framework explicitly in
+//     the app-store macOS build (Class::get returned None — nothing else
+//     linked it) and return Ok(false) from the NO_STOREKIT branch (was
+//     Ok(true) unconditionally) so the renderer never records an ask
+//     that did not happen.
 //   - 2026-10-15 C-48 T-001: initial module.
 // END_CHANGE_SUMMARY
 
+// START_BLOCK_LINK_STOREKIT
+// Nothing else in the binary references StoreKit, so without an explicit
+// framework link Class::get("SKStoreReviewController") returns None and
+// the MAS build could never show the sheet. The empty extern block only
+// carries the link directive.
+#[cfg(all(feature = "app-store", target_os = "macos"))]
+#[link(name = "StoreKit", kind = "framework")]
+extern "C" {}
+// END_BLOCK_LINK_STOREKIT
+
+// START_BLOCK_REQUEST_REVIEW_APP_STORE
 #[cfg(all(feature = "app-store", target_os = "macos"))]
 #[tauri::command]
 pub async fn mt_request_review(app: tauri::AppHandle) -> Result<bool, String> {
     // SKStoreReviewController.requestReview must run on the main thread
-    // (same dispatch pattern as m032_share). StoreKit may not be linked
-    // in a bare binary — resolve the class at runtime and degrade to a
-    // logged no-op instead of panicking inside class!.
+    // (same dispatch pattern as m032_share). The class is resolved at
+    // runtime so a missing StoreKit degrades to Ok(false) — the renderer
+    // records an ask only when this returns true.
+    let (tx, rx) = tokio::sync::oneshot::channel::<bool>();
     app.run_on_main_thread(move || {
         use objc::msg_send;
         use objc::runtime::Class;
         use objc::sel;
         use objc::sel_impl;
 
-        unsafe {
+        let dispatched = unsafe {
             match Class::get("SKStoreReviewController") {
                 Some(cls) => {
                     let _: () = msg_send![cls, requestReview];
                     safe_eprintln!("[Review][request][BLOCK_REQUEST_REVIEW_DISPATCHED]");
+                    true
                 }
                 None => {
-                    safe_eprintln!(
-                        "[Review][request][BLOCK_REQUEST_REVIEW_NO_STOREKIT]"
-                    );
+                    safe_eprintln!("[Review][request][BLOCK_REQUEST_REVIEW_NO_STOREKIT]");
+                    false
                 }
             }
-        }
+        };
+        let _ = tx.send(dispatched);
     })
     .map_err(|e| format!("main thread dispatch: {e}"))?;
-    Ok(true)
+    rx.await.map_err(|e| format!("main thread reply: {e}"))
 }
+// END_BLOCK_REQUEST_REVIEW_APP_STORE
 
 // START_BLOCK_REVIEW_NOOP
 // Homebrew / direct-download desktop builds and non-macOS targets: no

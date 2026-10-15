@@ -420,7 +420,10 @@
     "recentFolders": "Letzte Ordner",
     "noRecentFiles": "Keine letzten Dateien",
     "lastSession": "Letzte Sitzung",
-    "filesCount": "{count} Dateien",
+    "filesCount": {
+      "one": "{count} Datei",
+      "other": "{count} Dateien"
+    },
     "remove": "Aus der Liste entfernen",
     "removeTooltip": "Entfernt den Eintrag nur aus dieser Liste. Die Datei bleibt auf der Festplatte.",
     "removedToast": "„{name}“ aus „Zuletzt“ entfernt",
@@ -429,6 +432,7 @@
     "copyPath": "Pfad kopieren",
     "showInFinder": "Im Finder anzeigen",
     "showInExplorer": "Im Explorer anzeigen",
+    "showInFolder": "Im Ordner anzeigen",
     "guide": "Handbuch",
     "whatsNewIn": "Neu in {version}",
     "connectTitle": "Verbinde deinen Agenten.",

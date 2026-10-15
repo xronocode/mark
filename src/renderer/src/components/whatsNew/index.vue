@@ -5,7 +5,7 @@
       class="ag-whats-new-sheet"
       role="dialog"
       aria-modal="true"
-      :aria-label="sheetLabel"
+      :aria-label="t('whatsNew.title')"
       tabindex="-1"
       @keydown.esc="close"
       @keydown.tab="onTab"
@@ -48,6 +48,10 @@
 //            .ag-whats-new-sheet to block its ask.
 //
 // CHANGE_SUMMARY:
+//   - 2026-10-15 C-48 review fix: "See the guide" emits mt::open-guide
+//     with {} (C-40's guide has no 'whats-new' section); the dialog
+//     aria-label uses the localized whatsNew.title key instead of a
+//     hard-coded English string.
 //   - 2026-10-15 C-48 T-001: initial component.
 import { ref, nextTick, onMounted, onBeforeUnmount } from 'vue'
 import bus from '@/bus'
@@ -62,8 +66,6 @@ const sheet = ref(null)
 const continueButton = ref(null)
 const guideLink = ref(null)
 let restoreFocusTo = null
-
-const sheetLabel = 'What\u2019s new'
 
 // START_BLOCK_OPEN_SHEET
 // payload (optional): { version } — the startup gate passes the upgraded
@@ -106,11 +108,12 @@ const onTab = (e) => {
 // END_BLOCK_FOCUS_TRAP
 
 // START_BLOCK_OPEN_GUIDE
-// C-40 owns the Guide; the deep link rides the bus so this sheet needs
-// no Guide import. Keep the sheet open — the Guide opens as a tab and
-// the user closes this sheet when done reading.
+// C-40 owns the Guide; the link rides the bus so this sheet needs no
+// Guide import. The guide has no What's New section, so it opens at the
+// top (empty payload, same as Help › Mark Guide). Keep the sheet open —
+// the Guide opens as a tab and the user closes this sheet when done.
 const openGuide = () => {
-  bus.emit('mt::open-guide', { section: 'whats-new' })
+  bus.emit('mt::open-guide', {})
 }
 // END_BLOCK_OPEN_GUIDE
 
