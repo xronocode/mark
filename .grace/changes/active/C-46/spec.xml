@@ -1,9 +1,9 @@
-<GraceChangeSpec graceVersion='4.0' status='draft'>
+<GraceChangeSpec graceVersion='4.0' status='approved'>
 <C-46>
   <Name>Welcome screen: open file / folder / new, recent files and folders, "Connect your agent"</Name>
   <Created>2026-10-15</Created>
   <Priority>medium</Priority>
-  <Status>draft</Status>
+  <Status>approved</Status>
   <RoadmapPhase>N</RoadmapPhase>
   <Complexity>M</Complexity>
   <Summary>Mark already has a welcome screen (src/renderer/src/components/recent/index.vue, shown when no file is open — pages/app.vue) with New / Open File / Open Folder, Restore session and the 5 most recent files from M-017 recentDocuments (10 kept). Redesign it into a centred welcome screen inspired by MarkView's start screen (user 2026-10-15 liked it) and better: brand header with the tagline "Agents write. You shape it.", primary Open File, secondary Open Folder, New Document with shortcuts, Guide and What's New links, drop anywhere, recent files and folders (name, middle-ellipsis path, modified time, a "changed outside Mark" hint, remove on hover), and the one-line "Connect your agent" block with Copy (C-40 R-1a).</Summary>
@@ -20,6 +20,6 @@
   <AcceptanceCriteria><Criterion>A fresh window shows the welcome screen; every action works by mouse and keyboard; recent lists survive restarts; looks right in Paper and Ink and on Windows.</Criterion></AcceptanceCriteria>
   <AffectedAreas><M-011>components/recent (welcome screen), sideBar/tree empty state</M-011></AffectedAreas>
   <VerificationIntent>Unit tests for recent-files store; e2e: open from recent, copy prompt, drop file; WebKit screenshot matrix.</VerificationIntent>
-  <Approval><ApprovedBy>pending</ApprovedBy><ApprovalScope>None yet.</ApprovalScope></Approval>
+  <Approval><ApprovedBy>user (2026-10-15): «ок» to the mockups https://claude.ai/artifact/S4JQJpq9jkfagKwW5tYpc7 (v7)</ApprovedBy><ApprovalScope>W2 implementation for 2.3.1 (mockups approved).</ApprovalScope></Approval>
 </C-46>
 </GraceChangeSpec>
