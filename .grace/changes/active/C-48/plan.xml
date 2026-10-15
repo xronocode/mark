@@ -1,0 +1,19 @@
+<GraceChangePlan graceVersion='4.0' status='approved'>
+<C-48>
+  <ChangeRef>C-48</ChangeRef>
+  <Created>2026-10-15</Created>
+  <IntentSummary>2.3.1 scope of C-48 per the approved spec and the approved mockups (scratch copy given to the agent). ZCode agent without shell; the orchestrator runs gates, failing-first proofs and commits.</IntentSummary>
+  <BaselineAssertions><MustContain><File>src/renderer/src/pages/app.vue</File><Text>recent</Text></MustContain></BaselineAssertions>
+  <TargetAssertions><MustContain><File>.grace/changes/active/C-48/spec.xml</File><Text>approved</Text></MustContain></TargetAssertions>
+  <DurableScope><M-011/></DurableScope>
+  <ObservedWriteScope><File>src/renderer/src/**</File><File>src-tauri/src/**</File><File>static/locales/*.json</File><File>tests/**</File><File>.grace/verification/runtime.xml</File></ObservedWriteScope>
+  <ImplementationPlan>
+    <T-001>
+      <Title>Implement the approved 2.3.1 scope</Title>
+      <DependsOn></DependsOn>
+      <AcceptanceCriteria><Criterion>Spec goals in scope met; unit + e2e tests incl. corner cases; all strings in 10 locales (.json + .min.json).</Criterion></AcceptanceCriteria>
+      <Verification><Command>npm test</Command><Command>grace lint --path . --assertions current</Command></Verification>
+    </T-001>
+  </ImplementationPlan>
+</C-48>
+</GraceChangePlan>
