@@ -1,18 +1,25 @@
 // MODULE_CONTRACT
 //   PURPOSE: M-017 mt-recent-docs. List of recently-opened files +
 //            folders, persisted to prefs[KEY_RECENT_DOCS]. Renderer
-//            "Open Recent" menu reads + writes via this module.
-//   SCOPE:   add/list/clear; bounded list size; dedupe-by-path
+//            "Open Recent" menu and the C-46 welcome screen read +
+//            write via this module.
+//   SCOPE:   add/list/clear; remove-by-path + insert-at (welcome
+//            screen "Remove from list" + 5s Undo restoring exact
+//            order); bounded list size; dedupe-by-path
 //            (most-recent-first ordering). NO per-platform OS
 //            integration (macOS NSDocumentController / Windows
 //            JumpList) — those are F-RECENT-OS-INTEGRATION.
 //   DEPENDS: m005_prefs (PrefsState).
 //   LINKS:   docs/development-plan.xml Phase-B3 step-8;
 //            v1.2.3 src/main/menu/actions/recently-used-documents.js
-//            for the upstream behavior (10-item cap, dedupe).
+//            for the upstream behavior (10-item cap, dedupe);
+//            .grace/changes/active/C-46 (welcome screen remove/undo).
 //   STATUS:  Phase-B3 step-8 shipped.
 //
 // CHANGE_SUMMARY:
+//   - 2026-10-15 C-46: mt_recent_remove (+ mt_recent_insert for the
+//     Undo toast) — remove returns the old index so the renderer can
+//     restore the exact previous order.
 //   - 2026-04-29 B3-step-8: initial impl.
 
 use crate::m005_prefs::PrefsState;
@@ -78,6 +85,57 @@ pub async fn mt_recent_list(prefs: State<'_, PrefsState>) -> Result<Vec<String>,
 pub async fn mt_recent_clear(prefs: State<'_, PrefsState>) -> Result<(), String> {
     safe_eprintln!("[Recent][clear][BLOCK_RECENT_CLEARED]");
     store(prefs.inner(), &[])
+}
+
+// START_BLOCK_RECENT_REMOVE
+/// Pure-logic remove — drops the first exact-match path and returns its
+/// old index (None when the path was not in the list). No store write
+/// happens for a missing path so a stray remove cannot corrupt the list.
+pub(crate) fn recent_remove_inner(prefs: &PrefsState, path: &str) -> Result<Option<usize>, String> {
+    let mut current = load(prefs);
+    let old_index = current.iter().position(|p| p == path);
+    if let Some(index) = old_index {
+        current.remove(index);
+        safe_eprintln!(
+            "[Recent][remove][BLOCK_RECENT_UPDATED removed_at={} count={}]",
+            index,
+            current.len()
+        );
+        store(prefs, &current)?;
+    }
+    Ok(old_index)
+}
+// END_BLOCK_RECENT_REMOVE
+
+// START_BLOCK_RECENT_INSERT
+/// Pure-logic insert-at — dedupe first, then splice at the clamped
+/// index; cap enforced. Inverse of recent_remove_inner for Undo.
+pub(crate) fn recent_insert_inner(prefs: &PrefsState, path: &str, index: usize) -> Result<(), String> {
+    let mut current = load(prefs);
+    current.retain(|p| p != path);
+    let at = index.min(current.len());
+    current.insert(at, path.to_string());
+    if current.len() > MAX_RECENT_DOCS {
+        current.truncate(MAX_RECENT_DOCS);
+    }
+    safe_eprintln!("[Recent][insert][BLOCK_RECENT_UPDATED at={} count={}]", at, current.len());
+    store(prefs, &current)
+}
+// END_BLOCK_RECENT_INSERT
+
+/// Remove a path from the recent list (C-46 welcome screen "Remove from
+/// list"). Returns Some(old index) when the path was present — feed that
+/// index back to mt_recent_insert to undo.
+#[tauri::command]
+pub async fn mt_recent_remove(path: String, prefs: State<'_, PrefsState>) -> Result<Option<usize>, String> {
+    recent_remove_inner(prefs.inner(), &path)
+}
+
+/// Insert a path at a given position (Undo of mt_recent_remove:
+/// restores the exact previous order). Dedupe + cap still enforced.
+#[tauri::command]
+pub async fn mt_recent_insert(path: String, index: usize, prefs: State<'_, PrefsState>) -> Result<(), String> {
+    recent_insert_inner(prefs.inner(), &path, index)
 }
 
 #[cfg(test)]
@@ -220,5 +278,87 @@ mod tests {
         store(&prefs, &["/c.md".to_string(), "/b.md".to_string(), "/a.md".to_string()]).unwrap();
         let list = load(&prefs);
         assert_eq!(list, vec!["/c.md".to_string(), "/b.md".to_string(), "/a.md".to_string()]);
+    }
+
+    // ── C-46 remove / insert-at (welcome screen Remove + Undo) ──
+
+    #[test]
+    fn remove_missing_path_returns_none_and_keeps_list() {
+        let (_dir, prefs) = fresh_prefs();
+        add_sync(&prefs, "/a.md");
+        let removed = recent_remove_inner(&prefs, "/not-there.md").unwrap();
+        assert_eq!(removed, None);
+        assert_eq!(load(&prefs), vec!["/a.md".to_string()]);
+    }
+
+    #[test]
+    fn remove_returns_old_index_and_persists() {
+        let (_dir, prefs) = fresh_prefs();
+        for p in ["/a.md", "/b.md", "/c.md"] {
+            add_sync(&prefs, p);
+        }
+        // list is now [c, b, a]; removing the tail item reports index 2.
+        let removed = recent_remove_inner(&prefs, "/a.md").unwrap();
+        assert_eq!(removed, Some(2));
+        assert_eq!(load(&prefs), vec!["/c.md".to_string(), "/b.md".to_string()]);
+    }
+
+    #[test]
+    fn remove_then_insert_restores_exact_order() {
+        let (_dir, prefs) = fresh_prefs();
+        for p in ["/a.md", "/b.md", "/c.md", "/d.md"] {
+            add_sync(&prefs, p);
+        }
+        let original = load(&prefs);
+        let removed = recent_remove_inner(&prefs, "/b.md").unwrap().unwrap();
+        assert_eq!(load(&prefs), vec!["/d.md", "/c.md", "/a.md".to_string()]);
+        recent_insert_inner(&prefs, "/b.md", removed).unwrap();
+        assert_eq!(load(&prefs), original);
+    }
+
+    #[test]
+    fn insert_clamps_oversized_index_to_end() {
+        let (_dir, prefs) = fresh_prefs();
+        add_sync(&prefs, "/a.md");
+        recent_insert_inner(&prefs, "/b.md", 99).unwrap();
+        assert_eq!(load(&prefs), vec!["/a.md".to_string(), "/b.md".to_string()]);
+    }
+
+    #[test]
+    fn insert_dedupes_existing_path_before_splicing() {
+        let (_dir, prefs) = fresh_prefs();
+        for p in ["/a.md", "/b.md", "/c.md"] {
+            add_sync(&prefs, p);
+        }
+        // Re-inserting an existing path must not duplicate it.
+        recent_insert_inner(&prefs, "/c.md", 0).unwrap();
+        let list = load(&prefs);
+        assert_eq!(list, vec!["/c.md".to_string(), "/b.md".to_string(), "/a.md".to_string()]);
+        assert_eq!(list.len(), 3);
+    }
+
+    #[test]
+    fn insert_enforces_cap() {
+        let (_dir, prefs) = fresh_prefs();
+        for i in 0..MAX_RECENT_DOCS {
+            add_sync(&prefs, &format!("/f-{i:02}.md"));
+        }
+        recent_insert_inner(&prefs, "/extra.md", 0).unwrap();
+        let list = load(&prefs);
+        assert_eq!(list.len(), MAX_RECENT_DOCS);
+        assert_eq!(list[0], "/extra.md".to_string());
+    }
+
+    #[test]
+    fn remove_persists_across_reloads() {
+        let dir = TempDir::new().unwrap();
+        let path = dir.path().join("preferences.json");
+        let prefs1 = PrefsState::from_path(path.clone());
+        add_sync(&prefs1, "/a.md");
+        add_sync(&prefs1, "/b.md");
+        let removed = recent_remove_inner(&prefs1, "/b.md").unwrap();
+        assert_eq!(removed, Some(0));
+        let prefs2 = PrefsState::from_path(path);
+        assert_eq!(load(&prefs2), vec!["/a.md".to_string()]);
     }
 }

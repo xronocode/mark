@@ -7,7 +7,7 @@
   },
   "generated_at": "2026-05-09T08:23:20.661Z",
   "counts": {
-    "commands": 40,
+    "commands": 42,
     "error_codes": 4
   },
   "error_codes": [
@@ -202,7 +202,23 @@
       "has_result": true
     },
     {
+      "name": "mt::recent::insert",
+      "direction": "renderer->main",
+      "transport": "invoke",
+      "layer": "M-013-A",
+      "has_args": true,
+      "has_result": true
+    },
+    {
       "name": "mt::recent::list",
+      "direction": "renderer->main",
+      "transport": "invoke",
+      "layer": "M-013-A",
+      "has_args": true,
+      "has_result": true
+    },
+    {
+      "name": "mt::recent::remove",
       "direction": "renderer->main",
       "transport": "invoke",
       "layer": "M-013-A",

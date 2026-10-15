@@ -3292,6 +3292,15 @@
           npx vitest run tests/renderer/i18n/system-language.test.js
           tests/renderer/store/preferences-language.test.js
         </Command>
+        <Command>
+          npx vitest run tests/renderer/components/recent.test.js
+          tests/renderer/util/relativeTime.test.js
+          tests/renderer/util/agentPrompt.test.js
+        </Command>
+        <Command>
+          npx playwright test tests/e2e/welcome.spec.ts --project=chromium
+        </Command>
+        <Command>cargo test --manifest-path src-tauri/Cargo.toml recent_remove recent_insert</Command>
       </Commands>
       <Scenarios>
         <Scenario>
@@ -3724,6 +3733,57 @@
           'system') + tests/renderer/pages/general-config.test.js
           (options list starts with 'system').
         </Scenario>
+        <Scenario>
+          scenario-45: Welcome screen redesign (C-46, mockups boards
+          1-2): components/recent/index.vue shows the brand header
+          (renderer logo asset + Mark), the tagline "Agents write. You
+          shape it." with the highlighted word as its own i18n key
+          (recent.taglineLead/Highlight/Tail in all ten locales, .json
+          + .min.json), one action row (Open File… primary with ⌘O /
+          Ctrl+O, Open Folder… secondary with ⇧⌘O / Ctrl+Shift+O, New
+          dashed with ⌘N / Ctrl+N via util isOsx/isWindows), the last
+          session as the first Recent row ("Last session · N files",
+          first three basenames, click → RESTORE_SESSION, only when
+          GET_SESSION_PATHS returns paths), up to 5 recent files from
+          M-017 (name, middle-shortened ~-for-home folder via
+          util/pathDisplay, relative mtime via mt_fs_stat +
+          util/relativeTime — "3 min ago", "today HH:MM", "yesterday",
+          "N days ago", older-or-unknown omitted; stat MT_FS_NOT_FOUND
+          drops the row silently, other stat failures keep it without
+          a time so degraded IPC never wipes the list), up to 3 recent
+          folders (project store recentFolders, same rows), hover
+          "Remove from list" (tooltip: the file stays on disk),
+          right-click / menu-key context menu via
+          mt::window-popup-context-menu (Open, Show in Finder|Explorer
+          by isWindows, Copy path, Remove from list), and a 5-second
+          Undo toast: removal persists through the new
+          mt_recent_remove (returns the old persisted index) and Undo
+          calls mt_recent_insert(path, index) so the exact previous
+          order returns (folders undo via project-store
+          SET_RECENT_FOLDERS with the pre-remove snapshot). The
+          "Connect your agent" row copies the ONE universal prompt
+          defined in util/agentPrompt.js (i18n key agentPrompt.prompt
+          with the platform openCommand: open -a Mark / start mark /
+          mark) and "How it works" emits bus mt::open-guide with
+          section connect-agent (C-40 contract, no handler yet). The
+          footer shows Guide (mt::open-guide) and the What's-new link
+          only within 7 days of a lastUpdateAt preference (nothing
+          writes it yet — C-48 — so the link stays hidden). While a
+          file drag is over the window the screen shows a text-free
+          drop-zone highlight and forwards drops through the same
+          mt::window::drop channel (app.vue skips the import dialog
+          while no file is open). The "agent edited" badge is NOT
+          implemented: M-017 stores paths only, no per-file
+          last-opened/saved timestamp to compare the mtime against.
+          Unit-pinned in tests/renderer/components/recent.test.js +
+          tests/renderer/util/relativeTime.test.js +
+          tests/renderer/util/agentPrompt.test.js; Rust list
+          invariants (remove returns old index, insert-at restores
+          exact order, dedupe + cap) in src-tauri/src/m017_recent.rs
+          cargo tests; e2e layout + remove/undo in
+          tests/e2e/welcome.spec.ts (tauri-shim boots with no file
+          open).
+        </Scenario>
       </Scenarios>
       <Markers>
         <Marker>[Editor][handleCopyAsHtml][BLOCK_COPY_AS_HTML] native writeHtml failed → execCommand fallback</Marker>
@@ -3743,6 +3803,11 @@
         <Marker>[editor][save][BLOCK_STALE_SAVE_OUTCOME_IGNORED]</Marker>
         <Marker>[DiffSnapshots][record][BLOCK_SNAPSHOT_RECORDED tab=&lt;id&gt; size=&lt;n&gt;] — C-43 pre-reload snapshot appended to the tab ring</Marker>
         <Marker>[editor][diff][BLOCK_DIFF_BASELINE_SOURCE source=snapshot|stored] — C-43 baseline priority in diffView</Marker>
+        <Marker>[Recent][removeRecentFile|removeRecentFolder][BLOCK_RECENT_REMOVED] persisted=false — C-46 list removal IPC failed</Marker>
+        <Marker>[Recent][undoRemove][BLOCK_RECENT_UNDONE] persisted=false — C-46 undo insert failed</Marker>
+        <Marker>[Recent][openRowContextMenu][BLOCK_ROW_CONTEXT_MENU] failed — C-46 native popup IPC failed</Marker>
+        <Marker>[Recent][copyAgentPrompt][BLOCK_AGENT_PROMPT_COPIED] — C-40/C-46 universal prompt copy outcome</Marker>
+        <Marker>[Recent][remove|insert][BLOCK_RECENT_UPDATED ...] — M-017 Rust-side list mutation (C-46 remove/undo pair)</Marker>
         <Marker>
           [Renderer] BLOCK_THEME_SWAP_BEGIN theme=&lt;id&gt; /
           BLOCK_THEME_SWAP_END duration_ms=&lt;n&gt;
