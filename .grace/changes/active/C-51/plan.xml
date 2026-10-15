@@ -76,6 +76,16 @@
       </AcceptanceCriteria>
       <Verification><Command>npm test</Command><Command>playwright chromium + webkit</Command><Command>grace lint --path . --assertions current</Command></Verification>
     </T-008>
+    <T-009>
+      <Title>Agent prompt lists every rich-Markdown feature Mark renders (user 2026-10-16)</Title>
+      <DependsOn></DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>guide.agentPrompt.mac / .generic in all 10 locales carry the user-approved text (EN source in the task brief; macOS variant with open -a Mark, generic «open it for the user in Mark»); real translations keep every syntax token (```mermaid, the 22 type keywords, ```vega-lite, ```flowchart, ```sequence, [!NOTE]…[!CAUTION] and the alias names, - [ ], $…$, $$…$$, [^1]) verbatim. PlantUML and super/subscript are deliberately not listed.</Criterion>
+        <Criterion>The Guide (static/guide/*.md, 10 locales) gains a compact «What Mark renders» showcase section with a live example of each feature family.</Criterion>
+        <Criterion>Honesty guard: an e2e renders a fixture with one example of EVERY feature named in the prompt (all 22 Mermaid types, vega-lite, flowchart, sequence, every callout tag incl. title and fold, task list, inline/block math, code fence, footnote, front matter, emoji, table, link, image) in chromium + webkit and asserts each rendered (svg / katex / callout / checkbox / footnote nodes) with no render error; a unit test pins that every locale's prompt contains the same syntax tokens as EN.</Criterion>
+      </AcceptanceCriteria>
+      <Verification><Command>npm test</Command><Command>playwright chromium + webkit</Command><Command>grace lint --path . --assertions current</Command></Verification>
+    </T-009>
   </ImplementationPlan>
 </C-51>
 </GraceChangePlan>
