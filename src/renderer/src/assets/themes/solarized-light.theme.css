@@ -1,5 +1,8 @@
 :root {
-  /*editor - Solarized Light theme*/
+  /*editor - Solarized Light theme — C-41 T-003: body text base00 #657b83
+    → base01 #586e75 (4.13 → 4.99 on #fdf6e3), linkColor darkened
+    #268bd2 → #1a6fb0 (3.41 → 4.94), blockquote follows base01 at .8
+    (2.16 → 3.38) for WCAG AA*/
   --themeColor: #268bd2;
   --themeColor90: rgba(38, 139, 210, .9);
   --themeColor80: rgba(38, 139, 210, .8);
@@ -13,7 +16,7 @@
 
   --highlightColor: rgba(38, 139, 210, .3);
   --selectionColor: rgba(238, 232, 213, .8);
-  --editorColor: #657b83;
+  --editorColor: #586e75;
   --editorColor80: rgba(101, 123, 131, .8);
   --editorColor60: rgba(101, 123, 131, .6);
   --editorColor50: rgba(101, 123, 131, .5);
@@ -64,10 +67,10 @@
   --h4Color: #859900;
   --h5Color: #2aa198;
   --h6Color: #268bd2;
-  --blockquoteTextColor: rgba(101, 123, 131, .6);
+  --blockquoteTextColor: rgba(88, 110, 117, .8);
   --blockquoteBorderColor: #93a1a1;
   --hrColor: #dcd6c3;
-  --linkColor: #268bd2;
+  --linkColor: #1a6fb0;
   --strongColor: #586e75;
   --emColor: #b58900;
   --listMarkerColor: #cb4b16;

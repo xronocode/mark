@@ -1,5 +1,6 @@
 :root {
-  /*editor - Gruvbox Light theme*/
+  /*editor - Gruvbox Light theme — C-41 T-003: linkColor darkened
+    #458588 → #076678 (gruvbox's own dark aqua; 3.73 → 5.82 on #fbf1c7)*/
   --themeColor: #458588;
   --themeColor90: rgba(69, 133, 136, .9);
   --themeColor80: rgba(69, 133, 136, .8);
@@ -67,7 +68,7 @@
   --blockquoteTextColor: rgba(60, 56, 54, .6);
   --blockquoteBorderColor: #928374;
   --hrColor: #d9c79c;
-  --linkColor: #458588;
+  --linkColor: #076678;
   --strongColor: #3c3836;
   --emColor: #d79921;
   --listMarkerColor: #d65d0e;

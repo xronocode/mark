@@ -11,16 +11,17 @@ vi.mock('@/config', () => ({
   COMMON_STYLE_ID: 'ag-common-style',
   DEFAULT_CODE_FONT_FAMILY: '"DejaVu Sans Mono", monospace',
   oneDarkThemes: Object.freeze(['one-dark']),
-  railscastsThemes: Object.freeze(['dark', 'material-dark', 'dracula', 'nord'])
+  // C-41 T-002: kept dark ids only (retired: dark, material-dark, …)
+  railscastsThemes: Object.freeze(['ink', 'dracula', 'nord', 'gruvbox-dark'])
 }))
 
 // Mock themeColor — each factory returns CSS with a variable for testing
 vi.mock('@/util/themeColor', () => {
   const factory = (name) => () => `:root { --theme: ${name}; }`
   return {
-    dark: factory('dark'),
+    paper: factory('paper'),
+    ink: factory('ink'),
     graphite: factory('graphite'),
-    materialDark: factory('materialDark'),
     oneDark: factory('oneDark'),
     ulysses: factory('ulysses'),
     dracula: factory('dracula'),
@@ -28,29 +29,24 @@ vi.mock('@/util/themeColor', () => {
     catppuccinMocha: factory('catppuccinMocha'),
     gruvboxDark: factory('gruvboxDark'),
     tokyoNight: factory('tokyoNight'),
-    tokyoNightStorm: factory('tokyoNightStorm'),
     solarizedDark: factory('solarizedDark'),
     ayuDark: factory('ayuDark'),
-    ayuMirage: factory('ayuMirage'),
     everforestDark: factory('everforestDark'),
     rosePine: factory('rosePine'),
-    rosePineMoon: factory('rosePineMoon'),
-    monokaiPro: factory('monokaiPro'),
-    synthwave84: factory('synthwave84'),
-    horizonDark: factory('horizonDark'),
-    palenight: factory('palenight'),
-    oxocarbonDark: factory('oxocarbonDark'),
     kanagawa: factory('kanagawa'),
-    nightfox: factory('nightfox'),
-    cyberdream: factory('cyberdream'),
     catppuccinLatte: factory('catppuccinLatte'),
     gruvboxLight: factory('gruvboxLight'),
     tokyoNightLight: factory('tokyoNightLight'),
     solarizedLight: factory('solarizedLight'),
     ayuLight: factory('ayuLight'),
     everforestLight: factory('everforestLight'),
-    paper: factory('paper'),
-    ink: factory('ink'),
+    // C-41 T-003 family members (theme.js imports them from themeColor)
+    oneLight: factory('oneLight'),
+    alucard: factory('alucard'),
+    nordLight: factory('nordLight'),
+    kanagawaLotus: factory('kanagawaLotus'),
+    graphiteDark: factory('graphiteDark'),
+    ulyssesDark: factory('ulyssesDark'),
     rosePineDawn: factory('rosePineDawn')
   }
 })
@@ -97,10 +93,10 @@ describe('util/theme', () => {
     })
 
     it('should create a style element and inject CSS for a known theme', () => {
-      addThemeStyle('dark')
+      addThemeStyle('ink')
       const el = document.querySelector('#ag-theme')
       expect(el).not.toBeNull()
-      expect(el.textContent).toContain('--theme: dark')
+      expect(el.textContent).toContain('--theme: ink')
     })
 
     it('should set empty CSS for an unknown theme', () => {
@@ -111,7 +107,7 @@ describe('util/theme', () => {
     })
 
     it('should reuse existing style element', () => {
-      addThemeStyle('dark')
+      addThemeStyle('ink')
       addThemeStyle('nord')
       const els = document.querySelectorAll('#ag-theme')
       expect(els.length).toBe(1)
@@ -119,7 +115,7 @@ describe('util/theme', () => {
     })
 
     it('should add dark class for railscasts themes', () => {
-      addThemeStyle('dark')
+      addThemeStyle('ink')
       expect(document.body.classList.contains('dark')).toBe(true)
     })
 
@@ -145,7 +141,7 @@ describe('util/theme', () => {
     })
 
     it('should set titleBarBorderColor for dark themes', () => {
-      addThemeStyle('dark')
+      addThemeStyle('ink')
       expect(document.documentElement.style.getPropertyValue('--titleBarBorderColor')).toBe(
         'rgba(255, 255, 255, 0.06)'
       )
@@ -159,21 +155,21 @@ describe('util/theme', () => {
     })
 
     it('should mirror CSS variables to document root style', () => {
-      addThemeStyle('dark')
-      expect(document.documentElement.style.getPropertyValue('--theme')).toBe('dark')
+      addThemeStyle('ink')
+      expect(document.documentElement.style.getPropertyValue('--theme')).toBe('ink')
     })
 
     it('should clear old variables when switching themes', () => {
-      addThemeStyle('dark')
-      expect(document.documentElement.style.getPropertyValue('--theme')).toBe('dark')
+      addThemeStyle('ink')
+      expect(document.documentElement.style.getPropertyValue('--theme')).toBe('ink')
       addThemeStyle('nord')
       // Old theme var should be overwritten (same name) or removed
       expect(document.documentElement.style.getPropertyValue('--theme')).toBe('nord')
     })
 
     it('should cache theme to localStorage', () => {
-      addThemeStyle('dark')
-      expect(localStorage.getItem('mark-cached-theme')).toBe('dark')
+      addThemeStyle('ink')
+      expect(localStorage.getItem('mark-cached-theme')).toBe('ink')
     })
 
     it('should handle localStorage errors gracefully', () => {
@@ -181,7 +177,7 @@ describe('util/theme', () => {
       localStorage.setItem = () => {
         throw new Error('quota exceeded')
       }
-      expect(() => addThemeStyle('dark')).not.toThrow()
+      expect(() => addThemeStyle('ink')).not.toThrow()
       localStorage.setItem = orig
     })
 
@@ -201,7 +197,7 @@ describe('util/theme', () => {
       cm.classList.add('CodeMirror')
       document.body.appendChild(cm)
 
-      addThemeStyle('material-dark')
+      addThemeStyle('gruvbox-dark')
       expect(cm.classList.contains('cm-s-railscasts')).toBe(true)
       expect(cm.classList.contains('cm-s-one-dark')).toBe(false)
     })
@@ -217,7 +213,7 @@ describe('util/theme', () => {
 
     it('should handle missing CodeMirror element', () => {
       // No CodeMirror in DOM — should not throw
-      expect(() => addThemeStyle('dark')).not.toThrow()
+      expect(() => addThemeStyle('ink')).not.toThrow()
     })
   })
 
@@ -338,7 +334,7 @@ describe('util/theme', () => {
   describe('addStyles', () => {
     it('should call addThemeStyle and addCommonStyle', () => {
       addStyles({
-        theme: 'dark',
+        theme: 'ink',
         codeFontFamily: 'mono',
         codeFontSize: 14,
         hideScrollbar: false

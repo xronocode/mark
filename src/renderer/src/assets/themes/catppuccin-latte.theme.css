@@ -1,5 +1,7 @@
 :root {
-  /*editor - Catppuccin Latte theme*/
+  /*editor - Catppuccin Latte theme — C-41 T-003: linkColor darkened
+    #1e66f5 → #1c60e8 (4.34 → 4.78 on #eff1f5) and blockquote alpha
+    .6 → .7 (2.80 → 3.45) for WCAG AA*/
   --themeColor: #1e66f5;
   --themeColor90: rgba(30, 102, 245, .9);
   --themeColor80: rgba(30, 102, 245, .8);
@@ -64,10 +66,10 @@
   --h4Color: #40a02b;
   --h5Color: #1e66f5;
   --h6Color: #8839ef;
-  --blockquoteTextColor: rgba(76, 79, 105, .6);
+  --blockquoteTextColor: rgba(76, 79, 105, .7);
   --blockquoteBorderColor: #9ca0b0;
   --hrColor: #ccd0da;
-  --linkColor: #1e66f5;
+  --linkColor: #1c60e8;
   --strongColor: #4c4f69;
   --emColor: #ea76cb;
   --listMarkerColor: #7287fd;

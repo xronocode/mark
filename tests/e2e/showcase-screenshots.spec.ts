@@ -30,7 +30,7 @@ out of your way.
 ## Why Mark?
 
 - **Instant rendering** — see your changes as you type
-- **33 built-in themes** — from warm Catppuccin to neon Synthwave
+- **28 built-in themes** — from warm Catppuccin to midnight Ink
 - **Native performance** — built with Tauri 2 + Rust backend
 - **Agent-friendly** — file watching, CLI integration, live reload
 - **Rich diagrams** — Mermaid, Vega-Lite, Flowchart.js, PlantUML
@@ -288,13 +288,15 @@ which communicates with the **Rust backend** via Tauri IPC.
   },
   {
     name: 'mixed-showcase',
-    theme: 'synthwave-84',
+    // C-41 T-002: synthwave-84 retired — dracula is the kept dark member of
+    // that family.
+    theme: 'dracula',
     md: `# Mark — Feature Overview
 
 ## Live Preview with Themes
 
-Switch between **33 built-in themes** instantly.
-From warm ☀️ *Catppuccin Latte* to neon 🌃 *Synthwave '84*.
+Switch between **28 built-in themes** instantly.
+From warm ☀️ *Catppuccin Latte* to midnight 🌃 *Ink*.
 
 ## Diagrams & Visualizations
 

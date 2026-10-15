@@ -59,6 +59,15 @@
        (util/autoTheme.js), and the app.vue/preference.vue wiring are the
        natural homes for registration/live-follow; none rewrite stored
        preferences for existing users. -->
+  <!-- T-003 implementation note (2026-10-15): two existing count-pin tests
+       joined the scope because registration legitimately moves them —
+       tests/renderer/util/themeColor.test.js (34 → 40 factories) and
+       tests/renderer/commands/index.test.js (35 → 41 theme subcommands);
+       tests/renderer/util/theme.test.js gained the six new factories in
+       its vi.mock of util/themeColor (Vitest errors on named imports a
+       factory mock does not define). The Settings picker
+       (prefComponents/theme/) was intentionally NOT touched — T-002
+       replaces it with the family picker. -->
   <ImplementationPlan>
     <T-001>
       <Title>Paper + Ink themes as defaults; Auto/Light/Dark title-bar button</Title>
@@ -104,5 +113,19 @@
       </Verification>
     </T-003>
   </ImplementationPlan>
+  <Evidence>
+    <T-002>
+      <Status>done</Status>
+      <Commits>agent/c41-t2 (ZCode, no shell; orchestrator deleted the 23 retired theme files, regenerated min locales and committed), int/c41 merge with T-003, squashed to main.</Commits>
+      <ReviewFixes>config.js reads window.path at module scope, so importing it from the boot shim / store migration crashed (agent had worked around it by moving the path install into a new shim): family data moved to the window-free util/themeFamilies.js, shim workaround reverted; picker mode detection uses family membership instead of config isDarkTheme; family-pick tests pinned store state (leaked between tests) and gained a manual Dark case; Dracula family was labelled «Alucard» (its light member) — renamed; theme-switch e2e rewritten for family picking (manual Light and Auto on a dark system); e2e shim light/dark mode themes paper/ink.</ReviewFixes>
+      <Gates>Red on main: theme-families.test.js (module absent). Green on int/c41: npm test 3758 passed; cargo test 395 passed; e2e 254 passed / 2 skipped (chromium + webkit); grace lint Errors 0.</Gates>
+    </T-002>
+    <T-003>
+      <Status>done</Status>
+      <Commits>agent/c41-t3 (ZCode), merged into int/c41; the agent commit had captured the worktree node_modules symlink (gitignore matches node_modules/ only) — removed in the merge, main receives a squash.</Commits>
+      <ReviewFixes>Temporary T-002/T-003 skips removed after the merge (all 28 members registered and contrast-gated, dark classification for graphite-dark/ulysses-dark); swatch colours for the six new members in the picker; MODULE_MAP gaps.</ReviewFixes>
+      <Gates>Red on main: theme-contrast.test.js 7/7 failed. Green on int/c41: contrast gate passes for all 28 (body/link ≥ 4.5, muted ≥ 3.0, variable parity with paper).</Gates>
+    </T-003>
+  </Evidence>
 </C-41>
 </GraceChangePlan>

@@ -1,11 +1,12 @@
 /*
- * Prism.js Ayu Mirage Theme
- * Based on https://github.com/ayu-theme/ayu-colors
+ * Prism.js Graphite Dark Theme (C-41 T-003)
+ * Dark counterpart of the MarkText Graphite prism theme —
+ * the same token hues lightened for the #363c3e code background.
  */
 
 code[class*="language-"],
 pre.ag-paragraph {
-  color: #cbccc6;
+  color: #c9ced2;
   text-align: left;
   white-space: pre;
   word-spacing: normal;
@@ -29,7 +30,7 @@ pre.ag-paragraph {
 
 :not(pre) > code[class*="language-"],
 pre.ag-paragraph {
-  background: var(--codeBlockBgColor, #272d38);
+  background: var(--codeBlockBgColor, #363c3e);
 }
 
 :not(pre) > code[class*="language-"] {
@@ -42,16 +43,16 @@ pre.ag-paragraph {
 .token.prolog,
 .token.doctype,
 .token.cdata {
-  color: #5c6773;
+  color: #8a9096;
   font-style: italic;
 }
 
 .token.punctuation {
-  color: #5c6773;
+  color: #9aa5b5;
 }
 
 .namespace {
-  color: #73d0ff;
+  color: #8fd3dc;
   opacity: .85;
 }
 
@@ -60,12 +61,12 @@ pre.ag-paragraph {
 .token.constant,
 .token.symbol,
 .token.deleted {
-  color: #f28779;
+  color: #e08585;
 }
 
 .token.boolean,
 .token.number {
-  color: #ffad66;
+  color: #a99cf2;
 }
 
 .token.selector,
@@ -74,7 +75,7 @@ pre.ag-paragraph {
 .token.char,
 .token.builtin,
 .token.inserted {
-  color: #bae67e;
+  color: #8fc7c9;
 }
 
 .token.operator,
@@ -82,35 +83,35 @@ pre.ag-paragraph {
 .token.url,
 .language-css .token.string,
 .style .token.string {
-  color: #95e6cb;
+  color: #9aa8b2;
 }
 
 .token.atrule,
 .token.attr-value,
 .token.function {
-  color: #ffd580;
+  color: #e6b855;
 }
 
 .token.class-name {
-  color: #73d0ff;
+  color: #8fd3dc;
 }
 
 .token.parameter {
-  color: #ffad66;
+  color: #dcae7a;
 }
 
 .token.macro {
-  color: #73d0ff;
+  color: #8fd3dc;
 }
 
 .token.keyword {
-  color: #ffcc66;
+  color: #8fa9c9;
 }
 
 .token.regex,
 .token.important,
 .token.variable {
-  color: #73d0ff;
+  color: #e08585;
 }
 
 .token.important,

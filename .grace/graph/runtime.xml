@@ -2589,7 +2589,31 @@
         Auto → Light → Dark (titleBar/index.vue START_BLOCK_THEME_CYCLE);
         the M-025.3 backend boot override on followSystemTheme was removed
         (src-tauri m005_prefs.rs / main.rs) so a persisted Auto survives
-        restarts. C-49 T-001: one clear zoom — ⌘+/⌘−/⌘0, Ctrl+wheel/pinch
+        restarts. C-41 T-002: the theme set is 14 light/dark families
+        (config.js THEME_FAMILIES, spec R-3 order; themePairs derived
+        symmetric, themeFamilyOf resolver); the 13 retired ids are gone
+        from themeMap (util/theme.js, exported for verification),
+        themeColor.js (22 factories), railscastsThemes, the command
+        palette, the native View › Theme menu, the Settings picker
+        (prefComponents/theme — one tile per family, light+dark
+        swatches, family pick sets both members + the member for the
+        current mode via util/autoTheme.js familyMemberForMode without
+        leaving Auto) and every locale's menu.theme names; stored
+        theme/lightModeTheme/darkModeTheme values migrate once at the
+        hydration load point (store/preferences.js
+        START_BLOCK_MIGRATE_RETIRED_THEMES over util/themeMigration.js,
+        unknown ids fall back to paper/ink, boot flash covered by
+        _shims/install-window-globals.js; the family data lives in the
+        window-free util/themeFamilies.js, re-exported by config.js). C-41 T-003: six family members ship on the Paper
+        variable set — one-light, alucard, nord-light, kanagawa-lotus
+        (light) and graphite-dark, ulysses-dark (dark, railscasts
+        classification) — each with a prismjs companion, registered in
+        themeMap/themeColor, the command palette, the native View › Theme
+        menu and all ten locales; a WCAG AA contrast pass
+        (tests/renderer/util/theme-contrast.test.js) enforces 4.5:1 for
+        editorColor/linkColor and 3:1 for blockquote text on
+        editorBgColor plus variable parity with paper.theme.css across
+        the 28 kept themes (11 older themes adjusted in place). C-49 T-001: one clear zoom — ⌘+/⌘−/⌘0, Ctrl+wheel/pinch
         and the native View-menu items (view.zoom-in/out/actual-size,
         id-dispatched) all run preferences-store ZOOM_STEP /
         ZOOM_ACTUAL_SIZE (clamp 12–36, 150 ms debounced persist, emits

@@ -1,0 +1,170 @@
+:root {
+  /*editor - Ulysses Dark theme (C-41 T-003)*/
+  /* Dark counterpart of ulysses.theme.css: same grey/blue hues (bg is
+     ulysses' grey darkened to #212529, text its light inversion
+     #d6d6d6). The cyan accent rgb(12, 139, 186) fails AA as a link on
+     the dark bg (3.98) — links use the lightened #2ea8e0 (5.73). */
+  --themeColor: #0c8bba;
+  --themeColor90: rgba(12, 139, 186, .9);
+  --themeColor80: rgba(12, 139, 186, .8);
+  --themeColor70: rgba(12, 139, 186, .7);
+  --themeColor60: rgba(12, 139, 186, .6);
+  --themeColor50: rgba(12, 139, 186, .5);
+  --themeColor40: rgba(12, 139, 186, .4);
+  --themeColor30: rgba(12, 139, 186, .3);
+  --themeColor20: rgba(12, 139, 186, .2);
+  --themeColor10: rgba(12, 139, 186, .1);
+
+  --highlightColor: rgba(12, 139, 186, .45);
+  --selectionColor: rgba(50, 56, 62, .8);
+  --editorColor: #d6d6d6;
+  --editorColor80: rgba(214, 214, 214, .8);
+  --editorColor60: rgba(214, 214, 214, .6);
+  --editorColor50: rgba(214, 214, 214, .5);
+  --editorColor40: rgba(214, 214, 214, .4);
+  --editorColor30: rgba(214, 214, 214, .3);
+  --editorColor10: rgba(214, 214, 214, .1);
+  --editorColor04: rgba(214, 214, 214, .04);
+  --editorBgColor: #212529;
+  --deleteColor: #ff8a8a;
+  --iconColor: rgba(214, 214, 214, .56);
+  --codeBgColor: #2b3034;
+  --codeBlockBgColor: #2b3034;
+  --footnoteBgColor: rgba(43, 48, 52, .5);
+  --inputBgColor: #1a1d21;
+
+  --focusColor: var(--themeColor);
+
+  --buttonFontColor: rgba(214, 214, 214, .7);
+  --buttonBgColor: #2b3034;
+  --buttonBorder: 1px solid rgba(0, 0, 0, 0.2);
+  --buttonShadow: none;
+  --buttonFontColorHover: var(--buttonFontColor);
+  --buttonBgColorHover: #363c41;
+  --buttonBorderHover: 1px solid rgba(0, 0, 0, 0.3);
+  --buttonFontColorActive: var(--buttonFontColor);
+  --buttonBgColorActive: #262b2f;
+  --buttonBorderActive: var(--buttonBorder);
+
+  --buttonPrimaryFontColor: #212529;
+  --buttonPrimaryBgColor: var(--themeColor);
+  --buttonPrimaryBorder: none;
+  --buttonPrimaryShadow: none;
+  --buttonPrimaryFontColorHover: var(--buttonPrimaryFontColor);
+  --buttonPrimaryBgColorHover: #0a7ba5;
+  --buttonPrimaryBorderHover: var(--buttonPrimaryBorder);
+  --buttonPrimaryFontColorActive: var(--buttonPrimaryFontColor);
+  --buttonPrimaryBgColorActive: #0a7ba5;
+  --buttonPrimaryBorderActive: var(--buttonPrimaryBorder);
+  --buttonPrimaryFocusBorder: none;
+  --buttonPrimaryFocusShadow: inset 0 0 0 1px rgba(24, 26, 31, 0.5), 0 0 0 1px var(--themeColor);
+  --tableBorderColor: #2b3034;
+
+  /* Markdown element colors */
+  --headingColor: #d6d6d6;
+  --h1Color: #2ea8e0;
+  --h2Color: #35c2a8;
+  --h3Color: #e6a26c;
+  --h4Color: #a294e8;
+  --h5Color: #e07b9c;
+  --h6Color: #9aa8b2;
+  --blockquoteTextColor: rgba(214, 214, 214, .6);
+  --blockquoteBorderColor: #0c8bba;
+  --hrColor: #363c41;
+  --linkColor: #2ea8e0;
+  --strongColor: #d6d6d6;
+  --emColor: #35c2a8;
+  --listMarkerColor: #2ea8e0;
+
+  /*marktext*/
+  --sideBarColor: rgba(214, 214, 214, .7);
+  --sideBarIconColor: var(--iconColor);
+  --sideBarTitleColor: rgba(214, 214, 214, .9);
+  --sideBarTextColor: rgba(214, 214, 214, .55);
+  --sideBarBgColor: #1a1d21;
+  --sideBarItemHoverBgColor: rgba(214, 214, 214, .05);
+  --itemBgColor: #2b3034;
+
+  --floatFontColor: rgba(214, 214, 214, .8);
+  --floatBgColor: #2b3034;
+  --floatHoverColor: rgba(214, 214, 214, .06);
+  --floatBorderColor: rgba(0, 0, 0, .08);
+  --floatShadow: rgba(0, 0, 0, 0.35);
+  --maskColor: rgba(0, 0, 0, .5);
+  --editorAreaWidth: 750px;
+}
+
+::-webkit-scrollbar {
+  background: var(--editorBgColor);
+}
+
+.ag-front-menu .submenu,
+.ag-float-wrapper {
+  box-shadow: 0 4px 8px 0 var(--floatShadow) !important;
+}
+
+.title-bar .frameless-titlebar-button > div > svg {
+  fill: #d6d6d6;
+}
+.title-bar .frameless-titlebar-minimize:hover,
+.title-bar .frameless-titlebar-toggle:hover {
+  background-color: rgba(214, 214, 214, .08);
+}
+
+.side-bar {
+  border-right: 1px solid #15181b !important;
+}
+
+.recent-files-projects a,
+.open-project a {
+  box-shadow: none !important;
+}
+
+.editor-tabs {
+  box-shadow: none !important;
+}
+.editor-tabs:after {
+  position: absolute;
+  content: '';
+  border-bottom: 1px solid #15181b;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 1;
+}
+.editor-tabs ul.tabs-container:after {
+  position: absolute;
+  content: '';
+  border-bottom: 1px solid #15181b;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 2;
+}
+
+.tabs-container > li,
+.tabs-container > li.active {
+  background: var(--editorBgColor) !important;
+}
+
+.open-project button,
+.recent-files-projects button {
+  box-shadow: none !important;
+}
+
+/* ------------------------------------ */
+
+:not(pre) > code[class*="language-"],
+pre:not(.CodeMirror-line),
+pre[class*="language-"],
+pre.ag-paragraph {
+  background: var(--codeBlockBgColor) !important;
+  border: none !important;
+}
+p:not(.ag-active)[data-role="hr"]::before {
+  border-top: 2px dashed var(--editorColor10) !important;
+  background: none !important;
+}
+figure.ag-active.ag-container-block > div.ag-container-preview {
+  box-shadow: 0 3px 8px 0 var(--floatShadow) !important;
+}

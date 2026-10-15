@@ -472,10 +472,10 @@ describe('commands/index — deep coverage', () => {
   describe('subcommand executeSubcommand', () => {
     it('window.change-theme sets theme via preferences store', async () => {
       const cmd = findCmd('window.change-theme')
-      await cmd.executeSubcommand(null, 'dark')
+      await cmd.executeSubcommand(null, 'ink')
       expect(setSinglePreferenceMock).toHaveBeenCalledWith({
         type: 'theme',
-        value: 'dark'
+        value: 'ink'
       })
     })
 

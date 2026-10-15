@@ -1,11 +1,12 @@
 /*
- * Prism.js Tokyo Night Storm Theme
- * Based on https://github.com/folke/tokyonight.nvim
+ * Prism.js Nord Light Theme (C-41 T-003)
+ * Based on https://nordtheme.com — Snow Storm background with
+ * Polar Night text and Frost/Aurora accents darkened for the light bg.
  */
 
 code[class*="language-"],
 pre.ag-paragraph {
-  color: #c0caf5;
+  color: #2e3440;
   text-align: left;
   white-space: pre;
   word-spacing: normal;
@@ -29,7 +30,7 @@ pre.ag-paragraph {
 
 :not(pre) > code[class*="language-"],
 pre.ag-paragraph {
-  background: var(--codeBlockBgColor, #1f2335);
+  background: var(--codeBlockBgColor, #e5e9f0);
 }
 
 :not(pre) > code[class*="language-"] {
@@ -42,16 +43,16 @@ pre.ag-paragraph {
 .token.prolog,
 .token.doctype,
 .token.cdata {
-  color: #565f89;
+  color: #7b88a1;
   font-style: italic;
 }
 
 .token.punctuation {
-  color: #565f89;
+  color: #4c566a;
 }
 
 .namespace {
-  color: #2ac3de;
+  color: #5e81ac;
   opacity: .85;
 }
 
@@ -60,12 +61,12 @@ pre.ag-paragraph {
 .token.constant,
 .token.symbol,
 .token.deleted {
-  color: #f7768e;
+  color: #bf616a;
 }
 
 .token.boolean,
 .token.number {
-  color: #ff9e64;
+  color: #b48ead;
 }
 
 .token.selector,
@@ -74,7 +75,7 @@ pre.ag-paragraph {
 .token.char,
 .token.builtin,
 .token.inserted {
-  color: #9ece6a;
+  color: #567f53;
 }
 
 .token.operator,
@@ -82,35 +83,35 @@ pre.ag-paragraph {
 .token.url,
 .language-css .token.string,
 .style .token.string {
-  color: #7dcfff;
+  color: #5e81ac;
 }
 
 .token.atrule,
 .token.attr-value,
 .token.function {
-  color: #7aa2f7;
+  color: #476387;
 }
 
 .token.class-name {
-  color: #2ac3de;
+  color: #5e81ac;
 }
 
 .token.parameter {
-  color: #e0af68;
+  color: #9c7c46;
 }
 
 .token.macro {
-  color: #2ac3de;
+  color: #5e81ac;
 }
 
 .token.keyword {
-  color: #bb9af7;
+  color: #8f5b8f;
 }
 
 .token.regex,
 .token.important,
 .token.variable {
-  color: #e0af68;
+  color: #bf616a;
 }
 
 .token.important,

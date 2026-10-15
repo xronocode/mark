@@ -25,6 +25,10 @@
 //     followSystemTheme users to the lightModeTheme/darkModeTheme member for
 //     the current prefers-color-scheme, so Auto users on a dark OS open on
 //     ink instead of flashing the stale persisted light theme.
+//   - 2026-10-15 C-41 T-002: the boot theme param runs through
+//     util/themeMigration.js so a retired theme id (13 ids dropped with the
+//     family model) resolves to its kept family member for the flash — the
+//     store's ASK_FOR_USER_PREFERENCE migration persists the rewrite later.
 //   - 2026-10-15 C-46 review: the drag-drop bridge re-broadcasts every
 //     native webview drag phase on the renderer bus as 'mt::native-drag'
 //     ({ type: 'enter'|'over'|'drop'|'leave', paths }) so the welcome
@@ -32,11 +36,12 @@
 //     carry an OS path in a Tauri webview, so the bridge stays the only
 //     drop → open path.
 
-import { ipc } from '@/ipc/runtime'
 import * as posixPath from 'path-browserify'
 import win32Path from 'path-win32' // CJS port — named exports live on .default
+import { ipc } from '@/ipc/runtime'
 import { appLocalDataDir } from '@tauri-apps/api/path'
 import { loadLocaleTable } from '@/i18n/localeLoader'
+import { migrateThemeId } from '@/util/themeMigration'
 import bus from '@/bus'
 // Pre-import the event/core modules statically so ipcRenderer.on /
 // .invoke / .send paths don't have to await dynamic imports — that
@@ -93,6 +98,15 @@ import { listen as _tauriListen, once as _tauriOnce, emit as _tauriEmit } from '
         persistedTheme = prefersDark ? allPrefs?.darkModeTheme : allPrefs?.lightModeTheme
       }
       if (typeof persistedTheme === 'string' && persistedTheme.length) {
+        // C-41 T-002: a retired id must not flash an unthemed window —
+        // map it to its kept family member here (pure resolution; the
+        // store's boot hydration owns persisting the migrated
+        // preferences). Only a REAL stored value reaches this branch, so
+        // a fresh profile keeps falling through to DEFAULT_STYLE.
+        persistedTheme = migrateThemeId(
+          persistedTheme,
+          persistedTheme === allPrefs?.darkModeTheme ? 'dark' : 'light'
+        )
         search.set('theme', persistedTheme)
         mutated = true
       }
