@@ -139,7 +139,8 @@
       "reloadImages": "画像を再読み込み",
       "showDeveloperTools": "開発者ツールを表示",
       "reloadWindow": "ウィンドウを再読み込み",
-      "splitView": "分割ビュー"
+      "splitView": "分割ビュー",
+      "outline": "アウトライン"
     },
     "format": {
       "format": "フォーマット",
@@ -265,6 +266,9 @@
     "caseSensitiveTip": "大文字小文字を区別 (Aa) — 「Hello」≠「hello」",
     "wholeWordTip": "単語単位 (\\b) — 「fox」は「fox」に一致するが「foxglove」には一致しない",
     "useRegexTip": "正規表現 (.*) — 「colou?r」は「color」と「colour」の両方に一致"
+  },
+  "outlineRail": {
+    "title": "このページの内容"
   },
   "sideBar": {
     "search": {
@@ -902,7 +906,8 @@
       "zoomIn": "拡大",
       "zoomOut": "縮小",
       "devToggleDeveloperTools": "開発者ツールの切り替え",
-      "splitView": "分割ビュー"
+      "splitView": "分割ビュー",
+      "outline": "「このページの内容」アウトラインの表示/非表示"
     },
     "tabs": {
       "cycleForward": "前方に循環",
@@ -1294,10 +1299,21 @@
     "load-image-failed": "画像の読み込みに失敗しました"
   },
   "titleBar": {
+    "guide": "Markガイド",
+    "documentInfo": "書類の情報",
     "themeMode": {
       "auto": "テーマ: 自動",
       "light": "テーマ: ライト",
       "dark": "テーマ: ダーク"
+    },
+    "popover": {
+      "words": "単語",
+      "characters": "文字",
+      "lines": "行",
+      "reading": "読了時間",
+      "minutes": "{count}分",
+      "rename": "名称変更…",
+      "edited": "最終編集: {time}"
     }
   },
   "edit": {

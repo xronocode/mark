@@ -140,7 +140,8 @@
       "reloadImages": "Reload Images",
       "showDeveloperTools": "Show Developer Tools",
       "reloadWindow": "Reload Window",
-      "splitView": "Split View"
+      "splitView": "Split View",
+      "outline": "Outline"
     },
     "format": {
       "format": "Format",
@@ -265,6 +266,9 @@
     "caseSensitiveTip": "Case sensitive (Aa) — \"Hello\" ≠ \"hello\"",
     "wholeWordTip": "Whole word (\\b) — \"fox\" matches \"fox\" but not \"foxglove\"",
     "useRegexTip": "Regular expression (.*) — \"colou?r\" matches \"color\" and \"colour\""
+  },
+  "outlineRail": {
+    "title": "On this page"
   },
   "sideBar": {
     "search": {
@@ -920,7 +924,8 @@
       "devToggleDeveloperTools": "Toggle Developer Tools",
       "problems": "Show markdown problems panel",
       "toggleMarkdownLint": "Toggle markdown validation",
-      "splitView": "Split View"
+      "splitView": "Split View",
+      "outline": "Show or hide the On this page outline"
     },
     "tabs": {
       "cycleForward": "Cycle Forward",
@@ -1315,10 +1320,21 @@
   },
   "titleBar": {
     "share": "Share",
+    "guide": "Mark Guide",
+    "documentInfo": "Document info",
     "themeMode": {
       "auto": "Theme: Auto",
       "light": "Theme: Light",
       "dark": "Theme: Dark"
+    },
+    "popover": {
+      "words": "words",
+      "characters": "characters",
+      "lines": "lines",
+      "reading": "reading",
+      "minutes": "{count} min",
+      "rename": "Rename…",
+      "edited": "edited {time}"
     }
   },
   "problems": {

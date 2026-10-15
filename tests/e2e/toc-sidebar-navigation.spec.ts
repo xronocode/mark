@@ -1,14 +1,15 @@
 /**
- * toc-sidebar-navigation.spec.ts — visual gate for the sidebar TOC.
+ * toc-sidebar-navigation.spec.ts — C-40 T-003 retirement gate.
  *
- * The TOC tree (sideBar/toc.vue) is populated from store.toc, which only
- * updates through LISTEN_FOR_CONTENT_CHANGE (muya 'change'). This spec
- * pins the full round trip with the real renderer: a document renders,
- * the TOC lists its headings, and clicking a TOC node scrolls the editor
- * so the target heading is inside the viewport.
+ * The sidebar TOC panel (sideBar/toc.vue) is retired in favour of the
+ * «On this page» outline rail (outline-rail.spec.ts covers the rail's
+ * navigation). This spec pins the retirement in the real renderer: the
+ * sidebar never mounts the TOC panel — a stale rightColumn='toc' (the
+ * title-bar TOC button until C-40 T-002 removes it) shows the Files
+ * tree instead, and outline navigation still works through the rail.
  */
 
-import { test, expect, type Page } from '@playwright/test'
+import { test, expect } from '@playwright/test'
 import { installTauriShim } from './fixtures/tauri-shim'
 import { bootEditor, openFileTab } from './fixtures/helpers'
 
@@ -19,66 +20,55 @@ const DOC = [
   '',
   '## Section One',
   '',
-  'Body under section one.',
-  '',
-  ...Array.from({ length: 40 }, (_, i) => `More filler ${i + 1} before the far section.`),
-  '',
   '## Section Five',
-  '',
-  'Body under section five.',
   ''
 ].join('\n')
 
-async function switchSidebarToToc(page: Page): Promise<void> {
-  await page.evaluate(() => {
-    const el = document.querySelector('#app') as any
-    const pinia = el?.__vue_app__?.config?.globalProperties?.$pinia
-    if (pinia) {
-      // showSideBar/rightColumn live in the LAYOUT store (sideBar/index.vue).
-      pinia.state.value.layout.rightColumn = 'toc'
-      pinia.state.value.layout.showSideBar = true
-    }
-  })
-}
-
-test.describe('sidebar TOC navigation', () => {
+test.describe('sidebar TOC retirement (C-40 T-003)', () => {
   test.beforeEach(async ({ page }) => {
     await installTauriShim(page)
   })
 
-  test('TOC lists document headings and a node click scrolls the heading into view', async ({ page }) => {
-    await bootEditor(page, { sideBarVisibility: true })
+  test('a stale toc right-column shows Files; navigation lives in the rail', async ({ page }) => {
+    await bootEditor(page)
     await openFileTab(page, '/tmp/toc-nav.md', DOC)
 
     await expect(page.locator('.editor-with-tabs h1').first())
       .toContainText('Outline Root', { timeout: 5_000 })
 
-    await switchSidebarToToc(page)
-    await expect(page.locator('.side-bar-toc')).toBeVisible({ timeout: 5_000 })
+    await page.evaluate(() => {
+      const el = document.querySelector('#app') as any
+      const pinia = el?.__vue_app__?.config?.globalProperties?.$pinia
+      if (pinia) {
+        // The old switchSidebarToToc path — must be a no-op for content.
+        pinia.state.value.layout.rightColumn = 'toc'
+        pinia.state.value.layout.showSideBar = true
+      }
+    })
 
-    // The TOC populates from muya's change events (async dispatch).
-    const tocNode = page.locator('.side-bar-toc .el-tree-node__content', { hasText: 'Section Five' }).first()
-    await expect(tocNode).toBeVisible({ timeout: 5_000 })
-    await expect(
-      page.locator('.side-bar-toc .el-tree-node__content', { hasText: 'Section One' }).first()
-    ).toBeVisible()
+    await expect(page.locator('.side-bar')).toBeVisible()
+    // The TOC panel never mounts; the Files tree shows instead.
+    await expect(page.locator('.side-bar-toc')).toHaveCount(0)
+    await expect(page.locator('.side-bar .tree-view').first()).toBeVisible()
+
+    // Outline navigation moved to the rail: it lists the headings and a
+    // click scrolls the editor to the target section.
+    const railItem = page.locator('.outline-rail-item', { hasText: 'Section Five' }).first()
+    await expect(railItem).toBeVisible({ timeout: 10_000 })
 
     const before = await page.evaluate(() =>
       (document.querySelector('.editor-component') as HTMLElement).scrollTop
     )
-    expect(before).toBe(0) // nothing has scrolled yet
+    expect(before).toBe(0)
 
-    await tocNode.click()
-    await page.waitForTimeout(400) // animated scroll (300ms) settles
+    await railItem.click()
+    await page.waitForTimeout(500) // animated scroll (300ms) settles
 
-    const state = await page.evaluate(() => ({
-      scrollTop: (document.querySelector('.editor-component') as HTMLElement).scrollTop
-    }))
+    const scrollTop = await page.evaluate(() =>
+      (document.querySelector('.editor-component') as HTMLElement).scrollTop
+    )
+    expect(scrollTop).toBeGreaterThan(before)
 
-    // The click actually scrolled the editor...
-    expect(state.scrollTop).toBeGreaterThan(before)
-
-    // ...and the target heading is on screen.
     const vp = page.viewportSize()
     const heading = page.locator('.editor-with-tabs h2', { hasText: 'Section Five' }).first()
     await expect(heading).toBeVisible()

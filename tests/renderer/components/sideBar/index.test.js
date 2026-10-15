@@ -19,7 +19,6 @@ describe('sideBar/index.vue', () => {
         stubs: {
           Tree: true,
           SideBarSearch: true,
-          Toc: true,
           SearchToolbar: true
         }
       }
@@ -39,7 +38,6 @@ describe('sideBar/index.vue', () => {
         stubs: {
           Tree: true,
           SideBarSearch: true,
-          Toc: true,
           SearchToolbar: true
         }
       }
@@ -58,7 +56,6 @@ describe('sideBar/index.vue', () => {
         stubs: {
           Tree: true,
           SideBarSearch: true,
-          Toc: true,
           SearchToolbar: true
         }
       }

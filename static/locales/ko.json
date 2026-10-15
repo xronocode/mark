@@ -139,7 +139,8 @@
       "reloadImages": "이미지 새로고침",
       "showDeveloperTools": "개발자 도구 보기",
       "reloadWindow": "창 새로고침",
-      "splitView": "분할 보기"
+      "splitView": "분할 보기",
+      "outline": "개요"
     },
     "format": {
       "format": "서식",
@@ -265,6 +266,9 @@
     "caseSensitiveTip": "대소문자 구분 (Aa) — \"Hello\" ≠ \"hello\"",
     "wholeWordTip": "단어 단위 (\\b) — \"fox\"는 \"fox\"에는 일치하지만 \"foxglove\"에는 일치하지 않음",
     "useRegexTip": "정규식 (.*) — \"colou?r\"는 \"color\"와 \"colour\" 모두에 일치"
+  },
+  "outlineRail": {
+    "title": "이 페이지에서"
   },
   "sideBar": {
     "search": {
@@ -902,7 +906,8 @@
       "zoomIn": "확대",
       "zoomOut": "축소",
       "devToggleDeveloperTools": "개발자 도구 전환",
-      "splitView": "분할 보기"
+      "splitView": "분할 보기",
+      "outline": "‘이 페이지에서’ 개요 보이기/숨기기"
     },
     "tabs": {
       "cycleForward": "앞으로 순환",
@@ -1294,10 +1299,21 @@
     "load-image-failed": "이미지 로드 실패"
   },
   "titleBar": {
+    "guide": "Mark 가이드",
+    "documentInfo": "문서 정보",
     "themeMode": {
       "auto": "테마: 자동",
       "light": "테마: 밝게",
       "dark": "테마: 어둡게"
+    },
+    "popover": {
+      "words": "단어",
+      "characters": "문자",
+      "lines": "줄",
+      "reading": "읽기 시간",
+      "minutes": "{count}분",
+      "rename": "이름 바꾸기…",
+      "edited": "편집됨 {time}"
     }
   },
   "edit": {

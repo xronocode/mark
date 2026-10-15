@@ -42,6 +42,12 @@ export default defineConfig({
     // C-38 T-003: the Settings shell also gates in WebKit — WKWebView is
     // the engine the macOS build ships; scoped to the settings specs so
     // the rest of the chromium-only suite is unchanged.
-    { name: 'webkit-settings', use: { browserName: 'webkit' }, testMatch: 'settings-shell.spec.ts' }
+    { name: 'webkit-settings', use: { browserName: 'webkit' }, testMatch: 'settings-shell.spec.ts' },
+    // C-40 T-002: the trimmed title bar + document info popover also gate
+    // in WebKit (same rationale as webkit-settings).
+    { name: 'webkit-titlebar', use: { browserName: 'webkit' }, testMatch: 'titlebar-*.spec.ts' },
+    // C-40 T-003: the outline rail also gates in WebKit (the absolutely
+    // positioned rail + ResizeObserver geometry are engine-sensitive).
+    { name: 'webkit-outline', use: { browserName: 'webkit' }, testMatch: 'outline-rail.spec.ts' }
   ]
 })

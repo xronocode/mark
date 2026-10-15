@@ -322,6 +322,11 @@
     "type": "boolean",
     "default": false
   },
+  "outlineRailVisible": {
+    "description": "View--Whether the «On this page» outline rail is shown (View › Outline; it also self-hides below 1000 px of editor width and in source/split/diff modes).--internal",
+    "type": "boolean",
+    "default": true
+  },
   "sourceCodeModeEnabled": {
     "description": "View--Whether the source-code mode is enabled by default.--internal",
     "type": "boolean",

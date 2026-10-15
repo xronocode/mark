@@ -12,31 +12,10 @@
       ]"
       @dblclick.stop="handleTitleBarDblclick"
     >
-      <div
-        class="title"
-        data-tauri-drag-region
-        @contextmenu.stop.prevent="handleTitleContextMenu"
-      >
-        <span v-if="!filename">Mark</span>
-        <span v-else class="title-breadcrumb">
-          <span class="title-path">
-            <span v-for="(path, index) of paths" :key="index" class="title-path-segment">
-              {{ path }}
-              <svg class="icon" aria-hidden="true">
-                <use xlink:href="#icon-arrow-right"></use>
-              </svg>
-            </span>
-          </span>
-          <span class="filename title-no-drag" :class="{ isOsx: platform === 'darwin' }" @click="rename">
-            {{ filename }}
-          </span>
-          <span class="save-dot" :class="{ show: !isSaved }"></span>
-        </span>
-      </div>
-      <!-- v1.1.0: navigation cluster — sidebar-toggle + Files + TOC, all left,
-           no gap between them. Replaces the per-icon left column inside sidebar.
-           C-38 N1: the Settings gear is Win/Linux-only — macOS reaches Settings
-           through the app menu (Mark › Settings… ⌘,). -->
+      <!-- C-40 T-002 trim (canvas option A): left = sidebar toggle
+           (+ the Win/Linux custom-titlebar menu and Settings gear).
+           The Files and TOC buttons, the breadcrumb path and the word
+           count are gone from the title bar. -->
       <div
         class="titlebar-nav title-no-drag"
         :class="{ 'titlebar-nav--osx': isOsx }"
@@ -46,11 +25,7 @@
           class="titlebar-nav-btn titlebar-nav-menu"
           @click.stop="handleMenuClick"
         >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="4" y1="6" x2="20" y2="6"/>
-            <line x1="4" y1="12" x2="16" y2="12"/>
-            <line x1="4" y1="18" x2="20" y2="18"/>
-          </svg>
+          <chrome-icon name="menu"></chrome-icon>
         </div>
         <div
           class="titlebar-nav-btn"
@@ -58,33 +33,7 @@
           :title="t('menu.view.toggleSidebar')"
           @click.stop="handleSidebarToggleClick"
         >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="3" y="3" width="18" height="18" rx="2"/>
-            <line x1="9" y1="3" x2="9" y2="21"/>
-          </svg>
-        </div>
-        <div
-          class="titlebar-nav-btn"
-          :class="{ active: showSideBar && rightColumn === 'files' }"
-          :title="t('sideBar.icons.files')"
-          @click.stop="handleNavClick('files')"
-        >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"/>
-          </svg>
-        </div>
-        <div
-          class="titlebar-nav-btn"
-          :class="{ active: showSideBar && rightColumn === 'toc' }"
-          :title="t('sideBar.icons.toc')"
-          @click.stop="handleNavClick('toc')"
-        >
-          <!-- TOC: ≡ with varying line lengths to suggest outline depth -->
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="4" y1="6" x2="20" y2="6"/>
-            <line x1="7" y1="11" x2="17" y2="11"/>
-            <line x1="10" y1="16" x2="20" y2="16"/>
-          </svg>
+          <chrome-icon name="sidebar"></chrome-icon>
         </div>
         <div
           v-if="!isOsx"
@@ -97,7 +46,44 @@
             <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
           </svg>
         </div>
-        <div class="titlebar-nav-divider"></div>
+      </div>
+
+      <div
+        class="title"
+        data-tauri-drag-region
+        @contextmenu.stop.prevent="handleTitleContextMenu"
+      >
+        <span v-if="!filename">Mark</span>
+        <button
+          v-else
+          type="button"
+          class="titlebar-title-btn title-no-drag"
+          :class="{ open: popoverOpen }"
+          :aria-expanded="popoverOpen ? 'true' : 'false'"
+          :aria-label="t('titleBar.documentInfo')"
+          :title="t('titleBar.documentInfo')"
+          @click.stop="togglePopover"
+        >
+          <span class="titlebar-title-name">{{ filename }}</span>
+          <span class="save-dot" :class="{ show: !isSaved }" aria-hidden="true"></span>
+          <chrome-icon name="chevron-down" :size="9" class="titlebar-title-chevron"></chrome-icon>
+        </button>
+      </div>
+
+      <!-- C-40 T-002 right side: «?» (Win/Linux), theme, Share. -->
+      <div class="titlebar-right title-no-drag">
+        <div
+          v-if="!isOsx"
+          class="titlebar-nav-btn titlebar-guide-btn"
+          role="button"
+          tabindex="0"
+          :aria-label="t('titleBar.guide')"
+          :title="t('titleBar.guide')"
+          @click.stop="handleGuideClick"
+          @keydown.enter.prevent="handleGuideClick"
+        >
+          <chrome-icon name="guide"></chrome-icon>
+        </div>
         <div
           class="titlebar-nav-btn"
           role="button"
@@ -107,69 +93,22 @@
           @click.stop="handleThemeToggle"
           @keydown.enter.prevent="handleThemeToggle"
         >
-          <!-- C-41 T-001: three-state cycle Auto → Light → Dark (Avenex
-               icons, 16×16 fill paths). Auto = half disc, Light = sun,
-               Dark = moon. -->
-          <svg v-if="themeMode === 'auto'" width="18" height="18" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
-            <path d="M8 1a7 7 0 1 0 0 14A7 7 0 0 0 8 1zm0 1.5v11a5.5 5.5 0 0 1 0-11z"/>
-          </svg>
-          <svg v-else-if="themeMode === 'light'" width="18" height="18" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
-            <circle cx="8" cy="8" r="3.2"/>
-            <path d="M7.3 0h1.4v2.4H7.3zM7.3 13.6h1.4V16H7.3zM0 7.3h2.4v1.4H0zM13.6 7.3H16v1.4h-2.4zM2.1 3.1l1-1 1.7 1.7-1 1zM11.2 12.2l1-1 1.7 1.7-1 1zM2.1 12.9l1.7-1.7 1 1-1.7 1.7zM11.2 3.8l1.7-1.7 1 1-1.7 1.7z"/>
-          </svg>
-          <svg v-else width="18" height="18" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
-            <path d="M6.2 1.2A7 7 0 1 0 14.8 9.8 5.6 5.6 0 0 1 6.2 1.2z"/>
-          </svg>
+          <!-- C-41 T-001: three-state cycle Auto → Light → Dark; the
+               icons come from the shared redrawn chrome set (C-40 T-002). -->
+          <chrome-icon :name="themeMode"></chrome-icon>
         </div>
-      </div>
-      <span v-if="isDev" class="version-badge" data-tauri-drag-region>v{{ appVersion }} DEV</span>
-      <!-- C-15 Phase W QA: share/word-count cluster. On macOS it hugs the
-           right edge (no window controls there); on frameless Win/Linux it
-           sits LEFT of the min/max/close cluster — previously it was
-           absolute-positioned at left:0 and stacked on top of titlebar-nav
-           (the "мешанина" overlap). -->
-      <div class="titlebar-aux title-no-drag" :class="{ 'titlebar-aux--custom': showCustomTitleBar }">
         <div
           v-if="pathname && shareCapable"
-          class="titlebar-share-btn"
+          class="titlebar-nav-btn titlebar-share-btn"
           :title="t('titleBar.share')"
           @click.stop="handleShareClick"
         >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/>
-            <polyline points="16 6 12 2 8 6"/>
-            <line x1="12" y1="2" x2="12" y2="15"/>
-          </svg>
+          <chrome-icon name="share"></chrome-icon>
         </div>
-        <el-tooltip
-          v-if="wordCount"
-          class="item"
-          :content="`${wordCount[show]} ${HASH[show].full + (wordCount[show] > 1 ? 's' : '')}`"
-          placement="bottom-end"
-        >
-          <template #content>
-            <div class="title-item">
-              <span class="front">{{ t('menu.counter.words') }}:</span
-              ><span class="text">{{ wordCount['word'] }}</span>
-            </div>
-            <div class="title-item">
-              <span class="front">{{ t('menu.counter.characters') }}:</span
-              ><span class="text">{{ wordCount['character'] }}</span>
-            </div>
-            <div class="title-item">
-              <span class="front">{{ t('menu.counter.paragraphs') }}:</span
-              ><span class="text">{{ wordCount['paragraph'] }}</span>
-            </div>
-          </template>
-          <div
-            v-if="wordCount"
-            class="word-count title-no-drag"
-            @click.stop="handleWordClick"
-          >
-            <span class="text-center-vertical">{{ `${HASH[show].short} ${wordCount[show]}` }}</span>
-          </div>
-        </el-tooltip>
       </div>
+
+      <span v-if="isDev" class="version-badge" data-tauri-drag-region>v{{ appVersion }} DEV</span>
+
       <div
         v-if="effectiveTitleBarStyle === 'custom' && !isFullScreen && !isOsx"
         class="right-toolbar"
@@ -207,26 +146,76 @@
           </div>
         </div>
       </div>
+
+      <!-- C-40 T-002: document info popover from the title. Untitled
+           documents show stats and Rename only (no meta, no file
+           actions). -->
+      <div
+        v-if="popoverOpen"
+        class="doc-info-popover title-no-drag"
+        role="dialog"
+        :aria-label="t('titleBar.documentInfo')"
+      >
+        <div class="doc-info-name">{{ filename }}</div>
+        <div v-if="docInfoMeta" class="doc-info-meta">{{ docInfoMeta }}</div>
+        <div class="doc-info-stats">
+          <div class="doc-info-stat">
+            <b>{{ statWords }}</b><span>{{ t('titleBar.popover.words') }}</span>
+          </div>
+          <div class="doc-info-stat">
+            <b>{{ statCharacters }}</b><span>{{ t('titleBar.popover.characters') }}</span>
+          </div>
+          <div class="doc-info-stat">
+            <b>{{ statLines }}</b><span>{{ t('titleBar.popover.lines') }}</span>
+          </div>
+          <div class="doc-info-stat">
+            <b>{{ readingLabel }}</b><span>{{ t('titleBar.popover.reading') }}</span>
+          </div>
+        </div>
+        <div class="doc-info-actions">
+          <button
+            type="button"
+            class="doc-info-action"
+            @click.stop="handleRenameClick"
+          >
+            {{ t('titleBar.popover.rename') }}
+          </button>
+          <template v-if="pathname">
+            <button
+              type="button"
+              class="doc-info-action"
+              @click.stop="handleRevealClick"
+            >
+              {{ showInFolderLabel }}
+            </button>
+            <button
+              type="button"
+              class="doc-info-action"
+              @click.stop="handleCopyPathClick"
+            >
+              {{ t('recent.copyPath') }}
+            </button>
+          </template>
+        </div>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup>
 // FILE: src/renderer/src/components/titleBar/index.vue
-// VERSION: 1.8.1
+// VERSION: 2.0.0
 // START_MODULE_CONTRACT
-//   PURPOSE: Render the main window title bar and expose its navigation, native file-path actions, window controls, and drag affordances.
-//   SCOPE: Renderer-side titlebar behavior, including sidebar/view navigation, title updates, native title context menus, direct window controls, and WKWebView/macOS drag fallbacks.
-//   DEPENDS: preferences/layout/project/editor stores, bus, i18n, window.electron IPC facade, @tauri-apps/api/window, @tauri-apps/plugin-clipboard-manager.
-//   LINKS: docs/knowledge-graph.xml M-011; docs/verification-plan.xml V-M-011 scenarios 14, V-A6-5, V-A6-6.
+//   PURPOSE: Render the trimmed main-window title bar (sidebar toggle left, document title centre, theme/Share/guide right) with the document info popover and native file-path actions, window controls, and drag affordances.
+//   SCOPE: Renderer-side titlebar behavior: sidebar toggle, the C-40 T-002 document info popover (stats + folder/size/modified + Rename/Reveal/Copy path), the Win/Linux «?» Mark Guide entry, native title context menu, direct window controls, and WKWebView/macOS drag fallbacks.
+//   DEPENDS: preferences/layout/project/editor stores, bus, i18n, window.electron/fileUtils IPC facade, @tauri-apps/api/window, @tauri-apps/api/path, @tauri-apps/plugin-clipboard-manager, util/relativeTime, components/icons/chromeIcons.
+//   LINKS: .grace/graph/runtime.xml M-011 (renderer), M-057 (chromeIcons); .grace/verification/runtime.xml V-M-011 scenarios 14, 37, 38, 53.
 //   ROLE: RUNTIME
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
-//   paths - Derives the visible tail of the active file path.
 //   handleTitleContextMenu - Opens the native file-title menu and dispatches Copy Path.
-//   handleNavClick - Applies multi-root-aware titlebar navigation behavior.
 //   handleWindowDragMouseDown - Starts the macOS transparent-titlebar drag fallback.
 //   RESIZE_EDGE_PX - Width of the window-edge band left to the native resize (px).
 //   isOnResizeEdge - True when a press is within RESIZE_EDGE_PX of the top/left/right edge.
@@ -237,9 +226,30 @@
 //   themeMode - Title-bar theme button state: auto | light | dark (C-41 T-001).
 //   themeTooltip - Localized tooltip/aria-label for the theme button (C-41 T-001).
 //   handleThemeToggle - Cycles Auto → Light → Dark → Auto and persists followSystemTheme/theme (C-41 T-001).
+//   togglePopover - Opens/closes the document info popover (C-40 T-002).
+//   refreshDocInfo - Reloads size/mtime via window.fileUtils.stat and the home-dir prefix for the ~-abbreviated folder (C-40 T-002).
+//   statWords/statCharacters/statLines/readingLabel - Popover statistics; reading time = words/230 rounded up, min 1 (C-40 T-002).
+//   docInfoMeta - "folder · size · edited <relative>" meta line; untitled documents render none (C-40 T-002).
+//   handleRenameClick - Popover Rename… → editorStore.RESPONSE_FOR_RENAME (the old click-to-rename path).
+//   handleRevealClick - Popover reveal → window.electron.shell.showItemInFolder.
+//   handleCopyPathClick - Popover Copy path → native clipboard plugin write (WKWebView-safe).
+//   handleGuideClick - Win/Linux «?» → bus mt::open-guide (C-40 T-002 / C-40 R-1).
+//   onDocMouseDown/onDocKeydown - Outside-click and Escape closers for the popover.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-10-15 v2.0.0: C-40 T-002 title-bar trim (approved canvas,
+//     option A): the Files and TOC buttons, the breadcrumb path and the
+//     word count leave the title bar; left = sidebar toggle (plus the
+//     Win/Linux custom-titlebar menu and Settings gear), centre = the
+//     file name with the unsaved dot and a chevron, right = «?»
+//     (Win/Linux, opens the Mark Guide), theme and Share. Clicking the
+//     file name opens the document info popover (words / characters /
+//     lines / reading time from the same wordCount source as the old
+//     counter, ~-abbreviated folder, size, edited-relative mtime,
+//     Rename… / Show in Finder|Explorer|folder / Copy path; untitled
+//     tabs show stats + Rename only; Esc and outside click close it).
+//     Icons come from the shared redrawn chrome set (chromeIcons.js).
 //   - 2026-10-15 resize-edge: the macOS drag fallback ignores presses
 //     within 6 px of the top/left/right window edges, so the top edge and
 //     top corners resize the window again instead of moving it.
@@ -248,19 +258,12 @@
 //     fallback for transparent WKWebView windows.
 //   - 2026-08-07 v1.1.0: add the native title-path Copy Path menu for UC-029.
 //   - 2026-08-07 v1.2.0: write Copy Path through the native Tauri clipboard plugin because WKWebView user activation expires while the native menu is open.
-//   - 2026-09-16 v1.3.0: C-9 — constrain the breadcrumb inside real title clearances and clip the oldest path segments (flex-end shrink) so path/filename never collide with the nav cluster or word count at narrow widths; removes the dead GH#339 `div.title > span` rule.
-//   - 2026-09-28 v1.4.0: C-15 T-W1 — Windows titlebar pass: effectiveTitleBarStyle forces 'custom' on win32 (decorations are unconditionally off there via tauri.windows.conf.json), and titlebar dblclick toggles maximize on every platform (was macOS-only).
-//   - 2026-09-28 v1.5.0: C-15 Phase W QA — fix the Win/Linux "мешанина": the share/word-count cluster was absolute-positioned at left:0 and stacked on top of titlebar-nav; it is now .titlebar-aux at right:150px (left of the window controls), the app-menu hamburger moved into titlebar-nav, and window-control icons use currentColor so dark themes keep them visible.
-//   - 2026-09-29 v1.6.0: C-15 Phase W QA round 2 — the Share button hides behind the m048 `share` capability (mt_share_file is an NSSharingServicePicker shim, macOS-only).
-//   - 2026-10-15 v1.7.0: C-38 N1 — the Settings gear is macOS-hidden (the app
-//     menu already provides Mark › Settings… ⌘,); Windows/Linux keep the gear.
-//     The macOS title clearance shrinks 250px → 222px for the 4-button nav.
-//   - 2026-10-15 v1.8.0: C-41 T-001 — the two-state moon/sun toggle becomes a
-//     three-state Auto → Light → Dark button (Avenex half-disc/sun/moon icons,
-//     localized tooltip+aria). Auto sets followSystemTheme=true (app.vue
-//     resolves paper/ink from prefers-color-scheme, live); Light/Dark pin
-//     lightModeTheme/darkModeTheme with followSystemTheme=false. Button
-//     placement/gating is unchanged on every OS.
+//   - 2026-09-16 v1.3.0: C-9 — constrain the breadcrumb inside real title clearances and clip the oldest path segments (flex-end shrink); removed with the breadcrumb itself in v2.0.0.
+//   - 2026-09-28 v1.4.0: C-15 T-W1 — effectiveTitleBarStyle forces 'custom' on win32; titlebar dblclick toggles maximize on every platform.
+//   - 2026-09-28 v1.5.0: C-15 Phase W QA — the share/word-count cluster sits left of the window controls (.titlebar-aux, renamed .titlebar-right in v2.0.0).
+//   - 2026-09-29 v1.6.0: C-15 Phase W QA round 2 — the Share button hides behind the m048 `share` capability.
+//   - 2026-10-15 v1.7.0: C-38 N1 — the Settings gear is macOS-hidden.
+//   - 2026-10-15 v1.8.0: C-41 T-001 — three-state Auto → Light → Dark theme button.
 // END_CHANGE_SUMMARY
 
 // step-8g: @electron/remote.Menu also gone. Application-menu popup
@@ -280,6 +283,8 @@ import { isOsx as isOsxPlatform, isWindows } from '@/util'
 import { useEditorStore } from '@/store/editor'
 import { useI18n } from 'vue-i18n'
 import { writeText as writeClipboardText } from '@tauri-apps/plugin-clipboard-manager'
+import { ChromeIcon } from '../icons/chromeIcons.js'
+import { formatRelativeTime } from '@/util/relativeTime.js'
 
 const props = defineProps({
   project: Object,
@@ -287,6 +292,7 @@ const props = defineProps({
   pathname: String,
   active: Boolean,
   wordCount: Object,
+  markdown: String,
   platform: String,
   isSaved: Boolean
 })
@@ -300,24 +306,6 @@ const { t } = useI18n()
 const isOsx = isOsxPlatform
 const appVersion = __APP_VERSION__
 const isDev = import.meta.env.DEV
-const HASH = {
-  word: {
-    short: 'W',
-    full: 'word'
-  },
-  character: {
-    short: 'C',
-    full: 'character'
-  },
-  paragraph: {
-    short: 'P',
-    full: 'paragraph'
-  },
-  all: {
-    short: 'A',
-    full: '(with space)character'
-  }
-}
 const windowIconMinimize = minimizePath
 const windowIconRestore = restorePath
 const windowIconMaximize = maximizePath
@@ -340,10 +328,9 @@ const refreshWindowState = async () => {
   }
 }
 refreshWindowState()
-const show = ref('word')
 
 const { titleBarStyle, theme, followSystemTheme, lightModeTheme, darkModeTheme } = storeToRefs(preferencesStore)
-const { showTabBar, showSideBar, rightColumn } = storeToRefs(layoutStore)
+const { showTabBar, showSideBar } = storeToRefs(layoutStore)
 
 // START_BLOCK_THEME_CYCLE
 // C-41 T-001: three-state theme button (Avenex order Auto → Light → Dark).
@@ -378,18 +365,172 @@ const handleThemeToggle = () => {
 // shim — macOS-only (m048 capability). Hide, don't fail silently.
 const shareCapable = computed(() => preferencesStore.buildCapabilities.share === true)
 
-const paths = computed(() => {
-  if (!props.pathname) return []
-  const pathnameToken = props.pathname.split(PATH_SEPARATOR).filter((i) => i)
-  return pathnameToken.slice(0, pathnameToken.length - 1).slice(-3)
+// START_BLOCK_DOC_INFO_POPOVER
+// C-40 T-002: clicking the file name opens the document info popover.
+// Statistics reuse the tab's wordCount (the old title-bar counter's
+// source, whole-document); reading time = words/230 rounded up, min 1.
+// File metadata (size, mtime) loads per open via window.fileUtils.stat;
+// the folder is ~-abbreviated once the home dir resolves. Untitled
+// tabs (no pathname) show stats and Rename only.
+const popoverOpen = ref(false)
+const docSizeBytes = ref(0)
+const docMtimeMs = ref(0)
+const homeDirPrefix = ref(null) // null = not loaded yet, '' = unavailable
+
+const togglePopover = () => {
+  if (popoverOpen.value) {
+    closePopover()
+  } else {
+    popoverOpen.value = true
+    refreshDocInfo()
+  }
+}
+
+const closePopover = () => {
+  popoverOpen.value = false
+}
+
+const ensureHomeDir = async () => {
+  if (homeDirPrefix.value !== null) return
+  try {
+    const { homeDir } = await import('@tauri-apps/api/path')
+    const dir = await homeDir()
+    homeDirPrefix.value = typeof dir === 'string' && dir ? dir.replace(/[/\\]+$/, '') : ''
+  } catch (e) {
+    homeDirPrefix.value = ''
+  }
+}
+
+const refreshDocInfo = async () => {
+  docSizeBytes.value = 0
+  docMtimeMs.value = 0
+  void ensureHomeDir()
+  if (!props.pathname) return
+  try {
+    const s = await window.fileUtils.stat(props.pathname)
+    if (!popoverOpen.value) return
+    docSizeBytes.value = Number(s?.size ?? 0) || 0
+    docMtimeMs.value = Number(s?.mtimeMs ?? s?.mtime_ms ?? 0) || 0
+  } catch (e) {
+    // Do not log the absolute path (docs/technology.xml redaction contract).
+    console.warn('[TitleBar][refreshDocInfo][BLOCK_DOC_INFO_STAT] failed=true', e)
+  }
+}
+
+const formatFileSize = (bytes) => {
+  if (!Number.isFinite(bytes) || bytes <= 0) return ''
+  if (bytes < 1024) return `${bytes} B`
+  const kb = bytes / 1024
+  if (kb < 1024) return `${kb < 10 ? kb.toFixed(1) : Math.round(kb)} KB`
+  const mb = kb / 1024
+  return `${mb < 10 ? mb.toFixed(1) : Math.round(mb)} MB`
+}
+
+const folderLabel = computed(() => {
+  if (!props.pathname) return ''
+  const sep = PATH_SEPARATOR
+  const idx = props.pathname.lastIndexOf(sep)
+  if (idx <= 0) return ''
+  let dir = props.pathname.slice(0, idx)
+  const home = homeDirPrefix.value
+  if (home && (dir === home || dir.startsWith(home + sep) || dir.startsWith(home + '/'))) {
+    dir = '~' + dir.slice(home.length)
+  }
+  return dir
 })
+
+const modifiedLabel = computed(() => {
+  const mtime = docMtimeMs.value
+  if (!Number.isFinite(mtime) || mtime <= 0) return ''
+  const rel = formatRelativeTime(mtime, Date.now(), t)
+  const time = rel || new Date(mtime).toLocaleDateString()
+  return t('titleBar.popover.edited', { time })
+})
+
+const docInfoMeta = computed(() => {
+  return [folderLabel.value, formatFileSize(docSizeBytes.value), modifiedLabel.value]
+    .filter(Boolean)
+    .join(' · ')
+})
+
+const statWords = computed(() => props.wordCount?.word ?? 0)
+const statCharacters = computed(() => props.wordCount?.character ?? 0)
+const statLines = computed(() => {
+  const md = props.markdown
+  return md ? md.split('\n').length : 0
+})
+const READING_WORDS_PER_MINUTE = 230
+const readingLabel = computed(() => {
+  const minutes = Math.max(1, Math.ceil(statWords.value / READING_WORDS_PER_MINUTE))
+  return t('titleBar.popover.minutes', { count: minutes })
+})
+
+// The popover must not go stale when the active tab changes under it.
+watch(
+  () => props.pathname,
+  () => {
+    if (popoverOpen.value) refreshDocInfo()
+  }
+)
+
+const handleRenameClick = () => {
+  closePopover()
+  // The old click-to-rename path: untitled → Save As, named → the
+  // rename dialog (bus 'rename').
+  editorStore.RESPONSE_FOR_RENAME()
+}
+
+const showInFolderLabel = computed(() => {
+  if (isOsx) return t('recent.showInFinder')
+  if (isWindows) return t('recent.showInExplorer')
+  return t('recent.showInFolder')
+})
+
+const handleRevealClick = () => {
+  if (!props.pathname) return
+  closePopover()
+  window.electron.shell.showItemInFolder(props.pathname)
+  console.debug('[TitleBar][handleRevealClick][BLOCK_REVEAL_IN_FOLDER] revealed=true')
+}
+
+const handleCopyPathClick = async () => {
+  if (!props.pathname) return
+  try {
+    await writeClipboardText(props.pathname)
+    console.debug('[TitleBar][handleCopyPathClick][BLOCK_COPY_PATH] copied=true')
+  } catch (e) {
+    console.warn('[TitleBar][handleCopyPathClick][BLOCK_COPY_PATH] copied=false', e)
+  }
+  closePopover()
+}
+
+// Outside click and Escape close the popover. The title button itself
+// is excluded so its click can toggle the popover closed.
+const onDocMouseDown = (event) => {
+  if (!popoverOpen.value) return
+  const target = event.target instanceof Element ? event.target : null
+  if (!target) return
+  if (target.closest('.doc-info-popover, .titlebar-title-btn')) return
+  closePopover()
+}
+
+const onDocKeydown = (event) => {
+  if (!popoverOpen.value) return
+  if (event.key === 'Escape') closePopover()
+}
+// END_BLOCK_DOC_INFO_POPOVER
+
+const handleGuideClick = () => {
+  // Same channel as Help › Mark Guide and the palette (C-40 R-1).
+  bus.emit('mt::open-guide', {})
+}
 
 // START_CONTRACT: handleTitleContextMenu
 //   PURPOSE: Open a native context menu for the active title path and copy the exact pathname only after explicit user selection.
 //   INPUTS: { event: MouseEvent - context-menu pointer coordinates }
 //   OUTPUTS: { Promise<void> - resolves after menu dismissal and optional clipboard write }
 //   SIDE_EFFECTS: Invokes native context-menu IPC, may write the active pathname to the OS clipboard, and emits path-redacted diagnostics.
-//   LINKS: docs/verification-plan.xml V-M-011 scenario-14; docs/knowledge-graph.xml M-011.fn-handleTitleContextMenu
+//   LINKS: .grace/verification/runtime.xml V-M-011 scenario-14; .grace/graph/runtime.xml M-011.
 // END_CONTRACT: handleTitleContextMenu
 // START_BLOCK_TITLE_PATH_CONTEXT_MENU
 const handleTitleContextMenu = async (event) => {
@@ -474,87 +615,6 @@ const handleSidebarToggleClick = () => {
   bus.emit('view:toggle-layout-entry', 'showSideBar')
 }
 
-// In-flight guard: prevents two synchronous clicks (rapid double-click)
-// from spawning two Finder dialogs. Cleared by the renderer's IPC reply
-// path (mt::open-directory) or after a short timeout if user cancelled.
-let dialogPending = false
-const DIALOG_DEDUP_MS = 600
-
-// Files / TOC titlebar nav with multi-root-aware Files semantics. (The
-// Settings gear is Win/Linux-only — C-38 N1; macOS uses Mark › Settings… ⌘,.)
-//
-// Click 📂 (Files):
-//   • sidebar closed     → open + switch to Files; no dialog
-//   • on TOC view        → switch to Files; no dialog
-//   • already on Files
-//        with ≥1 project → opens Finder (intent: ADD another root)
-//        with 0 projects → opens Finder (intent: FIRST folder)
-//
-// Click 📑 (TOC):
-//   • only switches view; never opens dialog.
-//
-// All paths log a structured marker so the decision tree is debuggable
-// post-hoc (per V-A6-5).
-const handleNavClick = (view) => {
-  const sidebarOpen = showSideBar.value
-  const prevView = rightColumn.value
-  const projectsCount = (projectStore.projectTrees || []).length
-  // eslint-disable-next-line no-console
-  console.debug(`[TitleBar][handleNavClick][BLOCK_ENTRY] view=${view} sidebarOpen=${sidebarOpen} prevView=${prevView} projectsCount=${projectsCount}`)
-
-  let dispatched = []
-  if (!sidebarOpen) {
-    layoutStore.SET_LAYOUT({ rightColumn: view, showSideBar: true })
-    // eslint-disable-next-line no-console
-    console.debug(`[TitleBar][handleNavClick][BLOCK_OPEN_SIDEBAR] view=${view}`)
-    dispatched.push('set_layout')
-  } else if (prevView !== view) {
-    layoutStore.SET_LAYOUT({ rightColumn: view })
-    // eslint-disable-next-line no-console
-    console.debug(`[TitleBar][handleNavClick][BLOCK_SWITCH_VIEW] view=${view} prevView=${prevView}`)
-    dispatched.push('set_layout')
-  }
-
-  if (view === 'files') {
-    // Decision tree for Finder dialog:
-    //   already-on-files (sidebar open, prevView=files) AND ≥1 project → ADD
-    //   no projects loaded (any state) → FIRST folder
-    //   else → no dialog (it's a pure view switch)
-    const alreadyOnFiles = sidebarOpen && prevView === 'files'
-    if (alreadyOnFiles && projectsCount >= 1) {
-      if (dialogPending) {
-        // eslint-disable-next-line no-console
-        console.debug('[TitleBar][handleNavClick][BLOCK_NOOP_DIALOG] reason=in-flight-guard')
-      } else {
-        dialogPending = true
-        setTimeout(() => { dialogPending = false }, DIALOG_DEDUP_MS)
-        projectStore.ASK_FOR_OPEN_PROJECT()
-        // eslint-disable-next-line no-console
-        console.debug('[TitleBar][handleNavClick][BLOCK_OPEN_DIALOG] reason=add-another-root')
-        dispatched.push('ask_for_open_project')
-      }
-    } else if (projectsCount === 0) {
-      if (dialogPending) {
-        // eslint-disable-next-line no-console
-        console.debug('[TitleBar][handleNavClick][BLOCK_NOOP_DIALOG] reason=in-flight-guard')
-      } else {
-        dialogPending = true
-        setTimeout(() => { dialogPending = false }, DIALOG_DEDUP_MS)
-        projectStore.ASK_FOR_OPEN_PROJECT()
-        // eslint-disable-next-line no-console
-        console.debug('[TitleBar][handleNavClick][BLOCK_OPEN_DIALOG] reason=no-projects-loaded')
-        dispatched.push('ask_for_open_project')
-      }
-    } else {
-      // eslint-disable-next-line no-console
-      console.debug('[TitleBar][handleNavClick][BLOCK_NOOP_DIALOG] reason=view-switch-only')
-    }
-  }
-
-  // eslint-disable-next-line no-console
-  console.debug(`[TitleBar][handleNavClick][BLOCK_EXIT] dispatched=${dispatched.join(',') || 'none'}`)
-}
-
 const handleSettingsClick = () => {
   projectStore.OPEN_SETTING_WINDOW()
 }
@@ -567,15 +627,6 @@ const handleShareClick = async () => {
   } catch (e) {
     console.warn('[titleBar] share failed:', e)
   }
-}
-
-const handleWordClick = () => {
-  const ITEMS = ['word', 'paragraph', 'character', 'all']
-  const len = ITEMS.length
-  let index = ITEMS.indexOf(show.value)
-  index += 1
-  if (index >= len) index = 0
-  show.value = ITEMS[index]
 }
 
 // Window controls call @tauri-apps/api/window directly. The 3-state
@@ -607,7 +658,7 @@ const handleMaximizeClick = async () => {
 // and handleMaximizeClick already no-ops gracefully for every state.
 const handleTitleBarDblclick = (event) => {
   if (
-    event.target.closest('.title-no-drag, .titlebar-nav, .right-toolbar, .titlebar-aux')
+    event.target.closest('.title-no-drag, .titlebar-nav, .titlebar-right, .right-toolbar')
   ) {
     return
   }
@@ -627,12 +678,6 @@ const handleMenuClick = async (event) => {
     })
   } catch (e) {
     console.warn('[titleBar] menu popup failed:', e)
-  }
-}
-
-const rename = () => {
-  if (props.platform === 'darwin') {
-    editorStore.RESPONSE_FOR_RENAME()
   }
 }
 
@@ -657,12 +702,16 @@ onMounted(() => {
   if (isOsx) {
     document.addEventListener('mousedown', handleWindowDragMouseDown)
   }
+  document.addEventListener('mousedown', onDocMouseDown)
+  document.addEventListener('keydown', onDocKeydown)
 })
 
 onBeforeUnmount(() => {
   if (isOsx) {
     document.removeEventListener('mousedown', handleWindowDragMouseDown)
   }
+  document.removeEventListener('mousedown', onDocMouseDown)
+  document.removeEventListener('keydown', onDocKeydown)
   if (typeof resizeUnlisten === 'function') {
     resizeUnlisten()
     resizeUnlisten = null
@@ -693,6 +742,16 @@ onBeforeUnmount(() => {
   z-index: 2;
   transition: color 0.4s ease-in-out;
   cursor: default;
+  /* C-40 T-002: the bar is a flex row (canvas geometry) — left cluster,
+     centered title, right cluster, absolutely-positioned window controls. */
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 12px 0 14px;
+}
+.title-bar.isOsx {
+  /* clear the traffic lights (~78px) like the old nav shift did */
+  padding-left: 86px;
 }
 .active {
   color: var(--editorColor);
@@ -714,185 +773,69 @@ img {
   margin-top: 1px;
   vertical-align: top;
 }
+
+/* Centre: the document title button (canvas titleBtn metrics). */
 .title {
-  /* C-9: absolutely position the title between real clearances so its
-     width is genuinely constrained. The old fixed `padding: 0 142px`
-     predated the v1.1.0 nav cluster (~240px on macOS), and the GH#339
-     rtl-clip on the direct-child span never produced a reliable
-     left-side-only clip under the inherited centered text layout. */
-  position: absolute;
-  top: 0;
-  height: 100%;
-  left: 180px;
-  right: 150px;
+  flex: 1 1 auto;
+  min-width: 0;
   display: flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
   line-height: var(--titleBarHeight);
-  font-size: 14px;
+  font-size: 13px;
   text-align: center;
-  transition: all 0.25s ease-in-out;
-  & .filename {
-    transition: all 0.25s ease-in-out;
-  }
 }
-.title-bar.isOsx .title {
-  /* traffic lights (78px) + titlebar-nav (4 × 28px + divider) — C-38 N1:
-     the Settings gear is macOS-hidden, one button fewer than Win/Linux */
-  left: 222px;
-}
-/* C-15 Phase W QA: frameless Win/Linux — titlebar-nav grew by the app-menu
-   button (6 × 28px) and the aux cluster now sits left of the window
-   controls, so the centered title needs bigger clearances. */
-.title-bar.frameless:not(.isOsx) .title {
-  left: 196px;
-  right: 290px;
-}
-.title-breadcrumb {
+.titlebar-title-btn {
   display: inline-flex;
   align-items: center;
-  max-width: 100%;
-  min-width: 0;
+  gap: 6px;
+  max-width: min(420px, 100%);
+  height: 26px;
+  padding: 0 10px;
+  box-sizing: border-box;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--editorColor);
+  background: transparent;
+  font-family: inherit;
+  cursor: default;
+  transition: background-color 0.15s ease;
+}
+.titlebar-title-btn:hover,
+.titlebar-title-btn.open {
+  background: var(--floatHoverColor, rgba(0, 0, 0, 0.06));
+}
+.titlebar-title-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
-.title-path {
-  /* Shrinks first: overflow clips the OLDEST path segments on the left
-     (flex-end packing) so the nearest folder + filename stay visible. */
-  display: inline-flex;
-  align-items: center;
-  min-width: 0;
-  flex: 0 1 auto;
-  overflow: hidden;
-  justify-content: flex-end;
-}
-.title-path-segment {
-  display: inline-flex;
-  align-items: center;
+.titlebar-title-chevron {
   flex-shrink: 0;
+  opacity: 0.55;
 }
-.title-breadcrumb .filename {
+.save-dot {
   flex-shrink: 0;
-}
-.title-breadcrumb .save-dot {
-  flex-shrink: 0;
-}
-
-.title-bar .title .filename.isOsx:hover {
-  color: var(--themeColor);
-}
-
-.active .save-dot {
-  margin-left: 3px;
-  width: 7px;
-  height: 7px;
-  display: inline-block;
-  border-radius: 50%;
+  width: 6px;
+  height: 6px;
+  border-radius: 3px;
   background: var(--highlightThemeColor);
-  opacity: 0.7;
   visibility: hidden;
 }
-.active .save-dot.show {
+.save-dot.show {
   visibility: visible;
 }
-.title:hover {
-  color: var(--sideBarTitleColor);
-}
 
-/* C-15 Phase W QA: share + word-count cluster. macOS: hugs the right edge
-   (legacy right-toolbar geometry). Frameless Win/Linux: shifted left of the
-   min/max/close cluster (right:150px) so nothing stacks on titlebar-nav. */
-.titlebar-aux {
-  height: 100%;
-  position: absolute;
-  top: 0;
-  right: 0;
-  display: flex;
-  align-items: center;
-  flex-direction: row-reverse;
-  & .item {
-    margin-right: 10px;
-  }
-}
-.titlebar-aux--custom {
-  right: 150px;
-  flex-direction: row;
-  & .item {
-    margin-right: 10px;
-  }
-}
-.right-toolbar {
-  height: 100%;
-  position: absolute;
-  top: 0;
-  right: 0;
-  width: 138px;
-  display: flex;
-  align-items: center;
-  flex-direction: row-reverse;
-  & .item {
-    margin-right: 10px;
-  }
-}
-
-.titlebar-share-btn {
-  width: 28px;
-  height: 28px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 5px;
-  cursor: pointer;
-  color: var(--editorColor50);
-  transition: background-color 0.15s ease, color 0.15s ease;
-  margin-right: 2px;
-}
-.titlebar-share-btn:hover {
-  background-color: var(--floatHoverColor, rgba(0, 0, 0, 0.06));
-  color: var(--sideBarTitleColor);
-}
-
-.word-count {
-  cursor: pointer;
-  font-size: 14px;
-  color: var(--editorColor30);
-  text-align: center;
-  line-height: 24px;
-  padding: 0 5px;
-  box-sizing: border-box;
-  transition: all 0.25s ease-in-out;
-  & > .text-center-vertical {
-    padding: 2px 5px;
-    border-radius: 3px;
-  }
-  &:hover > span {
-    background: var(--sideBarBgColor);
-    color: var(--sideBarTitleColor);
-  }
-}
-
-.title-no-drag {
-  -webkit-app-region: no-drag;
-}
-
-/* v1.1.0: titlebar nav cluster — sidebar-toggle + Files + TOC (+ Settings
-   on Win/Linux only, C-38 N1), slammed together on the left, no gap. On
-   macOS we shift past the three traffic-lights (~70px reserved), on
-   Win/Linux we sit at left:8px. */
+/* Left cluster: sidebar toggle (+ Win/Linux menu and Settings gear). */
 .titlebar-nav {
-  position: absolute;
-  top: 50%;
-  left: 8px;
-  /* +2px optical-center nudge to align with macOS traffic-light row. */
-  transform: translateY(calc(-50% + 2px));
   display: flex;
   flex-direction: row;
   align-items: center;
   gap: 0; /* explicit: no gap between buttons */
   z-index: 10;
-}
-.titlebar-nav--osx {
-  left: 78px;
 }
 .titlebar-nav-btn {
   position: relative;
@@ -901,16 +844,10 @@ img {
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 5px;
-  cursor: pointer;
+  border-radius: 6px;
+  cursor: default;
   color: var(--editorColor80);
   transition: background-color 0.15s ease, color 0.15s ease;
-}
-.titlebar-nav-divider {
-  width: 1px;
-  height: 16px;
-  background: var(--editorColor10, rgba(0, 0, 0, 0.1));
-  margin: 0 2px;
 }
 .titlebar-nav-btn:hover {
   background-color: var(--floatHoverColor, rgba(0, 0, 0, 0.06));
@@ -934,7 +871,119 @@ img {
 .titlebar-nav-btn svg {
   pointer-events: none;
 }
+
+/* Right cluster: «?» (Win/Linux), theme, Share. Frameless Win/Linux
+   keeps clear of the min/max/close cluster on the right edge. */
+.titlebar-right {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-right: 6px;
+}
+.title-bar.frameless:not(.isOsx) .titlebar-right {
+  margin-right: 146px;
+}
+
+.title-no-drag {
+  -webkit-app-region: no-drag;
+}
+
+/* C-40 T-002: document info popover (canvas pop/stat/popBtn metrics). */
+.doc-info-popover {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: 360px;
+  max-width: calc(100vw - 32px);
+  box-sizing: border-box;
+  padding: 16px;
+  border-radius: 12px;
+  background: var(--floatBgColor, #ffffff);
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.22),
+    0 0 0 0.5px var(--floatBorderColor, rgba(0, 0, 0, 0.12));
+  color: var(--editorColor);
+  text-align: left;
+  cursor: default;
+  z-index: 1000;
+}
+.doc-info-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--editorColor);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.doc-info-meta {
+  font-size: 11.5px;
+  color: var(--editorColor50);
+  margin-top: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.doc-info-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin: 14px 0;
+}
+.doc-info-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--floatHoverColor, rgba(0, 0, 0, 0.04));
+  font-size: 11px;
+  color: var(--editorColor50);
+  min-width: 0;
+}
+.doc-info-stat b {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--editorColor);
+  font-variant-numeric: tabular-nums;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.doc-info-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.doc-info-action {
+  font-size: 12px;
+  padding: 5px 10px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: var(--editorColor);
+  font-family: inherit;
+  cursor: default;
+  box-shadow: inset 0 0 0 0.5px var(--floatBorderColor, rgba(0, 0, 0, 0.16));
+  transition: background-color 0.15s ease;
+}
+.doc-info-action:hover {
+  background: var(--floatHoverColor, rgba(0, 0, 0, 0.06));
+}
+
 /* frameless window controls */
+.right-toolbar {
+  height: 100%;
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 138px;
+  display: flex;
+  align-items: center;
+  flex-direction: row-reverse;
+  & .item {
+    margin-right: 10px;
+  }
+}
 .frameless-titlebar-button {
   position: relative;
   display: block;
@@ -962,24 +1011,5 @@ img {
 }
 .frameless-titlebar-close:hover svg {
   fill: #ffffff;
-}
-
-.text-center-vertical {
-  display: inline-block;
-  vertical-align: middle;
-  line-height: normal;
-}
-</style>
-
-<style>
-.title-item {
-  height: 28px;
-  line-height: 28px;
-  & .front {
-    opacity: 0.7;
-  }
-  & .text {
-    margin-left: 10px;
-  }
 }
 </style>

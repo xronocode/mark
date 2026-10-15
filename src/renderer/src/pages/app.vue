@@ -9,6 +9,7 @@
         :filename="filename"
         :active="windowActive"
         :word-count="wordCount"
+        :markdown="markdown"
         :platform="platform"
         :is-saved="isSaved"
       ></title-bar>
@@ -59,6 +60,8 @@
 //            is injected once while common styles still initialize on boot.
 //
 // CHANGE_SUMMARY:
+//   - 2026-10-15 C-40 T-002: pass the current tab's markdown to the
+//     title bar so the document info popover can count lines.
 //   - 2026-10-15 C-38 T-005 review: onMounted stops before attaching the
 //     window drag/zoom listeners when the component was unmounted during
 //     its awaits (the longer hydration made the old leak reproducible).

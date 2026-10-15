@@ -889,7 +889,7 @@ describe('sideBar/index.vue — deep coverage', () => {
         wrapper.find('tree-stub').exists()).toBe(true)
     })
 
-    it('renders Toc when rightColumn is toc', async () => {
+    it('falls back to Tree for a stale rightColumn=toc (TOC panel retired, C-40 T-003)', async () => {
       const { useLayoutStore } = await import('@/store/layout')
       const layoutStore = useLayoutStore()
       layoutStore.showSideBar = true
@@ -898,8 +898,12 @@ describe('sideBar/index.vue — deep coverage', () => {
       const wrapper = mountComponent()
       await nextTick()
 
+      // The outline lives in the editor-area rail now; the sidebar is
+      // Files-only and never mounts the retired Toc panel.
       expect(wrapper.findComponent({ name: 'Toc' }).exists() ||
-        wrapper.find('toc-stub').exists()).toBe(true)
+        wrapper.find('toc-stub').exists()).toBe(false)
+      expect(wrapper.findComponent({ name: 'Tree' }).exists() ||
+        wrapper.find('tree-stub').exists()).toBe(true)
     })
 
     it('does not render SideBarSearch (moved to floating panel)', async () => {

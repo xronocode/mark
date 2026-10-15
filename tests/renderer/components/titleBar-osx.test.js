@@ -17,6 +17,10 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-10-15 v1.2.0: C-40 T-002 — the trimmed macOS bar: left cluster =
+//     the sidebar toggle alone (no menu/gear/Files/TOC), right cluster =
+//     theme + Share with NO «?» guide button (Win/Linux only), and the
+//     popover reveal label says Finder. The resize-edge pins stay.
 //   - 2026-10-15 v1.1.0: resize edge — presses within 6 px of the top/left/
 //     right edges no longer start a window drag (top edge resizes again).
 //   - 2026-10-15 v1.0.0: C-38 N1 — pin the macOS variant: the Settings gear
@@ -75,7 +79,27 @@ const i18n = createI18n({
     en: {
       menu: { view: { toggleSidebar: 'Toggle Sidebar' }, counter: { words: 'Words' } },
       sideBar: { icons: { files: 'Files', toc: 'TOC', settings: 'Settings' } },
-      titleBar: { share: 'Share', themeMode: { auto: 'Theme: Auto', light: 'Theme: Light', dark: 'Theme: Dark' } }
+      titleBar: {
+        share: 'Share',
+        guide: 'Mark Guide',
+        documentInfo: 'Document info',
+        themeMode: { auto: 'Theme: Auto', light: 'Theme: Light', dark: 'Theme: Dark' },
+        popover: {
+          words: 'words',
+          characters: 'characters',
+          lines: 'lines',
+          reading: 'reading',
+          minutes: '{count} min',
+          rename: 'Rename…',
+          edited: 'edited {time}'
+        }
+      },
+      recent: {
+        showInFinder: 'Show in Finder',
+        showInExplorer: 'Show in Explorer',
+        showInFolder: 'Show in folder',
+        copyPath: 'Copy path'
+      }
     }
   }
 })
@@ -116,17 +140,36 @@ describe('titleBar/index.vue — macOS variant (C-38 N1)', () => {
     expect(wrapper.find('.titlebar-nav-btn[title="Settings"]').exists()).toBe(false)
   })
 
-  it('renders the 4-button nav (sidebar toggle, Files, TOC, theme) with the traffic-light shift', () => {
+  it('renders the trimmed macOS clusters: sidebar toggle left, theme + Share right (C-40 T-002)', () => {
     const wrapper = mountOsx()
     const nav = wrapper.find('.titlebar-nav')
     expect(nav.exists()).toBe(true)
     expect(nav.classes()).toContain('titlebar-nav--osx')
-    // No gear (C-38 N1) and no hamburger (the native menu bar owns both).
-    expect(nav.findAll('.titlebar-nav-btn').length).toBe(4)
+    // Left: ONLY the sidebar toggle — no hamburger, no gear (C-38 N1), and
+    // the Files and TOC buttons left with the C-40 T-002 trim.
+    const navButtons = nav.findAll('.titlebar-nav-btn')
+    expect(navButtons.length).toBe(1)
+    expect(navButtons[0].attributes('title')).toBe('Toggle Sidebar')
     expect(nav.find('.titlebar-nav-menu').exists()).toBe(false)
-    expect(nav.find('.titlebar-nav-btn[title="Toggle Sidebar"]').exists()).toBe(true)
-    expect(nav.find('.titlebar-nav-btn[title="Files"]').exists()).toBe(true)
-    expect(nav.find('.titlebar-nav-btn[title="TOC"]').exists()).toBe(true)
+    // Right: theme + Share only.
+    const right = wrapper.findAll('.titlebar-right .titlebar-nav-btn')
+    expect(right.length).toBe(2)
+    expect(right[0].attributes('title')).toMatch(/^Theme: /)
+    expect(right[1].attributes('title')).toBe('Share')
+    // The Files and TOC entries are gone from the whole bar.
+    expect(wrapper.findAll('.titlebar-nav-btn[title="Files"]').length).toBe(0)
+    expect(wrapper.findAll('.titlebar-nav-btn[title="TOC"]').length).toBe(0)
+  })
+
+  it('hides the «?» guide button — the macOS entries are Help › Mark Guide and the palette (C-40 T-002)', () => {
+    const wrapper = mountOsx()
+    expect(wrapper.find('.titlebar-guide-btn').exists()).toBe(false)
+    expect(wrapper.findAll('.titlebar-nav-btn[title="Mark Guide"]').length).toBe(0)
+  })
+
+  it('labels the popover reveal action for Finder (per-OS label)', () => {
+    const wrapper = mountOsx()
+    expect(wrapper.vm.showInFolderLabel).toBe('Show in Finder')
   })
 
   // Resize edge: the transparent title bar starts at the window's top pixel;

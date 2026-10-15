@@ -3551,16 +3551,18 @@
           command (edit.go-to-heading, native Edit-menu "Go to Heading…" +
           Cmd/Ctrl+T) fuzzy-searches the active document's listToc
           (subsequence match, level-indented labels) and jumps via the
-          established scroll-to-header slugs; the sidebar TOC highlights
-          the section the viewport is in — recomputed debounced off muya
-          scroll (last heading above a fixed 80px band from the viewport
-          top; document-end edge pinning the final section so short
-          trailing sections are reachable; null clear above the first
-          heading), rendered through the tree's scoped slot
-          (.toc-node-label--active; exactly one node at a time). Unit-pinned
-          in tests/renderer/commands/heading-search.test.js; visually
-          pinned in tests/e2e/heading-navigation.spec.ts (highlight follows
-          Alpha → Beta → Top; jump lands the heading in view).
+          established scroll-to-header slugs; the outline surface
+          highlights the section the viewport is in — recomputed debounced
+          off muya scroll (last heading above a fixed 80px band from the
+          viewport top; document-end edge pinning the final section so
+          short trailing sections are reachable; null clear above the
+          first heading), rendered since C-40 T-003 through the «On this
+          page» outline rail (.outline-rail-item--current; exactly one
+          item at a time; formerly the sidebar TOC tree's scoped slot).
+          Unit-pinned in tests/renderer/commands/heading-search.test.js;
+          visually pinned in tests/e2e/heading-navigation.spec.ts
+          (highlight follows Alpha → Beta → Top through the rail; jump
+          lands the heading in view).
         </Scenario>
         <Scenario>
           scenario-32: Link-path autocomplete (C-20): typing inside a
@@ -3674,13 +3676,14 @@
           native app menu owns the entry: Mark › Settings… with the Cmd+,
           accelerator, renamed from "Preferences…"; id file.preferences and
           the openPreferences command unchanged) and stays reachable in the
-          frameless Win/Linux titlebar; the macOS nav is 4 buttons and the
-          macOS title clearance shrank 250px → 222px. Pinned in
-          tests/renderer/components/titleBar-osx.test.js (gear absent, 4
-          buttons, SFC v-if gate) +
+          frameless Win/Linux titlebar (C-40 T-002 kept the gear when the
+          bar was trimmed; the macOS title clearance hack was retired with
+          the breadcrumb — the bar is now flex-centred, see scenario-53).
+          Pinned in
+          tests/renderer/components/titleBar-osx.test.js (gear absent,
+          SFC v-if gate) +
           tests/renderer/components/titleBar-windows.test.js (gear present) +
-          tests/renderer/components/titleBar-resize.test.js (222px clearance
-          pin) + tests/renderer/commands/menu-consistency.test.js
+          tests/renderer/commands/menu-consistency.test.js
           (Settings… label + Cmd+, accelerator, "Preferences…" gone).
         </Scenario>
         <Scenario>
@@ -3703,7 +3706,10 @@
           M-025.3 backend boot override that force-flipped persisted Auto
           back to false is removed so Auto survives restarts. The Settings
           theme page shows the followSystemTheme toggle and the light/dark
-          member selects again (a manual card pick leaves Auto). Pinned in
+          member selects again (a manual card pick leaves Auto). C-40 T-002
+          moved the button into the .titlebar-right cluster and replaced
+          the Avenex icons with the redrawn chrome set (M-057); cycle and
+          persistence are unchanged. Pinned in
           tests/renderer/components/titleBar-theme.test.js (cycle order,
           icons, tooltips, persisted writes) +
           tests/renderer/components/titleBar-deep.test.js (themeMode
@@ -4110,6 +4116,79 @@
           retired image upload, Custom CSS sheet, Restore defaults
           (cancel/confirm), dropped preferences absent, RU labels.
         </Scenario>
+        <Scenario>
+          scenario-53: title-bar trim + document info popover + Win/Linux
+          «?» (C-40 T-002, approved canvas option A): the titleBar keeps
+          the sidebar toggle left (plus the Win/Linux custom-titlebar menu
+          and Settings gear — C-38 N1 unchanged), the file name with the
+          unsaved dot and chevron centre, and guide «?» (Win/Linux only,
+          emits mt::open-guide) + theme + Share right; the Files and TOC
+          buttons, the breadcrumb path and the word counter are gone
+          (Files lives in the sidebar). Clicking the file name opens the
+          document info popover — words/characters/lines/reading (the
+          same tab.wordCount source as the old counter; reading =
+          words/230 rounded up, min 1; lines from the tab markdown),
+          ~-abbreviated folder (homeDir via plugin:path), size and
+          edited-relative mtime (mt_fs_stat, util/relativeTime), and the
+          Rename… (editorStore.RESPONSE_FOR_RENAME, the old
+          click-to-rename path, now cross-platform) / Show in
+          Finder|Explorer|folder (window.electron.shell.showItemInFolder)
+          / Copy path (@tauri-apps/plugin-clipboard-manager, WKWebView
+          user-activation safe) actions; untitled tabs show stats and
+          Rename only; Escape, outside click and the title toggle close
+          it; switching tabs refreshes the metadata. Icons come from the
+          redrawn chrome set (M-057 chromeIcons.js, 16 px grid 1.4
+          stroke). The macOS drag fallback (resize-edge guard) and the
+          native title-path context menu are unchanged. Pinned in
+          tests/renderer/components/titleBar-popover.test.js (trimmed
+          button set, guide bus event, popover stats/meta/actions,
+          untitled gating, close paths, reading/size formatting) +
+          titleBar-osx.test.js (macOS clusters, no «?», Finder label,
+          resize-edge drag pins) + titleBar-windows.test.js (menu +
+          sidebar + gear left, «?» + Explorer label, caption-cluster
+          clearance) + titleBar-theme.test.js (cycle in the right
+          cluster, redrawn icons) + titleBar-resize.test.js (flex-centred
+          title structure pins) + titleBar-deep.test.js (rename via
+          RESPONSE_FOR_RENAME cross-platform, context menu, watchers) +
+          tests/e2e/titlebar-doc-info.spec.ts (chromium + webkit: popover
+          opens from the title, meta/stats match the document, no word
+          count in the bar, Esc/outside close, copy-path/reveal
+          dispatch, «?» per platform) + updated e2e sidebar-toggle /
+          titlebar-theme-toggle / view-modes selectors.
+          scenario-54: «On this page» outline rail (C-40 T-003): a slim
+          rail right of the centred text column lists the document's h1–h3
+          (deeper levels indented per level within h1–h3, h4–h6 reachable
+          only through ⌘T Go to Heading), the current item is bold with a
+          marker tick on the rule line, and follows the C-19 scrollspy
+          while scrolling (exactly one current item; a viewport inside an
+          unlisted h4–h6 highlights its nearest listed ancestor); a click
+          smooth-jumps through the shared scroll-to-header path. Gates:
+          shown only with the persisted outlineRailVisible preference on
+          (default on; View › Outline check item, id view.outline with no
+          accelerator, toggles + persists via mt_prefs_set), a plain
+          WYSIWYG surface (hidden in source mode, split view and diff
+          view), ≥3 h1–h3 headings, ≥1000 px of editor area (kept with
+          the sidebar open when it fits), and a live no-overlap fit
+          against the measured #ag-editor-id column (a wide
+          editorLineWidth column keeps the rail hidden until the margin
+          clears it). The sidebar TOC panel is retired — the sidebar is
+          Files-only and a stale rightColumn='toc' (title-bar button until
+          C-40 T-002 removes it) shows the Files tree. Unit-pinned in
+          tests/renderer/util/outline-rail.test.js (extraction,
+          current-heading resolution, geometry/fit, combined gate) +
+          tests/renderer/components/outline-rail.test.js (rendering,
+          gates incl. ResizeObserver-driven width changes, click emission,
+          scrollspy subscription, indent/wrap, editorWithTabs wiring,
+          sidebar retirement) + tests/renderer/components/sideBar/toc.test.js
+          (source-level retirement) + cargo test view_menu_outline_item
+          (m009); visually pinned in tests/e2e/outline-rail.spec.ts
+          (chromium + webkit: rail lists headings and jumps, current item
+          follows scroll, hidden below 1000 px / with the sidebar when it
+          does not fit, hidden in source/split/diff, view.outline toggle
+          persists, short documents) and tests/e2e/toc-sidebar-navigation.spec.ts
+          (retirement: stale toc right-column shows Files, navigation
+          through the rail).
+        </Scenario>
       </Scenarios>
       <Markers>
         <Marker>[prefs][theme-migration][BLOCK_RETIRED_THEMES_MIGRATED key:from-&gt;to …] — C-41 T-002 retired theme ids migrated at the hydration load point and persisted once per changed key</Marker>
@@ -4131,7 +4210,8 @@
         <Marker>[Review][request][BLOCK_REQUEST_REVIEW_DISPATCHED] — C-48 m053 SKStoreReviewController msg_send on the main thread</Marker>
         <Marker>[Review][request][BLOCK_REQUEST_REVIEW_NOOP] — C-48 desktop build stub</Marker>
         <Marker>[Editor][handleCopyAsHtml][BLOCK_COPY_AS_HTML] native writeHtml failed → execCommand fallback</Marker>
-        <Marker>[Editor][syncMirrorFromSource][BLOCK_SPLIT_MIRROR_SYNC] chars=N ms=N — muya mirror re-rendered from the source pane (C-29)</Marker>
+            <Marker>[Editor][syncMirrorFromSource][BLOCK_SPLIT_MIRROR_SYNC] chars=N ms=N — muya mirror re-rendered from the source pane (C-29)</Marker>
+            <Marker>[OutlineRail][jumpTo][BLOCK_RAIL_JUMP slug=&lt;slug&gt;] — C-40 T-003 outline-rail item click dispatched to the shared scroll-to-header path</Marker>
         <Marker>[editor][split][BLOCK_SPLIT_TOGGLED state=on|off] — view.split-view toggled for the current tab (C-29)</Marker>
         <Marker>[Editor][handleEditorContextMenu][BLOCK_EDITOR_CONTEXT_MENU] native writeText failed</Marker>
         <Marker>[Editor][handleCopyAsPlainText][BLOCK_COPY_AS_PLAIN_TEXT] copy failed</Marker>
@@ -4139,6 +4219,9 @@
         <Marker>[Renderer][mount][BLOCK_INSTANTIATE_MUYA]</Marker>
         <Marker>[Renderer][mount][BLOCK_HOST_HOOKS_WIRED] { hooks: 7 }</Marker>
         <Marker>[TitleBar][handleTitleContextMenu][BLOCK_COPY_PATH]</Marker>
+        <Marker>[TitleBar][refreshDocInfo][BLOCK_DOC_INFO_STAT] failed=true — C-40 T-002 mt_fs_stat load for the document info popover failed (path redacted)</Marker>
+        <Marker>[TitleBar][handleRevealClick][BLOCK_REVEAL_IN_FOLDER] revealed=true — C-40 T-002 popover reveal dispatched to the OS file manager</Marker>
+        <Marker>[TitleBar][handleCopyPathClick][BLOCK_COPY_PATH] copied=true|false — C-40 T-002 popover Copy path wrote the native clipboard</Marker>
         <Marker>[Editor][scrollToCords][BLOCK_SCROLL_RESTORED]</Marker>
         <Marker>[Editor][scrollToCordsAfterReload][BLOCK_RELOAD_SCROLL_CLAMPED] requested=&lt;y&gt; applied=&lt;clamped&gt;</Marker>
         <Marker>[Editor][syncPreviewSurface][BLOCK_PREVIEW_SURFACE_SYNC]</Marker>
@@ -10630,5 +10713,15 @@
         </Scenario>
       </Scenarios>
     </V-M-052>
+    <V-M-057>
+      <Priority>medium</Priority>
+      <Commands>
+        <Command>npx vitest run tests/renderer/components/chrome-icons.test.js tests/renderer/components/titleBar-popover.test.js</Command>
+      </Commands>
+      <Scenarios>
+        <Scenario>scenario-1 (C-40 T-002): the drawn chrome icon set (16 px grid, 1.4 stroke, round caps) — every descriptor renders an svg with currentColor, the chevron keeps its 10-grid viewBox, unknown names render nothing; the title bar draws its icons from this module.</Scenario>
+      </Scenarios>
+      <Markers/>
+    </V-M-057>
   </VD-RUNTIME>
 </GraceVerificationDocument>
