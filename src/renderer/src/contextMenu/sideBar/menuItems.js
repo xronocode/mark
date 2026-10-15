@@ -50,6 +50,14 @@ export const getSHOW_IN_FOLDER = () => ({
   id: 'showInFolderMenuItem'
 })
 
+// C-51 T-002: Pin/Unpin a Markdown file into the persisted Pinned
+// sidebar section. The label reflects the pinned state at popup time;
+// one id — the handler toggles through the project store's active item.
+export const getPIN = (pinned) => ({
+  label: pinned ? t('contextMenu.sideBar.unpin') : t('contextMenu.sideBar.pin'),
+  id: 'pinFileMenuItem'
+})
+
 // id → handler. Sidebar items don't take a contextual argument: the
 // active selection is resolved inside the action functions themselves
 // (they read from project store).
@@ -61,7 +69,8 @@ export const HANDLERS = {
   pasteMenuItem: () => contextMenu.paste(),
   renameMenuItem: () => contextMenu.rename(),
   deleteMenuItem: () => contextMenu.remove(),
-  showInFolderMenuItem: () => contextMenu.showInFolder()
+  showInFolderMenuItem: () => contextMenu.showInFolder(),
+  pinFileMenuItem: () => contextMenu.pinFile()
 }
 
 // Backwards-compat exports preserved (without click); future cleanup
@@ -74,3 +83,4 @@ export const PASTE = getPASTE()
 export const RENAME = getRENAME()
 export const DELETE = getDELETE()
 export const SHOW_IN_FOLDER = getSHOW_IN_FOLDER()
+export const PIN = getPIN(false)

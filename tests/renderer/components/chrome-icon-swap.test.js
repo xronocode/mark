@@ -112,11 +112,12 @@ describe('chrome icon swap (C-38 T-006 N4 d)', () => {
     }
 
     it('renders folder-open while expanded and folder once collapsed', async () => {
+      // C-51 T-001: the row also carries the right disclosure chevron.
       const expanded = await mountFolder(false)
-      expect(iconNames(expanded)).toEqual(['folder-open'])
+      expect(iconNames(expanded)).toEqual(['folder-open', 'chevron-right'])
 
       const collapsed = await mountFolder(true)
-      expect(iconNames(collapsed)).toEqual(['folder'])
+      expect(iconNames(collapsed)).toEqual(['folder', 'chevron-right'])
     })
   })
 

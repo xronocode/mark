@@ -232,7 +232,9 @@
       "paste": "Paste",
       "rename": "Rename",
       "moveToTrash": "Move To Trash",
-      "showInFolder": "Show In Folder"
+      "showInFolder": "Show In Folder",
+      "pin": "Pin",
+      "unpin": "Unpin"
     },
     "tabs": {
       "close": "Close",
@@ -244,6 +246,8 @@
       "showInFolder": "Show in folder",
       "lock": "Lock Document",
       "unlock": "Unlock Document",
+      "pin": "Pin",
+      "unpin": "Unpin",
       "splitView": "Split View",
       "copyAsMarkdown": "Copy as Markdown",
       "copyAsHtml": "Copy as HTML",
@@ -326,7 +330,12 @@
       "openFolder": "Open Folder",
       "closeFolder": "Close folder",
       "newFile": "New file",
-      "recentFolders": "Recent"
+      "recentFolders": "Recent",
+      "recentFiles": "Recent",
+      "pinnedFiles": "Pinned",
+      "remove": "Remove",
+      "unpin": "Unpin",
+      "openOrSwitchFolder": "Open or switch folder"
     },
     "toc": {
       "title": "Table Of Contents"
@@ -522,6 +531,7 @@
         "language": "App language",
         "defaultEncoding": "File encoding for new files",
         "endOfLine": "Line endings used for new files and when saving",
+        "treeShowAllFiles": "Show all files in the folder tree (not only Markdown)",
         "titleBarStyle": "Window title bar: custom or system (requires restart)",
         "hideScrollbar": "Hide scroll bars",
         "wordWrapInToc": "Wrap long headings in the outline",
@@ -612,7 +622,9 @@
         "endOfLineSystem": "Match my operating system",
         "endOfLineLf": "LF (Unix, macOS)",
         "endOfLineCrlf": "CRLF (Windows)",
-        "secondsUnit": "s"
+        "secondsUnit": "s",
+        "showAllFiles": "Show all files",
+        "showAllFilesHelp": "Show every file in the folder tree, not only Markdown. Non-Markdown files stay dimmed and cannot be opened."
       },
       "updates": {
         "title": "Updates",

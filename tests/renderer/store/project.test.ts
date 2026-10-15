@@ -387,7 +387,10 @@ describe('store/project', () => {
       expect(editorStubRef.APPLY_FILE_CHANGE).not.toHaveBeenCalled()
     })
 
-    it('create + non-markdown file → no tree event, no APPLY_FILE_CHANGE', async () => {
+    // C-51 T-001: non-Markdown files now join the model (the view filter
+    // hides them unless «Show all files»), so the watcher and the initial
+    // walk agree; they still never reach an editor tab.
+    it('create + non-markdown file → added to the model (view-filtered), no APPLY_FILE_CHANGE', async () => {
       ipcFsStatMock.mockResolvedValueOnce({
         isDirectory: false,
         isFile: true,
@@ -399,7 +402,8 @@ describe('store/project', () => {
         kind: 'create',
         paths: ['/root/binary.bin']
       })
-      expect(addFileSpy).not.toHaveBeenCalled()
+      expect(addFileSpy).toHaveBeenCalledTimes(1)
+      expect(addFileSpy.mock.calls[0][1]).toMatchObject({ pathname: '/root/binary.bin', isMarkdown: false })
       expect(editorStubRef.APPLY_FILE_CHANGE).not.toHaveBeenCalled()
     })
 

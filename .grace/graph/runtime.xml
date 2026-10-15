@@ -2769,6 +2769,48 @@
         menu gains Split View + Copy as Markdown / HTML / Structured
         text (Markdown exact over tab.markdown; the rendered flavors
         activate the tab and reuse the live editor pipeline).
+        C-51 T-001: the sidebar folder tree is the Obsidian-style docs
+        look (canvas Main/DocsDark) — folder rows draw the M-057
+        folder/folder-open glyph + name + a right disclosure chevron
+        (rotates open) at 32 px, nesting indents through the
+        .folder-contents container (one 1px guide line per level via
+        --itemBgColor, replacing the per-row depth*20px padding), the
+        current file sits on a rounded 8px pill (chromeAccentSoft kept
+        per the C-38 T-006 e2e contract; accent marker inset), and each
+        root header doubles as the folder-switcher row (soft rounded
+        chip; name + chevron-down open the existing ASK_FOR_OPEN_PROJECT
+        picker, the left chevron keeps the collapse toggle). Markdown-
+        only by default (user D-2): store/treeFilter.js
+        (folderHasMarkdownBelow / visibleFiles / visibleFolders) filters
+        at the RENDER level — the treeCtrl model keeps every file/dir
+        from both the Rust walk (unchanged, isMarkdown flag kept) and
+        the watcher, which since C-51 also adds non-Markdown files so
+        both paths agree; folders with no Markdown anywhere below hide
+        and appear/disappear as Markdown files come and go, the
+        empty-root placeholder keys on the visible lists, and the
+        persisted treeShowAllFiles preference (default false, Settings ›
+        General › Files and saving «Show all files», schema-searchable
+        + resettable) restores the everything-visible tree live without
+        a re-walk.
+        C-51 T-002: store/pinned.js is the persisted Pinned list
+        (ipcPrefs key pinnedFiles; append on pin, drag reorder via
+        MOVE_PINNED, sanitize on load) and components/sideBar/
+        fileSections.vue renders the two collapsible sections above the
+        tree (canvas MacOS): Recent (editor GET_RECENT_FILES / M-017,
+        newest first, capped 10, refreshed when the current file
+        changes) and Pinned — rows open through the existing
+        tab-select-or-mt::open-file path, missing files (ipcFs.stat
+        MT_FS_NOT_FOUND, same detection as the welcome screen) render
+        greyed with a hover Remove/Unpin action, HTML5 drag reorders
+        within Pinned, and the collapsed state persists (ipcPrefs
+        sideBarRecentCollapsed / sideBarPinnedCollapsed). Pin/Unpin
+        joins the tree file context menu (contextMenu/sideBar
+        pinFileMenuItem — Markdown rows only, label keyed on the pinned
+        state; treeFile passes isMarkdownFile/isPinned) and the tab
+        context menu (contextMenu/tabs pinFile → TABS::pin-file →
+        tabs.vue resolves the tab pathname); the project store's
+        SIDEBAR::pin-file listener toggles the active tree file. All
+        strings ship in the ten locales.
       </Summary>
       <Path>src/renderer/</Path>
       <Dependencies>

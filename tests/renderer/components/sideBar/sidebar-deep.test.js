@@ -352,11 +352,13 @@ describe('sideBar/treeFolder.vue — deep coverage', () => {
   })
 
   describe('depth styling', () => {
-    it('applies depth-based padding', () => {
-      const wrapper = mountComponent(makeFolder(), 2)
-      const style = wrapper.find('.folder-name').attributes('style')
-      // depth * 20 + 20 = 60px
-      expect(style).toContain('60px')
+    // C-51 T-001: indentation moved from per-row depth*20px padding to
+    // the nested .folder-contents container (one 1px guide line per
+    // level, canvas Main) — rows keep a constant padding now.
+    it('rows carry no depth padding; nesting indents via the guide-line container', () => {
+      const wrapper = mountComponent(makeFolder({ isCollapsed: false }), 2)
+      expect(wrapper.find('.folder-name').attributes('style')).toBeUndefined()
+      expect(wrapper.find('.folder-contents').exists()).toBe(true)
     })
   })
 

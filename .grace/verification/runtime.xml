@@ -4410,6 +4410,96 @@
           flipped value; the tauri-shim default for mt_menu_set_checked
           returns false so every other spec is unaffected.
         </Scenario>
+        <Scenario>
+          scenario-58: sidebar tree redesign + Markdown-only filter (C-51
+          T-001, user D-2 «при открытии папок важно показывать только мд
+          файлы»): the folder tree shows only Markdown files by default,
+          and folders with no Markdown anywhere below hide — appearing
+          when a Markdown file is created anywhere inside and vanishing
+          when their last one goes. The rule lives in the RENDER view
+          (store/treeFilter.js folderHasMarkdownBelow / visibleFiles /
+          visibleFolders) so the initial Rust walk (unchanged — still
+          emits every file with the isMarkdown flag) and the watcher path
+          agree by construction, and the persisted treeShowAllFiles
+          preference (default false; Settings › General › Files and
+          saving «Show all files», schema-searchable, resettable) flips
+          the view live without a re-walk; the watcher (_handleWatchEvent
+          create/modify) now adds non-Markdown files to the model too so
+          show-all sees them. Look (canvas Main/DocsDark, every theme
+          through CSS variables): folder rows = M-057 folder/folder-open
+          + name + right chevron (right closed, rotated open), 32 px
+          rows, one 1px guide line per nesting level (.folder-contents
+          border-left on --itemBgColor), the current file on a rounded
+          8px pill (chromeAccentSoft — the C-38 T-006 contract keeps the
+          accent soft background) and a folder-switcher row per root
+          (name + chevron-down open the existing ASK_FOR_OPEN_PROJECT
+          picker; the left chevron keeps the collapse toggle; close-root
+          X unchanged). Every existing interaction (expand/collapse,
+          rename, context menu, drag, keyboard) is preserved.
+          Unit-pinned in tests/renderer/store/treeFilter.test.js
+          (md-only default incl. nested empty dirs, show-all restore,
+          folder appear/disappear through real treeCtrl mutations),
+          tests/renderer/components/sideBar/tree-treefiles.test.js
+          (root view lists, empty-root placeholder keys on visible
+          lists, switcher row opens the picker, left chevron still
+          collapses, treeFile passes the pin context-menu options) and
+          tests/renderer/prefComponents/tabs-general-tree-files.test.js
+          (Settings row presence/binding/persist, default false,
+          RESETTABLE membership, schema.json entry + General category);
+          tests/renderer/components/sideBar/sidebar-deep.test.js
+          depth-styling case updated to the nested-container indentation.
+          E2E tests/e2e/sidebar-tree-redesign.spec.ts (chromium + webkit
+          via the new webkit-tree playwright project): the opened folder
+          shows notes.md but not assets/logo.png nor the empty folder
+          (and not the png-only assets folder), the live toggle restores
+          both directions, creating an .md inside the empty folder
+          reveals it and unlinking hides it again, computed styles pin
+          the 32px rows / 1px guide line / right chevron / switcher
+          (picker invoke asserted), and the current file renders the
+          rounded pill on --chromeAccentSoft; the Rust walk keeps its
+          is_markdown tests green (walk unchanged).
+        </Scenario>
+        <Scenario>
+          scenario-59: Recent + Pinned sidebar sections (C-51 T-002, user
+          «очень нравится рисент, пиннд»): two collapsible sections above
+          the tree (canvas MacOS) — Recent reuses the existing M-017
+          recent list (editor GET_RECENT_FILES, newest first, capped 10,
+          refreshed when the current file changes) and Pinned is the new
+          persisted list (store/pinned.js over the ipcPrefs key
+          pinnedFiles; pins append, drag reorders via MOVE_PINNED, load
+          sanitizes). Rows open through the existing tab-select-or-
+          mt::open-file path; missing files (ipcFs.stat code
+          MT_FS_NOT_FOUND, same detection as the C-46 welcome screen)
+          render greyed with a hover Remove (Recent) / Unpin (Pinned)
+          action; the collapsed state persists (ipcPrefs
+          sideBarRecentCollapsed / sideBarPinnedCollapsed); sections
+          hide while empty. Pin/Unpin is offered from the tree file
+          context menu (contextMenu/sideBar pinFileMenuItem — Markdown
+          rows only, label keyed on the pinned state) and the tab
+          context menu (contextMenu/tabs pinFile → TABS::pin-file →
+          tabs.vue resolves the tab pathname; the project store's
+          SIDEBAR::pin-file listener serves the tree path). All strings
+          ship in the ten locales. Unit-pinned in
+          tests/renderer/store/pinned.test.js (pin/unpin/toggle, append
+          order, reorder bounds, persistence round-trip, corrupt-load
+          sanitize, degraded-IPC behaviour, SIDEBAR::pin-file /
+          TABS::pin-file wiring),
+          tests/renderer/components/sideBar/fileSections.test.js
+          (section render + order + cap, missing greyed with Remove,
+          remove/unpin actions, click-to-open incl. the inert missing
+          row, collapse persist + hydrate, drag-reorder dispatch, empty
+          sections hidden) and
+          tests/renderer/contextMenu/pin-menus.test.js (label factories,
+          Markdown-only sidebar item, handler dispatch, tabs-menu enable
+          gating). E2E tests/e2e/sidebar-tree-redesign.spec.ts
+          (chromium + webkit): Recent lists/opens files (missing entry
+          greyed), pinning via the mocked native context menu adds the
+          file to Pinned and persists across a page reload (Node-side
+          prefs backing), the hover X unpins, HTML5 drag reorders
+          Pinned and the order persists, the Recent section collapses,
+          and light/dark (paper/ink) screenshots capture the tree +
+          sections.
+        </Scenario>
       </Scenarios>
       <Markers>
         <Marker>[prefs][theme-migration][BLOCK_RETIRED_THEMES_MIGRATED key:from-&gt;to …] — C-41 T-002 retired theme ids migrated at the hydration load point and persisted once per changed key</Marker>
@@ -4464,6 +4554,11 @@
         <Marker>[Recent][openRowContextMenu][BLOCK_ROW_CONTEXT_MENU] failed — C-46 native popup IPC failed</Marker>
         <Marker>[Recent][copyAgentPrompt][BLOCK_AGENT_PROMPT_COPIED] — C-40/C-46 universal prompt copy outcome</Marker>
         <Marker>[Recent][remove|insert][BLOCK_RECENT_UPDATED ...] — M-017 Rust-side list mutation (C-46 remove/undo pair)</Marker>
+        <Marker>[PinnedStore][PIN_FILE][BLOCK_PINNED path=&lt;path&gt; total=&lt;n&gt;] — C-51 T-002 file appended to the persisted Pinned list</Marker>
+        <Marker>[PinnedStore][UNPIN_FILE][BLOCK_UNPINNED path=&lt;path&gt; total=&lt;n&gt;] — C-51 T-002 file removed from the Pinned list</Marker>
+        <Marker>[PinnedStore][MOVE_PINNED][BLOCK_REORDERED from=&lt;i&gt; to=&lt;i&gt;] — C-51 T-002 drag reorder persisted</Marker>
+        <Marker>[PinnedStore][LOAD_PINNED_FILES][BLOCK_LOAD_FAILED] — C-51 T-002 prefs read failed; current state kept</Marker>
+        <Marker>[PinnedStore][_persist][BLOCK_PERSIST_FAILED] — C-51 T-002 pinnedFiles write failed; in-memory state already mutated</Marker>
         <Marker>
           [Renderer] BLOCK_THEME_SWAP_BEGIN theme=&lt;id&gt; /
           BLOCK_THEME_SWAP_END duration_ms=&lt;n&gt;

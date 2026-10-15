@@ -231,7 +231,9 @@
       "paste": "Coller",
       "rename": "Renommer",
       "moveToTrash": "Déplacer vers la corbeille",
-      "showInFolder": "Afficher dans le dossier"
+      "showInFolder": "Afficher dans le dossier",
+      "pin": "Épingler",
+      "unpin": "Détacher"
     },
     "tabs": {
       "close": "Fermer",
@@ -243,6 +245,8 @@
       "showInFolder": "Afficher dans le dossier",
       "lock": "Verrouiller le document",
       "unlock": "Déverrouiller le document",
+      "pin": "Épingler",
+      "unpin": "Détacher",
       "splitView": "Vue scindée",
       "copyAsMarkdown": "Copier en Markdown",
       "copyAsHtml": "Copier en HTML",
@@ -325,7 +329,12 @@
       "createFile": "Créer un fichier",
       "openFolder": "Ouvrir un dossier",
       "closeFolder": "Fermer le dossier",
-      "newFile": "Nouveau fichier"
+      "newFile": "Nouveau fichier",
+      "recentFiles": "Récents",
+      "pinnedFiles": "Épinglés",
+      "remove": "Supprimer",
+      "unpin": "Détacher",
+      "openOrSwitchFolder": "Ouvrir ou changer de dossier"
     },
     "toc": {
       "title": "Table des matières"
@@ -520,6 +529,7 @@
         "language": "Langue de l'application",
         "defaultEncoding": "Encodage des nouveaux fichiers",
         "endOfLine": "Fins de ligne utilisées pour les nouveaux fichiers et à l'enregistrement",
+        "treeShowAllFiles": "Afficher tous les fichiers dans l'arborescence (pas seulement Markdown)",
         "titleBarStyle": "Barre de titre de la fenêtre : personnalisée ou système (redémarrage requis)",
         "hideScrollbar": "Masquer les barres de défilement",
         "wordWrapInToc": "Renvoyer à la ligne les titres longs dans le plan",
@@ -610,7 +620,9 @@
         "endOfLineSystem": "Selon mon système d'exploitation",
         "endOfLineLf": "LF (Unix, macOS)",
         "endOfLineCrlf": "CRLF (Windows)",
-        "secondsUnit": "s"
+        "secondsUnit": "s",
+        "showAllFiles": "Afficher tous les fichiers",
+        "showAllFilesHelp": "Affiche tous les fichiers dans l'arborescence, pas seulement les fichiers Markdown. Les fichiers non Markdown restent estompés et ne peuvent pas être ouverts."
       },
       "updates": {
         "title": "Mises à jour",

@@ -39,6 +39,13 @@ export const toggleSplitView = (tabId) => {
   bus.emit('TABS::toggle-split-view', tabId)
 }
 
+// C-51 T-002: Pin/Unpin the tab's file — tabs.vue's TABS::pin-file
+// listener resolves the tab's pathname and toggles the persisted pinned
+// list.
+export const pinFile = (tabId) => {
+  bus.emit('TABS::pin-file', tabId)
+}
+
 // C-40 T-004: copy-document flavors from the tab context menu.
 export const copyAsMarkdown = (tabId) => {
   bus.emit('TABS::copy-as-markdown', tabId)

@@ -1,7 +1,8 @@
 // step-8g: native sidebar context-menu via mt::window-popup-context-menu.
 // Renderer serializes the spec; main handles popup; renderer dispatches
 // the local handler by clicked id. PASTE remains conditionally enabled
-// based on hasPathCache.
+// based on hasPathCache. C-51 T-002: Markdown file rows additionally
+// offer Pin/Unpin (opts.isMarkdownFile + opts.isPinned from treeFile).
 import {
   SEPARATOR,
   getNEW_FILE,
@@ -12,14 +13,16 @@ import {
   getRENAME,
   getDELETE,
   getSHOW_IN_FOLDER,
+  getPIN,
   HANDLERS
 } from './menuItems'
 
-export const showContextMenu = async (event, hasPathCache) => {
+export const showContextMenu = async (event, hasPathCache, opts = {}) => {
   const items = [
     getNEW_FILE(),
     getNEW_DIRECTORY(),
     SEPARATOR,
+    ...(opts.isMarkdownFile ? [getPIN(!!opts.isPinned)] : []),
     getCOPY(),
     getCUT(),
     { ...getPASTE(), enabled: !!hasPathCache },

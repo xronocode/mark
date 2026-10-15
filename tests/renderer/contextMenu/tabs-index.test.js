@@ -1,3 +1,4 @@
+import { setupTestPinia } from '../pinia'
 vi.mock('@/bus', () => ({
   default: { on: vi.fn(), off: vi.fn(), emit: vi.fn() }
 }))
@@ -7,6 +8,9 @@ vi.mock('@/i18n', () => ({
 }))
 
 describe('contextMenu/tabs/index.js', () => {
+  // C-51 T-002: the menu reads the pinned store for the Pin/Unpin label.
+  beforeEach(() => { setupTestPinia() })
+
   it('exports showContextMenu function', async () => {
     const mod = await import('@/contextMenu/tabs/index.js')
     expect(typeof mod.showContextMenu).toBe('function')

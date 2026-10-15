@@ -31,3 +31,10 @@ export const remove = (menuItem, browserWindow) => {
 export const showInFolder = (menuItem, browserWindow) => {
   bus.emit('SIDEBAR::show-in-folder')
 }
+
+// C-51 T-002: Pin/Unpin the active tree file — project store's
+// SIDEBAR::pin-file listener resolves the active item and toggles the
+// persisted pinned list.
+export const pinFile = (menuItem, browserWindow) => {
+  bus.emit('SIDEBAR::pin-file')
+}

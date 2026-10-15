@@ -26,7 +26,9 @@
         <Criterion>Tests: store (pin/unpin/reorder/persist/missing), component, e2e both engines.</Criterion>
       </AcceptanceCriteria>
       <Verification><Command>npm test</Command><Command>playwright chromium + webkit</Command><Command>grace lint --path . --assertions current</Command></Verification>
-    </T-002>
+          <Status>done</Status>
+      <ReviewEvidence>T-001 + T-002, orchestrator review 2026-10-16. The filter lives in the renderer view (store/treeFilter.js), so «Show all files» is instant and the Rust walk is unchanged; the watcher now adds non-Markdown files too, so both paths agree. Review fixes: a pre-existing root-chevron bug (toggleRootDirectories stored !expanded as the collapsed flag — the root never collapsed; caught by the new test, also broken on main); e2e emit helper used an outer variable inside page.evaluate (every tree event was dropped), prefs snapshot called on the page object, strict-mode locators, the show-all assertion targeted a file inside a collapsed folder, the screenshots wrote into the repo's screenshots/ (now test outputPath) and the Ink shot was actually light (theme now switched via the title bar); unit tests missing the Pinia/setupTestPinia imports, a Playwright-only .first(), a stat mock rejecting with an Error instead of Tauri's structured object, an import-time window.electron read; tab context-menu tests needed Pinia (the menu reads the pinned store). Visual: the current-file pill is inset (it ran edge to edge) with the name kept aligned, the accent bar dropped (overlapped the icon), Recent/Pinned no longer repeat the pill, folder hover inset. Gates: vitest 286 files / 3880 passed; grace lint 0; Playwright chromium + webkit 406 passed (2 load timeouts passed on rerun); sidebar e2e 22/22 both engines. Red on main: the six new unit files fail; sidebar-tree-redesign.spec 11/11 fail. WebKit screenshots Paper + Ink.</ReviewEvidence>
+</T-002>
     <T-003>
       <Title>Mermaid theme engine + groups 1–2 (R-2, R-2a)</Title>
       <DependsOn></DependsOn>

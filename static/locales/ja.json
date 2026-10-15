@@ -231,7 +231,9 @@
       "paste": "貼り付け",
       "rename": "名前を変更",
       "moveToTrash": "ゴミ箱に移動",
-      "showInFolder": "フォルダで表示"
+      "showInFolder": "フォルダで表示",
+      "pin": "ピン留め",
+      "unpin": "ピン留めを解除"
     },
     "tabs": {
       "close": "閉じる",
@@ -243,6 +245,8 @@
       "showInFolder": "フォルダで表示",
       "lock": "ドキュメントをロック",
       "unlock": "ドキュメントのロックを解除",
+      "pin": "ピン留め",
+      "unpin": "ピン留めを解除",
       "splitView": "分割表示",
       "copyAsMarkdown": "Markdown としてコピー",
       "copyAsHtml": "HTML としてコピー",
@@ -320,7 +324,12 @@
       "createFile": "ファイルを作成",
       "openFolder": "フォルダを開く",
       "closeFolder": "フォルダを閉じる",
-      "newFile": "新規ファイル"
+      "newFile": "新規ファイル",
+      "recentFiles": "最近使った項目",
+      "pinnedFiles": "ピン留め済み",
+      "remove": "削除",
+      "unpin": "ピン留めを解除",
+      "openOrSwitchFolder": "フォルダを開く・切り替える"
     },
     "toc": {
       "title": "目次"
@@ -513,6 +522,7 @@
         "language": "アプリの言語",
         "defaultEncoding": "新規ファイルのファイルエンコーディング",
         "endOfLine": "新規ファイルと保存時に使用する改行コード",
+        "treeShowAllFiles": "フォルダツリーにすべてのファイルを表示（Markdown のみではない）",
         "titleBarStyle": "ウィンドウのタイトルバー: カスタムまたはシステム（再起動が必要）",
         "hideScrollbar": "スクロールバーを非表示にする",
         "wordWrapInToc": "アウトラインで長い見出しを折り返す",
@@ -603,7 +613,9 @@
         "endOfLineSystem": "OS の設定に合わせる",
         "endOfLineLf": "LF (Unix, macOS)",
         "endOfLineCrlf": "CRLF (Windows)",
-        "secondsUnit": "秒"
+        "secondsUnit": "秒",
+        "showAllFiles": "すべてのファイルを表示",
+        "showAllFilesHelp": "フォルダツリーに Markdown 以外のファイルも表示します。Markdown 以外のファイルは薄く表示され、開くことはできません。"
       },
       "updates": {
         "title": "アップデート",
