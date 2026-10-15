@@ -6,14 +6,102 @@ Eine kurze Tour, die du bearbeiten kannst — diese Seite ist ein ganz normales 
 
 Gib dies einmal an Claude Code, Codex, Cursor oder einen anderen Agenten. Füge es in die Instruktionsdatei ein (z. B. `CLAUDE.md` oder `AGENTS.md`) oder direkt in den Chat. Der Kopieren-Knopf sitzt am Block.
 
-```text
+````text
 @@AGENT_PROMPT@@
-```
+````
 
 1. **Er schreibt eine Datei** — lange Pläne und Berichte landen in einer `.md`-Datei und öffnen sich in Mark.
 2. **Mark hält Schritt** — jeder Speichervorgang lädt die Seite neu und merkt sich deine Stelle.
 3. **Du formst das Ergebnis** — bearbeite die fertige Seite: Schritte korrigieren, Notizen ergänzen, Falsches streichen.
 4. **Er liest dich zurück** — der Agent liest die Datei neu; deine Änderungen sind seine nächste Anweisung.
+
+## Was Mark rendert
+
+Alles, was dein Agent in ein Dokument legen kann, wird live gerendert. Zuerst Diagramme:
+
+```mermaid
+flowchart LR
+  A[Idee] --> B[Entwurf]
+  B --> C{Review}
+  C --> B
+```
+
+```mermaid
+sequenceDiagram
+  Alice->>Bob: Entwurf fertig?
+  Bob-->>Alice: Eine Anmerkung
+```
+
+```mermaid
+pie title Arten von Inhalten
+  "Diagramme" : 3
+  "Text" : 1
+```
+
+```mermaid
+gantt
+  dateFormat YYYY-MM-DD
+  section Schreiben
+  Entwurf :a1, 2026-01-01, 3d
+  Feinschliff :after a1, 2d
+```
+
+```mermaid
+mindmap
+  root((Mark))
+    Diagramme
+    Tabellen
+    Formeln
+```
+
+Diagramme aus Daten und die schnellen Blöcke:
+
+```vega-lite
+{"data":{"values":[{"kind":"A","count":3},{"kind":"B","count":5}]},"mark":"bar","encoding":{"x":{"field":"kind","type":"nominal"},"y":{"field":"count","type":"quantitative"}}}
+```
+
+```flowchart
+st=>start: Start
+op=>operation: Schreiben
+e=>end: Fertig
+st->op->e
+```
+
+```sequence
+Title: Schnelle Abfrage
+A->B: Ping?
+B-->A: Pong
+```
+
+Callouts — eines mit Titel und eines einklappbar:
+
+> [!NOTE] Wohin der Titel kommt
+> Ein Titel nach dem Tag; der Rest des Zitats ist der Inhalt.
+
+> [!TIP]- Einklappbar
+> Klicke den Titel, um diese Notiz ein- und auszuklappen.
+
+Eine Checkliste, Mathe in beiden Formen, eine Fußnote und ein Emoji:
+
+- [x] Entwurf schreiben
+- [ ] Ihn prüfen
+
+Inline-Mathe $a^2 + b^2 = c^2$ und ein Block:
+
+$$
+\int_0^1 x^2\,dx = \tfrac13
+$$
+
+Eine Fußnote[^1] und ein Emoji :tada:.
+
+[^1]: Fußnoten sammeln Quellen und Randnotizen.
+
+Und eine Tabelle mit Ausrichtung:
+
+| Links | Mitte | Rechts |
+| :--- | :----: | ----: |
+| Idee | Notizen | fertig |
+| Plan | Schritte | ausliefern |
 
 ## Probier es: Tabellen
 

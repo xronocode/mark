@@ -2662,6 +2662,26 @@
         'mt::native-drag' bus event — app.vue skips the import dialog while
         no file is open; util/pathDisplay pathBasename/pathDirname handle
         Windows paths).
+        C-51 T-009: the universal agent prompt lists every rich-Markdown
+        feature Mark renders (user-approved EN: 22 mermaid types, vega-lite/
+        flowchart/sequence, the 5 GitHub callout tags plus 10 further tags,
+        task lists, inline/block math, fenced code with a language,
+        footnotes, YAML front matter, emoji :shortcodes:, links and images —
+        PlantUML and super/subscript deliberately absent) in guide.agentPrompt.
+        mac/.generic across all ten locales, every syntax token kept verbatim
+        (token parity through the real i18n instance pinned in
+        tests/renderer/util/agent-prompt-rich.test.js); every static/guide
+        document gained a «What Mark renders» showcase section (one live
+        example per feature family, placed after connect-agent so the
+        first-## deep link is unchanged) with the prompt inside a
+        4-backtick fence (the prompt names ``` fences; M-012 keeps the
+        exported fence longer than any inner run); the honesty guard
+        tests/e2e/rich-markdown-coverage.spec.ts (chromium + the
+        webkit-rich project) renders one example of every named feature and
+        asserts each rendered (svg per mermaid type, no error markers,
+        callout styles/title/folds, task checkboxes, KaTeX, footnote ref +
+        definition, front matter props, emoji character, aligned table,
+        link, image).
         C-38 T-003: the Settings window is the redesigned 5-tab shell from
         the approved mockup — prefComponents/tabsBar (toolbar: macOS-centred
         icon tabs, Windows/Linux underline tabs, inline SVG icons) replaces
@@ -3533,6 +3553,13 @@
         interaction, 48px minimum, double-click reset, accent hairline),
         never written to markdown/history/dirty state, disabled on the
         read-only Split View mirror (options.disableTableColumnResize).
+        C-51 T-009: exportMarkdown normalizeCodeBlock emits a fence longer
+        than any backtick run inside the block
+        (START_BLOCK_FENCE_LENGTH_KEEP) — the Guide's agent prompt names
+        ```mermaid fences inside its code block, and a fixed 3-backtick
+        export would re-import with the block closed early; blocks with no
+        ``` run keep the classic 3-backtick fence byte-for-byte (pinned in
+        tests/renderer/muya/export-fence-length.test.js).
       </Summary>
       <Path>src/muya/</Path>
       <Dependencies/>

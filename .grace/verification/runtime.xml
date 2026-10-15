@@ -3378,6 +3378,16 @@
           npx playwright test tests/e2e/settings-route.spec.ts
           tests/e2e/settings-shell.spec.ts --project=chromium --project=webkit-settings
         </Command>
+        <Command>
+          npx vitest run tests/renderer/util/agent-prompt-rich.test.js
+          tests/renderer/util/agentPrompt.test.js
+          tests/renderer/util/guideDoc.test.js
+          tests/renderer/muya/export-fence-length.test.js
+        </Command>
+        <Command>
+          npm run build &amp;&amp; npx playwright test tests/e2e/rich-markdown-coverage.spec.ts
+          --project=chromium --project=webkit-rich
+        </Command>
       </Commands>
       <Scenarios>
         <Scenario>
@@ -4500,6 +4510,45 @@
           and light/dark (paper/ink) screenshots capture the tree +
           sections.
         </Scenario>
+        <Scenario>
+          scenario-59: the agent prompt lists every rich-Markdown feature
+          Mark renders (C-51 T-009, user-approved EN 2026-10-16):
+          guide.agentPrompt.mac/.generic in all ten locales carry the
+          multi-line prompt (22 mermaid type keywords, ```vega-lite,
+          ```flowchart, ```sequence, the 5 GitHub callout tags plus the 10
+          further tags, - [ ] / - [x], $…$, $$…$$, [^1], :shortcodes:,
+          open -a Mark &lt;file&gt;.md on macOS / prose elsewhere) with
+          every syntax token verbatim — the texts avoid {}/@/| so the
+          app's vue-i18n message compiler passes them unchanged, and
+          tests/renderer/util/agent-prompt-rich.test.js renders
+          getAgentPrompt for every locale through the REAL i18n instance
+          (custom messageCompiler incl.) asserting each token. Every
+          static/guide document gained a «What Mark renders» showcase
+          (one live example per family: flowchart, sequenceDiagram, pie,
+          gantt, mindmap, vega-lite bar, flowchart.js, sequence block,
+          titled + foldable callouts, task list, inline + block math,
+          footnote, emoji shortcode, aligned table) placed after
+          connect-agent so the first-## deep link is unchanged, with the
+          prompt inside a 4-backtick fence (the prompt names ``` fences);
+          muya exportMarkdown keeps the emitted fence longer than any
+          inner backtick run (BLOCK_FENCE_LENGTH_KEEP, pinned in
+          tests/renderer/muya/export-fence-length.test.js incl. a full
+          guide open/save round trip) so Save As / Copy as Markdown keep
+          the block intact. The honesty guard
+          tests/e2e/rich-markdown-coverage.spec.ts (chromium + the
+          webkit-rich project; CI renderer-e2e WebKit step) renders a
+          fixture with one example of EVERY named feature and asserts
+          each rendered: one SVG per mermaid figure ×22 with zero
+          .ag-mermaid-error/.ag-math-error, svg for vega-lite/flowchart/
+          sequence, all 15 callout styles with the custom title and -/+
+          fold states, checked + unchecked task checkboxes, KaTeX inline
+          and display, the rust fence, footnote reference + definition
+          figure, front matter props table, the :tada: emoji character, a
+          link, a data: image in the success container, computed
+          left/center/right header alignment; a third test opens the
+          Guide and pins the prompt block plus the showcase families
+          rendering inside it.
+        </Scenario>
       </Scenarios>
       <Markers>
         <Marker>[prefs][theme-migration][BLOCK_RETIRED_THEMES_MIGRATED key:from-&gt;to …] — C-41 T-002 retired theme ids migrated at the hydration load point and persisted once per changed key</Marker>
@@ -5179,6 +5228,7 @@
           npm run build &amp;&amp; npx playwright test --project=chromium
           --project=webkit-tables tests/e2e/table-column-resize.spec.ts
         </Command>
+        <Command>npx vitest run tests/renderer/muya/export-fence-length.test.js</Command>
       </Commands>
       <Scenarios>
         <Scenario>
