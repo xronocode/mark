@@ -125,13 +125,14 @@
       <ReviewEvidence>npx vitest run: 275 files, 3763 passed. grace lint --assertions current: 0 errors. Playwright chromium + webkit full matrix: 344 passed. Red on main: the five new/rewritten unit files fail 24/27. WebKit before/after screenshots light + dark (main window with sidebar, find bar and status bar): system accent on the selected tree row, active tab marker and focused find input; document link keeps the theme colour; dark resolves #0A84FF.</ReviewEvidence>
 </T-006>
     <T-007>
-      <Title>N4 c, e — macOS sidebar vibrancy and Windows Mica (last, isolated)</Title>
+      <Title>N4 e — Windows 11 Mica on the custom title bar (macOS vibrancy dropped)</Title>
       <DependsOn>T-006</DependsOn>
+      <Decision>2026-10-16 user: «Только Mica». macOS sidebar vibrancy (N4 c) needs a transparent window, which Tauri gates behind macOSPrivateApi — a private API the App Store rejects (C-23). macOS stays opaque; only Windows 11 gets Mica.</Decision>
       <AcceptanceCriteria>
-        <Criterion>macOS: the sidebar is translucent over a native vibrancy window effect (Tauri window effects), text contrast stays AA in Paper and Ink; Windows 11: Mica on the custom title bar; other systems unchanged. Each behind the per-OS gate with a fallback to the opaque colours when the effect is unavailable (older OS, reduced transparency setting).</Criterion>
-        <Criterion>Live check on the real macOS build (screenshots), Rust/unit tests for the gate and fallbacks.</Criterion>
+        <Criterion>Windows 11 (build 22000+): Mica behind the custom title bar, tinted to the app theme (light/dark follows Paper/Ink, not only the OS), the rest of the window opaque as today. Windows 10 / Mica unavailable / effect call failure: no transparency anywhere — the title bar keeps today's opaque colours. macOS and Linux unchanged.</Criterion>
+        <Criterion>Rust unit tests for the build gate and the theme → effect mapping; renderer unit tests for the mica-active root class and its CSS; e2e (shim) for the title bar background with the effect reported active vs inactive; macOS smoke build shows no change.</Criterion>
       </AcceptanceCriteria>
-      <Verification><Command>npm test</Command><Command>cargo test</Command><Command>live macOS smoke</Command></Verification>
+      <Verification><Command>npm test</Command><Command>cargo test</Command><Command>playwright chromium + webkit</Command><Command>macOS smoke (no change)</Command></Verification>
     </T-007>
   </ImplementationPlan>
 
