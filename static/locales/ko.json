@@ -411,8 +411,38 @@
     "table": "표"
   },
   "recent": {
-    "noTabsOpen": "열린 탭이 없습니다.",
-    "newFile": "새 파일"
+    "taglineLead": "에이전트가 씁니다. 여러분이",
+    "taglineHighlight": "다듬습니다.",
+    "taglineTail": "",
+    "openFile": "파일 열기…",
+    "openFolder": "폴더 열기…",
+    "newButton": "새 문서",
+    "recentFiles": "최근 파일",
+    "recentFolders": "최근 폴더",
+    "noRecentFiles": "최근 파일이 없습니다",
+    "lastSession": "마지막 세션",
+    "filesCount": "파일 {count}개",
+    "remove": "목록에서 제거",
+    "removeTooltip": "이 목록에서만 제거됩니다. 파일은 디스크에 그대로 남습니다.",
+    "removedToast": "최근 항목에서 “{name}”을(를) 제거했습니다",
+    "undo": "실행 취소",
+    "open": "열기",
+    "copyPath": "경로 복사",
+    "showInFinder": "Finder에서 보기",
+    "showInExplorer": "탐색기에서 보기",
+    "guide": "가이드",
+    "whatsNewIn": "{version}의 새로운 기능",
+    "connectTitle": "에이전트를 연결하세요.",
+    "connectText": "프롬프트 하나로 에이전트가 여기에 계획을 열고 당신의 편집을 읽습니다.",
+    "copyPrompt": "프롬프트 복사",
+    "howItWorks": "작동 방식",
+    "time": {
+      "justNow": "방금",
+      "minutesAgo": "{count}분 전",
+      "todayAt": "오늘 {time}",
+      "yesterday": "어제",
+      "daysAgo": "{count}일 전"
+    }
   },
   "import": {
     "title": "가져오기 또는 열기",

@@ -1,7 +1,8 @@
 /**
  * Tests for src/renderer/src/ipc/runtime/recent.ts
  *
- * Covers: ipcRecent.add, list, clear.
+ * Covers: ipcRecent.add, list, clear, remove, insert (C-46 welcome
+ * screen remove + undo pair).
  */
 
 import { invoke as tauriInvoke } from '@tauri-apps/api/core'
@@ -51,6 +52,32 @@ describe('ipcRecent', () => {
       await ipcRecent.clear()
 
       expect(tauriInvoke).toHaveBeenCalledWith('mt_recent_clear', {})
+    })
+  })
+
+  describe('remove', () => {
+    it('calls ipcInvoke with mt::recent::remove and returns the old index', async () => {
+      ;(tauriInvoke as any).mockResolvedValueOnce(2)
+
+      const result = await ipcRecent.remove('/docs/gone.md')
+
+      expect(tauriInvoke).toHaveBeenCalledWith('mt_recent_remove', { path: '/docs/gone.md' })
+      expect(result).toBe(2)
+    })
+
+    it('returns null when the path was not in the list', async () => {
+      ;(tauriInvoke as any).mockResolvedValueOnce(null)
+      await expect(ipcRecent.remove('/never-there.md')).resolves.toBeNull()
+    })
+  })
+
+  describe('insert', () => {
+    it('calls ipcInvoke with mt::recent::insert, path and index', async () => {
+      ;(tauriInvoke as any).mockResolvedValueOnce(undefined)
+
+      await ipcRecent.insert('/docs/back.md', 1)
+
+      expect(tauriInvoke).toHaveBeenCalledWith('mt_recent_insert', { path: '/docs/back.md', index: 1 })
     })
   })
 })

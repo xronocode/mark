@@ -76,6 +76,10 @@
 //     after an update (components/whatsNew mounts here); Help › What's
 //     New reopens it. The App Store review request inits after the gate
 //     (review/reviewRequest) with the gate outcome as session facts.
+//   - 2026-10-15 C-46 T-001: drag-over no longer opens the import
+//     dialog while the welcome screen is visible (no current file) —
+//     the welcome screen shows its own drop-zone highlight and sends
+//     drops through the same 'mt::window::drop' channel.
 //   - 2026-10-15 C-41 T-001: Auto theme — after hydration, resolve
 //     followSystemTheme via util/autoTheme before the first addThemeStyle,
 //     re-resolve on mode/member preference changes (incl. cross-window
@@ -212,13 +216,19 @@ const setupDragDropHandler = () => {
           // Do nothing
         } else {
           e.preventDefault()
-          if (timer.value) {
-            clearTimeout(timer.value)
+          // C-46: while the welcome screen is up (no file open) it owns
+          // the drop affordance — its own highlighted drop zone forwards
+          // drops through the same 'mt::window::drop' channel, so the
+          // app-wide import dialog must not open on top of it.
+          if (hasCurrentFile.value) {
+            if (timer.value) {
+              clearTimeout(timer.value)
+            }
+            timer.value = setTimeout(() => {
+              bus.emit('importDialog', false)
+            }, 300)
+            bus.emit('importDialog', true)
           }
-          timer.value = setTimeout(() => {
-            bus.emit('importDialog', false)
-          }, 300)
-          bus.emit('importDialog', true)
         }
         e.dataTransfer.dropEffect = 'copy'
       } else {

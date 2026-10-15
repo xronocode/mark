@@ -417,6 +417,22 @@ export const useProjectStore = defineStore('project', {
       }
     },
 
+    // C-46 welcome screen: replace the stored recent-folders list in one
+    // write (used by "Remove from list" with the filtered array and by the
+    // 5s Undo toast with the pre-remove snapshot so exact order returns).
+    // Returns the sanitized list that was persisted, or [] on failure.
+    async SET_RECENT_FOLDERS(list) {
+      const clean = Array.isArray(list)
+        ? list.filter((p) => typeof p === 'string' && p).slice(0, MAX_RECENT_FOLDERS)
+        : []
+      try {
+        await ipcPrefs.set(RECENT_FOLDERS_KEY, clean)
+        return clean
+      } catch {
+        return []
+      }
+    },
+
     async OPEN_RECENT_FOLDER(pathname) {
       const before = this.projectTrees.length
       this.ADD_PROJECT(pathname)
