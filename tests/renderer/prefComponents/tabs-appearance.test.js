@@ -88,7 +88,9 @@ describe('tabs/appearance — C-38 T-004 content', () => {
       'preferences.appearance.text.lineHeight',
       'preferences.appearance.text.lineWidth',
       'preferences.appearance.window.hideScrollbar',
-      'preferences.appearance.window.wordWrapInToc'
+      'preferences.appearance.window.wordWrapInToc',
+      // C-40 T-004: the status-bar switch joins the Window-and-panels group.
+      'preferences.appearance.window.statusBar'
     ])
     expect(groupTitles(wrapper)).toEqual([
       'preferences.appearance.theme.title',

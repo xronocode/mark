@@ -141,7 +141,9 @@
       "showDeveloperTools": "Show Developer Tools",
       "reloadWindow": "Reload Window",
       "splitView": "Split View",
-      "outline": "Outline"
+      "outline": "Outline",
+      "statusBar": "Status Bar",
+      "lockDocument": "Lock Document"
     },
     "format": {
       "format": "Format",
@@ -239,7 +241,13 @@
       "closeAllTabs": "Close all tabs",
       "rename": "Rename",
       "copyPath": "Copy path",
-      "showInFolder": "Show in folder"
+      "showInFolder": "Show in folder",
+      "lock": "Lock Document",
+      "unlock": "Unlock Document",
+      "splitView": "Split View",
+      "copyAsMarkdown": "Copy as Markdown",
+      "copyAsHtml": "Copy as HTML",
+      "copyAsStructuredText": "Copy as Structured Text"
     },
     "editor": {
       "undo": "Undo",
@@ -269,6 +277,34 @@
   },
   "outlineRail": {
     "title": "On this page"
+  },
+  "statusBar": {
+    "title": "Document statistics",
+    "documentType": "Markdown",
+    "readingTime": "{count} min read",
+    "lines": {
+      "one": "{count} line",
+      "other": "{count} lines"
+    },
+    "words": {
+      "one": "{count} word",
+      "other": "{count} words"
+    },
+    "characters": {
+      "one": "{count} character",
+      "other": "{count} characters"
+    },
+    "selectedWords": {
+      "one": "{count} word selected",
+      "other": "{count} words selected"
+    },
+    "selectedCharacters": {
+      "one": "{count} character selected",
+      "other": "{count} characters selected"
+    }
+  },
+  "tabs": {
+    "lockedTitle": "Read-only"
   },
   "sideBar": {
     "search": {
@@ -489,6 +525,7 @@
         "titleBarStyle": "Window title bar: custom or system (requires restart)",
         "hideScrollbar": "Hide scroll bars",
         "wordWrapInToc": "Wrap long headings in the outline",
+        "statusBarVisibility": "Show the status bar (lines, words, characters, reading time)",
         "editorFontFamily": "Text font",
         "fontSize": "Text size",
         "lineHeight": "Line spacing",
@@ -606,6 +643,8 @@
         "title": "Window and panels",
         "hideScrollbar": "Hide scroll bars",
         "wordWrapInToc": "Wrap long headings in the outline",
+        "statusBar": "Show the status bar",
+        "statusBarHelp": "Lines, words, characters and reading time at the bottom of the window (also View › Status Bar).",
         "titleBarStyle": "Window title bar",
         "titleBarStyleHelp": "Custom draws Mark's own title bar with tabs. Requires a restart.",
         "titleBarStyleCustom": "Custom",
@@ -839,6 +878,7 @@
       "copyAsHtml": "Copy as HTML",
       "copyAsPlainText": "Copy As Plain Text",
       "copyAsStructuredText": "Copy As Structured Text",
+      "copyAsMarkdown": "Copy as Markdown",
       "pasteAsPlaintext": "Paste as Plain Text",
       "selectAll": "Select All",
       "duplicate": "Duplicate",
@@ -925,7 +965,9 @@
       "problems": "Show markdown problems panel",
       "toggleMarkdownLint": "Toggle markdown validation",
       "splitView": "Split View",
-      "outline": "Show or hide the On this page outline"
+      "outline": "Show or hide the On this page outline",
+      "statusBar": "Show or hide the status bar",
+      "lockDocument": "Lock the current document (read-only)"
     },
     "tabs": {
       "cycleForward": "Cycle Forward",

@@ -140,7 +140,9 @@
       "showDeveloperTools": "顯示開發者工具",
       "reloadWindow": "重新載入視窗",
       "splitView": "分欄檢視",
-      "outline": "大綱"
+      "outline": "大綱",
+      "statusBar": "狀態列",
+      "lockDocument": "鎖定文件"
     },
     "format": {
       "format": "格式",
@@ -238,7 +240,13 @@
       "closeAllTabs": "關閉所有標籤頁",
       "rename": "重新命名",
       "copyPath": "複製路徑",
-      "showInFolder": "在資料夾中顯示"
+      "showInFolder": "在資料夾中顯示",
+      "lock": "鎖定文件",
+      "unlock": "解鎖文件",
+      "splitView": "分割檢視",
+      "copyAsMarkdown": "複製為 Markdown",
+      "copyAsHtml": "複製為 HTML",
+      "copyAsStructuredText": "複製為結構化文字"
     },
     "editor": {
       "undo": "撤銷",
@@ -269,6 +277,29 @@
   },
   "outlineRail": {
     "title": "本頁內容"
+  },
+  "statusBar": {
+    "title": "文件統計",
+    "documentType": "Markdown",
+    "readingTime": "閱讀約 {count} 分鐘",
+    "lines": {
+      "other": "{count} 行"
+    },
+    "words": {
+      "other": "{count} 字"
+    },
+    "characters": {
+      "other": "{count} 字元"
+    },
+    "selectedWords": {
+      "other": "已選取 {count} 字"
+    },
+    "selectedCharacters": {
+      "other": "已選取 {count} 字元"
+    }
+  },
+  "tabs": {
+    "lockedTitle": "唯讀"
   },
   "sideBar": {
     "search": {
@@ -485,6 +516,7 @@
         "titleBarStyle": "視窗標題欄：自訂或系統（需要重新啟動）",
         "hideScrollbar": "隱藏捲軸",
         "wordWrapInToc": "在目錄中換行過長標題",
+        "statusBarVisibility": "顯示狀態列（行數、字數、字元數、閱讀時間）",
         "editorFontFamily": "正文字型",
         "fontSize": "文字大小",
         "lineHeight": "行距",
@@ -602,6 +634,8 @@
         "title": "視窗與面板",
         "hideScrollbar": "隱藏捲軸",
         "wordWrapInToc": "在目錄中換行過長標題",
+        "statusBar": "顯示狀態列",
+        "statusBarHelp": "在視窗底部顯示行數、字數、字元數與閱讀時間（也可透過「顯示方式 › 狀態列」切換）。",
         "titleBarStyle": "視窗標題欄",
         "titleBarStyleHelp": "自訂會繪製帶分頁的 Mark 專屬標題欄。需要重新啟動。",
         "titleBarStyleCustom": "自訂",
@@ -826,6 +860,7 @@
       "copyAsHtml": "複製為 HTML",
       "copyAsPlainText": "複製為純文字",
       "copyAsStructuredText": "複製為結構化文字",
+      "copyAsMarkdown": "複製為 Markdown",
       "pasteAsPlaintext": "貼上為純文字",
       "selectAll": "全選",
       "duplicate": "複製",
@@ -907,7 +942,9 @@
       "zoomOut": "縮小",
       "devToggleDeveloperTools": "切換開發者工具",
       "splitView": "分欄檢視",
-      "outline": "顯示或隱藏「本頁內容」大綱"
+      "outline": "顯示或隱藏「本頁內容」大綱",
+      "statusBar": "顯示或隱藏狀態列",
+      "lockDocument": "鎖定目前文件（唯讀）"
     },
     "tabs": {
       "cycleForward": "向前循環",

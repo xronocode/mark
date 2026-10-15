@@ -12,6 +12,16 @@
           @click.middle="closeTab(file.id)"
           @contextmenu.prevent="handleContextMenu($event, file)"
         >
+          <!-- C-40 T-004: lock badge — the tab sits in the read-only
+               mode (locked via View › Lock Document or Finder-opened
+               reading view). -->
+          <chrome-icon
+            v-if="file.previewMode"
+            name="lock"
+            :size="11"
+            class="tab-lock-badge"
+            :title="t('tabs.lockedTitle')"
+          ></chrome-icon>
           <span>{{ file.filename }}</span>
           <svg class="close-icon icon" aria-hidden="true" @click.stop="removeFileInTab(file)">
             <circle id="unsaved-circle-icon" cx="6" cy="6" r="3"></circle>
@@ -30,8 +40,15 @@
 
 <script setup>
 // FILE: src/renderer/src/components/editorWithTabs/tabs.vue
-// VERSION: 1.2.0
+// VERSION: 1.3.0
 // START_CHANGE_SUMMARY
+//   - 2026-10-15 v1.3.0: C-40 T-004 — a tab in the read-only mode
+//     (locked via View › Lock Document, or Finder-opened reading view)
+//     carries a lock badge (chromeIcons 'lock', 11 px) before its
+//     filename; the badge stays visible at rest. The tab context menu
+//     gains Lock/Unlock, Split View and the copy-document flavors
+//     (Markdown exact per tab; HTML/structured activate the tab and
+//     reuse the editor pipeline).
 //   - 2026-09-16 v1.1.0: auto-scroll the strip so the active tab is always visible (C-6) — activation via cycling, sidebar, close-to-neighbor, restore, or reorder no longer leaves the active tab off-screen.
 //   - 2026-09-16 v1.2.0: ResizeObserver on the strip re-reveals the active tab after container resize (C-7).
 // END_CHANGE_SUMMARY
@@ -39,11 +56,15 @@ import { ref, watch, nextTick, onMounted, onBeforeUnmount } from 'vue'
 import { useEditorStore } from '@/store/editor'
 import { useLayoutStore } from '@/store/layout'
 import { storeToRefs } from 'pinia'
+import { useI18n } from 'vue-i18n'
 import autoScroll from 'dom-autoscroller'
 import dragula from 'dragula'
 import { showContextMenu } from '../../contextMenu/tabs'
 import { computeActiveTabScroll } from '@/util/tabsScroll'
+import { ChromeIcon } from '../icons/chromeIcons.js'
 import bus from '../../bus'
+
+const { t } = useI18n()
 
 const editorStore = useEditorStore()
 const layoutStore = useLayoutStore()
@@ -192,6 +213,52 @@ const showInFolder = (tabId) => {
   }
 }
 
+// C-40 T-004: tab context menu Lock/Unlock — toggles the specific tab's
+// read-only lock (works for background tabs too, no activation switch).
+const toggleLock = (tabId) => {
+  const tab = tabs.value.find((f) => f.id === tabId)
+  if (tab) {
+    editorStore.TOGGLE_LOCK_DOCUMENT(tabId)
+  }
+}
+
+// C-40 T-004: per-tab Split View from the tab context menu — the same
+// tab.splitView flag the view.split-view command flips for the current
+// tab (a background tab's split view shows when it is activated).
+const toggleSplitView = (tabId) => {
+  const tab = tabs.value.find((f) => f.id === tabId)
+  if (tab) {
+    tab.splitView = !tab.splitView
+    console.debug(`[editor][split][BLOCK_SPLIT_TOGGLED state=${tab.splitView ? 'on' : 'off'} tab=${tabId}]`)
+  }
+}
+
+// C-40 T-004: Copy as Markdown writes the clicked tab's raw markdown
+// straight to the clipboard (exact for background tabs too).
+const copyAsMarkdown = (tabId) => {
+  const tab = tabs.value.find((f) => f.id === tabId)
+  if (tab) {
+    window.electron.clipboard.writeText(tab.markdown || '')
+    console.debug(`[Tabs][copyAsMarkdown][BLOCK_COPY_AS_MARKDOWN tab=${tabId}]`)
+  }
+}
+
+// C-40 T-004: the rendered flavors (HTML / structured text) run through
+// the live editor pipeline, so a background tab is activated first and
+// the handler fires after the document swap settles (the same 150 ms
+// budget the command palette's focusEditorAndExecute uses).
+const COPY_DOCUMENT_SETTLE_MS = 150
+const copyDocumentAs = ({ kind, tabId }) => {
+  const tab = tabs.value.find((f) => f.id === tabId)
+  if (!tab) return
+  if (currentFile.value && currentFile.value.id !== tab.id) {
+    editorStore.UPDATE_CURRENT_FILE(tab)
+  }
+  setTimeout(() => {
+    bus.emit(kind === 'html' ? 'copyAsHtmlRich' : 'copyAsStructuredText')
+  }, COPY_DOCUMENT_SETTLE_MS)
+}
+
 const handleContextMenu = (event, tab) => {
   if (tab.id) {
     showContextMenu(event, tab)
@@ -206,6 +273,10 @@ onMounted(() => {
   bus.on('TABS::rename', rename)
   bus.on('TABS::copy-path', copyPath)
   bus.on('TABS::show-in-folder', showInFolder)
+  bus.on('TABS::toggle-lock', toggleLock)
+  bus.on('TABS::toggle-split-view', toggleSplitView)
+  bus.on('TABS::copy-as-markdown', copyAsMarkdown)
+  bus.on('TABS::copy-document-as', copyDocumentAs)
   bus.on('EDITOR_TABS::change-max-width', changeMaxWidth)
 
   const tabs = tabContainer.value
@@ -288,6 +359,10 @@ onBeforeUnmount(() => {
   bus.off('TABS::rename', rename)
   bus.off('TABS::copy-path', copyPath)
   bus.off('TABS::show-in-folder', showInFolder)
+  bus.off('TABS::toggle-lock', toggleLock)
+  bus.off('TABS::toggle-split-view', toggleSplitView)
+  bus.off('TABS::copy-as-markdown', copyAsMarkdown)
+  bus.off('TABS::copy-document-as', copyDocumentAs)
   bus.off('EDITOR_TABS::change-max-width', changeMaxWidth)
 })
 </script>
@@ -352,6 +427,15 @@ svg.close-icon:hover {
     }
     & > svg {
       opacity: 0;
+    }
+    /* C-40 T-004: the lock badge is always visible (unlike the close
+       icon, which appears on hover) — a read-only tab must be legible
+       at rest. */
+    & > svg.tab-lock-badge {
+      opacity: 1;
+      flex-shrink: 0;
+      margin-right: 2px;
+      color: var(--editorColor50);
     }
     &:focus {
       outline: none;

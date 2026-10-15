@@ -1,5 +1,5 @@
 // FILE: src-tauri/src/m009_menu.rs
-// VERSION: 2.1.10-beta
+// VERSION: 2.1.12-beta
 // START_MODULE_CONTRACT
 //   PURPOSE: M-009 mt-menu. Native macOS application menu + command-id
 //            taxonomy for the renderer's command palette / sidebar /
@@ -117,6 +117,16 @@
 //                page» outline rail through the renderer command and the
 //                persisted outlineRailVisible preference (default on);
 //                ⌘T remains Go to Heading (edit.go-to-heading).
+//   - 2026-10-15 C-40 T-004: add View-menu "Status Bar" check item
+//                (view.status-bar, no accelerator, default unchecked —
+//                macOS default off; the renderer resolves the per-OS
+//                default) and "Lock Document" (view.lock-document, plain
+//                item, no accelerator) — both id-dispatched to the
+//                renderer commands of the same ids. Add Edit-menu
+//                "Copy as Markdown" (edit.copy-as-markdown, no
+//                accelerator) — the raw-Markdown flavor of R-2's
+//                copy-document tools, also in the palette and the tab
+//                context menu.
 // END_CHANGE_SUMMARY
 
 use serde::{Deserialize, Serialize};
@@ -577,6 +587,17 @@ pub fn standard_menu() -> Vec<MenuItem> {
                     accelerator: None,
                     items: None,
                 },
+                // C-40 T-004: View › Status Bar toggles the optional
+                // status bar — id-dispatched to the renderer
+                // view.status-bar command (persisted statusBarVisibility
+                // preference; default off on macOS, on elsewhere).
+                MenuItem {
+                    id: "view.status-bar".to_string(),
+                    label: "Status Bar".to_string(),
+                    command: None,
+                    accelerator: None,
+                    items: None,
+                },
                 MenuItem {
                     id: "view.source-code-mode".to_string(),
                     label: "Source Code Mode".to_string(),
@@ -589,6 +610,18 @@ pub fn standard_menu() -> Vec<MenuItem> {
                     label: "Split View".to_string(),
                     command: Some("toggleSplitView".to_string()),
                     accelerator: Some("CmdOrCtrl+Alt+\\".to_string()),
+                    items: None,
+                },
+                // C-40 T-004: View › Lock Document toggles the per-tab
+                // read-only lock — id-dispatched to the renderer
+                // view.lock-document command (no accelerator; the lock
+                // is also reachable from the palette and the tab
+                // context menu).
+                MenuItem {
+                    id: "view.lock-document".to_string(),
+                    label: "Lock Document".to_string(),
+                    command: None,
+                    accelerator: None,
                     items: None,
                 },
                 MenuItem {
@@ -882,6 +915,13 @@ pub fn build_native_menu<R: tauri::Runtime>(
                 .build(handle)?,
         )
         .item(
+            // C-40 T-004: raw-Markdown clipboard write (selection or whole
+            // document) — id-dispatched to the renderer command, like its
+            // HTML/plain/structured siblings; no accelerator.
+            &MenuItemBuilder::with_id("edit.copy-as-markdown", "Copy as Markdown")
+                .build(handle)?,
+        )
+        .item(
             &MenuItemBuilder::with_id("edit.select-all", "Select All")
                 .accelerator("CmdOrCtrl+A")
                 .build(handle)?,
@@ -990,6 +1030,17 @@ pub fn build_native_menu<R: tauri::Runtime>(
                 .checked(true)
                 .build(handle)?,
         )
+        .item(
+            // C-40 T-004: the optional status bar. The native app menu is
+            // macOS-only, where the default is off (Windows/Linux default
+            // on — the renderer resolves the per-OS default); checkmark
+            // re-sync from stored prefs rides the same follow-up as the
+            // other check items. Id-dispatched to the renderer
+            // view.status-bar command.
+            &tauri::menu::CheckMenuItemBuilder::with_id("view.status-bar", "Status Bar")
+                .checked(false)
+                .build(handle)?,
+        )
         .separator()
         .item(
             &MenuItemBuilder::with_id("view.source-code-mode", "Source Code Mode")
@@ -1001,6 +1052,14 @@ pub fn build_native_menu<R: tauri::Runtime>(
             // current tab. Cmd+Backslash stays the in-editor sidebar toggle.
             &MenuItemBuilder::with_id("view.split-view", "Split View")
                 .accelerator("CmdOrCtrl+Alt+\\")
+                .build(handle)?,
+        )
+        .item(
+            // C-40 T-004: per-tab read-only lock. Plain item (not a check
+            // item): the lock state is per-tab and lives in the renderer —
+            // the tab's lock badge is the state indicator. Id-dispatched to
+            // the renderer view.lock-document command.
+            &MenuItemBuilder::with_id("view.lock-document", "Lock Document")
                 .build(handle)?,
         )
         .item(
@@ -1381,6 +1440,9 @@ mod tests {
             // help.guide renderer command — also id-dispatched only.
             // C-40 T-003: view.outline toggles the outline rail through
             // the renderer view.outline command — id-dispatched only.
+            // C-40 T-004: view.status-bar / view.lock-document toggle the
+            // status bar and the per-tab lock through the renderer
+            // commands of the same ids — id-dispatched only.
             let id_dispatched_only = matches!(
                 item.id.as_str(),
                 "tabs.cycleForward"
@@ -1390,6 +1452,8 @@ mod tests {
                     | "view.actual-size"
                     | "help.guide"
                     | "view.outline"
+                    | "view.status-bar"
+                    | "view.lock-document"
             );
             if !has_static_children && !dynamic_submenu && !id_dispatched_only {
                 assert!(
@@ -1426,6 +1490,43 @@ mod tests {
         assert!(item.command.is_none(), "view.outline must be id-dispatched only");
         assert!(item.accelerator.is_none(), "view.outline has no accelerator (⌘T is Go to Heading)");
     }
+
+    // START_BLOCK_C40_T004_MENU_TESTS
+    #[test]
+    fn view_menu_status_bar_item_is_id_dispatched_check_item() {
+        // C-40 T-004: View › Status Bar toggles the optional status bar
+        // (persisted statusBarVisibility preference). Id-dispatched only,
+        // no accelerator; the built (macOS) menu item is a CheckMenuItem
+        // defaulting to unchecked (macOS default off — Windows/Linux
+        // default on is resolved renderer-side).
+        let menu = standard_menu();
+        let flat = flatten(&menu);
+        let item = flat
+            .iter()
+            .find(|i| i.id == "view.status-bar")
+            .unwrap_or_else(|| panic!("menu missing view.status-bar"));
+        assert_eq!(item.label, "Status Bar");
+        assert!(item.command.is_none(), "view.status-bar must be id-dispatched only");
+        assert!(item.accelerator.is_none(), "view.status-bar has no accelerator");
+    }
+
+    #[test]
+    fn view_menu_lock_document_item_is_id_dispatched() {
+        // C-40 T-004: View › Lock Document toggles the per-tab read-only
+        // lock (renderer view.lock-document command; also palette + tab
+        // context menu). Plain item — the lock state is per-tab and shown
+        // by the tab's lock badge, so no check item, no accelerator.
+        let menu = standard_menu();
+        let flat = flatten(&menu);
+        let item = flat
+            .iter()
+            .find(|i| i.id == "view.lock-document")
+            .unwrap_or_else(|| panic!("menu missing view.lock-document"));
+        assert_eq!(item.label, "Lock Document");
+        assert!(item.command.is_none(), "view.lock-document must be id-dispatched only");
+        assert!(item.accelerator.is_none(), "view.lock-document has no accelerator");
+    }
+    // END_BLOCK_C40_T004_MENU_TESTS
 
     #[test]
     fn view_menu_zoom_items_dispatch_by_id_with_accelerators() {

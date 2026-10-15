@@ -11,6 +11,11 @@ import {
   getRENAME,
   getCOPY_PATH,
   getSHOW_IN_FOLDER,
+  getLOCK,
+  getSPLIT_VIEW,
+  getCOPY_AS_MARKDOWN,
+  getCOPY_AS_HTML,
+  getCOPY_AS_STRUCTURED,
   HANDLERS
 } from './menuItems'
 
@@ -21,6 +26,19 @@ export const showContextMenu = async (event, tab) => {
     getCLOSE_OTHERS(),
     getCLOSE_SAVED(),
     getCLOSE_ALL(),
+    SEPARATOR,
+    // C-40 T-004: per-tab read-only lock (works on untitled tabs too).
+    // The label keys on tab.locked — a Finder-opened tab in plain
+    // reading view is not locked yet and still offers Lock (which makes
+    // the read-only state sticky against the click-to-exit gesture).
+    getLOCK(!!tab.locked),
+    // C-40 T-004: the R-2 document tools stay reachable here (option A
+    // removed them from the title bar): Split View and the copy-document
+    // flavors.
+    getSPLIT_VIEW(),
+    getCOPY_AS_MARKDOWN(),
+    getCOPY_AS_HTML(),
+    getCOPY_AS_STRUCTURED(),
     SEPARATOR,
     { ...getRENAME(), enabled: !!pathname },
     { ...getCOPY_PATH(), enabled: !!pathname },

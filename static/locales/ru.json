@@ -140,7 +140,9 @@
       "showDeveloperTools": "Инструменты разработчика",
       "reloadWindow": "Перезагрузить окно",
       "splitView": "Разделённый вид",
-      "outline": "Оглавление"
+      "outline": "Оглавление",
+      "statusBar": "Панель состояния",
+      "lockDocument": "Заблокировать документ"
     },
     "format": {
       "format": "Формат",
@@ -238,7 +240,13 @@
       "closeAllTabs": "Закрыть все вкладки",
       "rename": "Переименовать",
       "copyPath": "Копировать путь",
-      "showInFolder": "Показать в папке"
+      "showInFolder": "Показать в папке",
+      "lock": "Заблокировать документ",
+      "unlock": "Разблокировать документ",
+      "splitView": "Разделённый вид",
+      "copyAsMarkdown": "Копировать как Markdown",
+      "copyAsHtml": "Копировать как HTML",
+      "copyAsStructuredText": "Копировать как структурированный текст"
     },
     "editor": {
       "undo": "Отменить",
@@ -268,6 +276,44 @@
   },
   "outlineRail": {
     "title": "На этой странице"
+  },
+  "statusBar": {
+    "title": "Статистика документа",
+    "documentType": "Markdown",
+    "readingTime": "{count} мин чтения",
+    "lines": {
+      "one": "{count} строка",
+      "few": "{count} строки",
+      "many": "{count} строк",
+      "other": "{count} строки"
+    },
+    "words": {
+      "one": "{count} слово",
+      "few": "{count} слова",
+      "many": "{count} слов",
+      "other": "{count} слова"
+    },
+    "characters": {
+      "one": "{count} символ",
+      "few": "{count} символа",
+      "many": "{count} символов",
+      "other": "{count} символа"
+    },
+    "selectedWords": {
+      "one": "{count} слово выбрано",
+      "few": "{count} слова выбрано",
+      "many": "{count} слов выбрано",
+      "other": "{count} слова выбрано"
+    },
+    "selectedCharacters": {
+      "one": "{count} символ выбрано",
+      "few": "{count} символа выбрано",
+      "many": "{count} символов выбрано",
+      "other": "{count} символа выбрано"
+    }
+  },
+  "tabs": {
+    "lockedTitle": "Только чтение"
   },
   "sideBar": {
     "search": {
@@ -488,6 +534,7 @@
         "titleBarStyle": "Заголовок окна: собственный или системный (требуется перезапуск)",
         "hideScrollbar": "Скрывать полосы прокрутки",
         "wordWrapInToc": "Переносить длинные заголовки в оглавлении",
+        "statusBarVisibility": "Показывать панель состояния (строки, слова, символы, время чтения)",
         "editorFontFamily": "Шрифт текста",
         "fontSize": "Размер текста",
         "lineHeight": "Межстрочный интервал",
@@ -605,6 +652,8 @@
         "title": "Окно и панели",
         "hideScrollbar": "Скрывать полосы прокрутки",
         "wordWrapInToc": "Переносить длинные заголовки в оглавлении",
+        "statusBar": "Показывать панель состояния",
+        "statusBarHelp": "Строки, слова, символы и время чтения внизу окна (также Вид › Панель состояния).",
         "titleBarStyle": "Заголовок окна",
         "titleBarStyleHelp": "Собственный заголовок Mark со вкладками. Требуется перезапуск.",
         "titleBarStyleCustom": "Собственный",
@@ -838,6 +887,7 @@
       "copyAsHtml": "Копировать как HTML",
       "copyAsPlainText": "Копировать как простой текст",
       "copyAsStructuredText": "Копировать как структурированный текст",
+      "copyAsMarkdown": "Копировать как Markdown",
       "pasteAsPlaintext": "Вставить как обычный текст",
       "selectAll": "Выделить всё",
       "duplicate": "Дублировать",
@@ -919,7 +969,9 @@
       "zoomOut": "Уменьшить",
       "devToggleDeveloperTools": "Переключить инструменты разработчика",
       "splitView": "Разделённый вид",
-      "outline": "Показать или скрыть оглавление «На этой странице»"
+      "outline": "Показать или скрыть оглавление «На этой странице»",
+      "statusBar": "Показать или скрыть панель состояния",
+      "lockDocument": "Заблокировать текущий документ (только чтение)"
     },
     "tabs": {
       "cycleForward": "Следующая вкладка",

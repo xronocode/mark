@@ -140,7 +140,9 @@
       "showDeveloperTools": "显示开发者工具",
       "reloadWindow": "重新加载窗口",
       "splitView": "分栏视图",
-      "outline": "大纲"
+      "outline": "大纲",
+      "statusBar": "状态栏",
+      "lockDocument": "锁定文档"
     },
     "format": {
       "format": "格式",
@@ -238,7 +240,13 @@
       "closeAllTabs": "关闭所有标签页",
       "rename": "重命名",
       "copyPath": "复制路径",
-      "showInFolder": "在文件夹中显示"
+      "showInFolder": "在文件夹中显示",
+      "lock": "锁定文档",
+      "unlock": "解锁文档",
+      "splitView": "分屏视图",
+      "copyAsMarkdown": "复制为 Markdown",
+      "copyAsHtml": "复制为 HTML",
+      "copyAsStructuredText": "复制为结构化文本"
     },
     "editor": {
       "undo": "撤销",
@@ -269,6 +277,29 @@
   },
   "outlineRail": {
     "title": "本页内容"
+  },
+  "statusBar": {
+    "title": "文档统计",
+    "documentType": "Markdown",
+    "readingTime": "阅读约 {count} 分钟",
+    "lines": {
+      "other": "{count} 行"
+    },
+    "words": {
+      "other": "{count} 词"
+    },
+    "characters": {
+      "other": "{count} 字符"
+    },
+    "selectedWords": {
+      "other": "已选择 {count} 词"
+    },
+    "selectedCharacters": {
+      "other": "已选择 {count} 字符"
+    }
+  },
+  "tabs": {
+    "lockedTitle": "只读"
   },
   "sideBar": {
     "search": {
@@ -485,6 +516,7 @@
         "titleBarStyle": "窗口标题栏：自定义或系统（需要重启）",
         "hideScrollbar": "隐藏滚动条",
         "wordWrapInToc": "在目录中换行长标题",
+        "statusBarVisibility": "显示状态栏（行数、词数、字符数、阅读时间）",
         "editorFontFamily": "正文字体",
         "fontSize": "正文大小",
         "lineHeight": "行间距",
@@ -602,6 +634,8 @@
         "title": "窗口与面板",
         "hideScrollbar": "隐藏滚动条",
         "wordWrapInToc": "在目录中换行长标题",
+        "statusBar": "显示状态栏",
+        "statusBarHelp": "在窗口底部显示行数、词数、字符数和阅读时间（也可通过「视图 › 状态栏」切换）。",
         "titleBarStyle": "窗口标题栏",
         "titleBarStyleHelp": "自定义会绘制带标签页的 Mark 专属标题栏。需要重启。",
         "titleBarStyleCustom": "自定义",
@@ -834,6 +868,7 @@
       "copyAsHtml": "复制为 HTML",
       "copyAsPlainText": "复制为纯文本",
       "copyAsStructuredText": "复制为结构化文本",
+      "copyAsMarkdown": "复制为 Markdown",
       "pasteAsPlaintext": "粘贴为纯文本",
       "selectAll": "全选",
       "duplicate": "创建副本",
@@ -915,7 +950,9 @@
       "reloadImages": "重新加载图片",
       "textDirection": "文本方向",
       "splitView": "分栏视图",
-      "outline": "显示或隐藏“本页内容”大纲"
+      "outline": "显示或隐藏“本页内容”大纲",
+      "statusBar": "显示或隐藏状态栏",
+      "lockDocument": "锁定当前文档（只读）"
     },
     "tabs": {
       "cycleForward": "向前循环",

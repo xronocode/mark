@@ -1743,13 +1743,18 @@ export const useEditorStore = defineStore('editor', {
         case 'change': {
           // B7-M-032: integrate liveReload preference alongside autoSave.
           // B7-M-033: preview-mode tabs always auto-reload (read-only, no dirty conflict).
+          // C-40 T-004: a tab locked WITH unsaved edits is read-only but
+          // dirty — it takes the normal conflict path instead of silently
+          // replacing the user's edits. Finder previews keep the M-033
+          // always-reload bypass.
           const { autoSave, liveReload } = preferencesStore
-          if (autoSave || liveReload || tab.previewMode || tab.watchMode) {
+          const readOnlyReload = tab.previewMode && (isSaved || !tab.locked)
+          if (autoSave || liveReload || readOnlyReload || tab.watchMode) {
             if (autoSaveTimers.has(id)) {
               clearTimeout(autoSaveTimers.get(id))
               autoSaveTimers.delete(id)
             }
-            if (isSaved || liveReload || tab.previewMode || tab.watchMode) {
+            if (isSaved || liveReload || readOnlyReload || tab.watchMode) {
               // If change already has data (legacy path), use it directly.
               // Otherwise read from disk (watcher path: project.js sends only {pathname}).
               if (change.data) {
@@ -2024,7 +2029,50 @@ export const useEditorStore = defineStore('editor', {
       console.debug(
         `[editor][preview][BLOCK_SIDEBAR_RESTORED visibility=${restoredVisibility}]`
       )
+    },
+
+    // START_BLOCK_TOGGLE_LOCK_DOCUMENT
+    // C-40 T-004: View › Lock Document / palette / tab context menu.
+    // Lock is the existing per-tab read-only surface (tab.previewMode,
+    // M-022) made explicit and sticky: the click-to-exit and Cmd+\ exit
+    // gestures are suppressed while tab.locked (editor.vue), so only the
+    // toggle itself unlocks. Lock semantics deliberately differ from the
+    // Finder-open path: it bypasses the previewModeOnFinderOpen gate (an
+    // explicit user action, not a Finder default) and never collapses
+    // the sidebar (a lock is not a reading session); when the lock was
+    // what entered preview, unlocking leaves the sidebar untouched too.
+    // Live reload keeps applying while locked (APPLY_FILE_CHANGE treats
+    // previewMode tabs as always-reload).
+    TOGGLE_LOCK_DOCUMENT(tabId = null) {
+      const tab = tabId
+        ? this.tabs.find((t) => t.id === tabId)
+        : this.currentFile
+      if (!tab || !tab.id) return
+      if (tab.locked) {
+        // Unlock: editing is restored through the same
+        // previewMode → isReadOnlySurface watcher that Finder preview
+        // exit uses (it re-enables contenteditable and restores the
+        // caret).
+        tab.locked = false
+        if (tab._lockEnteredPreview) {
+          delete tab._lockEnteredPreview
+          tab.previewMode = false
+        } else if (tab.previewMode) {
+          this.EXIT_PREVIEW_MODE(tab.id, 'lock-toggle')
+        }
+        // eslint-disable-next-line no-console
+        console.debug(`[editor][lock][BLOCK_LOCK_TOGGLED tab=${tab.id} locked=false]`)
+        return
+      }
+      tab.locked = true
+      if (!tab.previewMode) {
+        tab.previewMode = true
+        tab._lockEnteredPreview = true
+      }
+      // eslint-disable-next-line no-console
+      console.debug(`[editor][lock][BLOCK_LOCK_TOGGLED tab=${tab.id} locked=true]`)
     }
+    // END_BLOCK_TOGGLE_LOCK_DOCUMENT
   }
 })
 
@@ -2037,6 +2085,14 @@ export const useEditorStore = defineStore('editor', {
 // END_MODULE_CONTRACT
 //
 // CHANGE_SUMMARY:
+//   - 2026-10-15 C-40 T-004: TOGGLE_LOCK_DOCUMENT — the per-tab read-only
+//     lock over the M-022 previewMode surface (View › Lock Document,
+//     palette, tab context menu). Lock bypasses the previewModeOnFinderOpen
+//     gate and the sidebar collapse (explicit action, not a Finder
+//     session); the click/Cmd+\ preview-exit gestures are suppressed while
+//     tab.locked (editor.vue); unlocking restores editing through the same
+//     isReadOnlySurface watcher and, when preview pre-existed the lock,
+//     the EXIT_PREVIEW_MODE sidebar semantics.
 //   - 2026-10-15 C-40 review: a guide saved under a real path is no longer
 //     reused as the guide; NEW_TAB_WITH_CONTENT never auto-closes the
 //     guide tab; the section deep link takes its heading from the pristine

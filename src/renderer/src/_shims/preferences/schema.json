@@ -90,6 +90,11 @@
     "type": "boolean",
     "default": false
   },
+  "statusBarVisibility": {
+    "description": "Appearance--Show the status bar (lines, words, characters, reading time). Off by default on macOS, on elsewhere.",
+    "type": "boolean",
+    "default": true
+  },
   "editorFontFamily": {
     "description": "Appearance--Text font.",
     "type": "string",

@@ -30,7 +30,7 @@ const DROPPED_KEYS = [
 
 const CATEGORY_BY_TAB = {
   general: ['autoSave', 'autoSaveDelay', 'previewModeOnFinderOpen', 'language', 'defaultEncoding', 'endOfLine'],
-  appearance: ['titleBarStyle', 'hideScrollbar', 'wordWrapInToc', 'editorFontFamily', 'fontSize', 'lineHeight', 'editorLineWidth', 'theme', 'followSystemTheme', 'lightModeTheme', 'darkModeTheme'],
+  appearance: ['titleBarStyle', 'hideScrollbar', 'wordWrapInToc', 'statusBarVisibility', 'editorFontFamily', 'fontSize', 'lineHeight', 'editorLineWidth', 'theme', 'followSystemTheme', 'lightModeTheme', 'darkModeTheme'],
   editor: ['autoPairBracket', 'autoPairQuote', 'autoPairMarkdownSyntax', 'autoCheck', 'hideQuickInsertHint', 'hideLinkPopup', 'textDirection', 'tabSize', 'spellcheckerEnabled', 'spellcheckerNoUnderline', 'spellcheckerLanguage', 'codeFontFamily', 'codeFontSize', 'codeBlockLineNumbers', 'wrapCodeBlocks', 'trimUnnecessaryCodeBlockEmptyLines'],
   markdown: ['preferLooseListItem', 'bulletListMarker', 'orderListDelimiter', 'listIndentation', 'footnote', 'mathEnabled', 'superSubScript', 'frontmatterType', 'frontmatterProperties', 'isHtmlEnabled', 'isGitlabCompatibilityEnabled', 'sequenceTheme'],
   advanced: ['imageInsertAction', 'imagePreferRelativeDirectory', 'imageRelativeDirectoryName', 'customCss']
@@ -65,6 +65,11 @@ describe('schema.json — C-38 T-004 hygiene', () => {
 
   it('keeps customCss searchable (was --internal in the old Theme page)', () => {
     expect(schema.customCss.description).not.toContain('--internal')
+  })
+
+  it('adds statusBarVisibility as a searchable Appearance row (C-40 T-004)', () => {
+    expect(schema.statusBarVisibility.description).not.toContain('--internal')
+    expect(schema.statusBarVisibility.type).toBe('boolean')
   })
 
   it('uses only the 5 tab categories for visible rows', () => {

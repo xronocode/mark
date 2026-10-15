@@ -140,7 +140,9 @@
       "showDeveloperTools": "Afficher les outils de développement",
       "reloadWindow": "Recharger la fenêtre",
       "splitView": "Vue partagée",
-      "outline": "Plan"
+      "outline": "Plan",
+      "statusBar": "Barre d'état",
+      "lockDocument": "Verrouiller le document"
     },
     "format": {
       "format": "Format",
@@ -238,7 +240,13 @@
       "closeAllTabs": "Fermer tous les onglets",
       "rename": "Renommer",
       "copyPath": "Copier le chemin",
-      "showInFolder": "Afficher dans le dossier"
+      "showInFolder": "Afficher dans le dossier",
+      "lock": "Verrouiller le document",
+      "unlock": "Déverrouiller le document",
+      "splitView": "Vue scindée",
+      "copyAsMarkdown": "Copier en Markdown",
+      "copyAsHtml": "Copier en HTML",
+      "copyAsStructuredText": "Copier en texte structuré"
     },
     "editor": {
       "undo": "Annuler",
@@ -269,6 +277,34 @@
   },
   "outlineRail": {
     "title": "Sur cette page"
+  },
+  "statusBar": {
+    "title": "Statistiques du document",
+    "documentType": "Markdown",
+    "readingTime": "{count} min de lecture",
+    "lines": {
+      "one": "{count} ligne",
+      "other": "{count} lignes"
+    },
+    "words": {
+      "one": "{count} mot",
+      "other": "{count} mots"
+    },
+    "characters": {
+      "one": "{count} caractère",
+      "other": "{count} caractères"
+    },
+    "selectedWords": {
+      "one": "{count} mot sélectionné",
+      "other": "{count} mots sélectionnés"
+    },
+    "selectedCharacters": {
+      "one": "{count} caractère sélectionné",
+      "other": "{count} caractères sélectionnés"
+    }
+  },
+  "tabs": {
+    "lockedTitle": "Lecture seule"
   },
   "sideBar": {
     "search": {
@@ -487,6 +523,7 @@
         "titleBarStyle": "Barre de titre de la fenêtre : personnalisée ou système (redémarrage requis)",
         "hideScrollbar": "Masquer les barres de défilement",
         "wordWrapInToc": "Renvoyer à la ligne les titres longs dans le plan",
+        "statusBarVisibility": "Afficher la barre d'état (lignes, mots, caractères, temps de lecture)",
         "editorFontFamily": "Police du texte",
         "fontSize": "Taille du texte",
         "lineHeight": "Interligne",
@@ -604,6 +641,8 @@
         "title": "Fenêtre et panneaux",
         "hideScrollbar": "Masquer les barres de défilement",
         "wordWrapInToc": "Renvoyer à la ligne les titres longs dans le plan",
+        "statusBar": "Afficher la barre d'état",
+        "statusBarHelp": "Lignes, mots, caractères et temps de lecture en bas de la fenêtre (aussi dans Affichage › Barre d'état).",
         "titleBarStyle": "Barre de titre de la fenêtre",
         "titleBarStyleHelp": "Personnalisée affiche la barre de titre propre à Mark avec les onglets. Redémarrage requis.",
         "titleBarStyleCustom": "Personnalisée",
@@ -828,6 +867,7 @@
       "copyAsHtml": "Copier en HTML",
       "copyAsPlainText": "Copier en texte brut",
       "copyAsStructuredText": "Copier en texte structuré",
+      "copyAsMarkdown": "Copier en Markdown",
       "pasteAsPlaintext": "Coller en texte brut",
       "selectAll": "Sélectionner tout",
       "duplicate": "Dupliquer",
@@ -909,7 +949,9 @@
       "zoomOut": "Réduire",
       "devToggleDeveloperTools": "Basculer les outils de développement",
       "splitView": "Vue partagée",
-      "outline": "Afficher ou masquer le plan « Sur cette page »"
+      "outline": "Afficher ou masquer le plan « Sur cette page »",
+      "statusBar": "Afficher ou masquer la barre d'état",
+      "lockDocument": "Verrouiller le document actif (lecture seule)"
     },
     "tabs": {
       "cycleForward": "Cycle vers l'avant",
