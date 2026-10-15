@@ -113,6 +113,24 @@
         <Command>npx playwright test (code block spec, chromium + webkit)</Command>
       </Verification>
     </T-005>
+    <T-006>
+      <Title>N4 a, b, d — system UI font, system accent, redrawn icon set across the chrome</Title>
+      <DependsOn>T-005</DependsOn><!-- after C-40 T-002..T-004 land -->
+      <AcceptanceCriteria>
+        <Criterion>(a) Title bar, tabs, sidebar, dialogs, menus drawn by the renderer, popovers and the status bar use the system UI font stack per OS (document text keeps the user's editor font). (b) Selected/active states in the chrome (sidebar selection, active tab marker, focused controls, toggles) use the system accent (CSS AccentColor with per-OS fallback), not the theme green/yellow; document content keeps theme colours. (d) Every chrome icon (title bar, sidebar, tabs, popovers, status bar) comes from one drawn icon module on the canvas grid (16 px, 1.4 stroke, round caps); no icon font left in the chrome.</Criterion>
+        <Criterion>Per-OS tests (isOsx true/false), a unit test that no chrome component imports the old icon font/sprite, WebKit before/after screenshots light/dark attached to the evidence.</Criterion>
+      </AcceptanceCriteria>
+      <Verification><Command>npm test</Command><Command>playwright chromium + webkit</Command></Verification>
+    </T-006>
+    <T-007>
+      <Title>N4 c, e — macOS sidebar vibrancy and Windows Mica (last, isolated)</Title>
+      <DependsOn>T-006</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>macOS: the sidebar is translucent over a native vibrancy window effect (Tauri window effects), text contrast stays AA in Paper and Ink; Windows 11: Mica on the custom title bar; other systems unchanged. Each behind the per-OS gate with a fallback to the opaque colours when the effect is unavailable (older OS, reduced transparency setting).</Criterion>
+        <Criterion>Live check on the real macOS build (screenshots), Rust/unit tests for the gate and fallbacks.</Criterion>
+      </AcceptanceCriteria>
+      <Verification><Command>npm test</Command><Command>cargo test</Command><Command>live macOS smoke</Command></Verification>
+    </T-007>
   </ImplementationPlan>
 
   <Evidence>

@@ -14,6 +14,37 @@
       <AcceptanceCriteria><Criterion>Spec goals in scope met; unit + e2e tests incl. corner cases; all strings in 10 locales (.json + .min.json).</Criterion></AcceptanceCriteria>
       <Verification><Command>npm test</Command><Command>grace lint --path . --assertions current</Command></Verification>
     </T-001>
+    <T-002>
+      <Title>Title bar trim + document info popover + Win/Linux «?» (R-2a, R-3 popover, R-1 entry point)</Title>
+      <DependsOn>T-001</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>Matches the approved canvas https://claude.ai/artifact/QmV47yCqXKzjkroruTrTLd (option A, user 2026-10-15 «все согласен»): left = sidebar toggle; centre = file name with the unsaved dot and a chevron; right = theme (Auto/Light/Dark) and Share. The Files and TOC buttons, the breadcrumb path and the word count leave the title bar. Windows/Linux keep the custom-titlebar menu and caption buttons and gain a «?» button that opens the Mark Guide (mt::open-guide).</Criterion>
+        <Criterion>Clicking the file name opens a popover: name, folder (~-abbreviated), size, modified (relative), words / characters / lines / reading time (selection-aware like the old counter), buttons Rename…, Show in Finder (Explorer / file manager per OS), Copy path. Esc and outside click close it; untitled documents show stats and Rename only. Rename keeps the old click-to-rename path.</Criterion>
+        <Criterion>Title-bar icons use the redrawn set from the canvas Icons board (16 px grid, 1.4 stroke) — shared icon module so N4 d reuses it.</Criterion>
+        <Criterion>Unit tests per OS (isOsx true/false): exact button set, «?» only off macOS, popover contents/actions/close; e2e chromium + webkit: popover opens from the title, stats match the document, no word count in the title bar.</Criterion>
+      </AcceptanceCriteria>
+      <Verification><Command>npm test</Command><Command>playwright chromium + webkit</Command><Command>grace lint --path . --assertions current</Command></Verification>
+    </T-002>
+    <T-003>
+      <Title>«On this page» outline rail (R-2a)</Title>
+      <DependsOn>T-001</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>A slim rail right of the text column (canvas style: uppercase «On this page» header, h1–h3, current section bold with a marker tick, deeper levels indented), highlighting the section in view while scrolling and smooth-jumping on click. Shown for documents with at least 3 headings; hidden when the editor area is narrower than 1000 px (stays when the sidebar is open if it fits); not in source mode, split or diff.</Criterion>
+        <Criterion>View › Outline toggles it (persisted preference, default on); ⌘T (Ctrl+T) opens a heading jump list; the sidebar TOC panel and the title-bar TOC button are retired in favour of the rail (the sidebar keeps Files and Opened files).</Criterion>
+        <Criterion>Unit tests for heading extraction, current-section tracking and the width/heading-count gates; e2e chromium + webkit: rail visible on a long doc, current item follows scroll, click jumps, hidden below 1000 px, toggle persists.</Criterion>
+      </AcceptanceCriteria>
+      <Verification><Command>npm test</Command><Command>playwright chromium + webkit</Command></Verification>
+    </T-003>
+    <T-004>
+      <Title>Status bar + document tools in menus (R-3 status bar, R-2 option A)</Title>
+      <DependsOn>T-002</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>Optional 24 px status bar: lines · words · characters · reading time (selection-aware) on the left, document type on the right. Preference statusBarVisibility: default off on macOS, on on Windows/Linux; toggles in View › Status Bar and Settings › Appearance › Window and panels; all 10 locales.</Criterion>
+        <Criterion>Option A: no document tools in the title bar. Lock = the existing per-tab read-only mode (tab.previewMode): View › Lock Document (and the tab context menu and palette) toggles it, the tab shows a lock badge, editing is blocked while locked. Split view and Copy as Markdown / HTML / Structured text stay reachable from View/Edit menus, palette and the tab context menu (add what is missing).</Criterion>
+        <Criterion>Native menu items match renderer commands (menu-consistency green); unit + e2e chromium + webkit for the status bar counts and toggles, lock badge and edit blocking.</Criterion>
+      </AcceptanceCriteria>
+      <Verification><Command>npm test</Command><Command>cargo test m009</Command><Command>playwright chromium + webkit</Command></Verification>
+    </T-004>
   </ImplementationPlan>
 </C-40>
 </GraceChangePlan>
