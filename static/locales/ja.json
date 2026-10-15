@@ -1096,7 +1096,9 @@
       "markdownSyntax": "Markdown構文"
     },
     "help": {
-      "guide": "Markガイド"
+      "guide": "Markガイド",
+      "whatsNew": "新機能",
+      "rateMark": "Mark を評価…"
     },
     "utils": {
       "noUpdateResourceFile": "アップデートリソースファイルなし",
@@ -1486,5 +1488,29 @@
     "noBaseline": "このファイルの比較元が見つかりません。",
     "sourceSnapshot": "最後の外部保存より前 · {time}",
     "sourcePrevious": "以前のバージョン"
+  },
+  "whatsNew": {
+    "eyebrow": "Mark {version}",
+    "title": "新機能",
+    "seeGuide": "ガイドを見る",
+    "continue": "続ける",
+    "v2_3_1": {
+      "zoom": {
+        "title": "図や表を拡大",
+        "text": "ホバーして ⤢ を押すと、ズームとパン付きの全画面表示になります。"
+      },
+      "agentDiff": {
+        "title": "エージェントの変更を確認",
+        "text": "⌘D で最後の保存前のバージョンと比較します。"
+      },
+      "themes": {
+        "title": "Paper と Ink",
+        "text": "新しいデフォルトテーマ。Auto は macOS に追従します。"
+      },
+      "tables": {
+        "title": "収まる表",
+        "text": "幅の広い表は列の中でスクロールし、長いリンクは折り返します。"
+      }
+    }
   }
 }

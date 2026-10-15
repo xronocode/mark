@@ -1120,7 +1120,9 @@
       "markdownSyntax": "Markdown Syntax"
     },
     "help": {
-      "guide": "Mark Guide"
+      "guide": "Mark Guide",
+      "whatsNew": "What's New",
+      "rateMark": "Rate Mark…"
     },
     "utils": {
       "noUpdateResourceFile": "No update resource file",
@@ -1510,5 +1512,29 @@
     "noBaseline": "No baseline found for this file.",
     "sourceSnapshot": "Before the last external save · {time}",
     "sourcePrevious": "Previous version"
+  },
+  "whatsNew": {
+    "eyebrow": "Mark {version}",
+    "title": "What's new",
+    "seeGuide": "See the guide",
+    "continue": "Continue",
+    "v2_3_1": {
+      "zoom": {
+        "title": "Zoom into diagrams and tables",
+        "text": "Hover and press ⤢ for a fullscreen view with zoom and pan."
+      },
+      "agentDiff": {
+        "title": "See what the agent changed",
+        "text": "⌘D compares with the version before its last save."
+      },
+      "themes": {
+        "title": "Paper and Ink",
+        "text": "New default themes, and Auto follows macOS."
+      },
+      "tables": {
+        "title": "Tables that fit",
+        "text": "Wide tables scroll inside the column; long links wrap."
+      }
+    }
   }
 }

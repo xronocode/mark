@@ -1,5 +1,5 @@
 // FILE: tests/renderer/commands/menu-consistency.test.js
-// VERSION: 1.5.1
+// VERSION: 1.5.2
 // START_MODULE_CONTRACT
 //   PURPOSE: Keep native application-menu IDs and renderer command IDs synchronized.
 //   SCOPE: Source-level native-menu extraction, renderer command/shortcut extraction, and intentional renderer-only exceptions.
@@ -19,7 +19,9 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.5.1 - C-40: pin help.guide menu id (no accelerator) — opens the
+//   LAST_CHANGE: v1.5.2 - C-48: pin help.whats-new (every build, no
+//   accelerator) and help.rate (App Store macOS only) Help-menu items.
+//   v1.5.1 - C-40: pin help.guide menu id (no accelerator) — opens the
 //   in-app Mark Guide as a temporary untitled tab via the renderer command registry.
 //   v1.5.0 - C-49: pin view.zoom-in/out/actual-size menu ids +
 //   CmdOrCtrl+=/-/0 accelerators (taxonomy + built menu); the retired
@@ -375,6 +377,28 @@ describe('menu ↔ commands consistency', () => {
       expect(RENDERER_ONLY_ALLOWLIST.has(id)).toBe(false)
     }
   })
+
+  // START_BLOCK_C48_MENU_PIN
+  it('pins the Help What\'s New and Rate Mark menu items (C-48)', () => {
+    const rust = readSource('src-tauri/src/m009_menu.rs')
+    const buildFn = rust.slice(rust.indexOf('pub fn build_native_menu'))
+    const taxonomy = rust.slice(0, rust.indexOf('pub fn build_native_menu'))
+
+    // What's New ships in every build, no accelerator, id matches the
+    // renderer command registry (help.whats-new → whatsNewDialog bus).
+    expect(buildFn).toMatch(/with_id\("help\.whats-new", "What's New"\)/)
+    expect(taxonomy).toContain('"help.whats-new".to_string()')
+    const whatsNew = buildFn.match(/with_id\(\s*"help\.whats-new",\s*"What's New",?\s*\)([\s\S]*?)\.build\(handle\)/)
+    expect(whatsNew).not.toBeNull()
+    expect(whatsNew[1]).not.toContain('accelerator')
+
+    // Rate Mark… exists only in the App Store build on macOS (cfg-gated
+    // like file.check-update) and opens the store review page via the
+    // renderer help.rate command.
+    expect(buildFn).toMatch(/with_id\("help\.rate", "Rate Mark…"\)/)
+    expect(taxonomy).toContain('"help.rate".to_string()')
+  })
+  // END_BLOCK_C48_MENU_PIN
 
   it('allowlist entries actually exist in renderer commands', () => {
     const stale = []
