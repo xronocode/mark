@@ -46,5 +46,17 @@
       <Verification><Command>npm test</Command><Command>cargo test m009</Command><Command>playwright chromium + webkit</Command></Verification>
     </T-004>
   </ImplementationPlan>
+  <Evidence>
+    <T-002>
+      <Status>done</Status>
+      <ReviewFixes>Agent's popover test never mounted the component: an inner `let TitleBar` shadowed the module-level one (shallowMount(null) → "Invalid value used as weak map key", 16/16 failed); relative vi.mock paths pointed at tests/ instead of src; the Rename test read the editor store of the previous pinia. M-057 had no V-M-057. CI now runs the webkit-titlebar project.</ReviewFixes>
+      <Gates>npm test 3696 passed (int/c40); e2e 320 passed chromium + webkit; titleBar-* and titlebar-doc-info green; WebKit screenshots: trimmed bar, popover light/dark.</Gates>
+    </T-002>
+    <T-003>
+      <Status>done</Status>
+      <ReviewFixes>Component test mounted the rail one div too deep (attachTo wrapper), so the column was never found; the sidebar drag bar was wired without a null check (unhandled error when hidden at mount); the e2e scroll-tracking fixture merged its filler lines into one paragraph, so the "current section" assertions could never hold — fixed, 2× green in both engines. Rail is visible from ~1072 px at the default column (1000 px hard floor + no-overlap rule) — accepted. Scenario renumbered to 54 (T-002 took 53). CI runs webkit-outline.</ReviewFixes>
+      <Gates>outline-rail + heading-navigation + toc-sidebar-navigation 18/18 twice; split-view first test given a 20 s budget (cold editor import under a loaded full run).</Gates>
+    </T-003>
+  </Evidence>
 </C-40>
 </GraceChangePlan>

@@ -139,7 +139,8 @@
       "reloadImages": "Bilder neu laden",
       "showDeveloperTools": "Entwicklertools anzeigen",
       "reloadWindow": "Fenster neu laden",
-      "splitView": "Geteilte Ansicht"
+      "splitView": "Geteilte Ansicht",
+      "outline": "Gliederung"
     },
     "format": {
       "format": "Format",
@@ -264,6 +265,9 @@
     "caseSensitiveTip": "Groß-/Kleinschreibung (Aa) — „Hello\" ≠ „hello\"",
     "wholeWordTip": "Ganzes Wort (\\b) — „fox\" passt auf „fox\", aber nicht auf „foxglove\"",
     "useRegexTip": "Regulärer Ausdruck (.*) — „colou?r\" passt auf „color\" und „colour\""
+  },
+  "outlineRail": {
+    "title": "Auf dieser Seite"
   },
   "sideBar": {
     "search": {
@@ -902,7 +906,8 @@
       "zoomIn": "Vergrößern",
       "zoomOut": "Verkleinern",
       "devToggleDeveloperTools": "Entwicklertools umschalten",
-      "splitView": "Geteilte Ansicht"
+      "splitView": "Geteilte Ansicht",
+      "outline": "Die Gliederung „Auf dieser Seite“ ein- oder ausblenden"
     },
     "tabs": {
       "cycleForward": "Vorwärts wechseln",
@@ -1294,10 +1299,21 @@
     "load-image-failed": "Bild laden fehlgeschlagen"
   },
   "titleBar": {
+    "guide": "Mark-Leitfaden",
+    "documentInfo": "Dokumentinfo",
     "themeMode": {
       "auto": "Design: Automatisch",
       "light": "Design: Hell",
       "dark": "Design: Dunkel"
+    },
+    "popover": {
+      "words": "Wörter",
+      "characters": "Zeichen",
+      "lines": "Zeilen",
+      "reading": "Lesezeit",
+      "minutes": "{count} Min.",
+      "rename": "Umbenennen…",
+      "edited": "bearbeitet {time}"
     }
   },
   "edit": {

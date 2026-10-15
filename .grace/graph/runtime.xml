@@ -1975,7 +1975,7 @@
       <Status>shipped</Status>
       <Layer>2</Layer>
       <PhaseRef>Release-Readiness-2026-08-07</PhaseRef>
-      <Summary>Native menu bar and context menus; dispatches command IDs to renderer. C-15 T-102: on Windows/Linux the menu stays registered on the app (hamburger popup via mt_window_popup_app_menu) but the native menu BAR is hidden to avoid double chrome under the custom titlebar.</Summary>
+      <Summary>Native menu bar and context menus; dispatches command IDs to renderer. C-15 T-102: on Windows/Linux the menu stays registered on the app (hamburger popup via mt_window_popup_app_menu) but the native menu BAR is hidden to avoid double chrome under the custom titlebar. C-40 T-003: View › Outline check item (id view.outline, no accelerator — ⌘T stays Go to Heading) toggles the «On this page» outline rail through the id-dispatched view.outline renderer command.</Summary>
       <Path>src-tauri/src/m009_menu.rs</Path>
       <Dependencies>
         <M-005/>
@@ -2691,6 +2691,28 @@
         RESET_PREFERENCES_TO_DEFAULTS over the preferenceDefaults
         factory); DEFAULT_STYLE.codeFontSize becomes the number 14;
         the preferences.* locale tree is rewritten in all ten languages.
+        C-40 T-003: the «On this page» outline rail
+        (editorWithTabs/outlineRail.vue over the pure util/outlineRail.js)
+        replaces the sidebar TOC panel — a slim absolute rail right of the
+        centred text column inside the editorWithTabs .container
+        (positioning context; canvas geometry: 170 px wide, 22 px right
+        inset, top 46 px, uppercase localized header, current item bold
+        with a marker tick on the rule line) listing h1–h3 with per-level
+        indent; it tracks the C-19 scrollspy (toc-active-heading bus,
+        resolved to the nearest listed ancestor when the viewport sits in
+        an h4–h6) and jumps through the shared scroll-to-header path.
+        Gates (util/outlineRail.js shouldShowRail): persisted
+        outlineRailVisible preference (default on; View › Outline check
+        item + id-dispatched view.outline command), plain WYSIWYG surface
+        only (not source mode / split view / diff view), ≥3 h1–h3
+        headings, ≥1000 px editor area, and a live no-overlap fit against
+        the measured #ag-editor-id column (a wide editorLineWidth column
+        keeps the rail hidden until the margin clears it; ResizeObserver
+        on container + column). ⌘T (Ctrl+T) stays Go to Heading
+        (edit.go-to-heading) — the heading jump list, not the rail
+        toggle. The sidebar is Files-only now (sideBar/toc.vue retired;
+        a stale rightColumn='toc' from the title-bar button — until
+        C-40 T-002 removes it — falls back to the Files tree).
       </Summary>
       <Path>src/renderer/</Path>
       <Dependencies>
@@ -2905,12 +2927,54 @@
                 editorWithTabs/editor.vue scrollspy (C-19): debounced off
                 muya scroll, publishes toc-active-heading with the slug of
                 the last heading above a fixed 80px band from the viewport top
-                (document-end edge pins the final heading); consumed by
-                sideBar/toc.vue's scoped-slot highlight
+                (document-end edge pins the final heading); consumed by the
+                C-40 T-003 outline rail&apos;s current-section highlight
+                (formerly the retired sideBar/toc.vue scoped-slot tree)
               </Value>
             </Attribute>
           </LegacyAttributes>
         </fn-emitActiveHeading>
+        <fn-extractRailHeadings>
+          <LegacyAttributes>
+            <Attribute>
+              <Name>PURPOSE</Name>
+              <Value>
+                util/outlineRail.js (C-40 T-003): pure projection of the
+                editor store listToc into the flat rail item list — h1–h3
+                kept in document order as {slug, label, lvl}, deeper
+                levels and malformed entries dropped
+              </Value>
+            </Attribute>
+          </LegacyAttributes>
+        </fn-extractRailHeadings>
+        <fn-resolveCurrentHeading>
+          <LegacyAttributes>
+            <Attribute>
+              <Name>PURPOSE</Name>
+              <Value>
+                util/outlineRail.js (C-40 T-003): maps the scrollspy slug
+                (any heading level, incl. unlisted h4–h6) onto the last
+                rail heading at-or-before it in document order, so a
+                viewport inside a deep subsection keeps its visible
+                ancestor highlighted; null/unknown slugs clear
+              </Value>
+            </Attribute>
+          </LegacyAttributes>
+        </fn-resolveCurrentHeading>
+        <fn-railFitsWithoutOverlap>
+          <LegacyAttributes>
+            <Attribute>
+              <Name>PURPOSE</Name>
+              <Value>
+                util/outlineRail.js (C-40 T-003): geometry gate — the
+                fixed rail box (right inset 22, width 170) may render only
+                when it clears the centred column&apos;s text edge (column
+                right minus its 50px right padding) by 10px, and never
+                below 1000px of editor area (approved canvas floor)
+              </Value>
+            </Attribute>
+          </LegacyAttributes>
+        </fn-railFitsWithoutOverlap>
         <fn-ASK_FOR_FILE_PATH>
           <LegacyAttributes>
             <Attribute>
@@ -3151,6 +3215,18 @@
             after awaiting native-menu selection because WKWebView transient
             user activation has expired.
           </note-9>
+          <note-10>
+            2026-10-15 C-40 T-002 title-bar trim (approved canvas, option A):
+            the titleBar keeps only the sidebar toggle left (plus the
+            Win/Linux custom-titlebar menu and Settings gear), the file name
+            with unsaved dot + chevron centre (opens the document info
+            popover: wordCount-sourced stats, ~-abbreviated folder, size,
+            edited-relative mtime, Rename/Reveal/Copy path; untitled tabs
+            show stats + Rename only), and guide «?» (Win/Linux) + theme +
+            Share right. The Files/TOC buttons, breadcrumb path and word
+            count are gone; icons come from M-057. Verified by V-M-011
+            scenario-53.
+          </note-10>
         </notes>
       </LegacyDevelopmentDetail>
       <LegacyAttributes>
@@ -6291,5 +6367,36 @@
         <C-18/>
       </ChangeRefs>
     </M-052>
+
+    <M-057>
+      <Name>ChromeIcons</Name>
+      <DisplayName>Redrawn chrome icon set</DisplayName>
+      <Type>UI_COMPONENT</Type>
+      <Status>shipped</Status>
+      <Layer>2</Layer>
+      <PhaseRef>C-40-T-002</PhaseRef>
+      <Summary>
+        Shared 16 px-grid chrome icon descriptors (1.4 px stroke, round
+        caps and joins — sidebar, outline, auto/light/dark theme, share,
+        guide, split, lock, copy, menu, chevron-down) transcribed from
+        the approved C-40 canvas Icons board, plus the ChromeIcon render
+        component (currentColor, per-part fill/cap/join overrides,
+        per-icon viewBox for the off-grid chevron). The trimmed C-40
+        T-002 title bar consumes it; C-38 N4 d reuses it for the rest of
+        the chrome.
+      </Summary>
+      <PlannedPath>src/renderer/src/components/icons/chromeIcons.js</PlannedPath>
+      <Dependencies>
+        <M-011/>
+      </Dependencies>
+      <VerificationRef>V-M-011</VerificationRef>
+      <Interface>
+        <const-CHROME_ICONS>frozen descriptor table from the Icons board (name → parts)</const-CHROME_ICONS>
+        <fn-ChromeIcon>render one descriptor as an inline SVG via the name/size props</fn-ChromeIcon>
+      </Interface>
+      <ChangeRefs>
+        <C-40/>
+      </ChangeRefs>
+    </M-057>
   </GD-RUNTIME>
 </GraceGraphDocument>

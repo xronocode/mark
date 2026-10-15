@@ -169,6 +169,8 @@ const COMMAND_KEY_MAP = {
   'view.toggle-sidebar': 'commands.view.toggleSidebar',
   'view.toggle-tabbar': 'commands.view.toggleTabbar',
   'view.toggle-toc': 'commands.view.toggleToc',
+  // C-40 T-003: the «On this page» outline rail toggle (View › Outline)
+  'view.outline': 'commands.view.outline',
 
   // 编辑模式
   'view.toggle-source-code-mode': 'commands.view.toggleSourceCodeMode',

@@ -139,7 +139,8 @@
       "reloadImages": "Обновить изображения",
       "showDeveloperTools": "Инструменты разработчика",
       "reloadWindow": "Перезагрузить окно",
-      "splitView": "Разделённый вид"
+      "splitView": "Разделённый вид",
+      "outline": "Оглавление"
     },
     "format": {
       "format": "Формат",
@@ -264,6 +265,9 @@
     "caseSensitiveTip": "С учётом регистра (Aa) — «Hello» ≠ «hello»",
     "wholeWordTip": "Слово целиком (\\b) — «fox» совпадает с «fox», но не с «foxglove»",
     "useRegexTip": "Регулярное выражение (.*) — «colou?r» совпадает с «color» и «colour»"
+  },
+  "outlineRail": {
+    "title": "На этой странице"
   },
   "sideBar": {
     "search": {
@@ -914,7 +918,8 @@
       "zoomIn": "Увеличить",
       "zoomOut": "Уменьшить",
       "devToggleDeveloperTools": "Переключить инструменты разработчика",
-      "splitView": "Разделённый вид"
+      "splitView": "Разделённый вид",
+      "outline": "Показать или скрыть оглавление «На этой странице»"
     },
     "tabs": {
       "cycleForward": "Следующая вкладка",
@@ -1308,10 +1313,21 @@
     "load-image-failed": "Не удалось загрузить изображение"
   },
   "titleBar": {
+    "guide": "Руководство Mark",
+    "documentInfo": "Сведения о документе",
     "themeMode": {
       "auto": "Тема: Авто",
       "light": "Тема: Светлая",
       "dark": "Тема: Тёмная"
+    },
+    "popover": {
+      "words": "слов",
+      "characters": "знаков",
+      "lines": "строк",
+      "reading": "чтение",
+      "minutes": "{count} мин",
+      "rename": "Переименовать…",
+      "edited": "изменено {time}"
     }
   },
   "diffView": {

@@ -11,6 +11,8 @@
 //
 // START_MODULE_MAP
 //   i18n - GRACE 4 synchronized symbol
+//   ROOT - repo root for source pins.
+//   readSfc - reads the titleBar SFC source.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
@@ -23,9 +25,15 @@
 //     regression-pins that no .left-toolbar cluster stacks over the nav.
 //   - 2026-10-15 v1.2.0: C-38 N1 — pin that the Settings gear STAYS in the
 //     Win/Linux frameless titlebar (macOS hides it; titleBar-osx.test.js).
+//   - 2026-10-15 v1.3.0: C-40 T-002 — the trimmed bar: left = menu +
+//     sidebar + settings, right cluster is .titlebar-right (guide «?» +
+//     theme + share) left of the window controls; the breadcrumb path is
+//     gone; the «?» guide button and the Explorer reveal label are pinned.
 // END_CHANGE_SUMMARY
 
 import { shallowMount } from '@vue/test-utils'
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 import { setupTestPinia } from '../pinia'
 import { createI18n } from 'vue-i18n'
 
@@ -55,6 +63,10 @@ vi.mock('@/util', () => ({
 
 globalThis.__APP_VERSION__ = '2.0.0-test'
 
+const ROOT = resolve(__dirname, '..', '..', '..')
+const readSfc = () =>
+  readFileSync(resolve(ROOT, 'src/renderer/src/components/titleBar/index.vue'), 'utf-8')
+
 const i18n = createI18n({
   legacy: false,
   locale: 'en',
@@ -62,7 +74,27 @@ const i18n = createI18n({
     en: {
       menu: { view: { toggleSidebar: 'Toggle Sidebar' }, counter: { words: 'Words' } },
       sideBar: { icons: { files: 'Files', toc: 'TOC', settings: 'Settings' } },
-      titleBar: { share: 'Share', themeMode: { auto: 'Theme: Auto', light: 'Theme: Light', dark: 'Theme: Dark' } }
+      titleBar: {
+        share: 'Share',
+        guide: 'Mark Guide',
+        documentInfo: 'Document info',
+        themeMode: { auto: 'Theme: Auto', light: 'Theme: Light', dark: 'Theme: Dark' },
+        popover: {
+          words: 'words',
+          characters: 'characters',
+          lines: 'lines',
+          reading: 'reading',
+          minutes: '{count} min',
+          rename: 'Rename…',
+          edited: 'edited {time}'
+        }
+      },
+      recent: {
+        showInFinder: 'Show in Finder',
+        showInExplorer: 'Show in Explorer',
+        showInFolder: 'Show in folder',
+        copyPath: 'Copy path'
+      }
     }
   }
 })
@@ -111,25 +143,39 @@ describe('titleBar/index.vue — Windows variant (C-15 T-W1)', () => {
     const wrapper = mountWindows()
     // isFullScreen starts false → cluster must be present.
     expect(wrapper.findAll('.frameless-titlebar-button').length).toBe(3)
-    // C-15 Phase W QA: the hamburger now lives INSIDE titlebar-nav (first
-    // button) — it must not spawn a separate left:0 cluster that stacks on
-    // the nav row (the reported "мешанина" overlap).
+    // C-40 T-002: the left cluster keeps the hamburger + sidebar toggle +
+    // Settings gear (3 buttons — the Files and TOC buttons are gone).
     const nav = wrapper.find('.titlebar-nav')
     expect(nav.exists()).toBe(true)
     const navButtons = nav.findAll('.titlebar-nav-btn')
-    expect(navButtons.length).toBe(6)
+    expect(navButtons.length).toBe(3)
     expect(navButtons[0].classes()).toContain('titlebar-nav-menu')
     expect(wrapper.find('.left-toolbar').exists()).toBe(false)
   })
 
-  it('places the share/word-count cluster left of the window controls, not over the nav', async () => {
+  it('places the right cluster (guide/theme/share) left of the window controls, not over the nav', async () => {
     const wrapper = mountWindows()
-    const aux = wrapper.find('.titlebar-aux')
-    expect(aux.exists()).toBe(true)
-    expect(aux.classes()).toContain('titlebar-aux--custom')
-    // share button renders inside the aux cluster (word-count is wrapped
-    // in the ElTooltip stub, so it is not asserted here)
-    expect(aux.find('.titlebar-share-btn').exists()).toBe(true)
+    const right = wrapper.find('.titlebar-right')
+    expect(right.exists()).toBe(true)
+    // C-40 T-002: the right cluster holds «?», theme and Share and sits
+    // before the caption buttons (CSS margin clears the 138px cluster).
+    expect(right.find('.titlebar-guide-btn').exists()).toBe(true)
+    expect(right.find('.titlebar-share-btn').exists()).toBe(true)
+    const css = readSfc()
+    expect(css).toMatch(/\.title-bar\.frameless:not\(\.isOsx\) \.titlebar-right \{[\s\S]*?margin-right: 146px/)
+  })
+
+  it('shows the «?» Mark Guide button that macOS hides (C-40 T-002)', () => {
+    const wrapper = mountWindows()
+    const guide = wrapper.find('.titlebar-guide-btn')
+    expect(guide.exists()).toBe(true)
+    expect(guide.attributes('title')).toBe('Mark Guide')
+    expect(guide.attributes('aria-label')).toBe('Mark Guide')
+  })
+
+  it('labels the popover reveal action for Explorer (per-OS label)', async () => {
+    const wrapper = mountWindows()
+    expect(wrapper.vm.showInFolderLabel).toBe('Show in Explorer')
   })
 
   it('hides the Share button when the m048 share capability is off (macOS-only feature)', async () => {
@@ -153,10 +199,10 @@ describe('titleBar/index.vue — Windows variant (C-15 T-W1)', () => {
     expect(wrapper.find('.titlebar-nav-btn[title="Settings"]').exists()).toBe(true)
   })
 
-  it('splits breadcrumbs with the Windows path separator', () => {
+  it('derives the popover folder from the Windows path separator (C-40 T-002)', () => {
     const wrapper = mountWindows({ pathname: 'C:\\Users\\user\\Documents\\notes.md' })
-    // CONFIG PATH_SEPARATOR is mocked '\\' here; the computed splits on it
-    // and keeps the last three directory segments.
-    expect(wrapper.vm.paths).toEqual(['Users', 'user', 'Documents'])
+    // CONFIG PATH_SEPARATOR is mocked '\\' here; the folder is the dirname
+    // (home abbreviations never match a drive-letter prefix).
+    expect(wrapper.vm.folderLabel).toBe('C:\\Users\\user\\Documents')
   })
 })

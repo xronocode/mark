@@ -17,6 +17,7 @@
 //   edit.copy-as-structured-text - Copies selection (or whole document) as structure-preserving plain text (C-32).
 //   view.zoom-in / view.zoom-out / view.actual-size - Unified zoom via preferences ZOOM_STEP/ZOOM_ACTUAL_SIZE (C-49).
 //   help.guide - Opens the localized Mark Guide as a temporary untitled tab (C-40 G-3).
+//   view.outline - Toggles the «On this page» outline rail via the persisted outlineRailVisible preference (C-40 T-003).
 //   help.whats-new - Reopens the C-48 What's New sheet (whatsNewDialog bus event; falls back to the newest release with content).
 //   help.rate - Opens the App Store write-review page (C-48, review capability only).
 //   RATE_MARK_URL - https App Store write-review URL opened by help.rate (opener:default scope).
@@ -32,6 +33,10 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-10-15 C-40 T-003: add view.outline — View › Outline toggles the
+//     «On this page» outline rail through the persisted outlineRailVisible
+//     preference (default on); the ⌘T/Ctrl+T heading jump list stays
+//     edit.go-to-heading exactly as shipped in C-19.
 //   - 2026-10-15 C-49 T-001: retire the palette percentage zoom (file.zoom /
 //     file.zoom-0..11 removed; a stored `zoom` ≠ 1 is migrated once by
 //     preferences.MIGRATE_LEGACY_ZOOM) and add the View-menu zoom trio
@@ -774,6 +779,22 @@ const commands = [
     id: 'view.toggle-tabbar',
     execute: async () => {
       bus.emit('view:toggle-layout-entry', 'showTabBar')
+    }
+  },
+  {
+    // C-40 T-003: View › Outline toggles the «On this page» outline rail
+    // (persisted outlineRailVisible preference, default on). The rail
+    // itself additionally self-hides below 1000 px of editor width, in
+    // source/split/diff modes, and on documents with fewer than 3 h1–h3
+    // headings. ⌘T (Ctrl+T) stays Go-to-Heading (edit.go-to-heading) —
+    // the jump list, not this toggle.
+    id: 'view.outline',
+    execute: async () => {
+      const preferencesStore = usePreferencesStore()
+      await preferencesStore.SET_SINGLE_PREFERENCE({
+        type: 'outlineRailVisible',
+        value: !preferencesStore.outlineRailVisible
+      })
     }
   },
   {

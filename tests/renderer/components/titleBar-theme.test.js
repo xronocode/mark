@@ -14,8 +14,11 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.0.0 - C-41 T-001 initial pins: three-state cycle,
-//   icon-per-state, tooltip/aria label, and SET_SINGLE_PREFERENCE payloads.
+//   LAST_CHANGE: v1.1.0 - 2026-10-15 C-40 T-002: the theme button moved to
+//   the .titlebar-right cluster (guide «?» / theme / Share) and its icons
+//   come from the redrawn chrome set (auto = circle r6 + fill wedge,
+//   light = circle r2.8 + rays, dark = stroke-only crescent); the cycle,
+//   tooltip and persisted writes are unchanged from v1.0.0 (C-41 T-001).
 // END_CHANGE_SUMMARY
 
 import { shallowMount } from '@vue/test-utils'
@@ -59,6 +62,8 @@ const i18n = createI18n({
       sideBar: { icons: { files: 'Files', toc: 'TOC', settings: 'Settings' } },
       titleBar: {
         share: 'Share',
+        guide: 'Mark Guide',
+        documentInfo: 'Document info',
         themeMode: { auto: 'Theme: Auto', light: 'Theme: Light', dark: 'Theme: Dark' }
       }
     }
@@ -88,19 +93,24 @@ describe('titleBar theme button — Auto/Light/Dark cycle (C-41 T-001)', () => {
       },
       global: {
         plugins: [pinia, i18n],
-        stubs: { ElTooltip: true }
+        // ChromeIcon must render for real: iconKind reads circle/path d.
+        stubs: { ElTooltip: true, ChromeIcon: false }
       }
     })
 
   const themeButton = (wrapper, mode) =>
     wrapper.find(`.titlebar-nav-btn[title="Theme: ${mode}"]`)
 
+  // C-40 T-002 redrawn chrome icons: auto = circle r6 + filled wedge,
+  // light = circle r2.8 + ray path, dark = a single stroke-only crescent.
   const iconKind = (wrapper) => {
-    const btn = wrapper.findAll('.titlebar-nav-btn').at(-1)
-    if (btn.find('circle').exists()) return 'light'
+    const btn = wrapper.find('.titlebar-nav-btn[title^="Theme: "]')
+    const circles = btn.findAll('circle')
+    if (circles.length > 0) {
+      return circles[0].attributes('r') === '6' ? 'auto' : 'light'
+    }
     const d = btn.find('path').attributes('d') || ''
-    if (d.startsWith('M8 1a7')) return 'auto'
-    if (d.startsWith('M6.2 1.2')) return 'dark'
+    if (d.startsWith('M13.6 9.6')) return 'dark'
     return 'unknown'
   }
 
@@ -167,12 +177,14 @@ describe('titleBar theme button — Auto/Light/Dark cycle (C-41 T-001)', () => {
     expect(iconKind(wrapper)).toBe('light')
   })
 
-  it('keeps the button as the last member of the nav cluster (same gated spot as the old toggle)', () => {
+  it('keeps the button in the right cluster between guide «?» and Share (C-40 T-002)', () => {
     const wrapper = mountBar()
-    const navBtns = wrapper.findAll('.titlebar-nav-btn')
-    // Linux frameless: menu, sidebar, files, toc, settings, theme = 6 —
-    // the three-state button replaces the toggle in place.
-    expect(navBtns.length).toBe(6)
-    expect(navBtns[navBtns.length - 1].attributes('title')).toBe('Theme: Auto')
+    const rightBtns = wrapper.findAll('.titlebar-right .titlebar-nav-btn')
+    // Linux frameless right cluster: guide, theme, share = 3 — the theme
+    // button sits in the middle, after the C-40 T-002 trim moved it there.
+    expect(rightBtns.length).toBe(3)
+    expect(rightBtns[0].attributes('title')).toBe('Mark Guide')
+    expect(rightBtns[1].attributes('title')).toBe('Theme: Auto')
+    expect(rightBtns[2].attributes('title')).toBe('Share')
   })
 })

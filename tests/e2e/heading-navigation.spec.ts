@@ -1,8 +1,9 @@
 /**
- * heading-navigation.spec.ts — visual gates for C-19.
+ * heading-navigation.spec.ts — visual gates for C-19 (retargeted to the
+ * C-40 T-003 outline rail; the sidebar TOC panel is retired).
  *
- * 1. The sidebar TOC highlights the heading the viewport scrolled into
- *    (and only that one).
+ * 1. The «On this page» outline rail highlights the heading the viewport
+ *    scrolled into (and only that one).
  * 2. The Go-to-Heading command (invoked the way the native menu/palette
  *    would) jumps to the selected heading.
  */
@@ -70,20 +71,13 @@ test.describe('heading navigation (C-19)', () => {
     expect(box!.y).toBeLessThan(vp!.height)
   })
 
-  test('TOC highlights the heading the viewport is in while scrolling', async ({ page }) => {
-    await bootEditor(page, { sideBarVisibility: true })
+  test('outline rail highlights the heading the viewport is in while scrolling', async ({ page }) => {
+    await bootEditor(page)
     await openFileTab(page, '/tmp/heading-nav.md', DOC)
 
     await expect(page.locator('.editor-with-tabs h2').first())
       .toContainText('Alpha Section', { timeout: 5_000 })
-
-    await page.evaluate(() => {
-      const pinia = (document.querySelector('#app') as any)?.__vue_app__?.config?.globalProperties?.$pinia
-      pinia.state.value.layout.rightColumn = 'toc'
-      pinia.state.value.layout.showSideBar = true
-    })
-    const alpha = page.locator('.side-bar-toc .el-tree-node', { hasText: 'Alpha Section' }).first()
-    await expect(alpha).toBeVisible({ timeout: 5_000 })
+    await expect(page.locator('.outline-rail')).toBeVisible({ timeout: 10_000 })
 
     // Scroll by ACTUAL heading positions (fractions of scrollHeight kept
     // landing in Top's filler block): jump into Alpha's fillers, then to
@@ -102,19 +96,19 @@ test.describe('heading navigation (C-19)', () => {
     }
 
     await scrollToText('Alpha Section')
-    await expect(page.locator('.side-bar-toc .toc-node-label--active', { hasText: 'Alpha Section' })).toBeVisible({ timeout: 8_000 })
-    await expect(page.locator('.side-bar-toc .toc-node-label--active', { hasText: 'Top' })).toHaveCount(0)
+    await expect(page.locator('.outline-rail-item--current', { hasText: 'Alpha Section' })).toBeVisible({ timeout: 8_000 })
+    await expect(page.locator('.outline-rail-item--current', { hasText: 'Top' })).toHaveCount(0)
 
     await scrollToText('Beta Section')
-    await expect(page.locator('.side-bar-toc .toc-node-label--active', { hasText: 'Beta Section' })).toBeVisible({ timeout: 8_000 })
-    await expect(page.locator('.side-bar-toc .toc-node-label--active')).toHaveCount(1)
+    await expect(page.locator('.outline-rail-item--current', { hasText: 'Beta Section' })).toBeVisible({ timeout: 8_000 })
+    await expect(page.locator('.outline-rail-item--current')).toHaveCount(1)
 
     await page.evaluate(() => {
       const c = document.querySelector('.editor-component') as HTMLElement
       c.scrollTop = 0
       c.dispatchEvent(new Event('scroll', { bubbles: true }))
     })
-    await expect(page.locator('.side-bar-toc .toc-node-label--active', { hasText: 'Top' })).toBeVisible({ timeout: 8_000 })
-    await expect(page.locator('.side-bar-toc .toc-node-label--active')).toHaveCount(1)
+    await expect(page.locator('.outline-rail-item--current', { hasText: 'Top' })).toBeVisible({ timeout: 8_000 })
+    await expect(page.locator('.outline-rail-item--current')).toHaveCount(1)
   })
 })
