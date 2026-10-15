@@ -272,11 +272,26 @@ class ExportMarkdown {
     const textList = codeContent.text.split('\n')
     const { functionType } = block
     if (functionType === 'fencecode') {
-      result.push(`${indent}${block.lang ? '```' + block.lang + '\n' : '```\n'}`)
+      // START_BLOCK_FENCE_LENGTH_KEEP
+      // C-51 T-009: the emitted fence must be longer than any backtick
+      // run inside the block (the guide's agent prompt names ```mermaid
+      // fences inside a code fence), or the re-imported markdown closes
+      // the fence at that run and the rest of the content leaks out of
+      // the code block. Content with no ``` run keeps the classic
+      // 3-backtick fence, byte-identical to the previous output.
+      let longestRun = 2
+      for (const line of textList) {
+        for (const run of line.match(/`+/g) || []) {
+          if (run.length > longestRun) longestRun = run.length
+        }
+      }
+      const fence = '`'.repeat(longestRun + 1)
+      // END_BLOCK_FENCE_LENGTH_KEEP
+      result.push(`${indent}${block.lang ? fence + block.lang + '\n' : fence + '\n'}`)
       textList.forEach((text) => {
         result.push(`${indent}${text}\n`)
       })
-      result.push(indent + '```\n')
+      result.push(indent + fence + '\n')
     } else {
       textList.forEach((text) => {
         result.push(`${indent}    ${text}\n`)

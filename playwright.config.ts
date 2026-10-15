@@ -78,6 +78,11 @@ export default defineConfig({
     // guide lines, pill, folder switcher) + Recent/Pinned sections also
     // gate in WebKit — the engine the macOS build ships (HTML5 drag
     // reorder and CSS nesting are engine-sensitive).
-    { name: 'webkit-tree', use: { browserName: 'webkit' }, testMatch: 'sidebar-tree-redesign.spec.ts' }
+    { name: 'webkit-tree', use: { browserName: 'webkit' }, testMatch: 'sidebar-tree-redesign.spec.ts' },
+    // C-51 T-009: the rich-Markdown honesty guard (every feature the agent
+    // prompt names, rendered) also gates in WebKit — the engine WKWebView
+    // ships; scoped to the coverage spec so the rest of the suite is
+    // unchanged.
+    { name: 'webkit-rich', use: { browserName: 'webkit' }, testMatch: 'rich-markdown-coverage.spec.ts' }
   ]
 })

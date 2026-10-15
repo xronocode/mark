@@ -1,5 +1,5 @@
 // FILE: src/renderer/src/util/guideDoc.js
-// VERSION: 1.0.0
+// VERSION: 1.1.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Load the localized Mark Guide markdown (C-40 G-3) from the bundled static/guide/*.md files and resolve section anchors.
 //   SCOPE: import.meta.glob lazy chunks (one per locale, ?raw) so the documents ship inside the renderer bundle in dev and in every Tauri build; prompt interpolation via agentPrompt.js; guide-section heading-text extraction for scroll deep links; unknown locales fall back to en.
@@ -18,7 +18,15 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.0.0 - initial module (C-40 2.3.1 G-3). Mirrors localeLoader's
+//   LAST_CHANGE: v1.1.0 - 2026-10-16 C-51 T-009: every guide document gained
+//   the «What Mark renders» showcase section (one live example per feature
+//   family, after the connect-agent section so the first-## deep link is
+//   unchanged), and the prompt fence is now FOUR backticks — the C-51
+//   prompt names ```mermaid/```vega-lite/```flowchart/```sequence fences, so
+//   a 3-backtick block would close at the first inner ```; muya's
+//   exportMarkdown keeps the outer fence longer than any inner run
+//   (BLOCK_FENCE_LENGTH_KEEP) so Save As / Copy as Markdown round-trips.
+//   v1.0.0 - initial module (C-40 2.3.1 G-3). Mirrors localeLoader's
 //   import.meta.glob bundling (fetch would 404 in Tauri builds); the agent prompt
 //   lives in ONE module (agentPrompt.js) and is interpolated into the fenced
 //   block so every locale ships the same OS-correct prompt. Section deep links
