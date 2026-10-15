@@ -26,6 +26,20 @@
     <File>tests/renderer/commands/menu-consistency.test.js</File>
     <File>.grace/verification/runtime.xml</File>
     <File>docs/design/settings-ia-2026-10-15.md</File>
+    <File>tests/muya/**</File>
+    <File>tests/e2e/**</File>
+    <File>tests/renderer/prefComponents/**</File>
+    <File>static/locales/*.min.json</File>
+    <File>static/locales/*.json</File>
+    <File>src/renderer/src/components/editorWithTabs/editor.vue</File>
+    <File>src/muya/lib/**</File>
+    <File>src/renderer/src/config.js</File>
+    <File>src/renderer/src/util/theme.js</File>
+    <File>src/renderer/src/_shims/preferences/schema.json</File>
+    <File>src/renderer/src/store/preferences.js</File>
+    <File>src/renderer/src/router/index.js</File>
+    <File>src/renderer/src/pages/preference.vue</File>
+    <File>src/renderer/src/prefComponents/**</File>
   </ObservedWriteScope>
   <ImplementationPlan>
     <T-001>
@@ -54,6 +68,51 @@
         <Command>review by the orchestrator against src/renderer/src/prefComponents/*/config.js and src/renderer/src/_shims/preferences/schema.json</Command>
       </Verification>
     </T-002>
+    <T-003>
+      <Title>N3a Settings shell: 640 px window, 5 toolbar tabs with icons, macOS-grouped controls, per-OS styling</Title>
+      <DependsOn>T-002</DependsOn><!-- also after C-41 T-002 merges (family picker) -->
+      <AcceptanceCriteria>
+        <Criterion>Matches the approved mockup https://claude.ai/artifact/YZQT1hjDAxDCax1zS2oFCy: fixed ~640 px window; toolbar with 5 icon tabs (General, Appearance, Editor, Markdown, Advanced) centred on macOS, underline tabs on Windows/Linux; the window title shows the active tab; last tab remembered.</Criterion>
+        <Criterion>Shared controls rewritten (prefComponents/common): grouped inset section with title, row = label + optional secondary help text + right-aligned control; switch, pop-up, stepper with value and unit rendered once, text field with placeholder, segmented control, button, destructive button. No trailing colons anywhere. System font; accent = CSS AccentColor with a fallback; full dark-mode parity; per-OS metrics (macOS / Windows) through the existing isOsx gate.</Criterion>
+        <Criterion>The old left sidebar and the 9 routes are replaced by the 5 tabs; settings search keeps working and routes every hit to its new tab.</Criterion>
+        <Criterion>Tests: tab routing and remembered tab, each control's v-model / on-change contract, no colon in rendered labels, unit rendered once (the "14px px" regression), per-OS class.</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>npm test</Command>
+        <Command>npx playwright test (settings specs, chromium + webkit)</Command>
+        <Command>grace lint --path . --assertions current</Command>
+      </Verification>
+    </T-003>
+    <T-004>
+      <Title>N3b Content: every setting moved per the N2 IA, new labels, dead prefs dropped, shortcuts sheet, reset</Title>
+      <DependsOn>T-003</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>Every row of docs/design/settings-ia-2026-10-15.md section 3 present in its tab and group with the EN/RU label and help from that document; the other 8 locales get real translations of the new strings; dead locale blocks (§5 bug 12) removed; missing RU math label fixed.</Criterion>
+        <Criterion>Dropped: the 14 dead keys of §4.1 (UI, schema and renderer reads; stored values left untouched) and the GitHub image uploader (UI; a stored github uploader falls back to none).</Criterion>
+        <Criterion>Keyboard shortcuts open as a sheet over the Settings window from «Edit…» in Advanced, with its search; Extensions and Custom CSS reachable from Advanced; «Restore all defaults» asks for confirmation and resets preferences only.</Criterion>
+        <Criterion>§5 bugs fixed: codeFontSize stored as a number and rendered once, editorLineWidth placeholder, schema/store default drift (4 keys), titleBarStyle shown on Windows and Linux, fake macOS spell-language switch removed, null-stomp of style defaults (bug 15) guarded.</Criterion>
+        <Criterion>Tests: every IA key rendered in its tab; dropped keys absent from UI and schema; reset confirmation; shortcuts sheet opens and closes; settings search finds mathEnabled and frontmatterProperties; WebKit screenshots light/dark × 10 locales without clipped labels.</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>npm test</Command>
+        <Command>npx playwright test (chromium + webkit)</Command>
+        <Command>grace lint --path . --assertions current</Command>
+      </Verification>
+    </T-004>
+    <T-005>
+      <Title>Code-block line numbers fixed (#1648) and opt-in</Title>
+      <DependsOn></DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>muya renders line numbers for code blocks when codeBlockLineNumbers is on: one number per logical line, aligned with its line both with wrapping off and with wrapCodeBlocks on (a wrapped line keeps one number at its first visual row), after typing, Enter, paste, undo, font-size change and window resize; nothing rendered when off; copy and export never include the numbers.</Criterion>
+        <Criterion>The FIXME #1648 force-off in muya setOptions and the commented paths are replaced by the working implementation.</Criterion>
+        <Criterion>Default false for new profiles; a one-time migration sets a stored true to false (the key was never user-settable) and records that it ran; after it the user's choice is kept.</Criterion>
+        <Criterion>Tests: number count equals line count across edits; alignment (each number's top equals its line's top) with wrap on and off in a browser test; migration runs once; export/copy unaffected.</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>npm test</Command>
+        <Command>npx playwright test (code block spec, chromium + webkit)</Command>
+      </Verification>
+    </T-005>
   </ImplementationPlan>
 
   <Evidence>
