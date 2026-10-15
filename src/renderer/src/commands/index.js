@@ -17,6 +17,8 @@
 //   edit.copy-as-structured-text - Copies selection (or whole document) as structure-preserving plain text (C-32).
 //   view.zoom-in / view.zoom-out / view.actual-size - Unified zoom via preferences ZOOM_STEP/ZOOM_ACTUAL_SIZE (C-49).
 //   help.guide - Opens the localized Mark Guide as a temporary untitled tab (C-40 G-3).
+//   help.whats-new - Reopens the C-48 What's New sheet (whatsNewDialog bus event).
+//   help.rate - Opens the App Store write-review page (C-48, review capability only).
 //   FileEncodingCommand - GRACE 4 synchronized symbol
 //   LineEndingCommand - GRACE 4 synchronized symbol
 //   QuickOpenCommand - GRACE 4 synchronized symbol
@@ -47,6 +49,10 @@
 //     Auto resolution cannot override the explicit choice.
 //   - 2026-10-15 C-40 G-3: add help.guide — opens the localized Mark Guide as
 //     a temporary untitled tab via the 'mt::open-guide' bus event.
+//   - 2026-10-15 C-48 T-001: add help.whats-new (reopens the What's New
+//     sheet via the whatsNewDialog bus event) and help.rate (App Store
+//     write-review URL; applyCapabilityGate prunes it when the m048
+//     `review` capability is off).
 // END_CHANGE_SUMMARY
 //
 // List of all static commands that are loaded into command center.
@@ -101,6 +107,9 @@ export function applyCapabilityGate(caps) {
   if (caps && caps.setDefaultHandler === false) denied.push('file.default-handler')
   // ASC 2.4.5(vii): store builds must not offer update checks anywhere.
   if (caps && caps.updater === false) denied.push('file.check-update')
+  // C-48: Rate Mark… exists only where the review flow exists (App Store
+  // build on macOS — m048 `review` flag); desktop prunes it.
+  if (caps && caps.review === false) denied.push('help.rate')
   if (!denied.length) return
   const drop = (list) => {
     for (let i = list.length - 1; i >= 0; i--) {
@@ -865,6 +874,24 @@ const commands = [
     execute: async () => {
       window.electron.shell.openExternal(
         'https://github.com/xronocode/mark/blob/main/docs/MARKDOWN_SYNTAX.md'
+      )
+    }
+  },
+  {
+    // C-48: Help › What's New reopens the sheet any time (the same
+    // component the startup gate shows once after an update).
+    id: 'help.whats-new',
+    execute: async () => {
+      bus.emit('whatsNewDialog')
+    }
+  },
+  {
+    // C-48: App Store build only (capability-gated below + cfg-gated in
+    // m009) — opens the App Store write-a-review page via the opener.
+    id: 'help.rate',
+    execute: async () => {
+      window.electron.shell.openExternal(
+        'macappstore://apps.apple.com/app/id6814590464?action=write-review'
       )
     }
   },
