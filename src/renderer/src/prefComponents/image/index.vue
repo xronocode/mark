@@ -21,7 +21,6 @@
     </section>
     <Separator />
     <FolderSetting v-if="imageInsertAction === 'folder' || imageInsertAction === 'path'" />
-    <Uploader v-if="imageInsertAction === 'upload'" />
   </div>
 </template>
 
@@ -30,7 +29,6 @@ import { storeToRefs } from 'pinia'
 import { useI18n } from 'vue-i18n'
 import { usePreferencesStore } from '@/store/preferences'
 import Separator from '../common/separator/index.vue'
-import Uploader from './components/uploader/index.vue'
 import CurSelect from '../common/select/index.vue'
 import FolderSetting from './components/folderSetting/index.vue'
 import { getImageActions } from './config'
