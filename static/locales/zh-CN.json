@@ -954,6 +954,30 @@
     "paste": "粘贴",
     "selectAll": "全选"
   },
+  "whatsNew": {
+    "eyebrow": "Mark {version}",
+    "title": "新变化",
+    "seeGuide": "查看指南",
+    "continue": "继续",
+    "v2_3_1": {
+      "zoom": {
+        "title": "放大图表与表格",
+        "text": "悬停并按下 ⤢，进入可缩放、可平移的全屏视图。"
+      },
+      "agentDiff": {
+        "title": "查看代理的改动",
+        "text": "⌘D 与其上次保存之前的版本对比。"
+      },
+      "themes": {
+        "title": "Paper 与 Ink",
+        "text": "全新默认主题，Auto 跟随 macOS。"
+      },
+      "tables": {
+        "title": "装得下的表格",
+        "text": "宽表格在栏内滚动，长链接自动换行。"
+      }
+    }
+  },
   "about": {
     "copyright": "Copyright © Jocs 2017+, tkaixiang 2024+, xronocode 2026+",
     "copyrightContributors": "Made with <3 by the marktext community"
@@ -1101,6 +1125,10 @@
     "docs": {
       "userGuide": "用户指南",
       "markdownSyntax": "Markdown 语法"
+    },
+    "help": {
+      "whatsNew": "新变化",
+      "rateMark": "为 Mark 评分…"
     },
     "utils": {
       "noUpdateResourceFile": "没有更新资源文件",

@@ -965,6 +965,30 @@
     "paste": "Paste",
     "selectAll": "Select All"
   },
+  "whatsNew": {
+    "eyebrow": "Mark {version}",
+    "title": "What's new",
+    "seeGuide": "See the guide",
+    "continue": "Continue",
+    "v2_3_1": {
+      "zoom": {
+        "title": "Zoom into diagrams and tables",
+        "text": "Hover and press ⤢ for a fullscreen view with zoom and pan."
+      },
+      "agentDiff": {
+        "title": "See what the agent changed",
+        "text": "⌘D compares with the version before its last save."
+      },
+      "themes": {
+        "title": "Paper and Ink",
+        "text": "New default themes, and Auto follows macOS."
+      },
+      "tables": {
+        "title": "Tables that fit",
+        "text": "Wide tables scroll inside the column; long links wrap."
+      }
+    }
+  },
   "about": {
     "copyright": "Copyright © Jocs 2017+, tkaixiang 2024+, xronocode 2026+",
     "copyrightContributors": "Made with <3 by the marktext community"
@@ -1118,6 +1142,10 @@
     "docs": {
       "userGuide": "User Guide",
       "markdownSyntax": "Markdown Syntax"
+    },
+    "help": {
+      "whatsNew": "What's New",
+      "rateMark": "Rate Mark…"
     },
     "utils": {
       "noUpdateResourceFile": "No update resource file",

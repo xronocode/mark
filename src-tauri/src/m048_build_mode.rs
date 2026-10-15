@@ -31,6 +31,8 @@
 //     button must hide on Windows/Linux instead of failing silently.
 //   - 2026-10-15 C-44: the app-store variant advertises share on macOS
 //     (NSSharingServicePicker is sandbox-safe); the live server stays off.
+//   - 2026-10-15 C-48: `review` flag — SKStoreReviewController (m053)
+//     exists only in the App Store build on macOS; desktop stays false.
 // END_CHANGE_SUMMARY
 
 use serde::Serialize;
@@ -51,6 +53,10 @@ pub struct BuildMode {
     /// C-15 Phase W QA round 2: mt_share_file is an NSSharingServicePicker
     /// shim (m032) — macOS-only. The titlebar Share button hides off-mac.
     pub share: bool,
+    /// C-48: SKStoreReviewController (m053) exists only in the App Store
+    /// build on macOS — the renderer review flow and Help › Rate Mark…
+    /// gate on this, not on the mode string.
+    pub review: bool,
 }
 
 #[tauri::command]
@@ -67,6 +73,9 @@ pub async fn mt_build_mode() -> Result<BuildMode, String> {
             // C-44: NSSharingServicePicker on a user-opened file is
             // sandbox-safe — the App Store build shows Share on macOS too.
             share: cfg!(target_os = "macos"),
+            // C-48: the system rating sheet (SKStoreReviewController,
+            // m053) is App Store + macOS only.
+            review: cfg!(target_os = "macos"),
         })
     }
     #[cfg(not(feature = "app-store"))]
@@ -82,6 +91,8 @@ pub async fn mt_build_mode() -> Result<BuildMode, String> {
             project_search_ripgrep: true,
             updater: true,
             share: cfg!(target_os = "macos"),
+            // C-48: no system rating sheet exists outside the store.
+            review: false,
         })
     }
 }
@@ -102,6 +113,7 @@ mod tests {
             project_search_ripgrep: false,
             updater: false,
             share: cfg!(target_os = "macos"),
+            review: cfg!(target_os = "macos"),
         };
         #[cfg(not(feature = "app-store"))]
         let m = BuildMode {
@@ -112,6 +124,7 @@ mod tests {
             project_search_ripgrep: true,
             updater: true,
             share: cfg!(target_os = "macos"),
+            review: false,
         };
         assert!(matches!(m.mode, "app-store" | "desktop"));
         // app-store must never advertise a sandbox-hostile capability.
@@ -126,4 +139,26 @@ mod tests {
             assert!(!m.screenshot && !m.set_default_handler);
         }
     }
+
+    // START_BLOCK_REVIEW_FLAG_TEST
+    // C-48: the review flow (m053 + renderer reviewRequest) may only run
+    // where the system rating sheet exists — the App Store build on
+    // macOS. cargo test without features pins the desktop false; the MAS
+    // CI build (app-store feature) compiles the mirror assertion.
+    #[cfg(not(feature = "app-store"))]
+    #[tokio::test]
+    async fn desktop_builds_never_advertise_the_review_capability() {
+        let m = mt_build_mode().await.expect("build mode");
+        assert_eq!(m.mode, "desktop");
+        assert!(!m.review, "desktop builds have no system rating sheet");
+    }
+
+    #[cfg(all(feature = "app-store", target_os = "macos"))]
+    #[tokio::test]
+    async fn app_store_macos_advertises_the_review_capability() {
+        let m = mt_build_mode().await.expect("build mode");
+        assert_eq!(m.mode, "app-store");
+        assert!(m.review, "the MAS build on macOS owns the rating sheet");
+    }
+    // END_BLOCK_REVIEW_FLAG_TEST
 }

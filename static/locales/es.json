@@ -945,6 +945,30 @@
       "system": "Como en el sistema"
     }
   },
+  "whatsNew": {
+    "eyebrow": "Mark {version}",
+    "title": "Novedades",
+    "seeGuide": "Ver la guía",
+    "continue": "Continuar",
+    "v2_3_1": {
+      "zoom": {
+        "title": "Amplía diagramas y tablas",
+        "text": "Pasa el cursor y pulsa ⤢ para una vista a pantalla completa con zoom y desplazamiento."
+      },
+      "agentDiff": {
+        "title": "Ve lo que cambió el agente",
+        "text": "⌘D compara con la versión anterior a su último guardado."
+      },
+      "themes": {
+        "title": "Paper e Ink",
+        "text": "Nuevos temas predeterminados, y Auto sigue a macOS."
+      },
+      "tables": {
+        "title": "Tablas que caben",
+        "text": "Las tablas anchas se desplazan dentro de la columna; los enlaces largos se ajustan."
+      }
+    }
+  },
   "about": {
     "copyright": "Copyright © Jocs 2017+, tkaixiang 2024+, xronocode 2026+",
     "copyrightContributors": "Made with <3 by the marktext community"
@@ -1092,6 +1116,10 @@
     "docs": {
       "userGuide": "Guía del Usuario",
       "markdownSyntax": "Sintaxis de Markdown"
+    },
+    "help": {
+      "whatsNew": "Novedades",
+      "rateMark": "Valorar Mark…"
     },
     "utils": {
       "noUpdateResourceFile": "No hay archivo de recurso de actualización",

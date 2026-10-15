@@ -421,6 +421,12 @@ export const useEditorStore = defineStore('editor', {
         tab.isSaved = false
       } else {
         tab.isSaved = !!outcome.isSaved
+        // C-48 review request: a successful save is one half of a
+        // "successful session" (document opened and saved) — the review
+        // controller listens and owns all further logic.
+        if (tab.isSaved) {
+          bus.emit('file-saved', { id: tab.id, pathname: tab.pathname })
+        }
       }
       if (
         tab.isSaved &&

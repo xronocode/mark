@@ -220,6 +220,8 @@ const COMMAND_KEY_MAP = {
   // ============================================
   'docs.user-guide': 'commands.docs.userGuide',
   'docs.markdown-syntax': 'commands.docs.markdownSyntax',
+  'help.whats-new': 'commands.help.whatsNew',
+  'help.rate': 'commands.help.rateMark',
 
   // ============================================
   // # 拼写检查命令 (Spell Checker)
