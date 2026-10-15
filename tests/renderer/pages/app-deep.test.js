@@ -481,7 +481,26 @@ describe('App.vue page — deep coverage', () => {
       return evt
     }
 
+    // C-46: the import dialog only opens while a document is open; with
+    // no file open the welcome screen owns the drop affordance and
+    // forwards drops itself, so these tests open a file first.
+    const openAFile = async () => {
+      const { useEditorStore } = await import('@/store/editor')
+      const editorStore = useEditorStore()
+      editorStore.currentFile = {
+        id: 'tab-drag',
+        markdown: '# open',
+        pathname: '/tmp/drag.md',
+        filename: 'drag.md',
+        isSaved: true,
+        cursor: null,
+        wordCount: null,
+        muyaIndexCursor: null
+      }
+    }
+
     it('ignores dragover with no dataTransfer types', async () => {
+      await openAFile()
       mountComponent()
       await flush()
       bus.emit.mockClear()
@@ -492,6 +511,7 @@ describe('App.vue page — deep coverage', () => {
     })
 
     it('shows import dialog for non-image file drag', async () => {
+      await openAFile()
       mountComponent()
       await flush()
       bus.emit.mockClear()
@@ -507,6 +527,7 @@ describe('App.vue page — deep coverage', () => {
     })
 
     it('sets dropEffect to copy for single image drag', async () => {
+      await openAFile()
       mountComponent()
       await flush()
       bus.emit.mockClear()
@@ -520,6 +541,7 @@ describe('App.vue page — deep coverage', () => {
     })
 
     it('stops propagation for non-file drag', async () => {
+      await openAFile()
       mountComponent()
       await flush()
       bus.emit.mockClear()
@@ -528,6 +550,73 @@ describe('App.vue page — deep coverage', () => {
 
       expect(evt.stopPropagation).toHaveBeenCalled()
       expect(evt.dataTransfer.dropEffect).toBe('none')
+    })
+
+    it('does not open the import dialog while the welcome screen is up (C-46)', async () => {
+      const { useEditorStore } = await import('@/store/editor')
+      const editorStore = useEditorStore()
+      editorStore.currentFile = { id: 'tab-none' } // no markdown → welcome screen
+      mountComponent()
+      await flush()
+      bus.emit.mockClear()
+
+      const evt = fireDragover(
+        ['Files'],
+        [{ type: 'text/plain' }, { type: 'text/plain' }]
+      )
+
+      // Still a valid drop target — the welcome screen handles it.
+      expect(evt.preventDefault).toHaveBeenCalled()
+      expect(evt.dataTransfer.dropEffect).toBe('copy')
+      expect(bus.emit).not.toHaveBeenCalledWith('importDialog', expect.anything())
+    })
+
+    it('clears existing timer on repeated drag', async () => {
+      const flushInner = () => new Promise(r => setTimeout(r, 0))
+      await openAFile()
+      mountComponent()
+      await flushInner()
+      bus.emit.mockClear()
+
+      const fireDrag = () => {
+        const evt = new Event('dragover', { bubbles: true, cancelable: true })
+        evt.dataTransfer = {
+          types: ['Files'],
+          items: [{ type: 'text/plain' }, { type: 'text/plain' }],
+          dropEffect: ''
+        }
+        evt.preventDefault = vi.fn()
+        window.dispatchEvent(evt)
+      }
+
+      fireDrag()
+      fireDrag()
+
+      expect(bus.emit).toHaveBeenCalledWith('importDialog', true)
+    })
+
+    it('emits importDialog false after timer fires', async () => {
+      const flushInner = () => new Promise(r => setTimeout(r, 0))
+      await openAFile()
+      mountComponent()
+      await flushInner()
+      bus.emit.mockClear()
+
+      vi.useFakeTimers()
+
+      const evt = new Event('dragover', { bubbles: true, cancelable: true })
+      evt.dataTransfer = {
+        types: ['Files'],
+        items: [{ type: 'text/plain' }, { type: 'text/plain' }],
+        dropEffect: ''
+      }
+      evt.preventDefault = vi.fn()
+      window.dispatchEvent(evt)
+
+      vi.advanceTimersByTime(300)
+
+      expect(bus.emit).toHaveBeenCalledWith('importDialog', false)
+      vi.useRealTimers()
     })
   })
 
@@ -574,52 +663,6 @@ describe('App.vue page — deep coverage', () => {
       )
       addCommonStyle.mockImplementation(() => {})
       errorSpy.mockRestore()
-    })
-
-    it('clears existing timer on repeated drag', async () => {
-      const flush = () => new Promise(r => setTimeout(r, 0))
-      mountComponent()
-      await flush()
-      bus.emit.mockClear()
-
-      const fireDrag = () => {
-        const evt = new Event('dragover', { bubbles: true, cancelable: true })
-        evt.dataTransfer = {
-          types: ['Files'],
-          items: [{ type: 'text/plain' }, { type: 'text/plain' }],
-          dropEffect: ''
-        }
-        evt.preventDefault = vi.fn()
-        window.dispatchEvent(evt)
-      }
-
-      fireDrag()
-      fireDrag()
-
-      expect(bus.emit).toHaveBeenCalledWith('importDialog', true)
-    })
-
-    it('emits importDialog false after timer fires', async () => {
-      const flush = () => new Promise(r => setTimeout(r, 0))
-      mountComponent()
-      await flush()
-      bus.emit.mockClear()
-
-      vi.useFakeTimers()
-
-      const evt = new Event('dragover', { bubbles: true, cancelable: true })
-      evt.dataTransfer = {
-        types: ['Files'],
-        items: [{ type: 'text/plain' }, { type: 'text/plain' }],
-        dropEffect: ''
-      }
-      evt.preventDefault = vi.fn()
-      window.dispatchEvent(evt)
-
-      vi.advanceTimersByTime(300)
-
-      expect(bus.emit).toHaveBeenCalledWith('importDialog', false)
-      vi.useRealTimers()
     })
   })
 })

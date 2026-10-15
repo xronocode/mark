@@ -411,8 +411,38 @@
     "table": "Tableau"
   },
   "recent": {
-    "noTabsOpen": "Vous n'avez aucun onglet ouvert.",
-    "newFile": "Nouveau fichier"
+    "taglineLead": "Les agents écrivent. Vous",
+    "taglineHighlight": "donnez forme",
+    "taglineTail": "au résultat.",
+    "openFile": "Ouvrir un fichier…",
+    "openFolder": "Ouvrir un dossier…",
+    "newButton": "Nouveau",
+    "recentFiles": "Fichiers récents",
+    "recentFolders": "Dossiers récents",
+    "noRecentFiles": "Aucun fichier récent",
+    "lastSession": "Dernière session",
+    "filesCount": "{count} fichiers",
+    "remove": "Retirer de la liste",
+    "removeTooltip": "Le retire uniquement de cette liste. Le fichier reste sur le disque.",
+    "removedToast": "« {name} » retiré des fichiers récents",
+    "undo": "Annuler",
+    "open": "Ouvrir",
+    "copyPath": "Copier le chemin",
+    "showInFinder": "Montrer dans le Finder",
+    "showInExplorer": "Montrer dans l'Explorateur",
+    "guide": "Guide",
+    "whatsNewIn": "Nouveautés de {version}",
+    "connectTitle": "Connectez votre agent.",
+    "connectText": "Une seule invite et il ouvre ses plans ici et lit vos modifications.",
+    "copyPrompt": "Copier l'invite",
+    "howItWorks": "Comment ça marche",
+    "time": {
+      "justNow": "à l'instant",
+      "minutesAgo": "il y a {count} min",
+      "todayAt": "aujourd'hui à {time}",
+      "yesterday": "hier",
+      "daysAgo": "il y a {count} jours"
+    }
   },
   "import": {
     "title": "Importer ou ouvrir",

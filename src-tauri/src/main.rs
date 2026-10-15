@@ -761,6 +761,8 @@ fn main() {
             m017_recent::mt_recent_add,
             m017_recent::mt_recent_list,
             m017_recent::mt_recent_clear,
+            m017_recent::mt_recent_remove,
+            m017_recent::mt_recent_insert,
             m006_shortcuts::mt_shortcut_register,
             m006_shortcuts::mt_shortcut_unregister,
             m006_shortcuts::mt_shortcut_list,

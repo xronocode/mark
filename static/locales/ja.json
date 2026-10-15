@@ -411,8 +411,38 @@
     "table": "表"
   },
   "recent": {
-    "noTabsOpen": "開いているタブがありません。",
-    "newFile": "新しいファイル"
+    "taglineLead": "エージェントが書く。",
+    "taglineHighlight": "あなたが形にする。",
+    "taglineTail": "",
+    "openFile": "ファイルを開く…",
+    "openFolder": "フォルダーを開く…",
+    "newButton": "新規",
+    "recentFiles": "最近のファイル",
+    "recentFolders": "最近のフォルダー",
+    "noRecentFiles": "最近のファイルはありません",
+    "lastSession": "前回のセッション",
+    "filesCount": "{count} 件のファイル",
+    "remove": "リストから削除",
+    "removeTooltip": "このリストから削除するだけです。ファイルはディスクに残ります。",
+    "removedToast": "「{name}」を最近の項目から削除しました",
+    "undo": "元に戻す",
+    "open": "開く",
+    "copyPath": "パスをコピー",
+    "showInFinder": "Finder で表示",
+    "showInExplorer": "エクスプローラーで表示",
+    "guide": "ガイド",
+    "whatsNewIn": "{version} の新機能",
+    "connectTitle": "エージェントを接続。",
+    "connectText": "1 つのプロンプトで、エージェントがここにプランを開き、あなたの編集を読み取ります。",
+    "copyPrompt": "プロンプトをコピー",
+    "howItWorks": "仕組みを見る",
+    "time": {
+      "justNow": "たった今",
+      "minutesAgo": "{count} 分前",
+      "todayAt": "今日 {time}",
+      "yesterday": "昨日",
+      "daysAgo": "{count} 日前"
+    }
   },
   "import": {
     "title": "インポートまたは開く",
