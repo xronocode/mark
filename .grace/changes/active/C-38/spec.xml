@@ -72,7 +72,7 @@
   <Approval>
     <ApprovedBy>user (2026-10-15): «согласен» to running C-38 N1 as the first task delegated to a ZCode agent via the CLI</ApprovedBy>
     <ApprovalScope>N1 (per-OS settings entry points + menu rename) and N2 (IA audit document, no code; approved 2026-10-15 «да»). N3–N4 pending; the Settings redesign starts from canvas mockups.</ApprovalScope>
-    <Decisions><Date>2026-10-15</Date>N2 open questions answered by the user: (1) dead Startup prefs are dropped (boot always restores the last session); (2) code-block line numbers come back as a switch, off by default, after #1648 is re-checked; (3) the deprecated GitHub image uploader is removed from the UI; (4) Keyboard shortcuts open as a sheet over the Settings window from an «Edit…» button in Advanced (orchestrator's call, user deferred). N3 mockup: https://claude.ai/artifact/YZQT1hjDAxDCax1zS2oFCy (awaiting approval).</Decisions>
+    <Decisions><Date>2026-10-15</Date>N2 open questions answered by the user: (1) dead Startup prefs are dropped (boot always restores the last session); (2) code-block line numbers come back as a switch, off by default, after #1648 is re-checked; (3) the deprecated GitHub image uploader is removed from the UI; (4) Keyboard shortcuts open as a sheet over the Settings window from an «Edit…» button in Advanced (orchestrator's call, user deferred). N3 mockup: https://claude.ai/artifact/YZQT1hjDAxDCax1zS2oFCy approved 2026-10-15 («макет норм найс»; review carefully). N3 planned as T-003 shell, T-004 content, T-005 line numbers.</Decisions>
   </Approval>
 </C-38>
 </GraceChangeSpec>
