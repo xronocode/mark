@@ -24,6 +24,12 @@
 </template>
 
 <script setup>
+// START_CHANGE_SUMMARY
+//   - 2026-10-15 C-38 T-006 N4 b: the current-file selection follows
+//     the system accent (marker + text + ~14% soft background) instead
+//     of the theme green. The file-type icon keeps the muya fileIcons
+//     set (document-side, extension-aware).
+// END_CHANGE_SUMMARY
 import { ref, computed, onMounted, nextTick } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useProjectStore } from '@/store/project'
@@ -128,7 +134,7 @@ onMounted(() => {
     position: absolute;
     display: block;
     left: 0;
-    background: var(--themeColor);
+    background: var(--chromeAccent);
     width: 2px;
     height: 0;
     top: 50%;
@@ -136,11 +142,14 @@ onMounted(() => {
     transition: all 0.2s ease;
   }
 }
+.side-bar-file.current {
+  background: var(--chromeAccentSoft);
+}
 .side-bar-file.current::before {
   height: 100%;
 }
 .side-bar-file.current > span {
-  color: var(--themeColor);
+  color: var(--chromeAccent);
 }
 .side-bar-file.active > span {
   color: var(--sideBarTitleColor);

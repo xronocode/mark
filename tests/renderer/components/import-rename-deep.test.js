@@ -7,9 +7,6 @@ vi.mock('@/bus', () => ({
   default: { on: vi.fn(), off: vi.fn(), emit: vi.fn() }
 }))
 
-vi.mock('@/assets/icons/import_file.svg?url', () => ({
-  default: 'import_file.svg'
-}))
 
 const i18n = createI18n({
   legacy: false,

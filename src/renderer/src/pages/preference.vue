@@ -9,7 +9,7 @@
 
 <script setup>
 // FILE: src/renderer/src/pages/preference.vue
-// VERSION: 2.0.0
+// VERSION: 2.1.0
 // START_MODULE_CONTRACT
 //   PURPOSE: The C-38 T-003 Settings window shell — native-titlebar window (title follows the active tab), 5-tab toolbar, scrollable grouped body, remembered tab, and the theme/auto-theme wiring the settings webview has always owned.
 //   SCOPE: Shell layout + palette (per-OS metrics, dark parity via body.dark), tab-title sync (document + native window), last-tab persistence, theme application for this window.
@@ -28,6 +28,12 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-10-15 v2.1.0: C-38 T-006 N4 a/b — the Settings accent and
+//     font now alias the shared chrome identity: --prefAccent mirrors
+//     --chromeAccent and --prefAccentSoft mirrors --chromeAccentSoft
+//     (AccentColor with the per-OS fallback in assets/styles/index.css;
+//     the per-OS/dark literal accents and font-family stacks are gone),
+//     and the shell uses --chromeFontFamily.
 //   - 2026-10-15 v2.0.0: C-38 T-003 — new shell per the approved mockup: left rail replaced by the tabsBar toolbar; body 18/24px with scroll; neutral system palette with CSS AccentColor fallback per OS and body.dark parity; window title follows the active tab; last tab remembered (localStorage, guarded); per-OS class (is-mac/is-win) on the root.
 //   - (v1.x: 280px sideBar rail + 9 routed pages — retired.)
 // END_CHANGE_SUMMARY
@@ -154,13 +160,16 @@ onUnmounted(() => {
 
 <style>
 /* START_BLOCK_PREF_PALETTE */
-/* Mockup palette (renderVals): neutral system greys, per-OS accent
-   fallback and per-OS radii/control metrics. Dark parity keyed off the
-   app's existing body.dark classification set by util/theme.js; the
-   AccentColor upgrade follows the real system accent and appearance
-   automatically, the static values are only fallbacks. */
+/* Mockup palette (renderVals): neutral system greys, per-OS radii and
+   control metrics. Dark parity keyed off the app's existing body.dark
+   classification set by util/theme.js. Since C-38 T-006 the accent and
+   the font come from the shared chrome identity in
+   assets/styles/index.css: --prefAccent mirrors --chromeAccent (CSS
+   AccentColor where supported, per-OS fallback otherwise — the values
+   here are just aliases now) and the shell uses --chromeFontFamily. */
 .pref-container {
-  --prefAccent: #007aff;
+  --prefAccent: var(--chromeAccent);
+  --prefAccentSoft: var(--chromeAccentSoft);
   --prefBg: #ececec;
   --prefBar: #ececec;
   --prefGroup: #ffffff;
@@ -189,29 +198,20 @@ onUnmounted(() => {
   background: var(--prefBg);
   color: var(--prefText);
   color-scheme: light;
-  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', sans-serif;
+  font-family: var(--chromeFontFamily);
   -webkit-font-smoothing: antialiased;
 }
 
-@supports (color: AccentColor) {
-  .pref-container {
-    --prefAccent: AccentColor;
-  }
-}
-
 .pref-container.is-win {
-  --prefAccent: #005fb8;
   --prefBg: #f3f3f3;
   --prefBar: #f3f3f3;
   --prefGroup: #fbfbfb;
   --prefCtrl: #ffffff;
   --prefGroupRadius: 6px;
   --prefCtrlRadius: 4px;
-  font-family: 'Segoe UI Variable Text', 'Segoe UI', system-ui, sans-serif;
 }
 
 body.dark .pref-container {
-  --prefAccent: #0a84ff;
   --prefBg: #242424;
   --prefBar: #2c2c2c;
   --prefGroup: #2f2f2f;
@@ -227,7 +227,6 @@ body.dark .pref-container {
 }
 
 body.dark .pref-container.is-win {
-  --prefAccent: #4cc2ff;
   --prefBg: #202020;
   --prefBar: #202020;
   --prefGroup: #2b2b2b;

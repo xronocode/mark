@@ -41,7 +41,7 @@
       display: flex;
       align-items: center;
       padding: 5px 5px;
-      & svg.icon {
+      & svg.chrome-icon {
         width: .85em;
         height: .85em;
       }

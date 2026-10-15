@@ -7,26 +7,22 @@
     <!-- Opened tabs — hidden when there are no open tabs (user feedback). -->
     <div v-if="tabs && tabs.length > 0" class="opened-files">
       <div class="title">
-        <svg
-          class="icon icon-arrow"
+        <chrome-icon
+          name="chevron-right"
+          :size="12"
+          class="icon-arrow"
           :class="{ fold: !showOpenedFiles }"
           aria-hidden="true"
           @click.stop="toggleOpenedFiles()"
-        >
-          <use xlink:href="#icon-arrow"></use>
-        </svg>
+        ></chrome-icon>
         <span class="default-cursor text-overflow" @click.stop="toggleOpenedFiles()">{{
           t('sideBar.tree.openedFiles')
         }}</span>
         <a href="javascript:;" :title="t('sideBar.tree.saveAll')" @click.stop="saveAll(false)">
-          <svg class="icon" aria-hidden="true">
-            <use xlink:href="#icon-save-all"></use>
-          </svg>
+          <chrome-icon name="save-all" :size="14" aria-hidden="true"></chrome-icon>
         </a>
         <a href="javascript:;" :title="t('sideBar.tree.closeAll')" @click.stop="saveAll(true)">
-          <svg class="icon" aria-hidden="true">
-            <use xlink:href="#icon-close-all"></use>
-          </svg>
+          <chrome-icon name="close-all" :size="14" aria-hidden="true"></chrome-icon>
         </a>
       </div>
       <div v-show="showOpenedFiles" class="opened-files-list">
@@ -43,14 +39,14 @@
       class="project-tree"
     >
       <div class="title">
-        <svg
-          class="icon icon-arrow"
+        <chrome-icon
+          name="chevron-right"
+          :size="12"
+          class="icon-arrow"
           :class="{ fold: !isRootExpanded(root.pathname) }"
           aria-hidden="true"
           @click.stop="toggleRootDirectories(root.pathname)"
-        >
-          <use xlink:href="#icon-arrow"></use>
-        </svg>
+        ></chrome-icon>
         <span
           class="default-cursor text-overflow"
           :title="root.pathname"
@@ -62,10 +58,7 @@
           :title="t('sideBar.tree.closeFolder')"
           @click.stop="handleCloseRoot(root.pathname)"
         >
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="18" y1="6" x2="6" y2="18"/>
-            <line x1="6" y1="6" x2="18" y2="18"/>
-          </svg>
+          <chrome-icon name="close" :size="12" aria-hidden="true"></chrome-icon>
         </a>
       </div>
       <div v-show="isRootExpanded(root.pathname)" class="tree-wrapper">
@@ -103,16 +96,7 @@
           @click.stop="createFileInRoot(root)"
         >
           <span class="new-file-icon" aria-hidden="true">
-            <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
-              <!-- document outline -->
-              <path d="M3 1.5h6.293a.5.5 0 0 1 .353.146l3.708 3.707a.5.5 0 0 1 .146.354V14.5a.5.5 0 0 1-.5.5h-10a.5.5 0 0 1-.5-.5v-13a.5.5 0 0 1 .5-.5z" stroke="currentColor" stroke-width="1.2" fill="currentColor" fill-opacity="0.15"/>
-              <!-- M monogram (centered) -->
-              <text x="8" y="10.5" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="6.5" font-weight="700" fill="currentColor">M</text>
-              <!-- + badge bottom-right -->
-              <circle cx="12" cy="12" r="3.2" fill="currentColor" stroke="var(--sideBarBgColor)" stroke-width="0.8"/>
-              <line x1="12" y1="10.5" x2="12" y2="13.5" stroke="var(--sideBarBgColor)" stroke-width="1.2" stroke-linecap="round"/>
-              <line x1="10.5" y1="12" x2="13.5" y2="12" stroke="var(--sideBarBgColor)" stroke-width="1.2" stroke-linecap="round"/>
-            </svg>
+            <chrome-icon name="file-plus" :size="14"></chrome-icon>
           </span>
           <span class="new-file-label">{{ t('sideBar.tree.newFile') }}</span>
         </div>
@@ -146,6 +130,12 @@
 </template>
 
 <script setup>
+// START_CHANGE_SUMMARY
+//   - 2026-10-15 C-38 T-006 N4 d: every icon in the tree chrome renders
+//     from the drawn chromeIcons set (chevron-right arrows, save-all /
+//     close-all header actions, close-root X, file-plus empty-root
+//     row); the iconfont sprite and the ad-hoc inline svgs are gone.
+// END_CHANGE_SUMMARY
 import { ref, watch, onMounted, nextTick } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useProjectStore } from '@/store/project'
@@ -153,6 +143,7 @@ import { useEditorStore } from '@/store/editor'
 import Folder from './treeFolder.vue'
 import File from './treeFile.vue'
 import OpenedFile from './treeOpenedTab.vue'
+import { ChromeIcon } from '../icons/chromeIcons.js'
 import bus from '../../bus'
 import { useI18n } from 'vue-i18n'
 import { shortenMiddle } from '../../util/pathDisplay'
@@ -338,7 +329,7 @@ onMounted(() => {
   margin-right: 5px;
   transition: all 0.25s ease-out;
   transform: rotate(90deg);
-  fill: var(--sideBarTextColor);
+  color: var(--sideBarTextColor);
 }
 
 .icon-arrow.fold {

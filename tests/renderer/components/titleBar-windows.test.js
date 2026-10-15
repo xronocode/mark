@@ -41,13 +41,6 @@ vi.mock('@/bus', () => ({
   default: { on: vi.fn(), off: vi.fn(), emit: vi.fn() }
 }))
 
-vi.mock('@/assets/window-controls.js', () => ({
-  minimizePath: 'M0,0',
-  restorePath: 'M0,0',
-  maximizePath: 'M0,0',
-  closePath: 'M0,0'
-}))
-
 vi.mock('@/config', () => ({
   PATH_SEPARATOR: '\\',
   themePairs: { light: 'dark', dark: 'light' },

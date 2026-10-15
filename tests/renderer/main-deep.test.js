@@ -25,8 +25,6 @@ vi.mock('@/bootstrap-ipc', () => ({
 
 vi.mock('@/_shims/install-window-globals', () => ({}))
 
-vi.mock('@/assets/symbolIcon', () => ({}))
-
 vi.mock('@/assets/styles/index.css', () => ({}))
 vi.mock('@/assets/styles/printService.css', () => ({}))
 vi.mock('element-plus/dist/index.css', () => ({}))

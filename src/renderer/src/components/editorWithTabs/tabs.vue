@@ -23,25 +23,40 @@
             :title="t('tabs.lockedTitle')"
           ></chrome-icon>
           <span>{{ file.filename }}</span>
-          <svg class="close-icon icon" aria-hidden="true" @click.stop="removeFileInTab(file)">
-            <circle id="unsaved-circle-icon" cx="6" cy="6" r="3"></circle>
-            <use id="default-close-icon" xlink:href="#icon-close-small"></use>
-          </svg>
+          <!-- C-38 T-006: close glyph + unsaved marker drawn from the
+               chromeIcons set; the CSS below keeps the old swap logic
+               (unsaved non-active tabs show the dot, hover/active show
+               the X). -->
+          <chrome-icon
+            name="close"
+            :size="12"
+            class="close-icon"
+            aria-hidden="true"
+            @click.stop="removeFileInTab(file)"
+          ></chrome-icon>
+          <chrome-icon
+            name="dot"
+            :size="8"
+            class="unsaved-dot"
+            aria-hidden="true"
+          ></chrome-icon>
         </li>
       </ul>
     </div>
     <div class="new-file" @click.stop="newFile()">
-      <svg class="icon" aria-hidden="true">
-        <use xlink:href="#icon-plus"></use>
-      </svg>
+      <chrome-icon name="plus" :size="16" aria-hidden="true"></chrome-icon>
     </div>
   </div>
 </template>
 
 <script setup>
 // FILE: src/renderer/src/components/editorWithTabs/tabs.vue
-// VERSION: 1.3.0
+// VERSION: 1.4.0
 // START_CHANGE_SUMMARY
+//   - 2026-10-15 v1.4.0: C-38 T-006 N4 b/d — the close glyph, the
+//     unsaved marker dot and the new-tab plus render from the drawn
+//     chromeIcons set (the iconfont sprite is gone); the active-tab
+//     marker follows the system accent instead of the theme green.
 //   - 2026-10-15 v1.3.0: C-40 T-004 — a tab in the read-only mode
 //     (locked via View › Lock Document, or Finder-opened reading view)
 //     carries a lock badge (chromeIcons 'lock', 11 px) before its
@@ -368,14 +383,27 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
-svg.close-icon #unsaved-circle-icon {
+/* C-38 T-006: the close glyph and the unsaved dot are two glyphs from
+   the chromeIcons set. Same visibility contract as the old single-svg
+   pair: hidden at rest, dot always on unsaved non-active tabs, X on
+   hover and on the active tab. */
+svg.close-icon {
   transition: all 0.15s ease-in-out;
-  fill: var(--themeColor);
+  cursor: pointer;
+  color: var(--editorColor50);
 }
 
 svg.close-icon:hover {
-  cursor: pointer;
-  fill: var(--focusColor);
+  color: var(--focusColor);
+}
+
+svg.unsaved-dot {
+  position: absolute;
+  top: 50%;
+  right: 10px;
+  transform: translateY(-50%);
+  color: var(--themeColor);
+  display: none;
 }
 
 .editor-tabs {
@@ -446,10 +474,7 @@ svg.close-icon:hover {
     &:hover > svg {
       opacity: 1;
     }
-    &:hover > svg.close-icon #default-close-icon {
-      display: block !important;
-    }
-    &:hover > svg.close-icon #unsaved-circle-icon {
+    &:hover > svg.unsaved-dot {
       display: none !important;
     }
     & > span {
@@ -461,13 +486,11 @@ svg.close-icon:hover {
   }
   & > li.unsaved:not(.active) {
     & > svg.close-icon {
-      opacity: 1;
+      opacity: 0;
     }
-    & > svg.close-icon #unsaved-circle-icon {
+    & > svg.unsaved-dot {
       display: block;
-    }
-    & > svg.close-icon #default-close-icon {
-      display: none;
+      opacity: 1;
     }
   }
   & > li.active {
@@ -480,12 +503,12 @@ svg.close-icon:hover {
       bottom: 0;
       right: 0;
       height: 2px;
-      background: var(--themeColor);
+      background: var(--chromeAccent);
     }
     & > svg {
       opacity: 1;
     }
-    & > svg.close-icon #unsaved-circle-icon {
+    & > svg.unsaved-dot {
       display: none;
     }
   }
@@ -510,7 +533,7 @@ svg.close-icon:hover {
 .editor-tabs > .new-file:hover {
   transition: all 0.15s ease-in-out;
   & > svg {
-    fill: var(--focusColor);
+    color: var(--focusColor);
   }
 }
 

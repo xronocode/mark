@@ -41,10 +41,7 @@
           :title="t('sideBar.icons.settings')"
           @click.stop="handleSettingsClick"
         >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="3"/>
-            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-          </svg>
+          <chrome-icon name="settings"></chrome-icon>
         </div>
       </div>
 
@@ -119,9 +116,7 @@
           @click.stop="handleCloseClick"
         >
           <div>
-            <svg width="10" height="10">
-              <path :d="windowIconClose" />
-            </svg>
+            <chrome-icon name="window-close" :size="10" aria-hidden="true" />
           </div>
         </div>
         <div
@@ -129,10 +124,8 @@
           @click.stop="handleMaximizeClick"
         >
           <div>
-            <svg width="10" height="10">
-              <path v-show="!isMaximized" :d="windowIconMaximize" />
-              <path v-show="isMaximized" :d="windowIconRestore" />
-            </svg>
+            <chrome-icon v-if="!isMaximized" name="window-maximize" :size="10" aria-hidden="true" />
+            <chrome-icon v-else name="window-restore" :size="10" aria-hidden="true" />
           </div>
         </div>
         <div
@@ -140,9 +133,7 @@
           @click.stop="handleMinimizeClick"
         >
           <div>
-            <svg width="10" height="10">
-              <path :d="windowIconMinimize" />
-            </svg>
+            <chrome-icon name="window-minimize" :size="10" aria-hidden="true" />
           </div>
         </div>
       </div>
@@ -204,7 +195,7 @@
 
 <script setup>
 // FILE: src/renderer/src/components/titleBar/index.vue
-// VERSION: 2.0.1
+// VERSION: 2.1.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Render the trimmed main-window title bar (sidebar toggle left, document title centre, theme/Share/guide right) with the document info popover and native file-path actions, window controls, and drag affordances.
 //   SCOPE: Renderer-side titlebar behavior: sidebar toggle, the C-40 T-002 document info popover (stats + folder/size/modified + Rename/Reveal/Copy path), the Win/Linux «?» Mark Guide entry, native title context menu, direct window controls, and WKWebView/macOS drag fallbacks.
@@ -238,6 +229,12 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-10-15 v2.1.0: C-38 T-006 N4 b/d — the Win/Linux Settings
+//     gear and the frameless caption buttons (minimize / maximize /
+//     restore / close) render from the drawn chromeIcons set on the
+//     shared 16 px grid (assets/window-controls.js is no longer
+//     imported); the active sidebar-toggle underline follows the system
+//     accent.
 //   - 2026-10-15 v2.0.1: C-40 T-004 — line counting and reading minutes
 //     move to util/docStats.js so the popover and the new status bar
 //     share one computation; the popover's rendered numbers are
@@ -281,7 +278,6 @@ import { useProjectStore } from '@/store/project'
 import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import { storeToRefs } from 'pinia'
 import bus from '@/bus'
-import { minimizePath, restorePath, maximizePath, closePath } from '../../assets/window-controls.js'
 import { PATH_SEPARATOR, isDarkTheme } from '../../config'
 import { isOsx as isOsxPlatform, isWindows } from '@/util'
 import { useEditorStore } from '@/store/editor'
@@ -311,10 +307,6 @@ const { t } = useI18n()
 const isOsx = isOsxPlatform
 const appVersion = __APP_VERSION__
 const isDev = import.meta.env.DEV
-const windowIconMinimize = minimizePath
-const windowIconRestore = restorePath
-const windowIconMaximize = maximizePath
-const windowIconClose = closePath
 
 // Direct Tauri Window API replaces the v1 mt::window-state IPC
 // roundtrip. No backend command needed — is_fullscreen() and
@@ -868,7 +860,7 @@ img {
   transform: translateX(-50%);
   width: 14px;
   height: 2px;
-  background-color: var(--highlightThemeColor);
+  background-color: var(--chromeAccent);
   border-radius: 1px;
 }
 .titlebar-nav-btn svg {
@@ -1010,7 +1002,7 @@ img {
   background-color: var(--floatHoverColor, rgba(0, 0, 0, 0.1));
 }
 .frameless-titlebar-button svg {
-  fill: currentColor;
+  color: currentColor;
 }
 .frameless-titlebar-close:hover svg {
   fill: #ffffff;

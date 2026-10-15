@@ -42,9 +42,7 @@ describe('search/index.vue — fn coverage', () => {
 
   const stubs = {
     ElTooltip: { template: '<div><slot /></div>' },
-    FindCaseIcon: true,
-    FindWordIcon: true,
-    FindRegexIcon: true
+    ChromeIcon: true
   }
 
   const mount = () => shallowMount(Search, {

@@ -16,8 +16,8 @@
           @dragleave="dragLeaveHandler"
           @drop.prevent="dropHandler"
         >
-          <div class="img-wrapper">
-            <img :src="`${importIcon.url}`" alt="import file" />
+          <div class="img-wrapper" role="img" :aria-label="t('import.title')">
+            <chrome-icon name="import" :size="44" aria-hidden="true" />
           </div>
           <div>{{ t('import.title') }}</div>
           <p>{{ t('import.description') }}</p>
@@ -35,13 +35,19 @@
 </template>
 
 <script setup>
+// START_CHANGE_SUMMARY
+//   - 2026-10-15 C-38 T-006 N4 b/d: the drop illustration renders from
+//     the drawn chromeIcons set (the import_file.svg asset import is
+//     gone; the wrapper keeps its size and gains an aria-label carrying
+//     the old alt text); the active drop state follows the system
+//     accent.
+// END_CHANGE_SUMMARY
 import { ref, onMounted, onBeforeUnmount } from 'vue'
 import bus from '@/bus'
-import importIconUrl from '@/assets/icons/import_file.svg?url'
+import { ChromeIcon } from '../icons/chromeIcons.js'
 import { useI18n } from 'vue-i18n'
 
 const { t } = useI18n()
-const importIcon = ref({ url: importIconUrl })
 const showImport = ref(false)
 const isOver = ref(false)
 
@@ -97,7 +103,7 @@ onBeforeUnmount(() => {
     text-align: center;
   }
   &.active {
-    border: 1px dashed var(--themeColor);
+    border: 1px dashed var(--chromeAccent);
     background-color: var(--itemBgColor);
   }
 }
@@ -105,10 +111,10 @@ onBeforeUnmount(() => {
   width: 50px;
   height: 70px;
   margin: 40px auto 0 auto;
-  & img {
-    width: 100%;
-    height: 100%;
-  }
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--sideBarIconColor);
 }
 .file-list {
   margin-top: 20px;

@@ -17,9 +17,12 @@
               class="search"
               @keyup.enter="confirm"
             />
-            <svg class="icon" aria-hidden="true" @click="confirm">
-              <use xlink:href="#icon-markdown" />
-            </svg>
+            <chrome-icon
+              name="file-markdown"
+              :size="30"
+              aria-hidden="true"
+              @click="confirm"
+            ></chrome-icon>
           </div>
         </div>
       </template>
@@ -28,9 +31,15 @@
 </template>
 
 <script setup>
+// START_CHANGE_SUMMARY
+//   - 2026-10-15 C-38 T-006 N4 b/d: the confirm glyph renders from the
+//     drawn chromeIcons set instead of the iconfont sprite; the hover
+//     accent follows the system accent.
+// END_CHANGE_SUMMARY
 import { ref, computed, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import bus from '../../bus'
 import { useEditorStore } from '@/store/editor'
+import { ChromeIcon } from '../icons/chromeIcons.js'
 
 const showRename = ref(false)
 const tempName = ref('')
@@ -118,6 +127,6 @@ onBeforeUnmount(() => {
   transition: all 0.3s ease-in-out;
 }
 .search-wrapper svg:hover {
-  color: var(--themeColor);
+  color: var(--chromeAccent);
 }
 </style>

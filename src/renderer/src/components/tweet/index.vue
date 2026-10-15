@@ -17,14 +17,10 @@
           <div>{{ t('tweet.feelingsQuestion') }}</div>
           <ul>
             <li :class="{ active: selectedFace === 'smile' }" @click="faceClick('smile')">
-              <svg class="icon" aria-hidden="true">
-                <use xlink:href="#icon-smile"></use>
-              </svg>
+              <chrome-icon name="smile" :size="25" aria-hidden="true" />
             </li>
             <li :class="{ active: selectedFace === 'sad' }" @click="faceClick('sad')">
-              <svg class="icon" aria-hidden="true">
-                <use xlink:href="#icon-sad"></use>
-              </svg>
+              <chrome-icon name="sad" :size="25" aria-hidden="true" />
             </li>
           </ul>
         </div>
@@ -34,9 +30,7 @@
         </div>
         <div class="buttons">
           <a href="javascript:;" class="github" @click="reportViaGithub">
-            <svg class="icon" aria-hidden="true">
-              <use xlink:href="#icon-github"></use>
-            </svg>
+            <chrome-icon name="github" :size="22" aria-hidden="true" />
             {{ t('tweet.reportViaGithub') }}
           </a>
           <a
@@ -45,9 +39,7 @@
             :class="{ active: value }"
             @click="reportViaTwitter"
           >
-            <svg class="icon" aria-hidden="true">
-              <use xlink:href="#icon-twitter"></use>
-            </svg>
+            <chrome-icon name="twitter" :size="22" aria-hidden="true" />
             {{ t('tweet.tweet') }}
           </a>
         </div>
@@ -57,9 +49,16 @@
 </template>
 
 <script setup>
+// START_CHANGE_SUMMARY
+//   - 2026-10-15 C-38 T-006 N4 b/d: the face pickers and the two brand
+//     links render from the drawn chromeIcons set (monochrome currentColor
+//     transcriptions) instead of the iconfont sprite; the Tweet action
+//     and the dialog banner follow the system accent.
+// END_CHANGE_SUMMARY
 import { ref, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import bus from '../../bus'
 import { useI18n } from 'vue-i18n'
+import { ChromeIcon } from '../icons/chromeIcons.js'
 
 const { t } = useI18n()
 
@@ -182,7 +181,7 @@ const reportViaTwitter = () => {
   align-items: center;
 }
 .tweet-dialog .buttons a.twitter {
-  color: var(--themeColor);
+  color: var(--chromeAccent);
   text-decoration: none;
   width: auto;
   height: 30px;
@@ -195,7 +194,7 @@ const reportViaTwitter = () => {
   cursor: not-allowed;
 }
 .tweet-dialog .buttons a.active {
-  background: var(--themeColor);
+  background: var(--chromeAccent);
   color: #fff;
 }
 .tweet-dialog .buttons a.active {
@@ -205,7 +204,7 @@ const reportViaTwitter = () => {
   color: var(--iconColor);
   text-decoration: none;
   &:hover {
-    color: var(--themeColor);
+    color: var(--chromeAccent);
   }
   & > svg {
     width: 1.4rem;
@@ -214,7 +213,7 @@ const reportViaTwitter = () => {
   }
 }
 .tweet-dialog .el-dialog__header {
-  background: var(--themeColor);
+  background: var(--chromeAccent);
   color: #fff;
 }
 </style>

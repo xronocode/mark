@@ -1,75 +1,28 @@
 /**
- * Tests for src/renderer/src/assets/symbolIcon/index.js
+ * symbolIcon sprite — retirement guard (C-38 T-006 N4 d).
  *
- * This is an IIFE that injects an SVG sprite into the document body.
- * The IIFE relies on `document.getElementsByTagName("script")` returning
- * a non-empty list to find the current script element.
- * We ensure a <script> tag exists before importing.
+ * The iconfont sprite used to be imported by main.js and injected a
+ * hidden <svg><symbol> sheet into the document. Since C-38 T-006 every
+ * chrome icon renders from the drawn chromeIcons set, so the sprite
+ * import is gone and the sprite file itself is listed for deletion.
+ * These tests pin that the renderer entry never re-imports it (the
+ * broader no-old-icons scan lives in tests/renderer/chrome/
+ * chrome-icons-static.test.js).
  */
 
-describe('symbolIcon/index.js', () => {
-  beforeEach(() => {
-    // Clear any previously injected SVG sprite
-    const existing = document.querySelector('svg[aria-hidden="true"]')
-    if (existing) {
-      existing.remove()
-    }
-    // Reset the CSS inject flag
-    delete window.__iconfont__svg__cssinject__
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
+
+const readMainJs = () =>
+  readFileSync(resolve(__dirname, '../../../src/renderer/src/main.js'), 'utf8')
+
+describe('symbolIcon sprite retirement (C-38 T-006)', () => {
+  it('main.js does not import the iconfont sprite', () => {
+    expect(readMainJs()).not.toMatch(/symbolIcon/)
   })
 
-  it('injects an SVG element into document body when script tag exists', async () => {
-    // Add a script tag so the IIFE can find it
-    const scriptEl = document.createElement('script')
-    document.body.appendChild(scriptEl)
-
-    try {
-      // Dynamic import forces re-evaluation in fresh module scope
-      // Note: vitest caches modules so we use importOriginal pattern
-      await import('@/assets/symbolIcon/index.js')
-      // Wait for the setTimeout(fn, 0) to fire
-      await new Promise((resolve) => setTimeout(resolve, 50))
-
-      const svg = document.querySelector('svg[aria-hidden="true"]')
-      expect(svg).not.toBeNull()
-    } finally {
-      scriptEl.remove()
-    }
-  })
-
-  it('SVG element contains symbol elements', async () => {
-    const scriptEl = document.createElement('script')
-    document.body.appendChild(scriptEl)
-
-    try {
-      await import('@/assets/symbolIcon/index.js')
-      await new Promise((resolve) => setTimeout(resolve, 50))
-
-      const svg = document.querySelector('svg[aria-hidden="true"]')
-      if (svg) {
-        const symbols = svg.querySelectorAll('symbol')
-        expect(symbols.length).toBeGreaterThan(0)
-      }
-    } finally {
-      scriptEl.remove()
-    }
-  })
-
-  it('SVG element is hidden via styles', async () => {
-    const scriptEl = document.createElement('script')
-    document.body.appendChild(scriptEl)
-
-    try {
-      await import('@/assets/symbolIcon/index.js')
-      await new Promise((resolve) => setTimeout(resolve, 50))
-
-      const svg = document.querySelector('svg[aria-hidden="true"]')
-      if (svg) {
-        expect(svg.style.position).toBe('absolute')
-        expect(svg.style.overflow).toBe('hidden')
-      }
-    } finally {
-      scriptEl.remove()
-    }
+  it('main.js installs the chrome platform class for the accent fallbacks', () => {
+    const source = readMainJs()
+    expect(source).toMatch(/installChromePlatformClass/)
   })
 })
