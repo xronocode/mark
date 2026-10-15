@@ -2415,6 +2415,31 @@
           JS); unknown roles are rejected with MT_CONTEXT_MENU_INVALID —
           pinned by m009_menu unit tests (cargo test).
         </Scenario>
+        <Scenario>
+          scenario-16: View-menu checkmark re-sync (C-40 T-005,
+          F-MENU-WIRE-TAURI follow-up): mt_menu_set_checked(id, checked)
+          finds a CheckMenuItem RECURSIVELY through submenus — tauri
+          2.11.2&apos;s Menu::get only matches top-level items, which is
+          why the old mt_update_sidebar_menu lookup never found
+          view.toggle-sidebar inside the View submenu (a silent no-op
+          store/layout.js documented as a known stub) — and applies the
+          checked state. The SYNCABLE_CHECK_IDS allow-list admits exactly
+          view.toggle-sidebar, view.toggle-tabbar, view.outline,
+          view.status-bar (the LF/CRLF pair and every plain item are
+          rejected), so the renderer cannot flip arbitrary native items.
+          Benign misses resolve Ok(false) (no menu — Windows/Linux hidden
+          bar, id not allow-listed, id naming a non-check item); real
+          menu failures resolve Err. mt_update_sidebar_menu reuses the
+          same walker (set_app_menu_check) and stays best-effort. Pinned
+          by cargo test m009 (allow-list accepts exactly the four view
+          ids; rejects line-ending checks, plain items, empty/whitespace/
+          case variants; every allow-listed id exists in the taxonomy and
+          is built via CheckMenuItemBuilder); the renderer half of the
+          loop — boot full push after hydration plus one push per later
+          change from any toggle surface — is pinned by
+          tests/renderer/util/menu-checks.test.js and
+          tests/e2e/view-menu-checks.spec.ts (chromium + webkit).
+        </Scenario>
       </Scenarios>
       <Markers>
         <Marker>[Menu][onInvoke][BLOCK_DISPATCH] { menu_id }</Marker>
@@ -2423,6 +2448,8 @@
         <Marker>[Menu][recent][COALESCED] { dropped }</Marker>
         <Marker>[Menu][context][SUGGEST_TIMEOUT]</Marker>
         <Marker>[Menu][stub][INVOKED] { role }</Marker>
+        <Marker>[menu][check][BLOCK_MENU_CHECK_SYNCED id=&lt;id&gt; checked=&lt;bool&gt;] — C-40 T-005 an allow-listed View CheckMenuItem was re-synced to the renderer state</Marker>
+        <Marker>[menu][check][BLOCK_MENU_CHECK_NOT_FOUND id=&lt;id&gt;] — C-40 T-005 benign miss: no menu / id not allow-listed / no such check item</Marker>
       </Markers>
       <TraceAssertions>
         <TraceAssertion>Negative assertion: MUST NOT emit `MenuInvoked` for dismissed context menus.</TraceAssertion>
@@ -4341,6 +4368,48 @@
           .editor-tabs / .side-bar / .search-bar is a chrome-icon at
           stroke 1.4 with aria-hidden intact.
         </Scenario>
+        <Scenario>
+          scenario-57: View-menu checkmarks follow the real state (C-40
+          T-005, F-MENU-WIRE-TAURI follow-up — release-review gap): the
+          four native View CheckMenuItems are built with fixed defaults
+          and used to never re-sync, so a restart after enabling the
+          status bar showed the bar but View › Status Bar unchecked
+          (and tauri 2&apos;s top-level-only Menu::get meant
+          mt_update_sidebar_menu never worked at all — see V-M-009
+          scenario-16 for the backend walker/allow-list). The renderer
+          now owns the push: util/menuChecks.js viewMenuCheckStates maps
+          view.toggle-sidebar / view.toggle-tabbar to the layout store
+          (showSideBar / showTabBar) and view.outline / view.status-bar
+          to the preferences store (outlineRailVisible /
+          statusBarVisibility — the per-OS default off on macOS / on
+          elsewhere with a stored user choice winning);
+          syncViewMenuChecks pushes all four once at boot from editor
+          store APPLY_BOOTSTRAP_EDITOR (after preferences +
+          SET_LAYOUT hydration — load-bearing because a hydrated value
+          equalling the store default fires no watcher while the native
+          items carry fixed build-time defaults); watchViewMenuChecks
+          installs one watcher per item in the editor page setup
+          (app.vue — the Settings window mounts preference.vue and never
+          syncs), so a toggle from ANY surface (command palette, title
+          bar button, Settings window broadcast, keyboard, the native
+          menu itself) pushes exactly one mt_menu_set_checked with the
+          flipped value. Every push is best-effort: a missing backend
+          command or rejected sync warns
+          (BLOCK_MENU_CHECK_PUSH_FAILED) and never breaks boot or
+          toggles. Unit-pinned in tests/renderer/util/menu-checks.test.js
+          (boot pushes all four ids with the effective state; status
+          bar off on darwin / on on win32+linux; stored user value wins;
+          each flip pushes exactly one call for the flipped item;
+          rejection swallowed with a warn while all four are still
+          attempted); e2e tests/e2e/view-menu-checks.spec.ts (chromium +
+          webkit via the new webkit-menu-checks project): with stored
+          prefs statusBarVisibility:true the boot pushes carry
+          view.status-bar checked:true (the reported bug, inverted),
+          and cmd::execute view.status-bar / view.outline /
+          view.toggle-sidebar each push exactly one new call with the
+          flipped value; the tauri-shim default for mt_menu_set_checked
+          returns false so every other spec is unaffected.
+        </Scenario>
       </Scenarios>
       <Markers>
         <Marker>[prefs][theme-migration][BLOCK_RETIRED_THEMES_MIGRATED key:from-&gt;to …] — C-41 T-002 retired theme ids migrated at the hydration load point and persisted once per changed key</Marker>
@@ -4369,6 +4438,7 @@
         <Marker>[Editor][handleCopyAsMarkdown][BLOCK_COPY_AS_MARKDOWN] — C-40 T-004 edit.copy-as-markdown clipboard write failed (selection-or-document raw markdown)</Marker>
         <Marker>[editor][split][BLOCK_SPLIT_TOGGLED state=on|off] — view.split-view toggled for the current tab (C-29)</Marker>
         <Marker>[Editor][handleEditorContextMenu][BLOCK_EDITOR_CONTEXT_MENU] native writeText failed</Marker>
+        <Marker>[menuChecks][pushViewMenuCheck][BLOCK_MENU_CHECK_PUSH_FAILED id=&lt;id&gt;] — C-40 T-005 a View-menu checkmark push failed (old backend / hidden bar / rejected sync); warn only, boot and toggles unaffected</Marker>
         <Marker>[Editor][handleCopyAsPlainText][BLOCK_COPY_AS_PLAIN_TEXT] copy failed</Marker>
         <Marker>[Editor][handleCopyAsStructuredText][BLOCK_COPY_AS_STRUCTURED_TEXT] copy failed (C-32)</Marker>
         <Marker>[Renderer][mount][BLOCK_INSTANTIATE_MUYA]</Marker>

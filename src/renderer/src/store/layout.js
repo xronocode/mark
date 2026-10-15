@@ -39,9 +39,11 @@ export const useLayoutStore = defineStore('layout', {
   actions: {
     SET_LAYOUT(layout) {
       if (layout.showSideBar !== undefined) {
-        // mt::update-sidebar-menu is a known stub (F-MENU-WIRE-TAURI-RECENT).
-        // Persistence happens via the prefs broadcast below; native menu
-        // sync waits for that follow-up.
+        // Persistence happens via the prefs write below; the native View ›
+        // Toggle Sidebar checkmark follows through util/menuChecks (boot
+        // sync in editor.js APPLY_BOOTSTRAP_EDITOR + the app.vue watcher —
+        // C-40 T-005 closed the F-MENU-WIRE-TAURI gap; the backend
+        // mt_update_sidebar_menu shim works again too).
         const preferencesStore = usePreferencesStore()
         preferencesStore.SET_SINGLE_PREFERENCE({
           type: 'sideBarVisibility',

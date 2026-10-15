@@ -86,6 +86,11 @@ export async function installTauriShim(page: Page): Promise<void> {
       // overrides both handlers per test.
       mt_window_effects_state: () => ({ mica: false }),
       mt_window_set_mica_theme: () => ({ mica: false }),
+      // C-40 T-005: native View-menu checkmark sync — default resolves
+      // false (not applied: no native menu in the renderer-only harness)
+      // so other specs are unaffected; view-menu-checks.spec.ts overrides
+      // it to record invocations.
+      mt_menu_set_checked: () => false,
       mt_fonts_list: () => [],
       mt_fs_read: () => '',
       mt_fs_write: () => null,

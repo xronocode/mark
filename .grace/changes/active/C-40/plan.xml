@@ -45,8 +45,23 @@
       </AcceptanceCriteria>
       <Verification><Command>npm test</Command><Command>cargo test m009</Command><Command>playwright chromium + webkit</Command></Verification>
     </T-004>
+    <T-005>
+      <Title>View-menu checkmarks follow the real state (F-MENU-WIRE-TAURI follow-up, release-review gap)</Title>
+      <DependsOn>T-003</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>Backend: one command mt_menu_set_checked(id, checked) finds a CheckMenuItem RECURSIVELY through submenus (tauri 2 Menu::get is top-level-only — the reason mt_update_sidebar_menu never worked) and is allow-listed to the four view ids (view.toggle-sidebar, view.toggle-tabbar, view.outline, view.status-bar); benign misses Ok(false), real failures Err; log anchors BLOCK_MENU_CHECK_SYNCED / BLOCK_MENU_CHECK_NOT_FOUND; mt_update_sidebar_menu reuses the walker.</Criterion>
+        <Criterion>Renderer (editor window only): util/menuChecks.js pushes the effective state of all four after preferences/layout hydrate at boot (syncViewMenuChecks from APPLY_BOOTSTRAP_EDITOR) and one push per later change from any toggle surface (watchViewMenuChecks in app.vue); statusBarVisibility keeps its per-OS default with the stored user value winning; failures swallowed with a warn, never break boot.</Criterion>
+        <Criterion>Tests: cargo unit tests for the allow-list/taxonomy parity; renderer unit tests for boot push, per-flip push, per-OS default, rejection; e2e chromium + webkit recording mt_menu_set_checked through the tauri-shim (default returns false so other specs are unaffected).</Criterion>
+      </AcceptanceCriteria>
+      <Verification><Command>cargo test m009</Command><Command>npx vitest run tests/renderer/util/menu-checks.test.js</Command><Command>npx playwright test view-menu-checks (chromium + webkit-menu-checks)</Command><Command>grace lint --path . --assertions current</Command></Verification>
+    </T-005>
   </ImplementationPlan>
   <Evidence>
+    <T-005>
+      <Status>implemented</Status>
+      <Notes>ZCode agent (worktree agent/menu-checks) implemented 2026-10-16; gates to be run by the orchestrator (agent has no shell). Design notes: the recursive walker lives in m009_menu (find_check_item_recursive + set_app_menu_check, thin around the pure SYNCABLE_CHECK_IDS allow-list — a live menu needs a real runtime, so cargo tests pin the allow-list policy, its taxonomy parity and that build_native_menu builds all four ids via CheckMenuItemBuilder via a source self-check); the v1 mt_update_sidebar_menu shim reuses set_app_menu_check and stays best-effort. Renderer: boot full push from APPLY_BOOTSTRAP_EDITOR (after SET_LAYOUT — load-bearing because a hydrated value equalling the store default fires no watcher while the native items carry fixed build-time defaults: Toggle Tab Bar is built checked, the store default is false) + one watcher per item installed in app.vue setup (editor window only). The command registers in main.rs generate_handler! next to mt_update_line_ending_menu; not added to the M-013-A tauri.v2.json fixture (v1-compat/menu-handler family is intentionally outside REGISTERED_COMMANDS) and needs no capabilities entry (custom app commands are not ACL-listed; capabilities/default.json grants plugin permissions only). playwright.config.ts gains the webkit-menu-checks project so the spec gates in both engines; tauri-shim default for mt_menu_set_checked returns false.</Notes>
+          <ReviewEvidence>Orchestrator review 2026-10-16: cargo test 407 passed (m009 25); vitest 278 files / 3802 passed; grace lint 0 errors (MODULE_MAP fix in menu-checks.test.js); Playwright chromium + webkit 370/370 (8 timed out under a machine load of ~10–12 and passed on --last-failed rerun). Red on main: menu-checks.test.js fails to load; view-menu-checks.spec 2/2 fail. Live macOS check of the checkmarks pending the release smoke.</ReviewEvidence>
+</T-005>
     <T-004>
       <Status>done</Status>
       <Notes>ZCode agent (worktree agent/c40-t4) implemented; orchestrator review 2026-10-15. Review fixes: sourceCode.vue called CodeMirror setOption on every mount (only a locked mount needs it — 36 sourceCode/split-view tests failed); APPLY_FILE_CHANGE silently replaced a tab locked WITH unsaved edits (the M-033 preview always-reload bypass) — now a locked dirty tab takes the conflict prompt, Finder previews keep the bypass (new live-reload test, red without the fix); test bugs (EN plural fixture, separators in the context-menu id list, menu pin regex .build(handle)?, interleaved START_BLOCK markers); MODULE_MAP parity in four new test files; webkit-statusbar Playwright project added to CI.</Notes>

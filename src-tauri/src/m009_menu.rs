@@ -1,5 +1,5 @@
 // FILE: src-tauri/src/m009_menu.rs
-// VERSION: 2.1.12-beta
+// VERSION: 2.1.13-beta
 // START_MODULE_CONTRACT
 //   PURPOSE: M-009 mt-menu. Native macOS application menu + command-id
 //            taxonomy for the renderer's command palette / sidebar /
@@ -17,7 +17,13 @@
 //            Find-in-Folder are custom dispatched; (c) dynamic
 //            renderer-requested native context menus return the selected
 //            renderer item id without leaking their events onto the global
-//            application-menu bus.
+//            application-menu bus; (d) C-40 T-005 checkmark re-sync —
+//            mt_menu_set_checked flips one of the four allow-listed
+//            View CheckMenuItems through a RECURSIVE submenu walk
+//            (tauri 2's Menu::get only matches top-level items, so the
+//            old mt_update_sidebar_menu lookup never found
+//            view.toggle-sidebar inside the View submenu); the walker
+//            is shared with the v1-compat mt_update_sidebar_menu shim.
 //   DEPENDS: serde, tauri (Runtime, AppHandle, menu::* in target build).
 //   LINKS:   docs/development-plan.xml M-009; docs/knowledge-graph.xml
 //            M-009; docs/verification-plan.xml V-M-009. Renderer command
@@ -25,7 +31,9 @@
 //   STATUS:  shipped — native app and dynamic context menus wired.
 //   LOG MARKERS: [Menu][build][BLOCK_BUILD_NATIVE_MENU] count=N (in main.rs);
 //                [Menu][on_event][BLOCK_DISPATCH] menu_id=… (in main.rs);
-//                [Menu][context][BLOCK_CONTEXT_MENU_RESULT] selected=… .
+//                [Menu][context][BLOCK_CONTEXT_MENU_RESULT] selected=… ;
+//                [menu][check][BLOCK_MENU_CHECK_SYNCED id=… checked=…] /
+//                [menu][check][BLOCK_MENU_CHECK_NOT_FOUND id=…] (C-40 T-005).
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT
@@ -40,6 +48,8 @@
 //   mt_window_popup_context_menu - Opens a dynamic native context menu and returns the selected public id.
 //   capture_context_menu_selection - Diverts dynamic context-menu events from the global app-menu bus.
 //   mt_update_line_ending_menu - Synchronizes native LF/CRLF checked state for the active document.
+//   set_app_menu_check - Testable core of mt_menu_set_checked: recursive allow-listed checkmark sync.
+//   mt_menu_set_checked - Renderer-facing command re-syncing one View CheckMenuItem's checked state.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
@@ -127,6 +137,19 @@
 //                accelerator) — the raw-Markdown flavor of R-2's
 //                copy-document tools, also in the palette and the tab
 //                context menu.
+//   - 2026-10-16 C-40 T-005 (F-MENU-WIRE-TAURI follow-up): native
+//                View-menu checkmarks follow the real state. New
+//                mt_menu_set_checked(id, checked) command finds a
+//                CheckMenuItem RECURSIVELY through submenus (tauri 2's
+//                Menu::get is top-level-only, which is why the old
+//                mt_update_sidebar_menu never worked — store/layout.js
+//                carried it as a known stub), restricted to the four
+//                view ids (sidebar, tab bar, outline, status bar) so
+//                the renderer cannot flip arbitrary items. The renderer
+//                pushes the effective state at boot (after preferences
+//                and layout hydrate) and on every later change via
+//                util/menuChecks.js; mt_update_sidebar_menu reuses the
+//                same walker.
 // END_CHANGE_SUMMARY
 
 use serde::{Deserialize, Serialize};
@@ -1022,9 +1045,10 @@ pub fn build_native_menu<R: tauri::Runtime>(
         )
         .item(
             // C-40 T-003: the «On this page» outline rail (default on —
-            // matches the renderer's outlineRailVisible default; checkmark
-            // re-sync from stored prefs rides the same F-MENU-WIRE-TAURI
-            // follow-up as the sidebar/tabbar items). Id-dispatched to the
+            // matches the renderer's outlineRailVisible default). The
+            // checkmark re-syncs from stored prefs and later toggles via
+            // mt_menu_set_checked + util/menuChecks.js (C-40 T-005, the
+            // F-MENU-WIRE-TAURI follow-up). Id-dispatched to the
             // renderer view.outline command; ⌘T stays Go to Heading.
             &tauri::menu::CheckMenuItemBuilder::with_id("view.outline", "Outline")
                 .checked(true)
@@ -1033,9 +1057,10 @@ pub fn build_native_menu<R: tauri::Runtime>(
         .item(
             // C-40 T-004: the optional status bar. The native app menu is
             // macOS-only, where the default is off (Windows/Linux default
-            // on — the renderer resolves the per-OS default); checkmark
-            // re-sync from stored prefs rides the same follow-up as the
-            // other check items. Id-dispatched to the renderer
+            // on — the renderer resolves the per-OS default). The
+            // checkmark re-syncs from stored prefs and later toggles via
+            // mt_menu_set_checked + util/menuChecks.js (C-40 T-005, the
+            // F-MENU-WIRE-TAURI follow-up). Id-dispatched to the renderer
             // view.status-bar command.
             &tauri::menu::CheckMenuItemBuilder::with_id("view.status-bar", "Status Bar")
                 .checked(false)
@@ -1353,6 +1378,115 @@ pub async fn mt_update_line_ending_menu(
     }
     Ok(())
 }
+
+// ─────────────────────────────────────────────────────────────────────
+// C-40 T-005: View-menu checkmark re-sync (F-MENU-WIRE-TAURI follow-up)
+// ─────────────────────────────────────────────────────────────────────
+
+// START_BLOCK_MENU_CHECK_ALLOW_LIST
+/// The only CheckMenuItem ids the renderer may re-sync through
+/// mt_menu_set_checked. All four live in the View submenu and mirror
+/// renderer state (layout store sidebar/tab bar, outlineRailVisible,
+/// statusBarVisibility preferences). The allow-list keeps the recursive
+/// walker from becoming a general-purpose remote control for arbitrary
+/// native items (the LF/CRLF pair, future check items).
+const SYNCABLE_CHECK_IDS: &[&str] = &[
+    "view.toggle-sidebar",
+    "view.toggle-tabbar",
+    "view.outline",
+    "view.status-bar",
+];
+
+fn is_syncable_check_id(id: &str) -> bool {
+    SYNCABLE_CHECK_IDS.contains(&id)
+}
+// END_BLOCK_MENU_CHECK_ALLOW_LIST
+
+// START_BLOCK_FIND_CHECK_ITEM_RECURSIVE
+// tauri 2's Menu::get only matches TOP-LEVEL items (it iterates
+// self.items() with no descent — verified against tauri-2.11.2
+// src/menu/menu.rs), so every id that lives inside a submenu — all
+// four syncable view ids live in View — needs this recursive walk over
+// MenuItemKind::Submenu children. The walker stays thin (no item
+// construction, no platform calls beyond items()/id()) so the pure
+// allow-list above carries the testable policy; submenu enumeration
+// errors are treated as "no children" so one broken branch cannot
+// abort the whole lookup.
+fn find_check_item_recursive<R: tauri::Runtime>(
+    items: Vec<tauri::menu::MenuItemKind<R>>,
+    id: &str,
+) -> Option<tauri::menu::CheckMenuItem<R>> {
+    for item in items {
+        if let Some(check) = item.as_check_menuitem() {
+            if check.id().as_ref() == id {
+                return Some(check.clone());
+            }
+        }
+        if let Some(submenu) = item.as_submenu() {
+            if let Ok(children) = submenu.items() {
+                if let Some(found) = find_check_item_recursive(children, id) {
+                    return Some(found);
+                }
+            }
+        }
+    }
+    None
+}
+// END_BLOCK_FIND_CHECK_ITEM_RECURSIVE
+
+// START_CONTRACT: set_app_menu_check
+//   PURPOSE: Locate a CheckMenuItem by id anywhere in the installed application menu and set its checked state.
+//   INPUTS: { app: &AppHandle<R> - menu owner; id: &str - allow-listed CheckMenuItem id; checked: bool - new state }
+//   OUTPUTS: { Result<bool, String> - Ok(true) applied; Ok(false) benign miss (no menu / id not allow-listed / no such check item, e.g. Windows/Linux hidden bar or a non-check id); Err only real menu failures }
+//   SIDE_EFFECTS: Mutates the native menu item; logs BLOCK_MENU_CHECK_SYNCED / BLOCK_MENU_CHECK_NOT_FOUND.
+//   LINKS: mt_menu_set_checked command; m_v1_compat::mt_update_sidebar_menu reuse; .grace/verification/runtime.xml V-M-009 scenario-16
+// END_CONTRACT: set_app_menu_check
+// START_BLOCK_SYNC_MENU_CHECK
+pub(crate) fn set_app_menu_check<R: tauri::Runtime>(
+    app: &tauri::AppHandle<R>,
+    id: &str,
+    checked: bool,
+) -> Result<bool, String> {
+    if !is_syncable_check_id(id) {
+        safe_eprintln!("[menu][check][BLOCK_MENU_CHECK_NOT_FOUND id={id} reason=not_syncable]");
+        return Ok(false);
+    }
+    let Some(menu) = app.menu() else {
+        safe_eprintln!("[menu][check][BLOCK_MENU_CHECK_NOT_FOUND id={id} reason=no_menu]");
+        return Ok(false);
+    };
+    let items = menu.items().map_err(|e| e.to_string())?;
+    match find_check_item_recursive(items, id) {
+        Some(check) => {
+            check.set_checked(checked).map_err(|e| e.to_string())?;
+            safe_eprintln!("[menu][check][BLOCK_MENU_CHECK_SYNCED id={id} checked={checked}]");
+            Ok(true)
+        }
+        None => {
+            safe_eprintln!("[menu][check][BLOCK_MENU_CHECK_NOT_FOUND id={id}]");
+            Ok(false)
+        }
+    }
+}
+// END_BLOCK_SYNC_MENU_CHECK
+
+// START_CONTRACT: mt_menu_set_checked
+//   PURPOSE: Renderer-facing command that re-syncs one native View-menu CheckMenuItem to the real renderer state.
+//   INPUTS: { id: String - CheckMenuItem id (must be one of the four view ids); checked: bool - new state }
+//   OUTPUTS: { Result<bool, String> - whether the checkmark was applied (Ok(false): benign miss; Err: menu failure) }
+//   SIDE_EFFECTS: Mutates the native menu item; logs the menu-check markers.
+//   LINKS: util/menuChecks.js syncViewMenuChecks / pushViewMenuCheck (renderer); .grace/verification/runtime.xml V-M-009 scenario-16
+// END_CONTRACT: mt_menu_set_checked
+// START_BLOCK_MT_MENU_SET_CHECKED
+#[tauri::command]
+pub async fn mt_menu_set_checked(
+    app: tauri::AppHandle,
+    id: String,
+    checked: bool,
+) -> Result<bool, String> {
+    set_app_menu_check(&app, &id, checked)
+}
+// END_BLOCK_MT_MENU_SET_CHECKED
 
 #[cfg(test)]
 mod tests {
@@ -1811,4 +1945,72 @@ mod tests {
         assert!(matches!(validated[0], ValidatedContextMenuItem::Role(_)));
         assert!(matches!(validated[2], ValidatedContextMenuItem::Separator));
     }
+
+    // START_BLOCK_C40_T005_CHECK_SYNC_TESTS
+    // C-40 T-005: the recursive walker itself needs a live app menu
+    // (items()/set_checked run on the main thread of a real runtime),
+    // so these unit tests pin the pure allow-list policy and its parity
+    // with the shipped taxonomy; the walker is kept deliberately thin
+    // (START_BLOCK_FIND_CHECK_ITEM_RECURSIVE) around that policy.
+    #[test]
+    fn syncable_check_ids_are_exactly_the_four_view_items() {
+        assert_eq!(SYNCABLE_CHECK_IDS.len(), 4, "the allow-list must stay closed");
+        for id in [
+            "view.toggle-sidebar",
+            "view.toggle-tabbar",
+            "view.outline",
+            "view.status-bar",
+        ] {
+            assert!(is_syncable_check_id(id), "{id} must be syncable");
+        }
+    }
+
+    #[test]
+    fn non_syncable_ids_are_rejected_by_the_allow_list() {
+        // Other check items that exist but must NOT be renderer-flippable
+        // (the File › Line Ending pair is owned by
+        // mt_update_line_ending_menu).
+        assert!(!is_syncable_check_id("file.line-ending-lf"));
+        assert!(!is_syncable_check_id("file.line-ending-crlf"));
+        // Plain items, dynamic-submenu placeholders, arbitrary ids.
+        assert!(!is_syncable_check_id("file.save"));
+        assert!(!is_syncable_check_id("view.lock-document"));
+        assert!(!is_syncable_check_id("view.theme"));
+        assert!(!is_syncable_check_id("file.quit"));
+        assert!(!is_syncable_check_id(""));
+        assert!(!is_syncable_check_id("view.toggle-sidebar "));
+        assert!(!is_syncable_check_id("VIEW.TOGGLE-SIDEBAR"));
+    }
+
+    #[test]
+    fn syncable_check_ids_exist_in_the_menu_taxonomy() {
+        // The allow-list must never drift from the shipped taxonomy:
+        // every syncable id is a real View leaf, so the recursive walk
+        // can actually find a CheckMenuItem with that id.
+        let menu = standard_menu();
+        let flat = flatten(&menu);
+        for id in SYNCABLE_CHECK_IDS {
+            assert!(
+                flat.iter().any(|i| i.id == *id),
+                "syncable id {id} missing from standard_menu()"
+            );
+        }
+    }
+
+    #[test]
+    fn view_menu_builds_all_four_syncable_ids_as_check_items() {
+        // Parity with build_native_menu: each allow-listed id must be
+        // constructed as a CheckMenuItemBuilder (a plain
+        // MenuItemBuilder with the same id would make set_app_menu_check
+        // silently return Ok(false) forever).
+        let source = include_str!("m009_menu.rs");
+        for id in SYNCABLE_CHECK_IDS {
+            let pattern = format!("CheckMenuItemBuilder::with_id(\"{id}\"");
+            assert!(
+                source.contains(&pattern),
+                "build_native_menu must build {id} via CheckMenuItemBuilder"
+            );
+        }
+    }
+    // END_BLOCK_C40_T005_CHECK_SYNC_TESTS
 }

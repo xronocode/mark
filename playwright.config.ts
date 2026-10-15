@@ -57,6 +57,10 @@ export default defineConfig({
     // C-40 T-004: status bar selection counts and the document lock
     // (contenteditable + DOM selection) also gate in WebKit.
     { name: 'webkit-statusbar', use: { browserName: 'webkit' }, testMatch: /(status-bar|lock-document)\.spec\.ts/ },
+    // C-40 T-005: native View-menu checkmark re-sync also gates in WebKit
+    // (WKWebView is the engine the macOS build ships, where the native
+    // menu lives).
+    { name: 'webkit-menu-checks', use: { browserName: 'webkit' }, testMatch: 'view-menu-checks.spec.ts' },
     // C-38 T-006: the native chrome pass (system font stack, AccentColor /
     // color-mix resolution, drawn icon set) also gates in WebKit — the
     // engine the macOS build ships, where AccentColor + color-mix
