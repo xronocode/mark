@@ -1096,7 +1096,9 @@
       "markdownSyntax": "Sintaxe Markdown"
     },
     "help": {
-      "guide": "Guia do Mark"
+      "guide": "Guia do Mark",
+      "whatsNew": "Novidades",
+      "rateMark": "Avaliar o Mark…"
     },
     "utils": {
       "noUpdateResourceFile": "Nenhum arquivo de recurso de atualização",
@@ -1486,5 +1488,29 @@
     "noBaseline": "Nenhuma versão base encontrada para este arquivo.",
     "sourceSnapshot": "Antes do último salvamento externo · {time}",
     "sourcePrevious": "Versão anterior"
+  },
+  "whatsNew": {
+    "eyebrow": "Mark {version}",
+    "title": "Novidades",
+    "seeGuide": "Ver o guia",
+    "continue": "Continuar",
+    "v2_3_1": {
+      "zoom": {
+        "title": "Amplie diagramas e tabelas",
+        "text": "Passe o cursor e pressione ⤢ para uma vista em ecrã inteiro com zoom e arrasto."
+      },
+      "agentDiff": {
+        "title": "Veja o que o agente mudou",
+        "text": "⌘D compara com a versão anterior à última gravação."
+      },
+      "themes": {
+        "title": "Paper e Ink",
+        "text": "Novos temas predefinidos, e Auto segue o macOS."
+      },
+      "tables": {
+        "title": "Tabelas que cabem",
+        "text": "Tabelas largas deslizam dentro da coluna; as ligações longas mudam de linha."
+      }
+    }
   }
 }

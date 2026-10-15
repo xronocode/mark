@@ -34,6 +34,7 @@
       <problems-panel></problems-panel>
       <about-dialog></about-dialog>
       <export-setting-dialog></export-setting-dialog>
+      <whats-new-dialog></whats-new-dialog>
       <rename></rename>
       <tweet></tweet>
       <import-modal></import-modal>
@@ -70,6 +71,11 @@
 //   - 2026-10-15 C-40 G-3: register editorStore.LISTEN_FOR_OPEN_GUIDE so the
 //     'mt::open-guide' bus event (Help › Mark Guide, help.guide palette
 //     command) opens the guide as a temporary untitled tab.
+//   - 2026-10-15 C-48 T-001: What's New — startup gate (initWhatsNew)
+//     records lastSeenVersion / lastUpdateAt and opens the sheet once
+//     after an update (components/whatsNew mounts here); Help › What's
+//     New reopens it. The App Store review request inits after the gate
+//     (review/reviewRequest) with the gate outcome as session facts.
 //   - 2026-10-15 C-41 T-001: Auto theme — after hydration, resolve
 //     followSystemTheme via util/autoTheme before the first addThemeStyle,
 //     re-resolve on mode/member preference changes (incl. cross-window
@@ -99,8 +105,11 @@ import Tweet from '@/components/tweet'
 import ImportModal from '@/components/import'
 import LiveViewer from '@/components/liveViewer'
 import ZoomIndicator from '@/components/zoomIndicator'
+import WhatsNewDialog from '@/components/whatsNew'
 import bus from '@/bus'
 import { DEFAULT_STYLE } from '@/config'
+import { initWhatsNew, getRunningVersion } from '@/whatsNew/gate'
+import { initReviewRequest } from '@/review/reviewRequest'
 import { useTweetStore } from '@/store/tweet'
 import { useLayoutStore } from '@/store/layout'
 import { useListenForMainStore } from '@/store/listenForMain'
@@ -346,6 +355,26 @@ onMounted(async () => {
   setupDragDropHandler()
   cleanupPinchZoom = setupCtrlWheelFontSize()
   cleanupNativeZoom = setupZoomKeysFontSize()
+
+  // START_BLOCK_C48_STARTUP
+  // C-48: What's New gate first (it records lastSeenVersion and stamps
+  // lastUpdateAt for the C-46 welcome footer), then the review request —
+  // its "never in a session where the version changed" rule consumes the
+  // gate outcome, so ordering is load-bearing. FETCH_BUILD_MODE is
+  // awaited here because bootstrap-ipc fires it as a floating promise
+  // that races this mount; the review init only registers when the m048
+  // `review` capability is explicitly true.
+  const versionStatus = await initWhatsNew()
+  if (versionStatus.show) {
+    bus.emit('whatsNewDialog', { version: versionStatus.version })
+  }
+  await preferencesStore.FETCH_BUILD_MODE()
+  initReviewRequest({
+    preferencesStore,
+    versionStatus,
+    runningVersion: getRunningVersion()
+  })
+  // END_BLOCK_C48_STARTUP
 
   nextTick(() => {
     const style = {

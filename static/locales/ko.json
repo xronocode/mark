@@ -1096,7 +1096,9 @@
       "markdownSyntax": "마크다운 문법"
     },
     "help": {
-      "guide": "Mark 가이드"
+      "guide": "Mark 가이드",
+      "whatsNew": "새로운 기능",
+      "rateMark": "Mark 평가…"
     },
     "utils": {
       "noUpdateResourceFile": "업데이트 리소스 파일 없음",
@@ -1486,5 +1488,29 @@
     "noBaseline": "이 파일의 기준 버전을 찾을 수 없습니다.",
     "sourceSnapshot": "마지막 외부 저장 이전 · {time}",
     "sourcePrevious": "이전 버전"
+  },
+  "whatsNew": {
+    "eyebrow": "Mark {version}",
+    "title": "새로운 기능",
+    "seeGuide": "가이드 보기",
+    "continue": "계속",
+    "v2_3_1": {
+      "zoom": {
+        "title": "다이어그램과 표 확대",
+        "text": "올려놓고 ⤢ 를 누르면 확대와 이동이 가능한 전체 화면 보기가 열립니다."
+      },
+      "agentDiff": {
+        "title": "에이전트가 바꾼 내용 확인",
+        "text": "⌘D 로 마지막 저장 직전 버전과 비교합니다."
+      },
+      "themes": {
+        "title": "Paper와 Ink",
+        "text": "새 기본 테마, Auto는 macOS를 따릅니다."
+      },
+      "tables": {
+        "title": "맞는 크기의 표",
+        "text": "넓은 표는 열 안에서 스크롤되고 긴 링크는 줄바꿈됩니다."
+      }
+    }
   }
 }
