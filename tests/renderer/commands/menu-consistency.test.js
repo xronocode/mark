@@ -1,5 +1,5 @@
 // FILE: tests/renderer/commands/menu-consistency.test.js
-// VERSION: 1.4.5
+// VERSION: 1.5.1
 // START_MODULE_CONTRACT
 //   PURPOSE: Keep native application-menu IDs and renderer command IDs synchronized.
 //   SCOPE: Source-level native-menu extraction, renderer command/shortcut extraction, and intentional renderer-only exceptions.
@@ -19,7 +19,9 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.5.0 - C-49: pin view.zoom-in/out/actual-size menu ids +
+//   LAST_CHANGE: v1.5.1 - C-40: pin help.guide menu id (no accelerator) — opens the
+//   in-app Mark Guide as a temporary untitled tab via the renderer command registry.
+//   v1.5.0 - C-49: pin view.zoom-in/out/actual-size menu ids +
 //   CmdOrCtrl+=/-/0 accelerators (taxonomy + built menu); the retired
 //   percentage-zoom ids (file.zoom*) leave the RENDERER_ONLY_ALLOWLIST and
 //   must stay absent from both sides.
@@ -287,6 +289,23 @@ describe('menu ↔ commands consistency', () => {
     expect(taxonomy).toContain('label: "Settings…".to_string()')
     expect(buildFn).not.toContain('with_id("file.preferences", "Preferences…")')
     expect(taxonomy).not.toContain('label: "Preferences…"')
+  })
+
+  it('pins Mark Guide menu item id without an accelerator (C-40)', () => {
+    const rust = readSource('src-tauri/src/m009_menu.rs')
+    const buildFn = rust.slice(rust.indexOf('pub fn build_native_menu'))
+    const taxonomy = rust.slice(0, rust.indexOf('pub fn build_native_menu'))
+
+    const item = buildFn.match(
+      /with_id\(\s*"help\.guide",\s*"Mark Guide",?\s*\)([\s\S]*?)\.build\(handle\)/
+    )
+    expect(item).not.toBeNull()
+    expect(item[1]).not.toContain('accelerator')
+    // The taxonomy entry (standard_menu) stays id-dispatched only, like
+    // tabs.cycleForward/Backward — no legacy v1 command name.
+    expect(taxonomy).toContain('id: "help.guide".to_string()')
+    expect(taxonomy).toContain('label: "Mark Guide".to_string()')
+    expect(taxonomy).not.toContain('command: Some("openGuide"')
   })
 
   it('pins tab-cycling menu item ids and Ctrl+Tab accelerators (C-8)', () => {

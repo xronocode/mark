@@ -3772,6 +3772,35 @@
           the mermaid SVG width/labels with the SVG still ≤ column width;
           ⌘0 returns to base; pill appears and hides; Ctrl+wheel inside
           the block viewer leaves the editor font size alone).
+          scenario-45: Mark Guide + universal agent prompt (C-40 G-3/R-1a,
+          2.3.1): Help › Mark Guide (m009 id help.guide, no accelerator,
+          id-dispatched like tabs.cycleForward/Backward), the help.guide
+          palette command and the 'mt::open-guide' bus event (optional
+          { section }) open the localized guide (static/guide/&lt;locale&gt;.md,
+          bundled per locale via import.meta.glob like the locale tables)
+          as a temporary untitled tab titled guide.tabTitle — pathname-less
+          (nothing is written to disk unless the user chooses Save As),
+          flagged isGuide so reopening focuses the existing tab and never
+          overwrites the user's edits; { section: 'connect-agent' } scrolls
+          to the first ## heading by matching its text in listToc and
+          emitting scroll-to-header with the muya block key (WYSIWYG
+          heading ids are block keys, not github slugs). The
+          universal prompt lives in ONE module (util/agentPrompt.js
+          getAgentPrompt(t, platform)): macOS ships `open -a Mark
+          &lt;file&gt;.md` in the fenced block (muya code fences already render
+          a copy button), Windows/other platforms get the prose variant
+          "open it for the user in Mark" because the NSIS build registers
+          file associations only (no PATH/CLI launcher). Unit-pinned in
+          tests/renderer/util/agentPrompt.test.js (per-OS variants) +
+          tests/renderer/util/guideDoc.test.js (ten bundled guides,
+          prompt interpolation, en fallback, per-locale section heading
+          text) + tests/renderer/store/guide-tab.test.js (create/reuse/
+          never-saved/deep link with the muya key + Untitled-N counter
+          robustness); menu id pinned in
+          tests/renderer/commands/menu-consistency.test.js; visually
+          pinned in tests/e2e/guide.spec.ts (one tab via cmd::execute,
+          second call focuses, heading + prompt block visible, bus
+          deep-link emits scroll-to-header with a muya block key).
         </Scenario>
       </Scenarios>
       <Markers>
@@ -3792,6 +3821,10 @@
         <Marker>[editor][save][BLOCK_STALE_SAVE_OUTCOME_IGNORED]</Marker>
         <Marker>[DiffSnapshots][record][BLOCK_SNAPSHOT_RECORDED tab=&lt;id&gt; size=&lt;n&gt;] — C-43 pre-reload snapshot appended to the tab ring</Marker>
         <Marker>[editor][diff][BLOCK_DIFF_BASELINE_SOURCE source=snapshot|stored] — C-43 baseline priority in diffView</Marker>
+        <Marker>[editor][guide][BLOCK_GUIDE_REQUESTED section=&lt;key|top&gt;] — mt::open-guide received (C-40 G-3)</Marker>
+        <Marker>[editor][guide][BLOCK_GUIDE_TAB_OPENED id=&lt;id&gt; locale=&lt;code&gt;] — guide tab created as a temporary untitled document (C-40 G-3)</Marker>
+        <Marker>[editor][guide][BLOCK_GUIDE_SCROLL_TO_SECTION heading=&lt;text&gt; slug=&lt;muya-key&gt;] — deep link scrolled the guide to a section heading (C-40 G-3)</Marker>
+        <Marker>[guide][loadGuideMarkdown][BLOCK_GUIDE_LOCALE_MISSING] no bundled guide &lt;locale&gt; — en fallback used (C-40 G-3)</Marker>
         <Marker>
           [Renderer] BLOCK_THEME_SWAP_BEGIN theme=&lt;id&gt; /
           BLOCK_THEME_SWAP_END duration_ms=&lt;n&gt;

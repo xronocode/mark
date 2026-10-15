@@ -1095,12 +1095,22 @@
       "userGuide": "ユーザーガイド",
       "markdownSyntax": "Markdown構文"
     },
+    "help": {
+      "guide": "Markガイド"
+    },
     "utils": {
       "noUpdateResourceFile": "アップデートリソースファイルなし",
       "todoUpdateCheck": "アップデートチェック"
     },
     "spellchecker": {
       "switchLanguage": "言語を切り替え"
+    }
+  },
+  "guide": {
+    "tabTitle": "Markガイド",
+    "agentPrompt": {
+      "mac": "50行を超える計画・仕様・レポートを作成するときは、.mdファイルに書き出し、ユーザーに開いてください: open -a Mark <file>.md。書き込んだ後にファイルが変更されていたら、読み込み直してください。ユーザーの編集が次の指示です。",
+      "generic": "50行を超える計画・仕様・レポートを作成するときは、.mdファイルに書き出し、Markでユーザーに開いてください。書き込んだ後にファイルが変更されていたら、読み込み直してください。ユーザーの編集が次の指示です。"
     }
   },
   "common": {

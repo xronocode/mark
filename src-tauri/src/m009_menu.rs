@@ -98,6 +98,10 @@
 //                commands, which run the same preferences-store zoom
 //                actions as the ⌘+/⌘−/⌘0 keys (unified fontSize zoom;
 //                the palette percentage zoom file.zoom-* is retired).
+//   - 2026-10-15 C-40 G-3: add Help-menu "Mark Guide" (help.guide, no
+//                accelerator) — opens the localized guide document as a
+//                temporary untitled tab via the renderer command registry
+//                (id-dispatched, like tabs.cycleForward/Backward).
 // END_CHANGE_SUMMARY
 
 use serde::{Deserialize, Serialize};
@@ -665,6 +669,15 @@ pub fn standard_menu() -> Vec<MenuItem> {
                     accelerator: None,
                     items: None,
                 },
+                // C-40 G-3: opens the localized in-app guide document as a
+                // temporary tab — id-dispatched only (no legacy v1 command).
+                MenuItem {
+                    id: "help.guide".to_string(),
+                    label: "Mark Guide".to_string(),
+                    command: None,
+                    accelerator: None,
+                    items: None,
+                },
                 #[cfg(not(feature = "app-store"))]
                 MenuItem {
                     id: "file.check-update".to_string(),
@@ -1033,6 +1046,9 @@ pub fn build_native_menu<R: tauri::Runtime>(
         .text("help.version", &version_label)
         .separator()
         .item(&MenuItemBuilder::with_id("docs.user-guide", "Documentation").build(handle)?)
+        // C-40 G-3: Mark Guide opens the localized guide document as a
+        // temporary untitled tab in the renderer (help.guide command).
+        .item(&MenuItemBuilder::with_id("help.guide", "Mark Guide").build(handle)?)
         // ASC 2.4.5(vii): no update checks in the App Store build —
         // the store owns updates. Desktop keeps the in-app updater.
         .item(
@@ -1293,6 +1309,8 @@ mod tests {
             // no legacy v1 command name (the menu-bridge looks them up by
             // id in the renderer command registry).
             // C-49: the zoom trio is id-dispatched the same way.
+            // C-40: help.guide opens the in-app guide document via the
+            // help.guide renderer command — also id-dispatched only.
             let id_dispatched_only = matches!(
                 item.id.as_str(),
                 "tabs.cycleForward"
@@ -1300,6 +1318,7 @@ mod tests {
                     | "view.zoom-in"
                     | "view.zoom-out"
                     | "view.actual-size"
+                    | "help.guide"
             );
             if !has_static_children && !dynamic_submenu && !id_dispatched_only {
                 assert!(

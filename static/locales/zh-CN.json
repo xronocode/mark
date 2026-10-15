@@ -1102,12 +1102,22 @@
       "userGuide": "用户指南",
       "markdownSyntax": "Markdown 语法"
     },
+    "help": {
+      "guide": "Mark 指南"
+    },
     "utils": {
       "noUpdateResourceFile": "没有更新资源文件",
       "todoUpdateCheck": "检查更新"
     },
     "spellchecker": {
       "switchLanguage": "切换拼写检查语言"
+    }
+  },
+  "guide": {
+    "tabTitle": "Mark 指南",
+    "agentPrompt": {
+      "mac": "当你产出超过约 50 行的计划、规格或报告时，把它写入 .md 文件并为用户打开：open -a Mark <file>.md。当你写入之后文件发生了变化，请重新读取：用户的编辑就是你的下一条指令。",
+      "generic": "当你产出超过约 50 行的计划、规格或报告时，把它写入 .md 文件并在 Mark 中为用户打开。当你写入之后文件发生了变化，请重新读取：用户的编辑就是你的下一条指令。"
     }
   },
   "common": {
