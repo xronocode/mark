@@ -4097,6 +4097,19 @@
           Playwright gates chromium + webkit at 640×620 in EN and RU for
           no horizontal overflow and no clipped .pref-row-label.
         </Scenario>
+        <Scenario>
+          scenario-52: end-to-end regression over the 2026-10-15 work
+          (tests/e2e/regression-2026-10-15.spec.ts, chromium + webkit, a
+          stateful preference mock recording every mt_prefs_set): title-bar
+          Auto/Light/Dark cycle on light and dark systems (Auto returns to
+          the light member), retired-theme migration at boot written once,
+          code-block line-number migration and the Settings switch, legacy
+          Settings routes, remembered tab and window title, ⌘F search,
+          Appearance segment + family tile writes, leaving Auto persists
+          the member, autosave delay seconds, legacy "14px" code size,
+          retired image upload, Custom CSS sheet, Restore defaults
+          (cancel/confirm), dropped preferences absent, RU labels.
+        </Scenario>
       </Scenarios>
       <Markers>
         <Marker>[prefs][theme-migration][BLOCK_RETIRED_THEMES_MIGRATED key:from-&gt;to …] — C-41 T-002 retired theme ids migrated at the hydration load point and persisted once per changed key</Marker>
