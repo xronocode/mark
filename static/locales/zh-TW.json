@@ -1095,12 +1095,22 @@
       "userGuide": "使用者指南",
       "markdownSyntax": "Markdown 語法"
     },
+    "help": {
+      "guide": "Mark 指南"
+    },
     "utils": {
       "noUpdateResourceFile": "沒有更新資源檔案",
       "todoUpdateCheck": "檢查更新"
     },
     "spellchecker": {
       "switchLanguage": "切換語言"
+    }
+  },
+  "guide": {
+    "tabTitle": "Mark 指南",
+    "agentPrompt": {
+      "mac": "當你產出超過約 50 行的計畫、規格或報告時，把它寫入 .md 檔案並為使用者開啟：open -a Mark <file>.md。當你寫入之後檔案有了變更，請重新讀取：使用者的編輯就是你的下一條指示。",
+      "generic": "當你產出超過約 50 行的計畫、規格或報告時，把它寫入 .md 檔案並在 Mark 中為使用者開啟。當你寫入之後檔案有了變更，請重新讀取：使用者的編輯就是你的下一條指示。"
     }
   },
   "common": {
