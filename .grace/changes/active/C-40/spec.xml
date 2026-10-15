@@ -55,5 +55,6 @@
     <ApprovedBy>user (2026-10-15): «ок» to the Guide / Connect-your-agent mockup</ApprovedBy>
     <ApprovalScope>G-3 Guide + R-1a connect-your-agent for 2.3.1. Title-bar trim, outline rail, status bar (R-2, R-2a, R-3) move to 2.3.2. Review 2026-10-15: the Win/Linux title-bar "?" entry point moves to 2.3.2 with the title-bar trim (2.3.1 entry points: Help › Mark Guide, command palette, welcome screen); the "advanced agent setup" line is left out of the guide until C-47 exists (no placeholder copy).</ApprovalScope>
   </Approval>
+  <Closure>2.3.1 scope closed 2026-10-15 (T-001): Mark Guide in 10 languages (Help › Mark Guide, palette, welcome screen, mt::open-guide with section deep link), one universal agent prompt module (macOS open -a Mark, prose elsewhere), Untitled-NaN fix. Review fixes: a saved guide is not reused, opening a file keeps the guide open, a deleted heading skips the deep link, guide text corrected (no table cmd-click, no placeholder line). npm test 3719 passed (274 files); cargo test 395/0; cargo check app-store OK; e2e 252 passed / 2 skipped Chromium+WebKit; grace lint 0 errors. The epic stays active for 2.3.2: title-bar trim incl. the Win/Linux '?' entry, outline rail, status bar (R-2, R-2a, R-3).</Closure>
 </C-40>
 </GraceChangeSpec>

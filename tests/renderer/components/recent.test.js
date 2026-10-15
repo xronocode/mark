@@ -4,7 +4,7 @@
 //   PURPOSE: Pin the C-46 welcome screen — brand header + tagline, action row with platform shortcut hints, Last session row, recent files/folders with mtime + missing-file drop-off, remove + 5s Undo toast restoring exact order, native context-menu actions, agent-prompt copy, Guide footer and What's-new gating.
 //   SCOPE: components/recent/index.vue unit behaviour over mocked stores/IPC; layout-only (no real muya, no real Tauri).
 //   DEPENDS: @vue/test-utils, vitest, pinia (unused when stores are mocked), ipc/contract/types IpcError (real rejection shape).
-//   LINKS: .grace/verification/runtime.xml V-M-011 scenario-47; .grace/changes/active/C-46.
+//   LINKS: .grace/verification/runtime.xml V-M-011 scenario-47; .grace/changes/archive/C-46.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

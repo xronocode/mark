@@ -11,7 +11,7 @@
 //   DEPENDS: util/version.js; whatsNew/data.js; ipc/runtime prefs;
 //          @tauri-apps/api/core is never imported here directly — the
 //          ipcPrefs facade is injectable for tests.
-//   LINKS: .grace/changes/active/C-48/spec.xml R-1; pages/app.vue calls
+//   LINKS: .grace/changes/archive/C-48/spec.xml R-1; pages/app.vue calls
 //          initWhatsNew at boot; C-46's welcome footer reads lastUpdateAt.
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS

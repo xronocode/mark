@@ -161,7 +161,7 @@
 //            ipcFs, ipcPrefs), util/pathDisplay, util/relativeTime,
 //            util/agentPrompt, util (isOsx, isWindows), i18n, bus
 //            ('mt::native-drag' from _shims/install-window-globals.js).
-//   LINKS:   .grace/changes/active/C-46 (approved mockups boards 1-2);
+//   LINKS:   .grace/changes/archive/C-46 (approved mockups boards 1-2);
 //            .grace/verification/runtime.xml V-M-011 scenario-47;
 //            C-40 R-1a (agent prompt + 'mt::open-guide' section).
 //   ROLE:    RUNTIME
