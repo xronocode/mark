@@ -2,7 +2,7 @@
 <C-41>
   <ChangeRef>C-41</ChangeRef>
   <Created>2026-10-15</Created>
-  <IntentSummary>T1: ship Paper and Ink as new themes and the defaults for new installs, and replace the title-bar light/dark toggle with an Auto → Light → Dark button (Avenex icons). Family model and set trimming (T2/T3) come after the user confirms the family list.</IntentSummary>
+  <IntentSummary>T1: ship Paper and Ink as new themes and the defaults for new installs, and replace the title-bar light/dark toggle with an Auto → Light → Dark button (Avenex icons). T2 (family model, picker by family, migrations) and T3 (six new members, contrast pass) planned 2026-10-15 after the family list was confirmed; delegated to two ZCode agents in parallel worktrees, merged by the orchestrator.</IntentSummary>
   <BaselineAssertions>
     <MustContain><File>src/renderer/src/util/theme.js</File><Text>addThemeStyle</Text></MustContain>
   </BaselineAssertions>
@@ -35,6 +35,13 @@
     <File>src-tauri/src/main.rs</File>
     <File>tests/renderer/**/*theme*.test.js</File>
     <File>tests/renderer/util/autoTheme.test.js</File>
+    <File>src/renderer/src/assets/themes/*.theme.css</File>
+    <File>src/renderer/src/assets/themes/prismjs/*</File>
+    <File>src/renderer/src/assets/themes/export/*</File>
+    <File>src/renderer/src/util/themeMigration.js</File>
+    <File>tests/renderer/util/theme-families.test.js</File>
+    <File>tests/renderer/util/theme-contrast.test.js</File>
+    <File>tests/renderer/commands/menu-consistency.test.js</File>
     <File>tests/renderer/components/titleBar*.test.js</File>
     <File>.grace/verification/runtime.xml</File>
     <File>.grace/graph/runtime.xml</File>
@@ -67,6 +74,35 @@
         <Command>grace lint --path . --assertions current</Command>
       </Verification>
     </T-001>
+    <T-002>
+      <Title>Family model: 14 light/dark families, picker by family, removed themes migrate</Title>
+      <DependsOn>T-001</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>config.js exports one frozen THEME_FAMILIES list (id, name, light, dark) for the 14 families of spec R-3, in that order; themePairs is derived from it (each member maps to its partner) so every existing pair consumer keeps working.</Criterion>
+        <Criterion>The 13 dropped ids are removed from themeMap, themeColor.js, railscastsThemes, the theme CSS files (and prismjs/export companions if a dropped theme has its own), commands/index.js, the native View › Theme menu (m009_menu.rs) and the Settings picker; menu-consistency stays green.</Criterion>
+        <Criterion>Migration map (one exported constant, applied when stored preferences load, to theme, lightModeTheme and darkModeTheme): light→paper, dark→ink, rose-pine-moon→rose-pine, tokyo-night-storm→tokyo-night, ayu-mirage→ayu-dark, monokai-pro→one-dark, material-dark→one-dark, nightfox→nord, palenight→catppuccin-mocha, horizon-dark→rose-pine, synthwave-84→dracula, cyberdream→tokyo-night, oxocarbon-dark→graphite-dark. Any other unknown id falls back to paper (light) / ink (dark). Valid stored ids are never rewritten. The migrated value is persisted once.</Criterion>
+        <Criterion>Settings theme page shows families (one swatch pair per family, light and dark halves); choosing a family sets lightModeTheme and darkModeTheme to its members and theme to the member for the current mode (Auto: system appearance; Light/Dark: that member). The title-bar button keeps cycling Auto → Light → Dark within the chosen family.</Criterion>
+        <Criterion>Unit tests: every family has a registered light and dark member; every dropped id migrates per the map for all three keys; unknown id fallback; valid id untouched; picking a family in each mode; themePairs symmetric.</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>npm test</Command>
+        <Command>cargo test --manifest-path src-tauri/Cargo.toml --bin mark m009</Command>
+        <Command>grace lint --path . --assertions current</Command>
+      </Verification>
+    </T-002>
+    <T-003>
+      <Title>Six new family members and a contrast pass over all 28 themes</Title>
+      <DependsOn>T-001</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>New themes one-light, alucard, nord-light, kanagawa-lotus, graphite-dark, ulysses-dark, built on the Paper/Ink structure (same variable set), using each family's published palette (Atom One Light, Dracula Alucard, Nord Snow Storm, Kanagawa Lotus); Graphite Dark and Ulysses Dark derived from their light members. Registered in themeMap, themeColor.js, dark classification (graphite-dark, ulysses-dark), commands, the native menu and every locale (product names, untranslated).</Criterion>
+        <Criterion>A contrast test reads every shipped *.theme.css and asserts WCAG AA (4.5:1) for body text on the editor background and for link colour, and 3:1 for muted/secondary text; themes that fail are fixed by adjusting colours, not by excluding them.</Criterion>
+        <Criterion>Every theme defines the same variable set as Paper (a test lists missing variables per theme).</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>npm test</Command>
+        <Command>grace lint --path . --assertions current</Command>
+      </Verification>
+    </T-003>
   </ImplementationPlan>
 </C-41>
 </GraceChangePlan>
