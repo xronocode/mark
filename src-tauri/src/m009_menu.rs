@@ -92,6 +92,12 @@
 //   - 2026-10-15 C-41 T-001: add View-menu Theme entries "Paper" and
 //                "Ink" (window.change-theme-paper/-ink) — the brand
 //                defaults; ids mirror the renderer command registry.
+//   - 2026-10-15 C-49 T-001: add View-menu "Zoom In" / "Zoom Out" /
+//                "Actual Size" (view.zoom-in/-out/actual-size,
+//                CmdOrCtrl+= / - / 0) — id-dispatched to the renderer
+//                commands, which run the same preferences-store zoom
+//                actions as the ⌘+/⌘−/⌘0 keys (unified fontSize zoom;
+//                the palette percentage zoom file.zoom-* is retired).
 // END_CHANGE_SUMMARY
 
 use serde::{Deserialize, Serialize};
@@ -576,6 +582,31 @@ pub fn standard_menu() -> Vec<MenuItem> {
                     accelerator: Some("CmdOrCtrl+D".to_string()),
                     items: None,
                 },
+                // C-49: unified zoom — id-dispatched only (like tab cycling):
+                // the menu-bridge routes view.zoom-in/out/actual-size to the
+                // renderer command registry, which runs the same preferences
+                // zoom actions as the ⌘+/⌘−/⌘0 keys.
+                MenuItem {
+                    id: "view.zoom-in".to_string(),
+                    label: "Zoom In".to_string(),
+                    command: None,
+                    accelerator: Some("CmdOrCtrl+=".to_string()),
+                    items: None,
+                },
+                MenuItem {
+                    id: "view.zoom-out".to_string(),
+                    label: "Zoom Out".to_string(),
+                    command: None,
+                    accelerator: Some("CmdOrCtrl+-".to_string()),
+                    items: None,
+                },
+                MenuItem {
+                    id: "view.actual-size".to_string(),
+                    label: "Actual Size".to_string(),
+                    command: None,
+                    accelerator: Some("CmdOrCtrl+0".to_string()),
+                    items: None,
+                },
                 MenuItem {
                     id: "view.theme".to_string(),
                     label: "Theme".to_string(),
@@ -922,6 +953,26 @@ pub fn build_native_menu<R: tauri::Runtime>(
                 .build(handle)?,
         )
         .separator()
+        // C-49: unified zoom — ids dispatch to the renderer commands
+        // view.zoom-in/out/actual-size (menu-bridge → preferences store
+        // zoom actions, same code as the ⌘+/⌘−/⌘0 keys). The native menu
+        // claims the accelerators, so the keys never double-apply.
+        .item(
+            &MenuItemBuilder::with_id("view.zoom-in", "Zoom In")
+                .accelerator("CmdOrCtrl+=")
+                .build(handle)?,
+        )
+        .item(
+            &MenuItemBuilder::with_id("view.zoom-out", "Zoom Out")
+                .accelerator("CmdOrCtrl+-")
+                .build(handle)?,
+        )
+        .item(
+            &MenuItemBuilder::with_id("view.actual-size", "Actual Size")
+                .accelerator("CmdOrCtrl+0")
+                .build(handle)?,
+        )
+        .separator()
         .item(&theme_submenu)
         .build()?;
 
@@ -1241,9 +1292,14 @@ mod tests {
             // C-8: tab-cycling leaves are id-dispatched only — they have
             // no legacy v1 command name (the menu-bridge looks them up by
             // id in the renderer command registry).
+            // C-49: the zoom trio is id-dispatched the same way.
             let id_dispatched_only = matches!(
                 item.id.as_str(),
-                "tabs.cycleForward" | "tabs.cycleBackward"
+                "tabs.cycleForward"
+                    | "tabs.cycleBackward"
+                    | "view.zoom-in"
+                    | "view.zoom-out"
+                    | "view.actual-size"
             );
             if !has_static_children && !dynamic_submenu && !id_dispatched_only {
                 assert!(
@@ -1262,6 +1318,30 @@ mod tests {
         let save = flat.iter().find(|i| i.id == "file.save").unwrap();
         assert_eq!(save.accelerator.as_deref(), Some("CmdOrCtrl+S"));
         assert_eq!(save.command.as_deref(), Some("save"));
+    }
+
+    #[test]
+    fn view_menu_zoom_items_dispatch_by_id_with_accelerators() {
+        // C-49: Zoom In / Zoom Out / Actual Size live in the View menu with
+        // CmdOrCtrl+= / - / 0 accelerators. They carry no legacy v1 command
+        // name — the renderer menu-bridge dispatches them by id to
+        // view.zoom-in / view.zoom-out / view.actual-size, which run the
+        // same preferences zoom actions as the ⌘+/⌘−/⌘0 keys.
+        let menu = standard_menu();
+        let flat = flatten(&menu);
+        for (id, label, accelerator) in [
+            ("view.zoom-in", "Zoom In", "CmdOrCtrl+="),
+            ("view.zoom-out", "Zoom Out", "CmdOrCtrl+-"),
+            ("view.actual-size", "Actual Size", "CmdOrCtrl+0"),
+        ] {
+            let item = flat
+                .iter()
+                .find(|i| i.id == id)
+                .unwrap_or_else(|| panic!("menu missing {id}"));
+            assert_eq!(item.label, label, "{id} label");
+            assert_eq!(item.accelerator.as_deref(), Some(accelerator), "{id} accelerator");
+            assert!(item.command.is_none(), "{id} must be id-dispatched only");
+        }
     }
 
     #[test]

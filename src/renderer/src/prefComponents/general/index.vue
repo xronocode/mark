@@ -93,12 +93,7 @@
           :bool="openFolderInNewWindow"
           :on-change="(value) => onSelectChange('openFolderInNewWindow', value)"
         ></bool>
-        <cur-select
-          :description="t('preferences.general.window.zoom')"
-          :value="zoom"
-          :options="zoomOptions"
-          :on-change="(value) => onSelectChange('zoom', value)"
-        ></cur-select>
+        <!-- C-49: the percentage zoom is retired; ⌘+ / ⌘− / ⌘0 and View › Zoom change the text size. -->
       </template>
     </compound>
 
@@ -194,7 +189,6 @@ import { isOsx, isLinux } from '@/util'
 
 import {
   getTitleBarStyleOptions,
-  zoomOptions,
   getFileSortByOptions
 } from './config'
 
@@ -209,7 +203,6 @@ const {
   openFilesInNewWindow,
   openFolderInNewWindow,
   treePathExcludePatterns: projectPaths,
-  zoom,
   hideScrollbar,
   wordWrapInToc,
   fileSortBy

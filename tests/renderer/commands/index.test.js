@@ -20,14 +20,18 @@ vi.mock('@/util', () => ({
   isLinux: false
 }))
 
-const { cmdSetPrefMock, cmdStoreState } = vi.hoisted(() => ({
+const { cmdSetPrefMock, cmdZoomStepMock, cmdActualSizeMock, cmdStoreState } = vi.hoisted(() => ({
   cmdSetPrefMock: vi.fn(),
+  cmdZoomStepMock: vi.fn(),
+  cmdActualSizeMock: vi.fn(),
   cmdStoreState: { followSystemTheme: false }
 }))
 vi.mock('@/store/preferences', () => ({
   usePreferencesStore: () => ({
     followSystemTheme: cmdStoreState.followSystemTheme,
-    SET_SINGLE_PREFERENCE: cmdSetPrefMock
+    SET_SINGLE_PREFERENCE: cmdSetPrefMock,
+    ZOOM_STEP: cmdZoomStepMock,
+    ZOOM_ACTUAL_SIZE: cmdActualSizeMock
   })
 }))
 
@@ -116,10 +120,18 @@ describe('static commands array', () => {
     expect(c.subcommands.length).toBeGreaterThan(0)
   })
 
-  it('includes file.zoom with subcommands', () => {
-    const c = commands.find((c) => c.id === 'file.zoom')
-    expect(c).toBeDefined()
-    expect(c.subcommands.length).toBe(12)
+  it('retired the percentage zoom commands file.zoom* (C-49)', () => {
+    expect(commands.find((c) => c.id === 'file.zoom')).toBeUndefined()
+    expect(commands.filter((c) => /^file\.zoom(-\d+)?$/.test(c.id))).toHaveLength(0)
+  })
+
+  it('includes the unified zoom commands (C-49)', () => {
+    for (const id of ['view.zoom-in', 'view.zoom-out', 'view.actual-size']) {
+      const c = commands.find((cmd) => cmd.id === id)
+      expect(c).toBeDefined()
+      expect(c.description).toBeDefined()
+      expect(Array.isArray(c.shortcut)).toBe(true)
+    }
   })
 
   it('includes view.text-direction with subcommands', () => {
@@ -197,10 +209,16 @@ describe('command execute actions', () => {
     expect(bus.emit).toHaveBeenCalledWith('view:toggle-layout-entry', 'showSideBar')
   })
 
-  it('file.zoom executeSubcommand emits mt::window-zoom', async () => {
-    const cmd = commands.find((c) => c.id === 'file.zoom')
-    await cmd.executeSubcommand(null, 1.5)
-    expect(bus.emit).toHaveBeenCalledWith('mt::window-zoom', 1.5)
+  it('view.zoom-in / view.zoom-out step the unified zoom (C-49)', async () => {
+    await commands.find((c) => c.id === 'view.zoom-in').execute()
+    expect(cmdZoomStepMock).toHaveBeenCalledWith(1)
+    await commands.find((c) => c.id === 'view.zoom-out').execute()
+    expect(cmdZoomStepMock).toHaveBeenCalledWith(-1)
+  })
+
+  it('view.actual-size restores the Settings font size (C-49)', async () => {
+    await commands.find((c) => c.id === 'view.actual-size').execute()
+    expect(cmdActualSizeMock).toHaveBeenCalledTimes(1)
   })
 
   it('tabs.cycleForward emits mt::tabs-cycle-right', async () => {

@@ -277,12 +277,23 @@ describe('util/theme', () => {
   })
 
   describe('addCommonStyle', () => {
-    it('should add code font family and size', () => {
+    it('em-bases the WYSIWYG code font on the 16px editor base (C-49)', () => {
       addCommonStyle({ codeFontFamily: 'Fira Code', codeFontSize: 16, hideScrollbar: false })
       const el = document.querySelector('#ag-common-style')
       expect(el).not.toBeNull()
       expect(el.textContent).toContain('Fira Code')
-      expect(el.textContent).toContain('16px')
+      // 16 / 16 = 1em → code scales with the editor fontSize zoom and is
+      // identical to the old fixed 16px at the base font.
+      expect(el.textContent).toContain('font-size: 1em;')
+      // The source-mode CodeMirror pane keeps the absolute px size.
+      expect(el.textContent).toContain('font-size: 16px;')
+    })
+
+    it('emits the codeFontSize / 16 ratio for code blocks', () => {
+      addCommonStyle({ codeFontFamily: 'mono', codeFontSize: 14, hideScrollbar: false })
+      const el = document.querySelector('#ag-common-style')
+      expect(el.textContent).toContain('font-size: 0.875em;')
+      expect(el.textContent).toContain('font-size: 14px;')
     })
 
     it('should add scrollbar hide CSS when hideScrollbar is true', () => {

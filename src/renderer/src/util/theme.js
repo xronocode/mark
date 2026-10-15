@@ -11,6 +11,11 @@
 //            removed to reduce WKWebView stylesheet parsing fragility.
 //
 // CHANGE_SUMMARY:
+//   - 2026-10-15 C-49 T-001: addCommonStyle emits the WYSIWYG code font size
+//     as an em ratio (codeFontSize / 16) so code blocks and inline code
+//     scale with the unified fontSize zoom; the source-mode .CodeMirror
+//     pane (outside the fontSize-styled editor wrapper) keeps the absolute
+//     px size it always had.
 //   - 2026-10-15 C-41 T-001: register the Paper (light) and Ink (dark)
 //     brand themes in themeMap; Ink rides the railscasts dark
 //     classification (dark CodeMirror theme + color-scheme: dark).
@@ -196,14 +201,25 @@ export const addCommonStyle = (options) => {
     scrollbarStyle = '::-webkit-scrollbar {display: none;}'
   }
 
+  // C-49: the WYSIWYG code selectors are em-based relative to the editor
+  // fontSize (inline style on .editor-component), so code blocks and inline
+  // code scale with the unified ⌘+/⌘−/⌘0 zoom — at the 16 px base font the
+  // ratio equals the old fixed px value (14/16 → 0.875em = 14px). The
+  // source-mode CodeMirror pane lives outside that wrapper, so it keeps the
+  // absolute px size.
+  const codeFontRatio = `${codeFontSize / 16}em`
   sheet.textContent = `${scrollbarStyle}
 span code,
 td code,
 th code,
 code,
 code[class*="language-"],
-.CodeMirror,
 pre.ag-paragraph {
+font-family: ${codeFontFamily}, ${DEFAULT_CODE_FONT_FAMILY};
+font-size: ${codeFontRatio};
+}
+
+.CodeMirror {
 font-family: ${codeFontFamily}, ${DEFAULT_CODE_FONT_FAMILY};
 font-size: ${codeFontSize}px;
 }

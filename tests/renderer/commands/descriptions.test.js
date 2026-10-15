@@ -42,6 +42,16 @@ describe('getCommandDescriptionById', () => {
     expect(getDescription('view.toggle-sidebar')).toBe('translated:commands.view.toggleSidebar')
   })
 
+  it('returns translated string for the unified zoom commands (C-49)', () => {
+    expect(getDescription('view.zoom-in')).toBe('translated:commands.view.zoomIn')
+    expect(getDescription('view.zoom-out')).toBe('translated:commands.view.zoomOut')
+    expect(getDescription('view.actual-size')).toBe('translated:commands.view.actualSize')
+  })
+
+  it('the retired percentage zoom is no longer described (C-49)', () => {
+    expect(getDescription('file.zoom')).toBe('file.zoom')
+  })
+
   it('returns translated string for tab commands', () => {
     expect(getDescription('tabs.cycleForward')).toBe('translated:commands.tabs.cycleForward')
   })
@@ -74,7 +84,7 @@ describe('getCommandDescriptionById', () => {
       'file.quick-open', 'file.import-file', 'file.save', 'file.save-as',
       'file.export-file', 'file.move-file', 'file.rename-file',
       'file.toggle-auto-save', 'file.change-encoding', 'file.line-ending',
-      'file.trailing-newline', 'file.preferences', 'file.print', 'file.zoom',
+      'file.trailing-newline', 'file.preferences', 'file.print',
       'file.check-update', 'file.close', 'file.close-tab', 'file.close-window',
       'file.quit'
     ]

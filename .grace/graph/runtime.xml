@@ -2589,7 +2589,18 @@
         Auto → Light → Dark (titleBar/index.vue START_BLOCK_THEME_CYCLE);
         the M-025.3 backend boot override on followSystemTheme was removed
         (src-tauri m005_prefs.rs / main.rs) so a persisted Auto survives
-        restarts.
+        restarts. C-49 T-001: one clear zoom — ⌘+/⌘−/⌘0, Ctrl+wheel/pinch
+        and the native View-menu items (view.zoom-in/out/actual-size,
+        id-dispatched) all run preferences-store ZOOM_STEP /
+        ZOOM_ACTUAL_SIZE (clamp 12–36, 150 ms debounced persist, emits
+        mt::zoom-level-changed for the components/zoomIndicator transient
+        pill); ⌘0 restores the persisted baseFontSize (the Settings size);
+        a stored legacy zoom ≠ 1 migrates once to
+        clamp(round(16 × zoom)) (MIGRATE_LEGACY_ZOOM from app.vue);
+        --mark-zoom = fontSize / 16 on the document element scales mermaid
+        SVGs (mermaidPipeline data-natural-width + calc max-width, M-012)
+        and the WYSIWYG code font is codeFontSize/16 em (util/theme.js) so
+        code blocks scale too.
       </Summary>
       <Path>src/renderer/</Path>
       <Dependencies>
@@ -3117,7 +3128,16 @@
         per-block ~250 ms trailing debounce while typing (first render and
         theme switches immediate), counter-unique render ids, and
         useMaxWidth:false natural size with horizontal scroll scoped by the
-        ag-mermaid-preview hook class (styles index.css). C-34 R2.2 +
+        ag-mermaid-preview hook class (styles index.css). C-49: every
+        inserted SVG records its natural width (data-natural-width, from
+        mermaid's inline max-width / width attr / viewBox — first render,
+        cache hit and keep-last-good all run through insertSvg) and gets an
+        inline max-width: calc(var(--mark-zoom, 1) × natural px), so
+        diagrams and their labels scale with the editor fontSize
+        (--mark-zoom maintained by pages/app.vue on the document element)
+        while width:100% keeps them inside the text column; the fullscreen
+        viewer clone overrides the inline size from the viewBox and is
+        unaffected. C-34 R2.2 +
         C-39 T2: ui/blockViewer/ is the shared fullscreen block viewer for
         Mermaid diagrams (clone of the live preview incl. the hoisted
         &lt;style&gt;) and read-only table clones (editing affordances

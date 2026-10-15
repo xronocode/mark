@@ -18,7 +18,10 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: 2026-09-22 v1.1.0 - C-17: edit.format-document (Shift+Alt+F), view.problems, view.toggle-markdown-lint registry cases.
+//   LAST_CHANGE: 2026-10-15 v1.2.0 - C-49: file.zoom describe replaced by the
+//   unified zoom trio (view.zoom-in/out/actual-size → preferences
+//   ZOOM_STEP/ZOOM_ACTUAL_SIZE) + a retirement pin for file.zoom*.
+//   2026-09-22 v1.1.0 - C-17: edit.format-document (Shift+Alt+F), view.problems, view.toggle-markdown-lint registry cases.
 // END_CHANGE_SUMMARY
 
 /**
@@ -71,9 +74,13 @@ vi.mock('@/util', () => ({
 }))
 
 const setSinglePreferenceMock = vi.fn()
+const zoomStepMock = vi.fn()
+const zoomActualSizeMock = vi.fn()
 const preferencesStoreMock = {
   markdownLint: true,
-  SET_SINGLE_PREFERENCE: setSinglePreferenceMock
+  SET_SINGLE_PREFERENCE: setSinglePreferenceMock,
+  ZOOM_STEP: zoomStepMock,
+  ZOOM_ACTUAL_SIZE: zoomActualSizeMock
 }
 vi.mock('@/store/preferences', () => ({
   usePreferencesStore: () => preferencesStoreMock
@@ -561,22 +568,32 @@ describe('commands/index — deep coverage', () => {
     })
   })
 
-  // ---- file.zoom command ----
+  // ---- unified zoom commands (C-49) ----
 
-  describe('file.zoom', () => {
-    it('has shortcut', () => {
-      const cmd = findCmd('file.zoom')
-      expect(cmd.shortcut).toBeDefined()
-      expect(Array.isArray(cmd.shortcut)).toBe(true)
+  describe('unified zoom commands', () => {
+    it('view.zoom-in / view.zoom-out run the store zoom steps', async () => {
+      await findCmd('view.zoom-in').execute()
+      expect(zoomStepMock).toHaveBeenCalledWith(1)
+      await findCmd('view.zoom-out').execute()
+      expect(zoomStepMock).toHaveBeenCalledWith(-1)
     })
 
-    it('subcommands have value and description', () => {
-      const cmd = findCmd('file.zoom')
-      for (const sub of cmd.subcommands) {
-        expect(sub.id).toBeDefined()
-        expect(sub.description).toBeDefined()
-        expect(typeof sub.value).toBe('number')
+    it('view.actual-size restores the base font size', async () => {
+      await findCmd('view.actual-size').execute()
+      expect(zoomActualSizeMock).toHaveBeenCalledTimes(1)
+    })
+
+    it('each zoom command declares a Cmd/Ctrl shortcut', () => {
+      for (const id of ['view.zoom-in', 'view.zoom-out', 'view.actual-size']) {
+        const cmd = findCmd(id)
+        expect(cmd.shortcut[0]).toBe('Cmd') // isOsx mocked true
+        expect(cmd.description).toBeDefined()
       }
+    })
+
+    it('the retired file.zoom commands are gone', () => {
+      expect(findCmd('file.zoom')).toBeUndefined()
+      expect(commands.filter((c) => /^file\.zoom/.test(c.id))).toHaveLength(0)
     })
   })
 
