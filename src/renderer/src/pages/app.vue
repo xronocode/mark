@@ -40,6 +40,22 @@
       <import-modal></import-modal>
       <zoom-indicator></zoom-indicator>
     </div>
+    <!--
+      macOS resize edges: AppKit resizes the window from its edges, but
+      WKWebView keeps resetting the cursor to the CSS one, so the resize
+      arrows flickered. Thin edge strips carry the matching resize cursor
+      so both agree; presses still go to AppKit's resize.
+    -->
+    <div v-if="platform === 'darwin'" class="resize-edges" aria-hidden="true">
+      <i class="resize-edge resize-edge--top"></i>
+      <i class="resize-edge resize-edge--bottom"></i>
+      <i class="resize-edge resize-edge--left"></i>
+      <i class="resize-edge resize-edge--right"></i>
+      <i class="resize-edge resize-edge--tl"></i>
+      <i class="resize-edge resize-edge--tr"></i>
+      <i class="resize-edge resize-edge--bl"></i>
+      <i class="resize-edge resize-edge--br"></i>
+    </div>
   </div>
 </template>
 
@@ -71,6 +87,9 @@
 //   - 2026-10-15 C-40 G-3: register editorStore.LISTEN_FOR_OPEN_GUIDE so the
 //     'mt::open-guide' bus event (Help › Mark Guide, help.guide palette
 //     command) opens the guide as a temporary untitled tab.
+//   - 2026-10-15 resize-edges: macOS-only 3 px edge strips (8 px corners)
+//     carry the resize cursor so WKWebView stops flipping the native
+//     resize arrows back to the CSS cursor.
 //   - 2026-10-15 2.3.1 review: setupDragDropHandler returns a cleanup and
 //     onUnmounted removes the window dragover listener (it leaked across
 //     remounts and reacted with a stale store).
@@ -433,6 +452,43 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+/* START_BLOCK_RESIZE_EDGES */
+.resize-edge {
+  position: fixed;
+  z-index: 10000;
+  background: transparent;
+}
+.resize-edge--top,
+.resize-edge--bottom {
+  left: 8px;
+  right: 8px;
+  height: 3px;
+  cursor: ns-resize;
+}
+.resize-edge--top { top: 0; }
+.resize-edge--bottom { bottom: 0; }
+.resize-edge--left,
+.resize-edge--right {
+  top: 8px;
+  bottom: 8px;
+  width: 3px;
+  cursor: ew-resize;
+}
+.resize-edge--left { left: 0; }
+.resize-edge--right { right: 0; }
+.resize-edge--tl,
+.resize-edge--tr,
+.resize-edge--bl,
+.resize-edge--br {
+  width: 8px;
+  height: 8px;
+}
+.resize-edge--tl { top: 0; left: 0; cursor: nwse-resize; }
+.resize-edge--br { bottom: 0; right: 0; cursor: nwse-resize; }
+.resize-edge--tr { top: 0; right: 0; cursor: nesw-resize; }
+.resize-edge--bl { bottom: 0; left: 0; cursor: nesw-resize; }
+/* END_BLOCK_RESIZE_EDGES */
+
 .editor-placeholder,
 .editor-container {
   display: flex;
