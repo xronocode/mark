@@ -71,7 +71,7 @@ async function bootstrapWithMarkdown (page: Page, markdown: string) {
     ;(window as any).__mockInvoke = {
       ...(window as any).__mockInvoke,
       mt_prefs_get_all: () => ({
-        theme: 'light',
+        theme: 'paper',
         autoSave: false,
         autoSaveDelay: 5000,
         titleBarStyle: 'custom',

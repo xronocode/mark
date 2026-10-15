@@ -1,5 +1,5 @@
 :root {
-  /*editor*/
+  /*editor — C-41 T-003: blockquote alpha .6 → .65 (3.00 → 3.27 WCAG margin)*/
   --themeColor: rgba(77, 120, 204, 1);
   --themeColor90: rgba(77, 120, 204, .9);
   --themeColor80: rgba(77, 120, 204, .8);
@@ -65,7 +65,7 @@
   --h4Color: #56b6c2;
   --h5Color: #c678dd;
   --h6Color: #e5c07b;
-  --blockquoteTextColor: rgba(157, 165, 180, .6);
+  --blockquoteTextColor: rgba(157, 165, 180, .65);
   --blockquoteBorderColor: #e2c08d;
   --hrColor: #4b5362;
   --linkColor: #61afef;

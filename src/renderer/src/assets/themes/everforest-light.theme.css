@@ -1,5 +1,7 @@
 :root {
-  /*editor - Everforest Light theme*/
+  /*editor - Everforest Light theme — C-41 T-003: linkColor darkened
+    #3a94c5 → #265b73 (everforest's own hard water blue; 3.13 → 6.89 on
+    #fdf6e3) and blockquote alpha .6 → .8 (2.41 → 3.46) for WCAG AA*/
   --themeColor: #8da101;
   --themeColor90: rgba(141, 161, 1, .9);
   --themeColor80: rgba(141, 161, 1, .8);
@@ -64,10 +66,10 @@
   --h4Color: #35a77c;
   --h5Color: #df69ba;
   --h6Color: #3a94c5;
-  --blockquoteTextColor: rgba(92, 106, 114, .6);
+  --blockquoteTextColor: rgba(92, 106, 114, .8);
   --blockquoteBorderColor: #939f91;
   --hrColor: #e2ddc5;
-  --linkColor: #3a94c5;
+  --linkColor: #265b73;
   --strongColor: #5c6a72;
   --emColor: #dfa000;
   --listMarkerColor: #8da101;

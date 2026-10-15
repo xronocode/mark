@@ -1,5 +1,6 @@
 :root {
-  /*editor - Rosé Pine Dawn theme*/
+  /*editor - Rosé Pine Dawn theme — C-41 T-003: blockquote alpha
+    .6 → .75 (2.72 → 3.70 on #faf4ed) for WCAG AA*/
   --themeColor: #907aa9;
   --themeColor90: rgba(144, 122, 169, .9);
   --themeColor80: rgba(144, 122, 169, .8);
@@ -64,7 +65,7 @@
   --h4Color: #286983;
   --h5Color: #56949f;
   --h6Color: #b4637a;
-  --blockquoteTextColor: rgba(87, 82, 121, .6);
+  --blockquoteTextColor: rgba(87, 82, 121, .75);
   --blockquoteBorderColor: #9893a5;
   --hrColor: #e0d6cd;
   --linkColor: #286983;

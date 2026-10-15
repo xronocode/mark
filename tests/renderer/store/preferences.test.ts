@@ -149,7 +149,9 @@ describe('store/preferences', () => {
 
   describe('ASK_FOR_USER_PREFERENCE', () => {
     it('on success applies returned prefs via SET_USER_PREFERENCE', async () => {
-      ;(invoke as any).mockResolvedValueOnce({ theme: 'dark', tabSize: 8 })
+      // C-41 T-002: retired ids (dark, light, …) migrate at this load
+      // point — pinned in theme-families.test.js; this case uses a valid id.
+      ;(invoke as any).mockResolvedValueOnce({ theme: 'ink', tabSize: 8 })
       const { usePreferencesStore } = await import('@/store/preferences')
       const s = usePreferencesStore()
       // Manual theme mode: in Auto (the C-41 default) the store resolves the
@@ -157,7 +159,7 @@ describe('store/preferences', () => {
       s.followSystemTheme = false
       await s.ASK_FOR_USER_PREFERENCE()
       expect(invoke).toHaveBeenCalledWith('mt_prefs_get_all')
-      expect(s.theme).toBe('dark')
+      expect(s.theme).toBe('ink')
       expect(s.tabSize).toBe(8)
     })
 

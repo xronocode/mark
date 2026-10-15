@@ -48,6 +48,13 @@
 //   - 2026-10-15 C-41 T-001: window.change-theme gains Paper and Ink subcommands
 //     (brand defaults); a manual theme pick now clears followSystemTheme so the
 //     Auto resolution cannot override the explicit choice.
+//   - 2026-10-15 C-41 T-003: window.change-theme gains the six new family
+//     members (one-light, alucard, nord-light, kanagawa-lotus,
+//     graphite-dark, ulysses-dark).
+//   - 2026-10-15 C-41 T-002: window.change-theme drops the 13 retired theme
+//     subcommands (kept family members only, 22 until the six C-41 T-003
+//     members join); the native View › Theme menu mirrors the same list
+//     (menu-consistency stays green).
 //   - 2026-10-15 C-40 G-3: add help.guide — opens the localized Mark Guide as
 //     a temporary untitled tab via the 'mt::open-guide' bus event.
 //   - 2026-10-15 C-48 T-001: add help.whats-new (reopens the What's New
@@ -651,44 +658,43 @@ const commands = [
   {
     id: 'window.change-theme',
     subcommands: [
-      // C-41 T-001: brand themes lead the list (Paper/Ink are the new-profile
-      // defaults). Selecting any theme manually leaves Auto mode so the
-      // followSystemTheme resolution cannot override the explicit pick.
+      // C-41 T-002: the palette lists the kept family members only — the
+      // 13 retired ids (light, dark, material-dark, rose-pine-moon,
+      // tokyo-night-storm, ayu-mirage, monokai-pro, nightfox, palenight,
+      // horizon-dark, synthwave-84, cyberdream, oxocarbon-dark) are gone;
+      // stored values migrate via util/themeMigration.js. Selecting any
+      // theme manually still leaves Auto mode so the followSystemTheme
+      // resolution cannot override the explicit pick.
+      // C-41 T-003: six new family members (one-light, alucard, nord-light,
+      // kanagawa-lotus, graphite-dark, ulysses-dark).
       { id: 'window.change-theme-paper', description: 'Paper', value: 'paper' },
       { id: 'window.change-theme-ink', description: 'Ink', value: 'ink' },
-      { id: 'window.change-theme-light', description: 'Cadmium Light', value: 'light' },
       { id: 'window.change-theme-graphite', description: 'Graphite', value: 'graphite' },
+      { id: 'window.change-theme-graphite-dark', description: 'Graphite Dark', value: 'graphite-dark' },
       { id: 'window.change-theme-ulysses', description: 'Ulysses', value: 'ulysses' },
+      { id: 'window.change-theme-ulysses-dark', description: 'Ulysses Dark', value: 'ulysses-dark' },
+      { id: 'window.change-theme-alucard', description: 'Alucard', value: 'alucard' },
       { id: 'window.change-theme-ayu-light', description: 'Ayu Light', value: 'ayu-light' },
       { id: 'window.change-theme-catppuccin-latte', description: 'Catppuccin Latte', value: 'catppuccin-latte' },
       { id: 'window.change-theme-everforest-light', description: 'Everforest Light', value: 'everforest-light' },
       { id: 'window.change-theme-gruvbox-light', description: 'Gruvbox Light', value: 'gruvbox-light' },
+      { id: 'window.change-theme-kanagawa-lotus', description: 'Kanagawa Lotus', value: 'kanagawa-lotus' },
+      { id: 'window.change-theme-nord-light', description: 'Nord Light', value: 'nord-light' },
+      { id: 'window.change-theme-one-light', description: 'One Light', value: 'one-light' },
       { id: 'window.change-theme-rose-pine-dawn', description: 'Rosé Pine Dawn', value: 'rose-pine-dawn' },
       { id: 'window.change-theme-solarized-light', description: 'Solarized Light', value: 'solarized-light' },
       { id: 'window.change-theme-tokyo-night-light', description: 'Tokyo Night Light', value: 'tokyo-night-light' },
-      { id: 'window.change-theme-dark', description: 'Dark', value: 'dark' },
-      { id: 'window.change-theme-material-dark', description: 'Material Dark', value: 'material-dark' },
       { id: 'window.change-theme-one-dark', description: 'One Dark', value: 'one-dark' },
       { id: 'window.change-theme-ayu-dark', description: 'Ayu Dark', value: 'ayu-dark' },
-      { id: 'window.change-theme-ayu-mirage', description: 'Ayu Mirage', value: 'ayu-mirage' },
       { id: 'window.change-theme-catppuccin-mocha', description: 'Catppuccin Mocha', value: 'catppuccin-mocha' },
-      { id: 'window.change-theme-cyberdream', description: 'Cyberdream', value: 'cyberdream' },
       { id: 'window.change-theme-dracula', description: 'Dracula', value: 'dracula' },
       { id: 'window.change-theme-everforest-dark', description: 'Everforest Dark', value: 'everforest-dark' },
       { id: 'window.change-theme-gruvbox-dark', description: 'Gruvbox Dark', value: 'gruvbox-dark' },
-      { id: 'window.change-theme-horizon-dark', description: 'Horizon Dark', value: 'horizon-dark' },
       { id: 'window.change-theme-kanagawa', description: 'Kanagawa', value: 'kanagawa' },
-      { id: 'window.change-theme-monokai-pro', description: 'Monokai Pro', value: 'monokai-pro' },
-      { id: 'window.change-theme-nightfox', description: 'Nightfox', value: 'nightfox' },
       { id: 'window.change-theme-nord', description: 'Nord', value: 'nord' },
-      { id: 'window.change-theme-oxocarbon-dark', description: 'Oxocarbon Dark', value: 'oxocarbon-dark' },
-      { id: 'window.change-theme-palenight', description: 'Palenight', value: 'palenight' },
       { id: 'window.change-theme-rose-pine', description: 'Rosé Pine', value: 'rose-pine' },
-      { id: 'window.change-theme-rose-pine-moon', description: 'Rosé Pine Moon', value: 'rose-pine-moon' },
       { id: 'window.change-theme-solarized-dark', description: 'Solarized Dark', value: 'solarized-dark' },
-      { id: 'window.change-theme-synthwave-84', description: "Synthwave '84", value: 'synthwave-84' },
-      { id: 'window.change-theme-tokyo-night', description: 'Tokyo Night', value: 'tokyo-night' },
-      { id: 'window.change-theme-tokyo-night-storm', description: 'Tokyo Night Storm', value: 'tokyo-night-storm' }
+      { id: 'window.change-theme-tokyo-night', description: 'Tokyo Night', value: 'tokyo-night' }
     ],
     executeSubcommand: async (_, theme) => {
       const store = usePreferencesStore()

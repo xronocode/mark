@@ -175,17 +175,4 @@ describe('installMenuBridge', () => {
       value: 'dracula'
     })
   })
-
-  it('dispatches light theme subcommand', async () => {
-    setPrefMock.mockClear()
-    installMenuBridge()
-    const handler = ipcOnCallbacks['mt::menu-invoked']
-
-    await handler({}, 'window.change-theme-light')
-
-    expect(setPrefMock).toHaveBeenCalledWith({
-      type: 'theme',
-      value: 'light'
-    })
-  })
 })

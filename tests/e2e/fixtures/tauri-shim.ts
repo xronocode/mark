@@ -14,7 +14,7 @@
  * Per-test handler overrides:
  *   await page.addInitScript(() => {
  *     ;(window as any).__mockInvoke = {
- *       mt_prefs_get_all: () => ({ theme: 'dark' })
+ *       mt_prefs_get_all: () => ({ theme: 'ink' })
  *     }
  *   })
  *
@@ -36,7 +36,7 @@ export async function installTauriShim(page: Page): Promise<void> {
       // backend prefs/keybindings — used at boot by install-window-globals
       // and bootstrap-ipc.
       mt_prefs_get_all: () => ({
-        theme: 'light',
+        theme: 'paper',
         autoSave: false,
         autoSaveDelay: 5000,
         titleBarStyle: 'custom',
@@ -66,8 +66,8 @@ export async function installTauriShim(page: Page): Promise<void> {
         listIndentation: 1,
         frontmatterType: '-',
         followSystemTheme: false,
-        lightModeTheme: 'light',
-        darkModeTheme: 'dark',
+        lightModeTheme: 'paper',
+        darkModeTheme: 'ink',
         customCss: '',
         bulletListMarker: '-',
         orderListDelimiter: '.',

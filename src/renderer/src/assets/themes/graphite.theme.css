@@ -1,3 +1,6 @@
+/* C-41 T-003 contrast pass: linkColor darkened rgb(104,134,170) →
+   rgb(71,97,126) (3.51 → 5.98 on #f7f7f7) and blockquote alpha .5 → .58
+   (2.85 → 3.52); --floatShadow added (Paper variable set). */
 :root {
   --themeColor: rgb(104, 134, 170);
   --themeColor90: rgba(104, 134, 170, .9);
@@ -63,10 +66,10 @@
   --h4Color: #7b68ee;
   --h5Color: #cd5c5c;
   --h6Color: #708090;
-  --blockquoteTextColor: rgba(43, 48, 50, .5);
+  --blockquoteTextColor: rgba(43, 48, 50, .58);
   --blockquoteBorderColor: rgb(104, 134, 170);
   --hrColor: rgba(43, 48, 50, .1);
-  --linkColor: rgb(104, 134, 170);
+  --linkColor: rgb(71, 97, 126);
   --strongColor: rgba(43, 48, 50, .8);
   --emColor: #5f9ea0;
   --listMarkerColor: #6886aa;
@@ -83,6 +86,7 @@
   --floatBgColor: rgb(237, 237, 238);
   --floatHoverColor: rgba(43, 48, 50, .04);
   --floatBorderColor: rgba(0, 0, 0, .03);
+  --floatShadow: rgba(0, 0, 0, 0.12);
   --maskColor: rgba(232, 232, 232, .8);
   --editorAreaWidth: 750px;
 }
