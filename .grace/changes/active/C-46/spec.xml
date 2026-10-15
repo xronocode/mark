@@ -20,6 +20,6 @@
   <AcceptanceCriteria><Criterion>A fresh window shows the welcome screen; every action works by mouse and keyboard; recent lists survive restarts; looks right in Paper and Ink and on Windows.</Criterion></AcceptanceCriteria>
   <AffectedAreas><M-011>components/recent (welcome screen), sideBar/tree empty state</M-011></AffectedAreas>
   <VerificationIntent>Unit tests for recent-files store; e2e: open from recent, copy prompt, drop file; WebKit screenshot matrix.</VerificationIntent>
-  <Approval><ApprovedBy>user (2026-10-15): «ок» to the mockups https://claude.ai/artifact/S4JQJpq9jkfagKwW5tYpc7 (v7)</ApprovedBy><ApprovalScope>W2 implementation for 2.3.1 (mockups approved).</ApprovalScope></Approval>
+  <Approval><ApprovedBy>user (2026-10-15): «ок» to the mockups https://claude.ai/artifact/S4JQJpq9jkfagKwW5tYpc7 (v7)</ApprovedBy><ApprovalScope>W2 implementation for 2.3.1 (mockups approved). Review 2026-10-15: the "agent edited / changed outside Mark" hint and the sidebar empty state move to the backlog — M-017 keeps plain paths, with no per-file last-seen timestamp to compare against.</ApprovalScope></Approval>
 </C-46>
 </GraceChangeSpec>
