@@ -213,7 +213,7 @@
 
 <script setup>
 // FILE: src/renderer/src/components/titleBar/index.vue
-// VERSION: 1.8.0
+// VERSION: 1.8.1
 // START_MODULE_CONTRACT
 //   PURPOSE: Render the main window title bar and expose its navigation, native file-path actions, window controls, and drag affordances.
 //   SCOPE: Renderer-side titlebar behavior, including sidebar/view navigation, title updates, native title context menus, direct window controls, and WKWebView/macOS drag fallbacks.
@@ -228,6 +228,8 @@
 //   handleTitleContextMenu - Opens the native file-title menu and dispatches Copy Path.
 //   handleNavClick - Applies multi-root-aware titlebar navigation behavior.
 //   handleWindowDragMouseDown - Starts the macOS transparent-titlebar drag fallback.
+//   RESIZE_EDGE_PX - Width of the window-edge band left to the native resize (px).
+//   isOnResizeEdge - True when a press is within RESIZE_EDGE_PX of the top/left/right edge.
 //   handleCloseClick - Requests native window close.
 //   handleMaximizeClick - Toggles native maximize/fullscreen state.
 //   handleMinimizeClick - Requests native window minimize.
@@ -238,6 +240,9 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-10-15 resize-edge: the macOS drag fallback ignores presses
+//     within 6 px of the top/left/right window edges, so the top edge and
+//     top corners resize the window again instead of moving it.
 //   - 2026-05-21 drag-theme-refactor: restore `-webkit-app-region: drag`
 //     on the title bar and add a macOS mousedown -> startDragging()
 //     fallback for transparent WKWebView windows.
@@ -423,8 +428,21 @@ const effectiveTitleBarStyle = computed(() => {
   return isWindows ? 'custom' : titleBarStyle.value
 })
 
+// START_BLOCK_RESIZE_EDGE_GUARD
+// The transparent title bar starts at the window's top pixel, so a press
+// on the top edge or a top corner used to start a window drag instead of
+// the native resize. Presses this close to the top/left/right edges are
+// left to AppKit (no preventDefault, no startDragging).
+const RESIZE_EDGE_PX = 6
+const isOnResizeEdge = (event) =>
+  event.clientY <= RESIZE_EDGE_PX ||
+  event.clientX <= RESIZE_EDGE_PX ||
+  event.clientX >= window.innerWidth - RESIZE_EDGE_PX
+// END_BLOCK_RESIZE_EDGE_GUARD
+
 const handleWindowDragMouseDown = (event) => {
   if (!isOsx || event.button !== 0) return
+  if (isOnResizeEdge(event)) return
   const target = event.target instanceof Element ? event.target : null
   if (!target) return
 
