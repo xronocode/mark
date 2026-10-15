@@ -15,8 +15,6 @@ Dê isto ao Claude Code, Codex, Cursor ou qualquer agente, uma única vez. Cole 
 3. **Você dá o formato** — edite a página pronta: corrija passos, acrescente notas, corte o que estiver errado.
 4. **Ele lê você de volta** — o agente relê o arquivo; as suas edições são a próxima instrução dele.
 
-Quer isso automático? Configuração avançada do agente — em breve.
-
 ## Experimente: tabelas
 
 Tabelas são texto puro, estilizadas enquanto você digita. Adicione ou remova linhas pela barra quando o cursor estiver dentro.
@@ -70,4 +68,4 @@ Editar › Copiar como texto estruturado copia o documento como texto limpo que 
 
 ## Experimente: o visualizador em tela cheia
 
-⌘/Ctrl-clique num diagrama ou tabela abre em tela cheia ⤢ — dê zoom dentro, Esc fecha.
+⌘/Ctrl-clique num diagrama, ou ⤢ num diagrama ou tabela, abre em tela cheia — dê zoom dentro, Esc fecha.

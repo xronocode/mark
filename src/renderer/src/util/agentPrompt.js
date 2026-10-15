@@ -12,6 +12,7 @@
 //
 // START_MODULE_MAP
 //   getAgentPrompt - localized universal agent prompt for the given (or current) platform.
+//   default - getAgentPrompt
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY

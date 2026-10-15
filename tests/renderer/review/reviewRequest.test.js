@@ -1,5 +1,5 @@
 // FILE: tests/renderer/review/reviewRequest.test.js
-// VERSION: 1.0.0
+// VERSION: 1.1.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Pin the C-48 review-request controller wiring — bus events
 //            fold into session facts, successful sessions persist, the
@@ -14,12 +14,18 @@
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
+//   at - ISO string → Date (fake clock values).
 //   makeFakeIpc - in-memory prefs facade for the reviewState key.
-//   emitBus - drive the mocked bus handlers directly.
+//   eligibleState - persisted counters one session short of the ask threshold.
+//   driveEligibleSession - run one qualifying session (open + save) against a given invoke double.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.0.0 - 2026-10-15 C-48 T-001: initial pins.
+//   LAST_CHANGE: v1.1.0 - 2026-10-15 C-48 review fix: the ask is recorded
+//   (lastAskedAt / lastAskedVersion) only when mt_request_review resolves
+//   true — false (no StoreKit / no-op build) and a rejection leave the
+//   cooldown untouched; MODULE_MAP synced with the real locals.
+//   PREV: v1.0.0 - 2026-10-15 C-48 T-001: initial pins.
 // END_CHANGE_SUMMARY
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
@@ -79,6 +85,23 @@ const eligibleState = () => ({
   lastAskedAt: null,
   lastAskedVersion: ''
 })
+
+const driveEligibleSession = async (invokeFn) => {
+  const ipc = makeFakeIpc(eligibleState())
+  const controller = createReviewRequestController({
+    ipc,
+    invokeFn,
+    runningVersion: '2.3.1',
+    now: () => at('2026-06-05T10:00:00.000Z'),
+    modalProbe: () => false
+  })
+  await controller.start()
+  bus.emit('file-loaded', { id: 1 })
+  bus.emit('file-saved', { id: 1, pathname: '/tmp/a.md' })
+  await new Promise((resolve) => setTimeout(resolve, 0))
+  controller.dispose()
+  return { ipc, controller }
+}
 
 describe('review/reviewRequest — isBlockingModalOpen', () => {
   it('detects the What\'s New sheet root in the DOM', () => {
@@ -145,6 +168,42 @@ describe('review/reviewRequest — controller', () => {
     expect(invokeFn).toHaveBeenCalledWith('mt_request_review')
 
     controller.dispose()
+  })
+
+  it('records the ask only when mt_request_review reports a dispatch (true)', async () => {
+    const invokeFn = vi.fn(async () => true)
+    const { ipc, controller } = await driveEligibleSession(invokeFn)
+    expect(invokeFn).toHaveBeenCalledTimes(1)
+    const persisted = ipc.calls[ipc.calls.length - 1].value
+    expect(persisted.lastAskedAt).toBe('2026-06-05T10:00:00.000Z')
+    expect(persisted.lastAskedVersion).toBe('2.3.1')
+    expect(controller.getState().lastAskedAt).toBe('2026-06-05T10:00:00.000Z')
+  })
+
+  it('false (StoreKit missing / no-op build) never records an ask; the session still counts', async () => {
+    const invokeFn = vi.fn(async () => false)
+    const { ipc, controller } = await driveEligibleSession(invokeFn)
+    expect(invokeFn).toHaveBeenCalledTimes(1)
+    for (const call of ipc.calls) {
+      expect(call.value.lastAskedAt).toBeNull()
+      expect(call.value.lastAskedVersion).toBe('')
+    }
+    expect(ipc.calls[ipc.calls.length - 1].value.successfulSessions).toBe(5)
+    expect(controller.getState().lastAskedAt).toBeNull()
+  })
+
+  it('a rejected dispatch never records an ask', async () => {
+    const err = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const invokeFn = vi.fn(async () => {
+      throw new Error('main thread dispatch: closed')
+    })
+    const { ipc, controller } = await driveEligibleSession(invokeFn)
+    for (const call of ipc.calls) {
+      expect(call.value.lastAskedAt).toBeNull()
+    }
+    expect(controller.getState().lastAskedAt).toBeNull()
+    expect(err).toHaveBeenCalledWith('[review][ask][BLOCK_REQUEST_REVIEW_FAILED]', expect.any(Error))
+    err.mockRestore()
   })
 
   it('a live reload alone completes a session (file-changed with contentReloaded)', async () => {

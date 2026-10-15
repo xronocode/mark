@@ -1,5 +1,5 @@
 // FILE: src/renderer/src/review/reviewRequest.js
-// VERSION: 1.0.0
+// VERSION: 1.1.0
 // START_MODULE_CONTRACT
 //   PURPOSE: C-48 review-request runtime wiring — count successful
 //            sessions from editor bus events, watch for uncaught errors,
@@ -26,7 +26,12 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.0.0 - 2026-10-15 C-48 T-001: initial module.
+//   LAST_CHANGE: v1.1.0 - 2026-10-15 C-48 review fix: lastAskedAt /
+//   lastAskedVersion persist only after mt_request_review resolves true
+//   (was: persisted before the invoke, so a StoreKit-less build or a
+//   failed dispatch burned the 120-day cooldown on an ask that never
+//   happened). Log marker BLOCK_REQUEST_REVIEW now reports dispatched=.
+//   PREV: v1.0.0 - 2026-10-15 C-48 T-001: initial module.
 // END_CHANGE_SUMMARY
 
 import bus from '../bus'
@@ -116,14 +121,21 @@ export const createReviewRequestController = ({
     })
 
     if (decision.ask) {
-      state = sanitizeReviewState(decision.state)
-      await persist(state)
+      // The ask (lastAskedAt / lastAskedVersion) is recorded ONLY when
+      // m053 reports the request was dispatched (true). false = StoreKit
+      // unavailable / no-op build; a rejection = dispatch failure — in
+      // both cases nothing was asked, so the counters stay eligible.
+      let dispatched = false
       try {
-        const shown = await doInvoke()
-        console.log(`[review][ask][BLOCK_REQUEST_REVIEW asked=true shown=${!!shown}]`)
+        dispatched = (await doInvoke()) === true
       } catch (e) {
         console.error('[review][ask][BLOCK_REQUEST_REVIEW_FAILED]', e)
       }
+      if (dispatched) {
+        state = sanitizeReviewState(decision.state)
+        await persist(state)
+      }
+      console.log(`[review][ask][BLOCK_REQUEST_REVIEW asked=true dispatched=${dispatched}]`)
     } else {
       console.log(`[review][ask][BLOCK_EVALUATED ask=false reason=${decision.reason}]`)
     }

@@ -53,7 +53,7 @@
 
   <Approval>
     <ApprovedBy>user (2026-10-15): «ок» to the Guide / Connect-your-agent mockup</ApprovedBy>
-    <ApprovalScope>G-3 Guide + R-1a connect-your-agent for 2.3.1. Title-bar trim, outline rail, status bar (R-2, R-2a, R-3) move to 2.3.2.</ApprovalScope>
+    <ApprovalScope>G-3 Guide + R-1a connect-your-agent for 2.3.1. Title-bar trim, outline rail, status bar (R-2, R-2a, R-3) move to 2.3.2. Review 2026-10-15: the Win/Linux title-bar "?" entry point moves to 2.3.2 with the title-bar trim (2.3.1 entry points: Help › Mark Guide, command palette, welcome screen); the "advanced agent setup" line is left out of the guide until C-47 exists (no placeholder copy).</ApprovalScope>
   </Approval>
 </C-40>
 </GraceChangeSpec>

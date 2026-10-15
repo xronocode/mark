@@ -2609,8 +2609,10 @@
         context menu + 5s Undo toast via M-017 mt_recent_remove/insert, the
         util/agentPrompt.js C-40 universal prompt with Copy + mt::open-guide
         events, footer What's-new gating on lastUpdateAt, and a text-free
-        drop-zone highlight whose drops ride the existing mt::window::drop
-        channel — app.vue skips the import dialog while no file is open).
+        drop-zone highlight driven by the native drag bridge's
+        'mt::native-drag' bus event — app.vue skips the import dialog while
+        no file is open; util/pathDisplay pathBasename/pathDirname handle
+        Windows paths).
       </Summary>
       <Path>src/renderer/</Path>
       <Dependencies>

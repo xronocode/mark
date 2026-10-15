@@ -1,5 +1,5 @@
 // FILE: tests/renderer/util/agentPrompt.test.js
-// VERSION: 1.0.0
+// VERSION: 1.0.1
 // START_MODULE_CONTRACT
 //   PURPOSE: Pin the OS-variant selection of the universal "connect your agent" prompt (C-40 R-1a).
 //   SCOPE: getAgentPrompt platform routing; mac command vs generic prose; default platform resolution.
@@ -11,10 +11,12 @@
 //
 // START_MODULE_MAP
 //   TABLE - fake translation table used by the injected t.
+//   t - injected translate double reading TABLE (key passthrough).
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.0.0 - initial pins (C-40 2.3.1).
+//   LAST_CHANGE: v1.0.1 - 2026-10-15 C-46 review: MODULE_MAP lists the t double (grace lint); pins unchanged — already match getAgentPrompt(t, platform).
+//   v1.0.0 - initial pins (C-40 2.3.1).
 // END_CHANGE_SUMMARY
 
 import { describe, it, expect } from 'vitest'

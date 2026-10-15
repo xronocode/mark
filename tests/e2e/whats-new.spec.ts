@@ -1,10 +1,12 @@
 // FILE: tests/e2e/whats-new.spec.ts
-// VERSION: 1.0.0
+// VERSION: 1.1.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Pin the C-48 What's New boot flow end to end — a recorded
 //            previous version shows the sheet once, Esc closes it, and
 //            a reload of the same version never shows it again; a fresh
-//            install (no recorded version) never shows it.
+//            install (no recorded version) never shows it; a pre-C-48
+//            (2.3.0) profile — legacy keys but no lastSeenVersion — shows
+//            it once.
 //   SCOPE: renderer boot against the tauri-shim with prefs backed by
 //          localStorage and __APP_VERSION_OVERRIDE__ = 2.3.1.
 //   DEPENDS: @playwright/test, ./fixtures/tauri-shim.
@@ -14,12 +16,19 @@
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
-//   installWhatsNewShim - prefs get/set over localStorage + version override.
+//   installWhatsNewShim - prefs get/set/get_all over localStorage + version override.
 //   BOOT_URL - editor boot URL used across app-boot-style specs.
+//   waitForBoot - wait until the Vue app has rendered children.
+//   waitForGateRecord - wait until the boot gate persisted lastSeenVersion.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.0.0 - 2026-10-15 C-48 T-001: initial pins.
+//   LAST_CHANGE: v1.1.0 - 2026-10-15 C-48 review fix: mt_prefs_get_all is
+//   backed by the same localStorage store (with a just-stamped m005
+//   mt_migration marker, as a real first boot has); new case: a 2.3.0
+//   profile (old marker + recentFolders, no lastSeenVersion) shows the
+//   sheet once.
+//   PREV: v1.0.0 - 2026-10-15 C-48 T-001: initial pins.
 // END_CHANGE_SUMMARY
 
 import { test, expect } from '@playwright/test'
@@ -41,9 +50,42 @@ async function installWhatsNewShim(page: import('@playwright/test').Page, runnin
       mt_prefs_set: ({ key, value }: { key: string; value: unknown }) => {
         localStorage.setItem(`mark-e2e-prefs:${key}`, JSON.stringify(value))
         return null
+      },
+      // Snapshot of the same store. A real first boot always has the m005
+      // migration marker stamped seconds ago — seed it unless the test
+      // seeded its own (legacy profile case).
+      mt_prefs_get_all: () => {
+        const all: Record<string, unknown> = {
+          mt_migration: {
+            app_version: 'alpha',
+            schema_version: 1,
+            marker_written_at: Math.floor(Date.now() / 1000)
+          }
+        }
+        for (let i = 0; i < localStorage.length; i++) {
+          const k = localStorage.key(i) as string
+          if (k.startsWith('mark-e2e-prefs:')) {
+            all[k.slice('mark-e2e-prefs:'.length)] = JSON.parse(localStorage.getItem(k) as string)
+          }
+        }
+        return all
       }
     }
   }, runningVersion)
+}
+
+async function waitForBoot(page: import('@playwright/test').Page) {
+  await page.waitForFunction(() => {
+    const el = document.getElementById('app')
+    return !!el && el.children.length > 0
+  })
+}
+
+// The startup gate runs detached from mount — wait until this boot's own
+// lastSeenVersion write landed before re-seeding the profile, or the
+// boot write can race (and overwrite) the seed.
+async function waitForGateRecord(page: import('@playwright/test').Page) {
+  await page.waitForFunction(() => localStorage.getItem('mark-e2e-prefs:lastSeenVersion') !== null)
 }
 
 test.describe("What's New (C-48)", () => {
@@ -53,6 +95,7 @@ test.describe("What's New (C-48)", () => {
 
   test('upgrade shows the sheet once; Esc closes; reload does not show it again', async ({ page }) => {
     await page.goto(BOOT_URL)
+    await waitForGateRecord(page)
 
     // Simulate the previous version having been recorded.
     await page.evaluate(() => {
@@ -103,5 +146,45 @@ test.describe("What's New (C-48)", () => {
       '"2.3.1"'
     )
     expect(await page.evaluate(() => localStorage.getItem('mark-e2e-prefs:lastUpdateAt'))).toBeNull()
+  })
+
+  test('a 2.3.0 profile (legacy keys, no lastSeenVersion) shows the sheet once', async ({ page }) => {
+    await page.goto(BOOT_URL)
+    await waitForBoot(page)
+    await waitForGateRecord(page)
+
+    // Rebuild the profile as 2.3.0 left it: no lastSeenVersion (C-48 did
+    // not exist), an m005 marker stamped 30 days ago, and folder history.
+    await page.evaluate(() => {
+      for (const k of Object.keys(localStorage)) {
+        if (k.startsWith('mark-e2e-prefs:')) localStorage.removeItem(k)
+      }
+      localStorage.setItem(
+        'mark-e2e-prefs:mt_migration',
+        JSON.stringify({
+          app_version: 'alpha',
+          schema_version: 1,
+          marker_written_at: Math.floor(Date.now() / 1000) - 30 * 86400
+        })
+      )
+      localStorage.setItem('mark-e2e-prefs:recentFolders', JSON.stringify(['/tmp/mark-e2e']))
+    })
+
+    await page.reload()
+    const sheet = page.locator('.ag-whats-new-sheet')
+    await expect(sheet).toBeVisible({ timeout: 15_000 })
+    await expect(sheet.locator('.eyebrow')).toHaveText('Mark 2.3.1')
+    expect(await page.evaluate(() => localStorage.getItem('mark-e2e-prefs:lastSeenVersion'))).toBe(
+      '"2.3.1"'
+    )
+
+    await sheet.press('Escape')
+    await expect(sheet).toBeHidden()
+
+    // Once only: the version is recorded now.
+    await page.reload()
+    await waitForBoot(page)
+    await page.waitForTimeout(1_000)
+    await expect(page.locator('.ag-whats-new-sheet')).toHaveCount(0)
   })
 })

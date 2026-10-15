@@ -71,6 +71,11 @@
 //   - 2026-10-15 C-40 G-3: register editorStore.LISTEN_FOR_OPEN_GUIDE so the
 //     'mt::open-guide' bus event (Help › Mark Guide, help.guide palette
 //     command) opens the guide as a temporary untitled tab.
+//   - 2026-10-15 C-48 review fix: START_BLOCK_C48_STARTUP is detached
+//     (void async IIFE, try/catch + BLOCK_C48_STARTUP_FAILED) so
+//     addCommonStyle never waits on the gate/review IPC; the boot prefs
+//     snapshot (snapshotBootPrefs) starts first thing in onMounted so the
+//     gate's legacy-install detection sees the pre-boot profile.
 //   - 2026-10-15 C-48 T-001: What's New — startup gate (initWhatsNew)
 //     records lastSeenVersion / lastUpdateAt and opens the sheet once
 //     after an update (components/whatsNew mounts here); Help › What's
@@ -78,8 +83,9 @@
 //     (review/reviewRequest) with the gate outcome as session facts.
 //   - 2026-10-15 C-46 T-001: drag-over no longer opens the import
 //     dialog while the welcome screen is visible (no current file) —
-//     the welcome screen shows its own drop-zone highlight and sends
-//     drops through the same 'mt::window::drop' channel.
+//     the welcome screen shows its own drop-zone highlight, driven by
+//     the native drag bridge ('mt::native-drag'); dropped files open
+//     through that bridge.
 //   - 2026-10-15 C-41 T-001: Auto theme — after hydration, resolve
 //     followSystemTheme via util/autoTheme before the first addThemeStyle,
 //     re-resolve on mode/member preference changes (incl. cross-window
@@ -112,7 +118,7 @@ import ZoomIndicator from '@/components/zoomIndicator'
 import WhatsNewDialog from '@/components/whatsNew'
 import bus from '@/bus'
 import { DEFAULT_STYLE } from '@/config'
-import { initWhatsNew, getRunningVersion } from '@/whatsNew/gate'
+import { initWhatsNew, getRunningVersion, snapshotBootPrefs } from '@/whatsNew/gate'
 import { initReviewRequest } from '@/review/reviewRequest'
 import { useTweetStore } from '@/store/tweet'
 import { useLayoutStore } from '@/store/layout'
@@ -217,9 +223,9 @@ const setupDragDropHandler = () => {
         } else {
           e.preventDefault()
           // C-46: while the welcome screen is up (no file open) it owns
-          // the drop affordance — its own highlighted drop zone forwards
-          // drops through the same 'mt::window::drop' channel, so the
-          // app-wide import dialog must not open on top of it.
+          // the drop affordance — its highlight follows the native drag
+          // bridge ('mt::native-drag') and drops open through that bridge,
+          // so the app-wide import dialog must not open on top of it.
           if (hasCurrentFile.value) {
             if (timer.value) {
               clearTimeout(timer.value)
@@ -320,6 +326,11 @@ watch(
 // END_BLOCK_MARK_ZOOM
 
 onMounted(async () => {
+  // C-48: snapshot prefs BEFORE this boot writes anything (hydration
+  // mirror, legacy zoom migration, session restore) — the What's New gate
+  // reads legacy-install signals from it (pre-C-48 profiles carry no
+  // lastSeenVersion). Started here, awaited inside START_BLOCK_C48_STARTUP.
+  const bootPrefs = snapshotBootPrefs()
   if (window.marktext.initialState) {
     preferencesStore.SET_USER_PREFERENCE(window.marktext.initialState)
   }
@@ -373,17 +384,24 @@ onMounted(async () => {
   // gate outcome, so ordering is load-bearing. FETCH_BUILD_MODE is
   // awaited here because bootstrap-ipc fires it as a floating promise
   // that races this mount; the review init only registers when the m048
-  // `review` capability is explicitly true.
-  const versionStatus = await initWhatsNew()
-  if (versionStatus.show) {
-    bus.emit('whatsNewDialog', { version: versionStatus.version })
-  }
-  await preferencesStore.FETCH_BUILD_MODE()
-  initReviewRequest({
-    preferencesStore,
-    versionStatus,
-    runningVersion: getRunningVersion()
-  })
+  // `review` capability is explicitly true. Detached: the common styles
+  // below must never wait on these IPC round-trips.
+  void (async () => {
+    try {
+      const versionStatus = await initWhatsNew({ bootPrefs })
+      if (versionStatus.show) {
+        bus.emit('whatsNewDialog', { version: versionStatus.version })
+      }
+      await preferencesStore.FETCH_BUILD_MODE()
+      await initReviewRequest({
+        preferencesStore,
+        versionStatus,
+        runningVersion: getRunningVersion()
+      })
+    } catch (e) {
+      console.error('[app][onMounted][BLOCK_C48_STARTUP_FAILED]', e)
+    }
+  })()
   // END_BLOCK_C48_STARTUP
 
   nextTick(() => {

@@ -15,8 +15,6 @@ Gib dies einmal an Claude Code, Codex, Cursor oder einen anderen Agenten. Füge 
 3. **Du formst das Ergebnis** — bearbeite die fertige Seite: Schritte korrigieren, Notizen ergänzen, Falsches streichen.
 4. **Er liest dich zurück** — der Agent liest die Datei neu; deine Änderungen sind seine nächste Anweisung.
 
-Du willst es automatisch? Erweiterte Agenten-Einrichtung — kommt bald.
-
 ## Probier es: Tabellen
 
 Tabellen sind Klartext und werden beim Tippen formatiert. Zeilen fügst du über die Werkzeugleiste hinzu oder entfernst sie, wenn der Cursor darin steht.
@@ -70,4 +68,4 @@ Bearbeiten › Als strukturierten Text kopieren kopiert das Dokument als saubere
 
 ## Probier es: Vollbild-Ansicht
 
-⌘/Ctrl-Klick auf ein Diagramm oder eine Tabelle öffnet es im Vollbild ⤢ — darin zoomen, Esc schließt.
+⌘/Ctrl-Klick auf ein Diagramm oder ⤢ an einem Diagramm oder einer Tabelle öffnet es im Vollbild — darin zoomen, Esc schließt.

@@ -911,9 +911,13 @@ export const useEditorStore = defineStore('editor', {
       bus.on('mt::open-guide', async (payload = {}) => {
         // eslint-disable-next-line no-console
         console.log(`[editor][guide][BLOCK_GUIDE_REQUESTED section=${payload?.section || 'top'}]`)
-        const locale = i18n.global.locale?.value || 'en'
-        const markdown = await loadGuideMarkdown(locale)
-        this.OPEN_GUIDE_TAB({ markdown, section: payload?.section })
+        try {
+          const locale = i18n.global.locale?.value || 'en'
+          const markdown = await loadGuideMarkdown(locale)
+          await this.OPEN_GUIDE_TAB({ markdown, section: payload?.section })
+        } catch (e) {
+          console.warn('[editor][guide][BLOCK_GUIDE_LOAD_FAILED]', e)
+        }
       })
     },
 
@@ -1294,7 +1298,9 @@ export const useEditorStore = defineStore('editor', {
      */
     async OPEN_GUIDE_TAB({ markdown, section } = {}) {
       // START_BLOCK_GUIDE_TAB_REUSE
-      const existing = this.tabs.find((t) => t.isGuide)
+      // A guide the user saved under a real path is their document now
+      // (C-40 review): only a still-pathless guide tab is reused.
+      const existing = this.tabs.find((t) => t.isGuide && !t.pathname)
       if (existing) {
         this.SHOW_TAB_VIEW(false)
         this.UPDATE_CURRENT_FILE(existing)
@@ -1329,12 +1335,13 @@ export const useEditorStore = defineStore('editor', {
       // an edited-away heading or a not-yet-built TOC quietly skips the
       // jump instead of emitting a dead anchor.
       if (section === GUIDE_SECTION_CONNECT_AGENT) {
+        // The heading text comes from the pristine localized guide, never
+        // from the user's edited copy: if the user deleted that heading,
+        // listToc has no match and the jump is skipped (C-40 review).
         const source =
-          typeof this.currentFile?.markdown === 'string'
-            ? this.currentFile.markdown
-            : typeof markdown === 'string'
-              ? markdown
-              : ''
+          typeof markdown === 'string' && markdown
+            ? markdown
+            : await loadGuideMarkdown(i18n.global.locale?.value || 'en')
         const headingText = getGuideSectionHeadingText(source, section)
         if (headingText) {
           setTimeout(() => {
@@ -1382,8 +1389,10 @@ export const useEditorStore = defineStore('editor', {
 
       let keepTabBarState = false
       if (currentFile) {
-        const { isSaved, pathname } = currentFile
-        if (isSaved && !pathname) {
+        const { isSaved, pathname, isGuide } = currentFile
+        // Never auto-close the guide: an agent opening a file while the
+        // user reads "Connect your agent" must not make it vanish.
+        if (isSaved && !pathname && !isGuide) {
           keepTabBarState = true
           this.FORCE_CLOSE_TAB(currentFile)
         }
@@ -2028,6 +2037,12 @@ export const useEditorStore = defineStore('editor', {
 // END_MODULE_CONTRACT
 //
 // CHANGE_SUMMARY:
+//   - 2026-10-15 C-40 review: a guide saved under a real path is no longer
+//     reused as the guide; NEW_TAB_WITH_CONTENT never auto-closes the
+//     guide tab; the section deep link takes its heading from the pristine
+//     localized guide (a heading the user deleted skips the jump instead
+//     of landing on the next section); LISTEN_FOR_OPEN_GUIDE catches load
+//     failures (BLOCK_GUIDE_LOAD_FAILED).
 //   - 2026-10-15 C-40 G-3/R-1a: OPEN_GUIDE_TAB + LISTEN_FOR_OPEN_GUIDE
 //     ('mt::open-guide' bus event) open the localized Mark Guide as a
 //     temporary untitled tab (pathname-less, isGuide flag, guide.tabTitle
