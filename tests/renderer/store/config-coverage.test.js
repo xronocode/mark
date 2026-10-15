@@ -45,7 +45,8 @@ describe('config.js', () => {
     expect(Object.isFrozen(config.DEFAULT_STYLE)).toBe(true)
     expect(config.DEFAULT_STYLE).toEqual({
       codeFontFamily: config.DEFAULT_CODE_FONT_FAMILY,
-      codeFontSize: '14px',
+      // C-38 T-004: numeric size (the v1 '14px' string fed the "14px px" path).
+      codeFontSize: 14,
       hideScrollbar: false,
       theme: 'paper' // C-41 T-001: brand default
     })

@@ -95,9 +95,8 @@ describe('KeybindingsSettings.vue', () => {
     expect(wrapper.find('.pref-keybindings').exists()).toBe(true)
   })
 
-  it('renders title h4', () => {
-    const h4 = wrapper.find('h4')
-    expect(h4.exists()).toBe(true)
+  it('renders as a sheet body — no page title (C-38 T-004)', () => {
+    expect(wrapper.find('h4').exists()).toBe(false)
   })
 
   it('renders footer section with save and restore buttons', () => {

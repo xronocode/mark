@@ -462,463 +462,285 @@
     "search": {
       "placeholder": "Buscar preferencias...",
       "empty": "No hay configuraciones coincidentes",
-      "optionalValues": "valores opcionales",
       "categories": {
         "general": "General",
+        "appearance": "Apariencia",
         "editor": "Editor",
         "markdown": "Markdown",
-        "theme": "Tema",
-        "image": "Imagen",
+        "advanced": "Avanzado",
         "view": "Vista",
         "searcher": "Buscador",
-        "watcher": "Observador",
-        "spelling": "Ortografía",
-        "custom css": "CSS personalizado"
+        "watcher": "Observador"
       },
       "items": {
-        "autoSave": "Guardar automáticamente el contenido que se está editando",
-        "autoSaveDelay": "El tiempo en ms después de un cambio que se guarda el archivo",
-        "autoNormalizeLineEndings": "Normalizar automáticamente los finales de línea a LF y opcionalmente las nuevas líneas finales al abrir",
-        "titleBarStyle": "El estilo de la barra de título (solo sistema Windows y Linux)",
-        "openFilesInNewWindow": "Abrir archivos en una nueva ventana",
-        "openFolderInNewWindow": "Abrir carpeta vía menú en una nueva ventana",
-        "zoom": "El nivel de zoom. Entre 0.5 y 2.0 inclusive",
-        "hideScrollbar": "Si ocultar las barras de desplazamiento",
-        "wordWrapInToc": "Si habilitar el ajuste de línea en la tabla de contenidos",
-        "fileSortBy": "Ordenar archivos en la carpeta abierta por tiempo de creación, tiempo de modificación y título",
-        "startUpAction": "La acción después del inicio de Mark, abrir el último contenido editado, abrir la carpeta especificada o página en blanco",
-        "restoreLayoutState": "Restaurar el estado anterior del editor al iniciar",
-        "defaultDirectoryToOpen": "El directorio predeterminado que debe abrirse al inicio cuando startUp=folder",
-        "language": "El idioma que usa Mark",
-        "editorFontFamily": "Familia de fuente del editor",
-        "fontSize": "Tamaño de fuente en píxeles",
-        "lineHeight": "Altura de línea",
-        "wrapCodeBlocks": "Ajustar texto dentro de bloques de código",
-        "editorLineWidth": "Define el ancho máximo del área del editor. Se permite una cadena vacía o sufijos de ch (caracteres), px (píxeles) o % (porcentaje)",
-        "codeFontSize": "Tamaño de fuente en bloque de código, el rango es 12 ~ 18",
-        "codeFontFamily": "Familia de fuente utilizada en bloque de código",
-        "codeBlockLineNumbers": "Si mostrar los números de línea",
-        "trimUnnecessaryCodeBlockEmptyLines": "Recortar las líneas vacías del principio y final en bloque de código",
-        "autoPairBracket": "Paréntesis automáticos al editar",
-        "autoPairMarkdownSyntax": "Autocompletar sintaxis de markdown",
-        "autoPairQuote": "Finalización automática de comillas",
-        "endOfLine": "El carácter de nueva línea usado al final de cada línea. El valor predeterminado es default, que selecciona el carácter de nueva línea predeterminado de su sistema operativo",
-        "defaultEncoding": "La codificación de archivo predeterminada",
-        "autoGuessEncoding": "Intentar adivinar automáticamente la codificación del archivo al abrir archivos",
-        "trimTrailingNewline": "La opción de recortar nueva línea final",
-        "textDirection": "La dirección de escritura del texto",
-        "hideQuickInsertHint": "Ocultar sugerencia para crear párrafos rápidamente",
-        "hideLinkPopup": "Ocultar popup de enlace cuando el cursor está sobre el enlace",
-        "autoCheck": "Si verificar automáticamente la tarea relacionada",
-        "preferLooseListItem": "El tipo de lista preferido",
-        "bulletListMarker": "El marcador usado en lista de viñetas",
-        "orderListDelimiter": "El delimitador usado en lista ordenada",
-        "preferHeadingStyle": "El estilo de encabezado preferido en Mark",
-        "tabSize": "Reemplazar la tabulación con x espacios",
-        "listIndentation": "Seleccionar la sangría de lista",
-        "frontmatterType": "El tipo de frontmatter",
-        "superSubScript": "Habilitar extensión markdown de pandoc superíndice y subíndice",
-        "footnote": "Habilitar extensión markdown de pandoc nota al pie",
-        "isHtmlEnabled": "Habilitar renderizado HTML",
-        "isGitlabCompatibilityEnabled": "Habilitar modo de compatibilidad GitLab",
-        "sequenceTheme": "Tema del diagrama de secuencia",
-        "theme": "Seleccionar el tema usado en Mark",
-        "followSystemTheme": "Seguir tema del sistema",
-        "lightModeTheme": "Tema a usar cuando el sistema está en modo claro",
-        "darkModeTheme": "Tema a usar cuando el sistema está en modo oscuro",
-        "customCss": "CSS personalizado para aplicar al tema actual",
-        "spellcheckerEnabled": "Si la verificación ortográfica está habilitada",
-        "spellcheckerNoUnderline": "No subrayar errores ortográficos",
-        "spellcheckerLanguage": "El idioma del verificador ortográfico",
-        "imageInsertAction": "El comportamiento predeterminado después de insertar imagen desde carpeta local",
-        "imagePreferRelativeDirectory": "Si preferir el directorio de imagen relativo",
-        "imageRelativeDirectoryName": "El nombre de la carpeta de imagen relativa",
-        "sideBarVisibility": "Si la barra lateral es visible",
-        "tabBarVisibility": "Si las pestañas se muestran",
-        "sourceCodeModeEnabled": "Si el modo de código fuente está habilitado por defecto",
-        "searchExclusions": "Lista de patrones glob para excluir de la búsqueda",
-        "searchMaxFileSize": "El tamaño máximo de archivo (<maxFileSize><suffix>). Se permiten sufijos de K, M o G si no se da sufijo el número se trata como bytes",
-        "searchIncludeHidden": "Si buscar en archivos y directorios ocultos",
-        "searchNoIgnore": "Si ignorar archivos de ignore como .gitignore",
-        "searchFollowSymlinks": "Si los enlaces simbólicos deben seguirse",
-        "watcherUsePolling": "Si usar polling. El polling puede llevar a alta utilización de CPU pero es necesario para observar archivos sobre una red"
+        "autoSave": "Guardar los cambios automáticamente poco después de dejar de escribir",
+        "autoSaveDelay": "Cuánto esperar tras la última pulsación antes de guardar",
+        "previewModeOnFinderOpen": "Abrir los documentos desde Finder en vista de lectura",
+        "language": "Idioma de la aplicación",
+        "defaultEncoding": "Codificación de archivo para los archivos nuevos",
+        "endOfLine": "Final de línea usado en los archivos nuevos y al guardar",
+        "titleBarStyle": "Barra de título de la ventana: personalizada o del sistema (requiere reinicio)",
+        "hideScrollbar": "Ocultar las barras de desplazamiento",
+        "wordWrapInToc": "Ajustar los encabezados largos en el esquema",
+        "editorFontFamily": "Fuente del texto",
+        "fontSize": "Tamaño del texto",
+        "lineHeight": "Interlineado",
+        "editorLineWidth": "Ancho del área de escritura",
+        "theme": "Tema",
+        "followSystemTheme": "Modo automático: seguir la apariencia del sistema",
+        "lightModeTheme": "Tema para la apariencia clara",
+        "darkModeTheme": "Tema para la apariencia oscura",
+        "autoPairBracket": "Cerrar corchetes automáticamente",
+        "autoPairMarkdownSyntax": "Cerrar los marcadores de markdown automáticamente",
+        "autoPairQuote": "Cerrar comillas automáticamente",
+        "autoCheck": "Marcar las tareas con un clic",
+        "hideQuickInsertHint": "Ocultar la sugerencia de inserción en las líneas vacías",
+        "hideLinkPopup": "Ocultar la vista previa de enlaces",
+        "textDirection": "Dirección del texto",
+        "tabSize": "Espacios que inserta la tecla Tab",
+        "spellcheckerEnabled": "Comprobar la ortografía",
+        "spellcheckerNoUnderline": "Subrayar las palabras mal escritas",
+        "spellcheckerLanguage": "Idioma del corrector ortográfico",
+        "codeFontFamily": "Fuente del código",
+        "codeFontSize": "Tamaño del texto del código",
+        "codeBlockLineNumbers": "Mostrar los números de línea en los bloques de código",
+        "wrapCodeBlocks": "Ajustar las líneas largas en los bloques de código",
+        "trimUnnecessaryCodeBlockEmptyLines": "Recortar las líneas vacías alrededor del código",
+        "preferLooseListItem": "Espaciado entre los elementos de las listas",
+        "bulletListMarker": "Carácter de viñeta",
+        "orderListDelimiter": "Formato de lista numerada",
+        "listIndentation": "Sangría de las listas",
+        "footnote": "Notas al pie",
+        "mathEnabled": "Fórmulas matemáticas",
+        "superSubScript": "Superíndice y subíndice",
+        "frontmatterType": "Formato de los metadatos",
+        "frontmatterProperties": "Mostrar los metadatos como tabla de propiedades",
+        "isHtmlEnabled": "Permitir HTML dentro de los documentos",
+        "isGitlabCompatibilityEnabled": "Markdown estilo GitLab",
+        "sequenceTheme": "Estilo del diagrama de secuencia",
+        "imageInsertAction": "Cuando añado una imagen",
+        "imagePreferRelativeDirectory": "Guardar las imágenes junto al documento",
+        "imageRelativeDirectoryName": "Nombre de la carpeta de imágenes",
+        "customCss": "CSS personalizado"
       }
-    },
-    "categories": {
-      "general": "General",
-      "editor": "Editor",
-      "markdown": "Markdown",
-      "spelling": "Ortografía",
-      "theme": "Tema",
-      "image": "Imagen",
-      "keybindings": "Atajos de Teclado",
-      "language": "Idioma"
     },
     "general": {
       "title": "General",
-      "autoSave": {
-        "title": "Guardado Automático",
-        "description": "Guardado automático",
-        "delayDescription": "Retraso del guardado automático"
-      },
-      "window": {
-        "title": "Ventana",
-        "titleBarStyle": {
-          "title": "Estilo de Barra de Título",
-          "custom": "Personalizado",
-          "titleBarStyle": "Estilo de Barra de Título",
-          "native": "Nativo"
-        },
-        "requiresRestart": "Requiere reinicio",
-        "hideScrollbars": "Ocultar barras de desplazamiento",
-        "openFilesInNewWindow": "Abrir archivos en nueva ventana",
-        "openFoldersInNewWindow": "Abrir carpetas en nueva ventana",
-        "zoom": "Zoom"
+      "macosIntegration": {
+        "title": "Integración con macOS",
+        "defaultForMd": "Aplicación predeterminada para los archivos .md",
+        "statusIsDefault": "Mark es la aplicación predeterminada para los archivos .md.",
+        "statusCurrent": "Aplicación predeterminada para los archivos .md: {name}.",
+        "statusNone": "No hay ninguna aplicación predeterminada para los archivos .md.",
+        "setDefault": "Establecer como predeterminada",
+        "removeDefault": "Quitar como predeterminada"
       },
       "startup": {
         "title": "Inicio",
-        "layoutOptions": "Opciones de diseño",
-        "startupFilesFolders": "Archivos/carpetas de inicio",
-        "restorePreviousState": "Restaurar el estado anterior del editor",
-        "openBlankState": "Abrir estado en blanco",
-        "openDefaultDirectory": "Abrir directorio predeterminado",
-        "openLastFolder": "Restaurar carpeta abierta",
-        "selectFolder": "Seleccionar Carpeta",
-        "openBlankPage": "Abrir página en blanco"
+        "previewModeOnFinderOpen": "Abrir los documentos desde Finder en vista de lectura",
+        "previewModeOnFinderOpenHelp": "Los archivos abiertos con doble clic en Finder o desde el Dock se abren en modo de solo lectura; haz clic para editar."
       },
-      "sidebar": {
-        "title": "Barra Lateral",
-        "wrapTextInToc": "Ajustar texto en tabla de contenidos",
-        "excludePatterns": "Patrones de exclusión",
-        "excludePatternsNotes": "Patrones de exclusión (Notas)",
-        "fileSortBy": {
-          "title": "Ordenar Archivos Por",
-          "creationTime": "Tiempo de Creación",
-          "modificationTime": "Tiempo de Modificación"
-        }
+      "language": {
+        "title": "Idioma",
+        "appLanguage": "Idioma de la aplicación",
+        "system": "Como en el sistema",
+        "english": "English",
+        "chinese": "简体中文",
+        "traditionalChinese": "繁體中文",
+        "spanish": "Español",
+        "french": "Français",
+        "german": "Deutsch",
+        "japanese": "日本語",
+        "korean": "한국어",
+        "portuguese": "Português",
+        "russian": "Русский"
       },
-      "misc": {
-        "title": "Misceláneos",
-        "language": {
-          "title": "Idioma",
-          "english": "English",
-          "chinese": "简体中文",
-          "traditionalChinese": "繁體中文",
-          "spanish": "Español",
-          "french": "Français",
-          "german": "Deutsch",
-          "japanese": "日本語",
-          "korean": "한국어",
-          "portuguese": "Português"
-        }
+      "filesAndSaving": {
+        "title": "Archivos y guardado",
+        "autoSave": "Guardar los cambios automáticamente",
+        "autoSaveHelp": "Guarda el archivo actual poco después de dejar de escribir.",
+        "autoSaveDelay": "Guardar tras una pausa de",
+        "autoSaveDelayHelp": "Cuánto esperar tras la última pulsación antes de guardar.",
+        "defaultEncoding": "Codificación de archivo para los archivos nuevos",
+        "defaultEncodingHelp": "Los archivos que declaran su propia codificación siempre se abren correctamente, independientemente de esta opción.",
+        "endOfLine": "Final de línea",
+        "endOfLineHelp": "Se usa en los archivos nuevos y al guardar.",
+        "endOfLineSystem": "Según mi sistema operativo",
+        "endOfLineLf": "LF (Unix, macOS)",
+        "endOfLineCrlf": "CRLF (Windows)",
+        "secondsUnit": "s"
+      },
+      "updates": {
+        "title": "Actualizaciones",
+        "help": "Comprueba en línea si hay una versión más reciente y la instala.",
+        "check": "Buscar actualizaciones"
+      }
+    },
+    "appearance": {
+      "title": "Apariencia",
+      "theme": {
+        "title": "Tema",
+        "mode": "Apariencia",
+        "modeHelp": "Automático sigue la apariencia de tu equipo. Cada tema tiene una variante clara y otra oscura.",
+        "modeAuto": "Automático",
+        "modeLight": "Clara",
+        "modeDark": "Oscura"
+      },
+      "text": {
+        "title": "Texto",
+        "font": "Fuente del texto",
+        "fontSize": "Tamaño del texto",
+        "lineHeight": "Interlineado",
+        "lineWidth": "Ancho del área de escritura",
+        "lineWidthHelp": "Déjalo vacío para usar todo el ancho o introduce un número con px, % o ch; por ejemplo, 720px.",
+        "unlimited": "Sin límite"
+      },
+      "window": {
+        "title": "Ventana y paneles",
+        "hideScrollbar": "Ocultar las barras de desplazamiento",
+        "wordWrapInToc": "Ajustar los encabezados largos en el esquema",
+        "titleBarStyle": "Barra de título de la ventana",
+        "titleBarStyleHelp": "Personalizada muestra la barra de título propia de Mark con pestañas. Requiere reiniciar.",
+        "titleBarStyleCustom": "Personalizada",
+        "titleBarStyleNative": "Del sistema"
       }
     },
     "editor": {
       "title": "Editor",
-      "textEditor": {
-        "title": "Editor de Texto",
-        "fontSize": "Tamaño de fuente",
-        "lineHeight": "Altura de línea",
-        "fontFamily": "Familia de fuente",
-        "maxWidth": "Ancho máximo",
-        "maxWidthNotes": "Ancho máximo del contenido del editor"
+      "typing": {
+        "title": "Escritura",
+        "autoPairBracket": "Cerrar corchetes automáticamente",
+        "autoPairQuote": "Cerrar comillas automáticamente",
+        "autoPairMarkdownSyntax": "Cerrar los marcadores de markdown",
+        "autoPairMarkdownSyntaxHelp": "Al escribir ** o __ se inserta el marcador de cierre automáticamente.",
+        "autoCheck": "Marcar las tareas con un clic",
+        "autoCheckHelp": "Permite activar y desactivar las casillas de las listas de tareas en el documento.",
+        "hideQuickInsertHint": "Ocultar la sugerencia de inserción en las líneas vacías",
+        "hideQuickInsertHintHelp": "El pequeño «+» que aparece al empezar un párrafo nuevo.",
+        "hideLinkPopup": "Ocultar la vista previa de enlaces",
+        "hideLinkPopupHelp": "La ventana emergente que aparece cuando el cursor está sobre un enlace.",
+        "textDirection": "Dirección del texto",
+        "textDirectionLtr": "De izquierda a derecha",
+        "textDirectionRtl": "De derecha a izquierda"
       },
-      "codeBlock": {
-        "title": "Bloque de Código",
-        "fontSize": "Tamaño de fuente",
-        "fontFamily": "Familia de fuente",
-        "showLineNumbers": "Mostrar números de línea",
-        "removeEmptyLines": "Eliminar líneas vacías"
+      "tabs": {
+        "title": "Tabulación y sangría",
+        "tabSize": "Espacios que inserta la tecla Tab",
+        "tabSizeHelp": "La tecla Tab inserta espacios en lugar de un carácter de tabulación."
       },
-      "writingBehavior": {
-        "title": "Comportamiento de Escritura",
-        "autoCloseBrackets": "Cerrar corchetes automáticamente",
-        "autoCompleteMarkdown": "Autocompletar markdown",
-        "autoCloseQuotes": "Cerrar comillas automáticamente"
-      },
-      "fileRepresentation": {
-        "title": "Representación de Archivo",
-        "tabWidth": "Ancho de tabulación",
-        "lineSeparator": "Separador de línea",
-        "defaultEncoding": "Codificación predeterminada",
-        "autoDetectEncoding": "Detectar codificación automáticamente",
-        "trailingNewlines": {
-          "title": "Nuevas Líneas Finales",
-          "doNothing": "No Hacer Nada",
-          "ensureOne": "Asegurar Una",
-          "preserve": "Preservar",
-          "trimAll": "Recortar Todas"
-        },
-        "endOfLine": {
-          "default": "Predeterminado",
-          "crlf": "CRLF",
-          "lf": "LF"
+      "spelling": {
+        "title": "Ortografía",
+        "enabled": "Comprobar la ortografía",
+        "underline": "Subrayar las palabras mal escritas",
+        "macAutoDetectHelp": "macOS detecta automáticamente el idioma del documento.",
+        "language": "Idioma del corrector ortográfico",
+        "customDictionary": {
+          "title": "Diccionario personalizado",
+          "noWordsAvailable": "No hay palabras disponibles",
+          "delete": "Eliminar"
         }
       },
-      "misc": {
-        "title": "Misceláneos",
-        "textDirection": {
-          "title": "Dirección del Texto",
-          "ltr": "Izquierda a Derecha",
-          "rtl": "Derecha a Izquierda"
-        },
-        "hideQuickInsertHint": "Ocultar sugerencia de inserción rápida",
-        "hideLinkPopup": "Ocultar popup de enlace",
-        "autoCheck": "Verificación automática",
-        "autoNormalizeLineEndings": "Normalizar automáticamente los finales de línea a LF al abrir",
-        "wrapCodeBlocks": "Ajustar bloques de código"
-      }
-    },
-    "image": {
-      "title": "Imagen",
-      "defaultAction": "Acción predeterminada al insertar imagen",
-      "clipboardTooltip": "El comportamiento predeterminado después de pegar o arrastrar la imagen a Mark",
-      "actions": {
-        "upload": "Subir a la nube",
-        "folder": "Copiar a carpeta",
-        "path": "Usar ruta absoluta"
-      },
-      "folderSetting": {
-        "title": "Configuración de Carpeta",
-        "globalFolder": "Carpeta global de imágenes",
-        "open": "Abrir",
-        "showInFolder": "Mostrar en Carpeta",
-        "preferRelative": "Preferir directorio relativo",
-        "relativeFolderName": "Nombre de carpeta relativa",
-        "filenameNote": "El nombre del archivo se generará automáticamente."
-      },
-      "imageInsertAction": {
-        "title": "Acción de inserción de imagen",
-        "folder": "Subir a carpeta",
-        "path": "Copiar a ruta",
-        "upload": "Subir a la nube",
-        "copyToFolder": "Copiar a carpeta",
-        "uploadToServer": "Subir al servidor"
-      },
-      "imageFolderPath": {
-        "title": "Ruta de carpeta de imagen",
-        "description": "Ruta de carpeta de imagen",
-        "selectFolder": "Seleccionar carpeta",
-        "relativePath": "Ruta relativa",
-        "absolutePath": "Ruta absoluta"
-      },
-      "cloudPictureBed": {
-        "title": "Almacén de imágenes en la nube",
-        "github": "GitHub",
-        "smms": "SM.MS",
-        "qiniu": "Qiniu",
-        "upyun": "UpYun",
-        "tcyun": "Tencent Cloud",
-        "aliyun": "Alibaba Cloud",
-        "imgur": "Imgur",
-        "picgo": "PicGo"
-      },
-      "preferRelativeDirectory": {
-        "title": "Preferir directorio relativo",
-        "description": "Preferir directorio relativo para imágenes"
-      },
-      "uploader": {
-        "title": "Subidor de Imágenes",
-        "currentUploader": "Subidor actual: {name}",
-        "picgoNotInstalled": "PicGo no está instalado",
-        "picgoDetectionStatus": "Estado de Detección de PicGo",
-        "picgoInstalled": "PicGo está instalado",
-        "picgoDetectionFailed": "Falló la detección de PicGo",
-        "debugInfo": "Información de Depuración",
-        "installCommand": "Comando de Instalación",
-        "npmInstallCommand": "npm install picgo -g",
-        "yarnInstallCommand": "yarn global add picgo",
-        "pnpmInstallCommand": "pnpm add -g picgo",
-        "chooseInstallMethod": "Elegir método de instalación:",
-        "retestPicgo": "Volver a probar",
-        "detecting": "Detectando...",
-        "lastDetectionTime": "Última detección",
-        "detectionStatus": "Estado de detección",
-        "usageGuide": {
-          "title": "Guía básica de uso de PicGo",
-          "step1": "Configurar cargador",
-          "step1Description": "Use el siguiente comando para configurar el cargador PicGo:",
-          "step2": "Subir imágenes",
-          "step2Description": "Use el siguiente comando para subir imágenes:",
-          "step3": "Ver configuración",
-          "step3Description": "Use el siguiente comando para ver la configuración actual:",
-          "documentation": "Ver documentación completa"
-        },
-        "configureUploader": "Configurar cargador",
-        "configureDescription": "Use el siguiente comando para configurar el cargador PicGo:",
-        "uploadImage": "Subir imágenes",
-        "uploadDescription": "Use el siguiente comando para subir imágenes:",
-        "viewConfig": "Ver configuración",
-        "viewConfigDescription": "Use el siguiente comando para ver la configuración actual:",
-        "viewDocumentation": "Ver documentación completa",
-        "githubDeprecated": "El subidor de GitHub está obsoleto",
-        "githubToken": "Token de GitHub",
-        "ownerName": "Nombre del Propietario",
-        "repoName": "Nombre del Repositorio",
-        "branchName": "Nombre de la Rama",
-        "scriptDescription": "Descripción del Script",
-        "scriptLocation": "Ubicación del Script",
-        "save": "Guardar",
-        "saveConfig": "Guardar Configuración",
-        "githubConfigSaved": "Configuración de GitHub guardada",
-        "scriptConfigSaved": "Configuración de script guardada",
-        "legalNotices": {
-          "title": "Avisos Legales",
-          "description": "He leído y acepto los términos de servicio relevantes",
-          "and": "y",
-          "byUsing": "Al usar {name}, aceptas los",
-          "gdprWarning": "Advertencia GDPR",
-          "privacyStatement": "Declaración de Privacidad",
-          "termsOfService": "Términos de Servicio"
-        },
-        "services": {
-          "github": "GitHub",
-          "smms": "SM.MS",
-          "qiniu": "Qiniu",
-          "upyun": "UpYun",
-          "tcyun": "Tencent Cloud",
-          "aliyun": "Alibaba Cloud",
-          "imgur": "Imgur",
-          "picgo": "PicGo",
-          "script": "Script Personalizado",
-          "cliScript": "Script CLI",
-          "none": "Ninguno"
-        },
-        "branch": "Rama",
-        "inputToken": "Token de entrada",
-        "noUploaderSelected": "No se seleccionó subidor",
-        "owner": "Propietario",
-        "pleaseInstall": "Por favor instala",
-        "repo": "Repositorio",
-        "scriptPath": "Ruta del script",
-        "tokenTooltip": "Token de acceso para autenticación",
-        "picgoDetection": "Detección de PicGo",
-        "autoDetection": "Detección automática",
-        "lastSuccessTime": "Última vez exitosa",
-        "neverDetected": "Nunca detectado",
-        "neverSuccessful": "Nunca exitoso"
+      "codeBlocks": {
+        "title": "Bloques de código",
+        "fontFamily": "Fuente del código",
+        "fontSize": "Tamaño del texto del código",
+        "lineNumbers": "Mostrar los números de línea",
+        "wrapLongLines": "Ajustar las líneas largas en los bloques de código",
+        "trimBlankLines": "Recortar las líneas vacías alrededor del código",
+        "trimBlankLinesHelp": "Elimina las líneas vacías del principio y del final de un bloque de código."
       }
     },
     "markdown": {
       "title": "Markdown",
-      "listItem": {
-        "title": "Elemento de Lista",
-        "preferLooseListItem": "Preferir elemento de lista suelto",
-        "bulletListMarker": "Marcador de lista con viñetas",
-        "orderListDelimiter": "Delimitador de lista ordenada",
-        "listIndentation": {
-          "title": "Sangría de Lista",
-          "dfm": "Por defecto",
-          "tab": "Tabulación",
-          "oneSpace": "Un espacio",
-          "twoSpaces": "Dos espacios",
-          "threeSpaces": "Tres espacios",
-          "fourSpaces": "Cuatro espacios"
-        }
-      },
-      "heading": {
-        "title": "Encabezado",
-        "preferHeadingStyle": "Preferir estilo de encabezado"
-      },
-      "frontmatter": {
-        "title": "Metadatos",
-        "frontmatterType": "Tipo de metadatos"
+      "lists": {
+        "title": "Listas",
+        "spacing": "Espaciado entre los elementos de las listas",
+        "spacingCompact": "Compacto",
+        "spacingSpaced": "Espaciado",
+        "spacingHelp": "Espaciado deja una línea en blanco entre los elementos, algo que algunos renderizadores exigen.",
+        "bulletCharacter": "Carácter de viñeta",
+        "orderedListFormat": "Formato de lista numerada",
+        "orderedListDot": "1. elemento",
+        "orderedListParen": "1) elemento",
+        "indentation": "Sangría de las listas",
+        "indentationHelp": "Cómo se sangran las líneas de las listas anidadas al escribir el archivo.",
+        "indentAlignWithText": "Alinear con el texto",
+        "indentTab": "Usar una tabulación",
+        "indentOneSpace": "1 espacio",
+        "indentTwoSpaces": "2 espacios",
+        "indentThreeSpaces": "3 espacios",
+        "indentFourSpaces": "4 espacios"
       },
       "extensions": {
         "title": "Extensiones",
-        "superSubScript": "Super/Sub script",
-        "footnote": "Nota al pie",
-        "isHtmlEnabled": "HTML habilitado",
-        "isGitlabCompatibilityEnabled": "Compatibilidad con GitLab",
-        "sequenceTheme": "Tema de secuencia",
-        "superscript": "Superíndice",
-        "subscript": "Subíndice",
-        "frontMatter": "Metadatos",
-        "math": "Matemáticas",
-        "diagram": "Diagrama",
-        "footnoteNotes": "Notas al pie",
-        "frontmatterType": {
-          "frontmatterType": "Tipo de Metadatos",
-          "jsonBrace": "JSON con Llaves",
-          "jsonSemicolon": "JSON con Punto y Coma",
-          "title": "Tipo de Metadatos"
-        },
-        "frontmatterProperties": "Mostrar el front matter YAML como tabla de propiedades (clic para editar el YAML)"
-      },
-      "diagrams": {
-        "title": "Diagramas",
-        "plantuml": "PlantUML",
-        "mermaid": "Mermaid",
-        "vega": "Vega",
-        "flowchart": "Diagrama de Flujo",
-        "sequence": "Secuencia",
-        "gantt": "Gantt",
-        "sequenceTheme": {
-          "title": "Tema de Secuencia",
-          "handDrawn": "Dibujado a Mano",
-          "simple": "Simple"
-        }
-      },
-      "math": {
-        "title": "Matemáticas",
-        "katex": "KaTeX",
-        "mathJax": "MathJax"
-      },
-      "misc": {
-        "preferHeadingStyle": {
-          "title": "Preferir Estilo de Encabezado",
-          "atx": "Estilo ATX",
-          "setext": "Estilo Setext"
-        },
-        "title": "Misceláneos"
+        "footnote": "Notas al pie",
+        "footnoteHelp": "Activa la sintaxis de notas al pie [^1] (extensión de Pandoc).",
+        "math": "Fórmulas matemáticas",
+        "mathHelp": "Renderiza $…$ y $$…$$ con KaTeX.",
+        "superSubScript": "Superíndice y subíndice",
+        "superSubScriptHelp": "Activa ^texto^ y ~texto~ (extensión de Pandoc).",
+        "frontmatterFormat": "Formato de los metadatos",
+        "frontmatterFormatHelp": "El delimitador del bloque de metadatos al principio de un documento.",
+        "frontmatterJsonSemicolon": "JSON con punto y coma",
+        "frontmatterJsonBrace": "JSON con llaves",
+        "frontmatterProperties": "Mostrar los metadatos como tabla de propiedades",
+        "frontmatterPropertiesHelp": "Haz clic en la tabla para editar el YAML sin formato."
       },
       "compatibility": {
-        "enableGitlab": "Habilitar compatibilidad con GitLab",
-        "enableHtml": "Habilitar soporte HTML",
-        "title": "Compatibilidad"
-      },
-      "lists": {
-        "bulletListMarker": "Marcador de lista con viñetas",
-        "listIndentation": {
-          "title": "Sangría de Lista",
-          "dfm": "Estilo DFM",
-          "fourSpaces": "Cuatro Espacios",
-          "oneSpace": "Un Espacio",
-          "tab": "Tabulación",
-          "threeSpaces": "Tres Espacios",
-          "twoSpaces": "Dos Espacios"
-        },
-        "orderListDelimiter": "Delimitador de lista ordenada",
-        "preferLooseListItem": "Preferir elementos de lista sueltos",
-        "title": "Listas"
+        "title": "Compatibilidad",
+        "allowHtml": "Permitir HTML dentro de los documentos",
+        "allowHtmlHelp": "Si está desactivado, las etiquetas HTML se muestran como texto.",
+        "gitlabFlavored": "Markdown estilo GitLab",
+        "gitlabFlavoredHelp": "Activa los extras de GitLab, como su sintaxis de diagramas y de referencias.",
+        "sequenceDiagramStyle": "Estilo del diagrama de secuencia",
+        "sequenceHandDrawn": "Dibujado a mano",
+        "sequenceSimple": "Simple"
       }
     },
-    "spelling": {
-      "title": "Ortografía",
-      "enabled": "Habilitar corrector ortográfico",
-      "autoDetectLanguage": "Detectar idioma automáticamente",
-      "language": "Idioma",
-      "noSuggestions": "Sin sugerencias",
-      "spellcheckerEnabled": "Habilitar corrector ortográfico",
-      "spellcheckerNoUnderline": "Sin subrayado para palabras mal escritas",
-      "spellcheckerLanguage": "Idioma del corrector ortográfico"
-    },
-    "theme": {
-      "title": "Tema",
-      "theme": "Tema",
-      "followSystemTheme": "Seguir tema del sistema",
-      "modeThemes": "Selección de Tema",
-      "lightModeTheme": "Tema de modo claro",
-      "darkModeTheme": "Tema de modo oscuro",
-      "customCss": "CSS Personalizado",
-      "codeBlockTheme": {
-        "title": "Tema de bloque de código",
-        "description": "Tema para bloques de código"
+    "advanced": {
+      "title": "Avanzado",
+      "images": {
+        "title": "Imágenes",
+        "insertAction": "Cuando añado una imagen",
+        "insertActionFolder": "Copiarla en una carpeta",
+        "insertActionPath": "Mantener su ubicación original",
+        "folder": "Carpeta de imágenes",
+        "folderHelp": "Dónde se guardan las imágenes pegadas o arrastradas cuando no se guardan junto al documento.",
+        "folderPlaceholder": "Elige una carpeta…",
+        "chooseFolder": "Elegir…",
+        "openFolder": "Abrir",
+        "saveNextToDocument": "Guardar las imágenes junto al documento",
+        "saveNextToDocumentHelp": "Usa la carpeta indicada abajo dentro de la carpeta del documento y escribe enlaces relativos.",
+        "folderName": "Nombre de la carpeta de imágenes",
+        "folderNameHelp": "${'{'}filename{'}'} inserta el nombre del documento."
       },
-      "importCustomThemes": "Importar temas personalizados",
-      "importTheme": "Importar Tema",
-      "openFolder": "Abrir Carpeta",
-      "openThemesFolder": "Abrir carpeta de temas"
+      "customise": {
+        "title": "Personalización",
+        "keyboardShortcuts": "Atajos de teclado",
+        "extensions": "Extensiones",
+        "customCss": "CSS personalizado",
+        "customCssHelp": "Se aplica sobre el tema seleccionado.",
+        "edit": "Editar…",
+        "browse": "Explorar…"
+      },
+      "reset": {
+        "title": "Restablecer",
+        "restore": "Restaurar todos los valores predeterminados",
+        "restoreHelp": "Tus documentos no se modifican.",
+        "restoreButton": "Restaurar…",
+        "confirmTitle": "¿Restaurar todos los valores predeterminados?",
+        "confirmMessage": "Todas las opciones vuelven a su valor predeterminado. Tus documentos y la carpeta de imágenes no se modifican.",
+        "cancel": "Cancelar",
+        "confirm": "Restaurar"
+      },
+      "sheets": {
+        "close": "Cerrar",
+        "shortcutsTitle": "Atajos de teclado",
+        "extensionsTitle": "Extensiones",
+        "customCssTitle": "CSS personalizado",
+        "customCssSave": "Guardar",
+        "customCssPlaceholder": "/* CSS personalizado aplicado sobre el tema */"
+      }
     },
     "keybindings": {
       "title": "Atajos de Teclado",
@@ -953,31 +775,7 @@
         "unbind": "Desvincular"
       }
     },
-    "selectFont": "Seleccionar Fuente",
-    "spellchecker": {
-      "autoDetectDescription": "Detectar automáticamente el idioma del documento",
-      "autoDetectLanguage": "Detectar idioma automáticamente",
-      "customDictionary": {
-        "delete": "Eliminar",
-        "description": "Agregar palabras personalizadas a tu diccionario personal",
-        "noWordsAvailable": "No hay palabras disponibles",
-        "options": "Opciones",
-        "title": "Diccionario Personalizado",
-        "word": "Palabra"
-      },
-      "defaultLanguage": "Idioma predeterminado",
-      "enableSpellChecking": "Habilitar corrección ortográfica",
-      "hideMarksForErrors": "Ocultar marcas para errores ortográficos",
-      "title": "Corrector Ortográfico"
-    },
-    "language": {
-      "title": "Idioma",
-      "uiLanguage": {
-        "title": "Idioma de la interfaz",
-        "description": "Idioma de la interfaz de la aplicación"
-      },
-      "system": "Como en el sistema"
-    }
+    "selectFont": "Seleccionar Fuente"
   },
   "about": {
     "copyright": "Copyright © Jocs 2017+, tkaixiang 2024+, xronocode 2026+",

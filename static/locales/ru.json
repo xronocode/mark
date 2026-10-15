@@ -464,463 +464,285 @@
     "search": {
       "placeholder": "Поиск настроек...",
       "empty": "Ничего не найдено",
-      "optionalValues": "доступные значения",
       "categories": {
-        "general": "Общие",
+        "general": "Основные",
+        "appearance": "Оформление",
         "editor": "Редактор",
         "markdown": "Markdown",
-        "theme": "Тема",
-        "image": "Изображения",
+        "advanced": "Дополнительно",
         "view": "Вид",
         "searcher": "Поиск",
-        "watcher": "Наблюдатель",
-        "spelling": "Орфография",
-        "custom css": "Пользовательский CSS"
+        "watcher": "Наблюдатель"
       },
       "items": {
-        "autoSave": "Автоматически сохранять редактируемое содержимое",
-        "autoSaveDelay": "Задержка (мс) после изменения, прежде чем файл будет сохранён",
-        "titleBarStyle": "Стиль заголовка окна (только Windows и Linux)",
-        "openFilesInNewWindow": "Открывать файлы в новом окне",
-        "openFolderInNewWindow": "Открывать папку через меню в новом окне",
-        "zoom": "Уровень масштабирования. От 0.5 до 2.0 включительно",
-        "hideScrollbar": "Скрыть полосы прокрутки",
-        "wordWrapInToc": "Включить перенос слов в оглавлении",
-        "fileSortBy": "Сортировка файлов в открытой папке по дате создания, изменения или названию",
-        "startUpAction": "Действие при запуске Mark: открыть последнее редактируемое, указанную папку или пустую страницу",
-        "restoreLayoutState": "Восстанавливать состояние редактора при запуске",
-        "defaultDirectoryToOpen": "Папка по умолчанию, которая открывается при запуске, если startUp=folder",
-        "language": "Язык интерфейса Mark",
-        "editorFontFamily": "Шрифт редактора",
-        "fontSize": "Размер шрифта в пикселях",
-        "lineHeight": "Высота строки",
-        "wrapCodeBlocks": "Переносить текст внутри блоков кода",
-        "editorLineWidth": "Максимальная ширина области редактора. Допускаются пустая строка или суффиксы ch (символы), px (пиксели) или % (проценты)",
-        "codeFontSize": "Размер шрифта в блоке кода (от 12 до 18)",
-        "codeFontFamily": "Шрифт, используемый в блоке кода",
-        "codeBlockLineNumbers": "Показывать номера строк",
-        "trimUnnecessaryCodeBlockEmptyLines": "Удалять пустые строки в начале и конце блока кода",
-        "autoPairBracket": "Автоматически закрывать скобки при редактировании",
-        "autoPairMarkdownSyntax": "Автодополнение синтаксиса Markdown",
-        "autoPairQuote": "Автоматическое закрытие кавычек",
-        "endOfLine": "Символ перевода строки в конце каждой строки. Значение по умолчанию использует системные настройки",
-        "defaultEncoding": "Кодировка файлов по умолчанию",
-        "autoGuessEncoding": "Автоматически определять кодировку файлов при открытии",
-        "trimTrailingNewline": "Поведение для конечных пустых строк",
-        "textDirection": "Направление письма",
-        "hideQuickInsertHint": "Скрыть подсказку быстрого создания абзацев",
-        "hideLinkPopup": "Скрывать всплывающее окно ссылки при наведении",
-        "autoCheck": "Автоматически отмечать связанные задачи",
-        "preferLooseListItem": "Предпочтительный тип списка",
-        "bulletListMarker": "Маркер маркированного списка",
-        "orderListDelimiter": "Разделитель нумерованного списка",
-        "preferHeadingStyle": "Предпочтительный стиль заголовков",
-        "tabSize": "Заменять табуляцию на x пробелов",
-        "listIndentation": "Отступ для списков",
-        "frontmatterType": "Тип front matter",
-        "superSubScript": "Включить расширения pandoc для верхних и нижних индексов",
-        "footnote": "Включить расширение pandoc для сносок",
-        "isHtmlEnabled": "Включить рендеринг HTML",
-        "isGitlabCompatibilityEnabled": "Включить режим совместимости с GitLab",
-        "sequenceTheme": "Тема диаграмм последовательности",
-        "theme": "Выберите тему Mark",
-        "followSystemTheme": "Следовать системной теме",
-        "lightModeTheme": "Тема для светлого режима",
-        "darkModeTheme": "Тема для тёмного режима",
-        "customCss": "Пользовательский CSS, применяемый к текущей теме",
-        "spellcheckerEnabled": "Включить проверку орфографии",
-        "spellcheckerNoUnderline": "Не подчёркивать орфографические ошибки",
+        "autoSave": "Автосохранение вскоре после того, как вы перестали печатать",
+        "autoSaveDelay": "Интервал ожидания после последнего нажатия клавиши до сохранения",
+        "previewModeOnFinderOpen": "Открывать файлы из Finder в режиме чтения",
+        "language": "Язык интерфейса",
+        "defaultEncoding": "Кодировка новых файлов",
+        "endOfLine": "Концы строк для новых файлов и при сохранении",
+        "titleBarStyle": "Заголовок окна: собственный или системный (требуется перезапуск)",
+        "hideScrollbar": "Скрывать полосы прокрутки",
+        "wordWrapInToc": "Переносить длинные заголовки в оглавлении",
+        "editorFontFamily": "Шрифт текста",
+        "fontSize": "Размер текста",
+        "lineHeight": "Межстрочный интервал",
+        "editorLineWidth": "Ширина области набора",
+        "theme": "Тема",
+        "followSystemTheme": "Авто: следовать оформлению системы",
+        "lightModeTheme": "Тема светлого оформления",
+        "darkModeTheme": "Тема тёмного оформления",
+        "autoPairBracket": "Автозакрытие скобок",
+        "autoPairMarkdownSyntax": "Автозакрытие markdown-маркеров",
+        "autoPairQuote": "Автозакрытие кавычек",
+        "autoCheck": "Отмечать задачи щелчком",
+        "hideQuickInsertHint": "Скрывать подсказку вставки на пустых строках",
+        "hideLinkPopup": "Скрывать предпросмотр ссылок",
+        "textDirection": "Направление текста",
+        "tabSize": "Пробелов при нажатии Tab",
+        "spellcheckerEnabled": "Проверять орфографию",
+        "spellcheckerNoUnderline": "Подчёркивать ошибки",
         "spellcheckerLanguage": "Язык проверки орфографии",
-        "imageInsertAction": "Действие по умолчанию при вставке изображения из локальной папки",
-        "imagePreferRelativeDirectory": "Предпочитать относительный путь для изображений",
-        "imageRelativeDirectoryName": "Имя папки для относительного пути",
-        "sideBarVisibility": "Видимость боковой панели",
-        "tabBarVisibility": "Показывать вкладки",
-        "sourceCodeModeEnabled": "Включать режим исходного кода по умолчанию",
-        "searchExclusions": "Список glob-шаблонов для исключения из поиска",
-        "searchMaxFileSize": "Максимальный размер файла (<maxFileSize><суффикс>). Допустимы суффиксы K, M, G; без суффикса — байты",
-        "searchIncludeHidden": "Искать в скрытых файлах и папках",
-        "searchNoIgnore": "Игнорировать файлы вроде .gitignore",
-        "searchFollowSymlinks": "Следовать по символическим ссылкам",
-        "watcherUsePolling": "Использовать опрос. Может приводить к высокой загрузке CPU, но необходимо для отслеживания файлов в сети"
+        "codeFontFamily": "Шрифт кода",
+        "codeFontSize": "Размер кода",
+        "codeBlockLineNumbers": "Показывать номера строк в блоках кода",
+        "wrapCodeBlocks": "Переносить длинные строки в коде",
+        "trimUnnecessaryCodeBlockEmptyLines": "Удалять пустые строки вокруг кода",
+        "preferLooseListItem": "Интервал между элементами списка",
+        "bulletListMarker": "Маркер списка",
+        "orderListDelimiter": "Формат нумерованного списка",
+        "listIndentation": "Отступ в списках",
+        "footnote": "Сноски",
+        "mathEnabled": "Формулы",
+        "superSubScript": "Верхний и нижний индексы",
+        "frontmatterType": "Формат front matter",
+        "frontmatterProperties": "Показывать front matter таблицей свойств",
+        "isHtmlEnabled": "Разрешать HTML в документах",
+        "isGitlabCompatibilityEnabled": "Markdown в стиле GitLab",
+        "sequenceTheme": "Стиль диаграмм последовательности",
+        "imageInsertAction": "При добавлении изображения",
+        "imagePreferRelativeDirectory": "Сохранять изображения рядом с документом",
+        "imageRelativeDirectoryName": "Имя папки для изображений",
+        "customCss": "Пользовательский CSS"
       }
-    },
-    "categories": {
-      "general": "Общие",
-      "editor": "Редактор",
-      "markdown": "Markdown",
-      "spelling": "Орфография",
-      "theme": "Тема",
-      "image": "Изображения",
-      "keybindings": "Сочетания клавиш",
-      "language": "Язык"
     },
     "general": {
       "title": "Общие",
-      "autoSave": {
-        "title": "Автосохранение",
-        "description": "Автосохранение",
-        "delayDescription": "Задержка автосохранения"
-      },
-      "window": {
-        "title": "Окно",
-        "titleBarStyle": {
-          "title": "Стиль заголовка окна",
-          "custom": "Пользовательский",
-          "titleBarStyle": "Стиль заголовка окна",
-          "native": "Системный"
-        },
-        "requiresRestart": "Требуется перезапуск",
-        "hideScrollbars": "Скрыть полосы прокрутки",
-        "openFilesInNewWindow": "Открывать файлы в новом окне",
-        "openFoldersInNewWindow": "Открывать папки в новом окне",
-        "zoom": "Масштаб"
+      "macosIntegration": {
+        "title": "Интеграция с macOS",
+        "defaultForMd": "Приложение по умолчанию для файлов .md",
+        "statusIsDefault": "Mark — приложение по умолчанию для файлов .md.",
+        "statusCurrent": "Приложение по умолчанию для файлов .md: {name}.",
+        "statusNone": "Приложение по умолчанию для файлов .md не задано.",
+        "setDefault": "Сделать основным",
+        "removeDefault": "Отменить"
       },
       "startup": {
-        "title": "Параметры запуска",
-        "layoutOptions": "Параметры макета",
-        "startupFilesFolders": "Стартовые файлы/папки",
-        "restorePreviousState": "Восстановить предыдущее состояние редактора",
-        "openBlankState": "Открыть пустое состояние",
-        "openDefaultDirectory": "Открыть папку по умолчанию",
-        "openLastFolder": "Восстановить открытую папку",
-        "selectFolder": "Выбрать папку",
-        "openBlankPage": "Открыть пустую страницу"
+        "title": "Запуск",
+        "previewModeOnFinderOpen": "Открывать файлы из Finder в режиме чтения",
+        "previewModeOnFinderOpenHelp": "Файлы, открытые двойным щелчком в Finder или через Dock, стартуют только для чтения; щёлкните, чтобы править."
       },
-      "sidebar": {
-        "title": "Боковая панель",
-        "wrapTextInToc": "Перенос текста в оглавлении",
-        "excludePatterns": "Исключаемые шаблоны",
-        "excludePatternsNotes": "Исключаемые шаблоны (примечания)",
-        "fileSortBy": {
-          "title": "Сортировка файлов",
-          "creationTime": "По дате создания",
-          "modificationTime": "По дате изменения"
-        }
+      "language": {
+        "title": "Язык",
+        "appLanguage": "Язык интерфейса",
+        "system": "Как в системе",
+        "english": "English",
+        "chinese": "简体中文",
+        "traditionalChinese": "繁體中文",
+        "spanish": "Español",
+        "french": "Français",
+        "german": "Deutsch",
+        "japanese": "日本語",
+        "korean": "한국어",
+        "portuguese": "Português",
+        "russian": "Русский"
       },
-      "misc": {
-        "title": "Прочее",
-        "language": {
-          "title": "Язык",
-          "english": "English",
-          "chinese": "简体中文",
-          "traditionalChinese": "繁體中文",
-          "spanish": "Español",
-          "french": "Français",
-          "german": "Deutsch",
-          "japanese": "日本語",
-          "korean": "한국어",
-          "portuguese": "Português",
-          "russian": "Русский"
-        }
+      "filesAndSaving": {
+        "title": "Файлы и сохранение",
+        "autoSave": "Автосохранение",
+        "autoSaveHelp": "Сохраняет файл вскоре после того, как вы перестали печатать.",
+        "autoSaveDelay": "Интервал автосохранения",
+        "autoSaveDelayHelp": "Сколько ждать после последнего нажатия клавиши перед сохранением.",
+        "defaultEncoding": "Кодировка новых файлов",
+        "defaultEncodingHelp": "Файлы, в которых указана своя кодировка, всегда открываются правильно независимо от этой настройки.",
+        "endOfLine": "Концы строк",
+        "endOfLineHelp": "Используются для новых файлов и при сохранении.",
+        "endOfLineSystem": "Как в моей системе",
+        "endOfLineLf": "LF (Unix, macOS)",
+        "endOfLineCrlf": "CRLF (Windows)",
+        "secondsUnit": "с"
+      },
+      "updates": {
+        "title": "Обновления",
+        "help": "Проверяет новую версию в сети и устанавливает её.",
+        "check": "Проверить обновления"
+      }
+    },
+    "appearance": {
+      "title": "Оформление",
+      "theme": {
+        "title": "Тема",
+        "mode": "Оформление",
+        "modeHelp": "Авто — как в системе. У каждой темы есть светлая и тёмная сторона.",
+        "modeAuto": "Авто",
+        "modeLight": "Светлая",
+        "modeDark": "Тёмная"
+      },
+      "text": {
+        "title": "Текст",
+        "font": "Шрифт текста",
+        "fontSize": "Размер текста",
+        "lineHeight": "Межстрочный интервал",
+        "lineWidth": "Ширина области набора",
+        "lineWidthHelp": "Пусто — во всю ширину, или число с px, % или ch — например 720px.",
+        "unlimited": "Без ограничений"
+      },
+      "window": {
+        "title": "Окно и панели",
+        "hideScrollbar": "Скрывать полосы прокрутки",
+        "wordWrapInToc": "Переносить длинные заголовки в оглавлении",
+        "titleBarStyle": "Заголовок окна",
+        "titleBarStyleHelp": "Собственный заголовок Mark со вкладками. Требуется перезапуск.",
+        "titleBarStyleCustom": "Собственный",
+        "titleBarStyleNative": "Системный"
       }
     },
     "editor": {
       "title": "Редактор",
-      "textEditor": {
-        "title": "Текстовый редактор",
-        "fontSize": "Размер шрифта",
-        "lineHeight": "Высота строки",
-        "fontFamily": "Шрифт",
-        "maxWidth": "Максимальная ширина",
-        "maxWidthNotes": "Максимальная ширина области редактора"
+      "typing": {
+        "title": "Набор текста",
+        "autoPairBracket": "Автозакрытие скобок",
+        "autoPairQuote": "Автозакрытие кавычек",
+        "autoPairMarkdownSyntax": "Автозакрытие markdown-маркеров",
+        "autoPairMarkdownSyntaxHelp": "При вводе ** или __ закрывающий маркер появится сам.",
+        "autoCheck": "Отмечать задачи щелчком",
+        "autoCheckHelp": "Позволяет переключать чекбоксы задач прямо в документе.",
+        "hideQuickInsertHint": "Скрывать подсказку вставки на пустых строках",
+        "hideQuickInsertHintHelp": "Маленький значок «+» при начале нового абзаца.",
+        "hideLinkPopup": "Скрывать предпросмотр ссылок",
+        "hideLinkPopupHelp": "Всплывающая подсказка, когда курсор на ссылке.",
+        "textDirection": "Направление текста",
+        "textDirectionLtr": "Слева направо",
+        "textDirectionRtl": "Справа налево"
       },
-      "codeBlock": {
-        "title": "Блок кода",
-        "fontSize": "Размер шрифта",
-        "fontFamily": "Шрифт",
-        "showLineNumbers": "Показывать номера строк",
-        "removeEmptyLines": "Удалять пустые строки"
+      "tabs": {
+        "title": "Табуляция и отступы",
+        "tabSize": "Пробелов при нажатии Tab",
+        "tabSizeHelp": "Tab вставляет пробелы вместо символа табуляции."
       },
-      "writingBehavior": {
-        "title": "Поведение при наборе",
-        "autoCloseBrackets": "Автозакрытие скобок",
-        "autoCompleteMarkdown": "Автодополнение Markdown",
-        "autoCloseQuotes": "Автозакрытие кавычек"
-      },
-      "fileRepresentation": {
-        "title": "Представление файла",
-        "tabWidth": "Ширина табуляции",
-        "lineSeparator": "Разделитель строк",
-        "defaultEncoding": "Кодировка по умолчанию",
-        "autoDetectEncoding": "Автоопределение кодировки",
-        "trailingNewlines": {
-          "title": "Конечные пустые строки",
-          "doNothing": "Ничего не делать",
-          "ensureOne": "Оставить одну",
-          "preserve": "Сохранять",
-          "trimAll": "Удалять все"
-        },
-        "endOfLine": {
-          "default": "По умолчанию",
-          "crlf": "CRLF (Windows)",
-          "lf": "LF (Linux/Mac)"
+      "spelling": {
+        "title": "Орфография",
+        "enabled": "Проверять орфографию",
+        "underline": "Подчёркивать ошибки",
+        "macAutoDetectHelp": "macOS сама определяет язык документа.",
+        "language": "Язык проверки орфографии",
+        "customDictionary": {
+          "title": "Пользовательский словарь",
+          "noWordsAvailable": "Нет слов",
+          "delete": "Удалить"
         }
       },
-      "misc": {
-        "title": "Прочее",
-        "textDirection": {
-          "title": "Направление текста",
-          "ltr": "Слева направо",
-          "rtl": "Справа налево"
-        },
-        "hideQuickInsertHint": "Скрыть подсказку быстрой вставки",
-        "hideLinkPopup": "Скрывать всплывающее окно ссылки",
-        "autoCheck": "Автоматическая отметка",
-        "autoNormalizeLineEndings": "Автоматически нормализовать переводы строк до LF при открытии",
-        "wrapCodeBlocks": "Переносить блоки кода"
-      }
-    },
-    "image": {
-      "title": "Изображение",
-      "defaultAction": "Действие по умолчанию при вставке изображения",
-      "clipboardTooltip": "Поведение по умолчанию после вставки или перетаскивания изображения в Mark",
-      "actions": {
-        "upload": "Загрузить в облако",
-        "folder": "Скопировать в папку",
-        "path": "Использовать абсолютный путь"
-      },
-      "folderSetting": {
-        "title": "Настройка папки",
-        "globalFolder": "Глобальная папка изображений",
-        "open": "Открыть",
-        "showInFolder": "Показать в папке",
-        "preferRelative": "Предпочитать относительный путь",
-        "relativeFolderName": "Имя относительной папки",
-        "filenameNote": "Имя файла будет сгенерировано автоматически."
-      },
-      "imageInsertAction": {
-        "title": "Действие при вставке изображения",
-        "folder": "Загрузить в папку",
-        "path": "Скопировать по пути",
-        "upload": "Загрузить в облако",
-        "copyToFolder": "Скопировать в папку",
-        "uploadToServer": "Загрузить на сервер"
-      },
-      "imageFolderPath": {
-        "title": "Путь папки изображений",
-        "description": "Путь папки изображений",
-        "selectFolder": "Выбрать папку",
-        "relativePath": "Относительный путь",
-        "absolutePath": "Абсолютный путь"
-      },
-      "cloudPictureBed": {
-        "title": "Облачное хранилище изображений",
-        "github": "GitHub",
-        "smms": "SM.MS",
-        "qiniu": "Qiniu",
-        "upyun": "UpYun",
-        "tcyun": "Tencent Cloud",
-        "aliyun": "Alibaba Cloud",
-        "imgur": "Imgur",
-        "picgo": "PicGo"
-      },
-      "preferRelativeDirectory": {
-        "title": "Предпочитать относительный путь",
-        "description": "Предпочитать относительный путь для изображений"
-      },
-      "uploader": {
-        "title": "Загрузчик изображений",
-        "currentUploader": "Текущий загрузчик: {name}",
-        "picgoNotInstalled": "PicGo не установлен",
-        "picgoDetectionStatus": "Статус обнаружения PicGo",
-        "picgoInstalled": "PicGo установлен",
-        "picgoDetectionFailed": "Не удалось обнаружить PicGo",
-        "debugInfo": "Отладочная информация",
-        "installCommand": "Команда установки",
-        "npmInstallCommand": "npm install picgo -g",
-        "yarnInstallCommand": "yarn global add picgo",
-        "pnpmInstallCommand": "pnpm add -g picgo",
-        "chooseInstallMethod": "Выберите способ установки:",
-        "retestPicgo": "Перепроверить",
-        "detecting": "Обнаружение",
-        "lastDetectionTime": "Время последней проверки",
-        "detectionStatus": "Статус обнаружения",
-        "picgoDetection": "Обнаружение PicGo",
-        "usageGuide": {
-          "title": "Базовое руководство по PicGo",
-          "step1": "Настройте загрузчик",
-          "step1Description": "Используйте следующую команду для настройки загрузчика PicGo:",
-          "step2": "Загрузите изображения",
-          "step2Description": "Используйте следующую команду для загрузки изображений:",
-          "step3": "Просмотр конфигурации",
-          "step3Description": "Используйте следующую команду для просмотра текущей конфигурации:",
-          "documentation": "Просмотреть полную документацию"
-        },
-        "autoDetection": "Автообнаружение",
-        "lastSuccessTime": "Время последнего успеха",
-        "neverDetected": "Никогда не обнаруживался",
-        "neverSuccessful": "Никогда не было успеха",
-        "configureUploader": "Настроить загрузчик",
-        "configureDescription": "Используйте следующую команду для настройки загрузчика PicGo:",
-        "uploadImage": "Загрузить изображения",
-        "uploadDescription": "Используйте следующую команду для загрузки изображений:",
-        "viewConfig": "Просмотр конфигурации",
-        "viewConfigDescription": "Используйте следующую команду для просмотра текущей конфигурации:",
-        "viewDocumentation": "Просмотреть полную документацию",
-        "githubDeprecated": "Загрузчик GitHub устарел",
-        "githubToken": "GitHub-токен",
-        "ownerName": "Имя владельца",
-        "repoName": "Имя репозитория",
-        "branchName": "Имя ветки",
-        "scriptDescription": "Описание скрипта",
-        "scriptLocation": "Расположение скрипта",
-        "save": "Сохранить",
-        "saveConfig": "Сохранить конфигурацию",
-        "githubConfigSaved": "Конфигурация GitHub сохранена",
-        "scriptConfigSaved": "Конфигурация скрипта сохранена",
-        "legalNotices": {
-          "title": "Юридические уведомления",
-          "description": "Я прочитал(а) и согласен(на) с соответствующими условиями использования",
-          "and": "и",
-          "byUsing": "Используя {name}, вы соглашаетесь с",
-          "gdprWarning": "Предупреждение о GDPR",
-          "privacyStatement": "Политика конфиденциальности",
-          "termsOfService": "Условия использования"
-        },
-        "services": {
-          "github": "GitHub",
-          "smms": "SM.MS",
-          "qiniu": "Qiniu",
-          "upyun": "UpYun",
-          "tcyun": "Tencent Cloud",
-          "aliyun": "Alibaba Cloud",
-          "imgur": "Imgur",
-          "picgo": "PicGo",
-          "script": "Пользовательский скрипт",
-          "cliScript": "CLI-скрипт",
-          "none": "Нет"
-        },
-        "branch": "Ветка",
-        "inputToken": "Введите токен",
-        "noUploaderSelected": "Загрузчик не выбран",
-        "owner": "Владелец",
-        "pleaseInstall": "Пожалуйста, установите",
-        "repo": "Репозиторий",
-        "scriptPath": "Путь скрипта",
-        "tokenTooltip": "Токен доступа для аутентификации"
+      "codeBlocks": {
+        "title": "Блоки кода",
+        "fontFamily": "Шрифт кода",
+        "fontSize": "Размер кода",
+        "lineNumbers": "Показывать номера строк",
+        "wrapLongLines": "Переносить длинные строки в коде",
+        "trimBlankLines": "Удалять пустые строки вокруг кода",
+        "trimBlankLinesHelp": "Убирает пустые строки в самом начале и конце блока кода."
       }
     },
     "markdown": {
       "title": "Markdown",
-      "listItem": {
-        "title": "Элемент списка",
-        "preferLooseListItem": "Предпочитать свободные элементы списка",
-        "bulletListMarker": "Маркер маркированного списка",
-        "orderListDelimiter": "Разделитель нумерованного списка",
-        "listIndentation": {
-          "title": "Отступ списка",
-          "dfm": "Стандартный режим форматирования",
-          "tab": "Табуляция",
-          "oneSpace": "Один пробел",
-          "twoSpaces": "Два пробела",
-          "threeSpaces": "Три пробела",
-          "fourSpaces": "Четыре пробела"
-        }
-      },
-      "heading": {
-        "title": "Заголовок",
-        "preferHeadingStyle": "Предпочтительный стиль заголовка"
-      },
-      "frontmatter": {
-        "title": "Front Matter",
-        "frontmatterType": "Тип front matter"
+      "lists": {
+        "title": "Списки",
+        "spacing": "Интервал между элементами списка",
+        "spacingCompact": "Плотно",
+        "spacingSpaced": "Просторно",
+        "spacingHelp": "Просторно ставит пустую строку между элементами — этого требуют некоторые просмотрщики.",
+        "bulletCharacter": "Маркер списка",
+        "orderedListFormat": "Формат нумерованного списка",
+        "orderedListDot": "1. пункт",
+        "orderedListParen": "1) пункт",
+        "indentation": "Отступ в списках",
+        "indentationHelp": "Как записываются отступы вложенных строк списка в файле.",
+        "indentAlignWithText": "По тексту",
+        "indentTab": "Табуляция",
+        "indentOneSpace": "1 пробел",
+        "indentTwoSpaces": "2 пробела",
+        "indentThreeSpaces": "3 пробела",
+        "indentFourSpaces": "4 пробела"
       },
       "extensions": {
         "title": "Расширения",
-        "superSubScript": "Верхний/нижний индекс",
         "footnote": "Сноски",
-        "isHtmlEnabled": "HTML включён",
-        "isGitlabCompatibilityEnabled": "Совместимость с GitLab",
-        "sequenceTheme": "Тема диаграмм последовательности",
-        "superscript": "Верхний индекс",
-        "subscript": "Нижний индекс",
-        "frontMatter": "Front matter",
+        "footnoteHelp": "Включает синтаксис сносок [^1] (расширение Pandoc).",
         "math": "Формулы",
-        "diagram": "Диаграммы",
-        "footnoteNotes": "Примечания к сноскам",
-        "frontmatterType": {
-          "frontmatterType": "Тип front matter",
-          "jsonBrace": "JSON со скобками",
-          "jsonSemicolon": "JSON с точкой с запятой",
-          "title": "Тип front matter"
-        },
-        "frontmatterProperties": "Показывать YAML front matter таблицей свойств (клик — редактировать YAML)"
-      },
-      "diagrams": {
-        "title": "Диаграммы",
-        "plantuml": "PlantUML",
-        "mermaid": "Mermaid",
-        "vega": "Vega-Lite",
-        "flowchart": "Flowchart",
-        "sequence": "Sequence",
-        "gantt": "Gantt",
-        "sequenceTheme": {
-          "title": "Тема диаграмм последовательности",
-          "handDrawn": "От руки",
-          "simple": "Простой"
-        }
-      },
-      "math": {
-        "title": "Формулы",
-        "katex": "KaTeX",
-        "mathJax": "MathJax"
-      },
-      "misc": {
-        "preferHeadingStyle": {
-          "title": "Предпочтительный стиль заголовка",
-          "atx": "ATX",
-          "setext": "Setext"
-        },
-        "title": "Прочее"
+        "mathHelp": "Отрисовывает $…$ и $$…$$ через KaTeX.",
+        "superSubScript": "Верхний и нижний индексы",
+        "superSubScriptHelp": "Включает ^текст^ и ~текст~ (расширение Pandoc).",
+        "frontmatterFormat": "Формат front matter",
+        "frontmatterFormatHelp": "Разделитель блока метаданных в начале документа.",
+        "frontmatterJsonSemicolon": "JSON с точкой с запятой",
+        "frontmatterJsonBrace": "JSON со скобками",
+        "frontmatterProperties": "Показывать front matter таблицей свойств",
+        "frontmatterPropertiesHelp": "Щёлкните по таблице, чтобы править исходный YAML."
       },
       "compatibility": {
-        "enableGitlab": "Включить совместимость с GitLab",
-        "enableHtml": "Включить поддержку HTML",
-        "title": "Совместимость"
-      },
-      "lists": {
-        "bulletListMarker": "Маркер маркированного списка",
-        "listIndentation": {
-          "title": "Отступ списка",
-          "dfm": "Стиль DFM",
-          "fourSpaces": "Четыре пробела",
-          "oneSpace": "Один пробел",
-          "tab": "Табуляция",
-          "threeSpaces": "Три пробела",
-          "twoSpaces": "Два пробела"
-        },
-        "orderListDelimiter": "Разделитель нумерованного списка",
-        "preferLooseListItem": "Предпочитать свободные элементы списка",
-        "title": "Списки"
+        "title": "Совместимость",
+        "allowHtml": "Разрешать HTML в документах",
+        "allowHtmlHelp": "Выключено — HTML-теги показываются как текст.",
+        "gitlabFlavored": "Markdown в стиле GitLab",
+        "gitlabFlavoredHelp": "Включает расширения GitLab: диаграммы, ссылки и прочее.",
+        "sequenceDiagramStyle": "Стиль диаграмм последовательности",
+        "sequenceHandDrawn": "От руки",
+        "sequenceSimple": "Простой"
       }
     },
-    "spelling": {
-      "title": "Орфография",
-      "enabled": "Включить проверку орфографии",
-      "autoDetectLanguage": "Автоопределение языка",
-      "language": "Язык",
-      "noSuggestions": "Нет предложений",
-      "spellcheckerEnabled": "Включить проверку орфографии",
-      "spellcheckerNoUnderline": "Не подчёркивать ошибки",
-      "spellcheckerLanguage": "Язык проверки орфографии"
-    },
-    "theme": {
-      "title": "Тема",
-      "theme": "Тема",
-      "followSystemTheme": "Следовать системной теме",
-      "modeThemes": "Выбор темы",
-      "lightModeTheme": "Тема для светлого режима",
-      "darkModeTheme": "Тема для тёмного режима",
-      "customCss": "Пользовательский CSS",
-      "codeBlockTheme": {
-        "title": "Тема блока кода",
-        "description": "Тема для блоков кода"
+    "advanced": {
+      "title": "Дополнительно",
+      "images": {
+        "title": "Изображения",
+        "insertAction": "При добавлении изображения",
+        "insertActionFolder": "Копировать в папку",
+        "insertActionPath": "Оставить исходное расположение",
+        "folder": "Папка для изображений",
+        "folderHelp": "Куда сохраняются вставленные и перетащенные изображения, когда они не хранятся рядом с документом.",
+        "folderPlaceholder": "Выберите папку…",
+        "chooseFolder": "Выбрать…",
+        "openFolder": "Открыть",
+        "saveNextToDocument": "Сохранять изображения рядом с документом",
+        "saveNextToDocumentHelp": "Использует папку ниже внутри папки документа и записывает относительные ссылки.",
+        "folderName": "Имя папки для изображений",
+        "folderNameHelp": "${'{'}filename{'}'} подставляет имя документа."
       },
-      "importCustomThemes": "Импорт пользовательских тем",
-      "importTheme": "Импорт темы",
-      "openFolder": "Открыть папку",
-      "openThemesFolder": "Открыть папку тем"
+      "customise": {
+        "title": "Настройка",
+        "keyboardShortcuts": "Сочетания клавиш",
+        "extensions": "Расширения",
+        "customCss": "Пользовательский CSS",
+        "customCssHelp": "Применяется поверх выбранной темы.",
+        "edit": "Изменить…",
+        "browse": "Обзор…"
+      },
+      "reset": {
+        "title": "Сброс",
+        "restore": "Восстановить настройки по умолчанию",
+        "restoreHelp": "Документы не затрагиваются.",
+        "restoreButton": "Восстановить…",
+        "confirmTitle": "Восстановить настройки по умолчанию?",
+        "confirmMessage": "Все настройки вернутся к значениям по умолчанию. Документы и папка изображений не затрагиваются.",
+        "cancel": "Отмена",
+        "confirm": "Восстановить"
+      },
+      "sheets": {
+        "close": "Закрыть",
+        "shortcutsTitle": "Сочетания клавиш",
+        "extensionsTitle": "Расширения",
+        "customCssTitle": "Пользовательский CSS",
+        "customCssSave": "Сохранить",
+        "customCssPlaceholder": "/* Пользовательский CSS поверх темы */"
+      }
     },
     "keybindings": {
       "title": "Сочетания клавиш",
@@ -955,31 +777,7 @@
         "unbind": "Отвязать"
       }
     },
-    "selectFont": "Выбрать шрифт",
-    "spellchecker": {
-      "autoDetectDescription": "Автоматически определять язык документа",
-      "autoDetectLanguage": "Автоопределение языка",
-      "customDictionary": {
-        "delete": "Удалить",
-        "description": "Добавьте свои слова в личный словарь",
-        "noWordsAvailable": "Нет слов",
-        "options": "Параметры",
-        "title": "Пользовательский словарь",
-        "word": "Слово"
-      },
-      "defaultLanguage": "Язык по умолчанию",
-      "enableSpellChecking": "Включить проверку орфографии",
-      "hideMarksForErrors": "Скрыть пометки ошибок",
-      "title": "Проверка орфографии"
-    },
-    "language": {
-      "title": "Язык",
-      "uiLanguage": {
-        "title": "Язык интерфейса",
-        "description": "Язык интерфейса приложения"
-      },
-      "system": "Как в системе"
-    }
+    "selectFont": "Выбрать шрифт"
   },
   "edit": {
     "undo": "Отменить",

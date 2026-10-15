@@ -23,7 +23,7 @@ import { describe, it, expect, afterEach, vi } from 'vitest'
 import { SYSTEM_LANGUAGE, SHIPPED_LOCALES, resolveSystemLocale } from '@/i18n/systemLocale'
 import { setLanguage, getCurrentLanguage } from '@/i18n'
 import { BUNDLED_LOCALES, loadLocaleTable } from '@/i18n/localeLoader'
-import { getLanguageOptions } from '@/prefComponents/general/config'
+import { getLanguageOptions } from '@/prefComponents/tabs/general/config'
 import enSource from '../../../static/locales/en.json'
 
 const stubLanguages = (langs) => {
@@ -135,8 +135,8 @@ describe("'As in system' option label (C-45)", () => {
   it('exists in every shipped translation table (min.json) and in the en source', async () => {
     for (const locale of BUNDLED_LOCALES) {
       const table = await loadLocaleTable(locale)
-      expect(table.preferences.language.system, locale).toBeTruthy()
+      expect(table.preferences.general.language.system, locale).toBeTruthy()
     }
-    expect(enSource.preferences.language.system).toBe('As in system')
+    expect(enSource.preferences.general.language.system).toBe('As in system')
   })
 })

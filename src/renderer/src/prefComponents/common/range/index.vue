@@ -70,6 +70,7 @@
 // END_CHANGE_SUMMARY
 
 import { ref, watch, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { InfoFilled } from '@element-plus/icons-vue'
 import { prefOsClass } from '../osClass'
 
@@ -118,8 +119,26 @@ const round = (value) => {
   return Math.round(value * factor) / factor
 }
 
+// Review fix: the number follows the UI locale (1,5 in Russian).
+// The row also mounts outside an i18n-enabled app (unit tests, early
+// boot); the number then falls back to the plain String form.
+let i18n = null
+try {
+  i18n = useI18n()
+} catch {
+  i18n = null
+}
+const formatNumber = (value) => {
+  const locale = i18n?.locale?.value
+  try {
+    return locale ? new Intl.NumberFormat(locale).format(value) : String(value)
+  } catch {
+    return String(value)
+  }
+}
+
 const displayValue = computed(() => {
-  const text = String(round(selectValue.value))
+  const text = formatNumber(round(selectValue.value))
   return props.unit ? `${text} ${props.unit}` : text
 })
 
