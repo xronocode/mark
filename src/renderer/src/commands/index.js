@@ -1,5 +1,5 @@
 // FILE: src/renderer/src/commands/index.js
-// VERSION: 2.1.10-beta
+// VERSION: 2.1.11-beta
 // START_MODULE_CONTRACT
 //   PURPOSE: Register renderer commands and route each command to its typed store, event-bus, or Tauri integration.
 //   SCOPE: Static command definitions, platform-gated commands, and user-visible command outcomes; backend implementation is out of scope.
@@ -15,6 +15,7 @@
 //   edit.copy-as-html - Copies selection (or whole document) as rich text/html for email paste (C-3).
 //   edit.copy-as-plain-text - Copies selection (or whole document) as markup-free plain text (C-12).
 //   edit.copy-as-structured-text - Copies selection (or whole document) as structure-preserving plain text (C-32).
+//   view.zoom-in / view.zoom-out / view.actual-size - Unified zoom via preferences ZOOM_STEP/ZOOM_ACTUAL_SIZE (C-49).
 //   FileEncodingCommand - GRACE 4 synchronized symbol
 //   LineEndingCommand - GRACE 4 synchronized symbol
 //   QuickOpenCommand - GRACE 4 synchronized symbol
@@ -27,6 +28,11 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-10-15 C-49 T-001: retire the palette percentage zoom (file.zoom /
+//     file.zoom-0..11 removed; a stored `zoom` ≠ 1 is migrated once by
+//     preferences.MIGRATE_LEGACY_ZOOM) and add the View-menu zoom trio
+//     view.zoom-in / view.zoom-out / view.actual-size, routed to the same
+//     preferences-store zoom actions as the ⌘+/⌘−/⌘0 keys in pages/app.vue.
 //   - 2026-09-16 v2.1.10-beta: add edit.copy-as-html (C-3) — rich text/html clipboard via editor.vue copyAsHtmlRich handler.
 //   - 2026-09-17 v2.1.11-beta: add edit.copy-as-plain-text (C-12) — markup-free plain-text clipboard via editor.vue copyAsPlainText handler.
 //   - 2026-09-23 C-18: applyCapabilityGate no longer prunes file.export-file-pdf — PDF export is native (WKWebView print panel); exportPandoc stays informational.
@@ -614,76 +620,6 @@ const commands = [
     }
   },
 
-  {
-    id: 'file.zoom',
-    shortcut: [isOsx ? 'Cmd' : 'Ctrl', 'Scroll'],
-    subcommands: [
-      {
-        id: 'file.zoom-0',
-        description: '62.5%',
-        value: 0.625
-      },
-      {
-        id: 'file.zoom-1',
-        description: '75%',
-        value: 0.75
-      },
-      {
-        id: 'file.zoom-2',
-        description: '87.5%',
-        value: 0.875
-      },
-      {
-        id: 'file.zoom-3',
-        description: '100%',
-        value: 1.0
-      },
-      {
-        id: 'file.zoom-4',
-        description: '112.5%',
-        value: 1.125
-      },
-      {
-        id: 'file.zoom-5',
-        description: '125%',
-        value: 1.25
-      },
-      {
-        id: 'file.zoom-6',
-        description: '137.5%',
-        value: 1.375
-      },
-      {
-        id: 'file.zoom-7',
-        description: '150%',
-        value: 1.5
-      },
-      {
-        id: 'file.zoom-8',
-        description: '162.5%',
-        value: 1.625
-      },
-      {
-        id: 'file.zoom-9',
-        description: '175%',
-        value: 1.75
-      },
-      {
-        id: 'file.zoom-10',
-        description: '187.5%',
-        value: 1.875
-      },
-      {
-        id: 'file.zoom-11',
-        description: '200%',
-        value: 2.0
-      }
-    ],
-    executeSubcommand: async (_, value) => {
-      bus.emit('mt::window-zoom', value)
-    }
-  },
-
   // --------------------------------------------------------------------------
   // Window
 
@@ -825,6 +761,35 @@ const commands = [
         type: 'markdownLint',
         value: !preferencesStore.markdownLint
       })
+    }
+  },
+
+  {
+    // C-49: unified zoom. The three View-menu items dispatch here via the
+    // menu-bridge; they run the exact same store actions as the ⌘+/⌘−/⌘0
+    // keydown and Ctrl+wheel handlers in pages/app.vue. The native menu
+    // claims the accelerators before the webview sees the keys, so the two
+    // paths never double-apply (same pairing as view.split-view).
+    id: 'view.zoom-in',
+    shortcut: [isOsx ? 'Cmd' : 'Ctrl', '='],
+    execute: async () => {
+      usePreferencesStore().ZOOM_STEP(1)
+    }
+  },
+  {
+    id: 'view.zoom-out',
+    shortcut: [isOsx ? 'Cmd' : 'Ctrl', '-'],
+    execute: async () => {
+      usePreferencesStore().ZOOM_STEP(-1)
+    }
+  },
+  {
+    // ⌘0 "Actual Size" — restores the persisted baseFontSize (the
+    // Settings size), never a hard 16.
+    id: 'view.actual-size',
+    shortcut: [isOsx ? 'Cmd' : 'Ctrl', '0'],
+    execute: async () => {
+      usePreferencesStore().ZOOM_ACTUAL_SIZE()
     }
   },
 

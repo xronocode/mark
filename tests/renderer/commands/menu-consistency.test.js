@@ -19,7 +19,11 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.3.0 - Pin tabs.cycleForward/Backward menu ids + Ctrl+Tab/Ctrl+Shift+Tab accelerators; ids leave the RENDERER_ONLY_ALLOWLIST (C-8).
+//   LAST_CHANGE: v1.5.0 - C-49: pin view.zoom-in/out/actual-size menu ids +
+//   CmdOrCtrl+=/-/0 accelerators (taxonomy + built menu); the retired
+//   percentage-zoom ids (file.zoom*) leave the RENDERER_ONLY_ALLOWLIST and
+//   must stay absent from both sides.
+//   v1.3.0 - Pin tabs.cycleForward/Backward menu ids + Ctrl+Tab/Ctrl+Shift+Tab accelerators; ids leave the RENDERER_ONLY_ALLOWLIST (C-8).
 //   v1.4.4 - C-32: pin edit.copy-as-structured-text menu id (no accelerator).
 //   v1.4.5 - C-38 N1: pin file.preferences label "Settings…" + Cmd+, accelerator;
 //   the "Preferences…" label is gone from both the native menu and the taxonomy.
@@ -131,20 +135,9 @@ const RENDERER_ONLY_ALLOWLIST = new Set([
   'format.hyperlink',
   'format.image',
   'format.clear-format',
-  // Zoom subcommands — mouse gesture (Ctrl+Scroll)
-  'file.zoom',
-  'file.zoom-0',
-  'file.zoom-1',
-  'file.zoom-2',
-  'file.zoom-3',
-  'file.zoom-4',
-  'file.zoom-5',
-  'file.zoom-6',
-  'file.zoom-7',
-  'file.zoom-8',
-  'file.zoom-9',
-  'file.zoom-10',
-  'file.zoom-11',
+  // C-49: file.zoom / file.zoom-0..11 retired with the palette percentage
+  // zoom — no allowlist entries, no renderer commands (the migration in
+  // store/preferences.js converts a stored zoom once).
   // Theme parent — subcommands are in menu
   'window.change-theme',
   // Window management — command-palette accessible
@@ -309,6 +302,57 @@ describe('menu ↔ commands consistency', () => {
     // Both accelerators stay unique across the whole menu.
     expect(buildFn.match(/Ctrl\+Tab"/g)).toHaveLength(1)
     expect(buildFn.match(/Ctrl\+Shift\+Tab"/g)).toHaveLength(1)
+  })
+
+  it('pins the View-menu Zoom In/Out/Actual Size ids and accelerators (C-49)', () => {
+    const rust = readSource('src-tauri/src/m009_menu.rs')
+    const buildFn = rust.slice(rust.indexOf('pub fn build_native_menu'))
+    const taxonomy = rust.slice(0, rust.indexOf('pub fn build_native_menu'))
+
+    expect(buildFn).toMatch(
+      /with_id\("view\.zoom-in", "Zoom In"\)[\s\S]*?accelerator\("CmdOrCtrl\+="\)/
+    )
+    expect(buildFn).toMatch(
+      /with_id\("view\.zoom-out", "Zoom Out"\)[\s\S]*?accelerator\("CmdOrCtrl\+-"\)/
+    )
+    expect(buildFn).toMatch(
+      /with_id\("view\.actual-size", "Actual Size"\)[\s\S]*?accelerator\("CmdOrCtrl\+0"\)/
+    )
+    // Each accelerator stays unique across the whole menu.
+    expect(buildFn.match(/CmdOrCtrl\+="/g)).toHaveLength(1)
+    expect(buildFn.match(/CmdOrCtrl\+-"/g)).toHaveLength(1)
+    expect(buildFn.match(/CmdOrCtrl\+0"/g)).toHaveLength(1)
+    // The taxonomy (standard_menu) stays consistent with the built menu.
+    expect(taxonomy).toContain('id: "view.zoom-in".to_string()')
+    expect(taxonomy).toContain('id: "view.zoom-out".to_string()')
+    expect(taxonomy).toContain('id: "view.actual-size".to_string()')
+  })
+
+  it('the retired percentage zoom has neither menu ids nor renderer commands (C-49)', () => {
+    const rust = readSource('src-tauri/src/m009_menu.rs')
+    // Menu CODE (build function + taxonomy) must not register any zoom id;
+    // CHANGE_SUMMARY comments may still mention the retired ids.
+    expect(rust).not.toMatch(/with_id\(\s*"file\.zoom/)
+    expect(rust).not.toMatch(/id:\s*"file\.zoom[^"]*"\.to_string\(\)/)
+    const retired = [
+      'file.zoom',
+      'file.zoom-0',
+      'file.zoom-1',
+      'file.zoom-2',
+      'file.zoom-3',
+      'file.zoom-4',
+      'file.zoom-5',
+      'file.zoom-6',
+      'file.zoom-7',
+      'file.zoom-8',
+      'file.zoom-9',
+      'file.zoom-10',
+      'file.zoom-11'
+    ]
+    for (const id of retired) {
+      expect(commandIds.has(id)).toBe(false)
+      expect(RENDERER_ONLY_ALLOWLIST.has(id)).toBe(false)
+    }
   })
 
   it('allowlist entries actually exist in renderer commands', () => {

@@ -26,7 +26,7 @@
     "default": false
   },
   "zoom": {
-    "description": "General--The zoom level. Between 0.5 and 2.0 inclusive.",
+    "description": "General--Retired percentage zoom (C-49). Kept only so a stored value can be migrated once into fontSize (clamp(round(16 × zoom))) and reset to 1; nothing reads it afterwards.--internal",
     "type": "number",
     "minimum": 0.5,
     "maximum": 2.0,
@@ -73,6 +73,13 @@
   },
   "fontSize": {
     "description": "Editor--Font size in pixels",
+    "type": "number",
+    "maximum": 32,
+    "minimum": 12,
+    "default": 16
+  },
+  "baseFontSize": {
+    "description": "Editor--The Settings font size that Zoom Actual Size (CmdOrCtrl+0) restores; zoom steps never overwrite it (C-49).",
     "type": "number",
     "maximum": 32,
     "minimum": 12,

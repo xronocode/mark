@@ -1,10 +1,10 @@
 // FILE: src/muya/lib/parser/render/mermaidPipeline.js
-// VERSION: 1.1.0
+// VERSION: 1.2.0
 // START_MODULE_CONTRACT
-//   PURPOSE: Resilient Mermaid render pipeline (C-34 R2.1) — LRU SVG cache keyed by code+theme hash, keep-last-good rendering with escaped error text, per-block ~250 ms debounce while typing, unique render ids from a module counter, and WKWebView CSP style hoisting.
-//   SCOPE: createMermaidPipeline factory plus cache/LRU, hash, debounce, insert, error, and orphan-cleanup helpers; targets are resolved by selector at each flush so re-patched DOM is always current.
+//   PURPOSE: Resilient Mermaid render pipeline (C-34 R2.1) — LRU SVG cache keyed by code+theme hash, keep-last-good rendering with escaped error text, per-block ~250 ms debounce while typing, unique render ids from a module counter, WKWebView CSP style hoisting, and C-49 fontSize-proportional diagram scaling via the --mark-zoom custom property.
+//   SCOPE: createMermaidPipeline factory plus cache/LRU, hash, debounce, insert (incl. natural-width capture), error, and orphan-cleanup helpers; targets are resolved by selector at each flush so re-patched DOM is always current.
 //   DEPENDS: muya/lib/renderers (loadRenderer, injectable), muya/lib/config (CLASS_OR_ID).
-//   LINKS: .grace/changes/active/C-34 R2.1; .grace/graph/runtime.xml M-012; .grace/verification/runtime.xml V-M-012 scenario-9.
+//   LINKS: .grace/changes/active/C-34 R2.1; .grace/changes/active/C-49 R-1; .grace/graph/runtime.xml M-012; .grace/verification/runtime.xml V-M-012 scenario-9.
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT
@@ -13,10 +13,12 @@
 //   createMermaidPipeline - builds a pipeline { render(entries), flushPending(), destroy() } with injectable loadRenderer/getTheme/debounceDelayMs for tests.
 //   MERMAID_PREVIEW_CLASS - CSS hook class ("ag-mermaid-preview") added to a container that currently shows a mermaid SVG (scopes natural-size CSS).
 //   MERMAID_ERROR_CLASS - CSS class ("ag-mermaid-error") of the small error element rendered below a kept-last-good diagram.
+//   MERMAID_NATURAL_WIDTH_ATTR - SVG attribute ("data-natural-width") carrying the diagram's natural pixel width for C-49 zoom scaling.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.1.0 - 2026-10-15 C-34: wide diagrams fit the text column by default (useMaxWidth:true, user decision); natural size lives in the fullscreen viewer.
+//   LAST_CHANGE: v1.2.0 - 2026-10-15 C-49: diagrams scale with the editor font size — every inserted SVG records its natural width (data-natural-width, from mermaid's inline max-width / width attr / viewBox) and gets an inline max-width: calc(var(--mark-zoom, 1) × natural px); pages/app.vue maintains --mark-zoom = fontSize / 16 on the document element. All insert paths (first render, cache hit, keep-last-good) run through insertSvg, so each carries the attribute. The fullscreen viewer clone is unaffected (it overrides inline width/height/max-width from the viewBox).
+//   v1.1.0 - 2026-10-15 C-34: wide diagrams fit the text column by default (useMaxWidth:true, user decision); natural size lives in the fullscreen viewer.
 //   v1.0.0 - 2026-10-15 C-34 R2.1: extracted from StateRender.renderMermaid; added LRU code+theme SVG cache, keep-last-good + escaped mermaid error text, orphan error-element cleanup, per-block trailing debounce, counter-based unique render ids, and useMaxWidth:false initialization for natural-size diagrams.
 // END_CHANGE_SUMMARY
 
@@ -25,6 +27,7 @@ import { CLASS_OR_ID } from '../../config'
 
 export const MERMAID_PREVIEW_CLASS = 'ag-mermaid-preview'
 export const MERMAID_ERROR_CLASS = 'ag-mermaid-error'
+export const MERMAID_NATURAL_WIDTH_ATTR = 'data-natural-width'
 
 // START_BLOCK_MERMAID_FIT_COLUMN_CONFIG
 // User decision 2026-10-15 (replaces the R2.1 natural-size default): wide
@@ -153,6 +156,48 @@ export const createMermaidPipeline = ({
     return mermaidModule
   }
 
+  // START_BLOCK_MERMAID_NATURAL_WIDTH
+  // C-49: previews scale with the editor font size. useMaxWidth:true makes
+  // mermaid emit width="100%" plus an inline max-width equal to the
+  // diagram's natural width; capture that natural width on the SVG
+  // (data-natural-width) and replace the inline max-width with
+  // calc(var(--mark-zoom, 1) * <natural>px). --mark-zoom (fontSize / 16) is
+  // maintained by pages/app.vue on the document element, so the diagram —
+  // and its labels, which scale with the viewBox — grows with the editor
+  // zoom while width:100% still keeps it inside the text column. The
+  // fullscreen block viewer clone is unaffected: it overrides the inline
+  // width/height/max-width from the viewBox (blockViewer/index.js).
+  const parsePx = (str) => {
+    if (!str) return 0
+    const match = /([\d.]+)\s*px/.exec(String(str))
+    if (!match) return 0
+    const n = Number.parseFloat(match[1])
+    return Number.isFinite(n) && n > 0 ? n : 0
+  }
+
+  const extractNaturalWidth = (svg) => {
+    const existing = parsePx(svg.getAttribute(MERMAID_NATURAL_WIDTH_ATTR) + 'px')
+    if (existing > 0) return existing
+    // A previously-scaled cached SVG carries its own calc() max-width — the
+    // attribute check above already caught that case; a fresh mermaid SVG
+    // carries "max-width: NNNpx".
+    const inline = parsePx(svg.style && svg.style.maxWidth)
+    if (inline > 0) return inline
+    const attrWidth = parsePx(svg.getAttribute('width') + 'px')
+    if (attrWidth > 0) return attrWidth
+    const viewBox = svg.viewBox && svg.viewBox.baseVal
+    return viewBox && viewBox.width > 0 ? viewBox.width : 0
+  }
+
+  const applyZoomableMaxWidth = (svg) => {
+    if (!svg || !svg.style) return
+    const natural = extractNaturalWidth(svg)
+    if (natural <= 0) return
+    svg.setAttribute(MERMAID_NATURAL_WIDTH_ATTR, String(natural))
+    svg.style.maxWidth = `calc(var(--mark-zoom, 1) * ${natural}px)`
+  }
+  // END_BLOCK_MERMAID_NATURAL_WIDTH
+
   // START_BLOCK_MERMAID_INSERT
   const insertSvg = (target, svg) => {
     target.innerHTML = svg
@@ -164,6 +209,7 @@ export const createMermaidPipeline = ({
     if (svgStyle) {
       target.insertBefore(svgStyle, target.firstChild)
     }
+    applyZoomableMaxWidth(target.querySelector('svg'))
     target.classList.add(MERMAID_PREVIEW_CLASS)
     target.classList.remove(CLASS_OR_ID.AG_MATH_ERROR)
   }

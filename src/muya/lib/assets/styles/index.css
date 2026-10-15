@@ -792,7 +792,13 @@ figure.ag-container-block div.ag-container-preview.ag-mermaid-preview {
 
 /* Wide diagrams fit the column (mermaid useMaxWidth:true sets width 100%
    and an inline max-width = natural width); narrow ones keep their size
-   and stay centred. Natural size is in the fullscreen block viewer. */
+   and stay centred. Natural size is in the fullscreen block viewer.
+   C-49: the pipeline replaces the inline max-width with
+   calc(var(--mark-zoom, 1) * <data-natural-width>px) so diagrams and their
+   labels scale with the editor font size (pages/app.vue keeps --mark-zoom =
+   fontSize / 16 on the document element) while width:100% still fits them
+   inside the column; the viewer clone overrides the inline size from the
+   viewBox, so it keeps the natural 1:1 size. */
 figure.ag-container-block div.ag-container-preview.ag-mermaid-preview > svg {
   display: block;
   margin: 0 auto;

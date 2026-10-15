@@ -3292,6 +3292,14 @@
           npx vitest run tests/renderer/i18n/system-language.test.js
           tests/renderer/store/preferences-language.test.js
         </Command>
+        <Command>
+          npx vitest run tests/renderer/store/preferences-zoom.test.js
+          tests/renderer/components/zoom-indicator.test.js
+          tests/renderer/util/theme.test.js
+        </Command>
+        <Command>
+          npx playwright test tests/e2e/zoom.spec.ts --project=chromium
+        </Command>
       </Commands>
       <Scenarios>
         <Scenario>
@@ -3723,6 +3731,47 @@
           tests/renderer/store/preferences.test.ts (spot-check default
           'system') + tests/renderer/pages/general-config.test.js
           (options list starts with 'system').
+        </Scenario>
+        <Scenario>
+          scenario-41: One clear zoom (C-49): ⌘+/⌘−/⌘0, Ctrl+wheel/pinch
+          and the native View-menu items view.zoom-in / view.zoom-out /
+          view.actual-size (CmdOrCtrl+=/-/0, id-dispatched via the
+          menu-bridge to the same renderer commands) all route through the
+          preferences-store zoom actions (clamp 12–36, 150 ms debounced
+          persist); ⌘0 restores the persisted baseFontSize (the Settings
+          size — mirrored when a Settings/hydration fontSize arrives
+          without its own base value, never overwritten by zoom steps); a
+          stored legacy zoom ≠ 1 migrates once into
+          clamp(round(16 × zoom)) for fontSize and baseFontSize and resets
+          zoom to 1 (MIGRATE_LEGACY_ZOOM from app.vue after hydration); the
+          palette percentage zoom (file.zoom / file.zoom-0..11) is retired
+          from commands, descriptions and the menu-consistency allowlist;
+          --mark-zoom = fontSize / 16 on the document element scales every
+          mermaid SVG (data-natural-width + inline
+          max-width: calc(var(--mark-zoom, 1) × natural px) applied on all
+          pipeline insert paths — first render, cache hit, keep-last-good)
+          while width:100% keeps diagrams inside the column and the
+          fullscreen viewer clone keeps its viewBox natural size; the
+          WYSIWYG code font becomes codeFontSize/16 em so code blocks scale
+          (source-mode CodeMirror keeps px); a transient aria-live polite
+          pill (components/zoomIndicator, event-driven so boot hydration
+          never flashes it) shows round(fontSize/baseFontSize × 100) for
+          ~1 s and drops its transition under prefers-reduced-motion; the
+          ⌘-keys and Ctrl+wheel skip the fullscreen block viewer (R-6).
+          Unit-pinned in tests/renderer/store/preferences-zoom.test.js
+          (migration incl. zoom 1.25 → 20, clamping, actual-size → base,
+          mirror, debounce, indicator event) +
+          tests/renderer/components/zoom-indicator.test.js +
+          tests/renderer/util/theme.test.js (em-based code font) +
+          tests/renderer/muya/mermaid-pipeline.test.js (C-49 cases) +
+          tests/renderer/commands/{index,index-deep,descriptions}.test.js +
+          tests/renderer/commands/menu-consistency.test.js (zoom trio pins
+          + retirement) + cargo test m009
+          (view_menu_zoom_items_dispatch_by_id_with_accelerators) +
+          e2e tests/e2e/zoom.spec.ts (⌘+ ×4 grows p, td, code, .katex and
+          the mermaid SVG width/labels with the SVG still ≤ column width;
+          ⌘0 returns to base; pill appears and hides; Ctrl+wheel inside
+          the block viewer leaves the editor font size alone).
         </Scenario>
       </Scenarios>
       <Markers>

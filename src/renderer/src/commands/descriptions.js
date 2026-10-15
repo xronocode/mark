@@ -42,7 +42,6 @@ const COMMAND_KEY_MAP = {
 
   // 文件操作
   'file.print': 'commands.file.print',
-  'file.zoom': 'commands.file.zoom',
   'file.check-update': 'commands.file.checkUpdate',
 
   // 文件关闭
@@ -193,6 +192,10 @@ const COMMAND_KEY_MAP = {
 
   // 菜单项
   'view.reload-images': 'commands.view.reloadImages',
+
+  // 统一缩放 (C-49 unified zoom)
+  'view.zoom-in': 'commands.view.zoomIn',
+  'view.zoom-out': 'commands.view.zoomOut',
 
   // ============================================
   // # 标签页管理命令 (Tab Management)

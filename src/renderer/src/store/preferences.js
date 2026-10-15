@@ -1,20 +1,32 @@
 // FILE: src/renderer/src/store/preferences.js
-// VERSION: 1.1.0
+// VERSION: 1.2.0
 // START_MODULE_CONTRACT
-//   PURPOSE: Pinia store for persistent user preferences, their hydration, persistence, and the UI-language application paths (concrete or 'system').
-//   SCOPE: default state, SET_USER_PREFERENCE / SET_SINGLE_PREFERENCE, ASK_FOR_USER_PREFERENCE boot hydration, buildCapabilities + default-handler queries, LISTEN_SYSTEM_LANGUAGE re-resolution (C-45).
+//   PURPOSE: Pinia store for persistent user preferences, their hydration, persistence, the unified fontSize zoom actions (C-49), and the UI-language application paths (concrete or 'system').
+//   SCOPE: default state, SET_USER_PREFERENCE / SET_SINGLE_PREFERENCE, the C-49 zoom actions (APPLY_FONT_SIZE / ZOOM_STEP / ZOOM_ACTUAL_SIZE) and the one-time legacy `zoom` migration, ASK_FOR_USER_PREFERENCE boot hydration, buildCapabilities + default-handler queries, LISTEN_SYSTEM_LANGUAGE re-resolution (C-45).
 //   DEPENDS: pinia, @tauri-apps/api/core, bus, services/notification, i18n/index.js, i18n/systemLocale.js.
-//   LINKS: _shims/preferences/schema.json defaults; pages/app.vue boot; bootstrap-ipc.js broadcasts; prefComponents language select.
+//   LINKS: _shims/preferences/schema.json defaults; pages/app.vue boot + zoom keys/wheel; components/zoomIndicator; .grace/changes/active/C-49.
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
-//   usePreferencesStore - Pinia store factory (state defaults, hydration, persistence, LISTEN_* wiring incl. LISTEN_SYSTEM_LANGUAGE).
+//   usePreferencesStore - Pinia store factory (state defaults, hydration, persistence, C-49 zoom actions, LISTEN_* wiring incl. LISTEN_SYSTEM_LANGUAGE).
+//   FONT_SIZE_MIN / FONT_SIZE_MAX / FONT_SIZE_DEFAULT - unified-zoom clamp bounds and base unit (C-49).
+//   clampFontSize - round + clamp helper shared by the zoom actions and the legacy-zoom migration (C-49).
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.1.0 - C-45 T-001: default language 'system' for new profiles (stored values untouched); LISTEN_SYSTEM_LANGUAGE re-resolves on window languagechange/focus and applies only when the effective locale changed.
+//   LAST_CHANGE: v1.2.0 - 2026-10-15 C-49 T-001: one clear zoom — fontSize is
+//   the only zoom (⌘+/⌘−/⌘0, pinch, View menu all route through
+//   APPLY_FONT_SIZE / ZOOM_STEP / ZOOM_ACTUAL_SIZE with a 12–36 clamp and the
+//   150 ms debounced persistence that used to live in pages/app.vue); new
+//   persisted `baseFontSize` (the Settings size) is mirrored when fontSize
+//   arrives via hydration/Settings broadcasts without its own value and is
+//   restored by ⌘0 Actual Size; a stored legacy `zoom` ≠ 1 migrates once into
+//   clamp(round(16 × zoom)) for both fontSize and baseFontSize and resets
+//   zoom to 1 (MIGRATE_LEGACY_ZOOM); each applied step emits
+//   mt::zoom-level-changed for the transient indicator.
+//   v1.1.0 - C-45 T-001: default language 'system' for new profiles (stored values untouched); LISTEN_SYSTEM_LANGUAGE re-resolves on window languagechange/focus and applies only when the effective locale changed.
 // END_CHANGE_SUMMARY
 
 import { defineStore } from 'pinia'
@@ -23,6 +35,22 @@ import bus from '../bus'
 import notice from '../services/notification'
 import { setLanguage, getCurrentLanguage } from '../i18n'
 import { SYSTEM_LANGUAGE, resolveSystemLocale } from '../i18n/systemLocale'
+
+// C-49: the unified zoom clamps the editor font size to 12–36 px. 16 px is
+// the base unit — --mark-zoom (fontSize / 16) scales mermaid diagrams with
+// it, and the legacy percentage-zoom migration derives fontSize from it.
+export const FONT_SIZE_MIN = 12
+export const FONT_SIZE_MAX = 36
+export const FONT_SIZE_DEFAULT = 16
+
+export const clampFontSize = (value) =>
+  Math.max(FONT_SIZE_MIN, Math.min(FONT_SIZE_MAX, Math.round(value)))
+
+// Debounced fontSize persistence (moved from pages/app.vue, C-49): rapid
+// ⌘+/⌘−/pinch steps collapse into one mt_prefs_set write. Module-scoped so
+// Pinia never proxies the timer id.
+const FONT_PERSIST_DEBOUNCE_MS = 150
+let fontSizePersistTimer = null
 
 // Boot-stomp guard (see ASK_FOR_USER_PREFERENCE): preference keys the
 // user has changed since store creation. Module-scoped so Pinia never
@@ -75,6 +103,11 @@ export const usePreferencesStore = defineStore('preferences', {
 
     editorFontFamily: 'Open Sans',
     fontSize: 16,
+    // C-49: the Settings font size — ⌘0 "Actual Size" returns here. Zoom
+    // steps (ZOOM_STEP) only write fontSize, so the user's Settings choice
+    // is never lost. Mirrored by SET_USER_PREFERENCE when a fontSize
+    // arrives from Settings/hydration without its own baseFontSize.
+    baseFontSize: 16,
     lineHeight: 1.6,
     codeFontSize: 14,
     codeFontFamily: 'DejaVu Sans Mono',
@@ -209,6 +242,29 @@ export const usePreferencesStore = defineStore('preferences', {
           this[key] = preference[key]
         }
       })
+
+      // START_BLOCK_BASE_FONT_SIZE_MIRROR
+      // C-49: a fontSize arriving from boot hydration or a Settings-window
+      // broadcast (payloads that carry no baseFontSize of their own) re-bases
+      // "Actual Size" — ⌘+/⌘− steps must never overwrite the user's Settings
+      // size. Payloads from post-C-49 profiles carry baseFontSize and apply
+      // it verbatim above. Fire-and-forget persist: once written, every
+      // later hydration carries the key and the mirror stops firing.
+      const incomingFontSize = Number(preference && preference.fontSize)
+      if (
+        preference &&
+        preference.baseFontSize === undefined &&
+        Number.isFinite(incomingFontSize) &&
+        this.baseFontSize !== clampFontSize(incomingFontSize)
+      ) {
+        this.baseFontSize = clampFontSize(incomingFontSize)
+        invoke('mt_prefs_set', { key: 'baseFontSize', value: this.baseFontSize }).catch(() => {})
+        console.log(
+          `[prefs][zoom][BLOCK_BASE_FONT_SIZE_MIRRORED baseFontSize=${this.baseFontSize}]`
+        )
+      }
+      // END_BLOCK_BASE_FONT_SIZE_MIRROR
+
       // Update i18n language if language preference changed
       if (preference.language && preference.language !== oldLanguage) {
         setLanguage(preference.language)
@@ -281,6 +337,73 @@ export const usePreferencesStore = defineStore('preferences', {
         console.error(`[ipc][prefs_set][BLOCK_INVOKE_FAILED user_data key=${type}]`, e)
       }
     },
+
+    // ─── C-49 unified zoom ────────────────────────────────────────────
+    // One zoom for everything: ⌘+/⌘−/⌘0 keys, Ctrl+wheel/pinch (app.vue),
+    // and the View-menu commands (view.zoom-in/out/actual-size) all land
+    // here. The live fontSize state write applies instantly (editor.vue
+    // watch → muya setFont); persistence is debounced. Each applied change
+    // emits mt::zoom-level-changed for the transient zoom indicator.
+
+    // START_BLOCK_APPLY_FONT_SIZE
+    APPLY_FONT_SIZE(value) {
+      const next = clampFontSize(value)
+      if (next === this.fontSize) return
+      this.fontSize = next
+      bus.emit('mt::zoom-level-changed', {
+        fontSize: next,
+        baseFontSize: clampFontSize(this.baseFontSize)
+      })
+      if (fontSizePersistTimer) {
+        clearTimeout(fontSizePersistTimer)
+      }
+      fontSizePersistTimer = setTimeout(() => {
+        fontSizePersistTimer = null
+        this.SET_SINGLE_PREFERENCE({ type: 'fontSize', value: next })
+      }, FONT_PERSIST_DEBOUNCE_MS)
+    },
+    // END_BLOCK_APPLY_FONT_SIZE
+
+    ZOOM_STEP(delta) {
+      this.APPLY_FONT_SIZE(this.fontSize + delta)
+    },
+
+    // ⌘0 "Actual Size": back to the user's Settings size, never a hard 16.
+    ZOOM_ACTUAL_SIZE() {
+      this.APPLY_FONT_SIZE(this.baseFontSize)
+    },
+
+    // START_BLOCK_MIGRATE_LEGACY_ZOOM
+    // One-time retirement of the palette percentage zoom (C-49 R-4): a
+    // stored `zoom` ≠ 1 becomes an equivalent fontSize
+    // (clamp(round(16 × zoom)), baseFontSize likewise) and zoom resets to
+    // 1 so the mt::window-zoom path stays harmless. Called once from
+    // pages/app.vue after boot hydration; returns whether a migration ran.
+    async MIGRATE_LEGACY_ZOOM() {
+      const legacyZoom = Number(this.zoom)
+      if (!Number.isFinite(legacyZoom) || legacyZoom === 1) {
+        return false
+      }
+      const migrated = clampFontSize(FONT_SIZE_DEFAULT * legacyZoom)
+      this.fontSize = migrated
+      this.baseFontSize = migrated
+      this.zoom = 1
+      try {
+        await Promise.all([
+          invoke('mt_prefs_set', { key: 'fontSize', value: migrated }),
+          invoke('mt_prefs_set', { key: 'baseFontSize', value: migrated }),
+          invoke('mt_prefs_set', { key: 'zoom', value: 1 })
+        ])
+        console.log(
+          `[prefs][zoom-migration][BLOCK_LEGACY_ZOOM_MIGRATED zoom=${legacyZoom} fontSize=${migrated}]`
+        )
+      } catch (e) {
+        // In-memory state is already migrated; persistence retries next boot.
+        console.error('[prefs][zoom-migration][BLOCK_LEGACY_ZOOM_MIGRATE_FAILED]', e)
+      }
+      return true
+    },
+    // END_BLOCK_MIGRATE_LEGACY_ZOOM
 
     async SET_IMAGE_FOLDER_PATH(value) {
       if (value === undefined) {

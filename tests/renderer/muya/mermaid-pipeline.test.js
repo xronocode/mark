@@ -22,7 +22,11 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.0.0 - 2026-10-15 C-34 R2.1: cache-hit, theme-miss, keep-last-good, error escaping, first-time error, orphan cleanup, debounce collapse, LRU bound, unique ids, natural-size config; StateRender-level cache and keep-last-good cases fail against the pre-R2.1 implementation.
+//   LAST_CHANGE: v1.1.0 - 2026-10-15 C-49: data-natural-width + inline
+//   calc(var(--mark-zoom, 1) × natural px) pinned on every insert path
+//   (first render, inline-max-width and viewBox extraction, cache hit,
+//   keep-last-good) — all fail against the pre-C-49 pipeline.
+//   v1.0.0 - 2026-10-15 C-34 R2.1: cache-hit, theme-miss, keep-last-good, error escaping, first-time error, orphan cleanup, debounce collapse, LRU bound, unique ids, natural-size config; StateRender-level cache and keep-last-good cases fail against the pre-R2.1 implementation.
 // END_CHANGE_SUMMARY
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -291,6 +295,83 @@ describe('mermaid pipeline (C-34 R2.1)', () => {
     const ids = fakeMermaid.render.mock.calls.map((call) => call[0])
     expect(new Set(ids).size).toBe(ids.length)
     expect(ids.every((id) => id.startsWith('mermaid-'))).toBe(true)
+  })
+
+  // ─── C-49: diagrams scale with the editor font size ─────────────────
+  // The pipeline must record each diagram's natural width and rewrite the
+  // inline max-width as calc(var(--mark-zoom, 1) × natural px) on EVERY
+  // insert path (first render, cache hit, keep-last-good).
+
+  it('a first render records data-natural-width and the --mark-zoom calc max-width', async () => {
+    const target = createTarget('b1')
+    const pipeline = makePipeline()
+    await pipeline.render([['#b1', { code: GOOD_CODE, functionType: 'mermaid' }]])
+
+    const svg = target.querySelector('svg')
+    // The fake double emits width="700"; mermaid's real useMaxWidth SVGs
+    // carry an inline max-width instead — covered by the cases below.
+    expect(svg.getAttribute('data-natural-width')).toBe('700')
+    expect(svg.style.maxWidth).toBe('calc(var(--mark-zoom, 1) * 700px)')
+  })
+
+  it('uses mermaid’s inline max-width (useMaxWidth:true) as the natural width', async () => {
+    fakeMermaid.render = vi.fn(async (id) => ({
+      svg: `<svg id="${id}" width="100%" style="max-width: 512px;" viewBox="0 0 512 128"><g/></svg>`,
+      bindFunctions: null
+    }))
+    const target = createTarget('b1')
+    const pipeline = makePipeline()
+    await pipeline.render([['#b1', { code: GOOD_CODE, functionType: 'mermaid' }]])
+
+    const svg = target.querySelector('svg')
+    expect(svg.getAttribute('data-natural-width')).toBe('512')
+    expect(svg.style.maxWidth).toBe('calc(var(--mark-zoom, 1) * 512px)')
+  })
+
+  it('falls back to the viewBox when the SVG has neither max-width nor a numeric width', async () => {
+    fakeMermaid.render = vi.fn(async (id) => ({
+      svg: `<svg id="${id}" width="100%" viewBox="0 0 320 90"><g/></svg>`,
+      bindFunctions: null
+    }))
+    const target = createTarget('b1')
+    const pipeline = makePipeline()
+    await pipeline.render([['#b1', { code: GOOD_CODE, functionType: 'mermaid' }]])
+
+    const svg = target.querySelector('svg')
+    expect(svg.getAttribute('data-natural-width')).toBe('320')
+    expect(svg.style.maxWidth).toBe('calc(var(--mark-zoom, 1) * 320px)')
+  })
+
+  it('a cache hit re-applies data-natural-width and the calc max-width', async () => {
+    const target = createTarget('b1')
+    const pipeline = makePipeline()
+    await pipeline.render([['#b1', { code: GOOD_CODE, functionType: 'mermaid' }]])
+    expect(fakeMermaid.render).toHaveBeenCalledTimes(1)
+
+    // Snabbdom rebuilds the preview div — the cached SVG string is a fresh,
+    // unmodified element, so the pipeline must re-derive the natural width.
+    target.textContent = 'loading...'
+    await pipeline.render([['#b1', { code: GOOD_CODE, functionType: 'mermaid' }]])
+
+    const svg = target.querySelector('svg')
+    expect(svg.getAttribute('data-natural-width')).toBe('700')
+    expect(svg.style.maxWidth).toBe('calc(var(--mark-zoom, 1) * 700px)')
+  })
+
+  it('the keep-last-good insert after a failed render also carries data-natural-width', async () => {
+    const target = createTarget('b1')
+    const pipeline = makePipeline()
+    await pipeline.render([['#b1', { code: GOOD_CODE, functionType: 'mermaid' }]])
+
+    target.textContent = 'loading...'
+    const promise = pipeline.render([['#b1', { code: BAD_CODE, functionType: 'mermaid' }]])
+    await vi.advanceTimersByTimeAsync(250)
+    await promise
+
+    const svg = target.querySelector('svg')
+    expect(svg).not.toBeNull()
+    expect(svg.getAttribute('data-natural-width')).toBe('700')
+    expect(svg.style.maxWidth).toBe('calc(var(--mark-zoom, 1) * 700px)')
   })
 })
 
