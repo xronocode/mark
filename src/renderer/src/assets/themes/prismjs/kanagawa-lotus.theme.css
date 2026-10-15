@@ -1,11 +1,11 @@
 /*
- * Prism.js Horizon Dark Theme
- * Based on https://horizontheme.com
+ * Prism.js Kanagawa Lotus Theme (C-41 T-003)
+ * Based on the official Kanagawa Lotus palette
  */
 
 code[class*="language-"],
 pre.ag-paragraph {
-  color: #d5d8da;
+  color: #545464;
   text-align: left;
   white-space: pre;
   word-spacing: normal;
@@ -29,7 +29,7 @@ pre.ag-paragraph {
 
 :not(pre) > code[class*="language-"],
 pre.ag-paragraph {
-  background: var(--codeBlockBgColor, #1c1e26);
+  background: var(--codeBlockBgColor, #e8e2b3);
 }
 
 :not(pre) > code[class*="language-"] {
@@ -42,16 +42,16 @@ pre.ag-paragraph {
 .token.prolog,
 .token.doctype,
 .token.cdata {
-  color: #6c6f93;
+  color: #84856a;
   font-style: italic;
 }
 
 .token.punctuation {
-  color: #6c6f93;
+  color: #43445c;
 }
 
 .namespace {
-  color: #fab795;
+  color: #4d699b;
   opacity: .85;
 }
 
@@ -60,12 +60,12 @@ pre.ag-paragraph {
 .token.constant,
 .token.symbol,
 .token.deleted {
-  color: #e95678;
+  color: #c84053;
 }
 
 .token.boolean,
 .token.number {
-  color: #f09483;
+  color: #b35b79;
 }
 
 .token.selector,
@@ -74,7 +74,7 @@ pre.ag-paragraph {
 .token.char,
 .token.builtin,
 .token.inserted {
-  color: #29d398;
+  color: #6f894e;
 }
 
 .token.operator,
@@ -82,35 +82,35 @@ pre.ag-paragraph {
 .token.url,
 .language-css .token.string,
 .style .token.string {
-  color: #59e3e3;
+  color: #4d699b;
 }
 
 .token.atrule,
 .token.attr-value,
 .token.function {
-  color: #fab795;
+  color: #4d699b;
 }
 
 .token.class-name {
-  color: #fab795;
+  color: #4d699b;
 }
 
 .token.parameter {
-  color: #e95678;
+  color: #a58049;
 }
 
 .token.macro {
-  color: #fab795;
+  color: #4d699b;
 }
 
 .token.keyword {
-  color: #b877db;
+  color: #b35b79;
 }
 
 .token.regex,
 .token.important,
 .token.variable {
-  color: #fab795;
+  color: #c84053;
 }
 
 .token.important,

@@ -1,11 +1,11 @@
 /*
- * Prism.js Synthwave '84 Theme
- * Based on https://github.com/robb0wen/synthwave-vscode
+ * Prism.js Alucard Theme (C-41 T-003)
+ * Based on the official Dracula light palette (draculatheme.com)
  */
 
 code[class*="language-"],
 pre.ag-paragraph {
-  color: #f8f8f2;
+  color: #1f1f1f;
   text-align: left;
   white-space: pre;
   word-spacing: normal;
@@ -29,7 +29,7 @@ pre.ag-paragraph {
 
 :not(pre) > code[class*="language-"],
 pre.ag-paragraph {
-  background: var(--codeBlockBgColor, #262335);
+  background: var(--codeBlockBgColor, #f4eed5);
 }
 
 :not(pre) > code[class*="language-"] {
@@ -42,16 +42,16 @@ pre.ag-paragraph {
 .token.prolog,
 .token.doctype,
 .token.cdata {
-  color: #848bbd;
+  color: #7c7f8d;
   font-style: italic;
 }
 
 .token.punctuation {
-  color: #495495;
+  color: #5b5b66;
 }
 
 .namespace {
-  color: #72f1b8;
+  color: #036a96;
   opacity: .85;
 }
 
@@ -60,12 +60,12 @@ pre.ag-paragraph {
 .token.constant,
 .token.symbol,
 .token.deleted {
-  color: #ff7edb;
+  color: #a3144d;
 }
 
 .token.boolean,
 .token.number {
-  color: #f97e72;
+  color: #644ac9;
 }
 
 .token.selector,
@@ -74,7 +74,7 @@ pre.ag-paragraph {
 .token.char,
 .token.builtin,
 .token.inserted {
-  color: #72f1b8;
+  color: #14710a;
 }
 
 .token.operator,
@@ -82,35 +82,35 @@ pre.ag-paragraph {
 .token.url,
 .language-css .token.string,
 .style .token.string {
-  color: #36f9f6;
+  color: #036a96;
 }
 
 .token.atrule,
 .token.attr-value,
 .token.function {
-  color: #fede5d;
+  color: #a34d14;
 }
 
 .token.class-name {
-  color: #72f1b8;
+  color: #036a96;
 }
 
 .token.parameter {
-  color: #f97e72;
+  color: #a34d14;
 }
 
 .token.macro {
-  color: #72f1b8;
+  color: #036a96;
 }
 
 .token.keyword {
-  color: #ff7edb;
+  color: #644ac9;
 }
 
 .token.regex,
 .token.important,
 .token.variable {
-  color: #fede5d;
+  color: #a3144d;
 }
 
 .token.important,

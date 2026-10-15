@@ -1,3 +1,7 @@
+/* C-41 T-003 contrast pass: editorColor alpha .7 removed (2.88 → 5.25
+   composited on #f3f3f3), linkColor darkened rgb(12,139,186) →
+   rgb(12,107,144) (3.49 → 5.38), blockquote alpha .5 → .8 (2.05 → 3.51);
+   --floatShadow added (Paper variable set). */
 :root {
   --themeColor: rgb(12, 139, 186);
   --themeColor90: rgba(12, 139, 186, .9);
@@ -12,7 +16,7 @@
 
   --highlightColor: rgba(12, 139, 186, .4);
   --selectionColor: rgba(12, 139, 186, .2);
-  --editorColor: rgba(101, 101, 101, .7);
+  --editorColor: rgb(101, 101, 101);
   --editorColor80: rgba(101, 101, 101, .8);
   --editorColor60: rgba(101, 101, 101, .6);
   --editorColor50: rgba(101, 101, 101, .5);
@@ -63,10 +67,10 @@
   --h4Color: #7a70ba;
   --h5Color: #c75991;
   --h6Color: #708090;
-  --blockquoteTextColor: rgba(101, 101, 101, .5);
+  --blockquoteTextColor: rgba(101, 101, 101, .8);
   --blockquoteBorderColor: rgb(12, 139, 186);
   --hrColor: rgba(101, 101, 101, .1);
-  --linkColor: rgb(12, 139, 186);
+  --linkColor: rgb(12, 107, 144);
   --strongColor: rgba(101, 101, 101, .8);
   --emColor: #1a9f7f;
   --listMarkerColor: rgb(12, 139, 186);
@@ -83,6 +87,7 @@
   --floatBgColor: #ffffff;
   --floatHoverColor: rgba(101, 101, 101, .04);
   --floatBorderColor: rgba(0, 0, 0, .03);
+  --floatShadow: rgba(0, 0, 0, 0.12);
   --maskColor: rgba(232, 232, 232, .8);
   --editorAreaWidth: 750px;
 }

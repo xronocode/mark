@@ -1,8 +1,10 @@
 // FILE: src/renderer/src/util/autoTheme.js
-// VERSION: 1.0.0
+// VERSION: 1.1.0
 // START_MODULE_CONTRACT
-//   PURPOSE: Resolve the effective theme under followSystemTheme and track
-//            live prefers-color-scheme changes (C-41 T-001 Auto mode).
+//   PURPOSE: Resolve the effective theme under followSystemTheme, pick the
+//            family member for the current Auto/Light/Dark mode (C-41
+//            T-002), and track live prefers-color-scheme changes (C-41
+//            T-001 Auto mode).
 //   SCOPE:   Pure resolution helpers over a preference-like object plus a
 //            MediaQueryList change-listener factory. No store or DOM writes
 //            here — callers (app.vue, preference.vue) own application.
@@ -19,6 +21,7 @@
 //   systemPrefersDark - synchronous prefers-color-scheme snapshot (false when matchMedia is unavailable).
 //   resolveAutoTheme - pick darkModeTheme or lightModeTheme for the current/overridden appearance.
 //   effectiveTheme - followSystemTheme-aware theme for a preference-like object.
+//   familyMemberForMode - the family member a pick applies for auto/light/dark mode (C-41 T-002).
 //   watchSystemColorScheme - register a live change listener; returns the unregister function.
 // END_MODULE_MAP
 
@@ -51,6 +54,19 @@ export const resolveAutoTheme = (preferences, prefersDark = systemPrefersDark())
 // END_CONTRACT: effectiveTheme
 export const effectiveTheme = (preferences) => {
   return preferences.followSystemTheme ? resolveAutoTheme(preferences) : preferences.theme
+}
+
+// START_CONTRACT: familyMemberForMode
+//   PURPOSE: The member a family pick should apply for the current mode (C-41 T-002).
+//   INPUTS: { family: Object - { light, dark } theme ids; mode: string - 'auto' | 'light' | 'dark' }
+//   OUTPUTS: { string - family.dark / family.light; 'auto' resolves via the current prefers-color-scheme, any other value falls back to the Auto resolution }
+//   SIDE_EFFECTS: reads matchMedia when the mode resolves through Auto
+//   LINKS: prefComponents/theme family picker; titleBar START_BLOCK_THEME_CYCLE (same mode semantics)
+// END_CONTRACT: familyMemberForMode
+export const familyMemberForMode = (family, mode) => {
+  if (mode === 'light') return family.light
+  if (mode === 'dark') return family.dark
+  return systemPrefersDark() ? family.dark : family.light
 }
 
 // START_CONTRACT: watchSystemColorScheme

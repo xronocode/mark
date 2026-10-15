@@ -145,7 +145,8 @@ test.describe('Split View (C-29)', () => {
   })
 
   test('double-click on the divider swaps sides; dark theme probe', async ({ page }) => {
-    await withPrefs(page, { theme: 'dark' })
+    // C-41 T-002: 'dark' retired — ink is the dark brand default.
+    await withPrefs(page, { theme: 'ink' })
     await bootEditor(page)
     await openFileTab(page, '/tmp/c29/d.md', DOC)
     await invokeMenu(page, 'view.split-view')

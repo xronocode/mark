@@ -54,9 +54,14 @@ describe('config.js', () => {
   it('railscastsThemes is a frozen non-empty array of strings', () => {
     expect(Object.isFrozen(config.railscastsThemes)).toBe(true)
     expect(config.railscastsThemes.length).toBeGreaterThan(0)
-    expect(config.railscastsThemes).toContain('dark')
+    // C-41 T-002: 'ink' leads the kept dark ids; the retired ids
+    // (dark, material-dark, cyberdream, …) are gone.
+    expect(config.railscastsThemes).toContain('ink')
     expect(config.railscastsThemes).toContain('dracula')
     expect(config.railscastsThemes).toContain('nord')
+    expect(config.railscastsThemes).not.toContain('dark')
+    expect(config.railscastsThemes).not.toContain('material-dark')
+    expect(config.railscastsThemes).not.toContain('cyberdream')
   })
 
   it('oneDarkThemes is a frozen array containing "one-dark"', () => {
@@ -68,21 +73,24 @@ describe('config.js', () => {
     expect(Object.isFrozen(config.themePairs)).toBe(true)
     expect(config.themePairs['catppuccin-mocha']).toBe('catppuccin-latte')
     expect(config.themePairs['catppuccin-latte']).toBe('catppuccin-mocha')
-    expect(config.themePairs['dark']).toBe('graphite')
-    expect(config.themePairs['graphite']).toBe('dark')
+    // C-41 T-002: the brand pair and no retired keys.
+    expect(config.themePairs['paper']).toBe('ink')
+    expect(config.themePairs['ink']).toBe('paper')
+    expect(config.themePairs['dark']).toBeUndefined()
+    expect(config.themePairs['light']).toBeUndefined()
   })
 
   describe('isDarkTheme', () => {
     it('returns true for railscasts themes', () => {
-      expect(config.isDarkTheme('dark')).toBe(true)
+      expect(config.isDarkTheme('ink')).toBe(true)
       expect(config.isDarkTheme('dracula')).toBe(true)
       expect(config.isDarkTheme('nord')).toBe(true)
-      expect(config.isDarkTheme('material-dark')).toBe(true)
+      expect(config.isDarkTheme('kanagawa')).toBe(true)
       expect(config.isDarkTheme('catppuccin-mocha')).toBe(true)
       expect(config.isDarkTheme('gruvbox-dark')).toBe(true)
       expect(config.isDarkTheme('tokyo-night')).toBe(true)
       expect(config.isDarkTheme('solarized-dark')).toBe(true)
-      expect(config.isDarkTheme('cyberdream')).toBe(true)
+      expect(config.isDarkTheme('ayu-dark')).toBe(true)
     })
 
     it('returns true for one-dark themes', () => {
@@ -90,14 +98,16 @@ describe('config.js', () => {
     })
 
     it('returns false for light themes', () => {
-      expect(config.isDarkTheme('light')).toBe(false)
+      expect(config.isDarkTheme('paper')).toBe(false)
       expect(config.isDarkTheme('graphite')).toBe(false)
       expect(config.isDarkTheme('ulysses')).toBe(false)
       expect(config.isDarkTheme('catppuccin-latte')).toBe(false)
       expect(config.isDarkTheme('gruvbox-light')).toBe(false)
     })
 
-    it('returns false for unknown theme names', () => {
+    it('returns false for retired and unknown theme names', () => {
+      expect(config.isDarkTheme('dark')).toBe(false)
+      expect(config.isDarkTheme('monokai-pro')).toBe(false)
       expect(config.isDarkTheme('nonexistent')).toBe(false)
       expect(config.isDarkTheme('')).toBe(false)
     })

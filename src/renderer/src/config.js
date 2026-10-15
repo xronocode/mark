@@ -1,3 +1,45 @@
+// FILE: src/renderer/src/config.js
+// VERSION: 1.1.0
+// START_MODULE_CONTRACT
+//   PURPOSE: Renderer-wide constants — style tag ids, default fonts and
+//            theme, the C-41 T-002 theme family model, and dark-theme
+//            classification lists.
+//   SCOPE: Static configuration only; no DOM or store access.
+//   DEPENDS: window.path (boot shim); util/themeFamilies (re-exported).
+//   LINKS: .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml
+//          V-M-011 scenario-48 (C-41 T-002).
+//   ROLE: RUNTIME
+//   MAP_MODE: EXPORTS
+// END_MODULE_CONTRACT
+//
+// START_MODULE_MAP
+//   PATH_SEPARATOR - platform path separator from the boot shim.
+//   THEME_STYLE_ID - injected theme style tag id (util/theme.js).
+//   COMMON_STYLE_ID - injected common style tag id (util/theme.js).
+//   DEFAULT_EDITOR_FONT_FAMILY - prose font fallback stack.
+//   DEFAULT_CODE_FONT_FAMILY - code font fallback stack.
+//   DEFAULT_STYLE - boot-fallback style block (theme: paper, C-41 T-001).
+//   THEME_FAMILIES - frozen list of the 14 light/dark families in spec R-3 order (C-41 T-002).
+//   themePairs - derived member→partner map (symmetric by construction, C-41 T-002).
+//   themeFamilyOf - resolve the family owning a theme id (undefined when unknown).
+//   railscastsThemes - dark classification list (dark CodeMirror theme, body.dark, color-scheme: dark).
+//   oneDarkThemes - dark classification list using the One Dark CodeMirror theme.
+//   isDarkTheme - dark classification predicate over the two lists.
+// END_MODULE_MAP
+//
+// START_CHANGE_SUMMARY
+//   LAST_CHANGE: v1.1.0 - 2026-10-15 C-41 T-002: the theme set becomes 14
+//   light/dark families (THEME_FAMILIES, spec R-3 order); themePairs is now
+//   derived from it (every member maps to its partner, symmetric by
+//   construction) and the 13 retired ids (light, dark, material-dark,
+//   rose-pine-moon, tokyo-night-storm, ayu-mirage, monokai-pro, nightfox,
+//   palenight, horizon-dark, synthwave-84, cyberdream, oxocarbon-dark)
+//   leave railscastsThemes and every other list — stored values migrate via
+//   util/themeMigration.js. The six new members (one-light, alucard,
+//   nord-light, kanagawa-lotus, graphite-dark, ulysses-dark) are referenced
+//   as ids here; their CSS and registration land with C-41 T-003.
+// END_CHANGE_SUMMARY
+
 export const PATH_SEPARATOR = window.path.sep
 
 export const THEME_STYLE_ID = 'ag-theme'
@@ -16,75 +58,31 @@ export const DEFAULT_STYLE = Object.freeze({
   theme: 'paper'
 })
 
+// C-41 T-002: families live in util/themeFamilies.js (pure, no window
+// access) and are re-exported here for existing consumers.
+export { THEME_FAMILIES, themePairs, themeFamilyOf } from './util/themeFamilies'
+
 export const railscastsThemes = Object.freeze([
   // C-41 T-001: Ink is the dark brand default — dark classification gives
   // it the dark CodeMirror theme, body.dark, and color-scheme: dark.
+  // C-41 T-002: the retired dark ids are gone; graphite-dark and
+  // ulysses-dark join with C-41 T-003.
   'ink',
-  'dark',
-  'material-dark',
-  // New gogh dark themes
+  // C-41 T-003: dark members of the Graphite and Ulysses families.
+  'graphite-dark',
+  'ulysses-dark',
   'dracula',
   'nord',
   'catppuccin-mocha',
   'gruvbox-dark',
   'tokyo-night',
-  'tokyo-night-storm',
   'solarized-dark',
   'ayu-dark',
-  'ayu-mirage',
   'everforest-dark',
   'rose-pine',
-  'rose-pine-moon',
-  'monokai-pro',
-  'synthwave-84',
-  'horizon-dark',
-  'palenight',
-  'oxocarbon-dark',
-  'kanagawa',
-  'nightfox',
-  'cyberdream'
+  'kanagawa'
 ])
 export const oneDarkThemes = Object.freeze(['one-dark'])
-
-export const themePairs = Object.freeze({
-  // C-41 T-001: the brand pair — the title-bar Auto/Light/Dark button and
-  // legacy pair consumers switch between Paper and Ink.
-  'paper': 'ink',
-  'ink': 'paper',
-  'catppuccin-mocha': 'catppuccin-latte',
-  'catppuccin-latte': 'catppuccin-mocha',
-  'gruvbox-dark': 'gruvbox-light',
-  'gruvbox-light': 'gruvbox-dark',
-  'tokyo-night': 'tokyo-night-light',
-  'tokyo-night-storm': 'tokyo-night-light',
-  'tokyo-night-light': 'tokyo-night',
-  'solarized-dark': 'solarized-light',
-  'solarized-light': 'solarized-dark',
-  'ayu-dark': 'ayu-light',
-  'ayu-mirage': 'ayu-light',
-  'ayu-light': 'ayu-dark',
-  'everforest-dark': 'everforest-light',
-  'everforest-light': 'everforest-dark',
-  'rose-pine': 'rose-pine-dawn',
-  'rose-pine-moon': 'rose-pine-dawn',
-  'rose-pine-dawn': 'rose-pine',
-  'dark': 'graphite',
-  'graphite': 'dark',
-  'material-dark': 'graphite',
-  'one-dark': 'gruvbox-light',
-  'ulysses': 'dark',
-  'dracula': 'catppuccin-latte',
-  'nord': 'solarized-light',
-  'monokai-pro': 'gruvbox-light',
-  'synthwave-84': 'rose-pine-dawn',
-  'horizon-dark': 'rose-pine-dawn',
-  'palenight': 'catppuccin-latte',
-  'oxocarbon-dark': 'catppuccin-latte',
-  'kanagawa': 'tokyo-night-light',
-  'nightfox': 'solarized-light',
-  'cyberdream': 'catppuccin-latte',
-  'light': 'dark'
-})
 
 export const isDarkTheme = (theme) => {
   return railscastsThemes.includes(theme) || oneDarkThemes.includes(theme)

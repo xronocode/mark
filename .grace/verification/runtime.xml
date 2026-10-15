@@ -3286,6 +3286,12 @@
           tests/renderer/util/autoTheme.test.js
           tests/renderer/pages/theme-paper-ink.test.js
           tests/renderer/util/themeColor.test.js
+          tests/renderer/util/theme-families.test.js
+          tests/renderer/pages/theme-config.test.js
+          tests/renderer/store/config-coverage.test.js
+          tests/renderer/util/theme.test.js
+          tests/renderer/commands/menu-consistency.test.js
+          tests/renderer/util/theme-contrast.test.js
         </Command>
         <Command>cargo test follow_system_theme_true_survives_reload</Command>
         <Command>
@@ -3687,8 +3693,8 @@
           (themeMap injection + dark classification, fresh-profile
           defaults, stored-theme preservation, Settings un-hide source pin,
           palette + native-menu registration) +
-          tests/renderer/util/themeColor.test.js (34 factories incl.
-          paper/ink with Prism companions) + cargo test
+          tests/renderer/util/themeColor.test.js (40 factories incl.
+          paper/ink with Prism companions; C-41 T-003 raised 34 → 40) + cargo test
           follow_system_theme_true_survives_reload (src-tauri/src/m005_prefs.rs).
         </Scenario>
         <Scenario>
@@ -3945,8 +3951,94 @@
           tests/e2e/welcome.spec.ts (tauri-shim boots with no file
           open).
         </Scenario>
+        <Scenario>
+          scenario-48: theme family model + retired-id migrations (C-41
+          T-002): config.js exports one frozen THEME_FAMILIES list (14
+          families in spec R-3 order: Paper/Ink, Rosé Pine, Catppuccin,
+          Solarized, Gruvbox, Everforest, Tokyo Night, Ayu, One,
+          Dracula, Nord, Kanagawa, Graphite, Ulysses — each {id, name,
+          light, dark}); themePairs is derived from it (every member
+          maps to its partner, symmetric by construction, 28 entries)
+          and themeFamilyOf resolves the family of either member. The
+          13 retired ids (light, dark, material-dark, rose-pine-moon,
+          tokyo-night-storm, ayu-mirage, monokai-pro, nightfox,
+          palenight, horizon-dark, synthwave-84, cyberdream,
+          oxocarbon-dark) leave themeMap (util/theme.js, now exported
+          for verification), themeColor.js (22 factories; the orphaned
+          theme/prism CSS files are deleted with the change),
+          railscastsThemes, the command palette, the native View ›
+          Theme menu (m009_menu.rs; menu-consistency stays green), the
+          Settings picker, and every locale's menu.theme name keys.
+          Stored values migrate at the single load point where stored
+          preferences enter the store — ASK_FOR_USER_PREFERENCE
+          (both the editor and the Settings window hydrate through it):
+          util/themeMigration.js THEME_MIGRATIONS (light→paper,
+          dark→ink, rose-pine-moon→rose-pine, tokyo-night-storm→
+          tokyo-night, ayu-mirage→ayu-dark, monokai-pro/material-dark→
+          one-dark, nightfox→nord, palenight→catppuccin-mocha,
+          horizon-dark→rose-pine, synthwave-84→dracula, cyberdream→
+          tokyo-night, oxocarbon-dark→graphite-dark) rewrites the
+          payload's theme/lightModeTheme/darkModeTheme BEFORE hydration
+          applies them, unknown ids fall back to paper (light) / ink
+          (dark), valid ids are never rewritten, and each changed key
+          is persisted exactly once; the boot theme URL param
+          (_shims/install-window-globals.js) resolves through
+          migrateThemeId so a retired id never flashes an unthemed
+          window. The Settings theme page shows one tile per family
+          (light + dark swatches side by side, family name below,
+          selected outline on the family owning the applied theme);
+          picking a family sets lightModeTheme and darkModeTheme to its
+          members and theme to the member for the current mode (Auto:
+          system appearance via util/autoTheme.js familyMemberForMode;
+          Light/Dark: that member) without leaving Auto, and the
+          followSystemTheme toggle and light/dark member selects keep
+          working. The six C-41 T-003 members (one-light, alucard,
+          nord-light, kanagawa-lotus, graphite-dark, ulysses-dark) are
+          referenced as ids and skipped in registration assertions
+          until that task lands. Pinned in
+          tests/renderer/util/theme-families.test.js (family model,
+          derived symmetric pairs, themeMap registration with the six
+          T-003 skips, retirement from palette/menu/locales/picker, the
+          migration map and its fallbacks, store hydration
+          migrate-and-persist-once, family pick per mode) +
+          tests/renderer/util/themeColor.test.js (22 kept factories,
+          retired ones undefined) + tests/renderer/util/theme.test.js
+          (kept-id injection) + tests/renderer/store/config-coverage.test.js
+          + tests/renderer/pages/theme-config.test.js (family-derived
+          picker config) + tests/renderer/commands/index.test.js (22
+          palette subcommands, none retired).
+          scenario-49: six new family members + WCAG AA contrast pass
+          (C-41 T-003): one-light (Atom One Light), alucard (official
+          Dracula light), nord-light (Nord Snow Storm), kanagawa-lotus
+          (official Kanagawa Lotus), graphite-dark and ulysses-dark
+          (dark counterparts of their light members) ship as
+          *.theme.css + prismjs companions on the Paper variable set,
+          registered in themeMap/themeColor, railscasts dark
+          classification for graphite-dark/ulysses-dark, the command
+          palette (41 window.change-theme subcommands), the native
+          View › Theme menu, and untranslated display names in all ten
+          locales. tests/renderer/util/theme-contrast.test.js parses
+          every shipped assets/themes/*.theme.css (skipping exactly the
+          13 DROPPED_BY_T002 ids), resolves in-file var() references,
+          composites rgba alpha over --editorBgColor, and asserts
+          WCAG AA 4.5:1 for --editorColor and --linkColor and 3:1 for
+          --blockquoteTextColor, plus variable-set parity with
+          paper.theme.css; the pre-pass failures were fixed in place —
+          graphite (link darkened to rgb(71,97,126), blockquote .58,
+          --floatShadow added), ulysses (solid editor grey, link
+          rgb(12,107,144), blockquote .8, --floatShadow added),
+          one-dark (blockquote .65), solarized-dark (link #459ada,
+          blockquote .75), catppuccin-latte (link #1c60e8, blockquote
+          .7), gruvbox-light (link #076678), tokyo-night-light
+          (blockquote .68), solarized-light (editor base01 #586e75,
+          link #1a6fb0, blockquote base01 .8), ayu-light (link #2274b8,
+          blockquote .75), everforest-light (link #265b73, blockquote
+          .8), rose-pine-dawn (blockquote .75).
+        </Scenario>
       </Scenarios>
       <Markers>
+        <Marker>[prefs][theme-migration][BLOCK_RETIRED_THEMES_MIGRATED key:from-&gt;to …] — C-41 T-002 retired theme ids migrated at the hydration load point and persisted once per changed key</Marker>
+        <Marker>[prefs][theme-migration][BLOCK_RETIRED_THEMES_MIGRATE_FAILED] — C-41 T-002 migration persisted in memory; mt_prefs_set write failed (retries next boot)</Marker>
         <Marker>[whatsNew][init][BLOCK_SHEET_QUEUED version=&lt;v&gt;] — C-48 upgrade detected, the What's New sheet opens once</Marker>
         <Marker>[whatsNew][init][BLOCK_PERSIST_FAILED] — C-48 lastSeenVersion / lastUpdateAt write failed</Marker>
         <Marker>[review][ask][BLOCK_EVALUATED ask=false reason=&lt;firstLaunch|versionChanged|errorLogged|modalOpen|sessions|days|cooldown&gt;] — C-48 review decision trace</Marker>

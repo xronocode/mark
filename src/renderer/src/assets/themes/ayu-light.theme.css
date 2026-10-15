@@ -1,5 +1,7 @@
 :root {
-  /*editor - Ayu Light theme*/
+  /*editor - Ayu Light theme — C-41 T-003: linkColor darkened
+    #399ee6 → #2274b8 (2.79 → 4.72 on #fafafa) and blockquote alpha
+    .6 → .75 (2.62 → 3.53) for WCAG AA*/
   --themeColor: #399ee6;
   --themeColor90: rgba(57, 158, 230, .9);
   --themeColor80: rgba(57, 158, 230, .8);
@@ -64,10 +66,10 @@
   --h4Color: #55b4d4;
   --h5Color: #a37acc;
   --h6Color: #f07171;
-  --blockquoteTextColor: rgba(87, 95, 102, .6);
+  --blockquoteTextColor: rgba(87, 95, 102, .75);
   --blockquoteBorderColor: #abb0b6;
   --hrColor: #dbdbdb;
-  --linkColor: #399ee6;
+  --linkColor: #2274b8;
   --strongColor: #575f66;
   --emColor: #e6ba7e;
   --listMarkerColor: #fa8d3e;

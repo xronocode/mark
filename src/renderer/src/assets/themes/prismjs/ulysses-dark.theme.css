@@ -1,11 +1,12 @@
 /*
- * Prism.js Palenight Theme
- * Based on Material Palenight
+ * Prism.js Ulysses Dark Theme (C-41 T-003)
+ * Dark counterpart of the MarkText Ulysses prism theme —
+ * the same token hues lightened for the #2b3034 code background.
  */
 
 code[class*="language-"],
 pre.ag-paragraph {
-  color: #a6accd;
+  color: #d6d6d6;
   text-align: left;
   white-space: pre;
   word-spacing: normal;
@@ -29,7 +30,7 @@ pre.ag-paragraph {
 
 :not(pre) > code[class*="language-"],
 pre.ag-paragraph {
-  background: var(--codeBlockBgColor, #292d3e);
+  background: var(--codeBlockBgColor, #2b3034);
 }
 
 :not(pre) > code[class*="language-"] {
@@ -42,16 +43,16 @@ pre.ag-paragraph {
 .token.prolog,
 .token.doctype,
 .token.cdata {
-  color: #676e95;
+  color: #8f9499;
   font-style: italic;
 }
 
 .token.punctuation {
-  color: #676e95;
+  color: #9aa8a8;
 }
 
 .namespace {
-  color: #89ddff;
+  color: #5ec6ba;
   opacity: .85;
 }
 
@@ -60,12 +61,12 @@ pre.ag-paragraph {
 .token.constant,
 .token.symbol,
 .token.deleted {
-  color: #f07178;
+  color: #e391b8;
 }
 
 .token.boolean,
 .token.number {
-  color: #f78c6c;
+  color: #b3a9e8;
 }
 
 .token.selector,
@@ -74,7 +75,7 @@ pre.ag-paragraph {
 .token.char,
 .token.builtin,
 .token.inserted {
-  color: #c3e88d;
+  color: #6ecfaf;
 }
 
 .token.operator,
@@ -82,35 +83,35 @@ pre.ag-paragraph {
 .token.url,
 .language-css .token.string,
 .style .token.string {
-  color: #89ddff;
+  color: #9aa8b2;
 }
 
 .token.atrule,
 .token.attr-value,
 .token.function {
-  color: #82aaff;
+  color: #e89a6f;
 }
 
 .token.class-name {
-  color: #89ddff;
+  color: #5ec6ba;
 }
 
 .token.parameter {
-  color: #f78c6c;
+  color: #dcb760;
 }
 
 .token.macro {
-  color: #89ddff;
+  color: #5ec6ba;
 }
 
 .token.keyword {
-  color: #c792ea;
+  color: #52b4dc;
 }
 
 .token.regex,
 .token.important,
 .token.variable {
-  color: #ffcb6b;
+  color: #e391b8;
 }
 
 .token.important,

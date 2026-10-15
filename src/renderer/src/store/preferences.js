@@ -1,9 +1,9 @@
 // FILE: src/renderer/src/store/preferences.js
 // VERSION: 1.2.0
 // START_MODULE_CONTRACT
-//   PURPOSE: Pinia store for persistent user preferences, their hydration, persistence, the unified fontSize zoom actions (C-49), and the UI-language application paths (concrete or 'system').
-//   SCOPE: default state, SET_USER_PREFERENCE / SET_SINGLE_PREFERENCE, the C-49 zoom actions (APPLY_FONT_SIZE / ZOOM_STEP / ZOOM_ACTUAL_SIZE) and the one-time legacy `zoom` migration, ASK_FOR_USER_PREFERENCE boot hydration, buildCapabilities + default-handler queries, LISTEN_SYSTEM_LANGUAGE re-resolution (C-45).
-//   DEPENDS: pinia, @tauri-apps/api/core, bus, services/notification, i18n/index.js, i18n/systemLocale.js.
+//   PURPOSE: Pinia store for persistent user preferences, their hydration, persistence, the unified fontSize zoom actions (C-49), the UI-language application paths (concrete or 'system'), and the retired-theme id migration (C-41 T-002).
+//   SCOPE: default state, SET_USER_PREFERENCE / SET_SINGLE_PREFERENCE, the C-49 zoom actions (APPLY_FONT_SIZE / ZOOM_STEP / ZOOM_ACTUAL_SIZE) and the one-time legacy `zoom` migration, the C-41 T-002 retired-theme migration in ASK_FOR_USER_PREFERENCE, ASK_FOR_USER_PREFERENCE boot hydration, buildCapabilities + default-handler queries, LISTEN_SYSTEM_LANGUAGE re-resolution (C-45).
+//   DEPENDS: pinia, @tauri-apps/api/core, bus, services/notification, i18n/index.js, i18n/systemLocale.js, util/autoTheme.js, util/themeMigration.js.
 //   LINKS: _shims/preferences/schema.json defaults; pages/app.vue boot + zoom keys/wheel; components/zoomIndicator; .grace/changes/active/C-49.
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
@@ -18,7 +18,13 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.2.1 - 2026-10-15 C-41 fix: SET_USER_PREFERENCE re-resolves
+//   LAST_CHANGE: v1.2.2 - 2026-10-15 C-41 T-002: ASK_FOR_USER_PREFERENCE
+//   (the single load point where stored preferences enter the store — both
+//   the editor and the Settings window hydrate through it) rewrites the
+//   three persisted theme keys via util/themeMigration.js before hydration
+//   applies them and persists each changed key exactly once; valid stored
+//   ids are never rewritten.
+//   v1.2.1 - 2026-10-15 C-41 fix: SET_USER_PREFERENCE re-resolves
 //   the Auto member after applying a payload, so the full-snapshot echo of a
 //   followSystemTheme write cannot leave the last manual theme (Auto → Light →
 //   Dark → Auto stayed dark on a light Mac).
@@ -42,6 +48,7 @@ import notice from '../services/notification'
 import { setLanguage, getCurrentLanguage } from '../i18n'
 import { SYSTEM_LANGUAGE, resolveSystemLocale } from '../i18n/systemLocale'
 import { resolveAutoTheme } from '../util/autoTheme'
+import { migrateThemePreferences } from '../util/themeMigration'
 
 // C-49: the unified zoom clamps the editor font size to 12–36 px. 16 px is
 // the base unit — --mark-zoom (fontSize / 16) scales mermaid diagrams with
@@ -330,7 +337,34 @@ export const usePreferencesStore = defineStore('preferences', {
           for (const key of bootDirtyKeys) {
             delete hydrated[key]
           }
+          // START_BLOCK_MIGRATE_RETIRED_THEMES
+          // C-41 T-002: this action is the single load point where stored
+          // preferences enter the store (both windows hydrate through it),
+          // so retired theme ids are rewritten in the payload BEFORE
+          // hydration applies them — SET_USER_PREFERENCE and the Auto
+          // re-resolution only ever see valid ids. Each changed key is
+          // persisted exactly once; the next hydration (this or any other
+          // window) finds valid values and writes nothing. Keys protected
+          // by the boot-stomp guard above were already deleted from the
+          // payload, so a raced user pick is never overwritten.
+          const themeChanges = migrateThemePreferences(hydrated)
+          // END_BLOCK_MIGRATE_RETIRED_THEMES
           this.SET_USER_PREFERENCE(hydrated)
+          if (themeChanges.length > 0) {
+            try {
+              await Promise.all(
+                themeChanges.map(({ key, to }) => invoke('mt_prefs_set', { key, value: to }))
+              )
+              console.log(
+                `[prefs][theme-migration][BLOCK_RETIRED_THEMES_MIGRATED ${themeChanges
+                  .map((c) => `${c.key}:${c.from}->${c.to}`)
+                  .join(' ')}]`
+              )
+            } catch (e) {
+              // In-memory state is already migrated; persistence retries next boot.
+              console.error('[prefs][theme-migration][BLOCK_RETIRED_THEMES_MIGRATE_FAILED]', e)
+            }
+          }
         }
         // Protection covers the boot hydration only — afterwards,
         // cross-window broadcasts (SET_USER_PREFERENCE) must keep

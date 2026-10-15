@@ -92,6 +92,11 @@
 //   - 2026-10-15 C-41 T-001: add View-menu Theme entries "Paper" and
 //                "Ink" (window.change-theme-paper/-ink) — the brand
 //                defaults; ids mirror the renderer command registry.
+//   - 2026-10-15 C-41 T-002: drop the 13 retired theme entries from the
+//                View-menu Theme submenu (kept family members only; the
+//                six C-41 T-003 members join with that task) — the
+//                renderer palette drops the same ids, so menu-consistency
+//                stays green; stored preferences migrate renderer-side.
 //   - 2026-10-15 C-49 T-001: add View-menu "Zoom In" / "Zoom Out" /
 //                "Actual Size" (view.zoom-in/-out/actual-size,
 //                CmdOrCtrl+= / - / 0) — id-dispatched to the renderer
@@ -904,49 +909,46 @@ pub fn build_native_menu<R: tauri::Runtime>(
         .build()?;
 
     // ── View menu ────────────────────────────────────────────────────
-    // C-41 T-001: Paper and Ink (brand defaults for new profiles) lead the
-    // theme submenu; ids match the renderer command registry
+    // C-41 T-002: the theme submenu lists the kept family members only —
+    // the 13 retired ids are gone (stored preferences migrate renderer-side
+    // via util/themeMigration.js); the six C-41 T-003 members join with
+    // that task. Ids match the renderer command registry
     // (window.change-theme-*) enforced by menu-consistency tests.
+    // C-41 T-003: six new family members — one-light, alucard, nord-light,
+    // kanagawa-lotus (light group), graphite-dark, ulysses-dark (dark group).
     let theme_submenu = SubmenuBuilder::new(handle, "Theme")
         .items(&[
             &MenuItemBuilder::with_id("window.change-theme-paper", "Paper").build(handle)?,
             &MenuItemBuilder::with_id("window.change-theme-ink", "Ink").build(handle)?,
-            &MenuItemBuilder::with_id("window.change-theme-light", "Cadmium Light").build(handle)?,
             &MenuItemBuilder::with_id("window.change-theme-graphite", "Graphite").build(handle)?,
+            &MenuItemBuilder::with_id("window.change-theme-graphite-dark", "Graphite Dark").build(handle)?,
             &MenuItemBuilder::with_id("window.change-theme-ulysses", "Ulysses").build(handle)?,
+            &MenuItemBuilder::with_id("window.change-theme-ulysses-dark", "Ulysses Dark").build(handle)?,
+            &MenuItemBuilder::with_id("window.change-theme-alucard", "Alucard").build(handle)?,
             &MenuItemBuilder::with_id("window.change-theme-ayu-light", "Ayu Light").build(handle)?,
             &MenuItemBuilder::with_id("window.change-theme-catppuccin-latte", "Catppuccin Latte").build(handle)?,
             &MenuItemBuilder::with_id("window.change-theme-everforest-light", "Everforest Light").build(handle)?,
             &MenuItemBuilder::with_id("window.change-theme-gruvbox-light", "Gruvbox Light").build(handle)?,
+            &MenuItemBuilder::with_id("window.change-theme-kanagawa-lotus", "Kanagawa Lotus").build(handle)?,
+            &MenuItemBuilder::with_id("window.change-theme-nord-light", "Nord Light").build(handle)?,
+            &MenuItemBuilder::with_id("window.change-theme-one-light", "One Light").build(handle)?,
             &MenuItemBuilder::with_id("window.change-theme-rose-pine-dawn", "Rosé Pine Dawn").build(handle)?,
             &MenuItemBuilder::with_id("window.change-theme-solarized-light", "Solarized Light").build(handle)?,
             &MenuItemBuilder::with_id("window.change-theme-tokyo-night-light", "Tokyo Night Light").build(handle)?,
         ])
         .separator()
         .items(&[
-            &MenuItemBuilder::with_id("window.change-theme-dark", "Dark").build(handle)?,
-            &MenuItemBuilder::with_id("window.change-theme-material-dark", "Material Dark").build(handle)?,
             &MenuItemBuilder::with_id("window.change-theme-one-dark", "One Dark").build(handle)?,
             &MenuItemBuilder::with_id("window.change-theme-ayu-dark", "Ayu Dark").build(handle)?,
-            &MenuItemBuilder::with_id("window.change-theme-ayu-mirage", "Ayu Mirage").build(handle)?,
             &MenuItemBuilder::with_id("window.change-theme-catppuccin-mocha", "Catppuccin Mocha").build(handle)?,
-            &MenuItemBuilder::with_id("window.change-theme-cyberdream", "Cyberdream").build(handle)?,
             &MenuItemBuilder::with_id("window.change-theme-dracula", "Dracula").build(handle)?,
             &MenuItemBuilder::with_id("window.change-theme-everforest-dark", "Everforest Dark").build(handle)?,
             &MenuItemBuilder::with_id("window.change-theme-gruvbox-dark", "Gruvbox Dark").build(handle)?,
-            &MenuItemBuilder::with_id("window.change-theme-horizon-dark", "Horizon Dark").build(handle)?,
             &MenuItemBuilder::with_id("window.change-theme-kanagawa", "Kanagawa").build(handle)?,
-            &MenuItemBuilder::with_id("window.change-theme-monokai-pro", "Monokai Pro").build(handle)?,
-            &MenuItemBuilder::with_id("window.change-theme-nightfox", "Nightfox").build(handle)?,
             &MenuItemBuilder::with_id("window.change-theme-nord", "Nord").build(handle)?,
-            &MenuItemBuilder::with_id("window.change-theme-oxocarbon-dark", "Oxocarbon Dark").build(handle)?,
-            &MenuItemBuilder::with_id("window.change-theme-palenight", "Palenight").build(handle)?,
             &MenuItemBuilder::with_id("window.change-theme-rose-pine", "Rosé Pine").build(handle)?,
-            &MenuItemBuilder::with_id("window.change-theme-rose-pine-moon", "Rosé Pine Moon").build(handle)?,
             &MenuItemBuilder::with_id("window.change-theme-solarized-dark", "Solarized Dark").build(handle)?,
-            &MenuItemBuilder::with_id("window.change-theme-synthwave-84", "Synthwave '84").build(handle)?,
             &MenuItemBuilder::with_id("window.change-theme-tokyo-night", "Tokyo Night").build(handle)?,
-            &MenuItemBuilder::with_id("window.change-theme-tokyo-night-storm", "Tokyo Night Storm").build(handle)?,
         ])
         .build()?;
 

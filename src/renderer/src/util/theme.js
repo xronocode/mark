@@ -1,16 +1,42 @@
-// MODULE_CONTRACT
+// START_MODULE_CONTRACT
 //   PURPOSE: Apply theme CSS, mirrored theme variables, and shared editor
 //            style sheets to the renderer document.
 //   SCOPE:   Theme/common/custom style tag management only. Owns raw theme
 //            CSS injection plus the inline CSS-variable mirror consumed by
 //            WKWebView-native surfaces such as the transparent title bar.
+//            Exports the themeMap registry for verification (C-41 T-002).
 //   DEPENDS: themeColor factories, config style ids, DOM style tags.
-//   LINKS:   docs/verification-plan.xml V-M-011 scenario-4, ec theme swap;
-//            docs/knowledge-graph.xml M-011.
+//   LINKS:   .grace/verification/runtime.xml V-M-011 scenario-4 and
+//            scenario-48 (C-41 T-002); .grace/graph/runtime.xml M-011.
 //   STATUS:  Raw theme CSS injection preserved; `@media not print` wrapper
 //            removed to reduce WKWebView stylesheet parsing fragility.
+//   ROLE: RUNTIME
+//   MAP_MODE: EXPORTS
+// END_MODULE_CONTRACT
+//
+// START_MODULE_MAP
+//   themeMap - registered theme id → CSS factory registry (exported for C-41 T-002 family verification).
+//   addThemeStyle - inject a theme's CSS, mirror its variables, set dark classification, cache the id.
+//   setWrapCodeBlocks - toggle pre-wrap on .ag-code-content.
+//   setEditorWidth - apply --editorAreaWidth for a ch/px/% value.
+//   addCommonStyle - code font family/size and optional scrollbar hiding.
+//   addCustomStyle - inject user custom CSS.
+//   addStyles - apply theme + common styles together.
+// END_MODULE_MAP
 //
 // CHANGE_SUMMARY:
+//   - 2026-10-15 C-41 T-003: register the six new family members in
+//     themeMap — one-light, alucard, nord-light, kanagawa-lotus (light)
+//     and graphite-dark, ulysses-dark (dark, railscasts classification
+//     from config.js); plus a WCAG AA contrast pass over the kept themes.
+//   - 2026-10-15 C-41 T-002: the 12 retired ids leave themeMap (dark,
+//     material-dark, tokyo-night-storm, ayu-mirage, rose-pine-moon,
+//     monokai-pro, synthwave-84, horizon-dark, palenight, oxocarbon-dark,
+//     nightfox, cyberdream — stored values migrate via
+//     util/themeMigration.js); themeMap is exported so family verification
+//     can assert every family member is registered. The six C-41 T-003
+//     members (one-light, alucard, nord-light, kanagawa-lotus,
+//     graphite-dark, ulysses-dark) join themeMap with that task.
 //   - 2026-10-15 C-49 T-001: addCommonStyle emits the WYSIWYG code font size
 //     as an em ratio (codeFontSize / 16) so code blocks and inline code
 //     scale with the unified fontSize zoom; the source-mode .CodeMirror
@@ -33,9 +59,13 @@ import {
 import {
   paper,
   ink,
-  dark,
+  oneLight,
+  alucard,
+  nordLight,
+  kanagawaLotus,
+  graphiteDark,
+  ulyssesDark,
   graphite,
-  materialDark,
   oneDark,
   ulysses,
   dracula,
@@ -43,21 +73,11 @@ import {
   catppuccinMocha,
   gruvboxDark,
   tokyoNight,
-  tokyoNightStorm,
   solarizedDark,
   ayuDark,
-  ayuMirage,
   everforestDark,
   rosePine,
-  rosePineMoon,
-  monokaiPro,
-  synthwave84,
-  horizonDark,
-  palenight,
-  oxocarbonDark,
   kanagawa,
-  nightfox,
-  cyberdream,
   catppuccinLatte,
   gruvboxLight,
   tokyoNightLight,
@@ -68,35 +88,33 @@ import {
 } from './themeColor'
 import { isLinux } from './index'
 
-const themeMap = {
+// C-41 T-002: registered themes only — retired ids are absent by design
+// (migrated on load); the six C-41 T-003 members join with that task.
+export const themeMap = {
   // C-41 T-001: Paper/Ink brand themes (defaults for new profiles).
   'paper': paper,
   'ink': ink,
-  'dark': dark,
-  'material-dark': materialDark,
-  'ulysses': ulysses,
+  // C-41 T-003: new family members — one-light/alucard/nord-light/
+  // kanagawa-lotus are light; graphite-dark/ulysses-dark are dark.
+  'one-light': oneLight,
+  'alucard': alucard,
+  'nord-light': nordLight,
+  'kanagawa-lotus': kanagawaLotus,
+  'graphite-dark': graphiteDark,
+  'ulysses-dark': ulyssesDark,
   'graphite': graphite,
   'one-dark': oneDark,
+  'ulysses': ulysses,
   'dracula': dracula,
   'nord': nord,
   'catppuccin-mocha': catppuccinMocha,
   'gruvbox-dark': gruvboxDark,
   'tokyo-night': tokyoNight,
-  'tokyo-night-storm': tokyoNightStorm,
   'solarized-dark': solarizedDark,
   'ayu-dark': ayuDark,
-  'ayu-mirage': ayuMirage,
   'everforest-dark': everforestDark,
   'rose-pine': rosePine,
-  'rose-pine-moon': rosePineMoon,
-  'monokai-pro': monokaiPro,
-  'synthwave-84': synthwave84,
-  'horizon-dark': horizonDark,
-  'palenight': palenight,
-  'oxocarbon-dark': oxocarbonDark,
   'kanagawa': kanagawa,
-  'nightfox': nightfox,
-  'cyberdream': cyberdream,
   'catppuccin-latte': catppuccinLatte,
   'gruvbox-light': gruvboxLight,
   'tokyo-night-light': tokyoNightLight,

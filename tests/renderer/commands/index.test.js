@@ -237,8 +237,8 @@ describe('command execute actions', () => {
 describe('window.change-theme subcommands', () => {
   const themeCmd = commands.find((c) => c.id === 'window.change-theme')
 
-  it('has 35 theme subcommands (33 + Paper/Ink, C-41 T-001)', () => {
-    expect(themeCmd.subcommands).toHaveLength(35)
+  it('has 28 theme subcommands (14 families × light/dark, C-41 T-002 + T-003)', () => {
+    expect(themeCmd.subcommands).toHaveLength(28)
   })
 
   it('all subcommands have id, description, and value', () => {
@@ -255,19 +255,32 @@ describe('window.change-theme subcommands', () => {
     }
   })
 
-  it('includes all light themes', () => {
+  it('includes all kept light themes', () => {
     const values = themeCmd.subcommands.map((s) => s.value)
-    for (const t of ['paper', 'light', 'graphite', 'ulysses', 'ayu-light', 'catppuccin-latte',
-      'everforest-light', 'gruvbox-light', 'rose-pine-dawn', 'solarized-light', 'tokyo-night-light']) {
+    for (const t of ['paper', 'graphite', 'ulysses', 'ayu-light', 'catppuccin-latte',
+      'everforest-light', 'gruvbox-light', 'rose-pine-dawn', 'solarized-light', 'tokyo-night-light',
+      // C-41 T-003 new light members
+      'one-light', 'alucard', 'nord-light', 'kanagawa-lotus']) {
       expect(values).toContain(t)
     }
   })
 
-  it('includes all dark themes', () => {
+  it('includes all kept dark themes', () => {
     const values = themeCmd.subcommands.map((s) => s.value)
-    for (const t of ['ink', 'dark', 'material-dark', 'one-dark', 'dracula', 'nord',
-      'catppuccin-mocha', 'tokyo-night', 'synthwave-84']) {
+    for (const t of ['ink', 'one-dark', 'dracula', 'nord',
+      'catppuccin-mocha', 'tokyo-night', 'kanagawa', 'ayu-dark',
+      // C-41 T-003 new dark members
+      'graphite-dark', 'ulysses-dark']) {
       expect(values).toContain(t)
+    }
+  })
+
+  it('lists no retired theme (C-41 T-002)', () => {
+    const values = themeCmd.subcommands.map((s) => s.value)
+    for (const retired of ['light', 'dark', 'material-dark', 'rose-pine-moon', 'tokyo-night-storm',
+      'ayu-mirage', 'monokai-pro', 'nightfox', 'palenight', 'horizon-dark',
+      'synthwave-84', 'cyberdream', 'oxocarbon-dark']) {
+      expect(values).not.toContain(retired)
     }
   })
 
