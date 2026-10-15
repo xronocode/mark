@@ -80,6 +80,17 @@ describe('pages/app.vue — fn coverage', () => {
     expect(w.exists()).toBe(true)
   })
 
+  it('renders the macOS resize-edge strips with resize cursors (darwin only)', () => {
+    mainStore.platform = 'darwin'
+    const w = mount()
+    expect(w.findAll('.resize-edges .resize-edge')).toHaveLength(8)
+    w.unmount()
+    mainStore.platform = 'linux'
+    const w2 = mount()
+    expect(w2.find('.resize-edges').exists()).toBe(false)
+    w2.unmount()
+  })
+
   it('hasCurrentFile returns false when no markdown', () => {
     editorStore.currentFile = {}
     const w = mount()
