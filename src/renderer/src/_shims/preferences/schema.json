@@ -1,158 +1,28 @@
 {
   "autoSave": {
-    "description": "General--Automatically save the content being edited.",
+    "description": "General--Save changes automatically shortly after you stop typing.",
     "type": "boolean",
     "default": false
   },
   "autoSaveDelay": {
-    "description": "General--The time in ms after a change that the file is saved.",
+    "description": "General--How long to wait after the last keystroke before saving (shown in seconds).",
     "type": "number",
     "minimum": 1000,
+    "maximum": 10000,
     "default": 5000
   },
-  "titleBarStyle": {
-    "description": "General--The title bar style (Windows and Linux system only).",
-    "enum": ["custom", "native"],
-    "default": "custom"
-  },
-  "openFilesInNewWindow": {
-    "description": "General--Open files in a new window.",
+  "previewModeOnFinderOpen": {
+    "description": "General--Open documents from Finder in reading view.",
     "type": "boolean",
-    "default": false
-  },
-  "openFolderInNewWindow": {
-    "description": "General--Open folder via menu in a new window.",
-    "type": "boolean",
-    "default": false
-  },
-  "zoom": {
-    "description": "General--Retired percentage zoom (C-49). Kept only so a stored value can be migrated once into fontSize (clamp(round(16 × zoom))) and reset to 1; nothing reads it afterwards.--internal",
-    "type": "number",
-    "minimum": 0.5,
-    "maximum": 2.0,
-    "default": 1.0
-  },
-  "hideScrollbar": {
-    "description": "General--Whether to hide scrollbars.",
-    "type": "boolean",
-    "default": false
-  },
-  "wordWrapInToc": {
-    "description": "General--Whether to enable word wrap in TOC.",
-    "type": "boolean",
-    "default": false
-  },
-  "fileSortBy": {
-    "description": "General--Sort files in opened folder by created time, modified time and title.",
-    "enum": ["modified", "created", "title"],
-    "default": "modified"
-  },
-  "lastOpenedFolder": {
-    "description": "General--The last folder that was opened in Mark.--internal",
-    "type": "string"
-  },
-  "startUpAction": {
-    "description": "General--The action after Mark startup, open the last opened folder, open the specified folder or blank page",
-    "enum": ["folder", "openLastFolder", "blank"],
-    "default": "openLastFolder"
-  },
-  "defaultDirectoryToOpen": {
-    "description": "General--The default directory that should be opened on startup when startUp=folder.",
-    "type": "string"
+    "default": true
   },
   "language": {
     "description": "General--The language Mark use. 'system' follows the OS preferred languages (C-45).",
     "type": "string",
     "default": "system"
   },
-  "editorFontFamily": {
-    "description": "Editor--editor font family",
-    "type": "string",
-    "pattern": "^[^\\s]+((-|\\s)*[^\\s])*$",
-    "default": "Open Sans"
-  },
-  "fontSize": {
-    "description": "Editor--Font size in pixels",
-    "type": "number",
-    "maximum": 32,
-    "minimum": 12,
-    "default": 16
-  },
-  "baseFontSize": {
-    "description": "Editor--The Settings font size that Zoom Actual Size (CmdOrCtrl+0) restores; zoom steps never overwrite it (C-49).",
-    "type": "number",
-    "maximum": 32,
-    "minimum": 12,
-    "default": 16
-  },
-  "lineHeight": {
-    "description": "Editor--Line Height",
-    "type": "number",
-    "maximum": 2,
-    "minimum": 1.2,
-    "default": 1.6
-  },
-  "wrapCodeBlocks": {
-    "description": "Editor--Wrap text inside code blocks",
-    "type": "boolean",
-    "default": true
-  },
-  "editorLineWidth": {
-    "description": "Editor--Defines the maximum editor area width. An empty string or suffixes of ch (characters), px (pixels) or % (percentage) are allowed.",
-    "type": "string",
-    "pattern": "^(?:$|[0-9]+(?:ch|px|%)$)",
-    "default": ""
-  },
-  "codeFontSize": {
-    "description": "Editor--Font size in code Block, the range is 12 ~ 18",
-    "type": "number",
-    "maximum": 28,
-    "minimum": 12,
-    "default": 14
-  },
-  "codeFontFamily": {
-    "description": "Editor--Font family used in code block",
-    "type": "string",
-    "pattern": "^[^\\s]+((-|\\s)*[^\\s])*$",
-    "default": "DejaVu Sans Mono"
-  },
-  "codeBlockLineNumbers": {
-    "description": "Editor--Show line numbers in code blocks (opt-in since C-38 T-005; one number per logical line, aligned also with wrapped lines)",
-    "type": "boolean",
-    "default": false
-  },
-  "codeBlockLineNumbersMigrated": {
-    "description": "Editor--One-time marker that the C-38 T-005 codeBlockLineNumbers default migration ran (stored true -> false); once set the user's choice is kept",
-    "type": "boolean",
-    "default": false
-  },
-  "trimUnnecessaryCodeBlockEmptyLines": {
-    "description": "Editor--Trim the beginning and ending empty lines in code block",
-    "type": "boolean",
-    "default": true
-  },
-  "autoPairBracket": {
-    "description": "Editor--Automatically brackets when editing",
-    "type": "boolean",
-    "default": true
-  },
-  "autoPairMarkdownSyntax": {
-    "description": "Editor--Autocomplete markdown syntax",
-    "type": "boolean",
-    "default": true
-  },
-  "autoPairQuote": {
-    "description": "Editor--Automatic completion of quotes",
-    "type": "boolean",
-    "default": true
-  },
-  "endOfLine": {
-    "description": "Editor--The newline character used at the end of each line. The default value is default, which selects your operating system's default newline character.",
-    "enum": ["default", "lf", "crlf"],
-    "default": "default"
-  },
   "defaultEncoding": {
-    "description": "Editor--The default file encoding.",
+    "description": "General--File encoding for new files.",
     "default": "utf8",
     "enum": [
       "ascii",
@@ -193,43 +63,177 @@
       "latin6"
     ]
   },
-  "autoGuessEncoding": {
-    "description": "Editor--Try to automatically guess the file encoding when opening files.",
+  "endOfLine": {
+    "description": "General--Line endings used for new files and when saving.",
+    "enum": ["default", "lf", "crlf"],
+    "default": "default"
+  },
+  "zoom": {
+    "description": "General--Retired percentage zoom (C-49). Kept only so a stored value can be migrated once into fontSize (clamp(round(16 × zoom))) and reset to 1; nothing reads it afterwards.--internal",
+    "type": "number",
+    "minimum": 0.5,
+    "maximum": 2.0,
+    "default": 1.0
+  },
+  "titleBarStyle": {
+    "description": "Appearance--Window title bar: Mark's own (with tabs) or the system one. Requires a restart. Windows and Linux only.",
+    "enum": ["custom", "native"],
+    "default": "custom"
+  },
+  "hideScrollbar": {
+    "description": "Appearance--Hide scroll bars.",
+    "type": "boolean",
+    "default": false
+  },
+  "wordWrapInToc": {
+    "description": "Appearance--Wrap long headings in the outline.",
+    "type": "boolean",
+    "default": false
+  },
+  "editorFontFamily": {
+    "description": "Appearance--Text font.",
+    "type": "string",
+    "pattern": "^[^\\s]+((-|\\s)*[^\\s])*$",
+    "default": "Open Sans"
+  },
+  "fontSize": {
+    "description": "Appearance--Text size in pixels (12–32).",
+    "type": "number",
+    "maximum": 32,
+    "minimum": 12,
+    "default": 16
+  },
+  "baseFontSize": {
+    "description": "Appearance--The Settings font size that Zoom Actual Size (CmdOrCtrl+0) restores; zoom steps never overwrite it (C-49).--internal",
+    "type": "number",
+    "maximum": 32,
+    "minimum": 12,
+    "default": 16
+  },
+  "lineHeight": {
+    "description": "Appearance--Line spacing (1.2–2.0).",
+    "type": "number",
+    "maximum": 2,
+    "minimum": 1.2,
+    "default": 1.6
+  },
+  "editorLineWidth": {
+    "description": "Appearance--Writing area width. An empty string or suffixes of ch (characters), px (pixels) or % (percentage) are allowed; empty means unlimited.",
+    "type": "string",
+    "pattern": "^(?:$|[0-9]+(?:ch|px|%)$)",
+    "default": ""
+  },
+  "theme": {
+    "description": "Appearance--The theme family applied in Mark.",
+    "type": "string",
+    "default": "paper"
+  },
+  "followSystemTheme": {
+    "description": "Appearance--Auto mode: follow the system appearance (light or dark).",
     "type": "boolean",
     "default": true
   },
-  "trimTrailingNewline": {
-    "description": "Editor--The trim trailing newline option.",
-    "default": 2,
-    "enum": [0, 1, 2, 3]
+  "lightModeTheme": {
+    "description": "Appearance--Theme family member used when the appearance is light.",
+    "type": "string",
+    "default": "paper"
   },
-  "textDirection": {
-    "description": "Editor--The writing text direction",
-    "enum": ["ltr", "rtl"],
-    "default": "ltr"
+  "darkModeTheme": {
+    "description": "Appearance--Theme family member used when the appearance is dark.",
+    "type": "string",
+    "default": "ink"
+  },
+  "autoPairBracket": {
+    "description": "Editor--Close brackets automatically.",
+    "type": "boolean",
+    "default": true
+  },
+  "autoPairMarkdownSyntax": {
+    "description": "Editor--Close markdown markers automatically.",
+    "type": "boolean",
+    "default": true
+  },
+  "autoPairQuote": {
+    "description": "Editor--Close quotes automatically.",
+    "type": "boolean",
+    "default": true
+  },
+  "autoCheck": {
+    "description": "Editor--Check off tasks with a click.",
+    "type": "boolean",
+    "default": false
   },
   "hideQuickInsertHint": {
-    "description": "Editor--Hide hint for quickly creating paragraphs",
+    "description": "Editor--Hide the insert hint shown on empty lines.",
     "type": "boolean",
     "default": false
   },
   "hideLinkPopup": {
-    "description": "Editor--Hide link popup when the cursor is hover on the link",
+    "description": "Editor--Hide the link preview shown when the cursor is on a link.",
     "type": "boolean",
     "default": false
   },
-  "autoCheck": {
-    "description": "Editor--Whether to automatically check related task.",
+  "textDirection": {
+    "description": "Editor--The writing text direction.",
+    "enum": ["ltr", "rtl"],
+    "default": "ltr"
+  },
+  "tabSize": {
+    "description": "Editor--Spaces inserted by Tab.",
+    "type": "number",
+    "default": 4
+  },
+  "spellcheckerEnabled": {
+    "description": "Editor--Check spelling.",
     "type": "boolean",
     "default": false
   },
-  "autoNormalizeLineEndings": {
-    "description": "Editor--Automatically normalize line endings when opening files. When disabled, files are opened as-is.",
+  "spellcheckerNoUnderline": {
+    "description": "Editor--Underline misspelled words (inverted key: true disables the underline).",
     "type": "boolean",
     "default": false
+  },
+  "spellcheckerLanguage": {
+    "description": "Editor--Spelling language (non-macOS; macOS detects the document language).",
+    "type": "string",
+    "pattern": "^[a-z]{2,3}(?:[-](?:[0-9]|[a-zA-Z]){2,}){0,2}$",
+    "default": "en-US"
+  },
+  "codeFontFamily": {
+    "description": "Editor--Font family used in code blocks.",
+    "type": "string",
+    "pattern": "^[^\\s]+((-|\\s)*[^\\s])*$",
+    "default": "DejaVu Sans Mono"
+  },
+  "codeFontSize": {
+    "description": "Editor--Code text size in pixels, the range is 12 ~ 28.",
+    "type": "number",
+    "maximum": 28,
+    "minimum": 12,
+    "default": 14
+  },
+  "codeBlockLineNumbers": {
+    "description": "Editor--Show line numbers in code blocks (opt-in since C-38 T-005; one number per logical line, aligned also with wrapped lines)",
+    "type": "boolean",
+    "default": false
+  },
+  "codeBlockLineNumbersMigrated": {
+    "description": "Editor--One-time marker that the C-38 T-005 codeBlockLineNumbers default migration ran (stored true -> false); once set the user's choice is kept--internal",
+    "type": "boolean",
+    "default": false
+  },
+  "wrapCodeBlocks": {
+    "description": "Editor--Wrap long lines in code blocks.",
+    "type": "boolean",
+    "default": true
+  },
+  "trimUnnecessaryCodeBlockEmptyLines": {
+    "description": "Editor--Trim blank lines around code.",
+    "type": "boolean",
+    "default": true
   },
   "preferLooseListItem": {
-    "description": "Markdown--The preferred list type",
+    "description": "Markdown--Spacing between list items (true = spaced, false = compact).",
     "type": "boolean",
     "default": true
   },
@@ -239,125 +243,79 @@
     "default": "-"
   },
   "orderListDelimiter": {
-    "description": "Markdown--The dilimiter used in order list",
+    "description": "Markdown--Numbered list format (1. or 1)).",
     "enum": [".", ")"],
     "default": "."
   },
-  "preferHeadingStyle": {
-    "description": "Markdown--The preferred heading style in Mark",
-    "enum": ["atx", "setext"],
-    "default": "atx"
-  },
-  "tabSize": {
-    "description": "Markdown--Replace the tab with x spaces",
-    "type": "number",
-    "default": 4
-  },
   "listIndentation": {
-    "description": "Markdown--Select the indent of list",
+    "description": "Markdown--List indentation.",
     "enum": ["dfm", "tab", 1, 2, 3, 4],
     "default": 1
   },
+  "footnote": {
+    "description": "Markdown--Footnotes ([^1] Pandoc extension).",
+    "type": "boolean",
+    "default": true
+  },
+  "mathEnabled": {
+    "description": "Markdown--Math formulas rendered with KaTeX ($…$ and $$…$$).",
+    "type": "boolean",
+    "default": true
+  },
+  "superSubScript": {
+    "description": "Markdown--Superscript and subscript (^text^ and ~text~, Pandoc extension).",
+    "type": "boolean",
+    "default": false
+  },
   "frontmatterType": {
-    "description": "Markdown--The frontmatter type",
+    "description": "Markdown--Front matter format (the delimiter of the metadata block).",
     "enum": ["-", "+", ";", "{"],
     "default": "-"
   },
-  "superSubScript": {
-    "description": "Markdown-Enable pandoc's markdown extension superscript and subscript.",
+  "frontmatterProperties": {
+    "description": "Markdown--Show front matter as a properties table.",
     "type": "boolean",
-    "default": false
-  },
-  "footnote": {
-    "description": "Markdown-Enable pandoc's markdown extension footnote.",
-    "type": "boolean",
-    "default": false
+    "default": true
   },
   "isHtmlEnabled": {
-    "description": "Markdown-Enable HTML rendering",
+    "description": "Markdown--Allow HTML inside documents.",
     "type": "boolean",
     "default": true
   },
   "isGitlabCompatibilityEnabled": {
-    "description": "Markdown-Enable GitLab compatibility mode.",
+    "description": "Markdown--GitLab-flavored Markdown extras.",
     "type": "boolean",
     "default": false
   },
   "sequenceTheme": {
-    "description": "Markdown--Sequence diagram theme",
+    "description": "Markdown--Sequence diagram style (hand-drawn or simple).",
     "enum": ["hand", "simple"],
     "default": "hand"
   },
-  "theme": {
-    "description": "Theme--Select the theme used in Mark",
-    "type": "string",
-    "default": "paper"
-  },
-  "followSystemTheme": {
-    "description": "Theme--Use separate theme in dark mode.",
-    "type": "boolean",
-    "default": true
-  },
-  "lightModeTheme": {
-    "description": "Theme--Theme to use when system is in light mode.",
-    "type": "string",
-    "default": "paper"
-  },
-  "restoreLayoutState": {
-    "description": "General--Restore previous editor state on startup.",
-    "type": "boolean",
-    "default": true
-  },
-  "darkModeTheme": {
-    "description": "Theme--Theme to use when system is in dark mode.",
-    "type": "string",
-    "default": "ink"
-  },
-  "customCss": {
-    "description": "Custom CSS--Custom CSS to apply to the current theme.--internal",
-    "type": "string",
-    "default": ""
-  },
-  "spellcheckerEnabled": {
-    "description": "Spelling--Whether spell checking is enabled.",
-    "type": "boolean",
-    "default": false
-  },
-  "spellcheckerNoUnderline": {
-    "description": "Spelling--Don't underline spelling mistakes.",
-    "type": "boolean",
-    "default": false
-  },
-  "spellcheckerLanguage": {
-    "description": "Spelling--The spell checker language",
-    "type": "string",
-    "pattern": "^[a-z]{2,3}(?:[-](?:[0-9]|[a-zA-Z]){2,}){0,2}$",
-    "default": "en-US"
-  },
   "imageInsertAction": {
-    "description": "Image--The default behavior after insert image from local folder",
+    "description": "Advanced--When I add an image: copy it into a folder, keep its original location, or upload to the cloud.",
     "enum": ["upload", "folder", "path"],
-    "default": "path"
+    "default": "folder"
   },
   "imagePreferRelativeDirectory": {
-    "description": "Image--Whether to prefer the relative image directory.",
+    "description": "Advanced--Save images next to the document (relative folder + relative links).",
     "type": "boolean",
-    "default": false
+    "default": true
   },
   "imageRelativeDirectoryName": {
-    "description": "Image--The relative image folder name.",
+    "description": "Advanced--Image folder name (${filename} inserts the document's name).",
     "type": "string",
     "default": "assets"
+  },
+  "customCss": {
+    "description": "Advanced--Custom CSS applied on top of the selected theme.",
+    "type": "string",
+    "default": ""
   },
   "sideBarVisibility": {
     "description": "View--Whether the side bar is visible.--internal",
     "type": "boolean",
     "default": false
-  },
-  "autoSnapWindowWidth": {
-    "description": "View--Auto-resize window content width on sidebar toggle and on initial editor load (target width = sideBarWidth + editor ideal width).",
-    "type": "boolean",
-    "default": true
   },
   "tabBarVisibility": {
     "description": "View--Whether the tabs are shown.--internal",
@@ -397,10 +355,5 @@
     "description": "Searcher--Whether symlinks should be followed.--internal",
     "type": "boolean",
     "default": true
-  },
-  "watcherUsePolling": {
-    "description": "Watcher--Whether to use polling. Polling may leads to high CPU utilization but is necessary to watch files over a network.--internal",
-    "type": "boolean",
-    "default": false
   }
 }

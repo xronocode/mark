@@ -461,464 +461,285 @@
     "search": {
       "placeholder": "設定を検索...",
       "empty": "一致する設定はありません",
-      "optionalValues": "オプション値",
       "categories": {
         "general": "一般",
+        "appearance": "外観",
         "editor": "エディター",
         "markdown": "Markdown",
-        "theme": "テーマ",
-        "image": "画像",
+        "advanced": "詳細",
         "view": "ビュー",
         "searcher": "検索",
-        "watcher": "ウォッチャー",
-        "spelling": "スペリング",
-        "custom css": "カスタムCSS"
+        "watcher": "ウォッチャー"
       },
       "items": {
-        "autoSave": "編集中のコンテンツを自動保存",
-        "autoSaveDelay": "変更後にファイルが保存されるまでの時間（ミリ秒）",
-        "autoNormalizeLineEndings": "開くときに改行コードを LF に自動正規化し、オプションで末尾の改行も処理します",
-        "titleBarStyle": "タイトルバーのスタイル（WindowsおよびLinuxシステムのみ）",
-        "openFilesInNewWindow": "新しいウィンドウでファイルを開く",
-        "openFolderInNewWindow": "メニューから新しいウィンドウでフォルダを開く",
-        "zoom": "ズームレベル。0.5から2.0の間",
-        "hideScrollbar": "スクロールバーを非表示にするかどうか",
-        "wordWrapInToc": "目次で自動改行を有効にするかどうか",
-        "fileSortBy": "開いたフォルダ内のファイルを作成時刻、変更時刻、タイトルで並べ替え",
-        "startUpAction": "Mark起動後のアクション、最後に編集したコンテンツを開く、指定されたフォルダを開く、または空白ページ",
-        "restoreLayoutState": "起動時に前回のエディター状態を復元",
-        "defaultDirectoryToOpen": "startUp=folderの場合に起動時に開かれるデフォルトディレクトリ",
-        "language": "Markが使用する言語",
-        "editorFontFamily": "エディターのフォントファミリー",
-        "fontSize": "フォントサイズ（ピクセル）",
-        "lineHeight": "行の高さ",
-        "wrapCodeBlocks": "コードブロック内でテキストを折り返す",
-        "editorLineWidth": "エディターエリアの最大幅を定義します。空文字列またはch（文字）、px（ピクセル）、%（パーセンテージ）の接尾辞が許可されます",
-        "codeFontSize": "コードブロックのフォントサイズ、範囲は12〜18",
-        "codeFontFamily": "コードブロックで使用されるフォントファミリー",
-        "codeBlockLineNumbers": "行番号を表示するかどうか",
-        "trimUnnecessaryCodeBlockEmptyLines": "コードブロックの最初と最後の空行をトリミング",
-        "autoPairBracket": "編集時に自動的に括弧をペアにする",
-        "autoPairMarkdownSyntax": "Markdown構文の自動補完",
-        "autoPairQuote": "引用符の自動補完",
-        "endOfLine": "各行の末尾で使用される改行文字。デフォルト値はdefaultで、オペレーティングシステムのデフォルトの改行文字を選択します",
-        "defaultEncoding": "デフォルトのファイルエンコーディング",
-        "autoGuessEncoding": "ファイルを開くときにファイルエンコーディングを自動的に推測しようとする",
-        "trimTrailingNewline": "末尾改行のトリミングオプション",
-        "textDirection": "テキストの書字方向",
-        "hideQuickInsertHint": "段落を素早く作成するためのヒントを非表示",
-        "hideLinkPopup": "カーソルがリンクの上にホバーしたときにリンクポップアップを非表示",
-        "autoCheck": "関連するタスクを自動的にチェックするかどうか",
-        "preferLooseListItem": "優先されるリストタイプ",
-        "bulletListMarker": "箇条書きリストで使用されるマーカー",
-        "orderListDelimiter": "順序付きリストで使用される区切り文字",
-        "preferHeadingStyle": "Markで優先される見出しスタイル",
-        "tabSize": "タブをx個のスペースに置き換える",
-        "listIndentation": "リストのインデントを選択",
-        "frontmatterType": "フロントマターのタイプ",
-        "superSubScript": "Pandocのmarkdown拡張上付き文字と下付き文字を有効にする",
-        "footnote": "Pandocのmarkdown拡張脚注を有効にする",
-        "isHtmlEnabled": "HTMLレンダリングを有効にする",
-        "isGitlabCompatibilityEnabled": "GitLab互換モードを有効にする",
-        "sequenceTheme": "シーケンス図のテーマ",
-        "theme": "Markで使用するテーマを選択",
-        "followSystemTheme": "システムのテーマに従う",
-        "lightModeTheme": "システムがライトモードの時に使用するテーマ",
-        "darkModeTheme": "システムがダークモードの時に使用するテーマ",
-        "customCss": "現在のテーマに適用するカスタムCSS",
-        "spellcheckerEnabled": "スペルチェックが有効かどうか",
-        "spellcheckerNoUnderline": "スペルミスに下線を引かない",
-        "spellcheckerLanguage": "スペルチェッカーの言語",
-        "imageInsertAction": "ローカルフォルダから画像を挿入した後のデフォルトの動作",
-        "imagePreferRelativeDirectory": "相対画像ディレクトリを優先するかどうか",
-        "imageRelativeDirectoryName": "相対画像フォルダ名",
-        "sideBarVisibility": "サイドバーが表示されているかどうか",
-        "tabBarVisibility": "タブが表示されているかどうか",
-        "sourceCodeModeEnabled": "ソースコードモードがデフォルトで有効かどうか",
-        "searchExclusions": "検索から除外するglobパターンのリスト",
-        "searchMaxFileSize": "最大ファイルサイズ（<maxFileSize><suffix>）。K、M、またはGの接尾辞が許可されます。接尾辞がない場合、数値はバイトとして扱われます",
-        "searchIncludeHidden": "隠しファイルとディレクトリで検索するかどうか",
-        "searchNoIgnore": ".gitignoreのような無視ファイルを無視するかどうか",
-        "searchFollowSymlinks": "シンボリックリンクをフォローするかどうか",
-        "watcherUsePolling": "ポーリングを使用するかどうか。ポーリングは高いCPU使用率につながる可能性がありますが、ネットワーク上のファイルを監視するために必要です"
+        "autoSave": "入力を止めてからしばらくすると変更を自動的に保存する",
+        "autoSaveDelay": "最後のキー入力から保存までの待ち時間",
+        "previewModeOnFinderOpen": "Finder から開いたドキュメントを読み取りビューで開く",
+        "language": "アプリの言語",
+        "defaultEncoding": "新規ファイルのファイルエンコーディング",
+        "endOfLine": "新規ファイルと保存時に使用する改行コード",
+        "titleBarStyle": "ウィンドウのタイトルバー: カスタムまたはシステム（再起動が必要）",
+        "hideScrollbar": "スクロールバーを非表示にする",
+        "wordWrapInToc": "アウトラインで長い見出しを折り返す",
+        "editorFontFamily": "テキストのフォント",
+        "fontSize": "テキストのサイズ",
+        "lineHeight": "行間",
+        "editorLineWidth": "執筆エリアの幅",
+        "theme": "テーマ",
+        "followSystemTheme": "自動モード: システムの外観に従う",
+        "lightModeTheme": "ライト外観のテーマ",
+        "darkModeTheme": "ダーク外観のテーマ",
+        "autoPairBracket": "括弧を自動で閉じる",
+        "autoPairMarkdownSyntax": "Markdown マーカーを自動で閉じる",
+        "autoPairQuote": "引用符を自動で閉じる",
+        "autoCheck": "クリックでタスクをチェックする",
+        "hideQuickInsertHint": "空行の挿入ヒントを非表示にする",
+        "hideLinkPopup": "リンクプレビューを非表示にする",
+        "textDirection": "テキストの方向",
+        "tabSize": "Tab で挿入されるスペースの数",
+        "spellcheckerEnabled": "スペルチェックを行う",
+        "spellcheckerNoUnderline": "スペルミスの単語に下線を引く",
+        "spellcheckerLanguage": "スペルチェックの言語",
+        "codeFontFamily": "コードのフォント",
+        "codeFontSize": "コードのテキストサイズ",
+        "codeBlockLineNumbers": "コードブロックに行番号を表示する",
+        "wrapCodeBlocks": "コードブロックで長い行を折り返す",
+        "trimUnnecessaryCodeBlockEmptyLines": "コードの前後の空行をトリミングする",
+        "preferLooseListItem": "リスト項目の間隔",
+        "bulletListMarker": "箇条書きの文字",
+        "orderListDelimiter": "番号付きリストの形式",
+        "listIndentation": "リストのインデント",
+        "footnote": "脚注",
+        "mathEnabled": "数式",
+        "superSubScript": "上付き文字と下付き文字",
+        "frontmatterType": "フロントマターの形式",
+        "frontmatterProperties": "フロントマターをプロパティ表として表示する",
+        "isHtmlEnabled": "ドキュメント内の HTML を許可する",
+        "isGitlabCompatibilityEnabled": "GitLab フレーバーの Markdown",
+        "sequenceTheme": "シーケンス図のスタイル",
+        "imageInsertAction": "画像を追加するとき",
+        "imagePreferRelativeDirectory": "画像をドキュメントの横に保存する",
+        "imageRelativeDirectoryName": "画像フォルダ名",
+        "customCss": "カスタムCSS"
       }
-    },
-    "categories": {
-      "general": "一般",
-      "editor": "エディター",
-      "markdown": "Markdown",
-      "spelling": "スペルチェック",
-      "theme": "テーマ",
-      "image": "画像",
-      "keybindings": "キーバインド",
-      "language": "言語"
     },
     "general": {
       "title": "一般",
-      "autoSave": {
-        "title": "自動保存",
-        "description": "自動保存",
-        "delayDescription": "自動保存の遅延"
-      },
-      "window": {
-        "title": "ウィンドウ",
-        "titleBarStyle": {
-          "title": "タイトルバースタイル",
-          "custom": "カスタム",
-          "titleBarStyle": "タイトルバースタイル",
-          "native": "ネイティブ"
-        },
-        "requiresRestart": "再起動が必要",
-        "hideScrollbars": "スクロールバーを隠す",
-        "openFilesInNewWindow": "新しいウィンドウでファイルを開く",
-        "openFoldersInNewWindow": "新しいウィンドウでフォルダを開く",
-        "zoom": "ズーム"
+      "macosIntegration": {
+        "title": "macOS との統合",
+        "defaultForMd": ".md ファイルのデフォルトアプリ",
+        "statusIsDefault": "Mark は .md ファイルのデフォルトアプリです。",
+        "statusCurrent": ".md ファイルのデフォルトアプリ: {name}。",
+        "statusNone": ".md ファイルのデフォルトアプリは設定されていません。",
+        "setDefault": "デフォルトに設定",
+        "removeDefault": "デフォルトから外す"
       },
       "startup": {
         "title": "起動",
-        "layoutOptions": "レイアウトオプション",
-        "startupFilesFolders": "起動時のファイル/フォルダ",
-        "restorePreviousState": "前回のエディター状態を復元",
-        "openBlankState": "空の状態を開く",
-        "openDefaultDirectory": "デフォルトディレクトリを開く",
-        "openLastFolder": "開いているフォルダを復元",
-        "selectFolder": "フォルダを選択",
-        "openBlankPage": "空白ページを開く"
+        "previewModeOnFinderOpen": "Finder から開いたドキュメントを読み取りビューで開く",
+        "previewModeOnFinderOpenHelp": "Finder でのダブルクリックや Dock から開いたファイルは読み取り専用で開きます。クリックすると編集できます。"
       },
-      "sidebar": {
-        "title": "サイドバー",
-        "wrapTextInToc": "目次でテキストを折り返し",
-        "excludePatterns": "除外パターン",
-        "excludePatternsNotes": "除外パターンの注意事項",
-        "fileSortBy": {
-          "title": "ファイルの並び順",
-          "creationTime": "作成時刻",
-          "modificationTime": "変更時刻"
-        }
+      "language": {
+        "title": "言語",
+        "appLanguage": "アプリの言語",
+        "system": "システムと同じ",
+        "english": "English",
+        "chinese": "简体中文",
+        "traditionalChinese": "繁體中文",
+        "spanish": "Español",
+        "french": "Français",
+        "german": "Deutsch",
+        "japanese": "日本語",
+        "korean": "한국어",
+        "portuguese": "Português",
+        "russian": "Русский"
       },
-      "misc": {
-        "title": "その他",
-        "language": {
-          "title": "言語",
-          "english": "English",
-          "chinese": "简体中文",
-          "traditionalChinese": "繁體中文",
-          "spanish": "Español",
-          "french": "Français",
-          "german": "Deutsch",
-          "japanese": "日本語",
-          "korean": "한국어",
-          "portuguese": "Português"
-        }
+      "filesAndSaving": {
+        "title": "ファイルと保存",
+        "autoSave": "変更を自動的に保存する",
+        "autoSaveHelp": "入力を止めてからしばらくすると現在のファイルを保存します。",
+        "autoSaveDelay": "入力停止後に保存するまでの時間",
+        "autoSaveDelayHelp": "最後のキー入力から保存までの待ち時間。",
+        "defaultEncoding": "新規ファイルのファイルエンコーディング",
+        "defaultEncodingHelp": "独自にエンコーディングを宣言しているファイルは、この設定に関係なく正しく開かれます。",
+        "endOfLine": "改行コード",
+        "endOfLineHelp": "新規ファイルと保存時に使用されます。",
+        "endOfLineSystem": "OS の設定に合わせる",
+        "endOfLineLf": "LF (Unix, macOS)",
+        "endOfLineCrlf": "CRLF (Windows)",
+        "secondsUnit": "秒"
+      },
+      "updates": {
+        "title": "アップデート",
+        "help": "オンラインで新しいバージョンを確認してインストールします。",
+        "check": "アップデートを確認"
+      }
+    },
+    "appearance": {
+      "title": "外観",
+      "theme": {
+        "title": "テーマ",
+        "mode": "外観",
+        "modeHelp": "自動はコンピュータの設定に従います。各テーマにはライトとダークの両方が用意されています。",
+        "modeAuto": "自動",
+        "modeLight": "ライト",
+        "modeDark": "ダーク"
+      },
+      "text": {
+        "title": "テキスト",
+        "font": "テキストのフォント",
+        "fontSize": "テキストのサイズ",
+        "lineHeight": "行間",
+        "lineWidth": "執筆エリアの幅",
+        "lineWidthHelp": "空欄にすると全幅になります。px、%、ch を付けた数値も入力できます（例: 720px）。",
+        "unlimited": "無制限"
+      },
+      "window": {
+        "title": "ウィンドウとパネル",
+        "hideScrollbar": "スクロールバーを非表示にする",
+        "wordWrapInToc": "アウトラインで長い見出しを折り返す",
+        "titleBarStyle": "ウィンドウのタイトルバー",
+        "titleBarStyleHelp": "カスタムはタブ付きの Mark 独自のタイトルバーを描画します。再起動が必要です。",
+        "titleBarStyleCustom": "カスタム",
+        "titleBarStyleNative": "システム"
       }
     },
     "editor": {
       "title": "エディター",
-      "textEditor": {
-        "title": "テキストエディター",
-        "fontSize": "フォントサイズ",
-        "lineHeight": "行の高さ",
-        "fontFamily": "フォントファミリー",
-        "maxWidth": "最大幅",
-        "maxWidthNotes": "エディターコンテンツの最大幅"
+      "typing": {
+        "title": "入力",
+        "autoPairBracket": "括弧を自動で閉じる",
+        "autoPairQuote": "引用符を自動で閉じる",
+        "autoPairMarkdownSyntax": "Markdown マーカーを閉じる",
+        "autoPairMarkdownSyntaxHelp": "** や __ を入力すると、閉じマーカーが自動挿入されます。",
+        "autoCheck": "クリックでタスクをチェックする",
+        "autoCheckHelp": "ドキュメント内のタスクチェックボックスを切り替えられます。",
+        "hideQuickInsertHint": "空行の挿入ヒントを非表示にする",
+        "hideQuickInsertHintHelp": "新しい段落を始めるときに表示される小さな「+」ヒントです。",
+        "hideLinkPopup": "リンクプレビューを非表示にする",
+        "hideLinkPopupHelp": "カーソルがリンク上にあるときに表示されるツールチップです。",
+        "textDirection": "テキストの方向",
+        "textDirectionLtr": "左から右",
+        "textDirectionRtl": "右から左"
       },
-      "codeBlock": {
-        "title": "コードブロック",
-        "fontSize": "フォントサイズ",
-        "fontFamily": "フォントファミリー",
-        "showLineNumbers": "行番号を表示",
-        "removeEmptyLines": "空行を削除"
+      "tabs": {
+        "title": "タブとインデント",
+        "tabSize": "Tab で挿入されるスペースの数",
+        "tabSizeHelp": "Tab キーはタブ文字の代わりにスペースを挿入します。"
       },
-      "writingBehavior": {
-        "title": "書き込み動作",
-        "autoCloseBrackets": "括弧を自動で閉じる",
-        "autoCompleteMarkdown": "Markdownを自動補完",
-        "autoCloseQuotes": "引用符を自動で閉じる"
-      },
-      "fileRepresentation": {
-        "title": "ファイル表現",
-        "tabWidth": "タブ幅",
-        "lineSeparator": "行区切り文字",
-        "defaultEncoding": "デフォルトエンコーディング",
-        "autoDetectEncoding": "エンコーディングを自動検出",
-        "trailingNewlines": {
-          "title": "末尾の改行",
-          "doNothing": "何もしない",
-          "ensureOne": "1つ確保",
-          "preserve": "保持",
-          "trimAll": "すべて削除"
-        },
-        "endOfLine": {
-          "default": "デフォルト",
-          "crlf": "CRLF (Windows)",
-          "lf": "LF (Linux/Mac)"
+      "spelling": {
+        "title": "スペルチェック",
+        "enabled": "スペルチェックを行う",
+        "underline": "スペルミスの単語に下線を引く",
+        "macAutoDetectHelp": "macOS はドキュメントの言語を自動検出します。",
+        "language": "スペルチェックの言語",
+        "customDictionary": {
+          "title": "カスタム辞書",
+          "noWordsAvailable": "利用可能な単語がありません",
+          "delete": "削除"
         }
       },
-      "misc": {
-        "title": "その他",
-        "textDirection": {
-          "title": "テキスト方向",
-          "ltr": "左から右",
-          "rtl": "右から左"
-        },
-        "hideQuickInsertHint": "クイック挿入ヒントを隠す",
-        "hideLinkPopup": "リンクポップアップを隠す",
-        "autoCheck": "自動チェック",
-        "autoNormalizeLineEndings": "開くときに改行コードを自動的にLFに正規化する",
-        "wrapCodeBlocks": "コードブロックを折り返し"
-      }
-    },
-    "image": {
-      "title": "画像",
-      "defaultAction": "画像挿入時のデフォルトアクション",
-      "clipboardTooltip": "Markに画像を貼り付けまたはドラッグした後のデフォルト動作",
-      "actions": {
-        "upload": "クラウドにアップロード",
-        "folder": "フォルダにコピー",
-        "path": "絶対パスを使用"
-      },
-      "folderSetting": {
-        "title": "フォルダ設定",
-        "globalFolder": "グローバル画像フォルダ",
-        "open": "開く",
-        "showInFolder": "フォルダで表示",
-        "preferRelative": "相対ディレクトリを優先",
-        "relativeFolderName": "相対フォルダ名",
-        "filenameNote": "ファイル名は自動生成されます。"
-      },
-      "imageInsertAction": {
-        "title": "画像挿入アクション",
-        "folder": "フォルダにアップロード",
-        "path": "パスにコピー",
-        "upload": "クラウドにアップロード",
-        "copyToFolder": "フォルダにコピー",
-        "uploadToServer": "サーバーにアップロード"
-      },
-      "imageFolderPath": {
-        "title": "画像フォルダパス",
-        "description": "画像フォルダパス",
-        "selectFolder": "フォルダを選択",
-        "relativePath": "相対パス",
-        "absolutePath": "絶対パス"
-      },
-      "cloudPictureBed": {
-        "title": "クラウド画像ベッド",
-        "github": "GitHub",
-        "smms": "SM.MS",
-        "qiniu": "Qiniu",
-        "upyun": "UpYun",
-        "tcyun": "Tencent Cloud",
-        "aliyun": "Alibaba Cloud",
-        "imgur": "Imgur",
-        "picgo": "PicGo"
-      },
-      "preferRelativeDirectory": {
-        "title": "相対ディレクトリを優先",
-        "description": "画像の優先相対ディレクトリ"
-      },
-      "uploader": {
-        "title": "画像アップローダー",
-        "currentUploader": "現在のアップローダー",
-        "picgoNotInstalled": "PicGoがインストールされていません",
-        "picgoDetectionStatus": "PicGo検出ステータス",
-        "picgoInstalled": "PicGoがインストールされています",
-        "picgoDetectionFailed": "PicGo検出に失敗しました",
-        "debugInfo": "デバッグ情報",
-        "installCommand": "インストールコマンド",
-        "npmInstallCommand": "npm install picgo -g",
-        "yarnInstallCommand": "yarn global add picgo",
-        "pnpmInstallCommand": "pnpm add -g picgo",
-        "brewInstallCommand": "brew install picgo",
-        "chooseInstallMethod": "インストール方法を選択:",
-        "retestPicgo": "再テスト",
-        "detecting": "検出中...",
-        "lastDetectionTime": "最後の検出時間",
-        "detectionStatus": "検出ステータス",
-        "usageGuide": {
-          "title": "PicGo基本使用ガイド",
-          "step1": "アップローダーを設定",
-          "step1Description": "以下のコマンドを使用してPicGoアップローダーを設定してください：",
-          "step2": "画像をアップロード",
-          "step2Description": "以下のコマンドを使用して画像をアップロードしてください：",
-          "step3": "設定を表示",
-          "step3Description": "以下のコマンドを使用して現在の設定を表示してください：",
-          "documentation": "完全なドキュメントを表示"
-        },
-        "configureUploader": "アップローダーを設定",
-        "configureDescription": "以下のコマンドを使用してPicGoアップローダーを設定してください：",
-        "uploadImage": "画像をアップロード",
-        "uploadDescription": "以下のコマンドを使用して画像をアップロードしてください：",
-        "viewConfig": "設定を表示",
-        "viewConfigDescription": "以下のコマンドを使用して現在の設定を表示してください：",
-        "viewDocumentation": "完全なドキュメントを表示",
-        "githubDeprecated": "GitHubアップローダーは非推奨",
-        "githubToken": "GitHubトークン",
-        "ownerName": "オーナー名",
-        "repoName": "リポジトリ名",
-        "branchName": "ブランチ名",
-        "scriptDescription": "スクリプトの説明",
-        "scriptLocation": "スクリプトの場所",
-        "save": "保存",
-        "saveConfig": "設定を保存",
-        "githubConfigSaved": "GitHub設定が保存されました",
-        "scriptConfigSaved": "スクリプト設定が保存されました",
-        "legalNotices": {
-          "title": "法的通知",
-          "description": "対応する利用規約を読み、同意しました",
-          "and": "および",
-          "byUsing": "このサービスを使用することで、あなたは同意します",
-          "gdprWarning": "GDPR警告",
-          "privacyStatement": "プライバシーステートメント",
-          "termsOfService": "利用規約"
-        },
-        "services": {
-          "github": "GitHub",
-          "smms": "SM.MS",
-          "qiniu": "Qiniu",
-          "upyun": "UpYun",
-          "tcyun": "Tencent Cloud",
-          "aliyun": "Alibaba Cloud",
-          "imgur": "Imgur",
-          "picgo": "PicGo",
-          "script": "カスタムスクリプト",
-          "cliScript": "CLIスクリプト",
-          "none": "なし"
-        },
-        "branch": "ブランチ",
-        "inputToken": "トークンを入力",
-        "noUploaderSelected": "アップローダーが選択されていません",
-        "owner": "オーナー",
-        "pleaseInstall": "インストールしてください",
-        "repo": "リポジトリ",
-        "scriptPath": "スクリプトパス",
-        "tokenTooltip": "認証用アクセストークン",
-        "picgoDetection": "PicGo検出",
-        "autoDetection": "自動検出中",
-        "lastSuccessTime": "最後の成功時刻",
-        "neverDetected": "検出されたことがない",
-        "neverSuccessful": "成功したことがない"
+      "codeBlocks": {
+        "title": "コードブロック",
+        "fontFamily": "コードのフォント",
+        "fontSize": "コードのテキストサイズ",
+        "lineNumbers": "行番号を表示",
+        "wrapLongLines": "コードブロックで長い行を折り返す",
+        "trimBlankLines": "コードの前後の空行をトリミングする",
+        "trimBlankLinesHelp": "コードブロックの先頭と末尾の空行を削除します。"
       }
     },
     "markdown": {
       "title": "Markdown",
-      "listItem": {
-        "title": "リストアイテム",
-        "preferLooseListItem": "ルーズリストアイテムを優先",
-        "bulletListMarker": "箇条書きマーカー",
-        "orderListDelimiter": "番号付きリスト区切り文字",
-        "listIndentation": {
-          "title": "リストインデント",
-          "dfm": "デフォルトフォーマットモード",
-          "tab": "タブ",
-          "oneSpace": "1つのスペース",
-          "twoSpaces": "2つのスペース",
-          "threeSpaces": "3つのスペース",
-          "fourSpaces": "4つのスペース"
-        }
-      },
-      "heading": {
-        "title": "見出し",
-        "preferHeadingStyle": "優先見出しスタイル"
-      },
-      "frontmatter": {
-        "title": "フロントマター",
-        "frontmatterType": "フロントマタータイプ"
+      "lists": {
+        "title": "リスト",
+        "spacing": "リスト項目の間隔",
+        "spacingCompact": "コンパクト",
+        "spacingSpaced": "空行あり",
+        "spacingHelp": "空行ありは項目間に空行を入れます。一部のレンダラーで必要とされます。",
+        "bulletCharacter": "箇条書きの文字",
+        "orderedListFormat": "番号付きリストの形式",
+        "orderedListDot": "1. 項目",
+        "orderedListParen": "1) 項目",
+        "indentation": "リストのインデント",
+        "indentationHelp": "ファイルに書き込むとき、ネストしたリスト行をどうインデントするか。",
+        "indentAlignWithText": "テキストに合わせる",
+        "indentTab": "タブを使用",
+        "indentOneSpace": "1 スペース",
+        "indentTwoSpaces": "2 スペース",
+        "indentThreeSpaces": "3 スペース",
+        "indentFourSpaces": "4 スペース"
       },
       "extensions": {
         "title": "拡張機能",
-        "superSubScript": "上付き/下付き文字",
         "footnote": "脚注",
-        "isHtmlEnabled": "HTML有効",
-        "isGitlabCompatibilityEnabled": "GitLab互換性",
-        "sequenceTheme": "シーケンステーマ",
-        "superscript": "上付き文字",
-        "subscript": "下付き文字",
-        "frontMatter": "フロントマター",
+        "footnoteHelp": "[^1] 脚注構文（Pandoc 拡張）を有効にします。",
         "math": "数式",
-        "diagram": "図表",
-        "footnoteNotes": "脚注",
-        "frontmatterType": {
-          "frontmatterType": "フロントマタータイプ",
-          "jsonBrace": "JSON括弧",
-          "jsonSemicolon": "JSONセミコロン",
-          "title": "フロントマタータイプ"
-        },
-        "frontmatterProperties": "YAML フロントマターをプロパティ表として表示（クリックで YAML を編集）"
-      },
-      "diagrams": {
-        "title": "図表",
-        "plantuml": "PlantUML",
-        "mermaid": "Mermaid",
-        "vega": "Vega",
-        "flowchart": "フローチャート",
-        "sequence": "シーケンス",
-        "gantt": "ガント",
-        "sequenceTheme": {
-          "title": "シーケンステーマ",
-          "handDrawn": "手描き",
-          "simple": "シンプル"
-        }
-      },
-      "math": {
-        "title": "数式",
-        "katex": "KaTeX",
-        "mathJax": "MathJax"
-      },
-      "misc": {
-        "preferHeadingStyle": {
-          "title": "優先見出しスタイル",
-          "atx": "ATXスタイル",
-          "setext": "Setextスタイル"
-        },
-        "title": "その他"
+        "mathHelp": "$…$ と $$…$$ を KaTeX で表示します。",
+        "superSubScript": "上付き文字と下付き文字",
+        "superSubScriptHelp": "^テキスト^ と ~テキスト~（Pandoc 拡張）を有効にします。",
+        "frontmatterFormat": "フロントマターの形式",
+        "frontmatterFormatHelp": "ドキュメント先頭のメタデータブロックの区切り文字です。",
+        "frontmatterJsonSemicolon": "セミコロン区切りの JSON",
+        "frontmatterJsonBrace": "波括弧の JSON",
+        "frontmatterProperties": "フロントマターをプロパティ表として表示する",
+        "frontmatterPropertiesHelp": "表をクリックすると生の YAML を編集できます。"
       },
       "compatibility": {
-        "enableGitlab": "GitLab互換性を有効",
-        "enableHtml": "HTMLサポートを有効",
-        "title": "互換性"
-      },
-      "lists": {
-        "bulletListMarker": "箇条書きマーカー",
-        "listIndentation": {
-          "title": "リストインデント",
-          "dfm": "DFMスタイル",
-          "fourSpaces": "4つのスペース",
-          "oneSpace": "1つのスペース",
-          "tab": "タブ",
-          "threeSpaces": "3つのスペース",
-          "twoSpaces": "2つのスペース"
-        },
-        "orderListDelimiter": "番号付きリスト区切り文字",
-        "preferLooseListItem": "ルーズリストアイテムを優先",
-        "title": "リスト"
+        "title": "互換性",
+        "allowHtml": "ドキュメント内の HTML を許可する",
+        "allowHtmlHelp": "オフにすると HTML タグがテキストとして表示されます。",
+        "gitlabFlavored": "GitLab フレーバーの Markdown",
+        "gitlabFlavoredHelp": "GitLab 固有の図表や参照構文などの拡張を有効にします。",
+        "sequenceDiagramStyle": "シーケンス図のスタイル",
+        "sequenceHandDrawn": "手描き",
+        "sequenceSimple": "シンプル"
       }
     },
-    "spelling": {
-      "title": "スペルチェック",
-      "enabled": "スペルチェックを有効",
-      "autoDetectLanguage": "言語を自動検出",
-      "language": "言語",
-      "noSuggestions": "提案なし",
-      "spellcheckerEnabled": "スペルチェック有効",
-      "spellcheckerNoUnderline": "スペルミスの単語に下線なし",
-      "spellcheckerLanguage": "スペルチェック言語"
-    },
-    "theme": {
-      "title": "テーマ",
-      "theme": "テーマ",
-      "followSystemTheme": "システムのテーマに従う",
-      "modeThemes": "テーマの選択",
-      "lightModeTheme": "ライトモードのテーマ",
-      "darkModeTheme": "ダークモードのテーマ",
-      "customCss": "カスタムCSS",
-      "codeBlockTheme": {
-        "title": "コードブロックテーマ",
-        "description": "コードブロックのテーマ"
+    "advanced": {
+      "title": "詳細",
+      "images": {
+        "title": "画像",
+        "insertAction": "画像を追加するとき",
+        "insertActionFolder": "フォルダにコピーする",
+        "insertActionPath": "元の場所を保持する",
+        "folder": "画像フォルダ",
+        "folderHelp": "ドキュメントの横に保存しない場合に、貼り付け・ドラッグされた画像の保存先です。",
+        "folderPlaceholder": "フォルダを選択…",
+        "chooseFolder": "選択…",
+        "openFolder": "開く",
+        "saveNextToDocument": "画像をドキュメントの横に保存する",
+        "saveNextToDocumentHelp": "ドキュメントのフォルダ内にある下記のフォルダを使用し、相対リンクを書き込みます。",
+        "folderName": "画像フォルダ名",
+        "folderNameHelp": "${'{'}filename{'}'} はドキュメント名に置き換えられます。"
       },
-      "importCustomThemes": "カスタムテーマをインポート",
-      "importTheme": "テーマをインポート",
-      "openFolder": "フォルダを開く",
-      "openThemesFolder": "テーマフォルダを開く"
+      "customise": {
+        "title": "カスタマイズ",
+        "keyboardShortcuts": "キーボードショートカット",
+        "extensions": "拡張機能",
+        "customCss": "カスタムCSS",
+        "customCssHelp": "選択したテーマの上に適用されます。",
+        "edit": "編集…",
+        "browse": "参照…"
+      },
+      "reset": {
+        "title": "リセット",
+        "restore": "すべての設定をデフォルトに戻す",
+        "restoreHelp": "ドキュメントは変更されません。",
+        "restoreButton": "戻す…",
+        "confirmTitle": "すべての設定をデフォルトに戻しますか？",
+        "confirmMessage": "すべての設定がデフォルト値に戻ります。ドキュメントと画像フォルダは変更されません。",
+        "cancel": "キャンセル",
+        "confirm": "戻す"
+      },
+      "sheets": {
+        "close": "閉じる",
+        "shortcutsTitle": "キーボードショートカット",
+        "extensionsTitle": "拡張機能",
+        "customCssTitle": "カスタムCSS",
+        "customCssSave": "保存",
+        "customCssPlaceholder": "/* テーマの上に適用されるカスタムCSS */"
+      }
     },
     "keybindings": {
       "title": "キーバインド",
@@ -953,31 +774,7 @@
         "unbind": "バインド解除"
       }
     },
-    "selectFont": "フォントを選択",
-    "spellchecker": {
-      "autoDetectDescription": "文書の言語を自動検出",
-      "autoDetectLanguage": "言語を自動検出",
-      "customDictionary": {
-        "delete": "削除",
-        "description": "個人辞書にカスタム単語を追加",
-        "noWordsAvailable": "利用可能な単語がありません",
-        "options": "オプション",
-        "title": "カスタム辞書",
-        "word": "単語"
-      },
-      "defaultLanguage": "デフォルト言語",
-      "enableSpellChecking": "スペルチェックを有効",
-      "hideMarksForErrors": "スペルエラーのマークを隠す",
-      "title": "スペルチェック"
-    },
-    "language": {
-      "title": "言語",
-      "uiLanguage": {
-        "title": "インターフェース言語",
-        "description": "アプリケーションUIの言語"
-      },
-      "system": "システムと同じ"
-    }
+    "selectFont": "フォントを選択"
   },
   "about": {
     "copyright": "Copyright © Jocs 2017+, tkaixiang 2024+, xronocode 2026+",

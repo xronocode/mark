@@ -62,7 +62,8 @@ const { t } = useI18n()
 const router = useRouter()
 const route = useRoute()
 
-const tabs = TABS.map((tab) => ({ ...tab, label: t(tab.labelKey), icon: TAB_ICONS[tab.id] }))
+// Computed: labels must follow a language switch (review fix).
+const tabs = computed(() => TABS.map((tab) => ({ ...tab, label: t(tab.labelKey), icon: TAB_ICONS[tab.id] })))
 
 const activeTabId = computed(() => (TAB_IDS.includes(route.name) ? route.name : null))
 

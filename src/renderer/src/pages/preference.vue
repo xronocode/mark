@@ -246,7 +246,9 @@ body.dark .pref-container.is-win {
   min-height: 40px;
   padding: 8px 14px;
   box-sizing: border-box;
-  flex-wrap: wrap;
+  /* Review fix: no wrapping — a long help text wraps inside the label
+     column instead of pushing the control onto its own line. */
+  flex-wrap: nowrap;
   font-size: 13px;
   color: var(--prefText);
 }
@@ -255,7 +257,7 @@ body.dark .pref-container.is-win {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  flex: 1 1 auto;
+  flex: 1 1 0;
   min-width: 0;
 }
 

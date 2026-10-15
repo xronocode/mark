@@ -22,16 +22,16 @@ test.describe('settings route', () => {
     await expect(page.locator('.pref-sidebar')).toHaveCount(0)
 
     // Legacy deep link /preference/theme redirects to the appearance
-    // tab, which renders the (interim) theme page.
+    // tab, which now renders the redesigned Appearance page (C-38 T-004).
     await page.evaluate(() => {
       window.location.hash = '#/preference/theme'
     })
 
     await page
-      .locator('.pref-theme')
+      .locator('.pref-tab-page--appearance')
       .waitFor({ state: 'visible', timeout: 5_000 })
 
-    await expect(page.locator('.pref-theme').count()).resolves.toBeGreaterThan(0)
+    await expect(page.locator('.pref-tab-page--appearance').count()).resolves.toBeGreaterThan(0)
     // The appearance tab is the active one after the redirect.
     await expect(page.locator('.pref-toolbar [data-tab="appearance"]')).toHaveAttribute(
       'aria-selected',

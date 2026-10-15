@@ -2,7 +2,7 @@
 // VERSION: 1.0.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Verify C-41 T-001 registration and defaults — Paper/Ink in the real theme pipeline (themeColor factories, themeMap injection, dark classification, pairs), fresh-profile Auto defaults, stored-preference preservation, and the Settings theme page unhiding.
-//   SCOPE: Real (unmocked) util/theme + util/themeColor + config + store/preferences + prefComponents/theme over jsdom, plus an SFC source pin.
+//   SCOPE: Real (unmocked) util/theme + util/themeColor + config + store/preferences + prefComponents/tabs/appearance over jsdom, plus an SFC source pin.
 //   DEPENDS: Vitest, Pinia test setup, util/theme.js, util/themeColor.js, util/autoTheme.js, config.js, store/preferences.js.
 //   LINKS: .grace/verification/runtime.xml V-M-011 scenario-38 (C-41 T-001).
 //   ROLE: TEST
@@ -28,7 +28,7 @@ vi.mock('@/i18n', () => ({ t: (key) => key, setLanguage: vi.fn() }))
 
 const ROOT = resolve(__dirname, '..', '..', '..')
 const readSfc = () =>
-  readFileSync(resolve(ROOT, 'src/renderer/src/prefComponents/theme/index.vue'), 'utf-8')
+  readFileSync(resolve(ROOT, 'src/renderer/src/prefComponents/tabs/appearance/index.vue'), 'utf-8')
 
 const cleanDocument = () => {
   document.head.innerHTML = ''
@@ -93,11 +93,9 @@ describe('Paper/Ink theme registration (C-41 T-001)', () => {
     expect(DEFAULT_STYLE.theme).toBe('paper')
   })
 
-  it('lists Paper and Ink in the Settings theme picker', async () => {
-    const { themes } = await import('@/prefComponents/theme/config')
-    const names = themes.map((t) => t.name)
-    expect(names).toContain('paper')
-    expect(names).toContain('ink')
+  it('lists Paper and Ink as a family in the Settings theme picker', async () => {
+    const { THEME_FAMILIES } = await import('@/util/themeFamilies')
+    expect(THEME_FAMILIES).toContainEqual(expect.objectContaining({ light: 'paper', dark: 'ink' }))
   })
 
   it('registers Paper and Ink in the command palette theme list (and the native menu mirrors it)', async () => {
@@ -198,11 +196,11 @@ describe('Theme defaults and stored preferences (C-41 T-001)', () => {
   })
 })
 
-describe('Settings theme page exposes the Auto controls (C-41 T-001)', () => {
-  it('shows followSystemTheme and the light/dark member selects (no v-if="false" hiding)', () => {
+describe('Settings Appearance tab exposes the Auto control (C-41 T-001, C-38 T-004)', () => {
+  it('shows the Auto / Light / Dark segmented control (no v-if="false" hiding)', () => {
     const sfc = readSfc()
     expect(sfc).not.toContain('v-if="false"')
-    expect(sfc).toContain('START_BLOCK_SELECT_THEME_CARD')
-    expect(sfc).toMatch(/<compound v-if="followSystemTheme">/)
+    expect(sfc).toMatch(/<segmented/)
+    expect(sfc).toContain('followSystemTheme')
   })
 })

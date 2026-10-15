@@ -1,5 +1,5 @@
 // FILE: src/renderer/src/util/themeColor.js
-// VERSION: 2.0.0
+// VERSION: 2.1.0
 // START_MODULE_CONTRACT
 //   PURPOSE: One factory per registered theme returning the theme CSS plus
 //            its Prism.js companion (C-41 T-002: 22 factories — the 12
@@ -42,10 +42,16 @@
 //   kanagawaLotus - kanagawaLotus theme CSS + Prism companion (C-41 T-003).
 //   graphiteDark - graphiteDark theme CSS + Prism companion (C-41 T-003).
 //   ulyssesDark - ulyssesDark theme CSS + Prism companion (C-41 T-003).
+//   themeCssFactories - frozen theme-id → factory registry (C-38 T-004 swatch source; same membership as util/theme.js themeMap).
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v2.0.0 - 2026-10-15 C-41 T-002: remove the 12 retired
+//   LAST_CHANGE: v2.1.0 - 2026-10-15 C-38 T-004: export themeCssFactories
+//   (theme id → CSS factory) so the Settings family swatches read
+//   --editorBgColor/--editorColor/--themeColor straight from the shipped
+//   theme CSS without importing util/theme.js (platform shim at import
+//   time) and without a second palette table.
+//   v2.0.0 - 2026-10-15 C-41 T-002: remove the 12 retired
 //   factories (dark, material-dark, tokyo-night-storm, ayu-mirage,
 //   rose-pine-moon, monokai-pro, synthwave-84, horizon-dark, palenight,
 //   oxocarbon-dark, nightfox, cyberdream) and their imports; stored values
@@ -245,3 +251,41 @@ export const everforestLight = () => {
 export const rosePineDawn = () => {
   return rosePineDawnTheme + '\n' + rosePineDawnPrismTheme
 }
+
+// START_BLOCK_THEME_CSS_FACTORIES
+// C-38 T-004: theme-id → CSS factory registry for consumers that must not
+// import util/theme.js (which pulls the platform shim at import time) —
+// the Settings Appearance tab reads each theme's CSS variables from these
+// strings to paint the family swatches, so there is no second hand-maintained
+// palette table anywhere.
+export const themeCssFactories = Object.freeze({
+  paper,
+  ink,
+  'one-light': oneLight,
+  alucard,
+  'nord-light': nordLight,
+  'kanagawa-lotus': kanagawaLotus,
+  'graphite-dark': graphiteDark,
+  'ulysses-dark': ulyssesDark,
+  graphite,
+  'one-dark': oneDark,
+  ulysses,
+  dracula,
+  nord,
+  'catppuccin-mocha': catppuccinMocha,
+  'gruvbox-dark': gruvboxDark,
+  'tokyo-night': tokyoNight,
+  'solarized-dark': solarizedDark,
+  'ayu-dark': ayuDark,
+  'everforest-dark': everforestDark,
+  'rose-pine': rosePine,
+  kanagawa,
+  'catppuccin-latte': catppuccinLatte,
+  'gruvbox-light': gruvboxLight,
+  'tokyo-night-light': tokyoNightLight,
+  'solarized-light': solarizedLight,
+  'ayu-light': ayuLight,
+  'everforest-light': everforestLight,
+  'rose-pine-dawn': rosePineDawn
+})
+// END_BLOCK_THEME_CSS_FACTORIES

@@ -2658,6 +2658,39 @@
         (preference.vue APPLY_WINDOW_TITLE via getCurrentWindow().setTitle);
         src-tauri mt_open_setting_window builds the fixed 640×620 window;
         preferences.tabs labels ship in all ten locales (json + min.json).
+        C-38 T-004: the five tabs carry their real content per the N2 IA —
+        prefComponents/tabs/{general,appearance,editor,markdown,advanced}
+        built only from prefComponents/common controls (grouped compound
+        cards, label + optional help + right-aligned control, no colons);
+        the old per-section pages (prefComponents/{general,editor,
+        markdown,spellchecker,image,language,theme}) are retired — the
+        macOS default-handler card becomes a normal General group, the
+        image folder chooser and a GitHub-free uploader form (none/PicGo/
+        CLI script; a stored 'github' currentUploader falls back to
+        'none' in store SET_USER_PREFERENCE, which also guards the
+        bootstrap null URL-param stomp of the style defaults, IA §5
+        bug 15) move into Advanced › Images; Appearance replaces the
+        Lorem-preview cards with the mockup compact family tiles (7 per
+        row, light|dark halves with "Aa" + accent bar, colours parsed
+        from each theme's --editorBgColor/--editorColor/--themeColor via
+        util/themeSwatchColors over the new themeCssFactories export —
+        no second palette table) plus an Auto/Light/Dark segmented
+        control with titleBar-identical mode semantics; Editor › Code
+        blocks exposes the T-005 line-numbers switch, Spelling drops the
+        fake macOS auto-detect switch for a help line (custom dictionary
+        list stays, Settings-styled); the 14 dead keys (IA §4.1) leave
+        the UI and schema.json (stored values untouched), the 4 default
+        drifts are reconciled, mathEnabled/frontmatterProperties/
+        previewModeOnFinderOpen join the schema so the ⌘F search finds
+        every visible row (categories recategorized to the 5 tabs,
+        CATEGORY_TO_TAB gains appearance/advanced); Keyboard shortcuts
+        open as a 560px sheet from Advanced › Customise (common/sheet,
+        own search field, Esc/Close), the extension gallery and custom
+        CSS editor open the same way, and «Restore all defaults» asks in
+        an in-app dialog and resets preferences only (store
+        RESET_PREFERENCES_TO_DEFAULTS over the preferenceDefaults
+        factory); DEFAULT_STYLE.codeFontSize becomes the number 14;
+        the preferences.* locale tree is rewritten in all ten languages.
       </Summary>
       <Path>src/renderer/</Path>
       <Dependencies>

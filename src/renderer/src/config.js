@@ -28,7 +28,10 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.1.0 - 2026-10-15 C-41 T-002: the theme set becomes 14
+//   LAST_CHANGE: v1.1.1 - 2026-10-15 C-38 T-004: DEFAULT_STYLE.codeFontSize
+//   becomes the number 14 (was the v1 '14px' string — the boot fallback fed
+//   the "14px px"/NaNem code path, IA §5 bug 2).
+//   v1.1.0 - 2026-10-15 C-41 T-002: the theme set becomes 14
 //   light/dark families (THEME_FAMILIES, spec R-3 order); themePairs is now
 //   derived from it (every member maps to its partner, symmetric by
 //   construction) and the 13 retired ids (light, dark, material-dark,
@@ -51,7 +54,10 @@ export const DEFAULT_CODE_FONT_FAMILY =
   '"DejaVu Sans Mono", "Source Code Pro", "Droid Sans Mono", monospace'
 export const DEFAULT_STYLE = Object.freeze({
   codeFontFamily: DEFAULT_CODE_FONT_FAMILY,
-  codeFontSize: '14px',
+  // C-38 T-004 (IA §5 bug 2): a number, not the v1 '14px' string — the
+  // stepper and util/theme.js both expect a numeric size (legacy stored
+  // strings are coerced at the control boundary).
+  codeFontSize: 14,
   hideScrollbar: false,
   // C-41 T-001: Paper is the light default for new profiles (the effective
   // theme under followSystemTheme=true resolves via util/autoTheme.js).

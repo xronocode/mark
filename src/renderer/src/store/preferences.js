@@ -1,24 +1,37 @@
 // FILE: src/renderer/src/store/preferences.js
-// VERSION: 1.3.0
+// VERSION: 1.4.0
 // START_MODULE_CONTRACT
-//   PURPOSE: Pinia store for persistent user preferences, their hydration, persistence, the unified fontSize zoom actions (C-49), the UI-language application paths (concrete or 'system'), and the retired-theme id migration (C-41 T-002).
-//   SCOPE: default state, SET_USER_PREFERENCE / SET_SINGLE_PREFERENCE, the C-49 zoom actions (APPLY_FONT_SIZE / ZOOM_STEP / ZOOM_ACTUAL_SIZE) and the one-time legacy `zoom` migration, the C-41 T-002 retired-theme migration in ASK_FOR_USER_PREFERENCE, ASK_FOR_USER_PREFERENCE boot hydration, buildCapabilities + default-handler queries, LISTEN_SYSTEM_LANGUAGE re-resolution (C-45).
+//   PURPOSE: Pinia store for persistent user preferences, their hydration, persistence, the unified fontSize zoom actions (C-49), the UI-language application paths (concrete or 'system'), the retired-theme id migration (C-41 T-002), and the C-38 T-004 «Restore all defaults» reset.
+//   SCOPE: default state, SET_USER_PREFERENCE / SET_SINGLE_PREFERENCE, the C-49 zoom actions (APPLY_FONT_SIZE / ZOOM_STEP / ZOOM_ACTUAL_SIZE) and the one-time legacy `zoom` migration, the C-41 T-002 retired-theme migration in ASK_FOR_USER_PREFERENCE, ASK_FOR_USER_PREFERENCE boot hydration, buildCapabilities + default-handler queries, LISTEN_SYSTEM_LANGUAGE re-resolution (C-45), RESET_PREFERENCES_TO_DEFAULTS (C-38 T-004).
 //   DEPENDS: pinia, @tauri-apps/api/core, bus, services/notification, i18n/index.js, i18n/systemLocale.js, util/autoTheme.js, util/themeMigration.js.
-//   LINKS: _shims/preferences/schema.json defaults; pages/app.vue boot + zoom keys/wheel; components/zoomIndicator; .grace/changes/active/C-49; .grace/changes/active/C-38 T-005.
+//   LINKS: _shims/preferences/schema.json defaults; pages/app.vue boot + zoom keys/wheel; components/zoomIndicator; .grace/changes/active/C-49; .grace/changes/active/C-38 T-004.
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
-//   usePreferencesStore - Pinia store factory (state defaults, hydration, persistence, C-49 zoom actions, LISTEN_* wiring incl. LISTEN_SYSTEM_LANGUAGE; MIGRATE_CODE_BLOCK_LINE_NUMBERS one-time default flip).
-//   FONT_SIZE_MIN / FONT_SIZE_MAX / FONT_SIZE_DEFAULT - unified-zoom clamp bounds and base unit (C-49).
+//   usePreferencesStore - Pinia store factory (state defaults, hydration, persistence, C-49 zoom actions, LISTEN_* wiring incl. LISTEN_SYSTEM_LANGUAGE; MIGRATE_CODE_BLOCK_LINE_NUMBERS one-time default flip; RESET_PREFERENCES_TO_DEFAULTS bulk reset).
+//   preferenceDefaults - the fresh state factory, reused by RESET_PREFERENCES_TO_DEFAULTS so the reset always reads the code-level defaults (C-38 T-004).
+//   RESETTABLE_PREFERENCE_KEYS - the user-visible preference keys «Restore all defaults» resets (schema-backed settings only; user data like the image folder, uploaders and recent files are never touched).
+//   FONT_SIZE_MIN - unified-zoom lower clamp bound (C-49).
+//   FONT_SIZE_MAX - unified-zoom upper clamp bound (C-49).
+//   FONT_SIZE_DEFAULT - unified-zoom base unit (C-49).
 //   clampFontSize - round + clamp helper shared by the zoom actions and the legacy-zoom migration (C-49).
-//   FONT_SIZE_DEFAULT - default editor text size (16).
-//   FONT_SIZE_MAX - largest editor text size (36).
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.3.0 - 2026-10-15 C-38 T-005 (#1648): the default for
+//   LAST_CHANGE: v1.4.0 - 2026-10-15 C-38 T-004: (1) SET_USER_PREFERENCE
+//   skips null values — bootstrap.js builds initialState with nulls for
+//   absent URL params and the old `!== 'undefined'` guard let them
+//   null-stomp codeFontSize/codeFontFamily/titleBarStyle before the first
+//   hydration (IA §5 bug 15); (2) [review: reverted — image upload stays
+//   retired in every edition, see START_BLOCK_IMAGE_UPLOAD_RETIRED]
+//   returns with the redesigned Advanced tab; (3) state moves to the
+//   named preferenceDefaults factory and RESET_PREFERENCES_TO_DEFAULTS
+//   resets the RESETTABLE_PREFERENCE_KEYS user settings to those
+//   defaults, persisting each key (documents, user data and window
+//   state are untouched).
+//   v1.3.0 - 2026-10-15 C-38 T-005 (#1648): the default for
 //   codeBlockLineNumbers is false for new profiles, and a one-time migration
 //   (MIGRATE_CODE_BLOCK_LINE_NUMBERS, run at the end of ASK_FOR_USER_PREFERENCE
 //   — the single place stored prefs load, after initialState and hydration)
@@ -84,8 +97,10 @@ const bootDirtyKeys = new Set()
 // calls from remounts never stack duplicate listeners).
 let systemLanguageListenersBound = false
 
-export const usePreferencesStore = defineStore('preferences', {
-  state: () => ({
+// START_BLOCK_PREFERENCE_DEFAULTS
+// The state factory is named (not inline) so RESET_PREFERENCES_TO_DEFAULTS
+// can read the code-level defaults after hydration has mutated the store.
+export const preferenceDefaults = () => ({
     // C-15 T-115: capability flags from mt_build_mode. Desktop defaults
     // so shims/old backends render the full UI; app-store builds flip
     // them off at boot (FETCH_BUILD_MODE). `share` is macOS-only
@@ -248,7 +263,75 @@ export const usePreferencesStore = defineStore('preferences', {
     // M-021 default-handler — F-1 status (queried, not persisted).
     // Shape matches Rust DefaultHandlerInfo (camelCase via serde).
     defaultMdHandler: { isDefault: false, currentHandler: null }
-  }),
+  }
+)
+// END_BLOCK_PREFERENCE_DEFAULTS
+
+// START_BLOCK_RESETTABLE_KEYS
+// C-38 T-004 «Restore all defaults»: exactly the user-visible Settings
+// rows (schema-backed preferences + the exposed previewModeOnFinderOpen).
+// Deliberately excluded: user data (imageFolderPath, currentUploader,
+// imageBed, githubToken, cliScript), window/view state
+// (sideBarVisibility, tabBarVisibility, sourceCodeModeEnabled,
+// splitView*), search internals, behavior keys toggled from menus
+// (liveReload, markdownLint, diffMode), the one-time migration marker
+// (codeBlockLineNumbersMigrated) and the retired zoom key.
+export const RESETTABLE_PREFERENCE_KEYS = Object.freeze([
+  'autoSave',
+  'autoSaveDelay',
+  'previewModeOnFinderOpen',
+  'language',
+  'defaultEncoding',
+  'endOfLine',
+  'editorFontFamily',
+  'fontSize',
+  'baseFontSize',
+  'lineHeight',
+  'editorLineWidth',
+  'hideScrollbar',
+  'wordWrapInToc',
+  'titleBarStyle',
+  'autoPairBracket',
+  'autoPairQuote',
+  'autoPairMarkdownSyntax',
+  'autoCheck',
+  'hideQuickInsertHint',
+  'hideLinkPopup',
+  'textDirection',
+  'tabSize',
+  'spellcheckerEnabled',
+  'spellcheckerNoUnderline',
+  'spellcheckerLanguage',
+  'codeFontFamily',
+  'codeFontSize',
+  'codeBlockLineNumbers',
+  'wrapCodeBlocks',
+  'trimUnnecessaryCodeBlockEmptyLines',
+  'preferLooseListItem',
+  'bulletListMarker',
+  'orderListDelimiter',
+  'listIndentation',
+  'footnote',
+  'mathEnabled',
+  'superSubScript',
+  'frontmatterType',
+  'frontmatterProperties',
+  'isHtmlEnabled',
+  'isGitlabCompatibilityEnabled',
+  'sequenceTheme',
+  'imageInsertAction',
+  'imagePreferRelativeDirectory',
+  'imageRelativeDirectoryName',
+  'theme',
+  'lightModeTheme',
+  'darkModeTheme',
+  'followSystemTheme',
+  'customCss'
+])
+// END_BLOCK_RESETTABLE_KEYS
+
+export const usePreferencesStore = defineStore('preferences', {
+  state: preferenceDefaults,
 
   getters: {
     getAll: (state) => state
@@ -275,7 +358,15 @@ export const usePreferencesStore = defineStore('preferences', {
 
       const prefKeys = preference && typeof preference === 'object' ? Object.keys(preference) : []
       prefKeys.forEach((key) => {
-        if (typeof preference[key] !== 'undefined' && typeof this[key] !== 'undefined') {
+        // C-38 T-004 (IA §5 bug 15): bootstrap.js fills absent URL params
+        // with null; a null must never stomp a real default (it used to
+        // null codeFontSize/codeFontFamily/titleBarStyle before the first
+        // hydration because only `undefined` was filtered).
+        if (
+          preference[key] !== null &&
+          typeof preference[key] !== 'undefined' &&
+          typeof this[key] !== 'undefined'
+        ) {
           this[key] = preference[key]
         }
       })
@@ -318,9 +409,11 @@ export const usePreferencesStore = defineStore('preferences', {
       // END_BLOCK_BASE_FONT_SIZE_MIRROR
 
       // START_BLOCK_IMAGE_UPLOAD_RETIRED
-      // 2026-10-15 (user decision): image upload (PicGo / CLI script / GitHub)
-      // is removed from every edition for now. A stored 'upload' falls back
-      // to the default: copy the image next to the document.
+      // 2026-10-15 (user decision, 0c17da80): image upload (PicGo / CLI
+      // script / GitHub) is removed from every edition for now. A stored
+      // 'upload' falls back to the default: copy the image next to the
+      // document. (C-38 T-004 review: the agent had narrowed this to GitHub
+      // only, reversing that decision — restored.)
       if (this.imageInsertAction === 'upload') {
         this.imageInsertAction = 'folder'
       }
@@ -650,6 +743,40 @@ export const usePreferencesStore = defineStore('preferences', {
         'Mark is no longer the default app for .md files',
         'Failed to remove Mark as the default app for .md files'
       )
+    },
+
+    // START_BLOCK_RESET_PREFERENCES_TO_DEFAULTS
+    // C-38 T-004 «Restore all defaults…» (Advanced › Reset, confirmed in
+    // an in-app dialog): every user-visible preference returns to the
+    // code-level default from the preferenceDefaults factory and is
+    // persisted individually (Promise.allSettled so one failed write
+    // never aborts the rest; a failed key retries nowhere — the user can
+    // re-run the reset). Documents, user data (image folder, uploaders,
+    // recent files) and window state are untouched. The language reset
+    // re-applies the effective locale ('system' resolves through
+    // setLanguage); the theme reset is picked up by the preference.vue
+    // theme/Auto watchers.
+    async RESET_PREFERENCES_TO_DEFAULTS() {
+      const defaults = preferenceDefaults()
+      const results = await Promise.allSettled(
+        RESETTABLE_PREFERENCE_KEYS.map(async (key) => {
+          this[key] = defaults[key]
+          await invoke('mt_prefs_set', { key, value: defaults[key] })
+        })
+      )
+      const failed = results.filter((r) => r.status === 'rejected').length
+      if (this.language !== undefined) {
+        try {
+          await setLanguage(this.language)
+        } catch (e) {
+          console.warn('[prefs][reset][BLOCK_RESET_LANGUAGE_FAILED]', e)
+        }
+      }
+      console.log(
+        `[prefs][reset][BLOCK_PREFERENCES_RESET keys=${RESETTABLE_PREFERENCE_KEYS.length} failed=${failed}]`
+      )
+      return failed === 0
     }
+    // END_BLOCK_RESET_PREFERENCES_TO_DEFAULTS
   }
 })
