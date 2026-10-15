@@ -1,3 +1,4 @@
+import { setupTestPinia } from '../pinia'
 /**
  * Deep coverage tests for contextMenu/tabs/
  *
@@ -16,6 +17,9 @@ vi.mock('@/i18n', () => ({
 }))
 
 describe('contextMenu/tabs — deep coverage', () => {
+  // C-51 T-002: the menu reads the pinned store for the Pin/Unpin label.
+  beforeEach(() => { setupTestPinia() })
+
   describe('showContextMenu handler dispatch', () => {
     it('calls the correct handler when a valid clickedId is returned', async () => {
       const bus = (await import('@/bus')).default

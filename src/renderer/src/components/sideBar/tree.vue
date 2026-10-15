@@ -4,6 +4,10 @@
       <!-- Placeholder -->
     </div>
 
+    <!-- C-51 T-002: Recent + Pinned collapsible sections above the tree
+         (canvas MacOS). Hidden while their lists are empty. -->
+    <file-sections></file-sections>
+
     <!-- Opened tabs — hidden when there are no open tabs (user feedback). -->
     <div v-if="tabs && tabs.length > 0" class="opened-files">
       <div class="title">
@@ -32,13 +36,16 @@
       </div>
     </div>
 
-    <!-- v1.1.0 Phase-A6: multi-root rendering — one section per opened folder. -->
+    <!-- v1.1.0 Phase-A6: multi-root rendering — one section per opened folder.
+         C-51 T-001: the root header doubles as the folder-switcher row
+         (canvas Main): name + chevron-down open the existing folder picker;
+         the left chevron still toggles collapse. -->
     <div
       v-for="root in projectTrees"
       :key="root.pathname"
       class="project-tree"
     >
-      <div class="title">
+      <div class="title folder-switcher">
         <chrome-icon
           name="chevron-right"
           :size="12"
@@ -50,8 +57,16 @@
         <span
           class="default-cursor text-overflow"
           :title="root.pathname"
-          @click.stop="toggleRootDirectories(root.pathname)"
+          @click.stop="openFolder()"
         >{{ root.name }}</span>
+        <chrome-icon
+          name="chevron-down"
+          :size="12"
+          class="switcher-chevron"
+          :title="t('sideBar.tree.openOrSwitchFolder')"
+          aria-hidden="true"
+          @click.stop="openFolder()"
+        ></chrome-icon>
         <a
           href="javascript:;"
           class="close-root-btn"
@@ -63,7 +78,7 @@
       </div>
       <div v-show="isRootExpanded(root.pathname)" class="tree-wrapper">
         <folder
-          v-for="folder of root.folders"
+          v-for="folder of rootFoldersOf(root)"
           :key="folder.id"
           :folder="folder"
           :depth="depth"
@@ -79,17 +94,13 @@
           @keypress.enter="handleInputEnter"
         />
         <file
-          v-for="file of root.files"
+          v-for="file of rootFilesOf(root)"
           :key="file.id"
           :file="file"
           :depth="depth"
         ></file>
         <div
-          v-if="
-            root.files.length === 0 &&
-            root.folders.length === 0 &&
-            createCache.dirname !== root.pathname
-          "
+          v-if="rootIsEmpty(root)"
           class="new-file-row"
           :style="{ 'padding-left': `${depth * 20 + 20}px` }"
           :title="t('sideBar.tree.createFile')"
@@ -130,7 +141,25 @@
 </template>
 
 <script setup>
+// FILE: src/renderer/src/components/sideBar/tree.vue
+// VERSION: 2.0.0
+// START_MODULE_CONTRACT
+//   PURPOSE: The sidebar Files column — Recent/Pinned sections (fileSections.vue), the opened-tabs list, and the multi-root folder tree with the C-51 T-001 folder-switcher header and Markdown-only view filter.
+//   SCOPE: Section composition, per-root collapse state, root-level filtered folder/file lists (store/treeFilter.js per the treeShowAllFiles preference), root close/create wiring, the empty-project open/recent state.
+//   DEPENDS: vue, pinia, store/project, store/editor, store/preferences, store/treeFilter, ./treeFolder.vue, ./treeFile.vue, ./treeOpenedTab.vue, ./fileSections.vue, ../icons/chromeIcons.js, bus, vue-i18n, util/pathDisplay.
+//   LINKS: .grace/changes/active/C-51 T-001/T-002; .canvas/Main.dc.html (switcher + tree); .canvas/MacOS.dc.html (sections); .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011.
+//   ROLE: RUNTIME
+//   MAP_MODE: LOCALS
+// END_MODULE_CONTRACT
+//
 // START_CHANGE_SUMMARY
+//   - 2026-10-16 v2.0.0: C-51 T-001/T-002 — the root header restyles as
+//     the folder-switcher row (name + chevron-down open the existing
+//     folder picker; the left chevron keeps the collapse toggle), root
+//     lists filter through store/treeFilter.js (Markdown-only unless
+//     treeShowAllFiles; the empty-root placeholder keys on the visible
+//     lists), and fileSections.vue (Recent + Pinned) mounts above the
+//     tree.
 //   - 2026-10-15 C-38 T-006 N4 d: every icon in the tree chrome renders
 //     from the drawn chromeIcons set (chevron-right arrows, save-all /
 //     close-all header actions, close-root X, file-plus empty-root
@@ -140,9 +169,12 @@ import { ref, watch, onMounted, nextTick } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useProjectStore } from '@/store/project'
 import { useEditorStore } from '@/store/editor'
+import { usePreferencesStore } from '@/store/preferences'
+import { visibleFolders, visibleFiles } from '@/store/treeFilter'
 import Folder from './treeFolder.vue'
 import File from './treeFile.vue'
 import OpenedFile from './treeOpenedTab.vue'
+import FileSections from './fileSections.vue'
 import { ChromeIcon } from '../icons/chromeIcons.js'
 import bus from '../../bus'
 import { useI18n } from 'vue-i18n'
@@ -164,6 +196,7 @@ let _homeDir = ''
 
 const projectStore = useProjectStore()
 const editorStore = useEditorStore()
+const preferenceStore = usePreferencesStore()
 
 // Per-root collapse state, keyed by canonical pathname. Default = expanded
 // (i.e., absent key means open). Toggling sets the key explicitly.
@@ -171,6 +204,20 @@ const collapsedRoots = ref({})
 
 // Computed properties
 const { createCache, projectTrees } = storeToRefs(projectStore)
+const { treeShowAllFiles } = storeToRefs(preferenceStore)
+
+// START_BLOCK_ROOT_VIEW_LISTS
+// C-51 T-001: root-level display lists through the shared view filter —
+// Markdown files (and folders with Markdown below) unless treeShowAllFiles.
+// The empty-root placeholder keys on the visible lists so a root holding
+// only non-Markdown files still offers "New file" in the default view.
+const rootFoldersOf = (root) => visibleFolders(root.folders, treeShowAllFiles.value)
+const rootFilesOf = (root) => visibleFiles(root.files, treeShowAllFiles.value)
+const rootIsEmpty = (root) =>
+  rootFoldersOf(root).length === 0 &&
+  rootFilesOf(root).length === 0 &&
+  createCache.value.dirname !== root.pathname
+// END_BLOCK_ROOT_VIEW_LISTS
 
 const _refreshRecentFolders = async () => {
   recentFolders.value = await projectStore.GET_RECENT_FOLDERS()
@@ -183,10 +230,13 @@ watch(projectTrees, (trees) => {
 const isRootExpanded = (pathname) => collapsedRoots.value[pathname] !== true
 
 const toggleRootDirectories = (pathname) => {
-  const next = !isRootExpanded(pathname)
+  // C-51 review fix: collapse when currently expanded. The old code stored
+  // `!isRootExpanded` as the *collapsed* flag, so an expanded root was set
+  // to collapsed=false and the chevron never collapsed it.
+  const collapse = isRootExpanded(pathname)
   // eslint-disable-next-line no-console
-  console.debug(`[TreeVue][toggleDirectoriesForRoot][BLOCK_TOGGLE] pathname=${pathname} nextOpen=${!next}`)
-  collapsedRoots.value = { ...collapsedRoots.value, [pathname]: next }
+  console.debug(`[TreeVue][toggleDirectoriesForRoot][BLOCK_TOGGLE] pathname=${pathname} nextOpen=${!collapse}`)
+  collapsedRoots.value = { ...collapsedRoots.value, [pathname]: collapse }
 }
 
 const handleCloseRoot = (pathname) => {
@@ -414,6 +464,29 @@ onMounted(() => {
   text-overflow: ellipsis;
   white-space: nowrap;
   user-select: none;
+}
+
+/* C-51 T-001 folder-switcher row (canvas Main): a soft rounded chip that
+   reads as the vault switcher — name + chevron-down open the existing
+   folder picker, the left chevron keeps the collapse toggle. */
+.project-tree > .title.folder-switcher {
+  height: 32px;
+  margin: 0 8px;
+  padding-right: 8px;
+  padding-left: 8px;
+  border-radius: 8px;
+  background: var(--sideBarItemHoverBgColor);
+}
+
+.project-tree > .title.folder-switcher > span {
+  font-weight: 500;
+}
+
+.project-tree > .title.folder-switcher .switcher-chevron {
+  flex-shrink: 0;
+  margin-left: 6px;
+  color: var(--sideBarIconColor);
+  cursor: pointer;
 }
 
 .project-tree > .title > a.close-root-btn {

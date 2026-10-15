@@ -231,7 +231,9 @@
       "paste": "붙여넣기",
       "rename": "이름 바꾸기",
       "moveToTrash": "휴지통으로 이동",
-      "showInFolder": "폴더에서 보기"
+      "showInFolder": "폴더에서 보기",
+      "pin": "고정",
+      "unpin": "고정 해제"
     },
     "tabs": {
       "close": "닫기",
@@ -243,6 +245,8 @@
       "showInFolder": "폴더에서 보기",
       "lock": "문서 잠금",
       "unlock": "문서 잠금 해제",
+      "pin": "고정",
+      "unpin": "고정 해제",
       "splitView": "분할 보기",
       "copyAsMarkdown": "Markdown으로 복사",
       "copyAsHtml": "HTML로 복사",
@@ -320,7 +324,12 @@
       "createFile": "파일 만들기",
       "openFolder": "폴더 열기",
       "closeFolder": "폴더 닫기",
-      "newFile": "새 파일"
+      "newFile": "새 파일",
+      "recentFiles": "최근 항목",
+      "pinnedFiles": "고정됨",
+      "remove": "제거",
+      "unpin": "고정 해제",
+      "openOrSwitchFolder": "폴더 열기 또는 전환"
     },
     "toc": {
       "title": "목차"
@@ -513,6 +522,7 @@
         "language": "앱 언어",
         "defaultEncoding": "새 파일의 파일 인코딩",
         "endOfLine": "새 파일과 저장에 사용되는 줄 끝",
+        "treeShowAllFiles": "폴더 트리에 모든 파일 표시(Markdown만 표시 안 함)",
         "titleBarStyle": "창 제목 표시줄: 사용자 정의 또는 시스템 (재시작 필요)",
         "hideScrollbar": "스크롤바 숨기기",
         "wordWrapInToc": "목차에서 긴 제목 줄바꿈",
@@ -603,7 +613,9 @@
         "endOfLineSystem": "운영 체제에 맞추기",
         "endOfLineLf": "LF (Unix, macOS)",
         "endOfLineCrlf": "CRLF (Windows)",
-        "secondsUnit": "초"
+        "secondsUnit": "초",
+        "showAllFiles": "모든 파일 표시",
+        "showAllFilesHelp": "폴더 트리에 Markdown 파일뿐 아니라 모든 파일을 표시합니다. Markdown이 아닌 파일은 흐리게 표시되며 열 수 없습니다."
       },
       "updates": {
         "title": "업데이트",

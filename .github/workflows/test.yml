@@ -167,7 +167,7 @@ jobs:
       # (22 types × light/dark + theme switch); its per-type screenshots
       # are the visual evidence for the accepted lab look.
       - name: webkit mermaid theme matrix
-        run: npx playwright test --project webkit-mermaid-theme
+        run: npx playwright test --project webkit-mermaid-theme --project webkit-tree
 
       - name: upload mermaid theme screenshots
         if: always()

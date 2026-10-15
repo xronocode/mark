@@ -13,14 +13,17 @@ import {
   getSHOW_IN_FOLDER,
   getLOCK,
   getSPLIT_VIEW,
+  getPIN,
   getCOPY_AS_MARKDOWN,
   getCOPY_AS_HTML,
   getCOPY_AS_STRUCTURED,
   HANDLERS
 } from './menuItems'
+import { usePinnedStore } from '../../store/pinned'
 
 export const showContextMenu = async (event, tab) => {
   const { pathname } = tab
+  const pinnedStore = usePinnedStore()
   const items = [
     getCLOSE_THIS(),
     getCLOSE_OTHERS(),
@@ -42,6 +45,8 @@ export const showContextMenu = async (event, tab) => {
     SEPARATOR,
     { ...getRENAME(), enabled: !!pathname },
     { ...getCOPY_PATH(), enabled: !!pathname },
+    // C-51 T-002: Pin/Unpin the saved tab's file into the Pinned section.
+    { ...getPIN(!!pathname && pinnedStore.isPinned(pathname)), enabled: !!pathname },
     { ...getSHOW_IN_FOLDER(), enabled: !!pathname }
   ]
 

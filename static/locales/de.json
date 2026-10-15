@@ -231,7 +231,9 @@
       "paste": "Einfügen",
       "rename": "Umbenennen",
       "moveToTrash": "In Papierkorb verschieben",
-      "showInFolder": "Im Ordner anzeigen"
+      "showInFolder": "Im Ordner anzeigen",
+      "pin": "Anheften",
+      "unpin": "Lösen"
     },
     "tabs": {
       "close": "Schließen",
@@ -243,6 +245,8 @@
       "showInFolder": "Im Ordner anzeigen",
       "lock": "Dokument sperren",
       "unlock": "Dokument entsperren",
+      "pin": "Anheften",
+      "unpin": "Lösen",
       "splitView": "Geteilte Ansicht",
       "copyAsMarkdown": "Als Markdown kopieren",
       "copyAsHtml": "Als HTML kopieren",
@@ -322,7 +326,12 @@
       "createFile": "Datei erstellen",
       "openFolder": "Ordner öffnen",
       "closeFolder": "Ordner schließen",
-      "newFile": "Neue Datei"
+      "newFile": "Neue Datei",
+      "recentFiles": "Zuletzt benutzt",
+      "pinnedFiles": "Angeheftet",
+      "remove": "Entfernen",
+      "unpin": "Lösen",
+      "openOrSwitchFolder": "Ordner öffnen oder wechseln"
     },
     "toc": {
       "title": "Inhaltsverzeichnis"
@@ -516,6 +525,7 @@
         "language": "App-Sprache",
         "defaultEncoding": "Dateikodierung für neue Dateien",
         "endOfLine": "Zeilenenden für neue Dateien und beim Speichern",
+        "treeShowAllFiles": "Alle Dateien im Dateibaum anzeigen (nicht nur Markdown)",
         "titleBarStyle": "Fenstertitelleiste: eigenständig oder system (Neustart erforderlich)",
         "hideScrollbar": "Scrollbalken ausblenden",
         "wordWrapInToc": "Lange Überschriften in der Gliederung umbrechen",
@@ -606,7 +616,9 @@
         "endOfLineSystem": "Wie mein Betriebssystem",
         "endOfLineLf": "LF (Unix, macOS)",
         "endOfLineCrlf": "CRLF (Windows)",
-        "secondsUnit": "s"
+        "secondsUnit": "s",
+        "showAllFiles": "Alle Dateien anzeigen",
+        "showAllFilesHelp": "Zeigt im Dateibaum alle Dateien, nicht nur Markdown. Andere Dateien bleiben abgeblendet und lassen sich nicht öffnen."
       },
       "updates": {
         "title": "Updates",

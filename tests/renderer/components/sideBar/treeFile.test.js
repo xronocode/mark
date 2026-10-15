@@ -79,7 +79,7 @@ describe('sideBar/treeFile.vue', () => {
     expect(wrapper.find('.side-bar-file.current').exists()).toBe(true)
   })
 
-  it('applies depth-based padding', async () => {
+  it('rows carry constant padding — nesting indents via the guide-line containers (C-51 T-001)', async () => {
     const TreeFile = (await import('@/components/sideBar/treeFile.vue')).default
     const wrapper = shallowMount(TreeFile, {
       props: {
@@ -98,9 +98,8 @@ describe('sideBar/treeFile.vue', () => {
         }
       }
     })
+    // No depth*20px formula anymore; only the non-Markdown opacity stays inline.
     const style = wrapper.find('.side-bar-file').attributes('style')
-    expect(style).toContain('padding-left')
-    // depth * 20 + 20 = 60px
-    expect(style).toContain('60px')
+    expect(style).not.toContain('padding-left')
   })
 })

@@ -1,10 +1,10 @@
 // FILE: src/renderer/src/store/preferences.js
-// VERSION: 1.6.0
+// VERSION: 1.7.0
 // START_MODULE_CONTRACT
-//   PURPOSE: Pinia store for persistent user preferences, their hydration, persistence, the unified fontSize zoom actions (C-49), the UI-language application paths (concrete or 'system'), the retired-theme id migration (C-41 T-002), and the C-38 T-004 «Restore all defaults» reset.
-//   SCOPE: default state, SET_USER_PREFERENCE / SET_SINGLE_PREFERENCE, the C-49 zoom actions (APPLY_FONT_SIZE / ZOOM_STEP / ZOOM_ACTUAL_SIZE) and the one-time legacy `zoom` migration, the C-41 T-002 retired-theme migration in ASK_FOR_USER_PREFERENCE, ASK_FOR_USER_PREFERENCE boot hydration, buildCapabilities + default-handler queries, LISTEN_SYSTEM_LANGUAGE re-resolution (C-45), RESET_PREFERENCES_TO_DEFAULTS (C-38 T-004).
+//   PURPOSE: Pinia store for persistent user preferences, their hydration, persistence, the unified fontSize zoom actions (C-49), the UI-language application paths (concrete or 'system'), the retired-theme id migration (C-41 T-002), the C-38 T-004 «Restore all defaults» reset, and the C-51 T-001 treeShowAllFiles preference.
+//   SCOPE: default state, SET_USER_PREFERENCE / SET_SINGLE_PREFERENCE, the C-49 zoom actions (APPLY_FONT_SIZE / ZOOM_STEP / ZOOM_ACTUAL_SIZE) and the one-time legacy `zoom` migration, the C-41 T-002 retired-theme migration in ASK_FOR_USER_PREFERENCE, ASK_FOR_USER_PREFERENCE boot hydration, buildCapabilities + default-handler queries, LISTEN_SYSTEM_LANGUAGE re-resolution (C-45), RESET_PREFERENCES_TO_DEFAULTS (C-38 T-004), treeShowAllFiles default + resettable membership (C-51 T-001).
 //   DEPENDS: pinia, @tauri-apps/api/core, bus, services/notification, i18n/index.js, i18n/systemLocale.js, util/autoTheme.js, util/themeMigration.js, util/docStats.js.
-//   LINKS: _shims/preferences/schema.json defaults; pages/app.vue boot + zoom keys/wheel; components/zoomIndicator; .grace/changes/active/C-49; .grace/changes/active/C-38 T-004.
+//   LINKS: _shims/preferences/schema.json defaults; pages/app.vue boot + zoom keys/wheel; components/zoomIndicator; store/treeFilter.js (consumer); .grace/changes/active/C-49; .grace/changes/active/C-38 T-004; .grace/changes/active/C-51 T-001.
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT
@@ -20,7 +20,13 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.6.0 - 2026-10-15 C-40 T-004: new persisted
+//   LAST_CHANGE: v1.7.0 - 2026-10-16 C-51 T-001: new persisted
+//   treeShowAllFiles preference (default false) — the sidebar tree shows
+//   only Markdown files and folders with Markdown below; the Settings ›
+//   Files «Show all files» switch (prefComponents/tabs/general) restores
+//   the everything-visible tree. Schema-backed and user-visible, so it
+//   joins RESETTABLE_PREFERENCE_KEYS.
+//   v1.6.0 - 2026-10-15 C-40 T-004: new persisted
 //   statusBarVisibility preference backing the optional status bar —
 //   per-OS default (off on macOS, on elsewhere) resolved lazily through
 //   util/docStats.defaultStatusBarVisibility at store creation / reset
@@ -140,6 +146,10 @@ export const preferenceDefaults = () => ({
     zoom: 1.0,
     hideScrollbar: false,
     wordWrapInToc: false,
+    // C-51 T-001: the sidebar folder tree shows only Markdown files (and
+    // folders with Markdown anywhere below) by default; this Settings ›
+    // Files switch restores the pre-C-51 everything-visible tree.
+    treeShowAllFiles: false,
     fileSortBy: 'created',
     startUpAction: 'openLastFolder',
     restoreLayoutState: true,
@@ -311,6 +321,7 @@ export const RESETTABLE_PREFERENCE_KEYS = Object.freeze([
   'editorLineWidth',
   'hideScrollbar',
   'wordWrapInToc',
+  'treeShowAllFiles',
   'titleBarStyle',
   'statusBarVisibility',
   'autoPairBracket',

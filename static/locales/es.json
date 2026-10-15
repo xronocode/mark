@@ -231,7 +231,9 @@
       "paste": "Pegar",
       "rename": "Renombrar",
       "moveToTrash": "Mover a la Papelera",
-      "showInFolder": "Mostrar en Carpeta"
+      "showInFolder": "Mostrar en Carpeta",
+      "pin": "Fijar",
+      "unpin": "Dejar de fijar"
     },
     "tabs": {
       "close": "Cerrar",
@@ -243,6 +245,8 @@
       "showInFolder": "Mostrar en carpeta",
       "lock": "Bloquear documento",
       "unlock": "Desbloquear documento",
+      "pin": "Fijar",
+      "unpin": "Dejar de fijar",
       "splitView": "Vista dividida",
       "copyAsMarkdown": "Copiar como Markdown",
       "copyAsHtml": "Copiar como HTML",
@@ -324,7 +328,12 @@
       "createFile": "Crear Archivo",
       "openFolder": "Abrir Carpeta",
       "closeFolder": "Cerrar carpeta",
-      "newFile": "Nuevo archivo"
+      "newFile": "Nuevo archivo",
+      "recentFiles": "Recientes",
+      "pinnedFiles": "Fijados",
+      "remove": "Eliminar",
+      "unpin": "Dejar de fijar",
+      "openOrSwitchFolder": "Abrir o cambiar de carpeta"
     },
     "toc": {
       "title": "Tabla de Contenidos"
@@ -519,6 +528,7 @@
         "language": "Idioma de la aplicación",
         "defaultEncoding": "Codificación de archivo para los archivos nuevos",
         "endOfLine": "Final de línea usado en los archivos nuevos y al guardar",
+        "treeShowAllFiles": "Mostrar todos los archivos en el árbol de carpetas (no solo Markdown)",
         "titleBarStyle": "Barra de título de la ventana: personalizada o del sistema (requiere reinicio)",
         "hideScrollbar": "Ocultar las barras de desplazamiento",
         "wordWrapInToc": "Ajustar los encabezados largos en el esquema",
@@ -609,7 +619,9 @@
         "endOfLineSystem": "Según mi sistema operativo",
         "endOfLineLf": "LF (Unix, macOS)",
         "endOfLineCrlf": "CRLF (Windows)",
-        "secondsUnit": "s"
+        "secondsUnit": "s",
+        "showAllFiles": "Mostrar todos los archivos",
+        "showAllFilesHelp": "Muestra todos los archivos en el árbol de carpetas, no solo los de Markdown. Los que no son de Markdown quedan atenuados y no se pueden abrir."
       },
       "updates": {
         "title": "Actualizaciones",

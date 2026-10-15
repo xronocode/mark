@@ -231,7 +231,9 @@
       "paste": "Вставить",
       "rename": "Переименовать",
       "moveToTrash": "Переместить в корзину",
-      "showInFolder": "Показать в папке"
+      "showInFolder": "Показать в папке",
+      "pin": "Закрепить",
+      "unpin": "Открепить"
     },
     "tabs": {
       "close": "Закрыть",
@@ -243,6 +245,8 @@
       "showInFolder": "Показать в папке",
       "lock": "Заблокировать документ",
       "unlock": "Разблокировать документ",
+      "pin": "Закрепить",
+      "unpin": "Открепить",
       "splitView": "Разделённый вид",
       "copyAsMarkdown": "Копировать как Markdown",
       "copyAsHtml": "Копировать как HTML",
@@ -335,7 +339,12 @@
       "openFolder": "Открыть папку",
       "closeFolder": "Закрыть папку",
       "newFile": "Новый файл",
-      "recentFolders": "Недавние"
+      "recentFolders": "Недавние",
+      "recentFiles": "Недавние",
+      "pinnedFiles": "Закреплённые",
+      "remove": "Убрать",
+      "unpin": "Открепить",
+      "openOrSwitchFolder": "Открыть или сменить папку"
     },
     "toc": {
       "title": "Оглавление"
@@ -531,6 +540,7 @@
         "language": "Язык интерфейса",
         "defaultEncoding": "Кодировка новых файлов",
         "endOfLine": "Концы строк для новых файлов и при сохранении",
+        "treeShowAllFiles": "Показывать все файлы в дереве папок (не только Markdown)",
         "titleBarStyle": "Заголовок окна: собственный или системный (требуется перезапуск)",
         "hideScrollbar": "Скрывать полосы прокрутки",
         "wordWrapInToc": "Переносить длинные заголовки в оглавлении",
@@ -621,7 +631,9 @@
         "endOfLineSystem": "Как в моей системе",
         "endOfLineLf": "LF (Unix, macOS)",
         "endOfLineCrlf": "CRLF (Windows)",
-        "secondsUnit": "с"
+        "secondsUnit": "с",
+        "showAllFiles": "Показывать все файлы",
+        "showAllFilesHelp": "Показывать в дереве папок все файлы, а не только Markdown. Файлы без Markdown остаются приглушёнными и не открываются."
       },
       "updates": {
         "title": "Обновления",

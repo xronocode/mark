@@ -7,7 +7,17 @@ import notice from '../services/notification'
 import { getFileStateFromData } from './help'
 import { useLayoutStore } from './layout'
 import { useEditorStore } from './editor'
+import { usePinnedStore } from './pinned'
 import { ipcWatch, ipcFs, ipcPrefs } from '../ipc/runtime'
+
+// C-51 notes:
+//   - 2026-10-16 C-51 T-001: the watcher (create/modify) now adds every
+//     file to the tree model with its isMarkdown flag — the same shape
+//     as the initial Rust walk — so both event paths agree; the
+//     Markdown-only display rule lives in store/treeFilter.js at the
+//     render level (treeShowAllFiles preference restores everything).
+//   - 2026-10-16 C-51 T-002: SIDEBAR::pin-file bus handler toggles the
+//     active tree file in the persisted Pinned list (store/pinned).
 
 // C-1 fix: per-root file-watcher disposers. Module-scoped (not in
 // reactive state) so Pinia doesn't try to proxy the dispose closures.
@@ -237,17 +247,18 @@ export const useProjectStore = defineStore('project', {
               if (stat.isDirectory) {
                 this._processTreeEvent('addDir', { pathname: path })
               } else if (stat.isFile) {
-                const isMarkdown = !!window.fileUtils?.hasMarkdownExtension(path)
-                if (isMarkdown) {
-                  this._processTreeEvent('add', {
-                    pathname: path,
-                    name: window.path.basename(path),
-                    isFile: true,
-                    isDirectory: false,
-                    isMarkdown: true,
-                    birthTime: stat.mtimeMs
-                  })
-                }
+                // C-51 T-001: every file joins the model with its
+                // isMarkdown flag — same shape as the initial walk — and
+                // the tree view (store/treeFilter.js) applies the
+                // Markdown-only rule at render time, so both paths agree.
+                this._processTreeEvent('add', {
+                  pathname: path,
+                  name: window.path.basename(path),
+                  isFile: true,
+                  isDirectory: false,
+                  isMarkdown: !!window.fileUtils?.hasMarkdownExtension(path),
+                  birthTime: stat.mtimeMs
+                })
                 if (this._tabExists(editorStore, path)) {
                   editorStore.APPLY_FILE_CHANGE('add', { pathname: path })
                 }
@@ -282,14 +293,17 @@ export const useProjectStore = defineStore('project', {
             }
             if (stat?.isDirectory) {
               this._processTreeEvent('addDir', { pathname: path })
-            } else if (stat?.isFile && window.fileUtils?.hasMarkdownExtension(path)) {
-              // addFile dedupes by name, so a content modify is a no-op here.
+            } else if (stat?.isFile) {
+              // C-51 T-001: all files (not only Markdown) join the model,
+              // matching the initial walk; the view filter hides non-
+              // Markdown unless treeShowAllFiles is on. addFile dedupes by
+              // name, so a content modify is a no-op here.
               this._processTreeEvent('add', {
                 pathname: path,
                 name: window.path.basename(path),
                 isFile: true,
                 isDirectory: false,
-                isMarkdown: true,
+                isMarkdown: !!window.fileUtils?.hasMarkdownExtension(path),
                 birthTime: stat.mtimeMs
               })
             }
@@ -490,6 +504,13 @@ export const useProjectStore = defineStore('project', {
       bus.on('SIDEBAR::show-in-folder', () => {
         const { pathname } = this.activeItem
         window.electron.shell.showItemInFolder(pathname)
+      })
+      // C-51 T-002: Pin/Unpin from the tree file context menu — toggles
+      // the active file in the persisted Pinned sidebar list.
+      bus.on('SIDEBAR::pin-file', () => {
+        const { pathname } = this.activeItem
+        if (!pathname) return
+        usePinnedStore().TOGGLE_PIN(pathname)
       })
       bus.on('SIDEBAR::new', (type) => {
         const { pathname, isDirectory } = this.activeItem

@@ -194,7 +194,7 @@ describe('contextMenu/tabs — C-40 T-004 entries', () => {
     expect(ids).toEqual([
       'closeThisTab', 'closeOtherTabs', 'closeSavedTabs', 'closeAllTabs',
       'lockDocument', 'splitView', 'copyAsMarkdown', 'copyAsHtml',
-      'copyAsStructuredText', 'renameFile', 'copyPath', 'showInFolder'
+      'copyAsStructuredText', 'renameFile', 'copyPath', 'pinFile', 'showInFolder'
     ])
     // Separators between the groups.
     expect(payload.items.filter((i) => i.type === 'separator').length).toBe(2)
