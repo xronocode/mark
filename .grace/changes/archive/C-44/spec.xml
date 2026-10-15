@@ -1,9 +1,9 @@
-<GraceChangeSpec graceVersion='4.0' status='approved'>
+<GraceChangeSpec graceVersion='4.0' status='applied'>
 <C-44>
   <Name>App Store build: enable the macOS Share button</Name>
   <Created>2026-10-15</Created>
   <Priority>medium</Priority>
-  <Status>approved</Status>
+  <Status>completed</Status>
   <RoadmapPhase>R1</RoadmapPhase>
   <Complexity>S</Complexity>
   <Summary>The App Store build hides the title-bar Share button only because m048 reports share=false there; mt_share_file (m032, NSSharingServicePicker on a file the user opened) is sandbox-safe. Report share=true on macOS in the app-store build too. The m045 live server stays OFF in the app-store build (App Review comment; user decision 2026-10-15).</Summary>
@@ -20,5 +20,6 @@
   <AffectedAreas><M-048>build-mode capability flags</M-048></AffectedAreas>
   <VerificationIntent>cargo test with and without --features app-store; live check in the next MAS build.</VerificationIntent>
   <Approval><ApprovedBy>user (2026-10-15): «поделиться включаем»</ApprovedBy><ApprovalScope>S1.</ApprovalScope></Approval>
+  <Closure>Closed 2026-10-15 on the user's request to finish epics. m048 app-store variant advertises share on macOS; guard test fails with share=false under --features app-store; desktop-only tests gated so cargo test --features app-store is green (379) and desktop 384. Live check in the next MAS build.</Closure>
 </C-44>
 </GraceChangeSpec>
