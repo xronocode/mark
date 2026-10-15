@@ -58,6 +58,50 @@ body.dark {
   }
 }
 
+/* ── C-38 T-007 N4 e: Windows 11 Mica behind the custom title bar ────
+   util/micaWindow.js installs .mica-active on the document root ONLY
+   after the backend confirms the Mica effect is live (Windows 11 build
+   22000+ via mt_window_effects_state); macOS, Linux, Windows 10 and
+   every effect failure never get the class, so those windows keep
+   byte-for-byte today's opaque chrome (the Windows window itself is
+   created transparent in tauri.windows.conf.json — without these
+   rules the renderer keeps every surface opaque and nothing leaks).
+
+   Under the class only the title-bar strip turns transparent so the
+   material shows: the full-window surfaces (body, .editor-container,
+   the pre-init placeholder, the sidebar column) keep painting their
+   exact current colours but from below the title bar down — a
+   bottom-anchored no-repeat gradient of the very same variable, so
+   the editor area and the sidebar stay opaque as today. The title
+   bar's own opaque strip (.title-bar-editor-bg) and its hairline
+   border turn transparent; text and icon colours are untouched, so
+   contrast in the bar is whatever the theme already guarantees.
+   :root.mica-active prefixes keep every rule ahead of the components'
+   scoped selectors regardless of style injection order. */
+:root.mica-active {
+  background-color: transparent;
+}
+:root.mica-active body,
+:root.mica-active .editor-container,
+:root.mica-active .editor-placeholder {
+  background-color: transparent;
+  background-image: linear-gradient(var(--editorBgColor, #ffffff), var(--editorBgColor, #ffffff));
+  background-repeat: no-repeat;
+  background-position: bottom;
+  background-size: 100% calc(100% - var(--titleBarHeight));
+}
+:root.mica-active .side-bar {
+  background-color: transparent;
+  background-image: linear-gradient(var(--sideBarBgColor), var(--sideBarBgColor));
+  background-repeat: no-repeat;
+  background-position: bottom;
+  background-size: 100% calc(100% - var(--titleBarHeight));
+}
+:root.mica-active .title-bar-editor-bg {
+  background: transparent;
+  border-bottom-color: transparent;
+}
+
 /* Theme colour cluster + shared palette (editor content and legacy
    surfaces). The chrome identity vars above are separate on purpose:
    the document keeps these theme colours untouched (C-38 T-006). */

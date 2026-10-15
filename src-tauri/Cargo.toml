@@ -53,6 +53,12 @@ objc = "0.2"
 core-foundation = "0.10"
 core-foundation-sys = "0.8"
 
+# C-38 T-007: Windows-only OS build probe for the Mica gate (m058).
+# windows-version 0.1.7 is already in the root Cargo.lock (pulled by
+# tao), so this adds no new lockfile entry.
+[target.'cfg(target_os = "windows")'.dependencies]
+windows-version = "0.1"
+
 [dev-dependencies]
 tempfile = "3"
 tokio = { version = "1", features = ["macros", "rt", "time"] }

@@ -81,6 +81,11 @@ export async function installTauriShim(page: Page): Promise<void> {
       mt_request_keybindings_response: () => ({}),
       mt_set_user_preference: () => null,
       mt_pandoc_status: () => ({ available: false }),
+      // C-38 T-007: Windows 11 Mica surface — default inactive so every
+      // other spec sees today's opaque chrome; window-mica.spec.ts
+      // overrides both handlers per test.
+      mt_window_effects_state: () => ({ mica: false }),
+      mt_window_set_mica_theme: () => ({ mica: false }),
       mt_fonts_list: () => [],
       mt_fs_read: () => '',
       mt_fs_write: () => null,
