@@ -17,7 +17,11 @@ import { bootEditor, openFileTab } from './fixtures/helpers'
 const DOC = ['# Lockable Notes', '', 'alpha beta gamma'].join('\n')
 
 const badge = (page: Page) => page.locator('.tab-lock-badge')
-const surface = (page: Page) => page.locator('#ag-editor-id')
+// The editable surface is Muya's container (.editor-component, where
+// syncPreviewSurface flips contenteditable) — #ag-editor-id is the render
+// root INSIDE it and never carries the attribute.
+const surface = (page: Page) =>
+  page.locator('.editor-wrapper:not(.is-mirror) > .editor-component')
 
 const executeLock = (page: Page) =>
   page.evaluate(() => {
