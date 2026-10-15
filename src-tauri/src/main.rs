@@ -39,6 +39,9 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-10-16 C-40 T-005: register m009_menu::mt_menu_set_checked —
+//     renderer-driven View-menu checkmark re-sync (sidebar, tab bar,
+//     outline, status bar) through the recursive allow-listed walker.
 //   - 2026-10-16 C-38 T-007 N4 e: register m058_window_effects —
 //     Windows 11 Mica behind the custom title bar (managed
 //     WindowEffectsState, apply_mica_at_boot in setup, the
@@ -790,6 +793,10 @@ fn main() {
             m009_menu::mt_window_popup_app_menu,
             m009_menu::mt_window_popup_context_menu,
             m009_menu::mt_update_line_ending_menu,
+            // C-40 T-005: native View-menu checkmark re-sync (recursive
+            // allow-listed walker; same handler family as the line-ending
+            // sync — not part of the M-013-A typed fixture).
+            m009_menu::mt_menu_set_checked,
             m015_pandoc::mt_pandoc_status,
             m048_build_mode::mt_build_mode,
             // C-38 T-007: window-effect surface (outside the M-013-A

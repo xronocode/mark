@@ -29,6 +29,7 @@ import {
   getGuideSectionHeadingText,
   GUIDE_SECTION_CONNECT_AGENT
 } from '../util/guideDoc'
+import { syncViewMenuChecks } from '../util/menuChecks'
 
 const autoSaveTimers = new Map()
 const fileWatchDisposers = new Map()
@@ -873,6 +874,12 @@ export const useEditorStore = defineStore('editor', {
         showTabBar: !!tabBarVisibility
       })
       layoutStore.DISPATCH_LAYOUT_MENU_ITEMS()
+      // C-40 T-005: preferences hydrated in app.vue onMounted (before
+      // the ~500 ms bootstrap-editor round-trip) and the layout settled
+      // just above — push the effective state of the four native
+      // View-menu check items once. Best-effort (failures warn inside
+      // util/menuChecks); the app.vue watchers cover every later change.
+      void syncViewMenuChecks()
       layoutStore.REQUEST_INITIAL_WINDOW_RESIZE()
       preferencesStore.SET_MODE({
         type: 'sourceCode',

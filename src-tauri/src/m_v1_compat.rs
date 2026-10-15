@@ -15,6 +15,11 @@
 //   STATUS:  shipped 2026-04-29 with F-MAIN-ENTRY-DISABLED runtime close.
 //
 // CHANGE_SUMMARY:
+//   - 2026-10-16 C-40 T-005: mt_update_sidebar_menu actually works now —
+//     tauri 2's Menu::get is top-level-only, so the old lookup never
+//     found view.toggle-sidebar in the View submenu; the shim reuses
+//     m009_menu::set_app_menu_check (the recursive allow-listed walker
+//     behind mt_menu_set_checked) and stays best-effort.
 //   - 2026-10-15 C-38 T-003: mt_open_setting_window builds the fixed
 //     640×620 shell (min=max, non-resizable — the body scrolls inside)
 //     titled "Settings"; the renderer retitles it per active tab.
@@ -670,6 +675,13 @@ pub async fn mt_view_layout_changed(
 
 /// Maps to v1 'mt::update-sidebar-menu'. Syncs the native menu's
 /// "Toggle Sidebar" checkmark to match the renderer's sidebar state.
+/// C-40 T-005: tauri 2's Menu::get only matches TOP-LEVEL items, so the
+/// previous `menu.get("view.toggle-sidebar")` lookup never found the
+/// item inside the View submenu (store/layout.js carried it as a known
+/// stub). The shim now routes through m009_menu::set_app_menu_check —
+/// the same recursive, allow-listed walker behind mt_menu_set_checked.
+/// Best-effort like the v1 original: a missing menu or a failed sync
+/// never rejects the IPC surface.
 #[tauri::command]
 pub async fn mt_update_sidebar_menu(
     app: tauri::AppHandle,
@@ -680,12 +692,8 @@ pub async fn mt_update_sidebar_menu(
         .and_then(|v| v.as_bool())
         .unwrap_or(true);
 
-    if let Some(menu) = app.menu() {
-        if let Some(item) = menu.get("view.toggle-sidebar") {
-            if let Some(check) = item.as_check_menuitem() {
-                let _ = check.set_checked(visible);
-            }
-        }
+    if let Err(e) = crate::m009_menu::set_app_menu_check(&app, "view.toggle-sidebar", visible) {
+        safe_eprintln!("[v1_compat][sidebar_menu][BLOCK_MENU_CHECK_SYNC_FAILED err={e}]");
     }
     Ok(())
 }
