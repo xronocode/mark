@@ -1,5 +1,5 @@
 // FILE: tests/renderer/components/titleBar-osx.test.js
-// VERSION: 1.0.0
+// VERSION: 1.1.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Verify the macOS titlebar variant — no Settings gear (the app menu owns Settings), no hamburger, traffic-light nav shift.
 //   SCOPE: Vue/jsdom component tests with @/util mocked to darwin (C-38 N1) plus an SFC source pin for the isOsx gate.
@@ -13,9 +13,12 @@
 //   i18n - shared vue-i18n instance for component mounts
 //   ROOT - repo root resolver for the SFC source pin
 //   readSfc - read the titleBar SFC source for the v-if gate pin
+//   startDraggingMock - spy for getCurrentWindow().startDragging
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-10-15 v1.1.0: resize edge — presses within 6 px of the top/left/
+//     right edges no longer start a window drag (top edge resizes again).
 //   - 2026-10-15 v1.0.0: C-38 N1 — pin the macOS variant: the Settings gear
 //     is hidden (Mark › Settings… ⌘, in the app menu is the entry), the
 //     hamburger stays hidden (native menu bar), and the nav keeps 4 buttons.
@@ -26,6 +29,18 @@ import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { setupTestPinia } from '../pinia'
 import { createI18n } from 'vue-i18n'
+
+const { startDraggingMock } = vi.hoisted(() => ({ startDraggingMock: vi.fn() }))
+vi.mock('@tauri-apps/api/window', () => {
+  const win = {
+    startDragging: startDraggingMock,
+    isFullscreen: vi.fn(async () => false),
+    isMaximized: vi.fn(async () => false),
+    onResized: vi.fn(async () => () => {}),
+    setTitle: vi.fn(async () => {})
+  }
+  return { getCurrentWindow: vi.fn(() => win), getCurrent: vi.fn(() => win) }
+})
 
 vi.mock('@/bus', () => ({
   default: { on: vi.fn(), off: vi.fn(), emit: vi.fn() }
@@ -77,8 +92,9 @@ describe('titleBar/index.vue — macOS variant (C-38 N1)', () => {
     TitleBar = (await import('@/components/titleBar/index.vue')).default
   })
 
-  const mountOsx = (propsOverride = {}) =>
+  const mountOsx = (propsOverride = {}, extra = {}) =>
     shallowMount(TitleBar, {
+      ...extra,
       props: {
         project: null,
         filename: 'notes.md',
@@ -111,6 +127,37 @@ describe('titleBar/index.vue — macOS variant (C-38 N1)', () => {
     expect(nav.find('.titlebar-nav-btn[title="Toggle Sidebar"]').exists()).toBe(true)
     expect(nav.find('.titlebar-nav-btn[title="Files"]').exists()).toBe(true)
     expect(nav.find('.titlebar-nav-btn[title="TOC"]').exists()).toBe(true)
+  })
+
+  // Resize edge: the transparent title bar starts at the window's top pixel;
+  // a press on the top edge or a top corner must reach the native resize
+  // instead of starting a window drag.
+  const pressOnTitle = (wrapper, clientX, clientY) => {
+    const title = wrapper.find('.title').element
+    const evt = new MouseEvent('mousedown', { bubbles: true, cancelable: true, button: 0, clientX, clientY })
+    title.dispatchEvent(evt)
+    return evt
+  }
+
+  it('drags the window from the title bar away from the edges', () => {
+    startDraggingMock.mockClear()
+    const wrapper = mountOsx({}, { attachTo: document.body })
+    const evt = pressOnTitle(wrapper, 300, 14)
+    expect(startDraggingMock).toHaveBeenCalled()
+    expect(evt.defaultPrevented).toBe(true)
+    wrapper.unmount()
+  })
+
+  it('leaves presses on the top edge and the top corners to the native resize', () => {
+    startDraggingMock.mockClear()
+    const wrapper = mountOsx({}, { attachTo: document.body })
+    const right = window.innerWidth
+    for (const [x, y] of [[300, 0], [300, 5], [2, 14], [right - 2, 14], [0, 0], [right - 1, 1]]) {
+      const evt = pressOnTitle(wrapper, x, y)
+      expect(evt.defaultPrevented).toBe(false)
+    }
+    expect(startDraggingMock).not.toHaveBeenCalled()
+    wrapper.unmount()
   })
 
   it('gates the gear with the isOsx flag in the SFC source', () => {
