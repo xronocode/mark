@@ -1,0 +1,29 @@
+<template>
+  <div class="pref-tab-page pref-tab-page--appearance">
+    <!-- START_BLOCK_APPEARANCE_TAB_PAGES -->
+    <!-- C-38 T-003 interim shell: the new Appearance tab renders the old
+         Theme page (IA §3.2) until T-004 replaces it with the compact
+         swatch grid and Text/Window groups. -->
+    <ThemePage />
+    <!-- END_BLOCK_APPEARANCE_TAB_PAGES -->
+  </div>
+</template>
+
+<script setup>
+// FILE: src/renderer/src/prefComponents/tabs/appearance/index.vue
+// VERSION: 1.0.0
+// START_MODULE_CONTRACT
+//   PURPOSE: Appearance tab of the C-38 Settings shell — interim composition of the pre-redesign Theme page per the N2 IA (§3.2).
+//   SCOPE: Pure composition; all behaviour lives in the stacked page until T-004 rewrites its content.
+//   DEPENDS: prefComponents/theme.
+//   LINKS: .grace/changes/active/C-38 T-003/T-004; docs/design/settings-ia-2026-10-15.md §3.2; .grace/graph/runtime.xml M-011.
+//   ROLE: RUNTIME
+//   MAP_MODE: NONE
+// END_MODULE_CONTRACT
+//
+// START_CHANGE_SUMMARY
+//   - 2026-10-15 v1.0.0: C-38 T-003 — new Appearance tab (old theme route redirects here).
+// END_CHANGE_SUMMARY
+
+import ThemePage from '@/prefComponents/theme'
+</script>

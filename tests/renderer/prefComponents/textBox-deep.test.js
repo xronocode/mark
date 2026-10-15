@@ -127,8 +127,8 @@ describe('textBox/index.vue – deep tests', () => {
 
   it('InfoFilled icon is rendered when more prop is present', () => {
     wrapper = createWrapper({ more: 'https://example.com' })
-    // Should have the info icon in the description
-    expect(wrapper.find('.description').exists()).toBe(true)
+    // Should have the info icon in the label column
+    expect(wrapper.find('.pref-row-label').exists()).toBe(true)
   })
 
   // ── props.input watcher ──────────────────────────────────────────────
@@ -150,15 +150,15 @@ describe('textBox/index.vue – deep tests', () => {
 
   // ── notes rendering ──────────────────────────────────────────────────
 
-  it('renders notes section when notes prop provided', () => {
+  it('renders notes as help text when notes prop provided', () => {
     wrapper = createWrapper({ notes: 'Some helpful notes' })
-    expect(wrapper.find('.notes').exists()).toBe(true)
-    expect(wrapper.find('.notes').text()).toBe('Some helpful notes')
+    expect(wrapper.find('.pref-row-help').exists()).toBe(true)
+    expect(wrapper.find('.pref-row-help').text()).toBe('Some helpful notes')
   })
 
-  it('does not render notes section when notes prop not provided', () => {
+  it('does not render help text when notes prop not provided', () => {
     wrapper = createWrapper()
-    expect(wrapper.find('.notes').exists()).toBe(false)
+    expect(wrapper.find('.pref-row-help').exists()).toBe(false)
   })
 
   // ── disable prop ─────────────────────────────────────────────────────

@@ -3315,6 +3315,26 @@
           npx playwright test tests/e2e/welcome.spec.ts --project=chromium
         </Command>
         <Command>cargo test --manifest-path src-tauri/Cargo.toml recent_remove recent_insert</Command>
+        <Command>
+          npx vitest run tests/renderer/router/index.test.js
+          tests/renderer/prefComponents/tabsBar-config.test.js
+          tests/renderer/prefComponents/tabsBar.test.js
+          tests/renderer/pages/preference.test.js
+          tests/renderer/pages/common/bool.test.js
+          tests/renderer/pages/common/range.test.js
+          tests/renderer/pages/common/select.test.js
+          tests/renderer/pages/common/textBox.test.js
+          tests/renderer/pages/common/fontTextBox.test.js
+          tests/renderer/pages/common/segmented.test.js
+          tests/renderer/pages/common/buttonRow.test.js
+          tests/renderer/prefComponents/sideBar-config-deep.test.js
+          tests/renderer/prefComponents/sideBar-deep.test.js
+          tests/renderer/pages/sideBar.test.js
+        </Command>
+        <Command>
+          npx playwright test tests/e2e/settings-route.spec.ts
+          tests/e2e/settings-shell.spec.ts --project=chromium --project=webkit-settings
+        </Command>
       </Commands>
       <Scenarios>
         <Scenario>
@@ -4034,6 +4054,22 @@
           link #1a6fb0, blockquote base01 .8), ayu-light (link #2274b8,
           blockquote .75), everforest-light (link #265b73, blockquote
           .8), rose-pine-dawn (blockquote .75).
+        </Scenario>
+        <Scenario>
+          scenario-50: Settings shell redesign (C-38 T-003): the Settings
+          window is the fixed 640×620 5-tab shell — tabsBar renders
+          General/Appearance/Editor/Markdown/Advanced (macOS-centred icon
+          tabs, Windows/Linux underline tabs, per-OS class), the active
+          tab drives the router, the native window title and the
+          persisted settings.lastTab (localStorage, guarded); every
+          legacy route redirects (spelling→editor, theme→appearance,
+          image/keybindings/extensions→advanced, language→general) so
+          deep links keep working; ⌘F/Ctrl+F opens settings search whose
+          hits route through CATEGORY_TO_TAB; the shared control rows
+          render no trailing colons, value+unit exactly once (the
+          "14px px" regression) and per-OS metrics via the isOsx gate;
+          Playwright gates chromium + webkit with no horizontal overflow
+          at 640 px on all five tabs.
         </Scenario>
       </Scenarios>
       <Markers>
