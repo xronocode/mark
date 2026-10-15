@@ -1,14 +1,14 @@
 <template>
   <div class="search-result-item">
     <div class="search-result" :title="searchResult.filePath">
-      <svg
-        class="icon icon-arrow"
+      <chrome-icon
+        name="chevron-right"
+        :size="12"
+        class="icon-arrow"
         :class="{ fold: !showSearchMatches }"
         aria-hidden="true"
         @click.stop="toggleSearchMatches()"
-      >
-        <use xlink:href="#icon-arrow"></use>
-      </svg>
+      ></chrome-icon>
       <div class="file-info" @click.stop="toggleSearchMatches()">
         <div class="title">
           <span class="filename">
@@ -51,11 +51,16 @@
 </template>
 
 <script setup>
+// START_CHANGE_SUMMARY
+//   - 2026-10-15 C-38 T-006 N4 d: the match-list arrow renders from the
+//     drawn chromeIcons set instead of the iconfont sprite.
+// END_CHANGE_SUMMARY
 import { ref, computed } from 'vue'
 import { useEditorStore } from '@/store/editor'
 import { storeToRefs } from 'pinia'
 import bus from '../../bus'
 import { useI18n } from 'vue-i18n'
+import { ChromeIcon } from '../icons/chromeIcons.js'
 
 const { t } = useI18n()
 
@@ -265,7 +270,7 @@ const handleSearchResultClick = (searchMatch) => {
 .icon-arrow {
   transition: all 0.25s ease-out;
   transform: rotate(90deg);
-  fill: var(--sideBarTextColor);
+  color: var(--sideBarTextColor);
 }
 .icon-arrow.fold {
   transform: rotate(0);

@@ -8,9 +8,11 @@
       :title="folder.pathname"
       @click="folderNameClick"
     >
-      <svg class="icon" aria-hidden="true">
-        <use :xlink:href="`#${isCollapsed ? 'icon-folder-close' : 'icon-folder-open'}`"></use>
-      </svg>
+      <chrome-icon
+        :name="isCollapsed ? 'folder' : 'folder-open'"
+        :size="14"
+        aria-hidden="true"
+      ></chrome-icon>
       <input
         v-if="renameCache === folder.pathname"
         ref="renameInput"
@@ -44,12 +46,18 @@
 </template>
 
 <script setup>
+// START_CHANGE_SUMMARY
+//   - 2026-10-15 C-38 T-006 N4 d: the folder glyph pair (folder /
+//     folder-open) renders from the drawn chromeIcons set instead of
+//     the iconfont sprite.
+// END_CHANGE_SUMMARY
 import { ref, onMounted, nextTick } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useProjectStore } from '@/store/project'
 import { showContextMenu } from '../../contextMenu/sideBar'
 import bus from '../../bus'
 import File from './treeFile.vue'
+import { ChromeIcon } from '../icons/chromeIcons.js'
 
 const props = defineProps({
   folder: {

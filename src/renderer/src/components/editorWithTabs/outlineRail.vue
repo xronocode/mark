@@ -27,7 +27,7 @@
 
 <script setup>
 // FILE: src/renderer/src/components/editorWithTabs/outlineRail.vue
-// VERSION: 1.0.0
+// VERSION: 1.1.0
 // START_MODULE_CONTRACT
 //   PURPOSE: C-40 T-003 «On this page» outline rail — a slim absolute rail right of the centred text column listing h1–h3, tracking the section in view, and smooth-jumping on click.
 //   SCOPE: Rendering + visibility gates (preference, WYSIWYG-only modes, ≥3 h1–h3 headings, ≥1000px editor area, no text overlap), scrollspy highlight, click-to-jump; heading data and gates come from store.listToc and util/outlineRail.js.
@@ -46,6 +46,9 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-10-15 v1.1.0: C-38 T-006 N4 b — the current item's marker
+//     tick and the focus ring follow the system accent instead of the
+//     theme colours.
 //   - 2026-10-15 v1.0.0: C-40 T-003 — initial rail replacing the sidebar
 //     TOC panel. Canvas style (170px rail, 22px right inset, uppercase
 //     header, current item bold with a marker tick on the rule line); the
@@ -255,7 +258,7 @@ watch(
 }
 
 .outline-rail-item:focus-visible {
-  outline: 1px solid var(--themeColor, #4a90d9);
+  outline: 1px solid var(--chromeAccent, #4a90d9);
   outline-offset: 1px;
 }
 
@@ -266,8 +269,9 @@ watch(
   position: relative;
 }
 
-/* Marker tick on the rule line (canvas: a small square of the theme's
-   marker color where the border-left meets the current item). */
+/* Marker tick on the rule line (canvas: a small square where the
+   border-left meets the current item). C-38 T-006 N4 b: the active
+   item's tick follows the system accent. */
 .outline-rail-item--current::before {
   content: '';
   position: absolute;
@@ -276,6 +280,6 @@ watch(
   transform: translateY(-50%);
   width: 2px;
   height: 12px;
-  background: var(--blockquoteBorderColor, #ffcf1a);
+  background: var(--chromeAccent, #4a90d9);
 }
 </style>

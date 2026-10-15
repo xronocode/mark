@@ -3295,6 +3295,22 @@
             count are gone; icons come from M-057. Verified by V-M-011
             scenario-53.
           </note-10>
+          <note-11>
+            2026-10-15 C-38 T-006 N4 a/b/d native chrome pass: the chrome
+            (title bar, tab bar, sidebar, find bar, dialogs, notifications
+            strip, status bar, outline rail, Settings window) renders with
+            the --chromeFontFamily system UI stack while the document keeps
+            the editor font on .editor-wrapper; selected/active/focused
+            chrome states resolve --chromeAccent / --chromeAccentSoft
+            (CSS AccentColor behind @supports, per-OS fallbacks keyed off
+            the root platform-darwin/win32/linux class main.js installs
+            through util/chromePlatform.js; document theme colours
+            --themeColor*/links untouched); every chrome icon renders from
+            the M-057 set (the iconfont sprite, assets/icons svg imports
+            and ad-hoc chrome svgs are retired; the Settings window's
+            --prefAccent/--prefAccentSoft alias the shared vars). Verified
+            by V-M-011 scenario-56 and V-M-057.
+          </note-11>
         </notes>
       </LegacyDevelopmentDetail>
       <LegacyAttributes>
@@ -6442,28 +6458,46 @@
       <Type>UI_COMPONENT</Type>
       <Status>shipped</Status>
       <Layer>2</Layer>
-      <PhaseRef>C-40-T-002</PhaseRef>
+      <PhaseRef>C-38-T-006</PhaseRef>
       <Summary>
-        Shared 16 px-grid chrome icon descriptors (1.4 px stroke, round
-        caps and joins — sidebar, outline, auto/light/dark theme, share,
-        guide, split, lock, copy, menu, chevron-down) transcribed from
-        the approved C-40 canvas Icons board, plus the ChromeIcon render
-        component (currentColor, per-part fill/cap/join overrides,
-        per-icon viewBox for the off-grid chevron). The trimmed C-40
-        T-002 title bar consumes it; C-38 N4 d reuses it for the rest of
-        the chrome.
+        The one drawn chrome icon set (M-057): 16 px-grid descriptors
+        (1.4 px stroke, round caps and joins, currentColor) plus the
+        ChromeIcon render component and its chromeIconMarkup string
+        twin for non-Vue surfaces. Started in C-40 T-002 from the
+        approved Icons board (sidebar, outline, auto/light/dark theme,
+        share, guide, split, lock, copy, menu, chevron-down); C-38
+        T-006 N4 d extended it to the whole chrome — chevron-right,
+        close, dot, plus, search, case-sensitive, whole-word, regex,
+        replace, replace-all, arrow-up/down, folder, folder-open,
+        file-plus, file-markdown, save-all, close-all, import, info,
+        warning, error, message, check, smile, sad, the monochrome
+        github/twitter brand marks and the Win/Linux caption buttons —
+        retiring the iconfont sprite (assets/symbolIcon), the
+        assets/icons/*.svg imports and every ad-hoc chrome svg. Every
+        glyph sits on the single 0 0 16 16 grid (the chevron moved off
+        its old 10×10 grid); the rendered svg carries the chrome-icon
+        class so tests can tell drawn glyphs from anything else.
+        Consumers: titleBar (incl. gear + caption buttons), tabs
+        (close/unsaved-dot/plus/lock), sidebar tree + search panel +
+        opened tabs, find/replace bar, rename/tweet/import dialogs,
+        editor image-viewer close, notifications strip, and the
+        notification toast service (via chromeIconMarkup).
       </Summary>
       <PlannedPath>src/renderer/src/components/icons/chromeIcons.js</PlannedPath>
       <Dependencies>
         <M-011/>
       </Dependencies>
-      <VerificationRef>V-M-011</VerificationRef>
+      <VerificationRef>V-M-057</VerificationRef>
       <Interface>
-        <const-CHROME_ICONS>frozen descriptor table from the Icons board (name → parts)</const-CHROME_ICONS>
-        <fn-ChromeIcon>render one descriptor as an inline SVG via the name/size props</fn-ChromeIcon>
+        <const-CHROME_ICONS>frozen descriptor table (name → parts; every glyph 0 0 16 16)</const-CHROME_ICONS>
+        <const-CHROME_ICON_STROKE>shared 1.4 stroke width</const-CHROME_ICON_STROKE>
+        <const-CHROME_ICON_NAMES>sorted glyph names (verification helper)</const-CHROME_ICON_NAMES>
+        <fn-ChromeIcon>render one descriptor as an inline svg.chrome-icon via the name/size props</fn-ChromeIcon>
+        <fn-chromeIconMarkup>the same descriptor as an HTML string (notification service template)</fn-chromeIconMarkup>
       </Interface>
       <ChangeRefs>
         <C-40/>
+        <C-38/>
       </ChangeRefs>
     </M-057>
   </GD-RUNTIME>

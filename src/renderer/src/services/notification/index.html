@@ -6,21 +6,17 @@
   <div class="content">
     <div class="title">
       <div class="icon-wrapper">
-        <svg class="icon" aria-hidden="true">
-          <use xlink:href="#{{icon}}"></use>
-        </svg>
+        {{iconSvg}}
       </div>
       <span>{{title}}</span>
-      <svg class="icon close" aria-hidden="true">
-        <use xlink:href="#icon-close"></use>
-      </svg>    
+      <div class="icon-wrapper close">
+        {{closeSvg}}
+      </div>
     </div>
     <div class="body">
       <div class="left-text">{{message}}</div>
       <div class="confirm icon-wrapper">
-        <svg class="icon" aria-hidden="true">
-          <use xlink:href="#icon-confirm"></use>
-        </svg>
+        {{confirmSvg}}
       </div>
     </div>
   </div>

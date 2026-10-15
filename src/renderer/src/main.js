@@ -8,7 +8,9 @@ import { createRouter, createWebHashHistory } from 'vue-router'
 import bootstrapRenderer from './bootstrap'
 import axios from './axios'
 import pinia from './store'
-import './assets/symbolIcon'
+// C-38 T-006 N4 b: root platform class for the per-OS chrome accent
+// fallbacks in assets/styles/index.css (reads the shim lazily).
+import { installChromePlatformClass } from './util/chromePlatform'
 
 // Element Plus — deep per-component imports for tree-shaking
 import { makeInstaller } from 'element-plus/es/make-installer.mjs'
@@ -68,6 +70,9 @@ import { setupIpcListeners } from './bootstrap-ipc'
 window.marktext = {}
 bootstrapRenderer()
 installMenuBridge()
+// C-38 T-006: platform-darwin/win32/linux on <html> before first paint
+// styles resolve the chrome accent fallback.
+installChromePlatformClass()
 
 // -----------------------------------------------
 // Be careful when changing code before this line!
