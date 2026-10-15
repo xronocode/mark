@@ -1,9 +1,9 @@
-<GraceChangeSpec graceVersion='4.0' status='draft'>
+<GraceChangeSpec graceVersion='4.0' status='approved'>
 <C-40>
   <Name>In-app Guide, titlebar document tools (split, lock, copy) and a new home for document statistics</Name>
   <Created>2026-10-15</Created>
   <Priority>medium</Priority>
-  <Status>draft</Status>
+  <Status>approved</Status>
   <RoadmapPhase>N</RoadmapPhase>
   <Complexity>M (sub-phases)</Complexity>
 
@@ -52,8 +52,8 @@
   <VerificationIntent>Per-OS titlebar tests, e2e for lock/copy/guide, WebKit screenshot matrix, live check.</VerificationIntent>
 
   <Approval>
-    <ApprovedBy>pending — backlog item recorded on the user's request (2026-10-15): «не критично на сейчас, как бэклог зафиксировать»</ApprovedBy>
-    <ApprovalScope>None yet.</ApprovalScope>
+    <ApprovedBy>user (2026-10-15): «ок» to the Guide / Connect-your-agent mockup</ApprovedBy>
+    <ApprovalScope>G-3 Guide + R-1a connect-your-agent for 2.3.1. Title-bar trim, outline rail, status bar (R-2, R-2a, R-3) move to 2.3.2.</ApprovalScope>
   </Approval>
 </C-40>
 </GraceChangeSpec>
