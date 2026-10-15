@@ -1,0 +1,24 @@
+<GraceChangeSpec graceVersion='4.0' status='approved'>
+<C-48>
+  <Name>What's New once after an update, and an App Store review request</Name>
+  <Created>2026-10-15</Created>
+  <Priority>medium</Priority>
+  <Status>approved</Status>
+  <RoadmapPhase>R1</RoadmapPhase>
+  <Complexity>S</Complexity>
+  <Summary>G10 of the MarkView gap plan. A What's New sheet opens once on the first launch of a new version (never on a fresh install), and the App Store build asks for a rating through the system sheet after enough successful use.</Summary>
+  <Problem><Description>Users never learn what changed; the App Store has no ratings. Mockups approved 2026-10-15 («ок»): https://claude.ai/artifact/S4JQJpq9jkfagKwW5tYpc7 boards 3 and 5.</Description></Problem>
+  <Goals>
+    <R-1>What's New: persisted lastSeenVersion; on launch, if a previous version was recorded and differs from the running version → show the sheet once (max 4 items per version, content per release in all 10 languages, "See the guide" opens the Guide at that version's section, Continue/Esc close); a fresh install records the version silently. Help › What's New reopens it any time. The welcome-screen footer link "What's new in X" shows for 7 days after an update.</R-1>
+    <R-2>Review request, App Store build only: SKStoreReviewController (macOS) via a small Rust command; asked after the 5th successful session across at least 3 distinct days; never on first launch, never in the same session as an update or a recent error, never while a modal is open; a "successful session" = a document opened and saved or a live reload applied, no crash. Help › Rate Mark… opens the App Store review page in the App Store build. Desktop edition: nothing.</R-2>
+  </Goals>
+  <Phases><W1><Title>What's New + review request</Title><Complexity>S</Complexity></W1></Phases>
+  <Dependencies>C-40 Guide (deep link), C-46 welcome footer, m048 build mode (app-store flag).</Dependencies>
+  <Constraints><Constraint>No network calls; no tracking; Apple decides whether the review sheet actually shows.</Constraint></Constraints>
+  <NonGoals><NonGoal>GitHub star prompts.</NonGoal></NonGoals>
+  <AcceptanceCriteria><Criterion>Upgrade 2.3.0 → 2.3.1 shows the sheet once; a fresh install does not; the review request fires only under the rules and only in the App Store build.</Criterion></AcceptanceCriteria>
+  <AffectedAreas><M-011>whatsNew sheet, session counters, Help menu</M-011><M-048>build mode gate</M-048></AffectedAreas>
+  <VerificationIntent>Unit tests for the version gate and the review rules (fake clock); e2e for the sheet; cargo test for the command stub on non-app-store builds.</VerificationIntent>
+  <Approval><ApprovedBy>user (2026-10-15): «ок»</ApprovedBy><ApprovalScope>W1 for 2.3.1.</ApprovalScope></Approval>
+</C-48>
+</GraceChangeSpec>
