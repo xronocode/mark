@@ -410,8 +410,43 @@
     "table": "Tabla"
   },
   "recent": {
-    "noTabsOpen": "No tienes pestañas abiertas.",
-    "newFile": "Nuevo Archivo"
+    "taglineLead": "Los agentes escriben. Tú",
+    "taglineHighlight": "das forma",
+    "taglineTail": "al resultado.",
+    "openFile": "Abrir archivo…",
+    "openFolder": "Abrir carpeta…",
+    "newButton": "Nuevo",
+    "recentFiles": "Archivos recientes",
+    "recentFolders": "Carpetas recientes",
+    "noRecentFiles": "No hay archivos recientes",
+    "lastSession": "Última sesión",
+    "filesCount": {
+      "one": "{count} archivo",
+      "many": "{count} archivos",
+      "other": "{count} archivos"
+    },
+    "remove": "Quitar de la lista",
+    "removeTooltip": "Solo lo quita de esta lista. El archivo sigue en el disco.",
+    "removedToast": "Se quitó «{name}» de Recientes",
+    "undo": "Deshacer",
+    "open": "Abrir",
+    "copyPath": "Copiar ruta",
+    "showInFinder": "Mostrar en Finder",
+    "showInExplorer": "Mostrar en el Explorador",
+    "showInFolder": "Mostrar en la carpeta",
+    "guide": "Guía",
+    "whatsNewIn": "Novedades de {version}",
+    "connectTitle": "Conecta tu agente.",
+    "connectText": "Un solo prompt hace que abra sus planes aquí y lea tus ediciones.",
+    "copyPrompt": "Copiar prompt",
+    "howItWorks": "Cómo funciona",
+    "time": {
+      "justNow": "ahora mismo",
+      "minutesAgo": "hace {count} min",
+      "todayAt": "hoy a las {time}",
+      "yesterday": "ayer",
+      "daysAgo": "hace {count} días"
+    }
   },
   "import": {
     "title": "Importar o Abrir",
@@ -1093,12 +1128,24 @@
       "userGuide": "Guía del Usuario",
       "markdownSyntax": "Sintaxis de Markdown"
     },
+    "help": {
+      "guide": "Guía de Mark",
+      "whatsNew": "Novedades",
+      "rateMark": "Valorar Mark…"
+    },
     "utils": {
       "noUpdateResourceFile": "No hay archivo de recurso de actualización",
       "todoUpdateCheck": "Buscar actualizaciones"
     },
     "spellchecker": {
       "switchLanguage": "Cambiar Idioma"
+    }
+  },
+  "guide": {
+    "tabTitle": "Guía de Mark",
+    "agentPrompt": {
+      "mac": "Cuando produzcas un plan, una especificación o un informe de más de ~50 líneas, escríbelo en un archivo .md y ábrelo para el usuario: open -a Mark <file>.md. Cuando el archivo haya cambiado después de escribirlo, vuelve a leerlo: las ediciones del usuario son tu siguiente instrucción.",
+      "generic": "Cuando produzcas un plan, una especificación o un informe de más de ~50 líneas, escríbelo en un archivo .md y ábrelo para el usuario en Mark. Cuando el archivo haya cambiado después de escribirlo, vuelve a leerlo: las ediciones del usuario son tu siguiente instrucción."
     }
   },
   "common": {
@@ -1474,5 +1521,29 @@
     "noBaseline": "No se encontró una versión base para este archivo.",
     "sourceSnapshot": "Antes del último guardado externo · {time}",
     "sourcePrevious": "Versión anterior"
+  },
+  "whatsNew": {
+    "eyebrow": "Mark {version}",
+    "title": "Novedades",
+    "seeGuide": "Ver la guía",
+    "continue": "Continuar",
+    "v2_3_1": {
+      "zoom": {
+        "title": "Amplía diagramas y tablas",
+        "text": "Pasa el cursor y pulsa ⤢ para una vista a pantalla completa con zoom y desplazamiento."
+      },
+      "agentDiff": {
+        "title": "Ve lo que cambió el agente",
+        "text": "⌘D compara con la versión anterior a su último guardado."
+      },
+      "themes": {
+        "title": "Paper e Ink",
+        "text": "Nuevos temas predeterminados, y Auto sigue a macOS."
+      },
+      "tables": {
+        "title": "Tablas que caben",
+        "text": "Las tablas anchas se desplazan dentro de la columna; los enlaces largos se ajustan."
+      }
+    }
   }
 }

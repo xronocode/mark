@@ -24,6 +24,11 @@ import { useLayoutStore } from './layout'
 import { useMainStore } from '.'
 import { i18n } from '../i18n'
 import { recordSnapshot, clearSnapshots } from './diffSnapshots'
+import {
+  loadGuideMarkdown,
+  getGuideSectionHeadingText,
+  GUIDE_SECTION_CONNECT_AGENT
+} from '../util/guideDoc'
 
 const autoSaveTimers = new Map()
 const fileWatchDisposers = new Map()
@@ -421,6 +426,12 @@ export const useEditorStore = defineStore('editor', {
         tab.isSaved = false
       } else {
         tab.isSaved = !!outcome.isSaved
+        // C-48 review request: a successful save is one half of a
+        // "successful session" (document opened and saved) — the review
+        // controller listens and owns all further logic.
+        if (tab.isSaved) {
+          bus.emit('file-saved', { id: tab.id, pathname: tab.pathname })
+        }
       }
       if (
         tab.isSaved &&
@@ -890,6 +901,26 @@ export const useEditorStore = defineStore('editor', {
       })
     },
 
+    /**
+     * C-40 G-3: bus entry point for opening the Mark Guide (Help › Mark
+     * Guide menu, help.guide command palette entry, welcome screen link).
+     * The payload may carry a { section } key (GUIDE_SECTION_CONNECT_AGENT)
+     * to scroll the guide to after opening.
+     */
+    LISTEN_FOR_OPEN_GUIDE() {
+      bus.on('mt::open-guide', async (payload = {}) => {
+        // eslint-disable-next-line no-console
+        console.log(`[editor][guide][BLOCK_GUIDE_REQUESTED section=${payload?.section || 'top'}]`)
+        try {
+          const locale = i18n.global.locale?.value || 'en'
+          const markdown = await loadGuideMarkdown(locale)
+          await this.OPEN_GUIDE_TAB({ markdown, section: payload?.section })
+        } catch (e) {
+          console.warn('[editor][guide][BLOCK_GUIDE_LOAD_FAILED]', e)
+        }
+      })
+    },
+
     CLOSE_TAB(file = null) {
       if (!file) {
         file = this.currentFile
@@ -1254,6 +1285,83 @@ export const useEditorStore = defineStore('editor', {
     },
 
     /**
+     * C-40 G-3: open (or focus) the Mark Guide as a temporary untitled
+     * tab. The guide is a pathname-less untitled tab, so nothing is ever
+     * written to disk unless the user chooses Save As. Reopening focuses
+     * the existing guide tab instead of making another one, and never
+     * overwrites the user's edits in the living document.
+     *
+     * @param {*} _ The store context - not used.
+     * @param {{markdown?: string, section?: string}} obj The localized
+     * guide markdown (loaded from the bundled guide docs when omitted) and
+     * an optional section key to scroll to after opening.
+     */
+    async OPEN_GUIDE_TAB({ markdown, section } = {}) {
+      // START_BLOCK_GUIDE_TAB_REUSE
+      // A guide the user saved under a real path is their document now
+      // (C-40 review): only a still-pathless guide tab is reused.
+      const existing = this.tabs.find((t) => t.isGuide && !t.pathname)
+      if (existing) {
+        this.SHOW_TAB_VIEW(false)
+        this.UPDATE_CURRENT_FILE(existing)
+      } else {
+      // END_BLOCK_GUIDE_TAB_REUSE
+        // START_BLOCK_GUIDE_TAB_CREATE
+        let guideMarkdown = markdown
+        if (typeof guideMarkdown !== 'string' || !guideMarkdown) {
+          guideMarkdown = await loadGuideMarkdown(i18n.global.locale?.value || 'en')
+        }
+        this.SHOW_TAB_VIEW(false)
+
+        const preferencesStore = usePreferencesStore()
+        const { defaultEncoding, endOfLine } = preferencesStore
+        const fileState = getBlankFileState(this.tabs, defaultEncoding, endOfLine, guideMarkdown)
+        fileState.filename = i18n.global.t('guide.tabTitle')
+        fileState.isGuide = true
+
+        const { id, markdown: loadedMarkdown } = fileState
+        this.UPDATE_CURRENT_FILE(fileState)
+        bus.emit('file-loaded', { id, markdown: loadedMarkdown })
+        // eslint-disable-next-line no-console
+        console.log(`[editor][guide][BLOCK_GUIDE_TAB_OPENED id=${id} locale=${i18n.global.locale?.value || 'en'}]`)
+      // END_BLOCK_GUIDE_TAB_CREATE
+      }
+
+      // START_BLOCK_GUIDE_SCROLL_TO_SECTION
+      // Optional deep link: scroll the freshly active guide tab to a
+      // section heading. WYSIWYG headings carry id=<muya block key>, so
+      // the heading text is matched against listToc (populated by muya's
+      // change event shortly after file-loaded — hence the 300 ms delay);
+      // an edited-away heading or a not-yet-built TOC quietly skips the
+      // jump instead of emitting a dead anchor.
+      if (section === GUIDE_SECTION_CONNECT_AGENT) {
+        // The heading text comes from the pristine localized guide, never
+        // from the user's edited copy: if the user deleted that heading,
+        // listToc has no match and the jump is skipped (C-40 review).
+        const source =
+          typeof markdown === 'string' && markdown
+            ? markdown
+            : await loadGuideMarkdown(i18n.global.locale?.value || 'en')
+        const headingText = getGuideSectionHeadingText(source, section)
+        if (headingText) {
+          setTimeout(() => {
+            const item = (this.listToc || []).find(
+              (i) => i.lvl === 2 && i.content === headingText
+            )
+            if (item) {
+              bus.emit('scroll-to-header', item.slug)
+              // eslint-disable-next-line no-console
+              console.log(
+                `[editor][guide][BLOCK_GUIDE_SCROLL_TO_SECTION heading=${headingText} slug=${item.slug}]`
+              )
+            }
+          }, 300)
+        }
+      }
+      // END_BLOCK_GUIDE_SCROLL_TO_SECTION
+    },
+
+    /**
      * Create a new tab from the given markdown document.
      *
      * @param {*} _ The store context - not used.
@@ -1281,8 +1389,10 @@ export const useEditorStore = defineStore('editor', {
 
       let keepTabBarState = false
       if (currentFile) {
-        const { isSaved, pathname } = currentFile
-        if (isSaved && !pathname) {
+        const { isSaved, pathname, isGuide } = currentFile
+        // Never auto-close the guide: an agent opening a file while the
+        // user reads "Connect your agent" must not make it vanish.
+        if (isSaved && !pathname && !isGuide) {
           keepTabBarState = true
           this.FORCE_CLOSE_TAB(currentFile)
         }
@@ -1927,6 +2037,22 @@ export const useEditorStore = defineStore('editor', {
 // END_MODULE_CONTRACT
 //
 // CHANGE_SUMMARY:
+//   - 2026-10-15 C-40 review: a guide saved under a real path is no longer
+//     reused as the guide; NEW_TAB_WITH_CONTENT never auto-closes the
+//     guide tab; the section deep link takes its heading from the pristine
+//     localized guide (a heading the user deleted skips the jump instead
+//     of landing on the next section); LISTEN_FOR_OPEN_GUIDE catches load
+//     failures (BLOCK_GUIDE_LOAD_FAILED).
+//   - 2026-10-15 C-40 G-3/R-1a: OPEN_GUIDE_TAB + LISTEN_FOR_OPEN_GUIDE
+//     ('mt::open-guide' bus event) open the localized Mark Guide as a
+//     temporary untitled tab (pathname-less, isGuide flag, guide.tabTitle
+//     filename). Reopening focuses the existing guide tab and never
+//     overwrites user edits; { section: GUIDE_SECTION_CONNECT_AGENT }
+//     scrolls to the first `## ` heading by matching its text in listToc
+//     and emitting scroll-to-header with the muya block key (WYSIWYG
+//     heading ids are block keys, not github slugs).
+//     Guide markdown ships per locale via util/guideDoc.js import.meta.glob;
+//     the agent prompt itself lives in util/agentPrompt.js (single source).
 //   - 2026-10-15 C-43 S1: every APPLY_FILE_CHANGE apply path (legacy data,
 //     watcher disk-read, and both confirm branches of the dirty-tab
 //     conflict prompt) records the tab's pre-reload markdown into the

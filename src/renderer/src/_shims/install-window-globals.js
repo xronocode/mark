@@ -25,12 +25,19 @@
 //     followSystemTheme users to the lightModeTheme/darkModeTheme member for
 //     the current prefers-color-scheme, so Auto users on a dark OS open on
 //     ink instead of flashing the stale persisted light theme.
+//   - 2026-10-15 C-46 review: the drag-drop bridge re-broadcasts every
+//     native webview drag phase on the renderer bus as 'mt::native-drag'
+//     ({ type: 'enter'|'over'|'drop'|'leave', paths }) so the welcome
+//     screen can drive its drop-zone highlight; HTML5 file drags never
+//     carry an OS path in a Tauri webview, so the bridge stays the only
+//     drop → open path.
 
 import { ipc } from '@/ipc/runtime'
 import * as posixPath from 'path-browserify'
 import win32Path from 'path-win32' // CJS port — named exports live on .default
 import { appLocalDataDir } from '@tauri-apps/api/path'
 import { loadLocaleTable } from '@/i18n/localeLoader'
+import bus from '@/bus'
 // Pre-import the event/core modules statically so ipcRenderer.on /
 // .invoke / .send paths don't have to await dynamic imports — that
 // async boundary races with backend emit-on-spawn (renderer subscribes
@@ -165,8 +172,20 @@ const IMAGE_DROP_EXTS = ['jpeg', 'jpg', 'png', 'gif', 'svg', 'webp', 'bmp', 'ico
     }
   }
 
+  // START_BLOCK_NATIVE_DRAG_BROADCAST
+  // Every phase is mirrored on the renderer bus first (C-46 welcome
+  // drop-zone highlight); 'over' carries no paths in Tauri 2.
   await webview.onDragDropEvent(async (event) => {
-    const payload = event.payload
+    const payload = event.payload || {}
+    try {
+      bus.emit('mt::native-drag', {
+        type: payload.type,
+        paths: Array.isArray(payload.paths) ? payload.paths : []
+      })
+    } catch (e) {
+      console.warn('[Shim][onDragDropEvent][BLOCK_NATIVE_DRAG_BROADCAST] listener failed', e)
+    }
+    // END_BLOCK_NATIVE_DRAG_BROADCAST
     if (payload.type === 'drop') {
       const paths = payload.paths || []
       for (const p of paths) {

@@ -117,6 +117,7 @@ mod m045_ext;
 mod m047_bookmarks;
 mod m048_build_mode;
 mod m052_print;
+mod m053_review;
 mod m_v1_compat;
 mod mt_paths;
 
@@ -760,6 +761,8 @@ fn main() {
             m017_recent::mt_recent_add,
             m017_recent::mt_recent_list,
             m017_recent::mt_recent_clear,
+            m017_recent::mt_recent_remove,
+            m017_recent::mt_recent_insert,
             m006_shortcuts::mt_shortcut_register,
             m006_shortcuts::mt_shortcut_unregister,
             m006_shortcuts::mt_shortcut_list,
@@ -819,6 +822,10 @@ fn main() {
             m021_default_handler::mt_unset_default_md_handler,
             m031_diff::mt_diff_baseline,
             m032_share::mt_share_file,
+            // C-48: App Store review request (SKStoreReviewController on
+            // macOS app-store builds; no-op elsewhere). Outside the
+            // M-013-A typed surface like the save-flow handlers above.
+            m053_review::mt_request_review,
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")
