@@ -1,20 +1,24 @@
 // FILE: src/muya/lib/parser/render/index.js
-// VERSION: 1.2.0
+// VERSION: 1.3.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Render muya ContentState blocks to the DOM via snabbdom and drive the asynchronous previews (math, mermaid, diagrams, images).
-//   SCOPE: StateRender — full/partial/single-block render, selector building, mermaid dispatch into the resilient pipeline, diagram rendering, render caches.
+//   SCOPE: StateRender — full/partial/single-block render, selector building, mermaid dispatch into the resilient pipeline, diagram rendering, render caches, and the C-38 line-number gutter measurement queue.
 //   DEPENDS: ./snabbdom, ./renderBlock, ./renderInlines, ./mermaidPipeline, ../../renderers, ../../config, ../../utils, ../rules
-//   LINKS: M-011 muya editor surface; C-34 R2.1; START_BLOCK_MERMAID_DISPATCH
+//   LINKS: M-011 muya editor surface; C-34 R2.1; START_BLOCK_MERMAID_DISPATCH; C-38 T-005 lineNumberPreKeys
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
-//   default - StateRender class: muya block renderer and preview orchestrator
+//   default - StateRender class: muya block renderer and preview orchestrator; lineNumberPreKeys holds the pre keys whose gutter must be measured by the next postRender (C-38 T-005)
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.2.0 - 2026-10-15 C-39 T-001: keep the horizontal scroll of table wrappers across renders (START_BLOCK_TABLE_SCROLL_KEEP).
+//   LAST_CHANGE: v1.3.0 - 2026-10-15 C-38 T-005: lineNumberPreKeys — renderContainerBlock
+//   records every fence/indent code block whose gutter it (re)rendered, so
+//   contentState.resizeLineNumber measures only those pres after each render
+//   pass (full render records all, partial render only the edited range).
+//   v1.2.0 - 2026-10-15 C-39 T-001: keep the horizontal scroll of table wrappers across renders (START_BLOCK_TABLE_SCROLL_KEEP).
 //   v1.1.0 - 2026-10-15 C-34 R2.1: renderMermaid delegates to createMermaidPipeline (code+theme LRU cache, keep-last-good + escaped error text, 250 ms debounce, natural size); module contract added.
 // END_CHANGE_SUMMARY
 
@@ -42,6 +46,9 @@ class StateRender {
     this.urlMap = new Map()
     this.renderingTable = null
     this.renderingRowContainer = null
+    // C-38 T-005: pre keys whose line-number gutter was (re)rendered in the
+    // current pass; drained by contentState.resizeLineNumber in postRender.
+    this.lineNumberPreKeys = new Set()
     this.container = null
   }
 

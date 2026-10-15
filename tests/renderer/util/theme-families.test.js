@@ -23,6 +23,7 @@
 //   SPEC_FAMILY_ORDER - the 14 family ids in spec R-3 order.
 //   T003_MEMBERS - the six member ids added by C-41 T-003.
 //   readSource - reads a repo file for source-level absence pins.
+//   THEME_KEYS - the three persisted theme preference keys.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
@@ -66,6 +67,7 @@ const RETIRED_IDS = [
 
 // one-light, alucard, nord-light, kanagawa-lotus, graphite-dark, and
 // ulysses-dark are registered by C-41 T-003.
+const THEME_KEYS = ['theme', 'lightModeTheme', 'darkModeTheme']
 const T003_MEMBERS = ['one-light', 'alucard', 'nord-light', 'kanagawa-lotus', 'graphite-dark', 'ulysses-dark']
 
 const SPEC_FAMILY_ORDER = [
@@ -307,7 +309,8 @@ describe('store hydration applies the migration once (C-41 T-002)', () => {
     expect(store.darkModeTheme).toBe('ink')
     expect(store.followSystemTheme).toBe(false)
 
-    const persisted = invoke.mock.calls.filter(([cmd]) => cmd === 'mt_prefs_set')
+    // Only the theme keys — other one-time migrations (C-38 T-005) persist their own flags.
+    const persisted = invoke.mock.calls.filter(([cmd, args]) => cmd === 'mt_prefs_set' && THEME_KEYS.includes(args.key))
     expect(persisted).toEqual([
       ['mt_prefs_set', { key: 'theme', value: 'one-dark' }],
       ['mt_prefs_set', { key: 'lightModeTheme', value: 'paper' }],
@@ -332,7 +335,7 @@ describe('store hydration applies the migration once (C-41 T-002)', () => {
     expect(store.theme).toBe('nord')
     expect(store.lightModeTheme).toBe('paper')
     expect(store.darkModeTheme).toBe('ink')
-    expect(invoke.mock.calls.filter(([cmd]) => cmd === 'mt_prefs_set')).toEqual([])
+    expect(invoke.mock.calls.filter(([cmd, args]) => cmd === 'mt_prefs_set' && THEME_KEYS.includes(args.key))).toEqual([])
   })
 })
 

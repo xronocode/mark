@@ -1,6 +1,32 @@
+// FILE: src/muya/lib/contentState/codeBlockCtrl.js
+// VERSION: 2.0.0
+// START_MODULE_CONTRACT
+//   PURPOSE: Code-block editing control (language pick, block create/update, copy) plus the post-render line-number gutter measurement dispatch (C-38 T-005).
+//   SCOPE: checkEditLanguage/selectLanguage/updateCodeLanguage/codeBlockUpdate/copyCodeBlock on the ContentState prototype, and resizeLineNumber (drain stateRender.lineNumberPreKeys or force every gutter in the container).
+//   DEPENDS: muya prism loader, utils (escapeHTML, resizeCodeBlockLineNumber), selection.
+//   LINKS: .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-012 scenario-20; .grace/changes/active/C-38 T-005.
+//   ROLE: RUNTIME
+//   MAP_MODE: EXPORTS
+// END_MODULE_CONTRACT
+//
+// START_MODULE_MAP
+//   default - codeBlockCtrl(ContentState): mixes the code-block controls and resizeLineNumber onto the ContentState prototype.
+// END_MODULE_MAP
+//
+// START_CHANGE_SUMMARY
+//   LAST_CHANGE: v2.0.0 - 2026-10-15 C-38 T-005 (#1648): resizeLineNumber
+//   implemented again — postRender measures only the code blocks whose gutter
+//   was (re)rendered in this pass (stateRender.lineNumberPreKeys), keeping the
+//   cost proportional to the edited block; forceAll re-measures every gutter
+//   in the muya container for wrap/font/resize refreshes. The upstream
+//   document-wide querySelectorAll-per-keystroke (the #1648 performance bug)
+//   is not coming back.
+//   v1.0.0 - upstream muya; resizeLineNumber disabled due to #1648.
+// END_CHANGE_SUMMARY
+
 import { loadLanguage } from '../prism/index'
 import { escapeHTML } from '../utils'
-// import resizeCodeBlockLineNumber from '../utils/resizeCodeLineNumber'
+import resizeCodeBlockLineNumber from '../utils/resizeCodeLineNumber'
 import selection from '../selection'
 
 const CODE_UPDATE_REP = /^`{3,}(.*)/
@@ -157,19 +183,36 @@ const codeBlockCtrl = (ContentState) => {
     this.muya.clipboard.copy('copyCodeContent', codeContent)
   }
 
-  ContentState.prototype.resizeLineNumber = function () {
-    // FIXME: Disabled due to #1648.
-    // const { codeBlockLineNumbers } = this.muya.options
-    // if (!codeBlockLineNumbers) {
-    //   return
-    // }
-    // const codeBlocks = document.querySelectorAll('pre.line-numbers')
-    // if (codeBlocks.length) {
-    //   for (const ele of codeBlocks) {
-    //     resizeCodeBlockLineNumber(ele)
-    //   }
-    // }
+  // START_BLOCK_RESIZE_LINE_NUMBER
+  // C-38 T-005 (#1648): align the line-number gutters after a render pass.
+  // Default mode drains stateRender.lineNumberPreKeys — exactly the code
+  // blocks whose gutter was (re)rendered by this pass, so typing in one
+  // block re-measures only that block. forceAll re-measures every gutter in
+  // this editor's container (wrap toggle, code font size change, container
+  // resize) and never leaves this muya instance.
+  ContentState.prototype.resizeLineNumber = function (forceAll = false) {
+    if (!this.muya.options.codeBlockLineNumbers) {
+      return
+    }
+
+    let pres = []
+    if (forceAll) {
+      pres = Array.from(
+        this.muya.container.querySelectorAll('pre.ag-paragraph.line-numbers')
+      )
+    } else {
+      const keys = this.stateRender.lineNumberPreKeys
+      pres = Array.from(keys)
+        .map((key) => document.getElementById(key))
+        .filter((ele) => ele && ele.tagName === 'PRE')
+      keys.clear()
+    }
+
+    for (const preEle of pres) {
+      resizeCodeBlockLineNumber(preEle)
+    }
   }
+  // END_BLOCK_RESIZE_LINE_NUMBER
 }
 
 export default codeBlockCtrl

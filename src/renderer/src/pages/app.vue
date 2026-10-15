@@ -59,6 +59,9 @@
 //            is injected once while common styles still initialize on boot.
 //
 // CHANGE_SUMMARY:
+//   - 2026-10-15 C-38 T-005 review: onMounted stops before attaching the
+//     window drag/zoom listeners when the component was unmounted during
+//     its awaits (the longer hydration made the old leak reproducible).
 //   - 2026-10-15 C-49 T-001: one clear zoom — ⌘+/⌘−/⌘0 and Ctrl+wheel now
 //     route through the preferences-store zoom actions (ZOOM_STEP /
 //     ZOOM_ACTUAL_SIZE: clamp 12–36, 150 ms debounced persist, transient
@@ -329,6 +332,8 @@ watch(
 )
 // END_BLOCK_MARK_ZOOM
 
+let isUnmounted = false
+
 onMounted(async () => {
   // C-48: snapshot prefs BEFORE this boot writes anything (hydration
   // mirror, legacy zoom migration, session restore) — the What's New gate
@@ -377,6 +382,9 @@ onMounted(async () => {
   editorStore.LISTEN_FOR_OPEN_GUIDE()
   editorStore.LISTEN_WINDOW_ZOOM()
 
+  // C-38 T-005 review: the window listeners attach after several awaits —
+  // a component unmounted meanwhile (tests, HMR) must not leak them.
+  if (isUnmounted) return
   cleanupDragDrop = setupDragDropHandler()
   cleanupPinchZoom = setupCtrlWheelFontSize()
   cleanupNativeZoom = setupZoomKeysFontSize()
@@ -424,6 +432,7 @@ onMounted(async () => {
 })
 
 onUnmounted(() => {
+  isUnmounted = true
   if (cleanupDragDrop) cleanupDragDrop()
   if (cleanupPinchZoom) cleanupPinchZoom()
   if (cleanupNativeZoom) cleanupNativeZoom()

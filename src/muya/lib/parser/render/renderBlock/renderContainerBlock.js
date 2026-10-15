@@ -1,29 +1,30 @@
 // FILE: src/muya/lib/parser/render/renderBlock/renderContainerBlock.js
-// VERSION: 1.2.0
+// VERSION: 1.3.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Render a muya container block (blockquote, list, table, figure, pre) to a snabbdom vnode.
-//   SCOPE: Selectors, data attributes and auxiliary children (tools, icons, copy buttons) per container type; the table element is returned inside its C-39 horizontal scroll wrapper.
+//   SCOPE: Selectors, data attributes and auxiliary children (tools, icons, copy buttons, code-block line-number gutter) per container type; the table element is returned inside its C-39 horizontal scroll wrapper.
 //   DEPENDS: muya config, render helpers, snabbdom, ../../../utils/callout.
-//   LINKS: .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-012 scenario-18; .grace/changes/active/C-39 T-001.
+//   LINKS: .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-012 scenario-18 and scenario-20; .grace/changes/active/C-39 T-001, C-38 T-005.
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
-//   default - renderContainerBlock(parent, block, activeBlocks, matches, useCache, t); a `table` block returns div.ag-table-scroll > table.
+//   default - renderContainerBlock(parent, block, activeBlocks, matches, useCache, t); a `table` block returns div.ag-table-scroll > table; a fence/indent `code` block records its pre in stateRender.lineNumberPreKeys for post-render gutter measuring.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
 //   - (v1.0.0 implied: upstream muya, previously ungoverned.)
 //   - 2026-10-13 v1.1.0: C-24 START_BLOCK_CALLOUT_RENDER: a `[!type]` blockquote gets ag-callout classes, a non-editable title row and view-only fold state.
 //   - 2026-10-15 v1.2.0: C-39 T-001 START_BLOCK_TABLE_SCROLL_WRAPPER: the table element renders inside div.ag-table-scroll so wide tables scroll horizontally instead of overflowing the text column.
+//   - 2026-10-15 v1.3.0: C-38 T-005 START_BLOCK_CODE_LINE_NUMBERS: fence/indent code blocks get the .line-numbers class and gutter rows when codeBlockLineNumbers is on (html/math/diagram/front-matter pre blocks stay gutter-free); every gutter rendered this pass is recorded for the post-render measurement instead of re-measuring the whole document.
 // END_CHANGE_SUMMARY
 
 import { CLASS_OR_ID } from '../../../config'
 import { renderTableTools } from './renderToolBar'
 import { footnoteJumpIcon } from './renderFootnoteJump'
 import { renderEditIcon } from './renderContainerEditIcon'
-// import renderLineNumberRows from './renderLineNumber'
+import renderLineNumberRows from './renderLineNumber'
 import renderCopyButton from './renderCopyButton'
 import { renderLeftBar, renderBottomBar } from './renderTableDargBar'
 import { h } from '../snabbdom'
@@ -42,6 +43,11 @@ const PRE_BLOCK_HASH = {
   mermaid: `.${CLASS_OR_ID.AG_MERMAID}`,
   'vega-lite': `.${CLASS_OR_ID.AG_VEGA_LITE}`
 }
+
+// C-38 T-005: editable source-code blocks. html/math/diagram sources are only
+// visible while their figure is active and render one span per line, and the
+// YAML front matter is metadata, so none of them get a gutter.
+const CODE_LINE_NUMBER_FUNCTION_TYPES = /^(?:fencecode|indentcode)$/
 
 export default function renderContainerBlock (parent, block, activeBlocks, matches, useCache = false, t) {
   let selector = this.getSelector(block, activeBlocks)
@@ -86,14 +92,26 @@ export default function renderContainerBlock (parent, block, activeBlocks, match
     if (type === 'pre') {
       children.unshift(renderCopyButton(t))
     }
-    // FIXME: Disabled due to #1648 - be consistent.
-    // if (this.muya.options.codeBlockLineNumbers) {
-    //   if (type === 'pre') {
-    //     selector += '.line-numbers'
-    //   } else {
-    //     children.unshift(renderLineNumberRows(block.children[0]))
-    //   }
-    // }
+    // START_BLOCK_CODE_LINE_NUMBERS
+    // C-38 T-005 (#1648): the gutter is rendered for fence/indent code blocks
+    // only. The pre carries the .line-numbers class (counter scope + gutter
+    // padding); the code element gets the rows. Every gutter created in this
+    // render pass is recorded so postRender measures exactly the code blocks
+    // that were re-rendered — typing in one block never re-measures the rest.
+    const wantsLineNumbers =
+      !!this.muya.options.codeBlockLineNumbers &&
+      (type === 'pre'
+        ? CODE_LINE_NUMBER_FUNCTION_TYPES.test(functionType || '')
+        : !!(parent && CODE_LINE_NUMBER_FUNCTION_TYPES.test(parent.functionType || '')))
+    if (wantsLineNumbers) {
+      if (type === 'pre') {
+        selector += '.line-numbers'
+      } else {
+        children.unshift(renderLineNumberRows(block))
+        this.lineNumberPreKeys.add(parent.key)
+      }
+    }
+    // END_BLOCK_CODE_LINE_NUMBERS
     Object.assign(data.attrs, { spellcheck: 'false' })
   }
 

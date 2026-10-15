@@ -4677,6 +4677,11 @@
           npm run build &amp;&amp; npx playwright test --project=chromium
           tests/e2e/table-layout.spec.ts
         </Command>
+        <Command>npx vitest run tests/renderer/muya/code-block-line-numbers.test.js tests/renderer/store/preferences-code-line-numbers.test.js</Command>
+        <Command>
+          npm run build &amp;&amp; npx playwright test --project=chromium
+          tests/e2e/code-block-line-numbers.spec.ts
+        </Command>
       </Commands>
       <Scenarios>
         <Scenario>
@@ -4864,6 +4869,61 @@
           Unit-pinned in tests/renderer/muya/block-viewer.test.js (jsdom,
           @panzoom/panzoom mocked); open/zoom/Esc and Cmd+click vs plain
           click end-to-end in tests/e2e/block-viewer.spec.ts.
+        </Scenario>
+        <Scenario>
+          scenario-20: Code-block line numbers fixed and opt-in (C-38 T-005,
+          #1648; renderContainerBlock.js START_BLOCK_CODE_LINE_NUMBERS +
+          renderLineNumber.js + utils/resizeCodeLineNumber.js +
+          contentState/codeBlockCtrl.js resizeLineNumber +
+          eventHandler/resize.js + the .line-numbers CSS section): with the
+          codeBlockLineNumbers preference on, fence/indent code blocks get
+          one number per LOGICAL line (a trailing empty line keeps its
+          number) rendered as an aria-hidden, contenteditable=false
+          span.line-numbers-rows of empty counter spans — pure CSS counters,
+          so copy, markdown serialisation, HTML export and print (all of
+          which render from the model or their own HTML) never contain the
+          numbers; html/math/diagram/front-matter pre blocks stay
+          gutter-free. Alignment: with wrapping off each gutter row is
+          naturally one line tall (it inherits the code font/line-height)
+          and measured heights are cleared; with wrapping on, collapsed
+          caret rects of the rendered text (prism tokens included) give each
+          logical line its exact top, each row height bridges to the next
+          line and the gutter is offset to the first line top — a wrapped
+          line keeps one number on its first visual row. Re-measure triggers
+          keep cost proportional: postRender measures only the code blocks
+          whose gutter was (re)rendered in that pass
+          (stateRender.lineNumberPreKeys — typing in one block never
+          re-measures the rest; full render records all), while wrap toggle
+          and code font size changes go through
+          Muya#refreshCodeBlockLineNumbers (called from editor.vue watchers
+          because both are CSS-only changes that re-render nothing), and
+          container/window resize (throttled 300 ms, ResizeObserver on the
+          muya container when available, scoped to that instance and torn
+          down on destroy) plus a document.fonts.ready pass re-measure
+          everything. The upstream sizer span that mutated the
+          contenteditable code element (snabbdom then reshuffled the
+          foreign child every render — the #1648 performance bug) is gone;
+          measurement mutates nothing inside the editable area and fails
+          soft (natural heights) when rects are unavailable. Default false
+          for new profiles; the one-time
+          MIGRATE_CODE_BLOCK_LINE_NUMBERS (run at the end of
+          ASK_FOR_USER_PREFERENCE, the single place stored prefs load,
+          after initialState and hydration) flips a stored true — the old
+          never-user-settable default, muya force-disabled it — to false
+          once and persists codeBlockLineNumbersMigrated so the user&apos;s
+          later choice is kept. Unit-pinned in
+          tests/renderer/muya/code-block-line-numbers.test.js (render
+          on/off, row count = logical line count across edits, fence/indent
+          scope, gutter attrs, measurement queue, wrapped sizing with mocked
+          caret rects, soft failure, setOptions no longer force-disables —
+          fails against the pre-C-38 render) and
+          tests/renderer/store/preferences-code-line-numbers.test.js
+          (default, schema agreement, migration flips once and records the
+          flag, user choice kept, persistence failure tolerated, runs via
+          ASK_FOR_USER_PREFERENCE); aligned end-to-end in
+          tests/e2e/code-block-line-numbers.spec.ts (each number top vs its
+          line top within 1.5 px, wrap on and off, through Enter, 160-char
+          typing and undo, nothing rendered when off, markdown untouched).
         </Scenario>
       </Scenarios>
       <Markers>

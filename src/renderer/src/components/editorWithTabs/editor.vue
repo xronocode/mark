@@ -78,7 +78,7 @@
 
 <script setup>
 // FILE: src/renderer/src/components/editorWithTabs/editor.vue
-// VERSION: 1.19.1
+// VERSION: 1.20.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Host the Muya WYSIWYG surface and coordinate document rendering, selection, scroll, preview, editor tools, and store/bus integration.
 //   SCOPE: Renderer-side Muya lifecycle and UI orchestration; does not own Markdown parsing rules or backend file persistence.
@@ -128,6 +128,7 @@
 //   - 2026-10-13 v1.18.0: C-29 — `mirror` prop: in Split View with source mode on, the muya pane is visible, read-only (contenteditable=false), re-rendered from the tab markdown 150 ms after edits without focus or cursor, and its change events never reach the store; undo/redo, checkbox clicks, paste and drop are inert on it.
 //   - 2026-10-14 v1.19.0: C-32 — handleCopyAsStructuredText: C-12 render pipeline + htmlToStructuredText (bullets, "text (url)" links, quotes, " | " table rows) as one text/plain flavor; context menu, Edit menu, palette, bus. C-12 and C-32 share copyRenderedAsPlainText, which now also catches render failures (previously an unhandled rejection).
 //   - 2026-10-14 v1.19.1: review follow-up — diffGuarded drops document-mutating bus commands (undo/redo, format, paragraph, replace, image insert, extension edits, Format Document) while the diff view hides the editor (BLOCK_DIFF_EDIT_BLOCKED).
+//   - 2026-10-15 v1.20.0: C-38 T-005 — wrapCodeBlocks and codeFontSize watchers call muya.refreshCodeBlockLineNumbers(): both are pure CSS changes that re-render nothing, so the line-number gutters must be re-measured (or reset to natural heights when wrapping turns off) explicitly.
 // END_CHANGE_SUMMARY
 
 import { ref, reactive, watch, onMounted, onBeforeUnmount, nextTick, computed } from 'vue'
@@ -578,6 +579,12 @@ watch(editorLineWidth, (value, oldValue) => {
 watch(wrapCodeBlocks, (value, oldValue) => {
   if (value !== oldValue) {
     setWrapCodeBlocks(value)
+    // C-38 T-005: the wrap mode flips .ag-code-content white-space via CSS
+    // only — no muya re-render — so re-measure the line-number gutters
+    // explicitly (heights are cleared back to natural rows when wrap is off).
+    if (editor.value) {
+      editor.value.refreshCodeBlockLineNumbers()
+    }
   }
 })
 
@@ -636,6 +643,11 @@ watch(codeFontSize, (value, oldValue) => {
       codeFontFamily: codeFontFamily.value,
       hideScrollbar: hideScrollbar.value
     })
+    // C-38 T-005: CSS-only change again — wrapped lines change height, so
+    // the measured gutters must be recomputed.
+    if (editor.value) {
+      editor.value.refreshCodeBlockLineNumbers()
+    }
   }
 })
 

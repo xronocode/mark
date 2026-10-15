@@ -1,5 +1,5 @@
 // FILE: tests/renderer/components/editor-coverage.test.js
-// VERSION: 1.11.0
+// VERSION: 1.12.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Verify editorWithTabs/editor.vue methods, watchers, computed state, event handlers, and lifecycle behavior beyond the base editor test.
 //   SCOPE: Deterministic Vue/jsdom tests with mocked Muya, stores, bus, services, and browser scheduling.
@@ -49,6 +49,7 @@
 //   - 2026-09-21 v1.8.0: contentReloaded scroll clamp — stale pre-edit scrollTop clamps into the reloaded document's range, leftover first-paint padding is dropped, sub-viewport documents land at 0 (C-2 follow-up).
 //   - 2026-10-13 v1.10.0: C-29 — split mirror: no store writes from change events, read-only surface, 150 ms debounced setMarkdown(md, null, false) without focus, inert undo/redo, checkbox/paste/drop blocked.
 //   - 2026-10-14 v1.11.0: C-32 — copyAsStructuredText dispatch (bullets survive), whole-document fallback, empty no-op, writeText and render failure branches, bus path; menu layout gains the item after Copy as Plain Text.
+//   - 2026-10-15 v1.12.0: C-38 T-005 — mockEditorInstance gains refreshCodeBlockLineNumbers; the wrapCodeBlocks/codeFontSize watchers assert the gutter re-measure; the codeBlockLineNumbers watcher flips from the new false default to true.
 // END_CHANGE_SUMMARY
 
 import { shallowMount } from '@vue/test-utils'
@@ -91,6 +92,7 @@ const mockEditorInstance = vi.hoisted(() => ({
   setFocusMode: vi.fn(),
   setFont: vi.fn(),
   setOptions: vi.fn(),
+  refreshCodeBlockLineNumbers: vi.fn(),
   setTabSize: vi.fn(),
   setListIndentation: vi.fn(),
   hideAllFloatTools: vi.fn(),
@@ -652,13 +654,17 @@ describe('editor.vue — coverage', () => {
     expect(setEditorWidthMock).toHaveBeenCalledWith(800)
   })
 
-  it('watcher: wrapCodeBlocks calls setWrapCodeBlocks', async () => {
+  it('watcher: wrapCodeBlocks calls setWrapCodeBlocks and re-measures gutters', async () => {
     await mountEditor()
     setWrapCodeBlocksMock.mockClear()
+    mockEditorInstance.refreshCodeBlockLineNumbers.mockClear()
     // Default is true, change to false
     preferencesStore.wrapCodeBlocks = false
     await nextTick()
     expect(setWrapCodeBlocksMock).toHaveBeenCalledWith(false)
+    // C-38 T-005: the wrap mode is a CSS-only change, so the line-number
+    // gutters are re-measured explicitly.
+    expect(mockEditorInstance.refreshCodeBlockLineNumbers).toHaveBeenCalledTimes(1)
   })
 
   it('watcher: autoPairBracket calls setOptions', async () => {
@@ -728,24 +734,27 @@ describe('editor.vue — coverage', () => {
     expect(mockEditorInstance.setOptions).toHaveBeenCalledWith({ autoCheck: true })
   })
 
-  it('watcher: codeFontSize calls addCommonStyle', async () => {
+  it('watcher: codeFontSize calls addCommonStyle and re-measures gutters', async () => {
     await mountEditor()
     addCommonStyleMock.mockClear()
+    mockEditorInstance.refreshCodeBlockLineNumbers.mockClear()
     preferencesStore.codeFontSize = 16
     await nextTick()
     expect(addCommonStyleMock).toHaveBeenCalledWith(
       expect.objectContaining({ codeFontSize: 16 })
     )
+    // C-38 T-005: CSS-only change — measured gutter heights recompute.
+    expect(mockEditorInstance.refreshCodeBlockLineNumbers).toHaveBeenCalledTimes(1)
   })
 
   it('watcher: codeBlockLineNumbers calls setOptions', async () => {
     await mountEditor()
     mockEditorInstance.setOptions.mockClear()
-    // Default is true, change to false
-    preferencesStore.codeBlockLineNumbers = false
+    // C-38 T-005 default is false; change to true
+    preferencesStore.codeBlockLineNumbers = true
     await nextTick()
     expect(mockEditorInstance.setOptions).toHaveBeenCalledWith(
-      { codeBlockLineNumbers: false },
+      { codeBlockLineNumbers: true },
       true
     )
   })
