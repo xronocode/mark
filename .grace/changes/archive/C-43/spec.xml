@@ -1,9 +1,9 @@
-<GraceChangeSpec graceVersion='4.0' status='approved'>
+<GraceChangeSpec graceVersion='4.0' status='applied'>
 <C-43>
   <Name>Diff against Mark's own snapshots: ⌘D shows what the agent changed with its last save</Name>
   <Created>2026-10-15</Created>
   <Priority>high</Priority>
-  <Status>approved</Status>
+  <Status>completed</Status>
   <RoadmapPhase>R2</RoadmapPhase>
   <Complexity>S–M</Complexity>
 
@@ -48,5 +48,6 @@
     <ApprovedBy>user (2026-10-15): «да, делаем C-43, начни с простого варианта»</ApprovedBy>
     <ApprovalScope>S1 only.</ApprovalScope>
   </Approval>
+  <Closure>Closed 2026-10-15 on the user's request to finish epics. S1 shipped: store/diffSnapshots.js ring (5/tab), live-reload capture in all apply paths, diffView prefers the snapshot; 25 unit + e2e diff-snapshot/live-reload 8/8 Chromium+WebKit; fails 11/16 without the change. S2 (step back through snapshots, persistence) moves to the backlog as a follow-up change.</Closure>
 </C-43>
 </GraceChangeSpec>

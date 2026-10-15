@@ -1,9 +1,9 @@
-<GraceChangeSpec graceVersion='4.0' status='approved'>
+<GraceChangeSpec graceVersion='4.0' status='applied'>
 <C-42>
   <Name>GitHub presence refresh and an honest "two editions" comparison (App Store vs Homebrew/direct download)</Name>
   <Created>2026-10-15</Created>
   <Priority>high</Priority>
-  <Status>approved</Status>
+  <Status>completed</Status>
   <RoadmapPhase>S</RoadmapPhase>
   <Complexity>M</Complexity>
 
@@ -55,5 +55,6 @@
     <ApprovedBy>user (2026-10-15): «1» (yes to C-42); Discussions stay off for now</ApprovedBy>
     <ApprovalScope>G1–G3. Discussions off. The live server stays desktop-only (App Store gate, see C-44).</ApprovalScope>
   </Approval>
+  <Closure>Closed 2026-10-15 on the user's request to finish epics. G1 About + topics + homepage updated via gh (2026-10-15); social preview image produced (~/Downloads/Mark-GitHub-social-preview.png, upload by the owner in Settings); release notes «Что нового» on v2.3.0; private vulnerability reporting enabled. G2 README rewrite + docs/assets/readme + site/guide/editions.md + tests/renderer/editions-doc.test.js (15/15, negative check by flipping a row). G3 CONTRIBUTING, SECURITY, CHANGELOG, issue/PR templates. Merged from agent/c42; grace lint 0.</Closure>
 </C-42>
 </GraceChangeSpec>

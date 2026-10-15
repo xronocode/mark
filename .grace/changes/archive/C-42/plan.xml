@@ -1,0 +1,19 @@
+<GraceChangePlan graceVersion='4.0' status='applied'>
+<C-42>
+  <ChangeRef>C-42</ChangeRef>
+  <Created>2026-10-15</Created>
+  <IntentSummary>Executed directly by the orchestrator / a delegated agent within the approved spec; this plan records the executed task and its evidence (see the spec's Closure).</IntentSummary>
+  <BaselineAssertions><MustContain><File>.grace/changes/archive/C-42/spec.xml</File><Text>C-42</Text></MustContain></BaselineAssertions>
+  <TargetAssertions><MustContain><File>.grace/changes/archive/C-42/spec.xml</File><Text>Closure</Text></MustContain></TargetAssertions>
+  <DurableScope><M-011/></DurableScope>
+  <ObservedWriteScope><File>see the spec Closure</File></ObservedWriteScope>
+  <ImplementationPlan>
+    <T-001>
+      <Title>Execute the approved scope</Title>
+      <DependsOn></DependsOn>
+      <AcceptanceCriteria><Criterion>Spec acceptance criteria met; evidence in the spec Closure.</Criterion></AcceptanceCriteria>
+      <Verification><Command>npm test</Command><Command>grace lint --path . --assertions current</Command></Verification>
+    </T-001>
+  </ImplementationPlan>
+</C-42>
+</GraceChangePlan>
