@@ -1095,12 +1095,22 @@
       "userGuide": "사용자 가이드",
       "markdownSyntax": "마크다운 문법"
     },
+    "help": {
+      "guide": "Mark 가이드"
+    },
     "utils": {
       "noUpdateResourceFile": "업데이트 리소스 파일 없음",
       "todoUpdateCheck": "업데이트 확인"
     },
     "spellchecker": {
       "switchLanguage": "언어 전환"
+    }
+  },
+  "guide": {
+    "tabTitle": "Mark 가이드",
+    "agentPrompt": {
+      "mac": "50줄이 넘는 계획, 명세, 보고서를 작성할 때는 .md 파일로 작성해 사용자에게 열어 주세요: open -a Mark <file>.md. 작성한 뒤 파일이 변경되었다면 다시 읽으세요. 사용자의 편집이 다음 지시입니다.",
+      "generic": "50줄이 넘는 계획, 명세, 보고서를 작성할 때는 .md 파일로 작성해 Mark에서 사용자에게 열어 주세요. 작성한 뒤 파일이 변경되었다면 다시 읽으세요. 사용자의 편집이 다음 지시입니다."
     }
   },
   "common": {

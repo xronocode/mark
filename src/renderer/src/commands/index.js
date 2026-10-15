@@ -15,6 +15,7 @@
 //   edit.copy-as-html - Copies selection (or whole document) as rich text/html for email paste (C-3).
 //   edit.copy-as-plain-text - Copies selection (or whole document) as markup-free plain text (C-12).
 //   edit.copy-as-structured-text - Copies selection (or whole document) as structure-preserving plain text (C-32).
+//   help.guide - Opens the localized Mark Guide as a temporary untitled tab (C-40 G-3).
 //   FileEncodingCommand - GRACE 4 synchronized symbol
 //   LineEndingCommand - GRACE 4 synchronized symbol
 //   QuickOpenCommand - GRACE 4 synchronized symbol
@@ -38,6 +39,8 @@
 //   - 2026-10-15 C-41 T-001: window.change-theme gains Paper and Ink subcommands
 //     (brand defaults); a manual theme pick now clears followSystemTheme so the
 //     Auto resolution cannot override the explicit choice.
+//   - 2026-10-15 C-40 G-3: add help.guide — opens the localized Mark Guide as
+//     a temporary untitled tab via the 'mt::open-guide' bus event.
 // END_CHANGE_SUMMARY
 //
 // List of all static commands that are loaded into command center.
@@ -880,6 +883,16 @@ const commands = [
       window.electron.shell.openExternal(
         'https://github.com/xronocode/mark'
       )
+    }
+  },
+  {
+    // C-40 G-3: open the localized Mark Guide as a temporary untitled tab
+    // (Help › Mark Guide, command palette). The guide never touches disk
+    // unless the user chooses Save As; the prompt block inside it carries
+    // the OS-correct open command via util/agentPrompt.js.
+    id: 'help.guide',
+    execute: async () => {
+      bus.emit('mt::open-guide', {})
     }
   },
   {

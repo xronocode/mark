@@ -1095,12 +1095,22 @@
       "userGuide": "Guide utilisateur",
       "markdownSyntax": "Syntaxe Markdown"
     },
+    "help": {
+      "guide": "Guide Mark"
+    },
     "utils": {
       "noUpdateResourceFile": "Aucun fichier de ressource de mise à jour",
       "todoUpdateCheck": "Vérification de mise à jour"
     },
     "spellchecker": {
       "switchLanguage": "Changer de langue"
+    }
+  },
+  "guide": {
+    "tabTitle": "Guide Mark",
+    "agentPrompt": {
+      "mac": "Quand tu produis un plan, une spécification ou un rapport de plus de ~50 lignes, écris-le dans un fichier .md et ouvre-le pour l'utilisateur : open -a Mark <file>.md. Quand le fichier a changé après ton écriture, relis-le : les modifications de l'utilisateur sont ta prochaine instruction.",
+      "generic": "Quand tu produis un plan, une spécification ou un rapport de plus de ~50 lignes, écris-le dans un fichier .md et ouvre-le pour l'utilisateur dans Mark. Quand le fichier a changé après ton écriture, relis-le : les modifications de l'utilisateur sont ta prochaine instruction."
     }
   },
   "common": {
