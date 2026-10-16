@@ -749,6 +749,19 @@ pub async fn mt_open_setting_window(app: tauri::AppHandle) -> Result<(), String>
     // the redundant bar. No-op on macOS.
     #[cfg(not(target_os = "macos"))]
     let _ = _win.hide_menu();
+    // C-51 T-008 (live smoke): the native title bar painted in the macOS
+    // appearance/window colour, not the app theme (light bar over a dark
+    // Settings page). Same treatment as the main window: a transparent
+    // title bar over full-size content, so the themed toolbar of the page
+    // is the title-bar surface (the page reserves the 28 px strip).
+    // AppKit only on the main thread: this command runs on a tokio worker,
+    // and an NSWindow call from there throws an Objective-C exception that
+    // aborts the process (live smoke crash, Smoke4).
+    #[cfg(target_os = "macos")]
+    {
+        let w = _win.clone();
+        let _ = _win.run_on_main_thread(move || settings_transparent_titlebar(&w));
+    }
     #[cfg(debug_assertions)]
     {
         let _ = _win.eval(
@@ -1175,4 +1188,31 @@ mod tests {
         assert!(count >= 1);
     }
 }
+
+// START_BLOCK_SETTINGS_TITLEBAR
+/// C-51 T-008: transparent title bar + NSFullSizeContentViewWindowMask on
+/// the Settings window (macOS only). MUST run on the main thread. Log anchor
+/// [v1_compat][settings][BLOCK_SETTINGS_TITLEBAR].
+#[cfg(target_os = "macos")]
+fn settings_transparent_titlebar(win: &tauri::WebviewWindow) {
+    use cocoa::base::id;
+    use objc::{msg_send, sel, sel_impl};
+    use raw_window_handle::{HasWindowHandle, RawWindowHandle};
+    const FULL_SIZE_CONTENT_VIEW: u64 = 1 << 15;
+    let Ok(wh) = win.window_handle() else {
+        safe_eprintln!("[v1_compat][settings][BLOCK_SETTINGS_TITLEBAR] no window handle");
+        return;
+    };
+    if let RawWindowHandle::AppKit(appkit) = wh.as_raw() {
+        unsafe {
+            let ns_view: id = appkit.ns_view.as_ptr() as id;
+            let ns_win: id = msg_send![ns_view, window];
+            let mask: u64 = msg_send![ns_win, styleMask];
+            let _: () = msg_send![ns_win, setStyleMask: mask | FULL_SIZE_CONTENT_VIEW];
+            let _: () = msg_send![ns_win, setTitlebarAppearsTransparent: cocoa::base::YES];
+        }
+        safe_eprintln!("[v1_compat][settings][BLOCK_SETTINGS_TITLEBAR] transparent");
+    }
+}
+// END_BLOCK_SETTINGS_TITLEBAR
 
