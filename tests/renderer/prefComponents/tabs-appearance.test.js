@@ -165,11 +165,11 @@ describe('tabs/appearance — C-38 T-004 content', () => {
 
   // ── family tiles (C-41 T-002 logic, new compact grid) ───────────────
 
-  it('renders one tile per family (14, 7 per row)', () => {
+  it('renders one tile per family (16, 8 per row)', () => {
     wrapper = mountTab()
     const tiles = wrapper.findAll('.theme-family-tile')
     expect(tiles).toHaveLength(THEME_FAMILIES.length)
-    expect(THEME_FAMILIES).toHaveLength(14)
+    expect(THEME_FAMILIES).toHaveLength(16)
     // the count and aria wiring is DOM; grid metrics live in the stylesheet
     expect(tiles[0].attributes('role')).toBe('radio')
   })
@@ -212,7 +212,7 @@ describe('tabs/appearance — C-38 T-004 content', () => {
     // In vitest `?inline` CSS resolves to '' — the parser then falls back to
     // the neutral defaults, which are still valid colours for the halves.
     const halves = wrapper.findAll('.family-half')
-    expect(halves.length).toBe(28)
+    expect(halves.length).toBe(32)
     for (const half of halves) {
       const style = half.attributes('style') ?? ''
       expect(style).toMatch(/background:/)

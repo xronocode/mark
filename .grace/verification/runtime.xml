@@ -3388,6 +3388,18 @@
           npm run build &amp;&amp; npx playwright test tests/e2e/rich-markdown-coverage.spec.ts
           --project=chromium --project=webkit-rich
         </Command>
+        <Command>
+          npx vitest run tests/renderer/util/theme-families-docs-macos.test.js
+          tests/renderer/util/theme-families.test.js
+          tests/renderer/util/theme-contrast.test.js
+          tests/renderer/util/themeColor.test.js
+          tests/renderer/commands/index.test.js
+          tests/renderer/prefComponents/tabs-appearance.test.js
+        </Command>
+        <Command>
+          npm run build &amp;&amp; npx playwright test tests/e2e/theme-families-docs-macos.spec.ts
+          tests/e2e/settings-tabs-content.spec.ts --project=chromium --project=webkit-theme-families
+        </Command>
       </Commands>
       <Scenarios>
         <Scenario>
@@ -4548,6 +4560,53 @@
           left/center/right header alignment; a third test opens the
           Guide and pins the prompt block plus the showcase families
           rendering inside it.
+        </Scenario>
+        <Scenario>
+          scenario-60: Docs and macOS theme families (C-51 T-007, R-5):
+          four themes — docs/docs-dark (canvas Main/DocsDark: #FCFCFB /
+          #161615 grounds, ink text, hairline borders, neutral ink accent,
+          neutral soft selection) and macos/macos-dark (canvas MacOS:
+          #FFFFFF / #1E1E1E grounds, #1D1D1F / #F5F5F7 text, system
+          greys, system-blue accent #007AFF / #0A84FF, Finder-like
+          sidebars #ECECEE / #252527) — join the C-41 family model
+          (THEME_FAMILIES 16, themePairs 32) and every surface:
+          themeMap + themeCssFactories factories with Prism companions,
+          railscasts dark classification for docs-dark/macos-dark, the
+          command palette (32 window.change-theme subcommands), the
+          native View › Theme menu, the Settings Appearance picker (16
+          tiles, 8-per-row grid) and all ten locales' menu.theme
+          docs/docsDark/macos/macosDark names. Each theme defines the
+          full paper variable set (the C-41 gate in
+          tests/renderer/util/theme-contrast.test.js now covers 32
+          members: 4.5:1 editorColor/linkColor, 3:1 blockquote text,
+          variable parity) plus a theme-defined --chartPalette (Docs
+          calm 8-colour set with brighter dark variants; macOS Apple
+          system colours) read by mermaidTheme.readActiveThemeTokens as
+          the series token, so Mermaid/content theming derives from
+          them; the document rides the system UI font via a
+          theme-scoped .editor-wrapper !important override while code
+          keeps the code font. Unit:
+          tests/renderer/util/theme-families-docs-macos.test.js (family
+          model, registration + Prism companions, canvas colour pins,
+          --chartPalette pins, swatch source values, dark
+          classification, migration passthrough, the real CSS → root
+          mirror → readActiveThemeTokens chain incl. buildMermaidThemeConfig
+          pie1/git0/xyChart palette and the cache signature, Auto/
+          Light/Dark member resolution, palette+menu source pins, 10
+          locales). E2E tests/e2e/theme-families-docs-macos.spec.ts
+          (chromium + the webkit-theme-families project, CI WebKit step):
+          per theme the editor surface computed bg/text equal the theme
+          values, body.dark matches the classification, the root mirror
+          carries the 8-colour --chartPalette, a Mermaid pie's first
+          slice equals the palette's first colour (#007AFF in macos
+          light, #4F6BED in docs light) with ≥ 4 distinct slice colours,
+          the document font is the system stack while the code fence
+          keeps the mono code font, a screenshot per theme (test
+          outputPath), the title-bar cycle switches docs → docs-dark
+          within the family (pie re-renders, bg changes, pref write
+          recorded), and the Settings picker lists 16 tiles, applies
+          docs light on manual Light (persisted theme/lightModeTheme/
+          darkModeTheme) and macos-dark on Auto over a dark system.
         </Scenario>
       </Scenarios>
       <Markers>

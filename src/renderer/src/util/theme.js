@@ -25,6 +25,10 @@
 // END_MODULE_MAP
 //
 // CHANGE_SUMMARY:
+//   - 2026-10-16 C-51 T-007: register the Docs and macOS family members
+//     (docs, macos light; docs-dark, macos-dark dark, railscasts
+//     classification) in themeMap — the neutral docs and Apple looks from
+//     canvas Main/DocsDark/MacOS.
 //   - 2026-10-15 C-41 T-003: register the six new family members in
 //     themeMap — one-light, alucard, nord-light, kanagawa-lotus (light)
 //     and graphite-dark, ulysses-dark (dark, railscasts classification
@@ -65,6 +69,10 @@ import {
   kanagawaLotus,
   graphiteDark,
   ulyssesDark,
+  docs,
+  docsDark,
+  macos,
+  macosDark,
   graphite,
   oneDark,
   ulysses,
@@ -102,6 +110,12 @@ export const themeMap = {
   'kanagawa-lotus': kanagawaLotus,
   'graphite-dark': graphiteDark,
   'ulysses-dark': ulyssesDark,
+  // C-51 T-007: Docs and macOS family members — docs/macos are light;
+  // docs-dark/macos-dark are dark (railscasts classification).
+  'docs': docs,
+  'docs-dark': docsDark,
+  'macos': macos,
+  'macos-dark': macosDark,
   'graphite': graphite,
   'one-dark': oneDark,
   'ulysses': ulysses,
@@ -158,7 +172,12 @@ export const addThemeStyle = (theme) => {
 
   const setVars = []
   if (css) {
-    const varRegex = /--([\w-]+):\s*([^;]+)/g
+    // `}` ends a value too: Vite's CSS minifier drops the semicolon after
+    // the last declaration of a block, and `[^;]+` then swallowed the rest of
+    // the stylesheet — the browser rejected the value and that variable
+    // (e.g. the last one in :root, --chartPalette) never reached the root
+    // (C-51 T-007 review).
+    const varRegex = /--([\w-]+):\s*([^;}]+)/g
     let m
     while ((m = varRegex.exec(css)) !== null) {
       const name = `--${m[1]}`

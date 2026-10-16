@@ -107,6 +107,12 @@
 //                six C-41 T-003 members join with that task) — the
 //                renderer palette drops the same ids, so menu-consistency
 //                stays green; stored preferences migrate renderer-side.
+//   - 2026-10-16 C-51 T-007: add the View-menu Theme entries "Docs",
+//                "Docs Dark", "macOS" and "macOS Dark"
+//                (window.change-theme-{docs,docs-dark,macos,macos-dark};
+//                docs/macos in the light group, the -dark members in the
+//                dark group) — the renderer palette gains the same four
+//                subcommands, so menu-consistency stays green.
 //   - 2026-10-15 C-49 T-001: add View-menu "Zoom In" / "Zoom Out" /
 //                "Actual Size" (view.zoom-in/-out/actual-size,
 //                CmdOrCtrl+= / - / 0) — id-dispatched to the renderer
@@ -995,10 +1001,14 @@ pub fn build_native_menu<R: tauri::Runtime>(
     // (window.change-theme-*) enforced by menu-consistency tests.
     // C-41 T-003: six new family members — one-light, alucard, nord-light,
     // kanagawa-lotus (light group), graphite-dark, ulysses-dark (dark group).
+    // C-51 T-007: the Docs and macOS family members (docs, macos light;
+    // docs-dark, macos-dark dark).
     let theme_submenu = SubmenuBuilder::new(handle, "Theme")
         .items(&[
             &MenuItemBuilder::with_id("window.change-theme-paper", "Paper").build(handle)?,
             &MenuItemBuilder::with_id("window.change-theme-ink", "Ink").build(handle)?,
+            &MenuItemBuilder::with_id("window.change-theme-docs", "Docs").build(handle)?,
+            &MenuItemBuilder::with_id("window.change-theme-macos", "macOS").build(handle)?,
             &MenuItemBuilder::with_id("window.change-theme-graphite", "Graphite").build(handle)?,
             &MenuItemBuilder::with_id("window.change-theme-graphite-dark", "Graphite Dark").build(handle)?,
             &MenuItemBuilder::with_id("window.change-theme-ulysses", "Ulysses").build(handle)?,
@@ -1017,6 +1027,8 @@ pub fn build_native_menu<R: tauri::Runtime>(
         ])
         .separator()
         .items(&[
+            &MenuItemBuilder::with_id("window.change-theme-docs-dark", "Docs Dark").build(handle)?,
+            &MenuItemBuilder::with_id("window.change-theme-macos-dark", "macOS Dark").build(handle)?,
             &MenuItemBuilder::with_id("window.change-theme-one-dark", "One Dark").build(handle)?,
             &MenuItemBuilder::with_id("window.change-theme-ayu-dark", "Ayu Dark").build(handle)?,
             &MenuItemBuilder::with_id("window.change-theme-catppuccin-mocha", "Catppuccin Mocha").build(handle)?,

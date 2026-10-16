@@ -163,8 +163,8 @@ jobs:
       # C-51 T-009: the rich-Markdown honesty guard also gates in WebKit.
       # C-51 T-005: the content theming (Vega-Lite/flowchart/sequence/KaTeX)
       # also gates in WebKit; C-51 T-006 adds the expand button + block viewer.
-      - name: webkit settings, title bar, outline rail, status bar, lock, chrome theme, Mica, tables, rich Markdown, content theming and block viewer
-        run: npx playwright test --project webkit-settings --project webkit-titlebar --project webkit-outline --project webkit-statusbar --project webkit-chrome --project webkit-mica --project webkit-tables --project webkit-menu-checks --project webkit-mermaid-theme --project webkit-tree --project webkit-rich --project webkit-content-theme --project webkit-block-viewer
+      - name: webkit settings, title bar, outline rail, status bar, lock, chrome theme, Mica, tables, rich Markdown, content theming and block viewer and theme families
+        run: npx playwright test --project webkit-settings --project webkit-titlebar --project webkit-outline --project webkit-statusbar --project webkit-chrome --project webkit-mica --project webkit-tables --project webkit-menu-checks --project webkit-mermaid-theme --project webkit-tree --project webkit-rich --project webkit-content-theme --project webkit-block-viewer --project webkit-theme-families
 
       # C-51 T-003/T-004: the Mermaid theme matrix also runs in WebKit
       # (22 types × light/dark + theme switch); its per-type screenshots

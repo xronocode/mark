@@ -88,13 +88,13 @@ test.describe('settings tabs content', () => {
     }
   })
 
-  test('the theme grid renders 14 compact family tiles with a selected one', async ({
+  test('the theme grid renders 16 compact family tiles with a selected one', async ({
     page
   }) => {
     await openSettings(page)
     await page.locator('.pref-toolbar [data-tab="appearance"]').click()
     await expect(page.locator('.pref-theme-swatches')).toBeVisible()
-    await expect(page.locator('.theme-family-tile')).toHaveCount(14)
+    await expect(page.locator('.theme-family-tile')).toHaveCount(16)
     await expect(page.locator('.theme-family-tile.is-selected')).toHaveCount(1)
     await expectNoOverflow(page)
   })

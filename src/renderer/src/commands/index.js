@@ -36,6 +36,9 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-10-16 C-51 T-007: window.change-theme gains the Docs and macOS
+//     family members (docs, docs-dark, macos, macos-dark); the native
+//     View › Theme menu mirrors the same list (menu-consistency).
 //   - 2026-10-15 C-40 T-004: add view.status-bar (View › Status Bar —
 //     persisted statusBarVisibility toggle for the optional status bar),
 //     view.lock-document (View › Lock Document / palette / tab context
@@ -697,8 +700,13 @@ const commands = [
       // resolution cannot override the explicit pick.
       // C-41 T-003: six new family members (one-light, alucard, nord-light,
       // kanagawa-lotus, graphite-dark, ulysses-dark).
+      // C-51 T-007: the Docs and macOS family members.
       { id: 'window.change-theme-paper', description: 'Paper', value: 'paper' },
       { id: 'window.change-theme-ink', description: 'Ink', value: 'ink' },
+      { id: 'window.change-theme-docs', description: 'Docs', value: 'docs' },
+      { id: 'window.change-theme-docs-dark', description: 'Docs Dark', value: 'docs-dark' },
+      { id: 'window.change-theme-macos', description: 'macOS', value: 'macos' },
+      { id: 'window.change-theme-macos-dark', description: 'macOS Dark', value: 'macos-dark' },
       { id: 'window.change-theme-graphite', description: 'Graphite', value: 'graphite' },
       { id: 'window.change-theme-graphite-dark', description: 'Graphite Dark', value: 'graphite-dark' },
       { id: 'window.change-theme-ulysses', description: 'Ulysses', value: 'ulysses' },

@@ -1,0 +1,184 @@
+:root {
+  /*editor - macOS theme (C-51 T-007, canvas MacOS — Apple look: white
+    ground, #1D1D1F text, system greys, system-blue accent, Finder-like
+    sidebar; charts get the Apple system colours from --chartPalette)*/
+  --themeColor: #007AFF;
+  --themeColor90: rgba(0, 122, 255, 0.9);
+  --themeColor80: rgba(0, 122, 255, 0.8);
+  --themeColor70: rgba(0, 122, 255, 0.7);
+  --themeColor60: rgba(0, 122, 255, 0.6);
+  --themeColor50: rgba(0, 122, 255, 0.5);
+  --themeColor40: rgba(0, 122, 255, 0.4);
+  --themeColor30: rgba(0, 122, 255, 0.3);
+  --themeColor20: rgba(0, 122, 255, 0.2);
+  --themeColor10: rgba(0, 122, 255, 0.1);
+
+  --highlightColor: rgba(255, 204, 0, 0.4);
+  --selectionColor: rgba(0, 122, 255, 0.25);
+  --editorColor: #1D1D1F;
+  --editorColor80: rgba(29, 29, 31, 0.8);
+  --editorColor60: rgba(29, 29, 31, 0.6);
+  --editorColor50: rgba(29, 29, 31, 0.5);
+  --editorColor40: rgba(29, 29, 31, 0.4);
+  --editorColor30: rgba(29, 29, 31, 0.3);
+  --editorColor10: rgba(29, 29, 31, 0.1);
+  --editorColor04: rgba(29, 29, 31, 0.04);
+  --editorBgColor: #FFFFFF;
+  --deleteColor: #FF3B30;
+  --iconColor: rgba(29, 29, 31, 0.56);
+  --codeBgColor: #F2F2F7;
+  --codeBlockBgColor: #F2F2F7;
+  --footnoteBgColor: rgba(242, 242, 247, 0.6);
+  --inputBgColor: #F2F2F7;
+
+  --focusColor: var(--themeColor);
+
+  --buttonFontColor: rgba(29, 29, 31, 0.75);
+  --buttonBgColor: #F2F2F7;
+  --buttonBorder: 1px solid rgba(0, 0, 0, 0.08);
+  --buttonShadow: none;
+  --buttonFontColorHover: var(--buttonFontColor);
+  --buttonBgColorHover: #E5E5EA;
+  --buttonBorderHover: 1px solid rgba(0, 0, 0, 0.12);
+  --buttonFontColorActive: var(--buttonFontColor);
+  --buttonBgColorActive: #D1D1D6;
+  --buttonBorderActive: var(--buttonBorder);
+
+  --buttonPrimaryFontColor: #FFFFFF;
+  --buttonPrimaryBgColor: var(--themeColor);
+  --buttonPrimaryBorder: none;
+  --buttonPrimaryShadow: none;
+  --buttonPrimaryFontColorHover: var(--buttonPrimaryFontColor);
+  --buttonPrimaryBgColorHover: #0066CC;
+  --buttonPrimaryBorderHover: var(--buttonPrimaryBorder);
+  --buttonPrimaryFontColorActive: var(--buttonPrimaryFontColor);
+  --buttonPrimaryBgColorActive: #0066CC;
+  --buttonPrimaryBorderActive: var(--buttonPrimaryBorder);
+  --buttonPrimaryFocusBorder: none;
+  --buttonPrimaryFocusShadow: inset 0 0 0 1px rgba(255, 255, 255, 0.5), 0 0 0 1px var(--themeColor);
+  --tableBorderColor: #D1D1D6;
+
+  /* Markdown element colors */
+  --headingColor: #1D1D1F;
+  --h1Color: #1D1D1F;
+  --h2Color: #1D1D1F;
+  --h3Color: #1D1D1F;
+  --h4Color: #1D1D1F;
+  --h5Color: #1D1D1F;
+  --h6Color: rgba(29, 29, 31, 0.7);
+  --blockquoteTextColor: rgba(29, 29, 31, 0.68);
+  --blockquoteBorderColor: #007AFF;
+  --hrColor: #D1D1D6;
+  --linkColor: #0066CC;
+  --strongColor: #1D1D1F;
+  --emColor: #1D1D1F;
+  --listMarkerColor: #007AFF;
+
+  /*marktext*/
+  --sideBarColor: rgba(29, 29, 31, 0.72);
+  --sideBarIconColor: var(--iconColor);
+  --sideBarTitleColor: rgba(29, 29, 31, 0.9);
+  --sideBarTextColor: rgba(134, 134, 139, 0.9);
+  --sideBarBgColor: #ECECEE;
+  --sideBarItemHoverBgColor: rgba(29, 29, 31, 0.05);
+  --itemBgColor: #E5E5EA;
+
+  --floatFontColor: rgba(29, 29, 31, 0.82);
+  --floatBgColor: #FFFFFF;
+  --floatHoverColor: rgba(29, 29, 31, 0.06);
+  --floatBorderColor: rgba(29, 29, 31, 0.1);
+  --floatShadow: rgba(0, 0, 0, 0.12);
+  --maskColor: rgba(0, 0, 0, .3);
+  --editorAreaWidth: 750px;
+
+  /* C-51 T-007: theme-defined chart palette (mermaidTheme.readActiveThemeTokens
+     series token) — the Apple system colours, light set. */
+  --chartPalette: #007AFF, #34C759, #FF9500, #FF3B30, #AF52DE, #30B0C7, #FFCC00, #FF2D55;
+}
+
+::-webkit-scrollbar {
+  background: var(--editorBgColor);
+}
+
+.ag-front-menu .submenu,
+.ag-float-wrapper {
+  box-shadow: 0 4px 8px 0 var(--floatShadow) !important;
+}
+
+.title-bar .frameless-titlebar-button > div > svg {
+  fill: #1D1D1F;
+}
+.title-bar .frameless-titlebar-minimize:hover,
+.title-bar .frameless-titlebar-toggle:hover {
+  background-color: rgba(29, 29, 31, 0.08);
+}
+
+.side-bar {
+  border-right: 1px solid #D1D1D6 !important;
+}
+
+.recent-files-projects a,
+.open-project a {
+  box-shadow: none !important;
+}
+
+.editor-tabs {
+  box-shadow: none !important;
+}
+.editor-tabs:after {
+  position: absolute;
+  content: '';
+  border-bottom: 1px solid #D1D1D6;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 1;
+}
+.editor-tabs ul.tabs-container:after {
+  position: absolute;
+  content: '';
+  border-bottom: 1px solid #D1D1D6;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 2;
+}
+
+.tabs-container > li,
+.tabs-container > li.active {
+  background: var(--editorBgColor) !important;
+}
+
+.open-project button,
+.recent-files-projects button {
+  box-shadow: none !important;
+}
+
+/* ------------------------------------ */
+
+:not(pre) > code[class*="language-"],
+pre:not(.CodeMirror-line),
+pre[class*="language-"],
+pre.ag-paragraph {
+  background: var(--codeBlockBgColor) !important;
+  border: none !important;
+}
+p:not(.ag-active)[data-role="hr"]::before {
+  border-top: 2px dashed var(--editorColor10) !important;
+  background: none !important;
+}
+figure.ag-active.ag-container-block > div.ag-container-preview {
+  box-shadow: 0 3px 8px 0 var(--floatShadow) !important;
+}
+
+/* macOS: the document uses SF Pro through the system font stack (canvas
+   MacOS) — the preference's editor font rides on .editor-wrapper as an
+   inline style and yields to the theme here; code keeps the code font via
+   the common style sheet. */
+.editor-wrapper {
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif !important;
+}
+
+/* macOS: brand touches — marker-yellow highlight, system-blue links. */
+mark, .ag-highlight { background: rgba(255, 204, 0, 0.5) !important; color: inherit !important; border-radius: 2px; }
+#ag-editor-id a, #ag-editor-id .ag-link { text-decoration: underline; text-decoration-color: #0066CC; text-decoration-thickness: 1.5px; text-underline-offset: 3px; }

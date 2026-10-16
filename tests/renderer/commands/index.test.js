@@ -237,8 +237,8 @@ describe('command execute actions', () => {
 describe('window.change-theme subcommands', () => {
   const themeCmd = commands.find((c) => c.id === 'window.change-theme')
 
-  it('has 28 theme subcommands (14 families × light/dark, C-41 T-002 + T-003)', () => {
-    expect(themeCmd.subcommands).toHaveLength(28)
+  it('has 32 theme subcommands (16 families × light/dark, C-41 T-002 + T-003 + C-51 T-007)', () => {
+    expect(themeCmd.subcommands).toHaveLength(32)
   })
 
   it('all subcommands have id, description, and value', () => {
@@ -260,7 +260,9 @@ describe('window.change-theme subcommands', () => {
     for (const t of ['paper', 'graphite', 'ulysses', 'ayu-light', 'catppuccin-latte',
       'everforest-light', 'gruvbox-light', 'rose-pine-dawn', 'solarized-light', 'tokyo-night-light',
       // C-41 T-003 new light members
-      'one-light', 'alucard', 'nord-light', 'kanagawa-lotus']) {
+      'one-light', 'alucard', 'nord-light', 'kanagawa-lotus',
+      // C-51 T-007 new light members
+      'docs', 'macos']) {
       expect(values).toContain(t)
     }
   })
@@ -270,7 +272,9 @@ describe('window.change-theme subcommands', () => {
     for (const t of ['ink', 'one-dark', 'dracula', 'nord',
       'catppuccin-mocha', 'tokyo-night', 'kanagawa', 'ayu-dark',
       // C-41 T-003 new dark members
-      'graphite-dark', 'ulysses-dark']) {
+      'graphite-dark', 'ulysses-dark',
+      // C-51 T-007 new dark members
+      'docs-dark', 'macos-dark']) {
       expect(values).toContain(t)
     }
   })

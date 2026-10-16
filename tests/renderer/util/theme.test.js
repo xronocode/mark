@@ -21,6 +21,12 @@ vi.mock('@/util/themeColor', () => {
   return {
     paper: factory('paper'),
     ink: factory('ink'),
+    // C-51 T-007 families
+    docs: factory('docs'),
+    docsDark: factory('docsDark'),
+    // Minified shape: no semicolon after the last declaration of :root.
+    macos: () => ':root{--theme:macos;--chartPalette: #007AFF, #34C759, #FF9500}::-webkit-scrollbar{background:#fff}',
+    macosDark: factory('macosDark'),
     graphite: factory('graphite'),
     oneDark: factory('oneDark'),
     ulysses: factory('ulysses'),
@@ -97,6 +103,12 @@ describe('util/theme', () => {
       const el = document.querySelector('#ag-theme')
       expect(el).not.toBeNull()
       expect(el.textContent).toContain('--theme: ink')
+    })
+
+    it('mirrors the last variable of a minified :root block (no trailing semicolon)', () => {
+      addThemeStyle('macos')
+      expect(document.documentElement.style.getPropertyValue('--chartPalette')).toBe('#007AFF, #34C759, #FF9500')
+      expect(document.documentElement.style.getPropertyValue('--theme')).toBe('macos')
     })
 
     it('should set empty CSS for an unknown theme', () => {

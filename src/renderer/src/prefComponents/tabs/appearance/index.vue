@@ -125,7 +125,7 @@
 // FILE: src/renderer/src/prefComponents/tabs/appearance/index.vue
 // VERSION: 2.1.0
 // START_MODULE_CONTRACT
-//   PURPOSE: Appearance tab of the C-38 Settings window — Theme group (Auto/Light/Dark segmented control + the compact 7-per-row family swatch grid), Text group (font, size, line spacing, writing-area width) and Window-and-panels group per the N2 IA §3.2 and the approved mockup.
+//   PURPOSE: Appearance tab of the C-38 Settings window — Theme group (Auto/Light/Dark segmented control + the compact 8-per-row family swatch grid), Text group (font, size, line spacing, writing-area width) and Window-and-panels group per the N2 IA §3.2 and the approved mockup.
 //   SCOPE: Row composition; title-bar-identical theme mode semantics; family picking that sets both mode members; swatch colours read from the shipped theme CSS variables.
 //   DEPENDS: prefComponents/common/{compound,bool,select,range,textBox,fontTextBox,segmented}, store/preferences, util/themeFamilies, util/autoTheme, util/themeSwatchColors, util (isOsx), i18n.
 //   LINKS: .grace/changes/active/C-38 T-004; docs/design/settings-ia-2026-10-15.md §3.2; components/titleBar START_BLOCK_THEME_CYCLE (same mode semantics); .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011.
@@ -136,7 +136,7 @@
 // START_MODULE_MAP
 //   onSelectChange - SET_SINGLE_PREFERENCE bridge shared by every row.
 //   themeMode / onThemeModeChange - Auto = followSystemTheme (the shell's Auto watcher resolves); Light/Dark pin the manual member — exactly the titleBar cycle semantics, driven by a segmented control.
-//   familyTiles - the 14 families with swatch colours resolved from each member's theme CSS (util/themeSwatchColors — no second palette table).
+//   familyTiles - the 16 families with swatch colours resolved from each member's theme CSS (util/themeSwatchColors — no second palette table).
 //   activeFamilyId - the family owning the currently applied theme.
 //   onSelectFamily - C-41 T-002 family pick: persist both members, apply the member for the current mode, never leave Auto.
 //   halfStyle - inline background/colour for a tile half.
@@ -144,6 +144,9 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-10-16 v2.2.0: C-51 T-007 — the Docs and macOS families join
+//     THEME_FAMILIES (16 tiles); the swatch grid becomes 8 columns so the
+//     family set fills exactly two rows.
 //   - 2026-10-15 v2.1.0: C-40 T-004 — the Window-and-panels group gains
 //     the status-bar switch (statusBarVisibility; default off on macOS,
 //     on elsewhere — resolved per OS by the preferences store).
@@ -274,13 +277,13 @@ const getTitleBarStyleOptions = () => [{
 
 <style>
 /* START_BLOCK_SWATCH_GRID_METRICS */
-/* Mockup family tiles: a 7-column grid (14 families → 2 rows), each tile
-   a 46px light|dark pair showing "Aa" in the member's text colour with a
-   small accent bar, family name below; the selected tile carries a
-   2.5px accent ring with a group-coloured gap. */
+/* Mockup family tiles: an 8-column grid (16 families after C-51 T-007 →
+   2 rows), each tile a 46px light|dark pair showing "Aa" in the member's
+   text colour with a small accent bar, family name below; the selected
+   tile carries a 2.5px accent ring with a group-coloured gap. */
 .pref-tab-page--appearance .pref-theme-swatches {
   display: grid;
-  grid-template-columns: repeat(7, minmax(0, 1fr));
+  grid-template-columns: repeat(8, minmax(0, 1fr));
   gap: 12px 10px;
   width: 100%;
   padding: 14px;
