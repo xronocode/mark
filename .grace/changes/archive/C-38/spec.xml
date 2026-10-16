@@ -1,9 +1,9 @@
-<GraceChangeSpec graceVersion='4.0' status='approved'>
+<GraceChangeSpec graceVersion='4.0' status='applied'>
 <C-38>
   <Name>Native-feeling chrome and a redesigned Settings window, gated per OS</Name>
   <Created>2026-10-15</Created>
   <Priority>high</Priority>
-  <Status>in-progress</Status>
+  <Status>completed</Status>
   <RoadmapPhase>N</RoadmapPhase>
   <Complexity>M–L (≈2 weeks, in sub-phases)</Complexity>
 

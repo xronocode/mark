@@ -1,4 +1,4 @@
-<GraceChangePlan graceVersion='4.0' status='approved'>
+<GraceChangePlan graceVersion='4.0' status='applied'>
 <C-39>
   <ChangeRef>C-39</ChangeRef>
   <Created>2026-10-15</Created>
@@ -45,6 +45,7 @@
         <Command>npm test</Command>
         <Command>npm run build &amp;&amp; npx playwright test tests/e2e/table-layout.spec.ts</Command>
       </Verification>
+      <Status>done</Status>
     </T-001>
     <T-002>
       <Title>T3 session-only column resize</Title>

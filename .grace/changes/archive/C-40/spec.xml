@@ -1,9 +1,9 @@
-<GraceChangeSpec graceVersion='4.0' status='approved'>
+<GraceChangeSpec graceVersion='4.0' status='applied'>
 <C-40>
   <Name>In-app Guide, titlebar document tools (split, lock, copy) and a new home for document statistics</Name>
   <Created>2026-10-15</Created>
   <Priority>medium</Priority>
-  <Status>approved</Status>
+  <Status>completed</Status>
   <RoadmapPhase>N</RoadmapPhase>
   <Complexity>M (sub-phases)</Complexity>
 

@@ -1,9 +1,9 @@
-<GraceChangeSpec graceVersion='4.0' status='approved'>
+<GraceChangeSpec graceVersion='4.0' status='applied'>
 <C-41>
   <Name>Brand themes Paper and Ink, Auto/Light/Dark switch, and a theme set of light/dark pairs</Name>
   <Created>2026-10-15</Created>
   <Priority>high</Priority>
-  <Status>approved</Status>
+  <Status>completed</Status>
   <RoadmapPhase>N</RoadmapPhase>
   <Complexity>M</Complexity>
 
