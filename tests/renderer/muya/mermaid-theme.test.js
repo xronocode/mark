@@ -1,5 +1,5 @@
 // FILE: tests/renderer/muya/mermaid-theme.test.js
-// VERSION: 1.0.0
+// VERSION: 1.1.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Pin the C-51 T-003/T-004 Mermaid theme engine — OKLCH categorical palette properties, render-time theme-token reading from the document's CSS variables, diagram type detection for all 22 types (init/frontmatter skipped), per-type config (quadrant single hue, radar series scale, sankey dark-only blend CSS, architecture attribute CSS, c4 keys, gantt/journey/packet/timeline lab sizes vs fit-column), and the theme signature that keys the SVG cache.
 //   SCOPE: src/muya/lib/parser/render/mermaidTheme.js pure API; exportHtml wiring lives in export-mermaid-theme.test.js, pipeline behaviour in mermaid-pipeline.test.js.
@@ -23,7 +23,13 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.0.0 - 2026-10-16 C-51 T-003/T-004: first version. Every
+//   LAST_CHANGE: v1.1.0 - 2026-10-16 C-51 T-012: the primaryColor/
+//   primaryBorderColor/primaryTextColor pins follow the node colours
+//   derived against the code-block panel (nodeContrastColors) — the raw
+//   surface/border tokens fail the panel gates in both light and dark
+//   themes. The exhaustive per-theme gate lives in
+//   mermaid-node-contrast.test.js.
+//   v1.0.0 - 2026-10-16 C-51 T-003/T-004: first version. Every
 //   case fails against the pre-C-51 pipeline (module did not exist).
 // END_CHANGE_SUMMARY
 
@@ -38,6 +44,8 @@ import {
   detectMermaidDiagramType,
   buildMermaidThemeConfig,
   mermaidThemeSignature,
+  nodeContrastColors,
+  wcagContrast,
   blendHex,
   postProcessMermaidSvg,
   MARKER_SCALE,
@@ -298,15 +306,20 @@ describe('buildMermaidThemeConfig (C-51 T-003/T-004)', () => {
     expect(cfg.themeVariables.fontFamily).toBe(PAPER_TOKENS.font)
   })
 
-  it('flowchart/sequence colours come from the theme tokens', () => {
+  it('flowchart/sequence colours derive from the theme tokens against the panel (T-012)', () => {
     const v = buildMermaidThemeConfig(PAPER_TOKENS, 'flowchart').themeVariables
-    expect(v.primaryColor).toBe(PAPER_TOKENS.surface)
+    const node = nodeContrastColors(PAPER_TOKENS)
     expect(v.mainBkg).toBeUndefined() // derived by Mermaid so %%{init}%% primaryColor wins
-    expect(v.primaryColor).toBe(PAPER_TOKENS.surface)
-    expect(v.primaryTextColor).toBe(PAPER_TOKENS.text)
-    expect(v.primaryBorderColor).toBe(PAPER_TOKENS.border)
-    expect(v.lineColor).toBe(PAPER_TOKENS.line)
+    expect(v.primaryColor).toBe(node.fill)
+    expect(v.primaryTextColor).toBe(node.text)
+    expect(v.primaryBorderColor).toBe(node.border)
+    expect(v.lineColor).toBe(node.line)
     expect(v.background).toBe(PAPER_TOKENS.bg)
+    // The pre-T-012 surface/hairline pair failed the panel gates (Paper's
+    // surface is 1.15:1 and its border 1.16:1 on the code-block panel).
+    expect(v.primaryColor).not.toBe(PAPER_TOKENS.surface)
+    expect(v.primaryBorderColor).not.toBe(PAPER_TOKENS.border)
+    expect(wcagContrast(v.primaryBorderColor, PAPER_TOKENS.code)).toBeGreaterThanOrEqual(3)
   })
 
   it('never emits the mermaid default palette or Trebuchet', () => {
@@ -439,7 +452,7 @@ describe('buildMermaidThemeConfig (C-51 T-003/T-004)', () => {
   it('unknown types still get a fully themed config', () => {
     const cfg = buildMermaidThemeConfig(PAPER_TOKENS, 'unknown')
     expect(cfg.theme).toBe('base')
-    expect(cfg.themeVariables.primaryColor).toBe(PAPER_TOKENS.surface)
+    expect(cfg.themeVariables.primaryColor).toBe(nodeContrastColors(PAPER_TOKENS).fill)
   })
 })
 

@@ -1,10 +1,10 @@
 // FILE: src/muya/lib/parser/render/mermaidTheme.js
-// VERSION: 1.1.0
+// VERSION: 1.2.0
 // START_MODULE_CONTRACT
-//   PURPOSE: Build the Mermaid render config (theme "base", look "neo", themeVariables, themeCSS polish, per-type layout and sizes) from the ACTIVE APP THEME — the accepted C-51 round-2/3 lab (.lab/palette.js) ported into the product.
-//   SCOPE: OKLCH colour math (oklch/hueOf/palette), active-theme token reading from the document's CSS variables plus the body "dark" flag, diagram type detection from the code's first meaningful line (22 types, frontmatter/%%{init}%% skipped), the per-type config builder, and the theme signature that keys the pipeline's SVG cache.
+//   PURPOSE: Build the Mermaid render config (theme "base", look "neo", themeVariables, themeCSS polish, per-type layout and sizes) from the ACTIVE APP THEME — the accepted C-51 round-2/3 lab (.lab/palette.js) ported into the product, with node colours derived against the code-block panel (T-012 contrast gates).
+//   SCOPE: OKLCH colour math (oklch/hueOf/palette), active-theme token reading from the document's CSS variables plus the body "dark" flag (translucent values composited over the theme background), diagram type detection from the code's first meaningful line (22 types, frontmatter/%%{init}%% skipped), the WCAG node-contrast derivation against the diagram panel, the per-type config builder, and the theme signature that keys the pipeline's SVG cache.
 //   DEPENDS: none — pure colour math plus lazy DOM reads (window/document are touched only inside functions so tests can import the module cold).
-//   LINKS: .grace/changes/active/C-51 T-003/T-004 (R-2/R-2a) and T-005 (chartPalette shared with contentTheme.js); .grace/graph/runtime.xml M-012; .grace/verification/runtime.xml V-M-012 scenario-17.
+//   LINKS: .grace/changes/active/C-51 T-003/T-004 (R-2/R-2a), T-005 (chartPalette shared with contentTheme.js) and T-012 (node contrast, user 2026-10-16); .grace/graph/runtime.xml M-012; .grace/verification/runtime.xml V-M-012 scenario-17.
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT
@@ -12,6 +12,7 @@
 // START_MODULE_MAP
 //   oklch - OKLCH (lightness 0-1, chroma, hue degrees) → "#rrggbb" hex.
 //   hueOf - hex colour → OKLCH hue in degrees (0-360).
+//   wcagContrast - two hex colours → WCAG 2.x contrast ratio (node border/line/text gates).
 //   PALETTE_STEPS - the 8 hue offsets (accent first, then a fixed spread that keeps neighbours apart).
 //   palette - accent hex + target lightness/chroma → 8 categorical hex colours at equal perceived lightness.
 //   chartPalette - theme tokens → the categorical series palette (the theme's --chartPalette when present, else the OKLCH palette) — shared by the Mermaid config and the C-51 T-005 content theming.
@@ -19,8 +20,9 @@
 //   MERMAID_THEME_TYPES - the 22 canonical diagram type keys detected by detectMermaidDiagramType.
 //   readActiveThemeTokens - lazily read the active theme's CSS variables + dark flag → { dark, accent, bg, surface, text, muted, border, line, code, font }.
 //   detectMermaidDiagramType - diagram code → canonical type key ("flowchart"…"c4"), skipping blank lines, %% directives/comments and YAML frontmatter; "unknown" when nothing matches.
+//   nodeContrastColors - theme tokens → { panel, fill, border, line, clusterBkg, clusterBorder, text } derived against the code-block panel so node fill/border/line/text meet the WCAG gates (fill ≥ 1.25:1 or ΔL ≥ 0.06, border/line ≥ 3:1, text ≥ 4.5:1 on the fill).
 //   buildMermaidThemeConfig - theme tokens + type key → full mermaid.initialize config (themeVariables incl. cScale/pie/git/xyChart/quadrant/journey scales, themeCSS polish, per-type layout config with the C-34 fit-column useMaxWidth policy).
-//   mermaidThemeSignature - theme tokens → short stable signature (includes the resolved palette) for the pipeline's cache key.
+//   mermaidThemeSignature - theme tokens → short stable signature (includes the resolved palette AND the derived node colours) for the pipeline's cache key.
 //   MARKER_SCALE - per-type arrowhead scale factors.
 //   postProcessMermaidSvg - rendered SVG + type (+ theme tokens) → SVG with proportionate arrowheads and the donut pie.
 //   DONUT_HOLE - donut hole radius as a fraction of the pie radius.
@@ -28,7 +30,29 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.1.0 - 2026-10-16 C-51 T-005: chartPalette(tokens) is
+//   LAST_CHANGE: v1.2.0 - 2026-10-16 C-51 T-012 (user: «в темной теме у
+//   мермейд явно проблемы с контрастностью блоков»): node colours are now
+//   derived RELATIVE TO THE CODE-BLOCK PANEL (the background mermaid SVGs
+//   actually sit on), not the page tokens — nodeContrastColors(t) (pure,
+//   START_BLOCK_MERMAID_NODE_CONTRAST) picks a fill that is distinguishable
+//   from the panel (today's surface when it passes, else a text-over-panel
+//   blend in the prescribed 8–14 % band, stepping the panel darker only for
+//   themes whose text is dim against their own panel), a border ≥ 3:1
+//   (WCAG 1.4.11; the theme's border token kept when it already passes),
+//   a line ≥ 3:1, a cluster background midway between panel and fill, and
+//   a node text that keeps ≥ 4.5:1 on the fill (boosted only for themes
+//   where the theme text cannot — graphite/ulysses after the alpha fix).
+//   primaryColor/primaryBorderColor/actorBkg/actorBorder/noteBkgColor/
+//   noteBorderColor/clusterBkg/clusterBorder/lineColor/signalColor/
+//   archEdge colours come from the derivation; mainBkg/nodeBorder stay
+//   unset so a user's %%{init}%% primaryColor still recolours nodes.
+//   readActiveThemeTokens now composites translucent CSS values over the
+//   theme background (graphite/ulysses ship rgba() text and code-panel
+//   values — the opaque colour a reader sees); mermaidThemeSignature
+//   includes the derived node colours, so every cached diagram re-renders
+//   once after the update. The categorical palettes, tints, gantt/packet
+//   task colours and the Keynote donut are unchanged.
+//   v1.1.0 - 2026-10-16 C-51 T-005: chartPalette(tokens) is
 //   exported as the single definition of the categorical series palette
 //   (the theme's --chartPalette when present, else the OKLCH palette with
 //   the light/dark lightness of the accepted lab) so the other rendered
@@ -78,17 +102,33 @@ export const oklch = (L, C, hDeg) => {
   return toHex(lin2srgb(r), lin2srgb(g), lin2srgb(bb))
 }
 
-export const hueOf = (hex) => {
+// Oklab of a hex colour — shared by the categorical hue math below and the
+// T-012 ΔL distinguishability rule (oklabLightness).
+const oklabOf = (hex) => {
   const n = parseInt(hex.slice(1), 16)
   const r = srgb2lin(((n >> 16) & 255) / 255)
   const g = srgb2lin(((n >> 8) & 255) / 255)
   const b = srgb2lin((n & 255) / 255)
-  const l = Math.cbrt(0.4122214708 * r + 0.536301541 * g + 0.0514459929 * b)
-  const m = Math.cbrt(0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b)
-  const s = Math.cbrt(0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b)
+  return [
+    Math.cbrt(0.4122214708 * r + 0.536301541 * g + 0.0514459929 * b),
+    Math.cbrt(0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b),
+    Math.cbrt(0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b)
+  ]
+}
+
+export const hueOf = (hex) => {
+  const [l, m, s] = oklabOf(hex)
   const A = 1.9779984951 * l - 2.428592205 * m + 0.4505937099 * s
   const B = 0.0259040371 * l + 0.7827717662 * m - 0.808675766 * s
   return ((Math.atan2(B, A) * 180) / Math.PI + 360) % 360
+}
+
+// Oklab lightness 0-1 — the perceptual ΔL the T-012 fill rule accepts as
+// "visibly different from the panel" even when the WCAG ratio is below 1.25
+// (near-white/near-black greys compress in WCAG luminance).
+const oklabLightness = (hex) => {
+  const [l, m, s] = oklabOf(hex)
+  return 0.2104542553 * l + 0.793617785 * m - 0.0040720468 * s
 }
 // END_BLOCK_MERMAID_OKLCH_MATH
 
@@ -125,8 +165,8 @@ export const DEFAULT_MERMAID_FONT =
 // START_BLOCK_MERMAID_THEME_TOKENS
 // CSS-value parsing (#rgb/#rrggbb[#aa]/rgb()/rgba() → channels) and the
 // render-time read of the active theme. Muted/line are deterministic blends
-// of the theme's own text/bg pair, so every one of the 28 themes (incl. the
-// future Docs/macOS families) yields quiet greys matched to its paper.
+// of the theme's own text/bg pair, so every one of the 32 themes (incl. the
+// Docs/macOS families) yields quiet greys matched to its paper.
 const parseColor = (value) => {
   if (!value) return null
   const s = String(value).trim()
@@ -135,7 +175,8 @@ const parseColor = (value) => {
     return {
       r: parseInt(m[1] + m[1], 16),
       g: parseInt(m[2] + m[2], 16),
-      b: parseInt(m[3] + m[3], 16)
+      b: parseInt(m[3] + m[3], 16),
+      a: 1
     }
   }
   m = /^#([0-9a-f]{6})(?:[0-9a-f]{2})?$/i.exec(s)
@@ -143,16 +184,18 @@ const parseColor = (value) => {
     return {
       r: parseInt(m[1].slice(0, 2), 16),
       g: parseInt(m[1].slice(2, 4), 16),
-      b: parseInt(m[1].slice(4, 6), 16)
+      b: parseInt(m[1].slice(4, 6), 16),
+      a: 1
     }
   }
-  m = /^rgba?\(\s*([\d.]+)[,\s]+([\d.]+)[,\s]+([\d.]+)/i.exec(s)
+  m = /^rgba?\(\s*([\d.]+)[,\s]+([\d.]+)[,\s]+([\d.]+)(?:[,\s/]+([\d.]+))?\s*\)?/i.exec(s)
   if (m) {
     const r = Number.parseFloat(m[1])
     const g = Number.parseFloat(m[2])
     const b = Number.parseFloat(m[3])
     if (Number.isFinite(r) && Number.isFinite(g) && Number.isFinite(b)) {
-      return { r, g, b }
+      const alpha = m[4] === undefined ? 1 : Number.parseFloat(m[4])
+      return { r, g, b, a: Number.isFinite(alpha) ? alpha : 1 }
     }
   }
   return null
@@ -166,6 +209,17 @@ const toHex255 = (r, g, b) => toHex(r / 255, g / 255, b / 255)
 const colorToHex = (value, fallbackHex) => {
   const c = parseColor(value)
   return c ? toHex255(c.r, c.g, c.b) : String(fallbackHex).toLowerCase()
+}
+
+// Translucent theme values (graphite/ulysses ship rgba() text and code
+// panels) composited over the theme background — the opaque colour a
+// reader actually sees on screen. C-51 T-012: the node-contrast gates
+// must measure the REAL panel, not the un-composited ink.
+const opaqueColorToHex = (value, backdropHex, fallbackHex) => {
+  const c = parseColor(value)
+  if (!c) return String(fallbackHex).toLowerCase()
+  const hex = toHex255(c.r, c.g, c.b)
+  return c.a < 1 ? blendHex(hex, backdropHex, c.a) : hex
 }
 
 // text composited over bg at ratio t (0 = bg, 1 = text).
@@ -219,17 +273,17 @@ export const readActiveThemeTokens = () => {
   // Fallbacks = the Paper/Ink brand values, so a bare document (tests,
   // export shells) still renders the accepted look.
   const bg = colorToHex(raw('--editorBgColor'), dark ? '#17191e' : '#fbf8f2')
-  const text = colorToHex(raw('--editorColor'), dark ? '#ece6da' : '#22252b')
+  const text = opaqueColorToHex(raw('--editorColor'), bg, dark ? '#ece6da' : '#22252b')
   return {
     dark,
     accent: colorToHex(raw('--themeColor'), dark ? '#ffcf1a' : '#9a6f00'),
     bg,
-    surface: colorToHex(raw('--floatBgColor'), bg),
+    surface: opaqueColorToHex(raw('--floatBgColor'), bg, bg),
     text,
     muted: blendHex(text, bg, 0.65),
-    border: colorToHex(raw('--tableBorderColor'), blendHex(text, bg, 0.18)),
+    border: opaqueColorToHex(raw('--tableBorderColor'), bg, blendHex(text, bg, 0.18)),
     line: blendHex(text, bg, 0.5),
-    code: colorToHex(raw('--codeBlockBgColor'), bg),
+    code: opaqueColorToHex(raw('--codeBlockBgColor'), bg, bg),
     font: raw('--chromeFontFamily') || DEFAULT_MERMAID_FONT,
     // Optional theme-defined chart palette (comma-separated colours, ≥ 6),
     // e.g. the macOS family's Apple system colours (C-51 T-007). Absent →
@@ -241,6 +295,159 @@ export const readActiveThemeTokens = () => {
   }
 }
 // END_BLOCK_MERMAID_THEME_TOKENS
+
+// START_BLOCK_MERMAID_NODE_CONTRAST
+// C-51 T-012 (user 2026-10-16: «в темной теме у мермейд явно проблемы с
+// контрастностью блоков»): Mermaid node shapes sit on the CODE-BLOCK PANEL
+// (the SVG's --codeBlockBgColor background, see muya's
+// ag-container-preview CSS), not on the page background — most dark themes
+// ship --floatBgColor == --codeBlockBgColor with hairline borders, so the
+// pre-T-012 surface/border tokens rendered nodes invisible (Ink: border
+// ≈ 1.2:1 against the panel). The node colours are derived RELATIVE TO THE
+// PANEL with WCAG gates:
+//   fill    — today's surface when it already passes both gates, else a
+//             text-over-panel blend (the prescribed 8–14 % band first);
+//             themes whose text is dim against their own panel
+//             (solarized-dark, one-dark) step the panel darker instead,
+//             light ones with the same problem (graphite/ulysses) take a
+//             stronger lift and get their node text boosted to keep 4.5:1;
+//   border  — the theme's border token when it already passes, else a
+//             stronger text/panel blend (WCAG 1.4.11 non-text, ≥ 3:1);
+//   line    — the theme's line token when it passes, else the border
+//             (edges and arrowheads need ≥ 3:1 on the panel too);
+//   cluster — midway between panel and fill, distinct from both.
+// Pure: tokens in, colours out — every registered theme is gate-checked in
+// tests/renderer/muya/mermaid-node-contrast.test.js.
+const wcagLuminanceOf = (hex) => {
+  const c = parseColor(hex)
+  if (!c) return null
+  const ch = (v) => {
+    const x = v / 255
+    return x <= 0.03928 ? x / 12.92 : Math.pow((x + 0.055) / 1.055, 2.4)
+  }
+  return 0.2126 * ch(c.r) + 0.7152 * ch(c.g) + 0.0722 * ch(c.b)
+}
+
+/**
+ * WCAG 2.x contrast ratio of two hex colours (1 .. 21). Unparsable input
+ * yields 1 (never gates a branch open).
+ *
+ * @param {string} a hex colour
+ * @param {string} b hex colour
+ * @returns {number} contrast ratio
+ */
+export const wcagContrast = (a, b) => {
+  const la = wcagLuminanceOf(a)
+  const lb = wcagLuminanceOf(b)
+  if (la === null || lb === null) return 1
+  const [hi, lo] = la >= lb ? [la, lb] : [lb, la]
+  return (hi + 0.05) / (lo + 0.05)
+}
+
+// Fill candidates around the prescribed 8–14 % text-over-panel band
+// (0.12 first; the fallback ladder walks the panel away below the text —
+// only reached by dark themes whose text cannot keep 4.5:1 on any lift).
+const NODE_FILL_STEPS = [0.12, 0.14, 0.1, 0.16, 0.08, 0.18, 0.22, 0.26, 0.3]
+const NODE_FILL_AWAY_STEPS = [0.25, 0.35, 0.45, 0.55, 0.65, 0.75]
+const NODE_TEXT_BOOST_STEPS = [0.05, 0.1, 0.15, 0.2, 0.3, 0.4, 0.5, 0.6]
+
+/**
+ * Derive the Mermaid node colours of a theme against the diagram panel
+ * (the code-block background the rendered SVG sits on).
+ *
+ * @param {object} t theme tokens (readActiveThemeTokens shape)
+ * @returns {{ panel: string, fill: string, border: string, line: string,
+ *             clusterBkg: string, clusterBorder: string, text: string }}
+ */
+export const nodeContrastColors = (t) => {
+  const panel = t.code
+  const themeText = t.text
+  const panelLightness = oklabLightness(panel)
+  const distinctFromPanel = (hex) =>
+    wcagContrast(hex, panel) >= 1.25 ||
+    Math.abs(oklabLightness(hex) - panelLightness) >= 0.06
+  const readableTextOn = (hex) => wcagContrast(themeText, hex) >= 4.5
+
+  let fill = null
+  let text = themeText
+  // (a) Keep today's look when the theme surface already passes both gates.
+  if (distinctFromPanel(t.surface) && readableTextOn(t.surface)) {
+    fill = t.surface
+  }
+  // (b) The prescribed lift: blend text over the panel, the 8–14 % band
+  //     first, until the fill separates from the panel while the theme
+  //     text keeps ≥ 4.5:1 on it.
+  if (!fill) {
+    for (const k of NODE_FILL_STEPS) {
+      const c = blendHex(themeText, panel, k)
+      if (distinctFromPanel(c) && readableTextOn(c)) {
+        fill = c
+        break
+      }
+    }
+  }
+  // (c) Dark themes whose text is dim against their own panel (solarized-
+  //     dark, one-dark): no lift can keep the text readable, so step the
+  //     panel darker instead — inset nodes, theme text untouched.
+  if (!fill && wcagLuminanceOf(themeText) >= wcagLuminanceOf(panel)) {
+    for (const k of NODE_FILL_AWAY_STEPS) {
+      const c = blendHex(panel, '#000000', k)
+      if (distinctFromPanel(c) && readableTextOn(c)) {
+        fill = c
+        break
+      }
+    }
+  }
+  // (d) Light themes with the same dim-text problem (graphite, ulysses):
+  //     only a strong lift separates from the panel, and the node text is
+  //     boosted away from the fill to keep ≥ 4.5:1.
+  if (!fill) {
+    for (const k of NODE_FILL_STEPS) {
+      const c = blendHex(themeText, panel, k)
+      if (distinctFromPanel(c)) {
+        fill = c
+        break
+      }
+    }
+    if (fill && !readableTextOn(fill)) {
+      const far = wcagLuminanceOf(fill) >= wcagLuminanceOf(themeText) ? '#000000' : '#ffffff'
+      for (const k of NODE_TEXT_BOOST_STEPS) {
+        const c = blendHex(themeText, far, k)
+        if (wcagContrast(c, fill) >= 4.5) {
+          text = c
+          break
+        }
+      }
+    }
+  }
+  if (!fill) fill = blendHex(themeText, panel, 0.12)
+
+  // Border: the theme's own hairline when it already passes WCAG 1.4.11,
+  // else the first text/panel blend (0.30 … 0.90) that reaches 3:1.
+  let border = wcagContrast(t.border, panel) >= 3 ? t.border : null
+  if (!border) {
+    for (let i = 6; i <= 18; i++) {
+      const c = blendHex(themeText, panel, i / 20)
+      if (wcagContrast(c, panel) >= 3) {
+        border = c
+        break
+      }
+    }
+  }
+  if (!border) border = themeText
+  // Edges and arrowheads share the ≥ 3:1 rule; the line token already
+  // passes on most themes (a 50 % text/bg blend), else it matches the border.
+  const line = wcagContrast(t.line, panel) >= 3 ? t.line : border
+
+  // Cluster/subgraph: midway between panel and fill — distinct from both;
+  // nudge toward the fill if 8-bit rounding collapses the midpoint.
+  let clusterBkg = blendHex(fill, panel, 0.5)
+  for (let i = 11; (clusterBkg === panel || clusterBkg === fill) && i <= 19; i++) {
+    clusterBkg = blendHex(fill, panel, i / 20)
+  }
+  return { panel, fill, border, line, clusterBkg, clusterBorder: border, text }
+}
+// END_BLOCK_MERMAID_NODE_CONTRAST
 
 // START_BLOCK_MERMAID_MARKERS
 // Arrowheads (user 2026-10-16 «не конские стрелки»): Mermaid markers are
@@ -454,16 +661,19 @@ export const buildMermaidThemeConfig = (t, type = 'unknown') => {
   const series = chartPalette(t)
   const tint = palette(t.accent, t.dark ? 0.36 : 0.9, t.dark ? 0.05 : 0.05)
   const tintBorder = palette(t.accent, t.dark ? 0.5 : 0.76, t.dark ? 0.07 : 0.08)
+  // T-012: node shapes sit on the code-block panel, so their fill/border/
+  // line/text derive against THAT panel (not the page tokens).
+  const node = nodeContrastColors(t)
   const v = {
-    background: t.bg, primaryColor: t.surface, primaryBorderColor: t.border,
-    primaryTextColor: t.text, textColor: t.text, lineColor: t.line,
+    background: t.bg, primaryColor: node.fill, primaryBorderColor: node.border,
+    primaryTextColor: node.text, textColor: t.text, lineColor: node.line,
     // mainBkg / nodeBorder are left to Mermaid's derivation from
     // primaryColor / primaryBorderColor so a user's %%{init}%% primaryColor
     // still recolours the nodes (review 2026-10-16).
-    secondaryColor: tint[0], tertiaryColor: t.code, clusterBkg: t.code, clusterBorder: t.border,
+    secondaryColor: tint[0], tertiaryColor: t.code, clusterBkg: node.clusterBkg, clusterBorder: node.clusterBorder,
     edgeLabelBackground: t.bg, labelBackgroundColor: t.bg, titleColor: t.text,
-    noteBkgColor: tint[0], noteBorderColor: tintBorder[0], noteTextColor: t.text,
-    actorBkg: t.surface, actorBorder: t.border, actorTextColor: t.text, signalColor: t.line, signalTextColor: t.text,
+    noteBkgColor: node.fill, noteBorderColor: node.border, noteTextColor: node.text,
+    actorBkg: node.fill, actorBorder: node.border, actorTextColor: node.text, signalColor: node.line, signalTextColor: t.text,
     fontFamily: t.font, fontSize: '15px', darkMode: t.dark,
     useGradient: false, dropShadow: t.dark ? 'drop-shadow(0 1px 2px rgba(0,0,0,0.5))' : 'drop-shadow(0 1px 2px rgba(34,37,43,0.12))'
   }
@@ -522,7 +732,7 @@ export const buildMermaidThemeConfig = (t, type = 'unknown') => {
     sectionBkgColor: t.bg, altSectionBkgColor: t.code, sectionBkgColor2: t.bg, excludeBkgColor: t.code
   })
   // Architecture
-  Object.assign(v, { archEdgeColor: t.line, archEdgeArrowColor: t.line, archGroupBorderColor: t.border, archGroupBorderWidth: '1px' })
+  Object.assign(v, { archEdgeColor: node.line, archEdgeArrowColor: node.line, archGroupBorderColor: node.border, archGroupBorderWidth: '1px' })
 
   // Per-type overrides: series-coloured scales where the scale draws lines.
   if (type === 'radar') {
@@ -601,10 +811,13 @@ const hashString = (str) => {
 
 /**
  * Stable signature of the resolved theme — theme identity AND the resolved
- * palette — for the pipeline's SVG cache key. Any switch that changes the
- * colours a diagram would render with (Paper → Ink, Auto light/dark flip,
- * a theme with a different accent) changes the signature, so every diagram
- * re-renders; two themes that resolve to identical tokens keep their cache.
+ * palette AND the derived node colours — for the pipeline's SVG cache key.
+ * Any switch that changes the colours a diagram would render with (Paper →
+ * Ink, Auto light/dark flip, a theme with a different accent) changes the
+ * signature, so every diagram re-renders; two themes that resolve to
+ * identical tokens keep their cache. T-012: the derived node fill/border/
+ * text ride the digest, so the contrast rework invalidated every existing
+ * cache entry exactly once.
  *
  * @param {object} t theme tokens (readActiveThemeTokens shape)
  * @returns {string} short signature safe for a cache-key prefix
@@ -612,9 +825,11 @@ const hashString = (str) => {
 export const mermaidThemeSignature = (t) => {
   if (!t) return 'no-theme'
   const series = chartPalette(t)
+  const node = nodeContrastColors(t)
   const digest = [
     t.dark ? 1 : 0,
     t.bg, t.surface, t.text, t.muted, t.border, t.line, t.accent, t.code, t.font,
+    node.fill, node.border, node.line, node.clusterBkg, node.text,
     series.join('')
   ].join('|')
   return `${hashString(digest).toString(36)}-${digest.length}`
