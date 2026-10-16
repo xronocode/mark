@@ -1,22 +1,25 @@
 // FILE: src/renderer/src/util/themeFamilies.js
-// VERSION: 1.0.0
+// VERSION: 1.1.0
 // START_MODULE_CONTRACT
-//   PURPOSE: The 14 light/dark theme families (C-41 spec R-3) as pure data with no window access, so boot shims and the preference migration can import them before window globals exist.
+//   PURPOSE: The 16 light/dark theme families (C-41 spec R-3 + the C-51 T-007 Docs and macOS families) as pure data with no window access, so boot shims and the preference migration can import them before window globals exist.
 //   SCOPE: THEME_FAMILIES list, the derived member-to-partner map, family lookup by theme id.
 //   DEPENDS: none
-//   LINKS: M-011, C-41 T-002
+//   LINKS: M-011, C-41 T-002, C-51 T-007
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
-//   THEME_FAMILIES - frozen list of the 14 light/dark families in spec R-3 order.
+//   THEME_FAMILIES - frozen list of the 16 light/dark families (spec R-3 order, Docs and macOS appended by C-51 T-007).
 //   themePairs - derived member→partner map (symmetric by construction).
 //   themeFamilyOf - resolve the family owning a theme id (undefined when unknown).
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: [v1.0.0 - C-41 T-002 review: extracted from config.js, whose module scope reads window.path; importing config.js from the boot shim / store migration crashed before window globals were installed.]
+//   LAST_CHANGE: [v1.1.0 - C-51 T-007: append the Docs (docs/docs-dark) and
+//   macOS (macos/macos-dark) families after the 14 C-41 families — neutral
+//   docs and Apple looks from canvas Main/DocsDark/MacOS.]
+//   [v1.0.0 - C-41 T-002 review: extracted from config.js, whose module scope reads window.path; importing config.js from the boot shim / store migration crashed before window globals were installed.]
 // END_CHANGE_SUMMARY
 
 // START_BLOCK_THEME_FAMILIES
@@ -25,6 +28,8 @@
 // member. The six members marked "registered by C-41 T-003" exist as ids
 // here so the family model, migrations, and pairs are complete — their
 // theme CSS, themeColor factories, and registrations land with that task.
+// C-51 T-007: two more families join at the end — Docs (neutral docs look,
+// canvas Main/DocsDark) and macOS (Apple look, canvas MacOS).
 export const THEME_FAMILIES = Object.freeze([
   Object.freeze({ id: 'paper', name: 'Paper', light: 'paper', dark: 'ink' }),
   Object.freeze({ id: 'rose-pine', name: 'Rosé Pine', light: 'rose-pine-dawn', dark: 'rose-pine' }),
@@ -39,7 +44,9 @@ export const THEME_FAMILIES = Object.freeze([
   Object.freeze({ id: 'nord', name: 'Nord', light: 'nord-light', dark: 'nord' }),
   Object.freeze({ id: 'kanagawa', name: 'Kanagawa', light: 'kanagawa-lotus', dark: 'kanagawa' }),
   Object.freeze({ id: 'graphite', name: 'Graphite', light: 'graphite', dark: 'graphite-dark' }),
-  Object.freeze({ id: 'ulysses', name: 'Ulysses', light: 'ulysses', dark: 'ulysses-dark' })
+  Object.freeze({ id: 'ulysses', name: 'Ulysses', light: 'ulysses', dark: 'ulysses-dark' }),
+  Object.freeze({ id: 'docs', name: 'Docs', light: 'docs', dark: 'docs-dark' }),
+  Object.freeze({ id: 'macos', name: 'macOS', light: 'macos', dark: 'macos-dark' })
 ])
 
 // Derived — every family member maps to its partner. Never hand-edit:

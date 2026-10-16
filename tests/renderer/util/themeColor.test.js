@@ -15,6 +15,8 @@ describe('util/themeColor', () => {
     'paper', 'ink',
     // C-41 T-003 new family members
     'oneLight', 'alucard', 'nordLight', 'kanagawaLotus', 'graphiteDark', 'ulyssesDark',
+    // C-51 T-007 new family members
+    'docs', 'docsDark', 'macos', 'macosDark',
     'graphite', 'oneDark', 'ulysses',
     'dracula', 'nord', 'catppuccinMocha', 'gruvboxDark', 'tokyoNight',
     'solarizedDark', 'ayuDark', 'everforestDark', 'rosePine', 'kanagawa',
@@ -22,8 +24,8 @@ describe('util/themeColor', () => {
     'solarizedLight', 'ayuLight', 'everforestLight', 'rosePineDawn'
   ]
 
-  it('should export all 28 family-member theme factories as functions', () => {
-    expect(exports.length).toBe(28)
+  it('should export all 32 family-member theme factories as functions', () => {
+    expect(exports.length).toBe(32)
     for (const name of exports) {
       expect(typeof themeColor[name], `${name} should be a function`).toBe('function')
     }

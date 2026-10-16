@@ -2831,6 +2831,27 @@
         tabs.vue resolves the tab pathname); the project store's
         SIDEBAR::pin-file listener toggles the active tree file. All
         strings ship in the ten locales.
+        C-51 T-007: two more theme families join the C-41 model — Docs
+        (docs/docs-dark: near-white #FCFCFB / near-black #161615 grounds,
+        ink text #1F1F1F / #ECECEA, hairline borders #E4E4E1 / #2C2C2A,
+        neutral ink accent, neutral soft selection, canvas Main/DocsDark)
+        and macOS (macos/macos-dark: #FFFFFF / #1E1E1E grounds, #1D1D1F /
+        #F5F5F7 text, system greys, system-blue accent #007AFF / #0A84FF
+        with the AA-safe link variants #0066CC / #409CFF, Finder-like
+        sidebars #ECECEE / #252527, canvas MacOS). Both members of both
+        families ship the full paper variable set plus a theme-defined
+        --chartPalette (Docs: slate blue/emerald/amber/rose/violet/cyan/
+        orange/pink with brighter dark variants; macOS: the Apple system
+        colours) that mermaidTheme.readActiveThemeTokens picks up as the
+        series token so Mermaid/content theming derives from them like
+        from every other theme; the document rides the system UI font
+        through a theme-scoped .editor-wrapper override (code keeps the
+        code font); each member carries a Prism companion; registration
+        covers themeMap/themeCssFactories, the dark classification
+        (docs-dark/macos-dark railscasts), the command palette, the
+        native View › Theme menu, the Settings Appearance picker (16
+        tiles, 8-per-row grid) and all ten locales' menu.theme names
+        (docs/docsDark/macos/macosDark).
       </Summary>
       <Path>src/renderer/</Path>
       <Dependencies>

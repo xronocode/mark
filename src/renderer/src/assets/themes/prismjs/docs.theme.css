@@ -1,0 +1,178 @@
+/*
+ * Prism.js Docs Theme (Light)
+ * C-51 T-007 companion to docs.theme.css — calm docs code on #F4F4F2: violet
+ * keywords and types, slate-blue functions, teal strings, amber numbers —
+ * darkened variants of the theme's chart palette.
+ */
+
+code[class*="language-"],
+pre.ag-paragraph {
+  color: #1F1F1F;
+  text-align: left;
+  white-space: pre;
+  word-spacing: normal;
+  word-break: normal;
+  word-wrap: normal;
+  -moz-tab-size: 4;
+  -o-tab-size: 4;
+  tab-size: 4;
+  -webkit-hyphens: none;
+  -moz-hyphens: none;
+  -ms-hyphens: none;
+  hyphens: none;
+  overflow: visible;
+}
+
+pre.ag-paragraph {
+  padding: 1em;
+  margin: 1em 0;
+  border-radius: 0.3em;
+}
+
+:not(pre) > code[class*="language-"],
+pre.ag-paragraph {
+  background: var(--codeBlockBgColor, #F4F4F2);
+}
+
+:not(pre) > code[class*="language-"] {
+  padding: .1em;
+  border-radius: .3em;
+  white-space: normal;
+}
+
+/* Comments — canvas muted grey */
+.token.comment,
+.token.prolog,
+.token.doctype,
+.token.cdata {
+  color: #6B6B68;
+  font-style: italic;
+}
+
+/* Punctuation — warm ink */
+.token.punctuation {
+  color: #555550;
+}
+
+/* Namespace — violet */
+.namespace {
+  color: #6D28D2;
+  opacity: .85;
+}
+
+/* Keywords — dark violet (chart violet #7C3AED darkened for AA) */
+.token.keyword {
+  color: #6D28D2;
+}
+
+/* Control-flow keywords — full chart violet */
+.token.keyword.control-flow {
+  color: #7C3AED;
+}
+
+/* Types / class names — dark cyan */
+.token.class-name {
+  color: #0E7490;
+}
+
+/* Functions — dark slate blue */
+.token.function,
+.token.function-definition {
+  color: #364FC7;
+}
+
+/* Strings — dark emerald */
+.token.selector,
+.token.attr-name,
+.token.string,
+.token.char,
+.token.template-string {
+  color: #0F766E;
+}
+
+/* Numbers, booleans — dark amber */
+.token.boolean,
+.token.number {
+  color: #B45309;
+}
+
+/* Properties, tags, constants — slate blue */
+.token.property,
+.token.tag,
+.token.constant,
+.token.symbol {
+  color: #364FC7;
+}
+
+/* Built-in types/functions — violet */
+.token.builtin {
+  color: #6D28D2;
+}
+
+/* Macros — violet like types */
+.token.macro {
+  color: #6D28D2;
+}
+
+/* Parameters — warm ink */
+.token.parameter {
+  color: #555550;
+}
+
+/* Variables — warm ink */
+.token.variable {
+  color: #555550;
+}
+
+/* Operators — ink */
+.token.operator,
+.token.entity,
+.token.url,
+.language-css .token.string,
+.style .token.string {
+  color: #4A4A47;
+}
+
+/* Arrow — violet */
+.token.arrow {
+  color: #6D28D2;
+}
+
+/* Attribute values, at-rules — dark emerald */
+.token.atrule,
+.token.attr-value {
+  color: #0F766E;
+}
+
+/* Regex — dark rose */
+.token.regex {
+  color: #BE123C;
+}
+
+/* Important */
+.token.important {
+  color: #B45309;
+  font-weight: bold;
+}
+
+/* Inserted — emerald (diffs) */
+.token.inserted {
+  color: #0F766E;
+}
+
+/* Deleted — rose (diffs) */
+.token.deleted {
+  color: #BE123C;
+}
+
+.token.bold {
+  font-weight: bold;
+}
+
+.token.italic {
+  font-style: italic;
+}
+
+.token.entity {
+  cursor: help;
+}

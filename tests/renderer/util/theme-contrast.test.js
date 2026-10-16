@@ -55,7 +55,8 @@ const ROOT = resolve(__dirname, '..', '..', '..')
 const THEMES_DIR = resolve(ROOT, 'src/renderer/src/assets/themes')
 
 
-// The 14 families × 2 members of spec R-3 — the exact set this gate covers.
+// The 14 C-41 families × 2 members of spec R-3 plus the four C-51 T-007
+// members — the exact set this gate covers.
 const EXPECTED_THEME_IDS = [
   'paper', 'ink',
   'one-light', 'one-dark',
@@ -70,7 +71,10 @@ const EXPECTED_THEME_IDS = [
   'gruvbox-light', 'gruvbox-dark',
   'everforest-light', 'everforest-dark',
   'tokyo-night-light', 'tokyo-night',
-  'ayu-light', 'ayu-dark'
+  'ayu-light', 'ayu-dark',
+  // C-51 T-007: Docs and macOS family members.
+  'docs', 'docs-dark',
+  'macos', 'macos-dark'
 ]
 
 const parseVars = (css) => {
@@ -166,7 +170,7 @@ const readThemeFiles = () => {
 describe('theme contrast (C-41 T-003)', () => {
   const themes = readThemeFiles()
 
-  it('covers exactly the 28 family members — no other theme file ships', () => {
+  it('covers exactly the 32 family members — no other theme file ships', () => {
     expect(Object.keys(themes).sort()).toEqual([...EXPECTED_THEME_IDS].sort())
   })
 
