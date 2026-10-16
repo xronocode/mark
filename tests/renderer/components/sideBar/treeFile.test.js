@@ -11,12 +11,6 @@ vi.mock('../../contextMenu/sideBar', () => ({
   showContextMenu: vi.fn()
 }))
 
-vi.mock('muya/lib/ui/fileIcons', () => ({
-  default: {
-    getClassByName: vi.fn(() => 'icon-md')
-  }
-}))
-
 const i18n = createI18n({
   legacy: false,
   locale: 'en',
@@ -59,10 +53,7 @@ describe('sideBar/treeFile.vue', () => {
         depth: 0
       },
       global: {
-        plugins: [pinia, i18n],
-        stubs: {
-          FileIcon: true
-        }
+        plugins: [pinia, i18n]
       }
     })
     expect(wrapper.exists()).toBe(true)
@@ -83,10 +74,7 @@ describe('sideBar/treeFile.vue', () => {
         depth: 0
       },
       global: {
-        plugins: [pinia, i18n],
-        stubs: {
-          FileIcon: true
-        }
+        plugins: [pinia, i18n]
       }
     })
     expect(wrapper.find('.side-bar-file.current').exists()).toBe(true)
@@ -105,10 +93,7 @@ describe('sideBar/treeFile.vue', () => {
         depth: 2
       },
       global: {
-        plugins: [pinia, i18n],
-        stubs: {
-          FileIcon: true
-        }
+        plugins: [pinia, i18n]
       }
     })
     // No depth*20px formula anymore; only the non-Markdown opacity stays inline.
@@ -130,10 +115,7 @@ describe('sideBar/treeFile.vue', () => {
         depth: 0
       },
       global: {
-        plugins: [pinia, i18n],
-        stubs: {
-          FileIcon: true
-        }
+        plugins: [pinia, i18n]
       }
     })
   }

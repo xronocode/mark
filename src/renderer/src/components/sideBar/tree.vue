@@ -122,17 +122,21 @@
 
 <script setup>
 // FILE: src/renderer/src/components/sideBar/tree.vue
-// VERSION: 2.1.0
+// VERSION: 2.2.0
 // START_MODULE_CONTRACT
-//   PURPOSE: The sidebar Files column — Recent/Pinned sections (fileSections.vue), the opened-tabs list, and the multi-root folder tree with the C-51 T-001 folder-switcher header and Markdown-only view filter.
+//   PURPOSE: The sidebar Files column — Recent/Pinned sections (fileSections.vue), the opened-tabs list, and the multi-root folder tree with the C-51 T-001 folder-switcher header (semibold like folder rows, C-51 T-013) and Markdown-only view filter.
 //   SCOPE: Section composition, per-root collapse state, root-level filtered folder/file lists (store/treeFilter.js per the treeShowAllFiles preference), root close/create wiring; with no folder open only the file sections remain (C-51 T-011 removed the empty-state Open Folder button and RECENT folders list — both live on the welcome screen, C-46).
 //   DEPENDS: vue, pinia, store/project, store/editor, store/preferences, store/treeFilter, ./treeFolder.vue, ./treeFile.vue, ./treeOpenedTab.vue, ./fileSections.vue, ../icons/chromeIcons.js, bus, vue-i18n.
-//   LINKS: .grace/changes/active/C-51 T-001/T-002/T-011; .canvas/Main.dc.html (switcher + tree); .canvas/MacOS.dc.html (sections); .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011.
+//   LINKS: .grace/changes/active/C-51 T-001/T-002/T-011/T-013; .canvas/Main.dc.html (switcher + tree); .canvas/MacOS.dc.html (sections); .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011.
 //   ROLE: RUNTIME
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT
 //
 // START_CHANGE_SUMMARY
+//   - 2026-10-17 v2.2.0: C-51 T-013 — the root folder-switcher name is
+//     semibold (600) like folder rows, and the unused .bold style rule
+//     (a leftover that no template ever applied) is gone; every file row
+//     below is regular weight (see treeFile.vue).
 //   - 2026-10-16 v2.1.0: C-51 T-011 — the section-header chevrons and the
 //     root folder-switcher chevron start at the shared --sideBarRowInset
 //     (12px, defined on the sidebar shell) instead of touching the left
@@ -431,7 +435,8 @@ onMounted(() => {
 }
 
 .project-tree > .title.folder-switcher > span {
-  font-weight: 500;
+  /* C-51 T-013: semibold like folder rows — the switcher is a folder. */
+  font-weight: 600;
 }
 
 .project-tree > .title.folder-switcher .switcher-chevron {
@@ -525,8 +530,5 @@ onMounted(() => {
 .new-file-label {
   font-style: italic;
   opacity: 0.85;
-}
-.bold {
-  font-weight: 600;
 }
 </style>

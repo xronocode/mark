@@ -1,16 +1,16 @@
 // FILE: src/renderer/src/components/icons/chromeIcons.js
-// VERSION: 2.2.0
+// VERSION: 2.3.0
 // START_MODULE_CONTRACT
-//   PURPOSE: One drawn chrome-icon set (16 px grid, 1.4 px stroke, round caps/joins) for every icon around the document — title bar, tabs, sidebar, find bar, dialogs, notifications, status bar (C-40 T-002, C-38 T-006 N4 d), the document-surface expand glyph (C-51 T-006) and the pinned-file row mark (C-51 T-011).
+//   PURPOSE: One drawn chrome-icon set (16 px grid, 1.4 px stroke, round caps/joins) for every icon around the document — title bar, tabs, sidebar, find bar, dialogs, notifications, status bar (C-40 T-002, C-38 T-006 N4 d), the document-surface expand glyph (C-51 T-006) and the pinned-file row mark (C-51 T-011; redrawn as a filled pushpin silhouette in C-51 T-013 — the set's one fill-only glyph).
 //   SCOPE: Icon path descriptors drawn on the approved canvas grid plus the ChromeIcon render component and a string renderer (chromeIconMarkup) for non-Vue surfaces (the notification service template); no theming, no IPC. The expand descriptor is the canonical drawing — muya duplicates it inline (EXPAND_ICON_PATH) and a unit test pins the two identical.
 //   DEPENDS: vue (h).
-//   LINKS: .canvas/Icons.dc.html; .canvas/Window.dc.html; .canvas/Mermaid.dc.html; .grace/graph/runtime.xml M-057; .grace/changes/active/C-40 T-002; .grace/changes/active/C-38 T-006; .grace/changes/active/C-51 T-006; .grace/changes/active/C-51 T-011.
+//   LINKS: .canvas/Icons.dc.html; .canvas/Window.dc.html; .canvas/Mermaid.dc.html; .grace/graph/runtime.xml M-057; .grace/changes/active/C-40 T-002; .grace/changes/active/C-38 T-006; .grace/changes/active/C-51 T-006; .grace/changes/active/C-51 T-011; .grace/changes/active/C-51 T-013.
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
-//   CHROME_ICONS - frozen descriptor table: name → [ { tag, attrs, fill?, cap?, join? } ] — every glyph on the 0 0 16 16 grid (canvas Icons board metrics).
+//   CHROME_ICONS - frozen descriptor table: name → [ { tag, attrs, fill?, cap?, join? } ] — every glyph on the 0 0 16 16 grid (canvas Icons board metrics); the pin mark is the one fill-only silhouette (round head + tapering body + needle).
 //   CHROME_ICON_STROKE - shared stroke width (1.4) for every stroke part.
 //   CHROME_ICON_NAMES - sorted glyph names (verification helper).
 //   ChromeIcon - <chrome-icon :name :size> renders one descriptor as an inline svg.chrome-icon using currentColor.
@@ -18,7 +18,12 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v2.2.0 - 2026-10-16 C-51 T-011: the «pin» glyph joins the
+//   LAST_CHANGE: v2.3.0 - 2026-10-17 C-51 T-013: the «pin» glyph is
+//   redrawn as a FILLED pushpin silhouette (round head circle, tapering
+//   body, needle — all fill currentColor, no stroke parts): at its 12 px
+//   mark size the stroked T-head drawing read as a thin stick/cross
+//   (user smoke 2026-10-17).
+//   v2.2.0 - 2026-10-16 C-51 T-011: the «pin» glyph joins the
 //   set — a pushpin drawn on the shared grid (T head, stem, flange, needle;
 //   round caps) rendered at 12 px as the pinned-file mark on sidebar tree
 //   and Opened-files rows.
@@ -276,14 +281,16 @@ export const CHROME_ICONS = Object.freeze({
     part('path', { d: 'M9.6 2.4h4v4M13.4 2.6 9.2 6.8M6.4 13.6h-4v-4M2.6 13.4l4.2-4.2' }, { cap: 'round', join: 'round' })
   ]),
 
-  // ── C-51 T-011: the pinned-file row mark (tree + Opened files) ──
-  // Pushpin drawn upright on the shared grid: the T head, the stem, the
-  // flange and the needle below it. Rendered at 12 px inside .pin-mark.
+  // ── C-51 T-011/T-013: the pinned-file row mark (tree + Opened files) ──
+  // Filled pushpin silhouette on the shared grid — the set's one
+  // fill-only glyph: round head, tapering body, needle. The first
+  // stroked drawing (T head + stem lines) read as a thin stick/cross at
+  // the 12 px mark size (user smoke 2026-10-17). Rendered at 12 px
+  // inside .pin-mark.
   pin: Object.freeze([
-    part('path', { d: 'M5.7 2.8h4.6' }, { cap: 'round' }),
-    part('path', { d: 'M8 2.8v4.8' }, { cap: 'round' }),
-    part('path', { d: 'M5.4 7.6h5.2' }, { cap: 'round' }),
-    part('path', { d: 'M8 7.6v6.2' }, { cap: 'round' })
+    part('circle', { cx: 8, cy: 4.6, r: 3.2 }, { fill: true }),
+    part('path', { d: 'M6.3 7.2h3.4l-.5 2.6h-2.4z' }, { fill: true }),
+    part('path', { d: 'M6.8 9.8h2.4L8 14.6z' }, { fill: true })
   ])
 })
 // END_BLOCK_ICON_DESCRIPTORS

@@ -25,7 +25,6 @@
           :title="row.path"
           @click="openPath(row)"
         >
-          <file-icon :name="row.name"></file-icon>
           <span class="section-file-name">{{ row.name }}</span>
           <button
             class="section-remove"
@@ -68,7 +67,6 @@
           @dragover.prevent
           @drop="onDrop(index)"
         >
-          <file-icon :name="row.name"></file-icon>
           <span class="section-file-name">{{ row.name }}</span>
           <button
             class="section-remove"
@@ -86,12 +84,12 @@
 
 <script setup>
 // FILE: src/renderer/src/components/sideBar/fileSections.vue
-// VERSION: 1.1.0
+// VERSION: 1.2.0
 // START_MODULE_CONTRACT
 //   PURPOSE: The two collapsible sidebar sections above the folder tree (C-51 T-002) — Recent (existing recent-files list, newest first, up to 10) and Pinned (persisted pinnedFiles list, drag to reorder); rows open the file through the existing open path, missing files render greyed with a Remove action, and section collapsed state persists.
 //   SCOPE: recent list load/refresh/remove, pinned list render/unpin/drag-reorder, per-path missing detection via ipcFs.stat, collapse persistence via ipcPrefs.
-//   DEPENDS: vue, pinia, store/editor (GET_RECENT_FILES, tabs, currentFile), store/pinned, ipc/runtime (ipcFs, ipcPrefs, ipcRecent), ./icon.vue, ../icons/chromeIcons.js, vue-i18n.
-//   LINKS: .grace/changes/active/C-51 T-002; .canvas/MacOS.dc.html (Recent/Pinned); .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011.
+//   DEPENDS: vue, pinia, store/editor (GET_RECENT_FILES, tabs, currentFile), store/pinned, ipc/runtime (ipcFs, ipcPrefs, ipcRecent), ../icons/chromeIcons.js, vue-i18n.
+//   LINKS: .grace/changes/active/C-51 T-002/T-013; .canvas/MacOS.dc.html (Recent/Pinned); .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011.
 //   ROLE: RUNTIME
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT
@@ -110,7 +108,12 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.1.0 - 2026-10-16 C-51 T-011: the section-header
+//   LAST_CHANGE: v1.2.0 - 2026-10-17 C-51 T-013: file rows lose the
+//   leading file-type icon and bold — the name starts on the shared text
+//   grid (--sideBarRowInset + the folder icon slot, aligning with folder
+//   names and tree file rows), every row is regular weight, and the
+//   current file in Recent/Pinned is marked by accent text only.
+//   v1.1.0 - 2026-10-16 C-51 T-011: the section-header
 //   chevron starts at the shared --sideBarRowInset (12px) instead of
 //   touching the sidebar's left edge; the Pinned section itself stays
 //   hidden while empty exactly as before (user correction).
@@ -125,7 +128,6 @@ import { useI18n } from 'vue-i18n'
 import { useEditorStore } from '@/store/editor'
 import { usePinnedStore } from '@/store/pinned'
 import { ipcFs, ipcPrefs, ipcRecent } from '../../ipc/runtime'
-import FileIcon from './icon.vue'
 import { ChromeIcon } from '../icons/chromeIcons.js'
 
 const MAX_RECENT_ROWS = 10
@@ -374,7 +376,12 @@ onMounted(async () => {
   height: 32px;
   box-sizing: border-box;
   padding-right: 10px;
-  padding-left: 27px;
+  /* C-51 T-013: the file-type icon is gone; names start on the shared
+     text grid (--sideBarRowInset + the folder icon slot) like the tree
+     file rows, aligning with folder names. */
+  padding-left: calc(var(--sideBarRowInset, 12px) + 20px);
+  /* C-51 T-013: one regular weight for every row in every section. */
+  font-weight: 400;
   cursor: default;
   user-select: none;
 }
@@ -384,9 +391,9 @@ onMounted(async () => {
 }
 
 .section-file.current > .section-file-name {
-  /* Review 2026-10-16: the pill marks the current file once — in the tree;
-     Recent/Pinned only weight the name. */
-  font-weight: 600;
+  /* C-51 T-013: the current file is marked by accent text only — the pill
+     lives in the tree; Recent/Pinned never bold a row (user smoke). */
+  color: var(--chromeAccent);
 }
 
 .section-file.missing {

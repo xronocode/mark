@@ -1,10 +1,10 @@
 // FILE: tests/renderer/components/sideBar/fileSections.test.js
-// VERSION: 1.0.0
+// VERSION: 1.1.0
 // START_MODULE_CONTRACT
-//   PURPOSE: C-51 T-002 unit tests for components/sideBar/fileSections.vue — Recent/Pinned sections render with order + cap, missing rows greyed with Remove, unpin/remove actions, click-to-open (tab select vs mt::open-file), collapse persistence, and drag-reorder dispatch to the pinned store.
-//   SCOPE: real mount over the mocked @tauri-apps/api/core invoke (recent list, prefs, fs stat) with FileIcon stubbed.
+//   PURPOSE: C-51 T-002 unit tests for components/sideBar/fileSections.vue — Recent/Pinned sections render with order + cap, missing rows greyed with Remove, unpin/remove actions, click-to-open (tab select vs mt::open-file), collapse persistence, and drag-reorder dispatch to the pinned store; C-51 T-013 pins the icon-less regular-weight rows.
+//   SCOPE: real mount over the mocked @tauri-apps/api/core invoke (recent list, prefs, fs stat) with ChromeIcon stubbed.
 //   DEPENDS: components/sideBar/fileSections.vue, store/{editor,pinned}, tests/renderer/setup.ts.
-//   LINKS: .grace/changes/active/C-51 T-002; .grace/verification/runtime.xml V-M-011.
+//   LINKS: .grace/changes/active/C-51 T-002/T-013; .grace/verification/runtime.xml V-M-011.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT
@@ -15,7 +15,10 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.0.0 - 2026-10-16 C-51 T-002: initial tests.
+//   LAST_CHANGE: v1.1.0 - 2026-10-17 C-51 T-013: rows render no
+//   file-type icon (the name span leads the row) — the FileIcon stub and
+//   the muya fileIcons mock are gone with the component's own import.
+//   v1.0.0 - 2026-10-16 C-51 T-002: initial tests.
 // END_CHANGE_SUMMARY
 
 import { setupTestPinia } from '../../pinia'
@@ -29,10 +32,6 @@ vi.mock('@/bus', () => ({
 
 vi.mock('@/services/notification', () => ({
   default: { notify: vi.fn() }
-}))
-
-vi.mock('muya/lib/ui/fileIcons', () => ({
-  default: { getClassByName: vi.fn(() => 'icon-md') }
 }))
 
 const i18n = createI18n({
@@ -95,7 +94,7 @@ describe('components/sideBar/fileSections.vue (C-51 T-002)', () => {
       attachTo: document.body,
       global: {
         plugins: [setupTestPinia(), i18n],
-        stubs: { FileIcon: true, ChromeIcon: true }
+        stubs: { ChromeIcon: true }
       }
     })
     // recent load → pinned load → per-path stat checks: several async hops.
@@ -110,6 +109,21 @@ describe('components/sideBar/fileSections.vue (C-51 T-002)', () => {
     expect(recent.find('.section-title span').text()).toBe('Recent')
     const names = recent.findAll('.section-file-name').map((n) => n.text())
     expect(names).toEqual(['z-newest.md', 'y-second.md'])
+  })
+
+  it('section rows carry no file-type icon — the name span leads the row (C-51 T-013)', async () => {
+    const wrapper = await mountSections()
+    expect(wrapper.find('.file-icon').exists()).toBe(false)
+    for (const section of ['recent', 'pinned']) {
+      const rows = wrapper.find(`[data-section="${section}"]`).findAll('.section-file')
+      expect(rows.length).toBeGreaterThan(0)
+      for (const row of rows) {
+        const first = row.element.firstElementChild
+        expect(first.tagName).toBe('SPAN')
+        expect(first.className).toContain('section-file-name')
+        expect(row.find('svg').exists()).toBe(false)
+      }
+    }
   })
 
   it('caps the Recent list at 10 entries', async () => {
