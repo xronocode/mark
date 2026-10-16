@@ -533,3 +533,61 @@ describe('StateRender.renderDiagram theming wiring (C-51 T-005)', () => {
     expect(target.textContent).toContain('Invalid Flow Chart')
   })
 })
+
+describe('StateRender.renderDiagram overlapping calls (C-51 T-008)', () => {
+  beforeEach(() => {
+    let release
+    const slowEmbed = vi.fn(() => new Promise((resolve) => { release = resolve }))
+    slowEmbed.release = () => release && release()
+    fakeRenderers = {
+      flowchart: makeFakeFlowchart(),
+      sequence: makeFakeSequence(),
+      plantuml: { parse: vi.fn(() => ({ insertImgElement: vi.fn() })) },
+      'vega-lite': slowEmbed
+    }
+  })
+
+  afterEach(() => {
+    document.body.innerHTML = ''
+    clearRootVars()
+  })
+
+  it('a second call while vega is embedding renders every block only once', async () => {
+    StateRender = (await import('muya/lib/parser/render/index')).default
+    setRootVars(PAPER_VARS, false)
+    const sr = createStateRender()
+    appendPreviewTarget('v1')
+    appendPreviewTarget('s1')
+    sr.diagramCache.set('#v1', { code: JSON.stringify(VEGA_SPEC), functionType: 'vega-lite' })
+    sr.diagramCache.set('#s1', { code: SEQUENCE_CODE, functionType: 'sequence' })
+
+    const first = sr.renderDiagram()
+    const second = sr.renderDiagram()
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    fakeRenderers['vega-lite'].release()
+    await Promise.all([first, second])
+
+    expect(fakeRenderers['vega-lite']).toHaveBeenCalledTimes(1)
+    expect(fakeRenderers.sequence.recorded).toHaveLength(1)
+    expect(sr.diagramCache.size).toBe(0)
+  })
+
+  it('a block queued while vega is embedding is rendered, not dropped', async () => {
+    StateRender = (await import('muya/lib/parser/render/index')).default
+    setRootVars(PAPER_VARS, false)
+    const sr = createStateRender()
+    appendPreviewTarget('v1')
+    appendPreviewTarget('s1')
+    sr.diagramCache.set('#v1', { code: JSON.stringify(VEGA_SPEC), functionType: 'vega-lite' })
+
+    const first = sr.renderDiagram()
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    sr.diagramCache.set('#s1', { code: SEQUENCE_CODE, functionType: 'sequence' })
+    const second = sr.renderDiagram()
+    fakeRenderers['vega-lite'].release()
+    await Promise.all([first, second])
+
+    expect(fakeRenderers.sequence.recorded).toHaveLength(1)
+    expect(document.querySelector('#s1 svg.sequence')).not.toBeNull()
+  })
+})
