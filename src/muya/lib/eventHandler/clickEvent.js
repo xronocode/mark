@@ -1,10 +1,10 @@
 // FILE: src/muya/lib/eventHandler/clickEvent.js
-// VERSION: 1.2.0
+// VERSION: 1.2.1
 // START_MODULE_CONTRACT
 //   PURPOSE: Route clicks inside the muya container — tools, drag bars, images, math, container previews, callouts, footnotes, checkboxes, the C-51 expand button — to contentState actions or eventCenter events.
 //   SCOPE: clickBinding and contextClickBinding only.
 //   DEPENDS: muya/lib/utils (domManipulate, getImageInfo), muya/lib/config, muya/lib/selection, contentState handlers.
-//   LINKS: .grace/graph/runtime.xml M-012; .grace/verification/runtime.xml V-M-012 scenario-19 and scenario-60; .grace/changes/active/C-34 T-002 (BLOCK_CONTAINER_VIEWER_CLICK); C-51 T-006 (BLOCK_EXPAND_BUTTON_CLICK).
+//   LINKS: .grace/graph/runtime.xml M-012; .grace/verification/runtime.xml V-M-012 scenario-19 and scenario-60; .grace/changes/active/C-34 T-002 (BLOCK_CONTAINER_VIEWER_CLICK); C-51 T-006 (BLOCK_EXPAND_BUTTON_CLICK) and T-010.
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT
@@ -14,7 +14,11 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.2.0 - 2026-10-16 C-51 T-006: clicking the persistent
+//   LAST_CHANGE: v1.2.1 - 2026-10-16 C-51 T-010: comment only — the
+//   click path is unchanged and works for every viewable block whether
+//   or not expandNeed.js currently shows the button (the ag-expand-needed
+//   class gates visibility, not the routing).
+//   v1.2.0 - 2026-10-16 C-51 T-006: clicking the persistent
 //   button.ag-block-expand (a figure child) dispatches 'muya-block-viewer'
 //   with the FIGURE — the viewer resolves the preview/table inside it —
 //   and stops the event so the click never moves the caret into the block.
@@ -154,10 +158,12 @@ class ClickEvent {
       }
 
       // START_BLOCK_EXPAND_BUTTON_CLICK
-      // C-51 T-006: the always-visible ⤢ on diagram figures and tables
+      // C-51 T-006/T-010: the expand ⤢ on diagram figures and tables
       // opens the shared fullscreen viewer. The button is a FIGURE child
       // (sibling of the preview/table), so the event carries the figure
       // and the blockViewer plugin resolves the viewable block inside it.
+      // The click works whether or not expandNeed.js currently shows the
+      // button — the class only gates visibility.
       if (expandButton) {
         event.preventDefault()
         event.stopPropagation()

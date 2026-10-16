@@ -1,10 +1,10 @@
 // FILE: tests/renderer/muya/block-expand-button.test.js
-// VERSION: 1.2.0
+// VERSION: 1.4.0
 // START_MODULE_CONTRACT
-//   PURPOSE: Pin the C-51 T-006 always-visible expand button — vnode placement, marker class and localized a11y attrs on every viewable figure, the drawn M-057 glyph (byte-identical to the canonical chromeIcons descriptor), click routing to the muya-block-viewer event, the keyboard guard that leaves Tab/Enter/arrows to the focused button, the canvas CSS literals (30/28 px, insets, reserved corner), and the button never reaching export HTML.
-//   SCOPE: START_BLOCK_EXPAND_BUTTON (renderContainerBlock.js + renderExpandButton.js), START_BLOCK_EXPAND_BUTTON_CLICK (clickEvent.js), START_BLOCK_KEYBOARD_EXPAND_BUTTON (keyboard.js), the C-51 T-006 CSS section of lib/assets/styles/index.css, and ExportHtml.renderHtml.
-//   DEPENDS: StateRender (muya/lib/parser/render/index.js) with a mocked renderer loader, ClickEvent and Keyboard with a real-DOM event-center double, muya snabbdom h, @/components/icons/chromeIcons (the glyph twin), ExportHtml with a mermaid double, node:fs for the CSS read; Vitest + jsdom.
-//   LINKS: .grace/changes/active/C-51 T-006; .grace/verification/runtime.xml V-M-012 scenario-60; tests/e2e/block-viewer.spec.ts for the laid-out behaviour.
+//   PURPOSE: Pin the C-51 T-006/T-010 expand button — vnode placement, marker class and localized a11y attrs on every viewable figure, the drawn M-057 glyph (byte-identical to the canonical chromeIcons descriptor), click routing to the muya-block-viewer event, the keyboard guard that leaves Tab/Enter/arrows AND keyups to the focused button (the keyup selection repair used to steal the focus into the editing host), the copy-icon CSS literals (20 px, 8 px insets, 0/0.5/1 opacity curve, need-gated display, the 44 px strip removed), and the button never reaching export HTML.
+//   SCOPE: START_BLOCK_EXPAND_BUTTON (renderContainerBlock.js + renderExpandButton.js), START_BLOCK_EXPAND_BUTTON_CLICK (clickEvent.js), START_BLOCK_KEYBOARD_EXPAND_BUTTON (keyboard.js, keydown + keyup), the C-51 T-006/T-010 CSS section of lib/assets/styles/index.css, and ExportHtml.renderHtml. The need RULES live in expand-need.test.js.
+//   DEPENDS: StateRender (muya/lib/parser/render/index.js) with a mocked renderer loader, ClickEvent and Keyboard with a real-DOM event-center double, the muya selection singleton (spied for the keyup guard), muya snabbdom h, @/components/icons/chromeIcons (the glyph twin), ExportHtml with a mermaid double, node:fs for the CSS read; Vitest + jsdom.
+//   LINKS: .grace/changes/active/C-51 T-006 and T-010; .grace/verification/runtime.xml V-M-012 scenario-60; tests/e2e/block-viewer.spec.ts for the laid-out behaviour.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT
@@ -22,11 +22,30 @@
 //   StateRender - test fixture / helper.
 //   cleanups - test fixture / helper.
 //   keydown - test fixture / helper.
+//   keyup - test fixture / helper.
 //   t - test fixture / helper.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.2.0 - 2026-10-16 C-51 T-006 canvas rework, review pass:
+//   LAST_CHANGE: v1.4.0 - 2026-10-16 C-51 T-010: keyup guard cases — a
+//   keyup targeted at the focused expand button must not run muya's
+//   selection machinery (getCursorRange's needFix repair calls
+//   setCursorRange → Selection.addRange inside the contenteditable, and
+//   Chromium/WebKit then focus the editing host itself — silently in
+//   Chromium — which stole the button focus after the viewer's Esc close
+//   and mid Tab-walk over the needing blocks). Both cases fail without
+//   the keyboard.js keyup guard.
+//   v1.3.0 - 2026-10-16 C-51 T-010 (D-7): the render/click/
+//   keyboard/glyph/export cases are unchanged (the vnode still renders on
+//   every viewable figure); the CSS pins follow the copy-icon restyle —
+//   20 px square at top/right 8 px, border none, background transparent,
+//   radius 4, var(--iconColor) glyph, opacity 0 / 0.5 (figure hover) / 1
+//   (button hover + :focus-visible), display:none unless the figure has
+//   ag-expand-needed (not a Tab stop without it), hide on .ag-active, the
+//   pencil shift scoped to ag-has-expand.ag-expand-needed, the table
+//   placement in the top-margin band (top:-22px, right:0), and the T-006
+//   44 px strips + body.compact-block-tools rules gone.
+//   v1.2.0 - 2026-10-16 C-51 T-006 canvas rework, review pass:
 //   vnode attrs read from vnode.data.attrs (snabbdom shape — the v1.1.0
 //   draft read .attrs directly and would have thrown); added the CSS
 //   literal pins (30/28 px, 10 px insets, radius 8/7, 0.85 rest opacity,
@@ -49,6 +68,7 @@ import { dirname, resolve } from 'node:path'
 import { h } from 'muya/lib/parser/render/snabbdom'
 import ClickEvent from 'muya/lib/eventHandler/clickEvent'
 import Keyboard from 'muya/lib/eventHandler/keyboard'
+import selection from 'muya/lib/selection'
 import { EXPAND_ICON_PATH } from 'muya/lib/parser/render/renderBlock/renderExpandButton'
 import { CHROME_ICONS } from '@/components/icons/chromeIcons'
 import ExportHtml from 'muya/lib/utils/exportHtml'
@@ -213,9 +233,15 @@ const keydown = (el, init) => {
   el.dispatchEvent(event)
   return event
 }
+
+const keyup = (el, init) => {
+  const event = new KeyboardEvent('keyup', { bubbles: true, cancelable: true, ...init })
+  el.dispatchEvent(event)
+  return event
+}
 // END_BLOCK_EXPAND_BUTTON_EVENT_HARNESSES
 
-describe('always-visible expand button (C-51 T-006)', () => {
+describe('expand button render + routing (C-51 T-006/T-010)', () => {
   // START_BLOCK_EXPAND_BUTTON_RENDER_ASSERTIONS
   it('renders button.ag-block-expand on every diagram figure with non-empty source', async () => {
     const sr = await createStateRender()
@@ -236,7 +262,7 @@ describe('always-visible expand button (C-51 T-006)', () => {
     }
   })
 
-  it('renders the button on the table figure as a direct child, outside the scroll wrapper', async () => {
+  it('renders the button on the table figure as a direct child before and outside the scroll wrapper', async () => {
     const sr = await createStateRender()
     const { figure } = makeTableBlocks()
     const figureVnode = sr.renderBlock(null, figure, [], {}, false, t)
@@ -245,9 +271,15 @@ describe('always-visible expand button (C-51 T-006)', () => {
     const { button, index } = findExpandButtonVnode(figureVnode)
     expect(button, 'the table figure must carry the expand button').toBeTruthy()
     const children = figureVnode.children || []
-    expect(children[index - 1].sel).toBe('div.ag-table-scroll')
+    // FIRST figure child, before the C-39 scroll wrapper: Chromium makes an
+    // overflowing wrapper a keyboard-focusable scroller, and the button must
+    // come before it in Tab order (C-51 T-010 orchestrator fix).
+    const wrapperIndex = children.findIndex((v) => v.sel === 'div.ag-table-scroll')
+    expect(wrapperIndex, 'the table figure keeps its scroll wrapper').toBeGreaterThan(-1)
+    expect(index, 'the button precedes the scroll wrapper').toBeLessThan(wrapperIndex)
+    const wrapper = children[wrapperIndex]
     // Not nested inside the wrapper: table clicks/drag stay first-class.
-    expect(findVnode(children[index - 1], (v) => v.sel === 'button.ag-block-expand')).toBeNull()
+    expect(findVnode(wrapper, (v) => v.sel === 'button.ag-block-expand')).toBeNull()
   })
 
   it('renders no button for html / multiplemath figures, empty diagrams, or plain blocks', async () => {
@@ -347,42 +379,104 @@ describe('always-visible expand button (C-51 T-006)', () => {
     keydown(muya.container, { key: 'Tab' })
     expect(muya.contentState.tabHandler).toHaveBeenCalledTimes(1)
   })
+
+  it('keyups on the focused button never reach the selection machinery (the button keeps the focus)', () => {
+    const muya = createKeyboardHarness()
+    const button = document.createElement('button')
+    button.className = 'ag-block-expand'
+    button.setAttribute('contenteditable', 'false')
+    muya.container.appendChild(button)
+    muya.container.classList.add('ag-meta-or-ctrl')
+
+    // The keyup handler's selection repair is what moved the browser
+    // focus into the editing host after the viewer's Esc close (both
+    // engines) and during the Tab walk over the needing blocks
+    // (Chromium): getCursorRange's needFix branch calls setCursorRange →
+    // Selection.addRange inside the contenteditable, and the browser
+    // then focuses the editing host — Chromium without focus events.
+    const getCursorRange = vi.spyOn(selection, 'getCursorRange')
+    cleanups.push(() => getCursorRange.mockRestore())
+
+    keyup(button, { key: 'Escape' })
+    keyup(button, { key: 'Tab' })
+    expect(getCursorRange).not.toHaveBeenCalled()
+    expect(muya.eventCenter.dispatch).not.toHaveBeenCalledWith(
+      'muya-emoji-picker',
+      expect.anything()
+    )
+    // The Cmd/Ctrl modifier-class cleanup still runs before the guard.
+    expect(muya.container.classList.contains('ag-meta-or-ctrl')).toBe(false)
+
+    // Scoped to the button: an editor keyup still runs the machinery.
+    keyup(muya.container, { key: 'a' })
+    expect(getCursorRange).toHaveBeenCalledTimes(1)
+  })
   // END_BLOCK_EXPAND_BUTTON_KEYBOARD_ASSERTIONS
 })
 
 // START_BLOCK_EXPAND_BUTTON_CSS_ASSERTIONS
-describe('expand button CSS (C-51 T-006, canvas Mermaid/Main)', () => {
+describe('expand button CSS (C-51 T-010, copy-icon look of .ag-code-copy)', () => {
   const css = readFileSync(
     resolve(dirname(fileURLToPath(import.meta.url)), '../../../src/muya/lib/assets/styles/index.css'),
     'utf8'
   )
 
-  it('pins the canvas look: 30 px rounded square, 10 px insets, subtle at rest', () => {
+  it('pins the 20 px copy-icon look: 8 px insets (the copy-icon 0.5em at 16 px; em would resolve against the button font-size: 0), no border, no background, radius 4', () => {
     expect(css).toContain('figure > button.ag-block-expand {')
-    expect(css).toContain('--ag-block-expand-size: 30px')
-    expect(css).toContain('top: 10px')
-    expect(css).toContain('right: 10px')
-    expect(css).toContain('border-radius: 8px')
-    expect(css).toContain('opacity: 0.85')
+    // All geometry pins live inside the button's own base rule — the same
+    // literals appear in .ag-code-copy, so a bare toContain would match it.
+    const base = css.split('figure > button.ag-block-expand {')[1].split('}')[0]
+    expect(base).toContain('width: 20px')
+    expect(base).toContain('height: 20px')
+    expect(base).toContain('top: 8px')
+    expect(base).toContain('right: 8px')
+    expect(base).toContain('border: none')
+    expect(base).toContain('border-radius: 4px')
+    expect(base).toContain('background: transparent')
+    expect(base).toContain('color: var(--iconColor)')
   })
 
-  it('pins the compact variant: 28 px, radius 7', () => {
-    expect(css).toContain('body.compact-block-tools figure > button.ag-block-expand {')
-    expect(css).toContain('--ag-block-expand-size: 28px')
-    expect(css).toContain('border-radius: 7px')
+  it('pins the visibility curve: 0 at rest, 0.5 on figure hover, 1 on button hover and keyboard focus', () => {
+    // Every value is pinned inside its own rule — bare literals like
+    // 'opacity: 0.5;' also appear in the .ag-code-copy rules.
+    const base = css.split('figure > button.ag-block-expand {')[1].split('}')[0]
+    expect(base).toContain('opacity: 0')
+    const figureHover = css.split('figure.ag-expand-needed:hover > button.ag-block-expand {')[1].split('}')[0]
+    expect(figureHover).toContain('opacity: 0.5')
+    expect(css).toContain('figure.ag-expand-needed > button.ag-block-expand:hover,')
+    const solid = css.split('figure.ag-expand-needed > button.ag-block-expand:focus-visible {')[1].split('}')[0]
+    expect(solid).toContain('opacity: 1')
   })
 
-  it('pins the reserved corner: the 44 px strip on the preview and the table figure', () => {
-    expect(css).toContain('figure.ag-has-expand:not(.ag-active) > div.ag-container-preview {')
-    expect(css).toContain('padding-top: 44px')
-    expect(css).toContain("figure[data-role='TABLE'].ag-has-expand {")
-    expect(css).toContain("figure[data-role='TABLE'].ag-has-expand > .ag-tool-bar {")
-  })
-
-  it('pins the active-state handover and the edit-pencil shift', () => {
+  it('pins the need gate: display:none unless ag-expand-needed, still hidden while editing', () => {
+    expect(css).toContain('figure.ag-expand-needed > button.ag-block-expand {')
     expect(css).toContain('figure.ag-active > button.ag-block-expand {')
-    expect(css).toContain('figure.ag-has-expand .ag-container-icon {')
-    expect(css).toContain('right: 50px')
+    // display:none is the default (declared in the base rule) — the gate
+    // rule must not re-declare it for every figure, only the flex reveal.
+    const base = css.split('figure > button.ag-block-expand {')[1].split('}')[0]
+    expect(base).toContain('display: none')
+    const gate = css.split('figure.ag-expand-needed > button.ag-block-expand {')[1].split('}')[0]
+    expect(gate).toContain('display: flex')
+  })
+
+  it('pins the T-006 reserved strip removed and the compact variant gone', () => {
+    expect(css).not.toContain('padding-top: 44px')
+    expect(css).not.toContain('compact-block-tools')
+    expect(css).not.toContain('--ag-block-expand-size')
+    // The table tools bar keeps its original pre-T-006 band.
+    expect(css).not.toContain(".ag-has-expand > .ag-tool-bar {")
+  })
+
+  it('pins the pencil shift scoped to figures that need the button, and the table placement clear of the header', () => {
+    expect(css).toContain('figure.ag-has-expand.ag-expand-needed .ag-container-icon {')
+    expect(css).toContain('right: 2.2em;')
+    // Tables: above the table's top-right corner, in the existing margin
+    // band the tools bar uses — never over header text / the resize zone.
+    // (top: -22px also lives in the .ag-tool-bar rule — pin it inside the
+    // button's own table rule.)
+    const tableRule = css.split("figure[data-role='TABLE'].ag-expand-needed > button.ag-block-expand {")[1].split('}')[0]
+    expect(tableRule).toContain('top: -22px')
+    expect(tableRule).toContain('right: 0')
   })
 })
 // END_BLOCK_EXPAND_BUTTON_CSS_ASSERTIONS

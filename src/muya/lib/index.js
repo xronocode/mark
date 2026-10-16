@@ -1,10 +1,10 @@
 // FILE: src/muya/lib/index.js
-// VERSION: 1.5.0
+// VERSION: 1.6.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Muya editor entry class — construction, options, and the public API surface other modules call.
-//   SCOPE: Class construction/init, markdown IO (get/set), export helpers, clipboard accessors, public editing commands, the C-38 code-block line-number refresh entry, and the C-39 T-002 session table column resize store (muya.tableResize).
-//   DEPENDS: contentState, event handlers (clipboard/keyboard/mouse/click/dragDrop/resize), tableResize, utils (ExportMarkdown/ExportHtml), ui plugins.
-//   LINKS: .grace/graph/runtime.xml M-012 fn-getCopyData and fn-tableResize; .grace/verification/runtime.xml V-M-012 scenario-14, scenario-20 and scenario-21; C-3; C-38 T-005; C-39 T-002.
+//   SCOPE: Class construction/init, markdown IO (get/set), export helpers, clipboard accessors, public editing commands, the C-38 code-block line-number refresh entry, the C-39 T-002 session table column resize store (muya.tableResize), and destroy() teardown incl. the C-51 T-010 expand-need observation release.
+//   DEPENDS: contentState, event handlers (clipboard/keyboard/mouse/click/dragDrop/resize), tableResize, parser/render/renderBlock/expandNeed (observation release), utils (ExportMarkdown/ExportHtml), ui plugins.
+//   LINKS: .grace/graph/runtime.xml M-012 fn-getCopyData and fn-tableResize; .grace/verification/runtime.xml V-M-012 scenario-14, scenario-20 and scenario-21; C-3; C-38 T-005; C-39 T-002; C-51 T-010.
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT
@@ -16,7 +16,11 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.5.0 - 2026-10-15 C-39 T-002: the constructor creates
+//   LAST_CHANGE: v1.6.0 - 2026-10-16 C-51 T-010: destroy() releases this
+//   editor's figures from the shared expand-need ResizeObserver (the
+//   observer serves every muya instance; only this container's figures
+//   are dropped).
+//   v1.5.0 - 2026-10-15 C-39 T-002: the constructor creates
 //   muya.tableResize (TableResize) before the first render — session-only
 //   column widths keyed by table block key, with the drag/double-click
 //   interaction on header-border handles. No teardown method: its container
@@ -42,6 +46,7 @@ import DragDrop from './eventHandler/dragDrop'
 import Resize from './eventHandler/resize'
 import ClickEvent from './eventHandler/clickEvent'
 import TableResize from './tableResize'
+import { releaseExpandNeedObservations } from './parser/render/renderBlock/expandNeed'
 import { CLASS_OR_ID, MUYA_DEFAULT_OPTION } from './config'
 import { wordCount, debounce } from './utils'
 import ExportMarkdown from './utils/exportMarkdown'
@@ -618,6 +623,9 @@ class Muya {
     // C-38 T-005: the resize handler owns window/container listeners that
     // outlive the editor DOM (split-view instances come and go).
     this.resize.destroy()
+    // C-51 T-010: drop this editor's figures from the shared expand-need
+    // ResizeObserver (other muya instances keep their observations).
+    releaseExpandNeedObservations(this.container)
     this.eventCenter.detachAllDomEvents()
   }
 }

@@ -1,5 +1,5 @@
 // FILE: tests/e2e/zoom.spec.ts
-// VERSION: 1.0.0
+// VERSION: 1.0.1
 // START_MODULE_CONTRACT
 //   PURPOSE: End-to-end pin of the C-49 unified zoom — ⌘+ scales p / td / code / KaTeX AND the Mermaid SVG (width + labels, still inside the column), ⌘0 restores the Settings base size, the transient pill appears, and Ctrl+wheel inside the fullscreen block viewer never changes the editor font size.
 //   SCOPE: zoom.spec.ts only; keyboard/wheel zoom against the built renderer (tauri-shim bootstrap, same as block-viewer.spec.ts).
@@ -19,7 +19,9 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.0.0 - 2026-10-15 C-49 T-001: initial spec. The
+//   LAST_CHANGE: v1.0.1 - 2026-10-17 C-51 T-010: the viewer opens through
+//   Cmd/Ctrl+click — small diagrams have no visible expand button (D-7).
+//   v1.0.0 - 2026-10-15 C-49 T-001: initial spec. The
 //   diagram/indicator cases fail without the C-49 changes (mermaid SVGs kept
 //   a fixed max-width and no pill existed); ⌘0 would reset to a hard 16
 //   instead of the persisted base.
@@ -284,7 +286,9 @@ test.describe('unified zoom (C-49)', () => {
     await preview.waitFor({ state: 'visible', timeout: 20_000 })
     const fontBefore = await editorFontSizePx(page)
 
-    await page.locator('figure[data-role="MERMAID"] > button.ag-block-expand').first().click()
+    // C-51 T-010 (D-7): a small diagram has no visible expand button —
+    // Cmd/Ctrl+click on the preview opens the viewer for any block.
+    await preview.click({ modifiers: [process.platform === 'darwin' ? 'Meta' : 'Control'] })
     await expect(page.locator('.ag-block-viewer')).toHaveClass(/ag-block-viewer-open/)
     await page.waitForTimeout(250)
 

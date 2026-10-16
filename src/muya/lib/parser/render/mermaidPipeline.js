@@ -1,10 +1,10 @@
 // FILE: src/muya/lib/parser/render/mermaidPipeline.js
-// VERSION: 2.0.0
+// VERSION: 2.1.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Resilient Mermaid render pipeline (C-34 R2.1) — LRU SVG cache keyed by code+theme-signature hash, keep-last-good rendering with escaped error text, per-block ~250 ms debounce while typing, unique render ids from a module counter, WKWebView CSP style hoisting, C-49 fontSize-proportional diagram scaling via the --mark-zoom custom property, and C-51 theming from the active app theme (per-diagram-type mermaid.initialize before each sequential render).
-//   SCOPE: createMermaidPipeline factory plus cache/LRU, hash, debounce, insert (incl. natural-width capture), error, and orphan-cleanup helpers; targets are resolved by selector at each flush so re-patched DOM is always current.
-//   DEPENDS: muya/lib/renderers (loadRenderer, injectable), muya/lib/config (CLASS_OR_ID), ./mermaidTheme (readActiveThemeTokens, detectMermaidDiagramType, buildMermaidThemeConfig, mermaidThemeSignature).
-//   LINKS: .grace/changes/active/C-34 R2.1; .grace/changes/active/C-49 R-1; .grace/changes/active/C-51 T-003/T-004; .grace/graph/runtime.xml M-012; .grace/verification/runtime.xml V-M-012 scenario-9.
+//   SCOPE: createMermaidPipeline factory plus cache/LRU, hash, debounce, insert (incl. natural-width capture and the C-51 T-010 expand-need re-evaluation), error, and orphan-cleanup helpers; targets are resolved by selector at each flush so re-patched DOM is always current.
+//   DEPENDS: muya/lib/renderers (loadRenderer, injectable), muya/lib/config (CLASS_OR_ID), ./mermaidTheme (readActiveThemeTokens, detectMermaidDiagramType, buildMermaidThemeConfig, mermaidThemeSignature), ./renderBlock/expandNeed (updateFigureExpandNeed after every insert).
+//   LINKS: .grace/changes/active/C-34 R2.1; .grace/changes/active/C-49 R-1; .grace/changes/active/C-51 T-003/T-004 and T-010; .grace/graph/runtime.xml M-012; .grace/verification/runtime.xml V-M-012 scenario-9 and scenario-60.
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT
@@ -17,7 +17,12 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v2.0.0 - 2026-10-16 C-51 T-003/T-004: mermaid follows the
+//   LAST_CHANGE: v2.1.0 - 2026-10-16 C-51 T-010 (D-7): insertSvg runs
+//   updateFigureExpandNeed on the preview after every insert (first
+//   render, cache hit, keep-last-good), so the ag-expand-needed class —
+//   and with it the expand button — appears exactly when the drawn size
+//   benefits from the fullscreen viewer.
+//   v2.0.0 - 2026-10-16 C-51 T-003/T-004: mermaid follows the
 //   active app theme. Theme tokens are read at render time from the
 //   document's CSS variables (mermaidTheme.js) and the cache key uses the
 //   tokens+palette signature instead of the coarse 'dark'/'default' pair,
@@ -42,6 +47,7 @@ import {
   mermaidThemeSignature,
   postProcessMermaidSvg
 } from './mermaidTheme'
+import { updateFigureExpandNeed } from './renderBlock/expandNeed'
 
 export const MERMAID_PREVIEW_CLASS = 'ag-mermaid-preview'
 export const MERMAID_ERROR_CLASS = 'ag-mermaid-error'
@@ -217,6 +223,10 @@ export const createMermaidPipeline = ({
     applyZoomableMaxWidth(target.querySelector('svg'))
     target.classList.add(MERMAID_PREVIEW_CLASS)
     target.classList.remove(CLASS_OR_ID.AG_MATH_ERROR)
+    // C-51 T-010: the just-inserted size decides whether the figure
+    // benefits from the fullscreen viewer (scaled/tall → the
+    // ag-expand-needed class that shows the expand button).
+    updateFigureExpandNeed(target)
   }
   // END_BLOCK_MERMAID_INSERT
 

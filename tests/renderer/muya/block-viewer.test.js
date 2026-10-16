@@ -1,10 +1,10 @@
 // FILE: tests/renderer/muya/block-viewer.test.js
-// VERSION: 2.0.1
+// VERSION: 2.1.0
 // START_MODULE_CONTRACT
-//   PURPOSE: Pin the shared fullscreen block viewer (C-34 R2.2 + C-39 T2 + C-51 T-006): open/close lifecycle, Esc close with focus restore, panzoom destruction, read-only table clones, block resolution from preview/table/figure elements (the persistent expand button dispatches the figure), wheel/keyboard zoom routing, and the focus trap.
+//   PURPOSE: Pin the shared fullscreen block viewer (C-34 R2.2 + C-39 T2 + C-51 T-006/T-010): open/close lifecycle, Esc close with focus restore (including the live-button re-assert when a re-render replaces the figure during the window), panzoom destruction, read-only table clones, block resolution from preview/table/figure elements (the persistent expand button dispatches the figure), wheel/keyboard zoom routing, and the focus trap.
 //   SCOPE: BlockViewer in src/muya/lib/ui/blockViewer/index.js with @panzoom/panzoom mocked.
 //   DEPENDS: src/muya/lib/ui/blockViewer, src/muya/lib/eventHandler/event (real EventCenter), Vitest + jsdom.
-//   LINKS: .grace/changes/active/C-34 T-002; .grace/changes/active/C-39 T2; .grace/changes/active/C-51 T-006; .grace/verification/runtime.xml V-M-012 scenario-19 and scenario-60; START_BLOCK_VIEWER_*.
+//   LINKS: .grace/changes/active/C-34 T-002; .grace/changes/active/C-39 T2; .grace/changes/active/C-51 T-006 and T-010; .grace/verification/runtime.xml V-M-012 scenario-19 and scenario-60; START_BLOCK_VIEWER_*.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT
@@ -23,7 +23,12 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v2.0.1 - 2026-10-16 C-51 T-006 review: added the role-gate
+//   LAST_CHANGE: v2.1.0 - 2026-10-16 C-51 T-010: the close() re-asserts
+//   resolve the LIVE expand button from returnFocusFigureId — new case
+//   replaces the figure's button inside the 0/50 ms window and expects
+//   the replacement focused (fails against the captured-element version,
+//   whose focus() on the detached node was a silent no-op).
+//   v2.0.1 - 2026-10-16 C-51 T-006 review: added the role-gate
 //   case — math (KaTeX svg) and html (img) previews never resolve, on
 //   either the figure path or the Cmd/Ctrl+click preview path (the first
 //   draft accepted them via the content-only check).
@@ -251,6 +256,44 @@ describe('block viewer (C-34 R2.2 + C-39 T2 + C-51 T-006)', () => {
     expect(panzoom.destroy).toHaveBeenCalledOnce()
     expect(v.canvas.querySelector('svg')).toBeNull()
     expect(document.activeElement).toBe(origin)
+  })
+
+  it('Esc restore re-resolves the LIVE expand button — a re-render inside the window must not lose the focus', () => {
+    const { viewer: v, container } = createHarness()
+    viewer = v
+    const figure = document.createElement('figure')
+    figure.id = 'fig-live'
+    figure.setAttribute('data-role', 'MERMAID')
+    const preview = document.createElement('div')
+    preview.className = 'ag-container-preview'
+    preview.appendChild(document.createElementNS('http://www.w3.org/2000/svg', 'svg'))
+    const button = document.createElement('button')
+    button.className = 'ag-block-expand'
+    figure.appendChild(preview)
+    figure.appendChild(button)
+    container.appendChild(figure)
+
+    button.focus()
+    v.openFromElement(figure)
+    expect(v.viewerEl.classList.contains('ag-block-viewer-open')).toBe(true)
+    expect(v.returnFocusFigureId).toBe('fig-live')
+
+    keydown(v.stage, { key: 'Escape' })
+    expect(v.viewerEl.classList.contains('ag-block-viewer-open')).toBe(false)
+    expect(document.activeElement).toBe(button)
+
+    // A re-render while the 0/50 ms re-assert window is open replaces the
+    // figure's button (the closing key's keyup could trigger a partial
+    // render). The captured element goes detached — the re-asserts must
+    // resolve and focus the LIVE button, or the editor keeps the focus.
+    const replacement = document.createElement('button')
+    replacement.className = 'ag-block-expand'
+    button.remove()
+    figure.appendChild(replacement)
+    expect(document.activeElement).not.toBe(replacement)
+
+    vi.advanceTimersByTime(60)
+    expect(document.activeElement).toBe(replacement)
   })
 
   it('the table clone is read-only: no contenteditable, drag handlers, tool bars, or duplicate ids', () => {

@@ -5525,8 +5525,13 @@
           pans diagrams and natively scrolls capped tables so the sticky
           header works, keys + = − _ 0 (fit) 1 (100%) zoom, Esc closes,
           close button and backdrop click close; focus is trapped inside
-          while open (Tab cycling) and restored to the editor on close;
-          entry points are the C-51 T-006 always-visible expand button
+          while open (Tab cycling) and restored on close to the element
+          that had it at open — the C-51 expand button when it opened the
+          viewer (close() re-asserts re-resolve the LIVE button from
+          returnFocusFigureId so a re-render inside the window cannot
+          detach the restore target; the Esc keyup itself is left to the
+          button by the keyboard.js keyup guard, see scenario-60);
+          entry points are the C-51 T-006/T-010 need-gated expand button
           (scenario-60) and Cmd/Ctrl+click on a diagram preview, which
           opens the viewer (clickEvent.js
           START_BLOCK_CONTAINER_VIEWER_CLICK) while a plain click still
@@ -5538,13 +5543,15 @@
           click end-to-end in tests/e2e/block-viewer.spec.ts.
         </Scenario>
         <Scenario>
-          scenario-60: Always-visible expand button (C-51 T-006 R-4, spec
-          problem «the diagram toolbar with the expand button appears only
-          on hover»; renderContainerBlock.js START_BLOCK_EXPAND_BUTTON +
-          renderExpandButton.js + clickEvent.js
-          START_BLOCK_EXPAND_BUTTON_CLICK + keyboard.js
-          START_BLOCK_KEYBOARD_EXPAND_BUTTON + the C-51 T-006 CSS section
-          of lib/assets/styles/index.css): every viewable figure —
+          scenario-60: Expand button (C-51 T-006 R-4 + the T-010 D-7
+          restyle, user 2026-10-16 live smoke «не нравится что стрелка
+          увеличить показывается даже для малых таблиц и диаграмм… я бы
+          хотел чтобы она была похожа на иконку копировать»;
+          renderContainerBlock.js START_BLOCK_EXPAND_BUTTON +
+          renderExpandButton.js + parser/render/renderBlock/expandNeed.js +
+          clickEvent.js START_BLOCK_EXPAND_BUTTON_CLICK + keyboard.js
+          START_BLOCK_KEYBOARD_EXPAND_BUTTON + the C-51 T-006/T-010 CSS
+          section of lib/assets/styles/index.css): every viewable figure —
           mermaid, flowchart, sequence, plantuml and vega-lite diagrams
           with non-empty source (the same `code === ''` rule as the empty
           placeholder) and tables, nothing else (html/multiplemath
@@ -5552,56 +5559,82 @@
           button.ag-block-expand as a DIRECT FIGURE CHILD plus the
           ag-has-expand marker, so the button survives the mermaid
           pipeline's innerHTML inserts and every snabbdom re-patch by
-          construction (no post-render DOM pass; export/print never see
-          it). Look (canvas Mermaid/Main): a 30 px rounded square (radius
-          8, 28 px under body.compact-block-tools) inset 10 px at the
-          figure's top-right, theme surface background, ~0.85 opacity at
-          rest, solid on hover and :focus-visible; the corner is RESERVED
-          (never covers content): diagram previews get padding-top 44 px
-          and table figures the same strip as figure padding, so the SVG
-          slab, the C-39 scroll wrapper, drag bars and the last column's
-          resize handle keep their geometry (the centred table tools bar
-          moves into the strip; the hover edit pencil moves 40 px left);
-          while a diagram source is edited (figure.ag-active) the button
-          hides like the pencil. The glyph is the drawn M-057 «expand»
-          (two outward corner brackets + the diagonal) rendered inline —
-          EXPAND_ICON_PATH is byte-identical to
-          chromeIcons.CHROME_ICONS.expand (the canonical M-057 drawing,
-          C-51 T-006 addition). A11y: tabindex=0 keyboard Tab stop with
-          t('blockViewer.expand') as title + aria-label (the key already
-          ships in all ten locales, no locale delta); keyboard.js leaves
-          keys to the focused button — Tab moves focus natively (the
-          editor tabHandler would preventDefault and indent),
-          Enter/Space click (enterHandler would split a block;
-          arrowHandler would crash on its null-paragraph lookup from the
-          non-editable button). Clicking dispatches muya-block-viewer
-          with the FIGURE; the viewer resolves the preview/table downward,
-          role-gated (math/html previews never resolve, either from the
-          figure or the Cmd/Ctrl+click preview path) and refuses figures
-          whose preview has no rendered content. The C-34/C-39 hover/caret
-          toolbar and its selectionChange/scroll/resize machinery are
-          gone. Unit-pinned in
+          construction (export/print never see it). VISIBILITY IS
+          NEED-GATED (T-010): expandNeed.js toggles ag-expand-needed —
+          diagrams when the rendered SVG/img is drawn ≥ 2 px narrower
+          than its natural size (SVG viewBox / px width attribute —
+          percentages are the CSS stretch, not a size — or the img's
+          naturalWidth) or the preview is taller than 600 px; tables when
+          the C-39 scroll wrapper overflows (scrollWidth &gt; clientWidth
+          + 1) or the table is taller than 600 px. Without the class the
+          button is display:none — invisible and NOT a Tab stop (focus()
+          is a no-op). Re-evaluated after every StateRender render path
+          (render/partialRender/singleRender run syncExpandNeed), after
+          every mermaid pipeline insertSvg (first render, cache hit,
+          keep-last-good) and every renderDiagram insert (re-resolved
+          after the awaited vega embed), and on figure resize through ONE
+          shared ResizeObserver across muya instances (observe new
+          figures, unobserve the ones that left the DOM; Muya.destroy
+          releases its container's figures; no ResizeObserver — jsdom —
+          degrades to render-time evaluation). Verdict flips log
+          [Muya][expandNeed][BLOCK_EXPAND_NEED blockKey needed] (debug,
+          no content). Look (D-7): the code-block copy icon
+          (.ag-code-copy) — a 20 px square with the 16 px drawn M-057
+          glyph (EXPAND_ICON_PATH byte-identical to
+          chromeIcons.CHROME_ICONS.expand), absolute inside the figure at
+          top/right 0.5em, no border, no background, radius 4, colour
+          var(--iconColor); opacity 0 at rest, 0.5 while the figure is
+          hovered, 1 on the button's own hover and :focus-visible. The
+          T-006 reserved 44 px strips are GONE (diagram preview and table
+          figure padding) and body.compact-block-tools rules are removed;
+          the centred table tools bar keeps its original top:-22px band.
+          Tables place the icon in that same band above the table's
+          top-right corner, so it can never cover header text or the last
+          column's resize hit zone (and it hides while .ag-active, when
+          the tools bar shows); the hover edit pencil moves to right
+          2.2em only on figures that need the button. A11y: tabindex=0
+          with t('blockViewer.expand') as title + aria-label (all ten
+          locales); keyboard.js leaves keys to the focused button on
+          keydown AND keyup (isExpandButtonEvent — Tab moves focus
+          natively, Enter/Space click; the KEYUP guard added by T-010
+          keeps the handler's selection repair from a button-focused
+          state: getCursorRange needFix → setCursorRange →
+          Selection.addRange inside the contenteditable makes the browser
+          focus the editing host — silently in Chromium — which stole the
+          button focus after the viewer's Esc close and mid Tab-walk over
+          the needing blocks; unit-pinned by the keyup-guard case in
+          tests/renderer/muya/block-expand-button.test.js). Clicking
+          dispatches
+          muya-block-viewer with the FIGURE (role-gated resolution);
+          Cmd/Ctrl+click on a diagram preview still opens the viewer for
+          EVERY viewable block regardless of the need class (D-7 keeps
+          the path). Unit-pinned in
           tests/renderer/muya/block-expand-button.test.js (render on the
           five diagram figures + table figure incl. attrs/tabindex/marker
           and outside the scroll wrapper; html/math/empty/negatives; the
-          glyph twin-pin; the click dispatch with defaultPrevented and no
-          contentState routing; the keyboard guard with a Tab-on-editor
-          control case; the canvas CSS literal pins — 30/28 px, 10 px
-          insets, radius 8/7, 0.85 rest opacity, the 44 px reserved corner
-          on the preview and the table figure, the tool-bar strip,
-          hide-on-active and the pencil shift; and the export case —
-          ExportHtml.renderHtml output carries no ag-block-expand /
-          ag-has-expand markup) and tests/renderer/muya/block-viewer.test.js
-          (figure-based resolution incl. plantuml's img, the table figure
-          and the role gate). End-to-end in tests/e2e/block-viewer.spec.ts
-          (chromium + the webkit-block-viewer project): one button per
-          viewable figure with the localized aria-label and none for the
-          fence/paragraph, geometry never intersects the SVG/table (and
-          the table last-column handle stays draggable), the canvas look
-          (30 px, radius 8, 10 px insets, opacity ≥ 0.6 at rest → 1 on
-          hover, paper vs ink colours), Tab/Shift+Tab move focus between
-          the buttons natively, focus + Enter opens the viewer and Esc
-          restores the button focus, light/dark screenshots.
+          glyph twin-pin; the click dispatch; the keyboard guard; the
+          copy-icon CSS literal pins incl. the 44 px strip and compact
+          rules gone; the export case) and tests/renderer/muya/expand-need.test.js
+          (pure rules with the 2/1/400 thresholds; DOM gathering incl.
+          viewBox priority, percentage rejection, img naturalWidth, empty
+          preview, table wrapper overflow, the class flip + log anchor;
+          syncExpandNeed without ResizeObserver; the shared observer
+          observe/unobserve/release). End-to-end in
+          tests/e2e/block-viewer.spec.ts (chromium + the
+          webkit-block-viewer project): small mermaid/table have no
+          visible button and no Tab stop (display none, focus() no-op);
+          a wide flowchart and wide/tall tables get it — hidden at rest
+          (opacity 0), ≥ 0.4 on figure hover, 1 on button hover and
+          keyboard focus, ≤ 22 px and inside the figure (diagrams) / in
+          the band above the table clear of the header text and the
+          last-column resize handle, which still drags; narrowing the
+          viewport until a diagram scales adds the button; clicking it
+          opens the viewer; focusing it and pressing Enter opens the
+          viewer and Esc returns focus TO THE BUTTON; Tab walks the
+          needing blocks' buttons in document order (mermaid → flowchart
+          → wide table, hidden small-block buttons skipped, Shift+Tab
+          back); Cmd/Ctrl+click on a small diagram still
+          opens the viewer; light/dark screenshots.
         </Scenario>
         <Scenario>
           scenario-20: Code-block line numbers fixed and opt-in (C-38 T-005,
@@ -5861,6 +5894,10 @@
         <Marker>[Muya][blockViewer][BLOCK_VIEWER_OPEN]</Marker>
         <Marker>[Muya][blockViewer][BLOCK_VIEWER_FIT]</Marker>
         <Marker>[Muya][blockViewer][BLOCK_VIEWER_CLOSE]</Marker>
+        <!-- C-51 T-010 expand-need verdict flip (no content in the payload). -->
+        <Marker>
+          [Muya][expandNeed][BLOCK_EXPAND_NEED blockKey=&lt;key&gt; needed=&lt;bool&gt;]
+        </Marker>
         <!-- C-39 T-002 session-only table column resize. -->
         <Marker>
           [Muya][tableResize][BLOCK_COLUMN_RESIZED table=&lt;key&gt; col=&lt;i&gt;
