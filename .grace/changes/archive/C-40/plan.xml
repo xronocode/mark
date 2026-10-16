@@ -1,4 +1,4 @@
-<GraceChangePlan graceVersion='4.0' status='approved'>
+<GraceChangePlan graceVersion='4.0' status='applied'>
 <C-40>
   <ChangeRef>C-40</ChangeRef>
   <Created>2026-10-15</Created>
@@ -13,6 +13,7 @@
       <DependsOn></DependsOn>
       <AcceptanceCriteria><Criterion>Spec goals in scope met; unit + e2e tests incl. corner cases; all strings in 10 locales (.json + .min.json).</Criterion></AcceptanceCriteria>
       <Verification><Command>npm test</Command><Command>grace lint --path . --assertions current</Command></Verification>
+      <Status>done</Status>
     </T-001>
     <T-002>
       <Title>Title bar trim + document info popover + Win/Linux «?» (R-2a, R-3 popover, R-1 entry point)</Title>

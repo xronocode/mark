@@ -1,9 +1,9 @@
-<GraceChangeSpec graceVersion='4.0' status='approved'>
+<GraceChangeSpec graceVersion='4.0' status='applied'>
 <C-39>
   <Name>Tables: width, overflow and a fullscreen viewer</Name>
   <Created>2026-10-15</Created>
   <Priority>medium</Priority>
-  <Status>approved</Status>
+  <Status>completed</Status>
   <RoadmapPhase>R2</RoadmapPhase>
   <Complexity>M (≈1 week in sub-phases)</Complexity>
 

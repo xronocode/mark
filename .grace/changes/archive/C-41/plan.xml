@@ -1,4 +1,4 @@
-<GraceChangePlan graceVersion='4.0' status='approved'>
+<GraceChangePlan graceVersion='4.0' status='applied'>
 <C-41>
   <ChangeRef>C-41</ChangeRef>
   <Created>2026-10-15</Created>
@@ -82,6 +82,7 @@
         <Command>npm test</Command>
         <Command>grace lint --path . --assertions current</Command>
       </Verification>
+      <Status>done</Status>
     </T-001>
     <T-002>
       <Title>Family model: 14 light/dark families, picker by family, removed themes migrate</Title>

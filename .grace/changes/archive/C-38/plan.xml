@@ -1,4 +1,4 @@
-<GraceChangePlan graceVersion='4.0' status='approved'>
+<GraceChangePlan graceVersion='4.0' status='applied'>
 <C-38>
   <ChangeRef>C-38</ChangeRef>
   <Created>2026-10-15</Created>
@@ -67,6 +67,7 @@
       <Verification>
         <Command>review by the orchestrator against src/renderer/src/prefComponents/*/config.js and src/renderer/src/_shims/preferences/schema.json</Command>
       </Verification>
+      <Status>done</Status>
     </T-002>
     <T-003>
       <Title>N3a Settings shell: 640 px window, 5 toolbar tabs with icons, macOS-grouped controls, per-OS styling</Title>
