@@ -18,6 +18,7 @@
 //   LAST_CHANGE: v1.0.0 - C-51 T-009: the guide's agent prompt names ```mermaid fences, so the exported fence must be longer than the inner runs or the re-imported markdown closes the block early.
 // END_CHANGE_SUMMARY
 
+import { beforeAll, afterAll, vi } from 'vitest'
 import { describe, it, expect } from 'vitest'
 import Muya from 'muya/lib'
 import { loadGuideMarkdown } from '@/util/guideDoc'
@@ -35,6 +36,17 @@ const mdToMarkdown = (markdown) => {
 const FENCE_BLOCK = '````text\n- Diagrams — ```mermaid fences\nplain text\n````\n'
 
 describe('exportMarkdown fence length (C-51 T-009)', () => {
+  // The muya export path logs asynchronously; with coverage on (macOS CI)
+  // a log still in flight when the worker closes is reported as an
+  // unhandled «Closing rpc while onUserConsoleLog was pending». Silence it.
+  let spies = []
+  beforeAll(() => {
+    spies = ['log', 'debug', 'info', 'warn'].map((m) => vi.spyOn(console, m).mockImplementation(() => {}))
+  })
+  afterAll(() => {
+    for (const s of spies) s.mockRestore()
+  })
+
   it('a block naming ``` fences re-exports inside a longer outer fence', () => {
     const out = mdToMarkdown(FENCE_BLOCK)
     expect(out).toContain('````text\n- Diagrams — ```mermaid fences\nplain text\n````\n')
