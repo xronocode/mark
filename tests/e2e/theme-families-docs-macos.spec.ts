@@ -194,6 +194,18 @@ test.describe('Docs and macOS theme families (C-51 T-007)', () => {
         )
         expect(fills.length, `${theme}: all four pie slices carry palette colours`).toBeGreaterThanOrEqual(4)
 
+        // Keynote-style donut (C-51, user 2026-10-16): a hole in the
+        // diagram panel colour, smaller than the label radius.
+        const donut = await page.evaluate(() => {
+          const svg = document.querySelector('figure.ag-container-block div.ag-container-preview svg')
+          const hole = svg && svg.querySelector('circle.pieDonutHole')
+          const outer = svg && svg.querySelector('circle.pieOuterCircle')
+          return hole && outer ? { hole: Number(hole.getAttribute('r')), outer: Number(outer.getAttribute('r')) } : null
+        })
+        expect(donut, `${theme}: the pie renders as a donut`).not.toBeNull()
+        expect(donut!.hole / donut!.outer).toBeGreaterThan(0.45)
+        expect(donut!.hole / donut!.outer).toBeLessThan(0.7)
+
         // The document uses the system UI font; code keeps the code font.
         const fonts = await page.evaluate(() => ({
           document: window.getComputedStyle(document.querySelector('.editor-wrapper')).fontFamily,

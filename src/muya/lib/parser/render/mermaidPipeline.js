@@ -265,7 +265,7 @@ export const createMermaidPipeline = ({
       const rendered = await mermaid.render(id, code)
       const bindFunctions = rendered.bindFunctions
       // C-51: proportionate arrowheads per diagram type.
-      const svg = postProcessMermaidSvg(rendered.svg, detectMermaidDiagramType(code))
+      const svg = postProcessMermaidSvg(rendered.svg, detectMermaidDiagramType(code), entry.tokens)
       const liveTarget = document.querySelector(selector) || target
       insertSvg(liveTarget, svg)
       clearError(liveTarget)
