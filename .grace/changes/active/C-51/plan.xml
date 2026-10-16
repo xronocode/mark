@@ -127,6 +127,15 @@
       </AcceptanceCriteria>
       <Verification><Command>npm test</Command><Command>playwright chromium + webkit (mermaid theme)</Command><Command>grace lint --path . --assertions current</Command></Verification>
     </T-012>
+    <T-013>
+      <Title>Sidebar typography: no file icons, semibold folders, one row weight, a recognisable pin (user 2026-10-17 smoke)</Title>
+      <DependsOn>T-011</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>User: «странные иконки перед файлами… и непонятные палочко-крестики после некоторых файлов? иконки убрать, папки сделать более жирным написанием, непонятно почему пиннед и в списке файл разным — должен быть одинаково тонкий подсвечен, папки полужирным». File rows in the tree, Recent, Pinned and Opened files have NO leading file-type icon; folder rows (and the root folder switcher) are semibold; every file row uses the same regular weight in all sections — the current file is shown only by the highlight (the soft pill / accent text), never by bold.</Criterion>
+        <Criterion>The pinned mark is redrawn so it reads as a pin at 12 px (a filled pushpin silhouette like SF Symbols pin.fill — head + needle, no thin cross), muted icon colour, with the «Pinned» label kept; it no longer looks like a stick/cross.</Criterion>
+      </AcceptanceCriteria>
+      <Verification><Command>npm test</Command><Command>playwright chromium + webkit (tree)</Command><Command>grace lint --path . --assertions current</Command></Verification>
+    </T-013>
   </ImplementationPlan>
   <Evidence>
     <T-011>
