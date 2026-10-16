@@ -1,0 +1,56 @@
+<GraceChangeSpec graceVersion='4.0' status='approved'>
+<C-52>
+  <Name>Open a folder from the clipboard as the workspace, and open dropped folders</Name>
+  <Created>2026-10-16</Created>
+  <Priority>medium</Priority>
+  <Status>approved</Status>
+  <RoadmapPhase>N</RoadmapPhase>
+  <Complexity>M</Complexity>
+
+  <Summary>
+    User request 2026-10-16: «хочу функцию вставить — не дропнуть, а из буфера как бы дропнуть и открыть как воркспейс папку». A folder copied in Finder (⌘C), a path copied as text (absolute, ~, file:// URL — e.g. `pwd | pbcopy`) opens as the workspace from the File menu or with ⌘V on the welcome screen. While checking the drop path: dropping a folder onto the window is ignored today (openDroppedPath skips every non-Markdown, non-image path) — the same resolver fixes it.
+  </Summary>
+
+  <Problem>
+    <Description>Opening a folder needs the Open Folder dialog and navigating to a place the user already has in Finder or a terminal. Finder ⌘C puts file URLs on the pasteboard, which the web view only exposes as a file name, so the renderer cannot read them. Dropping a folder onto the window does nothing.</Description>
+  </Problem>
+
+  <Goals>
+    <R-1>File › «Open from Clipboard» (⌥⌘V on macOS, Ctrl+Alt+V elsewhere): reads the clipboard; a folder opens as the workspace, REPLACING the current one exactly like Open Folder; a Markdown file opens in a tab; nothing usable → a short notification, no dialog.</R-1>
+    <R-2>On the welcome screen (and the empty sidebar state, which is part of it) plain ⌘V / Ctrl+V does the same. ⌘V inside a document is unchanged — it never opens folders (user decision).</R-2>
+    <R-3>Clipboard sources: file URLs from the system pasteboard (Finder ⌘C; macOS NSPasteboard public.file-url, Windows CF_HDROP, Linux text/uri-list where available) read by a Rust command; text: an absolute path, a ~ path, a file:// URL, surrounding quotes and whitespace/newline trimmed; the path must exist (directory or Markdown file).</R-3>
+    <R-4>Dropping a folder onto the window opens it as the workspace (replace), through the same resolver; dropped Markdown files and images keep today's behaviour.</R-4>
+    <R-5>App Store build: a pasted path grants no sandbox access, so the command opens the system Open Folder panel pre-pointed at that folder (one click «Open»); the direct-download build opens it immediately. Drops keep working directly (a drop grants access).</R-5>
+  </Goals>
+
+  <Constraints>
+    <Item>App Store sandbox: a path from the clipboard grants no access — only the Open Folder panel or a drop does (R-5).</Item>
+    <Item>Clipboard file URLs are read natively (Rust); the web view exposes only a file name for Finder copies.</Item>
+  </Constraints>
+
+  <NonGoals>
+    <Item>No folder handling for ⌘V inside a document, no confirmation prompt (D-3).</Item>
+    <Item>No multi-root add (D-1); no reading of remote URLs.</Item>
+  </NonGoals>
+
+  <AffectedAreas>
+    <Item>src/renderer/src/_shims/install-window-globals.js (drop path), welcome screen (components/recent), sidebar empty state, the File menu (Rust app menu + renderer command), store/project (open workspace), src-tauri clipboard command, static/locales.</Item>
+  </AffectedAreas>
+
+  <VerificationIntent>
+    <Item>Rust unit tests for pasteboard parsing; vitest for path parsing/routing/handlers; Playwright chromium + webkit with the tauri shim for menu, welcome ⌘V and folder drop.</Item>
+  </VerificationIntent>
+
+  <Decisions>
+    <D-1>2026-10-16 user: replace the current workspace (like Open Folder), not a second root.</D-1>
+    <D-2>2026-10-16 user: shortcut ⌥⌘V is fine.</D-2>
+    <D-3>2026-10-16 user: only the File menu and the welcome screen; no prompt on ⌘V inside a document («думаю лишнее»).</D-3>
+  </Decisions>
+
+  <AcceptanceCriteria>
+    <Criterion>R-1..R-4 pinned by Rust unit tests (pasteboard file-URL parsing helper, path classification), renderer unit tests (text path parsing incl. ~, file://, quotes, newline; resolver routing folder/markdown/other; welcome-screen ⌘V handler; editor ⌘V untouched) and e2e (chromium + webkit) with the tauri shim: menu command and welcome ⌘V open a folder workspace from a text path and from a shimmed file-URL list, replace an open workspace, open a .md in a tab, notify on garbage; a dropped folder opens as the workspace.</Criterion>
+    <Criterion>R-5: the app-store feature gate routes a clipboard folder to the Open Folder panel with that default path (unit-tested routing; the panel itself is native).</Criterion>
+    <Criterion>Menu item localized in all 10 locales; grace lint 0; full unit + e2e green.</Criterion>
+  </AcceptanceCriteria>
+</C-52>
+</GraceChangeSpec>
