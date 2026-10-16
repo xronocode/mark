@@ -139,7 +139,8 @@ describe('static/guide — «What Mark renders» showcase (C-51 T-009)', () => {
     it(`${locale}: bundles every showcase feature family`, async () => {
       const load = GUIDES[`../../../static/guide/${locale}.md`]
       expect(load, `${locale} guide must be bundled`).toBeTruthy()
-      const raw = await load()
+      // CRLF-normalised: the Windows CI checkout has \r\n line endings.
+      const raw = String(await load()).replace(/\r\n/g, '\n')
       for (const marker of SHOWCASE_MARKERS) {
         expect(raw, `${locale} guide missing ${marker}`).toContain(marker)
       }
@@ -147,7 +148,7 @@ describe('static/guide — «What Mark renders» showcase (C-51 T-009)', () => {
   }
 
   it('interpolates the new multi-line mac prompt inside the 4-backtick fence', async () => {
-    const md = await loadGuideMarkdown('en', 'darwin')
+    const md = String(await loadGuideMarkdown('en', 'darwin')).replace(/\r\n/g, '\n')
     expect(md).not.toContain(PROMPT_PLACEHOLDER)
     expect(md).toContain('````text\nWhen you produce a plan')
     expect(md).toContain('open -a Mark <file>.md')
@@ -156,7 +157,7 @@ describe('static/guide — «What Mark renders» showcase (C-51 T-009)', () => {
   })
 
   it('interpolates the generic prompt without the open command on Windows', async () => {
-    const md = await loadGuideMarkdown('en', 'win32')
+    const md = String(await loadGuideMarkdown('en', 'win32')).replace(/\r\n/g, '\n')
     expect(md).not.toContain(PROMPT_PLACEHOLDER)
     expect(md).not.toContain('open -a Mark')
     expect(md).toContain('open it for the user in Mark')
