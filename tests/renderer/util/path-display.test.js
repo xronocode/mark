@@ -1,10 +1,10 @@
 // FILE: tests/renderer/util/path-display.test.js
 // VERSION: 1.1.0
 // START_MODULE_CONTRACT
-//   PURPOSE: Pin the middle-ellipsis shortening of long folder paths used by the sidebar recent-folders list.
+//   PURPOSE: Pin the middle-ellipsis shortening of long folder paths used by the welcome-screen recent-folders list (the sidebar copy is gone since C-51 T-011).
 //   SCOPE: shortenMiddle, pathBasename, pathDirname in src/renderer/src/util/pathDisplay.js (POSIX and Windows separators).
 //   DEPENDS: Vitest.
-//   LINKS: src/renderer/src/components/sideBar/tree.vue; src/renderer/src/components/recent/index.vue (C-46).
+//   LINKS: src/renderer/src/components/recent/index.vue (C-46).
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

@@ -331,6 +331,7 @@
       "newFile": "新規ファイル",
       "recentFiles": "最近使った項目",
       "pinnedFiles": "ピン留め済み",
+      "pinned": "ピン留め済み",
       "remove": "削除",
       "unpin": "ピン留めを解除",
       "openOrSwitchFolder": "フォルダを開く・切り替える"

@@ -112,13 +112,18 @@ describe('sideBar/tree.vue — deep coverage', () => {
       expect(projectStore.ASK_FOR_OPEN_PROJECT).toHaveBeenCalled()
     })
 
-    it('button click triggers openFolder', async () => {
+    it('the folder-switcher row opens the picker (C-51 T-011: the empty-state button is gone)', async () => {
       const { useProjectStore } = await import('@/store/project')
       const projectStore = useProjectStore()
       projectStore.ASK_FOR_OPEN_PROJECT = vi.fn()
+      projectStore.projectTrees = [
+        { pathname: '/p1', name: 'P1', folders: [], files: [] }
+      ]
 
       const wrapper = mountComponent()
-      await wrapper.find('.open-folder-btn').trigger('click')
+      await nextTick()
+
+      await wrapper.find('.project-tree .title.folder-switcher span').trigger('click')
 
       expect(projectStore.ASK_FOR_OPEN_PROJECT).toHaveBeenCalled()
     })
@@ -235,17 +240,17 @@ describe('sideBar/tree.vue — deep coverage', () => {
       expect(trees.length).toBe(2)
     })
 
-    it('does not show open-project when projectTrees has entries', async () => {
+    it('never renders the removed empty-state CTA — with or without projects (C-51 T-011)', async () => {
       const { useProjectStore } = await import('@/store/project')
       const projectStore = useProjectStore()
-      projectStore.projectTrees = [
-        { pathname: '/p1', name: 'P1', folders: [], files: [] }
-      ]
+      projectStore.projectTrees = []
 
       const wrapper = mountComponent()
       await nextTick()
 
       expect(wrapper.find('.open-project').exists()).toBe(false)
+      expect(wrapper.find('.open-folder-btn').exists()).toBe(false)
+      expect(wrapper.find('.recent-folders').exists()).toBe(false)
     })
   })
 })

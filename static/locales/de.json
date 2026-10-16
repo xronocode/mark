@@ -333,6 +333,7 @@
       "newFile": "Neue Datei",
       "recentFiles": "Zuletzt benutzt",
       "pinnedFiles": "Angeheftet",
+      "pinned": "Angeheftet",
       "remove": "Entfernen",
       "unpin": "Lösen",
       "openOrSwitchFolder": "Ordner öffnen oder wechseln"

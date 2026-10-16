@@ -86,7 +86,7 @@
 
 <script setup>
 // FILE: src/renderer/src/components/sideBar/fileSections.vue
-// VERSION: 1.0.0
+// VERSION: 1.1.0
 // START_MODULE_CONTRACT
 //   PURPOSE: The two collapsible sidebar sections above the folder tree (C-51 T-002) — Recent (existing recent-files list, newest first, up to 10) and Pinned (persisted pinnedFiles list, drag to reorder); rows open the file through the existing open path, missing files render greyed with a Remove action, and section collapsed state persists.
 //   SCOPE: recent list load/refresh/remove, pinned list render/unpin/drag-reorder, per-path missing detection via ipcFs.stat, collapse persistence via ipcPrefs.
@@ -110,7 +110,11 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.0.0 - 2026-10-16 C-51 T-002: initial component —
+//   LAST_CHANGE: v1.1.0 - 2026-10-16 C-51 T-011: the section-header
+//   chevron starts at the shared --sideBarRowInset (12px) instead of
+//   touching the sidebar's left edge; the Pinned section itself stays
+//   hidden while empty exactly as before (user correction).
+//   v1.0.0 - 2026-10-16 C-51 T-002: initial component —
 //   Recent + Pinned sections above the tree, hidden while empty, rows on
 //   the shared 32px grid, missing files greyed with a hover Remove,
 //   collapse state persisted through ipcPrefs.
@@ -331,6 +335,9 @@ onMounted(async () => {
 .section-title {
   height: 28px;
   padding-right: 15px;
+  /* C-51 T-011: the disclosure chevron starts at the shared row inset —
+     not flush with the sidebar's left edge (user smoke 2026-10-16). */
+  padding-left: var(--sideBarRowInset, 12px);
   display: flex;
   align-items: center;
   font-size: 13px;

@@ -20,22 +20,37 @@
       @keypress.enter="rename"
     />
     <span v-else>{{ file.name }}</span>
+    <!-- C-51 T-011: pin mark at the end of a pinned row (same drawn set as
+         the chrome) so it is clear which files are pinned. -->
+    <span
+      v-if="isPinnedFile"
+      class="pin-mark"
+      :title="t('sideBar.tree.pinned')"
+      role="img"
+      :aria-label="t('sideBar.tree.pinned')"
+    >
+      <chrome-icon name="pin" :size="12"></chrome-icon>
+    </span>
   </div>
 </template>
 
 <script setup>
 // FILE: src/renderer/src/components/sideBar/treeFile.vue
-// VERSION: 2.0.0
+// VERSION: 2.1.0
 // START_MODULE_CONTRACT
-//   PURPOSE: One file row of the sidebar tree — extension-aware icon + name, the current file on a soft rounded pill (chromeAccentSoft), non-Markdown rows dimmed and not openable, and the context menu carrying Pin/Unpin (C-51 T-002).
-//   SCOPE: Row rendering (rename input, current/active/dirty state), open-or-select click behaviour, context menu wiring with pin state.
-//   DEPENDS: vue, pinia, store/project, store/editor, store/pinned, ./icon.vue, contextMenu/sideBar, bus.
-//   LINKS: .grace/changes/active/C-38 T-006 N4 b (accent selection); .grace/changes/active/C-51 T-001/T-002; .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011.
+//   PURPOSE: One file row of the sidebar tree — extension-aware icon + name, the current file on a soft rounded pill (chromeAccentSoft), non-Markdown rows dimmed and not openable, the context menu carrying Pin/Unpin (C-51 T-002) and the trailing pin mark on pinned rows (C-51 T-011).
+//   SCOPE: Row rendering (rename input, current/active/dirty state, pinned mark), open-or-select click behaviour, context menu wiring with pin state.
+//   DEPENDS: vue, pinia, store/project, store/editor, store/pinned, ./icon.vue, ../icons/chromeIcons.js, contextMenu/sideBar, bus, vue-i18n.
+//   LINKS: .grace/changes/active/C-38 T-006 N4 b (accent selection); .grace/changes/active/C-51 T-001/T-002/T-011; .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011.
 //   ROLE: RUNTIME
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT
 //
 // START_CHANGE_SUMMARY
+//   - 2026-10-16 v2.1.0: C-51 T-011 — pinned rows carry a 12px drawn pin
+//     (chromeIcons «pin») at the end with the localized «Pinned» label;
+//     the reactive pinned store drives it, so unpinning from the tree
+//     context menu or the Pinned section removes it immediately.
 //   - 2026-10-16 v2.0.0: C-51 T-001 — 32px rows, constant row padding
 //     (indentation moved to the nested .folder-contents guide lines in
 //     treeFolder.vue) and the current file renders on a rounded pill
@@ -50,10 +65,12 @@
 // END_CHANGE_SUMMARY
 import { ref, computed, onMounted, nextTick } from 'vue'
 import { storeToRefs } from 'pinia'
+import { useI18n } from 'vue-i18n'
 import { useProjectStore } from '@/store/project'
 import { useEditorStore } from '@/store/editor'
 import { usePinnedStore } from '@/store/pinned'
 import FileIcon from './icon.vue'
+import { ChromeIcon } from '../icons/chromeIcons.js'
 import { showContextMenu } from '../../contextMenu/sideBar'
 import bus from '../../bus'
 
@@ -72,6 +89,8 @@ const projectStore = useProjectStore()
 const editorStore = useEditorStore()
 const pinnedStore = usePinnedStore()
 
+const { t } = useI18n()
+
 const newName = ref('')
 const fileEl = ref(null)
 const renameInput = ref(null)
@@ -80,6 +99,13 @@ const { renameCache } = storeToRefs(projectStore)
 const { activeItem } = storeToRefs(projectStore)
 const { clipboard } = storeToRefs(projectStore)
 const { currentFile, tabs } = storeToRefs(editorStore)
+
+// START_BLOCK_PINNED_MARK
+// C-51 T-011: trailing pin mark on pinned rows. The pinned store getter is
+// reactive, so pin/unpin from any surface (tree context menu, Pinned
+// section, another window's broadcast) updates the row immediately.
+const isPinnedFile = computed(() => pinnedStore.isPinned(props.file.pathname))
+// END_BLOCK_PINNED_MARK
 
 const isDirty = computed(() => {
   const tab = tabs.value.find((t) => window.fileUtils?.isSamePathSync?.(t.pathname, props.file.pathname))
@@ -195,6 +221,14 @@ onMounted(() => {
 }
 .side-bar-file.dirty > span {
   color: var(--warningColor, #d97706);
+}
+/* C-51 T-011: the trailing pinned mark — theme icon colour, no literals. */
+.side-bar-file > .pin-mark {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  margin-left: 6px;
+  color: var(--sideBarIconColor);
 }
 .side-bar-file.dirty::after {
   content: '';

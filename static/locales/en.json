@@ -337,6 +337,7 @@
       "recentFolders": "Recent",
       "recentFiles": "Recent",
       "pinnedFiles": "Pinned",
+      "pinned": "Pinned",
       "remove": "Remove",
       "unpin": "Unpin",
       "openOrSwitchFolder": "Open or switch folder"

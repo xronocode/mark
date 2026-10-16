@@ -1,10 +1,10 @@
 // FILE: tests/e2e/sidebar-tree-redesign.spec.ts
-// VERSION: 1.0.0
+// VERSION: 1.1.0
 // START_MODULE_CONTRACT
-//   PURPOSE: C-51 T-001/T-002 e2e — the redesigned sidebar tree (Markdown-only filter with the show-all toggle and folder reveal on create, guide lines, chevrons, folder switcher, current-file pill) and the Recent/Pinned sections (pin via the tree context menu, persistence across reload, missing-file Remove, drag reorder), plus light/dark screenshots.
+//   PURPOSE: C-51 T-001/T-002/T-011 e2e — the redesigned sidebar tree (Markdown-only filter with the show-all toggle and folder reveal on create, guide lines, chevrons, folder switcher, current-file pill), the Recent/Pinned sections (pin via the tree context menu, persistence across reload, missing-file Remove, drag reorder), the T-011 polish (chevron left inset, the trailing pin mark in the tree and Opened files, the empty sidebar without the Open Folder CTA / RECENT folders list), plus light/dark screenshots.
 //   SCOPE: renderer-only e2e against vite preview + tauri-shim (no real Tauri IPC); runs in chromium and webkit (playwright project webkit-tree).
 //   DEPENDS: @playwright/test, tests/e2e/fixtures/tauri-shim, tests/e2e/fixtures/helpers (bootEditor, openFileTab).
-//   LINKS: .grace/changes/active/C-51 T-001/T-002; .grace/verification/runtime.xml V-M-011.
+//   LINKS: .grace/changes/active/C-51 T-001/T-002/T-011; .grace/verification/runtime.xml V-M-011.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT
@@ -28,10 +28,15 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.0.0 - 2026-10-16 C-51 T-001/T-002: initial spec.
+//   LAST_CHANGE: v1.1.0 - 2026-10-16 C-51 T-011: the empty-sidebar case
+//   (no Open Folder button, no RECENT folders list), the trailing pin
+//   mark assertions (tree row + Opened-files row + Pinned section, unpin
+//   clears all three) and the chevron-inset geometry check (≥ 10 px from
+//   the sidebar's left edge) with a screenshot via test.info().outputPath.
+//   v1.0.0 - 2026-10-16 C-51 T-001/T-002: initial spec.
 // END_CHANGE_SUMMARY
 
-import { test, expect, type Page } from '@playwright/test'
+import { test, expect, type Page, type Locator } from '@playwright/test'
 import { installTauriShim } from './fixtures/tauri-shim'
 import { bootEditor, openFileTab } from './fixtures/helpers'
 
@@ -409,6 +414,97 @@ test.describe('sidebar sections (C-51 T-002) — Recent + Pinned', () => {
     await expect(recent.locator('.section-list')).toBeVisible()
     await recent.locator('.section-title').click()
     await expect(recent.locator('.section-list')).toBeHidden()
+  })
+})
+
+test.describe('sidebar polish (C-51 T-011) — pin marks, chevron inset, empty state', () => {
+  test('with no folder open the sidebar has no Open Folder button and no RECENT folders list', async ({ page }) => {
+    const state = baseState()
+    state.recentList = []
+    await installTreeMocks(page, state)
+    await bootEditor(page, { sideBarVisibility: true })
+    await page.waitForTimeout(300)
+
+    // The file sections column renders, but the old empty state (open
+    // CTA + recent folders) is gone — both live on the welcome screen.
+    const sidebar = page.locator('.side-bar')
+    await expect(sidebar).toBeVisible()
+    await expect(sidebar.locator('.tree-view')).toBeVisible()
+    await expect(sidebar.locator('.open-project')).toHaveCount(0)
+    await expect(sidebar.locator('.open-folder-btn')).toHaveCount(0)
+    await expect(sidebar.locator('.recent-folders')).toHaveCount(0)
+    await expect(sidebar.locator('.recent-folder-item')).toHaveCount(0)
+  })
+
+  test('pinning marks the row in the tree and in Opened files; unpin clears section and marks', async ({ page }) => {
+    const state = baseState()
+    state.recentList = []
+    state.popupContextResult = 'pinFileMenuItem'
+    await bootTree(page, state)
+
+    // open notes.md so it also appears under Opened files
+    await openFileTab(page, `${ROOT}/notes.md`, DOC)
+    const treeRow = page.locator('.tree-view .side-bar-file', { hasText: 'notes.md' }).first()
+    const openedRow = page.locator('.opened-files .opened-file', { hasText: 'notes.md' }).first()
+    await expect(openedRow).toBeVisible()
+
+    // nothing marked while unpinned
+    await expect(treeRow.locator('.pin-mark')).toHaveCount(0)
+    await expect(openedRow.locator('.pin-mark')).toHaveCount(0)
+    await expect(page.locator('[data-section="pinned"]')).toHaveCount(0)
+
+    // right-click the tree row → Pin: the section appears and BOTH rows
+    // carry the mark with its accessible label
+    await treeRow.click({ button: 'right' })
+    await expect(page.locator('[data-section="pinned"] .section-file-name')).toHaveText('notes.md')
+    const treeMark = treeRow.locator('.pin-mark')
+    await expect(treeMark).toHaveCount(1)
+    await expect(treeMark).toHaveAttribute('title', 'Pinned')
+    await expect(treeMark).toHaveAttribute('aria-label', 'Pinned')
+    const openedMark = openedRow.locator('.pin-mark')
+    await expect(openedMark).toHaveCount(1)
+    await expect(openedMark).toHaveAttribute('aria-label', 'Pinned')
+
+    // right-click again → Unpin (the context-menu item toggles): the
+    // section disappears and both marks clear immediately
+    await treeRow.click({ button: 'right' })
+    await expect(page.locator('[data-section="pinned"]')).toHaveCount(0)
+    await expect(treeRow.locator('.pin-mark')).toHaveCount(0)
+    await expect(openedRow.locator('.pin-mark')).toHaveCount(0)
+  })
+
+  test('every section chevron and the root chevron start ≥ 10px from the sidebar left edge', async ({ page }) => {
+    const state = baseState()
+    state.popupContextResult = 'pinFileMenuItem'
+    await page.setViewportSize({ width: 1280, height: 800 })
+    await bootTree(page, state)
+    await openFileTab(page, `${ROOT}/notes.md`, DOC)
+
+    // pin so the Pinned section header exists too
+    await page.locator('.side-bar-file', { hasText: 'notes.md' }).first().click({ button: 'right' })
+    await expect(page.locator('[data-section="pinned"] .section-file-name')).toHaveText('notes.md')
+
+    const sidebarBox = await page.locator('.side-bar').boundingBox()
+    expect(sidebarBox).toBeTruthy()
+
+    const chevrons: Array<[string, Locator]> = [
+      ['recent section header', page.locator('[data-section="recent"] .section-title .icon-arrow')],
+      ['pinned section header', page.locator('[data-section="pinned"] .section-title .icon-arrow')],
+      ['opened-files header', page.locator('.opened-files > .title .icon-arrow')],
+      ['root folder switcher', page.locator('.project-tree > .title.folder-switcher .icon-arrow')]
+    ]
+    for (const [label, locator] of chevrons) {
+      const box = await locator.boundingBox()
+      expect(box, `${label} chevron must render`).toBeTruthy()
+      expect(box.x - sidebarBox.x, `${label} chevron left inset`).toBeGreaterThanOrEqual(10)
+    }
+
+    // Evidence goes to the Playwright output dir — never into the repo.
+    await page.screenshot({
+      path: test.info().outputPath('sidebar-t011-chevron-inset.png'),
+      type: 'png',
+      clip: { x: 0, y: 0, width: 420, height: 800 }
+    })
   })
 })
 

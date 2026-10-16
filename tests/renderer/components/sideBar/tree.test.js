@@ -36,7 +36,7 @@ describe('sideBar/tree.vue', () => {
     expect(wrapper.find('.tree-view').exists()).toBe(true)
   })
 
-  it('shows open-folder button when no projects', async () => {
+  it('renders no Open Folder button and no recent-folders list when no projects are open (C-51 T-011)', async () => {
     const Tree = (await import('@/components/sideBar/tree.vue')).default
     const wrapper = shallowMount(Tree, {
       props: {
@@ -53,8 +53,15 @@ describe('sideBar/tree.vue', () => {
         }
       }
     })
-    expect(wrapper.find('.open-project').exists()).toBe(true)
-    expect(wrapper.find('.open-folder-btn').exists()).toBe(true)
+    // The sidebar empty state lost its Open Folder button and RECENT
+    // folders list — both live on the welcome screen (C-46) now.
+    expect(wrapper.find('.open-project').exists()).toBe(false)
+    expect(wrapper.find('.open-folder-btn').exists()).toBe(false)
+    expect(wrapper.find('.recent-folders').exists()).toBe(false)
+    expect(wrapper.find('.recent-folder-item').exists()).toBe(false)
+    // The tree column itself still mounts (the file sections live in
+    // fileSections.vue, stubbed here).
+    expect(wrapper.find('.tree-view').exists()).toBe(true)
   })
 
   it('renders opened files section when tabs are present', async () => {

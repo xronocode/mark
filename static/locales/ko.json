@@ -331,6 +331,7 @@
       "newFile": "새 파일",
       "recentFiles": "최근 항목",
       "pinnedFiles": "고정됨",
+      "pinned": "고정됨",
       "remove": "제거",
       "unpin": "고정 해제",
       "openOrSwitchFolder": "폴더 열기 또는 전환"

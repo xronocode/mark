@@ -12,17 +12,35 @@
       @click.stop="removeFileInTab(file)"
     ></chrome-icon>
     <span class="name">{{ file.filename }}</span>
+    <!-- C-51 T-011: pin mark at the end of a pinned row — mirrors the
+         folder-tree rows so pinned files are discoverable here too. -->
+    <span
+      v-if="isPinnedFile"
+      class="pin-mark"
+      :title="t('sideBar.tree.pinned')"
+      role="img"
+      :aria-label="t('sideBar.tree.pinned')"
+    >
+      <chrome-icon name="pin" :size="12"></chrome-icon>
+    </span>
   </div>
 </template>
 
 <script setup>
 // START_CHANGE_SUMMARY
+//   - 2026-10-16 C-51 T-011: pinned rows carry the trailing 12px drawn
+//     pin (chromeIcons «pin») with the localized «Pinned» label; the
+//     reactive pinned store drives it, so unpinning anywhere removes it
+//     immediately.
 //   - 2026-10-15 C-38 T-006 N4 d: the close glyph renders from the
 //     drawn chromeIcons set instead of the iconfont sprite; the active
 //     row uses the system accent (C-38 T-006 N4 b).
 // END_CHANGE_SUMMARY
+import { computed } from 'vue'
 import { storeToRefs } from 'pinia'
+import { useI18n } from 'vue-i18n'
 import { useEditorStore } from '@/store/editor'
+import { usePinnedStore } from '@/store/pinned'
 import { ChromeIcon } from '../icons/chromeIcons.js'
 
 const props = defineProps({
@@ -33,8 +51,14 @@ const props = defineProps({
 })
 
 const editorStore = useEditorStore()
+const pinnedStore = usePinnedStore()
+
+const { t } = useI18n()
 
 const { currentFile } = storeToRefs(editorStore)
+
+// C-51 T-011: same reactive trailing mark as the tree rows.
+const isPinnedFile = computed(() => pinnedStore.isPinned(props.file.pathname))
 
 const selectFile = (file) => {
   if (file.id !== currentFile.value.id) {
@@ -75,10 +99,17 @@ const removeFileInTab = (file) => {
   &:hover {
     background: var(--sideBarItemHoverBgColor);
   }
-  & > span {
+  & > span.name {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+  & > .pin-mark {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    margin-left: 6px;
+    color: var(--sideBarIconColor);
   }
 }
 .opened-file.active {

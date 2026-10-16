@@ -1,45 +1,45 @@
+// FILE: tests/e2e/sidebar-empty-state.spec.ts
+// VERSION: 2.0.0
+// START_MODULE_CONTRACT
+//   PURPOSE: C-51 T-011 e2e — with no folder open the sidebar Files column carries no Open Folder CTA and no RECENT folders list (both moved to the welcome screen, C-46); the file-sections column itself still renders.
+//   SCOPE: renderer-only e2e against vite preview + tauri-shim (chromium).
+//   DEPENDS: @playwright/test, tests/e2e/fixtures/tauri-shim, tests/e2e/fixtures/helpers (bootEditor).
+//   LINKS: .grace/changes/active/C-51 T-011; .grace/verification/runtime.xml V-M-011.
+//   ROLE: TEST
+//   MAP_MODE: LOCALS
+// END_MODULE_CONTRACT
+//
+// START_MODULE_MAP
+//   REMOVED_EMPTY_STATE - selectors of the removed Open Folder CTA and recent-folders list; each must match nothing.
+// END_MODULE_MAP
+//
+// START_CHANGE_SUMMARY
+//   LAST_CHANGE: v2.0.0 - 2026-10-16 C-51 T-011: the spec now pins the
+//   ABSENCE of the removed empty state (open-folder CTA + recent folders
+//   list) — v1 asserted the CTA was visible.
+// END_CHANGE_SUMMARY
+
 import { test, expect } from '@playwright/test'
 import { installTauriShim } from './fixtures/tauri-shim'
+import { bootEditor } from './fixtures/helpers'
+
+const REMOVED_EMPTY_STATE = ['.open-project', '.open-folder-btn', '.recent-folders', '.recent-folder-item']
 
 test.describe('sidebar empty state', () => {
-  test.beforeEach(async ({ page }) => {
-    await installTauriShim(page)
-  })
-
-  test('with no project opened, the sidebar shows the open-folder CTA', async ({
+  test('with no project opened, the sidebar shows no open-folder CTA and no RECENT list', async ({
     page
   }) => {
-    await page.goto('/?type=editor&wid=0&udp=/tmp/mark-e2e&debug=0')
+    await installTauriShim(page)
+    await bootEditor(page, { sideBarVisibility: true })
 
-    // Fire the boot event so init flips and the sidebar mounts.
-    await page.waitForFunction(() => {
-      const ls = (window as any).__shimListeners
-      if (!ls) return false
-      for (const m of ls.values()) if (m.event === 'mt::bootstrap-editor') return true
-      return false
-    }, undefined, { timeout: 15_000 })
-    await page.evaluate(() => {
-      ;(window as any).__emitFakeEvent('mt::bootstrap-editor', {
-        addBlankTab: false,
-        markdownList: [],
-        lineEnding: 'lf',
-        sideBarVisibility: true,
-        tabBarVisibility: true,
-        sourceCodeModeEnabled: false
-      })
-    })
+    // The Files column mounts…
+    const tree = page.locator('.tree-view').first()
+    await expect(tree).toBeVisible()
 
-    // Sidebar tree-view mounts.
-    await page
-      .locator('.tree-view')
-      .first()
-      .waitFor({ state: 'visible', timeout: 15_000 })
-
-    // The empty-state lives inside .open-project (sideBar/tree.vue:123).
-    const cta = page
-      .locator('.tree-view .open-project .open-folder-btn')
-      .first()
-    await cta.waitFor({ state: 'visible', timeout: 5_000 })
-    expect(await cta.isVisible()).toBe(true)
+    // …but the C-51 T-011 removals hold: no Open Folder button, no
+    // recent-folders block (they live on the welcome screen, C-46).
+    for (const selector of REMOVED_EMPTY_STATE) {
+      await expect(tree.locator(selector), selector).toHaveCount(0)
+    }
   })
 })

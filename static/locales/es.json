@@ -335,6 +335,7 @@
       "newFile": "Nuevo archivo",
       "recentFiles": "Recientes",
       "pinnedFiles": "Fijados",
+      "pinned": "Fijado",
       "remove": "Eliminar",
       "unpin": "Dejar de fijar",
       "openOrSwitchFolder": "Abrir o cambiar de carpeta"
