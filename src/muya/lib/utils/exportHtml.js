@@ -5,14 +5,24 @@
 //   SCOPE:   Export-only DOM/CSS generation. Does not mutate the live editor
 //            runtime beyond reusing shared renderers and CSS assets.
 //   DEPENDS: marked, Prism, katex, renderer loaders, inline CSS assets,
-//            sanitize helpers, parser/render/mermaidTheme (C-51 theme config).
-//   LINKS:   docs/knowledge-graph.xml M-012; docs/verification-plan.xml
-//            V-M-012 export scenarios; .grace/changes/active/C-39 T-001;
-//            .grace/changes/active/C-51 T-003 (export uses the app theme).
-//   STATUS:  Screen layout CSS no longer uses `@media not print`; print
-//            behavior stays isolated in the dedicated `@media print` block.
+//            sanitize helpers, parser/render/mermaidTheme (C-51 theme
+//            config), parser/render/contentTheme (C-51 T-005 diagram
+//            theming).
+//   LINKS: docs/knowledge-graph.xml M-012; docs/verification-plan.xml
+//          V-M-012 export scenarios; .grace/changes/active/C-39 T-001;
+//          .grace/changes/active/C-51 T-003 (export uses the app theme)
+//          and T-005 (vega-lite/flowchart/sequence export with the same
+//          themed configs as the editor).
+//   STATUS: Screen layout CSS no longer uses `@media not print`; print
+//          behavior stays isolated in the dedicated `@media print` block.
 //
 // CHANGE_SUMMARY:
+//   - 2026-10-16 C-51 T-005: exported vega-lite, flowchart.js and
+//     sequence diagrams use the same theme-driven configs as the editor
+//     (contentTheme.js — tokens read from the live document at export
+//     time; vega gets a token-built config instead of the hard-coded
+//     latimes theme, and js-sequence is repainted after drawing), and a
+//     null muya no longer crashes the sequence branch.
 //   - 2026-10-16 C-51 T-003: exported Mermaid diagrams use the same
 //     theme-driven config as the editor (mermaidTheme.js — tokens read from
 //     the live document's CSS variables at export time, per-diagram-type
@@ -35,6 +45,13 @@ import {
   buildMermaidThemeConfig,
   postProcessMermaidSvg
 } from '../parser/render/mermaidTheme'
+import {
+  buildVegaThemeConfig,
+  buildFlowchartThemeOptions,
+  buildSequenceThemeOptions,
+  applySequenceTheme,
+  applySequenceThemeWhenDrawn
+} from '../parser/render/contentTheme'
 import githubMarkdownCss from 'github-markdown-css/github-markdown.css?inline'
 import exportStyle from '../assets/styles/exportStyle.css?inline'
 import highlightCss from 'prismjs/themes/prism.css?inline'
@@ -100,6 +117,11 @@ class ExportHtml {
       plantuml: await loadRenderer('plantuml'),
       'vega-lite': await loadRenderer('vega-lite')
     }
+    // C-51 T-005: the same theme-driven configs as the editor — tokens
+    // are read from the live document (the export container is attached
+    // to it) at export time; the user's own vega spec config still wins
+    // (vega-embed merges spec.config over the passed config).
+    const tokens = readActiveThemeTokens()
     const codes = this.exportContainer.querySelectorAll(selector)
     for (const code of codes) {
       const rawCode = unescapeHTML(code.innerHTML)
@@ -121,13 +143,18 @@ class ExportHtml {
       preParent.replaceWith(diagramContainer)
       const options = {}
       if (functionType === 'sequence') {
-        Object.assign(options, { theme: this.muya.options.sequenceTheme })
+        Object.assign(
+          options,
+          buildSequenceThemeOptions(tokens, this.muya ? this.muya.options.sequenceTheme : undefined)
+        )
+      } else if (functionType === 'flowchart') {
+        Object.assign(options, buildFlowchartThemeOptions(tokens))
       } else if (functionType === 'vega-lite') {
         Object.assign(options, {
           actions: false,
           tooltip: false,
           renderer: 'svg',
-          theme: 'latimes' // only render light theme
+          config: buildVegaThemeConfig(tokens)
         })
       }
       try {
@@ -135,6 +162,10 @@ class ExportHtml {
           const diagram = render.parse(rawCode)
           diagramContainer.innerHTML = ''
           diagram.drawSVG(diagramContainer, options)
+          if (functionType === 'sequence') {
+            // js-sequence hard-codes #000/#fff — repaint from the tokens.
+            applySequenceTheme(diagramContainer, tokens)
+          }
         }
         if (functionType === 'plantuml') {
           const diagram = render.parse(rawCode)
