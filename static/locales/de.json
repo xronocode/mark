@@ -13,6 +13,7 @@
       "open": "Öffnen",
       "openFile": "Datei öffnen...",
       "openFolder": "Ordner öffnen...",
+      "openFromClipboard": "Aus der Zwischenablage öffnen",
       "openRecent": "Zuletzt verwendet",
       "clearRecentlyUsed": "Zuletzt verwendet löschen",
       "save": "Speichern",
@@ -490,6 +491,10 @@
       "daysAgo": "vor {count} Tagen"
     }
   },
+  "clipboardOpen": {
+    "nothingFoundTitle": "Kein Ordner und keine Markdown-Datei in der Zwischenablage",
+    "nothingFoundMessage": "Kopiere einen Ordner im Finder oder einen Dateipfad in die Zwischenablage und versuche es erneut."
+  },
   "import": {
     "title": "Importieren oder öffnen",
     "description": "Hier hineinziehen, um Ihren Inhalt in Mark zu importieren"
@@ -848,6 +853,7 @@
       "newTab": "Neuer Tab",
       "openFile": "Datei öffnen",
       "openFolder": "Ordner öffnen",
+      "openFromClipboard": "Aus der Zwischenablage öffnen",
       "save": "Speichern",
       "saveAs": "Speichern unter",
       "moveFile": "Datei verschieben",

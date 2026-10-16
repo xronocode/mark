@@ -53,6 +53,11 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-10-16 C-52 T-001: add File › "Open from Clipboard"
+//                (file.open-from-clipboard, Alt+CmdOrCtrl+V) to the
+//                taxonomy and the native menu — dispatched by id to the
+//                renderer command that resolves the clipboard through
+//                m059_clipboard::mt_read_clipboard_paths.
 //   - 2026-04-29 B3-step-12: initial skeleton.
 //   - 2026-05-08 B4-pre-alpha-step-1: build_native_menu + Tauri menu.
 //                Renamed ids to dashed convention to match renderer
@@ -455,6 +460,15 @@ pub fn standard_menu() -> Vec<MenuItem> {
                     accelerator: Some("CmdOrCtrl+Shift+O".to_string()),
                     items: None,
                 },
+                // C-52 R-1: reads the clipboard — a folder opens as the
+                // workspace (replace), a Markdown file opens in a tab.
+                MenuItem {
+                    id: "file.open-from-clipboard".to_string(),
+                    label: "Open from Clipboard".to_string(),
+                    command: Some("openFromClipboard".to_string()),
+                    accelerator: Some("Alt+CmdOrCtrl+V".to_string()),
+                    items: None,
+                },
                 MenuItem {
                     id: "file.open-recent".to_string(),
                     label: "Open Recent".to_string(),
@@ -846,6 +860,13 @@ pub fn build_native_menu<R: tauri::Runtime>(
         .item(
             &MenuItemBuilder::with_id("file.open-folder", "Open Folder…")
                 .accelerator("CmdOrCtrl+Shift+O")
+                .build(handle)?,
+        )
+        // C-52 R-1: File › Open from Clipboard (⌥⌘V / Ctrl+Alt+V) —
+        // dispatched by id to the renderer command like its siblings.
+        .item(
+            &MenuItemBuilder::with_id("file.open-from-clipboard", "Open from Clipboard")
+                .accelerator("Alt+CmdOrCtrl+V")
                 .build(handle)?,
         )
         .separator()
@@ -1761,10 +1782,42 @@ mod tests {
             assert!(
                 flat.iter().any(|i| i.id == *required),
                 "menu missing required alpha-ship id: {}",
-                required
+                *required
             );
         }
     }
+
+    // START_BLOCK_OPEN_FROM_CLIPBOARD_TEST
+    // C-52 R-1: File › Open from Clipboard sits right after Open Folder
+    // with the ⌥⌘V / Ctrl+Alt+V accelerator, in the taxonomy the renderer
+    // command registry mirrors (the native builder adds the same id).
+    #[test]
+    fn file_menu_has_open_from_clipboard_with_alt_cmd_v() {
+        let menu = standard_menu();
+        let flat = flatten(&menu);
+        let item = flat
+            .iter()
+            .find(|i| i.id == "file.open-from-clipboard")
+            .expect("file.open-from-clipboard must be in the taxonomy");
+        assert_eq!(item.label, "Open from Clipboard");
+        assert_eq!(item.accelerator.as_deref(), Some("Alt+CmdOrCtrl+V"));
+        assert_eq!(item.command.as_deref(), Some("openFromClipboard"));
+
+        // It sits directly after Open Folder in the File submenu.
+        let file_menu = menu
+            .iter()
+            .find(|m| m.id == "file")
+            .and_then(|m| m.items.as_ref())
+            .expect("File submenu");
+        let ids: Vec<&str> = file_menu.iter().map(|i| i.id.as_str()).collect();
+        let folder_idx = ids.iter().position(|id| *id == "file.open-folder").unwrap();
+        assert_eq!(
+            ids.get(folder_idx + 1),
+            Some(&"file.open-from-clipboard"),
+            "open-from-clipboard must follow open-folder"
+        );
+    }
+    // END_BLOCK_OPEN_FROM_CLIPBOARD_TEST
 
     // START_BLOCK_HELP_C48_TESTS
     // C-48: What's New is a Help leaf in EVERY build with a dispatch

@@ -154,15 +154,21 @@
 //            platform shortcut hints, last session row, M-017 recent
 //            files and project-store recent folders with remove/undo,
 //            the C-40 "Connect your agent" row and the Guide footer.
+//            C-52: plain ⌘V/Ctrl+V opens the clipboard (folder →
+//            workspace, .md → tab) while no document is open.
 //   SCOPE:   presentation + list hydration only; persistence goes through
 //            editorStore / projectStore / ipcRecent; opening files and
-//            folders reuses the existing IPC actions.
+//            folders reuses the existing IPC actions; the paste gesture
+//            delegates to util/clipboardOpen (no routing here).
 //   DEPENDS: store/editor, store/project, ipc/runtime (ipcRecent,
 //            ipcFs, ipcPrefs), util/pathDisplay, util/relativeTime,
-//            util/agentPrompt, util (isOsx, isWindows), i18n, bus
-//            ('mt::native-drag' from _shims/install-window-globals.js).
+//            util/agentPrompt, util/clipboardPath (isEditableTarget),
+//            util/clipboardOpen (dynamic, on ⌘V), util (isOsx,
+//            isWindows), i18n, bus ('mt::native-drag' from
+//            _shims/install-window-globals.js).
 //   LINKS:   .grace/changes/archive/C-46 (approved mockups boards 1-2);
 //            .grace/verification/runtime.xml V-M-011 scenario-47;
+//            .grace/changes/active/C-52 (welcome ⌘V, R-2);
 //            C-40 R-1a (agent prompt + 'mt::open-guide' section).
 //   ROLE:    RUNTIME
 //   MAP_MODE: LOCALS
@@ -173,10 +179,17 @@
 //   isMissingPathError - stat rejection → "path is gone" (IpcError cause.code, message fallback)
 //   filesCountLabel - plural-aware "N files" via Intl.PluralRules category keys
 //   onNativeDrag - welcome drop-zone highlight driven by the native drag-drop bridge
+//   onPasteKeyDown - C-52 plain ⌘V/Ctrl+V → util/clipboardOpen resolver (ignored in text inputs; editor paste untouched)
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v2.0.2 - 2026-10-15 C-46 review round 2: folder
+//   LAST_CHANGE: v2.1.0 - 2026-10-16 C-52 T-001: plain ⌘V/Ctrl+V opens
+//     the clipboard through util/clipboardOpen while the welcome screen
+//     (no document open) is mounted — folder → workspace (replace),
+//     .md → tab; ⌥⌘V stays the File-menu accelerator and a focused text
+//     control keeps its native paste (listener removed on unmount, so a
+//     document's paste is untouched — D-3).
+//   v2.0.2 - 2026-10-15 C-46 review round 2: folder
 //     remove/undo rewrote only the ≤3 visible rows and wiped stored folders
 //     4–5 and hidden missing ones — now edits and restores the full stored
 //     list; missing-file detection reads the IpcError cause.code
@@ -212,6 +225,7 @@ import { useEditorStore } from '@/store/editor'
 import { useProjectStore } from '@/store/project'
 import { ipcRecent, ipcFs, ipcPrefs } from '@/ipc/runtime'
 import { isOsx, isWindows } from '@/util'
+import { isEditableTarget } from '@/util/editableTarget'
 import { shortenMiddle, pathBasename, pathDirname } from '@/util/pathDisplay'
 import { formatRelativeTime } from '@/util/relativeTime'
 import { getAgentPrompt } from '@/util/agentPrompt'
@@ -363,9 +377,36 @@ onMounted(async () => {
 
 bus.on('mt::native-drag', onNativeDrag)
 
+// ── paste opens the clipboard folder/file (C-52 R-2) ──────────────
+
+// START_BLOCK_PASTE_OPEN
+// Plain ⌘V / Ctrl+V on the welcome screen (which is also up for the
+// empty-sidebar state — no document open) opens the clipboard through
+// the same resolver as File › Open from Clipboard. Only this screen
+// owns the gesture: ⌘V inside a document is muya's paste and stays
+// untouched (user decision D-3), so the listener lives exactly as long
+// as this component. Variants are filtered out: ⌥⌘V is the menu
+// accelerator, Shift/Alt combos belong to the editor, and a target
+// inside a text control keeps its native paste.
+const onPasteKeyDown = (event) => {
+  if (!(event.metaKey || event.ctrlKey)) return
+  if (event.altKey || event.shiftKey) return
+  const key = typeof event.key === 'string' ? event.key.toLowerCase() : ''
+  if (key !== 'v') return
+  if (isEditableTarget(event.target)) return
+  event.preventDefault()
+  import('@/util/clipboardOpen')
+    .then(({ openFromClipboard }) => openFromClipboard())
+    .catch((e) => {
+      console.error('[Recent][onPasteKeyDown][BLOCK_PASTE_OPEN_FAILED]', e)
+    })
+}
+window.addEventListener('keydown', onPasteKeyDown)
+
 onBeforeUnmount(() => {
   if (_toastTimer) clearTimeout(_toastTimer)
   bus.off('mt::native-drag', onNativeDrag)
+  window.removeEventListener('keydown', onPasteKeyDown)
 })
 
 // First three file names of the last session ("a.md, b.md, c.md, …").

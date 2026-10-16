@@ -96,6 +96,10 @@ export default defineConfig({
     // C-51 T-006: the always-visible expand button + the block viewer also
     // gate in WebKit — the engine WKWebView ships (contenteditable focus
     // and the reserved-strip absolute positioning are engine-sensitive).
-    { name: 'webkit-block-viewer', use: { browserName: 'webkit' }, testMatch: 'block-viewer.spec.ts' }
+    { name: 'webkit-block-viewer', use: { browserName: 'webkit' }, testMatch: 'block-viewer.spec.ts' },
+    // C-52: the clipboard-open flow (menu dispatch, welcome ⌘V, the
+    // folder-drop bridge path) also gates in WebKit — the engine WKWebView
+    // ships and the one whose keydown/drag-drop events the feature rides.
+    { name: 'webkit-clipboard', use: { browserName: 'webkit' }, testMatch: 'clipboard-open.spec.ts' }
   ]
 })

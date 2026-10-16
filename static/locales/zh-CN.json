@@ -13,6 +13,7 @@
       "open": "打开",
       "openFile": "打开文件…",
       "openFolder": "打开文件夹…",
+      "openFromClipboard": "从剪贴板打开",
       "openRecent": "打开最近",
       "clearRecentlyUsed": "清除最近使用",
       "save": "保存",
@@ -487,6 +488,10 @@
       "daysAgo": "{count} 天前"
     }
   },
+  "clipboardOpen": {
+    "nothingFoundTitle": "剪贴板中没有文件夹或 Markdown 文件",
+    "nothingFoundMessage": "请先在访达中复制文件夹，或复制文件路径，然后重试。"
+  },
   "import": {
     "title": "导入或打开",
     "description": "拖放到这里将您的内容导入 Mark"
@@ -853,6 +858,7 @@
       "newTab": "新建标签页",
       "openFile": "打开文件",
       "openFolder": "打开文件夹",
+      "openFromClipboard": "从剪贴板打开",
       "save": "保存",
       "saveAs": "另存为",
       "moveFile": "移动文件",

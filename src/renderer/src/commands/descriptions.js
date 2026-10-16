@@ -19,6 +19,8 @@ const COMMAND_KEY_MAP = {
   'file.new-tab': 'commands.file.newTab',
   'file.open-file': 'commands.file.openFile',
   'file.open-folder': 'commands.file.openFolder',
+  // C-52: File › Open from Clipboard (⌥⌘V) palette description.
+  'file.open-from-clipboard': 'commands.file.openFromClipboard',
   'file.quick-open': 'commands.file.quickOpen',
   'file.import-file': 'commands.file.importFile',
 

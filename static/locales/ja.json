@@ -13,6 +13,7 @@
       "open": "開く",
       "openFile": "ファイルを開く...",
       "openFolder": "フォルダを開く...",
+      "openFromClipboard": "クリップボードから開く",
       "openRecent": "最近使用したファイル",
       "clearRecentlyUsed": "最近使用したファイルをクリア",
       "save": "保存",
@@ -487,6 +488,10 @@
       "daysAgo": "{count} 日前"
     }
   },
+  "clipboardOpen": {
+    "nothingFoundTitle": "クリップボードにフォルダや Markdown ファイルがありません",
+    "nothingFoundMessage": "Finder でフォルダをコピーするか、ファイルパスをコピーしてからもう一度お試しください。"
+  },
   "import": {
     "title": "インポートまたは開く",
     "description": "ここにドラッグしてMarkにコンテンツをインポート"
@@ -845,6 +850,7 @@
       "newTab": "新しいタブ",
       "openFile": "ファイルを開く",
       "openFolder": "フォルダを開く",
+      "openFromClipboard": "クリップボードから開く",
       "save": "保存",
       "saveAs": "名前を付けて保存",
       "moveFile": "ファイルを移動",

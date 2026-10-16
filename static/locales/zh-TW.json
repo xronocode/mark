@@ -13,6 +13,7 @@
       "open": "開啟",
       "openFile": "開啟檔案…",
       "openFolder": "開啟資料夾…",
+      "openFromClipboard": "從剪貼板開啟",
       "openRecent": "開啟最近使用",
       "clearRecentlyUsed": "清除最近使用",
       "save": "儲存",
@@ -487,6 +488,10 @@
       "daysAgo": "{count} 天前"
     }
   },
+  "clipboardOpen": {
+    "nothingFoundTitle": "剪貼板中沒有資料夾或 Markdown 檔案",
+    "nothingFoundMessage": "請先在 Finder 中複製資料夾，或複製檔案路徑，然後再試一次。"
+  },
   "import": {
     "title": "匯入或開啟",
     "description": "拖放到這裡將您的內容匯入 Mark"
@@ -845,6 +850,7 @@
       "newTab": "新建標籤頁",
       "openFile": "開啟檔案",
       "openFolder": "開啟資料夾",
+      "openFromClipboard": "從剪貼板開啟",
       "save": "儲存",
       "saveAs": "另存為",
       "moveFile": "移動檔案",

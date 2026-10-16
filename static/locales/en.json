@@ -13,6 +13,7 @@
       "open": "Open",
       "openFile": "Open File...",
       "openFolder": "Open Folder...",
+      "openFromClipboard": "Open from Clipboard",
       "openRecent": "Open Recent",
       "clearRecentlyUsed": "Clear Recently Used",
       "save": "Save",
@@ -496,6 +497,10 @@
       "daysAgo": "{count} days ago"
     }
   },
+  "clipboardOpen": {
+    "nothingFoundTitle": "No folder or Markdown file on the clipboard",
+    "nothingFoundMessage": "Copy a folder in Finder or a file path, then try again."
+  },
   "import": {
     "title": "Import or Open",
     "description": "Drop here to get your stuff into Mark"
@@ -862,6 +867,7 @@
       "newTab": "New Tab",
       "openFile": "Open File",
       "openFolder": "Open Folder",
+      "openFromClipboard": "Open from Clipboard",
       "save": "Save",
       "saveAs": "Save As",
       "saveAll": "Save All",

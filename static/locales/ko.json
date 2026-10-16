@@ -13,6 +13,7 @@
       "open": "열기",
       "openFile": "파일 열기...",
       "openFolder": "폴더 열기...",
+      "openFromClipboard": "클립보드에서 열기",
       "openRecent": "최근 파일",
       "clearRecentlyUsed": "최근 사용 목록 지우기",
       "save": "저장",
@@ -487,6 +488,10 @@
       "daysAgo": "{count}일 전"
     }
   },
+  "clipboardOpen": {
+    "nothingFoundTitle": "클립보드에 폴더나 Markdown 파일이 없습니다",
+    "nothingFoundMessage": "Finder에서 폴더를 복사하거나 파일 경로를 복사한 다음 다시 시도하세요."
+  },
   "import": {
     "title": "가져오기 또는 열기",
     "description": "여기에 드롭하여 Mark로 가져오세요"
@@ -845,6 +850,7 @@
       "newTab": "새 탭",
       "openFile": "파일 열기",
       "openFolder": "폴더 열기",
+      "openFromClipboard": "클립보드에서 열기",
       "save": "저장",
       "saveAs": "다른 이름으로 저장",
       "moveFile": "파일 이동",
