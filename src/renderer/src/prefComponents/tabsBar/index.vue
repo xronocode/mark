@@ -4,6 +4,7 @@
     :class="{ 'pref-toolbar--mac': isOsx, 'pref-toolbar--underline': !isOsx }"
     role="tablist"
     :aria-label="t('preferences.title')"
+    :data-tauri-drag-region="isOsx ? '' : null"
   >
     <!-- START_BLOCK_TAB_BUTTONS -->
     <button
@@ -29,7 +30,7 @@
 
 <script setup>
 // FILE: src/renderer/src/prefComponents/tabsBar/index.vue
-// VERSION: 1.0.0
+// VERSION: 1.1.0
 // START_MODULE_CONTRACT
 //   PURPOSE: The C-38 T-003 Settings toolbar — 5 icon tabs (centred macOS-style on macOS, underline tabs on Windows/Linux) that drive the /preference router-view, plus the ⌘F/Ctrl+F settings-search panel.
 //   SCOPE: Tab rendering and routing, active-tab tracking from the route, search-panel open/close on Cmd/Ctrl+F.
@@ -47,6 +48,7 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-10-16 v1.1.0: C-51 T-008 — on macOS the Settings window has a transparent title bar over full-size content (m_v1_compat settings_transparent_titlebar), so the toolbar is the title-bar surface in the theme colour: it reserves the 28 px traffic-light strip and is a window drag region.
 //   - 2026-10-15 v1.0.0: C-38 T-003 — replaces the 9-item left rail (prefComponents/sideBar/index.vue) with the 5-tab toolbar from the approved mockup.
 // END_CHANGE_SUMMARY
 
@@ -129,7 +131,9 @@ onUnmounted(() => {
 .pref-toolbar--mac {
   justify-content: center;
   gap: 2px;
-  padding: 2px 12px 8px;
+  /* 28 px: the transparent title bar (traffic lights + window title)
+     sits over the top of the toolbar — C-51 T-008. */
+  padding: 30px 12px 8px;
 }
 
 .pref-toolbar--underline {
