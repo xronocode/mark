@@ -13,6 +13,7 @@
       "open": "Abrir",
       "openFile": "Abrir Arquivo...",
       "openFolder": "Abrir Pasta...",
+      "openFromClipboard": "Abrir da Área de Transferência",
       "openRecent": "Abrir Recente",
       "clearRecentlyUsed": "Limpar Recentes",
       "save": "Salvar",
@@ -494,6 +495,10 @@
       "daysAgo": "há {count} dias"
     }
   },
+  "clipboardOpen": {
+    "nothingFoundTitle": "Não há pasta nem arquivo Markdown na área de transferência",
+    "nothingFoundMessage": "Copie uma pasta no Finder ou um caminho de arquivo e tente novamente."
+  },
   "import": {
     "title": "Importar ou Abrir",
     "description": "Solte aqui para colocar suas coisas no Mark"
@@ -852,6 +857,7 @@
       "newTab": "Nova Aba",
       "openFile": "Abrir Arquivo",
       "openFolder": "Abrir Pasta",
+      "openFromClipboard": "Abrir da Área de Transferência",
       "save": "Salvar",
       "saveAs": "Salvar Como",
       "moveFile": "Mover Arquivo",

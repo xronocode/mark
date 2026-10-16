@@ -13,6 +13,7 @@
       "open": "Ouvrir",
       "openFile": "Ouvrir un fichier...",
       "openFolder": "Ouvrir un dossier...",
+      "openFromClipboard": "Ouvrir depuis le presse-papiers",
       "openRecent": "Ouvrir récent",
       "clearRecentlyUsed": "Effacer les récents",
       "save": "Enregistrer",
@@ -494,6 +495,10 @@
       "daysAgo": "il y a {count} jours"
     }
   },
+  "clipboardOpen": {
+    "nothingFoundTitle": "Aucun dossier ni fichier Markdown dans le presse-papiers",
+    "nothingFoundMessage": "Copiez un dossier dans le Finder ou un chemin de fichier, puis réessayez."
+  },
   "import": {
     "title": "Importer ou ouvrir",
     "description": "Glissez-déposez ici pour importer votre contenu dans Mark"
@@ -852,6 +857,7 @@
       "newTab": "Nouvel onglet",
       "openFile": "Ouvrir un fichier",
       "openFolder": "Ouvrir un dossier",
+      "openFromClipboard": "Ouvrir depuis le presse-papiers",
       "save": "Enregistrer",
       "saveAs": "Enregistrer sous",
       "moveFile": "Déplacer le fichier",

@@ -15,6 +15,10 @@
 //   STATUS:  shipped 2026-04-29 with F-MAIN-ENTRY-DISABLED runtime close.
 //
 // CHANGE_SUMMARY:
+//   - 2026-10-16 C-52 T-001: mt_pick_folder takes an optional
+//     `default_path` and pre-points the Open Folder panel there (R-5 App
+//     Store routing: a clipboard path grants no sandbox access, the panel
+//     does); is_markdown is pub(crate) for m059_clipboard's classifier.
 //   - 2026-10-16 C-40 T-005: mt_update_sidebar_menu actually works now —
 //     tauri 2's Menu::get is top-level-only, so the old lookup never
 //     found view.toggle-sidebar in the View submenu; the shim reuses
@@ -155,16 +159,26 @@ pub async fn mt_request_keybindings(
 ///
 /// User cancel of the dialog returns `Ok(None)` — renderer treats as
 /// no-op.
+///
+/// C-52 R-5: `default_path` (optional) pre-points the panel at a folder
+/// — the App Store build routes a clipboard-resolved folder here because
+/// a pasted path grants no sandbox access (one click «Open» confirms).
 #[tauri::command]
-pub async fn mt_pick_folder(app: tauri::AppHandle) -> Result<Option<String>, String> {
+pub async fn mt_pick_folder(
+    app: tauri::AppHandle,
+    default_path: Option<String>,
+) -> Result<Option<String>, String> {
     use tauri_plugin_dialog::DialogExt;
     let (tx, rx) = tokio::sync::oneshot::channel::<Option<tauri_plugin_dialog::FilePath>>();
-    app.dialog()
-        .file()
-        .set_title("Open Folder")
-        .pick_folder(move |result| {
-            let _ = tx.send(result);
-        });
+    let mut dialog = app.dialog().file().set_title("Open Folder");
+    if let Some(dir) = default_path.as_deref() {
+        if !dir.is_empty() {
+            dialog = dialog.set_directory(dir);
+        }
+    }
+    dialog.pick_folder(move |result| {
+        let _ = tx.send(result);
+    });
     let chosen = rx.await.map_err(|e| e.to_string())?;
     let path = match chosen.and_then(|p| p.into_path().ok()) {
         Some(p) => {
@@ -275,14 +289,16 @@ fn close_project_root(pathname: &str, registry: &crate::m013b::WatchRegistry) ->
 /// They simply forward to the new command without emitting.
 #[tauri::command]
 pub async fn mt_cmd_open_folder(app: tauri::AppHandle) -> Result<Option<String>, String> {
-    mt_pick_folder(app).await
+    mt_pick_folder(app, None).await
 }
 
 const MARKDOWN_EXTS: &[&str] = &[
     "md", "markdown", "mmd", "mkd", "mkdn", "mdown", "mdtxt", "mdtext", "mdx", "text", "txt",
 ];
 
-fn is_markdown(name: &str) -> bool {
+// C-52: pub(crate) so m059_clipboard's path classification shares the one
+// extension list instead of duplicating it.
+pub(crate) fn is_markdown(name: &str) -> bool {
     let lower = name.to_lowercase();
     MARKDOWN_EXTS.iter().any(|ext| lower.ends_with(&format!(".{ext}")))
 }

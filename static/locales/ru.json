@@ -13,6 +13,7 @@
       "open": "Открыть",
       "openFile": "Открыть файл...",
       "openFolder": "Открыть папку...",
+      "openFromClipboard": "Открыть из буфера обмена",
       "openRecent": "Открыть недавние",
       "clearRecentlyUsed": "Очистить список недавних",
       "save": "Сохранить",
@@ -505,6 +506,10 @@
       "daysAgo": "{count} дн. назад"
     }
   },
+  "clipboardOpen": {
+    "nothingFoundTitle": "В буфере обмена нет папки или Markdown-файла",
+    "nothingFoundMessage": "Скопируйте папку в Finder или путь к файлу и попробуйте ещё раз."
+  },
   "import": {
     "title": "Импорт или открытие",
     "description": "Перетащите сюда, чтобы добавить в Mark"
@@ -871,6 +876,7 @@
       "newTab": "Новая вкладка",
       "openFile": "Открыть файл",
       "openFolder": "Открыть папку",
+      "openFromClipboard": "Открыть из буфера обмена",
       "save": "Сохранить",
       "saveAs": "Сохранить как",
       "saveAll": "Сохранить все",

@@ -35,6 +35,19 @@
 //     screen can drive its drop-zone highlight; HTML5 file drags never
 //     carry an OS path in a Tauri webview, so the bridge stays the only
 //     drop → open path.
+//   - 2026-10-16 C-52 T-001: a dropped FOLDER now opens as the workspace
+//     (replace) through projectStore.OPEN_FOLDER_AS_WORKSPACE (R-4 —
+//     previously every non-Markdown, non-image path was skipped); the
+//     Markdown branch moved to util/clipboardPath.openMarkdownFileTab so
+//     the clipboard resolver and the drop share one tab-open flow, and
+//     dropped Markdown/images keep today's behaviour.
+//   - 2026-10-17 C-52 gate fix: the openMarkdownFileTab edge became a
+//     DYNAMIC import inside the drop handler — the static import pulled
+//     the shared renderer chunk (import-time window.electron.process
+//     readers like @/util/index.js) into the entry chunk, which
+//     evaluates BEFORE this shim installs window.electron, so the app
+//     failed to boot (every e2e red; pinned by
+//     tests/renderer/_shims/install-window-globals.test.js).
 
 import * as posixPath from 'path-browserify'
 import win32Path from 'path-win32' // CJS port — named exports live on .default
@@ -43,6 +56,14 @@ import { appLocalDataDir } from '@tauri-apps/api/path'
 import { loadLocaleTable } from '@/i18n/localeLoader'
 import { migrateThemeId } from '@/util/themeMigration'
 import bus from '@/bus'
+// C-52 modules (@/util/clipboardPath, ../store/project) are imported
+// DYNAMICALLY inside the drop handler ONLY: this shim is the first
+// import of main.js and installs window.electron at the END of its own
+// body, so every STATIC import here evaluates BEFORE window.electron
+// exists. A static clipboardPath edge pulled the shared renderer chunk
+// (with import-time window.electron.process readers such as
+// @/util/index.js) into the entry chunk and the app failed to boot
+// (pinned by tests/renderer/_shims/install-window-globals.test.js).
 // Pre-import the event/core modules statically so ipcRenderer.on /
 // .invoke / .send paths don't have to await dynamic imports — that
 // async boundary races with backend emit-on-spawn (renderer subscribes
@@ -156,34 +177,44 @@ const IMAGE_DROP_EXTS = ['jpeg', 'jpg', 'png', 'gif', 'svg', 'webp', 'bmp', 'ico
       await tauriEmit('mt::drop-image', { path: filePath })
       return
     }
-    if (!isMarkdownPath(filePath)) {
-      console.warn(`[drop] non-markdown path skipped: ${filePath}`)
+    if (isMarkdownPath(filePath)) {
+      // Same fs.read → 'mt::open-new-tab' flow the clipboard resolver's
+      // .md branch uses (C-52 extracted it to util/clipboardPath).
+      // Dynamic import — see the note above the import block: a static
+      // edge here breaks boot (chunk evaluates before this shim
+      // installs window.electron). Drops happen long after boot, so the
+      // lazy import costs nothing.
+      const { openMarkdownFileTab } = await import('@/util/clipboardPath')
+      await openMarkdownFileTab(filePath)
       return
     }
-    let content
+    // START_BLOCK_DROP_FOLDER_WORKSPACE
+    // C-52 R-4: a dropped folder opens as the workspace, REPLACING any
+    // open roots (same store path as Open Folder / the clipboard
+    // resolver). A drop grants sandbox access in every build, so the
+    // direct path is correct even for App Store (R-5). The store is
+    // imported lazily here — the shim runs BEFORE createApp, but drops
+    // happen long after Pinia is active.
+    let stat = null
     try {
-      content = await ipc.fs.read(filePath)
+      stat = await ipc.fs.stat(filePath)
     } catch (e) {
-      console.error(`[drop] read failed for ${filePath}:`, e)
+      stat = null
+    }
+    if (stat?.isDirectory) {
+      // Bus event, not a store import: any import of the store graph from
+      // this shim lands in the boot chunk, whose modules read
+      // window.electron before the shim has installed it (C-52 boot fix).
+      // pages/app.vue owns the project store and opens the folder.
+      try {
+        bus.emit('mt::open-folder-as-workspace', filePath)
+      } catch (e) {
+        console.error('[Shim][openDroppedPath][BLOCK_DROP_FOLDER_OPEN_FAILED]', e)
+      }
       return
     }
-    const filename = filePath.split(/[\\/]/).pop() || filePath
-    const markdownDocument = {
-      markdown: typeof content === 'string' ? content : (content?.text ?? ''),
-      filename,
-      pathname: filePath,
-      encoding: { encoding: 'utf8', isBom: false },
-      lineEnding: 'lf',
-      adjustLineEndingOnSave: false,
-      trimTrailingNewline: 3,
-      cursor: null,
-      isMixedLineEndings: false
-    }
-    try {
-      await tauriEmit('mt::open-new-tab', markdownDocument)
-    } catch (e) {
-      console.error(`[drop] emit mt::open-new-tab failed:`, e)
-    }
+    // END_BLOCK_DROP_FOLDER_WORKSPACE
+    console.warn(`[drop] non-markdown path skipped: ${filePath}`)
   }
 
   // START_BLOCK_NATIVE_DRAG_BROADCAST

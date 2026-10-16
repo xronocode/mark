@@ -39,6 +39,8 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-10-16 C-52 T-001: register m059_clipboard::mt_read_clipboard_paths
+//     (system clipboard file paths + text for File › Open from Clipboard).
 //   - 2026-10-16 C-40 T-005: register m009_menu::mt_menu_set_checked —
 //     renderer-driven View-menu checkmark re-sync (sidebar, tab bar,
 //     outline, status bar) through the recursive allow-listed walker.
@@ -127,6 +129,8 @@ mod m048_build_mode;
 mod m052_print;
 mod m053_review;
 mod m058_window_effects;
+// C-52: system clipboard file-path reader (mt_read_clipboard_paths).
+mod m059_clipboard;
 mod m_v1_compat;
 mod mt_paths;
 
@@ -855,6 +859,11 @@ fn main() {
             // macOS app-store builds; no-op elsewhere). Outside the
             // M-013-A typed surface like the save-flow handlers above.
             m053_review::mt_request_review,
+            // C-52: system clipboard paths + text for File › Open from
+            // Clipboard (NSPasteboard on the main thread / CF_HDROP).
+            // Outside the M-013-A typed surface like the m048/m053
+            // capability commands.
+            m059_clipboard::mt_read_clipboard_paths,
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")

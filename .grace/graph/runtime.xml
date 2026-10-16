@@ -1975,7 +1975,7 @@
       <Status>shipped</Status>
       <Layer>2</Layer>
       <PhaseRef>Release-Readiness-2026-08-07</PhaseRef>
-      <Summary>Native menu bar and context menus; dispatches command IDs to renderer. C-15 T-102: on Windows/Linux the menu stays registered on the app (hamburger popup via mt_window_popup_app_menu) but the native menu BAR is hidden to avoid double chrome under the custom titlebar. C-40 T-003: View › Outline check item (id view.outline, no accelerator — ⌘T stays Go to Heading) toggles the «On this page» outline rail through the id-dispatched view.outline renderer command. C-40 T-005: mt_menu_set_checked re-syncs the four View CheckMenuItems (sidebar, tab bar, outline, status bar) from the renderer through a recursive allow-listed walker — tauri 2&apos;s Menu::get is top-level-only, which is why the old mt_update_sidebar_menu lookup never found the View-submenu item; the v1 shim reuses the same walker.</Summary>
+      <Summary>Native menu bar and context menus; dispatches command IDs to renderer. C-15 T-102: on Windows/Linux the menu stays registered on the app (hamburger popup via mt_window_popup_app_menu) but the native menu BAR is hidden to avoid double chrome under the custom titlebar. C-40 T-003: View › Outline check item (id view.outline, no accelerator — ⌘T stays Go to Heading) toggles the «On this page» outline rail through the id-dispatched view.outline renderer command. C-40 T-005: mt_menu_set_checked re-syncs the four View CheckMenuItems (sidebar, tab bar, outline, status bar) from the renderer through a recursive allow-listed walker — tauri 2&apos;s Menu::get is top-level-only, which is why the old mt_update_sidebar_menu lookup never found the View-submenu item; the v1 shim reuses the same walker. C-52 T-001: File › «Open from Clipboard» (id file.open-from-clipboard, accelerator Alt+CmdOrCtrl+V, directly after Open Folder in the taxonomy and the native menu) dispatches to the renderer command that resolves the clipboard through M-059.</Summary>
       <Path>src-tauri/src/m009_menu.rs</Path>
       <Dependencies>
         <M-005/>
@@ -2662,6 +2662,16 @@
         'mt::native-drag' bus event — app.vue skips the import dialog while
         no file is open; util/pathDisplay pathBasename/pathDirname handle
         Windows paths).
+        C-52 T-001: the welcome screen owns plain ⌘V/Ctrl+V while no
+        document is open — components/recent START_BLOCK_PASTE_OPEN runs
+        util/clipboardOpen.openFromClipboard (folder → workspace replace,
+        .md → tab; isEditableTarget guard so a focused control or
+        contenteditable keeps its native paste, D-3; listener lives
+        exactly as long as the component); the drag-drop bridge in
+        _shims/install-window-globals.js opens a dropped FOLDER through
+        projectStore.OPEN_FOLDER_AS_WORKSPACE (R-4) and shares its
+        Markdown tab-open with util/clipboardPath.openMarkdownFileTab
+        (M-059 owns the resolver).
         C-51 T-009: the universal agent prompt lists every rich-Markdown
         feature Mark renders (user-approved EN: 22 mermaid types, vega-lite/
         flowchart/sequence, the 5 GitHub callout tags plus 10 further tags,
@@ -6917,5 +6927,100 @@
         <C-38/>
       </ChangeRefs>
     </M-058>
+    <M-059>
+      <Name>ClipboardPaths</Name>
+      <DisplayName>System clipboard file-path reader</DisplayName>
+      <Type>UTILITY</Type>
+      <Status>shipped</Status>
+      <Layer>1</Layer>
+      <PhaseRef>C-52-T-001</PhaseRef>
+      <Summary>
+        C-52 R-3: m059_clipboard exposes mt_read_clipboard_paths — the
+        file paths the system clipboard carries plus its plain text — for
+        the File › Open from Clipboard resolver (m009 menu item
+        file.open-from-clipboard, Alt+CmdOrCtrl+V). macOS reads
+        NSPasteboard on the MAIN thread (run_on_main_thread + tokio
+        oneshot, the m032/m053 pattern — AppKit off the main thread
+        aborts the process, C-51 T-008 lesson): pasteboardItems'
+        public.file-url flavor parsed by the pure file_url_to_path
+        (percent-decoded, localhost-only, drive-letter aware) and the
+        public.utf8-plain-text flavor for text. Windows reads CF_HDROP
+        through raw user32/kernel32 FFI (no new crates; DROPFILES blob
+        parsed by the pure parse_cfhdrop_bytes, wide + ANSI); Linux
+        returns no paths and text comes from the clipboard-manager
+        plugin (arboard). classify_path (Directory | MarkdownFile |
+        Other over std::fs metadata, sharing m_v1_compat's extension
+        list) feeds the structured BLOCK_CLIPBOARD_READ counts.
+        Renderer side: util/clipboardPath.js holds the pure resolver
+        (parseClipboardTextToPath — first line, quote strip, ~ against
+        homeDir, file:// decode; classifyStat; resolveClipboardTarget —
+        pasteboard paths first then the parsed text, first stat-usable
+        wins; openMarkdownFileTab — the drag-drop bridge's exact
+        mt::open-new-tab payload) and util/clipboardOpen.js routes:
+        folder → projectStore.OPEN_FOLDER_AS_WORKSPACE (D-1 replace —
+        closes foreign roots then ADD_PROJECT + mt_walk_project), App
+        Store build → mt_pick_folder with defaultPath (R-5; m_v1_compat
+        grew the optional parameter), .md → a tab like a drop, nothing →
+        the localized clipboardOpen notification. The welcome screen
+        (components/recent) owns plain ⌘V/Ctrl+V while no document is
+        open (R-2; isEditableTarget guard, listener unmounted with the
+        component — the editor's paste is untouched, D-3), the
+        drag-drop bridge opens dropped FOLDERS through the same store
+        action (R-4; images/Markdown keep today's branches), and the
+        menu label + palette description + notification ship in all ten
+        static/locales. Gate round 2026-10-17: the drag-drop bridge may
+        only reach openMarkdownFileTab through a DYNAMIC import — the
+        shim installs window.electron after its own top-level awaits, so
+        a static clipboardPath edge pulled import-time
+        window.electron.process readers (@/util/index.js) into the entry
+        chunk and broke every boot (pinned by
+        tests/renderer/_shims/install-window-globals.test.js).
+      </Summary>
+      <PlannedPath>src-tauri/src/m059_clipboard.rs</PlannedPath>
+      <Dependencies>
+        <M-009/>
+        <M-011/>
+      </Dependencies>
+      <VerificationRef>V-M-059</VerificationRef>
+      <Contract>
+        <Purpose>
+          Give the renderer the clipboard's file paths (Finder ⌘C, CF_HDROP)
+          and text so one resolver can open a folder as the workspace or a
+          Markdown file in a tab — from the File menu, the welcome screen
+          and the drop path.
+        </Purpose>
+        <Inputs>
+          <Input>
+            <Name>app</Name>
+            <Type>tauri::AppHandle</Type>
+          </Input>
+        </Inputs>
+        <Outputs>
+          <Output>
+            <Name>clipboard read</Name>
+            <Type>{ paths: string[], text: string }</Type>
+          </Output>
+        </Outputs>
+        <Errors>
+          <Error>main-thread dispatch or reply failure → Err(String); every pasteboard-level failure degrades to empty values</Error>
+        </Errors>
+      </Contract>
+      <Interface>
+        <fn-mt_read_clipboard_paths>command: system clipboard paths + text (macOS main-thread NSPasteboard, Windows CF_HDROP, Linux text-only)</fn-mt_read_clipboard_paths>
+        <fn-file_url_to_path>pure file:// URL → path (percent-decoded, localhost-only, drive-letter aware)</fn-file_url_to_path>
+        <fn-parse_file_urls>pure multi-line text → every file:// path, in order</fn-parse_file_urls>
+        <fn-percent_decode>pure percent-encoding decoder (UTF-8, invalid escapes kept literal)</fn-percent_decode>
+        <fn-parse_cfhdrop_bytes>pure CF_HDROP DROPFILES blob → paths (wide + ANSI, malformed → empty)</fn-parse_cfhdrop_bytes>
+        <fn-classify_path>pure std::fs classification: Directory | MarkdownFile | Other (BLOCK_CLIPBOARD_READ counts)</fn-classify_path>
+        <fn-parseClipboardTextToPath>renderer pure: clipboard text → absolute path candidate (first line, quotes, ~, file://)</fn-parseClipboardTextToPath>
+        <fn-resolveClipboardTarget>renderer: pasteboard paths first then parsed text; first folder/markdown stat wins</fn-resolveClipboardTarget>
+        <fn-openMarkdownFileTab>renderer: fs read + the drop bridge's mt::open-new-tab payload (shared with the shim)</fn-openMarkdownFileTab>
+        <fn-openFromClipboard>renderer orchestrator: read → resolve → route (workspace / panel / tab / notification)</fn-openFromClipboard>
+        <fn-OPEN_FOLDER_AS_WORKSPACE>project store: open a folder as THE workspace, replacing foreign roots (D-1)</fn-OPEN_FOLDER_AS_WORKSPACE>
+      </Interface>
+      <ChangeRefs>
+        <C-52/>
+      </ChangeRefs>
+    </M-059>
   </GD-RUNTIME>
 </GraceGraphDocument>
