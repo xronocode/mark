@@ -49,6 +49,13 @@
   border-bottom: 1px solid var(--floatBorderColor, var(--editorColor10));
 }
 
+/* macOS overlay title bar: the window buttons sit over the top-left
+   ~78 px of the page, so the fixed viewer header clears them like the
+   app title bar does (.title-bar.isOsx). C-51 T-008 live smoke. */
+html.platform-darwin .ag-block-viewer-header {
+  padding-left: 86px;
+}
+
 .ag-block-viewer-title {
   font-size: 14px;
   font-weight: 600;

@@ -248,6 +248,33 @@ test.describe('block viewer (C-34 R2.2 + C-39 T2)', () => {
     })).toBe(true)
   })
 
+  test('macOS: the viewer title clears the traffic lights; other platforms keep the plain inset (C-51 T-008)', async ({ page }) => {
+    await bootstrapWithMarkdown(page, DIAGRAM_MD)
+    await page.locator('div.ag-container-preview.ag-mermaid-preview').first()
+      .waitFor({ state: 'visible', timeout: 20_000 })
+    const viewer = page.locator('.ag-block-viewer')
+    const title = viewer.locator('.ag-block-viewer-title')
+    // The overlay title bar puts the window buttons over the top-left
+    // ~78 px of the page; the live smoke showed «Diagram» under them.
+    const openAs = async (darwin: boolean) => {
+      await page.evaluate((d) => {
+        const root = document.documentElement
+        for (const c of ['platform-darwin', 'platform-win32', 'platform-linux']) root.classList.remove(c)
+        root.classList.add(d ? 'platform-darwin' : 'platform-linux')
+      }, darwin)
+      await page.locator('figure[data-role="MERMAID"] > button.ag-block-expand').first().click()
+      await expect(viewer).toHaveClass(/ag-block-viewer-open/)
+      const box = await title.boundingBox()
+      await viewer.locator('.ag-block-viewer-close-btn').click()
+      await expect(viewer).not.toHaveClass(/ag-block-viewer-open/)
+      return box ? box.x : -1
+    }
+    expect(await openAs(true)).toBeGreaterThanOrEqual(80)
+    const plain = await openAs(false)
+    expect(plain).toBeGreaterThanOrEqual(0)
+    expect(plain).toBeLessThan(40)
+  })
+
   test('Ctrl+wheel inside the viewer zooms the diagram and leaves the editor font size alone', async ({ page }) => {
     await bootstrapWithMarkdown(page, DIAGRAM_MD)
     await page.locator('.editor-component, .editor-wrapper').first()
