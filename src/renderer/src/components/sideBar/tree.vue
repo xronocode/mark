@@ -114,45 +114,31 @@
       </div>
     </div>
 
-    <!-- Empty state shown only when there are NO open folders. -->
-    <div v-if="projectTrees.length === 0" class="open-project">
-      <div class="centered-group">
-        <button class="open-folder-btn" @click="openFolder">
-          {{ t('sideBar.tree.openFolder') }}
-        </button>
-        <div v-if="recentFolders.length" class="recent-folders-section">
-          <span class="recent-folders-title">{{ t('sideBar.tree.recentFolders') }}</span>
-        </div>
-        <ul v-if="recentFolders.length" class="recent-folders">
-          <li
-            v-for="folder in recentFolders"
-            :key="folder"
-            class="recent-folder-item"
-            :title="folder"
-            @click="openRecentFolder(folder)"
-          >
-            <span class="recent-folder-name">{{ folderName(folder) }}</span>
-            <span class="recent-folder-path">{{ shortenPath(folder) }}</span>
-          </li>
-        </ul>
-      </div>
-    </div>
+    <!-- C-51 T-011: with no folder open the sidebar shows only the file
+         sections above — the old Open Folder button + RECENT folders list
+         moved to the welcome screen (C-46) and are gone from here. -->
   </div>
 </template>
 
 <script setup>
 // FILE: src/renderer/src/components/sideBar/tree.vue
-// VERSION: 2.0.0
+// VERSION: 2.1.0
 // START_MODULE_CONTRACT
 //   PURPOSE: The sidebar Files column — Recent/Pinned sections (fileSections.vue), the opened-tabs list, and the multi-root folder tree with the C-51 T-001 folder-switcher header and Markdown-only view filter.
-//   SCOPE: Section composition, per-root collapse state, root-level filtered folder/file lists (store/treeFilter.js per the treeShowAllFiles preference), root close/create wiring, the empty-project open/recent state.
-//   DEPENDS: vue, pinia, store/project, store/editor, store/preferences, store/treeFilter, ./treeFolder.vue, ./treeFile.vue, ./treeOpenedTab.vue, ./fileSections.vue, ../icons/chromeIcons.js, bus, vue-i18n, util/pathDisplay.
-//   LINKS: .grace/changes/active/C-51 T-001/T-002; .canvas/Main.dc.html (switcher + tree); .canvas/MacOS.dc.html (sections); .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011.
+//   SCOPE: Section composition, per-root collapse state, root-level filtered folder/file lists (store/treeFilter.js per the treeShowAllFiles preference), root close/create wiring; with no folder open only the file sections remain (C-51 T-011 removed the empty-state Open Folder button and RECENT folders list — both live on the welcome screen, C-46).
+//   DEPENDS: vue, pinia, store/project, store/editor, store/preferences, store/treeFilter, ./treeFolder.vue, ./treeFile.vue, ./treeOpenedTab.vue, ./fileSections.vue, ../icons/chromeIcons.js, bus, vue-i18n.
+//   LINKS: .grace/changes/active/C-51 T-001/T-002/T-011; .canvas/Main.dc.html (switcher + tree); .canvas/MacOS.dc.html (sections); .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011.
 //   ROLE: RUNTIME
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT
 //
 // START_CHANGE_SUMMARY
+//   - 2026-10-16 v2.1.0: C-51 T-011 — the section-header chevrons and the
+//     root folder-switcher chevron start at the shared --sideBarRowInset
+//     (12px, defined on the sidebar shell) instead of touching the left
+//     edge; the empty-project state (Open Folder button + RECENT folders
+//     list) is removed — opening a folder stays possible from the File
+//     menu, the welcome screen and the title-bar folder switcher.
 //   - 2026-10-16 v2.0.0: C-51 T-001/T-002 — the root header restyles as
 //     the folder-switcher row (name + chevron-down open the existing
 //     folder picker; the left chevron keeps the collapse toggle), root
@@ -165,7 +151,7 @@
 //     close-all header actions, close-root X, file-plus empty-root
 //     row); the iconfont sprite and the ad-hoc inline svgs are gone.
 // END_CHANGE_SUMMARY
-import { ref, watch, onMounted, nextTick } from 'vue'
+import { ref, onMounted, nextTick } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useProjectStore } from '@/store/project'
 import { useEditorStore } from '@/store/editor'
@@ -178,7 +164,6 @@ import FileSections from './fileSections.vue'
 import { ChromeIcon } from '../icons/chromeIcons.js'
 import bus from '../../bus'
 import { useI18n } from 'vue-i18n'
-import { shortenMiddle } from '../../util/pathDisplay'
 
 const { t } = useI18n()
 
@@ -191,8 +176,6 @@ const depth = 0
 const showOpenedFiles = ref(true)
 const createName = ref('')
 const input = ref(null)
-const recentFolders = ref([])
-let _homeDir = ''
 
 const projectStore = useProjectStore()
 const editorStore = useEditorStore()
@@ -218,14 +201,6 @@ const rootIsEmpty = (root) =>
   rootFilesOf(root).length === 0 &&
   createCache.value.dirname !== root.pathname
 // END_BLOCK_ROOT_VIEW_LISTS
-
-const _refreshRecentFolders = async () => {
-  recentFolders.value = await projectStore.GET_RECENT_FOLDERS()
-}
-
-watch(projectTrees, (trees) => {
-  if (trees.length === 0) _refreshRecentFolders()
-})
 
 const isRootExpanded = (pathname) => collapsedRoots.value[pathname] !== true
 
@@ -254,25 +229,6 @@ const handleCloseRoot = (pathname) => {
 // Methods
 const openFolder = () => {
   projectStore.ASK_FOR_OPEN_PROJECT()
-}
-
-const openRecentFolder = (path) => {
-  projectStore.OPEN_RECENT_FOLDER(path)
-}
-
-const folderName = (p) => {
-  if (!p) return ''
-  const parts = p.split('/')
-  return parts[parts.length - 1] || p
-}
-
-const shortenPath = (p) => {
-  if (!p) return ''
-  const idx = p.lastIndexOf('/')
-  if (idx <= 0) return '/'
-  const dir = p.substring(0, idx)
-  const shown = _homeDir && dir.startsWith(_homeDir) ? '~' + dir.substring(_homeDir.length) : dir
-  return shortenMiddle(shown)
 }
 
 const saveAll = (isClose) => {
@@ -332,15 +288,6 @@ onMounted(() => {
       projectStore.renameCache = null
     }
   })
-
-  // Load recent folders asynchronously (non-blocking)
-  ;(async () => {
-    try {
-      const { homeDir } = await import('@tauri-apps/api/path')
-      _homeDir = (await homeDir()).replace(/\/+$/, '')
-    } catch { /* dev/test fallback */ }
-    recentFolders.value = await projectStore.GET_RECENT_FOLDERS()
-  })()
 })
 </script>
 
@@ -395,6 +342,9 @@ onMounted(() => {
 
 .opened-files .title {
   padding-right: 15px;
+  /* C-51 T-011: chevron starts at the shared row inset, like the
+     fileSections headers. */
+  padding-left: var(--sideBarRowInset, 12px);
   display: flex;
   align-items: center;
 }
@@ -468,12 +418,14 @@ onMounted(() => {
 
 /* C-51 T-001 folder-switcher row (canvas Main): a soft rounded chip that
    reads as the vault switcher — name + chevron-down open the existing
-   folder picker, the left chevron keeps the collapse toggle. */
+   folder picker, the left chevron keeps the collapse toggle. C-51 T-011:
+   the 8px chip margin + this padding put the chevron at the shared row
+   inset (--sideBarRowInset) from the sidebar's left edge. */
 .project-tree > .title.folder-switcher {
   height: 32px;
   margin: 0 8px;
   padding-right: 8px;
-  padding-left: 8px;
+  padding-left: calc(var(--sideBarRowInset, 12px) - 8px);
   border-radius: 8px;
   background: var(--sideBarItemHoverBgColor);
 }
@@ -521,95 +473,6 @@ onMounted(() => {
 
 .project-tree > .tree-wrapper::-webkit-scrollbar:vertical {
   width: 8px;
-}
-.open-project {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-around;
-  align-items: center;
-  padding-bottom: 100px;
-}
-
-.open-project .centered-group {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  /* The group is a centred flex child: without a width it grows to the
-     longest recent-folder path and runs past the sidebar edge. */
-  width: 100%;
-  min-width: 0;
-  box-sizing: border-box;
-}
-
-.open-folder-btn {
-  display: block;
-  margin-top: 20px;
-  padding: 6px 18px;
-  border: 1px solid var(--floatBorderColor, rgba(255, 255, 255, 0.15));
-  border-radius: 4px;
-  background: transparent;
-  color: var(--sideBarColor);
-  font-size: 13px;
-  cursor: pointer;
-  transition: background 0.15s, border-color 0.15s;
-}
-.open-folder-btn:hover {
-  background: var(--sideBarItemHoverBgColor, rgba(255, 255, 255, 0.06));
-  border-color: var(--themeColor, #409eff);
-  color: var(--themeColor, #409eff);
-}
-.recent-folders-section {
-  margin-top: 20px;
-  width: 100%;
-  box-sizing: border-box;
-  padding: 0 10px;
-}
-.recent-folders-title {
-  font-size: 11px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: var(--sideBarColor);
-  opacity: 0.5;
-}
-.recent-folders {
-  list-style: none;
-  margin: 16px 0 0;
-  padding: 0;
-  width: 100%;
-  min-width: 0;
-  box-sizing: border-box;
-}
-.recent-folder-item {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-  padding: 5px 10px;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: background 0.12s;
-}
-.recent-folder-item:hover {
-  background: var(--sideBarItemHoverBgColor, rgba(255, 255, 255, 0.06));
-}
-.recent-folder-name {
-  font-size: 13px;
-  color: var(--sideBarColor);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.recent-folder-item:hover .recent-folder-name {
-  color: var(--themeColor, #409eff);
-}
-.recent-folder-path {
-  font-size: 11px;
-  color: var(--sideBarColor);
-  opacity: 0.5;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 .new-input {
   outline: none;

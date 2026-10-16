@@ -1,7 +1,7 @@
 // FILE: tests/renderer/components/chrome-icons.test.js
-// VERSION: 2.1.0
+// VERSION: 2.2.0
 // START_MODULE_CONTRACT
-//   PURPOSE: Verify the one drawn chrome icon set (C-40 T-002 / C-38 T-006 / C-51 T-006 / M-057) — descriptor integrity, the shared 16 px grid metrics, the ChromeIcon render component and the chromeIconMarkup string twin.
+//   PURPOSE: Verify the one drawn chrome icon set (C-40 T-002 / C-38 T-006 / C-51 T-006 / C-51 T-011 / M-057) — descriptor integrity, the shared 16 px grid metrics, the ChromeIcon render component and the chromeIconMarkup string twin.
 //   SCOPE: pure module tests over components/icons/chromeIcons.js.
 //   DEPENDS: Vitest, vue (h) via the ChromeIcon component render.
 //   LINKS: .grace/verification/runtime.xml V-M-011 scenario-53, scenario-56; .canvas/Icons.dc.html.
@@ -15,7 +15,10 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v2.1.0 - 2026-10-16 C-51 T-006: the «expand» glyph (canvas
+//   LAST_CHANGE: v2.2.0 - 2026-10-16 C-51 T-011: the «pin» glyph (upright
+//   pushpin — T head, stem, flange, needle, round caps) joins the pinned
+//   name list.
+//   v2.1.0 - 2026-10-16 C-51 T-006: the «expand» glyph (canvas
 //   Mermaid — outward corner brackets + diagonal, round caps/joins) joins
 //   the pinned name list; muya's inline twin is asserted byte-identical in
 //   tests/renderer/muya/block-expand-button.test.js.
@@ -49,7 +52,9 @@ const ICON_NAMES = [
   'github', 'twitter',
   'window-minimize', 'window-maximize', 'window-restore', 'window-close',
   // C-51 T-006: the diagram/table expand button glyph.
-  'expand'
+  'expand',
+  // C-51 T-011: the pinned-file row mark (sidebar tree + Opened files).
+  'pin'
 ]
 
 const COLOR_LITERAL = /#(?:[0-9a-f]{3,8})\b|rgb\(|rgba\(|hsl\(|hsla\(/i

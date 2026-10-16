@@ -1,16 +1,30 @@
 /**
  * Function coverage tests for sideBar/treeOpenedTab.vue
- * Covers: selectFile, removeFileInTab (saved + unsaved)
+ * Covers: selectFile, removeFileInTab (saved + unsaved), the trailing
+ * pinned mark (C-51 T-011)
  */
 import { shallowMount } from '@vue/test-utils'
 import { setupTestPinia } from '../../pinia'
 import { createI18n } from 'vue-i18n'
+import { nextTick } from 'vue'
 
 vi.mock('@/bus', () => ({
   default: { on: vi.fn(), off: vi.fn(), emit: vi.fn() }
 }))
 
-const i18n = createI18n({ legacy: false, locale: 'en', messages: { en: {} } })
+const i18n = createI18n({
+  legacy: false,
+  locale: 'en',
+  messages: {
+    en: {
+      sideBar: {
+        tree: {
+          pinned: 'Pinned'
+        }
+      }
+    }
+  }
+})
 
 describe('sideBar/treeOpenedTab.vue — fn coverage', () => {
   let pinia, OpenedTab, editorStore
@@ -62,5 +76,44 @@ describe('sideBar/treeOpenedTab.vue — fn coverage', () => {
     const w = mount({ isSaved: false })
     w.vm.removeFileInTab({ id: 'tab1', isSaved: false })
     expect(spy).toHaveBeenCalled()
+  })
+
+  // ── C-51 T-011: the trailing pinned mark on Opened-files rows ──
+
+  it('a pinned opened-file row shows the pin mark with its localized label (C-51 T-011)', async () => {
+    const { usePinnedStore } = await import('@/store/pinned')
+    const pinnedStore = usePinnedStore()
+    pinnedStore.pinnedFiles = ['/a.md']
+
+    const w = mount()
+    const mark = w.find('.opened-file > .pin-mark')
+    expect(mark.exists()).toBe(true)
+    expect(mark.attributes('title')).toBe('Pinned')
+    expect(mark.attributes('aria-label')).toBe('Pinned')
+    expect(mark.attributes('role')).toBe('img')
+    // the name span keeps its own slot — the mark trails it
+    expect(w.find('.opened-file > span.name').text()).toBe('a.md')
+  })
+
+  it('unpinning removes the mark from the opened-file row immediately (C-51 T-011)', async () => {
+    const { usePinnedStore } = await import('@/store/pinned')
+    const pinnedStore = usePinnedStore()
+    pinnedStore.pinnedFiles = ['/a.md']
+
+    const w = mount()
+    expect(w.find('.opened-file > .pin-mark').exists()).toBe(true)
+
+    await pinnedStore.UNPIN_FILE('/a.md')
+    await nextTick()
+    expect(w.find('.opened-file > .pin-mark').exists()).toBe(false)
+  })
+
+  it('no pin mark while the tab is not pinned', async () => {
+    const { usePinnedStore } = await import('@/store/pinned')
+    const pinnedStore = usePinnedStore()
+    pinnedStore.pinnedFiles = ['/somewhere-else.md']
+
+    const w = mount()
+    expect(w.find('.opened-file > .pin-mark').exists()).toBe(false)
   })
 })

@@ -1,6 +1,7 @@
 import { shallowMount } from '@vue/test-utils'
 import { setupTestPinia } from '../../pinia'
 import { createI18n } from 'vue-i18n'
+import { nextTick } from 'vue'
 
 vi.mock('@/bus', () => ({
   default: { on: vi.fn(), off: vi.fn(), emit: vi.fn() }
@@ -16,7 +17,19 @@ vi.mock('muya/lib/ui/fileIcons', () => ({
   }
 }))
 
-const i18n = createI18n({ legacy: false, locale: 'en', messages: { en: {} } })
+const i18n = createI18n({
+  legacy: false,
+  locale: 'en',
+  messages: {
+    en: {
+      sideBar: {
+        tree: {
+          pinned: 'Pinned'
+        }
+      }
+    }
+  }
+})
 
 describe('sideBar/treeFile.vue', () => {
   let pinia
@@ -101,5 +114,68 @@ describe('sideBar/treeFile.vue', () => {
     // No depth*20px formula anymore; only the non-Markdown opacity stays inline.
     const style = wrapper.find('.side-bar-file').attributes('style')
     expect(style).not.toContain('padding-left')
+  })
+
+  // ── C-51 T-011: the trailing pin mark on pinned rows ──
+  const mountFile = async (pathname) => {
+    const TreeFile = (await import('@/components/sideBar/treeFile.vue')).default
+    return shallowMount(TreeFile, {
+      props: {
+        file: {
+          id: 'file-1',
+          name: pathname.split('/').pop(),
+          pathname,
+          isMarkdown: true
+        },
+        depth: 0
+      },
+      global: {
+        plugins: [pinia, i18n],
+        stubs: {
+          FileIcon: true
+        }
+      }
+    })
+  }
+
+  it('a pinned row shows the pin mark with its localized «Pinned» label (C-51 T-011)', async () => {
+    const { usePinnedStore } = await import('@/store/pinned')
+    const pinnedStore = usePinnedStore()
+    pinnedStore.pinnedFiles = ['/tmp/readme.md']
+
+    const wrapper = await mountFile('/tmp/readme.md')
+    const mark = wrapper.find('.side-bar-file > .pin-mark')
+    expect(mark.exists()).toBe(true)
+    expect(mark.attributes('title')).toBe('Pinned')
+    expect(mark.attributes('aria-label')).toBe('Pinned')
+    expect(mark.attributes('role')).toBe('img')
+  })
+
+  it('no pin mark while unpinned; pin and unpin update the row immediately (C-51 T-011)', async () => {
+    const { usePinnedStore } = await import('@/store/pinned')
+    const pinnedStore = usePinnedStore()
+    pinnedStore.pinnedFiles = []
+
+    const wrapper = await mountFile('/tmp/readme.md')
+    expect(wrapper.find('.side-bar-file > .pin-mark').exists()).toBe(false)
+
+    // pin from any surface (tree context menu / Pinned section) — the
+    // reactive store drives the mark.
+    await pinnedStore.PIN_FILE('/tmp/readme.md')
+    await nextTick()
+    expect(wrapper.find('.side-bar-file > .pin-mark').exists()).toBe(true)
+
+    await pinnedStore.UNPIN_FILE('/tmp/readme.md')
+    await nextTick()
+    expect(wrapper.find('.side-bar-file > .pin-mark').exists()).toBe(false)
+  })
+
+  it('another file being pinned does not mark this row (path-keyed)', async () => {
+    const { usePinnedStore } = await import('@/store/pinned')
+    const pinnedStore = usePinnedStore()
+    pinnedStore.pinnedFiles = ['/tmp/other.md']
+
+    const wrapper = await mountFile('/tmp/readme.md')
+    expect(wrapper.find('.side-bar-file > .pin-mark').exists()).toBe(false)
   })
 })

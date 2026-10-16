@@ -4617,6 +4617,59 @@
           docs light on manual Light (persisted theme/lightModeTheme/
           darkModeTheme) and macos-dark on Auto over a dark system.
         </Scenario>
+        <Scenario>
+          scenario-61: Sidebar polish — chevron inset, pinned-file marks,
+          empty state without the CTA (C-51 T-011, user smoke 2026-10-16):
+          the sidebar shell (components/sideBar/index.vue) owns the one
+          shared --sideBarRowInset token (12px); the section-header
+          chevrons (fileSections.vue .section-title, tree.vue
+          .opened-files .title) and the root folder-switcher chevron
+          (chip margin 8px + calc padding, keeping the chip geometry)
+          start at that inset instead of touching the sidebar's left
+          edge, nested folder indent steps are unchanged, and consumers
+          carry a 12px fallback so standalone unit mounts keep geometry.
+          Pinned files are discoverable: a trailing 12px drawn pin
+          (chromeIcons «pin» — upright pushpin, shared 16-grid/1.4
+          stroke/round caps; name list pinned by
+          tests/renderer/components/chrome-icons.test.js) with the
+          localized sideBar.tree.pinned label (title + role=img +
+          aria-label; new key in all ten static/locales/*.json — de
+          Angeheftet / en Pinned / es Fijado / fr Épinglé / ja
+          ピン留め済み / ko 고정됨 / pt Fixado / ru Закреплён / zh-CN
+          已固定 / zh-TW 已釘選) renders on treeFile.vue rows AND
+          treeOpenedTab.vue Opened-files rows through the reactive
+          pinned store, so unpinning from the tree context menu or the
+          Pinned section clears both immediately; the Pinned section
+          itself stays conditional on a non-empty list (user correction
+          2026-10-16 — no always-visible header, no empty hint). The
+          sidebar empty state (no folder open) loses the Open Folder
+          button and the RECENT folders list (tree.vue .open-project
+          block + recentFolders/_refreshRecentFolders/openRecentFolder/
+          folderName/shortenPath locals + CSS removed; the keys
+          sideBar.tree.openFolder and sideBar.tree.recentFolders are now
+          unused in locales) — both surfaces live on the C-46 welcome
+          screen and opening a folder keeps working from the File menu,
+          the welcome screen and the title-bar folder switcher (the
+          switcher row test replaced the old button-click unit test).
+          Unit: tests/renderer/components/sideBar/treeFile.test.js
+          (pin mark present with label, absent unpinned, pin/unpin
+          reactive, path-keyed), treeOpenedTab-fn.test.js (mark on
+          Opened-files rows, label, unpin removes), tree.test.js +
+          sidebar-deep.test.js (empty sidebar renders no
+          open-folder-btn/recent-folders; folder-switcher click opens
+          the picker), tree-fn.test.js (GET_RECENT_FOLDERS not called
+          on mount), chrome-icons.test.js («pin» descriptor). E2E
+          tests/e2e/sidebar-tree-redesign.spec.ts T-011 describe
+          (chromium + webkit-tree): no-folder sidebar has no Open
+          Folder button and no RECENT list; context-menu pin → Pinned
+          section + mark on the tree row and the Opened-files row with
+          title/aria «Pinned», context-menu unpin → section and both
+          marks gone; the bounding box of the Recent/Pinned/Opened
+          section chevrons and the root switcher chevron starts ≥ 10px
+          from the sidebar's left edge with a screenshot via
+          test.info().outputPath; tests/e2e/sidebar-empty-state.spec.ts
+          (v2.0.0, chromium) pins the absence of the removed CTA.
+        </Scenario>
       </Scenarios>
       <Markers>
         <Marker>[prefs][theme-migration][BLOCK_RETIRED_THEMES_MIGRATED key:from-&gt;to …] — C-41 T-002 retired theme ids migrated at the hydration load point and persisted once per changed key</Marker>
