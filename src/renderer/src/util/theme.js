@@ -25,6 +25,9 @@
 // END_MODULE_MAP
 //
 // CHANGE_SUMMARY:
+//   - 2026-10-16 C-51 T-008: addThemeStyle also syncs the native window
+//     appearance (util/nativeWindowTheme.js) so the Settings window's
+//     native title bar follows a dark/light theme instead of macOS.
 //   - 2026-10-16 C-51 T-007: register the Docs and macOS family members
 //     (docs, macos light; docs-dark, macos-dark dark, railscasts
 //     classification) in themeMap — the neutral docs and Apple looks from
@@ -95,6 +98,7 @@ import {
   rosePineDawn
 } from './themeColor'
 import { isLinux } from './index'
+import { syncNativeWindowTheme } from './nativeWindowTheme'
 
 // C-41 T-002: registered themes only — retired ids are absent by design
 // (migrated on load); the six C-41 T-003 members join with that task.
@@ -198,6 +202,8 @@ export const addThemeStyle = (theme) => {
   try { localStorage.setItem('mark-cached-theme', theme) } catch (_) {}
 
   root.style.colorScheme = isDarkTheme ? 'dark' : 'light'
+  // C-51 T-008: native title bars (Settings) follow the theme, not macOS.
+  syncNativeWindowTheme(isDarkTheme)
 
   const cm = document.querySelector('.CodeMirror')
   if (cm) {
