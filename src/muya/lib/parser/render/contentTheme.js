@@ -119,8 +119,9 @@ export const buildSequenceThemeOptions = (t, sequenceTheme) => {
 //   - boxes (rect elements; filled paths) → surface plate + border
 //     stroke (hand-theme boxes are wobbly paths, distinguished from
 //     lifelines by their non-"none" fill attribute);
-//   - notes → the same accent tint pair Mermaid's noteBkgColor/
-//     noteBorderColor use;
+//   - notes → an accent tint pair (pre-T-012 this matched Mermaid's
+//     noteBkgColor/noteBorderColor; since C-51 T-012 Mermaid's own notes
+//     follow the node fill/border derived against the code-block panel);
 //   - arrowhead markers (in <marker>) → the line colour.
 export const applySequenceTheme = (container, t) => {
   if (!container || typeof container.querySelectorAll !== 'function') {
@@ -130,7 +131,8 @@ export const applySequenceTheme = (container, t) => {
   if (!svg) {
     return
   }
-  // Same tint pair as Mermaid's noteBkgColor/noteBorderColor.
+  // js-sequence's own accent tint pair for notes (Mermaid's notes follow
+  // the T-012 node colours derived against the code-block panel).
   // js-sequence paints through inline styles / its stylesheet, which beat
   // presentation attributes — write the inline style too (review 2026-10-16:
   // the text stayed black although the attribute was set).
