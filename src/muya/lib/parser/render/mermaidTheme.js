@@ -22,7 +22,8 @@
 //   buildMermaidThemeConfig - theme tokens + type key → full mermaid.initialize config (themeVariables incl. cScale/pie/git/xyChart/quadrant/journey scales, themeCSS polish, per-type layout config with the C-34 fit-column useMaxWidth policy).
 //   mermaidThemeSignature - theme tokens → short stable signature (includes the resolved palette) for the pipeline's cache key.
 //   MARKER_SCALE - per-type arrowhead scale factors.
-//   postProcessMermaidSvg - rendered SVG + type → SVG with proportionate arrowheads.
+//   postProcessMermaidSvg - rendered SVG + type (+ theme tokens) → SVG with proportionate arrowheads and the donut pie.
+//   DONUT_HOLE - donut hole radius as a fraction of the pie radius.
 //   blendHex - text-over-background blend of two hex colours at a ratio (muted/line tokens).
 // END_MODULE_MAP
 //
@@ -250,20 +251,45 @@ export const MARKER_SCALE = Object.freeze({
   flowchart: 0.7, block: 0.62, state: 0.8, class: 0.8, requirement: 0.8, architecture: 0.75, c4: 0.8
 })
 
-export const postProcessMermaidSvg = (svg, type) => {
+export const postProcessMermaidSvg = (svg, type, tokens = null) => {
+  if (typeof svg !== 'string') return svg
+  let out = svg
   const k = MARKER_SCALE[type]
-  if (!k || typeof svg !== 'string') return svg
-  return svg.replace(/<marker\b[^>]*>/g, (tag) => {
-    const w = /markerWidth="([\d.]+)"/.exec(tag)
-    const h = /markerHeight="([\d.]+)"/.exec(tag)
-    if (!w || !h) return tag
-    let out = tag
-    if (!/viewBox=/.test(out)) out = out.replace('<marker', `<marker viewBox="0 0 ${w[1]} ${h[1]}"`)
-    return out
-      .replace(/markerWidth="[\d.]+"/, `markerWidth="${(Number(w[1]) * k).toFixed(2)}"`)
-      .replace(/markerHeight="[\d.]+"/, `markerHeight="${(Number(h[1]) * k).toFixed(2)}"`)
-  })
+  if (k) {
+    out = out.replace(/<marker\b[^>]*>/g, (tag) => {
+      const w = /markerWidth="([\d.]+)"/.exec(tag)
+      const h = /markerHeight="([\d.]+)"/.exec(tag)
+      if (!w || !h) return tag
+      let t = tag
+      if (!/viewBox=/.test(t)) t = t.replace('<marker', `<marker viewBox="0 0 ${w[1]} ${h[1]}"`)
+      return t
+        .replace(/markerWidth="[\d.]+"/, `markerWidth="${(Number(w[1]) * k).toFixed(2)}"`)
+        .replace(/markerHeight="[\d.]+"/, `markerHeight="${(Number(h[1]) * k).toFixed(2)}"`)
+    })
+  }
+  if (type === 'pie') out = donutPie(out, tokens)
+  return out
 }
+
+// START_BLOCK_MERMAID_DONUT
+// Keynote-style donut (user 2026-10-16: «думаю да» — on by default for every
+// theme; Markdown has no place to store a per-diagram choice). A hole of
+// DONUT_HOLE × radius, painted in the diagram panel colour, goes in right
+// before the percentage labels (Mermaid places them at 0.75 × radius, so
+// they stay on the ring).
+export const DONUT_HOLE = 0.56
+
+const donutPie = (svg, tokens) => {
+  if (/class="pieDonutHole"/.test(svg)) return svg
+  const arc = /class="pieCircle"/.test(svg) && /<path d="M[^"]*?A([\d.]+),/.exec(svg)
+  const firstLabel = svg.search(/<text\b[^>]*class="slice"/)
+  if (!arc || firstLabel < 0) return svg
+  const r = Number(arc[1]) * DONUT_HOLE
+  const fill = (tokens && (tokens.code || tokens.bg)) || '#ffffff'
+  const hole = `<circle cx="0" cy="0" r="${r.toFixed(1)}" class="pieDonutHole" fill="${fill}" stroke="none"></circle>`
+  return svg.slice(0, firstLabel) + hole + svg.slice(firstLabel)
+}
+// END_BLOCK_MERMAID_DONUT
 // END_BLOCK_MERMAID_MARKERS
 
 // START_BLOCK_MERMAID_TYPE_DETECT

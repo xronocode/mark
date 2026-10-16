@@ -97,7 +97,7 @@ class ExportHtml {
         })
         const rendered = await mermaid.render('mermaid-export-' + index++, rawCode)
         const bindFunctions = rendered.bindFunctions
-        const svg = postProcessMermaidSvg(rendered.svg, detectMermaidDiagramType(rawCode))
+        const svg = postProcessMermaidSvg(rendered.svg, detectMermaidDiagramType(rawCode), tokens)
         mermaidContainer.innerHTML = svg
         if (bindFunctions) {
           bindFunctions(mermaidContainer)

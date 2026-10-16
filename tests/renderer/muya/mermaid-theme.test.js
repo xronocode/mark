@@ -40,7 +40,8 @@ import {
   mermaidThemeSignature,
   blendHex,
   postProcessMermaidSvg,
-  MARKER_SCALE
+  MARKER_SCALE,
+  DONUT_HOLE
 } from 'muya/lib/parser/render/mermaidTheme'
 
 // The accepted lab themes (paper/ink) as fixed token inputs — product code
@@ -498,5 +499,28 @@ describe('C-51 review: arrowheads, Keynote pie, theme palette hook', () => {
     setRootVars({ ...PAPER_VARS, '--chartPalette': '#007AFF, #34C759, #FF9500, #FF3B30, #AF52DE, #30B0C7' })
     expect(readActiveThemeTokens().series).toEqual(['#007aff', '#34c759', '#ff9500', '#ff3b30', '#af52de', '#30b0c7'])
     document.documentElement.style.removeProperty('--chartPalette')
+  })
+})
+
+describe('C-51 donut pie (user 2026-10-16)', () => {
+  const PIE = '<g transform="translate(225,225)"><circle cx="0" cy="0" r="186" class="pieOuterCircle"></circle>' +
+    '<path d="M0,-185A185,185,0,0,1,46,179L0,0Z" fill="#007aff" class="pieCircle"></path>' +
+    '<text transform="translate(137,-17)" class="slice">46%</text></g>'
+
+  it('inserts a hole in the panel colour right before the labels', () => {
+    const out = postProcessMermaidSvg(PIE, 'pie', PAPER_TOKENS)
+    const hole = `<circle cx="0" cy="0" r="${(185 * DONUT_HOLE).toFixed(1)}" class="pieDonutHole" fill="${PAPER_TOKENS.code}" stroke="none"></circle>`
+    expect(out).toContain(hole + '<text')
+    expect(out.indexOf('pieDonutHole')).toBeGreaterThan(out.indexOf('class="pieCircle"'))
+  })
+
+  it('is idempotent and leaves other types alone', () => {
+    const once = postProcessMermaidSvg(PIE, 'pie', PAPER_TOKENS)
+    expect(postProcessMermaidSvg(once, 'pie', PAPER_TOKENS)).toBe(once)
+    expect(postProcessMermaidSvg(PIE, 'flowchart', PAPER_TOKENS)).toBe(PIE)
+  })
+
+  it('keeps the labels on the ring (hole smaller than the 0.75 label radius)', () => {
+    expect(DONUT_HOLE).toBeLessThan(0.7)
   })
 })

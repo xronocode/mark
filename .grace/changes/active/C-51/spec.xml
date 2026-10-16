@@ -30,6 +30,7 @@
     <D-2>2026-10-16 user: the tree shows only Markdown by default («при открытии папок важно показывать только мд файлы»).</D-2>
     <D-3>2026-10-16 user accepted the round-2 Mermaid renders as the base («1 ок»): no gradients; per-theme OKLCH categorical palettes, per-type config and sizes.</D-3>
     <D-4>2026-10-16 user: quadrant chart in one hue of different lightness («один разной яркости»).</D-4>
+    <D-6>2026-10-16 user: the Keynote-style donut pie is the default for every theme («думаю да» — Markdown has no place to store a per-diagram choice).</D-6>
     <D-5>2026-10-16: architecture icons and C-4 are themed in Mark (attribute-selector CSS for the built-in icon tiles; c4 config colour keys). Upstream Mermaid PRs (theme variables for the built-in architecture icons, C-4 defaults from the theme, sankey palette and dark-background blending) are proposed separately — opening them needs the user's go.</D-5>
   </Decisions>
 
