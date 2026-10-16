@@ -113,7 +113,8 @@
       <DependsOn>T-002</DependsOn>
       <AcceptanceCriteria>
         <Criterion>User: «шевроны папок прилипли к левому краю … плюс не понятно есть ли закреплённые pinned файлы». Section headers (Recent, Pinned, Opened files) and folder rows get a left inset so their chevrons no longer touch the sidebar edge; nested rows keep their indent step; canvas look in every theme.</Criterion>
-        <Criterion>The Pinned section is always shown (collapsed state persisted as today) with an empty hint «Pin a file from its context menu» (10 locales) when nothing is pinned; a pinned file carries a small pin mark in the folder tree; unpinning from the tree context menu and from the Pinned section keeps working.</Criterion>
+        <Criterion>User correction 2026-10-16: the Pinned section stays shown ONLY while something is pinned (as today); a pinned file carries a small pin mark in the folder tree and in Opened files so it is clear what is pinned; unpinning from the tree context menu and from the Pinned section keeps working.</Criterion>
+        <Criterion>User: «кнопка открыть папку на левом поле … лишняя, как и ресентс слева ибо они все на главном стартовом теперь» — the sidebar empty state (no folder open) loses its Open Folder button and its RECENT folders list (both live on the welcome screen, C-46); the sidebar shows only the file sections then. Opening a folder from the menu, the welcome screen and the title-bar folder switcher keeps working.</Criterion>
       </AcceptanceCriteria>
       <Verification><Command>npm test</Command><Command>playwright chromium + webkit (tree)</Command><Command>grace lint --path . --assertions current</Command></Verification>
     </T-011>
