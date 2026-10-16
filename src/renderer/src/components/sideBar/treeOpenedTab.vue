@@ -28,6 +28,10 @@
 
 <script setup>
 // START_CHANGE_SUMMARY
+//   - 2026-10-17 C-51 T-013: the row name starts on the shared text grid
+//     (--sideBarRowInset + the folder icon slot, 32px — was 35px with the
+//     old icon column) and every Opened-files row is explicitly regular
+//     weight, matching tree/Recent/Pinned file rows.
 //   - 2026-10-16 C-51 T-011: pinned rows carry the trailing 12px drawn
 //     pin (chromeIcons «pin») with the localized «Pinned» label; the
 //     reactive pinned store drives it, so unpinning anywhere removes it
@@ -82,7 +86,13 @@ const removeFileInTab = (file) => {
   user-select: none;
   height: 28px;
   line-height: 28px;
-  padding-left: 35px;
+  /* C-51 T-013: the name starts on the shared text grid like the tree and
+     section file rows; the hover close glyph (absolute, left 10px) and
+     the unsaved dot keep their slots to its left. */
+  padding-left: calc(var(--sideBarRowInset, 12px) + 20px);
+  /* C-51 T-013: one regular weight for every file row (active = accent
+     text, never bold). */
+  font-weight: 400;
   position: relative;
   color: var(--sideBarColor);
   & > svg {

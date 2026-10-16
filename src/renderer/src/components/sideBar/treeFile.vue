@@ -9,7 +9,6 @@
     ]"
     @click="handleFileClick"
   >
-    <file-icon :name="file.name"></file-icon>
     <input
       v-if="renameCache === file.pathname"
       ref="renameInput"
@@ -36,17 +35,22 @@
 
 <script setup>
 // FILE: src/renderer/src/components/sideBar/treeFile.vue
-// VERSION: 2.1.0
+// VERSION: 2.2.0
 // START_MODULE_CONTRACT
-//   PURPOSE: One file row of the sidebar tree — extension-aware icon + name, the current file on a soft rounded pill (chromeAccentSoft), non-Markdown rows dimmed and not openable, the context menu carrying Pin/Unpin (C-51 T-002) and the trailing pin mark on pinned rows (C-51 T-011).
+//   PURPOSE: One file row of the sidebar tree — name only at the shared row inset (C-51 T-013 removed the leading file-type icon), the current file on a soft rounded pill (chromeAccentSoft + accent text), non-Markdown rows dimmed and not openable, the context menu carrying Pin/Unpin (C-51 T-002) and the trailing pin mark on pinned rows (C-51 T-011).
 //   SCOPE: Row rendering (rename input, current/active/dirty state, pinned mark), open-or-select click behaviour, context menu wiring with pin state.
-//   DEPENDS: vue, pinia, store/project, store/editor, store/pinned, ./icon.vue, ../icons/chromeIcons.js, contextMenu/sideBar, bus, vue-i18n.
-//   LINKS: .grace/changes/active/C-38 T-006 N4 b (accent selection); .grace/changes/active/C-51 T-001/T-002/T-011; .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011.
+//   DEPENDS: vue, pinia, store/project, store/editor, store/pinned, ../icons/chromeIcons.js, contextMenu/sideBar, bus, vue-i18n.
+//   LINKS: .grace/changes/active/C-38 T-006 N4 b (accent selection); .grace/changes/active/C-51 T-001/T-002/T-011/T-013; .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011.
 //   ROLE: RUNTIME
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT
 //
 // START_CHANGE_SUMMARY
+//   - 2026-10-17 v2.2.0: C-51 T-013 — the leading file-type icon is gone;
+//     the row keeps the shared inset (--sideBarRowInset + the 20px folder
+//     icon slot) so the name aligns with folder names, and every file row
+//     (current included) is regular weight — the current file is marked
+//     only by the pill + accent text.
 //   - 2026-10-16 v2.1.0: C-51 T-011 — pinned rows carry a 12px drawn pin
 //     (chromeIcons «pin») at the end with the localized «Pinned» label;
 //     the reactive pinned store drives it, so unpinning from the tree
@@ -69,7 +73,6 @@ import { useI18n } from 'vue-i18n'
 import { useProjectStore } from '@/store/project'
 import { useEditorStore } from '@/store/editor'
 import { usePinnedStore } from '@/store/pinned'
-import FileIcon from './icon.vue'
 import { ChromeIcon } from '../icons/chromeIcons.js'
 import { showContextMenu } from '../../contextMenu/sideBar'
 import bus from '../../bus'
@@ -172,7 +175,13 @@ onMounted(() => {
   height: 32px;
   box-sizing: border-box;
   padding-right: 10px;
-  padding-left: 10px;
+  /* C-51 T-013: the file-type icon is gone; the name keeps starting where
+     folder names start (--sideBarRowInset + the 14px folder glyph + its
+     6px margin), so files and folders read on one text grid. */
+  padding-left: calc(var(--sideBarRowInset, 12px) + 20px);
+  /* C-51 T-013: one regular weight for every file row — the current file
+     is marked by the pill + accent text, never by bold. */
+  font-weight: 400;
   &:hover {
     background: var(--sideBarItemHoverBgColor);
   }
@@ -202,19 +211,18 @@ onMounted(() => {
   background: var(--chromeAccentSoft);
   border-radius: 8px;
   /* Inset pill like the canvas (review 2026-10-16: it ran edge to edge);
-     the padding gives back the margin so the name stays aligned. */
+     the margin + padding keep the name on the shared text grid. */
   margin: 0 6px;
-  padding-left: 4px;
+  padding-left: calc(var(--sideBarRowInset, 12px) + 14px);
   padding-right: 4px;
 }
 .side-bar-file.current::before {
-  /* The pill marks the current file (canvas); the accent bar would
-     overlap the inset icon. */
+  /* The pill marks the current file (canvas); the accent bar would stick
+     out of the inset pill. */
   display: none;
 }
 .side-bar-file.current > span {
   color: var(--chromeAccent);
-  font-weight: 500;
 }
 .side-bar-file.active > span {
   color: var(--sideBarTitleColor);
