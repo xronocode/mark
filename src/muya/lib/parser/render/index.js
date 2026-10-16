@@ -1,5 +1,5 @@
 // FILE: src/muya/lib/parser/render/index.js
-// VERSION: 1.5.1
+// VERSION: 1.5.2
 // START_MODULE_CONTRACT
 //   PURPOSE: Render muya ContentState blocks to the DOM via snabbdom and drive the asynchronous previews (math, mermaid, diagrams, images).
 //   SCOPE: StateRender — full/partial/single-block render, selector building, mermaid dispatch into the resilient pipeline, diagram rendering (C-51 T-005: vega-lite/flowchart/sequence options and post-pass themed from the active app theme), render caches, the C-38 line-number gutter measurement queue, and keeping C-39 table scroll and C-39 T-002 session column widths across renders.
@@ -14,7 +14,11 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.5.1 - 2026-10-16 C-51 T-008 (live smoke): the diagram
+//   LAST_CHANGE: v1.5.2 - 2026-10-16 C-51 T-008: renderDiagram takes and
+//   clears the diagram queue before its first await, so an overlapping
+//   call cannot render the same block twice (two js-sequence SVGs in one
+//   figure on CI).
+//   v1.5.1 - 2026-10-16 C-51 T-008 (live smoke): the diagram
 //   error text names the failing fence (DIAGRAM_ERROR_LABEL) — a failed
 //   vega-lite block used to read «Invalid Sequence Codes». The failure
 //   itself (vega codegen blocked by the Tauri CSP) is fixed in
@@ -224,7 +228,12 @@ class StateRender {
       }
       // END_BLOCK_DIAGRAM_THEME_OPTIONS
 
-      for (const [key, value] of cache.entries()) {
+      // Take the queue before the first await: a second renderDiagram call
+      // while vega is still embedding used to re-render the same blocks, and
+      // js-sequence (async font load) then drew two SVGs into one block.
+      const entries = [...cache.entries()]
+      cache.clear()
+      for (const [key, value] of entries) {
         const target = document.querySelector(key)
         if (!target) {
           continue
@@ -253,7 +262,6 @@ class StateRender {
           target.classList.add(CLASS_OR_ID.AG_MATH_ERROR)
         }
       }
-      this.diagramCache.clear()
     }
   }
 
