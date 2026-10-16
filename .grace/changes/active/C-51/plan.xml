@@ -108,6 +108,15 @@
       </AcceptanceCriteria>
       <Verification><Command>npm test</Command><Command>playwright chromium + webkit (block-viewer)</Command><Command>grace lint --path . --assertions current</Command></Verification>
     </T-010>
+    <T-011>
+      <Title>Sidebar polish: chevron inset and a discoverable Pinned section (user 2026-10-16 smoke)</Title>
+      <DependsOn>T-002</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>User: «шевроны папок прилипли к левому краю … плюс не понятно есть ли закреплённые pinned файлы». Section headers (Recent, Pinned, Opened files) and folder rows get a left inset so their chevrons no longer touch the sidebar edge; nested rows keep their indent step; canvas look in every theme.</Criterion>
+        <Criterion>The Pinned section is always shown (collapsed state persisted as today) with an empty hint «Pin a file from its context menu» (10 locales) when nothing is pinned; a pinned file carries a small pin mark in the folder tree; unpinning from the tree context menu and from the Pinned section keeps working.</Criterion>
+      </AcceptanceCriteria>
+      <Verification><Command>npm test</Command><Command>playwright chromium + webkit (tree)</Command><Command>grace lint --path . --assertions current</Command></Verification>
+    </T-011>
   </ImplementationPlan>
   <Evidence>
     <T-005>
