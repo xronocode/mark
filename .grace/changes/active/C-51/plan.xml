@@ -118,6 +118,15 @@
       </AcceptanceCriteria>
       <Verification><Command>npm test</Command><Command>playwright chromium + webkit (tree)</Command><Command>grace lint --path . --assertions current</Command></Verification>
     </T-011>
+    <T-012>
+      <Title>Mermaid node contrast in dark themes (user 2026-10-16 smoke)</Title>
+      <DependsOn>T-003 T-004 T-007</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>User: «в тёмной теме у мермейд явно проблемы с контрастностью блоков». In every registered dark theme (and, as a guard, every light theme) Mermaid node shapes are distinguishable from the diagram background they sit on (the code-block panel): node border vs that background ≥ 3:1 (WCAG 1.4.11 non-text), node fill vs background visibly different (ΔL ≥ 0.06 in OKLCH or ≥ 1.25:1), node text vs node fill ≥ 4.5:1, edges/arrowheads vs background ≥ 3:1, cluster/subgraph fill vs background distinguishable; the user's %%{init}%% overrides keep winning.</Criterion>
+        <Criterion>Pinned by a unit test over all themes (computed from the real theme CSS tokens through readActiveThemeTokens → buildMermaidThemeConfig) and an e2e that renders a flowchart in Ink, Docs Dark and macOS Dark and measures the computed node rect fill/stroke against the preview background; screenshots per theme.</Criterion>
+      </AcceptanceCriteria>
+      <Verification><Command>npm test</Command><Command>playwright chromium + webkit (mermaid theme)</Command><Command>grace lint --path . --assertions current</Command></Verification>
+    </T-012>
   </ImplementationPlan>
   <Evidence>
     <T-005>
