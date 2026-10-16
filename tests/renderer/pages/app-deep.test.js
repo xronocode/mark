@@ -84,6 +84,15 @@ describe('App.vue page — deep coverage', () => {
     }
   })
 
+  // store/editor.js schedules command registration 400 ms + 100 ms after
+  // mount; under a loaded full run the last timer could fire after jsdom
+  // teardown ("window is not defined", an unhandled error that fails the
+  // run). Let those real timers drain while the environment still exists.
+  afterAll(async () => {
+    vi.useRealTimers()
+    await new Promise((resolve) => setTimeout(resolve, 600))
+  })
+
   const mountComponent = () => {
     _wrapper = shallowMount(AppPage, {
       global: {
