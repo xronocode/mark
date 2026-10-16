@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 /**
  * Tests for src/renderer/src/prefComponents/tabsBar/index.vue (C-38 T-003)
  *
@@ -105,6 +107,28 @@ describe('tabsBar/index.vue – Settings toolbar', () => {
       wrapper = mountBar()
       expect(wrapper.find('nav.pref-toolbar--underline').exists()).toBe(true)
       expect(wrapper.find('nav.pref-toolbar--mac').exists()).toBe(false)
+    })
+
+    // C-51 T-008: the macOS Settings window has a transparent title bar over
+    // full-size content; the toolbar is the drag surface and reserves the
+    // 28 px traffic-light strip.
+    it('is a window drag region with the title-bar strip on macOS only', () => {
+      osState.isOsx = true
+      wrapper = mountBar()
+      expect(wrapper.find('nav.pref-toolbar').attributes()).toHaveProperty('data-tauri-drag-region')
+      wrapper.unmount()
+      osState.isOsx = false
+      wrapper = mountBar()
+      expect(wrapper.find('nav.pref-toolbar').attributes()).not.toHaveProperty('data-tauri-drag-region')
+      const sfc = readFileSync(resolve(__dirname, '../../../src/renderer/src/prefComponents/tabsBar/index.vue'), 'utf8')
+      expect(sfc).toMatch(/\.pref-toolbar--mac \{[^}]*padding: 30px 12px 8px;/)
+    })
+
+    it('the Settings window gets the transparent title bar on macOS', () => {
+      const rs = readFileSync(resolve(__dirname, '../../../src-tauri/src/m_v1_compat.rs'), 'utf8')
+      expect(rs).toContain('run_on_main_thread(move || settings_transparent_titlebar(&w))')
+      expect(rs).toContain('setTitlebarAppearsTransparent')
+      expect(rs).toContain('1 << 15')
     })
   })
 
