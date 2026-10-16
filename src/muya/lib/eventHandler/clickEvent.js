@@ -1,10 +1,10 @@
 // FILE: src/muya/lib/eventHandler/clickEvent.js
-// VERSION: 1.1.0
+// VERSION: 1.2.0
 // START_MODULE_CONTRACT
-//   PURPOSE: Route clicks inside the muya container — tools, drag bars, images, math, container previews, callouts, footnotes, checkboxes — to contentState actions or eventCenter events.
+//   PURPOSE: Route clicks inside the muya container — tools, drag bars, images, math, container previews, callouts, footnotes, checkboxes, the C-51 expand button — to contentState actions or eventCenter events.
 //   SCOPE: clickBinding and contextClickBinding only.
 //   DEPENDS: muya/lib/utils (domManipulate, getImageInfo), muya/lib/config, muya/lib/selection, contentState handlers.
-//   LINKS: .grace/graph/runtime.xml M-012; .grace/verification/runtime.xml V-M-012; .grace/changes/active/C-34 T-002 (BLOCK_CONTAINER_VIEWER_CLICK).
+//   LINKS: .grace/graph/runtime.xml M-012; .grace/verification/runtime.xml V-M-012 scenario-19 and scenario-60; .grace/changes/active/C-34 T-002 (BLOCK_CONTAINER_VIEWER_CLICK); C-51 T-006 (BLOCK_EXPAND_BUTTON_CLICK).
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT
@@ -14,7 +14,11 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.1.0 - 2026-10-15 C-34 R2.2/C-39 T2: Cmd/Ctrl+click on a mermaid preview dispatches 'muya-block-viewer' (fullscreen viewer) instead of opening the source; a plain click keeps opening the source.
+//   LAST_CHANGE: v1.2.0 - 2026-10-16 C-51 T-006: clicking the persistent
+//   button.ag-block-expand (a figure child) dispatches 'muya-block-viewer'
+//   with the FIGURE — the viewer resolves the preview/table inside it —
+//   and stops the event so the click never moves the caret into the block.
+//   v1.1.0 - 2026-10-15 C-34 R2.2/C-39 T2: Cmd/Ctrl+click on a mermaid preview dispatches 'muya-block-viewer' (fullscreen viewer) instead of opening the source; a plain click keeps opening the source.
 // END_CHANGE_SUMMARY
 
 import { operateClassName } from '../utils/domManipulate'
@@ -130,6 +134,7 @@ class ClickEvent {
         target.closest('.ag-image-icon-delete') || target.closest('.ag-image-icon-close')
       const mathText = mathRender && mathRender.previousElementSibling
       const rubyText = rubyRender && rubyRender.previousElementSibling
+      const expandButton = target.closest('button.ag-block-expand')
       if (markedImageText && markedImageText.classList.contains(CLASS_OR_ID.AG_IMAGE_MARKED_TEXT)) {
         eventCenter.dispatch('format-click', {
           event,
@@ -147,6 +152,22 @@ class ClickEvent {
         event.preventDefault()
         return this.muya.contentState.copyCodeBlock(event)
       }
+
+      // START_BLOCK_EXPAND_BUTTON_CLICK
+      // C-51 T-006: the always-visible ⤢ on diagram figures and tables
+      // opens the shared fullscreen viewer. The button is a FIGURE child
+      // (sibling of the preview/table), so the event carries the figure
+      // and the blockViewer plugin resolves the viewable block inside it.
+      if (expandButton) {
+        event.preventDefault()
+        event.stopPropagation()
+        const figure = expandButton.closest('figure')
+        if (figure) {
+          eventCenter.dispatch('muya-block-viewer', { element: figure })
+        }
+        return
+      }
+      // END_BLOCK_EXPAND_BUTTON_CLICK
       // Handle delete inline iamge by click delete icon.
       if (imageDelete && imageWrapper) {
         const imageInfo = getImageInfo(imageWrapper)

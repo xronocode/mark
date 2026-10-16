@@ -1,10 +1,10 @@
 // FILE: src/renderer/src/components/icons/chromeIcons.js
-// VERSION: 2.0.0
+// VERSION: 2.1.0
 // START_MODULE_CONTRACT
-//   PURPOSE: One drawn chrome-icon set (16 px grid, 1.4 px stroke, round caps/joins) for every icon around the document — title bar, tabs, sidebar, find bar, dialogs, notifications, status bar (C-40 T-002, C-38 T-006 N4 d).
-//   SCOPE: Icon path descriptors drawn on the approved canvas grid plus the ChromeIcon render component and a string renderer (chromeIconMarkup) for non-Vue surfaces (the notification service template); no theming, no IPC.
+//   PURPOSE: One drawn chrome-icon set (16 px grid, 1.4 px stroke, round caps/joins) for every icon around the document — title bar, tabs, sidebar, find bar, dialogs, notifications, status bar (C-40 T-002, C-38 T-006 N4 d) and the document-surface expand glyph (C-51 T-006).
+//   SCOPE: Icon path descriptors drawn on the approved canvas grid plus the ChromeIcon render component and a string renderer (chromeIconMarkup) for non-Vue surfaces (the notification service template); no theming, no IPC. The expand descriptor is the canonical drawing — muya duplicates it inline (EXPAND_ICON_PATH) and a unit test pins the two identical.
 //   DEPENDS: vue (h).
-//   LINKS: .canvas/Icons.dc.html; .canvas/Window.dc.html; .grace/graph/runtime.xml M-057; .grace/changes/active/C-40 T-002; .grace/changes/active/C-38 T-006.
+//   LINKS: .canvas/Icons.dc.html; .canvas/Window.dc.html; .canvas/Mermaid.dc.html; .grace/graph/runtime.xml M-057; .grace/changes/active/C-40 T-002; .grace/changes/active/C-38 T-006; .grace/changes/active/C-51 T-006.
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT
@@ -18,7 +18,12 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v2.0.0 - 2026-10-15 C-38 T-006 N4 d: the whole chrome
+//   LAST_CHANGE: v2.1.0 - 2026-10-16 C-51 T-006: the «expand» glyph (two
+//   outward corner brackets + the diagonal, canvas Mermaid) joins the set —
+//   the canonical M-057 drawing for the always-visible diagram/table expand
+//   button; muya renders the same path inline (its EXPAND_ICON_PATH is
+//   pinned byte-identical by tests/renderer/muya/block-expand-button.test.js).
+//   v2.0.0 - 2026-10-15 C-38 T-006 N4 d: the whole chrome
 //   draws from this one module — the iconfont sprite, the assets/icons
 //   svg imports and the ad-hoc inline svgs are gone. Added glyphs
 //   (chevron-right, close, dot, plus, search, case-sensitive,
@@ -256,6 +261,15 @@ export const CHROME_ICONS = Object.freeze({
   ]),
   'window-close': Object.freeze([
     part('path', { d: 'M4 4l8 8M12 4l-8 8' }, { cap: 'round' })
+  ]),
+
+  // ── C-51 T-006: the document-surface expand button (canvas Mermaid) ──
+  // Two outward corner brackets and the diagonal — the glyph muya renders
+  // inline on every diagram/table figure; this descriptor is the twin
+  // pinned byte-identical to muya's EXPAND_ICON_PATH by
+  // tests/renderer/muya/block-expand-button.test.js.
+  expand: Object.freeze([
+    part('path', { d: 'M9.6 2.4h4v4M13.4 2.6 9.2 6.8M6.4 13.6h-4v-4M2.6 13.4l4.2-4.2' }, { cap: 'round', join: 'round' })
   ])
 })
 // END_BLOCK_ICON_DESCRIPTORS

@@ -87,6 +87,10 @@ export default defineConfig({
     // C-51 T-005: the non-Mermaid content theming (Vega-Lite config,
     // flowchart.js and js-sequence colours, KaTeX text colour, theme-switch
     // re-render) also gates in WebKit — the engine WKWebView ships.
-    { name: 'webkit-content-theme', use: { browserName: 'webkit' }, testMatch: 'content-theme.spec.ts' }
+    { name: 'webkit-content-theme', use: { browserName: 'webkit' }, testMatch: 'content-theme.spec.ts' },
+    // C-51 T-006: the always-visible expand button + the block viewer also
+    // gate in WebKit — the engine WKWebView ships (contenteditable focus
+    // and the reserved-strip absolute positioning are engine-sensitive).
+    { name: 'webkit-block-viewer', use: { browserName: 'webkit' }, testMatch: 'block-viewer.spec.ts' }
   ]
 })

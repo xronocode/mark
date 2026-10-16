@@ -825,6 +825,108 @@ figure.ag-container-block div.ag-container-preview div.ag-mermaid-error {
   padding: 2px 8px 6px;
 }
 
+/* ================================================================
+ * C-51 T-006 — always-visible expand button (R-4, 2026-10-16, canvas
+ * .canvas/Mermaid.dc.html + .canvas/Main.dc.html)
+ *
+ * Every viewable figure (mermaid, flowchart, sequence, plantuml,
+ * vega-lite diagrams and tables) renders button.ag-block-expand as a
+ * direct figure child (renderContainerBlock.js
+ * START_BLOCK_EXPAND_BUTTON); clicking it opens the shared fullscreen
+ * block viewer (clickEvent.js START_BLOCK_EXPAND_BUTTON_CLICK → the
+ * muya-block-viewer event).
+ *
+ * Look (canvas): a 30 px rounded square (radius 8) at the top-right
+ * corner with a 10 px inset — theme surface background, hairline theme
+ * border, muted icon colour, ~0.85 opacity at rest; solid on hover and
+ * keyboard focus (text-colour icon, stronger background). The glyph is
+ * the drawn M-057 «expand» (16 grid, 1.4 stroke) inline svg. figure
+ * (position: relative, rule above) is the positioning context.
+ *
+ * The corner is RESERVED, never overlaid: diagram previews get a 44 px
+ * padding-top (10 inset + 30 button + 4 gap) so the SVG slab starts
+ * below the button; table figures get the same strip as figure padding
+ * so the C-39 scroll wrapper, drag bars and the header column-resize
+ * handles keep their geometry untouched (the last column's handle can
+ * never sit under the button). Export/print renders its own HTML from
+ * markdown and never sees the button.
+ * ================================================================ */
+figure > button.ag-block-expand {
+  --ag-block-expand-size: 30px;
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  width: var(--ag-block-expand-size);
+  height: var(--ag-block-expand-size);
+  padding: 0;
+  border: 1px solid var(--floatBorderColor, var(--editorColor10));
+  border-radius: 8px;
+  background: var(--floatBgColor, var(--editorBgColor));
+  color: var(--editorColor60, var(--editorColor));
+  font-size: 0;
+  line-height: 0;
+  cursor: pointer;
+  opacity: 0.85;
+  transition: opacity 0.15s ease, background-color 0.15s ease,
+    color 0.15s ease, border-color 0.15s ease;
+  z-index: 3;
+}
+
+figure > button.ag-block-expand svg {
+  display: block;
+}
+
+figure > button.ag-block-expand:hover,
+figure > button.ag-block-expand:focus-visible {
+  opacity: 1;
+  color: var(--editorColor);
+  background: var(--floatHoverColor, var(--editorBgColor));
+  border-color: var(--editorColor50, var(--editorColor));
+  outline: none;
+}
+
+/* Compact chrome (the macOS family look): 28 px, radius 7 — the strip
+   stays 44 px so diagram and table geometry never depends on it. */
+body.compact-block-tools figure > button.ag-block-expand {
+  --ag-block-expand-size: 28px;
+  border-radius: 7px;
+}
+
+/* Diagram figures: the reserved corner is preview padding-top — the SVG
+   slab (width 100%) starts 44 px down, so the button (10..40) can never
+   intersect it. Only at rest: while the source is edited (figure
+   active) the corner belongs to the code copy button and the button
+   itself is hidden — same convention as the edit pencil. */
+figure.ag-has-expand:not(.ag-active) > div.ag-container-preview {
+  padding-top: 44px;
+}
+
+figure.ag-active > button.ag-block-expand {
+  display: none;
+}
+
+/* The hover edit pencil (top: 0, right: 10) would sit under the button:
+   on figures that have one it moves 40 px left, clear of the corner. */
+figure.ag-has-expand .ag-container-icon {
+  right: 50px;
+}
+
+/* Tables: the strip is FIGURE padding-top, so the C-39 T-001 scroll
+   wrapper (with its negative margins and drag-bar padding), the drag
+   bars and the T-002 column-resize hit zones keep their geometry. The
+   centred table tools bar (top: -22px) moves into the strip. */
+figure[data-role='TABLE'].ag-has-expand {
+  padding-top: 44px;
+}
+
+figure[data-role='TABLE'].ag-has-expand > .ag-tool-bar {
+  top: 12px;
+}
+
 figure.ag-active.ag-container-block > div.ag-container-preview {
   position: absolute;
   top: calc(100% + 20px);

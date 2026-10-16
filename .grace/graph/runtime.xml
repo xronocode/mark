@@ -3544,12 +3544,46 @@
         the muya math styles; pinned in the e2e). C-34 R2.2 +
         C-39 T2: ui/blockViewer/ is the shared fullscreen block viewer for
         Mermaid diagrams (clone of the live preview incl. the hoisted
+        diagrams with the same config. C-34 R2.2 +
+        C-39 T2 + C-51 T-006: ui/blockViewer/ is the shared fullscreen block
+        viewer for diagrams (clone of the live preview incl. the hoisted
         &lt;style&gt;) and read-only table clones (editing affordances
         stripped, sticky thead) with @panzoom/panzoom pan/zoom
         (pinch/Cmd+wheel, drag, +/−/0/1 keys), Esc close with focus trap
-        and restore, a hover/caret ⤢ toolbar above the block, and
-        Cmd/Ctrl+click on a diagram routed via clickEvent.js
-        (muya-block-viewer event). C-38 T-005 (#1648): fence/indent code
+        and restore. C-51 T-006 replaced the old hover/caret toolbar with
+        the ALWAYS-VISIBLE expand button: renderContainerBlock.js
+        START_BLOCK_EXPAND_BUTTON renders button.ag-block-expand as a
+        direct child of every viewable figure (mermaid, flowchart,
+        sequence, plantuml and vega-lite diagrams with non-empty source,
+        and tables) plus the ag-has-expand marker that scopes the
+        reserved-corner CSS — a figure child (not inside the preview div)
+        survives the mermaid pipeline's innerHTML inserts and every
+        snabbdom re-patch with no post-render DOM pass. renderExpandButton
+        draws the M-057 expand glyph inline (byte-identical twin of
+        chromeIcons.CHROME_ICONS.expand, pinned by
+        tests/renderer/muya/block-expand-button.test.js) with
+        t('blockViewer.expand') as title/aria-label (already localized in
+        the ten locales) and tabindex=0; clickEvent.js
+        START_BLOCK_EXPAND_BUTTON_CLICK dispatches muya-block-viewer with
+        the FIGURE (the viewer resolves the preview/table downward,
+        role-gated so math/html previews never resolve); keyboard.js
+        START_BLOCK_KEYBOARD_EXPAND_BUTTON leaves keys to the focused
+        button (native Tab/Enter/Space — tabHandler would indent,
+        enterHandler would split, arrowHandler would crash on its
+        paragraph lookup). Look (canvas Mermaid/Main): a 30 px rounded
+        square (radius 8) at the figure's top-right with a 10 px inset,
+        theme surface background, about 0.85 opacity at rest, solid on
+        hover/focus; the corner is RESERVED, never overlaid — diagram
+        previews get padding-top 44 px (not while the source is edited:
+        the button hides on .ag-active like the edit pencil, which moves
+        40 px left clear of the corner) and table figures get the strip
+        as figure padding so the C-39 scroll wrapper, drag bars and
+        column-resize handles keep their geometry (the centred tools bar
+        moves into the strip); body.compact-block-tools shrinks it to
+        28 px for compact chrome. Export/print renders its own HTML and
+        never sees the button. Cmd/Ctrl+click on a diagram routed via
+        clickEvent.js (muya-block-viewer event) still opens the viewer.
+        C-38 T-005 (#1648): fence/indent code
         blocks render an opt-in line-numbers gutter
         (renderContainerBlock.js START_BLOCK_CODE_LINE_NUMBERS +
         renderLineNumber.js — aria-hidden, contenteditable=false, CSS
@@ -6674,7 +6708,14 @@
         (close/unsaved-dot/plus/lock), sidebar tree + search panel +
         opened tabs, find/replace bar, rename/tweet/import dialogs,
         editor image-viewer close, notifications strip, and the
-        notification toast service (via chromeIconMarkup).
+        notification toast service (via chromeIconMarkup). C-51 T-006:
+        the «expand» glyph (two outward corner brackets + the diagonal,
+        canvas Mermaid board) is the canonical M-057 drawing for the
+        always-visible diagram/table expand button — muya cannot import
+        renderer modules, so parser/render/renderBlock/renderExpandButton
+        duplicates the path inline (EXPAND_ICON_PATH) and
+        tests/renderer/muya/block-expand-button.test.js pins the two
+        byte-identical.
       </Summary>
       <PlannedPath>src/renderer/src/components/icons/chromeIcons.js</PlannedPath>
       <Dependencies>
@@ -6691,6 +6732,7 @@
       <ChangeRefs>
         <C-40/>
         <C-38/>
+        <C-51/>
       </ChangeRefs>
     </M-057>
 
