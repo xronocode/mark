@@ -23,10 +23,22 @@ const loadRenderer = async (name) => {
         m = await import('mermaid/dist/mermaid.esm.mjs')
         rendererCache.set(name, m.default)
         break
-      case 'vega-lite':
-        m = await import('vega-embed')
-        rendererCache.set(name, m.default)
+      case 'vega-lite': {
+        // The Tauri CSP has no 'unsafe-eval', so vega's default expression
+        // codegen (new Function) throws in the packaged app. Parse to an AST
+        // and evaluate with vega-interpreter instead — CSP-safe everywhere.
+        // Caller opts still win.
+        const [embedModule, interpreterModule] = await Promise.all([
+          import('vega-embed'),
+          import('vega-interpreter')
+        ])
+        const embed = embedModule.default
+        const { expressionInterpreter } = interpreterModule
+        rendererCache.set(name, (el, spec, opts = {}) =>
+          embed(el, spec, { ast: true, expr: expressionInterpreter, ...opts })
+        )
         break
+      }
       default:
         throw new Error(`Unknown diagram name ${name}`)
     }
