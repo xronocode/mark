@@ -98,6 +98,16 @@
           <Status>done</Status>
       <ReviewEvidence>Orchestrator review 2026-10-16: EN mac prompt byte-identical to the user-approved text; 10 locales keep every syntax token. The agent found and fixed a real export bug: a fenced block containing ``` was re-exported with a 3-backtick fence and tore open (the prompt block in the Guide) — exportMarkdown now uses a longer fence than any inner backtick run. Review fixes: two of the 22 honesty-guard Mermaid samples were invalid (architecture edge needs ports «app:R --> L:db», treemap labels need quotes) and the SVG count included nested icon SVGs; a unit test expected the prompt without its final period; the CI WebKit step had lost webkit-mermaid-theme and webkit-tree in earlier merges — restored together with webkit-rich; scenario numbering de-duplicated (T-009 = scenario-59). Gates: vitest 288 files / 3916 passed; grace lint 0; Playwright chromium + webkit 411 + rich 6/6 (one settings test timed out under load, passed on rerun). Red on main: agent-prompt-rich + export-fence-length 34/36 fail; the Guide e2e fails; the two coverage e2e pass on main by design (they guard what already renders).</ReviewEvidence>
 </T-009>
+    <T-010>
+      <Title>Expand button: only on large blocks, small copy-icon look inside the block (user D-7)</Title>
+      <DependsOn>T-006</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>The button appears only when the block benefits from the viewer: a diagram whose SVG is drawn smaller than its natural size (scaled to the column) or taller than 400 px; a table that overflows its column horizontally or is taller than 400 px. Re-evaluated when the block or the column resizes. Small blocks have no button (not rendered visible, not a Tab stop); Cmd/Ctrl+click still opens the viewer for every viewable block.</Criterion>
+        <Criterion>Look of the code-block copy button (.ag-code-copy): a 20 px icon (16 px drawn glyph) inside the block's top-right corner at a 0.5em inset, no border and no background; hidden at rest, 0.5 opacity while the block is hovered, 1 on its own hover and on :focus-visible. The reserved 44 px strip (diagram preview padding-top, table figure padding-top) is removed; the hover edit pencil returns to its pre-T-006 position next to it without overlap.</Criterion>
+        <Criterion>Tables: the icon never covers header text or the last column's resize handle; the table tools bar position returns to its pre-T-006 place.</Criterion>
+      </AcceptanceCriteria>
+      <Verification><Command>npm test</Command><Command>playwright chromium + webkit (block-viewer)</Command><Command>grace lint --path . --assertions current</Command></Verification>
+    </T-010>
   </ImplementationPlan>
   <Evidence>
     <T-005>

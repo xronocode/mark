@@ -30,6 +30,7 @@
     <D-2>2026-10-16 user: the tree shows only Markdown by default («при открытии папок важно показывать только мд файлы»).</D-2>
     <D-3>2026-10-16 user accepted the round-2 Mermaid renders as the base («1 ок»): no gradients; per-theme OKLCH categorical palettes, per-type config and sizes.</D-3>
     <D-4>2026-10-16 user: quadrant chart in one hue of different lightness («один разной яркости»).</D-4>
+    <D-7>2026-10-16 user (live smoke): the expand button must not show on small diagrams and tables, and must be small and inside the block like the code-block copy icon («не нравится что стрелка увеличить 1 - показывается даже для малых таблиц и диаграмм. 2 - большая и выше блока, я бы хотел чтобы она была похожа на иконку "копировать" в блоке с типа код»). Supersedes the T-006 always-visible 30 px button and its reserved 44 px strip; Cmd/Ctrl+click keeps opening the viewer for any block.</D-7>
     <D-6>2026-10-16 user: the Keynote-style donut pie is the default for every theme («думаю да» — Markdown has no place to store a per-diagram choice).</D-6>
     <D-5>2026-10-16: architecture icons and C-4 are themed in Mark (attribute-selector CSS for the built-in icon tiles; c4 config colour keys). Upstream Mermaid PRs (theme variables for the built-in architecture icons, C-4 defaults from the theme, sankey palette and dark-background blending) are proposed separately — opening them needs the user's go.</D-5>
   </Decisions>
