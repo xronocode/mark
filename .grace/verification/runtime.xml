@@ -3383,6 +3383,7 @@
           tests/renderer/util/agentPrompt.test.js
           tests/renderer/util/guideDoc.test.js
           tests/renderer/muya/export-fence-length.test.js
+          tests/renderer/muya/vega-csp-renderer.test.js
         </Command>
         <Command>
           npm run build &amp;&amp; npx playwright test tests/e2e/rich-markdown-coverage.spec.ts
@@ -4559,7 +4560,15 @@
           link, a data: image in the success container, computed
           left/center/right header alignment; a third test opens the
           Guide and pins the prompt block plus the showcase families
-          rendering inside it.
+          rendering inside it. C-51 T-008 (live smoke): the spec serves
+          the preview under the packaged app's real CSP read from
+          src-tauri/tauri.conf.json (tests/e2e/fixtures/tauri-csp.ts) and
+          fails on any recorded securitypolicyviolation — vega-lite had
+          rendered in the CSP-less preview but failed in Mark.app because
+          vega's expression codegen needs 'unsafe-eval'; loadRenderer
+          now embeds with ast + vega-interpreter (pinned in
+          tests/renderer/muya/vega-csp-renderer.test.js) and a failed
+          diagram's error text names its own fence type.
         </Scenario>
         <Scenario>
           scenario-60: Docs and macOS theme families (C-51 T-007, R-5):
