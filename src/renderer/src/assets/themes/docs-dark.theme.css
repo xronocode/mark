@@ -1,0 +1,186 @@
+:root {
+  /*editor - Docs Dark theme (C-51 T-007, canvas DocsDark — calm docs dark:
+    near-black ground, paper text, hairline borders, neutral accent; charts
+    get their colour from --chartPalette, not from the neutral accent)*/
+  --themeColor: #ECECEA;
+  --themeColor90: rgba(236, 236, 234, 0.9);
+  --themeColor80: rgba(236, 236, 234, 0.8);
+  --themeColor70: rgba(236, 236, 234, 0.7);
+  --themeColor60: rgba(236, 236, 234, 0.6);
+  --themeColor50: rgba(236, 236, 234, 0.5);
+  --themeColor40: rgba(236, 236, 234, 0.4);
+  --themeColor30: rgba(236, 236, 234, 0.3);
+  --themeColor20: rgba(236, 236, 234, 0.2);
+  --themeColor10: rgba(236, 236, 234, 0.1);
+
+  --highlightColor: rgba(245, 166, 35, 0.32);
+  --selectionColor: rgba(236, 236, 234, 0.18);
+  --editorColor: #ECECEA;
+  --editorColor80: rgba(236, 236, 234, 0.8);
+  --editorColor60: rgba(236, 236, 234, 0.6);
+  --editorColor50: rgba(236, 236, 234, 0.5);
+  --editorColor40: rgba(236, 236, 234, 0.4);
+  --editorColor30: rgba(236, 236, 234, 0.3);
+  --editorColor10: rgba(236, 236, 234, 0.1);
+  --editorColor04: rgba(236, 236, 234, 0.04);
+  --editorBgColor: #161615;
+  --deleteColor: #F4587A;
+  --iconColor: rgba(236, 236, 234, 0.56);
+  --codeBgColor: #1F1F1E;
+  --codeBlockBgColor: #1F1F1E;
+  --footnoteBgColor: rgba(31, 31, 30, 0.6);
+  --inputBgColor: #121211;
+
+  --focusColor: var(--themeColor);
+
+  --buttonFontColor: rgba(236, 236, 234, 0.75);
+  --buttonBgColor: #1F1F1E;
+  --buttonBorder: 1px solid rgba(0, 0, 0, 0.08);
+  --buttonShadow: none;
+  --buttonFontColorHover: var(--buttonFontColor);
+  --buttonBgColorHover: #262624;
+  --buttonBorderHover: 1px solid rgba(0, 0, 0, 0.12);
+  --buttonFontColorActive: var(--buttonFontColor);
+  --buttonBgColorActive: #2E2E2C;
+  --buttonBorderActive: var(--buttonBorder);
+
+  --buttonPrimaryFontColor: #161615;
+  --buttonPrimaryBgColor: var(--themeColor);
+  --buttonPrimaryBorder: none;
+  --buttonPrimaryShadow: none;
+  --buttonPrimaryFontColorHover: var(--buttonPrimaryFontColor);
+  --buttonPrimaryBgColorHover: #FFFFFF;
+  --buttonPrimaryBorderHover: var(--buttonPrimaryBorder);
+  --buttonPrimaryFontColorActive: var(--buttonPrimaryFontColor);
+  --buttonPrimaryBgColorActive: #D8D8D4;
+  --buttonPrimaryBorderActive: var(--buttonPrimaryBorder);
+  --buttonPrimaryFocusBorder: none;
+  --buttonPrimaryFocusShadow: inset 0 0 0 1px rgba(0, 0, 0, 0.5), 0 0 0 1px var(--themeColor);
+  --tableBorderColor: #2C2C2A;
+
+  /* Markdown element colors */
+  --headingColor: #ECECEA;
+  --h1Color: #ECECEA;
+  --h2Color: #ECECEA;
+  --h3Color: #ECECEA;
+  --h4Color: #ECECEA;
+  --h5Color: #ECECEA;
+  --h6Color: rgba(236, 236, 234, 0.7);
+  --blockquoteTextColor: rgba(236, 236, 234, 0.68);
+  --blockquoteBorderColor: #4A4A47;
+  --hrColor: #2C2C2A;
+  --linkColor: #ECECEA;
+  --strongColor: #ECECEA;
+  --emColor: #ECECEA;
+  --listMarkerColor: #ECECEA;
+
+  /*marktext*/
+  --sideBarColor: rgba(236, 236, 234, 0.72);
+  --sideBarIconColor: var(--iconColor);
+  --sideBarTitleColor: rgba(236, 236, 234, 0.9);
+  --sideBarTextColor: rgba(236, 236, 234, 0.55);
+  --sideBarBgColor: #242422;
+  --sideBarItemHoverBgColor: rgba(236, 236, 234, 0.05);
+  --itemBgColor: #2E2E2C;
+
+  --floatFontColor: rgba(236, 236, 234, 0.82);
+  --floatBgColor: #1F1F1E;
+  --floatHoverColor: rgba(236, 236, 234, 0.06);
+  --floatBorderColor: rgba(236, 236, 234, 0.1);
+  --floatShadow: rgba(0, 0, 0, 0.45);
+  --maskColor: rgba(0, 0, 0, .3);
+  --editorAreaWidth: 750px;
+
+  /* C-51 T-007: theme-defined chart palette (mermaidTheme.readActiveThemeTokens
+     series token) — brighter variants of the Docs light hues for the dark
+     ground. */
+  --chartPalette: #7C93F5, #34D399, #F59E0B, #FB7185, #A78BFA, #22D3EE, #FB923C, #F472B6;
+}
+
+::-webkit-scrollbar {
+  background: var(--editorBgColor);
+}
+
+.ag-front-menu .submenu,
+.ag-float-wrapper {
+  box-shadow: 0 4px 8px 0 var(--floatShadow) !important;
+}
+
+.title-bar .frameless-titlebar-button > div > svg {
+  fill: #ECECEA;
+}
+.title-bar .frameless-titlebar-minimize:hover,
+.title-bar .frameless-titlebar-toggle:hover {
+  background-color: rgba(236, 236, 234, 0.08);
+}
+
+.side-bar {
+  border-right: 1px solid #2C2C2A !important;
+}
+
+.recent-files-projects a,
+.open-project a {
+  box-shadow: none !important;
+}
+
+.editor-tabs {
+  box-shadow: none !important;
+}
+.editor-tabs:after {
+  position: absolute;
+  content: '';
+  border-bottom: 1px solid #2C2C2A;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 1;
+}
+.editor-tabs ul.tabs-container:after {
+  position: absolute;
+  content: '';
+  border-bottom: 1px solid #2C2C2A;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 2;
+}
+
+.tabs-container > li,
+.tabs-container > li.active {
+  background: var(--editorBgColor) !important;
+}
+
+.open-project button,
+.recent-files-projects button {
+  box-shadow: none !important;
+}
+
+/* ------------------------------------ */
+
+:not(pre) > code[class*="language-"],
+pre:not(.CodeMirror-line),
+pre[class*="language-"],
+pre.ag-paragraph {
+  background: var(--codeBlockBgColor) !important;
+  border: none !important;
+}
+p:not(.ag-active)[data-role="hr"]::before {
+  border-top: 2px dashed var(--editorColor10) !important;
+  background: none !important;
+}
+figure.ag-active.ag-container-block > div.ag-container-preview {
+  box-shadow: 0 3px 8px 0 var(--floatShadow) !important;
+}
+
+/* Docs: the document uses the system UI font (canvas DocsDark) — the
+   preference's editor font rides on .editor-wrapper as an inline style and
+   yields to the theme here; code keeps the code font via the common style
+   sheet. */
+.editor-wrapper {
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif !important;
+}
+
+/* Docs Dark: brand touches — amber marker on dark, paper links underlined
+   with the muted grey. */
+mark, .ag-highlight { background: rgba(245, 166, 35, 0.4) !important; color: #161615 !important; border-radius: 2px; }
+#ag-editor-id a, #ag-editor-id .ag-link { text-decoration: underline; text-decoration-color: #7C7C77; text-decoration-thickness: 1.5px; text-underline-offset: 3px; }

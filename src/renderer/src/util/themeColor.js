@@ -1,14 +1,16 @@
 // FILE: src/renderer/src/util/themeColor.js
-// VERSION: 2.1.0
+// VERSION: 2.2.0
 // START_MODULE_CONTRACT
 //   PURPOSE: One factory per registered theme returning the theme CSS plus
 //            its Prism.js companion (C-41 T-002: 22 factories — the 12
 //            retired gogh/dark ids are gone; the six new family members
-//            land with C-41 T-003).
+//            land with C-41 T-003; C-51 T-007 adds the Docs and macOS
+//            family members).
 //   SCOPE: Static ?inline CSS imports and their factory exports only.
 //   DEPENDS: assets/themes/*.theme.css, assets/themes/prismjs/*.theme.css.
 //   LINKS: util/theme.js themeMap; .grace/graph/runtime.xml M-011;
-//          .grace/verification/runtime.xml V-M-011 scenario-48 (C-41 T-002).
+//          .grace/verification/runtime.xml V-M-011 scenario-48 (C-41 T-002)
+//          and scenario-60 (C-51 T-007).
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT
@@ -42,11 +44,20 @@
 //   kanagawaLotus - kanagawaLotus theme CSS + Prism companion (C-41 T-003).
 //   graphiteDark - graphiteDark theme CSS + Prism companion (C-41 T-003).
 //   ulyssesDark - ulyssesDark theme CSS + Prism companion (C-41 T-003).
+//   docs - docs theme CSS + Prism companion (C-51 T-007).
+//   docsDark - docs-dark theme CSS + Prism companion (C-51 T-007).
+//   macos - macos theme CSS + Prism companion (C-51 T-007).
+//   macosDark - macos-dark theme CSS + Prism companion (C-51 T-007).
 //   themeCssFactories - frozen theme-id → factory registry (C-38 T-004 swatch source; same membership as util/theme.js themeMap).
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v2.1.0 - 2026-10-15 C-38 T-004: export themeCssFactories
+//   LAST_CHANGE: v2.2.0 - 2026-10-16 C-51 T-007: register the Docs
+//   (docs, docs-dark) and macOS (macos, macos-dark) family members — the
+//   neutral docs look (canvas Main/DocsDark) and the Apple look (canvas
+//   MacOS), each with a Prism companion and a theme-defined
+//   --chartPalette for Mermaid/content theming.
+//   v2.1.0 - 2026-10-15 C-38 T-004: export themeCssFactories
 //   (theme id → CSS factory) so the Settings family swatches read
 //   --editorBgColor/--editorColor/--themeColor straight from the shipped
 //   theme CSS without importing util/theme.js (platform shim at import
@@ -68,8 +79,14 @@
 // for new profiles; every other theme below stays unchanged.
 // C-41 T-003 adds six family members: one-light, alucard, nord-light,
 // kanagawa-lotus (light) and graphite-dark, ulysses-dark (dark).
+// C-51 T-007 adds the Docs and macOS family members.
 import paperTheme from '../assets/themes/paper.theme.css?inline'
 import inkTheme from '../assets/themes/ink.theme.css?inline'
+
+import docsTheme from '../assets/themes/docs.theme.css?inline'
+import docsDarkTheme from '../assets/themes/docs-dark.theme.css?inline'
+import macosTheme from '../assets/themes/macos.theme.css?inline'
+import macosDarkTheme from '../assets/themes/macos-dark.theme.css?inline'
 
 import oneLightTheme from '../assets/themes/one-light.theme.css?inline'
 import alucardTheme from '../assets/themes/alucard.theme.css?inline'
@@ -106,8 +123,13 @@ import rosePineDawnTheme from '../assets/themes/rose-pine-dawn.theme.css?inline'
 // Prism.js syntax highlighting themes
 // C-41 T-001: brand Prism companions for Paper/Ink.
 // C-41 T-003: Prism companions for the six new family members.
+// C-51 T-007: Prism companions for the Docs and macOS family members.
 import paperPrismTheme from '../assets/themes/prismjs/paper.theme.css?inline'
 import inkPrismTheme from '../assets/themes/prismjs/ink.theme.css?inline'
+import docsPrismTheme from '../assets/themes/prismjs/docs.theme.css?inline'
+import docsDarkPrismTheme from '../assets/themes/prismjs/docs-dark.theme.css?inline'
+import macosPrismTheme from '../assets/themes/prismjs/macos.theme.css?inline'
+import macosDarkPrismTheme from '../assets/themes/prismjs/macos-dark.theme.css?inline'
 import oneLightPrismTheme from '../assets/themes/prismjs/one-light.theme.css?inline'
 import alucardPrismTheme from '../assets/themes/prismjs/alucard.theme.css?inline'
 import nordLightPrismTheme from '../assets/themes/prismjs/nord-light.theme.css?inline'
@@ -167,6 +189,23 @@ export const graphiteDark = () => {
 
 export const ulyssesDark = () => {
   return ulyssesDarkTheme + '\n' + ulyssesDarkPrismTheme
+}
+
+// C-51 T-007 new family members - with matching Prism themes
+export const docs = () => {
+  return docsTheme + '\n' + docsPrismTheme
+}
+
+export const docsDark = () => {
+  return docsDarkTheme + '\n' + docsDarkPrismTheme
+}
+
+export const macos = () => {
+  return macosTheme + '\n' + macosPrismTheme
+}
+
+export const macosDark = () => {
+  return macosDarkTheme + '\n' + macosDarkPrismTheme
 }
 
 // Original themes
@@ -267,6 +306,10 @@ export const themeCssFactories = Object.freeze({
   'kanagawa-lotus': kanagawaLotus,
   'graphite-dark': graphiteDark,
   'ulysses-dark': ulyssesDark,
+  docs,
+  'docs-dark': docsDark,
+  macos,
+  'macos-dark': macosDark,
   graphite,
   'one-dark': oneDark,
   ulysses,

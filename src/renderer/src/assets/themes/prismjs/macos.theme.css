@@ -1,0 +1,178 @@
+/*
+ * Prism.js macOS Theme (Light)
+ * C-51 T-007 companion to macos.theme.css — Xcode-flavoured code on #F2F2F7:
+ * magenta keywords, blue functions, red strings, teal class names, indigo
+ * properties, grey italic comments.
+ */
+
+code[class*="language-"],
+pre.ag-paragraph {
+  color: #1D1D1F;
+  text-align: left;
+  white-space: pre;
+  word-spacing: normal;
+  word-break: normal;
+  word-wrap: normal;
+  -moz-tab-size: 4;
+  -o-tab-size: 4;
+  tab-size: 4;
+  -webkit-hyphens: none;
+  -moz-hyphens: none;
+  -ms-hyphens: none;
+  hyphens: none;
+  overflow: visible;
+}
+
+pre.ag-paragraph {
+  padding: 1em;
+  margin: 1em 0;
+  border-radius: 0.3em;
+}
+
+:not(pre) > code[class*="language-"],
+pre.ag-paragraph {
+  background: var(--codeBlockBgColor, #F2F2F7);
+}
+
+:not(pre) > code[class*="language-"] {
+  padding: .1em;
+  border-radius: .3em;
+  white-space: normal;
+}
+
+/* Comments — system grey */
+.token.comment,
+.token.prolog,
+.token.doctype,
+.token.cdata {
+  color: #6D6D72;
+  font-style: italic;
+}
+
+/* Punctuation — ink */
+.token.punctuation {
+  color: #63636A;
+}
+
+/* Namespace — magenta */
+.namespace {
+  color: #8E27B0;
+  opacity: .85;
+}
+
+/* Keywords — dark magenta */
+.token.keyword {
+  color: #8E27B0;
+}
+
+/* Control-flow keywords — full magenta */
+.token.keyword.control-flow {
+  color: #AD3DA4;
+}
+
+/* Types / class names — teal */
+.token.class-name {
+  color: #1B7EA0;
+}
+
+/* Functions — system blue */
+.token.function,
+.token.function-definition {
+  color: #0066CC;
+}
+
+/* Strings — Xcode red */
+.token.selector,
+.token.attr-name,
+.token.string,
+.token.char,
+.token.template-string {
+  color: #A03123;
+}
+
+/* Numbers, booleans — dark Apple orange */
+.token.boolean,
+.token.number {
+  color: #B34A00;
+}
+
+/* Properties, tags, constants — system indigo */
+.token.property,
+.token.tag,
+.token.constant,
+.token.symbol {
+  color: #5E5CE6;
+}
+
+/* Built-in types/functions — indigo */
+.token.builtin {
+  color: #5E5CE6;
+}
+
+/* Macros — magenta */
+.token.macro {
+  color: #AD3DA4;
+}
+
+/* Parameters — ink */
+.token.parameter {
+  color: #55555C;
+}
+
+/* Variables — ink */
+.token.variable {
+  color: #55555C;
+}
+
+/* Operators — ink */
+.token.operator,
+.token.entity,
+.token.url,
+.language-css .token.string,
+.style .token.string {
+  color: #44444A;
+}
+
+/* Arrow — magenta */
+.token.arrow {
+  color: #8E27B0;
+}
+
+/* Attribute values, at-rules — teal */
+.token.atrule,
+.token.attr-value {
+  color: #1B7EA0;
+}
+
+/* Regex — system pink */
+.token.regex {
+  color: #C2255C;
+}
+
+/* Important */
+.token.important {
+  color: #8E27B0;
+  font-weight: bold;
+}
+
+/* Inserted — system green (diffs) */
+.token.inserted {
+  color: #247A4B;
+}
+
+/* Deleted — system red (diffs) */
+.token.deleted {
+  color: #BE2B22;
+}
+
+.token.bold {
+  font-weight: bold;
+}
+
+.token.italic {
+  font-style: italic;
+}
+
+.token.entity {
+  cursor: help;
+}

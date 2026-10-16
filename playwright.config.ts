@@ -79,6 +79,11 @@ export default defineConfig({
     // gate in WebKit — the engine the macOS build ships (HTML5 drag
     // reorder and CSS nesting are engine-sensitive).
     { name: 'webkit-tree', use: { browserName: 'webkit' }, testMatch: 'sidebar-tree-redesign.spec.ts' },
+    // C-51 T-007: the Docs and macOS theme families (computed editor
+    // colours, --chartPalette mirror, Mermaid pie palette, family picker)
+    // also gate in WebKit — the engine the macOS build ships; scoped to
+    // the families spec so the rest of the suite is unchanged.
+    { name: 'webkit-theme-families', use: { browserName: 'webkit' }, testMatch: 'theme-families-docs-macos.spec.ts' },
     // C-51 T-009: the rich-Markdown honesty guard (every feature the agent
     // prompt names, rendered) also gates in WebKit — the engine WKWebView
     // ships; scoped to the coverage spec so the rest of the suite is

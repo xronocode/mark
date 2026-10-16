@@ -1,0 +1,185 @@
+:root {
+  /*editor - Docs theme (C-51 T-007, canvas Main — calm docs light: near-white
+    ground, ink text, hairline borders, neutral accent; charts get their
+    colour from --chartPalette, not from the neutral accent)*/
+  --themeColor: #1F1F1F;
+  --themeColor90: rgba(31, 31, 31, 0.9);
+  --themeColor80: rgba(31, 31, 31, 0.8);
+  --themeColor70: rgba(31, 31, 31, 0.7);
+  --themeColor60: rgba(31, 31, 31, 0.6);
+  --themeColor50: rgba(31, 31, 31, 0.5);
+  --themeColor40: rgba(31, 31, 31, 0.4);
+  --themeColor30: rgba(31, 31, 31, 0.3);
+  --themeColor20: rgba(31, 31, 31, 0.2);
+  --themeColor10: rgba(31, 31, 31, 0.1);
+
+  --highlightColor: rgba(217, 119, 6, 0.22);
+  --selectionColor: rgba(31, 31, 31, 0.12);
+  --editorColor: #1F1F1F;
+  --editorColor80: rgba(31, 31, 31, 0.8);
+  --editorColor60: rgba(31, 31, 31, 0.6);
+  --editorColor50: rgba(31, 31, 31, 0.5);
+  --editorColor40: rgba(31, 31, 31, 0.4);
+  --editorColor30: rgba(31, 31, 31, 0.3);
+  --editorColor10: rgba(31, 31, 31, 0.1);
+  --editorColor04: rgba(31, 31, 31, 0.04);
+  --editorBgColor: #FCFCFB;
+  --deleteColor: #E11D48;
+  --iconColor: rgba(31, 31, 31, 0.56);
+  --codeBgColor: #F4F4F2;
+  --codeBlockBgColor: #F4F4F2;
+  --footnoteBgColor: rgba(244, 244, 242, 0.6);
+  --inputBgColor: #F4F4F2;
+
+  --focusColor: var(--themeColor);
+
+  --buttonFontColor: rgba(31, 31, 31, 0.75);
+  --buttonBgColor: #F4F4F2;
+  --buttonBorder: 1px solid rgba(0, 0, 0, 0.08);
+  --buttonShadow: none;
+  --buttonFontColorHover: var(--buttonFontColor);
+  --buttonBgColorHover: #ECECEA;
+  --buttonBorderHover: 1px solid rgba(0, 0, 0, 0.12);
+  --buttonFontColorActive: var(--buttonFontColor);
+  --buttonBgColorActive: #E4E4E1;
+  --buttonBorderActive: var(--buttonBorder);
+
+  --buttonPrimaryFontColor: #FCFCFB;
+  --buttonPrimaryBgColor: var(--themeColor);
+  --buttonPrimaryBorder: none;
+  --buttonPrimaryShadow: none;
+  --buttonPrimaryFontColorHover: var(--buttonPrimaryFontColor);
+  --buttonPrimaryBgColorHover: #383836;
+  --buttonPrimaryBorderHover: var(--buttonPrimaryBorder);
+  --buttonPrimaryFontColorActive: var(--buttonPrimaryFontColor);
+  --buttonPrimaryBgColorActive: #000000;
+  --buttonPrimaryBorderActive: var(--buttonPrimaryBorder);
+  --buttonPrimaryFocusBorder: none;
+  --buttonPrimaryFocusShadow: inset 0 0 0 1px rgba(255, 255, 255, 0.5), 0 0 0 1px var(--themeColor);
+  --tableBorderColor: #E4E4E1;
+
+  /* Markdown element colors */
+  --headingColor: #1F1F1F;
+  --h1Color: #1F1F1F;
+  --h2Color: #1F1F1F;
+  --h3Color: #1F1F1F;
+  --h4Color: #1F1F1F;
+  --h5Color: #1F1F1F;
+  --h6Color: rgba(31, 31, 31, 0.7);
+  --blockquoteTextColor: rgba(31, 31, 31, 0.68);
+  --blockquoteBorderColor: #C4C4C0;
+  --hrColor: #E4E4E1;
+  --linkColor: #1F1F1F;
+  --strongColor: #1F1F1F;
+  --emColor: #1F1F1F;
+  --listMarkerColor: #1F1F1F;
+
+  /*marktext*/
+  --sideBarColor: rgba(31, 31, 31, 0.72);
+  --sideBarIconColor: var(--iconColor);
+  --sideBarTitleColor: rgba(31, 31, 31, 0.9);
+  --sideBarTextColor: rgba(31, 31, 31, 0.55);
+  --sideBarBgColor: #F1F1EF;
+  --sideBarItemHoverBgColor: rgba(31, 31, 31, 0.05);
+  --itemBgColor: #ECECEA;
+
+  --floatFontColor: rgba(31, 31, 31, 0.82);
+  --floatBgColor: #FFFFFF;
+  --floatHoverColor: rgba(31, 31, 31, 0.06);
+  --floatBorderColor: rgba(31, 31, 31, 0.1);
+  --floatShadow: rgba(0, 0, 0, 0.12);
+  --maskColor: rgba(0, 0, 0, .3);
+  --editorAreaWidth: 750px;
+
+  /* C-51 T-007: theme-defined chart palette (mermaidTheme.readActiveThemeTokens
+     series token) — a calm 8-colour set so the neutral ink accent never makes
+     charts grey. */
+  --chartPalette: #4F6BED, #10A37F, #D97706, #E11D48, #7C3AED, #0891B2, #EA580C, #DB2777;
+}
+
+::-webkit-scrollbar {
+  background: var(--editorBgColor);
+}
+
+.ag-front-menu .submenu,
+.ag-float-wrapper {
+  box-shadow: 0 4px 8px 0 var(--floatShadow) !important;
+}
+
+.title-bar .frameless-titlebar-button > div > svg {
+  fill: #1F1F1F;
+}
+.title-bar .frameless-titlebar-minimize:hover,
+.title-bar .frameless-titlebar-toggle:hover {
+  background-color: rgba(31, 31, 31, 0.08);
+}
+
+.side-bar {
+  border-right: 1px solid #E4E4E1 !important;
+}
+
+.recent-files-projects a,
+.open-project a {
+  box-shadow: none !important;
+}
+
+.editor-tabs {
+  box-shadow: none !important;
+}
+.editor-tabs:after {
+  position: absolute;
+  content: '';
+  border-bottom: 1px solid #E4E4E1;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 1;
+}
+.editor-tabs ul.tabs-container:after {
+  position: absolute;
+  content: '';
+  border-bottom: 1px solid #E4E4E1;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 2;
+}
+
+.tabs-container > li,
+.tabs-container > li.active {
+  background: var(--editorBgColor) !important;
+}
+
+.open-project button,
+.recent-files-projects button {
+  box-shadow: none !important;
+}
+
+/* ------------------------------------ */
+
+:not(pre) > code[class*="language-"],
+pre:not(.CodeMirror-line),
+pre[class*="language-"],
+pre.ag-paragraph {
+  background: var(--codeBlockBgColor) !important;
+  border: none !important;
+}
+p:not(.ag-active)[data-role="hr"]::before {
+  border-top: 2px dashed var(--editorColor10) !important;
+  background: none !important;
+}
+figure.ag-active.ag-container-block > div.ag-container-preview {
+  box-shadow: 0 3px 8px 0 var(--floatShadow) !important;
+}
+
+/* Docs: the document uses the system UI font (canvas Main) — the preference's
+   editor font rides on .editor-wrapper as an inline style and yields to the
+   theme here; code keeps the code font via the common style sheet. */
+.editor-wrapper {
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif !important;
+}
+
+/* Docs: brand touches — neutral marker highlight, ink links underlined with
+   the hairline grey so text stays ink while links are findable. */
+mark, .ag-highlight { background: rgba(217, 119, 6, 0.28) !important; color: inherit !important; border-radius: 2px; }
+#ag-editor-id a, #ag-editor-id .ag-link { text-decoration: underline; text-decoration-color: #8A8A87; text-decoration-thickness: 1.5px; text-underline-offset: 3px; }

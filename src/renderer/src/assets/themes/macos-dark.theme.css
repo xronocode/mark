@@ -1,0 +1,185 @@
+:root {
+  /*editor - macOS Dark theme (C-51 T-007 — Apple dark look: #1E1E1E ground,
+    #F5F5F7 text, dark system greys, system-blue accent, Finder-like dark
+    sidebar; charts get the Apple dark system colours from --chartPalette)*/
+  --themeColor: #0A84FF;
+  --themeColor90: rgba(10, 132, 255, 0.9);
+  --themeColor80: rgba(10, 132, 255, 0.8);
+  --themeColor70: rgba(10, 132, 255, 0.7);
+  --themeColor60: rgba(10, 132, 255, 0.6);
+  --themeColor50: rgba(10, 132, 255, 0.5);
+  --themeColor40: rgba(10, 132, 255, 0.4);
+  --themeColor30: rgba(10, 132, 255, 0.3);
+  --themeColor20: rgba(10, 132, 255, 0.2);
+  --themeColor10: rgba(10, 132, 255, 0.1);
+
+  --highlightColor: rgba(255, 214, 10, 0.35);
+  --selectionColor: rgba(10, 132, 255, 0.32);
+  --editorColor: #F5F5F7;
+  --editorColor80: rgba(245, 245, 247, 0.8);
+  --editorColor60: rgba(245, 245, 247, 0.6);
+  --editorColor50: rgba(245, 245, 247, 0.5);
+  --editorColor40: rgba(245, 245, 247, 0.4);
+  --editorColor30: rgba(245, 245, 247, 0.3);
+  --editorColor10: rgba(245, 245, 247, 0.1);
+  --editorColor04: rgba(245, 245, 247, 0.04);
+  --editorBgColor: #1E1E1E;
+  --deleteColor: #FF453A;
+  --iconColor: rgba(245, 245, 247, 0.56);
+  --codeBgColor: #2C2C2E;
+  --codeBlockBgColor: #2C2C2E;
+  --footnoteBgColor: rgba(44, 44, 46, 0.6);
+  --inputBgColor: #161618;
+
+  --focusColor: var(--themeColor);
+
+  --buttonFontColor: rgba(245, 245, 247, 0.75);
+  --buttonBgColor: #2C2C2E;
+  --buttonBorder: 1px solid rgba(0, 0, 0, 0.08);
+  --buttonShadow: none;
+  --buttonFontColorHover: var(--buttonFontColor);
+  --buttonBgColorHover: #3A3A3C;
+  --buttonBorderHover: 1px solid rgba(0, 0, 0, 0.12);
+  --buttonFontColorActive: var(--buttonFontColor);
+  --buttonBgColorActive: #48484A;
+  --buttonBorderActive: var(--buttonBorder);
+
+  --buttonPrimaryFontColor: #FFFFFF;
+  --buttonPrimaryBgColor: var(--themeColor);
+  --buttonPrimaryBorder: none;
+  --buttonPrimaryShadow: none;
+  --buttonPrimaryFontColorHover: var(--buttonPrimaryFontColor);
+  --buttonPrimaryBgColorHover: #409CFF;
+  --buttonPrimaryBorderHover: var(--buttonPrimaryBorder);
+  --buttonPrimaryFontColorActive: var(--buttonPrimaryFontColor);
+  --buttonPrimaryBgColorActive: #0066CC;
+  --buttonPrimaryBorderActive: var(--buttonPrimaryBorder);
+  --buttonPrimaryFocusBorder: none;
+  --buttonPrimaryFocusShadow: inset 0 0 0 1px rgba(255, 255, 255, 0.5), 0 0 0 1px var(--themeColor);
+  --tableBorderColor: #3A3A3C;
+
+  /* Markdown element colors */
+  --headingColor: #F5F5F7;
+  --h1Color: #F5F5F7;
+  --h2Color: #F5F5F7;
+  --h3Color: #F5F5F7;
+  --h4Color: #F5F5F7;
+  --h5Color: #F5F5F7;
+  --h6Color: rgba(245, 245, 247, 0.7);
+  --blockquoteTextColor: rgba(245, 245, 247, 0.68);
+  --blockquoteBorderColor: #0A84FF;
+  --hrColor: #3A3A3C;
+  --linkColor: #409CFF;
+  --strongColor: #F5F5F7;
+  --emColor: #F5F5F7;
+  --listMarkerColor: #0A84FF;
+
+  /*marktext*/
+  --sideBarColor: rgba(245, 245, 247, 0.72);
+  --sideBarIconColor: var(--iconColor);
+  --sideBarTitleColor: rgba(245, 245, 247, 0.9);
+  --sideBarTextColor: rgba(152, 152, 157, 0.9);
+  --sideBarBgColor: #252527;
+  --sideBarItemHoverBgColor: rgba(245, 245, 247, 0.05);
+  --itemBgColor: #3A3A3C;
+
+  --floatFontColor: rgba(245, 245, 247, 0.82);
+  --floatBgColor: #2C2C2E;
+  --floatHoverColor: rgba(245, 245, 247, 0.06);
+  --floatBorderColor: rgba(245, 245, 247, 0.1);
+  --floatShadow: rgba(0, 0, 0, 0.45);
+  --maskColor: rgba(0, 0, 0, .3);
+  --editorAreaWidth: 750px;
+
+  /* C-51 T-007: theme-defined chart palette (mermaidTheme.readActiveThemeTokens
+     series token) — the Apple system colours, dark set. */
+  --chartPalette: #0A84FF, #30D158, #FF9F0A, #FF453A, #BF5AF2, #40C8E0, #FFD60A, #FF375F;
+}
+
+::-webkit-scrollbar {
+  background: var(--editorBgColor);
+}
+
+.ag-front-menu .submenu,
+.ag-float-wrapper {
+  box-shadow: 0 4px 8px 0 var(--floatShadow) !important;
+}
+
+.title-bar .frameless-titlebar-button > div > svg {
+  fill: #F5F5F7;
+}
+.title-bar .frameless-titlebar-minimize:hover,
+.title-bar .frameless-titlebar-toggle:hover {
+  background-color: rgba(245, 245, 247, 0.08);
+}
+
+.side-bar {
+  border-right: 1px solid #3A3A3C !important;
+}
+
+.recent-files-projects a,
+.open-project a {
+  box-shadow: none !important;
+}
+
+.editor-tabs {
+  box-shadow: none !important;
+}
+.editor-tabs:after {
+  position: absolute;
+  content: '';
+  border-bottom: 1px solid #3A3A3C;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 1;
+}
+.editor-tabs ul.tabs-container:after {
+  position: absolute;
+  content: '';
+  border-bottom: 1px solid #3A3A3C;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 2;
+}
+
+.tabs-container > li,
+.tabs-container > li.active {
+  background: var(--editorBgColor) !important;
+}
+
+.open-project button,
+.recent-files-projects button {
+  box-shadow: none !important;
+}
+
+/* ------------------------------------ */
+
+:not(pre) > code[class*="language-"],
+pre:not(.CodeMirror-line),
+pre[class*="language-"],
+pre.ag-paragraph {
+  background: var(--codeBlockBgColor) !important;
+  border: none !important;
+}
+p:not(.ag-active)[data-role="hr"]::before {
+  border-top: 2px dashed var(--editorColor10) !important;
+  background: none !important;
+}
+figure.ag-active.ag-container-block > div.ag-container-preview {
+  box-shadow: 0 3px 8px 0 var(--floatShadow) !important;
+}
+
+/* macOS: the document uses SF Pro through the system font stack — the
+   preference's editor font rides on .editor-wrapper as an inline style and
+   yields to the theme here; code keeps the code font via the common style
+   sheet. */
+.editor-wrapper {
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif !important;
+}
+
+/* macOS Dark: brand touches — marker-yellow highlight with dark ink, system
+   blue links. */
+mark, .ag-highlight { background: rgba(255, 214, 10, 0.85) !important; color: #1E1E1E !important; border-radius: 2px; }
+#ag-editor-id a, #ag-editor-id .ag-link { text-decoration: underline; text-decoration-color: #409CFF; text-decoration-thickness: 1.5px; text-underline-offset: 3px; }

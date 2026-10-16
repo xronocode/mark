@@ -1,13 +1,13 @@
 // FILE: src/renderer/src/config.js
-// VERSION: 1.1.0
+// VERSION: 1.2.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Renderer-wide constants — style tag ids, default fonts and
-//            theme, the C-41 T-002 theme family model, and dark-theme
-//            classification lists.
+//            theme, the theme family model (C-41 T-002 + the C-51 T-007
+//            Docs/macOS families), and dark-theme classification lists.
 //   SCOPE: Static configuration only; no DOM or store access.
 //   DEPENDS: window.path (boot shim); util/themeFamilies (re-exported).
 //   LINKS: .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml
-//          V-M-011 scenario-48 (C-41 T-002).
+//          V-M-011 scenario-48 (C-41 T-002) and scenario-60 (C-51 T-007).
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT
@@ -19,7 +19,7 @@
 //   DEFAULT_EDITOR_FONT_FAMILY - prose font fallback stack.
 //   DEFAULT_CODE_FONT_FAMILY - code font fallback stack.
 //   DEFAULT_STYLE - boot-fallback style block (theme: paper, C-41 T-001).
-//   THEME_FAMILIES - frozen list of the 14 light/dark families in spec R-3 order (C-41 T-002).
+//   THEME_FAMILIES - frozen list of the 16 light/dark families (C-41 T-002 spec R-3 order + C-51 T-007 Docs/macOS).
 //   themePairs - derived member→partner map (symmetric by construction, C-41 T-002).
 //   themeFamilyOf - resolve the family owning a theme id (undefined when unknown).
 //   railscastsThemes - dark classification list (dark CodeMirror theme, body.dark, color-scheme: dark).
@@ -28,7 +28,11 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.1.1 - 2026-10-15 C-38 T-004: DEFAULT_STYLE.codeFontSize
+//   LAST_CHANGE: v1.2.0 - 2026-10-16 C-51 T-007: docs-dark and macos-dark
+//   join railscastsThemes (dark classification for the new Docs and macOS
+//   family members); THEME_FAMILIES gains the two families via
+//   util/themeFamilies.js.
+//   v1.1.1 - 2026-10-15 C-38 T-004: DEFAULT_STYLE.codeFontSize
 //   becomes the number 14 (was the v1 '14px' string — the boot fallback fed
 //   the "14px px"/NaNem code path, IA §5 bug 2).
 //   v1.1.0 - 2026-10-15 C-41 T-002: the theme set becomes 14
@@ -77,6 +81,9 @@ export const railscastsThemes = Object.freeze([
   // C-41 T-003: dark members of the Graphite and Ulysses families.
   'graphite-dark',
   'ulysses-dark',
+  // C-51 T-007: dark members of the Docs and macOS families.
+  'docs-dark',
+  'macos-dark',
   'dracula',
   'nord',
   'catppuccin-mocha',
