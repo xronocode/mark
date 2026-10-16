@@ -1,5 +1,5 @@
 // FILE: tests/renderer/muya/mermaid-pipeline.test.js
-// VERSION: 1.0.0
+// VERSION: 1.3.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Pin the C-34 R2.1 resilient mermaid render pipeline: code+theme LRU cache, keep-last-good + escaped error text, orphan error-element cleanup, per-block debounce, unique render ids, and natural-size initialization.
 //   SCOPE: createMermaidPipeline in src/muya/lib/parser/render/mermaidPipeline.js and StateRender.renderMermaid wiring in src/muya/lib/parser/render/index.js.
@@ -24,7 +24,10 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.2.0 - 2026-10-16 C-51 T-003/T-004: the pipeline injects
+//   LAST_CHANGE: v1.3.0 - 2026-10-16 C-51 T-012: the initialize pins expect
+//   the node fill/text derived against the code-block panel
+//   (nodeContrastColors) instead of the raw surface/text tokens.
+//   v1.2.0 - 2026-10-16 C-51 T-003/T-004: the pipeline injects
 //   theme tokens instead of a 'dark'/'default' flag; initialize is pinned to
 //   theme base + look neo + themeVariables with the C-34 fit-column policy
 //   (useMaxWidth:true) and the four lab-sized scrollable types
@@ -39,6 +42,7 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createMermaidPipeline } from 'muya/lib/parser/render/mermaidPipeline'
+import { nodeContrastColors } from 'muya/lib/parser/render/mermaidTheme'
 
 const GOOD_CODE = 'graph TD\n    A[Start] --> B{Decision}\n    B --> C[End]'
 const BAD_CODE = 'graph TD\n    A[Start --> SYNTAX_ERROR'
@@ -188,7 +192,8 @@ describe('mermaid pipeline (C-34 R2.1)', () => {
         securityLevel: 'strict',
         theme: 'base',
         look: 'neo',
-        themeVariables: expect.objectContaining({ primaryColor: DARK_TOKENS.surface })
+        // T-012: node fill derives against the code-block panel.
+        themeVariables: expect.objectContaining({ primaryColor: nodeContrastColors(DARK_TOKENS).fill })
       })
     )
     expect(target.querySelector('svg')).not.toBeNull()
@@ -223,8 +228,8 @@ describe('mermaid pipeline (C-34 R2.1)', () => {
         look: 'neo',
         fontFamily: LIGHT_TOKENS.font,
         themeVariables: expect.objectContaining({
-          primaryColor: LIGHT_TOKENS.surface,
-          primaryTextColor: LIGHT_TOKENS.text
+          primaryColor: nodeContrastColors(LIGHT_TOKENS).fill,
+          primaryTextColor: nodeContrastColors(LIGHT_TOKENS).text
         }),
         flowchart: expect.objectContaining({ useMaxWidth: true, curve: 'basis' }),
         sequence: expect.objectContaining({ useMaxWidth: true, mirrorActors: false }),

@@ -3566,7 +3566,26 @@
         timeline render at the lab sizes with useMaxWidth:false and
         in-block horizontal scroll while every other type keeps the C-34
         fit-column useMaxWidth:true; utils/exportHtml.js renders exported
-        diagrams with the same config. C-51 T-005: the other rendered
+        diagrams with the same config. C-51 T-012 (user 2026-10-16: «в
+        темной теме у мермейд явно проблемы с контрастностью блоков»):
+        node colours derive RELATIVE TO THE CODE-BLOCK PANEL (the SVG's
+        --codeBlockBgColor background) — mermaidTheme.js
+        nodeContrastColors(t) (pure) picks a fill distinguishable from the
+        panel (the theme surface when it passes, else a text-over-panel
+        blend in the 8–14 % band, stepping the panel darker only for
+        themes whose text is dim against their own panel, boosting the
+        node text only for light themes where that is impossible), a
+        border ≥ 3:1 (WCAG 1.4.11; the theme's border token kept when it
+        passes), a line ≥ 3:1, a cluster background midway between panel
+        and fill, keeping node text ≥ 4.5:1 on the fill;
+        primaryColor/primaryBorderColor/actorBkg/actorBorder/noteBkgColor/
+        noteBorderColor/clusterBkg/clusterBorder/lineColor/signalColor and
+        the architecture edge colours come from the derivation while
+        mainBkg/nodeBorder stay unset (%%{init}%% primaryColor still
+        wins); readActiveThemeTokens composites translucent CSS values
+        over the theme background (graphite/ulysses rgba() text and code
+        panels); the cache signature includes the derived node colours so
+        every diagram re-rendered once after the rework. C-51 T-005: the other rendered
         content follows the theme too — parser/render/contentTheme.js
         builds the Vega-Lite embed config (background null so the block's
         --codeBlockBgColor panel shows through, theme font, axis/legend/

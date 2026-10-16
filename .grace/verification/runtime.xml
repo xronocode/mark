@@ -5319,6 +5319,7 @@
         <Command>npx vitest run tests/renderer/muya/mermaid-pipeline.test.js</Command>
         <Command>
           npx vitest run tests/renderer/muya/mermaid-theme.test.js
+          tests/renderer/muya/mermaid-node-contrast.test.js
           tests/renderer/muya/export-mermaid-theme.test.js
         </Command>
         <Command>npx vitest run tests/renderer/muya/table-scroll-wrapper.test.js</Command>
@@ -5850,6 +5851,81 @@
           KaTeX colour = the theme text colour for both math shapes,
           paper → ink re-renders vega with the new bar and label
           colours, and screenshots land via test.info().outputPath.
+        </Scenario>
+        <Scenario>
+          scenario-61: Mermaid node contrast against the diagram panel
+          (C-51 T-012, user 2026-10-16: «в темной теме у мермейд явно
+          проблемы с контрастностью блоков»; mermaidTheme.js
+          START_BLOCK_MERMAID_NODE_CONTRAST): node shapes sit on the
+          code-block panel (the SVG&apos;s --codeBlockBgColor background),
+          and in most dark themes --floatBgColor == --codeBlockBgColor with
+          hairline borders, so the pre-T-012 surface/border tokens rendered
+          nodes invisible (Ink: fill 1.03:1, border 1.2:1 against the
+          panel). nodeContrastColors(t) — pure, unit-tested — derives
+          fill/border/line/cluster/node-text against THAT panel: the fill
+          is distinguishable (WCAG ≥ 1.25:1 or OKLCH ΔL ≥ 0.06; today&apos;s
+          surface kept when it already passes, else a text-over-panel blend
+          in the prescribed 8–14 % band — darker-than-panel inset nodes for
+          themes whose text is dim against their own panel (solarized-dark,
+          one-dark), a boosted node text only for light themes where the
+          theme text cannot keep 4.5:1 anywhere (graphite, ulysses)); the
+          border ≥ 3:1 (WCAG 1.4.11 — the theme&apos;s border token kept when
+          it passes, else a text/panel blend); the line (edges +
+          arrowheads) ≥ 3:1; the cluster background midway between panel
+          and fill, distinct from both; the node text ≥ 4.5:1 on the fill.
+          primaryColor/primaryBorderColor/actorBkg/actorBorder/
+          noteBkgColor/noteBorderColor/clusterBkg/clusterBorder/lineColor/
+          signalColor/archEdge colours come from the derivation while
+          mainBkg/nodeBorder stay unset, so a user&apos;s %%{init}%%
+          primaryColor still recolours the nodes; sequence actors, notes,
+          state/class boxes and ER entities follow the same rules through
+          Mermaid&apos;s own derivations (mainBkg/nodeBorder/actorBkg).
+          readActiveThemeTokens composites translucent CSS values over the
+          theme background (graphite/ulysses rgba() editor text and code
+          panels — the opaque colour a reader sees). The categorical
+          palettes, tints, gantt/packet task colours, quadrant fills and
+          the Keynote donut are unchanged; mermaidThemeSignature includes
+          the derived node colours, so every cached diagram re-renders
+          exactly once after the update. Unit-pinned in
+          tests/renderer/muya/mermaid-node-contrast.test.js (the pure
+          derivation incl. the reported Ink bug and the dim-text
+          fallbacks; the ALL-32-themes gate computing tokens from the real
+          theme CSS through the util/theme.js-style inline mirror —
+          border ≥ 3:1, fill distinct, text ≥ 4.5:1 on the fill, line
+          ≥ 3:1, cluster ≠ panel/fill, actors/notes/signals follow and
+          actorTextColor/noteTextColor === the derived node text (the
+          painted `text.actor &gt; tspan` / .noteText ink), mainBkg/
+          nodeBorder unset; the alpha compositing; the pre-T-012
+          signature reconstructed with the module&apos;s own djb2 and proved
+          different — red on main: the file fails to load and the old
+          config fails every gate), with the primaryColor pins in
+          mermaid-theme.test.js, mermaid-pipeline.test.js and
+          export-mermaid-theme.test.js following the derivation.
+          End-to-end in tests/e2e/mermaid-theme.spec.ts (chromium + the
+          webkit-mermaid-theme project): a flowchart with a subgraph, a
+          sequence diagram and a state diagram render in ink, docs-dark
+          and macos-dark, and the COMPUTED node rect/polygon fill/stroke,
+          label ink, edge strokes and rendered-arrowhead fills are
+          measured against the panel&apos;s computed background (fill
+          ≥ 1.25:1, border/edges/arrowheads ≥ 3:1, label ≥ 4.5:1 on the
+          fill, cluster fill ≠ panel ≠ node fill) with a screenshot per
+          theme. The measurement reads what the engine PAINTS: the label
+          ink from the VISIBLE label element — sequence actors render
+          through foreignObject (textPlacement default "fo"), so the
+          visible ink is div.actor-box&apos;s computed color while the
+          &lt;text class="actor"&gt; beside it is a hidden &lt;switch&gt;
+          fallback whose own fill is the `.actor` BOX colour (reading that
+          &lt;text&gt; compared the box against itself — the exact «label
+          vs fill = 1» failure the first gate run hit; rendering was
+          already correct), and SVG-only labels fall back to the first
+          &lt;tspan&gt; (`text.actor &gt; tspan` carries actorTextColor,
+          the &lt;text&gt; never does); the arrowheads only from the
+          marker defs a marker-end/marker-start actually references
+          (Mermaid also ships unused defs — sequence
+          -filled-head/-solidTop/BottomArrowHead — that no stylesheet
+          paints, default black), asserting at least one rendered
+          arrowhead per figure; the 22-type matrix test pins the derived
+          fill/border instead of the raw surface.
         </Scenario>
       </Scenarios>
       <Markers>

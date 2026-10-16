@@ -1,5 +1,5 @@
 // FILE: tests/renderer/muya/export-mermaid-theme.test.js
-// VERSION: 1.0.0
+// VERSION: 1.1.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Pin the C-51 T-003 export wiring — ExportHtml.renderMermaid initializes mermaid with the active-theme config (theme base + look neo + themeVariables read from the document) once per diagram type, replacing the old default/dark flip.
 //   SCOPE: renderMermaid on src/muya/lib/utils/exportHtml.js with the renderer loader mocked; the config builder itself is pinned in mermaid-theme.test.js.
@@ -15,12 +15,17 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.0.0 - 2026-10-16 C-51 T-003: first version. Fails
+//   LAST_CHANGE: v1.1.0 - 2026-10-16 C-51 T-012: the primaryColor pin
+//   follows the node fill derived against the code-block panel
+//   (nodeContrastColors(readActiveThemeTokens())) instead of the raw
+//   --floatBgColor surface.
+//   v1.0.0 - 2026-10-16 C-51 T-003: first version. Fails
 //   against the pre-C-51 export path (initialize used theme default/dark).
 // END_CHANGE_SUMMARY
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import ExportHtml from 'muya/lib/utils/exportHtml'
+import { nodeContrastColors, readActiveThemeTokens } from 'muya/lib/parser/render/mermaidTheme'
 
 let fakeMermaid
 
@@ -87,8 +92,10 @@ describe('exportHtml mermaid theming (C-51 T-003)', () => {
     expect(inits).toHaveLength(2)
     expect(inits[0][0]).toMatchObject({ securityLevel: 'strict', theme: 'base', look: 'neo' })
     // Tokens were read from the live document's CSS variables (lowercase
-    // normalization happens in readActiveThemeTokens).
-    expect(inits[0][0].themeVariables.primaryColor).toBe('#fffdf8')
+    // normalization happens in readActiveThemeTokens); T-012: the node fill
+    // is derived against the code-block panel (--codeBlockBgColor is unset
+    // here, so the panel falls back to the editor background).
+    expect(inits[0][0].themeVariables.primaryColor).toBe(nodeContrastColors(readActiveThemeTokens()).fill)
     expect(inits[0][0].flowchart).toMatchObject({ useMaxWidth: true, curve: 'basis' })
     // The gantt block got the type's own initialize (lab sizes, T-004).
     expect(inits[1][0].gantt).toMatchObject({ useMaxWidth: false, useWidth: 720, fontSize: 13 })

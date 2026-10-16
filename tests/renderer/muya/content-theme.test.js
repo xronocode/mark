@@ -260,7 +260,8 @@ describe('applySequenceTheme (C-51 T-005)', () => {
     const actorRect = svg.querySelector('g.actor rect')
     expect(actorRect.getAttribute('fill')).toBe(PAPER_TOKENS.surface)
     expect(actorRect.getAttribute('stroke')).toBe(PAPER_TOKENS.border)
-    // notes get the same accent tint pair Mermaid's noteBkg uses
+    // notes get js-sequence's own accent tint pair (Mermaid's notes follow
+    // the C-51 T-012 node colours derived against the code-block panel)
     const noteRect = svg.querySelector('g.note rect')
     expect(noteRect.getAttribute('fill')).toBe(tint[0])
     expect(noteRect.getAttribute('stroke')).toBe(tintBorder[0])
