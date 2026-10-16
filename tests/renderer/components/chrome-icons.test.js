@@ -1,10 +1,10 @@
 // FILE: tests/renderer/components/chrome-icons.test.js
-// VERSION: 2.2.0
+// VERSION: 2.3.0
 // START_MODULE_CONTRACT
-//   PURPOSE: Verify the one drawn chrome icon set (C-40 T-002 / C-38 T-006 / C-51 T-006 / C-51 T-011 / M-057) — descriptor integrity, the shared 16 px grid metrics, the ChromeIcon render component and the chromeIconMarkup string twin.
+//   PURPOSE: Verify the one drawn chrome icon set (C-40 T-002 / C-38 T-006 / C-51 T-006 / C-51 T-011 / C-51 T-013 / M-057) — descriptor integrity, the shared 16 px grid metrics, the ChromeIcon render component, the chromeIconMarkup string twin and the filled pin silhouette.
 //   SCOPE: pure module tests over components/icons/chromeIcons.js.
 //   DEPENDS: Vitest, vue (h) via the ChromeIcon component render.
-//   LINKS: .grace/verification/runtime.xml V-M-011 scenario-53, scenario-56; .canvas/Icons.dc.html.
+//   LINKS: .grace/verification/runtime.xml V-M-011 scenario-53, scenario-56, scenario-63; .canvas/Icons.dc.html.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT
@@ -15,7 +15,12 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v2.2.0 - 2026-10-16 C-51 T-011: the «pin» glyph (upright
+//   LAST_CHANGE: v2.3.0 - 2026-10-17 C-51 T-013: the «pin» descriptor
+//   test flips to the filled pushpin silhouette — every part fills with
+//   currentColor (round head circle + tapering body + needle, no
+//   stroke-only parts; at 12 px the stroked drawing read as a thin
+//   stick/cross).
+//   v2.2.0 - 2026-10-16 C-51 T-011: the «pin» glyph (upright
 //   pushpin — T head, stem, flange, needle, round caps) joins the pinned
 //   name list.
 //   v2.1.0 - 2026-10-16 C-51 T-006: the «expand» glyph (canvas
@@ -135,6 +140,38 @@ describe('chromeIcons shared set (C-40 T-002, C-38 T-006)', () => {
     const circle = wrapper.find('circle')
     expect(circle.attributes('fill')).toBe('currentColor')
     expect(circle.attributes('stroke')).toBe('none')
+  })
+
+  it('the pin glyph is a filled pushpin silhouette — no stroke-only parts (C-51 T-013)', () => {
+    const parts = CHROME_ICONS.pin
+    expect(parts.length).toBeGreaterThanOrEqual(3)
+    for (const part of parts) {
+      // the whole glyph is fill-based: no thin stroked lines anywhere
+      expect(part.fill, 'every pin part must fill').toBe(true)
+      expect(part.cap).toBeUndefined()
+      expect(part.join).toBeUndefined()
+    }
+    // round head + tapering body + needle
+    const [head, body, needle] = parts
+    expect(head.tag).toBe('circle')
+    expect(head.attrs.r).toBeGreaterThan(2.5)
+    expect(body.tag).toBe('path')
+    expect(needle.tag).toBe('path')
+    // the body and the needle are closed shapes
+    expect(body.attrs.d.endsWith('z')).toBe(true)
+    expect(needle.attrs.d.endsWith('z')).toBe(true)
+
+    // rendered at the 12 px mark size, every part carries fill=currentColor
+    // and stroke=none
+    const wrapper = mount(ChromeIcon, { props: { name: 'pin', size: 12 } })
+    const svg = wrapper.find('svg')
+    expect(svg.attributes('width')).toBe('12')
+    const drawn = wrapper.findAll('circle, path')
+    expect(drawn.length).toBe(parts.length)
+    for (const el of drawn) {
+      expect(el.attributes('fill')).toBe('currentColor')
+      expect(el.attributes('stroke')).toBe('none')
+    }
   })
 
   it('cap/join flags render as round line attributes', () => {

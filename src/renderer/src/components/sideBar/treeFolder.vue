@@ -57,17 +57,21 @@
 
 <script setup>
 // FILE: src/renderer/src/components/sideBar/treeFolder.vue
-// VERSION: 2.0.0
+// VERSION: 2.1.0
 // START_MODULE_CONTRACT
-//   PURPOSE: One folder row of the sidebar tree — folder/folder-open line icon + name + right disclosure chevron, its nested contents behind a 1px guide line per level, and the C-51 T-001 Markdown-only view filter over children.
+//   PURPOSE: One folder row of the sidebar tree — semibold name (C-51 T-013) beside the folder/folder-open line icon and right disclosure chevron, its nested contents behind a 1px guide line per level, and the C-51 T-001 Markdown-only view filter over children.
 //   SCOPE: Row rendering (rename input, active state, context menu wiring, create-input), collapse toggle, child folder/file lists filtered through store/treeFilter.js per the treeShowAllFiles preference.
 //   DEPENDS: vue, pinia, store/project, store/preferences, store/treeFilter, contextMenu/sideBar, bus, ./treeFile.vue, ../icons/chromeIcons.js.
-//   LINKS: .grace/changes/active/C-51 T-001; .canvas/Main.dc.html (folder rows + guide lines); .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011.
+//   LINKS: .grace/changes/active/C-51 T-001/T-013; .canvas/Main.dc.html (folder rows + guide lines); .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011.
 //   ROLE: RUNTIME
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT
 //
 // START_CHANGE_SUMMARY
+//   - 2026-10-17 v2.1.0: C-51 T-013 — folder rows go semibold (600) so
+//     they read as structure against the regular-weight file rows, and
+//     the row starts at the shared --sideBarRowInset (12px) so its glyph
+//     lines up with every other sidebar chevron.
 //   - 2026-10-16 v2.0.0: C-51 T-001 — Obsidian-style folder row (right
 //     chevron, 32px rows, guide-line nesting via .folder-contents instead
 //     of per-row depth padding) and child lists filtered by
@@ -182,7 +186,13 @@ onMounted(() => {
     align-items: center;
     height: 32px;
     padding-right: 10px;
-    padding-left: 10px;
+    /* C-51 T-013: the folder glyph starts at the shared row inset; with
+       the glyph (14px) + its 6px margin the semibold name lands on the
+       same text grid as the icon-less file rows. */
+    padding-left: var(--sideBarRowInset, 12px);
+    /* C-51 T-013: folders read as structure — semibold against the
+       regular-weight file rows (user smoke 2026-10-17). */
+    font-weight: 600;
     & > svg:first-child {
       flex-shrink: 0;
       color: var(--sideBarIconColor);
@@ -208,7 +218,7 @@ onMounted(() => {
       /* Inset rounded hover like the file pill (review 2026-10-16). */
       border-radius: 8px;
       margin: 0 6px;
-      padding-left: 4px;
+      padding-left: 6px;
       padding-right: 4px;
     }
   }

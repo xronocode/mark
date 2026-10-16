@@ -2863,6 +2863,20 @@
         surfaces live on the C-46 welcome screen; opening a folder stays
         possible from the File menu, the welcome screen and the
         title-bar folder switcher).
+        C-51 T-013 (user smoke 2026-10-17): sidebar typography — file
+        rows in the tree, Recent, Pinned and Opened files render NO
+        leading file-type icon (treeFile.vue and fileSections.vue drop
+        the ./icon.vue muya-fileIcons consumer; the component itself is
+        listed for deletion) and every file row is explicitly regular
+        weight, the current file marked only by the soft pill +
+        chromeAccent text (fileSections current rows switch from bold to
+        accent text); folder rows (treeFolder.vue) and the root folder
+        switcher name are semibold 600, and all rows keep the shared
+        text grid: names start at calc(--sideBarRowInset + 20px) — the
+        inset plus the folder glyph slot — so file names align with
+        folder names (treeFolder rows read the token directly; the
+        dead .bold rule in tree.vue is gone). The M-057 «pin» mark is
+        redrawn as a filled pushpin silhouette (see M-057).
         C-51 T-007: two more theme families join the C-41 model — Docs
         (docs/docs-dark: near-white #FCFCFB / near-black #161615 grounds,
         ink text #1F1F1F / #ECECEA, hairline borders #E4E4E1 / #2C2C2A,
@@ -6835,10 +6849,14 @@
         renderer modules, so parser/render/renderBlock/renderExpandButton
         duplicates the path inline (EXPAND_ICON_PATH) and
         tests/renderer/muya/block-expand-button.test.js pins the two
-        byte-identical. C-51 T-011: the «pin» glyph (upright pushpin —
-        T head, stem, flange, needle, round caps on the shared grid)
-        renders at 12 px as the trailing pinned-file mark on the sidebar
-        tree rows and the Opened-files rows.
+        byte-identical. C-51 T-011: the «pin» glyph renders at 12 px as
+        the trailing pinned-file mark on the sidebar tree rows and the
+        Opened-files rows. C-51 T-013 (user smoke 2026-10-17): the
+        glyph is redrawn as a FILLED pushpin silhouette — the set's one
+        fill-only exception to the 1.4 stroke idiom (round head circle,
+        tapering body, needle; every part fill=currentColor
+        stroke=none) because the stroked T-head drawing read as a thin
+        stick/cross at the 12 px mark size.
       </Summary>
       <PlannedPath>src/renderer/src/components/icons/chromeIcons.js</PlannedPath>
       <Dependencies>

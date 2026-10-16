@@ -1,10 +1,10 @@
 // FILE: tests/e2e/sidebar-tree-redesign.spec.ts
-// VERSION: 1.1.0
+// VERSION: 1.2.0
 // START_MODULE_CONTRACT
-//   PURPOSE: C-51 T-001/T-002/T-011 e2e — the redesigned sidebar tree (Markdown-only filter with the show-all toggle and folder reveal on create, guide lines, chevrons, folder switcher, current-file pill), the Recent/Pinned sections (pin via the tree context menu, persistence across reload, missing-file Remove, drag reorder), the T-011 polish (chevron left inset, the trailing pin mark in the tree and Opened files, the empty sidebar without the Open Folder CTA / RECENT folders list), plus light/dark screenshots.
+//   PURPOSE: C-51 T-001/T-002/T-011/T-013 e2e — the redesigned sidebar tree (Markdown-only filter with the show-all toggle and folder reveal on create, guide lines, chevrons, folder switcher, current-file pill), the Recent/Pinned sections (pin via the tree context menu, persistence across reload, missing-file Remove, drag reorder), the T-011 polish (chevron left inset, the trailing pin mark in the tree and Opened files, the empty sidebar without the Open Folder CTA / RECENT folders list), the T-013 typography (no leading file-type icon, semibold folders + switcher, one regular file-row weight, the filled pushpin mark), plus light/dark screenshots.
 //   SCOPE: renderer-only e2e against vite preview + tauri-shim (no real Tauri IPC); runs in chromium and webkit (playwright project webkit-tree).
 //   DEPENDS: @playwright/test, tests/e2e/fixtures/tauri-shim, tests/e2e/fixtures/helpers (bootEditor, openFileTab).
-//   LINKS: .grace/changes/active/C-51 T-001/T-002/T-011; .grace/verification/runtime.xml V-M-011.
+//   LINKS: .grace/changes/active/C-51 T-001/T-002/T-011/T-013; .grace/verification/runtime.xml V-M-011.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT
@@ -28,7 +28,13 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.1.0 - 2026-10-16 C-51 T-011: the empty-sidebar case
+//   LAST_CHANGE: v1.2.0 - 2026-10-17 C-51 T-013: the typography describe —
+//   computed font-weight 600 for folder rows and the root folder switcher,
+//   400 for every file row in tree/Recent/Pinned/Opened (the current file
+//   included, marked by accent colour in Recent), no file-type icon before
+//   any file name, the pinned mark visible with its fill-based glyph, and
+//   a screenshot via test.info().outputPath.
+//   v1.1.0 - 2026-10-16 C-51 T-011: the empty-sidebar case
 //   (no Open Folder button, no RECENT folders list), the trailing pin
 //   mark assertions (tree row + Opened-files row + Pinned section, unpin
 //   clears all three) and the chevron-inset geometry check (≥ 10 px from
@@ -502,6 +508,103 @@ test.describe('sidebar polish (C-51 T-011) — pin marks, chevron inset, empty s
     // Evidence goes to the Playwright output dir — never into the repo.
     await page.screenshot({
       path: test.info().outputPath('sidebar-t011-chevron-inset.png'),
+      type: 'png',
+      clip: { x: 0, y: 0, width: 420, height: 800 }
+    })
+  })
+})
+
+test.describe('sidebar typography (C-51 T-013) — no file icons, one row weight, filled pin', () => {
+  test('file rows carry no leading icon, folders are semibold, every file row is regular — the current file included', async ({ page }) => {
+    const state = baseState()
+    state.popupContextResult = 'pinFileMenuItem'
+    await page.setViewportSize({ width: 1280, height: 800 })
+    await bootTree(page, state)
+
+    // notes.md open+current → the tree row, the Opened-files row and the
+    // Recent row all render; pin it so the Pinned section exists too.
+    await openFileTab(page, `${ROOT}/notes.md`, DOC)
+    await page.locator('.side-bar-file', { hasText: 'notes.md' }).first().click({ button: 'right' })
+    await expect(page.locator('[data-section="pinned"] .section-file-name')).toHaveText('notes.md')
+
+    // 1) no leading file-type icon anywhere: the icon span is gone, no
+    //    <img>, and the only svg a tree file row may carry is the
+    //    TRAILING pin mark — the name span leads every row.
+    await expect(page.locator('.side-bar-file .file-icon')).toHaveCount(0)
+    await expect(page.locator('.section-file .file-icon')).toHaveCount(0)
+    await expect(page.locator('.opened-file .file-icon')).toHaveCount(0)
+    await expect(page.locator('.side-bar-file img, .section-file img, .opened-file img')).toHaveCount(0)
+    await expect(page.locator('.tree-view .side-bar-file svg')).toHaveCount(1) // the pinned notes.md mark
+    for (const rowLocator of [
+      page.locator('.side-bar-file', { hasText: 'notes.md' }).first(),
+      page.locator('[data-section="recent"] .section-file').first(),
+      page.locator('[data-section="pinned"] .section-file').first()
+    ]) {
+      expect(await rowLocator.evaluate((el) => el.firstElementChild?.tagName)).toBe('SPAN')
+    }
+    // the Opened-files row keeps its hover close glyph (absolute, left
+    // 10px, hidden at rest) — its first span is the name itself
+    const openedRow = page.locator('.opened-files .opened-file').first()
+    expect(await openedRow.evaluate((el) => el.querySelector('span')?.className)).toContain('name')
+
+    // 2) weights: folder rows and the root folder switcher semibold…
+    const folderRow = page.locator('.side-bar-folder .folder-name', { hasText: 'docs' })
+    await expect(folderRow).toBeVisible()
+    expect(await folderRow.evaluate((el) => getComputedStyle(el).fontWeight)).toBe('600')
+    expect(await folderRow.locator('span').evaluate((el) => getComputedStyle(el).fontWeight)).toBe('600')
+    const switcherSpan = page.locator('.project-tree > .title.folder-switcher > span')
+    expect(await switcherSpan.evaluate((el) => getComputedStyle(el).fontWeight)).toBe('600')
+
+    // …and every file row regular in every section — the current file is
+    // marked only by the pill/accent, never by bold.
+    const treeCurrentName = page.locator('.side-bar-file.current > span:not(.pin-mark)')
+    await expect(treeCurrentName).toBeVisible()
+    expect(await treeCurrentName.evaluate((el) => getComputedStyle(el).fontWeight)).toBe('400')
+    for (const sel of [
+      '[data-section="recent"] .section-file-name',
+      '[data-section="pinned"] .section-file-name',
+      '.opened-files .opened-file > .name'
+    ]) {
+      const rows = page.locator(sel)
+      expect(await rows.count(), `${sel} renders rows`).toBeGreaterThan(0)
+      const weights = await rows.evaluateAll((els) => els.map((el) => getComputedStyle(el).fontWeight))
+      expect(weights.every((w) => w === '400'), `${sel}: every row regular, got ${weights.join(',')}`).toBe(true)
+    }
+
+    // the current file in Recent is marked by accent colour, not weight
+    const recentCurrent = page.locator('[data-section="recent"] .section-file.current > .section-file-name')
+    await expect(recentCurrent).toHaveCount(1)
+    const accent = await page.evaluate(() => {
+      const probe = document.createElement('div')
+      probe.style.cssText = 'position:absolute;visibility:hidden;color:var(--chromeAccent)'
+      document.body.appendChild(probe)
+      const v = getComputedStyle(probe).color
+      probe.remove()
+      return v
+    })
+    expect(await recentCurrent.evaluate((el) => getComputedStyle(el).color)).toBe(accent)
+
+    // 3) the pinned mark reads as a pin: visible, fill-based glyph (round
+    //    head + tapering body + needle — no stroke-only thin lines).
+    const mark = page.locator('.side-bar-file', { hasText: 'notes.md' }).first().locator('.pin-mark')
+    await expect(mark).toBeVisible()
+    const pinInfo = await mark.locator('svg').evaluate((svg) => {
+      const parts = Array.from(svg.querySelectorAll('circle, path, rect'))
+      return {
+        count: parts.length,
+        allFilled: parts.every(
+          (p) => p.getAttribute('fill') === 'currentColor' && p.getAttribute('stroke') === 'none'
+        ),
+        head: svg.querySelector('circle') !== null
+      }
+    })
+    expect(pinInfo.count).toBeGreaterThanOrEqual(3)
+    expect(pinInfo.allFilled).toBe(true)
+    expect(pinInfo.head).toBe(true)
+
+    // Evidence goes to the Playwright output dir — never into the repo.
+    await page.screenshot({
+      path: test.info().outputPath('sidebar-t013-typography.png'),
       type: 'png',
       clip: { x: 0, y: 0, width: 420, height: 800 }
     })
