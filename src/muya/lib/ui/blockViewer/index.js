@@ -1,5 +1,5 @@
 // FILE: src/muya/lib/ui/blockViewer/index.js
-// VERSION: 2.0.1
+// VERSION: 2.0.2
 // START_MODULE_CONTRACT
 //   PURPOSE: Shared fullscreen block viewer (C-34 R2.2 + C-39 T2) that shows a Mermaid/flowchart/sequence/plantuml/vega-lite diagram (clone of the current preview, no re-render) or a read-only clone of a rendered table with pan/zoom via @panzoom/panzoom.
 //   SCOPE: viewer open/close lifecycle, diagram-preview and table-clone sanitization, wheel/pinch/key zoom, drag pan, focus trap and focus restore, panzoom cleanup, and block resolution from an element (preview, table, or the FIGURE the C-51 persistent expand button dispatches).
@@ -14,7 +14,15 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v2.0.1 - 2026-10-16 C-51 T-006 review: findDiagramPreview
+//   LAST_CHANGE: v2.0.2 - 2026-10-16 C-51 T-010: the close() re-asserts
+//   resolve the LIVE expand button from returnFocusFigureId on every
+//   firing — a re-render during the 400 ms window (the closing key's
+//   keyup could trigger a partial render) replaces the figure's DOM, and
+//   the previously captured element stayed detached, making the 0/50 ms
+//   timers silent no-ops while the editor container kept the focus. The
+//   steal itself is fixed in keyboard.js (the keyup expand-button guard);
+//   this hardening keeps the restore correct against any render.
+//   v2.0.1 - 2026-10-16 C-51 T-006 review: findDiagramPreview
 //   resolves through the figure ROLE in both directions — the first draft
 //   accepted any div.ag-container-preview with svg/img content, which made
 //   KaTeX math (svg radicals) and html previews (imgs) viewable via
@@ -557,14 +565,42 @@ class BlockViewer {
     if (restoreFocus && el && typeof el.focus === 'function') {
       el.focus()
       if (figureId) {
-        // The same Escape keydown also reaches muya's document handler,
-        // which re-focuses the editable container — re-assert on the next
-        // tick so the expand button keeps the focus (C-51 T-006 review).
+        // The re-asserts resolve the LIVE button from the figure id: a
+        // re-render while the window is open (e.g. the closing key's
+        // keyup triggering a partial render) replaces the figure's DOM,
+        // and the captured el would be detached — focus() on it a silent
+        // no-op while the container kept the focus (C-51 T-010).
         const reassert = () => {
-          if (el.isConnected && document.activeElement !== el) el.focus()
+          let live = el
+          if (figureId) {
+            const fig = document.getElementById(figureId)
+            const button = fig && fig.querySelector('.ag-block-expand')
+            if (button) live = button
+          }
+          if (live && live.isConnected && document.activeElement !== live) {
+            live.focus()
+          }
         }
         setTimeout(reassert, 0)
         setTimeout(reassert, 50)
+        // C-51 T-010: muya can re-focus its container later than 50 ms
+        // (the Escape keydown's own follow-up). For a short window a focus
+        // that lands in the editor goes back to the button — until the
+        // user points or taps somewhere, which ends the window at once.
+        const container = this.muya && this.muya.container
+        if (container) {
+          const stop = () => {
+            container.removeEventListener('focusin', onFocusIn)
+            document.removeEventListener('pointerdown', stop, true)
+          }
+          const onFocusIn = () => {
+            stop()
+            reassert()
+          }
+          container.addEventListener('focusin', onFocusIn)
+          document.addEventListener('pointerdown', stop, true)
+          setTimeout(stop, 400)
+        }
       }
     }
     console.debug('[Muya][blockViewer][BLOCK_VIEWER_CLOSE] viewer closed')

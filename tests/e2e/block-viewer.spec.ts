@@ -1,24 +1,40 @@
 // FILE: tests/e2e/block-viewer.spec.ts
-// VERSION: 2.1.0
+// VERSION: 3.0.0
 // START_MODULE_CONTRACT
-//   PURPOSE: End-to-end pin of the shared fullscreen block viewer (C-34 R2.2 + C-39 T2) and the C-51 T-006 always-visible expand button — overlay open, zoom keys, read-only table clone with sticky header, Cmd+click, Esc close with focus restore; button presence/aria-label/rest-vs-hover looks on every viewable block type, no content covered, keyboard activation, light/dark colours.
+//   PURPOSE: End-to-end pin of the shared fullscreen block viewer (C-34 R2.2 + C-39 T2) and the C-51 T-006/T-010 expand button — overlay open, zoom keys, read-only table clone with sticky header, Cmd+click, Esc close with focus restore; the T-010 need rules (small blocks have no button and no Tab stop, wide/tall blocks do), the copy-icon look (20 px, 0/0.5/1 opacity curve, inside the block), the table placement clear of header text and the last-column resize handle, viewport-resize re-evaluation, and light/dark colours.
 //   SCOPE: block-viewer.spec.ts only; diagram and table flows against the built renderer.
 //   DEPENDS: @playwright/test, tests/e2e/fixtures/tauri-shim (same bootstrap as mermaid-render.spec.ts).
-//   LINKS: .grace/changes/active/C-34 T-002; .grace/changes/active/C-39 T2; .grace/changes/active/C-51 T-006; .grace/verification/runtime.xml V-M-012 scenario-19 and scenario-60.
+//   LINKS: .grace/changes/active/C-34 T-002; .grace/changes/active/C-39 T2 and T-002; .grace/changes/active/C-51 T-006 and T-010 (D-7); .grace/verification/runtime.xml V-M-012 scenario-19 and scenario-60.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
-//   DIAGRAM_MD - markdown fixture with one mermaid flowchart.
-//   TABLE_MD - markdown fixture with one GFM table.
-//   ALL_BLOCKS_MD - one fixture of every viewable block type (5 diagram kinds + table) plus non-viewable negatives (fence, paragraph).
+//   SMALL_DIAGRAM_MD - one small mermaid flowchart (no expand button; Cmd/Ctrl+click path).
+//   WIDE_DIAGRAM_MD - a 14-node graph LR, always scaled to the column (expand button).
+//   MEDIUM_DIAGRAM_MD - a 3-node graph LR: unscaled at the default viewport, scaled after narrowing (resize flip).
+//   WIDE_TABLE_MD - a 12-column table that overflows the column (expand button; resize-handle drag).
+//   MIXED_MD - every viewable block type: small ones stay button-less, the wide mermaid/flowchart and the wide/tall tables get it, plus fence/paragraph negatives.
 //   bootstrapWithMarkdown - tauri-shim + preferences + mt::bootstrap-editor document load (mirrors mermaid-render.spec.ts).
 //   canvasScale - parses the panzoom `scale(s) translate(x,y)` transform of the viewer canvas.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v2.1.0 - 2026-10-16 C-51 T-006 canvas rework: the look
+//   LAST_CHANGE: v3.0.0 - 2026-10-16 C-51 T-010 (user decision D-7,
+//   «показывается даже для малых таблиц и диаграмм… похожа на иконку
+//   копировать»): the button appears only where the viewer helps. Small
+//   mermaid/table blocks have NO visible button and NO Tab stop (display:
+//   none — focus() is a no-op and Tab walks past them); a wide flowchart
+//   and wide/tall tables DO get it, hidden at rest (opacity 0), ≥ 0.4 on
+//   figure hover, 1 on button hover/focus, ≤ 22 px and inside the figure
+//   (diagrams) / in the top-margin band clear of the header text and the
+//   last-column resize handle (tables); narrowing the viewport until a
+//   diagram scales adds the button; Cmd/Ctrl+click still opens the viewer
+//   for a small diagram. The always-open tests moved to wide fixtures;
+//   the 30 px/44 px strip/always-visible cases were replaced by the need
+//   rules instead of deleted coverage. The C-51 T-008 traffic-lights case
+//   is kept (opens via the needed button of the wide diagram).
+//   v2.1.0 - 2026-10-16 C-51 T-006 canvas rework: the look
 //   case pins the approved canvas geometry (30 px square, radius 8, 10 px
 //   insets from the figure's top-right, opacity ≥ 0.6 at rest) instead of
 //   the interim ghost chip in the top:-22px strip; new cases: Tab moves
@@ -44,7 +60,7 @@
 import { test, expect, Page } from '@playwright/test'
 import { installTauriShim } from './fixtures/tauri-shim'
 
-const DIAGRAM_MD = `# Block Viewer Diagrams
+const SMALL_DIAGRAM_MD = `# Block Viewer Diagrams
 
 \`\`\`mermaid
 graph TD
@@ -58,33 +74,78 @@ graph TD
 Some text after the diagram.
 `
 
-const TABLE_MD = `# Block Viewer Tables
+// 14 chained nodes: the SVG's natural width is far beyond the text
+// column, so it is always scaled to fit (the T-010 need rule).
+const WIDE_DIAGRAM_MD = (() => {
+  const nodes = Array.from({ length: 14 }, (_, i) => `N${i}[Service number ${i}]`).join(' --> ')
+  return `# Wide\n\n\`\`\`mermaid\ngraph LR\n    ${nodes}\n\`\`\`\n`
+})()
 
-| Alpha | Beta | Gamma |
-| --- | --- | --- |
-| one | two | three |
-| four | five | six |
-| seven | eight | nine |
+// Three medium nodes: at the default viewport the diagram keeps its
+// natural width (the text column is ~700-750 px); at a 460 px viewport
+// the column (~410 px) scales the SVG down and the button appears (the
+// resize re-evaluation case). Labels sized so the natural width sits
+// comfortably between the two columns.
+const MEDIUM_DIAGRAM_MD = `# Resize Flip
+
+\`\`\`mermaid
+graph LR
+    Ship[Release candidate] --> Beta[Beta test round] --> Day[Public launch day]
+\`\`\`
+
+Text after.
+`
+
+// 12 columns: the C-39 wrapper must scroll horizontally — the table
+// overflow need rule — and the last column's resize handle stays
+// draggable with the button present.
+const WIDE_TABLE_MD = `# Block Viewer Wide Table
+
+${Array.from({ length: 12 }, (_, i) => `| Column number ${i + 1}`).join('')} |
+${Array.from({ length: 12 }, () => '| ---').join('')} |
+${Array.from({ length: 12 }, (_, i) => `| value ${i + 1}`).join('')} |
 
 Some text after the table.
 `
 
-// One of every viewable block (C-51 T-006) plus negatives: a fenced code
-// block and a plain paragraph never get the expand button. The plantuml
-// sample renders offline as a broken <img> (plantuml.com is unreachable in
-// CI) — the BUTTON is renderer-side, so presence/aria are still asserted.
-const ALL_BLOCKS_MD = `# Expand Button Coverage
+// Every viewable block (C-51 T-006) plus the T-010 need split: the small
+// mermaid, sequence, vega-lite, plantuml and the small table stay
+// button-less; the wide mermaid, the wide flowchart and the wide/tall
+// tables get the button. The plantuml sample renders offline as a broken
+// <img> (plantuml.com is unreachable in CI) — presence is still asserted
+// on the (hidden) button.
+const MIXED_MD = `# Expand Button Coverage
 
 \`\`\`mermaid
 graph TD
     A[Start] --> B[End]
 \`\`\`
 
+\`\`\`mermaid
+graph LR
+    ${Array.from({ length: 14 }, (_, i) => `N${i}[Service number ${i}]`).join(' --> ')}
+\`\`\`
+
 \`\`\`flowchart
-st=>start: Start
-op=>operation: Write
-e=>end: Done
-st->op->e
+st=>start: Begin the wide flow
+w1=>operation: Prepare the first wide step
+w2=>operation: Prepare the second wide step
+w3=>operation: Prepare the third wide step
+w4=>operation: Prepare the fourth wide step
+w5=>operation: Prepare the fifth wide step
+w6=>operation: Prepare the sixth wide step
+w7=>operation: Prepare the seventh wide step
+w8=>operation: Prepare the eighth wide step
+e=>end: Flow complete
+st->w1(right)
+w1->w2(right)
+w2->w3(right)
+w3->w4(right)
+w4->w5(right)
+w5->w6(right)
+w6->w7(right)
+w7->w8(right)
+w8->e(right)
 \`\`\`
 
 \`\`\`sequence
@@ -93,19 +154,28 @@ A->B: Ping?
 B-->A: Pong
 \`\`\`
 
+\`\`\`vega-lite
+{"data":{"values":[{"kind":"A","count":3},{"kind":"B","count":5}]},"mark":"bar","encoding":{"x":{"field":"kind","type":"nominal"},"y":{"field":"count","type":"quantitative"}}}
+\`\`\`
+
 \`\`\`plantuml
 @startuml
 Alice -> Bob: hello
 @enduml
 \`\`\`
 
-\`\`\`vega-lite
-{"data":{"values":[{"kind":"A","count":3},{"kind":"B","count":5}]},"mark":"bar","encoding":{"x":{"field":"kind","type":"nominal"},"y":{"field":"count","type":"quantitative"}}}
-\`\`\`
+| Alpha | Beta | Gamma |
+| --- | --- | --- |
+| one | two | three |
+| four | five | six |
 
-| Alpha | Beta |
-| --- | --- |
-| one | two |
+${Array.from({ length: 12 }, (_, i) => `| Column number ${i + 1}`).join('')} |
+${Array.from({ length: 12 }, () => '| ---').join('')} |
+${Array.from({ length: 12 }, (_, i) => `| value ${i + 1}`).join('')} |
+
+| Height | Rows | Below |
+| --- | --- | --- |
+${Array.from({ length: 30 }, (_, i) => `| row ${i + 1} | value ${i + 1} | end |`).join('\n')}
 
 \`\`\`js
 const noButtonHere = true
@@ -201,16 +271,17 @@ test.describe('block viewer (C-34 R2.2 + C-39 T2)', () => {
     await installTauriShim(page)
   })
 
-  test('diagram: the always-visible expand button opens the fullscreen viewer; zoom key scales; Esc restores focus', async ({ page }) => {
-    await bootstrapWithMarkdown(page, DIAGRAM_MD)
+  test('diagram: the needed expand button opens the fullscreen viewer; zoom key scales; Esc restores focus', async ({ page }) => {
+    await bootstrapWithMarkdown(page, WIDE_DIAGRAM_MD)
     await page.locator('.editor-component, .editor-wrapper').first()
       .waitFor({ state: 'visible', timeout: 15_000 })
 
     const preview = page.locator('div.ag-container-preview.ag-mermaid-preview').first()
     await preview.waitFor({ state: 'visible', timeout: 20_000 })
 
-    // C-51 T-006: the expand button is visible at rest — no hover needed —
-    // as a direct child of the diagram figure, with the localized label.
+    // T-010: the wide diagram is scaled to the column, so the figure
+    // carries the need class and its button is laid out (opacity 0 at
+    // rest — visibility is the hover curve, display is the need gate).
     const expand = page.locator('figure[data-role="MERMAID"] > button.ag-block-expand').first()
     await expect(expand).toBeVisible()
     await expect(expand).toHaveAttribute('aria-label', 'Expand')
@@ -249,7 +320,7 @@ test.describe('block viewer (C-34 R2.2 + C-39 T2)', () => {
   })
 
   test('macOS: the viewer title clears the traffic lights; other platforms keep the plain inset (C-51 T-008)', async ({ page }) => {
-    await bootstrapWithMarkdown(page, DIAGRAM_MD)
+    await bootstrapWithMarkdown(page, WIDE_DIAGRAM_MD)
     await page.locator('div.ag-container-preview.ag-mermaid-preview').first()
       .waitFor({ state: 'visible', timeout: 20_000 })
     const viewer = page.locator('.ag-block-viewer')
@@ -276,7 +347,7 @@ test.describe('block viewer (C-34 R2.2 + C-39 T2)', () => {
   })
 
   test('Ctrl+wheel inside the viewer zooms the diagram and leaves the editor font size alone', async ({ page }) => {
-    await bootstrapWithMarkdown(page, DIAGRAM_MD)
+    await bootstrapWithMarkdown(page, WIDE_DIAGRAM_MD)
     await page.locator('.editor-component, .editor-wrapper').first()
       .waitFor({ state: 'visible', timeout: 15_000 })
     const preview = page.locator('div.ag-container-preview.ag-mermaid-preview').first()
@@ -302,7 +373,7 @@ test.describe('block viewer (C-34 R2.2 + C-39 T2)', () => {
   })
 
   test('the viewer backdrop is opaque: nothing of the page shows through', async ({ page }) => {
-    await bootstrapWithMarkdown(page, DIAGRAM_MD)
+    await bootstrapWithMarkdown(page, WIDE_DIAGRAM_MD)
     const preview = page.locator('div.ag-container-preview.ag-mermaid-preview').first()
     await preview.waitFor({ state: 'visible', timeout: 20_000 })
     await page.locator('figure[data-role="MERMAID"] > button.ag-block-expand').first().click()
@@ -317,8 +388,7 @@ test.describe('block viewer (C-34 R2.2 + C-39 T2)', () => {
   })
 
   test('a wide diagram fits the column in the page and opens centred and non-empty in the viewer', async ({ page }) => {
-    const nodes = Array.from({ length: 14 }, (_, i) => `N${i}[Service number ${i}]`).join(' --> ')
-    await bootstrapWithMarkdown(page, `# Wide\n\n\`\`\`mermaid\ngraph LR\n    ${nodes}\n\`\`\`\n`)
+    await bootstrapWithMarkdown(page, WIDE_DIAGRAM_MD)
     await page.locator('.editor-component, .editor-wrapper').first()
       .waitFor({ state: 'visible', timeout: 15_000 })
     const preview = page.locator('div.ag-container-preview.ag-mermaid-preview').first()
@@ -354,15 +424,16 @@ test.describe('block viewer (C-34 R2.2 + C-39 T2)', () => {
     expect(Math.abs((inViewer.l - inViewer.stageL) - (inViewer.stageR - inViewer.r))).toBeLessThanOrEqual(4)
   })
 
-  test('table: the always-visible expand button opens a read-only clone with a sticky header; zoom and Esc work', async ({ page }) => {
-    await bootstrapWithMarkdown(page, TABLE_MD)
+  test('table: the needed expand button opens a read-only clone with a sticky header; zoom and Esc work', async ({ page }) => {
+    await bootstrapWithMarkdown(page, WIDE_TABLE_MD)
     await page.locator('.editor-component, .editor-wrapper').first()
       .waitFor({ state: 'visible', timeout: 15_000 })
 
     const table = page.locator('table.ag-paragraph').first()
     await table.waitFor({ state: 'visible', timeout: 15_000 })
 
-    // C-51 T-006: the table figure carries the expand button at rest.
+    // T-010: the 12-column table overflows its column, so the figure
+    // needs the viewer and the button is laid out.
     const expand = page.locator('figure[data-role="TABLE"] > button.ag-block-expand').first()
     await expect(expand).toBeVisible()
     await expect(expand).toHaveAttribute('aria-label', 'Expand')
@@ -410,13 +481,21 @@ test.describe('block viewer (C-34 R2.2 + C-39 T2)', () => {
     })).toBe(true)
   })
 
-  test('Cmd/Ctrl+click on a diagram opens the viewer; a plain click opens the source', async ({ page }) => {
-    await bootstrapWithMarkdown(page, DIAGRAM_MD)
+
+
+  test('Cmd/Ctrl+click on a small diagram still opens the viewer; a plain click opens the source', async ({ page }) => {
+    await bootstrapWithMarkdown(page, SMALL_DIAGRAM_MD)
     await page.locator('.editor-component, .editor-wrapper').first()
       .waitFor({ state: 'visible', timeout: 15_000 })
 
     const preview = page.locator('div.ag-container-preview.ag-mermaid-preview').first()
     await preview.waitFor({ state: 'visible', timeout: 20_000 })
+
+    // T-010: the small diagram has NO button — but Cmd/Ctrl+click keeps
+    // opening the viewer for every viewable block (D-7 keeps this path).
+    const figure = page.locator('figure[data-role="MERMAID"]').first()
+    await expect(figure).not.toHaveClass(/ag-expand-needed/)
+    await expect(page.locator('figure[data-role="MERMAID"] > button.ag-block-expand')).toBeHidden()
 
     // Cmd+click (macOS) / Ctrl+click: fullscreen viewer, no source editing.
     await preview.click({ modifiers: ['Meta'] })
@@ -424,7 +503,7 @@ test.describe('block viewer (C-34 R2.2 + C-39 T2)', () => {
     await expect(viewer).toHaveClass(/ag-block-viewer-open/)
     // The source block never activates: an inactive mermaid figure still
     // shows its collapsed source line, so check the figure's active state.
-    await expect(page.locator('figure[data-role="MERMAID"]').first()).not.toHaveClass(/ag-active/)
+    await expect(figure).not.toHaveClass(/ag-active/)
     await page.keyboard.press('Escape')
     await expect(viewer).not.toHaveClass(/ag-block-viewer-open/)
 
@@ -436,18 +515,20 @@ test.describe('block viewer (C-34 R2.2 + C-39 T2)', () => {
   })
 
   // START_BLOCK_EXPAND_E2E_COVERAGE
-  // C-51 T-006 acceptance criteria: visible at rest on Mermaid, Vega-Lite,
-  // flowchart.js, sequence, PlantUML blocks and tables (and nothing else),
-  // localized aria-label, reserved corner (never covers content), subtle →
-  // solid, theme-following colours, keyboard activation.
-  test('every viewable block shows the expand button at rest, labeled, without covering content', async ({ page }) => {
-    await bootstrapWithMarkdown(page, ALL_BLOCKS_MD, 'paper')
+  // C-51 T-010 acceptance criteria: the button appears only where the
+  // fullscreen viewer helps — a small mermaid/table has none (and is not
+  // a Tab stop), a wide flowchart and wide/tall tables have it; the
+  // localized aria-label rides the vnode everywhere; geometry never
+  // covers table header text or the last-column resize handle.
+  test('need rules: small blocks have no button or Tab stop; wide flowchart and wide/tall tables get it', async ({ page }) => {
+    await bootstrapWithMarkdown(page, MIXED_MD, 'paper')
     await page.locator('.editor-component, .editor-wrapper').first()
       .waitFor({ state: 'visible', timeout: 15_000 })
-    await page.locator('div.ag-container-preview.ag-mermaid-preview svg').first()
+    await page.locator('figure[data-role="MERMAID"] div.ag-container-preview svg').first()
       .waitFor({ state: 'visible', timeout: 20_000 })
-    // The other local renderers (flowchart, sequence, vega) draw their svg
-    // shortly after; plantuml stays a broken img offline.
+    // The other local renderers draw shortly after; plantuml stays a
+    // broken img offline. The flowchart/vega renderers finish async, so
+    // their need verdicts are polled with toHaveClass below.
     await page.locator('figure[data-role="VEGA-LITE"] div.ag-container-preview svg').first()
       .waitFor({ state: 'visible', timeout: 20_000 })
     await page.locator('figure[data-role="FLOWCHART"] div.ag-container-preview svg').first()
@@ -455,44 +536,95 @@ test.describe('block viewer (C-34 R2.2 + C-39 T2)', () => {
     await page.locator('figure[data-role="SEQUENCE"] div.ag-container-preview svg').first()
       .waitFor({ state: 'visible', timeout: 20_000 })
 
-    // Exactly one button per viewable figure, none anywhere else in the
-    // document (fence, paragraph, headings are out of scope).
-    await expect(page.locator('.editor-with-tabs button.ag-block-expand')).toHaveCount(6)
-    for (const role of ['MERMAID', 'FLOWCHART', 'SEQUENCE', 'PLANTUML', 'VEGA-LITE', 'TABLE']) {
-      const button = page.locator(`figure[data-role="${role}"] > button.ag-block-expand`)
-      await expect(button).toHaveCount(1)
-      await expect(button).toBeVisible()
-      await expect(button).toHaveAttribute('aria-label', 'Expand')
+    // The button VNODE renders on every viewable figure (9 of them: two
+    // mermaids, flowchart, sequence, plantuml, vega-lite, three tables),
+    // each with the localized label — visibility is the need gate.
+    await expect(page.locator('.editor-with-tabs button.ag-block-expand')).toHaveCount(9)
+
+    // Exactly the four benefiting figures carry the need class.
+    const needs = await page.evaluate(() =>
+      Array.from(document.querySelectorAll('figure.ag-expand-needed')).map(f => f.getAttribute('data-role'))
+    )
+    needs.sort()
+    expect(needs).toEqual(['FLOWCHART', 'MERMAID', 'TABLE', 'TABLE'])
+    // ...and every button (hidden ones included) carries the label.
+    const labeled = await page.evaluate(() =>
+      Array.from(document.querySelectorAll('button.ag-block-expand'))
+        .map(b => b.getAttribute('aria-label'))
+    )
+    expect(labeled).toHaveLength(9)
+    expect(labeled.every(l => l === 'Expand')).toBe(true)
+
+    // Small mermaid + small table: display:none — hidden, unrendered and
+    // NOT focusable (focus() is a no-op, so no Tab stop).
+    for (const sel of ["figure[data-role='MERMAID']:not(.ag-expand-needed)", "figure[data-role='TABLE']:not(.ag-expand-needed)"]) {
+      const state = await page.evaluate((s) => {
+        const button = document.querySelector(`${s} > button.ag-block-expand`) as HTMLElement | null
+        if (!button) return null
+        button.focus()
+        return {
+          display: getComputedStyle(button).display,
+          offsetParent: button.offsetParent,
+          focused: document.activeElement === button
+        }
+      }, sel)
+      expect(state).not.toBeNull()
+      expect(state!.display).toBe('none')
+      expect(state!.offsetParent, `${sel} button must not be laid out`).toBeNull()
+      expect(state!.focused, `${sel} button must not take focus`).toBe(false)
     }
 
-    // Reserved corner: the button sits in the strip ABOVE the block, so it
-    // never intersects the diagram SVG or the table box (±1px tolerance).
-    const geometry = await page.evaluate(() => {
-      const read = (role: string) => {
-        const figure = document.querySelector(`figure[data-role="${role}"]`)
-        const button = figure && figure.querySelector('button.ag-block-expand')
-        if (!button) return null
-        const b = button.getBoundingClientRect()
-        const content = figure.querySelector('div.ag-container-preview svg, table.ag-paragraph')
-        const c = content ? content.getBoundingClientRect() : null
-        return { bottom: b.bottom, top: c ? c.top : -1 }
-      }
+    // The wide mermaid's button: a real 20 px copy-icon square INSIDE the
+    // figure's top-right corner (≤ 22 px box).
+    const diagramGeometry = await page.evaluate(() => {
+      const figure = document.querySelector("figure[data-role='MERMAID'].ag-expand-needed") as HTMLElement
+      const button = figure.querySelector('button.ag-block-expand') as HTMLElement
+      const f = figure.getBoundingClientRect()
+      const b = button.getBoundingClientRect()
+      return { fl: f.left, ft: f.top, fr: f.right, fb: f.bottom, bl: b.left, bt: b.top, br: b.right, bb: b.bottom, w: b.width, h: b.height }
+    })
+    expect(diagramGeometry.w).toBeLessThanOrEqual(22)
+    expect(diagramGeometry.h).toBeLessThanOrEqual(22)
+    expect(diagramGeometry.bl).toBeGreaterThanOrEqual(diagramGeometry.fl - 1)
+    expect(diagramGeometry.br).toBeLessThanOrEqual(diagramGeometry.fr + 1)
+    expect(diagramGeometry.bt).toBeGreaterThanOrEqual(diagramGeometry.ft - 1)
+    expect(diagramGeometry.bb).toBeLessThanOrEqual(diagramGeometry.fb + 1)
+
+    // The wide table's button lives in the band ABOVE the table (clear of
+    // the header text and the resize zone by construction) and stays
+    // within 24 px of the figure's top-right corner.
+    const tableGeometry = await page.evaluate(() => {
+      const figures = Array.from(document.querySelectorAll("figure[data-role='TABLE'].ag-expand-needed")) as HTMLElement[]
+      const figure = figures[0]
+      const button = figure.querySelector('button.ag-block-expand') as HTMLElement
+      const table = figure.querySelector('table') as HTMLElement
+      const lastTh = figure.querySelector('thead tr th:last-child') as HTMLElement
+      const f = figure.getBoundingClientRect()
+      const b = button.getBoundingClientRect()
+      const t = table.getBoundingClientRect()
+      const th = lastTh.getBoundingClientRect()
+      const overlaps = (r1: DOMRect, r2: DOMRect) =>
+        !(r1.right <= r2.left || r2.right <= r1.left || r1.bottom <= r2.top || r2.bottom <= r1.top)
       return {
-        mermaid: read('MERMAID'),
-        flowchart: read('FLOWCHART'),
-        sequence: read('SEQUENCE'),
-        vega: read('VEGA-LITE'),
-        table: read('TABLE')
+        aboveTable: b.bottom - t.top,
+        nearTop: f.top - b.top,
+        nearRight: f.right - b.right,
+        w: b.width,
+        h: b.height,
+        overlapsLastTh: overlaps(b, th)
       }
     })
-    for (const [role, g] of Object.entries(geometry)) {
-      expect(g, `${role} must resolve button and content boxes`).not.toBeNull()
-      expect(g!.bottom, `${role} button must not cover the block content`).toBeLessThanOrEqual(g!.top + 1)
-    }
+    expect(tableGeometry.aboveTable, 'the button must sit fully above the table').toBeLessThanOrEqual(1)
+    expect(tableGeometry.nearTop).toBeLessThanOrEqual(24)
+    expect(tableGeometry.nearRight).toBeLessThanOrEqual(24)
+    expect(tableGeometry.w).toBeLessThanOrEqual(22)
+    expect(tableGeometry.h).toBeLessThanOrEqual(22)
+    expect(tableGeometry.overlapsLastTh, 'the button must not cover the last header cell').toBe(false)
   })
 
-  test('the expand button is subtle at rest and solid on hover, following the theme', async ({ page }) => {
-    await bootstrapWithMarkdown(page, DIAGRAM_MD, 'paper')
+  test('the copy-icon look: 20 px, no border/background, opacity 0 at rest → 0.5 on figure hover → 1 on button hover, themed', async ({ page }) => {
+    await bootstrapWithMarkdown(page, WIDE_DIAGRAM_MD, 'paper')
+    const figure = page.locator('figure[data-role="MERMAID"]').first()
     const expand = page.locator('figure[data-role="MERMAID"] > button.ag-block-expand').first()
     await expect(expand).toBeVisible()
 
@@ -500,56 +632,77 @@ test.describe('block viewer (C-34 R2.2 + C-39 T2)', () => {
       const el = document.querySelector('figure[data-role="MERMAID"] > button.ag-block-expand') as HTMLElement
       const cs = getComputedStyle(el)
       const b = el.getBoundingClientRect()
-      const figure = el.closest('figure')!.getBoundingClientRect()
+      const fig = el.closest('figure')!.getBoundingClientRect()
       return {
         opacity: cs.opacity,
         color: cs.color,
         position: cs.position,
+        borderTop: cs.borderTopWidth,
+        background: cs.backgroundColor,
         width: b.width,
         height: b.height,
-        insetTop: b.top - figure.top,
-        insetRight: figure.right - b.right,
+        insetTop: b.top - fig.top,
+        insetRight: fig.right - b.right,
         radius: cs.borderRadius
       }
     })
-    // Subtle at rest — clearly visible without hover (opacity ≥ 0.6)…
-    expect(parseFloat(looks.opacity)).toBeGreaterThanOrEqual(0.6)
-    expect(parseFloat(looks.opacity)).toBeLessThan(1)
-    // …as the canvas 30 px rounded square, top-right with the ~10 px inset.
+    // The .ag-code-copy look: 20 px square at a 0.5em inset (8px at the
+    // default 16px font), borderless, backgroundless, radius 4.
+    expect(looks.opacity).toBe('0')
     expect(looks.position).toBe('absolute')
-    expect(looks.width).toBe(30)
-    expect(looks.height).toBe(30)
-    expect(Math.abs(looks.insetTop - 10)).toBeLessThanOrEqual(1)
-    expect(Math.abs(looks.insetRight - 10)).toBeLessThanOrEqual(1)
-    expect(looks.radius).toBe('8px')
+    expect(looks.width).toBe(20)
+    expect(looks.height).toBe(20)
+    expect(looks.borderTop).toBe('0px')
+    expect(looks.background).toBe('rgba(0, 0, 0, 0)')
+    expect(looks.radius).toBe('4px')
+    expect(looks.insetTop).toBeGreaterThan(4)
+    expect(looks.insetTop).toBeLessThanOrEqual(12)
+    expect(looks.insetRight).toBeGreaterThan(4)
+    expect(looks.insetRight).toBeLessThanOrEqual(12)
 
-    // Solid on hover (the CSS transition takes 150ms).
+    // Half-visible while the figure is hovered (the 0.2s transition).
+    await figure.hover()
+    await page.waitForTimeout(300)
+    const hoverLooks = await page.evaluate(() =>
+      getComputedStyle(document.querySelector('figure[data-role="MERMAID"] > button.ag-block-expand') as HTMLElement).opacity
+    )
+    expect(parseFloat(hoverLooks)).toBeGreaterThanOrEqual(0.4)
+    expect(parseFloat(hoverLooks)).toBeLessThan(1)
+
+    // Solid on the button's own hover.
     await expand.hover()
     await page.waitForTimeout(300)
-    const hoverLooks = await page.evaluate(() => {
-      const cs = getComputedStyle(document.querySelector('figure[data-role="MERMAID"] > button.ag-block-expand') as HTMLElement)
-      return { opacity: cs.opacity, color: cs.color }
-    })
-    expect(hoverLooks.opacity).toBe('1')
+    const ownHoverLooks = await page.evaluate(() =>
+      getComputedStyle(document.querySelector('figure[data-role="MERMAID"] > button.ag-block-expand') as HTMLElement).opacity
+    )
+    expect(ownHoverLooks).toBe('1')
 
     // Theme-following: the ink theme resolves a different (light) colour.
-    await bootstrapWithMarkdown(page, DIAGRAM_MD, 'ink')
+    await bootstrapWithMarkdown(page, WIDE_DIAGRAM_MD, 'ink')
     await page.locator('div.ag-container-preview.ag-mermaid-preview').first()
       .waitFor({ state: 'visible', timeout: 20_000 })
+    // The pointer is still where the previous hover left it — move it off
+    // the figure so the rest state is measured.
+    await page.mouse.move(1, 1)
+    await page.waitForTimeout(300)
     const darkLooks = await page.evaluate(() => {
       const cs = getComputedStyle(document.querySelector('figure[data-role="MERMAID"] > button.ag-block-expand') as HTMLElement)
       return { opacity: cs.opacity, color: cs.color }
     })
-    expect(parseFloat(darkLooks.opacity)).toBeGreaterThanOrEqual(0.6)
+    expect(darkLooks.opacity).toBe('0')
     expect(darkLooks.color).not.toBe(looks.color)
   })
 
+
   test('keyboard: focusing the expand button and pressing Enter opens the viewer; Esc restores the button focus', async ({ page }) => {
-    await bootstrapWithMarkdown(page, DIAGRAM_MD)
+    await bootstrapWithMarkdown(page, WIDE_DIAGRAM_MD)
     const preview = page.locator('div.ag-container-preview.ag-mermaid-preview').first()
     await preview.waitFor({ state: 'visible', timeout: 20_000 })
 
     const expand = page.locator('figure[data-role="MERMAID"] > button.ag-block-expand').first()
+    // The need class lands after the async mermaid insert; a display:none
+    // button cannot take focus.
+    await expect(page.locator('figure[data-role="MERMAID"]').first()).toHaveClass(/ag-expand-needed/)
     await expand.focus()
     await expect(expand).toBeFocused()
 
@@ -566,51 +719,88 @@ test.describe('block viewer (C-34 R2.2 + C-39 T2)', () => {
     await expect(expand).toBeFocused()
   })
 
-  test('Tab reaches the expand buttons: native focus moves between them (keyboard guard)', async ({ page }) => {
-    await bootstrapWithMarkdown(page, ALL_BLOCKS_MD)
+  test('Tab walks the buttons of needing blocks only: the hidden small-block buttons are skipped (keyboard guard)', async ({ page }) => {
+    await bootstrapWithMarkdown(page, MIXED_MD)
     await page.locator('.editor-component, .editor-wrapper').first()
       .waitFor({ state: 'visible', timeout: 15_000 })
-    await page.locator('figure[data-role="MERMAID"] div.ag-container-preview svg').first()
+    await page.locator('figure[data-role="MERMAID"].ag-expand-needed div.ag-container-preview svg').first()
+      .waitFor({ state: 'visible', timeout: 20_000 })
+    await page.locator('figure[data-role="FLOWCHART"].ag-expand-needed div.ag-container-preview svg').first()
       .waitFor({ state: 'visible', timeout: 20_000 })
 
-    // The buttons are real Tab stops: with focus on the mermaid button,
-    // Tab moves to the next expand button in document order (the flowchart
-    // figure's). Without the muya keydown guard the editor's tabHandler
-    // would preventDefault and trap focus on the first button.
-    const mermaidButton = page.locator('figure[data-role="MERMAID"] > button.ag-block-expand').first()
-    const flowchartButton = page.locator('figure[data-role="FLOWCHART"] > button.ag-block-expand').first()
+    // The buttons of needing blocks are real Tab stops: with focus on the
+    // wide mermaid's button, Tab walks to the wide flowchart's button and
+    // then straight to the wide table's — the four hidden small-block
+    // buttons in between (sequence, vega, plantuml, small table) are
+    // display:none and therefore skipped. Without the muya keydown guard
+    // the editor's tabHandler would preventDefault and trap focus.
+    const mermaidButton = page.locator("figure[data-role='MERMAID'].ag-expand-needed > button.ag-block-expand")
     await mermaidButton.focus()
     await expect(mermaidButton).toBeFocused()
 
-    await page.keyboard.press('Tab')
-    await expect(flowchartButton).toBeFocused()
+    const stopIs = (role: string) => page.evaluate((r) => {
+      const el = document.activeElement as HTMLElement | null
+      return !!el && el.classList.contains('ag-block-expand') &&
+        !!el.closest(`figure[data-role='${r}'].ag-expand-needed`)
+    }, role)
 
-    // Shift+Tab walks back to the previous button.
+    await page.keyboard.press('Tab')
+    await expect.poll(() => stopIs('FLOWCHART'), 'Tab must land on the wide flowchart button').toBe(true)
+
+    // Keyboard focus shows the button at full opacity (:focus-visible) —
+    // focus arrived through a real Tab keypress, so the selector matches.
+    // (The 0.2s opacity transition needs a beat to settle.)
+    await page.waitForTimeout(300)
+    const flowchartOpacity = await page.evaluate(() => {
+      const el = document.activeElement as HTMLElement | null
+      return el ? getComputedStyle(el).opacity : ''
+    })
+    expect(flowchartOpacity).toBe('1')
+
+    // The four hidden buttons between the flowchart and the wide table
+    // (small sequence, vega, plantuml, small table) are skipped entirely.
+    await page.keyboard.press('Tab')
+    await expect.poll(() => stopIs('TABLE'), 'Tab must skip the hidden buttons and reach the wide table').toBe(true)
+
+    // Shift+Tab walks back.
     await page.keyboard.press('Shift+Tab')
-    await expect(mermaidButton).toBeFocused()
+    await expect.poll(() => stopIs('FLOWCHART')).toBe(true)
   })
 
-  test('table: the button never covers the last column resize handle and resizing still works', async ({ page }) => {
-    await bootstrapWithMarkdown(page, TABLE_MD)
+  test('table: the button never covers the header text or the last column resize handle and resizing still works', async ({ page }) => {
+    await bootstrapWithMarkdown(page, WIDE_TABLE_MD)
     await page.locator("figure[data-role='TABLE'] table").first()
       .waitFor({ state: 'visible', timeout: 15_000 })
 
-    // Geometry: the button lives in the reserved strip above the table, so
-    // it cannot intersect the LAST column's resize hit zone (C-39 T-002).
+    // Geometry: the button lives in the band ABOVE the table (the
+    // figure's existing top margin), so it cannot intersect the header
+    // text or the LAST column's resize hit zone (C-39 T-002).
     const clear = await page.evaluate(() => {
       const button = document.querySelector("figure[data-role='TABLE'] > button.ag-block-expand") as HTMLElement
       const lastTh = document.querySelector("figure[data-role='TABLE'] thead tr th:last-child") as HTMLElement
+      const resizer = lastTh.querySelector('.ag-column-resizer') as HTMLElement
       if (!button || !lastTh) return null
       const b = button.getBoundingClientRect()
       const t = lastTh.getBoundingClientRect()
-      const overlap = !(b.right <= t.left || t.right <= b.left || b.bottom <= t.top || t.bottom <= b.top)
-      return { overlap, buttonBottom: b.bottom, tableTop: t.top }
+      const z = resizer ? resizer.getBoundingClientRect() : t
+      const overlap = (r2: DOMRect) =>
+        !(b.right <= r2.left || r2.right <= b.left || b.bottom <= r2.top || r2.bottom <= b.top)
+      return { thOverlap: overlap(t), zoneOverlap: overlap(z), buttonBottom: b.bottom, tableTop: t.top }
     })
     expect(clear).not.toBeNull()
-    expect(clear!.overlap, 'the button must not intersect the last header cell').toBe(false)
+    expect(clear!.thOverlap, 'the button must not intersect the last header cell').toBe(false)
+    expect(clear!.zoneOverlap, 'the button must not intersect the resize hit zone').toBe(false)
+    expect(clear!.buttonBottom).toBeLessThanOrEqual(clear!.tableTop + 1)
 
     // Behaviour: drag the LAST column border — the column resizes, the
     // colgroup/fixed layout engages (C-39 T-002 unchanged by the button).
+    // The last column of the overflowing table is scrolled out of the
+    // clip rect: scroll the wrapper fully right first (outside of
+    // Playwright's actionability scrolling, like table-layout.spec.ts).
+    await page.evaluate(() => {
+      const wrapper = document.querySelector("figure[data-role='TABLE'] div.ag-table-scroll") as HTMLElement
+      wrapper.scrollLeft = wrapper.scrollWidth - wrapper.clientWidth
+    })
     const widthsBefore = await page.evaluate(() => {
       const table = document.querySelector("figure[data-role='TABLE'] table") as HTMLTableElement
       return Array.from(table.tHead!.rows[0].cells).map(c => Math.round(c.getBoundingClientRect().width))
@@ -636,20 +826,62 @@ test.describe('block viewer (C-34 R2.2 + C-39 T2)', () => {
     })
     expect(after.fixed).toBe(true)
     expect(after.colgroup).toBe(true)
-    expect(after.widths[2], 'the last column must shrink by ~the drag delta').toBeLessThanOrEqual(widthsBefore[2] - 36)
+    expect(after.widths[11], 'the last column must shrink by ~the drag delta').toBeLessThanOrEqual(widthsBefore[11] - 36)
   })
 
-  test('screenshots: every expand button at rest, light and dark', async ({ page }, testInfo) => {
+  test('resizing the viewport re-evaluates: an unscaled diagram becomes scaled and gains the button', async ({ page }) => {
+    await bootstrapWithMarkdown(page, MEDIUM_DIAGRAM_MD)
+    await page.locator('div.ag-container-preview.ag-mermaid-preview svg').first()
+      .waitFor({ state: 'visible', timeout: 20_000 })
+
+    const figure = page.locator('figure[data-role="MERMAID"]').first()
+    const before = await page.evaluate(() => {
+      const c = document.querySelector('div.ag-container-preview.ag-mermaid-preview') as HTMLElement
+      const svg = c.querySelector('svg') as SVGSVGElement
+      return {
+        natural: svg.viewBox.baseVal.width,
+        rendered: svg.getBoundingClientRect().width,
+        client: c.clientWidth,
+        vw: window.innerWidth
+      }
+    })
+    expect(before.natural).toBeGreaterThan(200)
+    // At the default viewport the medium diagram keeps its natural width:
+    // no scaling, no button.
+    expect(before.rendered).toBeGreaterThanOrEqual(before.natural - 2)
+    await expect(figure).not.toHaveClass(/ag-expand-needed/)
+    await expect(page.locator('figure[data-role="MERMAID"] > button.ag-block-expand')).toBeHidden()
+
+    // Narrow the viewport to 460 px: the text column drops to ~410 px —
+    // well below the diagram's natural width — so the SVG scales down,
+    // the shared ResizeObserver re-runs the rule and the button appears.
+    // (A small step is not enough: the column is capped at
+    // --editorAreaWidth 750 px and only shrinks once the viewport does.)
+    await page.setViewportSize({ width: 460, height: 720 })
+
+    await expect(figure).toHaveClass(/ag-expand-needed/, { timeout: 5_000 })
+    await expect(page.locator('figure[data-role="MERMAID"] > button.ag-block-expand')).toBeVisible()
+    const after = await page.evaluate(() => {
+      const svg = document.querySelector('div.ag-container-preview.ag-mermaid-preview svg') as SVGSVGElement
+      return svg.getBoundingClientRect().width
+    })
+    expect(after).toBeLessThan(before.natural - 2)
+  })
+
+  test('screenshots: the expand button at figure hover, light and dark', async ({ page }, testInfo) => {
     for (const theme of ['paper', 'ink']) {
-      await bootstrapWithMarkdown(page, ALL_BLOCKS_MD, theme)
+      await bootstrapWithMarkdown(page, MIXED_MD, theme)
       await page.locator('.editor-component, .editor-wrapper').first()
         .waitFor({ state: 'visible', timeout: 15_000 })
-      await page.locator('figure[data-role="MERMAID"] div.ag-container-preview svg').first()
+      await page.locator('figure[data-role="MERMAID"].ag-expand-needed div.ag-container-preview svg').first()
         .waitFor({ state: 'visible', timeout: 20_000 })
       // Let the flowchart/sequence/vega renderers finish drawing.
       await page.waitForTimeout(600)
-      const button = page.locator('figure[data-role="MERMAID"] > button.ag-block-expand').first()
+      const button = page.locator("figure[data-role='MERMAID'].ag-expand-needed > button.ag-block-expand")
       await button.scrollIntoViewIfNeeded()
+      // Hover the figure so the half-visible button shows in the shot.
+      await page.locator("figure[data-role='MERMAID'].ag-expand-needed").hover()
+      await page.waitForTimeout(300)
       await page.screenshot({ path: testInfo.outputPath(`expand-buttons-${theme}.png`) })
     }
   })

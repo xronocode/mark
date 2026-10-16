@@ -3594,13 +3594,13 @@
         stripped, sticky thead) with @panzoom/panzoom pan/zoom
         (pinch/Cmd+wheel, drag, +/−/0/1 keys), Esc close with focus trap
         and restore. C-51 T-006 replaced the old hover/caret toolbar with
-        the ALWAYS-VISIBLE expand button: renderContainerBlock.js
+        the per-block expand button: renderContainerBlock.js
         START_BLOCK_EXPAND_BUTTON renders button.ag-block-expand as a
         direct child of every viewable figure (mermaid, flowchart,
         sequence, plantuml and vega-lite diagrams with non-empty source,
         and tables) plus the ag-has-expand marker that scopes the
-        reserved-corner CSS — a figure child (not inside the preview div)
-        survives the mermaid pipeline's innerHTML inserts and every
+        expand-need evaluation — a figure child (not inside the preview
+        div) survives the mermaid pipeline's innerHTML inserts and every
         snabbdom re-patch with no post-render DOM pass. renderExpandButton
         draws the M-057 expand glyph inline (byte-identical twin of
         chromeIcons.CHROME_ICONS.expand, pinned by
@@ -3610,22 +3610,47 @@
         START_BLOCK_EXPAND_BUTTON_CLICK dispatches muya-block-viewer with
         the FIGURE (the viewer resolves the preview/table downward,
         role-gated so math/html previews never resolve); keyboard.js
-        START_BLOCK_KEYBOARD_EXPAND_BUTTON leaves keys to the focused
-        button (native Tab/Enter/Space — tabHandler would indent,
-        enterHandler would split, arrowHandler would crash on its
-        paragraph lookup). Look (canvas Mermaid/Main): a 30 px rounded
-        square (radius 8) at the figure's top-right with a 10 px inset,
-        theme surface background, about 0.85 opacity at rest, solid on
-        hover/focus; the corner is RESERVED, never overlaid — diagram
-        previews get padding-top 44 px (not while the source is edited:
-        the button hides on .ag-active like the edit pencil, which moves
-        40 px left clear of the corner) and table figures get the strip
-        as figure padding so the C-39 scroll wrapper, drag bars and
-        column-resize handles keep their geometry (the centred tools bar
-        moves into the strip); body.compact-block-tools shrinks it to
-        28 px for compact chrome. Export/print renders its own HTML and
-        never sees the button. Cmd/Ctrl+click on a diagram routed via
-        clickEvent.js (muya-block-viewer event) still opens the viewer.
+        START_BLOCK_KEYBOARD_EXPAND_BUTTON (isExpandButtonEvent) leaves
+        keys to the focused button on keydown AND keyup (native
+        Tab/Enter/Space — tabHandler would indent, enterHandler would
+        split, arrowHandler would crash on its paragraph lookup; since
+        T-010 the keyup guard also keeps the selection repair
+        (getCursorRange needFix → setCursorRange → Selection.addRange
+        inside the contenteditable) from moving the browser focus into
+        the editing host — silently in Chromium — which stole the button
+        focus after the viewer's Esc close and mid Tab-walk; the viewer's
+        close() re-asserts re-resolve the LIVE button from
+        returnFocusFigureId so a re-render inside the window cannot
+        detach the restore target). C-51 T-010 (user decision D-7, live smoke)
+        gates VISIBILITY by need: parser/render/renderBlock/expandNeed.js
+        toggles ag-expand-needed on figure.ag-has-expand — diagrams when
+        the rendered SVG/img is drawn ≥ 2 px narrower than its natural
+        size (SVG viewBox / px width attribute; percentages rejected) or
+        the preview is taller than 600 px, tables when the C-39 scroll
+        wrapper overflows (scrollWidth &gt; clientWidth + 1) or the table
+        is taller than 600 px — evaluated after every StateRender render
+        path, after every mermaid pipeline insert and renderDiagram
+        insert, and on figure resize via one shared ResizeObserver
+        (observe new figures, unobserve removed ones, Muya.destroy
+        releases its container's figures, no observer in jsdom); verdict
+        flips log [Muya][expandNeed][BLOCK_EXPAND_NEED blockKey needed]
+        (debug, no content). Without the class the button is
+        display:none — invisible and not a Tab stop; small diagrams and
+        tables have no button. Look (D-7): the code-block copy icon
+        (.ag-code-copy) — 20 px square, 16 px drawn glyph, absolute
+        inside the figure at top/right 0.5em, no border, no background,
+        radius 4, var(--iconColor); opacity 0 at rest, 0.5 on figure
+        hover, 1 on button hover and :focus-visible. No reserved strip:
+        the T-006 44 px paddings and body.compact-block-tools rules are
+        gone and the centred table tools bar keeps its original
+        top:-22px band; tables put the icon in that band above the
+        table's top-right corner so it never covers header text or the
+        last column's resize hit zone (it hides on .ag-active, when the
+        tools bar shows); the hover edit pencil moves to right 2.2em
+        only on figures that need the button. Export/print renders its
+        own HTML and never sees the button. Cmd/Ctrl+click on a diagram
+        routed via clickEvent.js (muya-block-viewer event) still opens
+        the viewer for every viewable block regardless of the class.
         C-38 T-005 (#1648): fence/indent code
         blocks render an opt-in line-numbers gutter
         (renderContainerBlock.js START_BLOCK_CODE_LINE_NUMBERS +
@@ -3793,6 +3818,29 @@
             </Attribute>
           </LegacyAttributes>
         </fn-tableResize>
+        <fn-expandNeed>
+          <LegacyAttributes>
+            <Attribute>
+              <Name>PURPOSE</Name>
+              <Value>
+                parser/render/renderBlock/expandNeed.js (C-51 T-010,
+                user decision D-7): the expand-need gate for the expand
+                button — pure rules (a diagram drawn ≥ 2 px narrower than
+                its natural size or taller than 600 px; a table whose
+                C-39 wrapper overflows by &gt; 1 px or which is taller
+                than 600 px), DOM gathering (SVG viewBox / px width
+                attribute, percentages rejected; img naturalWidth),
+                the ag-expand-needed class toggle with the
+                [Muya][expandNeed][BLOCK_EXPAND_NEED] log anchor, and ONE
+                shared ResizeObserver across muya instances (observe new
+                figures, unobserve removed ones, release on destroy; no
+                observer — jsdom — degrades to render-time evaluation).
+                Without the class button.ag-block-expand is display:none
+                (no Tab stop).
+              </Value>
+            </Attribute>
+          </LegacyAttributes>
+        </fn-expandNeed>
       </Interface>
       <Sources>
         <Source>src/muya/</Source>

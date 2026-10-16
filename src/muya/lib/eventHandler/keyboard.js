@@ -1,10 +1,10 @@
 // FILE: src/muya/lib/eventHandler/keyboard.js
-// VERSION: 1.3.0
+// VERSION: 1.4.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Route Muya keyboard events to editing commands, including layout-independent undo and redo.
-//   SCOPE: Composition tracking, editor state dispatch, keydown/keyup/input routing, floating-tool keyboard handling, direct Muya history shortcuts, and leaving keys alone when the C-51 expand button holds focus.
+//   SCOPE: Composition tracking, editor state dispatch, keydown/keyup/input routing, floating-tool keyboard handling, direct Muya history shortcuts, and leaving keys alone (keydown AND keyup) when the C-51 expand button holds focus.
 //   DEPENDS: Muya event center/content state, selection helpers, editor config, emoji UI.
-//   LINKS: docs/knowledge-graph.xml M-012; docs/verification-plan.xml V-M-012 scenario-10; .grace/changes/active/C-51 T-006 (BLOCK_KEYBOARD_EXPAND_BUTTON).
+//   LINKS: docs/knowledge-graph.xml M-012; docs/verification-plan.xml V-M-012 scenario-10; .grace/changes/active/C-51 T-006 and T-010 (BLOCK_KEYBOARD_EXPAND_BUTTON).
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT
@@ -14,7 +14,19 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.3.0 - 2026-10-16 C-51 T-006: the container keydown
+//   LAST_CHANGE: v1.4.0 - 2026-10-16 C-51 T-010: the expand-button key
+//   guard now covers KEYUP too (isExpandButtonEvent, shared with keydown).
+//   The keyup selection machinery must not run from a button-focused
+//   state: getCursorRange's needFix branch calls setCursorRange →
+//   Selection.addRange inside the contenteditable, and both Chromium and
+//   WebKit focus an editing host when a selection is set inside it —
+//   Chromium fires no focus events while doing so and often lands the
+//   move a frame later, so the viewer's close() restore and the Tab walk
+//   over needing buttons (table button included) silently lost the
+//   button focus to the editor container. The cursor-diff branch could
+//   also partialRender, replacing the figure and detaching the focused
+//   button.
+//   v1.3.0 - 2026-10-16 C-51 T-006: the container keydown
 //   handler returns early when the focus is on button.ag-block-expand —
 //   the persistent expand button is a focusable island inside the
 //   contenteditable container, and Tab (move focus) / Enter / Space
@@ -30,6 +42,27 @@ import selection from '../selection'
 import { findNearestParagraph } from '../selection/dom'
 import { getParagraphReference, getImageInfo } from '../utils'
 import { checkEditEmoji } from '../ui/emojis'
+
+// START_BLOCK_KEYBOARD_EXPAND_BUTTON
+// C-51 T-006 (keydown) + T-010 (keyup): the persistent expand button
+// lives inside the contenteditable container. When it holds focus the
+// keys belong to the button — Tab moves focus, Enter/Space click — so
+// the container key handlers must not run (tabHandler would indent,
+// enterHandler would split a block, arrowHandler would crash on its
+// paragraph lookup). Since T-010 the keyup handler needs the same guard:
+// its selection repair (getCursorRange needFix → setCursorRange →
+// Selection.addRange inside the contenteditable) makes the browser move
+// focus into the editing host itself — silently in Chromium — which
+// stole the focus back from the button after the viewer's Esc close and
+// mid Tab-walk over the needing blocks' buttons.
+const isExpandButtonEvent = (event) =>
+  !!(
+    event &&
+    event.target &&
+    event.target.closest &&
+    event.target.closest('button.ag-block-expand')
+  )
+// END_BLOCK_KEYBOARD_EXPAND_BUTTON
 
 class Keyboard {
   constructor(muya) {
@@ -162,20 +195,14 @@ class Keyboard {
     }
 
     const handler = (event) => {
-      // START_BLOCK_KEYBOARD_EXPAND_BUTTON
-      // C-51 T-006: the persistent expand button lives inside the
-      // contenteditable container. When it holds focus the keys belong to
-      // the button — Tab moves focus, Enter/Space click — so the document
-      // handlers must not run (tabHandler would indent, enterHandler would
-      // split a block, arrowHandler would crash on its paragraph lookup).
-      if (
-        event.target &&
-        event.target.closest &&
-        event.target.closest('button.ag-block-expand')
-      ) {
+      // C-51 T-006 (BLOCK_KEYBOARD_EXPAND_BUTTON, keydown use): when the
+      // expand button holds focus the keys belong to it — Tab moves focus,
+      // Enter/Space click — so the document handlers must not run
+      // (tabHandler would indent, enterHandler would split a block,
+      // arrowHandler would crash on its paragraph lookup).
+      if (isExpandButtonEvent(event)) {
         return
       }
-      // END_BLOCK_KEYBOARD_EXPAND_BUTTON
 
       if (event.metaKey || event.ctrlKey) {
         container.classList.add('ag-meta-or-ctrl')
@@ -288,6 +315,17 @@ class Keyboard {
     const { container, eventCenter, contentState } = this.muya
     const handler = (event) => {
       container.classList.remove('ag-meta-or-ctrl')
+      // C-51 T-010 (BLOCK_KEYBOARD_EXPAND_BUTTON, keyup use): the keyup
+      // mirror of the keydown guard. The selection machinery below must
+      // not run from a button-focused state — repairing the selection
+      // (getCursorRange needFix → setCursorRange → Selection.addRange
+      // inside the contenteditable) moves the browser focus into the
+      // editing host itself (silently in Chromium), stealing the focus
+      // back from the button after the viewer's Esc close and during the
+      // Tab walk over the needing blocks' buttons.
+      if (isExpandButtonEvent(event)) {
+        return
+      }
       // check if edit emoji
       const node = selection.getSelectionStart()
       const paragraph = findNearestParagraph(node)

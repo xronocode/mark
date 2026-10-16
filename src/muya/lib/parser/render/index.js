@@ -1,20 +1,25 @@
 // FILE: src/muya/lib/parser/render/index.js
-// VERSION: 1.5.2
+// VERSION: 1.6.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Render muya ContentState blocks to the DOM via snabbdom and drive the asynchronous previews (math, mermaid, diagrams, images).
-//   SCOPE: StateRender — full/partial/single-block render, selector building, mermaid dispatch into the resilient pipeline, diagram rendering (C-51 T-005: vega-lite/flowchart/sequence options and post-pass themed from the active app theme), render caches, the C-38 line-number gutter measurement queue, and keeping C-39 table scroll and C-39 T-002 session column widths across renders.
-//   DEPENDS: ./snabbdom, ./renderBlock, ./renderInlines, ./mermaidPipeline, ./mermaidTheme, ./contentTheme, ../../renderers, ../../config, ../../utils, ../rules
-//   LINKS: M-011 muya editor surface; C-34 R2.1; START_BLOCK_MERMAID_DISPATCH; START_BLOCK_DIAGRAM_THEME_OPTIONS; C-38 T-005 lineNumberPreKeys; C-39 T-001 START_BLOCK_TABLE_SCROLL_KEEP; C-39 T-002 START_BLOCK_TABLE_WIDTHS_KEEP
+//   SCOPE: StateRender — full/partial/single-block render, selector building, mermaid dispatch into the resilient pipeline, diagram rendering (C-51 T-005: vega-lite/flowchart/sequence options and post-pass themed from the active app theme), render caches, the C-38 line-number gutter measurement queue, keeping C-39 table scroll and C-39 T-002 session column widths across renders, and the C-51 T-010 expand-need sync after every render path and diagram insert.
+//   DEPENDS: ./snabbdom, ./renderBlock, ./renderInlines, ./mermaidPipeline, ./mermaidTheme, ./contentTheme, ./renderBlock/expandNeed, ../../renderers, ../../config, ../../utils, ../rules
+//   LINKS: M-011 muya editor surface; C-34 R2.1; START_BLOCK_MERMAID_DISPATCH; START_BLOCK_DIAGRAM_THEME_OPTIONS; C-38 T-005 lineNumberPreKeys; C-39 T-001 START_BLOCK_TABLE_SCROLL_KEEP; C-39 T-002 START_BLOCK_TABLE_WIDTHS_KEEP; C-51 T-010 expandNeed sync
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
-//   default - StateRender class: muya block renderer and preview orchestrator; lineNumberPreKeys holds the pre keys whose gutter must be measured by the next postRender (C-38 T-005)
+//   default - StateRender class: muya block renderer and preview orchestrator; lineNumberPreKeys holds the pre keys whose gutter must be measured by the next postRender (C-38 T-005); every render path ends with syncExpandNeed so tables and new figures get their expand need evaluated (C-51 T-010)
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.5.2 - 2026-10-16 C-51 T-008: renderDiagram takes and
+//   LAST_CHANGE: v1.6.0 - 2026-10-16 C-51 T-010 (D-7): every render path
+//   (render/partialRender/singleRender) runs syncExpandNeed after the
+//   diagram dispatch, renderDiagram re-evaluates each figure after its
+//   insert — the ag-expand-needed class that gates the expand button
+//   tracks the rendered size of every diagram/table block.
+//   v1.5.2 - 2026-10-16 C-51 T-008: renderDiagram takes and
 //   clears the diagram queue before its first await, so an overlapping
 //   call cannot render the same block twice (two js-sequence SVGs in one
 //   figure on CI).
@@ -56,6 +61,7 @@ import renderInlines from './renderInlines'
 import renderBlock from './renderBlock'
 import { createMermaidPipeline } from './mermaidPipeline'
 import { readActiveThemeTokens, mermaidThemeSignature } from './mermaidTheme'
+import { syncExpandNeed, updateFigureExpandNeed } from './renderBlock/expandNeed'
 import {
   buildVegaThemeConfig,
   buildFlowchartThemeOptions,
@@ -261,6 +267,10 @@ class StateRender {
           target.innerHTML = `< Invalid ${DIAGRAM_ERROR_LABEL[functionType] || 'Diagram'} Codes >`
           target.classList.add(CLASS_OR_ID.AG_MATH_ERROR)
         }
+        // C-51 T-010: the just-drawn size decides the expand need. The
+        // insert may have been awaited (vega embed) — re-resolve so the
+        // verdict lands on the live figure, not a re-patched-away one.
+        updateFigureExpandNeed(document.querySelector(key) || target)
       }
     }
   }
@@ -325,6 +335,11 @@ class StateRender {
     this.applyTableColumnWidths()
     this.renderMermaid()
     this.renderDiagram()
+    // C-51 T-010: tables and new figures are in the DOM now — evaluate
+    // (over the LIVE editor root: stateRender.container is the initial
+    // child that the first snabbdom patch replaces, i.e. detached)
+    // their expand need (diagram previews follow via the pipeline hooks).
+    syncExpandNeed((this.muya && this.muya.container) || this.container)
     this.codeCache.clear()
   }
 
@@ -383,6 +398,8 @@ class StateRender {
 
     this.renderMermaid()
     this.renderDiagram()
+    // C-51 T-010 (see render()): re-evaluate the figures this pass touched.
+    syncExpandNeed((this.muya && this.muya.container) || this.container)
     this.codeCache.clear()
   }
 
@@ -405,6 +422,8 @@ class StateRender {
     this.applyTableColumnWidths()
     this.renderMermaid()
     this.renderDiagram()
+    // C-51 T-010 (see render()): re-evaluate the figures this pass touched.
+    syncExpandNeed((this.muya && this.muya.container) || this.container)
     this.codeCache.clear()
   }
 
