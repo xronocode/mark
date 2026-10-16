@@ -1,10 +1,10 @@
 // FILE: src/renderer/src/components/icons/chromeIcons.js
-// VERSION: 2.1.0
+// VERSION: 2.2.0
 // START_MODULE_CONTRACT
-//   PURPOSE: One drawn chrome-icon set (16 px grid, 1.4 px stroke, round caps/joins) for every icon around the document — title bar, tabs, sidebar, find bar, dialogs, notifications, status bar (C-40 T-002, C-38 T-006 N4 d) and the document-surface expand glyph (C-51 T-006).
+//   PURPOSE: One drawn chrome-icon set (16 px grid, 1.4 px stroke, round caps/joins) for every icon around the document — title bar, tabs, sidebar, find bar, dialogs, notifications, status bar (C-40 T-002, C-38 T-006 N4 d), the document-surface expand glyph (C-51 T-006) and the pinned-file row mark (C-51 T-011).
 //   SCOPE: Icon path descriptors drawn on the approved canvas grid plus the ChromeIcon render component and a string renderer (chromeIconMarkup) for non-Vue surfaces (the notification service template); no theming, no IPC. The expand descriptor is the canonical drawing — muya duplicates it inline (EXPAND_ICON_PATH) and a unit test pins the two identical.
 //   DEPENDS: vue (h).
-//   LINKS: .canvas/Icons.dc.html; .canvas/Window.dc.html; .canvas/Mermaid.dc.html; .grace/graph/runtime.xml M-057; .grace/changes/active/C-40 T-002; .grace/changes/active/C-38 T-006; .grace/changes/active/C-51 T-006.
+//   LINKS: .canvas/Icons.dc.html; .canvas/Window.dc.html; .canvas/Mermaid.dc.html; .grace/graph/runtime.xml M-057; .grace/changes/active/C-40 T-002; .grace/changes/active/C-38 T-006; .grace/changes/active/C-51 T-006; .grace/changes/active/C-51 T-011.
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT
@@ -18,7 +18,11 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v2.1.0 - 2026-10-16 C-51 T-006: the «expand» glyph (two
+//   LAST_CHANGE: v2.2.0 - 2026-10-16 C-51 T-011: the «pin» glyph joins the
+//   set — a pushpin drawn on the shared grid (T head, stem, flange, needle;
+//   round caps) rendered at 12 px as the pinned-file mark on sidebar tree
+//   and Opened-files rows.
+//   v2.1.0 - 2026-10-16 C-51 T-006: the «expand» glyph (two
 //   outward corner brackets + the diagonal, canvas Mermaid) joins the set —
 //   the canonical M-057 drawing for the always-visible diagram/table expand
 //   button; muya renders the same path inline (its EXPAND_ICON_PATH is
@@ -270,6 +274,16 @@ export const CHROME_ICONS = Object.freeze({
   // tests/renderer/muya/block-expand-button.test.js.
   expand: Object.freeze([
     part('path', { d: 'M9.6 2.4h4v4M13.4 2.6 9.2 6.8M6.4 13.6h-4v-4M2.6 13.4l4.2-4.2' }, { cap: 'round', join: 'round' })
+  ]),
+
+  // ── C-51 T-011: the pinned-file row mark (tree + Opened files) ──
+  // Pushpin drawn upright on the shared grid: the T head, the stem, the
+  // flange and the needle below it. Rendered at 12 px inside .pin-mark.
+  pin: Object.freeze([
+    part('path', { d: 'M5.7 2.8h4.6' }, { cap: 'round' }),
+    part('path', { d: 'M8 2.8v4.8' }, { cap: 'round' }),
+    part('path', { d: 'M5.4 7.6h5.2' }, { cap: 'round' }),
+    part('path', { d: 'M8 7.6v6.2' }, { cap: 'round' })
   ])
 })
 // END_BLOCK_ICON_DESCRIPTORS

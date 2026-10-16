@@ -24,7 +24,7 @@
 
 <script setup>
 // FILE: src/renderer/src/components/sideBar/index.vue
-// VERSION: 2.0.0
+// VERSION: 2.1.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Sidebar shell (Files tree + width drag) — the sidebar is Files-only since the TOC panel moved to the outline rail (C-40 T-003).
 //   SCOPE: Sidebar visibility/width composition; no right-column switching anymore.
@@ -35,6 +35,9 @@
 // END_MODULE_CONTRACT
 //
 // START_CHANGE_SUMMARY
+//   - 2026-10-16 v2.1.0: C-51 T-011 — the shell now owns the one shared
+//     row inset token (--sideBarRowInset: 12px) that section-header and
+//     root-row chevrons read, so no sidebar chevron touches the left edge.
 //   - 2026-10-15 v2.0.0: C-40 T-003 — retire the sidebar TOC panel and the
 //     right-column 'toc' mode (outline lives in the editor-area rail now);
 //     the tree renders unconditionally, so a 'toc' rightColumn value
@@ -103,6 +106,12 @@ onMounted(() => {
 
 <style scoped>
 .side-bar {
+  /* C-51 T-011: the one shared left inset for every sidebar row chrome —
+     section-header chevrons (Recent, Pinned, Opened files) and the root
+     folder-switcher chevron start this far from the sidebar's left edge.
+     Consumers read it with a 12px fallback so standalone unit mounts
+     (no .side-bar ancestor) keep the geometry. */
+  --sideBarRowInset: 12px;
   display: flex;
   flex-shrink: 0;
   flex-grow: 0;

@@ -331,6 +331,7 @@
       "newFile": "新建文件",
       "recentFiles": "最近使用",
       "pinnedFiles": "已固定",
+      "pinned": "已固定",
       "remove": "移除",
       "unpin": "取消固定",
       "openOrSwitchFolder": "打开或切换文件夹"
