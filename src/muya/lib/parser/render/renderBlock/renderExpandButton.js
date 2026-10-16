@@ -1,10 +1,10 @@
 // FILE: src/muya/lib/parser/render/renderBlock/renderExpandButton.js
-// VERSION: 2.0.0
+// VERSION: 2.1.0
 // START_MODULE_CONTRACT
-//   PURPOSE: The always-visible expand button (C-51 T-006 R-4) rendered as a direct child of every viewable figure (mermaid, flowchart, sequence, plantuml, vega-lite diagrams and tables), opening the shared fullscreen block viewer.
-//   SCOPE: One vnode factory plus the drawn expand glyph (the M-057 canvas Mermaid drawing: 0 0 16 16 grid, 1.4 stroke, round caps/joins — muya cannot import renderer modules, so the path is duplicated from chromeIcons.CHROME_ICONS.expand and kept identical by a unit test); placement (which figures get it) lives in renderContainerBlock.js START_BLOCK_EXPAND_BUTTON, looks in the C-51 T-006 section of lib/assets/styles/index.css, click routing in eventHandler/clickEvent.js.
+//   PURPOSE: The expand button (C-51 T-006 R-4, T-010 D-7 restyle) rendered as a direct child of every viewable figure (mermaid, flowchart, sequence, plantuml, vega-lite diagrams and tables), opening the shared fullscreen block viewer; visible only on the figures expandNeed.js marks ag-expand-needed.
+//   SCOPE: One vnode factory plus the drawn expand glyph (the M-057 canvas Mermaid drawing: 0 0 16 16 grid, 1.4 stroke, round caps/joins — muya cannot import renderer modules, so the path is duplicated from chromeIcons.CHROME_ICONS.expand and kept identical by a unit test); placement (which figures get it) lives in renderContainerBlock.js START_BLOCK_EXPAND_BUTTON, visibility gating in expandNeed.js, looks in the C-51 T-006/T-010 section of lib/assets/styles/index.css, click routing in eventHandler/clickEvent.js.
 //   DEPENDS: muya snabbdom h; muya options.t (blockViewer.expand — already localized in the 10 locales).
-//   LINKS: .grace/changes/active/C-51 T-006; .grace/graph/runtime.xml M-012; .grace/verification/runtime.xml V-M-012 scenario-19 and scenario-60; ui/blockViewer (the viewer it opens); src/renderer/src/components/icons/chromeIcons.js (the glyph twin).
+//   LINKS: .grace/changes/active/C-51 T-006 and T-010; .grace/graph/runtime.xml M-012; .grace/verification/runtime.xml V-M-012 scenario-19 and scenario-60; ui/blockViewer (the viewer it opens); parser/render/renderBlock/expandNeed (the need gate); src/renderer/src/components/icons/chromeIcons.js (the glyph twin).
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT
@@ -12,11 +12,16 @@
 // START_MODULE_MAP
 //   EXPAND_BUTTON_SELECTOR - CSS selector/class of the button ("button.ag-block-expand"); clickEvent.js and keyboard.js route on it.
 //   EXPAND_ICON_PATH - the drawn «expand» glyph path (two outward corner brackets + the diagonal); byte-identical to chromeIcons.CHROME_ICONS.expand (pinned by tests/renderer/muya/block-expand-button.test.js).
-//   default - renderExpandButton(t) - the button vnode: type/title/aria-label from t('blockViewer.expand'), contenteditable=false, tabindex 0, inline drawn svg.
+//   default - renderExpandButton(t) - the button vnode: type/title/aria-label from t('blockViewer.expand'), contenteditable=false, tabindex 0, inline drawn svg. The vnode renders on EVERY viewable figure; CSS hides it (display:none, no Tab stop) unless expandNeed.js added ag-expand-needed to the figure.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v2.0.0 - 2026-10-16 C-51 T-006 (canvas Mermaid rework): the
+//   LAST_CHANGE: v2.1.0 - 2026-10-16 C-51 T-010 (D-7): the button vnode is
+//   unchanged — visibility moved to CSS gated by the ag-expand-needed
+//   class expandNeed.js toggles (display:none without it, so small blocks
+//   have no button and no Tab stop); the look (20 px copy-icon square,
+//   0/0.5/1 opacity curve, no reserved strip) is the CSS section's.
+//   v2.0.0 - 2026-10-16 C-51 T-006 (canvas Mermaid rework): the
 //   ⤢ text glyph becomes the drawn M-057 expand glyph (16 grid, 1.4 stroke,
 //   inline svg using currentColor) and the button gains tabindex=0 so it is
 //   a real keyboard Tab stop (keyboard.js BLOCK_KEYBOARD_EXPAND_BUTTON
