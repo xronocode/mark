@@ -3401,6 +3401,14 @@
           npm run build &amp;&amp; npx playwright test tests/e2e/theme-families-docs-macos.spec.ts
           tests/e2e/settings-tabs-content.spec.ts --project=chromium --project=webkit-theme-families
         </Command>
+        <Command>
+          npx vitest run tests/renderer/muya/block-viewer.test.js
+          tests/renderer/muya/edit-preview-flow.test.js
+        </Command>
+        <Command>
+          npm run build &amp;&amp; npx playwright test tests/e2e/block-viewer.spec.ts
+          --project=chromium --project=webkit-block-viewer
+        </Command>
       </Commands>
       <Scenarios>
         <Scenario>
@@ -4791,6 +4799,97 @@
           and the whole T-013 e2e describe fail; the row-behaviour
           tests (filters, pin/unpin, context menus, drag) stay green.
         </Scenario>
+        <Scenario>
+          scenario-64: Viewer and edit-preview polish (C-51 T-014, live
+          smoke 2026-10-16, gate round 2026-10-17; ui/blockViewer/index.js
+          v3.1.0 +
+          Muya#setOptions muya-options-rerender + the
+          figure.ag-active.ag-container-block &gt; div.ag-container-preview
+          rule of muya assets/styles/index.css). (1) Fit scales small
+          content UP: computeFitScale is min(availW/w, availH/h)
+          clamped to [MIN_SCALE=0.05, MAX_SCALE=8] with NO 1:1 cap —
+          the inherited cap left a small chart opening at 100% in the
+          huge stage; the Fit button, the '0' key and the initial open
+          share the maths, 1:1 (actualSize) still restores the natural
+          size, big diagrams keep scaling down exactly as before.
+          (2) An open viewer follows option-driven re-renders (the app
+          theme switch re-renders every block through
+          setOptions(..., true)): Muya#setOptions dispatches
+          muya-options-rerender after the sync DOM patch, and the
+          viewer polls the LIVE block every 100 ms (10 s budget) —
+          muya element ids are block keys and survive re-patches, so
+          the captured source id, the figure id or the figure ELEMENT
+          captured at open re-resolves the re-rendered element; id
+          lookups never resolve the viewer's own clone (it shares the
+          source's div and svg ids — the poll used to re-clone its own
+          stale copy), the svg/img content check keeps the poll waiting
+          through the loading placeholder (the mermaid pipeline insert
+          and the awaited vega embed are async), and the changed-content
+          token (outerHTML of the LIVE source) keeps it waiting through
+          the mermaid pipeline's synchronous last-good re-insert of the
+          OLD-theme svg until the async re-draw actually lands (the
+          chromium race — cloning the unchanged content froze the old
+          theme and ended the poll) — a token change re-clones in place
+          keeping the panzoom transform and ends the poll (zoom/pan
+          untouched; close() cancels the poll; a block that never comes
+          back, or a re-render with identical content, keeps the last
+          clone on timeout instead of blanking);
+          refreshes dispatch muya-block-viewer-refreshed and log
+          [Muya][blockViewer][BLOCK_VIEWER_THEME_REFRESH kind blockKey]
+          (debug, no content). (3) The edit-mode preview sits in flow:
+          while a container block's source is edited, its live preview
+          takes its own space BELOW the source in normal flow (the
+          inherited MarkText position:absolute float covered the
+          following blocks — a flowchart being edited hid the next
+          heading and half of the next diagram), same framed-panel look
+          (floatBg surface, hairline, shadow) with the float's 20 px
+          gap as margin-top; the rule is unscoped so multiplemath
+          edits in flow too, the html preview keeps its own
+          hide-while-active rule, tables have no preview, and the 32
+          per-theme overrides only re-declare the shadow; the computed
+          position stays relative via muya's universal .ag-paragraph
+          rule (getSelector puts it on every block element) — relative
+          is still IN FLOW, only absolute/fixed float out of it. Unit:
+          tests/renderer/muya/block-viewer.test.js v2.3.0 (fit maths —
+          small 200×100 in 1000×600 → 4.84, big → &lt; 1, clamps 8/0.05,
+          fitToScreen wiring; the muya-options-rerender refresh —
+          immediate first tick re-clones and dispatches
+          muya-block-viewer-refreshed, the poll waits for diagram
+          content past the loading placeholder, an id lookup never
+          resolves the viewer clone itself (viewBox fixture so a
+          self-clone refresh is visible, not token-blocked), unchanged
+          content must not end the poll (the pipeline last-good
+          re-insert), content arriving later resolves through the
+          captured figure element, a replaced preview
+          element resolves through the figure id, the direct
+          refreshCloneFrom touches no panzoom method and no transform,
+          the table refresh stays sanitized, the closed-viewer no-op
+          and the timeout keeping the last clone) and
+          tests/renderer/muya/edit-preview-flow.test.js v1.0.0 (CSS
+          pins: the active-preview rule has no position/top/left/
+          transform/z-index of the float, keeps the framed panel +
+          margin-top 20px, is unscoped, the html rule keeps
+          display:none, and no theme stylesheet re-declares float
+          geometry). E2E tests/e2e/block-viewer.spec.ts v3.1.1 T-014
+          cases (chromium + webkit-block-viewer): a 2-node diagram
+          opens via Cmd/Ctrl+click at canvas scale &gt; 1.2, the Fit
+          button holds the same scale, 1:1 returns to scale 1 with the
+          drawn box equal to the viewBox size; the viewer opens on a
+          wide diagram, the preferences store flips paper → ink (the
+          same pref the title-bar toggle writes; the overlay covers
+          the title bar) and the CLONE's mermaid node fill becomes the
+          LIVE re-rendered figure's fill with the canvas scale
+          unchanged; clicking a mermaid preview activates the source
+          and the preview's computed position is in flow (not
+          absolute/fixed — relative comes from .ag-paragraph) with the
+          preview top at or below the edited source bottom and the
+          next heading's top at or below the preview's bottom (same for a
+          multiplemath preview vs its following heading). Red on main:
+          the fit-maths cases (cap at 1), the theme-refresh cases (no
+          event, no poll, clone keeps the old colours), the CSS pins
+          (absolute float present) and the three T-014 e2e cases fail;
+          the pre-existing viewer/expand-button cases stay green.
+        </Scenario>
       </Scenarios>
       <Markers>
         <Marker>[prefs][theme-migration][BLOCK_RETIRED_THEMES_MIGRATED key:from-&gt;to …] — C-41 T-002 retired theme ids migrated at the hydration load point and persisted once per changed key</Marker>
@@ -6100,6 +6199,8 @@
         <Marker>[Muya][blockViewer][BLOCK_VIEWER_OPEN]</Marker>
         <Marker>[Muya][blockViewer][BLOCK_VIEWER_FIT]</Marker>
         <Marker>[Muya][blockViewer][BLOCK_VIEWER_CLOSE]</Marker>
+        <!-- C-51 T-014 option-driven re-render clone refresh (no content in the payload). -->
+        <Marker>[Muya][blockViewer][BLOCK_VIEWER_THEME_REFRESH]</Marker>
         <!-- C-51 T-010 expand-need verdict flip (no content in the payload). -->
         <Marker>
           [Muya][expandNeed][BLOCK_EXPAND_NEED blockKey=&lt;key&gt; needed=&lt;bool&gt;]

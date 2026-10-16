@@ -923,14 +923,21 @@ figure[data-role='TABLE'].ag-expand-needed > button.ag-block-expand {
   right: 0;
 }
 
+/* C-51 T-014 (user 2026-10-16 smoke): while a container block's source
+   is edited, its live preview takes its own space BELOW the source in
+   normal flow — the inherited MarkText float was position:absolute and
+   covered whatever followed (a flowchart being edited hid the next
+   heading and half of the next diagram). Same framed-panel look the
+   float had (surface, hairline, shadow) with the float's 20 px gap as
+   margin-top, so following blocks are pushed down, never covered.
+   Applies to the diagram figures and multiplemath (the html preview
+   keeps its own hide-while-active rule above); leaving edit mode
+   collapses back to the plain in-flow preview with no jump beyond that
+   expected collapse. */
 figure.ag-active.ag-container-block > div.ag-container-preview {
-  position: absolute;
-  top: calc(100% + 20px);
-  left: 50%;
   width: 100%;
   box-sizing: border-box;
-  z-index: 10000;
-  transform: translateX(-50%);
+  margin-top: 20px;
   padding: 0.5rem;
   background: var(--floatBgColor);
   border: 1px solid var(--floatBorderColor);

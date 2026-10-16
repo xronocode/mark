@@ -1,10 +1,10 @@
 // FILE: tests/renderer/muya/block-viewer.test.js
-// VERSION: 2.1.0
+// VERSION: 2.3.0
 // START_MODULE_CONTRACT
-//   PURPOSE: Pin the shared fullscreen block viewer (C-34 R2.2 + C-39 T2 + C-51 T-006/T-010): open/close lifecycle, Esc close with focus restore (including the live-button re-assert when a re-render replaces the figure during the window), panzoom destruction, read-only table clones, block resolution from preview/table/figure elements (the persistent expand button dispatches the figure), wheel/keyboard zoom routing, and the focus trap.
+//   PURPOSE: Pin the shared fullscreen block viewer (C-34 R2.2 + C-39 T2 + C-51 T-006/T-010/T-014): open/close lifecycle, Esc close with focus restore (including the live-button re-assert when a re-render replaces the figure during the window), panzoom destruction, read-only table clones, block resolution from preview/table/figure elements (the persistent expand button dispatches the figure), wheel/keyboard zoom routing, the focus trap, the fit maths WITHOUT the 1:1 cap (small content scales up, big scales down, clamps), and the muya-options-rerender theme refresh (poll through the loading placeholder, changed-content token gate — the pipeline re-inserts the last-good old-theme svg synchronously before the async re-draw, id lookups never resolve the viewer's own clone, the captured figure element as fallback anchor, re-clone in place keeping the panzoom transform, figure-id fallback, table refresh, closed-viewer no-op, timeout keeps the last clone).
 //   SCOPE: BlockViewer in src/muya/lib/ui/blockViewer/index.js with @panzoom/panzoom mocked.
 //   DEPENDS: src/muya/lib/ui/blockViewer, src/muya/lib/eventHandler/event (real EventCenter), Vitest + jsdom.
-//   LINKS: .grace/changes/active/C-34 T-002; .grace/changes/active/C-39 T2; .grace/changes/active/C-51 T-006 and T-010; .grace/verification/runtime.xml V-M-012 scenario-19 and scenario-60; START_BLOCK_VIEWER_*.
+//   LINKS: .grace/changes/active/C-34 T-002; .grace/changes/active/C-39 T2; .grace/changes/active/C-51 T-006, T-010 and T-014; .grace/verification/runtime.xml V-M-012 scenario-19 and scenario-60; .grace/verification/runtime.xml V-M-011 scenario-64; START_BLOCK_VIEWER_*.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT
@@ -17,13 +17,39 @@
 //   createDiagramFigure - figure[data-role=<role>] > div.ag-container-preview with an svg (flowchart/sequence/vega) or an img (plantuml).
 //   createTableFigure - figure[data-role=TABLE] wrapping a table.ag-paragraph (the expand button dispatches figures).
 //   createTable - bare table.ag-paragraph with contenteditable cells, a drag handler, a tool bar, and a caret span id.
+//   makeSvg - namespace-correct svg with the given id (theme-refresh re-render double).
+//   stubLayout - fixed clientWidth/Height on the stage and scrollWidth/Height on the canvas (fit-maths cases).
 //   lastPanzoom - the most recently constructed panzoom double.
 //   keydown - dispatches a bubbling cancelable keydown on an element.
 //   viewer - the BlockViewer under test for the current case (destroyed in afterEach).
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v2.1.0 - 2026-10-16 C-51 T-010: the close() re-asserts
+//   LAST_CHANGE: v2.3.0 - 2026-10-17 C-51 T-014 gate round: two
+//   resolution bugs and one race fixed in the theme refresh (blockViewer
+//   v3.1.0). New cases: (1) an id lookup must NEVER resolve the viewer's
+//   own clone — the clone shares the preview div id (cloneNode) and the
+//   svg id (on purpose, mermaid scoped styles); a viewBox fixture makes
+//   the clone's serialization differ from the live source so a
+//   self-clone refresh would be visible (svg-1 stays in the canvas)
+//   instead of silently token-blocked; (2) unchanged content must not
+//   end the poll — the mermaid pipeline re-inserts the byte-identical
+//   last-good old-theme svg synchronously during a theme re-render
+//   before the async re-draw lands (the chromium e2e race); (3) content
+//   arriving later inside the same figure element resolves through the
+//   captured figure element when no figure id exists. The two
+//   orchestrator-failing cases (replaced preview via figure id; table
+//   refresh from the re-rendered table) stay byte-identical — they were
+//   right, the resolution was wrong.
+//   v2.2.0 - 2026-10-17 C-51 T-014: fit-maths cases
+//   (small → >1 with the exact min() value, big → <1, MAX/MIN clamps,
+//   fitToScreen wiring) fail on main's Math.min(..., 1) cap; the
+//   muya-options-rerender cases pin the theme refresh — poll waits for
+//   diagram content, re-clone keeps the panzoom transform (direct call),
+//   replaced-preview resolution through the figure id, the table refresh
+//   with sanitization, the closed-viewer no-op and the timeout that
+//   keeps the last clone.
+//   v2.1.0 - 2026-10-16 C-51 T-010: the close() re-asserts
 //   resolve the LIVE expand button from returnFocusFigureId — new case
 //   replaces the figure's button inside the 0/50 ms window and expects
 //   the replacement focused (fails against the captured-element version,
@@ -193,6 +219,21 @@ const keydown = (el, init) => {
   })
   el.dispatchEvent(event)
   return event
+}
+
+// C-51 T-014: a re-rendered diagram SVG (mermaid pipeline insert).
+const makeSvg = (id) => {
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
+  svg.id = id
+  return svg
+}
+
+// C-51 T-014: fixed layout for the fit-maths cases — jsdom measures 0×0.
+const stubLayout = (viewer, { stageW, stageH, contentW, contentH }) => {
+  Object.defineProperty(viewer.stage, 'clientWidth', { configurable: true, get: () => stageW })
+  Object.defineProperty(viewer.stage, 'clientHeight', { configurable: true, get: () => stageH })
+  Object.defineProperty(viewer.canvas, 'scrollWidth', { configurable: true, get: () => contentW })
+  Object.defineProperty(viewer.canvas, 'scrollHeight', { configurable: true, get: () => contentH })
 }
 // END_BLOCK_VIEWER_TEST_DOUBLES
 
@@ -486,3 +527,265 @@ describe('block viewer (C-34 R2.2 + C-39 T2 + C-51 T-006)', () => {
     expect(v.viewerEl.isConnected).toBe(false)
   })
 })
+
+// START_BLOCK_VIEWER_T014_ASSERTIONS
+describe('viewer polish (C-51 T-014: fit up, theme refresh)', () => {
+  it('fit scales small content UP: a 200×100 clone in a 1000×600 stage fits at min(availW/w, availH/h)', () => {
+    const { viewer: v, container } = createHarness()
+    viewer = v
+    const { preview } = createMermaidFigure(container)
+    v.openFromElement(preview)
+    stubLayout(v, { stageW: 1000, stageH: 600, contentW: 200, contentH: 100 })
+
+    // min((1000-32)/200, (600-32)/100) = min(4.84, 5.68) — no 1:1 cap.
+    expect(v.computeFitScale()).toBeCloseTo(4.84, 6)
+    // The Fit button drives panzoom with the same scale (not 1).
+    const panzoom = lastPanzoom()
+    v.fitToScreen()
+    expect(panzoom.zoom).toHaveBeenLastCalledWith(v.computeFitScale(), { animate: false })
+    expect(v.computeFitScale()).toBeGreaterThan(1)
+  })
+
+  it('fit keeps scaling big content DOWN as before and clamps to [MIN_SCALE, MAX_SCALE]', () => {
+    const { viewer: v, container } = createHarness()
+    viewer = v
+    const { preview } = createMermaidFigure(container)
+    v.openFromElement(preview)
+
+    stubLayout(v, { stageW: 1000, stageH: 600, contentW: 2000, contentH: 1200 })
+    expect(v.computeFitScale()).toBeCloseTo(Math.min(968 / 2000, 568 / 1200), 6)
+    expect(v.computeFitScale()).toBeLessThan(1)
+
+    // A tiny clone would zoom 56×; the MAX_SCALE clamp holds it at 8.
+    stubLayout(v, { stageW: 1000, stageH: 600, contentW: 10, contentH: 10 })
+    expect(v.computeFitScale()).toBe(8)
+
+    // A stage smaller than the padding goes to the MIN_SCALE clamp, not 0.
+    stubLayout(v, { stageW: 20, stageH: 20, contentW: 500, contentH: 500 })
+    expect(v.computeFitScale()).toBe(0.05)
+  })
+
+  it('an options re-render (theme switch) re-clones the live preview and dispatches muya-block-viewer-refreshed', () => {
+    const { muya, viewer: v, container } = createHarness()
+    viewer = v
+    const refreshed = vi.fn()
+    muya.eventCenter.subscribe('muya-block-viewer-refreshed', refreshed)
+    const { preview } = createMermaidFigure(container)
+    v.openFromElement(preview)
+    expect(v.canvas.querySelector('svg').id).toBe('svg-1')
+
+    // The re-render patched the preview in place (mermaid insert path):
+    // the loading placeholder was replaced by a NEW svg.
+    preview.querySelector('svg').remove()
+    preview.appendChild(makeSvg('svg-1-ink'))
+    muya.eventCenter.dispatch('muya-options-rerender')
+
+    // The first poll tick is immediate (setTimeout 0).
+    vi.advanceTimersByTime(1)
+    expect(v.canvas.querySelector('svg').id).toBe('svg-1-ink')
+    expect(refreshed).toHaveBeenCalledWith({ kind: 'diagram' })
+    // The live source reference follows the block.
+    expect(v.sourceEl).toBe(preview)
+  })
+
+  it('the refresh POLLS: it waits for the re-rendered diagram content instead of cloning the loading placeholder', () => {
+    const { muya, viewer: v, container } = createHarness()
+    viewer = v
+    const { preview } = createMermaidFigure(container)
+    v.openFromElement(preview)
+
+    // The full re-render dropped the SVG: the preview shows the loading
+    // text — the poll must NOT clone it yet (the old clone stays).
+    preview.querySelector('svg').remove()
+    muya.eventCenter.dispatch('muya-options-rerender')
+    vi.advanceTimersByTime(50)
+    expect(v.canvas.querySelector('svg').id).toBe('svg-1')
+
+    // The pipeline insert lands ~250 ms later — the next poll tick picks it up.
+    preview.appendChild(makeSvg('svg-1-after-debounce'))
+    vi.advanceTimersByTime(150)
+    expect(v.canvas.querySelector('svg').id).toBe('svg-1-after-debounce')
+  })
+
+  it('a preview ELEMENT replaced by the re-render resolves through the figure id', () => {
+    const { muya, viewer: v, container } = createHarness()
+    viewer = v
+    const { figure, preview } = createMermaidFigure(container)
+    figure.id = 'fig-re-render'
+    v.openFromElement(figure)
+
+    // snabbdom replaced the preview element entirely; the captured one is
+    // gone (its id resolves to nothing) — the figure id still resolves.
+    preview.remove()
+    const fresh = document.createElement('div')
+    fresh.className = 'ag-container-preview'
+    fresh.appendChild(makeSvg('svg-reborn'))
+    figure.appendChild(fresh)
+
+    muya.eventCenter.dispatch('muya-options-rerender')
+    vi.advanceTimersByTime(1)
+    expect(v.canvas.querySelector('svg').id).toBe('svg-reborn')
+    expect(v.sourceFigureId).toBe('fig-re-render')
+  })
+
+  it('the refresh keeps the panzoom transform: no zoom/pan call touches the canvas during the swap', () => {
+    const { viewer: v, container } = createHarness()
+    viewer = v
+    const { preview } = createMermaidFigure(container)
+    v.openFromElement(preview)
+    const panzoom = lastPanzoom()
+    panzoom.zoom.mockClear()
+    panzoom.pan.mockClear()
+    panzoom.zoomToPoint.mockClear()
+
+    // Direct call — deterministic, no deferred-fit timer in between.
+    v.refreshCloneFrom(preview)
+
+    expect(panzoom.zoom).not.toHaveBeenCalled()
+    expect(panzoom.pan).not.toHaveBeenCalled()
+    expect(panzoom.zoomToPoint).not.toHaveBeenCalled()
+    expect(v.canvas.style.transform).toBe('')
+    expect(v.canvas.querySelector('svg')).not.toBeNull()
+  })
+
+  it('a table clone refreshes from the re-rendered table and stays sanitized', () => {
+    const { muya, viewer: v, container } = createHarness()
+    viewer = v
+    const { figure, table } = createTableFigure(container)
+    v.openFromElement(figure)
+
+    const fresh = document.createElement('table')
+    fresh.id = 'tbl-refreshed'
+    fresh.className = 'ag-paragraph'
+    const tbody = document.createElement('tbody')
+    const row = document.createElement('tr')
+    const cell = document.createElement('td')
+    cell.setAttribute('contenteditable', 'true')
+    cell.textContent = 'refreshed cell'
+    row.appendChild(cell)
+    tbody.appendChild(row)
+    fresh.appendChild(tbody)
+    table.remove()
+    figure.appendChild(fresh)
+
+    muya.eventCenter.dispatch('muya-options-rerender')
+    vi.advanceTimersByTime(1)
+
+    const clone = v.canvas.querySelector('table')
+    expect(clone).not.toBeNull()
+    expect(clone.textContent).toContain('refreshed cell')
+    expect(clone.querySelector('[contenteditable]')).toBeNull()
+    expect(v.sourceEl).toBe(fresh)
+  })
+
+  it('an id lookup never resolves the viewer clone itself — the shared ids must not feed the refresh', () => {
+    const { muya, viewer: v, container } = createHarness()
+    viewer = v
+    const { figure, preview } = createMermaidFigure(container)
+    // A viewBox makes cloneDiagramPreview override the canvas clone's
+    // inline sizing, so the clone's serialization DIFFERS from the live
+    // source the token was taken from — a self-clone refresh would be
+    // visible (svg-1 re-cloned into the canvas) instead of silently
+    // blocked by the changed-content gate.
+    preview.querySelector('svg').setAttribute('viewBox', '0 0 100 50')
+    v.openFromElement(preview)
+
+    // The re-render replaced the preview element and the figure carries
+    // no id: the ONLY element with the preview id left in the document is
+    // the viewer's own clone (cloneNode keeps the div id; the svg id is
+    // shared on purpose so mermaid's scoped styles apply to the clone).
+    preview.remove()
+    const fresh = document.createElement('div')
+    fresh.className = 'ag-container-preview'
+    fresh.appendChild(makeSvg('svg-reborn'))
+    figure.appendChild(fresh)
+
+    muya.eventCenter.dispatch('muya-options-rerender')
+    vi.advanceTimersByTime(1)
+    // Without the overlay exclusion the poll re-clones its own clone and
+    // the canvas keeps svg-1 forever.
+    expect(v.canvas.querySelector('svg').id).toBe('svg-reborn')
+    expect(v.sourceEl).toBe(fresh)
+  })
+
+  it('the poll waits for CHANGED content — the pipeline last-good re-insert must not end it', () => {
+    const { muya, viewer: v, container } = createHarness()
+    viewer = v
+    const refreshed = vi.fn()
+    muya.eventCenter.subscribe('muya-block-viewer-refreshed', refreshed)
+    const { preview } = createMermaidFigure(container)
+    v.openFromElement(preview)
+
+    // A theme re-render: the mermaid pipeline synchronously re-inserts
+    // the LAST-GOOD svg — byte-identical old-theme content — before the
+    // async re-draw lands. The poll must not clone it and stop.
+    const same = preview.querySelector('svg').cloneNode(true)
+    preview.querySelector('svg').remove()
+    preview.appendChild(same)
+    muya.eventCenter.dispatch('muya-options-rerender')
+    vi.advanceTimersByTime(400)
+    expect(refreshed).not.toHaveBeenCalled()
+    expect(v.canvas.querySelector('svg').id).toBe('svg-1')
+
+    // The async re-draw lands with the new theme: the next tick picks it up.
+    preview.querySelector('svg').remove()
+    preview.appendChild(makeSvg('svg-1-ink'))
+    vi.advanceTimersByTime(200)
+    expect(refreshed).toHaveBeenCalledOnce()
+    expect(v.canvas.querySelector('svg').id).toBe('svg-1-ink')
+  })
+
+  it('content arriving later inside the same figure element resolves through the captured figure', () => {
+    const { muya, viewer: v, container } = createHarness()
+    viewer = v
+    const refreshed = vi.fn()
+    muya.eventCenter.subscribe('muya-block-viewer-refreshed', refreshed)
+    const { figure, preview } = createMermaidFigure(container)
+    v.openFromElement(preview)
+
+    // The re-render dropped the old preview (id resolves to nothing —
+    // only the excluded viewer clone holds it) and the figure has no id;
+    // the replacement has not landed yet.
+    preview.remove()
+    muya.eventCenter.dispatch('muya-options-rerender')
+    vi.advanceTimersByTime(400)
+    expect(refreshed).not.toHaveBeenCalled()
+    expect(v.canvas.querySelector('svg').id).toBe('svg-1')
+
+    // The re-rendered preview arrives inside the SAME figure element:
+    // the poll resolves it through the figure element captured at open.
+    const fresh = document.createElement('div')
+    fresh.className = 'ag-container-preview'
+    fresh.appendChild(makeSvg('svg-live-2'))
+    figure.appendChild(fresh)
+    vi.advanceTimersByTime(200)
+    expect(refreshed).toHaveBeenCalledOnce()
+    expect(v.canvas.querySelector('svg').id).toBe('svg-live-2')
+  })
+
+  it('a closed viewer ignores the re-render event, and a block that never comes back keeps the last clone (timeout)', () => {
+    const { muya, viewer: v, container } = createHarness()
+    viewer = v
+    const refreshed = vi.fn()
+    muya.eventCenter.subscribe('muya-block-viewer-refreshed', refreshed)
+    const { figure, preview } = createMermaidFigure(container)
+    v.openFromElement(preview)
+    v.close({ restoreFocus: false })
+    refreshed.mockClear()
+
+    muya.eventCenter.dispatch('muya-options-rerender')
+    vi.advanceTimersByTime(500)
+    expect(refreshed).not.toHaveBeenCalled()
+    expect(v.refreshTimer).toBeNull()
+
+    // Reopen, then the re-render DELETES the block: the poll runs out its
+    // budget and the last clone stays instead of blanking.
+    v.openFromElement(preview)
+    figure.remove()
+    muya.eventCenter.dispatch('muya-options-rerender')
+    vi.advanceTimersByTime(10200)
+    expect(v.canvas.querySelector('svg')).not.toBeNull()
+    expect(v.refreshTimer).toBeNull()
+  })
+})
+// END_BLOCK_VIEWER_T014_ASSERTIONS
