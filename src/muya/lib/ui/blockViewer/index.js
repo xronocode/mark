@@ -1,20 +1,37 @@
 // FILE: src/muya/lib/ui/blockViewer/index.js
-// VERSION: 1.2.0
+// VERSION: 2.0.1
 // START_MODULE_CONTRACT
-//   PURPOSE: Shared fullscreen block viewer (C-34 R2.2 + C-39 T2) that shows a Mermaid diagram (clone of the current preview, no re-render) or a read-only clone of a rendered table with pan/zoom via @panzoom/panzoom.
-//   SCOPE: hover/caret toolbar with the expand (⤢) button, viewer open/close lifecycle, diagram-preview and table-clone sanitization, wheel/pinch/key zoom, drag pan, focus trap and focus restore, panzoom cleanup.
-//   DEPENDS: @panzoom/panzoom, muya/lib/parser/render/mermaidPipeline (MERMAID_PREVIEW_CLASS), muya/lib/config (CLASS_OR_ID, EVENT_KEYS), muya/lib/eventHandler/event (via muya.eventCenter).
-//   LINKS: .grace/changes/active/C-34 T-002; .grace/changes/active/C-39 T2 and T-002 (viewer shows the session column widths — the clone carries the live colgroup — but no resize handles); .grace/graph/runtime.xml M-012; .grace/verification/runtime.xml V-M-012 scenario-19.
+//   PURPOSE: Shared fullscreen block viewer (C-34 R2.2 + C-39 T2) that shows a Mermaid/flowchart/sequence/plantuml/vega-lite diagram (clone of the current preview, no re-render) or a read-only clone of a rendered table with pan/zoom via @panzoom/panzoom.
+//   SCOPE: viewer open/close lifecycle, diagram-preview and table-clone sanitization, wheel/pinch/key zoom, drag pan, focus trap and focus restore, panzoom cleanup, and block resolution from an element (preview, table, or the FIGURE the C-51 persistent expand button dispatches).
+//   DEPENDS: @panzoom/panzoom, muya/lib/config (CLASS_OR_ID, EVENT_KEYS), muya/lib/eventHandler/event (via muya.eventCenter).
+//   LINKS: .grace/changes/active/C-34 T-002; .grace/changes/active/C-39 T2 and T-002 (viewer shows the session column widths — the clone carries the live colgroup — but no resize handles); .grace/changes/active/C-51 T-006 (always-visible expand button, scenario-60); .grace/graph/runtime.xml M-012; .grace/verification/runtime.xml V-M-012 scenario-19.
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
-//   default - BlockViewer muya UI plugin (pluginName 'blockViewer'): builds the overlay + hover toolbar once, opens on 'muya-block-viewer' events, toolbar clicks and hover, closes on Esc/close/backdrop.
+//   default - BlockViewer muya UI plugin (pluginName 'blockViewer'): builds the overlay once, opens on 'muya-block-viewer' events (the persistent button.ag-block-expand clicks, Cmd/Ctrl+click on a preview), closes on Esc/close/backdrop.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.2.0 - 2026-10-15 C-39 T-002: the table clone drops the
+//   LAST_CHANGE: v2.0.1 - 2026-10-16 C-51 T-006 review: findDiagramPreview
+//   resolves through the figure ROLE in both directions — the first draft
+//   accepted any div.ag-container-preview with svg/img content, which made
+//   KaTeX math (svg radicals) and html previews (imgs) viewable via
+//   Cmd/Ctrl+click; math and html figures stay unviewable by design.
+//   v2.0.0 - 2026-10-16 C-51 T-006: the hover/caret toolbar is
+//   REPLACED by the persistent per-block expand button rendered by
+//   renderContainerBlock (button.ag-block-expand, a figure child — subtle
+//   at rest, solid on hover, keyboard-focusable with the localized
+//   blockViewer.expand aria-label). All toolbar machinery (hover/caret
+//   anchoring, hide grace timer, scroll/resize repositioning, the
+//   selectionChange subscription) is gone; keyboard reachability now comes
+//   from the focusable button itself (keyboard.js routes keys to it).
+//   Block resolution generalized: findDiagramPreview accepts any of the
+//   five diagram roles' previews (svg or plantuml img content) and also
+//   resolves DOWNWARD from the figure the button dispatches;
+//   findTable likewise resolves from the table figure.
+//   v1.2.0 - 2026-10-15 C-39 T-002: the table clone drops the
 //   span.ag-column-resizer handles along with the drag bars — the viewer is
 //   read-only, so a col-resize cursor on header borders would lie (the
 //   handles are inert outside the editor container by construction; this is
@@ -26,7 +43,6 @@
 // END_CHANGE_SUMMARY
 
 import Panzoom from '@panzoom/panzoom'
-import { MERMAID_PREVIEW_CLASS } from '../../parser/render/mermaidPipeline'
 import { CLASS_OR_ID, EVENT_KEYS } from '../../config'
 import './index.css'
 
@@ -34,9 +50,16 @@ const FIT_PADDING = 32
 const ZOOM_KEY_FACTOR = 1.25
 const MIN_SCALE = 0.05
 const MAX_SCALE = 8
-// Grace period before hiding the hover toolbar so the pointer can travel
-// from the block to the toolbar across the small gap above the block.
-const TOOLBAR_HIDE_DELAY = 200
+
+// The five diagram roles whose figures carry the persistent expand button
+// (C-51 T-006). html/multiplemath previews are deliberately not viewable.
+const DIAGRAM_FIGURE_SELECTOR = [
+  "figure[data-role='MERMAID']",
+  "figure[data-role='FLOWCHART']",
+  "figure[data-role='SEQUENCE']",
+  "figure[data-role='PLANTUML']",
+  "figure[data-role='VEGA-LITE']"
+].join(', ')
 
 // START_BLOCK_VIEWER_TABLE_CLONE
 // The viewer table is a read-only snapshot: drop the editing affordances
@@ -107,15 +130,7 @@ class BlockViewer {
     this.returnFocusEl = null
     this.panzoom = null
     this.destroyed = false
-    // hover toolbar state
-    this.hoverBlock = null
-    this.caretBlock = null
-    this.toolbarAnchor = null
-    this.toolbarHovered = false
-    this.toolbarFocused = false
-    this.hideTimer = null
     this.buildViewer()
-    this.buildToolbar()
     this.listen()
   }
 
@@ -190,17 +205,39 @@ class BlockViewer {
   }
 
   // START_BLOCK_VIEWER_BLOCK_RESOLUTION
+  // C-51 T-006: resolution accepts an element anywhere in or around the
+  // viewable block — the preview itself (Cmd/Ctrl+click path), the table,
+  // or the FIGURE the persistent button.ag-block-expand dispatches (the
+  // button is a figure child, so the preview/table must be resolved
+  // DOWNWARD from the figure). The ROLE check gates both directions:
+  // math and html previews are also div.ag-container-preview (and KaTeX
+  // emits svg for radicals) — they must never resolve.
+  diagramPreviewHasContent (preview) {
+    // svg: mermaid, flowchart.js, js-sequence, vega-lite (svg renderer);
+    // img: plantuml (rendered as an <img> pointing at the plantuml server).
+    return !!(preview && (preview.querySelector('svg') || preview.querySelector('img')))
+  }
+
   findDiagramPreview (el) {
     if (!el || el.nodeType !== 1 || !el.closest) return null
-    const preview = el.closest(`div.${MERMAID_PREVIEW_CLASS}`)
-    return preview && preview.querySelector('svg') ? preview : null
+    const figure = el.closest(DIAGRAM_FIGURE_SELECTOR)
+    if (!figure) {
+      return null
+    }
+    const preview = figure.querySelector(`div.${CLASS_OR_ID.AG_CONTAINER_PREVIEW}`)
+    return this.diagramPreviewHasContent(preview) ? preview : null
   }
 
   findTable (el) {
     if (!el || el.nodeType !== 1 || !el.closest) return null
     // table.ag-paragraph is a rendered muya table; the front-matter
     // properties table is div-based and never matches.
-    return el.closest(`table.${CLASS_OR_ID.AG_PARAGRAPH}`)
+    const table = el.closest(`table.${CLASS_OR_ID.AG_PARAGRAPH}`)
+    if (table) {
+      return table
+    }
+    const figure = el.closest("figure[data-role='TABLE']")
+    return figure ? figure.querySelector(`table.${CLASS_OR_ID.AG_PARAGRAPH}`) : null
   }
 
   findViewableBlock (el) {
@@ -208,6 +245,10 @@ class BlockViewer {
   }
 
   openFromElement (el) {
+    // Only the persistent expand button dispatches the FIGURE itself: focus
+    // returns to that figure's button on close (the keyboard path routes
+    // Enter through muya, so the button is not document.activeElement).
+    this.pendingExpandFigureId = el && el.tagName === 'FIGURE' && el.id ? el.id : null
     const preview = this.findDiagramPreview(el)
     if (preview) {
       return this.open({ kind: 'diagram', source: preview })
@@ -225,13 +266,20 @@ class BlockViewer {
     this.close({ restoreFocus: false })
     this.kind = kind
     const active = document.activeElement
-    const inViewerUi =
-      active && ((this.viewerEl && this.viewerEl.contains(active)) ||
-        (this.toolbarEl && this.toolbarEl.contains(active)))
+    const inViewerUi = active && this.viewerEl && this.viewerEl.contains(active)
     this.returnFocusEl =
       active && !inViewerUi && typeof active.focus === 'function'
         ? active
         : this.muya.container
+    // C-51 T-006 review: a muya re-render while the viewer is open replaces
+    // the figure's expand button — remember the figure id so close() can
+    // focus the live button instead of a detached one.
+    const expandFigure = active && active.closest ? active.closest('figure') : null
+    this.returnFocusFigureId = this.pendingExpandFigureId ||
+      (active && active.classList && active.classList.contains('ag-block-expand') && expandFigure
+        ? expandFigure.id
+        : null)
+    this.pendingExpandFigureId = null
 
     this.refreshViewerLabels()
     this.titleEl.textContent = this.t(
@@ -248,7 +296,6 @@ class BlockViewer {
     }
 
     this.viewerEl.classList.add('ag-block-viewer-open')
-    this.hideToolbar(true)
     this.initPanzoom()
     this.isOpen = true
     // Focus the stage so viewer keys (+/−/0/1/Esc) land immediately and
@@ -498,10 +545,27 @@ class BlockViewer {
     this.canvas.style.transform = ''
     this.viewerEl.classList.remove('ag-block-viewer-open')
     this.kind = null
-    const el = this.returnFocusEl
+    let el = this.returnFocusEl
+    const figureId = this.returnFocusFigureId
     this.returnFocusEl = null
+    this.returnFocusFigureId = null
+    if (figureId) {
+      const fig = document.getElementById(figureId)
+      const live = fig && fig.querySelector('.ag-block-expand')
+      if (live) el = live
+    }
     if (restoreFocus && el && typeof el.focus === 'function') {
       el.focus()
+      if (figureId) {
+        // The same Escape keydown also reaches muya's document handler,
+        // which re-focuses the editable container — re-assert on the next
+        // tick so the expand button keeps the focus (C-51 T-006 review).
+        const reassert = () => {
+          if (el.isConnected && document.activeElement !== el) el.focus()
+        }
+        setTimeout(reassert, 0)
+        setTimeout(reassert, 50)
+      }
     }
     console.debug('[Muya][blockViewer][BLOCK_VIEWER_CLOSE] viewer closed')
     this.muya.eventCenter.dispatch('muya-block-viewer-close')
@@ -514,185 +578,6 @@ class BlockViewer {
     }
   }
 
-  // START_BLOCK_VIEWER_TOOLBAR
-  // One absolutely-positioned toolbar element (document.body) that follows
-  // the hovered/focused block — no changes to the table render markup.
-  buildToolbar () {
-    const toolbar = document.createElement('div')
-    toolbar.className = 'ag-block-viewer-toolbar'
-    const expand = document.createElement('button')
-    expand.type = 'button'
-    expand.className = 'ag-block-viewer-expand'
-    expand.textContent = '⤢'
-    toolbar.appendChild(expand)
-    document.body.appendChild(toolbar)
-
-    expand.addEventListener('click', (event) => {
-      event.preventDefault()
-      event.stopPropagation()
-      const anchor = this.hoverBlock || this.caretBlock || this.toolbarAnchor
-      if (anchor && anchor.isConnected) {
-        this.openFromElement(anchor)
-      }
-    })
-    toolbar.addEventListener('mouseenter', () => {
-      this.toolbarHovered = true
-      this.cancelScheduledHide()
-    })
-    toolbar.addEventListener('mouseleave', () => {
-      this.toolbarHovered = false
-      this.updateToolbar()
-    })
-    expand.addEventListener('focus', () => {
-      this.toolbarFocused = true
-      this.updateToolbar()
-    })
-    expand.addEventListener('blur', () => {
-      this.toolbarFocused = false
-      this.updateToolbar()
-    })
-
-    this.toolbarEl = toolbar
-    this.expandBtn = expand
-  }
-
-  onContainerMouseOver = (event) => {
-    if (this.isOpen) return
-    this.hoverBlock = this.findViewableBlock(event.target)
-    this.updateToolbar()
-  }
-
-  onContainerMouseLeave = () => {
-    this.hoverBlock = null
-    this.updateToolbar()
-  }
-
-  // Keyboard focus: the toolbar stays anchored to the table that contains
-  // the caret (or to the rendered preview while the caret edits a mermaid
-  // source block), so keyboard users keep the expand button reachable.
-  onSelectionChange = (selectionChanges) => {
-    if (this.isOpen || !selectionChanges) return
-    const key = selectionChanges.start && selectionChanges.start.key
-    let block = null
-    if (key) {
-      const el = document.getElementById(key)
-      block = el ? this.findTable(el) : null
-      if (!block && el && el.closest) {
-        const pre = el.closest('pre[data-role="mermaid"]')
-        const figure = pre ? pre.closest('figure') : null
-        const preview = figure
-          ? figure.querySelector(`div.${MERMAID_PREVIEW_CLASS}`)
-          : null
-        if (preview && preview.querySelector('svg')) {
-          block = preview
-        }
-      }
-    }
-    this.caretBlock = block
-    this.updateToolbar()
-  }
-
-  onContainerScroll = () => {
-    if (this.toolbarAnchor && this.toolbarAnchor.isConnected) {
-      this.positionToolbar()
-    } else {
-      this.hideToolbar(true)
-    }
-  }
-
-  onWindowResize = () => {
-    if (this.toolbarAnchor && this.toolbarAnchor.isConnected) {
-      this.positionToolbar()
-    }
-  }
-
-  currentAnchor () {
-    const anchor = this.hoverBlock || this.caretBlock
-    return anchor && anchor.isConnected ? anchor : null
-  }
-
-  updateToolbar () {
-    if (this.destroyed || this.isOpen) return
-    const anchor = this.currentAnchor()
-    if (anchor || this.toolbarHovered || this.toolbarFocused) {
-      this.cancelScheduledHide()
-      if (anchor) {
-        this.toolbarAnchor = anchor
-      }
-      if (this.toolbarAnchor) {
-        // Show before measuring so offsetWidth/offsetHeight are real.
-        this.toolbarEl.classList.add('ag-block-viewer-toolbar-visible')
-        this.refreshToolbarLabels()
-        this.positionToolbar()
-      }
-    } else {
-      this.scheduleHideToolbar()
-    }
-  }
-
-  refreshToolbarLabels () {
-    const label = this.t('blockViewer.expand')
-    this.expandBtn.title = label
-    this.expandBtn.setAttribute('aria-label', label)
-  }
-
-  positionToolbar () {
-    const rect = this.toolbarAnchor.getBoundingClientRect()
-    const tw = this.toolbarEl.offsetWidth || 32
-    const th = this.toolbarEl.offsetHeight || 28
-    // Prefer the strip just above the block (right-aligned) so cell clicks
-    // and drag bars are never covered; clamp into the viewport.
-    // Tables: the centred table tools bar owns the strip above the table
-    // (C-39 centring), so the expand button sits beside the table's
-    // top-right corner instead; fall back to the strip when there is no
-    // room on the right.
-    const isTable = !!(this.toolbarAnchor.closest && this.toolbarAnchor.closest("figure[data-role='TABLE']"))
-    if (isTable && rect.right + 8 + tw <= window.innerWidth - 4) {
-      const sideTop = Math.max(4, Math.min(rect.top, window.innerHeight - th - 4))
-      this.toolbarEl.style.top = `${Math.round(sideTop)}px`
-      this.toolbarEl.style.left = `${Math.round(rect.right + 8)}px`
-      return
-    }
-    let top = rect.top - th - 6
-    if (top < 4) {
-      top = Math.max(4, Math.min(rect.top + 4, window.innerHeight - th - 4))
-    }
-    const left = Math.max(4, rect.right - tw)
-    this.toolbarEl.style.top = `${Math.round(top)}px`
-    this.toolbarEl.style.left = `${Math.round(left)}px`
-  }
-
-  scheduleHideToolbar () {
-    this.cancelScheduledHide()
-    this.hideTimer = setTimeout(() => {
-      this.hideTimer = null
-      if (
-        !this.destroyed &&
-        !this.currentAnchor() &&
-        !this.toolbarHovered &&
-        !this.toolbarFocused
-      ) {
-        this.hideToolbar(true)
-      }
-    }, TOOLBAR_HIDE_DELAY)
-  }
-
-  cancelScheduledHide () {
-    if (this.hideTimer) {
-      clearTimeout(this.hideTimer)
-      this.hideTimer = null
-    }
-  }
-
-  hideToolbar (immediate = false) {
-    if (immediate) {
-      this.cancelScheduledHide()
-    }
-    this.toolbarAnchor = null
-    this.toolbarEl.classList.remove('ag-block-viewer-toolbar-visible')
-  }
-  // END_BLOCK_VIEWER_TOOLBAR
-
   onOpenEvent = ({ element } = {}) => {
     if (element) {
       this.openFromElement(element)
@@ -700,20 +585,12 @@ class BlockViewer {
   }
 
   listen () {
-    const { eventCenter, container } = this.muya
-    // Container-scoped hover detection keeps parallel muya instances
-    // (source-code mirror) from reacting to each other's blocks.
-    eventCenter.attachDOMEvent(container, 'mouseover', this.onContainerMouseOver)
-    eventCenter.attachDOMEvent(container, 'mouseleave', this.onContainerMouseLeave)
-    // capture: also catch scrolls of inner scrollers (e.g. wide diagrams)
-    eventCenter.attachDOMEvent(container, 'scroll', this.onContainerScroll, true)
-    eventCenter.subscribe('selectionChange', this.onSelectionChange)
+    const { eventCenter } = this.muya
     eventCenter.subscribe('muya-block-viewer', this.onOpenEvent)
     this.viewerEl.addEventListener('keydown', this.onKeydown)
     this.stage.addEventListener('wheel', this.onWheel, { passive: false })
     this.backdropEl.addEventListener('click', this.onBackdropClick)
     this.canvas.addEventListener('panzoomchange', this.onPanzoomChange)
-    window.addEventListener('resize', this.onWindowResize)
   }
 
   // START_BLOCK_VIEWER_DESTROY
@@ -721,19 +598,14 @@ class BlockViewer {
     if (this.destroyed) return
     this.destroyed = true
     this.close({ restoreFocus: false })
-    this.cancelScheduledHide()
-    this.hideToolbar(true)
     this.viewerEl.removeEventListener('keydown', this.onKeydown)
     this.stage.removeEventListener('wheel', this.onWheel)
     this.backdropEl.removeEventListener('click', this.onBackdropClick)
     this.canvas.removeEventListener('panzoomchange', this.onPanzoomChange)
-    window.removeEventListener('resize', this.onWindowResize)
     const { eventCenter } = this.muya
-    eventCenter.unsubscribe('selectionChange', this.onSelectionChange)
     eventCenter.unsubscribe('muya-block-viewer', this.onOpenEvent)
     // container DOM events are detached by muya's detachAllDomEvents()
     this.viewerEl.remove()
-    this.toolbarEl.remove()
   }
   // END_BLOCK_VIEWER_DESTROY
 }

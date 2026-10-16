@@ -1,16 +1,16 @@
 // FILE: src/muya/lib/parser/render/renderBlock/renderContainerBlock.js
-// VERSION: 1.4.0
+// VERSION: 1.5.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Render a muya container block (blockquote, list, table, figure, pre) to a snabbdom vnode.
-//   SCOPE: Selectors, data attributes and auxiliary children (tools, icons, copy buttons, code-block line-number gutter, table column-resize handle) per container type; the table element is returned inside its C-39 horizontal scroll wrapper, with its C-39 T-002 session colgroup when widths are stored.
+//   SCOPE: Selectors, data attributes and auxiliary children (tools, icons, copy buttons, the C-51 expand button, code-block line-number gutter, table column-resize handle) per container type; the table element is returned inside its C-39 horizontal scroll wrapper, with its C-39 T-002 session colgroup when widths are stored.
 //   DEPENDS: muya config, render helpers, snabbdom, ../../../utils/callout, ../../../tableResize (width constants).
-//   LINKS: .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-012 scenario-18, scenario-20 and scenario-21; .grace/changes/active/C-39 T-001 and T-002, C-38 T-005.
+//   LINKS: .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-012 scenario-18, scenario-20, scenario-21 and scenario-60; .grace/changes/active/C-39 T-001 and T-002, C-38 T-005, C-51 T-006.
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
-//   default - renderContainerBlock(parent, block, activeBlocks, matches, useCache, t); a `table` block returns div.ag-table-scroll > table (plus the session colgroup when muya.tableResize has matching widths); a `th` block gets the span.ag-column-resizer handle; a fence/indent `code` block records its pre in stateRender.lineNumberPreKeys for post-render gutter measuring.
+//   default - renderContainerBlock(parent, block, activeBlocks, matches, useCache, t); a `table` block returns div.ag-table-scroll > table (plus the session colgroup when muya.tableResize has matching widths); a `th` block gets the span.ag-column-resizer handle; a fence/indent `code` block records its pre in stateRender.lineNumberPreKeys for post-render gutter measuring; mermaid/flowchart/sequence/plantuml/vega-lite figures with non-empty source and table figures get the ag-has-expand marker plus a button.ag-block-expand child (C-51 T-006).
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
@@ -19,6 +19,7 @@
 //   - 2026-10-15 v1.2.0: C-39 T-001 START_BLOCK_TABLE_SCROLL_WRAPPER: the table element renders inside div.ag-table-scroll so wide tables scroll horizontally instead of overflowing the text column.
 //   - 2026-10-15 v1.3.0: C-38 T-005 START_BLOCK_CODE_LINE_NUMBERS: fence/indent code blocks get the .line-numbers class and gutter rows when codeBlockLineNumbers is on (html/math/diagram/front-matter pre blocks stay gutter-free); every gutter rendered this pass is recorded for the post-render measurement instead of re-measuring the whole document.
 //   - 2026-10-15 v1.4.0: C-39 T-002 START_BLOCK_TABLE_COLUMN_WIDTHS + START_BLOCK_TABLE_COLUMN_RESIZER_HANDLE: session column widths render as a colgroup + table.ag-column-widths-fixed (auto layout kept when no widths are stored or the column count differs), and every th gains the invisible span.ag-column-resizer hit zone (skipped when disableTableColumnResize is on — the Split View mirror).
+//   - 2026-10-16 v1.5.0: C-51 T-006 START_BLOCK_EXPAND_BUTTON: mermaid/flowchart/sequence/plantuml/vega-lite figures (non-empty source only) and table figures render the ag-has-expand marker plus button.ag-block-expand (drawn M-057 glyph, keyboard-focusable) as a direct figure child — the always-visible expand that opens the fullscreen block viewer. A figure child (not a preview child) survives the mermaid pipeline's innerHTML inserts and every snabbdom re-patch by construction.
 // END_CHANGE_SUMMARY
 
 import { CLASS_OR_ID } from '../../../config'
@@ -27,6 +28,7 @@ import { footnoteJumpIcon } from './renderFootnoteJump'
 import { renderEditIcon } from './renderContainerEditIcon'
 import renderLineNumberRows from './renderLineNumber'
 import renderCopyButton from './renderCopyButton'
+import renderExpandButton from './renderExpandButton'
 import { renderLeftBar, renderBottomBar } from './renderTableDargBar'
 import { renderColumnResizer } from './renderColumnResizer'
 import { TABLE_FIXED_CLASS, sumWidths } from '../../../tableResize'
@@ -211,6 +213,33 @@ export default function renderContainerBlock (parent, block, activeBlocks, match
       selector += `.${CLASS_OR_ID.AG_CONTAINER_BLOCK}`
       Object.assign(data.attrs, { spellcheck: 'false' })
     }
+
+    // START_BLOCK_EXPAND_BUTTON
+    // C-51 T-006 (R-4): every viewable figure gets the always-visible
+    // expand button as a DIRECT FIGURE CHILD. The figure is never touched
+    // by the mermaid pipeline (which replaces the preview div's innerHTML)
+    // and the button rides the vnode tree, so it survives every re-patch
+    // by construction — no post-render DOM pass. It sits in the reserved
+    // top-right corner (CSS C-51 T-006 section: 30 px square — 28 compact —
+    // 10 px inset; the preview's padding-top / the table figure's padding
+    // keep it off the diagram and off the last column's resize handle).
+    // The ag-has-expand marker scopes those layout rules. Scope: the five
+    // diagram types with non-empty source (the same `code === ''`
+    // emptiness rule renderLeafBlock uses for the "empty diagram"
+    // placeholder) and tables. html/multiplemath figures are deliberately
+    // out of scope.
+    if (/^(?:flowchart|mermaid|sequence|plantuml|vega-lite)$/.test(functionType)) {
+      const preBlock = block.children.find(child => child.type === 'pre')
+      const code = preBlock ? this.codeCache.get(preBlock.key) : ''
+      if (typeof code === 'string' && code !== '') {
+        selector += '.ag-has-expand'
+        children.push(renderExpandButton(t))
+      }
+    } else if (functionType === 'table') {
+      selector += '.ag-has-expand'
+      children.push(renderExpandButton(t))
+    }
+    // END_BLOCK_EXPAND_BUTTON
   } else if (/ul|ol/.test(type) && listType) {
     selector += `.ag-${listType}-list`
     if (type === 'ol') {

@@ -1,7 +1,7 @@
 // FILE: tests/renderer/components/chrome-icons.test.js
-// VERSION: 2.0.0
+// VERSION: 2.1.0
 // START_MODULE_CONTRACT
-//   PURPOSE: Verify the one drawn chrome icon set (C-40 T-002 / C-38 T-006 / M-057) — descriptor integrity, the shared 16 px grid metrics, the ChromeIcon render component and the chromeIconMarkup string twin.
+//   PURPOSE: Verify the one drawn chrome icon set (C-40 T-002 / C-38 T-006 / C-51 T-006 / M-057) — descriptor integrity, the shared 16 px grid metrics, the ChromeIcon render component and the chromeIconMarkup string twin.
 //   SCOPE: pure module tests over components/icons/chromeIcons.js.
 //   DEPENDS: Vitest, vue (h) via the ChromeIcon component render.
 //   LINKS: .grace/verification/runtime.xml V-M-011 scenario-53, scenario-56; .canvas/Icons.dc.html.
@@ -15,7 +15,11 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v2.0.0 - 2026-10-15 C-38 T-006 N4 d: the set covers the
+//   LAST_CHANGE: v2.1.0 - 2026-10-16 C-51 T-006: the «expand» glyph (canvas
+//   Mermaid — outward corner brackets + diagonal, round caps/joins) joins
+//   the pinned name list; muya's inline twin is asserted byte-identical in
+//   tests/renderer/muya/block-expand-button.test.js.
+//   v2.0.0 - 2026-10-15 C-38 T-006 N4 d: the set covers the
 //   whole chrome (sidebar, find bar, dialogs, notifications, caption
 //   buttons); every glyph sits on the single 0 0 16 16 grid (the 10×10
 //   chevron exception is gone), open strokes declare round caps, no
@@ -43,7 +47,9 @@ const ICON_NAMES = [
   'file-markdown', 'save-all', 'close-all', 'import',
   'info', 'warning', 'error', 'message', 'check', 'smile', 'sad',
   'github', 'twitter',
-  'window-minimize', 'window-maximize', 'window-restore', 'window-close'
+  'window-minimize', 'window-maximize', 'window-restore', 'window-close',
+  // C-51 T-006: the diagram/table expand button glyph.
+  'expand'
 ]
 
 const COLOR_LITERAL = /#(?:[0-9a-f]{3,8})\b|rgb\(|rgba\(|hsl\(|hsla\(/i

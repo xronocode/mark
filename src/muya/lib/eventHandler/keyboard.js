@@ -1,10 +1,10 @@
 // FILE: src/muya/lib/eventHandler/keyboard.js
-// VERSION: 1.2.0
+// VERSION: 1.3.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Route Muya keyboard events to editing commands, including layout-independent undo and redo.
-//   SCOPE: Composition tracking, editor state dispatch, keydown/keyup/input routing, floating-tool keyboard handling, and direct Muya history shortcuts.
+//   SCOPE: Composition tracking, editor state dispatch, keydown/keyup/input routing, floating-tool keyboard handling, direct Muya history shortcuts, and leaving keys alone when the C-51 expand button holds focus.
 //   DEPENDS: Muya event center/content state, selection helpers, editor config, emoji UI.
-//   LINKS: docs/knowledge-graph.xml M-012; docs/verification-plan.xml V-M-012 scenario-10.
+//   LINKS: docs/knowledge-graph.xml M-012; docs/verification-plan.xml V-M-012 scenario-10; .grace/changes/active/C-51 T-006 (BLOCK_KEYBOARD_EXPAND_BUTTON).
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT
@@ -14,7 +14,14 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.2.0 - C-20: add ag-link-path-picker to the shownFloat keydown gate so Enter/Tab/arrows feed the link-path autocomplete float instead of the document.
+//   LAST_CHANGE: v1.3.0 - 2026-10-16 C-51 T-006: the container keydown
+//   handler returns early when the focus is on button.ag-block-expand —
+//   the persistent expand button is a focusable island inside the
+//   contenteditable container, and Tab (move focus) / Enter / Space
+//   (click) must reach the button instead of indenting the paragraph or
+//   inserting a newline (arrowHandler would also crash on its null
+//   paragraph lookup from the non-editable button).
+//   v1.2.0 - C-20: add ag-link-path-picker to the shownFloat keydown gate so Enter/Tab/arrows feed the link-path autocomplete float instead of the document.
 //   v1.1.0 - Match undo/redo by physical KeyZ so Cmd+Я on a Russian layout reaches Muya history.
 // END_CHANGE_SUMMARY
 
@@ -155,6 +162,21 @@ class Keyboard {
     }
 
     const handler = (event) => {
+      // START_BLOCK_KEYBOARD_EXPAND_BUTTON
+      // C-51 T-006: the persistent expand button lives inside the
+      // contenteditable container. When it holds focus the keys belong to
+      // the button — Tab moves focus, Enter/Space click — so the document
+      // handlers must not run (tabHandler would indent, enterHandler would
+      // split a block, arrowHandler would crash on its paragraph lookup).
+      if (
+        event.target &&
+        event.target.closest &&
+        event.target.closest('button.ag-block-expand')
+      ) {
+        return
+      }
+      // END_BLOCK_KEYBOARD_EXPAND_BUTTON
+
       if (event.metaKey || event.ctrlKey) {
         container.classList.add('ag-meta-or-ctrl')
 
