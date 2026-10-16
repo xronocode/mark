@@ -1,4 +1,4 @@
-<GraceChangePlan graceVersion='4.0' status='approved'>
+<GraceChangePlan graceVersion='4.0' status='applied'>
 <C-51>
   <ChangeRef>C-51</ChangeRef>
   <Created>2026-10-16</Created>
@@ -17,6 +17,8 @@
         <Criterion>Tests: Rust walk filter (md-only, all, nested empty dirs); renderer tree model (hide/show folders as files come and go); e2e chromium + webkit: opened folder shows only .md, toggle shows all, creating an .md in an empty folder reveals it.</Criterion>
       </AcceptanceCriteria>
       <Verification><Command>npm test</Command><Command>playwright chromium + webkit</Command><Command>grace lint --path . --assertions current</Command></Verification>
+    
+      <Status>done</Status>
     </T-001>
     <T-002>
       <Title>Recent and Pinned sidebar sections (R-1a)</Title>
@@ -37,6 +39,8 @@
         <Criterion>Per-type e2e matrix (chromium + webkit): every one of the 22 types renders without error in a light and a dark theme; computed node fill/stroke/text colours come from the theme (no #ECECFF / #9370DB purple, no Trebuchet); group-2 types use distinct palette colours; screenshots attached per type.</Criterion>
       </AcceptanceCriteria>
       <Verification><Command>npm test</Command><Command>playwright chromium + webkit</Command><Command>grace lint --path . --assertions current</Command></Verification>
+    
+      <Status>done</Status>
     </T-003>
     <T-004>
       <Title>Mermaid group 3: readable sizes and non-themeable types (R-2a)</Title>
@@ -85,6 +89,9 @@
         <Criterion>Isolated smoke build (own identifier, HOME, target dir): title bar, outline rail, status bar, lock, chrome font/accent/icons, Settings, View-menu checkmarks, column resize, tree + Recent/Pinned, Mermaid in 4 themes, expand; screenshots; no change to the user's Mark.app.</Criterion>
       </AcceptanceCriteria>
       <Verification><Command>npm test</Command><Command>playwright chromium + webkit</Command><Command>grace lint --path . --assertions current</Command></Verification>
+    
+      <Status>done</Status>
+      <ReviewEvidence>Live smoke 2026-10-16/17 on isolated smoke builds (own identifier, HOME, target dir; the user's Mark.app untouched): title bar, outline rail, status bar, tree (Markdown only, no empty folder or assets), Recent/Pinned, sidebar resize, Mermaid/Vega/donut in Paper, Ink, macOS light/dark and Docs, expand + viewer, Settings. Found and fixed: Vega blocked by the Tauri CSP (5ba31f4b, honesty guard now runs under the real CSP), double sequence render race (1899cf51), viewer header under the traffic lights (08ff5794), Settings title bar ignoring the theme (b34291eb + 0d97076a), plus user feedback turned into T-010..T-014.</ReviewEvidence>
     </T-008>
     <T-009>
       <Title>Agent prompt lists every rich-Markdown feature Mark renders (user 2026-10-16)</Title>
@@ -126,6 +133,8 @@
         <Criterion>Pinned by a unit test over all themes (computed from the real theme CSS tokens through readActiveThemeTokens → buildMermaidThemeConfig) and an e2e that renders a flowchart in Ink, Docs Dark and macOS Dark and measures the computed node rect fill/stroke against the preview background; screenshots per theme.</Criterion>
       </AcceptanceCriteria>
       <Verification><Command>npm test</Command><Command>playwright chromium + webkit (mermaid theme)</Command><Command>grace lint --path . --assertions current</Command></Verification>
+    
+      <Status>done</Status>
     </T-012>
     <T-013>
       <Title>Sidebar typography: no file icons, semibold folders, one row weight, a recognisable pin (user 2026-10-17 smoke)</Title>
@@ -145,6 +154,8 @@
         <Criterion>While a diagram's source is edited, its live preview no longer floats over the following blocks: it takes its own space under the source (in flow), so the next heading/block stays visible and nothing overlaps.</Criterion>
       </AcceptanceCriteria>
       <Verification><Command>npm test</Command><Command>playwright chromium + webkit (block-viewer)</Command><Command>grace lint --path . --assertions current</Command></Verification>
+    
+      <Status>done</Status>
     </T-014>
   </ImplementationPlan>
   <Evidence>

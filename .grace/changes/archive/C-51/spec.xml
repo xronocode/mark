@@ -1,9 +1,9 @@
-<GraceChangeSpec graceVersion='4.0' status='approved'>
+<GraceChangeSpec graceVersion='4.0' status='applied'>
 <C-51>
   <Name>Docs look: Obsidian-style folder tree with Recent and Pinned, Mermaid and content themed by the app theme, always-visible expand button, Docs and macOS theme families</Name>
   <Created>2026-10-16</Created>
   <Priority>high</Priority>
-  <Status>approved</Status>
+  <Status>completed</Status>
   <RoadmapPhase>N</RoadmapPhase>
   <Complexity>L (sub-phases, one release)</Complexity>
 
