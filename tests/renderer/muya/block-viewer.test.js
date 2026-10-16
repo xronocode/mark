@@ -1,10 +1,10 @@
 // FILE: tests/renderer/muya/block-viewer.test.js
-// VERSION: 1.0.0
+// VERSION: 2.0.1
 // START_MODULE_CONTRACT
-//   PURPOSE: Pin the shared fullscreen block viewer (C-34 R2.2 + C-39 T2): open/close lifecycle, Esc close with focus restore, panzoom destruction, read-only table clones, hover/caret toolbar visibility, wheel/keyboard zoom routing, and the focus trap.
+//   PURPOSE: Pin the shared fullscreen block viewer (C-34 R2.2 + C-39 T2 + C-51 T-006): open/close lifecycle, Esc close with focus restore, panzoom destruction, read-only table clones, block resolution from preview/table/figure elements (the persistent expand button dispatches the figure), wheel/keyboard zoom routing, and the focus trap.
 //   SCOPE: BlockViewer in src/muya/lib/ui/blockViewer/index.js with @panzoom/panzoom mocked.
 //   DEPENDS: src/muya/lib/ui/blockViewer, src/muya/lib/eventHandler/event (real EventCenter), Vitest + jsdom.
-//   LINKS: .grace/changes/active/C-34 T-002; .grace/changes/active/C-39 T2; .grace/verification/runtime.xml V-M-012 scenario-19; START_BLOCK_VIEWER_*.
+//   LINKS: .grace/changes/active/C-34 T-002; .grace/changes/active/C-39 T2; .grace/changes/active/C-51 T-006; .grace/verification/runtime.xml V-M-012 scenario-19 and scenario-60; START_BLOCK_VIEWER_*.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT
@@ -13,15 +13,29 @@
 //   TRANSLATIONS - en strings for the viewer keys, injected as muya.options.t.
 //   makePanzoomDouble - @panzoom/panzoom instance double re-installed in beforeEach (the global resetAllMocks wipes implementations).
 //   createHarness - muya stub + real EventCenter + a BlockViewer instance; returns { muya, viewer, container }.
-//   createMermaidFigure - figure > div.ag-container-preview.ag-mermaid-preview with a hoisted <style> and an SVG.
-//   createTable - table.ag-paragraph with contenteditable cells, a drag handler, a tool bar, and a caret span id.
+//   createMermaidFigure - figure[data-role=MERMAID] > div.ag-container-preview.ag-mermaid-preview with a hoisted <style> and an SVG.
+//   createDiagramFigure - figure[data-role=<role>] > div.ag-container-preview with an svg (flowchart/sequence/vega) or an img (plantuml).
+//   createTableFigure - figure[data-role=TABLE] wrapping a table.ag-paragraph (the expand button dispatches figures).
+//   createTable - bare table.ag-paragraph with contenteditable cells, a drag handler, a tool bar, and a caret span id.
 //   lastPanzoom - the most recently constructed panzoom double.
 //   keydown - dispatches a bubbling cancelable keydown on an element.
 //   viewer - the BlockViewer under test for the current case (destroyed in afterEach).
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.0.0 - 2026-10-15 C-34 R2.2/C-39 T2: open/close lifecycle, Esc + focus restore, panzoom destroy, table clone sanitization, hover/caret toolbar, ctrl+wheel vs plain wheel, +/−/0/1 keys, Tab focus trap. These cases fail without the blockViewer module.
+//   LAST_CHANGE: v2.0.1 - 2026-10-16 C-51 T-006 review: added the role-gate
+//   case — math (KaTeX svg) and html (img) previews never resolve, on
+//   either the figure path or the Cmd/Ctrl+click preview path (the first
+//   draft accepted them via the content-only check).
+//   v2.0.0 - 2026-10-16 C-51 T-006: the hover/caret toolbar is
+//   gone (replaced by the persistent per-block expand button); the toolbar
+//   cases now pin the generalized block resolution — openFromElement
+//   accepts the FIGURE the button dispatches, resolves all five diagram
+//   roles (svg content, or an img for plantuml) and the table figure
+//   downward, and refuses figures whose preview has no rendered content.
+//   The remaining viewer cases (open/clone/Esc/panzoom/keys/trap/destroy)
+//   are unchanged from v1.0.0.
+//   v1.0.0 - 2026-10-15 C-34 R2.2/C-39 T2: open/close lifecycle, Esc + focus restore, panzoom destroy, table clone sanitization, hover/caret toolbar, ctrl+wheel vs plain wheel, +/−/0/1 keys, Tab focus trap.
 // END_CHANGE_SUMMARY
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -99,6 +113,36 @@ const createMermaidFigure = (container) => {
   return { figure, preview, svg }
 }
 
+// C-51 T-006: the expand button dispatches the FIGURE, so resolution must
+// find the preview inside it. flowchart/sequence/vega-lite previews hold an
+// svg; plantuml renders an <img>.
+const createDiagramFigure = (container, role, content = 'svg') => {
+  const figure = document.createElement('figure')
+  figure.className = 'ag-container-block'
+  figure.setAttribute('data-role', role)
+  const preview = document.createElement('div')
+  preview.className = 'ag-container-preview'
+  if (content === 'img') {
+    const img = document.createElement('img')
+    img.setAttribute('src', 'https://www.plantuml.com/plantuml/svg/~1x')
+    preview.appendChild(img)
+  } else {
+    preview.appendChild(document.createElementNS('http://www.w3.org/2000/svg', 'svg'))
+  }
+  figure.appendChild(preview)
+  container.appendChild(figure)
+  return { figure, preview }
+}
+
+const createTableFigure = (container) => {
+  const { table, td, cellSpan } = createTable(container)
+  const figure = document.createElement('figure')
+  figure.setAttribute('data-role', 'TABLE')
+  container.replaceChild(figure, table)
+  figure.appendChild(table)
+  return { figure, table, td, cellSpan }
+}
+
 const createTable = (container) => {
   const table = document.createElement('table')
   table.id = 'tbl-1'
@@ -165,7 +209,7 @@ afterEach(() => {
   document.body.innerHTML = ''
 })
 
-describe('block viewer (C-34 R2.2 + C-39 T2)', () => {
+describe('block viewer (C-34 R2.2 + C-39 T2 + C-51 T-006)', () => {
   it('opens a mermaid diagram from the muya-block-viewer event and clones the SVG + hoisted style', () => {
     const { muya, viewer: v, container } = createHarness()
     viewer = v
@@ -246,68 +290,67 @@ describe('block viewer (C-34 R2.2 + C-39 T2)', () => {
     expect(v.canvas.style.maxHeight).toBe('')
   })
 
-  it('hovering a table shows the expand toolbar; moving away hides it after the grace delay', () => {
+  it('resolves the diagram FIGURE the expand button dispatches and opens the viewer', () => {
     const { muya, viewer: v, container } = createHarness()
     viewer = v
-    const { table, td } = createTable(container)
-    const paragraph = document.createElement('p')
-    container.appendChild(paragraph)
+    const { figure } = createMermaidFigure(container)
 
-    td.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }))
-    expect(v.toolbarEl.classList.contains('ag-block-viewer-toolbar-visible')).toBe(true)
-    expect(v.toolbarEl.style.top).not.toBe('')
-    expect(v.toolbarEl.style.left).not.toBe('')
-    // Toolbar never steals the table from the DOM.
-    expect(table.isConnected).toBe(true)
+    muya.eventCenter.dispatch('muya-block-viewer', { element: figure })
 
-    paragraph.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }))
-    // Grace period keeps it visible so the pointer can reach the toolbar…
-    expect(v.toolbarEl.classList.contains('ag-block-viewer-toolbar-visible')).toBe(true)
-    vi.advanceTimersByTime(250)
-    expect(v.toolbarEl.classList.contains('ag-block-viewer-toolbar-visible')).toBe(false)
+    expect(v.viewerEl.classList.contains('ag-block-viewer-open')).toBe(true)
+    expect(v.titleEl.textContent).toBe('Diagram')
+    expect(v.canvas.querySelector('svg g.node')).not.toBeNull()
   })
 
-  it('clicking the expand button opens the viewer for the hovered table', () => {
+  it('resolves flowchart, sequence and vega-lite figures (svg) and plantuml figures (img)', () => {
     const { viewer: v, container } = createHarness()
     viewer = v
-    const { td } = createTable(container)
+    for (const role of ['FLOWCHART', 'SEQUENCE', 'VEGA-LITE', 'PLANTUML']) {
+      v.close({ restoreFocus: false })
+      const { figure } = createDiagramFigure(
+        container,
+        role,
+        role === 'PLANTUML' ? 'img' : 'svg'
+      )
+      expect(v.openFromElement(figure), role).toBe(true)
+      expect(v.viewerEl.classList.contains('ag-block-viewer-open')).toBe(true)
+      expect(v.titleEl.textContent).toBe('Diagram')
+    }
+  })
 
-    td.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }))
-    v.expandBtn.click()
+  it('resolves the table figure downward (the button dispatches the figure, not the table)', () => {
+    const { viewer: v, container } = createHarness()
+    viewer = v
+    const { figure } = createTableFigure(container)
 
+    expect(v.openFromElement(figure)).toBe(true)
     expect(v.viewerEl.classList.contains('ag-block-viewer-open')).toBe(true)
     expect(v.titleEl.textContent).toBe('Table')
   })
 
-  it('the toolbar follows the caret into a table via selectionChange', () => {
-    const { muya, viewer: v, container } = createHarness()
+  it('refuses a diagram figure whose preview has no rendered content yet', () => {
+    const { viewer: v, container } = createHarness()
     viewer = v
-    const { cellSpan } = createTable(container)
+    const { figure } = createDiagramFigure(container, 'MERMAID', 'svg')
+    figure.querySelector('svg').remove()
 
-    muya.eventCenter.dispatch('selectionChange', { start: { key: cellSpan.id } })
-    expect(v.toolbarEl.classList.contains('ag-block-viewer-toolbar-visible')).toBe(true)
-
-    const outside = document.createElement('span')
-    outside.id = 'para-key-1'
-    container.appendChild(outside)
-    muya.eventCenter.dispatch('selectionChange', { start: { key: outside.id } })
-    vi.advanceTimersByTime(250)
-    expect(v.toolbarEl.classList.contains('ag-block-viewer-toolbar-visible')).toBe(false)
+    expect(v.openFromElement(figure)).toBe(false)
+    expect(v.viewerEl.classList.contains('ag-block-viewer-open')).toBe(false)
   })
 
-  it('the toolbar anchors to the mermaid preview when the caret edits its source', () => {
-    const { muya, viewer: v, container } = createHarness()
+  it('refuses math and html previews even when they hold an svg/img (role gate)', () => {
+    const { viewer: v, container } = createHarness()
     viewer = v
-    const { figure } = createMermaidFigure(container)
-    const pre = document.createElement('pre')
-    pre.setAttribute('data-role', 'mermaid')
-    const srcSpan = document.createElement('span')
-    srcSpan.id = 'mermaid-src-key'
-    pre.appendChild(srcSpan)
-    figure.appendChild(pre)
-
-    muya.eventCenter.dispatch('selectionChange', { start: { key: srcSpan.id } })
-    expect(v.toolbarEl.classList.contains('ag-block-viewer-toolbar-visible')).toBe(true)
+    // KaTeX emits svg for radicals; html previews can contain imgs — the
+    // ROLE gate must keep both unviewable (only the five diagram roles are).
+    for (const role of ['MULTIPLEMATH', 'HTML']) {
+      const kind = role === 'MULTIPLEMATH' ? 'svg' : 'img'
+      const { figure, preview } = createDiagramFigure(container, role, kind)
+      expect(v.openFromElement(figure), role).toBe(false)
+      expect(v.openFromElement(preview), `${role} preview (Cmd/Ctrl+click path)`).toBe(false)
+      figure.remove()
+    }
+    expect(v.viewerEl.classList.contains('ag-block-viewer-open')).toBe(false)
   })
 
   it('ctrl/cmd wheel zooms via zoomWithWheel; plain wheel pans the diagram canvas', () => {
@@ -383,21 +426,20 @@ describe('block viewer (C-34 R2.2 + C-39 T2)', () => {
     expect(document.activeElement).toBe(last)
   })
 
-  it('destroy removes the overlay and toolbar and stops reacting to events', () => {
+  it('destroy removes the overlay and stops reacting to muya-block-viewer events', () => {
     const { muya, viewer: v, container } = createHarness()
     viewer = v
-    const { cellSpan } = createTable(container)
+    createTableFigure(container)
     const viewerEl = v.viewerEl
-    const toolbarEl = v.toolbarEl
 
     v.destroy()
 
     expect(viewerEl.isConnected).toBe(false)
-    expect(toolbarEl.isConnected).toBe(false)
 
-    // Neither hover nor caret events revive the toolbar after destroy.
-    cellSpan.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }))
-    muya.eventCenter.dispatch('selectionChange', { start: { key: cellSpan.id } })
-    expect(toolbarEl.classList.contains('ag-block-viewer-toolbar-visible')).toBe(false)
+    // Dispatching the expand-button event after destroy revives nothing.
+    const figure = container.querySelector("figure[data-role='TABLE']")
+    muya.eventCenter.dispatch('muya-block-viewer', { element: figure })
+    expect(v.viewerEl.classList.contains('ag-block-viewer-open')).toBe(false)
+    expect(v.viewerEl.isConnected).toBe(false)
   })
 })

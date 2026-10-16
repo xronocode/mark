@@ -1,9 +1,12 @@
 /*
- * Shared fullscreen block viewer (C-34 R2.2 + C-39 T2): Mermaid diagrams
- * and tables. All viewer CSS lives here on purpose — the parallel C-39 T1
- * task edits the table section of assets/styles/index.css, so this file
- * must not be merged with it. Light/dark parity comes from the existing
- * CSS variables.
+ * Shared fullscreen block viewer (C-34 R2.2 + C-39 T2, updated by C-51
+ * T-006): Mermaid diagrams and tables. All viewer CSS lives here on
+ * purpose — the parallel C-39 T1 task edits the table section of
+ * assets/styles/index.css, so this file must not be merged with it.
+ * Light/dark parity comes from the existing CSS variables. The expand
+ * entry point is the persistent per-block button styled in
+ * assets/styles/index.css (C-51 T-006); the old hover/caret toolbar is
+ * gone.
  */
 
 /* START_BLOCK_CSS_OVERLAY */
@@ -153,47 +156,3 @@
   border-collapse: collapse;
 }
 /* END_BLOCK_CSS_TABLE */
-
-/* START_BLOCK_CSS_TOOLBAR */
-/* One hover/caret toolbar that follows the hovered block. It sits in the
- * strip above the block (right-aligned) so table cells, drag bars and the
- * table tools row keep their clicks. */
-.ag-block-viewer-toolbar {
-  display: none;
-  position: fixed;
-  z-index: 100000;
-  padding: 2px;
-  background: var(--floatBgColor);
-  border: 1px solid var(--editorColor10);
-  border-radius: 4px;
-  box-shadow: var(--floatShadow);
-}
-
-.ag-block-viewer-toolbar.ag-block-viewer-toolbar-visible {
-  display: flex;
-}
-
-.ag-block-viewer-toolbar button {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 30px;
-  height: 26px;
-  padding: 0;
-  box-sizing: border-box;
-  border: none;
-  border-radius: 3px;
-  background: transparent;
-  color: var(--editorColor);
-  font-size: 15px;
-  line-height: 1;
-  cursor: pointer;
-}
-
-.ag-block-viewer-toolbar button:hover,
-.ag-block-viewer-toolbar button:focus-visible {
-  background: var(--floatHoverColor);
-  color: var(--themeColor);
-  outline: none;
-}
-/* END_BLOCK_CSS_TOOLBAR */

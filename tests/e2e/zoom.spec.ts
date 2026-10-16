@@ -284,8 +284,7 @@ test.describe('unified zoom (C-49)', () => {
     await preview.waitFor({ state: 'visible', timeout: 20_000 })
     const fontBefore = await editorFontSizePx(page)
 
-    await preview.hover()
-    await page.locator('.ag-block-viewer-toolbar .ag-block-viewer-expand').click()
+    await page.locator('figure[data-role="MERMAID"] > button.ag-block-expand').first().click()
     await expect(page.locator('.ag-block-viewer')).toHaveClass(/ag-block-viewer-open/)
     await page.waitForTimeout(250)
 
