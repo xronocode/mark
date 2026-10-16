@@ -1,5 +1,5 @@
 // FILE: src/muya/lib/parser/render/index.js
-// VERSION: 1.5.0
+// VERSION: 1.5.1
 // START_MODULE_CONTRACT
 //   PURPOSE: Render muya ContentState blocks to the DOM via snabbdom and drive the asynchronous previews (math, mermaid, diagrams, images).
 //   SCOPE: StateRender — full/partial/single-block render, selector building, mermaid dispatch into the resilient pipeline, diagram rendering (C-51 T-005: vega-lite/flowchart/sequence options and post-pass themed from the active app theme), render caches, the C-38 line-number gutter measurement queue, and keeping C-39 table scroll and C-39 T-002 session column widths across renders.
@@ -14,7 +14,12 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.5.0 - 2026-10-16 C-51 T-005 (R-3): renderDiagram themes
+//   LAST_CHANGE: v1.5.1 - 2026-10-16 C-51 T-008 (live smoke): the diagram
+//   error text names the failing fence (DIAGRAM_ERROR_LABEL) — a failed
+//   vega-lite block used to read «Invalid Sequence Codes». The failure
+//   itself (vega codegen blocked by the Tauri CSP) is fixed in
+//   ../../renderers (ast + vega-interpreter).
+//   v1.5.0 - 2026-10-16 C-51 T-005 (R-3): renderDiagram themes
 //   vega-lite, flowchart.js and js-sequence from the active app theme —
 //   tokens are read at render time (readActiveThemeTokens) and the
 //   builders/post-pass come from contentTheme.js (same categorical
@@ -54,6 +59,13 @@ import {
   applySequenceTheme,
   applySequenceThemeWhenDrawn
 } from './contentTheme'
+
+const DIAGRAM_ERROR_LABEL = {
+  flowchart: 'Flow Chart',
+  sequence: 'Sequence',
+  plantuml: 'PlantUML',
+  'vega-lite': 'Vega-Lite'
+}
 
 class StateRender {
   constructor(muya) {
@@ -168,6 +180,8 @@ class StateRender {
   }
   // END_BLOCK_MERMAID_DISPATCH
 
+  // The error text names the fence that failed (vega-lite used to say
+  // "Sequence").
   async renderDiagram() {
     const cache = this.diagramCache
     if (cache.size) {
@@ -235,7 +249,7 @@ class StateRender {
             await render(key, JSON.parse(code), options)
           }
         } catch (err) {
-          target.innerHTML = `< Invalid ${functionType === 'flowchart' ? 'Flow Chart' : 'Sequence'} Codes >`
+          target.innerHTML = `< Invalid ${DIAGRAM_ERROR_LABEL[functionType] || 'Diagram'} Codes >`
           target.classList.add(CLASS_OR_ID.AG_MATH_ERROR)
         }
       }

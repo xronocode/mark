@@ -7,6 +7,9 @@
  * each actually rendered — so the prompt can never drift ahead of the
  * renderer:
  *
+ * Everything renders under the packaged app's Content-Security-Policy
+ * (fixtures/tauri-csp.ts), and no CSP violation may be recorded.
+ *
  *   - all 22 Mermaid diagram types (one <svg> per block, no
  *     .ag-mermaid-error anywhere);
  *   - ```vega-lite, ```flowchart (flowchart.js) and ```sequence blocks
@@ -27,6 +30,7 @@
 import { test, expect, type Page } from '@playwright/test'
 import { installTauriShim } from './fixtures/tauri-shim'
 import { bootEditor, openFileTab } from './fixtures/helpers'
+import { applyTauriCsp, readCspViolations } from './fixtures/tauri-csp'
 
 // 1×1 px red dot PNG — no network, no fixture file.
 const DOT_PNG =
@@ -170,7 +174,15 @@ async function openCoverageDoc (page: Page, markdown: string): Promise<void> {
 
 test.describe('rich Markdown coverage (C-51 T-009)', () => {
   test.beforeEach(async ({ page }) => {
+    // Render under the packaged app's real CSP (no 'unsafe-eval'): the
+    // prompt's claims must hold in Mark.app, not only in a CSP-less preview
+    // (C-51 T-008: vega-lite rendered here but failed in the app).
+    await applyTauriCsp(page)
     await installTauriShim(page)
+  })
+
+  test.afterEach(async ({ page }) => {
+    expect(await readCspViolations(page)).toEqual([])
   })
 
   test('all 22 mermaid types the prompt names render an SVG with no error', async ({ page }) => {
