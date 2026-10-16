@@ -5575,6 +5575,63 @@
           land in test-results/mermaid-themes/ (CI artifact
           mermaid-theme-screenshots).
         </Scenario>
+        <Scenario>
+          scenario-23: Other rendered content follows the app theme (C-51
+          T-005, parser/render/contentTheme.js START_BLOCK_CONTENT_* +
+          parser/render/index.js renderDiagram START_BLOCK_DIAGRAM_THEME_OPTIONS
+          + utils/exportHtml.js renderDiagram + mermaidTheme.js chartPalette):
+          Vega-Lite charts embed with a config built from the active
+          theme tokens — background null (transparent, the block&apos;s own
+          --codeBlockBgColor panel shows through), the theme font, axis
+          domain/tick/grid = the border token, axis/legend labels and
+          titles = muted, chart title = text, mark default colour and
+          range.category = chartPalette (the SAME categorical palette
+          Mermaid uses — the theme&apos;s --chartPalette when present, else
+          the OKLCH palette from the accent; chartPalette is exported
+          from mermaidTheme.js as the single definition) — replacing the
+          named latimes/dark vega themes; a user&apos;s own spec.config wins
+          because vega-embed merges spec.config over the passed config
+          (sub-objects wholesale — pinned with vega&apos;s own mergeConfig);
+          flowchart.js drawSVG gets line-color = line token,
+          element-color = border, fill = surface, font-color = text,
+          font-family = the theme font; js-sequence keeps the hand/simple
+          preference (only simple gets the theme font; hand keeps the
+          danielbd hand-drawn look) and its hard-coded #000/#fff SVG is
+          repainted after drawSVG by applySequenceTheme (text = text
+          token, connectors and arrowhead markers = line token, boxes =
+          surface/border, notes = Mermaid&apos;s noteBkg tint pair);
+          renderDiagram reads the tokens at render time and logs
+          [Muya][renderDiagram][BLOCK_DIAGRAM_THEME], so the
+          setOptions(_, true) full render a theme switch triggers
+          re-renders every diagram with the new tokens (the vegaTheme
+          muya option is no longer consumed, like mermaidTheme after
+          T-003); the export path (HTML/PDF/print) uses the same
+          configs; KaTeX inherits the text colour with no hard-coded
+          colour in katex.css or the muya math styles (inline
+          .ag-math-render color and the contenteditable base). Unit-pinned
+          in tests/renderer/muya/content-theme.test.js (chartPalette
+          sharing, vega config values incl. user-config-wins through
+          vega&apos;s mergeConfig, flowchart options, sequence options and
+          SVG repaint, StateRender wiring incl. theme-switch re-render
+          and the error placeholder — fails against the pre-T-005
+          renderDiagram) and
+          tests/renderer/muya/export-content-theme.test.js (export
+          wiring, dark tokens, muya-provided sequenceTheme, error
+          placeholder). End-to-end in tests/e2e/content-theme.spec.ts
+          (chromium + the webkit-content-theme project): a document with
+          a vega-lite bar chart, a two-series line chart, a user-config
+          chart, a flowchart.js block, a sequence block and inline +
+          display math in paper and ink — computed bar fill = palette
+          hue 0 (≠ vega default #4c78a8), two series strokes = palette
+          hues 0/1, vega text fills ∈ {muted, text} and never black,
+          axis strokes = the border colour, the user config chart keeps
+          its own colour, flowchart connector strokes = the line colour
+          and shape fills = the surface, sequence text = the text colour
+          (readable on dark) with themed boxes and the note tint,
+          KaTeX colour = the theme text colour for both math shapes,
+          paper → ink re-renders vega with the new bar and label
+          colours, and screenshots land via test.info().outputPath.
+        </Scenario>
       </Scenarios>
       <Markers>
         <Marker>[Muya][parse][BLOCK_TOKENIZE]</Marker>
@@ -5608,6 +5665,11 @@
         <Marker>
           [Muya][renderMermaid][BLOCK_MERMAID_THEME_INIT diagramType=&lt;type&gt;
           themeSignature=&lt;sig&gt;]
+        </Marker>
+        <!-- C-51 T-005 themed vega-lite/flowchart/sequence render. -->
+        <Marker>
+          [Muya][renderDiagram][BLOCK_DIAGRAM_THEME themeSignature=&lt;sig&gt;
+          blocks=&lt;n&gt;]
         </Marker>
         <!-- C-34 R2.2 + C-39 T2 shared fullscreen block viewer. -->
         <Marker>[Muya][blockViewer][BLOCK_VIEWER_OPEN]</Marker>
