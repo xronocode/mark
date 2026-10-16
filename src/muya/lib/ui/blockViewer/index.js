@@ -1,20 +1,54 @@
 // FILE: src/muya/lib/ui/blockViewer/index.js
-// VERSION: 2.0.2
+// VERSION: 3.1.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Shared fullscreen block viewer (C-34 R2.2 + C-39 T2) that shows a Mermaid/flowchart/sequence/plantuml/vega-lite diagram (clone of the current preview, no re-render) or a read-only clone of a rendered table with pan/zoom via @panzoom/panzoom.
-//   SCOPE: viewer open/close lifecycle, diagram-preview and table-clone sanitization, wheel/pinch/key zoom, drag pan, focus trap and focus restore, panzoom cleanup, and block resolution from an element (preview, table, or the FIGURE the C-51 persistent expand button dispatches).
-//   DEPENDS: @panzoom/panzoom, muya/lib/config (CLASS_OR_ID, EVENT_KEYS), muya/lib/eventHandler/event (via muya.eventCenter).
-//   LINKS: .grace/changes/active/C-34 T-002; .grace/changes/active/C-39 T2 and T-002 (viewer shows the session column widths — the clone carries the live colgroup — but no resize handles); .grace/changes/active/C-51 T-006 (always-visible expand button, scenario-60); .grace/graph/runtime.xml M-012; .grace/verification/runtime.xml V-M-012 scenario-19.
+//   SCOPE: viewer open/close lifecycle, diagram-preview and table-clone sanitization, wheel/pinch/key zoom, drag pan, focus trap and focus restore, panzoom cleanup, block resolution from an element (preview, table, or the FIGURE the C-51 persistent expand button dispatches), and the C-51 T-014 polish: fit scales small content UP to the stage (no 1:1 cap) and an open viewer follows option-driven re-renders (theme switches) by re-cloning the live block once its diagram content has actually CHANGED (never the viewer's own clone; the captured figure element is a fallback anchor), keeping zoom/pan.
+//   DEPENDS: @panzoom/panzoom, muya/lib/config (CLASS_OR_ID, EVENT_KEYS), muya/lib/eventHandler/event (via muya.eventCenter; Muya#setOptions dispatches muya-options-rerender after a needRender re-render).
+//   LINKS: .grace/changes/active/C-34 T-002; .grace/changes/active/C-39 T2 and T-002 (viewer shows the session column widths — the clone carries the live colgroup — but no resize handles); .grace/changes/active/C-51 T-006 (always-visible expand button, scenario-60) and T-014 (theme-follow, fit-up, scenario-64); .grace/graph/runtime.xml M-012; .grace/verification/runtime.xml V-M-012 scenario-19.
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
-//   default - BlockViewer muya UI plugin (pluginName 'blockViewer'): builds the overlay once, opens on 'muya-block-viewer' events (the persistent button.ag-block-expand clicks, Cmd/Ctrl+click on a preview), closes on Esc/close/backdrop.
+//   default - BlockViewer muya UI plugin (pluginName 'blockViewer'): builds the overlay once, opens on 'muya-block-viewer' events (the persistent button.ag-block-expand clicks, Cmd/Ctrl+click on a preview), closes on Esc/close/backdrop; on 'muya-options-rerender' (theme switch full re-render) an open viewer polls the live block until its content differs from the last clone (outerHTML token; the mermaid pipeline re-inserts the last-good OLD-theme svg synchronously before the async re-draw lands) and swaps the clone in place, keeping the panzoom transform.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v2.0.2 - 2026-10-16 C-51 T-010: the close() re-asserts
+//   LAST_CHANGE: v3.1.0 - 2026-10-17 C-51 T-014 gate results: the
+//   theme-refresh poll had two resolution bugs and one race. (1) The
+//   by-id lookup could resolve the viewer's OWN clone — cloneNode keeps
+//   the preview div's id and the SVG id is deliberately shared (mermaid
+//   scopes its hoisted styles by it) — so after a re-render replaced the
+//   live element, the poll re-cloned the clone (stale content forever).
+//   Id resolution now skips anything inside the overlay. (2) Re-renders
+//   that replace the inner elements of an id-less (or re-created) figure
+//   never resolved; the figure ELEMENT captured at open is now a fallback
+//   anchor (isConnected-checked). (3) Chromium race: the mermaid
+//   pipeline re-inserts the last-good OLD-theme svg into the live
+//   preview synchronously during the re-render (before the async
+//   mermaid.render lands), so the poll's first tick saw "content
+//   present", cloned the old colours and stopped. The poll now gates on
+//   a content token (the LIVE source's outerHTML — the clone's own
+//   serialization is never compared since cloneDiagramPreview mutates
+//   the clone's inline sizing): unchanged content keeps waiting, a
+//   change refreshes and ends the poll, the token baseline moves with
+//   every clone so consecutive theme switches each re-arm.
+//   v3.0.0 - 2026-10-17 C-51 T-014 (live smoke
+//   2026-10-16): (1) fit no longer caps at 1:1 — computeFitScale is
+//   min(availW/w, availH/h) clamped to [MIN_SCALE, MAX_SCALE], so a small
+//   diagram/chart opens fitted UP to the viewer stage (the Fit button
+//   and the initial open share the maths; 1:1 still restores the natural
+//   size; big diagrams keep scaling down as before). (2) An open viewer
+//   follows option-driven re-renders (the app theme switch re-renders
+//   every diagram through setOptions(_, true)): Muya#setOptions
+//   dispatches muya-options-rerender after the sync DOM patch, and the
+//   viewer polls the LIVE block (by block-key id — element ids survive
+//   re-patches) until its preview carries rendered content again
+//   (mermaid pipeline insert / renderDiagram insert are async), then
+//   re-clones in place, keeping the panzoom transform so zoom and
+//   position survive; the clone used to keep the OLD theme's colours
+//   until closed and reopened.
+//   v2.0.2 - 2026-10-16 C-51 T-010: the close() re-asserts
 //   resolve the LIVE expand button from returnFocusFigureId on every
 //   firing — a re-render during the 400 ms window (the closing key's
 //   keyup could trigger a partial render) replaces the figure's DOM, and
@@ -58,6 +92,12 @@ const FIT_PADDING = 32
 const ZOOM_KEY_FACTOR = 1.25
 const MIN_SCALE = 0.05
 const MAX_SCALE = 8
+// C-51 T-014: the theme-refresh poll cadence and budget. Diagrams
+// re-draw asynchronously after a needRender setOptions (mermaid pipeline
+// ~250 ms debounce, awaited vega embed), so the viewer waits for the
+// live block's content instead of cloning the loading placeholder.
+const THEME_REFRESH_POLL_MS = 100
+const THEME_REFRESH_TIMEOUT_MS = 10000
 
 // The five diagram roles whose figures carry the persistent expand button
 // (C-51 T-006). html/multiplemath previews are deliberately not viewable.
@@ -138,6 +178,18 @@ class BlockViewer {
     this.returnFocusEl = null
     this.panzoom = null
     this.destroyed = false
+    // C-51 T-014: the live source block of the open clone and its figure
+    // id (the block key — element ids survive muya re-patches), plus the
+    // theme-refresh poll state. The figure ELEMENT is the fallback anchor
+    // when the id cannot resolve (re-renders may replace the inner
+    // elements while the figure itself is patched in place), and
+    // lastClonedToken gates the poll on actual content change.
+    this.sourceEl = null
+    this.sourceFigureId = null
+    this.sourceFigureEl = null
+    this.lastClonedToken = null
+    this.refreshTimer = null
+    this.refreshDeadline = 0
     this.buildViewer()
     this.listen()
   }
@@ -273,6 +325,15 @@ class BlockViewer {
   open ({ kind, source }) {
     this.close({ restoreFocus: false })
     this.kind = kind
+    // C-51 T-014: remember the live source block so a later options
+    // re-render (theme switch) can refresh the clone from the re-rendered
+    // block. Block-key ids survive muya re-patches, so the poll below can
+    // re-resolve the LIVE elements after the DOM swap.
+    this.sourceEl = source || null
+    const sourceFigure = source && source.closest ? source.closest('figure') : null
+    this.sourceFigureId = sourceFigure && sourceFigure.id ? sourceFigure.id : null
+    this.sourceFigureEl = sourceFigure || null
+    this.lastClonedToken = this.sourceToken(source)
     const active = document.activeElement
     const inViewerUi = active && this.viewerEl && this.viewerEl.contains(active)
     this.returnFocusEl =
@@ -365,15 +426,23 @@ class BlockViewer {
     return { w, h }
   }
 
+  // START_BLOCK_VIEWER_FIT_SCALE
+  // C-51 T-014: fit is min(availW/w, availH/h) clamped to
+  // [MIN_SCALE, MAX_SCALE] — NO 1:1 cap. The inherited cap kept a small
+  // diagram opening at 100% (tiny chart in a huge stage, user smoke
+  // 2026-10-16); big diagrams still scale down exactly as before because
+  // their min is already < 1. The Fit button, the '0' key and the initial
+  // open share this maths; 1:1 (actualSize) still restores natural size.
   computeFitScale () {
     const availW = this.stage.clientWidth
     const availH = this.stage.clientHeight
     if (!availW || !availH) return 1
     const { w, h } = this.contentSize()
-    const fit = Math.min((availW - FIT_PADDING) / w, (availH - FIT_PADDING) / h, 1)
+    const fit = Math.min((availW - FIT_PADDING) / w, (availH - FIT_PADDING) / h)
     if (!Number.isFinite(fit)) return 1
     return Math.min(Math.max(fit, MIN_SCALE), MAX_SCALE)
   }
+  // END_BLOCK_VIEWER_FIT_SCALE
 
   // Panzoom composes `scale(s) translate(x, y)` around the canvas centre:
   // the translation is applied in the pre-scale space, so the desired
@@ -547,6 +616,11 @@ class BlockViewer {
     if (!this.isOpen) return
     this.isOpen = false
     this.focusableEls = null
+    this.cancelThemeRefresh()
+    this.sourceEl = null
+    this.sourceFigureId = null
+    this.sourceFigureEl = null
+    this.lastClonedToken = null
     this.destroyPanzoom()
     this.canvas.style.maxHeight = ''
     this.canvas.innerHTML = ''
@@ -614,6 +688,132 @@ class BlockViewer {
     }
   }
 
+  // START_BLOCK_VIEWER_THEME_REFRESH
+  // C-51 T-014: an open viewer follows option-driven re-renders — the app
+  // theme switch re-renders every block through Muya#setOptions(_, true),
+  // which dispatches muya-options-rerender after the sync DOM patch. The
+  // diagrams themselves finish asynchronously (mermaid pipeline insert,
+  // awaited vega embed), so the refresh POLLS the live block until its
+  // preview carries RENDERED content again that DIFFERS from what the
+  // viewer already shows, then re-clones in place.
+  // resolveLiveSource finds the re-rendered block: muya element ids are
+  // block keys and survive re-patches, so the captured source id (or the
+  // figure id / the captured figure element) resolves the live element;
+  // the content check keeps the poll waiting through the loading
+  // placeholder. Id lookups never resolve the viewer's OWN clone — it
+  // legitimately shares the source's ids (cloneNode keeps the div id; the
+  // SVG id is shared on purpose so mermaid's scoped styles apply) and
+  // would otherwise feed the refresh its own stale copy.
+  sourceToken (source) {
+    return source && typeof source.outerHTML === 'string' ? source.outerHTML : null
+  }
+
+  resolveLiveSource () {
+    if (!this.sourceEl && !this.sourceFigureId && !this.sourceFigureEl) return null
+    const byId = (id) => {
+      if (!id) return null
+      const el = document.getElementById(id)
+      if (!el || (this.viewerEl && this.viewerEl.contains(el))) return null
+      return el
+    }
+    const liveFigure = () =>
+      byId(this.sourceFigureId) ||
+      (this.sourceFigureEl && this.sourceFigureEl.isConnected ? this.sourceFigureEl : null)
+    if (this.kind === 'table') {
+      const direct = byId(this.sourceEl && this.sourceEl.id)
+      if (direct && direct.tagName === 'TABLE') return direct
+      const figure = liveFigure()
+      const table = figure && figure.querySelector(`table.${CLASS_OR_ID.AG_PARAGRAPH}`)
+      return table || null
+    }
+    const direct = byId(this.sourceEl && this.sourceEl.id)
+    if (direct && this.diagramPreviewHasContent(direct)) return direct
+    const figure = liveFigure()
+    if (figure) {
+      const preview = figure.querySelector(`div.${CLASS_OR_ID.AG_CONTAINER_PREVIEW}`)
+      if (this.diagramPreviewHasContent(preview)) return preview
+    }
+    return null
+  }
+
+  refreshCloneFrom (source) {
+    // Swap the canvas content in place: the panzoom transform rides the
+    // canvas element itself, so the current zoom and pan survive the
+    // refresh (kept "where practical" — a same-size re-rendered diagram
+    // does not move at all).
+    this.sourceEl = source
+    const figure = source.closest ? source.closest('figure') : null
+    if (figure && figure.id) {
+      this.sourceFigureId = figure.id
+    }
+    this.sourceFigureEl = figure || null
+    this.lastClonedToken = this.sourceToken(source)
+    const clone = this.kind === 'table'
+      ? sanitizeTableClone(source)
+      : cloneDiagramPreview(source)
+    this.canvas.innerHTML = ''
+    this.canvas.appendChild(clone)
+    console.debug('[Muya][blockViewer][BLOCK_VIEWER_THEME_REFRESH] clone refreshed', {
+      kind: this.kind,
+      blockKey: this.sourceFigureId
+    })
+    this.muya.eventCenter.dispatch('muya-block-viewer-refreshed', { kind: this.kind })
+  }
+
+  scheduleThemeRefresh () {
+    if (!this.isOpen) return
+    // A re-render already polling extends its deadline; a fresh one
+    // starts the poll. The first tick is immediate (tables and patched
+    // previews are ready right after the DOM swap).
+    this.refreshDeadline = Date.now() + THEME_REFRESH_TIMEOUT_MS
+    if (this.refreshTimer) return
+    const tick = () => {
+      this.refreshTimer = null
+      if (!this.isOpen || this.destroyed) return
+      const source = this.resolveLiveSource()
+      if (source) {
+        // Content present is not enough: the mermaid pipeline re-inserts
+        // the last-good OLD-theme svg synchronously during the re-render,
+        // before the async re-draw lands (mermaidPipeline.render's
+        // insertSvg(target, good.svg)). Cloning that unchanged content
+        // would freeze the old theme and end the poll. The token is read
+        // from the LIVE source only — the viewer's clone carries its own
+        // inline sizing overrides and never compares equal.
+        const token = this.sourceToken(source)
+        if (token === null || token !== this.lastClonedToken) {
+          this.refreshCloneFrom(source)
+          return
+        }
+      }
+      if (Date.now() >= this.refreshDeadline) {
+        // The block may be gone (deleted by the re-render), its diagram
+        // never came back, or the re-render produced identical content
+        // (nothing visually changed) — keep the last clone rather than
+        // blanking.
+        console.debug('[Muya][blockViewer][BLOCK_VIEWER_THEME_REFRESH] timed out', {
+          kind: this.kind
+        })
+        return
+      }
+      this.refreshTimer = setTimeout(tick, THEME_REFRESH_POLL_MS)
+    }
+    this.refreshTimer = setTimeout(tick, 0)
+  }
+
+  cancelThemeRefresh () {
+    if (this.refreshTimer) {
+      clearTimeout(this.refreshTimer)
+      this.refreshTimer = null
+    }
+  }
+
+  onOptionsRerender = () => {
+    if (this.isOpen) {
+      this.scheduleThemeRefresh()
+    }
+  }
+  // END_BLOCK_VIEWER_THEME_REFRESH
+
   onOpenEvent = ({ element } = {}) => {
     if (element) {
       this.openFromElement(element)
@@ -623,6 +823,9 @@ class BlockViewer {
   listen () {
     const { eventCenter } = this.muya
     eventCenter.subscribe('muya-block-viewer', this.onOpenEvent)
+    // C-51 T-014: option-driven re-renders (theme switch) refresh the
+    // open clone once the live block's diagram has re-drawn.
+    eventCenter.subscribe('muya-options-rerender', this.onOptionsRerender)
     this.viewerEl.addEventListener('keydown', this.onKeydown)
     this.stage.addEventListener('wheel', this.onWheel, { passive: false })
     this.backdropEl.addEventListener('click', this.onBackdropClick)
@@ -640,6 +843,7 @@ class BlockViewer {
     this.canvas.removeEventListener('panzoomchange', this.onPanzoomChange)
     const { eventCenter } = this.muya
     eventCenter.unsubscribe('muya-block-viewer', this.onOpenEvent)
+    eventCenter.unsubscribe('muya-options-rerender', this.onOptionsRerender)
     // container DOM events are detached by muya's detachAllDomEvents()
     this.viewerEl.remove()
   }

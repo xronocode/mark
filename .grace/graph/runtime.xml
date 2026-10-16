@@ -3694,6 +3694,47 @@
         own HTML and never sees the button. Cmd/Ctrl+click on a diagram
         routed via clickEvent.js (muya-block-viewer event) still opens
         the viewer for every viewable block regardless of the class.
+        C-51 T-014 (live smoke 2026-10-16; gate round 2026-10-17,
+        ui/blockViewer v3.1.0): the block viewer fit no
+        longer caps at 1:1 — ui/blockViewer computeFitScale is
+        min(availW/w, availH/h) clamped to [MIN_SCALE, MAX_SCALE], so a
+        small diagram/chart opens fitted UP to the viewer stage (the
+        Fit button, the '0' key and the initial open share the maths;
+        1:1 still restores the natural size; big diagrams scale down
+        exactly as before). An OPEN viewer follows option-driven
+        re-renders (the app theme switch re-renders every block):
+        Muya#setOptions(_, true) dispatches muya-options-rerender after
+        the sync DOM patch, and the viewer polls the LIVE block every
+        100 ms (10 s budget) — muya element ids are block keys and
+        survive re-patches, so the captured source id, the figure id or
+        the figure ELEMENT captured at open (isConnected-checked
+        fallback) re-resolves the re-rendered element; id lookups never
+        resolve the viewer's own clone (cloneNode keeps the preview div
+        id and the svg id is shared on purpose for mermaid's scoped
+        styles — the poll used to re-clone its own stale copy); the
+        svg/img content check keeps the poll waiting through the
+        loading placeholder, and a changed-content token (outerHTML of
+        the LIVE source — never the mutated clone) keeps it waiting
+        through the mermaid pipeline's synchronous last-good re-insert
+        of the OLD-theme svg until the async re-draw actually lands
+        (the chromium race: cloning the unchanged content froze the old
+        theme and ended the poll); a token change re-clones in place
+        keeping the panzoom transform and ends the poll
+        (zoom/pan; close cancels the poll; a missing, never-returning
+        or content-identical block keeps the last clone when the budget
+        runs out); refreshes dispatch muya-block-viewer-refreshed and
+        log [Muya][blockViewer][BLOCK_VIEWER_THEME_REFRESH]. While a
+        container block's source is EDITED, its live preview sits in
+        normal flow BELOW the source (assets/styles/index.css: the
+        inherited MarkText position:absolute float covered the
+        following blocks — a flowchart being edited hid the next
+        heading); same framed-panel look with the float's 20 px gap as
+        margin-top, unscoped so multiplemath edits in flow too (the
+        computed position stays relative via muya's universal
+        .ag-paragraph rule — in flow, space reserved; only absolute
+        takes the preview out of flow); the
+        html preview keeps its own hide-while-active rule and the 32
+        per-theme overrides only re-declare the shadow.
         C-38 T-005 (#1648): fence/indent code
         blocks render an opt-in line-numbers gutter
         (renderContainerBlock.js START_BLOCK_CODE_LINE_NUMBERS +
