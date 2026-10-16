@@ -26,9 +26,12 @@ import { loadGuideMarkdown } from '@/util/guideDoc'
 const mdToMarkdown = (markdown) => {
   const container = document.createElement('div')
   document.body.appendChild(container)
+  const muya = new Muya(container, { markdown })
   try {
-    return new Muya(container, { markdown }).getMarkdown()
+    return muya.getMarkdown()
   } finally {
+    // Tear the instance down so no render timer logs after the test ends.
+    try { if (typeof muya.destroy === 'function') muya.destroy() } catch (e) { /* partial UI in jsdom */ }
     container.remove()
   }
 }
@@ -39,12 +42,13 @@ describe('exportMarkdown fence length (C-51 T-009)', () => {
   // The muya export path logs asynchronously; with coverage on (macOS CI)
   // a log still in flight when the worker closes is reported as an
   // unhandled «Closing rpc while onUserConsoleLog was pending». Silence it.
-  let spies = []
+  // Kept silenced until the worker closes (restoring in afterAll let a late
+  // log through on Ubuntu CI); the file runs in its own worker.
   beforeAll(() => {
-    spies = ['log', 'debug', 'info', 'warn'].map((m) => vi.spyOn(console, m).mockImplementation(() => {}))
+    for (const m of ['log', 'debug', 'info', 'warn', 'error']) vi.spyOn(console, m).mockImplementation(() => {})
   })
-  afterAll(() => {
-    for (const s of spies) s.mockRestore()
+  afterAll(async () => {
+    await new Promise((resolve) => setTimeout(resolve, 50))
   })
 
   it('a block naming ``` fences re-exports inside a longer outer fence', () => {
