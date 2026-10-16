@@ -1,10 +1,10 @@
 // FILE: src/muya/lib/parser/render/index.js
-// VERSION: 1.4.0
+// VERSION: 1.5.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Render muya ContentState blocks to the DOM via snabbdom and drive the asynchronous previews (math, mermaid, diagrams, images).
-//   SCOPE: StateRender — full/partial/single-block render, selector building, mermaid dispatch into the resilient pipeline, diagram rendering, render caches, the C-38 line-number gutter measurement queue, and keeping C-39 table scroll and C-39 T-002 session column widths across renders.
-//   DEPENDS: ./snabbdom, ./renderBlock, ./renderInlines, ./mermaidPipeline, ../../renderers, ../../config, ../../utils, ../rules
-//   LINKS: M-011 muya editor surface; C-34 R2.1; START_BLOCK_MERMAID_DISPATCH; C-38 T-005 lineNumberPreKeys; C-39 T-001 START_BLOCK_TABLE_SCROLL_KEEP; C-39 T-002 START_BLOCK_TABLE_WIDTHS_KEEP
+//   SCOPE: StateRender — full/partial/single-block render, selector building, mermaid dispatch into the resilient pipeline, diagram rendering (C-51 T-005: vega-lite/flowchart/sequence options and post-pass themed from the active app theme), render caches, the C-38 line-number gutter measurement queue, and keeping C-39 table scroll and C-39 T-002 session column widths across renders.
+//   DEPENDS: ./snabbdom, ./renderBlock, ./renderInlines, ./mermaidPipeline, ./mermaidTheme, ./contentTheme, ../../renderers, ../../config, ../../utils, ../rules
+//   LINKS: M-011 muya editor surface; C-34 R2.1; START_BLOCK_MERMAID_DISPATCH; START_BLOCK_DIAGRAM_THEME_OPTIONS; C-38 T-005 lineNumberPreKeys; C-39 T-001 START_BLOCK_TABLE_SCROLL_KEEP; C-39 T-002 START_BLOCK_TABLE_WIDTHS_KEEP
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT
@@ -14,7 +14,17 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.4.0 - 2026-10-15 C-39 T-002: every render path calls
+//   LAST_CHANGE: v1.5.0 - 2026-10-16 C-51 T-005 (R-3): renderDiagram themes
+//   vega-lite, flowchart.js and js-sequence from the active app theme —
+//   tokens are read at render time (readActiveThemeTokens) and the
+//   builders/post-pass come from contentTheme.js (same categorical
+//   palette as Mermaid); the vega named themes (latimes/dark) are gone
+//   and the user's own vega spec config keeps winning (vega-embed merges
+//   spec.config over the passed config). The sequenceTheme preference
+//   (hand/simple) still rides the options; theme switches re-render
+//   through the existing setOptions(_, true) full-render path that
+//   re-queues every diagram block.
+//   v1.4.0 - 2026-10-15 C-39 T-002: every render path calls
 //   applyTableColumnWidths (START_BLOCK_TABLE_WIDTHS_KEEP) next to the
 //   T-001 scroll restore so muya.tableResize can reconcile stored column
 //   widths whose column count changed and re-apply widths a hidden render
@@ -36,6 +46,14 @@ import { beginRules } from '../rules'
 import renderInlines from './renderInlines'
 import renderBlock from './renderBlock'
 import { createMermaidPipeline } from './mermaidPipeline'
+import { readActiveThemeTokens, mermaidThemeSignature } from './mermaidTheme'
+import {
+  buildVegaThemeConfig,
+  buildFlowchartThemeOptions,
+  buildSequenceThemeOptions,
+  applySequenceTheme,
+  applySequenceThemeWhenDrawn
+} from './contentTheme'
 
 class StateRender {
   constructor(muya) {
@@ -160,6 +178,38 @@ class StateRender {
         'vega-lite': await loadRenderer('vega-lite')
       }
 
+      // START_BLOCK_DIAGRAM_THEME_OPTIONS
+      // C-51 T-005 (R-3): the diagram renderers get their colours/fonts
+      // from the ACTIVE APP THEME, read at render time from the document's
+      // CSS variables — the same tokens and categorical palette Mermaid
+      // uses (contentTheme.js). A theme switch re-renders through the
+      // setOptions(_, true) full-render path that re-queues every diagram
+      // block, so the tokens read here are always the live ones. The
+      // vega config is passed as embed opts.config: the user's own
+      // spec.config wins (vega-embed merges spec.config over it).
+      const tokens = readActiveThemeTokens()
+      console.debug('[Muya][renderDiagram][BLOCK_DIAGRAM_THEME] themed render', {
+        themeSignature: mermaidThemeSignature(tokens),
+        blocks: cache.size
+      })
+      const themedOptions = (functionType) => {
+        const options = {}
+        if (functionType === 'sequence') {
+          Object.assign(options, buildSequenceThemeOptions(tokens, this.muya.options.sequenceTheme))
+        } else if (functionType === 'flowchart') {
+          Object.assign(options, buildFlowchartThemeOptions(tokens))
+        } else if (functionType === 'vega-lite') {
+          Object.assign(options, {
+            actions: false,
+            tooltip: false,
+            renderer: 'svg',
+            config: buildVegaThemeConfig(tokens)
+          })
+        }
+        return options
+      }
+      // END_BLOCK_DIAGRAM_THEME_OPTIONS
+
       for (const [key, value] of cache.entries()) {
         const target = document.querySelector(key)
         if (!target) {
@@ -167,22 +217,16 @@ class StateRender {
         }
         const { code, functionType } = value
         const render = RENDER_MAP[functionType]
-        const options = {}
-        if (functionType === 'sequence') {
-          Object.assign(options, { theme: this.muya.options.sequenceTheme })
-        } else if (functionType === 'vega-lite') {
-          Object.assign(options, {
-            actions: false,
-            tooltip: false,
-            renderer: 'svg',
-            theme: this.muya.options.vegaTheme
-          })
-        }
+        const options = themedOptions(functionType)
         try {
           if (functionType === 'flowchart' || functionType === 'sequence') {
             const diagram = render.parse(code)
             target.innerHTML = ''
             diagram.drawSVG(target, options)
+            if (functionType === 'sequence') {
+              // js-sequence hard-codes #000/#fff — repaint from the tokens.
+              applySequenceThemeWhenDrawn(target, tokens)
+            }
           } else if (functionType === 'plantuml') {
             const diagram = render.parse(code)
             target.innerHTML = ''

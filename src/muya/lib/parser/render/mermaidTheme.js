@@ -1,10 +1,10 @@
 // FILE: src/muya/lib/parser/render/mermaidTheme.js
-// VERSION: 1.0.0
+// VERSION: 1.1.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Build the Mermaid render config (theme "base", look "neo", themeVariables, themeCSS polish, per-type layout and sizes) from the ACTIVE APP THEME — the accepted C-51 round-2/3 lab (.lab/palette.js) ported into the product.
 //   SCOPE: OKLCH colour math (oklch/hueOf/palette), active-theme token reading from the document's CSS variables plus the body "dark" flag, diagram type detection from the code's first meaningful line (22 types, frontmatter/%%{init}%% skipped), the per-type config builder, and the theme signature that keys the pipeline's SVG cache.
 //   DEPENDS: none — pure colour math plus lazy DOM reads (window/document are touched only inside functions so tests can import the module cold).
-//   LINKS: .grace/changes/active/C-51 T-003/T-004 (R-2/R-2a); .grace/graph/runtime.xml M-012; .grace/verification/runtime.xml V-M-012 scenario-17.
+//   LINKS: .grace/changes/active/C-51 T-003/T-004 (R-2/R-2a) and T-005 (chartPalette shared with contentTheme.js); .grace/graph/runtime.xml M-012; .grace/verification/runtime.xml V-M-012 scenario-17.
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT
@@ -14,6 +14,7 @@
 //   hueOf - hex colour → OKLCH hue in degrees (0-360).
 //   PALETTE_STEPS - the 8 hue offsets (accent first, then a fixed spread that keeps neighbours apart).
 //   palette - accent hex + target lightness/chroma → 8 categorical hex colours at equal perceived lightness.
+//   chartPalette - theme tokens → the categorical series palette (the theme's --chartPalette when present, else the OKLCH palette) — shared by the Mermaid config and the C-51 T-005 content theming.
 //   DEFAULT_MERMAID_FONT - UI font fallback when --chromeFontFamily is not resolvable (the accepted lab stack).
 //   MERMAID_THEME_TYPES - the 22 canonical diagram type keys detected by detectMermaidDiagramType.
 //   readActiveThemeTokens - lazily read the active theme's CSS variables + dark flag → { dark, accent, bg, surface, text, muted, border, line, code, font }.
@@ -26,7 +27,15 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.0.0 - 2026-10-16 C-51 T-003/T-004: first version — the
+//   LAST_CHANGE: v1.1.0 - 2026-10-16 C-51 T-005: chartPalette(tokens) is
+//   exported as the single definition of the categorical series palette
+//   (the theme's --chartPalette when present, else the OKLCH palette with
+//   the light/dark lightness of the accepted lab) so the other rendered
+//   content (Vega-Lite, flowchart.js, js-sequence — contentTheme.js) uses
+//   the SAME palette as Mermaid; buildMermaidThemeConfig and
+//   mermaidThemeSignature now compute their series through it (identical
+//   values, pinned by the existing tests).
+//   v1.0.0 - 2026-10-16 C-51 T-003/T-004: first version — the
 //   accepted round-2/3 lab palette/config logic ported from .lab/palette.js
 //   with theme tokens read at render time from the document's CSS variables
 //   (--themeColor/--editorColor/--editorBgColor/--floatBgColor/
@@ -88,6 +97,23 @@ export const PALETTE_STEPS = [0, 180, 90, 270, 45, 225, 135, 315]
 
 export const palette = (accentHex, L, C) =>
   PALETTE_STEPS.map((d) => oklch(L, C, (hueOf(accentHex) + d) % 360))
+
+/**
+ * The categorical series palette of a theme — the theme-defined
+ * --chartPalette (≥ 6 colours, e.g. the macOS family's Apple system
+ * colours) when present, else the OKLCH palette generated from the accent
+ * (light/dark lightness as accepted in the round-2/3 lab). Single
+ * definition shared by the Mermaid theme config and, since C-51 T-005,
+ * the other rendered content (Vega-Lite range.category / mark defaults,
+ * sequence/flowchart accents) via contentTheme.js.
+ *
+ * @param {object} t theme tokens (readActiveThemeTokens shape)
+ * @returns {string[]} 8 (or theme-defined) categorical hex colours
+ */
+export const chartPalette = (t) =>
+  (t.series && t.series.length >= 6)
+    ? t.series
+    : palette(t.accent, t.dark ? 0.74 : 0.6, t.dark ? 0.11 : 0.12)
 // END_BLOCK_MERMAID_PALETTE
 
 // The lab font stack — used when --chromeFontFamily cannot be resolved
@@ -399,7 +425,7 @@ const buildTypeConfigs = () => {
  * @returns {object} spread into mermaid.initialize (callers add securityLevel)
  */
 export const buildMermaidThemeConfig = (t, type = 'unknown') => {
-  const series = (t.series && t.series.length >= 6) ? t.series : palette(t.accent, t.dark ? 0.74 : 0.6, t.dark ? 0.11 : 0.12)
+  const series = chartPalette(t)
   const tint = palette(t.accent, t.dark ? 0.36 : 0.9, t.dark ? 0.05 : 0.05)
   const tintBorder = palette(t.accent, t.dark ? 0.5 : 0.76, t.dark ? 0.07 : 0.08)
   const v = {
@@ -559,7 +585,7 @@ const hashString = (str) => {
  */
 export const mermaidThemeSignature = (t) => {
   if (!t) return 'no-theme'
-  const series = (t.series && t.series.length >= 6) ? t.series : palette(t.accent, t.dark ? 0.74 : 0.6, t.dark ? 0.11 : 0.12)
+  const series = chartPalette(t)
   const digest = [
     t.dark ? 1 : 0,
     t.bg, t.surface, t.text, t.muted, t.border, t.line, t.accent, t.code, t.font,
