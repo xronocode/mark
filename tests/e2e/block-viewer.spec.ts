@@ -1,10 +1,10 @@
 // FILE: tests/e2e/block-viewer.spec.ts
-// VERSION: 3.0.0
+// VERSION: 3.1.1
 // START_MODULE_CONTRACT
-//   PURPOSE: End-to-end pin of the shared fullscreen block viewer (C-34 R2.2 + C-39 T2) and the C-51 T-006/T-010 expand button — overlay open, zoom keys, read-only table clone with sticky header, Cmd+click, Esc close with focus restore; the T-010 need rules (small blocks have no button and no Tab stop, wide/tall blocks do), the copy-icon look (20 px, 0/0.5/1 opacity curve, inside the block), the table placement clear of header text and the last-column resize handle, viewport-resize re-evaluation, and light/dark colours.
+//   PURPOSE: End-to-end pin of the shared fullscreen block viewer (C-34 R2.2 + C-39 T2) and the C-51 T-006/T-010 expand button and T-014 polish — overlay open, zoom keys, read-only table clone with sticky header, Cmd+click, Esc close with focus restore; the T-010 need rules (small blocks have no button and no Tab stop, wide/tall blocks do), the copy-icon look (20 px, 0/0.5/1 opacity curve, inside the block), the table placement clear of header text and the last-column resize handle, viewport-resize re-evaluation, and light/dark colours; the T-014 cases — fit scales a small diagram UP on open and on Fit with 1:1 restoring natural size, an open viewer follows a paper→ink theme switch (clone re-rendered from the live block, zoom kept), and an edited diagram/math preview sits in flow below the source so the next heading is pushed down, never covered.
 //   SCOPE: block-viewer.spec.ts only; diagram and table flows against the built renderer.
 //   DEPENDS: @playwright/test, tests/e2e/fixtures/tauri-shim (same bootstrap as mermaid-render.spec.ts).
-//   LINKS: .grace/changes/active/C-34 T-002; .grace/changes/active/C-39 T2 and T-002; .grace/changes/active/C-51 T-006 and T-010 (D-7); .grace/verification/runtime.xml V-M-012 scenario-19 and scenario-60.
+//   LINKS: .grace/changes/active/C-34 T-002; .grace/changes/active/C-39 T2 and T-002; .grace/changes/active/C-51 T-006, T-010 (D-7) and T-014; .grace/verification/runtime.xml V-M-012 scenario-19 and scenario-60; V-M-011 scenario-64.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT
@@ -13,14 +13,47 @@
 //   SMALL_DIAGRAM_MD - one small mermaid flowchart (no expand button; Cmd/Ctrl+click path).
 //   WIDE_DIAGRAM_MD - a 14-node graph LR, always scaled to the column (expand button).
 //   MEDIUM_DIAGRAM_MD - a 3-node graph LR: unscaled at the default viewport, scaled after narrowing (resize flip).
+//   TINY_DIAGRAM_MD - a 2-node graph TD whose natural size is far below the viewer stage (T-014 fit-up case).
+//   EDIT_FLOW_MD - a mermaid diagram and a math block, each followed by a heading (T-014 in-flow edit preview).
 //   WIDE_TABLE_MD - a 12-column table that overflows the column (expand button; resize-handle drag).
 //   MIXED_MD - every viewable block type: small ones stay button-less, the wide mermaid/flowchart and the wide/tall tables get it, plus fence/paragraph negatives.
-//   bootstrapWithMarkdown - tauri-shim + preferences + mt::bootstrap-editor document load (mirrors mermaid-render.spec.ts).
+//   bootstrapWithMarkdown - tauri-shim + preferences + mt::bootstrap-editor document load (mirrors mermaid-render.spec.ts); extraPrefs override individual preference defaults.
 //   canvasScale - parses the panzoom `scale(s) translate(x,y)` transform of the viewer canvas.
+//   nodeFillIn - computed fill of the first mermaid node shape inside a root element (live figure or viewer clone).
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v3.0.0 - 2026-10-16 C-51 T-010 (user decision D-7,
+//   LAST_CHANGE: v3.1.1 - 2026-10-17 C-51 T-014 gate round. (1) The
+//   in-flow case asserted computed position 'static', but muya's
+//   universal .ag-paragraph rule (getSelector adds the class to every
+//   block element) keeps position:relative on the preview — relative is
+//   still IN FLOW; the bug being pinned was absolute (out of flow,
+//   covering). The assertion now checks in-flow (not absolute/fixed)
+//   plus STRONGER geometry: the preview top at or below the edited
+//   source bottom, and the next heading top at or below the preview
+//   bottom (both engines had failed on 'static'). (2) The theme-follow
+//   case is unchanged — its chromium failure was the product race fixed
+//   in blockViewer v3.1.0 (the mermaid pipeline re-inserts the
+//   byte-identical last-good old-theme svg synchronously during the
+//   re-render, before the async re-draw lands; the viewer's poll now
+//   gates on a changed-content token instead of any content).
+//   v3.1.0 - 2026-10-17 C-51 T-014 (live smoke
+//   2026-10-16): three new cases. Fit-up — a tiny diagram opens via
+//   Cmd/Ctrl+click at scale > 1 (the old fit capped at 1:1), the Fit
+//   button keeps it there, 1:1 returns to scale 1 with the drawn size
+//   equal to the viewBox natural size. Theme-follow — the viewer is
+//   opened on a wide diagram, the preferences store flips paper → ink
+//   (the same pref path the title-bar toggle writes; the overlay covers
+//   the title bar itself) and the CLONE's mermaid node fill changes to
+//   the live re-rendered block's fill with the canvas scale unchanged.
+//   Edit-preview in flow — clicking a mermaid preview activates the
+//   source and the preview's computed position is static with the next
+//   heading's rect fully below the preview's bottom (was: absolute
+//   overlay covering it), same for a multiplemath preview. The
+//   T-014 cases fail on main (fit caps at 1, the clone keeps the old
+//   theme, the preview floats). bootstrapWithMarkdown gained the
+//   extraPrefs parameter (existing callers unchanged).
+//   v3.0.0 - 2026-10-16 C-51 T-010 (user decision D-7,
 //   «показывается даже для малых таблиц и диаграмм… похожа на иконку
 //   копировать»): the button appears only where the viewer helps. Small
 //   mermaid/table blocks have NO visible button and NO Tab stop (display:
@@ -94,6 +127,46 @@ graph LR
 \`\`\`
 
 Text after.
+`
+
+// C-51 T-014: two tiny nodes — the natural size is far below the viewer
+// stage in both engines, so fit MUST scale the diagram UP (the inherited
+// fit capped at 1:1 and left the small chart tiny in the huge stage).
+const TINY_DIAGRAM_MD = `# Tiny
+
+\`\`\`mermaid
+graph TD
+    A[Hi] --> B[Ok]
+\`\`\`
+
+Text after.
+`
+
+// C-51 T-014: a diagram block and a math block, each followed by a
+// heading — while the source is edited, the live preview must sit in
+// flow BELOW the source so the heading is pushed down, never covered.
+const EDIT_FLOW_MD = `# Edit Flow
+
+\`\`\`mermaid
+graph TD
+    A[Start] --> B{Decision}
+    B -->|Yes| C[Action 1]
+    B -->|No| D[Action 2]
+    C --> E[End]
+    D --> E
+\`\`\`
+
+## Next heading
+
+A paragraph between the diagram and the math block.
+
+$$
+\\int_0^1 x^2\\,dx = \\tfrac13
+$$
+
+## After the math
+
+Closing paragraph.
 `
 
 // 12 columns: the C-39 wrapper must scroll horizontally — the table
@@ -184,8 +257,16 @@ const noButtonHere = true
 Final paragraph.
 `
 
-async function bootstrapWithMarkdown (page: Page, markdown: string, theme = 'light') {
-  await page.addInitScript((t: string) => {
+async function bootstrapWithMarkdown (
+  page: Page,
+  markdown: string,
+  theme = 'light',
+  // C-51 T-014: per-test preference overrides (spread AFTER the defaults,
+  // so e.g. lightModeTheme/darkModeTheme can be pinned without copying
+  // the whole pref table).
+  extraPrefs: Record<string, unknown> = {}
+) {
+  await page.addInitScript(({ t, extra }: { t: string; extra: Record<string, unknown> }) => {
     ;(window as any).__mockInvoke = {
       ...(window as any).__mockInvoke,
       mt_prefs_get_all: () => ({
@@ -229,10 +310,11 @@ async function bootstrapWithMarkdown (page: Page, markdown: string, theme = 'lig
         lineHeight: 1.6,
         fontWeight: 'normal',
         trimUnnecessaryCodeBlockEmptyLines: false,
-        sequenceTheme: 'hand'
+        sequenceTheme: 'hand',
+        ...extra
       })
     }
-  }, theme)
+  }, { t: theme, extra: extraPrefs })
 
   await page.goto('/?type=editor&wid=0&udp=/tmp/mark-e2e&debug=0')
 
@@ -264,6 +346,18 @@ async function canvasScale (page: Page): Promise<number> {
     const match = /scale\(([\d.]+)\)/.exec(canvas.style.transform || '')
     return match ? parseFloat(match[1]) : 1
   })
+}
+
+// Computed fill of the first mermaid node shape under a root — the same
+// read mermaid-theme.spec.ts uses, pointed at the viewer CLONE or the
+// live figure (C-51 T-014 theme-follow case).
+async function nodeFillIn (page: Page, rootSelector: string): Promise<string> {
+  return page.evaluate((sel: string) => {
+    const root = document.querySelector(sel)
+    if (!root) return 'none'
+    const shape = root.querySelector('.node rect, .node polygon, .node path')
+    return shape ? window.getComputedStyle(shape).fill : 'none'
+  }, rootSelector)
 }
 
 test.describe('block viewer (C-34 R2.2 + C-39 T2)', () => {
@@ -886,4 +980,182 @@ test.describe('block viewer (C-34 R2.2 + C-39 T2)', () => {
     }
   })
   // END_BLOCK_EXPAND_E2E_COVERAGE
+
+  // START_BLOCK_VIEWER_T014_E2E_COVERAGE
+  // C-51 T-014 acceptance criteria: fit scales a small diagram UP (open
+  // and Fit; 1:1 restores the natural size), an open viewer follows a
+  // theme switch (the clone is refreshed from the re-rendered block,
+  // zoom kept), and an edited diagram/math preview sits in flow below
+  // the source so the following blocks are pushed down, never covered.
+  test('fit scales a small diagram UP on open and on Fit; 1:1 restores the natural size (T-014)', async ({ page }) => {
+    await bootstrapWithMarkdown(page, TINY_DIAGRAM_MD)
+    await page.locator('.editor-component, .editor-wrapper').first()
+      .waitFor({ state: 'visible', timeout: 15_000 })
+    const preview = page.locator('div.ag-container-preview.ag-mermaid-preview').first()
+    await preview.waitFor({ state: 'visible', timeout: 20_000 })
+    await page.locator('div.ag-mermaid-preview svg').first().waitFor({ state: 'visible', timeout: 20_000 })
+
+    // The tiny diagram has no expand button (T-010 need rule) — the
+    // Cmd/Ctrl+click path opens the viewer for every viewable block.
+    await preview.click({ modifiers: ['Meta'] })
+    const viewer = page.locator('.ag-block-viewer')
+    await expect(viewer).toHaveClass(/ag-block-viewer-open/)
+    await page.waitForTimeout(250) // the open fit + the deferred re-fit (rAF)
+
+    const natural = await page.evaluate(() => {
+      const svg = document.querySelector('.ag-block-viewer-canvas svg') as SVGSVGElement
+      return { w: svg.viewBox.baseVal.width, h: svg.viewBox.baseVal.height }
+    })
+    expect(natural.w).toBeGreaterThan(0)
+
+    const openedScale = await canvasScale(page)
+    expect(openedScale, 'a small diagram opens fitted UP, not at 1:1').toBeGreaterThan(1.2)
+
+    // The Fit button runs the same maths: still scaled up, same scale.
+    await page.locator('.ag-block-viewer-fit').click()
+    await page.waitForTimeout(150)
+    const fitScale = await canvasScale(page)
+    expect(fitScale, 'Fit keeps scaling the small diagram up').toBeGreaterThan(1.2)
+    expect(Math.abs(fitScale - openedScale)).toBeLessThan(0.05)
+
+    // 1:1 restores the natural size: scale 1 and the drawn box equals
+    // the viewBox size (the clone overrides the inline width from it).
+    await page.locator('.ag-block-viewer-actual-size').click()
+    await page.waitForTimeout(150)
+    expect(await canvasScale(page)).toBe(1)
+    const drawn = await page.evaluate(() => {
+      const svg = document.querySelector('.ag-block-viewer-canvas svg') as SVGSVGElement
+      const r = svg.getBoundingClientRect()
+      return { w: Math.round(r.width), h: Math.round(r.height) }
+    })
+    expect(Math.abs(drawn.w - natural.w)).toBeLessThanOrEqual(2)
+    expect(Math.abs(drawn.h - natural.h)).toBeLessThanOrEqual(2)
+  })
+
+  test('an open viewer follows a paper → ink theme switch: the clone re-renders with the new colours, zoom kept (T-014)', async ({ page }) => {
+    // lightModeTheme/darkModeTheme pinned so 'ink' resolves to the dark
+    // member; the theme is switched by writing the SAME preference the
+    // title-bar toggle writes (the overlay covers the title bar itself).
+    await bootstrapWithMarkdown(page, WIDE_DIAGRAM_MD, 'paper', {
+      lightModeTheme: 'paper',
+      darkModeTheme: 'ink'
+    })
+    await page.locator('.editor-component, .editor-wrapper').first()
+      .waitFor({ state: 'visible', timeout: 15_000 })
+    const preview = page.locator('div.ag-container-preview.ag-mermaid-preview').first()
+    await preview.waitFor({ state: 'visible', timeout: 20_000 })
+    await page.locator('div.ag-mermaid-preview svg').first().waitFor({ state: 'visible', timeout: 20_000 })
+
+    await page.locator('figure[data-role="MERMAID"] > button.ag-block-expand').first().click()
+    const viewer = page.locator('.ag-block-viewer')
+    await expect(viewer).toHaveClass(/ag-block-viewer-open/)
+    await page.waitForTimeout(250) // fit + deferred re-fit
+
+    const before = await nodeFillIn(page, '.ag-block-viewer-canvas')
+    expect(before).not.toBe('none')
+    const scaleBefore = await canvasScale(page)
+
+    const wrote = await page.evaluate(() => {
+      const el = document.querySelector('#app') as any
+      const pinia = el?.__vue_app__?.config?.globalProperties?.$pinia
+      if (!pinia) return false
+      pinia.state.value.preferences.theme = 'ink'
+      return true
+    })
+    expect(wrote, 'the preferences store handle must resolve').toBe(true)
+    await expect(page.locator('body')).toHaveClass(/(^|\s)dark(\s|$)/, { timeout: 5_000 })
+
+    // The mermaid pipeline re-renders (250 ms debounce), the viewer's
+    // refresh poll picks the block up, and the CLONE carries the new
+    // theme's node fill — equal to the LIVE re-rendered diagram's (both
+    // reads happen inside the poll so the comparison is settled state).
+    await expect.poll(async () => {
+      const clone = await nodeFillIn(page, '.ag-block-viewer-canvas')
+      const live = await nodeFillIn(page, 'figure.ag-container-block')
+      return clone !== before && clone === live
+    }, { timeout: 30_000 }).toBe(true)
+    // The refresh keeps zoom: the canvas transform was never touched.
+    expect(await canvasScale(page)).toBe(scaleBefore)
+  })
+
+  test('editing a diagram or math block pushes the following blocks down instead of covering them (T-014)', async ({ page }) => {
+    await bootstrapWithMarkdown(page, EDIT_FLOW_MD)
+    await page.locator('.editor-component, .editor-wrapper').first()
+      .waitFor({ state: 'visible', timeout: 15_000 })
+    await page.locator('div.ag-container-preview.ag-mermaid-preview svg').first()
+      .waitFor({ state: 'visible', timeout: 20_000 })
+    // KaTeX loads lazily; the math preview must exist before it is edited.
+    await page.locator("figure[data-role='MULTIPLEMATH'] .ag-container-preview .katex").first()
+      .waitFor({ state: 'visible', timeout: 30_000 })
+
+    // Plain click on the preview opens the source block (figure active).
+    const figure = page.locator("figure[data-role='MERMAID']").first()
+    await page.locator('div.ag-container-preview.ag-mermaid-preview').first().click()
+    await expect(figure).toHaveClass(/ag-active/)
+    await expect(figure.locator('pre[data-role="mermaid"] span.ag-code-content').first())
+      .toBeVisible()
+    // The activation re-queues the diagram: wait for the SVG to be back
+    // before measuring, so the preview rect is the settled one.
+    await expect(figure.locator('div.ag-container-preview svg').first())
+      .toBeVisible({ timeout: 10_000 })
+
+    const diagramGeometry = await page.evaluate(() => {
+      const figure = document.querySelector("figure[data-role='MERMAID']") as HTMLElement | null
+      const preview = figure?.querySelector('div.ag-container-preview') as HTMLElement | null
+      const source = figure?.querySelector('pre') as HTMLElement | null
+      const heading = Array.from(document.querySelectorAll('#ag-editor-id h2'))
+        .find(h => (h.textContent || '').includes('Next heading')) as HTMLElement | undefined
+      if (!figure || !preview || !source || !heading) return null
+      return {
+        position: getComputedStyle(preview).position,
+        sourceBottom: source.getBoundingClientRect().bottom,
+        previewTop: preview.getBoundingClientRect().top,
+        previewBottom: preview.getBoundingClientRect().bottom,
+        headingTop: heading.getBoundingClientRect().top
+      }
+    })
+    expect(diagramGeometry).not.toBeNull()
+    // muya's universal .ag-paragraph rule (getSelector puts it on every
+    // block element) keeps position:relative on the preview — that is
+    // still IN FLOW (space reserved in the normal flow); the float bug
+    // was position:absolute, out of flow and covering. Assert in-flow
+    // positioning, then the geometry that proves the push-down.
+    expect(['absolute', 'fixed'], 'the preview must stay in flow, not float')
+      .not.toContain(diagramGeometry!.position)
+    expect(
+      diagramGeometry!.previewTop,
+      'the preview takes its own space below the edited source'
+    ).toBeGreaterThanOrEqual(diagramGeometry!.sourceBottom - 1)
+    expect(
+      diagramGeometry!.headingTop,
+      'the next heading sits below the preview bottom (pushed down, not covered)'
+    ).toBeGreaterThanOrEqual(diagramGeometry!.previewBottom - 1)
+
+    // The multiplemath preview shares the rule: editing the math source
+    // keeps the following heading below the preview too.
+    const mathFigure = page.locator("figure[data-role='MULTIPLEMATH']").first()
+    await mathFigure.locator('div.ag-container-preview').first().click()
+    await expect(mathFigure).toHaveClass(/ag-active/)
+    const mathGeometry = await page.evaluate(() => {
+      const figure = document.querySelector("figure[data-role='MULTIPLEMATH']") as HTMLElement | null
+      const preview = figure?.querySelector('div.ag-container-preview') as HTMLElement | null
+      const source = figure?.querySelector('pre') as HTMLElement | null
+      const heading = Array.from(document.querySelectorAll('#ag-editor-id h2'))
+        .find(h => (h.textContent || '').includes('After the math')) as HTMLElement | undefined
+      if (!figure || !preview || !source || !heading) return null
+      return {
+        position: getComputedStyle(preview).position,
+        sourceBottom: source.getBoundingClientRect().bottom,
+        previewTop: preview.getBoundingClientRect().top,
+        previewBottom: preview.getBoundingClientRect().bottom,
+        headingTop: heading.getBoundingClientRect().top
+      }
+    })
+    expect(mathGeometry).not.toBeNull()
+    expect(['absolute', 'fixed'], 'the math preview must stay in flow, not float')
+      .not.toContain(mathGeometry!.position)
+    expect(mathGeometry!.previewTop).toBeGreaterThanOrEqual(mathGeometry!.sourceBottom - 1)
+    expect(mathGeometry!.headingTop).toBeGreaterThanOrEqual(mathGeometry!.previewBottom - 1)
+  })
+  // END_BLOCK_VIEWER_T014_E2E_COVERAGE
 })

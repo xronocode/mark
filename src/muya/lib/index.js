@@ -1,10 +1,10 @@
 // FILE: src/muya/lib/index.js
-// VERSION: 1.6.0
+// VERSION: 1.7.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Muya editor entry class — construction, options, and the public API surface other modules call.
-//   SCOPE: Class construction/init, markdown IO (get/set), export helpers, clipboard accessors, public editing commands, the C-38 code-block line-number refresh entry, the C-39 T-002 session table column resize store (muya.tableResize), and destroy() teardown incl. the C-51 T-010 expand-need observation release.
+//   SCOPE: Class construction/init, markdown IO (get/set), export helpers, clipboard accessors, public editing commands, setOptions (dispatching muya-options-rerender after a needRender re-render so open overlays can follow theme-switch re-renders, C-51 T-014), the C-38 code-block line-number refresh entry, the C-39 T-002 session table column resize store (muya.tableResize), and destroy() teardown incl. the C-51 T-010 expand-need observation release.
 //   DEPENDS: contentState, event handlers (clipboard/keyboard/mouse/click/dragDrop/resize), tableResize, parser/render/renderBlock/expandNeed (observation release), utils (ExportMarkdown/ExportHtml), ui plugins.
-//   LINKS: .grace/graph/runtime.xml M-012 fn-getCopyData and fn-tableResize; .grace/verification/runtime.xml V-M-012 scenario-14, scenario-20 and scenario-21; C-3; C-38 T-005; C-39 T-002; C-51 T-010.
+//   LINKS: .grace/graph/runtime.xml M-012 fn-getCopyData and fn-tableResize; .grace/verification/runtime.xml V-M-012 scenario-14, scenario-20 and scenario-21; C-3; C-38 T-005; C-39 T-002; C-51 T-010; C-51 T-014 (muya-options-rerender, consumed by ui/blockViewer).
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT
@@ -16,7 +16,14 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.6.0 - 2026-10-16 C-51 T-010: destroy() releases this
+//   LAST_CHANGE: v1.7.0 - 2026-10-17 C-51 T-014: setOptions(_, true)
+//   dispatches muya-options-rerender on the event center after the full
+//   re-render — the theme-switch path (editor.vue watch(theme)) rebuilds
+//   every block, and the open fullscreen block viewer listens for the
+//   event to re-clone from the re-rendered block once its diagram has
+//   re-drawn (previously the viewer kept the old theme's clone until it
+//   was closed and reopened).
+//   v1.6.0 - 2026-10-16 C-51 T-010: destroy() releases this
 //   editor's figures from the shared expand-need ResizeObserver (the
 //   observer serves every muya instance; only this container's figures
 //   are dropped).
@@ -533,6 +540,12 @@ class Muya {
     Object.assign(this.options, options)
     if (needRender) {
       this.contentState.render(false, true)
+      // C-51 T-014: option-driven re-renders (the app theme switch) rebuild
+      // every block. Open overlays that mirror a block (the fullscreen
+      // block viewer) listen for this and refresh their clone from the
+      // re-rendered DOM — the diagrams finish drawing asynchronously, so
+      // consumers poll for content rather than cloning immediately.
+      this.eventCenter.dispatch('muya-options-rerender')
     }
 
     // Set quick insert hint visibility
