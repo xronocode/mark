@@ -81,6 +81,7 @@ describe('getCommandDescriptionById', () => {
   it('handles all file operation commands', () => {
     const fileCommands = [
       'file.new-window', 'file.new-tab', 'file.open-file', 'file.open-folder',
+      'file.open-from-clipboard',
       'file.quick-open', 'file.import-file', 'file.save', 'file.save-as',
       'file.export-file', 'file.move-file', 'file.rename-file',
       'file.toggle-auto-save', 'file.change-encoding', 'file.line-ending',

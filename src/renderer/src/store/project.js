@@ -19,6 +19,11 @@ import { ipcWatch, ipcFs, ipcPrefs } from '../ipc/runtime'
 //   - 2026-10-16 C-51 T-002: SIDEBAR::pin-file bus handler toggles the
 //     active tree file in the persisted Pinned list (store/pinned).
 
+// C-52 notes:
+//   - 2026-10-16 C-52 T-001: OPEN_FOLDER_AS_WORKSPACE opens a folder as
+//     the workspace REPLACING existing roots (user decision D-1) — the
+//     clipboard-open resolver and the dropped-folder fix share it.
+
 // C-1 fix: per-root file-watcher disposers. Module-scoped (not in
 // reactive state) so Pinia doesn't try to proxy the dispose closures.
 // Keyed by canonical root pathname.
@@ -461,6 +466,39 @@ export const useProjectStore = defineStore('project', {
         }
       }
     },
+
+    // START_BLOCK_OPEN_FOLDER_AS_WORKSPACE
+    // C-52 (user decision D-1): open `pathname` as THE workspace,
+    // REPLACING every root already open — never a second root. Reuses
+    // the exact Open Folder machinery per root (CLOSE_PROJECT unwatch +
+    // ADD_PROJECT + mt_walk_project stream) so watchers, recents and
+    // layout behave identically. Opening the folder that is already the
+    // workspace keeps it (ADD_PROJECT's dedup surfaces "already open")
+    // while still replacing any other roots.
+    async OPEN_FOLDER_AS_WORKSPACE(pathname) {
+      if (typeof pathname !== 'string' || !pathname) return
+      const canonical = canonicalizePath(pathname)
+      const foreignRoots = this.projectTrees.filter((r) => r.pathname !== canonical)
+      for (const root of foreignRoots) {
+        await this.CLOSE_PROJECT(root.pathname)
+      }
+      const before = this.projectTrees.length
+      this.ADD_PROJECT(pathname)
+      if (this.projectTrees.length > before) {
+        try {
+          const { invoke } = await import('@tauri-apps/api/core')
+          invoke('mt_walk_project', { path: pathname }).catch((e) => {
+            console.error('[ipc][walk_project][BLOCK_INVOKE_FAILED]', e)
+          })
+        } catch (e) {
+          console.error('[ipc][walk_project][BLOCK_IMPORT_FAILED]', e)
+        }
+      }
+      console.info(
+        `[ProjectStore][OPEN_FOLDER_AS_WORKSPACE][BLOCK_WORKSPACE_OPENED path=${canonical} closed=${foreignRoots.length}]`
+      )
+    },
+    // END_BLOCK_OPEN_FOLDER_AS_WORKSPACE
 
     /**
      * Synchronously remove a root + tell main to unwatch (real unwatch

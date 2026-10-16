@@ -364,6 +364,15 @@ watch(
 
 let isUnmounted = false
 
+// C-52: a dropped folder (shim drop bridge) opens as the workspace,
+// replacing the current one — the shim cannot import the store itself.
+const onOpenFolderAsWorkspace = (pathname) => {
+  if (typeof pathname === 'string' && pathname) {
+    projectStore.OPEN_FOLDER_AS_WORKSPACE(pathname)
+  }
+}
+bus.on('mt::open-folder-as-workspace', onOpenFolderAsWorkspace)
+
 onMounted(async () => {
   // C-48: snapshot prefs BEFORE this boot writes anything (hydration
   // mirror, legacy zoom migration, session restore) — the What's New gate
@@ -476,6 +485,7 @@ onMounted(async () => {
 })
 
 onUnmounted(() => {
+  bus.off('mt::open-folder-as-workspace', onOpenFolderAsWorkspace)
   isUnmounted = true
   if (cleanupDragDrop) cleanupDragDrop()
   if (cleanupPinchZoom) cleanupPinchZoom()

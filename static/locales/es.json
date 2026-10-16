@@ -13,6 +13,7 @@
       "open": "Abrir",
       "openFile": "Abrir Archivo...",
       "openFolder": "Abrir Carpeta...",
+      "openFromClipboard": "Abrir del portapapeles",
       "openRecent": "Abrir Reciente",
       "clearRecentlyUsed": "Limpiar Recientes",
       "save": "Guardar",
@@ -493,6 +494,10 @@
       "daysAgo": "hace {count} días"
     }
   },
+  "clipboardOpen": {
+    "nothingFoundTitle": "No hay ninguna carpeta ni archivo Markdown en el portapapeles",
+    "nothingFoundMessage": "Copia una carpeta en Finder o una ruta de archivo y vuelve a intentarlo."
+  },
   "import": {
     "title": "Importar o Abrir",
     "description": "Arrastra aquí para obtener tu contenido en Mark"
@@ -851,6 +856,7 @@
       "newTab": "Nueva Pestaña",
       "openFile": "Abrir Archivo",
       "openFolder": "Abrir Carpeta",
+      "openFromClipboard": "Abrir del portapapeles",
       "save": "Guardar",
       "saveAs": "Guardar Como",
       "moveFile": "Mover Archivo",

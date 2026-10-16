@@ -11,6 +11,7 @@
 //
 // START_MODULE_MAP
 //   RootCommand - Command-palette root and subcommand coordinator.
+//   file.open-from-clipboard - File › Open from Clipboard (⌥⌘V): resolver opens a clipboard folder as the workspace (replace) or a Markdown file in a tab (C-52).
 //   file.check-update - Checks the signed feed and applies an available update entirely in app.
 //   edit.copy-as-html - Copies selection (or whole document) as rich text/html for email paste (C-3).
 //   edit.copy-as-plain-text - Copies selection (or whole document) as markup-free plain text (C-12).
@@ -36,6 +37,9 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-10-16 C-52 T-001: add file.open-from-clipboard (File › Open
+//     from Clipboard, Alt+CmdOrCtrl+V — mirrors the native menu item
+//     added in m009) routing to util/clipboardOpen.openFromClipboard.
 //   - 2026-10-16 C-51 T-007: window.change-theme gains the Docs and macOS
 //     family members (docs, docs-dark, macos, macos-dark); the native
 //     View › Theme menu mirrors the same list (menu-consistency).
@@ -195,6 +199,19 @@ const commands = [
       const { useProjectStore } = await import('../store/project')
       const projectStore = useProjectStore()
       projectStore.ASK_FOR_OPEN_PROJECT()
+    }
+  },
+  {
+    // C-52 R-1: File › Open from Clipboard (⌥⌘V / Ctrl+Alt+V). A folder
+    // opens as the workspace (replace), a Markdown file opens in a tab,
+    // anything else notifies. The welcome screen's plain ⌘V shares the
+    // resolver through util/clipboardOpen; ⌘V inside a document never
+    // reaches here (D-3 — the editor's paste is untouched).
+    id: 'file.open-from-clipboard',
+    shortcut: ['Alt', isOsx ? 'Cmd' : 'Ctrl', 'V'],
+    execute: async () => {
+      const { openFromClipboard } = await import('../util/clipboardOpen')
+      await openFromClipboard()
     }
   },
   {
