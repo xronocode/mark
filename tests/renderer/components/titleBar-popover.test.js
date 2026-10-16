@@ -200,6 +200,10 @@ describe('titleBar trim + document info popover (C-40 T-002)', () => {
     })
 
     it('shows name, ~-abbreviated folder, size and edited-relative mtime', async () => {
+      // Pin the clock to midday: near local midnight «4 min ago» crosses the
+      // calendar day and the formatter says «yesterday» (CI ran at 00:02).
+      vi.useFakeTimers({ toFake: ['Date'] })
+      vi.setSystemTime(new Date(2026, 9, 16, 12, 0, 0))
       window.fileUtils.stat.mockResolvedValue({
         isFile: true,
         isDirectory: false,
@@ -213,6 +217,7 @@ describe('titleBar trim + document info popover (C-40 T-002)', () => {
       expect(wrapper.find('.doc-info-name').text()).toBe('notes.md')
       // homeDir is mocked to /tmp/home → /tmp/home/Notes abbreviates to ~/Notes
       expect(wrapper.find('.doc-info-meta').text()).toBe('~/Notes · 2.1 KB · edited 4 min ago')
+      vi.useRealTimers()
     })
 
     it('stats come from wordCount + markdown: words, characters, lines, reading time', async () => {
