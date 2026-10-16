@@ -136,6 +136,16 @@
       </AcceptanceCriteria>
       <Verification><Command>npm test</Command><Command>playwright chromium + webkit (tree)</Command><Command>grace lint --path . --assertions current</Command></Verification>
     </T-013>
+    <T-014>
+      <Title>Viewer and edit-preview polish from the live smoke (2026-10-16)</Title>
+      <DependsOn>T-010</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>An open fullscreen viewer follows a theme switch: the clone is refreshed from the re-rendered block (diagram colours, table colours), keeping zoom/position where practical.</Criterion>
+        <Criterion>«Fit» scales a small diagram UP to the available viewer area (today fit is capped at 1:1, so a small chart stays tiny); the initial open of a small diagram also fits up; 1:1 still shows the natural size.</Criterion>
+        <Criterion>While a diagram's source is edited, its live preview no longer floats over the following blocks: it takes its own space under the source (in flow), so the next heading/block stays visible and nothing overlaps.</Criterion>
+      </AcceptanceCriteria>
+      <Verification><Command>npm test</Command><Command>playwright chromium + webkit (block-viewer)</Command><Command>grace lint --path . --assertions current</Command></Verification>
+    </T-014>
   </ImplementationPlan>
   <Evidence>
     <T-013>
