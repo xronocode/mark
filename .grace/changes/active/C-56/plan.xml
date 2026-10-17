@@ -1,0 +1,115 @@
+<GraceChangePlan graceVersion='4.0' status='approved'>
+<C-56>
+  <ChangeRef>C-56</ChangeRef>
+  <Created>2026-10-18</Created>
+  <IntentSummary>Per-block diagram/chart export: a shared muya exporter builds a self-contained SVG (inlined --pele-* / Vega colours, theme font, theme panel background, natural size) and rasterizes it to a 2× PNG; the editor context menu and the fullscreen block viewer toolbar offer Copy as Image (clipboard writeImage, one new capability), Save as PNG… and Save as SVG… (save dialog + fs write, heading-derived file name); strings in ten locales; unit + e2e coverage; graph and verification updated.</IntentSummary>
+  <BaselineAssertions>
+    <MustContain>
+      <File>src-tauri/capabilities/default.json</File>
+      <Text>clipboard-manager:allow-write-html</Text>
+    </MustContain>
+  </BaselineAssertions>
+  <TargetAssertions>
+    <MustVerify>
+      <Module>M-012</Module>
+    </MustVerify>
+    <MustContain>
+      <File>src/muya/lib/utils/diagramExport.js</File>
+      <Text>buildStandaloneSvg</Text>
+    </MustContain>
+    <MustContain>
+      <File>src-tauri/capabilities/default.json</File>
+      <Text>clipboard-manager:allow-write-image</Text>
+    </MustContain>
+    <MustContain>
+      <File>src-tauri/capabilities/mas.json</File>
+      <Text>clipboard-manager:allow-write-image</Text>
+    </MustContain>
+    <MustPassCommand>
+      <Command>npx vitest run</Command>
+    </MustPassCommand>
+    <MustPassCommand>
+      <Command>npm run build</Command>
+    </MustPassCommand>
+  </TargetAssertions>
+  <DurableScope>
+    <GraphAnchors>
+      <M-012 />
+    </GraphAnchors>
+    <VerificationAnchors>
+      <V-M-012 />
+    </VerificationAnchors>
+  </DurableScope>
+  <ObservedWriteScope>
+    <File>src/muya/lib/utils/diagramExport.js</File>
+    <File>src/muya/lib/ui/blockViewer/index.js</File>
+    <File>src/muya/lib/ui/blockViewer/index.css</File>
+    <File>src/renderer/src/components/editorWithTabs/editor.vue</File>
+    <File>src-tauri/capabilities/default.json</File>
+    <File>src-tauri/capabilities/mas.json</File>
+    <Glob>static/locales/*.json</Glob>
+    <Glob>tests/renderer/muya/*.test.js</Glob>
+    <Glob>tests/e2e/*.spec.ts</Glob>
+    <Glob>tests/e2e/fixtures/**</Glob>
+    <Glob>.grace/**</Glob>
+  </ObservedWriteScope>
+  <CornerMatrix>
+    <Corner id='corner-1'>
+      <Situation>Export a Pele diagram in Ink (dark) with the default background</Situation>
+      <Expected>SVG/PNG carry the Ink code-panel background rect and resolved colours; no var(--pele-*) remains; text stays readable outside Mark</Expected>
+    </Corner>
+    <Corner id='corner-2'>
+      <Situation>Export from the block viewer while zoomed ×3 and panned</Situation>
+      <Expected>the full diagram at natural size (PNG 2× natural), not the visible viewport crop</Expected>
+    </Corner>
+    <Corner id='corner-3'>
+      <Situation>Right-click on a paragraph, table, code block or KaTeX block</Situation>
+      <Expected>no image export items in the menu (non-goal types excluded)</Expected>
+    </Corner>
+    <Corner id='corner-4'>
+      <Situation>Block in error (keep-last-good stale SVG) / block that never rendered</Situation>
+      <Expected>stale: exports the last good SVG; never rendered: items disabled, no exception</Expected>
+    </Corner>
+    <Corner id='corner-5'>
+      <Situation>Save dialog cancelled; clipboard write rejected</Situation>
+      <Expected>no file, no toast of success; a failure notice with a log marker, no unhandled rejection</Expected>
+    </Corner>
+    <Corner id='corner-6'>
+      <Situation>Document with no heading above the block / heading with non-ASCII (Russian) text</Situation>
+      <Expected>file name falls back to "&lt;doc&gt;-diagram-N"; non-ASCII headings slug to a safe, non-empty name</Expected>
+    </Corner>
+    <Corner id='corner-7'>
+      <Situation>App Store build (mas capabilities)</Situation>
+      <Expected>writeImage permitted; save works only through the user-selected dialog path; no new entitlement</Expected>
+    </Corner>
+  </CornerMatrix>
+  <ImplementationPlan>
+    <T-001>
+      <Title>muya util diagramExport.js: buildStandaloneSvg, rasterizeSvg (2× PNG), suggestFileName + unit tests</Title>
+      <DependsOn></DependsOn>
+      <AcceptanceCriteria><Criterion>Unit tests cover var inlining, background rect on/off, natural size, chrome stripped, no script/external refs, slug + fallbacks (corners 1, 4, 6).</Criterion></AcceptanceCriteria>
+      <Verification><Command>npx vitest run tests/renderer/muya/diagram-export.test.js</Command></Verification>
+    </T-001>
+    <T-002>
+      <Title>Editor context-menu items + handlers (clipboard writeImage, save dialog, fs write, toast) and the capability permission in default.json + mas.json</Title>
+      <DependsOn>T-001</DependsOn>
+      <AcceptanceCriteria><Criterion>Items only on Pele/Vega-Lite blocks; Copy writes PNG bytes; Save writes PNG/SVG; cancel/failure paths per corner-5; capabilities diff is exactly one permission per file.</Criterion></AcceptanceCriteria>
+      <Verification><Command>npx playwright test tests/e2e/diagram-export.spec.ts --project=chromium</Command></Verification>
+    </T-002>
+    <T-003>
+      <Title>Block viewer toolbar: Copy as Image / Save as PNG… / Save as SVG… exporting the whole diagram regardless of zoom/pan</Title>
+      <DependsOn>T-001</DependsOn>
+      <AcceptanceCriteria><Criterion>Corner-2 pinned in e2e; existing block-viewer spec stays green.</Criterion></AcceptanceCriteria>
+      <Verification><Command>npx playwright test tests/e2e/block-viewer.spec.ts tests/e2e/diagram-export.spec.ts --project=chromium --project=webkit</Command></Verification>
+    </T-003>
+    <T-004>
+      <Title>Locales (10 + min.json), graph M-012 + editor module notes, verification V-M-012 new scenario, MODULE_MAP/CHANGE_SUMMARY</Title>
+      <DependsOn>T-002, T-003</DependsOn>
+      <AcceptanceCriteria><Criterion>grace lint --path . --assertions current = 0; locale suites green.</Criterion></AcceptanceCriteria>
+      <Verification><Command>grace lint --path . --assertions current</Command></Verification>
+    </T-004>
+  </ImplementationPlan>
+  <Evidence>
+  </Evidence>
+</C-56>
+</GraceChangePlan>
