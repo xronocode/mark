@@ -1,7 +1,7 @@
 // FILE: tests/e2e/zoom.spec.ts
-// VERSION: 1.0.1
+// VERSION: 1.1.0
 // START_MODULE_CONTRACT
-//   PURPOSE: End-to-end pin of the C-49 unified zoom — ⌘+ scales p / td / code / KaTeX AND the Mermaid SVG (width + labels, still inside the column), ⌘0 restores the Settings base size, the transient pill appears, and Ctrl+wheel inside the fullscreen block viewer never changes the editor font size.
+//   PURPOSE: End-to-end pin of the C-49 unified zoom — ⌘+ scales p / td / code / KaTeX AND the pele diagram SVG (width + labels, still inside the column; C-55 renamed the hook class ag-mermaid-preview → ag-pele-preview, the zoom mechanism itself is unchanged), ⌘0 restores the Settings base size, the transient pill appears, and Ctrl+wheel inside the fullscreen block viewer never changes the editor font size.
 //   SCOPE: zoom.spec.ts only; keyboard/wheel zoom against the built renderer (tauri-shim bootstrap, same as block-viewer.spec.ts).
 //   DEPENDS: @playwright/test, tests/e2e/fixtures/tauri-shim.
 //   LINKS: .grace/changes/active/C-49 R-1/R-2/R-5/R-6; .grace/verification/runtime.xml V-M-011 scenario-41.
@@ -10,8 +10,8 @@
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
-//   ZOOM_MD - markdown fixture: paragraph, table, code fence, math block, mermaid flowchart.
-//   DIAGRAM_MD - markdown fixture with one mermaid flowchart (viewer case).
+//   ZOOM_MD - markdown fixture: paragraph, table, code fence, math block, ```mermaid flowchart (rendered by pele since C-55).
+//   DIAGRAM_MD - markdown fixture with one ```mermaid flowchart (pele engine; viewer case).
 //   bootstrapWithMarkdown - tauri-shim + preferences (fontSize 16, baseFontSize 16) + mt::bootstrap-editor document load.
 //   measure - page.evaluate snapshot of computed font sizes, SVG width/label and column width.
 //   editorFontSizePx - computed fontSize of #ag-editor-id (viewer isolation check).
@@ -19,7 +19,12 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.0.1 - 2026-10-17 C-51 T-010: the viewer opens through
+//   LAST_CHANGE: v1.1.0 - 2026-10-17 C-55: the diagram engine is pele —
+//   selectors renamed (ag-mermaid-preview → ag-pele-preview; the node-shape
+//   probe g.node rect/polygon/circle → g.pele-node rect/polygon/circle).
+//   The ```mermaid fixtures stay (pele parses mermaid syntax) and the
+//   --mark-zoom zoom mechanism is unchanged.
+//   v1.0.1 - 2026-10-17 C-51 T-010: the viewer opens through
 //   Cmd/Ctrl+click — small diagrams have no visible expand button (D-7).
 //   v1.0.0 - 2026-10-15 C-49 T-001: initial spec. The
 //   diagram/indicator cases fail without the C-49 changes (mermaid SVGs kept
@@ -158,11 +163,11 @@ const measure = (page: Page): Promise<ZoomMetrics> =>
     const px = (el: Element | null) =>
       el ? parseFloat(getComputedStyle(el as HTMLElement).fontSize) : 0
     const preview = document.querySelector(
-      'div.ag-container-preview.ag-mermaid-preview'
+      'div.ag-container-preview.ag-pele-preview'
     ) as HTMLElement | null
     const svg = preview ? (preview.querySelector('svg') as SVGSVGElement | null) : null
     const label = svg
-      ? (svg.querySelector('g.node rect, g.node polygon, g.node circle') as HTMLElement | null)
+      ? (svg.querySelector('g.pele-node rect, g.pele-node polygon, g.pele-node circle') as HTMLElement | null)
       : null
     return {
       p: px(editor.querySelector('p')),
@@ -187,11 +192,11 @@ test.describe('unified zoom (C-49)', () => {
     await installTauriShim(page)
   })
 
-  test('⌘+ ×4 scales text, table, code, KaTeX and the Mermaid diagram (still inside the column)', async ({ page }) => {
+  test('⌘+ ×4 scales text, table, code, KaTeX and the pele diagram (still inside the column)', async ({ page }) => {
     await bootstrapWithMarkdown(page, ZOOM_MD)
     await page.locator('.editor-component, .editor-wrapper').first()
       .waitFor({ state: 'visible', timeout: 15_000 })
-    const preview = page.locator('div.ag-container-preview.ag-mermaid-preview').first()
+    const preview = page.locator('div.ag-container-preview.ag-pele-preview').first()
     await preview.waitFor({ state: 'visible', timeout: 20_000 })
     await page.locator('.katex').first().waitFor({ state: 'visible', timeout: 20_000 })
 
@@ -232,7 +237,7 @@ test.describe('unified zoom (C-49)', () => {
     await bootstrapWithMarkdown(page, ZOOM_MD)
     await page.locator('.editor-component, .editor-wrapper').first()
       .waitFor({ state: 'visible', timeout: 15_000 })
-    const preview = page.locator('div.ag-container-preview.ag-mermaid-preview').first()
+    const preview = page.locator('div.ag-container-preview.ag-pele-preview').first()
     await preview.waitFor({ state: 'visible', timeout: 20_000 })
 
     const before = await measure(page)
@@ -282,7 +287,7 @@ test.describe('unified zoom (C-49)', () => {
     await bootstrapWithMarkdown(page, DIAGRAM_MD)
     await page.locator('.editor-component, .editor-wrapper').first()
       .waitFor({ state: 'visible', timeout: 15_000 })
-    const preview = page.locator('div.ag-container-preview.ag-mermaid-preview').first()
+    const preview = page.locator('div.ag-container-preview.ag-pele-preview').first()
     await preview.waitFor({ state: 'visible', timeout: 20_000 })
     const fontBefore = await editorFontSizePx(page)
 

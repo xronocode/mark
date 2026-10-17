@@ -82,7 +82,7 @@
 //     restores the persisted baseFontSize (the Settings size) instead of a
 //     hard 16; both handlers skip the fullscreen block viewer (R-6);
 //     --mark-zoom = fontSize / 16 is kept on the document element so
-//     mermaid SVGs scale with the text; MIGRATE_LEGACY_ZOOM retires the
+//     pele SVGs scale with the text; MIGRATE_LEGACY_ZOOM retires the
 //     palette percentage zoom after hydration.
 //   - 2026-10-15 C-40 G-3: register editorStore.LISTEN_FOR_OPEN_GUIDE so the
 //     'mt::open-guide' bus event (Help › Mark Guide, help.guide palette
@@ -349,7 +349,7 @@ const setupZoomKeysFontSize = () => {
 
 // START_BLOCK_MARK_ZOOM
 // C-49 R-1: --mark-zoom = fontSize / 16 on the document element. The
-// mermaid pipeline stores each diagram's natural width and computes
+// pele pipeline stores each diagram's natural width and computes
 // max-width: calc(var(--mark-zoom, 1) * natural px), so diagrams and their
 // labels scale with the editor text while width:100% keeps them inside
 // the column. immediate: true covers the hydrated boot value.

@@ -2,8 +2,8 @@
 // VERSION: 1.0.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Pin the C-51 T-005 (R-3) content theming — the Vega-Lite config built from the theme tokens (transparent background, theme font, axis/legend/title colours, categorical range = the SAME palette Mermaid uses, user spec config winning through vega's own mergeConfig), the flowchart.js drawSVG options, the js-sequence options (hand/simple preference kept), the js-sequence SVG repaint, and the StateRender.renderDiagram wiring incl. the re-render on a theme switch.
-//   SCOPE: src/muya/lib/parser/render/contentTheme.js pure API + chartPalette from mermaidTheme.js + StateRender.renderDiagram with the renderer loader mocked; the export wiring lives in export-content-theme.test.js.
-//   DEPENDS: src/muya/lib/parser/render/contentTheme.js, src/muya/lib/parser/render/mermaidTheme.js, src/muya/lib/parser/render/index.js, vega (mergeConfig — the exact merge vega-lite compile applies), Vitest + jsdom.
+//   SCOPE: src/muya/lib/parser/render/contentTheme.js pure API + chartPalette from diagramTheme.js + StateRender.renderDiagram with the renderer loader mocked; the export wiring lives in export-content-theme.test.js.
+//   DEPENDS: src/muya/lib/parser/render/contentTheme.js, src/muya/lib/parser/render/diagramTheme.js, src/muya/lib/parser/render/index.js, vega (mergeConfig — the exact merge vega-lite compile applies), Vitest + jsdom.
 //   LINKS: .grace/changes/active/C-51 T-005; .grace/verification/runtime.xml V-M-012 scenario-23; START_BLOCK_CONTENT_*.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
@@ -41,7 +41,7 @@ import {
   buildSequenceThemeOptions,
   applySequenceTheme
 } from 'muya/lib/parser/render/contentTheme'
-import { chartPalette, palette, blendHex } from 'muya/lib/parser/render/mermaidTheme'
+import { chartPalette, palette, blendHex } from 'muya/lib/parser/render/diagramTheme'
 
 // The accepted lab themes (paper/ink) as fixed token inputs — product code
 // reads them from CSS variables; these tests exercise the builders.

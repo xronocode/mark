@@ -203,7 +203,7 @@ export default function renderLeafBlock (parent, block, activeBlocks, matches, u
           selector += `.${CLASS_OR_ID.AG_EMPTY}`
         } else {
           children = t('editor.loading')
-          this.mermaidCache.set(`#${block.key}`, {
+          this.peleCache.set(`#${block.key}`, {
             code,
             functionType
           })

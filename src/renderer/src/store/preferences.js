@@ -89,7 +89,7 @@ import { migrateThemePreferences } from '../util/themeMigration'
 import { defaultStatusBarVisibility } from '../util/docStats'
 
 // C-49: the unified zoom clamps the editor font size to 12–36 px. 16 px is
-// the base unit — --mark-zoom (fontSize / 16) scales mermaid diagrams with
+// the base unit — --mark-zoom (fontSize / 16) scales pele diagrams with
 // it, and the legacy percentage-zoom migration derives fontSize from it.
 export const FONT_SIZE_MIN = 12
 export const FONT_SIZE_MAX = 36

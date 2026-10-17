@@ -1,0 +1,65 @@
+<GraceChangeSpec graceVersion='4.0' status='approved'>
+<C-55>
+  <Name>Pele: replace the Mermaid diagram engine (hard cut) — lighter, theme-following, new diagram types; release 2.4.0-beta</Name>
+  <Created>2026-10-17</Created>
+  <Priority>high</Priority>
+  <Status>approved</Status>
+  <RoadmapPhase>N</RoadmapPhase>
+  <Complexity>L</Complexity>
+  <Summary>User decision 2026-10-17 after the proven spike (6687/6794 Pele suite green, full Mark corpus renders sync 0.05–12 ms, XSS probes clean): Mark's diagram renderer moves from mermaid ^11.12.2 to pele@1.6.0 (obsidianmd/pele, MIT, TypeScript, zero dependencies, ~251 KB gzip full bundle vs 2.6 MB raw / 44 mermaid chunks + 75 MB node_modules today). Hard cut, no fallback: the removal of mermaid IS the pitch (size-first positioning). The ```mermaid fence language stays — user documents and the ecosystem syntax are unchanged; Pele parses the mermaid 12.1 syntax (all 33 diagram types, incl. types absent from mermaid 11.12: agentflow-beta, venn-beta, radar-beta, swimlane-beta, usecase-beta, eventmodeling, treeView-beta, treemap, cynefin-beta, railroad-*-beta). Ships as 2.4.0-beta with honest What's New copy (new engine: faster, lighter, diagrams follow the theme, new diagram types, the look changed).</Summary>
+  <Problem><Description>mermaid@11 is the single heaviest renderer dependency in the renderer bundle (44 chunks / 2.6 MB raw in dist/assets, 23 transitive dependencies, 75 MB in node_modules), its SVG theming is baked at render time (themeVariables + per-type initialize + themeCSS + post-passes ≈ 870 lines of C-51/C-54 compensation code, theme-signature cache keys, the C-54 class of follow-up bugs), it needs the WKWebView CSP &lt;style&gt;-hoisting hack, and its render is async with DOM scratch elements that leak on error (orphan-cleanup hack). Pele removes every one of these costs: synchronous DOM-free render, SVG without &lt;style&gt; blocks, theming via CSS variables that recolor on theme switch WITHOUT re-render, XSS-safe by construction, RenderResult.width = ready natural width for C-49 zoom.</Description></Problem>
+  <Goals>
+    <R-1>Hard cut: pele@1.6.0 is the only diagram engine for ```mermaid blocks; mermaid leaves package.json, the renderers loader, the pipeline, the theme config, the export path and the bundle. No fallback path, no feature flag.</R-1>
+    <R-2>pelePipeline.js carries the proven resilience contract forward: code-only LRU SVG cache (theme leaves the key — CSS variables recolor without re-render), ~250 ms per-block debounce while typing, keep-last-good with escaped error text, unique idPrefix per render, expand-need re-evaluation after every insert, orphan/error-element hygiene.</R-2>
+    <R-3>Theming moves from render-time mermaid config to CSS variables — a --pele-* block (--pele-bg/fg/muted/line/surface/surface-alt/border/accent + --pele-series-1..8) derived per theme by the proven C-51/C-54 token+contrast math (buildPeleVariables, pure) and applied on the document root by the theme-application path; static Paper/Ink fallbacks in muya's stylesheet for pre-theme contexts; the export document inlines the same variables. A theme switch recolors every diagram with zero re-renders and zero cache misses.</R-3>
+    <R-4>C-49 zoom keeps working: data-natural-width comes from RenderResult.width; the --mark-zoom proportional max-width behavior is unchanged. C-34 fit-column policy keeps working via pele responsive/maxWidth semantics; the four scrollable types (gantt/journey/packet/timeline) keep natural width + in-block scroll via per-type render options (fontSize/maxWidth/padding), the C-51 lab look re-expressed in pele options.</R-4>
+    <R-5>All new bonus diagram types parse and render in ```mermaid blocks with default options (detection is pele's detectType — muya keeps no diagram-type list of its own).</R-5>
+    <R-6>Export/print: exported HTML renders diagrams via pele and carries the --pele-* variables inline so standalone files look like the editor; the error placeholder and sanitize behaviour are preserved.</R-6>
+    <R-7>Test surface ports and stays green: renderer {pele-pipeline, diagram-theme (vars derivation + node-contrast gates for all 32 themes), export theme} + e2e {showcase-screenshots, zoom, block-viewer, mermaid-render→pele-render, mermaid-theme→pele-theme, content-theme}; grace lint 0; graph/verification documents updated in the same commit.</R-7>
+    <R-8>Release 2.4.0-beta strictly per the AGENTS.md protocol: six-place version bump + preflight fixture advance, What's New in all 10 locales, README + CHANGELOG + screenshots, tag in fork. The kepano comment is posted by the USER only, after the release (outward send — never the agent's).</R-8>
+  </Goals>
+  <Constraints>
+    <Item>The ```mermaid fence language, AG_MERMAID figure marker, quick-insert label and i18n strings stay — markdown documents must keep parsing identically.</Item>
+    <Item>No new dependencies beyond pele itself (pele has zero); flowchart/sequence/plantuml/vega-lite paths are untouched.</Item>
+    <Item>Shared color math (oklch/palette/chartPalette/readActiveThemeTokens/nodeContrastColors) survives for contentTheme.js (Vega/flowchart/sequence) — renamed module, same values, pinned by ported tests.</Item>
+    <Item>Render ids/idPrefix stay unique per render (counter, not Date.now()).</Item>
+    <Item>Every GRACE-governed edit ships its MODULE_CONTRACT/MAP update, graph and V-M-* updates in the same commit; grace lint --assertions current = 0.</Item>
+    <Item>App-level validation (fonts/mount in WKWebView) via Playwright + tauri-shim probes only — the in-app browser cannot boot the editor.</Item>
+  </Constraints>
+  <NonGoals>
+    <Item>No pele/lazy per-diagram-type code splitting in this change (the full-bundle import is one ~251 KB gzip chunk; lazy is a follow-up if the bundle budget ever demands it).</Item>
+    <Item>No re-skinning of Pele's default geometry beyond what --pele-* variables and fontSize/maxWidth/padding options express; the look IS allowed to differ from mermaid (honest What's New copy covers it).</Item>
+    <Item>No mermaid 12.2-only syntax coverage work; Pele pins 12.1 compat.</Item>
+    <Item>No changes to flowchart.js / js-sequence / plantuml / vega-lite rendering.</Item>
+    <Item>No C-4-style per-type palette bands port: pele's series variables cover categorical colouring; per-shape theming beyond the variable set is out.</Item>
+    <Item>The kepano LinkedIn comment: drafting numbers for the user is in scope, posting is not (user-only outward send).</Item>
+  </NonGoals>
+  <AffectedAreas>
+    <Item>src/muya/lib/parser/render/pelePipeline.js (new, replaces mermaidPipeline.js)</Item>
+    <Item>src/muya/lib/parser/render/peleOptions.js (new: per-type render options)</Item>
+    <Item>src/muya/lib/parser/render/diagramTheme.js (renamed from mermaidTheme.js: shared math kept, mermaid config/markers/donut/detect removed, buildPeleVariables added)</Item>
+    <Item>src/muya/lib/parser/render/index.js (StateRender dispatch), src/muya/lib/parser/render/contentTheme.js (import path)</Item>
+    <Item>src/muya/lib/renderers/index.js (loader case), src/muya/lib/utils/exportHtml.js, src/muya/lib/assets/styles/index.css, src/muya/lib/ui/blockViewer (probe-verified only if touched)</Item>
+    <Item>src/renderer/src/util/theme.js (apply --pele-* on theme application), src/renderer/src/pages/app.vue (theme watcher path if that is the apply point)</Item>
+    <Item>package.json (+pele, −mermaid), tests/renderer/muya/*, tests/e2e/*</Item>
+    <Item>.grace/graph/runtime.xml (M-012 successor entries), .grace/verification/runtime.xml (V-M-012 scenarios)</Item>
+  </AffectedAreas>
+  <AcceptanceCriteria>
+    <Criterion>R-1..R-7 done, all gates green: npx vitest run (full suite), Playwright e2e (chromium + webkit) for the ported specs, grace lint 0, dist contains zero mermaid chunks and a single pele chunk, visual probe (tauri-shim) shows diagrams rendering with correct fonts/theme in WKWebView.</Criterion>
+    <Criterion>R-8: 2.4.0-beta released per protocol (preflight sources=6, materials in 10 locales, tag pushed, latest.json serves the new version) — and the kepano comment remains UNSENT (user posts it).</Criterion>
+  </AcceptanceCriteria>
+  <VerificationIntent>
+    <ExpectedCommand>npx vitest run tests/renderer/muya/pele-pipeline.test.js tests/renderer/muya/diagram-theme.test.js tests/renderer/muya/pele-node-contrast.test.js tests/renderer/muya/export-pele-theme.test.js</ExpectedCommand>
+    <ExpectedCommand>npm test</ExpectedCommand>
+    <ExpectedCommand>npx playwright test tests/e2e/showcase-screenshots.spec.ts tests/e2e/zoom.spec.ts tests/e2e/block-viewer.spec.ts tests/e2e/pele-render.spec.ts tests/e2e/pele-theme.spec.ts --project=chromium --project=webkit</ExpectedCommand>
+    <ExpectedCommand>grace lint --path . --assertions current</ExpectedCommand>
+    <ExpectedCommand>npm run release:preflight -- --tag v2.4.0-beta</ExpectedCommand>
+    <ExpectedEvidence>Unit: code-only cache key (theme switch = cache hit, no re-render), keep-last-good on PeleError, debounce collapse, data-natural-width from RenderResult.width, expand-need after insert, per-type options, 32-theme --pele-* derivation gates (node contrast + series), export var inlining. E2E: rendered SVG present per diagram type incl. new bonus types, theme switch recolors without re-render (DOM svg unchanged), zoom scaling, block viewer natural size, showcase captures. Bundle: no mermaid chunks; pele chunk size recorded for the What's New / kepano numbers.</ExpectedEvidence>
+  </VerificationIntent>
+  <Assumptions>
+    <Assumption>pele@1.6.0 render is synchronous and DOM-free in the renderer (spike-verified in Node; WKWebView validated by probe before release).</Assumption>
+    <Assumption>Pele SVGs reference var(--pele-*) such that a document-root variable change recolors live (spike-verified; probe re-verifies in WKWebView).</Assumption>
+    <Assumption>The export sanitize path accepts pele SVG strings as-is (same checks as mermaid SVG today).</Assumption>
+  </Assumptions>
+</C-55>
+</GraceChangeSpec>

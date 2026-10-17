@@ -1,10 +1,10 @@
 // FILE: tests/e2e/block-viewer.spec.ts
-// VERSION: 3.1.1
+// VERSION: 3.2.0
 // START_MODULE_CONTRACT
 //   PURPOSE: End-to-end pin of the shared fullscreen block viewer (C-34 R2.2 + C-39 T2) and the C-51 T-006/T-010 expand button and T-014 polish — overlay open, zoom keys, read-only table clone with sticky header, Cmd+click, Esc close with focus restore; the T-010 need rules (small blocks have no button and no Tab stop, wide/tall blocks do), the copy-icon look (20 px, 0/0.5/1 opacity curve, inside the block), the table placement clear of header text and the last-column resize handle, viewport-resize re-evaluation, and light/dark colours; the T-014 cases — fit scales a small diagram UP on open and on Fit with 1:1 restoring natural size, an open viewer follows a paper→ink theme switch (clone re-rendered from the live block, zoom kept), and an edited diagram/math preview sits in flow below the source so the next heading is pushed down, never covered.
 //   SCOPE: block-viewer.spec.ts only; diagram and table flows against the built renderer.
-//   DEPENDS: @playwright/test, tests/e2e/fixtures/tauri-shim (same bootstrap as mermaid-render.spec.ts).
-//   LINKS: .grace/changes/active/C-34 T-002; .grace/changes/active/C-39 T2 and T-002; .grace/changes/active/C-51 T-006, T-010 (D-7) and T-014; .grace/verification/runtime.xml V-M-012 scenario-19 and scenario-60; V-M-011 scenario-64.
+//   DEPENDS: @playwright/test, tests/e2e/fixtures/tauri-shim (same bootstrap as pele-render.spec.ts).
+//   LINKS: .grace/changes/active/C-34 T-002; .grace/changes/active/C-39 T2 and T-002; .grace/changes/active/C-51 T-006, T-010 (D-7) and T-014; .grace/changes/active/C-55 (pele engine: ag-pele-preview hook class, g.pele-node shapes, no <style> blocks); .grace/verification/runtime.xml V-M-012 scenario-19 and scenario-60; V-M-011 scenario-64.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT
@@ -17,13 +17,21 @@
 //   EDIT_FLOW_MD - a mermaid diagram and a math block, each followed by a heading (T-014 in-flow edit preview).
 //   WIDE_TABLE_MD - a 12-column table that overflows the column (expand button; resize-handle drag).
 //   MIXED_MD - every viewable block type: small ones stay button-less, the wide mermaid/flowchart and the wide/tall tables get it, plus fence/paragraph negatives.
-//   bootstrapWithMarkdown - tauri-shim + preferences + mt::bootstrap-editor document load (mirrors mermaid-render.spec.ts); extraPrefs override individual preference defaults.
+//   bootstrapWithMarkdown - tauri-shim + preferences + mt::bootstrap-editor document load (mirrors pele-render.spec.ts); extraPrefs override individual preference defaults.
 //   canvasScale - parses the panzoom `scale(s) translate(x,y)` transform of the viewer canvas.
-//   nodeFillIn - computed fill of the first mermaid node shape inside a root element (live figure or viewer clone).
+//   nodeFillIn - computed fill of the first pele node shape (g.pele-node rect/polygon) inside a root element (live figure or viewer clone).
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v3.1.1 - 2026-10-17 C-51 T-014 gate round. (1) The
+//   LAST_CHANGE: v3.2.0 - 2026-10-17 C-55: the diagram engine is pele —
+//   preview hook class renamed (ag-mermaid-preview → ag-pele-preview), the
+//   node-fill probe reads pele shapes (g.pele-node rect/polygon resolving
+//   --pele-surface), and the clone check flipped from "the hoisted mermaid
+//   <style> travelled with the clone" to its pele equivalent (the clone
+//   carries an svg.pele root and ZERO <style> blocks — pele emits none).
+//   The ```mermaid fixtures stay (pele parses mermaid syntax); figure
+//   data-role="MERMAID" is unchanged.
+//   PREV: v3.1.1 - 2026-10-17 C-51 T-014 gate round. (1) The
 //   in-flow case asserted computed position 'static', but muya's
 //   universal .ag-paragraph rule (getSelector adds the class to every
 //   block element) keeps position:relative on the preview — relative is
@@ -348,14 +356,15 @@ async function canvasScale (page: Page): Promise<number> {
   })
 }
 
-// Computed fill of the first mermaid node shape under a root — the same
-// read mermaid-theme.spec.ts uses, pointed at the viewer CLONE or the
-// live figure (C-51 T-014 theme-follow case).
+// Computed fill of the first pele node shape under a root — the same
+// read pele-theme.spec.ts uses, pointed at the viewer CLONE or the
+// live figure (C-51 T-014 theme-follow case; pele node cards are
+// g.pele-node rect/polygon resolving --pele-surface since C-55).
 async function nodeFillIn (page: Page, rootSelector: string): Promise<string> {
   return page.evaluate((sel: string) => {
     const root = document.querySelector(sel)
     if (!root) return 'none'
-    const shape = root.querySelector('.node rect, .node polygon, .node path')
+    const shape = root.querySelector('g.pele-node rect, g.pele-node polygon')
     return shape ? window.getComputedStyle(shape).fill : 'none'
   }, rootSelector)
 }
@@ -370,7 +379,7 @@ test.describe('block viewer (C-34 R2.2 + C-39 T2)', () => {
     await page.locator('.editor-component, .editor-wrapper').first()
       .waitFor({ state: 'visible', timeout: 15_000 })
 
-    const preview = page.locator('div.ag-container-preview.ag-mermaid-preview').first()
+    const preview = page.locator('div.ag-container-preview.ag-pele-preview').first()
     await preview.waitFor({ state: 'visible', timeout: 20_000 })
 
     // T-010: the wide diagram is scaled to the column, so the figure
@@ -387,12 +396,19 @@ test.describe('block viewer (C-34 R2.2 + C-39 T2)', () => {
     await expect(viewer).toHaveClass(/ag-block-viewer-open/)
     await expect(viewer.locator('.ag-block-viewer-title')).toHaveText('Diagram')
     await expect(viewer.locator('.ag-block-viewer-canvas svg').first()).toBeVisible()
-    // The hoisted mermaid <style> travelled with the clone.
-    const cloneHasStyle = await page.evaluate(() => {
+    // The clone carries the pele svg root — and pele emits NO <style>
+    // blocks (the mermaid-era WKWebView hoisting travelled with the clone;
+    // C-55 removed it by construction).
+    const cloneHasPele = await page.evaluate(() => {
       const canvas = document.querySelector('.ag-block-viewer-canvas')
-      return !!(canvas && canvas.querySelector('div.ag-container-preview > style'))
+      if (!canvas) return { svg: false, styleBlocks: 1 }
+      return {
+        svg: !!canvas.querySelector('div.ag-container-preview > svg.pele'),
+        styleBlocks: canvas.querySelectorAll('div.ag-container-preview style').length
+      }
     })
-    expect(cloneHasStyle).toBe(true)
+    expect(cloneHasPele.svg).toBe(true)
+    expect(cloneHasPele.styleBlocks).toBe(0)
 
     // A zoom key changes the transform scale.
     await page.waitForTimeout(80) // panzoom applies transforms in a rAF
@@ -415,7 +431,7 @@ test.describe('block viewer (C-34 R2.2 + C-39 T2)', () => {
 
   test('macOS: the viewer title clears the traffic lights; other platforms keep the plain inset (C-51 T-008)', async ({ page }) => {
     await bootstrapWithMarkdown(page, WIDE_DIAGRAM_MD)
-    await page.locator('div.ag-container-preview.ag-mermaid-preview').first()
+    await page.locator('div.ag-container-preview.ag-pele-preview').first()
       .waitFor({ state: 'visible', timeout: 20_000 })
     const viewer = page.locator('.ag-block-viewer')
     const title = viewer.locator('.ag-block-viewer-title')
@@ -444,7 +460,7 @@ test.describe('block viewer (C-34 R2.2 + C-39 T2)', () => {
     await bootstrapWithMarkdown(page, WIDE_DIAGRAM_MD)
     await page.locator('.editor-component, .editor-wrapper').first()
       .waitFor({ state: 'visible', timeout: 15_000 })
-    const preview = page.locator('div.ag-container-preview.ag-mermaid-preview').first()
+    const preview = page.locator('div.ag-container-preview.ag-pele-preview').first()
     await preview.waitFor({ state: 'visible', timeout: 20_000 })
     const fontBefore = await page.evaluate(() => getComputedStyle(document.querySelector('#ag-editor-id') as HTMLElement).fontSize)
 
@@ -468,7 +484,7 @@ test.describe('block viewer (C-34 R2.2 + C-39 T2)', () => {
 
   test('the viewer backdrop is opaque: nothing of the page shows through', async ({ page }) => {
     await bootstrapWithMarkdown(page, WIDE_DIAGRAM_MD)
-    const preview = page.locator('div.ag-container-preview.ag-mermaid-preview').first()
+    const preview = page.locator('div.ag-container-preview.ag-pele-preview').first()
     await preview.waitFor({ state: 'visible', timeout: 20_000 })
     await page.locator('figure[data-role="MERMAID"] > button.ag-block-expand').first().click()
     await expect(page.locator('.ag-block-viewer')).toHaveClass(/ag-block-viewer-open/)
@@ -485,13 +501,13 @@ test.describe('block viewer (C-34 R2.2 + C-39 T2)', () => {
     await bootstrapWithMarkdown(page, WIDE_DIAGRAM_MD)
     await page.locator('.editor-component, .editor-wrapper').first()
       .waitFor({ state: 'visible', timeout: 15_000 })
-    const preview = page.locator('div.ag-container-preview.ag-mermaid-preview').first()
+    const preview = page.locator('div.ag-container-preview.ag-pele-preview').first()
     await preview.waitFor({ state: 'visible', timeout: 20_000 })
-    await page.locator('div.ag-mermaid-preview svg').first().waitFor({ state: 'visible', timeout: 20_000 })
+    await page.locator('div.ag-pele-preview svg').first().waitFor({ state: 'visible', timeout: 20_000 })
 
     // In the page the wide diagram fits the column (no sideways scroll).
     const inPage = await page.evaluate(() => {
-      const c = document.querySelector('div.ag-container-preview.ag-mermaid-preview') as HTMLElement
+      const c = document.querySelector('div.ag-container-preview.ag-pele-preview') as HTMLElement
       return { client: c.clientWidth, scroll: c.scrollWidth, svg: (c.querySelector('svg') as SVGSVGElement).getBoundingClientRect().width }
     })
     expect(inPage.svg).toBeLessThanOrEqual(inPage.client + 1)
@@ -582,7 +598,7 @@ test.describe('block viewer (C-34 R2.2 + C-39 T2)', () => {
     await page.locator('.editor-component, .editor-wrapper').first()
       .waitFor({ state: 'visible', timeout: 15_000 })
 
-    const preview = page.locator('div.ag-container-preview.ag-mermaid-preview').first()
+    const preview = page.locator('div.ag-container-preview.ag-pele-preview').first()
     await preview.waitFor({ state: 'visible', timeout: 20_000 })
 
     // T-010: the small diagram has NO button — but Cmd/Ctrl+click keeps
@@ -773,7 +789,7 @@ test.describe('block viewer (C-34 R2.2 + C-39 T2)', () => {
 
     // Theme-following: the ink theme resolves a different (light) colour.
     await bootstrapWithMarkdown(page, WIDE_DIAGRAM_MD, 'ink')
-    await page.locator('div.ag-container-preview.ag-mermaid-preview').first()
+    await page.locator('div.ag-container-preview.ag-pele-preview').first()
       .waitFor({ state: 'visible', timeout: 20_000 })
     // The pointer is still where the previous hover left it — move it off
     // the figure so the rest state is measured.
@@ -790,7 +806,7 @@ test.describe('block viewer (C-34 R2.2 + C-39 T2)', () => {
 
   test('keyboard: focusing the expand button and pressing Enter opens the viewer; Esc restores the button focus', async ({ page }) => {
     await bootstrapWithMarkdown(page, WIDE_DIAGRAM_MD)
-    const preview = page.locator('div.ag-container-preview.ag-mermaid-preview').first()
+    const preview = page.locator('div.ag-container-preview.ag-pele-preview').first()
     await preview.waitFor({ state: 'visible', timeout: 20_000 })
 
     const expand = page.locator('figure[data-role="MERMAID"] > button.ag-block-expand').first()
@@ -925,12 +941,12 @@ test.describe('block viewer (C-34 R2.2 + C-39 T2)', () => {
 
   test('resizing the viewport re-evaluates: an unscaled diagram becomes scaled and gains the button', async ({ page }) => {
     await bootstrapWithMarkdown(page, MEDIUM_DIAGRAM_MD)
-    await page.locator('div.ag-container-preview.ag-mermaid-preview svg').first()
+    await page.locator('div.ag-container-preview.ag-pele-preview svg').first()
       .waitFor({ state: 'visible', timeout: 20_000 })
 
     const figure = page.locator('figure[data-role="MERMAID"]').first()
     const before = await page.evaluate(() => {
-      const c = document.querySelector('div.ag-container-preview.ag-mermaid-preview') as HTMLElement
+      const c = document.querySelector('div.ag-container-preview.ag-pele-preview') as HTMLElement
       const svg = c.querySelector('svg') as SVGSVGElement
       return {
         natural: svg.viewBox.baseVal.width,
@@ -956,7 +972,7 @@ test.describe('block viewer (C-34 R2.2 + C-39 T2)', () => {
     await expect(figure).toHaveClass(/ag-expand-needed/, { timeout: 5_000 })
     await expect(page.locator('figure[data-role="MERMAID"] > button.ag-block-expand')).toBeVisible()
     const after = await page.evaluate(() => {
-      const svg = document.querySelector('div.ag-container-preview.ag-mermaid-preview svg') as SVGSVGElement
+      const svg = document.querySelector('div.ag-container-preview.ag-pele-preview svg') as SVGSVGElement
       return svg.getBoundingClientRect().width
     })
     expect(after).toBeLessThan(before.natural - 2)
@@ -991,9 +1007,9 @@ test.describe('block viewer (C-34 R2.2 + C-39 T2)', () => {
     await bootstrapWithMarkdown(page, TINY_DIAGRAM_MD)
     await page.locator('.editor-component, .editor-wrapper').first()
       .waitFor({ state: 'visible', timeout: 15_000 })
-    const preview = page.locator('div.ag-container-preview.ag-mermaid-preview').first()
+    const preview = page.locator('div.ag-container-preview.ag-pele-preview').first()
     await preview.waitFor({ state: 'visible', timeout: 20_000 })
-    await page.locator('div.ag-mermaid-preview svg').first().waitFor({ state: 'visible', timeout: 20_000 })
+    await page.locator('div.ag-pele-preview svg').first().waitFor({ state: 'visible', timeout: 20_000 })
 
     // The tiny diagram has no expand button (T-010 need rule) — the
     // Cmd/Ctrl+click path opens the viewer for every viewable block.
@@ -1042,9 +1058,9 @@ test.describe('block viewer (C-34 R2.2 + C-39 T2)', () => {
     })
     await page.locator('.editor-component, .editor-wrapper').first()
       .waitFor({ state: 'visible', timeout: 15_000 })
-    const preview = page.locator('div.ag-container-preview.ag-mermaid-preview').first()
+    const preview = page.locator('div.ag-container-preview.ag-pele-preview').first()
     await preview.waitFor({ state: 'visible', timeout: 20_000 })
-    await page.locator('div.ag-mermaid-preview svg').first().waitFor({ state: 'visible', timeout: 20_000 })
+    await page.locator('div.ag-pele-preview svg').first().waitFor({ state: 'visible', timeout: 20_000 })
 
     await page.locator('figure[data-role="MERMAID"] > button.ag-block-expand').first().click()
     const viewer = page.locator('.ag-block-viewer')
@@ -1082,7 +1098,7 @@ test.describe('block viewer (C-34 R2.2 + C-39 T2)', () => {
     await bootstrapWithMarkdown(page, EDIT_FLOW_MD)
     await page.locator('.editor-component, .editor-wrapper').first()
       .waitFor({ state: 'visible', timeout: 15_000 })
-    await page.locator('div.ag-container-preview.ag-mermaid-preview svg').first()
+    await page.locator('div.ag-container-preview.ag-pele-preview svg').first()
       .waitFor({ state: 'visible', timeout: 20_000 })
     // KaTeX loads lazily; the math preview must exist before it is edited.
     await page.locator("figure[data-role='MULTIPLEMATH'] .ag-container-preview .katex").first()
@@ -1090,7 +1106,7 @@ test.describe('block viewer (C-34 R2.2 + C-39 T2)', () => {
 
     // Plain click on the preview opens the source block (figure active).
     const figure = page.locator("figure[data-role='MERMAID']").first()
-    await page.locator('div.ag-container-preview.ag-mermaid-preview').first().click()
+    await page.locator('div.ag-container-preview.ag-pele-preview').first().click()
     await expect(figure).toHaveClass(/ag-active/)
     await expect(figure.locator('pre[data-role="mermaid"] span.ag-code-content').first())
       .toBeVisible()

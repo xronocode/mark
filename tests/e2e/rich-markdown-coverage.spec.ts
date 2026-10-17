@@ -11,7 +11,7 @@
  * (fixtures/tauri-csp.ts), and no CSP violation may be recorded.
  *
  *   - all 22 Mermaid diagram types (one <svg> per block, no
- *     .ag-mermaid-error anywhere);
+ *     .ag-pele-error anywhere);
  *   - ```vega-lite, ```flowchart (flowchart.js) and ```sequence blocks
  *     (svg present);
  *   - all 5 GitHub callout tags + the 10 further tags the prompt names
@@ -200,7 +200,7 @@ test.describe('rich Markdown coverage (C-51 T-009)', () => {
 
     // Settle, then no block may carry a mermaid error marker.
     await page.waitForTimeout(1_500)
-    await expect(page.locator('.editor-with-tabs .ag-mermaid-error')).toHaveCount(0)
+    await expect(page.locator('.editor-with-tabs .ag-pele-error')).toHaveCount(0)
     await expect(page.locator('.editor-with-tabs .ag-math-error')).toHaveCount(0)
 
     await page.screenshot({ path: 'test-results/c51-t009-mermaid-matrix.png', fullPage: true })
@@ -314,7 +314,7 @@ test.describe('rich Markdown coverage (C-51 T-009)', () => {
       .toHaveCount(1, { timeout: 30_000 })
     await expect(page.locator('.editor-with-tabs figure[data-role="SEQUENCE"] div.ag-container-preview svg'))
       .toHaveCount(1, { timeout: 30_000 })
-    await expect(page.locator('.editor-with-tabs .ag-mermaid-error')).toHaveCount(0)
+    await expect(page.locator('.editor-with-tabs .ag-pele-error')).toHaveCount(0)
 
     await page.screenshot({ path: 'test-results/c51-t009-guide.png', fullPage: true })
   })

@@ -4,8 +4,8 @@ import { bootEditor, openFileTab } from './fixtures/helpers'
 
 // C-51 T-007: the Docs and macOS theme families (R-5) — every member
 // applies its canvas colours to the editor surface, mirrors its
-// --chartPalette (mermaidTheme.readActiveThemeTokens reads that mirror),
-// a Mermaid pie's first slice takes the palette's first colour (#007AFF
+// --chartPalette (diagramTheme.readActiveThemeTokens reads that mirror),
+// a pele pie's first slice takes the palette's first colour (#007AFF
 // in macOS light), the document rides the system UI font while code keeps
 // the code font, the title-bar cycle switches within the family, and the
 // Settings family picker lists and applies the new families. Runs in
@@ -45,7 +45,7 @@ const PREVIEW_SVG = 'figure.ag-container-block div.ag-container-preview svg'
 
 /**
  * Resolve a CSS variable the way the browser resolves it for a real
- * element (same probe as mermaid-theme.spec.ts).
+ * element (same probe as pele-theme.spec.ts).
  */
 async function resolveVar(page: Page, cssVar: string, kind: 'bg' | 'color'): Promise<string> {
   return page.evaluate(({ v, k }: { v: string; k: 'bg' | 'color' }) => {
@@ -177,7 +177,7 @@ test.describe('Docs and macOS theme families (C-51 T-007)', () => {
         expect(surface.color).toBe(EXPECTED[theme].text)
 
         // The theme's --chartPalette is mirrored on the root (the source
-        // mermaidTheme.readActiveThemeTokens reads first).
+        // diagramTheme.readActiveThemeTokens reads first).
         const chartPalette = await page.evaluate(() =>
           document.documentElement.style.getPropertyValue('--chartPalette')
         )
@@ -186,7 +186,7 @@ test.describe('Docs and macOS theme families (C-51 T-007)', () => {
         // The pie renders with the palette: first slice = first colour,
         // ≥ 4 distinct slice colours (4 data rows), no error.
         await expect(page.locator(PREVIEW_SVG)).toHaveCount(1, { timeout: 30_000 })
-        await expect(page.locator('figure.ag-container-block .ag-mermaid-error')).toHaveCount(0)
+        await expect(page.locator('figure.ag-container-block .ag-pele-error')).toHaveCount(0)
 
         const fills = await pieFills(page)
         expect(fills[0], `${theme}: the first pie slice is the palette's first colour`).toBe(

@@ -781,25 +781,59 @@ figure.ag-container-block div.ag-container-preview > svg {
 }
 
 /*
- * Mermaid previews (C-34): the ag-mermaid-preview hook class is added by
- * the render pipeline, so plantuml, vega-lite, flowchart.js and math
- * previews are unaffected. overflow-x stays as a safety net for diagram
- * types that ignore useMaxWidth.
+ * C-55: pele diagram theming fallbacks (the exact Paper theme derivation —
+ * real tokens incl. the #f2ece1 code panel) for pre-theme contexts. util/theme.js derives the
+ * live block per theme (buildPeleVariables in muya diagramTheme.js) and
+ * sets every variable on the document root's inline style, which wins over
+ * this rule. Deliberately NO body.dark override: a nearer ancestor
+ * declaration would shadow the root inline values for everything inside
+ * body.
  */
-figure.ag-container-block div.ag-container-preview.ag-mermaid-preview {
+:root {
+  --pele-bg: #f2ece1;
+  --pele-fg: #22252b;
+  --pele-muted: #6e6a60;
+  --pele-line: #807f7d;
+  --pele-surface: #fffdf8;
+  --pele-surface-alt: #f9f5ed;
+  --pele-border: #807f7d;
+  --pele-accent: #a4780f;
+  --pele-series-1: #a4780f;
+  --pele-series-2: #577fc8;
+  --pele-series-3: #009777;
+  --pele-series-4: #b56088;
+  --pele-series-5: #6d8d36;
+  --pele-series-6: #936cb8;
+  --pele-series-7: #0091ae;
+  --pele-series-8: #bc644b;
+  --pele-font: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', system-ui, sans-serif;
+  --pele-font-mono: ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
+  --pele-radius: 6px;
+  --pele-title-weight: 600;
+}
+
+/*
+ * Pele diagram previews (C-34 behaviour, C-55 engine): the ag-pele-preview
+ * hook class is added by the render pipeline, so plantuml, vega-lite,
+ * flowchart.js and math previews are unaffected. overflow-x is the
+ * in-block horizontal scroll for the natural-width lab types
+ * (gantt/journey/packet/timeline) and a safety net for wide outputs.
+ */
+figure.ag-container-block div.ag-container-preview.ag-pele-preview {
   overflow-x: auto;
 }
 
-/* Wide diagrams fit the column (mermaid useMaxWidth:true sets width 100%
-   and an inline max-width = natural width); narrow ones keep their size
-   and stay centred. Natural size is in the fullscreen block viewer.
+/* Wide diagrams fit the column (pele emits width=<natural> with
+   max-width:100%); narrow ones keep their size and stay centred. Natural
+   size is in the fullscreen block viewer.
    C-49: the pipeline replaces the inline max-width with
-   calc(var(--mark-zoom, 1) * <data-natural-width>px) so diagrams and their
-   labels scale with the editor font size (pages/app.vue keeps --mark-zoom =
-   fontSize / 16 on the document element) while width:100% still fits them
-   inside the column; the viewer clone overrides the inline size from the
-   viewBox, so it keeps the natural 1:1 size. */
-figure.ag-container-block div.ag-container-preview.ag-mermaid-preview > svg {
+   calc(var(--mark-zoom, 1) * <data-natural-width>px) and switches the width
+   attribute to 100% so diagrams and their labels scale with the editor
+   font size (pages/app.vue keeps --mark-zoom = fontSize / 16 on the
+   document element) while width:100% still fits them inside the column;
+   the viewer clone overrides the inline size from the viewBox, so it keeps
+   the natural 1:1 size. */
+figure.ag-container-block div.ag-container-preview.ag-pele-preview > svg {
   display: block;
   margin: 0 auto;
 }
@@ -807,16 +841,16 @@ figure.ag-container-block div.ag-container-preview.ag-mermaid-preview > svg {
 /* Thin horizontal scrollbar for wide diagrams (C-34 R2.1 smoke): the
    global ::-webkit-scrollbar rule sets no height, so WebKit fell back to
    a thick 15px classic bar under every wide diagram. */
-figure.ag-container-block div.ag-container-preview.ag-mermaid-preview::-webkit-scrollbar {
+figure.ag-container-block div.ag-container-preview.ag-pele-preview::-webkit-scrollbar {
   height: 6px;
   background: transparent;
 }
-figure.ag-container-block div.ag-container-preview.ag-mermaid-preview::-webkit-scrollbar-thumb {
+figure.ag-container-block div.ag-container-preview.ag-pele-preview::-webkit-scrollbar-thumb {
   border-radius: 3px;
 }
 
-/* Mermaid error text shown below a kept-last-good diagram (C-34 R2.1). */
-figure.ag-container-block div.ag-container-preview div.ag-mermaid-error {
+/* Pele error text shown below a kept-last-good diagram (C-34 R2.1). */
+figure.ag-container-block div.ag-container-preview div.ag-pele-error {
   color: var(--deleteColor);
   font-size: 12px;
   font-family: monospace;

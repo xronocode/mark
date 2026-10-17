@@ -1,7 +1,7 @@
 const rendererCache = new Map()
 /**
  *
- * @param {string} name the renderer name: katex, sequence, plantuml, flowchart, mermaid, vega-lite
+ * @param {string} name the renderer name: katex, sequence, plantuml, flowchart, pele, vega-lite
  */
 const loadRenderer = async (name) => {
   if (!rendererCache.has(name)) {
@@ -19,9 +19,11 @@ const loadRenderer = async (name) => {
         m = await import('flowchart.js')
         rendererCache.set(name, m.default)
         break
-      case 'mermaid':
-        m = await import('mermaid/dist/mermaid.esm.mjs')
-        rendererCache.set(name, m.default)
+      case 'pele':
+        // C-55: the pele namespace (render/detectType/PeleError are named
+        // exports) replaces mermaid — synchronous, DOM-free, MIT, zero deps.
+        m = await import('pele')
+        rendererCache.set(name, m)
         break
       case 'vega-lite': {
         // The Tauri CSP has no 'unsafe-eval', so vega's default expression

@@ -6,7 +6,7 @@
 //            themeColor factories, Prism companions, command palette,
 //            native menu, all ten locales), canvas-pinned theme colours,
 //            swatch source values, Auto/Light/Dark member resolution, and
-//            the --chartPalette → mermaidTheme.readActiveThemeTokens /
+//            the --chartPalette → diagramTheme.readActiveThemeTokens /
 //            buildMermaidThemeConfig chain (R-2 derives from these themes).
 //   SCOPE: Pure data + disk CSS parsing + jsdom inline CSS-variable mirrors
 //            feeding the real mermaidTheme token reader. The C-41 gates
@@ -47,9 +47,9 @@ import { readFileSync, readdirSync } from 'node:fs'
 import { resolve } from 'node:path'
 import {
   readActiveThemeTokens,
-  buildMermaidThemeConfig,
-  mermaidThemeSignature
-} from 'muya/lib/parser/render/mermaidTheme'
+  buildPeleVariables,
+  diagramThemeSignature
+} from 'muya/lib/parser/render/diagramTheme'
 
 const ROOT = resolve(__dirname, '..', '..', '..')
 const readSource = (relPath) => readFileSync(resolve(ROOT, relPath), 'utf-8')
@@ -240,7 +240,7 @@ describe('Docs and macOS theme colours (C-51 T-007)', () => {
 })
 
 // ── mermaid/content theming derives from the new families ────────────
-describe('mermaidTheme reads the new families (C-51 T-007, R-2)', () => {
+describe('diagramTheme reads the new families (C-51 T-007, R-2)', () => {
   it('readActiveThemeTokens returns the theme-defined series from --chartPalette', () => {
     for (const id of NEW_MEMBERS) {
       mirrorThemeVars(id)
@@ -255,20 +255,21 @@ describe('mermaidTheme reads the new families (C-51 T-007, R-2)', () => {
     }
   })
 
-  it('the config builder uses the palette: pie1/git0/xy chart colours (macOS blue first)', () => {
+  it('the pele variables use the palette: series/accent colours (macOS blue first)', () => {
     mirrorThemeVars('macos')
-    const config = buildMermaidThemeConfig(readActiveThemeTokens(), 'pie')
+    const vars = buildPeleVariables(readActiveThemeTokens())
     const series = paletteHexes('macos')
-    expect(config.themeVariables.pie1).toBe(series[0])
-    expect(config.themeVariables.pie1).toBe('#007aff')
-    expect(config.themeVariables.git0).toBe(series[0])
-    expect(config.themeVariables.xyChart.plotColorPalette.split(',').map((c) => c.trim()))
-      .toEqual(series)
+    expect(vars['--pele-series-1']).toBe(series[0])
+    expect(vars['--pele-series-1']).toBe('#007aff')
+    expect(vars['--pele-accent']).toBe(series[0])
+    for (let i = 0; i < 8; i++) {
+      expect(vars[`--pele-series-${i + 1}`]).toBe(series[i])
+    }
     clearRootVars()
 
     mirrorThemeVars('docs')
-    const docsConfig = buildMermaidThemeConfig(readActiveThemeTokens(), 'pie')
-    expect(docsConfig.themeVariables.pie1).toBe('#4f6bed')
+    const docsVars = buildPeleVariables(readActiveThemeTokens())
+    expect(docsVars['--pele-series-1']).toBe('#4f6bed')
     clearRootVars()
   })
 
@@ -276,7 +277,7 @@ describe('mermaidTheme reads the new families (C-51 T-007, R-2)', () => {
     const signatures = new Set()
     for (const id of NEW_MEMBERS) {
       mirrorThemeVars(id)
-      signatures.add(mermaidThemeSignature(readActiveThemeTokens()))
+      signatures.add(diagramThemeSignature(readActiveThemeTokens()))
       clearRootVars()
     }
     expect(signatures.size).toBe(NEW_MEMBERS.length)
