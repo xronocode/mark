@@ -5,12 +5,12 @@
 //            previous version shows the sheet once, Esc closes it, and
 //            a reload of the same version never shows it again; a fresh
 //            install (no recorded version) never shows it; a pre-C-48
-//            (2.3.0) profile — legacy keys but no lastSeenVersion — shows
+//            (2.3.1) profile — legacy keys but no lastSeenVersion — shows
 //            it once. C-53 pins: the sheet carries the four D-1 items,
 //            the «Also» line and the «See everything new» link that
 //            opens the GitHub release page through the opener plugin.
 //   SCOPE: renderer boot against the tauri-shim with prefs backed by
-//          localStorage and __APP_VERSION_OVERRIDE__ = 2.3.1.
+//          localStorage and __APP_VERSION_OVERRIDE__ = 2.4.0.
 //   DEPENDS: @playwright/test, ./fixtures/tauri-shim.
 //   LINKS: .grace/changes/active/C-53/spec.xml R-1 (D-1 sheet);
 //          .grace/changes/archive/C-48/spec.xml R-1; V-M-011 scenario-46.
@@ -29,11 +29,11 @@
 //   LAST_CHANGE: v1.2.0 - 2026-10-17 C-53 T-001/R-1: the D-1 item titles,
 //   the «Also» line and the «See everything new» footer link are pinned;
 //   a new case drives the link and asserts the opener plugin receives the
-//   v2.3.1 release URL (window.electron.shell.openExternal →
+//   v2.4.0-beta release URL (window.electron.shell.openExternal →
 //   plugin:opener|open_url) while the sheet stays open.
 //   PREV: v1.1.0 - 2026-10-15 C-48 review fix: mt_prefs_get_all is
 //   backed by the same localStorage store (with a just-stamped m005
-//   mt_migration marker, as a real first boot has); new case: a 2.3.0
+//   mt_migration marker, as a real first boot has); new case: a 2.3.1
 //   profile (old marker + recentFolders, no lastSeenVersion) shows the
 //   sheet once.
 //   PREV: v1.0.0 - 2026-10-15 C-48 T-001: initial pins.
@@ -44,7 +44,7 @@ import { installTauriShim } from './fixtures/tauri-shim'
 
 const BOOT_URL = '/?type=editor&wid=0&udp=/tmp/mark-e2e&debug=0'
 
-// The dev build's __APP_VERSION__ (2.3.0) predates the 2.3.1 content, so
+// The dev build's __APP_VERSION__ (2.3.1) predates the 2.4.0 content, so
 // the gate reads an explicit e2e override global instead.
 async function installWhatsNewShim(page: import('@playwright/test').Page, runningVersion: string) {
   await installTauriShim(page)
@@ -98,7 +98,7 @@ async function waitForGateRecord(page: import('@playwright/test').Page) {
 
 test.describe("What's New (C-48)", () => {
   test.beforeEach(async ({ page }) => {
-    await installWhatsNewShim(page, '2.3.1')
+    await installWhatsNewShim(page, '2.4.0')
   })
 
   test('upgrade shows the sheet once; Esc closes; reload does not show it again', async ({ page }) => {
@@ -107,7 +107,7 @@ test.describe("What's New (C-48)", () => {
 
     // Simulate the previous version having been recorded.
     await page.evaluate(() => {
-      localStorage.setItem('mark-e2e-prefs:lastSeenVersion', JSON.stringify('2.3.0'))
+      localStorage.setItem('mark-e2e-prefs:lastSeenVersion', JSON.stringify('2.3.1'))
     })
 
     // The gate runs during boot — a reload re-evaluates with the seeded
@@ -116,18 +116,17 @@ test.describe("What's New (C-48)", () => {
 
     const sheet = page.locator('.ag-whats-new-sheet')
     await expect(sheet).toBeVisible({ timeout: 15_000 })
-    await expect(sheet.locator('.eyebrow')).toHaveText('Mark 2.3.1')
+    await expect(sheet.locator('.eyebrow')).toHaveText('Mark 2.4.0')
     await expect(sheet.locator('.news li')).toHaveCount(4)
 
-    // C-53 D-1: the four approved items render with their titles.
+    // C-55: the four approved items render with their titles.
     const titles = sheet.locator('.news li b')
-    await expect(titles.nth(0)).toHaveText('A calmer, native-looking Mark')
-    await expect(titles.nth(1)).toHaveText('A home screen')
-    await expect(titles.nth(2)).toHaveText('Diagrams that match the theme')
-    await expect(titles.nth(3)).toHaveText('Only your notes')
+    await expect(titles.nth(0)).toHaveText('A new diagram engine')
+    await expect(titles.nth(1)).toHaveText('Diagrams follow the theme')
+    await expect(titles.nth(2)).toHaveText('New diagram types')
+    await expect(titles.nth(3)).toHaveText('A much lighter Mark')
     // The «Also» line and both footer links.
-    await expect(sheet.locator('.also')).toContainText('⌘D')
-    await expect(sheet.locator('.also')).toContainText('⌥⌘V')
+    await expect(sheet.locator('.also')).toContainText('Mermaid syntax')
     await expect(sheet.locator('.foot-links .guide-link').first())
       .toHaveText('See everything new ↗')
     await expect(sheet.locator('.foot-links .guide-link').nth(1)).toHaveText('See the guide')
@@ -164,17 +163,17 @@ test.describe("What's New (C-48)", () => {
     await expect(page.locator('.ag-whats-new-sheet')).toHaveCount(0)
     // The version was recorded without any sheet.
     expect(await page.evaluate(() => localStorage.getItem('mark-e2e-prefs:lastSeenVersion'))).toBe(
-      '"2.3.1"'
+      '"2.4.0"'
     )
     expect(await page.evaluate(() => localStorage.getItem('mark-e2e-prefs:lastUpdateAt'))).toBeNull()
   })
 
-  test('a 2.3.0 profile (legacy keys, no lastSeenVersion) shows the sheet once', async ({ page }) => {
+  test('a 2.3.1 profile (legacy keys, no lastSeenVersion) shows the sheet once', async ({ page }) => {
     await page.goto(BOOT_URL)
     await waitForBoot(page)
     await waitForGateRecord(page)
 
-    // Rebuild the profile as 2.3.0 left it: no lastSeenVersion (C-48 did
+    // Rebuild the profile as 2.3.1 left it: no lastSeenVersion (C-48 did
     // not exist), an m005 marker stamped 30 days ago, and folder history.
     await page.evaluate(() => {
       for (const k of Object.keys(localStorage)) {
@@ -194,9 +193,9 @@ test.describe("What's New (C-48)", () => {
     await page.reload()
     const sheet = page.locator('.ag-whats-new-sheet')
     await expect(sheet).toBeVisible({ timeout: 15_000 })
-    await expect(sheet.locator('.eyebrow')).toHaveText('Mark 2.3.1')
+    await expect(sheet.locator('.eyebrow')).toHaveText('Mark 2.4.0')
     expect(await page.evaluate(() => localStorage.getItem('mark-e2e-prefs:lastSeenVersion'))).toBe(
-      '"2.3.1"'
+      '"2.4.0"'
     )
 
     await sheet.press('Escape')
@@ -214,11 +213,11 @@ test.describe("What's New (C-48)", () => {
   // through the app's external-link path (window.electron.shell.openExternal
   // → @tauri-apps/plugin-opener openUrl → plugin:opener|open_url) and keeps
   // the sheet open — the browser takes focus, the user closes the sheet.
-  test('"See everything new" opens the v2.3.1 release page externally and keeps the sheet open', async ({ page }) => {
+  test('"See everything new" opens the v2.4.0-beta release page externally and keeps the sheet open', async ({ page }) => {
     await page.goto(BOOT_URL)
     await waitForGateRecord(page)
     await page.evaluate(() => {
-      localStorage.setItem('mark-e2e-prefs:lastSeenVersion', JSON.stringify('2.3.0'))
+      localStorage.setItem('mark-e2e-prefs:lastSeenVersion', JSON.stringify('2.3.1'))
     })
     await page.reload()
 
@@ -240,7 +239,7 @@ test.describe("What's New (C-48)", () => {
     await sheet.locator('.foot-links .guide-link').first().click()
     await expect
       .poll(() => openedUrls.map((a: any) => a?.url), { timeout: 5_000 })
-      .toEqual(['https://github.com/xronocode/mark/releases/tag/v2.3.1'])
+      .toEqual(['https://github.com/xronocode/mark/releases/tag/v2.4.0-beta'])
     await expect(sheet).toBeVisible()
   })
   // END_BLOCK_C53_RELEASE_LINK
