@@ -164,20 +164,20 @@ jobs:
       # C-51 T-005: the content theming (Vega-Lite/flowchart/sequence/KaTeX)
       # also gates in WebKit; C-51 T-006 adds the expand button + block viewer.
       - name: webkit settings, title bar, outline rail, status bar, lock, chrome theme, Mica, tables, rich Markdown, content theming and block viewer and theme families
-        run: npx playwright test --project webkit-settings --project webkit-titlebar --project webkit-outline --project webkit-statusbar --project webkit-chrome --project webkit-mica --project webkit-tables --project webkit-menu-checks --project webkit-mermaid-theme --project webkit-tree --project webkit-rich --project webkit-content-theme --project webkit-block-viewer --project webkit-theme-families --project webkit-clipboard
+        run: npx playwright test --project webkit-settings --project webkit-titlebar --project webkit-outline --project webkit-statusbar --project webkit-chrome --project webkit-mica --project webkit-tables --project webkit-menu-checks --project webkit-pele-theme --project webkit-tree --project webkit-rich --project webkit-content-theme --project webkit-block-viewer --project webkit-theme-families --project webkit-clipboard
 
-      # C-51 T-003/T-004: the Mermaid theme matrix also runs in WebKit
-      # (22 types × light/dark + theme switch); its per-type screenshots
-      # are the visual evidence for the accepted lab look.
-      - name: webkit mermaid theme matrix
-        run: npx playwright test --project webkit-mermaid-theme --project webkit-tree
+      # C-55 (port of C-51 T-003/T-004): the pele theme matrix also runs
+      # in WebKit (22 diagram types × light/dark + theme switch); its
+      # per-type screenshots are the visual evidence for the lab look.
+      - name: webkit pele theme matrix
+        run: npx playwright test --project webkit-pele-theme --project webkit-tree
 
-      - name: upload mermaid theme screenshots
+      - name: upload pele theme screenshots
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: mermaid-theme-screenshots
-          path: test-results/mermaid-themes/
+          name: pele-theme-screenshots
+          path: test-results/pele-themes/
           retention-days: 14
 
       - name: upload playwright report
