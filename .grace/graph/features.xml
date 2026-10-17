@@ -2598,27 +2598,41 @@
       <Layer>TOOLING</Layer>
       <PhaseRef>C-22-T-001</PhaseRef>
       <Summary>
-        VitePress site with the marketing landing emitted at the root by a
-        buildEnd hook (and served by a dev middleware), env-driven
-        SITE_URL/SITE_BASE, shared SEO/OG head, sitemap/robots/CNAME,
-        opt-in cookieless Umami analytics, a dist link checker, and a single
-        GitHub Pages workflow (PR build+check, main deploy).
+        VitePress site with the marketing landing emitted at the root and the
+        diagram gallery at /diagrams/ (C-58) by buildEnd hooks (both served
+        by dev middlewares), env-driven SITE_URL/SITE_BASE, a shared
+        per-page SEO/OG head, sitemap/robots/CNAME, opt-in cookieless Umami
+        analytics, a dist link checker that also gates the gallery page, and
+        a single GitHub Pages workflow (PR build+check, main deploy). The
+        gallery renders site/gallery/examples.mjs through pele at build time
+        into inline SVGs recoloured live by --pele-* variables derived from
+        the app's own theme CSS via muya's buildPeleVariables
+        (site/gallery/theme-vars.json, regenerated on every build).
       </Summary>
         <Path>site/.vitepress/config.mts</Path>
         <Path>site/.vitepress/landing.mjs</Path>
+        <Path>site/scripts/build-gallery.mjs</Path>
+        <Path>site/scripts/gallery-theme-vars.mjs</Path>
         <Path>site/scripts/check-dist.mjs</Path>
+        <Path>site/gallery/examples.mjs</Path>
+        <Path>site/gallery/theme-vars.json</Path>
         <Path>site/landing/index.html</Path>
         <Path>site/public/consent.js</Path>
       <Dependencies></Dependencies>
       <VerificationRef>V-M-053</VerificationRef>
       <Interface>
         <fn-resolveSiteSettings>env -> siteUrl/base/analytics</fn-resolveSiteSettings>
+        <fn-sharedHeadTags>settings + page {path,title,description} -> shared head HTML</fn-sharedHeadTags>
+        <fn-renderPage>template + settings + page meta -> servable static page</fn-renderPage>
         <fn-renderLanding>landing template -> served root page</fn-renderLanding>
-        <fn-checkDist>fail the build on unresolved internal links or leftover tokens</fn-checkDist>
+        <fn-deriveThemeVars>app theme CSS files -> gallery theme table (16 --pele-* keys + page + dark per theme)</fn-deriveThemeVars>
+        <fn-renderGallery>settings -> /diagrams/ page (build-time pele SVGs, theme strip, slideshow, fullscreen show)</fn-renderGallery>
+        <fn-checkDist>fail the build on unresolved internal links, leftover tokens, or an incomplete gallery page</fn-checkDist>
       </Interface>
       <ChangeRefs>
         <C-14/>
         <C-22/>
+        <C-58/>
       </ChangeRefs>
     </M-053>
     <M-054>

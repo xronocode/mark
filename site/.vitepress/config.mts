@@ -1,19 +1,27 @@
 // FILE: site/.vitepress/config.mts
-// VERSION: 2.2.0
+// VERSION: 2.3.0
 // START_MODULE_CONTRACT
-//   PURPOSE: VitePress config for the Mark site — docs, shared head, and the
-//            landing served at the site root in both dev and build.
+//   PURPOSE: VitePress config for the Mark site — docs, shared head, the
+//            landing served at the site root, and the diagram gallery at
+//            /diagrams/ (both emitted at build time and served in dev).
 //   SCOPE: nav/sidebar, base + sitemap from env, per-page canonical/OG,
-//          dev middleware for the landing, buildEnd emission of landing,
-//          robots.txt and CNAME.
-//   DEPENDS: vitepress, ./landing.mjs
-//   LINKS: M-053 SiteBuild; C-22; .github/workflows/site.yml
+//          dev middleware for the landing and /diagrams/, buildEnd emission
+//          of landing + gallery (+ theme-vars refresh), robots.txt and CNAME.
+//   DEPENDS: vitepress, ./landing.mjs, ../scripts/build-gallery.mjs,
+//            ../scripts/gallery-theme-vars.mjs
+//   LINKS: M-053 SiteBuild; C-22; C-58; .github/workflows/site.yml
 //   ROLE: CONFIG
 //   MAP_MODE: NONE
 // END_MODULE_CONTRACT
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: [2026-10-15 - C-42: guide sidebar links the Editions page.]
+//   LAST_CHANGE: [v2.3.0 - 2026-10-18 C-58 T-002: buildEnd also emits the
+//                 diagram gallery at /diagrams/ (rendered from
+//                 site/gallery/examples.mjs through pele with theme vars
+//                 derived fresh from the app theme CSS) and refreshes the
+//                 committed site/gallery/theme-vars.json; the dev middleware
+//                 serves /diagrams/ the same way as the landing.]
+//   PREV: [2026-10-15 - C-42: guide sidebar links the Editions page.]
 //   PREV: [2026-10-12 - Readable documentation code-language labels.]
 //   PREV: [v2.2.0 - docs head analytics from the shared analyticsTags list]
 //   PREV: [v2.1.0 - GA4 analytics provider in the docs head]
@@ -21,8 +29,9 @@
 //                 middleware (replaces CI cp), SEO head, sitemap, opt-in analytics]
 // END_CHANGE_SUMMARY
 
-import { readFileSync, writeFileSync } from 'node:fs'
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { defineConfig, type HeadConfig } from 'vitepress'
 import {
   SITE_META,
@@ -32,6 +41,8 @@ import {
   resolveSiteSettings,
   robotsTxt
 } from './landing.mjs'
+import { renderGallery } from '../scripts/build-gallery.mjs'
+import { writeThemeVarsFile } from '../scripts/gallery-theme-vars.mjs'
 
 const settings = resolveSiteSettings(process.env)
 const { siteUrl, base, analytics } = settings
@@ -78,7 +89,9 @@ export default defineConfig({
   // START_BLOCK_DEV_LANDING
   // `vitepress dev` would show index.md at the root; serve the real landing
   // instead so local preview matches production. Re-read on every request so
-  // edits to site/landing/index.html show up on reload.
+  // edits to site/landing/index.html show up on reload. The gallery is
+  // served the same way at /diagrams/ (rendered on demand — pele is fast
+  // enough for dev, and theme CSS edits show up on reload).
   vite: {
     plugins: [{
       name: 'mark-landing-dev',
@@ -86,6 +99,11 @@ export default defineConfig({
       configureServer (server) {
         server.middlewares.use((req, res, next) => {
           const path = (req.url || '').split('?')[0]
+          if (path === `${base}diagrams` || path === `${base}diagrams/` || path === `${base}diagrams/index.html`) {
+            res.setHeader('Content-Type', 'text/html; charset=utf-8')
+            res.end(renderGallery(settings))
+            return
+          }
           if (path !== base && path !== `${base}index.html`) return next()
           res.setHeader('Content-Type', 'text/html; charset=utf-8')
           res.end(loadLanding())
@@ -101,7 +119,15 @@ export default defineConfig({
     writeFileSync(join(outDir, 'robots.txt'), robotsTxt(settings))
     const cname = cnameFor(settings)
     if (cname) writeFileSync(join(outDir, 'CNAME'), cname)
+    // C-58: the diagram gallery — SVGs rendered through pele at build time,
+    // theme variables derived fresh from the app's theme CSS (corner-5), and
+    // the committed theme-vars.json refreshed so the parity test sees the
+    // same table the page was built with.
+    mkdirSync(join(outDir, 'diagrams'), { recursive: true })
+    writeFileSync(join(outDir, 'diagrams', 'index.html'), renderGallery(settings))
+    const vars = writeThemeVarsFile(fileURLToPath(new URL('../gallery', import.meta.url)))
     console.log(`[SiteBuild][buildEnd][BLOCK_BUILD_END] landing written siteUrl=${siteUrl} base=${base} cname=${cname ? cname.trim() : 'none'} analytics=${analytics.map((a) => a.provider).join('+') || 'off'}`)
+    console.log(`[SiteBuild][buildEnd][BLOCK_BUILD_END] gallery written path=${base}diagrams/ themes=${vars.themes} themeVarsChanged=${vars.changed}`)
   },
   // END_BLOCK_BUILD_END
 

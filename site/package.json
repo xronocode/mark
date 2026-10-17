@@ -5,9 +5,11 @@
     "dev": "vitepress dev",
     "build": "vitepress build",
     "check": "node scripts/check-dist.mjs",
+    "gallery:vars": "node --experimental-default-type=module scripts/gallery-theme-vars.mjs",
     "preview": "vitepress preview"
   },
   "devDependencies": {
+    "pele": "1.6.0",
     "vitepress": "^1.6.3"
   }
 }
