@@ -38,42 +38,50 @@ Download `Mark_<version>_x64-setup.exe` from [the latest release](https://github
 
 The App Store build and the Homebrew/download build are the same editor with a few differences. See [Two editions, same editor](#two-editions-same-editor).
 
-## What's new in 2.3
+## What's new in 2.3.1
 
-- The first stable release.
-- **Split View**: the Markdown source beside the rendered page for the current tab, toggled with ⌥⌘\ (Ctrl+Alt+\ on Windows).
-- **Callouts**: GitHub alerts (`> [!TIP]`) and Obsidian callouts render as blocks, in the editor and in exports.
-- **Front matter** opens as a properties table. **Footnotes** are on by default.
-- **Images** you paste or drop are saved to `assets/` next to the document.
-- **Large documents** open about 10 times faster: a 4,100-line file takes about 3 s instead of 37.
-- **Mermaid** keeps the last diagram that rendered while you fix a typo, and shows the error below it. Wide diagrams keep their size and scroll.
-- **Copy as Structured Text**: for email and chat. No asterisks or brackets, but paragraphs, lists, links and tables survive the paste.
-- The interface language setting works again in all 10 languages. New app icon. On macOS, Settings moved to Mark › Settings… (⌘,).
-- Fixes: Diff mode shows changes again and closes with ⌘D; context-menu items work on the first click; renaming an open file in the sidebar moves its tab to the new path.
+- **A calmer, native look.** Theme families Paper, Ink, Docs and macOS; a slim title bar with the document info card; an outline beside the page; a status bar; the system font, accent colour and icons throughout (Mica on Windows); Settings in five tabs, in the theme colour.
+- **A home screen.** Recent files and folders, the Guide, and one click to connect your agent. What's New opens after an update, and the interface language can follow the system.
+- **Diagrams and math in the theme.** All 22 Mermaid diagram types, Vega charts and KaTeX formulas take the theme's colours; any diagram or wide table opens full screen; wide tables scroll inside the column and columns resize.
+- **Folders with just your notes.** The tree shows Markdown files only — no empty folders — with Recent and Pinned on top. Open a folder from the clipboard with ⌥⌘V, or by dropping it on the window.
+- **Closer to your agent.** ⌘D shows what your agent changed, against snapshots Mark takes itself before every reload (a `.before` file or the last git commit still works as the baseline), and the agent prompt now lists everything Mark renders.
+- **And the rest.** One zoom for the whole app, code line numbers are back, and Share ships in the App Store build.
 
-Full history in [CHANGELOG.md](CHANGELOG.md).
+The 2.3.0 highlights — Split View, callouts, Copy as Structured Text, the 10× faster opening of large documents — are in [CHANGELOG.md](CHANGELOG.md).
 
 ## Why Mark
 
 Agents write plans, specs and reports as Markdown. In a terminal the tables collapse and the diagrams are code. Mark shows the finished page and lets you edit it in place.
 
-**Watch your agent write.** Keep the file open while an agent works on it. Every save on disk reloads the tab in place and keeps your scroll position, so you can follow a long pass and step in when it finishes.
+**Watch your agent write.** Keep the file open while an agent works on it. Every save on disk reloads the tab in place and keeps your scroll position, so you can follow a long pass and step in when it finishes. ⌘D shows exactly what the agent changed, against a snapshot Mark takes before every reload.
 
-<img src="docs/assets/readme/01-agents.png" alt="Mark reloading a plan while an agent edits it" width="800">
+<img src="docs/assets/readme/01-agents.png" alt="A plan document beside the folder tree, with Recent, Pinned and the page outline" width="800">
+
+**Start on your notes.** The home screen lists recent files and folders, keeps the Guide at hand, and connects your agent with one click.
+
+<img src="docs/assets/readme/07-home.png" alt="The home screen with recent files, recent folders and Connect your agent" width="800">
 
 **Write in the finished page.** Headings, tables, task lists, footnotes, callouts and front matter look done while you type. When you need the raw Markdown, Split View puts it beside the page.
 
 <img src="docs/assets/readme/06-split.png" alt="Split View with Markdown source on the left and the rendered page on the right" width="800">
 
-**Diagrams and math inline.** Mermaid diagrams, KaTeX formulas and highlighted code render in the document, not in a preview pane.
+**Diagrams and math inline.** Mermaid diagrams, charts, KaTeX formulas and highlighted code render in the document — not in a preview pane — in the colours of the theme.
 
-<img src="docs/assets/readme/03-diagrams.png" alt="A Mermaid flowchart and KaTeX formulas rendered inline" width="800">
+<img src="docs/assets/readme/03-diagrams.png" alt="A Mermaid flowchart, a pie chart and a bar chart in the theme's colours" width="800">
+
+**Open anything full screen.** Any diagram or wide table opens in a clean viewer with zoom, pan and a sticky header for tables.
+
+<img src="docs/assets/readme/05-viewer.png" alt="A large release-pipeline diagram open in the fullscreen viewer, zoomed in" width="800">
 
 **Copy it clean.** Copy as Markdown, as HTML for email, as plain text, or as structured text that keeps paragraphs, bullets, links and tables readable wherever you paste.
 
 <img src="docs/assets/readme/04-copy.png" alt="Copy as Structured Text pasted into a chat" width="800">
 
-Also: more than 30 light and dark themes, a folder sidebar, find in file and in folder, a diff view against a `.before` file, print and PDF export, and no account, analytics or telemetry.
+**Light and dark, one app.** Themes come in families — Paper, Ink, Docs, macOS and more — each with a light and a dark member, one title-bar button apart.
+
+<img src="docs/assets/readme/08-dark.png" alt="The same plan document in the macOS dark theme" width="800">
+
+Also: a folder sidebar that shows Markdown files only, find in file and in folder, print and PDF export, and no account, analytics or telemetry.
 
 ## Numbers
 
@@ -93,13 +101,13 @@ Mark uses the system WebView (WebKit on macOS, WebView2 on Windows) instead of s
 
 ## Two editions, same editor
 
-Mark ships in two editions built from the same code. The editor, rendering, themes, live reload, Split View, copy formats, print and PDF export, Share, and diffs against a `.before` file are the same in both.
+Mark ships in two editions built from the same code. The editor, rendering, theme families, live reload, Split View, copy formats, print and PDF export, Share, and the ⌘D diff against Mark's own snapshots are the same in both.
 
 | | Homebrew / direct download | Mac App Store |
 |:---|:---:|:---:|
 | The editor and everything not listed below | Yes | Yes |
 | Share button (macOS share sheet) | Yes | Yes |
-| Diff against a `.before` file | Yes | Yes |
+| Diff view (⌘D) against Mark's snapshots or a `.before` file | Yes | Yes |
 | Pandoc export (DOCX, ODT, EPUB… when pandoc is installed) | Yes | No |
 | Insert screenshot | Yes (macOS) | No |
 | Set Mark as the default Markdown app | Yes (macOS) | No |
@@ -175,7 +183,7 @@ The Mark binary accepts these flags. On macOS, `open -a Mark --args --watch note
 | `--diff` | Open the file in diff view |
 | `-d`, `--dir <DIR>` | Open a folder as the sidebar root |
 
-If `notes.md.before` sits next to `notes.md`, diff view compares against it. Have your agent copy the file to `.before` before it edits, and you see exactly what changed.
+Diff view (⌘D) compares the file with Mark's own snapshot from the last reload — no set-up needed. Without a snapshot it falls back to a `notes.md.before` file next to the document, or to the last git commit in the Homebrew build. Want an explicit baseline? Have your agent copy the file to `.before` before it edits, and you see exactly what changed.
 
 </details>
 

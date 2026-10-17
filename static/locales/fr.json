@@ -1406,22 +1406,24 @@
     "title": "Nouveautés",
     "seeGuide": "Voir le guide",
     "continue": "Continuer",
+    "also": "⌘D montre ce que votre agent a modifié · ⌥⌘V ouvre un dossier copié · un seul zoom pour tout",
+    "seeEverything": "Voir toutes les nouveautés",
     "v2_3_1": {
-      "zoom": {
-        "title": "Zoomer sur les diagrammes et les tableaux",
-        "text": "Survolez et appuyez sur ⤢ pour une vue plein écran avec zoom et déplacement."
+      "look": {
+        "title": "Un Mark plus sobre, plus natif",
+        "text": "Thèmes Paper, Ink, Docs et macOS, barre de titre fine et sommaire à côté du texte."
       },
-      "agentDiff": {
-        "title": "Voyez ce que l'agent a modifié",
-        "text": "⌘D compare avec la version précédant son dernier enregistrement."
+      "home": {
+        "title": "Un écran d'accueil",
+        "text": "Fichiers et dossiers récents, le Guide, et votre agent connecté en un clic."
       },
-      "themes": {
-        "title": "Paper et Ink",
-        "text": "Nouveaux thèmes par défaut, et Auto suit macOS."
+      "diagrams": {
+        "title": "Des diagrammes assortis au thème",
+        "text": "Mermaid, graphiques et formules aux couleurs du thème ; chacun s’ouvre en plein écran."
       },
-      "tables": {
-        "title": "Des tableaux qui tiennent",
-        "text": "Les tableaux larges défilent dans la colonne ; les liens longs passent à la ligne."
+      "notes": {
+        "title": "Seulement vos notes",
+        "text": "Les dossiers n’affichent que le Markdown, avec Récents et Épinglés en haut."
       }
     }
   }

@@ -1,16 +1,19 @@
 // FILE: tests/e2e/whats-new.spec.ts
-// VERSION: 1.1.0
+// VERSION: 1.2.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Pin the C-48 What's New boot flow end to end — a recorded
 //            previous version shows the sheet once, Esc closes it, and
 //            a reload of the same version never shows it again; a fresh
 //            install (no recorded version) never shows it; a pre-C-48
 //            (2.3.0) profile — legacy keys but no lastSeenVersion — shows
-//            it once.
+//            it once. C-53 pins: the sheet carries the four D-1 items,
+//            the «Also» line and the «See everything new» link that
+//            opens the GitHub release page through the opener plugin.
 //   SCOPE: renderer boot against the tauri-shim with prefs backed by
 //          localStorage and __APP_VERSION_OVERRIDE__ = 2.3.1.
 //   DEPENDS: @playwright/test, ./fixtures/tauri-shim.
-//   LINKS: .grace/changes/archive/C-48/spec.xml R-1; V-M-011 scenario-46.
+//   LINKS: .grace/changes/active/C-53/spec.xml R-1 (D-1 sheet);
+//          .grace/changes/archive/C-48/spec.xml R-1; V-M-011 scenario-46.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT
@@ -23,7 +26,12 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.1.0 - 2026-10-15 C-48 review fix: mt_prefs_get_all is
+//   LAST_CHANGE: v1.2.0 - 2026-10-17 C-53 T-001/R-1: the D-1 item titles,
+//   the «Also» line and the «See everything new» footer link are pinned;
+//   a new case drives the link and asserts the opener plugin receives the
+//   v2.3.1 release URL (window.electron.shell.openExternal →
+//   plugin:opener|open_url) while the sheet stays open.
+//   PREV: v1.1.0 - 2026-10-15 C-48 review fix: mt_prefs_get_all is
 //   backed by the same localStorage store (with a just-stamped m005
 //   mt_migration marker, as a real first boot has); new case: a 2.3.0
 //   profile (old marker + recentFolders, no lastSeenVersion) shows the
@@ -111,6 +119,19 @@ test.describe("What's New (C-48)", () => {
     await expect(sheet.locator('.eyebrow')).toHaveText('Mark 2.3.1')
     await expect(sheet.locator('.news li')).toHaveCount(4)
 
+    // C-53 D-1: the four approved items render with their titles.
+    const titles = sheet.locator('.news li b')
+    await expect(titles.nth(0)).toHaveText('A calmer, native-looking Mark')
+    await expect(titles.nth(1)).toHaveText('A home screen')
+    await expect(titles.nth(2)).toHaveText('Diagrams that match the theme')
+    await expect(titles.nth(3)).toHaveText('Only your notes')
+    // The «Also» line and both footer links.
+    await expect(sheet.locator('.also')).toContainText('⌘D')
+    await expect(sheet.locator('.also')).toContainText('⌥⌘V')
+    await expect(sheet.locator('.foot-links .guide-link').first())
+      .toHaveText('See everything new ↗')
+    await expect(sheet.locator('.foot-links .guide-link').nth(1)).toHaveText('See the guide')
+
     // Esc closes it.
     await sheet.press('Escape')
     await expect(sheet).toBeHidden()
@@ -187,4 +208,40 @@ test.describe("What's New (C-48)", () => {
     await page.waitForTimeout(1_000)
     await expect(page.locator('.ag-whats-new-sheet')).toHaveCount(0)
   })
+
+  // START_BLOCK_C53_RELEASE_LINK
+  // C-53 R-1: the «See everything new» link opens the GitHub release page
+  // through the app's external-link path (window.electron.shell.openExternal
+  // → @tauri-apps/plugin-opener openUrl → plugin:opener|open_url) and keeps
+  // the sheet open — the browser takes focus, the user closes the sheet.
+  test('"See everything new" opens the v2.3.1 release page externally and keeps the sheet open', async ({ page }) => {
+    await page.goto(BOOT_URL)
+    await waitForGateRecord(page)
+    await page.evaluate(() => {
+      localStorage.setItem('mark-e2e-prefs:lastSeenVersion', JSON.stringify('2.3.0'))
+    })
+    await page.reload()
+
+    const sheet = page.locator('.ag-whats-new-sheet')
+    await expect(sheet).toBeVisible({ timeout: 15_000 })
+
+    // The opener override can only land once the shim's init script has
+    // installed window.__mockInvoke (i.e. after a load).
+    const openedUrls: unknown[] = []
+    await page.exposeFunction('__recordOpenUrl', (args: unknown) => {
+      openedUrls.push(args)
+      return null
+    })
+    await page.evaluate(() => {
+      ;(window as any).__mockInvoke['plugin:opener|open_url'] = (args: any) =>
+        (window as any).__recordOpenUrl(args)
+    })
+
+    await sheet.locator('.foot-links .guide-link').first().click()
+    await expect
+      .poll(() => openedUrls.map((a: any) => a?.url), { timeout: 5_000 })
+      .toEqual(['https://github.com/xronocode/mark/releases/tag/v2.3.1'])
+    await expect(sheet).toBeVisible()
+  })
+  // END_BLOCK_C53_RELEASE_LINK
 })

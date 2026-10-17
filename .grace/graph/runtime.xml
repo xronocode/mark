@@ -2897,7 +2897,27 @@
         (docs-dark/macos-dark railscasts), the command palette, the
         native View › Theme menu, the Settings Appearance picker (16
         tiles, 8-per-row grid) and all ten locales' menu.theme names
-        (docs/docsDark/macos/macosDark).
+        (docs/docsDark/macos/macosDark). C-53 T-001/R-1: the What's New
+        2.3.1 sheet content was replaced wholesale from the approved
+        D-1 board — whatsNew/data.js WHATS_NEW_CONTENT['2.3.1'] now
+        carries the four gap-analysis items look/home/diagrams/notes
+        (icons ◐ ⌂ ◔ ▤ in the board-3 glyph style; locale keys
+        whatsNew.v2_3_1.look|home|diagrams|notes.title|text in all ten
+        static/locales/*.json, titles ≤ 32 chars, texts ≤ 90), and the
+        module gained the release-wide exports WHATS_NEW_ALSO_KEY
+        (whatsNew.also — the one-line ⌘D/⌥⌘V/one-zoom summary),
+        WHATS_NEW_SEE_EVERYTHING_KEY (whatsNew.seeEverything),
+        WHATS_NEW_RELEASE_URLS and getWhatsNewReleaseUrl (normalized
+        lookup, '' hides the link). components/whatsNew/index.vue
+        renders the also line under the items, a .foot-links footer
+        group with the «See everything new» external link (opened
+        through window.electron.shell.openExternal — read lazily in the
+        handler, never at import time) beside «See the guide», and the
+        Tab focus trap walks the three footer controls; R-2 adds the
+        on-demand README capture spec tests/e2e/readme-shots.spec.ts
+        (README_SHOTS=1 only, 1440×900 @2x, Paper/Ink, writes
+        docs/assets/readme/01-agents, 03-diagrams, 05-viewer, 07-home
+        and 08-dark PNGs).
       </Summary>
       <Path>src/renderer/</Path>
       <Dependencies>
