@@ -140,19 +140,18 @@ const sanitizeTableClone = (table) => {
 // END_BLOCK_VIEWER_TABLE_CLONE
 
 // START_BLOCK_VIEWER_DIAGRAM_CLONE
-// Clone the live preview div (not a re-render). The R2.1 pipeline hoisted
-// mermaid's <style> to the preview's first child for the WKWebView CSP —
-// cloneNode(true) carries both the style and the SVG. The mermaid style
-// rules are scoped by the SVG id, which the clone intentionally shares
-// with the live preview so the cloned diagram renders identically.
+// Clone the live preview div (not a re-render). C-55: pele SVGs carry no
+// <style> blocks, so cloneNode(true) simply carries the SVG — whose
+// var(--pele-*) colour references still resolve (same document) and
+// recolor with the theme exactly like the inline preview.
 const cloneDiagramPreview = (preview) => {
   const clone = preview.cloneNode(true)
   clone.classList.add('ag-block-viewer-diagram-clone')
-  // In the editor wide diagrams fit the column (mermaid useMaxWidth:true:
-  // width 100% + an inline max-width). The viewer canvas has no width of
-  // its own, so a percentage width collapsed to 0 (blank viewer) and the
-  // fit maths measured the wrong size (off-centre open). Give the clone
-  // the diagram's natural size from its viewBox.
+  // In the editor wide diagrams fit the column (the pipeline sets
+  // width 100% + an inline zoomable max-width). The viewer canvas has no
+  // width of its own, so a percentage width collapsed to 0 (blank viewer)
+  // and the fit maths measured the wrong size (off-centre open). Give the
+  // clone the diagram's natural size from its viewBox.
   const svg = clone.querySelector('svg')
   const vb = svg && svg.viewBox && svg.viewBox.baseVal
   if (svg && vb && vb.width > 0 && vb.height > 0) {

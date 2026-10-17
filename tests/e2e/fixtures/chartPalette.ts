@@ -1,10 +1,10 @@
 // FILE: tests/e2e/fixtures/chartPalette.ts
-// VERSION: 1.0.0
+// VERSION: 1.0.1
 // START_MODULE_CONTRACT
 //   PURPOSE: Test-side copy of muya's pure palette maths (OKLCH palette, hex blend) so e2e specs can compute expected theme colours — Playwright cannot load muya's ESM sources.
-//   SCOPE: oklch, hueOf, PALETTE_STEPS, palette, blendHex — verbatim from src/muya/lib/parser/render/mermaidTheme.js; tests/renderer/muya/chart-palette-fixture.test.js pins parity.
+//   SCOPE: oklch, hueOf, PALETTE_STEPS, palette, blendHex — verbatim from src/muya/lib/parser/render/diagramTheme.js (renamed from mermaidTheme.js in C-55; the maths are unchanged); tests/renderer/muya/chart-palette-fixture.test.js pins parity.
 //   DEPENDS: none.
-//   LINKS: C-51 T-005; .grace/verification/runtime.xml V-M-012.
+//   LINKS: C-51 T-005; C-55 (mermaidTheme.js → diagramTheme.js rename); .grace/verification/runtime.xml V-M-012.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

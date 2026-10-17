@@ -134,7 +134,7 @@ html.platform-darwin .ag-block-viewer-header {
   box-sizing: border-box;
 }
 
-.ag-block-viewer-canvas div.ag-mermaid-error {
+.ag-block-viewer-canvas div.ag-pele-error {
   color: var(--deleteColor);
   font-size: 12px;
   font-family: monospace;

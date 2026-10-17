@@ -3,7 +3,7 @@
 // START_MODULE_CONTRACT
 //   PURPOSE: Pin the C-51 T-006/T-010 expand button — vnode placement, marker class and localized a11y attrs on every viewable figure, the drawn M-057 glyph (byte-identical to the canonical chromeIcons descriptor), click routing to the muya-block-viewer event, the keyboard guard that leaves Tab/Enter/arrows AND keyups to the focused button (the keyup selection repair used to steal the focus into the editing host), the copy-icon CSS literals (20 px, 8 px insets, 0/0.5/1 opacity curve, need-gated display, the 44 px strip removed), and the button never reaching export HTML.
 //   SCOPE: START_BLOCK_EXPAND_BUTTON (renderContainerBlock.js + renderExpandButton.js), START_BLOCK_EXPAND_BUTTON_CLICK (clickEvent.js), START_BLOCK_KEYBOARD_EXPAND_BUTTON (keyboard.js, keydown + keyup), the C-51 T-006/T-010 CSS section of lib/assets/styles/index.css, and ExportHtml.renderHtml. The need RULES live in expand-need.test.js.
-//   DEPENDS: StateRender (muya/lib/parser/render/index.js) with a mocked renderer loader, ClickEvent and Keyboard with a real-DOM event-center double, the muya selection singleton (spied for the keyup guard), muya snabbdom h, @/components/icons/chromeIcons (the glyph twin), ExportHtml with a mermaid double, node:fs for the CSS read; Vitest + jsdom.
+//   DEPENDS: StateRender (muya/lib/parser/render/index.js) with a mocked renderer loader, ClickEvent and Keyboard with a real-DOM event-center double, the muya selection singleton (spied for the keyup guard), muya snabbdom h, @/components/icons/chromeIcons (the glyph twin), ExportHtml with a pele double, node:fs for the CSS read; Vitest + jsdom.
 //   LINKS: .grace/changes/active/C-51 T-006 and T-010; .grace/verification/runtime.xml V-M-012 scenario-60; tests/e2e/block-viewer.spec.ts for the laid-out behaviour.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
@@ -11,7 +11,7 @@
 //
 // START_MODULE_MAP
 //   TRANSLATIONS - en strings injected as the render/click t function.
-//   rendererDoubles - per-name loader results (mermaid swapped in for the export case).
+//   rendererDoubles - per-name loader results (pele swapped in for the export case).
 //   makeDiagramBlocks - figure→pre→code→line-span block tree for a diagram functionType.
 //   makeTableBlocks - figure→table→thead/tbody block tree (same shape as table-scroll-wrapper.test.js).
 //   createStateRender - real StateRender with a fake muya and a stubbed renderLeafBlock.
@@ -74,7 +74,7 @@ import { CHROME_ICONS } from '@/components/icons/chromeIcons'
 import ExportHtml from 'muya/lib/utils/exportHtml'
 
 // The render harness never calls the loaders; the export case swaps in a
-// mermaid double with initialize/render.
+// pele double with detectType/render.
 const rendererDoubles = {}
 
 vi.mock('muya/lib/renderers', () => ({
@@ -484,11 +484,14 @@ describe('expand button CSS (C-51 T-010, copy-icon look of .ag-code-copy)', () =
 // START_BLOCK_EXPAND_BUTTON_EXPORT_ASSERTIONS
 describe('expand button never reaches export/print (C-51 T-006)', () => {
   it('ExportHtml.renderHtml builds its own DOM from markdown and contains no button markup', async () => {
-    rendererDoubles.mermaid = {
-      initialize: vi.fn(),
-      render: vi.fn(async (id) => ({
-        svg: `<svg id="${id}" width="100" height="50"><g/></svg>`,
-        bindFunctions: null
+    rendererDoubles.pele = {
+      detectType: vi.fn(() => 'flowchart'),
+      render: vi.fn((code, opts) => ({
+        svg: `<svg class="pele pele-flowchart" width="100" height="50"><g/></svg>`,
+        width: 100,
+        height: 50,
+        links: [],
+        type: 'flowchart'
       }))
     }
     const markdown = [

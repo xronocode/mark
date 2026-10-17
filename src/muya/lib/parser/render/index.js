@@ -1,10 +1,10 @@
 // FILE: src/muya/lib/parser/render/index.js
-// VERSION: 1.6.0
+// VERSION: 2.0.0
 // START_MODULE_CONTRACT
-//   PURPOSE: Render muya ContentState blocks to the DOM via snabbdom and drive the asynchronous previews (math, mermaid, diagrams, images).
-//   SCOPE: StateRender — full/partial/single-block render, selector building, mermaid dispatch into the resilient pipeline, diagram rendering (C-51 T-005: vega-lite/flowchart/sequence options and post-pass themed from the active app theme), render caches, the C-38 line-number gutter measurement queue, keeping C-39 table scroll and C-39 T-002 session column widths across renders, and the C-51 T-010 expand-need sync after every render path and diagram insert.
-//   DEPENDS: ./snabbdom, ./renderBlock, ./renderInlines, ./mermaidPipeline, ./mermaidTheme, ./contentTheme, ./renderBlock/expandNeed, ../../renderers, ../../config, ../../utils, ../rules
-//   LINKS: M-011 muya editor surface; C-34 R2.1; START_BLOCK_MERMAID_DISPATCH; START_BLOCK_DIAGRAM_THEME_OPTIONS; C-38 T-005 lineNumberPreKeys; C-39 T-001 START_BLOCK_TABLE_SCROLL_KEEP; C-39 T-002 START_BLOCK_TABLE_WIDTHS_KEEP; C-51 T-010 expandNeed sync
+//   PURPOSE: Render muya ContentState blocks to the DOM via snabbdom and drive the asynchronous previews (math, pele diagrams, diagrams, images).
+//   SCOPE: StateRender — full/partial/single-block render, selector building, pele dispatch into the resilient pipeline, diagram rendering (C-51 T-005: vega-lite/flowchart/sequence options and post-pass themed from the active app theme), render caches, the C-38 line-number gutter measurement queue, keeping C-39 table scroll and C-39 T-002 session column widths across renders, and the C-51 T-010 expand-need sync after every render path and diagram insert.
+//   DEPENDS: ./snabbdom, ./renderBlock, ./renderInlines, ./pelePipeline, ./diagramTheme, ./contentTheme, ./renderBlock/expandNeed, ../../renderers, ../../config, ../../utils, ../rules
+//   LINKS: M-011 muya editor surface; C-34 R2.1; C-55; START_BLOCK_PELE_DISPATCH; START_BLOCK_DIAGRAM_THEME_OPTIONS; C-38 T-005 lineNumberPreKeys; C-39 T-001 START_BLOCK_TABLE_SCROLL_KEEP; C-39 T-002 START_BLOCK_TABLE_WIDTHS_KEEP; C-51 T-010 expandNeed sync
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT
@@ -49,6 +49,10 @@
 //   contentState.resizeLineNumber measures only those pres after each render
 //   pass (full render records all, partial render only the edited range).
 //   v1.2.0 - 2026-10-15 C-39 T-001: keep the horizontal scroll of table wrappers across renders (START_BLOCK_TABLE_SCROLL_KEEP).
+//   v2.0.0 - 2026-10-17 C-55: the mermaid engine is gone — renderPele
+//   delegates to createPelePipeline (code-only LRU cache, sync DOM-free
+//   renders, CSS-variable theming); mermaidTheme.js renamed diagramTheme.js
+//   (diagramThemeSignature).
 //   v1.1.0 - 2026-10-15 C-34 R2.1: renderMermaid delegates to createMermaidPipeline (code+theme LRU cache, keep-last-good + escaped error text, 250 ms debounce, natural size); module contract added.
 // END_CHANGE_SUMMARY
 
@@ -59,8 +63,8 @@ import { patch, toVNode, toHTML, h } from './snabbdom'
 import { beginRules } from '../rules'
 import renderInlines from './renderInlines'
 import renderBlock from './renderBlock'
-import { createMermaidPipeline } from './mermaidPipeline'
-import { readActiveThemeTokens, mermaidThemeSignature } from './mermaidTheme'
+import { createPelePipeline } from './pelePipeline'
+import { readActiveThemeTokens, diagramThemeSignature } from './diagramTheme'
 import { syncExpandNeed, updateFigureExpandNeed } from './renderBlock/expandNeed'
 import {
   buildVegaThemeConfig,
@@ -84,8 +88,8 @@ class StateRender {
     this.codeCache = new Map()
     this.loadImageMap = new Map()
     this.loadMathMap = new Map()
-    this.mermaidCache = new Map()
-    this.mermaidPipeline = createMermaidPipeline()
+    this.peleCache = new Map()
+    this.pelePipeline = createPelePipeline()
     this.diagramCache = new Map()
     this.tokenCache = new Map()
     this.labels = new Map()
@@ -175,20 +179,21 @@ class StateRender {
     return selector
   }
 
-  // START_BLOCK_MERMAID_DISPATCH
-  // Drains the mermaidCache queued by renderLeafBlock into the resilient
-  // pipeline (C-34 R2.1): code+theme LRU cache, keep-last-good + escaped
-  // error text, per-block ~250 ms debounce while typing. Log markers
-  // [Muya][renderMermaid][BLOCK_MERMAID_CACHE_HIT|RENDER|ERROR] live in
-  // mermaidPipeline.js.
-  async renderMermaid() {
-    if (this.mermaidCache.size) {
-      const entries = [...this.mermaidCache.entries()]
-      this.mermaidCache.clear()
-      await this.mermaidPipeline.render(entries)
+  // START_BLOCK_PELE_DISPATCH
+  // Drains the peleCache queued by renderLeafBlock into the resilient
+  // pipeline (C-34 R2.1 contract, C-55 pele engine): code-only LRU cache,
+  // keep-last-good + escaped error text, per-block ~250 ms debounce while
+  // typing. Log markers
+  // [Muya][renderPele][BLOCK_PELE_CACHE_HIT|RENDER|ERROR] live in
+  // pelePipeline.js.
+  async renderPele() {
+    if (this.peleCache.size) {
+      const entries = [...this.peleCache.entries()]
+      this.peleCache.clear()
+      await this.pelePipeline.render(entries)
     }
   }
-  // END_BLOCK_MERMAID_DISPATCH
+  // END_BLOCK_PELE_DISPATCH
 
   // The error text names the fence that failed (vega-lite used to say
   // "Sequence").
@@ -213,7 +218,7 @@ class StateRender {
       // spec.config wins (vega-embed merges spec.config over it).
       const tokens = readActiveThemeTokens()
       console.debug('[Muya][renderDiagram][BLOCK_DIAGRAM_THEME] themed render', {
-        themeSignature: mermaidThemeSignature(tokens),
+        themeSignature: diagramThemeSignature(tokens),
         blocks: cache.size
       })
       const themedOptions = (functionType) => {
@@ -333,7 +338,7 @@ class StateRender {
     patch(oldVdom, newVdom)
     this.restoreTableScroll(tableScroll)
     this.applyTableColumnWidths()
-    this.renderMermaid()
+    this.renderPele()
     this.renderDiagram()
     // C-51 T-010: tables and new figures are in the DOM now — evaluate
     // (over the LIVE editor root: stateRender.container is the initial
@@ -396,7 +401,7 @@ class StateRender {
     this.restoreTableScroll(tableScroll)
     this.applyTableColumnWidths()
 
-    this.renderMermaid()
+    this.renderPele()
     this.renderDiagram()
     // C-51 T-010 (see render()): re-evaluate the figures this pass touched.
     syncExpandNeed((this.muya && this.muya.container) || this.container)
@@ -420,7 +425,7 @@ class StateRender {
     patch(oldVdom, newVdom)
     this.restoreTableScroll(tableScroll)
     this.applyTableColumnWidths()
-    this.renderMermaid()
+    this.renderPele()
     this.renderDiagram()
     // C-51 T-010 (see render()): re-evaluate the figures this pass touched.
     syncExpandNeed((this.muya && this.muya.container) || this.container)

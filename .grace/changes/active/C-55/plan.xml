@@ -1,0 +1,234 @@
+<GraceChangePlan graceVersion='4.0' status='approved'>
+<C-55>
+  <ChangeRef>C-55</ChangeRef>
+  <Created>2026-10-17</Created>
+  <IntentSummary>Hard-cut Mark's diagram renderer from mermaid ^11.12.2 to pele@1.6.0: pelePipeline with a code-only SVG cache and keep-last-good, theming via --pele-* CSS variables derived by the proven C-51/C-54 math (theme switch recolors with zero re-renders), per-type render options preserving the C-34/C-49/C-51 behaviours, export/print inlining, full test port, graph+verification updates, and the 2.4.0-beta release per protocol.</IntentSummary>
+  <BaselineAssertions>
+    <MustContain>
+      <File>src/muya/lib/parser/render/mermaidPipeline.js</File>
+      <Text>createMermaidPipeline</Text>
+    </MustContain>
+    <MustContain>
+      <File>src/muya/lib/parser/render/mermaidTheme.js</File>
+      <Text>buildMermaidThemeConfig</Text>
+    </MustContain>
+    <MustContain>
+      <File>package.json</File>
+      <Text>"mermaid"</Text>
+    </MustContain>
+  </BaselineAssertions>
+  <TargetAssertions>
+    <MustVerify>
+      <Module>M-012</Module>
+    </MustVerify>
+    <MustContain>
+      <File>src/muya/lib/parser/render/pelePipeline.js</File>
+      <Text>createPelePipeline</Text>
+    </MustContain>
+    <MustNotContain>
+      <File>package.json</File>
+      <Text>"mermaid"</Text>
+    </MustNotContain>
+    <MustPassCommand>
+      <Command>npx vitest run</Command>
+    </MustPassCommand>
+    <MustPassCommand>
+      <Command>npm run build</Command>
+    </MustPassCommand>
+  </TargetAssertions>
+  <DurableScope>
+    <GraphAnchors>
+      <M-012 />
+    </GraphAnchors>
+    <VerificationAnchors>
+      <V-M-012 />
+    </VerificationAnchors>
+    <ContextArtifact>technology.xml</ContextArtifact>
+  </DurableScope>
+  <ObservedWriteScope>
+    <File>src/muya/lib/parser/render/pelePipeline.js</File>
+    <File>src/muya/lib/parser/render/peleOptions.js</File>
+    <File>src/muya/lib/parser/render/diagramTheme.js</File>
+    <File>src/muya/lib/parser/render/mermaidPipeline.js</File>
+    <File>src/muya/lib/parser/render/mermaidTheme.js</File>
+    <File>src/muya/lib/parser/render/index.js</File>
+    <File>src/muya/lib/parser/render/contentTheme.js</File>
+    <File>src/muya/lib/renderers/index.js</File>
+    <File>src/muya/lib/utils/exportHtml.js</File>
+    <File>src/muya/lib/assets/styles/index.css</File>
+    <File>src/renderer/src/util/theme.js</File>
+    <File>src/renderer/src/pages/app.vue</File>
+    <File>package.json</File>
+    <Glob>tests/renderer/muya/*.test.js</Glob>
+    <Glob>tests/e2e/*.spec.ts</Glob>
+    <Glob>docs/assets/readme/**</Glob>
+    <Glob>static/locales/*.json</Glob>
+    <File>src/renderer/src/whatsNew/data.js</File>
+    <File>README.md</File>
+    <File>CHANGELOG.md</File>
+    <Glob>.grace/**</Glob>
+  </ObservedWriteScope>
+  <CornerMatrix>
+    <!-- Corners drive tests AND the four reviewers' checklists. -->
+    <Corner id='corner-1'>
+      <Situation>Rapid typing inside a mermaid diagram block (30-char burst)</Situation>
+      <Expected>per-block trailing debounce collapses the burst into ONE render after ~250 ms quiet; the last good SVG stays visible during typing; no loading flash; no render after block deletion (pending cancelled)</Expected>
+    </Corner>
+    <Corner id='corner-2'>
+      <Situation>Theme switch Paper → Ink (and Auto light/dark flip) with N rendered diagrams</Situation>
+      <Expected>ZERO pele render calls (BLOCK_PELE_RENDER does not fire) and ZERO cache misses — the byte-identical cached SVG is re-inserted; colors change through the --pele-* CSS cascade; cache key is code-only (no theme component)</Expected>
+    </Corner>
+    <Corner id='corner-3'>
+      <Situation>Document with 20 mixed-type diagrams opened cold</Situation>
+      <Expected>all render sequentially and synchronously (0.05–12 ms each per spike), each with a unique idPrefix; no main-thread stall beyond one frame per batch; every type incl. bonus types (venn-beta, treemap, agentflow-beta) produces an SVG</Expected>
+    </Corner>
+    <Corner id='corner-4'>
+      <Situation>Syntax error introduced mid-diagram (PeleError code syntax/semantic/limit)</Situation>
+      <Expected>keep-last-good SVG stays; a small error element below shows the escaped message via textContent only; fixing the code re-renders and removes the error element; no orphan scratch elements in body (pele is DOM-free — nothing to leak)</Expected>
+    </Corner>
+    <Corner id='corner-5'>
+      <Situation>gantt / journey / packet / timeline diagrams wider than the column</Situation>
+      <Expected>natural width preserved with in-block horizontal scroll (per-type options: fontSize/maxWidth/padding re-expressing the C-51 lab look); labels render ≥ 11 px; every other type keeps fit-to-column responsive width</Expected>
+    </Corner>
+    <Corner id='corner-6'>
+      <Situation>Editor font size zoom (C-49) with rendered diagrams</Situation>
+      <Expected>data-natural-width comes from RenderResult.width; inline max-width: calc(var(--mark-zoom, 1) × natural px) scales diagram + labels with the editor font; fullscreen viewer clone still overrides size from the viewBox</Expected>
+    </Corner>
+    <Corner id='corner-7'>
+      <Situation>Export HTML / print of a document with diagrams</Situation>
+      <Expected>standalone file carries rendered pele SVGs + an inlined --pele-* variable block matching the exporting theme; no mermaid script/CDN references; sanitize path unchanged; the file renders correctly in a plain browser without app CSS</Expected>
+    </Corner>
+    <Corner id='corner-8'>
+      <Situation>Hostile diagram source: labels with &lt;script&gt;/onload, javascript: links, data: URLs</Situation>
+      <Expected>pele escaping/stripping holds in BOTH editor and export (XSS probes green); no securityLevel config exists anymore because the engine is safe by construction</Expected>
+    </Corner>
+    <Corner id='corner-9'>
+      <Situation>Block viewer (expand) on a pele diagram, then theme switch while open</Situation>
+      <Expected>clone renders at natural size from the viewBox; being a var() consumer it recolors with the theme like the inline preview; the poll/swap logic is not triggered by a pure theme switch (content unchanged)</Expected>
+    </Corner>
+    <Corner id='corner-10'>
+      <Situation>Tab close / editor teardown with debounced renders and cached SVGs in flight</Situation>
+      <Expected>flushPending cancels timers; caches and last-good maps cleared; no late insert into a detached DOM; ResizeObserver entries released via the existing expand-need unobserve path</Expected>
+    </Corner>
+    <Corner id='corner-11'>
+      <Situation>Graph/edge stress input (maxEdges/limit exceeded)</Situation>
+      <Expected>PeleError code 'limit' surfaces through the same keep-last-good UX as a syntax error (no freeze, no crash); the error text names the limit</Expected>
+    </Corner>
+    <Corner id='corner-12'>
+      <Situation>Bundle after the migration</Situation>
+      <Expected>zero mermaid chunks in dist/assets (were 44 / 2.6 MB raw); one pele chunk (~251 KB gzip full bundle); node_modules without mermaid (75 MB gone); app cold start unaffected or better</Expected>
+    </Corner>
+  </CornerMatrix>
+  <ImplementationPlan>
+    <T-001>
+      <Title>Dependencies: +pele@1.6.0, −mermaid; renderers loader case</Title>
+      <DependsOn></DependsOn>
+      <AcceptanceCriteria><Criterion>package.json has pele ^1.6.0 and no mermaid; npm install clean; loadRenderer('pele') returns the pele module (default import 'pele'); no other case touched.</Criterion></AcceptanceCriteria>
+      <Verification><Command>npm install &amp;&amp; node -e "import('pele').then(m => console.log(typeof m.render, typeof m.detectType))"</Command></Verification>
+    </T-001>
+    <T-002>
+      <Title>mermaidTheme.js → diagramTheme.js: shared math kept, mermaid config removed, buildPeleVariables added</Title>
+      <DependsOn></DependsOn>
+      <AcceptanceCriteria><Criterion>oklch/hueOf/wcagContrast/palette/chartPalette/readActiveThemeTokens/nodeContrastColors/blendHex survive verbatim with contracts; detectMermaidDiagramType/buildMermaidThemeConfig/postProcessMermaidSvg/MARKER_SCALE/donutPie/mermaidThemeSignature are gone; buildPeleVariables(t) → {--pele-bg/fg/muted/line/surface/surface-alt/border/accent, --pele-series-1..8} derived via nodeContrastColors + chartPalette; contentTheme.js and StateRender import paths updated; graph refs updated in T-009.</Criterion></AcceptanceCriteria>
+      <Verification><Command>npx vitest run tests/renderer/muya/diagram-theme.test.js</Command></Verification>
+    </T-002>
+    <T-003>
+      <Title>pelePipeline.js + peleOptions.js: the resilient pele render pipeline</Title>
+      <DependsOn>T-001</DependsOn>
+      <AcceptanceCriteria><Criterion>createPelePipeline factory: code-only LRU cache, ~250 ms debounce, keep-last-good + escaped error text, counter-unique idPrefix, PeleError mapping, data-natural-width from RenderResult.width, --mark-zoom max-width, expand-need after every insert; peleOptions maps gantt/journey/packet/timeline (and any type needing it) to fontSize/maxWidth/padding; no &lt;style&gt; hoisting, no orphan cleanup, no per-render initialize (none exist).</Criterion></AcceptanceCriteria>
+      <Verification><Command>npx vitest run tests/renderer/muya/pele-pipeline.test.js</Command></Verification>
+    </T-003>
+    <T-004>
+      <Title>StateRender wiring + CSS class rename (ag-pele-preview/ag-pele-error)</Title>
+      <DependsOn>T-003</DependsOn>
+      <AcceptanceCriteria><Criterion>mermaidCache/mermaidPipeline → peleCache/pelePipeline (dispatch block renamed, log anchors BLOCK_PELE_*); muya index.css hooks renamed with the same natural-size/scroll/error styles; AG_MERMAID figure marker and fence language untouched; blockViewer untouched or probe-verified.</Criterion></AcceptanceCriteria>
+      <Verification><Command>npx vitest run tests/renderer/muya</Command></Verification>
+    </T-004>
+    <T-005>
+      <Title>Theme application sets --pele-* on the document root + static fallbacks</Title>
+      <DependsOn>T-002</DependsOn>
+      <AcceptanceCriteria><Criterion>the theme-apply path (util/theme.js applyTheme or its caller) sets all 17 --pele-* variables from buildPeleVariables(readActiveThemeTokens()) after mirroring theme CSS; muya stylesheet carries Paper/Ink static fallbacks for pre-theme contexts; a theme switch changes the variables synchronously (no re-render).</Criterion></AcceptanceCriteria>
+      <Verification><Command>npx vitest run tests/renderer/muya/diagram-theme.test.js tests/renderer/muya/pele-node-contrast.test.js</Command></Verification>
+    </T-005>
+    <T-006>
+      <Title>Export/print path renders via pele with inlined variables</Title>
+      <DependsOn>T-001, T-002</DependsOn>
+      <AcceptanceCriteria><Criterion>exportHtml.renderMermaid uses pele render (sync) + injects a &lt;style&gt; with the --pele-* block resolved at export time; error placeholder preserved; print service CSS selectors still match the .mermaid export wrapper.</Criterion></AcceptanceCriteria>
+      <Verification><Command>npx vitest run tests/renderer/muya/export-pele-theme.test.js tests/renderer/muya/export-fence-length.test.js</Command></Verification>
+    </T-006>
+    <T-007>
+      <Title>Renderer test port: pele-pipeline, diagram-theme, pele-node-contrast (32 themes), export-pele-theme</Title>
+      <DependsOn>T-004, T-005, T-006</DependsOn>
+      <AcceptanceCriteria><Criterion>old mermaid suites deleted, new suites pin: code-only cache key + theme-switch cache hit, keep-last-good, debounce, natural width, per-type options, 32-theme variable derivation gates (node contrast + series + fallbacks), export inlining; full vitest run green.</Criterion></AcceptanceCriteria>
+      <Verification><Command>npx vitest run</Command></Verification>
+    </T-007>
+    <T-008>
+      <Title>E2E port: pele-render, pele-theme, showcase-screenshots (incl. bonus types), zoom, block-viewer, content-theme</Title>
+      <DependsOn>T-007</DependsOn>
+      <AcceptanceCriteria><Criterion>mermaid-render/mermaid-theme specs renamed and ported (svg presence per type, theme switch = no re-render assertion, XSS probes); showcase corpus gains venn/treemap/agentflow examples; zoom + block-viewer + content-theme green on chromium + webkit.</Criterion></AcceptanceCriteria>
+      <Verification><Command>npm run build &amp;&amp; npx playwright test tests/e2e/pele-render.spec.ts tests/e2e/pele-theme.spec.ts tests/e2e/showcase-screenshots.spec.ts tests/e2e/zoom.spec.ts tests/e2e/block-viewer.spec.ts --project=chromium</Command></Verification>
+    </T-008>
+    <T-009>
+      <Title>Graph + verification updates, grace lint 0</Title>
+      <DependsOn>T-007, T-008</DependsOn>
+      <AcceptanceCriteria><Criterion>M-012 summary reflects pelePipeline/diagramTheme/peleOptions and the --pele-* theming; V-M-012 commands/scenarios point at the new suites and BLOCK_PELE_* markers; all module contracts/maps updated; grace lint --assertions current = 0 errors.</Criterion></AcceptanceCriteria>
+      <Verification><Command>grace lint --path . --assertions current</Command></Verification>
+    </T-009>
+    <T-010>
+      <Title>App validation probe (Playwright + tauri-shim): WKWebView fonts/mount/theme recolor</Title>
+      <DependsOn>T-009</DependsOn>
+      <AcceptanceCriteria><Criterion>probe build renders diagrams in the shim: fonts resolve (not fallback tofu), mount sizes correct, theme switch recolors without re-render, zoom and block viewer behave; evidence saved.</Criterion></AcceptanceCriteria>
+      <Verification><Command>npx playwright test tests/e2e/pele-render.spec.ts --project=chromium</Command></Verification>
+    </T-010>
+    <T-011>
+      <Title>Release 2.4.0-beta per AGENTS.md protocol + four-corner review closure</Title>
+      <DependsOn>T-010</DependsOn>
+      <AcceptanceCriteria><Criterion>Correctness/Security/UX/Perf review logged in ReviewLog with findings fixed; six-place version bump + preflight fixture advance (preflight sources=6, 11 tests); What's New (10 locales, honest engine-swap copy), README + CHANGELOG + screenshots; tag v2.4.0-beta pushed to fork; latest.json serves 2.4.0-beta; kepano comment NOT posted (user-only).</Criterion></AcceptanceCriteria>
+      <Verification><Command>npm run release:preflight -- --tag v2.4.0-beta &amp;&amp; npx vitest run tests/renderer/release-preflight.test.js tests/renderer/whatsNew/content.test.js</Command></Verification>
+    </T-011>
+  </ImplementationPlan>
+  <Evidence>
+    <T-001><Status>done</Status><Notes>pele@^1.6.0 installed, mermaid uninstalled; loadRenderer('pele') returns the namespace (render/detectType verified in Node). node_modules: 3.5 MB pele, mermaid gone.</Notes></T-001>
+    <T-002><Status>done</Status><Notes>git mv mermaidTheme.js → diagramTheme.js v2.0.0: shared math verbatim, mermaid config/markers/donut-mermaid/detect removed, buildPeleVariables added; contentTheme.js + StateRender import paths updated.</Notes></T-002>
+    <T-003><Status>done</Status><Notes>pelePipeline.js v1.0.0 (code-only LRU, keep-last-good, debounce, idPrefix counter, zoomable max-width from RenderResult.width, expand-need, C-51 Keynote donut as postProcessPeleSvg with var(--pele-bg) fill) + peleOptions.js (fontSize 15 global; gantt/journey/timeline/packet lab sizes).</Notes></T-003>
+    <T-004><Status>done</Status><Notes>StateRender renderPele + peleCache; renderLeafBlock queues peleCache; muya index.css hooks renamed ag-pele-preview/ag-pele-error with the natural-size/scroll/error styles; :root --pele-* Paper fallback block added; blockViewer error class + clone comments updated; AG_MERMAID/fence language untouched.</Notes></T-004>
+    <T-005><Status>done</Status><Notes>util/theme.js addThemeStyle derives --pele-* (buildPeleVariables ∘ readActiveThemeTokens) after the dark classification, registered in __themeVars; wiring pinned in theme.test.js (vars on root, re-derived per theme).</Notes></T-005>
+    <T-006><Status>done</Status><Notes>exportHtml renderPele (namespace render, idPrefix pele-export-N, options via buildPeleRenderOptions, container keeps class 'mermaid' for print CSS, error placeholder preserved) + generate() inlines the :root --pele-* block; sanitized order unchanged.</Notes></T-006>
+    <T-007><Status>done</Status><Notes>pele-pipeline.test.js (26), diagram-theme.test.js (20), pele-node-contrast.test.js (15), export-pele-theme.test.js (3); import-path fixes in content-theme/chart-palette-fixture/export-content-theme/theme-families tests; block-expand-button pele double. Review fix: static fallback + fixtures re-based on the REAL Paper tokens (panel #f2ece1) after an invented #f6f1e7 was caught by the theme.test.js wiring pin. Full vitest 306 files / 4095 passed.</Notes></T-007>
+    <T-008><Status>done</Status><Notes>pele-render.spec.ts (22-type matrix, XSS probes, keep-last-good + BLOCK_PELE_* markers), pele-theme.spec.ts (22-type × paper/ink, fallback-colour scan, theme-switch = cache-hit recolor with byte-identical markup, classDef override wins), zoom/block-viewer/showcase (+venn/treemap/agentflow corpus, pele-valid syntax) ported; playwright project webkit-pele-theme renamed; rich-markdown-coverage + theme-families selectors ported; label-size probe re-based on computed font-size (pele puts font-size on groups); Keynote donut restored via postProcessPeleSvg (families spec green).</Notes></T-008>
+    <T-009><Status>done</Status><Notes>graph M-012 + fn-renderPele + M-010 notes updated; verification V-M-012 commands/scenarios 9/13/17/22/61/62/markers re-pointed at pele; C-54 archived (applied). grace lint --assertions current: only the C-55 baseline assertions remain (pre-write state, consumed at preflight); target/final gates run at release.</Notes></T-009>
+    <T-010><Status>done</Status><Notes>App-level validation runs through the e2e stack (vite preview + tauri-shim; WebKit projects = the WKWebView engine): pele-render 6/6, pele-theme 22/22 (chromium + webkit-pele-theme), zoom + block-viewer 45/45, showcase/content-theme/rich-markdown-coverage/theme-families green; build emits one pele chunk 677 KB raw / 253 KB gzip, zero mermaid chunks.</Notes></T-010>
+    <T-011><Status>in_progress</Status><Notes>Four-corner review logged (ReviewLog #1, green-after-fixes). Release 2.4.0-beta in progress: version bump, preflight fixture, materials, tag.</Notes></T-011>
+  </Evidence>
+  <ReviewLog>
+    <Review number="1" date="2026-10-18" verdict="green-after-fixes" task="four-corner-review">
+      <Findings>
+        Correctness: the resilience contract ported 1:1 (LRU code-only,
+        keep-last-good, debounce, idPrefix counter, expand-need, zoomable
+        max-width from RenderResult.width); StateRender dispatch renamed
+        renderPele and renderLeafBlock queues into peleCache. Fixed during
+        review: the static :root fallback in muya's index.css and the ported
+        fixtures initially carried an invented code panel #f6f1e7 — replaced
+        with the REAL Paper derivation (panel #f2ece1, surface #fffdf8,
+        border #e4dbcb; derived vars bg #f2ece1/surface #fffdf8/surface-alt
+        #f9f5ed/border+line #807f7d) and pinned from both sides (fixtures +
+        CSS parity gate). theme.test.js gained the addThemeStyle --pele-*
+        wiring pin (vars set on the root, registered in __themeVars,
+        re-derived per theme). Full vitest: 306 files / 4095 passed.
+        Security: no new IPC or permissions; error text stays textContent;
+        pele XSS safety (escaped labels, javascript: stripped) is engine
+        built-in — the securityLevel:'strict' config and its tests are gone
+        with the engine; export keeps the sanitize-before-render order and
+        gained a no-mermaid-script check. UX: theme switches recolor with
+        zero re-renders (code-only cache key; the block viewer clone
+        recolors through the same cascade); keep-last-good/debounce/zoom/
+        expand behaviours pinned by the ported suites; pele error messages
+        now carry line/column. Perf: one lazy chunk 677 KB raw / 253 KB
+        gzip (was 44 chunks / 2.6 MB raw), node_modules −75 MB / −23 deps;
+        sync renders 0.05–12 ms keep a 20-diagram document inside one
+        frame budget per batch on the spike corpus.
+      </Findings>
+    </Review>
+  </ReviewLog>
+</C-55>
+</GraceChangePlan>

@@ -1,4 +1,4 @@
-<GraceChangeSpec graceVersion='4.0' status='approved'>
+<GraceChangeSpec graceVersion='4.0' status='applied'>
 <C-54>
   <Name>Mermaid in light and dark: white node cards in light themes, edge labels on the diagram panel</Name>
   <Created>2026-10-17</Created>

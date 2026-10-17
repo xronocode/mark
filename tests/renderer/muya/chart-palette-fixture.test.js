@@ -3,7 +3,7 @@
 // START_MODULE_CONTRACT
 //   PURPOSE: Pin the e2e palette fixture (tests/e2e/fixtures/chartPalette.ts) to muya's mermaidTheme maths so expected colours never drift.
 //   SCOPE: palette and blendHex parity over several accents and lightness/chroma pairs.
-//   DEPENDS: src/muya/lib/parser/render/mermaidTheme.js, tests/e2e/fixtures/chartPalette.ts.
+//   DEPENDS: src/muya/lib/parser/render/diagramTheme.js, tests/e2e/fixtures/chartPalette.ts.
 //   LINKS: C-51 T-005.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
@@ -13,7 +13,7 @@
 //   ACCENTS - accent colours covering light and dark themes.
 // END_MODULE_MAP
 import { describe, it, expect } from 'vitest'
-import { palette, blendHex } from 'muya/lib/parser/render/mermaidTheme'
+import { palette, blendHex } from 'muya/lib/parser/render/diagramTheme'
 import * as fixture from '../../e2e/fixtures/chartPalette'
 
 const ACCENTS = ['#9A6F00', '#FFCF1A', '#007AFF', '#10A37F', '#E11D48']
