@@ -3,7 +3,7 @@ resolver = "2"
 members = ["src-tauri"]
 
 [workspace.package]
-version = "2.4.0-beta"
+version = "2.4.0"
 edition = "2021"
 authors = ["xronocode"]
 license = "MIT"

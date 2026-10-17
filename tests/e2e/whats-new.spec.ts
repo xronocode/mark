@@ -29,7 +29,7 @@
 //   LAST_CHANGE: v1.2.0 - 2026-10-17 C-53 T-001/R-1: the D-1 item titles,
 //   the «Also» line and the «See everything new» footer link are pinned;
 //   a new case drives the link and asserts the opener plugin receives the
-//   v2.4.0-beta release URL (window.electron.shell.openExternal →
+//   v2.4.0 release URL (window.electron.shell.openExternal →
 //   plugin:opener|open_url) while the sheet stays open.
 //   PREV: v1.1.0 - 2026-10-15 C-48 review fix: mt_prefs_get_all is
 //   backed by the same localStorage store (with a just-stamped m005
@@ -213,7 +213,7 @@ test.describe("What's New (C-48)", () => {
   // through the app's external-link path (window.electron.shell.openExternal
   // → @tauri-apps/plugin-opener openUrl → plugin:opener|open_url) and keeps
   // the sheet open — the browser takes focus, the user closes the sheet.
-  test('"See everything new" opens the v2.4.0-beta release page externally and keeps the sheet open', async ({ page }) => {
+  test('"See everything new" opens the v2.4.0 release page externally and keeps the sheet open', async ({ page }) => {
     await page.goto(BOOT_URL)
     await waitForGateRecord(page)
     await page.evaluate(() => {
@@ -239,7 +239,7 @@ test.describe("What's New (C-48)", () => {
     await sheet.locator('.foot-links .guide-link').first().click()
     await expect
       .poll(() => openedUrls.map((a: any) => a?.url), { timeout: 5_000 })
-      .toEqual(['https://github.com/xronocode/mark/releases/tag/v2.4.0-beta'])
+      .toEqual(['https://github.com/xronocode/mark/releases/tag/v2.4.0'])
     await expect(sheet).toBeVisible()
   })
   // END_BLOCK_C53_RELEASE_LINK
