@@ -229,7 +229,20 @@ describe('nodeContrastColors (C-51 T-012)', () => {
     expect(nodeContrastColors(t).fill).toBe('#21252b')
   })
 
-  it('is deterministic', () => {
+  it('draws light-theme nodes as white cards over the panel (C-54 R-1)', () => {
+  const node = nodeContrastColors(PAPER_TOKENS)
+  if (oklabLightness(PAPER_TOKENS.surface) - oklabLightness(PAPER_TOKENS.code) >= 0.015) {
+    expect(node.fill).toBe(PAPER_TOKENS.surface)
+  }
+  const t = { ...PAPER_TOKENS, surface: '#ffffff', code: '#f2f2f7', text: '#1d1d1f', border: '#d2d2d7' }
+  const card = nodeContrastColors(t)
+  expect(card.fill).toBe('#ffffff')
+  expect(wcagContrast(card.border, t.code)).toBeGreaterThanOrEqual(3)
+  // Dark themes keep the T-012 lift.
+  expect(nodeContrastColors(INK_TOKENS).fill).toBe(blendHex(INK_TOKENS.text, INK_TOKENS.code, 0.12))
+})
+
+it('is deterministic', () => {
     expect(nodeContrastColors(INK_TOKENS)).toEqual(nodeContrastColors({ ...INK_TOKENS }))
     expect(nodeContrastColors(PAPER_TOKENS)).toEqual(nodeContrastColors({ ...PAPER_TOKENS }))
   })
@@ -259,8 +272,19 @@ describe('every registered theme passes the node-contrast gates (C-51 T-012)', (
       if (wcagContrast(v.primaryBorderColor, panel) < 3) {
         failures.push(where(`border ${v.primaryBorderColor} vs panel ${panel} < 3:1`))
       }
-      if (!fillDistinctFromPanel(v.primaryColor, panel)) {
+      // C-54 R-1: a light theme may draw a white card — lighter than the
+      // panel and outlined by the ≥ 3:1 border — instead of a lifted fill.
+      const lightCard = !dark && oklabLightness(v.primaryColor) - oklabLightness(panel) >= 0.015
+      if (!fillDistinctFromPanel(v.primaryColor, panel) && !lightCard) {
         failures.push(where(`fill ${v.primaryColor} is not distinguishable from panel ${panel}`))
+      }
+      // C-54 R-2: edge labels sit on the panel with readable text.
+      if (v.edgeLabelBackground !== panel || v.labelBackgroundColor !== panel) {
+        failures.push(where(`edge label box ${v.edgeLabelBackground} is not the panel ${panel}`))
+      }
+      const labelInk = /\.edgeLabel, \.edgeLabel p \{ color: (#[0-9a-fA-F]{6})/.exec(buildMermaidThemeConfig(tokens, 'flowchart').themeCSS)
+      if (!labelInk || wcagContrast(labelInk[1], panel) < 4.5) {
+        failures.push(where(`edge label text ${labelInk && labelInk[1]} vs panel ${panel} < 4.5:1`))
       }
       if (wcagContrast(v.primaryTextColor, v.primaryColor) < 4.5) {
         failures.push(where(`text ${v.primaryTextColor} vs fill ${v.primaryColor} < 4.5:1`))

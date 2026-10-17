@@ -1,0 +1,25 @@
+<GraceChangePlan graceVersion='4.0' status='approved'>
+<C-54>
+  <ChangeRef>C-54</ChangeRef>
+  <Created>2026-10-17</Created>
+  <IntentSummary>Light-theme node cards and panel-coloured edge labels in the Mermaid theme derivation; orchestrator implements and re-shoots the captures.</IntentSummary>
+  <BaselineAssertions><MustContain><File>src/muya/lib/parser/render/mermaidTheme.js</File><Text>nodeContrastColors</Text></MustContain></BaselineAssertions>
+  <TargetAssertions><MustContain><File>src/muya/lib/parser/render/mermaidTheme.js</File><Text>labelText</Text></MustContain></TargetAssertions>
+  <DurableScope><M-011/></DurableScope>
+  <ObservedWriteScope><File>src/muya/lib/parser/render/mermaidTheme.js</File><File>tests/**</File><File>docs/assets/readme/**</File><File>.grace/**</File></ObservedWriteScope>
+  <ImplementationPlan>
+    <T-001>
+      <Title>Light node cards + edge labels on the panel</Title>
+      <DependsOn></DependsOn>
+      <AcceptanceCriteria><Criterion>Spec R-1, R-2.</Criterion></AcceptanceCriteria>
+      <Verification><Command>npx vitest run</Command><Command>playwright chromium + webkit</Command><Command>grace lint --path . --assertions current</Command></Verification>
+    </T-001>
+  </ImplementationPlan>
+  <Evidence>
+    <T-001>
+      <Status>done</Status>
+      <Notes>Orchestrator 2026-10-17. mermaidTheme.js v1.3.0: nodeContrastColors step (a0) keeps the surface in light themes when it is lighter than the panel (isLightCard, ΔL ≥ 0.015) and readable; new labelText (muted when ≥ 4.5:1 on the panel, else the theme text, boosted away from the panel for dim themes); edgeLabelBackground/labelBackgroundColor = panel; .edgeLabel ink = labelText. Tests: mermaid-node-contrast.test.js (32-theme gate: light card rule, label box = panel, label ink ≥ 4.5:1; new light-card unit), mermaid-theme.test.js Paper pin, e2e mermaid-theme.spec.ts v2.2.0 Paper fill = surface. Gates: vitest 4104 passed; e2e 508 passed + the 2 Paper pins updated (mermaid-theme 22/22 chromium+webkit); grace lint 0. README shots re-captured (03/05/07).</Notes>
+    </T-001>
+  </Evidence>
+</C-54>
+</GraceChangePlan>
