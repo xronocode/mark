@@ -315,10 +315,12 @@ describe('buildMermaidThemeConfig (C-51 T-003/T-004)', () => {
     expect(v.primaryBorderColor).toBe(node.border)
     expect(v.lineColor).toBe(node.line)
     expect(v.background).toBe(PAPER_TOKENS.bg)
-    // The pre-T-012 surface/hairline pair failed the panel gates (Paper's
-    // surface is 1.15:1 and its border 1.16:1 on the code-block panel).
-    expect(v.primaryColor).not.toBe(PAPER_TOKENS.surface)
+    // C-54 R-1: Paper's surface is a light card over the panel — the fill
+    // stays the surface; the hairline border (1.16:1) is still replaced.
+    expect(v.primaryColor).toBe(PAPER_TOKENS.surface)
     expect(v.primaryBorderColor).not.toBe(PAPER_TOKENS.border)
+    // C-54 R-2: the edge-label box is the panel.
+    expect(v.edgeLabelBackground).toBe(PAPER_TOKENS.code)
     expect(wcagContrast(v.primaryBorderColor, PAPER_TOKENS.code)).toBeGreaterThanOrEqual(3)
   })
 

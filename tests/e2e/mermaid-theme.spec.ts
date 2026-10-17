@@ -1,5 +1,5 @@
 // FILE: tests/e2e/mermaid-theme.spec.ts
-// VERSION: 2.1.0
+// VERSION: 2.2.0
 // START_MODULE_CONTRACT
 //   PURPOSE: E2E gate for C-51 T-003/T-004/T-012 — Mermaid follows the active app theme: the 22-diagram-type × light/dark render matrix (no errors, no default purple/Trebuchet, readable gantt/packet labels, palette-coloured series diagrams, %%{init}%% user overrides win, paper → ink re-render) and the T-012 node-contrast gate that measures the COMPUTED node colours of a flowchart (with subgraph), a sequence diagram and a state diagram in ink, docs-dark and macos-dark against the diagram panel.
 //   SCOPE: booting the editor with a mocked theme preference and a generated document; resolving theme CSS variables the way the browser does; computing WCAG contrast and Oklab ΔL in the spec (the twin of mermaidTheme.wcagContrast); measuring computed node rect fill/stroke, the VISIBLE label ink (the sequence actor's foreignObject div color, or the SVG tspan fill for SVG-only labels — `text.actor > tspan` carries actorTextColor while the <text> itself carries the box fill), cluster fill, edge strokes and only the RENDERED arrowheads (marker defs referenced by marker-end/marker-start; unused defs are unpainted black); per-theme evidence screenshots.
@@ -30,7 +30,10 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v2.1.0 - 2026-10-16 C-51 T-012 (orchestrator gate fix):
+//   LAST_CHANGE: v2.2.0 - 2026-10-17 C-54 R-1: Paper's flowchart fill is
+//   the surface (a white card lighter than the panel); dark themes keep
+//   the T-012 distinct-fill pins.
+//   PREV: v2.1.0 - 2026-10-16 C-51 T-012 (orchestrator gate fix):
 //   measureFigureContrast reads the label INK the engine actually paints.
 //   Sequence actor labels render through foreignObject (textPlacement
 //   default "fo"): the VISIBLE ink is div.actor-box's computed color, while
@@ -575,9 +578,16 @@ test.describe('mermaid follows the app theme (C-51 T-003/T-004)', () => {
         // derived to separate from THAT panel (the raw surface never did:
         // 1.15:1 in paper, ~1:1 in the dark themes where floatBg == codeBg)
         // and the border reaches WCAG 1.4.11 there.
-        expect(flow.fill).not.toBe(expectedSurface)
-        expect(flow.fill).not.toBe(expectedPanel)
-        expect(fillDistinctFromPanel(flow.fill, expectedPanel), `${theme} fill vs panel`).toBe(true)
+        // C-54 R-1: light themes draw white cards — the surface itself,
+        // lighter than the panel; dark themes keep the derived lift.
+        if (theme === 'paper') {
+          expect(flow.fill).toBe(expectedSurface)
+          expect((oklabLightness(flow.fill) ?? 0) - (oklabLightness(expectedPanel) ?? 1)).toBeGreaterThanOrEqual(0.015)
+        } else {
+          expect(flow.fill).not.toBe(expectedSurface)
+          expect(flow.fill).not.toBe(expectedPanel)
+          expect(fillDistinctFromPanel(flow.fill, expectedPanel), `${theme} fill vs panel`).toBe(true)
+        }
         expect(contrast(flow.stroke, expectedPanel)).toBeGreaterThanOrEqual(3)
         expect([flow.labelFill, flow.labelColor]).toContain(expectedText)
 

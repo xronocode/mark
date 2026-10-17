@@ -1,5 +1,5 @@
 // FILE: src/muya/lib/parser/render/mermaidTheme.js
-// VERSION: 1.2.0
+// VERSION: 1.3.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Build the Mermaid render config (theme "base", look "neo", themeVariables, themeCSS polish, per-type layout and sizes) from the ACTIVE APP THEME — the accepted C-51 round-2/3 lab (.lab/palette.js) ported into the product, with node colours derived against the code-block panel (T-012 contrast gates).
 //   SCOPE: OKLCH colour math (oklch/hueOf/palette), active-theme token reading from the document's CSS variables plus the body "dark" flag (translucent values composited over the theme background), diagram type detection from the code's first meaningful line (22 types, frontmatter/%%{init}%% skipped), the WCAG node-contrast derivation against the diagram panel, the per-type config builder, and the theme signature that keys the pipeline's SVG cache.
@@ -20,7 +20,7 @@
 //   MERMAID_THEME_TYPES - the 22 canonical diagram type keys detected by detectMermaidDiagramType.
 //   readActiveThemeTokens - lazily read the active theme's CSS variables + dark flag → { dark, accent, bg, surface, text, muted, border, line, code, font }.
 //   detectMermaidDiagramType - diagram code → canonical type key ("flowchart"…"c4"), skipping blank lines, %% directives/comments and YAML frontmatter; "unknown" when nothing matches.
-//   nodeContrastColors - theme tokens → { panel, fill, border, line, clusterBkg, clusterBorder, text } derived against the code-block panel so node fill/border/line/text meet the WCAG gates (fill ≥ 1.25:1 or ΔL ≥ 0.06, border/line ≥ 3:1, text ≥ 4.5:1 on the fill).
+//   nodeContrastColors - theme tokens → { panel, fill, border, line, clusterBkg, clusterBorder, text, labelText } derived against the code-block panel so node fill/border/line/text meet the WCAG gates (fill ≥ 1.25:1 or ΔL ≥ 0.06, border/line ≥ 3:1, text ≥ 4.5:1 on the fill).
 //   buildMermaidThemeConfig - theme tokens + type key → full mermaid.initialize config (themeVariables incl. cScale/pie/git/xyChart/quadrant/journey scales, themeCSS polish, per-type layout config with the C-34 fit-column useMaxWidth policy).
 //   mermaidThemeSignature - theme tokens → short stable signature (includes the resolved palette AND the derived node colours) for the pipeline's cache key.
 //   MARKER_SCALE - per-type arrowhead scale factors.
@@ -30,7 +30,12 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.2.0 - 2026-10-16 C-51 T-012 (user: «в темной теме у
+//   LAST_CHANGE: v1.3.0 - 2026-10-17 C-54 (user: «чини»): light themes
+//   draw nodes as white cards again (surface lighter than the panel, border
+//   ≥ 3:1) instead of the grey T-012 blend; edge labels and label boxes
+//   take the panel colour with ≥ 4.5:1 text (labelText) — no more black
+//   boxes on dark panels.
+//   PREV: v1.2.0 - 2026-10-16 C-51 T-012 (user: «в темной теме у
 //   мермейд явно проблемы с контрастностью блоков»): node colours are now
 //   derived RELATIVE TO THE CODE-BLOCK PANEL (the background mermaid SVGs
 //   actually sit on), not the page tokens — nodeContrastColors(t) (pure,
@@ -347,6 +352,12 @@ export const wcagContrast = (a, b) => {
 // Fill candidates around the prescribed 8–14 % text-over-panel band
 // (0.12 first; the fallback ladder walks the panel away below the text —
 // only reached by dark themes whose text cannot keep 4.5:1 on any lift).
+// C-54 R-1: a light card is strictly lighter than the panel (ΔL ≥ 0.015 in
+// OKLab, so a surface that merely equals the panel never counts).
+const LIGHT_CARD_MIN_DL = 0.015
+const isLightCard = (hex, panel) =>
+  oklabLightness(hex) - oklabLightness(panel) >= LIGHT_CARD_MIN_DL
+
 const NODE_FILL_STEPS = [0.12, 0.14, 0.1, 0.16, 0.08, 0.18, 0.22, 0.26, 0.3]
 const NODE_FILL_AWAY_STEPS = [0.25, 0.35, 0.45, 0.55, 0.65, 0.75]
 const NODE_TEXT_BOOST_STEPS = [0.05, 0.1, 0.15, 0.2, 0.3, 0.4, 0.5, 0.6]
@@ -370,8 +381,15 @@ export const nodeContrastColors = (t) => {
 
   let fill = null
   let text = themeText
+  // (a0) C-54 R-1: light themes draw nodes as white cards — the theme
+  //      surface, lighter than the panel and outlined by the ≥ 3:1 border
+  //      below — instead of a grey text blend (the T-012 distinctness gate
+  //      is a dark-theme rule: a light card reads by its border and shadow).
+  if (!t.dark && isLightCard(t.surface, panel) && readableTextOn(t.surface)) {
+    fill = t.surface
+  }
   // (a) Keep today's look when the theme surface already passes both gates.
-  if (distinctFromPanel(t.surface) && readableTextOn(t.surface)) {
+  if (!fill && distinctFromPanel(t.surface) && readableTextOn(t.surface)) {
     fill = t.surface
   }
   // (b) The prescribed lift: blend text over the panel, the 8–14 % band
@@ -445,7 +463,22 @@ export const nodeContrastColors = (t) => {
   for (let i = 11; (clusterBkg === panel || clusterBkg === fill) && i <= 19; i++) {
     clusterBkg = blendHex(fill, panel, i / 20)
   }
-  return { panel, fill, border, line, clusterBkg, clusterBorder: border, text }
+  // C-54 R-2: edge labels sit on the panel — the muted token when it keeps
+  // ≥ 4.5:1 there, else the theme text.
+  // Dim themes (one-dark, solarized) fail with both — push the text away
+  // from the panel until it reaches 4.5:1.
+  let labelText = wcagContrast(t.muted, panel) >= 4.5 ? t.muted : themeText
+  if (wcagContrast(labelText, panel) < 4.5) {
+    const far = wcagLuminanceOf(panel) >= wcagLuminanceOf(themeText) ? '#000000' : '#ffffff'
+    for (const k of NODE_TEXT_BOOST_STEPS) {
+      const c = blendHex(themeText, far, k)
+      if (wcagContrast(c, panel) >= 4.5) {
+        labelText = c
+        break
+      }
+    }
+  }
+  return { panel, fill, border, line, clusterBkg, clusterBorder: border, text, labelText }
 }
 // END_BLOCK_MERMAID_NODE_CONTRAST
 
@@ -671,7 +704,9 @@ export const buildMermaidThemeConfig = (t, type = 'unknown') => {
     // primaryColor / primaryBorderColor so a user's %%{init}%% primaryColor
     // still recolours the nodes (review 2026-10-16).
     secondaryColor: tint[0], tertiaryColor: t.code, clusterBkg: node.clusterBkg, clusterBorder: node.clusterBorder,
-    edgeLabelBackground: t.bg, labelBackgroundColor: t.bg, titleColor: t.text,
+    // C-54 R-2: label boxes take the panel the diagram sits on (the page
+    // colour drew black boxes on dark panels and white patches on light).
+    edgeLabelBackground: node.panel, labelBackgroundColor: node.panel, titleColor: t.text,
     noteBkgColor: node.fill, noteBorderColor: node.border, noteTextColor: node.text,
     actorBkg: node.fill, actorBorder: node.border, actorTextColor: node.text, signalColor: node.line, signalTextColor: t.text,
     fontFamily: t.font, fontSize: '15px', darkMode: t.dark,
@@ -762,7 +797,7 @@ export const buildMermaidThemeConfig = (t, type = 'unknown') => {
     `.nodeLabel, text.actor, .messageText, .taskText, .stateLabel { font-weight: 500; }`,
     // journey and gitGraph hard-code Trebuchet on some labels.
     `text, tspan { font-family: ${t.font}; }`,
-    `.edgeLabel, .edgeLabel p { color: ${t.muted}; font-size: 13px; }`,
+    `.edgeLabel, .edgeLabel p { color: ${node.labelText}; font-size: 13px; }`,
     `.flowchart-link, .messageLine0, .messageLine1, .transition, .relation { stroke-width: 1.4px; }`,
     `.mindmap-edges path, .edge-depth-1, .edge-depth-2 { stroke-width: 2px !important; }`,
     `.sankey-node rect, .node rect { rx: 3px; }`,

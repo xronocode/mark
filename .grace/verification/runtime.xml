@@ -6186,6 +6186,21 @@
           arrowhead per figure; the 22-type matrix test pins the derived
           fill/border instead of the raw surface.
         </Scenario>
+        <Scenario>
+          scenario-62: Mermaid light-theme node cards and edge labels on
+          the panel (C-54, user 2026-10-17: «чини»): in light themes the
+          node fill is the theme surface whenever it is lighter than the
+          code-block panel (OKLab ΔL ≥ 0.015) with node text ≥ 4.5:1 and
+          the border ≥ 3:1 — white cards instead of the grey T-012 blend;
+          dark themes keep the T-012 lift. edgeLabelBackground and
+          labelBackgroundColor equal the panel, and the .edgeLabel ink
+          (nodeContrastColors().labelText — the muted token when it keeps
+          4.5:1 on the panel, else the theme text pushed away from the
+          panel) reaches ≥ 4.5:1 on it. Unit-pinned for all 32 themes in
+          tests/renderer/muya/mermaid-node-contrast.test.js (light-card
+          rule, label box === panel, label ink ≥ 4.5:1) plus the Paper pin
+          in mermaid-theme.test.js.
+        </Scenario>
       </Scenarios>
       <Markers>
         <Marker>[Muya][parse][BLOCK_TOKENIZE]</Marker>
