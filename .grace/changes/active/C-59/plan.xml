@@ -1,0 +1,54 @@
+<GraceChangePlan graceVersion='4.0' status='approved'>
+<C-59>
+  <ChangeRef>C-59</ChangeRef>
+  <Created>2026-10-18</Created>
+  <IntentSummary>Bump the MAS version line to 2.4.0, build the app-store bundle from main (tag-equivalent product code), package via the C-15 T-M6 pipeline, upload to ASC through the user's Transporter step, refresh the store listing copy (What's New + description corrections, user-approved), submit for review with manual release before the Tuesday PH launch.</IntentSummary>
+  <BaselineAssertions>
+    <MustContain>
+      <File>tools/release/mas-pkg.sh</File>
+      <Text>Apple Distribution: Mikhail Yevdokimov (NY72L3P5TN)</Text>
+    </MustContain>
+    <MustContain>
+      <File>src-tauri/Entitlements-mas.plist</File>
+      <Text>com.apple.security.app-sandbox</Text>
+    </MustContain>
+  </BaselineAssertions>
+  <TargetAssertions>
+    <MustContain>
+      <File>src-tauri/mas.conf.json</File>
+      <Text>"version": "2.4.0"</Text>
+    </MustContain>
+    <MustPassCommand>
+      <Command>python3 -m json.tool src-tauri/mas.conf.json</Command>
+    </MustPassCommand>
+  </TargetAssertions>
+  <DurableScope><M-046/></DurableScope>
+  <ObservedWriteScope><File>src-tauri/mas.conf.json</File><File>.grace/changes/active/C-59/**</File></ObservedWriteScope>
+  <ImplementationPlan>
+    <T-001>
+      <Title>Bump the MAS version line</Title>
+      <DependsOn></DependsOn>
+      <AcceptanceCriteria><Criterion>src-tauri/mas.conf.json pins 2.4.0; the desktop six-place sync untouched; mas.conf.json still valid JSON.</Criterion></AcceptanceCriteria>
+      <Verification><Command>python3 -m json.tool src-tauri/mas.conf.json</Command><Command>npm run release:preflight -- --tag v2.4.0</Command></Verification>
+    </T-001>
+    <T-002>
+      <Title>Build, sign and package the app-store bundle</Title>
+      <DependsOn>T-001</DependsOn>
+      <AcceptanceCriteria><Criterion>Green tauri build with --features app-store; Info.plist carries 2.4.0; mas-pkg.sh produces Mark-mas.pkg with a verified Installer-identity chain and embedded provisioning profile.</Criterion></AcceptanceCriteria>
+      <Verification><Command>npx tauri build --config src-tauri/mas.conf.json --features app-store</Command><Command>./tools/release/mas-pkg.sh</Command><Command>pkgutil --check-signature target/release/bundle/macos/Mark-mas.pkg</Command></Verification>
+    </T-002>
+    <T-003>
+      <Title>ASC upload, store materials, review submission</Title>
+      <DependsOn>T-002</DependsOn>
+      <AcceptanceCriteria><Criterion>Build reaches processingState READY via asc-api.py; user-approved What's New and description corrections applied in ASC with the user's screenshot/video set; review submitted with manual release; grace lint clean apart from the pre-existing C-55 plan assertions (closed by archiving C-55).</Criterion></AcceptanceCriteria>
+      <Verification><Command>python3 tools/release/asc-api.py</Command><Command>grace lint --path . --assertions current</Command></Verification>
+    </T-003>
+  </ImplementationPlan>
+  <ReviewLog>
+    <Review Corner="Correctness" Verdict="pending" Note="pkg signature + ASC processing state are the gates; product code untouched (tag-equivalent main)."/>
+    <Review Corner="Security" Verdict="pending" Note="Entitlements-mas unchanged from the approved 2.1.17 set; no new entitlements; no secrets in repo."/>
+    <Review Corner="UX" Verdict="pending" Note="Store users jump 2.1.17 → 2.4.0 in one hop: What's New must cover the redesign highlights, not only Pele."/>
+    <Review Corner="Perf" Verdict="pending" Note="No code change; bundle expected smaller than 2.1.17 (Pele cut)."/>
+  </ReviewLog>
+</C-59>
+</GraceChangePlan>
