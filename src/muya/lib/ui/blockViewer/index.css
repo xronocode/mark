@@ -95,6 +95,30 @@ html.platform-darwin .ag-block-viewer-header {
   border-color: var(--deleteColor);
 }
 
+/* START_BLOCK_CSS_EXPORT */
+/* C-56 picture export: the three toolbar actions (Copy as Image, Save as
+ * PNG…, Save as SVG…) exist in every viewer but render only when the
+ * opened source is an exportable diagram — a MERMAID (pele) figure or a
+ * VEGA-LITE chart (index.js toggles ag-block-viewer-can-export in open()).
+ * Tables and the follow-up diagram roles keep them hidden. */
+.ag-block-viewer-export-btn {
+  display: none;
+}
+
+.ag-block-viewer.ag-block-viewer-can-export .ag-block-viewer-export-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.ag-block-viewer-export-btn svg {
+  display: block;
+}
+/* END_BLOCK_CSS_EXPORT */
+
 .ag-block-viewer-stage {
   position: relative;
   flex: 1;

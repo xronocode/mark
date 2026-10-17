@@ -263,6 +263,9 @@
       "copyAsHtml": "Als HTML kopieren",
       "copyAsPlainText": "Als reinen Text kopieren",
       "copyAsStructuredText": "Als strukturierten Text kopieren",
+      "copyAsImage": "Als Bild kopieren",
+      "saveAsPng": "Als PNG speichern…",
+      "saveAsSvg": "Als SVG speichern…",
       "selectAll": "Alles auswählen",
       "share": "Teilen"
     }
@@ -450,6 +453,9 @@
     "zoomOut": "Verkleinern",
     "fit": "Auf Bildschirmgröße anpassen",
     "actualSize": "100%",
+    "copyImage": "Als Bild kopieren",
+    "savePng": "Als PNG speichern…",
+    "saveSvg": "Als SVG speichern…",
     "diagram": "Diagramm",
     "table": "Tabelle"
   },
@@ -1290,6 +1296,12 @@
       "error": "Export-Fehler",
       "errorExporting": "Fehler beim Exportieren der {type}-Datei",
       "failed": "{type}-Export fehlgeschlagen"
+    },
+    "diagramExport": {
+      "title": "Diagramm",
+      "copied": "Kopiert",
+      "copyFailed": "Bild konnte nicht kopiert werden",
+      "saveFailed": "Datei konnte nicht gespeichert werden"
     },
     "insertTable": {
       "title": "Tabelle einfügen",

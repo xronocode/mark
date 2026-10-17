@@ -263,6 +263,9 @@
       "copyAsHtml": "HTML로 복사",
       "copyAsPlainText": "일반 텍스트로 복사",
       "copyAsStructuredText": "구조화된 텍스트로 복사",
+      "copyAsImage": "이미지로 복사",
+      "saveAsPng": "PNG로 저장…",
+      "saveAsSvg": "SVG로 저장…",
       "selectAll": "모두 선택",
       "share": "공유"
     }
@@ -448,6 +451,9 @@
     "zoomOut": "축소",
     "fit": "화면에 맞추기",
     "actualSize": "100%",
+    "copyImage": "이미지로 복사",
+    "savePng": "PNG로 저장…",
+    "saveSvg": "SVG로 저장…",
     "diagram": "다이어그램",
     "table": "표"
   },
@@ -1287,6 +1293,12 @@
       "error": "내보내기 오류",
       "errorExporting": "파일 내보내기 오류",
       "failed": "내보내기 실패"
+    },
+    "diagramExport": {
+      "title": "다이어그램",
+      "copied": "복사됨",
+      "copyFailed": "이미지를 복사할 수 없습니다",
+      "saveFailed": "파일을 저장할 수 없습니다"
     },
     "insertTable": {
       "title": "표 삽입",

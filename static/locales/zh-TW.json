@@ -263,6 +263,9 @@
       "copyAsHtml": "複製為 HTML",
       "copyAsPlainText": "複製為純文字",
       "copyAsStructuredText": "複製為結構化文字",
+      "copyAsImage": "複製為影像",
+      "saveAsPng": "另存為 PNG…",
+      "saveAsSvg": "另存為 SVG…",
       "selectAll": "全選",
       "share": "分享"
     }
@@ -448,6 +451,9 @@
     "zoomOut": "縮小",
     "fit": "符合螢幕",
     "actualSize": "100%",
+    "copyImage": "複製為影像",
+    "savePng": "另存為 PNG…",
+    "saveSvg": "另存為 SVG…",
     "diagram": "圖表",
     "table": "表格"
   },
@@ -1295,6 +1301,12 @@
       "error": "匯出錯誤",
       "errorExporting": "匯出檔案時發生錯誤",
       "failed": "匯出失敗"
+    },
+    "diagramExport": {
+      "title": "圖表",
+      "copied": "已複製",
+      "copyFailed": "無法複製影像",
+      "saveFailed": "無法儲存檔案"
     },
     "insertTable": {
       "title": "插入表格",

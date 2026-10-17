@@ -5617,6 +5617,11 @@
           --project=webkit-tables tests/e2e/table-column-resize.spec.ts
         </Command>
         <Command>npx vitest run tests/renderer/muya/export-fence-length.test.js</Command>
+        <Command>npx vitest run tests/renderer/muya/diagram-export.test.js</Command>
+        <Command>
+          npm run build &amp;&amp; npx playwright test --project=chromium
+          tests/e2e/diagram-export.spec.ts
+        </Command>
       </Commands>
       <Scenarios>
         <Scenario>
@@ -6189,6 +6194,64 @@
           rule, label box === panel, label ink ≥ 4.5:1) plus the Paper pin
           in diagram-theme.test.js.
         </Scenario>
+        <Scenario>
+          scenario-63: Diagram/chart picture export (C-56): a rendered
+          ```mermaid (pele) diagram or ```vega-lite chart leaves Mark as
+          a picture from TWO entry points — the editor context menu
+          (Copy as Image / Save as PNG… / Save as SVG… below the copy
+          items, present ONLY when the right-click target is inside a
+          MERMAID/VEGA-LITE figure — corner-3: paragraphs, tables, code
+          blocks, math and the flowchart-role diagrams get nothing — and
+          DISABLED when the block never rendered, corner-4; a
+          keep-last-good stale SVG still exports) and the fullscreen
+          block viewer toolbar (button.ag-block-viewer-export-btn,
+          visible only for exportable sources through the
+          ag-block-viewer-can-export class; tables and the other diagram
+          roles keep the buttons hidden). utils/diagramExport.js builds
+          the picture: buildStandaloneSvg replaces EVERY var(--pele-*)
+          with the buildPeleVariables value resolved from the live theme
+          (corner-1: the Ink panel background rect carries the resolved
+          code-panel colour, zero var(--pele- survivors — a raw SVG
+          copied out of the DOM renders uncoloured anywhere else),
+          declares the theme font on the root, XML-escapes resolved
+          values (a quoted font stack cannot break serialization), takes
+          the natural size from data-natural-width/viewBox with the root
+          inline zoom/viewer sizing stripped (corner-2: an export while
+          the viewer is zoomed past 2× still yields the WHOLE diagram at
+          2× natural — the PNG IHDR equals 2 × natural width/height, not
+          the viewer scale), and strips script/on*/javascript: markup;
+          rasterizeSvg draws the self-contained data: SVG at 2× onto a
+          canvas and encodes PNG bytes; suggestFileName slugs the nearest
+          preceding heading (unicode kept — corner-6: Russian headings
+          slug to Cyrillic) with the &lt;doc&gt;-diagram-N fallback. The
+          transports live in editor.vue handleDiagramExportAction (the
+          single handler for the menu ids and the muya-diagram-export
+          event the viewer dispatches with the LIVE source — never its
+          zoomed clone): clipboard-manager writeImage of the 2× PNG
+          (exactly ONE new capability —
+          clipboard-manager:allow-write-image in capabilities/default.json
+          AND mas.json, corner-7) and the save dialog + fs write (SVG as
+          text, PNG binary through the user-selected, sandbox-safe path)
+          with «Copied» / export-success notices; corner-5 — a cancelled
+          dialog writes nothing and shows no success toast, a rejected
+          clipboard write warns
+          [Editor][handleDiagramExportAction][BLOCK_DIAGRAM_EXPORT] and
+          notifies without rejecting. Unit-pinned in
+          tests/renderer/muya/diagram-export.test.js (var inlining incl.
+          the no-fallback donut fill and XML-escaped font stacks,
+          background rect on/off, natural size and zoom strip, chrome and
+          unsafe markup stripped, the vega px-size path, 2×/scale
+          rasterizer + pngIhdrSize, slug + fallbacks + the
+          nearest-heading walk, role-gated resolution incl. the
+          never-rendered null) and end-to-end in
+          tests/e2e/diagram-export.spec.ts (context-menu matrix incl. the
+          disabled never-rendered case and the corner-3 negatives,
+          writeImage PNG IHDR = 2× natural, the standalone SVG bytes at
+          mt_fs_write with the background rect and zero var(--pele-,
+          heading/Cyrillic/fallback file names, the cancelled-save no-op,
+          the zoomed-viewer export and the hidden buttons on a table
+          viewer).
+        </Scenario>
       </Scenarios>
       <Markers>
         <Marker>[Muya][parse][BLOCK_TOKENIZE]</Marker>
@@ -6231,6 +6294,11 @@
         <Marker>[Muya][blockViewer][BLOCK_VIEWER_CLOSE]</Marker>
         <!-- C-51 T-014 option-driven re-render clone refresh (no content in the payload). -->
         <Marker>[Muya][blockViewer][BLOCK_VIEWER_THEME_REFRESH]</Marker>
+        <!-- C-56 picture export: the viewer toolbar dispatch carrying the
+             LIVE source (the transports and the failure marker
+             [Editor][handleDiagramExportAction][BLOCK_DIAGRAM_EXPORT]
+             live on the host side; no content in the payload). -->
+        <Marker>[Muya][blockViewer][BLOCK_VIEWER_EXPORT]</Marker>
         <!-- C-51 T-010 expand-need verdict flip (no content in the payload). -->
         <Marker>
           [Muya][expandNeed][BLOCK_EXPAND_NEED blockKey=&lt;key&gt; needed=&lt;bool&gt;]
