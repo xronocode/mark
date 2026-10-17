@@ -1,51 +1,52 @@
 <GraceChangeSpec graceVersion='4.0' status='approved'>
 <C-59>
-  <Name>App Store catch-up: ship 2.4.0 to ASC — MAS line jumps 2.1.17 → 2.4.0, store listing copy refreshed</Name>
+  <Name>Print and Export to PDF as two clean flows: ⌘P goes straight to the system print panel; Export to PDF writes a file through a save dialog with no print panel — macOS (WKWebView) and Windows (WebView2)</Name>
   <Created>2026-10-18</Created>
   <Priority>high</Priority>
   <Status>approved</Status>
-  <RoadmapPhase>M</RoadmapPhase>
-  <Complexity>S</Complexity>
-  <Summary>User decision 2026-10-18 («давай сабмитить», right after the v2.4.0 desktop release went live): the App Store still serves 2.1.17 (approved 2026-10-13) while the desktop is three releases ahead — the whole 2.3.x redesign (theme families Paper/Ink/Docs/macOS, slim title bar, home screen, sidebar, status bar) and the 2.4.0 Pele engine cut never reached the store, and the Tuesday 2026-10-20 Product Hunt launch drives traffic to the store link. This change catches the MAS build line up to the already-tagged v2.4.0 via the proven C-15 T-M6 pipeline (mas-pkg.sh sign+pkg, asc-api.py status), corrects the stale store listing copy, and submits for review timed to land before Tuesday. Store screenshots and the preview video are already prepared by the user; no new asset production.</Summary>
-  <Problem><Description>The MAS line keeps its own version (src-tauri/mas.conf.json, outside the six-place desktop sync) and was last submitted as 2.1.17. The live ASC description still claims «opt-in localhost live-viewer» (gated OFF in app-store builds since ASC round 2 — a review-visible mismatch), lists «21 themes from Cadmium Light to Synthwave '84» (themes were replaced by the four families in 2.3.x), and leads with «11 MB» (2.4.0 downloads ~14 MB). Store users cannot get the redesign or Pele at all: the MAS build has no in-app updater.</Description></Problem>
+  <RoadmapPhase>N</RoadmapPhase>
+  <Complexity>M</Complexity>
+  <Summary>User report 2026-10-18: Print and Export to PDF are tangled — Print first opens the export-settings dialog and then the print panel; Export to PDF opens the same settings dialog and then the print panel again (a PDF only via the panel's "Save as PDF"). Root cause: C-18 routed both through one native command (mt_print_webview → WKWebView print panel) behind the export-settings dialog. On Windows both fail with "print panel is macOS-only". This change separates the flows and makes them work on both platforms.</Summary>
+  <Problem><Description>File → Print… emits showExportDialog('print') and, after OK, invokes mt_print_webview; File → Export to PDF… emits showExportDialog('pdf') and the store's _EXPORT_PDF invokes the same mt_print_webview. Users see "export, then print" for Print and "export, then print again" for PDF, and Windows users get an error for both. m052_print.rs returns Err on non-macOS.</Description></Problem>
   <Goals>
-    <R-1>Bump src-tauri/mas.conf.json version to 2.4.0. The desktop six-place sync is untouched — the MAS line stays independent.</R-1>
-    <R-2>Build from the current main working tree (product code identical to tag v2.4.0; post-tag commits and the parallel C-58 session's edits touch CI, spec XML, README and site files only, none of which enter the app bundle): npx tauri build --config src-tauri/mas.conf.json --features app-store, then tools/release/mas-pkg.sh (Apple Distribution re-sign with Entitlements-mas.plist, ASC plist requirements 90869/90242, TestFlight profile embed 90889, quarantine strip ITMS-91109, productbuild pkg).</R-2>
-    <R-3>Upload Mark-mas.pkg to ASC (Transporter by the user — established human step), attach to version 2.4.0, and submit for review with manual release, targeting approval before Tue 2026-10-20 10:01 МСК.</R-3>
-    <R-4>Store listing copy corrections, user-approved before applying: What's New for 2.4.0 written for store users jumping from 2.1.17 (the 2.3.x redesign highlights plus the Pele engine), description fixes (remove the live-viewer sentence, replace the Cadmium theme list with the four families, 11 MB → 14 MB), subtitle size refresh if the 30-char limit allows.</R-4>
-    <R-5>Evidence: pkgutil --check-signature output, ASC build processing state via asc-api.py, review submission timestamp — recorded in the change scope notes.</R-5>
+    <R-1>Print… (⌘P) opens the system print panel directly — no export-settings dialog. The print container is rendered with the last-used export options (theme, margins, header/footer, TOC; defaults on first use), so printed output matches the app; the container is cleared after the panel closes.</R-1>
+    <R-2>Export to PDF… keeps the export-settings dialog (page size, orientation, margins, header/footer, TOC, theme), then shows a native save dialog (default name = document name or first heading, .pdf), then writes the PDF silently — no print panel. Success notice with the file name; cancel at either dialog writes nothing.</R-2>
+    <R-3>macOS backend: a new command mt_export_pdf(path, pageOptions) in m052 runs the WKWebView print operation in save-to-file mode (NSPrintInfo jobDisposition = NSPrintSaveJob, NSPrintJobSavingURL = the chosen path, paper size/orientation/margins from pageOptions, showsPrintPanel/showsProgressPanel = false) on the main thread; returns after the file exists or with a structured error. Pagination and print CSS are the same as the panel path. MAS sandbox: writes only to the user-selected save-dialog URL.</R-3>
+    <R-4>Windows backend: mt_export_pdf uses WebView2 ICoreWebView2_7::PrintToPdf (page size, orientation, margins via ICoreWebView2PrintSettings) and awaits its completion handler; mt_print_webview on Windows opens the WebView2 print dialog (ICoreWebView2_16::ShowPrintUI, browser print UI) instead of erroring. Linux keeps an explicit unsupported error.</R-4>
+    <R-5>Menu, command palette and help texts name the two actions clearly; the export-settings dialog title says "Export to PDF" for pdf (and is never shown for print); strings in all ten locales.</R-5>
+    <R-6>Tests: unit (store EXPORT pdf calls save dialog then mt_export_pdf with the path and pageOptions; print command never emits showExportDialog; cancel paths), e2e (⌘P / menu Print invokes mt_print_webview without the settings dialog; Export to PDF shows the dialog then plugin:dialog|save then mt_export_pdf, never mt_print_webview), Rust (pageOptions → paper size/orientation mapping; path validation rejects empty/non-.pdf). grace lint 0; graph M-052 and verification V-M-052 updated.</R-6>
   </Goals>
   <Constraints>
-    <Item>No product-code changes: the repo diff is the mas.conf.json version line plus this change's artifacts. Everything shipped in v2.4.0 is already gated for app-store builds (updater off, live-viewer off, Share button on).</Item>
-    <Item>No donation/support surface rides along (C-57 is not built); the MAS build matches the v2.4.0 tag behavior.</Item>
-    <Item>Outward sends (upload, metadata apply, review submit) follow the draft → user ok → send → read-back rule; Transporter upload stays a human step.</Item>
-    <Item>grace lint --assertions current = 0; no signing material or secrets in the repo.</Item>
+    <Item>No new crates: macOS uses the existing cocoa/objc dependencies; Windows uses webview2-com (already in the root Cargo.lock via wry) declared under the existing cfg(target_os = "windows") section; no new capabilities beyond the existing dialog save.</Item>
+    <Item>The webview handle is reached through tauri's with_webview (PlatformWebview) on the main thread; no unsafe global state.</Item>
+    <Item>App Store build stays sandbox-safe: no writes outside the user-selected file, no external binaries.</Item>
+    <Item>Every GRACE-governed edit ships MODULE_CONTRACT/MAP/CHANGE_SUMMARY; grace lint --assertions current = 0.</Item>
   </Constraints>
   <NonGoals>
-    <Item>Unifying the MAS and desktop version lines (mas.conf.json stays the single MAS version pin).</Item>
-    <Item>TestFlight distribution changes (profile embed stays as-is).</Item>
-    <Item>New screenshots, video, or localization work — the user's set is final.</Item>
-    <Item>Any C-56/C-57/C-58 feature work.</Item>
+    <Item>Linux print/PDF (stays an explicit error).</Item>
+    <Item>A PDF engine of our own, pandoc, or headless Chrome.</Item>
+    <Item>Per-page header/footer templates beyond what the existing export options already render in the print container.</Item>
   </NonGoals>
   <AffectedAreas>
-    <Item>src-tauri/mas.conf.json (MAS version pin, the only repo diff)</Item>
-    <Item>App Store Connect: version 2.4.0, What's New, description, subtitle, screenshots/preview video (user's prepared set), review submission</Item>
-    <Item>No product code, no entitlements, no capability changes</Item>
+    <Item>src-tauri/src/m052_print.rs (mt_export_pdf + Windows print), src-tauri/src/lib.rs (command registration), src-tauri/Cargo.toml (windows target: webview2-com)</Item>
+    <Item>src/renderer/src/commands/index.js (file.print direct), src/renderer/src/components/editorWithTabs/editor.vue (handleExport print/pdf), src/renderer/src/store/editor.js (EXPORT pdf → save dialog + mt_export_pdf), src/renderer/src/components/exportSettings/index.vue (pdf-only, remembered options)</Item>
+    <Item>static/locales/*.json, tests/renderer/**, tests/e2e/print-export.spec.ts (new), tests/e2e/fixtures/tauri-shim.ts</Item>
+    <Item>.grace/graph/runtime.xml M-052, .grace/verification/runtime.xml V-M-052</Item>
   </AffectedAreas>
   <AcceptanceCriteria>
-    <Criterion>R-1..R-5 done; Mark-mas.pkg (2.4.0) signed with the verified Installer chain; the uploaded build reaches READY in ASC; What's New and description corrections applied as approved; review submitted with manual release.</Criterion>
-    <Criterion>Live check: the App Store page serves 2.4.0 with the refreshed listing once the version is released.</Criterion>
+    <Criterion>R-1..R-6 done; npx vitest run green; Playwright print-export spec green on chromium + webkit; cargo check green for macOS and Windows targets (CI test.yml windows job); grace lint 0.</Criterion>
+    <Criterion>Live check on macOS (user): ⌘P shows only the print panel; Export to PDF shows settings → save dialog → a paginated PDF on disk, no print panel. Windows check via the CI-built installer or a Windows machine before release.</Criterion>
   </AcceptanceCriteria>
   <VerificationIntent>
-    <ExpectedCommand>python3 -m json.tool src-tauri/mas.conf.json</ExpectedCommand>
-    <ExpectedCommand>./tools/release/mas-pkg.sh</ExpectedCommand>
-    <ExpectedCommand>pkgutil --check-signature target/release/bundle/macos/Mark-mas.pkg</ExpectedCommand>
+    <ExpectedCommand>npx vitest run tests/renderer/store tests/renderer/components</ExpectedCommand>
+    <ExpectedCommand>npx playwright test tests/e2e/print-export.spec.ts --project=chromium --project=webkit</ExpectedCommand>
+    <ExpectedCommand>cargo test -p mark m052</ExpectedCommand>
     <ExpectedCommand>grace lint --path . --assertions current</ExpectedCommand>
-    <ExpectedEvidence>mas.conf.json pins 2.4.0; the bundle Info.plist carries CFBundleShortVersionString 2.4.0; mas-pkg.sh output ends with a verified Installer-identity signature chain; the uploaded build reaches processingState READY in ASC (asc-api.py); review submission timestamp recorded.</ExpectedEvidence>
+    <ExpectedEvidence>Invoke-order traces from e2e (print: no showExportDialog; pdf: dialog → save → mt_export_pdf, zero mt_print_webview); Rust option-mapping tests; a PDF written on macOS with the correct page count; Windows CI compile.</ExpectedEvidence>
   </VerificationIntent>
-  <Decisions>
-    <D-1>Build from main, not a tag checkout: post-tag commits (275de428 CI fix, 01206987 C-56 spec, c80075f6 C-58 spec) and the parallel session's uncommitted site/docs edits never enter the app bundle; product code is identical to v2.4.0.</D-1>
-    <D-2>Submit on the weekend deliberately: review turnaround has been same-day per round historically; a Monday/Tuesday approval window is acceptable, the PH launch is not blocked on it.</D-2>
-  </Decisions>
+  <Assumptions>
+    <Assumption>WKWebView's printOperationWithPrintInfo honours NSPrintSaveJob with NSPrintJobSavingURL when run without panels (standard AppKit behaviour; verified live before merge).</Assumption>
+    <Assumption>tauri 2 with_webview exposes ICoreWebView2Controller on Windows and the WKWebView pointer on macOS.</Assumption>
+  </Assumptions>
 </C-59>
 </GraceChangeSpec>
