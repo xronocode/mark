@@ -678,7 +678,7 @@ npx --package license-checker -- license-checker --production --json | \
 | vega-functions | 6.1.1 | https://github.com/vega/vega |
 | vega-geo | 5.1.0 | https://github.com/vega/vega |
 | vega-hierarchy | 5.1.0 | https://github.com/vega/vega |
-| vega-interpreter | 2.2.1 | https://github.com/vega/vega |
+| vega-interpreter | 2.3.2 | https://github.com/vega/vega |
 | vega-label | 2.1.0 | https://github.com/vega/vega |
 | vega-lite | 6.4.3 | https://github.com/vega/vega-lite |
 | vega-loader | 5.1.0 | https://github.com/vega/vega |
@@ -696,7 +696,7 @@ npx --package license-checker -- license-checker --production --json | \
 | vega-tooltip | 1.0.0 | https://github.com/vega/vega-tooltip |
 | vega-transforms | 5.1.0 | https://github.com/vega/vega |
 | vega-typings | 2.1.0 | https://github.com/vega/vega |
-| vega-util | 2.1.0 | https://github.com/vega/vega |
+| vega-util | 2.1.3 | https://github.com/vega/vega |
 | vega-view | 6.1.0 | https://github.com/vega/vega |
 | vega-view-transforms | 5.1.0 | https://github.com/vega/vega |
 | vega-voronoi | 5.1.0 | https://github.com/vega/vega |
