@@ -263,6 +263,9 @@
       "copyAsHtml": "Copier en HTML",
       "copyAsPlainText": "Copier en texte brut",
       "copyAsStructuredText": "Copier en texte structuré",
+      "copyAsImage": "Copier en tant qu'image",
+      "saveAsPng": "Enregistrer en PNG…",
+      "saveAsSvg": "Enregistrer en SVG…",
       "selectAll": "Tout sélectionner",
       "share": "Partager"
     }
@@ -453,6 +456,9 @@
     "zoomOut": "Zoom arrière",
     "fit": "Ajuster à l'écran",
     "actualSize": "100%",
+    "copyImage": "Copier en tant qu'image",
+    "savePng": "Enregistrer en PNG…",
+    "saveSvg": "Enregistrer en SVG…",
     "diagram": "Diagramme",
     "table": "Tableau"
   },
@@ -1294,6 +1300,12 @@
       "error": "Erreur d'exportation",
       "errorExporting": "Erreur lors de l'exportation du fichier",
       "failed": "Échec de l'exportation"
+    },
+    "diagramExport": {
+      "title": "Diagramme",
+      "copied": "Copié",
+      "copyFailed": "Impossible de copier l'image",
+      "saveFailed": "Impossible d'enregistrer le fichier"
     },
     "insertTable": {
       "title": "Insérer un tableau",

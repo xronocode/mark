@@ -1,5 +1,5 @@
 // FILE: src/muya/lib/eventHandler/clickEvent.js
-// VERSION: 1.2.1
+// VERSION: 1.3.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Route clicks inside the muya container — tools, drag bars, images, math, container previews, callouts, footnotes, checkboxes, the C-51 expand button — to contentState actions or eventCenter events.
 //   SCOPE: clickBinding and contextClickBinding only.
@@ -14,7 +14,11 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.2.1 - 2026-10-16 C-51 T-010: comment only — the
+//   LAST_CHANGE: v1.3.0 - 2026-10-18 C-56: a right-click on a rendered
+//   diagram/chart figure dispatches 'contextmenu' even without a live
+//   cursor (the non-editable preview collapses the selection), so the
+//   picture-export items are reachable.
+//   v1.2.1 - 2026-10-16 C-51 T-010: comment only — the
 //   click path is unchanged and works for every viewable block whether
 //   or not expandNeed.js currently shows the button (the ag-expand-needed
 //   class gates visibility, not the routing).
@@ -55,8 +59,15 @@ class ClickEvent {
 
       const { start, end } = selection.getCursorRange()
 
-      // Cursor out of editor
+      // Cursor out of editor. C-56: a right-click on a rendered diagram /
+      // chart preview (contenteditable=false) collapses the native
+      // selection, so there is no cursor — still dispatch, with no section
+      // changes, so the editor can offer the picture-export items.
       if (!start || !end) {
+        if (event.target && typeof event.target.closest === 'function' &&
+          event.target.closest('figure[data-role]')) {
+          eventCenter.dispatch('contextmenu', event, null)
+        }
         return
       }
 

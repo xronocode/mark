@@ -3799,6 +3799,46 @@
         export would re-import with the block closed early; blocks with no
         ``` run keep the classic 3-backtick fence byte-for-byte (pinned in
         tests/renderer/muya/export-fence-length.test.js).
+        C-56 (2026-10-18, per-block picture export): utils/diagramExport.js
+        lets a rendered ```mermaid (pele) diagram or ```vega-lite chart
+        leave Mark as a picture. buildStandaloneSvg clones the live SVG
+        into a self-contained string — every var(--pele-*) reference is
+        replaced with the value buildPeleVariables resolves from the live
+        theme at export time (the C-55 CSS-variable theming inlined; a raw
+        SVG copied out of the DOM renders uncoloured anywhere else), the
+        theme font is declared on the root, a background rect of the theme
+        code-panel colour is inserted first (transparent option), the
+        natural width/height/viewBox come from data-natural-width /
+        viewBox (string-parsed, jsdom-safe) with the root inline zoom and
+        viewer sizing stripped so neither the C-49 --mark-zoom scale nor
+        the fullscreen viewer's pan/zoom leaks into the export, and
+        script/on*/javascript: hrefs are removed; rasterizeSvg draws the
+        self-contained data: SVG at 2× onto a canvas and encodes PNG
+        bytes (pngIhdrSize helper for verifiers); suggestFileName slugs
+        the nearest preceding heading (unicode letters kept — Cyrillic
+        headings slug to Cyrillic) with the &lt;doc&gt;-diagram-N
+        fallback; resolveDiagramExportFigure / diagramExportSvg gate the
+        two exportable roles (MERMAID, VEGA-LITE — flowchart/sequence/
+        plantuml are a follow-up non-goal; a never-rendered block has no
+        svg so the hosts show the actions disabled, keep-last-good stale
+        SVGs export). muya owns NO transports: editor.vue
+        handleDiagramExportAction is the single handler behind both entry
+        points — the context-menu items Copy as Image / Save as PNG… /
+        Save as SVG… (below the copy items, only when the right-click
+        target is inside an exportable figure, disabled when it never
+        rendered) and the block viewer toolbar (v3.2.0:
+        button.ag-block-viewer-export-btn between 1:1 and close, shown
+        only when the opened source resolves to an exportable figure via
+        the ag-block-viewer-can-export class, dispatching
+        muya-diagram-export { action, element: LIVE source } so the export
+        always describes the WHOLE diagram at natural size regardless of
+        the viewer zoom). Transports: clipboard-manager writeImage of the
+        2× PNG (capability clipboard-manager:allow-write-image added to
+        capabilities/default.json AND mas.json — the only permission
+        change), plugin-dialog save + fs write (SVG text / PNG binary
+        through the user-selected path — sandbox-safe in the MAS build).
+        Unit tests/renderer/muya/diagram-export.test.js; e2e
+        tests/e2e/diagram-export.spec.ts.
       </Summary>
       <Path>src/muya/</Path>
       <Dependencies/>
@@ -3960,6 +4000,29 @@
             </Attribute>
           </LegacyAttributes>
         </fn-expandNeed>
+        <fn-diagramExport>
+          <LegacyAttributes>
+            <Attribute>
+              <Name>PURPOSE</Name>
+              <Value>
+                utils/diagramExport.js (C-56): buildStandaloneSvg /
+                rasterizeSvg / suggestFileName / nearestHeadingText /
+                slugifyName / pngIhdrSize / resolveDiagramExportFigure /
+                diagramExportSvg — the shared per-block picture export
+                (self-contained SVG with every var(--pele-*) inlined from
+                the live theme, theme font + panel background rect,
+                natural size from data-natural-width/viewBox, unsafe
+                markup stripped; 2× PNG rasterizer; heading-slug file
+                name with the &lt;doc&gt;-diagram-N fallback). The
+                clipboard/dialog/fs transports live on the host side:
+                editor.vue handleDiagramExportAction (context-menu ids +
+                the muya-diagram-export event) and the blockViewer
+                toolbar dispatch ([Muya][blockViewer]
+                [BLOCK_VIEWER_EXPORT]).
+              </Value>
+            </Attribute>
+          </LegacyAttributes>
+        </fn-diagramExport>
       </Interface>
       <Sources>
         <Source>src/muya/</Source>
