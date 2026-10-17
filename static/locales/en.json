@@ -1422,7 +1422,7 @@
     "title": "What's new",
     "seeGuide": "See the guide",
     "continue": "Continue",
-    "also": "⌘D shows what your agent changed · ⌥⌘V opens a copied folder · one zoom for everything",
+    "also": "Mermaid syntax works as before — your documents open unchanged",
     "seeEverything": "See everything new",
     "v2_3_1": {
       "look": {
@@ -1440,6 +1440,24 @@
       "notes": {
         "title": "Only your notes",
         "text": "Folders show Markdown files only, with Recent and Pinned on top."
+      }
+    },
+    "v2_4_0": {
+      "engine": {
+        "title": "A new diagram engine",
+        "text": "Diagrams render with Pele — faster and far lighter. The look has changed."
+      },
+      "theme": {
+        "title": "Diagrams follow the theme",
+        "text": "Switch light ↔ dark and diagrams recolor instantly, without re-rendering."
+      },
+      "types": {
+        "title": "New diagram types",
+        "text": "Venn, treemap, agentflow, radar, swimlane, usecase and more in mermaid blocks."
+      },
+      "lighter": {
+        "title": "A much lighter Mark",
+        "text": "Diagram code: one 0.26 MB part (compressed) instead of 44 parts totalling 2.6 MB."
       }
     }
   }
