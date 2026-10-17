@@ -1406,7 +1406,7 @@
     "title": "Nouveautés",
     "seeGuide": "Voir le guide",
     "continue": "Continuer",
-    "also": "⌘D montre ce que votre agent a modifié · ⌥⌘V ouvre un dossier copié · un seul zoom pour tout",
+    "also": "La syntaxe mermaid fonctionne comme avant — vos documents s'ouvrent inchangés.",
     "seeEverything": "Voir toutes les nouveautés",
     "v2_3_1": {
       "look": {
@@ -1424,6 +1424,24 @@
       "notes": {
         "title": "Seulement vos notes",
         "text": "Les dossiers n’affichent que le Markdown, avec Récents et Épinglés en haut."
+      }
+    },
+    "v2_4_0": {
+      "engine": {
+        "title": "Un nouveau moteur de diagrammes",
+        "text": "Les diagrammes passent à Pele — plus rapide et bien plus léger. L'aspect change."
+      },
+      "theme": {
+        "title": "Diagrammes accordés au thème",
+        "text": "Passez du clair au sombre : les diagrammes se recolorent instantanément."
+      },
+      "types": {
+        "title": "Nouveaux types de diagrammes",
+        "text": "Venn, treemap, agentflow, radar, swimlane, usecase et plus dans les blocs mermaid."
+      },
+      "lighter": {
+        "title": "Beaucoup plus léger",
+        "text": "Le code des diagrammes : 0,26 Mo compressés au lieu de 44 parties (2,6 Mo)."
       }
     }
   }

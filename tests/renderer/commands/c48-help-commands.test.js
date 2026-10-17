@@ -81,17 +81,17 @@ describe('C-48 help.whats-new', () => {
   })
 
   it('a running version with content opens its own notes', async () => {
-    globalThis.__APP_VERSION_OVERRIDE__ = '2.3.1'
+    globalThis.__APP_VERSION_OVERRIDE__ = '2.4.0'
     await findCmd('help.whats-new').execute()
-    expect(bus.emit).toHaveBeenCalledWith('whatsNewDialog', { version: '2.3.1' })
+    expect(bus.emit).toHaveBeenCalledWith('whatsNewDialog', { version: '2.4.0' })
   })
 
   it('a running version without content falls back to the newest release that has some', async () => {
-    globalThis.__APP_VERSION_OVERRIDE__ = '2.3.2'
+    globalThis.__APP_VERSION_OVERRIDE__ = '2.4.1'
     await findCmd('help.whats-new').execute()
     const [event, payload] = bus.emit.mock.calls[0]
     expect(event).toBe('whatsNewDialog')
-    expect(payload.version).toBe('2.3.1')
+    expect(payload.version).toBe('2.4.0')
     expect(getWhatsNewItems(payload.version).length).toBeGreaterThan(0)
   })
 })

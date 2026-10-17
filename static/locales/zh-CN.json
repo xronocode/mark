@@ -1399,7 +1399,7 @@
     "title": "新变化",
     "seeGuide": "查看指南",
     "continue": "继续",
-    "also": "⌘D 查看智能体的改动 · ⌥⌘V 打开复制的文件夹 · 统一的缩放",
+    "also": "mermaid 语法照旧 — 你的文档原样打开。",
     "seeEverything": "查看全部新功能",
     "v2_3_1": {
       "look": {
@@ -1417,6 +1417,24 @@
       "notes": {
         "title": "只看你的笔记",
         "text": "文件夹里只显示 Markdown 文件，最近和已固定排在最前。"
+      }
+    },
+    "v2_4_0": {
+      "engine": {
+        "title": "全新图表引擎",
+        "text": "图表改由 Pele 渲染 — 更快、更轻。外观有所变化。"
+      },
+      "theme": {
+        "title": "图表跟随主题",
+        "text": "浅色 ↔ 深色切换时，图表即时换色，无需重新渲染。"
+      },
+      "types": {
+        "title": "更多图表类型",
+        "text": "mermaid 代码块新增 Venn、treemap、agentflow、radar、swimlane 等类型。"
+      },
+      "lighter": {
+        "title": "更加轻量",
+        "text": "图表代码从 44 个文件 2.6 MB 精简为压缩后 0.26 MB 的单文件。"
       }
     }
   }

@@ -1402,7 +1402,7 @@
     "title": "Was ist neu",
     "seeGuide": "Anleitung ansehen",
     "continue": "Weiter",
-    "also": "⌘D zeigt, was dein Agent geändert hat · ⌥⌘V öffnet einen kopierten Ordner · ein Zoom für alles",
+    "also": "Mermaid-Syntax funktioniert wie zuvor — deine Dokumente öffnen sich unverändert.",
     "seeEverything": "Alle Neuigkeiten ansehen",
     "v2_3_1": {
       "look": {
@@ -1420,6 +1420,24 @@
       "notes": {
         "title": "Nur deine Notizen",
         "text": "Ordner zeigen nur Markdown-Dateien, „Zuletzt verwendet“ und „Angeheftet“ stehen oben."
+      }
+    },
+    "v2_4_0": {
+      "engine": {
+        "title": "Neue Diagramm-Engine",
+        "text": "Diagramme rendert Pele — schneller und viel leichter. Das Aussehen ändert sich."
+      },
+      "theme": {
+        "title": "Diagramme folgen dem Thema",
+        "text": "Licht ↔ dunkel wechseln — Diagramme färben sich sofort um."
+      },
+      "types": {
+        "title": "Neue Diagrammtypen",
+        "text": "Venn, Treemap, Agentflow, Radar, Swimlane, Use Case und mehr in Mermaid-Blöcken."
+      },
+      "lighter": {
+        "title": "Deutlich leichter",
+        "text": "Diagramm-Code: ein 0,26-MB-Teil (komprimiert) statt 44 Teilen mit 2,6 MB."
       }
     }
   }

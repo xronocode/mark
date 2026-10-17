@@ -1405,7 +1405,7 @@
     "title": "Novedades",
     "seeGuide": "Ver la guía",
     "continue": "Continuar",
-    "also": "⌘D muestra lo que cambió tu agente · ⌥⌘V abre una carpeta copiada · un zoom para todo",
+    "also": "La sintaxis de mermaid sigue igual — tus documentos se abren sin cambios.",
     "seeEverything": "Ver todas las novedades",
     "v2_3_1": {
       "look": {
@@ -1423,6 +1423,24 @@
       "notes": {
         "title": "Solo tus notas",
         "text": "Las carpetas muestran solo Markdown, con Recientes y Fijados arriba."
+      }
+    },
+    "v2_4_0": {
+      "engine": {
+        "title": "Nuevo motor de diagramas",
+        "text": "Los diagramas usan Pele — más rápido y mucho más ligero. Su aspecto cambia."
+      },
+      "theme": {
+        "title": "Diagramas que siguen el tema",
+        "text": "Cambia entre claro y oscuro: los diagramas se recolorean al instante."
+      },
+      "types": {
+        "title": "Nuevos tipos de diagramas",
+        "text": "Venn, treemap, agentflow, radar, swimlane, usecase y más en bloques mermaid."
+      },
+      "lighter": {
+        "title": "Mucho más ligero",
+        "text": "El código de diagramas: 0,26 MB comprimidos en vez de 44 partes (2,6 MB)."
       }
     }
   }

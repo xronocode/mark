@@ -11,6 +11,19 @@ Carried over from the old status table in the README:
 - Intel Macs are not supported by the Homebrew cask; Linux builds are not published.
 - Image upload services (PicGo and similar) are not supported.
 
+## [2.4.0] - 2026-10-18
+
+The diagram engine changed: mermaid is out, [Pele](https://github.com/obsidianmd/pele) is in. The ```mermaid``` fence and its syntax are unchanged — documents open as they are.
+
+### New diagram engine
+- ```mermaid``` blocks render with Pele (obsidianmd/pele, MIT, zero dependencies): synchronous rendering, XSS-safe by construction (labels escaped, `javascript:` links stripped — no strict-mode config to maintain).
+- The diagram code went from 44 bundle parts totalling 2.6 MB (plus 75 MB / 23 dependencies in node_modules) to one lazy part, 0.26 MB compressed.
+- Diagrams' colours now live in CSS variables (`--pele-*`), derived per theme with the same WCAG node-contrast math: switching themes — including Auto light/dark — recolours every diagram instantly without re-rendering.
+- The pie chart keeps its Keynote-style donut; gantt, journey, timeline and packet keep their readable lab sizes with in-block scrolling; diagram zoom with the editor font size and the fullscreen viewer are unchanged.
+- New diagram types in mermaid blocks: venn, treemap, agentflow, radar, swimlane, use case, event modeling, tree view, cynefin, railroad and more (33 types in total).
+- The look of the diagrams has changed with the engine — same syntax, new renderer.
+- Exported HTML renders diagrams with Pele and inlines the theme's diagram colours, so standalone files look like the editor.
+
 ## [2.3.1] - 2026-10-17
 
 The release is organized by the areas the gap analysis ranked highest.
