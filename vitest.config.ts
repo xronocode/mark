@@ -58,7 +58,9 @@ export default defineConfig({
     setupFiles: ['./tests/renderer/setup.ts'],
     include: [
       'src/renderer/**/*.{test,spec}.{js,ts}',
-      'tests/renderer/**/*.{test,spec}.{js,ts}'
+      'tests/renderer/**/*.{test,spec}.{js,ts}',
+      // C-58: site build tests (gallery corpus + derived theme vars).
+      'tests/site/**/*.{test,spec}.{js,mjs,ts}'
     ],
     // Existing M-013-A contract stubs in src/renderer/src/ipc/**/*.test.ts
     // are TYPE-ONLY assertions (no describe/it blocks) consumed by
