@@ -5,9 +5,9 @@
 //   SCOPE:   Export-only DOM/CSS generation. Does not mutate the live editor
 //            runtime beyond reusing shared renderers and CSS assets.
 //   DEPENDS: marked, Prism, katex, renderer loaders, inline CSS assets,
-//            sanitize helpers, parser/render/mermaidTheme (C-51 theme
-//            config), parser/render/contentTheme (C-51 T-005 diagram
-//            theming).
+//            sanitize helpers, parser/render/diagramTheme (C-55 pele
+//            variables), parser/render/peleOptions (C-55 per-type options),
+//            parser/render/contentTheme (C-51 T-005 diagram theming).
 //   LINKS: docs/knowledge-graph.xml M-012; docs/verification-plan.xml
 //          V-M-012 export scenarios; .grace/changes/active/C-39 T-001;
 //          .grace/changes/active/C-51 T-003 (export uses the app theme)
@@ -17,6 +17,11 @@
 //          behavior stays isolated in the dedicated `@media print` block.
 //
 // CHANGE_SUMMARY:
+//   - 2026-10-17 C-55: ```mermaid blocks export through pele (renderPele —
+//     synchronous render, escaped labels, no securityLevel config); the
+//     export document inlines the --pele-* variable block resolved from the
+//     live theme so the diagrams carry their colours standalone; the
+//     container keeps the `mermaid` class for the print stylesheet.
 //   - 2026-10-16 C-51 T-005: exported vega-lite, flowchart.js and
 //     sequence diagrams use the same theme-driven configs as the editor
 //     (contentTheme.js — tokens read from the live document at export
@@ -41,10 +46,9 @@ import { getKatex, loadKatex } from './lazy-katex'
 import loadRenderer from '../renderers'
 import {
   readActiveThemeTokens,
-  detectMermaidDiagramType,
-  buildMermaidThemeConfig,
-  postProcessMermaidSvg
-} from '../parser/render/mermaidTheme'
+  buildPeleVariables
+} from '../parser/render/diagramTheme'
+import { buildPeleRenderOptions } from '../parser/render/peleOptions'
 import {
   buildVegaThemeConfig,
   buildFlowchartThemeOptions,
@@ -75,38 +79,37 @@ class ExportHtml {
     this.mathRendererCalled = false
   }
 
-  async renderMermaid() {
+  // START_BLOCK_EXPORT_PELE_RENDER
+  // C-55: the export renders ```mermaid blocks with pele — synchronous,
+  // DOM-free, XSS-safe by construction (labels escaped, javascript: links
+  // stripped — no securityLevel config anymore). Colours do NOT ride the
+  // SVG: the emitted markup resolves var(--pele-*), and generate() inlines
+  // the variable block resolved from the live theme at export time, so the
+  // standalone file looks like the editor. The container keeps the
+  // `mermaid` class the print stylesheet centres on.
+  async renderPele() {
     const codes = this.exportContainer.querySelectorAll('code.language-mermaid')
-    const mermaid = await loadRenderer('mermaid')
-    // C-51 T-003: the export renders with the same theme-driven config as
-    // the editor — tokens are read from the live document (the export
-    // container is attached to it) at export time, and each diagram type
-    // gets its own initialize. User %%{init}%% directives still win
-    // (mermaid merges them on top).
+    const pele = await loadRenderer('pele')
     const tokens = readActiveThemeTokens()
     let index = 0
     for (const code of codes) {
       const preEle = code.parentNode
-      const mermaidContainer = document.createElement('div')
-      preEle.replaceWith(mermaidContainer)
+      const peleContainer = document.createElement('div')
+      peleContainer.classList.add('mermaid')
+      preEle.replaceWith(peleContainer)
       try {
         const rawCode = unescapeHTML(code.innerHTML)
-        mermaid.initialize({
-          securityLevel: 'strict',
-          ...buildMermaidThemeConfig(tokens, detectMermaidDiagramType(rawCode))
+        const rendered = pele.render(rawCode, {
+          idPrefix: `pele-export-${index++}`,
+          ...buildPeleRenderOptions(pele.detectType(rawCode), tokens)
         })
-        const rendered = await mermaid.render('mermaid-export-' + index++, rawCode)
-        const bindFunctions = rendered.bindFunctions
-        const svg = postProcessMermaidSvg(rendered.svg, detectMermaidDiagramType(rawCode), tokens)
-        mermaidContainer.innerHTML = svg
-        if (bindFunctions) {
-          bindFunctions(mermaidContainer)
-        }
+        peleContainer.innerHTML = rendered.svg
       } catch (err) {
-        mermaidContainer.innerHTML = '< Invalid Mermaid Codes >'
+        peleContainer.innerHTML = '< Invalid Mermaid Codes >'
       }
     }
   }
+  // END_BLOCK_EXPORT_PELE_RENDER
 
   async renderDiagram() {
     const selector =
@@ -252,8 +255,10 @@ class ExportHtml {
     exportContainer.innerHTML = html
     document.body.appendChild(exportContainer)
 
-    // render only render the light theme of mermaid and diragram...
-    await this.renderMermaid()
+    // Diagrams: pele's renders are synchronous once the module is loaded;
+    // the async diagram renderers (flowchart/sequence/plantuml/vega-lite)
+    // follow.
+    await this.renderPele()
     await this.renderDiagram()
     let result = exportContainer.innerHTML
     exportContainer.remove()
@@ -291,6 +296,12 @@ class ExportHtml {
 
     // `extraCss` may changed in the mean time.
     const { title, extraCss } = options
+    // C-55: the pele diagram variables of the theme active at export time —
+    // the exported SVGs resolve them, so the file is standalone.
+    const peleVars = buildPeleVariables(readActiveThemeTokens())
+    const peleVarsCss = Object.entries(peleVars)
+      .map(([name, value]) => `${name}: ${value};`)
+      .join('\n    ')
     return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -373,6 +384,7 @@ class ExportHtml {
       list-style-type: decimal;
     }
   </style>
+  <style>:root { ${peleVarsCss} }</style>
   <style>${exportStyle}</style>
   <style>${extraCss}</style>
 </head>

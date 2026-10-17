@@ -26,7 +26,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import ExportHtml from 'muya/lib/utils/exportHtml'
 import { buildVegaThemeConfig } from 'muya/lib/parser/render/contentTheme'
-import { palette, blendHex } from 'muya/lib/parser/render/mermaidTheme'
+import { palette, blendHex } from 'muya/lib/parser/render/diagramTheme'
 
 let fakeRenderers
 

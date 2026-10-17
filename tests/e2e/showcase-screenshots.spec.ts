@@ -4,6 +4,10 @@
  * Each frame features DIFFERENT content showcasing a distinct editor capability,
  * with the most visually interesting part at the TOP of the viewport.
  *
+ * C-55: the ```mermaid fences render through the pele engine; the mixed
+ * showcase frame carries the pele-only bonus types (venn-beta, treemap-beta,
+ * agentflow-beta — sources validated against pele 1.6.0) next to the pie.
+ *
  * Usage:
  *   npx playwright test tests/e2e/showcase-screenshots.spec.ts
  */
@@ -307,6 +311,33 @@ pie title Editor Usage
     "Diagrams" : 15
     "Math" : 10
     "Tables" : 5
+\`\`\`
+
+Pele-only bonus types (C-55) — set algebra, size maps and agent flows:
+
+\`\`\`mermaid
+venn-beta
+set Writers
+set Agents
+union Writers,Agents
+\`\`\`
+
+\`\`\`mermaid
+treemap-beta
+"Docs"
+  "Guides": 40
+  "Notes": 25
+"Code"
+  "Rust": 30
+  "Vue": 45
+\`\`\`
+
+\`\`\`mermaid
+agentflow-beta
+user -->|write notes.md| agent
+agent -->|read files| tools
+tools -->|results| agent
+agent -->|answer| user
 \`\`\`
 
 ## Code + Math Together

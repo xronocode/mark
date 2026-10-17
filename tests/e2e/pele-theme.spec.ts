@@ -1,10 +1,10 @@
-// FILE: tests/e2e/mermaid-theme.spec.ts
-// VERSION: 2.2.0
+// FILE: tests/e2e/pele-theme.spec.ts
+// VERSION: 3.0.0
 // START_MODULE_CONTRACT
-//   PURPOSE: E2E gate for C-51 T-003/T-004/T-012 — Mermaid follows the active app theme: the 22-diagram-type × light/dark render matrix (no errors, no default purple/Trebuchet, readable gantt/packet labels, palette-coloured series diagrams, %%{init}%% user overrides win, paper → ink re-render) and the T-012 node-contrast gate that measures the COMPUTED node colours of a flowchart (with subgraph), a sequence diagram and a state diagram in ink, docs-dark and macos-dark against the diagram panel.
-//   SCOPE: booting the editor with a mocked theme preference and a generated document; resolving theme CSS variables the way the browser does; computing WCAG contrast and Oklab ΔL in the spec (the twin of mermaidTheme.wcagContrast); measuring computed node rect fill/stroke, the VISIBLE label ink (the sequence actor's foreignObject div color, or the SVG tspan fill for SVG-only labels — `text.actor > tspan` carries actorTextColor while the <text> itself carries the box fill), cluster fill, edge strokes and only the RENDERED arrowheads (marker defs referenced by marker-end/marker-start; unused defs are unpainted black); per-theme evidence screenshots.
+//   PURPOSE: E2E gate for C-51 T-003/T-004/T-012 on the pele engine (C-55) — pele diagrams follow the active app theme through the --pele-* CSS variables: the 22-diagram-type × light/dark render matrix (no errors, no pele fallback colours, readable gantt/packet labels, palette-coloured series diagrams, classDef user overrides win, paper → ink recolors through the cascade with ZERO pele re-renders) and the T-012 node-contrast gate that measures the COMPUTED node colours of a flowchart (with subgraph), a sequence diagram and a state diagram in ink, docs-dark and macos-dark against the diagram panel.
+//   SCOPE: booting the editor with a mocked theme preference and a generated document; resolving --pele-* theme CSS variables the way the browser does; computing WCAG contrast and Oklab ΔL in the spec (the twin of diagramTheme.wcagContrast); measuring computed pele node rect fill/stroke (g.pele-node rect/polygon), label ink (text.pele-label computed fill — pele SVG text paints through fill and resolves --pele-fg), cluster fill (g.pele-cluster rect → --pele-surface-alt), edge strokes (g.pele-edge path, stroke resolves --pele-line) and arrowheads (path.pele-marker — pele paints markers as real paths, not defs); the BLOCK_PELE_RENDER / BLOCK_PELE_CACHE_HIT log markers of pelePipeline.js; per-theme evidence screenshots.
 //   DEPENDS: @playwright/test, ./fixtures/tauri-shim (installTauriShim), ./fixtures/helpers (bootEditor, openFileTab).
-//   LINKS: .grace/changes/active/C-51 T-003/T-004/T-012; .grace/verification/runtime.xml V-M-012 (mermaid theme scenarios); the unit twins tests/renderer/muya/mermaid-theme.test.js and mermaid-node-contrast.test.js; src/muya/lib/parser/render/mermaidTheme.js (buildMermaidThemeConfig).
+//   LINKS: .grace/changes/active/C-55 R-2/R-3 (CSS-variable theming, zero re-renders) and its ExpectedEvidence "theme switch recolors without re-render (DOM svg unchanged)"; .grace/changes/active/C-51 T-003/T-004/T-012; .grace/verification/runtime.xml V-M-012 (pele theme scenarios); the unit twins tests/renderer/muya/pele-pipeline.test.js, diagram-theme.test.js and pele-node-contrast.test.js; src/muya/lib/parser/render/diagramTheme.js (buildPeleVariables); src/muya/lib/parser/render/pelePipeline.js. Runs in chromium and webkit-pele-theme.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT
@@ -13,50 +13,51 @@
 //   DIAGRAM_SAMPLES - one sample per diagram type (flowchart … c4) for the 22-type matrix.
 //   DIAGRAM_TYPES - the type keys in sample order (matrix length).
 //   SAMPLE_BY_TYPE - type key → sample code (used by the theme-switch case).
-//   buildAllDiagramsDoc - wrap every sample into a mermaid fence document.
+//   buildAllDiagramsDoc - wrap every sample into a mermaid fence document (fence language and figure data-role stay mermaid — pele parses mermaid syntax).
 //   FIGURE - selector of a container-block figure.
 //   PREVIEW_SVG - selector of the root diagram SVG (nested <svg> excluded).
 //   INDEX_BY_TYPE - type key → figure index in the matrix document.
 //   bootWithThemeAndDoc - install the theme pref mock, boot the editor, open the doc tab.
 //   resolveVar - resolve a CSS variable through a hidden probe element the way the browser does.
-//   waitForAllDiagrams - wait for N rendered diagram SVGs and no mermaid error.
+//   waitForAllDiagrams - wait for N rendered diagram SVGs and no pele error.
+//   collectPeleMarkers - record console lines carrying the [Muya][renderPele] BLOCK_PELE_* markers.
 //   parseRgb - computed colour string → [r, g, b] (null when unparsable).
 //   contrast - two computed colours → WCAG 2.x contrast ratio.
 //   oklabLightness - computed colour → Oklab lightness (ΔL half of the fill rule).
 //   fillDistinctFromPanel - the T-012 fill rule: WCAG ≥ 1.25 OR OKLCH ΔL ≥ 0.06.
 //   NodeContrastMeasurement - shape of one figure's measured colours.
-//   measureFigureContrast - computed panel/shape fill/stroke/visible-label-ink/cluster/edges/rendered-arrowhead colours of the i-th figure.
+//   measureFigureContrast - computed panel/shape fill/stroke/label-ink/cluster/edges/arrowhead colours of the i-th figure (pele selectors).
 //   NODE_CONTRAST_DOC - flowchart + subgraph, sequence and state document for the T-012 gate.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v2.2.0 - 2026-10-17 C-54 R-1: Paper's flowchart fill is
+//   LAST_CHANGE: v3.0.0 - 2026-10-17 C-55: ported from
+//   mermaid-theme.spec.ts for the mermaid→pele hard cut. Theming left the
+//   render: colours resolve through the --pele-* CSS variables
+//   (buildPeleVariables → util/theme.js sets them on the document root), so
+//   the paper → ink case now pins the C-55 contract instead of a re-render:
+//   the computed node fill changes through the cascade, the root
+//   --pele-surface variable changes, the BLOCK_PELE_RENDER marker does NOT
+//   fire again (zero pele re-renders — only BLOCK_PELE_CACHE_HIT) and the
+//   svg markup stays byte-identical (class/style/viewBox/data-natural-width)
+//   while exactly one svg remains. The mermaid-specific measurements were
+//   re-pointed at pele's SVG shapes: g.pele-node rect/polygon fill/stroke
+//   (var(--_s)/var(--_b)), text.pele-label fill (pele SVG text paints via
+//   fill — the mermaid foreignObject/tspan label-ink dance is gone),
+//   g.pele-cluster rect (--pele-surface-alt) and path.pele-marker arrowheads
+//   (real painted paths, not marker defs — the used-marker bookkeeping is
+//   gone). The default-purple/Trebuchet scan became a pele-fallback scan
+//   (#5b7bd5 accent / #f3f3f3 surface / #8a8a8a border must never leak —
+//   the live --pele-* block always wins the cascade), the surface/panel/text
+//   expectations resolve --pele-surface/--pele-bg/--pele-fg, and the
+//   %%{init}%% override case became the pele equivalent: a classDef with
+//   inline colours beats the theme variables while the unstyled nodes stay
+//   themed. The 22-type corpus is unchanged (validated against pele 1.6.0).
+//   PREV: v2.2.0 - 2026-10-17 C-54 R-1: Paper's flowchart fill is
 //   the surface (a white card lighter than the panel); dark themes keep
 //   the T-012 distinct-fill pins.
-//   PREV: v2.1.0 - 2026-10-16 C-51 T-012 (orchestrator gate fix):
-//   measureFigureContrast reads the label INK the engine actually paints.
-//   Sequence actor labels render through foreignObject (textPlacement
-//   default "fo"): the VISIBLE ink is div.actor-box's computed color, while
-//   the `<text class="actor">` beside it is only a hidden <switch> fallback
-//   whose own fill is the `.actor` BOX colour — the old read of that
-//   <text> compared the box against itself («label vs fill received 1»);
-//   the div wins in document order, SVG-only labels fall back to the first
-//   <tspan> (`text.actor > tspan` carries actorTextColor; the <text> never
-//   does). And the arrowhead gate now measures only the marker defs
-//   REFERENCED by a marker-end/marker-start (Mermaid ships unused defs —
-//   sequence -filled-head/-solidTop/BottomArrowHead — that no stylesheet
-//   paints, default black), asserting at least one rendered arrowhead per
-//   figure. No product code changed: the unit twin pins
-//   actorTextColor/noteTextColor = the derived node text.
-//   v2.0.0 - 2026-10-16 C-51 T-012: the flowchart-node pin now
-//   asserts the node fill/border DERIVED against the code-block panel
-//   (fill ≥ 1.25:1, border ≥ 3:1, label = theme text) instead of the raw
-//   --floatBgColor surface, and the new "node contrast (C-51 T-012)"
-//   describe renders a flowchart (with a subgraph), a sequence diagram and
-//   a state diagram in ink, docs-dark and macos-dark, measuring the
-//   computed node rect/polygon fill/stroke, label, edges and arrowheads
-//   against the panel's computed background (screenshots per theme via
-//   test.info().outputPath). Runs in chromium and webkit-mermaid-theme.
+//   v2.1.0/v2.0.0 - 2026-10-16 C-51 T-012: label-ink and rendered-
+//   arrowhead measurement fixes (mermaid-era selectors).
 //   v1.0.0 - 2026-10-16 C-51 T-003/T-004: the 22-type × light/dark matrix.
 // END_CHANGE_SUMMARY
 
@@ -64,14 +65,13 @@ import { test, expect, type Page } from '@playwright/test'
 import { installTauriShim } from './fixtures/tauri-shim'
 import { bootEditor, openFileTab } from './fixtures/helpers'
 
-// C-51 T-003/T-004: Mermaid follows the app theme — the 22-type × light/dark
-// matrix from the accepted lab. One sample per diagram type (taken from the
-// round-2/3 lab samples; the gantt task «Title bar» is renamed «App title
-// bar» because Mermaid's gantt lexer eats ANY line starting with the
-// case-insensitive `title` keyword as the diagram title — the suggested
-// «Title strip» would collide the same way; radar and xychart carry one
-// extra series so the "≥ 3 distinct palette colours" assertion sees three
-// series colours).
+// C-51 T-003/T-004 + C-55: pele follows the app theme — the 22-type ×
+// light/dark matrix from the accepted lab (corpus unchanged, every sample
+// validated against pele 1.6.0; the gantt task «Title bar» is renamed
+// «App title bar» because the gantt lexer eats ANY line starting with the
+// case-insensitive `title` keyword as the diagram title; radar and xychart
+// carry one extra series so the "≥ 3 distinct palette colours" assertion
+// sees three series colours).
 
 const DIAGRAM_SAMPLES: Array<[string, string]> = [
   ['flowchart', `flowchart LR
@@ -317,7 +317,7 @@ async function bootWithThemeAndDoc(page: Page, theme: string, markdown: string) 
     }, theme)
   }
   await bootEditor(page)
-  await openFileTab(page, '/tmp/mark-e2e/mermaid-matrix.md', markdown)
+  await openFileTab(page, '/tmp/mark-e2e/pele-matrix.md', markdown)
 }
 
 /**
@@ -336,14 +336,24 @@ async function resolveVar(page: Page, cssVar: string, kind: 'bg' | 'color'): Pro
   }, { v: cssVar, k: kind })
 }
 
+/** Collect console lines carrying the [Muya][renderPele] BLOCK_PELE_* markers. */
+function collectPeleMarkers(page: Page): string[] {
+  const lines: string[] = []
+  page.on('console', (msg) => {
+    const text = msg.text()
+    if (text.includes('[Muya][renderPele][BLOCK_PELE_')) lines.push(text)
+  })
+  return lines
+}
+
 async function waitForAllDiagrams(page: Page, count: number) {
   await expect(page.locator(PREVIEW_SVG)).toHaveCount(count, { timeout: 60_000 })
-  await expect(page.locator(`${FIGURE} .ag-mermaid-error`)).toHaveCount(0)
+  await expect(page.locator(`${FIGURE} .ag-pele-error`)).toHaveCount(0)
 }
 
 // START_BLOCK_T012_HELPERS
 // C-51 T-012: compute WCAG contrast ratios between COMPUTED colours in the
-// spec — the twin of mermaidTheme.wcagContrast, applied to what the engine
+// spec — the twin of diagramTheme.wcagContrast, applied to what pele
 // actually painted (node rect fill/stroke, label, edges, arrowheads) against
 // the diagram panel (the SVG's --codeBlockBgColor background).
 function parseRgb(value: string | null): [number, number, number] | null {
@@ -406,7 +416,7 @@ interface NodeContrastMeasurement {
   markers: string[]
 }
 
-/** Computed node colours of the i-th diagram figure, measured in the page. */
+/** Computed node colours of the i-th diagram figure, measured in the page (pele selectors). */
 async function measureFigureContrast(page: Page, figureIndex: number): Promise<NodeContrastMeasurement> {
   return page.evaluate((idx: number) => {
     const figure = document.querySelectorAll('figure.ag-container-block')[idx]
@@ -414,64 +424,31 @@ async function measureFigureContrast(page: Page, figureIndex: number): Promise<N
     if (!svg) {
       return { panel: null, fill: null, stroke: null, label: null, clusterFill: null, edges: [], markers: [] }
     }
-    const computed = (el: Element | null, prop: 'fill' | 'stroke' | 'color' | 'backgroundColor') =>
+    const computed = (el: Element | null, prop: 'fill' | 'stroke') =>
       el ? window.getComputedStyle(el)[prop] : null
     const parseable = (v: string | null) => (v && /rgba?\(/.test(v) ? v : null)
-    // flowchart nodes, sequence actor boxes, state boxes — Mermaid derives
-    // all of them from primaryColor/primaryBorderColor (mainBkg/nodeBorder).
-    const shape = svg.querySelector(
-      'g.node rect, g.node polygon, rect.actor, g.statediagram-state rect'
-    )
-    // Node label colour — the element that actually paints the ink. HTML
-    // labels inside <foreignObject> paint through `color` (a span/div's
-    // computed `fill` is not its ink); SVG <text> paints through `fill`, and
-    // Mermaid puts some SVG glyph ink on the TSPAN, not the <text>: the
-    // sequence stylesheet fills `text.actor > tspan` (actorTextColor) while
-    // the `<text class="actor">` itself carries the `.actor` BOX fill.
-    // Sequence actors (textPlacement "fo") render the foreignObject div and
-    // keep that <text> only as a hidden <switch> fallback — the div comes
-    // first in document order, so the selector measures the VISIBLE ink and
-    // only falls back to the tspan for SVG-only labels (reading the <text>
-    // itself once compared the box against itself: the exact 1:1 this gate
-    // failed on).
-    const labelEl = svg.querySelector(
-      'div.actor.actor-box, .nodeLabel, text.actor, g.statediagram-state text'
-    )
-    let label: string | null = null
-    if (labelEl) {
-      const tag = labelEl.tagName.toLowerCase()
-      if (tag === 'text' || tag === 'tspan') {
-        const inkEl = labelEl.querySelector('tspan') ?? labelEl
-        label = parseable(computed(inkEl, 'fill'))
-      } else {
-        label = parseable(computed(labelEl, 'color'))
-      }
-    }
-    const cluster = svg.querySelector('g.cluster rect, .cluster rect, g.cluster polygon')
-    // Arrowheads the diagram actually renders: the <marker> defs referenced
-    // by a marker-end/marker-start attribute. Mermaid also ships unused defs
-    // (sequence -filled-head / -solidTopArrowHead / -solidBottomArrowHead)
-    // that no stylesheet paints — default black, invisible inside <defs> —
-    // which must not enter the gate.
-    const usedMarkers = new Set<Element>()
-    for (const el of svg.querySelectorAll('[marker-end],[marker-start]')) {
-      for (const ref of [el.getAttribute('marker-end'), el.getAttribute('marker-start')]) {
-        const id = ref && /#([^)'"]+)/.exec(ref)
-        const marker = id ? document.getElementById(id[1]) : null
-        if (marker) usedMarkers.add(marker)
-      }
-    }
+    // pele node cards: g.pele-node rect/polygon (fill resolves var(--_s) →
+    // --pele-surface, stroke var(--_b) → --pele-border). The state start/end
+    // dots are circles without a border, so they stay out of the shape read.
+    const shape = svg.querySelector('g.pele-node rect, g.pele-node polygon')
+    // Node label ink: pele paints SVG <text class="pele-label"> through FILL
+    // (inherited from the svg root's var(--_fg) → --pele-fg).
+    const labelEl = svg.querySelector('g.pele-node text.pele-label')
+    // Clusters/subgraph bands: g.pele-cluster rect (fill resolves
+    // var(--_a) → --pele-surface-alt).
+    const cluster = svg.querySelector('g.pele-cluster rect')
+    // Arrowheads: pele paints them as real path.pele-marker elements
+    // (fill var(--_l) → --pele-line), never as unused marker defs.
     return {
-      panel: parseable(computed(svg, 'backgroundColor')),
+      panel: parseable(window.getComputedStyle(svg).backgroundColor),
       fill: parseable(computed(shape, 'fill')),
       stroke: parseable(computed(shape, 'stroke')),
-      label,
+      label: parseable(computed(labelEl, 'fill')),
       clusterFill: parseable(computed(cluster, 'fill')),
-      edges: [...svg.querySelectorAll('path.flowchart-link, .messageLine0, .messageLine1, path.transition, line.transition')]
+      edges: [...svg.querySelectorAll('g.pele-edge > path:not(.pele-marker)')]
         .map((el) => window.getComputedStyle(el).stroke)
         .filter((v) => v && v !== 'none' && /rgba?\(/.test(v)),
-      markers: [...usedMarkers]
-        .flatMap((marker) => [...marker.querySelectorAll('path, circle')])
+      markers: [...svg.querySelectorAll('path.pele-marker')]
         .map((el) => window.getComputedStyle(el).fill)
         .filter((v) => v && v !== 'none' && /rgba?\(/.test(v))
     }
@@ -510,8 +487,8 @@ stateDiagram-v2
 `
 // END_BLOCK_T012_HELPERS
 
-test.describe('mermaid follows the app theme (C-51 T-003/T-004)', () => {
-  // 22 sequential mermaid renders per theme + screenshots need headroom.
+test.describe('pele follows the app theme (C-51 T-003/T-004, C-55)', () => {
+  // 22 sequential pele renders per theme + screenshots need headroom.
   test.setTimeout(120_000)
 
   test.beforeEach(async ({ page }) => {
@@ -522,14 +499,17 @@ test.describe('mermaid follows the app theme (C-51 T-003/T-004)', () => {
     test.describe(`theme ${theme}`, () => {
       test.setTimeout(150_000)
 
-      test('all 22 diagram types render themed without errors or default colours', async ({ page }) => {
-        await bootWithThemeAndDoc(page, theme, `# Mermaid matrix\n\n${buildAllDiagramsDoc()}\n`)
+      test('all 22 diagram types render themed without errors or fallback colours', async ({ page }) => {
+        await bootWithThemeAndDoc(page, theme, `# Pele matrix\n\n${buildAllDiagramsDoc()}\n`)
         await waitForAllDiagrams(page, DIAGRAM_TYPES.length)
 
-        // No Mermaid default purple (#ECECFF / #9370DB) in any computed
-        // fill/stroke, and no Trebuchet anywhere (the mermaid default font).
+        // No pele built-in fallback colour in any computed fill/stroke
+        // (#5b7bd5 accent / #f3f3f3 surface / #8a8a8a border from the
+        // var(--_x, fallback) defaults), and no Trebuchet anywhere (the
+        // mermaid default font). The live --pele-* block on the document
+        // root must win the cascade for every element.
         const scan = await page.evaluate(() => {
-          const bad = new Set(['rgb(236, 236, 255)', 'rgb(147, 112, 219)'])
+          const bad = new Set(['rgb(91, 123, 213)', 'rgb(243, 243, 243)', 'rgb(138, 138, 138)'])
           const offenders: string[] = []
           let trebuchet = 0
           for (const svg of document.querySelectorAll('.ag-container-preview svg')) {
@@ -544,54 +524,64 @@ test.describe('mermaid follows the app theme (C-51 T-003/T-004)', () => {
           return { offenders, trebuchet }
         })
         expect(scan.offenders).toEqual([])
-        expect(scan.trebuchet, 'no Trebuchet font in any mermaid element').toBe(0)
+        expect(scan.trebuchet, 'no Trebuchet font in any pele element').toBe(0)
 
         // Per-type screenshots for the evidence pack.
         const figures = page.locator(FIGURE)
         for (let i = 0; i < DIAGRAM_TYPES.length; i++) {
           await figures
             .nth(i)
-            .screenshot({ path: `test-results/mermaid-themes/${theme}-${DIAGRAM_TYPES[i]}.png` })
+            .screenshot({ path: `test-results/pele-themes/${theme}-${DIAGRAM_TYPES[i]}.png` })
         }
       })
 
       test('flowchart nodes are derived from the theme with panel contrast; series diagrams use the palette', async ({ page }) => {
-        await bootWithThemeAndDoc(page, theme, `# Mermaid matrix\n\n${buildAllDiagramsDoc()}\n`)
+        await bootWithThemeAndDoc(page, theme, `# Pele matrix\n\n${buildAllDiagramsDoc()}\n`)
         await waitForAllDiagrams(page, DIAGRAM_TYPES.length)
 
-        const expectedSurface = await resolveVar(page, '--floatBgColor', 'bg')
-        const expectedText = await resolveVar(page, '--editorColor', 'color')
-        const expectedPanel = await resolveVar(page, '--codeBlockBgColor', 'bg')
+        // The pele variables ARE the derivation (buildPeleVariables):
+        // --pele-surface the node card fill, --pele-fg the ink, --pele-bg
+        // the code-block panel the SVG sits on.
+        const expectedSurface = await resolveVar(page, '--pele-surface', 'bg')
+        const expectedText = await resolveVar(page, '--pele-fg', 'color')
+        const expectedPanel = await resolveVar(page, '--pele-bg', 'bg')
 
         const flow = await page.evaluate(() => {
           const figure = document.querySelectorAll('figure.ag-container-block')[0]
-          const shape = figure.querySelector('.node rect, .node polygon, .node path')
-          const label = figure.querySelector('.nodeLabel, .node span.nodeLabel')
+          const shape = figure.querySelector('g.pele-node rect, g.pele-node polygon')
+          const label = figure.querySelector('g.pele-node text.pele-label')
           return {
             fill: shape ? window.getComputedStyle(shape).fill : 'none',
             stroke: shape ? window.getComputedStyle(shape).stroke : 'none',
-            labelFill: label ? window.getComputedStyle(label).fill : 'none',
-            labelColor: label ? window.getComputedStyle(label).color : 'none'
+            labelFill: label ? window.getComputedStyle(label).fill : 'none'
           }
         })
-        // C-51 T-012: node shapes sit on the code-block panel — the fill is
-        // derived to separate from THAT panel (the raw surface never did:
-        // 1.15:1 in paper, ~1:1 in the dark themes where floatBg == codeBg)
-        // and the border reaches WCAG 1.4.11 there.
-        // C-54 R-1: light themes draw white cards — the surface itself,
-        // lighter than the panel; dark themes keep the derived lift.
+        // C-51 T-012 / C-54 R-1: node shapes sit on the code-block panel —
+        // paper draws the surface as a light card (the theme's own float
+        // surface, ΔL ≥ 0.015 above the panel); ink keeps the derived
+        // distinct lift.
         if (theme === 'paper') {
+          // Paper pins of the buildPeleVariables mapping: the panel is the
+          // theme's code-block background, the ink its editor text, and the
+          // node card its float surface (light-card rule).
+          expect(expectedPanel, 'paper: --pele-bg is the code-block panel')
+            .toBe(await resolveVar(page, '--codeBlockBgColor', 'bg'))
+          expect(expectedText, 'paper: --pele-fg is the editor text')
+            .toBe(await resolveVar(page, '--editorColor', 'color'))
+          const expectedFloatSurface = await resolveVar(page, '--floatBgColor', 'bg')
+          expect(expectedSurface, 'paper: --pele-surface is the theme surface (light card)')
+            .toBe(expectedFloatSurface)
           expect(flow.fill).toBe(expectedSurface)
           expect((oklabLightness(flow.fill) ?? 0) - (oklabLightness(expectedPanel) ?? 1)).toBeGreaterThanOrEqual(0.015)
         } else {
-          expect(flow.fill).not.toBe(expectedSurface)
-          expect(flow.fill).not.toBe(expectedPanel)
           expect(fillDistinctFromPanel(flow.fill, expectedPanel), `${theme} fill vs panel`).toBe(true)
+          expect(flow.fill).not.toBe(expectedPanel)
         }
         expect(contrast(flow.stroke, expectedPanel)).toBeGreaterThanOrEqual(3)
-        expect([flow.labelFill, flow.labelColor]).toContain(expectedText)
+        expect(flow.labelFill).toBe(expectedText)
 
-        // pie / radar / xychart draw ≥ 3 distinct palette colours.
+        // pie / radar / xychart draw ≥ 3 distinct palette colours. The
+        // neutrals are every resolved non-series --pele-* variable.
         for (const type of ['pie', 'xychart', 'radar']) {
           const colours = await page.evaluate(
             ({ idx, neutrals }: { idx: number; neutrals: string[] }) => {
@@ -610,11 +600,13 @@ test.describe('mermaid follows the app theme (C-51 T-003/T-004)', () => {
               idx: INDEX_BY_TYPE[type],
               neutrals: [
                 'rgb(0, 0, 0)', 'rgb(255, 255, 255)', 'rgb(17, 17, 17)', 'rgba(0, 0, 0, 0)',
-                await resolveVar(page, '--editorBgColor', 'bg'),
-                await resolveVar(page, '--floatBgColor', 'bg'),
-                await resolveVar(page, '--editorColor', 'color'),
-                await resolveVar(page, '--tableBorderColor', 'bg'),
-                await resolveVar(page, '--codeBlockBgColor', 'bg')
+                await resolveVar(page, '--pele-bg', 'bg'),
+                await resolveVar(page, '--pele-fg', 'color'),
+                await resolveVar(page, '--pele-muted', 'color'),
+                await resolveVar(page, '--pele-line', 'color'),
+                await resolveVar(page, '--pele-surface', 'bg'),
+                await resolveVar(page, '--pele-surface-alt', 'bg'),
+                await resolveVar(page, '--pele-border', 'color')
               ]
             }
           )
@@ -626,20 +618,23 @@ test.describe('mermaid follows the app theme (C-51 T-003/T-004)', () => {
       })
 
       test('gantt and packet labels render at readable sizes (≥ 11 px)', async ({ page }) => {
-        await bootWithThemeAndDoc(page, theme, `# Mermaid matrix\n\n${buildAllDiagramsDoc()}\n`)
+        await bootWithThemeAndDoc(page, theme, `# Pele matrix\n\n${buildAllDiagramsDoc()}\n`)
         await waitForAllDiagrams(page, DIAGRAM_TYPES.length)
 
         for (const type of ['gantt', 'packet']) {
-          const heights = await page.evaluate((idx: number) => {
+          // C-55: pele puts font-size on <g> groups; the honest readability
+          // metric is the COMPUTED font-size of each text (a tight glyph
+          // rect measures ~0.75 em and under-reports digits-only labels).
+          const sizes = await page.evaluate((idx: number) => {
             const figure = document.querySelectorAll('figure.ag-container-block')[idx]
             return [...figure.querySelectorAll('svg text')].map((t) =>
-              Math.round(t.getBoundingClientRect().height * 10) / 10
+              Math.round(parseFloat(getComputedStyle(t).fontSize) * 10) / 10
             )
           }, INDEX_BY_TYPE[type])
-          expect(heights.length, `${type} has text labels`).toBeGreaterThan(0)
-          expect(Math.max(...heights), `${type} largest label ≥ 11 px`).toBeGreaterThanOrEqual(11)
+          expect(sizes.length, `${type} has text labels`).toBeGreaterThan(0)
+          expect(Math.max(...sizes), `${type} largest label ≥ 11 px`).toBeGreaterThanOrEqual(11)
           expect(
-            heights.filter((h) => h >= 11).length,
+            sizes.filter((h) => h >= 11).length,
             `${type} keeps at least 3 labels ≥ 11 px`
           ).toBeGreaterThanOrEqual(3)
         }
@@ -647,7 +642,12 @@ test.describe('mermaid follows the app theme (C-51 T-003/T-004)', () => {
     })
   }
 
-  test('switching paper → ink re-renders the diagrams with the new theme', async ({ page }) => {
+  // C-55 R-3: a theme switch recolors every diagram through the --pele-*
+  // CSS variables with ZERO pele re-renders — the code-only SVG cache hits,
+  // the markup stays byte-identical (DOM svg unchanged) and only the
+  // cascade recolors the computed node fill.
+  test('switching paper → ink recolors through the --pele-* variables without a pele re-render', async ({ page }) => {
+    const markers = collectPeleMarkers(page)
     // Same pref-write mock the titlebar toggle spec installs.
     await page.addInitScript(() => {
       ;(window as any).__mockInvoke.mt_prefs_set = () => null
@@ -659,53 +659,103 @@ test.describe('mermaid follows the app theme (C-51 T-003/T-004)', () => {
     )
     await waitForAllDiagrams(page, 1)
 
-    const fillBefore = await page.evaluate(() => {
-      const shape = document.querySelector('figure.ag-container-block .node rect, figure.ag-container-block .node polygon, figure.ag-container-block .node path')
-      return shape ? window.getComputedStyle(shape).fill : 'none'
+    // Settle the first pele render, then snapshot the markers and the svg.
+    await expect
+      .poll(() => markers.filter((m) => m.includes('[BLOCK_PELE_RENDER]')).length, { timeout: 20_000 })
+      .toBeGreaterThanOrEqual(1)
+    const rendersBefore = markers.filter((m) => m.includes('[BLOCK_PELE_RENDER]')).length
+    const hitsBefore = markers.filter((m) => m.includes('[BLOCK_PELE_CACHE_HIT]')).length
+
+    const before = await page.evaluate(() => {
+      const svg = document.querySelector('figure.ag-container-block div.ag-container-preview > svg') as SVGSVGElement
+      const shape = svg.querySelector('g.pele-node rect, g.pele-node polygon')
+      return {
+        rootClass: svg.getAttribute('class'),
+        rootStyle: svg.getAttribute('style'),
+        viewBox: svg.getAttribute('viewBox'),
+        natural: svg.getAttribute('data-natural-width'),
+        fill: shape ? window.getComputedStyle(shape).fill : 'none',
+        surfaceVar: window.getComputedStyle(document.documentElement).getPropertyValue('--pele-surface').trim()
+      }
     })
-    expect(fillBefore).not.toBe('none')
+    expect(before.fill).not.toBe('none')
 
     await page.locator('.titlebar-nav-btn[title*="Theme"]').first().click()
     await expect(page.locator('body')).toHaveClass(/(^|\s)dark(\s|$)/, { timeout: 5_000 })
 
+    // The recolor: the document root's --pele-surface changes and the
+    // computed node fill follows through the cascade — no re-render needed.
     await expect
-      .poll(
-        async () => {
-          return page.evaluate(() => {
-            const shape = document.querySelector('figure.ag-container-block .node rect, figure.ag-container-block .node polygon, figure.ag-container-block .node path')
-            return shape ? window.getComputedStyle(shape).fill : 'none'
-          })
-        },
-        { timeout: 30_000 }
-      )
-      .not.toBe(fillBefore)
+      .poll(() => page.evaluate(() =>
+        window.getComputedStyle(document.documentElement).getPropertyValue('--pele-surface').trim()
+      ), { timeout: 30_000 })
+      .not.toBe(before.surfaceVar)
+    await expect
+      .poll(() => page.evaluate(() => {
+        const shape = document.querySelector('figure.ag-container-block g.pele-node rect, figure.ag-container-block g.pele-node polygon')
+        return shape ? window.getComputedStyle(shape).fill : 'none'
+      }), { timeout: 30_000 })
+      .not.toBe(before.fill)
+
+    // Zero pele re-renders: the re-queue drains as a pure CACHE HIT.
+    await expect
+      .poll(() => markers.filter((m) => m.includes('[BLOCK_PELE_CACHE_HIT]')).length, { timeout: 30_000 })
+      .toBeGreaterThan(hitsBefore)
+    expect(
+      markers.filter((m) => m.includes('[BLOCK_PELE_RENDER]')).length,
+      'a theme switch must not re-render pele diagrams'
+    ).toBe(rendersBefore)
+
+    // DOM svg unchanged: the cache-hit insert is byte-identical markup —
+    // same root class, same --pele-* var references, same geometry — and
+    // exactly one svg remains in the preview.
+    const after = await page.evaluate(() => {
+      const preview = document.querySelector('figure.ag-container-block div.ag-container-preview')
+      const svg = preview ? preview.querySelector(':scope > svg') as SVGSVGElement : null
+      return {
+        count: preview ? preview.querySelectorAll(':scope > svg').length : 0,
+        rootClass: svg ? svg.getAttribute('class') : null,
+        rootStyle: svg ? svg.getAttribute('style') : null,
+        viewBox: svg ? svg.getAttribute('viewBox') : null,
+        natural: svg ? svg.getAttribute('data-natural-width') : null
+      }
+    })
+    expect(after.count).toBe(1)
+    expect(after.rootClass).toBe(before.rootClass)
+    expect(after.rootStyle).toBe(before.rootStyle)
+    expect(after.viewBox).toBe(before.viewBox)
+    expect(after.natural).toBe(before.natural)
   })
 
-  test('a user %%{init}%% directive still wins over the theme config', async ({ page }) => {
+  // pele ignores the mermaid %%{init}%% directive (theming is exclusively
+  // the --pele-* variables); the supported user override is a classDef with
+  // inline colours, which pele applies as inline styles that beat the
+  // theme variables while the unstyled nodes stay themed.
+  test('a user classDef override still wins over the theme variables', async ({ page }) => {
     await bootWithThemeAndDoc(
       page,
       'paper',
-      // Mermaid 11.14 applies directive themeVariables only together with an
-      // explicit theme (a bare themeVariables directive is ignored even on a
-      // plain base theme) — the supported user override form is pinned here.
-      `# Init override\n\n\`\`\`mermaid\n%%{init: {"theme": "base", "themeVariables": {"primaryColor": "#123456"}}}%%\nflowchart TD\n    A[Custom fill] --> B[Also custom]\n\`\`\`\n`
+      `# ClassDef override\n\n\`\`\`mermaid\nflowchart TD\n    classDef custom fill:#123456,stroke:#123456,color:#fff\n    A[Custom fill]:::custom --> B[Still themed]\n\`\`\`\n`
     )
     await waitForAllDiagrams(page, 1)
 
     const colours = await page.evaluate(() => {
       const figure = document.querySelector('figure.ag-container-block')
-      const shape = figure.querySelector('.node rect, .node polygon, .node path')
-      const label = figure.querySelector('.nodeLabel, .node span.nodeLabel')
+      const custom = figure && figure.querySelector('g.pele-node[data-id="A"] rect, g.pele-node[data-id="A"] polygon')
+      const customLabel = figure && figure.querySelector('g.pele-node[data-id="A"] text.pele-label')
+      const themed = figure && figure.querySelector('g.pele-node[data-id="B"] rect, g.pele-node[data-id="B"] polygon')
       return {
-        fill: window.getComputedStyle(shape).fill,
-        labelColor: label ? window.getComputedStyle(label).color : 'none'
+        fill: custom ? window.getComputedStyle(custom).fill : 'none',
+        labelFill: customLabel ? window.getComputedStyle(customLabel).fill : 'none',
+        themedFill: themed ? window.getComputedStyle(themed).fill : 'none'
       }
     })
-    // The directive fill wins…
+    // The classDef fill and label ink win over the theme variables…
     expect(colours.fill).toBe('rgb(18, 52, 86)')
-    // …while the rest of the theme config still applies (merged, not replaced).
-    const expectedText = await resolveVar(page, '--editorColor', 'color')
-    expect(colours.labelColor).toBe(expectedText)
+    expect(colours.labelFill).toBe('rgb(255, 255, 255)')
+    // …while the rest of the diagram still resolves the theme variables.
+    const expectedSurface = await resolveVar(page, '--pele-surface', 'bg')
+    expect(colours.themedFill).toBe(expectedSurface)
   })
 })
 
@@ -760,7 +810,7 @@ test.describe('node contrast (C-51 T-012)', () => {
         }
 
         // The flowchart's subgraph: its fill differs from the panel AND from
-        // the node fill (clusterBkg is the midway derivation).
+        // the node fill (--pele-surface-alt is the midway derivation).
         const flow = await measureFigureContrast(page, 0)
         expect(flow.clusterFill, `${theme}: cluster shape resolved`).toBeTruthy()
         expect(flow.clusterFill!).not.toBe(flow.panel)

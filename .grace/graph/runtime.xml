@@ -2224,7 +2224,7 @@
         <Purpose>
           Path sandbox, URL whitelist, HTML sanitization (DOMPurify
           PREVIEW+EXPORT configs), shell-open confirmation, diagram/math input
-          filtering (KaTeX, Vega, Mermaid).
+          filtering (KaTeX, Vega, diagrams).
         </Purpose>
         <Inputs>
           <Input>
@@ -2516,8 +2516,10 @@
             javascript/vbscript/data — keep behavior + add newline-bypass fix.
           </note-3>
           <note-4>
-            Mermaid `securityLevel: &apos;strict&apos;` already set upstream;
-            M-010 sanitizes diagram body input BEFORE passing to renderer.
+            C-55: pele replaces mermaid and is XSS-safe by construction
+            (escaped labels, javascript: links stripped — no
+            securityLevel config exists); M-010 still sanitizes diagram
+            body input BEFORE passing to the renderer.
           </note-4>
           <note-5>
             #4177 shell.openPath confirmation is NOT yet implemented upstream
@@ -2646,8 +2648,8 @@
         pill); ⌘0 restores the persisted baseFontSize (the Settings size);
         a stored legacy zoom ≠ 1 migrates once to
         clamp(round(16 × zoom)) (MIGRATE_LEGACY_ZOOM from app.vue);
-        --mark-zoom = fontSize / 16 on the document element scales mermaid
-        SVGs (mermaidPipeline data-natural-width + calc max-width, M-012)
+        --mark-zoom = fontSize / 16 on the document element scales pele
+        SVGs (pelePipeline data-natural-width + calc max-width, M-012)
         and the WYSIWYG code font is codeFontSize/16 em (util/theme.js) so
         code blocks scale too.
         C-46 T-001: components/recent/index.vue is the redesigned
@@ -2888,8 +2890,8 @@
         families ship the full paper variable set plus a theme-defined
         --chartPalette (Docs: slate blue/emerald/amber/rose/violet/cyan/
         orange/pink with brighter dark variants; macOS: the Apple system
-        colours) that mermaidTheme.readActiveThemeTokens picks up as the
-        series token so Mermaid/content theming derives from them like
+        colours) that diagramTheme.readActiveThemeTokens picks up as the
+        series token so pele/content theming derives from them like
         from every other theme; the document rides the system UI font
         through a theme-scoped .editor-wrapper override (code keeps the
         code font); each member carries a Prism companion; registration
@@ -3575,49 +3577,58 @@
         renders as a read-only properties table (utils/frontMatterProps.js)
         until the cursor enters it; insertImageFromPath is the shared local
         image insert for path paste and file drop. None of these rewrite the
-        markdown. C-34 R2.1: mermaid previews render through
-        parser/render/mermaidPipeline.js — code+theme-hash LRU SVG cache
-        (50), keep-last-good with escaped mermaid error text below the
-        diagram, orphan div#d&lt;id&gt; cleanup after failed renders,
-        per-block ~250 ms trailing debounce while typing (first render and
-        theme switches immediate), counter-unique render ids, and
-        useMaxWidth:false natural size with horizontal scroll scoped by the
-        ag-mermaid-preview hook class (styles index.css). C-49: every
-        inserted SVG records its natural width (data-natural-width, from
-        mermaid's inline max-width / width attr / viewBox — first render,
-        cache hit and keep-last-good all run through insertSvg) and gets an
-        inline max-width: calc(var(--mark-zoom, 1) × natural px), so
-        diagrams and their labels scale with the editor fontSize
-        (--mark-zoom maintained by pages/app.vue on the document element)
-        while width:100% keeps them inside the text column; the fullscreen
-        viewer clone overrides the inline size from the viewBox and is
-        unaffected. C-51 T-003/T-004: Mermaid follows the active app theme —
-        parser/render/mermaidTheme.js builds the mermaid.initialize config
-        (theme base, look neo, themeVariables, themeCSS polish, per-type
-        layout) from theme tokens read at render time off the document's
-        CSS variables (--themeColor/--editorColor/--editorBgColor/
-        --floatBgColor/--codeBlockBgColor/--tableBorderColor) plus the
-        body dark flag and --chromeFontFamily; categorical scales are
-        generated in OKLCH from the accent hue (the accepted round-2/3
-        lab port), quadrant is one hue by lightness, architecture icon
-        tiles are repainted via attribute-selector themeCSS, C-4 rides
-        the c4 config colour keys, sankey keeps gradient links with
-        dark-only normal blending. The pipeline initializes per detected
-        diagram type (22 types; frontmatter/%%{init}%% skipped — user
-        directives still win) and its SVG cache key uses the tokens+palette
-        signature, so any theme switch (incl. Auto light/dark and
-        light→light accent changes) re-renders; gantt/journey/packet/
-        timeline render at the lab sizes with useMaxWidth:false and
-        in-block horizontal scroll while every other type keeps the C-34
-        fit-column useMaxWidth:true; utils/exportHtml.js renders exported
-        diagrams with the same config. C-54 (2026-10-17): light themes
+        markdown. C-55 (2026-10-17, hard cut): ```mermaid fences render
+        through pele@1.6.0 (obsidianmd/pele — MIT, TypeScript, zero
+        dependencies, ~251 KB gzip full bundle; mermaid ^11.12.2 and its
+        44 dist chunks / 2.6 MB raw / 75 MB node_modules are gone).
+        parser/render/pelePipeline.js keeps the C-34 R2.1 resilience
+        contract — CODE-ONLY LRU SVG cache (50; the theme left the key
+        entirely), keep-last-good with escaped pele error text below the
+        diagram (PeleError code/line/column/snippet), per-block ~250 ms
+        trailing debounce while typing (first render immediate),
+        counter-unique idPrefixes — while the mermaid-era costs are gone
+        by construction: the render is synchronous and DOM-free (no
+        orphan scratch cleanup), the SVG has no &lt;style&gt; block (no
+        WKWebView CSP hoisting), and XSS safety is built in (labels
+        escaped, javascript: links stripped — no securityLevel config).
+        C-49: every inserted SVG records its natural width
+        (data-natural-width, from RenderResult.width — first render,
+        cache hit and keep-last-good all run through insertSvg), switches
+        its width attribute to 100% and gets an inline max-width:
+        calc(var(--mark-zoom, 1) × natural px), so diagrams and their
+        labels scale with the editor fontSize (--mark-zoom maintained by
+        pages/app.vue) while width:100% keeps them inside the text
+        column; the fullscreen viewer clone overrides the inline size
+        from the viewBox and is unaffected. C-55 theming: colors live in
+        CSS VARIABLES — parser/render/diagramTheme.js (renamed from
+        mermaidTheme.js) buildPeleVariables(t) derives
+        --pele-bg/fg/muted/line/surface/surface-alt/border/accent +
+        --pele-series-1..8 (+font/font-mono/radius/title-weight) from the
+        SAME C-51/C-54 token+node-contrast math, util/theme.js
+        addThemeStyle sets them on the document root after mirroring the
+        theme variables, and pele SVG roots resolve them at display
+        time — a theme switch (incl. Auto light/dark) recolors every
+        diagram through the cascade with ZERO re-renders (cache hits),
+        which retires the C-54 follow-up-bug class structurally.
+        parser/render/peleOptions.js re-expresses the C-51 lab sizes as
+        pele render options (global fontSize 15, gantt/journey/timeline/
+        packet at 13–14 with natural width + in-block scroll via the
+        ag-pele-preview hook class; every other type — including the new
+        pele-only bonus types like venn-beta/treemap/agentflow-beta/
+        radar-beta/swimlane-beta/usecase-beta/eventmodeling/treeView-beta/
+        cynefin-beta/railroad-* — renders with defaults and fits the
+        column); pele.detectType covers all 33 diagram types (mermaid
+        12.1 syntax), so muya keeps no type list of its own.
+        utils/exportHtml.js renders exported diagrams with pele
+        (renderPele) and inlines the --pele-* block resolved at export
+        time so the standalone file carries its colours. C-54 (2026-10-17): light themes
         draw nodes as white cards again (nodeContrastColors keeps the
         surface when it is lighter than the panel, ΔL ≥ 0.015, border
         ≥ 3:1) and edge labels/label boxes take the panel colour with
         labelText ≥ 4.5:1 on it. C-51 T-012 (user 2026-10-16: «в
         темной теме у мермейд явно проблемы с контрастностью блоков»):
         node colours derive RELATIVE TO THE CODE-BLOCK PANEL (the SVG's
-        --codeBlockBgColor background) — mermaidTheme.js
+        --codeBlockBgColor background) — diagramTheme.js
         nodeContrastColors(t) (pure) picks a fill distinguishable from the
         panel (the theme surface when it passes, else a text-over-panel
         blend in the 8–14 % band, stepping the panel darker only for
@@ -3639,21 +3650,21 @@
         --codeBlockBgColor panel shows through, theme font, axis/legend/
         title/header colours from text/muted/border, mark default colour
         and range.category = chartPalette — the categorical palette
-        exported from mermaidTheme.js as the single definition shared
-        with Mermaid), the flowchart.js drawSVG options (line-color,
+        exported from diagramTheme.js as the single definition shared
+        with the pele variables), the flowchart.js drawSVG options (line-color,
         element-color, fill, font-color, font-family) and the js-sequence
         drawSVG options (the hand/simple preference kept; only simple
         gets the theme font — hand keeps danielbd); js-sequence's
         hard-coded #000/#fff SVG is repainted by applySequenceTheme
         (text = text token, connectors = line token, boxes = surface/
-        border, notes = Mermaid's noteBkg tint pair, arrowheads = line
+        border, notes = the accent tint pair, arrowheads = line
         token) after drawSVG in both StateRender.renderDiagram and the
         export path; a user's own vega spec config wins (vega-embed
         merges spec.config over the passed config); KaTeX needs no code —
         it inherits the text colour (no hard-coded colour in katex.css or
         the muya math styles; pinned in the e2e). C-34 R2.2 +
         C-39 T2: ui/blockViewer/ is the shared fullscreen block viewer for
-        Mermaid diagrams (clone of the live preview incl. the hoisted
+        pele diagrams (clone of the live preview incl. the
         diagrams with the same config. C-34 R2.2 +
         C-39 T2 + C-51 T-006: ui/blockViewer/ is the shared fullscreen block
         viewer for diagrams (clone of the live preview incl. the hoisted
@@ -3663,11 +3674,11 @@
         and restore. C-51 T-006 replaced the old hover/caret toolbar with
         the per-block expand button: renderContainerBlock.js
         START_BLOCK_EXPAND_BUTTON renders button.ag-block-expand as a
-        direct child of every viewable figure (mermaid, flowchart,
+        direct child of every viewable figure (mermaid fence, flowchart,
         sequence, plantuml and vega-lite diagrams with non-empty source,
         and tables) plus the ag-has-expand marker that scopes the
         expand-need evaluation — a figure child (not inside the preview
-        div) survives the mermaid pipeline's innerHTML inserts and every
+        div) survives the pele pipeline's innerHTML inserts and every
         snabbdom re-patch with no post-render DOM pass. renderExpandButton
         draws the M-057 expand glyph inline (byte-identical twin of
         chromeIcons.CHROME_ICONS.expand, pinned by
@@ -3696,7 +3707,7 @@
         the preview is taller than 600 px, tables when the C-39 scroll
         wrapper overflows (scrollWidth &gt; clientWidth + 1) or the table
         is taller than 600 px — evaluated after every StateRender render
-        path, after every mermaid pipeline insert and renderDiagram
+        path, after every pele pipeline insert and renderDiagram
         insert, and on figure resize via one shared ResizeObserver
         (observe new figures, unobserve removed ones, Muya.destroy
         releases its container's figures, no observer in jsdom); verdict
@@ -3734,12 +3745,12 @@
         the figure ELEMENT captured at open (isConnected-checked
         fallback) re-resolves the re-rendered element; id lookups never
         resolve the viewer's own clone (cloneNode keeps the preview div
-        id and the svg id is shared on purpose for mermaid's scoped
+        id and the svg id is shared on purpose for scoped
         styles — the poll used to re-clone its own stale copy); the
         svg/img content check keeps the poll waiting through the
         loading placeholder, and a changed-content token (outerHTML of
         the LIVE source — never the mutated clone) keeps it waiting
-        through the mermaid pipeline's synchronous last-good re-insert
+        through the pele pipeline's synchronous last-good re-insert
         of the OLD-theme svg until the async re-draw actually lands
         (the chromium race: cloning the unchanged content froze the old
         theme and ended the poll); a token change re-clones in place
@@ -3797,7 +3808,7 @@
           WYSIWYG Markdown engine: parses, renders, and edits Markdown in-place
           in DOM. Zero Electron coupling confirmed via triple-check grep. Ports
           to WebView as-is. 49 public methods + 26 events + 13 state invariants
-          + 5 diagram renderers (Mermaid/Vega-Lite/Flowchart/Sequence/PlantUML)
+          + 5 diagram renderers (Pele/Vega-Lite/Flowchart/Sequence/PlantUML)
           + 11 parser option flags + 19 inline + 16 block token types.
         </Purpose>
         <Inputs>
@@ -3994,18 +4005,21 @@
               </Attribute>
             </LegacyAttributes>
           </class-Muya>
-          <fn-renderMermaid>
+          <fn-renderPele>
             <LegacyAttributes>
               <Attribute>
                 <Name>PURPOSE</Name>
                 <Value>
-                  Async renderer using mermaid.render() API (v11+); clears cache
-                  pre-await to prevent race; unique ID per render call via
-                  Date.now() suffix; imports full ESM build (mermaid.esm.mjs)
+                  C-55: renderPele drains the peleCache into
+                  pelePipeline.js — synchronous DOM-free pele renders
+                  (render/detectType named exports of the pele namespace),
+                  code-only LRU cache, keep-last-good, ~250 ms debounce;
+                  the mermaid renderMermaid (v11 async render, orphan
+                  cleanup) is retired
                 </Value>
               </Attribute>
             </LegacyAttributes>
-          </fn-renderMermaid>
+          </fn-renderPele>
           <fn-keyboardUndoRedo>
             <LegacyAttributes>
               <Attribute>

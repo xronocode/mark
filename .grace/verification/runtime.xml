@@ -3862,9 +3862,10 @@
           palette percentage zoom (file.zoom / file.zoom-0..11) is retired
           from commands, descriptions and the menu-consistency allowlist;
           --mark-zoom = fontSize / 16 on the document element scales every
-          mermaid SVG (data-natural-width + inline
-          max-width: calc(var(--mark-zoom, 1) × natural px) applied on all
-          pipeline insert paths — first render, cache hit, keep-last-good)
+          pele SVG (data-natural-width from RenderResult.width + inline
+          max-width: calc(var(--mark-zoom, 1) × natural px) + width 100%
+          applied on all pipeline insert paths — first render, cache hit,
+          keep-last-good)
           while width:100% keeps diagrams inside the column and the
           fullscreen viewer clone keeps its viewBox natural size; the
           WYSIWYG code font becomes codeFontSize/16 em so code blocks scale
@@ -3878,13 +3879,13 @@
           mirror, debounce, indicator event) +
           tests/renderer/components/zoom-indicator.test.ts +
           tests/renderer/util/theme.test.js (em-based code font) +
-          tests/renderer/muya/mermaid-pipeline.test.js (C-49 cases) +
+          tests/renderer/muya/pele-pipeline.test.js (C-49 cases) +
           tests/renderer/commands/{index,index-deep,descriptions}.test.js +
           tests/renderer/commands/menu-consistency.test.js (zoom trio pins
           + retirement) + cargo test m009
           (view_menu_zoom_items_dispatch_by_id_with_accelerators) +
           e2e tests/e2e/zoom.spec.ts (⌘+ ×4 grows p, td, code, .katex and
-          the mermaid SVG width/labels with the SVG still ≤ column width;
+          the pele SVG width/labels with the SVG still ≤ column width;
           ⌘0 returns to base; pill appears and hides; Ctrl+wheel inside
           the block viewer leaves the editor font size alone).
           scenario-45: Mark Guide + universal agent prompt (C-40 G-3/R-1a,
@@ -4588,8 +4589,9 @@
           tests/e2e/rich-markdown-coverage.spec.ts (chromium + the
           webkit-rich project; CI renderer-e2e WebKit step) renders a
           fixture with one example of EVERY named feature and asserts
-          each rendered: one SVG per mermaid figure ×22 with zero
-          .ag-mermaid-error/.ag-math-error, svg for vega-lite/flowchart/
+          each rendered: one SVG per mermaid fence figure ×22 with zero
+          .ag-pele-error/.ag-math-error (C-55: pele engine), svg for
+          vega-lite/flowchart/
           sequence, all 15 callout styles with the custom title and -/+
           fold states, checked + unchecked task checkboxes, KaTeX inline
           and display, the rust fence, footnote reference + definition
@@ -4627,8 +4629,8 @@
           members: 4.5:1 editorColor/linkColor, 3:1 blockquote text,
           variable parity) plus a theme-defined --chartPalette (Docs
           calm 8-colour set with brighter dark variants; macOS Apple
-          system colours) read by mermaidTheme.readActiveThemeTokens as
-          the series token, so Mermaid/content theming derives from
+          system colours) read by diagramTheme.readActiveThemeTokens as
+          the series token, so pele/content theming derives from
           them; the document rides the system UI font via a
           theme-scoped .editor-wrapper !important override while code
           keeps the code font. Unit:
@@ -4636,15 +4638,16 @@
           model, registration + Prism companions, canvas colour pins,
           --chartPalette pins, swatch source values, dark
           classification, migration passthrough, the real CSS → root
-          mirror → readActiveThemeTokens chain incl. buildMermaidThemeConfig
-          pie1/git0/xyChart palette and the cache signature, Auto/
+          mirror → readActiveThemeTokens chain incl. buildPeleVariables
+          series/accent colours and the theme signature, Auto/
           Light/Dark member resolution, palette+menu source pins, 10
           locales). E2E tests/e2e/theme-families-docs-macos.spec.ts
           (chromium + the webkit-theme-families project, CI WebKit step):
           per theme the editor surface computed bg/text equal the theme
           values, body.dark matches the classification, the root mirror
-          carries the 8-colour --chartPalette, a Mermaid pie's first
-          slice equals the palette's first colour (#007AFF in macos
+          carries the 8-colour --chartPalette, a pele pie's first
+          slice (--pele-series-1 fill) equals the palette's first colour
+          (#007AFF in macos
           light, #4F6BED in docs light) with ≥ 4 distinct slice colours,
           the document font is the system stack while the code fence
           keeps the mono code font, a screenshot per theme (test
@@ -4852,13 +4855,16 @@
           lookups never resolve the viewer's own clone (it shares the
           source's div and svg ids — the poll used to re-clone its own
           stale copy), the svg/img content check keeps the poll waiting
-          through the loading placeholder (the mermaid pipeline insert
-          and the awaited vega embed are async), and the changed-content
+          through the loading placeholder (the pele pipeline insert and
+          the awaited vega embed are async), and the changed-content
           token (outerHTML of the LIVE source) keeps it waiting through
-          the mermaid pipeline's synchronous last-good re-insert of the
-          OLD-theme svg until the async re-draw actually lands (the
-          chromium race — cloning the unchanged content froze the old
-          theme and ended the poll) — a token change re-clones in place
+          the pele pipeline's synchronous last-good re-insert of the
+          OLD svg until the re-draw actually lands (the chromium race —
+          cloning the unchanged content froze the old diagram and ended
+          the poll; C-55: a pure theme switch changes NO content — colors
+          recolor through the --pele-* cascade in both the preview and
+          the open clone, so the poll correctly keeps the last clone) —
+          a token change re-clones in place
           keeping the panzoom transform and ends the poll (zoom/pan
           untouched; close() cancels the poll; a block that never comes
           back, or a re-render with identical content, keeps the last
@@ -4906,9 +4912,9 @@
           drawn box equal to the viewBox size; the viewer opens on a
           wide diagram, the preferences store flips paper → ink (the
           same pref the title-bar toggle writes; the overlay covers
-          the title bar) and the CLONE's mermaid node fill becomes the
-          LIVE re-rendered figure's fill with the canvas scale
-          unchanged; clicking a mermaid preview activates the source
+          the title bar) and the CLONE's pele node fill matches the
+          LIVE figure's fill (C-55: both recolor through the --pele-* cascade, no re-render) with the canvas scale
+          unchanged; clicking a pele preview activates the source
           and the preview's computed position is in flow (not
           absolute/fixed — relative comes from .ag-paragraph) with the
           preview top at or below the edited source bottom and the
@@ -5575,20 +5581,20 @@
         </Command>
         <Command>npx playwright test tests/e2e/smart-paste.spec.ts</Command>
         <Command>npx playwright test tests/e2e/auto-pair-quotes.spec.ts --project=chromium</Command>
-        <Command>npx vitest run tests/renderer/muya/mermaid-pipeline.test.js</Command>
+        <Command>npx vitest run tests/renderer/muya/pele-pipeline.test.js</Command>
         <Command>
-          npx vitest run tests/renderer/muya/mermaid-theme.test.js
-          tests/renderer/muya/mermaid-node-contrast.test.js
-          tests/renderer/muya/export-mermaid-theme.test.js
+          npx vitest run tests/renderer/muya/diagram-theme.test.js
+          tests/renderer/muya/pele-node-contrast.test.js
+          tests/renderer/muya/export-pele-theme.test.js
         </Command>
         <Command>npx vitest run tests/renderer/muya/table-scroll-wrapper.test.js</Command>
         <Command>
           npm run build &amp;&amp; npx playwright test --project=chromium
-          tests/e2e/mermaid-render.spec.ts
+          tests/e2e/pele-render.spec.ts
         </Command>
         <Command>
           npm run build &amp;&amp; npx playwright test --project=chromium
-          --project=webkit-mermaid-theme tests/e2e/mermaid-theme.spec.ts
+          --project=webkit-pele-theme tests/e2e/pele-theme.spec.ts
         </Command>
         <Command>npx vitest run tests/renderer/muya/block-viewer.test.js</Command>
         <Command>npx vitest run tests/renderer/muya/block-expand-button.test.js</Command>
@@ -5646,12 +5652,14 @@
           Chinese/Japanese/Korean text returns expected counts.
         </Scenario>
         <Scenario>
-          scenario-9: Mermaid render: mermaid code block renders visible SVG
-          with non-empty &lt;g&gt; element using mermaid.render() API (v11+);
-          render ids are unique per mermaid.render call via a module counter
-          (C-34 R2.1 replaced the Date.now() suffix — two diagrams can render
-          in the same millisecond); async race-safe cache clearing (cache
-          entry removed before await); full ESM build (mermaid.esm.mjs)
+          scenario-9: pele render (C-55): a mermaid code block renders a
+          visible SVG (root class pele pele-&lt;type&gt;, non-empty &lt;g&gt;)
+          through pele's synchronous DOM-free render — the namespace loads
+          once via loadRenderer('pele'); idPrefixes are unique per render
+          via a module counter (two diagrams can render in the same
+          millisecond); detection and per-type options come from
+          pele.detectType + peleOptions.js (33 types incl. the pele-only
+          bonus types)
           includes all diagram type renderers.
         </Scenario>
         <Scenario>
@@ -5673,7 +5681,7 @@
           and opens URL in system browser via macOS open command.
         </Scenario>
         <Scenario>
-          scenario-13: Mermaid dark theme contrast: diagram SVG renders
+          scenario-13: dark theme contrast (historical; C-55 recolors via
           correctly but dark theme colors (background/text) blend with editor
           dark background. Needs smart auto-inversion or light background
           substrate under diagram containers. Non-blocking.
@@ -5719,29 +5727,32 @@
           tests/e2e/auto-pair-quotes.spec.ts (failed 3/7 before the fix).
         </Scenario>
         <Scenario>
-          scenario-17: Mermaid resilient render pipeline (C-34 R2.1,
-          mermaidPipeline.js START_BLOCK_MERMAID_*): re-rendering an
-          unchanged diagram is a code+theme-hash LRU cache hit (bounded at
-          50 entries) that re-inserts the cached SVG with the hoisted
-          &lt;style&gt; and never calls mermaid.render; a theme switch
-          changes the cache key and re-renders; a syntax error after a good
-          render keeps the last good SVG visible with mermaid&apos;s own error
-          text in a small element below it (textContent only — an error
-          message containing `&lt;img src=x onerror=alert(1)&gt;` creates no
-          element), while a diagram that never rendered shows the error text
-          alone with the ag-math-error class; mermaid&apos;s orphan error
-          elements (div#d&lt;id&gt; / svg#&lt;id&gt; in body) are removed
-          after a failed render; typing collapses re-renders into one
-          mermaid.render per ~250 ms quiet window (first render and theme
-          switches stay immediate, delay injectable); wide diagrams fit
-          the text column (useMaxWidth:true since the 2026-10-15 user
-          decision, natural size in the fullscreen viewer; gantt/journey/
-          packet/timeline are the C-51 exceptions — see scenario-22).
+          scenario-17: pele resilient render pipeline (C-34 R2.1 contract,
+          C-55 pelePipeline.js START_BLOCK_PELE_*): re-rendering an
+          unchanged diagram is a CODE-ONLY LRU cache hit (bounded at 50
+          entries) that re-inserts the cached SVG and never calls
+          pele.render — and a theme switch is now ALSO a pure cache hit
+          (colors resolve through the --pele-* CSS variables at display
+          time, the C-54 follow-up-bug class is structurally gone); a
+          PeleError (syntax/semantic/limit) after a good render keeps
+          the last good SVG visible with the pele error text (message +
+          code/line/column) in a small element below it (textContent
+          only — an error message containing
+          `&lt;img src=x onerror=alert(1)&gt;` creates no element), while
+          a diagram that never rendered shows the error text alone with
+          the ag-math-error class; pele renders without touching the
+          DOM, so no orphan scratch elements can exist; typing collapses
+          re-renders into one pele.render per ~250 ms quiet window
+          (first render stays immediate, delay injectable); wide
+          diagrams fit the text column (width 100% + zoomable inline
+          max-width since the 2026-10-15 user decision, natural size in
+          the fullscreen viewer; gantt/journey/packet/timeline keep
+          natural width + in-block scroll — see scenario-22).
           Unit-pinned in
-          tests/renderer/muya/mermaid-pipeline.test.js (the StateRender-level
+          tests/renderer/muya/pele-pipeline.test.js (the StateRender-level
           cache and keep-last-good cases fail against the pre-R2.1
           implementation); wide-flowchart scroll and keep-last-good typed
-          end-to-end in tests/e2e/mermaid-render.spec.ts.
+          end-to-end in tests/e2e/pele-render.spec.ts.
         </Scenario>
         <Scenario>
           scenario-18: Default table rendering (C-39 T-001,
@@ -5812,12 +5823,12 @@
           clickEvent.js START_BLOCK_EXPAND_BUTTON_CLICK + keyboard.js
           START_BLOCK_KEYBOARD_EXPAND_BUTTON + the C-51 T-006/T-010 CSS
           section of lib/assets/styles/index.css): every viewable figure —
-          mermaid, flowchart, sequence, plantuml and vega-lite diagrams
+          mermaid-fence, flowchart, sequence, plantuml and vega-lite diagrams
           with non-empty source (the same `code === ''` rule as the empty
           placeholder) and tables, nothing else (html/multiplemath
           figures, fences, paragraphs excluded) — renders
           button.ag-block-expand as a DIRECT FIGURE CHILD plus the
-          ag-has-expand marker, so the button survives the mermaid
+          ag-has-expand marker, so the button survives the pele
           pipeline's innerHTML inserts and every snabbdom re-patch by
           construction (export/print never see it). VISIBILITY IS
           NEED-GATED (T-010): expandNeed.js toggles ag-expand-needed —
@@ -5830,7 +5841,7 @@
           button is display:none — invisible and NOT a Tab stop (focus()
           is a no-op). Re-evaluated after every StateRender render path
           (render/partialRender/singleRender run syncExpandNeed), after
-          every mermaid pipeline insertSvg (first render, cache hit,
+          every pele pipeline insertSvg (first render, cache hit,
           keep-last-good) and every renderDiagram insert (re-resolved
           after the awaited vega embed), and on figure resize through ONE
           shared ResizeObserver across muya instances (observe new
@@ -5881,7 +5892,7 @@
           syncExpandNeed without ResizeObserver; the shared observer
           observe/unobserve/release). End-to-end in
           tests/e2e/block-viewer.spec.ts (chromium + the
-          webkit-block-viewer project): small mermaid/table have no
+          webkit-block-viewer project): small mermaid-fence/table have no
           visible button and no Tab stop (display none, focus() no-op);
           a wide flowchart and wide/tall tables get it — hidden at rest
           (opacity 0), ≥ 0.4 on figure hover, 1 on button hover and
@@ -5891,7 +5902,7 @@
           viewport until a diagram scales adds the button; clicking it
           opens the viewer; focusing it and pressing Enter opens the
           viewer and Esc returns focus TO THE BUTTON; Tab walks the
-          needing blocks' buttons in document order (mermaid → flowchart
+          needing blocks' buttons in document order (mermaid fence → flowchart
           → wide table, hidden small-block buttons skipped, Shift+Tab
           back); Cmd/Ctrl+click on a small diagram still
           opens the viewer; light/dark screenshots.
@@ -6003,71 +6014,69 @@
           no page overflow, caret next to a border).
         </Scenario>
         <Scenario>
-          scenario-22: Mermaid follows the active app theme (C-51 T-003 +
-          T-004, parser/render/mermaidTheme.js START_BLOCK_MERMAID_* +
-          mermaidPipeline.js START_BLOCK_MERMAID_THEME_INIT +
-          utils/exportHtml.js renderMermaid): the accepted round-2/3 lab
-          ported into the product — theme tokens (accent/background/
-          surface/text/border/code + dark flag + --chromeFontFamily) are
-          read at render time from the document&apos;s CSS variables, so every
-          one of the 28 themes (and the future Docs/macOS families)
-          themes its diagrams; categorical palettes are generated in OKLCH
-          from the accent hue (8 hues at one perceived lightness, hue 0 =
-          the accent; tints for areas, series colours for lines/bars/
-          sectors; cScale0-11/pie1-12/git0-7/xyChart.plotColorPalette/
-          quadrant fills/journey fillType+actor); quadrant is one hue by
-          lightness (D-4); architecture built-in icon tiles are repainted
-          via attribute-selector themeCSS; C-4 colours ride the c4 config
-          keys (D-5); sankey keeps gradient links with the value-prefix
-          spacing and dark-only normal blending; look neo + theme base +
-          themeCSS polish. The pipeline calls mermaid.initialize per
-          detected diagram type (22 types; frontmatter and %%{init}%%
-          lines skipped during detection — user directives still override
-          the config, mermaid merges them) and keeps renders sequential;
-          the SVG cache key is the tokens+palette signature, so Paper →
-          Ink, Auto light/dark flips AND light→light accent changes
-          re-render every diagram; gantt/journey/packet/timeline render
-          at the lab sizes with useMaxWidth:false (natural width,
-          in-block horizontal scroll, ≥ 11 px labels) while every other
-          type keeps the C-34 useMaxWidth:true fit-column behaviour, and
-          keep-last-good/debounce/natural-size (C-34 R2.1/C-49) are
-          unchanged. Export HTML/PDF/print uses the same config for the
-          current theme. Unit-pinned in
-          tests/renderer/muya/mermaid-theme.test.js (palette properties,
-          token reading incl. fallbacks, all-22 detection incl.
-          directive/frontmatter skipping, per-type config assertions,
-          signature changes) and
-          tests/renderer/muya/export-mermaid-theme.test.js (per-type
-          initialize on the export path);
-          tests/renderer/muya/mermaid-pipeline.test.js pins the themed
-          initialize, the cache-key misses for dark and light→light
-          switches, and the two-size useMaxWidth policy. End-to-end in
-          tests/e2e/mermaid-theme.spec.ts (chromium + the
-          webkit-mermaid-theme project): all 22 types render in paper and
-          ink without the error marker, no #ECECFF/#9370DB purple and no
-          Trebuchet in any computed fill/stroke/font-family, flowchart
-          node fill = the theme surface and label = the theme text colour,
+          scenario-22: Diagrams follow the active app theme through CSS
+          VARIABLES (C-55 R-3; succeeds the C-51 T-003/T-004 render-time
+          config): parser/render/diagramTheme.js buildPeleVariables(t)
+          derives --pele-bg/fg/muted/line/surface/surface-alt/border/
+          accent + --pele-series-1..8 (+font/font-mono/radius/
+          title-weight) from the SAME token+node-contrast math
+          (readActiveThemeTokens + nodeContrastColors + chartPalette —
+          the accepted round-2/3 lab port, the C-51 T-012 panel-relative
+          gates and the C-54 light-card/label rules), util/theme.js
+          addThemeStyle sets the block on the document root right after
+          mirroring the theme variables and toggling body.dark, and pele
+          SVG roots resolve the variables at DISPLAY time — so every one
+          of the 32 themes themes its diagrams, a theme switch (Paper →
+          Ink, Auto light/dark flip, light→light accent change) recolors
+          every diagram through the cascade with ZERO re-renders and
+          ZERO cache misses, and static Paper fallbacks live in muya&apos;s
+          stylesheet for pre-theme contexts. The measurement font
+          (fontFamily/fontSize render options) comes from the chrome
+          tokens via peleOptions.js — global fontSize 15, the C-51 lab
+          look; gantt/journey/packet/timeline render at 13–14 px with
+          natural width, in-block horizontal scroll (≥ 11 px labels)
+          while every other type — including the pele-only bonus types —
+          fits the column; keep-last-good/debounce/natural-size
+          (C-34 R2.1/C-49) are unchanged. Export HTML/PDF/print renders
+          via pele (renderPele) and inlines the same --pele-* block
+          resolved at export time. Unit-pinned in
+          tests/renderer/muya/diagram-theme.test.js (palette properties,
+          token reading incl. fallbacks, buildPeleVariables map incl.
+          Paper/Ink pins and theme-defined series, signature changes)
+          and tests/renderer/muya/export-pele-theme.test.js (variable
+          inlining + container class + error placeholder on the export
+          path); tests/renderer/muya/pele-pipeline.test.js pins the
+          code-only cache key (a font-token change stays a cache hit)
+          and the per-type option policy;
+          tests/renderer/muya/pele-node-contrast.test.js gate-checks
+          all 32 themes&apos; variable derivation + the CSS fallback parity.
+          End-to-end in
+          tests/e2e/pele-theme.spec.ts (chromium + the
+          webkit-pele-theme project): all types render in paper and
+          ink without the error marker, flowchart node fill = the theme
+          surface (--pele-surface) and label = the theme text colour,
           pie/xychart/radar use ≥ 3 distinct palette colours, gantt and
-          packet labels ≥ 11 px in rendered pixels, paper → ink re-renders
-          (node fill changes), a user %%{init}%% directive wins while the
-          theme still applies, and per-type screenshots for both themes
-          land in test-results/mermaid-themes/ (CI artifact
-          mermaid-theme-screenshots).
+          packet labels ≥ 11 px in rendered pixels, paper → ink RECOLORS
+          WITHOUT a pele re-render (BLOCK_PELE_RENDER does not fire,
+          BLOCK_PELE_CACHE_HIT re-inserts the byte-identical cached SVG,
+          and the computed node fill changes through the cascade), and per-type screenshots for both
+          themes land in test-results/pele-themes/ (CI artifact
+          pele-theme-screenshots).
         </Scenario>
         <Scenario>
           scenario-23: Other rendered content follows the app theme (C-51
           T-005, parser/render/contentTheme.js START_BLOCK_CONTENT_* +
           parser/render/index.js renderDiagram START_BLOCK_DIAGRAM_THEME_OPTIONS
-          + utils/exportHtml.js renderDiagram + mermaidTheme.js chartPalette):
+          + utils/exportHtml.js renderDiagram + diagramTheme.js chartPalette):
           Vega-Lite charts embed with a config built from the active
           theme tokens — background null (transparent, the block&apos;s own
           --codeBlockBgColor panel shows through), the theme font, axis
           domain/tick/grid = the border token, axis/legend labels and
           titles = muted, chart title = text, mark default colour and
           range.category = chartPalette (the SAME categorical palette
-          Mermaid uses — the theme&apos;s --chartPalette when present, else
+          the pele variables use — the theme&apos;s --chartPalette when present, else
           the OKLCH palette from the accent; chartPalette is exported
-          from mermaidTheme.js as the single definition) — replacing the
+          from diagramTheme.js as the single definition) — replacing the
           named latimes/dark vega themes; a user&apos;s own spec.config wins
           because vega-embed merges spec.config over the passed config
           (sub-objects wholesale — pinned with vega&apos;s own mergeConfig);
@@ -6078,12 +6087,12 @@
           danielbd hand-drawn look) and its hard-coded #000/#fff SVG is
           repainted after drawSVG by applySequenceTheme (text = text
           token, connectors and arrowhead markers = line token, boxes =
-          surface/border, notes = Mermaid&apos;s noteBkg tint pair);
+          surface/border, notes = the accent tint pair);
           renderDiagram reads the tokens at render time and logs
           [Muya][renderDiagram][BLOCK_DIAGRAM_THEME], so the
           setOptions(_, true) full render a theme switch triggers
           re-renders every diagram with the new tokens (the vegaTheme
-          muya option is no longer consumed, like mermaidTheme after
+          muya option is no longer consumed (C-55: colors live in CSS
           T-003); the export path (HTML/PDF/print) uses the same
           configs; KaTeX inherits the text colour with no hard-coded
           colour in katex.css or the muya math styles (inline
@@ -6112,10 +6121,11 @@
           colours, and screenshots land via test.info().outputPath.
         </Scenario>
         <Scenario>
-          scenario-61: Mermaid node contrast against the diagram panel
+          scenario-61: Diagram node contrast against the diagram panel
           (C-51 T-012, user 2026-10-16: «в темной теме у мермейд явно
-          проблемы с контрастностью блоков»; mermaidTheme.js
-          START_BLOCK_MERMAID_NODE_CONTRAST): node shapes sit on the
+          проблемы с контрастностью блоков»; C-55: the same derivation
+          now feeds buildPeleVariables — diagramTheme.js
+          START_BLOCK_DIAGRAM_NODE_CONTRAST): node shapes sit on the
           code-block panel (the SVG&apos;s --codeBlockBgColor background),
           and in most dark themes --floatBgColor == --codeBlockBgColor with
           hairline borders, so the pre-T-012 surface/border tokens rendered
@@ -6132,63 +6142,41 @@
           it passes, else a text/panel blend); the line (edges +
           arrowheads) ≥ 3:1; the cluster background midway between panel
           and fill, distinct from both; the node text ≥ 4.5:1 on the fill.
-          primaryColor/primaryBorderColor/actorBkg/actorBorder/
-          noteBkgColor/noteBorderColor/clusterBkg/clusterBorder/lineColor/
-          signalColor/archEdge colours come from the derivation while
-          mainBkg/nodeBorder stay unset, so a user&apos;s %%{init}%%
-          primaryColor still recolours the nodes; sequence actors, notes,
-          state/class boxes and ER entities follow the same rules through
-          Mermaid&apos;s own derivations (mainBkg/nodeBorder/actorBkg).
-          readActiveThemeTokens composites translucent CSS values over the
-          theme background (graphite/ulysses rgba() editor text and code
-          panels — the opaque colour a reader sees). The categorical
-          palettes, tints, gantt/packet task colours, quadrant fills and
-          the Keynote donut are unchanged; mermaidThemeSignature includes
-          the derived node colours, so every cached diagram re-renders
-          exactly once after the update. Unit-pinned in
-          tests/renderer/muya/mermaid-node-contrast.test.js (the pure
+          C-55 mapping into the pele variables: --pele-surface = fill,
+          --pele-surface-alt = clusterBkg, --pele-border = border,
+          --pele-line = line, --pele-fg = text, --pele-muted =
+          labelText — every pele shape inherits the gates through the
+          cascade. readActiveThemeTokens composites translucent CSS
+          values over the theme background (graphite/ulysses rgba()
+          editor text and code panels — the opaque colour a reader
+          sees). diagramThemeSignature includes the derived node
+          colours (log field only — the SVG cache key is code-only).
+          Unit-pinned in
+          tests/renderer/muya/pele-node-contrast.test.js (the pure
           derivation incl. the reported Ink bug and the dim-text
           fallbacks; the ALL-32-themes gate computing tokens from the real
           theme CSS through the util/theme.js-style inline mirror —
           border ≥ 3:1, fill distinct, text ≥ 4.5:1 on the fill, line
-          ≥ 3:1, cluster ≠ panel/fill, actors/notes/signals follow and
-          actorTextColor/noteTextColor === the derived node text (the
-          painted `text.actor &gt; tspan` / .noteText ink), mainBkg/
-          nodeBorder unset; the alpha compositing; the pre-T-012
-          signature reconstructed with the module&apos;s own djb2 and proved
-          different — red on main: the file fails to load and the old
-          config fails every gate), with the primaryColor pins in
-          mermaid-theme.test.js, mermaid-pipeline.test.js and
-          export-mermaid-theme.test.js following the derivation.
-          End-to-end in tests/e2e/mermaid-theme.spec.ts (chromium + the
-          webkit-mermaid-theme project): a flowchart with a subgraph, a
-          sequence diagram and a state diagram render in ink, docs-dark
-          and macos-dark, and the COMPUTED node rect/polygon fill/stroke,
-          label ink, edge strokes and rendered-arrowhead fills are
-          measured against the panel&apos;s computed background (fill
-          ≥ 1.25:1, border/edges/arrowheads ≥ 3:1, label ≥ 4.5:1 on the
+          ≥ 3:1, cluster ≠ panel/fill; the buildPeleVariables map
+          matches the derivation composition for every theme; the CSS
+          :root fallback block in muya&apos;s index.css equals the Paper
+          derivation — red on drift), with the variable pins in
+          diagram-theme.test.js and pele-pipeline.test.js following the
+          derivation. End-to-end in tests/e2e/pele-theme.spec.ts
+          (chromium + the webkit-pele-theme project): a flowchart with
+          a subgraph, a sequence diagram and a state diagram render in
+          ink, docs-dark and macos-dark, and the COMPUTED node rect/
+          polygon fill/stroke, label ink, edge strokes and arrowhead
+          fills are measured against the panel&apos;s computed background
+          (fill ≥ 1.25:1, border/edges ≥ 3:1, label ≥ 4.5:1 on the
           fill, cluster fill ≠ panel ≠ node fill) with a screenshot per
-          theme. The measurement reads what the engine PAINTS: the label
-          ink from the VISIBLE label element — sequence actors render
-          through foreignObject (textPlacement default "fo"), so the
-          visible ink is div.actor-box&apos;s computed color while the
-          &lt;text class="actor"&gt; beside it is a hidden &lt;switch&gt;
-          fallback whose own fill is the `.actor` BOX colour (reading that
-          &lt;text&gt; compared the box against itself — the exact «label
-          vs fill = 1» failure the first gate run hit; rendering was
-          already correct), and SVG-only labels fall back to the first
-          &lt;tspan&gt; (`text.actor &gt; tspan` carries actorTextColor,
-          the &lt;text&gt; never does); the arrowheads only from the
-          marker defs a marker-end/marker-start actually references
-          (Mermaid also ships unused defs — sequence
-          -filled-head/-solidTop/BottomArrowHead — that no stylesheet
-          paints, default black), asserting at least one rendered
-          arrowhead per figure; the 22-type matrix test pins the derived
-          fill/border instead of the raw surface.
+          theme; the type matrix test pins the derived fill/border via
+          the --pele-* variables.
         </Scenario>
         <Scenario>
-          scenario-62: Mermaid light-theme node cards and edge labels on
-          the panel (C-54, user 2026-10-17: «чини»): in light themes the
+          scenario-62: light-theme node cards and edge labels on
+          the panel (C-54, user 2026-10-17: «чини»; C-55: via
+          --pele-surface/--pele-muted): in light themes the
           node fill is the theme surface whenever it is lighter than the
           code-block panel (OKLab ΔL ≥ 0.015) with node text ≥ 4.5:1 and
           the border ≥ 3:1 — white cards instead of the grey T-012 blend;
@@ -6197,9 +6185,9 @@
           (nodeContrastColors().labelText — the muted token when it keeps
           4.5:1 on the panel, else the theme text pushed away from the
           panel) reaches ≥ 4.5:1 on it. Unit-pinned for all 32 themes in
-          tests/renderer/muya/mermaid-node-contrast.test.js (light-card
+          tests/renderer/muya/pele-node-contrast.test.js (light-card
           rule, label box === panel, label ink ≥ 4.5:1) plus the Paper pin
-          in mermaid-theme.test.js.
+          in diagram-theme.test.js.
         </Scenario>
       </Scenarios>
       <Markers>
@@ -6221,20 +6209,17 @@
              survives standardizeHTML/rendering. -->
         <Marker>
           [Muya] BLOCK_DIAGRAM_ERROR
-          renderer=&lt;katex|mermaid|vega|flowchart|plantuml&gt; err=&lt;msg&gt;
+          renderer=&lt;katex|pele|vega|flowchart|plantuml&gt; err=&lt;msg&gt;
         </Marker>
         <Marker>[Muya] BLOCK_INVARIANT_CHECK id=&lt;a..m&gt; pass=&lt;bool&gt;</Marker>
         <Marker>[Muya] BLOCK_UNDO_COALESCE ops=&lt;n&gt;</Marker>
-        <!-- C-34 R2.1 mermaid pipeline (console.debug/warn until muya grows
-             a structured logger). -->
-        <Marker>[Muya][renderMermaid][BLOCK_MERMAID_CACHE_HIT]</Marker>
-        <Marker>[Muya][renderMermaid][BLOCK_MERMAID_RENDER]</Marker>
-        <Marker>[Muya][renderMermaid][BLOCK_MERMAID_ERROR]</Marker>
-        <!-- C-51 T-003/T-004 themed mermaid initialize (per diagram type). -->
-        <Marker>
-          [Muya][renderMermaid][BLOCK_MERMAID_THEME_INIT diagramType=&lt;type&gt;
-          themeSignature=&lt;sig&gt;]
-        </Marker>
+        <!-- C-34 R2.1 resilience contract on the C-55 pele pipeline
+             (console.debug/warn until muya grows a structured logger). -->
+        <Marker>[Muya][renderPele][BLOCK_PELE_CACHE_HIT]</Marker>
+        <Marker>[Muya][renderPele][BLOCK_PELE_RENDER]</Marker>
+        <Marker>[Muya][renderPele][BLOCK_PELE_ERROR]</Marker>
+        <!-- C-55: pele renders need no per-type initialize (render options
+             only) — the BLOCK_MERMAID_THEME_INIT marker is retired. -->
         <!-- C-51 T-005 themed vega-lite/flowchart/sequence render. -->
         <Marker>
           [Muya][renderDiagram][BLOCK_DIAGRAM_THEME themeSignature=&lt;sig&gt;
@@ -6279,7 +6264,7 @@
         </TraceAssertion>
         <TraceAssertion>
           Negative assertion: No unhandled promise rejection during
-          KaTeX/Mermaid/Vega error paths.
+          KaTeX/pele/Vega error paths.
         </TraceAssertion>
         <TraceAssertion>
           Negative assertion: `isComposing` flag observed in all 6 keystroke
@@ -7401,7 +7386,7 @@
                never emitted; see the active Markers list above). -->
           <marker>
             [Muya] BLOCK_DIAGRAM_ERROR
-            renderer=&lt;katex|mermaid|vega|flowchart|plantuml&gt;
+            renderer=&lt;katex|pele|vega|flowchart|plantuml&gt;
             err=&lt;msg&gt;
           </marker>
           <marker>[Muya] BLOCK_INVARIANT_CHECK id=&lt;a..m&gt; pass=&lt;bool&gt;</marker>
@@ -7420,7 +7405,7 @@
             via MutationObserver on document subtree).
           </no>
           <no>No duplicate block-key after 10k random mutations (fuzz property test).</no>
-          <no>No unhandled promise rejection during KaTeX/Mermaid/Vega error paths.</no>
+          <no>No unhandled promise rejection during KaTeX/pele/Vega error paths.</no>
           <no>
             `isComposing` flag observed in all 6 keystroke handlers (R-27) —
             static-grep assertion in CI.

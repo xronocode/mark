@@ -14,6 +14,15 @@
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT
 //
+// START_CHANGE_SUMMARY
+//   LAST_CHANGE: v2.1.0 - 2026-10-17 C-55: addThemeStyle derives the pele
+//   diagram variables (buildPeleVariables from muya diagramTheme.js) from
+//   the just-applied theme and sets them on the document root right after
+//   the dark classification — pele SVGs recolor through the CSS cascade on
+//   every theme switch with zero re-renders. The variables are registered
+//   in __themeVars so the next switch clears them.
+// END_CHANGE_SUMMARY
+//
 // START_MODULE_MAP
 //   themeMap - registered theme id → CSS factory registry (exported for C-41 T-002 family verification).
 //   addThemeStyle - inject a theme's CSS, mirror its variables, set dark classification, cache the id.
@@ -97,6 +106,10 @@ import {
   everforestLight,
   rosePineDawn
 } from './themeColor'
+import {
+  buildPeleVariables,
+  readActiveThemeTokens
+} from '../../../muya/lib/parser/render/diagramTheme'
 import { isLinux } from './index'
 import { syncNativeWindowTheme } from './nativeWindowTheme'
 
@@ -189,8 +202,6 @@ export const addThemeStyle = (theme) => {
       setVars.push(name)
     }
   }
-  root.__themeVars = setVars
-
   document.body.classList.remove('dark')
   if (isDarkTheme) {
     document.body.classList.add('dark')
@@ -198,6 +209,19 @@ export const addThemeStyle = (theme) => {
   } else {
     root.style.setProperty('--titleBarBorderColor', 'rgba(0, 0, 0, 0.08)')
   }
+
+  // C-55: derive the pele diagram variables from the just-applied theme
+  // (tokens read off the inline mirror above + the dark flag) and set them
+  // on the root. Pele SVGs resolve their colours through these variables
+  // at display time, so a theme switch recolors every diagram through the
+  // CSS cascade with zero re-renders. Registered in __themeVars so a later
+  // switch removes stale values first.
+  const peleVars = buildPeleVariables(readActiveThemeTokens())
+  for (const [name, value] of Object.entries(peleVars)) {
+    root.style.setProperty(name, value)
+    setVars.push(name)
+  }
+  root.__themeVars = setVars
 
   try { localStorage.setItem('mark-cached-theme', theme) } catch (_) {}
 

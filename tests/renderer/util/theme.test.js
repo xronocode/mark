@@ -343,6 +343,32 @@ describe('util/theme', () => {
     })
   })
 
+  describe('addThemeStyle pele variables (C-55)', () => {
+    it('sets the --pele-* block on the root and re-derives it per theme', () => {
+      // The mocked themeColor factories carry no real variables, so the
+      // derivation runs on the brand-default fallbacks: light for paper,
+      // dark for ink (bare-document defaults of readActiveThemeTokens).
+      addThemeStyle('paper')
+      const rootStyle = document.documentElement.style
+      expect(rootStyle.getPropertyValue('--pele-bg')).toBe('#fbf8f2')
+      expect(rootStyle.getPropertyValue('--pele-radius')).toBe('6px')
+      expect(rootStyle.getPropertyValue('--pele-title-weight')).toBe('600')
+      for (let i = 1; i <= 8; i++) {
+        expect(rootStyle.getPropertyValue(`--pele-series-${i}`)).toMatch(/^#[0-9a-f]{6}$/)
+      }
+      // The pele names ride __themeVars, so a later switch clears them
+      // instead of stacking stale values.
+      expect(document.documentElement.__themeVars).toContain('--pele-bg')
+      const paperSeries = rootStyle.getPropertyValue('--pele-series-1')
+      const paperVars = rootStyle.getPropertyValue('--pele-surface')
+
+      addThemeStyle('ink')
+      expect(rootStyle.getPropertyValue('--pele-series-1')).not.toBe(paperSeries)
+      expect(rootStyle.getPropertyValue('--pele-surface')).not.toBe(paperVars)
+      expect(rootStyle.getPropertyValue('--pele-bg')).toBe('#17191e')
+    })
+  })
+
   describe('addStyles', () => {
     it('should call addThemeStyle and addCommonStyle', () => {
       addStyles({

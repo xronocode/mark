@@ -444,9 +444,9 @@ test.describe('README screenshots (C-53 R-2)', () => {
     await bootEditor(page)
     await openFileTab(page, `${ROOT}/deployment-pipeline.md`, PIPELINE_MD)
 
-    const preview = page.locator('div.ag-container-preview.ag-mermaid-preview').first()
+    const preview = page.locator('div.ag-container-preview.ag-pele-preview').first()
     await preview.waitFor({ state: 'visible', timeout: 30_000 })
-    await page.locator('div.ag-mermaid-preview svg').first().waitFor({ state: 'visible', timeout: 30_000 })
+    await page.locator('div.ag-pele-preview svg').first().waitFor({ state: 'visible', timeout: 30_000 })
 
     // The wide diagram needs the viewer: its expand button is laid out.
     const expand = page.locator('figure[data-role="MERMAID"] > button.ag-block-expand').first()
