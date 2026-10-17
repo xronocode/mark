@@ -79,6 +79,18 @@
     </T-004>
   </ImplementationPlan>
   <Evidence>
+    <T-001>
+      <Status>done</Status>
+      <Note>site/gallery/examples.mjs kept verbatim from the approved prototype (32 examples, one story). site/scripts/gallery-theme-vars.mjs parses every src/renderer/src/assets/themes/*.theme.css with util/theme.js's variable-mirror regex into the readActiveThemeTokens token shape (same variable names, literal parsing, Paper/Ink fallbacks, mirrored dark lists from config.js) and runs the app's own buildPeleVariables; site/gallery/theme-vars.json (16 --pele-* colour keys + page + dark per theme) is refreshed by every site build (buildEnd) and by npm run gallery:vars (needs node --experimental-default-type=module because src/muya/package.json has no type field; the vitepress build and vitest paths load it through vite/esbuild natively). tests/site/gallery-theme-vars.test.mjs: table follows the theme directory (32), every entry has exactly the 16 keys, committed file equals a fresh derivation, Paper/Ink and every theme shared with prototype/theme-vars.runtime-snapshot-2026-10-18.json match it exactly; site pins pele exactly 1.6.0 (root resolves 1.6.x). tests/site/gallery.test.mjs renders all 32 examples with pele DOM-free, error-free (corner-6).</Note>
+    </T-001>
+    <T-002>
+      <Status>done</Status>
+      <Note>site/scripts/build-gallery.mjs reproduces the approved prototype (cards, wide rule, filter chips with counts, theme strip with swatches, Slideshow 1.5 s with Pause/any-chip stop, Fullscreen show 1.5 s per slide with theme-per-slide, counter, progress bar, Space/arrows/Esc, ends on the last slide and respects the active filter; default Paper/Ink by prefers-color-scheme, last choice remembered in localStorage) with two deliberate adaptations: the page chrome wears the site brand from site/landing/index.html (Schibsted Grotesk + JetBrains Mono self-hosted under %BASE%fonts, the oklch palette, brand-cyan accents; the prototype's Google-Fonts Bricolage/IBM Plex are NOT used) and the head is the shared site head via the new landing.mjs sharedHeadTags/renderPage (canonical + OG for /diagrams/, analytics/consent identical to the landing). Emitted at dist/diagrams/index.html by config.mts buildEnd (also refreshes theme-vars.json) and served by the dev middleware at /diagrams/ (corners 1-4 in the controller: Ink default + dark chrome under OS dark, chip/Esc stop timers, filtered fullscreen counter, one column under 760 px with safe-area padding and in-strip horizontal scroll).</Note>
+    </T-002>
+    <T-004>
+      <Status>done</Status>
+      <Note>M-053 graph (new paths, fns, C-58 ref) and V-M-053 (tests/site command, scenario-7, BLOCK_CHECK_GALLERY/BLOCK_RENDER_PAGE/BLOCK_GALLERY_CARDS/BLOCK_DERIVE_THEME_VARS/BLOCK_WRITE_THEME_VARS markers) updated. check-dist.mjs v1.1.0 gates the gallery page: exists, one SVG per example, no PeleError, under 400 KB, external script/stylesheet hosts limited to the analytics providers the env actually configures (canonical/OG links are not loads). Known wiring gap for the orchestrator: root vitest.config.ts include does not cover tests/site yet, so npx vitest run tests/site needs the include entry (tests are DOM-free and pass under the default jsdom env with the shared setup, or under a dedicated node project without setupFiles).</Note>
+    </T-004>
   </Evidence>
 </C-58>
 </GraceChangePlan>

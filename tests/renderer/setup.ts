@@ -177,6 +177,9 @@ vi.mock('@tauri-apps/api/webview', () => {
  * override return values per case via `.mockResolvedValueOnce(...)`.
  */
 export function installWindowGlobals() {
+  // C-58: node-environment suites (tests/site, `@vitest-environment node`)
+  // share this setup file but have no window — nothing to shim there.
+  if (typeof globalThis.window === 'undefined') return
   const w = globalThis.window as unknown as Record<string, unknown>
 
   w.fileUtils = {
