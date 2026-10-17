@@ -1,0 +1,55 @@
+<GraceChangeSpec graceVersion='4.0' status='approved'>
+<C-58>
+  <Name>Site diagram gallery: every Pele diagram type, live SVG, recoloured by any of Mark's 32 themes, with a theme slideshow and a fullscreen show</Name>
+  <Created>2026-10-18</Created>
+  <Priority>medium</Priority>
+  <Status>approved</Status>
+  <RoadmapPhase>N</RoadmapPhase>
+  <Complexity>M</Complexity>
+  <Summary>User decision 2026-10-18 after reviewing the prototype (artifact 3gbjECC1rH8aeAEQuuriwB v3, source ~/prj/mark-media/gallery): the site gets a /diagrams/ page showing one real example per diagram type Mark renders in a ```mermaid block (32 at Pele 1.6.0 — Venn, treemap, agentflow, radar, swimlane, use case, event modeling, tree view, cynefin, railroad, wardley, ishikawa, sankey, C4, architecture, …), rendered at build time by the same Pele engine as the app, so every diagram is a crisp inline SVG coloured by --pele-* variables. A theme strip recolours all diagrams live with the exact variables Mark derives for each of its 32 themes; a Slideshow button cycles themes every 1.5 s; a Fullscreen button shows the diagrams one by one (1.5 s each, theme changing per slide) to the end. Each card offers its ```mermaid source with a Copy button. The examples tell one story (Mark, agents and the docs they write).</Summary>
+  <Problem><Description>The 2.4.0 pitch ("33 diagram types, they follow the theme") is a claim the site cannot show: the landing has eight static PNG showcase captures and the README lists type names only. Visitors cannot see the new types (venn, agentflow, cynefin, railroad…) or the theme-following that differentiates Mark, and there is no copyable starting point for writing each type. The headline type count is also inconsistent: README / What's New say 33, Pele's own examples page lists 31, the prototype renders 32.</Description></Problem>
+  <Goals>
+    <R-1>A build step (site/scripts/build-gallery.mjs, run from the VitePress build like the landing) renders site/gallery/examples.mjs through pele (pinned to the app's version) into a static /diagrams/index.html: one card per type with name, fence keyword, inline SVG (unique idPrefix per card), and a collapsible ```mermaid source with Copy. Wide diagrams span the full row; the grid packs densely; phone width = one column, no horizontal page scroll.</R-1>
+    <R-2>Theme variables are DERIVED, not hand-copied: a generator reads every src/renderer/src/assets/themes/*.theme.css token set and runs the app's own buildPeleVariables (muya diagramTheme) to emit site/gallery/theme-vars.json (--pele-* block + page background + dark flag per theme); a parity test pins Paper and Ink against the app's static fallback / existing diagram-theme fixtures. Adding or changing a theme updates the gallery on the next build.</R-2>
+    <R-3>Interaction: filter chips by kind (Process, Structure, Ideas, Plans, Data) with counts; a horizontal theme strip (swatch + name, all themes, active chip scrolled into view); Slideshow (themes every 1.5 s, Pause / any chip stops it); Fullscreen show (one diagram per slide, 1.5 s, theme changes per slide, counter + progress bar + theme name, Space pause, ←/→ step, Esc exit, ends on the last slide; respects the active filter). Default theme Paper (light visitors) / Ink (dark); the last choice is remembered per browser.</R-3>
+    <R-4>Site integration: the page uses the site brand (paper/ink/marker, Bricolage + IBM Plex already self-hosted under site/public/fonts), the shared SEO head (canonical, OG image, description), consent/analytics exactly like the landing, sitemap entry; the landing gets a "See all diagram types" link from its diagrams section and the docs nav gets "Diagrams"; README links the page from the 2.4.0 diagram line.</R-4>
+    <R-5>One honest type count everywhere: the gallery header shows the count of rendered examples; README, CHANGELOG 2.4.0, What's New (10 locales) and the landing use the same number, reconciled against pele's registered diagram modules (railroad dialect variants are one type). If the count changes from 33, the copy is corrected in the same change.</R-5>
+    <R-6>Checks: site `npm run check` extended — the built /diagrams/index.html exists, contains one SVG per example, no PeleError text, no external script/style hosts beyond the site's own, size under 400 KB; a node unit test renders every example with pele (zero errors) and validates theme-vars.json (32 themes, 16 --pele-* keys each). site.yml CI stays green.</R-6>
+  </Goals>
+  <Constraints>
+    <Item>No client-side diagram engine: the SVGs are pre-rendered at build time; the page's only script is the small inline theme/filter/show controller (CSP-friendly, no CDN).</Item>
+    <Item>pele is added to site/package.json pinned to the exact version the app ships (1.6.0); no other new dependency.</Item>
+    <Item>Example sources stay valid mermaid syntax that also renders in the app (the gallery doubles as a regression corpus).</Item>
+    <Item>No edits to the C-57 support/Ko-fi work in flight: landing/README edits are additive links only, merged after C-57 lands.</Item>
+    <Item>GRACE: M-053 SiteBuild contract/graph and V-M-053 verification updated in the same commit; grace lint --assertions current = 0 for C-58.</Item>
+  </Constraints>
+  <NonGoals>
+    <Item>An in-browser editor/playground for the examples (link to pele.run instead).</Item>
+    <Item>The C-35 full site refresh (this page adopts its style direction early but does not restyle the landing or docs).</Item>
+    <Item>Localising the gallery page (English only, like the landing today).</Item>
+    <Item>Diagram types beyond what Pele registers (flowchart.js / js-sequence / PlantUML / Vega-Lite get no cards here).</Item>
+  </NonGoals>
+  <AffectedAreas>
+    <Item>site/gallery/examples.mjs (new), site/gallery/theme-vars.json (generated), site/gallery/template (page shell)</Item>
+    <Item>site/scripts/build-gallery.mjs, site/scripts/gallery-theme-vars.mjs (new), site/scripts/check-dist.mjs</Item>
+    <Item>site/.vitepress/config.mts (buildEnd emission + dev middleware + nav + sitemap), site/.vitepress/landing.mjs (shared head)</Item>
+    <Item>site/landing/index.html (link), site/package.json (+pele)</Item>
+    <Item>README.md, CHANGELOG.md, src/renderer/src/whatsNew/data.js + static/locales/*.json only if the type count changes (R-5)</Item>
+    <Item>tests/site/gallery.test.mjs (or the existing site test location)</Item>
+    <Item>.grace/graph/features.xml M-053, .grace/verification/features.xml V-M-053</Item>
+  </AffectedAreas>
+  <AcceptanceCriteria>
+    <Criterion>R-1..R-6 done: `cd site &amp;&amp; npm run build &amp;&amp; npm run check` green locally and in site.yml; /diagrams/ renders all examples with zero errors in Chromium and WebKit at 1440 and 390 px, theme strip recolours with no reload, Slideshow and Fullscreen show behave as specified; one type count across README/CHANGELOG/What's New/landing/gallery.</Criterion>
+  </AcceptanceCriteria>
+  <VerificationIntent>
+    <ExpectedCommand>cd site &amp;&amp; npm ci &amp;&amp; npm run build &amp;&amp; npm run check</ExpectedCommand>
+    <ExpectedCommand>npx vitest run tests/site</ExpectedCommand>
+    <ExpectedCommand>grace lint --path . --assertions current</ExpectedCommand>
+    <ExpectedEvidence>Built page size; SVG count = example count; theme-vars.json 32 themes × 16 keys with Paper/Ink parity; screenshots light/dark/phone; fullscreen show reaching the last slide.</ExpectedEvidence>
+  </VerificationIntent>
+  <Assumptions>
+    <Assumption>Theme token CSS files can be parsed into the token object readActiveThemeTokens returns at runtime (variable names are stable), so buildPeleVariables runs in node with identical output — the captured runtime snapshot from 2026-10-18 is the parity oracle.</Assumption>
+    <Assumption>pele renders DOM-free in node (verified 2026-10-18: 32/32 examples render).</Assumption>
+  </Assumptions>
+</C-58>
+</GraceChangeSpec>
