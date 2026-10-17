@@ -183,7 +183,12 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v2.1.0 - 2026-10-16 C-52 T-001: plain ⌘V/Ctrl+V opens
+//   LAST_CHANGE: v2.1.1 - 2026-10-18 fix: safe vertical centering — the
+//     welcome screen centred its content with align-items:center inside an
+//     overflow-y:auto flex box, so a list taller than the window clipped the
+//     top (brand + tagline) beyond reach of the scrollbar; the content now
+//     centres with margin-block:auto, which collapses to 0 on overflow.
+//   v2.1.0 - 2026-10-16 C-52 T-001: plain ⌘V/Ctrl+V opens
 //     the clipboard through util/clipboardOpen while the welcome screen
 //     (no document open) is mounted — folder → workspace (replace),
 //     .md → tab; ⌥⌘V stays the File-menu accelerator and a focused text
@@ -635,7 +640,6 @@ function onNativeDrag(event) {
   background: var(--editorBgColor);
   flex: 1;
   display: flex;
-  align-items: center;
   justify-content: center;
   overflow-y: auto;
   user-select: none;
@@ -644,6 +648,10 @@ function onNativeDrag(event) {
 }
 
 .welcome-content {
+  /* Safe vertical centering: auto margins centre the content when it fits
+     and collapse to 0 when it does not, so the brand row never ends up
+     above the scrollable area (align-items:center clipped it). */
+  margin-block: auto;
   max-width: 520px;
   width: 100%;
   padding: 32px 32px 40px;
