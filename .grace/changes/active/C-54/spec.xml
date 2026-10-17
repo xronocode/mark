@@ -1,0 +1,21 @@
+<GraceChangeSpec graceVersion='4.0' status='approved'>
+<C-54>
+  <Name>Mermaid in light and dark: white node cards in light themes, edge labels on the diagram panel</Name>
+  <Created>2026-10-17</Created>
+  <Priority>high</Priority>
+  <Status>approved</Status>
+  <RoadmapPhase>N</RoadmapPhase>
+  <Complexity>S</Complexity>
+  <Summary>Found on the 2.3.1 marketing captures; user 2026-10-17: «чини». (1) Since C-51 T-012 the light themes draw flowchart nodes grey: the white theme surface fails the «distinct from panel» gate against the light code panel, so the fill falls back to a 12 % text-over-panel blend. (2) Edge labels («approved», «yes», «no») paint their box in the PAGE background while the diagram sits on the CODE PANEL — in dark themes a black rectangle on the grey panel, in light ones a white patch; at fit-to-column scale the labels read as dark smudges.</Summary>
+  <Problem><Description>T-012 derived node colours against the panel for dark themes but applied the same distinctness gate to light themes, where a node is a card outlined by its ≥ 3:1 border; edge-label backgrounds were never moved from the page colour to the panel.</Description></Problem>
+  <Goals>
+    <R-1>Light themes: the node fill is the theme surface (white card) whenever that surface is lighter than the panel and keeps the node text ≥ 4.5:1; the border keeps ≥ 3:1 on the panel. Dark themes keep the T-012 derivation unchanged.</R-1>
+    <R-2>Edge labels and label backgrounds take the panel colour; the label text keeps ≥ 4.5:1 on the panel (the muted token when it passes, else the theme text).</R-2>
+  </Goals>
+  <Constraints><Item>mainBkg/nodeBorder stay unset so %%{init}%% overrides keep working; every registered theme stays gate-checked.</Item></Constraints>
+  <NonGoals><Item>Task-list checkbox spacing and other diagram types' palettes.</Item></NonGoals>
+  <AffectedAreas><Item>src/muya/lib/parser/render/mermaidTheme.js; tests/renderer/muya/mermaid-node-contrast.test.js.</Item></AffectedAreas>
+  <AcceptanceCriteria><Criterion>R-1, R-2 done; grace lint 0; full unit + e2e green.</Criterion></AcceptanceCriteria>
+  <VerificationIntent><Item>Per-theme unit gates (card rule for light themes, label contrast on the panel for all); full unit + e2e green; README and canvas captures re-shot.</Item></VerificationIntent>
+</C-54>
+</GraceChangeSpec>

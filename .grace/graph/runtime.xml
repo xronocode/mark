@@ -3610,7 +3610,11 @@
         timeline render at the lab sizes with useMaxWidth:false and
         in-block horizontal scroll while every other type keeps the C-34
         fit-column useMaxWidth:true; utils/exportHtml.js renders exported
-        diagrams with the same config. C-51 T-012 (user 2026-10-16: «в
+        diagrams with the same config. C-54 (2026-10-17): light themes
+        draw nodes as white cards again (nodeContrastColors keeps the
+        surface when it is lighter than the panel, ΔL ≥ 0.015, border
+        ≥ 3:1) and edge labels/label boxes take the panel colour with
+        labelText ≥ 4.5:1 on it. C-51 T-012 (user 2026-10-16: «в
         темной теме у мермейд явно проблемы с контрастностью блоков»):
         node colours derive RELATIVE TO THE CODE-BLOCK PANEL (the SVG's
         --codeBlockBgColor background) — mermaidTheme.js
