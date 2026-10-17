@@ -51,27 +51,27 @@ import zhTW from '../../../static/locales/zh-TW.json'
 
 const LOCALES = { en, ru, de, fr, es, ja, ko, pt, 'zh-CN': zhCN, 'zh-TW': zhTW }
 
-// The four D-1 items, approved order: UI look/themes, home screen,
-// themed diagrams, Markdown-only folders.
-const ITEM_KEY_ORDER = ['look', 'home', 'diagrams', 'notes']
+// The four C-55 items, approved order: the pele engine swap — engine,
+// theme-following, new types, lighter bundle.
+const ITEM_KEY_ORDER = ['engine', 'theme', 'types', 'lighter']
 
 // START_BLOCK_CONTENT_TABLE
-describe('whatsNew/data — the C-53 D-1 content table', () => {
-  it('ships exactly the four 2.3.1 items with icon, titleKey and textKey', () => {
-    const items = WHATS_NEW_CONTENT['2.3.1']
+describe('whatsNew/data — the C-55 content table', () => {
+  it('ships exactly the four 2.4.0 items with icon, titleKey and textKey', () => {
+    const items = WHATS_NEW_CONTENT['2.4.0']
     expect(items).toHaveLength(WHATS_NEW_MAX_ITEMS)
-    expect(items.map((i) => i.titleKey.replace('whatsNew.v2_3_1.', '').replace('.title', '')))
+    expect(items.map((i) => i.titleKey.replace('whatsNew.v2_4_0.', '').replace('.title', '')))
       .toEqual(ITEM_KEY_ORDER)
     for (const item of items) {
       expect(typeof item.icon).toBe('string')
       expect(item.icon.length).toBe(1)
-      expect(item.titleKey).toMatch(/^whatsNew\.v2_3_1\.\w+\.title$/)
-      expect(item.textKey).toMatch(/^whatsNew\.v2_3_1\.\w+\.text$/)
+      expect(item.titleKey).toMatch(/^whatsNew\.v2_4_0\.\w+\.title$/)
+      expect(item.textKey).toMatch(/^whatsNew\.v2_4_0\.\w+\.text$/)
     }
   })
 
   it('the four item keys are distinct (no shadowed board-3 leftovers)', () => {
-    const items = getWhatsNewItems('2.3.1')
+    const items = getWhatsNewItems('2.4.0')
     expect(new Set(items.map((i) => i.titleKey)).size).toBe(items.length)
     expect(new Set(items.map((i) => i.icon)).size).toBe(items.length)
   })
@@ -79,9 +79,9 @@ describe('whatsNew/data — the C-53 D-1 content table', () => {
 // END_BLOCK_CONTENT_TABLE
 
 // START_BLOCK_LOCALE_MATRIX
-describe('whatsNew 2.3.1 content in every locale (C-53 R-1)', () => {
+describe('whatsNew 2.4.0 content in every locale (C-55)', () => {
   const localeSection = (table) => table.whatsNew
-  const localeItems = (table) => localeSection(table).v2_3_1
+  const localeItems = (table) => localeSection(table).v2_4_0
 
   it('every locale carries all four items, the also line and the see-everything key', () => {
     for (const [code, table] of Object.entries(LOCALES)) {
@@ -89,7 +89,7 @@ describe('whatsNew 2.3.1 content in every locale (C-53 R-1)', () => {
       expect(section, `${code}: whatsNew section`).toBeTruthy()
       const items = localeItems(table)
       for (const key of ITEM_KEY_ORDER) {
-        expect(items[key], `${code}: whatsNew.v2_3_1.${key}`).toBeTruthy()
+        expect(items[key], `${code}: whatsNew.v2_4_0.${key}`).toBeTruthy()
         expect(typeof items[key].title).toBe('string')
         expect(typeof items[key].text).toBe('string')
       }
@@ -140,7 +140,7 @@ describe('whatsNew 2.3.1 content in every locale (C-53 R-1)', () => {
       const strings = [
         section.also,
         section.seeEverything,
-        ...ITEM_KEY_ORDER.flatMap((key) => [section.v2_3_1[key].title, section.v2_3_1[key].text])
+        ...ITEM_KEY_ORDER.flatMap((key) => [section.v2_4_0[key].title, section.v2_4_0[key].text])
       ]
       for (const s of strings) {
         expect(s, `${code}: vue-i18n braces in "${s}"`).not.toMatch(/[{}|@]/)
@@ -148,17 +148,16 @@ describe('whatsNew 2.3.1 content in every locale (C-53 R-1)', () => {
     }
   })
 
-  it('product names and shortcuts stay untranslated in every locale', () => {
+  it('product names stay untranslated in every locale', () => {
     for (const [code, table] of Object.entries(LOCALES)) {
       const items = localeItems(table)
-      for (const name of ['Paper', 'Ink', 'Docs', 'macOS']) {
-        expect(items.look.text, `${code}: look.text keeps ${name}`).toContain(name)
-      }
-      expect(items.diagrams.text, `${code}: diagrams.text keeps Mermaid`).toContain('Mermaid')
-      expect(items.notes.text, `${code}: notes.text keeps Markdown`).toContain('Markdown')
-      // ⌘D (agent diff) and ⌥⌘V (clipboard folder) ride the also line.
-      expect(localeSection(table).also, `${code}: also keeps ⌘D`).toContain('⌘D')
-      expect(localeSection(table).also, `${code}: also keeps ⌥⌘V`).toContain('⌥⌘V')
+      // Pele (the engine) and mermaid (the fence syntax) are product
+      // names — no locale translates them (case-insensitive: German
+      // compounds write Mermaid-Blöcken).
+      expect(items.engine.text, `${code}: engine.text keeps Pele`).toContain('Pele')
+      expect(items.types.text, `${code}: types.text keeps mermaid`).toMatch(/mermaid/i)
+      expect(items.lighter.text, `${code}: lighter.text keeps MB units`).toMatch(/MB|МБ|Mo/)
+      expect(localeSection(table).also, `${code}: also keeps Mermaid`).toMatch(/mermaid/i)
     }
   })
 })
@@ -166,15 +165,15 @@ describe('whatsNew 2.3.1 content in every locale (C-53 R-1)', () => {
 
 // START_BLOCK_RELEASE_URL
 describe('getWhatsNewReleaseUrl (C-53 «See everything new» link)', () => {
-  it('points the 2.3.1 sheet at the GitHub release page', () => {
-    expect(WHATS_NEW_RELEASE_URLS['2.3.1']).toBe(
-      'https://github.com/xronocode/mark/releases/tag/v2.3.1'
+  it('points the 2.4.0 sheet at the GitHub release page', () => {
+    expect(WHATS_NEW_RELEASE_URLS['2.4.0']).toBe(
+      'https://github.com/xronocode/mark/releases/tag/v2.4.0-beta'
     )
   })
 
   it('normalizes prerelease decorations like the item lookup', () => {
-    expect(getWhatsNewReleaseUrl('2.3.1-beta')).toBe(WHATS_NEW_RELEASE_URLS['2.3.1'])
-    expect(getWhatsNewReleaseUrl('2.3.1')).toBe(WHATS_NEW_RELEASE_URLS['2.3.1'])
+    expect(getWhatsNewReleaseUrl('2.4.0-beta')).toBe(WHATS_NEW_RELEASE_URLS['2.4.0'])
+    expect(getWhatsNewReleaseUrl('2.4.0')).toBe(WHATS_NEW_RELEASE_URLS['2.4.0'])
   })
 
   it('returns an empty string for a version without a release page (link hides)', () => {

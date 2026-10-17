@@ -1,5 +1,5 @@
 // FILE: src/renderer/src/whatsNew/data.js
-// VERSION: 1.2.0
+// VERSION: 1.3.0
 // START_MODULE_CONTRACT
 //   PURPOSE: C-48/C-53 What's New sheet content — per-release entries
 //            (max 4 items, icon + i18n title/text keys) keyed by the
@@ -9,9 +9,10 @@
 //   SCOPE: static content tables + lookups; no logic beyond the lookups,
 //          the max-4 clamp and the latest-with-content fallback.
 //   DEPENDS: util/version.js (normalizeVersion, compareVersions).
-//   LINKS: .grace/changes/active/C-53/spec.xml R-1 + D-1 (approved 2.3.1
-//          sheet); components/whatsNew renders the items, the also line
-//          and the release link; locales whatsNew.v2_3_1.* carry the text.
+//   LINKS: .grace/changes/active/C-55 (2.4.0 sheet — the pele engine
+//          swap); .grace/changes/archive/C-53 (2.3.1 sheet); components/
+//          whatsNew renders the items, the also line and the release link;
+//          locales whatsNew.v2_4_0.* carry the text.
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT
@@ -28,7 +29,10 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.2.0 - 2026-10-17 C-53 T-001/R-1: replaced the
+//   LAST_CHANGE: v1.3.0 - 2026-10-18 C-55: the 2.4.0 sheet — the pele
+//   engine swap (engine/theme/types/lighter), the release URL points at
+//   v2.4.0-beta, and the also line moves to the 2.4.0 locales.
+//   PREV: v1.2.0 - 2026-10-17 C-53 T-001/R-1: replaced the
 //   2026-10-15 board-3 items (diagram zoom, agent diff, Paper/Ink,
 //   fitting tables) with the four D-1 items the user approved for the
 //   2.3.1 release (native look + themes, home screen, themed diagrams,
@@ -49,32 +53,31 @@ import { normalizeVersion, compareVersions } from '../util/version'
 export const WHATS_NEW_MAX_ITEMS = 4
 
 // START_BLOCK_WHATS_NEW_CONTENT
-// 2.3.1 (C-53 D-1): the four gap-analysis items — UI polish, home
-// screen, themed diagrams, Markdown-only folders. Icons stay in the
-// board-3 glyph style: ◐ light/dark look, ⌂ home, ◔ chart, ▤ file list.
-// Text lives in the locale tables under whatsNew.v2_3_1.* so each
-// language ships its own copy.
+// 2.4.0 (C-55): the pele engine swap — honest about the changed look,
+// loud about what it buys. Icons in the board-3 glyph style: ◔ engine,
+// ◐ theme, ✳ new types, ⤓ lighter. Text lives in the locale tables
+// under whatsNew.v2_4_0.* so each language ships its own copy.
 export const WHATS_NEW_CONTENT = {
-  '2.3.1': [
-    {
-      icon: '◐',
-      titleKey: 'whatsNew.v2_3_1.look.title',
-      textKey: 'whatsNew.v2_3_1.look.text'
-    },
-    {
-      icon: '⌂',
-      titleKey: 'whatsNew.v2_3_1.home.title',
-      textKey: 'whatsNew.v2_3_1.home.text'
-    },
+  '2.4.0': [
     {
       icon: '◔',
-      titleKey: 'whatsNew.v2_3_1.diagrams.title',
-      textKey: 'whatsNew.v2_3_1.diagrams.text'
+      titleKey: 'whatsNew.v2_4_0.engine.title',
+      textKey: 'whatsNew.v2_4_0.engine.text'
     },
     {
-      icon: '▤',
-      titleKey: 'whatsNew.v2_3_1.notes.title',
-      textKey: 'whatsNew.v2_3_1.notes.text'
+      icon: '◐',
+      titleKey: 'whatsNew.v2_4_0.theme.title',
+      textKey: 'whatsNew.v2_4_0.theme.text'
+    },
+    {
+      icon: '✳',
+      titleKey: 'whatsNew.v2_4_0.types.title',
+      textKey: 'whatsNew.v2_4_0.types.text'
+    },
+    {
+      icon: '⤓',
+      titleKey: 'whatsNew.v2_4_0.lighter.title',
+      textKey: 'whatsNew.v2_4_0.lighter.text'
     }
   ]
 }
@@ -88,7 +91,7 @@ export const WHATS_NEW_CONTENT = {
 export const WHATS_NEW_ALSO_KEY = 'whatsNew.also'
 export const WHATS_NEW_SEE_EVERYTHING_KEY = 'whatsNew.seeEverything'
 export const WHATS_NEW_RELEASE_URLS = {
-  '2.3.1': 'https://github.com/xronocode/mark/releases/tag/v2.3.1'
+  '2.4.0': 'https://github.com/xronocode/mark/releases/tag/v2.4.0-beta'
 }
 
 // '' when the version (after normalization) has no release page — the
