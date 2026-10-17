@@ -167,7 +167,7 @@ describe('whatsNew 2.4.0 content in every locale (C-55)', () => {
 describe('getWhatsNewReleaseUrl (C-53 «See everything new» link)', () => {
   it('points the 2.4.0 sheet at the GitHub release page', () => {
     expect(WHATS_NEW_RELEASE_URLS['2.4.0']).toBe(
-      'https://github.com/xronocode/mark/releases/tag/v2.4.0-beta'
+      'https://github.com/xronocode/mark/releases/tag/v2.4.0'
     )
   })
 
