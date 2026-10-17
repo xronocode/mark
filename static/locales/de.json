@@ -1402,22 +1402,24 @@
     "title": "Was ist neu",
     "seeGuide": "Anleitung ansehen",
     "continue": "Weiter",
+    "also": "⌘D zeigt, was dein Agent geändert hat · ⌥⌘V öffnet einen kopierten Ordner · ein Zoom für alles",
+    "seeEverything": "Alle Neuigkeiten ansehen",
     "v2_3_1": {
-      "zoom": {
-        "title": "In Diagramme und Tabellen hineinzoomen",
-        "text": "Beim Überfahren ⤢ drücken für eine Vollbildansicht mit Zoom und Verschieben."
+      "look": {
+        "title": "Ruhiger und näher am System",
+        "text": "Neue Themes Paper, Ink, Docs und macOS, schmale Titelleiste und Gliederung am Rand."
       },
-      "agentDiff": {
-        "title": "Änderungen des Agenten sehen",
-        "text": "⌘D vergleicht mit der Version vor seiner letzten Speicherung."
+      "home": {
+        "title": "Ein Startbildschirm",
+        "text": "Zuletzt verwendete Dateien und Ordner, das Handbuch und dein Agent mit einem Klick."
       },
-      "themes": {
-        "title": "Paper und Ink",
-        "text": "Neue Standard-Themes, und Auto folgt macOS."
+      "diagrams": {
+        "title": "Diagramme in Theme-Farben",
+        "text": "Mermaid, Charts und Formeln in Theme-Farben; jedes lässt sich im Vollbild öffnen."
       },
-      "tables": {
-        "title": "Tabellen, die passen",
-        "text": "Breite Tabellen scrollen in der Spalte; lange Links brechen um."
+      "notes": {
+        "title": "Nur deine Notizen",
+        "text": "Ordner zeigen nur Markdown-Dateien, „Zuletzt verwendet“ und „Angeheftet“ stehen oben."
       }
     }
   }

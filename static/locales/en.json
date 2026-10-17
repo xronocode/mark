@@ -1422,22 +1422,24 @@
     "title": "What's new",
     "seeGuide": "See the guide",
     "continue": "Continue",
+    "also": "⌘D shows what your agent changed · ⌥⌘V opens a copied folder · one zoom for everything",
+    "seeEverything": "See everything new",
     "v2_3_1": {
-      "zoom": {
-        "title": "Zoom into diagrams and tables",
-        "text": "Hover and press ⤢ for a fullscreen view with zoom and pan."
+      "look": {
+        "title": "A calmer, native-looking Mark",
+        "text": "New Paper, Ink, Docs and macOS themes, a slim title bar and an outline beside the page."
       },
-      "agentDiff": {
-        "title": "See what the agent changed",
-        "text": "⌘D compares with the version before its last save."
+      "home": {
+        "title": "A home screen",
+        "text": "Recent files and folders, the Guide, and one click to connect your agent."
       },
-      "themes": {
-        "title": "Paper and Ink",
-        "text": "New default themes, and Auto follows macOS."
+      "diagrams": {
+        "title": "Diagrams that match the theme",
+        "text": "Mermaid, charts and math take the theme's colours; open any of them full screen."
       },
-      "tables": {
-        "title": "Tables that fit",
-        "text": "Wide tables scroll inside the column; long links wrap."
+      "notes": {
+        "title": "Only your notes",
+        "text": "Folders show Markdown files only, with Recent and Pinned on top."
       }
     }
   }

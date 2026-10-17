@@ -21,10 +21,22 @@
           </div>
         </li>
       </ul>
+      <p class="also">{{ t('whatsNew.also') }}</p>
       <div class="sheet-foot">
-        <button ref="guideLink" class="guide-link" type="button" @click="openGuide">
-          {{ t('whatsNew.seeGuide') }}
-        </button>
+        <div class="foot-links">
+          <button
+            v-if="releaseUrl"
+            ref="releaseLink"
+            class="guide-link"
+            type="button"
+            @click="openReleasePage"
+          >
+            {{ t('whatsNew.seeEverything') }} ↗
+          </button>
+          <button ref="guideLink" class="guide-link" type="button" @click="openGuide">
+            {{ t('whatsNew.seeGuide') }}
+          </button>
+        </div>
         <button ref="continueButton" class="continue-button" type="button" @click="close">
           {{ t('whatsNew.continue') }}
         </button>
@@ -37,17 +49,25 @@
 // MODULE_CONTRACT
 //   PURPOSE: C-48 What's New sheet — the once-per-update modal (board 3
 //            mockup) with focus trap, Esc/Continue close, focus return,
-//            and the "See the guide" deep link.
+//            the "See the guide" deep link and the C-53 "See everything
+//            new" external link to the GitHub release page.
 //   SCOPE:   own visibility only. Opens on the `whatsNewDialog` bus event
 //            (Help › What's New command and the pages/app.vue startup
 //            gate both emit it); never reads or writes prefs itself.
-//   DEPENDS: bus, i18n t, whatsNew/data.js, whatsNew/gate.js
-//            (getRunningVersion).
-//   LINKS:   .grace/changes/archive/C-48/spec.xml R-1; commands/index.js
-//            help.whats-new; review/reviewRequest.js probes
-//            .ag-whats-new-sheet to block its ask.
+//   DEPENDS: bus, i18n t, whatsNew/data.js (items + release URL),
+//            whatsNew/gate.js (getRunningVersion).
+//   LINKS:   .grace/changes/active/C-53/spec.xml R-1; .grace/changes/
+//            archive/C-48/spec.xml R-1; commands/index.js help.whats-new;
+//            review/reviewRequest.js probes .ag-whats-new-sheet to block
+//            its ask.
 //
 // CHANGE_SUMMARY:
+//   - 2026-10-17 C-53 T-001/R-1: the four 2.3.1 items now come from the
+//     D-1 content table; the sheet gained the one-line «Also» summary and
+//     the «See everything new» footer link that opens the GitHub release
+//     page through window.electron.shell.openExternal (read lazily inside
+//     the handler — never at import time); the Tab trap walks the three
+//     footer controls (release link → guide link → Continue).
 //   - 2026-10-15 C-48 review fix: "See the guide" emits mt::open-guide
 //     with {} (C-40's guide has no 'whats-new' section); the dialog
 //     aria-label uses the localized whatsNew.title key instead of a
@@ -56,15 +76,17 @@
 import { ref, nextTick, onMounted, onBeforeUnmount } from 'vue'
 import bus from '@/bus'
 import { t } from '@/i18n'
-import { getWhatsNewItems } from '@/whatsNew/data'
+import { getWhatsNewItems, getWhatsNewReleaseUrl } from '@/whatsNew/data'
 import { getRunningVersion } from '@/whatsNew/gate'
 
 const visible = ref(false)
 const version = ref(getRunningVersion())
 const items = ref([])
+const releaseUrl = ref('')
 const sheet = ref(null)
 const continueButton = ref(null)
 const guideLink = ref(null)
+const releaseLink = ref(null)
 let restoreFocusTo = null
 
 // START_BLOCK_OPEN_SHEET
@@ -75,6 +97,7 @@ const openSheet = (payload) => {
   version.value = (payload && typeof payload.version === 'string' && payload.version) || getRunningVersion()
   items.value = getWhatsNewItems(version.value)
   if (!items.value.length) return
+  releaseUrl.value = getWhatsNewReleaseUrl(version.value)
   restoreFocusTo = document.activeElement
   visible.value = true
   nextTick(() => {
@@ -95,10 +118,11 @@ const close = () => {
 }
 
 // START_BLOCK_FOCUS_TRAP
-// Tab (and Shift+Tab) cycle inside the sheet — the two footer controls
-// are the only focusable elements; moving past either end wraps.
+// Tab (and Shift+Tab) cycle inside the sheet — the three footer controls
+// (release link, guide link, Continue) are the only focusable elements;
+// moving past either end wraps.
 const onTab = (e) => {
-  const focusables = [guideLink.value, continueButton.value].filter(Boolean)
+  const focusables = [releaseLink.value, guideLink.value, continueButton.value].filter(Boolean)
   if (focusables.length < 2) return
   const idx = focusables.indexOf(document.activeElement)
   e.preventDefault()
@@ -116,6 +140,25 @@ const openGuide = () => {
   bus.emit('mt::open-guide', {})
 }
 // END_BLOCK_OPEN_GUIDE
+
+// START_BLOCK_OPEN_RELEASE_PAGE
+// C-53: "See everything new" opens the GitHub release page in the
+// default browser through the app's shared external-link path (the same
+// window.electron.shell.openExternal the Help menu uses — the shim maps
+// it to the Tauri opener plugin). window.electron is read LAZILY here:
+// the renderer test harness installs it per test, never at import time.
+// The sheet stays open — the browser takes focus and the user closes
+// the sheet when done.
+const openReleasePage = () => {
+  if (!releaseUrl.value) return
+  const shell = window.electron && window.electron.shell
+  if (shell && typeof shell.openExternal === 'function') {
+    Promise.resolve(shell.openExternal(releaseUrl.value)).catch((e) => {
+      console.error('[whatsNew][openReleasePage][BLOCK_OPEN_RELEASE_PAGE_FAILED]', e)
+    })
+  }
+}
+// END_BLOCK_OPEN_RELEASE_PAGE
 
 onMounted(() => {
   bus.on('whatsNewDialog', openSheet)
@@ -206,11 +249,26 @@ onBeforeUnmount(() => {
   color: var(--editorColor50, rgba(0, 0, 0, 0.5));
 }
 
+/* C-53: the one-line «Also» summary under the items — smaller than the
+   item texts, muted, may wrap to a second line. */
+.ag-whats-new-sheet .also {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--editorColor50, rgba(0, 0, 0, 0.5));
+}
+
 .ag-whats-new-sheet .sheet-foot {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-top: 4px;
+}
+
+.ag-whats-new-sheet .foot-links {
+  display: flex;
+  align-items: center;
+  gap: 16px;
 }
 
 .ag-whats-new-sheet .guide-link {

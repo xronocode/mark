@@ -1406,22 +1406,24 @@
     "title": "Novidades",
     "seeGuide": "Ver o guia",
     "continue": "Continuar",
+    "also": "⌘D mostra o que o agente alterou · ⌥⌘V abre uma pasta copiada · um só zoom para tudo",
+    "seeEverything": "Ver todas as novidades",
     "v2_3_1": {
-      "zoom": {
-        "title": "Amplie diagramas e tabelas",
-        "text": "Passe o cursor e pressione ⤢ para uma vista em ecrã inteiro com zoom e arrasto."
+      "look": {
+        "title": "Um Mark mais sereno e nativo",
+        "text": "Temas Paper, Ink, Docs e macOS, barra de título fina e índice ao lado do texto."
       },
-      "agentDiff": {
-        "title": "Veja o que o agente mudou",
-        "text": "⌘D compara com a versão anterior à última gravação."
+      "home": {
+        "title": "Uma tela inicial",
+        "text": "Arquivos e pastas recentes, o Guia e seu agente conectado com um clique."
       },
-      "themes": {
-        "title": "Paper e Ink",
-        "text": "Novos temas predefinidos, e Auto segue o macOS."
+      "diagrams": {
+        "title": "Diagramas nas cores do tema",
+        "text": "Mermaid, gráficos e fórmulas seguem as cores do tema; qualquer um abre em tela cheia."
       },
-      "tables": {
-        "title": "Tabelas que cabem",
-        "text": "Tabelas largas deslizam dentro da coluna; as ligações longas mudam de linha."
+      "notes": {
+        "title": "Só as suas notas",
+        "text": "As pastas mostram apenas Markdown, com Recentes e Fixados no topo."
       }
     }
   }

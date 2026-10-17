@@ -1399,22 +1399,24 @@
     "title": "新变化",
     "seeGuide": "查看指南",
     "continue": "继续",
+    "also": "⌘D 查看智能体的改动 · ⌥⌘V 打开复制的文件夹 · 统一的缩放",
+    "seeEverything": "查看全部新功能",
     "v2_3_1": {
-      "zoom": {
-        "title": "放大图表与表格",
-        "text": "悬停并按下 ⤢，进入可缩放、可平移的全屏视图。"
+      "look": {
+        "title": "更简洁、更贴近系统的 Mark",
+        "text": "全新 Paper、Ink、Docs、macOS 主题，精简的标题栏，正文旁的目录。"
       },
-      "agentDiff": {
-        "title": "查看代理的改动",
-        "text": "⌘D 与其上次保存之前的版本对比。"
+      "home": {
+        "title": "首页",
+        "text": "最近的文件和文件夹、指南，以及一键连接你的智能体。"
       },
-      "themes": {
-        "title": "Paper 与 Ink",
-        "text": "全新默认主题，Auto 跟随 macOS。"
+      "diagrams": {
+        "title": "与主题相配的图表",
+        "text": "Mermaid、图表和公式采用主题配色；每一个都能全屏查看。"
       },
-      "tables": {
-        "title": "装得下的表格",
-        "text": "宽表格在栏内滚动，长链接自动换行。"
+      "notes": {
+        "title": "只看你的笔记",
+        "text": "文件夹里只显示 Markdown 文件，最近和已固定排在最前。"
       }
     }
   }

@@ -3933,18 +3933,35 @@
           equals running = nothing; recorded lower = upgrade = show the
           sheet once (components/whatsNew — board 3 mockup: eyebrow
           "Mark X.Y.Z", ≤ 4 items with icon + one-line title + one-line
-          text from whatsNew/data.js keyed by normalized version, "See
-          the guide" emits mt::open-guide {} (guide opens at the top),
+          text from whatsNew/data.js keyed by normalized version; since
+          C-53 T-001/R-1 the 2.3.1 entry is the D-1 board — look (◐,
+          native look + Paper/Ink/Docs/macOS themes), home (⌂, home
+          screen), diagrams (◔, themed diagrams + fullscreen), notes
+          (▤, Markdown-only folders) — followed by the one-line «Also»
+          summary (whatsNew.also: ⌘D agent diff · ⌥⌘V clipboard folder
+          · one zoom) and a footer link group: «See everything new»
+          opens WHATS_NEW_RELEASE_URLS[version] through
+          window.electron.shell.openExternal (lazy window read, sheet
+          stays open; getWhatsNewReleaseUrl '' hides the link for a
+          version without a release page) beside «See the guide»,
+          which emits mt::open-guide {} (guide opens at the top);
           dialog aria-label = localized whatsNew.title,
-          Continue / Esc / scrim close, Tab focus trap with focus
-          return; an upgrade to a version with no content records
-          silently instead of an empty sheet) and stamps the ISO
+          Continue / Esc / scrim close, Tab focus trap across the three
+          footer controls with focus return; an upgrade to a version
+          with no content records silently instead of an empty sheet) and stamps the ISO
           lastUpdateAt prefs key for the C-46 welcome footer 7-day
           window. Help › What's New (menu id help.whats-new, every
           build, no accelerator) reopens the sheet any time through the
           same whatsNewDialog bus event, falling back to the newest
           version with content (resolveWhatsNewVersion); the strings ship in all ten
-          locales (whatsNew.* incl. v2_3_1 items, commands.help.*).
+          locales (whatsNew.* incl. v2_3_1 items and the C-53 also /
+          seeEverything keys, commands.help.*; tests/renderer/whatsNew/
+          content.test.js pins per locale: all four item keys present,
+          titles ≤ 32 chars, texts ≤ 90, also ≤ 120, no vue-i18n
+          brace/message syntax, ⌘D and ⌥⌘V and the product names
+          Paper/Ink/Docs/macOS/Mermaid/Markdown kept verbatim, and the
+          release-URL lookup incl. the prerelease normalization and the
+          unknown-version '' case).
           The App Store review request runs only when the m048 review
           capability is true (app-store build on macOS; desktop
           m048_build_mode.rs pins review=false and m053_review.rs
@@ -3984,15 +4001,27 @@
           + tests/renderer/commands/c48-help-commands.test.js (https rate
           URL + rejection catch, What's New fallback)
           + tests/renderer/components/whatsNew.test.js (render, Esc,
-          focus trap + return, open-guide link) + cargo tests in
+          focus trap + return across the three footer controls,
+          open-guide link, «See everything new» opens
+          WHATS_NEW_RELEASE_URLS['2.3.1'] through
+          window.electron.shell.openExternal and keeps the sheet open)
+          + tests/renderer/whatsNew/content.test.js (the C-53 locale
+          matrix above) + cargo tests in
           src-tauri/src/m053_review.rs and m048_build_mode.rs (both
           build flavors) + m009_menu.rs (help.whats-new every build,
           help.rate only app-store macOS) + menu-consistency pins +
           e2e tests/e2e/whats-new.spec.ts (previous version in the
-          shim prefs → sheet appears once, Esc closes, reload does not
-          re-show; fresh install never shows; a 2.3.0 profile with an
-          old migration marker + recentFolders and no lastSeenVersion
-          shows the sheet once).
+          shim prefs → sheet appears once with the four D-1 titles,
+          the also line and both footer links, Esc closes, reload does
+          not re-show; fresh install never shows; a 2.3.0 profile with
+          an old migration marker + recentFolders and no lastSeenVersion
+          shows the sheet once; «See everything new» routes the v2.3.1
+          release URL through plugin:opener|open_url and keeps the
+          sheet open) + tests/e2e/readme-shots.spec.ts (C-53 R-2:
+          README capture, skips unless README_SHOTS=1 — 1440×900 @2x
+          Paper/Ink frames for 01-agents/03-diagrams/05-viewer/07-home/
+          08-dark written into docs/assets/readme/; chromium-only by
+          design).
           scenario-47: Welcome screen redesign (C-46, mockups boards
           1-2): components/recent/index.vue shows the brand header
           (renderer logo asset + Mark), the tagline "Agents write. You
@@ -4907,6 +4936,7 @@
         <Marker>[whatsNew][init][BLOCK_LEGACY_CHECK legacy=&lt;bool&gt; signals=&lt;list|none&gt;] — C-48 no lastSeenVersion: pre-C-48 profile detection from the boot prefs snapshot</Marker>
         <Marker>[app][onMounted][BLOCK_C48_STARTUP_FAILED] — C-48 detached startup (gate + review init) failed</Marker>
         <Marker>[commands][help.rate][BLOCK_OPEN_REVIEW_PAGE_FAILED] — C-48 opener rejected the App Store review URL</Marker>
+        <Marker>[whatsNew][openReleasePage][BLOCK_OPEN_RELEASE_PAGE_FAILED] — C-53 the «See everything new» external link could not open the release page (window.electron.shell.openExternal rejected); the sheet stays open</Marker>
         <Marker>[Review][request][BLOCK_REQUEST_REVIEW_NO_STOREKIT] — C-48 m053 SKStoreReviewController class missing; resolves Ok(false)</Marker>
         <Marker>[Review][request][BLOCK_REQUEST_REVIEW_DISPATCHED] — C-48 m053 SKStoreReviewController msg_send on the main thread</Marker>
         <Marker>[Review][request][BLOCK_REQUEST_REVIEW_NOOP] — C-48 desktop build stub</Marker>
