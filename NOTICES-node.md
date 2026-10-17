@@ -1,6 +1,6 @@
 # NOTICES — Node.js production dependencies
 
-Generated from `license-checker --production` over **725 packages**.
+Generated from `license-checker --production` over **631 packages**.
 
 Each entry lists the package name, version, license SPDX identifier, and upstream repository when available. Re-generate with:
 
@@ -13,10 +13,10 @@ npx --package license-checker -- license-checker --production --json | \
 
 | License | Package count |
 |---|---:|
-| MIT | 530 |
-| ISC | 63 |
-| BSD-3-Clause | 61 |
-| Apache-2.0 | 43 |
+| MIT | 461 |
+| BSD-3-Clause | 56 |
+| ISC | 50 |
+| Apache-2.0 | 37 |
 | BSD-2-Clause | 7 |
 | MIT OR Apache-2.0 | 5 |
 | Apache* | 2 |
@@ -29,15 +29,13 @@ npx --package license-checker -- license-checker --production --json | \
 | BSD* | 1 |
 | CC-BY-4.0 | 1 |
 | MIT-0 | 1 |
-| MIT* | 1 |
 | UNLICENSED | 1 |
 | WTFPL | 1 |
 
-## MIT (530)
+## MIT (461)
 
 | Package | Version | Repository |
 |---|---|---|
-| @antfu/install-pkg | 1.1.0 | https://github.com/antfu/install-pkg |
 | @asamuzakjp/css-color | 3.2.0 | https://github.com/asamuzaK/cssColor |
 | @babel/code-frame | 7.29.0 | https://github.com/babel/babel |
 | @babel/compat-data | 7.29.0 | https://github.com/babel/babel |
@@ -75,7 +73,6 @@ npx --package license-checker -- license-checker --production --json | \
 | @babel/template | 7.28.6 | https://github.com/babel/babel |
 | @babel/traverse | 7.29.0 | https://github.com/babel/babel |
 | @babel/types | 7.29.0 | https://github.com/babel/babel |
-| @braintree/sanitize-url | 7.1.2 | https://github.com/braintree/sanitize-url |
 | @clack/core | 0.4.2 | https://github.com/bombshell-dev/clack |
 | @clack/prompts | 0.10.1 | https://github.com/bombshell-dev/clack |
 | @csstools/css-calc | 2.1.4 | https://github.com/csstools/postcss-plugins |
@@ -87,8 +84,6 @@ npx --package license-checker -- license-checker --production --json | \
 | @floating-ui/core | 1.7.5 | https://github.com/floating-ui/floating-ui |
 | @floating-ui/dom | 1.7.6 | https://github.com/floating-ui/floating-ui |
 | @floating-ui/utils | 0.2.11 | https://github.com/floating-ui/floating-ui |
-| @iconify/types | 2.0.0 | https://github.com/iconify/iconify |
-| @iconify/utils | 3.1.1 | https://github.com/iconify/iconify |
 | @intlify/core-base | 11.4.0 | https://github.com/intlify/vue-i18n |
 | @intlify/devtools-types | 11.4.0 | https://github.com/intlify/vue-i18n |
 | @intlify/message-compiler | 11.4.0 | https://github.com/intlify/vue-i18n |
@@ -103,7 +98,6 @@ npx --package license-checker -- license-checker --production --json | \
 | @kwsites/file-exists | 1.1.1 | https://github.com/kwsites/file-exists |
 | @kwsites/promise-deferred | 1.1.1 | https://github.com/kwsites/promise-deferred |
 | @marktext/file-icons | 1.0.6 | https://github.com/marktext/file-icons |
-| @mermaid-js/parser | 1.1.0 | https://github.com/mermaid-js/mermaid |
 | @nodelib/fs.scandir | 2.1.5 | https://github.com/nodelib/nodelib/tree/master/packages/fs/fs.scandir |
 | @nodelib/fs.stat | 2.0.5 | https://github.com/nodelib/nodelib/tree/master/packages/fs/fs.stat |
 | @nodelib/fs.walk | 1.2.8 | https://github.com/nodelib/nodelib/tree/master/packages/fs/fs.walk |
@@ -129,37 +123,6 @@ npx --package license-checker -- license-checker --production --json | \
 | @trigger.dev/sdk | 3.3.13 | https://github.com/triggerdotdev/trigger.dev |
 | @trpc/client | 11.0.0-rc.700 | https://github.com/trpc/trpc |
 | @trpc/server | 11.0.0-rc.700 | https://github.com/trpc/trpc |
-| @types/d3 | 7.4.3 | https://github.com/DefinitelyTyped/DefinitelyTyped |
-| @types/d3-array | 3.2.2 | https://github.com/DefinitelyTyped/DefinitelyTyped |
-| @types/d3-axis | 3.0.6 | https://github.com/DefinitelyTyped/DefinitelyTyped |
-| @types/d3-brush | 3.0.6 | https://github.com/DefinitelyTyped/DefinitelyTyped |
-| @types/d3-chord | 3.0.6 | https://github.com/DefinitelyTyped/DefinitelyTyped |
-| @types/d3-color | 3.1.3 | https://github.com/DefinitelyTyped/DefinitelyTyped |
-| @types/d3-contour | 3.0.6 | https://github.com/DefinitelyTyped/DefinitelyTyped |
-| @types/d3-delaunay | 6.0.4 | https://github.com/DefinitelyTyped/DefinitelyTyped |
-| @types/d3-dispatch | 3.0.7 | https://github.com/DefinitelyTyped/DefinitelyTyped |
-| @types/d3-drag | 3.0.7 | https://github.com/DefinitelyTyped/DefinitelyTyped |
-| @types/d3-dsv | 3.0.7 | https://github.com/DefinitelyTyped/DefinitelyTyped |
-| @types/d3-ease | 3.0.2 | https://github.com/DefinitelyTyped/DefinitelyTyped |
-| @types/d3-fetch | 3.0.7 | https://github.com/DefinitelyTyped/DefinitelyTyped |
-| @types/d3-force | 3.0.10 | https://github.com/DefinitelyTyped/DefinitelyTyped |
-| @types/d3-format | 3.0.4 | https://github.com/DefinitelyTyped/DefinitelyTyped |
-| @types/d3-geo | 3.1.0 | https://github.com/DefinitelyTyped/DefinitelyTyped |
-| @types/d3-hierarchy | 3.1.7 | https://github.com/DefinitelyTyped/DefinitelyTyped |
-| @types/d3-interpolate | 3.0.4 | https://github.com/DefinitelyTyped/DefinitelyTyped |
-| @types/d3-path | 3.1.1 | https://github.com/DefinitelyTyped/DefinitelyTyped |
-| @types/d3-polygon | 3.0.2 | https://github.com/DefinitelyTyped/DefinitelyTyped |
-| @types/d3-quadtree | 3.0.6 | https://github.com/DefinitelyTyped/DefinitelyTyped |
-| @types/d3-random | 3.0.3 | https://github.com/DefinitelyTyped/DefinitelyTyped |
-| @types/d3-scale | 4.0.9 | https://github.com/DefinitelyTyped/DefinitelyTyped |
-| @types/d3-scale-chromatic | 3.1.0 | https://github.com/DefinitelyTyped/DefinitelyTyped |
-| @types/d3-selection | 3.0.11 | https://github.com/DefinitelyTyped/DefinitelyTyped |
-| @types/d3-shape | 3.1.8 | https://github.com/DefinitelyTyped/DefinitelyTyped |
-| @types/d3-time | 3.0.4 | https://github.com/DefinitelyTyped/DefinitelyTyped |
-| @types/d3-time-format | 4.0.3 | https://github.com/DefinitelyTyped/DefinitelyTyped |
-| @types/d3-timer | 3.0.2 | https://github.com/DefinitelyTyped/DefinitelyTyped |
-| @types/d3-transition | 3.0.9 | https://github.com/DefinitelyTyped/DefinitelyTyped |
-| @types/d3-zoom | 3.0.8 | https://github.com/DefinitelyTyped/DefinitelyTyped |
 | @types/estree | 1.0.8 | https://github.com/DefinitelyTyped/DefinitelyTyped |
 | @types/geojson | 7946.0.16 | https://github.com/DefinitelyTyped/DefinitelyTyped |
 | @types/lodash | 4.17.24 | https://github.com/DefinitelyTyped/DefinitelyTyped |
@@ -169,7 +132,6 @@ npx --package license-checker -- license-checker --production --json | \
 | @types/trusted-types | 2.0.7 | https://github.com/DefinitelyTyped/DefinitelyTyped |
 | @types/web-bluetooth | 0.0.20 | https://github.com/DefinitelyTyped/DefinitelyTyped |
 | @types/xml2js | 0.4.14 | https://github.com/DefinitelyTyped/DefinitelyTyped |
-| @upsetjs/venn.js | 2.0.0 | https://github.com/upsetjs/venn.js |
 | @vue/compiler-core | 3.5.33 | https://github.com/vuejs/core |
 | @vue/compiler-dom | 3.5.33 | https://github.com/vuejs/core |
 | @vue/compiler-sfc | 3.5.33 | https://github.com/vuejs/core |
@@ -220,7 +182,6 @@ npx --package license-checker -- license-checker --production --json | \
 | call-bind-apply-helpers | 1.0.2 | https://github.com/ljharb/call-bind-apply-helpers |
 | call-bound | 1.0.4 | https://github.com/ljharb/call-bound |
 | chalk | 5.6.2 | https://github.com/chalk/chalk |
-| chevrotain-allstar | 0.4.1 | https://github.com/langium/chevrotain-allstar |
 | cjs-module-lexer | 1.4.3 | https://github.com/nodejs/cjs-module-lexer |
 | clone-deep | 4.0.1 | https://github.com/jonschlinkert/clone-deep |
 | clone-regexp | 3.0.0 | https://github.com/sindresorhus/clone-regexp |
@@ -232,13 +193,10 @@ npx --package license-checker -- license-checker --production --json | \
 | commander | 7.2.0 | https://github.com/tj/commander.js |
 | commander | 8.3.0 | https://github.com/tj/commander.js |
 | commondir | 1.0.1 | https://github.com/substack/node-commondir |
-| confbox | 0.1.8 | https://github.com/unjs/confbox |
 | content-type | 1.0.5 | https://github.com/jshttp/content-type |
 | contra | 1.9.4 | https://github.com/bevacqua/contra |
 | convert-source-map | 2.0.0 | https://github.com/thlorenz/convert-source-map |
 | copy-anything | 4.0.5 | https://github.com/mesqueeb/copy-anything |
-| cose-base | 1.0.3 | https://github.com/iVis-at-Bilkent/cose-base |
-| cose-base | 2.2.0 | https://github.com/iVis-at-Bilkent/cose-base |
 | create-point-cb | 1.2.0 |  |
 | cronstrue | 2.59.0 | https://github.com/bradymholt/cronstrue |
 | cross-spawn | 7.0.6 | https://github.com/moxystudio/node-cross-spawn |
@@ -248,10 +206,6 @@ npx --package license-checker -- license-checker --production --json | \
 | csv-parse | 5.6.0 | https://github.com/adaltas/node-csv |
 | csv-stringify | 6.7.0 | https://github.com/adaltas/node-csv |
 | custom-event | 1.0.1 | https://github.com/webmodules/custom-event |
-| cytoscape | 3.33.2 | https://github.com/cytoscape/cytoscape.js |
-| cytoscape-cose-bilkent | 4.1.0 | https://github.com/cytoscape/cytoscape.js-cose-bilkent |
-| cytoscape-fcose | 2.2.0 | https://github.com/iVis-at-Bilkent/cytoscape.js-fcose |
-| dagre-d3-es | 7.0.14 | https://github.com/tbo47/dagre-es |
 | data-urls | 5.0.0 | https://github.com/jsdom/data-urls |
 | dayjs | 1.11.20 | https://github.com/iamkun/dayjs |
 | debug | 4.3.7 | https://github.com/debug-js/debug |
@@ -317,7 +271,6 @@ npx --package license-checker -- license-checker --production --json | \
 | gettext-parser | 8.0.0 | https://github.com/smhg/gettext-parser |
 | github-markdown-css | 5.9.0 | https://github.com/sindresorhus/github-markdown-css |
 | gopd | 1.2.0 | https://github.com/ljharb/gopd |
-| hachure-fill | 0.5.2 | https://github.com/pshihn/hachure-fill |
 | has-bigints | 1.1.0 | https://github.com/ljharb/has-bigints |
 | has-flag | 4.0.0 | https://github.com/sindresorhus/has-flag |
 | has-property-descriptors | 1.0.2 | https://github.com/inspect-js/has-property-descriptors |
@@ -377,10 +330,7 @@ npx --package license-checker -- license-checker --production --json | \
 | json5 | 2.2.3 | https://github.com/json5/json5 |
 | katex | 0.16.45 | https://github.com/KaTeX/KaTeX |
 | kind-of | 6.0.3 | https://github.com/jonschlinkert/kind-of |
-| langium | 4.2.2 | https://github.com/eclipse-langium/langium |
 | languine | 3.1.4 |  |
-| layout-base | 1.0.2 | https://github.com/iVis-at-Bilkent/layout-base |
-| layout-base | 2.0.1 | https://github.com/iVis-at-Bilkent/layout-base |
 | load-yaml-file | 0.2.0 | https://github.com/LinusU/load-yaml-file |
 | locate-path | 3.0.0 | https://github.com/sindresorhus/locate-path |
 | locate-path | 5.0.0 | https://github.com/sindresorhus/locate-path |
@@ -396,19 +346,16 @@ npx --package license-checker -- license-checker --production --json | \
 | lodash.uniq | 4.5.0 | https://github.com/lodash/lodash |
 | magic-string | 0.30.21 | https://github.com/Rich-Harris/magic-string |
 | make-dir | 2.1.0 | https://github.com/sindresorhus/make-dir |
-| marked | 16.4.2 | https://github.com/markedjs/marked |
 | math-intrinsics | 1.1.0 | https://github.com/es-shims/math-intrinsics |
 | memoize-one | 6.0.0 | https://github.com/alexreardon/memoize-one |
 | merge-stream | 2.0.0 | https://github.com/grncdr/merge-stream |
 | merge2 | 1.4.1 | https://github.com/teambition/merge2 |
-| mermaid | 11.14.0 | https://github.com/mermaid-js/mermaid |
 | micromatch | 4.0.8 | https://github.com/micromatch/micromatch |
 | mime-db | 1.52.0 | https://github.com/jshttp/mime-db |
 | mime-types | 2.1.35 | https://github.com/jshttp/mime-types |
 | mimic-fn | 4.0.0 | https://github.com/sindresorhus/mimic-fn |
 | minimal-polyfills | 2.2.3 | https://github.com/garronej/minimal_polyfills |
 | mitt | 3.0.1 | https://github.com/developit/mitt |
-| mlly | 1.8.2 | https://github.com/unjs/mlly |
 | module-details-from-path | 1.0.4 | https://github.com/watson/module-details-from-path |
 | ms | 2.1.3 | https://github.com/vercel/ms |
 | nanoid | 3.3.11 | https://github.com/ai/nanoid |
@@ -427,17 +374,15 @@ npx --package license-checker -- license-checker --production --json | \
 | p-locate | 3.0.0 | https://github.com/sindresorhus/p-locate |
 | p-locate | 4.1.0 | https://github.com/sindresorhus/p-locate |
 | p-try | 2.2.0 | https://github.com/sindresorhus/p-try |
-| package-manager-detector | 1.6.0 | https://github.com/antfu-collective/package-manager-detector |
 | parse-sel | 1.0.0 | https://github.com/acstll/parse-sel |
 | parse5 | 7.3.0 | https://github.com/inikulin/parse5 |
 | path-browserify | 1.0.1 | https://github.com/browserify/path-browserify |
-| path-data-parser | 0.1.0 | https://github.com/pshihn/path-data-parser |
 | path-exists | 3.0.0 | https://github.com/sindresorhus/path-exists |
 | path-exists | 4.0.0 | https://github.com/sindresorhus/path-exists |
 | path-key | 3.1.1 | https://github.com/sindresorhus/path-key |
 | path-key | 4.0.0 | https://github.com/sindresorhus/path-key |
 | path-parse | 1.0.7 | https://github.com/jbgutierrez/path-parse |
-| pathe | 2.0.3 | https://github.com/unjs/pathe |
+| pele | 1.6.0 | https://github.com/obsidianmd/pele |
 | perfect-debounce | 1.0.0 | https://github.com/unjs/perfect-debounce |
 | picomatch | 2.3.2 | https://github.com/micromatch/picomatch |
 | pify | 4.0.1 | https://github.com/sindresorhus/pify |
@@ -445,10 +390,7 @@ npx --package license-checker -- license-checker --production --json | \
 | pirates | 4.0.7 | https://github.com/danez/pirates |
 | pkg-dir | 3.0.0 | https://github.com/sindresorhus/pkg-dir |
 | pkg-dir | 4.2.0 | https://github.com/sindresorhus/pkg-dir |
-| pkg-types | 1.3.1 | https://github.com/unjs/pkg-types |
 | plist | 3.1.1 | https://github.com/TooTallNate/node-plist |
-| points-on-curve | 0.2.0 | https://github.com/pshihn/bezier-points |
-| points-on-path | 0.2.1 | https://github.com/pshihn/points-on-path |
 | possible-typed-array-names | 1.1.0 | https://github.com/ljharb/possible-typed-array-names |
 | postcss | 8.5.12 | https://github.com/postcss/postcss |
 | preferred-pm | 4.1.1 | https://github.com/zkochan/packages/tree/main/preferred-pm |
@@ -468,7 +410,6 @@ npx --package license-checker -- license-checker --production --json | \
 | resolve | 1.22.12 | https://github.com/browserify/resolve |
 | reusify | 1.1.0 | https://github.com/mcollina/reusify |
 | rfdc | 1.4.1 | https://github.com/davidmarkclements/rfdc |
-| roughjs | 4.6.6 | https://github.com/pshihn/rough |
 | rrweb-cssom | 0.8.0 | https://github.com/rrweb-io/CSSOM |
 | run-applescript | 7.1.0 | https://github.com/sindresorhus/run-applescript |
 | run-exclusive | 2.2.19 | https://github.com/garronej/run_exclusive |
@@ -503,7 +444,6 @@ npx --package license-checker -- license-checker --production --json | \
 | strip-bom | 3.0.0 | https://github.com/sindresorhus/strip-bom |
 | strip-final-newline | 3.0.0 | https://github.com/sindresorhus/strip-final-newline |
 | strnum | 1.1.2 | https://github.com/NaturalIntelligence/strnum |
-| stylis | 4.4.0 | https://github.com/thysultan/stylis.js |
 | superjson | 2.2.6 | https://github.com/blitz-js/superjson |
 | supports-color | 7.2.0 | https://github.com/chalk/supports-color |
 | supports-hyperlinks | 2.3.0 | https://github.com/jamestalmage/supports-hyperlinks |
@@ -513,29 +453,19 @@ npx --package license-checker -- license-checker --production --json | \
 | terminal-link | 3.0.0 | https://github.com/sindresorhus/terminal-link |
 | ticky | 1.0.1 | https://github.com/bevacqua/ticky |
 | tiny-invariant | 1.3.3 | https://github.com/alexreardon/tiny-invariant |
-| tinyexec | 1.1.1 | https://github.com/tinylibs/tinyexec |
 | tldts | 6.1.86 | https://github.com/remusao/tldts |
 | tldts-core | 6.1.86 | https://github.com/remusao/tldts |
 | tmp | 0.2.5 | https://github.com/raszi/node-tmp |
 | to-regex-range | 5.0.1 | https://github.com/micromatch/to-regex-range |
 | tr46 | 5.1.1 | https://github.com/jsdom/tr46 |
-| ts-dedent | 2.2.0 | https://github.com/tamino-martinius/node-ts-dedent |
 | tsafe | 1.8.12 | https://github.com/garronej/tsafe |
 | turndown | 7.2.4 | https://github.com/mixmark-io/turndown |
 | type-func | 1.0.3 |  |
-| ufo | 1.6.3 | https://github.com/unjs/ufo |
 | ulid | 2.4.0 | https://github.com/ulid/javascript |
 | underscore | 1.13.8 | https://github.com/jashkenas/underscore |
 | undici-types | 7.19.2 | https://github.com/nodejs/undici |
 | update-browserslist-db | 1.2.3 | https://github.com/browserslist/update-db |
-| uuid | 11.1.0 | https://github.com/uuidjs/uuid |
 | uuid | 9.0.1 | https://github.com/uuidjs/uuid |
-| vscode-jsonrpc | 8.2.0 | https://github.com/Microsoft/vscode-languageserver-node |
-| vscode-languageserver | 9.0.1 | https://github.com/Microsoft/vscode-languageserver-node |
-| vscode-languageserver-protocol | 3.17.5 | https://github.com/Microsoft/vscode-languageserver-node |
-| vscode-languageserver-textdocument | 1.0.12 | https://github.com/Microsoft/vscode-languageserver-node |
-| vscode-languageserver-types | 3.17.5 | https://github.com/Microsoft/vscode-languageserver-node |
-| vscode-uri | 3.1.0 | https://github.com/microsoft/vscode-uri |
 | vue | 3.5.33 | https://github.com/vuejs/core |
 | vue-component-type-helpers | 3.2.7 | https://github.com/vuejs/language-tools |
 | vue-i18n | 11.4.0 | https://github.com/intlify/vue-i18n |
@@ -568,75 +498,7 @@ npx --package license-checker -- license-checker --production --json | \
 | zod-error | 1.5.0 | https://github.com/andrewvo89/zod-error |
 | zod-validation-error | 1.5.0 | https://github.com/causaly/zod-validation-error |
 
-## ISC (63)
-
-| Package | Version | Repository |
-|---|---|---|
-| atom-fs | 0.2.1 | https://github.com/file-icons/atom-fs |
-| cliui | 8.0.1 | https://github.com/yargs/cliui |
-| cliui | 9.0.1 | https://github.com/yargs/cliui |
-| d3 | 7.9.0 | https://github.com/d3/d3 |
-| d3-array | 3.2.4 | https://github.com/d3/d3-array |
-| d3-axis | 3.0.0 | https://github.com/d3/d3-axis |
-| d3-brush | 3.0.0 | https://github.com/d3/d3-brush |
-| d3-chord | 3.0.1 | https://github.com/d3/d3-chord |
-| d3-color | 3.1.0 | https://github.com/d3/d3-color |
-| d3-contour | 4.0.2 | https://github.com/d3/d3-contour |
-| d3-delaunay | 6.0.4 | https://github.com/d3/d3-delaunay |
-| d3-dispatch | 3.0.1 | https://github.com/d3/d3-dispatch |
-| d3-drag | 3.0.0 | https://github.com/d3/d3-drag |
-| d3-dsv | 3.0.1 | https://github.com/d3/d3-dsv |
-| d3-fetch | 3.0.1 | https://github.com/d3/d3-fetch |
-| d3-force | 3.0.0 | https://github.com/d3/d3-force |
-| d3-format | 3.1.2 | https://github.com/d3/d3-format |
-| d3-geo | 3.1.1 | https://github.com/d3/d3-geo |
-| d3-geo-projection | 4.0.0 | https://github.com/d3/d3-geo-projection |
-| d3-hierarchy | 3.1.2 | https://github.com/d3/d3-hierarchy |
-| d3-interpolate | 3.0.1 | https://github.com/d3/d3-interpolate |
-| d3-path | 3.1.0 | https://github.com/d3/d3-path |
-| d3-polygon | 3.0.1 | https://github.com/d3/d3-polygon |
-| d3-quadtree | 3.0.1 | https://github.com/d3/d3-quadtree |
-| d3-random | 3.0.1 | https://github.com/d3/d3-random |
-| d3-scale | 4.0.2 | https://github.com/d3/d3-scale |
-| d3-scale-chromatic | 3.1.0 | https://github.com/d3/d3-scale-chromatic |
-| d3-selection | 3.0.0 | https://github.com/d3/d3-selection |
-| d3-shape | 3.2.0 | https://github.com/d3/d3-shape |
-| d3-time | 3.1.0 | https://github.com/d3/d3-time |
-| d3-time-format | 4.1.0 | https://github.com/d3/d3-time-format |
-| d3-timer | 3.0.1 | https://github.com/d3/d3-timer |
-| d3-transition | 3.0.1 | https://github.com/d3/d3-transition |
-| d3-zoom | 3.0.0 | https://github.com/d3/d3-zoom |
-| delaunator | 5.1.0 | https://github.com/mapbox/delaunator |
-| electron-to-chromium | 1.5.344 | https://github.com/Kilian/electron-to-chromium |
-| fastq | 1.20.1 | https://github.com/mcollina/fastq |
-| get-caller-file | 2.0.5 | https://github.com/stefanpenner/get-caller-file |
-| glob-parent | 5.1.2 | https://github.com/gulpjs/glob-parent |
-| graceful-fs | 4.2.11 | https://github.com/isaacs/node-graceful-fs |
-| internmap | 1.0.1 | https://github.com/mbostock/internmap |
-| internmap | 2.0.3 | https://github.com/mbostock/internmap |
-| isexe | 2.0.0 | https://github.com/isaacs/isexe |
-| jsonrepair | 3.14.0 | https://github.com/josdejong/jsonrepair |
-| lru-cache | 10.4.3 | https://github.com/isaacs/node-lru-cache |
-| lru-cache | 5.1.1 | https://github.com/isaacs/node-lru-cache |
-| mapped-disposable | 1.0.3 | https://github.com/file-icons/mapped-disposable |
-| path-win32 | 1.0.1 | https://github.com/stefanpenner/node-path-posix |
-| picocolors | 1.1.1 | https://github.com/alexeyraspopov/picocolors |
-| saxes | 6.0.0 | https://github.com/lddubeau/saxes |
-| semver | 5.7.2 | https://github.com/npm/node-semver |
-| semver | 6.3.1 | https://github.com/npm/node-semver |
-| semver | 7.7.4 | https://github.com/npm/node-semver |
-| signal-exit | 4.1.0 | https://github.com/tapjs/signal-exit |
-| topojson-client | 3.1.0 | https://github.com/topojson/topojson-client |
-| universal-user-agent | 7.0.3 | https://github.com/gr2m/universal-user-agent |
-| which | 2.0.2 | https://github.com/isaacs/node-which |
-| write-file-atomic | 5.0.1 | https://github.com/npm/write-file-atomic |
-| y18n | 5.0.8 | https://github.com/yargs/y18n |
-| yallist | 3.1.1 | https://github.com/isaacs/yallist |
-| yaml | 2.8.3 | https://github.com/eemeli/yaml |
-| yargs-parser | 21.1.1 | https://github.com/yargs/yargs-parser |
-| yargs-parser | 22.0.0 | https://github.com/yargs/yargs-parser |
-
-## BSD-3-Clause (61)
+## BSD-3-Clause (56)
 
 | Package | Version | Repository |
 |---|---|---|
@@ -650,11 +512,6 @@ npx --package license-checker -- license-checker --production --json | \
 | @protobufjs/path | 1.1.2 | https://github.com/dcodeIO/protobuf.js |
 | @protobufjs/pool | 1.1.0 | https://github.com/dcodeIO/protobuf.js |
 | @protobufjs/utf8 | 1.1.1 | https://github.com/dcodeIO/protobuf.js |
-| d3-array | 2.12.1 | https://github.com/d3/d3-array |
-| d3-ease | 3.0.1 | https://github.com/d3/d3-ease |
-| d3-path | 1.0.9 | https://github.com/d3/d3-path |
-| d3-sankey | 0.12.3 | https://github.com/d3/d3-sankey |
-| d3-shape | 1.3.7 | https://github.com/d3/d3-shape |
 | ieee754 | 1.2.1 | https://github.com/feross/ieee754 |
 | normalize-wheel-es | 1.2.0 | https://github.com/sxzz/normalize-wheel-es |
 | php-parser | 3.5.1 | https://github.com/glayzzle/php-parser |
@@ -702,15 +559,65 @@ npx --package license-checker -- license-checker --production --json | \
 | vega-voronoi | 5.1.0 | https://github.com/vega/vega |
 | vega-wordcloud | 5.1.0 | https://github.com/vega/vega |
 
-## Apache-2.0 (43)
+## ISC (50)
 
 | Package | Version | Repository |
 |---|---|---|
-| @chevrotain/cst-dts-gen | 12.0.0 | https://github.com/Chevrotain/chevrotain |
-| @chevrotain/gast | 12.0.0 | https://github.com/Chevrotain/chevrotain |
-| @chevrotain/regexp-to-ast | 12.0.0 | https://github.com/Chevrotain/chevrotain |
-| @chevrotain/types | 12.0.0 | https://github.com/Chevrotain/chevrotain |
-| @chevrotain/utils | 12.0.0 | https://github.com/Chevrotain/chevrotain |
+| atom-fs | 0.2.1 | https://github.com/file-icons/atom-fs |
+| cliui | 8.0.1 | https://github.com/yargs/cliui |
+| cliui | 9.0.1 | https://github.com/yargs/cliui |
+| d3-array | 3.2.4 | https://github.com/d3/d3-array |
+| d3-color | 3.1.0 | https://github.com/d3/d3-color |
+| d3-delaunay | 6.0.4 | https://github.com/d3/d3-delaunay |
+| d3-dispatch | 3.0.1 | https://github.com/d3/d3-dispatch |
+| d3-dsv | 3.0.1 | https://github.com/d3/d3-dsv |
+| d3-force | 3.0.0 | https://github.com/d3/d3-force |
+| d3-format | 3.1.2 | https://github.com/d3/d3-format |
+| d3-geo | 3.1.1 | https://github.com/d3/d3-geo |
+| d3-geo-projection | 4.0.0 | https://github.com/d3/d3-geo-projection |
+| d3-hierarchy | 3.1.2 | https://github.com/d3/d3-hierarchy |
+| d3-interpolate | 3.0.1 | https://github.com/d3/d3-interpolate |
+| d3-path | 3.1.0 | https://github.com/d3/d3-path |
+| d3-quadtree | 3.0.1 | https://github.com/d3/d3-quadtree |
+| d3-scale | 4.0.2 | https://github.com/d3/d3-scale |
+| d3-scale-chromatic | 3.1.0 | https://github.com/d3/d3-scale-chromatic |
+| d3-shape | 3.2.0 | https://github.com/d3/d3-shape |
+| d3-time | 3.1.0 | https://github.com/d3/d3-time |
+| d3-time-format | 4.1.0 | https://github.com/d3/d3-time-format |
+| d3-timer | 3.0.1 | https://github.com/d3/d3-timer |
+| delaunator | 5.1.0 | https://github.com/mapbox/delaunator |
+| electron-to-chromium | 1.5.344 | https://github.com/Kilian/electron-to-chromium |
+| fastq | 1.20.1 | https://github.com/mcollina/fastq |
+| get-caller-file | 2.0.5 | https://github.com/stefanpenner/get-caller-file |
+| glob-parent | 5.1.2 | https://github.com/gulpjs/glob-parent |
+| graceful-fs | 4.2.11 | https://github.com/isaacs/node-graceful-fs |
+| internmap | 2.0.3 | https://github.com/mbostock/internmap |
+| isexe | 2.0.0 | https://github.com/isaacs/isexe |
+| jsonrepair | 3.14.0 | https://github.com/josdejong/jsonrepair |
+| lru-cache | 10.4.3 | https://github.com/isaacs/node-lru-cache |
+| lru-cache | 5.1.1 | https://github.com/isaacs/node-lru-cache |
+| mapped-disposable | 1.0.3 | https://github.com/file-icons/mapped-disposable |
+| path-win32 | 1.0.1 | https://github.com/stefanpenner/node-path-posix |
+| picocolors | 1.1.1 | https://github.com/alexeyraspopov/picocolors |
+| saxes | 6.0.0 | https://github.com/lddubeau/saxes |
+| semver | 5.7.2 | https://github.com/npm/node-semver |
+| semver | 6.3.1 | https://github.com/npm/node-semver |
+| semver | 7.7.4 | https://github.com/npm/node-semver |
+| signal-exit | 4.1.0 | https://github.com/tapjs/signal-exit |
+| topojson-client | 3.1.0 | https://github.com/topojson/topojson-client |
+| universal-user-agent | 7.0.3 | https://github.com/gr2m/universal-user-agent |
+| which | 2.0.2 | https://github.com/isaacs/node-which |
+| write-file-atomic | 5.0.1 | https://github.com/npm/write-file-atomic |
+| y18n | 5.0.8 | https://github.com/yargs/y18n |
+| yallist | 3.1.1 | https://github.com/isaacs/yallist |
+| yaml | 2.8.3 | https://github.com/eemeli/yaml |
+| yargs-parser | 21.1.1 | https://github.com/yargs/yargs-parser |
+| yargs-parser | 22.0.0 | https://github.com/yargs/yargs-parser |
+
+## Apache-2.0 (37)
+
+| Package | Version | Repository |
+|---|---|---|
 | @google-cloud/precise-date | 4.0.0 | https://github.com/googleapis/nodejs-precise-date |
 | @grpc/grpc-js | 1.14.3 | https://github.com/grpc/grpc-node/tree/master/packages/grpc-js |
 | @grpc/proto-loader | 0.8.0 | https://github.com/grpc/grpc-node |
@@ -738,7 +645,6 @@ npx --package license-checker -- license-checker --production --json | \
 | @opentelemetry/semantic-conventions | 1.25.1 | https://github.com/open-telemetry/opentelemetry-js |
 | baseline-browser-mapping | 2.10.23 | https://github.com/web-platform-dx/baseline-browser-mapping |
 | before-after-hook | 4.0.0 | https://github.com/gr2m/before-after-hook |
-| chevrotain | 12.0.0 | https://github.com/Chevrotain/chevrotain |
 | diff-match-patch | 1.0.5 | https://github.com/JackuB/diff-match-patch |
 | eve | 0.5.4 | https://github.com/adobe-webplatform/eve |
 | find-yarn-workspace-root2 | 1.2.16 | https://github.com/bluelovers/find-yarn-workspace-root |
@@ -833,12 +739,6 @@ npx --package license-checker -- license-checker --production --json | \
 | Package | Version | Repository |
 |---|---|---|
 | @csstools/color-helpers | 5.1.0 | https://github.com/csstools/postcss-plugins |
-
-## MIT* (1)
-
-| Package | Version | Repository |
-|---|---|---|
-| khroma | 2.1.0 | https://github.com/fabiospampinato/khroma |
 
 ## UNLICENSED (1)
 
