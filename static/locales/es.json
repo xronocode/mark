@@ -1405,22 +1405,24 @@
     "title": "Novedades",
     "seeGuide": "Ver la guía",
     "continue": "Continuar",
+    "also": "⌘D muestra lo que cambió tu agente · ⌥⌘V abre una carpeta copiada · un zoom para todo",
+    "seeEverything": "Ver todas las novedades",
     "v2_3_1": {
-      "zoom": {
-        "title": "Amplía diagramas y tablas",
-        "text": "Pasa el cursor y pulsa ⤢ para una vista a pantalla completa con zoom y desplazamiento."
+      "look": {
+        "title": "Un Mark más discreto y natural",
+        "text": "Temas Paper, Ink, Docs y macOS, barra de título fina y esquema junto al texto."
       },
-      "agentDiff": {
-        "title": "Ve lo que cambió el agente",
-        "text": "⌘D compara con la versión anterior a su último guardado."
+      "home": {
+        "title": "Una pantalla de inicio",
+        "text": "Archivos y carpetas recientes, la Guía y tu agente conectado en un clic."
       },
-      "themes": {
-        "title": "Paper e Ink",
-        "text": "Nuevos temas predeterminados, y Auto sigue a macOS."
+      "diagrams": {
+        "title": "Diagramas a juego con el tema",
+        "text": "Mermaid, gráficos y fórmulas con los colores del tema; todo se abre a pantalla completa."
       },
-      "tables": {
-        "title": "Tablas que caben",
-        "text": "Las tablas anchas se desplazan dentro de la columna; los enlaces largos se ajustan."
+      "notes": {
+        "title": "Solo tus notas",
+        "text": "Las carpetas muestran solo Markdown, con Recientes y Fijados arriba."
       }
     }
   }

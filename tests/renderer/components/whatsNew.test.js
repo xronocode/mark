@@ -1,14 +1,20 @@
 // FILE: tests/renderer/components/whatsNew.test.js
-// VERSION: 1.1.0
+// VERSION: 1.2.0
 // START_MODULE_CONTRACT
-//   PURPOSE: Pin the C-48 What's New sheet component — opens on the
-//            whatsNewDialog bus event, renders the 2.3.1 items from the
-//            en table, Esc/Continue close it, focus is trapped and
-//            returned, "See the guide" opens the guide at the top
-//            (mt::open-guide with {}), and the dialog label is localized.
+//   PURPOSE: Pin the C-48/C-53 What's New sheet component — opens on the
+//            whatsNewDialog bus event, renders the 2.3.1 D-1 items from
+//            the en table plus the C-53 «Also» line and «See everything
+//            new» external link, Esc/Continue close it, focus is trapped
+//            across the three footer controls and returned, "See the
+//            guide" opens the guide at the top (mt::open-guide with {}),
+//            the release link opens the GitHub release page through
+//            window.electron.shell.openExternal, and the dialog label is
+//            localized.
 //   SCOPE: src/renderer/src/components/whatsNew/index.vue behaviour.
-//   DEPENDS: @vue/test-utils, mocked @/bus, real i18n t (en table).
-//   LINKS: .grace/changes/archive/C-48/spec.xml R-1; V-M-011 scenario-46.
+//   DEPENDS: @vue/test-utils, mocked @/bus, real i18n t (en table),
+//          tests/renderer/setup.ts window.electron.shell.openExternal.
+//   LINKS: .grace/changes/active/C-53/spec.xml R-1 (D-1 sheet);
+//          .grace/verification/runtime.xml V-M-011 scenario-46.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT
@@ -18,7 +24,13 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.1.0 - 2026-10-15 C-48 review fix: guide link payload is
+//   LAST_CHANGE: v1.2.0 - 2026-10-17 C-53 T-001/R-1: pins the four D-1
+//   items (native look, home screen, themed diagrams, Markdown-only
+//   folders) with the new icon set, the «Also» line, the «See everything
+//   new» link (opens WHATS_NEW_RELEASE_URLS['2.3.1'] through
+//   window.electron.shell.openExternal and keeps the sheet open), and
+//   the Tab trap across the three footer controls.
+//   PREV: v1.1.0 - 2026-10-15 C-48 review fix: guide link payload is
 //   {} (C-40 has no 'whats-new' section); aria-label follows the active
 //   locale (ru pin) instead of a hard-coded English string.
 //   PREV: v1.0.0 - 2026-10-15 C-48 T-001: initial pins.
@@ -52,6 +64,7 @@ vi.mock('@/bus', () => {
 import bus from '@/bus'
 import { i18n } from '@/i18n'
 import ruTranslations from '../../../static/locales/ru.json'
+import { WHATS_NEW_RELEASE_URLS } from '@/whatsNew/data'
 import WhatsNewSheet from '@/components/whatsNew/index.vue'
 
 // TOP-LEVEL helper (TEST/LOCALS).
@@ -69,7 +82,7 @@ describe('components/whatsNew — sheet', () => {
     wrapper.unmount()
   })
 
-  it('renders the eyebrow, title and all four 2.3.1 items from the en table', async () => {
+  it('renders the eyebrow, title, the four 2.3.1 D-1 items and the also line from the en table', async () => {
     const wrapper = mountSheet()
     bus.emit('whatsNewDialog', { version: '2.3.1' })
     await nextTick()
@@ -79,13 +92,21 @@ describe('components/whatsNew — sheet', () => {
     expect(wrapper.find('.title').text()).toBe("What's new")
     const items = wrapper.findAll('.news li')
     expect(items).toHaveLength(4)
-    expect(items[0].find('b').text()).toBe('Zoom into diagrams and tables')
-    expect(items[0].find('.news-body span').text()).toContain('fullscreen view')
-    expect(items[2].find('b').text()).toBe('Paper and Ink')
-    // icons mirror the approved board 3 mockup
+    expect(items[0].find('b').text()).toBe('A calmer, native-looking Mark')
+    expect(items[0].find('.news-body span').text()).toContain('Paper, Ink, Docs and macOS')
+    expect(items[1].find('b').text()).toBe('A home screen')
+    expect(items[2].find('b').text()).toBe('Diagrams that match the theme')
+    expect(items[3].find('b').text()).toBe('Only your notes')
+    // icons stay in the board-3 glyph style (C-53 D-1 set)
     const icons = wrapper.findAll('.news-icon').map((i) => i.text())
-    expect(icons).toEqual(['⤢', '±', '◐', '▦'])
-    expect(wrapper.find('.guide-link').text()).toBe('See the guide')
+    expect(icons).toEqual(['◐', '⌂', '◔', '▤'])
+    // the C-53 «Also» line under the items
+    expect(wrapper.find('.also').text()).toBe(
+      '⌘D shows what your agent changed · ⌥⌘V opens a copied folder · one zoom for everything'
+    )
+    const footLinks = wrapper.findAll('.foot-links .guide-link')
+    expect(footLinks[0].text()).toBe('See everything new ↗')
+    expect(footLinks[1].text()).toBe('See the guide')
     expect(wrapper.find('.continue-button').text()).toBe('Continue')
 
     wrapper.unmount()
@@ -138,22 +159,43 @@ describe('components/whatsNew — sheet', () => {
     before.remove()
   })
 
-  it('traps Tab inside the sheet footer controls', async () => {
+  it('traps Tab inside the three footer controls', async () => {
     const wrapper = mountSheet()
     bus.emit('whatsNewDialog', { version: '2.3.1' })
     await nextTick()
     await nextTick()
 
     const sheet = wrapper.find('.ag-whats-new-sheet')
-    const guide = wrapper.find('.guide-link')
+    const footLinks = wrapper.findAll('.foot-links .guide-link')
+    const release = footLinks[0]
+    const guide = footLinks[1]
     const cont = wrapper.find('.continue-button')
 
-    // Continue → wraps forward to the guide link
+    // Continue → wraps forward to the release link
     await cont.trigger('keydown', { key: 'Tab' })
+    expect(document.activeElement).toBe(release.element)
+    // Release → guide → Continue (native order)
+    await release.trigger('keydown', { key: 'Tab' })
     expect(document.activeElement).toBe(guide.element)
-    // Guide → Shift+Tab wraps back to Continue
-    await guide.trigger('keydown', { key: 'Tab', shiftKey: true })
+    await guide.trigger('keydown', { key: 'Tab' })
     expect(document.activeElement).toBe(cont.element)
+    // Continue → Shift+Tab wraps back to the guide link
+    await cont.trigger('keydown', { key: 'Tab', shiftKey: true })
+    expect(document.activeElement).toBe(guide.element)
+
+    wrapper.unmount()
+  })
+
+  it('See everything new opens the release page externally and keeps the sheet open', async () => {
+    const wrapper = mountSheet()
+    bus.emit('whatsNewDialog', { version: '2.3.1' })
+    await nextTick()
+
+    const openExternal = window.electron.shell.openExternal
+    await wrapper.findAll('.foot-links .guide-link')[0].trigger('click')
+    expect(openExternal).toHaveBeenCalledTimes(1)
+    expect(openExternal).toHaveBeenCalledWith(WHATS_NEW_RELEASE_URLS['2.3.1'])
+    expect(wrapper.find('.ag-whats-new-sheet').exists()).toBe(true)
 
     wrapper.unmount()
   })
@@ -163,7 +205,7 @@ describe('components/whatsNew — sheet', () => {
     bus.emit('whatsNewDialog', { version: '2.3.1' })
     await nextTick()
 
-    await wrapper.find('.guide-link').trigger('click')
+    await wrapper.findAll('.foot-links .guide-link')[1].trigger('click')
     expect(bus.emit).toHaveBeenCalledWith('mt::open-guide', {})
     expect(wrapper.find('.ag-whats-new-sheet').exists()).toBe(true)
 

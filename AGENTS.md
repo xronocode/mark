@@ -197,9 +197,15 @@ Releases are tag-triggered via `.github/workflows/release.yml` — **do NOT buil
 3. Validate locally BEFORE tagging:
    - `npm run release:preflight -- --tag v2.X.Y-beta` → must print `BLOCK_RELEASE_VERSION_CONSISTENT ... sources=6`
    - `npx vitest run tests/renderer/release-preflight.test.js` → 11 passed
-4. Commit `chore(release): v2.X.Y-beta`, push `fork main`, then `git tag v2.X.Y-beta && git push fork v2.X.Y-beta` (tag pattern `v*.*.*` / `v*.*.*-*`).
-5. Watch the run: `gh run list -R xronocode/mark`. If a tag was pushed on a bad commit, delete the remote tag, retag on the fix, push again — the release re-runs.
-6. **Write the release notes** — the workflow only publishes the automated verification block (attestation/cosign), never a human changelog. Once the release is live, prepend a user-facing «Что нового» section (grouped: Вкладки / Титлбар / Редактор / …; one bullet per user-visible change, referencing the C-* change ids is optional but keep the wording user-facing) while KEEPING the automated block below a `---` separator:
+4. **Materials (mandatory, before the tag)** — every user-facing surface must match the release. Derive the content from the change specs shipped since the previous tag (`git log vPREV..HEAD --oneline` + `.grace/changes/active/C-*/spec.xml` Name/Summary/Decisions), ranked by the latest gap-analysis categories (UI polish → product mechanics → content rendering → folder work → AI/agents → breadth):
+   - **What's New sheet**: the new version's entry in `src/renderer/src/whatsNew/data.js` (≤ 4 items) with locale keys in **all ten** `static/locales/*.json` (titles ≤ 32 chars, texts ≤ 90), the «Also» line and the «See everything new» release URL; `tests/renderer/whatsNew/content.test.js` must pass.
+   - **README**: «What's new in vX.Y.Z» section in the same categories with a one-line pointer to the previous release's highlights in CHANGELOG, stale claims fixed, and fresh screenshots — capture with `README_SHOTS=1 npx playwright test tests/e2e/readme-shots.spec.ts --project=chromium` and commit the PNGs in `docs/assets/readme/`.
+   - **CHANGELOG.md**: a dated `## [X.Y.Z]` entry in the same categories.
+   - **Release notes**: draft the user-facing «Что нового» section now (step 7 pastes it once the release is live).
+   - All ten locales are written/proofread as **native copy** (meaning from the approved sheet texts, not literal translations; ⌘D / ⌥⌘V and product names — Mark, Paper, Ink, Docs, macOS, Mermaid, Guide — stay untranslated).
+5. Commit `chore(release): v2.X.Y-beta`, push `fork main`, then `git tag v2.X.Y-beta && git push fork v2.X.Y-beta` (tag pattern `v*.*.*` / `v*.*.*-*`).
+6. Watch the run: `gh run list -R xronocode/mark`. If a tag was pushed on a bad commit, delete the remote tag, retag on the fix, push again — the release re-runs.
+7. **Write the release notes** — the workflow only publishes the automated verification block (attestation/cosign), never a human changelog. Once the release is live, prepend a user-facing «Что нового» section (grouped: Вкладки / Титлбар / Редактор / …; one bullet per user-visible change, referencing the C-* change ids is optional but keep the wording user-facing) while KEEPING the automated block below a `---` separator:
    ```bash
    gh release view v2.X.Y-beta -R xronocode/mark --json body --jq '.body' > /tmp/rel-body.md
    # prepend the changelog section, then:

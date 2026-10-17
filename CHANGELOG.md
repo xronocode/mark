@@ -4,20 +4,47 @@ All notable changes to Mark. The format follows [Keep a Changelog](https://keepa
 
 ## [Unreleased]
 
-### Added
-- Paper and Ink themes, the defaults for new profiles, and an Auto / Light / Dark button in the title bar that can follow the system appearance.
-- A fullscreen viewer for Mermaid diagrams and other rendered blocks.
-- The Mac App Store edition shows the Share button.
-
-### Changed
-- Wide tables scroll inside the text column with a thin scrollbar; narrow tables are centred.
-
 ### Known gaps
 Carried over from the old status table in the README:
 - Saving does not yet preserve a non-UTF-8 source encoding, and there is no manual encoding picker.
 - Multiple windows: `--new-window` is accepted but has no effect yet.
 - Intel Macs are not supported by the Homebrew cask; Linux builds are not published.
 - Image upload services (PicGo and similar) are not supported.
+
+## [2.3.1] - 2026-10-17
+
+The release is organized by the areas the gap analysis ranked highest.
+
+### A calmer, native look
+- Theme families Paper, Ink, Docs and macOS; Paper and Ink are the defaults for new profiles, and the title-bar button follows the system appearance (Auto / Light / Dark).
+- A slim title bar with the document info card, an outline beside the page, and a status bar.
+- The system font, accent colour and icon set throughout; a Mica window material on Windows 11.
+- Settings reorganized into five tabs, themed in the active theme's colour.
+
+### A home screen
+- Recent files and folders, the Guide, and one click to connect your agent.
+- What's New opens once after an update, lists the highlights and links to the release notes.
+- The interface language can follow the system («As in system»), and the App Store build can ask for a rating.
+
+### Diagrams and math in the theme
+- All 22 Mermaid diagram types render in the theme's colours, with readable node contrast in the dark themes.
+- Vega charts and KaTeX math follow the theme; the Mermaid pie chart draws as a Keynote-style donut; Vega renders again in the installed app.
+- Any diagram or wide table opens in a fullscreen viewer with zoom, pan and a sticky table header.
+- Wide tables scroll inside the text column with a thin scrollbar, narrow tables are centred, and table columns can be resized.
+
+### Folders with just your notes
+- The folder tree shows Markdown files only, without empty folders; a preference brings every file back.
+- Recent and Pinned sections at the top of the sidebar, with pinning from the tree's context menu.
+- Open a folder from the clipboard with ⌥⌘V, or by dropping it on the window.
+
+### Closer to your agent
+- ⌘D shows what your agent changed: Mark snapshots every open file before an external reload and diffs against that, falling back to a `.before` file or the last git commit.
+- The agent prompt lists everything Mark renders — diagrams, charts, callouts, task lists — so agents pick the right tool for each part.
+
+### And the rest
+- One zoom for the whole app, remembered per window.
+- Code blocks show line numbers again.
+- Share ships in the App Store build.
 
 ## [2.3.0] - 2026-10-14
 
@@ -186,7 +213,8 @@ Stabilisation releases.
 - No splash screen on launch; a stricter content security policy.
 - Files opened on their own reload when they change on disk.
 
-[Unreleased]: https://github.com/xronocode/mark/compare/v2.3.0...HEAD
+[Unreleased]: https://github.com/xronocode/mark/compare/v2.3.1...HEAD
+[2.3.1]: https://github.com/xronocode/mark/releases/tag/v2.3.1
 [2.3.0]: https://github.com/xronocode/mark/releases/tag/v2.3.0
 [2.2.0-beta]: https://github.com/xronocode/mark/releases/tag/v2.2.0-beta
 [2.1.15-beta]: https://github.com/xronocode/mark/releases/tag/v2.1.15-beta

@@ -1,14 +1,17 @@
 // FILE: src/renderer/src/whatsNew/data.js
-// VERSION: 1.1.0
+// VERSION: 1.2.0
 // START_MODULE_CONTRACT
-//   PURPOSE: C-48 What's New sheet content — per-release entries (max 4
-//            items, icon + i18n title/text keys) keyed by the normalized
-//            version string.
-//   SCOPE: static content table + lookup; no logic beyond the lookup, the
-//          max-4 clamp and the latest-with-content fallback.
+//   PURPOSE: C-48/C-53 What's New sheet content — per-release entries
+//            (max 4 items, icon + i18n title/text keys) keyed by the
+//            normalized version string, plus the release-wide «Also»
+//            line and «See everything new» external-link keys and the
+//            GitHub release URL each entry links to.
+//   SCOPE: static content tables + lookups; no logic beyond the lookups,
+//          the max-4 clamp and the latest-with-content fallback.
 //   DEPENDS: util/version.js (normalizeVersion, compareVersions).
-//   LINKS: .grace/changes/archive/C-48/spec.xml R-1; components/whatsNew
-//          renders the items; locales whatsNew.v2_3_1.* carry the text.
+//   LINKS: .grace/changes/active/C-53/spec.xml R-1 + D-1 (approved 2.3.1
+//          sheet); components/whatsNew renders the items, the also line
+//          and the release link; locales whatsNew.v2_3_1.* carry the text.
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT
@@ -16,12 +19,24 @@
 // START_MODULE_MAP
 //   WHATS_NEW_MAX_ITEMS - 4 — per-release item cap (board 3 layout).
 //   WHATS_NEW_CONTENT - version → items table (icon + titleKey + textKey).
+//   WHATS_NEW_ALSO_KEY - locale key of the one-line «Also» summary under the items.
+//   WHATS_NEW_SEE_EVERYTHING_KEY - locale key of the «See everything new» footer link.
+//   WHATS_NEW_RELEASE_URLS - version → GitHub release page the link opens.
 //   getWhatsNewItems - normalized-version lookup, sliced to the 4-item cap.
+//   getWhatsNewReleaseUrl - the release page URL for a version ('' → hide the link).
 //   resolveWhatsNewVersion - the version itself when it has content, else the newest version that does (Help › What's New fallback).
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.1.0 - 2026-10-15 C-48 review fix: resolveWhatsNewVersion
+//   LAST_CHANGE: v1.2.0 - 2026-10-17 C-53 T-001/R-1: replaced the
+//   2026-10-15 board-3 items (diagram zoom, agent diff, Paper/Ink,
+//   fitting tables) with the four D-1 items the user approved for the
+//   2.3.1 release (native look + themes, home screen, themed diagrams,
+//   Markdown-only folders), and added the release-wide «Also» line key,
+//   the «See everything new» link key and WHATS_NEW_RELEASE_URLS with
+//   getWhatsNewReleaseUrl (opened through window.electron.shell by the
+//   sheet component).
+//   PREV: v1.1.0 - 2026-10-15 C-48 review fix: resolveWhatsNewVersion
 //   so Help › What's New on a version without its own entry (patch with
 //   no notes, dev build) shows the newest release notes instead of
 //   nothing; MODULE_MAP lists WHATS_NEW_MAX_ITEMS.
@@ -34,34 +49,53 @@ import { normalizeVersion, compareVersions } from '../util/version'
 export const WHATS_NEW_MAX_ITEMS = 4
 
 // START_BLOCK_WHATS_NEW_CONTENT
-// Icons mirror the approved mockup (board 3): ⤢ fullscreen zoom, ± diff,
-// ◐ light/dark themes, ▦ tables. Text lives in the locale tables under
-// whatsNew.v2_3_1.* so each language ships its own copy.
+// 2.3.1 (C-53 D-1): the four gap-analysis items — UI polish, home
+// screen, themed diagrams, Markdown-only folders. Icons stay in the
+// board-3 glyph style: ◐ light/dark look, ⌂ home, ◔ chart, ▤ file list.
+// Text lives in the locale tables under whatsNew.v2_3_1.* so each
+// language ships its own copy.
 export const WHATS_NEW_CONTENT = {
   '2.3.1': [
     {
-      icon: '⤢',
-      titleKey: 'whatsNew.v2_3_1.zoom.title',
-      textKey: 'whatsNew.v2_3_1.zoom.text'
-    },
-    {
-      icon: '±',
-      titleKey: 'whatsNew.v2_3_1.agentDiff.title',
-      textKey: 'whatsNew.v2_3_1.agentDiff.text'
-    },
-    {
       icon: '◐',
-      titleKey: 'whatsNew.v2_3_1.themes.title',
-      textKey: 'whatsNew.v2_3_1.themes.text'
+      titleKey: 'whatsNew.v2_3_1.look.title',
+      textKey: 'whatsNew.v2_3_1.look.text'
     },
     {
-      icon: '▦',
-      titleKey: 'whatsNew.v2_3_1.tables.title',
-      textKey: 'whatsNew.v2_3_1.tables.text'
+      icon: '⌂',
+      titleKey: 'whatsNew.v2_3_1.home.title',
+      textKey: 'whatsNew.v2_3_1.home.text'
+    },
+    {
+      icon: '◔',
+      titleKey: 'whatsNew.v2_3_1.diagrams.title',
+      textKey: 'whatsNew.v2_3_1.diagrams.text'
+    },
+    {
+      icon: '▤',
+      titleKey: 'whatsNew.v2_3_1.notes.title',
+      textKey: 'whatsNew.v2_3_1.notes.text'
     }
   ]
 }
 // END_BLOCK_WHATS_NEW_CONTENT
+
+// START_BLOCK_WHATS_NEW_EXTRAS
+// C-53 R-1: the sheet-wide additions under the four items — a one-line
+// «Also» summary (⌘D agent diff, ⌥⌘V clipboard folder, one zoom) and a
+// «See everything new» link to the GitHub release page, opened through
+// the app's external-link path (window.electron.shell.openExternal).
+export const WHATS_NEW_ALSO_KEY = 'whatsNew.also'
+export const WHATS_NEW_SEE_EVERYTHING_KEY = 'whatsNew.seeEverything'
+export const WHATS_NEW_RELEASE_URLS = {
+  '2.3.1': 'https://github.com/xronocode/mark/releases/tag/v2.3.1'
+}
+
+// '' when the version (after normalization) has no release page — the
+// component hides the link rather than opening a dead URL.
+export const getWhatsNewReleaseUrl = (version) =>
+  WHATS_NEW_RELEASE_URLS[normalizeVersion(version)] || ''
+// END_BLOCK_WHATS_NEW_EXTRAS
 
 // START_BLOCK_GET_WHATS_NEW_ITEMS
 // Prerelease decorations collapse first ("2.3.1-beta" → the 2.3.1 list).
