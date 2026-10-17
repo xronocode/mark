@@ -29,9 +29,11 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.3.0 - 2026-10-18 C-55: the 2.4.0 sheet — the pele
-//   engine swap (engine/theme/types/lighter), the release URL points at
-//   v2.4.0-beta, and the also line moves to the 2.4.0 locales.
+//   LAST_CHANGE: v1.3.1 - 2026-10-18 C-55: the release URL retargets to
+//   the stable v2.4.0 tag — the beta suffix was dropped before launch.
+//   PREV: v1.3.0 - 2026-10-18 C-55: the 2.4.0 sheet — the pele
+//   engine swap (engine/theme/types/lighter), the release URL pointed at
+//   v2.4.0-beta, and the also line moved to the 2.4.0 locales.
 //   PREV: v1.2.0 - 2026-10-17 C-53 T-001/R-1: replaced the
 //   2026-10-15 board-3 items (diagram zoom, agent diff, Paper/Ink,
 //   fitting tables) with the four D-1 items the user approved for the
@@ -91,7 +93,7 @@ export const WHATS_NEW_CONTENT = {
 export const WHATS_NEW_ALSO_KEY = 'whatsNew.also'
 export const WHATS_NEW_SEE_EVERYTHING_KEY = 'whatsNew.seeEverything'
 export const WHATS_NEW_RELEASE_URLS = {
-  '2.4.0': 'https://github.com/xronocode/mark/releases/tag/v2.4.0-beta'
+  '2.4.0': 'https://github.com/xronocode/mark/releases/tag/v2.4.0'
 }
 
 // '' when the version (after normalization) has no release page — the
