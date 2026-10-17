@@ -1,0 +1,19 @@
+<GraceChangePlan graceVersion='4.0' status='approved'>
+<C-53>
+  <ChangeRef>C-53</ChangeRef>
+  <Created>2026-10-17</Created>
+  <IntentSummary>Refresh every user-facing material for 2.3.1 before tagging; add a materials step to the release procedure. ZCode agent, orchestrator runs the capture and the gates.</IntentSummary>
+  <BaselineAssertions><MustContain><File>src/renderer/src/whatsNew/data.js</File><Text>WHATS_NEW_CONTENT</Text></MustContain></BaselineAssertions>
+  <TargetAssertions><MustContain><File>.grace/changes/active/C-53/spec.xml</File><Text>approved</Text></MustContain></TargetAssertions>
+  <DurableScope><M-011/></DurableScope>
+  <ObservedWriteScope><File>src/renderer/src/**</File><File>static/locales/*.json</File><File>README.md</File><File>CHANGELOG.md</File><File>docs/assets/readme/**</File><File>tests/**</File><File>AGENTS.md</File></ObservedWriteScope>
+  <ImplementationPlan>
+    <T-001>
+      <Title>What's New sheet, README, CHANGELOG, capture spec, AGENTS.md materials step</Title>
+      <DependsOn></DependsOn>
+      <AcceptanceCriteria><Criterion>See spec R-1..R-4 and D-1/D-2.</Criterion></AcceptanceCriteria>
+      <Verification><Command>npm test</Command><Command>playwright chromium + webkit</Command><Command>grace lint --path . --assertions current</Command></Verification>
+    </T-001>
+  </ImplementationPlan>
+</C-53>
+</GraceChangePlan>
