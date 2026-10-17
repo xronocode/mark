@@ -1,5 +1,5 @@
 // FILE: tests/e2e/welcome.spec.ts
-// VERSION: 1.1.0
+// VERSION: 1.2.0
 // START_MODULE_CONTRACT
 //   PURPOSE: C-46 welcome screen e2e — boot with no file open and verify the layout elements, remove/undo of a recent file, open-by-click, Copy prompt and the native-bridge drop highlight.
 //   SCOPE: renderer-only e2e against vite preview + tauri-shim (no real Tauri IPC).
@@ -15,7 +15,10 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.1.0 - 2026-10-15 C-46 review: open a recent file by
+//   LAST_CHANGE: v1.2.0 - 2026-10-18 fix: a short window keeps the brand row
+//     reachable — at scrollTop 0 the brand sits inside the scroll box (the
+//     old align-items:center clipped it above the scrollable area).
+//   v1.1.0 - 2026-10-15 C-46 review: open a recent file by
 //     click (mt_open_file), Copy prompt puts the OS prompt on the clipboard,
 //     drop highlight follows the native drag bridge (tauri://drag-*).
 //   v1.0.0 - 2026-10-15 C-46: initial pins.
@@ -151,6 +154,22 @@ test.describe('welcome screen (C-46)', () => {
     await expect(welcome.locator('.agent-row .chip-button.accent')).toHaveText('Copy prompt')
     await expect(welcome.locator('.footer-link')).toHaveCount(1)
     await expect(welcome.locator('.footer-link').first()).toHaveText('Guide')
+  })
+
+  test('a short window keeps the brand row reachable at the top (safe centering)', async ({
+    page
+  }) => {
+    await page.setViewportSize({ width: 900, height: 420 })
+    await bootWelcome(page)
+    const box = await page.evaluate(() => {
+      const screen = document.querySelector('.welcome-screen') as HTMLElement
+      screen.scrollTop = 0
+      const s = screen.getBoundingClientRect()
+      const b = (document.querySelector('.brand') as HTMLElement).getBoundingClientRect()
+      return { screenTop: s.top, brandTop: b.top, overflow: screen.scrollHeight > screen.clientHeight }
+    })
+    expect(box.overflow, 'the fixture must overflow a 420px window').toBe(true)
+    expect(box.brandTop).toBeGreaterThanOrEqual(box.screenTop)
   })
 
   test('removing a recent file shows the undo toast and undo restores the row', async ({
