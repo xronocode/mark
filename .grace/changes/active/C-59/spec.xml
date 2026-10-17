@@ -1,0 +1,51 @@
+<GraceChangeSpec graceVersion='4.0' status='approved'>
+<C-59>
+  <Name>App Store catch-up: ship 2.4.0 to ASC — MAS line jumps 2.1.17 → 2.4.0, store listing copy refreshed</Name>
+  <Created>2026-10-18</Created>
+  <Priority>high</Priority>
+  <Status>approved</Status>
+  <RoadmapPhase>M</RoadmapPhase>
+  <Complexity>S</Complexity>
+  <Summary>User decision 2026-10-18 («давай сабмитить», right after the v2.4.0 desktop release went live): the App Store still serves 2.1.17 (approved 2026-10-13) while the desktop is three releases ahead — the whole 2.3.x redesign (theme families Paper/Ink/Docs/macOS, slim title bar, home screen, sidebar, status bar) and the 2.4.0 Pele engine cut never reached the store, and the Tuesday 2026-10-20 Product Hunt launch drives traffic to the store link. This change catches the MAS build line up to the already-tagged v2.4.0 via the proven C-15 T-M6 pipeline (mas-pkg.sh sign+pkg, asc-api.py status), corrects the stale store listing copy, and submits for review timed to land before Tuesday. Store screenshots and the preview video are already prepared by the user; no new asset production.</Summary>
+  <Problem><Description>The MAS line keeps its own version (src-tauri/mas.conf.json, outside the six-place desktop sync) and was last submitted as 2.1.17. The live ASC description still claims «opt-in localhost live-viewer» (gated OFF in app-store builds since ASC round 2 — a review-visible mismatch), lists «21 themes from Cadmium Light to Synthwave '84» (themes were replaced by the four families in 2.3.x), and leads with «11 MB» (2.4.0 downloads ~14 MB). Store users cannot get the redesign or Pele at all: the MAS build has no in-app updater.</Description></Problem>
+  <Goals>
+    <R-1>Bump src-tauri/mas.conf.json version to 2.4.0. The desktop six-place sync is untouched — the MAS line stays independent.</R-1>
+    <R-2>Build from the current main working tree (product code identical to tag v2.4.0; post-tag commits and the parallel C-58 session's edits touch CI, spec XML, README and site files only, none of which enter the app bundle): npx tauri build --config src-tauri/mas.conf.json --features app-store, then tools/release/mas-pkg.sh (Apple Distribution re-sign with Entitlements-mas.plist, ASC plist requirements 90869/90242, TestFlight profile embed 90889, quarantine strip ITMS-91109, productbuild pkg).</R-2>
+    <R-3>Upload Mark-mas.pkg to ASC (Transporter by the user — established human step), attach to version 2.4.0, and submit for review with manual release, targeting approval before Tue 2026-10-20 10:01 МСК.</R-3>
+    <R-4>Store listing copy corrections, user-approved before applying: What's New for 2.4.0 written for store users jumping from 2.1.17 (the 2.3.x redesign highlights plus the Pele engine), description fixes (remove the live-viewer sentence, replace the Cadmium theme list with the four families, 11 MB → 14 MB), subtitle size refresh if the 30-char limit allows.</R-4>
+    <R-5>Evidence: pkgutil --check-signature output, ASC build processing state via asc-api.py, review submission timestamp — recorded in the change scope notes.</R-5>
+  </Goals>
+  <Constraints>
+    <Item>No product-code changes: the repo diff is the mas.conf.json version line plus this change's artifacts. Everything shipped in v2.4.0 is already gated for app-store builds (updater off, live-viewer off, Share button on).</Item>
+    <Item>No donation/support surface rides along (C-57 is not built); the MAS build matches the v2.4.0 tag behavior.</Item>
+    <Item>Outward sends (upload, metadata apply, review submit) follow the draft → user ok → send → read-back rule; Transporter upload stays a human step.</Item>
+    <Item>grace lint --assertions current = 0; no signing material or secrets in the repo.</Item>
+  </Constraints>
+  <NonGoals>
+    <Item>Unifying the MAS and desktop version lines (mas.conf.json stays the single MAS version pin).</Item>
+    <Item>TestFlight distribution changes (profile embed stays as-is).</Item>
+    <Item>New screenshots, video, or localization work — the user's set is final.</Item>
+    <Item>Any C-56/C-57/C-58 feature work.</Item>
+  </NonGoals>
+  <AffectedAreas>
+    <Item>src-tauri/mas.conf.json (MAS version pin, the only repo diff)</Item>
+    <Item>App Store Connect: version 2.4.0, What's New, description, subtitle, screenshots/preview video (user's prepared set), review submission</Item>
+    <Item>No product code, no entitlements, no capability changes</Item>
+  </AffectedAreas>
+  <AcceptanceCriteria>
+    <Criterion>R-1..R-5 done; Mark-mas.pkg (2.4.0) signed with the verified Installer chain; the uploaded build reaches READY in ASC; What's New and description corrections applied as approved; review submitted with manual release.</Criterion>
+    <Criterion>Live check: the App Store page serves 2.4.0 with the refreshed listing once the version is released.</Criterion>
+  </AcceptanceCriteria>
+  <VerificationIntent>
+    <ExpectedCommand>python3 -m json.tool src-tauri/mas.conf.json</ExpectedCommand>
+    <ExpectedCommand>./tools/release/mas-pkg.sh</ExpectedCommand>
+    <ExpectedCommand>pkgutil --check-signature target/release/bundle/macos/Mark-mas.pkg</ExpectedCommand>
+    <ExpectedCommand>grace lint --path . --assertions current</ExpectedCommand>
+    <ExpectedEvidence>mas.conf.json pins 2.4.0; the bundle Info.plist carries CFBundleShortVersionString 2.4.0; mas-pkg.sh output ends with a verified Installer-identity signature chain; the uploaded build reaches processingState READY in ASC (asc-api.py); review submission timestamp recorded.</ExpectedEvidence>
+  </VerificationIntent>
+  <Decisions>
+    <D-1>Build from main, not a tag checkout: post-tag commits (275de428 CI fix, 01206987 C-56 spec, c80075f6 C-58 spec) and the parallel session's uncommitted site/docs edits never enter the app bundle; product code is identical to v2.4.0.</D-1>
+    <D-2>Submit on the weekend deliberately: review turnaround has been same-day per round historically; a Monday/Tuesday approval window is acceptable, the PH launch is not blocked on it.</D-2>
+  </Decisions>
+</C-59>
+</GraceChangeSpec>
