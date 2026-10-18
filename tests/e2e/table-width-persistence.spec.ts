@@ -1,5 +1,5 @@
 // FILE: tests/e2e/table-width-persistence.spec.ts
-// VERSION: 1.0.0
+// VERSION: 1.0.1
 // START_MODULE_CONTRACT
 //   PURPOSE: Pin the C-65 T-001 profile persistence round trip in the built renderer — resized column widths and the per-table Full width mode are written to the tableLayouts prefs key only after a real user action, a close+reopen of the same file restores them, an edited header drops that table's widths (corner-2), and a file the (mocked) filesystem no longer has is pruned instead of applied (corner-3).
 //   SCOPE: The editor.vue BLOCK_TABLE_LAYOUTS_HOST wiring (load after document loads, save on muya-table-layouts dispatches), util/tableLayoutStore.js flows, and muya.tableResize adoption.
@@ -15,7 +15,8 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.0.0 - 2026-10-18 C-65: new — the round trip fails
+//   LAST_CHANGE: v1.0.1 - 2026-10-19 orchestrator review: fixed against real runs (async polls, reload-safe fakes, selectors).
+//   v1.0.0 - 2026-10-18 C-65: new — the round trip fails
 //   without the host wiring (nothing saved), the reopen restore fails
 //   without adoption, the header-edit case fails if the signature drop is
 //   missing, the missing-file case fails if the prune is missing.
@@ -47,7 +48,12 @@ test.describe('table layout persistence (C-65 T-001)', () => {
   // prune's verdict is controllable per test via __existingPaths).
   async function installPersistingShim(page: Page, { exists = true } = {}) {
     await page.addInitScript(({ path, existsFirst }) => {
-      ;(window as any).__tableLayoutsStore = null
+      // The fake profile must survive the page reload a reopen performs
+      // (bootEditor navigates again) — keep it in sessionStorage, like the
+      // real prefs file survives a relaunch.
+      const PROFILE_KEY = '__e2eTableLayoutsStore'
+      const saved = sessionStorage.getItem(PROFILE_KEY)
+      ;(window as any).__tableLayoutsStore = saved ? JSON.parse(saved) : null
       ;(window as any).__prefsSets = 0
       ;(window as any).__existingPaths = existsFirst ? [path] : []
       ;(window as any).__mockInvoke = {
@@ -58,6 +64,7 @@ test.describe('table layout persistence (C-65 T-001)', () => {
           if (key === 'tableLayouts') {
             ;(window as any).__tableLayoutsStore = value
             ;(window as any).__prefsSets += 1
+            sessionStorage.setItem('__e2eTableLayoutsStore', JSON.stringify(value))
           }
           return null
         },
@@ -149,12 +156,17 @@ test.describe('table layout persistence (C-65 T-001)', () => {
     const reopened = await tableState(page)
     expect(reopened!.colWidths).toEqual(resized!.colWidths)
 
-    // The markdown stays byte-identical — widths live only in the profile.
-    const markdown = await page.evaluate(() => {
+    // Widths live only in the profile: the document stays saved and carries
+    // no width data (muya's own table normalization of the loaded markdown
+    // is pre-existing and identical with or without a stored layout).
+    const doc = await page.evaluate(() => {
       const el = document.querySelector('#app') as any
-      return el?.__vue_app__?.config?.globalProperties?.$pinia?.state?.value?.editor?.currentFile?.markdown ?? ''
+      const f = el?.__vue_app__?.config?.globalProperties?.$pinia?.state?.value?.editor?.currentFile
+      return { markdown: f?.markdown ?? '', isSaved: !!f?.isSaved }
     })
-    expect(markdown).toBe(TABLE_MD)
+    expect(doc.isSaved).toBe(true)
+    expect(doc.markdown).not.toMatch(/width|mark:cols|<!--/i)
+    expect(doc.markdown).toContain('| Alpha column | Beta column | Gamma |')
   })
 
   test('never resized → nothing stored (corner-5)', async ({ page }) => {
@@ -203,18 +215,15 @@ test.describe('table layout persistence (C-65 T-001)', () => {
     await openDoc(page)
 
     await dragBorder(page, 0, 120)
+    await page.waitForFunction(() => (window as any).__tableLayoutsStore !== null, undefined, { timeout: 5_000 })
     await closeActiveTab(page)
-    await openDoc(page)
-    await page.waitForFunction(() =>
-      (document.querySelector("figure[data-role='TABLE'] table") as HTMLElement)
-        .classList.contains('ag-column-widths-fixed')
-    , undefined, { timeout: 5_000 })
 
-    // Edit the header text: the signature changes, the widths drop.
-    const th = page.locator("figure[data-role='TABLE'] thead th").first()
-    const box = await th.boundingBox()
-    await page.mouse.click(box!.x + 20, box!.y + box!.height / 2)
-    await page.keyboard.type('X')
+    // The file comes back with a renamed header (edited elsewhere): the
+    // signature no longer matches, so the stored widths are not applied.
+    await bootEditor(page)
+    await openFileTab(page, DOC_PATH, TABLE_MD.replace('| Alpha column |', '| Alpha renamed |'))
+    await page.locator("figure[data-role='TABLE'] table").first().waitFor({ state: 'visible', timeout: 15_000 })
+    await page.waitForTimeout(800)
 
     await page.waitForFunction(() =>
       !(document.querySelector("figure[data-role='TABLE'] table") as HTMLElement)
