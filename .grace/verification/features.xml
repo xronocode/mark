@@ -2461,6 +2461,7 @@
       <Priority>medium</Priority>
       <Commands>
         <Command>npx vitest run tests/renderer/site/landing.test.js</Command>
+        <Command>npx vitest run tests/site</Command>
         <Command>cd site &amp;&amp; npm run build &amp;&amp; npm run check</Command>
         <Command>cd site &amp;&amp; SITE_BASE=/mark/ SITE_URL=https://xronocode.github.io/mark npm run build &amp;&amp; SITE_BASE=/mark/ npm run check</Command>
       </Commands>
@@ -2471,11 +2472,17 @@
         <Scenario>scenario-4: a broken internal link or leftover %BASE% token fails npm run check (and the CI job) before deploy.</Scenario>
         <Scenario>scenario-5: landing tabs use valid tabpanel elements, copy buttons expose their visible command and state, and code language labels meet contrast requirements.</Scenario>
         <Scenario>scenario-6: documentation and privacy descriptions describe each page; GA consent loader is deferred and analytics grants never grant advertising consent.</Scenario>
+        <Scenario>scenario-7 (C-58): the diagram gallery — buildEnd (and the dev middleware) emit /diagrams/index.html with one build-time pele SVG per example (unique ids, no PeleError, self-hosted fonts only, under 400 KB — BLOCK_CHECK_GALLERY); theme-vars.json is derived from the app theme CSS through the app's own buildPeleVariables (32 themes x 16 --pele-* keys, Paper/Ink and every shared theme equal the 2026-10-18 runtime snapshot, committed file must equal a fresh derivation); every example renders with pele in tests/site, so a pele upgrade that breaks an example fails the build (corner-6); a theme file added to the app joins the table on the next build (corner-5).</Scenario>
       </Scenarios>
       <Markers>
         <Marker>[SiteBuild][buildEnd][BLOCK_BUILD_END]</Marker>
         <Marker>[SiteBuild][checkDist][BLOCK_CHECK_LINKS]</Marker>
+        <Marker>[SiteBuild][checkDist][BLOCK_CHECK_GALLERY]</Marker>
         <Marker>[SiteBuild][renderLanding][BLOCK_RENDER_LANDING]</Marker>
+        <Marker>[SiteBuild][renderPage][BLOCK_RENDER_PAGE]</Marker>
+        <Marker>[SiteBuild][buildGallery][BLOCK_GALLERY_CARDS]</Marker>
+        <Marker>[SiteGallery][deriveThemeVars][BLOCK_DERIVE_THEME_VARS]</Marker>
+        <Marker>[SiteGallery][writeThemeVarsFile][BLOCK_WRITE_THEME_VARS]</Marker>
       </Markers>
     </V-M-053>
     <V-M-054>
