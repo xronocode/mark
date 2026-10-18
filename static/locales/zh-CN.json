@@ -653,7 +653,12 @@
         "help": "在线检查并安装新版本。",
         "check": "检查更新",
         "autoCheck": "自动检查更新",
-        "autoCheckHelp": "Mark 启动时每天检查一次新版本，并悄悄提醒你。"
+        "autoCheckHelp": "Mark 启动时每天检查一次新版本，并悄悄提醒你。",
+        "checking": "正在检查…",
+        "upToDate": "已是最新版本。",
+        "available": "Mark {version} 现已可用。",
+        "install": "安装 {version}",
+        "failed": "无法检查更新，请稍后再试。"
       }
     },
     "appearance": {

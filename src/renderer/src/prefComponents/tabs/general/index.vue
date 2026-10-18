@@ -119,8 +119,9 @@
         ></bool>
         <button-row
           :description="appVersionLabel"
-          :help="t('preferences.general.updates.help')"
-          :value="t('preferences.general.updates.check')"
+          :help="updatesHelp"
+          :value="updatesButton"
+          :disable="updateState === 'checking'"
           :on-click="checkForUpdates"
         ></button-row>
       </template>
@@ -131,7 +132,7 @@
 
 <script setup>
 // FILE: src/renderer/src/prefComponents/tabs/general/index.vue
-// VERSION: 2.2.0
+// VERSION: 2.3.0
 // START_MODULE_CONTRACT
 //   PURPOSE: General tab of the C-38 Settings window — macOS default-handler group, Startup (Finder preview mode), Language, Files and saving (autosave + delay in seconds, encoding, line endings, show-all-files tree switch) and Updates (C-66 automatic-check switch + manual check) per the N2 IA §3.1.
 //   SCOPE: Row composition over the shared controls; seconds↔milliseconds conversion for autoSaveDelay; updater command dispatch; default-handler bindings; treeShowAllFiles switch binding (C-51 T-001); autoCheckUpdates switch binding (C-66 T-003).
@@ -146,12 +147,14 @@
 //   autoSaveDelaySeconds - autoSaveDelay (ms) presented in seconds; onAutoSaveDelayChange converts back (stored value stays ms, IA §4.6).
 //   capabilities / isDefault / currentHandler / defaultHandlerStatus - M-021 default-handler bindings (status text doubles as the row help).
 //   setAsDefault / unsetDefault - store actions; REFRESH_DEFAULT_MD_HANDLER runs on mount (macOS only).
-//   appVersionLabel / checkForUpdates - the Updates row: `Mark <version>` from getVersion() (lazy) and the shared file.check-update command (lazy import — no commands-module side effects at page load).
+//   appVersionLabel / checkForUpdates - the Updates row: `Mark <version>` from getVersion() (lazy); the check runs inline (mt_updater_check) and reports in the row; install goes through the shared installSignedUpdate (lazy import — no commands-module side effects at page load).
+//   updateState / updatesHelp / updatesButton - in-row update state machine (idle, checking, current, available, failed) and its help line and button label.
 //   treeShowAllFiles - C-51 T-001 show-all-files switch state (store/preferences) bound to the last Files-and-saving row.
 //   autoCheckUpdates - C-66 T-003 automatic-check switch state (store/preferences) bound to the first Updates row (the whole group is updater-capability-gated, corner-5).
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-10-19 v2.3.0: fix — the update check reports in the row (checking / up to date / available + Install / failed) instead of a toast that covered the button; no double check.
 //   - 2026-10-19 v2.2.0: C-66 T-003 — «Check for updates
 //     automatically» bool row opens the Updates group (default on,
 //     SET_SINGLE_PREFERENCE persistence); the manual Check-for-updates
@@ -226,24 +229,65 @@ const unsetDefault = () => preferenceStore.UNSET_DEFAULT_MD_HANDLER()
 
 // START_BLOCK_GENERAL_UPDATES_ROW
 // The row label carries the running version (getVersion, lazy so the
-// page never blocks on the Tauri app plugin); the button runs the very
-// same file.check-update command the menu uses — the notification flow
-// (up-to-date toast / signed download+install) lives there, not here.
+// page never blocks on the Tauri app plugin). The check runs right here
+// and reports IN THE ROW (help line + button label), not through a toast:
+// a corner toast covered this very button and gave no «checking» state,
+// so a second click queued a second toast (user review 2026-10-19).
+// Installing reuses the shared signed flow (commands installSignedUpdate).
 const appVersion = ref('')
+const updateState = ref('idle') // idle | checking | current | available | failed
+const updateStatus = ref(null)
 
 const appVersionLabel = computed(() =>
   appVersion.value ? `Mark ${appVersion.value}` : 'Mark'
 )
 
+const updatesHelp = computed(() => {
+  switch (updateState.value) {
+    case 'checking':
+      return t('preferences.general.updates.checking')
+    case 'current':
+      return t('preferences.general.updates.upToDate')
+    case 'available':
+      return t('preferences.general.updates.available', { version: updateStatus.value?.latestVersion || '' })
+    case 'failed':
+      return t('preferences.general.updates.failed')
+    default:
+      return t('preferences.general.updates.help')
+  }
+})
+
+const updatesButton = computed(() => {
+  if (updateState.value === 'checking') return t('preferences.general.updates.checking')
+  if (updateState.value === 'available') {
+    return t('preferences.general.updates.install', { version: updateStatus.value?.latestVersion || '' })
+  }
+  return t('preferences.general.updates.check')
+})
+
 const checkForUpdates = async () => {
-  try {
-    const { default: commands } = await import('@/commands')
-    const command = commands.find((c) => c.id === 'file.check-update')
-    if (command) {
-      await command.execute()
+  if (updateState.value === 'checking') return
+  if (updateState.value === 'available' && updateStatus.value) {
+    try {
+      const { installSignedUpdate } = await import('@/commands')
+      await installSignedUpdate(updateStatus.value)
+    } catch (e) {
+      console.error('[preferences][general][BLOCK_CHECK_UPDATE_DISPATCH_FAILED]', e)
+      updateState.value = 'failed'
     }
+    return
+  }
+  updateState.value = 'checking'
+  try {
+    const { invoke } = await import('@tauri-apps/api/core')
+    const status = await invoke('mt_updater_check')
+    updateStatus.value = status || null
+    if (status && status.available) updateState.value = 'available'
+    else if (status && status.statusNote) updateState.value = 'failed'
+    else updateState.value = 'current'
   } catch (e) {
     console.error('[preferences][general][BLOCK_CHECK_UPDATE_DISPATCH_FAILED]', e)
+    updateState.value = 'failed'
   }
 }
 // END_BLOCK_GENERAL_UPDATES_ROW

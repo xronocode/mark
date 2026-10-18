@@ -22,12 +22,12 @@ describe('store/autoUpdates (post-W7 stub)', () => {
     expect(s.$id).toBe('autoUpdates')
   })
 
-  it('state is empty (no remaining update fields)', async () => {
+  it('state holds only the C-66 notice (no legacy update fields)', async () => {
     const { useAutoUpdatesStore } = await import('@/store/autoUpdates')
     const s = useAutoUpdatesStore()
-    // Pinia adds internal keys ($id, $state, etc.) on the store but
-    // $state should be a plain empty object after the W7 purge.
-    expect(Object.keys(s.$state)).toEqual([])
+    // C-66 filled the W7 stub with exactly one state field: the launch
+    // check notice ({ version } or null). No legacy listener state.
+    expect(Object.keys(s.$state)).toEqual(['notice'])
   })
 
   it('exposes no legacy listener actions (LISTEN_FOR_UPDATE* removed)', async () => {

@@ -153,7 +153,7 @@ describe('prune + IO flows (C-65 R-1/R-2, corner-3)', () => {
   it('loadTableLayoutsFor prunes, caps, writes back when changed and returns the file\'s entries', async () => {
     // The global test shim's stat says everything exists — pin the real
     // verdicts per path (the shared fileUtils bridge shape).
-    ;(window.fileUtils.stat as any).mockImplementation(async (p: string) =>
+    ;(window.fileUtils.stat).mockImplementation(async (p) =>
       p === '/doc.md' ? { isFile: true } : { isFile: false })
     const io = makeIo({
       files: {

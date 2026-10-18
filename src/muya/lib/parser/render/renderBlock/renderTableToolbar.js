@@ -62,7 +62,7 @@ const renderIcon = (children) => h('svg', {
 }, children)
 
 const renderToolbarButton = (className, action, label, iconPath) =>
-  h(`button.ag-block-expand.ag-block-toolbar-btn.ag-table-toolbar-btn.${className}`, {
+  h(`button.ag-block-expand.ag-block-toolbar-btn.ag-table-toolbar-btn.${className.trim().split(/\s+/).join('.')}`, {
     attrs: {
       type: 'button',
       title: label,

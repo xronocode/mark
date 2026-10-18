@@ -656,7 +656,12 @@
         "help": "Prüft online auf eine neuere Version und installiert sie.",
         "check": "Nach Updates suchen",
         "autoCheck": "Automatisch nach Updates suchen",
-        "autoCheckHelp": "Sucht beim Start von Mark einmal täglich nach einer neuen Version und zeigt leise einen Hinweis."
+        "autoCheckHelp": "Sucht beim Start von Mark einmal täglich nach einer neuen Version und zeigt leise einen Hinweis.",
+        "checking": "Wird geprüft…",
+        "upToDate": "Du hast die neueste Version.",
+        "available": "Mark {version} ist verfügbar.",
+        "install": "{version} installieren",
+        "failed": "Updates konnten nicht geprüft werden. Versuch es später noch einmal."
       }
     },
     "appearance": {

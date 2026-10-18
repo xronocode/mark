@@ -116,7 +116,7 @@ describe('store/editor.js — C-65 R-2 rename moves the stored table layouts', (
 
   it('a failed rename (move throws) never calls the layout move and shows the notice', async () => {
     editorStore.tabs = [editorStore.currentFile]
-    ;(window.fileUtils.move as any).mockRejectedValueOnce(new Error('EACCES'))
+    ;(window.fileUtils.move).mockRejectedValueOnce(new Error('EACCES'))
     const { default: notice } = await import('@/services/notification')
     await editorStore.RENAME('new-name.md')
     expect(moveTableLayoutsEntry).not.toHaveBeenCalled()
