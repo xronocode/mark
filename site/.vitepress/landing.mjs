@@ -1,5 +1,5 @@
 // FILE: site/.vitepress/landing.mjs
-// VERSION: 1.8.0
+// VERSION: 1.9.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Single source of site settings and the static-page renderers
 //            shared by the VitePress config (dev middleware + buildEnd) and
@@ -35,6 +35,7 @@
 //   CF_TOKEN_RE - accepted Cloudflare beacon token shape, checked before inlining
 //   CONSENT_GEO_URL - shared country lookup that decides whether the cookie banner is needed
 //   assetVersion - public/ file name -> 10-hex content hash for ?v= cache-busting ('' when unreadable)
+//   ogImageUrl - siteUrl -> absolute og-card.png URL with its ?v= content hash
 //   analyticsTags - analytics[], base -> [{ attrs, body }] script tags (landing + docs; GA4 adds consent.js + track.js, hash-versioned)
 //   analyticsScript - analyticsTags serialized to HTML, '' when analytics is off
 //   jsonLd - settings + page -> JSON-LD @graph body (SoftwareApplication + WebSite; '<' escaped)
@@ -51,7 +52,8 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: [v1.8.0 - 2026-10-18 C-64 T-007: consent.js/track.js URLs carry a ?v= content hash (assetVersion) so the Cloudflare cache cannot serve a stale consent script]
+//   LAST_CHANGE: [v1.9.0 - 2026-10-19 C-64: og:image and the JSON-LD image carry a ?v= content hash (ogImageUrl) so link previews pick up a new card.]
+//   PREV: [v1.8.0 - 2026-10-18 C-64 T-007: consent.js/track.js URLs carry a ?v= content hash (assetVersion) so the Cloudflare cache cannot serve a stale consent script]
 //   PREV: [v1.7.0 - 2026-10-18 C-64 T-007: the SoftwareApplication
 //                 node gains screenshot (/shots/01-agents.jpg), fileSize
 //                 ("15MB" — the landing's ≈15 MB DMG figure), releaseNotes
@@ -143,6 +145,8 @@ export function assetVersion (name) {
   }
   return ASSET_VERSIONS[name]
 }
+// og:image too: link-preview scrapers and the CDN cache it by URL.
+export const ogImageUrl = (siteUrl) => `${siteUrl}/${versioned('', SITE_META.ogImage)}`
 const versioned = (base, name) => `${base}${name}${assetVersion(name) ? `?v=${assetVersion(name)}` : ''}`
 
 const DEFAULT_SITE_URL = 'https://mark.xronocode.com'
@@ -274,7 +278,7 @@ export function jsonLd (settings, page = {}, opts = {}) {
     offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
     downloadUrl: [APP_STORE_URL, GITHUB_RELEASES],
     installUrl: APP_STORE_URL,
-    image: `${settings.siteUrl}/${SITE_META.ogImage}`,
+    image: ogImageUrl(settings.siteUrl),
     license: 'https://opensource.org/licenses/MIT',
     author: org,
     publisher: org,
@@ -376,7 +380,7 @@ export function sharedHeadTags (settings, page = {}) {
   const title = page.title ?? SITE_META.title
   const description = page.description ?? SITE_META.description
   const pageUrl = path ? `${siteUrl}/${path}` : siteUrl + '/'
-  const image = `${siteUrl}/${SITE_META.ogImage}`
+  const image = ogImageUrl(siteUrl)
   const tags = [
     `<meta name="description" content="${escapeAttr(description)}">`,
     `<link rel="canonical" href="${escapeAttr(pageUrl)}">`,

@@ -197,7 +197,7 @@ function main () {
   if (existsSync(join(dist, 'index.html'))) {
     const landingHtml = readFileSync(join(dist, 'index.html'), 'utf8')
     if (!landingHtml.includes('apple-itunes-app')) seoProblems.push('index.html missing apple-itunes-app')
-    if (!/og:image" content="[^"]*\/og-card\.png"/.test(landingHtml)) seoProblems.push('index.html og:image must point at og-card.png')
+    if (!/og:image" content="[^"]*\/og-card\.png(\?v=[0-9a-f]+)?"/.test(landingHtml)) seoProblems.push('index.html og:image must point at og-card.png')
     // The JSON-LD must parse and place SoftwareApplication at the released version.
     let graph = []
     let parseFailed = false

@@ -108,7 +108,7 @@ describe('jsonLd', () => {
     expect(app.downloadUrl).toContain('https://apps.apple.com/app/id6814590464')
     expect(app.downloadUrl).toContain('https://github.com/xronocode/mark/releases/latest')
     expect(app.installUrl).toBe('https://apps.apple.com/app/id6814590464')
-    expect(app.image).toBe('https://mark.xronocode.com/og-card.png')
+    expect(app.image).toMatch(/^https:\/\/mark\.xronocode\.com\/og-card\.png\?v=[0-9a-f]{10}$/)
     expect(app.license).toBe('https://opensource.org/licenses/MIT')
     expect(app.sameAs).toContain('https://github.com/xronocode/mark')
     expect(ld['@graph'][1].url).toBe('https://mark.xronocode.com/')
@@ -204,7 +204,7 @@ describe('sharedHeadTags', () => {
   })
 
   it('points OG/Twitter at the brand card with dimensions and alt', () => {
-    expect(head).toContain('<meta property="og:image" content="https://mark.xronocode.com/og-card.png">')
+    expect(head).toMatch(/<meta property="og:image" content="https:\/\/mark\.xronocode\.com\/og-card\.png\?v=[0-9a-f]{10}">/)
     expect(head).toContain('<meta property="og:image:width" content="1200">')
     expect(head).toContain('<meta property="og:image:height" content="630">')
     expect(head).toContain('og:image:alt')
