@@ -1088,29 +1088,124 @@ describe('store/editor', () => {
       expect(save).not.toHaveBeenCalled()
     })
 
-    it('PDF type opens the native print panel via mt_print_webview (C-18)', async () => {
+    it('PDF type saves through the native save dialog into mt_export_pdf (C-61)', async () => {
       const { invoke } = await import('@tauri-apps/api/core')
+      const { save } = await import('@tauri-apps/plugin-dialog')
       invoke.mockClear()
       editor.currentFile = makeTab({ id: 't1', pathname: '/tmp/a.md', filename: 'a.md' })
       editor.tabs = [editor.currentFile]
-      await editor.EXPORT({ type: 'pdf', content: '<p/>' })
-      expect(invoke).toHaveBeenCalledWith('mt_print_webview')
+      save.mockResolvedValueOnce('/tmp/out.pdf')
+      await editor.EXPORT({
+        type: 'pdf',
+        pageOptions: { pageSize: 'A4', isLandscape: false }
+      })
+      expect(save).toHaveBeenCalledWith(
+        expect.objectContaining({
+          defaultPath: 'a.pdf',
+          filters: [{ name: 'PDF', extensions: ['pdf'] }]
+        })
+      )
+      expect(invoke).toHaveBeenCalledWith('mt_export_pdf', {
+        path: '/tmp/out.pdf',
+        pageOptions: { pageSize: 'A4', isLandscape: false }
+      })
+      expect(invoke).not.toHaveBeenCalledWith('mt_print_webview')
     })
 
-    it('PDF type surfaces a notification when the native panel is unavailable', async () => {
+    it('PDF type surfaces a notification when the PDF write fails', async () => {
       const { invoke } = await import('@tauri-apps/api/core')
+      const { save } = await import('@tauri-apps/plugin-dialog')
       const notice = (await import('@/services/notification')).default
-      invoke.mockRejectedValueOnce(new Error('native print unavailable'))
       editor.currentFile = makeTab({ id: 't1', pathname: '/tmp/a.md', filename: 'a.md' })
       editor.tabs = [editor.currentFile]
-      await editor.EXPORT({ type: 'pdf', content: '<p/>' })
+      save.mockResolvedValueOnce('/tmp/out.pdf')
+      invoke.mockRejectedValueOnce(new Error('PDF write failed'))
+      await editor.EXPORT({ type: 'pdf', pageOptions: {} })
       expect(notice.notify).toHaveBeenCalledWith(
         expect.objectContaining({ type: 'error' })
       )
     })
 
+    it('PDF save-cancel writes nothing and notifies nobody (C-61 corner-2)', async () => {
+      const { invoke } = await import('@tauri-apps/api/core')
+      const { save } = await import('@tauri-apps/plugin-dialog')
+      const notice = (await import('@/services/notification')).default
+      invoke.mockClear()
+      editor.currentFile = makeTab({ id: 't1', pathname: '/tmp/a.md', filename: 'a.md' })
+      editor.tabs = [editor.currentFile]
+      save.mockResolvedValueOnce(null)
+      await editor.EXPORT({ type: 'pdf', pageOptions: {} })
+      expect(invoke).not.toHaveBeenCalled()
+      expect(notice.notify).not.toHaveBeenCalled()
+    })
+
     it('PRINT_RESPONSE removed — print uses the native panel via mt_print_webview (C-18)', () => {
       expect(editor.PRINT_RESPONSE).toBeUndefined()
+    })
+
+    it('_pdfDefaultName uses the document name, else the first heading, else Untitled (C-61 corner-4)', () => {
+      editor.currentFile = makeTab({ id: 't1', pathname: '/tmp/a.md', filename: 'Notes.md' })
+      expect(editor._pdfDefaultName()).toBe('Notes.pdf')
+
+      editor.currentFile = makeTab({ id: 't3', pathname: '', filename: 'Untitled-1' })
+      editor.listToc = [{ slug: 's1', githubSlug: 'g1', content: 'My Report', lvl: 1 }]
+      expect(editor._pdfDefaultName()).toBe('My Report.pdf')
+
+      editor.currentFile = makeTab({ id: 't4', pathname: '', filename: 'Untitled-1' })
+      editor.listToc = []
+      expect(editor._pdfDefaultName()).toBe('Untitled.pdf')
+    })
+
+    it('PRINT_DOCUMENT emits bus export with defaults on first use (C-61 R-1)', () => {
+      editor.currentFile = makeTab({ id: 't1', pathname: '/tmp/a.md', filename: 'a.md' })
+      editor.tabs = [editor.currentFile]
+      editor.PRINT_DOCUMENT()
+      const [channel, payload] = bus.emit.mock.calls.at(-1)
+      expect(channel).toBe('export')
+      expect(payload.type).toBe('print')
+      expect(payload).toEqual(
+        expect.objectContaining({
+          theme: null,
+          pageMarginTop: 20,
+          pageMarginRight: 15,
+          pageMarginBottom: 20,
+          pageMarginLeft: 15,
+          tocIncludeTopHeading: true
+        })
+      )
+    })
+
+    it('PRINT_DOCUMENT is a no-op without a document', () => {
+      editor.currentFile = {}
+      editor.PRINT_DOCUMENT()
+      expect(bus.emit).not.toHaveBeenCalled()
+    })
+
+    it('REMEMBER_EXPORT_OPTIONS feeds PRINT_DOCUMENT and drops per-flow keys (C-61 R-1)', () => {
+      editor.currentFile = makeTab({ id: 't1', pathname: '/tmp/a.md', filename: 'a.md' })
+      editor.tabs = [editor.currentFile]
+      editor.REMEMBER_EXPORT_OPTIONS({
+        type: 'pdf',
+        pageSize: 'A5',
+        isLandscape: true,
+        htmlTitle: 'ignored',
+        theme: 'academic',
+        pageMarginTop: 8,
+        tocTitle: 'TOC',
+        header: { type: 1, left: '', center: 'H', right: '' }
+      })
+      editor.PRINT_DOCUMENT()
+      const payload = bus.emit.mock.calls.at(-1)[1]
+      expect(payload.type).toBe('print')
+      expect(payload.theme).toBe('academic')
+      expect(payload.pageMarginTop).toBe(8)
+      expect(payload.tocTitle).toBe('TOC')
+      expect(payload.header).toEqual({ type: 1, left: '', center: 'H', right: '' })
+      // per-flow keys never leak into the print payload
+      expect(payload.pageSize).toBeUndefined()
+      expect(payload.isLandscape).toBeUndefined()
+      expect(payload.htmlTitle).toBeUndefined()
+      expect(window.localStorage.getItem('mark-last-print-options')).toBeTruthy()
     })
   })
 

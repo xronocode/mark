@@ -854,14 +854,20 @@ describe('store/editor — deep coverage', () => {
   // ─── EXPORT — edge cases ─────────────────────────────────────────
 
   describe('EXPORT — deep', () => {
-    it('PDF type opens the native print panel (C-18)', async () => {
+    it('PDF type writes via mt_export_pdf after the save dialog (C-61)', async () => {
       const { invoke } = await import('@tauri-apps/api/core')
+      const { save } = await import('@tauri-apps/plugin-dialog')
       invoke.mockClear()
       editor.currentFile = makeTab({ id: 't1', pathname: '/tmp/a.md', filename: 'a.md' })
       editor.tabs = [editor.currentFile]
       editor.listToc = []
-      await editor.EXPORT({ type: 'pdf', content: '<p/>' })
-      expect(invoke).toHaveBeenCalledWith('mt_print_webview')
+      save.mockResolvedValueOnce('/tmp/out.pdf')
+      await editor.EXPORT({ type: 'pdf', pageOptions: { pageSize: 'A4' } })
+      expect(invoke).toHaveBeenCalledWith('mt_export_pdf', {
+        path: '/tmp/out.pdf',
+        pageOptions: { pageSize: 'A4' }
+      })
+      expect(invoke).not.toHaveBeenCalledWith('mt_print_webview')
     })
 
     it('styledHtml export calls save dialog', async () => {

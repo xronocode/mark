@@ -1909,7 +1909,7 @@ describe('editor.vue — coverage', () => {
     )
   })
 
-  it('handleExport pdf calls printer.renderMarkdown and EXPORT', async () => {
+  it('handleExport pdf calls printer.renderMarkdown and EXPORT with full pageOptions (C-61)', async () => {
     await mountEditor()
     await getBusHandler('export')({
       type: 'pdf',
@@ -1920,12 +1920,28 @@ describe('editor.vue — coverage', () => {
       pageSize: 'A4',
       pageSizeWidth: 210,
       pageSizeHeight: 297,
-      isLandscape: false
+      isLandscape: true,
+      pageMarginTop: 20,
+      pageMarginRight: 15,
+      pageMarginBottom: 20,
+      pageMarginLeft: 15
     })
     expect(mockPrinter.renderMarkdown).toHaveBeenCalled()
-    expect(editorStore.EXPORT).toHaveBeenCalledWith(
-      expect.objectContaining({ type: 'pdf' })
-    )
+    expect(editorStore.EXPORT).toHaveBeenCalledWith({
+      type: 'pdf',
+      pageOptions: {
+        pageSize: 'A4',
+        pageSizeWidth: 210,
+        pageSizeHeight: 297,
+        isLandscape: true,
+        pageMarginTop: 20,
+        pageMarginRight: 15,
+        pageMarginBottom: 20,
+        pageMarginLeft: 15
+      }
+    })
+    // C-61: the flow is over once EXPORT resolves — the container goes.
+    expect(mockPrinter.clearup).toHaveBeenCalled()
   })
 
   it('handleExport pdf handles error', async () => {
@@ -1945,7 +1961,7 @@ describe('editor.vue — coverage', () => {
     expect(mockPrinter.clearup).toHaveBeenCalled()
   })
 
-  it('handleExport print opens the native print panel via mt_print_webview (C-18)', async () => {
+  it('handleExport print opens the native print panel via mt_print_webview (C-61)', async () => {
     const { invoke } = await import('@tauri-apps/api/core')
     invoke.mockClear()
     await mountEditor()
@@ -1958,7 +1974,10 @@ describe('editor.vue — coverage', () => {
     })
     expect(mockPrinter.renderMarkdown).toHaveBeenCalled()
     expect(invoke).toHaveBeenCalledWith('mt_print_webview')
-    // No eager clearup — the print container must survive into the panel.
+    // isOsx is false in this harness (Windows semantics): the WebView2
+    // print UI keeps a live preview bound to the DOM, so the container
+    // survives until the next export. macOS clears after the panel
+    // closes — pinned in editor-print-clearup.test.js.
     expect(mockPrinter.clearup).not.toHaveBeenCalled()
   })
 
