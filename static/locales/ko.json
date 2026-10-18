@@ -237,8 +237,8 @@
       "rename": "이름 바꾸기",
       "moveToTrash": "휴지통으로 이동",
       "showInFolder": "폴더에서 보기",
-      "pin": "고정",
-      "unpin": "고정 해제"
+      "pin": "고정됨에 추가",
+      "unpin": "고정됨에서 제거"
     },
     "tabs": {
       "close": "닫기",
@@ -250,8 +250,8 @@
       "showInFolder": "폴더에서 보기",
       "lock": "문서 잠금",
       "unlock": "문서 잠금 해제",
-      "pin": "고정",
-      "unpin": "고정 해제",
+      "pin": "고정됨에 추가",
+      "unpin": "고정됨에서 제거",
       "splitView": "분할 보기",
       "copyAsMarkdown": "Markdown으로 복사",
       "copyAsHtml": "HTML로 복사",

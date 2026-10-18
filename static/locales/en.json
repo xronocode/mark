@@ -238,8 +238,8 @@
       "rename": "Rename",
       "moveToTrash": "Move To Trash",
       "showInFolder": "Show In Folder",
-      "pin": "Pin",
-      "unpin": "Unpin"
+      "pin": "Add to Pinned",
+      "unpin": "Remove from Pinned"
     },
     "tabs": {
       "close": "Close",
@@ -251,8 +251,8 @@
       "showInFolder": "Show in folder",
       "lock": "Lock Document",
       "unlock": "Unlock Document",
-      "pin": "Pin",
-      "unpin": "Unpin",
+      "pin": "Add to Pinned",
+      "unpin": "Remove from Pinned",
       "splitView": "Split View",
       "copyAsMarkdown": "Copy as Markdown",
       "copyAsHtml": "Copy as HTML",
