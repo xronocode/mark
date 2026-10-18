@@ -1,6 +1,6 @@
 // @vitest-environment node
 // FILE: tests/site/landing-content.test.mjs
-// VERSION: 1.0.0
+// VERSION: 1.1.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Verify the C-64 T-002 landing content contract — the four
 //            install facts render, stale claims and forbidden Mark Text
@@ -27,7 +27,14 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: [v1.0.0 - 2026-10-18 C-64 T-002: first version.]
+//   LAST_CHANGE: [v1.1.0 - 2026-10-18 C-64 T-002 review round 2: pins the
+//                 round-2 fixes - stage rests via CSS per breakpoint with a
+//                 1.8 s from-rest sweep, one-line scrollable brew chip,
+//                 secondary Windows button, phone-folded agent prompt,
+//                 square-first phone wall with the count updated, iOS send
+//                 buttons in hero + install card, and the .more/.opt phone
+//                 trims.]
+//   PREV: [v1.0.0 - 2026-10-18 C-64 T-002: first version.]
 // END_CHANGE_SUMMARY
 
 import { readFileSync } from 'node:fs'
@@ -169,5 +176,50 @@ describe('landing hygiene', () => {
   it('ships the appearance toggle on the shared VitePress storage key', () => {
     expect(HTML).toContain("localStorage.setItem('vitepress-theme-appearance'")
     expect(HTML).toContain('id="appearance"')
+  })
+})
+
+describe('landing round-2 review fixes', () => {
+  it('rests the stage divider at the CSS default per breakpoint, with no inline start', () => {
+    expect(HTML).not.toContain('style="--x"')
+    expect(HTML).toMatch(/\.stage\s*\{[^}]*--x:\s*34%/)
+    expect(HTML).toMatch(/\.stage\s*\{[^}]*--x:\s*46%/)
+  })
+
+  it('sweeps from rest and back in 1.8 s', () => {
+    expect(HTML).toMatch(/\(t - t0\) \/ 1800/)
+    expect(HTML).toMatch(/restX - \(restX - 10\) \* Math\.sin/)
+  })
+
+  it('keeps the install brew command on one line, scrollable inside the chip', () => {
+    expect(HTML).toMatch(/\.brew\.block\s+\.cmd\s*\{[^}]*overflow-x:\s*auto/)
+    expect(HTML).toMatch(/\.brew\.block\s+\.cmd\s*\{[^}]*white-space:\s*nowrap/)
+  })
+
+  it('styles the Windows download as a secondary button', () => {
+    expect(HTML).toMatch(/class="btn sec"[^>]*data-method="windows"/)
+  })
+
+  it('folds the agent prompt into a details that is closed on phones by script', () => {
+    expect(HTML).toMatch(/<details class="prompt" id="agent-prompt" open>/)
+    expect(HTML).toMatch(/summary>Prompt for your agent</)
+    expect(HTML).toMatch(/promptBox\.open = !isPhone/)
+  })
+
+  it('hides the wide wall diagrams on phones, square ones first, count updated', () => {
+    expect(HTML).toMatch(/\.c1,\s*\.c6,\s*\.c7\s*\{[^}]*display:\s*none/)
+    expect(HTML).toMatch(/\.c3\s*\{\s*order:\s*-4/)
+    expect(HTML).toContain('Swipe &middot; 4 of 32 types')
+  })
+
+  it('offers Send Mark to your Mac in the hero and the install card on iOS', () => {
+    expect(HTML.match(/only-ios send-mac/g)?.length).toBe(2)
+  })
+
+  it('trims phone copy through hidden spans restored from 521px', () => {
+    expect(HTML.match(/class="more"/g)?.length).toBeGreaterThanOrEqual(10)
+    expect(HTML).toMatch(/\.more\s*\{\s*display:\s*none/)
+    expect(HTML).toMatch(/\.more\s*\{\s*display:\s*inline/)
+    expect(HTML).toMatch(/\.opt\s*\{\s*display:\s*none/)
   })
 })
