@@ -660,7 +660,12 @@
         "help": "Recherche en ligne une version plus récente et l'installe.",
         "check": "Rechercher des mises à jour",
         "autoCheck": "Rechercher automatiquement les mises à jour",
-        "autoCheckHelp": "Cherche une nouvelle version une fois par jour au lancement de Mark et l'annonce discrètement."
+        "autoCheckHelp": "Cherche une nouvelle version une fois par jour au lancement de Mark et l'annonce discrètement.",
+        "checking": "Vérification…",
+        "upToDate": "Vous avez la dernière version.",
+        "available": "Mark {version} est disponible.",
+        "install": "Installer {version}",
+        "failed": "Impossible de vérifier les mises à jour. Réessayez plus tard."
       }
     },
     "appearance": {

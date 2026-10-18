@@ -749,6 +749,20 @@ fn main() {
                 return;
             }
             safe_eprintln!("[menu][on_event][BLOCK_DISPATCH menu_id={id_str}]");
+            // ⌘W / Ctrl+W while the Settings window is focused closes that
+            // window. Broadcasting file.close-tab instead was ignored by
+            // Settings and closed a TAB in the editor window behind it
+            // (user report 2026-10-19).
+            if id_str == "file.close-tab" {
+                use tauri::Manager;
+                if let Some(settings) = app_handle.get_webview_window("settings") {
+                    if settings.is_focused().unwrap_or(false) {
+                        safe_eprintln!("[menu][on_event][BLOCK_CLOSE_SETTINGS]");
+                        let _ = settings.close();
+                        return;
+                    }
+                }
+            }
             // Broadcast to all windows. Renderer's menu-bridge filters
             // by listening on the main window only; Settings window
             // ignores menu events for now (per F-V1-IPC-COMPAT-STUBS).

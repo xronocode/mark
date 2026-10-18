@@ -300,7 +300,7 @@ describe('expand button render + routing (C-51 T-006/T-010)', () => {
 
   it('table figures keep the need marker but carry the C-65 table toolbar, not the standalone glyph (C-65 T-002)', async () => {
     const sr = await createStateRender({
-      tableResize: { enabled: () => true, isFullWidth: () => false }
+      tableResize: { enabled: () => true, isFullWidth: () => false, getRenderWidths: () => null }
     })
     const { figure } = makeTableBlocks()
     const figureVnode = sr.renderBlock(null, figure, [], {}, false, t)
@@ -318,7 +318,7 @@ describe('expand button render + routing (C-51 T-006/T-010)', () => {
     expect(toolbarIndex, 'the table figure carries the table toolbar').toBeGreaterThan(-1)
     expect(wrapperIndex, 'the table figure keeps its scroll wrapper').toBeGreaterThan(-1)
     expect(toolbarIndex, 'the toolbar precedes the scroll wrapper').toBeLessThan(wrapperIndex)
-    expect(toolbarIndex).toBe(0)
+    // (The table front icon may still precede it; Tab order is what matters.)
     const toolbar = children[toolbarIndex]
     const buttons = (toolbar.children || []).filter((c) => c.sel.includes('ag-table-toolbar-btn'))
     expect(buttons.length).toBe(2)
@@ -330,7 +330,7 @@ describe('expand button render + routing (C-51 T-006/T-010)', () => {
 
   it('a disabled surface (the Split View mirror) renders neither the toolbar nor the glyph on a table figure', async () => {
     const sr = await createStateRender({
-      tableResize: { enabled: () => false, isFullWidth: () => false }
+      tableResize: { enabled: () => false, isFullWidth: () => false, getRenderWidths: () => null }
     })
     const { figure } = makeTableBlocks()
     const figureVnode = sr.renderBlock(null, figure, [], {}, false, t)

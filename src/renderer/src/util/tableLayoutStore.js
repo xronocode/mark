@@ -73,10 +73,17 @@ export const normalizeStore = (raw) => {
     if (!entries || typeof entries !== 'object') continue
     const clean = {}
     for (const pid of Object.keys(entries)) {
+      if (pid === 'updatedAt') continue
       const entry = sanitizeEntry(entries[pid])
       if (entry) clean[pid] = entry
     }
-    if (Object.keys(clean).length > 0) files[pathname] = clean
+    // updatedAt survives normalization: capStoreFiles keeps the newest
+    // files by it (dropping it made the cap fall back to name order).
+    if (Object.keys(clean).length > 0) {
+      files[pathname] = Number.isFinite(entries.updatedAt)
+        ? Object.assign({ updatedAt: entries.updatedAt }, clean)
+        : clean
+    }
   }
   return { version: 1, files }
 }
@@ -173,7 +180,9 @@ const statFileExists = async (pathname) => {
 export const pruneMissingFiles = async (store, statExists = statFileExists) => {
   const base = normalizeStore(store)
   const paths = Object.keys(base.files)
-  const verdicts = await Promise.all(paths.map(path => statExists(path)))
+  // A throwing stat counts as «gone», for injected checkers too.
+  const verdicts = await Promise.all(paths.map(path =>
+    Promise.resolve().then(() => statExists(path)).catch(() => false)))
   const files = {}
   const pruned = []
   paths.forEach((pathname, index) => {
@@ -205,7 +214,10 @@ export const loadTableLayoutsFor = async (pathname, io = defaultIo) => {
     }
   }
   const entries = cappedStore.files[pathname]
-  return entries || {}
+  if (!entries) return {}
+  // Hand muya only the table entries, never the bookkeeping timestamp.
+  const { updatedAt, ...tables } = entries
+  return tables
 }
 
 // The C-65 save path: replace ONE file's entries; an empty entries object

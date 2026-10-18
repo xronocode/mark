@@ -653,7 +653,12 @@
         "help": "オンラインで新しいバージョンを確認してインストールします。",
         "check": "アップデートを確認",
         "autoCheck": "自動でアップデートを確認",
-        "autoCheckHelp": "Markの起動時に1日1回新しいバージョンを確認し、静かに知らせます。"
+        "autoCheckHelp": "Markの起動時に1日1回新しいバージョンを確認し、静かに知らせます。",
+        "checking": "確認中…",
+        "upToDate": "最新バージョンです。",
+        "available": "Mark {version} が利用可能です。",
+        "install": "{version} をインストール",
+        "failed": "アップデートを確認できませんでした。後でもう一度お試しください。"
       }
     },
     "appearance": {

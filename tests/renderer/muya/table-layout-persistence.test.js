@@ -162,7 +162,7 @@ describe('persistent identity (C-65 R-1)', () => {
     // Whitespace is trimmed so re-flowed markdown keeps the identity.
     expect(tableSignature(rowOf([' A ', 'B']))).toBe(tableSignature(rowOf(['A', 'B '])))
     expect(tableSignature(null)).toBeNull()
-    expect(tableSignature(table.createTHead().insertRow(0))).toBeNull()
+    expect(tableSignature(document.createElement('table').createTHead().insertRow(0))).toBeNull()
   })
 
   it('sanitizes persisted entries: widths clamped, invalid dropped, fullWidth-only kept', () => {
@@ -428,7 +428,8 @@ describe('full width toggle + toolbar routing (C-65 R-4/R-6)', () => {
     Object.defineProperty(wrapper, 'clientWidth', { value: 200, configurable: true })
     let left = 100
     for (const cell of figure.querySelectorAll('th')) {
-      cell.getBoundingClientRect = () => ({ left, width: 100 })
+      const cellLeft = left // capture per cell (a shared `left` made every rect the last one)
+      cell.getBoundingClientRect = () => ({ left: cellLeft, width: 100 })
       left += 100
     }
 
