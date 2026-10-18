@@ -6874,9 +6874,9 @@
       <Type>UTILITY</Type>
       <Status>shipped</Status>
       <Layer>1</Layer>
-      <PhaseRef>C-59-T-001</PhaseRef>
+      <PhaseRef>C-61-T-001</PhaseRef>
       <Summary>
-        The platform print surface, split by C-59 into two flows.
+        The platform print surface, split by C-61 into two flows.
         mt_print_webview opens the print panel for the caller window —
         macOS drives the WKWebView print operation itself
         (printOperationWithPrintInfo, modal for the window, resolving when
@@ -6907,7 +6907,7 @@
       </Interface>
       <ChangeRefs>
         <C-18/>
-        <C-59/>
+        <C-61/>
       </ChangeRefs>
     </M-052>
 

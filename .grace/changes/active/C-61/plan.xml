@@ -1,0 +1,187 @@
+<GraceChangePlan graceVersion='4.0' status='approved'>
+<C-61>
+  <ChangeRef>C-61</ChangeRef>
+  <Created>2026-10-18</Created>
+  <IntentSummary>Split Print and Export to PDF: ⌘P renders the print container with remembered options and opens the native print panel directly; Export to PDF keeps the settings dialog, then a save dialog, then a silent native PDF write — WKWebView print-to-file on macOS, WebView2 PrintToPdf on Windows (plus the WebView2 print UI for ⌘P); locales, unit/e2e/Rust tests, graph and verification.</IntentSummary>
+  <BaselineAssertions>
+    <MustContain>
+      <File>src-tauri/src/m052_print.rs</File>
+      <Text>mt_print_webview</Text>
+    </MustContain>
+  </BaselineAssertions>
+  <TargetAssertions>
+    <MustVerify>
+      <Module>M-052</Module>
+    </MustVerify>
+    <MustContain>
+      <File>src-tauri/src/m052_print.rs</File>
+      <Text>mt_export_pdf</Text>
+    </MustContain>
+    <MustPassCommand>
+      <Command>npx vitest run</Command>
+    </MustPassCommand>
+  </TargetAssertions>
+  <DurableScope>
+    <GraphAnchors>
+      <M-052 />
+    </GraphAnchors>
+    <VerificationAnchors>
+      <V-M-052 />
+    </VerificationAnchors>
+  </DurableScope>
+  <ObservedWriteScope>
+    <File>src-tauri/src/m052_print.rs</File>
+    <File>src-tauri/src/lib.rs</File>
+    <File>src-tauri/Cargo.toml</File>
+    <File>Cargo.lock</File>
+    <File>src/renderer/src/commands/index.js</File>
+    <File>src/renderer/src/commands/descriptions.js</File>
+    <File>src/renderer/src/components/editorWithTabs/editor.vue</File>
+    <File>src/renderer/src/store/editor.js</File>
+    <File>src/renderer/src/components/exportSettings/index.vue</File>
+    <Glob>static/locales/*.json</Glob>
+    <Glob>tests/renderer/**</Glob>
+    <Glob>tests/e2e/*.spec.ts</Glob>
+    <Glob>tests/e2e/fixtures/**</Glob>
+    <Glob>.grace/**</Glob>
+  </ObservedWriteScope>
+  <CornerMatrix>
+    <Corner id='corner-1'><Situation>⌘P on a document with diagrams, math and a wide table</Situation><Expected>print panel only; preview shows themed diagrams/math; table not clipped</Expected></Corner>
+    <Corner id='corner-2'><Situation>Export to PDF, cancel in settings / cancel in save dialog</Situation><Expected>nothing written, no notice, print container cleared</Expected></Corner>
+    <Corner id='corner-3'><Situation>Export to PDF over an existing file</Situation><Expected>save dialog asks to replace; file replaced atomically or a clear error</Expected></Corner>
+    <Corner id='corner-4'><Situation>Untitled document</Situation><Expected>default name from the first heading, else "Untitled.pdf"</Expected></Corner>
+    <Corner id='corner-5'><Situation>Windows</Situation><Expected>⌘P/Ctrl+P opens the WebView2 print UI; Export to PDF writes via PrintToPdf; no "macOS-only" error</Expected></Corner>
+    <Corner id='corner-6'><Situation>App Store build</Situation><Expected>PDF written only to the dialog-chosen URL; works under the sandbox</Expected></Corner>
+    <Corner id='corner-7'><Situation>Landscape A4 with custom margins</Situation><Expected>PDF page size/orientation/margins match the settings</Expected></Corner>
+  </CornerMatrix>
+  <ImplementationPlan>
+    <T-001>
+      <Title>Backend: mt_export_pdf (macOS print-to-file, Windows PrintToPdf), Windows print UI for mt_print_webview, pageOptions mapping + path validation, registration, Rust tests</Title>
+      <DependsOn></DependsOn>
+      <AcceptanceCriteria><Criterion>cargo test m052 green; macOS + Windows targets compile; Linux explicit error.</Criterion></AcceptanceCriteria>
+      <Verification><Command>cargo test -p mark m052</Command></Verification>
+      <Evidence>
+        <Note>
+          src-tauri/src/m052_print.rs v2.0.0: mt_export_pdf dispatches through
+          WebviewWindow::with_webview on the main thread and resolves via a
+          tokio oneshot — macOS builds NSPrintInfo (alloc/init,
+          setOrientation then landscape-swapped setPaperSize, margins 0,
+          setJobDisposition "NSPrintSaveJob", NSURL fileURLWithPath +
+          setJobSavingURL), runs printOperationWithPrintInfo with
+          showsPrintPanel/showsProgressPanel NO and runOperation, then
+          polls up to 5 s for the file before resolving; Windows casts to
+          ICoreWebView2_7 + ICoreWebView2Environment6, sets
+          PageWidth/PageHeight (portrait inches) + Orientation +
+          margins + backgrounds-on/header-footer-off, and resolves from
+          the PrintToPdfCompletedHandler closure. mt_print_webview on
+          macOS mirrors wry's selectors (respondsToSelector guard,
+          margins 0, setCanSpawnSeparateThread,
+          runOperationModalForWindow) and resolves after the modal; on
+          Windows ICoreWebView2_16::ShowPrintUI(BROWSER); Linux explicit
+          errors for both commands. Pure mapping (page_geometry /
+          validate_pdf_path / mm_to_points / mm_to_inches) is
+          platform-independent with 16 unit tests (named sizes incl.
+          case-insensitivity, custom+range rejection, margin clamping,
+          landscape point swap, camelCase deser incl. empty object,
+          path validation). main.rs registers mt_export_pdf (outside the
+          M-013-A fixture, like mt_print_webview); Cargo.toml windows
+          target adds webview2-com 0.38 + windows-core 0.61 — both
+          already in the root Cargo.lock, no lock edit. External APIs
+          verified against tauri-2.10.2 (WebviewWindow::with_webview,
+          PlatformWebview inner/controller/environment), wry-0.55.1
+          wkwebview print (selector reference), webview2-com-sys-0.38.2
+          bindings (PrintToPdf/CreatePrintSettings/ShowPrintUI/setters),
+          webview2-com-0.38.2 callback (PrintToPdfCompletedHandler::create
+          FnOnce(Result&lt;()&gt;, bool)), windows-core-0.61.2 (Interface::cast,
+          HSTRING, Param&lt;PCWSTR&gt; for &amp;HSTRING), cocoa-foundation NSSize
+          Encode, objc-0.2.7 BOOL=bool.
+        </Note>
+      </Evidence>
+    </T-001>
+    <T-002>
+      <Title>Renderer: Print direct (remembered options, no dialog), Export to PDF = settings → save dialog → mt_export_pdf, notices and cancel paths, settings dialog pdf-only</Title>
+      <DependsOn>T-001</DependsOn>
+      <AcceptanceCriteria><Criterion>Corners 1, 2, 4; unit tests on store/editor/commands.</Criterion></AcceptanceCriteria>
+      <Verification><Command>npx vitest run tests/renderer/store tests/renderer/components</Command></Verification>
+      <Evidence>
+        <Note>
+          commands/index.js file.print routes to editorStore.PRINT_DOCUMENT
+          (no showExportDialog); store/editor.js gains PRINT_DOCUMENT
+          (defaults 20/15/20/15 margins, theme null, toc flags; merges the
+          remembered options and emits bus 'export' type print with the
+          BLOCK_PRINT_REQUESTED marker), REMEMBER_EXPORT_OPTIONS (strips
+          type/pageSize/pageSizeWidth/pageSizeHeight/isLandscape/htmlTitle,
+          persists to localStorage 'mark-last-print-options', guarded),
+          _pdfDefaultName (pathname+filename → filename.pdf; untitled →
+          first heading, sanitised, else Untitled.pdf — corner-4) and the
+          rewritten _EXPORT_PDF (plugin-dialog save with pdfTitle +
+          pdf filter → invoke mt_export_pdf with path+pageOptions →
+          APPLY_EXPORT_SUCCESS; cancel writes nothing, no notice —
+          corner-2; failure notifies). editor.vue handleExport pdf case
+          passes margins in pageOptions too, remembers the options and
+          clears the container on EVERY outcome; print case clears after
+          mt_print_webview resolves only on macOS (Windows keeps the live
+          preview). exportSettings/index.vue is pdf-only: title
+          exportSettings.pdfTitle, page size select + landscape bool +
+          custom width/height inputs restored (onSelectChange map gains
+          pageSizeWidth/pageSizeHeight). Unit coverage updated in
+          editor.test.ts (save→invoke order, cancel, default name,
+          PRINT_DOCUMENT defaults/no-op/remembered), editor-coverage /
+          editor-deep / editor-deep2 / editor-fn / commands index-deep,
+          plus the new editor-print-clearup.test.js (isOsx=true harness:
+          panel-close clearup, save-cancel and success integration through
+          the real store).
+        </Note>
+      </Evidence>
+    </T-002>
+    <T-003>
+      <Title>E2E print-export.spec.ts (invoke-order traces) + shim mocks; locales; graph M-052 + verification V-M-052; evidence</Title>
+      <DependsOn>T-002</DependsOn>
+      <AcceptanceCriteria><Criterion>Playwright chromium + webkit green; grace lint 0.</Criterion></AcceptanceCriteria>
+      <Verification><Command>npx playwright test tests/e2e/print-export.spec.ts --project=chromium --project=webkit</Command></Verification>
+      <Evidence>
+        <Note>
+          tests/e2e/print-export.spec.ts (3 cases): print via
+          mt::menu-invoked file.print → invoke log exactly
+          ['mt_print_webview'], no .ag-dialog-table ever, container
+          lifecycle follows the folded build-host platform (macOS cleared
+          post-panel, else kept); pdf via file.export-file-pdf → dialog
+          title "Export to PDF" → OK → log exactly
+          ['plugin:dialog|save', 'mt_export_pdf'] with the pdf filter and
+          defaultPath pdf-flow.pdf captured, mt_print_webview never;
+          save-cancel → log ['plugin:dialog|save'] and the print
+          container cleared. tauri-shim.ts gains mt_print_webview /
+          mt_export_pdf / plugin:dialog|open|save no-op defaults (save
+          cancels) and an opt-in window.__invokeLog order trace pushed in
+          __TAURI_INTERNALS__.invoke. Locales: exportSettings.pdfTitle
+          added in all ten (en/de/es/fr/ja/ko/pt/ru/zh-CN/zh-TW, native
+          copy) with each .min.json regenerated compact in the same key
+          order; the dead en-only exportSettings.page.printPanelHint
+          removed from en.json + en.min.json. Graph runtime.xml M-052
+          (new DisplayName/Summary/Interface fns + C-61 ChangeRef) and
+          verification runtime.xml V-M-052 (m052 cargo test + e2e command,
+          4 scenarios, 8 BLOCK markers) updated; graph/verification index
+          routing unchanged (M-052/V-M-052 already owned).
+        </Note>
+      </Evidence>
+    </T-003>
+  </ImplementationPlan>
+  <Evidence>
+    <Note>
+      Deferred to the orchestrator/live check (no shell in this session):
+      cargo test m052, cargo check (macOS + windows targets — CI test.yml),
+      npx vitest run, playwright chromium+webkit runs, grace lint
+      --assertions current. Live macOS smoke per V-M-052 scenario-4:
+      ⌘P panel-only, Export-to-PDF settings → save → paginated PDF with
+      the chosen page size/orientation; verify the spec's assumption that
+      NSPrintSaveJob + NSPrintJobSavingURL with suppressed panels writes
+      the file synchronously enough for the 5 s poll. Known deliberate
+      interpretation: macOS NSPrintInfo margins stay 0 (the shared @page
+      CSS from the same pageOptions owns the visible margins) so the
+      panel and the saved PDF paginate identically; Windows applies the
+      margins natively in the PrintToPdf settings (Chromium lets CSS
+      @page win when present, so no doubling either way).
+    </Note>
+  </Evidence>
+</C-61>
+</GraceChangePlan>

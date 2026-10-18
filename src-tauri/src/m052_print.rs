@@ -1,10 +1,10 @@
 // FILE: src-tauri/src/m052_print.rs
 // VERSION: 2.0.0
 // START_MODULE_CONTRACT
-//   PURPOSE: Native print surface — mt_print_webview opens the platform print panel for the caller window and mt_export_pdf silently writes the webview content to a .pdf path chosen in the renderer's save dialog (C-59 split of Print vs Export to PDF; MAS-sandbox-safe).
+//   PURPOSE: Native print surface — mt_print_webview opens the platform print panel for the caller window and mt_export_pdf silently writes the webview content to a .pdf path chosen in the renderer's save dialog (C-61 split of Print vs Export to PDF; MAS-sandbox-safe).
 //   SCOPE: Two Tauri commands, the pure pageOptions→geometry mapping (named page sizes, landscape swap, margins), and .pdf path validation. No state, no dialogs of its own; the only file ever written is the user-selected path handed in by the renderer.
 //   DEPENDS: tauri 2 WebviewWindow::with_webview on the main thread (PlatformWebview: WKWebView pointer on macOS; ICoreWebView2Controller + ICoreWebView2Environment on Windows); cocoa/objc 0.2 on macOS; webview2-com 0.38 + windows-core 0.61 on Windows; tokio oneshot for main-thread→async-command results; serde for the pageOptions payload.
-//   LINKS: .grace/changes/active/C-59; .grace/graph/runtime.xml M-052; .grace/verification/runtime.xml V-M-052; .grace/changes/archive/C-18 (the superseded single-panel flow).
+//   LINKS: .grace/changes/active/C-61; .grace/graph/runtime.xml M-052; .grace/verification/runtime.xml V-M-052; .grace/changes/archive/C-18 (the superseded single-panel flow).
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT
@@ -13,14 +13,14 @@
 //   PdfPageOptions - camelCase renderer payload (pageSize/pageSizeWidth/pageSizeHeight/isLandscape, pageMargin* in mm); every field optional.
 //   PdfPageGeometry - resolved geometry: portrait page size in mm, landscape flag, four margins in mm.
 //   page_geometry - PdfPageOptions → PdfPageGeometry via the named-size table (a3/a4/a5/legal/letter/taboloid, "custom" uses explicit mm), with range + margin clamping.
-//   validate_pdf_path - rejects empty and non-.pdf destinations (C-59 R-6).
+//   validate_pdf_path - rejects empty and non-.pdf destinations (C-61 R-6).
 //   mm_to_points / mm_to_inches - unit conversions for AppKit (points) and WebView2 (inches).
 //   mt_print_webview - macOS: WKWebView print operation attached to the window, modal; resolves when the panel closes so the renderer can clear the print container. Windows: WebView2 browser print UI (ICoreWebView2_16::ShowPrintUI). Linux: explicit error.
 //   mt_export_pdf - macOS: NSPrintInfo with jobDisposition NSPrintSaveJob + NSPrintJobSavingURL, paper size/orientation from pageOptions, panels suppressed, resolves after the file exists. Windows: ICoreWebView2_7::PrintToPdf with ICoreWebView2Environment6 print settings; resolves from the completion handler. Linux: explicit error.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   - 2026-10-18 v2.0.0 C-59: split Print and Export to PDF into two flows.
+//   - 2026-10-18 v2.0.0 C-61: split Print and Export to PDF into two flows.
 //     mt_print_webview no longer routes through wry's macOS-only print on
 //     every platform: macOS drives the WKWebView print operation itself and
 //     resolves when the modal panel closes (renderer clears the print
@@ -144,7 +144,7 @@ pub fn page_geometry(options: &PdfPageOptions) -> Result<PdfPageGeometry, String
     })
 }
 
-/// The save destination must be a .pdf path (C-59 R-6).
+/// The save destination must be a .pdf path (C-61 R-6).
 pub fn validate_pdf_path(path: &str) -> Result<(), String> {
     let trimmed = path.trim();
     if trimmed.is_empty() {
@@ -194,7 +194,7 @@ impl PdfPageGeometry {
 ///
 /// macOS runs the WKWebView print operation modally for the window and
 /// resolves once the panel has closed, so the renderer can clear its print
-/// container afterwards (C-59 R-1). Windows opens the WebView2 browser
+/// container afterwards (C-61 R-1). Windows opens the WebView2 browser
 /// print UI (the dialog keeps its own live preview, so the invoke resolves
 /// right away and the renderer keeps the container until the next
 /// export). Linux fails fast with an explicit error.
@@ -226,7 +226,7 @@ pub async fn mt_print_webview(webview_window: tauri::WebviewWindow) -> Result<()
 }
 
 /// Write the calling window's webview content to `path` as a PDF,
-/// silently — no print panel, no progress panel (C-59 R-2/R-3/R-4).
+/// silently — no print panel, no progress panel (C-61 R-2/R-3/R-4).
 ///
 /// `path` comes from the renderer's save dialog; the MAS sandbox therefore
 /// only ever sees a user-selected URL. macOS uses the WKWebView print
@@ -332,7 +332,7 @@ unsafe fn print_panel_wkwebview(webview: *mut std::ffi::c_void) -> Result<(), St
     let print_info = unsafe { new_print_info()? };
     // Visible margins live in the shared print CSS (@page, from the same
     // renderer options); native margins stay at zero so panel and saved
-    // PDF paginate identically (C-59, preserves the C-18/wry behavior).
+    // PDF paginate identically (C-61, preserves the C-18/wry behavior).
     let _: () = unsafe { msg_send![print_info, setTopMargin: 0.0f64] };
     let _: () = unsafe { msg_send![print_info, setBottomMargin: 0.0f64] };
     let _: () = unsafe { msg_send![print_info, setLeftMargin: 0.0f64] };
@@ -361,7 +361,7 @@ unsafe fn print_panel_wkwebview(webview: *mut std::ffi::c_void) -> Result<(), St
     };
     let _: () = unsafe { msg_send![print_info, release] };
     // The modal returns when the panel closes — the renderer clears its
-    // print container on this invoke's resolution (C-59 R-1).
+    // print container on this invoke's resolution (C-61 R-1).
     safe_eprintln!("[m052][mt_print_webview][BLOCK_PRINT_PANEL_CLOSED]");
     Ok(())
 }
@@ -433,7 +433,7 @@ unsafe fn export_pdf_wkwebview(
     }
     // runOperation returns when the save job finishes; some OS versions
     // flush the file a beat later — poll briefly so the command resolves
-    // only once the PDF is actually on disk (C-59 R-3).
+    // only once the PDF is actually on disk (C-61 R-3).
     if !wait_for_file(path, 5_000) {
         return Err(format!("the print operation finished but {path} was not written"));
     }
@@ -731,7 +731,7 @@ mod tests {
         assert!(approx(mm_to_points(210.0), 595.2755905));
     }
 
-    // ── path validation (C-59 R-6) ────────────────────────────────────
+    // ── path validation (C-61 R-6) ────────────────────────────────────
 
     #[test]
     fn validate_pdf_path_accepts_pdf_paths() {

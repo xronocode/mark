@@ -37,7 +37,7 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   - 2026-10-18 C-59 T-002: file.print no longer emits
+//   - 2026-10-18 C-61 T-002: file.print no longer emits
 //     showExportDialog('print') — ⌘P routes to editorStore.PRINT_DOCUMENT
 //     which renders the print container with the remembered export
 //     options and opens the native panel directly (no settings dialog).
@@ -250,7 +250,7 @@ const commands = [
     }
   },
   {
-    // C-59 R-1: ⌘P goes straight to the system print panel — no
+    // C-61 R-1: ⌘P goes straight to the system print panel — no
     // export-settings dialog. PRINT_DOCUMENT renders the print container
     // with the last-used export options (defaults on first use) and emits
     // the same bus 'export' pipeline; editor.vue opens mt_print_webview.

@@ -56,7 +56,7 @@ core-foundation-sys = "0.8"
 # C-38 T-007: Windows-only OS build probe for the Mica gate (m058).
 # windows-version 0.1.7 is already in the root Cargo.lock (pulled by
 # tao), so this adds no new lockfile entry.
-# C-59: webview2-com 0.38 (already in the root lock via wry) is declared
+# C-61: webview2-com 0.38 (already in the root lock via wry) is declared
 # directly for the m052 print surface — ICoreWebView2_7::PrintToPdf and
 # ICoreWebView2_16::ShowPrintUI. windows-core 0.61 (also already in the
 # lock, webview2-com's own dependency) supplies Interface::cast/HSTRING.

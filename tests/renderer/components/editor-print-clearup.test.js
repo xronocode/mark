@@ -1,10 +1,10 @@
 // FILE: tests/renderer/components/editor-print-clearup.test.js
 // VERSION: 1.0.0
 // START_MODULE_CONTRACT
-//   PURPOSE: Pin the C-59 macOS print/pdf container lifecycle through editor.vue's handleExport with isOsx=true — the print container is cleared after mt_print_webview resolves (the backend resolves when the panel closes) and after every Export-to-PDF outcome (saved, cancelled, failed).
+//   PURPOSE: Pin the C-61 macOS print/pdf container lifecycle through editor.vue's handleExport with isOsx=true — the print container is cleared after mt_print_webview resolves (the backend resolves when the panel closes) and after every Export-to-PDF outcome (saved, cancelled, failed).
 //   SCOPE: The bus 'export' handler for types print/pdf only; same harness as editor-coverage.test.js but with the macOS util flag.
 //   DEPENDS: Vitest, editor.vue (mounted with mocked Muya/Printer/Tauri surfaces), global @tauri-apps mocks from tests/renderer/setup.ts.
-//   LINKS: .grace/verification/runtime.xml V-M-052 scenario-2; .grace/changes/active/C-59 (R-1, corner-2).
+//   LINKS: .grace/verification/runtime.xml V-M-052 scenario-2; .grace/changes/active/C-61 (R-1, corner-2).
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT
@@ -24,7 +24,7 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: 2026-10-18 v1.0.0 - C-59 T-002: initial file — macOS print
+//   LAST_CHANGE: 2026-10-18 v1.0.0 - C-61 T-002: initial file — macOS print
 //   container clearing (panel closed → clearup) plus the pdf save-cancel
 //   integration (real editorStore.EXPORT through the global plugin-dialog
 //   mock, nothing written, no notice, container cleared).
@@ -148,7 +148,7 @@ vi.mock('@/spellchecker', () => ({
   }
 }))
 // The one deliberate difference from editor-coverage.test.js: macOS, so
-// handleExport's post-invoke clearup branch runs (C-59 R-1).
+// handleExport's post-invoke clearup branch runs (C-61 R-1).
 vi.mock('@/util', async (importOriginal) => ({
   // Partial mock: the real store (EXPORT/REMEMBER_EXPORT_OPTIONS) needs the
   // rest of @/util (hasKeys, …); only the platform flag and scroll are faked.
@@ -194,7 +194,7 @@ globalThis.ResizeObserver = class ResizeObserver {
 
 const i18n = createI18n({ legacy: false, locale: 'en', messages: { en: {} } })
 
-describe('editor.vue — C-59 print/pdf container lifecycle (macOS)', () => {
+describe('editor.vue — C-61 print/pdf container lifecycle (macOS)', () => {
   let pinia, editorStore
 
   const mountEditor = async () => {
@@ -280,7 +280,7 @@ describe('editor.vue — C-59 print/pdf container lifecycle (macOS)', () => {
     expect(mockPrinter.renderMarkdown).toHaveBeenCalledTimes(1)
     expect(invoke).toHaveBeenCalledWith('mt_print_webview')
     // macOS: the backend resolves after the modal panel closes, so the
-    // renderer clears the print container then (C-59 R-1).
+    // renderer clears the print container then (C-61 R-1).
     expect(mockPrinter.clearup).toHaveBeenCalledTimes(1)
     wrapper.unmount()
   })

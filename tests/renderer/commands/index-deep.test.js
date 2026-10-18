@@ -20,7 +20,7 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: 2026-10-18 v1.3.0 - C-59: file.print no longer emits
+//   LAST_CHANGE: 2026-10-18 v1.3.0 - C-61: file.print no longer emits
 //   showExportDialog('print') — it routes to editorStore.PRINT_DOCUMENT
 //   (direct native panel); the editor store mock gains the action.
 //   2026-10-15 v1.2.0 - C-49: file.zoom describe replaced by the
@@ -157,7 +157,7 @@ describe('commands/index — deep coverage', () => {
       expect(bus.emit).toHaveBeenCalledWith('mt::editor-ask-file-save-as')
     })
 
-    it('file.print routes straight to PRINT_DOCUMENT — never showExportDialog (C-59)', async () => {
+    it('file.print routes straight to PRINT_DOCUMENT — never showExportDialog (C-61)', async () => {
       await findCmd('file.print').execute()
       expect(editorStoreMock.PRINT_DOCUMENT).toHaveBeenCalledTimes(1)
       const exportDialogCalls = bus.emit.mock.calls.filter((c) => c[0] === 'showExportDialog')

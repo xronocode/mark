@@ -1,5 +1,5 @@
 /**
- * print-export.spec.ts — C-59 (split Print and Export to PDF).
+ * print-export.spec.ts — C-61 (split Print and Export to PDF).
  *
  * Invoke-order traces against the real renderer + tauri shim:
  *
@@ -23,7 +23,7 @@ import { bootEditor, openFileTab } from './fixtures/helpers'
 
 const DOC = '# Print export spec\n\nbody with **bold** text\n'
 
-test.describe('print and export-to-pdf flows (C-59)', () => {
+test.describe('print and export-to-pdf flows (C-61)', () => {
   test.beforeEach(async ({ page }) => {
     await installTauriShim(page)
   })
