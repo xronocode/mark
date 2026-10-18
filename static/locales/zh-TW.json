@@ -358,6 +358,7 @@
   "exportSettings": {
     "autoNumberingHeadings": "自動編號標題",
     "title": "匯出選項",
+    "pdfTitle": "匯出 PDF",
     "info": {
       "label": "資訊",
       "description": "請自訂頁面外觀並點選「匯出」以繼續。"

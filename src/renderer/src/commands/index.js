@@ -1,5 +1,5 @@
 // FILE: src/renderer/src/commands/index.js
-// VERSION: 2.1.12-beta
+// VERSION: 2.2.0-beta
 // START_MODULE_CONTRACT
 //   PURPOSE: Register renderer commands and route each command to its typed store, event-bus, or Tauri integration.
 //   SCOPE: Static command definitions, platform-gated commands, and user-visible command outcomes; backend implementation is out of scope.
@@ -37,6 +37,11 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-10-18 C-59 T-002: file.print no longer emits
+//     showExportDialog('print') — ⌘P routes to editorStore.PRINT_DOCUMENT
+//     which renders the print container with the remembered export
+//     options and opens the native panel directly (no settings dialog).
+//     file.export-file-pdf keeps showExportDialog('pdf').
 //   - 2026-10-16 C-52 T-001: add file.open-from-clipboard (File › Open
 //     from Clipboard, Alt+CmdOrCtrl+V — mirrors the native menu item
 //     added in m009) routing to util/clipboardOpen.openFromClipboard.
@@ -245,10 +250,14 @@ const commands = [
     }
   },
   {
+    // C-59 R-1: ⌘P goes straight to the system print panel — no
+    // export-settings dialog. PRINT_DOCUMENT renders the print container
+    // with the last-used export options (defaults on first use) and emits
+    // the same bus 'export' pipeline; editor.vue opens mt_print_webview.
     id: 'file.print',
     execute: async () => {
-      await delay(50)
-      bus.emit('showExportDialog', 'print')
+      const { useEditorStore } = await import('../store/editor')
+      useEditorStore().PRINT_DOCUMENT()
     }
   },
   {

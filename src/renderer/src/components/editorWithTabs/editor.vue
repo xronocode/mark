@@ -78,7 +78,7 @@
 
 <script setup>
 // FILE: src/renderer/src/components/editorWithTabs/editor.vue
-// VERSION: 1.23.0
+// VERSION: 1.24.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Host the Muya WYSIWYG surface and coordinate document rendering, selection, scroll, preview, editor tools, and store/bus integration.
 //   SCOPE: Renderer-side Muya lifecycle and UI orchestration; does not own Markdown parsing rules or backend file persistence.
@@ -96,7 +96,7 @@
 //   syncPreviewSurface - Mirrors previewMode onto Muya's real replacement container and restores caret focus on exit.
 //   imageAction - Applies configured local/upload image insertion behavior; with the relative preference on a saved document it writes straight into the relative folder (C-24).
 //   handleDropImage - Inserts an image dropped from Finder (mt::drop-image) at the cursor through imageAction (C-24 R-4).
-//   handleExport - Routes supported export formats to renderer services.
+//   handleExport - Routes supported export formats to renderer services; C-59 splits print (direct native panel, remembered options) from pdf (settings → save dialog → mt_export_pdf, container cleared on every outcome).
 //   handleCopyAsHtml - Copies selection (or whole document) to the clipboard as rich text/html (C-3).
 //   copyRenderedAsPlainText - Shared C-12/C-32 render → convert → single text/plain write pipeline.
 //   diffGuarded - M-031: document-mutating bus handlers become no-ops while the diff view replaces the editing surface.
@@ -110,6 +110,16 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-10-18 v1.24.0: C-59 — handleExport splits Print from Export to
+//     PDF. The pdf case remembers the dialog options
+//     (editorStore.REMEMBER_EXPORT_OPTIONS), passes page size/orientation
+//     AND margins in pageOptions, awaits the store flow (native save
+//     dialog → silent mt_export_pdf) and clears the print container on
+//     every outcome (save-cancel included). The print case keeps driving
+//     mt_print_webview directly and now clears the container after the
+//     invoke resolves on macOS (the backend resolves when the panel
+//     closes); on Windows the WebView2 print UI keeps a live preview, so
+//     the container is replaced by the next export instead.
 //   - 2026-10-15 v1.23.0: C-39 T-002 — the Muya options carry
 //     disableTableColumnResize: props.mirror, so the read-only Split View
 //     mirror pane renders no table column-resize handles. Reading/locked
@@ -1390,15 +1400,31 @@ const handleExport = async (options) => {
       break
     }
     case 'pdf': {
-      // C-18: page setup (size/orientation) is owned by the native print
-      // panel; the export-settings margins still apply via @page CSS.
+      // C-59 R-2: Export to PDF = settings dialog (already OK'd) → native
+      // save dialog → silent mt_export_pdf write; no print panel. Page
+      // size/orientation and margins travel in pageOptions (the backend
+      // maps them onto the PDF page box; the shared @page CSS carries the
+      // visible margins).
       try {
-        const { pageSize, pageSizeWidth, pageSizeHeight, isLandscape } = options
+        const {
+          pageSize,
+          pageSizeWidth,
+          pageSizeHeight,
+          isLandscape,
+          pageMarginTop,
+          pageMarginRight,
+          pageMarginBottom,
+          pageMarginLeft
+        } = options
         const pageOptions = {
           pageSize,
           pageSizeWidth,
           pageSizeHeight,
-          isLandscape
+          isLandscape,
+          pageMarginTop,
+          pageMarginRight,
+          pageMarginBottom,
+          pageMarginLeft
         }
 
         const html = await editor.value.exportStyledHTML({
@@ -1411,7 +1437,14 @@ const handleExport = async (options) => {
           headerFooterStyled
         })
         printer.renderMarkdown(html, true)
-        editorStore.EXPORT({ type, pageOptions })
+        // C-59 R-1: remember the appearance so a later ⌘P renders the
+        // print container without the settings dialog.
+        editorStore.REMEMBER_EXPORT_OPTIONS(options)
+        await editorStore.EXPORT({ type, pageOptions })
+        // The flow is over — saved, cancelled in the save dialog (corner-2:
+        // nothing written, no notice), or a notified failure. The container
+        // goes in every case.
+        handlePrintServiceClearup()
       } catch (err) {
         log.error('Failed to export document:', err)
         notice.notify({
@@ -1424,7 +1457,9 @@ const handleExport = async (options) => {
       break
     }
     case 'print': {
-      // NOTE: Print doesn't support page size or orientation.
+      // C-59 R-1: ⌘P arrives here straight from editorStore.PRINT_DOCUMENT
+      // (remembered options; no export-settings dialog). Page size and
+      // orientation belong to the native panel.
       try {
         const html = await editor.value.exportStyledHTML({
           title: '',
@@ -1436,13 +1471,17 @@ const handleExport = async (options) => {
           headerFooterStyled
         })
         printer.renderMarkdown(html, true)
-        // C-18: window.print() is silently ignored by WKWebView on macOS —
-        // drive the native print panel from the backend instead. The print
-        // container stays in the DOM (screen-invisible, print-only CSS)
-        // until the next export replaces it; the modal can outlive this
-        // function's return, so there is no eager clearup here.
+        // window.print() is silently ignored by WKWebView — drive the
+        // native print panel from the backend instead.
         const { invoke } = await import('@tauri-apps/api/core')
         await invoke('mt_print_webview')
+        // On macOS the backend resolves only after the panel closes, so
+        // the container can go. On Windows the WebView2 print UI keeps a
+        // live preview bound to this DOM — the container is replaced by
+        // the next export instead (C-18 semantics).
+        if (isOsx) {
+          handlePrintServiceClearup()
+        }
       } catch (err) {
         log.error('Failed to export document:', err)
         notice.notify({
