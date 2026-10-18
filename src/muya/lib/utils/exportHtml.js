@@ -1,10 +1,11 @@
 // MODULE_CONTRACT
 //   PURPOSE: Render exported HTML for the current markdown document,
 //            including syntax highlighting, KaTeX, diagrams, and export-only
-//            stylesheet assembly.
+//            stylesheet assembly and shared per-diagram appearance (C-62).
 //   SCOPE:   Export-only DOM/CSS generation. Does not mutate the live editor
 //            runtime beyond reusing shared renderers and CSS assets.
 //   DEPENDS: marked, Prism, katex, renderer loaders, inline CSS assets,
+//            utils/diagramAppearance (local palettes and readonly overrides),
 //            sanitize helpers, parser/render/diagramTheme (C-55 pele
 //            variables), parser/render/peleOptions (C-55 per-type options),
 //            parser/render/contentTheme (C-51 T-005 diagram theming).
@@ -16,7 +17,10 @@
 //   STATUS: Screen layout CSS no longer uses `@media not print`; print
 //          behavior stays isolated in the dedicated `@media print` block.
 //
+// MODULE_MAP
+//   ExportHtml.renderPele - shared appearance policy on each standalone diagram, including indexed read-only overrides.
 // CHANGE_SUMMARY:
+//   - 2026-10-18 C-62: apply the shared per-diagram appearance policy and temporary read-only overrides to standalone HTML diagrams.
 //   - 2026-10-17 C-55: ```mermaid blocks export through pele (renderPele —
 //     synchronous render, escaped labels, no securityLevel config); the
 //     export document inlines the --pele-* variable block resolved from the
@@ -49,6 +53,7 @@ import {
   buildPeleVariables
 } from '../parser/render/diagramTheme'
 import { buildPeleRenderOptions } from '../parser/render/peleOptions'
+import { applyDiagramAppearance } from './diagramAppearance'
 import {
   buildVegaThemeConfig,
   buildFlowchartThemeOptions,
@@ -104,6 +109,7 @@ class ExportHtml {
           ...buildPeleRenderOptions(pele.detectType(rawCode), tokens)
         })
         peleContainer.innerHTML = rendered.svg
+        applyDiagramAppearance(peleContainer, rawCode, this.muya?.diagramAppearance?.getExportOverride(index - 1, rawCode))
       } catch (err) {
         peleContainer.innerHTML = '< Invalid Mermaid Codes >'
       }

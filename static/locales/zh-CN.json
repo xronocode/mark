@@ -1437,5 +1437,18 @@
         "text": "图表代码从 44 个文件 2.6 MB 精简为压缩后 0.26 MB 的单文件。"
       }
     }
+  },
+  "diagramAppearance": {
+    "label": "图表外观",
+    "auto": "自动",
+    "custom": "自定义",
+    "light": "浅色",
+    "dark": "深色",
+    "autoDescription": "跟随文档主题",
+    "customDescription": "使用 Markdown 中的配色",
+    "lightDescription": "始终使用浅色",
+    "darkDescription": "始终使用深色",
+    "noCustomPalette": "Markdown 中未设置配色",
+    "viewOnly": "仅用于当前查看"
   }
 }

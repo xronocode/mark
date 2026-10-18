@@ -1437,5 +1437,18 @@
         "text": "다이어그램 코드가 2.6 MB 44개 조각에서 압축 후 0.26 MB 한 조각으로."
       }
     }
+  },
+  "diagramAppearance": {
+    "label": "다이어그램 모양",
+    "auto": "자동",
+    "custom": "사용자 지정",
+    "light": "밝게",
+    "dark": "어둡게",
+    "autoDescription": "문서 테마 따르기",
+    "customDescription": "Markdown에 지정된 색상",
+    "lightDescription": "항상 밝게 표시",
+    "darkDescription": "항상 어둡게 표시",
+    "noCustomPalette": "Markdown에 색상이 지정되지 않음",
+    "viewOnly": "현재 보기에만 적용"
   }
 }

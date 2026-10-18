@@ -1437,5 +1437,18 @@
         "text": "ダイアグラムのコードは2.6 MB・44部から圧縮後0.26 MB・1部に。"
       }
     }
+  },
+  "diagramAppearance": {
+    "label": "図の配色",
+    "auto": "自動",
+    "custom": "カスタム",
+    "light": "ライト",
+    "dark": "ダーク",
+    "autoDescription": "文書のテーマに合わせる",
+    "customDescription": "Markdown の配色を使う",
+    "lightDescription": "常に明るい配色",
+    "darkDescription": "常に暗い配色",
+    "noCustomPalette": "Markdown に配色がありません",
+    "viewOnly": "この表示にのみ適用"
   }
 }

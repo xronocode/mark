@@ -2588,6 +2588,9 @@
       <Status>partial</Status>
       <Layer>2</Layer>
       <Summary>
+        C-62: all ten locales provide native diagram-appearance menu copy;
+        document locks and source-side Split View mirrors permit only
+        temporary view choices (V-M-011 scenario-66; M-012 owns the control).
         C-60: the footnote preference watcher applies the current grammar
         immediately and invalidates cached blocks in every tab; activation
         reparses stored Markdown with its source cursor/history while the
@@ -3574,6 +3577,23 @@
       <Status>partial</Status>
       <Layer>0</Layer>
       <Summary>
+        C-62: Mermaid/Pele diagrams expose Auto/Custom/Light/Dark through
+        muya.diagramAppearance and a shared inline/viewer button. Writable
+        choices persist as a header-only %% mark:appearance MODE %% comment
+        and one history edit; read-only/mirror choices are bounded source-keyed
+        view overrides. utils/diagramAppearance.js reads bounded safe YAML/init
+        color settings (yaml 2.8.3), maps supported hex colors to preview-local
+        Pele variables, normalizes displayed inline paint in forced modes and
+        shares the same policy with HTML export. Raw SVG cache keys exclude
+        the mode comment; latest-request checks reject stale async inserts.
+        Target resolution is scoped to the owning editor so a removed live
+        preview cannot resolve to a fullscreen clone. Local backgrounds
+        override the SVG surface itself; controls have clear space above
+        diagram content and hide during source editing.
+        The menu owns keydown through keyup so closing Esc cannot activate
+        the global search handler. Other diagram engines/tables are unchanged.
+        A readonly-attribute observer clears temporary view choices and
+        refreshes the previews/viewer on unlock without content/history writes.
         C-60: setOptions reparses the current in-memory Markdown on a
         rendered footnote toggle, preserving source selection, scroll and
         edit history without a content event. History snapshots carry their
@@ -3977,6 +3997,13 @@
           <SideEffects>Renders; clears stale block-key selections/search matches; never reads disk or changes Markdown in the renderer store.</SideEffects>
           <VerificationRef>V-M-012</VerificationRef>
         </fn-reparseMarkdown>
+        <fn-diagramAppearance>
+          <Purpose>Per-diagram appearance controller and shared source/palette policy.</Purpose>
+          <Inputs><Input>Mermaid figure key, source code and Auto/Custom/Light/Dark choice</Input></Inputs>
+          <Outputs><Output>Local preview/viewer/export colors and an accessible radio-menu state</Output></Outputs>
+          <SideEffects>One undoable metadata edit on writable documents; view-only override with no change/history/save mutation on readonly surfaces. Cleans menu/listeners on teardown; preserves author source and viewer pan/zoom.</SideEffects>
+          <VerificationRef>V-M-012</VerificationRef>
+        </fn-diagramAppearance>
       </Interface>
       <Sources>
         <Source>src/muya/</Source>

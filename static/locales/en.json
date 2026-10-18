@@ -1460,5 +1460,18 @@
         "text": "Diagram code: one 0.26 MB part (compressed) instead of 44 parts totalling 2.6 MB."
       }
     }
+  },
+  "diagramAppearance": {
+    "label": "Diagram appearance",
+    "auto": "Auto",
+    "custom": "Custom",
+    "light": "Light",
+    "dark": "Dark",
+    "autoDescription": "Follow document theme",
+    "customDescription": "Palette from Markdown",
+    "lightDescription": "Always light",
+    "darkDescription": "Always dark",
+    "noCustomPalette": "No palette in Markdown",
+    "viewOnly": "For this view only"
   }
 }
