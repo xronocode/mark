@@ -1,5 +1,5 @@
 // FILE: tests/renderer/commands/c48-help-commands.test.js
-// VERSION: 1.0.0
+// VERSION: 1.1.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Pin the C-48 Help commands — help.rate opens the https App
 //            Store write-review URL (inside the MAS opener:default scope)
@@ -18,7 +18,8 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.0.0 - 2026-10-15 C-48 review fix: initial pins (https
+//   LAST_CHANGE: v1.1.0 - 2026-10-18 release 2.5.0: What's New pins move to the 2.5.0 sheet (the previous release 2.4.0 becomes the upgrade source).
+//   v1.0.0 - 2026-10-15 C-48 review fix: initial pins (https
 //   rate URL + rejection catch; What's New latest-with-content fallback).
 // END_CHANGE_SUMMARY
 
@@ -81,17 +82,17 @@ describe('C-48 help.whats-new', () => {
   })
 
   it('a running version with content opens its own notes', async () => {
-    globalThis.__APP_VERSION_OVERRIDE__ = '2.4.0'
+    globalThis.__APP_VERSION_OVERRIDE__ = '2.5.0'
     await findCmd('help.whats-new').execute()
-    expect(bus.emit).toHaveBeenCalledWith('whatsNewDialog', { version: '2.4.0' })
+    expect(bus.emit).toHaveBeenCalledWith('whatsNewDialog', { version: '2.5.0' })
   })
 
   it('a running version without content falls back to the newest release that has some', async () => {
-    globalThis.__APP_VERSION_OVERRIDE__ = '2.4.1'
+    globalThis.__APP_VERSION_OVERRIDE__ = '2.5.1'
     await findCmd('help.whats-new').execute()
     const [event, payload] = bus.emit.mock.calls[0]
     expect(event).toBe('whatsNewDialog')
-    expect(payload.version).toBe('2.4.0')
+    expect(payload.version).toBe('2.5.0')
     expect(getWhatsNewItems(payload.version).length).toBeGreaterThan(0)
   })
 })

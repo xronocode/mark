@@ -1424,7 +1424,7 @@
     "title": "Was ist neu",
     "seeGuide": "Anleitung ansehen",
     "continue": "Weiter",
-    "also": "Mermaid-Syntax funktioniert wie zuvor — deine Dokumente öffnen sich unverändert.",
+    "also": "Außerdem: Fußnoten-Einstellungen wirken sofort, und die Website zeigt alle Diagrammtypen in einer Galerie",
     "seeEverything": "Alle Neuigkeiten ansehen",
     "v2_3_1": {
       "look": {
@@ -1460,6 +1460,24 @@
       "lighter": {
         "title": "Deutlich leichter",
         "text": "Diagramm-Code: ein 0,26-MB-Teil (komprimiert) statt 44 Teilen mit 2,6 MB."
+      }
+    },
+    "v2_5_0": {
+      "export": {
+        "title": "Diagramme als Bilder",
+        "text": "Kopiere jedes Diagramm als Bild oder sichere es als PNG oder SVG."
+      },
+      "look": {
+        "title": "Eigener Look pro Diagramm",
+        "text": "Auto, Palette des Autors, hell oder dunkel – pro Diagramm gewählt und darin gesichert."
+      },
+      "print": {
+        "title": "Drucken und PDF, direkt",
+        "text": "Drucken öffnet sofort den Systemdialog, der PDF-Export sichert die Datei direkt."
+      },
+      "images": {
+        "title": "Bilder erneut kopieren",
+        "text": "Kopiere ein Bild aus dem Dokument mit einem Klick wieder in die Zwischenablage."
       }
     }
   },

@@ -1,8 +1,8 @@
 // FILE: tests/renderer/components/whatsNew.test.js
-// VERSION: 1.2.0
+// VERSION: 1.3.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Pin the C-48/C-53 What's New sheet component — opens on the
-//            whatsNewDialog bus event, renders the 2.4.0 C-55 items from
+//            whatsNewDialog bus event, renders the 2.5.0 C-55 items from
 //            the en table plus the C-53 «Also» line and «See everything
 //            new» external link, Esc/Continue close it, focus is trapped
 //            across the three footer controls and returned, "See the
@@ -24,10 +24,11 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.2.0 - 2026-10-17 C-53 T-001/R-1: pins the four D-1
+//   LAST_CHANGE: v1.3.0 - 2026-10-18 release 2.5.0: What's New pins move to the 2.5.0 sheet (the previous release 2.4.0 becomes the upgrade source).
+//   v1.2.0 - 2026-10-17 C-53 T-001/R-1: pins the four D-1
 //   items (native look, home screen, themed diagrams, Markdown-only
 //   folders) with the new icon set, the «Also» line, the «See everything
-//   new» link (opens WHATS_NEW_RELEASE_URLS['2.4.0'] through
+//   new» link (opens WHATS_NEW_RELEASE_URLS['2.5.0'] through
 //   window.electron.shell.openExternal and keeps the sheet open), and
 //   the Tab trap across the three footer controls.
 //   PREV: v1.1.0 - 2026-10-15 C-48 review fix: guide link payload is
@@ -82,27 +83,27 @@ describe('components/whatsNew — sheet', () => {
     wrapper.unmount()
   })
 
-  it('renders the eyebrow, title, the four 2.4.0 C-55 items and the also line from the en table', async () => {
+  it('renders the eyebrow, title, the four 2.5.0 C-55 items and the also line from the en table', async () => {
     const wrapper = mountSheet()
-    bus.emit('whatsNewDialog', { version: '2.4.0' })
+    bus.emit('whatsNewDialog', { version: '2.5.0' })
     await nextTick()
 
     expect(wrapper.find('.ag-whats-new-sheet').exists()).toBe(true)
-    expect(wrapper.find('.eyebrow').text()).toBe('Mark 2.4.0')
+    expect(wrapper.find('.eyebrow').text()).toBe('Mark 2.5.0')
     expect(wrapper.find('.title').text()).toBe("What's new")
     const items = wrapper.findAll('.news li')
     expect(items).toHaveLength(4)
-    expect(items[0].find('b').text()).toBe('A new diagram engine')
-    expect(items[0].find('.news-body span').text()).toContain('Pele')
-    expect(items[1].find('b').text()).toBe('Diagrams follow the theme')
-    expect(items[2].find('b').text()).toBe('New diagram types')
-    expect(items[3].find('b').text()).toBe('A much lighter Mark')
+    expect(items[0].find('b').text()).toBe('Diagrams as pictures')
+    expect(items[0].find('.news-body span').text()).toContain('PNG')
+    expect(items[1].find('b').text()).toBe('A look for each diagram')
+    expect(items[2].find('b').text()).toBe('Print and PDF, each direct')
+    expect(items[3].find('b').text()).toBe('Copy images back out')
     // icons stay in the board-3 glyph style (C-55 set)
     const icons = wrapper.findAll('.news-icon').map((i) => i.text())
-    expect(icons).toEqual(['◔', '◐', '✳', '⤓'])
+    expect(icons).toEqual(['⧉', '◐', '⎙', '▣'])
     // the C-55 «Also» line under the items
     expect(wrapper.find('.also').text()).toBe(
-      'Mermaid syntax works as before — your documents open unchanged'
+      'Also: footnote settings apply instantly, and the site now has a gallery of every diagram type'
     )
     const footLinks = wrapper.findAll('.foot-links .guide-link')
     expect(footLinks[0].text()).toBe('See everything new ↗')
@@ -122,7 +123,7 @@ describe('components/whatsNew — sheet', () => {
 
   it('Continue closes the sheet', async () => {
     const wrapper = mountSheet()
-    bus.emit('whatsNewDialog', { version: '2.4.0' })
+    bus.emit('whatsNewDialog', { version: '2.5.0' })
     await nextTick()
     await wrapper.find('.continue-button').trigger('click')
     await nextTick()
@@ -132,7 +133,7 @@ describe('components/whatsNew — sheet', () => {
 
   it('Esc on the sheet closes it', async () => {
     const wrapper = mountSheet()
-    bus.emit('whatsNewDialog', { version: '2.4.0' })
+    bus.emit('whatsNewDialog', { version: '2.5.0' })
     await nextTick()
     await wrapper.find('.ag-whats-new-sheet').trigger('keydown.esc')
     await nextTick()
@@ -147,7 +148,7 @@ describe('components/whatsNew — sheet', () => {
     before.focus()
 
     const wrapper = mountSheet()
-    bus.emit('whatsNewDialog', { version: '2.4.0' })
+    bus.emit('whatsNewDialog', { version: '2.5.0' })
     await nextTick()
     await nextTick()
     expect(document.activeElement).toBe(wrapper.find('.continue-button').element)
@@ -161,7 +162,7 @@ describe('components/whatsNew — sheet', () => {
 
   it('traps Tab inside the three footer controls', async () => {
     const wrapper = mountSheet()
-    bus.emit('whatsNewDialog', { version: '2.4.0' })
+    bus.emit('whatsNewDialog', { version: '2.5.0' })
     await nextTick()
     await nextTick()
 
@@ -188,13 +189,13 @@ describe('components/whatsNew — sheet', () => {
 
   it('See everything new opens the release page externally and keeps the sheet open', async () => {
     const wrapper = mountSheet()
-    bus.emit('whatsNewDialog', { version: '2.4.0' })
+    bus.emit('whatsNewDialog', { version: '2.5.0' })
     await nextTick()
 
     const openExternal = window.electron.shell.openExternal
     await wrapper.findAll('.foot-links .guide-link')[0].trigger('click')
     expect(openExternal).toHaveBeenCalledTimes(1)
-    expect(openExternal).toHaveBeenCalledWith(WHATS_NEW_RELEASE_URLS['2.4.0'])
+    expect(openExternal).toHaveBeenCalledWith(WHATS_NEW_RELEASE_URLS['2.5.0'])
     expect(wrapper.find('.ag-whats-new-sheet').exists()).toBe(true)
 
     wrapper.unmount()
@@ -202,7 +203,7 @@ describe('components/whatsNew — sheet', () => {
 
   it('See the guide opens the guide at the top (no unknown section) and keeps the sheet open', async () => {
     const wrapper = mountSheet()
-    bus.emit('whatsNewDialog', { version: '2.4.0' })
+    bus.emit('whatsNewDialog', { version: '2.5.0' })
     await nextTick()
 
     await wrapper.findAll('.foot-links .guide-link')[1].trigger('click')
@@ -217,7 +218,7 @@ describe('components/whatsNew — sheet', () => {
     i18n.global.locale.value = 'ru'
     try {
       const wrapper = mountSheet()
-      bus.emit('whatsNewDialog', { version: '2.4.0' })
+      bus.emit('whatsNewDialog', { version: '2.5.0' })
       await nextTick()
       expect(wrapper.find('.ag-whats-new-sheet').attributes('aria-label')).toBe(
         ruTranslations.whatsNew.title
