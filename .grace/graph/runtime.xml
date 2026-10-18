@@ -3524,6 +3524,17 @@
             --prefAccent/--prefAccentSoft alias the shared vars). Verified
             by V-M-011 scenario-56 and V-M-057.
           </note-11>
+          <note-12>
+            2026-10-19 C-66: the app shell mounts the non-modal update
+            notice (components/updateNotice — Update / Later / Skip this
+            version over theme CSS variables) and the detached startup
+            chain grows autoUpdatesStore.RUN_LAUNCH_CHECK as its last
+            step, after initWhatsNew (R-3 deferral input) and
+            FETCH_BUILD_MODE (R-5 App Store gate input); Settings ›
+            General › Updates gains the autoCheckUpdates switch
+            (prefComponents/tabs/general). Verified by V-M-011
+            scenario-67.
+          </note-12>
         </notes>
       </LegacyDevelopmentDetail>
       <LegacyAttributes>
@@ -5755,6 +5766,14 @@
       <Summary>
         Signed in-app updates via tauri-plugin-updater for Homebrew and DMG
         installations; feed from xronocode/mark GitHub latest release.
+        C-66 adds the renderer-side launch gate (store/autoUpdates.js):
+        at most one mt_updater_check per 24 h (persisted
+        lastUpdateCheckAt), deferred when the What's New sheet shows in
+        the same launch, never in the App Store build, feeding the
+        non-modal components/updateNotice toast whose Update button runs
+        the shared signed install flow (commands/index.js
+        installSignedUpdate, exported for file.check-update and the
+        notice alike).
       </Summary>
       <Path>src-tauri/src/m016_updater.rs</Path>
       <Dependencies>
@@ -5865,6 +5884,16 @@
             in-app path; `brew upgrade --cask mark` is an external fallback
             only.
           </note-3>
+          <note-4>
+            2026-10-19 C-66: the StartupCheck trigger is live — the
+            renderer store/autoUpdates.js evaluates the gate
+            (24 h / What's New deferral / autoCheckUpdates switch / m048
+            updater capability) and invokes mt_updater_check at most once
+            per launch; offline or statusNote answers are silent and never
+            advance lastUpdateCheckAt; «Skip this version» persists
+            skippedUpdateVersion (a later version shows again). Verified
+            by V-M-016 scenario-8.
+          </note-4>
         </notes>
       </LegacyDevelopmentDetail>
       <LegacyAttributes>

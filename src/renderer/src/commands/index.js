@@ -1,5 +1,5 @@
 // FILE: src/renderer/src/commands/index.js
-// VERSION: 2.2.0-beta
+// VERSION: 2.3.0-beta
 // START_MODULE_CONTRACT
 //   PURPOSE: Register renderer commands and route each command to its typed store, event-bus, or Tauri integration.
 //   SCOPE: Static command definitions, platform-gated commands, and user-visible command outcomes; backend implementation is out of scope.
@@ -13,6 +13,7 @@
 //   RootCommand - Command-palette root and subcommand coordinator.
 //   file.open-from-clipboard - File › Open from Clipboard (⌥⌘V): resolver opens a clipboard folder as the workspace (replace) or a Markdown file in a tab (C-52).
 //   file.check-update - Checks the signed feed and applies an available update entirely in app.
+//   installSignedUpdate - Shared signed install flow (C-66): plugin check → downloadAndInstall → relaunch, with toasts and the «Update failed» catch; used by file.check-update and the autoUpdates notice.
 //   edit.copy-as-html - Copies selection (or whole document) as rich text/html for email paste (C-3).
 //   edit.copy-as-plain-text - Copies selection (or whole document) as markup-free plain text (C-12).
 //   edit.copy-as-structured-text - Copies selection (or whole document) as structure-preserving plain text (C-32).
@@ -39,6 +40,15 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-10-19 C-66 T-002: the signed install half of file.check-update
+//     is extracted into the exported installSignedUpdate (identical
+//     behaviour: updater toast, downloadAndInstall, relaunch, up-to-date
+//     fallback, «Update failed» catch) so the automatic-check notice
+//     (store/autoUpdates INSTALL_UPDATE) runs the very same flow instead
+//     of a copy; the manual command keeps its own feed pre-check and
+//     never consults the C-66 skip key (that gate lives only in
+//     store/autoUpdates; pinned by a source scan in
+//     tests/renderer/commands/updater.test.js).
 //   - 2026-10-18 C-61 T-002: file.print no longer emits
 //     showExportDialog('print') — ⌘P routes to editorStore.PRINT_DOCUMENT
 //     which renders the print container with the remembered export
@@ -1068,6 +1078,39 @@ const commands = [
 // --------------------------------------------------------------------------
 // etc
 
+// START_BLOCK_INSTALL_SIGNED_UPDATE
+// C-66: the single signed install flow shared by the manual
+// file.check-update command and the automatic-check notice
+// (store/autoUpdates INSTALL_UPDATE). `status` is a fresh
+// mt_updater_check answer; the plugin re-checks before installing, so a
+// stale status can only mislabel a toast, never install the wrong build.
+// Errors surface as the same «Update failed» warning the manual path
+// always showed — both callers get identical behaviour by construction.
+export const installSignedUpdate = async (status) => {
+  const notice = (await import('../services/notification')).default
+  try {
+    const { check } = await import('@tauri-apps/plugin-updater')
+    const update = await check()
+    if (update) {
+      notice.notify({
+        title: `Updating to Mark ${status.latestVersion}…`,
+        type: 'info'
+      })
+      await update.downloadAndInstall()
+      const { relaunch } = await import('@tauri-apps/plugin-process')
+      await relaunch()
+    } else {
+      notice.notify({
+        title: `Mark ${status.currentVersion} is up to date`,
+        type: 'info'
+      })
+    }
+  } catch (e) {
+    notice.notify({ title: 'Update failed', message: String(e), type: 'warning' })
+  }
+}
+// END_BLOCK_INSTALL_SIGNED_UPDATE
+
 if (isUpdatable()) {
   commands.push({
     id: 'file.check-update',
@@ -1087,22 +1130,7 @@ if (isUpdatable()) {
           }
           return
         }
-        const { check } = await import('@tauri-apps/plugin-updater')
-        const update = await check()
-        if (update) {
-          notice.notify({
-            title: `Updating to Mark ${status.latestVersion}…`,
-            type: 'info'
-          })
-          await update.downloadAndInstall()
-          const { relaunch } = await import('@tauri-apps/plugin-process')
-          await relaunch()
-        } else {
-          notice.notify({
-            title: `Mark ${status.currentVersion} is up to date`,
-            type: 'info'
-          })
-        }
+        await installSignedUpdate(status)
       } catch (e) {
         notice.notify({ title: 'Update failed', message: String(e), type: 'warning' })
       }

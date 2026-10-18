@@ -73,6 +73,21 @@
     "type": "boolean",
     "default": false
   },
+  "autoCheckUpdates": {
+    "description": "General--Check for updates automatically (C-66): once a day at launch, with a quiet notice.",
+    "type": "boolean",
+    "default": true
+  },
+  "lastUpdateCheckAt": {
+    "description": "General--ISO time of the last completed automatic update check; drives the 24 h throttle (C-66 state written by store/autoUpdates.js).--internal",
+    "type": "string",
+    "default": ""
+  },
+  "skippedUpdateVersion": {
+    "description": "General--Version hidden by «Skip this version»; a later version shows again (C-66 state).--internal",
+    "type": "string",
+    "default": ""
+  },
   "zoom": {
     "description": "General--Retired percentage zoom (C-49). Kept only so a stored value can be migrated once into fontSize (clamp(round(16 × zoom))) and reset to 1; nothing reads it afterwards.--internal",
     "type": "number",
