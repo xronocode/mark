@@ -443,3 +443,16 @@ build 3896c4bb stays unused.
   restructured descriptions (desc-v2.json) remain pending user ok.
 - Pkg copies: ~/Downloads/Mark-mas-2.5.1.pkg (current);
   Mark-mas-2.5.0.1.pkg removed (rejected), Mark-mas-2.5.0.pkg superseded.
+
+## URL reconciliation (2026-10-18, after user review)
+
+User caught the listing URLs still pointing at the github.io mirror:
+apply-meta inherited privacyPolicyUrl/marketingUrl from the C-15 (2.1.17)
+en-US localization and propagated them to the 9 new locales while the
+descriptions had already moved to the canonical domain. Fixed via API on
+the draft: privacyPolicyUrl = https://mark.xronocode.com/privacy on all
+10 appInfo localizations; marketingUrl = https://mark.xronocode.com/ on
+all 10 version localizations (read-back: no github.io left). Copyright
+«© 2026 Avenex, IE» was fixed by the user in the ASC UI — the field is
+not exposed via the API (409 unknown attribute), cannot be verified
+programmatically.
