@@ -95,6 +95,10 @@ export async function installTauriShim(page: Page): Promise<void> {
       mt_fs_read: () => '',
       mt_fs_write: () => null,
       mt_fs_write_binary: () => null,
+      // C-56 T-006: the embedded-image copy transport reads local files
+      // through the same read-binary bridge as the display (specs override
+      // to feed real PNG/JPEG bytes or simulate a broken read).
+      mt_fs_read_binary: () => null,
       mt_fs_stat: () => ({ isFile: false, isDirectory: false }),
       mt_fs_readdir: () => [],
       mt_fs_unlink: () => null,

@@ -264,6 +264,7 @@
       "copyAsPlainText": "Copiar como texto sin formato",
       "copyAsStructuredText": "Copiar como texto estructurado",
       "copyAsImage": "Copiar como imagen",
+      "copyImage": "Copiar imagen",
       "saveAsPng": "Guardar como PNG…",
       "saveAsSvg": "Guardar como SVG…",
       "selectAll": "Seleccionar todo",
@@ -1288,12 +1289,14 @@
       },
       "toolbar": {
         "edit": "Editar imagen",
+        "copyImage": "Copiar imagen",
         "inline": "Imagen en línea",
         "alignLeft": "Alinear a la izquierda",
         "alignCenter": "Alinear al centro",
         "alignRight": "Alinear a la derecha",
         "delete": "Eliminar imagen"
-      }
+      },
+      "copyTitle": "Imagen"
     },
     "placeholders": {
       "frontMatter": "Ingrese Metadatos YAML...",

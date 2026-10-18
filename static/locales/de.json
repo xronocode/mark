@@ -264,6 +264,7 @@
       "copyAsPlainText": "Als reinen Text kopieren",
       "copyAsStructuredText": "Als strukturierten Text kopieren",
       "copyAsImage": "Als Bild kopieren",
+      "copyImage": "Bild kopieren",
       "saveAsPng": "Als PNG speichern…",
       "saveAsSvg": "Als SVG speichern…",
       "selectAll": "Alles auswählen",
@@ -1285,12 +1286,14 @@
       },
       "toolbar": {
         "edit": "Bild bearbeiten",
+        "copyImage": "Bild kopieren",
         "inline": "Inline-Bild",
         "alignLeft": "Linksbündig",
         "alignCenter": "Zentrieren",
         "alignRight": "Rechtsbündig",
         "delete": "Bild entfernen"
-      }
+      },
+      "copyTitle": "Bild"
     },
     "placeholders": {
       "frontMatter": "YAML Front Matter eingeben...",
