@@ -2,7 +2,7 @@
 // VERSION: 1.8.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Render a muya container block (blockquote, list, table, figure, pre) to a snabbdom vnode.
-//   SCOPE: Selectors, data attributes and auxiliary children (tools, icons, copy buttons, the C-51 expand button, the C-56 T-005 corner pill on mermaid/vega-lite figures, code-block line-number gutter, table column-resize handle) per container type; the table element is returned inside its C-39 horizontal scroll wrapper, with its C-39 T-002 session colgroup when widths are stored. C-62: nonempty Mermaid figures also render the stable appearance button.
+//   SCOPE: Selectors, data attributes and auxiliary children (tools, icons, copy buttons, the C-51 expand button, the C-56 T-005 corner pill on mermaid/vega-lite figures, code-block line-number gutter, table column-resize handle) per container type; the table element is returned inside its C-39 horizontal scroll wrapper, with its C-39 T-002 session colgroup when widths are stored. C-62/C-56 T-007: nonempty Mermaid figures carry the appearance button as the pill's leading item.
 //   DEPENDS: muya config, render helpers, snabbdom, ../../../utils/callout, ../../../tableResize (width constants).; ./renderDiagramAppearance.
 //   LINKS: .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-012 scenario-18, scenario-20, scenario-21, scenario-60 and scenario-64; .grace/changes/active/C-39 T-001 and T-002, C-38 T-005, C-51 T-006 and T-010, C-56 T-005.; .grace/changes/archive/C-62.
 //   ROLE: RUNTIME
@@ -10,11 +10,11 @@
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
-//   default - renderContainerBlock(parent, block, activeBlocks, matches, useCache, t); a `table` block returns div.ag-table-scroll > table (plus the session colgroup when muya.tableResize has matching widths); a `th` block gets the span.ag-column-resizer handle; a fence/indent `code` block records its pre in stateRender.lineNumberPreKeys for post-render gutter measuring; mermaid/flowchart/sequence/plantuml/vega-lite figures with non-empty source and table figures get the ag-has-expand marker (C-51 T-006; visibility need-gated by expandNeed.js since T-010) — flowchart/sequence/plantuml figures and tables carry a button.ag-block-expand child, while mermaid/vega-lite figures instead carry the C-56 T-005 corner pill (div.ag-block-toolbar, replacing the PNG edit pencil and the standalone glyph; their expand action lives inside the pill under the same need gate). Nonempty Mermaid figures also get the stable appearance button (C-62).
+//   default - renderContainerBlock(parent, block, activeBlocks, matches, useCache, t); a `table` block returns div.ag-table-scroll > table (plus the session colgroup when muya.tableResize has matching widths); a `th` block gets the span.ag-column-resizer handle; a fence/indent `code` block records its pre in stateRender.lineNumberPreKeys for post-render gutter measuring; mermaid/flowchart/sequence/plantuml/vega-lite figures with non-empty source and table figures get the ag-has-expand marker (C-51 T-006; visibility need-gated by expandNeed.js since T-010) — flowchart/sequence/plantuml figures and tables carry a button.ag-block-expand child, while mermaid/vega-lite figures instead carry the C-56 T-005 corner pill (div.ag-block-toolbar, replacing the PNG edit pencil and the standalone glyph; their expand action lives inside the pill under the same need gate). On Mermaid figures the pill leads with the C-62 appearance button (C-56 T-007).
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.8.0 - 2026-10-18 merge of C-56 onto C-62: both the corner pill and the appearance button render on Mermaid figures.
+//   LAST_CHANGE: v1.8.0 - 2026-10-18 C-56 T-007 (merge onto C-62): the appearance button moves into the corner pill as its leading item instead of a separate always-visible figure child.
 //   - 2026-10-18 v1.7.0 (C-62): render the appearance button as a stable figure child on nonempty Mermaid blocks.
 //   - 2026-10-18 v1.7.0: C-56 T-005 — mermaid (pele) and vega-lite
 //     figures with non-empty source render the corner pill
@@ -220,10 +220,12 @@ export default function renderContainerBlock (parent, block, activeBlocks, match
     // reused by the expand marker below (same `code === ''` emptiness
     // rule renderLeafBlock uses for the "empty diagram" placeholder).
     let diagramHasSource = false
+    let diagramCode = ''
     if (/^(?:flowchart|mermaid|sequence|plantuml|vega-lite)$/.test(functionType)) {
       const preBlock = block.children.find(child => child.type === 'pre')
       const code = preBlock ? this.codeCache.get(preBlock.key) : ''
       diagramHasSource = typeof code === 'string' && code !== ''
+      if (diagramHasSource) diagramCode = code
     }
     const pillFigure = diagramHasSource && /^(?:mermaid|vega-lite)$/.test(functionType)
 
@@ -235,7 +237,13 @@ export default function renderContainerBlock (parent, block, activeBlocks, match
         // A figure child (like the old glyph) so the mermaid pipeline's
         // preview innerHTML inserts and every snabbdom re-patch keep the
         // pill alive by construction.
-        children.push(renderBlockToolbar(t))
+        // C-56 T-007: the C-62 appearance control is the pill's leading
+        // button on Mermaid figures, so every diagram action shares one
+        // hover-revealed surface anchored to the figure's right edge.
+        children.push(renderBlockToolbar(
+          t,
+          functionType === 'mermaid' ? [renderDiagramAppearance(t, diagramCode)] : []
+        ))
       } else if (functionType !== 'footnote') {
         children.unshift(renderEditIcon(t))
       } else {
@@ -270,7 +278,6 @@ export default function renderContainerBlock (parent, block, activeBlocks, match
     if (/^(?:flowchart|mermaid|sequence|plantuml|vega-lite)$/.test(functionType)) {
       if (diagramHasSource) {
         selector += '.ag-has-expand'
-        if (functionType === 'mermaid') children.push(renderDiagramAppearance(t, code))
         if (!pillFigure) {
           children.push(renderExpandButton(t))
         }

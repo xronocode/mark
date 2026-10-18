@@ -6349,7 +6349,7 @@
           pencil/glyph replaced, Edit source activation, Copy as image
           2× IHDR + toast, Open full screen, empty-fence no-pill, role
           scope) and tests/e2e/block-viewer.spec.ts (pill look, need
-          gate, Tab walk over the pill's Edit/Copy stops, screenshots).
+          gate, Tab walk over the pill's Edit/Copy stops, screenshots). C-56 T-007: on Mermaid figures the C-62 appearance control is the pill's leading item (same hover reveal and right-edge anchor, no separate figure child or reserved padding) — block-toolbar.test.js, diagram-export.spec.ts and diagram-appearance.spec.ts pin it.
         </Scenario>
         <Scenario>
           scenario-65: Copy image for embedded Markdown images (C-56
