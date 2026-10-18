@@ -457,6 +457,11 @@
     "diagram": "圖表",
     "table": "表格"
   },
+  "blockToolbar": {
+    "editSource": "編輯原始碼",
+    "copyImage": "複製為影像",
+    "openFullScreen": "全螢幕開啟"
+  },
   "recent": {
     "taglineLead": "代理程式來寫，你來",
     "taglineHighlight": "塑造它。",

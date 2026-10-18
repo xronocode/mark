@@ -1,5 +1,5 @@
 // FILE: src/muya/lib/utils/diagramExport.js
-// VERSION: 1.0.0
+// VERSION: 1.0.1
 // START_MODULE_CONTRACT
 //   PURPOSE: Per-block diagram/chart picture export (C-56) — turn a rendered Pele diagram (```mermaid) or Vega-Lite chart (```vega-lite) SVG into a self-contained standalone SVG string (all --pele-* variables resolved from the live theme, theme font declared, theme code-panel background rect, natural size from data-natural-width/viewBox — never the zoomed or viewer-scaled size) and rasterize it to a 2× Retina PNG on a canvas; plus the save-file name suggestion (nearest preceding heading slug, document-name fallback).
 //   SCOPE: pure DOM/string transforms plus a canvas rasterizer; SVG sanitization for export (no <script>, no on* handlers, no javascript: hrefs, no editor chrome); block resolution limited to the C-56 exportable roles (MERMAID, VEGA-LITE); injectable theme tokens/variables, canvas and image factories for tests. No clipboard, dialog or fs I/O — the editor host (editor.vue) owns the transports.
@@ -18,10 +18,16 @@
 //   suggestFileName - { headingText, docName, index, ext } → "heading-slug.png" or "<doc>-diagram-N.png" fallback.
 //   buildStandaloneSvg - live SVG element → self-contained SVG string: var(--pele-*) references replaced with the resolved theme values, natural width/height/viewBox, root inline sizing stripped, background rect of the theme panel colour (default) or none (transparent), theme font declared when the root carries none, script/handler/javascript:-href free. null when no size can be derived.
 //   rasterizeSvg - standalone SVG string → { bytes, width, height } PNG at scale× natural size (default 2×) drawn through an <img> onto a canvas; createCanvas/makeImage injectable for tests.
+//   pngIhdrSize - PNG bytes → { width, height } read from the IHDR header (big-endian u32 at bytes 16..23); null for non-PNG or short input — shared by the e2e 2×-natural assertions.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.0.0 - 2026-10-18 C-56: first version. buildStandaloneSvg
+//   LAST_CHANGE: v1.0.1 - 2026-10-18 C-56 T-005 grace-lint pass: markup
+//   only, no behavior change — pngIhdrSize added to the MODULE_MAP and the
+//   buildStandaloneSvg / rasterizeSvg START_CONTRACT blocks moved OUT of
+//   (before) START_BLOCK_STANDALONE_SVG / START_BLOCK_EXPORT_RASTERIZE so
+//   contracts never overlap blocks.
+//   v1.0.0 - 2026-10-18 C-56: first version. buildStandaloneSvg
 //   resolves the C-55 CSS-variable theming into concrete colours at export
 //   time (the same buildPeleVariables(readActiveThemeTokens()) block
 //   util/theme.js sets on the document root), so the exported picture looks
@@ -155,6 +161,13 @@ export const nearestHeadingText = (el) => {
 }
 // END_BLOCK_EXPORT_HEADING_SLUG
 
+// START_CONTRACT: buildStandaloneSvg
+//   PURPOSE: Clone a live rendered diagram/chart SVG into a self-contained SVG string that renders identically outside Mark (C-56 R-1).
+//   INPUTS: { svgEl: SVGElement - the live rendered SVG (from the preview div; a keep-last-good stale SVG is fine), options: { background: boolean = true - theme code-panel rect; transparent when false, themeTokens: object = readActiveThemeTokens(), peleVariables: Record<string,string> = buildPeleVariables(themeTokens) } }
+//   OUTPUTS: { string | null - serialized SVG with resolved colours, natural width/height/viewBox, background rect and theme font; null when no size can be derived (never-rendered block) }
+//   SIDE_EFFECTS: none — the live element is never mutated (cloneNode).
+//   LINKS: muya parser/render/diagramTheme buildPeleVariables; pelePipeline data-natural-width; consumers editor.vue + ui/blockViewer.
+// END_CONTRACT: buildStandaloneSvg
 // START_BLOCK_STANDALONE_SVG
 const SVG_NS = 'http://www.w3.org/2000/svg'
 
@@ -207,13 +220,6 @@ const replaceVars = (svgString, vars) =>
     }
   )
 
-// START_CONTRACT: buildStandaloneSvg
-//   PURPOSE: Clone a live rendered diagram/chart SVG into a self-contained SVG string that renders identically outside Mark (C-56 R-1).
-//   INPUTS: { svgEl: SVGElement - the live rendered SVG (from the preview div; a keep-last-good stale SVG is fine), options: { background: boolean = true - theme code-panel rect; transparent when false, themeTokens: object = readActiveThemeTokens(), peleVariables: Record<string,string> = buildPeleVariables(themeTokens) } }
-//   OUTPUTS: { string | null - serialized SVG with resolved colours, natural width/height/viewBox, background rect and theme font; null when no size can be derived (never-rendered block) }
-//   SIDE_EFFECTS: none — the live element is never mutated (cloneNode).
-//   LINKS: muya parser/render/diagramTheme buildPeleVariables; pelePipeline data-natural-width; consumers editor.vue + ui/blockViewer.
-// END_CONTRACT: buildStandaloneSvg
 export const buildStandaloneSvg = (svgEl, {
   background = true,
   themeTokens = null,
@@ -355,6 +361,13 @@ export const buildStandaloneSvg = (svgEl, {
 }
 // END_BLOCK_STANDALONE_SVG
 
+// START_CONTRACT: rasterizeSvg
+//   PURPOSE: Rasterize the standalone SVG string to PNG bytes at scale× natural size (default 2× Retina) on a canvas (C-56 R-2).
+//   INPUTS: { svgString: string - buildStandaloneSvg output (must carry width/height), options: { scale: number = 2, createCanvas: (w, h) => HTMLCanvasElement, makeImage: () => HTMLImageElement } }
+//   OUTPUTS: { Promise<{ bytes: Uint8Array, width: number, height: number }> - encoded PNG } — rejects on load/encode failure.
+//   SIDE_EFFECTS: none outside the throwaway canvas/img; the SVG is a self-contained data: URL, so the canvas is not tainted in WKWebView/WebView2.
+//   LINKS: buildStandaloneSvg; editor.vue copyImage (clipboard writeImage) + savePng (fs writeBinary).
+// END_CONTRACT: rasterizeSvg
 // START_BLOCK_EXPORT_RASTERIZE
 // PNG size header of an encoded PNG — bytes 16..23 after the 8-byte
 // signature + 4-byte length + "IHDR" (big-endian u32 width/height). Used by
@@ -378,13 +391,6 @@ const readSvgRootSize = (svgString) => {
   return null
 }
 
-// START_CONTRACT: rasterizeSvg
-//   PURPOSE: Rasterize the standalone SVG string to PNG bytes at scale× natural size (default 2× Retina) on a canvas (C-56 R-2).
-//   INPUTS: { svgString: string - buildStandaloneSvg output (must carry width/height), options: { scale: number = 2, createCanvas: (w, h) => HTMLCanvasElement, makeImage: () => HTMLImageElement } }
-//   OUTPUTS: { Promise<{ bytes: Uint8Array, width: number, height: number }> - encoded PNG } — rejects on load/encode failure.
-//   SIDE_EFFECTS: none outside the throwaway canvas/img; the SVG is a self-contained data: URL, so the canvas is not tainted in WKWebView/WebView2.
-//   LINKS: buildStandaloneSvg; editor.vue copyImage (clipboard writeImage) + savePng (fs writeBinary).
-// END_CONTRACT: rasterizeSvg
 export const rasterizeSvg = async (svgString, {
   scale = 2,
   createCanvas = null,

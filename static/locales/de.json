@@ -459,6 +459,11 @@
     "diagram": "Diagramm",
     "table": "Tabelle"
   },
+  "blockToolbar": {
+    "editSource": "Quelltext bearbeiten",
+    "copyImage": "Als Bild kopieren",
+    "openFullScreen": "Vollbild öffnen"
+  },
   "recent": {
     "taglineLead": "Agenten schreiben. Du",
     "taglineHighlight": "formst",

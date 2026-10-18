@@ -1,10 +1,10 @@
 // FILE: tests/e2e/block-viewer.spec.ts
-// VERSION: 3.2.0
+// VERSION: 3.3.0
 // START_MODULE_CONTRACT
-//   PURPOSE: End-to-end pin of the shared fullscreen block viewer (C-34 R2.2 + C-39 T2) and the C-51 T-006/T-010 expand button and T-014 polish — overlay open, zoom keys, read-only table clone with sticky header, Cmd+click, Esc close with focus restore; the T-010 need rules (small blocks have no button and no Tab stop, wide/tall blocks do), the copy-icon look (20 px, 0/0.5/1 opacity curve, inside the block), the table placement clear of header text and the last-column resize handle, viewport-resize re-evaluation, and light/dark colours; the T-014 cases — fit scales a small diagram UP on open and on Fit with 1:1 restoring natural size, an open viewer follows a paper→ink theme switch (clone re-rendered from the live block, zoom kept), and an edited diagram/math preview sits in flow below the source so the next heading is pushed down, never covered.
+//   PURPOSE: End-to-end pin of the shared fullscreen block viewer (C-34 R2.2 + C-39 T2), the C-51 T-006/T-010 expand affordances (since C-56 T-005: the corner pill on mermaid/vega-lite figures, the standalone glyph on flowchart/sequence/plantuml and tables) and the T-014 polish — overlay open, zoom keys, read-only table clone with sticky header, Cmd+click, Esc close with focus restore; the T-010 need rules (hidden expand actions on small blocks — no Tab stop; wide/tall blocks get them), the C-56 T-005 pill look (variant C: opacity 0 → 1 on figure hover / :focus-within, never the caret; themed surface pill, label reveal, muted → fg hover), the table placement clear of header text and the last-column resize handle, viewport-resize re-evaluation, and light/dark colours; the T-014 cases — fit scales a small diagram UP on open and on Fit with 1:1 restoring natural size, an open viewer follows a paper→ink theme switch (clone re-rendered from the live block, zoom kept), and an edited diagram/math preview sits in flow below the source so the next heading is pushed down, never covered.
 //   SCOPE: block-viewer.spec.ts only; diagram and table flows against the built renderer.
 //   DEPENDS: @playwright/test, tests/e2e/fixtures/tauri-shim (same bootstrap as pele-render.spec.ts).
-//   LINKS: .grace/changes/active/C-34 T-002; .grace/changes/active/C-39 T2 and T-002; .grace/changes/active/C-51 T-006, T-010 (D-7) and T-014; .grace/changes/active/C-55 (pele engine: ag-pele-preview hook class, g.pele-node shapes, no <style> blocks); .grace/verification/runtime.xml V-M-012 scenario-19 and scenario-60; V-M-011 scenario-64.
+//   LINKS: .grace/changes/active/C-34 T-002; .grace/changes/active/C-39 T2 and T-002; .grace/changes/active/C-51 T-006, T-010 (D-7) and T-014; .grace/changes/active/C-55 (pele engine: ag-pele-preview hook class, g.pele-node shapes, no <style> blocks); .grace/changes/active/C-56 T-005 (corner pill); .grace/verification/runtime.xml V-M-012 scenario-19, scenario-60 and scenario-64; V-M-011 scenario-64.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT
@@ -16,14 +16,24 @@
 //   TINY_DIAGRAM_MD - a 2-node graph TD whose natural size is far below the viewer stage (T-014 fit-up case).
 //   EDIT_FLOW_MD - a mermaid diagram and a math block, each followed by a heading (T-014 in-flow edit preview).
 //   WIDE_TABLE_MD - a 12-column table that overflows the column (expand button; resize-handle drag).
-//   MIXED_MD - every viewable block type: small ones stay button-less, the wide mermaid/flowchart and the wide/tall tables get it, plus fence/paragraph negatives.
+//   MIXED_MD - every viewable block type: small ones keep their expand actions hidden (the mermaid/vega figures still carry the C-56 T-005 pill with Edit/Copy), the wide mermaid/flowchart and the wide/tall tables get the expand affordance, plus fence/paragraph negatives.
 //   bootstrapWithMarkdown - tauri-shim + preferences + mt::bootstrap-editor document load (mirrors pele-render.spec.ts); extraPrefs override individual preference defaults.
 //   canvasScale - parses the panzoom `scale(s) translate(x,y)` transform of the viewer canvas.
 //   nodeFillIn - computed fill of the first pele node shape (g.pele-node rect/polygon) inside a root element (live figure or viewer clone).
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v3.2.0 - 2026-10-17 C-55: the diagram engine is pele —
+//   LAST_CHANGE: v3.3.0 - 2026-10-18 C-56 T-005: every
+//   mermaid-figure selector moved from the removed standalone glyph to
+//   the corner pill's expand button (figure > div.ag-block-toolbar >
+//   button.ag-block-toolbar-expand, label 'Open full screen'); the MIXED
+//   coverage counts 15 family buttons (3 per pill figure + 6 standalone)
+//   with per-action labels; the small-mermaid case pins the pill's hidden
+//   expand while Edit/Copy stay Tab stops; the look test became the
+//   variant-C pill look (figure-hover/focus-within reveal, caret-only
+//   invisibility, label reveal, theme follow); the Tab walk covers the
+//   pill Edit/Copy stops. Table and flowchart paths unchanged.
+//   v3.2.0 - 2026-10-17 C-55: the diagram engine is pele —
 //   preview hook class renamed (ag-mermaid-preview → ag-pele-preview), the
 //   node-fill probe reads pele shapes (g.pele-node rect/polygon resolving
 //   --pele-surface), and the clone check flipped from "the hoisted mermaid
@@ -383,12 +393,13 @@ test.describe('block viewer (C-34 R2.2 + C-39 T2)', () => {
     await preview.waitFor({ state: 'visible', timeout: 20_000 })
 
     // T-010: the wide diagram is scaled to the column, so the figure
-    // carries the need class and its button is laid out (opacity 0 at
-    // rest — visibility is the hover curve, display is the need gate).
-    const expand = page.locator('figure[data-role="MERMAID"] > button.ag-block-expand').first()
+    // carries the need class and its expand action is laid out (C-56
+    // T-005: the corner pill's third button; opacity 0 at rest — the pill
+    // appears on figure hover, display is the need gate).
+    const expand = page.locator('figure[data-role="MERMAID"] div.ag-block-toolbar button.ag-block-toolbar-expand').first()
     await expect(expand).toBeVisible()
-    await expect(expand).toHaveAttribute('aria-label', 'Expand')
-    await expect(expand).toHaveAttribute('title', 'Expand')
+    await expect(expand).toHaveAttribute('aria-label', 'Open full screen')
+    await expect(expand).toHaveAttribute('title', 'Open full screen')
 
     // Clicking ⤢ opens the overlay with the cloned SVG (no re-render).
     await expand.click()
@@ -443,7 +454,7 @@ test.describe('block viewer (C-34 R2.2 + C-39 T2)', () => {
         for (const c of ['platform-darwin', 'platform-win32', 'platform-linux']) root.classList.remove(c)
         root.classList.add(d ? 'platform-darwin' : 'platform-linux')
       }, darwin)
-      await page.locator('figure[data-role="MERMAID"] > button.ag-block-expand').first().click()
+      await page.locator('figure[data-role="MERMAID"] div.ag-block-toolbar button.ag-block-toolbar-expand').first().click()
       await expect(viewer).toHaveClass(/ag-block-viewer-open/)
       const box = await title.boundingBox()
       await viewer.locator('.ag-block-viewer-close-btn').click()
@@ -464,7 +475,7 @@ test.describe('block viewer (C-34 R2.2 + C-39 T2)', () => {
     await preview.waitFor({ state: 'visible', timeout: 20_000 })
     const fontBefore = await page.evaluate(() => getComputedStyle(document.querySelector('#ag-editor-id') as HTMLElement).fontSize)
 
-    await page.locator('figure[data-role="MERMAID"] > button.ag-block-expand').first().click()
+    await page.locator('figure[data-role="MERMAID"] div.ag-block-toolbar button.ag-block-toolbar-expand').first().click()
     await expect(page.locator('.ag-block-viewer')).toHaveClass(/ag-block-viewer-open/)
     await page.waitForTimeout(250)
     const box = await page.locator('.ag-block-viewer-canvas').boundingBox()
@@ -486,7 +497,7 @@ test.describe('block viewer (C-34 R2.2 + C-39 T2)', () => {
     await bootstrapWithMarkdown(page, WIDE_DIAGRAM_MD)
     const preview = page.locator('div.ag-container-preview.ag-pele-preview').first()
     await preview.waitFor({ state: 'visible', timeout: 20_000 })
-    await page.locator('figure[data-role="MERMAID"] > button.ag-block-expand').first().click()
+    await page.locator('figure[data-role="MERMAID"] div.ag-block-toolbar button.ag-block-toolbar-expand').first().click()
     await expect(page.locator('.ag-block-viewer')).toHaveClass(/ag-block-viewer-open/)
     const alpha = await page.evaluate(() => {
       const bg = getComputedStyle(document.querySelector('.ag-block-viewer-backdrop') as HTMLElement).backgroundColor
@@ -513,7 +524,7 @@ test.describe('block viewer (C-34 R2.2 + C-39 T2)', () => {
     expect(inPage.svg).toBeLessThanOrEqual(inPage.client + 1)
     expect(inPage.scroll).toBeLessThanOrEqual(inPage.client + 1)
 
-    await page.locator('figure[data-role="MERMAID"] > button.ag-block-expand').first().click()
+    await page.locator('figure[data-role="MERMAID"] div.ag-block-toolbar button.ag-block-toolbar-expand').first().click()
     await expect(page.locator('.ag-block-viewer')).toHaveClass(/ag-block-viewer-open/)
     await page.waitForTimeout(250) // fit runs again after layout (rAF)
 
@@ -605,7 +616,7 @@ test.describe('block viewer (C-34 R2.2 + C-39 T2)', () => {
     // opening the viewer for every viewable block (D-7 keeps this path).
     const figure = page.locator('figure[data-role="MERMAID"]').first()
     await expect(figure).not.toHaveClass(/ag-expand-needed/)
-    await expect(page.locator('figure[data-role="MERMAID"] > button.ag-block-expand')).toBeHidden()
+    await expect(page.locator('figure[data-role="MERMAID"] div.ag-block-toolbar button.ag-block-toolbar-expand')).toBeHidden()
 
     // Cmd+click (macOS) / Ctrl+click: fullscreen viewer, no source editing.
     await preview.click({ modifiers: ['Meta'] })
@@ -646,10 +657,11 @@ test.describe('block viewer (C-34 R2.2 + C-39 T2)', () => {
     await page.locator('figure[data-role="SEQUENCE"] div.ag-container-preview svg').first()
       .waitFor({ state: 'visible', timeout: 20_000 })
 
-    // The button VNODE renders on every viewable figure (9 of them: two
-    // mermaids, flowchart, sequence, plantuml, vega-lite, three tables),
-    // each with the localized label — visibility is the need gate.
-    await expect(page.locator('.editor-with-tabs button.ag-block-expand')).toHaveCount(9)
+    // The ag-block-expand family VNODE renders on every viewable figure —
+    // C-56 T-005: 15 buttons (the two mermaid + vega pill figures carry
+    // THREE family buttons each, flowchart/sequence/plantuml and the three
+    // tables carry the standalone glyph) — visibility is the need gate.
+    await expect(page.locator('.editor-with-tabs button.ag-block-expand')).toHaveCount(15)
 
     // Exactly the four benefiting figures carry the need class.
     const needs = await page.evaluate(() =>
@@ -657,19 +669,48 @@ test.describe('block viewer (C-34 R2.2 + C-39 T2)', () => {
     )
     needs.sort()
     expect(needs).toEqual(['FLOWCHART', 'MERMAID', 'TABLE', 'TABLE'])
-    // ...and every button (hidden ones included) carries the label.
+    // ...and every family button (hidden ones included) carries its
+    // localized label: 'Expand' for the six standalone glyphs, the
+    // blockToolbar.* strings for the nine pill buttons.
     const labeled = await page.evaluate(() =>
-      Array.from(document.querySelectorAll('button.ag-block-expand'))
-        .map(b => b.getAttribute('aria-label'))
+      Array.from(document.querySelectorAll('button.ag-block-expand')).map((b) => ({
+        pill: b.classList.contains('ag-block-toolbar-btn'),
+        action: b.classList.contains('ag-block-toolbar-edit')
+          ? 'edit'
+          : b.classList.contains('ag-block-toolbar-copy')
+            ? 'copy'
+            : b.classList.contains('ag-block-toolbar-expand')
+              ? 'expand'
+              : 'standalone',
+        label: b.getAttribute('aria-label')
+      }))
     )
-    expect(labeled).toHaveLength(9)
-    expect(labeled.every(l => l === 'Expand')).toBe(true)
+    expect(labeled).toHaveLength(15)
+    const tally: Record<string, number> = {}
+    for (const b of labeled) {
+      tally[`${b.pill ? 'pill:' : ''}${b.action}`] = (tally[`${b.pill ? 'pill:' : ''}${b.action}`] || 0) + 1
+    }
+    expect(tally).toEqual({
+      standalone: 6,
+      'pill:edit': 3,
+      'pill:copy': 3,
+      'pill:expand': 3
+    })
+    expect(labeled.filter((b) => b.action === 'standalone').every((b) => b.label === 'Expand')).toBe(true)
+    expect(labeled.filter((b) => b.action === 'edit').every((b) => b.label === 'Edit source')).toBe(true)
+    expect(labeled.filter((b) => b.action === 'copy').every((b) => b.label === 'Copy as image')).toBe(true)
+    expect(labeled.filter((b) => b.action === 'expand').every((b) => b.label === 'Open full screen')).toBe(true)
 
-    // Small mermaid + small table: display:none — hidden, unrendered and
-    // NOT focusable (focus() is a no-op, so no Tab stop).
+    // Small table: the standalone glyph is display:none — hidden,
+    // unrendered and NOT focusable (focus() is a no-op, so no Tab stop).
+    // The small mermaid keeps its pill (Edit/Copy are always reachable),
+    // but the pill's expand action is display:none without the need class.
     for (const sel of ["figure[data-role='MERMAID']:not(.ag-expand-needed)", "figure[data-role='TABLE']:not(.ag-expand-needed)"]) {
+      const expandSel = sel.includes('MERMAID')
+        ? `${sel} div.ag-block-toolbar button.ag-block-toolbar-expand`
+        : `${sel} > button.ag-block-expand`
       const state = await page.evaluate((s) => {
-        const button = document.querySelector(`${s} > button.ag-block-expand`) as HTMLElement | null
+        const button = document.querySelector(s) as HTMLElement | null
         if (!button) return null
         button.focus()
         return {
@@ -677,28 +718,49 @@ test.describe('block viewer (C-34 R2.2 + C-39 T2)', () => {
           offsetParent: button.offsetParent,
           focused: document.activeElement === button
         }
-      }, sel)
+      }, expandSel)
       expect(state).not.toBeNull()
       expect(state!.display).toBe('none')
-      expect(state!.offsetParent, `${sel} button must not be laid out`).toBeNull()
-      expect(state!.focused, `${sel} button must not take focus`).toBe(false)
+      expect(state!.offsetParent, `${expandSel} must not be laid out`).toBeNull()
+      expect(state!.focused, `${expandSel} must not take focus`).toBe(false)
     }
+    // The small mermaid's pill Edit/Copy buttons stay real Tab stops (the
+    // pill reveals itself on :focus-within — keyboard users see it).
+    const smallPill = await page.evaluate(() => {
+      const figure = document.querySelector("figure[data-role='MERMAID']:not(.ag-expand-needed)") as HTMLElement
+      const edit = figure.querySelector('button.ag-block-toolbar-edit') as HTMLElement
+      edit.focus()
+      return { focused: document.activeElement === edit, display: getComputedStyle(edit).display }
+    })
+    expect(smallPill.focused).toBe(true)
+    expect(smallPill.display).toBe('flex')
 
-    // The wide mermaid's button: a real 20 px copy-icon square INSIDE the
-    // figure's top-right corner (≤ 22 px box).
+    // The wide mermaid's corner pill: anchored at the 8 px inset inside
+    // the figure's top-right corner, one compact row of three buttons.
     const diagramGeometry = await page.evaluate(() => {
       const figure = document.querySelector("figure[data-role='MERMAID'].ag-expand-needed") as HTMLElement
-      const button = figure.querySelector('button.ag-block-expand') as HTMLElement
+      const pill = figure.querySelector('div.ag-block-toolbar') as HTMLElement
       const f = figure.getBoundingClientRect()
-      const b = button.getBoundingClientRect()
-      return { fl: f.left, ft: f.top, fr: f.right, fb: f.bottom, bl: b.left, bt: b.top, br: b.right, bb: b.bottom, w: b.width, h: b.height }
+      const p = pill.getBoundingClientRect()
+      return {
+        fl: f.left, ft: f.top, fr: f.right, fb: f.bottom,
+        pl: p.left, pt: p.top, pr: p.right, pb: p.bottom,
+        w: p.width, h: p.height,
+        insetTop: p.top - f.top, insetRight: f.right - p.right
+      }
     })
-    expect(diagramGeometry.w).toBeLessThanOrEqual(22)
-    expect(diagramGeometry.h).toBeLessThanOrEqual(22)
-    expect(diagramGeometry.bl).toBeGreaterThanOrEqual(diagramGeometry.fl - 1)
-    expect(diagramGeometry.br).toBeLessThanOrEqual(diagramGeometry.fr + 1)
-    expect(diagramGeometry.bt).toBeGreaterThanOrEqual(diagramGeometry.ft - 1)
-    expect(diagramGeometry.bb).toBeLessThanOrEqual(diagramGeometry.fb + 1)
+    expect(diagramGeometry.w).toBeGreaterThan(60)
+    expect(diagramGeometry.w).toBeLessThanOrEqual(170)
+    expect(diagramGeometry.h).toBeGreaterThan(16)
+    expect(diagramGeometry.h).toBeLessThanOrEqual(36)
+    expect(diagramGeometry.pl).toBeGreaterThanOrEqual(diagramGeometry.fl - 1)
+    expect(diagramGeometry.pr).toBeLessThanOrEqual(diagramGeometry.fr + 1)
+    expect(diagramGeometry.pt).toBeGreaterThanOrEqual(diagramGeometry.ft - 1)
+    expect(diagramGeometry.pb).toBeLessThanOrEqual(diagramGeometry.fb + 1)
+    expect(diagramGeometry.insetTop).toBeGreaterThanOrEqual(4)
+    expect(diagramGeometry.insetTop).toBeLessThanOrEqual(14)
+    expect(diagramGeometry.insetRight).toBeGreaterThanOrEqual(4)
+    expect(diagramGeometry.insetRight).toBeLessThanOrEqual(14)
 
     // The wide table's button lives in the band ABOVE the table (clear of
     // the header text and the resize zone by construction) and stays
@@ -732,62 +794,96 @@ test.describe('block viewer (C-34 R2.2 + C-39 T2)', () => {
     expect(tableGeometry.overlapsLastTh, 'the button must not cover the last header cell').toBe(false)
   })
 
-  test('the copy-icon look: 20 px, no border/background, opacity 0 at rest → 0.5 on figure hover → 1 on button hover, themed', async ({ page }) => {
+  // START_BLOCK_TOOLBAR_E2E_LOOK
+  // C-56 T-005 (approved mockup variant C): the pill replaces the old
+  // 20 px copy-icon square on mermaid/vega-lite figures — opacity 0 → 1
+  // on FIGURE hover (150 ms; never the caret), themed surface pill,
+  // --pele-muted icons going --pele-fg on the 10% tint, label span
+  // revealed by the button's own hover, need-gated third button.
+  test('the corner pill look: opacity 0 at rest → 1 on figure hover, themed surface, label reveal, muted → fg hover', async ({ page }) => {
     await bootstrapWithMarkdown(page, WIDE_DIAGRAM_MD, 'paper')
     const figure = page.locator('figure[data-role="MERMAID"]').first()
-    const expand = page.locator('figure[data-role="MERMAID"] > button.ag-block-expand').first()
+    const expand = page.locator('figure[data-role="MERMAID"] div.ag-block-toolbar button.ag-block-toolbar-expand').first()
+    const edit = page.locator('figure[data-role="MERMAID"] div.ag-block-toolbar button.ag-block-toolbar-edit').first()
+    const copy = page.locator('figure[data-role="MERMAID"] div.ag-block-toolbar button.ag-block-toolbar-copy').first()
     await expect(expand).toBeVisible()
 
     const looks = await page.evaluate(() => {
-      const el = document.querySelector('figure[data-role="MERMAID"] > button.ag-block-expand') as HTMLElement
-      const cs = getComputedStyle(el)
-      const b = el.getBoundingClientRect()
-      const fig = el.closest('figure')!.getBoundingClientRect()
+      const pill = document.querySelector("figure[data-role='MERMAID'] div.ag-block-toolbar") as HTMLElement
+      const el = pill.querySelector('button.ag-block-toolbar-expand') as HTMLElement
+      const span = el.querySelector('span') as HTMLElement
+      const cs = getComputedStyle(pill)
+      const btn = getComputedStyle(el)
+      const b = pill.getBoundingClientRect()
+      const fig = pill.closest('figure')!.getBoundingClientRect()
       return {
         opacity: cs.opacity,
-        color: cs.color,
         position: cs.position,
-        borderTop: cs.borderTopWidth,
-        background: cs.backgroundColor,
+        radius: cs.borderRadius,
+        padding: cs.padding,
+        borderWidth: cs.borderTopWidth,
+        labelDisplay: getComputedStyle(span).display,
+        btnColor: btn.color,
+        btnRadius: btn.borderRadius,
         width: b.width,
         height: b.height,
         insetTop: b.top - fig.top,
-        insetRight: fig.right - b.right,
-        radius: cs.borderRadius
+        insetRight: fig.right - b.right
       }
     })
-    // The .ag-code-copy look: 20 px square at a 0.5em inset (8px at the
-    // default 16px font), borderless, backgroundless, radius 4.
+    // The mockup variant-C pill: absolute at the 8 px inset, radius 8,
+    // 2 px padding + 1 px border, resting invisible; the label span is
+    // hidden until the button's own hover.
     expect(looks.opacity).toBe('0')
     expect(looks.position).toBe('absolute')
-    expect(looks.width).toBe(20)
-    expect(looks.height).toBe(20)
-    expect(looks.borderTop).toBe('0px')
-    expect(looks.background).toBe('rgba(0, 0, 0, 0)')
-    expect(looks.radius).toBe('4px')
+    expect(looks.radius).toBe('8px')
+    expect(looks.padding).toBe('2px')
+    expect(looks.borderWidth).toBe('1px')
+    expect(looks.labelDisplay).toBe('none')
+    expect(looks.btnColor).not.toBe('')
     expect(looks.insetTop).toBeGreaterThan(4)
     expect(looks.insetTop).toBeLessThanOrEqual(12)
     expect(looks.insetRight).toBeGreaterThan(4)
     expect(looks.insetRight).toBeLessThanOrEqual(12)
 
-    // Half-visible while the figure is hovered (the 0.2s transition).
+    // Solid while the figure is hovered (the 150 ms transition).
     await figure.hover()
     await page.waitForTimeout(300)
     const hoverLooks = await page.evaluate(() =>
-      getComputedStyle(document.querySelector('figure[data-role="MERMAID"] > button.ag-block-expand') as HTMLElement).opacity
+      getComputedStyle(document.querySelector("figure[data-role='MERMAID'] div.ag-block-toolbar") as HTMLElement).opacity
     )
-    expect(parseFloat(hoverLooks)).toBeGreaterThanOrEqual(0.4)
-    expect(parseFloat(hoverLooks)).toBeLessThan(1)
+    expect(hoverLooks).toBe('1')
 
-    // Solid on the button's own hover.
-    await expand.hover()
+    // The caret alone must NOT reveal it: pointer off the figure, click a
+    // paragraph (caret lands in the text) — the pill stays invisible.
+    await page.mouse.move(1, 1)
+    await page.locator('#ag-editor-id p, #ag-editor-id h1').first().click()
     await page.waitForTimeout(300)
-    const ownHoverLooks = await page.evaluate(() =>
-      getComputedStyle(document.querySelector('figure[data-role="MERMAID"] > button.ag-block-expand') as HTMLElement).opacity
+    const caretLooks = await page.evaluate(() =>
+      getComputedStyle(document.querySelector("figure[data-role='MERMAID'] div.ag-block-toolbar") as HTMLElement).opacity
     )
-    expect(ownHoverLooks).toBe('1')
+    expect(caretLooks).toBe('0')
 
-    // Theme-following: the ink theme resolves a different (light) colour.
+    // The button's own hover: --pele-fg over the 10% fg tint and the
+    // localized label slides in next to the icon.
+    await edit.hover()
+    await page.waitForTimeout(300)
+    const ownHover = await page.evaluate(() => {
+      const el = document.querySelector('figure[data-role="MERMAID"] button.ag-block-toolbar-edit') as HTMLElement
+      const cs = getComputedStyle(el)
+      return {
+        color: cs.color,
+        background: cs.backgroundColor,
+        label: getComputedStyle(el.querySelector('span') as HTMLElement).display
+      }
+    })
+    // flex items are blockified: any visible display counts as revealed.
+    expect(ownHover.label).not.toBe('none')
+    // A tinted hover background resolves to a non-transparent colour.
+    expect(ownHover.background).not.toBe('rgba(0, 0, 0, 0)')
+
+    // Theme-following: the ink theme resolves a different button colour.
+    const paperColor = ownHover.color
     await bootstrapWithMarkdown(page, WIDE_DIAGRAM_MD, 'ink')
     await page.locator('div.ag-container-preview.ag-pele-preview').first()
       .waitFor({ state: 'visible', timeout: 20_000 })
@@ -796,12 +892,24 @@ test.describe('block viewer (C-34 R2.2 + C-39 T2)', () => {
     await page.mouse.move(1, 1)
     await page.waitForTimeout(300)
     const darkLooks = await page.evaluate(() => {
-      const cs = getComputedStyle(document.querySelector('figure[data-role="MERMAID"] > button.ag-block-expand') as HTMLElement)
-      return { opacity: cs.opacity, color: cs.color }
+      const pill = document.querySelector("figure[data-role='MERMAID'] div.ag-block-toolbar") as HTMLElement
+      const cs = getComputedStyle(pill)
+      const btn = getComputedStyle(pill.querySelector('button.ag-block-toolbar-expand') as HTMLElement)
+      return { opacity: cs.opacity, color: btn.color }
     })
     expect(darkLooks.opacity).toBe('0')
-    expect(darkLooks.color).not.toBe(looks.color)
+    expect(darkLooks.color).not.toBe(paperColor)
+
+    // Keyboard focus inside the pill keeps it visible (:focus-within) —
+    // Tab users see where the focus landed.
+    await copy.focus()
+    await page.waitForTimeout(250)
+    const focusLooks = await page.evaluate(() =>
+      getComputedStyle(document.querySelector("figure[data-role='MERMAID'] div.ag-block-toolbar") as HTMLElement).opacity
+    )
+    expect(focusLooks).toBe('1')
   })
+  // END_BLOCK_TOOLBAR_E2E_LOOK
 
 
   test('keyboard: focusing the expand button and pressing Enter opens the viewer; Esc restores the button focus', async ({ page }) => {
@@ -809,7 +917,7 @@ test.describe('block viewer (C-34 R2.2 + C-39 T2)', () => {
     const preview = page.locator('div.ag-container-preview.ag-pele-preview').first()
     await preview.waitFor({ state: 'visible', timeout: 20_000 })
 
-    const expand = page.locator('figure[data-role="MERMAID"] > button.ag-block-expand').first()
+    const expand = page.locator('figure[data-role="MERMAID"] div.ag-block-toolbar button.ag-block-toolbar-expand').first()
     // The need class lands after the async mermaid insert; a display:none
     // button cannot take focus.
     await expect(page.locator('figure[data-role="MERMAID"]').first()).toHaveClass(/ag-expand-needed/)
@@ -838,28 +946,28 @@ test.describe('block viewer (C-34 R2.2 + C-39 T2)', () => {
     await page.locator('figure[data-role="FLOWCHART"].ag-expand-needed div.ag-container-preview svg').first()
       .waitFor({ state: 'visible', timeout: 20_000 })
 
-    // The buttons of needing blocks are real Tab stops: with focus on the
-    // wide mermaid's button, Tab walks to the wide flowchart's button and
-    // then straight to the wide table's — the four hidden small-block
-    // buttons in between (sequence, vega, plantuml, small table) are
-    // display:none and therefore skipped. Without the muya keydown guard
-    // the editor's tabHandler would preventDefault and trap focus.
-    const mermaidButton = page.locator("figure[data-role='MERMAID'].ag-expand-needed > button.ag-block-expand")
+    // C-56 T-005 Tab landscape: the pill Edit/Copy buttons are Tab stops
+    // on EVERY mermaid/vega figure (small ones included — keyboard users
+    // must reach the pill), while every hidden expand action (small
+    // mermaid/vega pills and the small sequence/plantuml/table standalone
+    // glyphs) is display:none and skipped. Walk: wide mermaid's pill
+    // expand → flowchart standalone → vega edit → vega copy → wide table.
+    // Without the muya keydown guard the editor's tabHandler would
+    // preventDefault and trap focus on the first pill button.
+    const mermaidButton = page.locator("figure[data-role='MERMAID'].ag-expand-needed div.ag-block-toolbar button.ag-block-toolbar-expand")
     await mermaidButton.focus()
     await expect(mermaidButton).toBeFocused()
 
-    const stopIs = (role: string) => page.evaluate((r) => {
+    const stopIs = (selector: string) => page.evaluate((s) => {
       const el = document.activeElement as HTMLElement | null
-      return !!el && el.classList.contains('ag-block-expand') &&
-        !!el.closest(`figure[data-role='${r}'].ag-expand-needed`)
-    }, role)
+      return !!el && el.matches(s)
+    }, selector)
 
     await page.keyboard.press('Tab')
-    await expect.poll(() => stopIs('FLOWCHART'), 'Tab must land on the wide flowchart button').toBe(true)
+    await expect.poll(() => stopIs("figure[data-role='FLOWCHART'].ag-expand-needed > button.ag-block-expand"), 'Tab must land on the wide flowchart button').toBe(true)
 
-    // Keyboard focus shows the button at full opacity (:focus-visible) —
-    // focus arrived through a real Tab keypress, so the selector matches.
-    // (The 0.2s opacity transition needs a beat to settle.)
+    // Keyboard focus shows the standalone button at full opacity
+    // (:focus-visible) — focus arrived through a real Tab keypress.
     await page.waitForTimeout(300)
     const flowchartOpacity = await page.evaluate(() => {
       const el = document.activeElement as HTMLElement | null
@@ -867,14 +975,31 @@ test.describe('block viewer (C-34 R2.2 + C-39 T2)', () => {
     })
     expect(flowchartOpacity).toBe('1')
 
-    // The four hidden buttons between the flowchart and the wide table
-    // (small sequence, vega, plantuml, small table) are skipped entirely.
+    // The hidden stops between the flowchart and the vega pill (small
+    // sequence, plantuml — display:none glyphs) are skipped entirely.
     await page.keyboard.press('Tab')
-    await expect.poll(() => stopIs('TABLE'), 'Tab must skip the hidden buttons and reach the wide table').toBe(true)
+    await expect.poll(() => stopIs("figure[data-role='VEGA-LITE'] button.ag-block-toolbar-edit"), 'Tab must reach the vega pill Edit').toBe(true)
 
-    // Shift+Tab walks back.
+    // Keyboard focus inside the pill keeps the pill visible (:focus-within).
+    await page.waitForTimeout(250)
+    const vegaPillOpacity = await page.evaluate(() => {
+      const el = document.activeElement as HTMLElement | null
+      const pill = el && el.closest('div.ag-block-toolbar')
+      return pill ? getComputedStyle(pill).opacity : ''
+    })
+    expect(vegaPillOpacity).toBe('1')
+
+    await page.keyboard.press('Tab')
+    await expect.poll(() => stopIs("figure[data-role='VEGA-LITE'] button.ag-block-toolbar-copy"), 'Tab must reach the vega pill Copy').toBe(true)
+
+    // The vega pill's hidden expand action and the small table's hidden
+    // glyph are skipped — the next stop is the wide table's glyph.
+    await page.keyboard.press('Tab')
+    await expect.poll(() => stopIs("figure[data-role='TABLE'].ag-expand-needed > button.ag-block-expand"), 'Tab must skip hidden buttons and reach the wide table').toBe(true)
+
+    // Shift+Tab walks back through the vega pill.
     await page.keyboard.press('Shift+Tab')
-    await expect.poll(() => stopIs('FLOWCHART')).toBe(true)
+    await expect.poll(() => stopIs("figure[data-role='VEGA-LITE'] button.ag-block-toolbar-copy")).toBe(true)
   })
 
   test('table: the button never covers the header text or the last column resize handle and resizing still works', async ({ page }) => {
@@ -960,7 +1085,7 @@ test.describe('block viewer (C-34 R2.2 + C-39 T2)', () => {
     // no scaling, no button.
     expect(before.rendered).toBeGreaterThanOrEqual(before.natural - 2)
     await expect(figure).not.toHaveClass(/ag-expand-needed/)
-    await expect(page.locator('figure[data-role="MERMAID"] > button.ag-block-expand')).toBeHidden()
+    await expect(page.locator('figure[data-role="MERMAID"] div.ag-block-toolbar button.ag-block-toolbar-expand')).toBeHidden()
 
     // Narrow the viewport to 460 px: the text column drops to ~410 px —
     // well below the diagram's natural width — so the SVG scales down,
@@ -970,7 +1095,7 @@ test.describe('block viewer (C-34 R2.2 + C-39 T2)', () => {
     await page.setViewportSize({ width: 460, height: 720 })
 
     await expect(figure).toHaveClass(/ag-expand-needed/, { timeout: 5_000 })
-    await expect(page.locator('figure[data-role="MERMAID"] > button.ag-block-expand')).toBeVisible()
+    await expect(page.locator('figure[data-role="MERMAID"] div.ag-block-toolbar button.ag-block-toolbar-expand')).toBeVisible()
     const after = await page.evaluate(() => {
       const svg = document.querySelector('div.ag-container-preview.ag-pele-preview svg') as SVGSVGElement
       return svg.getBoundingClientRect().width
@@ -978,7 +1103,7 @@ test.describe('block viewer (C-34 R2.2 + C-39 T2)', () => {
     expect(after).toBeLessThan(before.natural - 2)
   })
 
-  test('screenshots: the expand button at figure hover, light and dark', async ({ page }, testInfo) => {
+  test('screenshots: the corner pill at figure hover, light and dark', async ({ page }, testInfo) => {
     for (const theme of ['paper', 'ink']) {
       await bootstrapWithMarkdown(page, MIXED_MD, theme)
       await page.locator('.editor-component, .editor-wrapper').first()
@@ -987,9 +1112,9 @@ test.describe('block viewer (C-34 R2.2 + C-39 T2)', () => {
         .waitFor({ state: 'visible', timeout: 20_000 })
       // Let the flowchart/sequence/vega renderers finish drawing.
       await page.waitForTimeout(600)
-      const button = page.locator("figure[data-role='MERMAID'].ag-expand-needed > button.ag-block-expand")
-      await button.scrollIntoViewIfNeeded()
-      // Hover the figure so the half-visible button shows in the shot.
+      const pill = page.locator("figure[data-role='MERMAID'].ag-expand-needed div.ag-block-toolbar")
+      await pill.scrollIntoViewIfNeeded()
+      // Hover the figure so the full-opacity pill shows in the shot.
       await page.locator("figure[data-role='MERMAID'].ag-expand-needed").hover()
       await page.waitForTimeout(300)
       await page.screenshot({ path: testInfo.outputPath(`expand-buttons-${theme}.png`) })
@@ -1062,7 +1187,7 @@ test.describe('block viewer (C-34 R2.2 + C-39 T2)', () => {
     await preview.waitFor({ state: 'visible', timeout: 20_000 })
     await page.locator('div.ag-pele-preview svg').first().waitFor({ state: 'visible', timeout: 20_000 })
 
-    await page.locator('figure[data-role="MERMAID"] > button.ag-block-expand').first().click()
+    await page.locator('figure[data-role="MERMAID"] div.ag-block-toolbar button.ag-block-toolbar-expand').first().click()
     const viewer = page.locator('.ag-block-viewer')
     await expect(viewer).toHaveClass(/ag-block-viewer-open/)
     await page.waitForTimeout(250) // fit + deferred re-fit

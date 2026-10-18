@@ -462,6 +462,11 @@
     "diagram": "Diagramme",
     "table": "Tableau"
   },
+  "blockToolbar": {
+    "editSource": "Modifier la source",
+    "copyImage": "Copier en tant qu'image",
+    "openFullScreen": "Ouvrir en plein écran"
+  },
   "recent": {
     "taglineLead": "Les agents écrivent. Vous",
     "taglineHighlight": "donnez forme",

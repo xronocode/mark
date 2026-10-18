@@ -1,5 +1,5 @@
 // FILE: tests/e2e/readme-shots.spec.ts
-// VERSION: 1.1.0
+// VERSION: 1.1.1
 // START_MODULE_CONTRACT
 //   PURPOSE: C-53 T-001/R-2 — reproducible README screenshots. Renders
 //            the real editor (vite preview + tauri-shim) at 1440×900 @2x
@@ -41,7 +41,10 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.1.0 - 2026-10-17 C-53 review: every shot in the macOS
+//   LAST_CHANGE: v1.1.1 - 2026-10-18 C-56 T-005: the 05-viewer capture
+//   opens the viewer through the corner pill's expand action (mermaid
+//   figures no longer carry the standalone glyph).
+//   PREV: v1.1.0 - 2026-10-17 C-53 review: every shot in the macOS
 //   theme (user: «эпловскую бери для скринов»), 05-viewer shows a large
 //   release-pipeline diagram zoomed in instead of a 12-node chain.
 //   PREV: v1.0.0 - 2026-10-17 C-53 T-001/R-2: initial capture spec.
@@ -448,8 +451,10 @@ test.describe('README screenshots (C-53 R-2)', () => {
     await preview.waitFor({ state: 'visible', timeout: 30_000 })
     await page.locator('div.ag-pele-preview svg').first().waitFor({ state: 'visible', timeout: 30_000 })
 
-    // The wide diagram needs the viewer: its expand button is laid out.
-    const expand = page.locator('figure[data-role="MERMAID"] > button.ag-block-expand').first()
+    // The wide diagram needs the viewer: the corner pill's expand action
+    // (C-56 T-005 — mermaid figures carry the pill, not the standalone
+    // glyph) is laid out.
+    const expand = page.locator('figure[data-role="MERMAID"] div.ag-block-toolbar button.ag-block-toolbar-expand').first()
     await expect(page.locator('figure[data-role="MERMAID"]').first()).toHaveClass(/ag-expand-needed/)
     await expand.click()
 

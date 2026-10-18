@@ -10,6 +10,10 @@
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
+//   DARK_TOKENS - dark theme token fixture.
+//   PREVIEW_WITH_SVG - preview fixture with an svg.
+//   makeFakeImage - Image double with decode().
+//   makeFigure - figure fixture builder.
 //   LIGHT_TOKENS / DARK_TOKENS - readActiveThemeTokens-shaped token sets (the same shape pele-pipeline.test.js pins); DARK exercises the Ink corner-1 colours.
 //   makePeleSvg - pele-shaped live SVG double: var(--pele-*) root chain, data-natural-width, 100% width, zoom max-width, donut var fill, plus hostile script/onclick/javascript: probes.
 //   makeVegaSvg - vega-shaped double (px width/height + viewBox, no data-natural-width, baked concrete colours).
