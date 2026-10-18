@@ -1,6 +1,6 @@
 // @vitest-environment node
 // FILE: tests/site/gallery.test.mjs
-// VERSION: 1.1.0
+// VERSION: 1.3.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Verify the gallery corpus and the built /diagrams/ page
 //            (C-58 R-1/R-3, T-001/T-002) — every example renders with pele
@@ -24,7 +24,10 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.2.0 - 2026-10-18 C-64 T-001+T-003 merge: fonts from
+//   LAST_CHANGE: v1.3.0 - 2026-10-18 C-64 T-007: cards gain
+//   content-visibility with tuned intrinsic sizes (420px, wide 480px) and
+//   a visually-hidden h2 per group (data-group aware) between the cards.
+//   PREV: v1.2.0 - 2026-10-18 C-64 T-001+T-003 merge: fonts from
 //   /fonts/brand/; three scripts (THEME_INIT_JS head script, controller,
 //   JSON-LD that must parse with a SoftwareApplication node).
 //   PREV: v1.0.0 - 2026-10-18 C-58 T-001/T-002: first version.
@@ -127,6 +130,25 @@ describe('renderGallery (the built page)', () => {
   it('leaves no unrendered tokens or pele errors', () => {
     expect(HTML).not.toMatch(/%BASE%|<!--SITE_HEAD-->/)
     expect(HTML).not.toMatch(/PeleError/i)
+  })
+
+  it('skips layout/paint for off-screen cards with tuned intrinsic sizes (C-64 T-007 R-3)', () => {
+    expect(HTML).toMatch(/\.card\{[^}]*content-visibility:auto/)
+    expect(HTML).toMatch(/\.card\{[^}]*contain-intrinsic-size:auto 420px/)
+    expect(HTML).toMatch(/\.card\.wide\{[^}]*grid-column:1\/-1;contain-intrinsic-size:auto 480px/)
+    // Anchor targets stay on the (cv'd) articles themselves.
+    for (const e of EXAMPLES.slice(0, 3)) expect(HTML).toContain(`id="${e.id}"`)
+  })
+
+  it('opens every group with a visually-hidden h2 the filter respects (C-64 T-007 A-2)', () => {
+    for (const g of GROUPS) {
+      const id = 'group-' + g.toLowerCase().replace(/\s+/g, '-')
+      expect(HTML).toContain(`<h2 class="ghead" data-group="${g}" id="${id}">${g}</h2>`)
+    }
+    expect((HTML.match(/class="ghead"/g) || []).length).toBe(GROUPS.length)
+    expect(HTML).toMatch(/\.ghead\{[^}]*clip-path:inset\(50%\)/)
+    // The filter hides/shows the group headings together with their cards.
+    expect(HTML).toMatch(/querySelectorAll\('\.card,\.ghead'\)/)
   })
 
   it('substitutes the site base everywhere under SITE_BASE=/mark/', () => {

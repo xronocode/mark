@@ -1,23 +1,26 @@
 // @vitest-environment node
 // FILE: tests/site/head.test.mjs
-// VERSION: 1.1.0
+// VERSION: 1.2.0
 // START_MODULE_CONTRACT
-//   PURPOSE: Verify the C-64 T-003 head/consent/analytics/SEO/CSP surface
-//            — the shared head's SEO tags, the JSON-LD @graph (version from
-//            the root package.json, '<' escaped), docsHeadTags, the GA4
-//            consent.js+track.js pair, the llms.txt / security.txt
-//            builders, and the meta CSP (exact-text sha256 hashing,
-//            ld+json exclusion, provider host toggles, first-in-head
-//            idempotent injection, tamper detection) plus the runtime
-//            behaviour of public/track.js and public/consent.js booted on
-//            fake window/document globals.
-//   SCOPE: site/.vitepress/landing.mjs (jsonLd, sharedHeadTags,
-//          docsHeadTags, analyticsTags, appVersion), site/scripts/csp.mjs,
-//          site/scripts/seo-files.mjs, site/public/{consent.js,track.js}.
+//   PURPOSE: Verify the C-64 head/consent/analytics/SEO/CSP/FAQ surface —
+//            the shared head's SEO tags, the JSON-LD @graph (version from
+//            the root package.json, install facts, publisher org, '<'
+//            escaped), the docs BreadcrumbList, the FAQPage node against
+//            site/guide/faq.md, docsHeadTags, the GA4 consent.js+track.js
+//            pair, the llms.txt / security.txt builders, and the meta CSP
+//            (exact-text sha256 hashing, ld+json exclusion, provider host
+//            toggles, first-in-head idempotent injection, tamper
+//            detection) plus the runtime behaviour of public/track.js and
+//            public/consent.js (grant-gated GA load, undecided click
+//            queue) booted on fake window/document globals.
+//   SCOPE: site/.vitepress/landing.mjs (jsonLd, breadcrumbJsonLd, FAQ_ITEMS,
+//          faqJsonLd, sharedHeadTags, docsHeadTags, analyticsTags,
+//          appVersion), site/scripts/csp.mjs, site/scripts/seo-files.mjs,
+//          site/guide/faq.md, site/public/{consent.js,track.js}.
 //   DEPENDS: Vitest (node env; scripts are evaluated via new Function with
 //          injected globals, no DOM).
 //   LINKS: M-053 SiteBuild; V-M-053; C-64 T-003 (R-5 meta, R-6, R-7, R-8,
-//          R-9); corner-6, corner-7
+//          R-9), T-006, T-007 (M-2/P-1, G-2, G-1); corner-6, corner-7
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT
@@ -31,14 +34,25 @@
 //   OUTLINK - fake GitHub repository link element (outbound_click)
 //   CONSENT_SRC - public/consent.js source
 //   LINK - fake [data-track] element fixture
+//   FAQ_MD - site/guide/faq.md source (the human-readable FAQ)
 //   clickOn - dispatch a fake click through the captured document listener
 //   makeStorage - fake localStorage with an optional saved consent value
-//   bootTrack - fake window/document + new Function(public/track.js) harness
+//   bootTrack - fake window/document + new Function(public/track.js) harness (captures consent onChange listeners, flips granted/decided via set())
 //   bootConsent - fake window/document/localStorage + new Function(public/consent.js) harness
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: [v1.1.0 - 2026-10-18 C-64 T-006: llms.txt pins the tap-free
+//   LAST_CHANGE: [v1.2.0 - 2026-10-18 C-64 T-007: consent.js never injects
+//                 the gtag script while undecided/denied (only a saved
+//                 grant, the geo auto-grant or the Allow click schedules
+//                 it — still load + idle) and exposes decided(); track.js
+//                 queues undecided events in memory (flushed on grant,
+//                 cleared on deny, capped at 10); the SoftwareApplication
+//                 node gains screenshot/fileSize/softwareRequirements/
+//                 releaseNotes + an author/publisher Organization;
+//                 breadcrumbJsonLd and FAQ_ITEMS/faqJsonLd (pinned against
+//                 site/guide/faq.md) are covered.]
+//   PREV: [v1.1.0 - 2026-10-18 C-64 T-006: llms.txt pins the tap-free
 //                 brew one-liner; track.js gains an outbound_click
 //                 (link_target + placement) case; the consent harness
 //                 captures injected setTimeouts and requestIdleCallback
@@ -55,7 +69,9 @@ import { describe, expect, it, vi } from 'vitest'
 import {
   analyticsTags,
   appVersion,
+  breadcrumbJsonLd,
   docsHeadTags,
+  faqJsonLd,
   jsonLd,
   resolveSiteSettings,
   sharedHeadTags
@@ -64,6 +80,7 @@ import { cspFor, injectCsp, verifyCsp } from '../../site/scripts/csp.mjs'
 import { llmsTxt, securityTxt } from '../../site/scripts/seo-files.mjs'
 
 const PKG = JSON.parse(readFileSync(resolve(import.meta.dirname, '../../package.json'), 'utf8'))
+const FAQ_MD = readFileSync(resolve(import.meta.dirname, '../../site/guide/faq.md'), 'utf8')
 const SETTINGS = resolveSiteSettings({})
 const BASE_SETTINGS = resolveSiteSettings({ SITE_URL: 'https://xronocode.github.io/mark', SITE_BASE: 'mark' })
 const PROVIDERS = resolveSiteSettings({
@@ -97,6 +114,26 @@ describe('jsonLd', () => {
     expect(ld['@graph'][1].url).toBe('https://mark.xronocode.com/')
   })
 
+  it('adds the C-64 T-007 G-2 facts: screenshot, DMG size, requirements, release notes, publisher', () => {
+    const app = JSON.parse(jsonLd(SETTINGS))['@graph'][0]
+    expect(app.screenshot).toBe('https://mark.xronocode.com/shots/01-agents.jpg')
+    // The landing's "≈ 15 MB" DMG figure; the repo states no Windows minimum,
+    // so softwareRequirements stays macOS-only.
+    expect(app.fileSize).toBe('15MB')
+    expect(app.softwareRequirements).toBe('macOS 12 or later')
+    expect(app.releaseNotes).toBe('https://mark.xronocode.com/changelog')
+    const org = {
+      '@type': 'Organization',
+      name: 'xronocode',
+      url: 'https://mark.xronocode.com/',
+      logo: 'https://mark.xronocode.com/mark-icon.svg',
+      sameAs: ['https://github.com/xronocode/mark']
+    }
+    expect(app.author).toEqual(org)
+    expect(app.publisher).toEqual(org)
+    expect(JSON.parse(jsonLd(SETTINGS))['@graph'][1].publisher).toEqual(org)
+  })
+
   it('escapes < so the JSON cannot close its own script host', () => {
     const raw = jsonLd(SETTINGS, { description: 'a <script>alert(1)</script> b' })
     expect(raw).not.toContain('<')
@@ -106,6 +143,46 @@ describe('jsonLd', () => {
   it('can emit the WebSite node only (docs pages)', () => {
     const ld = JSON.parse(jsonLd(SETTINGS, {}, { websiteOnly: true }))
     expect(ld['@graph'].map((n) => n['@type'])).toEqual(['WebSite'])
+  })
+})
+
+describe('breadcrumbJsonLd (docs pages, C-64 T-007 G-2)', () => {
+  it('builds Home → Guide → page, collapsing to two crumbs on the section index', () => {
+    const ld = JSON.parse(breadcrumbJsonLd(SETTINGS, { path: 'guide/installation', title: 'Installation' }))
+    expect(ld['@type']).toBe('BreadcrumbList')
+    expect(ld.itemListElement.map((i) => i.name)).toEqual(['Home', 'Guide', 'Installation'])
+    expect(ld.itemListElement[0].item).toBe('https://mark.xronocode.com/')
+    expect(ld.itemListElement[1].item).toBe('https://mark.xronocode.com/guide/')
+    expect(ld.itemListElement[2].item).toBe('https://mark.xronocode.com/guide/installation')
+    const idx = JSON.parse(breadcrumbJsonLd(SETTINGS, { path: 'guide/', title: 'Guide' }))
+    expect(idx.itemListElement.map((i) => i.name)).toEqual(['Home', 'Guide'])
+  })
+
+  it("escapes '<' like every ld+json body this module emits", () => {
+    expect(breadcrumbJsonLd(SETTINGS, { path: 'guide/a<b', title: 'T<i>' })).not.toContain('<')
+  })
+})
+
+describe('FAQ page + FAQPage JSON-LD (C-64 T-007 G-1)', () => {
+  const questions = (FAQ_MD.match(/^## /gm) || []).length
+
+  it('exists as a guide page with at least 8 questions', () => {
+    expect(questions).toBeGreaterThanOrEqual(8)
+  })
+
+  it('mirrors exactly the markdown questions and answers in plain text', () => {
+    const ld = JSON.parse(faqJsonLd())
+    expect(ld['@type']).toBe('FAQPage')
+    expect(ld.mainEntity).toHaveLength(questions)
+    for (const q of ld.mainEntity) {
+      expect(FAQ_MD, q.name).toContain(q.name)
+      expect(q.acceptedAnswer.text, q.name).not.toMatch(/[[\]]|\*\*/)
+    }
+  })
+
+  it("escapes '<' in questions and answers", () => {
+    expect(faqJsonLd([{ q: 'a <b>', a: 'c <d>' }])).not.toContain('<')
+    expect(JSON.parse(faqJsonLd([{ q: 'a <b>', a: 'c <d>' }])).mainEntity[0].name).toBe('a <b>')
   })
 })
 
@@ -245,17 +322,31 @@ describe('llmsTxt / securityTxt', () => {
 
 const TRACK_SRC = readFileSync(resolve(import.meta.dirname, '../../site/public/track.js'), 'utf8')
 
-function bootTrack ({ granted = false, withGtag = true } = {}) {
+function bootTrack ({ granted = false, decided = true, withGtag = true } = {}) {
   const calls = []
   const docListeners = {}
+  const consentListeners = []
   const document = { addEventListener (type, cb) { docListeners[type] = cb } }
+  const markConsent = {
+    granted: () => granted,
+    // A harness without `decided` (undefined) behaves like a decided state,
+    // matching embeds that run an older consent.js: undecided() is false.
+    ...(decided === null ? {} : { decided: () => decided }),
+    onChange: (cb) => { consentListeners.push(cb) }
+  }
   const window = {
     document,
-    markConsent: { granted: () => granted },
+    markConsent,
     ...(withGtag ? { gtag: (...args) => calls.push(args) } : {})
   }
   new Function('window', 'document', TRACK_SRC)(window, document)
-  return { calls, docListeners, window }
+  return {
+    calls,
+    docListeners,
+    window,
+    consentListeners,
+    set: (g, d) => { granted = g; decided = d }
+  }
 }
 
 function clickOn (docListeners, el) {
@@ -327,6 +418,39 @@ describe('public/track.js', () => {
     expect(() => on.docListeners.click({ target: {} })).not.toThrow()
     expect(on.calls).toHaveLength(0)
   })
+
+  it('queues undecided events in memory and flushes them on grant (C-64 T-007 P-1)', () => {
+    const t = bootTrack({ granted: false, decided: false })
+    clickOn(t.docListeners, LINK)
+    clickOn(t.docListeners, OUTLINK)
+    expect(t.calls).toEqual([])
+    t.set(true, true)                                    // the visitor clicked Allow
+    for (const cb of t.consentListeners) cb(true)
+    expect(t.calls.map((c) => c[1])).toEqual(['download_click', 'outbound_click'])
+    expect(t.calls[0][2]).toMatchObject({ method: 'app_store', placement: 'hero', transport_type: 'beacon' })
+    // Nothing was stored anywhere: the flush happened purely in page memory.
+    expect(t.window.markTrack('share_to_mac', { result: 'shared' })).toBe(true)
+    expect(t.calls).toHaveLength(3)
+  })
+
+  it('clears the queue on deny and drops events fired after an explicit deny', () => {
+    const t = bootTrack({ granted: false, decided: false })
+    clickOn(t.docListeners, LINK)
+    for (const cb of t.consentListeners) cb(false)       // deny: the held event is discarded
+    t.set(false, true)                                   // the deny made the choice explicit
+    clickOn(t.docListeners, LINK)                        // decided-denied: dropped, not queued
+    t.set(true, true)                                    // a later re-grant has nothing to flush
+    for (const cb of t.consentListeners) cb(true)
+    expect(t.calls).toEqual([])
+  })
+
+  it('caps the undecided queue at 10 events', () => {
+    const t = bootTrack({ granted: false, decided: false })
+    for (let i = 0; i < 12; i++) t.window.markTrack('share_to_mac', { result: 'shared' })
+    t.set(true, true)
+    for (const cb of t.consentListeners) cb(true)
+    expect(t.calls).toHaveLength(10)
+  })
 })
 
 /* ---------- public/consent.js on fake globals (no DOM) ---------- */
@@ -356,7 +480,7 @@ async function bootConsent ({ geo = { consent: false }, saved = null, noRic = fa
         'data-privacy': '/privacy'
       })[n] ?? null
     },
-    documentElement: { lang: 'en' },
+    documentElement: { lang: 'en', appendChild () {} },
     addEventListener: (t, cb) => { docListeners[t] = cb },
     getElementById: () => null,
     createElement: () => {
@@ -372,6 +496,7 @@ async function bootConsent ({ geo = { consent: false }, saved = null, noRic = fa
     dataLayer,
     gtag: function (...args) { dataLayer.push(args) },
     addEventListener: (t, cb) => { winListeners[t] = cb },
+    removeEventListener: () => {},
     fetch: () => Promise.resolve({ json: () => Promise.resolve(geo) }),
     ...(noRic ? {} : { requestIdleCallback: (fn, opts) => { idle.push({ fn, opts }); return idle.length } })
   }
@@ -405,14 +530,16 @@ describe('public/consent.js', () => {
 
   it('injects the gtag script only after window load plus an idle slot (C-64 T-006 R-1)', async () => {
     const { dataLayer, created, winListeners, window } = await bootConsent()
-    // Nothing on the critical path: no script tag, no js/config calls on boot.
+    // The boot auto-grant primes js/config into dataLayer — a local push
+    // that makes no request (C-64 T-007 M-2); the script tag itself still
+    // waits for window load + an idle slot, so nothing is fetched on the
+    // critical path.
     expect(created.length).toBe(0)
-    expect(dataLayer.some((c) => c[0] === 'js' || c[0] === 'config')).toBe(false)
+    expect(dataLayer.some((c) => c[0] === 'config' && c[1] === 'G-TEST00000')).toBe(true)
     winListeners.load()
     expect(created.length).toBe(0)             // load fired, still waiting for idle
     window.__flushIdle()
     expect(created[0].src).toBe('https://www.googletagmanager.com/gtag/js?id=G-TEST00000')
-    expect(dataLayer.some((c) => c[0] === 'config' && c[1] === 'G-TEST00000')).toBe(true)
   })
 
   it('falls back to a 2 s setTimeout when requestIdleCallback is missing', async () => {
@@ -438,5 +565,66 @@ describe('public/consent.js', () => {
       expect(window.markConsent.granted()).toBe(false)
       expect(dataLayer.filter((c) => c[0] === 'consent' && c[1] === 'update').at(-1)[2].analytics_storage).toBe('denied')
     })
+  })
+
+  it('never injects the gtag script while the card is unanswered (C-64 T-007 M-2)', async () => {
+    const { created, dataLayer, winListeners, window, timeouts } = await bootConsent({ geo: { consent: true } })
+    winListeners.load?.()
+    window.__flushIdle()
+    for (const t of timeouts) t.fn()          // even the delayed card-show timer must not fetch GA
+    expect(created.filter((n) => n.src)).toEqual([])
+    expect(dataLayer.some((c) => c[0] === 'js' || c[0] === 'config')).toBe(false)
+  })
+
+  it('never injects the gtag script after a saved denial (C-64 T-007 M-2)', async () => {
+    const { created, dataLayer, winListeners, window, timeouts } = await bootConsent({ saved: 'denied' })
+    winListeners.load?.()
+    window.__flushIdle()
+    for (const t of timeouts) t.fn()
+    expect(created.filter((n) => n.src)).toEqual([])
+    expect(dataLayer.some((c) => c[0] === 'js' || c[0] === 'config')).toBe(false)
+  })
+
+  it('injects the gtag script at boot only on a saved grant (still load + idle)', async () => {
+    const { created, dataLayer, winListeners, window } = await bootConsent({ saved: 'granted' })
+    expect(created.length).toBe(0)
+    // js/config are primed into dataLayer at boot (local push, no request),
+    // so even a pre-load click keeps the js → config → events order.
+    expect(dataLayer.some((c) => c[0] === 'config' && c[1] === 'G-TEST00000')).toBe(true)
+    winListeners.load()
+    expect(created.length).toBe(0)
+    window.__flushIdle()
+    expect(created[0].src).toBe('https://www.googletagmanager.com/gtag/js?id=G-TEST00000')
+  })
+
+  it('schedules GA when the visitor clicks Allow in the gated card (decide → loadGA)', async () => {
+    const { created, dataLayer, winListeners, window } = await bootConsent({ geo: { consent: true } })
+    // track.js flushes through the same onChange listeners: prove js/config
+    // land in dataLayer before any grant listener can push events.
+    window.markConsent.onChange(function (on) { if (on) dataLayer.push(['marker', 'listener-ran']) })
+    window.markConsent.open()
+    const allow = created.find((n) => n.className === 'y')
+    allow.onclick()
+    expect(window.markConsent.granted()).toBe(true)
+    expect(window.markConsent.decided()).toBe(true)
+    const configAt = dataLayer.findIndex((c) => c[0] === 'config')
+    expect(configAt).toBeGreaterThanOrEqual(0)
+    expect(dataLayer.findIndex((c) => c[0] === 'marker')).toBeGreaterThan(configAt)
+    winListeners.load()
+    window.__flushIdle()
+    const scripts = created.filter((n) => n.src)
+    expect(scripts).toHaveLength(1)
+    expect(scripts[0].src).toBe('https://www.googletagmanager.com/gtag/js?id=G-TEST00000')
+  })
+
+  it('exposes decided(): false only while the card is unanswered', async () => {
+    const gated = await bootConsent({ geo: { consent: true } })
+    expect(gated.window.markConsent.decided()).toBe(false)
+    const auto = await bootConsent()
+    expect(auto.window.markConsent.decided()).toBe(true)
+    const savedDeny = await bootConsent({ saved: 'denied' })
+    expect(savedDeny.window.markConsent.decided()).toBe(true)
+    const savedGrant = await bootConsent({ saved: 'granted' })
+    expect(savedGrant.window.markConsent.decided()).toBe(true)
   })
 })

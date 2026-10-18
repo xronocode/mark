@@ -1,5 +1,5 @@
 // FILE: site/.vitepress/landing.mjs
-// VERSION: 1.6.0
+// VERSION: 1.7.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Single source of site settings and the static-page renderers
 //            shared by the VitePress config (dev middleware + buildEnd) and
@@ -9,12 +9,15 @@
 //          (landing + the C-58 /diagrams/ gallery) from templates with the
 //          shared head (per-page canonical/OG, hreflang, apple-itunes-app,
 //          theme-color pair, referrer, JSON-LD @graph) and base token; emit
-//          robots.txt and CNAME content; expose the docs-only head list and
-//          the app version read from the root package.json.
+//          robots.txt and CNAME content; expose the docs-only head list, the
+//          docs BreadcrumbList and FAQPage JSON-LD generators, the plain-text
+//          FAQ mirror for site/guide/faq.md, and the app version read from
+//          the root package.json.
 //   DEPENDS: node:fs (appVersion reads the root package.json; everything
 //            else stays pure over strings/env)
-//   LINKS: M-053 SiteBuild; C-22; C-58; C-64 T-003;
+//   LINKS: M-053 SiteBuild; C-22; C-58; C-64 T-003, T-007;
 //          site/landing/index.html; site/public/{consent.js,track.js};
+//          site/guide/faq.md (the human-readable FAQ FAQ_ITEMS mirrors);
 //          site/scripts/{build-gallery.mjs,check-dist.mjs,csp.mjs} (consumers)
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
@@ -34,6 +37,9 @@
 //   analyticsTags - analytics[], base -> [{ attrs, body }] script tags (landing + docs; GA4 adds consent.js + track.js)
 //   analyticsScript - analyticsTags serialized to HTML, '' when analytics is off
 //   jsonLd - settings + page -> JSON-LD @graph body (SoftwareApplication + WebSite; '<' escaped)
+//   breadcrumbJsonLd - settings + { path, title } -> BreadcrumbList body for docs pages (Home → Guide → page)
+//   FAQ_ITEMS - plain-text mirror of site/guide/faq.md for FAQPage structured data
+//   faqJsonLd - FAQ items -> FAQPage JSON-LD body (plain-text answers, '<' escaped)
 //   sharedHeadTags - settings + { path, title, description } -> meta/OG/twitter/favicon/JSON-LD/analytics HTML
 //   docsHeadTags - settings -> VitePress HeadConfig list for the docs pages (WebSite JSON-LD only)
 //   renderSharedHead - sharedHeadTags for the site root (landing default meta)
@@ -44,7 +50,17 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: [v1.6.0 - 2026-10-18 C-64 T-006: renderLanding strips every
+//   LAST_CHANGE: [v1.7.0 - 2026-10-18 C-64 T-007: the SoftwareApplication
+//                 node gains screenshot (/shots/01-agents.jpg), fileSize
+//                 ("15MB" — the landing's ≈15 MB DMG figure), releaseNotes
+//                 (/changelog) and softwareRequirements ("macOS 12 or
+//                 later" only — the repo states no Windows minimum), plus
+//                 an author/publisher Organization (xronocode, site url,
+//                 /mark-icon.svg logo) shared with the WebSite node;
+//                 breadcrumbJsonLd powers the docs BreadcrumbList (Home →
+//                 Guide → page) and FAQ_ITEMS + faqJsonLd back the new
+//                 /guide/faq FAQPage structured data.]
+//   PREV: [v1.6.0 - 2026-10-18 C-64 T-006: renderLanding strips every
 //                 HTML comment (except IE-style conditional ones, of which
 //                 there are none) from the final output and trims leading
 //                 whitespace, so the served page starts with <!doctype and
@@ -215,6 +231,13 @@ export function analyticsScript (analytics, base = '/') {
 // END_CONTRACT: jsonLd
 // START_BLOCK_JSON_LD
 export function jsonLd (settings, page = {}, opts = {}) {
+  const org = {
+    '@type': 'Organization',
+    name: 'xronocode',
+    url: settings.siteUrl + '/',
+    logo: `${settings.siteUrl}/mark-icon.svg`,
+    sameAs: [GITHUB_REPO]
+  }
   const software = {
     '@type': 'SoftwareApplication',
     name: SITE_META.name,
@@ -222,23 +245,97 @@ export function jsonLd (settings, page = {}, opts = {}) {
     applicationCategory: 'DeveloperApplication',
     operatingSystem: 'macOS, Windows',
     softwareVersion: appVersion(),
+    // The repo states only the macOS 12 minimum (the App Store card on the
+    // landing); no Windows minimum is claimed anywhere, so it stays macOS-only.
+    softwareRequirements: 'macOS 12 or later',
+    // The landing's DMG figure ("≈ 15 MB") as schema.org expects it (digits + unit).
+    fileSize: '15MB',
+    screenshot: `${settings.siteUrl}/shots/01-agents.jpg`,
+    releaseNotes: `${settings.siteUrl}/changelog`,
     offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
     downloadUrl: [APP_STORE_URL, GITHUB_RELEASES],
     installUrl: APP_STORE_URL,
     image: `${settings.siteUrl}/${SITE_META.ogImage}`,
     license: 'https://opensource.org/licenses/MIT',
+    author: org,
+    publisher: org,
     sameAs: [GITHUB_REPO]
   }
   const website = {
     '@type': 'WebSite',
     url: settings.siteUrl + '/',
     name: SITE_META.name,
-    publisher: { '@type': 'Organization', name: 'xronocode', url: GITHUB_REPO }
+    publisher: org
   }
   const graph = opts.websiteOnly ? [website] : [software, website]
   return JSON.stringify({ '@context': 'https://schema.org', '@graph': graph }).replace(/</g, '\\u003c')
 }
 // END_BLOCK_JSON_LD
+
+// START_CONTRACT: breadcrumbJsonLd
+//   PURPOSE: BreadcrumbList JSON-LD for the docs pages (Home → Guide →
+//            page) so search results can show the section path.
+//   INPUTS: { settings: resolveSiteSettings() output,
+//             page: { path: string - 'guide/installation' (a trailing
+//                     slash is fine; 'guide/' = the section index),
+//                     title: string - the page's own H1 for the last crumb }
+//   OUTPUTS: { string - JSON body of a <script type="application/ld+json">,
+//              '<' escaped like every ld+json this module emits }
+//   SIDE_EFFECTS: none
+// END_CONTRACT: breadcrumbJsonLd
+export function breadcrumbJsonLd (settings, page = {}) {
+  const path = (page.path || '').replace(/(^|\/)index$/, '').replace(/\/+$/, '')
+  const items = [
+    { '@type': 'ListItem', position: 1, name: 'Home', item: settings.siteUrl + '/' },
+    { '@type': 'ListItem', position: 2, name: 'Guide', item: settings.siteUrl + '/guide/' }
+  ]
+  const slug = path === 'guide' ? '' : path.replace(/^guide\//, '')
+  if (slug) {
+    items.push({ '@type': 'ListItem', position: 3, name: page.title || slug, item: `${settings.siteUrl}/${path}` })
+  }
+  return JSON.stringify({ '@context': 'https://schema.org', '@type': 'BreadcrumbList', itemListElement: items }).replace(/</g, '\\u003c')
+}
+
+// START_BLOCK_FAQ_JSON_LD
+// The plain-text mirror of site/guide/faq.md for FAQPage structured data:
+// the same questions and answers with the markdown links stripped (the
+// JSON-LD answer text must be plain). faq.md stays the human-readable
+// source; tests/site/head.test.mjs pins the two in sync.
+export const FAQ_ITEMS = [
+  { q: 'What is Mark, and who is it for?',
+    a: 'Mark is a free, open-source WYSIWYG Markdown editor for macOS and Windows. It is built for people who read and edit the Markdown files AI agents write — plans, specs and reports — rendered as a finished page while the agent is still working.' },
+  { q: 'Does the document reload when my agent saves the file?',
+    a: 'Yes. Every save on disk reloads the open tab in place and keeps your scroll position. Press ⌘D to see exactly what changed since you last looked, against a snapshot Mark takes before every reload.' },
+  { q: 'Which diagrams can Mark draw?',
+    a: 'Any Mermaid-style fenced code block: 32 diagram types, from flowcharts and sequence diagrams to sankey, venn, radar and kanban, drawn in the colours of the current theme. Every type is shown in the online diagram gallery.' },
+  { q: 'Is Mark native? How big and fast is it?',
+    a: 'Mark is built on Tauri 2 and renders with the system WebView — WebKit on macOS, WebView2 on Windows — instead of shipping its own browser engine. Measured on 2.3.0: a first window in about 0.4 s, about 30 MB on disk, and about 150 MB of memory with a plain document.' },
+  { q: 'Which systems does Mark run on?',
+    a: 'macOS — Homebrew or the .dmg download on Apple silicon, or the Mac App Store edition on macOS 12 or later — and Windows x64 via the installer from GitHub Releases. The Homebrew cask and .dmg are Apple-silicon only; Intel Macs are not supported by the cask.' },
+  { q: 'What is the difference between the App Store and the Homebrew/download editions?',
+    a: 'The editor is the same. The App Store edition is sandboxed and reviewed by Apple; the Homebrew/download edition adds pandoc export, insert screenshot, the default-Markdown-app setting, git diff, a local live server for agents and the in-app updater.' },
+  { q: 'Is Mark free and open source?',
+    a: 'Yes. Mark is released under the MIT licence and the source is on GitHub.' },
+  { q: 'Does the app collect any data?',
+    a: 'No. The app itself has no analytics, no telemetry, no advertising and no account system; your documents never leave your machine. The website measures visits separately, as described on the privacy page.' },
+  { q: 'How do I open a file from a terminal or an agent?',
+    a: "On macOS, run 'open -a Mark report.md' — it launches Mark if it is not running. Agents hand off documents the same way, and '--preview' opens a read-only tab that reloads on every save." },
+  { q: 'What does Mark have to do with Mark Text?',
+    a: 'Mark is inspired by Mark Text and began as a port of it; it is a different technical take on the same idea, rebuilt on Tauri 2 and Vue 3.' }
+]
+
+export function faqJsonLd (items = FAQ_ITEMS) {
+  return JSON.stringify({
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: items.map((f) => ({
+      '@type': 'Question',
+      name: f.q,
+      acceptedAnswer: { '@type': 'Answer', text: f.a }
+    }))
+  }).replace(/</g, '\\u003c')
+}
+// END_BLOCK_FAQ_JSON_LD
 
 // START_CONTRACT: sharedHeadTags
 //   PURPOSE: The shared head for any static site page — description,

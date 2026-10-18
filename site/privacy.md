@@ -43,12 +43,16 @@ because none of that ever leaves your computer.
 
 The app and the website are separate. This website (mark.xronocode.com)
 uses Google Analytics 4 to count visits: pages viewed, referrer, rough
-location, device and browser type. Google Analytics sets first-party
-cookies to tell returning visitors apart, and Google processes that data
-under its own [privacy policy](https://policies.google.com/privacy). Visitors
-from the EEA, the UK and Switzerland are asked first: these cookies are set
-only after you accept, and you can change your choice at any time in
-[Cookie settings](#cookie-settings). It also
+location, device and browser type. Where consent is asked for (the EEA,
+the UK and Switzerland), Google Analytics is loaded only after you allow
+it; everywhere else it loads automatically. Before you decide — and if
+you decline — no analytics request is made at all, and clicks made
+before you decide are held only in the page's memory: sent if you
+allow, discarded otherwise. When analytics runs, Google sets
+first-party cookies to tell returning visitors apart, and Google
+processes that data under its own
+[privacy policy](https://policies.google.com/privacy). You can change
+your choice at any time in [Cookie settings](#cookie-settings). It also
 uses Cloudflare Web Analytics, which counts page views without cookies or
 any identifier stored in your browser
 ([Cloudflare's privacy policy](https://www.cloudflare.com/privacypolicy/)).
