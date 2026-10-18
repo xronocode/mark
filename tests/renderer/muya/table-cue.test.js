@@ -328,7 +328,7 @@ describe('table toolbar vnode (C-65 T-002, C-56 family)', () => {
     expect(expand.data.attrs.contenteditable).toBe('false')
     // Hidden hover-reveal label spans carry the same text.
     const toggleSpan = (toggle.children || []).find((c) => c.sel === 'span.ag-block-toolbar-label')
-    expect(toggleSpan.children[0]).toBe('Full width')
+    expect(toggleSpan.text).toBe('Full width')
     // Icons: the drawn 16-grid glyphs.
     const togglePath = ((toggle.children || []).find((c) => c.sel === 'svg').children || [])[0]
     expect(togglePath.data.attrs.d).toBe(TOOLBAR_TABLE_FULLWIDTH_ICON_PATH)
@@ -349,7 +349,7 @@ describe('table toolbar vnode (C-65 T-002, C-56 family)', () => {
     expect(toggle.sel).toContain('ag-table-toolbar-active')
     expect(toggle.data.attrs.title).toBe('Fit to page')
     const span = (toggle.children || []).find((c) => c.sel === 'span.ag-block-toolbar-label')
-    expect(span.children[0]).toBe('Fit to page')
+    expect(span.text).toBe('Fit to page')
     const path = ((toggle.children || []).find((c) => c.sel === 'svg').children || [])[0]
     expect(path.data.attrs.d).toBe(TOOLBAR_TABLE_FIT_ICON_PATH)
   })

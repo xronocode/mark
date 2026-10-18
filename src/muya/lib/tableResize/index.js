@@ -137,11 +137,14 @@ export const sanitizePersistedEntries = (raw) => {
         .filter(w => Number.isFinite(w) && w > 0)
         .map(w => clampWidth(w))
       : []
-    const manual = Array.isArray(value.manual)
-      ? value.manual.map(m => !!m)
-      : widths.map(() => false)
+    // One manual flag per kept width (missing flags read as auto).
+    const rawManual = Array.isArray(value.manual) ? value.manual : []
+    const manual = widths.map((_, i) => !!rawManual[i])
     const fullWidth = !!value.fullWidth
     if (widths.length === 0 && !fullWidth) continue
+    // No user-dragged column and no Full width: indistinguishable from auto
+    // layout, so nothing worth restoring (the session store drops it too).
+    if (!fullWidth && !manual.some(Boolean)) continue
     entries[pid] = { widths, manual, fullWidth }
   }
   return entries

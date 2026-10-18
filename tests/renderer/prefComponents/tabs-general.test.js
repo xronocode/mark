@@ -41,10 +41,12 @@ vi.mock('common/encoding', () => ({
 
 vi.mock('@tauri-apps/api/app', () => ({ getVersion: vi.fn(async () => '9.9.9') }))
 
-const checkUpdateExecute = vi.fn(async () => 'checked')
-vi.mock('@/commands', () => ({
-  default: [{ id: 'file.check-update', execute: checkUpdateExecute }]
+const { installSignedUpdate, invokeMock } = vi.hoisted(() => ({
+  installSignedUpdate: vi.fn(async () => {}),
+  invokeMock: vi.fn()
 }))
+vi.mock('@/commands', () => ({ default: [], installSignedUpdate }))
+vi.mock('@tauri-apps/api/core', () => ({ invoke: invokeMock }))
 
 import GeneralTab from '@/prefComponents/tabs/general/index.vue'
 import { usePreferencesStore } from '@/store/preferences'
@@ -76,7 +78,8 @@ describe('tabs/general — C-38 T-004 content', () => {
 
   beforeEach(() => {
     setupTestPinia()
-    checkUpdateExecute.mockClear()
+    installSignedUpdate.mockClear()
+    invokeMock.mockReset()
     osState.isOsx = true
   })
 
@@ -134,15 +137,62 @@ describe('tabs/general — C-38 T-004 content', () => {
     expect(groupTitles(wrapper)).not.toContain('preferences.general.updates.title')
   })
 
-  it('shows the running version in the Updates row and dispatches file.check-update', async () => {
+  it('shows the running version and reports the check IN THE ROW (no toast): checking → up to date', async () => {
+    let resolveCheck
+    invokeMock.mockImplementation((cmd) => cmd === 'mt_updater_check'
+      ? new Promise((r) => { resolveCheck = r })
+      : Promise.resolve(null))
     wrapper = mountTab()
     await flushPromises()
-    const updatesRow = wrapper.findAllComponents('.row-button').at(-1)
-    expect(updatesRow.text()).toContain('Mark 9.9.9')
-    expect(updatesRow.text()).toContain('preferences.general.updates.help')
-    await updatesRow.props('onClick')()
+    const row = () => wrapper.findAllComponents('.row-button').at(-1)
+    expect(row().text()).toContain('Mark 9.9.9')
+    expect(row().text()).toContain('preferences.general.updates.help')
+    const click = row().props('onClick')()
     await flushPromises()
-    expect(checkUpdateExecute).toHaveBeenCalled()
+    // While checking: help + button say «checking», the button is disabled,
+    // and a second click does not start a second check.
+    expect(row().props('disable')).toBe(true)
+    expect(row().text()).toContain('preferences.general.updates.checking')
+    await row().props('onClick')()
+    expect(invokeMock.mock.calls.filter((c) => c[0] === 'mt_updater_check').length).toBe(1)
+    resolveCheck({ currentVersion: '9.9.9', available: false })
+    await click
+    await flushPromises()
+    expect(row().props('disable')).toBe(false)
+    expect(row().text()).toContain('preferences.general.updates.upToDate')
+  })
+
+  it('an available update turns the button into Install, which runs the shared signed flow', async () => {
+    const status = { currentVersion: '9.9.9', available: true, latestVersion: '10.0.0' }
+    invokeMock.mockImplementation(async (cmd) => (cmd === 'mt_updater_check' ? status : null))
+    wrapper = mountTab()
+    await flushPromises()
+    const row = () => wrapper.findAllComponents('.row-button').at(-1)
+    await row().props('onClick')()
+    await flushPromises()
+    expect(row().text()).toContain('preferences.general.updates.available')
+    expect(row().text()).toContain('preferences.general.updates.install')
+    await row().props('onClick')()
+    await flushPromises()
+    expect(installSignedUpdate).toHaveBeenCalledWith(status)
+  })
+
+  it('a feed error or a thrown check reports «failed» in the row', async () => {
+    invokeMock.mockImplementation(async (cmd) => (cmd === 'mt_updater_check'
+      ? { currentVersion: '9.9.9', available: false, statusNote: 'update check failed: offline' }
+      : null))
+    wrapper = mountTab()
+    await flushPromises()
+    const row = () => wrapper.findAllComponents('.row-button').at(-1)
+    await row().props('onClick')()
+    await flushPromises()
+    expect(row().text()).toContain('preferences.general.updates.failed')
+    invokeMock.mockImplementation(async () => { throw new Error('ipc down') })
+    const err = vi.spyOn(console, 'error').mockImplementation(() => {})
+    await row().props('onClick')()
+    await flushPromises()
+    expect(row().text()).toContain('preferences.general.updates.failed')
+    err.mockRestore()
   })
 
   // C-66 T-003: the automatic-check switch opens the Updates group.

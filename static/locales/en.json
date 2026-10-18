@@ -661,7 +661,12 @@
         "help": "Checks online for a newer version and installs it.",
         "check": "Check for updates",
         "autoCheck": "Check for updates automatically",
-        "autoCheckHelp": "Looks for a new version once a day when Mark starts, and shows a quiet notice."
+        "autoCheckHelp": "Looks for a new version once a day when Mark starts, and shows a quiet notice.",
+        "checking": "Checking…",
+        "upToDate": "You have the latest version.",
+        "available": "Mark {version} is available.",
+        "install": "Install {version}",
+        "failed": "Couldn't check for updates. Try again later."
       }
     },
     "appearance": {
