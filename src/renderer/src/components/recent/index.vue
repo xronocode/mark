@@ -183,7 +183,9 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v2.1.3 - 2026-10-18 fix: row layout — .row-button gained
+//   LAST_CHANGE: v2.1.4 - 2026-10-19 the brand mark contrasts with the
+//     theme: light ¶ on dark themes, dark ¶ on light themes.
+//   v2.1.3 - 2026-10-18 fix: row layout — .row-button gained
 //     box-sizing:border-box (width:100% plus padding overflowed the column
 //     by 20 px), and «Remove from list» is a quiet button centred on the
 //     row in the time column's place instead of a bordered chip pinned to
@@ -263,10 +265,11 @@ const MISSING_RE = /MT_FS_NOT_FOUND|No such file/i
 
 const editorStore = useEditorStore()
 const projectStore = useProjectStore()
-// The brand mark follows the effective theme: the light ¶ icon on light
-// themes, its dark variant on dark ones (same pair as the app icon).
+// The brand mark contrasts with the effective theme: the light (paper) ¶
+// icon on dark themes, the dark (ink) one on light themes — a same-tone
+// icon blended into the background (user review 2026-10-19).
 const { theme } = storeToRefs(usePreferencesStore())
-const brandLogo = computed(() => (isDarkTheme(theme.value) ? logoDarkUrl : logoUrl))
+const brandLogo = computed(() => (isDarkTheme(theme.value) ? logoUrl : logoDarkUrl))
 
 const recentFiles = ref([])
 const recentFolders = ref([])
