@@ -1,5 +1,6 @@
 <GraceGraphIndex graceVersion='4.0'>
   <GraphDocuments>
+    <!-- C-63: M-046 owns the explicit C-60/C-62 WebKit CI gate in test.yml. -->
     <GD-RUNTIME>
       <Path>graph/runtime.xml</Path>
       <!-- C-60: M-012 fn-reparseMarkdown and M-011 footnote tab-cache ownership. -->

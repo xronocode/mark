@@ -2342,6 +2342,9 @@
       <Layer>TOOLING</Layer>
       <PhaseRef>Release-Readiness-2026-08-07</PhaseRef>
       <Summary>
+        C-63: the test workflow explicitly gates the C-60 footnote and
+        C-62 diagram-appearance projects in WebKit after browser installation,
+        preserving their WKWebView-engine coverage on every test run.
         Provide a deterministic pre-publication gate for exact version/tag
         consistency, complete automated verification, and signed/notarized macOS
         artifact evidence. C-15 T-106: the release workflow gained a
