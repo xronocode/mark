@@ -1894,7 +1894,7 @@ describe('editor.vue — coverage', () => {
     )
   })
 
-  it('handleExport pdf calls printer.renderMarkdown and EXPORT with full pageOptions (C-59)', async () => {
+  it('handleExport pdf calls printer.renderMarkdown and EXPORT with full pageOptions (C-61)', async () => {
     await mountEditor()
     await getBusHandler('export')({
       type: 'pdf',
@@ -1925,7 +1925,7 @@ describe('editor.vue — coverage', () => {
         pageMarginLeft: 15
       }
     })
-    // C-59: the flow is over once EXPORT resolves — the container goes.
+    // C-61: the flow is over once EXPORT resolves — the container goes.
     expect(mockPrinter.clearup).toHaveBeenCalled()
   })
 
@@ -1946,7 +1946,7 @@ describe('editor.vue — coverage', () => {
     expect(mockPrinter.clearup).toHaveBeenCalled()
   })
 
-  it('handleExport print opens the native print panel via mt_print_webview (C-59)', async () => {
+  it('handleExport print opens the native print panel via mt_print_webview (C-61)', async () => {
     const { invoke } = await import('@tauri-apps/api/core')
     invoke.mockClear()
     await mountEditor()

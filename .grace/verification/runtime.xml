@@ -11840,7 +11840,7 @@
       <Scenarios>
         <Scenario>
           scenario-1: mt_print_webview opens the native WKWebView print
-          panel for the caller window directly from ⌘P (C-59 R-1: no
+          panel for the caller window directly from ⌘P (C-61 R-1: no
           export-settings dialog on the print path). macOS drives the
           print operation itself and resolves the invoke only after the
           panel closes, so the renderer clears the print container then
@@ -11850,7 +11850,7 @@
         </Scenario>
         <Scenario>
           scenario-2: mt_export_pdf writes the styled print container to
-          the save-dialog path silently (C-59 R-2/R-3/R-4): store tests pin
+          the save-dialog path silently (C-61 R-2/R-3/R-4): store tests pin
           save dialog (pdf filter, document/first-heading/Untitled default
           name) → invoke('mt_export_pdf', path, pageOptions) with
           mt_print_webview NEVER invoked; save-cancel writes nothing and

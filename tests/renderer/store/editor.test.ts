@@ -1088,7 +1088,7 @@ describe('store/editor', () => {
       expect(save).not.toHaveBeenCalled()
     })
 
-    it('PDF type saves through the native save dialog into mt_export_pdf (C-59)', async () => {
+    it('PDF type saves through the native save dialog into mt_export_pdf (C-61)', async () => {
       const { invoke } = await import('@tauri-apps/api/core')
       const { save } = await import('@tauri-apps/plugin-dialog')
       invoke.mockClear()
@@ -1126,7 +1126,7 @@ describe('store/editor', () => {
       )
     })
 
-    it('PDF save-cancel writes nothing and notifies nobody (C-59 corner-2)', async () => {
+    it('PDF save-cancel writes nothing and notifies nobody (C-61 corner-2)', async () => {
       const { invoke } = await import('@tauri-apps/api/core')
       const { save } = await import('@tauri-apps/plugin-dialog')
       const notice = (await import('@/services/notification')).default
@@ -1143,7 +1143,7 @@ describe('store/editor', () => {
       expect(editor.PRINT_RESPONSE).toBeUndefined()
     })
 
-    it('_pdfDefaultName uses the document name, else the first heading, else Untitled (C-59 corner-4)', () => {
+    it('_pdfDefaultName uses the document name, else the first heading, else Untitled (C-61 corner-4)', () => {
       editor.currentFile = makeTab({ id: 't1', pathname: '/tmp/a.md', filename: 'Notes.md' })
       expect(editor._pdfDefaultName()).toBe('Notes.pdf')
 
@@ -1156,7 +1156,7 @@ describe('store/editor', () => {
       expect(editor._pdfDefaultName()).toBe('Untitled.pdf')
     })
 
-    it('PRINT_DOCUMENT emits bus export with defaults on first use (C-59 R-1)', () => {
+    it('PRINT_DOCUMENT emits bus export with defaults on first use (C-61 R-1)', () => {
       editor.currentFile = makeTab({ id: 't1', pathname: '/tmp/a.md', filename: 'a.md' })
       editor.tabs = [editor.currentFile]
       editor.PRINT_DOCUMENT()
@@ -1181,7 +1181,7 @@ describe('store/editor', () => {
       expect(bus.emit).not.toHaveBeenCalled()
     })
 
-    it('REMEMBER_EXPORT_OPTIONS feeds PRINT_DOCUMENT and drops per-flow keys (C-59 R-1)', () => {
+    it('REMEMBER_EXPORT_OPTIONS feeds PRINT_DOCUMENT and drops per-flow keys (C-61 R-1)', () => {
       editor.currentFile = makeTab({ id: 't1', pathname: '/tmp/a.md', filename: 'a.md' })
       editor.tabs = [editor.currentFile]
       editor.REMEMBER_EXPORT_OPTIONS({
