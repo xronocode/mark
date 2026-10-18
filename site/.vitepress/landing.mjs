@@ -1,5 +1,5 @@
 // FILE: site/.vitepress/landing.mjs
-// VERSION: 1.5.0
+// VERSION: 1.6.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Single source of site settings and the static-page renderers
 //            shared by the VitePress config (dev middleware + buildEnd) and
@@ -38,13 +38,20 @@
 //   docsHeadTags - settings -> VitePress HeadConfig list for the docs pages (WebSite JSON-LD only)
 //   renderSharedHead - sharedHeadTags for the site root (landing default meta)
 //   renderPage - template + settings + page meta -> final HTML (head + base)
-//   renderLanding - template -> final landing HTML (renderPage with root meta)
+//   renderLanding - template -> final landing HTML (renderPage with root meta, comments stripped, <!doctype first — C-64 T-006)
 //   robotsTxt - robots.txt body pointing at the sitemap
 //   cnameFor - custom-domain CNAME body, or null for github.io/sub-path hosting
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: [v1.5.0 - 2026-10-18 C-64 T-003: the shared head carries the
+//   LAST_CHANGE: [v1.6.0 - 2026-10-18 C-64 T-006: renderLanding strips every
+//                 HTML comment (except IE-style conditional ones, of which
+//                 there are none) from the final output and trims leading
+//                 whitespace, so the served page starts with <!doctype and
+//                 <meta charset> sits at the top of <head> instead of after
+//                 ~6.9 KB of GRACE headers (S-4). renderPage is unchanged:
+//                 the gallery template carries no comment header.]
+//   PREV: [v1.5.0 - 2026-10-18 C-64 T-003: the shared head carries the
 //                 Avenex-grade SEO set (apple-itunes-app banner, light/dark
 //                 theme-color pair from the brand tokens, strict referrer,
 //                 hreflang en + x-default, 1200x630 og-card.png with
@@ -333,19 +340,31 @@ export function renderPage (template, settings, page = {}) {
 // START_CONTRACT: renderLanding
 //   PURPOSE: Turn the landing template into the served root page.
 //   INPUTS: { template: string - site/landing/index.html, settings: resolveSiteSettings() }
-//   OUTPUTS: { string - HTML with %BASE% substituted and shared head injected }
+//   OUTPUTS: { string - HTML with %BASE% substituted, shared head injected,
+//              every HTML comment stripped and leading whitespace trimmed,
+//              so the output starts with <!doctype html> (C-64 T-006 S-4) }
 //   SIDE_EFFECTS: none; throws if the head placeholder is missing
 // END_CONTRACT: renderLanding
+// START_BLOCK_RENDER_LANDING
+const LANDING_COMMENT_RE = /<!--(?!\[if)[\s\S]*?-->/g
+
+function stripLandingComments (html) {
+  // The template's GRACE header and build notes are source-only markup;
+  // the built page keeps IE-style conditional comments if any ever appear.
+  return html.replace(LANDING_COMMENT_RE, '').replace(/^\s+/, '')
+}
+
 export function renderLanding (template, settings) {
-  // START_BLOCK_RENDER_LANDING
   if (!template.includes(HEAD_PLACEHOLDER)) {
     throw new Error(`[SiteBuild][renderLanding][BLOCK_RENDER_LANDING] template is missing ${HEAD_PLACEHOLDER}`)
   }
-  return template
-    .replace(HEAD_PLACEHOLDER, renderSharedHead(settings))
-    .replace(BASE_TOKEN, settings.base)
-  // END_BLOCK_RENDER_LANDING
+  return stripLandingComments(
+    template
+      .replace(HEAD_PLACEHOLDER, renderSharedHead(settings))
+      .replace(BASE_TOKEN, settings.base)
+  )
 }
+// END_BLOCK_RENDER_LANDING
 
 export function robotsTxt (settings) {
   return `User-agent: *\nAllow: /\n\nSitemap: ${settings.siteUrl}/sitemap.xml\n`

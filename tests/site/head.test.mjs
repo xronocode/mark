@@ -1,6 +1,6 @@
 // @vitest-environment node
 // FILE: tests/site/head.test.mjs
-// VERSION: 1.0.0
+// VERSION: 1.1.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Verify the C-64 T-003 head/consent/analytics/SEO/CSP surface
 //            — the shared head's SEO tags, the JSON-LD @graph (version from
@@ -28,6 +28,7 @@
 //   BASE_SETTINGS - /mark/ base settings fixture
 //   PROVIDERS - settings fixture with GA + CF configured
 //   TRACK_SRC - public/track.js source
+//   OUTLINK - fake GitHub repository link element (outbound_click)
 //   CONSENT_SRC - public/consent.js source
 //   LINK - fake [data-track] element fixture
 //   clickOn - dispatch a fake click through the captured document listener
@@ -37,7 +38,14 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.0.0 - 2026-10-18 C-64 T-003: first version.
+//   LAST_CHANGE: [v1.1.0 - 2026-10-18 C-64 T-006: llms.txt pins the tap-free
+//                 brew one-liner; track.js gains an outbound_click
+//                 (link_target + placement) case; the consent harness
+//                 captures injected setTimeouts and requestIdleCallback
+//                 slots, and the GA tests assert the gtag script injects
+//                 only after window load + an idle slot (2 s timeout
+//                 fallback).]
+//   PREV: [v1.0.0 - 2026-10-18 C-64 T-003: first version.]
 // END_CHANGE_SUMMARY
 
 import { createHash } from 'node:crypto'
@@ -214,7 +222,7 @@ describe('llmsTxt / securityTxt', () => {
     const txt = llmsTxt(BASE_SETTINGS)
     expect(txt.startsWith('# Mark')).toBe(true)
     for (const section of ['## Install', '## Docs', '## Source']) expect(txt).toContain(section)
-    expect(txt).toContain('brew tap xronocode/mark && brew install --cask mark')
+    expect(txt).toContain('brew install --cask xronocode/mark/mark')
     expect(txt).toContain('https://apps.apple.com/app/id6814590464')
     expect(txt).toContain('https://github.com/xronocode/mark/releases/latest')
     const links = [...txt.matchAll(/\((https:\/\/[^)]+)\)/g)].map((m) => m[1])
@@ -259,6 +267,11 @@ const LINK = {
   hasAttribute: () => false
 }
 
+const OUTLINK = {
+  getAttribute: (n) => ({ 'data-track': 'outbound_click', 'data-target': 'github', 'data-placement': 'nav' })[n] ?? null,
+  hasAttribute: () => false
+}
+
 describe('public/track.js', () => {
   it('sends download_click with method/placement and beacon transport, only when granted', () => {
     const off = bootTrack({ granted: false })
@@ -291,6 +304,16 @@ describe('public/track.js', () => {
     }
   })
 
+  it('sends outbound_click with link_target and placement (C-64 T-006 M-1)', () => {
+    const off = bootTrack({ granted: false })
+    clickOn(off.docListeners, OUTLINK)
+    expect(off.calls).toEqual([])
+    const on = bootTrack({ granted: true })
+    clickOn(on.docListeners, OUTLINK)
+    expect(on.calls).toHaveLength(1)
+    expect(on.calls[0]).toEqual(['event', 'outbound_click', { link_target: 'github', placement: 'nav', transport_type: 'beacon' }])
+  })
+
   it('markTrack sends code-driven events and is a no-op without gtag or consent', () => {
     const on = bootTrack({ granted: true })
     on.window.markTrack('share_to_mac', { result: 'shared' })
@@ -318,11 +341,13 @@ function makeStorage (initial) {
   }
 }
 
-async function bootConsent ({ geo = { consent: false }, saved = null } = {}) {
+async function bootConsent ({ geo = { consent: false }, saved = null, noRic = false } = {}) {
   const dataLayer = []
   const created = []
   const docListeners = {}
   const winListeners = {}
+  const timeouts = []
+  const idle = []
   const document = {
     currentScript: {
       getAttribute: (n) => ({
@@ -347,12 +372,16 @@ async function bootConsent ({ geo = { consent: false }, saved = null } = {}) {
     dataLayer,
     gtag: function (...args) { dataLayer.push(args) },
     addEventListener: (t, cb) => { winListeners[t] = cb },
-    fetch: () => Promise.resolve({ json: () => Promise.resolve(geo) })
+    fetch: () => Promise.resolve({ json: () => Promise.resolve(geo) }),
+    ...(noRic ? {} : { requestIdleCallback: (fn, opts) => { idle.push({ fn, opts }); return idle.length } })
   }
+  window.__flushIdle = () => { while (idle.length) idle.shift().fn() }
   // consent.js calls the bare fetch global: hand it the fake, never the network.
-  new Function('window', 'document', 'localStorage', 'setTimeout', 'fetch', CONSENT_SRC)(window, document, makeStorage(saved), () => 0, window.fetch)
+  new Function('window', 'document', 'localStorage', 'setTimeout', 'fetch', CONSENT_SRC)(
+    window, document, makeStorage(saved), (fn, ms) => { timeouts.push({ fn, ms }); return 0 }, window.fetch
+  )
   await new Promise((r) => setTimeout(r, 5))
-  return { dataLayer, created, docListeners, winListeners, window }
+  return { dataLayer, created, docListeners, winListeners, window, timeouts }
 }
 
 describe('public/consent.js', () => {
@@ -374,11 +403,26 @@ describe('public/consent.js', () => {
     })
   })
 
-  it('loads GA through the tag manager and configures it', () => {
-    return bootConsent().then(({ dataLayer, created }) => {
-      expect(created[0].src).toBe('https://www.googletagmanager.com/gtag/js?id=G-TEST00000')
-      expect(dataLayer.some((c) => c[0] === 'config' && c[1] === 'G-TEST00000')).toBe(true)
-    })
+  it('injects the gtag script only after window load plus an idle slot (C-64 T-006 R-1)', async () => {
+    const { dataLayer, created, winListeners, window } = await bootConsent()
+    // Nothing on the critical path: no script tag, no js/config calls on boot.
+    expect(created.length).toBe(0)
+    expect(dataLayer.some((c) => c[0] === 'js' || c[0] === 'config')).toBe(false)
+    winListeners.load()
+    expect(created.length).toBe(0)             // load fired, still waiting for idle
+    window.__flushIdle()
+    expect(created[0].src).toBe('https://www.googletagmanager.com/gtag/js?id=G-TEST00000')
+    expect(dataLayer.some((c) => c[0] === 'config' && c[1] === 'G-TEST00000')).toBe(true)
+  })
+
+  it('falls back to a 2 s setTimeout when requestIdleCallback is missing', async () => {
+    const { created, winListeners, timeouts } = await bootConsent({ noRic: true })
+    winListeners.load()
+    const slot = timeouts.find((t) => t.ms === 2000)
+    expect(slot).toBeTruthy()
+    expect(created.length).toBe(0)
+    slot.fn()
+    expect(created[0].src).toBe('https://www.googletagmanager.com/gtag/js?id=G-TEST00000')
   })
 
   it('arms the delayed card inside the gate and never shows it on boot', () => {

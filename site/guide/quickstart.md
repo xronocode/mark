@@ -7,7 +7,7 @@ description: "Open your first Markdown file in Mark, edit it visually and previe
 ## Open a file
 
 ```sh
-mark document.md
+open -a Mark document.md
 ```
 
 Or use **File > Open** (Cmd+O) from within the app.
@@ -15,7 +15,7 @@ Or use **File > Open** (Cmd+O) from within the app.
 ## Open a project folder
 
 ```sh
-mark ~/projects/my-docs/
+open -a Mark ~/projects/my-docs/
 ```
 
 This opens the folder in the project sidebar. Click any `.md` file to open it in a tab.
