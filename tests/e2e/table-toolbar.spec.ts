@@ -162,7 +162,7 @@ test.describe('table toolbar + full width (C-65 T-002/T-004)', () => {
     expect(g!.captionText).toBe('')
   })
 
-  test('the caret inside the table hides the toolbar (ag-active)', async ({ page }) => {
+  test('the caret inside a table keeps its toolbar reachable on hover (unlike diagrams)', async ({ page }) => {
     await openDoc(page, WIDE_18COL_MD)
 
     const cell = page.locator("figure[data-role='TABLE'] tbody tr td").first()
@@ -170,11 +170,14 @@ test.describe('table toolbar + full width (C-65 T-002/T-004)', () => {
     expect(box).not.toBeNull()
     await page.mouse.click(box!.x + 10, box!.y + box!.height / 2)
 
-    // ag-active hides the pill outright (display:none), like diagrams.
+    // A caret in a cell is normal table work: the toolbar is not removed
+    // (diagrams hide theirs while the source is edited) and the hover over
+    // the table shows it, so «Fit to page» is never locked away.
+    await page.locator("figure[data-role='TABLE'] table").first().hover()
     await expect.poll(async () => {
       const st = await toolbarState(page)
-      return { active: st.figureActive, hidden: st.display === 'none' || st.opacity === '0' }
-    }).toEqual({ active: true, hidden: true })
+      return { active: st.figureActive, display: st.display, opacity: st.opacity }
+    }).toEqual({ active: true, display: 'flex', opacity: '1' })
   })
 
   test('Full width: natural width from the editor\'s left edge, the editor scrolls, the cue reads «all N columns»', async ({ page }) => {
@@ -191,7 +194,9 @@ test.describe('table toolbar + full width (C-65 T-002/T-004)', () => {
     const g = await geometry(page)
     expect(g!.figureFullWidth).toBe(true)
     // The table starts at the editor area's left edge…
-    expect(Math.abs(g!.tableLeft - g!.scrollerLeft)).toBeLessThanOrEqual(2)
+    // An 18-column table is wider than the editor: it starts the 24 px
+    // gutter (FULL_WIDTH_GUTTER_PX) from the editor's left edge.
+    expect(Math.abs(g!.tableLeft - g!.scrollerLeft - 24)).toBeLessThanOrEqual(2)
     // …and is wider than the window: the EDITOR scroller owns the scrollbar.
     expect(g!.scrollerScrollWidth).toBeGreaterThan(g!.scrollerClientWidth + 100)
     expect(g!.computedOverflowX).toBe('visible')

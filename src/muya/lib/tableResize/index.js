@@ -1,5 +1,5 @@
 // FILE: src/muya/lib/tableResize/index.js
-// VERSION: 2.0.0
+// VERSION: 2.1.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Table column resize and per-table layout (C-39 T-002 session widths; C-65 persistent widths + the per-table Full width mode keyed by file-path-stable identities), pointer-drag interaction on header-border handles, double-click reset, reconciliation after every muya re-render, the table toolbar click routing and the overflow-cue refresh.
 //   SCOPE: The width store keyed by table block key (set/get/reset/clear), MIN_COLUMN_WIDTH clamping, column-count reconciliation, the persistent identity map (table ordinal in the document + header signature), the persisted-entry adoption/drop rules (R-1), the serialize/dispatch persistence bridge (R-1/R-3, written only after a real user action), the Full width mode session set + DOM application + toggle routing (R-4/R-6), capture-phase pointer/mouse/click/dblclick/scroll handling on the editor container, and DOM application of widths (colgroup + table-layout fixed).
@@ -11,6 +11,7 @@
 //
 // START_MODULE_MAP
 //   default - TableResize class (muya.tableResize): session column-width store + drag/double-click interaction + post-render reconciliation + persistent identities/adoption + Full width mode + the table toolbar routing.
+//   FULL_WIDTH_GUTTER_PX - gap between a Full width table that is wider than the editor and the editor's left edge.
 //   MIN_COLUMN_WIDTH - drag clamp floor for one column (px).
 //   TABLE_FIXED_CLASS - class marking a table that carries session widths (table-layout: fixed + colgroup).
 //   RESIZING_TABLE_CLASS - class on the table while a drag is in progress (no text selection).
@@ -27,7 +28,10 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v2.0.0 - 2026-10-18 C-65: widths (and the per-table Full
+//   LAST_CHANGE: v2.1.0 - 2026-10-19 Full width placement: a table that
+//   fits the editor area is centred in it; a wider one starts
+//   FULL_WIDTH_GUTTER_PX from the left edge (it used to stick to the edge).
+//   v2.0.0 - 2026-10-18 C-65: widths (and the per-table Full
 //   width mode) persist per file in the Mark profile. Block keys are not
 //   stable across reloads, so every table gets a PERSISTENT IDENTITY =
 //   document ordinal + header signature (column count + hash of header
@@ -69,6 +73,8 @@ export { TABLE_FULL_WIDTH_CLASS }
 export { TABLE_TOOLBAR_BUTTON_SELECTOR }
 
 export const MIN_COLUMN_WIDTH = 48
+// C-65 R-6: the Full width table keeps this gap to the editor's edge.
+export const FULL_WIDTH_GUTTER_PX = 24
 export const TABLE_FIXED_CLASS = 'ag-column-widths-fixed'
 export const RESIZER_CLASS = 'ag-column-resizer'
 export const RESIZING_TABLE_CLASS = 'ag-column-resizing'
@@ -442,11 +448,27 @@ class TableResize {
     if (!wrapper || !editor) return
     const container = this.muya.container
     if (!container || !container.getBoundingClientRect) return
-    const offset = wrapper.getBoundingClientRect().left - container.getBoundingClientRect().left
-    if (!Number.isFinite(offset) || offset === 0) return
+    const containerRect = container.getBoundingClientRect()
+    // Zero-geometry surfaces (jsdom, hidden panes) keep the CSS margin.
+    if (!containerRect || !(containerRect.width > 0)) return
+    const offset = wrapper.getBoundingClientRect().left - containerRect.left
+    if (!Number.isFinite(offset)) return
     const currentMargin = parseFloat(getComputedStyle(wrapper).marginLeft)
     if (!Number.isFinite(currentMargin)) return
-    wrapper.style.marginLeft = `${currentMargin - offset}px`
+    // Where the table should start inside the editor area: centred when
+    // its natural width fits (a table a little wider than the column must
+    // not jump to the window edge — user review 2026-10-19), else a small
+    // gutter from the left edge and the editor scrolls horizontally.
+    const table = wrapper.querySelector('table')
+    const natural = table ? table.getBoundingClientRect().width : 0
+    const available = containerRect.width
+    let target = FULL_WIDTH_GUTTER_PX
+    if (Number.isFinite(natural) && natural > 0 && Number.isFinite(available) &&
+      natural + FULL_WIDTH_GUTTER_PX * 2 <= available) {
+      target = Math.round((available - natural) / 2)
+    }
+    if (Math.round(offset) === target) return
+    wrapper.style.marginLeft = `${currentMargin - offset + target}px`
   }
 
   // Swap the toggle's icon/label between «Full width» and «Fit to page»
