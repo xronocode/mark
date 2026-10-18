@@ -55,6 +55,9 @@
     <Glob>tests/e2e/*.spec.ts</Glob>
     <Glob>tests/e2e/fixtures/**</Glob>
     <Glob>.grace/**</Glob>
+    <Glob>src/muya/lib/parser/render/renderBlock/**</Glob>
+    <File>src/muya/lib/eventHandler/clickEvent.js</File>
+    <File>src/muya/lib/assets/styles/index.css</File>
   </ObservedWriteScope>
   <CornerMatrix>
     <Corner id='corner-1'>
@@ -111,6 +114,18 @@
       <AcceptanceCriteria><Criterion>grace lint --path . --assertions current = 0; locale suites green.</Criterion></AcceptanceCriteria>
       <Verification><Command>grace lint --path . --assertions current</Command></Verification>
     </T-004>
+    <T-005>
+      <Title>Diagram corner toolbar (user choice 2026-10-18, variant C): one hover pill with three same-family icons — Edit source, Copy as image, Open full screen — replacing the old PNG edit icon and the separate expand glyph on Pele diagram and Vega-Lite figures</Title>
+      <DependsOn>T-002, T-003</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>Look (approved mockup ~/prj/mark-media/corner/corner.html, variant C): a pill at the figure's top-right inside the diagram panel (top/right 8px), background color-mix(--pele-surface 95%), 1px border color-mix(--pele-fg 12%), radius 8px, padding 2px; three buttons with 16px stroke icons (1.5px stroke, round caps — the exact SVG paths from the mockup: code «‹ ›», copy-image «two rects + mountain», expand «two diagonal arrows»), colour --pele-muted, hover colour --pele-fg on a 10% fg tint; on button hover a short text label slides in next to the icon (Edit source / Copy as image / Open full screen), localized; tooltips (title + aria-label) carry the same text.</Criterion>
+        <Criterion>Visibility exactly as today: the pill appears ONLY while the pointer is over the figure (opacity 0 → 1, 150 ms), never because the caret is inside; the expand button inside the pill keeps the expandNeed.js gate (shown only on figures marked ag-expand-needed; Cmd/Ctrl+click still opens the viewer everywhere); Edit source and Copy as image always show on hover. Keyboard focus inside the pill makes it visible (focus-visible).</Criterion>
+        <Criterion>Behaviour: Edit source = the existing container edit action (contentState.handleContainerBlockClick on the figure); Copy as image = the T-002 copyAsImage transport (2× PNG to the clipboard, same toast/failure paths); Expand = the existing block viewer open. Copy is disabled (not hidden) on a never-rendered block. Other figure types (html, multiplemath, flowchart.js, sequence, plantuml, tables) keep today's icons unchanged.</Criterion>
+        <Criterion>Strings: blockToolbar.editSource / copyImage / openFullScreen in all ten static/locales (+ regenerated min.json), native copy.</Criterion>
+        <Criterion>Tests: unit (render: pill + three buttons on mermaid/vega-lite figures only, expand still need-gated), e2e chromium + webkit (hover shows the pill, caret-only does not; each button does its action; copy writes a 2× PNG; labels localized), every existing selector that assumed `figure > button.ag-block-expand` updated; block-viewer, diagram-export, pele-render specs green.</Criterion>
+      </AcceptanceCriteria>
+      <Verification><Command>npx playwright test tests/e2e/diagram-export.spec.ts tests/e2e/block-viewer.spec.ts --project=chromium --project=webkit</Command></Verification>
+    </T-005>
   </ImplementationPlan>
   <Evidence>
     <T-001>
