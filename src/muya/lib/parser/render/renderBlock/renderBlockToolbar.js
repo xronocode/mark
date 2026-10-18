@@ -1,5 +1,5 @@
 // FILE: src/muya/lib/parser/render/renderBlock/renderBlockToolbar.js
-// VERSION: 1.0.0
+// VERSION: 1.1.0
 // START_MODULE_CONTRACT
 //   PURPOSE: The C-56 T-005 diagram corner toolbar — one hover pill (user choice 2026-10-18, approved mockup variant C) with three same-family icon actions (Edit source, Copy as image, Open full screen) rendered as a direct child of Pele diagram (```mermaid) and Vega-Lite chart figures, replacing the old PNG edit pencil and the standalone expand glyph on those two roles only.
 //   SCOPE: the pill vnode factory (16-grid 1.5-stroke icons, localized labels + title/aria-label, the hidden hover-reveal label span) and syncBlockToolbarState — the post-render pass that keeps the Copy as image button DISABLED while the figure's preview carries no rendered SVG (corner-4; a keep-last-good stale SVG counts as rendered and exports). Placement lives in renderContainerBlock.js START_BLOCK_TOOLBAR_RENDER; looks in the C-56 T-005 section of lib/assets/styles/index.css; click routing in eventHandler/clickEvent.js START_BLOCK_TOOLBAR_CLICK; the Open-full-screen action keeps the expandNeed.js gate through the figure's ag-expand-needed class.
@@ -17,11 +17,14 @@
 //   BLOCK_TOOLBAR_BUTTON_SELECTOR - selector shared by the three pill buttons ("button.ag-block-expand.ag-block-toolbar-btn" — the ag-block-expand family class is the keyboard.js key-guard hook, NOT the click route: clickEvent.js routes by data-block-toolbar-action first).
 //   TOOLBAR_EDIT_ICON_PATH / TOOLBAR_COPY_ICON_RECT + TOOLBAR_COPY_ICON_PATHS / TOOLBAR_EXPAND_ICON_PATH - the exact mockup glyph geometry (16×16 viewBox, 1.5 stroke, round caps/joins), pinned by tests/renderer/muya/block-toolbar.test.js.
 //   syncBlockToolbarState - figure → toggle the pill copy button's `disabled` per whether div.ag-container-preview holds an svg; no-op without a pill (called from expandNeed.js updateFigureExpandNeed after every render path, pele insert and vega embed).
-//   default - renderBlockToolbar(t) - the pill vnode: three buttons (ag-block-toolbar-edit / -copy / -expand), each with title + aria-label from the blockToolbar.* strings, tabindex 0, the icon and the hidden label span; the expand button's VISIBILITY stays need-gated by CSS (display:none unless the figure carries ag-expand-needed).
+//   default - renderBlockToolbar(t, leading = []) - the pill vnode: optional leading controls (C-56 T-007: the C-62 appearance button on Mermaid figures), then three buttons (ag-block-toolbar-edit / -copy / -expand), each with title + aria-label from the blockToolbar.* strings, tabindex 0, the icon and the hidden label span; the expand button's VISIBILITY stays need-gated by CSS (display:none unless the figure carries ag-expand-needed).
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.0.0 - 2026-10-18 C-56 T-005: new — on ```mermaid (pele)
+//   LAST_CHANGE: v1.1.0 - 2026-10-18 C-56 T-007: optional `leading`
+//   vnodes render before Edit source, so the C-62 appearance control
+//   joins the pill and its hover reveal.
+//   v1.0.0 - 2026-10-18 C-56 T-005: new — on ```mermaid (pele)
 //   and ```vega-lite figures with non-empty source the pill replaces the
 //   PNG edit pencil and the standalone expand glyph. Edit source runs the
 //   same container edit action the pencil had (handleContainerBlockClick),
@@ -105,9 +108,12 @@ const renderToolbarButton = (action, className, label, iconChildren) =>
     h('span.ag-block-toolbar-label', label)
   ])
 
-const renderBlockToolbar = (t) => h(BLOCK_TOOLBAR_SELECTOR, {
+const renderBlockToolbar = (t, leading = []) => h(BLOCK_TOOLBAR_SELECTOR, {
   attrs: { contenteditable: 'false' }
 }, [
+  // C-56 T-007: role-specific leading controls (the C-62 appearance
+  // button on Mermaid figures) share the pill's hover reveal.
+  ...leading,
   // Edit source «‹ ›» — the container edit action the pencil icon had.
   renderToolbarButton(
     'editSource',

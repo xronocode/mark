@@ -1,5 +1,5 @@
 // FILE: tests/e2e/diagram-appearance.spec.ts
-// VERSION: 1.0.0
+// VERSION: 1.1.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Verify the reviewed four-mode diagram appearance flow in Chromium and WebKit.
 //   SCOPE: Computed colors, source persistence/undo, global theme/cache independence, read-only and mirror behavior, keyboard/menu bounds and fullscreen zoom/focus.
@@ -18,7 +18,8 @@
 //   theme - real preference broadcast to change the document theme.
 // END_MODULE_MAP
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.0.0 - 2026-10-18 C-62: cross-engine appearance, persistence and viewer regression gate.
+//   LAST_CHANGE: v1.1.0 - 2026-10-18 C-56 T-007: the control is the corner pill's leading item; the clearance check became hover-reveal + right-edge anchor.
+//   v1.0.0 - 2026-10-18 C-62: cross-engine appearance, persistence and viewer regression gate.
 // END_CHANGE_SUMMARY
 import { test, expect, type Page, type Locator } from '@playwright/test'
 import { installTauriShim } from './fixtures/tauri-shim'
@@ -57,9 +58,18 @@ test.describe('per-diagram appearance (C-62)', () => {
 
   test('four modes are isolated, persisted, undoable and survive a fresh parse', async ({ page }) => {
     const preview = page.locator(FIGURE).first().locator('.ag-pele-preview')
-    const controlBox = await page.locator(FIGURE).first().locator(BUTTON).boundingBox()
-    const diagramBox = await preview.locator('svg').boundingBox()
-    expect(controlBox!.y + controlBox!.height).toBeLessThanOrEqual(diagramBox!.y)
+    // C-56 T-007: the control is the corner pill's leading item — hidden
+    // at rest, revealed on figure hover, pinned to the figure's right edge.
+    const pill = page.locator(FIGURE).first().locator('div.ag-block-toolbar')
+    await expect(pill.locator(`> ${BUTTON}`)).toHaveCount(1)
+    await page.locator('h1').first().hover()
+    await expect(pill).toHaveCSS('opacity', '0')
+    await preview.hover()
+    await expect(pill).toHaveCSS('opacity', '1')
+    const figureBox = await page.locator(FIGURE).first().boundingBox()
+    const pillBox = await pill.boundingBox()
+    expect(Math.abs(figureBox!.x + figureBox!.width - (pillBox!.x + pillBox!.width))).toBeLessThanOrEqual(12)
+    expect(pillBox!.y - figureBox!.y).toBeLessThanOrEqual(12)
     await choose(page, 'custom')
     await expect.poll(() => fill(page)).toBe('rgb(255, 224, 178)')
     await expect.poll(() => preview.locator('svg').evaluate(element => getComputedStyle(element).backgroundColor)).toBe('rgb(255, 247, 232)')
@@ -152,7 +162,7 @@ test.describe('per-diagram appearance (C-62)', () => {
   test('viewer shares the mode, keeps pan/zoom, and Escape dismisses the menu first', async ({ page }) => {
     const figure = page.locator(FIGURE).first()
     const originalFill = await fill(page)
-    await figure.locator('button.ag-block-expand').click()
+    await figure.locator('button.ag-block-toolbar-expand').click()
     const viewer = page.locator('.ag-block-viewer-open')
     await expect(viewer).toBeVisible()
     // The viewer performs its final fit after layout; wait for those two

@@ -1,5 +1,5 @@
 // FILE: tests/renderer/muya/block-toolbar.test.js
-// VERSION: 1.0.0
+// VERSION: 1.1.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Pin the C-56 T-005 diagram corner toolbar — the pill vnode (div.ag-block-toolbar with the three same-family icon buttons) rendered ONLY on ```mermaid (pele) and ```vega-lite figures with non-empty source where it REPLACES the PNG edit pencil and the standalone expand glyph, the exact mockup glyphs (16-grid, 1.5 stroke, round caps) and localized labels/title/aria-label, the ag-block-expand keyboard-guard family class on every pill button, click routing (editSource → handleContainerBlockClick, copyImage → muya-diagram-export, expand → muya-block-viewer, disabled routes nowhere), the corner-4 syncBlockToolbarState copy-disabled pass (wired through updateFigureExpandNeed), and the variant-C CSS literals.
 //   SCOPE: renderBlockToolbar.js (vnode + sync), the renderContainerBlock START_BLOCK_TOOLBAR_RENDER placement, the clickEvent START_BLOCK_TOOLBAR_CLICK routing, the expandNeed funnel integration and the C-56 T-005 CSS section of lib/assets/styles/index.css. The expand need RULES stay in expand-need.test.js; the standalone glyph in block-expand-button.test.js.
@@ -19,12 +19,16 @@
 //   createStateRender - real StateRender with a fake muya and a stubbed renderLeafBlock.
 //   findVnode - depth-first vnode search by predicate.
 //   findToolbarVnode - the div.ag-block-toolbar child of a figure vnode, plus its index.
+//   pillButtons - the three family buttons of a pill vnode, skipping leading controls (C-56 T-007).
 //   createClickHarness - container + addEventListener-backed eventCenter double + ClickEvent instance with a handleContainerBlockClick spy.
 //   makeDomFigure - a real-DOM MERMAID figure with preview + pill buttons (click-routing and sync cases).
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.0.0 - 2026-10-18 C-56 T-005: new — every case fails
+//   LAST_CHANGE: v1.1.0 - 2026-10-18 C-56 T-007: Mermaid pills lead with
+//   the C-62 appearance button (Vega-Lite pills do not); family-button
+//   assertions go through pillButtons.
+//   v1.0.0 - 2026-10-18 C-56 T-005: new — every case fails
 //   against the pre-T-005 render (no pill exists; the pencil + standalone
 //   glyph render instead).
 // END_CHANGE_SUMMARY
@@ -193,6 +197,8 @@ afterEach(() => {
 // END_BLOCK_TOOLBAR_DOM_HARNESS
 
 // START_BLOCK_TOOLBAR_RENDER_ASSERTIONS
+// C-56 T-007: the three family buttons, skipping leading controls.
+const pillButtons = (toolbar) => (toolbar.children || []).filter((b) => b.sel.includes('.ag-block-toolbar-btn'))
 describe('corner toolbar render (C-56 T-005)', () => {
   it('renders the pill with three buttons on mermaid and vega-lite figures with source, replacing pencil and standalone glyph', async () => {
     const sr = await createStateRender()
@@ -216,7 +222,15 @@ describe('corner toolbar render (C-56 T-005)', () => {
       // The pill rides AFTER the preview (a figure child like the old glyph).
       expect(index).toBe((figureVnode.children || []).length - 1)
 
-      const buttons = toolbar.children || []
+      // C-56 T-007: Mermaid pills lead with the C-62 appearance button;
+      // Vega-Lite pills have no leading control.
+      const all = toolbar.children || []
+      const leading = all.filter((b) => !b.sel.includes('.ag-block-toolbar-btn'))
+      expect(leading.map((b) => b.sel)).toEqual(
+        functionType === 'mermaid' ? ['button.ag-diagram-appearance'] : []
+      )
+      expect(all.indexOf(leading[0])).toBe(leading.length ? 0 : -1)
+      const buttons = all.filter((b) => b.sel.includes('.ag-block-toolbar-btn'))
       expect(buttons).toHaveLength(3)
       expect(buttons.map((b) => b.sel)).toEqual([
         'button.ag-block-expand.ag-block-toolbar-btn.ag-block-toolbar-edit',
@@ -231,7 +245,7 @@ describe('corner toolbar render (C-56 T-005)', () => {
     const { figure } = makeDiagramBlocks('mermaid')
     const figureVnode = sr.renderBlock(null, figure, [], {}, false, t)
     const { toolbar } = findToolbarVnode(figureVnode)
-    const [edit, copy, expand] = toolbar.children
+    const [edit, copy, expand] = pillButtons(toolbar)
 
     for (const [btn, label] of [
       [edit, 'Edit source'],
@@ -258,7 +272,7 @@ describe('corner toolbar render (C-56 T-005)', () => {
     const { figure } = makeDiagramBlocks('mermaid')
     const figureVnode = sr.renderBlock(null, figure, [], {}, false, t)
     const { toolbar } = findToolbarVnode(figureVnode)
-    const [edit, copy, expand] = toolbar.children
+    const [edit, copy, expand] = pillButtons(toolbar)
 
     const iconOf = (btn) => (btn.children || []).find((c) => c.sel === 'svg')
     for (const btn of [edit, copy, expand]) {
@@ -300,9 +314,12 @@ describe('corner toolbar render (C-56 T-005)', () => {
     // keyboard.js BLOCK_KEYBOARD_EXPAND_BUTTON matches
     // closest('button.ag-block-expand') — the pill buttons must match so
     // Tab/Enter/arrows and keyups belong to the button, not the document.
-    for (const btn of toolbar.children || []) {
+    for (const btn of pillButtons(toolbar)) {
       expect(btn.sel.startsWith(BLOCK_TOOLBAR_BUTTON_SELECTOR)).toBe(true)
     }
+    // The leading appearance control is NOT in the family: the C-62
+    // keyboard guard matches it by its own selector.
+    expect((toolbar.children || [])[0].sel).toBe('button.ag-diagram-appearance')
   })
 
   it('no pill on flowchart/sequence/plantuml/html/multiplemath/table figures or empty mermaid fences — those keep today\u2019s icons', async () => {
