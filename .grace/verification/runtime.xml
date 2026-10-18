@@ -4934,6 +4934,15 @@
           footnote-options.spec.ts exercises broadcasts, saved/unsaved
           state, undo/redo and tab switches in Chromium and WebKit.
         </Scenario>
+        <Scenario>
+          scenario-66: Diagram appearance integration (C-62): all ten
+          locales contain the eleven native menu labels/descriptions.
+          tests/e2e/diagram-appearance.spec.ts covers the real locked
+          editor and source-side Split View mirror without Markdown,
+          history, revision or saved-state mutations in Chromium and
+          WebKit; appearance policy and lifecycle are owned by V-M-012
+          scenario-25. Opening or dismissing the menu is read-only.
+        </Scenario>
       </Scenarios>
       <Markers>
         <Marker>[prefs][theme-migration][BLOCK_RETIRED_THEMES_MIGRATED key:from-&gt;to …] — C-41 T-002 retired theme ids migrated at the hydration load point and persisted once per changed key</Marker>
@@ -5628,6 +5637,8 @@
         <Command>npx vitest run tests/renderer/muya/export-fence-length.test.js</Command>
         <Command>npx vitest run tests/renderer/muya/footnote-options.test.js</Command>
         <Command>npm run build &amp;&amp; npx playwright test tests/e2e/footnote-options.spec.ts --project=chromium --project=webkit-footnotes</Command>
+        <Command>npx vitest run tests/renderer/muya/diagram-appearance.test.js tests/renderer/muya/diagram-appearance-menu.test.js tests/renderer/muya/export-diagram-appearance.test.js tests/renderer/muya/pele-pipeline.test.js</Command>
+        <Command>npm run build &amp;&amp; npx playwright test tests/e2e/diagram-appearance.spec.ts --project=chromium --project=webkit-diagram-appearance</Command>
       </Commands>
       <Scenarios>
         <Scenario>
@@ -6213,6 +6224,22 @@
           Trace: [Muya][reparseMarkdown][BLOCK_FOOTNOTE_OPTION_REPARSE]
           carries the boolean footnote flag only, never document text.
         </Scenario>
+        <Scenario>
+          scenario-25 (C-62): Auto follows the document; Custom applies safe
+          author color variables/inline colors; forced Light/Dark use fixed
+          local palettes. Source comments persist one undoable choice without
+          rewriting YAML or prose. Readonly/locked/Split View mirror choices
+          change no document/history/save state; unlock automatically restores
+          the source appearance and keeps normal typing functional. Keyboard radio navigation,
+          disabled Custom, viewport bounds, closing-key release ownership,
+          control-to-SVG clearance, actual custom/fixed SVG backgrounds,
+          removed targets, stale async loads and teardown are covered. The
+          fullscreen clone keeps mode and pan/zoom, Esc dismisses the menu
+          before the viewer, and HTML export uses identical local policy.
+          Raw SVG cache reuse is asserted for mode-only changes. Ten locales
+          contain the appearance labels/descriptions. Unit and Chromium/WebKit
+          evidence: diagram-appearance tests and spec above.
+        </Scenario>
       </Scenarios>
       <Markers>
         <Marker>[Muya][parse][BLOCK_TOKENIZE]</Marker>
@@ -6240,6 +6267,7 @@
         <!-- C-34 R2.1 resilience contract on the C-55 pele pipeline
              (console.debug/warn until muya grows a structured logger). -->
         <Marker>[Muya][renderPele][BLOCK_PELE_CACHE_HIT]</Marker>
+        <Marker>[Muya][diagramAppearance][BLOCK_DIAGRAM_APPEARANCE_CHOICE]</Marker>
         <Marker>[Muya][renderPele][BLOCK_PELE_RENDER]</Marker>
         <Marker>[Muya][renderPele][BLOCK_PELE_ERROR]</Marker>
         <!-- C-55: pele renders need no per-type initialize (render options

@@ -1,16 +1,16 @@
 // FILE: src/muya/lib/parser/render/pelePipeline.js
-// VERSION: 1.0.0
+// VERSION: 1.1.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Resilient pele render pipeline (C-55) — replaces mermaidPipeline.js after the mermaid→pele hard cut. Synchronous DOM-free pele renders through a code-only LRU SVG cache (colors live in the --pele-* CSS variables, so a theme switch recolors every diagram with ZERO re-renders), keep-last-good rendering with escaped error text, per-block ~250 ms debounce while typing, counter-unique idPrefixes, C-49 fontSize-proportional scaling via data-natural-width from RenderResult.width, and the C-51 T-010 expand-need re-evaluation after every insert.
-//   SCOPE: createPelePipeline factory plus cache/LRU, hash, debounce, insert (incl. natural-width capture and expand-need), and error helpers; targets are resolved by selector at each flush so re-patched DOM is always current. Pele renders without DOM and emits SVG without <style> blocks, so the mermaid-era orphan-cleanup and WKWebView style-hoisting are deliberately gone.
-//   DEPENDS: muya/lib/renderers (loadRenderer, injectable), muya/lib/config (CLASS_OR_ID), ./diagramTheme (readActiveThemeTokens — FONT ONLY, measurement must match the displayed --pele-font), ./peleOptions (buildPeleRenderOptions), ./renderBlock/expandNeed (updateFigureExpandNeed after every insert).
-//   LINKS: .grace/changes/active/C-55 R-2/R-4; .grace/changes/archive/C-34 R2.1 (resilience contract), C-49 (zoom), C-51 T-003/T-004 (theming, now CSS variables) and T-010 (expand-need); .grace/graph/runtime.xml M-012; .grace/verification/runtime.xml V-M-012.
+//   SCOPE: createPelePipeline factory plus cache/LRU, hash, debounce, insert (incl. natural-width capture and expand-need), and error helpers; targets are resolved by selector at each flush so re-patched DOM is always current. Pele renders without DOM and emits SVG without <style> blocks, so the mermaid-era orphan-cleanup and WKWebView style-hoisting are deliberately gone. C-62: Apply local appearance on every raw SVG insertion and reject superseded async requests.
+//   DEPENDS: muya/lib/renderers (loadRenderer, injectable), muya/lib/config (CLASS_OR_ID), ./diagramTheme (readActiveThemeTokens — FONT ONLY, measurement must match the displayed --pele-font), ./peleOptions (buildPeleRenderOptions), ./renderBlock/expandNeed (updateFigureExpandNeed after every insert).; ../../utils/diagramAppearance.
+//   LINKS: .grace/changes/active/C-55 R-2/R-4; .grace/changes/archive/C-34 R2.1 (resilience contract), C-49 (zoom), C-51 T-003/T-004 (theming, now CSS variables) and T-010 (expand-need); .grace/graph/runtime.xml M-012; .grace/verification/runtime.xml V-M-012.; .grace/changes/archive/C-62.
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
-//   createPelePipeline - builds a pipeline { render(entries), flushPending(), destroy() } with injectable loadRenderer/getThemeTokens/debounceDelayMs for tests.
+//   createPelePipeline - builds a pipeline { render(entries), flushPending(), destroy() } with injectable loader/theme/debounce and appearance callbacks; raw SVG cache excludes Mark mode comments, colors apply per insertion, superseded pending requests are ignored.
 //   PELE_PREVIEW_CLASS - CSS hook class ("ag-pele-preview") added to a container that currently shows a pele SVG (scopes natural-size CSS).
 //   PELE_ERROR_CLASS - CSS class ("ag-pele-error") of the small error element rendered below a kept-last-good diagram.
 //   PELE_NATURAL_WIDTH_ATTR - SVG attribute ("data-natural-width") carrying the diagram's natural pixel width for C-49 zoom scaling.
@@ -19,7 +19,8 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.0.0 - 2026-10-17 C-55: first version, ported from
+//   LAST_CHANGE: v1.1.0 - 2026-10-18 C-62: local appearance on every insert; mode-only cache reuse, read-only overrides and latest-request guards.
+//   PREV: v1.0.0 - 2026-10-17 C-55: first version, ported from
 //   mermaidPipeline.js v2.1.0. What carried over verbatim: the resilience
 //   contract (keep-last-good, debounce, LRU, unique render ids, expand-need
 //   sync, C-49 zoomable max-width). What changed with pele: the render is
@@ -38,6 +39,7 @@ import { CLASS_OR_ID } from '../../config'
 import { readActiveThemeTokens } from './diagramTheme'
 import { buildPeleRenderOptions } from './peleOptions'
 import { updateFigureExpandNeed } from './renderBlock/expandNeed'
+import { applyDiagramAppearance, stripDiagramAppearance } from '../../utils/diagramAppearance'
 
 export const PELE_PREVIEW_CLASS = 'ag-pele-preview'
 export const PELE_ERROR_CLASS = 'ag-pele-error'
@@ -57,7 +59,10 @@ const hashPeleCode = (str) => {
   return hash >>> 0
 }
 
-const makeCacheKey = (code) => `${hashPeleCode(code)}:${code.length}`
+const makeCacheKey = (code) => {
+  const source = stripDiagramAppearance(code)
+  return `${hashPeleCode(source)}:${source.length}`
+}
 // END_BLOCK_PELE_CACHE_KEY
 
 // START_BLOCK_PELE_LRU
@@ -134,13 +139,19 @@ let renderIdCounter = 0
  * @param {Function} [options.getThemeTokens] returns the active theme tokens (readActiveThemeTokens shape; injectable for tests — used ONLY for the measurement font)
  * @param {number} [options.debounceDelayMs=250] quiet window while typing (overridable post-hoc via pipeline.debounceDelayMs)
  * @param {number} [options.maxCacheEntries=50] LRU bound of the code-only SVG cache
+ * @param {Function} [options.getAppearanceOverride] temporary read-only mode for the target/source pair
+ * @param {Function} [options.onInsert] synchronize the owning figure controls after insertion
+ * @param {Function} [options.resolveTarget] resolve a preview within its owning editor, excluding viewer clones
  * @returns {{ render: Function, flushPending: Function, destroy: Function, debounceDelayMs: number }}
  */
 export const createPelePipeline = ({
   loadRenderer: load = loadRenderer,
   getThemeTokens = readActiveThemeTokens,
   debounceDelayMs = 250,
-  maxCacheEntries = 50
+  maxCacheEntries = 50,
+  getAppearanceOverride = () => undefined,
+  onInsert = () => {},
+  resolveTarget = selector => document.querySelector(selector)
 } = {}) => {
   // cacheKey -> { svg, width } — the width rides the cache so a cache hit
   // can re-apply the C-49 zoomable max-width without re-parsing.
@@ -149,6 +160,7 @@ export const createPelePipeline = ({
   const lastGood = new Map()
   // blockKey -> { entry, timer } of the debounced re-render in flight
   const pending = new Map()
+  const latest = new Map()
   let peleModule = null
 
   const loadPele = async () => {
@@ -197,13 +209,15 @@ export const createPelePipeline = ({
   // END_BLOCK_PELE_NATURAL_WIDTH
 
   // START_BLOCK_PELE_INSERT
-  const insertSvg = (target, svg, naturalWidth) => {
+  const insertSvg = (target, svg, naturalWidth, code) => {
     target.innerHTML = svg
     // pele SVGs carry no <style> blocks — the WKWebView CSP hoisting the
     // mermaid pipeline needed is gone by construction.
     applyZoomableMaxWidth(target.querySelector('svg'), naturalWidth)
     target.classList.add(PELE_PREVIEW_CLASS)
     target.classList.remove(CLASS_OR_ID.AG_MATH_ERROR)
+    applyDiagramAppearance(target, code, getAppearanceOverride(target, code))
+    onInsert(target)
     // C-51 T-010: the just-inserted size decides whether the figure
     // benefits from the fullscreen viewer (scaled/tall → the
     // ag-expand-needed class that shows the expand button).
@@ -233,7 +247,7 @@ export const createPelePipeline = ({
   // START_BLOCK_PELE_CACHE_HIT
   const applyCacheHit = (target, blockKey, code, cacheKey) => {
     const hit = svgCache.get(cacheKey)
-    insertSvg(target, hit.svg, hit.width)
+    insertSvg(target, hit.svg, hit.width, code)
     lastGood.set(blockKey, { code, svg: hit.svg, width: hit.width })
     console.debug('[Muya][renderPele][BLOCK_PELE_CACHE_HIT] reuse cached svg', {
       blockKey,
@@ -245,9 +259,10 @@ export const createPelePipeline = ({
   // START_BLOCK_PELE_RENDER
   const renderOne = (pele, entry) => {
     const { selector, blockKey, code, cacheKey, tokens } = entry
+    if (latest.get(blockKey) !== code) return
     // Re-resolve the target: snabbdom may have re-patched the preview div
     // between the drain and this render.
-    const target = document.querySelector(selector)
+    const target = resolveTarget(selector)
     if (!target) {
       return
     }
@@ -259,8 +274,8 @@ export const createPelePipeline = ({
         ...buildPeleRenderOptions(type, tokens)
       })
       const svg = postProcessPeleSvg(rendered.svg, rendered.type)
-      const liveTarget = document.querySelector(selector) || target
-      insertSvg(liveTarget, svg, rendered.width)
+      const liveTarget = resolveTarget(selector) || target
+      insertSvg(liveTarget, svg, rendered.width, code)
       clearError(liveTarget)
       svgCache.set(cacheKey, { svg, width: rendered.width })
       lastGood.set(blockKey, { code, svg, width: rendered.width })
@@ -277,10 +292,10 @@ export const createPelePipeline = ({
       // mermaid pipeline had. pele renders without touching the DOM, so
       // there is no orphan scratch element to clean up.
       const good = lastGood.get(blockKey)
-      const liveTarget = document.querySelector(selector) || target
+      const liveTarget = resolveTarget(selector) || target
       if (good) {
         // Keep the last successful SVG visible and report the error below it.
-        insertSvg(liveTarget, good.svg, good.width)
+        insertSvg(liveTarget, good.svg, good.width, code)
       } else {
         liveTarget.textContent = ''
         liveTarget.classList.remove(PELE_PREVIEW_CLASS)
@@ -304,7 +319,7 @@ export const createPelePipeline = ({
     const tokens = getThemeTokens()
     const todo = []
     for (const entry of entries) {
-      const target = document.querySelector(entry.selector)
+      const target = resolveTarget(entry.selector)
       if (!target) {
         continue
       }
@@ -368,10 +383,11 @@ export const createPelePipeline = ({
       for (const [selector, value] of entries) {
         const { code } = value
         const blockKey = selector.replace(/^#/, '')
+        latest.set(blockKey, code)
         const cacheKey = makeCacheKey(code)
 
         if (svgCache.has(cacheKey)) {
-          const target = document.querySelector(selector)
+          const target = resolveTarget(selector)
           if (target) {
             cancelPending(blockKey)
             applyCacheHit(target, blockKey, code, cacheKey)
@@ -380,11 +396,11 @@ export const createPelePipeline = ({
         }
 
         const good = lastGood.get(blockKey)
-        const target = document.querySelector(selector)
+        const target = resolveTarget(selector)
         if (target && good) {
           // Show the last good diagram right away — no "loading" flash and
           // no blank preview if the debounced render later fails.
-          insertSvg(target, good.svg, good.width)
+          insertSvg(target, good.svg, good.width, code)
           clearError(target)
         }
         if (!good || good.code === code) {
@@ -412,6 +428,7 @@ export const createPelePipeline = ({
       pipeline.flushPending()
       svgCache.store.clear()
       lastGood.clear()
+      latest.clear()
     }
   }
 

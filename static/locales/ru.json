@@ -1458,5 +1458,18 @@
         "text": "Код диаграмм: одна сжатая часть 0,26 МБ вместо 44 частей общим объёмом 2,6 МБ."
       }
     }
+  },
+  "diagramAppearance": {
+    "label": "Оформление диаграммы",
+    "auto": "Авто",
+    "custom": "Кастомная",
+    "light": "Светлая",
+    "dark": "Тёмная",
+    "autoDescription": "Как у документа",
+    "customDescription": "Палитра из Markdown",
+    "lightDescription": "Всегда светлая",
+    "darkDescription": "Всегда тёмная",
+    "noCustomPalette": "Не задана в Markdown",
+    "viewOnly": "Только для просмотра"
   }
 }

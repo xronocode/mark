@@ -1,0 +1,63 @@
+/* C-62: local diagram controls; chrome always follows the document. */
+.ag-diagram-appearance {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  border: 0;
+  border-radius: 4px;
+  padding: 2px;
+  color: var(--iconColor, #777);
+  background: transparent;
+  cursor: pointer;
+}
+figure > .ag-diagram-appearance { position: absolute; top: 8px; right: 36px; width: 32px; height: 22px; opacity: .55; z-index: 2; }
+figure:not(.ag-expand-needed) > .ag-diagram-appearance { right: 8px; }
+/* Keep the persistent controls above diagram content, even for a short
+   one-row flowchart. Source editing keeps its existing copy control. */
+figure[data-role="MERMAID"]:not(.ag-active) > .ag-container-preview { padding-top: 36px; box-sizing: border-box; }
+figure.ag-active > .ag-diagram-appearance { display: none; }
+figure.ag-container-block[data-role="MERMAID"] .ag-container-icon { right: 48px; }
+figure.ag-container-block[data-role="MERMAID"].ag-expand-needed .ag-container-icon { right: 76px; }
+.ag-diagram-appearance:hover, .ag-diagram-appearance:focus-visible, .ag-diagram-appearance[aria-expanded="true"] { opacity: 1; background: var(--itemBgColor, rgba(127,127,127,.12)); }
+.ag-diagram-appearance > svg[data-appearance-icon] { display: none; width: 16px; height: 16px; }
+.ag-diagram-appearance > svg[data-appearance-icon="chevron"] { display: block; width: 10px; }
+.ag-diagram-appearance[data-appearance-mode="auto"] > svg[data-appearance-icon="auto"],
+.ag-diagram-appearance[data-appearance-mode="custom"] > svg[data-appearance-icon="custom"],
+.ag-diagram-appearance[data-appearance-mode="light"] > svg[data-appearance-icon="light"],
+.ag-diagram-appearance[data-appearance-mode="dark"] > svg[data-appearance-icon="dark"] { display: block; }
+.ag-block-viewer-controls > .ag-diagram-appearance { position: static; min-width: 36px; height: 28px; opacity: 1; }
+.ag-block-viewer-controls > .ag-diagram-appearance[hidden] { display: none; }
+.ag-diagram-appearance-menu {
+  position: fixed;
+  z-index: 2147483640;
+  width: 252px;
+  max-width: calc(100vw - 16px);
+  max-height: calc(100vh - 16px);
+  overflow-y: auto;
+  box-sizing: border-box;
+  padding: 6px;
+  border: 1px solid var(--editorColor10, #8885);
+  border-radius: 10px;
+  background: var(--floatBgColor, var(--editorBgColor, #fff));
+  color: var(--editorColor, #222);
+  box-shadow: 0 8px 28px #0003;
+  font: 13px/1.4 var(--fontFamily, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif);
+}
+.ag-diagram-appearance-heading { padding: 6px 9px 8px; opacity: .7; font-size: 12px; }
+.ag-diagram-appearance-readonly { display: block; padding-top: 3px; }
+.ag-diagram-appearance-option { display: grid; grid-template-columns: 1fr 16px; gap: 10px; align-items: center; width: 100%; min-height: 48px; padding: 7px 10px; box-sizing: border-box; border: 0; border-radius: 5px; font: inherit; text-align: start; color: inherit; background: transparent; cursor: pointer; }
+.ag-diagram-appearance-option:hover, .ag-diagram-appearance-option:focus-visible { background: var(--itemBgColor, #8882); }
+.ag-diagram-appearance-option[aria-checked="true"] { background: var(--selectionColor, #8883); }
+.ag-diagram-appearance-option:disabled { opacity: .4; cursor: default; }
+.ag-diagram-appearance-option small { display: block; font-size: 12px; opacity: .7; padding-top: 2px; }
+.ag-diagram-appearance-check { visibility: hidden; }
+.ag-diagram-appearance-option[aria-checked="true"] .ag-diagram-appearance-check { visibility: visible; }
+@media (pointer: coarse) {
+  figure > .ag-diagram-appearance { width: 40px; height: 40px; }
+  figure.ag-expand-needed > .ag-diagram-appearance { right: 34px; }
+  figure[data-role="MERMAID"]:not(.ag-active) > .ag-container-preview { padding-top: 56px; }
+  figure.ag-container-block[data-role="MERMAID"] .ag-container-icon { right: 56px; }
+  figure.ag-container-block[data-role="MERMAID"].ag-expand-needed .ag-container-icon { right: 82px; }
+  .ag-diagram-appearance-option { min-height: 52px; }
+}

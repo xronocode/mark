@@ -1440,5 +1440,18 @@
         "text": "Diagramm-Code: ein 0,26-MB-Teil (komprimiert) statt 44 Teilen mit 2,6 MB."
       }
     }
+  },
+  "diagramAppearance": {
+    "label": "Diagrammdarstellung",
+    "auto": "Automatisch",
+    "custom": "Eigene",
+    "light": "Hell",
+    "dark": "Dunkel",
+    "autoDescription": "Wie das Dokument",
+    "customDescription": "Palette aus Markdown",
+    "lightDescription": "Immer hell",
+    "darkDescription": "Immer dunkel",
+    "noCustomPalette": "Keine Palette in Markdown",
+    "viewOnly": "Nur für diese Ansicht"
   }
 }

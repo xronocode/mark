@@ -1,8 +1,8 @@
 // FILE: tests/renderer/muya/pele-pipeline.test.js
-// VERSION: 1.0.0
+// VERSION: 1.1.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Pin the C-55 pele render pipeline (the C-34 R2.1 resilience contract carried onto the pele engine): code-only LRU SVG cache — a theme switch is a CACHE HIT (corner-2: colors live in the --pele-* CSS variables), keep-last-good + escaped PeleError text, per-block ~250 ms debounce, counter-unique idPrefixes, C-49 data-natural-width from RenderResult.width with the --mark-zoom calc max-width, pele.detectType feeding the per-type render options, no <style> hoisting (pele SVGs carry none), and the C-51 T-010 expand-need re-evaluation after every insert.
-//   SCOPE: createPelePipeline in src/muya/lib/parser/render/pelePipeline.js and StateRender.renderPele wiring in src/muya/lib/parser/render/index.js.
+//   SCOPE: createPelePipeline and StateRender.renderPele wiring; C-62 appearance-only cache reuse, superseded in-flight sources and editor-scoped target resolution.
 //   DEPENDS: src/muya/lib/parser/render/pelePipeline.js, src/muya/lib/parser/render/index.js, Vitest + jsdom.
 //   LINKS: .grace/changes/active/C-55 R-2/R-4 and the plan's corner-2; .grace/changes/archive/C-34 R2.1 (resilience contract), C-49 (zoom), C-51 T-010 (expand-need); .grace/verification/runtime.xml V-M-012 scenario-9; START_BLOCK_PELE_*.
 //   ROLE: TEST
@@ -26,7 +26,8 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.0.0 - 2026-10-17 C-55: ported from
+//   LAST_CHANGE: v1.1.0 - 2026-10-18 C-62: palette-only cache reuse and delayed-loader race regressions.
+//   PREV: v1.0.0 - 2026-10-17 C-55: ported from
 //   mermaid-pipeline.test.js v1.3.0 (git mv). Carried verbatim: first
 //   render immediate, LRU bound + eviction, keep-last-good on render
 //   error, escaped error textContent, debounce collapse + injectable
@@ -628,5 +629,54 @@ describe('StateRender.renderPele wiring (C-34 R2.1)', () => {
     expect(postProcessPeleSvg(out, 'pie')).toBe(out)
     expect(postProcessPeleSvg('<svg class="pele pele-flowchart"><g/></svg>', 'flowchart'))
       .toBe('<svg class="pele pele-flowchart"><g/></svg>')
+  })
+})
+
+describe('C-62 appearance cache and pending source races', () => {
+  it('reuses raw geometry when only the mode comment changes', async () => {
+    const target = createTarget('appearance-cache')
+    const pipeline = makePipeline()
+    await pipeline.render([['#appearance-cache', { code: GOOD_CODE }]])
+    for (const mode of ['light', 'dark', 'auto']) {
+      const code = mode === 'auto' ? GOOD_CODE : `%% mark:appearance ${mode} %%\n${GOOD_CODE}`
+      await pipeline.render([['#appearance-cache', { code }]])
+      expect(target.dataset.diagramAppearance).toBe(mode)
+    }
+    expect(fakePele.render).toHaveBeenCalledTimes(1)
+    pipeline.destroy()
+  })
+
+  it('never inserts an obsolete palette/source after a delayed renderer load', async () => {
+    const target = createTarget('appearance-race')
+    let finishLoad
+    const loaded = new Promise(resolve => { finishLoad = resolve })
+    const pipeline = makePipeline({ loadRenderer: () => loaded })
+    const first = pipeline.render([['#appearance-race', { code: `%% mark:appearance dark %%\n${GOOD_CODE}` }]])
+    const current = `%% mark:appearance light %%\n${GOOD_CODE}\nC --> D`
+    const second = pipeline.render([['#appearance-race', { code: current }]])
+    finishLoad(fakePele)
+    await Promise.all([first, second])
+    expect(fakePele.render).toHaveBeenCalledTimes(1)
+    expect(fakePele.render.mock.calls[0][0]).toBe(current)
+    expect(target.dataset.diagramAppearance).toBe('light')
+    pipeline.destroy()
+  })
+  it('cannot resolve a fullscreen clone as the target of a removed live preview', async () => {
+    const container = document.createElement('div')
+    document.body.appendChild(container)
+    const target = createTarget('appearance-clone-race')
+    container.appendChild(target)
+    let finishLoad
+    const loaded = new Promise(resolve => { finishLoad = resolve })
+    const pipeline = makePipeline({ loadRenderer: () => loaded, resolveTarget: selector => container.querySelector(selector) })
+    const request = pipeline.render([['#appearance-clone-race', { code: GOOD_CODE }]])
+    target.remove()
+    const clone = createTarget('appearance-clone-race')
+    clone.textContent = 'Fullscreen snapshot'
+    finishLoad(fakePele)
+    await request
+    expect(fakePele.render).not.toHaveBeenCalled()
+    expect(clone.textContent).toBe('Fullscreen snapshot')
+    pipeline.destroy()
   })
 })

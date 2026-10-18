@@ -1,20 +1,21 @@
 // FILE: src/muya/lib/parser/render/index.js
-// VERSION: 2.0.0
+// VERSION: 2.1.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Render muya ContentState blocks to the DOM via snabbdom and drive the asynchronous previews (math, pele diagrams, diagrams, images).
-//   SCOPE: StateRender — full/partial/single-block render, selector building, pele dispatch into the resilient pipeline, diagram rendering (C-51 T-005: vega-lite/flowchart/sequence options and post-pass themed from the active app theme), render caches, the C-38 line-number gutter measurement queue, keeping C-39 table scroll and C-39 T-002 session column widths across renders, and the C-51 T-010 expand-need sync after every render path and diagram insert.
-//   DEPENDS: ./snabbdom, ./renderBlock, ./renderInlines, ./pelePipeline, ./diagramTheme, ./contentTheme, ./renderBlock/expandNeed, ../../renderers, ../../config, ../../utils, ../rules
-//   LINKS: M-011 muya editor surface; C-34 R2.1; C-55; START_BLOCK_PELE_DISPATCH; START_BLOCK_DIAGRAM_THEME_OPTIONS; C-38 T-005 lineNumberPreKeys; C-39 T-001 START_BLOCK_TABLE_SCROLL_KEEP; C-39 T-002 START_BLOCK_TABLE_WIDTHS_KEEP; C-51 T-010 expandNeed sync
+//   SCOPE: StateRender — full/partial/single-block render, selector building, pele dispatch into the resilient pipeline, diagram rendering (C-51 T-005: vega-lite/flowchart/sequence options and post-pass themed from the active app theme), render caches, the C-38 line-number gutter measurement queue, keeping C-39 table scroll and C-39 T-002 session column widths across renders, and the C-51 T-010 expand-need sync after every render path and diagram insert. C-62: Pass appearance override and insert synchronization callbacks to Pele.
+//   DEPENDS: ./snabbdom, ./renderBlock, ./renderInlines, ./pelePipeline, ./diagramTheme, ./contentTheme, ./renderBlock/expandNeed, ../../renderers, ../../config, ../../utils, ../rules; muya.diagramAppearance.
+//   LINKS: M-011 muya editor surface; C-34 R2.1; C-55; START_BLOCK_PELE_DISPATCH; START_BLOCK_DIAGRAM_THEME_OPTIONS; C-38 T-005 lineNumberPreKeys; C-39 T-001 START_BLOCK_TABLE_SCROLL_KEEP; C-39 T-002 START_BLOCK_TABLE_WIDTHS_KEEP; C-51 T-010 expandNeed sync; .grace/changes/archive/C-62.
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
-//   default - StateRender class: muya block renderer and preview orchestrator; lineNumberPreKeys holds the pre keys whose gutter must be measured by the next postRender (C-38 T-005); every render path ends with syncExpandNeed so tables and new figures get their expand need evaluated (C-51 T-010)
+//   default - StateRender class: muya block renderer and preview orchestrator; lineNumberPreKeys holds the pre keys whose gutter must be measured by the next postRender (C-38 T-005); every render path ends with syncExpandNeed (C-51 T-010); C-62 callbacks pass per-figure read-only appearance overrides and synchronize button attributes after every Pele insertion.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.6.0 - 2026-10-16 C-51 T-010 (D-7): every render path
+//   LAST_CHANGE: v2.1.0 - 2026-10-18 C-62: connect local appearance overrides and stable button-state synchronization to the raw SVG pipeline.
+//   PREV: v1.6.0 - 2026-10-16 C-51 T-010 (D-7): every render path
 //   (render/partialRender/singleRender) runs syncExpandNeed after the
 //   diagram dispatch, renderDiagram re-evaluates each figure after its
 //   insert — the ag-expand-needed class that gates the expand button
@@ -89,7 +90,11 @@ class StateRender {
     this.loadImageMap = new Map()
     this.loadMathMap = new Map()
     this.peleCache = new Map()
-    this.pelePipeline = createPelePipeline()
+    this.pelePipeline = createPelePipeline({
+      getAppearanceOverride: (target, code) => muya.diagramAppearance?.getOverride(target.closest('figure')?.id, code),
+      onInsert: target => muya.diagramAppearance?.syncButton(target),
+      resolveTarget: selector => (muya.container || document).querySelector(selector)
+    })
     this.diagramCache = new Map()
     this.tokenCache = new Map()
     this.labels = new Map()

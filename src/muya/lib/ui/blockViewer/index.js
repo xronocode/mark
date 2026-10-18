@@ -1,20 +1,21 @@
 // FILE: src/muya/lib/ui/blockViewer/index.js
-// VERSION: 3.1.0
+// VERSION: 3.2.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Shared fullscreen block viewer (C-34 R2.2 + C-39 T2) that shows a Mermaid/flowchart/sequence/plantuml/vega-lite diagram (clone of the current preview, no re-render) or a read-only clone of a rendered table with pan/zoom via @panzoom/panzoom.
-//   SCOPE: viewer open/close lifecycle, diagram-preview and table-clone sanitization, wheel/pinch/key zoom, drag pan, focus trap and focus restore, panzoom cleanup, block resolution from an element (preview, table, or the FIGURE the C-51 persistent expand button dispatches), and the C-51 T-014 polish: fit scales small content UP to the stage (no 1:1 cap) and an open viewer follows option-driven re-renders (theme switches) by re-cloning the live block once its diagram content has actually CHANGED (never the viewer's own clone; the captured figure element is a fallback anchor), keeping zoom/pan.
-//   DEPENDS: @panzoom/panzoom, muya/lib/config (CLASS_OR_ID, EVENT_KEYS), muya/lib/eventHandler/event (via muya.eventCenter; Muya#setOptions dispatches muya-options-rerender after a needRender re-render).
-//   LINKS: .grace/changes/active/C-34 T-002; .grace/changes/active/C-39 T2 and T-002 (viewer shows the session column widths — the clone carries the live colgroup — but no resize handles); .grace/changes/active/C-51 T-006 (always-visible expand button, scenario-60) and T-014 (theme-follow, fit-up, scenario-64); .grace/graph/runtime.xml M-012; .grace/verification/runtime.xml V-M-012 scenario-19.
+//   SCOPE: viewer open/close lifecycle, diagram-preview and table-clone sanitization, wheel/pinch/key zoom, drag pan, focus trap and focus restore, panzoom cleanup, block resolution from an element (preview, table, or the FIGURE the C-51 persistent expand button dispatches), and the C-51 T-014 polish: fit scales small content UP to the stage (no 1:1 cap) and an open viewer follows option-driven re-renders (theme switches) by re-cloning the live block once its diagram content has actually CHANGED (never the viewer's own clone; the captured figure element is a fallback anchor), keeping zoom/pan. C-62: Expose the same Mermaid appearance control and refresh local palettes without changing zoom/pan.
+//   DEPENDS: @panzoom/panzoom, muya/lib/config (CLASS_OR_ID, EVENT_KEYS), muya/lib/eventHandler/event (via muya.eventCenter; Muya#setOptions dispatches muya-options-rerender after a needRender re-render).; renderBlock/renderDiagramAppearance, muya.diagramAppearance.
+//   LINKS: .grace/changes/active/C-34 T-002; .grace/changes/active/C-39 T2 and T-002 (viewer shows the session column widths — the clone carries the live colgroup — but no resize handles); .grace/changes/active/C-51 T-006 (always-visible expand button, scenario-60) and T-014 (theme-follow, fit-up, scenario-64); .grace/graph/runtime.xml M-012; .grace/verification/runtime.xml V-M-012 scenario-19.; .grace/changes/archive/C-62.
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
-//   default - BlockViewer muya UI plugin (pluginName 'blockViewer'): builds the overlay once, opens on 'muya-block-viewer' events (the persistent button.ag-block-expand clicks, Cmd/Ctrl+click on a preview), closes on Esc/close/backdrop; on 'muya-options-rerender' (theme switch full re-render) an open viewer polls the live block until its content differs from the last clone (outerHTML token; the mermaid pipeline re-inserts the last-good OLD-theme svg synchronously before the async re-draw lands) and swaps the clone in place, keeping the panzoom transform.
+//   default - BlockViewer muya UI plugin (pluginName 'blockViewer'): builds the overlay once, opens on 'muya-block-viewer' events (the persistent button.ag-block-expand clicks, Cmd/Ctrl+click on a preview), closes on Esc/close/backdrop; options, source/history and appearance changes refresh the live clone when its content token changes, preserving the panzoom transform; Mermaid diagrams expose the shared appearance control in the header.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v3.1.0 - 2026-10-17 C-51 T-014 gate results: the
+//   LAST_CHANGE: v3.2.0 - 2026-10-18 C-62: shared Mermaid appearance menu in the viewer header; local changes refresh the clone and keep zoom/pan.
+//   PREV: v3.1.0 - 2026-10-17 C-51 T-014 gate results: the
 //   theme-refresh poll had two resolution bugs and one race. (1) The
 //   by-id lookup could resolve the viewer's OWN clone — cloneNode keeps
 //   the preview div's id and the SVG id is deliberately shared (mermaid
@@ -86,6 +87,7 @@
 
 import Panzoom from '@panzoom/panzoom'
 import { CLASS_OR_ID, EVENT_KEYS } from '../../config'
+import { createAppearanceButton, updateAppearanceButton } from '../../parser/render/renderBlock/renderDiagramAppearance'
 import './index.css'
 
 const FIT_PADDING = 32
@@ -238,6 +240,13 @@ class BlockViewer {
     this.fitBtn = makeButton('ag-block-viewer-btn ag-block-viewer-fit', '⛶')
     this.actualSizeBtn = makeButton('ag-block-viewer-btn ag-block-viewer-actual-size', '1:1')
     this.closeBtn = makeButton('ag-block-viewer-btn ag-block-viewer-close-btn', '✕')
+    this.appearanceBtn = createAppearanceButton(this.muya.options?.t)
+    this.appearanceBtn.hidden = true
+    controls.appendChild(this.appearanceBtn)
+    this.appearanceBtn.addEventListener('click', () => {
+      const figure = this.resolveLiveSource()?.closest('figure[data-role="MERMAID"]')
+      if (figure) this.muya.diagramAppearance?.openForFigure(figure, this.appearanceBtn)
+    })
     controls.appendChild(this.zoomOutBtn)
     controls.appendChild(this.zoomInBtn)
     controls.appendChild(this.fitBtn)
@@ -385,6 +394,7 @@ class BlockViewer {
   // END_BLOCK_VIEWER_OPEN
 
   refreshViewerLabels () {
+    this.refreshAppearanceButton()
     this.zoomInBtn.title = this.t('blockViewer.zoomIn')
     this.zoomInBtn.setAttribute('aria-label', this.t('blockViewer.zoomIn'))
     this.zoomOutBtn.title = this.t('blockViewer.zoomOut')
@@ -395,6 +405,13 @@ class BlockViewer {
     this.actualSizeBtn.setAttribute('aria-label', this.t('blockViewer.actualSize'))
     this.closeBtn.title = this.t('blockViewer.close')
     this.closeBtn.setAttribute('aria-label', this.t('blockViewer.close'))
+  }
+
+  refreshAppearanceButton () {
+    const appearance = this.muya.diagramAppearance?.getAppearance(this.sourceFigureId)
+    this.appearanceBtn.hidden = !appearance
+    this.focusableEls = null
+    if (appearance) updateAppearanceButton(this.appearanceBtn, this.muya.options?.t, appearance.mode)
   }
 
   // START_BLOCK_VIEWER_PANZOOM
@@ -584,7 +601,7 @@ class BlockViewer {
     if (!this.focusableEls) {
       this.focusableEls = Array.from(
         this.viewerEl.querySelectorAll('button, [href], input, select, textarea')
-      ).filter((el) => !el.disabled && el.getAttribute('tabindex') !== '-1')
+      ).filter((el) => !el.hidden && !el.disabled && el.getAttribute('tabindex') !== '-1')
     }
     return this.focusableEls
   }
@@ -613,6 +630,7 @@ class BlockViewer {
   // START_BLOCK_VIEWER_CLOSE
   close ({ restoreFocus = true } = {}) {
     if (!this.isOpen) return
+    if (this.muya.diagramAppearance?.anchor === this.appearanceBtn) this.muya.diagramAppearance.close({ restoreFocus: false })
     this.isOpen = false
     this.focusableEls = null
     this.cancelThemeRefresh()
@@ -808,6 +826,14 @@ class BlockViewer {
 
   onOptionsRerender = () => {
     if (this.isOpen) {
+      this.refreshAppearanceButton()
+      this.scheduleThemeRefresh()
+    }
+  }
+
+  onAppearanceChange = ({ figureKey } = {}) => {
+    if (this.isOpen && figureKey === this.sourceFigureId) {
+      this.refreshAppearanceButton()
       this.scheduleThemeRefresh()
     }
   }
@@ -825,6 +851,9 @@ class BlockViewer {
     // C-51 T-014: option-driven re-renders (theme switch) refresh the
     // open clone once the live block's diagram has re-drawn.
     eventCenter.subscribe('muya-options-rerender', this.onOptionsRerender)
+    eventCenter.subscribe('muya-diagram-appearance-change', this.onAppearanceChange)
+    // Metadata undo/redo and source updates must refresh the same open clone.
+    eventCenter.subscribe('change', this.onOptionsRerender)
     this.viewerEl.addEventListener('keydown', this.onKeydown)
     this.stage.addEventListener('wheel', this.onWheel, { passive: false })
     this.backdropEl.addEventListener('click', this.onBackdropClick)
@@ -843,6 +872,8 @@ class BlockViewer {
     const { eventCenter } = this.muya
     eventCenter.unsubscribe('muya-block-viewer', this.onOpenEvent)
     eventCenter.unsubscribe('muya-options-rerender', this.onOptionsRerender)
+    eventCenter.unsubscribe('muya-diagram-appearance-change', this.onAppearanceChange)
+    eventCenter.unsubscribe('change', this.onOptionsRerender)
     // container DOM events are detached by muya's detachAllDomEvents()
     this.viewerEl.remove()
   }

@@ -39,6 +39,8 @@ export default defineConfig({
     { name: 'chromium', use: { browserName: 'chromium' }, testIgnore: ['**/fixtures/**', '**/perf/**'] },
     // C-60: live footnote grammar changes must also work in the engine WKWebView ships.
     { name: 'webkit-footnotes', use: { browserName: 'webkit' }, testMatch: 'footnote-options.spec.ts' },
+    // C-62: appearance menus, local palettes and fullscreen focus in WKWebView's engine.
+    { name: 'webkit-diagram-appearance', use: { browserName: 'webkit' }, testMatch: 'diagram-appearance.spec.ts' },
     // C-39 T-002: table rendering/interaction specs also gate in WebKit —
     // the engine WKWebView ships (pointer capture, table-layout: fixed and
     // column measuring are engine-sensitive). Covers table-layout.spec.ts

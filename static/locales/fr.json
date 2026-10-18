@@ -1444,5 +1444,18 @@
         "text": "Le code des diagrammes : 0,26 Mo compressés au lieu de 44 parties (2,6 Mo)."
       }
     }
+  },
+  "diagramAppearance": {
+    "label": "Apparence du diagramme",
+    "auto": "Auto",
+    "custom": "Personnalisée",
+    "light": "Claire",
+    "dark": "Sombre",
+    "autoDescription": "Comme le document",
+    "customDescription": "Palette du Markdown",
+    "lightDescription": "Toujours claire",
+    "darkDescription": "Toujours sombre",
+    "noCustomPalette": "Aucune palette dans le Markdown",
+    "viewOnly": "Pour cet affichage uniquement"
   }
 }

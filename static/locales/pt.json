@@ -1444,5 +1444,18 @@
         "text": "Código de diagramas: 0,26 MB comprimidos em vez de 44 partes (2,6 MB)."
       }
     }
+  },
+  "diagramAppearance": {
+    "label": "Aparência do diagrama",
+    "auto": "Automático",
+    "custom": "Personalizado",
+    "light": "Claro",
+    "dark": "Escuro",
+    "autoDescription": "Como o documento",
+    "customDescription": "Paleta do Markdown",
+    "lightDescription": "Sempre claro",
+    "darkDescription": "Sempre escuro",
+    "noCustomPalette": "Sem paleta no Markdown",
+    "viewOnly": "Apenas nesta visualização"
   }
 }
