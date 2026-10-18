@@ -945,17 +945,9 @@ figure.ag-has-expand.ag-expand-needed .ag-container-icon {
   right: 2.2em;
 }
 
-/* Tables: the figure's top-right corner belongs to the header row
-   (header text and the last column's resize hit zone, C-39 T-002), so
-   the icon sits just above the table's top-right corner, in the
-   figure's existing top margin band — the same strip the table tools
-   bar has always used (top: -22px). The two never coexist: the tools
-   bar shows while the figure is edited (.ag-active) and the icon hides
-   then. */
-figure[data-role='TABLE'].ag-expand-needed > button.ag-block-expand {
-  top: -22px;
-  right: 0;
-}
+/* Tables no longer render the standalone glyph (C-65 T-002 gave them the
+   table toolbar above the table — see the C-65 section below), so the old
+   table placement rule is gone with it. */
 
 /* ================================================================
  * C-56 T-005 — diagram corner toolbar (user choice 2026-10-18,
@@ -1708,19 +1700,28 @@ figure div.ag-table-scroll table td {
 }
 
 /*
- * R-1 edge shadows, pure CSS — they follow scroll and resize with no
- * listeners. The two local-attached cover gradients are pinned to the
- * scrollable content and painted in the editor background color, so
- * each one hides its shadow while that side is at rest (or, for the
- * right one, once it reaches the far end); the two scroll-attached
- * shadows stay pinned to the scrollport edges. All four layers paint
- * below the table content itself. --editorBgColor tracks the theme,
- * so the covers stay invisible in light and dark alike.
+ * R-1 edge shades. C-65 (mockup variant E): the sides are now CLASS-GATED
+ * — lib/tableResize/tableCue.js computes which sides actually hide
+ * columns (table-edge clipping, live on scroll/resize/drag) and toggles
+ * ag-table-cue-left / ag-table-cue-right on the wrapper. The C-39
+ * local-attached cover gradients are gone: the classes ARE the fact the
+ * caption's «columns X–Y of N» states, and both stay in step by
+ * construction (one state object drives them). A table that fits — or a
+ * full-width table, whose overflow belongs to the editor, not the
+ * wrapper — carries neither class and paints no shade.
  */
-figure div.ag-table-scroll {
+figure div.ag-table-scroll.ag-table-cue-left {
   background:
-    linear-gradient(to right, var(--editorBgColor) 30%, transparent) left center / 40px 100% no-repeat local,
-    linear-gradient(to left, var(--editorBgColor) 30%, transparent) right center / 40px 100% no-repeat local,
+    linear-gradient(to right, rgba(0, 0, 0, 0.28), transparent 70%) left center / 14px 100% no-repeat;
+}
+
+figure div.ag-table-scroll.ag-table-cue-right {
+  background:
+    linear-gradient(to left, rgba(0, 0, 0, 0.28), transparent 70%) right center / 14px 100% no-repeat;
+}
+
+figure div.ag-table-scroll.ag-table-cue-left.ag-table-cue-right {
+  background:
     linear-gradient(to right, rgba(0, 0, 0, 0.28), transparent 70%) left center / 14px 100% no-repeat,
     linear-gradient(to left, rgba(0, 0, 0, 0.28), transparent 70%) right center / 14px 100% no-repeat;
 }
@@ -1807,4 +1808,96 @@ figure div.ag-table-scroll > table.ag-column-widths-fixed th,
 figure div.ag-table-scroll > table.ag-column-widths-fixed td {
   max-width: none;
 }
+
+/* ================================================================
+ * C-65 — wide tables, part 1 (2026-10-18, approved mockup variant E:
+ * toolbar above the table and caption below it on the text-column edge,
+ * edge shades only, per-table Full width mode)
+ *
+ * The «invisible boundary» every cue anchors to is the RIGHT EDGE OF
+ * THE TEXT COLUMN — the figure's right edge (figures fill the column).
+ * T-002: on hover over a table figure (and on keyboard focus within it)
+ * a C-56-family pill appears ABOVE the table, just over its top edge,
+ * its right edge on the column edge; it may cover the end of the line
+ * above (accepted — the user is looking at the table) and never floats
+ * over the middle of the table; the caret inside the table (ag-active)
+ * hides it like diagrams. The standalone table expand glyph is GONE —
+ * the pill's second button is the same viewer action under the same
+ * expandNeed.js need gate (ag-expand-needed). T-003: the caption below
+ * the table is right-aligned on the same edge; a table that fits shows
+ * neither shade nor caption. T-004/R-6: Full width lays the table out
+ * at its natural width from the editor's LEFT edge — the figure keeps
+ * the column width so the toolbar/caption stay on the column edge, the
+ * wrapper stops clipping (the editor itself scrolls horizontally) and
+ * the caption reads «all N columns».
+ * ================================================================ */
+
+/* The table toolbar reuses the C-56 pill rules (family classes); only the
+   placement differs: ABOVE the table, right edge flush with the column
+   (right: 0), its bottom a 4 px gap over the table's top edge. The
+   wrapper's top == the table's top (no top padding), so top: -36px puts
+   a ~30 px pill just over it. */
+figure[data-role='TABLE'].ag-has-expand > div.ag-block-toolbar.ag-table-toolbar {
+  top: -36px;
+  right: 0;
+}
+
+/* The active «Fit to page» state: solid fg on the tint, like a pressed
+   segmented control. */
+figure.ag-has-expand > div.ag-block-toolbar > button.ag-table-toolbar-btn.ag-table-toolbar-active {
+  color: var(--pele-fg);
+  background: color-mix(in srgb, var(--pele-fg) 12%, transparent);
+}
+
+/* The overflow caption: in-flow BELOW the table (it reserves its own
+   space — never covers the next block), right-aligned on the column
+   edge, muted; hidden entirely (no space) until tableCue fills it. */
+figure[data-role='TABLE'] > div.ag-table-caption {
+  display: none;
+  text-align: right;
+  box-sizing: border-box;
+  width: 100%;
+  padding: 4px 0 0;
+  font: 400 12px/1.5 -apple-system, system-ui, sans-serif;
+  color: var(--editorColor);
+  opacity: 0.55;
+  cursor: default;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+figure[data-role='TABLE'] > div.ag-table-caption.ag-table-caption-on {
+  display: block;
+}
+
+/* Full width (R-6): the WRAPPER breaks out — visible overflow (the
+   editor scroller owns the horizontal scrollbar), no clip, no own
+   scrollbar, the row-drag padding drops (the table starts at the
+   editor's left edge; the bar zone would stick into unreachable left
+   overflow). The exact left breakout is an inline margin TableResize
+   measures (theme paddings are never hardcoded here). The table starts
+   at the wrapper's left edge instead of being centred. */
+figure.ag-table-full-width > div.ag-table-scroll {
+  overflow: visible;
+  max-width: none;
+  padding-left: 0;
+}
+
+figure.ag-table-full-width > div.ag-table-scroll::-webkit-scrollbar {
+  height: 0;
+}
+
+figure.ag-table-full-width > div.ag-table-scroll > table {
+  margin-inline: 0;
+}
+
+/* Full width shows no shade: nothing is hidden by the wrapper (the
+   caption reads «all N columns»); the classes stay off in practice —
+   this rule is the guarantee even if a stray sync ran. */
+figure.ag-table-full-width > div.ag-table-scroll.ag-table-cue-left,
+figure.ag-table-full-width > div.ag-table-scroll.ag-table-cue-right,
+figure.ag-table-full-width > div.ag-table-scroll.ag-table-cue-left.ag-table-cue-right {
+  background: none;
+}
+
 

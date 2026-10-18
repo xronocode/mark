@@ -466,6 +466,12 @@
     "copyImage": "Als Bild kopieren",
     "openFullScreen": "Vollbild öffnen"
   },
+  "tableToolbar": {
+    "fullWidth": "Volle Breite",
+    "fitToPage": "Auf Seite einpassen",
+    "columnsRange": "Spalten {start}–{end} von {total}",
+    "allColumns": "alle {total} Spalten"
+  },
   "recent": {
     "taglineLead": "Agenten schreiben. Du",
     "taglineHighlight": "formst",

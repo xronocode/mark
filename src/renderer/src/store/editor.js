@@ -30,6 +30,7 @@ import {
   GUIDE_SECTION_CONNECT_AGENT
 } from '../util/guideDoc'
 import { syncViewMenuChecks } from '../util/menuChecks'
+import { moveTableLayoutsEntry } from '../util/tableLayoutStore'
 
 const autoSaveTimers = new Map()
 const fileWatchDisposers = new Map()
@@ -792,6 +793,11 @@ export const useEditorStore = defineStore('editor', {
       const newPathname = window.path.join(window.path.dirname(pathname), newFilename)
       try {
         await window.fileUtils.move(pathname, newPathname)
+        // C-65 R-2: the stored table layouts follow the rename (the
+        // sidebar rename path moves them in RENAME_IF_NEEDED).
+        moveTableLayoutsEntry(pathname, newPathname).catch(e =>
+          console.warn(`[editor][rename][BLOCK_TABLE_LAYOUTS_MOVE_FAILED] ${e}`)
+        )
         this.APPLY_SAVE_OUTCOME({
           id,
           pathname: newPathname,
@@ -1228,6 +1234,11 @@ export const useEditorStore = defineStore('editor', {
       renameEchoUntil.set(dest, Date.now() + RENAME_ECHO_WINDOW_MS)
       this._unsubscribeFileWatch(oldPathname)
       this._subscribeFileWatch(dest)
+      // C-65 R-2: the sidebar rename moves the stored table layouts with
+      // the file (the title-bar rename does it in RENAME).
+      moveTableLayoutsEntry(src, dest).catch(e =>
+        console.warn(`[editor][rename][BLOCK_TABLE_LAYOUTS_MOVE_FAILED] ${e}`)
+      )
       console.debug(`[editor][rename][BLOCK_TABS_FOLLOWED tabs=${moved.length}]`)
     },
 
@@ -2197,6 +2208,12 @@ export const useEditorStore = defineStore('editor', {
 // END_MODULE_MAP
 //
 // CHANGE_SUMMARY:
+//   - 2026-10-18 C-65 R-2: RENAME (title-bar card › Rename…) and
+//     RENAME_IF_NEEDED (the sidebar rename) move the file's stored table
+//     layouts to the new path through util/tableLayoutStore
+//     (moveTableLayoutsEntry, fire-and-forget with the
+//     BLOCK_TABLE_LAYOUTS_MOVE_FAILED warn); a Finder move never passes
+//     through here and its orphaned entry is pruned on the next load.
 //   - 2026-10-15 C-40 T-004: TOGGLE_LOCK_DOCUMENT — the per-tab read-only
 //     lock over the M-022 previewMode surface (View › Lock Document,
 //     palette, tab context menu). Lock bypasses the previewModeOnFinderOpen

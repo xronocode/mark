@@ -479,6 +479,12 @@
     "copyImage": "Скопировать как изображение",
     "openFullScreen": "Открыть на весь экран"
   },
+  "tableToolbar": {
+    "fullWidth": "Во всю ширину",
+    "fitToPage": "По ширине страницы",
+    "columnsRange": "столбцы {start}–{end} из {total}",
+    "allColumns": "все {total} столбцов"
+  },
   "recent": {
     "taglineLead": "Агенты пишут. Вы",
     "taglineHighlight": "придаёте",

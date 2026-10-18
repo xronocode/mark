@@ -78,12 +78,12 @@
 
 <script setup>
 // FILE: src/renderer/src/components/editorWithTabs/editor.vue
-// VERSION: 1.27.0
+// VERSION: 1.28.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Host the Muya WYSIWYG surface and coordinate document rendering, selection, scroll, preview, editor tools, and store/bus integration.
 //   SCOPE: Renderer-side Muya lifecycle and UI orchestration, including invalidating tab block caches after a footnote grammar change; does not own Markdown parsing rules or backend file persistence.
-//   DEPENDS: Muya, Pinia preferences/editor/project/layout stores, bus, renderer services/utilities, window.electron compatibility facade, @tauri-apps/plugin-clipboard-manager (writeHtml + writeImage), @tauri-apps/plugin-dialog (save), muya/lib/utils/diagramExport (C-56 picture export + image-copy helpers), muya/lib/utils/getImageInfo (C-56 T-006 DOM image info), window.__markImageLoader (the existing read-binary bridge, C-56 T-006).
-//   LINKS: docs/knowledge-graph.xml M-011 and M-012; docs/verification-plan.xml V-M-011 scenarios 15-16 and V-M-012; .grace/changes/active/C-56 (diagram export, embedded-image copy).
+//   DEPENDS: Muya, Pinia preferences/editor/project/layout stores, bus, renderer services/utilities, window.electron compatibility facade, @tauri-apps/plugin-clipboard-manager (writeHtml + writeImage), @tauri-apps/plugin-dialog (save), muya/lib/utils/diagramExport (C-56 picture export + image-copy helpers), muya/lib/utils/getImageInfo (C-56 T-006 DOM image info), window.__markImageLoader (the existing read-binary bridge, C-56 T-006), util/tableLayoutStore (C-65 per-file table layout persistence).
+//   LINKS: docs/knowledge-graph.xml M-011 and M-012; docs/verification-plan.xml V-M-011 scenarios 15-16 and V-M-012; .grace/changes/active/C-56 (diagram export, embedded-image copy); .grace/changes/active/C-65 T-001 (the table layout prefs host wiring).
 //   ROLE: RUNTIME
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT
@@ -109,9 +109,21 @@
 //   handleMirrorGuard - C-29: blocks checkbox clicks, paste and drop on the read-only mirror pane.
 //   handleEditorContextMenu - Native right-click menu: undo/redo, cut/copy/paste/select-all roles, Copy as HTML / Plain Text / Structured Text, the C-56 Copy as Image / Save as PNG… / Save as SVG… items (diagram/chart blocks only), Share (C-10/C-11/C-12/C-32/C-56).
 //   Muya options wiring - disableTableColumnResize is set from the mirror prop: the read-only Split View mirror pane gets no column-resize handles (C-39 T-002); reading/locked tabs keep them.
+//   handleTableLayoutsChange - C-65 T-001: muya-table-layouts dispatches (fired by muya only after a real resize / reset / Full width toggle) are saved under the active tab's pathname through util/tableLayoutStore; the mirror never persists and untitled tabs never persist.
+//   applyStoredTableLayouts - C-65 T-001: load the active file's persisted table layouts (prune + cap inside the store util) and hand them to muya.tableResize.applyPersistedLayouts; sequenced per tab so a slow load cannot land on a switched document.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-10-18 v1.28.0: C-65 T-001 — persistent table column widths and
+//     the per-table Full width mode. applyStoredTableLayouts runs after
+//     every document load (file-loaded / file-changed): the store util
+//     loads the file's profile entry (pruning files that no longer exist
+//     and capping the store) and muya.tableResize.applyPersistedLayouts
+//     adopts it into the fresh block keys. handleTableLayoutsChange saves
+//     the muya-table-layouts dispatches (only muya fires them, only after
+//     a real user action) under the active pathname. A sequence counter
+//     drops loads that resolve after the tab switched; the mirror and
+//     untitled tabs opt out entirely.
 //   - 2026-10-18 v1.27.0: C-56 T-006 — Copy image for embedded Markdown
 //     images. handleImageCopyAction({ imageInfo }) is the single transport:
 //     resolveImageCopySource classifies the raw Markdown src (local
@@ -250,6 +262,7 @@ import {
 // Markdown) for the right-click Copy Image item.
 import { getImageInfo as getDomImageInfo } from 'muya/lib/utils/getImageInfo'
 import { getCssForOptions, getHtmlToc } from '@/util/pdf'
+import { loadTableLayoutsFor, saveTableLayoutsFor } from '@/util/tableLayoutStore'
 import { addCommonStyle, setEditorWidth, setWrapCodeBlocks } from '@/util/theme'
 import { usePreferencesStore } from '@/store/preferences'
 import { useEditorStore } from '@/store/editor'
@@ -1855,6 +1868,56 @@ const handleDialogTableConfirm = () => {
   editor.value && editor.value.createTable(tableChecker)
 }
 
+// START_CONTRACT: applyStoredTableLayouts / handleTableLayoutsChange
+//   PURPOSE: C-65 T-001 — the host side of persistent table layouts: load the active file's stored widths + Full width modes into muya after every document load, and save muya's dispatches (fired only after a real resize / reset / mode toggle) back into the profile.
+//   INPUTS: { none - reads currentFile (id + pathname) and the muya-table-layouts event payload { entries } }
+//   OUTPUTS: { Promise<void> / Promise<boolean> }
+//   SIDE_EFFECTS: ipcPrefs reads/writes of the tableLayouts key (through util/tableLayoutStore: prune missing files, cap the store); muya.tableResize.applyPersistedLayouts adoption (DOM widths/classes, never markdown/history/isSaved); console markers BLOCK_TABLE_LAYOUTS_APPLIED / BLOCK_TABLE_LAYOUTS_SAVED.
+//   LINKS: C-65 R-1/R-6; util/tableLayoutStore.js; muya lib/tableResize (the identity/serialize counterpart); store/editor.js RENAME/RENAME_IF_NEEDED (the rename move).
+// END_CONTRACT: applyStoredTableLayouts / handleTableLayoutsChange
+// START_BLOCK_TABLE_LAYOUTS_HOST
+const tableLayoutsSeq = { tabId: null, seq: 0 }
+
+const applyStoredTableLayouts = async () => {
+  const muya = editor.value
+  if (!muya || !muya.tableResize || props.mirror) return
+  const file = currentFile.value
+  const tabId = file && file.id
+  const pathname = file && file.pathname
+  const seq = ++tableLayoutsSeq.seq
+  tableLayoutsSeq.tabId = tabId || null
+  if (!pathname) {
+    // Untitled/unsaved document: no profile entry, and stale entries from
+    // the previously loaded file must not leak into this one.
+    muya.tableResize.applyPersistedLayouts(null)
+    return
+  }
+  let entries = {}
+  try {
+    entries = await loadTableLayoutsFor(pathname)
+  } catch (e) {
+    console.warn(`[Editor][applyStoredTableLayouts][BLOCK_TABLE_LAYOUTS_APPLY_FAILED] ${e}`)
+  }
+  if (seq !== tableLayoutsSeq.seq || currentFile.value?.id !== tabId || editor.value !== muya) return
+  muya.tableResize.applyPersistedLayouts(entries)
+  console.debug(
+    `[Editor][applyStoredTableLayouts][BLOCK_TABLE_LAYOUTS_APPLIED] tab=${tabId} tables=${Object.keys(entries).length}`
+  )
+}
+
+const handleTableLayoutsChange = async ({ entries } = {}) => {
+  if (props.mirror) return
+  const pathname = currentFile.value && currentFile.value.pathname
+  if (!pathname || !entries || typeof entries !== 'object') return
+  const saved = await saveTableLayoutsFor(pathname, entries)
+  if (saved) {
+    console.debug(
+      `[Editor][handleTableLayoutsChange][BLOCK_TABLE_LAYOUTS_SAVED] tables=${Object.keys(entries).length}`
+    )
+  }
+}
+// END_BLOCK_TABLE_LAYOUTS_HOST
+
 // listen for `open-single-file` event, it will call this method only when open a new file.
 const setMarkdownToEditor = ({ id, markdown: newMarkdown, cursor: newCursor }) => {
   if (id && currentFile.value?.id && id !== currentFile.value.id) {
@@ -1879,6 +1942,8 @@ const setMarkdownToEditor = ({ id, markdown: newMarkdown, cursor: newCursor }) =
     }
     // C-29: the mirror already shows this document; skip the debounced re-render.
     if (props.mirror) mirroredMarkdown = newMarkdown
+    // C-65: adopt the stored table layouts of the newly opened document.
+    applyStoredTableLayouts()
     if (!isReadOnlySurface.value) {
       nextTick(() => editor.value?.focus())
     }
@@ -1931,6 +1996,10 @@ const handleFileChange = ({
     } else if (newCursor) {
       editor.value.setCursor(newCursor)
     }
+
+    // C-65: tab switches and reloads adopt the now-active file's stored
+    // table layouts (a no-op when the muya session already carries them).
+    if (!props.mirror) applyStoredTableLayouts()
 
     if (typeof scrollTop === 'number') {
       // A disk content reload renders a NEW document: the pre-edit scrollTop
@@ -2510,6 +2579,9 @@ onMounted(() => {
   // C-56 T-006: the image toolbar's Copy image button hands the muya image
   // info (raw Markdown src) to the embedded-image copy transport.
   editor.value.on('muya-image-copy', handleImageCopyAction)
+  // C-65 T-001: muya fires this only after a real table layout action
+  // (drag end with movement, double-click reset, Full width toggle).
+  editor.value.on('muya-table-layouts', handleTableLayoutsChange)
 
   document.addEventListener('keyup', keyup)
 
@@ -2569,6 +2641,8 @@ onBeforeUnmount(() => {
   editor.value.off('muya-diagram-export', handleDiagramExportAction)
   // C-56 T-006: drop the image-copy dispatch before muya is destroyed.
   editor.value.off('muya-image-copy', handleImageCopyAction)
+  // C-65: drop the table-layouts dispatch before muya is destroyed.
+  editor.value.off('muya-table-layouts', handleTableLayoutsChange)
 
   resizeObserverForEditor.disconnect()
 
