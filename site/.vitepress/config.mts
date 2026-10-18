@@ -15,9 +15,9 @@
 // END_MODULE_CONTRACT
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: [v2.4.0 - 2026-10-18 C-58 T-003: the docs nav links the
-//                 /diagrams/ gallery (target _self — a full page load, not
-//                 a VitePress route) and the sitemap lists diagrams/.]
+//   LAST_CHANGE: [v2.4.0 - 2026-10-18 C-58 T-003: the sitemap lists the
+//                 buildEnd-emitted diagrams/ gallery (a docs nav entry was
+//                 dropped: an eighth item overflows the phone nav bar).]
 //   PREV: [v2.3.0 - 2026-10-18 C-58 T-002: buildEnd also emits the
 //                 diagram gallery at /diagrams/ (rendered from
 //                 site/gallery/examples.mjs through pele with theme vars
@@ -144,7 +144,6 @@ export default defineConfig({
     nav: [
       { text: 'Guide', link: '/guide/' },
       { text: 'Reference', link: '/reference/' },
-{ text: 'Diagrams', link: '/diagrams/', target: '_self' },
       { text: 'Changelog', link: '/changelog' },
       { text: 'Privacy', link: '/privacy' },
       { text: 'GitHub', link: 'https://github.com/xronocode/mark' },
