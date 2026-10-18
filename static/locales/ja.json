@@ -335,6 +335,7 @@
       "closeFolder": "フォルダを閉じる",
       "newFile": "新規ファイル",
       "recentFiles": "最近使った項目",
+      "clearRecent": "最近の項目を消去",
       "pinnedFiles": "ピン留め済み",
       "pinned": "ピン留め済み",
       "remove": "削除",

@@ -1,5 +1,5 @@
 // FILE: src/renderer/src/components/icons/chromeIcons.js
-// VERSION: 2.3.0
+// VERSION: 2.4.0
 // START_MODULE_CONTRACT
 //   PURPOSE: One drawn chrome-icon set (16 px grid, 1.4 px stroke, round caps/joins) for every icon around the document — title bar, tabs, sidebar, find bar, dialogs, notifications, status bar (C-40 T-002, C-38 T-006 N4 d), the document-surface expand glyph (C-51 T-006) and the pinned-file row mark (C-51 T-011; redrawn as a filled pushpin silhouette in C-51 T-013 — the set's one fill-only glyph).
 //   SCOPE: Icon path descriptors drawn on the approved canvas grid plus the ChromeIcon render component and a string renderer (chromeIconMarkup) for non-Vue surfaces (the notification service template); no theming, no IPC. The expand descriptor is the canonical drawing — muya duplicates it inline (EXPAND_ICON_PATH) and a unit test pins the two identical.
@@ -18,7 +18,8 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v2.3.0 - 2026-10-17 C-51 T-013: the «pin» glyph is
+//   LAST_CHANGE: v2.4.0 - 2026-10-19 C-67: «broom» glyph for Clear Recent.
+//   v2.3.0 - 2026-10-17 C-51 T-013: the «pin» glyph is
 //   redrawn as a FILLED pushpin silhouette (round head circle, tapering
 //   body, needle — all fill currentColor, no stroke parts): at its 12 px
 //   mark size the stroked T-head drawing read as a thin stick/cross
@@ -37,7 +38,7 @@
 //   svg imports and the ad-hoc inline svgs are gone. Added glyphs
 //   (chevron-right, close, dot, plus, search, case-sensitive,
 //   whole-word, regex, replace, replace-all, arrow-up, arrow-down,
-//   folder, folder-open, file-plus, file-markdown, save-all, close-all,
+//   folder, folder-open, file-plus, file-markdown, save-all, broom, close-all,
 //   settings, import, info, warning, error, message, check, smile, sad,
 //   github, twitter, window-minimize/maximize/restore/close) drawn on
 //   the same 16 px grid; chevron-down moved from the Window board's
@@ -196,6 +197,13 @@ export const CHROME_ICONS = Object.freeze({
     part('path', { d: 'M6.4 2.6h7v7' }, { cap: 'round', join: 'round' }),
     part('rect', { x: 2.6, y: 6.4, width: 7, height: 7, rx: 1.2 }),
     part('path', { d: 'M4.8 13.4v-3h2.8v3' }, { cap: 'round', join: 'round' })
+  ]),
+  // C-67: «Clear Recent» in the sidebar Recent header — a broom (handle,
+  // head, two bristle strokes), same 16-grid stroke family.
+  broom: Object.freeze([
+    part('path', { d: 'M13.5 2.5 8.6 7.4' }, { cap: 'round' }),
+    part('path', { d: 'M7.2 6.6l2.2 2.2-2.9 4.7-4-4z' }, { cap: 'round', join: 'round' }),
+    part('path', { d: 'M4.2 11.8l-1.2 1.2M5.9 12.9l-.8 1.1' }, { cap: 'round' })
   ]),
   'close-all': Object.freeze([
     part('path', { d: 'M6.4 2.6h7v7' }, { cap: 'round', join: 'round' }),

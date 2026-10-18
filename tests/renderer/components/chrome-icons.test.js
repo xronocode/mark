@@ -52,7 +52,7 @@ const ICON_NAMES = [
   'chevron-right', 'close', 'dot', 'plus', 'search',
   'case-sensitive', 'whole-word', 'regex', 'replace', 'replace-all',
   'arrow-up', 'arrow-down', 'folder', 'folder-open', 'file-plus',
-  'file-markdown', 'save-all', 'close-all', 'import',
+  'file-markdown', 'save-all', 'broom', 'close-all', 'import',
   'info', 'warning', 'error', 'message', 'check', 'smile', 'sad',
   'github', 'twitter',
   'window-minimize', 'window-maximize', 'window-restore', 'window-close',
