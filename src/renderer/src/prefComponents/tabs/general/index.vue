@@ -109,6 +109,14 @@
         <h6 class="title">{{ t('preferences.general.updates.title') }}</h6>
       </template>
       <template #children>
+        <!-- C-66: the launch-time check switch. The manual row below
+             ignores the skip state and always reports. -->
+        <bool
+          :description="t('preferences.general.updates.autoCheck')"
+          :help="t('preferences.general.updates.autoCheckHelp')"
+          :bool="autoCheckUpdates"
+          :on-change="(value) => onSelectChange('autoCheckUpdates', value)"
+        ></bool>
         <button-row
           :description="appVersionLabel"
           :help="t('preferences.general.updates.help')"
@@ -123,12 +131,12 @@
 
 <script setup>
 // FILE: src/renderer/src/prefComponents/tabs/general/index.vue
-// VERSION: 2.1.0
+// VERSION: 2.2.0
 // START_MODULE_CONTRACT
-//   PURPOSE: General tab of the C-38 Settings window — macOS default-handler group, Startup (Finder preview mode), Language, Files and saving (autosave + delay in seconds, encoding, line endings, show-all-files tree switch) and Updates per the N2 IA §3.1.
-//   SCOPE: Row composition over the shared controls; seconds↔milliseconds conversion for autoSaveDelay; updater command dispatch; default-handler bindings; treeShowAllFiles switch binding (C-51 T-001).
+//   PURPOSE: General tab of the C-38 Settings window — macOS default-handler group, Startup (Finder preview mode), Language, Files and saving (autosave + delay in seconds, encoding, line endings, show-all-files tree switch) and Updates (C-66 automatic-check switch + manual check) per the N2 IA §3.1.
+//   SCOPE: Row composition over the shared controls; seconds↔milliseconds conversion for autoSaveDelay; updater command dispatch; default-handler bindings; treeShowAllFiles switch binding (C-51 T-001); autoCheckUpdates switch binding (C-66 T-003).
 //   DEPENDS: prefComponents/common/{compound,bool,select,range,buttonRow}, tabs/general/config, store/preferences, util (isOsx), @tauri-apps/api/app (getVersion, lazy).
-//   LINKS: .grace/changes/active/C-38 T-004; .grace/changes/active/C-51 T-001; docs/design/settings-ia-2026-10-15.md §3.1; .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011.
+//   LINKS: .grace/changes/active/C-38 T-004; .grace/changes/active/C-51 T-001; .grace/changes/active/C-66 R-4; docs/design/settings-ia-2026-10-15.md §3.1; .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011.
 //   ROLE: RUNTIME
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT
@@ -140,9 +148,14 @@
 //   setAsDefault / unsetDefault - store actions; REFRESH_DEFAULT_MD_HANDLER runs on mount (macOS only).
 //   appVersionLabel / checkForUpdates - the Updates row: `Mark <version>` from getVersion() (lazy) and the shared file.check-update command (lazy import — no commands-module side effects at page load).
 //   treeShowAllFiles - C-51 T-001 show-all-files switch state (store/preferences) bound to the last Files-and-saving row.
+//   autoCheckUpdates - C-66 T-003 automatic-check switch state (store/preferences) bound to the first Updates row (the whole group is updater-capability-gated, corner-5).
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-10-19 v2.2.0: C-66 T-003 — «Check for updates
+//     automatically» bool row opens the Updates group (default on,
+//     SET_SINGLE_PREFERENCE persistence); the manual Check-for-updates
+//     row stays as-is and ignores the skip state.
 //   - 2026-10-16 v2.1.0: C-51 T-001 — «Show all files» bool row closes the
 //     Files-and-saving group: off by default (Markdown-only tree), on
 //     restores the pre-C-51 everything-visible tree via SET_SINGLE_PREFERENCE.
@@ -172,7 +185,8 @@ const {
   autoSaveDelay,
   defaultEncoding,
   endOfLine,
-  treeShowAllFiles
+  treeShowAllFiles,
+  autoCheckUpdates
 } = storeToRefs(preferenceStore)
 
 const onSelectChange = (type, value) => {
