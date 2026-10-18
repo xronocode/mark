@@ -335,6 +335,7 @@
       "closeFolder": "폴더 닫기",
       "newFile": "새 파일",
       "recentFiles": "최근 항목",
+      "clearRecent": "최근 항목 지우기",
       "pinnedFiles": "고정됨",
       "pinned": "고정됨",
       "remove": "제거",

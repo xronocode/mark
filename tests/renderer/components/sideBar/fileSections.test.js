@@ -1,5 +1,5 @@
 // FILE: tests/renderer/components/sideBar/fileSections.test.js
-// VERSION: 1.1.0
+// VERSION: 1.3.0
 // START_MODULE_CONTRACT
 //   PURPOSE: C-51 T-002 unit tests for components/sideBar/fileSections.vue — Recent/Pinned sections render with order + cap, missing rows greyed with Remove, unpin/remove actions, click-to-open (tab select vs mt::open-file), collapse persistence, and drag-reorder dispatch to the pinned store; C-51 T-013 pins the icon-less regular-weight rows.
 //   SCOPE: real mount over the mocked @tauri-apps/api/core invoke (recent list, prefs, fs stat) with ChromeIcon stubbed.
@@ -15,7 +15,8 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.1.0 - 2026-10-17 C-51 T-013: rows render no
+//   LAST_CHANGE: v1.3.0 - 2026-10-19 C-67: Clear Recent broom pins (clear call, empty section, failure path).
+//   v1.1.0 - 2026-10-17 C-51 T-013: rows render no
 //   file-type icon (the name span leads the row) — the FileIcon stub and
 //   the muya fileIcons mock are gone with the component's own import.
 //   v1.0.0 - 2026-10-16 C-51 T-002: initial tests.
@@ -42,6 +43,7 @@ const i18n = createI18n({
       sideBar: {
         tree: {
           recentFiles: 'Recent',
+          clearRecent: 'Clear Recent',
           pinnedFiles: 'Pinned',
           remove: 'Remove',
           unpin: 'Unpin'
@@ -156,6 +158,34 @@ describe('components/sideBar/fileSections.vue (C-51 T-002)', () => {
     expect(removeCall?.[1]).toEqual({ path: '/tmp/y-second.md' })
     const names = wrapper.find('[data-section="recent"]').findAll('.section-file-name').map((n) => n.text())
     expect(names).toEqual(['z-newest.md'])
+  })
+
+  it('C-67: the Recent header broom clears the whole list through ipcRecent.clear', async () => {
+    const wrapper = await mountSections()
+    const broom = wrapper.find('[data-section="recent"] .section-title .section-action')
+    expect(broom.exists()).toBe(true)
+    expect(broom.attributes('title')).toBe('Clear Recent')
+    expect(broom.attributes('aria-label')).toBe('Clear Recent')
+    await broom.trigger('click')
+    await flush()
+    expect(invoke.mock.calls.some((c) => c[0] === 'mt_recent_clear')).toBe(true)
+    // The section hides once the list is empty (v-if on recentRows).
+    expect(wrapper.find('[data-section="recent"]').exists()).toBe(false)
+  })
+
+  it('C-67: a failed backend clear still empties the local rows and warns', async () => {
+    const wrapper = await mountSections()
+    const base = invoke.getMockImplementation()
+    invoke.mockImplementation(async (cmd, args) => {
+      if (cmd === 'mt_recent_clear') throw new Error('boom')
+      return base(cmd, args)
+    })
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    await wrapper.find('[data-section="recent"] .section-title .section-action').trigger('click')
+    await flush()
+    expect(wrapper.find('[data-section="recent"]').exists()).toBe(false)
+    expect(warn).toHaveBeenCalledWith('[SideBar][clearRecent][BLOCK_RECENT_CLEARED] persisted=false', expect.any(Error))
+    warn.mockRestore()
   })
 
   it('the pinned row X unpins (persists the shorter list)', async () => {
