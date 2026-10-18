@@ -1,0 +1,73 @@
+<GraceChangePlan graceVersion='4.0' status='approved'>
+<C-66>
+  <ChangeRef>C-66</ChangeRef>
+  <Created>2026-10-18</Created>
+  <IntentSummary>Launch-time update check for desktop builds, once per 24 h, with a non-modal Update / Later / Skip-this-version notice, a Settings switch, What's New deferral and no check in the App Store build.</IntentSummary>
+  <BaselineAssertions>
+    <MustContain>
+      <File>src/renderer/src/store/autoUpdates.js</File>
+      <Text>useAutoUpdatesStore</Text>
+    </MustContain>
+  </BaselineAssertions>
+  <TargetAssertions>
+    <MustVerify>
+      <Module>M-016</Module>
+    </MustVerify>
+    <MustPassCommand>
+      <Command>npx vitest run</Command>
+    </MustPassCommand>
+  </TargetAssertions>
+  <DurableScope>
+    <GraphAnchors>
+      <M-016 />
+      <M-011 />
+    </GraphAnchors>
+    <VerificationAnchors>
+      <V-M-016 />
+      <V-M-011 />
+    </VerificationAnchors>
+  </DurableScope>
+  <ObservedWriteScope>
+    <File>src/renderer/src/store/autoUpdates.js</File>
+    <File>src/renderer/src/pages/app.vue</File>
+    <Glob>src/renderer/src/components/updateNotice/**</Glob>
+    <File>src/renderer/src/store/preferences.js</File>
+    <File>static/preference.json</File>
+    <File>src/renderer/src/_shims/preferences/schema.json</File>
+    <File>src/renderer/src/prefComponents/tabs/general/index.vue</File>
+    <File>src/renderer/src/commands/index.js</File>
+    <Glob>static/locales/*.json</Glob>
+    <Glob>tests/renderer/**</Glob>
+    <Glob>tests/e2e/*.spec.ts</Glob>
+    <Glob>.grace/**</Glob>
+  </ObservedWriteScope>
+  <CornerMatrix>
+    <Corner id='corner-1'><Situation>Launch twice within 24 h</Situation><Expected>one mt_updater_check</Expected></Corner>
+    <Corner id='corner-2'><Situation>Offline / feed error</Situation><Expected>silent, log marker, lastUpdateCheckAt not advanced</Expected></Corner>
+    <Corner id='corner-3'><Situation>Skip 2.6.0, then 2.6.1 ships</Situation><Expected>2.6.1 shows</Expected></Corner>
+    <Corner id='corner-4'><Situation>What's New opens this launch</Situation><Expected>notice deferred</Expected></Corner>
+    <Corner id='corner-5'><Situation>App Store build</Situation><Expected>no check, no notice, no setting</Expected></Corner>
+    <Corner id='corner-6'><Situation>autoCheckUpdates off</Situation><Expected>no check; manual check still works and ignores the skip</Expected></Corner>
+  </CornerMatrix>
+  <ImplementationPlan>
+    <T-001>
+      <Title>Gate + state in store/autoUpdates.js (24 h, skip, offline, What's New deferral, MAS gate), prefs keys</Title>
+      <DependsOn></DependsOn>
+      <AcceptanceCriteria><Criterion>R-1, R-3, R-5 with unit pins.</Criterion></AcceptanceCriteria>
+      <Verification><Command>npx vitest run tests/renderer/store</Command></Verification>
+    </T-001>
+    <T-002>
+      <Title>Notice component (Update / Later / Skip this version), launch hook in app.vue, shared install flow with file.check-update</Title>
+      <DependsOn>T-001</DependsOn>
+      <AcceptanceCriteria><Criterion>R-2; e2e update-notice spec.</Criterion></AcceptanceCriteria>
+      <Verification><Command>npx playwright test tests/e2e/update-notice.spec.ts --project=chromium</Command></Verification>
+    </T-002>
+    <T-003>
+      <Title>Settings switch, ten locales, graph/verification, live check</Title>
+      <DependsOn>T-002</DependsOn>
+      <AcceptanceCriteria><Criterion>R-4, R-6; grace lint 0.</Criterion></AcceptanceCriteria>
+      <Verification><Command>grace lint --path . --assertions current</Command></Verification>
+    </T-003>
+  </ImplementationPlan>
+</C-66>
+</GraceChangePlan>

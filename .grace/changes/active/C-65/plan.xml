@@ -1,0 +1,76 @@
+<GraceChangePlan graceVersion='4.0' status='approved'>
+<C-65>
+  <ChangeRef>C-65</ChangeRef>
+  <Created>2026-10-18</Created>
+  <IntentSummary>Persist table column widths per file in the Mark profile (only after a resize, keyed by path + ordinal + header signature, rename-aware, pruned), move tables onto the C-56 corner pill, and add a visible «N more columns →» edge cue.</IntentSummary>
+  <BaselineAssertions>
+    <MustContain>
+      <File>src/muya/lib/parser/render/renderBlock/renderBlockToolbar.js</File>
+      <Text>renderBlockToolbar</Text>
+    </MustContain>
+  </BaselineAssertions>
+  <TargetAssertions>
+    <MustVerify>
+      <Module>M-012</Module>
+    </MustVerify>
+    <MustPassCommand>
+      <Command>npx vitest run</Command>
+    </MustPassCommand>
+  </TargetAssertions>
+  <DurableScope>
+    <GraphAnchors>
+      <M-012 />
+    </GraphAnchors>
+    <VerificationAnchors>
+      <V-M-012 />
+    </VerificationAnchors>
+  </DurableScope>
+  <ObservedWriteScope>
+    <Glob>src/muya/lib/tableResize/**</Glob>
+    <Glob>src/muya/lib/parser/render/renderBlock/*.js</Glob>
+    <File>src/muya/lib/assets/styles/index.css</File>
+    <File>src/renderer/src/components/editorWithTabs/editor.vue</File>
+    <File>src/renderer/src/store/editor.js</File>
+    <Glob>src/renderer/src/util/*.js</Glob>
+    <Glob>static/locales/*.json</Glob>
+    <Glob>tests/renderer/**</Glob>
+    <Glob>tests/e2e/*.spec.ts</Glob>
+    <Glob>.grace/**</Glob>
+  </ObservedWriteScope>
+  <CornerMatrix>
+    <Corner id='corner-1'><Situation>Resize, quit, reopen the same file</Situation><Expected>widths restored</Expected></Corner>
+    <Corner id='corner-2'><Situation>Header text or column count edited</Situation><Expected>that table's widths dropped, others kept</Expected></Corner>
+    <Corner id='corner-3'><Situation>File moved in Finder / deleted</Situation><Expected>no widths applied; entry pruned</Expected></Corner>
+    <Corner id='corner-4'><Situation>Renamed through Mark</Situation><Expected>widths follow the new path</Expected></Corner>
+    <Corner id='corner-5'><Situation>Never resized</Situation><Expected>nothing stored</Expected></Corner>
+    <Corner id='corner-6'><Situation>Narrow table</Situation><Expected>no cue, pill expand stays need-gated (hidden)</Expected></Corner>
+    <Corner id='corner-7'><Situation>Caret inside the table</Situation><Expected>table tools shown; pill hidden like diagrams (ag-active)</Expected></Corner>
+  </CornerMatrix>
+  <ImplementationPlan>
+    <T-001>
+      <Title>Profile width store: keying, signature, prune, rename move, reset paths; wire into tableResize load/save</Title>
+      <DependsOn></DependsOn>
+      <AcceptanceCriteria><Criterion>R-1, R-2, R-3 with unit pins.</Criterion></AcceptanceCriteria>
+      <Verification><Command>npx vitest run tests/renderer/muya/table-column-resize.test.js</Command></Verification>
+    </T-001>
+    <T-002>
+      <Title>Tables on the C-56 corner pill (expand action only), standalone glyph removed for tables</Title>
+      <DependsOn></DependsOn>
+      <AcceptanceCriteria><Criterion>R-4; block-viewer and block-expand tests updated.</Criterion></AcceptanceCriteria>
+      <Verification><Command>npx playwright test tests/e2e/block-viewer.spec.ts --project=chromium</Command></Verification>
+    </T-002>
+    <T-003>
+      <Title>«N more columns →» edge cue with click-to-scroll, ten locales</Title>
+      <DependsOn></DependsOn>
+      <AcceptanceCriteria><Criterion>R-5; table-layout e2e pins the cue.</Criterion></AcceptanceCriteria>
+      <Verification><Command>npx playwright test tests/e2e/table-layout.spec.ts --project=chromium --project=webkit-tables</Command></Verification>
+    </T-003>
+    <T-004>
+      <Title>Graph M-012 / verification V-M-012, full suite, live check</Title>
+      <DependsOn>T-001, T-002, T-003</DependsOn>
+      <AcceptanceCriteria><Criterion>R-6; grace lint 0.</Criterion></AcceptanceCriteria>
+      <Verification><Command>grace lint --path . --assertions current</Command></Verification>
+    </T-004>
+  </ImplementationPlan>
+</C-65>
+</GraceChangePlan>
