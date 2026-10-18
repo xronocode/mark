@@ -65,6 +65,12 @@
       <AcceptanceCriteria><Criterion>site workflow green; prod passes the matrix.</Criterion></AcceptanceCriteria>
       <Verification><Command>gh run list -R xronocode/mark --workflow site.yml</Command></Verification>
     </T-005>
+    <T-006>
+      <Title>Audit fix pack (avenex-outreach site-audit 2026-10-18, audit/mark-2026-10-18): S1 changelog from CHANGELOG.md, F1 one-line brew command, S2 truthful CLI docs, M1 dmg method + outbound_click, F2 direct Windows asset, M3 share UTM, D2 version captions, D1 desktop stage rest 30% with the rendered page beside the divider, R1 deferred wall SVGs + content-visibility + gtag after load, S4 comment-free landing output, A1 accessible names/contrast</Title>
+      <DependsOn>T-005</DependsOn>
+      <AcceptanceCriteria><Criterion>check-dist and site tests green; matrix 32/32; width sweep 320–1500 without overflow; Lighthouse mobile median of 3 sequential runs above the 76 baseline.</Criterion></AcceptanceCriteria>
+      <Verification><Command>cd site &amp;&amp; npx vitepress build . &amp;&amp; node scripts/check-dist.mjs &amp;&amp; node scripts/shots.mjs</Command></Verification>
+    </T-006>
   </ImplementationPlan>
   <Execution>T-001 by one ZCode agent; T-002 and T-003 by two ZCode agents in parallel worktrees (disjoint files: T-002 owns site/landing/index.html, T-003 owns landing.mjs/consent.js/public/scripts); T-004 split between a ZCode agent (tests, matrix spec) and the orchestrator (runs, review, GRACE close-out); T-005 orchestrator only.</Execution>
   <Evidence>

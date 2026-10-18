@@ -1,5 +1,5 @@
 // FILE: tests/renderer/site/landing.test.js
-// VERSION: 1.1.0
+// VERSION: 1.2.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Verify the site landing renderer and settings resolution (M-053).
 //   SCOPE: base normalization, %BASE% substitution, shared head, analytics
@@ -16,7 +16,11 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: [v1.1.0 - 2026-10-18 C-64 T-003: og:image assertion follows
+//   LAST_CHANGE: [v1.2.0 - 2026-10-18 C-64 T-006: renderLanding strips every
+//                 HTML comment and trims leading whitespace, so the rendered
+//                 landing starts with <!doctype html> and carries no <!--
+//                 (S-4) — asserted on the real template.]
+//   PREV: [v1.1.0 - 2026-10-18 C-64 T-003: og:image assertion follows
 //                 the shared head swap from the showcase screenshot to the
 //                 brand card og-card.png.]
 //   PREV: [v1.0.0 - C-22: initial settings/renderer coverage]
@@ -105,6 +109,15 @@ describe('renderLanding', () => {
     const html = renderLanding(tpl, resolveSiteSettings({}))
     expect(html).not.toMatch(/%BASE%|<!--SITE_HEAD-->/)
     expect(html).not.toMatch(/(href|src)="\/mark\//)
+  })
+
+  it('starts with <!doctype html> and ships no HTML comment (C-64 T-006 S-4)', () => {
+    const tpl = readFileSync(resolve(import.meta.dirname, '../../../site/landing/index.html'), 'utf8')
+    const html = renderLanding(tpl, resolveSiteSettings({}))
+    expect(html.startsWith('<!doctype html>')).toBe(true)
+    expect(html).not.toContain('<!--')
+    // <meta charset> is the first element inside <head>.
+    expect(html).toMatch(/<head>\s*<meta charset="utf-8">/)
   })
 })
 

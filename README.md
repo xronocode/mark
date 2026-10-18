@@ -27,7 +27,7 @@
 **Homebrew (macOS, Apple silicon)**
 
 ```sh
-brew tap xronocode/mark && brew install --cask mark
+brew install --cask xronocode/mark/mark
 ```
 
 Developer ID signed and notarized by Apple. Updates through the in-app updater or `brew upgrade --cask mark`.
