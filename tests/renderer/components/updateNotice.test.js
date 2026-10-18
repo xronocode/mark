@@ -22,6 +22,9 @@
 //   queueNotice - flip the store into the post-check notice state.
 //   LOCALES / readJson - the ten shipped locale files (fs read, both forms).
 //   NOTICE_KEYS / UPDATES_KEYS / SEARCH_KEY - the C-66 locale key inventory.
+//   SEARCH_KEY - test helper (SEARCH_KEY).
+//   UPDATES_KEYS - test helper (UPDATES_KEYS).
+//   readJson - test helper (readJson).
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY

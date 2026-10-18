@@ -15,6 +15,7 @@
 //   buildTableFigure - jsdom figure[data-role=TABLE] > div.ag-table-scroll > table.ag-paragraph with header texts, ids and stubbed cell rects.
 //   buildToolbarDom - the live toolbar DOM TableResize swaps on toggle (button + label span + svg path).
 //   pidOf - computes the expected ordinal#signature identity of a buildTableFigure fixture.
+//   T - test helper (T).
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY

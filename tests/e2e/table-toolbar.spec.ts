@@ -12,8 +12,10 @@
 // START_MODULE_MAP
 //   wideHeader/wideRow/WIDE_18COL_MD - an 18-column fixture wider than the window in Full width mode.
 //   NARROW_MD - a 2x2 fixture (the no-need / no-cue corner).
-//   geometry - reads the toolbar/table/caption/scroller geometry of one figure.
-//   toolbarState - reads the toolbar's reveal state, button labels and the need gate.
+//   DOC_PATH - test helper (DOC_PATH).
+//   WIDE_18COL_MD - test helper (WIDE_18COL_MD).
+//   wideHeader - test helper (wideHeader).
+//   wideRow - test helper (wideRow).
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
