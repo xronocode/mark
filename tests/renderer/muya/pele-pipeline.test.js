@@ -615,6 +615,20 @@ describe('StateRender.renderPele wiring (C-34 R2.1)', () => {
   // C-51 Keynote donut (kept from the mermaid era): pie SVGs gain a
   // panel-coloured hole (var(--pele-bg)) painted after the slices plus the
   // inert pieOuterCircle radius marker; non-pie types pass through.
+  it('postProcessPeleSvg re-maps kanban cards to the surface with a light frame and columns to surface-alt', async () => {
+    const pele = await import('pele')
+    const { svg, type } = pele.render('kanban\n  todo[To do]\n    a[Card one]\n  done[Done]\n    b[Card two]')
+    expect(type).toBe('kanban')
+    const out = postProcessPeleSvg(svg, type)
+    expect(out).not.toMatch(/fill="var\(--_bg\)" stroke="var\(--_b\)"/)
+    expect(out).toMatch(/fill="var\(--pele-surface\)" stroke="var\(--_b\)" stroke-opacity="0.35"/)
+    expect(out).not.toMatch(/fill="var\(--_s\)"/)
+    expect(out).toMatch(/fill="var\(--pele-surface-alt\)"/)
+    // Other types are untouched.
+    const flow = pele.render('flowchart LR\n  A --> B').svg
+    expect(postProcessPeleSvg(flow, 'flowchart')).toBe(flow)
+  })
+
   it('postProcessPeleSvg carves the Keynote donut into pie SVGs only', async () => {
     const pieSvg =
       '<svg class="pele pele-pie"><g class="pele-slices" transform="translate(156,195)">' +
