@@ -17,7 +17,6 @@
 //   LONG_URL - a 200-character URL.
 //   LONG_URL_MD - table fixture with LONG_URL in a body cell.
 //   EDIT_AFTER_SCROLL_MD - wide table used for the editing-after-scroll cases.
-//   cueState - reads one wrapper's caption text + shade side classes + scroll geometry.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY

@@ -12,9 +12,6 @@
 // START_MODULE_MAP
 //   DOC_PATH - the persisted fixture's fake pathname (stat says it exists).
 //   TABLE_MD - a 3-column fixture with distinct header names.
-//   installPersistingShim - tauri-shim + an in-page tableLayouts prefs store (get/set) and a path-aware mt_fs_stat mock.
-//   tableState - the first table's fixed-layout state + col widths.
-//   dragBorder - drags the border at the right edge of header column `index`.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY

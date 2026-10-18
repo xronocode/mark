@@ -23,6 +23,8 @@
 //   waitForBoot - wait until the Vue app has rendered children.
 //   noticeCheckCount - per-load mt_updater_check invocations from __invokeLog.
 //   backDateLastCheck - move lastUpdateCheckAt 25 h into the past.
+//   Feed - test helper (Feed).
+//   ShimOptions - test helper (ShimOptions).
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY

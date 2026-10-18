@@ -16,6 +16,7 @@
 //   columnsOf - builds a contiguous column geometry array.
 //   buildFigure - jsdom figure[data-role=TABLE] > div.ag-table-scroll > table with a thead row, with stubbed rects and clientWidth.
 //   rangeOf - visibleColumnRange over a columnsOf geometry and a span.
+//   NINE - test helper (NINE).
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY

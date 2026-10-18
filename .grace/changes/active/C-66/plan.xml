@@ -70,7 +70,7 @@
     </T-003>
   </ImplementationPlan>
   <Evidence>
-    <T-001-Note>
+    <T-001><Note>
       store/autoUpdates.js v1.0.0 (was a dead shell): exported pure gates
       evaluateAutoUpdateGate / evaluateUpdateNotice + CHECK_INTERVAL_MS (24 h)
       + the three prefs keys; Pinia actions RUN_LAUNCH_CHECK (injectable
@@ -80,8 +80,8 @@
       statusNote answers stay silent with lastUpdateCheckAt unstamped; a
       skipped version stamps but never shows; exactly-24 h is due again).
       Commands run by the orchestrator — vitest results pending in CI.
-    </T-001-Note>
-    <T-002-Note>
+    </Note></T-001>
+    <T-002><Note>
       components/updateNotice/index.vue v1.0.0 (corner toast, theme CSS
       variables, role=status) rendering the store notice with Update / Later /
       Skip this version; pages/app.vue mounts it and appends
@@ -98,8 +98,8 @@
       visibility against a mocked mt_updater_check;
       tests/renderer/components/updateNotice.test.js pins rendering + action
       dispatch. Playwright run by the orchestrator.
-    </T-002-Note>
-    <T-003-Note>
+    </Note></T-002>
+    <T-003><Note>
       Settings: prefComponents/tabs/general v2.2.0 adds the autoCheckUpdates
       bool row inside the updater-capability-gated Updates group (App Store
       hides it with the group). Prefs: preferences.js v1.8.0 (autoCheckUpdates
@@ -115,7 +115,7 @@
       scenario-8 (+2 commands, 6 markers), V-M-011 scenario-67 (+5 markers, 1
       negative trace assertion). grace lint + live check (older build shows
       the notice once a day; MAS never) remain for the orchestrator/user.
-    </T-003-Note>
+    </Note></T-003>
   </Evidence>
 </C-66>
 </GraceChangePlan>
