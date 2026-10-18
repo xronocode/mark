@@ -1,9 +1,9 @@
-<GraceChangeSpec graceVersion='4.0' status='approved'>
+<GraceChangeSpec graceVersion='4.0' status='applied'>
 <C-57>
   <Name>Restore the Ko-fi support moment: site links plus Help › Support Mark… in the desktop (DMG) build</Name>
   <Created>2026-10-18</Created>
   <Priority>medium</Priority>
-  <Status>approved</Status>
+  <Status>applied</Status>
   <RoadmapPhase>N</RoadmapPhase>
   <Complexity>S</Complexity>
   <Summary>User finding 2026-10-18: the Ko-fi donation link (https://ko-fi.com/xronocode, in README.md since 1315c198) never made it onto the new mark.xronocode.com site and does not exist in the app. This change restores the support moment on every surface where a happy user can meet it: the landing (Open source card + footer), every docs page nav, and a Help › Support Mark… item in the desktop (DMG/Windows) build that opens the Ko-fi page in the browser. The App Store / TestFlight builds ship no donation link (ASC risk); the item is gated the same way Rate Mark… is, in reverse — cfg(not(feature = "app-store")) in the native menu taxonomy/builder plus a new m048 `support` capability flag that prunes the renderer command in store builds.</Summary>
