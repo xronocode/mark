@@ -1,21 +1,30 @@
 // FILE: site/.vitepress/config.mts
-// VERSION: 2.7.0
+// VERSION: 2.8.0
 // START_MODULE_CONTRACT
 //   PURPOSE: VitePress config for the Mark site — docs, shared head, the
 //            landing served at the site root, and the diagram gallery at
 //            /diagrams/ (both emitted at build time and served in dev).
-//   SCOPE: nav/sidebar, base + sitemap from env, per-page canonical/OG,
-//          dev middleware for the landing and /diagrams/, buildEnd emission
-//          of landing + gallery (+ theme-vars refresh), robots.txt and CNAME.
+//   SCOPE: nav/sidebar, base + sitemap (lastmod from git via lastUpdated)
+//          from env, per-page canonical/OG plus guide BreadcrumbList and
+//          the FAQPage JSON-LD, dev middleware for the landing and
+//          /diagrams/, buildEnd emission of landing + gallery (+
+//          theme-vars refresh), robots.txt and CNAME.
 //   DEPENDS: vitepress, ./landing.mjs, ../scripts/build-gallery.mjs,
 //            ../scripts/gallery-theme-vars.mjs, ../shared/theme-init.mjs
-//   LINKS: M-053 SiteBuild; C-22; C-58; C-64 T-001; .github/workflows/site.yml
+//   LINKS: M-053 SiteBuild; C-22; C-58; C-64 T-001, T-007;
+//          .github/workflows/site.yml
 //   ROLE: CONFIG
 //   MAP_MODE: NONE
 // END_MODULE_CONTRACT
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: [v2.7.0 - 2026-10-18 C-64 T-002: the landing template goes
+//   LAST_CHANGE: [v2.8.0 - 2026-10-18 C-64 T-007: lastUpdated: true gives
+//                 the sitemap a per-page lastmod from git (the docs theme
+//                 showing "Last updated" is accepted); guide pages carry a
+//                 Home → Guide → page BreadcrumbList and guide/faq.md the
+//                 FAQPage JSON-LD through transformHead; the guide sidebar
+//                 gains the FAQ page after Editions (and in the sitemap).]
+//   PREV: [v2.7.0 - 2026-10-18 C-64 T-002: the landing template goes
 //                 through fillLanding (diagram SVGs, brand CSS, theme init).]
 //   PREV: [v2.6.0 - 2026-10-18 C-64 T-003 wiring: docsHeadTags in the
 //                 docs head; buildEnd emits llms.txt + .well-known/security.txt
@@ -50,8 +59,10 @@ import { defineConfig, type HeadConfig } from 'vitepress'
 import {
   SITE_META,
   analyticsTags,
+  breadcrumbJsonLd,
   cnameFor,
   docsHeadTags,
+  faqJsonLd,
   renderLanding,
   resolveSiteSettings,
   robotsTxt
@@ -101,6 +112,9 @@ export default defineConfig({
   description: SITE_META.description,
   base,
   cleanUrls: true,
+  // C-64 T-007 S-3: lastUpdated feeds the sitemap's per-page lastmod from
+  // git; the docs theme then also shows "Last updated" — accepted.
+  lastUpdated: true,
   // /diagrams/ is emitted by buildEnd outside VitePress, so markdown links
   // to it (e.g. guide/themes.md) look dead to the checker but are alive in
   // the served site.
@@ -117,12 +131,21 @@ export default defineConfig({
   transformHead ({ pageData, title }) {
     const path = pageData.relativePath.replace(/(^|\/)index\.md$/, '$1').replace(/\.md$/, '')
     const url = `${siteUrl}/${path}`
-    return [
+    const head: HeadConfig[] = [
       ['link', { rel: 'canonical', href: url }],
       ['meta', { property: 'og:url', content: url }],
       ['meta', { property: 'og:title', content: title }],
       ['meta', { property: 'og:description', content: pageData.description || SITE_META.description }]
     ]
+    // C-64 T-007 G-2: guide pages carry a Home → Guide → page breadcrumb;
+    // the FAQ page adds its FAQPage node (same Q&As as the markdown).
+    if (path.startsWith('guide/')) {
+      head.push(['script', { type: 'application/ld+json' }, breadcrumbJsonLd(settings, { path, title: pageData.title })])
+    }
+    if (pageData.relativePath === 'guide/faq.md') {
+      head.push(['script', { type: 'application/ld+json' }, faqJsonLd()])
+    }
+    return head
   },
 
   // START_BLOCK_DEV_LANDING
@@ -199,6 +222,7 @@ export default defineConfig({
             { text: 'Introduction', link: '/guide/' },
             { text: 'Installation', link: '/guide/installation' },
             { text: 'Editions', link: '/guide/editions' },
+            { text: 'FAQ', link: '/guide/faq' },
             { text: 'Quick Start', link: '/guide/quickstart' }
           ]
         },

@@ -1,5 +1,5 @@
 ---
-description: "Install Mark on macOS with Homebrew or a release download and keep the app up to date."
+description: "Install Mark on macOS (Mac App Store, Homebrew or a .dmg) and on Windows (the x64 installer), and keep the app up to date."
 ---
 
 # Installation

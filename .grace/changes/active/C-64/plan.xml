@@ -71,6 +71,12 @@
       <AcceptanceCriteria><Criterion>check-dist and site tests green; matrix 32/32; width sweep 320–1500 without overflow; Lighthouse mobile median of 3 sequential runs above the 76 baseline.</Criterion></AcceptanceCriteria>
       <Verification><Command>cd site &amp;&amp; npx vitepress build . &amp;&amp; node scripts/check-dist.mjs &amp;&amp; node scripts/shots.mjs</Command></Verification>
     </T-006>
+    <T-007>
+      <Title>Second audit pack: D-11 consent (basic mode + in-memory click queue, privacy text), G2 JSON-LD fields + Organization + docs BreadcrumbList, S3 sitemap lastmod + installation description, R2 WebP shots via picture, R3 gallery content-visibility, A2 demo headings/gallery outline/footer targets, G1 /guide/faq with FAQPage JSON-LD</Title>
+      <DependsOn>T-006</DependsOn>
+      <AcceptanceCriteria><Criterion>check-dist and site tests green; matrix 32/32; width sweep without overflow; no Google request before consent; Lighthouse mobile median on prod not below 99 baseline minus noise.</Criterion></AcceptanceCriteria>
+      <Verification><Command>cd site &amp;&amp; npx vitepress build . &amp;&amp; node scripts/check-dist.mjs &amp;&amp; node scripts/shots.mjs</Command></Verification>
+    </T-007>
   </ImplementationPlan>
   <Execution>T-001 by one ZCode agent; T-002 and T-003 by two ZCode agents in parallel worktrees (disjoint files: T-002 owns site/landing/index.html, T-003 owns landing.mjs/consent.js/public/scripts); T-004 split between a ZCode agent (tests, matrix spec) and the orchestrator (runs, review, GRACE close-out); T-005 orchestrator only.</Execution>
   <Evidence>

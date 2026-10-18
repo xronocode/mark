@@ -1,5 +1,5 @@
 // FILE: site/scripts/build-gallery.mjs
-// VERSION: 2.0.0
+// VERSION: 2.1.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Build the site's /diagrams/ page — every Pele diagram type
 //            rendered at build time into inline SVG, recoloured live by
@@ -24,13 +24,19 @@
 //
 // START_MODULE_MAP
 //   GALLERY_PAGE - { path, title, description } for the shared head
-//   buildCards - examples + pele renders -> card HTML (+ build stats)
+//   buildCards - examples + pele renders -> card HTML with visually-hidden group h2s (+ build stats)
 //   buildGalleryTemplate - derived theme vars -> the page template (SITE_HEAD + %BASE% tokens)
 //   renderGallery - settings (+ optional vars) -> final servable HTML
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v2.0.0 - 2026-10-18 C-64 T-001: the gallery drops its
+//   LAST_CHANGE: v2.1.0 - 2026-10-18 C-64 T-007: the cards skip
+//   layout/paint off-screen (content-visibility: auto; intrinsic size
+//   420px, wide cards 480px — anchor links to card ids keep working,
+//   the ids sit on the cv'd articles themselves), and a visually-hidden
+//   h2 per group (data-group aware, hidden by the same filter) sits
+//   between the cards so the H1 no longer jumps to 32 H3 card titles.
+//   PREV: v2.0.0 - 2026-10-18 C-64 T-001: the gallery drops its
 //   near-miss palette (#F2EDE3/#131418/#FFD21F) for the shared brand
 //   tokens — site/shared/brand.css is inlined (fonts under
 //   %BASE%fonts/brand/), THEME_INIT_JS runs in <head> before CSS so a
@@ -82,15 +88,23 @@ const fenceKeyword = (code) =>
 // (unique idPrefix per card so SVG ids never collide — the fullscreen show
 // also strips ids when it clones a panel). Wide rule from the prototype:
 // width >= 640 spans the full row, except xychart/treemap (aspect), while
-// railroad is always wide.
+// railroad is always wide. EXAMPLES arrive grouped contiguously, so a
+// visually-hidden h2 (data-group aware, hidden by the same filter as the
+// cards) opens each group — the H1 no longer drops straight into 32 H3
+// card titles (C-64 T-007 A-2).
 export function buildCards () {
   const stats = { examples: EXAMPLES.length, wide: 0, errors: [] }
   let cards = ''
+  let lastGroup = ''
   for (const e of EXAMPLES) {
     const r = render(e.code, { idPrefix: 'g-' + e.id + '-' })
     if (!r || !r.svg || /PeleError/i.test(r.svg)) {
       stats.errors.push(e.id)
       continue
+    }
+    if (e.group !== lastGroup) {
+      lastGroup = e.group
+      cards += `<h2 class="ghead" data-group="${e.group}" id="group-${e.group.toLowerCase().replace(/\s+/g, '-')}">${e.group}</h2>\n`
     }
     const wide = ((r.width || 0) >= 640 && !['xychart', 'treemap'].includes(e.id)) || e.id === 'railroad' ? ' wide' : ''
     if (wide) stats.wide++
@@ -165,8 +179,8 @@ body{margin:0;background:var(--paper);color:var(--ink);font:400 16px/1.6 var(--b
 .folio{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;padding-block:22px 12px;border-bottom:1px solid var(--rule);font:500 13px/1.4 var(--mono);color:var(--mute)}
 .folio .brand{display:inline-flex;align-items:center;gap:7px;font-family:var(--display);font-weight:800;letter-spacing:-.01em;color:var(--ink);text-decoration:none}
 .folio .brand img{display:block;width:22px;height:22px}
-.folio-r{display:flex;gap:16px;align-items:center}
-.folio nav{display:flex;gap:18px}
+.folio-r{display:flex;gap:10px 16px;align-items:center;flex-wrap:wrap;min-width:0}
+.folio nav{display:flex;gap:10px 18px;flex-wrap:wrap}
 .folio nav a{color:var(--ink-2);text-decoration:none}
 .folio nav a:hover{color:var(--ink)}
 .toggle{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50%;border:1px solid var(--rule);background:transparent;color:var(--ink-2);cursor:pointer;font-size:13px;line-height:1;padding:0}
@@ -200,9 +214,17 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 .filters button:focus-visible,.chip:focus-visible,.play:focus-visible,.copy:focus-visible,summary:focus-visible,.sh-x:focus-visible,.toggle:focus-visible{outline:2px solid var(--marker);outline-offset:2px}
 .stage{background:var(--t-page,var(--card));padding-block:28px 64px;transition:background .25s}
 .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));grid-auto-flow:dense;gap:16px}
-.card{min-width:0;background:var(--t-page,var(--card));border:1px solid color-mix(in srgb,var(--pele-fg) 14%,transparent);border-radius:14px;overflow:hidden;display:flex;flex-direction:column;color:var(--pele-fg)}
+.card{min-width:0;background:var(--t-page,var(--card));border:1px solid color-mix(in srgb,var(--pele-fg) 14%,transparent);border-radius:14px;overflow:hidden;display:flex;flex-direction:column;color:var(--pele-fg);content-visibility:auto;contain-intrinsic-size:auto 420px}
+/* C-64 T-007 R-3: off-screen cards skip layout/paint; the intrinsic sizes
+   (regular ~420px, wide ~480px) approximate the real card heights so the
+   scrollbar stays close. Card ids sit on the cv'd articles themselves, so
+   #anchor jumps still land. Wide cards carry taller diagrams. */
 .card[hidden]{display:none}
-.card.wide{grid-column:1/-1}
+.card.wide{grid-column:1/-1;contain-intrinsic-size:auto 480px}
+/* C-64 T-007 A-2: a per-group heading for the outline only — the filter
+   hides/shows it together with its cards via data-group. */
+.ghead{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;margin:0}
+.ghead[hidden]{display:none}
 .card header{display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:14px 16px 10px}
 .card h3{margin:0;font:700 18px/1.2 var(--display);letter-spacing:-.01em}
 .kw{font:500 12px var(--mono);color:var(--pele-muted)}
@@ -290,7 +312,7 @@ tgl.addEventListener('click',function(){var dark=!root.classList.contains('dark'
  if(cur==='paper'||cur==='ink')apply(dark?'ink':'paper',true)});
 document.querySelectorAll('.filters button').forEach(function(b){b.addEventListener('click',function(){var g=b.dataset.g;
  document.querySelectorAll('.filters button').forEach(function(x){x.setAttribute('aria-pressed',String(x===b))});
- var n=0;document.querySelectorAll('.card').forEach(function(c){var on=g==='all'||c.dataset.group===g;c.hidden=!on;if(on)n++});
+ var n=0;document.querySelectorAll('.card,.ghead').forEach(function(c){var on=g==='all'||c.dataset.group===g;c.hidden=!on;if(on&&c.classList.contains('card'))n++});
  document.querySelector('.empty').hidden=n>0})});
 function copyText(text){if(navigator.clipboard&&navigator.clipboard.writeText)return navigator.clipboard.writeText(text);
  return new Promise(function(ok,fail){var ta=document.createElement('textarea');ta.value=text;ta.style.cssText='position:fixed;opacity:0;pointer-events:none';document.body.appendChild(ta);ta.select();try{document.execCommand('copy')?ok():fail()}catch(e){fail(e)}ta.remove()})}

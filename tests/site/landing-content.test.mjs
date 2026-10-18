@@ -1,6 +1,6 @@
 // @vitest-environment node
 // FILE: tests/site/landing-content.test.mjs
-// VERSION: 1.2.0
+// VERSION: 1.3.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Verify the C-64 T-002 landing content contract — the four
 //            install facts render, stale claims and forbidden Mark Text
@@ -25,7 +25,13 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: [v1.2.0 - 2026-10-18 C-64 T-006: pins the audit fixes -
+//   LAST_CHANGE: [v1.3.0 - 2026-10-18 C-64 T-007: pins the audit fixes -
+//                 every screenshot in a <picture> with 400/800/1440 webp
+//                 sources and the jpg <img> fallback intact (R-2), the
+//                 stage demo document's h2/h3 demoted to identically-styled
+//                 p.h2/p.h3 (A-2), and footer nav links padded past the
+//                 24 px target minimum (A-2).]
+//   PREV: [v1.2.0 - 2026-10-18 C-64 T-006: pins the audit fixes -
 //                 the tap-free brew one-liner in chip text/data-copy and
 //                 aria-labels, method "dmg" on both DMG links with the
 //                 GitHub repo links as outbound_click/target, #win-link +
@@ -311,5 +317,40 @@ describe('landing C-64 T-006 audit fixes', () => {
     expect(HTML).toMatch(/--w-meta:\s*#6B675F/)
     expect(HTML).toMatch(/\.win\.dk\s*\{[^}]*--w-meta:\s*#9D998F/)
     expect(HTML).toMatch(/\.md \.meta\s*\{[^}]*var\(--w-meta/)
+  })
+})
+
+describe('landing C-64 T-007 audit fixes', () => {
+  it('demotes the stage demo document headings to identically styled paragraphs (A-2)', () => {
+    const stage = /<div class="layer page win" id="page">[\s\S]*?<span class="lab l">/.exec(HTML)?.[0] || ''
+    expect(stage).not.toMatch(/<h[1-6]\b/)                     // the fake document leaves the page outline
+    expect(stage).toMatch(/<p class="h2">Q3 review &mdash; growth<\/p>/)
+    expect((stage.match(/<p class="h3">/g) || []).length).toBe(3)
+    // The .h2/.h3 classes wear exactly the .md h2/h3 rules, at every breakpoint.
+    expect(HTML).toMatch(/\.md h2, \.md \.h2\s*\{[^}]*font: 700 21px/)
+    expect(HTML).toMatch(/\.md h3, \.md \.h3\s*\{[^}]*margin: 14px 0 8px/)
+    expect(HTML).toMatch(/\.md h2, \.md \.h2\s*\{[^}]*font-size: 26px/)
+    expect(HTML).toMatch(/\.md h3, \.md \.h3\s*\{[^}]*font-size: 17px/)
+  })
+
+  it('ships every screenshot as webp with the jpg fallback intact (R-2)', () => {
+    const pictures = [...HTML.matchAll(/<picture>[\s\S]*?<\/picture>/g)].map((m) => m[0])
+    expect(pictures.length).toBe(4)
+    for (const p of pictures) {
+      expect(p).toMatch(/<source type="image\/webp" srcset="[^"]*-400\.webp 400w, [^"]*-800\.webp 800w, [^"]*-1440\.webp 1440w" sizes="/)
+      const sizes = [...p.matchAll(/sizes="([^"]+)"/g)].map((m) => m[1])
+      expect(sizes).toHaveLength(2)                            // the source mirrors the img's sizes
+      expect(sizes[0]).toBe(sizes[1])
+      expect(p).toMatch(/<img [^>]*src="\/shots\/[^"]*\.jpg"/)
+      expect(p).toMatch(/<img [^>]*srcset="[^"]*\.jpg 1440w, [^"]*\.jpg 800w"/)
+      expect(p).toMatch(/<img [^>]*width="1440" height="900" loading="lazy"/)
+    }
+    // The hero stage and icons stay plain <img> — only the four shots switch.
+    expect([...HTML.matchAll(/<img\b[^>]*src="\/shots\//g)]).toHaveLength(4)
+  })
+
+  it('gives the footer links a target at least 24 px tall (A-2, WCAG 2.5.8)', () => {
+    // 14.5px text at the body's 1.55 line-height (~22.5px) + 2×5px padding ≈ 32px.
+    expect(HTML).toMatch(/\.foot-nav a\s*\{[^}]*padding-block:\s*5px/)
   })
 })

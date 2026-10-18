@@ -1,25 +1,32 @@
 /*
  * FILE: site/public/consent.js
- * VERSION: 2.1.0
+ * VERSION: 3.0.0
  * START_MODULE_CONTRACT
- *   PURPOSE: Google Analytics loader with Consent Mode v2 and a slim brand
- *            consent card that never covers the landing hero (C-64 R-6/D-4).
+ *   PURPOSE: Consent-gated Google Analytics loader with Consent Mode v2 and
+ *            a slim brand consent card that never covers the landing hero
+ *            (C-64 R-6/D-4, T-007 M-2+P-1).
  *   SCOPE: read data-ga/data-geo/data-privacy off its own tag, default every
- *          consent signal to denied (wait_for_update), load GA4 only then,
- *          decide via the geo endpoint (time-zone fallback) whether opt-in
- *          is required, auto-grant where it is not, and show the card only
- *          after the [data-consent-after] element has fully left the
- *          viewport (IntersectionObserver, scroll fallback) or, on pages
- *          without such an element, after the first scroll or 6 s.
+ *          consent signal to denied (wait_for_update) synchronously, and
+ *          load GA4 (still deferred to after window load + idle) ONLY once
+ *          analytics is granted: at boot on a stored "granted", when the
+ *          geo answer auto-grants, or when the visitor clicks Allow. While
+ *          undecided or denied no request to googletagmanager /
+ *          google-analytics is made at all (gtag() queues into dataLayer,
+ *          drained when the script arrives). Decide via the geo endpoint
+ *          (time-zone fallback) whether opt-in is required, auto-grant
+ *          where it is not, and show the card only after the
+ *          [data-consent-after] element has fully left the viewport
+ *          (IntersectionObserver, scroll fallback) or, on pages without
+ *          such an element, after the first scroll or 6 s.
  *   DEPENDS: none (self-contained; sibling public/track.js reads markConsent)
- *   LINKS: M-053 SiteBuild; C-64 T-003; site/.vitepress/landing.mjs
+ *   LINKS: M-053 SiteBuild; C-64 T-003, T-007; site/.vitepress/landing.mjs
  *          analyticsTags (emits the tag); site/public/track.js (consumer)
  *   ROLE: SCRIPT
  *   MAP_MODE: LOCALS
  * END_MODULE_CONTRACT
  *
  * START_MODULE_MAP
- *   window.markConsent - { granted(), onChange(cb), open() } consent API (avenexConsent alias)
+ *   window.markConsent - { granted(), decided(), onChange(cb), open() } consent API (avenexConsent alias)
  * END_MODULE_MAP
  *
  *   <script src="/consent.js" data-ga="G-XXXXXXX" data-geo="https://avenex.xronocode.com/api/geo" data-privacy="/privacy"></script>
@@ -29,11 +36,26 @@
  *              consent is denied, so no cookies are set before the decision.
  * data-privacy link shown in the card. Text follows <html lang> (en, es, pt, ru, zh, de, fr, it).
  * Reopen: any link with href="#cookie-settings", or window.markConsent.open().
- * Read state: window.markConsent.granted() / .onChange(cb); window.avenexConsent is an alias
- * kept for older embeds and also carries .required.
+ * Read state: window.markConsent.granted() / .decided() / .onChange(cb); window.avenexConsent
+ *             is an alias kept for older embeds and also carries .required. decided() is false
+ *             only while the card is unanswered (queue-hold window for track.js).
  *
  * START_CHANGE_SUMMARY
- *   LAST_CHANGE: [v2.1.0 - 2026-10-18 C-64 T-006: the gtag script injects
+ *   LAST_CHANGE: [v3.0.0 - 2026-10-18 C-64 T-007 (M2+P1 owner decision:
+ *                 basic consent mode): the gtag script is requested only
+ *                 once analytics is granted — at boot on a stored "granted",
+ *                 on the geo auto-grant, or when the visitor clicks Allow —
+ *                 still deferred to after window load + idle as before.
+ *                 Undecided or denied, no request to googletagmanager /
+ *                 google-analytics happens at all; gtag() keeps queueing
+ *                 into dataLayer, which the script drains on arrival. A
+ *                 grant primes js/config into dataLayer first (primeGA — a
+ *                 local push, no request) so events flushed by the
+ *                 onChange listeners keep the js → config → events order.
+ *                 The Consent Mode v2 defaults stay synchronous as before.
+ *                 markConsent grows decided() so track.js can tell "card
+ *                 not answered" from an explicit deny.]
+ *   PREV: [v2.1.0 - 2026-10-18 C-64 T-006: the gtag script injects
  *                 only after the window load event, in a requestIdleCallback
  *                 slot capped at 2 s (setTimeout fallback) — off the LCP
  *                 critical path. The Consent Mode v2 defaults, the saved
@@ -76,6 +98,15 @@
   try { saved = localStorage.getItem(KEY); } catch (e) {}
   if (saved === "granted" || saved === "denied") gtag("consent", "update", saved === "granted" ? GRANTED : DENIED);
 
+  var gaPrimed = false;
+  // js + config go into dataLayer (free, no request) so any events flushed
+  // by a grant land after them — gtag.js drains the queue in order.
+  function primeGA() {
+    if (!GA || gaPrimed) return;
+    gaPrimed = true;
+    gtag("js", new Date());
+    gtag("config", GA);
+  }
   var gaLoaded = false;
   function loadGA() {
     if (!GA || gaLoaded) return;
@@ -83,8 +114,7 @@
     var s = document.createElement("script");
     s.async = true; s.src = "https://www.googletagmanager.com/gtag/js?id=" + GA;
     document.head.appendChild(s);
-    gtag("js", new Date());
-    gtag("config", GA);
+    primeGA();
   }
   /* The tag-manager script is not on the critical path: after the window
      load event it waits for an idle slot (2 s cap; setTimeout when
@@ -94,10 +124,22 @@
     if (window.requestIdleCallback) window.requestIdleCallback(fn, { timeout: 2000 });
     else setTimeout(fn, 2000);
   }
-  if (GA) {
+  /* M2+P1 owner decision (C-64 T-007): the GA script is requested ONLY
+     once analytics is granted — a stored "granted", the geo answer
+     auto-granting, or the visitor clicking Allow. Undecided or denied,
+     nothing is ever fetched from googletagmanager.com; gtag() keeps
+     queueing into dataLayer and the script drains it on arrival. */
+  var gaScheduled = false;
+  function scheduleGA() {
+    if (!GA || gaScheduled) return;
+    gaScheduled = true;
     if (document.readyState === "complete") onIdle(loadGA);
     else window.addEventListener("load", function () { onIdle(loadGA); });
   }
+  // Boot with a stored grant: js/config prime into dataLayer now (a local
+  // push — the script request still waits for load + idle) so any early
+  // event keeps the js → config → events order.
+  if (saved === "granted") { scheduleGA(); primeGA(); }
 
   var L = {
     en: ["We use analytics cookies to understand how the site is used.", "Allow", "No thanks", "Privacy"],
@@ -114,6 +156,10 @@
 
   /* ---------- state + public API ---------- */
   var state = saved === "granted";
+  /* decided: a choice exists (stored answer, auto-grant or card click).
+     false only while the card is still unanswered — the window in which
+     track.js holds events in memory instead of dropping them. */
+  var decided = saved === "granted" || saved === "denied";
   var listeners = [];
   function setState(v) {
     if (state === v) return;
@@ -123,6 +169,7 @@
     }
   }
   function granted() { return state; }
+  function hasDecided() { return decided; }
   function onChange(cb) {
     if (typeof cb === "function") listeners.push(cb);
     return function () {
@@ -130,7 +177,7 @@
       if (i >= 0) listeners.splice(i, 1);
     };
   }
-  window.markConsent = { granted: granted, onChange: onChange, open: function () { open(); }, required: false };
+  window.markConsent = { granted: granted, decided: hasDecided, onChange: onChange, open: function () { open(); }, required: false };
   window.avenexConsent = window.markConsent;
 
   /* ---------- card look (brand tokens; dark via the site's theme hooks) ---------- */
@@ -155,7 +202,13 @@
   function decide(v) {
     try { localStorage.setItem(KEY, v); } catch (e) {}
     saved = v;
+    decided = true;
     gtag("consent", "update", v === "granted" ? GRANTED : DENIED);
+    // Ask for the GA script and prime js/config in dataLayer before the
+    // grant listeners run, so track.js flushes its held events after them
+    // (dataLayer order stays js → config → events; the script itself
+    // still injects at load + idle).
+    if (v === "granted") { scheduleGA(); primeGA(); }
     setState(v === "granted");
     shown = true;   // a decision also ends the delayed-show lifecycle
     disarm();
@@ -229,7 +282,14 @@
   function apply(required) {
     window.avenexConsent.required = required;
     if (saved !== null) return;               // the visitor already chose
-    if (!required) { gtag("consent", "update", GRANTED); setState(true); return; }
+    if (!required) {
+      decided = true;                         // the geo answer granted for them
+      gtag("consent", "update", GRANTED);
+      scheduleGA();
+      primeGA();                              // events flushed by the listeners land after js/config
+      setState(true);
+      return;
+    }
     arm();
   }
   if (GEO && window.fetch) {
