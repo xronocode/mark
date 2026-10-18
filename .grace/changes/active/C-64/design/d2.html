@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Mark — direction 2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="base.css">
+<script src="data.js"></script>
+<script src="boot.js"></script>
+<style>
+/* Direction 2 — Diagram wall: the hero is a sheet of real diagrams the app draws, recolouring through Mark's themes. */
+.top{display:grid;justify-items:center;text-align:center;gap:22px;padding-block:40px 30px}
+.top h1{font-size:clamp(42px,5.6vw,80px);max-width:15ch}
+.top .lede{text-align:center}
+.themes{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+.themes button{display:inline-flex;align-items:center;gap:8px;font:500 13.5px/1 var(--body);padding:7px 12px 7px 7px;border-radius:999px;border:1px solid var(--rule);background:transparent;color:var(--ink);cursor:pointer;white-space:nowrap}
+.themes button i{width:18px;height:18px;border-radius:50%;display:block;box-shadow:inset 0 0 0 1px rgba(0,0,0,.12)}
+.themes button[aria-pressed="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.themes .count{font:500 12.5px var(--mono);color:var(--mute);align-self:center;padding:0 6px}
+.sheet{position:relative;border-radius:18px;padding:22px;background:var(--t-page);transition:background .5s;
+  box-shadow:0 0 0 .5px rgba(0,0,0,.2),0 30px 80px -30px rgba(40,30,10,.4)}
+:root[data-theme="dark"] .sheet{box-shadow:0 0 0 1px rgba(255,255,255,.08),0 40px 100px -30px rgba(0,0,0,.8)}
+.grid{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));grid-auto-rows:86px;gap:14px}
+.cell{min-width:0;background:var(--pele-bg);border-radius:12px;padding:12px 14px 10px;display:grid;grid-template-rows:auto 1fr;gap:6px;transition:background .5s;overflow:hidden}
+.cell .n{display:flex;justify-content:space-between;font:500 11px/1 var(--mono);letter-spacing:.06em;color:var(--pele-muted);text-transform:uppercase}
+.cell .s{min-height:0;display:flex;align-items:center;justify-content:center}
+.cell svg{width:100%;height:100%;max-height:100%}
+.c1{grid-column:span 7;grid-row:span 3}.c2{grid-column:span 5;grid-row:span 3}
+.c3{grid-column:span 4;grid-row:span 3}.c4{grid-column:span 4;grid-row:span 3}.c5{grid-column:span 4;grid-row:span 3}
+.c6{grid-column:span 5;grid-row:span 2}.c7{grid-column:span 7;grid-row:span 2}
+.badge{position:absolute;right:22px;top:-16px;transform:rotate(3deg)}
+.acts{justify-content:center}
+.under{display:flex;justify-content:center;padding-block:26px 40px}
+@media (max-width:720px){
+  .top{text-align:left;justify-items:start;padding-block:26px 20px;gap:16px}
+  .top .lede{text-align:left;font-size:16.5px}
+  .top h1{font-size:clamp(40px,11.4vw,58px)}
+  .acts{justify-content:flex-start;width:100%}.acts .btn{flex:1}.brew{display:none}
+  .themes{justify-content:flex-start;flex-wrap:nowrap;overflow-x:auto;margin:0 calc(-1*max(20px,env(safe-area-inset-left,0px)));padding:2px max(20px,env(safe-area-inset-left,0px));scrollbar-width:none;width:calc(100% + 40px)}
+  .themes::-webkit-scrollbar{display:none}
+  .themes .count{display:none}
+  .sheet{margin:0 calc(-1*max(20px,env(safe-area-inset-left,0px)));border-radius:0;padding:16px 0 18px}
+  .grid{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;gap:12px;padding:0 20px;scrollbar-width:none}
+  .grid::-webkit-scrollbar{display:none}
+  .cell{flex:none;width:82%;height:300px;scroll-snap-align:center}
+  .badge{display:none}
+  .c3{order:-3}.c4{order:-2}.c2{order:-1}.c1,.c7{display:none}
+  .swipe{display:flex!important}
+}
+.swipe{display:none;justify-content:space-between;align-items:center;padding:12px 20px 0;font:500 12px var(--mono);color:var(--pele-muted)}
+.swipe .dots{display:flex;gap:5px}.swipe .dots i{width:6px;height:6px;border-radius:50%;background:var(--pele-line);opacity:.4}.swipe .dots i.on{opacity:1;width:16px;border-radius:3px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="hdr">
+    <a class="brand" href="#"><img src="img/mark-icon.svg" alt="">Mark</a>
+    <nav class="nav"><a href="#">Diagrams</a><a href="#">Docs</a><a href="#">Changelog</a><a class="gh" href="#">GitHub</a></nav>
+    <button class="send" type="button"><svg viewBox="0 0 24 24"><path d="M12 3v12M7 8l5-5 5 5M5 14v5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-5"/></svg>Copy link</button>
+  </header>
+
+  <section class="top">
+    <span class="eyebrow">Markdown editor for AI agents · macOS &amp; Windows</span>
+    <h1><span class="hl">32 kinds of diagrams,</span> drawn as your agent saves.</h1>
+    <p class="lede">Mark is a native Markdown editor for the files AI agents write. Flowcharts, sankeys, Gantt charts, tables and math render in the page, in any of 32 themes.</p>
+    <div class="acts">
+      <button class="btn pri only-ios" type="button"><svg viewBox="0 0 24 24" style="width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2"><path d="M12 3v12M7 8l5-5 5 5M5 14v5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-5"/></svg>Send Mark to your Mac</button>
+        <a class="btn pri no-ios" href="#"><svg viewBox="0 0 16 19" aria-hidden="true"><path d="M13.2 10.1c0-2.4 2-3.6 2.1-3.7-1.1-1.7-2.9-1.9-3.5-1.9-1.5-.2-2.9.9-3.7.9-.8 0-1.9-.9-3.2-.8-1.6 0-3.1 1-4 2.4-1.7 3-.4 7.3 1.2 9.7.8 1.2 1.8 2.5 3 2.4 1.2 0 1.7-.8 3.1-.8 1.5 0 1.9.8 3.2.8 1.3 0 2.2-1.2 3-2.4.9-1.4 1.3-2.7 1.3-2.8 0 0-2.5-1-2.5-3.8zM10.8 3c.7-.8 1.1-1.9 1-3-1 0-2.1.7-2.8 1.5-.6.7-1.2 1.8-1 2.9 1.1.1 2.1-.6 2.8-1.4z"/></svg>Mac App Store</a>
+      <button class="brew" type="button"><i>$</i>brew install --cask mark<b>Copy</b></button>
+    </div>
+    <div class="themes" id="themes" role="group" aria-label="Theme"></div>
+  </section>
+
+  <div class="sheet" id="sheet">
+    <span class="pill badge">```mermaid → drawn on save</span>
+    <div class="grid" id="grid">
+      <div class="cell c1"><div class="n"><span>Flowchart</span><span>```mermaid</span></div><div class="s" data-svg="flowchart"></div></div>
+      <div class="cell c2"><div class="n"><span>Sankey</span><span>```mermaid</span></div><div class="s" data-svg="sankey"></div></div>
+      <div class="cell c3"><div class="n"><span>Pie</span><span>```mermaid</span></div><div class="s" data-svg="pie"></div></div>
+      <div class="cell c4"><div class="n"><span>Venn</span><span>```mermaid</span></div><div class="s" data-svg="venn"></div></div>
+      <div class="cell c5"><div class="n"><span>Radar</span><span>```mermaid</span></div><div class="s" data-svg="radar"></div></div>
+      <div class="cell c6"><div class="n"><span>Kanban</span><span>```mermaid</span></div><div class="s" data-svg="kanban"></div></div>
+      <div class="cell c7"><div class="n"><span>Gantt</span><span>```mermaid</span></div><div class="s" data-svg="gantt"></div></div>
+    </div>
+    <div class="swipe"><span>Swipe · 5 of 32 types</span><span class="dots"><i class="on"></i><i></i><i></i><i></i><i></i><i></i><i></i></span></div>
+  </div>
+  <div class="under"><a class="fine" href="#">See all 32 diagram types in every theme →</a></div>
+</div>
+<script>
+(function(){
+  var list=[['paper','Paper'],['ink','Ink'],['nord','Nord'],['gruvbox-light','Gruvbox'],['solarized-dark','Solarized'],['catppuccin-mocha','Catppuccin'],['rose-pine-dawn','Rosé Pine'],['dracula','Dracula']];
+  var box=document.getElementById('themes'),sheet=document.getElementById('sheet'),timer;
+  function set(id){applyPele(sheet,id);box.querySelectorAll('button').forEach(function(b){b.setAttribute('aria-pressed',String(b.dataset.id===id))});}
+  list.forEach(function(t){var v=THEMES[t[0]];var b=document.createElement('button');b.type='button';b.dataset.id=t[0];
+    b.innerHTML='<i style="background:linear-gradient(135deg,'+v['--pele-bg']+' 50%,'+v['--pele-accent']+' 50%)"></i>'+t[1];
+    b.onclick=function(){clearInterval(timer);set(t[0])};box.appendChild(b);});
+  var c=document.createElement('span');c.className='count';c.textContent='+ 24 more';box.appendChild(c);
+  document.addEventListener('DOMContentLoaded',function(){
+    var start=document.documentElement.getAttribute('data-theme')==='dark'?1:0;set(list[start][0]);
+    if(matchMedia('(prefers-reduced-motion: reduce)').matches)return;
+    var i=start;timer=setInterval(function(){i=(i+1)%list.length;set(list[i][0])},2600);
+  });
+})();
+</script>
+</body>
+</html>
