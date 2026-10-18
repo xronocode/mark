@@ -1,0 +1,214 @@
+// FILE: tests/renderer/components/updateNotice.test.js
+// VERSION: 1.0.0
+// START_MODULE_CONTRACT
+//   PURPOSE: Pin the C-66 update notice component — store-driven
+//            visibility (hidden until the launch check queues it), the
+//            localized «Mark X.Y.Z is available» title with the three
+//            Update / Later / Skip this version buttons dispatching the
+//            matching store actions, and the presence of every new key
+//            in all ten locale tables (json + min form).
+//   SCOPE: src/renderer/src/components/updateNotice/index.vue behaviour
+//          plus the static/locales C-66 key inventory.
+//   DEPENDS: @vue/test-utils, tests/renderer/pinia, real i18n t (en
+//          table; ru pinned by swapping the locale messages).
+//   LINKS: .grace/changes/active/C-66/spec.xml R-2/R-6;
+//          .grace/verification/runtime.xml V-M-011 scenario-67.
+//   ROLE: TEST
+//   MAP_MODE: LOCALS
+// END_MODULE_CONTRACT
+//
+// START_MODULE_MAP
+//   mountNotice - mount the notice with a fresh Pinia and return the wrapper.
+//   queueNotice - flip the store into the post-check notice state.
+//   LOCALES / readJson - the ten shipped locale files (fs read, both forms).
+//   NOTICE_KEYS / UPDATES_KEYS / SEARCH_KEY - the C-66 locale key inventory.
+// END_MODULE_MAP
+//
+// START_CHANGE_SUMMARY
+//   LAST_CHANGE: v1.0.0 - 2026-10-19 C-66 T-002/T-003: initial pins —
+//   visibility, en + ru rendering, action dispatch, and the ten-locale
+//   key inventory for updateNotice.*, preferences.general.updates.auto*
+//   and preferences.search.items.autoCheckUpdates.
+// END_CHANGE_SUMMARY
+
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { mount } from '@vue/test-utils'
+import { nextTick } from 'vue'
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
+import { setupTestPinia } from '../pinia'
+
+import { useAutoUpdatesStore } from '@/store/autoUpdates'
+import { i18n } from '@/i18n'
+import ruTranslations from '../../../static/locales/ru.json'
+import UpdateNotice from '@/components/updateNotice/index.vue'
+
+// TOP-LEVEL helpers (TEST/LOCALS).
+const mountNotice = () => mount(UpdateNotice)
+
+const queueNotice = (store, version = '2.6.0') => {
+  store.notice = {
+    visible: true,
+    version,
+    status: { currentVersion: '2.5.0', available: true, latestVersion: version, statusNote: null }
+  }
+}
+
+const LOCALES = ['en', 'ru', 'de', 'es', 'fr', 'ja', 'ko', 'pt', 'zh-CN', 'zh-TW']
+const readJson = (name) =>
+  JSON.parse(readFileSync(resolve(__dirname, '../../../static/locales', name), 'utf8'))
+const NOTICE_KEYS = ['title', 'update', 'later', 'skip']
+const UPDATES_KEYS = ['autoCheck', 'autoCheckHelp']
+const SEARCH_KEY = 'autoCheckUpdates'
+
+describe('components/updateNotice — notice', () => {
+  beforeEach(() => {
+    setupTestPinia()
+    document.body.innerHTML = ''
+  })
+
+  it('is hidden until the launch check queues it', () => {
+    const wrapper = mountNotice()
+    expect(wrapper.find('.ag-update-notice').exists()).toBe(false)
+    wrapper.unmount()
+  })
+
+  it('renders the localized title and the three buttons from the en table', async () => {
+    const store = useAutoUpdatesStore()
+    const wrapper = mountNotice()
+    queueNotice(store)
+    await nextTick()
+
+    expect(wrapper.find('.ag-update-notice').exists()).toBe(true)
+    expect(wrapper.find('.notice-title').text()).toBe('Mark 2.6.0 is available')
+    expect(wrapper.find('.notice-button-primary').text()).toBe('Update')
+    const labels = wrapper.findAll('.notice-button').map((b) => b.text())
+    expect(labels).toEqual(['Update', 'Later', 'Skip this version'])
+    wrapper.unmount()
+  })
+
+  it('re-renders when the store replaces the notice object (queue → dismiss)', async () => {
+    const store = useAutoUpdatesStore()
+    const wrapper = mountNotice()
+    queueNotice(store, '2.6.1')
+    await nextTick()
+    expect(wrapper.find('.notice-title').text()).toBe('Mark 2.6.1 is available')
+
+    store.DISMISS_NOTICE()
+    await nextTick()
+    expect(wrapper.find('.ag-update-notice').exists()).toBe(false)
+    wrapper.unmount()
+  })
+
+  it('Later dispatches DISMISS_NOTICE', async () => {
+    const store = useAutoUpdatesStore()
+    const dismiss = vi.spyOn(store, 'DISMISS_NOTICE')
+    const wrapper = mountNotice()
+    queueNotice(store)
+    await nextTick()
+
+    await wrapper.findAll('.notice-button')[1].trigger('click')
+    expect(dismiss).toHaveBeenCalledTimes(1)
+    wrapper.unmount()
+  })
+
+  it('Skip this version dispatches SKIP_VERSION', async () => {
+    const store = useAutoUpdatesStore()
+    const skip = vi.spyOn(store, 'SKIP_VERSION').mockResolvedValue()
+    const wrapper = mountNotice()
+    queueNotice(store)
+    await nextTick()
+
+    await wrapper.findAll('.notice-button')[2].trigger('click')
+    expect(skip).toHaveBeenCalledTimes(1)
+    wrapper.unmount()
+  })
+
+  it('Update dispatches INSTALL_UPDATE (the shared signed install flow)', async () => {
+    const store = useAutoUpdatesStore()
+    const install = vi.spyOn(store, 'INSTALL_UPDATE').mockResolvedValue()
+    const wrapper = mountNotice()
+    queueNotice(store)
+    await nextTick()
+
+    await wrapper.find('.notice-button-primary').trigger('click')
+    expect(install).toHaveBeenCalledTimes(1)
+    wrapper.unmount()
+  })
+
+  it('renders the ru table when the locale switches (native copy, not a key dump)', async () => {
+    i18n.global.setLocaleMessage('ru', ruTranslations)
+    const prevLocale = i18n.global.locale.value
+    i18n.global.locale.value = 'ru'
+
+    const store = useAutoUpdatesStore()
+    const wrapper = mountNotice()
+    queueNotice(store)
+    await nextTick()
+
+    expect(wrapper.find('.notice-title').text()).toBe('Доступен Mark 2.6.0')
+    expect(wrapper.findAll('.notice-button').map((b) => b.text())).toEqual([
+      'Обновить',
+      'Позже',
+      'Пропустить эту версию'
+    ])
+
+    i18n.global.locale.value = prevLocale
+    wrapper.unmount()
+  })
+
+  it('carries a polite live-region label so it never steals focus', async () => {
+    const store = useAutoUpdatesStore()
+    const wrapper = mountNotice()
+    queueNotice(store)
+    await nextTick()
+
+    expect(wrapper.find('.ag-update-notice').attributes('role')).toBe('status')
+    expect(wrapper.find('.ag-update-notice').attributes('aria-live')).toBe('polite')
+    wrapper.unmount()
+  })
+})
+
+describe('updateNotice + updates switch — all ten locales', () => {
+  afterEach(() => {
+    i18n.global.locale.value = 'en'
+  })
+
+  it('every locale ships the notice keys, the Updates switch keys and the search entry', () => {
+    for (const locale of LOCALES) {
+      const table = readJson(`${locale}.json`)
+      for (const key of NOTICE_KEYS) {
+        expect(typeof table.updateNotice?.[key], `${locale} updateNotice.${key}`).toBe('string')
+        expect(table.updateNotice[key].length, `${locale} updateNotice.${key}`).toBeGreaterThan(0)
+      }
+      const updates = table.preferences?.general?.updates
+      for (const key of UPDATES_KEYS) {
+        expect(typeof updates?.[key], `${locale} preferences.general.updates.${key}`).toBe('string')
+        expect(updates[key].length, `${locale} preferences.general.updates.${key}`).toBeGreaterThan(
+          0
+        )
+      }
+      const searchItem = table.preferences?.search?.items?.[SEARCH_KEY]
+      expect(typeof searchItem, `${locale} preferences.search.items.${SEARCH_KEY}`).toBe('string')
+      expect(searchItem.length, `${locale} preferences.search.items.${SEARCH_KEY}`).toBeGreaterThan(
+        0
+      )
+    }
+  })
+
+  it('the compact .min.json tables stay in sync (same keys, same values)', () => {
+    for (const locale of LOCALES) {
+      const full = readJson(`${locale}.json`)
+      const min = readJson(`${locale}.min.json`)
+      expect(min.updateNotice, `${locale}.min.json updateNotice`).toEqual(full.updateNotice)
+      expect(min.preferences.general.updates.autoCheck, `${locale}.min.json updates.autoCheck`)
+        .toBe(full.preferences.general.updates.autoCheck)
+      expect(min.preferences.general.updates.autoCheckHelp, `${locale}.min.json autoCheckHelp`).toBe(
+        full.preferences.general.updates.autoCheckHelp
+      )
+      expect(min.preferences.search.items.autoCheckUpdates, `${locale}.min.json search item`).toBe(
+        full.preferences.search.items.autoCheckUpdates
+      )
+    }
+  })
+})
