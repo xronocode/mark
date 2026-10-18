@@ -484,7 +484,7 @@
     "fullWidth": "Во всю ширину",
     "fitToPage": "По ширине страницы",
     "columnsRange": "столбцы {start}–{end} из {total}",
-    "allColumns": "все {total} столбцов"
+    "allColumns": "все столбцы ({total})"
   },
   "recent": {
     "taglineLead": "Агенты пишут. Вы",

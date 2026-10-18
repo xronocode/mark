@@ -414,11 +414,30 @@ describe('full width toggle + toolbar routing (C-65 R-4/R-6)', () => {
 
     muya.tableResize.toggleFullWidthFromElement(figure.querySelector('button.ag-table-toolbar-toggle') || figure)
 
-    // offset 50 → -11 - 50 = -61px.
-    expect(wrapper.style.marginLeft).toBe('-61px')
+    // A table wider than the editor area (natural width unknown → no fit)
+    // starts FULL_WIDTH_GUTTER_PX from the edge: offset 50 → -11 - 50 + 24.
+    expect(wrapper.style.marginLeft).toBe('-37px')
 
     muya.tableResize.toggleFullWidthFromElement(figure)
     expect(wrapper.style.marginLeft).toBe('')
+  })
+
+  it('a Full width table that fits the editor area is centred in it', () => {
+    const muya = makeFakeMuya()
+    const { figure, wrapper, table } = buildTableFigure('t1', ['Alpha'])
+    const editor = document.createElement('div')
+    editor.id = 'ag-editor-id'
+    editor.appendChild(figure)
+    muya.container.appendChild(editor)
+    wrapper.getBoundingClientRect = () => ({ left: 60, width: 400 })
+    table.getBoundingClientRect = () => ({ left: 60, width: 500 })
+    muya.container.getBoundingClientRect = () => ({ left: 10, width: 800 })
+    const styleSpy = vi.spyOn(window, 'getComputedStyle').mockReturnValue({ marginLeft: '-11px' })
+    CLEANUP.push(() => styleSpy.mockRestore())
+
+    muya.tableResize.toggleFullWidthFromElement(figure)
+    // (800 - 500) / 2 = 150 from the editor's left edge: -11 - 50 + 150.
+    expect(wrapper.style.marginLeft).toBe('89px')
   })
 
   it('scrolling a wrapper refreshes its cue through the capture listener', () => {
