@@ -1,10 +1,10 @@
 // FILE: tests/renderer/muya/block-expand-button.test.js
-// VERSION: 1.4.0
+// VERSION: 1.5.0
 // START_MODULE_CONTRACT
-//   PURPOSE: Pin the C-51 T-006/T-010 expand button — vnode placement, marker class and localized a11y attrs on every viewable figure, the drawn M-057 glyph (byte-identical to the canonical chromeIcons descriptor), click routing to the muya-block-viewer event, the keyboard guard that leaves Tab/Enter/arrows AND keyups to the focused button (the keyup selection repair used to steal the focus into the editing host), the copy-icon CSS literals (20 px, 8 px insets, 0/0.5/1 opacity curve, need-gated display, the 44 px strip removed), and the button never reaching export HTML.
-//   SCOPE: START_BLOCK_EXPAND_BUTTON (renderContainerBlock.js + renderExpandButton.js), START_BLOCK_EXPAND_BUTTON_CLICK (clickEvent.js), START_BLOCK_KEYBOARD_EXPAND_BUTTON (keyboard.js, keydown + keyup), the C-51 T-006/T-010 CSS section of lib/assets/styles/index.css, and ExportHtml.renderHtml. The need RULES live in expand-need.test.js.
+//   PURPOSE: Pin the C-51 T-006/T-010 expand button — vnode placement, marker class and localized a11y attrs on the figures that keep it since C-56 T-005 (flowchart, sequence, plantuml diagrams and tables; mermaid/vega-lite render the corner pill instead — see block-toolbar.test.js), the drawn M-057 glyph (byte-identical to the canonical chromeIcons descriptor), click routing to the muya-block-viewer event, the keyboard guard that leaves Tab/Enter/arrows AND keyups to the focused button (the keyup selection repair used to steal the focus into the editing host), the copy-icon CSS literals (20 px, 8 px insets, 0/0.5/1 opacity curve, need-gated display, the 44 px strip removed), and the button never reaching export HTML.
+//   SCOPE: START_BLOCK_EXPAND_BUTTON (renderContainerBlock.js + renderExpandButton.js), START_BLOCK_EXPAND_BUTTON_CLICK (clickEvent.js), START_BLOCK_KEYBOARD_EXPAND_BUTTON (keyboard.js, keydown + keyup), the C-51 T-006/T-010 CSS section of lib/assets/styles/index.css, and ExportHtml.renderHtml. The need RULES live in expand-need.test.js; the C-56 T-005 pill lives in block-toolbar.test.js.
 //   DEPENDS: StateRender (muya/lib/parser/render/index.js) with a mocked renderer loader, ClickEvent and Keyboard with a real-DOM event-center double, the muya selection singleton (spied for the keyup guard), muya snabbdom h, @/components/icons/chromeIcons (the glyph twin), ExportHtml with a pele double, node:fs for the CSS read; Vitest + jsdom.
-//   LINKS: .grace/changes/active/C-51 T-006 and T-010; .grace/verification/runtime.xml V-M-012 scenario-60; tests/e2e/block-viewer.spec.ts for the laid-out behaviour.
+//   LINKS: .grace/changes/active/C-51 T-006 and T-010; .grace/changes/active/C-56 T-005 (scope narrowed to the non-pill roles); .grace/verification/runtime.xml V-M-012 scenario-60; tests/e2e/block-viewer.spec.ts for the laid-out behaviour.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT
@@ -27,7 +27,15 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.4.0 - 2026-10-16 C-51 T-010: keyup guard cases — a
+//   LAST_CHANGE: v1.5.0 - 2026-10-18 C-56 T-005: the render cases split —
+//   flowchart/sequence/plantuml figures and tables keep the standalone
+//   button.ag-block-expand, while mermaid/vega-lite figures carry the
+//   corner pill instead (no direct expand child, no pencil — their
+//   coverage is block-toolbar.test.js); the glyph/label cases moved to a
+//   flowchart fixture; the export case also pins no ag-block-toolbar
+//   markup. The click/keyboard/CSS cases are unchanged (the standalone
+//   button and its rules remain for the non-pill roles).
+//   v1.4.0 - 2026-10-16 C-51 T-010: keyup guard cases — a
 //   keyup targeted at the focused expand button must not run muya's
 //   selection machinery (getCursorRange's needFix repair calls
 //   setCursorRange → Selection.addRange inside the contenteditable, and
@@ -243,9 +251,9 @@ const keyup = (el, init) => {
 
 describe('expand button render + routing (C-51 T-006/T-010)', () => {
   // START_BLOCK_EXPAND_BUTTON_RENDER_ASSERTIONS
-  it('renders button.ag-block-expand on every diagram figure with non-empty source', async () => {
+  it('renders button.ag-block-expand on flowchart/sequence/plantuml figures with non-empty source (the roles that keep it since C-56 T-005)', async () => {
     const sr = await createStateRender()
-    for (const functionType of ['mermaid', 'flowchart', 'sequence', 'plantuml', 'vega-lite']) {
+    for (const functionType of ['flowchart', 'sequence', 'plantuml']) {
       const { figure } = makeDiagramBlocks(functionType)
       const figureVnode = sr.renderBlock(null, figure, [], {}, false, t)
       const { button } = findExpandButtonVnode(figureVnode)
@@ -259,6 +267,24 @@ describe('expand button render + routing (C-51 T-006/T-010)', () => {
       expect(button.data.attrs.tabindex).toBe('0')
       // The figure carries the marker that scopes the reserved-corner CSS.
       expect(figureVnode.sel).toMatch(/\.ag-has-expand\b/)
+    }
+  })
+
+  it('mermaid and vega-lite figures keep the marker but carry the corner pill, not the standalone glyph (C-56 T-005)', async () => {
+    const sr = await createStateRender()
+    for (const functionType of ['mermaid', 'vega-lite']) {
+      const { figure } = makeDiagramBlocks(functionType)
+      const figureVnode = sr.renderBlock(null, figure, [], {}, false, t)
+      // The need gate still runs on these figures…
+      expect(figureVnode.sel, `${functionType} keeps the need marker`).toMatch(/\.ag-has-expand\b/)
+      // …but the standalone glyph is replaced by the pill (a figure child
+      // div whose third button is the expand action).
+      expect(findExpandButtonVnode(figureVnode).button, `${functionType} has no direct expand child`).toBeNull()
+      const toolbar = (figureVnode.children || []).find((c) => c.sel === 'div.ag-block-toolbar')
+      expect(toolbar, `${functionType} carries the pill`).toBeTruthy()
+      expect((toolbar.children || []).some((c) =>
+        c.sel === 'button.ag-block-expand.ag-block-toolbar-btn.ag-block-toolbar-expand'
+      )).toBe(true)
     }
   })
 
@@ -295,6 +321,8 @@ describe('expand button render + routing (C-51 T-006/T-010)', () => {
     const emptyVnode = sr.renderBlock(null, empty, [], {}, false, t)
     expect(findExpandButtonVnode(emptyVnode).button).toBeNull()
     expect(emptyVnode.sel).not.toMatch(/\.ag-has-expand\b/)
+    // C-56 T-005: an empty fence gets no pill either — the pencil stays.
+    expect((emptyVnode.children || []).some((c) => c.sel === 'div.ag-block-toolbar')).toBe(false)
 
     const quote = {
       key: 'bq', type: 'blockquote', parent: null,
@@ -306,7 +334,7 @@ describe('expand button render + routing (C-51 T-006/T-010)', () => {
 
   it('uses the blockViewer.expand key for the label (10-locale string table)', async () => {
     const sr = await createStateRender()
-    const { figure } = makeDiagramBlocks('mermaid')
+    const { figure } = makeDiagramBlocks('flowchart')
     const figureVnode = sr.renderBlock(null, figure, [], {}, false, t)
     const { button } = findExpandButtonVnode(figureVnode)
     expect(button.data.attrs['aria-label']).toBe('Expand')
@@ -314,7 +342,7 @@ describe('expand button render + routing (C-51 T-006/T-010)', () => {
 
   it('renders the drawn expand glyph inline, byte-identical to the canonical chromeIcons descriptor', async () => {
     const sr = await createStateRender()
-    const { figure } = makeDiagramBlocks('mermaid')
+    const { figure } = makeDiagramBlocks('flowchart')
     const figureVnode = sr.renderBlock(null, figure, [], {}, false, t)
     const { button } = findExpandButtonVnode(figureVnode)
 
@@ -515,6 +543,8 @@ describe('expand button never reaches export/print (C-51 T-006)', () => {
     expect(html).toContain('<table')
     expect(html).not.toContain('ag-block-expand')
     expect(html).not.toContain('ag-has-expand')
+    // C-56 T-005: the corner pill is editor chrome too — it never travels.
+    expect(html).not.toContain('ag-block-toolbar')
   })
 })
 // END_BLOCK_EXPAND_BUTTON_EXPORT_ASSERTIONS

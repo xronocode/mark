@@ -1,20 +1,31 @@
 // FILE: src/muya/lib/eventHandler/clickEvent.js
-// VERSION: 1.2.1
+// VERSION: 1.4.0
 // START_MODULE_CONTRACT
-//   PURPOSE: Route clicks inside the muya container — tools, drag bars, images, math, container previews, callouts, footnotes, checkboxes, the C-51 expand button — to contentState actions or eventCenter events.
+//   PURPOSE: Route clicks inside the muya container — tools, drag bars, images, math, container previews, callouts, footnotes, checkboxes, the C-51 expand button, the C-56 T-005 corner-pill actions — to contentState actions or eventCenter events.
 //   SCOPE: clickBinding and contextClickBinding only.
 //   DEPENDS: muya/lib/utils (domManipulate, getImageInfo), muya/lib/config, muya/lib/selection, contentState handlers.
-//   LINKS: .grace/graph/runtime.xml M-012; .grace/verification/runtime.xml V-M-012 scenario-19 and scenario-60; .grace/changes/active/C-34 T-002 (BLOCK_CONTAINER_VIEWER_CLICK); C-51 T-006 (BLOCK_EXPAND_BUTTON_CLICK) and T-010.
+//   LINKS: .grace/graph/runtime.xml M-012; .grace/verification/runtime.xml V-M-012 scenario-19, scenario-60 and scenario-64; .grace/changes/active/C-34 T-002 (BLOCK_CONTAINER_VIEWER_CLICK); C-51 T-006 (BLOCK_EXPAND_BUTTON_CLICK) and T-010; C-56 T-005 (BLOCK_TOOLBAR_CLICK).
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
-//   default - ClickEvent class (container click + contextmenu routing).
+//   default - ClickEvent class (container click + contextmenu routing; the C-56 corner pill routes by data-block-toolbar-action BEFORE the generic ag-block-expand branch).
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.2.1 - 2026-10-16 C-51 T-010: comment only — the
+//   LAST_CHANGE: v1.4.0 - 2026-10-18 C-56 T-005: the corner pill on
+//   mermaid/vega-lite figures routes its three actions — editSource →
+//   contentState.handleContainerBlockClick (the pencil's action),
+//   copyImage → the muya-diagram-export event (the T-002 host transport),
+//   expand → muya-block-viewer (START_BLOCK_TOOLBAR_CLICK, ahead of the
+//   generic expand branch because pill buttons share the ag-block-expand
+//   family class); a disabled pill button routes nowhere.
+//   v1.3.0 - 2026-10-18 C-56: a right-click on a rendered
+//   diagram/chart figure dispatches 'contextmenu' even without a live
+//   cursor (the non-editable preview collapses the selection), so the
+//   picture-export items are reachable.
+//   v1.2.1 - 2026-10-16 C-51 T-010: comment only — the
 //   click path is unchanged and works for every viewable block whether
 //   or not expandNeed.js currently shows the button (the ag-expand-needed
 //   class gates visibility, not the routing).
@@ -55,8 +66,15 @@ class ClickEvent {
 
       const { start, end } = selection.getCursorRange()
 
-      // Cursor out of editor
+      // Cursor out of editor. C-56: a right-click on a rendered diagram /
+      // chart preview (contenteditable=false) collapses the native
+      // selection, so there is no cursor — still dispatch, with no section
+      // changes, so the editor can offer the picture-export items.
       if (!start || !end) {
+        if (event.target && typeof event.target.closest === 'function' &&
+          event.target.closest('figure[data-role]')) {
+          eventCenter.dispatch('contextmenu', event, null)
+        }
         return
       }
 
@@ -156,6 +174,40 @@ class ClickEvent {
         event.preventDefault()
         return this.muya.contentState.copyCodeBlock(event)
       }
+
+      // START_BLOCK_TOOLBAR_CLICK
+      // C-56 T-005: the corner-pill actions on ```mermaid (pele) diagram
+      // and ```vega-lite chart figures. Every pill button carries the
+      // ag-block-expand family class (the keyboard.js key-guard hook), so
+      // this branch MUST run before the generic expand-button routing
+      // below and distinguishes the three actions by
+      // data-block-toolbar-action. A disabled Copy as image button
+      // (never-rendered block, corner-4) is routed nowhere — browsers
+      // deliver no click from a disabled button, and synthetic clicks are
+      // guarded explicitly.
+      const toolbarButton = target.closest('button.ag-block-toolbar-btn')
+      if (toolbarButton) {
+        event.preventDefault()
+        event.stopPropagation()
+        if (toolbarButton.disabled) return
+        const figure = toolbarButton.closest('figure')
+        const action = toolbarButton.dataset.blockToolbarAction
+        if (figure && action === 'editSource') {
+          // The same container edit action the old pencil icon and a
+          // plain preview click dispatch.
+          contentState.handleContainerBlockClick(figure)
+        } else if (figure && action === 'copyImage') {
+          // The shared C-56 transport on the host side (editor.vue
+          // handleDiagramExportAction): 2× PNG to the clipboard with the
+          // same toast/failure paths as the context-menu item.
+          eventCenter.dispatch('muya-diagram-export', { action: 'copyImage', element: figure })
+        } else if (figure) {
+          // 'expand': the shared fullscreen block viewer.
+          eventCenter.dispatch('muya-block-viewer', { element: figure })
+        }
+        return
+      }
+      // END_BLOCK_TOOLBAR_CLICK
 
       // START_BLOCK_EXPAND_BUTTON_CLICK
       // C-51 T-006/T-010: the expand ⤢ on diagram figures and tables

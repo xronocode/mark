@@ -94,6 +94,11 @@ export async function installTauriShim(page: Page): Promise<void> {
       mt_fonts_list: () => [],
       mt_fs_read: () => '',
       mt_fs_write: () => null,
+      mt_fs_write_binary: () => null,
+      // C-56 T-006: the embedded-image copy transport reads local files
+      // through the same read-binary bridge as the display (specs override
+      // to feed real PNG/JPEG bytes or simulate a broken read).
+      mt_fs_read_binary: () => null,
       mt_fs_stat: () => ({ isFile: false, isDirectory: false }),
       mt_fs_readdir: () => [],
       mt_fs_unlink: () => null,
@@ -105,6 +110,13 @@ export async function installTauriShim(page: Page): Promise<void> {
       mt_print_webview: () => null,
       mt_export_pdf: () => null,
       'plugin:dialog|open': () => null,
+      // C-56 diagram/chart picture export: the native context menu
+      // resolves "nothing clicked" by default (specs override to capture
+      // the items payload and/or return a clicked id), the clipboard
+      // image write and the dialog save no-op (specs override to capture
+      // the PNG bytes / return a save path).
+      'mt_window_popup_context_menu': () => null,
+      'plugin:clipboard-manager|write_image': () => null,
       'plugin:dialog|save': () => null,
       // Tauri runtime built-ins
       'plugin:path|resolve_directory': () => '/tmp/mark-e2e-fake-localdata',

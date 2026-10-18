@@ -263,6 +263,10 @@
       "copyAsHtml": "HTMLとしてコピー",
       "copyAsPlainText": "プレーンテキストとしてコピー",
       "copyAsStructuredText": "構造化テキストとしてコピー",
+      "copyAsImage": "画像としてコピー",
+      "copyImage": "画像をコピー",
+      "saveAsPng": "PNG として保存…",
+      "saveAsSvg": "SVG として保存…",
       "selectAll": "すべて選択",
       "share": "共有"
     }
@@ -449,8 +453,16 @@
     "zoomOut": "縮小",
     "fit": "画面に合わせる",
     "actualSize": "100%",
+    "copyImage": "画像としてコピー",
+    "savePng": "PNG として保存…",
+    "saveSvg": "SVG として保存…",
     "diagram": "図",
     "table": "表"
+  },
+  "blockToolbar": {
+    "editSource": "ソースを編集",
+    "copyImage": "画像としてコピー",
+    "openFullScreen": "全画面で開く"
   },
   "recent": {
     "taglineLead": "エージェントが書く。",
@@ -1273,12 +1285,14 @@
       },
       "toolbar": {
         "edit": "画像を編集",
+        "copyImage": "画像をコピー",
         "inline": "インライン画像",
         "alignLeft": "左揃え",
         "alignCenter": "中央揃え",
         "alignRight": "右揃え",
         "delete": "画像を削除"
-      }
+      },
+      "copyTitle": "画像"
     },
     "placeholders": {
       "frontMatter": "YAML フロントマターを入力...",
@@ -1289,6 +1303,12 @@
       "error": "エクスポートエラー",
       "errorExporting": "ファイルのエクスポート中にエラーが発生しました",
       "failed": "エクスポートに失敗しました"
+    },
+    "diagramExport": {
+      "title": "図",
+      "copied": "コピーしました",
+      "copyFailed": "画像をコピーできませんでした",
+      "saveFailed": "ファイルを保存できませんでした"
     },
     "insertTable": {
       "title": "表を挿入",
