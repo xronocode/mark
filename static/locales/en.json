@@ -471,6 +471,12 @@
     "copyImage": "Copy as image",
     "openFullScreen": "Open full screen"
   },
+  "tableToolbar": {
+    "fullWidth": "Full width",
+    "fitToPage": "Fit to page",
+    "columnsRange": "columns {start}–{end} of {total}",
+    "allColumns": "all {total} columns"
+  },
   "recent": {
     "taglineLead": "Agents write. You",
     "taglineHighlight": "shape",

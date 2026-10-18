@@ -469,6 +469,12 @@
     "copyImage": "Copiar como imagem",
     "openFullScreen": "Abrir em tela cheia"
   },
+  "tableToolbar": {
+    "fullWidth": "Largura total",
+    "fitToPage": "Ajustar à página",
+    "columnsRange": "colunas {start}–{end} de {total}",
+    "allColumns": "todas as {total} colunas"
+  },
   "recent": {
     "taglineLead": "Os agentes escrevem. Você",
     "taglineHighlight": "dá forma",
