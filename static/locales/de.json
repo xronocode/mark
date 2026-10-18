@@ -360,6 +360,7 @@
   "exportSettings": {
     "autoNumberingHeadings": "Automatische Nummerierung der Überschriften",
     "title": "Export-Optionen",
+    "pdfTitle": "Als PDF exportieren",
     "info": {
       "label": "Information",
       "description": "Bitte passen Sie das Seitenlayout an und klicken Sie auf 'Exportieren', um fortzufahren."

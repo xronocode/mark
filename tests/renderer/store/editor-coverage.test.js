@@ -656,13 +656,40 @@ describe('store/editor — coverage gaps', () => {
       expect(save).toHaveBeenCalled()
     })
 
-    it('PDF type opens the native print panel (C-18)', async () => {
+    it('PDF type runs save dialog then mt_export_pdf — never the print panel (C-59)', async () => {
       const { invoke } = await import('@tauri-apps/api/core')
+      const { save } = await import('@tauri-apps/plugin-dialog')
       invoke.mockClear()
       editor.currentFile = makeTab({ id: 't1', pathname: '/tmp/a.md', filename: 'a.md' })
       editor.tabs = [editor.currentFile]
-      await editor.EXPORT({ type: 'pdf', content: '<p/>' })
-      expect(invoke).toHaveBeenCalledWith('mt_print_webview')
+      save.mockResolvedValueOnce('/tmp/out.pdf')
+      await editor.EXPORT({
+        type: 'pdf',
+        pageOptions: { pageSize: 'A4', isLandscape: true, pageMarginTop: 20 }
+      })
+      expect(save).toHaveBeenCalledWith(
+        expect.objectContaining({
+          defaultPath: 'a.pdf',
+          filters: [{ name: 'PDF', extensions: ['pdf'] }]
+        })
+      )
+      expect(invoke).toHaveBeenCalledWith('mt_export_pdf', {
+        path: '/tmp/out.pdf',
+        pageOptions: { pageSize: 'A4', isLandscape: true, pageMarginTop: 20 }
+      })
+      expect(invoke).not.toHaveBeenCalledWith('mt_print_webview')
+    })
+
+    it('PDF type with a cancelled save dialog writes nothing and notifies nobody (C-59 corner-2)', async () => {
+      const { invoke } = await import('@tauri-apps/api/core')
+      const { save } = await import('@tauri-apps/plugin-dialog')
+      invoke.mockClear()
+      editor.currentFile = makeTab({ id: 't1', pathname: '/tmp/a.md', filename: 'a.md' })
+      editor.tabs = [editor.currentFile]
+      save.mockResolvedValueOnce(null)
+      await editor.EXPORT({ type: 'pdf', pageOptions: {} })
+      expect(invoke).not.toHaveBeenCalled()
+      expect(notice.notify).not.toHaveBeenCalled()
     })
   })
 

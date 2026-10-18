@@ -365,6 +365,7 @@
   "exportSettings": {
     "autoNumberingHeadings": "Auto numbering headings",
     "title": "Export Options",
+    "pdfTitle": "Export to PDF",
     "info": {
       "label": "Info",
       "description": "Please customize the page appearance and click on \"export\" to continue."
@@ -377,8 +378,7 @@
       "pageMargin": "Page margin in mm:",
       "topBottom": "Top/Bottom:",
       "leftRight": "Left/Right:",
-      "widthHeight": "Width/Height in mm:",
-      "printPanelHint": "Page size and orientation are set in the system print dialog. Margins below still apply."
+      "widthHeight": "Width/Height in mm:"
     },
     "showFrontMatter": "Show front matter",
     "style": {

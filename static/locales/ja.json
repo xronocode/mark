@@ -358,6 +358,7 @@
   "exportSettings": {
     "autoNumberingHeadings": "見出しの自動番号付け",
     "title": "エクスポートオプション",
+    "pdfTitle": "PDF に書き出す",
     "info": {
       "label": "情報",
       "description": "ページレイアウトを調整して、'エクスポート'をクリックして続行してください。"
