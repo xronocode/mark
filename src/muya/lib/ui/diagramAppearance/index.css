@@ -1,4 +1,5 @@
-/* C-62: local diagram controls; chrome always follows the document. */
+/* C-62: local diagram controls; chrome always follows the document.
+   C-56 T-007: inline control lives in the corner pill. */
 .ag-diagram-appearance {
   display: inline-flex;
   align-items: center;
@@ -11,14 +12,26 @@
   background: transparent;
   cursor: pointer;
 }
-figure > .ag-diagram-appearance { position: absolute; top: 8px; right: 36px; width: 32px; height: 22px; opacity: .55; z-index: 2; }
-figure:not(.ag-expand-needed) > .ag-diagram-appearance { right: 8px; }
-/* Keep the persistent controls above diagram content, even for a short
-   one-row flowchart. Source editing keeps its existing copy control. */
-figure[data-role="MERMAID"]:not(.ag-active) > .ag-container-preview { padding-top: 36px; box-sizing: border-box; }
-figure.ag-active > .ag-diagram-appearance { display: none; }
-figure.ag-container-block[data-role="MERMAID"] .ag-container-icon { right: 48px; }
-figure.ag-container-block[data-role="MERMAID"].ag-expand-needed .ag-container-icon { right: 76px; }
+/* C-56 T-007: inside a diagram the control is the corner pill's leading
+   item (div.ag-block-toolbar, C-56 T-005 variant C): it shares the pill's
+   right-edge anchor and hover-only reveal, so no fixed offsets and no
+   reserved top padding above the diagram. */
+figure.ag-has-expand > div.ag-block-toolbar > button.ag-diagram-appearance {
+  gap: 2px;
+  padding: 4px 6px;
+  border-radius: 6px;
+  color: var(--pele-muted, var(--iconColor, #777));
+  background: transparent;
+}
+figure.ag-has-expand > div.ag-block-toolbar > button.ag-diagram-appearance:hover,
+figure.ag-has-expand > div.ag-block-toolbar > button.ag-diagram-appearance:focus-visible,
+figure.ag-has-expand > div.ag-block-toolbar > button.ag-diagram-appearance[aria-expanded="true"] {
+  color: var(--pele-fg, currentColor);
+  background: color-mix(in srgb, var(--pele-fg, currentColor) 10%, transparent);
+}
+/* An open appearance menu keeps the pill on screen after the pointer
+   leaves the figure for the menu. */
+figure.ag-has-expand:has(.ag-diagram-appearance[aria-expanded="true"]) > div.ag-block-toolbar { opacity: 1; }
 .ag-diagram-appearance:hover, .ag-diagram-appearance:focus-visible, .ag-diagram-appearance[aria-expanded="true"] { opacity: 1; background: var(--itemBgColor, rgba(127,127,127,.12)); }
 .ag-diagram-appearance > svg[data-appearance-icon] { display: none; width: 16px; height: 16px; }
 .ag-diagram-appearance > svg[data-appearance-icon="chevron"] { display: block; width: 10px; }
@@ -54,10 +67,6 @@ figure.ag-container-block[data-role="MERMAID"].ag-expand-needed .ag-container-ic
 .ag-diagram-appearance-check { visibility: hidden; }
 .ag-diagram-appearance-option[aria-checked="true"] .ag-diagram-appearance-check { visibility: visible; }
 @media (pointer: coarse) {
-  figure > .ag-diagram-appearance { width: 40px; height: 40px; }
-  figure.ag-expand-needed > .ag-diagram-appearance { right: 34px; }
-  figure[data-role="MERMAID"]:not(.ag-active) > .ag-container-preview { padding-top: 56px; }
-  figure.ag-container-block[data-role="MERMAID"] .ag-container-icon { right: 56px; }
-  figure.ag-container-block[data-role="MERMAID"].ag-expand-needed .ag-container-icon { right: 82px; }
+  figure.ag-has-expand > div.ag-block-toolbar > button.ag-diagram-appearance { min-width: 40px; min-height: 40px; }
   .ag-diagram-appearance-option { min-height: 52px; }
 }

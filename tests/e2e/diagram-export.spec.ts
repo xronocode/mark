@@ -1,5 +1,5 @@
 // FILE: tests/e2e/diagram-export.spec.ts
-// VERSION: 1.2.0
+// VERSION: 1.3.0
 // START_MODULE_CONTRACT
 //   PURPOSE: E2E gate for the C-56 per-block diagram/chart picture export — context-menu items only on rendered Pele diagram / Vega-Lite chart blocks (enabled when rendered, disabled when the block never rendered, absent on paragraphs/tables/flowchart blocks), Copy as Image putting a 2×-natural PNG on the clipboard through plugin:clipboard-manager|write_image, Save as PNG…/SVG… writing valid bytes via the dialog + fs shims (2× IHDR, standalone SVG with zero var(--pele-*) and the theme panel background rect), the heading-slug default file name (ascii + Cyrillic + document fallback), the cancelled-save no-op, the fullscreen block viewer toolbar exporting the WHOLE diagram at 2× natural size while the viewer itself is zoomed (corner-2) with the buttons hidden on non-exportable sources, the C-56 T-005 corner pill (hover reveal + caret-only invisibility, localized labels, Edit source opening the block source, Copy as image through the shared transport, Open full screen, scope limited to mermaid/vega-lite figures), and the C-56 T-006 embedded-image copy (the image-toolbar Copy image button between edit and the alignment buttons and the context-menu Copy Image item writing the PNG bytes — local file:// images through the read-binary bridge with exact-byte PNG pass-through, JPEG re-encoded on a canvas at natural size, and a broken read showing the failure notice with nothing written).
 //   SCOPE: diagram-export.spec.ts only; boots the built renderer via the tauri shim with mocked preferences (same bootstrap as pele-render.spec.ts) and per-test __mockInvoke overrides for the context-menu popup, the clipboard image write, the dialog save, the binary/text fs writes and the binary fs read.
@@ -26,7 +26,10 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.2.0 - 2026-10-18 C-56 T-006: the START_BLOCK_EXPORT_
+//   LAST_CHANGE: v1.3.0 - 2026-10-18 C-56 T-007: the pill-label case
+//   reads only the family buttons and pins the leading C-62 appearance
+//   control on Mermaid pills.
+//   v1.2.0 - 2026-10-18 C-56 T-006: the START_BLOCK_EXPORT_
 //   E2E_IMAGE_COPY group — the image toolbar's Copy image button (position
 //   between edit and the alignment buttons, exact-byte PNG pass-through
 //   for a local file:// image through the read-binary bridge), the
@@ -581,12 +584,14 @@ ${Array.from({ length: 12 }, (_, i) => `| value ${i + 1}`).join('')} |
     await expect(pill).toBeVisible()
     expect(await pill.evaluate((el) => getComputedStyle(el).opacity)).toBe('1')
     const labels = await pill.evaluate((el) =>
-      Array.from(el.querySelectorAll('button')).map((b) => ({
+      Array.from(el.querySelectorAll('button.ag-block-toolbar-btn')).map((b) => ({
         action: (b as HTMLElement).dataset.blockToolbarAction,
         label: b.getAttribute('aria-label'),
         title: b.getAttribute('title')
       }))
     )
+    // C-56 T-007: a Mermaid pill leads with the C-62 appearance control.
+    expect(await pill.evaluate((el) => el.firstElementChild?.matches('button.ag-diagram-appearance'))).toBe(true)
     expect(labels).toEqual([
       { action: 'editSource', label: 'Edit source', title: 'Edit source' },
       { action: 'copyImage', label: 'Copy as image', title: 'Copy as image' },

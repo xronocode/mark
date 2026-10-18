@@ -1,5 +1,5 @@
 // FILE: src/muya/lib/parser/render/renderBlock/renderDiagramAppearance.js
-// VERSION: 1.0.0
+// VERSION: 1.0.1
 // START_MODULE_CONTRACT
 //   PURPOSE: Shared four-mode appearance button and translated copy for inline diagrams and the fullscreen viewer.
 //   SCOPE: Snabbdom/DOM factories, fixed SVG glyph data and attribute-only button state updates.
@@ -16,7 +16,8 @@
 //   default - inline diagram appearance button vnode.
 // END_MODULE_MAP
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.0.0 - 2026-10-18 C-62: shared native-button affordance and four appearance icons.
+//   LAST_CHANGE: v1.0.1 - 2026-10-18 C-56 T-007: 1.5 stroke to match the corner pill icon family; the inline button renders inside the pill.
+//   v1.0.0 - 2026-10-18 C-62: shared native-button affordance and four appearance icons.
 // END_CHANGE_SUMMARY
 import { h } from '../snabbdom'
 import { APPEARANCE_MODES, readDiagramAppearance } from '../../../utils/diagramAppearance'
@@ -35,7 +36,7 @@ const GLYPHS = {
   custom: [['path', { d: 'M8 2a6 6 0 1 0 0 12h1a1.6 1.6 0 0 0 1-2.8c-.6-.5-.3-1.2.4-1.2H12a2 2 0 0 0 2-2 6 6 0 0 0-6-6Z' }], ['circle', { cx: 5, cy: 6, r: .55, fill: 'currentColor' }], ['circle', { cx: 8, cy: 4.7, r: .55, fill: 'currentColor' }], ['circle', { cx: 11, cy: 6, r: .55, fill: 'currentColor' }]],
   chevron: [['path', { d: 'm4.5 6.5 3.5 3 3.5-3' }]]
 }
-const svgAttrs = { viewBox: '0 0 16 16', width: '16', height: '16', fill: 'none', stroke: 'currentColor', 'stroke-width': '1.4', 'stroke-linecap': 'round', 'stroke-linejoin': 'round', 'aria-hidden': 'true' }
+const svgAttrs = { viewBox: '0 0 16 16', width: '16', height: '16', fill: 'none', stroke: 'currentColor', 'stroke-width': '1.5', 'stroke-linecap': 'round', 'stroke-linejoin': 'round', 'aria-hidden': 'true' }
 export const appearanceText = (t, key) => {
   const full = `diagramAppearance.${key}`
   const value = typeof t === 'function' ? t(full) : null
