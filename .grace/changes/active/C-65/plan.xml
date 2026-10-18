@@ -2,7 +2,7 @@
 <C-65>
   <ChangeRef>C-65</ChangeRef>
   <Created>2026-10-18</Created>
-  <IntentSummary>Persist table column widths per file in the Mark profile (only after a resize, keyed by path + ordinal + header signature, rename-aware, pruned), move tables onto the C-56 corner pill, and add a visible «N more columns →» edge cue.</IntentSummary>
+  <IntentSummary>Persist table column widths (and the per-table Full width mode) per file in the Mark profile; a table toolbar above the table and a «columns X–Y of N» caption below it, both anchored to the text-column edge (approved mockup variant E); edge shades only; 100% coverage on the change's files.</IntentSummary>
   <BaselineAssertions>
     <MustContain>
       <File>src/muya/lib/parser/render/renderBlock/renderBlockToolbar.js</File>
@@ -44,7 +44,9 @@
     <Corner id='corner-4'><Situation>Renamed through Mark</Situation><Expected>widths follow the new path</Expected></Corner>
     <Corner id='corner-5'><Situation>Never resized</Situation><Expected>nothing stored</Expected></Corner>
     <Corner id='corner-6'><Situation>Narrow table</Situation><Expected>no cue, pill expand stays need-gated (hidden)</Expected></Corner>
-    <Corner id='corner-7'><Situation>Caret inside the table</Situation><Expected>table tools shown; pill hidden like diagrams (ag-active)</Expected></Corner>
+    <Corner id='corner-7'><Situation>Caret inside the table</Situation><Expected>table tools shown; toolbar hidden like diagrams (ag-active)</Expected></Corner>
+    <Corner id='corner-8'><Situation>Full width table wider than the window</Situation><Expected>window scrolls horizontally; toolbar and caption stay on the column edge inside the window</Expected></Corner>
+    <Corner id='corner-9'><Situation>Toolbar over the line above the table</Situation><Expected>allowed; it disappears when the pointer leaves the table</Expected></Corner>
   </CornerMatrix>
   <ImplementationPlan>
     <T-001>
@@ -54,23 +56,29 @@
       <Verification><Command>npx vitest run tests/renderer/muya/table-column-resize.test.js</Command></Verification>
     </T-001>
     <T-002>
-      <Title>Tables on the C-56 corner pill (expand action only), standalone glyph removed for tables</Title>
+      <Title>Table toolbar above the table on the text-column edge (Full width ↔ Fit to page, Open full screen), standalone glyph removed</Title>
       <DependsOn></DependsOn>
-      <AcceptanceCriteria><Criterion>R-4; block-viewer and block-expand tests updated.</Criterion></AcceptanceCriteria>
+      <AcceptanceCriteria><Criterion>R-4; block-viewer and block-expand tests updated; never over the middle of the table.</Criterion></AcceptanceCriteria>
       <Verification><Command>npx playwright test tests/e2e/block-viewer.spec.ts --project=chromium</Command></Verification>
     </T-002>
     <T-003>
-      <Title>«N more columns →» edge cue with click-to-scroll, ten locales</Title>
+      <Title>Edge shades + «columns X–Y of N» caption below the table on the column edge, live on scroll/resize, ten locales</Title>
       <DependsOn></DependsOn>
-      <AcceptanceCriteria><Criterion>R-5; table-layout e2e pins the cue.</Criterion></AcceptanceCriteria>
+      <AcceptanceCriteria><Criterion>R-5; caption range math unit-pinned; table-layout e2e pins start/middle/end.</Criterion></AcceptanceCriteria>
       <Verification><Command>npx playwright test tests/e2e/table-layout.spec.ts --project=chromium --project=webkit-tables</Command></Verification>
     </T-003>
     <T-004>
-      <Title>Graph M-012 / verification V-M-012, full suite, live check</Title>
-      <DependsOn>T-001, T-002, T-003</DependsOn>
-      <AcceptanceCriteria><Criterion>R-6; grace lint 0.</Criterion></AcceptanceCriteria>
-      <Verification><Command>grace lint --path . --assertions current</Command></Verification>
+      <Title>Per-table Full width mode (natural width from the editor's left edge, window scrolls), remembered in the profile store</Title>
+      <DependsOn>T-001, T-002</DependsOn>
+      <AcceptanceCriteria><Criterion>R-6; e2e wider-than-window case with the window scrollbar.</Criterion></AcceptanceCriteria>
+      <Verification><Command>npx playwright test tests/e2e/table-layout.spec.ts --project=chromium --project=webkit-tables</Command></Verification>
     </T-004>
+    <T-005>
+      <Title>100% coverage gate, graph M-012 / verification V-M-012, screenshots, live check</Title>
+      <DependsOn>T-001, T-002, T-003, T-004</DependsOn>
+      <AcceptanceCriteria><Criterion>R-7: per-file 100% line/branch thresholds pinned; grace lint 0.</Criterion></AcceptanceCriteria>
+      <Verification><Command>npx vitest run --coverage</Command><Command>grace lint --path . --assertions current</Command></Verification>
+    </T-005>
   </ImplementationPlan>
 </C-65>
 </GraceChangePlan>
