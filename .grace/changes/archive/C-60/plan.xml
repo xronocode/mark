@@ -34,6 +34,7 @@
       <T-003><Status>done</Status><Result>npm test: 307 files, 4113 passed, 2 skipped, 3 todo. Frontend build passed. Browser integration: 8/8 in Chromium and WebKit, including saved/unsaved state, undo/redo, cached tabs and Split View mirror.</Result></T-003>
       <Grace>Selected C-60 target assertions with run-commands passed (230 tests, 2 skipped; 0 errors). Final/global lint still reports exactly the 3 pre-existing C-55 obsolete baseline assertions; no C-60 errors. Global current lint and module status rerun at handoff.</Grace>
       <Release>Code fix only; no release tag, publication or replacement of the installed Mark 2.4.0.</Release>
+      <IntegrationEvidence><Date>2026-10-18</Date><Native>Separate Mark C62 Smoke debug instance: opened a fixture with a reference and definition, disabled Footnotes in the native Settings window and observed literal syntax immediately in the already-open editor; enabled it again and observed the rendered reference/definition without reopening. Restored the original enabled preference.</Native><CurrentState>After the separately authorized C-55 closure, global current lint and module status both report 0 integrity errors (14 existing warnings).</CurrentState></IntegrationEvidence>
     </Evidence>
   </C-60>
 </GraceChangePlan>
