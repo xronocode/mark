@@ -1,6 +1,6 @@
 // @vitest-environment node
 // FILE: tests/site/gallery.test.mjs
-// VERSION: 1.0.0
+// VERSION: 1.1.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Verify the gallery corpus and the built /diagrams/ page
 //            (C-58 R-1/R-3, T-001/T-002) — every example renders with pele
@@ -24,7 +24,11 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.0.0 - 2026-10-18 C-58 T-001/T-002: first version.
+//   LAST_CHANGE: v1.1.0 - 2026-10-18 C-64 T-001: fonts now load from
+//   /fonts/brand/ (moved from /fonts/gallery/), and the page carries two
+//   inline scripts (the shared no-flash THEME_INIT_JS + the controller) —
+//   the count assertion follows deliberately; CSP hashing lands in T-003.
+//   v1.0.0 - 2026-10-18 C-58 T-001/T-002: first version.
 // END_CHANGE_SUMMARY
 
 import { render } from 'pele'
@@ -113,7 +117,11 @@ describe('renderGallery (the built page)', () => {
     expect(HTML).not.toContain('fonts.googleapis.com')
     expect(HTML).not.toContain('fonts.gstatic.com')
     expect(HTML).not.toContain('src="undefined')
-    expect((HTML.match(/<script\b/g) || []).length).toBe(1)
+    // C-64 T-001: two inline scripts now — the shared no-flash THEME_INIT_JS
+    // in <head> (must run before CSS) and the controller at end of body.
+    // Neither has a src when analytics is off; C-64 T-003 hashes both.
+    expect((HTML.match(/<script\b/g) || []).length).toBe(2)
+    expect(HTML).not.toMatch(/<script\b[^>]*\ssrc=/)
   })
 
   it('leaves no unrendered tokens or pele errors', () => {
@@ -124,7 +132,7 @@ describe('renderGallery (the built page)', () => {
   it('substitutes the site base everywhere under SITE_BASE=/mark/', () => {
     const html = renderGallery(resolveSiteSettings({ SITE_URL: 'https://xronocode.github.io/mark', SITE_BASE: '/mark/' }))
     expect(html).toContain('href="/mark/guide/"')
-    expect(html).toContain('url("/mark/fonts/gallery/BricolageGrotesque-800.woff2")')
+    expect(html).toContain('url("/mark/fonts/brand/BricolageGrotesque-800.woff2")')
     expect(html).not.toMatch(/%BASE%|(href|src)="\/(?!mark\/)/)
   })
 })

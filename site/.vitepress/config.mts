@@ -1,5 +1,5 @@
 // FILE: site/.vitepress/config.mts
-// VERSION: 2.4.0
+// VERSION: 2.5.0
 // START_MODULE_CONTRACT
 //   PURPOSE: VitePress config for the Mark site — docs, shared head, the
 //            landing served at the site root, and the diagram gallery at
@@ -8,14 +8,20 @@
 //          dev middleware for the landing and /diagrams/, buildEnd emission
 //          of landing + gallery (+ theme-vars refresh), robots.txt and CNAME.
 //   DEPENDS: vitepress, ./landing.mjs, ../scripts/build-gallery.mjs,
-//            ../scripts/gallery-theme-vars.mjs
-//   LINKS: M-053 SiteBuild; C-22; C-58; .github/workflows/site.yml
+//            ../scripts/gallery-theme-vars.mjs, ../shared/theme-init.mjs
+//   LINKS: M-053 SiteBuild; C-22; C-58; C-64 T-001; .github/workflows/site.yml
 //   ROLE: CONFIG
 //   MAP_MODE: NONE
 // END_MODULE_CONTRACT
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: [v2.4.0 - 2026-10-18 C-58 T-003: the sitemap lists the
+//   LAST_CHANGE: [v2.5.0 - 2026-10-18 C-64 T-001: the docs wear the brand —
+//                 theme/ extends DefaultTheme over site/shared/brand.css;
+//                 head gains the shared no-flash THEME_INIT_JS script, the
+//                 paper/ink theme-color pair and font preloads; nav is
+//                 Diagrams/Guide/Reference/Changelog (+ GitHub icon) with
+//                 Privacy and Support moved to the footer.]
+//   PREV: [v2.4.0 - 2026-10-18 C-58 T-003: the sitemap lists the
 //                 buildEnd-emitted diagrams/ gallery (a docs nav entry was
 //                 dropped: an eighth item overflows the phone nav bar).]
 //   PREV: [v2.3.0 - 2026-10-18 C-58 T-002: buildEnd also emits the
@@ -46,6 +52,7 @@ import {
 } from './landing.mjs'
 import { renderGallery } from '../scripts/build-gallery.mjs'
 import { writeThemeVarsFile } from '../scripts/gallery-theme-vars.mjs'
+import { THEME_INIT_JS } from '../shared/theme-init.mjs'
 
 const settings = resolveSiteSettings(process.env)
 const { siteUrl, base, analytics } = settings
@@ -54,13 +61,22 @@ const loadLanding = () => renderLanding(readFileSync(landingTemplate, 'utf8'), s
 
 // START_BLOCK_DOCS_HEAD
 const head: HeadConfig[] = [
+  // C-64 R-2: resolve the saved/system theme before first paint — same
+  // script the gallery inlines; VitePress's own check-dark-mode runs after
+  // it and agrees (same storage key, same resolution).
+  ['script', {}, THEME_INIT_JS],
   ['style', {}, '.vp-doc div[class*=language-] > span.lang{color:var(--vp-c-text-2)}'],
   ['link', { rel: 'icon', type: 'image/png', href: `${base}${SITE_META.favicon}` }],
-  ['meta', { name: 'theme-color', content: '#07090c' }],
+  // Paper in light, ink in dark — the browser chrome matches the page.
+  ['meta', { name: 'theme-color', content: '#F5EFE4', media: '(prefers-color-scheme: light)' }],
+  ['meta', { name: 'theme-color', content: '#17191E', media: '(prefers-color-scheme: dark)' }],
   ['meta', { property: 'og:type', content: 'website' }],
   ['meta', { property: 'og:site_name', content: SITE_META.name }],
   ['meta', { property: 'og:image', content: `${siteUrl}/${SITE_META.ogImage}` }],
-  ['meta', { name: 'twitter:card', content: 'summary_large_image' }]
+  ['meta', { name: 'twitter:card', content: 'summary_large_image' }],
+  // Above-the-fold brand faces (display headings + body text).
+  ['link', { rel: 'preload', href: `${base}fonts/brand/BricolageGrotesque-800.woff2`, as: 'font', type: 'font/woff2', crossorigin: '' }],
+  ['link', { rel: 'preload', href: `${base}fonts/brand/IBMPlexSans-400.woff2`, as: 'font', type: 'font/woff2', crossorigin: '' }]
 ]
 // Page views on client-side navigation come from GA4 enhanced measurement
 // and the Cloudflare beacon (both watch history events): no router hook.
@@ -74,6 +90,10 @@ export default defineConfig({
   description: SITE_META.description,
   base,
   cleanUrls: true,
+  // /diagrams/ is emitted by buildEnd outside VitePress, so markdown links
+  // to it (e.g. guide/themes.md) look dead to the checker but are alive in
+  // the served site.
+  ignoreDeadLinks: [/^\/diagrams\b/],
   // C-58 T-003: the gallery is emitted in buildEnd, not as a VitePress
   // page, so it joins the sitemap here.
   sitemap: {
@@ -140,14 +160,18 @@ export default defineConfig({
   // END_BLOCK_BUILD_END
 
   themeConfig: {
-    logo: `/${SITE_META.favicon}`,
+    // The ¶ icon + "Mark" in Bricolage (theme/index.ts + custom.css).
+    logo: { src: '/mark-icon.svg', alt: 'Mark' },
+    // C-64: five items max — the bar must fit 390 px with zero overflow
+    // (extra items collapse into VitePress's hamburger on phones, but the
+    // desktop bar + search + appearance still need headroom). /diagrams/
+    // is emitted outside VitePress: a plain same-tab link (any `target`
+    // attribute opts out of the SPA router) that dead-link checks ignore.
     nav: [
+      { text: 'Diagrams', link: `${base}diagrams/`, target: '_self' },
       { text: 'Guide', link: '/guide/' },
       { text: 'Reference', link: '/reference/' },
-      { text: 'Changelog', link: '/changelog' },
-      { text: 'Privacy', link: '/privacy' },
-      { text: 'GitHub', link: 'https://github.com/xronocode/mark' },
-      { text: 'Support', link: 'https://ko-fi.com/xronocode' }
+      { text: 'Changelog', link: '/changelog' }
     ],
     sidebar: {
       '/guide/': [
@@ -193,9 +217,16 @@ export default defineConfig({
     socialLinks: [
       { icon: 'github', link: 'https://github.com/xronocode/mark' }
     ],
+    // C-64: Privacy and Support moved here from the nav; the theme renders
+    // the rows mono/uppercase over a rule (proof-sheet footer).
     footer: {
-      message: 'Released under the MIT License.',
-      copyright: 'Copyright 2017+ Jocs, 2024+ tkaixiang, 2026+ xronocode'
+      message:
+        `<a href="${base}guide/">Docs</a> · <a href="${base}diagrams/">Diagrams</a> · ` +
+        `<a href="${base}changelog">Changelog</a> · <a href="${base}privacy">Privacy</a> · ` +
+        '<a href="https://ko-fi.com/xronocode">Support</a> · ' +
+        '<a href="https://github.com/xronocode/mark">GitHub</a>',
+      copyright:
+        'Released under the MIT License. Copyright 2017+ Jocs, 2024+ tkaixiang, 2026+ xronocode'
     }
   }
 })

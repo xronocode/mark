@@ -4,43 +4,32 @@ description: "Choose light and dark themes and adjust the appearance of document
 
 # Themes
 
-Mark ships with 21 built-in themes, switchable from **View > Theme** in the menu bar.
+Mark ships with 32 built-in themes — 15 families with a light and a dark member, plus two dark-only themes — switchable from **View > Theme** in the menu bar. One title-bar button flips the current family between its light and dark side.
 
-## Light themes
+## Families (light / dark)
 
-- Cadmium Light
-- Graphite
-- Ulysses
-- Ayu Light
-- Catppuccin Latte
-- Everforest Light
-- Gruvbox Light
-- Rose Pine Dawn
-- Solarized Light
-- Tokyo Night Light
+- Paper / Ink
+- Docs / Docs Dark
+- macOS / macOS Dark
+- Graphite / Graphite Dark
+- Ulysses / Ulysses Dark
+- One Light / One Dark
+- Nord Light / Nord
+- Gruvbox Light / Gruvbox Dark
+- Everforest Light / Everforest Dark
+- Solarized Light / Solarized Dark
+- Rosé Pine Dawn / Rosé Pine
+- Kanagawa Lotus / Kanagawa
+- Catppuccin Latte / Catppuccin Mocha
+- Ayu Light / Ayu Dark
+- Tokyo Night Light / Tokyo Night
 
-## Dark themes
+## Dark only
 
-- Dark (default dark)
-- Material Dark
-- One Dark
-- Ayu Dark / Ayu Mirage
-- Catppuccin Mocha
-- Cyberdream
+- Alucard
 - Dracula
-- Everforest Dark
-- Gruvbox Dark
-- Horizon Dark
-- Kanagawa
-- Monokai Pro
-- Nightfox
-- Nord
-- Oxocarbon Dark
-- Palenight
-- Rose Pine / Rose Pine Moon
-- Solarized Dark
-- Synthwave '84
-- Tokyo Night / Tokyo Night Storm
+
+Every theme is in the <a href="/diagrams/" target="_self">diagram gallery</a> too — pick a theme there and watch every diagram type recolour.
 
 ## Custom CSS
 
