@@ -2,26 +2,29 @@
 layout: home
 hero:
   name: Mark
-  text: Modern WYSIWYG Markdown Editor
-  tagline: Your AI agents write Markdown. Finally, an editor that does it justice.
+  text: The Markdown editor for AI agents
+  tagline: Your agents write Markdown. Mark renders it — tables, 32 kinds of diagrams, math — as they save.
   actions:
     - theme: brand
       text: Get Started
       link: /guide/
     - theme: alt
+      text: Mac App Store
+      link: https://apps.apple.com/app/id6814590464
+    - theme: alt
       text: View on GitHub
       link: https://github.com/xronocode/mark
 features:
-  - title: 11 MB. Under a second.
-    details: Native Tauri app with no Chromium overhead. 61 MB RAM. Opens instantly.
-  - title: WYSIWYG + Source
-    details: Write in rich mode with live-rendered tables, Mermaid diagrams, KaTeX math. Switch to source code mode with Cmd+Alt+S.
-  - title: Live Reload
-    details: External file changes auto-reload with cursor preservation. Your agent writes, you see changes instantly.
-  - title: 21 Themes
-    details: From Cadmium Light to Synthwave '84. One-click switch from the View menu.
-  - title: Project Sidebar
-    details: Open a folder, browse the file tree, click to open. Context menu for new/rename/delete.
-  - title: Built for AI Workflows
+  - title: Native and small
+    details: Tauri 2 app on the system WebView. ≈30 MB on disk, first window in ≈0.4 s (measured on 2.3.0). No Electron, no Chromium.
+  - title: WYSIWYG + Split View
+    details: Write in the rendered page — tables, diagrams, KaTeX math, code blocks inline. Split View puts the source beside it; Cmd+Alt+S is source mode.
+  - title: Live reload
+    details: External file changes auto-reload with scroll and cursor kept. Your agent saves, you see the page move; ⌘D shows what changed.
+  - title: 32 themes, 32 diagram types
+    details: Theme families with light and dark members — Paper, Ink, Docs, macOS and more. Every diagram type renders in the theme's colours.
+  - title: Project sidebar
+    details: Open a folder, browse Markdown files, click to open. Context menu for new/rename/delete; search across the folder.
+  - title: Built for AI workflows
     details: CLI flags, preview mode, diff view. Designed for human-in-the-loop collaboration with coding agents.
 ---
