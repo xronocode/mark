@@ -236,6 +236,7 @@ const COMMAND_KEY_MAP = {
   'help.guide': 'commands.help.guide',
   'help.whats-new': 'commands.help.whatsNew',
   'help.rate': 'commands.help.rateMark',
+  'help.support': 'commands.help.support',
 
   // ============================================
   // # 拼写检查命令 (Spell Checker)

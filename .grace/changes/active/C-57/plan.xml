@@ -1,0 +1,86 @@
+<GraceChangePlan graceVersion='4.0' status='approved'>
+<C-57>
+  <ChangeRef>C-57</ChangeRef>
+  <Created>2026-10-18</Created>
+  <IntentSummary>Restore the Ko-fi support moment: two link placements on the landing plus a Support item in the docs nav; Help › Support Mark… in the desktop build (id-dispatched help.support command opening https://ko-fi.com/xronocode), excluded from App Store builds via a new m048 `support` capability flag and cfg gating mirroring C-48's Rate Mark… in reverse; ten locales; m009/m048/capability-gate tests; graph and verification updated.</IntentSummary>
+  <BaselineAssertions>
+    <MustContain>
+      <File>README.md</File>
+      <Text>https://ko-fi.com/xronocode</Text>
+    </MustContain>
+    <MustContain>
+      <File>src-tauri/src/m009_menu.rs</File>
+      <Text>help.rate</Text>
+    </MustContain>
+  </BaselineAssertions>
+  <TargetAssertions>
+    <MustVerify>
+      <Module>M-009</Module>
+    </MustVerify>
+    <MustVerify>
+      <Module>M-048</Module>
+    </MustVerify>
+    <MustContain>
+      <File>site/landing/index.html</File>
+      <Text>https://ko-fi.com/xronocode</Text>
+    </MustContain>
+    <MustContain>
+      <File>site/.vitepress/config.mts</File>
+      <Text>https://ko-fi.com/xronocode</Text>
+    </MustContain>
+    <MustContain>
+      <File>src-tauri/src/m009_menu.rs</File>
+      <Text>help.support</Text>
+    </MustContain>
+    <MustContain>
+      <File>src/renderer/src/commands/index.js</File>
+      <Text>help.support</Text>
+    </MustContain>
+    <MustContain>
+      <File>static/locales/ru.min.json</File>
+      <Text>Ko-fi</Text>
+    </MustContain>
+    <MustPassCommand>
+      <Command>cd src-tauri &amp;&amp; cargo test menu</Command>
+    </MustPassCommand>
+    <MustPassCommand>
+      <Command>npx vitest run tests/renderer/commands/capability-gate.test.js</Command>
+    </MustPassCommand>
+    <MustContain><File>src/renderer/src/commands/index.js</File><Text>https://ko-fi.com/xronocode</Text></MustContain>
+  </TargetAssertions>
+  <DurableScope>
+    <GraphAnchors>
+      <M-009 />
+      <M-048 />
+      <M-011 />
+    </GraphAnchors>
+    <VerificationAnchors>
+      <V-M-009 />
+      <V-M-048 />
+    </VerificationAnchors>
+  </DurableScope>
+  <PlanRevision><Number>2</Number><Supersedes>provenance/plan-v1-approved.xml.txt</Supersedes><SHA256>4da88e37e160d944d4492e188426cdea392e1bd5c8514bfc3f822dcd9710934f</SHA256><Reason>The locale label correctly spells Ko-fi, while revision 1 required lowercase ko-fi. The new target pins the actual product spelling and the canonical URL. Replace a lifecycle command in task verification with leaf tests; run GRACE as the outer lifecycle gate.</Reason><Approval>Routine verification correction while completing the user-authorized readiness review; product goals remain unchanged. The original approved plan is preserved byte-for-byte.</Approval></PlanRevision>
+  <ObservedWriteScope><File>site/**</File><File>src/renderer/src/**</File><File>src-tauri/src/**</File><File>static/locales/*.json</File><File>tests/renderer/**</File><File>.grace/graph/runtime.xml</File><File>.grace/verification/runtime.xml</File></ObservedWriteScope>
+  <ImplementationPlan>
+    <T-001>
+      <Title>Site: Ko-fi links on the landing and docs nav</Title>
+      <DependsOn></DependsOn>
+      <AcceptanceCriteria><Criterion>Open source card carries the Ko-fi sentence; footer carries "Support on Ko-fi"; VitePress nav carries "Support"; site build + check-dist green with ko-fi.com/xronocode in every built page.</Criterion></AcceptanceCriteria>
+      <Verification><Command>cd site &amp;&amp; npm run build &amp;&amp; npm run check</Command></Verification>
+    </T-001>
+    <T-002>
+      <Title>App: m048 support flag, m009 menu item, renderer command + gate</Title>
+      <DependsOn>T-001</DependsOn>
+      <AcceptanceCriteria><Criterion>Desktop builds show Help › Support Mark… opening ko-fi.com/xronocode; app-store cfg builds have neither the menu item nor the palette command; m009 taxonomy test and m048 shape test cover the gate; capability-gate test pins the prune.</Criterion></AcceptanceCriteria>
+      <Verification><Command>cd src-tauri &amp;&amp; cargo test menu</Command><Command>cd src-tauri &amp;&amp; cargo test --bin mark m048</Command><Command>npx vitest run tests/renderer/commands/capability-gate.test.js</Command></Verification>
+    </T-002>
+    <T-003>
+      <Title>Locales + graph/verification deltas</Title>
+      <DependsOn>T-002</DependsOn>
+      <AcceptanceCriteria><Criterion>commands.help.support in all ten locales (.json + .min.json), native copy; M-009/M-048 summaries and V-M-009/V-M-048 scenarios updated; grace lint --assertions current = 0.</Criterion></AcceptanceCriteria>
+      <Verification><Command>npx vitest run tests/renderer/commands/capability-gate.test.js tests/renderer/editions-doc.test.js</Command></Verification>
+    </T-003>
+  </ImplementationPlan>
+  <IntegrationReadiness><Date>2026-10-18</Date><Authorization>User authorized a separate C-57 commit if ready, with local checks before any push and no app release/tag.</Authorization><LocalEvidence>Desktop m009: 27 passed; desktop m048: 3 passed. App Store m009: 27 passed; App Store m048: 3 passed, including support=false and menu absence. Renderer capability/edition checks: 18 passed. Site build/check: 19 pages, 441 valid links. General GRACE current lint: 0 errors after C-55 closure.</LocalEvidence><NativeEvidence>Separate Mark C62 Smoke dev instance, Help → Support Mark… invoked through native accessibility. Safari's current address verified as https://ko-fi.com/xronocode.</NativeEvidence><Pending>Public-site verification follows the authorized push and site workflow deployment. The bundle remains approved until that external check is complete.</Pending></IntegrationReadiness>
+</C-57>
+</GraceChangePlan>

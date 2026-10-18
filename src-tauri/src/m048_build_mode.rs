@@ -1,5 +1,5 @@
 // FILE: src-tauri/src/m048_build_mode.rs
-// VERSION: 1.2.0
+// VERSION: 1.3.0
 // START_MODULE_CONTRACT
 //   PURPOSE: M-048 build-mode descriptor (C-15 T-115). Exposes which
 //            distribution the renderer is running in so it can hide
@@ -33,6 +33,10 @@
 //     (NSSharingServicePicker is sandbox-safe); the live server stays off.
 //   - 2026-10-15 C-48: `review` flag — SKStoreReviewController (m053)
 //     exists only in the App Store build on macOS; desktop stays false.
+//   - 2026-10-18 C-57: `support` flag — the Help › Support Mark… Ko-fi
+//     link ships only in desktop builds (ASC review risk in store
+//     builds); the renderer capability gate prunes help.support when
+//     false, mirroring how review gates help.rate in reverse.
 // END_CHANGE_SUMMARY
 
 use serde::Serialize;
@@ -57,6 +61,10 @@ pub struct BuildMode {
     /// build on macOS — the renderer review flow and Help › Rate Mark…
     /// gate on this, not on the mode string.
     pub review: bool,
+    /// C-57: the external Ko-fi support link (Help › Support Mark…)
+    /// ships only in desktop builds — no donation surface in store
+    /// builds. The renderer gates help.support on this flag.
+    pub support: bool,
 }
 
 #[tauri::command]
@@ -76,6 +84,8 @@ pub async fn mt_build_mode() -> Result<BuildMode, String> {
             // C-48: the system rating sheet (SKStoreReviewController,
             // m053) is App Store + macOS only.
             review: cfg!(target_os = "macos"),
+            // C-57: no donation link in store builds (ASC review risk).
+            support: false,
         })
     }
     #[cfg(not(feature = "app-store"))]
@@ -93,6 +103,8 @@ pub async fn mt_build_mode() -> Result<BuildMode, String> {
             share: cfg!(target_os = "macos"),
             // C-48: no system rating sheet exists outside the store.
             review: false,
+            // C-57: the Ko-fi link ships in every desktop build.
+            support: true,
         })
     }
 }
@@ -114,6 +126,7 @@ mod tests {
             updater: false,
             share: cfg!(target_os = "macos"),
             review: cfg!(target_os = "macos"),
+            support: false,
         };
         #[cfg(not(feature = "app-store"))]
         let m = BuildMode {
@@ -125,6 +138,7 @@ mod tests {
             updater: true,
             share: cfg!(target_os = "macos"),
             review: false,
+            support: true,
         };
         assert!(matches!(m.mode, "app-store" | "desktop"));
         // app-store must never advertise a sandbox-hostile capability.
@@ -132,6 +146,11 @@ mod tests {
             assert!(!m.export_pandoc && !m.screenshot && !m.set_default_handler);
             // C-44: the share sheet is sandbox-safe and enabled on macOS.
             assert_eq!(m.share, cfg!(target_os = "macos"));
+            // C-57: no donation surface in store builds.
+            assert!(!m.support);
+        } else {
+            // C-57: every desktop build ships the Ko-fi support link.
+            assert!(m.support);
         }
         // C-15 T-W2: desktop builds off macOS never advertise the
         // macOS-only binaries (screencapture, defaults/lsregister).
@@ -161,4 +180,26 @@ mod tests {
         assert!(m.review, "the MAS build on macOS owns the rating sheet");
     }
     // END_BLOCK_REVIEW_FLAG_TEST
+
+    // START_BLOCK_SUPPORT_FLAG_TEST
+    // C-57: the Ko-fi support link (Help › Support Mark…) is
+    // desktop-only — store builds must not advertise a donation surface
+    // (ASC review risk). cargo test without features pins desktop true;
+    // the MAS CI build compiles the mirror assertion.
+    #[cfg(not(feature = "app-store"))]
+    #[tokio::test]
+    async fn desktop_builds_advertise_the_support_capability() {
+        let m = mt_build_mode().await.expect("build mode");
+        assert_eq!(m.mode, "desktop");
+        assert!(m.support, "desktop builds ship the Ko-fi support link");
+    }
+
+    #[cfg(all(feature = "app-store", target_os = "macos"))]
+    #[tokio::test]
+    async fn app_store_builds_never_advertise_the_support_capability() {
+        let m = mt_build_mode().await.expect("build mode");
+        assert_eq!(m.mode, "app-store");
+        assert!(!m.support, "store builds have no donation surface");
+    }
+    // END_BLOCK_SUPPORT_FLAG_TEST
 }

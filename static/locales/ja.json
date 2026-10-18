@@ -992,7 +992,8 @@
     "help": {
       "guide": "Markガイド",
       "whatsNew": "新機能",
-      "rateMark": "Mark を評価…"
+      "rateMark": "Mark を評価…",
+      "support": "Ko-fi で Mark を支援…"
     },
     "utils": {
       "noUpdateResourceFile": "アップデートリソースファイルなし",
