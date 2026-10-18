@@ -1,5 +1,5 @@
 // FILE: tests/renderer/components/tabs-lock.test.js
-// VERSION: 1.0.0
+// VERSION: 1.1.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Verify the C-40 T-004 tab-chrome pieces — the lock badge on read-only tabs and the tab-context-menu bus handlers (lock/unlock, split view, copy-document flavors).
 //   SCOPE: Vue/jsdom component tests over editorWithTabs/tabs.vue with mocked bus/dragula/contextMenu and a stubbed i18n.
@@ -15,7 +15,9 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.0.0 - 2026-10-15 C-40 T-004 initial pins: badge on
+//   LAST_CHANGE: v1.1.0 - 2026-10-18 the badge marks an explicit lock only;
+//   a Finder reading view (previewMode alone) has none.
+//   v1.0.0 - 2026-10-15 C-40 T-004 initial pins: badge on
 //   previewMode tabs (hidden on editable ones), toggle-lock handler,
 //   per-tab split view, exact copy-as-markdown write, rendered-flavor
 //   activation + delayed dispatch.
@@ -83,11 +85,17 @@ describe('tabs.vue — C-40 T-004 lock badge + document tools', () => {
     return shallowMount(Tabs, { global: { plugins: [pinia, i18n] } })
   }
 
-  it('shows the lock badge on a read-only tab, not on an editable one', async () => {
+  it('shows the lock badge on an explicitly locked tab only, not on a Finder reading view', async () => {
     const wrapper = await mountTabs()
     expect(wrapper.find('.tab-lock-badge').exists()).toBe(false)
 
+    // Finder/CLI reading view: read-only until the first click, no badge.
     editorStore.currentFile.previewMode = true
+    await wrapper.vm.$nextTick()
+    expect(wrapper.find('.tab-lock-badge').exists()).toBe(false)
+
+    // An explicit lock (View › Lock Document) shows it.
+    editorStore.currentFile.locked = true
     await wrapper.vm.$nextTick()
 
     const badge = wrapper.find('.tab-lock-badge')
