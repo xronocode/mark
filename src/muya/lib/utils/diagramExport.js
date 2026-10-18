@@ -406,13 +406,16 @@ export const rasterizeSvg = async (svgString, {
   const imageFactory = makeImage || (() => new Image())
   const img = imageFactory()
   const dataUrl = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svgString)}`
-  // src first, then wait: decode() before src rejects in Chromium/WebKit.
-  const loaded = new Promise((resolve, reject) => {
-    img.onload = () => resolve()
-    img.onerror = () => reject(new Error('rasterizeSvg: the SVG image failed to load'))
-  })
+  // src first, then wait: decode() called before src rejects in
+  // Chromium/WebKit; images without decode() fall back to onload/onerror.
+  const loaded = typeof img.decode === 'function'
+    ? null
+    : new Promise((resolve, reject) => {
+      img.onload = () => resolve()
+      img.onerror = () => reject(new Error('rasterizeSvg: the SVG image failed to load'))
+    })
   img.src = dataUrl
-  await loaded
+  await (loaded || img.decode())
   const canvas = canvasFactory(width, height)
   const ctx = canvas.getContext('2d')
   if (!ctx) {
