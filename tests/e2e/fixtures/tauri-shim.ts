@@ -97,6 +97,15 @@ export async function installTauriShim(page: Page): Promise<void> {
       mt_fs_stat: () => ({ isFile: false, isDirectory: false }),
       mt_fs_readdir: () => [],
       mt_fs_unlink: () => null,
+      // C-59: print / export-to-PDF backend surface — no-op defaults so
+      // other specs see a quiet success; print-export.spec.ts overrides
+      // them per test to capture invocations. The dialog plugin commands
+      // cancel by default (open/save → null), matching a user dismissing
+      // the picker.
+      mt_print_webview: () => null,
+      mt_export_pdf: () => null,
+      'plugin:dialog|open': () => null,
+      'plugin:dialog|save': () => null,
       // Tauri runtime built-ins
       'plugin:path|resolve_directory': () => '/tmp/mark-e2e-fake-localdata',
       'plugin:path|resolve': () => '/tmp/mark-e2e-fake-localdata',
@@ -142,6 +151,10 @@ export async function installTauriShim(page: Page): Promise<void> {
       convertFileSrc: (path: string, _protocol?: string) =>
         `asset://localhost/${encodeURIComponent(path)}`,
       invoke: async (cmd: string, args: unknown) => {
+        // C-59: opt-in invocation-order trace — a spec sets
+        // window.__invokeLog = [] in addInitScript and every command
+        // name is appended in call order (invoke-order assertions).
+        ;(window as any).__invokeLog?.push(cmd)
         const overrides = (window as any).__mockInvoke || {}
         const handler = overrides[cmd] || defaults[cmd]
         if (!handler) {

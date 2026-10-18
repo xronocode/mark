@@ -363,6 +363,7 @@
   "exportSettings": {
     "autoNumberingHeadings": "Numérotation automatique des titres",
     "title": "Options d'exportation",
+    "pdfTitle": "Exporter en PDF",
     "info": {
       "label": "Informations",
       "description": "Veuillez personnaliser l'apparence de la page et cliquer sur 'Exporter' pour continuer."

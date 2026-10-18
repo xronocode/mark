@@ -1,40 +1,790 @@
 // FILE: src-tauri/src/m052_print.rs
-// VERSION: 1.0.0
+// VERSION: 2.0.0
 // START_MODULE_CONTRACT
-//   PURPOSE: Open the native WKWebView print panel for the caller window (C-18: Print + Export-PDF without pandoc; sandbox/MAS-safe).
-//   SCOPE: One Tauri command mt_print_webview; no state, no files, no dialogs of its own.
-//   DEPENDS: tauri 2 Webview::print (wry printOperationWithPrintInfo, macOS 11+).
-//   LINKS: .grace/changes/archive/C-18; .grace/graph/runtime.xml M-052; .grace/verification/runtime.xml V-M-052.
+//   PURPOSE: Native print surface — mt_print_webview opens the platform print panel for the caller window and mt_export_pdf silently writes the webview content to a .pdf path chosen in the renderer's save dialog (C-59 split of Print vs Export to PDF; MAS-sandbox-safe).
+//   SCOPE: Two Tauri commands, the pure pageOptions→geometry mapping (named page sizes, landscape swap, margins), and .pdf path validation. No state, no dialogs of its own; the only file ever written is the user-selected path handed in by the renderer.
+//   DEPENDS: tauri 2 WebviewWindow::with_webview on the main thread (PlatformWebview: WKWebView pointer on macOS; ICoreWebView2Controller + ICoreWebView2Environment on Windows); cocoa/objc 0.2 on macOS; webview2-com 0.38 + windows-core 0.61 on Windows; tokio oneshot for main-thread→async-command results; serde for the pageOptions payload.
+//   LINKS: .grace/changes/active/C-59; .grace/graph/runtime.xml M-052; .grace/verification/runtime.xml V-M-052; .grace/changes/archive/C-18 (the superseded single-panel flow).
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
-//   mt_print_webview - Opens the system print panel (with "Save as PDF") for the invoking window's webview content.
+//   PdfPageOptions - camelCase renderer payload (pageSize/pageSizeWidth/pageSizeHeight/isLandscape, pageMargin* in mm); every field optional.
+//   PdfPageGeometry - resolved geometry: portrait page size in mm, landscape flag, four margins in mm.
+//   page_geometry - PdfPageOptions → PdfPageGeometry via the named-size table (a3/a4/a5/legal/letter/taboloid, "custom" uses explicit mm), with range + margin clamping.
+//   validate_pdf_path - rejects empty and non-.pdf destinations (C-59 R-6).
+//   mm_to_points / mm_to_inches - unit conversions for AppKit (points) and WebView2 (inches).
+//   mt_print_webview - macOS: WKWebView print operation attached to the window, modal; resolves when the panel closes so the renderer can clear the print container. Windows: WebView2 browser print UI (ICoreWebView2_16::ShowPrintUI). Linux: explicit error.
+//   mt_export_pdf - macOS: NSPrintInfo with jobDisposition NSPrintSaveJob + NSPrintJobSavingURL, paper size/orientation from pageOptions, panels suppressed, resolves after the file exists. Windows: ICoreWebView2_7::PrintToPdf with ICoreWebView2Environment6 print settings; resolves from the completion handler. Linux: explicit error.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   - 2026-09-23 v1.0.0: C-18 — replaces window.print() (silently ignored by WKWebView) and the pandoc PDF export path with the native print panel; works in app-store builds (no external binaries).
+//   - 2026-10-18 v2.0.0 C-59: split Print and Export to PDF into two flows.
+//     mt_print_webview no longer routes through wry's macOS-only print on
+//     every platform: macOS drives the WKWebView print operation itself and
+//     resolves when the modal panel closes (renderer clears the print
+//     container then); Windows opens the WebView2 browser print UI instead
+//     of erroring "macOS-only". New mt_export_pdf writes the PDF silently —
+//     NSPrintInfo NSPrintSaveJob/NSPrintJobSavingURL on macOS,
+//     ICoreWebView2_7::PrintToPdf on Windows. Both share the pure
+//     page_geometry mapping (named sizes, landscape swap, margins) and
+//     validate_pdf_path. Margins on the native print info stay at 0: the
+//     shared print CSS (@page, built from the same pageOptions) owns the
+//     visible margins, so panel output and the saved PDF paginate
+//     identically (C-18 behavior preserved). Linux keeps explicit errors.
+//   - 2026-09-23 v1.0.0: C-18 — replaces window.print() (silently ignored
+//     by WKWebView) and the pandoc PDF export path with the native print
+//     panel; works in app-store builds (no external binaries).
 // END_CHANGE_SUMMARY
+
+use serde::Deserialize;
+
+// ──────────────────────────────────────────────────────────────────────
+// START_BLOCK_PAGE_OPTIONS
+// Pure option mapping — platform-independent and unit-tested (V-M-052).
+// Sizes are millimetres; margins are millimetres with the settings
+// dialog's defaults (20/15/20/15) when the renderer omits them.
+// ──────────────────────────────────────────────────────────────────────
+
+/// Renderer payload for `mt_export_pdf` (camelCase keys via serde).
+#[allow(dead_code)]
+#[derive(Debug, Clone, Default, Deserialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct PdfPageOptions {
+    /// Named size from the settings dialog ("A4", "Letter", "custom", …).
+    pub page_size: Option<String>,
+    /// Custom width in mm (used when `page_size` is "custom").
+    pub page_size_width: Option<f64>,
+    /// Custom height in mm (used when `page_size` is "custom").
+    pub page_size_height: Option<f64>,
+    /// Landscape orientation (page dimensions are swapped).
+    pub is_landscape: Option<bool>,
+    pub page_margin_top: Option<f64>,
+    pub page_margin_right: Option<f64>,
+    pub page_margin_bottom: Option<f64>,
+    pub page_margin_left: Option<f64>,
+}
+
+/// Resolved page geometry (portrait dimensions; the landscape flag swaps
+/// them at the platform boundary).
+// The mapping section below is a pure, test-covered API: each platform's
+// command path consumes a different subset (macOS reads paper points,
+// Windows reads margins in inches, Linux none), so dead_code would fire
+// per-target on the rest. Allow it here instead of cfg-splitting the tests.
+#[allow(dead_code)]
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct PdfPageGeometry {
+    pub width_mm: f64,
+    pub height_mm: f64,
+    pub landscape: bool,
+    pub margin_top_mm: f64,
+    pub margin_right_mm: f64,
+    pub margin_bottom_mm: f64,
+    pub margin_left_mm: f64,
+}
+
+const DEFAULT_MARGIN_TOP_MM: f64 = 20.0;
+const DEFAULT_MARGIN_RIGHT_MM: f64 = 15.0;
+const DEFAULT_MARGIN_BOTTOM_MM: f64 = 20.0;
+const DEFAULT_MARGIN_LEFT_MM: f64 = 15.0;
+const MIN_PAGE_MM: f64 = 10.0;
+const MAX_PAGE_MM: f64 = 2000.0;
+
+/// Named page sizes in millimetres (portrait), mirroring
+/// exportOptions.js getPageSizeList().
+#[allow(dead_code)]
+fn named_page_size_mm(name: &str) -> Option<(f64, f64)> {
+    match name.trim().to_ascii_lowercase().as_str() {
+        "a3" => Some((297.0, 420.0)),
+        "a4" => Some((210.0, 297.0)),
+        "a5" => Some((148.0, 210.0)),
+        "legal" => Some((215.9, 355.6)),
+        "letter" => Some((215.9, 279.4)),
+        "tabloid" => Some((279.4, 431.8)),
+        _ => None,
+    }
+}
+
+/// Map renderer pageOptions to a validated geometry. Unknown named sizes
+/// are rejected; "custom" (and a missing name) uses the explicit mm pair,
+/// falling back to A4 — the settings dialog default — when nothing is set.
+#[allow(dead_code)]
+pub fn page_geometry(options: &PdfPageOptions) -> Result<PdfPageGeometry, String> {
+    let (width, height) = match options.page_size.as_deref() {
+        None | Some("") | Some("custom") => {
+            match (options.page_size_width, options.page_size_height) {
+                (Some(w), Some(h)) => (w, h),
+                _ => (210.0, 297.0),
+            }
+        }
+        Some(name) => named_page_size_mm(name)
+            .ok_or_else(|| format!("unknown page size \"{name}\""))?,
+    };
+
+    if !(MIN_PAGE_MM..=MAX_PAGE_MM).contains(&width)
+        || !(MIN_PAGE_MM..=MAX_PAGE_MM).contains(&height)
+    {
+        return Err(format!(
+            "page size {width}x{height} mm is outside the supported {MIN_PAGE_MM}-{MAX_PAGE_MM} mm range"
+        ));
+    }
+
+    let clamp_margin =
+        |value: Option<f64>, fallback: f64| value.unwrap_or(fallback).max(0.0);
+
+    Ok(PdfPageGeometry {
+        width_mm: width,
+        height_mm: height,
+        landscape: options.is_landscape.unwrap_or(false),
+        margin_top_mm: clamp_margin(options.page_margin_top, DEFAULT_MARGIN_TOP_MM),
+        margin_right_mm: clamp_margin(options.page_margin_right, DEFAULT_MARGIN_RIGHT_MM),
+        margin_bottom_mm: clamp_margin(options.page_margin_bottom, DEFAULT_MARGIN_BOTTOM_MM),
+        margin_left_mm: clamp_margin(options.page_margin_left, DEFAULT_MARGIN_LEFT_MM),
+    })
+}
+
+/// The save destination must be a .pdf path (C-59 R-6).
+pub fn validate_pdf_path(path: &str) -> Result<(), String> {
+    let trimmed = path.trim();
+    if trimmed.is_empty() {
+        return Err("the PDF destination path is empty".to_string());
+    }
+    if !trimmed.to_ascii_lowercase().ends_with(".pdf") {
+        return Err(format!(
+            "the PDF destination must end in .pdf, got \"{trimmed}\""
+        ));
+    }
+    Ok(())
+}
+
+#[allow(dead_code)]
+pub fn mm_to_points(mm: f64) -> f64 {
+    mm * 72.0 / 25.4
+}
+
+#[allow(dead_code)]
+pub fn mm_to_inches(mm: f64) -> f64 {
+    mm / 25.4
+}
+
+impl PdfPageGeometry {
+    /// Paper size in PostScript points for NSPrintInfo, swapped when
+    /// landscape (macOS writes exactly this as the page box).
+    #[allow(dead_code)]
+    pub fn paper_size_points(&self) -> (f64, f64) {
+        let w = mm_to_points(self.width_mm);
+        let h = mm_to_points(self.height_mm);
+        if self.landscape {
+            (h, w)
+        } else {
+            (w, h)
+        }
+    }
+}
+// END_BLOCK_PAGE_OPTIONS
+
+// ──────────────────────────────────────────────────────────────────────
+// Commands. Both dispatch through WebviewWindow::with_webview (the
+// closure runs on the main thread, where both webviews live) and hand the
+// outcome back to the async command through a tokio oneshot channel.
+// ──────────────────────────────────────────────────────────────────────
 
 /// Open the native print panel for the calling window's webview.
 ///
-/// On macOS this is the WKWebView print operation (system panel with
-/// pagination and "Save as PDF"). wry's print is macOS-only and silently
-/// no-ops elsewhere, so non-macOS builds fail fast with an explicit error
-/// instead of pretending to print.
+/// macOS runs the WKWebView print operation modally for the window and
+/// resolves once the panel has closed, so the renderer can clear its print
+/// container afterwards (C-59 R-1). Windows opens the WebView2 browser
+/// print UI (the dialog keeps its own live preview, so the invoke resolves
+/// right away and the renderer keeps the container until the next
+/// export). Linux fails fast with an explicit error.
 #[tauri::command]
 pub async fn mt_print_webview(webview_window: tauri::WebviewWindow) -> Result<(), String> {
-    #[cfg(not(target_os = "macos"))]
+    #[cfg(not(any(target_os = "macos", target_os = "windows")))]
     {
         let _ = &webview_window;
-        return Err("print panel is macOS-only".to_string());
+        return Err("printing is not supported on this platform".to_string());
     }
-    #[cfg(target_os = "macos")]
+    #[cfg(any(target_os = "macos", target_os = "windows"))]
     {
-    // WebviewWindow has no public `.webview()` accessor; AsRef<Webview<R>>
-    // is the supported route to the webview half.
-        let wv: &tauri::Webview<_> = std::convert::AsRef::as_ref(&webview_window);
-        wv.print().map_err(|e| format!("native print unavailable: {e}"))
+        let (tx, rx) = tokio::sync::oneshot::channel::<Result<(), String>>();
+        webview_window
+            .with_webview(move |pv| {
+                #[cfg(target_os = "macos")]
+                let result = unsafe { print_panel_wkwebview(pv.inner()) };
+                #[cfg(target_os = "windows")]
+                let result = unsafe {
+                    let controller = pv.controller();
+                    print_panel_webview2(&controller)
+                };
+                let _ = tx.send(result);
+            })
+            .map_err(|e| format!("webview unavailable: {e}"))?;
+        rx.await
+            .map_err(|_| "the print panel did not complete".to_string())?
+    }
+}
+
+/// Write the calling window's webview content to `path` as a PDF,
+/// silently — no print panel, no progress panel (C-59 R-2/R-3/R-4).
+///
+/// `path` comes from the renderer's save dialog; the MAS sandbox therefore
+/// only ever sees a user-selected URL. macOS uses the WKWebView print
+/// operation in save-to-file mode (NSPrintSaveJob + NSPrintJobSavingURL,
+/// paper size/orientation from `pageOptions`); Windows uses WebView2
+/// PrintToPdf with print settings from the environment. Linux fails fast
+/// with an explicit error.
+#[tauri::command]
+pub async fn mt_export_pdf(
+    webview_window: tauri::WebviewWindow,
+    path: String,
+    page_options: PdfPageOptions,
+) -> Result<(), String> {
+    validate_pdf_path(&path)?;
+
+    #[cfg(not(any(target_os = "macos", target_os = "windows")))]
+    {
+        let _ = (&webview_window, &page_options);
+        return Err("PDF export is not supported on this platform".to_string());
+    }
+    #[cfg(any(target_os = "macos", target_os = "windows"))]
+    {
+        // START_BLOCK_EXPORT_PDF_DISPATCH
+        let geometry = page_geometry(&page_options)?;
+        let (tx, rx) = tokio::sync::oneshot::channel::<Result<(), String>>();
+        webview_window
+            .with_webview(move |pv| {
+                #[cfg(target_os = "macos")]
+                {
+                    let outcome = unsafe { export_pdf_wkwebview(pv.inner(), &path, geometry) };
+                    let _ = tx.send(outcome);
+                }
+                #[cfg(target_os = "windows")]
+                {
+                    // tx is moved into the WebView2 completion handler; a
+                    // failure to even start PrintToPdf drops it, which
+                    // resolves the command with the generic error below —
+                    // the specific reason is on stderr via the marker.
+                    if let Err(e) = unsafe {
+                        let controller = pv.controller();
+                        let environment = pv.environment();
+                        export_pdf_webview2(&controller, &environment, &path, geometry, tx)
+                    } {
+                        safe_eprintln!(
+                            "[m052][mt_export_pdf][BLOCK_PDF_DISPATCH_FAILED reason={e}]"
+                        );
+                    }
+                }
+            })
+            .map_err(|e| format!("webview unavailable: {e}"))?;
+        // END_BLOCK_EXPORT_PDF_DISPATCH
+        rx.await
+            .map_err(|_| "PDF export did not complete".to_string())?
+    }
+}
+
+// ──────────────────────────────────────────────────────────────────────
+// macOS — WKWebView via raw objc (cocoa 0.26 / objc 0.2, no new crates).
+// Selector-level mirror of wry's print (wkwebview/mod.rs print_with_options)
+// plus the save-to-file mode NSPrintInfo has supported since 10.9.
+// ──────────────────────────────────────────────────────────────────────
+
+#[cfg(target_os = "macos")]
+unsafe fn objc_nsstring(s: &str) -> cocoa::base::id {
+    use objc::{msg_send, sel, sel_impl};
+    let cls = objc::runtime::Class::get("NSString")
+        .expect("NSString class must exist on macOS");
+    // stringWithUTF8String reads up to the NUL byte and treats the bytes
+    // as UTF-8, so any path/label content round-trips.
+    let mut buf = String::with_capacity(s.len() + 1);
+    buf.push_str(s);
+    buf.push('\0');
+    unsafe { msg_send![cls, stringWithUTF8String: buf.as_ptr()] }
+}
+
+#[cfg(target_os = "macos")]
+unsafe fn new_print_info() -> Result<cocoa::base::id, String> {
+    use cocoa::base::{id, nil};
+    use objc::{msg_send, sel, sel_impl};
+    let cls = objc::runtime::Class::get("NSPrintInfo")
+        .ok_or_else(|| "NSPrintInfo class unavailable".to_string())?;
+    let allocated: id = unsafe { msg_send![cls, alloc] };
+    let print_info: id = unsafe { msg_send![allocated, init] };
+    if print_info == nil {
+        Err("NSPrintInfo init failed".to_string())
+    } else {
+        Ok(print_info)
+    }
+}
+
+#[cfg(target_os = "macos")]
+unsafe fn print_panel_wkwebview(webview: *mut std::ffi::c_void) -> Result<(), String> {
+    use cocoa::base::{id, BOOL, NO, YES};
+    use objc::{msg_send, sel, sel_impl};
+
+    // START_BLOCK_PRINT_PANEL_SETUP
+    let wv: id = webview as id;
+    // Same macOS 11+ guard wry performs before touching the operation API.
+    let can_print: BOOL = unsafe { msg_send![wv, respondsToSelector: sel!(printOperationWithPrintInfo:)] };
+    if can_print == NO {
+        return Err("WKWebView print operation unavailable (requires macOS 11+)".to_string());
+    }
+    let print_info = unsafe { new_print_info()? };
+    // Visible margins live in the shared print CSS (@page, from the same
+    // renderer options); native margins stay at zero so panel and saved
+    // PDF paginate identically (C-59, preserves the C-18/wry behavior).
+    let _: () = unsafe { msg_send![print_info, setTopMargin: 0.0f64] };
+    let _: () = unsafe { msg_send![print_info, setBottomMargin: 0.0f64] };
+    let _: () = unsafe { msg_send![print_info, setLeftMargin: 0.0f64] };
+    let _: () = unsafe { msg_send![print_info, setRightMargin: 0.0f64] };
+    let op: id = unsafe { msg_send![wv, printOperationWithPrintInfo: print_info] };
+    if op == cocoa::base::nil {
+        let _: () = unsafe { msg_send![print_info, release] };
+        return Err("printOperationWithPrintInfo returned nil".to_string());
+    }
+    // Like wry: let the operation detach from the blocked main thread.
+    let _: () = unsafe { msg_send![op, setCanSpawnSeparateThread: YES] };
+    let window: id = unsafe { msg_send![wv, window] };
+    if window == cocoa::base::nil {
+        let _: () = unsafe { msg_send![print_info, release] };
+        return Err("the webview has no window to attach the print panel to".to_string());
+    }
+    // END_BLOCK_PRINT_PANEL_SETUP
+
+    safe_eprintln!("[m052][mt_print_webview][BLOCK_PRINT_PANEL_OPENED]");
+    let _: () = unsafe {
+        msg_send![op,
+            runOperationModalForWindow: window
+            delegate: cocoa::base::nil
+            didRunSelector: std::ptr::null_mut::<objc::runtime::Sel>()
+            contextInfo: std::ptr::null_mut::<std::ffi::c_void>()]
+    };
+    let _: () = unsafe { msg_send![print_info, release] };
+    // The modal returns when the panel closes — the renderer clears its
+    // print container on this invoke's resolution (C-59 R-1).
+    safe_eprintln!("[m052][mt_print_webview][BLOCK_PRINT_PANEL_CLOSED]");
+    Ok(())
+}
+
+#[cfg(target_os = "macos")]
+unsafe fn export_pdf_wkwebview(
+    webview: *mut std::ffi::c_void,
+    path: &str,
+    geometry: PdfPageGeometry,
+) -> Result<(), String> {
+    use cocoa::base::{id, BOOL, NO};
+    use cocoa::foundation::NSSize;
+    use objc::{msg_send, sel, sel_impl};
+
+    let wv: id = webview as id;
+    let can_print: BOOL = unsafe { msg_send![wv, respondsToSelector: sel!(printOperationWithPrintInfo:)] };
+    if can_print == NO {
+        return Err("WKWebView print operation unavailable (requires macOS 11+)".to_string());
+    }
+    let print_info = unsafe { new_print_info()? };
+
+    // START_BLOCK_PDF_SAVE_PRINT_INFO
+    // Orientation first, then the explicit (already landscape-swapped)
+    // paper size, so the final size is authoritative no matter how AppKit
+    // treats an orientation change.
+    let orientation: cocoa::foundation::NSInteger = if geometry.landscape { 1 } else { 0 }; // NS_LANDSCAPE / NS_PORTRAIT
+    let _: () = unsafe { msg_send![print_info, setOrientation: orientation] };
+    let (paper_w, paper_h) = geometry.paper_size_points();
+    let _: () = unsafe {
+        msg_send![print_info, setPaperSize: NSSize::new(paper_w, paper_h)]
+    };
+    // Margins belong to the shared print CSS (@page) — see the panel path.
+    let _: () = unsafe { msg_send![print_info, setTopMargin: 0.0f64] };
+    let _: () = unsafe { msg_send![print_info, setBottomMargin: 0.0f64] };
+    let _: () = unsafe { msg_send![print_info, setLeftMargin: 0.0f64] };
+    let _: () = unsafe { msg_send![print_info, setRightMargin: 0.0f64] };
+    // Silent save-to-file: NSPrintSaveJob ("NSPrintSaveJob" constant) plus
+    // the save-dialog URL. MAS sandbox: this is the only write target.
+    let disposition = unsafe { objc_nsstring("NSPrintSaveJob") };
+    let _: () = unsafe { msg_send![print_info, setJobDisposition: disposition] };
+    let path_string = unsafe { objc_nsstring(path) };
+    let url_cls = objc::runtime::Class::get("NSURL")
+        .ok_or_else(|| "NSURL class unavailable".to_string())?;
+    let url: id = unsafe { msg_send![url_cls, fileURLWithPath: path_string] };
+    if url == cocoa::base::nil {
+        let _: () = unsafe { msg_send![print_info, release] };
+        return Err(format!("could not build a file URL for {path}"));
+    }
+    let _: () = unsafe { msg_send![print_info, setJobSavingURL: url] };
+    // END_BLOCK_PDF_SAVE_PRINT_INFO
+
+    let op: id = unsafe { msg_send![wv, printOperationWithPrintInfo: print_info] };
+    if op == cocoa::base::nil {
+        let _: () = unsafe { msg_send![print_info, release] };
+        return Err("printOperationWithPrintInfo returned nil".to_string());
+    }
+    let _: () = unsafe { msg_send![op, setShowsPrintPanel: NO] };
+    let _: () = unsafe { msg_send![op, setShowsProgressPanel: NO] };
+
+    safe_eprintln!(
+        "[m052][mt_export_pdf][BLOCK_PDF_WRITE_STARTED path={} landscape={}]",
+        path,
+        geometry.landscape
+    );
+    let ok: BOOL = unsafe { msg_send![op, runOperation] };
+    let _: () = unsafe { msg_send![print_info, release] };
+    if !ok {
+        return Err(format!("the system print operation failed while writing {path}"));
+    }
+    // runOperation returns when the save job finishes; some OS versions
+    // flush the file a beat later — poll briefly so the command resolves
+    // only once the PDF is actually on disk (C-59 R-3).
+    if !wait_for_file(path, 5_000) {
+        return Err(format!("the print operation finished but {path} was not written"));
+    }
+    safe_eprintln!("[m052][mt_export_pdf][BLOCK_PDF_WRITTEN path={}]", path);
+    Ok(())
+}
+
+#[cfg(target_os = "macos")]
+fn wait_for_file(path: &str, timeout_ms: u64) -> bool {
+    let deadline = std::time::Instant::now() + std::time::Duration::from_millis(timeout_ms);
+    loop {
+        if std::path::Path::new(path).exists() {
+            return true;
+        }
+        if std::time::Instant::now() >= deadline {
+            return false;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(50));
+    }
+}
+
+// ──────────────────────────────────────────────────────────────────────
+// Windows — WebView2 (webview2-com 0.38, already in the root lock via
+// wry; windows-core 0.61 for Interface::cast / HSTRING).
+// ──────────────────────────────────────────────────────────────────────
+
+#[cfg(target_os = "windows")]
+unsafe fn print_panel_webview2(
+    controller: &webview2_com::Microsoft::Web::WebView2::Win32::ICoreWebView2Controller,
+) -> Result<(), String> {
+    use webview2_com::Microsoft::Web::WebView2::Win32::{
+        ICoreWebView2_16, COREWEBVIEW2_PRINT_DIALOG_KIND_BROWSER,
+    };
+    use windows_core::Interface;
+
+    let core = unsafe { controller.CoreWebView2() }
+        .map_err(|e| format!("CoreWebView2 unavailable: {e}"))?;
+    let core16: ICoreWebView2_16 = core
+        .cast()
+        .map_err(|e| format!("the WebView2 print UI requires ICoreWebView2_16: {e}"))?;
+    safe_eprintln!("[m052][mt_print_webview][BLOCK_PRINT_UI_OPENED kind=browser]");
+    unsafe { core16.ShowPrintUI(COREWEBVIEW2_PRINT_DIALOG_KIND_BROWSER) }
+        .map_err(|e| format!("ShowPrintUI failed: {e}"))
+}
+
+#[cfg(target_os = "windows")]
+unsafe fn export_pdf_webview2(
+    controller: &webview2_com::Microsoft::Web::WebView2::Win32::ICoreWebView2Controller,
+    environment: &webview2_com::Microsoft::Web::WebView2::Win32::ICoreWebView2Environment,
+    path: &str,
+    geometry: PdfPageGeometry,
+    done: tokio::sync::oneshot::Sender<Result<(), String>>,
+) -> Result<(), String> {
+    use webview2_com::Microsoft::Web::WebView2::Win32::{
+        ICoreWebView2_7, ICoreWebView2Environment6, COREWEBVIEW2_PRINT_ORIENTATION_LANDSCAPE,
+        COREWEBVIEW2_PRINT_ORIENTATION_PORTRAIT,
+    };
+    use webview2_com::PrintToPdfCompletedHandler;
+    use windows_core::{HSTRING, Interface};
+
+    // START_BLOCK_PDF_SETTINGS
+    let core = unsafe { controller.CoreWebView2() }
+        .map_err(|e| format!("CoreWebView2 unavailable: {e}"))?;
+    let core7: ICoreWebView2_7 = core.cast().map_err(|e| {
+        format!("PDF export requires ICoreWebView2_7 (WebView2 Runtime 1.0.1155+): {e}")
+    })?;
+    let env6: ICoreWebView2Environment6 = environment
+        .cast()
+        .map_err(|e| format!("PDF export requires ICoreWebView2Environment6: {e}"))?;
+    let settings = unsafe { env6.CreatePrintSettings() }
+        .map_err(|e| format!("CreatePrintSettings failed: {e}"))?;
+    unsafe {
+        // Chromium semantics: portrait dimensions + the orientation flag —
+        // the flag swaps them, so pass the unswapped portrait size.
+        settings
+            .SetPageWidth(mm_to_inches(geometry.width_mm))
+            .map_err(|e| format!("SetPageWidth: {e}"))?;
+        settings
+            .SetPageHeight(mm_to_inches(geometry.height_mm))
+            .map_err(|e| format!("SetPageHeight: {e}"))?;
+        settings
+            .SetOrientation(if geometry.landscape {
+                COREWEBVIEW2_PRINT_ORIENTATION_LANDSCAPE
+            } else {
+                COREWEBVIEW2_PRINT_ORIENTATION_PORTRAIT
+            })
+            .map_err(|e| format!("SetOrientation: {e}"))?;
+        settings
+            .SetMarginTop(mm_to_inches(geometry.margin_top_mm))
+            .map_err(|e| format!("SetMarginTop: {e}"))?;
+        settings
+            .SetMarginBottom(mm_to_inches(geometry.margin_bottom_mm))
+            .map_err(|e| format!("SetMarginBottom: {e}"))?;
+        settings
+            .SetMarginLeft(mm_to_inches(geometry.margin_left_mm))
+            .map_err(|e| format!("SetMarginLeft: {e}"))?;
+        settings
+            .SetMarginRight(mm_to_inches(geometry.margin_right_mm))
+            .map_err(|e| format!("SetMarginRight: {e}"))?;
+        // Match the macOS panel output: theme/code-block backgrounds on,
+        // no browser header/footer chrome (the container renders its own).
+        settings
+            .SetShouldPrintBackgrounds(true)
+            .map_err(|e| format!("SetShouldPrintBackgrounds: {e}"))?;
+        settings
+            .SetShouldPrintHeaderAndFooter(false)
+            .map_err(|e| format!("SetShouldPrintHeaderAndFooter: {e}"))?;
+    }
+    // END_BLOCK_PDF_SETTINGS
+
+    let path_hs = HSTRING::from(path);
+    // The completion handler runs on the WebView2 UI thread and resolves
+    // the async command through the oneshot channel.
+    let handler = PrintToPdfCompletedHandler::create(Box::new(
+        move |status: windows_core::Result<()>, is_successful: bool| {
+            let outcome = match status {
+                Ok(()) if is_successful => Ok(()),
+                Ok(()) => Err("the WebView2 print-to-PDF job reported failure".to_string()),
+                Err(e) => Err(format!("PrintToPdf failed: {e}")),
+            };
+            if let Err(why) = &outcome {
+                safe_eprintln!("[m052][mt_export_pdf][BLOCK_PDF_WRITE_FAILED reason={why}]");
+            } else {
+                safe_eprintln!("[m052][mt_export_pdf][BLOCK_PDF_WRITTEN path={}]", path);
+            }
+            let _ = done.send(outcome);
+            Ok(())
+        },
+    ));
+    safe_eprintln!(
+        "[m052][mt_export_pdf][BLOCK_PDF_WRITE_STARTED path={} landscape={}]",
+        path,
+        geometry.landscape
+    );
+    unsafe { core7.PrintToPdf(&path_hs, &settings, &handler) }
+        .map_err(|e| format!("PrintToPdf could not be started: {e}"))
+}
+
+// ──────────────────────────────────────────────────────────────────────
+// Tests — V-M-052 pure-mapping scenarios (pageOptions → paper size /
+// orientation, path validation). No Tauri runtime needed; run on every
+// platform (`cargo test m052`).
+// ──────────────────────────────────────────────────────────────────────
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn approx(a: f64, b: f64) -> bool {
+        (a - b).abs() < 1e-6
+    }
+
+    // ── page_geometry: named sizes ────────────────────────────────────
+
+    #[test]
+    fn geometry_defaults_to_a4_portrait_with_dialog_margins() {
+        let g = page_geometry(&PdfPageOptions::default()).unwrap();
+        assert_eq!(g.width_mm, 210.0);
+        assert_eq!(g.height_mm, 297.0);
+        assert!(!g.landscape);
+        assert_eq!(g.margin_top_mm, 20.0);
+        assert_eq!(g.margin_right_mm, 15.0);
+        assert_eq!(g.margin_bottom_mm, 20.0);
+        assert_eq!(g.margin_left_mm, 15.0);
+    }
+
+    #[test]
+    fn geometry_resolves_named_sizes_case_insensitively() {
+        for (name, w, h) in [
+            ("A4", 210.0, 297.0),
+            ("a4", 210.0, 297.0),
+            ("A3", 297.0, 420.0),
+            ("a5", 148.0, 210.0),
+            ("Letter", 215.9, 279.4),
+            ("Legal", 215.9, 355.6),
+            ("Tabloid", 279.4, 431.8),
+        ] {
+            let g = page_geometry(&PdfPageOptions {
+                page_size: Some(name.to_string()),
+                ..Default::default()
+            })
+            .unwrap_or_else(|e| panic!("{name}: {e}"));
+            assert!(approx(g.width_mm, w), "{name} width {}", g.width_mm);
+            assert!(approx(g.height_mm, h), "{name} height {}", g.height_mm);
+        }
+    }
+
+    #[test]
+    fn geometry_named_size_wins_over_stale_custom_dims() {
+        let g = page_geometry(&PdfPageOptions {
+            page_size: Some("A5".into()),
+            page_size_width: Some(600.0),
+            page_size_height: Some(400.0),
+            ..Default::default()
+        })
+        .unwrap();
+        assert_eq!(g.width_mm, 148.0);
+        assert_eq!(g.height_mm, 210.0);
+    }
+
+    #[test]
+    fn geometry_custom_uses_explicit_mm() {
+        let g = page_geometry(&PdfPageOptions {
+            page_size: Some("custom".into()),
+            page_size_width: Some(148.0),
+            page_size_height: Some(100.0),
+            ..Default::default()
+        })
+        .unwrap();
+        assert_eq!(g.width_mm, 148.0);
+        assert_eq!(g.height_mm, 100.0);
+    }
+
+    #[test]
+    fn geometry_without_name_uses_explicit_mm() {
+        let g = page_geometry(&PdfPageOptions {
+            page_size_width: Some(100.0),
+            page_size_height: Some(180.0),
+            ..Default::default()
+        })
+        .unwrap();
+        assert_eq!(g.width_mm, 100.0);
+        assert_eq!(g.height_mm, 180.0);
+    }
+
+    #[test]
+    fn geometry_rejects_unknown_named_size() {
+        let err = page_geometry(&PdfPageOptions {
+            page_size: Some("A42".into()),
+            ..Default::default()
+        })
+        .unwrap_err();
+        assert!(err.contains("unknown page size"), "{err}");
+    }
+
+    #[test]
+    fn geometry_rejects_out_of_range_custom_size() {
+        let err = page_geometry(&PdfPageOptions {
+            page_size: Some("custom".into()),
+            page_size_width: Some(5.0),
+            page_size_height: Some(200.0),
+            ..Default::default()
+        })
+        .unwrap_err();
+        assert!(err.contains("outside the supported"), "{err}");
+    }
+
+    #[test]
+    fn geometry_clamps_negative_margins_to_zero() {
+        let g = page_geometry(&PdfPageOptions {
+            page_margin_top: Some(-10.0),
+            page_margin_right: Some(12.0),
+            ..Default::default()
+        })
+        .unwrap();
+        assert_eq!(g.margin_top_mm, 0.0);
+        assert_eq!(g.margin_right_mm, 12.0);
+        // absent margins fall back to the dialog defaults
+        assert_eq!(g.margin_bottom_mm, 20.0);
+        assert_eq!(g.margin_left_mm, 15.0);
+    }
+
+    // ── landscape / unit mapping ──────────────────────────────────────
+
+    #[test]
+    fn landscape_a4_swaps_paper_points() {
+        let portrait = page_geometry(&PdfPageOptions {
+            page_size: Some("A4".into()),
+            ..Default::default()
+        })
+        .unwrap();
+        let (w, h) = portrait.paper_size_points();
+        assert!(approx(w, 595.2755905)); // 210 mm
+        assert!(approx(h, 841.8897637)); // 297 mm
+
+        let landscape = page_geometry(&PdfPageOptions {
+            page_size: Some("A4".into()),
+            is_landscape: Some(true),
+            ..Default::default()
+        })
+        .unwrap();
+        assert!(landscape.landscape);
+        let (w, h) = landscape.paper_size_points();
+        assert!(approx(w, 841.8897637));
+        assert!(approx(h, 595.2755905));
+    }
+
+    #[test]
+    fn unit_conversions() {
+        assert!(approx(mm_to_inches(25.4), 1.0));
+        assert!(approx(mm_to_inches(210.0), 8.26771653));
+        assert!(approx(mm_to_points(25.4), 72.0));
+        assert!(approx(mm_to_points(210.0), 595.2755905));
+    }
+
+    // ── path validation (C-59 R-6) ────────────────────────────────────
+
+    #[test]
+    fn validate_pdf_path_accepts_pdf_paths() {
+        assert!(validate_pdf_path("/tmp/Notes.pdf").is_ok());
+        assert!(validate_pdf_path("C:\\Users\\me\\Notes.PDF").is_ok());
+        assert!(validate_pdf_path("  spaced/name.pdf  ").is_ok());
+    }
+
+    #[test]
+    fn validate_pdf_path_rejects_empty_path() {
+        let err = validate_pdf_path("").unwrap_err();
+        assert!(err.contains("empty"), "{err}");
+        let err = validate_pdf_path("   ").unwrap_err();
+        assert!(err.contains("empty"), "{err}");
+    }
+
+    #[test]
+    fn validate_pdf_path_rejects_non_pdf_extension() {
+        let err = validate_pdf_path("/tmp/Notes.txt").unwrap_err();
+        assert!(err.contains(".pdf"), "{err}");
+        let err = validate_pdf_path("/tmp/Notes.html").unwrap_err();
+        assert!(err.contains(".pdf"), "{err}");
+    }
+
+    // ── deserialization: renderer camelCase payload ───────────────────
+
+    #[test]
+    fn page_options_deserializes_camel_case_payload() {
+        let options: PdfPageOptions = serde_json::from_str(
+            r#"{
+                "pageSize": "custom",
+                "pageSizeWidth": 200,
+                "pageSizeHeight": 100,
+                "isLandscape": true,
+                "pageMarginTop": 10,
+                "pageMarginRight": 5,
+                "pageMarginBottom": 10,
+                "pageMarginLeft": 5
+            }"#,
+        )
+        .unwrap();
+        let g = page_geometry(&options).unwrap();
+        assert!(g.landscape);
+        assert_eq!(g.width_mm, 200.0);
+        assert_eq!(g.height_mm, 100.0);
+        assert_eq!(g.margin_top_mm, 10.0);
+        assert_eq!(g.margin_left_mm, 5.0);
+    }
+
+    #[test]
+    fn page_options_deserializes_empty_object() {
+        let options: PdfPageOptions = serde_json::from_str("{}").unwrap();
+        let g = page_geometry(&options).unwrap();
+        assert_eq!(g.width_mm, 210.0);
+        assert_eq!(g.height_mm, 297.0);
+        assert!(!g.landscape);
     }
 }

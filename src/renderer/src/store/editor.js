@@ -42,6 +42,42 @@ const liveReloadGenerations = new Map()
 const renameEchoUntil = new Map()
 const RENAME_ECHO_WINDOW_MS = 2000
 
+// START_BLOCK_LAST_PRINT_OPTIONS
+// C-59 R-1: ⌘P renders the print container with the LAST-USED export
+// options (theme, margins, header/footer, TOC) — no settings dialog on
+// the print path. Remembered whenever the Export-to-PDF settings dialog
+// is OK'd; persisted to localStorage (guarded, same pattern as the
+// Settings tab memory) so the choice survives restarts. Defaults on
+// first use mirror the dialog's initial values.
+const PRINT_OPTIONS_STORAGE_KEY = 'mark-last-print-options'
+const DEFAULT_PRINT_OPTIONS = () => ({
+  theme: null,
+  pageMarginTop: 20,
+  pageMarginRight: 15,
+  pageMarginBottom: 20,
+  pageMarginLeft: 15,
+  autoNumberingHeadings: false,
+  showFrontMatter: false,
+  tocTitle: '',
+  tocIncludeTopHeading: true
+})
+
+const loadLastPrintOptions = () => {
+  try {
+    const raw = window.localStorage.getItem(PRINT_OPTIONS_STORAGE_KEY)
+    if (!raw) return null
+    const parsed = JSON.parse(raw)
+    return parsed && typeof parsed === 'object' ? parsed : null
+  } catch {
+    return null
+  }
+}
+
+// Module-scoped so Pinia never proxies it (same convention as
+// autoSaveTimers / _bootPhase above).
+let _lastPrintOptions = loadLastPrintOptions()
+// END_BLOCK_LAST_PRINT_OPTIONS
+
 let _bootPhase = true
 export const __resetBootPhase = () => { _bootPhase = true }
 
@@ -1594,13 +1630,14 @@ export const useEditorStore = defineStore('editor', {
       )
     },
 
-    async EXPORT({ type, content }) {
+    async EXPORT({ type, content, pageOptions }) {
       if (!hasKeys(this.currentFile)) return
 
       if (type === 'pdf') {
-        // C-18: the print container rendered by handleExport must SURVIVE
-        // into the native panel — no clearup before the dialog.
-        await this._EXPORT_PDF()
+        // C-59 R-2: the print container rendered by handleExport stays in
+        // the DOM while the save dialog is up; the caller clears it when
+        // this resolves (saved, cancelled, or notified failure).
+        await this._EXPORT_PDF(pageOptions)
         return
       }
 
@@ -1644,14 +1681,25 @@ export const useEditorStore = defineStore('editor', {
       }
     },
 
-    // C-18: PDF export goes through the native WKWebView print panel
-    // (system pagination, styled output, built-in "Save as PDF") — no
-    // pandoc, no custom save dialog, works in sandboxed MAS builds. The
-    // styled print container is already in the DOM (handleExport).
-    async _EXPORT_PDF() {
+    // C-59 R-2: Export to PDF = native save dialog → silent mt_export_pdf
+    // write (WKWebView print-to-file on macOS, WebView2 PrintToPdf on
+    // Windows) — no print panel. Cancel in the save dialog writes nothing
+    // and shows no notice (corner-2); the caller clears the print
+    // container when this resolves. The styled print container is already
+    // in the DOM (handleExport).
+    async _EXPORT_PDF(pageOptions) {
       const { invoke } = await import('@tauri-apps/api/core')
+      const { save } = await import('@tauri-apps/plugin-dialog')
+      const filePath = await save({
+        title: i18n.global.t('exportSettings.pdfTitle'),
+        defaultPath: this._pdfDefaultName(),
+        filters: [{ name: 'PDF', extensions: ['pdf'] }]
+      })
+      if (!filePath) return
+
       try {
-        await invoke('mt_print_webview')
+        await invoke('mt_export_pdf', { path: filePath, pageOptions })
+        this.APPLY_EXPORT_SUCCESS(filePath)
       } catch (e) {
         notice.notify({
           title: i18n.global.t('editor.export.failed', { type: 'PDF' }),
@@ -1659,6 +1707,56 @@ export const useEditorStore = defineStore('editor', {
           message: String(e)
         })
       }
+    },
+
+    // C-59 corner-4: default save name = the document's own name; an
+    // untitled tab falls back to its first heading, else "Untitled".
+    _pdfDefaultName() {
+      const { filename, pathname } = this.currentFile
+      if (pathname && filename) return filename.replace(/\.md$/i, '.pdf')
+      const firstHeading = (this.listToc || []).find((h) => h && h.content)
+      const safe = String(firstHeading ? firstHeading.content : '')
+        .replace(/[\\/:*?"<>|#]+/g, '')
+        .replace(/\s+/g, ' ')
+        .trim()
+      return `${safe || 'Untitled'}.pdf`
+    },
+
+    // C-59 R-1: remember the Export-to-PDF settings (appearance keys only
+    // — type, page geometry and htmlTitle are per-flow) so a later ⌘P can
+    // render the print container without the settings dialog.
+    REMEMBER_EXPORT_OPTIONS(options) {
+      if (!options || typeof options !== 'object') return
+      const {
+        // eslint-disable-next-line no-unused-vars
+        type, pageSize, pageSizeWidth, pageSizeHeight, isLandscape, htmlTitle, content,
+        ...appearance
+      } = options
+      _lastPrintOptions = appearance
+      try {
+        window.localStorage.setItem(
+          PRINT_OPTIONS_STORAGE_KEY,
+          JSON.stringify(appearance)
+        )
+      } catch {
+        // persistence is best-effort — the in-memory copy still serves ⌘P
+      }
+    },
+
+    // C-59 R-1: ⌘P goes straight to the print panel. The print container
+    // is rendered from the remembered options (defaults on first use) via
+    // the same bus 'export' pipeline the settings dialog uses; editor.vue
+    // invokes mt_print_webview and clears the container when the panel
+    // closes.
+    PRINT_DOCUMENT() {
+      if (!hasKeys(this.currentFile)) return
+      const options = {
+        ...DEFAULT_PRINT_OPTIONS(),
+        ...(_lastPrintOptions || {})
+      }
+      // eslint-disable-next-line no-console
+      console.log('[editor][print][BLOCK_PRINT_REQUESTED]')
+      bus.emit('export', { ...options, type: 'print' })
     },
 
     APPLY_EXPORT_SUCCESS(filePath) {
@@ -2084,12 +2182,19 @@ export const useEditorStore = defineStore('editor', {
 })
 
 // ----------------------------------------------------------------------------
-// MODULE_CONTRACT:
+// START_MODULE_CONTRACT
 //   PURPOSE: Pinia state and actions for open documents, persistence, autosave, and filesystem reloads.
 //   SCOPE: Tab lifecycle, content revisions, save outcomes, and watcher coordination.
 //   DEPENDS: ipc runtime, Pinia, editor/project/preferences stores, renderer bus.
+//   LINKS: .grace/graph/runtime.xml M-011 and M-052; .grace/changes/active/C-59 (PDF export + print).
 //   ROLE: RUNTIME
+//   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT
+//
+// START_MODULE_MAP
+//   useEditorStore - Pinia store: tabs, content revisions, save/autosave, reloads, export (C-59 PDF via save dialog + mt_export_pdf, PRINT_DOCUMENT, REMEMBER_EXPORT_OPTIONS).
+//   __resetBootPhase - test hook that re-arms the boot-phase guard.
+// END_MODULE_MAP
 //
 // CHANGE_SUMMARY:
 //   - 2026-10-15 C-40 T-004: TOGGLE_LOCK_DOCUMENT — the per-tab read-only
