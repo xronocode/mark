@@ -1,5 +1,5 @@
 // FILE: site/.vitepress/landing.mjs
-// VERSION: 1.7.0
+// VERSION: 1.8.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Single source of site settings and the static-page renderers
 //            shared by the VitePress config (dev middleware + buildEnd) and
@@ -34,7 +34,8 @@
 //   GA_ID_RE - accepted GA4 measurement id shape, checked before inlining
 //   CF_TOKEN_RE - accepted Cloudflare beacon token shape, checked before inlining
 //   CONSENT_GEO_URL - shared country lookup that decides whether the cookie banner is needed
-//   analyticsTags - analytics[], base -> [{ attrs, body }] script tags (landing + docs; GA4 adds consent.js + track.js)
+//   assetVersion - public/ file name -> 10-hex content hash for ?v= cache-busting ('' when unreadable)
+//   analyticsTags - analytics[], base -> [{ attrs, body }] script tags (landing + docs; GA4 adds consent.js + track.js, hash-versioned)
 //   analyticsScript - analyticsTags serialized to HTML, '' when analytics is off
 //   jsonLd - settings + page -> JSON-LD @graph body (SoftwareApplication + WebSite; '<' escaped)
 //   breadcrumbJsonLd - settings + { path, title } -> BreadcrumbList body for docs pages (Home → Guide → page)
@@ -50,7 +51,8 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: [v1.7.0 - 2026-10-18 C-64 T-007: the SoftwareApplication
+//   LAST_CHANGE: [v1.8.0 - 2026-10-18 C-64 T-007: consent.js/track.js URLs carry a ?v= content hash (assetVersion) so the Cloudflare cache cannot serve a stale consent script]
+//   PREV: [v1.7.0 - 2026-10-18 C-64 T-007: the SoftwareApplication
 //                 node gains screenshot (/shots/01-agents.jpg), fileSize
 //                 ("15MB" — the landing's ≈15 MB DMG figure), releaseNotes
 //                 (/changelog) and softwareRequirements ("macOS 12 or
@@ -91,6 +93,7 @@
 
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
+import { createHash } from 'node:crypto'
 
 export const SITE_META = {
   name: 'Mark',
@@ -125,6 +128,22 @@ export function appVersion () {
   }
   return APP_VERSION
 }
+
+// Cache-busting for public/ scripts: Cloudflare keeps /consent.js and
+// /track.js for hours, so the URL carries a short content hash and every
+// deploy that changes a script gets a fresh URL. '' when unreadable.
+const ASSET_VERSIONS = {}
+export function assetVersion (name) {
+  if (ASSET_VERSIONS[name] === undefined) {
+    try {
+      const u = new URL(`../public/${name}`, import.meta.url)
+      const path = u.protocol === 'file:' ? u : join(process.cwd(), decodeURIComponent(u.pathname))
+      ASSET_VERSIONS[name] = createHash('sha256').update(readFileSync(path)).digest('hex').slice(0, 10)
+    } catch (e) { ASSET_VERSIONS[name] = '' }
+  }
+  return ASSET_VERSIONS[name]
+}
+const versioned = (base, name) => `${base}${name}${assetVersion(name) ? `?v=${assetVersion(name)}` : ''}`
 
 const DEFAULT_SITE_URL = 'https://mark.xronocode.com'
 const DEFAULT_UMAMI_SRC = 'https://cloud.umami.is/script.js'
@@ -194,10 +213,10 @@ export function analyticsTags (analytics = [], base = '/') {
   return analytics.flatMap((a) => {
     if (a.provider === 'ga4') {
       return [{
-        attrs: { defer: '', src: `${base}consent.js`, 'data-ga': a.measurementId, 'data-geo': CONSENT_GEO_URL, 'data-privacy': `${base}privacy` },
+        attrs: { defer: '', src: versioned(base, 'consent.js'), 'data-ga': a.measurementId, 'data-geo': CONSENT_GEO_URL, 'data-privacy': `${base}privacy` },
         body: ''
       }, {
-        attrs: { defer: '', src: `${base}track.js` },
+        attrs: { defer: '', src: versioned(base, 'track.js') },
         body: ''
       }]
     }

@@ -234,10 +234,10 @@ describe('analyticsTags', () => {
   it('loads track.js beside consent.js for GA4 only, base-aware', () => {
     expect(analyticsTags([])).toEqual([])
     const tags = analyticsTags([{ provider: 'ga4', measurementId: 'G-KW57Y3CRPY' }], '/mark/')
-    expect(tags[0].attrs.src).toBe('/mark/consent.js')
+    expect(tags[0].attrs.src).toMatch(/^\/mark\/consent\.js\?v=[0-9a-f]{10}$/)
     expect(tags[0].attrs['data-ga']).toBe('G-KW57Y3CRPY')
     expect(tags[0].attrs['data-geo']).toBe('https://avenex.xronocode.com/api/geo')
-    expect(tags[1]).toEqual({ attrs: { defer: '', src: '/mark/track.js' }, body: '' })
+    expect(tags[1].attrs.src).toMatch(/^\/mark\/track\.js\?v=[0-9a-f]{10}$/)
   })
 })
 
