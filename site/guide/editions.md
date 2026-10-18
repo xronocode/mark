@@ -91,30 +91,35 @@ The App Store edition updates only after Apple reviews each build, so it can sit
 Everything in these releases reaches the App Store edition except the desktop-only features in the table above. The full notes are in the [changelog](/changelog).
 
 <style>
+/* C-64 T-001: the catch-up track on the shared brand tokens (paper/ink/
+   marker, loaded site-wide by the docs theme) — "now" is hollow, "next"
+   is the marker. Scoped under .vp-doc; the track scrolls inside itself,
+   never the page, at 390 px. */
 .vp-doc .catchup { margin: 24px 0 8px; }
-.vp-doc .catchup-track { list-style: none; counter-reset: none; display: flex; gap: 0; margin: 0 0 16px; padding: 0; overflow-x: auto; }
+.vp-doc .catchup-track { list-style: none; counter-reset: none; display: flex; gap: 0; margin: 0 0 16px; padding: 0 0 4px; overflow-x: auto; scrollbar-width: thin; }
 .vp-doc .catchup-track li, .vp-doc .catchup-track li + li { flex: 1 1 0; min-width: 96px; position: relative; margin: 0; padding: 0; }
-.vp-doc .catchup-track li::before { content: ""; position: absolute; top: 9px; left: 0; right: 0; height: 2px; background: var(--vp-c-divider); }
+.vp-doc .catchup-track li::before { content: ""; position: absolute; top: 9px; left: 0; right: 0; height: 2px; background: var(--rule); }
 .vp-doc .catchup-track li:first-child::before { left: 50%; }
 .vp-doc .catchup-track li:last-child::before { right: 50%; }
-.vp-doc .catchup-track a { position: relative; display: flex; flex-direction: column; align-items: center; gap: 2px; padding-top: 26px; text-decoration: none; color: var(--vp-c-text-1); text-align: center; }
-.vp-doc .catchup-track a::before { content: ""; position: absolute; top: 3px; left: calc(50% - 7px); width: 14px; height: 14px; border-radius: 50%; background: var(--vp-c-bg); border: 2px solid var(--vp-c-brand-1); box-sizing: border-box; }
-.vp-doc .catchup-track .is-now a::before { border-color: var(--vp-c-text-3); }
-.vp-doc .catchup-track .is-next a::before { background: var(--vp-c-brand-1); }
+.vp-doc .catchup-track a { position: relative; display: flex; flex-direction: column; align-items: center; gap: 2px; padding-top: 26px; text-decoration: none; color: var(--ink); text-align: center; }
+.vp-doc .catchup-track a::before { content: ""; position: absolute; top: 3px; left: calc(50% - 7px); width: 14px; height: 14px; border-radius: 50%; background: var(--paper); border: 2px solid var(--ink-2); box-sizing: border-box; }
+.vp-doc .catchup-track .is-now a::before { border-style: dashed; border-color: var(--mute); }
+.vp-doc .catchup-track .is-next a::before { background: var(--marker); border-color: var(--marker); }
+.vp-doc .catchup-track .is-next b { color: var(--ink); }
 .vp-doc .catchup-track b { font-size: 15px; font-variant-numeric: tabular-nums; }
-.vp-doc .catchup-track span { font-size: 12px; line-height: 1.3; color: var(--vp-c-text-2); }
+.vp-doc .catchup-track span { font-size: 12px; line-height: 1.3; color: var(--mute); }
 .vp-doc .catchup-cards { display: flex; gap: 12px; overflow-x: auto; scroll-snap-type: x mandatory; padding-bottom: 8px; }
-.vp-doc .catchup-card { flex: 0 0 min(264px, 82%); scroll-snap-align: start; border: 1px solid var(--vp-c-divider); border-radius: 12px; padding: 14px 16px; background: var(--vp-c-bg-soft); scroll-margin-top: 96px; }
+.vp-doc .catchup-card { flex: 0 0 min(264px, 82%); scroll-snap-align: start; border: 1px solid var(--rule); border-radius: 12px; padding: 14px 16px; background: var(--card); scroll-margin-top: 96px; }
 .vp-doc .catchup-card.is-now { background: transparent; border-style: dashed; }
-.vp-doc .catchup-card.is-next { border-color: var(--vp-c-brand-1); }
+.vp-doc .catchup-card.is-next { border-color: var(--marker); border-width: 2px; }
 .vp-doc .catchup-card header { display: flex; flex-direction: column; margin-bottom: 8px; }
 .vp-doc .catchup-card header b { font-size: 18px; }
-.vp-doc .catchup-card header span { font-size: 13px; line-height: 1.4; color: var(--vp-c-text-2); }
-.vp-doc .catchup-card p { margin: 0; font-size: 14px; line-height: 1.5; color: var(--vp-c-text-2); }
+.vp-doc .catchup-card header span { font-size: 13px; line-height: 1.4; color: var(--ink-2); }
+.vp-doc .catchup-card p { margin: 0; font-size: 14px; line-height: 1.5; color: var(--ink-2); }
 .vp-doc .catchup-card ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
-.vp-doc .catchup-card li, .vp-doc .catchup-card li + li { margin: 0; font-size: 14px; line-height: 1.45; color: var(--vp-c-text-2); padding-left: 24px; position: relative; }
-.vp-doc .catchup-card li i { position: absolute; left: 0; top: 0; font-style: normal; color: var(--vp-c-brand-1); width: 18px; text-align: center; }
-.vp-doc .catchup-card li b { color: var(--vp-c-text-1); font-weight: 600; }
+.vp-doc .catchup-card li, .vp-doc .catchup-card li + li { margin: 0; font-size: 14px; line-height: 1.45; color: var(--ink-2); padding-left: 24px; position: relative; }
+.vp-doc .catchup-card li i { position: absolute; left: 0; top: 0; font-style: normal; color: var(--marker); width: 18px; text-align: center; }
+.vp-doc .catchup-card li b { color: var(--ink); font-weight: 600; }
 </style>
 
 ## Installing
