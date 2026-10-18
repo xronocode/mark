@@ -237,8 +237,8 @@
       "rename": "Renommer",
       "moveToTrash": "Déplacer vers la corbeille",
       "showInFolder": "Afficher dans le dossier",
-      "pin": "Épingler",
-      "unpin": "Détacher"
+      "pin": "Ajouter aux Épinglés",
+      "unpin": "Retirer des Épinglés"
     },
     "tabs": {
       "close": "Fermer",
@@ -250,8 +250,8 @@
       "showInFolder": "Afficher dans le dossier",
       "lock": "Verrouiller le document",
       "unlock": "Déverrouiller le document",
-      "pin": "Épingler",
-      "unpin": "Détacher",
+      "pin": "Ajouter aux Épinglés",
+      "unpin": "Retirer des Épinglés",
       "splitView": "Vue scindée",
       "copyAsMarkdown": "Copier en Markdown",
       "copyAsHtml": "Copier en HTML",

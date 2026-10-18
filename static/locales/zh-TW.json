@@ -237,8 +237,8 @@
       "rename": "重新命名",
       "moveToTrash": "移到垃圾桶",
       "showInFolder": "在資料夾中顯示",
-      "pin": "釘選",
-      "unpin": "取消釘選"
+      "pin": "加入「已釘選」",
+      "unpin": "從「已釘選」移除"
     },
     "tabs": {
       "close": "關閉",
@@ -250,8 +250,8 @@
       "showInFolder": "在資料夾中顯示",
       "lock": "鎖定文件",
       "unlock": "解鎖文件",
-      "pin": "釘選",
-      "unpin": "取消釘選",
+      "pin": "加入「已釘選」",
+      "unpin": "從「已釘選」移除",
       "splitView": "分割檢視",
       "copyAsMarkdown": "複製為 Markdown",
       "copyAsHtml": "複製為 HTML",
