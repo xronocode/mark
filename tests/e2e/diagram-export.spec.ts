@@ -766,9 +766,12 @@ A paragraph after the image.
     await page.locator('span.ag-inline-image img').first().click()
     const toolbar = imageToolbarOf(page)
     await toolbar.waitFor({ state: 'visible', timeout: 5_000 })
-    const order = await toolbar.evaluate((el) =>
+    // Tooltips fill in once the locale has loaded — wait for them.
+    const readOrder = () => toolbar.evaluate((el) =>
       Array.from(el.querySelectorAll('li')).map((li) => (li as HTMLElement).dataset.tip)
     )
+    await expect.poll(async () => (await readOrder()).includes('Edit Image')).toBe(true)
+    const order = await readOrder()
     const editAt = order.indexOf('Edit Image')
     const copyAt = order.indexOf('Copy Image')
     const inlineAt = order.indexOf('Inline Image')
