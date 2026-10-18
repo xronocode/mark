@@ -569,6 +569,7 @@
         "autoPairMarkdownSyntax": "Markdown マーカーを自動で閉じる",
         "autoPairQuote": "引用符を自動で閉じる",
         "autoCheck": "クリックでタスクをチェックする",
+        "autoCheckUpdates": "自動でアップデートを確認",
         "hideQuickInsertHint": "空行の挿入ヒントを非表示にする",
         "hideLinkPopup": "リンクプレビューを非表示にする",
         "textDirection": "テキストの方向",
@@ -650,7 +651,9 @@
       "updates": {
         "title": "アップデート",
         "help": "オンラインで新しいバージョンを確認してインストールします。",
-        "check": "アップデートを確認"
+        "check": "アップデートを確認",
+        "autoCheck": "自動でアップデートを確認",
+        "autoCheckHelp": "Markの起動時に1日1回新しいバージョンを確認し、静かに知らせます。"
       }
     },
     "appearance": {
@@ -1422,6 +1425,12 @@
     "noBaseline": "このファイルの比較元が見つかりません。",
     "sourceSnapshot": "最後の外部保存より前 · {time}",
     "sourcePrevious": "以前のバージョン"
+  },
+  "updateNotice": {
+    "title": "Mark {version} が利用可能です",
+    "update": "アップデート",
+    "later": "後で",
+    "skip": "このバージョンをスキップ"
   },
   "whatsNew": {
     "eyebrow": "Mark {version}",

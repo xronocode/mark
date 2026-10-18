@@ -569,6 +569,7 @@
         "autoPairMarkdownSyntax": "自動閉合 Markdown 標記",
         "autoPairQuote": "自動閉合引號",
         "autoCheck": "點擊即可勾選工作項目",
+        "autoCheckUpdates": "自動檢查更新",
         "hideQuickInsertHint": "在空行上隱藏插入提示",
         "hideLinkPopup": "隱藏連結預覽",
         "textDirection": "文字方向",
@@ -650,7 +651,9 @@
       "updates": {
         "title": "更新",
         "help": "線上檢查並安裝新版本。",
-        "check": "檢查更新"
+        "check": "檢查更新",
+        "autoCheck": "自動檢查更新",
+        "autoCheckHelp": "Mark 啟動時每天檢查一次新版本，並悄悄提醒你。"
       }
     },
     "appearance": {
@@ -1430,6 +1433,12 @@
     "noBaseline": "找不到此檔案的基準版本。",
     "sourceSnapshot": "上次外部儲存之前 · {time}",
     "sourcePrevious": "先前版本"
+  },
+  "updateNotice": {
+    "title": "Mark {version} 可用",
+    "update": "更新",
+    "later": "稍後",
+    "skip": "略過這個版本"
   },
   "whatsNew": {
     "eyebrow": "Mark {version}",

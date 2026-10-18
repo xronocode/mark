@@ -4,7 +4,8 @@
  * Covers: every IA §3.1 row renders in its group order (by label key),
  * the macOS default-handler group gating, autoSaveDelay seconds↔ms
  * conversion, the Updates row (version label + file.check-update
- * dispatch), and dropped-key rows staying absent.
+ * dispatch), the C-66 automatic-check switch (autoCheckUpdates), and
+ * dropped-key rows staying absent.
  */
 
 import { mount, flushPromises } from '@vue/test-utils'
@@ -50,7 +51,7 @@ import { usePreferencesStore } from '@/store/preferences'
 
 // Stubs render the label/help props so order and presence are assertable.
 const rowStub = {
-  props: ['description', 'help', 'value', 'bool', 'options', 'disable'],
+  props: ['description', 'help', 'value', 'bool', 'options', 'disable', 'onChange'],
   template: '<div class="row-stub" :data-desc="description">{{ description }}{{ help ? "|" + help : "" }}</div>'
 }
 const buttonRowStub = {
@@ -142,6 +143,21 @@ describe('tabs/general — C-38 T-004 content', () => {
     await updatesRow.props('onClick')()
     await flushPromises()
     expect(checkUpdateExecute).toHaveBeenCalled()
+  })
+
+  // C-66 T-003: the automatic-check switch opens the Updates group.
+  it('renders the C-66 automatic-check switch bound to autoCheckUpdates', async () => {
+    const store = usePreferencesStore()
+    const spy = vi.spyOn(store, 'SET_SINGLE_PREFERENCE')
+    wrapper = mountTab()
+    const autoRow = wrapper
+      .findAllComponents('.row-stub')
+      .find((c) => c.props('description') === 'preferences.general.updates.autoCheck')
+    expect(autoRow).toBeTruthy()
+    expect(autoRow.text()).toContain('preferences.general.updates.autoCheckHelp')
+    expect(autoRow.props('bool')).toBe(true)
+    await autoRow.props('onChange')(false)
+    expect(spy).toHaveBeenCalledWith({ type: 'autoCheckUpdates', value: false })
   })
 
   // ── autoSaveDelay seconds↔milliseconds (IA §4.6) ────────────────────
