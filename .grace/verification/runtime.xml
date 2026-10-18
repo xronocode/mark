@@ -4949,6 +4949,23 @@
           WebKit; appearance policy and lifecycle are owned by V-M-012
           scenario-25. Opening or dismissing the menu is read-only.
         </Scenario>
+        <Scenario>
+          scenario-67: C-66 update-notice UI + Settings switch —
+          components/updateNotice renders from the autoUpdates store
+          (hidden until the launch check queues it, storeToRefs so the
+          whole-object replacement re-renders), localizes «Mark X.Y.Z is
+          available» with Update / Later / Skip this version in the en
+          table (ru native copy pinned), dispatches INSTALL_UPDATE /
+          DISMISS_NOTICE / SKIP_VERSION, and never steals focus
+          (role=status, aria-live=polite). All ten locales ship
+          updateNotice.*, preferences.general.updates.autoCheck/
+          autoCheckHelp and the preferences.search.items.autoCheckUpdates
+          entry, .min.json mirrors in sync
+          (tests/renderer/components/updateNotice.test.js). Settings ›
+          General › Updates gains the autoCheckUpdates bool row inside
+          the updater-capability-gated group (App Store hides it with the
+          rest of the group).
+        </Scenario>
       </Scenarios>
       <Markers>
         <Marker>[prefs][theme-migration][BLOCK_RETIRED_THEMES_MIGRATED key:from-&gt;to …] — C-41 T-002 retired theme ids migrated at the hydration load point and persisted once per changed key</Marker>
@@ -5026,9 +5043,19 @@
         <Marker>[Renderer] BLOCK_PINIA_HYDRATE window=&lt;id&gt; stores=&lt;n&gt;</Marker>
         <Marker>[Renderer] BLOCK_SUSPENSE_FALLBACK component=&lt;name&gt; reason=&lt;err&gt;</Marker>
         <Marker>[Renderer] BLOCK_DPI_CHANGE from=&lt;n&gt; to=&lt;n&gt;</Marker>
+        <Marker>[autoUpdates][INSTALL_UPDATE][BLOCK_INSTALL_NO_STATUS] — C-66 Update clicked with no queued mt_updater_check status (defensive; nothing dispatched)</Marker>
+        <Marker>[autoUpdates][INSTALL_UPDATE][BLOCK_INSTALL_DISPATCH_FAILED] — C-66 the shared installSignedUpdate import/dispatch threw</Marker>
+        <Marker>[autoUpdates][RUN_LAUNCH_CHECK][BLOCK_PREFS_READ_FAILED] — C-66 prefs read failed; fail-open defaults used</Marker>
+        <Marker>[autoUpdates][RUN_LAUNCH_CHECK][BLOCK_STAMP_FAILED] — C-66 lastUpdateCheckAt write failed; decision unaffected</Marker>
+        <Marker>[autoUpdates][SKIP_VERSION][BLOCK_SKIP_FAILED] — C-66 skippedUpdateVersion write failed; notice still hidden</Marker>
       </Markers>
       <TraceAssertions>
         <TraceAssertion>Negative assertion: No `console.error` during theme swap.</TraceAssertion>
+        <TraceAssertion>
+          Negative assertion: C-66 — no mt_updater_check and no update
+          notice in the same launch as the What's New sheet, and none at
+          all in the App Store build; no notice for a skipped version.
+        </TraceAssertion>
         <TraceAssertion>
           Negative assertion: No duplicated `&lt;style data-muya-theme&gt;` tags
           after 10 swaps.
@@ -9267,6 +9294,10 @@
           src-tauri/Cargo.toml m016_updater
         </Command>
         <Command>npx vitest run tests/renderer/commands/updater.test.js</Command>
+        <Command>npx vitest run tests/renderer/store/autoUpdates.test.js</Command>
+        <Command>
+          npx playwright test tests/e2e/update-notice.spec.ts --project=chromium
+        </Command>
         <Command>
           cd src-tauri &amp;&amp; cargo check -q --no-default-features
           --features app-store
@@ -9293,6 +9324,24 @@
           and tauri-build fails the whole build without the plugin in the tree
           (2026-09-21 regression, fixed in 578f7fdb).
         </Scenario>
+        <Scenario>
+          scenario-8 (C-66): launch-time automatic check — the renderer gate
+          (store/autoUpdates.js) pins the full decision table in
+          tests/renderer/store/autoUpdates.test.js (24 h throttle incl. the
+          exactly-24 h boundary, What's New deferral without advancing the
+          clock, App Store never-checks, autoCheckUpdates off, skip
+          normalization and the later-version re-show) plus the orchestration:
+          one mt_updater_check per due launch, offline rejection and
+          statusNote answers silent with lastUpdateCheckAt unstamped (retried
+          next launch), notice queued only for an available not-skipped
+          version. tests/e2e/update-notice.spec.ts drives the real boot
+          against a mocked mt_updater_check: the notice with Update / Later /
+          Skip this version after exactly one check, Later dismiss, Skip
+          persisting (2.6.0 hidden, 2.6.1 shows), the offline quiet path,
+          What's New deferral to the next launch, the App Store gate
+          (mt_build_mode updater:false) and the switch off; Ink-theme
+          visibility pins the shared CSS variables.
+        </Scenario>
       </Scenarios>
       <Markers>
         <Marker>[Updater][check][BLOCK_FEED_FETCH]</Marker>
@@ -9308,6 +9357,12 @@
         <Marker>[Updater] BLOCK_DOWNLOAD_PROGRESS pct=&lt;n&gt; resumed=&lt;bool&gt;</Marker>
         <Marker>[Updater] BLOCK_VERIFY_SIGNATURE ok=&lt;bool&gt; algo=&lt;ed25519|…&gt;</Marker>
         <Marker>[Updater] BLOCK_LEADER_ELECT winner=&lt;pid&gt;</Marker>
+        <Marker>[autoUpdates][RUN_LAUNCH_CHECK][BLOCK_GATE_SKIPPED reason=&lt;app-store|whats-new-deferred|disabled|throttled&gt;] — C-66 the launch check was not performed and why</Marker>
+        <Marker>[autoUpdates][RUN_LAUNCH_CHECK][BLOCK_CHECK_FAILED] — C-66 mt_updater_check rejected (offline); silent, clock untouched</Marker>
+        <Marker>[autoUpdates][RUN_LAUNCH_CHECK][BLOCK_CHECK_QUIET] — C-66 statusNote/empty answer (feed or plugin failure); silent, clock untouched</Marker>
+        <Marker>[autoUpdates][RUN_LAUNCH_CHECK][BLOCK_CHECK_DONE available=&lt;bool&gt; show=&lt;bool&gt;] — C-66 completed check; clock advanced</Marker>
+        <Marker>[autoUpdates][RUN_LAUNCH_CHECK][BLOCK_NOTICE_QUEUED version=&lt;v&gt;] — C-66 the non-modal notice shows the available version</Marker>
+        <Marker>[autoUpdates][SKIP_VERSION][BLOCK_SKIP_PERSISTED version=&lt;v&gt;] — C-66 skippedUpdateVersion persisted from «Skip this version»</Marker>
       </Markers>
       <TraceAssertions>
         <TraceAssertion>

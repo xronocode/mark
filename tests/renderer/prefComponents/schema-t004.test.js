@@ -123,3 +123,25 @@ describe('settings search routes every visible row to its new tab', () => {
     }
   })
 })
+
+describe('schema.json — C-66 update-check keys', () => {
+  it('autoCheckUpdates is a searchable General row matching the store default', async () => {
+    setupTestPinia()
+    const store = usePreferencesStore()
+    expect(schema.autoCheckUpdates.type).toBe('boolean')
+    expect(schema.autoCheckUpdates.default).toBe(true)
+    expect(store.$state.autoCheckUpdates).toBe(true)
+    expect(schema.autoCheckUpdates.description).not.toContain('--internal')
+    const row = getTranslatedSearchContent().find((c) => c.key === 'autoCheckUpdates')
+    expect(row).toBeDefined()
+    expect(row.routeCategory).toBe('general')
+  })
+
+  it('the state keys lastUpdateCheckAt / skippedUpdateVersion stay internal', () => {
+    expect(schema.lastUpdateCheckAt.description.endsWith('--internal')).toBe(true)
+    expect(schema.skippedUpdateVersion.description.endsWith('--internal')).toBe(true)
+    const content = getTranslatedSearchContent()
+    expect(content.find((c) => c.key === 'lastUpdateCheckAt')).toBeUndefined()
+    expect(content.find((c) => c.key === 'skippedUpdateVersion')).toBeUndefined()
+  })
+})

@@ -576,6 +576,7 @@
         "autoPairMarkdownSyntax": "Fechar marcadores markdown automaticamente",
         "autoPairQuote": "Fechar aspas automaticamente",
         "autoCheck": "Marcar tarefas com um clique",
+        "autoCheckUpdates": "Verificar atualizações automaticamente",
         "hideQuickInsertHint": "Ocultar a dica de inserção em linhas vazias",
         "hideLinkPopup": "Ocultar a pré-visualização do link",
         "textDirection": "Direção do texto",
@@ -657,7 +658,9 @@
       "updates": {
         "title": "Atualizações",
         "help": "Verifica online se há uma versão mais recente e a instala.",
-        "check": "Verificar atualizações"
+        "check": "Verificar atualizações",
+        "autoCheck": "Verificar atualizações automaticamente",
+        "autoCheckHelp": "Procura uma nova versão uma vez por dia ao iniciar o Mark e avisa discretamente."
       }
     },
     "appearance": {
@@ -1429,6 +1432,12 @@
     "noBaseline": "Nenhuma versão base encontrada para este arquivo.",
     "sourceSnapshot": "Antes do último salvamento externo · {time}",
     "sourcePrevious": "Versão anterior"
+  },
+  "updateNotice": {
+    "title": "Mark {version} está disponível",
+    "update": "Atualizar",
+    "later": "Mais tarde",
+    "skip": "Ignorar esta versão"
   },
   "whatsNew": {
     "eyebrow": "Mark {version}",

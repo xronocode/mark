@@ -1,10 +1,10 @@
 // FILE: tests/renderer/commands/updater.test.js
-// VERSION: 2.1.2-beta
+// VERSION: 2.2.0-beta
 // START_MODULE_CONTRACT
-//   PURPOSE: Verify the user-visible Help-menu updater command across current, available, missing-feed, and failure states.
+//   PURPOSE: Verify the user-visible Help-menu updater command and the C-66 shared signed install flow across current, available, missing-feed, and failure states.
 //   SCOPE: Renderer command orchestration with mocked Tauri APIs; network, signature cryptography, and bundle replacement are out of scope.
 //   DEPENDS: src/renderer/src/commands/index.js, @tauri-apps/plugin-updater, @tauri-apps/plugin-process.
-//   LINKS: docs/knowledge-graph.xml M-016; docs/verification-plan.xml V-M-016.
+//   LINKS: docs/knowledge-graph.xml M-016; docs/verification-plan.xml V-M-016; .grace/changes/active/C-66 (shared installSignedUpdate).
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT
@@ -17,6 +17,11 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-10-19 v2.2.0-beta (C-66 T-002): installSignedUpdate is exported
+//     and pinned directly (check → downloadAndInstall → relaunch, own
+//     «Update failed» catch), plus a static pin that the manual command
+//     path never consults skippedUpdateVersion (the skip gate lives only
+//     in store/autoUpdates).
 //   - 2026-08-07 v2.1.2-beta: replace Homebrew Terminal expectations with the unified signed updater path.
 // END_CHANGE_SUMMARY
 
@@ -76,7 +81,7 @@ vi.mock('@tauri-apps/plugin-process', () => ({
 import { invoke } from '@tauri-apps/api/core'
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
-import commands from '@/commands/index'
+import commands, { installSignedUpdate } from '@/commands/index'
 
 const findCmd = (id) => commands.find((c) => c.id === id)
 
@@ -213,4 +218,75 @@ describe('file.check-update — signed in-app updater', () => {
     expect(updaterSource).not.toContain('osascript')
     expect(updaterSource).not.toContain('brew upgrade')
   })
+
+  // START_BLOCK_C66_SHARED_INSTALL
+  // C-66: the exported installSignedUpdate is the single signed install
+  // flow — the manual command and the automatic-check notice both end
+  // here, so their behaviour is identical by construction.
+  it('installSignedUpdate drives check → downloadAndInstall → relaunch', async () => {
+    const downloadAndInstallMock = vi.fn()
+    checkMock.mockResolvedValueOnce({ downloadAndInstall: downloadAndInstallMock })
+
+    await installSignedUpdate({
+      currentVersion: '2.5.0',
+      available: true,
+      latestVersion: '2.6.0',
+      downloadUrl: null,
+      statusNote: null
+    })
+
+    expect(notifyMock).toHaveBeenCalledWith({
+      title: 'Updating to Mark 2.6.0…',
+      type: 'info'
+    })
+    expect(downloadAndInstallMock).toHaveBeenCalled()
+    expect(relaunchMock).toHaveBeenCalled()
+  })
+
+  it('installSignedUpdate reports up-to-date when the plugin re-check finds nothing', async () => {
+    checkMock.mockResolvedValueOnce(null)
+
+    await installSignedUpdate({
+      currentVersion: '2.5.0',
+      available: true,
+      latestVersion: '2.6.0',
+      downloadUrl: null,
+      statusNote: null
+    })
+
+    expect(relaunchMock).not.toHaveBeenCalled()
+    expect(notifyMock).toHaveBeenCalledWith({
+      title: 'Mark 2.5.0 is up to date',
+      type: 'info'
+    })
+  })
+
+  it('installSignedUpdate owns its «Update failed» catch (shared by both callers)', async () => {
+    checkMock.mockRejectedValueOnce(new Error('download interrupted'))
+
+    await installSignedUpdate({
+      currentVersion: '2.5.0',
+      available: true,
+      latestVersion: '2.6.0',
+      downloadUrl: null,
+      statusNote: null
+    })
+
+    expect(relaunchMock).not.toHaveBeenCalled()
+    expect(notifyMock).toHaveBeenCalledWith({
+      title: 'Update failed',
+      message: 'Error: download interrupted',
+      type: 'warning'
+    })
+  })
+
+  it('the manual path never consults the skip state (no skippedUpdateVersion in commands)', () => {
+    const workspaceRoot = resolve(import.meta.dirname, '../../..')
+    const commandsSource = readFileSync(
+      resolve(workspaceRoot, 'src/renderer/src/commands/index.js'),
+      'utf8'
+    )
+    expect(commandsSource).not.toContain('skippedUpdateVersion')
+  })
+  // END_BLOCK_C66_SHARED_INSTALL
 })

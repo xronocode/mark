@@ -40,6 +40,7 @@
       <tweet></tweet>
       <import-modal></import-modal>
       <zoom-indicator></zoom-indicator>
+      <update-notice></update-notice>
     </div>
   </div>
 </template>
@@ -60,6 +61,13 @@
 //            is injected once while common styles still initialize on boot.
 //
 // CHANGE_SUMMARY:
+//   - 2026-10-19 C-66: the shell mounts the update notice
+//     (components/updateNotice) and the detached startup chain grows the
+//     automatic update check as its last step
+//     (START_BLOCK_C66_UPDATE_CHECK): autoUpdatesStore.RUN_LAUNCH_CHECK
+//     runs after initWhatsNew (a What's New sheet this launch defers the
+//     notice to the next launch) and after FETCH_BUILD_MODE (the App
+//     Store build never checks); at most once per 24 h, silent offline.
 //   - 2026-10-16 C-40 T-005: install the View-menu checkmark watchers
 //     (util/menuChecks.watchViewMenuChecks) so the native sidebar /
 //     tab bar / outline / status-bar check items follow every later
@@ -136,6 +144,7 @@ import Tweet from '@/components/tweet'
 import ImportModal from '@/components/import'
 import LiveViewer from '@/components/liveViewer'
 import ZoomIndicator from '@/components/zoomIndicator'
+import UpdateNotice from '@/components/updateNotice'
 import WhatsNewDialog from '@/components/whatsNew'
 import bus from '@/bus'
 import { DEFAULT_STYLE, isDarkTheme } from '@/config'
@@ -148,6 +157,7 @@ import { usePreferencesStore } from '@/store/preferences'
 import { useEditorStore } from '@/store/editor'
 import { useCommandCenterStore } from '@/store/commandCenter'
 import { useProjectStore } from '@/store/project'
+import { useAutoUpdatesStore } from '@/store/autoUpdates'
 
 const mainStore = useMainStore()
 const editorStore = useEditorStore()
@@ -157,6 +167,7 @@ const projectStore = useProjectStore()
 const tweetStore = useTweetStore()
 const listenForMainStore = useListenForMainStore()
 const commandCenterStore = useCommandCenterStore()
+const autoUpdatesStore = useAutoUpdatesStore()
 
 const timer = ref(null)
 let cleanupPinchZoom = null
@@ -463,6 +474,17 @@ onMounted(async () => {
         versionStatus,
         runningVersion: getRunningVersion()
       })
+      // START_BLOCK_C66_UPDATE_CHECK
+      // C-66: automatic update check, last in the startup chain — it
+      // consumes both earlier outcomes: the What's New gate (a sheet this
+      // launch defers the notice to the next one) and FETCH_BUILD_MODE
+      // (the App Store build never checks). Inside the same detached
+      // try/catch: a failing check must never break the boot above it.
+      await autoUpdatesStore.RUN_LAUNCH_CHECK({
+        whatsNewShown: versionStatus.show,
+        isDesktopBuild: preferencesStore.buildCapabilities.updater !== false
+      })
+      // END_BLOCK_C66_UPDATE_CHECK
     } catch (e) {
       console.error('[app][onMounted][BLOCK_C48_STARTUP_FAILED]', e)
     }
