@@ -2,6 +2,7 @@
   <VerificationDocuments>
     <VD-RUNTIME>
       <Path>verification/runtime.xml</Path>
+      <!-- C-60: V-M-012 scenario-24 and V-M-011 scenario-65 cover live footnote grammar changes. -->
       <Owns>
         <V-M-001/>
         <V-M-002/>

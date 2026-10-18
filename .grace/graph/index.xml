@@ -2,6 +2,7 @@
   <GraphDocuments>
     <GD-RUNTIME>
       <Path>graph/runtime.xml</Path>
+      <!-- C-60: M-012 fn-reparseMarkdown and M-011 footnote tab-cache ownership. -->
       <Owns>
         <M-001/>
         <M-002/>

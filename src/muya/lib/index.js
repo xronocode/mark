@@ -1,8 +1,8 @@
 // FILE: src/muya/lib/index.js
-// VERSION: 1.7.0
+// VERSION: 1.8.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Muya editor entry class — construction, options, and the public API surface other modules call.
-//   SCOPE: Class construction/init, markdown IO (get/set), export helpers, clipboard accessors, public editing commands, setOptions (dispatching muya-options-rerender after a needRender re-render so open overlays can follow theme-switch re-renders, C-51 T-014), the C-38 code-block line-number refresh entry, the C-39 T-002 session table column resize store (muya.tableResize), and destroy() teardown incl. the C-51 T-010 expand-need observation release.
+//   SCOPE: Class construction/init, markdown IO (get/set), view-only Markdown reparse on footnote option changes and history restoration (C-60), export helpers, clipboard accessors, public editing commands, setOptions (dispatching muya-options-rerender after a needRender re-render so open overlays can follow theme-switch re-renders, C-51 T-014), the C-38 code-block line-number refresh entry, the C-39 T-002 session table column resize store (muya.tableResize), and destroy() teardown incl. the C-51 T-010 expand-need observation release.
 //   DEPENDS: contentState, event handlers (clipboard/keyboard/mouse/click/dragDrop/resize), tableResize, parser/render/renderBlock/expandNeed (observation release), utils (ExportMarkdown/ExportHtml), ui plugins.
 //   LINKS: .grace/graph/runtime.xml M-012 fn-getCopyData and fn-tableResize; .grace/verification/runtime.xml V-M-012 scenario-14, scenario-20 and scenario-21; C-3; C-38 T-005; C-39 T-002; C-51 T-010; C-51 T-014 (muya-options-rerender, consumed by ui/blockViewer).
 //   ROLE: RUNTIME
@@ -11,12 +11,16 @@
 //
 // START_MODULE_MAP
 //   default - GRACE 4 synchronized symbol (Muya class).
+//   Muya#reparseMarkdown - rebuild blocks under the current footnote grammar without a content event or history entry, preserving source selection and scroll.
 //   Muya#refreshCodeBlockLineNumbers - re-measure every code-block gutter (wrap or code-font change without a re-render).
 //   muya.tableResize - TableResize instance (C-39 T-002): in-memory session column widths per table block key; never touches markdown, history or isSaved.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.7.0 - 2026-10-17 C-51 T-014: setOptions(_, true)
+//   LAST_CHANGE: v1.8.0 - 2026-10-18 C-60: a rendered footnote option change
+//   reparses the in-memory document with source-coordinate selection and
+//   scroll preservation; no content event, disk read or undo entry.
+//   v1.7.0 - 2026-10-17 C-51 T-014: setOptions(_, true)
 //   dispatches muya-options-rerender on the event center after the full
 //   re-render — the theme-switch path (editor.vue watch(theme)) rebuilds
 //   every block, and the open fullscreen block viewer listens for the
@@ -536,10 +540,65 @@ class Muya {
     return this.clipboard.copy('copyBlock', info)
   }
 
+  // START_CONTRACT: reparseMarkdown
+  //   PURPOSE: Rebuild the current block tree under the current grammar without editing the document or history.
+  //   INPUTS: { isRenderCursor: Boolean - restore the DOM caret only for an explicit history action }
+  //   OUTPUTS: { void }
+  //   SIDE_EFFECTS: Replaces blocks and internal cursor, clears stale selection/search block keys, renders and restores scroll; emits no content change.
+  //   LINKS: C-60; History.restore; V-M-012 scenario-24.
+  // END_CONTRACT: reparseMarkdown
+  // START_BLOCK_FOOTNOTE_OPTION_REPARSE
+  reparseMarkdown(isRenderCursor = false) {
+    const state = this.contentState
+    const markdown = this.getMarkdown()
+    const sourceCursor = state.getMuyaIndexCursor()
+    // A caret in the definition's hidden delimiters cannot survive as-is:
+    // cursor signatures before '[' or between ']:' would change the grammar,
+    // and a signature before its padding would preserve an extra space.
+    // Move only these syntax-only positions to the identifier/body boundary.
+    if (sourceCursor) {
+      const lines = markdown.split('\n')
+      for (const point of [sourceCursor.anchor, sourceCursor.focus]) {
+        const line = lines[point.line] ?? ''
+        const prefix = /^ {0,3}\[\^([^\]\s]+)\]:[ \t]*/.exec(line)
+        if (!prefix) continue
+        const start = line.indexOf('[^') + 2
+        const end = start + prefix[1].length
+        if (point.ch < start) point.ch = start
+        else if (point.ch > end && point.ch < prefix[0].length) point.ch = prefix[0].length
+      }
+    }
+    const marked = sourceCursor && state.addCursorToMarkdown(markdown, sourceCursor)
+    const { scrollTop, scrollLeft } = this.container
+    state.importMarkdown(marked?.markdown ?? markdown, marked?.isValid === true)
+    const cursor = marked?.isValid && state.convertMuyaIndexCursortoCursor(sourceCursor)
+    const first = state.getFirstBlock()
+    const fallback = { key: first.key, offset: Math.min(first.text.length, sourceCursor?.anchor?.ch ?? 0) }
+    state.importCursor(cursor?.anchor && cursor?.focus
+      ? { ...cursor, noHistory: true }
+      : { start: fallback, end: fallback, noHistory: true })
+    state.selectedImage = null
+    state.selectedTableCells = null
+    state.selectedBlock = null
+    state.renderRange = [null, null]
+    // Search matches refer to the old block keys; the next search rebuilds them.
+    state.searchMatches.matches = []
+    state.searchMatches.index = -1
+    state.render(isRenderCursor, true)
+    this.container.scrollTop = scrollTop
+    this.container.scrollLeft = scrollLeft
+    console.debug('[Muya][reparseMarkdown][BLOCK_FOOTNOTE_OPTION_REPARSE]', {
+      footnote: !!this.options.footnote
+    })
+  }
+  // END_BLOCK_FOOTNOTE_OPTION_REPARSE
+
   setOptions(options, needRender = false) {
+    const footnoteChanged = typeof options.footnote === 'boolean' && options.footnote !== this.options.footnote
     Object.assign(this.options, options)
     if (needRender) {
-      this.contentState.render(false, true)
+      if (footnoteChanged) this.reparseMarkdown()
+      else this.contentState.render(false, true)
       // C-51 T-014: option-driven re-renders (the app theme switch) rebuild
       // every block. Open overlays that mirror a block (the fullscreen
       // block viewer) listen for this and refresh their clone from the

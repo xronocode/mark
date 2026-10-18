@@ -1,0 +1,39 @@
+<GraceChangePlan graceVersion="4.0" status="applied">
+  <C-60>
+    <ChangeRef>C-60</ChangeRef>
+    <Created>2026-10-18</Created>
+    <IntentSummary>Reparse Muya's in-memory document on a rendered footnote toggle without a content/history mutation; lazily adapt restored history and invalidate renderer tab block caches.</IntentSummary>
+    <BaselineAssertions>
+      <MustContain><File>src/muya/lib/index.js</File><Text>setOptions(options, needRender = false)</Text></MustContain>
+      <MustContain><File>src/renderer/src/components/editorWithTabs/editor.vue</File><Text>watch(footnote, (value, oldValue)</Text></MustContain>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustContain><File>src/muya/lib/index.js</File><Text>START_BLOCK_FOOTNOTE_OPTION_REPARSE</Text></MustContain>
+      <MustContain><File>src/muya/lib/contentState/history.js</File><Text>START_BLOCK_HISTORY_FOOTNOTE_RESTORE</Text></MustContain>
+      <MustPassCommand><Command>npx vitest run tests/renderer/muya/footnote-options.test.js tests/renderer/muya/markdown-round-trip.test.js tests/renderer/muya/keyboard-undo.test.js tests/renderer/muya/code-block-line-numbers.test.js tests/renderer/components/editor-coverage.test.js</Command></MustPassCommand>
+    </TargetAssertions>
+    <DurableScope><GraphAnchors><M-012/><M-011/></GraphAnchors><VerificationAnchors><V-M-012/><V-M-011/></VerificationAnchors></DurableScope>
+    <ObservedWriteScope>
+      <File>src/muya/lib/index.js</File><File>src/muya/lib/contentState/history.js</File>
+      <File>src/renderer/src/components/editorWithTabs/editor.vue</File>
+      <File>tests/renderer/muya/footnote-options.test.js</File><File>tests/renderer/components/editor-coverage.test.js</File>
+      <File>tests/e2e/footnote-options.spec.ts</File><File>playwright.config.ts</File>
+      <File>.grace/graph/index.xml</File><File>.grace/graph/runtime.xml</File>
+      <File>.grace/verification/index.xml</File><File>.grace/verification/runtime.xml</File>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001><Title>Add failing regression for real Muya footnote toggles</Title><DependsOn></DependsOn><AcceptanceCriteria><Criterion>Actual block/DOM shapes, source text, selection/scroll and edit history are asserted; no mocked parser.</Criterion></AcceptanceCriteria><Verification><Command>npx vitest run tests/renderer/muya/footnote-options.test.js</Command></Verification></T-001>
+      <T-002><Title>Implement view-only reparse, history adaptation and tab-cache invalidation</Title><DependsOn>T-001</DependsOn><AcceptanceCriteria><Criterion>R-1 through R-3 pass; contracts, maps, summaries and routed ownership stay current.</Criterion></AcceptanceCriteria><Verification><Command>npx vitest run tests/renderer/muya/footnote-options.test.js tests/renderer/components/editor-coverage.test.js</Command></Verification></T-002>
+      <T-003><Title>Exercise browser behavior and complete evidence</Title><DependsOn>T-002</DependsOn><AcceptanceCriteria><Criterion>Chromium/WebKit integration and renderer suite pass; scoped GRACE gates pass with baseline findings distinguished.</Criterion></AcceptanceCriteria><Verification><Command>npm test</Command><Command>npm run build</Command><Command>npx playwright test tests/e2e/footnote-options.spec.ts --project=chromium --project=webkit-footnotes</Command></Verification></T-003>
+    </ImplementationPlan>
+    <Approval>Implementation plan falls within the user's direct authorization to fix the diagnosed bug; no extra product scope.</Approval>
+    <BaselineEvidence>2026-10-18: grace lint --assertions current has 3 pre-existing C-55 stale-baseline errors (deleted mermaidPipeline.js, deleted mermaidTheme.js, removed Mermaid dependency). No governed C-60 source edits yet.</BaselineEvidence>
+    <Evidence>
+      <T-001><Status>done</Status><Result>Old code: 4 failed / 1 passed in the real Muya regression. Boundary follow-up exposed 3 cursor-signature defects; definition delimiter offsets now clamp to the nearest identifier/body boundary without changing Markdown.</Result></T-001>
+      <T-002><Status>done</Status><Result>View-only reparse, lazy history grammar adaptation and tab-cache invalidation implemented. Cache invalidation also covers the source-side Split View mirror without content writes.</Result></T-002>
+      <T-003><Status>done</Status><Result>npm test: 307 files, 4113 passed, 2 skipped, 3 todo. Frontend build passed. Browser integration: 8/8 in Chromium and WebKit, including saved/unsaved state, undo/redo, cached tabs and Split View mirror.</Result></T-003>
+      <Grace>Selected C-60 target assertions with run-commands passed (230 tests, 2 skipped; 0 errors). Final/global lint still reports exactly the 3 pre-existing C-55 obsolete baseline assertions; no C-60 errors. Global current lint and module status rerun at handoff.</Grace>
+      <Release>Code fix only; no release tag, publication or replacement of the installed Mark 2.4.0.</Release>
+    </Evidence>
+  </C-60>
+</GraceChangePlan>
