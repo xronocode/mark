@@ -1,3 +1,20 @@
+// FILE: src/muya/lib/contentState/history.js
+// VERSION: 1.1.0
+// START_MODULE_CONTRACT
+//   PURPOSE: Maintain Muya content and selection undo/redo snapshots.
+//   SCOPE: Pending edits, bounded history, edit indices and lazy restoration under the current footnote grammar.
+//   DEPENDS: utils.deepCopy, config.UNDO_DEPTH, ContentState and Muya.reparseMarkdown.
+//   LINKS: .grace/graph/runtime.xml M-012; .grace/verification/runtime.xml V-M-012 scenario-24; C-60.
+//   ROLE: RUNTIME
+//   MAP_MODE: EXPORTS
+// END_MODULE_CONTRACT
+// START_MODULE_MAP
+//   default - History class: capture/restore snapshots with their footnote grammar and preserve edit indices.
+// END_MODULE_MAP
+// START_CHANGE_SUMMARY
+//   LAST_CHANGE: v1.1.0 - 2026-10-18 C-60: stamp each snapshot's footnote grammar and lazily reparse mismatching/legacy snapshots on undo/redo.
+// END_CHANGE_SUMMARY
+
 import { deepCopy } from '../utils'
 import { UNDO_DEPTH } from '../config'
 
@@ -28,13 +45,7 @@ class History {
       this.index = this.index - 1
       this.updateFinalEditIndex()
 
-      const state = deepCopy(this.stack[this.index])
-      const { blocks, cursor, renderRange } = state
-      cursor.noHistory = true
-      this.contentState.blocks = blocks
-      this.contentState.renderRange = renderRange
-      this.contentState.cursor = cursor
-      this.contentState.render()
+      this.restore(this.stack[this.index])
     }
   }
 
@@ -45,22 +56,32 @@ class History {
     if (index < len - 1) {
       this.index = index + 1
       this.updateFinalEditIndex()
-      const state = deepCopy(stack[this.index])
-      const { blocks, cursor, renderRange } = state
-      cursor.noHistory = true
-      this.contentState.blocks = blocks
-      this.contentState.renderRange = renderRange
-      this.contentState.cursor = cursor
+      this.restore(stack[this.index])
+    }
+  }
+
+  // START_BLOCK_HISTORY_FOOTNOTE_RESTORE
+  restore(snapshot) {
+    const { blocks, cursor, renderRange, footnote } = deepCopy(snapshot)
+    cursor.noHistory = true
+    this.contentState.blocks = blocks
+    this.contentState.renderRange = renderRange
+    this.contentState.cursor = cursor
+    const { muya } = this.contentState
+    if (muya && footnote !== !!muya.options.footnote) {
+      muya.reparseMarkdown(true)
+    } else {
       this.contentState.render()
     }
   }
+  // END_BLOCK_HISTORY_FOOTNOTE_RESTORE
 
   push(state, isPending = false) {
     if (!isPending) this.pendingIndex = -1 // Prevent instant reset of the pendingIndex
     // But, we should reset it if another event comes in that is not pending.
     this.stack.splice(this.index + 1)
     this.id += 1
-    const copyState = { id: this.id, ...deepCopy(state) }
+    const copyState = { id: this.id, ...deepCopy(state), footnote: !!this.contentState.muya?.options.footnote }
     this.stack.push(copyState)
     if (this.stack.length > UNDO_DEPTH) {
       this.stack.shift()
@@ -78,7 +99,7 @@ class History {
     } else {
       // Replace the pending state
       const dirtyState = this.stack[this.pendingIndex]
-      this.stack[this.pendingIndex] = { ...dirtyState, ...deepCopy(state) }
+      this.stack[this.pendingIndex] = { ...dirtyState, ...deepCopy(state), footnote: !!this.contentState.muya?.options.footnote }
     }
   }
 
