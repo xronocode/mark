@@ -1,19 +1,23 @@
 /*
  * FILE: site/public/track.js
- * VERSION: 1.0.0
+ * VERSION: 1.1.0
  * START_MODULE_CONTRACT
  *   PURPOSE: Consent-gated GA4 events for the site — download_click from
- *            any element marked data-track, share_to_mac from the iPhone
- *            bar via window.markTrack (C-64 R-7/D-7).
+ *            any element marked data-track, outbound_click for plain
+ *            off-site links, share_to_mac from the iPhone bar via
+ *            window.markTrack (C-64 R-7/D-7, T-006 M-1).
  *   SCOPE: delegated click listener for [data-track="download_click"]
  *          (method/placement from data-method/data-placement; copy buttons
- *          report only once their copy succeeded) plus the markTrack()
- *          entry point. Every send requires markConsent.granted() and a
- *          live window.gtag; otherwise it is a no-op (nothing is queued).
+ *          report only once their copy succeeded) and for
+ *          [data-track="outbound_click"] (link_target from data-target,
+ *          placement from data-placement) plus the markTrack() entry
+ *          point. Every send requires markConsent.granted() and a live
+ *          window.gtag; otherwise it is a no-op (nothing is queued).
  *          Navigation is never blocked (no preventDefault, beacon transport).
  *   DEPENDS: site/public/consent.js (window.markConsent, window.gtag)
- *   LINKS: M-053 SiteBuild; C-64 T-003 R-7/D-7; site/.vitepress/landing.mjs
- *          analyticsTags (emits the tag right after consent.js)
+ *   LINKS: M-053 SiteBuild; C-64 T-003 R-7/D-7, T-006 M-1;
+ *          site/.vitepress/landing.mjs analyticsTags (emits the tag right
+ *          after consent.js)
  *   ROLE: SCRIPT
  *   MAP_MODE: LOCALS
  * END_MODULE_CONTRACT
@@ -22,12 +26,19 @@
  *   window.markTrack - (name, params) -> consent-gated GA4 event
  * END_MODULE_MAP
  *
- *   <a data-track="download_click" data-method="app_store|homebrew_copy|windows|github"
+ *   <a data-track="download_click" data-method="app_store|homebrew_copy|dmg|windows"
  *      data-placement="hero|install|bar|footer|docs" ...>
+ *   <a data-track="outbound_click" data-target="github"
+ *      data-placement="nav|footer|docs" ...>
  *   window.markTrack('share_to_mac', { result: 'shared' | 'copied' | 'dismissed' })
  *
  * START_CHANGE_SUMMARY
- *   LAST_CHANGE: [v1.0.0 - 2026-10-18 C-64 T-003: first version.]
+ *   LAST_CHANGE: [v1.1.0 - 2026-10-18 C-64 T-006: DMG links report
+ *                 method "dmg" so downloads are distinguishable from
+ *                 repository visits, and the GitHub nav/footer links move
+ *                 to the new outbound_click event (link_target +
+ *                 placement) sent through the same consent-gated helper.]
+ *   PREV: [v1.0.0 - 2026-10-18 C-64 T-003: first version.]
  * END_CHANGE_SUMMARY
  */
 (function () {
@@ -63,7 +74,16 @@
   }
   document.addEventListener("click", function (e) {
     var el = e.target && e.target.closest ? e.target.closest("[data-track]") : null;
-    if (!el || el.getAttribute("data-track") !== "download_click") return;
+    if (!el) return;
+    var kind = el.getAttribute("data-track");
+    if (kind === "outbound_click") {
+      send("outbound_click", {
+        link_target: el.getAttribute("data-target") || "",
+        placement: el.getAttribute("data-placement") || ""
+      });
+      return;
+    }
+    if (kind !== "download_click") return;
     var params = {
       method: el.getAttribute("data-method") || "",
       placement: el.getAttribute("data-placement") || ""

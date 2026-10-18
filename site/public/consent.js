@@ -1,6 +1,6 @@
 /*
  * FILE: site/public/consent.js
- * VERSION: 2.0.0
+ * VERSION: 2.1.0
  * START_MODULE_CONTRACT
  *   PURPOSE: Google Analytics loader with Consent Mode v2 and a slim brand
  *            consent card that never covers the landing hero (C-64 R-6/D-4).
@@ -33,7 +33,14 @@
  * kept for older embeds and also carries .required.
  *
  * START_CHANGE_SUMMARY
- *   LAST_CHANGE: [v2.0.0 - 2026-10-18 C-64 T-003: the card is slim, in the
+ *   LAST_CHANGE: [v2.1.0 - 2026-10-18 C-64 T-006: the gtag script injects
+ *                 only after the window load event, in a requestIdleCallback
+ *                 slot capped at 2 s (setTimeout fallback) — off the LCP
+ *                 critical path. The Consent Mode v2 defaults, the saved
+ *                 state replay and every gtag() call before the injection
+ *                 stay exactly as they were: synchronous, before the
+ *                 script tag exists.]
+ *   PREV: [v2.0.0 - 2026-10-18 C-64 T-003: the card is slim, in the
  *                 brand tokens (paper/ink/rule, IBM Plex, radius 14), sits
  *                 bottom-left (full-width bottom on <=520px with
  *                 safe-area insets) and never appears on first paint: with
@@ -69,12 +76,27 @@
   try { saved = localStorage.getItem(KEY); } catch (e) {}
   if (saved === "granted" || saved === "denied") gtag("consent", "update", saved === "granted" ? GRANTED : DENIED);
 
-  if (GA) {
+  var gaLoaded = false;
+  function loadGA() {
+    if (!GA || gaLoaded) return;
+    gaLoaded = true;
     var s = document.createElement("script");
     s.async = true; s.src = "https://www.googletagmanager.com/gtag/js?id=" + GA;
     document.head.appendChild(s);
     gtag("js", new Date());
     gtag("config", GA);
+  }
+  /* The tag-manager script is not on the critical path: after the window
+     load event it waits for an idle slot (2 s cap; setTimeout when
+     requestIdleCallback is missing). The consent defaults above are still
+     set synchronously, before any gtag call, granted or not. */
+  function onIdle(fn) {
+    if (window.requestIdleCallback) window.requestIdleCallback(fn, { timeout: 2000 });
+    else setTimeout(fn, 2000);
+  }
+  if (GA) {
+    if (document.readyState === "complete") onIdle(loadGA);
+    else window.addEventListener("load", function () { onIdle(loadGA); });
   }
 
   var L = {

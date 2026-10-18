@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // FILE: site/scripts/check-dist.mjs
-// VERSION: 1.2.0
+// VERSION: 1.3.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Gate the built site before deploy — every internal link/asset in
 //            every dist HTML page must resolve to a file in dist, and the
@@ -35,7 +35,10 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: [v1.2.0 - 2026-10-18 C-64 T-003: new BLOCK_CHECK_SEO and
+//   LAST_CHANGE: [v1.3.0 - 2026-10-18 C-64 T-006: the llms.txt gate pins the
+//                 canonical tap-free one-liner "brew install --cask
+//                 xronocode/mark/mark" (F-1).]
+//   PREV: [v1.2.0 - 2026-10-18 C-64 T-003: new BLOCK_CHECK_SEO and
 //                 BLOCK_CHECK_CSP gates — llms.txt + security.txt exist with
 //                 the required sections/lines, the landing head carries
 //                 apple-itunes-app, og-card.png and a parseable JSON-LD
@@ -175,7 +178,7 @@ function main () {
     for (const section of ['## Install', '## Docs', '## Source']) {
       if (!llms.includes(section)) seoProblems.push(`llms.txt missing the "${section}" section`)
     }
-    if (!llms.includes('brew tap xronocode/mark && brew install --cask mark')) seoProblems.push('llms.txt missing the Homebrew one-liner')
+    if (!llms.includes('brew install --cask xronocode/mark/mark')) seoProblems.push('llms.txt missing the Homebrew one-liner')
     if (/\]\((?!https:)/.test(llms)) seoProblems.push('llms.txt has non-absolute links')
   }
   const securityPath = join(dist, '.well-known', 'security.txt')

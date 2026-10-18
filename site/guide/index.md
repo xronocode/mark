@@ -15,7 +15,7 @@ Mark is a native WYSIWYG Markdown editor built with [Tauri v2](https://tauri.app
 ## Quick install
 
 ```sh
-brew tap xronocode/mark && brew install --cask mark
+brew install --cask xronocode/mark/mark
 ```
 
 Also on the [Mac App Store](https://apps.apple.com/app/id6814590464), or the Windows `x64-setup.exe` from [GitHub Releases](https://github.com/xronocode/mark/releases/latest). See [Installation](./installation) and [Editions](./editions).

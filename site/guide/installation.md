@@ -11,10 +11,10 @@ description: "Install Mark on macOS with Homebrew or a release download and keep
 ## Homebrew (macOS, Apple silicon)
 
 ```sh
-brew tap xronocode/mark && brew install --cask mark
+brew install --cask xronocode/mark/mark
 ```
 
-No Gatekeeper prompts. No `sudo xattr` dance. The cask is notarized.
+No Gatekeeper prompts. No `sudo xattr` dance. The cask is notarized. The tap is added automatically by the one-liner; updates arrive through the in-app updater or `brew upgrade --cask mark`.
 
 ## Windows (x64)
 
@@ -35,8 +35,10 @@ The built app will be in `src-tauri/target/release/bundle/`.
 
 ## Verify installation
 
+Open Mark from Spotlight / Applications and create a new file with Cmd+N — or check the version from a terminal:
+
 ```sh
-mark --version
+/Applications/Mark.app/Contents/MacOS/mark --print-version
 ```
 
-Or open Mark from Spotlight / Applications and create a new file with Cmd+N.
+Homebrew and the `.dmg` do not put a `mark` command on your `PATH`; see [CLI Usage](./cli) for the app binary, its flags and an optional shell alias.

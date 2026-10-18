@@ -1,6 +1,6 @@
 // @vitest-environment node
 // FILE: tests/site/landing-content.test.mjs
-// VERSION: 1.1.0
+// VERSION: 1.2.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Verify the C-64 T-002 landing content contract — the four
 //            install facts render, stale claims and forbidden Mark Text
@@ -25,7 +25,17 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: [v1.1.0 - 2026-10-18 C-64 T-002 review round 2: pins the
+//   LAST_CHANGE: [v1.2.0 - 2026-10-18 C-64 T-006: pins the audit fixes -
+//                 the tap-free brew one-liner in chip text/data-copy and
+//                 aria-labels, method "dmg" on both DMG links with the
+//                 GitHub repo links as outbound_click/target, #win-link +
+//                 the setup.exe asset regex, the UTM-tagged share URL, the
+//                 one-line hero captions (no .opt-i), --rest-driven stage
+//                 rest with the 981+ doc offset, the template-wrapped lazy
+//                 wall, content-visibility on ¶03-¶05 + footer only, and
+//                 the comment-free rendered output starting at <!doctype
+//                 (placeholders are asserted on the raw template now).]
+//   PREV: [v1.1.0 - 2026-10-18 C-64 T-002 review round 2: pins the
 //                 round-2 fixes - stage rests via CSS per breakpoint with a
 //                 1.8 s from-rest sweep, one-line scrollable brew chip,
 //                 secondary Windows button, phone-folded agent prompt,
@@ -45,10 +55,12 @@ const TEMPLATE = readFileSync(resolve(import.meta.dirname, '../../site/landing/i
 const HTML = renderLanding(TEMPLATE, resolveSiteSettings({}))
 
 describe('landing install facts', () => {
-  it('renders the App Store link, the full brew command, the Windows setup.exe and v2.5.0', () => {
+  it('renders the App Store link, the brew one-liner, the Windows setup.exe and v2.5.0', () => {
     expect(HTML).toContain('https://apps.apple.com/app/id6814590464')
-    // The & of the command is escaped in both the data-copy attribute and the visible chip text.
-    expect(HTML).toContain('brew tap xronocode/mark &amp;&amp; brew install --cask mark')
+    // One canonical command everywhere (C-64 T-006 F-1): the tap-free
+    // one-liner, identical in the data-copy attribute and the visible text.
+    expect(HTML).toContain('brew install --cask xronocode/mark/mark')
+    expect(HTML).not.toContain('brew tap xronocode/mark &amp;&amp;')
     expect(HTML).toContain('Mark_2.5.0_x64-setup.exe')
     expect(HTML).toContain('Mark_2.5.0_aarch64.dmg')
     expect(HTML).toMatch(/id="version">v2\.5\.0</)
@@ -77,7 +89,7 @@ describe('landing consent + install analytics wiring', () => {
   const TAGS = [...HTML.matchAll(/<(?:a|button)\b[^>]*>/gi)].map((m) => m[0])
   const isInstallCta = (tag) =>
     tag.includes('apps.apple.com/app/id6814590464') ||
-    tag.includes('brew tap xronocode/mark') ||
+    tag.includes('brew install --cask xronocode/mark/mark') ||
     tag.includes('github.com/xronocode/mark/releases/latest')
   const CTAS = TAGS.filter(isInstallCta)
 
@@ -88,17 +100,30 @@ describe('landing consent + install analytics wiring', () => {
   it('tracks every install CTA with method and placement', () => {
     for (const tag of CTAS) {
       expect(tag, tag).toContain('data-track="download_click"')
-      expect(tag, tag).toMatch(/data-method="(app_store|homebrew_copy|windows|github)"/)
+      expect(tag, tag).toMatch(/data-method="(app_store|homebrew_copy|windows|dmg)"/)
       expect(tag, tag).toMatch(/data-placement="(hero|install|nav|footer|bar)"/)
     }
   })
 
   it('uses each install method somewhere and the hero placement exists', () => {
     const methods = CTAS.map((t) => /data-method="([^"]+)"/.exec(t)[1])
-    for (const m of ['app_store', 'homebrew_copy', 'windows']) expect(methods).toContain(m)
+    for (const m of ['app_store', 'homebrew_copy', 'windows', 'dmg']) expect(methods).toContain(m)
     const places = CTAS.map((t) => /data-placement="([^"]+)"/.exec(t)[1])
     expect(places).toContain('hero')
     expect(places).toContain('install')
+  })
+
+  it('separates DMG downloads (dmg) from GitHub outbound links (C-64 T-006 M-1)', () => {
+    const dmg = TAGS.filter((t) => /id="dmg-(hero|link)"/.test(t))
+    expect(dmg).toHaveLength(2)
+    for (const tag of dmg) expect(tag, tag).toContain('data-method="dmg"')
+    const repo = TAGS.filter((t) => /href="https:\/\/github\.com\/xronocode\/mark"/.test(t))
+    expect(repo.length).toBeGreaterThanOrEqual(3)
+    for (const tag of repo) {
+      expect(tag, tag).toContain('data-track="outbound_click"')
+      expect(tag, tag).toContain('data-target="github"')
+      expect(tag, tag).not.toContain('data-method')
+    }
   })
 })
 
@@ -120,28 +145,43 @@ describe('landing hero stage and iOS surface', () => {
     expect(HTML).toContain('.ios .macbar')
   })
 
-  it('shares the canonical URL with the documented share_to_mac outcomes', () => {
+  it('shares the canonical URL with UTM tags and the documented share_to_mac outcomes', () => {
     expect(HTML).toContain("navigator.share")
     expect(HTML).toContain("'Mark \\u2014 Markdown editor for Mac'")
     expect(HTML).toContain("'Install Mark on my Mac'")
+    expect(HTML).toContain("'utm_source=ios&utm_medium=share&utm_campaign=send_to_mac'")
     expect(HTML).toContain("markTrack('share_to_mac'")
     expect(HTML).toContain("'dismissed'")
     expect(HTML).toContain("'copied'")
     expect(HTML).toContain("localStorage.setItem('mark-mac-bar'")
   })
+
+  it('swaps the Windows button to the exact x64 setup.exe from the releases API', () => {
+    expect(HTML).toMatch(/class="btn sec" id="win-link"[^>]*data-method="windows"/)
+    expect(HTML).toContain('/Mark_.*_x64-setup\\.exe$/')
+    expect(HTML).toContain("getElementById('win-link')")
+  })
 })
 
 describe('landing build placeholders', () => {
-  it('starts the head with the shared theme-init placeholder and inlines the brand css slot', () => {
-    expect(HTML.indexOf('<!--THEME_INIT-->')).toBeGreaterThan(HTML.indexOf('<head>'))
-    expect(HTML.indexOf('<!--THEME_INIT-->')).toBeLessThan(HTML.indexOf('<style>'))
-    expect(HTML).toContain('<!--BRAND_CSS-->')
-    expect(HTML).toContain('<!--THEME_VARS_JSON-->')
+  it('keeps the build placeholders in the template head; the rendered head starts clean', () => {
+    // The placeholders live in the raw template (filled by fillLanding at
+    // build); renderLanding strips every comment, so the served page has
+    // none of them (C-64 T-006 S-4).
+    expect(TEMPLATE.indexOf('<!--THEME_INIT-->')).toBeGreaterThan(TEMPLATE.indexOf('<head>'))
+    expect(TEMPLATE.indexOf('<!--THEME_INIT-->')).toBeLessThan(TEMPLATE.indexOf('<style>'))
+    expect(TEMPLATE).toContain('<!--BRAND_CSS-->')
+    expect(TEMPLATE).toContain('<!--THEME_VARS_JSON-->')
+    expect(HTML).not.toContain('<!--')
+  })
+
+  it('renders <meta charset> as the first element inside <head>', () => {
+    expect(HTML).toMatch(/<head>\s*<meta charset="utf-8">/)
   })
 
   it('uses only gallery example ids for DIAGRAM placeholders', () => {
     const ids = new Set(EXAMPLES.map((e) => e.id))
-    const used = [...HTML.matchAll(/<!--DIAGRAM:([\w-]+)-->/g)].map((m) => m[1])
+    const used = [...TEMPLATE.matchAll(/<!--DIAGRAM:([\w-]+)-->/g)].map((m) => m[1])
     expect(used.length).toBeGreaterThanOrEqual(8)
     for (const id of used) expect(ids.has(id), id).toBe(true)
     // The hero stage and the d2 wall both need their diagrams.
@@ -178,15 +218,22 @@ describe('landing hygiene', () => {
 })
 
 describe('landing round-2 review fixes', () => {
-  it('rests the stage divider at the CSS default per breakpoint, with no inline start', () => {
+  it('rests the stage divider on the CSS --rest value per breakpoint, with no inline start', () => {
     expect(HTML).not.toContain('style="--x"')
-    expect(HTML).toMatch(/\.stage\s*\{[^}]*--x:\s*34%/)
-    expect(HTML).toMatch(/\.stage\s*\{[^}]*--x:\s*46%/)
+    expect(HTML).toMatch(/\.stage\s*\{[^}]*--rest:\s*34%/)
+    expect(HTML).toMatch(/\.stage\s*\{[^}]*--x:\s*var\(--rest\)/)
+    expect(HTML).toMatch(/@media \(min-width: 521px\)\s*\{[\s\S]*?\.stage\s*\{[^}]*--rest:\s*46%/)
+    expect(HTML).toMatch(/@media \(min-width: 981px\)\s*\{[\s\S]*?\.stage\s*\{[^}]*--rest:\s*30%/)
+    // At 981+ the rendered document starts just right of the rest divider.
+    expect(HTML).toMatch(/\.layer\.page \.doc\s*\{[^}]*padding-left:\s*calc\(var\(--rest\) \+ 28px\)/)
+    // The JS reads the same value from the computed style — never a hardcoded 34/46.
+    expect(HTML).toContain("getPropertyValue('--rest')")
+    expect(HTML).not.toMatch(/restX = phone\.matches/)
   })
 
   it('sweeps from rest and back in 1.8 s', () => {
     expect(HTML).toMatch(/\(t - t0\) \/ 1800/)
-    expect(HTML).toMatch(/restX - \(restX - 10\) \* Math\.sin/)
+    expect(HTML).toMatch(/rest - \(rest - 10\) \* Math\.sin/)
   })
 
   it('keeps the install brew command on one line, scrollable inside the chip', () => {
@@ -219,5 +266,50 @@ describe('landing round-2 review fixes', () => {
     expect(HTML).toMatch(/\.more\s*\{\s*display:\s*none/)
     expect(HTML).toMatch(/\.more\s*\{\s*display:\s*inline/)
     expect(HTML).toMatch(/\.opt\s*\{\s*display:\s*none/)
+  })
+})
+
+describe('landing C-64 T-006 audit fixes', () => {
+  const ALL_TAGS = [...HTML.matchAll(/<(?:a|button)\b[^>]*>/gi)].map((m) => m[0])
+
+  it('states the hero version captions as one-line facts (D-2)', () => {
+    expect(HTML).toContain('v2.1.17 &middot; sandboxed')
+    expect(HTML).toContain('<span id="version">v2.5.0</span><span class="more"> &middot; latest</span> &middot; &asymp; 15 MB')
+    expect(HTML).not.toContain('opt-i')
+    expect(HTML).not.toContain('is coming')
+    expect(HTML).not.toMatch(/\.get-o \.fine\s*\{\s*white-space/)
+  })
+
+  it('names both brew buttons with the visible command (A-1)', () => {
+    const brew = ALL_TAGS.filter((t) => /class="brew/.test(t))
+    expect(brew).toHaveLength(2)
+    for (const tag of brew) {
+      expect(tag, tag).toContain('aria-label="Copy brew install --cask xronocode/mark/mark"')
+    }
+  })
+
+  it('ships the wall SVGs inside templates mounted near the viewport (R-1)', () => {
+    expect((TEMPLATE.match(/<template data-diagram="/g) || []).length).toBe(7)
+    expect(HTML).toMatch(/rootMargin:\s*'600px'/)
+    expect(HTML).toContain('template[data-diagram]')
+    // The hero stage diagrams stay inline (above the fold), not templated.
+    expect(TEMPLATE).toMatch(/<div class="dia"><!--DIAGRAM:sankey--><\/div>/)
+    expect(TEMPLATE).toMatch(/<div class="dia dia-pie"><!--DIAGRAM:pie--><\/div>/)
+  })
+
+  it('defers below-the-fold rendering to content-visibility on ¶03–¶05 and the footer only (R-1)', () => {
+    expect(HTML).toMatch(/\.cv\s*\{\s*content-visibility:\s*auto/)
+    expect(HTML).toMatch(/\.cv-a \{ contain-intrinsic-size:\s*auto \d+px/)
+    expect((HTML.match(/class="sec cv cv-[abc]"/g) || []).length).toBe(3)
+    expect(HTML).toMatch(/<footer class="foot cv">/)
+    expect(HTML).toMatch(/<section class="top" id="hero"/)
+    expect(HTML).toMatch(/<section class="sec" id="diagrams-sec"/)
+    expect(HTML).toMatch(/<section class="sec" aria-labelledby="ag-h">/)
+  })
+
+  it('darkens the demo meta line to the 4.5:1 ink in the light theme only (A-1)', () => {
+    expect(HTML).toMatch(/--w-meta:\s*#6B675F/)
+    expect(HTML).toMatch(/\.win\.dk\s*\{[^}]*--w-meta:\s*#9D998F/)
+    expect(HTML).toMatch(/\.md \.meta\s*\{[^}]*var\(--w-meta/)
   })
 })

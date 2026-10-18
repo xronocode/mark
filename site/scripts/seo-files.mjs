@@ -1,5 +1,5 @@
 // FILE: site/scripts/seo-files.mjs
-// VERSION: 1.0.0
+// VERSION: 1.1.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Pure builders for the machine-facing site files — llms.txt
 //            (llmstxt.org: what Mark is, install paths, docs map, source)
@@ -23,12 +23,16 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: [v1.0.0 - 2026-10-18 C-64 T-003: first version.]
+//   LAST_CHANGE: [v1.1.0 - 2026-10-18 C-64 T-006: BREW_INSTALL is the
+//                 tap-free one-liner "brew install --cask xronocode/mark/mark"
+//                 (brew taps xronocode/mark automatically); the old
+//                 tap-then-install pair failed when copied without the tap.]
+//   PREV: [v1.0.0 - 2026-10-18 C-64 T-003: first version.]
 // END_CHANGE_SUMMARY
 
 import { APP_STORE_URL, GITHUB_RELEASES, GITHUB_REPO, SITE_META } from '../.vitepress/landing.mjs'
 
-export const BREW_INSTALL = 'brew tap xronocode/mark && brew install --cask mark'
+export const BREW_INSTALL = 'brew install --cask xronocode/mark/mark'
 
 // START_CONTRACT: llmsTxt
 //   PURPOSE: The llmstxt.org entry point for crawlers and agents: one-line

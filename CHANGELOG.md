@@ -11,6 +11,7 @@ Carried over from the old status table in the README:
 - Intel Macs are not supported by the Homebrew cask; Linux builds are not published.
 - Image upload services (PicGo and similar) are not supported.
 
+<!-- #region releases -->
 ## [2.5.0] - 2026-10-18
 
 Diagrams leave Mark as pictures, each diagram gets its own look, and printing and PDF export each go straight to the point.
@@ -252,7 +253,9 @@ Stabilisation releases.
 - No splash screen on launch; a stricter content security policy.
 - Files opened on their own reload when they change on disk.
 
-[Unreleased]: https://github.com/xronocode/mark/compare/v2.3.1...HEAD
+[Unreleased]: https://github.com/xronocode/mark/compare/v2.5.0...HEAD
+[2.5.0]: https://github.com/xronocode/mark/releases/tag/v2.5.0
+[2.4.0]: https://github.com/xronocode/mark/releases/tag/v2.4.0
 [2.3.1]: https://github.com/xronocode/mark/releases/tag/v2.3.1
 [2.3.0]: https://github.com/xronocode/mark/releases/tag/v2.3.0
 [2.2.0-beta]: https://github.com/xronocode/mark/releases/tag/v2.2.0-beta
@@ -274,3 +277,4 @@ Stabilisation releases.
 [2.0.1-alpha.1]: https://github.com/xronocode/mark/releases/tag/v2.0.1-alpha.1
 [2.0.0-alpha.9]: https://github.com/xronocode/mark/releases/tag/v2.0.0-alpha.9
 [2.0.0-alpha.8]: https://github.com/xronocode/mark/releases/tag/v2.0.0-alpha.8
+<!-- #endregion releases -->

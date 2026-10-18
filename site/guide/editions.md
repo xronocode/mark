@@ -125,7 +125,7 @@ Everything in these releases reaches the App Store edition except the desktop-on
 ## Installing
 
 - Mac App Store: [Mark on the Mac App Store](https://apps.apple.com/app/id6814590464)
-- Homebrew: `brew tap xronocode/mark && brew install --cask mark`
+- Homebrew: `brew install --cask xronocode/mark/mark`
 - Windows: the `x64-setup.exe` installer from [GitHub Releases](https://github.com/xronocode/mark/releases/latest)
 
 See [Installation](./installation) for details.

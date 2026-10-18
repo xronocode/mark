@@ -1,6 +1,6 @@
 // @vitest-environment node
 // FILE: tests/site/landing-fill.test.mjs
-// VERSION: 1.0.0
+// VERSION: 1.1.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Verify the landing build placeholders are filled from the real
 //            sources (pele SVGs, brand.css, THEME_INIT_JS, theme vars) and
@@ -17,11 +17,18 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.0.0 - 2026-10-18 C-64 T-002: first version.
+//   LAST_CHANGE: [v1.1.0 - 2026-10-18 C-64 T-006: the fill+render chain over
+//                 the real template (as config.mts buildEnd runs it) must
+//                 start with <!doctype html> and carry no HTML comment —
+//                 pele SVGs included.]
+//   PREV: [v1.0.0 - 2026-10-18 C-64 T-002: first version.]
 // END_CHANGE_SUMMARY
 
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { fillLanding, LANDING_THEMES } from '../../site/scripts/landing-fill.mjs'
+import { renderLanding, resolveSiteSettings } from '../../site/.vitepress/landing.mjs'
 import { THEME_INIT_JS } from '../../site/shared/theme-init.mjs'
 
 const TEMPLATE = '<head><!--THEME_INIT--><style><!--BRAND_CSS--></style></head><body><!--DIAGRAM:sankey--><!--DIAGRAM:sankey--><!--DIAGRAM:pie--><script>const T=<!--THEME_VARS_JSON-->;</script></body>'
@@ -49,5 +56,11 @@ describe('fillLanding', () => {
   })
   it('fails the build on an unknown diagram id', () => {
     expect(() => fillLanding('<!--DIAGRAM:nope-->')).toThrow(/unknown diagram nope/)
+  })
+  it('renders the real template fill+render chain comment-free, starting at <!doctype', () => {
+    const real = readFileSync(resolve(import.meta.dirname, '../../site/landing/index.html'), 'utf8')
+    const html = renderLanding(fillLanding(real), resolveSiteSettings({}))
+    expect(html.startsWith('<!doctype html>')).toBe(true)
+    expect(html).not.toContain('<!--')
   })
 })
