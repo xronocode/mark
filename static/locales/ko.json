@@ -457,6 +457,11 @@
     "diagram": "다이어그램",
     "table": "표"
   },
+  "blockToolbar": {
+    "editSource": "소스 편집",
+    "copyImage": "이미지로 복사",
+    "openFullScreen": "전체 화면으로 열기"
+  },
   "recent": {
     "taglineLead": "에이전트가 씁니다. 여러분이",
     "taglineHighlight": "다듬습니다.",

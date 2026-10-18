@@ -6252,6 +6252,50 @@
           the zoomed-viewer export and the hidden buttons on a table
           viewer).
         </Scenario>
+        <Scenario>
+          scenario-64: Diagram corner toolbar (C-56 T-005, user choice
+          2026-10-18, approved mockup variant C): ```mermaid (pele) and
+          ```vega-lite figures with non-empty source render ONE hover
+          pill at the figure's top-right (top/right 8 px; background
+          color-mix(--pele-surface 95%), 1 px border color-mix(--pele-fg
+          12%), radius 8, padding 2) with three same-family 16-grid
+          1.5-stroke icon actions — Edit source (the container edit
+          action the old PNG pencil had), Copy as image (the scenario-63
+          transport: 2× PNG via clipboard writeImage, «Copied» toast) and
+          Open full screen (the shared block viewer) — REPLACING the
+          pencil and the standalone expand glyph on exactly those two
+          roles; html, multiplemath, flowchart, sequence, plantuml and
+          table figures keep today's icons. The pill appears ONLY while
+          the pointer is over the figure (opacity 0 → 1, 150 ms) or a
+          button inside it holds keyboard focus (:focus-within) — never
+          because the caret is inside (ag-active hides it). The expand
+          action keeps the expandNeed.js D-7 gate (display:none without
+          ag-expand-needed, no Tab stop; Cmd/Ctrl+click still opens the
+          viewer everywhere); Copy is DISABLED — not hidden — while the
+          block has no rendered svg (corner-4; syncBlockToolbarState via
+          updateFigureExpandNeed, the same funnel as the need rules —
+          every render path, pele insert and awaited vega embed). Every
+          pill button carries the ag-block-expand family class so the
+          keyboard.js key guard leaves Tab/Enter/arrows and keyups to the
+          button; clickEvent.js routes by data-block-toolbar-action
+          BEFORE the generic expand branch. blockViewer close() restores
+          focus to the pill's expand button (expandButtonOf). Labels are
+          localized blockToolbar.editSource/copyImage/openFullScreen in
+          all ten locales (+ regenerated min.json). Unit-pinned in
+          tests/renderer/muya/block-toolbar.test.js (pill vnode + exact
+          mockup glyphs + labels + family class, scope negatives, click
+          routing incl. the disabled guard, syncBlockToolbarState +
+          updateFigureExpandNeed funnel, variant-C CSS literals) with the
+          split cases in block-expand-button.test.js (the standalone
+          glyph stays on flowchart/sequence/plantuml/tables) and the
+          pill focus-restore case in block-viewer.test.js; end-to-end in
+          tests/e2e/diagram-export.spec.ts (START_BLOCK_EXPORT_E2E_
+          TOOLBAR: hover reveal vs caret-only, localized labels,
+          pencil/glyph replaced, Edit source activation, Copy as image
+          2× IHDR + toast, Open full screen, empty-fence no-pill, role
+          scope) and tests/e2e/block-viewer.spec.ts (pill look, need
+          gate, Tab walk over the pill's Edit/Copy stops, screenshots).
+        </Scenario>
       </Scenarios>
       <Markers>
         <Marker>[Muya][parse][BLOCK_TOKENIZE]</Marker>

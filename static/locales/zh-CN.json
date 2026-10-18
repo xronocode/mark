@@ -457,6 +457,11 @@
     "diagram": "图表",
     "table": "表格"
   },
+  "blockToolbar": {
+    "editSource": "编辑源码",
+    "copyImage": "复制为图像",
+    "openFullScreen": "全屏打开"
+  },
   "recent": {
     "taglineLead": "智能体来写，你来",
     "taglineHighlight": "塑造它。",

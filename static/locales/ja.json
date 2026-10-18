@@ -457,6 +457,11 @@
     "diagram": "図",
     "table": "表"
   },
+  "blockToolbar": {
+    "editSource": "ソースを編集",
+    "copyImage": "画像としてコピー",
+    "openFullScreen": "全画面で開く"
+  },
   "recent": {
     "taglineLead": "エージェントが書く。",
     "taglineHighlight": "あなたが形にする。",
