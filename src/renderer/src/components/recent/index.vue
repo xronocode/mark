@@ -2,7 +2,7 @@
   <div class="welcome-screen" :class="{ 'drop-active': dragOver }">
     <div class="welcome-content">
       <div class="brand">
-        <img class="brand-icon" :src="logoUrl" alt="" draggable="false" />
+        <img class="brand-icon" :src="brandLogo" alt="" draggable="false" />
         <span class="brand-name">Mark</span>
       </div>
       <div class="tagline">
@@ -183,7 +183,10 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v2.1.1 - 2026-10-18 fix: safe vertical centering — the
+//   LAST_CHANGE: v2.1.2 - 2026-10-18 fix: the brand mark was still the
+//     pre-C-33 round «M» logo.png; it is now the ¶ app icon, light or dark
+//     by the effective theme (logo.png / logo-dark.png, full-bleed, from assets/icon).
+//   v2.1.1 - 2026-10-18 fix: safe vertical centering — the
 //     welcome screen centred its content with align-items:center inside an
 //     overflow-y:auto flex box, so a list taller than the window clipped the
 //     top (brand + tagline) beyond reach of the scrollbar; the content now
@@ -237,7 +240,11 @@ import { getAgentPrompt } from '@/util/agentPrompt'
 import { getRunningVersion, LAST_UPDATE_AT_KEY } from '@/whatsNew/gate'
 import { t, getCurrentLanguage } from '../../i18n'
 import bus from '@/bus'
+import { storeToRefs } from 'pinia'
+import { usePreferencesStore } from '@/store/preferences.js'
+import { isDarkTheme } from '@/config'
 import logoUrl from '@/assets/images/logo.png'
+import logoDarkUrl from '@/assets/images/logo-dark.png'
 
 const MAX_RECENT_FILES_SHOWN = 5
 const MAX_RECENT_FOLDERS_SHOWN = 3
@@ -251,6 +258,10 @@ const MISSING_RE = /MT_FS_NOT_FOUND|No such file/i
 
 const editorStore = useEditorStore()
 const projectStore = useProjectStore()
+// The brand mark follows the effective theme: the light ¶ icon on light
+// themes, its dark variant on dark ones (same pair as the app icon).
+const { theme } = storeToRefs(usePreferencesStore())
+const brandLogo = computed(() => (isDarkTheme(theme.value) ? logoDarkUrl : logoUrl))
 
 const recentFiles = ref([])
 const recentFolders = ref([])

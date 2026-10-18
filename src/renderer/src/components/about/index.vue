@@ -7,7 +7,7 @@
       custom-class="ag-dialog-table"
       width="400px"
     >
-      <img class="logo" :src="MarkTextLogo" />
+      <img class="logo" :src="brandLogo" alt="" />
       <el-row>
         <el-col :span="24">
           <h3 class="title">{{ name }}</h3>
@@ -27,13 +27,21 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
+import { storeToRefs } from 'pinia'
 import { useMainStore } from '@/store'
+import { usePreferencesStore } from '@/store/preferences.js'
+import { isDarkTheme } from '@/config'
 import bus from '../../bus'
 import MarkTextLogo from '../../assets/images/logo.png'
+import MarkTextLogoDark from '../../assets/images/logo-dark.png'
 import { useI18n } from 'vue-i18n'
 
 const { t } = useI18n()
+
+// The brand mark follows the effective theme (light or dark ¶ icon).
+const { theme } = storeToRefs(usePreferencesStore())
+const brandLogo = computed(() => (isDarkTheme(theme.value) ? MarkTextLogoDark : MarkTextLogo))
 
 const name = 'Mark'
 const copyright = t('about.copyright', { year: new Date().getFullYear() })
