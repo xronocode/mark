@@ -38,25 +38,15 @@ Download `Mark_<version>_x64-setup.exe` from [the latest release](https://github
 
 The App Store build and the Homebrew/download build are the same editor with a few differences. See [Two editions, same editor](#two-editions-same-editor).
 
-## What's new in 2.4.0
+## What's new in 2.5.0
 
-- **A new diagram engine.** ```mermaid``` blocks now render with [Pele](https://github.com/obsidianmd/pele) — the same mermaid syntax, rendered faster and far lighter. The diagrams' look has changed with the engine.
-- **Diagrams follow the theme instantly.** Colours live in CSS variables now, so switching between light and dark recolours every diagram on the spot — no re-rendering.
-- **New diagram types.** Venn, treemap, agentflow, radar, swimlane, use case, event modeling and more — right in mermaid blocks.
-- **A much lighter Mark.** The diagram code went from 44 bundle parts totalling 2.6 MB to a single 0.26 MB part (compressed), and 75 MB of dependencies left the app.
+- **Diagrams as pictures.** Copy any diagram or Vega-Lite chart as an image, or save it as PNG or SVG — from the corner panel, the context menu or the full-screen view. The SVG carries the theme's colours, so it looks the same anywhere.
+- **A corner panel on every diagram.** Hover a diagram and a small panel appears at its top-right edge: its look, the source, copy as image and full screen. The panel stays out of the way until you need it.
+- **A look for each diagram.** Auto follows the document theme; Custom keeps the author's palette from the Markdown; Light and Dark pin it. The choice is saved in the diagram and undoes like any edit.
+- **Print and PDF, each direct.** ⌘P goes straight to the system print panel. Export to PDF saves the file through a save dialog, without the print panel — on macOS and Windows.
+- **And the rest.** Copy an image that is already in the document back to the clipboard; footnote settings apply instantly; kanban boards look calmer; the site has a [gallery of every diagram type](https://mark.xronocode.com/diagrams/).
 
-The 2.3.1 highlights — the native look, the home screen, themed diagrams, Markdown-only folders — are in [CHANGELOG.md](CHANGELOG.md).
-
-## What's new in 2.3.1
-
-- **A calmer, native look.** Theme families Paper, Ink, Docs and macOS; a slim title bar with the document info card; an outline beside the page; a status bar; the system font, accent colour and icons throughout (Mica on Windows); Settings in five tabs, in the theme colour.
-- **A home screen.** Recent files and folders, the Guide, and one click to connect your agent. What's New opens after an update, and the interface language can follow the system.
-- **Diagrams and math in the theme.** All 33 mermaid diagram types (flowcharts, sequences, gantt, pie, venn, treemap, agentflow and more) render in the theme's colours and recolor instantly when the theme changes; any diagram or wide table opens full screen; wide tables scroll inside the column and columns resize.
-- **Folders with just your notes.** The tree shows Markdown files only — no empty folders — with Recent and Pinned on top. Open a folder from the clipboard with ⌥⌘V, or by dropping it on the window.
-- **Closer to your agent.** ⌘D shows what your agent changed, against snapshots Mark takes itself before every reload (a `.before` file or the last git commit still works as the baseline), and the agent prompt now lists everything Mark renders.
-- **And the rest.** One zoom for the whole app, code line numbers are back, and Share ships in the App Store build.
-
-The 2.3.0 highlights — Split View, callouts, Copy as Structured Text, the 10× faster opening of large documents — are in [CHANGELOG.md](CHANGELOG.md).
+The 2.4.0 highlights — the Pele diagram engine, instant theme recolouring, new diagram types, a much lighter app — are in [CHANGELOG.md](CHANGELOG.md).
 
 ## Why Mark
 
@@ -74,7 +64,7 @@ Agents write plans, specs and reports as Markdown. In a terminal the tables coll
 
 <img src="docs/assets/readme/06-split.png" alt="Split View with Markdown source on the left and the rendered page on the right" width="800">
 
-**Diagrams and math inline.** Mermaid diagrams, charts, KaTeX formulas and highlighted code render in the document — not in a preview pane — in the colours of the theme.
+**Diagrams and math inline.** Mermaid diagrams, charts, KaTeX formulas and highlighted code render in the document — not in a preview pane — in the colours of the theme. Every diagram type is in the [gallery](https://mark.xronocode.com/diagrams/).
 
 <img src="docs/assets/readme/03-diagrams.png" alt="A Mermaid flowchart, a pie chart and a bar chart in the theme's colours" width="800">
 

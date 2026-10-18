@@ -1,5 +1,5 @@
 // FILE: tests/renderer/whatsNew/gate.test.js
-// VERSION: 1.1.0
+// VERSION: 1.2.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Pin the C-48 What's New startup gate — fresh install records
 //            silently, an upgrade shows the sheet once and stamps
@@ -21,7 +21,8 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.1.0 - 2026-10-15 C-48 review fix: legacy-install pins —
+//   LAST_CHANGE: v1.2.0 - 2026-10-18 release 2.5.0: What's New pins move to the 2.5.0 sheet (the previous release 2.4.0 becomes the upgrade source).
+//   v1.1.0 - 2026-10-15 C-48 review fix: legacy-install pins —
 //   a 2.3.0 profile (no lastSeenVersion, but an old mt_migration marker or
 //   session/recent-folder history) is an upgrade and shows the sheet once;
 //   a profile with only a fresh marker stays a silent fresh install;
@@ -66,15 +67,15 @@ const makeFakeIpc = (initial = {}) => {
 }
 
 describe('whatsNew/data', () => {
-  it('ships exactly four items for 2.4.0 and clamps to the cap', () => {
-    expect(getWhatsNewItems('2.4.0')).toHaveLength(4)
+  it('ships exactly four items for 2.5.0 and clamps to the cap', () => {
+    expect(getWhatsNewItems('2.5.0')).toHaveLength(4)
     expect(WHATS_NEW_MAX_ITEMS).toBe(4)
-    expect(getWhatsNewItems('2.4.0').length).toBeLessThanOrEqual(WHATS_NEW_MAX_ITEMS)
+    expect(getWhatsNewItems('2.5.0').length).toBeLessThanOrEqual(WHATS_NEW_MAX_ITEMS)
   })
 
   it('normalizes prerelease decorations before the content lookup', () => {
-    expect(getWhatsNewItems('2.4.0-beta')).toEqual(getWhatsNewItems('2.4.0'))
-    expect(getWhatsNewItems('v2.4.0')).toEqual(getWhatsNewItems('2.4.0'))
+    expect(getWhatsNewItems('2.5.0-beta')).toEqual(getWhatsNewItems('2.5.0'))
+    expect(getWhatsNewItems('v2.5.0')).toEqual(getWhatsNewItems('2.5.0'))
   })
 
   it('returns [] for a version with no content (never an empty sheet)', () => {
@@ -82,18 +83,18 @@ describe('whatsNew/data', () => {
   })
 
   it('resolveWhatsNewVersion keeps a version with content and falls back to the newest otherwise', () => {
-    expect(resolveWhatsNewVersion('2.4.0-beta')).toBe('2.4.0')
-    expect(resolveWhatsNewVersion('2.4.1')).toBe('2.4.0')
-    expect(resolveWhatsNewVersion('0.0.0')).toBe('2.4.0')
+    expect(resolveWhatsNewVersion('2.5.0-beta')).toBe('2.5.0')
+    expect(resolveWhatsNewVersion('2.5.1')).toBe('2.5.0')
+    expect(resolveWhatsNewVersion('0.0.0')).toBe('2.5.0')
     expect(getWhatsNewItems(resolveWhatsNewVersion('garbage')).length).toBeGreaterThan(0)
   })
 })
 
 describe('whatsNew/gate — evaluateWhatsNewGate', () => {
   it('fresh install: records silently, never shows, flags firstLaunch', () => {
-    const out = evaluateWhatsNewGate({ recorded: '', running: '2.4.0', now: NOW })
+    const out = evaluateWhatsNewGate({ recorded: '', running: '2.5.0', now: NOW })
     expect(out.show).toBe(false)
-    expect(out.recordVersion).toBe('2.4.0')
+    expect(out.recordVersion).toBe('2.5.0')
     expect(out.stampUpdateAt).toBe(false)
     expect(out.versionChanged).toBe(false)
     expect(out.firstLaunch).toBe(true)
@@ -101,16 +102,16 @@ describe('whatsNew/gate — evaluateWhatsNewGate', () => {
 
   it('fresh install with a null/undefined recorded value behaves the same', () => {
     for (const recorded of [null, undefined]) {
-      const out = evaluateWhatsNewGate({ recorded, running: '2.4.0', now: NOW })
+      const out = evaluateWhatsNewGate({ recorded, running: '2.5.0', now: NOW })
       expect(out.show).toBe(false)
       expect(out.firstLaunch).toBe(true)
     }
   })
 
-  it('upgrade 2.3.1 → 2.4.0: shows once, records, stamps lastUpdateAt', () => {
-    const out = evaluateWhatsNewGate({ recorded: '2.3.1', running: '2.4.0', now: NOW })
+  it('upgrade 2.4.0 → 2.5.0: shows once, records, stamps lastUpdateAt', () => {
+    const out = evaluateWhatsNewGate({ recorded: '2.4.0', running: '2.5.0', now: NOW })
     expect(out.show).toBe(true)
-    expect(out.recordVersion).toBe('2.4.0')
+    expect(out.recordVersion).toBe('2.5.0')
     expect(out.stampUpdateAt).toBe(true)
     expect(out.stampedAt).toBe(NOW.toISOString())
     expect(out.versionChanged).toBe(true)
@@ -118,36 +119,36 @@ describe('whatsNew/gate — evaluateWhatsNewGate', () => {
   })
 
   it('same version: nothing at all (no write, no sheet)', () => {
-    const out = evaluateWhatsNewGate({ recorded: '2.4.0', running: '2.4.0', now: NOW })
+    const out = evaluateWhatsNewGate({ recorded: '2.5.0', running: '2.5.0', now: NOW })
     expect(out.show).toBe(false)
     expect(out.recordVersion).toBeNull()
     expect(out.stampUpdateAt).toBe(false)
     expect(out.versionChanged).toBe(false)
   })
 
-  it('downgrade 2.4.0 → 2.3.1: records silently, no sheet, no stamp', () => {
-    const out = evaluateWhatsNewGate({ recorded: '2.4.0', running: '2.3.1', now: NOW })
+  it('downgrade 2.5.0 → 2.4.0: records silently, no sheet, no stamp', () => {
+    const out = evaluateWhatsNewGate({ recorded: '2.5.0', running: '2.4.0', now: NOW })
     expect(out.show).toBe(false)
-    expect(out.recordVersion).toBe('2.3.1')
+    expect(out.recordVersion).toBe('2.4.0')
     expect(out.stampUpdateAt).toBe(false)
     // Still a changed version — the review flow must treat it as one.
     expect(out.versionChanged).toBe(true)
   })
 
   it('beta → GA of the same triple is the SAME version (no second sheet)', () => {
-    const out = evaluateWhatsNewGate({ recorded: '2.4.0-beta', running: '2.4.0', now: NOW })
+    const out = evaluateWhatsNewGate({ recorded: '2.5.0-beta', running: '2.5.0', now: NOW })
     expect(out.show).toBe(false)
     expect(out.recordVersion).toBeNull()
   })
 
   it('GA → beta of a NEWER triple upgrades and shows the release content', () => {
-    const out = evaluateWhatsNewGate({ recorded: '2.3.1', running: '2.4.0-beta.2', now: NOW })
+    const out = evaluateWhatsNewGate({ recorded: '2.4.0', running: '2.5.0-beta.2', now: NOW })
     expect(out.show).toBe(true)
-    expect(out.recordVersion).toBe('2.4.0')
+    expect(out.recordVersion).toBe('2.5.0')
   })
 
   it('upgrade to a version with no content records silently and stamps nothing', () => {
-    const out = evaluateWhatsNewGate({ recorded: '2.4.0', running: '9.9.9', now: NOW })
+    const out = evaluateWhatsNewGate({ recorded: '2.5.0', running: '9.9.9', now: NOW })
     expect(out.show).toBe(false)
     expect(out.recordVersion).toBe('9.9.9')
     expect(out.stampUpdateAt).toBe(false)
@@ -195,9 +196,9 @@ describe('whatsNew/gate — detectLegacyInstall', () => {
 
 describe('whatsNew/gate — legacy (pre-C-48) upgrade', () => {
   it('no recorded version + legacy profile → upgrade: shows once, records, stamps', () => {
-    const out = evaluateWhatsNewGate({ recorded: '', running: '2.4.0', now: NOW, legacyInstall: true })
+    const out = evaluateWhatsNewGate({ recorded: '', running: '2.5.0', now: NOW, legacyInstall: true })
     expect(out.show).toBe(true)
-    expect(out.recordVersion).toBe('2.4.0')
+    expect(out.recordVersion).toBe('2.5.0')
     expect(out.stampUpdateAt).toBe(true)
     expect(out.versionChanged).toBe(true)
     expect(out.firstLaunch).toBe(false)
@@ -210,24 +211,24 @@ describe('whatsNew/gate — legacy (pre-C-48) upgrade', () => {
       lastSessionTabs: ['/notes/a.md'],
       theme: 'dark'
     })
-    const out = await initWhatsNew({ ipc, running: '2.4.0', now: NOW })
+    const out = await initWhatsNew({ ipc, running: '2.5.0', now: NOW })
     expect(out.show).toBe(true)
     expect(out.firstLaunch).toBe(false)
     expect(ipc.calls).toEqual([
-      { key: LAST_SEEN_VERSION_KEY, value: '2.4.0' },
+      { key: LAST_SEEN_VERSION_KEY, value: '2.5.0' },
       { key: LAST_UPDATE_AT_KEY, value: NOW.toISOString() }
     ])
     // Recorded now — the next boot is "same version" and never re-shows.
-    const again = await initWhatsNew({ ipc, running: '2.4.0', now: NOW })
+    const again = await initWhatsNew({ ipc, running: '2.5.0', now: NOW })
     expect(again.show).toBe(false)
   })
 
   it('initWhatsNew: a fresh profile (only a just-stamped marker) records silently', async () => {
     const ipc = makeFakeIpc({ mt_migration: { marker_written_at: NOW_SECS - 2 } })
-    const out = await initWhatsNew({ ipc, running: '2.4.0', now: NOW })
+    const out = await initWhatsNew({ ipc, running: '2.5.0', now: NOW })
     expect(out.show).toBe(false)
     expect(out.firstLaunch).toBe(true)
-    expect(ipc.calls).toEqual([{ key: LAST_SEEN_VERSION_KEY, value: '2.4.0' }])
+    expect(ipc.calls).toEqual([{ key: LAST_SEEN_VERSION_KEY, value: '2.5.0' }])
   })
 
   it('initWhatsNew reads legacy signals from the injected boot snapshot, not the live store', async () => {
@@ -236,7 +237,7 @@ describe('whatsNew/gate — legacy (pre-C-48) upgrade', () => {
     const ipc = makeFakeIpc({ lastSessionTabs: ['/written-this-boot.md'] })
     const fresh = await initWhatsNew({
       ipc,
-      running: '2.4.0',
+      running: '2.5.0',
       now: NOW,
       bootPrefs: Promise.resolve({ mt_migration: { marker_written_at: NOW_SECS } })
     })
@@ -245,7 +246,7 @@ describe('whatsNew/gate — legacy (pre-C-48) upgrade', () => {
     const ipc2 = makeFakeIpc({})
     const legacy = await initWhatsNew({
       ipc: ipc2,
-      running: '2.4.0',
+      running: '2.5.0',
       now: NOW,
       bootPrefs: Promise.resolve({ recentFolders: ['/p'] })
     })
@@ -270,24 +271,24 @@ describe('whatsNew/gate — legacy (pre-C-48) upgrade', () => {
 describe('whatsNew/gate — initWhatsNew persistence', () => {
   it('fresh install writes only lastSeenVersion (silent record)', async () => {
     const ipc = makeFakeIpc()
-    const out = await initWhatsNew({ ipc, running: '2.4.0', now: NOW })
+    const out = await initWhatsNew({ ipc, running: '2.5.0', now: NOW })
     expect(out.show).toBe(false)
-    expect(ipc.calls).toEqual([{ key: LAST_SEEN_VERSION_KEY, value: '2.4.0' }])
+    expect(ipc.calls).toEqual([{ key: LAST_SEEN_VERSION_KEY, value: '2.5.0' }])
   })
 
   it('upgrade writes lastSeenVersion and lastUpdateAt (ISO)', async () => {
     const ipc = makeFakeIpc({ [LAST_SEEN_VERSION_KEY]: '2.3.0' })
-    const out = await initWhatsNew({ ipc, running: '2.4.0', now: NOW })
+    const out = await initWhatsNew({ ipc, running: '2.5.0', now: NOW })
     expect(out.show).toBe(true)
     expect(ipc.calls).toEqual([
-      { key: LAST_SEEN_VERSION_KEY, value: '2.4.0' },
+      { key: LAST_SEEN_VERSION_KEY, value: '2.5.0' },
       { key: LAST_UPDATE_AT_KEY, value: NOW.toISOString() }
     ])
   })
 
   it('same version performs no writes at all', async () => {
-    const ipc = makeFakeIpc({ [LAST_SEEN_VERSION_KEY]: '2.4.0' })
-    const out = await initWhatsNew({ ipc, running: '2.4.0', now: NOW })
+    const ipc = makeFakeIpc({ [LAST_SEEN_VERSION_KEY]: '2.5.0' })
+    const out = await initWhatsNew({ ipc, running: '2.5.0', now: NOW })
     expect(out.show).toBe(false)
     expect(ipc.calls).toEqual([])
   })
@@ -299,16 +300,16 @@ describe('whatsNew/gate — initWhatsNew persistence', () => {
       },
       set: async () => {}
     }
-    const out = await initWhatsNew({ ipc, running: '2.4.0', now: NOW })
+    const out = await initWhatsNew({ ipc, running: '2.5.0', now: NOW })
     expect(out.show).toBe(false)
     expect(out.firstLaunch).toBe(true)
   })
 
   it('uses the real ipcPrefs facade (mocked tauri invoke) when none is injected', async () => {
-    const out = await initWhatsNew({ running: '2.4.0', now: NOW })
+    const out = await initWhatsNew({ running: '2.5.0', now: NOW })
     expect(out.show).toBe(false)
     expect(out.firstLaunch).toBe(true)
-    expect(out.recordVersion).toBe('2.4.0')
+    expect(out.recordVersion).toBe('2.5.0')
   })
 })
 

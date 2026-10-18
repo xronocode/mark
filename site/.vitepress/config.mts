@@ -1,5 +1,5 @@
 // FILE: site/.vitepress/config.mts
-// VERSION: 2.3.0
+// VERSION: 2.4.0
 // START_MODULE_CONTRACT
 //   PURPOSE: VitePress config for the Mark site — docs, shared head, the
 //            landing served at the site root, and the diagram gallery at
@@ -15,7 +15,10 @@
 // END_MODULE_CONTRACT
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: [v2.3.0 - 2026-10-18 C-58 T-002: buildEnd also emits the
+//   LAST_CHANGE: [v2.4.0 - 2026-10-18 C-58 T-003: the docs nav links the
+//                 /diagrams/ gallery (target _self — a full page load, not
+//                 a VitePress route) and the sitemap lists diagrams/.]
+//   PREV: [v2.3.0 - 2026-10-18 C-58 T-002: buildEnd also emits the
 //                 diagram gallery at /diagrams/ (rendered from
 //                 site/gallery/examples.mjs through pele with theme vars
 //                 derived fresh from the app theme CSS) and refreshes the
@@ -71,7 +74,12 @@ export default defineConfig({
   description: SITE_META.description,
   base,
   cleanUrls: true,
-  sitemap: { hostname: siteUrl + '/' },
+  // C-58 T-003: the gallery is emitted in buildEnd, not as a VitePress
+  // page, so it joins the sitemap here.
+  sitemap: {
+    hostname: siteUrl + '/',
+    transformItems: (items) => [...items, { url: 'diagrams/' }]
+  },
   head,
 
   // Per-page canonical + OG url/title so shared doc links preview correctly.
@@ -136,6 +144,7 @@ export default defineConfig({
     nav: [
       { text: 'Guide', link: '/guide/' },
       { text: 'Reference', link: '/reference/' },
+{ text: 'Diagrams', link: '/diagrams/', target: '_self' },
       { text: 'Changelog', link: '/changelog' },
       { text: 'Privacy', link: '/privacy' },
       { text: 'GitHub', link: 'https://github.com/xronocode/mark' },
