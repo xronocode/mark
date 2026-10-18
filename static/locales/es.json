@@ -998,7 +998,8 @@
     "help": {
       "guide": "Guía de Mark",
       "whatsNew": "Novedades",
-      "rateMark": "Valorar Mark…"
+      "rateMark": "Valorar Mark…",
+      "support": "Apoyar a Mark en Ko-fi…"
     },
     "utils": {
       "noUpdateResourceFile": "No hay archivo de recurso de actualización",

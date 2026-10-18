@@ -39,6 +39,8 @@ describe('capability gate', () => {
     expect(before).toContain('file.export-file-pdf')
     expect(before).toContain('edit.screenshot')
     expect(before).toContain('file.new-tab')
+    // C-57: the Ko-fi support command is registered before the gate runs.
+    expect(before).toContain('help.support')
 
     applyCapabilityGate({
       mode: 'app-store',
@@ -46,7 +48,8 @@ describe('capability gate', () => {
       screenshot: false,
       setDefaultHandler: false,
       projectSearchRipgrep: false,
-      updater: false
+      updater: false,
+      support: false
     })
 
     const after = walk(commands)
@@ -56,5 +59,7 @@ describe('capability gate', () => {
     expect(after).not.toContain('edit.screenshot')
     expect(after).toContain('file.new-tab')
     expect(after).toContain('edit.copy-as-html')
+    // C-57: store builds ship no donation surface — help.support is pruned.
+    expect(after).not.toContain('help.support')
   })
 })

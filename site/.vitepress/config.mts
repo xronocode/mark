@@ -112,7 +112,8 @@ export default defineConfig({
       { text: 'Reference', link: '/reference/' },
       { text: 'Changelog', link: '/changelog' },
       { text: 'Privacy', link: '/privacy' },
-      { text: 'GitHub', link: 'https://github.com/xronocode/mark' }
+      { text: 'GitHub', link: 'https://github.com/xronocode/mark' },
+      { text: 'Support', link: 'https://ko-fi.com/xronocode' }
     ],
     sidebar: {
       '/guide/': [

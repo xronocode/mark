@@ -1,5 +1,5 @@
 // FILE: src-tauri/src/m009_menu.rs
-// VERSION: 2.1.13-beta
+// VERSION: 2.1.14-beta
 // START_MODULE_CONTRACT
 //   PURPOSE: M-009 mt-menu. Native macOS application menu + command-id
 //            taxonomy for the renderer's command palette / sidebar /
@@ -133,6 +133,11 @@
 //                (help.rate, App Store build on macOS only, mirroring
 //                the m048 review capability; opens the store review
 //                page through the renderer command).
+//   - 2026-10-18 C-57: add Help-menu "Support Mark…" (help.support, no
+//                accelerator, desktop builds only — cfg(not(app-store)),
+//                mirroring the m048 support capability) — id-dispatched
+//                to the renderer command that opens ko-fi.com/xronocode
+//                in the browser (store builds ship no donation surface).
 //   - 2026-10-15 C-40 T-003: add View-menu "Outline" check item
 //                (view.outline, no accelerator) — toggles the «On this
 //                page» outline rail through the renderer command and the
@@ -798,6 +803,17 @@ pub fn standard_menu() -> Vec<MenuItem> {
                     accelerator: None,
                     items: None,
                 },
+                // C-57: Support Mark… — desktop builds only (the m048
+                // `support` capability gates the renderer side); opens
+                // ko-fi.com/xronocode — id-dispatched only.
+                #[cfg(not(feature = "app-store"))]
+                MenuItem {
+                    id: "help.support".to_string(),
+                    label: "Support Mark…".to_string(),
+                    command: None,
+                    accelerator: None,
+                    items: None,
+                },
                 #[cfg(not(feature = "app-store"))]
                 MenuItem {
                     id: "file.check-update".to_string(),
@@ -1232,6 +1248,16 @@ pub fn build_native_menu<R: tauri::Runtime>(
             &cfg_helper_check_update(handle)?,
         );
 
+    // C-57: Support Mark… ships only in desktop builds (the m048
+    // `support` capability gates the renderer side) — no donation
+    // surface in store builds.
+    #[cfg(not(feature = "app-store"))]
+    {
+        help_submenu = help_submenu.item(
+            &MenuItemBuilder::with_id("help.support", "Support Mark…").build(handle)?,
+        );
+    }
+
     #[cfg(all(feature = "app-store", target_os = "macos"))]
     {
         help_submenu = help_submenu.item(
@@ -1610,6 +1636,8 @@ mod tests {
             // C-40 T-004: view.status-bar / view.lock-document toggle the
             // status bar and the per-tab lock through the renderer
             // commands of the same ids — id-dispatched only.
+            // C-57: help.support opens the Ko-fi page via the renderer
+            // help.support command — id-dispatched only.
             let id_dispatched_only = matches!(
                 item.id.as_str(),
                 "tabs.cycleForward"
@@ -1618,6 +1646,7 @@ mod tests {
                     | "view.zoom-out"
                     | "view.actual-size"
                     | "help.guide"
+                    | "help.support"
                     | "view.outline"
                     | "view.status-bar"
                     | "view.lock-document"
@@ -1858,6 +1887,37 @@ mod tests {
         }
     }
     // END_BLOCK_HELP_C48_TESTS
+
+    // START_BLOCK_HELP_C57_TESTS
+    #[test]
+    fn help_menu_support_mark_is_desktop_only() {
+        // C-57: the Ko-fi support link ships only in desktop builds —
+        // store builds must not show a donation surface (ASC review
+        // risk). cargo test without features pins the desktop variant;
+        // the MAS CI build compiles the mirror assertion.
+        let menu = standard_menu();
+        let flat = flatten(&menu);
+        let has_support = flat.iter().any(|i| i.id == "help.support");
+        #[cfg(not(feature = "app-store"))]
+        {
+            assert!(has_support, "desktop builds ship Support Mark…");
+            let support = flat.iter().find(|i| i.id == "help.support").unwrap();
+            assert_eq!(support.label, "Support Mark…");
+            assert!(
+                support.command.is_none(),
+                "help.support is id-dispatched only"
+            );
+            assert!(support.accelerator.is_none());
+        }
+        #[cfg(feature = "app-store")]
+        {
+            assert!(
+                !has_support,
+                "store builds must not show a donation surface"
+            );
+        }
+    }
+    // END_BLOCK_HELP_C57_TESTS
 
     #[test]
     fn context_menu_payload_preserves_item_separator_and_enabled_state() {

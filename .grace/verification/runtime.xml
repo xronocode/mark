@@ -2440,6 +2440,12 @@
           tests/renderer/util/menu-checks.test.js and
           tests/e2e/view-menu-checks.spec.ts (chromium + webkit).
         </Scenario>
+              <Scenario>
+          scenario-C-57: Help › Support Mark… (help.support) is present,
+          labeled "Support Mark…", id-dispatched and accelerator-less in
+          every desktop build; absent from app-store cfg builds (no
+          donation surface in store builds).
+        </Scenario>
       </Scenarios>
       <Markers>
         <Marker>[Menu][onInvoke][BLOCK_DISPATCH] { menu_id }</Marker>
@@ -11805,7 +11811,13 @@
           and list share as available in both editions.
           Test: tests/renderer/editions-doc.test.js.
         </Scenario>
+              <Scenario>
+          scenario-C-57: desktop build advertises support=true (Ko-fi
+          help link ships); app-store build advertises support=false and
+          applyCapabilityGate prunes help.support from the registry.
+        </Scenario>
       </Scenarios>
+      <Markers><Marker>[commands][help.support][BLOCK_OPEN_SUPPORT_PAGE_FAILED] — C-57 external Ko-fi opener failed; the command remains nonfatal.</Marker></Markers>
       <TraceAssertions>
         <TraceAssertion>
           Negative assertion: an app-store build never advertises

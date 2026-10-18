@@ -1975,7 +1975,7 @@
       <Status>shipped</Status>
       <Layer>2</Layer>
       <PhaseRef>Release-Readiness-2026-08-07</PhaseRef>
-      <Summary>Native menu bar and context menus; dispatches command IDs to renderer. C-15 T-102: on Windows/Linux the menu stays registered on the app (hamburger popup via mt_window_popup_app_menu) but the native menu BAR is hidden to avoid double chrome under the custom titlebar. C-40 T-003: View › Outline check item (id view.outline, no accelerator — ⌘T stays Go to Heading) toggles the «On this page» outline rail through the id-dispatched view.outline renderer command. C-40 T-005: mt_menu_set_checked re-syncs the four View CheckMenuItems (sidebar, tab bar, outline, status bar) from the renderer through a recursive allow-listed walker — tauri 2&apos;s Menu::get is top-level-only, which is why the old mt_update_sidebar_menu lookup never found the View-submenu item; the v1 shim reuses the same walker. C-52 T-001: File › «Open from Clipboard» (id file.open-from-clipboard, accelerator Alt+CmdOrCtrl+V, directly after Open Folder in the taxonomy and the native menu) dispatches to the renderer command that resolves the clipboard through M-059.</Summary>
+      <Summary>Native menu bar and context menus; dispatches command IDs to renderer. C-15 T-102: on Windows/Linux the menu stays registered on the app (hamburger popup via mt_window_popup_app_menu) but the native menu BAR is hidden to avoid double chrome under the custom titlebar. C-40 T-003: View › Outline check item (id view.outline, no accelerator — ⌘T stays Go to Heading) toggles the «On this page» outline rail through the id-dispatched view.outline renderer command. C-40 T-005: mt_menu_set_checked re-syncs the four View CheckMenuItems (sidebar, tab bar, outline, status bar) from the renderer through a recursive allow-listed walker — tauri 2&apos;s Menu::get is top-level-only, which is why the old mt_update_sidebar_menu lookup never found the View-submenu item; the v1 shim reuses the same walker. C-52 T-001: File › «Open from Clipboard» (id file.open-from-clipboard, accelerator Alt+CmdOrCtrl+V, directly after Open Folder in the taxonomy and the native menu) dispatches to the renderer command that resolves the clipboard through M-059. C-57: Help › Support Mark… (help.support, no accelerator, desktop builds only — cfg(not(app-store)) plus the m048 `support` capability) opens ko-fi.com/xronocode through the id-dispatched renderer command; store builds ship no donation surface.</Summary>
       <Path>src-tauri/src/m009_menu.rs</Path>
       <Dependencies>
         <M-005/>
@@ -6796,13 +6796,13 @@
       <Summary>
         Compile-time build descriptor: mt_build_mode returns
         { mode, exportPandoc, screenshot, setDefaultHandler,
-        projectSearchRipgrep, updater }. Renderer preferences store flips
+        projectSearchRipgrep, updater, support }. Renderer preferences store flips
         UI off via FETCH_BUILD_MODE at boot; applyCapabilityGate prunes
         sandbox-hostile commands from the registry. C-15 T-103: desktop
         builds advertise screenshot/setDefaultHandler only on macOS
         (m018 screencapture and m021 defaults/lsregister are macOS-only
         binaries).
-      </Summary>
+       C-57: `support` flag — the Ko-fi help link ships only in desktop builds; false prunes help.support from the renderer registry (mirror of how `review` gates help.rate).</Summary>
       <PlannedPath>src-tauri/src/m048_build_mode.rs</PlannedPath>
       <Dependencies/>
       <VerificationRef>V-M-048</VerificationRef>

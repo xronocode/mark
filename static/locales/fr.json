@@ -999,7 +999,8 @@
     "help": {
       "guide": "Guide Mark",
       "whatsNew": "Nouveautés",
-      "rateMark": "Noter Mark…"
+      "rateMark": "Noter Mark…",
+      "support": "Soutenir Mark sur Ko-fi…"
     },
     "utils": {
       "noUpdateResourceFile": "Aucun fichier de ressource de mise à jour",
