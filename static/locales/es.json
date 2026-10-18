@@ -339,6 +339,7 @@
       "closeFolder": "Cerrar carpeta",
       "newFile": "Nuevo archivo",
       "recentFiles": "Recientes",
+      "clearRecent": "Borrar recientes",
       "pinnedFiles": "Fijados",
       "pinned": "Fijado",
       "remove": "Eliminar",

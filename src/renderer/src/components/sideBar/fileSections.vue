@@ -15,6 +15,16 @@
           aria-hidden="true"
         ></chrome-icon>
         <span class="default-cursor text-overflow">{{ t('sideBar.tree.recentFiles') }}</span>
+        <!-- C-67: clear the whole Recent list, like «Close all» on Opened files. -->
+        <button
+          type="button"
+          class="section-action"
+          :title="t('sideBar.tree.clearRecent')"
+          :aria-label="t('sideBar.tree.clearRecent')"
+          @click.stop="clearRecent"
+        >
+          <chrome-icon name="broom" :size="14" aria-hidden="true"></chrome-icon>
+        </button>
       </div>
       <div v-show="openSections.recent" class="section-list">
         <div
@@ -84,12 +94,12 @@
 
 <script setup>
 // FILE: src/renderer/src/components/sideBar/fileSections.vue
-// VERSION: 1.2.0
+// VERSION: 1.3.0
 // START_MODULE_CONTRACT
 //   PURPOSE: The two collapsible sidebar sections above the folder tree (C-51 T-002) — Recent (existing recent-files list, newest first, up to 10) and Pinned (persisted pinnedFiles list, drag to reorder); rows open the file through the existing open path, missing files render greyed with a Remove action, and section collapsed state persists.
 //   SCOPE: recent list load/refresh/remove, pinned list render/unpin/drag-reorder, per-path missing detection via ipcFs.stat, collapse persistence via ipcPrefs.
 //   DEPENDS: vue, pinia, store/editor (GET_RECENT_FILES, tabs, currentFile), store/pinned, ipc/runtime (ipcFs, ipcPrefs, ipcRecent), ../icons/chromeIcons.js, vue-i18n.
-//   LINKS: .grace/changes/active/C-51 T-002/T-013; .canvas/MacOS.dc.html (Recent/Pinned); .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011.
+//   LINKS: .grace/changes/active/C-51 T-002/T-013; .grace/changes/active/C-67; .canvas/MacOS.dc.html (Recent/Pinned); .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011.
 //   ROLE: RUNTIME
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT
@@ -100,6 +110,7 @@
 //   recentRows - {path, name, missing} rows from editor GET_RECENT_FILES capped at 10, newest first.
 //   reloadRecent - re-query + re-stat the recent list (mount and current-file changes).
 //   removeRecent - drop one row: ipcRecent.remove then local splice (matches the welcome-screen semantics).
+//   clearRecent - C-67 header broom: ipcRecent.clear then empty the local rows (warns, never throws, on a backend failure).
 //   pinnedRows - computed rows from the pinned store + the pinnedMissing stat set.
 //   statPinned / statPaths - mark rows whose ipcFs.stat reports MT_FS_NOT_FOUND (same detection as the welcome screen).
 //   openPath - existing open path: select the open tab or send mt::open-file; missing rows do nothing.
@@ -108,7 +119,8 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.2.0 - 2026-10-17 C-51 T-013: file rows lose the
+//   LAST_CHANGE: v1.3.0 - 2026-10-19 C-67: «Clear Recent» broom in the Recent header.
+//   v1.2.0 - 2026-10-17 C-51 T-013: file rows lose the
 //   leading file-type icon and bold — the name starts on the shared text
 //   grid (--sideBarRowInset + the folder icon slot, aligning with folder
 //   names and tree file rows), every row is regular weight, and the
@@ -244,6 +256,17 @@ const removeRecent = async (row) => {
   }
   recentRows.value = recentRows.value.filter((r) => r.path !== row.path)
 }
+
+// C-67: header broom — empty the shared recent list (the home screen reads
+// the same list). The local rows drop even if the backend call fails.
+const clearRecent = async () => {
+  try {
+    await ipcRecent.clear()
+  } catch (e) {
+    console.warn('[SideBar][clearRecent][BLOCK_RECENT_CLEARED] persisted=false', e)
+  }
+  recentRows.value = []
+}
 // END_BLOCK_RECENT_LIST
 
 // START_BLOCK_PINNED_LIST
@@ -352,6 +375,26 @@ onMounted(async () => {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* C-67: header action (Recent › Clear), revealed on header hover like the
+   Opened files «Save all / Close all» icons. */
+.section-title > .section-action {
+  display: none;
+  align-items: center;
+  margin-left: 8px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--sideBarColor);
+  cursor: pointer;
+}
+.section-title:hover > .section-action,
+.section-title > .section-action:focus-visible {
+  display: flex;
+}
+.section-title > .section-action:hover {
+  color: var(--highlightThemeColor);
 }
 
 .icon-arrow {

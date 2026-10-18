@@ -335,6 +335,7 @@
       "closeFolder": "關閉資料夾",
       "newFile": "新增檔案",
       "recentFiles": "最近使用",
+      "clearRecent": "清除最近項目",
       "pinnedFiles": "已釘選",
       "pinned": "已釘選",
       "remove": "移除",
