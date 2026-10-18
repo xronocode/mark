@@ -357,6 +357,7 @@
   },
   "exportSettings": {
     "title": "导出选项",
+    "pdfTitle": "导出 PDF",
     "info": {
       "label": "信息",
       "description": "请自定义页面外观并点击\"导出\"继续。"

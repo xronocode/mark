@@ -39,6 +39,12 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-10-18 C-61 T-001: register m052_print::mt_export_pdf — the
+//     silent save-to-PDF half of the Print/Export split (WKWebView
+//     print-to-file via NSPrintSaveJob on macOS, WebView2
+//     ICoreWebView2_7::PrintToPdf on Windows); mt_print_webview gains the
+//     WebView2 print UI on Windows and now resolves on macOS only after
+//     the panel closes.
 //   - 2026-10-16 C-52 T-001: register m059_clipboard::mt_read_clipboard_paths
 //     (system clipboard file paths + text for File › Open from Clipboard).
 //   - 2026-10-16 C-40 T-005: register m009_menu::mt_menu_set_checked —
@@ -810,6 +816,10 @@ fn main() {
             m058_window_effects::mt_window_set_mica_theme,
             m015_pandoc::mt_pandoc_export,
             m052_print::mt_print_webview,
+            // C-61: silent save-to-PDF for the webview content (WKWebView
+            // print-to-file on macOS, WebView2 PrintToPdf on Windows).
+            // Outside the M-013-A typed fixture like mt_print_webview.
+            m052_print::mt_export_pdf,
             m016_updater::mt_updater_check,
             m018_screenshot::mt_screenshot_capture,
             m019_datacenter::mt_secret_set,
