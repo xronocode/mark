@@ -1,5 +1,5 @@
 // FILE: tests/renderer/muya/block-viewer.test.js
-// VERSION: 2.3.0
+// VERSION: 2.4.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Pin the shared fullscreen block viewer (C-34 R2.2 + C-39 T2 + C-51 T-006/T-010/T-014): open/close lifecycle, Esc close with focus restore (including the live-button re-assert when a re-render replaces the figure during the window), panzoom destruction, read-only table clones, block resolution from preview/table/figure elements (the persistent expand button dispatches the figure), wheel/keyboard zoom routing, the focus trap, the fit maths WITHOUT the 1:1 cap (small content scales up, big scales down, clamps), and the muya-options-rerender theme refresh (poll through the loading placeholder, changed-content token gate — the pipeline re-inserts the last-good old-theme svg synchronously before the async re-draw, id lookups never resolve the viewer's own clone, the captured figure element as fallback anchor, re-clone in place keeping the panzoom transform, figure-id fallback, table refresh, closed-viewer no-op, timeout keeps the last clone).
 //   SCOPE: BlockViewer in src/muya/lib/ui/blockViewer/index.js with @panzoom/panzoom mocked.
@@ -25,7 +25,14 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v2.3.0 - 2026-10-17 C-51 T-014 gate round: two
+//   LAST_CHANGE: v2.4.0 - 2026-10-18 C-56 T-005: new case — on a corner-
+//   pill figure (all three pill buttons share the ag-block-expand family
+//   class) the Esc focus restore prefers the pill's Open-full-screen
+//   button (expandButtonOf) over the first family match (Edit source).
+//   v2.3.1 - 2026-10-18 C-56: the Tab-trap focusable count
+//   moves 5 → 8 (the three export toolbar buttons join the trap list —
+//   display-gated by CSS, not by the trap filter).
+//   v2.3.0 - 2026-10-17 C-51 T-014 gate round: two
 //   resolution bugs and one race fixed in the theme refresh (blockViewer
 //   v3.1.0). New cases: (1) an id lookup must NEVER resolve the viewer's
 //   own clone — the clone shares the preview div id (cloneNode) and the
@@ -337,6 +344,37 @@ describe('block viewer (C-34 R2.2 + C-39 T2 + C-51 T-006)', () => {
     expect(document.activeElement).toBe(replacement)
   })
 
+  it('C-56 T-005: on a pill figure the restore prefers the pill\u2019s Open-full-screen button over its Edit-source sibling', () => {
+    const { viewer: v, container } = createHarness()
+    viewer = v
+    const figure = document.createElement('figure')
+    figure.id = 'fig-pill'
+    figure.setAttribute('data-role', 'MERMAID')
+    const preview = document.createElement('div')
+    preview.className = 'ag-container-preview'
+    preview.appendChild(document.createElementNS('http://www.w3.org/2000/svg', 'svg'))
+    const toolbar = document.createElement('div')
+    toolbar.className = 'ag-block-toolbar'
+    const edit = document.createElement('button')
+    edit.className = 'ag-block-expand ag-block-toolbar-btn ag-block-toolbar-edit'
+    const expand = document.createElement('button')
+    expand.className = 'ag-block-expand ag-block-toolbar-btn ag-block-toolbar-expand'
+    toolbar.appendChild(edit)
+    toolbar.appendChild(expand)
+    figure.appendChild(preview)
+    figure.appendChild(toolbar)
+    container.appendChild(figure)
+
+    edit.focus()
+    v.openFromElement(figure)
+    expect(v.viewerEl.classList.contains('ag-block-viewer-open')).toBe(true)
+    keydown(v.stage, { key: 'Escape' })
+    expect(v.viewerEl.classList.contains('ag-block-viewer-open')).toBe(false)
+    // All pill buttons share the ag-block-expand family class — the
+    // restore must pick the expand ACTION, not the first family match.
+    expect(document.activeElement).toBe(expand)
+  })
+
   it('the table clone is read-only: no contenteditable, drag handlers, tool bars, or duplicate ids', () => {
     const { viewer: v, container } = createHarness()
     viewer = v
@@ -496,7 +534,11 @@ describe('block viewer (C-34 R2.2 + C-39 T2 + C-51 T-006)', () => {
     muya.eventCenter.dispatch('muya-block-viewer', { element: preview })
 
     const buttons = v.getFocusableElements()
-    expect(buttons.length).toBe(5)
+    // C-56: the toolbar carries three export actions (copy glyph, PNG,
+    // SVG) between 1:1 and close — 5 zoom/close controls + 3 export
+    // buttons (hidden for non-exportable sources, but the focus-trap
+    // filter is display-agnostic by design).
+    expect(buttons.length).toBe(8)
     const first = buttons[0]
     const last = buttons[buttons.length - 1]
 

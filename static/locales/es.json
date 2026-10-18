@@ -263,6 +263,10 @@
       "copyAsHtml": "Copiar como HTML",
       "copyAsPlainText": "Copiar como texto sin formato",
       "copyAsStructuredText": "Copiar como texto estructurado",
+      "copyAsImage": "Copiar como imagen",
+      "copyImage": "Copiar imagen",
+      "saveAsPng": "Guardar como PNG…",
+      "saveAsSvg": "Guardar como SVG…",
       "selectAll": "Seleccionar todo",
       "share": "Compartir"
     }
@@ -453,8 +457,16 @@
     "zoomOut": "Alejar",
     "fit": "Ajustar a la pantalla",
     "actualSize": "100%",
+    "copyImage": "Copiar como imagen",
+    "savePng": "Guardar como PNG…",
+    "saveSvg": "Guardar como SVG…",
     "diagram": "Diagrama",
     "table": "Tabla"
+  },
+  "blockToolbar": {
+    "editSource": "Editar fuente",
+    "copyImage": "Copiar como imagen",
+    "openFullScreen": "Abrir a pantalla completa"
   },
   "recent": {
     "taglineLead": "Los agentes escriben. Tú",
@@ -1279,12 +1291,14 @@
       },
       "toolbar": {
         "edit": "Editar imagen",
+        "copyImage": "Copiar imagen",
         "inline": "Imagen en línea",
         "alignLeft": "Alinear a la izquierda",
         "alignCenter": "Alinear al centro",
         "alignRight": "Alinear a la derecha",
         "delete": "Eliminar imagen"
-      }
+      },
+      "copyTitle": "Imagen"
     },
     "placeholders": {
       "frontMatter": "Ingrese Metadatos YAML...",
@@ -1295,6 +1309,12 @@
       "error": "Error de exportación",
       "errorExporting": "Error al exportar archivo {type}",
       "failed": "Falló la exportación de {type}"
+    },
+    "diagramExport": {
+      "title": "Diagrama",
+      "copied": "Copiado",
+      "copyFailed": "No se pudo copiar la imagen",
+      "saveFailed": "No se pudo guardar el archivo"
     },
     "insertTable": {
       "title": "Insertar Tabla",

@@ -264,6 +264,10 @@
       "copyAsHtml": "Copy as HTML",
       "copyAsPlainText": "Copy as Plain Text",
       "copyAsStructuredText": "Copy as Structured Text",
+      "copyAsImage": "Copy as Image",
+      "copyImage": "Copy Image",
+      "saveAsPng": "Save as PNG…",
+      "saveAsSvg": "Save as SVG…",
       "selectAll": "Select All",
       "share": "Share"
     }
@@ -456,8 +460,16 @@
     "zoomOut": "Zoom Out",
     "fit": "Fit to Screen",
     "actualSize": "100%",
+    "copyImage": "Copy as Image",
+    "savePng": "Save as PNG…",
+    "saveSvg": "Save as SVG…",
     "diagram": "Diagram",
     "table": "Table"
+  },
+  "blockToolbar": {
+    "editSource": "Edit source",
+    "copyImage": "Copy as image",
+    "openFullScreen": "Open full screen"
   },
   "recent": {
     "taglineLead": "Agents write. You",
@@ -1297,12 +1309,14 @@
       },
       "toolbar": {
         "edit": "Edit Image",
+        "copyImage": "Copy Image",
         "inline": "Inline Image",
         "alignLeft": "Align Left",
         "alignCenter": "Align Center",
         "alignRight": "Align Right",
         "delete": "Remove Image"
-      }
+      },
+      "copyTitle": "Image"
     },
     "placeholders": {
       "frontMatter": "Input YAML Front Matter",
@@ -1313,6 +1327,12 @@
       "error": "Export error",
       "errorExporting": "Error exporting {type} file",
       "failed": "{type} export failed"
+    },
+    "diagramExport": {
+      "title": "Diagram",
+      "copied": "Copied",
+      "copyFailed": "Could not copy the image",
+      "saveFailed": "Could not save the file"
     },
     "insertTable": {
       "title": "Insert Table",

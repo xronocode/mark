@@ -263,6 +263,10 @@
       "copyAsHtml": "Копировать как HTML",
       "copyAsPlainText": "Копировать как простой текст",
       "copyAsStructuredText": "Копировать как структурированный текст",
+      "copyAsImage": "Скопировать как изображение",
+      "copyImage": "Скопировать изображение",
+      "saveAsPng": "Сохранить как PNG…",
+      "saveAsSvg": "Сохранить как SVG…",
       "selectAll": "Выделить всё",
       "share": "Поделиться"
     }
@@ -464,8 +468,16 @@
     "zoomOut": "Уменьшить",
     "fit": "По размеру экрана",
     "actualSize": "100%",
+    "copyImage": "Скопировать как изображение",
+    "savePng": "Сохранить как PNG…",
+    "saveSvg": "Сохранить как SVG…",
     "diagram": "Диаграмма",
     "table": "Таблица"
+  },
+  "blockToolbar": {
+    "editSource": "Изменить код",
+    "copyImage": "Скопировать как изображение",
+    "openFullScreen": "Открыть на весь экран"
   },
   "recent": {
     "taglineLead": "Агенты пишут. Вы",
@@ -1301,12 +1313,14 @@
       },
       "toolbar": {
         "edit": "Редактировать изображение",
+        "copyImage": "Скопировать изображение",
         "inline": "Встроенное изображение",
         "alignLeft": "По левому краю",
         "alignCenter": "По центру",
         "alignRight": "По правому краю",
         "delete": "Удалить изображение"
-      }
+      },
+      "copyTitle": "Изображение"
     },
     "placeholders": {
       "frontMatter": "Введите YAML Front Matter",
@@ -1317,6 +1331,12 @@
       "error": "Ошибка экспорта",
       "errorExporting": "Ошибка экспорта файла {type}",
       "failed": "Сбой экспорта в {type}"
+    },
+    "diagramExport": {
+      "title": "Диаграмма",
+      "copied": "Скопировано",
+      "copyFailed": "Не удалось скопировать изображение",
+      "saveFailed": "Не удалось сохранить файл"
     },
     "insertTable": {
       "title": "Вставить таблицу",

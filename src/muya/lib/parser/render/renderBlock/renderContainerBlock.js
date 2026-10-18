@@ -1,20 +1,29 @@
 // FILE: src/muya/lib/parser/render/renderBlock/renderContainerBlock.js
-// VERSION: 1.7.0
+// VERSION: 1.8.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Render a muya container block (blockquote, list, table, figure, pre) to a snabbdom vnode.
-//   SCOPE: Selectors, data attributes and auxiliary children (tools, icons, copy buttons, the C-51 expand button, code-block line-number gutter, table column-resize handle) per container type; the table element is returned inside its C-39 horizontal scroll wrapper, with its C-39 T-002 session colgroup when widths are stored. C-62: Render a stable appearance button on nonempty Mermaid figures.
+//   SCOPE: Selectors, data attributes and auxiliary children (tools, icons, copy buttons, the C-51 expand button, the C-56 T-005 corner pill on mermaid/vega-lite figures, code-block line-number gutter, table column-resize handle) per container type; the table element is returned inside its C-39 horizontal scroll wrapper, with its C-39 T-002 session colgroup when widths are stored. C-62: nonempty Mermaid figures also render the stable appearance button.
 //   DEPENDS: muya config, render helpers, snabbdom, ../../../utils/callout, ../../../tableResize (width constants).; ./renderDiagramAppearance.
-//   LINKS: .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-012 scenario-18, scenario-20, scenario-21 and scenario-60; .grace/changes/active/C-39 T-001 and T-002, C-38 T-005, C-51 T-006 and T-010.; .grace/changes/archive/C-62.
+//   LINKS: .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-012 scenario-18, scenario-20, scenario-21, scenario-60 and scenario-64; .grace/changes/active/C-39 T-001 and T-002, C-38 T-005, C-51 T-006 and T-010, C-56 T-005.; .grace/changes/archive/C-62.
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
-//   default - renderContainerBlock(parent, block, activeBlocks, matches, useCache, t); a `table` block returns div.ag-table-scroll > table (plus the session colgroup when muya.tableResize has matching widths); a `th` block gets the span.ag-column-resizer handle; a fence/indent `code` block records its pre in stateRender.lineNumberPreKeys for post-render gutter measuring; mermaid/flowchart/sequence/plantuml/vega-lite figures with non-empty source and table figures get the ag-has-expand marker plus a button.ag-block-expand child (C-51 T-006; visibility need-gated by expandNeed.js since T-010); nonempty Mermaid figures also get the stable appearance button (C-62).
+//   default - renderContainerBlock(parent, block, activeBlocks, matches, useCache, t); a `table` block returns div.ag-table-scroll > table (plus the session colgroup when muya.tableResize has matching widths); a `th` block gets the span.ag-column-resizer handle; a fence/indent `code` block records its pre in stateRender.lineNumberPreKeys for post-render gutter measuring; mermaid/flowchart/sequence/plantuml/vega-lite figures with non-empty source and table figures get the ag-has-expand marker (C-51 T-006; visibility need-gated by expandNeed.js since T-010) — flowchart/sequence/plantuml figures and tables carry a button.ag-block-expand child, while mermaid/vega-lite figures instead carry the C-56 T-005 corner pill (div.ag-block-toolbar, replacing the PNG edit pencil and the standalone glyph; their expand action lives inside the pill under the same need gate). Nonempty Mermaid figures also get the stable appearance button (C-62).
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.7.0 - 2026-10-18 C-62: render the appearance button as a stable figure child on nonempty Mermaid blocks.
+//   LAST_CHANGE: v1.8.0 - 2026-10-18 merge of C-56 onto C-62: both the corner pill and the appearance button render on Mermaid figures.
+//   - 2026-10-18 v1.7.0 (C-62): render the appearance button as a stable figure child on nonempty Mermaid blocks.
+//   - 2026-10-18 v1.7.0: C-56 T-005 — mermaid (pele) and vega-lite
+//     figures with non-empty source render the corner pill
+//     (div.ag-block-toolbar, START_BLOCK_TOOLBAR_RENDER) instead of the
+//     PNG edit pencil and the standalone button.ag-block-expand glyph;
+//     they keep the ag-has-expand marker so expandNeed.js still gates the
+//     pill's Open-full-screen button through ag-expand-needed. Empty
+//     mermaid/vega-lite fences keep the pencil; html, multiplemath,
+//     flowchart, sequence, plantuml and table figures are unchanged.
 //   - (v1.0.0 implied: upstream muya, previously ungoverned.)
 //   - 2026-10-13 v1.1.0: C-24 START_BLOCK_CALLOUT_RENDER: a `[!type]` blockquote gets ag-callout classes, a non-editable title row and view-only fold state.
 //   - 2026-10-15 v1.2.0: C-39 T-001 START_BLOCK_TABLE_SCROLL_WRAPPER: the table element renders inside div.ag-table-scroll so wide tables scroll horizontally instead of overflowing the text column.
@@ -32,6 +41,7 @@ import renderLineNumberRows from './renderLineNumber'
 import renderCopyButton from './renderCopyButton'
 import renderExpandButton from './renderExpandButton'
 import renderDiagramAppearance from './renderDiagramAppearance'
+import renderBlockToolbar from './renderBlockToolbar'
 import { renderLeftBar, renderBottomBar } from './renderTableDargBar'
 import { renderColumnResizer } from './renderColumnResizer'
 import { TABLE_FIXED_CLASS, sumWidths } from '../../../tableResize'
@@ -199,16 +209,40 @@ export default function renderContainerBlock (parent, block, activeBlocks, match
       role: type
     })
   } else if (type === 'figure') {
+    // START_BLOCK_TOOLBAR_RENDER
+    // C-56 T-005: on ```mermaid (pele) and ```vega-lite figures with
+    // non-empty source the corner pill (renderBlockToolbar.js) REPLACES
+    // the PNG edit pencil AND the standalone expand glyph — its Edit
+    // source action is the same container edit action, its Open full
+    // screen action the same viewer dispatch, and Copy as image is the
+    // C-56 transport. The other roles keep today's icons. The source
+    // lookup is computed once for the five viewable diagram roles and
+    // reused by the expand marker below (same `code === ''` emptiness
+    // rule renderLeafBlock uses for the "empty diagram" placeholder).
+    let diagramHasSource = false
+    if (/^(?:flowchart|mermaid|sequence|plantuml|vega-lite)$/.test(functionType)) {
+      const preBlock = block.children.find(child => child.type === 'pre')
+      const code = preBlock ? this.codeCache.get(preBlock.key) : ''
+      diagramHasSource = typeof code === 'string' && code !== ''
+    }
+    const pillFigure = diagramHasSource && /^(?:mermaid|vega-lite)$/.test(functionType)
+
     if (functionType) {
       Object.assign(data.dataset, { role: functionType.toUpperCase() })
       if (functionType === 'table' && activeBlocks[0] && activeBlocks[0].functionType === 'cellContent') {
         children.unshift(renderTableTools(activeBlocks, t))
+      } else if (pillFigure) {
+        // A figure child (like the old glyph) so the mermaid pipeline's
+        // preview innerHTML inserts and every snabbdom re-patch keep the
+        // pill alive by construction.
+        children.push(renderBlockToolbar(t))
       } else if (functionType !== 'footnote') {
         children.unshift(renderEditIcon(t))
       } else {
         children.push(footnoteJumpIcon())
       }
     }
+    // END_BLOCK_TOOLBAR_RENDER
 
     if (
       /html|multiplemath|flowchart|mermaid|sequence|plantuml|vega-lite/.test(functionType)
@@ -219,25 +253,27 @@ export default function renderContainerBlock (parent, block, activeBlocks, match
 
     // START_BLOCK_EXPAND_BUTTON
     // C-51 T-006 (R-4) + T-010 (D-7): every viewable figure gets the
-    // expand button as a DIRECT FIGURE CHILD. The figure is never touched
-    // by the mermaid pipeline (which replaces the preview div's innerHTML)
-    // and the button rides the vnode tree, so it survives every re-patch
-    // by construction — no post-render DOM pass. The ag-has-expand marker
-    // scopes the CSS and the expandNeed.js evaluation; VISIBILITY is
-    // need-gated: expandNeed.js toggles ag-expand-needed after each render
-    // (scaled/tall diagram, overflowing/tall table) and CSS keeps the
-    // button display:none without it — small blocks have no button and no
-    // Tab stop. Scope: the five diagram types with non-empty source (the
-    // same `code === ''` emptiness rule renderLeafBlock uses for the
-    // "empty diagram" placeholder) and tables. html/multiplemath figures
-    // are deliberately out of scope.
+    // expand affordance as a DIRECT FIGURE CHILD. The figure is never
+    // touched by the mermaid pipeline (which replaces the preview div's
+    // innerHTML) and the button rides the vnode tree, so it survives every
+    // re-patch by construction — no post-render DOM pass. The
+    // ag-has-expand marker scopes the CSS and the expandNeed.js
+    // evaluation; VISIBILITY is need-gated: expandNeed.js toggles
+    // ag-expand-needed after each render (scaled/tall diagram,
+    // overflowing/tall table) and CSS keeps the button display:none
+    // without it — small blocks have no button and no Tab stop. Scope: the
+    // five diagram types with non-empty source and tables.
+    // html/multiplemath figures are deliberately out of scope. C-56 T-005:
+    // mermaid/vega-lite figures carry the marker for the need gate but NOT
+    // the standalone glyph — their expand action lives inside the corner
+    // pill (button.ag-block-toolbar-expand, gated by the same class).
     if (/^(?:flowchart|mermaid|sequence|plantuml|vega-lite)$/.test(functionType)) {
-      const preBlock = block.children.find(child => child.type === 'pre')
-      const code = preBlock ? this.codeCache.get(preBlock.key) : ''
-      if (typeof code === 'string' && code !== '') {
+      if (diagramHasSource) {
         selector += '.ag-has-expand'
         if (functionType === 'mermaid') children.push(renderDiagramAppearance(t, code))
-        children.push(renderExpandButton(t))
+        if (!pillFigure) {
+          children.push(renderExpandButton(t))
+        }
       }
     } else if (functionType === 'table') {
       selector += '.ag-has-expand'
