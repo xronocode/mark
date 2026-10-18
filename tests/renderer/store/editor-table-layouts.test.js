@@ -6,10 +6,11 @@
 //   DEPENDS: the tests/renderer/store pinia harness with the standard store mocks; util/tableLayoutStore mocked with a spy.
 //   LINKS: .grace/changes/active/C-65 R-2; .grace/verification/runtime.xml V-M-012 scenario-66; util/tableLayoutStore.js.
 //   ROLE: TEST
-//   MAP_MODE: NONE
+//   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
+//   loadEditorStore - fresh editor store under the test pinia (lazy import after the mocks).
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
@@ -18,6 +19,8 @@
 // END_CHANGE_SUMMARY
 
 import { setupTestPinia } from '../pinia'
+
+const loadEditorStore = async () => (await import('@/store/editor')).useEditorStore
 
 vi.mock('@/bus', () => ({
   default: { on: vi.fn(), off: vi.fn(), emit: vi.fn() }
@@ -84,7 +87,7 @@ describe('store/editor.js — C-65 R-2 rename moves the stored table layouts', (
   beforeEach(async () => {
     setupTestPinia()
     vi.clearAllMocks()
-    const { useEditorStore } = await import('@/store/editor')
+    const useEditorStore = await loadEditorStore()
     editorStore = useEditorStore()
     editorStore.tabs = []
     editorStore.currentFile = {
