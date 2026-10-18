@@ -11,7 +11,8 @@
     "targets": ["app"],
     "createUpdaterArtifacts": false,
     "macOS": {
-      "entitlements": "Entitlements.plist"
+      "entitlements": "Entitlements.plist",
+      "bundleVersion": "2.5.0.1"
     }
   }
 }
