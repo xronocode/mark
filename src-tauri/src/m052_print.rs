@@ -545,6 +545,8 @@ unsafe fn export_pdf_webview2(
     // END_BLOCK_PDF_SETTINGS
 
     let path_hs = HSTRING::from(path);
+    // The handler must be 'static: it logs an owned copy of the path.
+    let path_owned = path.to_string();
     // The completion handler runs on the WebView2 UI thread and resolves
     // the async command through the oneshot channel.
     let handler = PrintToPdfCompletedHandler::create(Box::new(
@@ -557,7 +559,7 @@ unsafe fn export_pdf_webview2(
             if let Err(why) = &outcome {
                 safe_eprintln!("[m052][mt_export_pdf][BLOCK_PDF_WRITE_FAILED reason={why}]");
             } else {
-                safe_eprintln!("[m052][mt_export_pdf][BLOCK_PDF_WRITTEN path={}]", path);
+                safe_eprintln!("[m052][mt_export_pdf][BLOCK_PDF_WRITTEN path={}]", path_owned);
             }
             let _ = done.send(outcome);
             Ok(())
