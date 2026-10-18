@@ -25,7 +25,7 @@
 
           <!-- PDF -->
           <div v-if="isPrintable">
-            <!-- C-59: the dialog is pdf-only now (⌘P goes straight to the
+            <!-- C-61: the dialog is pdf-only now (⌘P goes straight to the
                  print panel). Page size/orientation/margins feed
                  mt_export_pdf's pageOptions — the saved PDF's page box —
                  and the shared @page CSS. -->
@@ -269,7 +269,7 @@
 </template>
 
 <script setup>
-// C-59: this dialog is pdf-only — ⌘P no longer opens it (file.print goes
+// C-61: this dialog is pdf-only — ⌘P no longer opens it (file.print goes
 // straight to the native panel via editorStore.PRINT_DOCUMENT). The title
 // reads "Export to PDF" for pdf; page size/orientation/custom dimensions
 // are back so mt_export_pdf gets a real page box; margins below still

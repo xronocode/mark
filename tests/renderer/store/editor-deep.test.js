@@ -854,7 +854,7 @@ describe('store/editor — deep coverage', () => {
   // ─── EXPORT — edge cases ─────────────────────────────────────────
 
   describe('EXPORT — deep', () => {
-    it('PDF type writes via mt_export_pdf after the save dialog (C-59)', async () => {
+    it('PDF type writes via mt_export_pdf after the save dialog (C-61)', async () => {
       const { invoke } = await import('@tauri-apps/api/core')
       const { save } = await import('@tauri-apps/plugin-dialog')
       invoke.mockClear()

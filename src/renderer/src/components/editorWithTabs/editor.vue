@@ -96,7 +96,7 @@
 //   syncPreviewSurface - Mirrors previewMode onto Muya's real replacement container and restores caret focus on exit.
 //   imageAction - Applies configured local/upload image insertion behavior; with the relative preference on a saved document it writes straight into the relative folder (C-24).
 //   handleDropImage - Inserts an image dropped from Finder (mt::drop-image) at the cursor through imageAction (C-24 R-4).
-//   handleExport - Routes supported export formats to renderer services; C-59 splits print (direct native panel, remembered options) from pdf (settings → save dialog → mt_export_pdf, container cleared on every outcome).
+//   handleExport - Routes supported export formats to renderer services; C-61 splits print (direct native panel, remembered options) from pdf (settings → save dialog → mt_export_pdf, container cleared on every outcome).
 //   handleCopyAsHtml - Copies selection (or whole document) to the clipboard as rich text/html (C-3).
 //   copyRenderedAsPlainText - Shared C-12/C-32 render → convert → single text/plain write pipeline.
 //   diffGuarded - M-031: document-mutating bus handlers become no-ops while the diff view replaces the editing surface.
@@ -110,7 +110,7 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   - 2026-10-18 v1.24.0: C-59 — handleExport splits Print from Export to
+//   - 2026-10-18 v1.24.0: C-61 — handleExport splits Print from Export to
 //     PDF. The pdf case remembers the dialog options
 //     (editorStore.REMEMBER_EXPORT_OPTIONS), passes page size/orientation
 //     AND margins in pageOptions, awaits the store flow (native save
@@ -1400,7 +1400,7 @@ const handleExport = async (options) => {
       break
     }
     case 'pdf': {
-      // C-59 R-2: Export to PDF = settings dialog (already OK'd) → native
+      // C-61 R-2: Export to PDF = settings dialog (already OK'd) → native
       // save dialog → silent mt_export_pdf write; no print panel. Page
       // size/orientation and margins travel in pageOptions (the backend
       // maps them onto the PDF page box; the shared @page CSS carries the
@@ -1437,7 +1437,7 @@ const handleExport = async (options) => {
           headerFooterStyled
         })
         printer.renderMarkdown(html, true)
-        // C-59 R-1: remember the appearance so a later ⌘P renders the
+        // C-61 R-1: remember the appearance so a later ⌘P renders the
         // print container without the settings dialog.
         editorStore.REMEMBER_EXPORT_OPTIONS(options)
         await editorStore.EXPORT({ type, pageOptions })
@@ -1457,7 +1457,7 @@ const handleExport = async (options) => {
       break
     }
     case 'print': {
-      // C-59 R-1: ⌘P arrives here straight from editorStore.PRINT_DOCUMENT
+      // C-61 R-1: ⌘P arrives here straight from editorStore.PRINT_DOCUMENT
       // (remembered options; no export-settings dialog). Page size and
       // orientation belong to the native panel.
       try {

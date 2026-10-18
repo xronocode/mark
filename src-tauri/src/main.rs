@@ -39,7 +39,7 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   - 2026-10-18 C-59 T-001: register m052_print::mt_export_pdf — the
+//   - 2026-10-18 C-61 T-001: register m052_print::mt_export_pdf — the
 //     silent save-to-PDF half of the Print/Export split (WKWebView
 //     print-to-file via NSPrintSaveJob on macOS, WebView2
 //     ICoreWebView2_7::PrintToPdf on Windows); mt_print_webview gains the
@@ -816,7 +816,7 @@ fn main() {
             m058_window_effects::mt_window_set_mica_theme,
             m015_pandoc::mt_pandoc_export,
             m052_print::mt_print_webview,
-            // C-59: silent save-to-PDF for the webview content (WKWebView
+            // C-61: silent save-to-PDF for the webview content (WKWebView
             // print-to-file on macOS, WebView2 PrintToPdf on Windows).
             // Outside the M-013-A typed fixture like mt_print_webview.
             m052_print::mt_export_pdf,

@@ -656,7 +656,7 @@ describe('store/editor — coverage gaps', () => {
       expect(save).toHaveBeenCalled()
     })
 
-    it('PDF type runs save dialog then mt_export_pdf — never the print panel (C-59)', async () => {
+    it('PDF type runs save dialog then mt_export_pdf — never the print panel (C-61)', async () => {
       const { invoke } = await import('@tauri-apps/api/core')
       const { save } = await import('@tauri-apps/plugin-dialog')
       invoke.mockClear()
@@ -680,7 +680,7 @@ describe('store/editor — coverage gaps', () => {
       expect(invoke).not.toHaveBeenCalledWith('mt_print_webview')
     })
 
-    it('PDF type with a cancelled save dialog writes nothing and notifies nobody (C-59 corner-2)', async () => {
+    it('PDF type with a cancelled save dialog writes nothing and notifies nobody (C-61 corner-2)', async () => {
       const { invoke } = await import('@tauri-apps/api/core')
       const { save } = await import('@tauri-apps/plugin-dialog')
       invoke.mockClear()
