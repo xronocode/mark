@@ -1,6 +1,6 @@
 // @vitest-environment node
 // FILE: tests/site/gallery.test.mjs
-// VERSION: 1.0.0
+// VERSION: 1.1.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Verify the gallery corpus and the built /diagrams/ page
 //            (C-58 R-1/R-3, T-001/T-002) — every example renders with pele
@@ -24,7 +24,11 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.0.0 - 2026-10-18 C-58 T-001/T-002: first version.
+//   LAST_CHANGE: v1.1.0 - 2026-10-18 C-64 T-003: the shared head adds a
+//   JSON-LD <script type="application/ld+json"> to every static page, so the
+//   page now carries exactly two scripts (controller + JSON-LD, which must
+//   parse with a SoftwareApplication node).
+//   PREV: v1.0.0 - 2026-10-18 C-58 T-001/T-002: first version.
 // END_CHANGE_SUMMARY
 
 import { render } from 'pele'
@@ -113,7 +117,10 @@ describe('renderGallery (the built page)', () => {
     expect(HTML).not.toContain('fonts.googleapis.com')
     expect(HTML).not.toContain('fonts.gstatic.com')
     expect(HTML).not.toContain('src="undefined')
-    expect((HTML.match(/<script\b/g) || []).length).toBe(1)
+    // The gallery controller plus the shared head's JSON-LD (C-64 T-003).
+    expect((HTML.match(/<script\b/g) || []).length).toBe(2)
+    const ld = /<script type="application\/ld\+json">([\s\S]*?)<\/script>/.exec(HTML)?.[1]
+    expect(JSON.parse(ld)['@graph'].map((n) => n['@type'])).toContain('SoftwareApplication')
   })
 
   it('leaves no unrendered tokens or pele errors', () => {
