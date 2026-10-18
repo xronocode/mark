@@ -3930,6 +3930,61 @@
         failure path — CORS, vanished file, decode — resolves, never
         rejects). Unit tests/renderer/muya/image-copy.test.js; e2e in
         tests/e2e/diagram-export.spec.ts (embedded-image group).
+        C-65 (2026-10-18, approved mockup variant E — wide tables part 1):
+        table column widths and the per-table Full width mode persist per
+        FILE in the Mark profile (never in the markdown). Block keys are
+        not stable across reloads, so lib/tableResize/ mints a persistent
+        identity per table — document ORDINAL + header SIGNATURE (column
+        count + djb2 hash of the header texts, tableSignature); syncIdentities
+        runs after every render (adopt stored entries into fresh block
+        keys, drop a table whose identity changed under it — header text
+        or column count edited — and drop persisted entries whose identity
+        disappeared), persist() is the ONLY write path (muya-table-layouts
+        dispatch; fired solely after a real drag end with movement, a
+        double-click reset or a Full width toggle), and
+        applyPersistedLayouts() is the load entry. The HOST side is
+        renderer util tableLayoutStore.js (one prefs key tableLayouts;
+        prune entries whose file no longer exists on load via
+        window.fileUtils.stat, 30-file cap by updatedAt, moveFileEntry for
+        the Mark renames — store/editor.js RENAME + RENAME_IF_NEEDED) +
+        editor.vue BLOCK_TABLE_LAYOUTS_HOST (sequence-guarded load after
+        file-loaded/file-changed, save of the dispatches under the active
+        pathname; mirror and untitled tabs opt out). T-002: every table
+        figure renders the TABLE TOOLBAR (renderTableToolbar.js —
+        div.ag-block-toolbar.ag-table-toolbar as the FIRST figure child,
+        REPLACING the standalone button.ag-block-expand glyph and its CSS
+        placement rule): the Full width ↔ Fit to page toggle and the
+        need-gated Open-full-screen button (same ag-block-expand family
+        class and expandNeed.js gate as the diagram pill; disabled
+        surfaces like the Split View mirror render no toolbar). Routing is
+        CAPTURE-PHASE in TableResize (mousedown stops propagation only —
+        focus survives; click → toggleFullWidthFromElement or the
+        muya-block-viewer dispatch; caption clicks never reach muya's
+        caret routing). Placement (CSS): ABOVE the table just over its top
+        edge, right edge on the text-column edge (the mockup's invisible
+        boundary), hover/:focus-within reveal, ag-active hide, may cover
+        the line above — accepted. T-003: the overflow cue is EDGE SHADES
+        ONLY + a CAPTION below the table (renderContainerBlock renders
+        div.ag-table-caption as the last figure child; tableCue.js fills
+        it) — «columns X–Y of N» (tableToolbar.columnsRange in the 10
+        locales, {start}/{end}/{total} interpolation with a token
+        fallback), live on scroll (a capture-phase scroll listener on the
+        container), render and figure resize (expandNeed.js
+        updateFigureExpandNeed funnels syncTableCue for TABLE figures) and
+        drag; the C-39 cover-gradient shadows were replaced by the
+        class-gated ag-table-cue-left/right shades so the sides and the
+        caption state the same fact (a table that fits shows neither).
+        T-004/R-6: Full width keeps the FIGURE at column width (toolbar +
+        caption stay anchored) while the WRAPPER breaks out — overflow
+        visible, an inline margin-left measured against the muya scroller
+        (applyFullWidthGeometry; theme paddings never hardcoded) puts the
+        table at the editor area's LEFT edge, the EDITOR scroller owns the
+        horizontal scrollbar, and the caption reads «all N columns»
+        (tableToolbar.allColumns) with no shades. Unit
+        tests/renderer/muya/table-layout-persistence.test.js +
+        table-cue.test.js + tests/renderer/store/table-layout-store.test.js
+        + editor-table-layouts.test.js; e2e tests/e2e/table-toolbar.spec.ts,
+        table-width-persistence.spec.ts, table-layout.spec.ts (cue pins).
       </Summary>
       <Path>src/muya/</Path>
       <Dependencies/>
@@ -4050,24 +4105,108 @@
             <Attribute>
               <Name>PURPOSE</Name>
               <Value>
-                lib/tableResize/ (C-39 T-002): session-only table column
-                resize. muya.tableResize keeps in-memory column widths per
-                TABLE BLOCK KEY (stable across re-renders; tab switches
-                restore the saved block tree with the same keys; a reload
-                re-parses and mints fresh keys, so widths never survive a
-                reopen); renderContainerBlock renders them as a colgroup on
+                lib/tableResize/ (C-39 T-002; C-65 v2.0.0): table column
+                resize + the persistent per-file layout. muya.tableResize
+                keeps in-memory column widths per TABLE BLOCK KEY
+                (renderContainerBlock renders them as a colgroup on
                 table.ag-column-widths-fixed so every re-render re-applies
-                them by construction, each th carries an invisible
-                span.ag-column-resizer hit zone, and the drag/double-click
-                interaction runs on capture-phase container listeners.
+                them by construction; reconcileAfterRender next to the
+                T-001 scroll restore fixes column-count changes), an
+                invisible span.ag-column-resizer hit zone per th
+                (capture-phase pointer interaction, 48px minimum,
+                double-click reset, accent hairline). C-65: every table
+                also gets a PERSISTENT IDENTITY (document ordinal +
+                tableSignature = column count + hash of the header texts)
+                — syncIdentities runs after every render, adopts the
+                persisted entries (applyPersistedLayouts is the load
+                entry) into fresh block keys, drops a table whose identity
+                changed (header/column edit) and unseen persisted entries;
+                persist() is the only write path (muya-table-layouts
+                dispatch, only after real user actions); the Full width
+                session set + toggleFullWidthFromElement /
+                applyFullWidthDom / applyFullWidthGeometry (measured
+                breakout margin) implement the per-table R-6 mode; the
+                table toolbar (renderTableToolbar.js) and the caption are
+                routed on CAPTURE PHASE here (toggle, muya-block-viewer,
+                the caption caret guard, the scroll cue listener).
                 Markdown, undo history and isSaved are never touched; the
                 read-only Split View mirror disables the affordance
                 (options.disableTableColumnResize, set from the mirror prop
-                in editor.vue).
+                in editor.vue) and renders no toolbar.
               </Value>
             </Attribute>
           </LegacyAttributes>
         </fn-tableResize>
+        <fn-tableCue>
+          <LegacyAttributes>
+            <Attribute>
+              <Name>PURPOSE</Name>
+              <Value>
+                lib/tableResize/tableCue.js (C-65 T-003): the overflow cue
+                maths + DOM sync — visibleColumnRange (pure: a column is
+                mostly visible when ≥ 50% of it lies in the scrollport;
+                the shade sides come from table-edge clipping, so a
+                barely-cut single column still reads as clipped),
+                formatColumnsCaption (tableToolbar.columnsRange /
+                allColumns with a {start}/{end}/{total} token fallback),
+                tableCueState (DOM gathering incl. the full-width
+                short-circuit; null on hidden panes/jsdom) and
+                syncTableCue (caption text/visibility + the
+                ag-table-cue-left/right shade classes). setTableCueTranslator
+                pins the live translator for the resize funnel
+                (expandNeed.js updateFigureExpandNeed calls syncTableCue
+                for TABLE figures; wrapper scrolls use TableResize's
+                capture-phase scroll listener).
+              </Value>
+            </Attribute>
+          </LegacyAttributes>
+        </fn-tableCue>
+        <fn-tableToolbar>
+          <LegacyAttributes>
+            <Attribute>
+              <Name>PURPOSE</Name>
+              <Value>
+                parser/render/renderBlock/renderTableToolbar.js (C-65
+                T-002): the TABLE toolbar — div.ag-block-toolbar.ag-table-toolbar,
+                a C-56-family pill as a DIRECT figure child of every table
+                figure, REPLACING the standalone button.ag-block-expand
+                glyph (its old CSS placement rule removed with it). Two
+                buttons: the Full width ↔ Fit to page toggle (per-state
+                icon/label/ag-table-toolbar-active class;
+                TableResize.updateToolbarToggleDom keeps the live DOM in
+                step between renders) and the need-gated Open full screen
+                action (ag-block-toolbar-expand under the expandNeed.js
+                ag-expand-needed gate). Both carry the ag-block-expand
+                family class (the keyboard.js key guard) but NOT
+                dataset.blockToolbarAction — routing is capture-phase in
+                TableResize, so clickEvent.js never sees them.
+              </Value>
+            </Attribute>
+          </LegacyAttributes>
+        </fn-tableToolbar>
+        <fn-tableLayoutStore>
+          <LegacyAttributes>
+            <Attribute>
+              <Name>PURPOSE</Name>
+              <Value>
+                src/renderer/src/util/tableLayoutStore.js (C-65 T-001):
+                the per-file table layout profile store behind one prefs
+                key (tableLayouts; { version, files: { path: {
+                ordinal#signature: { widths, manual, fullWidth } } } } —
+                the identity strings are muya's, opaque here). Pure
+                transforms (sanitizeEntry, normalizeStore,
+                storeWithFileEntries, capStoreFiles at 30 by updatedAt,
+                moveFileEntry) + the IO flows with an injectable prefs IO:
+                loadTableLayoutsFor (prune missing files via
+                window.fileUtils.stat, cap, write back when changed),
+                saveTableLayoutsFor (replace one file's entries, delete
+                the husk when empty) and moveTableLayoutsEntry (the R-2
+                rename move — store/editor.js RENAME/RENAME_IF_NEEDED).
+                Host wiring: editor.vue BLOCK_TABLE_LAYOUTS_HOST.
+              </Value>
+            </Attribute>
+          </LegacyAttributes>
+        </fn-tableLayoutStore>
         <fn-expandNeed>
           <LegacyAttributes>
             <Attribute>

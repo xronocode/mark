@@ -465,6 +465,12 @@
     "copyImage": "复制为图像",
     "openFullScreen": "全屏打开"
   },
+  "tableToolbar": {
+    "fullWidth": "全宽显示",
+    "fitToPage": "适应页面",
+    "columnsRange": "第 {start}–{end} 列，共 {total} 列",
+    "allColumns": "全部 {total} 列"
+  },
   "recent": {
     "taglineLead": "智能体来写，你来",
     "taglineHighlight": "塑造它。",

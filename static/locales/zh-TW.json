@@ -465,6 +465,12 @@
     "copyImage": "複製為影像",
     "openFullScreen": "全螢幕開啟"
   },
+  "tableToolbar": {
+    "fullWidth": "全寬顯示",
+    "fitToPage": "符合頁面",
+    "columnsRange": "第 {start}–{end} 欄，共 {total} 欄",
+    "allColumns": "全部 {total} 欄"
+  },
   "recent": {
     "taglineLead": "代理程式來寫，你來",
     "taglineHighlight": "塑造它。",

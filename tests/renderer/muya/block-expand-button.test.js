@@ -1,10 +1,10 @@
 // FILE: tests/renderer/muya/block-expand-button.test.js
-// VERSION: 1.5.0
+// VERSION: 1.6.0
 // START_MODULE_CONTRACT
-//   PURPOSE: Pin the C-51 T-006/T-010 expand button — vnode placement, marker class and localized a11y attrs on the figures that keep it since C-56 T-005 (flowchart, sequence, plantuml diagrams and tables; mermaid/vega-lite render the corner pill instead — see block-toolbar.test.js), the drawn M-057 glyph (byte-identical to the canonical chromeIcons descriptor), click routing to the muya-block-viewer event, the keyboard guard that leaves Tab/Enter/arrows AND keyups to the focused button (the keyup selection repair used to steal the focus into the editing host), the copy-icon CSS literals (20 px, 8 px insets, 0/0.5/1 opacity curve, need-gated display, the 44 px strip removed), and the button never reaching export HTML.
-//   SCOPE: START_BLOCK_EXPAND_BUTTON (renderContainerBlock.js + renderExpandButton.js), START_BLOCK_EXPAND_BUTTON_CLICK (clickEvent.js), START_BLOCK_KEYBOARD_EXPAND_BUTTON (keyboard.js, keydown + keyup), the C-51 T-006/T-010 CSS section of lib/assets/styles/index.css, and ExportHtml.renderHtml. The need RULES live in expand-need.test.js; the C-56 T-005 pill lives in block-toolbar.test.js.
+//   PURPOSE: Pin the C-51 T-006/T-010 expand button — vnode placement, marker class and localized a11y attrs on the figures that keep it since C-56 T-005 (flowchart, sequence, plantuml diagrams; mermaid/vega-lite render the corner pill and TABLES render the C-65 table toolbar instead — see block-toolbar.test.js / table-cue.test.js), the drawn M-057 glyph (byte-identical to the canonical chromeIcons descriptor), click routing to the muya-block-viewer event, the keyboard guard that leaves Tab/Enter/arrows AND keyups to the focused button (the keyup selection repair used to steal the focus into the editing host), the copy-icon CSS literals (20 px, 8 px insets, 0/0.5/1 opacity curve, need-gated display, the 44 px strip removed), and the button never reaching export HTML.
+//   SCOPE: START_BLOCK_EXPAND_BUTTON (renderContainerBlock.js + renderExpandButton.js), START_BLOCK_EXPAND_BUTTON_CLICK (clickEvent.js), START_BLOCK_KEYBOARD_EXPAND_BUTTON (keyboard.js, keydown + keyup), the C-51 T-006/T-010 CSS section of lib/assets/styles/index.css, and ExportHtml.renderHtml. The need RULES live in expand-need.test.js; the C-56 T-005 pill lives in block-toolbar.test.js; the C-65 table toolbar lives in table-cue.test.js.
 //   DEPENDS: StateRender (muya/lib/parser/render/index.js) with a mocked renderer loader, ClickEvent and Keyboard with a real-DOM event-center double, the muya selection singleton (spied for the keyup guard), muya snabbdom h, @/components/icons/chromeIcons (the glyph twin), ExportHtml with a pele double, node:fs for the CSS read; Vitest + jsdom.
-//   LINKS: .grace/changes/active/C-51 T-006 and T-010; .grace/changes/active/C-56 T-005 (scope narrowed to the non-pill roles); .grace/verification/runtime.xml V-M-012 scenario-60; tests/e2e/block-viewer.spec.ts for the laid-out behaviour.
+//   LINKS: .grace/changes/active/C-51 T-006 and T-010; .grace/changes/active/C-56 T-005 (scope narrowed to the non-pill roles); .grace/changes/active/C-65 T-002 (tables moved to the table toolbar); .grace/verification/runtime.xml V-M-012 scenario-60; tests/e2e/block-viewer.spec.ts for the laid-out behaviour.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT
@@ -27,7 +27,16 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.5.0 - 2026-10-18 C-56 T-005: the render cases split —
+//   LAST_CHANGE: v1.6.0 - 2026-10-18 C-65 T-002: tables left the standalone
+//   glyph's scope — the table figure case now pins that tables carry the
+//   C-65 table toolbar (whose expand button keeps the family class and the
+//   ag-has-expand need marker) instead of a direct button.ag-block-expand
+//   child, and the dead table placement CSS rule is asserted gone (its
+//   placement lives in the C-65 table-toolbar rule, pinned in
+//   table-cue.test.js). The click/keyboard/glyph/export cases are
+//   unchanged (the standalone button and its rules remain for the
+//   flowchart/sequence/plantuml roles).
+//   v1.5.0 - 2026-10-18 C-56 T-005: the render cases split —
 //   flowchart/sequence/plantuml figures and tables keep the standalone
 //   button.ag-block-expand, while mermaid/vega-lite figures carry the
 //   corner pill instead (no direct expand child, no pencil — their
@@ -137,7 +146,7 @@ const makeTableBlocks = () => {
 
 let StateRender = null
 
-const createStateRender = async () => {
+const createStateRender = async ({ tableResize = null } = {}) => {
   if (!StateRender) {
     const mod = await import('muya/lib/parser/render/index')
     StateRender = mod.default
@@ -145,6 +154,7 @@ const createStateRender = async () => {
   const sr = new StateRender({
     eventCenter: { dispatch: vi.fn() },
     options: {},
+    tableResize,
     contentState: {
       cursor: { start: { key: 'x' }, end: { key: 'x' } },
       selectedBlock: null,
@@ -288,24 +298,46 @@ describe('expand button render + routing (C-51 T-006/T-010)', () => {
     }
   })
 
-  it('renders the button on the table figure as a direct child before and outside the scroll wrapper', async () => {
-    const sr = await createStateRender()
+  it('table figures keep the need marker but carry the C-65 table toolbar, not the standalone glyph (C-65 T-002)', async () => {
+    const sr = await createStateRender({
+      tableResize: { enabled: () => true, isFullWidth: () => false }
+    })
     const { figure } = makeTableBlocks()
     const figureVnode = sr.renderBlock(null, figure, [], {}, false, t)
 
     expect(figureVnode.sel).toMatch(/\.ag-has-expand\b/)
-    const { button, index } = findExpandButtonVnode(figureVnode)
-    expect(button, 'the table figure must carry the expand button').toBeTruthy()
+    // No direct standalone glyph child anymore…
+    expect(findExpandButtonVnode(figureVnode).button, 'tables have no direct expand child').toBeNull()
+    // …the toolbar is the FIRST figure child (before the C-39 scroll
+    // wrapper: Chromium makes an overflowing wrapper a keyboard-focusable
+    // scroller, so the toolbar must precede it in Tab order), and its
+    // second button is the expand action under the same family class.
     const children = figureVnode.children || []
-    // FIRST figure child, before the C-39 scroll wrapper: Chromium makes an
-    // overflowing wrapper a keyboard-focusable scroller, and the button must
-    // come before it in Tab order (C-51 T-010 orchestrator fix).
+    const toolbarIndex = children.findIndex((v) => v.sel === 'div.ag-block-toolbar.ag-table-toolbar')
     const wrapperIndex = children.findIndex((v) => v.sel === 'div.ag-table-scroll')
+    expect(toolbarIndex, 'the table figure carries the table toolbar').toBeGreaterThan(-1)
     expect(wrapperIndex, 'the table figure keeps its scroll wrapper').toBeGreaterThan(-1)
-    expect(index, 'the button precedes the scroll wrapper').toBeLessThan(wrapperIndex)
-    const wrapper = children[wrapperIndex]
+    expect(toolbarIndex, 'the toolbar precedes the scroll wrapper').toBeLessThan(wrapperIndex)
+    expect(toolbarIndex).toBe(0)
+    const toolbar = children[toolbarIndex]
+    const buttons = (toolbar.children || []).filter((c) => c.sel.includes('ag-table-toolbar-btn'))
+    expect(buttons.length).toBe(2)
+    expect(buttons[1].sel).toContain('ag-block-expand')
+    expect(buttons[1].sel).toContain('ag-block-toolbar-expand')
     // Not nested inside the wrapper: table clicks/drag stay first-class.
-    expect(findVnode(wrapper, (v) => v.sel === 'button.ag-block-expand')).toBeNull()
+    expect(findVnode(children[wrapperIndex], (v) => v.sel === 'button.ag-block-expand')).toBeNull()
+  })
+
+  it('a disabled surface (the Split View mirror) renders neither the toolbar nor the glyph on a table figure', async () => {
+    const sr = await createStateRender({
+      tableResize: { enabled: () => false, isFullWidth: () => false }
+    })
+    const { figure } = makeTableBlocks()
+    const figureVnode = sr.renderBlock(null, figure, [], {}, false, t)
+    expect(findExpandButtonVnode(figureVnode).button).toBeNull()
+    expect((figureVnode.children || []).some((c) => (c.sel || '').includes('ag-table-toolbar'))).toBe(false)
+    // The caption element still renders (informational, inert).
+    expect((figureVnode.children || []).some((c) => c.sel === 'div.ag-table-caption')).toBe(true)
   })
 
   it('renders no button for html / multiplemath figures, empty diagrams, or plain blocks', async () => {
@@ -495,16 +527,13 @@ describe('expand button CSS (C-51 T-010, copy-icon look of .ag-code-copy)', () =
     expect(css).not.toContain(".ag-has-expand > .ag-tool-bar {")
   })
 
-  it('pins the pencil shift scoped to figures that need the button, and the table placement clear of the header', () => {
+  it('pins the pencil shift scoped to figures that need the button, and the dead table glyph rule gone (C-65 T-002)', () => {
     expect(css).toContain('figure.ag-has-expand.ag-expand-needed .ag-container-icon {')
     expect(css).toContain('right: 2.2em;')
-    // Tables: above the table's top-right corner, in the existing margin
-    // band the tools bar uses — never over header text / the resize zone.
-    // (top: -22px also lives in the .ag-tool-bar rule — pin it inside the
-    // button's own table rule.)
-    const tableRule = css.split("figure[data-role='TABLE'].ag-expand-needed > button.ag-block-expand {")[1].split('}')[0]
-    expect(tableRule).toContain('top: -22px')
-    expect(tableRule).toContain('right: 0')
+    // Tables render the C-65 toolbar above the table (pinned in
+    // table-cue.test.js), so the old standalone-glyph table placement rule
+    // is gone with the glyph.
+    expect(css).not.toContain("figure[data-role='TABLE'].ag-expand-needed > button.ag-block-expand {")
   })
 })
 // END_BLOCK_EXPAND_BUTTON_CSS_ASSERTIONS
