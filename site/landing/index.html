@@ -1,5 +1,5 @@
 <!-- FILE: site/landing/index.html -->
-<!-- VERSION: 2.0.0 -->
+<!-- VERSION: 2.1.0 -->
 <!-- START_MODULE_CONTRACT -->
 <!--   PURPOSE: The Mark site landing (served at the site root by renderLanding) -->
 <!--            - the mobile-first paragraph-numbered paper/ink/marker page -->
@@ -41,7 +41,8 @@
 <!--   #macbar - iOS/iPadOS sticky Mark-for-Mac bar (share with copy fallback) -->
 <!--   #hero (data-consent-after) - headline, actions, #stage, fact strip -->
 <!--   #stage - before/after slider (#page layer wears Paper/Ink pele vars) -->
-<!--   ¶ 01 Agents - live reload + ⌘D copy, 01-agents shot, agent snippet -->
+<!--   ¶ 01 Agents - live reload + ⌘D copy, 01-agents shot, agent prompt -->
+<!--             (a closed details on phones, open block from 521px) -->
 <!--   ¶ 02 Diagrams - #themes chips + #sheet wall (7 DIAGRAM placeholders) -->
 <!--   ¶ 03 The page itself - six feature cards (viewer + light/dark shots) -->
 <!--   ¶ 04 Small and native - memory bars to scale + measured stats -->
@@ -49,7 +50,18 @@
 <!--   footer - docs nav, Mark Text credit, © line -->
 <!-- END_MODULE_MAP -->
 <!-- START_CHANGE_SUMMARY -->
-<!--   LAST_CHANGE: [v2.0.0 - 2026-10-18 C-64 T-002: full rebuild per D-9 - -->
+<!--   LAST_CHANGE: [v2.1.0 - 2026-10-18 C-64 T-002 review round 2: phone -->
+<!--                 length cut toward 5 screens (agent prompt folded into a -->
+<!--                 closed details on phones, .more/.opt one-line trims, -->
+<!--                 compact install cards, 36px section padding); the phone -->
+<!--                 wall shows the four square diagrams first with the count -->
+<!--                 updated; >=24px headline-to-stage clearance (36px at -->
+<!--                 981+); the Windows download becomes a real secondary -->
+<!--                 button; the install brew chip keeps the command on one -->
+<!--                 scrollable line; the stage rests at its final position -->
+<!--                 in CSS per breakpoint and the sweep is a shorter 1.8s -->
+<!--                 that starts and ends at rest.] -->
+<!--   PREV: [v2.0.0 - 2026-10-18 C-64 T-002: full rebuild per D-9 - -->
 <!--                 mobile-first brand layout (breakpoints 520/980, safe-area -->
 <!--                 gutters), draggable/keyboard before/after hero with -->
 <!--                 build-time diagram placeholders, d1 fact strip, d2 wall as -->
@@ -142,6 +154,7 @@ h2 {
   color: var(--mute); margin: 0 0 14px;
 }
 .more { display: none; }
+.opt { display: none; }
 
 /* ---------- buttons ---------- */
 .acts { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
@@ -156,6 +169,8 @@ h2 {
 .btn.pri { background: var(--ink); color: var(--paper); }
 .btn.pri svg { width: 16px; height: 19px; fill: currentColor; flex: none; }
 @media (hover: hover) and (pointer: fine) { .btn.pri:hover { opacity: .88; } }
+.btn.sec { background: transparent; color: var(--ink); box-shadow: inset 0 0 0 1.5px var(--ink); }
+@media (hover: hover) and (pointer: fine) { .btn.sec:hover { background: var(--chip); } }
 .send-mac svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex: none; }
 .brew {
   display: inline-flex; align-items: center; gap: 10px;
@@ -173,11 +188,10 @@ h2 {
 .brew.is-copied { border-color: var(--ink); }
 .brew.is-copied b { background: var(--marker); color: var(--on-marker); }
 @media (hover: hover) and (pointer: fine) { .brew:hover { border-color: var(--mute); } }
-.brew.block {
-  display: flex; width: 100%; white-space: normal; overflow-wrap: anywhere;
-  text-align: left; min-height: 64px; align-items: center;
-}
-.brew.block b { margin-left: auto; }
+.brew.block { display: flex; width: 100%; min-height: 64px; align-items: center; text-align: left; }
+.brew.block .cmd { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; overflow-x: auto; white-space: nowrap; scrollbar-width: none; }
+.brew.block .cmd::-webkit-scrollbar { display: none; }
+.brew.block b { margin-left: 10px; }
 .fine { font: 500 12.5px/1.5 var(--mono); color: var(--mute); letter-spacing: .02em; }
 .fine a, .lead a { color: var(--ink); }
 
@@ -271,9 +285,12 @@ h2 {
 .acts .btn { flex: 1 1 auto; }
 .acts .brew { display: none; }
 
-/* the before/after stage (design d3) */
+/* the before/after stage (design d3). --x is the rest position per
+   breakpoint, set here in CSS so no-JS, reduced motion and the very
+   first paint all show the final divider placement. */
 .stage {
-  position: relative; height: 470px;
+  --x: 34%;
+  position: relative; height: 470px; margin-top: 12px;
   margin-inline: calc(-1 * max(20px, env(safe-area-inset-left, 0px)));
   border-radius: 0; overflow: hidden;
   touch-action: pan-y; user-select: none; -webkit-user-select: none; cursor: ew-resize;
@@ -376,7 +393,7 @@ h2 {
 .dia-pie { max-width: 300px; }
 
 /* the d1 four-fact strip */
-.facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 16px; padding-block: 22px 34px; }
+.facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 16px; padding-block: 18px 26px; }
 .feat { display: grid; gap: 5px; align-content: start; border-top: 2px solid var(--ink); padding-top: 10px; }
 .feat .k {
   font: 600 11.5px/1 var(--mono); letter-spacing: .1em; text-transform: uppercase;
@@ -391,10 +408,10 @@ h2 {
 .feat p span { display: block; font: 400 13px/1.45 var(--body); color: var(--mute); margin-top: 3px; }
 
 /* ---------- sections ---------- */
-.sec { padding-block: clamp(44px, 7vw, 84px); border-top: 1px solid var(--rule); }
+.sec { padding-block: 36px; border-top: 1px solid var(--rule); }
 
 /* ¶ 01 agents */
-.agents-grid { display: grid; gap: 26px; margin-top: 30px; }
+.agents-grid { display: grid; gap: 26px; margin-top: 22px; }
 .shotwin { margin: 0; }
 .shotwin img { width: 100%; height: auto; }
 .snippet h3 { font: 700 19px/1.2 var(--display); letter-spacing: -.01em; }
@@ -413,9 +430,20 @@ h2 {
   border: 1px solid #33363D; background: #21242B; color: #C9CDD6; cursor: pointer;
 }
 .copy-code.is-copied { background: var(--marker); color: var(--on-marker); border-color: var(--marker); }
+.prompt summary {
+  list-style: none; cursor: pointer;
+  display: flex; align-items: center; gap: 8px;
+  font: 600 13px/1 var(--body); color: var(--ink);
+  border: 1px solid var(--rule); border-radius: 10px; padding: 12px 14px;
+  margin-top: 14px;
+}
+.prompt summary::-webkit-details-marker { display: none; }
+.prompt summary::after { content: "\25BE"; margin-left: auto; color: var(--mute); }
+.prompt[open] summary::after { content: "\25B4"; }
+.prompt summary:focus-visible { outline: 2px solid var(--marker); outline-offset: 2px; }
 
 /* ¶ 02 diagrams wall (design d2) */
-.themes { display: flex; gap: 8px; align-items: center; margin-top: 22px;
+.themes { display: flex; gap: 8px; align-items: center; margin-top: 16px;
   overflow-x: auto; scrollbar-width: none;
   margin-inline: calc(-1 * max(20px, env(safe-area-inset-left, 0px)));
   padding-inline: max(20px, env(safe-area-inset-left, 0px));
@@ -460,6 +488,10 @@ h2 {
 .cell .n span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .cell .s { min-height: 0; display: flex; align-items: center; justify-content: center; }
 .cell .s svg { width: 100%; height: 100%; max-height: 100%; }
+/* Phones: the wide diagrams (flowchart, kanban, gantt) render too small in
+   a swipe card, so they are hidden and the square ones come first. */
+.c1, .c6, .c7 { display: none; }
+.c3 { order: -4; } .c4 { order: -3; } .c5 { order: -2; } .c2 { order: -1; }
 .swipe {
   display: flex; justify-content: space-between; align-items: center;
   padding: 12px max(20px, env(safe-area-inset-left, 0px)) 0;
@@ -473,8 +505,9 @@ h2 {
 
 /* ¶ 03 the page itself */
 .feats3 {
-  list-style: none; margin: 26px 0 0; padding: 0;
-  display: flex; gap: 12px; overflow-x: auto; scroll-snap-type: x mandatory;
+  list-style: none; margin: 20px 0 0; padding: 0;
+  display: flex; gap: 10px; align-items: flex-start;
+  overflow-x: auto; scroll-snap-type: x mandatory;
   margin-inline: calc(-1 * max(20px, env(safe-area-inset-left, 0px)));
   padding-inline: max(20px, env(safe-area-inset-left, 0px));
   padding-block: 4px; scrollbar-width: none;
@@ -483,7 +516,7 @@ h2 {
 .feats3 li {
   flex: none; width: 78%; scroll-snap-align: center;
   border: 1px solid var(--rule); border-radius: 14px; background: var(--card);
-  padding: 18px; display: grid; gap: 8px; align-content: start;
+  padding: 14px; display: grid; gap: 8px; align-content: start;
 }
 .feats3 h3 { font: 700 17px/1.25 var(--display); letter-spacing: -.01em; }
 .feats3 p { margin: 0; color: var(--mute); font-size: 14px; line-height: 1.5; }
@@ -491,8 +524,8 @@ h2 {
 .feats3 .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 
 /* ¶ 04 numbers */
-.bars-cap { margin: 30px 0 0; font: 600 12px/1.3 var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--mute); }
-.bars { list-style: none; margin: 14px 0 0; padding: 0; display: grid; gap: 16px; }
+.bars-cap { margin: 22px 0 0; font: 600 12px/1.3 var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--mute); }
+.bars { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 12px; }
 .bars li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 3px 12px; align-items: center; }
 .bars .who { font: 600 15px/1.3 var(--body); min-width: 0; }
 .bars .who small { display: block; font: 400 12px/1.4 var(--mono); color: var(--mute); margin-top: 2px; }
@@ -502,24 +535,24 @@ h2 {
 .bars li.mark .fill { background: var(--ink); }
 .bars .val { text-align: right; font: 600 15px/1 var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; color: var(--ink-2); }
 .bars li.mark .val { color: var(--ink); font-size: 16px; }
-.stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 16px; margin: 26px 0 0; }
+.stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 16px; margin: 18px 0 0; }
 .stats div { border-top: 2px solid var(--ink); padding-top: 9px; display: grid; gap: 3px; }
 .stats dt { font: 600 11.5px/1.3 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--mute); }
 .stats dd { margin: 0; font: 800 22px/1.05 var(--display); letter-spacing: -.01em; }
-.method { margin-top: 26px; font-size: 13px; line-height: 1.6; color: var(--mute); max-width: 78ch; }
+.method { margin-top: 14px; font-size: 13px; line-height: 1.6; color: var(--mute); max-width: 78ch; }
 
 /* ¶ 05 install */
-.cards { display: grid; gap: 14px; margin-top: 30px; }
+.cards { display: grid; gap: 12px; margin-top: 22px; }
 .card-i {
   border: 1px solid var(--rule); border-radius: 14px; background: var(--card);
-  padding: 20px; display: grid; gap: 13px; align-content: start;
+  padding: 14px; display: grid; gap: 10px; align-content: start;
 }
-.card-i h3 { font: 700 19px/1.2 var(--display); letter-spacing: -.01em; }
+.card-i h3 { font: 700 17px/1.2 var(--display); letter-spacing: -.01em; }
 .card-i .btn { width: 100%; }
 .card-i p { margin: 0; color: var(--mute); font-size: 14px; line-height: 1.55; }
 .card-i p a { color: var(--ink); }
 .card-i code { font: 500 .9em var(--mono); color: var(--ink); background: var(--chip); padding: 1px 5px; border-radius: 5px; overflow-wrap: anywhere; }
-.editions { margin-top: 22px; font-size: 14px; line-height: 1.6; color: var(--mute); max-width: 90ch; }
+.editions { margin-top: 14px; font-size: 14px; line-height: 1.6; color: var(--mute); max-width: 90ch; }
 .editions a { color: var(--ink); }
 
 /* ---------- footer ---------- */
@@ -536,7 +569,10 @@ h2 {
 
 /* ---------- tablet and up (521+) ---------- */
 @media (min-width: 521px) {
-  .more { display: block; }
+  .more { display: inline; }
+  .opt { display: block; }
+  .sec { padding-block: clamp(44px, 7vw, 84px); }
+  .facts { padding-block: 22px 34px; }
   .nav { display: flex; }
   .mnav { display: none; }
   .top { padding-block: 40px 0; }
@@ -546,7 +582,7 @@ h2 {
   .lede { font-size: 19px; }
   .acts .btn { flex: 0 0 auto; }
   .acts .brew { display: inline-flex; }
-  .stage { height: 520px; margin-inline: 0; border-radius: 14px; }
+  .stage { --x: 46%; height: 520px; margin-top: 24px; margin-inline: 0; border-radius: 14px; }
   .layer.raw .body { padding: 22px 34px; font-size: 14px; line-height: 1.75; }
   .layer.page .doc { grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 28px; padding: 26px 0 0 34px; width: calc(100% - 68px); }
   .layer.page .doc .hide-sm { display: block; }
@@ -557,24 +593,33 @@ h2 {
   .lab { font-size: 11px; }
   .feat p { font-size: 17px; }
   .feat p span { font-size: 14.5px; }
-  .agents-grid { grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); gap: 40px; align-items: start; }
-  .themes { overflow: visible; margin-inline: 0; padding-inline: 0; flex-wrap: wrap; }
+  .agents-grid { grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); gap: 40px; align-items: start; margin-top: 30px; }
+  .prompt summary { display: none; }
+  .themes { overflow: visible; margin-inline: 0; padding-inline: 0; flex-wrap: wrap; margin-top: 22px; }
   .sheet { margin-inline: 0; border-radius: 18px; padding: 22px; box-shadow: 0 0 0 .5px rgba(0, 0, 0, .2), 0 30px 80px -30px rgba(40, 30, 10, .4); }
   :root.dark .sheet, :root[data-theme="dark"] .sheet { box-shadow: 0 0 0 1px rgba(255, 255, 255, .08), 0 40px 100px -30px rgba(0, 0, 0, .8); }
   .wallgrid { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); grid-auto-rows: 76px; gap: 14px; overflow: visible; padding: 0; }
   .cell { width: auto; height: auto; border-radius: 12px; padding: 12px 14px 10px; }
+  .c1, .c6, .c7 { display: grid; }
+  .c2, .c3, .c4, .c5 { order: 0; }
   .c1 { grid-column: span 7; grid-row: span 3; } .c2 { grid-column: span 5; grid-row: span 3; }
   .c3, .c4, .c5 { grid-column: span 4; grid-row: span 3; }
   .c6 { grid-column: span 5; grid-row: span 2; } .c7 { grid-column: span 7; grid-row: span 2; }
   .badge { position: absolute; right: 22px; top: -16px; transform: rotate(3deg); }
   .swipe { display: none; }
-  .feats3 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; overflow: visible; margin-inline: 0; padding-inline: 0; }
-  .feats3 li { width: auto; }
+  .feats3 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; align-items: stretch; overflow: visible; margin-inline: 0; padding-inline: 0; margin-top: 26px; }
+  .feats3 li { width: auto; padding: 18px; }
   .bars li { grid-template-columns: minmax(0, 15rem) minmax(0, 1fr) 6.5rem; gap: 20px; }
   .bars .track { grid-column: auto; }
   .bars .fill { transition: width .6s ease; }
-  .stats { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-  .cards { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+  .bars-cap { margin-top: 30px; }
+  .bars { gap: 16px; }
+  .stats { grid-template-columns: repeat(4, minmax(0, 1fr)); margin-top: 26px; }
+  .method { margin-top: 26px; }
+  .cards { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin-top: 30px; }
+  .card-i { padding: 20px; gap: 13px; }
+  .card-i h3 { font-size: 19px; }
+  .editions { margin-top: 22px; }
   .foot-in { grid-template-columns: auto 1fr; justify-items: end; align-items: start; }
   .foot-nav { justify-content: flex-end; }
 }
@@ -584,7 +629,7 @@ h2 {
   .facts { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0; padding-block: 30px 44px; }
   .feat { padding: 18px 20px 20px 0; }
   .feat + .feat { padding-left: 20px; border-left: 1px solid var(--rule); }
-  .stage { height: 580px; }
+  .stage { height: 580px; margin-top: 36px; }
   .wallgrid { grid-auto-rows: 86px; }
 }
 
@@ -664,7 +709,7 @@ h2 {
     <!-- The before/after stage (design d3): the raw Markdown an agent saved
          on the left of the marker, Mark's rendered page on the right. The
          DIAGRAM placeholders are filled with build-time Pele SVGs. -->
-    <div class="stage" id="stage" style="--x:46%">
+    <div class="stage" id="stage">
       <div class="layer raw" aria-hidden="true">
         <div class="wbar"><span class="lights"><i></i><i></i><i></i></span><span class="ttl">claude &mdash; cat q3-review.md</span></div>
 <div class="body"><span class="h"># Q3 review &mdash; growth</span>
@@ -731,7 +776,7 @@ Signed up,Activated,470
   <div class="wrap">
     <p class="no">&para; 01</p>
     <h2 id="ag-h">Watch your agent write.</h2>
-    <p class="lead">Keep the file open while an agent works on it. Every save on disk reloads the tab in place and keeps your scroll position, so you can follow a long pass and step in when it finishes. <b>&#8984;D</b> shows exactly what the agent changed, against a snapshot Mark takes before every reload.</p>
+    <p class="lead">Every save on disk reloads the tab in place, keeping your scroll<span class="more"> position, so you can follow a long pass and step in when it finishes</span>. <b>&#8984;D</b> shows exactly what the agent changed<span class="more">, against a snapshot Mark takes before every reload</span>.</p>
     <div class="agents-grid">
       <figure class="win shotwin">
         <div class="wbar"><span class="lights" aria-hidden="true"><i></i><i></i><i></i></span><span class="ttl">plan.md</span><span class="pill"><span class="dot" aria-hidden="true"></span>Reloaded</span></div>
@@ -739,9 +784,11 @@ Signed up,Activated,470
       </figure>
       <div class="snippet">
         <h3>Connect your agent</h3>
-        <p class="note">The home screen connects your agent with one click &mdash; or paste this into <code>CLAUDE.md</code>, <code>AGENTS.md</code> or any system prompt your agent reads.</p>
-        <div class="code">
-          <button class="copy-code" type="button" data-copy-target="agent-snippet" aria-label="Copy the agent snippet">Copy</button>
+        <p class="note">The home screen connects your agent with one click<span class="more"> &mdash; or paste this prompt into <code>CLAUDE.md</code>, <code>AGENTS.md</code> or any system prompt your agent reads</span>.</p>
+        <details class="prompt" id="agent-prompt" open>
+          <summary>Prompt for your agent</summary>
+          <div class="code">
+            <button class="copy-code" type="button" data-copy-target="agent-snippet" aria-label="Copy the agent snippet">Copy</button>
 <pre id="agent-snippet">When you produce a plan, spec, report, or any document longer
 than ~50 lines, write it to a .md file and open it for the user:
 
@@ -751,7 +798,8 @@ The user reads and edits it in Mark, which reloads the file when
 it changes on disk. When the file changes, read the new version:
 the user left corrections inline. Treat the diff as your next
 instruction.</pre>
-        </div>
+          </div>
+        </details>
       </div>
     </div>
   </div>
@@ -776,7 +824,7 @@ instruction.</pre>
         <div class="cell c6"><div class="n"><span>Kanban</span><span>```mermaid</span></div><div class="s"><!--DIAGRAM:kanban--></div></div>
         <div class="cell c7"><div class="n"><span>Gantt</span><span>```mermaid</span></div><div class="s"><!--DIAGRAM:gantt--></div></div>
       </div>
-      <div class="swipe"><span>Swipe &middot; 5 of 32 types</span><span class="dots" aria-hidden="true"><i class="on"></i><i></i><i></i><i></i><i></i></span></div>
+      <div class="swipe"><span>Swipe &middot; 4 of 32 types</span><span class="dots" aria-hidden="true"><i class="on"></i><i></i><i></i><i></i></span></div>
     </div>
     <p class="under"><a href="%BASE%diagrams/">See all 32 diagram types in every theme &rarr;</a></p>
   </div>
@@ -792,20 +840,20 @@ instruction.</pre>
     <ul class="feats3">
       <li>
         <h3>Split View</h3>
-        <p>The rendered page is the editor. When you need the raw Markdown, Split View puts it beside the page.</p>
+        <p>The raw Markdown beside the page when you need it<span class="more">; the rendered page itself is the editor</span>.</p>
       </li>
       <li>
         <h3>Copy it clean</h3>
-        <p>Copy as Markdown, as HTML for email, as plain text, or as structured text that keeps paragraphs, bullets, links and tables readable wherever you paste them.</p>
+        <p>Copy as Markdown, HTML, plain text or structured text<span class="more"> that keeps paragraphs, bullets, links and tables readable wherever you paste them</span>.</p>
       </li>
       <li class="f-img">
         <h3>Open anything full screen</h3>
         <img src="%BASE%shots/05-viewer-800.jpg" srcset="%BASE%shots/05-viewer.jpg 1440w, %BASE%shots/05-viewer-800.jpg 800w" sizes="(min-width: 981px) 380px, 78vw" alt="A large release-pipeline diagram open in the fullscreen viewer, zoomed in" width="1440" height="900" loading="lazy">
-        <p>Any diagram or wide table opens in a clean viewer with zoom, pan and a sticky header for tables.</p>
+        <p>Any diagram or wide table opens here, with zoom and pan<span class="more"> and a sticky header for tables</span>.</p>
       </li>
       <li>
         <h3>Print &amp; PDF, each direct</h3>
-        <p><b>&#8984;P</b> opens the system print panel directly. Export to PDF writes the file through a save dialog, without the print panel &mdash; on macOS and Windows.</p>
+        <p><b>&#8984;P</b> opens the system print panel directly<span class="more">; Export to PDF writes the file through a save dialog, without the print panel &mdash; on macOS and Windows</span>.</p>
       </li>
       <li class="f-img">
         <h3>32 themes, light and dark</h3>
@@ -813,11 +861,11 @@ instruction.</pre>
           <img src="%BASE%shots/01-agents-800.jpg" srcset="%BASE%shots/01-agents.jpg 1440w, %BASE%shots/01-agents-800.jpg 800w" sizes="(min-width: 981px) 190px, 38vw" alt="A plan document in the light theme" width="1440" height="900" loading="lazy">
           <img src="%BASE%shots/08-dark-800.jpg" srcset="%BASE%shots/08-dark.jpg 1440w, %BASE%shots/08-dark-800.jpg 800w" sizes="(min-width: 981px) 190px, 38vw" alt="The same plan document in the dark theme" width="1440" height="900" loading="lazy">
         </div>
-        <p>Theme families with a light and a dark member &mdash; Paper, Ink, Docs, macOS and more &mdash; one title-bar button apart. Diagrams can follow, or pin their own look.</p>
+        <p>Light and dark members, one title-bar button apart<span class="more"> &mdash; Paper, Ink, Docs, macOS and more; diagrams can follow, or pin their own look</span>.</p>
       </li>
       <li>
         <h3>Diagrams as pictures</h3>
-        <p>Copy any diagram as an image, or save it as PNG or SVG with the theme&rsquo;s colours &mdash; from the diagram&rsquo;s corner panel, the context menu or the full-screen view.</p>
+        <p>Copy as image, or save as PNG or SVG in the theme&rsquo;s colours<span class="more"> &mdash; from the diagram&rsquo;s corner panel, the context menu or the full-screen view</span>.</p>
       </li>
     </ul>
   </div>
@@ -851,10 +899,10 @@ instruction.</pre>
     <dl class="stats">
       <div><dt>First window</dt><dd>&asymp; 0.4 s</dd></div>
       <div><dt>On disk</dt><dd>&asymp; 30 MB</dd></div>
-      <div><dt>Plain document</dt><dd>&asymp; 150 MB</dd></div>
-      <div><dt>4,100-line file</dt><dd>&asymp; 3 s to open</dd></div>
+      <div class="opt"><dt>Plain document</dt><dd>&asymp; 150 MB</dd></div>
+      <div class="opt"><dt>4,100-line file</dt><dd>&asymp; 3 s to open</dd></div>
     </dl>
-    <p class="method">Measured 2026-10-15 on one Apple silicon Mac, Mark 2.3.0 &mdash; your numbers will differ. A rich document means Mermaid diagrams, KaTeX math and a table open together.</p>
+    <p class="method">Measured 2026-10-15, one Apple silicon Mac, Mark 2.3.0<span class="more"> &mdash; your numbers will differ; a rich document means Mermaid diagrams, KaTeX math and a table open together</span>.</p>
   </div>
 </section>
 <!-- END_BLOCK_SECTION_NUMBERS -->
@@ -868,23 +916,26 @@ instruction.</pre>
     <div class="cards">
       <article class="card-i">
         <h3>Mac App Store</h3>
-        <a class="btn pri" href="https://apps.apple.com/app/id6814590464" data-track="download_click" data-method="app_store" data-placement="install">
+        <a class="btn pri no-ios" href="https://apps.apple.com/app/id6814590464" data-track="download_click" data-method="app_store" data-placement="install">
           <svg viewBox="0 0 16 19" aria-hidden="true"><path d="M13.2 10.1c0-2.4 2-3.6 2.1-3.7-1.1-1.7-2.9-1.9-3.5-1.9-1.5-.2-2.9.9-3.7.9-.8 0-1.9-.9-3.2-.8-1.6 0-3.1 1-4 2.4-1.7 3-.4 7.3 1.2 9.7.8 1.2 1.8 2.5 3 2.4 1.2 0 1.7-.8 3.1-.8 1.5 0 1.9.8 3.2.8 1.3 0 2.2-1.2 3-2.4.9-1.4 1.3-2.7 1.3-2.8 0 0-2.5-1-2.5-3.8zM10.8 3c.7-.8 1.1-1.9 1-3-1 0-2.1.7-2.8 1.5-.6.7-1.2 1.8-1 2.9 1.1.1 2.1-.6 2.8-1.4z"/></svg>Mac App Store
         </a>
-        <p>Requires macOS 12 or later. The App Store edition is 2.1.17 today; its next update brings 2.5.0. <a href="%BASE%guide/editions#when-the-app-store-catches-up">When does it catch up?</a></p>
+        <button class="btn pri only-ios send-mac" type="button">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M7 8l5-5 5 5M5 14v5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-5"/></svg><span class="lb">Send Mark to your Mac</span>
+        </button>
+        <p>Requires macOS 12 or later. The App Store edition is 2.1.17 today<span class="more">; its next update brings 2.5.0</span>. <a href="%BASE%guide/editions#when-the-app-store-catches-up">When does it catch up?</a></p>
       </article>
       <article class="card-i">
         <h3>Homebrew</h3>
-        <button class="brew block" type="button" data-copy="brew tap xronocode/mark &amp;&amp; brew install --cask mark" data-track="download_click" data-method="homebrew_copy" data-placement="install" aria-label="Copy the Homebrew install command"><i>$</i>brew tap xronocode/mark &amp;&amp; brew install --cask mark<b>Copy</b></button>
-        <p>Apple silicon. Developer ID signed and notarized by Apple; updates arrive through the in-app updater or <code>brew upgrade --cask mark</code>. Or download <a id="dmg-link" href="https://github.com/xronocode/mark/releases/latest" data-track="download_click" data-method="github" data-placement="install">Mark_2.5.0_aarch64.dmg</a> (&asymp; 15 MB).</p>
+        <button class="brew block" type="button" data-copy="brew tap xronocode/mark &amp;&amp; brew install --cask mark" data-track="download_click" data-method="homebrew_copy" data-placement="install" aria-label="Copy the Homebrew install command"><span class="cmd"><i>$</i>brew tap xronocode/mark &amp;&amp; brew install --cask mark</span><b>Copy</b></button>
+        <p>Apple silicon. Developer ID signed and notarized by Apple<span class="more">; updates arrive through the in-app updater or <code>brew upgrade --cask mark</code></span>. Or download <a id="dmg-link" href="https://github.com/xronocode/mark/releases/latest" data-track="download_click" data-method="github" data-placement="install">Mark_2.5.0_aarch64.dmg</a> (&asymp; 15 MB).</p>
       </article>
       <article class="card-i">
         <h3>Windows</h3>
-        <a class="btn" href="https://github.com/xronocode/mark/releases/latest" data-track="download_click" data-method="windows" data-placement="install">Download for Windows</a>
-        <p><code>Mark_2.5.0_x64-setup.exe</code>, &asymp; 10 MB, x64. The installer is not code-signed yet: SmartScreen shows &ldquo;Windows protected your PC&rdquo; &mdash; choose <em>More info</em>, then <em>Run anyway</em>.</p>
+        <a class="btn sec" href="https://github.com/xronocode/mark/releases/latest" data-track="download_click" data-method="windows" data-placement="install">Download for Windows</a>
+        <p><code>Mark_2.5.0_x64-setup.exe</code>, &asymp; 10 MB, x64. The installer is not code-signed yet: SmartScreen shows &ldquo;Windows protected your PC&rdquo;<span class="more"> &mdash; choose <em>More info</em>, then <em>Run anyway</em></span>.</p>
       </article>
     </div>
-    <p class="editions">Two editions, the same editor. Homebrew/download adds pandoc export, insert screenshot, the default-Markdown-app setting, git diff, a local live server for agents and the in-app updater; the App Store edition is sandboxed and reviewed by Apple. <a href="%BASE%guide/editions">See the full table</a>.</p>
+    <p class="editions"><span class="more">Two editions, the same editor. Homebrew/download adds pandoc export, insert screenshot, the default-Markdown-app setting, git diff, a local live server for agents and the in-app updater; the App Store edition is sandboxed and reviewed by Apple. </span><a href="%BASE%guide/editions">See the full table</a>.</p>
   </div>
 </section>
 <!-- END_BLOCK_SECTION_INSTALL -->
@@ -1061,15 +1112,16 @@ instruction.</pre>
         else if (e.key === 'End') { e.preventDefault(); sweepOn = false; setX(96); }
       });
     }
-    /* One sweep on load so the idea reads without touching it (skipped under
-       reduced motion), then the handle rests mid-way. */
+    /* One sweep on load so the idea reads without touching it: it starts and
+       ends at the rest position (which CSS already paints), dips toward the
+       rendered page and back, and is skipped under reduced motion. */
     if (!reduce.matches) {
       var t0 = null;
       var sweep = function (t) {
         if (!sweepOn) return;
         if (!t0) t0 = t;
-        var k = Math.min(1, (t - t0) / 2600);
-        var x = 92 - Math.sin(k * Math.PI) * 70;
+        var k = Math.min(1, (t - t0) / 1800);
+        var x = restX - (restX - 10) * Math.sin(k * Math.PI);
         if (k >= 1) x = restX;
         if (!drag) setX(x);
         if (k < 1) requestAnimationFrame(sweep);
@@ -1078,6 +1130,19 @@ instruction.</pre>
     }
   }
   /* END_BLOCK_STAGE */
+
+  /* START_BLOCK_PROMPT_DETAILS */
+  /* The agent prompt starts open; on phones it is folded into the closed
+     "Prompt for your agent" details (the copy button works either way). */
+  var promptBox = document.getElementById('agent-prompt');
+  if (promptBox) {
+    var syncPrompt = function (isPhone) { promptBox.open = !isPhone; };
+    syncPrompt(phone.matches);
+    if (phone.addEventListener) {
+      phone.addEventListener('change', function (e) { syncPrompt(e.matches); });
+    }
+  }
+  /* END_BLOCK_PROMPT_DETAILS */
 
   /* START_BLOCK_WALL */
   var WALL_THEMES = [
