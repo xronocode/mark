@@ -995,7 +995,8 @@
     "help": {
       "guide": "Mark-Handbuch",
       "whatsNew": "Was ist neu",
-      "rateMark": "Mark bewerten…"
+      "rateMark": "Mark bewerten…",
+      "support": "Mark auf Ko-fi unterstützen…"
     },
     "utils": {
       "noUpdateResourceFile": "Keine Update-Ressourcendatei",

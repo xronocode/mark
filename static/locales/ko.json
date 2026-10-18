@@ -992,7 +992,8 @@
     "help": {
       "guide": "Mark 가이드",
       "whatsNew": "새로운 기능",
-      "rateMark": "Mark 평가…"
+      "rateMark": "Mark 평가…",
+      "support": "Ko-fi로 Mark 후원하기…"
     },
     "utils": {
       "noUpdateResourceFile": "업데이트 리소스 파일 없음",

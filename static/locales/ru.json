@@ -1019,7 +1019,8 @@
     "help": {
       "guide": "Гид по Mark",
       "whatsNew": "Что нового",
-      "rateMark": "Оценить Mark…"
+      "rateMark": "Оценить Mark…",
+      "support": "Поддержать Mark на Ko-fi…"
     },
     "utils": {
       "noUpdateResourceFile": "Файл обновления отсутствует",

@@ -1015,7 +1015,8 @@
     "help": {
       "guide": "Mark Guide",
       "whatsNew": "What's New",
-      "rateMark": "Rate Mark…"
+      "rateMark": "Rate Mark…",
+      "support": "Support Mark on Ko-fi…"
     },
     "utils": {
       "noUpdateResourceFile": "No update resource file",

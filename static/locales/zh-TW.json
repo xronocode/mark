@@ -992,7 +992,8 @@
     "help": {
       "guide": "Mark 指南",
       "whatsNew": "新內容",
-      "rateMark": "為 Mark 評分…"
+      "rateMark": "為 Mark 評分…",
+      "support": "在 Ko-fi 上支持 Mark…"
     },
     "utils": {
       "noUpdateResourceFile": "沒有更新資源檔案",

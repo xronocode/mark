@@ -1,5 +1,5 @@
 // FILE: src/renderer/src/commands/index.js
-// VERSION: 2.1.12-beta
+// VERSION: 2.1.13-beta
 // START_MODULE_CONTRACT
 //   PURPOSE: Register renderer commands and route each command to its typed store, event-bus, or Tauri integration.
 //   SCOPE: Static command definitions, platform-gated commands, and user-visible command outcomes; backend implementation is out of scope.
@@ -24,7 +24,9 @@
 //   view.lock-document - Toggles the per-tab read-only lock via editorStore.TOGGLE_LOCK_DOCUMENT (C-40 T-004).
 //   help.whats-new - Reopens the C-48 What's New sheet (whatsNewDialog bus event; falls back to the newest release with content).
 //   help.rate - Opens the App Store write-review page (C-48, review capability only).
+//   help.support - Opens the Ko-fi support page in the browser (C-57, desktop builds only — support capability).
 //   RATE_MARK_URL - https App Store write-review URL opened by help.rate (opener:default scope).
+//   SUPPORT_MARK_URL - https Ko-fi URL opened by help.support (C-57; same URL as the README support line).
 //   FileEncodingCommand - GRACE 4 synchronized symbol
 //   LineEndingCommand - GRACE 4 synchronized symbol
 //   QuickOpenCommand - GRACE 4 synchronized symbol
@@ -94,6 +96,10 @@
 //     rejection (BLOCK_OPEN_REVIEW_PAGE_FAILED); help.whats-new emits the
 //     running version resolved through resolveWhatsNewVersion so a version
 //     without content still opens the newest release notes.
+//   - 2026-10-18 C-57: add help.support — opens SUPPORT_MARK_URL
+//     (ko-fi.com/xronocode) through openExternal; applyCapabilityGate
+//     prunes it when the m048 `support` capability is off (store builds
+//     ship no donation surface).
 // END_CHANGE_SUMMARY
 //
 // List of all static commands that are loaded into command center.
@@ -153,6 +159,9 @@ export function applyCapabilityGate(caps) {
   // C-48: Rate Mark… exists only where the review flow exists (App Store
   // build on macOS — m048 `review` flag); desktop prunes it.
   if (caps && caps.review === false) denied.push('help.rate')
+  // C-57: Support Mark… exists only in desktop builds — store builds
+  // ship no donation surface (m048 `support` flag).
+  if (caps && caps.support === false) denied.push('help.support')
   if (!denied.length) return
   const drop = (list) => {
     for (let i = list.length - 1; i >= 0; i--) {
@@ -170,6 +179,10 @@ export function applyCapabilityGate(caps) {
 // C-48 help.rate target — https so the MAS opener:default scope allows
 // it; macOS routes apps.apple.com links to the App Store app.
 export const RATE_MARK_URL = 'https://apps.apple.com/app/id6814590464?action=write-review'
+
+// C-57 help.support target — the same Ko-fi page the README links
+// (since 1315c198); https so the opener:default scope allows it.
+export const SUPPORT_MARK_URL = 'https://ko-fi.com/xronocode'
 
 const commands = [
   // --------------------------------------------------------------------------
@@ -1012,6 +1025,16 @@ const commands = [
     execute: async () => {
       await Promise.resolve(window.electron.shell.openExternal(RATE_MARK_URL)).catch((e) => {
         console.error('[commands][help.rate][BLOCK_OPEN_REVIEW_PAGE_FAILED]', e)
+      })
+    }
+  },
+  {
+    // C-57: Help › Support Mark… (desktop builds only — capability-gated
+    // above + cfg-gated in m009) opens the Ko-fi page in the browser.
+    id: 'help.support',
+    execute: async () => {
+      await Promise.resolve(window.electron.shell.openExternal(SUPPORT_MARK_URL)).catch((e) => {
+        console.error('[commands][help.support][BLOCK_OPEN_SUPPORT_PAGE_FAILED]', e)
       })
     }
   },

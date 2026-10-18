@@ -1,0 +1,58 @@
+<GraceChangeSpec graceVersion='4.0' status='approved'>
+<C-57>
+  <Name>Restore the Ko-fi support moment: site links plus Help › Support Mark… in the desktop (DMG) build</Name>
+  <Created>2026-10-18</Created>
+  <Priority>medium</Priority>
+  <Status>approved</Status>
+  <RoadmapPhase>N</RoadmapPhase>
+  <Complexity>S</Complexity>
+  <Summary>User finding 2026-10-18: the Ko-fi donation link (https://ko-fi.com/xronocode, in README.md since 1315c198) never made it onto the new mark.xronocode.com site and does not exist in the app. This change restores the support moment on every surface where a happy user can meet it: the landing (Open source card + footer), every docs page nav, and a Help › Support Mark… item in the desktop (DMG/Windows) build that opens the Ko-fi page in the browser. The App Store / TestFlight builds ship no donation link (ASC risk); the item is gated the same way Rate Mark… is, in reverse — cfg(not(feature = "app-store")) in the native menu taxonomy/builder plus a new m048 `support` capability flag that prunes the renderer command in store builds.</Summary>
+  <Problem><Description>Mark is free and MIT; the only support ask lives in a README line most users never open. The Product Hunt launch (2026-10-20) sends traffic to the site and the DMG build with no path to say thanks with money.</Description></Problem>
+  <Goals>
+    <R-1>Site landing: the Open source card gains "If Mark is useful to you, support it on Ko-fi" next to the GitHub link, and the footer nav gains "Support on Ko-fi" (plain copy, no idioms — C-14 positioning rules).</R-1>
+    <R-2>Docs: the VitePress nav (config.mts) gains a "Support" item pointing at https://ko-fi.com/xronocode — visible on all guide/reference/changelog/privacy pages.</R-2>
+    <R-3>App: Help › Support Mark… in every non-App Store build (macOS DMG + Windows). Menu id help.support, label "Support Mark…", no accelerator, command: None — id-dispatched through the renderer command registry exactly like help.guide (C-40) and the zoom trio (C-49). The renderer command opens https://ko-fi.com/xronocode via window.electron.shell.openExternal (opener:default already grants https in both capability files; no permission change).</R-3>
+    <R-4>Build gating mirrors C-48 in reverse: m048 BuildMode gains a `support` flag (true desktop, false app-store — gate on the flag, not the mode string); applyCapabilityGate prunes help.support when support === false; the Rust taxonomy entry is cfg(not(feature = "app-store")).</R-4>
+    <R-5>Strings: commands.help.support in all ten static/locales (+ regenerated *.min.json), native copy, "Mark" and "Ko-fi" untranslated.</R-5>
+    <R-6>Tests: m009 taxonomy test pins help.support desktop-only (label, id-dispatch, absent in app-store cfg); m048 shape test covers the new flag; capability-gate test pins the prune; site build + check-dist stay green. grace lint 0; graph + verification updated in the same commit.</R-6>
+  </Goals>
+  <Constraints>
+    <Item>No new npm or Cargo dependencies; no capability/permission changes (opener:default already allows https).</Item>
+    <Item>Exact URL https://ko-fi.com/xronocode everywhere — same as README.md.</Item>
+    <Item>No donation surface inside the App Store / TestFlight builds (ASC review risk); no nag screens, What's New entry, or startup asks anywhere.</Item>
+    <Item>Every GRACE-governed edit ships its MODULE_CONTRACT/MAP + CHANGE_SUMMARY update; grace lint --assertions current = 0.</Item>
+  </Constraints>
+  <NonGoals>
+    <Item>GitHub Sponsors page, Boosty, or any other donation platform.</Item>
+    <Item>A support/donation section on the site beyond the two link placements.</Item>
+    <Item>In-app WebView donation page — the browser opens Ko-fi.</Item>
+    <Item>Changing the README support line (already shipped by 1315c198).</Item>
+  </NonGoals>
+  <AffectedAreas>
+    <Item>site/landing/index.html (Open source card + footer)</Item>
+    <Item>site/.vitepress/config.mts (nav)</Item>
+    <Item>src-tauri/src/m009_menu.rs (taxonomy + builder + id-dispatch list + test + contract)</Item>
+    <Item>src-tauri/src/m048_build_mode.rs (support flag + shape test)</Item>
+    <Item>src/renderer/src/commands/index.js (registry + gate + contract), src/renderer/src/commands/descriptions.js</Item>
+    <Item>static/locales/*.json (+ *.min.json)</Item>
+    <Item>tests/renderer/commands/capability-gate.test.js</Item>
+    <Item>.grace/graph/runtime.xml (M-009, M-048), .grace/verification/runtime.xml (V-M-009, V-M-048)</Item>
+  </AffectedAreas>
+  <AcceptanceCriteria>
+    <Criterion>R-1..R-6 done; site build + check-dist green (ko-fi present in all 19 built pages); cargo test menu + m048 green; vitest capability-gate green; grace lint 0.</Criterion>
+    <Criterion>Live check: mark.xronocode.com footer and Open source card carry the Ko-fi link; a dev run of the desktop build shows Help › Support Mark… and it opens the Ko-fi page; a MAS-cfg build has no such item.</Criterion>
+  </AcceptanceCriteria>
+  <VerificationIntent>
+    <ExpectedCommand>cd site &amp;&amp; npm run build &amp;&amp; npm run check</ExpectedCommand>
+    <ExpectedCommand>cd src-tauri &amp;&amp; cargo test menu</ExpectedCommand>
+    <ExpectedCommand>cd src-tauri &amp;&amp; cargo test --bin mark m048</ExpectedCommand>
+    <ExpectedCommand>npx vitest run tests/renderer/commands/capability-gate.test.js</ExpectedCommand>
+    <ExpectedCommand>grace lint --path . --assertions current</ExpectedCommand>
+    <ExpectedEvidence>Built site pages contain ko-fi.com/xronocode; m009 test asserts help.support present desktop-only and id-dispatched; m048 asserts support flag per mode; capability-gate asserts the app-store prune of help.support.</ExpectedEvidence>
+  </VerificationIntent>
+  <Assumptions>
+    <Assumption>opener:default (https scheme) suffices to open ko-fi.com from openExternal in both desktop capability sets — same path the existing docs.user-guide GitHub link uses.</Assumption>
+    <Assumption>Apple review risk for external donation links is avoided by excluding the app-store feature build entirely (cfg + capability flag), matching how file.check-update is excluded.</Assumption>
+  </Assumptions>
+</C-57>
+</GraceChangeSpec>

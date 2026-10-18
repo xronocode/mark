@@ -1,5 +1,5 @@
 // FILE: tests/renderer/editions-doc.test.js
-// VERSION: 1.0.0
+// VERSION: 1.1.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Pin the "Two editions, same editor" tables in README.md and site/guide/editions.md to the M-048 build-mode flags, so the documented desktop-only features cannot drift from the code.
 //   SCOPE: Parses both BuildMode literals in src-tauri/src/m048_build_mode.rs, derives the flags that are off in the app-store variant and on in the macOS desktop variant, and checks each one is documented as desktop-only; checks share is documented as available in both editions.
@@ -20,7 +20,9 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.0.0 - C-42 G2: initial editions-table pin.
+//   LAST_CHANGE: v1.1.0 - C-57: pin the `support` flag (Help › Support
+//                 Mark… Ko-fi link, desktop-only) to a doc row in both
+//                 editions tables.
 // END_CHANGE_SUMMARY
 
 import { readFileSync } from 'node:fs'
@@ -37,7 +39,8 @@ const DOC_ROW = {
   export_pandoc: /pandoc export/i,
   screenshot: /insert screenshot/i,
   set_default_handler: /default markdown app/i,
-  updater: /in-app updater/i
+  updater: /in-app updater/i,
+  support: /ko-fi/i
 }
 
 const parseVariant = (src, mode) => {

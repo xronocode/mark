@@ -123,6 +123,7 @@ Mark ships in two editions built from the same code. The editor, rendering, them
 | Diff against the last git commit | Yes | No |
 | Local live server for agents (localhost HTTP endpoint) | Yes | No |
 | In-app updater | Yes | No, updates come from the App Store |
+| Help › Support Mark… (Ko-fi) | Yes | No |
 | Reviewed by Apple and sandboxed | No (notarized on macOS) | Yes |
 | Windows builds | Yes | No |
 
