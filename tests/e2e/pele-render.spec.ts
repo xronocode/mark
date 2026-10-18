@@ -4,7 +4,7 @@
 //   PURPOSE: E2E gate for the pele diagram engine (C-55) — svg.pele presence per diagram type (22-type matrix), CSS-variable theming through the svg root's --pele-* references (NO <style> blocks pele-side), the C-34 R2.1 wide-diagram fit-column and keep-last-good error flows (ag-pele-preview / ag-pele-error), XSS probes (labels with <script>/javascript: links never become executable markup — pele escapes/strips label markup and emits no links), and the BLOCK_PELE_RENDER / BLOCK_PELE_CACHE_HIT / BLOCK_PELE_ERROR log markers of src/muya/lib/parser/render/pelePipeline.js.
 //   SCOPE: pele-render.spec.ts only; boots the built renderer via the tauri shim with a mocked preferences document (fence language stays ```mermaid, figure data-role stays MERMAID — pele parses mermaid syntax).
 //   DEPENDS: @playwright/test, tests/e2e/fixtures/tauri-shim (installTauriShim).
-//   LINKS: .grace/changes/active/C-55 R-2/R-4; .grace/changes/archive/C-34 R2.1; .grace/verification/runtime.xml V-M-012; src/muya/lib/parser/render/pelePipeline.js; src/muya/lib/parser/render/peleOptions.js.
+//   LINKS: .grace/changes/archive/C-55 R-2/R-4; .grace/changes/archive/C-34 R2.1; .grace/verification/runtime.xml V-M-012; src/muya/lib/parser/render/pelePipeline.js; src/muya/lib/parser/render/peleOptions.js.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT
