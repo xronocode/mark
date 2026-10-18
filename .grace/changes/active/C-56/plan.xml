@@ -5,10 +5,7 @@
   <IntentSummary>Per-block diagram/chart export: a shared muya exporter builds a self-contained SVG (inlined --pele-* / Vega colours, theme font, theme panel background, natural size) and rasterizes it to a 2× PNG; the editor context menu and the fullscreen block viewer toolbar offer Copy as Image (clipboard writeImage, one new capability), Save as PNG… and Save as SVG… (save dialog + fs write, heading-derived file name); strings in ten locales; unit + e2e coverage; graph and verification updated.</IntentSummary>
   <BaselineAssertions>
     <MustContain>
-      <File>src/muya/lib/eventHandler/clickEvent.js</File>
-    <File>src-tauri/Cargo.toml</File>
-    <File>Cargo.lock</File>
-    <File>src-tauri/capabilities/default.json</File>
+      <File>src-tauri/capabilities/default.json</File>
       <Text>clipboard-manager:allow-write-html</Text>
     </MustContain>
   </BaselineAssertions>
@@ -44,6 +41,8 @@
     </VerificationAnchors>
   </DurableScope>
   <ObservedWriteScope>
+    <File>src-tauri/Cargo.toml</File>
+    <File>Cargo.lock</File>
     <File>src/muya/lib/utils/diagramExport.js</File>
     <File>src/muya/lib/ui/blockViewer/index.js</File>
     <File>src/muya/lib/ui/blockViewer/index.css</File>
