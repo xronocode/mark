@@ -1,5 +1,5 @@
 // FILE: tests/e2e/block-viewer.spec.ts
-// VERSION: 3.2.0
+// VERSION: 3.3.0
 // START_MODULE_CONTRACT
 //   PURPOSE: End-to-end pin of the shared fullscreen block viewer (C-34 R2.2 + C-39 T2) and the C-51 T-006/T-010 expand button and T-014 polish — overlay open, zoom keys, read-only table clone with sticky header, Cmd+click, Esc close with focus restore; the T-010 need rules (small blocks have no button and no Tab stop, wide/tall blocks do), the copy-icon look (20 px, 0/0.5/1 opacity curve, inside the block), the table placement clear of header text and the last-column resize handle, viewport-resize re-evaluation, and light/dark colours; the T-014 cases — fit scales a small diagram UP on open and on Fit with 1:1 restoring natural size, an open viewer follows a paper→ink theme switch (clone re-rendered from the live block, zoom kept), and an edited diagram/math preview sits in flow below the source so the next heading is pushed down, never covered.
 //   SCOPE: block-viewer.spec.ts only; diagram and table flows against the built renderer.
@@ -23,7 +23,10 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v3.2.0 - 2026-10-17 C-55: the diagram engine is pele —
+//   LAST_CHANGE: v3.3.0 - 2026-10-18 fix: on macOS the viewer header row
+//   starts below the AppKit titlebar strip (the × needed two clicks in the
+//   real window); the darwin test pins title and × below 30 px.
+//   v3.2.0 - 2026-10-17 C-55: the diagram engine is pele —
 //   preview hook class renamed (ag-mermaid-preview → ag-pele-preview), the
 //   node-fill probe reads pele shapes (g.pele-node rect/polygon resolving
 //   --pele-surface), and the clone check flipped from "the hoisted mermaid
@@ -429,14 +432,14 @@ test.describe('block viewer (C-34 R2.2 + C-39 T2)', () => {
     })).toBe(true)
   })
 
-  test('macOS: the viewer title clears the traffic lights; other platforms keep the plain inset (C-51 T-008)', async ({ page }) => {
+  test('macOS: the viewer header row sits below the titlebar strip so × works on the first click; other platforms keep the top row (C-51 T-008, fix 2026-10-18)', async ({ page }) => {
     await bootstrapWithMarkdown(page, WIDE_DIAGRAM_MD)
     await page.locator('div.ag-container-preview.ag-pele-preview').first()
       .waitFor({ state: 'visible', timeout: 20_000 })
     const viewer = page.locator('.ag-block-viewer')
-    const title = viewer.locator('.ag-block-viewer-title')
-    // The overlay title bar puts the window buttons over the top-left
-    // ~78 px of the page; the live smoke showed «Diagram» under them.
+    // AppKit owns the top ~28 px of the transparent-titlebar window (the
+    // traffic lights live there and the first mouse-down goes to the
+    // window): on macOS the title and every control must start below it.
     const openAs = async (darwin: boolean) => {
       await page.evaluate((d) => {
         const root = document.documentElement
@@ -445,15 +448,18 @@ test.describe('block viewer (C-34 R2.2 + C-39 T2)', () => {
       }, darwin)
       await page.locator('figure[data-role="MERMAID"] > button.ag-block-expand').first().click()
       await expect(viewer).toHaveClass(/ag-block-viewer-open/)
-      const box = await title.boundingBox()
+      const title = await viewer.locator('.ag-block-viewer-title').boundingBox()
+      const close = await viewer.locator('.ag-block-viewer-close-btn').boundingBox()
       await viewer.locator('.ag-block-viewer-close-btn').click()
       await expect(viewer).not.toHaveClass(/ag-block-viewer-open/)
-      return box ? box.x : -1
+      return { titleTop: title ? title.y : -1, closeTop: close ? close.y : -1 }
     }
-    expect(await openAs(true)).toBeGreaterThanOrEqual(80)
+    const mac = await openAs(true)
+    expect(mac.titleTop).toBeGreaterThanOrEqual(30)
+    expect(mac.closeTop).toBeGreaterThanOrEqual(30)
     const plain = await openAs(false)
-    expect(plain).toBeGreaterThanOrEqual(0)
-    expect(plain).toBeLessThan(40)
+    expect(plain.closeTop).toBeGreaterThanOrEqual(0)
+    expect(plain.closeTop).toBeLessThan(30)
   })
 
   test('Ctrl+wheel inside the viewer zooms the diagram and leaves the editor font size alone', async ({ page }) => {
