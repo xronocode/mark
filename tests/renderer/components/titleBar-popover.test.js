@@ -1,5 +1,5 @@
 // FILE: tests/renderer/components/titleBar-popover.test.js
-// VERSION: 1.0.0
+// VERSION: 1.1.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Verify the C-40 T-002 title-bar trim and document info popover — exact Linux button set, «?» guide entry, popover contents (name, ~-folder, size, edited-relative, stats), actions (Rename / reveal / copy path), untitled gating, and Esc/outside-click close.
 //   SCOPE: Vue/jsdom component tests with mocked platform (linux), bus, clipboard plugin, and the setup.ts window.fileUtils/window.electron doubles.
@@ -19,7 +19,10 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.0.0 - 2026-10-15 C-40 T-002 initial pins: trimmed button
+//   LAST_CHANGE: v1.1.0 - 2026-10-18 fix: a press on the empty title bar
+//   closes the popover although Tauri drag.js stops mousedown propagation
+//   (the closer listens on window in the capture phase).
+//   v1.0.0 - 2026-10-15 C-40 T-002 initial pins: trimmed button
 //   set, guide bus event, popover stats/meta/actions, untitled gating, close
 //   paths, reading-time and size formatting.
 // END_CHANGE_SUMMARY
@@ -336,6 +339,29 @@ describe('titleBar trim + document info popover (C-40 T-002)', () => {
       // The click itself toggles it closed.
       await wrapper.find('.titlebar-title-btn').trigger('click')
       expect(wrapper.find('.doc-info-popover').exists()).toBe(false)
+    })
+
+    it('a press on the empty title bar closes it even when Tauri drag.js stops propagation', async () => {
+      // Mimic drag.js: a document-level mousedown listener, registered at
+      // page load (before the component mounts), that stops immediate
+      // propagation for data-tauri-drag-region targets.
+      const dragJs = (e) => {
+        if (e.target?.getAttribute?.('data-tauri-drag-region') !== null) e.stopImmediatePropagation()
+      }
+      document.addEventListener('mousedown', dragJs)
+      const wrapper = mountBar()
+      await openPopover(wrapper)
+      try {
+        const bar = document.createElement('div')
+        bar.setAttribute('data-tauri-drag-region', '')
+        document.body.appendChild(bar)
+        bar.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }))
+        await flushPromises()
+        expect(wrapper.find('.doc-info-popover').exists()).toBe(false)
+        bar.remove()
+      } finally {
+        document.removeEventListener('mousedown', dragJs)
+      }
     })
 
     it('switching to another file refreshes the popover metadata', async () => {

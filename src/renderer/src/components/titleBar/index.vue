@@ -195,7 +195,7 @@
 
 <script setup>
 // FILE: src/renderer/src/components/titleBar/index.vue
-// VERSION: 2.1.1
+// VERSION: 2.1.2
 // START_MODULE_CONTRACT
 //   PURPOSE: Render the trimmed main-window title bar (sidebar toggle left, document title centre, theme/Share/guide right) with the document info popover and native file-path actions, window controls, and drag affordances.
 //   SCOPE: Renderer-side titlebar behavior: sidebar toggle, the C-40 T-002 document info popover (stats + folder/size/modified + Rename/Reveal/Copy path), the Win/Linux «?» Mark Guide entry, native title context menu, direct window controls, and WKWebView/macOS drag fallbacks.
@@ -227,10 +227,14 @@
 //   handleRevealClick - Popover reveal → window.electron.shell.showItemInFolder.
 //   handleCopyPathClick - Popover Copy path → native clipboard plugin write (WKWebView-safe).
 //   handleGuideClick - Win/Linux «?» → bus mt::open-guide (C-40 T-002 / C-40 R-1).
-//   onDocMouseDown/onDocKeydown - Outside-click and Escape closers for the popover.
+//   onDocMouseDown/onDocKeydown - Outside-click (window capture phase, ahead of Tauri drag.js) and Escape closers for the popover.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-10-18 v2.1.2: fix — a click on the empty title bar did not close
+//     the document info popover: drag.js stops mousedown propagation on
+//     drag-region targets. The outside-click closer moved to a window
+//     capture-phase listener.
 //   - 2026-10-18 v2.1.1: fix — a double click on a data-tauri-drag-region
 //     element maximized and immediately restored the window: Tauri's
 //     drag.js and handleTitleBarDblclick both toggled. The handler now
@@ -506,7 +510,11 @@ const handleCopyPathClick = async () => {
 }
 
 // Outside click and Escape close the popover. The title button itself
-// is excluded so its click can toggle the popover closed.
+// is excluded so its click can toggle the popover closed. The mousedown
+// closer listens on window in the CAPTURE phase: Tauri's drag.js
+// stops immediate propagation of mousedown on data-tauri-drag-region
+// targets at document level, so a document listener never saw a click
+// on the empty title bar and the popover stayed open.
 const onDocMouseDown = (event) => {
   if (!popoverOpen.value) return
   const target = event.target instanceof Element ? event.target : null
@@ -717,7 +725,7 @@ onMounted(() => {
   if (isOsx) {
     document.addEventListener('mousedown', handleWindowDragMouseDown)
   }
-  document.addEventListener('mousedown', onDocMouseDown)
+  window.addEventListener('mousedown', onDocMouseDown, true)
   document.addEventListener('keydown', onDocKeydown)
 })
 
@@ -725,7 +733,7 @@ onBeforeUnmount(() => {
   if (isOsx) {
     document.removeEventListener('mousedown', handleWindowDragMouseDown)
   }
-  document.removeEventListener('mousedown', onDocMouseDown)
+  window.removeEventListener('mousedown', onDocMouseDown, true)
   document.removeEventListener('keydown', onDocKeydown)
   if (typeof resizeUnlisten === 'function') {
     resizeUnlisten()
