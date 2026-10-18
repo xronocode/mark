@@ -12,6 +12,16 @@ Carried over from the old status table in the README:
 - Image upload services (PicGo and similar) are not supported.
 
 <!-- #region releases -->
+## [2.5.2] - 2026-10-18
+
+A fix release for the window chrome and the home screen.
+
+### Fixed
+- A double click on the title bar maximizes the window once instead of maximizing and immediately restoring it.
+- A click on the empty title bar closes the document info card.
+- The document info card shows Rename, Show in Finder and Copy path in one row.
+- Home screen rows stay inside the column, and «Remove from list» sits centred on the row instead of over the path.
+
 ## [2.5.0] - 2026-10-18
 
 Diagrams leave Mark as pictures, each diagram gets its own look, and printing and PDF export each go straight to the point.
