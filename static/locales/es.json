@@ -469,6 +469,12 @@
     "copyImage": "Copiar como imagen",
     "openFullScreen": "Abrir a pantalla completa"
   },
+  "tableToolbar": {
+    "fullWidth": "Ancho total",
+    "fitToPage": "Ajustar a la página",
+    "columnsRange": "columnas {start}–{end} de {total}",
+    "allColumns": "todas las {total} columnas"
+  },
   "recent": {
     "taglineLead": "Los agentes escriben. Tú",
     "taglineHighlight": "das forma",

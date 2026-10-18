@@ -470,6 +470,12 @@
     "copyImage": "Copier en tant qu'image",
     "openFullScreen": "Ouvrir en plein écran"
   },
+  "tableToolbar": {
+    "fullWidth": "Pleine largeur",
+    "fitToPage": "Ajuster à la page",
+    "columnsRange": "colonnes {start}–{end} sur {total}",
+    "allColumns": "toutes les {total} colonnes"
+  },
   "recent": {
     "taglineLead": "Les agents écrivent. Vous",
     "taglineHighlight": "donnez forme",
