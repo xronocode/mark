@@ -58,6 +58,7 @@ import { fileURLToPath } from 'node:url'
 import { defineConfig, type HeadConfig } from 'vitepress'
 import {
   SITE_META,
+  ogImageUrl,
   analyticsTags,
   breadcrumbJsonLd,
   cnameFor,
@@ -94,7 +95,7 @@ const head: HeadConfig[] = [
   ...(docsHeadTags(settings) as HeadConfig[]),
   ['meta', { property: 'og:type', content: 'website' }],
   ['meta', { property: 'og:site_name', content: SITE_META.name }],
-  ['meta', { property: 'og:image', content: `${siteUrl}/${SITE_META.ogImage}` }],
+  ['meta', { property: 'og:image', content: ogImageUrl(siteUrl) }],
   ['meta', { name: 'twitter:card', content: 'summary_large_image' }],
   // Above-the-fold brand faces (display headings + body text).
   ['link', { rel: 'preload', href: `${base}fonts/brand/BricolageGrotesque-800.woff2`, as: 'font', type: 'font/woff2', crossorigin: '' }],
