@@ -1842,6 +1842,13 @@ figure[data-role='TABLE'].ag-has-expand > div.ag-block-toolbar.ag-table-toolbar 
   right: 0;
 }
 
+/* Unlike a diagram (where ag-active means «editing the source»), a caret in
+   a table cell is normal work on the table: its toolbar stays reachable on
+   hover so «Fit to page» is never locked away (user review 2026-10-19). */
+figure[data-role='TABLE'].ag-active > div.ag-block-toolbar.ag-table-toolbar {
+  display: flex;
+}
+
 /* The active «Fit to page» state: solid fg on the tint, like a pressed
    segmented control. */
 figure.ag-has-expand > div.ag-block-toolbar > button.ag-table-toolbar-btn.ag-table-toolbar-active {
