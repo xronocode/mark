@@ -1,5 +1,5 @@
 // FILE: src/renderer/src/whatsNew/data.js
-// VERSION: 1.3.0
+// VERSION: 1.4.0
 // START_MODULE_CONTRACT
 //   PURPOSE: C-48/C-53 What's New sheet content — per-release entries
 //            (max 4 items, icon + i18n title/text keys) keyed by the
@@ -9,10 +9,12 @@
 //   SCOPE: static content tables + lookups; no logic beyond the lookups,
 //          the max-4 clamp and the latest-with-content fallback.
 //   DEPENDS: util/version.js (normalizeVersion, compareVersions).
-//   LINKS: .grace/changes/archive/C-55 (2.4.0 sheet — the pele engine
-//          swap); .grace/changes/archive/C-53 (2.3.1 sheet); components/
+//   LINKS: .grace/changes/active/C-56, C-61 and archive/C-62 (2.5.0
+//          sheet — diagram pictures, per-diagram look, direct print/PDF,
+//          image copy); .grace/changes/archive/C-55 (2.4.0 sheet);
+//          .grace/changes/archive/C-53 (2.3.1 sheet); components/
 //          whatsNew renders the items, the also line and the release link;
-//          locales whatsNew.v2_4_0.* carry the text.
+//          locales whatsNew.v2_5_0.* carry the text.
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT
@@ -29,7 +31,11 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.3.1 - 2026-10-18 C-55: the release URL retargets to
+//   LAST_CHANGE: v1.4.0 - 2026-10-18 release 2.5.0: the sheet shows
+//   the four 2.5.0 items (diagrams as pictures, a look per diagram,
+//   direct print and PDF, copy images back out) and points at the v2.5.0
+//   release; the also line names instant footnotes and the site gallery.
+//   v1.3.1 - 2026-10-18 C-55: the release URL retargets to
 //   the stable v2.4.0 tag — the beta suffix was dropped before launch.
 //   PREV: v1.3.0 - 2026-10-18 C-55: the 2.4.0 sheet — the pele
 //   engine swap (engine/theme/types/lighter), the release URL pointed at
@@ -60,26 +66,26 @@ export const WHATS_NEW_MAX_ITEMS = 4
 // ◐ theme, ✳ new types, ⤓ lighter. Text lives in the locale tables
 // under whatsNew.v2_4_0.* so each language ships its own copy.
 export const WHATS_NEW_CONTENT = {
-  '2.4.0': [
+  '2.5.0': [
     {
-      icon: '◔',
-      titleKey: 'whatsNew.v2_4_0.engine.title',
-      textKey: 'whatsNew.v2_4_0.engine.text'
+      icon: '⧉',
+      titleKey: 'whatsNew.v2_5_0.export.title',
+      textKey: 'whatsNew.v2_5_0.export.text'
     },
     {
       icon: '◐',
-      titleKey: 'whatsNew.v2_4_0.theme.title',
-      textKey: 'whatsNew.v2_4_0.theme.text'
+      titleKey: 'whatsNew.v2_5_0.look.title',
+      textKey: 'whatsNew.v2_5_0.look.text'
     },
     {
-      icon: '✳',
-      titleKey: 'whatsNew.v2_4_0.types.title',
-      textKey: 'whatsNew.v2_4_0.types.text'
+      icon: '⎙',
+      titleKey: 'whatsNew.v2_5_0.print.title',
+      textKey: 'whatsNew.v2_5_0.print.text'
     },
     {
-      icon: '⤓',
-      titleKey: 'whatsNew.v2_4_0.lighter.title',
-      textKey: 'whatsNew.v2_4_0.lighter.text'
+      icon: '▣',
+      titleKey: 'whatsNew.v2_5_0.images.title',
+      textKey: 'whatsNew.v2_5_0.images.text'
     }
   ]
 }
@@ -93,7 +99,7 @@ export const WHATS_NEW_CONTENT = {
 export const WHATS_NEW_ALSO_KEY = 'whatsNew.also'
 export const WHATS_NEW_SEE_EVERYTHING_KEY = 'whatsNew.seeEverything'
 export const WHATS_NEW_RELEASE_URLS = {
-  '2.4.0': 'https://github.com/xronocode/mark/releases/tag/v2.4.0'
+  '2.5.0': 'https://github.com/xronocode/mark/releases/tag/v2.5.0'
 }
 
 // '' when the version (after normalization) has no release page — the

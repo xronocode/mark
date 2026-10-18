@@ -1428,7 +1428,7 @@
     "title": "Nouveautés",
     "seeGuide": "Voir le guide",
     "continue": "Continuer",
-    "also": "La syntaxe mermaid fonctionne comme avant — vos documents s'ouvrent inchangés.",
+    "also": "Et aussi : les réglages des notes s'appliquent aussitôt, et le site présente tous les types de diagrammes",
     "seeEverything": "Voir toutes les nouveautés",
     "v2_3_1": {
       "look": {
@@ -1464,6 +1464,24 @@
       "lighter": {
         "title": "Beaucoup plus léger",
         "text": "Le code des diagrammes : 0,26 Mo compressés au lieu de 44 parties (2,6 Mo)."
+      }
+    },
+    "v2_5_0": {
+      "export": {
+        "title": "Des diagrammes en images",
+        "text": "Copiez un diagramme ou un graphique en image, ou enregistrez-le en PNG ou SVG."
+      },
+      "look": {
+        "title": "Un style par diagramme",
+        "text": "Auto, palette de l'auteur, clair ou sombre : choisi par diagramme et gardé avec lui."
+      },
+      "print": {
+        "title": "Impression et PDF, en direct",
+        "text": "Imprimer ouvre aussitôt le panneau système ; l'export PDF enregistre le fichier."
+      },
+      "images": {
+        "title": "Recopiez vos images",
+        "text": "Recopiez en un clic une image déjà présente dans le document."
       }
     }
   },

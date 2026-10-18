@@ -11,6 +11,32 @@ Carried over from the old status table in the README:
 - Intel Macs are not supported by the Homebrew cask; Linux builds are not published.
 - Image upload services (PicGo and similar) are not supported.
 
+## [2.5.0] - 2026-10-18
+
+Diagrams leave Mark as pictures, each diagram gets its own look, and printing and PDF export each go straight to the point.
+
+### Interface
+- Hover a diagram and a small panel appears at its top-right edge: its look, the source, copy as image and full screen (for diagrams that need it). Labels slide in on hover and are translated; the panel never shows while you type in the source.
+- On macOS the full-screen diagram window closes with the first click on × — its header now sits below the window's title bar.
+- The home screen keeps its brand row visible in a short window instead of clipping it.
+
+### Product mechanics
+- Copy as Image, Save as PNG… and Save as SVG… for every ```mermaid``` diagram and ```vega-lite``` chart — from the corner panel, the editor context menu and the full-screen view. PNG is rendered at 2×; the SVG is standalone with the theme's colours and font inlined; files are named after the nearest heading.
+- Copy an image that is already in the document back to the clipboard — from the image toolbar or the context menu. PNG files go as they are; other formats are converted to PNG.
+- Print (⌘P) opens the system print panel directly, with your last export options. Export to PDF asks for page settings, then a file name, and writes the PDF without the print panel — on macOS and Windows.
+
+### Content rendering
+- Each mermaid diagram has its own look: Auto follows the document theme, Custom keeps the author's palette from the Markdown, Light and Dark pin it. The choice is saved as a comment in the diagram source and undoes like any edit; in read-only documents it applies to the current view only. HTML export uses the same look.
+- Kanban boards draw their cards on the surface colour with a light frame over lighter columns.
+- Changing the footnote setting re-renders open documents at once, without losing undo history or unsaved edits.
+
+### Site and support
+- A diagram gallery at [mark.xronocode.com/diagrams](https://mark.xronocode.com/diagrams/) shows every diagram type Mark renders, recoloured live in any of the 32 themes, with a slideshow and a full-screen show.
+- Help › Support Mark… is back in the desktop (download and Homebrew) build, and the site links to Ko-fi again.
+
+### Corrections
+- The 2.4.0 notes and site counted 33 diagram types and 33 themes; the right number is 32 for both.
+
 ## [2.4.0] - 2026-10-18
 
 The diagram engine changed: mermaid is out, [Pele](https://github.com/obsidianmd/pele) is in. The ```mermaid``` fence and its syntax are unchanged — documents open as they are.
@@ -20,7 +46,7 @@ The diagram engine changed: mermaid is out, [Pele](https://github.com/obsidianmd
 - The diagram code went from 44 bundle parts totalling 2.6 MB (plus 75 MB / 23 dependencies in node_modules) to one lazy part, 0.26 MB compressed.
 - Diagrams' colours now live in CSS variables (`--pele-*`), derived per theme with the same WCAG node-contrast math: switching themes — including Auto light/dark — recolours every diagram instantly without re-rendering.
 - The pie chart keeps its Keynote-style donut; gantt, journey, timeline and packet keep their readable lab sizes with in-block scrolling; diagram zoom with the editor font size and the fullscreen viewer are unchanged.
-- New diagram types in mermaid blocks: venn, treemap, agentflow, radar, swimlane, use case, event modeling, tree view, cynefin, railroad and more (33 types in total).
+- New diagram types in mermaid blocks: venn, treemap, agentflow, radar, swimlane, use case, event modeling, tree view, cynefin, railroad and more (32 types in total).
 - The look of the diagrams has changed with the engine — same syntax, new renderer.
 - Exported HTML renders diagrams with Pele and inlines the theme's diagram colours, so standalone files look like the editor.
 

@@ -1443,7 +1443,7 @@
     "title": "What's new",
     "seeGuide": "See the guide",
     "continue": "Continue",
-    "also": "Mermaid syntax works as before — your documents open unchanged",
+    "also": "Also: footnote settings apply instantly, and the site now has a gallery of every diagram type",
     "seeEverything": "See everything new",
     "v2_3_1": {
       "look": {
@@ -1479,6 +1479,24 @@
       "lighter": {
         "title": "A much lighter Mark",
         "text": "Diagram code: one 0.26 MB part (compressed) instead of 44 parts totalling 2.6 MB."
+      }
+    },
+    "v2_5_0": {
+      "export": {
+        "title": "Diagrams as pictures",
+        "text": "Copy any diagram or chart as an image, or save it as PNG or SVG."
+      },
+      "look": {
+        "title": "A look for each diagram",
+        "text": "Auto, the author's palette, light or dark — chosen per diagram and saved with it."
+      },
+      "print": {
+        "title": "Print and PDF, each direct",
+        "text": "Print goes straight to the system panel; Export to PDF saves the file without it."
+      },
+      "images": {
+        "title": "Copy images back out",
+        "text": "Copy a picture that is already in the document back to the clipboard."
       }
     }
   },
