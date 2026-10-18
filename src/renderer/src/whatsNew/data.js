@@ -9,7 +9,7 @@
 //   SCOPE: static content tables + lookups; no logic beyond the lookups,
 //          the max-4 clamp and the latest-with-content fallback.
 //   DEPENDS: util/version.js (normalizeVersion, compareVersions).
-//   LINKS: .grace/changes/active/C-55 (2.4.0 sheet — the pele engine
+//   LINKS: .grace/changes/archive/C-55 (2.4.0 sheet — the pele engine
 //          swap); .grace/changes/archive/C-53 (2.3.1 sheet); components/
 //          whatsNew renders the items, the also line and the release link;
 //          locales whatsNew.v2_4_0.* carry the text.

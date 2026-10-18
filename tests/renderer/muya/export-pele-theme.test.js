@@ -4,7 +4,7 @@
 //   PURPOSE: Pin the C-55 export wiring — ExportHtml.renderPele renders each ```mermaid block through the pele namespace (loadRenderer('pele'): pele.render, synchronous) with a unique 'pele-export-N' idPrefix and buildPeleRenderOptions(pele.detectType(code), tokens) options read from the live document, swaps the pre>code for a div.mermaid (the class the print stylesheet centres on), keeps the '< Invalid Mermaid Codes >' error placeholder, and generate() inlines a <style>:root { --pele-* } block whose values equal buildPeleVariables(readActiveThemeTokens()) so the standalone file carries the editor's diagram colours.
 //   SCOPE: renderPele and generate on src/muya/lib/utils/exportHtml.js with the renderer loader mocked; the variable/derivation builders themselves are pinned in diagram-theme.test.js and pele-node-contrast.test.js.
 //   DEPENDS: src/muya/lib/utils/exportHtml.js, muya/lib/parser/render/diagramTheme (readActiveThemeTokens, buildPeleVariables), muya/lib/parser/render/peleOptions (buildPeleRenderOptions, DEFAULT_PELE_FONT_SIZE), Vitest + jsdom.
-//   LINKS: .grace/changes/active/C-55 (renderPele + export inlining); .grace/changes/archive/C-51 T-003 (the export reads the app theme); .grace/verification/runtime.xml V-M-012.
+//   LINKS: .grace/changes/archive/C-55 (renderPele + export inlining); .grace/changes/archive/C-51 T-003 (the export reads the app theme); .grace/verification/runtime.xml V-M-012.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

@@ -1,4 +1,4 @@
-<GraceChangeSpec graceVersion='4.0' status='approved'>
+<GraceChangeSpec graceVersion='4.0' status='applied'>
 <C-55>
   <Name>Pele: replace the Mermaid diagram engine (hard cut) — lighter, theme-following, new diagram types; release 2.4.0-beta</Name>
   <Created>2026-10-17</Created>
