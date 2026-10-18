@@ -108,7 +108,7 @@ function main () {
   for (const page of pages) {
     const html = readFileSync(page, 'utf8')
     const where = relative(dist, page)
-    if (html.includes('%BASE%') || html.includes('<!--SITE_HEAD-->')) {
+    if (html.includes('%BASE%') || html.includes('<!--SITE_HEAD-->') || /<!--(DIAGRAM:|THEME_INIT|BRAND_CSS|THEME_VARS_JSON)/.test(html)) {
       problems.push(`${where}: unrendered landing token`)
     }
     for (const [, url] of html.matchAll(/\s(?:href|src)="([^"#?]+)[^"]*"/g)) {

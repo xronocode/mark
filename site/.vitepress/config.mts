@@ -1,5 +1,5 @@
 // FILE: site/.vitepress/config.mts
-// VERSION: 2.6.0
+// VERSION: 2.7.0
 // START_MODULE_CONTRACT
 //   PURPOSE: VitePress config for the Mark site — docs, shared head, the
 //            landing served at the site root, and the diagram gallery at
@@ -15,7 +15,9 @@
 // END_MODULE_CONTRACT
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: [v2.6.0 - 2026-10-18 C-64 T-003 wiring: docsHeadTags in the
+//   LAST_CHANGE: [v2.7.0 - 2026-10-18 C-64 T-002: the landing template goes
+//                 through fillLanding (diagram SVGs, brand CSS, theme init).]
+//   PREV: [v2.6.0 - 2026-10-18 C-64 T-003 wiring: docsHeadTags in the
 //                 docs head; buildEnd emits llms.txt + .well-known/security.txt
 //                 and runs applyCsp over every built page last.]
 //   PREV: [v2.5.0 - 2026-10-18 C-64 T-001: the docs wear the brand —
@@ -58,12 +60,13 @@ import { renderGallery } from '../scripts/build-gallery.mjs'
 import { writeThemeVarsFile } from '../scripts/gallery-theme-vars.mjs'
 import { THEME_INIT_JS } from '../shared/theme-init.mjs'
 import { applyCsp } from '../scripts/csp.mjs'
+import { fillLanding } from '../scripts/landing-fill.mjs'
 import { llmsTxt, securityTxt } from '../scripts/seo-files.mjs'
 
 const settings = resolveSiteSettings(process.env)
 const { siteUrl, base, analytics } = settings
 const landingTemplate = new URL('../landing/index.html', import.meta.url)
-const loadLanding = () => renderLanding(readFileSync(landingTemplate, 'utf8'), settings)
+const loadLanding = () => renderLanding(fillLanding(readFileSync(landingTemplate, 'utf8')), settings)
 
 // START_BLOCK_DOCS_HEAD
 const head: HeadConfig[] = [
