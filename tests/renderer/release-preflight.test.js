@@ -1,5 +1,5 @@
 // FILE: tests/renderer/release-preflight.test.js
-// VERSION: 2.12.0
+// VERSION: 2.13.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Verify exact release metadata/tag consistency, production workflow gates, updater-feed release classification, and Homebrew artifact routing for M-046.
 //   SCOPE: Pure mismatch tests, current-workspace integration, CLI marker evidence, and static release-workflow assertions.
@@ -10,12 +10,15 @@
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
-//   consistentEvidence - Complete v2.4.0 version fixture.
+//   consistentEvidence - Complete v2.5.0 version fixture.
 //   workspaceRoot - GRACE 4 synchronized symbol
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: 2026-10-18 v2.12.0 - advance the release fixture to
+//   LAST_CHANGE: 2026-10-18 v2.13.0 - advance the release fixture to
+//   v2.5.0 (C-56 diagram pictures + corner pill, C-61 direct print/PDF,
+//   C-62 per-diagram look, C-60 live footnotes, C-58 site gallery).
+//   PREV: 2026-10-18 v2.12.0 - advance the release fixture to
 //   the stable v2.4.0 tag (C-55; beta suffix dropped before the
 //   Product Hunt launch).
 //   PREV: 2026-10-18 v2.11.0 - advance the release fixture to
@@ -50,22 +53,22 @@ import {
 
 const workspaceRoot = resolve(import.meta.dirname, '../..')
 const consistentEvidence = {
-  packageJson: '2.4.0',
-  packageLock: '2.4.0',
-  packageLockRoot: '2.4.0',
-  cargoWorkspace: '2.4.0',
-  cargoLockMark: '2.4.0',
-  tauriConfig: '2.4.0'
+  packageJson: '2.5.0',
+  packageLock: '2.5.0',
+  packageLockRoot: '2.5.0',
+  cargoWorkspace: '2.5.0',
+  cargoLockMark: '2.5.0',
+  tauriConfig: '2.5.0'
 }
 
 // START_BLOCK_RELEASE_VERSION_TESTS
 describe('M-046 release version preflight', () => {
   it('accepts one exact metadata version and matching release tag', () => {
     expect(
-      validateVersionEvidence(consistentEvidence, 'v2.4.0')
+      validateVersionEvidence(consistentEvidence, 'v2.5.0')
     ).toEqual({
-      version: '2.4.0',
-      tag: 'v2.4.0',
+      version: '2.5.0',
+      tag: 'v2.5.0',
       sourceCount: 6
     })
   })
@@ -74,7 +77,7 @@ describe('M-046 release version preflight', () => {
     expect(() =>
       validateVersionEvidence(
         { ...consistentEvidence, packageLockRoot: '2.0.6-alpha' },
-        'v2.4.0'
+        'v2.5.0'
       )
     ).toThrowError(
       expect.objectContaining({
@@ -101,7 +104,7 @@ describe('M-046 release version preflight', () => {
   it('CLI emits the stable success marker for the target tag', () => {
     const result = spawnSync(
       process.execPath,
-      ['tools/release-preflight.mjs', '--tag', 'v2.4.0'],
+      ['tools/release-preflight.mjs', '--tag', 'v2.5.0'],
       { cwd: workspaceRoot, encoding: 'utf8' }
     )
 

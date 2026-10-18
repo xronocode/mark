@@ -44,6 +44,9 @@
       <Verification><Command>python3 tools/release/asc-api.py</Command><Command>grace lint --path . --assertions current</Command></Verification>
     </T-003>
   </ImplementationPlan>
+  <Evidence>
+    <Note>2026-10-18 user decision: 2.4.0 was never submitted to the App Store; the catch-up ships 2.5.0 instead («ждём 2.5.0»). mas.conf.json moves to 2.5.0 with the v2.5.0 release bump; the store What's New covers 2.1.17 → 2.5.0 (the same four-release span the site Editions page shows). T-002/T-003 run against the v2.5.0 tag.</Note>
+  </Evidence>
   <ReviewLog>
     <Review Corner="Correctness" Verdict="pending" Note="pkg signature + ASC processing state are the gates; product code untouched (tag-equivalent main)."/>
     <Review Corner="Security" Verdict="pending" Note="Entitlements-mas unchanged from the approved 2.1.17 set; no new entitlements; no secrets in repo."/>
