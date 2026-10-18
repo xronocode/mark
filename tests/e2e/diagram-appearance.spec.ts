@@ -1,5 +1,5 @@
 // FILE: tests/e2e/diagram-appearance.spec.ts
-// VERSION: 1.1.0
+// VERSION: 1.2.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Verify the reviewed four-mode diagram appearance flow in Chromium and WebKit.
 //   SCOPE: Computed colors, source persistence/undo, global theme/cache independence, read-only and mirror behavior, keyboard/menu bounds and fullscreen zoom/focus.
@@ -18,7 +18,9 @@
 //   theme - real preference broadcast to change the document theme.
 // END_MODULE_MAP
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.1.0 - 2026-10-18 C-56 T-007: the control is the corner pill's leading item; the clearance check became hover-reveal + right-edge anchor.
+//   LAST_CHANGE: v1.2.0 - 2026-10-18 flake fix: the viewer pan/zoom check
+//   waits for the zoom animation to settle before capturing the transform.
+//   v1.1.0 - 2026-10-18 C-56 T-007: the control is the corner pill's leading item; the clearance check became hover-reveal + right-edge anchor.
 //   v1.0.0 - 2026-10-18 C-62: cross-engine appearance, persistence and viewer regression gate.
 // END_CHANGE_SUMMARY
 import { test, expect, type Page, type Locator } from '@playwright/test'
@@ -172,7 +174,21 @@ test.describe('per-diagram appearance (C-62)', () => {
     const beforeZoom = await canvas.evaluate(element => (element as HTMLElement).style.transform)
     await viewer.locator('.ag-block-viewer-zoom-in').click()
     await expect.poll(() => canvas.evaluate(element => (element as HTMLElement).style.transform)).not.toBe(beforeZoom)
-    const transform = await canvas.evaluate(element => (element as HTMLElement).style.transform)
+    // The zoom animates: wait until the transform holds still across a few
+    // frames, otherwise a slow runner captures a mid-animation value.
+    const settledTransform = () => canvas.evaluate(element => new Promise<string>(resolve => {
+      let last = (element as HTMLElement).style.transform
+      let same = 0
+      const tick = () => {
+        const now = (element as HTMLElement).style.transform
+        same = now === last ? same + 1 : 0
+        last = now
+        if (same >= 5) resolve(now)
+        else requestAnimationFrame(tick)
+      }
+      requestAnimationFrame(tick)
+    }))
+    const transform = await settledTransform()
     const button = viewer.locator(BUTTON)
     await choose(page, 'custom', button)
     await expect.poll(() => fill(page, '.ag-block-viewer-open')).toBe('rgb(255, 224, 178)')

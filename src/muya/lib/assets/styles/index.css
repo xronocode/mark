@@ -1647,18 +1647,19 @@ i.ag-footnote-backlink {
  * The row-drag bar of the first column hangs at left: -11px and the
  * column-drag bar of the last row at bottom: -15px outside the table
  * box (themes/default.css); the wrapper's padding keeps both inside
- * the clip rect, the matching negative margins keep the table aligned
- * with the text column and the net vertical spacing unchanged. The
- * extra bottom room also keeps the last-row bar clear of a classic
- * (non-overlay) horizontal scrollbar.
+ * the clip rect, the matching negative left margin keeps the table
+ * aligned with the text column. The bottom room is NOT cancelled by a
+ * negative margin: the horizontal scrollbar is drawn at the bottom of
+ * the padding box, and with margin-bottom: -30px it landed 30 px below
+ * the table, over the heading or paragraph that follows (2026-10-18).
  */
 figure div.ag-table-scroll {
   box-sizing: border-box;
   max-width: 100%;
   overflow-x: auto;
   overflow-y: hidden;
-  padding: 0 0 30px 11px;
-  margin: 0 0 -30px -11px;
+  padding: 0 0 16px 11px;
+  margin: 0 0 0 -11px;
 }
 
 /*
