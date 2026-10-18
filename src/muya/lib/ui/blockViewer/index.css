@@ -49,11 +49,17 @@
   border-bottom: 1px solid var(--floatBorderColor, var(--editorColor10));
 }
 
-/* macOS overlay title bar: the window buttons sit over the top-left
-   ~78 px of the page, so the fixed viewer header clears them like the
-   app title bar does (.title-bar.isOsx). C-51 T-008 live smoke. */
+/* macOS overlay title bar (transparent titlebar + full-size content view):
+   AppKit owns the top ~28 px strip of the window — the traffic lights sit
+   there and the first mouse-down in that strip goes to the window, not to
+   the page, so a viewer button inside it needed a second click to fire
+   (bug 2026-10-18: "the × closes only on the second click"). The header
+   therefore starts its row BELOW the strip; the strip itself stays the
+   header's colour so the traffic lights sit on the viewer chrome. The
+   earlier 86 px left inset (C-51 T-008) is no longer needed — the row no
+   longer shares the line with the window buttons. */
 html.platform-darwin .ag-block-viewer-header {
-  padding-left: 86px;
+  padding-top: calc(var(--titleBarHeight, 32px) + 2px);
 }
 
 .ag-block-viewer-title {
