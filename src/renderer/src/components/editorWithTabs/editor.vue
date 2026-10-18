@@ -78,12 +78,12 @@
 
 <script setup>
 // FILE: src/renderer/src/components/editorWithTabs/editor.vue
-// VERSION: 1.24.1
+// VERSION: 1.25.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Host the Muya WYSIWYG surface and coordinate document rendering, selection, scroll, preview, editor tools, and store/bus integration.
 //   SCOPE: Renderer-side Muya lifecycle and UI orchestration; does not own Markdown parsing rules or backend file persistence.
-//   DEPENDS: Muya, Pinia preferences/editor/project/layout stores, bus, renderer services/utilities, window.electron compatibility facade, @tauri-apps/plugin-clipboard-manager (writeHtml + writeImage), @tauri-apps/plugin-dialog (save), muya/lib/utils/diagramExport (C-56 picture export).
-//   LINKS: docs/knowledge-graph.xml M-011 and M-012; docs/verification-plan.xml V-M-011 scenarios 15-16 and V-M-012; .grace/changes/active/C-56 (diagram export).
+//   DEPENDS: Muya, Pinia preferences/editor/project/layout stores, bus, renderer services/utilities, window.electron compatibility facade, @tauri-apps/plugin-clipboard-manager (writeHtml + writeImage), @tauri-apps/plugin-dialog (save), muya/lib/utils/diagramExport (C-56 picture export + image-copy helpers), muya/lib/utils/getImageInfo (C-56 T-006 DOM image info), window.__markImageLoader (the existing read-binary bridge, C-56 T-006).
+//   LINKS: docs/knowledge-graph.xml M-011 and M-012; docs/verification-plan.xml V-M-011 scenarios 15-16 and V-M-012; .grace/changes/active/C-56 (diagram export, embedded-image copy).
 //   ROLE: RUNTIME
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT
@@ -104,6 +104,7 @@
 //   handleCopyAsStructuredText - Copies selection (or whole document) as plain text that keeps paragraphs, bullets, link targets and table rows (C-32).
 //   handleCopyAsMarkdown - Copies selection (or whole document) as raw Markdown text (C-40 T-004).
 //   handleDiagramExportAction - C-56 picture export transport: a rendered Pele diagram / Vega-Lite chart block leaves Mark as a 2× PNG on the clipboard (writeImage) or a PNG/SVG file (save dialog + fs write); owns the toast and failure notices.
+//   handleImageCopyAction - C-56 T-006 embedded-image copy transport: an already-inserted ![](…) image goes back on the clipboard as a picture — local files through the existing read-binary bridge, remotes via fetch, PNG bytes as-is, other formats re-encoded on a canvas; serves the muya image toolbar button and the editor context-menu item.
 //   syncMirrorFromSource - C-29 Split View: debounced read-only re-render of the muya pane from the source pane; never writes to the store.
 //   handleMirrorGuard - C-29: blocks checkbox clicks, paste and drop on the read-only mirror pane.
 //   handleEditorContextMenu - Native right-click menu: undo/redo, cut/copy/paste/select-all roles, Copy as HTML / Plain Text / Structured Text, the C-56 Copy as Image / Save as PNG… / Save as SVG… items (diagram/chart blocks only), Share (C-10/C-11/C-12/C-32/C-56).
@@ -111,6 +112,19 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-10-18 v1.25.0: C-56 T-006 — Copy image for embedded Markdown
+//     images. handleImageCopyAction({ imageInfo }) is the single transport:
+//     resolveImageCopySource classifies the raw Markdown src (local
+//     path/file:///asset:// resolved against the document, remote http(s),
+//     data:); local bytes come through the EXISTING read-binary bridge
+//     (window.__markImageLoader → mt::fs::read_binary — no new fs scope),
+//     remotes via fetch; imageCopyPngBytes passes real PNG bytes through
+//     and re-encodes JPEG/WebP/GIF/SVG on a canvas at natural size; the
+//     clipboard write reuses T-002's writeImage capability and the
+//     «Copied»/«Could not copy the image» notices. Entry points: the muya
+//     image toolbar's new Copy-image button (muya-image-copy event) and a
+//     Copy Image item in the editor context menu (only when the
+//     right-click target is an img inside a muya image wrapper).
 //   - 2026-10-18 v1.24.1: C-56 T-005 — doc only, no code change: the
 //     muya-diagram-export event gained a third producer (the diagram
 //     corner pill's Copy-as-image button dispatches { action:
@@ -212,11 +226,16 @@ import {
   buildStandaloneSvg,
   diagramExportSvg,
   EXPORTABLE_FIGURE_SELECTOR,
+  imageCopyPngBytes,
   nearestHeadingText,
   rasterizeSvg,
   resolveDiagramExportFigure,
+  resolveImageCopySource,
   suggestFileName
 } from 'muya/lib/utils/diagramExport'
+// C-56 T-006: muya's DOM-side image info (tokenizes the wrapper's raw
+// Markdown) for the right-click Copy Image item.
+import { getImageInfo as getDomImageInfo } from 'muya/lib/utils/getImageInfo'
 import { getCssForOptions, getHtmlToc } from '@/util/pdf'
 import { addCommonStyle, setEditorWidth, setWrapCodeBlocks } from '@/util/theme'
 import { usePreferencesStore } from '@/store/preferences'
@@ -1240,12 +1259,92 @@ const handleDiagramExportAction = async ({ action, element } = {}) => {
 }
 // END_BLOCK_DIAGRAM_EXPORT
 
+// START_CONTRACT: handleImageCopyAction
+//   PURPOSE: C-56 T-006 — put an already-inserted ![](…) image back on the clipboard as a picture (PNG).
+//   INPUTS: { imageInfo: object - muya image info whose token.attrs.src is the raw Markdown source (from the image toolbar dispatch or the context-menu item) }
+//   OUTPUTS: { Promise<void> - resolves after the transport attempt; never rejects }
+//   SIDE_EFFECTS: Local images read through the existing read-binary bridge (window.__markImageLoader — the same mt::fs::read_binary path the display uses; no new fs scope); remote http(s) images fetched; non-PNG bytes re-encoded on a canvas at natural size; clipboard-manager writeImage; the T-002 «Copied» toast or the existing «Could not copy the image» failure notice with the anchored marker (CORS/network/decode failures never reject).
+//   LINKS: C-56 T-006; muya ui/imageToolbar (muya-image-copy dispatch); muya/lib/utils/diagramExport resolveImageCopySource/imageCopyPngBytes; clipboard-manager:allow-write-image (the T-002 capability — nothing new).
+// END_CONTRACT: handleImageCopyAction
+// START_BLOCK_IMAGE_COPY
+const IMAGE_COPY_MARKER = '[Editor][handleImageCopyAction][BLOCK_IMAGE_COPY]'
+
+// Bytes + content type of a classified source. Local reads go through the
+// existing binary bridge: __markImageLoader wraps the exact mt::fs::
+// read_binary bytes in a blob: URL, and fetching that URL in-page returns
+// the identical bytes (CSP blocks file:// img-src, so the bridge is the
+// only reader — same one the display uses).
+const readImageCopyBytes = async (source) => {
+  if (source.kind === 'data') {
+    return { bytes: source.bytes, mime: source.mime }
+  }
+  if (source.kind === 'remote') {
+    // A CORS rejection or network failure rejects here → the shared
+    // catch-all notice below (never an unhandled rejection).
+    const response = await fetch(source.url)
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`)
+    }
+    const blob = await response.blob()
+    return { bytes: new Uint8Array(await blob.arrayBuffer()), mime: blob.type || 'image/png' }
+  }
+  if (typeof window.__markImageLoader !== 'function') {
+    throw new Error('no binary image reader available')
+  }
+  const blobUrl = await window.__markImageLoader(source.path)
+  try {
+    const blob = await (await fetch(blobUrl)).blob()
+    return { bytes: new Uint8Array(await blob.arrayBuffer()), mime: blob.type || '' }
+  } finally {
+    if (typeof URL !== 'undefined' && typeof URL.revokeObjectURL === 'function') {
+      URL.revokeObjectURL(blobUrl)
+    }
+  }
+}
+
+const handleImageCopyAction = async ({ imageInfo } = {}) => {
+  if (!editor.value) return
+  const rawSrc = imageInfo && imageInfo.token && imageInfo.token.attrs
+    ? imageInfo.token.attrs.src
+    : ''
+  try {
+    const source = resolveImageCopySource(rawSrc, {
+      docPath: currentFile.value && currentFile.value.pathname ? currentFile.value.pathname : ''
+    })
+    if (!source) {
+      throw new Error('unresolvable image source')
+    }
+    const { bytes, mime } = await readImageCopyBytes(source)
+    if (!bytes || bytes.length === 0) {
+      throw new Error('empty image bytes')
+    }
+    // PNG bytes pass through untouched; every other format is re-encoded
+    // on a canvas at natural size (muya util).
+    const { bytes: pngBytes } = await imageCopyPngBytes(bytes, { mime })
+    const { writeImage } = await import('@tauri-apps/plugin-clipboard-manager')
+    await writeImage(pngBytes)
+    notice.notify({
+      title: t('editor.image.copyTitle'),
+      message: t('editor.diagramExport.copied')
+    })
+    console.debug(`${IMAGE_COPY_MARKER} copied png`, { source: source.kind })
+  } catch (e) {
+    console.warn(`${IMAGE_COPY_MARKER} copy failed: ${e}`)
+    notice.notify({
+      title: t('editor.image.copyTitle'),
+      type: 'warning',
+      message: t('editor.diagramExport.copyFailed')
+    })
+  }
+}
+// END_BLOCK_IMAGE_COPY
+
 // START_CONTRACT: handleEditorContextMenu
-//   PURPOSE: Replace WKWebView's default right-click menu with a full native menu: undo/redo (Muya history), cut/copy/paste/select-all roles, Copy as HTML, the C-56 picture-export items on diagram/chart blocks, and Share.
+//   PURPOSE: Replace WKWebView's default right-click menu with a full native menu: undo/redo (Muya history), cut/copy/paste/select-all roles, Copy as HTML, the C-56 picture-export items on diagram/chart blocks, the C-56 T-006 Copy Image item on embedded ![](…) images, and Share.
 //   INPUTS: { event: Event - the DOM contextmenu event Muya re-dispatches }
 //   OUTPUTS: { Promise<void> - resolves after the native popup resolves and the clicked id is dispatched }
-//   SIDE_EFFECTS: Suppresses the webview default menu; roles act via the responder chain; copyAsHtml writes the clipboard; diagram items run handleDiagramExportAction; share opens the native share sheet.
-//   LINKS: C-10/C-11; muya eventHandler/clickEvent.js 'contextmenu' dispatch; mt::window-popup-context-menu (m009 roles); C-3 handleCopyAsHtml; mt_share_file; C-56 handleDiagramExportAction
+//   SIDE_EFFECTS: Suppresses the webview default menu; roles act via the responder chain; copyAsHtml writes the clipboard; diagram items run handleDiagramExportAction; copyEmbeddedImage runs handleImageCopyAction; share opens the native share sheet.
+//   LINKS: C-10/C-11; muya eventHandler/clickEvent.js 'contextmenu' dispatch; mt::window-popup-context-menu (m009 roles); C-3 handleCopyAsHtml; mt_share_file; C-56 handleDiagramExportAction; C-56 T-006 handleImageCopyAction + muya utils/getImageInfo
 // END_CONTRACT: handleEditorContextMenu
 // START_BLOCK_EDITOR_CONTEXT_MENU
 const handleEditorContextMenu = async (event) => {
@@ -1265,6 +1364,20 @@ const handleEditorContextMenu = async (event) => {
     diagramFigure &&
     diagramFigure.querySelector('div.ag-container-preview svg')
   )
+  // C-56 T-006: Copy Image appears ONLY when the right-click target is a
+  // rendered img inside a muya image wrapper (a failed image has its img
+  // removed and gets nothing). muya's DOM-side getImageInfo tokenizes the
+  // wrapper's raw Markdown so the transport sees the original src.
+  let contextImageInfo = null
+  try {
+    const imageWrapper = event.target && typeof event.target.closest === 'function' &&
+      event.target.tagName === 'IMG'
+      ? event.target.closest('span.ag-inline-image')
+      : null
+    contextImageInfo = imageWrapper ? getDomImageInfo(imageWrapper) : null
+  } catch (_) {
+    contextImageInfo = null
+  }
   // C-11: cut/copy/paste are native roles — OS-localized labels, auto
   // enablement, and responder-chain behavior identical to the Edit
   // menu's native items. Undo/redo/selectAll stay custom: Muya owns
@@ -1306,6 +1419,16 @@ const handleEditorContextMenu = async (event) => {
           }
         ]
       : []),
+    // C-56 T-006: embedded ![](…) images get their own copy group.
+    ...(contextImageInfo
+      ? [
+          { type: 'separator' },
+          {
+            label: t('contextMenu.editor.copyImage'),
+            id: 'copyEmbeddedImage'
+          }
+        ]
+      : []),
     { type: 'separator' },
     { label: t('contextMenu.editor.selectAll'), id: 'selectAll' }
   ]
@@ -1344,6 +1467,10 @@ const handleEditorContextMenu = async (event) => {
     await handleDiagramExportAction({ action: 'savePng', element: diagramFigure })
   } else if (clickedId === 'saveDiagramSvg') {
     await handleDiagramExportAction({ action: 'saveSvg', element: diagramFigure })
+  } else if (clickedId === 'copyEmbeddedImage') {
+    // C-56 T-006: the muya image info carries the raw Markdown src into
+    // the shared transport (the same handler serves the toolbar button).
+    await handleImageCopyAction({ imageInfo: contextImageInfo })
   } else if (clickedId === 'shareFile') {
     try {
       const { invoke } = await import('@tauri-apps/api/core')
@@ -2331,6 +2458,9 @@ onMounted(() => {
   // with the LIVE source element (never its zoomed clone) — the shared
   // transport builds the standalone SVG at natural size.
   editor.value.on('muya-diagram-export', handleDiagramExportAction)
+  // C-56 T-006: the image toolbar's Copy image button hands the muya image
+  // info (raw Markdown src) to the embedded-image copy transport.
+  editor.value.on('muya-image-copy', handleImageCopyAction)
 
   document.addEventListener('keyup', keyup)
 
@@ -2388,6 +2518,8 @@ onBeforeUnmount(() => {
   editor.value.off('scroll')
   // C-56: drop the viewer export dispatch before muya is destroyed.
   editor.value.off('muya-diagram-export', handleDiagramExportAction)
+  // C-56 T-006: drop the image-copy dispatch before muya is destroyed.
+  editor.value.off('muya-image-copy', handleImageCopyAction)
 
   resizeObserverForEditor.disconnect()
 

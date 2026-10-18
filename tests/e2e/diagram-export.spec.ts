@@ -1,10 +1,10 @@
 // FILE: tests/e2e/diagram-export.spec.ts
-// VERSION: 1.1.0
+// VERSION: 1.2.0
 // START_MODULE_CONTRACT
-//   PURPOSE: E2E gate for the C-56 per-block diagram/chart picture export — context-menu items only on rendered Pele diagram / Vega-Lite chart blocks (enabled when rendered, disabled when the block never rendered, absent on paragraphs/tables/flowchart blocks), Copy as Image putting a 2×-natural PNG on the clipboard through plugin:clipboard-manager|write_image, Save as PNG…/SVG… writing valid bytes via the dialog + fs shims (2× IHDR, standalone SVG with zero var(--pele-*) and the theme panel background rect), the heading-slug default file name (ascii + Cyrillic + document fallback), the cancelled-save no-op, the fullscreen block viewer toolbar exporting the WHOLE diagram at 2× natural size while the viewer itself is zoomed (corner-2) with the buttons hidden on non-exportable sources, and the C-56 T-005 corner pill (hover reveal + caret-only invisibility, localized labels, Edit source opening the block source, Copy as image through the shared transport, Open full screen, scope limited to mermaid/vega-lite figures).
-//   SCOPE: diagram-export.spec.ts only; boots the built renderer via the tauri shim with mocked preferences (same bootstrap as pele-render.spec.ts) and per-test __mockInvoke overrides for the context-menu popup, the clipboard image write, the dialog save and the binary/text fs writes.
+//   PURPOSE: E2E gate for the C-56 per-block diagram/chart picture export — context-menu items only on rendered Pele diagram / Vega-Lite chart blocks (enabled when rendered, disabled when the block never rendered, absent on paragraphs/tables/flowchart blocks), Copy as Image putting a 2×-natural PNG on the clipboard through plugin:clipboard-manager|write_image, Save as PNG…/SVG… writing valid bytes via the dialog + fs shims (2× IHDR, standalone SVG with zero var(--pele-*) and the theme panel background rect), the heading-slug default file name (ascii + Cyrillic + document fallback), the cancelled-save no-op, the fullscreen block viewer toolbar exporting the WHOLE diagram at 2× natural size while the viewer itself is zoomed (corner-2) with the buttons hidden on non-exportable sources, the C-56 T-005 corner pill (hover reveal + caret-only invisibility, localized labels, Edit source opening the block source, Copy as image through the shared transport, Open full screen, scope limited to mermaid/vega-lite figures), and the C-56 T-006 embedded-image copy (the image-toolbar Copy image button between edit and the alignment buttons and the context-menu Copy Image item writing the PNG bytes — local file:// images through the read-binary bridge with exact-byte PNG pass-through, JPEG re-encoded on a canvas at natural size, and a broken read showing the failure notice with nothing written).
+//   SCOPE: diagram-export.spec.ts only; boots the built renderer via the tauri shim with mocked preferences (same bootstrap as pele-render.spec.ts) and per-test __mockInvoke overrides for the context-menu popup, the clipboard image write, the dialog save, the binary/text fs writes and the binary fs read.
 //   DEPENDS: @playwright/test, tests/e2e/fixtures/tauri-shim (installTauriShim + the C-56 defaults).
-//   LINKS: .grace/changes/active/C-56 R-1..R-7 (corners 1-6) and T-005 (the corner pill); .grace/verification/runtime.xml V-M-012 scenario-63 and scenario-64; unit twins tests/renderer/muya/diagram-export.test.js + block-toolbar.test.js; src/muya/lib/utils/diagramExport.js; editor.vue handleDiagramExportAction; ui/blockViewer export toolbar; muya renderBlockToolbar/clickEvent START_BLOCK_TOOLBAR_CLICK.
+//   LINKS: .grace/changes/active/C-56 R-1..R-7 (corners 1-6), T-005 (the corner pill) and T-006 (embedded-image copy); .grace/verification/runtime.xml V-M-012 scenario-63, scenario-64 and scenario-65; unit twins tests/renderer/muya/diagram-export.test.js + block-toolbar.test.js + image-copy.test.js; src/muya/lib/utils/diagramExport.js; editor.vue handleDiagramExportAction + handleImageCopyAction; ui/blockViewer export toolbar; muya renderBlockToolbar/clickEvent START_BLOCK_TOOLBAR_CLICK; ui/imageToolbar Copy image button.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT
@@ -26,7 +26,14 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.1.0 - 2026-10-18 C-56 T-005: the zoomed-viewer case
+//   LAST_CHANGE: v1.2.0 - 2026-10-18 C-56 T-006: the START_BLOCK_EXPORT_
+//   E2E_IMAGE_COPY group — the image toolbar's Copy image button (position
+//   between edit and the alignment buttons, exact-byte PNG pass-through
+//   for a local file:// image through the read-binary bridge), the
+//   context-menu Copy Image item (img targets only), JPEG → PNG canvas
+//   re-encode at natural size, and the broken-read failure notice with
+//   nothing written and no unhandled rejection.
+//   v1.1.0 - 2026-10-18 C-56 T-005: the zoomed-viewer case
 //   opens the viewer through the pill's expand action (the standalone
 //   glyph no longer exists on mermaid figures), the saved-SVG case also
 //   pins no ag-block-toolbar chrome, and a new START_BLOCK_EXPORT_E2E_
@@ -682,4 +689,190 @@ ${Array.from({ length: 12 }, (_, i) => `| value ${i + 1}`).join('')} |
     }
   })
   // END_BLOCK_EXPORT_E2E_TOOLBAR
+
+  // START_BLOCK_EXPORT_E2E_IMAGE_COPY
+  // C-56 T-006: Copy image for embedded ![](…) images. Local file:// srcs
+  // exercise the real read-binary bridge end to end — the mt_fs_read_binary
+  // mock serves genuine canvas-encoded bytes, so the display <img> loads
+  // through the very blob: URL the transport will fetch on copy.
+  // T-006 helpers (scoped to this describe):
+  //   IMAGE_DOC - markdown with a file:// ![](…) image (the T-006 embedded-image fixtures).
+  //   preloadImageBytes - real 24×16 PNG/JPEG bytes served by an mt_fs_read_binary mock installed before the document loads ('once' = later reads fail).
+  //   imageToolbarOf - the open ag-image-toolbar float of a loaded image.
+  //   copyViaToolbar - clicks the image, waits for its float toolbar, clicks the Copy image item.
+  const IMAGE_DOC = (src: string) => `# Embedded Image Doc
+
+A paragraph before the image.
+
+![the shot](${src})
+
+A paragraph after the image.
+`
+
+  // Real in-page image bytes: a canvas-drawn PNG (24×16).
+  // Real 24×16 image bytes (PNG / JPEG), served by an mt_fs_read_binary
+  // mock installed BEFORE the document loads — the display read happens at
+  // render time, so a mock installed afterwards would miss it and muya would
+  // drop the failed image. mode 'once' = reads work until the test sets
+  // window.__breakReads (the file vanished between display and copy).
+  const PNG_B64 = 'iVBORw0KGgoAAAANSUhEUgAAABgAAAAQCAIAAACDRijCAAAAIklEQVR4nGO8E6XBQA3ARBVTGEYNIgaMGkQYjBpEGAw+gwCIwgF+UG8j1wAAAABJRU5ErkJggg=='
+  const JPEG_B64 = '/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgNDRgyIRwhMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjL/wAARCAAQABgDASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwCKiiivlT70KKKKAP/Z'
+  async function preloadImageBytes (page: Page, kind: 'png' | 'jpeg', mode: 'always' | 'once' = 'always') {
+    await page.addInitScript(([b64, m]: [string, string]) => {
+      const bin = atob(b64)
+      const bytes = new Uint8Array(bin.length)
+      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i)
+      const w = window as any
+      w.__imgBytes = bytes
+      w.__readBinaryCalls = []
+      w.__mockInvoke = {
+        ...(w.__mockInvoke || {}),
+        mt_fs_read_binary: (args: any) => {
+          w.__readBinaryCalls.push(args && args.path)
+          if (m === 'once' && w.__breakReads) throw new Error('the file disappeared')
+          return bytes
+        }
+      }
+    }, [kind === 'png' ? PNG_B64 : JPEG_B64, mode] as [string, string])
+  }
+
+  // The floating image toolbar of the (loaded) document image.
+  const imageToolbarOf = (page: Page) =>
+    page.locator('.ag-float-container.ag-image-toolbar').first()
+
+  // Clicks the image, waits for its float toolbar and clicks the Copy
+  // image item.
+  async function copyViaToolbar (page: Page) {
+    await page.locator('span.ag-inline-image img').first().click()
+    const toolbar = imageToolbarOf(page)
+    await toolbar.waitFor({ state: 'visible', timeout: 5_000 })
+    await toolbar.locator('li.item.copyImage').click()
+  }
+
+  test('embedded image: the toolbar gains Copy image between edit and the align buttons; the local PNG bytes pass through exactly', async ({ page }) => {
+    await preloadImageBytes(page, 'png')
+    await bootstrapWithMarkdown(page, IMAGE_DOC('file:///tmp/mark-e2e-assets/shot.png'))
+    await mockClipboardImage(page)
+
+    // The image loads through the read-binary bridge.
+    await page.locator('span.ag-inline-image img').first()
+      .waitFor({ state: 'visible', timeout: 10_000 })
+    await expect
+      .poll(() => page.evaluate(() => (window as any).__readBinaryCalls.length))
+      .toBeGreaterThan(0)
+
+    // Click the image: the float toolbar opens with Copy image between
+    // edit and the alignment buttons, tooltip localized.
+    await page.locator('span.ag-inline-image img').first().click()
+    const toolbar = imageToolbarOf(page)
+    await toolbar.waitFor({ state: 'visible', timeout: 5_000 })
+    const order = await toolbar.evaluate((el) =>
+      Array.from(el.querySelectorAll('li')).map((li) => (li as HTMLElement).dataset.tip)
+    )
+    const editAt = order.indexOf('Edit Image')
+    const copyAt = order.indexOf('Copy Image')
+    const inlineAt = order.indexOf('Inline Image')
+    expect(editAt).toBeGreaterThanOrEqual(0)
+    expect(copyAt).toBe(editAt + 1)
+    expect(inlineAt).toBe(copyAt + 1)
+
+    await toolbar.locator('li.item.copyImage').click()
+
+    await expect
+      .poll(() => page.evaluate(() => (window as any).__clipImages.length), { timeout: 10_000 })
+      .toBeGreaterThan(0)
+    // Exact-byte PNG pass-through: the clipboard received the very bytes
+    // the read-binary bridge served (compared in-page, same realm).
+    const identical = await page.evaluate(() => {
+      const w = window as any
+      const a = w.__clipImages[0]
+      const b = w.__imgBytes
+      if (!a || !b || a.length !== b.length) return false
+      for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false
+      return true
+    })
+    expect(identical, 'clipboard bytes are exactly the file bytes').toBe(true)
+    await expect(page.locator('.mt-notification', { hasText: 'Copied' })).toBeVisible()
+  })
+
+  test('embedded image: the context menu gains Copy Image on an img target only', async ({ page }) => {
+    await preloadImageBytes(page, 'png')
+    await bootstrapWithMarkdown(page, IMAGE_DOC('file:///tmp/mark-e2e-assets/shot.png'))
+    await mockContextMenu(page, 'copyEmbeddedImage')
+    await mockClipboardImage(page)
+
+    await page.locator('span.ag-inline-image img').first()
+      .waitFor({ state: 'visible', timeout: 10_000 })
+
+    const items = await openContextMenuOn(page, 'span.ag-inline-image img')
+    const imageItems = items.filter((i: any) => i.id === 'copyEmbeddedImage')
+    expect(imageItems, 'Copy Image item present exactly once').toHaveLength(1)
+    expect(imageItems[0].label).toBe('Copy Image')
+
+    await expect
+      .poll(() => page.evaluate(() => (window as any).__clipImages.length), { timeout: 10_000 })
+      .toBeGreaterThan(0)
+    const identical = await page.evaluate(() => {
+      const w = window as any
+      const a = w.__clipImages[0]
+      const b = w.__imgBytes
+      if (!a || !b || a.length !== b.length) return false
+      for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false
+      return true
+    })
+    expect(identical).toBe(true)
+    await expect(page.locator('.mt-notification', { hasText: 'Copied' })).toBeVisible()
+
+    // A paragraph right-click gets no Copy Image item.
+    const plainItems = await openContextMenuOn(page, '#ag-editor-id p')
+    expect(plainItems.filter((i: any) => i.id === 'copyEmbeddedImage')).toHaveLength(0)
+  })
+
+  test('embedded image: a JPEG is re-encoded as a PNG at natural size', async ({ page }) => {
+    await preloadImageBytes(page, 'jpeg')
+    await bootstrapWithMarkdown(page, IMAGE_DOC('file:///tmp/mark-e2e-assets/photo.jpg'))
+    await mockClipboardImage(page)
+
+    await page.locator('span.ag-inline-image img').first()
+      .waitFor({ state: 'visible', timeout: 10_000 })
+
+    await copyViaToolbar(page)
+
+    await expect
+      .poll(() => page.evaluate(() => (window as any).__clipImages.length), { timeout: 10_000 })
+      .toBeGreaterThan(0)
+    // The clipboard bytes are a PNG of the JPEG's natural size (24×16) —
+    // the canvas re-encode, not the original JPEG stream.
+    const ihdr = await clipboardPngIhdr(page)
+    expect(ihdr).not.toBeNull()
+    expect(ihdr).not.toEqual({ signature: 'not-png' })
+    expect(ihdr!.width).toBe(24)
+    expect(ihdr!.height).toBe(16)
+    await expect(page.locator('.mt-notification', { hasText: 'Copied' })).toBeVisible()
+  })
+
+  test('embedded image: a read that breaks after the display load shows the failure notice and writes nothing', async ({ page }) => {
+    // First read (the display load) succeeds; every later read breaks —
+    // the file vanished between display and copy.
+    await preloadImageBytes(page, 'png', 'once')
+    await bootstrapWithMarkdown(page, IMAGE_DOC('file:///tmp/mark-e2e-assets/shot.png'))
+    await mockClipboardImage(page)
+
+    await page.locator('span.ag-inline-image img').first()
+      .waitFor({ state: 'visible', timeout: 10_000 })
+
+    const pageErrors: string[] = []
+    page.on('pageerror', (err) => pageErrors.push(String(err)))
+
+    await page.evaluate(() => { (window as any).__breakReads = true })
+    await copyViaToolbar(page)
+
+    await expect(
+      page.locator('.mt-notification', { hasText: 'Could not copy the image' })
+    ).toBeVisible({ timeout: 10_000 })
+    await page.waitForTimeout(300)
+    expect(await page.evaluate(() => (window as any).__clipImages)).toHaveLength(0)
+    expect(pageErrors, 'no unhandled rejection').toHaveLength(0)
+  })
+  // END_BLOCK_EXPORT_E2E_IMAGE_COPY
 })

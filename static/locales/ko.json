@@ -264,6 +264,7 @@
       "copyAsPlainText": "일반 텍스트로 복사",
       "copyAsStructuredText": "구조화된 텍스트로 복사",
       "copyAsImage": "이미지로 복사",
+      "copyImage": "이미지 복사",
       "saveAsPng": "PNG로 저장…",
       "saveAsSvg": "SVG로 저장…",
       "selectAll": "모두 선택",
@@ -1282,12 +1283,14 @@
       },
       "toolbar": {
         "edit": "이미지 편집",
+        "copyImage": "이미지 복사",
         "inline": "인라인 이미지",
         "alignLeft": "왼쪽 정렬",
         "alignCenter": "가운데 정렬",
         "alignRight": "오른쪽 정렬",
         "delete": "이미지 삭제"
-      }
+      },
+      "copyTitle": "이미지"
     },
     "placeholders": {
       "frontMatter": "YAML 프론트 매터 입력...",

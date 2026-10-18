@@ -2,9 +2,10 @@
   overflow: visible;
   border-radius: 2px;
 }
+/* C-56 T-006: 240px → 274px for the seventh button (Copy image). */
 .ag-image-toolbar {
   height: 30px;
-  width: 240px;
+  width: 274px;
 }
 
 .ag-image-toolbar ul,
@@ -68,6 +69,11 @@
 .ag-image-toolbar li.item.edit {
   margin-right: 21px;
   margin-left: 10px;
+}
+
+/* C-56 T-006: Copy image sits between edit and the alignment buttons. */
+.ag-image-toolbar li.item.copyImage {
+  margin-right: 8px;
 }
 
 .ag-image-toolbar li.item.inline {
