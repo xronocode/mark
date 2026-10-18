@@ -56,6 +56,9 @@
     <Glob>.grace/**</Glob>
     <Glob>src/muya/lib/parser/render/renderBlock/**</Glob>
     <File>src/muya/lib/eventHandler/clickEvent.js</File>
+    <Glob>src/muya/lib/ui/imageToolbar/**</Glob>
+    <Glob>src/muya/lib/assets/pngicon/**</Glob>
+    <Glob>src/renderer/src/util/**</Glob>
     <File>src/muya/lib/assets/styles/index.css</File>
   </ObservedWriteScope>
   <CornerMatrix>
@@ -125,6 +128,17 @@
       </AcceptanceCriteria>
       <Verification><Command>npx playwright test tests/e2e/diagram-export.spec.ts tests/e2e/block-viewer.spec.ts --project=chromium --project=webkit</Command></Verification>
     </T-005>
+    <T-006>
+      <Title>Copy image for embedded Markdown images (user request 2026-10-18): an already-inserted ![](…) image can be put back on the clipboard as a picture — image toolbar button + editor context-menu item</Title>
+      <DependsOn>T-002</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>Entry points: (a) the muya image toolbar (ui/imageToolbar) gains a "Copy image" button (same icon family as the T-005 copy glyph, tooltip localized) between edit and the alignment buttons; (b) right-clicking an image in the editor adds "Copy Image" to the native context menu (only when the target is an img inside the editor; the existing items stay).</Criterion>
+        <Criterion>Bytes: local images (absolute/relative paths, file://, asset: URLs) are read through the existing renderer fs read-binary path (no new fs scope); PNG bytes go to clipboard writeImage as-is; JPEG/WebP/GIF/SVG/other are drawn to a canvas at natural size and encoded as PNG first; remote http(s) images are fetched and converted the same way — a CORS-tainted or failed load shows the existing failure notice ("Could not copy the image") with a log marker, never an unhandled rejection. Success shows the T-002 "Copied" toast.</Criterion>
+        <Criterion>Strings in ten locales (+ min.json), native copy. No new capabilities beyond T-002's clipboard-manager:allow-write-image.</Criterion>
+        <Criterion>Tests: unit (source resolution: local path / relative to the document / asset URL / data: URL / remote; PNG pass-through vs canvas conversion), e2e chromium + webkit (toolbar button and context-menu item write PNG bytes to the clipboard mock; a broken image shows the failure notice).</Criterion>
+      </AcceptanceCriteria>
+      <Verification><Command>npx playwright test tests/e2e/diagram-export.spec.ts --project=chromium --project=webkit</Command></Verification>
+    </T-006>
   </ImplementationPlan>
   <Evidence>
     <T-001>
