@@ -20,7 +20,10 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: 2026-10-15 v1.2.0 - C-49: file.zoom describe replaced by the
+//   LAST_CHANGE: 2026-10-18 v1.3.0 - C-61: file.print no longer emits
+//   showExportDialog('print') — it routes to editorStore.PRINT_DOCUMENT
+//   (direct native panel); the editor store mock gains the action.
+//   2026-10-15 v1.2.0 - C-49: file.zoom describe replaced by the
 //   unified zoom trio (view.zoom-in/out/actual-size → preferences
 //   ZOOM_STEP/ZOOM_ACTUAL_SIZE) + a retirement pin for file.zoom*.
 //   2026-09-22 v1.1.0 - C-17: edit.format-document (Shift+Alt+F), view.problems, view.toggle-markdown-lint registry cases.
@@ -98,7 +101,7 @@ vi.mock('@/store/project', () => ({
   })
 }))
 
-const editorStoreMock = { currentFile: null }
+const editorStoreMock = { currentFile: null, PRINT_DOCUMENT: vi.fn() }
 vi.mock('@/store/editor', () => ({
   useEditorStore: () => editorStoreMock
 }))
@@ -154,9 +157,11 @@ describe('commands/index — deep coverage', () => {
       expect(bus.emit).toHaveBeenCalledWith('mt::editor-ask-file-save-as')
     })
 
-    it('file.print emits showExportDialog with "print"', async () => {
+    it('file.print routes straight to PRINT_DOCUMENT — never showExportDialog (C-61)', async () => {
       await findCmd('file.print').execute()
-      expect(bus.emit).toHaveBeenCalledWith('showExportDialog', 'print')
+      expect(editorStoreMock.PRINT_DOCUMENT).toHaveBeenCalledTimes(1)
+      const exportDialogCalls = bus.emit.mock.calls.filter((c) => c[0] === 'showExportDialog')
+      expect(exportDialogCalls).toHaveLength(0)
     })
 
     it('file.close-window calls tauri window close', async () => {

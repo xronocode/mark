@@ -7,7 +7,7 @@
       custom-class="ag-dialog-table"
       width="500px"
     >
-      <h3>{{ t('exportSettings.title') }}</h3>
+      <h3>{{ exportType === 'pdf' ? t('exportSettings.pdfTitle') : t('exportSettings.title') }}</h3>
       <el-tabs v-model="activeName">
         <el-tab-pane :label="t('exportSettings.info.label')" name="info">
           <span class="text">{{ t('exportSettings.info.description') }}</span>
@@ -23,13 +23,47 @@
             ></text-box>
           </div>
 
-          <!-- PDF/Print -->
+          <!-- PDF -->
           <div v-if="isPrintable">
-            <!-- C-18: page size/orientation are owned by the native print
-                 panel now (the old controls were dead weight); page MARGINS
-                 below still apply via @page CSS. -->
-            <div v-if="exportType === 'pdf'" class="row">
-              <div class="description">{{ t('exportSettings.page.printPanelHint') }}</div>
+            <!-- C-61: the dialog is pdf-only now (⌘P goes straight to the
+                 print panel). Page size/orientation/margins feed
+                 mt_export_pdf's pageOptions — the saved PDF's page box —
+                 and the shared @page CSS. -->
+            <div class="row">
+              <cur-select
+                :description="t('exportSettings.page.pageSize')"
+                :value="pageSize"
+                :options="pageSizeList"
+                :on-change="(value) => onSelectChange('pageSize', value)"
+              ></cur-select>
+            </div>
+
+            <div class="row">
+              <bool
+                :description="t('exportSettings.page.landscapeOrientation')"
+                :bool="isLandscape"
+                :on-change="(value) => onSelectChange('isLandscape', value)"
+              ></bool>
+            </div>
+
+            <div v-if="pageSize === 'custom'" class="row">
+              <div class="description">{{ t('exportSettings.page.widthHeight') }}</div>
+              <div>
+                <el-input-number
+                  v-model="pageSizeWidth"
+                  size="mini"
+                  controls-position="right"
+                  :min="10"
+                  :max="2000"
+                ></el-input-number>
+                <el-input-number
+                  v-model="pageSizeHeight"
+                  size="mini"
+                  controls-position="right"
+                  :min="10"
+                  :max="2000"
+                ></el-input-number>
+              </div>
             </div>
 
             <div class="row">
@@ -235,6 +269,11 @@
 </template>
 
 <script setup>
+// C-61: this dialog is pdf-only — ⌘P no longer opens it (file.print goes
+// straight to the native panel via editorStore.PRINT_DOCUMENT). The title
+// reads "Export to PDF" for pdf; page size/orientation/custom dimensions
+// are back so mt_export_pdf gets a real page box; margins below still
+// feed the shared @page CSS and the WebView2 print settings.
 import { ref, onMounted, onBeforeUnmount } from 'vue'
 // step-8a: removed `import fs from 'fs'` and `import fsPromises from
 // 'fs/promises'` — direct Node-core imports gone from the production
@@ -389,6 +428,8 @@ const onSelectChange = (key, value) => {
   const state = {
     htmlTitle,
     pageSize,
+    pageSizeWidth,
+    pageSizeHeight,
     isLandscape,
     fontSettingsOverwrite,
     fontFamily,

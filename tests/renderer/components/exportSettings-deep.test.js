@@ -333,6 +333,12 @@ describe('exportSettings/index.vue — deep coverage', () => {
       wrapper.vm.onSelectChange('pageSize', 'Letter')
       expect(wrapper.vm.pageSize).toBe('Letter')
 
+      wrapper.vm.onSelectChange('pageSizeWidth', 220)
+      expect(wrapper.vm.pageSizeWidth).toBe(220)
+
+      wrapper.vm.onSelectChange('pageSizeHeight', 300)
+      expect(wrapper.vm.pageSizeHeight).toBe(300)
+
       wrapper.vm.onSelectChange('isLandscape', true)
       expect(wrapper.vm.isLandscape).toBe(true)
 

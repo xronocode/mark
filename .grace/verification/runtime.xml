@@ -11881,27 +11881,79 @@
     <V-M-052>
       <Priority>high</Priority>
       <Commands>
+        <Command>cd src-tauri &amp;&amp; cargo test m052</Command>
         <Command>cd src-tauri &amp;&amp; cargo check</Command>
         <Command>
           npx vitest run tests/renderer/components/editor-coverage.test.js
+          tests/renderer/components/editor-print-clearup.test.js
           tests/renderer/store/editor.test.ts
           tests/renderer/store/editor-coverage.test.js
           tests/renderer/store/editor-deep.test.js
           tests/renderer/commands/capability-gate.test.js
+          tests/renderer/commands/index-deep.test.js
+        </Command>
+        <Command>
+          npx playwright test tests/e2e/print-export.spec.ts --project=chromium
+          --project=webkit
+        </Command>
+        <Command>
+          Windows CI compile gate: cargo check --target x86_64-pc-windows-msvc
+          (test.yml windows job) — the webview2-com print surface must build.
         </Command>
       </Commands>
       <Scenarios>
         <Scenario>
           scenario-1: mt_print_webview opens the native WKWebView print
-          panel for the caller window (wry printOperationWithPrintInfo,
-          macOS 11+) — pinned by renderer invoke tests (print case + PDF
-          export path) and the compile/registration gate; no eager
-          print-container clearup so the styled content survives into the
-          panel. Live WKWebView smoke checklist: Print and Export-PDF both
-          open the panel; "Save as PDF" produces a styled, paginated PDF;
-          works in app-store builds.
+          panel for the caller window directly from ⌘P (C-61 R-1: no
+          export-settings dialog on the print path). macOS drives the
+          print operation itself and resolves the invoke only after the
+          panel closes, so the renderer clears the print container then
+          (editor-print-clearup.test.js); Windows opens the WebView2
+          browser print UI instead of erroring macOS-only and keeps the
+          container for the live preview (editor-coverage.test.js).
+        </Scenario>
+        <Scenario>
+          scenario-2: mt_export_pdf writes the styled print container to
+          the save-dialog path silently (C-61 R-2/R-3/R-4): store tests pin
+          save dialog (pdf filter, document/first-heading/Untitled default
+          name) → invoke('mt_export_pdf', path, pageOptions) with
+          mt_print_webview NEVER invoked; save-cancel writes nothing and
+          notifies nobody; editor.vue clears the container on every
+          outcome (corner-2). e2e print-export.spec.ts pins the
+          invoke-order trace: pdf = plugin:dialog|save then mt_export_pdf
+          and zero mt_print_webview; print = mt_print_webview only, no
+          dialog.
+        </Scenario>
+        <Scenario>
+          scenario-3: pure mapping (cargo test m052, every platform):
+          page_geometry resolves named sizes case-insensitively
+          (a3/a4/a5/legal/letter/taboloid), "custom"/absent names use the
+          explicit mm pair (A4 default), rejects unknown names and
+          out-of-range 10-2000 mm sizes, clamps negative margins to zero,
+          defaults to the dialog margins 20/15/20/15; landscape A4 swaps
+          the paper points (595.28×841.89 → 841.89×595.28, corner-7);
+          camelCase PdfPageOptions deserialization incl. the empty object;
+          validate_pdf_path rejects empty and non-.pdf paths, accepts
+          uppercase .PDF (R-6).
+        </Scenario>
+        <Scenario>
+          scenario-4 (live smoke, macOS, user): ⌘P shows only the print
+          panel; Export to PDF shows settings → save dialog → a paginated
+          PDF on disk with the chosen page size/orientation, no print
+          panel; Windows check via the CI-built installer before release
+          (ShowPrintUI + PrintToPdf paths).
         </Scenario>
       </Scenarios>
+      <Markers>
+        <Marker>[m052][mt_print_webview][BLOCK_PRINT_PANEL_OPENED]</Marker>
+        <Marker>[m052][mt_print_webview][BLOCK_PRINT_PANEL_CLOSED]</Marker>
+        <Marker>[m052][mt_print_webview][BLOCK_PRINT_UI_OPENED kind=browser]</Marker>
+        <Marker>[m052][mt_export_pdf][BLOCK_PDF_WRITE_STARTED path=… landscape=…]</Marker>
+        <Marker>[m052][mt_export_pdf][BLOCK_PDF_WRITTEN path=…]</Marker>
+        <Marker>[m052][mt_export_pdf][BLOCK_PDF_WRITE_FAILED reason=…]</Marker>
+        <Marker>[m052][mt_export_pdf][BLOCK_PDF_DISPATCH_FAILED reason=…]</Marker>
+        <Marker>[editor][print][BLOCK_PRINT_REQUESTED]</Marker>
+      </Markers>
     </V-M-052>
     <V-M-057>
       <Priority>medium</Priority>
