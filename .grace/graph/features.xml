@@ -2610,32 +2610,62 @@
         gallery renders site/gallery/examples.mjs through pele at build time
         into inline SVGs recoloured live by --pele-* variables derived from
         the app's own theme CSS via muya's buildPeleVariables
-        (site/gallery/theme-vars.json, regenerated on every build).
+        (site/gallery/theme-vars.json, regenerated on every build). C-64
+        T-003 adds the SEO/consent/security layer: the shared head carries
+        apple-itunes-app, the brand theme-color pair, strict referrer,
+        hreflang en + x-default, the 1200x630 og-card.png and a JSON-LD
+        @graph (SoftwareApplication with softwareVersion from the root
+        package.json + WebSite; docs pages get docsHeadTags with WebSite
+        only); GA4 loads consent.js (Consent Mode v2, geo gate, card shown
+        only after the [data-consent-after] hero leaves the viewport) plus
+        track.js (consent-gated download_click / share_to_mac via
+        window.markTrack); buildEnd also emits llms.txt and
+        .well-known/security.txt (site/scripts/seo-files.mjs) and rewrites
+        every built page with a meta CSP pinning each inline script by its
+        exact-content sha256 (site/scripts/csp.mjs: cspFor / injectCsp /
+        applyCsp / verifyCsp; check-dist fails on a tampered script);
+        site/scripts/og-card.mjs regenerates the OG card PNG from
+        site/og/card.html with Playwright.
       </Summary>
         <Path>site/.vitepress/config.mts</Path>
         <Path>site/.vitepress/landing.mjs</Path>
         <Path>site/scripts/build-gallery.mjs</Path>
         <Path>site/scripts/gallery-theme-vars.mjs</Path>
         <Path>site/scripts/check-dist.mjs</Path>
+        <Path>site/scripts/csp.mjs</Path>
+        <Path>site/scripts/seo-files.mjs</Path>
+        <Path>site/scripts/og-card.mjs</Path>
+        <Path>site/og/card.html</Path>
         <Path>site/gallery/examples.mjs</Path>
         <Path>site/gallery/theme-vars.json</Path>
         <Path>site/landing/index.html</Path>
         <Path>site/public/consent.js</Path>
+        <Path>site/public/track.js</Path>
       <Dependencies></Dependencies>
       <VerificationRef>V-M-053</VerificationRef>
       <Interface>
         <fn-resolveSiteSettings>env -> siteUrl/base/analytics</fn-resolveSiteSettings>
-        <fn-sharedHeadTags>settings + page {path,title,description} -> shared head HTML</fn-sharedHeadTags>
+        <fn-appVersion>memoized root package.json version (one source for softwareVersion)</fn-appVersion>
+        <fn-sharedHeadTags>settings + page {path,title,description} -> shared head HTML (SEO set + JSON-LD + analytics)</fn-sharedHeadTags>
+        <fn-docsHeadTags>settings -> VitePress HeadConfig list (banner, theme pair, referrer, WebSite JSON-LD)</fn-docsHeadTags>
+        <fn-jsonLd>settings + page -> JSON-LD @graph body with '&lt;' escaped</fn-jsonLd>
         <fn-renderPage>template + settings + page meta -> servable static page</fn-renderPage>
         <fn-renderLanding>landing template -> served root page</fn-renderLanding>
         <fn-deriveThemeVars>app theme CSS files -> gallery theme table (16 --pele-* keys + page + dark per theme)</fn-deriveThemeVars>
         <fn-renderGallery>settings -> /diagrams/ page (build-time pele SVGs, theme strip, slideshow, fullscreen show)</fn-renderGallery>
-        <fn-checkDist>fail the build on unresolved internal links, leftover tokens, or an incomplete gallery page</fn-checkDist>
+        <fn-llmsTxt>settings -> llms.txt body (install paths + docs map, absolute URLs)</fn-llmsTxt>
+        <fn-securityTxt>settings + now -> RFC 9116 body (365-day expiry)</fn-securityTxt>
+        <fn-cspFor>html + analytics -> meta CSP string with a sha256 per inline script, provider hosts toggled by config</fn-cspFor>
+        <fn-injectCsp>html + opts -> html with the CSP meta as the first child of head (idempotent)</fn-injectCsp>
+        <fn-applyCsp>outDir + opts -> rewrite every built .html with its policy, {files, hashes}</fn-applyCsp>
+        <fn-verifyCsp>html -> inline script hashes missing from the page's own CSP meta</fn-verifyCsp>
+        <fn-checkDist>fail the build on unresolved internal links, leftover tokens, an incomplete gallery page, a missing/broken SEO set, or an unpinned inline script</fn-checkDist>
       </Interface>
       <ChangeRefs>
         <C-14/>
         <C-22/>
         <C-58/>
+        <C-64/>
       </ChangeRefs>
     </M-053>
     <M-054>
