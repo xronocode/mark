@@ -405,7 +405,7 @@ h2 {
   font-size: 10.5px; letter-spacing: 0; padding: 0 5px; font-weight: 600;
 }
 .feat p { margin: 0; font: 600 15px/1.3 var(--body); }
-.feat p span { display: block; font: 400 13px/1.45 var(--body); color: var(--mute); margin-top: 3px; }
+.feat p span { display: none; font: 400 13px/1.45 var(--body); color: var(--mute); margin-top: 3px; }
 
 /* ---------- sections ---------- */
 .sec { padding-block: 36px; border-top: 1px solid var(--rule); }
@@ -475,7 +475,7 @@ h2 {
 }
 .wallgrid::-webkit-scrollbar { display: none; }
 .cell {
-  flex: none; width: 82%; height: 300px; scroll-snap-align: center;
+  flex: none; width: 82%; height: 260px; scroll-snap-align: center;
   min-width: 0; background: var(--pele-bg, var(--card)); border-radius: 12px;
   padding: 12px 14px 10px; display: grid; grid-template-rows: auto 1fr; gap: 6px;
   transition: background .5s; overflow: hidden;
@@ -548,7 +548,8 @@ h2 {
   padding: 14px; display: grid; gap: 10px; align-content: start;
 }
 .card-i h3 { font: 700 17px/1.2 var(--display); letter-spacing: -.01em; }
-.card-i .btn { width: 100%; }
+.card-i .btn { width: 100%; flex: none; }
+.stats .opt { display: none; }
 .card-i p { margin: 0; color: var(--mute); font-size: 14px; line-height: 1.55; }
 .card-i p a { color: var(--ink); }
 .card-i code { font: 500 .9em var(--mono); color: var(--ink); background: var(--chip); padding: 1px 5px; border-radius: 5px; overflow-wrap: anywhere; }
@@ -571,6 +572,7 @@ h2 {
 @media (min-width: 521px) {
   .more { display: inline; }
   .opt { display: block; }
+  .stats .opt { display: grid; }
   .sec { padding-block: clamp(44px, 7vw, 84px); }
   .facts { padding-block: 22px 34px; }
   .nav { display: flex; }
@@ -592,7 +594,7 @@ h2 {
   .md th, .md td { padding: 6px 10px; }
   .lab { font-size: 11px; }
   .feat p { font-size: 17px; }
-  .feat p span { font-size: 14.5px; }
+  .feat p span { display: block; font-size: 14.5px; }
   .agents-grid { grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); gap: 40px; align-items: start; margin-top: 30px; }
   .prompt summary { display: none; }
   .themes { overflow: visible; margin-inline: 0; padding-inline: 0; flex-wrap: wrap; margin-top: 22px; }
