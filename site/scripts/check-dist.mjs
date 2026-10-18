@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // FILE: site/scripts/check-dist.mjs
-// VERSION: 1.3.0
+// VERSION: 1.4.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Gate the built site before deploy — every internal link/asset in
 //            every dist HTML page must resolve to a file in dist, and the
@@ -35,7 +35,8 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: [v1.3.0 - 2026-10-18 C-64 T-006: the llms.txt gate pins the
+//   LAST_CHANGE: [v1.4.0 - 2026-10-18 C-64 T-007: the track.js gate accepts the ?v= content-hash query]
+//   PREV: [v1.3.0 - 2026-10-18 C-64 T-006: the llms.txt gate pins the
 //                 canonical tap-free one-liner "brew install --cask
 //                 xronocode/mark/mark" (F-1).]
 //   PREV: [v1.2.0 - 2026-10-18 C-64 T-003: new BLOCK_CHECK_SEO and
@@ -214,7 +215,7 @@ function main () {
       seoProblems.push(`index.html softwareVersion ${app.softwareVersion} != package.json ${appVersion()}`)
     }
     const hasGa4 = analytics.some((a) => a.provider === 'ga4')
-    const hasTrack = /<script\b[^>]*\ssrc="[^"]*track\.js"/.test(landingHtml)
+    const hasTrack = /<script\b[^>]*\ssrc="[^"]*track\.js(\?v=[0-9a-f]+)?"/.test(landingHtml)
     if (hasGa4 !== hasTrack) seoProblems.push(hasTrack ? 'track.js present without GA4 configured' : 'track.js missing while GA4 is configured')
   } else {
     seoProblems.push('missing index.html')
