@@ -569,6 +569,7 @@
         "autoPairMarkdownSyntax": "Fermer automatiquement les marqueurs markdown",
         "autoPairQuote": "Fermer automatiquement les guillemets",
         "autoCheck": "Cocher les tâches d'un clic",
+        "autoCheckUpdates": "Rechercher automatiquement les mises à jour",
         "hideQuickInsertHint": "Masquer l'indice d'insertion sur les lignes vides",
         "hideLinkPopup": "Masquer l'aperçu des liens",
         "textDirection": "Direction du texte",
@@ -650,7 +651,9 @@
       "updates": {
         "title": "Mises à jour",
         "help": "Recherche en ligne une version plus récente et l'installe.",
-        "check": "Rechercher des mises à jour"
+        "check": "Rechercher des mises à jour",
+        "autoCheck": "Rechercher automatiquement les mises à jour",
+        "autoCheckHelp": "Cherche une nouvelle version une fois par jour au lancement de Mark et l'annonce discrètement."
       }
     },
     "appearance": {
@@ -1422,6 +1425,12 @@
     "noBaseline": "Aucune version de base trouvée pour ce fichier.",
     "sourceSnapshot": "Avant le dernier enregistrement externe · {time}",
     "sourcePrevious": "Version précédente"
+  },
+  "updateNotice": {
+    "title": "Mark {version} est disponible",
+    "update": "Mettre à jour",
+    "later": "Plus tard",
+    "skip": "Ignorer cette version"
   },
   "whatsNew": {
     "eyebrow": "Mark {version}",

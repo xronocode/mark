@@ -565,6 +565,7 @@
         "autoPairMarkdownSyntax": "Markdown-Marker automatisch schließen",
         "autoPairQuote": "Anführungszeichen automatisch schließen",
         "autoCheck": "Aufgaben per Klick abhaken",
+        "autoCheckUpdates": "Automatisch nach Updates suchen",
         "hideQuickInsertHint": "Einfügehinweis in leeren Zeilen ausblenden",
         "hideLinkPopup": "Linkvorschau ausblenden",
         "textDirection": "Textrichtung",
@@ -646,7 +647,9 @@
       "updates": {
         "title": "Updates",
         "help": "Prüft online auf eine neuere Version und installiert sie.",
-        "check": "Nach Updates suchen"
+        "check": "Nach Updates suchen",
+        "autoCheck": "Automatisch nach Updates suchen",
+        "autoCheckHelp": "Sucht beim Start von Mark einmal täglich nach einer neuen Version und zeigt leise einen Hinweis."
       }
     },
     "appearance": {
@@ -1418,6 +1421,12 @@
     "noBaseline": "Für diese Datei wurde keine Ausgangsversion gefunden.",
     "sourceSnapshot": "Vor der letzten externen Speicherung · {time}",
     "sourcePrevious": "Vorherige Version"
+  },
+  "updateNotice": {
+    "title": "Mark {version} ist verfügbar",
+    "update": "Aktualisieren",
+    "later": "Später",
+    "skip": "Diese Version überspringen"
   },
   "whatsNew": {
     "eyebrow": "Mark {version}",

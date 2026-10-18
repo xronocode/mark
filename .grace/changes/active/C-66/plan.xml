@@ -69,5 +69,53 @@
       <Verification><Command>grace lint --path . --assertions current</Command></Verification>
     </T-003>
   </ImplementationPlan>
+  <Evidence>
+    <T-001-Note>
+      store/autoUpdates.js v1.0.0 (was a dead shell): exported pure gates
+      evaluateAutoUpdateGate / evaluateUpdateNotice + CHECK_INTERVAL_MS (24 h)
+      + the three prefs keys; Pinia actions RUN_LAUNCH_CHECK (injectable
+      ipcPrefs facade / invoker / clock / build+deferral inputs), DISMISS_NOTICE,
+      SKIP_VERSION, INSTALL_UPDATE. Decision table, orchestration and actions
+      pinned by tests/renderer/store/autoUpdates.test.js (offline rejection and
+      statusNote answers stay silent with lastUpdateCheckAt unstamped; a
+      skipped version stamps but never shows; exactly-24 h is due again).
+      Commands run by the orchestrator — vitest results pending in CI.
+    </T-001-Note>
+    <T-002-Note>
+      components/updateNotice/index.vue v1.0.0 (corner toast, theme CSS
+      variables, role=status) rendering the store notice with Update / Later /
+      Skip this version; pages/app.vue mounts it and appends
+      START_BLOCK_C66_UPDATE_CHECK as the last step of the detached startup
+      chain (after initWhatsNew and FETCH_BUILD_MODE). The signed install flow
+      is extracted from file.check-update into the exported
+      commands/index.js installSignedUpdate (identical behaviour, own
+      «Update failed» catch) and reused by INSTALL_UPDATE — no duplicated
+      install logic; the manual command keeps its feed pre-check and never
+      consults skippedUpdateVersion (static pin added to
+      tests/renderer/commands/updater.test.js v2.2.0-beta, plus direct
+      installSignedUpdate pins).
+      tests/e2e/update-notice.spec.ts covers corner-1..corner-6 and Ink-theme
+      visibility against a mocked mt_updater_check;
+      tests/renderer/components/updateNotice.test.js pins rendering + action
+      dispatch. Playwright run by the orchestrator.
+    </T-002-Note>
+    <T-003-Note>
+      Settings: prefComponents/tabs/general v2.2.0 adds the autoCheckUpdates
+      bool row inside the updater-capability-gated Updates group (App Store
+      hides it with the group). Prefs: preferences.js v1.8.0 (autoCheckUpdates
+      default true, resettable; lastUpdateCheckAt / skippedUpdateVersion state
+      keys, not resettable), static/preference.json,
+      _shims/preferences/schema.json (switch searchable, state keys
+      --internal). All ten locales + .min.json mirrors carry
+      updateNotice.{title,update,later,skip}, preferences.general.updates.
+      autoCheck/autoCheckHelp and preferences.search.items.autoCheckUpdates
+      (native copy; inventory + mirror-sync pinned in
+      tests/renderer/components/updateNotice.test.js). Graph: runtime.xml
+      M-016 Summary/note-4 + M-011 note-12. Verification: runtime.xml V-M-016
+      scenario-8 (+2 commands, 6 markers), V-M-011 scenario-67 (+5 markers, 1
+      negative trace assertion). grace lint + live check (older build shows
+      the notice once a day; MAS never) remain for the orchestrator/user.
+    </T-003-Note>
+  </Evidence>
 </C-66>
 </GraceChangePlan>

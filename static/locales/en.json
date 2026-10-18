@@ -570,6 +570,7 @@
         "autoPairMarkdownSyntax": "Close markdown markers automatically",
         "autoPairQuote": "Close quotes automatically",
         "autoCheck": "Check off tasks with a click",
+        "autoCheckUpdates": "Check for updates automatically",
         "hideQuickInsertHint": "Hide the insert hint on empty lines",
         "hideLinkPopup": "Hide the link preview",
         "textDirection": "Text direction",
@@ -651,7 +652,9 @@
       "updates": {
         "title": "Updates",
         "help": "Checks online for a newer version and installs it.",
-        "check": "Check for updates"
+        "check": "Check for updates",
+        "autoCheck": "Check for updates automatically",
+        "autoCheckHelp": "Looks for a new version once a day when Mark starts, and shows a quiet notice."
       }
     },
     "appearance": {
@@ -1437,6 +1440,12 @@
     "noBaseline": "No baseline found for this file.",
     "sourceSnapshot": "Before the last external save · {time}",
     "sourcePrevious": "Previous version"
+  },
+  "updateNotice": {
+    "title": "Mark {version} is available",
+    "update": "Update",
+    "later": "Later",
+    "skip": "Skip this version"
   },
   "whatsNew": {
     "eyebrow": "Mark {version}",
