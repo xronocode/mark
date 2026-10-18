@@ -22,8 +22,6 @@
 // START_MODULE_MAP
 //   TEMPLATE - the landing template read from site/landing/index.html
 //   HTML - renderLanding(TEMPLATE, default settings)
-//   TAGS - every opening <a>/<button> tag in the rendered landing
-//   isInstallCta - tag looks like an App Store / brew / releases link or copy button
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
