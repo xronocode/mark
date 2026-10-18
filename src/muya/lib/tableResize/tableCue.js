@@ -21,6 +21,7 @@
 //   setTableCueTranslator - pin the module-level translator used when syncTableCue gets no t (the expandNeed resize funnel has no muya at hand).
 //   tableCueState - DOM gathering + rules for one table figure (full-width short-circuit; null on hidden panes/jsdom).
 //   syncTableCue - evaluate one figure and apply the caption text/visibility and the shade classes; returns the state.
+//   TABLE_CUE_RIGHT_CLASS - exported helper (TABLE_CUE_RIGHT_CLASS).
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY

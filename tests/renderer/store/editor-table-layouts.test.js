@@ -6,11 +6,10 @@
 //   DEPENDS: the tests/renderer/store pinia harness with the standard store mocks; util/tableLayoutStore mocked with a spy.
 //   LINKS: .grace/changes/active/C-65 R-2; .grace/verification/runtime.xml V-M-012 scenario-66; util/tableLayoutStore.js.
 //   ROLE: TEST
-//   MAP_MODE: LOCALS
+//   MAP_MODE: NONE
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
-//   moveTableLayoutsEntry - the mocked util spy the hooks must call.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY

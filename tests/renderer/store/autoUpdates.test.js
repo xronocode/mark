@@ -23,6 +23,8 @@
 //   makeFakeIpc - in-memory prefs facade (get/set) capturing set() calls.
 //   statusAvailable / statusUpToDate / statusNote - mt_updater_check answer fixtures.
 //   installSignedUpdateMock - mocked shared install flow (commands export).
+//   statusNote - test helper (statusNote).
+//   statusUpToDate - test helper (statusUpToDate).
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY

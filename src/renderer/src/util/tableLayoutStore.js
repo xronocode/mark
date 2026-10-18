@@ -24,6 +24,7 @@
 //   loadTableLayoutsFor - async: the C-65 load path — read, prune, cap, write back when the store changed, return the file's entries ({} when none).
 //   saveTableLayoutsFor - async: write the file's entries (delete the file entry when empty), never pruning (the load path owns that).
 //   moveTableLayoutsEntry - async: the R-2 rename move — entries follow the new path; a Finder move does NOT go through here.
+//   writeStore - exported helper (writeStore).
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
