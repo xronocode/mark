@@ -1,0 +1,12 @@
+<GraceChangePlan graceVersion="4.0" status="applied">
+  <C-63>
+    <IntentSummary>Add the missing WebKit CI invocation for existing C-60/C-62 tests and synchronize verification ownership.</IntentSummary>
+    <BaselineAssertions><MustContain><File>.github/workflows/test.yml</File><Text>install playwright webkit</Text></MustContain><MustContain><File>playwright.config.ts</File><Text>webkit-diagram-appearance</Text></MustContain></BaselineAssertions>
+    <TargetAssertions><MustContain><File>.github/workflows/test.yml</File><Text>npx playwright test --project webkit-footnotes --project webkit-diagram-appearance</Text></MustContain><MustPassCommand><Command>npx playwright test --project webkit-footnotes --project webkit-diagram-appearance</Command></MustPassCommand></TargetAssertions>
+    <DurableScope><GraphAnchors><M-046/></GraphAnchors><VerificationAnchors><V-M-046/></VerificationAnchors></DurableScope>
+    <ObservedWriteScope><File>.github/workflows/test.yml</File><File>.grace/graph/features.xml</File><File>.grace/verification/features.xml</File><File>.grace/graph/index.xml</File><File>.grace/verification/index.xml</File></ObservedWriteScope>
+    <ImplementationPlan><T-001><Title>Add the CI step and durable gate description</Title><DependsOn></DependsOn><AcceptanceCriteria><Criterion>Existing jobs/triggers are preserved and the two WebKit projects are explicitly enforced.</Criterion></AcceptanceCriteria><Verification><Command>npx playwright test --project webkit-footnotes --project webkit-diagram-appearance</Command></Verification></T-001></ImplementationPlan>
+    <Approval>Covered by the user's CI validation instruction; this changes verification wiring only.</Approval>
+    <Evidence><Result>Workflow YAML parses, the new step follows WebKit installation, and selected final GRACE validation passes with 0 errors. Both WebKit projects complete successfully (10 browser scenarios); all existing triggers/jobs remain present. Release/version/tag files are unchanged.</Result></Evidence>
+  </C-63>
+</GraceChangePlan>

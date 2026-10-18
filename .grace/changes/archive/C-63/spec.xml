@@ -1,0 +1,14 @@
+<GraceChangeSpec graceVersion="4.0" status="applied">
+  <C-63>
+    <Name>Gate C-60 and C-62 in WebKit CI</Name><Created>2026-10-18</Created>
+    <Summary>Run the existing footnote-options and diagram-appearance WebKit projects from the test workflow after WebKit installation.</Summary>
+    <Problem>Chromium discovers both new specs, but test.yml never invokes their WebKit projects; local engine coverage would not remain enforced remotely.</Problem>
+    <Goals><R-1>The renderer-e2e job explicitly runs both existing WebKit projects and fails when either fails.</R-1><R-2>Retain existing CI triggers, jobs and release/version/tag behavior; document the gate under M-046 and V-M-046.</R-2></Goals>
+    <Constraints><Item>No release, tag, publication or dependency/version change. Keep other active changes intact.</Item></Constraints>
+    <NonGoals><Item>No product behavior change, new test framework or implementation of C-56/C-58/C-61.</Item></NonGoals>
+    <AffectedAreas><M-046/></AffectedAreas>
+    <AcceptanceCriteria><Criterion>Workflow YAML parses; a dedicated WebKit step invokes both project names after browser installation; both projects pass locally and the GRACE target validates.</Criterion></AcceptanceCriteria>
+    <VerificationIntent><ExpectedCommand>npx playwright test --project webkit-footnotes --project webkit-diagram-appearance</ExpectedCommand></VerificationIntent>
+    <Approval>The user authorized CI validation and push after local checks for C-60/C-62; wiring their already-approved browser gates into CI is a routine verification step within that instruction. Execute sequentially.</Approval>
+  </C-63>
+</GraceChangeSpec>
