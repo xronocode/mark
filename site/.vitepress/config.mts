@@ -1,5 +1,5 @@
 // FILE: site/.vitepress/config.mts
-// VERSION: 2.5.0
+// VERSION: 2.6.0
 // START_MODULE_CONTRACT
 //   PURPOSE: VitePress config for the Mark site — docs, shared head, the
 //            landing served at the site root, and the diagram gallery at
@@ -15,7 +15,10 @@
 // END_MODULE_CONTRACT
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: [v2.5.0 - 2026-10-18 C-64 T-001: the docs wear the brand —
+//   LAST_CHANGE: [v2.6.0 - 2026-10-18 C-64 T-003 wiring: docsHeadTags in the
+//                 docs head; buildEnd emits llms.txt + .well-known/security.txt
+//                 and runs applyCsp over every built page last.]
+//   PREV: [v2.5.0 - 2026-10-18 C-64 T-001: the docs wear the brand —
 //                 theme/ extends DefaultTheme over site/shared/brand.css;
 //                 head gains the shared no-flash THEME_INIT_JS script, the
 //                 paper/ink theme-color pair and font preloads; nav is
@@ -46,6 +49,7 @@ import {
   SITE_META,
   analyticsTags,
   cnameFor,
+  docsHeadTags,
   renderLanding,
   resolveSiteSettings,
   robotsTxt
@@ -53,6 +57,8 @@ import {
 import { renderGallery } from '../scripts/build-gallery.mjs'
 import { writeThemeVarsFile } from '../scripts/gallery-theme-vars.mjs'
 import { THEME_INIT_JS } from '../shared/theme-init.mjs'
+import { applyCsp } from '../scripts/csp.mjs'
+import { llmsTxt, securityTxt } from '../scripts/seo-files.mjs'
 
 const settings = resolveSiteSettings(process.env)
 const { siteUrl, base, analytics } = settings
@@ -67,9 +73,9 @@ const head: HeadConfig[] = [
   ['script', {}, THEME_INIT_JS],
   ['style', {}, '.vp-doc div[class*=language-] > span.lang{color:var(--vp-c-text-2)}'],
   ['link', { rel: 'icon', type: 'image/png', href: `${base}${SITE_META.favicon}` }],
-  // Paper in light, ink in dark — the browser chrome matches the page.
-  ['meta', { name: 'theme-color', content: '#F5EFE4', media: '(prefers-color-scheme: light)' }],
-  ['meta', { name: 'theme-color', content: '#17191E', media: '(prefers-color-scheme: dark)' }],
+  // C-64 T-003: App Store banner (Safari/macOS), paper/ink theme-color
+  // pair, strict referrer, WebSite JSON-LD.
+  ...(docsHeadTags(settings) as HeadConfig[]),
   ['meta', { property: 'og:type', content: 'website' }],
   ['meta', { property: 'og:site_name', content: SITE_META.name }],
   ['meta', { property: 'og:image', content: `${siteUrl}/${SITE_META.ogImage}` }],
@@ -156,6 +162,13 @@ export default defineConfig({
     const vars = writeThemeVarsFile(fileURLToPath(new URL('../gallery', import.meta.url)))
     console.log(`[SiteBuild][buildEnd][BLOCK_BUILD_END] landing written siteUrl=${siteUrl} base=${base} cname=${cname ? cname.trim() : 'none'} analytics=${analytics.map((a) => a.provider).join('+') || 'off'}`)
     console.log(`[SiteBuild][buildEnd][BLOCK_BUILD_END] gallery written path=${base}diagrams/ themes=${vars.themes} themeVarsChanged=${vars.changed}`)
+    // C-64 T-003: llms.txt + security.txt, then the meta CSP — last, so
+    // every page (docs, landing, gallery, 404) is on disk and gets pinned.
+    writeFileSync(join(outDir, 'llms.txt'), llmsTxt(settings))
+    mkdirSync(join(outDir, '.well-known'), { recursive: true })
+    writeFileSync(join(outDir, '.well-known', 'security.txt'), securityTxt(settings, new Date()))
+    const csp = applyCsp(outDir, { analytics })
+    console.log(`[SiteBuild][buildEnd][BLOCK_BUILD_END] seo+csp files=${csp.files} inlineScripts=${csp.hashes}`)
   },
   // END_BLOCK_BUILD_END
 

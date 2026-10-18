@@ -10,7 +10,7 @@
 /*          dark set, typography tokens + scale, spacing/radius tokens,
 /*          the .hl marker highlight, the link treatment. No component CSS.
 /*   DEPENDS: site/public/fonts/brand/*.woff2 (moved there from
-/*            site/public/fonts/gallery/ — the five brand faces)
+/*            site/public/fonts/brand/ — the five brand faces)
 /*   LINKS: .grace/changes/active/C-64 R-1, D-3; .grace/graph/features.xml
 /*          M-053; site/.vitepress/theme/custom.css (VitePress mapping);
 /*          site/scripts/build-gallery.mjs (inline consumer)
