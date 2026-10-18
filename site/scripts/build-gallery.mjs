@@ -1,34 +1,43 @@
 // FILE: site/scripts/build-gallery.mjs
-// VERSION: 1.0.0
+// VERSION: 2.0.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Build the site's /diagrams/ page — every Pele diagram type
 //            rendered at build time into inline SVG, recoloured live by
-//            any of Mark's themes (the approved C-58 prototype as a site
-//            page in the site's own brand).
+//            any of Mark's themes, wearing the shared ¶ paper/ink/marker
+//            brand (site/shared/brand.css inlined at build time) with the
+//            same no-flash theme choice as the docs (C-64 R-1/R-2).
 //   SCOPE: render site/gallery/examples.mjs through pele (unique idPrefix
 //          per card), pack cards (wide diagrams span the row), emit the
-//          theme strip / filters / slideshow / fullscreen show controller
-//          (one small inline script, CSP-friendly), and produce the final
-//          HTML with the shared site head via landing.mjs renderPage.
+//          theme strip / filters / slideshow / fullscreen show controller,
+//          inline the shared brand CSS + THEME_INIT_JS head script, and
+//          produce the final HTML with the shared site head via
+//          landing.mjs renderPage.
 //   DEPENDS: pele (site devDependency, pinned to the app's version),
 //            ./gallery-theme-vars.mjs, ../.vitepress/landing.mjs,
-//            ../gallery/examples.mjs
-//   LINKS: .grace/changes/active/C-58 R-1/R-3/R-4; .grace/graph/features.xml
-//          M-053; .grace/verification/features.xml V-M-053;
-//          site/gallery/prototype/build.reference.mjs (the approved
-//          prototype this reproduces); site/landing/index.html (brand)
+//            ../gallery/examples.mjs, ../shared/brand.css,
+//            ../shared/theme-init.mjs (THEME_INIT_JS)
+//   LINKS: .grace/changes/active/C-58 R-1/R-3/R-4; .grace/changes/active/
+//          C-64 R-1/R-2/T-001; .grace/graph/features.xml M-053;
+//          .grace/verification/features.xml V-M-053; site/shared/brand.css
+//          (the single source of the look); site/landing/index.html (brand)
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
 //   GALLERY_PAGE - { path, title, description } for the shared head
 //   buildCards - examples + pele renders -> card HTML (+ build stats)
-//   buildGalleryTemplate - derived theme vars -> the page template
-//           (<!--SITE_HEAD--> placeholder + %BASE% tokens, like the landing)
+//   buildGalleryTemplate - derived theme vars -> the page template (SITE_HEAD + %BASE% tokens)
 //   renderGallery - settings (+ optional vars) -> final servable HTML
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.1.0 - 2026-10-18 orchestrator review: the page wears
+//   LAST_CHANGE: v2.0.0 - 2026-10-18 C-64 T-001: the gallery drops its
+//   near-miss palette (#F2EDE3/#131418/#FFD21F) for the shared brand
+//   tokens — site/shared/brand.css is inlined (fonts under
+//   %BASE%fonts/brand/), THEME_INIT_JS runs in <head> before CSS so a
+//   dark choice made in the docs paints dark here with no flash, and the
+//   folio gains the brand lockup + an appearance toggle on the same
+//   storage key.
+//   PREV: v1.1.0 - 2026-10-18 orchestrator review: the page wears
 //   the approved ¶ proof-sheet look (paper/ink, sun marker headline,
 //   Bricolage Grotesque + IBM Plex self-hosted under %BASE%fonts/gallery)
 //   per the user's choice; solid sticky bar (the oklch color-mix tinted it).
@@ -37,10 +46,12 @@
 //   site head (canonical/OG/analytics/consent) instead of a bare <title>.
 // END_CHANGE_SUMMARY
 
+import { readFileSync } from 'node:fs'
 import { render } from 'pele'
 import { EXAMPLES } from '../gallery/examples.mjs'
 import { deriveThemeVars, themeOrder, themeDisplayName } from './gallery-theme-vars.mjs'
 import { renderPage } from '../.vitepress/landing.mjs'
+import { THEME_INIT_JS } from '../shared/theme-init.mjs'
 
 const GROUPS = ['Process', 'Structure', 'Ideas', 'Plans', 'Data']
 
@@ -53,6 +64,14 @@ export const GALLERY_PAGE = {
 }
 
 const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+
+// The shared brand layer, inlined verbatim. Font urls point at the public
+// dir root ("/fonts/brand/..."); here they become %BASE% tokens so
+// renderPage substitutes the site base — the same rewrite Vite applies to
+// these urls when the docs theme imports the file.
+const brandCss = () =>
+  readFileSync(new URL('../shared/brand.css', import.meta.url), 'utf8')
+    .replace(/url\((['"])\/fonts\//g, 'url($1%BASE%fonts/')
 
 // The fence keyword a reader would type: the first bare directive line.
 const fenceKeyword = (code) =>
@@ -121,64 +140,67 @@ export function buildGalleryTemplate (vars = deriveThemeVars()) {
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Mark · Every diagram, in every theme</title>
-<!-- Shared head (canonical, Open Graph, favicon, analytics/consent) is
-     injected by site/.vitepress/landing.mjs renderPage; %BASE% below is
-     the site base path substituted at build/dev time. -->
+<!-- C-64 R-2: resolve the shared theme choice (docs storage key) before
+     any CSS, so a dark choice made in the docs paints dark here with no
+     flash. Shared head (canonical, OG, analytics/consent) is injected by
+     site/.vitepress/landing.mjs renderPage; %BASE% below is the site base
+     path substituted at build/dev time. -->
+<script>${THEME_INIT_JS}</script>
 <!--SITE_HEAD-->
-<link rel="preload" href="%BASE%fonts/gallery/BricolageGrotesque-800.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="%BASE%fonts/brand/BricolageGrotesque-800.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="%BASE%fonts/brand/IBMPlexSans-400.woff2" as="font" type="font/woff2" crossorigin>
 <style>
-/* Layout: the approved ¶ proof-sheet look (paper / ink / sun marker,
-   Bricolage + IBM Plex, self-hosted under site/public/fonts/gallery), then
-   a "stage" that wears the chosen Mark theme — the diagrams recolour live,
-   exactly as in the app. This is the C-35 refresh direction, adopted early. */
-@font-face{font-family:"Bricolage Grotesque";src:url("%BASE%fonts/gallery/BricolageGrotesque-800.woff2") format("woff2");font-weight:800;font-style:normal;font-display:swap}
-@font-face{font-family:"IBM Plex Sans";src:url("%BASE%fonts/gallery/IBMPlexSans-400.woff2") format("woff2");font-weight:400;font-style:normal;font-display:swap}
-@font-face{font-family:"IBM Plex Sans";src:url("%BASE%fonts/gallery/IBMPlexSans-500.woff2") format("woff2");font-weight:500;font-style:normal;font-display:swap}
-@font-face{font-family:"IBM Plex Sans";src:url("%BASE%fonts/gallery/IBMPlexSans-600.woff2") format("woff2");font-weight:600 700;font-style:normal;font-display:swap}
-@font-face{font-family:"IBM Plex Mono";src:url("%BASE%fonts/gallery/IBMPlexMono-500.woff2") format("woff2");font-weight:400 500;font-style:normal;font-display:swap}
-:root{--bg:#F2EDE3;--bg-2:#E7E0D2;--rule:#CFC6B4;--ink:#131418;--ink-2:#3D3A33;--ink-3:#5E584C;--brand:#FFD21F;--on-brand:#131418;--link:#131418;--sun:#FFD21F;
---display:"Bricolage Grotesque",ui-sans-serif,system-ui,sans-serif;--body:"IBM Plex Sans",ui-sans-serif,system-ui,sans-serif;--mono:"IBM Plex Mono",ui-monospace,"SF Mono",Menlo,monospace}
-@media (prefers-color-scheme:dark){:root{--bg:#17181C;--bg-2:#24252B;--rule:#34353B;--ink:#F2EDE3;--ink-2:#D2CCBF;--ink-3:#A39C8D;--link:#FFD21F;color-scheme:dark}}
+${brandCss()}
+</style>
+<style>
+/* Page chrome on the shared tokens: paper/ink/marker, Bricolage + Plex
+   (faces and dark-mode selectors all come from the inlined brand layer
+   above), then a "stage" that wears the chosen Mark theme — the diagrams
+   recolour live, exactly as in the app. */
 *,*::before,*::after{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--ink);font:400 16px/1.6 var(--body);-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+body{margin:0;background:var(--paper);color:var(--ink);font:400 16px/1.6 var(--body);-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
 .wrap{max-width:1240px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
 .skip{position:absolute;left:-9999px}
-.skip:focus{left:16px;top:12px;z-index:60;background:var(--ink);color:var(--bg);padding:8px 12px;border-radius:8px}
-a{color:inherit}
-.folio{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap;padding-block:22px 12px;border-bottom:1px solid var(--rule);font:500 13px/1.4 var(--mono);color:var(--ink-3)}
-.folio .brand{font-weight:700;color:var(--ink);text-decoration:none}
+.skip:focus{left:16px;top:12px;z-index:60;background:var(--ink);color:var(--paper);padding:8px 12px;border-radius:8px}
+.folio{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;padding-block:22px 12px;border-bottom:1px solid var(--rule);font:500 13px/1.4 var(--mono);color:var(--mute)}
+.folio .brand{display:inline-flex;align-items:center;gap:7px;font-family:var(--display);font-weight:800;letter-spacing:-.01em;color:var(--ink);text-decoration:none}
+.folio .brand img{display:block;width:22px;height:22px}
+.folio-r{display:flex;gap:16px;align-items:center}
 .folio nav{display:flex;gap:18px}
 .folio nav a{color:var(--ink-2);text-decoration:none}
 .folio nav a:hover{color:var(--ink)}
+.toggle{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50%;border:1px solid var(--rule);background:transparent;color:var(--ink-2);cursor:pointer;font-size:13px;line-height:1;padding:0}
+.toggle:hover{color:var(--ink);border-color:var(--mute)}
+.toggle .sun{display:none}
+:root.dark .toggle .sun,:root[data-theme="dark"] .toggle .sun{display:inline}
+:root.dark .toggle .moon,:root[data-theme="dark"] .toggle .moon{display:none}
 .hero{padding-block:clamp(40px,6vw,72px) 28px;display:grid;gap:16px}
 h1{margin:0;font:800 clamp(40px,7vw,88px)/.95 var(--display);letter-spacing:-.025em;text-wrap:balance;max-width:18ch}
-.hl{color:var(--ink);background:linear-gradient(transparent 58%,var(--sun) 58%,var(--sun) 90%,transparent 90%)}
-@media (prefers-color-scheme:dark){.hl{color:var(--sun);background:none}}
 .lede{margin:0;max-width:62ch;font-size:19px;color:var(--ink-2)}
-.lede code{font:500 .88em var(--mono);color:var(--ink);background:var(--bg-2);padding:2px 6px;border-radius:5px}
-.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);border-block:1px solid var(--rule);padding-block:12px}
-body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+.lede code{font:500 .88em var(--mono);color:var(--ink);background:var(--chip);padding:2px 6px;border-radius:5px}
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--paper);border-block:1px solid var(--rule);padding-block:12px}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--paper)}
 .bar .wrap{display:grid;gap:10px}
 .filters{display:flex;flex-wrap:wrap;gap:6px}
 .filters button{font:500 13px/1 var(--body);border:1px solid var(--rule);background:transparent;color:var(--ink-2);padding:8px 12px;border-radius:999px;cursor:pointer;transition:color .15s ease,border-color .15s ease}
-.filters button:hover{color:var(--ink);border-color:var(--ink-3)}
-.filters button[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.filters button:hover{color:var(--ink);border-color:var(--mute)}
+.filters button[aria-pressed="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
 .filters .n{font:500 11px var(--mono);opacity:.6;margin-left:4px}
 .themes{display:flex;align-items:center;gap:10px;min-width:0}
-.play{flex:none;display:inline-flex;align-items:center;gap:8px;font:600 13px/1 var(--body);padding:9px 14px;border-radius:999px;border:0;background:var(--brand);color:var(--on-brand);cursor:pointer}
+.play{flex:none;display:inline-flex;align-items:center;gap:8px;font:600 13px/1 var(--body);padding:9px 14px;border-radius:999px;border:0;background:var(--marker);color:var(--on-marker);cursor:pointer}
 .play .ic{width:10px;text-align:center}
 .play.ghost{background:transparent;color:var(--ink-2);border:1px solid var(--rule)}
-.play.ghost:hover{color:var(--ink);border-color:var(--ink-3)}
+.play.ghost:hover{color:var(--ink);border-color:var(--mute)}
 .strip{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding:2px;min-width:0;mask-image:linear-gradient(90deg,#000 92%,transparent)}
 .strip::-webkit-scrollbar{display:none}
 .chip{flex:none;display:inline-flex;align-items:center;gap:7px;font:500 13px/1 var(--body);padding:6px 11px 6px 6px;border-radius:999px;border:1px solid var(--rule);background:transparent;color:var(--ink-2);cursor:pointer;white-space:nowrap}
-.chip:hover{color:var(--ink);border-color:var(--ink-3)}
+.chip:hover{color:var(--ink);border-color:var(--mute)}
 .chip i{width:18px;height:18px;border-radius:50%;display:block}
-.chip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
-.filters button:focus-visible,.chip:focus-visible,.play:focus-visible,.copy:focus-visible,summary:focus-visible,.sh-x:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
-.stage{background:var(--t-page);padding-block:28px 64px;transition:background .25s}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.filters button:focus-visible,.chip:focus-visible,.play:focus-visible,.copy:focus-visible,summary:focus-visible,.sh-x:focus-visible,.toggle:focus-visible{outline:2px solid var(--marker);outline-offset:2px}
+.stage{background:var(--t-page,var(--card));padding-block:28px 64px;transition:background .25s}
 .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));grid-auto-flow:dense;gap:16px}
-.card{min-width:0;background:var(--t-page);border:1px solid color-mix(in srgb,var(--pele-fg) 14%,transparent);border-radius:14px;overflow:hidden;display:flex;flex-direction:column;color:var(--pele-fg)}
+.card{min-width:0;background:var(--t-page,var(--card));border:1px solid color-mix(in srgb,var(--pele-fg) 14%,transparent);border-radius:14px;overflow:hidden;display:flex;flex-direction:column;color:var(--pele-fg)}
 .card[hidden]{display:none}
 .card.wide{grid-column:1/-1}
 .card header{display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:14px 16px 10px}
@@ -192,9 +214,9 @@ summary{cursor:pointer;font:500 13px var(--body);color:var(--pele-muted);width:m
 .src pre{margin:0;background:var(--pele-surface-alt);color:var(--pele-fg);border-radius:8px;padding:14px;overflow-x:auto;font:400 12.5px/1.55 var(--mono)}
 .copy{position:absolute;top:8px;right:8px;font:500 12px var(--body);padding:5px 10px;border-radius:6px;border:1px solid color-mix(in srgb,var(--pele-fg) 20%,transparent);background:var(--pele-bg);color:var(--pele-fg);cursor:pointer}
 .empty{grid-column:1/-1;color:var(--pele-muted)}
-footer{padding-block:28px 40px;color:var(--ink-3);font-size:14px}
+footer{padding-block:28px 40px;color:var(--mute);font-size:14px}
 footer a{color:var(--link)}
-.show{position:fixed;inset:0;z-index:50;background:var(--t-page);color:var(--pele-fg);display:grid;grid-template-rows:auto 1fr auto;padding:max(20px,env(safe-area-inset-top,0px)) max(24px,env(safe-area-inset-right,0px)) max(20px,env(safe-area-inset-bottom,0px)) max(24px,env(safe-area-inset-left,0px));transition:background .3s}
+.show{position:fixed;inset:0;z-index:50;background:var(--t-page,var(--card));color:var(--pele-fg);display:grid;grid-template-rows:auto 1fr auto;padding:max(20px,env(safe-area-inset-top,0px)) max(24px,env(safe-area-inset-right,0px)) max(20px,env(safe-area-inset-bottom,0px)) max(24px,env(safe-area-inset-left,0px));transition:background .3s}
 .show[hidden]{display:none}
 .sh-top,.sh-bot{display:flex;align-items:baseline;justify-content:space-between;gap:16px}
 .sh-k{font:800 clamp(28px,4vw,56px)/1 var(--display);letter-spacing:-.02em}
@@ -204,7 +226,7 @@ footer a{color:var(--link)}
 .sh-stage .panel svg{width:100%;height:100%;max-width:100%;max-height:100%}
 .sh-t{font:500 14px var(--body);color:var(--pele-muted);white-space:nowrap}
 .sh-bar{flex:1;height:3px;background:color-mix(in srgb,var(--pele-fg) 14%,transparent);border-radius:2px;overflow:hidden}
-.sh-bar i{display:block;height:100%;width:0;background:var(--brand);transition:width .3s}
+.sh-bar i{display:block;height:100%;width:0;background:var(--marker);transition:width .3s}
 .sh-hint{font:500 12px var(--mono);color:var(--pele-muted);white-space:nowrap}
 .sh-x{position:absolute;top:max(14px,env(safe-area-inset-top,0px));right:max(14px,env(safe-area-inset-right,0px));width:36px;height:36px;border-radius:50%;border:1px solid color-mix(in srgb,var(--pele-fg) 20%,transparent);background:var(--pele-bg);color:var(--pele-fg);cursor:pointer;font-size:14px}
 @media (max-width:760px){.grid{grid-template-columns:minmax(0,1fr)}.lede{font-size:17px}.play .lb{display:none}.sh-hint{display:none}}
@@ -214,8 +236,11 @@ footer a{color:var(--link)}
 <body>
 <a class="skip" href="#grid">Skip to diagrams</a>
 <div class="wrap"><header class="folio">
-  <span><a class="brand" href="%BASE%">Mark</a> · Diagram gallery</span>
-  <nav aria-label="Site"><a href="%BASE%guide/">Docs</a><a href="https://github.com/xronocode/mark">GitHub</a></nav>
+  <span><a class="brand" href="%BASE%"><img src="%BASE%mark-icon.svg" alt="" width="22" height="22">Mark</a> · Diagram gallery</span>
+  <span class="folio-r">
+    <nav aria-label="Site"><a href="%BASE%diagrams/" aria-current="page">Diagrams</a><a href="%BASE%guide/">Docs</a><a href="%BASE%changelog">Changelog</a><a href="https://github.com/xronocode/mark">GitHub</a></nav>
+    <button type="button" id="appearance" class="toggle" aria-label="Toggle dark mode" aria-pressed="false"><span class="ic sun" aria-hidden="true">☀</span><span class="ic moon" aria-hidden="true">☾</span></button>
+  </span>
 </header></div>
 <div class="wrap"><section class="hero">
 <h1>Every diagram, <span class="hl">in every theme.</span></h1>
@@ -237,6 +262,7 @@ ${cards}<p class="empty" hidden>No diagrams in this group.</p></div></div><div c
 'use strict';
 var THEMES=${themeData};
 var stage=document.getElementById('stage'),strip=document.getElementById('strip'),play=document.getElementById('play');
+var root=document.documentElement;
 var ids=Object.keys(THEMES),cur=null,timer=null;
 function apply(id,scroll){var t=THEMES[id];if(!t)return;cur=id;
  for(var k in t)if(k.indexOf('--')===0)stage.style.setProperty(k,t[k]);
@@ -247,9 +273,21 @@ function stop(){if(timer){clearInterval(timer);timer=null}play.setAttribute('ari
 function go(){apply(ids[(ids.indexOf(cur)+1)%ids.length],true)}
 play.addEventListener('click',function(){if(timer){stop();return}go();timer=setInterval(go,1500);play.setAttribute('aria-pressed','true');play.querySelector('.ic').textContent='❚❚';play.querySelector('.lb').textContent='Pause';play.setAttribute('aria-label','Pause slideshow')});
 strip.querySelectorAll('.chip').forEach(function(b){b.addEventListener('click',function(){stop();apply(b.dataset.t,true)})});
-var start=matchMedia('(prefers-color-scheme: dark)').matches?'ink':'paper';
+// The page theme was resolved before first paint by the shared head script
+// (same storage key as the docs); start the diagrams on the matching
+// brand pair unless the visitor already picked a Mark theme here.
+var start=root.classList.contains('dark')?'ink':'paper';
 try{var s=localStorage.getItem('mark-gallery-theme');if(s&&THEMES[s])start=s}catch(e){}
 apply(start,true);
+// Appearance toggle: same storage key as the docs, applied immediately
+// (no flash), and the brand diagram pair follows when it is showing.
+var tgl=document.getElementById('appearance');
+tgl.setAttribute('aria-pressed',String(root.classList.contains('dark')));
+tgl.addEventListener('click',function(){var dark=!root.classList.contains('dark');
+ root.classList.toggle('dark',dark);root.setAttribute('data-theme',dark?'dark':'light');
+ tgl.setAttribute('aria-pressed',String(dark));
+ try{localStorage.setItem('vitepress-theme-appearance',dark?'dark':'light')}catch(e){}
+ if(cur==='paper'||cur==='ink')apply(dark?'ink':'paper',true)});
 document.querySelectorAll('.filters button').forEach(function(b){b.addEventListener('click',function(){var g=b.dataset.g;
  document.querySelectorAll('.filters button').forEach(function(x){x.setAttribute('aria-pressed',String(x===b))});
  var n=0;document.querySelectorAll('.card').forEach(function(c){var on=g==='all'||c.dataset.group===g;c.hidden=!on;if(on)n++});

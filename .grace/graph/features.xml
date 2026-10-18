@@ -2610,10 +2610,21 @@
         gallery renders site/gallery/examples.mjs through pele at build time
         into inline SVGs recoloured live by --pele-* variables derived from
         the app's own theme CSS via muya's buildPeleVariables
-        (site/gallery/theme-vars.json, regenerated on every build).
+        (site/gallery/theme-vars.json, regenerated on every build). Since
+        C-64 T-001 the site wears one brand: site/shared/brand.css is the
+        single token source (paper/ink/marker, light+dark, self-hosted
+        Bricolage/Plex faces under /fonts/brand/), the docs theme
+        (site/.vitepress/theme) extends DefaultTheme over it, and the
+        shared no-flash theme-init script keeps docs, gallery and landing
+        on one VitePress-storage-key choice.
       </Summary>
         <Path>site/.vitepress/config.mts</Path>
         <Path>site/.vitepress/landing.mjs</Path>
+        <Path>site/.vitepress/theme/index.ts</Path>
+        <Path>site/.vitepress/theme/custom.css</Path>
+        <Path>site/shared/brand.css</Path>
+        <Path>site/shared/theme-init.js</Path>
+        <Path>site/shared/theme-init.mjs</Path>
         <Path>site/scripts/build-gallery.mjs</Path>
         <Path>site/scripts/gallery-theme-vars.mjs</Path>
         <Path>site/scripts/check-dist.mjs</Path>
@@ -2621,6 +2632,7 @@
         <Path>site/gallery/theme-vars.json</Path>
         <Path>site/landing/index.html</Path>
         <Path>site/public/consent.js</Path>
+        <Path>site/public/mark-icon.svg</Path>
       <Dependencies></Dependencies>
       <VerificationRef>V-M-053</VerificationRef>
       <Interface>
@@ -2631,11 +2643,14 @@
         <fn-deriveThemeVars>app theme CSS files -> gallery theme table (16 --pele-* keys + page + dark per theme)</fn-deriveThemeVars>
         <fn-renderGallery>settings -> /diagrams/ page (build-time pele SVGs, theme strip, slideshow, fullscreen show)</fn-renderGallery>
         <fn-checkDist>fail the build on unresolved internal links, leftover tokens, or an incomplete gallery page</fn-checkDist>
+        <fn-THEME_INIT_JS>theme-init.js contents as a string — the no-flash head script shared by docs head config, the gallery and (later) the landing</fn-THEME_INIT_JS>
+        <var-brandCss>site/shared/brand.css tokens — the single source of the site look, imported by the docs theme and inlined into the gallery build</var-brandCss>
       </Interface>
       <ChangeRefs>
         <C-14/>
         <C-22/>
         <C-58/>
+        <C-64/>
       </ChangeRefs>
     </M-053>
     <M-054>
