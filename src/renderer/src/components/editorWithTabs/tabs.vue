@@ -12,11 +12,12 @@
           @click.middle="closeTab(file.id)"
           @contextmenu.prevent="handleContextMenu($event, file)"
         >
-          <!-- C-40 T-004: lock badge — the tab sits in the read-only
-               mode (locked via View › Lock Document or Finder-opened
-               reading view). -->
+          <!-- C-40 T-004: lock badge — only an explicit lock (View ›
+               Lock Document / tab menu). The Finder/CLI reading view
+               shows no badge: it ends with the first click, and a badge
+               on every externally opened tab read as «all locked». -->
           <chrome-icon
-            v-if="file.previewMode"
+            v-if="file.locked"
             name="lock"
             :size="11"
             class="tab-lock-badge"
@@ -51,12 +52,15 @@
 
 <script setup>
 // FILE: src/renderer/src/components/editorWithTabs/tabs.vue
-// VERSION: 1.5.0
+// VERSION: 1.6.0
 // START_CHANGE_SUMMARY
 //   - 2026-10-16 v1.5.0: C-51 T-002 — the tab context menu gains
 //     Pin/Unpin: TABS::pin-file resolves the tab pathname and toggles
 //     the persisted Pinned sidebar list (store/pinned); untitled tabs
 //     are a no-op.
+//   - 2026-10-18 v1.6.0: the lock badge marks an explicit lock only
+//     (tab.locked); the Finder/CLI reading view (previewMode) shows no
+//     badge — every externally opened tab used to look locked.
 //   - 2026-10-15 v1.4.0: C-38 T-006 N4 b/d — the close glyph, the
 //     unsaved marker dot and the new-tab plus render from the drawn
 //     chromeIcons set (the iconfont sprite is gone); the active-tab
