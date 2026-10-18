@@ -195,7 +195,7 @@
 
 <script setup>
 // FILE: src/renderer/src/components/titleBar/index.vue
-// VERSION: 2.1.2
+// VERSION: 2.1.3
 // START_MODULE_CONTRACT
 //   PURPOSE: Render the trimmed main-window title bar (sidebar toggle left, document title centre, theme/Share/guide right) with the document info popover and native file-path actions, window controls, and drag affordances.
 //   SCOPE: Renderer-side titlebar behavior: sidebar toggle, the C-40 T-002 document info popover (stats + folder/size/modified + Rename/Reveal/Copy path), the Win/Linux «?» Mark Guide entry, native title context menu, direct window controls, and WKWebView/macOS drag fallbacks.
@@ -231,6 +231,9 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-10-18 v2.1.3: the popover actions sit in one row of equal-width
+//     buttons (the popover grew 360 → 420 px; Russian labels wrapped to a
+//     second line).
 //   - 2026-10-18 v2.1.2: fix — a click on the empty title bar did not close
 //     the document info popover: drag.js stops mousedown propagation on
 //     drag-region targets. The outside-click closer moved to a window
@@ -917,7 +920,7 @@ img {
   top: calc(100% + 6px);
   left: 50%;
   transform: translateX(-50%);
-  width: 360px;
+  width: 420px;
   max-width: calc(100vw - 32px);
   box-sizing: border-box;
   padding: 16px;
@@ -973,13 +976,19 @@ img {
   white-space: nowrap;
 }
 .doc-info-actions {
-  display: flex;
+  /* One row of equal-width actions (two for untitled documents). */
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
   gap: 8px;
-  flex-wrap: wrap;
 }
 .doc-info-action {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-size: 12px;
-  padding: 5px 10px;
+  padding: 6px 8px;
   border-radius: 6px;
   border: none;
   background: transparent;
